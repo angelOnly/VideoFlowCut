@@ -113,6 +113,28 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return application.readProject(projectId);
   });
 
+  app.get("/api/projects/:projectId/story", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const state = application.readProject(projectId);
+    return { revision: state.revision.number, story: state.snapshot.story };
+  });
+
+  app.patch("/api/projects/:projectId/story", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      title: z.string().max(160).optional(),
+      summary: z.string().max(2_000).optional(),
+      beats: z.array(z.object({
+        title: z.string().max(160),
+        purpose: z.string().max(800),
+        semanticUnitIds: z.array(idSchema).optional(),
+        sceneIds: z.array(idSchema).optional()
+      })).max(40).optional()
+    }).refine((value) => value.title !== undefined || value.summary !== undefined || value.beats !== undefined, { message: "至少提供一个 Story 修改字段" }).parse(request.body);
+    return application.updateStory({ projectId, ...body });
+  });
+
   app.get("/api/projects/:projectId/revisions", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     return application.readRevisions(projectId);
@@ -223,6 +245,26 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return application.buildPresenterTimeline({ projectId, ...body });
   });
 
+  app.post("/api/projects/:projectId/timeline/align-presenter-to-speech", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema }).parse(request.body);
+    return application.alignPresenterToSpeech({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/actor-performances", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      timelineItemId: idSchema,
+      source: z.enum(["imported", "generated"]),
+      maskMode: z.enum(["alpha_asset", "embedded_alpha", "none"]),
+      maskAssetId: idSchema.optional(),
+      speechAssetId: idSchema.optional(),
+      note: z.string().max(500).optional()
+    }).parse(request.body);
+    return application.registerActorPerformance({ projectId, ...body });
+  });
+
   app.post("/api/projects/:projectId/scenes", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({
@@ -266,8 +308,28 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.post("/api/projects/:projectId/voice-synthesis", async (request, reply) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    const body = z.object({ voiceReferenceAssetId: idSchema, speechSegmentIds: z.array(idSchema).optional(), idempotencyKey: z.string().optional() }).parse(request.body);
+    const body = z.object({ voiceReferenceId: idSchema.optional(), voiceReferenceAssetId: idSchema.optional(), speechSegmentIds: z.array(idSchema).optional(), idempotencyKey: z.string().optional() })
+      .refine((value) => Boolean(value.voiceReferenceId || value.voiceReferenceAssetId), { message: "必须指定 VoiceReference" })
+      .parse(request.body);
     return reply.status(202).send(application.submitVoiceSynthesis({ projectId, ...body }));
+  });
+
+  app.post("/api/projects/:projectId/voice-references", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, assetId: idSchema, label: z.string().max(160).optional(), authorizationNote: z.string().max(500).optional(), usageNote: z.string().max(500).optional() }).parse(request.body);
+    return application.registerVoiceReference({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/speech-asset/rebuild-timeline", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema }).parse(request.body);
+    return application.rebuildSpeechAssetTimeline({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/previews", async (request, reply) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ revision: z.number().int().positive().optional(), fromFrame: z.number().int().nonnegative().optional(), toFrame: z.number().int().positive().optional(), idempotencyKey: z.string().optional() }).parse(request.body);
+    return reply.status(202).send(application.submitPreview({ projectId, ...body }));
   });
 
   app.post("/api/projects/:projectId/export", async (request, reply) => {

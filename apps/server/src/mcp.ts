@@ -98,6 +98,40 @@ server.registerTool("read_project", {
   try { return asText(application.readProject(projectIdFrom(project_id))); } catch (error) { return asError(error); }
 });
 
+server.registerTool("read_story", {
+  title: "读取 Story",
+  description: "读取与 Scene、Timeline 同一 Revision 的 StoryDocument。",
+  inputSchema: { project_id: z.string().optional() },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id }) => {
+  try {
+    const state = application.readProject(projectIdFrom(project_id));
+    return asText({ revision: state.revision.number, story: state.snapshot.story });
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("manage_story", {
+  title: "管理 Story",
+  description: "原子更新 Story 标题、摘要或 Beat；不会直接改写 Timeline。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    title: z.string().max(160).optional(),
+    summary: z.string().max(2_000).optional(),
+    beats: z.array(z.object({ title: z.string().max(160), purpose: z.string().max(800), semantic_unit_ids: z.array(z.string()).optional(), scene_ids: z.array(z.string()).optional() })).max(40).optional()
+  }
+}, async (input) => {
+  try {
+    return asText(application.updateStory({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      title: input.title,
+      summary: input.summary,
+      beats: input.beats?.map((beat) => ({ title: beat.title, purpose: beat.purpose, semanticUnitIds: beat.semantic_unit_ids, sceneIds: beat.scene_ids }))
+    }));
+  } catch (error) { return asError(error); }
+});
+
 server.registerTool("get_editor_url", {
   title: "获取工作台链接",
   description: "返回可定位到项目或对象的 Web 工作台 URL。",
@@ -237,11 +271,35 @@ server.registerTool("read_speech_asset", {
     const snapshot = application.readProject(projectIdFrom(project_id)).snapshot;
     return asText({
       scriptRevision: snapshot.script.revision,
-      voiceReferences: snapshot.assets.filter((asset) => asset.kind === "audio" && asset.status === "ready"),
+      voiceReferences: snapshot.voiceReferences,
       speechSegments: snapshot.speechSegments,
       speechSegmentAssets: snapshot.speechSegmentAssets,
       speechAsset: snapshot.speechAsset
     });
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("manage_voice_references", {
+  title: "登记 VoiceReference",
+  description: "将已就绪本地音频 Asset 作为 VoiceReference 登记；不会创建远端 Voice ID。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    asset_id: z.string().min(1),
+    label: z.string().max(160).optional(),
+    authorization_note: z.string().max(500).optional(),
+    usage_note: z.string().max(500).optional()
+  }
+}, async ({ project_id, base_revision_id, asset_id, label, authorization_note, usage_note }) => {
+  try {
+    return asText(application.registerVoiceReference({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id,
+      assetId: asset_id,
+      label,
+      authorizationNote: authorization_note,
+      usageNote: usage_note
+    }));
   } catch (error) { return asError(error); }
 });
 
@@ -257,19 +315,34 @@ server.registerTool("read_speech_timing", {
   } catch (error) { return asError(error); }
 });
 
+server.registerTool("rebuild_speech_timeline", {
+  title: "修复 SpeechAsset 时间线",
+  description: "为旧 Revision 将已就绪 SpeechAsset 重新写入 Dialogue 轨并恢复稳定字幕；不重新调用 OmniVoice。",
+  inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive() }
+}, async ({ project_id, base_revision_id }) => {
+  try {
+    return asText(application.rebuildSpeechAssetTimeline({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id
+    }));
+  } catch (error) { return asError(error); }
+});
+
 server.registerTool("submit_voice_synthesis", {
   title: "提交段级声音合成",
-  description: "用本地 VoiceReference 加当前 SpeechSegment 文本调用 OmniVoice；返回可跟踪 Job。",
+  description: "用已登记的本地 VoiceReference 加当前 SpeechSegment 文本调用 OmniVoice；返回可跟踪 Job。",
   inputSchema: {
     project_id: z.string().optional(),
-    voice_reference_asset_id: z.string().min(1),
+    voice_reference_id: z.string().min(1).optional(),
+    voice_reference_asset_id: z.string().min(1).optional(),
     speech_segment_ids: z.array(z.string()).optional(),
     idempotency_key: z.string().optional()
   }
-}, async ({ project_id, voice_reference_asset_id, speech_segment_ids, idempotency_key }) => {
+}, async ({ project_id, voice_reference_id, voice_reference_asset_id, speech_segment_ids, idempotency_key }) => {
   try {
     return asText(application.submitVoiceSynthesis({
       projectId: projectIdFrom(project_id),
+      voiceReferenceId: voice_reference_id,
       voiceReferenceAssetId: voice_reference_asset_id,
       speechSegmentIds: speech_segment_ids,
       idempotencyKey: idempotency_key
@@ -295,6 +368,59 @@ server.registerTool("create_presenter_timeline", {
   inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), asset_ids: z.array(z.string()).min(1), scene_size: z.number().int().min(1).max(8).optional() }
 }, async ({ project_id, base_revision_id, asset_ids, scene_size }) => {
   try { return asText(application.buildPresenterTimeline({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, assetIds: asset_ids, sceneSize: scene_size })); } catch (error) { return asError(error); }
+});
+
+server.registerTool("align_presenter_to_speech", {
+  title: "按旁白收齐 Presenter 主线",
+  description: "将未被 direct_override 保护的 Presenter 主画面裁短到当前 SpeechAsset；遇到缺画面或既有 Cue 时明确拒绝自动改写。",
+  inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive() }
+}, async ({ project_id, base_revision_id }) => {
+  try {
+    return asText(application.alignPresenterToSpeech({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("read_actor_performances", {
+  title: "读取人物表演",
+  description: "读取绑定 Timeline Item 的导入/生成型人物表演、Mask 与版本关系。",
+  inputSchema: { project_id: z.string().optional() },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id }) => {
+  try {
+    const snapshot = application.readProject(projectIdFrom(project_id)).snapshot;
+    return asText(snapshot.actorPerformances);
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("manage_actor_performance", {
+  title: "登记人物表演与 Mask",
+  description: "将 Actor / A-roll Item 绑定为人物表演；无 Mask 时显式使用前景降级，绝不伪造抠像。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    timeline_item_id: z.string().min(1),
+    source: z.enum(["imported", "generated"]),
+    mask_mode: z.enum(["alpha_asset", "embedded_alpha", "none"]),
+    mask_asset_id: z.string().optional(),
+    speech_asset_id: z.string().optional(),
+    note: z.string().max(500).optional()
+  }
+}, async (input) => {
+  try {
+    return asText(application.registerActorPerformance({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      timelineItemId: input.timeline_item_id,
+      source: input.source,
+      maskMode: input.mask_mode,
+      maskAssetId: input.mask_asset_id,
+      speechAssetId: input.speech_asset_id,
+      note: input.note
+    }));
+  } catch (error) { return asError(error); }
 });
 
 server.registerTool("browse_scene_types", {
@@ -415,6 +541,20 @@ server.registerTool("read_quality_report", {
     const state = application.readProject(projectIdFrom(project_id));
     return asText(evaluateQuality(state.snapshot, state.revision.number));
   } catch (error) { return asError(error); }
+});
+
+server.registerTool("render_preview_range", {
+  title: "渲染局部预览",
+  description: "固定指定 Revision 与帧范围，提交可追踪的 Remotion 局部预览任务。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    revision: z.number().int().positive().optional(),
+    from_frame: z.number().int().nonnegative().optional(),
+    to_frame: z.number().int().positive().optional(),
+    idempotency_key: z.string().optional()
+  }
+}, async ({ project_id, revision, from_frame, to_frame, idempotency_key }) => {
+  try { return asText(application.submitPreview({ projectId: projectIdFrom(project_id), revision, fromFrame: from_frame, toFrame: to_frame, idempotencyKey: idempotency_key })); } catch (error) { return asError(error); }
 });
 
 server.registerTool("submit_export", {

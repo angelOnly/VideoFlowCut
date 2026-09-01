@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type {
   Asset,
+  ActorMaskMode,
+  ActorPerformance,
+  ActorPerformanceSource,
   AssetKind,
   CreativeBrief,
   EffectCue,
@@ -11,10 +14,12 @@ import type {
   Scene,
   SceneType,
   SemanticUnit,
+  StoryDocument,
   SpeechSegment,
   TimelineDocument,
   TimelineItem,
-  TimelineTrack
+  TimelineTrack,
+  VoiceReference
 } from "@videocut/contracts";
 import { DEFAULT_TRACKS } from "@videocut/contracts";
 
@@ -53,6 +58,10 @@ export function createTimeline(fps = 24, width = 768, height = 1344): TimelineDo
   return { fps, width, height, durationInFrames: 0, tracks, items: [], captions: [] };
 }
 
+export function createStoryDocument(name: string, createdAt = now()): StoryDocument {
+  return { id: createId("story"), title: name, summary: "", beats: [], updatedAt: createdAt };
+}
+
 export function createProjectSnapshot(input: {
   projectId: string;
   name: string;
@@ -74,12 +83,15 @@ export function createProjectSnapshot(input: {
       createdAt,
       updatedAt: createdAt
     },
+    story: createStoryDocument(input.name, createdAt),
     assets: [],
+    voiceReferences: [],
     transcripts: [],
     semanticUnits: [],
     script: { semanticUnitIds: [], speechSegmentIds: [], revision: 0 },
     speechSegments: [],
     speechSegmentAssets: [],
+    actorPerformances: [],
     scenes: [],
     effectCues: [],
     timeline: createTimeline(24, isPortrait ? 768 : 1920, isPortrait ? 1344 : 1080),
@@ -237,6 +249,52 @@ export function createEffectCue(input: {
     intensity: 0.6,
     status: "ready",
     note: input.note ?? ""
+  };
+}
+
+export function createActorPerformance(input: {
+  timelineItemId: Id;
+  source: ActorPerformanceSource;
+  maskMode: ActorMaskMode;
+  maskAssetId?: Id;
+  speechAssetId?: Id;
+  scriptRevision?: number;
+  note?: string;
+}): ActorPerformance {
+  return {
+    id: createId("actor_performance"),
+    timelineItemId: input.timelineItemId,
+    source: input.source,
+    maskMode: input.maskMode,
+    maskAssetId: input.maskAssetId,
+    speechAssetId: input.speechAssetId,
+    scriptRevision: input.scriptRevision,
+    status: "ready",
+    note: input.note ?? "",
+    createdAt: now()
+  };
+}
+
+export function createVoiceReference(input: {
+  assetId: Id;
+  label: string;
+  authorizationNote: string;
+  usageNote: string;
+  recommendedRange: { startMs: number; endMs: number };
+  quality: VoiceReference["quality"];
+  usable: boolean;
+}): VoiceReference {
+  return {
+    id: createId("voice_reference"),
+    assetId: input.assetId,
+    label: input.label,
+    source: "local_asset",
+    authorizationNote: input.authorizationNote,
+    usageNote: input.usageNote,
+    recommendedRange: input.recommendedRange,
+    quality: input.quality,
+    usable: input.usable,
+    createdAt: now()
   };
 }
 

@@ -1,0 +1,4 @@
+
+> video-cut@0.1.0 render-worker
+> tsx apps/render-worker/src/index.ts
+

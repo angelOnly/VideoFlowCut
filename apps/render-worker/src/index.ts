@@ -2,17 +2,18 @@ import { join } from "node:path";
 import { createApplication, type EditingApplication } from "@videocut/application";
 import { runOneQueuedJob, type JobProcessor } from "@videocut/job-runtime";
 import type { JobKind } from "@videocut/contracts";
-import { RevisionRenderer, runExportJob } from "./exporter.js";
+import { RevisionRenderer, runExportJob, runPreviewJob } from "./exporter.js";
 
 const workspaceRoot = process.env.VIDEOCUT_WORKSPACE ?? join(process.cwd(), "workspace");
 let defaultApplication: EditingApplication | undefined;
 const getDefaultApplication = () => (defaultApplication ??= createApplication(workspaceRoot));
-export const RENDER_JOB_KINDS: JobKind[] = ["export"];
+export const RENDER_JOB_KINDS: JobKind[] = ["preview", "export"];
 
 export function createRenderJobProcessor(app: EditingApplication, renderer = new RevisionRenderer()): JobProcessor {
   return async (job) => {
-    if (job.kind !== "export") throw new Error(`任务类型 ${job.kind} 不属于 Render Worker`);
-    return runExportJob(app, job, renderer);
+    if (job.kind === "preview") return runPreviewJob(app, job, renderer);
+    if (job.kind === "export") return runExportJob(app, job, renderer);
+    throw new Error(`任务类型 ${job.kind} 不属于 Render Worker`);
   };
 }
 

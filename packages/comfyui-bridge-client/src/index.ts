@@ -52,13 +52,39 @@ export interface BridgeRun {
   outputs: BridgeOutput[];
 }
 
+export interface BridgeRunRequest {
+  fieldValues: Record<string, unknown>;
+  files?: Array<{ slot: BridgeItemSlot; path: string; mime?: string }>;
+}
+
+export interface BridgeRunSubmission {
+  workflow: BridgeWorkflow;
+  run: BridgeRun;
+  request: BridgeRunRequest;
+  schemaRetryCount: number;
+}
+
 export class BridgeError extends Error {
-  constructor(message: string, public readonly status?: number, public readonly body?: unknown) {
+  constructor(message: string, public readonly status?: number, public readonly body?: unknown, public readonly code = "BRIDGE_HTTP_ERROR") {
     super(message);
+    this.name = "BridgeError";
   }
 }
 
-export class WorkflowUnavailableError extends BridgeError {}
+export class WorkflowUnavailableError extends BridgeError {
+  constructor(message: string, status?: number, body?: unknown) {
+    super(message, status, body, "WORKFLOW_UNAVAILABLE");
+    this.name = "WorkflowUnavailableError";
+  }
+}
+
+/** ComfyUI 重启后旧 run_id 可能不存在；调用方可据此提示重新提交，而不是误报普通网络错误。 */
+export class BridgeRunLostError extends BridgeError {
+  constructor(public readonly runId: string, body?: unknown) {
+    super(`Bridge Run 已不可查询：${runId}。ComfyUI 可能已重启；本地 Job 保留了请求摘要，可据此重新提交。`, 404, body, "BRIDGE_RUN_LOST");
+    this.name = "BridgeRunLostError";
+  }
+}
 
 const ensureNoTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 
@@ -92,14 +118,15 @@ export class ComfyUIBridgeClient {
   }
 
   async getRun(runId: string): Promise<BridgeRun> {
-    return this.requestJson<BridgeRun>(`/runs/${encodeURIComponent(runId)}`);
+    try {
+      return await this.requestJson<BridgeRun>(`/runs/${encodeURIComponent(runId)}`);
+    } catch (error) {
+      if (error instanceof BridgeError && error.status === 404) throw new BridgeRunLostError(runId, error.body);
+      throw error;
+    }
   }
 
-  async createRun(input: {
-    workflow: BridgeWorkflow;
-    fieldValues: Record<string, unknown>;
-    files?: Array<{ slot: BridgeItemSlot; path: string; mime?: string }>;
-  }): Promise<BridgeRun> {
+  async createRun(input: BridgeRunRequest & { workflow: BridgeWorkflow }): Promise<BridgeRun> {
     const path = `/workflows/${encodeURIComponent(input.workflow.id)}/runs`;
     const request = { schemaVersion: input.workflow.schemaVersion, fieldValues: input.fieldValues };
     if (!input.files?.length) {
@@ -120,14 +147,14 @@ export class ComfyUIBridgeClient {
 
   async createRunWithSchemaRetry(
     workflowId: string,
-    buildRequest: (workflow: BridgeWorkflow) => Promise<{ fieldValues: Record<string, unknown>; files?: Array<{ slot: BridgeItemSlot; path: string; mime?: string }> }>
-  ): Promise<{ workflow: BridgeWorkflow; run: BridgeRun }> {
+    buildRequest: (workflow: BridgeWorkflow) => Promise<BridgeRunRequest>
+  ): Promise<BridgeRunSubmission> {
     let workflow = await this.getWorkflow(workflowId);
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
         const request = await buildRequest(workflow);
         const run = await this.createRun({ workflow, ...request });
-        return { workflow, run };
+        return { workflow, run, request, schemaRetryCount: attempt };
       } catch (error) {
         if (!(error instanceof BridgeError) || error.status !== 409 || attempt === 1) throw error;
         workflow = await this.getWorkflow(workflowId);
@@ -144,17 +171,17 @@ export class ComfyUIBridgeClient {
       const run = await this.getRun(runId);
       options?.onUpdate?.(run);
       if (run.status === "succeeded") return run;
-      if (run.status === "failed") throw new BridgeError(`Bridge 任务失败：${run.error ?? "未知错误"}`, undefined, run);
+      if (run.status === "failed") throw new BridgeError(`Bridge 任务失败：${run.error ?? "未知错误"}`, undefined, run, "BRIDGE_RUN_FAILED");
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
     }
-    throw new BridgeError(`等待 Bridge 任务超时：${runId}`);
+    throw new BridgeError(`等待 Bridge 任务超时：${runId}`, undefined, undefined, "BRIDGE_RUN_TIMEOUT");
   }
 
   async downloadOutput(output: BridgeOutput, targetPath: string): Promise<void> {
-    if (!output.downloadUrl) throw new BridgeError("输出缺少 downloadUrl");
+    if (!output.downloadUrl) throw new BridgeError("输出缺少 downloadUrl", undefined, output, "MISSING_DOWNLOAD_URL");
     const url = output.downloadUrl.startsWith("http") ? output.downloadUrl : `${this.serverBaseUrl}${output.downloadUrl}`;
     const response = await fetch(url);
-    if (!response.ok) throw new BridgeError(`下载输出失败：HTTP ${response.status}`, response.status);
+    if (!response.ok) throw new BridgeError(`下载输出失败：HTTP ${response.status}`, response.status, undefined, "OUTPUT_DOWNLOAD_FAILED");
     await writeFile(targetPath, Buffer.from(await response.arrayBuffer()));
   }
 
@@ -177,7 +204,7 @@ export class ComfyUIBridgeClient {
     const body = contentType.includes("application/json") ? await response.json().catch(() => undefined) : await response.text().catch(() => undefined);
     if (!response.ok) {
       const detail = typeof body === "object" && body && "error" in body ? String((body as { error?: unknown }).error) : undefined;
-      throw new BridgeError(`Bridge 请求失败：HTTP ${response.status}${detail ? `，${detail}` : ""}`, response.status, body);
+      throw new BridgeError(`Bridge 请求失败：HTTP ${response.status}${detail ? `，${detail}` : ""}`, response.status, body, "BRIDGE_HTTP_ERROR");
     }
     return body as T;
   }

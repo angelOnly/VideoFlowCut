@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
-import type { Asset, EffectCue, ProjectSnapshot, Scene, TimelineItem } from "@videocut/contracts";
+import { EFFECT_TYPES, type Asset, type EffectCue, type ProjectSnapshot, type Scene, type TimelineItem } from "@videocut/contracts";
 import { ProjectComposition, mediaUrl } from "@videocut/remotion";
 import { API_BASE, api, type ProjectState } from "./api";
 
-type Panel = "assets" | "script" | "scenes" | "captions" | "jobs";
+type Panel = "assets" | "script" | "audio" | "actors" | "scenes" | "captions" | "jobs";
 type Selection = { kind: "asset" | "scene" | "item" | "cue"; id: string } | undefined;
 type EditorFocusQuery = { sceneId?: string; itemId?: string; effectCueId?: string; frame?: number };
 
 const panelMeta: Array<{ id: Panel; label: string; icon: string }> = [
   { id: "assets", label: "素材", icon: "▦" },
   { id: "script", label: "文字稿", icon: "¶" },
+  { id: "audio", label: "声音", icon: "♬" },
+  { id: "actors", label: "人物", icon: "◉" },
   { id: "scenes", label: "场景", icon: "◇" },
   { id: "captions", label: "字幕", icon: "CC" },
   { id: "jobs", label: "任务 / QC", icon: "✓" }
@@ -23,6 +25,21 @@ const effectTrackNameByLayer: Record<EffectCue["layer"], string> = {
   fullscreen: "Cutaway / Fullscreen"
 };
 
+// 每种效果使用固定图层，避免 Web 端再次维护一套效果布局规则。
+const effectLayerByType: Record<EffectCue["type"], EffectCue["layer"]> = {
+  MetricBackdrop: "rear",
+  ProductFan: "front",
+  GlowCTA: "front",
+  PortfolioWall: "front",
+  CommentCloud: "front",
+  EvidenceCard: "front",
+  CameraPunch: "actor",
+  FullScreenMeme: "fullscreen",
+  DeviceShowcase: "front",
+  ContentCarousel: "front",
+  EndCard: "fullscreen"
+};
+
 const formatDuration = (frames: number, fps: number) => `${(frames / fps).toFixed(1)} 秒`;
 const formatTimecode = (frame: number, fps: number) => {
   const seconds = Math.floor(frame / fps);
@@ -30,7 +47,7 @@ const formatTimecode = (frame: number, fps: number) => {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}:${String(frames).padStart(2, "0")}`;
 };
 const statusText = (status: string) => ({ queued: "排队中", analyzing: "分析中", ready: "已就绪", failed: "失败", running: "运行中", succeeded: "完成", cancelled: "已取消", unknown: "未知", missing: "缺失", pending: "待生成", stale: "需复核" }[status] ?? status);
-const assetIcon = (asset: Asset) => asset.kind === "video" ? "▶" : asset.kind === "audio" || asset.kind === "speech" ? "♬" : "▧";
+const assetIcon = (asset: Asset) => asset.kind === "video" || asset.kind === "actor_video" ? "▶" : asset.kind === "audio" || asset.kind === "speech" ? "♬" : "▧";
 
 function readEditorFocus(): EditorFocusQuery {
   const params = new URLSearchParams(window.location.search);
@@ -47,13 +64,13 @@ function readEditorFocus(): EditorFocusQuery {
 function useProjectId(): [string | undefined, (projectId: string | undefined) => void] {
   const initial = new URLSearchParams(window.location.search).get("projectId") ?? undefined;
   const [projectId, setProjectId] = useState<string | undefined>(initial);
-  const update = (next: string | undefined) => {
+  const update = useCallback((next: string | undefined) => {
     setProjectId(next);
     const url = new URL(window.location.href);
     if (next) url.searchParams.set("projectId", next);
     else url.searchParams.delete("projectId");
     window.history.replaceState({}, "", url);
-  };
+  }, []);
   return [projectId, update];
 }
 
@@ -75,6 +92,10 @@ export function App() {
   const playerRef = useRef<PlayerRef>(null);
   const initialFocus = useRef<EditorFocusQuery>(readEditorFocus());
   const initialFocusApplied = useRef(false);
+  const hasPendingWork = Boolean(
+    state?.snapshot.assets.some((asset) => asset.status === "queued" || asset.status === "analyzing")
+    || jobs.some((job) => job.status === "queued" || job.status === "running")
+  );
 
   const load = useCallback(async (id: string) => {
     const [nextState, nextQuality, nextJobs, nextRevisions] = await Promise.all([api.project(id), api.quality(id), api.jobs(id), api.revisions(id)]);
@@ -107,6 +128,16 @@ export function App() {
     source.onerror = () => source.close();
     return () => { window.clearTimeout(timer); source.close(); };
   }, [projectId, load]);
+
+  /**
+   * Server 与 Worker 可独立运行，Worker 的内存事件无法跨进程推给当前 Web Server。
+   * 仅在存在未完成任务时轮询读回，任务结束后自动停止，保证素材和导出状态不会卡在旧快照。
+   */
+  useEffect(() => {
+    if (!projectId || !hasPendingWork) return;
+    const timer = window.setInterval(() => void load(projectId).catch((error) => setMessage(error.message)), 1_500);
+    return () => window.clearInterval(timer);
+  }, [projectId, hasPendingWork, load]);
 
   useEffect(() => {
     if (!state) return;
@@ -192,11 +223,23 @@ export function App() {
   const selectedCue = selection?.kind === "cue" ? snapshot?.effectCues.find((cue) => cue.id === selection.id) : undefined;
   const activeScene = useMemo(() => snapshot?.scenes.find((scene) => scene.startFrame <= playhead && playhead < scene.endFrame), [snapshot, playhead]);
 
-  const createProject = () => act("创建项目", async () => {
-    const created = await api.createProject(newProjectName.trim() || "未命名项目");
-    setProjectId(created.snapshot.project.id);
-    setState(created);
-  });
+  const createProject = async () => {
+    try {
+      setBusy(true);
+      setMessage("创建项目…");
+      const created = await api.createProject(newProjectName.trim() || "未命名项目");
+      const createdProjectId = created.snapshot.project.id;
+      setProjectId(createdProjectId);
+      // 新建后直接读回新项目，避免顶部入口仍短暂显示旧项目状态。
+      await load(createdProjectId);
+      await refreshProjects();
+      setMessage("创建项目完成");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (!snapshot) {
     return (
@@ -213,23 +256,30 @@ export function App() {
     );
   }
 
-  const videoAssets = snapshot.assets.filter((asset) => asset.kind === "video" && asset.status === "ready");
+  const videoAssets = snapshot.assets.filter((asset) => (asset.kind === "video" || asset.kind === "actor_video") && asset.status === "ready");
   const selectedForTimeline = videoAssets.map((asset) => asset.id);
   const blockingIssues = quality?.issues.filter((issue) => issue.level === "blocking") ?? [];
 
   return (
-    <main className="workbench">
+    <main className="workbench" data-testid="workbench" data-project-id={snapshot.project.id} data-revision={currentRevision}>
       <header className="topbar">
         <div className="brand"><span className="brand-dot" />VideoCut <span className="brand-sub">创作工作台</span></div>
         <select aria-label="选择项目" value={projectId} onChange={(event) => setProjectId(event.target.value)}>
           {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
         </select>
-        <strong data-testid="project-name" className="project-name">{snapshot.project.name}</strong>
+        <input className="new-project-input" aria-label="新建项目名称" value={newProjectName} onChange={(event) => setNewProjectName(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void createProject()} />
+        <button data-testid="create-project-button" onClick={() => void createProject()} disabled={busy}>新建</button>
+        <strong data-testid="project-name" data-object-id={snapshot.project.id} className="project-name">{snapshot.project.name}</strong>
         <span className="save-state">● 已保存</span>
         <div className="top-spacer" />
         <span className="revision-badge" data-testid="revision">R{currentRevision}</span>
         <span className="canvas-summary">{snapshot.timeline.width}×{snapshot.timeline.height} · {snapshot.timeline.fps} fps · {formatDuration(snapshot.timeline.durationInFrames, snapshot.timeline.fps)}</span>
         <button onClick={() => playerRef.current?.toggle()} disabled={!snapshot.timeline.durationInFrames}>播放</button>
+        <button onClick={() => void act("提交局部预览", () => api.preview(snapshot.project.id, {
+          revision: currentRevision,
+          fromFrame: Math.max(0, playhead - snapshot.timeline.fps * 2),
+          toFrame: Math.min(snapshot.timeline.durationInFrames, Math.max(playhead + snapshot.timeline.fps * 3, snapshot.timeline.fps))
+        }))} disabled={busy || !snapshot.timeline.durationInFrames}>局部预览</button>
         <button className="primary" data-testid="export-button" onClick={() => void act("提交导出", () => api.export(snapshot.project.id, currentRevision))} disabled={busy || blockingIssues.length > 0}>导出</button>
       </header>
 
@@ -254,10 +304,22 @@ export function App() {
             onImportPath={() => void act("导入本地素材", () => api.importPath(snapshot.project.id, currentRevision, localPath))}
             onUpload={(files) => void act("上传素材", () => api.upload(snapshot.project.id, currentRevision, files))}
             onTranscribe={(assetId) => void act("提交转写", () => api.transcribe(snapshot.project.id, assetId))}
+            onRegisterVoiceReference={(assetId) => void act("登记 VoiceReference", () => api.registerVoiceReference(snapshot.project.id, currentRevision, assetId))}
+            onSubmitVoiceSynthesis={(voiceReferenceId) => void act("提交 OmniVoice 旁白", () => api.voiceSynthesis(snapshot.project.id, voiceReferenceId))}
+            onRebuildSpeechTimeline={() => void act("修复 SpeechAsset 时间线", () => api.rebuildSpeechTimeline(snapshot.project.id, currentRevision))}
+            onAlignPresenterToSpeech={() => void act("按旁白收齐 Presenter 主线", () => api.alignPresenterToSpeech(snapshot.project.id, currentRevision))}
             onBuildTimeline={() => void act("建立 Presenter 主线", () => api.buildTimeline(snapshot.project.id, currentRevision, selectedForTimeline))}
             onToggleUnit={(unitId) => setSelectedUnitIds((old) => old.includes(unitId) ? old.filter((id) => id !== unitId) : [...old, unitId])}
             onApplyScript={() => void act("应用 Script", () => api.applyScript(snapshot.project.id, currentRevision, selectedUnitIds))}
-            onAddEffect={(scene) => void act("添加效果", () => api.createEffect(snapshot.project.id, { baseRevision: currentRevision, sceneId: scene.id, type: "MetricBackdrop", layer: "rear", startFrame: scene.startFrame, endFrame: Math.min(scene.endFrame, scene.startFrame + Math.max(48, snapshot.timeline.fps * 3)), note: "关键数字" }))}
+            onRegisterActor={(timelineItemId, maskAssetId) => void act("登记人物表演", () => api.registerActorPerformance(snapshot.project.id, {
+              baseRevision: currentRevision,
+              timelineItemId,
+              source: "imported",
+              maskMode: maskAssetId ? "alpha_asset" : "none",
+              maskAssetId,
+              note: "从工作台导入的人物主画面"
+            }))}
+            onAddEffect={(scene, type) => void act("添加效果", () => api.createEffect(snapshot.project.id, { baseRevision: currentRevision, sceneId: scene.id, type, layer: effectLayerByType[type], startFrame: scene.startFrame, endFrame: Math.min(scene.endFrame, scene.startFrame + Math.max(48, snapshot.timeline.fps * 3)), note: `${type}：由工作台添加` }))}
             onRetryJob={(jobId) => void act("重试任务", () => api.retryJob(jobId))}
             onRollback={(revision) => void act("回退 Revision", () => api.rollback(snapshot.project.id, revision, currentRevision))}
           />
@@ -295,7 +357,7 @@ export function App() {
           </div>
         </section>
 
-        <aside className="inspector" data-testid="inspector">
+        <aside className="inspector" data-testid="inspector" data-selected-kind={selection?.kind ?? "none"} data-selected-id={selection?.id ?? ""}>
           <Inspector
             snapshot={snapshot}
             selection={selection}
@@ -334,10 +396,15 @@ interface PanelContentProps {
   onImportPath: () => void;
   onUpload: (files: File[]) => void;
   onTranscribe: (assetId: string) => void;
+  onRegisterVoiceReference: (assetId: string) => void;
+  onSubmitVoiceSynthesis: (voiceReferenceId: string) => void;
+  onRebuildSpeechTimeline: () => void;
+  onAlignPresenterToSpeech: () => void;
   onBuildTimeline: () => void;
   onToggleUnit: (unitId: string) => void;
   onApplyScript: () => void;
-  onAddEffect: (scene: Scene) => void;
+  onRegisterActor: (timelineItemId: string, maskAssetId?: string) => void;
+  onAddEffect: (scene: Scene, type: EffectCue["type"]) => void;
   onRetryJob: (jobId: string) => void;
   onRollback: (revision: number) => void;
 }
@@ -345,16 +412,16 @@ interface PanelContentProps {
 function PanelContent(props: PanelContentProps) {
   const { panel, snapshot } = props;
   if (panel === "assets") {
-    const readyVideoCount = snapshot.assets.filter((asset) => asset.kind === "video" && asset.status === "ready").length;
+    const readyVideoCount = snapshot.assets.filter((asset) => (asset.kind === "video" || asset.kind === "actor_video") && asset.status === "ready").length;
     return <>
       <PanelTitle title="素材库" meta={`${snapshot.assets.length} 个素材`} />
       <label className="upload-button">上传媒体<input aria-label="上传媒体" type="file" accept="video/*,audio/*,image/*" multiple hidden onChange={(event) => event.target.files && props.onUpload([...event.target.files])} /></label>
       <div className="path-import"><input aria-label="本地素材路径" placeholder="本地素材绝对路径" value={props.localPath} onChange={(event) => props.setLocalPath(event.target.value)} /><button onClick={props.onImportPath} disabled={!props.localPath.trim()}>导入</button></div>
       <button className="wide-button" onClick={props.onBuildTimeline} disabled={readyVideoCount === 0}>用 {readyVideoCount} 条视频建立 Presenter 主线</button>
-      <div className="asset-list">{snapshot.assets.map((asset) => <article key={asset.id} className="asset-card" data-testid={`asset-${asset.id}`} onClick={() => props.onSelect({ kind: "asset", id: asset.id })}>
+      <div className="asset-list">{snapshot.assets.map((asset) => <article key={asset.id} className="asset-card" data-testid={`asset-${asset.id}`} data-object-id={asset.id} aria-label={`素材：${asset.name}`} onClick={() => props.onSelect({ kind: "asset", id: asset.id })}>
         {asset.metadata?.thumbnailPath ? <img src={mediaUrl(snapshot, API_BASE, asset.metadata.thumbnailPath)} alt="素材缩略图" /> : <div className="asset-placeholder">{assetIcon(asset)}</div>}
         <div className="asset-copy"><strong>{asset.name}</strong><small>{asset.metadata?.durationMs ? `${(asset.metadata.durationMs / 1000).toFixed(1)} 秒` : "等待媒体分析"}</small><span className={`status status-${asset.status}`}>{statusText(asset.status)}</span></div>
-        {asset.kind === "video" && asset.status === "ready" && asset.metadata?.hasAudio && <button className="compact" onClick={(event) => { event.stopPropagation(); props.onTranscribe(asset.id); }}>转写</button>}
+        {(asset.kind === "video" || asset.kind === "actor_video") && asset.status === "ready" && asset.metadata?.hasAudio && <button className="compact" onClick={(event) => { event.stopPropagation(); props.onTranscribe(asset.id); }}>转写</button>}
       </article>)}</div>
     </>;
   }
@@ -362,36 +429,126 @@ function PanelContent(props: PanelContentProps) {
     return <>
       <PanelTitle title="文字稿 / Script" meta={`Script R${snapshot.script.revision}`} />
       {snapshot.transcripts.length === 0 && <p className="empty-panel">选择有声素材后提交 FunASR 转写。当前 API 只提供全文，不能凭字数伪造词级时间。</p>}
-      <div className="script-list">{snapshot.semanticUnits.sort((a, b) => a.order - b.order).map((unit) => <label className={props.selectedUnitIds.includes(unit.id) ? "semantic-unit selected" : "semantic-unit"} key={unit.id} data-testid={`semantic-${unit.id}`}><input type="checkbox" checked={props.selectedUnitIds.includes(unit.id)} onChange={() => props.onToggleUnit(unit.id)} /><span>{unit.text}</span></label>)}</div>
+      <div className="script-list">{snapshot.semanticUnits.sort((a, b) => a.order - b.order).map((unit) => <label className={props.selectedUnitIds.includes(unit.id) ? "semantic-unit selected" : "semantic-unit"} key={unit.id} data-testid={`semantic-${unit.id}`} data-object-id={unit.id}><input aria-label={`选择语义单元：${unit.text}`} type="checkbox" checked={props.selectedUnitIds.includes(unit.id)} onChange={() => props.onToggleUnit(unit.id)} /><span>{unit.text}</span></label>)}</div>
       {snapshot.semanticUnits.length > 0 && <button className="primary wide-button" onClick={props.onApplyScript}>应用语义选择 · 生成 SpeechSegment</button>}
       <PanelTitle title="SpeechSegment" meta={`${snapshot.speechSegments.length} 段`} />
-      {snapshot.speechSegments.map((segment) => <div className="speech-row" key={segment.id}><span>{segment.text}</span><small>{statusText(segment.status)}</small></div>)}
+      {snapshot.speechSegments.map((segment) => <div className="speech-row" key={segment.id} data-testid={`speech-segment-${segment.id}`} data-object-id={segment.id}><span>{segment.text}</span><small>{statusText(segment.status)}</small></div>)}
+      <PanelTitle title="VoiceReference" meta={`${snapshot.voiceReferences.length} 条本地参考`} />
+      {snapshot.voiceReferences.map((reference) => {
+        const asset = snapshot.assets.find((candidate) => candidate.id === reference.assetId);
+        return <div className="speech-row" key={reference.id} data-testid={`voice-reference-${reference.id}`} data-object-id={reference.id}><span>{reference.label}</span><small>{asset?.name ?? "素材缺失"}</small></div>;
+      })}
+      {snapshot.assets.filter((asset) => asset.kind === "audio" && asset.status === "ready" && !snapshot.voiceReferences.some((reference) => reference.assetId === asset.id)).map((asset) => <button className="wide-button" key={asset.id} onClick={() => props.onRegisterVoiceReference(asset.id)}>将「{asset.name}」登记为 VoiceReference</button>)}
     </>;
   }
-  if (panel === "scenes") {
+  if (panel === "audio") {
+    const speechFile = snapshot.speechAsset ? snapshot.assets.find((asset) => asset.id === snapshot.speechAsset?.assetId) : undefined;
+    const pendingSegments = snapshot.speechSegments.filter((segment) => segment.status !== "ready");
+    const needsAssembly = Boolean(!snapshot.speechAsset && snapshot.speechSegments.length > 0 && pendingSegments.length === 0);
+    const dialogueTrack = snapshot.timeline.tracks.find((track) => track.name === "Dialogue");
+    const hasSpeechOnDialogue = Boolean(snapshot.speechAsset && snapshot.timeline.items.some((item) => item.trackId === dialogueTrack?.id && item.assetId === snapshot.speechAsset?.assetId && !item.disabled));
     return <>
-      <PanelTitle title="Storyboard / Scenes" meta={`${snapshot.scenes.length} 个场景`} />
-      {snapshot.scenes.length === 0 && <p className="empty-panel">建立 Presenter 主线后，系统会按可编辑片段生成 Scene Strip。</p>}
-      <div className="scene-list">{snapshot.scenes.map((scene) => <article className="scene-card" key={scene.id} data-testid={`scene-${scene.id}`} onClick={() => { props.onSelect({ kind: "scene", id: scene.id }); props.onSeek(scene.startFrame); }}><span className="scene-type">{scene.type.replace("Scene", "")}</span><strong>{scene.title}</strong><p>{scene.purpose}</p><small>{formatDuration(scene.endFrame - scene.startFrame, snapshot.timeline.fps)}</small><button onClick={(event) => { event.stopPropagation(); props.onAddEffect(scene); }}>+ 效果</button></article>)}</div>
+      <PanelTitle title="Audio / Voice" meta={`${snapshot.voiceReferences.length} 条参考声音`} />
+      {snapshot.voiceReferences.length === 0 && <p className="empty-panel">先在文字稿面板登记一个已就绪的本地音频。VoiceReference 仅保存本地 Asset，不会创建不存在的远端 Voice ID。</p>}
+      {snapshot.voiceReferences.map((reference) => <article className="audio-card" key={reference.id} data-testid={`voice-reference-${reference.id}`} data-object-id={reference.id}>
+        <strong>{reference.label}</strong>
+        <small>{reference.quality === "passed" ? "技术检查通过" : "需复核：建议使用 3～15 秒、单人且低噪声的参考音频"}</small>
+        <small>{reference.authorizationNote}</small>
+        <button className="wide-button primary" data-testid={`submit-voice-${reference.id}`} onClick={() => props.onSubmitVoiceSynthesis(reference.id)} disabled={snapshot.speechSegments.length === 0 || (pendingSegments.length === 0 && !needsAssembly)}>{needsAssembly ? "复用已生成片段并重新组装旁白" : "生成 / 更新待处理旁白"}</button>
+      </article>)}
+      <PanelTitle title="SpeechAsset" meta={snapshot.speechAsset ? snapshot.speechAsset.timing.precision : "尚未生成"} />
+      {snapshot.speechAsset
+        ? <section className="audio-card" data-testid="speech-asset" data-object-id={snapshot.speechAsset.id}><strong>{speechFile?.name ?? "旁白总轨"}</strong><small>Script R{snapshot.speechAsset.scriptRevision} · {snapshot.speechAsset.timing.segments.length} 个段边界 · {hasSpeechOnDialogue ? "已写入 Dialogue 轨" : "尚未写入 Dialogue 轨"}</small><small>{speechFile?.metadata?.durationMs ? `${(speechFile.metadata.durationMs / 1000).toFixed(2)} 秒` : "等待音频元数据"} · 不提供词级时间</small>{!hasSpeechOnDialogue && <button className="wide-button" data-testid="rebuild-speech-timeline" onClick={props.onRebuildSpeechTimeline}>修复 Dialogue 与字幕</button>}{hasSpeechOnDialogue && <button className="wide-button" data-testid="align-presenter-to-speech" onClick={props.onAlignPresenterToSpeech}>按旁白时长收齐 Presenter 主线</button>}</section>
+        : <p className="empty-panel">选择 VoiceReference 后，系统会仅生成 pending / stale 的 SpeechSegment，完成后组装为可播放的 SpeechAsset、Dialogue Item 和稳定字幕。</p>}
+      <div className="speech-list">{snapshot.speechSegments.map((segment) => <div className="speech-row" key={segment.id} data-testid={`audio-segment-${segment.id}`} data-object-id={segment.id}><span>{segment.text}</span><small>{statusText(segment.status)}</small></div>)}</div>
     </>;
+  }
+  if (panel === "actors") {
+    return <ActorsPanel snapshot={snapshot} onRegisterActor={props.onRegisterActor} />;
+  }
+  if (panel === "scenes") {
+    return <ScenesPanel snapshot={snapshot} onSelect={props.onSelect} onSeek={props.onSeek} onAddEffect={props.onAddEffect} />;
   }
   if (panel === "captions") {
     return <>
       <PanelTitle title="Captions" meta={`${snapshot.timeline.captions.length} 张字幕卡`} />
       {snapshot.timeline.captions.length === 0 && <p className="empty-panel">当前没有可用的段级语音时序。字幕只会在 SpeechAsset 组装成功后生成。</p>}
-      {snapshot.timeline.captions.map((caption) => <article key={caption.id} className="caption-card" onClick={() => props.onSeek(caption.startFrame)}><strong>{caption.text}</strong><small>F{caption.startFrame}–{caption.endFrame} · {caption.precision}</small></article>)}
+      {snapshot.timeline.captions.map((caption) => <article key={caption.id} className="caption-card" data-testid={`caption-${caption.id}`} data-object-id={caption.id} onClick={() => props.onSeek(caption.startFrame)}><strong>{caption.text}</strong><small>F{caption.startFrame}–{caption.endFrame} · {caption.precision}</small></article>)}
     </>;
   }
   return <>
     <PanelTitle title="Jobs / Quality / Revision" meta="统一状态" />
     <section className="quality-section"><h3>质量门禁</h3>{props.quality?.issues.length ? props.quality.issues.map((issue) => <div className={`quality-row ${issue.level}`} key={issue.id}><strong>{issue.level === "blocking" ? "阻塞" : "建议"}</strong><span>{issue.message}</span></div>) : <p className="success-text">没有检测到结构性问题</p>}</section>
-    <section><h3>任务</h3>{props.jobs.map((job) => <div className="job-row" key={job.id}><span className={`status status-${job.status}`}>{statusText(job.status)}</span><div><strong>{job.kind}</strong><small>{job.error ?? job.id.slice(0, 14)}</small></div>{job.status === "failed" && <button onClick={() => props.onRetryJob(job.id)}>重试</button>}</div>)}</section>
-    <section><h3>Revision</h3>{props.revisions.map((revision) => <div className="revision-row" key={revision.id}><div><strong>R{revision.number}</strong><span>{revision.summary}</span></div>{revision.number !== props.currentRevision && <button onClick={() => props.onRollback(revision.number)}>回退</button>}</div>)}</section>
+    <section><h3>任务</h3>{props.jobs.map((job) => <div className="job-row" key={job.id} data-testid={`job-${job.id}`} data-object-id={job.id}><span className={`status status-${job.status}`}>{statusText(job.status)}</span><div><strong>{job.kind}</strong><small>{job.error ?? job.id.slice(0, 14)}</small></div>{job.status === "failed" && <button onClick={() => props.onRetryJob(job.id)}>重试</button>}</div>)}</section>
+    <section><h3>Revision</h3>{props.revisions.map((revision) => <div className="revision-row" key={revision.id} data-testid={`revision-${revision.number}`} data-object-id={revision.id}><div><strong>R{revision.number}</strong><span>{revision.summary}</span></div>{revision.number !== props.currentRevision && <button onClick={() => props.onRollback(revision.number)}>回退</button>}</div>)}</section>
+  </>;
+}
+
+/**
+ * 效果类型在 Web 中只负责选择，所属图层仍由 Application 的统一映射决定。
+ */
+function ScenesPanel({ snapshot, onSelect, onSeek, onAddEffect }: {
+  snapshot: ProjectSnapshot;
+  onSelect: (selection: Selection) => void;
+  onSeek: (frame: number) => void;
+  onAddEffect: (scene: Scene, type: EffectCue["type"]) => void;
+}) {
+  const [effectType, setEffectType] = useState<EffectCue["type"]>("MetricBackdrop");
+  return <>
+    <PanelTitle title="Story / Scenes" meta={`${snapshot.scenes.length} 个场景`} />
+    <section className="story-card" data-testid="story-document" data-object-id={snapshot.story.id}>
+      <strong>{snapshot.story.title}</strong>
+      <p>{snapshot.story.summary || "尚未填写叙事摘要；可通过 Codex 的 manage_story 先稳定创作意图。"}</p>
+      <small>{snapshot.story.beats.length} 个叙事 Beat · 与当前 Revision 同步</small>
+    </section>
+    <label className="effect-picker">新增效果
+      <select aria-label="效果类型" data-testid="effect-type-select" value={effectType} onChange={(event) => setEffectType(event.target.value as EffectCue["type"])}>
+        {EFFECT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+      </select>
+    </label>
+    {snapshot.scenes.length === 0 && <p className="empty-panel">建立 Presenter 主线后，系统会按可编辑片段生成 Scene Strip。</p>}
+    <div className="scene-list">{snapshot.scenes.map((scene) => <article className="scene-card" key={scene.id} data-testid={`scene-${scene.id}`} data-object-id={scene.id} aria-label={`场景：${scene.title}`} onClick={() => { onSelect({ kind: "scene", id: scene.id }); onSeek(scene.startFrame); }}><span className="scene-type">{scene.type.replace("Scene", "")}</span><strong>{scene.title}</strong><p>{scene.purpose}</p><small>{formatDuration(scene.endFrame - scene.startFrame, snapshot.timeline.fps)}</small><button onClick={(event) => { event.stopPropagation(); onAddEffect(scene, effectType); }}>+ {effectType}</button></article>)}</div>
   </>;
 }
 
 function PanelTitle({ title, meta }: { title: string; meta: string }) {
   return <div className="panel-title"><h2>{title}</h2><span>{meta}</span></div>;
+}
+
+/**
+ * 人物表演仍绑定 Timeline Item，Mask 只是该 Item 的显示能力，避免在 Web 侧创建第二份人物状态。
+ */
+function ActorsPanel({ snapshot, onRegisterActor }: { snapshot: ProjectSnapshot; onRegisterActor: (timelineItemId: string, maskAssetId?: string) => void }) {
+  const [maskByItem, setMaskByItem] = useState<Record<string, string>>({});
+  const actorTrack = snapshot.timeline.tracks.find((track) => track.name === "Actor / A-roll");
+  const actorItems = actorTrack ? snapshot.timeline.items.filter((item) => item.trackId === actorTrack.id && !item.disabled) : [];
+  // 领域层只接受图片或派生图作为独立 alpha Mask，界面不展示必然会被拒绝的视频素材。
+  const usableMasks = snapshot.assets.filter((asset) => asset.status === "ready" && (asset.kind === "image" || asset.kind === "derived"));
+  const performanceByItem = new Map((snapshot.actorPerformances ?? []).map((performance) => [performance.timelineItemId, performance]));
+
+  return <>
+    <PanelTitle title="人物 / Actor" meta={`${actorItems.length} 条主画面`} />
+    {actorItems.length === 0 && <p className="empty-panel">先在素材库建立 Presenter 主线，再在这里登记人物视频与可选 Mask。</p>}
+    <div className="actor-list">
+      {actorItems.map((item) => {
+        const asset = snapshot.assets.find((candidate) => candidate.id === item.assetId);
+        const performance = performanceByItem.get(item.id);
+        return <article className="actor-card" key={item.id} data-testid={`actor-item-${item.id}`} data-object-id={item.id}>
+          <strong>{asset?.name ?? "缺失素材"}</strong>
+          <small>F{item.startFrame}–{item.endFrame}</small>
+          {performance ? <span className={`status status-${performance.status}`}>{performance.maskMode === "none" ? "已登记（前景降级）" : "已登记 Mask"}</span> : <span className="status">尚未登记</span>}
+          <label className="actor-mask-label">Mask
+            <select aria-label={`人物 Mask：${asset?.name ?? item.id}`} value={maskByItem[item.id] ?? ""} onChange={(event) => setMaskByItem((current) => ({ ...current, [item.id]: event.target.value }))}>
+              <option value="">不使用 Mask（前景降级）</option>
+              {usableMasks.filter((candidate) => candidate.id !== item.assetId).map((mask) => <option key={mask.id} value={mask.id}>{mask.name}</option>)}
+            </select>
+          </label>
+          <button className="wide-button" onClick={() => onRegisterActor(item.id, maskByItem[item.id] || undefined)}>{performance ? "更新人物登记" : "登记为人物主画面"}</button>
+        </article>;
+      })}
+    </div>
+    <p className="empty-panel">未提供 Mask 时会明确采用前景降级，并在质量报告中提示复核遮挡；不会伪造抠像结果。</p>
+  </>;
 }
 
 function Inspector({ snapshot, selectedAsset, selectedScene, selectedItem, selectedCue, currentRevision, onMoveItem, onUpdateCue, onSeek }: {
@@ -467,13 +624,16 @@ function InspectorRow({ label, value }: { label: string; value: string }) { retu
 
 function SceneStrip({ scenes, duration, playhead, onSelect }: { scenes: Scene[]; duration: number; playhead: number; onSelect: (scene: Scene) => void }) {
   return (
-    <section className="scene-strip" aria-label="Scene Strip">
+    <section className="scene-strip" aria-label="Scene Strip" data-testid="scene-strip">
       <div className="strip-label">Scenes</div>
       <div className="strip-canvas">
         {scenes.map((scene) => (
           <button
             key={scene.id}
             className={`scene-chip ${scene.startFrame <= playhead && playhead < scene.endFrame ? "current" : ""}`}
+            data-testid={`scene-strip-${scene.id}`}
+            data-object-id={scene.id}
+            aria-label={`定位场景：${scene.title}`}
             style={{
               left: `${duration ? (scene.startFrame / duration) * 100 : 0}%`,
               width: `${duration ? ((scene.endFrame - scene.startFrame) / duration) * 100 : 0}%`
@@ -497,18 +657,19 @@ function Timeline({ snapshot, selection, playhead, onSelect, onSeek }: { snapsho
     onSeek(Math.round(((event.clientX - rect.left) / rect.width) * duration));
   };
   return (
-    <section className="timeline" aria-label="多轨时间线">
+    <section className="timeline" aria-label="多轨时间线" data-testid="timeline">
       <div className="timeline-header">
         <span>轨道</span>
-        <div className="ruler" onClick={seekFromRuler}>
+        <div className="ruler" data-testid="timeline-ruler" onClick={seekFromRuler}>
           {[0, 0.25, 0.5, 0.75, 1].map((point) => <span key={point} style={{ left: `${point * 100}%` }}>F{Math.round(duration * point)}</span>)}
+          {snapshot.markers.map((marker) => <button key={marker.id} type="button" className={`timeline-marker ${marker.level}`} data-testid={`marker-${marker.id}`} data-object-id={marker.id} aria-label={`标记：${marker.label}，F${marker.frame}`} style={{ left: `${(marker.frame / duration) * 100}%` }} onClick={(event) => { event.stopPropagation(); onSeek(marker.frame); }} />)}
         </div>
       </div>
       <div className="timeline-body">
         {timeline.tracks.map((track) => (
-          <div className="track-row" key={track.id}>
+          <div className="track-row" key={track.id} data-testid={`track-${track.id}`} data-object-id={track.id}>
             <div className="track-name"><strong>{track.name}</strong><small>{track.kind}</small></div>
-            <div className="track-canvas">
+            <div className="track-canvas" aria-label={`轨道：${track.name}`}>
               {timeline.items.filter((item) => item.trackId === track.id).map((item) => (
                 <TimelineBlock
                   key={item.id}
@@ -523,6 +684,9 @@ function Timeline({ snapshot, selection, playhead, onSelect, onSeek }: { snapsho
                 <button
                   className="caption-block"
                   key={caption.id}
+                  data-testid={`timeline-caption-${caption.id}`}
+                  data-object-id={caption.id}
+                  aria-label={`字幕：${caption.text}`}
                   style={{ left: `${(caption.startFrame / duration) * 100}%`, width: `${((caption.endFrame - caption.startFrame) / duration) * 100}%` }}
                   onClick={() => onSeek(caption.startFrame)}
                 >{caption.text}</button>
@@ -551,7 +715,7 @@ function TimelineBlock({ item, snapshot, duration, active, onClick }: { item: Ti
     left: `${(item.startFrame / duration) * 100}%`,
     width: `${((item.endFrame - item.startFrame) / duration) * 100}%`
   };
-  return <button className={`timeline-item ${active ? "selected" : ""}`} data-testid={`timeline-item-${item.id}`} style={style} onClick={onClick}><span>{asset?.name ?? "缺失素材"}</span><small>F{item.startFrame}</small></button>;
+  return <button className={`timeline-item ${active ? "selected" : ""}`} data-testid={`timeline-item-${item.id}`} data-object-id={item.id} data-start-frame={item.startFrame} data-end-frame={item.endFrame} aria-label={`时间线片段：${asset?.name ?? "缺失素材"}，F${item.startFrame} 到 F${item.endFrame}`} style={style} onClick={onClick}><span>{asset?.name ?? "缺失素材"}</span><small>F{item.startFrame}</small></button>;
 }
 
 function TimelineCue({ cue, duration, active, onClick }: { cue: EffectCue; duration: number; active: boolean; onClick: () => void }) {
@@ -559,5 +723,5 @@ function TimelineCue({ cue, duration, active, onClick }: { cue: EffectCue; durat
     left: `${(cue.startFrame / duration) * 100}%`,
     width: `${((cue.endFrame - cue.startFrame) / duration) * 100}%`
   };
-  return <button className={`timeline-cue ${active ? "selected" : ""}`} data-testid={`timeline-cue-${cue.id}`} style={style} onClick={onClick}><span>{cue.type}</span><small>F{cue.startFrame}</small></button>;
+  return <button className={`timeline-cue ${active ? "selected" : ""}`} data-testid={`timeline-cue-${cue.id}`} data-object-id={cue.id} data-start-frame={cue.startFrame} data-end-frame={cue.endFrame} aria-label={`效果：${cue.type}，F${cue.startFrame} 到 F${cue.endFrame}`} style={style} onClick={onClick}><span>{cue.type}</span><small>F{cue.startFrame}</small></button>;
 }

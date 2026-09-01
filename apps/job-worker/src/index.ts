@@ -53,13 +53,15 @@ export function createMediaJobProcessor(app: EditingApplication, bridge = new Co
       case "media_analysis":
         return runMediaAnalysis(app, job);
       case "transcription":
-        return funAsr.transcribe(job.projectId, String(job.payload.assetId));
+        return funAsr.transcribe(job.projectId, String(job.payload.assetId), (audit) => { app.recordBridgeRun(job.id, audit); });
       case "voice_synthesis":
         return omniVoice.synthesize(
           job.projectId,
           String(job.payload.voiceReferenceAssetId),
           Array.isArray(job.payload.speechSegmentIds) ? job.payload.speechSegmentIds.map(String) : [],
-          Number(job.payload.scriptRevision)
+          Number(job.payload.scriptRevision),
+          typeof job.payload.voiceReferenceId === "string" ? job.payload.voiceReferenceId : undefined,
+          (audit) => { app.recordBridgeRun(job.id, audit); }
         );
       default:
         throw new DomainError(`任务类型 ${job.kind} 不属于媒体 Worker`, "JOB_NOT_IMPLEMENTED");

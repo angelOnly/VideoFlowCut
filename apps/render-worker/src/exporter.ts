@@ -162,6 +162,38 @@ export class RevisionRenderer {
       await mediaServer.close();
     }
   }
+
+  /** 局部预览仍从完整 Composition 的全局帧坐标渲染，避免把 Cue 和字幕错误地从第 0 帧重算。 */
+  async renderRange(snapshot: ProjectSnapshot, fromFrame: number, toFrame: number, targetPath: string): Promise<void> {
+    if (fromFrame < 0 || toFrame <= fromFrame || toFrame > snapshot.timeline.durationInFrames) {
+      throw new DomainError("局部预览范围无效", "INVALID_PREVIEW_RANGE");
+    }
+    const mediaServer = await startProjectMediaServer(snapshot);
+    try {
+      await ensureBrowser({ logLevel: "error" });
+      const serveUrl = await this.getBundle();
+      const inputProps = { snapshot, mediaBaseUrl: mediaServer.mediaBaseUrl };
+      const composition = await selectComposition({ serveUrl, id: "videocut-project", inputProps, logLevel: "error" });
+      await renderMedia({
+        composition,
+        serveUrl,
+        codec: "h264",
+        inputProps,
+        outputLocation: targetPath,
+        overwrite: true,
+        frameRange: [fromFrame, toFrame - 1],
+        crf: 20,
+        x264Preset: "veryfast",
+        audioCodec: "aac",
+        enforceAudioTrack: true,
+        concurrency: "50%",
+        timeoutInMilliseconds: 30 * 60_000,
+        logLevel: "error"
+      });
+    } finally {
+      await mediaServer.close();
+    }
+  }
 }
 
 function ffmpegConcatFilters(snapshot: ProjectSnapshot, items: TimelineItem[]): { args: string[]; filter: string } {
@@ -273,5 +305,41 @@ export async function runExportJob(
     hasAudio: validation.hasAudio,
     blackSegments: validation.blackSegments,
     warnings
+  };
+}
+
+/** 预览任务只生成指定帧窗，供 Web/MCP 在结构修改后快速检查真实合成结果。 */
+export async function runPreviewJob(
+  application: EditingApplication,
+  job: JobRecord,
+  renderer = new RevisionRenderer()
+): Promise<Record<string, unknown>> {
+  const revisionNumber = Number(job.payload.revision);
+  const fromFrame = Number(job.payload.fromFrame);
+  const toFrame = Number(job.payload.toFrame);
+  if (!Number.isInteger(revisionNumber) || !Number.isInteger(fromFrame) || !Number.isInteger(toFrame)) {
+    throw new DomainError("局部预览任务缺少有效 Revision 或帧范围", "INVALID_PREVIEW_RANGE");
+  }
+  const revision = application.repository.getRevision(job.projectId, revisionNumber);
+  if (fromFrame < 0 || toFrame <= fromFrame || toFrame > revision.snapshot.timeline.durationInFrames) {
+    throw new DomainError("局部预览范围超出指定 Revision", "INVALID_PREVIEW_RANGE");
+  }
+  const relativePath = join("previews", `revision-${revisionNumber}-${fromFrame}-${toFrame}.mp4`);
+  const targetPath = join(revision.snapshot.project.rootPath, relativePath);
+  await mkdir(dirname(targetPath), { recursive: true });
+  await renderer.renderRange(revision.snapshot, fromFrame, toFrame, targetPath);
+  const metadata = await probeMedia(targetPath);
+  const expectedDurationMs = Math.round(((toFrame - fromFrame) / revision.snapshot.timeline.fps) * 1000);
+  if (metadata.durationMs <= 0 || !metadata.videoCodec || Math.abs(metadata.durationMs - expectedDurationMs) > 1_000) {
+    throw new DomainError("局部预览文件不可读或时长异常", "INVALID_PREVIEW_OUTPUT");
+  }
+  return {
+    revision: revisionNumber,
+    fromFrame,
+    toFrame,
+    path: targetPath,
+    relativePath,
+    durationMs: metadata.durationMs,
+    hasAudio: metadata.hasAudio
   };
 }

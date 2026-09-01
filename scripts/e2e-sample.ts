@@ -8,7 +8,8 @@ import { runProcess } from "@videocut/speech";
 
 const sourceDirectory = join(process.cwd(), "videos", "数字人口播");
 const workspaceRoot = process.env.VIDEOCUT_E2E_WORKSPACE ?? join(process.cwd(), "workspace", "e2e-sample");
-const selectedIndexes = [0, 1, 4, 8, 12, 14]; // segment-01 / 02 / 05 / 09 / 13 / 15
+// 五段约十秒的完整口播，既能形成 45～60 秒的真实旁白，又保留每个 Scene 的安静区。
+const selectedIndexes = [0, 1, 4, 8, 12]; // segment-01 / 02 / 05 / 09 / 13
 
 const numericSegmentOrder = (left: string, right: string) => {
   const numberOf = (value: string) => Number(/segment-(\d+)/iu.exec(value)?.[1] ?? Number.MAX_SAFE_INTEGER);
@@ -63,7 +64,20 @@ async function createVoiceReference(application: EditingApplication, projectId: 
     sourceHash: await hashFile(targetPath)
   });
   await drainMediaJobs(application, projectId);
-  return imported.asset.id;
+  const ready = application.readProject(projectId);
+  const registered = application.registerVoiceReference({
+    projectId,
+    baseRevision: ready.revision.number,
+    assetId: imported.asset.id,
+    label: "segment-01 本地参考声音",
+    authorizationNote: "端到端样例使用项目内测试素材；正式项目需由项目负责人确认授权。",
+    usageNote: "仅用于本项目 OmniVoice 回归测试。"
+  });
+  const reference = registered.snapshot.voiceReferences.find((candidate) => candidate.assetId === imported.asset.id);
+  if (!reference || reference.source !== "local_asset" || "remoteVoiceId" in reference) {
+    throw new Error("VoiceReference 必须是本地 Asset 对象，不能伪造远端 Voice ID");
+  }
+  return reference.id;
 }
 
 async function main(): Promise<void> {
@@ -94,38 +108,115 @@ async function main(): Promise<void> {
       sceneSize: 1
     });
 
-    // 以场景边界触发少量、不同类型的视觉事件，保留安静区而不是按固定间隔堆动画。
-    const effectPlan = ["MetricBackdrop", "ProductFan", "CommentCloud", "EvidenceCard", "FullScreenMeme", "EndCard"] as const;
-    for (const [index, effectType] of effectPlan.entries()) {
+    // 先完成主声音，再添加效果。每个效果只占用一个短语窗口，避免“有 Timeline 就先堆动效”。
+    const transcriptionJobs = presenterAssetIds.map((assetId) => application.submitTranscription({ projectId, assetId }));
+    await drainMediaJobs(application, projectId);
+    if (transcriptionJobs.some((job) => application.trackJob(job.id).status !== "succeeded")) {
+      throw new Error("FunASR 转写没有全部成功完成");
+    }
+
+    const voiceReferenceId = await createVoiceReference(application, projectId, presenterAssetIds[0]!);
+    const afterTranscription = application.readProject(projectId);
+    if (afterTranscription.snapshot.speechSegments.length === 0) throw new Error("FunASR 没有生成可朗读的 SpeechSegment");
+    const voiceJob = application.submitVoiceSynthesis({ projectId, voiceReferenceId });
+    await drainMediaJobs(application, projectId);
+    if (application.trackJob(voiceJob.id).status !== "succeeded") throw new Error("OmniVoice 合成没有成功完成");
+
+    const afterVoice = application.readProject(projectId);
+    if (!afterVoice.snapshot.speechAsset || afterVoice.snapshot.speechAsset.timing.precision !== "segment_exact") {
+      throw new Error("SpeechAsset 或 segment_exact SpeechTiming 未生成");
+    }
+    const speechFile = afterVoice.snapshot.assets.find((asset) => asset.id === afterVoice.snapshot.speechAsset?.assetId);
+    const speechDurationMs = speechFile?.metadata?.durationMs ?? 0;
+    if (speechDurationMs < 45_000 || speechDurationMs > 60_000) {
+      throw new Error(`阶段 1 端到端样例旁白必须为 45～60 秒，实际为 ${(speechDurationMs / 1000).toFixed(2)} 秒`);
+    }
+    const dialogueTrack = afterVoice.snapshot.timeline.tracks.find((track) => track.name === "Dialogue");
+    const dialogueItems = afterVoice.snapshot.timeline.items.filter((item) => item.trackId === dialogueTrack?.id && item.assetId === afterVoice.snapshot.speechAsset?.assetId);
+    if (dialogueItems.length !== 1) throw new Error("SpeechAsset 没有作为唯一的 Dialogue Timeline Item 写入");
+    if (afterVoice.snapshot.timeline.captions.length !== afterVoice.snapshot.speechAsset.timing.segments.length || afterVoice.snapshot.timeline.captions.some((caption) => caption.style !== "stable" || caption.precision !== "segment_exact")) {
+      throw new Error("稳定字幕或 segment_exact 字幕时序未完整生成");
+    }
+
+    const aligned = application.alignPresenterToSpeech({ projectId, baseRevision: afterVoice.revision.number });
+    const alignedActorTrack = aligned.snapshot.timeline.tracks.find((track) => track.name === "Actor / A-roll");
+    const alignedActorEnd = aligned.snapshot.timeline.items
+      .filter((item) => item.trackId === alignedActorTrack?.id && !item.disabled)
+      .reduce((latest, item) => Math.max(latest, item.endFrame), 0);
+    if (alignedActorEnd !== dialogueItems[0]!.endFrame) throw new Error("Presenter 主画面未按 SpeechAsset 收齐");
+
+    // 第一阶段允许没有 Mask 的显式前景降级，但必须登记人物，不能让渲染器猜测其层级关系。
+    for (const item of aligned.snapshot.timeline.items.filter((candidate) => candidate.trackId === alignedActorTrack?.id)) {
+      const current = application.readProject(projectId);
+      application.registerActorPerformance({
+        projectId,
+        baseRevision: current.revision.number,
+        timelineItemId: item.id,
+        source: "imported",
+        maskMode: "none",
+        note: "端到端样例使用已导入人物视频；未提供 Mask 时按前景降级并在质量报告中提示。"
+      });
+    }
+
+    // 每个效果只占用一个短语窗口；同一 Scene 内最多两个常规效果，最后一幕留给 EndCard。
+    const effectPlan = [
+      { type: "MetricBackdrop", layer: "rear", sceneIndex: 0, slot: "early" },
+      { type: "ProductFan", layer: "front", sceneIndex: 0, slot: "middle" },
+      { type: "GlowCTA", layer: "front", sceneIndex: 1, slot: "early" },
+      { type: "PortfolioWall", layer: "front", sceneIndex: 1, slot: "middle" },
+      { type: "CommentCloud", layer: "front", sceneIndex: 2, slot: "early" },
+      { type: "EvidenceCard", layer: "front", sceneIndex: 2, slot: "middle" },
+      { type: "CameraPunch", layer: "actor", sceneIndex: 3, slot: "early" },
+      { type: "FullScreenMeme", layer: "fullscreen", sceneIndex: 3, slot: "middle" },
+      { type: "DeviceShowcase", layer: "front", sceneIndex: 3, slot: "late" },
+      { type: "ContentCarousel", layer: "front", sceneIndex: 4, slot: "early" },
+      { type: "EndCard", layer: "fullscreen", sceneIndex: 4, slot: "end" }
+    ] as const;
+    const scenes = [...application.readProject(projectId).snapshot.scenes].sort((left, right) => left.startFrame - right.startFrame);
+    for (const effect of effectPlan) {
       const state = application.readProject(projectId);
-      const scene = [...state.snapshot.scenes].sort((left, right) => left.startFrame - right.startFrame)[index]!;
-      const startFrame = scene.startFrame + Math.min(state.snapshot.timeline.fps, Math.max(0, scene.endFrame - scene.startFrame - state.snapshot.timeline.fps));
+      const scene = scenes[effect.sceneIndex];
+      if (!scene) throw new Error(`效果 ${effect.type} 缺少可用 PresenterScene`);
+      const cueDuration = state.snapshot.timeline.fps * (effect.slot === "end" ? 3 : 2);
+      const startFrame = effect.slot === "early"
+        ? scene.startFrame
+        : effect.slot === "middle"
+          ? scene.startFrame + state.snapshot.timeline.fps * 4
+          : effect.slot === "late"
+            ? scene.startFrame + state.snapshot.timeline.fps * 7
+            : scene.endFrame - cueDuration;
+      if (startFrame < scene.startFrame || startFrame + cueDuration > scene.endFrame) {
+        throw new Error(`效果 ${effect.type} 没有足够的 Scene 安全窗口`);
+      }
       application.createEffectCue({
         projectId,
         baseRevision: state.revision.number,
         sceneId: scene.id,
-        type: effectType,
-        layer: effectType === "FullScreenMeme" || effectType === "EndCard" ? "fullscreen" : "front",
+        type: effect.type,
+        layer: effect.layer,
         startFrame,
-        endFrame: Math.min(scene.endFrame, startFrame + state.snapshot.timeline.fps * 3),
-        note: `回归验证：${effectType}`
+        endFrame: startFrame + cueDuration,
+        note: `回归验证：${effect.type}`
       });
     }
-
-    const transcriptionJob = application.submitTranscription({ projectId, assetId: presenterAssetIds[0]! });
-    await drainMediaJobs(application, projectId);
-    if (application.trackJob(transcriptionJob.id).status !== "succeeded") throw new Error("FunASR 转写没有成功完成");
-
-    const voiceReferenceAssetId = await createVoiceReference(application, projectId, presenterAssetIds[0]!);
-    const afterTranscription = application.readProject(projectId);
-    if (afterTranscription.snapshot.speechSegments.length === 0) throw new Error("FunASR 没有生成可朗读的 SpeechSegment");
-    const voiceJob = application.submitVoiceSynthesis({ projectId, voiceReferenceAssetId });
-    await drainMediaJobs(application, projectId);
-    if (application.trackJob(voiceJob.id).status !== "succeeded") throw new Error("OmniVoice 合成没有成功完成");
+    const plannedEffects = new Set(application.readProject(projectId).snapshot.effectCues.map((cue) => cue.type));
+    if (plannedEffects.size !== effectPlan.length) throw new Error("第一批 11 种 EffectCue 未全部写入同一 Revision");
 
     const beforeExport = application.readProject(projectId);
-    if (!beforeExport.snapshot.speechAsset || beforeExport.snapshot.speechAsset.timing.precision !== "segment_exact") {
-      throw new Error("SpeechAsset 或 segment_exact SpeechTiming 未生成");
+    const speechAsset = beforeExport.snapshot.speechAsset!;
+    if (beforeExport.snapshot.actorPerformances.length !== presenterAssetIds.length) throw new Error("所有 Presenter 主画面都必须登记人物层级");
+    const previewCue = beforeExport.snapshot.effectCues[0];
+    if (!previewCue) throw new Error("局部预览验证缺少 EffectCue");
+    const previewJob = application.submitPreview({
+      projectId,
+      revision: beforeExport.revision.number,
+      fromFrame: previewCue.startFrame,
+      toFrame: Math.min(beforeExport.snapshot.timeline.durationInFrames, previewCue.endFrame + beforeExport.snapshot.timeline.fps)
+    });
+    if (!(await runOneRenderJob(application))) throw new Error("Render Worker 没有领取局部预览任务");
+    const completedPreview = application.trackJob(previewJob.id);
+    if (completedPreview.status !== "succeeded" || !completedPreview.result?.relativePath) {
+      throw new Error(`局部预览失败：${completedPreview.error ?? "未知错误"}`);
     }
     const exportJob = application.submitExport({ projectId, revision: beforeExport.revision.number });
     if (!(await runOneRenderJob(application))) throw new Error("Render Worker 没有领取导出任务");
@@ -133,13 +224,28 @@ async function main(): Promise<void> {
     if (completedExport.status !== "succeeded") throw new Error(`导出失败：${completedExport.error ?? "未知错误"}`);
     if (completedExport.result?.renderer !== "remotion") throw new Error(`导出未使用 Remotion：${String(completedExport.result?.renderer ?? "unknown")}`);
 
+    // 导出固定的是旧 Revision；随后仍必须能继续编辑而不破坏已完成导出。
+    const cue = beforeExport.snapshot.effectCues[0];
+    if (!cue) throw new Error("导出后新 Revision 验证缺少 EffectCue");
+    const afterEdit = application.updateEffectCue({
+      projectId,
+      baseRevision: beforeExport.revision.number,
+      cueId: cue.id,
+      intensity: cue.intensity >= 0.8 ? 0.7 : 0.85,
+      note: `${cue.note}（导出后继续编辑验证）`
+    });
+    if (afterEdit.revision.number <= beforeExport.revision.number) throw new Error("导出后无法继续创建新 Revision");
+
     console.log(JSON.stringify({
       projectId,
-      revision: beforeExport.revision.number,
+      revision: afterEdit.revision.number,
       importedVideoCount: readyVideos.length,
       presenterAssets: selectedIndexes.map((index) => files[index]),
-      transcript: afterTranscription.snapshot.transcripts[0]?.text,
-      speechTimingPrecision: beforeExport.snapshot.speechAsset.timing.precision,
+      transcriptCount: afterTranscription.snapshot.transcripts.length,
+      speechDurationSeconds: Number((speechDurationMs / 1000).toFixed(2)),
+      speechTimingPrecision: speechAsset.timing.precision,
+      effectTypes: [...plannedEffects],
+      preview: completedPreview.result,
       export: completedExport.result
     }, null, 2));
   } finally {

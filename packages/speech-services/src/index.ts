@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process";
 import { mkdir, stat } from "node:fs/promises";
 import { basename, extname, isAbsolute, join } from "node:path";
-import type { Asset, MediaMetadata, ProjectSnapshot, SpeechAsset, SpeechSegmentAsset, SpeechTiming } from "@videocut/contracts";
-import { FUNASR_WORKFLOW_ID, OMNIVOICE_WORKFLOW_ID, ComfyUIBridgeClient } from "@videocut/bridge";
+import type { Asset, BridgeRunAudit, MediaMetadata, ProjectSnapshot, SpeechAsset, SpeechSegmentAsset, SpeechTiming } from "@videocut/contracts";
+import { FUNASR_WORKFLOW_ID, OMNIVOICE_WORKFLOW_ID, ComfyUIBridgeClient, type BridgeRun, type BridgeRunSubmission } from "@videocut/bridge";
 import { assetById, createId, createMediaAsset, DomainError, millisecondsToFrames, now } from "@videocut/domain";
 import { EditingApplication } from "@videocut/application";
 
@@ -37,6 +37,45 @@ export async function runProcess(command: string, args: string[], timeoutMs = 12
 const safeOutputName = (value: string) => value.replace(/[^a-zA-Z0-9._-]/g, "_");
 const assetPath = (snapshot: ProjectSnapshot, asset: Asset) => isAbsolute(asset.managedPath) ? asset.managedPath : join(snapshot.project.rootPath, asset.managedPath);
 
+export type BridgeRunReporter = (audit: BridgeRunAudit) => void | Promise<void>;
+
+/**
+ * 只记录请求字段、文件槽位和 Bridge 响应子集；媒体二进制仍保存在受管 Asset 中。
+ * 这份审计会先写入本地 Job，随后在成功时一并落入 Transcript / SpeechSegmentAsset。
+ */
+function createBridgeRunAudit(submission: BridgeRunSubmission, completed?: BridgeRun, submittedAt = now()): BridgeRunAudit {
+  return {
+    workflowId: submission.workflow.id,
+    runId: submission.run.id,
+    schemaVersion: submission.workflow.schemaVersion,
+    schemaRetryCount: submission.schemaRetryCount,
+    submittedAt,
+    completedAt: completed ? now() : undefined,
+    request: {
+      fieldValues: submission.request.fieldValues,
+      fileSlots: submission.request.files?.map((file) => ({
+        id: file.slot.id,
+        kind: file.slot.kind,
+        fileName: basename(file.path)
+      })) ?? []
+    },
+    response: completed ? {
+      status: completed.status,
+      error: completed.error,
+      outputs: completed.outputs.map((output) => ({
+        outputSlotId: output.outputSlotId,
+        displayName: output.displayName,
+        kind: output.kind,
+        fileName: output.fileName,
+        mime: output.mime,
+        outputId: output.outputId,
+        downloadUrl: output.downloadUrl,
+        text: output.text
+      }))
+    } : undefined
+  };
+}
+
 export async function probeMedia(filePath: string): Promise<MediaMetadata> {
   const output = await runProcess("ffprobe", [
     "-v", "error",
@@ -46,7 +85,7 @@ export async function probeMedia(filePath: string): Promise<MediaMetadata> {
   ], 60_000);
   const data = JSON.parse(output) as {
     format?: { duration?: string; format_name?: string };
-    streams?: Array<{ codec_type?: string; codec_name?: string; width?: number; height?: number; r_frame_rate?: string }>;
+    streams?: Array<{ codec_type?: string; codec_name?: string; width?: number; height?: number; r_frame_rate?: string; sample_rate?: string; channels?: number }>;
   };
   const video = data.streams?.find((stream) => stream.codec_type === "video");
   const audio = data.streams?.find((stream) => stream.codec_type === "audio");
@@ -59,6 +98,8 @@ export async function probeMedia(filePath: string): Promise<MediaMetadata> {
     fps,
     hasAudio: Boolean(audio),
     audioCodec: audio?.codec_name,
+    sampleRate: audio?.sample_rate ? Number(audio.sample_rate) : undefined,
+    channels: audio?.channels,
     videoCodec: video?.codec_name,
     mime: data.format?.format_name
   };
@@ -76,16 +117,18 @@ export async function extractAudioForTranscription(snapshot: ProjectSnapshot, as
 export class FunASRService {
   constructor(private readonly application: EditingApplication, private readonly bridge: ComfyUIBridgeClient) {}
 
-  async transcribe(projectId: string, assetId: string): Promise<{ runId: string; textLength: number }> {
+  async transcribe(projectId: string, assetId: string, onBridgeRun?: BridgeRunReporter): Promise<{ runId: string; textLength: number }> {
     const state = this.application.readProject(projectId);
     const asset = assetById(state.snapshot, assetId);
     if (!asset.metadata?.hasAudio) throw new DomainError("素材没有音频，不能提交转写", "NO_AUDIO");
     const audioPath = await extractAudioForTranscription(state.snapshot, asset);
-    const { workflow, run } = await this.bridge.createRunWithSchemaRetry(FUNASR_WORKFLOW_ID, async (detail) => ({
+    const submission = await this.bridge.createRunWithSchemaRetry(FUNASR_WORKFLOW_ID, async (detail) => ({
       fieldValues: {},
       files: [{ slot: this.bridge.findRequiredSlot(detail, "audio"), path: audioPath, mime: "audio/wav" }]
     }));
-    const completed = await this.bridge.waitForRun(run.id);
+    const submittedAt = now();
+    await onBridgeRun?.(createBridgeRunAudit(submission, undefined, submittedAt));
+    const completed = await this.bridge.waitForRun(submission.run.id);
     const output = completed.outputs.find((candidate) => candidate.kind === "text" && typeof candidate.text === "string");
     if (!output?.text?.trim()) throw new DomainError("FunASR 已完成，但没有返回文本输出", "MISSING_TRANSCRIPT_OUTPUT");
     this.application.applyTranscript({
@@ -93,7 +136,8 @@ export class FunASRService {
       assetId,
       text: output.text,
       bridgeRunId: completed.id,
-      schemaVersion: workflow.schemaVersion
+      schemaVersion: submission.workflow.schemaVersion,
+      bridgeAudit: createBridgeRunAudit(submission, completed, submittedAt)
     });
     return { runId: completed.id, textLength: output.text.length };
   }
@@ -154,7 +198,14 @@ function makeSpeechTiming(snapshot: ProjectSnapshot, materials: SegmentMaterial[
 export class OmniVoiceSegmentService {
   constructor(private readonly application: EditingApplication, private readonly bridge: ComfyUIBridgeClient) {}
 
-  async synthesize(projectId: string, voiceReferenceAssetId: string, segmentIds: string[], expectedScriptRevision: number): Promise<{ segmentCount: number; speechAssetId?: string }> {
+  async synthesize(
+    projectId: string,
+    voiceReferenceAssetId: string,
+    segmentIds: string[],
+    expectedScriptRevision: number,
+    voiceReferenceId?: string,
+    onBridgeRun?: BridgeRunReporter
+  ): Promise<{ segmentCount: number; speechAssetId?: string }> {
     const initial = this.application.readProject(projectId);
     if (initial.snapshot.script.revision !== expectedScriptRevision) {
       throw new DomainError("Script 已变化，拒绝将旧语音写入当前项目", "STALE_SCRIPT");
@@ -171,7 +222,7 @@ export class OmniVoiceSegmentService {
     const replacement = new Map<string, SpeechSegmentAsset>();
 
     for (const segment of requested) {
-      const { workflow, run } = await this.bridge.createRunWithSchemaRetry(OMNIVOICE_WORKFLOW_ID, async (detail) => {
+      const submission = await this.bridge.createRunWithSchemaRetry(OMNIVOICE_WORKFLOW_ID, async (detail) => {
         const referenceSlot = this.bridge.findRequiredSlot(detail, "audio");
         const textField = this.bridge.findTextField(detail);
         return {
@@ -179,7 +230,9 @@ export class OmniVoiceSegmentService {
           files: [{ slot: referenceSlot, path: referencePath, mime: "audio/wav" }]
         };
       });
-      const completed = await this.bridge.waitForRun(run.id);
+      const submittedAt = now();
+      await onBridgeRun?.(createBridgeRunAudit(submission, undefined, submittedAt));
+      const completed = await this.bridge.waitForRun(submission.run.id);
       const output = completed.outputs.find((candidate) => candidate.kind === "audio" && candidate.downloadUrl);
       if (!output?.downloadUrl) throw new DomainError("OmniVoice 已完成，但没有音频输出", "MISSING_SPEECH_OUTPUT");
       const extension = extname(output.fileName ?? "") || ".flac";
@@ -187,6 +240,7 @@ export class OmniVoiceSegmentService {
       const targetPath = join(initial.snapshot.project.rootPath, relativePath);
       await mkdir(join(initial.snapshot.project.rootPath, "assets", "speech"), { recursive: true });
       await this.bridge.downloadOutput(output, targetPath);
+      await assertFileReadable(targetPath);
       const metadata = await probeMedia(targetPath);
       if (metadata.durationMs <= 0 || !metadata.hasAudio) throw new DomainError("下载的 OmniVoice 输出不可读或为空", "INVALID_SPEECH_OUTPUT");
       const generatedAsset = createMediaAsset({ name: `旁白：${segment.text.slice(0, 18)}`, kind: "speech", managedPath: relativePath });
@@ -197,10 +251,12 @@ export class OmniVoiceSegmentService {
         id: createId("speech_segment_asset"),
         speechSegmentId: segment.id,
         voiceReferenceAssetId,
+        voiceReferenceId,
         assetId: generatedAsset.id,
         durationMs: metadata.durationMs,
         bridgeRunId: completed.id,
-        schemaVersion: workflow.schemaVersion,
+        schemaVersion: submission.workflow.schemaVersion,
+        bridgeAudit: createBridgeRunAudit(submission, completed, submittedAt),
         quality: "passed"
       };
       generatedSegmentAssets.push(segmentAsset);

@@ -3,6 +3,9 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type {
   Asset,
+  ActorMaskMode,
+  ActorPerformanceSource,
+  BridgeRunAudit,
   CreativeBrief,
   EffectType,
   Id,
@@ -15,22 +18,27 @@ import type {
   ProjectSummary,
   RevisionRecord,
   SceneType,
+  StoryBeat,
   SpeechAsset,
   SpeechSegmentAsset,
   SpeechTiming,
-  TimelineItem
+  TimelineItem,
+  VoiceReference
 } from "@videocut/contracts";
 import {
   assetById,
   assertTimelineValid,
   cloneSnapshot,
   compileSpeechSegments,
+  createActorPerformance,
   createEffectCue,
   createId,
   createMediaAsset,
   createProjectSnapshot,
   createScene,
   createSemanticUnits,
+  createStoryDocument,
+  createVoiceReference,
   createTimelineItem,
   DomainError,
   emptyImpact,
@@ -98,6 +106,23 @@ export interface AppEvent {
   projectId: Id;
   revision: number;
   type: "revision" | "job";
+}
+
+/** 为已有项目补齐新增的快照字段；旧 Revision 在下一次提交时自然升级，不改写历史记录。 */
+function normalizeSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
+  snapshot.story ??= createStoryDocument(snapshot.project.name, snapshot.project.updatedAt);
+  snapshot.voiceReferences ??= [];
+  for (const reference of snapshot.voiceReferences) {
+    // 旧 Revision 没有这些字段时只补默认提示，不伪造用户已取得授权的事实。
+    reference.source ??= "local_asset";
+    reference.authorizationNote ??= "未填写授权信息；仅在已获得声音使用授权的前提下使用。";
+    reference.usageNote ??= "仅用于当前项目的本地语音合成。";
+    reference.recommendedRange ??= { startMs: 0, endMs: 0 };
+    reference.quality ??= "warning";
+    reference.usable ??= true;
+  }
+  snapshot.actorPerformances ??= [];
+  return snapshot;
 }
 
 /**
@@ -178,7 +203,7 @@ export class ProjectRepository {
       number: row.revision_number,
       parentId: row.parent_id ?? undefined,
       summary: row.summary,
-      snapshot: JSON.parse(row.snapshot_json) as ProjectSnapshot,
+      snapshot: normalizeSnapshot(JSON.parse(row.snapshot_json) as ProjectSnapshot),
       impact: JSON.parse(row.impact_json) as ImpactReport,
       createdAt: row.created_at
     };
@@ -269,7 +294,7 @@ export class ProjectRepository {
     const rows = this.db.prepare("SELECT * FROM projects ORDER BY updated_at DESC").all() as ProjectRow[];
     return rows.map((row) => {
       const revisionRow = this.db.prepare("SELECT snapshot_json FROM revisions WHERE id = ?").get(row.current_revision_id) as { snapshot_json: string };
-      const snapshot = JSON.parse(revisionRow.snapshot_json) as ProjectSnapshot;
+      const snapshot = normalizeSnapshot(JSON.parse(revisionRow.snapshot_json) as ProjectSnapshot);
       return {
         id: row.id,
         name: row.name,
@@ -424,6 +449,85 @@ export class EditingApplication {
     return this.repository.listRevisions(projectId);
   }
 
+  /** Story 与 Scene、Timeline 一样由 Revision 事务管理，避免 Web 另存一份叙事说明。 */
+  updateStory(input: {
+    projectId: Id;
+    baseRevision: number;
+    title?: string;
+    summary?: string;
+    beats?: Array<Pick<StoryBeat, "title" | "purpose"> & Partial<Pick<StoryBeat, "semanticUnitIds" | "sceneIds">>>;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "更新 Story", (snapshot, impact) => {
+      if (input.title !== undefined) {
+        const title = input.title.trim();
+        if (!title) throw new DomainError("Story 标题不能为空", "INVALID_STORY_TITLE");
+        snapshot.story.title = title;
+      }
+      if (input.summary !== undefined) snapshot.story.summary = input.summary.trim();
+      if (input.beats !== undefined) {
+        const semanticIds = new Set(snapshot.semanticUnits.map((unit) => unit.id));
+        const sceneIds = new Set(snapshot.scenes.map((scene) => scene.id));
+        snapshot.story.beats = input.beats.map((beat, order) => {
+          const title = beat.title.trim();
+          const purpose = beat.purpose.trim();
+          if (!title || !purpose) throw new DomainError("Story Beat 必须包含标题和叙事目的", "INVALID_STORY_BEAT");
+          const beatSemanticIds = beat.semanticUnitIds ?? [];
+          const beatSceneIds = beat.sceneIds ?? [];
+          for (const id of beatSemanticIds) if (!semanticIds.has(id)) throw new DomainError(`Story Beat 引用了未知语义单元：${id}`, "STORY_SEMANTIC_NOT_FOUND");
+          for (const id of beatSceneIds) if (!sceneIds.has(id)) throw new DomainError(`Story Beat 引用了未知场景：${id}`, "STORY_SCENE_NOT_FOUND");
+          return { id: createId("story_beat"), order, title, purpose, semanticUnitIds: beatSemanticIds, sceneIds: beatSceneIds };
+        });
+        impact.recomputed.push("Story Beat 与 Scene 关联");
+      }
+      snapshot.story.updatedAt = now();
+      impact.changed.push(snapshot.story.id);
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /** 将可用本地音频显式登记为 VoiceReference，避免把 Asset ID 误称为远端声音档案。 */
+  registerVoiceReference(input: { projectId: Id; baseRevision: number; assetId: Id; label?: string; authorizationNote?: string; usageNote?: string }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "登记 VoiceReference", (snapshot, impact) => {
+      const asset = assetById(snapshot, input.assetId);
+      if (asset.kind !== "audio" || asset.status !== "ready" || !asset.metadata?.hasAudio) {
+        throw new DomainError("VoiceReference 必须是已就绪且含音频的本地 Asset", "INVALID_VOICE_REFERENCE");
+      }
+      const label = input.label?.trim() || asset.name;
+      const durationMs = asset.metadata.durationMs;
+      const suitableDuration = durationMs >= 3_000 && durationMs <= 15_000;
+      const quality = suitableDuration && (asset.metadata.sampleRate ?? 0) >= 8_000 ? "passed" as const : "warning" as const;
+      const authorizationNote = input.authorizationNote?.trim() || "未填写授权信息；仅在已获得声音使用授权的前提下使用。";
+      const usageNote = input.usageNote?.trim() || "仅用于当前项目的本地语音合成。";
+      const recommendedRange = { startMs: 0, endMs: Math.min(durationMs, 15_000) };
+      const existing = snapshot.voiceReferences.find((reference) => reference.assetId === asset.id);
+      if (existing) {
+        existing.label = label;
+        existing.authorizationNote = authorizationNote;
+        existing.usageNote = usageNote;
+        existing.recommendedRange = recommendedRange;
+        existing.quality = quality;
+        existing.usable = durationMs > 0;
+        impact.changed.push(existing.id);
+      } else {
+        const reference: VoiceReference = createVoiceReference({
+          assetId: asset.id,
+          label,
+          authorizationNote,
+          usageNote,
+          recommendedRange,
+          quality,
+          usable: durationMs > 0
+        });
+        snapshot.voiceReferences.push(reference);
+        impact.changed.push(reference.id);
+      }
+      if (!suitableDuration) impact.warnings.push("参考声音建议使用 3～15 秒、单人且低噪声的片段；当前仅标记为可用但需复核。");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
   getProjectRoot(projectId: Id): string {
     return this.repository.getProjectRow(projectId).root_path;
   }
@@ -510,7 +614,7 @@ export class EditingApplication {
     return job;
   }
 
-  applyTranscript(input: { projectId: Id; assetId: Id; text: string; bridgeRunId?: string; schemaVersion?: string; source?: "funasr" | "manual" }): ProjectState {
+  applyTranscript(input: { projectId: Id; assetId: Id; text: string; bridgeRunId?: string; schemaVersion?: string; bridgeAudit?: BridgeRunAudit; source?: "funasr" | "manual" }): ProjectState {
     const current = this.readProject(input.projectId);
     const state = this.repository.commit(input.projectId, current.revision.number, "写入转写并生成语义单元", (snapshot, impact) => {
       assetById(snapshot, input.assetId);
@@ -524,6 +628,7 @@ export class EditingApplication {
         source: input.source ?? "funasr",
         bridgeRunId: input.bridgeRunId,
         schemaVersion: input.schemaVersion,
+        bridgeAudit: input.bridgeAudit,
         createdAt: now()
       } as const;
       snapshot.transcripts.push(transcript);
@@ -537,6 +642,21 @@ export class EditingApplication {
   }
 
   private reconcileScript(snapshot: ProjectSnapshot, impact: ImpactReport): void {
+    // Script 改动会使旧旁白与字幕失效；同时移除 Dialogue 上的系统 SpeechAsset，
+    // 防止观众继续听到已经不属于当前 Script 的旧语音。
+    const dialogueTrack = snapshot.timeline.tracks.find((track) => track.name === "Dialogue");
+    const obsoleteSpeechAssetIds = new Set([
+      snapshot.speechAsset?.assetId,
+      ...snapshot.speechSegmentAssets.map((segmentAsset) => segmentAsset.assetId)
+    ].filter((assetId): assetId is string => Boolean(assetId)));
+    if (dialogueTrack && obsoleteSpeechAssetIds.size > 0) {
+      const removed = snapshot.timeline.items.filter((item) => item.trackId === dialogueTrack.id && obsoleteSpeechAssetIds.has(item.assetId));
+      snapshot.timeline.items = snapshot.timeline.items.filter((item) => !removed.includes(item));
+      if (removed.length > 0) {
+        impact.changed.push(...removed.map((item) => item.id));
+        impact.recomputed.push("移除失效 Dialogue 旁白");
+      }
+    }
     const oldSegments = snapshot.speechSegments;
     const oldByIdentity = new Map(oldSegments.map((segment) => [`${segment.semanticUnitIds.join("|")}::${segment.text}`, segment]));
     const compiled = compileSpeechSegments(snapshot.semanticUnits).map((segment) => {
@@ -558,6 +678,12 @@ export class EditingApplication {
     snapshot.speechSegmentAssets = snapshot.speechSegmentAssets.filter((segmentAsset) => currentIds.has(segmentAsset.speechSegmentId));
     snapshot.speechAsset = undefined;
     snapshot.timeline.captions = [];
+    for (const performance of snapshot.actorPerformances) {
+      if (performance.source === "generated" && performance.scriptRevision !== snapshot.script.revision) {
+        performance.status = "stale";
+        impact.stale.push(performance.id);
+      }
+    }
     for (const cue of snapshot.effectCues) {
       if (cue.anchorTargetId && !currentIds.has(cue.anchorTargetId)) {
         cue.status = "stale";
@@ -590,6 +716,11 @@ export class EditingApplication {
       const selected = input.assetIds.map((assetId) => assetById(snapshot, assetId));
       if (selected.length === 0) throw new DomainError("至少需要一条素材", "EMPTY_TIMELINE");
       if (selected.some((asset) => asset.status !== "ready" || !asset.metadata)) throw new DomainError("存在尚未就绪的素材", "ASSET_NOT_READY");
+      const removedActorItemIds = new Set(snapshot.timeline.items.filter((item) => item.trackId === track.id).map((item) => item.id));
+      for (const performance of snapshot.actorPerformances) {
+        if (removedActorItemIds.has(performance.timelineItemId)) impact.stale.push(performance.id);
+      }
+      snapshot.actorPerformances = snapshot.actorPerformances.filter((performance) => !removedActorItemIds.has(performance.timelineItemId));
       snapshot.timeline.items = snapshot.timeline.items.filter((item) => item.trackId !== track.id);
       snapshot.scenes = snapshot.scenes.filter((scene) => scene.type !== "PresenterScene");
       let cursor = 0;
@@ -627,6 +758,79 @@ export class EditingApplication {
       }
       impact.recomputed.push("Scene Strip、主轨时长、预览快照");
       impact.dirtyRanges.push({ startFrame: 0, endFrame: cursor, reason: "重建 Presenter 主线" });
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /**
+   * 将既有主画面 Item 明确登记为人物表演。Mask 只接受已就绪的本地透明图片；
+   * 没有 Mask 时保留可播放的前景降级，而不伪造人物抠像。
+   */
+  registerActorPerformance(input: {
+    projectId: Id;
+    baseRevision: number;
+    timelineItemId: Id;
+    source: ActorPerformanceSource;
+    maskMode: ActorMaskMode;
+    maskAssetId?: Id;
+    speechAssetId?: Id;
+    note?: string;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "登记人物表演", (snapshot, impact) => {
+      const item = snapshot.timeline.items.find((candidate) => candidate.id === input.timelineItemId);
+      if (!item) throw new DomainError("人物表演对应的 Timeline Item 不存在", "ACTOR_ITEM_NOT_FOUND");
+      const track = snapshot.timeline.tracks.find((candidate) => candidate.id === item.trackId);
+      if (track?.name !== "Actor / A-roll") throw new DomainError("人物表演必须绑定 Actor / A-roll 主画面 Item", "INVALID_ACTOR_TRACK");
+      if (!item.sceneId) throw new DomainError("人物表演必须先归属一个 PresenterScene", "ACTOR_SCENE_REQUIRED");
+      const actorAsset = assetById(snapshot, item.assetId);
+      if (actorAsset.status !== "ready" || !actorAsset.metadata?.videoCodec) throw new DomainError("人物视频尚未就绪或不是有效视频", "ACTOR_ASSET_NOT_READY");
+
+      if (input.maskMode === "alpha_asset") {
+        if (!input.maskAssetId) throw new DomainError("alpha_asset 模式必须指定透明 Mask 素材", "MASK_REQUIRED");
+        const mask = assetById(snapshot, input.maskAssetId);
+        if (mask.status !== "ready" || !["image", "derived"].includes(mask.kind)) {
+          throw new DomainError("Mask 必须是已就绪的图片或派生素材", "INVALID_MASK_ASSET");
+        }
+      } else if (input.maskAssetId) {
+        throw new DomainError("仅 alpha_asset 模式允许指定独立 Mask 素材", "UNEXPECTED_MASK_ASSET");
+      }
+
+      let speechAssetId = input.speechAssetId;
+      let scriptRevision: number | undefined;
+      if (input.source === "generated") {
+        const speech = snapshot.speechAsset;
+        if (!speech || speech.status !== "ready") throw new DomainError("生成型人物表演必须绑定已就绪 SpeechAsset", "SPEECH_ASSET_REQUIRED");
+        if (speechAssetId && speechAssetId !== speech.id) throw new DomainError("人物表演引用的 SpeechAsset 不是当前项目版本", "STALE_ACTOR_SPEECH");
+        speechAssetId = speech.id;
+        scriptRevision = speech.scriptRevision;
+      }
+
+      const existing = snapshot.actorPerformances.find((candidate) => candidate.timelineItemId === item.id);
+      const performance = existing ?? createActorPerformance({
+        timelineItemId: item.id,
+        source: input.source,
+        maskMode: input.maskMode,
+        maskAssetId: input.maskAssetId,
+        speechAssetId,
+        scriptRevision,
+        note: input.note
+      });
+      if (existing) {
+        existing.source = input.source;
+        existing.maskMode = input.maskMode;
+        existing.maskAssetId = input.maskAssetId;
+        existing.speechAssetId = speechAssetId;
+        existing.scriptRevision = scriptRevision;
+        existing.status = "ready";
+        existing.note = input.note ?? existing.note;
+      } else {
+        snapshot.actorPerformances.push(performance);
+      }
+      actorAsset.kind = "actor_video";
+      impact.changed.push(performance.id, actorAsset.id);
+      impact.dirtyRanges.push({ startFrame: item.startFrame, endFrame: item.endFrame, reason: "人物表演或 Mask 更新" });
+      if (input.maskMode === "none") impact.warnings.push("人物表演未提供 Mask，后景效果会降级为前景显示，需在预览中复核。");
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     return state;
@@ -713,22 +917,110 @@ export class EditingApplication {
     return state;
   }
 
-  submitVoiceSynthesis(input: { projectId: Id; voiceReferenceAssetId: Id; speechSegmentIds?: Id[]; idempotencyKey?: string }): JobRecord {
+  submitVoiceSynthesis(input: { projectId: Id; voiceReferenceId?: Id; voiceReferenceAssetId?: Id; speechSegmentIds?: Id[]; idempotencyKey?: string }): JobRecord {
     const state = this.readProject(input.projectId);
-    const voiceReference = assetById(state.snapshot, input.voiceReferenceAssetId);
+    const reference = input.voiceReferenceId
+      ? state.snapshot.voiceReferences.find((candidate) => candidate.id === input.voiceReferenceId)
+      : state.snapshot.voiceReferences.find((candidate) => candidate.assetId === input.voiceReferenceAssetId);
+    if (!reference) throw new DomainError("必须先登记本地 VoiceReference，不能把普通 Asset 当作远端 Voice ID 使用", "VOICE_REFERENCE_NOT_FOUND");
+    if (!reference.usable) throw new DomainError("VoiceReference 当前不可用于 OmniVoice，请先更换或重新分析参考音频", "VOICE_REFERENCE_UNUSABLE");
+    const voiceReference = assetById(state.snapshot, reference.assetId);
     if (voiceReference.kind !== "audio" || voiceReference.status !== "ready") {
       throw new DomainError("VoiceReference 必须是已就绪的音频素材", "INVALID_VOICE_REFERENCE");
     }
-    const segments = input.speechSegmentIds ?? state.snapshot.speechSegments.filter((segment) => segment.status !== "ready").map((segment) => segment.id);
-    if (segments.length === 0) throw new DomainError("没有需要生成的 SpeechSegment", "NO_SPEECH_SEGMENTS");
+    const changedSegments = state.snapshot.speechSegments.filter((segment) => segment.status !== "ready").map((segment) => segment.id);
+    const hasCachedAssetsForAllSegments = state.snapshot.speechSegments.every((segment) => state.snapshot.speechSegmentAssets.some((asset) => asset.speechSegmentId === segment.id));
+    // Script 只发生重排时可复用所有 SegmentAsset，只重新组装 SpeechAsset；不浪费调用 OmniVoice 的成本。
+    const segments = input.speechSegmentIds ?? changedSegments;
+    if (segments.length === 0 && (state.snapshot.speechAsset || !hasCachedAssetsForAllSegments)) {
+      throw new DomainError("没有需要生成或可重新组装的 SpeechSegment", "NO_SPEECH_SEGMENTS");
+    }
     const job = this.repository.createJob({
       projectId: input.projectId,
       kind: "voice_synthesis",
-      payload: { voiceReferenceAssetId: input.voiceReferenceAssetId, speechSegmentIds: segments, scriptRevision: state.snapshot.script.revision },
-      idempotencyKey: input.idempotencyKey ?? `voice:${state.snapshot.script.revision}:${segments.join(",")}`
+      payload: { voiceReferenceId: reference.id, voiceReferenceAssetId: reference.assetId, speechSegmentIds: segments, scriptRevision: state.snapshot.script.revision, workflowId: "ba6238d0-3ee4-41d5-a1f4-a2aefc3933ce" },
+      idempotencyKey: input.idempotencyKey ?? `voice:${reference.id}:${state.snapshot.script.revision}:${segments.join(",")}`
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
     return job;
+  }
+
+  /**
+   * 外部 Run 一创建就写回本地 Job。即使 ComfyUI 重启导致 run_id 不可查，
+   * 也能从 Job 读出 workflow、schema 和请求摘要并决定是否重试。
+   */
+  recordBridgeRun(jobId: Id, audit: BridgeRunAudit): JobRecord {
+    const job = this.repository.getJob(jobId);
+    const previous = job.result ?? {};
+    const existingRuns = Array.isArray(previous.bridgeRuns) ? previous.bridgeRuns : [];
+    const nextRuns = [...existingRuns.filter((entry) => !(entry && typeof entry === "object" && "runId" in entry && (entry as { runId?: unknown }).runId === audit.runId)), audit];
+    const updated = this.repository.updateJob(jobId, {
+      status: job.status,
+      result: { ...previous, bridgeRuns: nextRuns }
+    });
+    this.publish({ projectId: updated.projectId, revision: this.readProject(updated.projectId).revision.number, type: "job" });
+    return updated;
+  }
+
+  submitPreview(input: { projectId: Id; revision?: number; fromFrame?: number; toFrame?: number; idempotencyKey?: string }): JobRecord {
+    const current = this.readProject(input.projectId);
+    const revision = input.revision ?? current.revision.number;
+    const target = this.repository.getRevision(input.projectId, revision);
+    const fromFrame = input.fromFrame ?? 0;
+    const toFrame = input.toFrame ?? target.snapshot.timeline.durationInFrames;
+    if (!Number.isInteger(fromFrame) || !Number.isInteger(toFrame) || fromFrame < 0 || toFrame <= fromFrame || toFrame > target.snapshot.timeline.durationInFrames) {
+      throw new DomainError("局部预览范围无效", "INVALID_PREVIEW_RANGE");
+    }
+    const job = this.repository.createJob({
+      projectId: input.projectId,
+      kind: "preview",
+      payload: { revision, fromFrame, toFrame },
+      idempotencyKey: input.idempotencyKey ?? `preview:${revision}:${fromFrame}:${toFrame}`
+    });
+    this.publish({ projectId: input.projectId, revision: current.revision.number, type: "job" });
+    return job;
+  }
+
+  /** 将当前 SpeechAsset 的最终音频、字幕和真实段级时序同步到可播放 Timeline。 */
+  private syncSpeechAssetTimeline(snapshot: ProjectSnapshot, speechAsset: SpeechAsset): { dialogueItem: TimelineItem; replacedItemIds: Id[]; durationFrames: number } {
+    const dialogueTrack = trackByName(snapshot, "Dialogue");
+    // Dialogue 轨只替换系统生成的 Speech Asset；用户手工放入的其它音频保持不动。
+    const replacedItemIds = snapshot.timeline.items
+      .filter((item) => item.trackId === dialogueTrack.id && snapshot.assets.find((asset) => asset.id === item.assetId)?.kind === "speech")
+      .map((item) => item.id);
+    const replacedItemIdSet = new Set(replacedItemIds);
+    snapshot.timeline.items = snapshot.timeline.items.filter((item) => !replacedItemIdSet.has(item.id));
+    const speechFile = assetById(snapshot, speechAsset.assetId);
+    if (speechFile.status !== "ready" || !speechFile.metadata?.hasAudio || speechFile.metadata.durationMs <= 0) {
+      throw new DomainError("SpeechAsset 对应音频未就绪，不能写入 Dialogue 轨", "SPEECH_ASSET_NOT_READY");
+    }
+    const durationFrames = millisecondsToFrames(speechFile.metadata.durationMs, snapshot.timeline.fps);
+    if (durationFrames <= 0) throw new DomainError("SpeechAsset 时长无效", "INVALID_SPEECH_DURATION");
+    const dialogueItem = createTimelineItem({
+      trackId: dialogueTrack.id,
+      assetId: speechFile.id,
+      startFrame: 0,
+      endFrame: durationFrames,
+      sourceStartFrame: 0,
+      sourceEndFrame: durationFrames,
+      gainDb: 0
+    });
+    snapshot.timeline.items.push(dialogueItem);
+    snapshot.speechAsset = speechAsset;
+    snapshot.timeline.captions = speechAsset.timing.segments.map((timing) => {
+      const segment = snapshot.speechSegments.find((candidate) => candidate.id === timing.speechSegmentId);
+      if (!segment) throw new DomainError("SpeechTiming 引用了不存在的 SpeechSegment", "SPEECH_TIMING_SEGMENT_MISSING");
+      return {
+        id: createId("caption"),
+        speechSegmentId: segment.id,
+        text: segment.text,
+        startFrame: timing.startFrame,
+        endFrame: timing.endFrame,
+        style: "stable" as const,
+        precision: speechAsset.timing.precision
+      };
+    });
+    return { dialogueItem, replacedItemIds, durationFrames };
   }
 
   applySpeechAssembly(input: { projectId: Id; generatedAssets: Asset[]; segmentAssets: SpeechSegmentAsset[]; speechAsset?: SpeechAsset }): ProjectState {
@@ -754,22 +1046,106 @@ export class EditingApplication {
         return;
       }
       const speechAsset = input.speechAsset;
-      snapshot.speechAsset = speechAsset;
-      snapshot.timeline.captions = speechAsset.timing.segments.map((timing) => {
-        const segment = snapshot.speechSegments.find((candidate) => candidate.id === timing.speechSegmentId)!;
-        return {
-          id: createId("caption"),
-          speechSegmentId: segment.id,
-          text: segment.text,
-          startFrame: timing.startFrame,
-          endFrame: timing.endFrame,
-          style: "stable" as const,
-          precision: speechAsset.timing.precision
-        };
-      });
-      impact.changed.push(speechAsset.id, ...input.segmentAssets.map((segmentAsset) => segmentAsset.id));
-      impact.recomputed.push("segment_exact SpeechTiming、稳定短句字幕");
-      impact.dirtyRanges.push({ startFrame: 0, endFrame: snapshot.timeline.durationInFrames, reason: "旁白时序更新" });
+      const synced = this.syncSpeechAssetTimeline(snapshot, speechAsset);
+      impact.changed.push(speechAsset.id, synced.dialogueItem.id, ...synced.replacedItemIds, ...input.segmentAssets.map((segmentAsset) => segmentAsset.id));
+      impact.recomputed.push("Dialogue 旁白轨、segment_exact SpeechTiming、稳定短句字幕");
+      impact.dirtyRanges.push({ startFrame: 0, endFrame: Math.max(snapshot.timeline.durationInFrames, synced.durationFrames), reason: "旁白时序更新" });
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /** 为旧 Revision 补回遗漏的 Dialogue Item 与稳定字幕，不重新调用 OmniVoice。 */
+  rebuildSpeechAssetTimeline(input: { projectId: Id; baseRevision: number }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "修复 SpeechAsset 的 Dialogue 与字幕", (snapshot, impact) => {
+      const speechAsset = snapshot.speechAsset;
+      if (!speechAsset || speechAsset.status !== "ready") throw new DomainError("当前项目没有可修复的 SpeechAsset", "SPEECH_ASSET_NOT_FOUND");
+      if (speechAsset.scriptRevision !== snapshot.script.revision) {
+        throw new DomainError("SpeechAsset 与当前 Script 不一致，必须先重新生成或组装旁白", "SPEECH_SCRIPT_STALE");
+      }
+      const synced = this.syncSpeechAssetTimeline(snapshot, speechAsset);
+      impact.changed.push(speechAsset.id, synced.dialogueItem.id, ...synced.replacedItemIds);
+      impact.recomputed.push("修复 Dialogue 旁白轨、稳定短句字幕");
+      impact.dirtyRanges.push({ startFrame: 0, endFrame: Math.max(snapshot.timeline.durationInFrames, synced.durationFrames), reason: "修复旧 SpeechAsset Timeline" });
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /**
+   * 旁白是当前 Presenter 主线的节奏基准时，将未被手工覆盖的 A-roll 收齐到最终 SpeechAsset。
+   * 只允许裁短已有素材；若需要补画面或会碰到既有 Cue，则拒绝自动改写，交回导演层决定。
+   */
+  alignPresenterToSpeech(input: { projectId: Id; baseRevision: number }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "按旁白时长收齐 Presenter 主线", (snapshot, impact) => {
+      const speechAsset = snapshot.speechAsset;
+      if (!speechAsset || speechAsset.status !== "ready" || speechAsset.scriptRevision !== snapshot.script.revision) {
+        throw new DomainError("必须先生成与当前 Script 一致的 SpeechAsset", "SPEECH_ASSET_NOT_READY");
+      }
+      const dialogueTrack = trackByName(snapshot, "Dialogue");
+      const dialogueItem = snapshot.timeline.items.find((item) => item.trackId === dialogueTrack.id && item.assetId === speechAsset.assetId && !item.disabled);
+      if (!dialogueItem) throw new DomainError("SpeechAsset 尚未写入 Dialogue 轨", "SPEECH_DIALOGUE_ITEM_MISSING");
+      const actorTrack = trackByName(snapshot, "Actor / A-roll");
+      if (actorTrack.locked) throw new DomainError("Actor / A-roll 轨已锁定，不能自动收齐", "TRACK_LOCKED");
+      const actorItems = snapshot.timeline.items
+        .filter((item) => item.trackId === actorTrack.id && !item.disabled)
+        .sort((left, right) => left.startFrame - right.startFrame);
+      if (actorItems.length === 0) throw new DomainError("没有可收齐的 Presenter 主画面", "MISSING_PRIMARY_VIDEO");
+
+      const targetEndFrame = dialogueItem.endFrame;
+      const currentEndFrame = actorItems[actorItems.length - 1]!.endFrame;
+      if (targetEndFrame > currentEndFrame) {
+        throw new DomainError("旁白长于现有 Presenter 主画面；请先补充可播放视频，系统不会凭空延长素材", "PRESENTER_VISUAL_TOO_SHORT");
+      }
+      if (targetEndFrame === currentEndFrame) return;
+
+      const affectedItems = actorItems.filter((item) => item.endFrame > targetEndFrame);
+      if (affectedItems.some((item) => item.directOverride)) {
+        throw new DomainError("待收齐的主画面含有 direct_override，不能自动裁短", "DIRECT_OVERRIDE_PROTECTED");
+      }
+      const affectedSceneIds = new Set(affectedItems.map((item) => item.sceneId).filter((id): id is Id => Boolean(id)));
+      const incompatibleCue = snapshot.effectCues.find((cue) => affectedSceneIds.has(cue.sceneId) && cue.endFrame > targetEndFrame);
+      if (incompatibleCue) {
+        throw new DomainError("待收齐范围已有 EffectCue；请先在当前 Revision 调整 Cue，再收齐主画面", "PRESENTER_TRIM_HAS_CUES");
+      }
+
+      const removedItemIds = new Set<Id>();
+      for (const item of affectedItems) {
+        if (item.startFrame >= targetEndFrame) {
+          removedItemIds.add(item.id);
+          impact.stale.push(item.id);
+          continue;
+        }
+        const oldEndFrame = item.endFrame;
+        item.endFrame = targetEndFrame;
+        item.sourceEndFrame = item.sourceStartFrame + (targetEndFrame - item.startFrame);
+        impact.changed.push(item.id);
+        impact.dirtyRanges.push({ startFrame: targetEndFrame, endFrame: oldEndFrame, reason: "按 SpeechAsset 裁短 Presenter 主画面" });
+      }
+      snapshot.timeline.items = snapshot.timeline.items.filter((item) => !removedItemIds.has(item.id));
+
+      const removedPerformanceIds = snapshot.actorPerformances
+        .filter((performance) => removedItemIds.has(performance.timelineItemId))
+        .map((performance) => performance.id);
+      snapshot.actorPerformances = snapshot.actorPerformances.filter((performance) => !removedItemIds.has(performance.timelineItemId));
+      impact.stale.push(...removedPerformanceIds);
+
+      for (const scene of snapshot.scenes.filter((candidate) => candidate.type === "PresenterScene")) {
+        const sceneItems = snapshot.timeline.items
+          .filter((item) => item.sceneId === scene.id && item.trackId === actorTrack.id && !item.disabled)
+          .sort((left, right) => left.startFrame - right.startFrame);
+        if (sceneItems.length === 0) {
+          throw new DomainError("收齐操作会移除整个已有 PresenterScene；请先手工调整场景边界", "PRESENTER_SCENE_REMOVAL_REQUIRED");
+        }
+        const nextEndFrame = sceneItems[sceneItems.length - 1]!.endFrame;
+        if (nextEndFrame !== scene.endFrame) {
+          scene.endFrame = nextEndFrame;
+          scene.assetIds = [...new Set(sceneItems.map((item) => item.assetId))];
+          impact.changed.push(scene.id);
+        }
+      }
+      impact.recomputed.push("Presenter 主画面、Scene Strip 与旁白时长对齐");
+      assertTimelineValid(snapshot);
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     return state;

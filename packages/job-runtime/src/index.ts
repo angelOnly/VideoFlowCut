@@ -24,10 +24,15 @@ export async function processClaimedJob(
   heartbeat.unref();
   try {
     const result = await processor(job);
-    application.updateJob(job.id, { status: "succeeded", result });
+    // 外部 Bridge Run 可能已在处理过程中写入诊断信息；成功结果不能把这份恢复依据覆盖掉。
+    const persisted = application.trackJob(job.id).result ?? {};
+    application.updateJob(job.id, { status: "succeeded", result: { ...persisted, ...result } });
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    application.updateJob(job.id, { status: "failed", error: detail, result: { diagnostic: detail } });
+    const code = error && typeof error === "object" && "code" in error ? String((error as { code?: unknown }).code ?? "JOB_FAILED") : "JOB_FAILED";
+    // 保留先前记录的 run_id / schema / 请求摘要，令 failed、输出缺失与 run_id 丢失都可诊断。
+    const persisted = application.trackJob(job.id).result ?? {};
+    application.updateJob(job.id, { status: "failed", error: detail, result: { ...persisted, diagnostic: { code, message: detail } } });
   } finally {
     clearInterval(heartbeat);
   }

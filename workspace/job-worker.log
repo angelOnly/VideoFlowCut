@@ -1,0 +1,4 @@
+
+> video-cut@0.1.0 worker
+> tsx apps/job-worker/src/index.ts
+

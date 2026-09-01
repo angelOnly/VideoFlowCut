@@ -68,6 +68,8 @@ export interface MediaMetadata {
   fps?: number;
   hasAudio: boolean;
   audioCodec?: string;
+  sampleRate?: number;
+  channels?: number;
   videoCodec?: string;
   thumbnailPath?: string;
   waveformPath?: string;
@@ -88,6 +90,44 @@ export interface Asset {
   failureReason?: string;
 }
 
+/**
+ * Bridge 请求只保存公开字段和值摘要，不保存媒体二进制；这样 Bridge 重启后仍能诊断一次任务。
+ */
+export interface BridgeRequestSummary {
+  fieldValues: Record<string, unknown>;
+  fileSlots: Array<{ id: string; kind: string; fileName: string }>;
+}
+
+/** Bridge Run 的可持久化响应子集，避免项目长期依赖 Bridge 进程内的临时状态。 */
+export interface BridgeResponseSummary {
+  status: "queued" | "running" | "succeeded" | "failed";
+  error?: string | null;
+  outputs: Array<{
+    outputSlotId: string;
+    displayName: string;
+    kind: string;
+    fileName?: string;
+    mime?: string;
+    outputId?: string;
+    downloadUrl?: string;
+    text?: string;
+  }>;
+}
+
+/**
+ * 每次外部工作流均留下可读的运行审计。Run 丢失时至少能看到本地 Job、请求摘要和最后的 run_id。
+ */
+export interface BridgeRunAudit {
+  workflowId: string;
+  runId: string;
+  schemaVersion: string;
+  schemaRetryCount: number;
+  submittedAt: string;
+  completedAt?: string;
+  request: BridgeRequestSummary;
+  response?: BridgeResponseSummary;
+}
+
 export interface TranscriptText {
   id: Id;
   assetId: Id;
@@ -95,6 +135,7 @@ export interface TranscriptText {
   source: "funasr" | "manual";
   bridgeRunId?: string;
   schemaVersion?: string;
+  bridgeAudit?: BridgeRunAudit;
   createdAt: string;
 }
 
@@ -135,10 +176,12 @@ export interface SpeechSegmentAsset {
   id: Id;
   speechSegmentId: Id;
   voiceReferenceAssetId: Id;
+  voiceReferenceId?: Id;
   assetId: Id;
   durationMs: number;
   bridgeRunId: string;
   schemaVersion: string;
+  bridgeAudit?: BridgeRunAudit;
   quality: "passed" | "warning" | "failed";
 }
 
@@ -149,6 +192,60 @@ export interface SpeechAsset {
   segmentAssetIds: Id[];
   timing: SpeechTiming;
   status: "ready" | "failed";
+}
+
+/** VoiceReference 只记录本地参考音频 Asset，不保存或伪造远端 Voice ID。 */
+export interface VoiceReference {
+  id: Id;
+  assetId: Id;
+  label: string;
+  /** 仅表示项目内的本地来源；绝不对应外部供应商的 Voice ID。 */
+  source: "local_asset";
+  /** 未取得明示信息时保留风险提示，而不虚构授权事实。 */
+  authorizationNote: string;
+  usageNote: string;
+  recommendedRange: { startMs: number; endMs: number };
+  quality: "passed" | "warning" | "failed";
+  usable: boolean;
+  createdAt: string;
+}
+
+/** Story 保存叙事意图；Timeline 仍保存最终播放结构，二者同属同一 Revision。 */
+export interface StoryBeat {
+  id: Id;
+  order: number;
+  title: string;
+  purpose: string;
+  semanticUnitIds: Id[];
+  sceneIds: Id[];
+}
+
+export interface StoryDocument {
+  id: Id;
+  title: string;
+  summary: string;
+  beats: StoryBeat[];
+  updatedAt: string;
+}
+
+/**
+ * 第一阶段只管理已导入或已生成的人物成片；外部数字人 Provider 的能力协商留到阶段 2。
+ * 人物表演绑定既有 Timeline Item，避免另建一条脱离时间线的播放真相。
+ */
+export type ActorPerformanceSource = "imported" | "generated";
+export type ActorMaskMode = "alpha_asset" | "embedded_alpha" | "none";
+
+export interface ActorPerformance {
+  id: Id;
+  timelineItemId: Id;
+  source: ActorPerformanceSource;
+  maskMode: ActorMaskMode;
+  maskAssetId?: Id;
+  speechAssetId?: Id;
+  scriptRevision?: number;
+  status: "ready" | "stale" | "failed";
+  note: string;
+  createdAt: string;
 }
 
 export interface ScriptDocument {
@@ -262,13 +359,16 @@ export interface ProjectSnapshot {
     createdAt: string;
     updatedAt: string;
   };
+  story: StoryDocument;
   assets: Asset[];
+  voiceReferences: VoiceReference[];
   transcripts: TranscriptText[];
   semanticUnits: SemanticUnit[];
   script: ScriptDocument;
   speechSegments: SpeechSegment[];
   speechSegmentAssets: SpeechSegmentAsset[];
   speechAsset?: SpeechAsset;
+  actorPerformances: ActorPerformance[];
   scenes: Scene[];
   effectCues: EffectCue[];
   timeline: TimelineDocument;

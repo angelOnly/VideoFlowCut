@@ -1,5 +1,11 @@
 node_modules/
 dist/
-workspace/
-.vite/
-*.log
+# workspace/
+# .vite/
+# *.log
+
+# GitHub 单文件大小上限：保留 server.log 的分片，不再提交原始大文件。
+/workspace/server.log
+/workspace/projects/project_bc72e0f1-9910-4244-b02d-313be464be52/assets/source/1788225296288-4387316975.MP4
+/workspace/projects/project_bc72e0f1-9910-4244-b02d-313be464be52/assets/source/1788225296423-24e4d269b0.MP4
+/workspace/projects/project_bc72e0f1-9910-4244-b02d-313be464be52/cache/transcription-asset_120a555f-23cc-47c8-a856-b4b9251725bf.wav
