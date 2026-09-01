@@ -1,17 +1,23 @@
-import type { ProjectSnapshot, QualityIssue, QualityReport } from "@videocut/contracts";
-import { createId } from "@videocut/domain";
+import type { EditorialQualityReview, ProjectSnapshot, QualityIssue, QualityReport } from "@videocut/contracts";
+import { assertProjectGraphValid, createId, DomainError } from "@videocut/domain";
 
 const issue = (input: Omit<QualityIssue, "id">): QualityIssue => ({ id: createId("quality"), ...input });
 
 /**
  * 可确定的规则只报告可验证事实；遮挡、节奏与审美仍须由真实预览帧进行人工/视觉复核。
  */
-export function evaluateQuality(snapshot: ProjectSnapshot, revision: number): QualityReport {
+export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, editorialReview?: EditorialQualityReview): QualityReport {
   const issues: QualityIssue[] = [];
   const { timeline } = snapshot;
   const assetIds = new Set(snapshot.assets.map((asset) => asset.id));
   const actorTrack = timeline.tracks.find((track) => track.name === "Actor / A-roll");
   const dialogueTrack = timeline.tracks.find((track) => track.name === "Dialogue");
+  try {
+    assertProjectGraphValid(snapshot);
+  } catch (error) {
+    const message = error instanceof DomainError ? error.message : "项目对象关系校验失败。";
+    issues.push(issue({ level: "blocking", code: "PROJECT_GRAPH_INVALID", message }));
+  }
   if (!actorTrack || !timeline.items.some((item) => item.trackId === actorTrack.id && !item.disabled)) {
     issues.push(issue({ level: "blocking", code: "MISSING_PRIMARY_VIDEO", message: "主画面轨道没有可播放素材。" }));
   }
@@ -34,6 +40,29 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number): Qu
   for (const asset of snapshot.assets) {
     if (asset.status === "failed" || asset.status === "missing") {
       issues.push(issue({ level: "blocking", code: "ASSET_NOT_READY", message: `素材“${asset.name}”不可用：${asset.failureReason ?? asset.status}。`, objectId: asset.id }));
+    }
+  }
+  // 只检查实际进入当前成片的外部素材；素材库中的候选可先保持 unknown，不能因尚未使用而阻塞导出。
+  const usedAssetIds = new Set([
+    ...timeline.items.filter((item) => !item.disabled).map((item) => item.assetId),
+    ...snapshot.scenes.flatMap((scene) => scene.assetIds),
+    ...snapshot.effectCues.flatMap((cue) => cue.assetBindings.map((binding) => binding.assetId)),
+    ...(snapshot.actorPerformances ?? []).flatMap((performance) => performance.maskAssetId ? [performance.maskAssetId] : [])
+  ]);
+  for (const asset of snapshot.assets.filter((candidate) => usedAssetIds.has(candidate.id) && candidate.provenance?.source === "provider")) {
+    const provenance = asset.provenance!;
+    if (provenance.rightsStatus === "unknown") {
+      issues.push(issue({ level: "blocking", code: "EXTERNAL_ASSET_RIGHTS_UNKNOWN", message: `外部素材“${asset.name}”尚未确认授权，不能正式导出。`, objectId: asset.id }));
+    }
+    if (provenance.rightsStatus === "restricted" || provenance.rightsStatus === "rejected") {
+      issues.push(issue({ level: "blocking", code: "EXTERNAL_ASSET_RIGHTS_RESTRICTED", message: `外部素材“${asset.name}”当前授权状态为 ${provenance.rightsStatus}，不能正式导出。`, objectId: asset.id }));
+    }
+    if (provenance.rightsStatus === "attribution_required") {
+      if (!provenance.attributionText?.trim()) {
+        issues.push(issue({ level: "blocking", code: "ATTRIBUTION_TEXT_MISSING", message: `外部素材“${asset.name}”要求署名，但没有署名文本。`, objectId: asset.id }));
+      } else {
+        issues.push(issue({ level: "warning", code: "ATTRIBUTION_MANIFEST_REQUIRED", message: `外部素材“${asset.name}”需要随交付保存署名清单。`, objectId: asset.id }));
+      }
     }
   }
   const performances = snapshot.actorPerformances ?? [];
@@ -64,6 +93,40 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number): Qu
       if (!snapshot.speechAsset || performance.speechAssetId !== snapshot.speechAsset.id || performance.scriptRevision !== snapshot.speechAsset.scriptRevision) {
         issues.push(issue({ level: "blocking", code: "ACTOR_SPEECH_VERSION_MISMATCH", message: "生成型人物表演没有绑定当前 SpeechAsset 与 Script Revision。", objectId: performance.id }));
       }
+    }
+  }
+  /**
+   * 人物视频与 Dialogue 同时可听会直接造成重声。音频所有权只由 ActorPerformance 决定，
+   * Renderer 与导出共用该判断，质量门禁则负责在明确选择原声时阻止错误交付。
+   */
+  const audibleDialogueItems = timeline.items.filter((item) => {
+    const track = timeline.tracks.find((candidate) => candidate.id === item.trackId);
+    if (!track) return false;
+    return track.id === dialogueTrack?.id && !track.muted && !item.disabled && (item.gainDb ?? 0) > -80;
+  });
+  const overlapsDialogue = (item: { startFrame: number; endFrame: number }) => audibleDialogueItems.some((dialogue) => dialogue.startFrame < item.endFrame && dialogue.endFrame > item.startFrame);
+  for (const item of timeline.items.filter((candidate) => candidate.trackId === actorTrack?.id && !candidate.disabled)) {
+    const source = snapshot.assets.find((asset) => asset.id === item.assetId);
+    if (!source?.metadata?.hasAudio || actorTrack?.muted || (item.gainDb ?? 0) <= -80 || !overlapsDialogue(item)) continue;
+    const performance = performanceByItem.get(item.id);
+    const audioMode = performance?.audioMode ?? (snapshot.speechAsset ? "use_dialogue_track" : "use_source_audio");
+    if (!performance) {
+      issues.push(issue({
+        level: "warning",
+        code: "ACTOR_AUDIO_MODE_IMPLICIT",
+        message: "人物画面尚未声明声音所有权；为防重复播放，旧快照预览会优先使用 Dialogue，请补充人物音频模式。",
+        objectId: item.id,
+        frameRange: { startFrame: item.startFrame, endFrame: item.endFrame }
+      }));
+    }
+    if (audioMode === "use_source_audio") {
+      issues.push(issue({
+        level: "blocking",
+        code: "DUPLICATE_DIALOGUE_AUDIO",
+        message: "人物原声与 Dialogue 旁白在同一时间范围内都会播放；请改为 use_dialogue_track 或移除重复 Dialogue。",
+        objectId: performance?.id ?? item.id,
+        frameRange: { startFrame: item.startFrame, endFrame: item.endFrame }
+      }));
     }
   }
   for (const scene of snapshot.scenes.filter((candidate) => candidate.type === "PresenterScene")) {
@@ -99,6 +162,25 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number): Qu
       if (!hasMask) {
         issues.push(issue({ level: "warning", code: "REAR_EFFECT_FALLBACK", message: "后景效果缺少可用人物 Mask，渲染会降级为前景可见层，需复核遮挡。", objectId: cue.id, frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame } }));
       }
+    }
+    const assetRequired = new Set(["ProductFan", "PortfolioWall", "EvidenceCard", "DeviceShowcase", "ContentCarousel"]);
+    if (assetRequired.has(cue.type) && (cue.assetBindings?.length ?? 0) === 0) {
+      issues.push(issue({
+        level: "blocking",
+        code: "EFFECT_ASSET_BINDING_REQUIRED",
+        message: `效果“${cue.type}”必须绑定真实项目素材，不能使用占位卡片。`,
+        objectId: cue.id,
+        frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
+      }));
+    }
+    if (cue.type === "CommentCloud" && !Array.isArray(cue.props?.comments)) {
+      issues.push(issue({
+        level: "blocking",
+        code: "COMMENT_CONTENT_REQUIRED",
+        message: "评论云必须提供项目真实评论文本，不能渲染固定示例评论。",
+        objectId: cue.id,
+        frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
+      }));
     }
   }
   if (!snapshot.speechAsset && snapshot.speechSegments.length > 0) {
@@ -138,7 +220,45 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number): Qu
   if (timeline.durationInFrames === 0) {
     issues.push(issue({ level: "blocking", code: "EMPTY_TIMELINE", message: "时间线为空，无法预览或导出。" }));
   }
-  return { revision, generatedAt: new Date().toISOString(), issues };
+  const technicalIssues = [...issues];
+  const allIssues = [...technicalIssues];
+  const editorial: QualityReport["editorial"] = {
+    status: editorialReview ? editorialReview.revision === revision ? "reviewed" : "stale" : "not_recorded",
+    semantic: [],
+    pacing: [],
+    attention: [],
+    motion: [],
+    typography: [],
+    audio: [],
+    modeSpecific: [],
+    previewEvidence: editorialReview?.revision === revision ? [...editorialReview.previewEvidence] : []
+  };
+  // 审片结论来自真实预览与 Skill 判断。仅 blocking/warning 进入确定性质量门禁，
+  // major/minor/inconclusive 则留在 ProductionRun，不能被伪装成系统自动发现的问题。
+  if (editorialReview?.revision === revision) {
+    for (const finding of editorialReview.findings) {
+      if (finding.severity !== "blocking" && finding.severity !== "warning") continue;
+      const editorialIssue: QualityIssue = {
+        id: finding.id,
+        level: finding.severity,
+        code: `EDITORIAL_${finding.category.toUpperCase()}`,
+        message: finding.summary,
+        objectId: finding.objectId,
+        frameRange: finding.frameRange
+      };
+      const category = finding.category === "mode_specific" ? "modeSpecific" : finding.category;
+      editorial[category].push(editorialIssue);
+      allIssues.push(editorialIssue);
+    }
+  }
+  return {
+    revision,
+    generatedAt: new Date().toISOString(),
+    technical: technicalIssues,
+    editorial,
+    requiredFixes: allIssues.filter((entry) => entry.level === "blocking"),
+    issues: allIssues
+  };
 }
 
 export function canExport(report: QualityReport): boolean {

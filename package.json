@@ -17,7 +17,9 @@
     "render-worker": "tsx apps/render-worker/src/index.ts",
     "mcp": "tsx apps/server/src/mcp.ts",
     "test": "tsx --test tests/**/*.test.ts",
-    "test:e2e": "tsx scripts/e2e-sample.ts"
+    "test:effect-registry": "tsx scripts/effect-registry-smoke.e2e.ts",
+    "test:creative-eval": "tsx scripts/presenter-creative-agent.eval.ts",
+    "test:e2e": "npm run test:effect-registry"
   },
   "dependencies": {
     "@fastify/cors": "^11.0.0",

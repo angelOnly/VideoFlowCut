@@ -87,6 +87,7 @@ export function App() {
   const [newProjectName, setNewProjectName] = useState("数字人口播项目");
   const [localPath, setLocalPath] = useState("");
   const [selectedUnitIds, setSelectedUnitIds] = useState<string[]>([]);
+  const [selectedARollIds, setSelectedARollIds] = useState<string[]>([]);
   const [message, setMessage] = useState("准备就绪");
   const [busy, setBusy] = useState(false);
   const playerRef = useRef<PlayerRef>(null);
@@ -142,6 +143,10 @@ export function App() {
   useEffect(() => {
     if (!state) return;
     setSelectedUnitIds(state.snapshot.semanticUnits.filter((unit) => unit.status === "included").map((unit) => unit.id));
+    const readyVideoIds = new Set(state.snapshot.assets
+      .filter((asset) => (asset.kind === "video" || asset.kind === "actor_video") && asset.status === "ready")
+      .map((asset) => asset.id));
+    setSelectedARollIds((current) => current.filter((assetId) => readyVideoIds.has(assetId)));
   }, [state?.revision.id]);
 
   /**
@@ -257,7 +262,7 @@ export function App() {
   }
 
   const videoAssets = snapshot.assets.filter((asset) => (asset.kind === "video" || asset.kind === "actor_video") && asset.status === "ready");
-  const selectedForTimeline = videoAssets.map((asset) => asset.id);
+  const selectedForTimeline = selectedARollIds.filter((assetId) => videoAssets.some((asset) => asset.id === assetId));
   const blockingIssues = quality?.issues.filter((issue) => issue.level === "blocking") ?? [];
 
   return (
@@ -308,7 +313,9 @@ export function App() {
             onSubmitVoiceSynthesis={(voiceReferenceId) => void act("提交 OmniVoice 旁白", () => api.voiceSynthesis(snapshot.project.id, voiceReferenceId))}
             onRebuildSpeechTimeline={() => void act("修复 SpeechAsset 时间线", () => api.rebuildSpeechTimeline(snapshot.project.id, currentRevision))}
             onAlignPresenterToSpeech={() => void act("按旁白收齐 Presenter 主线", () => api.alignPresenterToSpeech(snapshot.project.id, currentRevision))}
-            onBuildTimeline={() => void act("建立 Presenter 主线", () => api.buildTimeline(snapshot.project.id, currentRevision, selectedForTimeline))}
+            selectedARollIds={selectedForTimeline}
+            onToggleARoll={(assetId) => setSelectedARollIds((old) => old.includes(assetId) ? old.filter((id) => id !== assetId) : [...old, assetId])}
+            onBuildTimeline={() => void act("组装所选 Presenter A-roll", () => api.assemblePresenterTrack(snapshot.project.id, currentRevision, selectedForTimeline))}
             onToggleUnit={(unitId) => setSelectedUnitIds((old) => old.includes(unitId) ? old.filter((id) => id !== unitId) : [...old, unitId])}
             onApplyScript={() => void act("应用 Script", () => api.applyScript(snapshot.project.id, currentRevision, selectedUnitIds))}
             onRegisterActor={(timelineItemId, maskAssetId) => void act("登记人物表演", () => api.registerActorPerformance(snapshot.project.id, {
@@ -316,6 +323,7 @@ export function App() {
               timelineItemId,
               source: "imported",
               maskMode: maskAssetId ? "alpha_asset" : "none",
+              audioMode: snapshot.speechAsset ? "use_dialogue_track" : "use_source_audio",
               maskAssetId,
               note: "从工作台导入的人物主画面"
             }))}
@@ -400,6 +408,8 @@ interface PanelContentProps {
   onSubmitVoiceSynthesis: (voiceReferenceId: string) => void;
   onRebuildSpeechTimeline: () => void;
   onAlignPresenterToSpeech: () => void;
+  selectedARollIds: string[];
+  onToggleARoll: (assetId: string) => void;
   onBuildTimeline: () => void;
   onToggleUnit: (unitId: string) => void;
   onApplyScript: () => void;
@@ -412,15 +422,16 @@ interface PanelContentProps {
 function PanelContent(props: PanelContentProps) {
   const { panel, snapshot } = props;
   if (panel === "assets") {
-    const readyVideoCount = snapshot.assets.filter((asset) => (asset.kind === "video" || asset.kind === "actor_video") && asset.status === "ready").length;
     return <>
       <PanelTitle title="素材库" meta={`${snapshot.assets.length} 个素材`} />
       <label className="upload-button">上传媒体<input aria-label="上传媒体" type="file" accept="video/*,audio/*,image/*" multiple hidden onChange={(event) => event.target.files && props.onUpload([...event.target.files])} /></label>
       <div className="path-import"><input aria-label="本地素材路径" placeholder="本地素材绝对路径" value={props.localPath} onChange={(event) => props.setLocalPath(event.target.value)} /><button onClick={props.onImportPath} disabled={!props.localPath.trim()}>导入</button></div>
-      <button className="wide-button" onClick={props.onBuildTimeline} disabled={readyVideoCount === 0}>用 {readyVideoCount} 条视频建立 Presenter 主线</button>
+      <p className="empty-panel">先明确选择 A-roll，再由导演 Skill 通过 Story Beat 编译 Scene；不会默认把所有视频当人物主画面。</p>
+      <button className="wide-button" onClick={props.onBuildTimeline} disabled={props.selectedARollIds.length === 0}>组装 {props.selectedARollIds.length} 条所选 A-roll</button>
       <div className="asset-list">{snapshot.assets.map((asset) => <article key={asset.id} className="asset-card" data-testid={`asset-${asset.id}`} data-object-id={asset.id} aria-label={`素材：${asset.name}`} onClick={() => props.onSelect({ kind: "asset", id: asset.id })}>
         {asset.metadata?.thumbnailPath ? <img src={mediaUrl(snapshot, API_BASE, asset.metadata.thumbnailPath)} alt="素材缩略图" /> : <div className="asset-placeholder">{assetIcon(asset)}</div>}
         <div className="asset-copy"><strong>{asset.name}</strong><small>{asset.metadata?.durationMs ? `${(asset.metadata.durationMs / 1000).toFixed(1)} 秒` : "等待媒体分析"}</small><span className={`status status-${asset.status}`}>{statusText(asset.status)}</span></div>
+        {(asset.kind === "video" || asset.kind === "actor_video") && asset.status === "ready" && <button className="compact" onClick={(event) => { event.stopPropagation(); props.onToggleARoll(asset.id); }}>{props.selectedARollIds.includes(asset.id) ? "取消 A-roll" : "选为 A-roll"}</button>}
         {(asset.kind === "video" || asset.kind === "actor_video") && asset.status === "ready" && asset.metadata?.hasAudio && <button className="compact" onClick={(event) => { event.stopPropagation(); props.onTranscribe(asset.id); }}>转写</button>}
       </article>)}</div>
     </>;
@@ -478,7 +489,7 @@ function PanelContent(props: PanelContentProps) {
   }
   return <>
     <PanelTitle title="Jobs / Quality / Revision" meta="统一状态" />
-    <section className="quality-section"><h3>质量门禁</h3>{props.quality?.issues.length ? props.quality.issues.map((issue) => <div className={`quality-row ${issue.level}`} key={issue.id}><strong>{issue.level === "blocking" ? "阻塞" : "建议"}</strong><span>{issue.message}</span></div>) : <p className="success-text">没有检测到结构性问题</p>}</section>
+    <section className="quality-section"><h3>质量门禁</h3>{props.quality && <p className="quality-review-status">编辑审片：{props.quality.editorial.status === "reviewed" ? "已记录" : props.quality.editorial.status === "stale" ? "已过期，需复核当前 Revision" : "尚未记录"} · 预览证据 {props.quality.editorial.previewEvidence.length} 条</p>}{props.quality?.issues.length ? props.quality.issues.map((issue) => <div className={`quality-row ${issue.level}`} key={issue.id}><strong>{issue.level === "blocking" ? "阻塞" : "建议"}</strong><span>{issue.message}</span></div>) : <p className="success-text">没有检测到结构性问题</p>}</section>
     <section><h3>任务</h3>{props.jobs.map((job) => <div className="job-row" key={job.id} data-testid={`job-${job.id}`} data-object-id={job.id}><span className={`status status-${job.status}`}>{statusText(job.status)}</span><div><strong>{job.kind}</strong><small>{job.error ?? job.id.slice(0, 14)}</small></div>{job.status === "failed" && <button onClick={() => props.onRetryJob(job.id)}>重试</button>}</div>)}</section>
     <section><h3>Revision</h3>{props.revisions.map((revision) => <div className="revision-row" key={revision.id} data-testid={`revision-${revision.number}`} data-object-id={revision.id}><div><strong>R{revision.number}</strong><span>{revision.summary}</span></div>{revision.number !== props.currentRevision && <button onClick={() => props.onRollback(revision.number)}>回退</button>}</div>)}</section>
   </>;
@@ -506,7 +517,7 @@ function ScenesPanel({ snapshot, onSelect, onSeek, onAddEffect }: {
         {EFFECT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
       </select>
     </label>
-    {snapshot.scenes.length === 0 && <p className="empty-panel">建立 Presenter 主线后，系统会按可编辑片段生成 Scene Strip。</p>}
+    {snapshot.scenes.length === 0 && <p className="empty-panel">A-roll 已组装后，请由 production-director / scene-planning 通过 MCP 根据 Story Beat 编译 Scene Strip。</p>}
     <div className="scene-list">{snapshot.scenes.map((scene) => <article className="scene-card" key={scene.id} data-testid={`scene-${scene.id}`} data-object-id={scene.id} aria-label={`场景：${scene.title}`} onClick={() => { onSelect({ kind: "scene", id: scene.id }); onSeek(scene.startFrame); }}><span className="scene-type">{scene.type.replace("Scene", "")}</span><strong>{scene.title}</strong><p>{scene.purpose}</p><small>{formatDuration(scene.endFrame - scene.startFrame, snapshot.timeline.fps)}</small><button onClick={(event) => { event.stopPropagation(); onAddEffect(scene, effectType); }}>+ {effectType}</button></article>)}</div>
   </>;
 }

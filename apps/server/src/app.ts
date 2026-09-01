@@ -126,6 +126,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       title: z.string().max(160).optional(),
       summary: z.string().max(2_000).optional(),
       beats: z.array(z.object({
+        id: idSchema.optional(),
         title: z.string().max(160),
         purpose: z.string().max(800),
         semanticUnitIds: z.array(idSchema).optional(),
@@ -153,7 +154,8 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   app.get("/api/projects/:projectId/quality", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const state = application.readProject(projectId);
-    return evaluateQuality(state.snapshot, state.revision.number);
+    const editorialReview = await application.readLatestEditorialQualityReview({ projectId });
+    return evaluateQuality(state.snapshot, state.revision.number, editorialReview);
   });
 
   app.get("/api/projects/:projectId/editor-url", async (request) => {
@@ -229,7 +231,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.post("/api/projects/:projectId/transcripts/manual", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    const body = z.object({ assetId: idSchema, text: z.string().trim().min(1) }).parse(request.body);
+    const body = z.object({ baseRevision: baseRevisionSchema.optional(), assetId: idSchema, text: z.string().trim().min(1) }).parse(request.body);
     return application.applyTranscript({ projectId, ...body, source: "manual" });
   });
 
@@ -237,6 +239,47 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({ baseRevision: baseRevisionSchema, semanticUnitIds: z.array(idSchema) }).parse(request.body);
     return application.applyScript({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/semantic-units", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      units: z.array(z.object({
+        candidateIds: z.array(idSchema).min(1),
+        text: z.string().trim().min(1).max(2_000),
+        kind: z.enum(["statement", "question", "answer", "cause", "conclusion", "contrast", "list_item", "setup", "payoff", "retake", "intentional_repetition"]),
+        dependencies: z.array(idSchema).optional(),
+        precedingContext: z.string().max(2_000).optional(),
+        followingContext: z.string().max(2_000).optional(),
+        retakeGroupId: idSchema.optional(),
+        confidence: z.number().min(0).max(1).optional(),
+        pauseBefore: z.object({ durationMs: z.number().int().min(0).max(10_000), reason: z.enum(["sentence", "contrast", "emotion", "breath", "chapter"]) }).optional()
+      })).max(200)
+    }).parse(request.body);
+    return application.applySemanticUnits({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/timeline/assemble-presenter", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, assetIds: z.array(idSchema).min(1) }).parse(request.body);
+    return application.assemblePresenterTrack({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/timeline/compile-presenter-scenes", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      scenes: z.array(z.object({
+        title: z.string().trim().min(1).max(160),
+        purpose: z.string().trim().min(1).max(800),
+        startFrame: z.number().int().min(0),
+        endFrame: z.number().int().positive(),
+        narrativeBeatIds: z.array(idSchema).optional(),
+        stylePackId: z.string().max(160).optional()
+      })).min(1).max(80)
+    }).parse(request.body);
+    return application.compilePresenterScenes({ projectId, ...body });
   });
 
   app.post("/api/projects/:projectId/timeline/build-presenter", async (request) => {
@@ -258,6 +301,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       timelineItemId: idSchema,
       source: z.enum(["imported", "generated"]),
       maskMode: z.enum(["alpha_asset", "embedded_alpha", "none"]),
+      audioMode: z.enum(["use_source_audio", "use_dialogue_track", "muted"]).optional(),
       maskAssetId: idSchema.optional(),
       speechAssetId: idSchema.optional(),
       note: z.string().max(500).optional()

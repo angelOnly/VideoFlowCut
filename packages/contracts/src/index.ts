@@ -18,6 +18,36 @@ export type AssetKind =
   | "speech"
   | "derived";
 
+/**
+ * 素材在当前成片中的明确职责。未分类素材不能被 Presenter 主线自动选中，
+ * 避免把 B-roll、证据或参考图误当成 A-roll。
+ */
+export type AssetRole =
+  | "a_roll"
+  | "b_roll"
+  | "actor_mask"
+  | "voice_reference"
+  | "evidence"
+  | "cutaway"
+  | "style_reference"
+  | "generated_visual";
+
+/**
+ * 素材来源记录。二进制去重仍使用 Asset.sourceHash；这里保存人工可读的授权与署名事实，
+ * 不把本地文件路径误当成可商用授权。
+ */
+export interface AssetProvenance {
+  source: "local_import" | "generated" | "provider";
+  provider?: string;
+  sourceUrl?: string;
+  originalAssetId?: string;
+  creator?: string;
+  license?: string;
+  attributionText?: string;
+  rightsStatus: "unknown" | "cleared" | "attribution_required" | "restricted" | "rejected";
+  acquiredAt: string;
+}
+
 export type AssetStatus = "queued" | "analyzing" | "ready" | "failed" | "missing";
 export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "unknown" | "cancelled";
 export type JobKind =
@@ -84,6 +114,8 @@ export interface Asset {
   managedPath: string;
   originalPath?: string;
   sourceHash?: string;
+  role?: AssetRole;
+  provenance?: AssetProvenance;
   tags: string[];
   metadata?: MediaMetadata;
   createdAt: string;
@@ -139,6 +171,36 @@ export interface TranscriptText {
   createdAt: string;
 }
 
+/**
+ * FunASR 返回全文后，代码只按标点生成候选句，供专业 Skill 审阅；
+ * 它不是可直接用于剪辑或 TTS 的语义结论。
+ */
+export interface TranscriptSentenceCandidate {
+  id: Id;
+  transcriptId: Id;
+  text: string;
+  order: number;
+  sourceAssetId: Id;
+}
+
+export type SemanticUnitKind =
+  | "statement"
+  | "question"
+  | "answer"
+  | "cause"
+  | "conclusion"
+  | "contrast"
+  | "list_item"
+  | "setup"
+  | "payoff"
+  | "retake"
+  | "intentional_repetition";
+
+export interface SpeechPause {
+  durationMs: number;
+  reason: "sentence" | "contrast" | "emotion" | "breath" | "chapter";
+}
+
 export interface SemanticUnit {
   id: Id;
   transcriptId: Id;
@@ -146,6 +208,15 @@ export interface SemanticUnit {
   order: number;
   sourceAssetId: Id;
   status: "included" | "deleted";
+  /** 该语义单元由哪些标点候选组合而来，保持可追溯性。 */
+  candidateIds: Id[];
+  kind: SemanticUnitKind;
+  dependencies: Id[];
+  precedingContext: string;
+  followingContext: string;
+  retakeGroupId?: Id;
+  confidence: number;
+  pauseBefore?: SpeechPause;
 }
 
 export interface SpeechSegment {
@@ -153,8 +224,12 @@ export interface SpeechSegment {
   semanticUnitIds: Id[];
   text: string;
   order: number;
-  prePauseMs: number;
-  postPauseMs: number;
+  /** 最终节奏由语义判断显式提供，而不是对所有句子套固定停顿。 */
+  pauseBefore: SpeechPause;
+  pauseAfter?: SpeechPause;
+  /** 旧 Revision 兼容字段；新代码应使用 pauseBefore / pauseAfter。 */
+  prePauseMs?: number;
+  postPauseMs?: number;
   status: "pending" | "ready" | "stale" | "failed";
 }
 
@@ -234,6 +309,7 @@ export interface StoryDocument {
  */
 export type ActorPerformanceSource = "imported" | "generated";
 export type ActorMaskMode = "alpha_asset" | "embedded_alpha" | "none";
+export type ActorAudioMode = "use_source_audio" | "use_dialogue_track" | "muted";
 
 export interface ActorPerformance {
   id: Id;
@@ -243,6 +319,8 @@ export interface ActorPerformance {
   maskAssetId?: Id;
   speechAssetId?: Id;
   scriptRevision?: number;
+  /** 人物画面的声音所有权，防止视频原声与 Dialogue 同时输出。 */
+  audioMode: ActorAudioMode;
   status: "ready" | "stale" | "failed";
   note: string;
   createdAt: string;
@@ -267,6 +345,31 @@ export interface Scene {
   stylePackId: string;
 }
 
+export type EffectSemanticAnchorType = "speech_segment" | "narrative_beat" | "scene" | "absolute";
+export type EffectAnchorRelation = "anticipate" | "land_on" | "react_after" | "hold_through";
+export type SpatialAnchor = "top_left" | "top_right" | "middle_left" | "middle_right" | "bottom_left" | "bottom_right" | "center" | "full_frame";
+
+export interface EffectSemanticAnchor {
+  type: EffectSemanticAnchorType;
+  targetId?: Id;
+  relation: EffectAnchorRelation;
+}
+
+/** 具名插槽使效果消费真实项目素材，而不是在 Remotion 中伪造示意卡。 */
+export interface EffectAssetBinding {
+  slot: string;
+  assetId: Id;
+}
+
+export interface EffectMotion {
+  enterPreset: string;
+  settlePreset: string;
+  exitPreset: string;
+  enterFrames: number;
+  holdFrames: number;
+  exitFrames: number;
+}
+
 export interface EffectCue {
   id: Id;
   sceneId: Id;
@@ -280,6 +383,15 @@ export interface EffectCue {
   intensity: number;
   status: "ready" | "stale";
   note: string;
+  narrativePurpose: string;
+  audienceTask: string;
+  semanticAnchor: EffectSemanticAnchor;
+  spatialAnchor: SpatialAnchor;
+  assetBindings: EffectAssetBinding[];
+  props: Record<string, unknown>;
+  motion: EffectMotion;
+  stylePackId: string;
+  qualityRules: string[];
 }
 
 export interface TimelineTrack {
@@ -342,10 +454,94 @@ export interface QualityIssue {
   frameRange?: { startFrame: number; endFrame: number };
 }
 
+/** 质量 Skill 的四轮审片及模式专项检查，必须说明实际看过的范围。 */
+export type EditorialReviewPass = "audio_only" | "mute_visual" | "audiovisual" | "first_viewer" | "mode_specific";
+export type EditorialReviewSeverity = "blocking" | "warning" | "major" | "minor" | "suggestion" | "inconclusive";
+export type EditorialReviewCategory = "semantic" | "pacing" | "attention" | "motion" | "typography" | "audio" | "mode_specific";
+
+export interface EditorialReviewFinding {
+  id: Id;
+  pass: EditorialReviewPass;
+  severity: EditorialReviewSeverity;
+  category: EditorialReviewCategory;
+  summary: string;
+  evidence: string;
+  impact: string;
+  suggestedFix?: string;
+  verificationMethod?: string;
+  objectId?: Id;
+  frameRange?: { startFrame: number; endFrame: number };
+}
+
+/**
+ * 这不是自动审美结论，而是 Skill 在真实预览后留下的可追溯审片记录。
+ * blocking/warning 会投影到 QualityReport；其余严重级别保留在 ProductionRun 中供人判断。
+ */
+export interface EditorialQualityReview {
+  revision: number;
+  passes: EditorialReviewPass[];
+  previewEvidence: string[];
+  findings: EditorialReviewFinding[];
+  reviewedAt: string;
+}
+
 export interface QualityReport {
   revision: number;
   generatedAt: string;
+  /** 可由代码确定的结构与媒体规则。 */
+  technical: QualityIssue[];
+  /** 由 Skill + 真实预览补充的编辑判断；未评审时保持空数组而不是伪造通过。 */
+  editorial: {
+    status: "not_recorded" | "reviewed" | "stale";
+    semantic: QualityIssue[];
+    pacing: QualityIssue[];
+    attention: QualityIssue[];
+    motion: QualityIssue[];
+    typography: QualityIssue[];
+    audio: QualityIssue[];
+    modeSpecific: QualityIssue[];
+    previewEvidence: string[];
+  };
+  requiredFixes: QualityIssue[];
+  /** 兼容现有 Web / API 的扁平视图。 */
   issues: QualityIssue[];
+}
+
+export type ProductionRunStatus = "active" | "completed" | "abandoned";
+
+export interface CreativeDecision {
+  id: Id;
+  category: "story" | "semantic" | "scene" | "visual" | "audio" | "quality";
+  decision: string;
+  rationale: string;
+  objectIds: Id[];
+  evidence: string[];
+  alternatives?: string[];
+  createdAt: string;
+}
+
+/**
+ * ProductionRun 是任务审计，不是 Project Snapshot 的副本；它持久化在项目 reports 目录，
+ * 用于回答“这次为什么这样剪”。
+ */
+export interface SkillExecutionReport {
+  id: Id;
+  projectId: Id;
+  status: ProductionRunStatus;
+  baseRevision: number;
+  finalRevision?: number;
+  loadedSkills: string[];
+  loadedReferences: string[];
+  creativeDecisions: CreativeDecision[];
+  quietRanges: Array<{ startFrame: number; endFrame: number; reason: string }>;
+  effectDecisions: string[];
+  rejectedAlternatives: string[];
+  mcpCommands: Array<{ name: string; revision?: number; createdAt: string }>;
+  previewEvidence: string[];
+  qualityReview: string[];
+  editorialReview?: EditorialQualityReview;
+  createdAt: string;
+  completedAt?: string;
 }
 
 export interface ProjectSnapshot {
@@ -363,6 +559,7 @@ export interface ProjectSnapshot {
   assets: Asset[];
   voiceReferences: VoiceReference[];
   transcripts: TranscriptText[];
+  transcriptSentenceCandidates: TranscriptSentenceCandidate[];
   semanticUnits: SemanticUnit[];
   script: ScriptDocument;
   speechSegments: SpeechSegment[];

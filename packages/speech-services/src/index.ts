@@ -280,8 +280,9 @@ export class OmniVoiceSegmentService {
         segmentAsset,
         path: assetPath(latest.snapshot, asset),
         durationMs: segmentAsset.durationMs,
-        prePauseMs: segment.prePauseMs,
-        postPauseMs: segment.postPauseMs
+        // 兼容旧快照的毫秒字段；新 Segment 的停顿来自 semantic-continuity 的明确原因。
+        prePauseMs: segment.pauseBefore?.durationMs ?? segment.prePauseMs ?? 0,
+        postPauseMs: segment.pauseAfter?.durationMs ?? segment.postPauseMs ?? 0
       });
     }
     if (materials.length !== latest.snapshot.speechSegments.length) {

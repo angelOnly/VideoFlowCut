@@ -2,23 +2,29 @@ import { randomUUID } from "node:crypto";
 import type {
   Asset,
   ActorMaskMode,
+  ActorAudioMode,
   ActorPerformance,
   ActorPerformanceSource,
   AssetKind,
   CreativeBrief,
   EffectCue,
+  EffectAssetBinding,
+  EffectMotion,
   EffectType,
   Id,
   ImpactReport,
   ProjectSnapshot,
   Scene,
   SceneType,
+  SemanticUnitKind,
   SemanticUnit,
+  SpeechPause,
   StoryDocument,
   SpeechSegment,
   TimelineDocument,
   TimelineItem,
   TimelineTrack,
+  TranscriptSentenceCandidate,
   VoiceReference
 } from "@videocut/contracts";
 import { DEFAULT_TRACKS } from "@videocut/contracts";
@@ -87,6 +93,7 @@ export function createProjectSnapshot(input: {
     assets: [],
     voiceReferences: [],
     transcripts: [],
+    transcriptSentenceCandidates: [],
     semanticUnits: [],
     script: { semanticUnitIds: [], speechSegmentIds: [], revision: 0 },
     speechSegments: [],
@@ -147,12 +154,95 @@ export function assertTimelineValid(snapshot: ProjectSnapshot): void {
   recomputeTimelineDuration(timeline);
 }
 
+/**
+ * Project Snapshot 中的对象虽然存于同一 Revision，但仍然是一个有向图。
+ * 每次提交前校验引用，可在 SQLite 写入前阻止 Scene、Cue、字幕等形成悬空状态。
+ */
+export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
+  const assetIds = new Set(snapshot.assets.map((asset) => asset.id));
+  const transcriptIds = new Set(snapshot.transcripts.map((transcript) => transcript.id));
+  const candidateIds = new Set((snapshot.transcriptSentenceCandidates ?? []).map((candidate) => candidate.id));
+  const semanticIds = new Set(snapshot.semanticUnits.map((unit) => unit.id));
+  const speechSegmentIds = new Set(snapshot.speechSegments.map((segment) => segment.id));
+  const sceneById = new Map(snapshot.scenes.map((scene) => [scene.id, scene]));
+  const beatById = new Map(snapshot.story.beats.map((beat) => [beat.id, beat]));
+  const itemIds = new Set(snapshot.timeline.items.map((item) => item.id));
+
+  const requireId = (set: Set<Id>, id: Id, description: string) => {
+    if (!set.has(id)) throw new DomainError(`${description} 指向不存在对象：${id}`, "PROJECT_GRAPH_INVALID");
+  };
+
+  for (const candidate of snapshot.transcriptSentenceCandidates ?? []) {
+    requireId(transcriptIds, candidate.transcriptId, "转写候选");
+    requireId(assetIds, candidate.sourceAssetId, "转写候选素材");
+  }
+  for (const unit of snapshot.semanticUnits) {
+    requireId(transcriptIds, unit.transcriptId, "SemanticUnit");
+    requireId(assetIds, unit.sourceAssetId, "SemanticUnit 素材");
+    for (const candidateId of unit.candidateIds ?? []) requireId(candidateIds, candidateId, "SemanticUnit 候选");
+    for (const dependencyId of unit.dependencies ?? []) requireId(semanticIds, dependencyId, "SemanticUnit 依赖");
+  }
+  for (const segment of snapshot.speechSegments) {
+    for (const semanticUnitId of segment.semanticUnitIds) requireId(semanticIds, semanticUnitId, "SpeechSegment");
+  }
+  for (const beat of snapshot.story.beats) {
+    for (const semanticUnitId of beat.semanticUnitIds) requireId(semanticIds, semanticUnitId, "Story Beat");
+    for (const sceneId of beat.sceneIds) {
+      const scene = sceneById.get(sceneId);
+      if (!scene) throw new DomainError(`Story Beat 指向不存在场景：${sceneId}`, "PROJECT_GRAPH_INVALID");
+      if (!scene.narrativeBeatIds.includes(beat.id)) throw new DomainError("Story Beat 与 Scene 缺少双向关联", "PROJECT_GRAPH_INVALID");
+    }
+  }
+  for (const scene of snapshot.scenes) {
+    for (const assetId of scene.assetIds) requireId(assetIds, assetId, "Scene 素材");
+    for (const beatId of scene.narrativeBeatIds) {
+      const beat = beatById.get(beatId);
+      if (!beat) throw new DomainError(`Scene 指向不存在 Story Beat：${beatId}`, "PROJECT_GRAPH_INVALID");
+      if (!beat.sceneIds.includes(scene.id)) throw new DomainError("Scene 与 Story Beat 缺少双向关联", "PROJECT_GRAPH_INVALID");
+    }
+  }
+  for (const item of snapshot.timeline.items) {
+    if (item.sceneId) requireId(new Set(sceneById.keys()), item.sceneId, "Timeline Item");
+  }
+  for (const performance of snapshot.actorPerformances ?? []) requireId(itemIds, performance.timelineItemId, "ActorPerformance");
+  for (const caption of snapshot.timeline.captions) requireId(speechSegmentIds, caption.speechSegmentId, "Caption");
+  for (const segmentAsset of snapshot.speechSegmentAssets) {
+    requireId(speechSegmentIds, segmentAsset.speechSegmentId, "SpeechSegmentAsset");
+    requireId(assetIds, segmentAsset.assetId, "SpeechSegmentAsset 素材");
+  }
+  if (snapshot.speechAsset) {
+    for (const segmentAssetId of snapshot.speechAsset.segmentAssetIds) {
+      if (!snapshot.speechSegmentAssets.some((asset) => asset.id === segmentAssetId)) {
+        throw new DomainError(`SpeechAsset 指向不存在段级语音：${segmentAssetId}`, "PROJECT_GRAPH_INVALID");
+      }
+    }
+    for (const timing of snapshot.speechAsset.timing.segments) requireId(speechSegmentIds, timing.speechSegmentId, "SpeechTiming");
+  }
+  for (const cue of snapshot.effectCues) {
+    requireId(new Set(sceneById.keys()), cue.sceneId, "EffectCue");
+    const semanticAnchor = cue.semanticAnchor;
+    if (semanticAnchor?.targetId) {
+      if (semanticAnchor.type === "speech_segment") requireId(speechSegmentIds, semanticAnchor.targetId, "EffectCue SpeechSegment 锚点");
+      if (semanticAnchor.type === "narrative_beat") {
+        if (!beatById.has(semanticAnchor.targetId)) throw new DomainError(`EffectCue Story Beat 锚点不存在：${semanticAnchor.targetId}`, "PROJECT_GRAPH_INVALID");
+      }
+      if (semanticAnchor.type === "scene") requireId(new Set(sceneById.keys()), semanticAnchor.targetId, "EffectCue Scene 锚点");
+    }
+    // 兼容仍只保存 anchorTargetId 的旧 Revision。
+    if (!semanticAnchor && cue.anchorTargetId) requireId(speechSegmentIds, cue.anchorTargetId, "EffectCue 旧 SpeechSegment 锚点");
+    for (const binding of cue.assetBindings ?? []) requireId(assetIds, binding.assetId, "EffectCue 素材绑定");
+  }
+}
+
 export function createMediaAsset(input: {
   name: string;
   kind: AssetKind;
   managedPath: string;
   originalPath?: string;
   sourceHash?: string;
+  role?: Asset["role"];
+  provenance?: Asset["provenance"];
+  tags?: string[];
 }): Asset {
   return {
     id: createId("asset"),
@@ -162,7 +252,9 @@ export function createMediaAsset(input: {
     managedPath: input.managedPath,
     originalPath: input.originalPath,
     sourceHash: input.sourceHash,
-    tags: [],
+    role: input.role,
+    provenance: input.provenance ?? { source: "local_import", rightsStatus: "unknown", acquiredAt: now() },
+    tags: [...new Set((input.tags ?? []).map((tag) => tag.trim()).filter(Boolean))],
     createdAt: now()
   };
 }
@@ -170,21 +262,56 @@ export function createMediaAsset(input: {
 /**
  * FunASR 只有全文，分句仅用于语义讨论，绝不把这里的顺序误写成词级时序。
  */
-export function createSemanticUnits(transcriptId: Id, assetId: Id, text: string): SemanticUnit[] {
+export function createTranscriptSentenceCandidates(transcriptId: Id, assetId: Id, text: string): TranscriptSentenceCandidate[] {
   const normalized = text.replace(/\r\n/g, "\n").trim();
   const chunks = normalized
     .split(/(?<=[。！？!?；;])\s*|\n+/u)
     .map((chunk) => chunk.trim())
     .filter(Boolean);
   const source = chunks.length > 0 ? chunks : normalized ? [normalized] : [];
-  return source.map((unitText, order) => ({
-    id: createId("semantic"),
+  return source.map((candidateText, order) => ({
+    id: createId("sentence_candidate"),
     transcriptId,
     sourceAssetId: assetId,
-    text: unitText,
-    order,
-    status: "included"
+    text: candidateText,
+    order
   }));
+}
+
+/** 由 semantic-continuity 的判断调用，而不是把标点候选直接伪装成语义结论。 */
+export function createSemanticUnit(input: {
+  transcriptId: Id;
+  sourceAssetId: Id;
+  candidateIds: Id[];
+  text: string;
+  order: number;
+  kind: SemanticUnitKind;
+  dependencies?: Id[];
+  precedingContext?: string;
+  followingContext?: string;
+  retakeGroupId?: Id;
+  confidence?: number;
+  pauseBefore?: SpeechPause;
+}): SemanticUnit {
+  const text = input.text.trim();
+  if (!text) throw new DomainError("SemanticUnit 文本不能为空", "INVALID_SEMANTIC_UNIT");
+  if (input.candidateIds.length === 0) throw new DomainError("SemanticUnit 必须引用至少一个转写候选", "SEMANTIC_CANDIDATE_REQUIRED");
+  return {
+    id: createId("semantic"),
+    transcriptId: input.transcriptId,
+    sourceAssetId: input.sourceAssetId,
+    candidateIds: [...input.candidateIds],
+    text,
+    order: input.order,
+    kind: input.kind,
+    dependencies: input.dependencies ?? [],
+    precedingContext: input.precedingContext?.trim() ?? "",
+    followingContext: input.followingContext?.trim() ?? "",
+    retakeGroupId: input.retakeGroupId,
+    confidence: Math.min(1, Math.max(0, input.confidence ?? 0.8)),
+    pauseBefore: input.pauseBefore,
+    status: "included"
+  };
 }
 
 /**
@@ -197,8 +324,11 @@ export function compileSpeechSegments(units: SemanticUnit[]): SpeechSegment[] {
     semanticUnitIds: [unit.id],
     text: unit.text,
     order,
-    prePauseMs: order === 0 ? 0 : 180,
-    postPauseMs: 80,
+    // 没有专业节奏判断时保守地不插入人工静音；绝不再用 180/80ms 伪造统一节奏。
+    pauseBefore: order === 0 ? { durationMs: 0, reason: "sentence" } : (unit.pauseBefore ?? { durationMs: 0, reason: "sentence" }),
+    pauseAfter: undefined,
+    prePauseMs: order === 0 ? 0 : (unit.pauseBefore?.durationMs ?? 0),
+    postPauseMs: 0,
     status: "pending"
   }));
 }
@@ -234,8 +364,20 @@ export function createEffectCue(input: {
   endFrame: number;
   anchorTargetId?: Id;
   note?: string;
+  narrativePurpose?: string;
+  audienceTask?: string;
+  semanticAnchor?: EffectCue["semanticAnchor"];
+  spatialAnchor?: EffectCue["spatialAnchor"];
+  assetBindings?: EffectAssetBinding[];
+  props?: Record<string, unknown>;
+  motion?: Partial<EffectMotion>;
+  stylePackId?: string;
+  qualityRules?: string[];
 }): EffectCue {
   if (input.endFrame <= input.startFrame) throw new DomainError("效果范围无效", "INVALID_CUE_RANGE");
+  const enterFrames = Math.max(1, input.motion?.enterFrames ?? 10);
+  const exitFrames = Math.max(1, input.motion?.exitFrames ?? 10);
+  const defaultSpatialAnchor = input.layer === "fullscreen" ? "full_frame" : input.layer === "rear" ? "middle_left" : "bottom_right";
   return {
     id: createId("cue"),
     sceneId: input.sceneId,
@@ -248,7 +390,27 @@ export function createEffectCue(input: {
     endFrame: input.endFrame,
     intensity: 0.6,
     status: "ready",
-    note: input.note ?? ""
+    note: input.note ?? "",
+    narrativePurpose: input.narrativePurpose?.trim() || input.note?.trim() || "支持当前叙事重点",
+    audienceTask: input.audienceTask?.trim() || "理解当前表达",
+    semanticAnchor: input.semanticAnchor ?? {
+      type: input.anchorTargetId ? "speech_segment" : "scene",
+      targetId: input.anchorTargetId ?? input.sceneId,
+      relation: "land_on"
+    },
+    spatialAnchor: input.spatialAnchor ?? defaultSpatialAnchor,
+    assetBindings: input.assetBindings ?? [],
+    props: input.props ?? {},
+    motion: {
+      enterPreset: input.motion?.enterPreset ?? "fade_slide",
+      settlePreset: input.motion?.settlePreset ?? "hold",
+      exitPreset: input.motion?.exitPreset ?? "fade",
+      enterFrames,
+      holdFrames: Math.max(0, input.motion?.holdFrames ?? Math.max(0, input.endFrame - input.startFrame - enterFrames - exitFrames)),
+      exitFrames
+    },
+    stylePackId: input.stylePackId ?? "default-clean",
+    qualityRules: input.qualityRules ?? []
   };
 }
 
@@ -259,6 +421,7 @@ export function createActorPerformance(input: {
   maskAssetId?: Id;
   speechAssetId?: Id;
   scriptRevision?: number;
+  audioMode?: ActorAudioMode;
   note?: string;
 }): ActorPerformance {
   return {
@@ -269,6 +432,7 @@ export function createActorPerformance(input: {
     maskAssetId: input.maskAssetId,
     speechAssetId: input.speechAssetId,
     scriptRevision: input.scriptRevision,
+    audioMode: input.audioMode ?? "use_source_audio",
     status: "ready",
     note: input.note ?? "",
     createdAt: now()

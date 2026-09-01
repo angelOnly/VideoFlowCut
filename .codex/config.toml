@@ -2,7 +2,6 @@
 [mcp_servers."video-editor-mcp"]
 command = "npm"
 args = ["run", "mcp"]
-cwd = "E:\\ai\\VideoCut"
 startup_timeout_sec = 20
 tool_timeout_sec = 120
 enabled = true
@@ -80,4 +79,9 @@ enabled = true
 
 [[skills.config]]
 path = "../.agents/skills/remotion-production"
+enabled = true
+
+# 阶段一已经包含原声、Dialogue、停顿与导出音轨，声音收口必须纳入专业判断。
+[[skills.config]]
+path = "../.agents/skills/audio-finishing"
 enabled = true

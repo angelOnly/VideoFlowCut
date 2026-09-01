@@ -1,13 +1,22 @@
 import { mkdirSync } from "node:fs";
+import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type {
   Asset,
+  ActorAudioMode,
   ActorMaskMode,
   ActorPerformanceSource,
   BridgeRunAudit,
   CreativeBrief,
+  EffectAssetBinding,
+  EffectCue,
+  EffectMotion,
   EffectType,
+  EditorialQualityReview,
+  EditorialReviewCategory,
+  EditorialReviewPass,
+  EditorialReviewSeverity,
   Id,
   ImpactReport,
   JobKind,
@@ -18,6 +27,8 @@ import type {
   ProjectSummary,
   RevisionRecord,
   SceneType,
+  SemanticUnitKind,
+  SkillExecutionReport,
   StoryBeat,
   SpeechAsset,
   SpeechSegmentAsset,
@@ -27,6 +38,7 @@ import type {
 } from "@videocut/contracts";
 import {
   assetById,
+  assertProjectGraphValid,
   assertTimelineValid,
   cloneSnapshot,
   compileSpeechSegments,
@@ -36,8 +48,9 @@ import {
   createMediaAsset,
   createProjectSnapshot,
   createScene,
-  createSemanticUnits,
+  createSemanticUnit,
   createStoryDocument,
+  createTranscriptSentenceCandidates,
   createVoiceReference,
   createTimelineItem,
   DomainError,
@@ -112,6 +125,7 @@ export interface AppEvent {
 function normalizeSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
   snapshot.story ??= createStoryDocument(snapshot.project.name, snapshot.project.updatedAt);
   snapshot.voiceReferences ??= [];
+  snapshot.transcriptSentenceCandidates ??= [];
   for (const reference of snapshot.voiceReferences) {
     // 旧 Revision 没有这些字段时只补默认提示，不伪造用户已取得授权的事实。
     reference.source ??= "local_asset";
@@ -122,7 +136,68 @@ function normalizeSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
     reference.usable ??= true;
   }
   snapshot.actorPerformances ??= [];
+  for (const performance of snapshot.actorPerformances) {
+    // 旧快照缺少声音所有权时，优先选择 Dialogue，宁可提示复核也不能继续双声叠加。
+    performance.audioMode ??= snapshot.speechAsset ? "use_dialogue_track" : "use_source_audio";
+  }
+  for (const unit of snapshot.semanticUnits ?? []) {
+    if (!unit.candidateIds?.length) {
+      const legacyCandidateId = `sentence_candidate_legacy_${unit.id}`;
+      if (!snapshot.transcriptSentenceCandidates.some((candidate) => candidate.id === legacyCandidateId)) {
+        snapshot.transcriptSentenceCandidates.push({
+          id: legacyCandidateId,
+          transcriptId: unit.transcriptId,
+          sourceAssetId: unit.sourceAssetId,
+          text: unit.text,
+          order: unit.order
+        });
+      }
+      unit.candidateIds = [legacyCandidateId];
+    }
+    unit.kind ??= "statement";
+    unit.dependencies ??= [];
+    unit.precedingContext ??= "";
+    unit.followingContext ??= "";
+    unit.confidence ??= 0.5;
+  }
+  for (const segment of snapshot.speechSegments ?? []) {
+    segment.pauseBefore ??= { durationMs: segment.prePauseMs ?? 0, reason: "sentence" };
+    if (segment.pauseAfter === undefined && (segment.postPauseMs ?? 0) > 0) {
+      segment.pauseAfter = { durationMs: segment.postPauseMs ?? 0, reason: "sentence" };
+    }
+  }
+  for (const cue of snapshot.effectCues ?? []) {
+    cue.narrativePurpose ??= cue.note || "支持当前叙事重点";
+    cue.audienceTask ??= "理解当前表达";
+    cue.semanticAnchor ??= {
+      type: cue.anchorTargetId ? "speech_segment" : "scene",
+      targetId: cue.anchorTargetId ?? cue.sceneId,
+      relation: "land_on"
+    };
+    cue.spatialAnchor ??= cue.layer === "fullscreen" ? "full_frame" : cue.layer === "rear" ? "middle_left" : "bottom_right";
+    cue.assetBindings ??= [];
+    cue.props ??= {};
+    cue.motion ??= {
+      enterPreset: "fade_slide",
+      settlePreset: "hold",
+      exitPreset: "fade",
+      enterFrames: 10,
+      holdFrames: Math.max(0, cue.endFrame - cue.startFrame - 20),
+      exitFrames: 10
+    };
+    cue.stylePackId ??= "default-clean";
+    cue.qualityRules ??= [];
+  }
   return snapshot;
+}
+
+function assertAssetProvenanceValid(provenance: NonNullable<Asset["provenance"]>): void {
+  if (provenance.source === "provider" && (!provenance.provider?.trim() || !provenance.sourceUrl?.trim())) {
+    throw new DomainError("外部素材必须记录来源平台和原始页面", "PROVENANCE_SOURCE_REQUIRED");
+  }
+  if (provenance.rightsStatus === "attribution_required" && !provenance.attributionText?.trim()) {
+    throw new DomainError("需要署名的素材必须记录署名文本", "ATTRIBUTION_TEXT_REQUIRED");
+  }
 }
 
 /**
@@ -233,7 +308,7 @@ export class ProjectRepository {
   }): ProjectState {
     const projectId = createId("project");
     const rootPath = join(this.workspaceRoot, "projects", projectId);
-    for (const directory of ["assets/source", "assets/proxy", "assets/voice-reference", "assets/speech", "assets/actor", "assets/derived", "previews", "exports", "cache"]) {
+    for (const directory of ["assets/source", "assets/proxy", "assets/voice-reference", "assets/speech", "assets/actor", "assets/derived", "previews", "exports", "cache", "reports"]) {
       mkdirSync(join(rootPath, directory), { recursive: true });
     }
     const snapshot = createProjectSnapshot({ projectId, rootPath, name: input.name, profile: input.profile, brief: input.brief });
@@ -327,6 +402,7 @@ export class ProjectRepository {
       mutate(snapshot, impact);
       snapshot.project.updatedAt = now();
       assertTimelineValid(snapshot);
+      assertProjectGraphValid(snapshot);
       const revision: RevisionRecord = {
         id: createId("revision"),
         projectId,
@@ -455,7 +531,7 @@ export class EditingApplication {
     baseRevision: number;
     title?: string;
     summary?: string;
-    beats?: Array<Pick<StoryBeat, "title" | "purpose"> & Partial<Pick<StoryBeat, "semanticUnitIds" | "sceneIds">>>;
+    beats?: Array<Pick<StoryBeat, "title" | "purpose"> & Partial<Pick<StoryBeat, "id" | "semanticUnitIds" | "sceneIds">>>;
   }): ProjectState {
     const state = this.repository.commit(input.projectId, input.baseRevision, "更新 Story", (snapshot, impact) => {
       if (input.title !== undefined) {
@@ -467,7 +543,10 @@ export class EditingApplication {
       if (input.beats !== undefined) {
         const semanticIds = new Set(snapshot.semanticUnits.map((unit) => unit.id));
         const sceneIds = new Set(snapshot.scenes.map((scene) => scene.id));
-        snapshot.story.beats = input.beats.map((beat, order) => {
+        const existingById = new Map(snapshot.story.beats.map((beat) => [beat.id, beat]));
+        const existingByFingerprint = new Map(snapshot.story.beats.map((beat) => [`${beat.title}::${beat.purpose}`, beat]));
+        const usedIds = new Set<Id>();
+        const nextBeats = input.beats.map((beat, order) => {
           const title = beat.title.trim();
           const purpose = beat.purpose.trim();
           if (!title || !purpose) throw new DomainError("Story Beat 必须包含标题和叙事目的", "INVALID_STORY_BEAT");
@@ -475,8 +554,20 @@ export class EditingApplication {
           const beatSceneIds = beat.sceneIds ?? [];
           for (const id of beatSemanticIds) if (!semanticIds.has(id)) throw new DomainError(`Story Beat 引用了未知语义单元：${id}`, "STORY_SEMANTIC_NOT_FOUND");
           for (const id of beatSceneIds) if (!sceneIds.has(id)) throw new DomainError(`Story Beat 引用了未知场景：${id}`, "STORY_SCENE_NOT_FOUND");
-          return { id: createId("story_beat"), order, title, purpose, semanticUnitIds: beatSemanticIds, sceneIds: beatSceneIds };
+          const requested = beat.id ? existingById.get(beat.id) : undefined;
+          if (beat.id && !requested) throw new DomainError(`Story Beat 不存在：${beat.id}`, "STORY_BEAT_NOT_FOUND");
+          const fallback = existingByFingerprint.get(`${title}::${purpose}`) ?? snapshot.story.beats[order];
+          const id = requested?.id ?? (fallback && !usedIds.has(fallback.id) ? fallback.id : createId("story_beat"));
+          if (usedIds.has(id)) throw new DomainError("Story Beat 不能在同一次更新中重复", "DUPLICATE_STORY_BEAT");
+          usedIds.add(id);
+          return { id, order, title, purpose, semanticUnitIds: [...beatSemanticIds], sceneIds: [...beatSceneIds] };
         });
+        snapshot.story.beats = nextBeats;
+        // Story 是 Scene 关系的唯一编辑入口之一，写入时同步反向边，避免图出现半边引用。
+        for (const scene of snapshot.scenes) {
+          scene.narrativeBeatIds = nextBeats.filter((beat) => beat.sceneIds.includes(scene.id)).map((beat) => beat.id);
+        }
+        impact.changed.push(...nextBeats.map((beat) => beat.id), ...snapshot.scenes.map((scene) => scene.id));
         impact.recomputed.push("Story Beat 与 Scene 关联");
       }
       snapshot.story.updatedAt = now();
@@ -532,6 +623,218 @@ export class EditingApplication {
     return this.repository.getProjectRow(projectId).root_path;
   }
 
+  /** ProductionRun 只落为项目内 JSON 审计，不进入 Revision Snapshot，避免制造第二份剪辑状态。 */
+  private reportPath(projectId: Id, reportId: Id): string {
+    if (!/^production_run_[a-zA-Z0-9-]+$/u.test(reportId)) {
+      throw new DomainError("ProductionRun 标识不合法", "INVALID_PRODUCTION_RUN_ID");
+    }
+    return join(this.getProjectRoot(projectId), "reports", `production-run-${reportId}.json`);
+  }
+
+  private async writeSkillExecutionReport(report: SkillExecutionReport): Promise<void> {
+    const path = this.reportPath(report.projectId, report.id);
+    await mkdir(join(this.getProjectRoot(report.projectId), "reports"), { recursive: true });
+    const temporaryPath = `${path}.tmp`;
+    await writeFile(temporaryPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+    await rename(temporaryPath, path);
+  }
+
+  async readSkillExecutionReport(input: { projectId: Id; runId: Id }): Promise<SkillExecutionReport> {
+    try {
+      const raw = await readFile(this.reportPath(input.projectId, input.runId), "utf8");
+      const report = JSON.parse(raw) as SkillExecutionReport;
+      if (report.projectId !== input.projectId || report.id !== input.runId) {
+        throw new DomainError("ProductionRun 报告与当前项目不匹配", "PRODUCTION_RUN_MISMATCH");
+      }
+      return report;
+    } catch (error) {
+      if (error instanceof DomainError) throw error;
+      throw new DomainError("未找到 ProductionRun 报告", "PRODUCTION_RUN_NOT_FOUND");
+    }
+  }
+
+  /**
+   * QualityReport 只消费最新的一份审片记录；审片报告仍然留在项目目录，
+   * 不把人工判断复制进 Revision Snapshot。
+   */
+  async readLatestEditorialQualityReview(input: { projectId: Id }): Promise<EditorialQualityReview | undefined> {
+    const reportsDirectory = join(this.getProjectRoot(input.projectId), "reports");
+    let entries: Array<{ name: string; isFile: () => boolean }>;
+    try {
+      entries = await readdir(reportsDirectory, { withFileTypes: true });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+      throw new DomainError("无法读取项目审片报告", "EDITORIAL_REVIEW_READ_FAILED");
+    }
+    const reports = await Promise.all(entries
+      .filter((entry) => entry.isFile() && /^production-run-production_run_[a-zA-Z0-9-]+\.json$/u.test(entry.name))
+      .map(async (entry) => {
+        try {
+          return JSON.parse(await readFile(join(reportsDirectory, entry.name), "utf8")) as SkillExecutionReport;
+        } catch {
+          // 单个历史审计文件损坏不应让整个项目失去技术质量检查；显式读取该报告时仍会返回错误。
+          return undefined;
+        }
+      }));
+    return reports
+      .filter((report): report is SkillExecutionReport => Boolean(report && report.projectId === input.projectId && report.editorialReview))
+      .sort((left, right) => (right.editorialReview!.reviewedAt).localeCompare(left.editorialReview!.reviewedAt))[0]
+      ?.editorialReview;
+  }
+
+  async startProductionRun(input: { projectId: Id; baseRevision?: number; loadedSkills: string[]; loadedReferences?: string[] }): Promise<SkillExecutionReport> {
+    const current = this.readProject(input.projectId);
+    const baseRevision = input.baseRevision ?? current.revision.number;
+    this.repository.getRevision(input.projectId, baseRevision);
+    const report: SkillExecutionReport = {
+      id: createId("production_run"),
+      projectId: input.projectId,
+      status: "active",
+      baseRevision,
+      loadedSkills: [...new Set(input.loadedSkills.map((skill) => skill.trim()).filter(Boolean))],
+      loadedReferences: [...new Set((input.loadedReferences ?? []).map((reference) => reference.trim()).filter(Boolean))],
+      creativeDecisions: [],
+      quietRanges: [],
+      effectDecisions: [],
+      rejectedAlternatives: [],
+      mcpCommands: [{ name: "start_production_run", revision: current.revision.number, createdAt: now() }],
+      previewEvidence: [],
+      qualityReview: [],
+      createdAt: now()
+    };
+    await this.writeSkillExecutionReport(report);
+    return report;
+  }
+
+  async recordCreativeDecision(input: {
+    projectId: Id;
+    runId: Id;
+    category: "story" | "semantic" | "scene" | "visual" | "audio" | "quality";
+    decision: string;
+    rationale: string;
+    objectIds?: Id[];
+    evidence?: string[];
+    alternatives?: string[];
+    quietRange?: { startFrame: number; endFrame: number; reason: string };
+    effectDecision?: string;
+    rejectedAlternative?: string;
+    mcpCommand?: string;
+    previewEvidence?: string;
+    qualityReview?: string;
+  }): Promise<SkillExecutionReport> {
+    const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
+    if (report.status !== "active") throw new DomainError("ProductionRun 已结束，不能继续记录创作判断", "PRODUCTION_RUN_CLOSED");
+    const decision = input.decision.trim();
+    const rationale = input.rationale.trim();
+    if (!decision || !rationale) throw new DomainError("创作判断必须说明决定与原因", "INVALID_CREATIVE_DECISION");
+    report.creativeDecisions.push({
+      id: createId("creative_decision"),
+      category: input.category,
+      decision,
+      rationale,
+      objectIds: input.objectIds ?? [],
+      evidence: input.evidence ?? [],
+      alternatives: input.alternatives?.filter(Boolean),
+      createdAt: now()
+    });
+    if (input.quietRange) {
+      if (input.quietRange.startFrame < 0 || input.quietRange.endFrame <= input.quietRange.startFrame || !input.quietRange.reason.trim()) {
+        throw new DomainError("安静区范围或原因无效", "INVALID_QUIET_RANGE");
+      }
+      report.quietRanges.push({ ...input.quietRange, reason: input.quietRange.reason.trim() });
+    }
+    if (input.effectDecision?.trim()) report.effectDecisions.push(input.effectDecision.trim());
+    if (input.rejectedAlternative?.trim()) report.rejectedAlternatives.push(input.rejectedAlternative.trim());
+    if (input.mcpCommand?.trim()) report.mcpCommands.push({ name: input.mcpCommand.trim(), revision: this.readProject(input.projectId).revision.number, createdAt: now() });
+    if (input.previewEvidence?.trim()) report.previewEvidence.push(input.previewEvidence.trim());
+    if (input.qualityReview?.trim()) report.qualityReview.push(input.qualityReview.trim());
+    await this.writeSkillExecutionReport(report);
+    return report;
+  }
+
+  /** 记录完整四轮审片；这里只保存人/Skill 的可观察结论，不尝试由程序伪造审美判断。 */
+  async recordEditorialQualityReview(input: {
+    projectId: Id;
+    runId: Id;
+    revision: number;
+    passes: EditorialReviewPass[];
+    previewEvidence: string[];
+    findings: Array<{
+      pass: EditorialReviewPass;
+      severity: EditorialReviewSeverity;
+      category: EditorialReviewCategory;
+      summary: string;
+      evidence: string;
+      impact: string;
+      suggestedFix?: string;
+      verificationMethod?: string;
+      objectId?: Id;
+      frameRange?: { startFrame: number; endFrame: number };
+    }>;
+  }): Promise<SkillExecutionReport> {
+    const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
+    if (report.status !== "active") throw new DomainError("ProductionRun 已结束，不能继续记录审片", "PRODUCTION_RUN_CLOSED");
+    this.repository.getRevision(input.projectId, input.revision);
+    const requiredPasses: EditorialReviewPass[] = ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"];
+    const passes = [...new Set(input.passes)];
+    if (!requiredPasses.every((pass) => passes.includes(pass))) {
+      throw new DomainError("审片必须包含只听声音、静音画面、完整声画、首次观众和模式专项五轮记录", "EDITORIAL_REVIEW_INCOMPLETE");
+    }
+    const previewEvidence = [...new Set(input.previewEvidence.map((evidence) => evidence.trim()).filter(Boolean))];
+    if (previewEvidence.length === 0) throw new DomainError("审片必须附至少一条真实预览证据", "PREVIEW_EVIDENCE_REQUIRED");
+    const findings = input.findings.map((finding) => {
+      if (!passes.includes(finding.pass)) throw new DomainError("审片问题引用了未执行的审片轮次", "EDITORIAL_REVIEW_PASS_MISSING");
+      const summary = finding.summary.trim();
+      const evidence = finding.evidence.trim();
+      const impact = finding.impact.trim();
+      if (!summary || !evidence || !impact) throw new DomainError("审片问题必须说明现象、证据和影响", "INVALID_EDITORIAL_FINDING");
+      if (finding.frameRange && (finding.frameRange.startFrame < 0 || finding.frameRange.endFrame <= finding.frameRange.startFrame)) {
+        throw new DomainError("审片问题的帧范围无效", "INVALID_EDITORIAL_FRAME_RANGE");
+      }
+      return {
+        id: createId("editorial_finding"),
+        pass: finding.pass,
+        severity: finding.severity,
+        category: finding.category,
+        summary,
+        evidence,
+        impact,
+        suggestedFix: finding.suggestedFix?.trim() || undefined,
+        verificationMethod: finding.verificationMethod?.trim() || undefined,
+        objectId: finding.objectId,
+        frameRange: finding.frameRange
+      };
+    });
+    report.editorialReview = {
+      revision: input.revision,
+      passes,
+      previewEvidence,
+      findings,
+      reviewedAt: now()
+    };
+    report.previewEvidence = [...new Set([...report.previewEvidence, ...previewEvidence])];
+    report.qualityReview.push(`R${input.revision} 已完成四轮审片与模式专项复核。`);
+    report.mcpCommands.push({ name: "record_editorial_quality_review", revision: input.revision, createdAt: now() });
+    await this.writeSkillExecutionReport(report);
+    return report;
+  }
+
+  async completeProductionRun(input: { projectId: Id; runId: Id; finalRevision?: number; qualityReview?: string[]; previewEvidence?: string[] }): Promise<SkillExecutionReport> {
+    const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
+    if (report.status !== "active") throw new DomainError("ProductionRun 已结束", "PRODUCTION_RUN_CLOSED");
+    const current = this.readProject(input.projectId);
+    const finalRevision = input.finalRevision ?? current.revision.number;
+    this.repository.getRevision(input.projectId, finalRevision);
+    report.finalRevision = finalRevision;
+    report.status = "completed";
+    report.completedAt = now();
+    report.mcpCommands.push({ name: "complete_production_run", revision: finalRevision, createdAt: report.completedAt });
+    if (input.previewEvidence) report.previewEvidence.push(...input.previewEvidence.map((value) => value.trim()).filter(Boolean));
+    if (input.qualityReview) report.qualityReview.push(...input.qualityReview.map((value) => value.trim()).filter(Boolean));
+    await this.writeSkillExecutionReport(report);
+    return report;
+  }
+
   registerImportedAsset(input: {
     projectId: Id;
     baseRevision: number;
@@ -540,9 +843,13 @@ export class EditingApplication {
     managedPath: string;
     originalPath?: string;
     sourceHash?: string;
+    role?: Asset["role"];
+    provenance?: Asset["provenance"];
+    tags?: string[];
   }): { state: ProjectState; asset: Asset; job: JobRecord } {
     let asset!: Asset;
     const state = this.repository.commit(input.projectId, input.baseRevision, `导入素材：${input.name}`, (snapshot, impact) => {
+      if (input.provenance) assertAssetProvenanceValid(input.provenance);
       asset = createMediaAsset(input);
       snapshot.assets.push(asset);
       impact.changed.push(asset.id);
@@ -557,6 +864,39 @@ export class EditingApplication {
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
     return { state, asset, job };
+  }
+
+  /**
+   * 角色、标签和来源由导入后的编辑判断补充。素材仍需经过媒体分析才可进入正式 Timeline，
+   * 但不能因此丢失它来自哪里、可否使用的事实。
+   */
+  updateAssetEditorialMetadata(input: {
+    projectId: Id;
+    baseRevision: number;
+    assetId: Id;
+    role?: Asset["role"];
+    tags?: string[];
+    provenance?: Asset["provenance"];
+  }): ProjectState {
+    if (input.role === undefined && input.tags === undefined && input.provenance === undefined) {
+      throw new DomainError("至少提供一种素材角色、标签或来源信息", "EMPTY_ASSET_METADATA_UPDATE");
+    }
+    const state = this.repository.commit(input.projectId, input.baseRevision, "更新素材来源与叙事角色", (snapshot, impact) => {
+      const asset = assetById(snapshot, input.assetId);
+      if (input.role !== undefined) asset.role = input.role;
+      if (input.tags !== undefined) asset.tags = [...new Set(input.tags.map((tag) => tag.trim()).filter(Boolean))];
+      if (input.provenance !== undefined) {
+        assertAssetProvenanceValid(input.provenance);
+        asset.provenance = input.provenance;
+      }
+      impact.changed.push(asset.id);
+      impact.recomputed.push("素材角色、来源与授权状态");
+      if (asset.provenance?.source === "provider" && asset.provenance.rightsStatus === "unknown") {
+        impact.warnings.push(`外部素材“${asset.name}”尚未确认版权，不能作为正式交付素材。`);
+      }
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
   }
 
   applyMediaAnalysis(input: { projectId: Id; assetId: Id; metadata: MediaMetadata }): ProjectState {
@@ -614,12 +954,13 @@ export class EditingApplication {
     return job;
   }
 
-  applyTranscript(input: { projectId: Id; assetId: Id; text: string; bridgeRunId?: string; schemaVersion?: string; bridgeAudit?: BridgeRunAudit; source?: "funasr" | "manual" }): ProjectState {
+  applyTranscript(input: { projectId: Id; baseRevision?: number; assetId: Id; text: string; bridgeRunId?: string; schemaVersion?: string; bridgeAudit?: BridgeRunAudit; source?: "funasr" | "manual" }): ProjectState {
     const current = this.readProject(input.projectId);
-    const state = this.repository.commit(input.projectId, current.revision.number, "写入转写并生成语义单元", (snapshot, impact) => {
+    const state = this.repository.commit(input.projectId, input.baseRevision ?? current.revision.number, "写入转写候选", (snapshot, impact) => {
       assetById(snapshot, input.assetId);
       const oldTranscriptIds = new Set(snapshot.transcripts.filter((transcript) => transcript.assetId === input.assetId).map((transcript) => transcript.id));
       snapshot.transcripts = snapshot.transcripts.filter((transcript) => transcript.assetId !== input.assetId);
+      snapshot.transcriptSentenceCandidates = snapshot.transcriptSentenceCandidates.filter((candidate) => !oldTranscriptIds.has(candidate.transcriptId));
       snapshot.semanticUnits = snapshot.semanticUnits.filter((unit) => !oldTranscriptIds.has(unit.transcriptId));
       const transcript = {
         id: createId("transcript"),
@@ -632,10 +973,15 @@ export class EditingApplication {
         createdAt: now()
       } as const;
       snapshot.transcripts.push(transcript);
-      snapshot.semanticUnits.push(...createSemanticUnits(transcript.id, input.assetId, transcript.text));
+      snapshot.transcriptSentenceCandidates.push(...createTranscriptSentenceCandidates(transcript.id, input.assetId, transcript.text));
+      // 已失效语义单元不能继续被 Story 误引用；Skill 会在候选基础上重新给出完整判断。
+      const activeSemanticUnitIds = new Set(snapshot.semanticUnits.map((unit) => unit.id));
+      for (const beat of snapshot.story.beats) {
+        beat.semanticUnitIds = beat.semanticUnitIds.filter((id) => activeSemanticUnitIds.has(id));
+      }
       this.reconcileScript(snapshot, impact);
       impact.changed.push(transcript.id);
-      impact.recomputed.push("SemanticUnit、Script、SpeechSegment");
+      impact.recomputed.push("TranscriptSentenceCandidate、等待 SemanticUnit 判断、Script、SpeechSegment");
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     return state;
@@ -661,7 +1007,8 @@ export class EditingApplication {
     const oldByIdentity = new Map(oldSegments.map((segment) => [`${segment.semanticUnitIds.join("|")}::${segment.text}`, segment]));
     const compiled = compileSpeechSegments(snapshot.semanticUnits).map((segment) => {
       const old = oldByIdentity.get(`${segment.semanticUnitIds.join("|")}::${segment.text}`);
-      return old ? { ...segment, id: old.id, status: old.status, prePauseMs: old.prePauseMs, postPauseMs: old.postPauseMs } : segment;
+      // 同一句的音频可复用；但停顿来自最新语义判断，必须覆盖旧的节奏参数。
+      return old ? { ...segment, id: old.id, status: old.status } : segment;
     });
     const currentIds = new Set(compiled.map((segment) => segment.id));
     for (const oldSegment of oldSegments) {
@@ -685,11 +1032,78 @@ export class EditingApplication {
       }
     }
     for (const cue of snapshot.effectCues) {
-      if (cue.anchorTargetId && !currentIds.has(cue.anchorTargetId)) {
+      const semanticAnchorTarget = cue.semanticAnchor?.type === "speech_segment" ? cue.semanticAnchor.targetId : undefined;
+      if ((cue.anchorTargetId && !currentIds.has(cue.anchorTargetId)) || (semanticAnchorTarget && !currentIds.has(semanticAnchorTarget))) {
         cue.status = "stale";
         impact.stale.push(cue.id);
       }
     }
+  }
+
+  /**
+   * 将标点候选升级为经 semantic-continuity 审阅的 SemanticUnit。
+   * 这一步才允许生成 Script / SpeechSegment，避免把标点边界误称为语义边界。
+   */
+  applySemanticUnits(input: {
+    projectId: Id;
+    baseRevision: number;
+    units: Array<{
+      candidateIds: Id[];
+      text: string;
+      kind: SemanticUnitKind;
+      dependencies?: Id[];
+      precedingContext?: string;
+      followingContext?: string;
+      retakeGroupId?: Id;
+      confidence?: number;
+      pauseBefore?: { durationMs: number; reason: "sentence" | "contrast" | "emotion" | "breath" | "chapter" };
+    }>;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "应用语义单元判断", (snapshot, impact) => {
+      const candidatesById = new Map(snapshot.transcriptSentenceCandidates.map((candidate) => [candidate.id, candidate]));
+      const oldByIdentity = new Map(snapshot.semanticUnits.map((unit) => [`${unit.candidateIds.join("|")}::${unit.text}`, unit]));
+      const nextUnits = input.units.map((draft, order) => {
+        if (draft.candidateIds.length === 0) throw new DomainError("SemanticUnit 必须包含转写候选", "SEMANTIC_CANDIDATE_REQUIRED");
+        const candidates = draft.candidateIds.map((candidateId) => {
+          const candidate = candidatesById.get(candidateId);
+          if (!candidate) throw new DomainError(`转写候选不存在：${candidateId}`, "SENTENCE_CANDIDATE_NOT_FOUND");
+          return candidate;
+        });
+        const transcriptId = candidates[0]!.transcriptId;
+        const sourceAssetId = candidates[0]!.sourceAssetId;
+        if (candidates.some((candidate) => candidate.transcriptId !== transcriptId || candidate.sourceAssetId !== sourceAssetId)) {
+          throw new DomainError("一个 SemanticUnit 只能组合来自同一转写素材的候选", "SEMANTIC_CANDIDATE_SOURCE_MISMATCH");
+        }
+        const unit = createSemanticUnit({
+          transcriptId,
+          sourceAssetId,
+          candidateIds: draft.candidateIds,
+          text: draft.text,
+          order,
+          kind: draft.kind,
+          dependencies: draft.dependencies,
+          precedingContext: draft.precedingContext,
+          followingContext: draft.followingContext,
+          retakeGroupId: draft.retakeGroupId,
+          confidence: draft.confidence,
+          pauseBefore: draft.pauseBefore
+        });
+        const old = oldByIdentity.get(`${unit.candidateIds.join("|")}::${unit.text}`);
+        return old ? { ...unit, id: old.id, status: old.status } : unit;
+      });
+      const nextIds = new Set(nextUnits.map((unit) => unit.id));
+      const oldIds = new Set(snapshot.semanticUnits.map((unit) => unit.id));
+      snapshot.semanticUnits = nextUnits;
+      for (const beat of snapshot.story.beats) {
+        beat.semanticUnitIds = beat.semanticUnitIds.filter((id) => nextIds.has(id));
+      }
+      for (const oldId of oldIds) if (!nextIds.has(oldId)) impact.stale.push(oldId);
+      impact.changed.push(...nextUnits.map((unit) => unit.id));
+      this.reconcileScript(snapshot, impact);
+      impact.recomputed.push("SemanticUnit、Script、SpeechSegment、语义锚点");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
   }
 
   applyScript(input: { projectId: Id; baseRevision: number; semanticUnitIds: Id[] }): ProjectState {
@@ -710,54 +1124,165 @@ export class EditingApplication {
     return state;
   }
 
+  /** 清理 Presenter Scene、反向 Story 引用和依附其上的 Cue，但保留物理 A-roll。 */
+  private clearPresenterScenes(snapshot: ProjectSnapshot, impact: ImpactReport): void {
+    const removedSceneIds = new Set(snapshot.scenes.filter((scene) => scene.type === "PresenterScene").map((scene) => scene.id));
+    const removedCueIds = snapshot.effectCues.filter((cue) => removedSceneIds.has(cue.sceneId)).map((cue) => cue.id);
+    snapshot.effectCues = snapshot.effectCues.filter((cue) => !removedSceneIds.has(cue.sceneId));
+    snapshot.scenes = snapshot.scenes.filter((scene) => scene.type !== "PresenterScene");
+    for (const item of snapshot.timeline.items) {
+      if (item.sceneId && removedSceneIds.has(item.sceneId)) item.sceneId = undefined;
+    }
+    for (const beat of snapshot.story.beats) {
+      beat.sceneIds = beat.sceneIds.filter((sceneId) => !removedSceneIds.has(sceneId));
+    }
+    impact.stale.push(...removedCueIds);
+  }
+
+  /** 清理重建会失效的 Presenter 对象，连同反向 Story 引用和 Cue 一起处理。 */
+  private clearPresenterStructure(snapshot: ProjectSnapshot, impact: ImpactReport): void {
+    const track = trackByName(snapshot, "Actor / A-roll");
+    const removedActorItemIds = new Set(snapshot.timeline.items.filter((item) => item.trackId === track.id).map((item) => item.id));
+    for (const performance of snapshot.actorPerformances) {
+      if (removedActorItemIds.has(performance.timelineItemId)) impact.stale.push(performance.id);
+    }
+    snapshot.actorPerformances = snapshot.actorPerformances.filter((performance) => !removedActorItemIds.has(performance.timelineItemId));
+    this.clearPresenterScenes(snapshot, impact);
+    snapshot.timeline.items = snapshot.timeline.items.filter((item) => item.trackId !== track.id);
+  }
+
+  /** 物理素材组装：只按明确选择的 A-roll 拼接，不生成任何叙事 Scene。 */
+  private assemblePresenterTrackInSnapshot(snapshot: ProjectSnapshot, impact: ImpactReport, assetIds: Id[]): TimelineItem[] {
+    const track = trackByName(snapshot, "Actor / A-roll");
+    const selected = assetIds.map((assetId) => assetById(snapshot, assetId));
+    if (selected.length === 0) throw new DomainError("至少需要一条明确选择的 A-roll 素材", "EMPTY_TIMELINE");
+    if (selected.some((asset) => asset.status !== "ready" || !asset.metadata?.videoCodec)) {
+      throw new DomainError("Presenter 主线只能使用已就绪的视频素材", "ASSET_NOT_READY");
+    }
+    this.clearPresenterStructure(snapshot, impact);
+    let cursor = 0;
+    const items: TimelineItem[] = [];
+    for (const asset of selected) {
+      const duration = millisecondsToFrames(asset.metadata!.durationMs, snapshot.timeline.fps);
+      if (duration <= 0) throw new DomainError(`A-roll 素材时长无效：${asset.name}`, "INVALID_ITEM_RANGE");
+      // 这是调用方的显式选择，才将素材标为 A-roll；不会扫描所有视频自动加入。
+      asset.role = "a_roll";
+      const item = createTimelineItem({
+        trackId: track.id,
+        assetId: asset.id,
+        startFrame: cursor,
+        endFrame: cursor + duration,
+        sourceStartFrame: 0,
+        sourceEndFrame: duration,
+        gainDb: 0
+      });
+      snapshot.timeline.items.push(item);
+      items.push(item);
+      impact.changed.push(item.id, asset.id);
+      cursor = item.endFrame;
+    }
+    impact.recomputed.push("A-roll 物理拼接、主轨时长");
+    impact.dirtyRanges.push({ startFrame: 0, endFrame: cursor, reason: "重建 Presenter A-roll 主线" });
+    return items;
+  }
+
+  /**
+   * 叙事 Scene 编译：必须由调用方提供目的与 Beat 关系，禁止按素材数量或固定 N 条视频猜测。
+   */
+  private compilePresenterScenesInSnapshot(snapshot: ProjectSnapshot, impact: ImpactReport, input: {
+    scenes: Array<{ title: string; purpose: string; startFrame: number; endFrame: number; narrativeBeatIds?: Id[]; stylePackId?: string }>;
+  }): void {
+    const track = trackByName(snapshot, "Actor / A-roll");
+    const actorItems = snapshot.timeline.items.filter((item) => item.trackId === track.id && !item.disabled).sort((left, right) => left.startFrame - right.startFrame);
+    if (actorItems.length === 0) throw new DomainError("请先组装明确的 Presenter A-roll 主线", "MISSING_PRIMARY_VIDEO");
+    const storyBeatIds = new Set(snapshot.story.beats.map((beat) => beat.id));
+    const plans = [...input.scenes].sort((left, right) => left.startFrame - right.startFrame);
+    if (plans.length === 0) throw new DomainError("至少需要一个叙事 Scene 计划", "EMPTY_SCENE_PLAN");
+    for (let index = 0; index < plans.length; index += 1) {
+      const plan = plans[index]!;
+      if (!plan.title.trim() || !plan.purpose.trim() || plan.startFrame < 0 || plan.endFrame <= plan.startFrame) {
+        throw new DomainError("Presenter Scene 计划缺少有效标题、目的或时间范围", "INVALID_SCENE_PLAN");
+      }
+      if (index > 0 && plans[index - 1]!.endFrame > plan.startFrame) throw new DomainError("Presenter Scene 计划不能重叠", "SCENE_OVERLAP");
+      for (const beatId of plan.narrativeBeatIds ?? []) if (!storyBeatIds.has(beatId)) throw new DomainError(`Scene 引用了未知 Story Beat：${beatId}`, "STORY_BEAT_NOT_FOUND");
+    }
+    const coveredItemIds = new Set<Id>();
+    for (const plan of plans) {
+      const items = actorItems.filter((item) => item.startFrame >= plan.startFrame && item.endFrame <= plan.endFrame);
+      if (items.length === 0) throw new DomainError("每个 Presenter Scene 必须覆盖至少一个完整 A-roll Item", "SCENE_ITEM_REQUIRED");
+      for (const item of items) {
+        if (coveredItemIds.has(item.id)) throw new DomainError("同一 A-roll Item 不能属于多个 Presenter Scene", "ITEM_MULTI_SCENE");
+        coveredItemIds.add(item.id);
+      }
+      const scene = createScene({
+        type: "PresenterScene",
+        title: plan.title,
+        purpose: plan.purpose,
+        startFrame: plan.startFrame,
+        endFrame: plan.endFrame,
+        assetIds: [...new Set(items.map((item) => item.assetId))]
+      });
+      scene.narrativeBeatIds = [...(plan.narrativeBeatIds ?? [])];
+      scene.stylePackId = plan.stylePackId?.trim() || snapshot.project.stylePackId;
+      snapshot.scenes.push(scene);
+      for (const item of items) item.sceneId = scene.id;
+      for (const beatId of scene.narrativeBeatIds) {
+        const beat = snapshot.story.beats.find((candidate) => candidate.id === beatId)!;
+        beat.sceneIds = [...new Set([...beat.sceneIds, scene.id])];
+        impact.changed.push(beat.id);
+      }
+      impact.changed.push(scene.id, ...items.map((item) => item.id));
+    }
+    if (coveredItemIds.size !== actorItems.length) {
+      throw new DomainError("Presenter Scene 计划必须覆盖全部 A-roll Item；未覆盖片段不能偷偷归入场景", "SCENE_COVERAGE_INCOMPLETE");
+    }
+    impact.recomputed.push("Story Beat、PresenterScene、Scene Strip");
+  }
+
+  /** 对外的物理组装入口，供导演层在确定 A-roll 后调用。 */
+  assemblePresenterTrack(input: { projectId: Id; baseRevision: number; assetIds: Id[] }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "组装 Presenter A-roll 主线", (snapshot, impact) => {
+      this.assemblePresenterTrackInSnapshot(snapshot, impact, input.assetIds);
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /** 对外的叙事 Scene 编译入口，接受 Skill 已做出的 Story / Speech / VisualTreatment 判断。 */
+  compilePresenterScenes(input: {
+    projectId: Id;
+    baseRevision: number;
+    scenes: Array<{ title: string; purpose: string; startFrame: number; endFrame: number; narrativeBeatIds?: Id[]; stylePackId?: string }>;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "编译 Presenter 叙事场景", (snapshot, impact) => {
+      // Scene 重新编译时，旧 Scene / Cue 必须成组失效，A-roll 物理拼接保持不动。
+      this.clearPresenterScenes(snapshot, impact);
+      this.compilePresenterScenesInSnapshot(snapshot, impact, { scenes: input.scenes });
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /**
+   * 兼容旧客户端的单步入口。新 MCP/Web 不再调用它；它仍会明确标记为兼容路径，
+   * 以防升级时把已有项目直接打断。
+   */
   buildPresenterTimeline(input: { projectId: Id; baseRevision: number; assetIds: Id[]; sceneSize?: number }): ProjectState {
-    const state = this.repository.commit(input.projectId, input.baseRevision, "建立 Presenter 主时间线", (snapshot, impact) => {
-      const track = trackByName(snapshot, "Actor / A-roll");
-      const selected = input.assetIds.map((assetId) => assetById(snapshot, assetId));
-      if (selected.length === 0) throw new DomainError("至少需要一条素材", "EMPTY_TIMELINE");
-      if (selected.some((asset) => asset.status !== "ready" || !asset.metadata)) throw new DomainError("存在尚未就绪的素材", "ASSET_NOT_READY");
-      const removedActorItemIds = new Set(snapshot.timeline.items.filter((item) => item.trackId === track.id).map((item) => item.id));
-      for (const performance of snapshot.actorPerformances) {
-        if (removedActorItemIds.has(performance.timelineItemId)) impact.stale.push(performance.id);
-      }
-      snapshot.actorPerformances = snapshot.actorPerformances.filter((performance) => !removedActorItemIds.has(performance.timelineItemId));
-      snapshot.timeline.items = snapshot.timeline.items.filter((item) => item.trackId !== track.id);
-      snapshot.scenes = snapshot.scenes.filter((scene) => scene.type !== "PresenterScene");
-      let cursor = 0;
+    const state = this.repository.commit(input.projectId, input.baseRevision, "兼容模式建立 Presenter 主时间线", (snapshot, impact) => {
+      const items = this.assemblePresenterTrackInSnapshot(snapshot, impact, input.assetIds);
       const sceneSize = Math.max(1, input.sceneSize ?? 2);
-      for (let index = 0; index < selected.length; index += 1) {
-        const asset = selected[index]!;
-        const duration = millisecondsToFrames(asset.metadata!.durationMs, snapshot.timeline.fps);
-        const item = createTimelineItem({
-          trackId: track.id,
-          assetId: asset.id,
-          startFrame: cursor,
-          endFrame: cursor + duration,
-          sourceStartFrame: 0,
-          sourceEndFrame: duration,
-          gainDb: 0
-        });
-        snapshot.timeline.items.push(item);
-        impact.changed.push(item.id);
-        cursor = item.endFrame;
-      }
-      const actorItems = snapshot.timeline.items.filter((item) => item.trackId === track.id);
-      for (let start = 0; start < actorItems.length; start += sceneSize) {
-        const group = actorItems.slice(start, start + sceneSize);
-        const scene = createScene({
-          type: "PresenterScene",
-          title: `口播场景 ${Math.floor(start / sceneSize) + 1}`,
-          purpose: "承载主叙事与人物口播",
+      const plans = [] as Array<{ title: string; purpose: string; startFrame: number; endFrame: number }>;
+      for (let start = 0; start < items.length; start += sceneSize) {
+        const group = items.slice(start, start + sceneSize);
+        plans.push({
+          title: `兼容口播片段 ${Math.floor(start / sceneSize) + 1}`,
+          purpose: "兼容旧客户端的临时主线分组；正式创作请使用 Story Beat 编译场景。",
           startFrame: group[0]!.startFrame,
-          endFrame: group[group.length - 1]!.endFrame,
-          assetIds: group.map((item) => item.assetId)
+          endFrame: group[group.length - 1]!.endFrame
         });
-        snapshot.scenes.push(scene);
-        for (const item of group) item.sceneId = scene.id;
-        impact.changed.push(scene.id);
       }
-      impact.recomputed.push("Scene Strip、主轨时长、预览快照");
-      impact.dirtyRanges.push({ startFrame: 0, endFrame: cursor, reason: "重建 Presenter 主线" });
+      this.compilePresenterScenesInSnapshot(snapshot, impact, { scenes: plans });
+      impact.warnings.push("当前通过兼容入口按素材分组生成 Scene；正式创作请使用 assemblePresenterTrack + compilePresenterScenes。");
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     return state;
@@ -773,6 +1298,7 @@ export class EditingApplication {
     timelineItemId: Id;
     source: ActorPerformanceSource;
     maskMode: ActorMaskMode;
+    audioMode?: ActorAudioMode;
     maskAssetId?: Id;
     speechAssetId?: Id;
     note?: string;
@@ -806,6 +1332,12 @@ export class EditingApplication {
         scriptRevision = speech.scriptRevision;
       }
 
+      // 有已就绪 Dialogue 时默认由它承担旁白，避免旧工作流把人物原声与 OmniVoice 一起播放。
+      const audioMode = input.audioMode ?? (snapshot.speechAsset?.status === "ready" ? "use_dialogue_track" : "use_source_audio");
+      if (audioMode === "use_dialogue_track" && !snapshot.speechAsset) {
+        impact.warnings.push("人物表演选择了 Dialogue 声音，但当前尚未组装 SpeechAsset；导出前需要补齐声音或改为原声。");
+      }
+
       const existing = snapshot.actorPerformances.find((candidate) => candidate.timelineItemId === item.id);
       const performance = existing ?? createActorPerformance({
         timelineItemId: item.id,
@@ -814,6 +1346,7 @@ export class EditingApplication {
         maskAssetId: input.maskAssetId,
         speechAssetId,
         scriptRevision,
+        audioMode,
         note: input.note
       });
       if (existing) {
@@ -822,6 +1355,7 @@ export class EditingApplication {
         existing.maskAssetId = input.maskAssetId;
         existing.speechAssetId = speechAssetId;
         existing.scriptRevision = scriptRevision;
+        existing.audioMode = audioMode;
         existing.status = "ready";
         existing.note = input.note ?? existing.note;
       } else {
@@ -848,7 +1382,26 @@ export class EditingApplication {
     return state;
   }
 
-  createEffectCue(input: { projectId: Id; baseRevision: number; sceneId: Id; type: EffectType; layer: "rear" | "actor" | "front" | "fullscreen"; startFrame: number; endFrame: number; anchorTargetId?: Id; note?: string }): ProjectState {
+  createEffectCue(input: {
+    projectId: Id;
+    baseRevision: number;
+    sceneId: Id;
+    type: EffectType;
+    layer: "rear" | "actor" | "front" | "fullscreen";
+    startFrame: number;
+    endFrame: number;
+    anchorTargetId?: Id;
+    note?: string;
+    narrativePurpose?: string;
+    audienceTask?: string;
+    semanticAnchor?: EffectCue["semanticAnchor"];
+    spatialAnchor?: EffectCue["spatialAnchor"];
+    assetBindings?: EffectAssetBinding[];
+    props?: Record<string, unknown>;
+    motion?: Partial<EffectMotion>;
+    stylePackId?: string;
+    qualityRules?: string[];
+  }): ProjectState {
     const state = this.repository.commit(input.projectId, input.baseRevision, `添加视觉效果：${input.type}`, (snapshot, impact) => {
       const scene = snapshot.scenes.find((candidate) => candidate.id === input.sceneId);
       if (!scene) throw new DomainError("效果所属场景不存在", "SCENE_NOT_FOUND");
@@ -857,6 +1410,20 @@ export class EditingApplication {
       }
       if (input.anchorTargetId && !snapshot.speechSegments.some((segment) => segment.id === input.anchorTargetId)) {
         throw new DomainError("效果锚点 SpeechSegment 不存在", "ANCHOR_NOT_FOUND");
+      }
+      const semanticAnchor = input.semanticAnchor;
+      if (semanticAnchor?.type === "speech_segment" && semanticAnchor.targetId && !snapshot.speechSegments.some((segment) => segment.id === semanticAnchor.targetId)) {
+        throw new DomainError("效果语义锚点 SpeechSegment 不存在", "ANCHOR_NOT_FOUND");
+      }
+      if (semanticAnchor?.type === "narrative_beat" && semanticAnchor.targetId && !snapshot.story.beats.some((beat) => beat.id === semanticAnchor.targetId)) {
+        throw new DomainError("效果语义锚点 Story Beat 不存在", "ANCHOR_NOT_FOUND");
+      }
+      if (semanticAnchor?.type === "scene" && semanticAnchor.targetId && !snapshot.scenes.some((candidate) => candidate.id === semanticAnchor.targetId)) {
+        throw new DomainError("效果语义锚点 Scene 不存在", "ANCHOR_NOT_FOUND");
+      }
+      for (const binding of input.assetBindings ?? []) {
+        const asset = assetById(snapshot, binding.assetId);
+        if (asset.status !== "ready") throw new DomainError(`效果素材尚未就绪：${asset.name}`, "EFFECT_ASSET_NOT_READY");
       }
       const cue = createEffectCue(input);
       snapshot.effectCues.push(cue);
@@ -867,7 +1434,24 @@ export class EditingApplication {
     return state;
   }
 
-  updateEffectCue(input: { projectId: Id; baseRevision: number; cueId: Id; startFrame?: number; endFrame?: number; intensity?: number; note?: string }): ProjectState {
+  updateEffectCue(input: {
+    projectId: Id;
+    baseRevision: number;
+    cueId: Id;
+    startFrame?: number;
+    endFrame?: number;
+    intensity?: number;
+    note?: string;
+    narrativePurpose?: string;
+    audienceTask?: string;
+    semanticAnchor?: EffectCue["semanticAnchor"];
+    spatialAnchor?: EffectCue["spatialAnchor"];
+    assetBindings?: EffectAssetBinding[];
+    props?: Record<string, unknown>;
+    motion?: Partial<EffectMotion>;
+    stylePackId?: string;
+    qualityRules?: string[];
+  }): ProjectState {
     const state = this.repository.commit(input.projectId, input.baseRevision, "调整视觉效果", (snapshot, impact) => {
       const cue = snapshot.effectCues.find((candidate) => candidate.id === input.cueId);
       if (!cue) throw new DomainError("效果不存在", "CUE_NOT_FOUND");
@@ -878,6 +1462,41 @@ export class EditingApplication {
       cue.holdFrame = Math.max(cue.startFrame + 1, Math.floor((cue.startFrame + cue.endFrame) / 2));
       cue.intensity = input.intensity ?? cue.intensity;
       cue.note = input.note ?? cue.note;
+      cue.narrativePurpose = input.narrativePurpose?.trim() || cue.narrativePurpose;
+      cue.audienceTask = input.audienceTask?.trim() || cue.audienceTask;
+      cue.spatialAnchor = input.spatialAnchor ?? cue.spatialAnchor;
+      cue.props = input.props ?? cue.props;
+      cue.stylePackId = input.stylePackId?.trim() || cue.stylePackId;
+      cue.qualityRules = input.qualityRules ?? cue.qualityRules;
+      if (input.semanticAnchor) {
+        const anchor = input.semanticAnchor;
+        if (anchor.type === "speech_segment" && anchor.targetId && !snapshot.speechSegments.some((segment) => segment.id === anchor.targetId)) {
+          throw new DomainError("效果语义锚点 SpeechSegment 不存在", "ANCHOR_NOT_FOUND");
+        }
+        if (anchor.type === "narrative_beat" && anchor.targetId && !snapshot.story.beats.some((beat) => beat.id === anchor.targetId)) {
+          throw new DomainError("效果语义锚点 Story Beat 不存在", "ANCHOR_NOT_FOUND");
+        }
+        if (anchor.type === "scene" && anchor.targetId && !snapshot.scenes.some((candidate) => candidate.id === anchor.targetId)) {
+          throw new DomainError("效果语义锚点 Scene 不存在", "ANCHOR_NOT_FOUND");
+        }
+        cue.semanticAnchor = anchor;
+      }
+      if (input.assetBindings) {
+        for (const binding of input.assetBindings) {
+          const asset = assetById(snapshot, binding.assetId);
+          if (asset.status !== "ready") throw new DomainError(`效果素材尚未就绪：${asset.name}`, "EFFECT_ASSET_NOT_READY");
+        }
+        cue.assetBindings = input.assetBindings;
+      }
+      if (input.motion) {
+        cue.motion = {
+          ...cue.motion,
+          ...input.motion,
+          enterFrames: Math.max(1, input.motion.enterFrames ?? cue.motion.enterFrames),
+          holdFrames: Math.max(0, input.motion.holdFrames ?? cue.motion.holdFrames),
+          exitFrames: Math.max(1, input.motion.exitFrames ?? cue.motion.exitFrames)
+        };
+      }
       if (cue.startFrame < scene.startFrame || cue.endFrame > scene.endFrame || cue.endFrame <= cue.startFrame) {
         throw new DomainError("调整后的效果范围无效", "INVALID_CUE_RANGE");
       }
@@ -886,6 +1505,82 @@ export class EditingApplication {
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     return state;
+  }
+
+  /**
+   * Timeline 变化后优先按语义锚点重新定位 Cue；不能安全推导的位置明确标 stale，
+   * 而不是保留一个看似有效、实际已经漂移的绝对帧范围。
+   */
+  private recompileCueFromAnchor(snapshot: ProjectSnapshot, cue: EffectCue, previousScene: { startFrame: number; endFrame: number }, scene: { startFrame: number; endFrame: number }, impact: ImpactReport): void {
+    const oldStart = cue.startFrame;
+    const oldEnd = cue.endFrame;
+    const duration = oldEnd - oldStart;
+    const fit = (startFrame: number, desiredDuration = duration) => {
+      const start = Math.max(scene.startFrame, Math.min(startFrame, scene.endFrame - 1));
+      const end = Math.min(scene.endFrame, start + Math.max(1, desiredDuration));
+      if (end <= start) return undefined;
+      return { start, end };
+    };
+    let next: { start: number; end: number } | undefined;
+    const anchor = cue.semanticAnchor;
+    if (anchor.type === "scene") {
+      const relativeStart = oldStart - previousScene.startFrame;
+      next = fit(scene.startFrame + relativeStart);
+    } else if (anchor.type === "speech_segment" && anchor.targetId) {
+      const timing = snapshot.speechAsset?.timing.segments.find((segment) => segment.speechSegmentId === anchor.targetId);
+      if (timing) {
+        if (anchor.relation === "anticipate") next = fit(timing.startFrame - duration);
+        else if (anchor.relation === "react_after") next = fit(timing.endFrame);
+        else if (anchor.relation === "hold_through") next = fit(timing.startFrame, timing.endFrame - timing.startFrame);
+        else next = fit(timing.startFrame);
+      }
+    } else if (anchor.type === "narrative_beat" && anchor.targetId) {
+      const beat = snapshot.story.beats.find((candidate) => candidate.id === anchor.targetId);
+      const anchorScene = beat?.sceneIds.map((sceneId) => snapshot.scenes.find((candidate) => candidate.id === sceneId)).find((candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate));
+      if (anchorScene) next = fit(anchor.relation === "react_after" ? anchorScene.endFrame - duration : anchorScene.startFrame);
+    } else if (anchor.type === "absolute") {
+      next = oldStart >= scene.startFrame && oldEnd <= scene.endFrame ? { start: oldStart, end: oldEnd } : undefined;
+    }
+    if (!next) {
+      cue.status = "stale";
+      impact.stale.push(cue.id);
+      impact.warnings.push(`效果 ${cue.type} 无法根据 ${anchor.type} 锚点安全重算，已标记为需复核。`);
+      return;
+    }
+    cue.startFrame = next.start;
+    cue.endFrame = next.end;
+    cue.holdFrame = Math.max(cue.startFrame + 1, Math.floor((cue.startFrame + cue.endFrame) / 2));
+    cue.status = "ready";
+    if (cue.startFrame !== oldStart || cue.endFrame !== oldEnd) {
+      impact.changed.push(cue.id);
+      impact.dirtyRanges.push({ startFrame: Math.min(oldStart, cue.startFrame), endFrame: Math.max(oldEnd, cue.endFrame), reason: "按语义锚点重算 EffectCue" });
+    }
+  }
+
+  /** Timeline Item 的移动会收口关联 Scene，并按 Cue 的语义锚点重编译可推导的视觉时序。 */
+  private propagateTimelineMove(snapshot: ProjectSnapshot, affectedItemIds: Set<Id>, impact: ImpactReport): void {
+    const affectedSceneIds = new Set(snapshot.timeline.items.filter((item) => affectedItemIds.has(item.id) && item.sceneId).map((item) => item.sceneId as Id));
+    for (const sceneId of affectedSceneIds) {
+      const scene = snapshot.scenes.find((candidate) => candidate.id === sceneId);
+      if (!scene) continue;
+      const previousScene = { startFrame: scene.startFrame, endFrame: scene.endFrame };
+      const items = snapshot.timeline.items.filter((item) => item.sceneId === scene.id && !item.disabled).sort((left, right) => left.startFrame - right.startFrame);
+      if (items.length === 0) {
+        scene.status = "stale";
+        impact.stale.push(scene.id);
+        continue;
+      }
+      scene.startFrame = items[0]!.startFrame;
+      scene.endFrame = items.reduce((latest, item) => Math.max(latest, item.endFrame), scene.startFrame + 1);
+      scene.assetIds = [...new Set(items.map((item) => item.assetId))];
+      impact.changed.push(scene.id);
+      for (const cue of snapshot.effectCues.filter((candidate) => candidate.sceneId === scene.id)) {
+        this.recompileCueFromAnchor(snapshot, cue, previousScene, scene, impact);
+      }
+    }
+    if (affectedSceneIds.size > 0) {
+      impact.recomputed.push("Scene 范围、EffectCue 语义锚点；字幕继续服从 SpeechTiming");
+    }
   }
 
   moveItem(input: { projectId: Id; baseRevision: number; itemId: Id; startFrame: number; ripple?: boolean }): ProjectState {
@@ -897,6 +1592,7 @@ export class EditingApplication {
       const oldStart = item.startFrame;
       const duration = item.endFrame - item.startFrame;
       const delta = input.startFrame - oldStart;
+      const affectedItemIds = new Set<Id>([item.id]);
       if (input.startFrame < 0) throw new DomainError("片段不能移动到时间线起点之前", "INVALID_ITEM_RANGE");
       item.startFrame = input.startFrame;
       item.endFrame = input.startFrame + duration;
@@ -907,9 +1603,11 @@ export class EditingApplication {
             sibling.startFrame += delta;
             sibling.endFrame += delta;
             impact.moved.push(sibling.id);
+            affectedItemIds.add(sibling.id);
           }
         }
       }
+      this.propagateTimelineMove(snapshot, affectedItemIds, impact);
       impact.dirtyRanges.push({ startFrame: Math.min(oldStart, item.startFrame), endFrame: Math.max(oldStart + duration, item.endFrame), reason: "移动时间线片段" });
       if (!input.ripple) impact.warnings.push("未启用 ripple；请检查独立轨道和主轨之间是否留下空隙。");
     });

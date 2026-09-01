@@ -1,13 +1,13 @@
 import { createReadStream, existsSync } from "node:fs";
-import { mkdir, stat } from "node:fs/promises";
+import { mkdir, rename, rm, stat } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { bundle } from "@remotion/bundler";
 import { ensureBrowser, renderMedia, selectComposition } from "@remotion/renderer";
 import type { EditingApplication } from "@videocut/application";
-import type { Asset, JobRecord, ProjectSnapshot, TimelineItem } from "@videocut/contracts";
-import { assetById, DomainError } from "@videocut/domain";
+import type { JobRecord, ProjectSnapshot } from "@videocut/contracts";
+import { DomainError } from "@videocut/domain";
 import { canExport, evaluateQuality } from "@videocut/quality";
 import { probeMedia, runProcess } from "@videocut/speech";
 
@@ -26,8 +26,6 @@ const contentTypeByExtension: Record<string, string> = {
   ".png": "image/png",
   ".webp": "image/webp"
 };
-
-const resolveAssetPath = (snapshot: ProjectSnapshot, asset: Asset) => isAbsolute(asset.managedPath) ? asset.managedPath : join(snapshot.project.rootPath, asset.managedPath);
 
 function assertPathWithin(root: string, candidate: string): void {
   const relativePath = relative(root, candidate);
@@ -114,11 +112,6 @@ function closeServer(server: Server): Promise<void> {
   return new Promise((resolvePromise, reject) => server.close((error) => error ? reject(error) : resolvePromise()));
 }
 
-export interface RenderedExport {
-  renderer: "remotion" | "ffmpeg-fallback";
-  warnings: string[];
-}
-
 /**
  * Remotion bundle 在一个 Worker 进程内复用，但每个 Job 都新开隔离媒体服务，
  * 因此导出始终读取任务绑定的不可变 Revision 快照。
@@ -126,9 +119,14 @@ export interface RenderedExport {
 export class RevisionRenderer {
   private bundleLocation?: Promise<string>;
   private readonly entryPoint: string;
+  private readonly concurrency: string | number | null;
 
-  constructor(entryPoint = fileURLToPath(new URL("./render-entry.tsx", import.meta.url))) {
+  constructor(
+    entryPoint = fileURLToPath(new URL("./render-entry.tsx", import.meta.url)),
+    concurrency: string | number | null = "50%"
+  ) {
     this.entryPoint = entryPoint;
+    this.concurrency = concurrency;
   }
 
   private getBundle(): Promise<string> {
@@ -154,7 +152,7 @@ export class RevisionRenderer {
         x264Preset: "veryfast",
         audioCodec: "aac",
         enforceAudioTrack: true,
-        concurrency: "50%",
+        concurrency: this.concurrency,
         timeoutInMilliseconds: 30 * 60_000,
         logLevel: "error"
       });
@@ -186,7 +184,7 @@ export class RevisionRenderer {
         x264Preset: "veryfast",
         audioCodec: "aac",
         enforceAudioTrack: true,
-        concurrency: "50%",
+        concurrency: this.concurrency,
         timeoutInMilliseconds: 30 * 60_000,
         logLevel: "error"
       });
@@ -194,49 +192,6 @@ export class RevisionRenderer {
       await mediaServer.close();
     }
   }
-}
-
-function ffmpegConcatFilters(snapshot: ProjectSnapshot, items: TimelineItem[]): { args: string[]; filter: string } {
-  const args: string[] = ["-y"];
-  const filters: string[] = [];
-  const labels: string[] = [];
-  items.forEach((item, index) => {
-    const asset = assetById(snapshot, item.assetId);
-    if (!asset.metadata?.hasAudio) {
-      throw new DomainError(`FFmpeg 降级导出不支持无音频的主画面素材：${asset.name}`, "MISSING_AUDIO");
-    }
-    const sourceStart = (item.sourceStartFrame / snapshot.timeline.fps).toFixed(5);
-    const sourceEnd = (item.sourceEndFrame / snapshot.timeline.fps).toFixed(5);
-    args.push("-i", resolveAssetPath(snapshot, asset));
-    filters.push(`[${index}:v]trim=start=${sourceStart}:end=${sourceEnd},setpts=PTS-STARTPTS,scale=${snapshot.timeline.width}:${snapshot.timeline.height}:force_original_aspect_ratio=decrease,pad=${snapshot.timeline.width}:${snapshot.timeline.height}:(ow-iw)/2:(oh-ih)/2,setsar=1[v${index}]`);
-    filters.push(`[${index}:a]atrim=start=${sourceStart}:end=${sourceEnd},asetpts=PTS-STARTPTS[a${index}]`);
-    labels.push(`[v${index}][a${index}]`);
-  });
-  filters.push(`${labels.join("")}concat=n=${items.length}:v=1:a=1[outv][outa]`);
-  return { args, filter: filters.join(";") };
-}
-
-async function renderWithFfmpegFallback(snapshot: ProjectSnapshot, targetPath: string): Promise<void> {
-  const actorTrack = snapshot.timeline.tracks.find((track) => track.name === "Actor / A-roll");
-  const items = snapshot.timeline.items
-    .filter((item) => item.trackId === actorTrack?.id && !item.disabled)
-    .sort((left, right) => left.startFrame - right.startFrame);
-  if (items.length === 0) throw new DomainError("没有可导出的主画面片段", "EMPTY_TIMELINE");
-  const { args, filter } = ffmpegConcatFilters(snapshot, items);
-  await runProcess("ffmpeg", [
-    ...args,
-    "-filter_complex", filter,
-    "-map", "[outv]",
-    "-map", "[outa]",
-    "-r", String(snapshot.timeline.fps),
-    "-c:v", "libx264",
-    "-preset", "veryfast",
-    "-crf", "20",
-    "-pix_fmt", "yuv420p",
-    "-c:a", "aac",
-    "-movflags", "+faststart",
-    targetPath
-  ], 30 * 60_000);
 }
 
 export interface ExportValidation {
@@ -275,37 +230,42 @@ export async function runExportJob(
   const revisionNumber = Number(job.payload.revision);
   if (!Number.isInteger(revisionNumber) || revisionNumber <= 0) throw new DomainError("导出任务缺少有效 Revision", "INVALID_EXPORT_REVISION");
   const revision = application.repository.getRevision(job.projectId, revisionNumber);
-  const report = evaluateQuality(revision.snapshot, revisionNumber);
+  const editorialReview = await application.readLatestEditorialQualityReview({ projectId: job.projectId });
+  const report = evaluateQuality(revision.snapshot, revisionNumber, editorialReview);
   if (!canExport(report)) {
     throw new DomainError(`质量门禁阻止导出：${report.issues.filter((entry) => entry.level === "blocking").map((entry) => entry.message).join("；")}`, "QUALITY_GATE_BLOCKED");
   }
   const targetPath = join(revision.snapshot.project.rootPath, "exports", `revision-${revisionNumber}.mp4`);
+  const temporaryPath = join(revision.snapshot.project.rootPath, "exports", `revision-${revisionNumber}.${job.id}.rendering.mp4`);
   await mkdir(dirname(targetPath), { recursive: true });
-  const warnings: string[] = [];
-  let rendererName: RenderedExport["renderer"] = "remotion";
   try {
-    await renderer.render(revision.snapshot, targetPath);
+    await renderer.render(revision.snapshot, temporaryPath);
   } catch (renderError) {
     const reason = renderError instanceof Error ? renderError.message : String(renderError);
-    await renderWithFfmpegFallback(revision.snapshot, targetPath);
-    rendererName = "ffmpeg-fallback";
-    warnings.push(`Remotion 渲染不可用，已显式降级为 FFmpeg 主轨导出：${reason}`);
-    if (revision.snapshot.effectCues.length > 0 || revision.snapshot.timeline.captions.length > 0) {
-      warnings.push("降级文件不包含 Remotion 效果层与字幕，请在渲染环境恢复后重新导出该 Revision。");
-    }
+    await rm(temporaryPath, { force: true }).catch(() => undefined);
+    // 正式交付只能来自完整 Remotion Composition；不能把缺少字幕、动效与 Dialogue 的 A-roll 当成功。
+    throw new DomainError(`Remotion 正式导出失败，未生成可交付文件：${reason}`, "REMOTION_EXPORT_FAILED");
   }
-  const expectedDurationMs = Math.round((revision.snapshot.timeline.durationInFrames / revision.snapshot.timeline.fps) * 1000);
-  const validation = await validateExport(targetPath, expectedDurationMs);
-  return {
-    revision: revisionNumber,
-    path: targetPath,
-    relativePath: join("exports", `revision-${revisionNumber}.mp4`),
-    renderer: rendererName,
-    durationMs: validation.durationMs,
-    hasAudio: validation.hasAudio,
-    blackSegments: validation.blackSegments,
-    warnings
-  };
+  try {
+    const expectedDurationMs = Math.round((revision.snapshot.timeline.durationInFrames / revision.snapshot.timeline.fps) * 1000);
+    const validation = await validateExport(temporaryPath, expectedDurationMs);
+    // 只有完整文件通过校验后才替换正式 Artifact，失败时保留先前成功导出的同一 Revision。
+    await rm(targetPath, { force: true });
+    await rename(temporaryPath, targetPath);
+    return {
+      revision: revisionNumber,
+      path: targetPath,
+      relativePath: join("exports", `revision-${revisionNumber}.mp4`),
+      renderer: "remotion",
+      durationMs: validation.durationMs,
+      hasAudio: validation.hasAudio,
+      blackSegments: validation.blackSegments,
+      warnings: []
+    };
+  } catch (error) {
+    await rm(temporaryPath, { force: true }).catch(() => undefined);
+    throw error;
+  }
 }
 
 /** 预览任务只生成指定帧窗，供 Web/MCP 在结构修改后快速检查真实合成结果。 */
