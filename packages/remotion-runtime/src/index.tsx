@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill, Audio, Sequence, useCurrentFrame, Video } from "remotion";
-import type { ActorPerformance, EffectCue, ProjectSnapshot, TimelineItem, TimelineTrack } from "@videocut/contracts";
+import type { ActorPerformance, Cutaway, EffectCue, ProjectSnapshot, TimelineItem, TimelineTrack } from "@videocut/contracts";
+import { compileCutawayLayout, cutawaySourceVolume } from "./cutaway-layout";
 import { compileCameraPunchLayout, compileMotionLayout, resolveEffectStylePack, type EffectStylePack } from "./motion-layout";
 
 export interface CompositionProps {
@@ -150,14 +151,15 @@ const VideoLayer: React.FC<{
   item: TimelineItem;
   track: TimelineTrack;
   performance?: ActorPerformance;
+  cutaway?: Cutaway;
   compositionFrame: number;
-}> = ({ snapshot, mediaBaseUrl, item, track, performance, compositionFrame }) => {
+}> = ({ snapshot, mediaBaseUrl, item, track, performance, cutaway, compositionFrame }) => {
   const asset = snapshot.assets.find((candidate) => candidate.id === item.assetId);
   if (!asset) return null;
   const maskAsset = performance?.maskMode === "alpha_asset" && performance.maskAssetId
     ? snapshot.assets.find((candidate) => candidate.id === performance.maskAssetId)
     : undefined;
-  const cameraPunch = (snapshot.effectCues ?? []).find((cue) => cue.type === "CameraPunch" && cue.status === "ready" && cue.sceneId === item.sceneId && cue.startFrame <= compositionFrame && compositionFrame < cue.endFrame);
+  const cameraPunch = !cutaway && (snapshot.effectCues ?? []).find((cue) => cue.type === "CameraPunch" && cue.status === "ready" && cue.sceneId === item.sceneId && cue.startFrame <= compositionFrame && compositionFrame < cue.endFrame);
   // 推近和回位由与普通 Cue 共用的编译器决定，避免 Presenter 主画面另有一套隐藏的线性运动逻辑。
   const cameraLayout = cameraPunch ? compileCameraPunchLayout(cameraPunch, compositionFrame) : undefined;
   const videoStyle: React.CSSProperties = {
@@ -173,7 +175,16 @@ const VideoLayer: React.FC<{
   }
   // 有 Dialogue 时，未登记的旧人物 Item 也默认静音，优先避免“原声 + OmniVoice”双重播放。
   const audioMode = performance?.audioMode ?? (snapshot.speechAsset ? "use_dialogue_track" : "use_source_audio");
-  const sourceVolume = audioMode === "use_source_audio" ? itemVolume(item, track) : 0;
+  const sourceVolume = cutaway ? cutawaySourceVolume(cutaway, item, track) : audioMode === "use_source_audio" ? itemVolume(item, track) : 0;
+  if (cutaway) {
+    const aspectRatio = asset.metadata?.width && asset.metadata.height ? asset.metadata.width / asset.metadata.height : undefined;
+    const layout = compileCutawayLayout(cutaway, aspectRatio);
+    return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}>
+      <div style={layout.container}>
+        <Video src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} volume={sourceVolume} style={layout.media} />
+      </div>
+    </Sequence>;
+  }
   return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}><Video src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} volume={sourceVolume} style={videoStyle} /></Sequence>;
 };
 
@@ -192,10 +203,13 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
   const tracksById = new Map(snapshot.timeline.tracks.map((track) => [track.id, track]));
   // 旧 Revision 可能还没有人物表演字段，预览应以“没有登记人物”降级而不是崩溃。
   const performancesByItem = new Map((snapshot.actorPerformances ?? []).filter((performance) => performance.status === "ready").map((performance) => [performance.timelineItemId, performance]));
+  const cutawaysByItem = new Map((snapshot.cutaways ?? []).filter((cutaway) => cutaway.status === "ready").map((cutaway) => [cutaway.timelineItemId, cutaway]));
+  // 新写入会禁用 stale Item；这里额外保护旧 Revision，避免它把已经失效的 Cutaway 当成普通全屏视频播放。
+  const staleCutawayItemIds = new Set((snapshot.cutaways ?? []).filter((cutaway) => cutaway.status === "stale").map((cutaway) => cutaway.timelineItemId));
   const videoItems = snapshot.timeline.items
     .filter((item) => {
       const track = tracksById.get(item.trackId);
-      return track?.kind === "video" && !track.hidden && !item.disabled;
+      return track?.kind === "video" && !track.hidden && !item.disabled && !staleCutawayItemIds.has(item.id);
     })
     // Track 0 是工作台最上层，DOM 需要从底层到顶层绘制。
     .sort((left, right) => (tracksById.get(right.trackId)!.order - tracksById.get(left.trackId)!.order) || left.startFrame - right.startFrame);
@@ -221,7 +235,7 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
 
   return <AbsoluteFill style={{ backgroundColor: "#070914", overflow: "hidden" }}>
     {rearCues.filter(hasMaskedActorFor).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
-    {videoItems.map((item) => <VideoLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} performance={performancesByItem.get(item.id)} compositionFrame={frame} />)}
+    {videoItems.map((item) => <VideoLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} performance={performancesByItem.get(item.id)} cutaway={cutawaysByItem.get(item.id)} compositionFrame={frame} />)}
     {rearCues.filter((cue) => !hasMaskedActorFor(cue)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} fallback />)}
     {cuesAt("actor", "front").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
     {cuesAt("fullscreen").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
@@ -230,4 +244,4 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
   </AbsoluteFill>;
 };
 
-export { mediaUrl, compileCameraPunchLayout, compileMotionLayout, resolveEffectStylePack };
+export { mediaUrl, compileCameraPunchLayout, compileMotionLayout, resolveEffectStylePack, compileCutawayLayout, cutawaySourceVolume };

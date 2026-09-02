@@ -6,6 +6,10 @@ import type {
   ActorPerformance,
   ActorPerformanceSource,
   AssetKind,
+  Cutaway,
+  CutawayAudioMode,
+  CutawayFit,
+  CutawayMode,
   CreativeBrief,
   EffectCue,
   EffectAssetBinding,
@@ -18,6 +22,7 @@ import type {
   SceneType,
   SemanticUnitKind,
   SemanticUnit,
+  SpatialAnchor,
   SpeechPause,
   StoryDocument,
   SpeechSegment,
@@ -25,6 +30,9 @@ import type {
   TimelineItem,
   TimelineTrack,
   TranscriptSentenceCandidate,
+  VisualTreatment,
+  VisualTreatmentIntensity,
+  VisualTreatmentMode,
   VoiceReference
 } from "@videocut/contracts";
 import { DEFAULT_TRACKS } from "@videocut/contracts";
@@ -94,6 +102,8 @@ export function createProjectSnapshot(input: {
     assetRequests: [],
     searchIntents: [],
     assetCandidates: [],
+    visualTreatments: [],
+    cutaways: [],
     voiceReferences: [],
     transcripts: [],
     transcriptSentenceCandidates: [],
@@ -172,6 +182,7 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
   const sceneById = new Map(snapshot.scenes.map((scene) => [scene.id, scene]));
   const beatById = new Map(snapshot.story.beats.map((beat) => [beat.id, beat]));
   const itemIds = new Set(snapshot.timeline.items.map((item) => item.id));
+  const visualTreatmentById = new Map((snapshot.visualTreatments ?? []).map((treatment) => [treatment.id, treatment]));
 
   const requireId = (set: Set<Id>, id: Id, description: string) => {
     if (!set.has(id)) throw new DomainError(`${description} 指向不存在对象：${id}`, "PROJECT_GRAPH_INVALID");
@@ -221,8 +232,59 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
       if (!beat.sceneIds.includes(scene.id)) throw new DomainError("Scene 与 Story Beat 缺少双向关联", "PROJECT_GRAPH_INVALID");
     }
   }
+  for (const treatment of snapshot.visualTreatments ?? []) {
+    if (!treatment.narrativeBeatId && !treatment.sceneId) {
+      throw new DomainError("VisualTreatment 必须关联 Story Beat 或 Scene", "PROJECT_GRAPH_INVALID");
+    }
+    if (treatment.narrativeBeatId && !beatById.has(treatment.narrativeBeatId)) {
+      throw new DomainError("VisualTreatment 指向不存在 Story Beat", "PROJECT_GRAPH_INVALID");
+    }
+    if (treatment.sceneId && !sceneById.has(treatment.sceneId)) {
+      throw new DomainError("VisualTreatment 指向不存在 Scene", "PROJECT_GRAPH_INVALID");
+    }
+  }
   for (const item of snapshot.timeline.items) {
     if (item.sceneId) requireId(new Set(sceneById.keys()), item.sceneId, "Timeline Item");
+  }
+  for (const cutaway of snapshot.cutaways ?? []) {
+    requireId(assetIds, cutaway.assetId, "Cutaway 素材");
+    requireId(new Set(sceneById.keys()), cutaway.hostSceneId, "Cutaway 主场景");
+    requireId(new Set(sceneById.keys()), cutaway.cutawaySceneId, "Cutaway 场景");
+    requireId(itemIds, cutaway.timelineItemId, "Cutaway Timeline Item");
+    if (cutaway.visualTreatmentId && !visualTreatmentById.has(cutaway.visualTreatmentId)) {
+      throw new DomainError("Cutaway 指向不存在 VisualTreatment", "PROJECT_GRAPH_INVALID");
+    }
+    const hostScene = sceneById.get(cutaway.hostSceneId)!;
+    const cutawayScene = sceneById.get(cutaway.cutawaySceneId)!;
+    const item = snapshot.timeline.items.find((candidate) => candidate.id === cutaway.timelineItemId)!;
+    if (hostScene.type === "CutawayScene") {
+      throw new DomainError("Cutaway 不能嵌套在 CutawayScene 中", "PROJECT_GRAPH_INVALID");
+    }
+    if (cutawayScene.type !== "CutawayScene") {
+      throw new DomainError("Cutaway 必须关联 CutawayScene", "PROJECT_GRAPH_INVALID");
+    }
+    if (!cutawayScene.assetIds.includes(cutaway.assetId) || item.assetId !== cutaway.assetId || item.sceneId !== cutaway.cutawaySceneId) {
+      throw new DomainError("Cutaway、Scene 与 Timeline Item 的素材绑定不一致", "PROJECT_GRAPH_INVALID");
+    }
+    if (item.startFrame !== cutaway.startFrame || item.endFrame !== cutaway.endFrame
+      || item.sourceStartFrame !== cutaway.sourceStartFrame || item.sourceEndFrame !== cutaway.sourceEndFrame
+      || cutawayScene.startFrame !== cutaway.startFrame || cutawayScene.endFrame !== cutaway.endFrame) {
+      throw new DomainError("Cutaway 的播放范围没有同步到 Scene 或 Timeline", "PROJECT_GRAPH_INVALID");
+    }
+    const itemTrack = snapshot.timeline.tracks.find((track) => track.id === item.trackId);
+    if (itemTrack?.name !== "Cutaway / Fullscreen") {
+      throw new DomainError("Cutaway 必须位于 Cutaway / Fullscreen 顶层轨道", "PROJECT_GRAPH_INVALID");
+    }
+    if (cutaway.mode === "pip" && (!cutaway.pipAnchor || cutaway.pipAnchor === "full_frame")) {
+      throw new DomainError("PiP Cutaway 必须使用有效的安全区锚点", "PROJECT_GRAPH_INVALID");
+    }
+    if (cutaway.pipScale !== undefined && (cutaway.pipScale < 0.2 || cutaway.pipScale > 0.6)) {
+      throw new DomainError("PiP 缩放必须在 0.2 到 0.6 之间", "PROJECT_GRAPH_INVALID");
+    }
+    // stale Cutaway 会临时保留旧决定供导演复核，但不再要求它仍覆盖新的主场景边界。
+    if (cutaway.status === "ready" && (item.disabled || cutaway.startFrame < hostScene.startFrame || cutaway.endFrame > hostScene.endFrame)) {
+      throw new DomainError("已就绪 Cutaway 必须位于主场景内且可播放", "PROJECT_GRAPH_INVALID");
+    }
   }
   for (const performance of snapshot.actorPerformances ?? []) requireId(itemIds, performance.timelineItemId, "ActorPerformance");
   for (const caption of snapshot.timeline.captions) requireId(speechSegmentIds, caption.speechSegmentId, "Caption");
@@ -373,6 +435,63 @@ export function createScene(input: {
     narrativeBeatIds: [],
     status: "draft",
     stylePackId: "default-clean"
+  };
+}
+
+/** 视觉处理只保存导演层的可追溯选择；真正的物理播放仍写入 Scene、Cutaway 和 Timeline。 */
+export function createVisualTreatment(input: {
+  narrativeBeatId?: Id;
+  sceneId?: Id;
+  mode: VisualTreatmentMode;
+  primaryAttention: string;
+  narrativePurpose: string;
+  intensity: VisualTreatmentIntensity;
+  quietReason?: string;
+  fallbackPlan?: string;
+}): VisualTreatment {
+  const createdAt = now();
+  return {
+    id: createId("visual_treatment"),
+    narrativeBeatId: input.narrativeBeatId,
+    sceneId: input.sceneId,
+    mode: input.mode,
+    primaryAttention: input.primaryAttention,
+    narrativePurpose: input.narrativePurpose,
+    intensity: input.intensity,
+    quietReason: input.quietReason,
+    fallbackPlan: input.fallbackPlan,
+    status: "ready",
+    createdAt,
+    updatedAt: createdAt
+  };
+}
+
+/** Cutaway 的导演决定和顶层播放范围使用同一个创建时刻，避免两套独立状态失配。 */
+export function createCutaway(input: {
+  hostSceneId: Id;
+  cutawaySceneId: Id;
+  timelineItemId: Id;
+  assetId: Id;
+  visualTreatmentId?: Id;
+  mode: CutawayMode;
+  fit: CutawayFit;
+  pipAnchor?: SpatialAnchor;
+  pipScale?: number;
+  audioMode: CutawayAudioMode;
+  purpose: string;
+  audienceTask: string;
+  sourceStartFrame: number;
+  sourceEndFrame: number;
+  startFrame: number;
+  endFrame: number;
+}): Cutaway {
+  const createdAt = now();
+  return {
+    id: createId("cutaway"),
+    ...input,
+    status: "ready",
+    createdAt,
+    updatedAt: createdAt
   };
 }
 

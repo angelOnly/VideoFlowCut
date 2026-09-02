@@ -734,6 +734,116 @@ server.registerTool("create_scene", {
   } catch (error) { return asError(error); }
 });
 
+server.registerTool("manage_visual_treatment", {
+  title: "管理视觉处理计划",
+  description: "保存 Story Beat 或 Scene 的主视觉、注意力强度和降级方案；它不直接生成 B-roll 或效果。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    action: z.enum(["upsert", "remove"]),
+    visual_treatment_id: z.string().min(1).optional(),
+    narrative_beat_id: z.string().min(1).optional(),
+    scene_id: z.string().min(1).optional(),
+    mode: z.enum(["keep_presenter", "quiet", "light_overlay", "remotion", "b_roll", "cutaway", "evidence"]).optional(),
+    primary_attention: z.string().max(500).optional(),
+    narrative_purpose: z.string().max(800).optional(),
+    intensity: z.enum(["quiet", "low", "medium", "high"]).optional(),
+    quiet_reason: z.string().max(800).optional(),
+    fallback_plan: z.string().max(800).optional()
+  }
+}, async (input) => {
+  try {
+    return asText(application.manageVisualTreatment({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      action: input.action,
+      visualTreatmentId: input.visual_treatment_id,
+      narrativeBeatId: input.narrative_beat_id,
+      sceneId: input.scene_id,
+      mode: input.mode,
+      primaryAttention: input.primary_attention,
+      narrativePurpose: input.narrative_purpose,
+      intensity: input.intensity,
+      quietReason: input.quiet_reason,
+      fallbackPlan: input.fallback_plan
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("manage_cutaways", {
+  title: "管理 Cutaway",
+  description: "基于已就绪的本地视频创建、调整或移除 Fullscreen/PiP Cutaway，并同步维护 CutawayScene 与顶层 Timeline Item。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    action: z.enum(["create", "update", "remove"]),
+    cutaway_id: z.string().min(1).optional(),
+    host_scene_id: z.string().min(1).optional(),
+    asset_id: z.string().min(1).optional(),
+    visual_treatment_id: z.string().min(1).optional(),
+    title: z.string().max(160).optional(),
+    mode: z.enum(["fullscreen", "pip"]).optional(),
+    fit: z.enum(["cover", "contain"]).optional(),
+    pip_anchor: z.enum(["top_left", "top_right", "middle_left", "middle_right", "bottom_left", "bottom_right", "center"]).optional(),
+    pip_scale: z.number().min(0.2).max(0.6).optional(),
+    audio_mode: z.enum(["continue_dialogue", "include_source_audio", "mute_source_audio"]).optional(),
+    purpose: z.string().max(800).optional(),
+    audience_task: z.string().max(800).optional(),
+    source_start_frame: z.number().int().nonnegative().optional(),
+    source_end_frame: z.number().int().positive().optional(),
+    start_frame: z.number().int().nonnegative().optional(),
+    end_frame: z.number().int().positive().optional()
+  }
+}, async (input) => {
+  try {
+    return asText(application.manageCutaway({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      action: input.action,
+      cutawayId: input.cutaway_id,
+      hostSceneId: input.host_scene_id,
+      assetId: input.asset_id,
+      visualTreatmentId: input.visual_treatment_id,
+      title: input.title,
+      mode: input.mode,
+      fit: input.fit,
+      pipAnchor: input.pip_anchor,
+      pipScale: input.pip_scale,
+      audioMode: input.audio_mode,
+      purpose: input.purpose,
+      audienceTask: input.audience_task,
+      sourceStartFrame: input.source_start_frame,
+      sourceEndFrame: input.source_end_frame,
+      startFrame: input.start_frame,
+      endFrame: input.end_frame
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("replace_scene_asset", {
+  title: "替换 Cutaway 素材",
+  description: "只替换一个 Cutaway 的已本地化视频与源范围，不改写其主场景、EffectCue 或其他 Timeline Item。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    cutaway_id: z.string().min(1),
+    asset_id: z.string().min(1),
+    source_start_frame: z.number().int().nonnegative(),
+    source_end_frame: z.number().int().positive()
+  }
+}, async ({ project_id, base_revision_id, cutaway_id, asset_id, source_start_frame, source_end_frame }) => {
+  try {
+    return asText(application.replaceSceneAsset({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id,
+      cutawayId: cutaway_id,
+      assetId: asset_id,
+      sourceStartFrame: source_start_frame,
+      sourceEndFrame: source_end_frame
+    }));
+  } catch (error) { return asError(error); }
+});
+
 server.registerTool("browse_effect_types", {
   title: "浏览效果类型",
   description: "读取当前 Remotion Effect Registry 中可用的效果类型。",
@@ -829,7 +939,9 @@ server.registerTool("preview_timeline", {
       revision: state.revision.number,
       timeline: { ...state.snapshot.timeline, items: state.snapshot.timeline.items.filter(overlaps), captions: state.snapshot.timeline.captions.filter(overlaps) },
       scenes: state.snapshot.scenes.filter(overlaps),
-      effectCues: state.snapshot.effectCues.filter(overlaps)
+      effectCues: state.snapshot.effectCues.filter(overlaps),
+      visualTreatments: state.snapshot.visualTreatments.filter((treatment) => !treatment.sceneId || state.snapshot.scenes.some((scene) => scene.id === treatment.sceneId && overlaps(scene))),
+      cutaways: state.snapshot.cutaways.filter(overlaps)
     });
   } catch (error) { return asError(error); }
 });

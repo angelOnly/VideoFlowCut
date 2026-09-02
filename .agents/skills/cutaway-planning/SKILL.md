@@ -93,7 +93,7 @@ PiP 要足够看清主体，又不能抢人物。位置由人物脸、手、字�
 
 ## 当前能力
 
-当前代码尚未完整实现自动 Cutaway Timeline 工具和 Provider 链。可以用本地 Asset、Scene 和 EffectCue 形成有限方案，或通过 Web/MCP 当前能力执行；无法写入时输出明确计划，不声称已完成。架构目标 `manage_cutaways`、`replace_scene_asset` 等工具落地后再按实时 Schema 使用。
+当前 MCP 已实现 `manage_cutaways`：它只接受已就绪、本地化的视频，创建或调整时会原子写入 Cutaway、CutawayScene 和 `Cutaway / Fullscreen` 顶层 Item。`fullscreen` 接管画面，`pip` 必须给出安全区锚点和 0.2～0.6 的缩放；`continue_dialogue` 与 `mute_source_audio` 不播放素材原声，只有 `include_source_audio` 才会输出现场声。替换某一条素材使用 `replace_scene_asset`，必须同时给出新的源范围，不能直接修改 Asset URL。主线 Scene 变化后，系统会停用并标记相关 Cutaway 为 stale；先重新判断相关性、进入和返回，再通过 `manage_cutaways` 重新确认，不要把旧 B-roll 自动贴到新句子上。
 
 ## 案例：读书口播“陌生的城市和海”
 

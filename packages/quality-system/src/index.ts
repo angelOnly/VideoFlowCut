@@ -151,6 +151,41 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
       issues.push(issue({ level: "warning", code: "ACTOR_PERFORMANCE_UNREGISTERED", message: "PresenterScene 尚未登记人物表演；无法对 Mask 和人物版本关系做校验。", objectId: scene.id, frameRange: { startFrame: scene.startFrame, endFrame: scene.endFrame } }));
     }
   }
+  for (const cutaway of snapshot.cutaways ?? []) {
+    const item = timeline.items.find((candidate) => candidate.id === cutaway.timelineItemId);
+    if (cutaway.status === "stale") {
+      issues.push(issue({
+        level: "warning",
+        code: "STALE_CUTAWAY",
+        message: "Cutaway 的主线关联已变化，当前已停止参与合成；请重新确认素材相关性、进入和返回，或明确移除。",
+        objectId: cutaway.id,
+        frameRange: { startFrame: cutaway.startFrame, endFrame: cutaway.endFrame }
+      }));
+      continue;
+    }
+    if (!item || item.disabled) {
+      issues.push(issue({ level: "blocking", code: "CUTAWAY_ITEM_MISSING", message: "已就绪 Cutaway 缺少可播放的顶层 Timeline Item。", objectId: cutaway.id }));
+      continue;
+    }
+    if (cutaway.mode === "pip") {
+      issues.push(issue({
+        level: "warning",
+        code: "PIP_CAPTION_SAFETY_REVIEW",
+        message: "PiP Cutaway 需要在真实预览中检查人物、字幕、原画文字和平台安全区没有相互遮挡。",
+        objectId: cutaway.id,
+        frameRange: { startFrame: cutaway.startFrame, endFrame: cutaway.endFrame }
+      }));
+    }
+    if (cutaway.audioMode === "include_source_audio" && overlapsDialogue(cutaway)) {
+      issues.push(issue({
+        level: "warning",
+        code: "CUTAWAY_SOURCE_AUDIO_REVIEW",
+        message: "Cutaway 同时保留了素材原声与 Dialogue；请在真实试听中确认现场声没有遮蔽旁白。",
+        objectId: cutaway.id,
+        frameRange: { startFrame: cutaway.startFrame, endFrame: cutaway.endFrame }
+      }));
+    }
+  }
   for (const caption of timeline.captions) {
     if (caption.endFrame <= caption.startFrame) {
       issues.push(issue({ level: "blocking", code: "INVALID_CAPTION_RANGE", message: "字幕卡的帧范围无效。", objectId: caption.id }));

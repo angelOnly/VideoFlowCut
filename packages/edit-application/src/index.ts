@@ -12,6 +12,10 @@ import type {
   ActorPerformanceSource,
   BridgeRunAudit,
   CreativeBrief,
+  Cutaway,
+  CutawayAudioMode,
+  CutawayFit,
+  CutawayMode,
   EffectAssetBinding,
   EffectCue,
   EffectMotion,
@@ -34,11 +38,15 @@ import type {
   SemanticUnitKind,
   SearchIntent,
   SkillExecutionReport,
+  SpatialAnchor,
   StoryBeat,
   SpeechAsset,
   SpeechSegmentAsset,
   SpeechTiming,
   TimelineItem,
+  VisualTreatment,
+  VisualTreatmentIntensity,
+  VisualTreatmentMode,
   VoiceReference
 } from "@videocut/contracts";
 import {
@@ -48,6 +56,7 @@ import {
   cloneSnapshot,
   compileSpeechSegments,
   createActorPerformance,
+  createCutaway,
   createEffectCue,
   createId,
   createMediaAsset,
@@ -58,6 +67,7 @@ import {
   createTranscriptSentenceCandidates,
   createVoiceReference,
   createTimelineItem,
+  createVisualTreatment,
   DomainError,
   emptyImpact,
   framesToMilliseconds,
@@ -144,6 +154,8 @@ function normalizeSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
   snapshot.assetRequests ??= [];
   snapshot.searchIntents ??= [];
   snapshot.assetCandidates ??= [];
+  snapshot.visualTreatments ??= [];
+  snapshot.cutaways ??= [];
   snapshot.voiceReferences ??= [];
   snapshot.transcriptSentenceCandidates ??= [];
   for (const reference of snapshot.voiceReferences) {
@@ -230,6 +242,24 @@ function assetCandidateById(snapshot: ProjectSnapshot, assetCandidateId: Id): As
   const candidate = snapshot.assetCandidates.find((entry) => entry.id === assetCandidateId);
   if (!candidate) throw new NotFoundError(`素材候选不存在：${assetCandidateId}`);
   return candidate;
+}
+
+function visualTreatmentById(snapshot: ProjectSnapshot, visualTreatmentId: Id): VisualTreatment {
+  const treatment = snapshot.visualTreatments.find((candidate) => candidate.id === visualTreatmentId);
+  if (!treatment) throw new NotFoundError(`VisualTreatment 不存在：${visualTreatmentId}`);
+  return treatment;
+}
+
+function cutawayById(snapshot: ProjectSnapshot, cutawayId: Id): Cutaway {
+  const cutaway = snapshot.cutaways.find((candidate) => candidate.id === cutawayId);
+  if (!cutaway) throw new NotFoundError(`Cutaway 不存在：${cutawayId}`);
+  return cutaway;
+}
+
+function requireText(value: string | undefined, label: string): string {
+  const text = value?.trim() ?? "";
+  if (!text) throw new DomainError(`${label}不能为空`, "REQUIRED_TEXT_MISSING");
+  return text;
 }
 
 function normalizedTextList(values: string[] | undefined): string[] {
@@ -640,6 +670,28 @@ export class EditingApplication {
         // Story 是 Scene 关系的唯一编辑入口之一，写入时同步反向边，避免图出现半边引用。
         for (const scene of snapshot.scenes) {
           scene.narrativeBeatIds = nextBeats.filter((beat) => beat.sceneIds.includes(scene.id)).map((beat) => beat.id);
+        }
+        const nextBeatIds = new Set(nextBeats.map((beat) => beat.id));
+        const removedTreatmentIds = new Set<Id>();
+        for (const treatment of snapshot.visualTreatments) {
+          if (!treatment.narrativeBeatId || nextBeatIds.has(treatment.narrativeBeatId)) continue;
+          if (treatment.sceneId) {
+            treatment.narrativeBeatId = undefined;
+            treatment.status = "stale";
+            treatment.updatedAt = now();
+            impact.changed.push(treatment.id);
+            impact.stale.push(treatment.id);
+          } else {
+            removedTreatmentIds.add(treatment.id);
+          }
+        }
+        if (removedTreatmentIds.size > 0) {
+          snapshot.visualTreatments = snapshot.visualTreatments.filter((treatment) => !removedTreatmentIds.has(treatment.id));
+          for (const cutaway of snapshot.cutaways.filter((candidate) => candidate.visualTreatmentId && removedTreatmentIds.has(candidate.visualTreatmentId))) {
+            cutaway.visualTreatmentId = undefined;
+            this.markCutawayStale(snapshot, cutaway, impact, "关联的 Story Beat 已被移除");
+          }
+          impact.stale.push(...removedTreatmentIds);
         }
         impact.changed.push(...nextBeats.map((beat) => beat.id), ...snapshot.scenes.map((scene) => scene.id));
         impact.recomputed.push("Story Beat 与 Scene 关联");
@@ -1697,9 +1749,137 @@ export class EditingApplication {
     return state;
   }
 
+  /** stale Cutaway 不再参与真实合成，但会保留在当前 Revision 供主工作流复核和替换。 */
+  private markCutawayStale(snapshot: ProjectSnapshot, cutaway: Cutaway, impact: ImpactReport, reason: string): void {
+    const scene = snapshot.scenes.find((candidate) => candidate.id === cutaway.cutawaySceneId);
+    const item = snapshot.timeline.items.find((candidate) => candidate.id === cutaway.timelineItemId);
+    if (cutaway.status !== "stale") {
+      cutaway.status = "stale";
+      cutaway.updatedAt = now();
+      impact.changed.push(cutaway.id);
+    }
+    if (scene && scene.status !== "stale") {
+      scene.status = "stale";
+      impact.changed.push(scene.id);
+    }
+    if (item && !item.disabled) {
+      item.disabled = true;
+      impact.changed.push(item.id);
+    }
+    impact.stale.push(cutaway.id);
+    impact.warnings.push(`Cutaway「${cutaway.purpose}」${reason}，已停止参与合成，等待重新确认。`);
+  }
+
+  /** Presenter 主线重新编译会移除旧 Scene；相关 Cutaway 不能遗留悬空引用。 */
+  private removeCutawaysForHostScenes(snapshot: ProjectSnapshot, hostSceneIds: Set<Id>, impact: ImpactReport): void {
+    const removed = snapshot.cutaways.filter((cutaway) => hostSceneIds.has(cutaway.hostSceneId));
+    if (removed.length === 0) return;
+    const cutawayIds = new Set(removed.map((cutaway) => cutaway.id));
+    const sceneIds = new Set(removed.map((cutaway) => cutaway.cutawaySceneId));
+    const itemIds = new Set(removed.map((cutaway) => cutaway.timelineItemId));
+    const cueIds = snapshot.effectCues.filter((cue) => sceneIds.has(cue.sceneId)).map((cue) => cue.id);
+
+    snapshot.cutaways = snapshot.cutaways.filter((cutaway) => !cutawayIds.has(cutaway.id));
+    snapshot.timeline.items = snapshot.timeline.items.filter((item) => !itemIds.has(item.id));
+    snapshot.effectCues = snapshot.effectCues.filter((cue) => !sceneIds.has(cue.sceneId));
+    snapshot.scenes = snapshot.scenes.filter((scene) => !sceneIds.has(scene.id));
+    for (const beat of snapshot.story.beats) {
+      beat.sceneIds = beat.sceneIds.filter((sceneId) => !sceneIds.has(sceneId));
+    }
+
+    const removedTreatmentIds = new Set<Id>();
+    for (const treatment of snapshot.visualTreatments) {
+      if (!treatment.sceneId || !sceneIds.has(treatment.sceneId)) continue;
+      if (treatment.narrativeBeatId) {
+        treatment.sceneId = undefined;
+        treatment.status = "stale";
+        treatment.updatedAt = now();
+        impact.changed.push(treatment.id);
+        impact.stale.push(treatment.id);
+      } else {
+        removedTreatmentIds.add(treatment.id);
+      }
+    }
+    if (removedTreatmentIds.size > 0) {
+      snapshot.visualTreatments = snapshot.visualTreatments.filter((treatment) => !removedTreatmentIds.has(treatment.id));
+    }
+    impact.stale.push(...removed.map((cutaway) => cutaway.id), ...sceneIds, ...itemIds, ...cueIds, ...removedTreatmentIds);
+    impact.recomputed.push("移除失效 Cutaway、CutawayScene 与顶层素材 Item");
+  }
+
+  /** 主场景仍存在时，不猜测旧 B-roll 是否仍相关；先标 stale 再交回 Cutaway 规划复核。 */
+  private staleCutawaysForHostScenes(snapshot: ProjectSnapshot, hostSceneIds: Set<Id>, impact: ImpactReport, reason: string): void {
+    for (const cutaway of snapshot.cutaways.filter((candidate) => hostSceneIds.has(candidate.hostSceneId))) {
+      this.markCutawayStale(snapshot, cutaway, impact, reason);
+    }
+  }
+
+  private resolveCutawayPlan(snapshot: ProjectSnapshot, input: {
+    hostSceneId: Id;
+    assetId: Id;
+    visualTreatmentId?: Id;
+    mode: CutawayMode;
+    fit: CutawayFit;
+    pipAnchor?: SpatialAnchor;
+    pipScale?: number;
+    sourceStartFrame: number;
+    sourceEndFrame: number;
+    startFrame: number;
+    endFrame: number;
+  }): { hostScene: ProjectSnapshot["scenes"][number]; asset: Asset } {
+    const hostScene = snapshot.scenes.find((scene) => scene.id === input.hostSceneId);
+    if (!hostScene) throw new DomainError("Cutaway 主场景不存在", "CUTAWAY_HOST_SCENE_NOT_FOUND");
+    if (hostScene.type === "CutawayScene") throw new DomainError("Cutaway 不能以 CutawayScene 作为主场景", "INVALID_CUTAWAY_HOST");
+    const asset = assetById(snapshot, input.assetId);
+    if (asset.status !== "ready" || !asset.metadata?.videoCodec || !asset.managedPath.trim()) {
+      throw new DomainError("Cutaway 只能使用已就绪且已本地化的视频素材", "CUTAWAY_ASSET_NOT_READY");
+    }
+    if (!Number.isInteger(input.startFrame) || !Number.isInteger(input.endFrame) || input.startFrame < hostScene.startFrame || input.endFrame > hostScene.endFrame || input.endFrame <= input.startFrame) {
+      throw new DomainError("Cutaway 的目标范围必须完整位于主场景内", "CUTAWAY_OUT_OF_HOST_SCENE");
+    }
+    const sourceDuration = input.sourceEndFrame - input.sourceStartFrame;
+    const targetDuration = input.endFrame - input.startFrame;
+    const assetDuration = millisecondsToFrames(asset.metadata.durationMs, snapshot.timeline.fps);
+    if (!Number.isInteger(input.sourceStartFrame) || !Number.isInteger(input.sourceEndFrame) || input.sourceStartFrame < 0 || input.sourceEndFrame > assetDuration || sourceDuration < targetDuration) {
+      throw new DomainError("Cutaway 源范围无效或不足以覆盖目标播放时长", "INVALID_CUTAWAY_SOURCE_RANGE");
+    }
+    if (input.mode === "pip" && (!input.pipAnchor || input.pipAnchor === "full_frame")) {
+      throw new DomainError("PiP Cutaway 必须指定非全屏安全区锚点", "PIP_ANCHOR_REQUIRED");
+    }
+    if (input.pipScale !== undefined && (input.pipScale < 0.2 || input.pipScale > 0.6)) {
+      throw new DomainError("PiP 缩放必须在 0.2 到 0.6 之间", "INVALID_PIP_SCALE");
+    }
+    if (input.visualTreatmentId) {
+      const treatment = visualTreatmentById(snapshot, input.visualTreatmentId);
+      if (treatment.status !== "ready") throw new DomainError("关联的 VisualTreatment 已失效，请先重新确认视觉计划", "VISUAL_TREATMENT_STALE");
+      if (treatment.sceneId && treatment.sceneId !== hostScene.id) {
+        throw new DomainError("VisualTreatment 必须属于当前 Cutaway 的主场景", "VISUAL_TREATMENT_SCENE_MISMATCH");
+      }
+    }
+    return { hostScene, asset };
+  }
+
   /** 清理 Presenter Scene、反向 Story 引用和依附其上的 Cue，但保留物理 A-roll。 */
   private clearPresenterScenes(snapshot: ProjectSnapshot, impact: ImpactReport): void {
     const removedSceneIds = new Set(snapshot.scenes.filter((scene) => scene.type === "PresenterScene").map((scene) => scene.id));
+    this.removeCutawaysForHostScenes(snapshot, removedSceneIds, impact);
+    const removedTreatmentIds = new Set<Id>();
+    for (const treatment of snapshot.visualTreatments) {
+      if (!treatment.sceneId || !removedSceneIds.has(treatment.sceneId)) continue;
+      if (treatment.narrativeBeatId) {
+        treatment.sceneId = undefined;
+        treatment.status = "stale";
+        treatment.updatedAt = now();
+        impact.changed.push(treatment.id);
+        impact.stale.push(treatment.id);
+      } else {
+        removedTreatmentIds.add(treatment.id);
+      }
+    }
+    if (removedTreatmentIds.size > 0) {
+      snapshot.visualTreatments = snapshot.visualTreatments.filter((treatment) => !removedTreatmentIds.has(treatment.id));
+      impact.stale.push(...removedTreatmentIds);
+    }
     const removedCueIds = snapshot.effectCues.filter((cue) => removedSceneIds.has(cue.sceneId)).map((cue) => cue.id);
     snapshot.effectCues = snapshot.effectCues.filter((cue) => !removedSceneIds.has(cue.sceneId));
     snapshot.scenes = snapshot.scenes.filter((scene) => scene.type !== "PresenterScene");
@@ -1955,6 +2135,318 @@ export class EditingApplication {
     return state;
   }
 
+  /**
+   * 保存主线稳定后做出的视觉选择。它不直接生成卡片或 B-roll，避免导演意图和物理播放重复存储。
+   */
+  manageVisualTreatment(input: {
+    projectId: Id;
+    baseRevision: number;
+    action: "upsert" | "remove";
+    visualTreatmentId?: Id;
+    narrativeBeatId?: Id;
+    sceneId?: Id;
+    mode?: VisualTreatmentMode;
+    primaryAttention?: string;
+    narrativePurpose?: string;
+    intensity?: VisualTreatmentIntensity;
+    quietReason?: string;
+    fallbackPlan?: string;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, input.action === "remove" ? "移除视觉处理计划" : "更新视觉处理计划", (snapshot, impact) => {
+      if (input.action === "remove") {
+        const treatment = visualTreatmentById(snapshot, requireText(input.visualTreatmentId, "VisualTreatment ID"));
+        snapshot.visualTreatments = snapshot.visualTreatments.filter((candidate) => candidate.id !== treatment.id);
+        for (const cutaway of snapshot.cutaways.filter((candidate) => candidate.visualTreatmentId === treatment.id)) {
+          cutaway.visualTreatmentId = undefined;
+          this.markCutawayStale(snapshot, cutaway, impact, "失去了原有 VisualTreatment 依据");
+        }
+        impact.changed.push(treatment.id);
+        impact.stale.push(treatment.id);
+        return;
+      }
+
+      const mode = input.mode;
+      const intensity = input.intensity;
+      if (!mode || !intensity) throw new DomainError("VisualTreatment 必须指定处理模式和注意力强度", "VISUAL_TREATMENT_REQUIRED");
+      if (!input.narrativeBeatId && !input.sceneId) {
+        throw new DomainError("VisualTreatment 至少需要关联一个 Story Beat 或 Scene", "VISUAL_TREATMENT_TARGET_REQUIRED");
+      }
+      if (input.narrativeBeatId && !snapshot.story.beats.some((beat) => beat.id === input.narrativeBeatId)) {
+        throw new DomainError("VisualTreatment 引用的 Story Beat 不存在", "VISUAL_TREATMENT_BEAT_NOT_FOUND");
+      }
+      if (input.sceneId && !snapshot.scenes.some((scene) => scene.id === input.sceneId)) {
+        throw new DomainError("VisualTreatment 引用的 Scene 不存在", "VISUAL_TREATMENT_SCENE_NOT_FOUND");
+      }
+
+      const existing = input.visualTreatmentId ? visualTreatmentById(snapshot, input.visualTreatmentId) : undefined;
+      const primaryAttention = requireText(input.primaryAttention, "第一注意目标");
+      const narrativePurpose = requireText(input.narrativePurpose, "视觉叙事目的");
+      if (existing) {
+        existing.narrativeBeatId = input.narrativeBeatId;
+        existing.sceneId = input.sceneId;
+        existing.mode = mode;
+        existing.primaryAttention = primaryAttention;
+        existing.narrativePurpose = narrativePurpose;
+        existing.intensity = intensity;
+        existing.quietReason = input.quietReason?.trim() || undefined;
+        existing.fallbackPlan = input.fallbackPlan?.trim() || undefined;
+        existing.status = "ready";
+        existing.updatedAt = now();
+        impact.changed.push(existing.id);
+      } else {
+        const treatment = createVisualTreatment({
+          narrativeBeatId: input.narrativeBeatId,
+          sceneId: input.sceneId,
+          mode,
+          primaryAttention,
+          narrativePurpose,
+          intensity,
+          quietReason: input.quietReason?.trim() || undefined,
+          fallbackPlan: input.fallbackPlan?.trim() || undefined
+        });
+        snapshot.visualTreatments.push(treatment);
+        impact.changed.push(treatment.id);
+      }
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /**
+   * 创建、调整或移除 Cutaway。每次写入同时维护 CutawayScene 和顶层 Timeline Item，
+   * 从而让 Renderer 只消费同一 Revision 的本地 Asset。
+   */
+  manageCutaway(input: {
+    projectId: Id;
+    baseRevision: number;
+    action: "create" | "update" | "remove";
+    cutawayId?: Id;
+    hostSceneId?: Id;
+    assetId?: Id;
+    visualTreatmentId?: Id;
+    title?: string;
+    mode?: CutawayMode;
+    fit?: CutawayFit;
+    pipAnchor?: SpatialAnchor;
+    pipScale?: number;
+    audioMode?: CutawayAudioMode;
+    purpose?: string;
+    audienceTask?: string;
+    sourceStartFrame?: number;
+    sourceEndFrame?: number;
+    startFrame?: number;
+    endFrame?: number;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, input.action === "create" ? "创建 Cutaway" : input.action === "update" ? "调整 Cutaway" : "移除 Cutaway", (snapshot, impact) => {
+      if (input.action === "remove") {
+        const cutaway = cutawayById(snapshot, requireText(input.cutawayId, "Cutaway ID"));
+        const sceneIds = new Set([cutaway.cutawaySceneId]);
+        const cueIds = snapshot.effectCues.filter((cue) => sceneIds.has(cue.sceneId)).map((cue) => cue.id);
+        snapshot.cutaways = snapshot.cutaways.filter((candidate) => candidate.id !== cutaway.id);
+        snapshot.timeline.items = snapshot.timeline.items.filter((item) => item.id !== cutaway.timelineItemId);
+        snapshot.effectCues = snapshot.effectCues.filter((cue) => !sceneIds.has(cue.sceneId));
+        snapshot.scenes = snapshot.scenes.filter((scene) => !sceneIds.has(scene.id));
+        for (const beat of snapshot.story.beats) {
+          beat.sceneIds = beat.sceneIds.filter((sceneId) => !sceneIds.has(sceneId));
+        }
+        const removedTreatmentIds = new Set<Id>();
+        for (const treatment of snapshot.visualTreatments) {
+          if (treatment.sceneId !== cutaway.cutawaySceneId) continue;
+          if (treatment.narrativeBeatId) {
+            treatment.sceneId = undefined;
+            treatment.status = "stale";
+            treatment.updatedAt = now();
+            impact.changed.push(treatment.id);
+            impact.stale.push(treatment.id);
+          } else {
+            removedTreatmentIds.add(treatment.id);
+          }
+        }
+        if (removedTreatmentIds.size > 0) {
+          snapshot.visualTreatments = snapshot.visualTreatments.filter((treatment) => !removedTreatmentIds.has(treatment.id));
+          impact.stale.push(...removedTreatmentIds);
+        }
+        impact.changed.push(cutaway.id, cutaway.timelineItemId, cutaway.cutawaySceneId);
+        impact.stale.push(...cueIds);
+        impact.dirtyRanges.push({ startFrame: cutaway.startFrame, endFrame: cutaway.endFrame, reason: "移除 Cutaway" });
+        return;
+      }
+
+      const topTrack = trackByName(snapshot, "Cutaway / Fullscreen");
+      if (topTrack.locked) throw new DomainError("Cutaway / Fullscreen 轨已锁定", "TRACK_LOCKED");
+
+      if (input.action === "create") {
+        const hostSceneId = requireText(input.hostSceneId, "Cutaway 主场景 ID");
+        const assetId = requireText(input.assetId, "Cutaway 素材 ID");
+        const mode = input.mode;
+        const fit = input.fit;
+        const audioMode = input.audioMode;
+        if (!mode || !fit || !audioMode || input.sourceStartFrame === undefined || input.sourceEndFrame === undefined || input.startFrame === undefined || input.endFrame === undefined) {
+          throw new DomainError("创建 Cutaway 必须提供模式、适配方式、声音策略及完整源/目标范围", "CUTAWAY_FIELDS_REQUIRED");
+        }
+        const purpose = requireText(input.purpose, "Cutaway 叙事目的");
+        const audienceTask = requireText(input.audienceTask, "Cutaway 观众任务");
+        const plan = this.resolveCutawayPlan(snapshot, {
+          hostSceneId,
+          assetId,
+          visualTreatmentId: input.visualTreatmentId,
+          mode,
+          fit,
+          pipAnchor: input.pipAnchor,
+          pipScale: input.pipScale,
+          sourceStartFrame: input.sourceStartFrame,
+          sourceEndFrame: input.sourceEndFrame,
+          startFrame: input.startFrame,
+          endFrame: input.endFrame
+        });
+        const cutawayScene = createScene({
+          type: "CutawayScene",
+          title: input.title?.trim() || `Cutaway：${plan.asset.name}`,
+          purpose,
+          startFrame: input.startFrame,
+          endFrame: input.endFrame,
+          assetIds: [plan.asset.id]
+        });
+        cutawayScene.status = "ready";
+        cutawayScene.stylePackId = plan.hostScene.stylePackId;
+        const item = createTimelineItem({
+          trackId: topTrack.id,
+          sceneId: cutawayScene.id,
+          assetId: plan.asset.id,
+          startFrame: input.startFrame,
+          endFrame: input.endFrame,
+          sourceStartFrame: input.sourceStartFrame,
+          sourceEndFrame: input.sourceEndFrame,
+          gainDb: 0
+        });
+        const cutaway = createCutaway({
+          hostSceneId,
+          cutawaySceneId: cutawayScene.id,
+          timelineItemId: item.id,
+          assetId: plan.asset.id,
+          visualTreatmentId: input.visualTreatmentId,
+          mode,
+          fit,
+          pipAnchor: mode === "pip" ? input.pipAnchor : undefined,
+          pipScale: mode === "pip" ? input.pipScale : undefined,
+          audioMode,
+          purpose,
+          audienceTask,
+          sourceStartFrame: input.sourceStartFrame,
+          sourceEndFrame: input.sourceEndFrame,
+          startFrame: input.startFrame,
+          endFrame: input.endFrame
+        });
+        snapshot.scenes.push(cutawayScene);
+        snapshot.timeline.items.push(item);
+        snapshot.cutaways.push(cutaway);
+        impact.changed.push(cutaway.id, cutawayScene.id, item.id);
+        impact.dirtyRanges.push({ startFrame: cutaway.startFrame, endFrame: cutaway.endFrame, reason: "新增 Cutaway" });
+        return;
+      }
+
+      const cutaway = cutawayById(snapshot, requireText(input.cutawayId, "Cutaway ID"));
+      if (input.assetId && input.assetId !== cutaway.assetId) {
+        throw new DomainError("替换 Cutaway 素材请使用 replaceSceneAsset，避免漏改 Source Range", "USE_REPLACE_SCENE_ASSET");
+      }
+      const mode = input.mode ?? cutaway.mode;
+      const plan = this.resolveCutawayPlan(snapshot, {
+        hostSceneId: input.hostSceneId ?? cutaway.hostSceneId,
+        assetId: cutaway.assetId,
+        visualTreatmentId: input.visualTreatmentId ?? cutaway.visualTreatmentId,
+        mode,
+        fit: input.fit ?? cutaway.fit,
+        pipAnchor: mode === "pip" ? input.pipAnchor ?? cutaway.pipAnchor : undefined,
+        pipScale: mode === "pip" ? input.pipScale ?? cutaway.pipScale : undefined,
+        sourceStartFrame: input.sourceStartFrame ?? cutaway.sourceStartFrame,
+        sourceEndFrame: input.sourceEndFrame ?? cutaway.sourceEndFrame,
+        startFrame: input.startFrame ?? cutaway.startFrame,
+        endFrame: input.endFrame ?? cutaway.endFrame
+      });
+      const cutawayScene = snapshot.scenes.find((scene) => scene.id === cutaway.cutawaySceneId);
+      const item = snapshot.timeline.items.find((candidate) => candidate.id === cutaway.timelineItemId);
+      if (!cutawayScene || !item) throw new DomainError("Cutaway 缺少可编辑的 Scene 或 Timeline Item", "CUTAWAY_STRUCTURE_MISSING");
+      const oldRange = { startFrame: cutaway.startFrame, endFrame: cutaway.endFrame };
+      cutaway.hostSceneId = plan.hostScene.id;
+      cutaway.visualTreatmentId = input.visualTreatmentId ?? cutaway.visualTreatmentId;
+      cutaway.mode = mode;
+      cutaway.fit = input.fit ?? cutaway.fit;
+      cutaway.pipAnchor = mode === "pip" ? input.pipAnchor ?? cutaway.pipAnchor : undefined;
+      cutaway.pipScale = mode === "pip" ? input.pipScale ?? cutaway.pipScale : undefined;
+      cutaway.audioMode = input.audioMode ?? cutaway.audioMode;
+      cutaway.purpose = input.purpose ? requireText(input.purpose, "Cutaway 叙事目的") : cutaway.purpose;
+      cutaway.audienceTask = input.audienceTask ? requireText(input.audienceTask, "Cutaway 观众任务") : cutaway.audienceTask;
+      cutaway.sourceStartFrame = input.sourceStartFrame ?? cutaway.sourceStartFrame;
+      cutaway.sourceEndFrame = input.sourceEndFrame ?? cutaway.sourceEndFrame;
+      cutaway.startFrame = input.startFrame ?? cutaway.startFrame;
+      cutaway.endFrame = input.endFrame ?? cutaway.endFrame;
+      cutaway.status = "ready";
+      cutaway.updatedAt = now();
+      cutawayScene.title = input.title?.trim() || cutawayScene.title;
+      cutawayScene.purpose = cutaway.purpose;
+      cutawayScene.startFrame = cutaway.startFrame;
+      cutawayScene.endFrame = cutaway.endFrame;
+      cutawayScene.assetIds = [cutaway.assetId];
+      cutawayScene.status = "ready";
+      item.startFrame = cutaway.startFrame;
+      item.endFrame = cutaway.endFrame;
+      item.sourceStartFrame = cutaway.sourceStartFrame;
+      item.sourceEndFrame = cutaway.sourceEndFrame;
+      item.disabled = false;
+      impact.changed.push(cutaway.id, cutawayScene.id, item.id);
+      impact.dirtyRanges.push({ startFrame: Math.min(oldRange.startFrame, cutaway.startFrame), endFrame: Math.max(oldRange.endFrame, cutaway.endFrame), reason: "调整 Cutaway" });
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /** 只替换某一个 Cutaway 的本地源素材和源范围，不触碰主场景或该场景中的 Cue。 */
+  replaceSceneAsset(input: {
+    projectId: Id;
+    baseRevision: number;
+    cutawayId: Id;
+    assetId: Id;
+    sourceStartFrame: number;
+    sourceEndFrame: number;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "替换 Cutaway 素材", (snapshot, impact) => {
+      const cutaway = cutawayById(snapshot, input.cutawayId);
+      const item = snapshot.timeline.items.find((candidate) => candidate.id === cutaway.timelineItemId);
+      const scene = snapshot.scenes.find((candidate) => candidate.id === cutaway.cutawaySceneId);
+      if (!item || !scene) throw new DomainError("Cutaway 缺少可替换的 Scene 或 Timeline Item", "CUTAWAY_STRUCTURE_MISSING");
+      const track = snapshot.timeline.tracks.find((candidate) => candidate.id === item.trackId);
+      if (!track || track.locked) throw new DomainError("Cutaway 所在轨道不存在或已锁定", "TRACK_LOCKED");
+      this.resolveCutawayPlan(snapshot, {
+        hostSceneId: cutaway.hostSceneId,
+        assetId: input.assetId,
+        visualTreatmentId: cutaway.visualTreatmentId,
+        mode: cutaway.mode,
+        fit: cutaway.fit,
+        pipAnchor: cutaway.pipAnchor,
+        pipScale: cutaway.pipScale,
+        sourceStartFrame: input.sourceStartFrame,
+        sourceEndFrame: input.sourceEndFrame,
+        startFrame: cutaway.startFrame,
+        endFrame: cutaway.endFrame
+      });
+      cutaway.assetId = input.assetId;
+      cutaway.sourceStartFrame = input.sourceStartFrame;
+      cutaway.sourceEndFrame = input.sourceEndFrame;
+      cutaway.status = "ready";
+      cutaway.updatedAt = now();
+      scene.assetIds = [input.assetId];
+      scene.status = "ready";
+      item.assetId = input.assetId;
+      item.sourceStartFrame = input.sourceStartFrame;
+      item.sourceEndFrame = input.sourceEndFrame;
+      item.disabled = false;
+      impact.changed.push(cutaway.id, scene.id, item.id);
+      impact.dirtyRanges.push({ startFrame: cutaway.startFrame, endFrame: cutaway.endFrame, reason: "替换 Cutaway 素材" });
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
   createEffectCue(input: {
     projectId: Id;
     baseRevision: number;
@@ -2130,6 +2622,35 @@ export class EditingApplication {
     }
   }
 
+  /**
+   * 手工移动顶层 Cutaway 时同步其导演记录；移动主场景时则不擅自猜测 B-roll 是否仍相关。
+   */
+  private reconcileCutawaysAfterTimelineMove(snapshot: ProjectSnapshot, affectedItemIds: Set<Id>, affectedSceneIds: Set<Id>, impact: ImpactReport): void {
+    for (const cutaway of snapshot.cutaways) {
+      const item = snapshot.timeline.items.find((candidate) => candidate.id === cutaway.timelineItemId);
+      const cutawayScene = snapshot.scenes.find((candidate) => candidate.id === cutaway.cutawaySceneId);
+      const hostScene = snapshot.scenes.find((candidate) => candidate.id === cutaway.hostSceneId);
+      if (!item || !cutawayScene || !hostScene) continue;
+
+      if (affectedItemIds.has(item.id)) {
+        cutaway.startFrame = item.startFrame;
+        cutaway.endFrame = item.endFrame;
+        cutaway.sourceStartFrame = item.sourceStartFrame;
+        cutaway.sourceEndFrame = item.sourceEndFrame;
+        cutaway.updatedAt = now();
+        if (item.startFrame < hostScene.startFrame || item.endFrame > hostScene.endFrame) {
+          this.markCutawayStale(snapshot, cutaway, impact, "移动后已超出主场景范围");
+        } else {
+          cutaway.status = "ready";
+          cutawayScene.status = "ready";
+          impact.changed.push(cutaway.id, cutawayScene.id);
+        }
+      } else if (affectedSceneIds.has(hostScene.id)) {
+        this.markCutawayStale(snapshot, cutaway, impact, "主线时间或场景边界已变化");
+      }
+    }
+  }
+
   /** Timeline Item 的移动会收口关联 Scene，并按 Cue 的语义锚点重编译可推导的视觉时序。 */
   private propagateTimelineMove(snapshot: ProjectSnapshot, affectedItemIds: Set<Id>, impact: ImpactReport): void {
     const affectedSceneIds = new Set(snapshot.timeline.items.filter((item) => affectedItemIds.has(item.id) && item.sceneId).map((item) => item.sceneId as Id));
@@ -2151,8 +2672,9 @@ export class EditingApplication {
         this.recompileCueFromAnchor(snapshot, cue, previousScene, scene, impact);
       }
     }
+    this.reconcileCutawaysAfterTimelineMove(snapshot, affectedItemIds, affectedSceneIds, impact);
     if (affectedSceneIds.size > 0) {
-      impact.recomputed.push("Scene 范围、EffectCue 语义锚点；字幕继续服从 SpeechTiming");
+      impact.recomputed.push("Scene 范围、EffectCue 语义锚点、Cutaway stale；字幕继续服从 SpeechTiming");
     }
   }
 
@@ -2160,6 +2682,10 @@ export class EditingApplication {
     const state = this.repository.commit(input.projectId, input.baseRevision, "移动时间线片段", (snapshot, impact) => {
       const item = snapshot.timeline.items.find((candidate) => candidate.id === input.itemId);
       if (!item) throw new DomainError("时间线片段不存在", "ITEM_NOT_FOUND");
+      const movedCutaway = snapshot.cutaways.find((cutaway) => cutaway.timelineItemId === item.id);
+      if (movedCutaway?.status === "stale") {
+        throw new DomainError("该 Cutaway 已因主线变化失效，请先通过 manage_cutaways 重新确认范围", "CUTAWAY_STALE_NEEDS_REVIEW");
+      }
       const track = snapshot.timeline.tracks.find((candidate) => candidate.id === item.trackId);
       if (!track || track.locked) throw new DomainError("轨道不存在或已锁定", "TRACK_LOCKED");
       const oldStart = item.startFrame;
@@ -2464,6 +2990,7 @@ export class EditingApplication {
           impact.changed.push(scene.id);
         }
       }
+      this.staleCutawaysForHostScenes(snapshot, affectedSceneIds, impact, "旁白时长收齐改变了主场景边界");
       impact.recomputed.push("Presenter 主画面、Scene Strip 与旁白时长对齐");
       assertTimelineValid(snapshot);
     });

@@ -31,7 +31,7 @@ MCP 返回 success 只证明命令执行，不证明对象关系、画面和听�
 
 ## 对象选择
 
-用户意图应落到最接近的对象：删一句改 SemanticUnit/Script；修改叙事顺序改 Story；改变一段怎样被看见改 Scene/Visual Treatment；微调某个动画改 EffectCue；替换素材改 AssetBinding；移动物理播放范围改 TimelineItem；重新导出不修改创作状态。
+用户意图应落到最接近的对象：删一句改 SemanticUnit/Script；修改叙事顺序改 Story；改变一段怎样被看见改 Scene/Visual Treatment；微调某个动画改 EffectCue；替换 Effect 绑定改 AssetBinding；替换单条 Cutaway 源素材改 `replace_scene_asset`；移动物理播放范围改 TimelineItem；重新导出不修改创作状态。
 
 把所有问题都塞进 Timeline 会丢失语义；把所有微调都写回 Story 又会让上层对象承载物理细节。选择错误层级会导致 Impact 传播不可靠。
 

@@ -171,6 +171,111 @@ async function verifyRearCueFallsBackWithoutMask(application: ReturnType<typeof 
   return { outputPath, pixel };
 }
 
+/**
+ * Cutaway 不是只写进 Timeline 的元数据：这里以真实颜色素材验证它在同一个 Revision 中
+ * 确实覆盖 Fullscreen，并能作为 PiP 保留人物主画面。两个范围分开，避免同轨重叠掩盖布局问题。
+ */
+async function verifyCutawayRender(application: ReturnType<typeof createApplication>, renderer: RevisionRenderer): Promise<{
+  fullscreenPath: string;
+  pipPath: string;
+  fullscreenPixel: [number, number, number];
+  pipPixel: [number, number, number];
+  backgroundPixel: [number, number, number];
+}> {
+  const created = application.createProject({ name: "Cutaway Fullscreen 与 PiP 渲染" });
+  const projectId = created.snapshot.project.id;
+  const projectRoot = created.snapshot.project.rootPath;
+  const sourceDirectory = join(projectRoot, "assets", "source");
+  await mkdir(sourceDirectory, { recursive: true });
+  const presenterPath = join(sourceDirectory, "cutaway-presenter.mp4");
+  const fullscreenPath = join(sourceDirectory, "cutaway-fullscreen.mp4");
+  const pipPath = join(sourceDirectory, "cutaway-pip.mp4");
+  await createColorVideo(presenterPath, "0x102040", 4);
+  await createColorVideo(fullscreenPath, "0x00d050", 2);
+  await createColorVideo(pipPath, "0xff8a00", 2);
+
+  const registerVideo = async (name: string, sourceHash: string) => {
+    const asset = application.registerImportedAsset({
+      projectId,
+      baseRevision: application.readProject(projectId).revision.number,
+      name,
+      kind: "video",
+      managedPath: join("assets", "source", name),
+      sourceHash
+    });
+    await application.applyMediaAnalysis({ projectId, assetId: asset.asset.id, metadata: await probeMedia(join(sourceDirectory, name)) });
+    return asset.asset.id;
+  };
+  const presenterAssetId = await registerVideo("cutaway-presenter.mp4", "cutaway-presenter");
+  const fullscreenAssetId = await registerVideo("cutaway-fullscreen.mp4", "cutaway-fullscreen");
+  const pipAssetId = await registerVideo("cutaway-pip.mp4", "cutaway-pip");
+  const presenter = application.buildPresenterTimeline({
+    projectId,
+    baseRevision: application.readProject(projectId).revision.number,
+    assetIds: [presenterAssetId],
+    sceneSize: 1
+  });
+  const hostScene = presenter.snapshot.scenes[0]!;
+  const treatment = application.manageVisualTreatment({
+    projectId,
+    baseRevision: presenter.revision.number,
+    action: "upsert",
+    sceneId: hostScene.id,
+    mode: "cutaway",
+    primaryAttention: "用真实画面具体化当前旁白",
+    narrativePurpose: "验证 Cutaway 已经进入可播放合成",
+    intensity: "medium"
+  });
+  const fullscreen = application.manageCutaway({
+    projectId,
+    baseRevision: treatment.revision.number,
+    action: "create",
+    hostSceneId: hostScene.id,
+    assetId: fullscreenAssetId,
+    visualTreatmentId: treatment.snapshot.visualTreatments[0]!.id,
+    mode: "fullscreen",
+    fit: "cover",
+    audioMode: "continue_dialogue",
+    purpose: "在完整说明期间展示现实素材",
+    audienceTask: "看清完整现实画面后继续听人物说明",
+    sourceStartFrame: 0,
+    sourceEndFrame: 12,
+    startFrame: 12,
+    endFrame: 24
+  });
+  const withPip = application.manageCutaway({
+    projectId,
+    baseRevision: fullscreen.revision.number,
+    action: "create",
+    hostSceneId: hostScene.id,
+    assetId: pipAssetId,
+    mode: "pip",
+    fit: "cover",
+    pipAnchor: "top_right",
+    pipScale: 0.4,
+    audioMode: "mute_source_audio",
+    purpose: "在保留人物的前提下展示辅助对象",
+    audienceTask: "同时看见人物与辅助例子",
+    sourceStartFrame: 0,
+    sourceEndFrame: 12,
+    startFrame: 36,
+    endFrame: 48
+  });
+  const snapshot = withPip.snapshot;
+  const fullscreenPreviewPath = join(projectRoot, "previews", "cutaway-fullscreen.mp4");
+  const pipPreviewPath = join(projectRoot, "previews", "cutaway-pip.mp4");
+  await renderer.renderRange(snapshot, 12, 13, fullscreenPreviewPath);
+  await renderer.renderRange(snapshot, 36, 37, pipPreviewPath);
+
+  const fullscreenPixel = await readRgbPixel(fullscreenPreviewPath, Math.floor(snapshot.timeline.width * 0.5), Math.floor(snapshot.timeline.height * 0.5));
+  const pipPixel = await readRgbPixel(pipPreviewPath, Math.floor(snapshot.timeline.width * 0.75), Math.floor(snapshot.timeline.height * 0.15));
+  const backgroundPixel = await readRgbPixel(pipPreviewPath, Math.floor(snapshot.timeline.width * 0.1), Math.floor(snapshot.timeline.height * 0.65));
+  assert.ok(fullscreenPixel[1] > fullscreenPixel[0] + 65 && fullscreenPixel[1] > fullscreenPixel[2] + 65, `Fullscreen Cutaway 应覆盖主画面，实际 RGB=${fullscreenPixel.join(",")}`);
+  assert.ok(pipPixel[0] > pipPixel[1] + 55 && pipPixel[1] > pipPixel[2] + 25, `PiP 区域应显示辅助素材，实际 RGB=${pipPixel.join(",")}`);
+  assert.ok(backgroundPixel[2] > backgroundPixel[0] + 25, `PiP 外应继续保留人物主画面，实际 RGB=${backgroundPixel.join(",")}`);
+  return { fullscreenPath: fullscreenPreviewPath, pipPath: pipPreviewPath, fullscreenPixel, pipPixel, backgroundPixel };
+}
+
 /** 单组件单项目渲染，避免 Registry 冒烟因并行视频解码而掩盖某个组件本身的失败。 */
 async function renderRegisteredEffect(input: {
   application: ReturnType<typeof createApplication>;
@@ -279,12 +384,22 @@ async function main(): Promise<void> {
       rearFallbackApplication.close();
       await rm(rearFallbackWorkspace, { recursive: true, force: true });
     }
+    const cutawayWorkspace = await mkdtemp(join(tmpdir(), "videocut-cutaway-render-"));
+    const cutawayApplication = createApplication(cutawayWorkspace);
+    let cutawayRender: Awaited<ReturnType<typeof verifyCutawayRender>>;
+    try {
+      cutawayRender = await verifyCutawayRender(cutawayApplication, new RevisionRenderer(undefined, 1));
+    } finally {
+      cutawayApplication.close();
+      await rm(cutawayWorkspace, { recursive: true, force: true });
+    }
     console.log(JSON.stringify({
       test: "effect-registry-smoke",
       effectTypes: EFFECT_TYPES,
       results,
       lateBoundPlayback,
-      rearCueFallback
+      rearCueFallback,
+      cutawayRender
     }, null, 2));
   } finally {
     application.close();

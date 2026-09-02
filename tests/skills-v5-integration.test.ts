@@ -59,9 +59,6 @@ const specialistSkills = [
 ] as const;
 
 const architectureTargets = new Set([
-  "manage_visual_treatment",
-  "manage_cutaways",
-  "replace_scene_asset",
   "edit_captions",
   "manage_audio",
   "smooth_audio",
@@ -255,6 +252,9 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
     compile_presenter_scenes: ["base_revision_id", "scenes"],
     manage_actor_performance: ["base_revision_id", "timeline_item_id", "source", "mask_mode"],
     create_scene: ["base_revision_id", "type", "title", "purpose", "start_frame", "end_frame"],
+    manage_visual_treatment: ["base_revision_id", "action"],
+    manage_cutaways: ["base_revision_id", "action"],
+    replace_scene_asset: ["base_revision_id", "cutaway_id", "asset_id", "source_start_frame", "source_end_frame"],
     manage_effect_cues: ["base_revision_id", "scene_id", "type", "layer", "start_frame", "end_frame", "semantic_anchor", "motion", "quality_rules"],
     render_preview_range: ["revision", "from_frame", "to_frame"],
     inspect_composed_frames: ["preview_job_id"],

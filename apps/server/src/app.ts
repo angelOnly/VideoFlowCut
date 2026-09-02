@@ -323,6 +323,60 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return application.createScene({ projectId, ...body });
   });
 
+  app.post("/api/projects/:projectId/visual-treatments", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      action: z.enum(["upsert", "remove"]),
+      visualTreatmentId: idSchema.optional(),
+      narrativeBeatId: idSchema.optional(),
+      sceneId: idSchema.optional(),
+      mode: z.enum(["keep_presenter", "quiet", "light_overlay", "remotion", "b_roll", "cutaway", "evidence"]).optional(),
+      primaryAttention: z.string().max(500).optional(),
+      narrativePurpose: z.string().max(800).optional(),
+      intensity: z.enum(["quiet", "low", "medium", "high"]).optional(),
+      quietReason: z.string().max(800).optional(),
+      fallbackPlan: z.string().max(800).optional()
+    }).parse(request.body);
+    return application.manageVisualTreatment({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/cutaways", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      action: z.enum(["create", "update", "remove"]),
+      cutawayId: idSchema.optional(),
+      hostSceneId: idSchema.optional(),
+      assetId: idSchema.optional(),
+      visualTreatmentId: idSchema.optional(),
+      title: z.string().max(160).optional(),
+      mode: z.enum(["fullscreen", "pip"]).optional(),
+      fit: z.enum(["cover", "contain"]).optional(),
+      pipAnchor: z.enum(["top_left", "top_right", "middle_left", "middle_right", "bottom_left", "bottom_right", "center"]).optional(),
+      pipScale: z.number().min(0.2).max(0.6).optional(),
+      audioMode: z.enum(["continue_dialogue", "include_source_audio", "mute_source_audio"]).optional(),
+      purpose: z.string().max(800).optional(),
+      audienceTask: z.string().max(800).optional(),
+      sourceStartFrame: z.number().int().min(0).optional(),
+      sourceEndFrame: z.number().int().positive().optional(),
+      startFrame: z.number().int().min(0).optional(),
+      endFrame: z.number().int().positive().optional()
+    }).parse(request.body);
+    return application.manageCutaway({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/cutaways/:cutawayId/replace-asset", async (request) => {
+    const { projectId, cutawayId } = z.object({ projectId: idSchema, cutawayId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      assetId: idSchema,
+      sourceStartFrame: z.number().int().min(0),
+      sourceEndFrame: z.number().int().positive()
+    }).parse(request.body);
+    return application.replaceSceneAsset({ projectId, cutawayId, ...body });
+  });
+
   app.post("/api/projects/:projectId/effects", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({

@@ -411,6 +411,25 @@ export interface Scene {
   stylePackId: string;
 }
 
+/** 主线稳定后保存的视觉决定；它解释为什么保持人物、进入解释或使用现实 Cutaway。 */
+export type VisualTreatmentMode = "keep_presenter" | "quiet" | "light_overlay" | "remotion" | "b_roll" | "cutaway" | "evidence";
+export type VisualTreatmentIntensity = "quiet" | "low" | "medium" | "high";
+
+export interface VisualTreatment {
+  id: Id;
+  narrativeBeatId?: Id;
+  sceneId?: Id;
+  mode: VisualTreatmentMode;
+  primaryAttention: string;
+  narrativePurpose: string;
+  intensity: VisualTreatmentIntensity;
+  quietReason?: string;
+  fallbackPlan?: string;
+  status: "ready" | "stale";
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type EffectSemanticAnchorType = "speech_segment" | "narrative_beat" | "scene" | "absolute";
 export type EffectAnchorRelation = "anticipate" | "land_on" | "react_after" | "hold_through";
 export type SpatialAnchor = "top_left" | "top_right" | "middle_left" | "middle_right" | "bottom_left" | "bottom_right" | "center" | "full_frame";
@@ -496,6 +515,37 @@ export interface TimelineItem {
   disabled: boolean;
   directOverride?: boolean;
   gainDb?: number;
+}
+
+/**
+ * Cutaway 同时保存导演决定和物理播放范围。它引用由 Application 创建的顶层 TimelineItem，
+ * 不能把未本地化的 Candidate 或远程 URL 直接写进 Renderer。
+ */
+export type CutawayMode = "fullscreen" | "pip";
+export type CutawayFit = "cover" | "contain";
+export type CutawayAudioMode = "continue_dialogue" | "include_source_audio" | "mute_source_audio";
+
+export interface Cutaway {
+  id: Id;
+  hostSceneId: Id;
+  cutawaySceneId: Id;
+  timelineItemId: Id;
+  assetId: Id;
+  visualTreatmentId?: Id;
+  mode: CutawayMode;
+  fit: CutawayFit;
+  pipAnchor?: SpatialAnchor;
+  pipScale?: number;
+  audioMode: CutawayAudioMode;
+  purpose: string;
+  audienceTask: string;
+  sourceStartFrame: number;
+  sourceEndFrame: number;
+  startFrame: number;
+  endFrame: number;
+  status: "ready" | "stale";
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CaptionCard {
@@ -647,6 +697,8 @@ export interface ProjectSnapshot {
   assetRequests: AssetRequest[];
   searchIntents: SearchIntent[];
   assetCandidates: AssetCandidate[];
+  visualTreatments: VisualTreatment[];
+  cutaways: Cutaway[];
   voiceReferences: VoiceReference[];
   transcripts: TranscriptText[];
   transcriptSentenceCandidates: TranscriptSentenceCandidate[];

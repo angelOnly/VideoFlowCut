@@ -15,7 +15,7 @@ import { runExportJob } from "../apps/render-worker/src/exporter.js";
 import { createServer } from "../apps/server/src/app.js";
 import { evaluateQuality } from "@videocut/quality";
 import { runProcess } from "@videocut/speech";
-import { compileCameraPunchLayout, compileMotionLayout } from "@videocut/remotion";
+import { compileCameraPunchLayout, compileCutawayLayout, compileMotionLayout, cutawaySourceVolume } from "@videocut/remotion";
 import type { EditorialReviewPass } from "@videocut/contracts";
 
 function textFromToolResult(result: unknown): string {
@@ -1006,6 +1006,225 @@ test("素材下载到伪装成视频的 HTML 错误页时保留失败诊断且�
   }
 });
 
+test("Cutaway 只接受已就绪本地视频，并把 VisualTreatment、CutawayScene 与顶层 Item 原子写入", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "Cutaway 最小闭环" });
+    const presenterAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video", 1_000);
+    const brollAssetId = addReadyAsset(context.app, created.snapshot.project.id, "city-walk.mp4", "video", 1_000);
+    const built = context.app.buildPresenterTimeline({
+      projectId: created.snapshot.project.id,
+      baseRevision: context.app.readProject(created.snapshot.project.id).revision.number,
+      assetIds: [presenterAssetId],
+      sceneSize: 1
+    });
+    const hostScene = built.snapshot.scenes[0]!;
+    const pending = context.app.registerImportedAsset({
+      projectId: created.snapshot.project.id,
+      baseRevision: built.revision.number,
+      name: "not-ready.mp4",
+      kind: "video",
+      managedPath: "assets/source/not-ready.mp4",
+      sourceHash: "not-ready-hash"
+    });
+    assert.throws(
+      () => context.app.manageCutaway({
+        projectId: created.snapshot.project.id,
+        baseRevision: pending.state.revision.number,
+        action: "create",
+        hostSceneId: hostScene.id,
+        assetId: pending.asset.id,
+        mode: "fullscreen",
+        fit: "cover",
+        audioMode: "continue_dialogue",
+        purpose: "错误示例",
+        audienceTask: "验证未就绪素材被拒绝",
+        sourceStartFrame: 0,
+        sourceEndFrame: 12,
+        startFrame: 4,
+        endFrame: 16
+      }),
+      (error: unknown) => error instanceof DomainError && error.code === "CUTAWAY_ASSET_NOT_READY"
+    );
+
+    const treatment = context.app.manageVisualTreatment({
+      projectId: created.snapshot.project.id,
+      baseRevision: pending.state.revision.number,
+      action: "upsert",
+      sceneId: hostScene.id,
+      mode: "b_roll",
+      primaryAttention: "下班后的真实步行状态",
+      narrativePurpose: "让个人反思落到具体生活，而不是用抽象关键词素材替代。",
+      intensity: "low",
+      fallbackPlan: "没有相关素材时保持人物"
+    });
+    const visualTreatment = treatment.snapshot.visualTreatments[0]!;
+    const withCutaway = context.app.manageCutaway({
+      projectId: created.snapshot.project.id,
+      baseRevision: treatment.revision.number,
+      action: "create",
+      hostSceneId: hostScene.id,
+      assetId: brollAssetId,
+      visualTreatmentId: visualTreatment.id,
+      title: "城市步行",
+      mode: "pip",
+      fit: "contain",
+      pipAnchor: "top_right",
+      pipScale: 0.32,
+      audioMode: "continue_dialogue",
+      purpose: "以现实步行镜头具体化下班后的停顿",
+      audienceTask: "在不丢失人物关系的前提下看见真实生活场景",
+      sourceStartFrame: 0,
+      sourceEndFrame: 12,
+      startFrame: 4,
+      endFrame: 16
+    });
+    const cutaway = withCutaway.snapshot.cutaways[0]!;
+    const cutawayScene = withCutaway.snapshot.scenes.find((scene) => scene.id === cutaway.cutawaySceneId)!;
+    const cutawayItem = withCutaway.snapshot.timeline.items.find((item) => item.id === cutaway.timelineItemId)!;
+    const topTrack = withCutaway.snapshot.timeline.tracks.find((track) => track.name === "Cutaway / Fullscreen")!;
+    assert.equal(cutaway.status, "ready");
+    assert.equal(cutaway.visualTreatmentId, visualTreatment.id);
+    assert.equal(cutawayScene.type, "CutawayScene");
+    assert.equal(cutawayItem.trackId, topTrack.id);
+    assert.equal(cutawayItem.assetId, brollAssetId);
+    assert.equal(cutawayItem.sceneId, cutawayScene.id);
+
+    // 主线重编译不会留下指向旧 PresenterScene 的 VisualTreatment 或 Cutaway。
+    const recompiled = context.app.compilePresenterScenes({
+      projectId: created.snapshot.project.id,
+      baseRevision: withCutaway.revision.number,
+      scenes: [{ title: "重编后的主场景", purpose: "验证主线变化会清理旧 Cutaway", startFrame: 0, endFrame: 24 }]
+    });
+    assert.equal(recompiled.snapshot.cutaways.length, 0);
+    assert.equal(recompiled.snapshot.visualTreatments.length, 0);
+    assert.ok(recompiled.revision.impact.stale.includes(cutaway.id));
+  } finally {
+    await context.dispose();
+  }
+});
+
+test("替换 Cutaway 素材保留主场景与 Cue，主线移动后会停用并标记 stale", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "Cutaway 替换与失效传播" });
+    const presenterAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video", 1_000);
+    const firstBrollId = addReadyAsset(context.app, created.snapshot.project.id, "first-broll.mp4", "video", 1_000);
+    const replacementBrollId = addReadyAsset(context.app, created.snapshot.project.id, "replacement-broll.mp4", "video", 1_000);
+    const built = context.app.buildPresenterTimeline({
+      projectId: created.snapshot.project.id,
+      baseRevision: context.app.readProject(created.snapshot.project.id).revision.number,
+      assetIds: [presenterAssetId],
+      sceneSize: 1
+    });
+    const hostScene = built.snapshot.scenes[0]!;
+    const withCue = context.app.createEffectCue({
+      projectId: created.snapshot.project.id,
+      baseRevision: built.revision.number,
+      sceneId: hostScene.id,
+      type: "MetricBackdrop",
+      layer: "front",
+      startFrame: 0,
+      endFrame: 12,
+      narrativePurpose: "保持人物说出关键结论时的轻量强调",
+      audienceTask: "记住当前结论"
+    });
+    const cueId = withCue.snapshot.effectCues[0]!.id;
+    const withCutaway = context.app.manageCutaway({
+      projectId: created.snapshot.project.id,
+      baseRevision: withCue.revision.number,
+      action: "create",
+      hostSceneId: hostScene.id,
+      assetId: firstBrollId,
+      mode: "fullscreen",
+      fit: "cover",
+      audioMode: "continue_dialogue",
+      purpose: "用真实环境给结论留出呼吸",
+      audienceTask: "短暂进入现实环境后回到人物",
+      sourceStartFrame: 0,
+      sourceEndFrame: 12,
+      startFrame: 4,
+      endFrame: 16
+    });
+    const cutaway = withCutaway.snapshot.cutaways[0]!;
+    const replaced = context.app.replaceSceneAsset({
+      projectId: created.snapshot.project.id,
+      baseRevision: withCutaway.revision.number,
+      cutawayId: cutaway.id,
+      assetId: replacementBrollId,
+      sourceStartFrame: 4,
+      sourceEndFrame: 16
+    });
+    const replacement = replaced.snapshot.cutaways[0]!;
+    assert.equal(replacement.assetId, replacementBrollId);
+    assert.equal(replacement.sourceStartFrame, 4);
+    assert.equal(replaced.snapshot.scenes.find((scene) => scene.id === hostScene.id)?.id, hostScene.id);
+    assert.equal(replaced.snapshot.effectCues.find((cue) => cue.id === cueId)?.id, cueId);
+    assert.equal(replaced.snapshot.timeline.items.find((item) => item.id === replacement.timelineItemId)?.assetId, replacementBrollId);
+
+    const actorItem = replaced.snapshot.timeline.items.find((item) => item.sceneId === hostScene.id)!;
+    const moved = context.app.moveItem({
+      projectId: created.snapshot.project.id,
+      baseRevision: replaced.revision.number,
+      itemId: actorItem.id,
+      startFrame: 24
+    });
+    const staleCutaway = moved.snapshot.cutaways.find((candidate) => candidate.id === replacement.id)!;
+    assert.equal(staleCutaway.status, "stale");
+    assert.equal(moved.snapshot.timeline.items.find((item) => item.id === staleCutaway.timelineItemId)?.disabled, true);
+    assert.ok(moved.revision.impact.stale.includes(staleCutaway.id));
+    assert.ok(evaluateQuality(moved.snapshot, moved.revision.number).issues.some((issue) => issue.code === "STALE_CUTAWAY"));
+  } finally {
+    await context.dispose();
+  }
+});
+
+test("Cutaway Runtime 对 Fullscreen/PiP 和声音策略使用同一项目事实", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "Cutaway Runtime 布局" });
+    const presenterAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video", 1_000);
+    const brollAssetId = addReadyAsset(context.app, created.snapshot.project.id, "broll.mp4", "video", 1_000);
+    const built = context.app.buildPresenterTimeline({ projectId: created.snapshot.project.id, baseRevision: context.app.readProject(created.snapshot.project.id).revision.number, assetIds: [presenterAssetId], sceneSize: 1 });
+    const hostScene = built.snapshot.scenes[0]!;
+    const state = context.app.manageCutaway({
+      projectId: created.snapshot.project.id,
+      baseRevision: built.revision.number,
+      action: "create",
+      hostSceneId: hostScene.id,
+      assetId: brollAssetId,
+      mode: "pip",
+      fit: "contain",
+      pipAnchor: "top_right",
+      pipScale: 0.32,
+      audioMode: "continue_dialogue",
+      purpose: "辅助例子",
+      audienceTask: "保留人物说话时看见例子",
+      sourceStartFrame: 0,
+      sourceEndFrame: 12,
+      startFrame: 4,
+      endFrame: 16
+    });
+    const cutaway = state.snapshot.cutaways[0]!;
+    const item = state.snapshot.timeline.items.find((candidate) => candidate.id === cutaway.timelineItemId)!;
+    const track = state.snapshot.timeline.tracks.find((candidate) => candidate.id === item.trackId)!;
+    const pip = compileCutawayLayout(cutaway, 16 / 9);
+    assert.equal(pip.container.position, "absolute");
+    assert.equal(pip.container.right, "5%");
+    assert.equal(pip.container.top, "8%");
+    assert.equal(pip.container.width, "32%");
+    assert.equal(pip.media.objectFit, "contain");
+    assert.equal(cutawaySourceVolume(cutaway, item, track), 0);
+
+    const fullscreen = compileCutawayLayout({ ...cutaway, mode: "fullscreen", fit: "cover", audioMode: "include_source_audio" }, 16 / 9);
+    assert.equal(fullscreen.container.inset, 0);
+    assert.equal(fullscreen.media.objectFit, "cover");
+    assert.equal(cutawaySourceVolume({ ...cutaway, audioMode: "include_source_audio" }, item, track), 1);
+  } finally {
+    await context.dispose();
+  }
+});
+
 test("StoryBeat 保持稳定 ID，移动 Item 会重算关联 Scene 与 Cue", async () => {
   const context = await createTestApplication();
   try {
@@ -1366,6 +1585,9 @@ test("video-editor-mcp 可通过 stdio 连接并定位新项目", async () => {
       "compile_presenter_scenes",
       "create_presenter_timeline",
       "manage_actor_performance",
+      "manage_visual_treatment",
+      "manage_cutaways",
+      "replace_scene_asset",
       "manage_effect_cues",
       "start_production_run",
       "record_creative_decision",

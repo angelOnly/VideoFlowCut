@@ -120,7 +120,7 @@ validation
 
 ## 工具与当前落地
 
-当前可使用 `manage_story` 保存 Beat，`create_scene` 创建基础 ExplainerScene 或 CutawayScene，`manage_effect_cues` 表达有限视觉，`render_preview_range` 与 `inspect_composed_frames` 验证。当前 Scene Schema 没有独立 DocumentScene；文档、网页和证据只能作为已登记 Asset 进入已有 Scene。架构中 `read_narrative_map`、完整 `manage_visual_treatment`、Evidence Provider 和更多 Scene Registry 尚未落地时，NarrativeMap 可以先以 Story/ProductionRun/计划保存，但必须明确哪些对象已写入。
+当前可使用 `manage_story` 保存 Beat，`manage_visual_treatment` 保存主视觉决定，`create_scene` 创建基础 ExplainerScene 或 CutawayScene，`manage_cutaways` 将已就绪本地视频放入 Fullscreen/PiP，`manage_effect_cues` 表达有限视觉，`render_preview_range` 与 `inspect_composed_frames` 验证。当前 Scene Schema 没有独立 DocumentScene；文档、网页和证据只能作为已登记 Asset 进入已有 Scene。架构中 `read_narrative_map`、Evidence Provider 和更多 Scene Registry 尚未落地时，NarrativeMap 可以先以 Story/ProductionRun/计划保存，但必须明确哪些对象已写入。
 
 不能为了“代码已支持 create_scene”就用一个空 Scene 声称 Explainer 成立；也不能把 Presenter Effect Registry 里的 ProductFan 强行当通用解释组件。
 

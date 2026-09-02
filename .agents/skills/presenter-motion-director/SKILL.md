@@ -111,7 +111,7 @@ Gate A 通过的证据：来源和主线可回溯；Script 与人物/声音版�
 
 ### Visual Treatment 和 AttentionCurve
 
-调用 `visual-treatment-planning`，为每个 Beat 比较保持人物、轻处理、Remotion、证据、B-roll、Cutaway 和安静区。整片形成高—中—低—恢复的 AttentionCurve。安静区应被记录为主动决定，例如个人反思、关键结论、高密度后恢复和人物反应。
+调用 `visual-treatment-planning`，为每个 Beat 比较保持人物、轻处理、Remotion、证据、B-roll、Cutaway 和安静区；确认后用 `manage_visual_treatment` 写入当前 Revision。整片形成高—中—低—恢复的 AttentionCurve。安静区应被记录为主动决定，例如个人反思、关键结论、高密度后恢复和人物反应。
 
 高密度不等于所有元素一起动。人物做关键手势时，字幕、前景对象、CameraPunch 和音乐重音应退让；一个 Scene 模式切换本身已经是强事件，进入后不应立刻再叠第二个主动作。
 
@@ -127,7 +127,7 @@ Rear FX 适合规模、背景状态、评论环境和章节，但需要可靠 Ma
 
 ### 外部素材和 Cutaway
 
-先由 `visual-asset-sourcing` 把明确需求变成本地 Asset，再由 `cutaway-planning` 判断是否值得离开人物、全屏还是 PiP、哪段可用、声音是否延续和何时返回。搜索素材的 Agent不能因为候选相关就决定最终放置。
+先由 `visual-asset-sourcing` 把明确需求变成本地 Asset，再由 `cutaway-planning` 判断是否值得离开人物、全屏还是 PiP、哪段可用、声音是否延续和何时返回。确认后用 `manage_cutaways` 原子写入 CutawayScene 和顶层播放 Item；单条源素材替换只能使用 `replace_scene_asset`。搜索素材的 Agent不能因为候选相关就决定最终放置。
 
 ### 字幕
 
@@ -256,8 +256,9 @@ create_project(profile=presenter_motion)
 → assemble_presenter_track
 → manage_actor_performance
 → compile_presenter_scenes
-→ 为关键 Beat 记录 Visual Treatment 和安静区
+→ manage_visual_treatment，为关键 Beat 写入 Visual Treatment 和安静区
 → 获取/导入真实视觉资产
+→ manage_cutaways / replace_scene_asset（仅在 Cutaway 计划成立时）
 → manage_effect_cues
 → Caption 与 Audio 收尾
 → render_preview_range / inspect_composed_frames

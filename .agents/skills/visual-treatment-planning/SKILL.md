@@ -91,7 +91,7 @@ description: 把 StoryBeat、人物/素材证据和风格转成每一拍的保�
 
 每个重要 Beat 至少记录：观众任务、进入状态、第一重点、选择的 Treatment、叙事目的、视觉机制、所需 Asset、语义锚点、强度、安静区、替代方案和验证方式。
 
-当前可用 `record_creative_decision` 保存关键取舍和 quiet_range；架构目标 `manage_visual_treatment` 尚未完整实现时，不应伪造项目对象。能够落地的部分通过 Story、Scene、EffectCue 和 Asset 进入 Revision。
+当前可用 `manage_visual_treatment` 将 Beat/Scene 的主视觉、第一注意目标、强度、安静理由和降级方案写入 Revision；`record_creative_decision` 仍用于保存跨对象的关键取舍。VisualTreatment 本身不替代 Scene 或 Timeline：可执行部分仍要通过 Scene、EffectCue、Cutaway 和 Asset 进入同一 Revision。
 
 ## 何时调用下游
 

@@ -119,7 +119,7 @@ Browser Operator 不是绕开模型的快捷方式。DOM 临时样式、浏览�
 - `create_presenter_timeline`：兼容入口，不用于正式创作；
 - `align_presenter_to_speech`：只有在安全条件满足时让人物主线与 SpeechAsset 对齐；
 - `read_actor_performances`、`manage_actor_performance`；
-- `browse_scene_types`、`create_scene`、`browse_effect_types`、`manage_effect_cues`；
+- `browse_scene_types`、`create_scene`、`manage_visual_treatment`、`manage_cutaways`、`replace_scene_asset`、`browse_effect_types`、`manage_effect_cues`；
 - `move_item`、`preview_timeline`。
 
 若 `align_presenter_to_speech` 因已有 Cue、缺画面或 direct override 拒绝自动修改，这是正确保护，不应通过直接改数据库绕过。主工作流需要重新决定补 Cutaway、重生人物、裁声音还是保留差异。
@@ -136,7 +136,7 @@ Browser Operator 不是绕开模型的快捷方式。DOM 临时样式、浏览�
 
 ## 当前状态与架构目标的区别
 
-当前阶段已实现 `manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset` 与 `read_asset_provenance`：候选经检查和 Worker 本地化后才会成为 Asset。真实 Pexels 查询仍需要本地配置 `PEXELS_API_KEY`；CI 使用 Mock Provider，不依赖网络。`manage_visual_treatment`、`manage_cutaways`、`edit_captions`、`manage_audio`、`run_render_preflight`、`read_export_artifact` 等仍是架构目标。Skill 在讲专业工作流时可以说明这些目标，但执行时必须先查工具表；工具不存在时只能输出可执行的最小步骤和能力缺口，不能把架构表格当成已连接 API。
+当前阶段已实现 `manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset` 与 `read_asset_provenance`：候选经检查和 Worker 本地化后才会成为 Asset。`manage_visual_treatment` 可以保存每个 Beat/Scene 的主视觉决定；`manage_cutaways` 只能将已就绪、本地化的视频写成 Fullscreen/PiP Cutaway，并同步 CutawayScene、顶层 Item 与声音策略；`replace_scene_asset` 只替换单条 Cutaway 的本地源素材和源范围。真实 Pexels 查询仍需要本地配置 `PEXELS_API_KEY`；CI 使用 Mock Provider，不依赖网络。`edit_captions`、`manage_audio`、`run_render_preflight`、`read_export_artifact` 等仍是架构目标。Skill 在讲专业工作流时可以说明这些目标，但执行时必须先查工具表；工具不存在时只能输出可执行的最小步骤和能力缺口，不能把架构表格当成已连接 API。
 
 ## 三个完整写入示例
 

@@ -22,6 +22,7 @@
 | Story 与语音 | `manage_story(base_revision_id, beats)`；`manage_voice_references(base_revision_id, asset_id)`；`submit_voice_synthesis(voice_reference_id? / voice_reference_asset_id?, speech_segment_ids?, idempotency_key?)` | `track_job`、`read_speech_asset`、`read_speech_timing`；旧 Timeline 必要时用 `rebuild_speech_timeline(base_revision_id)`。 |
 | Presenter 主线 | `assemble_presenter_track(base_revision_id, asset_ids)`；`compile_presenter_scenes(base_revision_id, scenes)`；`manage_actor_performance(base_revision_id, timeline_item_id, source, mask_mode, audio_mode?, mask_asset_id?, speech_asset_id?)` | 每步使用上一写入返回的 Revision，读回 Project、ActorPerformance 和 Impact。 |
 | Scene 与 Effect | `create_scene(base_revision_id, type, title, purpose, start_frame, end_frame, asset_ids?)`；`manage_effect_cues(base_revision_id, scene_id, type, layer, start_frame, end_frame, ...)` | Effect 还应传入适用的 `narrative_purpose`、`audience_task`、`semantic_anchor`、`spatial_anchor`、`asset_bindings`、`props`、`motion`、`style_pack_id` 与 `quality_rules`；随后读 Impact。 |
+| 视觉计划与 Cutaway | `manage_visual_treatment(base_revision_id, action, ...)`；`manage_cutaways(base_revision_id, action, ...)`；替换单条本地源素材用 `replace_scene_asset(base_revision_id, cutaway_id, asset_id, source_start_frame, source_end_frame)` | VisualTreatment 先说明为什么离开人物；Cutaway 只接受已就绪本地视频，原子写入 CutawayScene 和顶层 Item。主线变化后读取 Impact：系统会停用并标记 stale，必须重新确认相关性、进入和返回。 |
 | 预览 | `render_preview_range(revision?, from_frame?, to_frame?, idempotency_key?)` | `track_job(job_id)` 成功后，`inspect_composed_frames(preview_job_id, frames?)` 会保存当前 Revision 的帧证据；仍须连续播放需要的范围。 |
 | 审片与导出 | `start_production_run(loaded_skills, base_revision_id?)`；`record_editorial_quality_review(run_id, revision, passes, preview_evidence, findings)`；`submit_export(revision?, purpose=draft|delivery, idempotency_key?)` | 审片必须含 audio_only、mute_visual、audiovisual、first_viewer、mode_specific 五个 Pass。Delivery 还须同 Revision 的 Preview 与 Editorial Review；导出后以 `track_job` 和最终文件检查收口。 |
 
@@ -33,7 +34,7 @@
 
 ### 架构目标，当前不得伪造调用
 
-`manage_visual_treatment`、`manage_cutaways`、`replace_scene_asset`、`edit_captions`、`manage_audio`、`smooth_audio`、`run_render_preflight`、`read_export_artifact`、`read_actor_capabilities`、`submit_avatar_job` 与 `read_narrative_map` 只可作为架构目标、计划或能力缺口描述；它们没有进入当前 MCP Tool Schema。
+`edit_captions`、`manage_audio`、`smooth_audio`、`run_render_preflight`、`read_export_artifact`、`read_actor_capabilities`、`submit_avatar_job` 与 `read_narrative_map` 只可作为架构目标、计划或能力缺口描述；它们没有进入当前 MCP Tool Schema。
 
 ### 兼容入口，不作为正式主链
 
