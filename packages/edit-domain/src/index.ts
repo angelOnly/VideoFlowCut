@@ -91,6 +91,9 @@ export function createProjectSnapshot(input: {
     },
     story: createStoryDocument(input.name, createdAt),
     assets: [],
+    assetRequests: [],
+    searchIntents: [],
+    assetCandidates: [],
     voiceReferences: [],
     transcripts: [],
     transcriptSentenceCandidates: [],
@@ -160,6 +163,8 @@ export function assertTimelineValid(snapshot: ProjectSnapshot): void {
  */
 export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
   const assetIds = new Set(snapshot.assets.map((asset) => asset.id));
+  const assetRequestIds = new Set((snapshot.assetRequests ?? []).map((request) => request.id));
+  const searchIntentById = new Map((snapshot.searchIntents ?? []).map((intent) => [intent.id, intent]));
   const transcriptIds = new Set(snapshot.transcripts.map((transcript) => transcript.id));
   const candidateIds = new Set((snapshot.transcriptSentenceCandidates ?? []).map((candidate) => candidate.id));
   const semanticIds = new Set(snapshot.semanticUnits.map((unit) => unit.id));
@@ -171,6 +176,21 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
   const requireId = (set: Set<Id>, id: Id, description: string) => {
     if (!set.has(id)) throw new DomainError(`${description} 指向不存在对象：${id}`, "PROJECT_GRAPH_INVALID");
   };
+
+  for (const intent of snapshot.searchIntents ?? []) {
+    requireId(assetRequestIds, intent.assetRequestId, "搜索意图");
+  }
+  for (const candidate of snapshot.assetCandidates ?? []) {
+    requireId(assetRequestIds, candidate.assetRequestId, "素材候选");
+    const intent = searchIntentById.get(candidate.searchIntentId);
+    if (!intent || intent.assetRequestId !== candidate.assetRequestId) {
+      throw new DomainError("素材候选没有指向同一需求的搜索意图", "PROJECT_GRAPH_INVALID");
+    }
+    if (candidate.acquiredAssetId) requireId(assetIds, candidate.acquiredAssetId, "已本地化素材候选");
+    if (candidate.status === "acquired" && !candidate.acquiredAssetId) {
+      throw new DomainError("已本地化素材候选缺少 Asset 引用", "PROJECT_GRAPH_INVALID");
+    }
+  }
 
   for (const candidate of snapshot.transcriptSentenceCandidates ?? []) {
     requireId(transcriptIds, candidate.transcriptId, "转写候选");

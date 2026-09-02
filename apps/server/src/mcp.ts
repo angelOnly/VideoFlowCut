@@ -4,6 +4,7 @@ import { basename, extname, join, resolve } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { createDefaultAssetProviderRegistry } from "@videocut/acquisition";
 import { createApplication } from "@videocut/application";
 import { DomainError } from "@videocut/domain";
 import { evaluateQuality } from "@videocut/quality";
@@ -13,6 +14,7 @@ import { inspectComposedFrames } from "./preview-inspection.js";
 const workspaceRoot = process.env.VIDEOCUT_WORKSPACE ?? join(process.cwd(), "workspace");
 const webOrigin = process.env.WEB_ORIGIN ?? "http://127.0.0.1:5173";
 const application = createApplication(workspaceRoot);
+const assetProviders = createDefaultAssetProviderRegistry();
 let targetProjectId: string | undefined;
 
 const asText = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] });
@@ -259,6 +261,105 @@ server.registerTool("browse_assets", {
     const state = application.readProject(projectIdFrom(project_id));
     return asText(kind ? state.snapshot.assets.filter((asset) => asset.kind === kind) : state.snapshot.assets);
   } catch (error) { return asError(error); }
+});
+
+server.registerTool("manage_asset_requirements", {
+  title: "管理素材需求",
+  description: "在当前 Revision 中创建、更新或关闭明确的视觉素材需求；需求本身不等于候选，也不会自动进入 Scene。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    action: z.enum(["create", "update", "close"]),
+    asset_request_id: z.string().min(1).optional(),
+    title: z.string().max(160).optional(),
+    purpose: z.string().max(800).optional(),
+    visual_brief: z.string().max(1_600).optional(),
+    role: assetRoleSchema.optional(),
+    query_hints: z.array(z.string().min(1).max(160)).max(12).optional(),
+    excluded_terms: z.array(z.string().min(1).max(160)).max(20).optional(),
+    target_aspect_ratio: z.enum(["9:16", "16:9", "1:1"]).optional(),
+    min_duration_ms: z.number().int().positive().max(300_000).optional(),
+    rights_requirement: z.enum(["cleared_only", "cleared_or_attribution"]).optional(),
+    fallback_plan: z.enum(["keep_presenter", "remotion", "minimax", "ask_user"]).optional(),
+    close_reason: z.string().max(800).optional()
+  }
+}, async ({ project_id, base_revision_id, action, asset_request_id, title, purpose, visual_brief, role, query_hints, excluded_terms, target_aspect_ratio, min_duration_ms, rights_requirement, fallback_plan, close_reason }) => {
+  try {
+    return asText(application.manageAssetRequirement({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id,
+      action,
+      assetRequestId: asset_request_id,
+      title,
+      purpose,
+      visualBrief: visual_brief,
+      role,
+      queryHints: query_hints,
+      excludedTerms: excluded_terms,
+      targetAspectRatio: target_aspect_ratio,
+      minDurationMs: min_duration_ms,
+      rightsRequirement: rights_requirement,
+      fallbackPlan: fallback_plan,
+      closeReason: close_reason
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("search_media_candidates", {
+  title: "搜索素材候选",
+  description: "将已存在的素材需求交给已配置 Provider 查询，并把归一化候选、来源、授权和技术预过滤写入当前 Revision；不会下载或自动选入成片。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    asset_request_id: z.string().min(1),
+    provider: z.string().trim().min(1).max(80),
+    query: z.string().trim().min(1).max(400)
+  }
+}, async ({ project_id, base_revision_id, asset_request_id, provider, query }) => {
+  try {
+    const projectId = projectIdFrom(project_id);
+    const state = application.readProject(projectId);
+    if (state.revision.number !== base_revision_id) {
+      throw new DomainError(`Revision 已过期：请求基于 ${base_revision_id}，当前为 ${state.revision.number}`, "REVISION_CONFLICT");
+    }
+    const request = state.snapshot.assetRequests.find((entry) => entry.id === asset_request_id);
+    if (!request) throw new DomainError(`素材需求不存在：${asset_request_id}`, "ASSET_REQUEST_NOT_FOUND");
+    const candidates = await assetProviders.get(provider).search({ request, query });
+    return asText(application.recordAssetSearch({ projectId, baseRevision: base_revision_id, assetRequestId: asset_request_id, provider, query, candidates }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("inspect_media_candidate", {
+  title: "检查素材候选",
+  description: "读取候选的来源、授权、时长、画幅、技术过滤理由及其对应素材需求；只读，不代表候选已被采用。",
+  inputSchema: { project_id: z.string().optional(), asset_candidate_id: z.string().min(1) },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id, asset_candidate_id }) => {
+  try { return asText(application.readAssetCandidate({ projectId: projectIdFrom(project_id), assetCandidateId: asset_candidate_id })); } catch (error) { return asError(error); }
+});
+
+server.registerTool("acquire_media_asset", {
+  title: "下载并本地化素材候选",
+  description: "只允许已通过技术和授权过滤的候选进入异步下载任务。Worker 会校验 MIME、文件头、内容哈希和 ffprobe 后才登记正式 Asset。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    asset_candidate_id: z.string().min(1),
+    idempotency_key: z.string().min(1).max(240).optional()
+  }
+}, async ({ project_id, base_revision_id, asset_candidate_id, idempotency_key }) => {
+  try {
+    return asText(application.acquireAssetCandidate({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, assetCandidateId: asset_candidate_id, idempotencyKey: idempotency_key }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("read_asset_provenance", {
+  title: "读取素材来源与授权",
+  description: "读取已经本地化 Asset 的 Provider、来源页面、作者、许可、署名、授权状态和对应候选；只读。",
+  inputSchema: { project_id: z.string().optional(), asset_id: z.string().min(1) },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id, asset_id }) => {
+  try { return asText(application.readAssetProvenance({ projectId: projectIdFrom(project_id), assetId: asset_id })); } catch (error) { return asError(error); }
 });
 
 server.registerTool("import_media", {

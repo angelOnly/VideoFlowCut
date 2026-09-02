@@ -6,9 +6,10 @@ import test from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { BridgeRunLostError, ComfyUIBridgeClient } from "@videocut/bridge";
+import { AssetProviderRegistry, MockAssetProvider } from "@videocut/acquisition";
 import { createApplication, RevisionConflictError, type EditingApplication } from "@videocut/application";
 import { DomainError } from "@videocut/domain";
-import { runOneJob } from "../apps/job-worker/src/index.js";
+import { createMediaJobProcessor, runOneJob } from "../apps/job-worker/src/index.js";
 import { runOneRenderJob } from "../apps/render-worker/src/index.js";
 import { runExportJob } from "../apps/render-worker/src/exporter.js";
 import { createServer } from "../apps/server/src/app.js";
@@ -841,6 +842,170 @@ test("已使用的外部素材必须记录明确授权，素材角色和来源�
   }
 });
 
+test("素材需求通过 Mock Provider 候选、本地化、哈希和来源登记后才成为可用 Asset", async () => {
+  const context = await createTestApplication();
+  try {
+    const sourcePath = await createDeterministicVideoFixture(context.root);
+    const created = context.app.createProject({ name: "素材获取闭环测试" });
+    const requested = context.app.manageAssetRequirement({
+      projectId: created.snapshot.project.id,
+      baseRevision: created.revision.number,
+      action: "create",
+      title: "下班后城市呼吸镜头",
+      purpose: "为人物反思留出真实生活的视觉呼吸。",
+      visualBrief: "傍晚城市中景人物慢步行，画面上方保留天空，适合竖屏字幕。",
+      queryHints: ["city", "walking", "dusk"],
+      minDurationMs: 800,
+      rightsRequirement: "cleared_only"
+    });
+    const request = requested.snapshot.assetRequests[0]!;
+    const provider = new MockAssetProvider([
+      {
+        originalAssetId: "accepted-city-walk",
+        name: "city-walk.mp4",
+        filePath: sourcePath,
+        sourceUrl: "https://example.test/stock/city-walk",
+        width: 64,
+        height: 64,
+        durationMs: 1_000,
+        creator: "测试作者",
+        license: "测试许可",
+        rightsStatus: "cleared",
+        tags: ["城市", "步行"]
+      },
+      {
+        originalAssetId: "blocked-rights",
+        name: "unknown-rights.mp4",
+        filePath: sourcePath,
+        sourceUrl: "https://example.test/stock/unknown-rights",
+        width: 64,
+        height: 64,
+        durationMs: 1_000,
+        rightsStatus: "unknown"
+      }
+    ]);
+    const providerCandidates = await provider.search({ request, query: "city walking dusk" });
+    const searched = context.app.recordAssetSearch({
+      projectId: created.snapshot.project.id,
+      baseRevision: requested.revision.number,
+      assetRequestId: request.id,
+      provider: provider.name,
+      query: "city walking dusk",
+      candidates: providerCandidates
+    });
+    const accepted = searched.candidates.find((candidate) => candidate.originalAssetId === "accepted-city-walk")!;
+    const rejected = searched.candidates.find((candidate) => candidate.originalAssetId === "blocked-rights")!;
+    assert.equal(accepted.status, "available");
+    assert.equal(rejected.status, "rejected");
+    assert.match(rejected.rejectionReason ?? "", /授权/u);
+    assert.equal(context.app.readAssetCandidate({ projectId: created.snapshot.project.id, assetCandidateId: accepted.id }).request.id, request.id);
+
+    // Candidate 不是 Asset，不能绕过 Acquire 直接塞进 Scene。
+    assert.throws(
+      () => context.app.createScene({
+        projectId: created.snapshot.project.id,
+        baseRevision: searched.state.revision.number,
+        type: "CutawayScene",
+        title: "错误候选引用",
+        purpose: "验证候选不会直接成为 Timeline 素材",
+        startFrame: 0,
+        endFrame: 24,
+        assetIds: [accepted.id]
+      }),
+      (error: unknown) => error instanceof DomainError && error.code === "ASSET_NOT_FOUND"
+    );
+    assert.throws(
+      () => context.app.acquireAssetCandidate({
+        projectId: created.snapshot.project.id,
+        baseRevision: searched.state.revision.number,
+        assetCandidateId: rejected.id
+      }),
+      (error: unknown) => error instanceof DomainError && error.code === "ASSET_CANDIDATE_NOT_AVAILABLE"
+    );
+
+    const acquisition = context.app.acquireAssetCandidate({
+      projectId: created.snapshot.project.id,
+      baseRevision: searched.state.revision.number,
+      assetCandidateId: accepted.id
+    });
+    const registry = new AssetProviderRegistry([provider]);
+    assert.equal(await runOneJob(context.app, createMediaJobProcessor(context.app, undefined, registry)), true);
+    const acquiredJob = context.app.trackJob(acquisition.job.id);
+    assert.equal(acquiredJob.status, "succeeded", acquiredJob.error);
+    const acquiredState = context.app.readProject(created.snapshot.project.id);
+    const acquiredAsset = acquiredState.snapshot.assets.find((asset) => asset.id === acquiredJob.result?.assetId);
+    assert.ok(acquiredAsset);
+    assert.equal(acquiredAsset.role, "b_roll");
+    assert.equal(acquiredAsset.provenance?.provider, "mock");
+    assert.equal(acquiredAsset.provenance?.rightsStatus, "cleared");
+    assert.match(acquiredAsset.sourceHash ?? "", /^[a-f0-9]{64}$/u);
+    assert.equal(acquiredState.snapshot.assetCandidates.find((candidate) => candidate.id === accepted.id)?.acquiredAssetId, acquiredAsset.id);
+
+    // Acquire 只登记媒体分析任务；ready 必须由第二个 Worker Job 的 ffprobe 结果决定。
+    assert.equal(acquiredAsset.status, "queued");
+    assert.equal(await runOneJob(context.app, createMediaJobProcessor(context.app, undefined, registry)), true);
+    const readyAsset = context.app.readProject(created.snapshot.project.id).snapshot.assets.find((asset) => asset.id === acquiredAsset.id)!;
+    assert.equal(readyAsset.status, "ready", readyAsset.failureReason);
+    assert.ok(readyAsset.metadata?.videoCodec);
+    const provenance = context.app.readAssetProvenance({ projectId: created.snapshot.project.id, assetId: readyAsset.id });
+    assert.equal(provenance.candidate?.id, accepted.id);
+    assert.equal(provenance.provenance?.sourceUrl, "https://example.test/stock/city-walk");
+  } finally {
+    await context.dispose();
+  }
+});
+
+test("素材下载到伪装成视频的 HTML 错误页时保留失败诊断且不创建 Asset", async () => {
+  const context = await createTestApplication();
+  try {
+    const errorPagePath = join(context.root, "expired-download.mp4");
+    await writeFile(errorPagePath, "<!doctype html><html><body>expired download link</body></html>");
+    const created = context.app.createProject({ name: "素材下载失败测试" });
+    const requested = context.app.manageAssetRequirement({
+      projectId: created.snapshot.project.id,
+      baseRevision: created.revision.number,
+      action: "create",
+      title: "失败候选",
+      purpose: "验证下载错误不会污染素材库。",
+      visualBrief: "测试用候选。",
+      rightsRequirement: "cleared_only"
+    });
+    const request = requested.snapshot.assetRequests[0]!;
+    const provider = new MockAssetProvider([{
+      originalAssetId: "expired-link",
+      name: "expired-link.mp4",
+      filePath: errorPagePath,
+      sourceUrl: "https://example.test/expired-link",
+      durationMs: 1_000,
+      rightsStatus: "cleared"
+    }]);
+    const searched = context.app.recordAssetSearch({
+      projectId: created.snapshot.project.id,
+      baseRevision: requested.revision.number,
+      assetRequestId: request.id,
+      provider: provider.name,
+      query: "expired link",
+      candidates: await provider.search({ request, query: "expired link" })
+    });
+    const candidate = searched.candidates[0]!;
+    const acquisition = context.app.acquireAssetCandidate({
+      projectId: created.snapshot.project.id,
+      baseRevision: searched.state.revision.number,
+      assetCandidateId: candidate.id
+    });
+    assert.equal(await runOneJob(context.app, createMediaJobProcessor(context.app, undefined, new AssetProviderRegistry([provider]))), true);
+    const job = context.app.trackJob(acquisition.job.id);
+    assert.equal(job.status, "failed");
+    assert.equal((job.result?.diagnostic as { code?: string } | undefined)?.code, "ASSET_DOWNLOAD_HTML");
+    const state = context.app.readProject(created.snapshot.project.id);
+    assert.equal(state.snapshot.assets.length, 0);
+    assert.equal(state.snapshot.assetCandidates[0]?.status, "failed");
+    assert.match(state.snapshot.assetCandidates[0]?.acquisitionError ?? "", /网页错误页/u);
+  } finally {
+    await context.dispose();
+  }
+});
+
 test("StoryBeat 保持稳定 ID，移动 Item 会重算关联 Scene 与 Cue", async () => {
   const context = await createTestApplication();
   try {
@@ -1192,6 +1357,11 @@ test("video-editor-mcp 可通过 stdio 连接并定位新项目", async () => {
       "submit_voice_synthesis",
       "apply_semantic_units",
       "update_asset_metadata",
+      "manage_asset_requirements",
+      "search_media_candidates",
+      "inspect_media_candidate",
+      "acquire_media_asset",
+      "read_asset_provenance",
       "assemble_presenter_track",
       "compile_presenter_scenes",
       "create_presenter_timeline",
@@ -1211,10 +1381,21 @@ test("video-editor-mcp 可通过 stdio 连接并定位新项目", async () => {
       assert.ok(toolNames.has(name), `MCP 缺少 ${name}`);
     }
 
-    const created = JSON.parse(textFromToolResult(await client.callTool({ name: "create_project", arguments: { name: "MCP 合同测试" } }))) as { snapshot: { project: { id: string } } };
+    const created = JSON.parse(textFromToolResult(await client.callTool({ name: "create_project", arguments: { name: "MCP 合同测试" } }))) as { revision: { number: number }; snapshot: { project: { id: string } } };
     const projectId = created.snapshot.project.id;
     const targeted = JSON.parse(textFromToolResult(await client.callTool({ name: "target_project", arguments: { project_id: projectId } }))) as { projectId: string };
     assert.equal(targeted.projectId, projectId);
+    const requested = JSON.parse(textFromToolResult(await client.callTool({ name: "manage_asset_requirements", arguments: {
+      base_revision_id: created.revision.number,
+      action: "create",
+      title: "城市步行 B-roll",
+      purpose: "为当前人物口播留下现实生活呼吸。",
+      visual_brief: "傍晚城市中景人物慢步行，竖屏上方有字幕留白。",
+      query_hints: ["city", "walking", "dusk"]
+    } }))) as { revision: { number: number }; snapshot: { assetRequests: Array<{ title: string; status: string }> } };
+    assert.equal(requested.revision.number, created.revision.number + 1);
+    assert.equal(requested.snapshot.assetRequests[0]?.title, "城市步行 B-roll");
+    assert.equal(requested.snapshot.assetRequests[0]?.status, "open");
     const editor = JSON.parse(textFromToolResult(await client.callTool({ name: "get_editor_url", arguments: { project_id: projectId, frame: 0 } }))) as { editorUrl: string };
     assert.match(editor.editorUrl, new RegExp(`projectId=${projectId}`, "u"));
     assert.match(editor.editorUrl, /frame=0/u);

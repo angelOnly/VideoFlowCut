@@ -14,7 +14,9 @@
 | 阶段 | 当前 MCP 命令与关键输入 | 写后读回 / 下一步 |
 |---|---|---|
 | 项目定位 | `list_projects()`；`target_project(project_id)`；`read_project(project_id?)` | 记录 Project ID、当前 Revision、Job 与素材状态。 |
-| 导入素材 | `import_media(base_revision_id, file_path, role?, tags?, provenance?)` | `track_job(job_id)` 后用 `browse_assets` 或 `read_project` 确认 Asset、Hash、状态和来源。 |
+| 素材需求与候选 | `manage_asset_requirements(base_revision_id, action, ...)`；`search_media_candidates(base_revision_id, asset_request_id, provider, query)`；`inspect_media_candidate(asset_candidate_id)` | 搜索只写入 SearchIntent 与 Candidate；先看来源、授权、时长和过滤理由，候选本身不能进入 Scene 或 Timeline。 |
+| 下载与本地化 | `acquire_media_asset(base_revision_id, asset_candidate_id, idempotency_key?)`；`track_job(job_id)`；`read_asset_provenance(asset_id)` | Worker 校验 MIME、文件头、内容哈希和 ffprobe 后才注册 Asset，并继续创建媒体分析任务；确认 ready 前不能视为可渲染素材。 |
+| 导入本地素材 | `import_media(base_revision_id, file_path, role?, tags?, provenance?)` | `track_job(job_id)` 后用 `browse_assets` 或 `read_project` 确认 Asset、Hash、状态和来源。 |
 | 转写 | `submit_transcription(asset_id, idempotency_key?)`；人工文本用 `apply_manual_transcript(base_revision_id, asset_id, text)` | Job 完成后 `read_script`；候选句不等于 SemanticUnit。 |
 | 语义与脚本 | `apply_semantic_units(base_revision_id, units)`；再以新 Revision 调 `apply_script(base_revision_id, semantic_unit_ids)` | `read_script`、`read_impact_report`；根据 stale 范围重建声音和包装。 |
 | Story 与语音 | `manage_story(base_revision_id, beats)`；`manage_voice_references(base_revision_id, asset_id)`；`submit_voice_synthesis(voice_reference_id? / voice_reference_asset_id?, speech_segment_ids?, idempotency_key?)` | `track_job`、`read_speech_asset`、`read_speech_timing`；旧 Timeline 必要时用 `rebuild_speech_timeline(base_revision_id)`。 |
@@ -31,7 +33,7 @@
 
 ### 架构目标，当前不得伪造调用
 
-`manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset`、`read_asset_provenance`、`manage_visual_treatment`、`manage_cutaways`、`replace_scene_asset`、`edit_captions`、`manage_audio`、`smooth_audio`、`run_render_preflight`、`read_export_artifact`、`read_actor_capabilities`、`submit_avatar_job` 与 `read_narrative_map` 只可作为架构目标、计划或能力缺口描述；它们没有进入当前 MCP Tool Schema。
+`manage_visual_treatment`、`manage_cutaways`、`replace_scene_asset`、`edit_captions`、`manage_audio`、`smooth_audio`、`run_render_preflight`、`read_export_artifact`、`read_actor_capabilities`、`submit_avatar_job` 与 `read_narrative_map` 只可作为架构目标、计划或能力缺口描述；它们没有进入当前 MCP Tool Schema。
 
 ### 兼容入口，不作为正式主链
 

@@ -48,12 +48,76 @@ export interface AssetProvenance {
   acquiredAt: string;
 }
 
+/**
+ * 素材需求、搜索意图和候选都属于同一个 Project Revision。
+ * 候选不是 Asset，未完成本地化、校验和授权检查前绝不能被 Scene 或 Timeline 引用。
+ */
+export type AssetRequestStatus = "open" | "candidates_ready" | "acquiring" | "fulfilled" | "closed";
+export type AssetCandidateStatus = "available" | "rejected" | "acquisition_queued" | "acquiring" | "acquired" | "failed";
+export type AssetRightsRequirement = "cleared_only" | "cleared_or_attribution";
+
+export interface AssetRequest {
+  id: Id;
+  title: string;
+  purpose: string;
+  visualBrief: string;
+  role: AssetRole;
+  queryHints: string[];
+  excludedTerms: string[];
+  targetAspectRatio: "9:16" | "16:9" | "1:1";
+  minDurationMs?: number;
+  rightsRequirement: AssetRightsRequirement;
+  fallbackPlan: "keep_presenter" | "remotion" | "minimax" | "ask_user";
+  status: AssetRequestStatus;
+  closeReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Provider 已归一化的查询，不泄露 API Key、下载 URL 或 Provider 私有字段。 */
+export interface SearchIntent {
+  id: Id;
+  assetRequestId: Id;
+  provider: string;
+  query: string;
+  createdAt: string;
+}
+
+export interface AssetCandidate {
+  id: Id;
+  assetRequestId: Id;
+  searchIntentId: Id;
+  provider: string;
+  originalAssetId: string;
+  name: string;
+  kind: "video";
+  sourceUrl: string;
+  previewUrl?: string;
+  width?: number;
+  height?: number;
+  durationMs?: number;
+  creator?: string;
+  license?: string;
+  attributionText?: string;
+  rightsStatus: AssetProvenance["rightsStatus"];
+  tags: string[];
+  hardFilterPassed: boolean;
+  filterReasons: string[];
+  status: AssetCandidateStatus;
+  rejectionReason?: string;
+  acquisitionError?: string;
+  acquiredAssetId?: Id;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type AssetStatus = "queued" | "analyzing" | "ready" | "failed" | "missing";
 export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "unknown" | "cancelled";
 /** 草稿只用于内部审片；交付版必须经过当前 Revision 的完整审片。 */
 export type ExportPurpose = "draft" | "delivery";
 export type JobKind =
   | "media_analysis"
+  | "asset_acquisition"
   | "transcription"
   | "voice_synthesis"
   | "speech_assembly"
@@ -580,6 +644,9 @@ export interface ProjectSnapshot {
   };
   story: StoryDocument;
   assets: Asset[];
+  assetRequests: AssetRequest[];
+  searchIntents: SearchIntent[];
+  assetCandidates: AssetCandidate[];
   voiceReferences: VoiceReference[];
   transcripts: TranscriptText[];
   transcriptSentenceCandidates: TranscriptSentenceCandidate[];

@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { access, readdir, readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
+import { promisify } from "node:util";
 
 const repositoryRoot = process.cwd();
 const skillsRoot = join(repositoryRoot, ".agents", "skills");
-const documentationRoot = join(repositoryRoot, "docs");
 const mcpSourcePath = join(repositoryRoot, "apps", "server", "src", "mcp.ts");
+const execFileAsync = promisify(execFile);
 
 const expectedSkills = [
   "asset-import",
@@ -57,11 +59,6 @@ const specialistSkills = [
 ] as const;
 
 const architectureTargets = new Set([
-  "manage_asset_requirements",
-  "search_media_candidates",
-  "inspect_media_candidate",
-  "acquire_media_asset",
-  "read_asset_provenance",
   "manage_visual_treatment",
   "manage_cutaways",
   "replace_scene_asset",
@@ -127,17 +124,10 @@ async function markdownFiles(directory: string): Promise<string[]> {
   return files;
 }
 
-async function hasNestedExecutableSkills(directory: string): Promise<boolean> {
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    const fullPath = join(directory, entry.name);
-    if (entry.name === ".agents") {
-      const nestedSkillsRoot = join(fullPath, "skills");
-      if (await exists(nestedSkillsRoot) && (await markdownFiles(nestedSkillsRoot)).some((path) => path.endsWith("SKILL.md"))) return true;
-    }
-    if (await hasNestedExecutableSkills(fullPath)) return true;
-  }
-  return false;
+/** 用户工作区可暂存未跟踪的评审资料；CI 只约束进入 Git 的运行时 Skills 副本。 */
+async function hasTrackedNestedExecutableSkills(): Promise<boolean> {
+  const { stdout } = await execFileAsync("git", ["ls-files", "--", "docs"], { cwd: repositoryRoot, encoding: "utf8" });
+  return String(stdout).split(/\r?\n/u).some((path) => /(?:^|\/)\.agents\/skills\/.+\/SKILL\.md$/u.test(path));
 }
 
 function localMarkdownLinks(markdown: string): string[] {
@@ -180,7 +170,7 @@ test("Skills V5 结构唯一、完整且可被 Codex 发现", async () => {
   assert.equal(configuredNames.length, expectedSkills.length, "每个运行时 Skill 只能登记一次");
   assert.equal(await exists(join(skillsRoot, "_shared", "CURRENT_CAPABILITIES.md")), false, "运行时不得依赖 CURRENT_CAPABILITIES 快照");
   assert.equal(await exists(join(skillsRoot, "_shared", "MCP_EXECUTION_CONTRACT.md")), true);
-  assert.equal(await hasNestedExecutableSkills(documentationRoot), false, "docs 中不得保留第二棵可执行 .agents/skills");
+  assert.equal(await hasTrackedNestedExecutableSkills(), false, "docs 中不得保留第二棵可执行 .agents/skills");
 
   const allSkillFiles = await markdownFiles(skillsRoot);
   for (const name of expectedSkills) {
@@ -251,6 +241,11 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
 
   const requiredInputs: Record<string, string[]> = {
     import_media: ["base_revision_id", "file_path"],
+    manage_asset_requirements: ["base_revision_id", "action"],
+    search_media_candidates: ["base_revision_id", "asset_request_id", "provider", "query"],
+    inspect_media_candidate: ["asset_candidate_id"],
+    acquire_media_asset: ["base_revision_id", "asset_candidate_id"],
+    read_asset_provenance: ["asset_id"],
     apply_manual_transcript: ["base_revision_id", "asset_id", "text"],
     apply_semantic_units: ["base_revision_id", "units"],
     apply_script: ["base_revision_id", "semantic_unit_ids"],

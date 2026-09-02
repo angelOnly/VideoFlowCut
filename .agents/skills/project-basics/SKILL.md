@@ -105,6 +105,7 @@ Browser Operator 不是绕开模型的快捷方式。DOM 临时样式、浏览�
 ### 素材、转写和语音
 
 - `browse_assets`、`import_media`、`update_asset_metadata`；
+- `manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset`、`read_asset_provenance`；
 - `submit_transcription`、`apply_manual_transcript`、`read_script`；
 - `apply_semantic_units`、`apply_script`；
 - `manage_voice_references`、`submit_voice_synthesis`、`read_speech_asset`、`read_speech_timing`、`rebuild_speech_timeline`。
@@ -135,7 +136,7 @@ Browser Operator 不是绕开模型的快捷方式。DOM 临时样式、浏览�
 
 ## 当前状态与架构目标的区别
 
-架构文档列出的 `manage_asset_requirements`、`search_media_candidates`、`manage_visual_treatment`、`manage_cutaways`、`edit_captions`、`manage_audio`、`run_render_preflight`、`read_export_artifact` 等是推荐产品合同；当前代码基线并非全部存在。Skill 在讲专业工作流时可以说明这些目标，但执行时必须先查工具表。如果工具不存在，应使用现有对象和 Web 能力完成有限部分，或输出明确缺口；不能把架构表格当成已连接 API。
+当前阶段已实现 `manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset` 与 `read_asset_provenance`：候选经检查和 Worker 本地化后才会成为 Asset。真实 Pexels 查询仍需要本地配置 `PEXELS_API_KEY`；CI 使用 Mock Provider，不依赖网络。`manage_visual_treatment`、`manage_cutaways`、`edit_captions`、`manage_audio`、`run_render_preflight`、`read_export_artifact` 等仍是架构目标。Skill 在讲专业工作流时可以说明这些目标，但执行时必须先查工具表；工具不存在时只能输出可执行的最小步骤和能力缺口，不能把架构表格当成已连接 API。
 
 ## 三个完整写入示例
 

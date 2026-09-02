@@ -21,9 +21,9 @@ AssetRequest 应说明这段画面要做什么。例如“表现自由”几乎�
 
 ## 当前能力与计划能力
 
-架构 V6.2 设计了 `manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset`、`read_asset_provenance` 等工具，但当前代码基线尚未实现完整 Asset Acquisition System。因此本 Skill 当前可以详细形成需求、审查用户或外部已取得候选、调用 `asset-import` 本地化，并明确哪些自动步骤尚未执行；不能声称 Pexels/Pixabay/WebEvidence 已经自动查询。
+当前最小 Asset Acquisition System 已提供 `manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset` 和 `read_asset_provenance`。它会把需求、SearchIntent 与 Candidate 写入同一 Revision；Candidate 通过授权和技术硬过滤后，由 Worker 下载到受管目录、校验 MIME、文件头、内容哈希和 ffprobe，随后才注册为 Asset 并进入媒体分析。Candidate 永远不能直接写入 Scene 或 Timeline。
 
-当未来工具落地后，应以实时 MCP Schema 执行，而不是让 Codex直接拿网页 URL 写入 Scene。
+目前真实网络搜索只实现 Pexels，且仅在本地配置 `PEXELS_API_KEY` 时可发现；CI 用 Mock Provider 和固定本地媒体验证，不依赖网络。Pixabay、WebEvidence、Creative Library 和 MiniMax 仍是架构目标。无论 Provider 是否可用，Codex 都必须先查看候选来源、授权、时长、构图信息和过滤理由，再决定是否提交 `acquire_media_asset`；不能直接把网页 URL 写入 Scene。
 
 ## 查询计划
 

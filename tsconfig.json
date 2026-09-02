@@ -16,6 +16,7 @@
       "@videocut/contracts": ["packages/contracts/src/index.ts"],
       "@videocut/domain": ["packages/edit-domain/src/index.ts"],
       "@videocut/application": ["packages/edit-application/src/index.ts"],
+      "@videocut/acquisition": ["packages/asset-acquisition/src/index.ts"],
       "@videocut/bridge": ["packages/comfyui-bridge-client/src/index.ts"],
       "@videocut/speech": ["packages/speech-services/src/index.ts"],
       "@videocut/quality": ["packages/quality-system/src/index.ts"],
