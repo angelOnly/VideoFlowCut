@@ -8,7 +8,7 @@ import { bundle } from "@remotion/bundler";
 import { ensureBrowser, renderMedia, selectComposition } from "@remotion/renderer";
 import type { EditingApplication } from "@videocut/application";
 import { EFFECT_TYPES, type AttributionManifest, type ExportArtifact, type ExportPurpose, type ExportTechnicalValidation, type JobRecord, type ProjectSnapshot, type RenderPreflight, type RenderPreflightCheck } from "@videocut/contracts";
-import { createId, DomainError } from "@videocut/domain";
+import { createId, DomainError, resolveCompositionReachability } from "@videocut/domain";
 import { canExport, evaluateQuality, requiresEditorialReview } from "@videocut/quality";
 import { probeMedia, runProcess } from "@videocut/speech";
 
@@ -26,6 +26,14 @@ const contentTypeByExtension: Record<string, string> = {
   ".jpeg": "image/jpeg",
   ".png": "image/png",
   ".webp": "image/webp"
+};
+
+/**
+ * Render Worker 由 Remotion 的独立 Webpack 进程打包，不会读取根 tsconfig 的 paths。
+ * 显式复用工作区 Contracts 源码，确保正式 Render、Web Player 与 TypeScript 类型看到同一份内容合同。
+ */
+const remotionBundleAlias = {
+  "@videocut/contracts": fileURLToPath(new URL("../../../packages/contracts/src/index.ts", import.meta.url))
 };
 
 function assertPathWithin(root: string, candidate: string): void {
@@ -114,13 +122,8 @@ function closeServer(server: Server): Promise<void> {
 }
 
 function usedAssetIds(snapshot: ProjectSnapshot): Set<string> {
-  return new Set([
-    ...snapshot.timeline.items.filter((item) => !item.disabled).map((item) => item.assetId),
-    ...snapshot.scenes.flatMap((scene) => scene.assetIds),
-    ...snapshot.effectCues.flatMap((cue) => cue.assetBindings.map((binding) => binding.assetId)),
-    ...snapshot.actorPerformances.flatMap((performance) => performance.maskAssetId ? [performance.maskAssetId] : []),
-    ...(snapshot.speechAsset ? [snapshot.speechAsset.assetId] : [])
-  ]);
+  // 与 ProjectComposition 共用同一推导，避免 stale Scene/Cue 或隐藏轨道被预检、署名清单误算为成片依赖。
+  return new Set(resolveCompositionReachability(snapshot).assetIds);
 }
 
 function addPreflightCheck(checks: RenderPreflightCheck[], status: RenderPreflightCheck["status"], code: string, message: string, objectId?: string): void {
@@ -346,7 +349,22 @@ export class RevisionRenderer {
   }
 
   private getBundle(): Promise<string> {
-    this.bundleLocation ??= bundle(this.entryPoint);
+    this.bundleLocation ??= bundle(this.entryPoint, undefined, {
+      webpackOverride: (configuration) => {
+        const existingAlias = configuration.resolve?.alias;
+        return {
+          ...configuration,
+          resolve: {
+            ...configuration.resolve,
+            // Remotion 支持对象或数组两种 alias 形式；当前项目只合并对象形式，数组配置由运行时保留。
+            alias: {
+              ...(Array.isArray(existingAlias) ? {} : existingAlias ?? {}),
+              ...remotionBundleAlias
+            }
+          }
+        };
+      }
+    });
     return this.bundleLocation;
   }
 

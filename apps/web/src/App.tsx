@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
-import { EFFECT_TYPES, type AgentWorkOrder, type Asset, type AudioCue, type CaptionCard, type EffectCue, type ExportArtifact, type ProductionProfile, type ProjectSnapshot, type Scene, type TimelineItem } from "@videocut/contracts";
+import { EFFECT_TYPES, type AgentWorkOrder, type Asset, type AudioCue, type CaptionCard, type DialogueProcessingIssue, type DialogueProcessingProfile, type EffectCue, type ExportArtifact, type ProductionProfile, type ProjectSnapshot, type Scene, type SpeechAsset, type TimelineItem } from "@videocut/contracts";
 import { ProjectComposition, mediaUrl } from "@videocut/remotion";
 import { API_BASE, api, type ProjectState } from "./api";
 import { AdvancedWorkflowsPanel } from "./AdvancedWorkflowsPanel";
+import { SourceReviewPanel } from "./SourceReviewPanel";
 
 type Panel = "assets" | "agent_work_orders" | "script" | "audio" | "actors" | "scenes" | "captions" | "advanced" | "jobs";
 type Selection = { kind: "asset" | "scene" | "item" | "cue"; id: string } | undefined;
@@ -358,6 +359,8 @@ export function App() {
             onTranscribe={(assetId) => void act("提交转写", () => api.transcribe(snapshot.project.id, assetId))}
             onRegisterVoiceReference={(assetId) => void act("登记 VoiceReference", () => api.registerVoiceReference(snapshot.project.id, currentRevision, assetId))}
             onSubmitVoiceSynthesis={(voiceReferenceId) => void act("提交 OmniVoice 旁白", () => api.voiceSynthesis(snapshot.project.id, voiceReferenceId))}
+            onSubmitDialogueProcessing={(issueTypes, evidenceNote) => void act("生成对白处理试听候选", () => api.submitDialogueProcessing(snapshot.project.id, { baseRevision: currentRevision, issueTypes, evidenceNote }))}
+            onSelectDialogueProcessingVariant={(profile) => void act("切换当前 Dialogue 候选", () => api.selectDialogueProcessingVariant(snapshot.project.id, { baseRevision: currentRevision, profile }))}
             onRebuildSpeechTimeline={() => void act("修复 SpeechAsset 时间线", () => api.rebuildSpeechTimeline(snapshot.project.id, currentRevision))}
             onEditCaption={(captionId, payload) => void act("更新字幕卡", () => api.editCaption(snapshot.project.id, captionId, { baseRevision: currentRevision, ...payload }))}
             onManageAudio={(payload) => void act("更新声音包装", () => api.manageAudio(snapshot.project.id, { baseRevision: currentRevision, ...payload }))}
@@ -403,7 +406,8 @@ export function App() {
               maskAssetId,
               note: "从工作台导入的人物主画面"
             }))}
-            onAddEffect={(scene, type) => void act("添加效果", () => api.createEffect(snapshot.project.id, { baseRevision: currentRevision, sceneId: scene.id, type, layer: effectLayerByType[type], startFrame: scene.startFrame, endFrame: Math.min(scene.endFrame, scene.startFrame + Math.max(48, snapshot.timeline.fps * 3)), note: `${type}：由工作台添加` }))}
+            // 新增 Cue 不伪造正式文案；内容合同未满足时由质量面板明确提示，不能把工作台提示渲入成片。
+            onAddEffect={(scene, type) => void act("添加效果", () => api.createEffect(snapshot.project.id, { baseRevision: currentRevision, sceneId: scene.id, type, layer: effectLayerByType[type], startFrame: scene.startFrame, endFrame: Math.min(scene.endFrame, scene.startFrame + Math.max(48, snapshot.timeline.fps * 3)) }))}
             onRetryJob={(jobId) => void act("重试任务", () => api.retryJob(jobId))}
             onRunAdvancedAction={(label, operation) => void act(label, operation)}
             onApproveExportArtifact={(artifactId) => {
@@ -489,6 +493,8 @@ interface PanelContentProps {
   onTranscribe: (assetId: string) => void;
   onRegisterVoiceReference: (assetId: string) => void;
   onSubmitVoiceSynthesis: (voiceReferenceId: string) => void;
+  onSubmitDialogueProcessing: (issueTypes: DialogueProcessingIssue[], evidenceNote: string) => void;
+  onSelectDialogueProcessingVariant: (profile: DialogueProcessingProfile) => void;
   onRebuildSpeechTimeline: () => void;
   onEditCaption: (captionId: string, payload: Record<string, unknown>) => void;
   onManageAudio: (payload: Record<string, unknown>) => void;
@@ -593,6 +599,15 @@ function PanelContent(props: PanelContentProps) {
       {snapshot.speechAsset
         ? <section className="audio-card" data-testid="speech-asset" data-object-id={snapshot.speechAsset.id}><strong>{speechFile?.name ?? "旁白总轨"}</strong><small>Script R{snapshot.speechAsset.scriptRevision} · {snapshot.speechAsset.timing.segments.length} 个段边界 · {hasSpeechOnDialogue ? "已写入 Dialogue 轨" : "尚未写入 Dialogue 轨"}</small><small>{speechFile?.metadata?.durationMs ? `${(speechFile.metadata.durationMs / 1000).toFixed(2)} 秒` : "等待音频元数据"} · 不提供词级时间</small>{!hasSpeechOnDialogue && <button className="wide-button" data-testid="rebuild-speech-timeline" onClick={props.onRebuildSpeechTimeline}>修复 Dialogue 与字幕</button>}{hasSpeechOnDialogue && <button className="wide-button" data-testid="align-presenter-to-speech" onClick={props.onAlignPresenterToSpeech}>按旁白时长收齐 Presenter 主线</button>}</section>
         : <p className="empty-panel">选择 VoiceReference 后，系统会仅生成 pending / stale 的 SpeechSegment，完成后组装为可播放的 SpeechAsset、Dialogue Item 和稳定字幕。</p>}
+      {snapshot.speechAsset && <DialogueProcessingPanel
+        snapshot={snapshot}
+        speechAsset={snapshot.speechAsset}
+        hasSpeechOnDialogue={hasSpeechOnDialogue}
+        pending={props.jobs.some((job) => job.kind === "dialogue_processing" && (job.status === "queued" || job.status === "running" || job.status === "unknown"))}
+        disabled={props.busy}
+        onSubmit={props.onSubmitDialogueProcessing}
+        onSelect={props.onSelectDialogueProcessingVariant}
+      />}
       <PanelTitle title="BGM / SFX" meta={`${snapshot.audioCues.length} 条声音包装`} />
       <p className="empty-panel">BGM 只服务当前主线并按 Dialogue Duck；SFX 必须以播放头作为明确事件落点。这里不猜测音效起音，需在真实试听中复核。</p>
       {readyMixAssets.length === 0 && <p className="empty-panel">导入并分析完成独立音频后，才可作为 BGM 或 SFX 使用。</p>}
@@ -649,6 +664,109 @@ function PanelContent(props: PanelContentProps) {
       </article>)}</section>
     <section><h3>Revision</h3>{props.revisions.map((revision) => <div className="revision-row" key={revision.id} data-testid={`revision-${revision.number}`} data-object-id={revision.id}><div><strong>R{revision.number}</strong><span>{revision.summary}</span></div>{revision.number !== props.currentRevision && <button onClick={() => props.onRollback(revision.number)}>回退</button>}</div>)}</section>
   </>;
+}
+
+const dialogueProcessingIssueLabels: Record<DialogueProcessingIssue, string> = {
+  noise: "底噪 / 环境噪声",
+  low_frequency: "低频轰鸣 / 近讲低频",
+  sibilance: "齿音过强",
+  loudness: "响度不均",
+  true_peak: "峰值过高"
+};
+
+/**
+ * 首版对白处理只提供整条 SpeechAsset 的 A/B/C 试听。这里不写 Timeline：
+ * 用户点选后才由 Application 创建 Revision 并替换唯一 Dialogue Item。
+ */
+function DialogueProcessingPanel({
+  snapshot,
+  speechAsset,
+  hasSpeechOnDialogue,
+  pending,
+  disabled,
+  onSubmit,
+  onSelect
+}: {
+  snapshot: ProjectSnapshot;
+  speechAsset: SpeechAsset;
+  hasSpeechOnDialogue: boolean;
+  pending: boolean;
+  disabled: boolean;
+  onSubmit: (issueTypes: DialogueProcessingIssue[], evidenceNote: string) => void;
+  onSelect: (profile: DialogueProcessingProfile) => void;
+}) {
+  const processing = speechAsset.dialogueProcessing;
+  const [issueTypes, setIssueTypes] = useState<DialogueProcessingIssue[]>([]);
+  const [evidenceNote, setEvidenceNote] = useState("");
+  useEffect(() => {
+    setIssueTypes(processing?.issueTypes ?? []);
+    setEvidenceNote(processing?.evidenceNote ?? "");
+  }, [speechAsset.id, processing?.jobId]);
+
+  const toggleIssue = (issue: DialogueProcessingIssue) => {
+    setIssueTypes((current) => current.includes(issue)
+      ? current.filter((entry) => entry !== issue)
+      : [...current, issue]);
+  };
+  // 未显式选择时原声只是默认播放，不等于用户已完成 A/B 试听并确认保留它。
+  const activeProfile = processing?.selectedProfile ?? "original";
+  const variantAsset = (assetId: string) => snapshot.assets.find((asset) => asset.id === assetId);
+
+  return <section className="audio-card dialogue-processing-card" data-testid="dialogue-processing" data-object-id={speechAsset.id}>
+    <strong>Dialogue Processing</strong>
+    <small>仅处理当前完整旁白，不做局部修补、Room Tone 或自动审美选择。更干净不自动等于更自然。</small>
+    {!hasSpeechOnDialogue && <small className="dialogue-processing-warning">当前 SpeechAsset 尚未以唯一 Item 写入 Dialogue 轨，先修复时间线后才能生成候选。</small>}
+    {!processing && <>
+      <div className="dialogue-processing-issues" aria-label="确认的对白问题">
+        {(Object.keys(dialogueProcessingIssueLabels) as DialogueProcessingIssue[]).map((issue) => <label key={issue}>
+          <input
+            type="checkbox"
+            checked={issueTypes.includes(issue)}
+            disabled={disabled || pending || !hasSpeechOnDialogue}
+            onChange={() => toggleIssue(issue)}
+          />
+          <span>{dialogueProcessingIssueLabels[issue]}</span>
+        </label>)}
+      </div>
+      <label className="dialogue-processing-evidence">复听依据
+        <textarea
+          aria-label="对白处理复听依据"
+          value={evidenceNote}
+          maxLength={2_000}
+          rows={3}
+          placeholder="例如：00:12–00:28 可听见持续空调底噪，句尾峰值偏高；请比较处理副作用。"
+          disabled={disabled || pending || !hasSpeechOnDialogue}
+          onChange={(event) => setEvidenceNote(event.target.value)}
+        />
+      </label>
+      <button
+        className="wide-button"
+        type="button"
+        data-testid="submit-dialogue-processing"
+        disabled={disabled || pending || !hasSpeechOnDialogue || issueTypes.length === 0 || !evidenceNote.trim()}
+        onClick={() => onSubmit(issueTypes, evidenceNote.trim())}
+      >{pending ? "正在生成试听候选…" : "生成原声 / 最小处理 / 强处理对比"}</button>
+    </>}
+    {processing && <>
+      <small>已确认问题：{processing.issueTypes.map((issue) => dialogueProcessingIssueLabels[issue]).join("、")}。</small>
+      <small>复听依据：{processing.evidenceNote}</small>
+      <div className="dialogue-processing-variants">
+        {processing.variants.map((variant) => {
+          const asset = variantAsset(variant.assetId);
+          const isCurrent = activeProfile === variant.profile;
+          const isConfirmed = processing.selectedProfile === variant.profile;
+          const label = variant.profile === "original" ? "原声" : variant.profile === "minimal" ? "最小处理" : "强处理";
+          return <article key={variant.profile} className={isCurrent ? "dialogue-processing-variant current" : "dialogue-processing-variant"} data-testid={`dialogue-processing-${variant.profile}`}>
+            <div><strong>{label}{isCurrent ? processing.selectedProfile ? " · 当前 Dialogue" : " · 当前默认原声（待确认）" : ""}</strong><small>{variant.filters.length === 0 ? "未处理原声" : variant.filters.join(" → ")}</small></div>
+            {asset?.managedPath && <audio controls preload="metadata" src={mediaUrl(snapshot, API_BASE, asset.managedPath)}>当前浏览器无法播放此音频。</audio>}
+            {!asset && <small className="dialogue-processing-warning">候选素材缺失，不能选择。</small>}
+            <button type="button" disabled={disabled || !asset || isConfirmed} onClick={() => onSelect(variant.profile)}>{isConfirmed ? "已确认当前 Dialogue" : isCurrent ? "确认保留原声" : "设为当前 Dialogue"}</button>
+          </article>;
+        })}
+      </div>
+      <small className="dialogue-processing-warning">请完整试听三种版本后再选择；切换二进制音频会要求重新复核词级对齐、人物口型与完整声画。</small>
+    </>}
+  </section>;
 }
 
 /**
@@ -980,7 +1098,12 @@ function Inspector({ snapshot, selectedAsset, selectedScene, selectedItem, selec
     return <><PanelTitle title="Inspector" meta="Scene" /><InspectorGroup title="Basic"><InspectorRow label="类型" value={selectedScene.type} /><InspectorRow label="叙事目的" value={selectedScene.purpose} /><InspectorRow label="素材数" value={String(selectedScene.assetIds.length)} /></InspectorGroup><InspectorGroup title="Timing"><InspectorRow label="范围" value={`F${selectedScene.startFrame}–${selectedScene.endFrame}`} /></InspectorGroup></>;
   }
   if (selectedAsset) {
-    return <><PanelTitle title="Inspector" meta="Asset" /><InspectorGroup title="Basic"><InspectorRow label="名称" value={selectedAsset.name} /><InspectorRow label="类型" value={selectedAsset.kind} /><InspectorRow label="状态" value={statusText(selectedAsset.status)} /></InspectorGroup><InspectorGroup title="Media"><InspectorRow label="时长" value={selectedAsset.metadata ? `${(selectedAsset.metadata.durationMs / 1000).toFixed(2)} 秒` : "等待分析"} /><InspectorRow label="规格" value={selectedAsset.metadata?.width ? `${selectedAsset.metadata.width}×${selectedAsset.metadata.height}` : "—"} /><InspectorRow label="音频" value={selectedAsset.metadata?.hasAudio ? "有" : "无 / 未知"} /></InspectorGroup></>;
+    return <>
+      <PanelTitle title="Inspector" meta="Asset" />
+      <InspectorGroup title="Basic"><InspectorRow label="名称" value={selectedAsset.name} /><InspectorRow label="类型" value={selectedAsset.kind} /><InspectorRow label="状态" value={statusText(selectedAsset.status)} /></InspectorGroup>
+      <InspectorGroup title="Media"><InspectorRow label="时长" value={selectedAsset.metadata ? `${(selectedAsset.metadata.durationMs / 1000).toFixed(2)} 秒` : "等待分析"} /><InspectorRow label="规格" value={selectedAsset.metadata?.width ? `${selectedAsset.metadata.width}×${selectedAsset.metadata.height}` : "—"} /><InspectorRow label="音频" value={selectedAsset.metadata?.hasAudio ? "有" : "无 / 未知"} /></InspectorGroup>
+      <SourceReviewPanel snapshot={snapshot} asset={selectedAsset} onSeekTimeline={onSeek} />
+    </>;
   }
   return <><PanelTitle title="Inspector" meta={`R${currentRevision}`} /><p className="empty-panel">从素材、预览、Scene Strip 或 Timeline 中选择对象，以精确检查其属性。</p></>;
 }

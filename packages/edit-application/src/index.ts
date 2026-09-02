@@ -32,6 +32,10 @@ import type {
   CutawayAudioMode,
   CutawayFit,
   CutawayMode,
+  DialogueProcessing,
+  DialogueProcessingIssue,
+  DialogueProcessingProfile,
+  DialogueProcessingVariant,
   EffectAssetBinding,
   EffectCue,
   EffectMotion,
@@ -141,6 +145,9 @@ type RevisionRow = {
   impact_json: string;
   created_at: string;
 };
+
+/** Revision 列表只显示历史摘要；不要为此反序列化每个可能很大的项目快照。 */
+type RevisionSummaryRow = Pick<RevisionRow, "id" | "revision_number" | "summary" | "impact_json" | "created_at">;
 
 type JobRow = {
   id: string;
@@ -303,6 +310,32 @@ type SpeechAlignmentJobPayload = {
 export type CompletedSpeechAlignment = {
   words: WordTiming[];
   source: string;
+};
+
+/**
+ * 对白处理固定当前完整 SpeechAsset 与当前 Revision。它不接受局部源范围，
+ * 因为局部修补会牵涉 Room Tone、边界拼接和段级时序，首版不能假装已解决。
+ */
+export type DialogueProcessingJobPayload = {
+  requestedRevision: number;
+  speechAssetId: Id;
+  sourceAssetId: Id;
+  scriptRevision: number;
+  sourceDurationMs: number;
+  issueTypes: DialogueProcessingIssue[];
+  evidenceNote: string;
+  processingVersion: "v1";
+};
+
+/** Worker 在本地生成、探测与哈希完成后才交给 Application 登记的派生产物。 */
+export type CompletedDialogueProcessingVariant = {
+  profile: Exclude<DialogueProcessingProfile, "original">;
+  path: string;
+  relativePath: string;
+  contentHash: string;
+  durationMs: number;
+  metadata: MediaMetadata;
+  filters: string[];
 };
 
 type CompletedMusicAudio = {
@@ -638,6 +671,32 @@ const DEFAULT_BGM_DUCKING: AudioDucking = {
   attackFrames: 4,
   releaseFrames: 14
 };
+
+const DIALOGUE_PROCESSING_ISSUES = new Set<DialogueProcessingIssue>([
+  "noise", "low_frequency", "sibilance", "loudness", "true_peak"
+]);
+// PCM WAV 不应改变完整旁白时长；只允许 ffprobe 毫秒取整带来的极小差异。
+const DIALOGUE_PROCESSING_MAX_DURATION_DRIFT_MS = 5;
+
+/** Dialogue 的物理 Item 必须唯一；候选试听不能通过新建第二条旁白来叠加原声。 */
+function currentDialogueItem(snapshot: ProjectSnapshot, speechAsset: SpeechAsset): TimelineItem {
+  const dialogueTrack = trackByName(snapshot, "Dialogue");
+  const items = snapshot.timeline.items.filter((item) => (
+    item.trackId === dialogueTrack.id && item.assetId === speechAsset.assetId && !item.disabled
+  ));
+  if (items.length !== 1) {
+    throw new DomainError("当前 SpeechAsset 必须以唯一可播放 Item 写入 Dialogue 轨，才能处理或切换候选", "SPEECH_DIALOGUE_ITEM_MISSING");
+  }
+  return items[0]!;
+}
+
+function readySpeechFile(snapshot: ProjectSnapshot, speechAsset: SpeechAsset): Asset {
+  const asset = assetById(snapshot, speechAsset.assetId);
+  if (asset.kind !== "speech" || asset.status !== "ready" || !asset.metadata?.hasAudio || asset.metadata.durationMs <= 0 || !asset.managedPath.trim()) {
+    throw new DomainError("当前 SpeechAsset 没有已就绪的完整本地 Speech 音频，不能进行 Dialogue Processing", "DIALOGUE_SOURCE_NOT_READY");
+  }
+  return asset;
+}
 
 /** BGM / SFX 只接收已本地化的独立音频，不能把任意带声视频悄悄当作音乐或音效。 */
 function requireReadyAudioAsset(snapshot: ProjectSnapshot, assetId: Id): Asset {
@@ -1191,11 +1250,15 @@ export class ProjectRepository {
 
   listRevisions(projectId: Id): Array<Pick<RevisionRecord, "id" | "number" | "summary" | "createdAt" | "impact">> {
     this.getProjectRow(projectId);
-    const rows = this.db.prepare("SELECT * FROM revisions WHERE project_id = ? ORDER BY revision_number DESC").all(projectId) as RevisionRow[];
-    return rows.map((row) => {
-      const revision = this.revisionFromRow(row);
-      return { id: revision.id, number: revision.number, summary: revision.summary, createdAt: revision.createdAt, impact: revision.impact };
-    });
+    const rows = this.db.prepare(`SELECT id, revision_number, summary, impact_json, created_at
+      FROM revisions WHERE project_id = ? ORDER BY revision_number DESC`).all(projectId) as RevisionSummaryRow[];
+    return rows.map((row) => ({
+      id: row.id,
+      number: row.revision_number,
+      summary: row.summary,
+      createdAt: row.created_at,
+      impact: JSON.parse(row.impact_json) as ImpactReport
+    }));
   }
 
   commit(projectId: Id, baseRevision: number, summary: string, mutate: (snapshot: ProjectSnapshot, impact: ImpactReport) => void): ProjectState {
@@ -5771,6 +5834,249 @@ export class EditingApplication {
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
     return job;
+  }
+
+  /**
+   * 提交当前完整 Dialogue 的候选处理。这里不写 Revision、更不自动替换旁白：
+   * “参数达标”不是“声音更好”，必须先由操作者真实试听三种版本。
+   */
+  submitDialogueProcessing(input: {
+    projectId: Id;
+    baseRevision: number;
+    issueTypes: DialogueProcessingIssue[];
+    evidenceNote: string;
+    idempotencyKey?: string;
+  }): JobRecord {
+    const state = this.readProject(input.projectId);
+    if (state.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, state.revision.number);
+    const issueTypes = [...new Set(input.issueTypes)];
+    if (issueTypes.length === 0 || issueTypes.length > DIALOGUE_PROCESSING_ISSUES.size
+      || issueTypes.some((issue) => !DIALOGUE_PROCESSING_ISSUES.has(issue))) {
+      throw new DomainError("Dialogue Processing 必须明确选择至少一个实际待解决的噪声、低频、齿音、响度或峰值问题", "DIALOGUE_PROCESSING_ISSUES_REQUIRED");
+    }
+    const evidenceNote = requireText(input.evidenceNote, "Dialogue Processing 审阅依据");
+    if (evidenceNote.length > 2_000) throw new DomainError("Dialogue Processing 审阅依据不能超过 2000 个字符", "DIALOGUE_PROCESSING_EVIDENCE_TOO_LONG");
+    const speechAsset = state.snapshot.speechAsset;
+    if (!speechAsset || speechAsset.status !== "ready" || speechAsset.scriptRevision !== state.snapshot.script.revision) {
+      throw new DomainError("必须先得到与当前 Script 一致的 SpeechAsset，才能处理 Dialogue", "DIALOGUE_SPEECH_ASSET_NOT_READY");
+    }
+    const source = readySpeechFile(state.snapshot, speechAsset);
+    currentDialogueItem(state.snapshot, speechAsset);
+    const payload: DialogueProcessingJobPayload = {
+      requestedRevision: state.revision.number,
+      speechAssetId: speechAsset.id,
+      sourceAssetId: source.id,
+      scriptRevision: speechAsset.scriptRevision,
+      sourceDurationMs: source.metadata!.durationMs,
+      issueTypes,
+      evidenceNote,
+      processingVersion: "v1"
+    };
+    const requestHash = createHash("sha256").update(stableJson(payload)).digest("hex").slice(0, 24);
+    const job = this.repository.createJob({
+      projectId: input.projectId,
+      kind: "dialogue_processing",
+      payload,
+      idempotencyKey: input.idempotencyKey ?? `dialogue_processing:${state.revision.number}:${requestHash}`
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
+    return job;
+  }
+
+  /**
+   * Worker 只负责生成与验证本地 WAV；Application 才可将候选登记到当前 SpeechAsset。
+   * 完成后仍保留原声作为 active Dialogue，选择操作另行产生 Revision。
+   */
+  completeDialogueProcessing(input: {
+    projectId: Id;
+    jobId: Id;
+    variants: CompletedDialogueProcessingVariant[];
+  }): { state: ProjectState; processing: DialogueProcessing; duplicate: boolean } {
+    const job = this.repository.getJob(input.jobId);
+    if (job.projectId !== input.projectId || job.kind !== "dialogue_processing") {
+      throw new DomainError("该任务不是当前项目的 Dialogue Processing 任务", "DIALOGUE_PROCESSING_JOB_NOT_FOUND");
+    }
+    const currentAtStart = this.readProject(input.projectId);
+    const existing = currentAtStart.snapshot.speechAsset?.dialogueProcessing;
+    // 项目快照先于 Job 回执持久化时，进程若恰在两者之间中断，下一次调用应恢复同一结果，
+    // 而不是把已登记候选当成过期输入并再次生成或标记失败。
+    if (existing?.jobId === job.id) {
+      if (typeof job.result?.dialogueProcessingJobId !== "string") {
+        this.repository.updateJob(job.id, {
+          status: job.status,
+          result: {
+            ...(job.result ?? {}),
+            dialogueProcessingJobId: job.id,
+            speechAssetId: currentAtStart.snapshot.speechAsset!.id,
+            sourceAssetId: existing.sourceAssetId,
+            revision: currentAtStart.revision.number
+          }
+        });
+      }
+      return { state: currentAtStart, processing: existing, duplicate: true };
+    }
+    if (typeof job.result?.dialogueProcessingJobId === "string") {
+      throw new DomainError("Dialogue Processing Job 已有完成回执，但当前 SpeechAsset 缺少对应候选", "DIALOGUE_PROCESSING_COMPLETION_CORRUPTED");
+    }
+    const payload = job.payload as Partial<DialogueProcessingJobPayload>;
+    const issueTypes = Array.isArray(payload.issueTypes) ? payload.issueTypes : [];
+    if (!Number.isInteger(payload.requestedRevision) || !payload.speechAssetId?.trim() || !payload.sourceAssetId?.trim()
+      || !Number.isInteger(payload.scriptRevision) || !Number.isInteger(payload.sourceDurationMs) || (payload.sourceDurationMs ?? 0) <= 0
+      || !payload.evidenceNote?.trim() || payload.processingVersion !== "v1" || issueTypes.length === 0
+      || issueTypes.some((issue) => typeof issue !== "string" || !DIALOGUE_PROCESSING_ISSUES.has(issue as DialogueProcessingIssue))) {
+      throw new DomainError("Dialogue Processing Job 缺少受管的旁白来源、问题或审阅依据", "DIALOGUE_PROCESSING_JOB_PAYLOAD_INVALID");
+    }
+    const normalizedIssues = [...new Set(issueTypes as DialogueProcessingIssue[])];
+    const profiles = ["minimal", "strong"] as const;
+    const variantsByProfile = new Map(input.variants.map((variant) => [variant.profile, variant]));
+    if (variantsByProfile.size !== profiles.length || profiles.some((profile) => !variantsByProfile.has(profile))) {
+      throw new DomainError("Dialogue Processing Worker 必须同时交付最小处理和强处理两个候选", "DIALOGUE_PROCESSING_VARIANTS_INCOMPLETE");
+    }
+    const current = this.readProject(input.projectId);
+    if (current.revision.number !== payload.requestedRevision) {
+      throw new DomainError("Dialogue Processing 期间项目 Revision 已变化；不能把旧旁白候选写入当前版本", "STALE_DIALOGUE_PROCESSING_REQUEST");
+    }
+    const speechAsset = current.snapshot.speechAsset;
+    if (!speechAsset || speechAsset.id !== payload.speechAssetId || speechAsset.assetId !== payload.sourceAssetId
+      || speechAsset.scriptRevision !== payload.scriptRevision) {
+      throw new DomainError("Dialogue Processing 的 SpeechAsset、原声文件或 Script 已变化，不能自动登记旧候选", "STALE_DIALOGUE_PROCESSING_SOURCE");
+    }
+    const source = readySpeechFile(current.snapshot, speechAsset);
+    const dialogueItem = currentDialogueItem(current.snapshot, speechAsset);
+    if (source.metadata!.durationMs !== payload.sourceDurationMs) {
+      throw new DomainError("Dialogue Processing 的原声音频时长已变化，不能继续登记候选", "STALE_DIALOGUE_PROCESSING_DURATION");
+    }
+    const expectedFrames = dialogueItem.endFrame - dialogueItem.startFrame;
+    const projectRoot = resolve(current.snapshot.project.rootPath);
+    for (const profile of profiles) {
+      const variant = variantsByProfile.get(profile)!;
+      const outputPath = resolve(variant.path);
+      const relativeOutput = relative(projectRoot, outputPath).replace(/\\/gu, "/");
+      if (!isAbsolute(variant.path) || !relativeOutput || relativeOutput === ".." || relativeOutput.startsWith("../")
+        || !relativeOutput.startsWith(`assets/speech/processed/${job.id}/`) || !existsSync(outputPath)
+        || variant.relativePath.replace(/\\/gu, "/") !== relativeOutput) {
+        throw new DomainError("Dialogue Processing Worker 输出不在当前项目的受管 Speech 目录中或文件不存在", "DIALOGUE_PROCESSING_OUTPUT_PATH_INVALID");
+      }
+      if (!variant.contentHash || !Number.isInteger(variant.durationMs) || variant.durationMs <= 0
+        || variant.metadata?.durationMs !== variant.durationMs || !variant.metadata?.hasAudio || !variant.metadata.audioCodec
+        || !Array.isArray(variant.filters) || variant.filters.length === 0
+        || millisecondsToFrames(variant.durationMs, current.snapshot.timeline.fps) !== expectedFrames
+        || Math.abs(variant.durationMs - payload.sourceDurationMs) > DIALOGUE_PROCESSING_MAX_DURATION_DRIFT_MS) {
+        throw new DomainError("Dialogue Processing 候选缺少有效哈希、音轨、滤镜或与原 Dialogue 一致的帧时长", "DIALOGUE_PROCESSING_OUTPUT_INVALID");
+      }
+    }
+    let processing!: DialogueProcessing;
+    const state = this.repository.commit(input.projectId, current.revision.number, "登记 Dialogue Processing 候选", (snapshot, impact) => {
+      const activeSpeech = snapshot.speechAsset;
+      if (!activeSpeech || activeSpeech.id !== payload.speechAssetId || activeSpeech.assetId !== payload.sourceAssetId
+        || activeSpeech.scriptRevision !== payload.scriptRevision) {
+        throw new DomainError("提交期间当前 SpeechAsset 已变化，不能登记 Dialogue Processing 候选", "STALE_DIALOGUE_PROCESSING_SOURCE");
+      }
+      const sourceAsset = readySpeechFile(snapshot, activeSpeech);
+      const activeDialogueItem = currentDialogueItem(snapshot, activeSpeech);
+      if (activeDialogueItem.endFrame - activeDialogueItem.startFrame !== expectedFrames) {
+        throw new DomainError("提交期间 Dialogue 时长已变化，不能登记 Dialogue Processing 候选", "STALE_DIALOGUE_PROCESSING_DURATION");
+      }
+      const createdAssets = new Map<Exclude<DialogueProcessingProfile, "original">, Asset>();
+      for (const profile of profiles) {
+        const variant = variantsByProfile.get(profile)!;
+        const asset = createMediaAsset({
+          name: `${sourceAsset.name} · ${profile === "minimal" ? "最小处理" : "强处理"}`,
+          kind: "speech",
+          managedPath: variant.relativePath,
+          sourceHash: variant.contentHash,
+          tags: ["dialogue-processing", profile],
+          provenance: {
+            ...structuredClone(sourceAsset.provenance ?? { source: "local_import" as const, rightsStatus: "unknown" as const, acquiredAt: now() }),
+            originalAssetId: sourceAsset.id,
+            acquiredAt: now()
+          }
+        });
+        asset.status = "ready";
+        asset.metadata = structuredClone(variant.metadata);
+        snapshot.assets.push(asset);
+        createdAssets.set(profile, asset);
+        impact.changed.push(asset.id);
+      }
+      processing = {
+        jobId: job.id,
+        requestedRevision: payload.requestedRevision!,
+        sourceAssetId: sourceAsset.id,
+        sourceDurationMs: sourceAsset.metadata!.durationMs,
+        issueTypes: normalizedIssues,
+        evidenceNote: payload.evidenceNote!.trim(),
+        processingVersion: "v1",
+        variants: [
+          { profile: "original", assetId: sourceAsset.id, filters: [], durationMs: sourceAsset.metadata!.durationMs, contentHash: sourceAsset.sourceHash },
+          ...profiles.map((profile): DialogueProcessingVariant => {
+            const variant = variantsByProfile.get(profile)!;
+            return { profile, assetId: createdAssets.get(profile)!.id, filters: [...variant.filters], durationMs: variant.durationMs, contentHash: variant.contentHash };
+          })
+        ],
+        createdAt: now()
+      };
+      activeSpeech.dialogueProcessing = processing;
+      impact.changed.push(activeSpeech.id);
+      impact.recomputed.push("Dialogue 原声、最小处理与强处理试听候选；当前仍保留原声，等待人工选择");
+      impact.warnings.push("处理参数和技术读数不能代替试听；请比较原声、最小处理与强处理后再显式选择当前 Dialogue。");
+    });
+    const updatedJob = this.repository.updateJob(job.id, {
+      status: job.status,
+      result: { ...(job.result ?? {}), dialogueProcessingJobId: job.id, speechAssetId: payload.speechAssetId, sourceAssetId: payload.sourceAssetId, revision: state.revision.number }
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    this.publish({ projectId: updatedJob.projectId, revision: state.revision.number, type: "job" });
+    return { state, processing, duplicate: false };
+  }
+
+  /** 只有真实试听后的显式选择才会替换当前 Dialogue Item；候选生成本身不改成片。 */
+  selectDialogueProcessingVariant(input: {
+    projectId: Id;
+    baseRevision: number;
+    profile: DialogueProcessingProfile;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "选择 Dialogue Processing 候选", (snapshot, impact) => {
+      const speechAsset = snapshot.speechAsset;
+      const processing = speechAsset?.dialogueProcessing;
+      if (!speechAsset || !processing) throw new DomainError("当前 SpeechAsset 没有可选择的 Dialogue Processing 候选", "DIALOGUE_PROCESSING_NOT_FOUND");
+      const variant = processing.variants.find((candidate) => candidate.profile === input.profile);
+      if (!variant) throw new DomainError("请求的 Dialogue Processing 候选不存在", "DIALOGUE_PROCESSING_VARIANT_NOT_FOUND");
+      const dialogueItem = currentDialogueItem(snapshot, speechAsset);
+      const asset = assetById(snapshot, variant.assetId);
+      if (asset.kind !== "speech" || asset.status !== "ready" || !asset.metadata?.hasAudio || asset.metadata.durationMs <= 0) {
+        throw new DomainError("选择的 Dialogue Processing 候选尚不可播放", "DIALOGUE_PROCESSING_VARIANT_NOT_READY");
+      }
+      const sourceFrames = millisecondsToFrames(asset.metadata.durationMs, snapshot.timeline.fps);
+      if (sourceFrames !== dialogueItem.endFrame - dialogueItem.startFrame) {
+        throw new DomainError("候选音频帧时长与当前 Dialogue 不一致；不能悄悄改变字幕、镜头或节奏", "DIALOGUE_PROCESSING_DURATION_MISMATCH");
+      }
+      const previousAssetId = speechAsset.assetId;
+      speechAsset.assetId = asset.id;
+      processing.selectedProfile = input.profile;
+      dialogueItem.assetId = asset.id;
+      dialogueItem.sourceStartFrame = 0;
+      dialogueItem.sourceEndFrame = sourceFrames;
+      impact.changed.push(speechAsset.id, dialogueItem.id, asset.id);
+      if (previousAssetId !== asset.id) {
+        markSpeechAlignmentStale(snapshot, impact, "Dialogue Processing 切换了实际可播放音频");
+        // 音频处理不会改变帧长，但滤镜延迟和音色变化仍不能沿用 word_exact 或旧口型结果。
+        speechAsset.timing = {
+          ...speechAsset.timing,
+          precision: "segment_exact",
+          source: `${speechAsset.timing.source}；Dialogue Processing 已切换为 ${input.profile}，词级对齐需重新验证`
+        };
+        for (const performance of snapshot.actorPerformances) {
+          if (performance.source !== "generated" || performance.speechAssetId !== speechAsset.id || performance.status === "stale") continue;
+          performance.status = "stale";
+          impact.stale.push(performance.id);
+        }
+        impact.dirtyRanges.push({ startFrame: dialogueItem.startFrame, endFrame: dialogueItem.endFrame, reason: "切换 Dialogue Processing 候选，需要重新试听、对齐和人物口型复核" });
+        impact.recomputed.push("当前 Dialogue 音频来源；词级对齐回退到 segment_exact；生成型人物表演标记 stale");
+      }
+      impact.warnings.push("已切换当前 Dialogue；请先完整只听声音，再复看声画与最终导出，处理参数不等于审美通过。");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
   }
 
   /**

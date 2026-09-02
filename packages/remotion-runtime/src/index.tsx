@@ -1,7 +1,8 @@
 import React from "react";
 import { AbsoluteFill, Audio, Sequence, useCurrentFrame, Video } from "remotion";
-import type { ActorPerformance, AudioCue, CaptionCard, CaptionEmphasis, CaptionFormat, Cutaway, EffectCue, ProjectSnapshot, TimelineItem, TimelineTrack } from "@videocut/contracts";
+import { inspectEffectContentContract, type ActorPerformance, type AudioCue, type CaptionCard, type CaptionEmphasis, type CaptionFormat, type Cutaway, type EffectCue, type ProjectSnapshot, type TimelineItem, type TimelineTrack } from "@videocut/contracts";
 import { compileCutawayLayout, cutawaySourceVolume } from "./cutaway-layout";
+import { resolveCompositionReachability } from "./composition-reachability";
 import { ExplainerSceneLayer } from "./explainer-registry";
 import { compileCameraPunchLayout, compileMotionLayout, resolveEffectStylePack, type EffectStylePack } from "./motion-layout";
 
@@ -28,21 +29,17 @@ const mediaUrl = (snapshot: ProjectSnapshot, mediaBaseUrl: string, managedPath: 
   return `${mediaBaseUrl.replace(/\/$/, "")}/media/${encodeURIComponent(snapshot.project.id)}/${safePath}`;
 };
 
+/** 正式文案只来自 Cue.props；note 是编辑备注，绝不能误渲染成默认成片文案。 */
 const cueLabel = (cue: EffectCue) => {
-  const labels: Record<EffectCue["type"], string> = {
-    MetricBackdrop: "关键数字",
-    ProductFan: "产品展示",
-    GlowCTA: "立即行动",
-    PortfolioWall: "作品墙",
-    CommentCloud: "用户评论",
-    EvidenceCard: "证据卡片",
-    CameraPunch: "镜头强调",
-    FullScreenMeme: "全屏解释",
-    DeviceShowcase: "设备展示",
-    ContentCarousel: "内容轮播",
-    EndCard: "感谢观看"
-  };
-  return cue.note || labels[cue.type];
+  const props = cue.props ?? {};
+  // EvidenceCard 的正式说明允许放在 caption / claim / source；合同与实际渲染必须
+  // 消费同一组字段，不能出现“质量已放行、画面却没有说明”的空卡片。
+  const preferred = [props.headline, props.title, props.label, props.text, props.metric, props.value, props.caption, props.claim, props.source];
+  const value = preferred.find((candidate) => (
+    (typeof candidate === "string" && Boolean(candidate.trim()))
+    || (typeof candidate === "number" && Number.isFinite(candidate))
+  ));
+  return typeof value === "string" ? value.trim() : typeof value === "number" ? String(value) : "";
 };
 
 const cueCard = (stylePack: EffectStylePack): React.CSSProperties => ({
@@ -54,15 +51,13 @@ const cueCard = (stylePack: EffectStylePack): React.CSSProperties => ({
   background: stylePack.surface
 });
 
-const captionFor = (text: string, eyebrow: string) => <><span style={{ display: "block", marginBottom: 8, opacity: 0.72, fontSize: 16, fontWeight: 800 }}>{eyebrow}</span><strong style={{ display: "block", fontSize: 30, lineHeight: 1.18 }}>{text}</strong></>;
-
 /**
  * 第一阶段还没有姿态锚点时，前景卡片默认放在人物下半身两侧，
  * 留出中上部脸/嘴安全区和底部字幕安全区；有 Mask 的后景 Cue 才可进入人物背后区域。
  */
 const bindingsFor = (snapshot: ProjectSnapshot, cue: EffectCue) => (cue.assetBindings ?? [])
   .map((binding) => ({ binding, asset: snapshot.assets.find((asset) => asset.id === binding.assetId) }))
-  .filter((entry): entry is { binding: EffectCue["assetBindings"][number]; asset: NonNullable<typeof entry.asset> } => Boolean(entry.asset));
+  .filter((entry): entry is { binding: EffectCue["assetBindings"][number]; asset: NonNullable<typeof entry.asset> } => Boolean(entry.asset && entry.asset.status === "ready"));
 
 const projectTextList = (value: unknown): string[] => Array.isArray(value)
   ? value.filter((entry): entry is string => typeof entry === "string").map((entry) => entry.trim()).filter(Boolean)
@@ -70,7 +65,8 @@ const projectTextList = (value: unknown): string[] => Array.isArray(value)
 
 const BoundAssetVisual: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue: EffectCue; index: number; style?: React.CSSProperties }> = ({ snapshot, mediaBaseUrl, cue, index, style }) => {
   const entry = bindingsFor(snapshot, cue)[index];
-  if (!entry) return <div style={{ ...style, display: "grid", placeItems: "center", background: "#242a3d", color: "#ccd4ec", fontSize: 15, textAlign: "center", padding: 8 }}>缺少项目素材</div>;
+  // 调用方已经通过内容合同；这里仍安全返回空，避免旧 Revision 或并发修改将调试占位写入成片。
+  if (!entry) return null;
   const src = mediaUrl(snapshot, mediaBaseUrl, entry.asset.managedPath);
   if (entry.asset.kind === "video" || entry.asset.kind === "actor_video") {
     // Cue 可能位于整片后半段；Sequence 把绑定素材的时间轴重置到 Cue 起点，确保从素材第 0 帧播放。
@@ -80,39 +76,34 @@ const BoundAssetVisual: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: stri
 };
 
 /** 每个 Registry 类型均有独立视觉语法，并在需要素材的效果中直接消费项目绑定。 */
-const CueVisual: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue: EffectCue; fallback: boolean; stylePack: EffectStylePack }> = ({ snapshot, mediaBaseUrl, cue, fallback, stylePack }) => {
+const CueVisual: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue: EffectCue; stylePack: EffectStylePack }> = ({ snapshot, mediaBaseUrl, cue, stylePack }) => {
   const label = cueLabel(cue);
   const card = cueCard(stylePack);
-  const fallbackLabel = fallback ? <span style={{ display: "block", marginTop: 8, color: "#ffd37d", fontSize: 14, fontWeight: 700 }}>未提供人物 Mask：以可见前景降级</span> : null;
   const bindingCount = bindingsFor(snapshot, cue).length;
   const comments = projectTextList(cue.props?.comments);
   switch (cue.type) {
     case "MetricBackdrop":
-      return <div style={{ ...card, width: "100%", color: stylePack.accentForeground, background: `linear-gradient(135deg,${stylePack.accent},${stylePack.mutedSurface})` }}>{captionFor(label, "关键数字")}{fallbackLabel}</div>;
+      // 固定最小视觉面积，避免短指标文本把信息卡压成一条细线；内容仍完全来自项目 props。
+      return <div style={{ ...card, width: "100%", minHeight: 132, display: "flex", alignItems: "center", color: stylePack.accentForeground, background: `linear-gradient(135deg,${stylePack.accent},${stylePack.mutedSurface})` }}><strong style={{ display: "block", fontSize: 30, lineHeight: 1.18 }}>{label}</strong></div>;
     case "ProductFan":
       return <div style={{ position: "relative", width: "100%", height: "100%" }}>
         {Array.from({ length: Math.max(1, Math.min(3, bindingCount)) }, (_, index) => <div key={index} style={{ ...card, position: "absolute", inset: "13% 7%", overflow: "hidden", background: stylePack.mutedSurface, transform: `rotate(${[-13, 0, 13][index] ?? 0}deg) translate(${[-20, 0, 20][index] ?? 0}px, ${[14, 0, 14][index] ?? 0}px)`, border: `1px solid ${stylePack.accentForeground}55` }}><BoundAssetVisual snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} index={index} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} /><strong style={{ position: "absolute", left: 12, right: 12, bottom: 10, fontSize: 19, textShadow: "0 2px 8px #000" }}>{index === 0 ? label : ""}</strong></div>)}
-        {fallbackLabel}
       </div>;
     case "GlowCTA":
       return <div style={{ width: "max-content", padding: "19px 38px", borderRadius: 999, background: stylePack.accent, color: stylePack.accentForeground, boxShadow: `0 0 42px ${stylePack.accent}cc`, fontSize: 29, fontWeight: 850 }}>{label}</div>;
     case "PortfolioWall":
       return <div style={{ ...card, width: "100%", padding: "14px 16px", color: stylePack.foreground }}>
-        <span style={{ display: "block", marginBottom: 12, fontSize: 16, fontWeight: 800, color: stylePack.accent }}>作品 / 案例</span>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>{Array.from({ length: Math.max(1, Math.min(6, bindingCount)) }, (_, index) => <BoundAssetVisual key={index} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} index={index} style={{ width: "100%", aspectRatio: "1", borderRadius: 10 }} />)}</div>
-        <strong style={{ display: "block", marginTop: 12, fontSize: 22 }}>{label}</strong>{fallbackLabel}
+        <strong style={{ display: "block", marginTop: 12, fontSize: 22 }}>{label}</strong>
       </div>;
     case "CommentCloud":
       return <div style={{ width: "100%" }}>
-        {(comments.length > 0 ? comments : ["未提供项目评论"]).slice(0, 3).map((comment, index) => <div key={`${comment}-${index}`} style={{ ...card, marginTop: index ? 10 : 0, marginLeft: `${index * 8}%`, padding: "14px 18px", background: index === 1 ? stylePack.surface : "#ffffffd9", color: index === 1 ? stylePack.foreground : "#202331", fontSize: 20, fontWeight: 700 }}>{`“${comment}”`}</div>)}
-        {fallbackLabel}
+        {comments.slice(0, 3).map((comment, index) => <div key={`${comment}-${index}`} style={{ ...card, marginTop: index ? 10 : 0, marginLeft: `${index * 8}%`, padding: "14px 18px", background: index === 1 ? stylePack.surface : "#ffffffd9", color: index === 1 ? stylePack.foreground : "#202331", fontSize: 20, fontWeight: 700 }}>{`“${comment}”`}</div>)}
       </div>;
     case "EvidenceCard":
       return <div style={{ ...card, width: "100%", padding: "14px 16px", background: stylePack.surface, color: stylePack.foreground }}>
-        <span style={{ display: "inline-block", padding: "5px 10px", borderRadius: 999, background: stylePack.accent, color: stylePack.accentForeground, fontSize: 14, fontWeight: 850 }}>资料证据</span>
         <BoundAssetVisual snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} index={0} style={{ display: "block", width: "100%", aspectRatio: "1.35", borderRadius: 12, marginTop: 12 }} />
         <strong style={{ display: "block", marginTop: 12, fontSize: 21, lineHeight: 1.25 }}>{label}</strong>
-        {fallbackLabel}
       </div>;
     // CameraPunch 的可见结果只应是人物构图推近；描边和“镜头强调”标签会像调试 UI，
     // 与口播字幕争夺注意力。实际缩放由下方 VideoLayer 按 Cue 时序完成。
@@ -121,17 +112,22 @@ const CueVisual: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue
     case "FullScreenMeme":
       return <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "10%", background: `radial-gradient(circle at 20% 20%,${stylePack.accent} 0 10%,transparent 10%), linear-gradient(135deg,${stylePack.mutedSurface},${stylePack.accent})`, color: stylePack.accentForeground, textAlign: "center" }}><div style={{ maxWidth: "82%" }}><div style={{ marginBottom: 24, fontSize: 76 }}>⚡</div><strong style={{ fontSize: 60, lineHeight: 1.08 }}>{label}</strong></div></AbsoluteFill>;
     case "DeviceShowcase":
-      return <div style={{ position: "relative", width: "100%", height: "100%", padding: 12, border: `7px solid ${stylePack.accentForeground}`, borderRadius: stylePack.radius + 8, background: stylePack.mutedSurface, boxShadow: stylePack.shadow }}><div style={{ width: "36%", height: 6, margin: "0 auto 12px", borderRadius: 10, background: stylePack.accentForeground }} /><BoundAssetVisual snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} index={0} style={{ display: "block", width: "100%", height: "86%", borderRadius: stylePack.radius }} /><strong style={{ position: "absolute", left: 18, right: 18, bottom: 18, fontSize: 18, textShadow: "0 2px 8px #000" }}>{label}</strong>{fallbackLabel}</div>;
+      return <div style={{ position: "relative", width: "100%", height: "100%", padding: 12, border: `7px solid ${stylePack.accentForeground}`, borderRadius: stylePack.radius + 8, background: stylePack.mutedSurface, boxShadow: stylePack.shadow }}><div style={{ width: "36%", height: 6, margin: "0 auto 12px", borderRadius: 10, background: stylePack.accentForeground }} /><BoundAssetVisual snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} index={0} style={{ display: "block", width: "100%", height: "86%", borderRadius: stylePack.radius }} /><strong style={{ position: "absolute", left: 18, right: 18, bottom: 18, fontSize: 18, textShadow: "0 2px 8px #000" }}>{label}</strong></div>;
     case "ContentCarousel":
-      return <div style={{ width: "100%", display: "flex", gap: 14 }}>{Array.from({ length: Math.max(1, Math.min(3, bindingCount)) }, (_, index) => <div key={index} style={{ ...card, flex: 1, minHeight: 102, overflow: "hidden", padding: 0, background: stylePack.mutedSurface }}><BoundAssetVisual snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} index={index} style={{ width: "100%", height: "100%" }} /><strong style={{ position: "absolute", left: 12, bottom: 10, fontSize: 18, textShadow: "0 2px 8px #000" }}>{index === 0 ? label : ""}</strong></div>)}{fallbackLabel}</div>;
-    case "EndCard":
-      return <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "10%", background: `linear-gradient(160deg,${stylePack.mutedSurface},${stylePack.accent})`, color: stylePack.accentForeground, textAlign: "center" }}><span style={{ marginBottom: 22, fontSize: 22, fontWeight: 750, color: stylePack.accentForeground }}>VideoCut</span><strong style={{ fontSize: 54, lineHeight: 1.15 }}>{label}</strong><span style={{ marginTop: 30, padding: "13px 24px", border: `1px solid ${stylePack.accentForeground}`, borderRadius: 999, fontSize: 22 }}>继续探索</span></AbsoluteFill>;
+      return <div style={{ width: "100%", display: "flex", gap: 14 }}>{Array.from({ length: Math.max(1, Math.min(3, bindingCount)) }, (_, index) => <div key={index} style={{ ...card, flex: 1, minHeight: 102, overflow: "hidden", padding: 0, background: stylePack.mutedSurface }}><BoundAssetVisual snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} index={index} style={{ width: "100%", height: "100%" }} /><strong style={{ position: "absolute", left: 12, bottom: 10, fontSize: 18, textShadow: "0 2px 8px #000" }}>{index === 0 ? label : ""}</strong></div>)}</div>;
+    case "EndCard": {
+      const brand = typeof cue.props?.brand === "string" ? cue.props.brand.trim() : typeof cue.props?.brandName === "string" ? cue.props.brandName.trim() : "";
+      const cta = typeof cue.props?.cta === "string" ? cue.props.cta.trim() : typeof cue.props?.ctaText === "string" ? cue.props.ctaText.trim() : "";
+      return <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "10%", background: `linear-gradient(160deg,${stylePack.mutedSurface},${stylePack.accent})`, color: stylePack.accentForeground, textAlign: "center" }}><span style={{ marginBottom: 22, fontSize: 22, fontWeight: 750, color: stylePack.accentForeground }}>{brand}</span><strong style={{ fontSize: 54, lineHeight: 1.15 }}>{label}</strong><span style={{ marginTop: 30, padding: "13px 24px", border: `1px solid ${stylePack.accentForeground}`, borderRadius: 999, fontSize: 22 }}>{cta}</span></AbsoluteFill>;
+    }
   }
 };
 
-const CueLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue: EffectCue; fallback?: boolean }> = ({ snapshot, mediaBaseUrl, cue, fallback = false }) => {
+const CueLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue: EffectCue }> = ({ snapshot, mediaBaseUrl, cue }) => {
   const frame = useCurrentFrame();
   if (frame < cue.startFrame || frame >= cue.endFrame) return null;
+  // 无法满足正式内容合同的 Cue 由 QualityReport 标为问题；Preview 和交付都不能绘制调试占位。
+  if (!inspectEffectContentContract(cue, snapshot.assets).ready) return null;
   // actor_head / actor_hands 只从当前帧的 Actor / A-roll 已就绪表演读取。
   // 多人物同时命中时不猜数组第一个，Quality 会阻止交付，这里安全降级到普通位置。
   const tracksById = new Map(snapshot.timeline.tracks.map((track) => [track.id, track]));
@@ -144,7 +140,7 @@ const CueLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue:
   const layout = compileMotionLayout(cue, frame, actorLayout);
   return <div style={{ position: "absolute", inset: 0, opacity: layout.motion.opacity, fontFamily: layout.stylePack.fontFamily, color: layout.stylePack.foreground, letterSpacing: "0.02em", pointerEvents: "none" }}>
     <div style={{ ...layout.container, transform: `${layout.anchorTransform} ${layout.motion.transform}`.trim(), transformOrigin: "center" }}>
-      <CueVisual snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} fallback={fallback} stylePack={layout.stylePack} />
+      <CueVisual snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} stylePack={layout.stylePack} />
     </div>
   </div>;
 };
@@ -386,26 +382,19 @@ const AudioLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; it
 export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, mediaBaseUrl }) => {
   const frame = useCurrentFrame();
   const tracksById = new Map(snapshot.timeline.tracks.map((track) => [track.id, track]));
+  const reachability = resolveCompositionReachability(snapshot);
   // 旧 Revision 可能还没有人物表演字段，预览应以“没有登记人物”降级而不是崩溃。
   const performancesByItem = new Map((snapshot.actorPerformances ?? []).filter((performance) => performance.status === "ready").map((performance) => [performance.timelineItemId, performance]));
   const cutawaysByItem = new Map((snapshot.cutaways ?? []).filter((cutaway) => cutaway.status === "ready").map((cutaway) => [cutaway.timelineItemId, cutaway]));
-  // 新写入会禁用 stale Item；这里额外保护旧 Revision，避免它把已经失效的 Cutaway 当成普通全屏视频播放。
-  const staleCutawayItemIds = new Set((snapshot.cutaways ?? []).filter((cutaway) => cutaway.status === "stale").map((cutaway) => cutaway.timelineItemId));
   const videoItems = snapshot.timeline.items
-    .filter((item) => {
-      const track = tracksById.get(item.trackId);
-      return track?.kind === "video" && !track.hidden && !item.disabled && !staleCutawayItemIds.has(item.id);
-    })
+    .filter((item) => reachability.videoItemIds.has(item.id))
     // Track 0 是工作台最上层，DOM 需要从底层到顶层绘制。
     .sort((left, right) => (tracksById.get(right.trackId)!.order - tracksById.get(left.trackId)!.order) || left.startFrame - right.startFrame);
   const audioItems = snapshot.timeline.items
-    .filter((item) => {
-      const track = tracksById.get(item.trackId);
-      return track?.kind === "audio" && !track.muted && !item.disabled;
-    })
+    .filter((item) => reachability.audioItemIds.has(item.id))
     .sort((left, right) => left.startFrame - right.startFrame);
   const audioCuesByItem = new Map((snapshot.audioCues ?? []).filter((cue) => cue.status === "ready").map((cue) => [cue.timelineItemId, cue]));
-  const readyCues = (snapshot.effectCues ?? []).filter((cue) => cue.status === "ready");
+  const readyCues = (snapshot.effectCues ?? []).filter((cue) => reachability.effectCueIds.has(cue.id));
   const cuesAt = (...layers: EffectCue["layer"][]) => readyCues.filter((cue) => layers.includes(cue.layer));
   // 后景 Cue 只有被同一个 Actor / A-roll 人物在完整范围内覆盖时才能置于人物后方。
   const hasMaskedActorFor = (cue: EffectCue) => videoItems.some((item) => {
@@ -421,7 +410,7 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
     {videoItems.map((item) => <VideoLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} performance={performancesByItem.get(item.id)} cutaway={cutawaysByItem.get(item.id)} compositionFrame={frame} />)}
     {/* ExplainerProgram 是主视觉，不借用 Presenter Cue；没有对应 Program 的普通 Scene 不会凭空渲染。 */}
     <ExplainerSceneLayer snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} />
-    {rearCues.filter((cue) => !hasMaskedActorFor(cue)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} fallback />)}
+    {rearCues.filter((cue) => !hasMaskedActorFor(cue)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
     {cuesAt("actor", "front").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
     {cuesAt("fullscreen").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
     {snapshot.timeline.captions.map((caption) => <Sequence key={caption.id} from={caption.startFrame} durationInFrames={caption.endFrame - caption.startFrame}><CaptionLayer snapshot={snapshot} caption={caption} /></Sequence>)}
@@ -430,6 +419,7 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
 };
 
 export { mediaUrl, compileCameraPunchLayout, compileMotionLayout, resolveEffectStylePack, compileCutawayLayout, cutawaySourceVolume };
+export { resolveCompositionReachability, type CompositionReachability } from "./composition-reachability";
 export {
   ADVANCED_VISUAL_RUNTIME_CAPABILITIES,
   RESTRICTED_SCENE_ACCENTS,

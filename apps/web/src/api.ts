@@ -1,10 +1,100 @@
-import type { AgentWorkOrder, ExportArtifact, ExportPurpose, JobRecord, ProductionProfile, ProjectSnapshot, ProjectSummary, QualityReport, RevisionRecord, VideoGenerationMode } from "@videocut/contracts";
+import type { AgentWorkOrder, DialogueProcessingIssue, DialogueProcessingProfile, ExportArtifact, ExportPurpose, JobRecord, ProductionProfile, ProjectSnapshot, ProjectSummary, QualityReport, RevisionRecord, VideoGenerationMode } from "@videocut/contracts";
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:3100";
 
 export interface ProjectState {
   revision: RevisionRecord;
   snapshot: ProjectSnapshot;
+}
+
+/**
+ * 原素材审阅是只读派生查询。这里刻意不复用 Timeline Item 的时间，所有范围均为源素材帧坐标。
+ * 派生文件由服务端放在 project/cache/source-review，不能据此修改当前 Revision。
+ */
+export type SourceReviewMode = "overview" | "range" | "dense";
+
+export interface SourceReviewFrame {
+  sourceFrame: number;
+  sourceMs: number;
+  timecode: string;
+  relativePath: string;
+  mediaPath: string;
+}
+
+export interface SourceReviewRange {
+  startFrame: number;
+  endFrame: number;
+  startMs: number;
+  endMs: number;
+  fps: number;
+}
+
+export interface SourceReviewShot {
+  id: string;
+  sourceStartFrame: number;
+  sourceEndFrame: number;
+  source?: "ffmpeg_scene" | "manual";
+  sceneChangeScore?: number;
+  status?: string;
+  evidenceNote?: string;
+  technicalScore?: number;
+  hasAudio?: boolean;
+}
+
+export interface SourceReviewUsageItem {
+  id: string;
+  startFrame?: number;
+  endFrame?: number;
+  sourceStartFrame?: number;
+  sourceEndFrame?: number;
+  sceneId?: string;
+  title?: string;
+  purpose?: string;
+  trackId?: string;
+  trackName?: string;
+  timelineItemId?: string;
+  type?: string;
+  status?: string;
+  disabled?: boolean;
+  role?: string;
+  sourceTitle?: string;
+}
+
+export interface SourceReviewResult {
+  projectId: string;
+  assetId: string;
+  revision: number;
+  mode: SourceReviewMode;
+  sourceMedia: { relativePath: string; mediaPath: string };
+  sourceRange?: SourceReviewRange;
+  evidenceBoundaries: string[];
+  contactSheet: { frames: SourceReviewFrame[] };
+  proxy?: {
+    relativePath: string;
+    mediaPath: string;
+    kind: "video" | "audio";
+    sourceRange: SourceReviewRange;
+  };
+  audio: {
+    hasAudio: boolean;
+    waveform?: { relativePath: string; mediaPath: string };
+    silenceRanges: Array<{ startFrame: number; endFrame: number }>;
+    meanVolumeDb?: number;
+    maxVolumeDb?: number;
+    onsetFrames: number[];
+    limitations?: string[];
+  };
+  transcript?: { id: string; text: string; source: "funasr" | "manual"; sentenceCandidates: Array<{ id: string; order: number; text: string }>; timingPrecision: "unavailable" };
+  shots: { current?: SourceReviewShot; overlapping: SourceReviewShot[]; previous?: SourceReviewShot; next?: SourceReviewShot };
+  usage: {
+    timelineItems: SourceReviewUsageItem[];
+    scenes: SourceReviewUsageItem[];
+    cutaways: SourceReviewUsageItem[];
+    effectCues: SourceReviewUsageItem[];
+    actorPerformances: SourceReviewUsageItem[];
+    evidenceCaptures: SourceReviewUsageItem[];
+  };
+  requestableRanges: Array<{ startFrame: number; endFrame: number; reason?: string }>;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -33,9 +123,30 @@ export const api = {
     files.forEach((file) => body.append("media", file));
     return request(`/api/projects/${projectId}/assets/upload?baseRevision=${baseRevision}`, { method: "POST", body });
   },
+  /**
+   * 只读取源素材证据；overview 不传范围，range/dense 必须传项目 fps 下的源帧范围。
+   * 该请求不会创建 Job、Asset 或 Revision。
+   */
+  inspectAsset: (projectId: string, assetId: string, payload: {
+    mode: SourceReviewMode;
+    sourceStartFrame?: number;
+    sourceEndFrame?: number;
+    contactSheetFrames?: number;
+  }) => request<SourceReviewResult>(`/api/projects/${projectId}/assets/${assetId}/inspect`, { method: "POST", body: JSON.stringify(payload) }),
   transcribe: (projectId: string, assetId: string) => request<JobRecord>(`/api/projects/${projectId}/transcription`, { method: "POST", body: JSON.stringify({ assetId }) }),
   registerVoiceReference: (projectId: string, baseRevision: number, assetId: string, label?: string) => request<ProjectState>(`/api/projects/${projectId}/voice-references`, { method: "POST", body: JSON.stringify({ baseRevision, assetId, label }) }),
   voiceSynthesis: (projectId: string, voiceReferenceId: string) => request<JobRecord>(`/api/projects/${projectId}/voice-synthesis`, { method: "POST", body: JSON.stringify({ voiceReferenceId }) }),
+  /** 只提交当前整条 SpeechAsset 的可试听处理候选；不会自动替换 Dialogue。 */
+  submitDialogueProcessing: (projectId: string, payload: {
+    baseRevision: number;
+    issueTypes: DialogueProcessingIssue[];
+    evidenceNote: string;
+  }) => request<JobRecord>(`/api/projects/${projectId}/dialogue-processing`, { method: "POST", body: JSON.stringify(payload) }),
+  /** 试听后显式选择候选，才会创建 Revision 并替换 Dialogue Item。 */
+  selectDialogueProcessingVariant: (projectId: string, payload: {
+    baseRevision: number;
+    profile: DialogueProcessingProfile;
+  }) => request<ProjectState>(`/api/projects/${projectId}/dialogue-processing/select`, { method: "POST", body: JSON.stringify(payload) }),
   rebuildSpeechTimeline: (projectId: string, baseRevision: number) => request<ProjectState>(`/api/projects/${projectId}/speech-asset/rebuild-timeline`, { method: "POST", body: JSON.stringify({ baseRevision }) }),
   editCaption: (projectId: string, captionId: string, payload: Record<string, unknown>) => request<ProjectState>(`/api/projects/${projectId}/captions/${captionId}`, { method: "PATCH", body: JSON.stringify(payload) }),
   manageAudio: (projectId: string, payload: Record<string, unknown>) => request<ProjectState>(`/api/projects/${projectId}/audio`, { method: "POST", body: JSON.stringify(payload) }),

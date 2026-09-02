@@ -1,4 +1,5 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { openAsBlob } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { basename } from "node:path";
 
 export interface BridgeWorkflowField {
@@ -139,8 +140,9 @@ export class ComfyUIBridgeClient {
     const form = new FormData();
     form.set("request", JSON.stringify(request));
     for (const file of input.files) {
-      const bytes = await readFile(file.path);
-      form.set(`file_${file.slot.id}`, new Blob([bytes], { type: file.mime ?? "application/octet-stream" }), basename(file.path));
+      // openAsBlob 让 Undici 从磁盘按需读取 multipart 内容，避免把长视频/音频完整复制到 Node 堆。
+      const blob = await openAsBlob(file.path, { type: file.mime ?? "application/octet-stream" });
+      form.set(`file_${file.slot.id}`, blob, basename(file.path));
     }
     return this.requestJson<BridgeRun>(path, { method: "POST", body: form });
   }

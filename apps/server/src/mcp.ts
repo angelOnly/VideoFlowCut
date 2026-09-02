@@ -1,5 +1,4 @@
-import { createHash } from "node:crypto";
-import { copyFile, mkdir, readFile } from "node:fs/promises";
+import { copyFile, mkdir } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -10,6 +9,8 @@ import { DomainError } from "@videocut/domain";
 import { evaluateQuality } from "@videocut/quality";
 import { EFFECT_QUALITY_RULES, EFFECT_TYPES, type Asset, type AssetProvenance } from "@videocut/contracts";
 import { inspectComposedFrames } from "./preview-inspection.js";
+import { inspectAsset } from "./source-review.js";
+import { sha256File } from "./media-hash.js";
 
 const workspaceRoot = process.env.VIDEOCUT_WORKSPACE ?? join(process.cwd(), "workspace");
 const webOrigin = process.env.WEB_ORIGIN ?? "http://127.0.0.1:5173";
@@ -149,7 +150,8 @@ async function importLocalMedia(projectId: string, baseRevision: number, filePat
   provenance?: Omit<AssetProvenance, "acquiredAt">;
 } = {}) {
   const sourcePath = resolve(filePath);
-  const sourceHash = createHash("sha256").update(await readFile(sourcePath)).digest("hex");
+  // 导入原片可能很大；哈希用于去重，但不能为此占满进程内存。
+  const sourceHash = await sha256File(sourcePath);
   const current = application.readProject(projectId);
   const duplicate = current.snapshot.assets.find((asset) => asset.sourceHash === sourceHash);
   if (duplicate) return { duplicate: true, asset: duplicate, state: current };
@@ -414,6 +416,32 @@ server.registerTool("browse_assets", {
   try {
     const state = application.readProject(projectIdFrom(project_id));
     return asText(kind ? state.snapshot.assets.filter((asset) => asset.kind === kind) : state.snapshot.assets);
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("inspect_asset", {
+  title: "审阅原素材",
+  description: "只读地按 overview、range 或 dense 获取原素材的连续声画、联系表、声音辅助证据、转写、Shot 与当前使用位置。派生文件只写入可重建缓存，不会创建 Revision 或自动做剪辑判断。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    asset_id: z.string().min(1),
+    mode: z.enum(["overview", "range", "dense"]).default("overview"),
+    source_start_frame: z.number().int().nonnegative().optional(),
+    source_end_frame: z.number().int().positive().optional(),
+    // 与 HTTP 合同保持一致；不同入口不能对同一请求给出不同的帧数边界。
+    contact_sheet_frames: z.number().int().positive().max(48).optional()
+  },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id, asset_id, mode, source_start_frame, source_end_frame, contact_sheet_frames }) => {
+  try {
+    return asText(await inspectAsset(application, {
+      projectId: projectIdFrom(project_id),
+      assetId: asset_id,
+      mode,
+      sourceStartFrame: source_start_frame,
+      sourceEndFrame: source_end_frame,
+      contactSheetFrames: contact_sheet_frames
+    }));
   } catch (error) { return asError(error); }
 });
 
@@ -770,6 +798,46 @@ server.registerTool("submit_voice_synthesis", {
       voiceReferenceAssetId: voice_reference_asset_id,
       speechSegmentIds: speech_segment_ids,
       idempotencyKey: idempotency_key
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("submit_dialogue_processing", {
+  title: "生成对白处理试听候选",
+  description: "仅处理当前完整 SpeechAsset。必须先通过真实复听明确噪声、低频、齿音、响度或峰值问题并说明依据；Worker 生成原声、最小处理和强处理的对比候选，但不会自动替换当前 Dialogue。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    issue_types: z.array(z.enum(["noise", "low_frequency", "sibilance", "loudness", "true_peak"])).min(1).max(5),
+    evidence_note: z.string().trim().min(1).max(2_000),
+    idempotency_key: z.string().trim().min(1).max(240).optional()
+  }
+}, async ({ project_id, base_revision_id, issue_types, evidence_note, idempotency_key }) => {
+  try {
+    return asText(application.submitDialogueProcessing({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id,
+      issueTypes: issue_types,
+      evidenceNote: evidence_note,
+      idempotencyKey: idempotency_key
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("select_dialogue_processing_variant", {
+  title: "选择当前对白处理候选",
+  description: "在完整试听原声、最小处理和强处理版本后，显式选择要写入 Dialogue 轨的版本。此操作创建新 Revision，并会要求重新复核词级对齐和生成型人物口型。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    profile: z.enum(["original", "minimal", "strong"])
+  }
+}, async ({ project_id, base_revision_id, profile }) => {
+  try {
+    return asText(application.selectDialogueProcessingVariant({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id,
+      profile
     }));
   } catch (error) { return asError(error); }
 });

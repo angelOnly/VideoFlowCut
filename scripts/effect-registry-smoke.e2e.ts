@@ -197,6 +197,8 @@ async function verifyRearCueFallsBackWithoutMask(application: ReturnType<typeof 
     startFrame: 0,
     endFrame: 24,
     note: "Mask 缺失降级检查",
+    // 该测试验证空间降级，也必须提供 Registry 的正式内容；否则 Cue 会按内容合同被正确隐藏。
+    props: { metric: "42%" },
     motion: { enterPreset: "none", settlePreset: "hold", exitPreset: "none", enterFrames: 1, exitFrames: 1 }
   });
   const snapshot = application.readProject(projectId).snapshot;
@@ -524,7 +526,14 @@ async function renderRegisteredEffect(input: {
     narrativePurpose: "验证已注册组件能合成",
     audienceTask: "冒烟验证",
     assetBindings: ["ProductFan", "PortfolioWall", "EvidenceCard", "DeviceShowcase", "ContentCarousel"].includes(input.type) ? [{ slot: "primary", assetId: imported.asset.id }] : [],
-    props: input.type === "CommentCloud" ? { comments: ["真实项目评论 A", "真实项目评论 B"] } : {},
+    // 冒烟也使用各组件的正式内容合同，不能依赖 Renderer 的默认示例文案。
+    props: input.type === "CommentCloud"
+      ? { comments: ["真实项目评论 A", "真实项目评论 B"] }
+      : input.type === "MetricBackdrop"
+        ? { metric: "响应时间减少 42%" }
+        : input.type === "EndCard"
+          ? { brand: "Smoke Studio", headline: "完成本次验证", cta: "查看完整结果" }
+          : {},
     note: `Smoke: ${input.type}`,
     motion: { enterFrames: 1, exitFrames: 2 }
   });

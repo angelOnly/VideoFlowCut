@@ -15,6 +15,7 @@ import { runOneQueuedJob, type JobProcessor } from "@videocut/job-runtime";
 import { FunASRService, OmniVoiceSegmentService, probeMedia, runProcess } from "@videocut/speech";
 import type { Asset, JobKind, JobRecord, ProjectSnapshot } from "@videocut/contracts";
 import { runAvatarGeneration } from "./avatar-generation.js";
+import { runDialogueProcessing } from "./dialogue-processing.js";
 import { runMulticamSync } from "./multicam-sync.js";
 import { runMusicGeneration } from "./music-generation.js";
 import { runSpeechAlignment } from "./speech-alignment.js";
@@ -25,7 +26,7 @@ const workspaceRoot = process.env.VIDEOCUT_WORKSPACE ?? join(process.cwd(), "wor
 let defaultApplication: EditingApplication | undefined;
 const getDefaultApplication = () => (defaultApplication ??= createApplication(workspaceRoot));
 
-export const MEDIA_JOB_KINDS: JobKind[] = ["media_analysis", "vlog_analysis", "multicam_sync", "asset_acquisition", "transcription", "voice_synthesis", "speech_alignment", "music_generation", "video_generation", "avatar_generation"];
+export const MEDIA_JOB_KINDS: JobKind[] = ["media_analysis", "vlog_analysis", "multicam_sync", "asset_acquisition", "transcription", "voice_synthesis", "dialogue_processing", "speech_alignment", "music_generation", "video_generation", "avatar_generation"];
 
 const resolveAssetPath = (snapshot: ProjectSnapshot, asset: Asset) => isAbsolute(asset.managedPath) ? asset.managedPath : join(snapshot.project.rootPath, asset.managedPath);
 
@@ -194,6 +195,8 @@ export function createMediaJobProcessor(
           typeof job.payload.voiceReferenceId === "string" ? job.payload.voiceReferenceId : undefined,
           (audit) => { app.recordBridgeRun(job.id, audit); }
         );
+      case "dialogue_processing":
+        return runDialogueProcessing(app, job);
       case "speech_alignment":
         return runSpeechAlignment(app, job, bridge);
       case "music_generation":

@@ -1,7 +1,33 @@
-import { EFFECT_QUALITY_RULES, type EditorialQualityReview, type ExportPurpose, type ProjectSnapshot, type QualityIssue, type QualityReport } from "@videocut/contracts";
-import { assertProjectGraphValid, createId, DomainError, millisecondsToFrames } from "@videocut/domain";
+import { createHash } from "node:crypto";
+import { EFFECT_QUALITY_RULES, inspectEffectContentContract, type EditorialQualityReview, type ExportPurpose, type ProjectSnapshot, type QualityIssue, type QualityReport } from "@videocut/contracts";
+import { assertProjectGraphValid, DomainError, millisecondsToFrames, resolveCompositionReachability } from "@videocut/domain";
 
-const issue = (input: Omit<QualityIssue, "id">): QualityIssue => ({ id: createId("quality"), ...input });
+/**
+ * 质量问题会在 Web 刷新、预检与导出时被重复计算。不能使用随机 ID，
+ * 否则同一个未修复问题会被误认为是新的问题，已解决/忽略状态也无法稳定关联。
+ * 文案不是身份的一部分，避免仅优化提示文字就打断问题追踪。
+ */
+function stableQualityIssueId(revision: number, input: Omit<QualityIssue, "id">): string {
+  const range = input.frameRange;
+  const identity = JSON.stringify({
+    revision,
+    level: input.level,
+    code: input.code,
+    objectId: input.objectId ?? null,
+    startFrame: range?.startFrame ?? null,
+    endFrame: range?.endFrame ?? null
+  });
+  return `quality_${createHash("sha256").update(identity).digest("hex").slice(0, 24)}`;
+}
+
+/** 在全部规则收集后绑定当前 Revision，避免每个规则函数重复传递 revision。 */
+const withStableQualityIssueId = (revision: number, input: QualityIssue): QualityIssue => ({
+  ...input,
+  id: stableQualityIssueId(revision, input)
+});
+
+// 收集阶段还不知道目标 Revision；返回占位 ID，最终由 evaluateQuality 统一替换。
+const issue = (input: Omit<QualityIssue, "id">): QualityIssue => ({ id: "quality_pending", ...input });
 const effectQualityRuleSet = new Set<string>(EFFECT_QUALITY_RULES);
 
 /** 返回相交帧区间；仅用于 Cue 的显式“不要争夺主视觉”规则。 */
@@ -722,19 +748,15 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
       }
     }
   }
+  // 结构性规则仍按完整 Revision 检查；只有素材文件与授权门禁跟 Composition 对齐。
+  const compositionAssetIds = resolveCompositionReachability(snapshot).assetIds;
   for (const asset of snapshot.assets) {
-    if (asset.status === "failed" || asset.status === "missing") {
+    if (compositionAssetIds.has(asset.id) && (asset.status === "failed" || asset.status === "missing")) {
       issues.push(issue({ level: "blocking", code: "ASSET_NOT_READY", message: `素材“${asset.name}”不可用：${asset.failureReason ?? asset.status}。`, objectId: asset.id }));
     }
   }
   // 只检查实际进入当前成片的外部素材；素材库中的候选可先保持 unknown，不能因尚未使用而阻塞导出。
-  const usedAssetIds = new Set([
-    ...timeline.items.filter((item) => !item.disabled).map((item) => item.assetId),
-    ...snapshot.scenes.flatMap((scene) => scene.assetIds),
-    ...snapshot.effectCues.flatMap((cue) => cue.assetBindings.map((binding) => binding.assetId)),
-    ...(snapshot.actorPerformances ?? []).flatMap((performance) => performance.maskAssetId ? [performance.maskAssetId] : [])
-  ]);
-  for (const asset of snapshot.assets.filter((candidate) => usedAssetIds.has(candidate.id) && (candidate.provenance?.source === "provider" || candidate.provenance?.source === "generated"))) {
+  for (const asset of snapshot.assets.filter((candidate) => compositionAssetIds.has(candidate.id) && (candidate.provenance?.source === "provider" || candidate.provenance?.source === "generated"))) {
     const provenance = asset.provenance!;
     if (provenance.rightsStatus === "unknown") {
       issues.push(issue({ level: "blocking", code: "EXTERNAL_ASSET_RIGHTS_UNKNOWN", message: `外部素材“${asset.name}”尚未确认授权，不能正式导出。`, objectId: asset.id }));
@@ -1110,21 +1132,12 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
         frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
       }));
     }
-    const assetRequired = new Set(["ProductFan", "PortfolioWall", "EvidenceCard", "DeviceShowcase", "ContentCarousel"]);
-    if (assetRequired.has(cue.type) && (cue.assetBindings?.length ?? 0) === 0) {
+    const contentContract = inspectEffectContentContract(cue, snapshot.assets);
+    if (!contentContract.ready) {
       issues.push(issue({
         level: "blocking",
-        code: "EFFECT_ASSET_BINDING_REQUIRED",
-        message: `效果“${cue.type}”必须绑定真实项目素材，不能使用占位卡片。`,
-        objectId: cue.id,
-        frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
-      }));
-    }
-    if (cue.type === "CommentCloud" && !Array.isArray(cue.props?.comments)) {
-      issues.push(issue({
-        level: "blocking",
-        code: "COMMENT_CONTENT_REQUIRED",
-        message: "评论云必须提供项目真实评论文本，不能渲染固定示例评论。",
+        code: "EFFECT_CONTENT_CONTRACT_INCOMPLETE",
+        message: `效果“${cue.type}”缺少正式内容：${contentContract.missing.join("、")}。它不会渲染调试占位，请补齐后重新预览。`,
         objectId: cue.id,
         frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
       }));
@@ -1231,6 +1244,38 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     }
   }
   if (snapshot.speechAsset) {
+    const dialogueProcessing = snapshot.speechAsset.dialogueProcessing;
+    if (dialogueProcessing) {
+      const activeProfile = dialogueProcessing.selectedProfile ?? "original";
+      const activeVariant = dialogueProcessing.variants.find((variant) => variant.profile === activeProfile);
+      const activeAsset = activeVariant ? snapshot.assets.find((asset) => asset.id === activeVariant.assetId) : undefined;
+      if (!activeVariant || snapshot.speechAsset.assetId !== activeVariant.assetId
+        || !activeAsset || activeAsset.kind !== "speech" || activeAsset.status !== "ready"
+        || !activeAsset.metadata?.hasAudio || activeAsset.metadata.durationMs !== activeVariant.durationMs) {
+        issues.push(issue({
+          level: "blocking",
+          code: "DIALOGUE_PROCESSING_VARIANT_INVALID",
+          message: "Dialogue Processing 记录与当前 SpeechAsset、候选音频或时长不一致；请重新生成并登记可试听候选。",
+          objectId: snapshot.speechAsset.id
+        }));
+      }
+      if (!dialogueProcessing.selectedProfile) {
+        issues.push(issue({
+          level: "warning",
+          code: "DIALOGUE_PROCESSING_LISTENING_REQUIRED",
+          message: "对白处理候选已生成，当前仍保留原声；请完整比较原声、最小处理和强处理版本后再明确选择。",
+          objectId: snapshot.speechAsset.id
+        }));
+      } else if (dialogueProcessing.selectedProfile !== "original") {
+        // 参数与滤镜列表只能说明“做过处理”；选择派生二进制音频后必须用真实预览确认副作用。
+        issues.push(issue({
+          level: "warning",
+          code: "DIALOGUE_PROCESSING_PREVIEW_REQUIRED",
+          message: "当前 Dialogue 使用处理后的候选；请在当前 Revision 完整进行只听声音与声画预览，检查水下感、齿音、呼吸、口型和字幕同步。",
+          objectId: snapshot.speechAsset.id
+        }));
+      }
+    }
     evaluateSpeechAlignmentQuality(snapshot, issues);
     if (snapshot.speechAsset.scriptRevision !== snapshot.script.revision) {
       issues.push(issue({ level: "blocking", code: "SPEECH_SCRIPT_STALE", message: "SpeechAsset 与当前 Script Revision 不一致，需要重新生成受影响的语音段。", objectId: snapshot.speechAsset.id }));
@@ -1277,7 +1322,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
   if (timeline.durationInFrames === 0) {
     issues.push(issue({ level: "blocking", code: "EMPTY_TIMELINE", message: "时间线为空，无法预览或导出。" }));
   }
-  const technicalIssues = [...issues];
+  const technicalIssues = issues.map((entry) => withStableQualityIssueId(revision, entry));
   const allIssues = [...technicalIssues];
   const editorial: QualityReport["editorial"] = {
     status: editorialReview ? editorialReview.revision === revision ? "reviewed" : "stale" : "not_recorded",
@@ -1296,14 +1341,15 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
   if (editorialReview?.revision === revision) {
     for (const finding of editorialReview.findings) {
       if (finding.severity !== "blocking" && finding.severity !== "warning") continue;
-      const editorialIssue: QualityIssue = {
-        id: finding.id,
+      const editorialIssue = withStableQualityIssueId(revision, {
+        // EditorialFinding 自身仍保留独立 ID；这里的 QualityIssue 要与技术问题遵守同一稳定键合同。
+        id: "quality_pending",
         level: finding.severity,
         code: `EDITORIAL_${finding.category.toUpperCase()}`,
         message: finding.summary,
         objectId: finding.objectId,
         frameRange: finding.frameRange
-      };
+      });
       const category = finding.category === "mode_specific" ? "modeSpecific" : finding.category;
       editorial[category].push(editorialIssue);
       allIssues.push(editorialIssue);

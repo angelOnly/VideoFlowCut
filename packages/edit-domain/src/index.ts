@@ -41,6 +41,8 @@ import type {
 } from "@videocut/contracts";
 import { DEFAULT_TRACKS } from "@videocut/contracts";
 
+export { resolveCompositionReachability, type CompositionReachability } from "./composition-reachability";
+
 export const DEFAULT_BRIEF: CreativeBrief = {
   platform: "短视频",
   aspectRatio: "9:16",
@@ -695,6 +697,35 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
       }
     }
     for (const timing of snapshot.speechAsset.timing.segments) requireId(speechSegmentIds, timing.speechSegmentId, "SpeechTiming");
+    const processing = snapshot.speechAsset.dialogueProcessing;
+    if (processing) {
+      const expectedProfiles = ["original", "minimal", "strong"] as const;
+      const variantsByProfile = new Map(processing.variants.map((variant) => [variant.profile, variant]));
+      if (!processing.jobId.trim() || !Number.isInteger(processing.requestedRevision) || processing.requestedRevision < 1
+        || !processing.sourceAssetId.trim() || !Number.isInteger(processing.sourceDurationMs) || processing.sourceDurationMs <= 0
+        || !processing.evidenceNote.trim() || processing.processingVersion !== "v1"
+        || variantsByProfile.size !== expectedProfiles.length || expectedProfiles.some((profile) => !variantsByProfile.has(profile))) {
+        throw new DomainError("Dialogue Processing 缺少完整的候选、来源或审阅依据", "PROJECT_GRAPH_INVALID");
+      }
+      requireId(assetIds, processing.sourceAssetId, "Dialogue Processing 原声素材");
+      const original = variantsByProfile.get("original")!;
+      if (original.assetId !== processing.sourceAssetId || original.filters.length !== 0) {
+        throw new DomainError("Dialogue Processing 的原声候选必须直接引用未处理的 SpeechAsset", "PROJECT_GRAPH_INVALID");
+      }
+      for (const variant of processing.variants) {
+        requireId(assetIds, variant.assetId, "Dialogue Processing 候选素材");
+        const asset = snapshot.assets.find((candidate) => candidate.id === variant.assetId);
+        if (!asset || asset.kind !== "speech" || asset.status !== "ready" || !asset.metadata?.hasAudio
+          || !Number.isInteger(variant.durationMs) || variant.durationMs <= 0) {
+          throw new DomainError("Dialogue Processing 候选必须是已就绪的 Speech 音频", "PROJECT_GRAPH_INVALID");
+        }
+      }
+      const activeProfile = processing.selectedProfile ?? "original";
+      const active = variantsByProfile.get(activeProfile);
+      if (!active || snapshot.speechAsset.assetId !== active.assetId) {
+        throw new DomainError("当前 SpeechAsset 必须与已选择的 Dialogue Processing 候选一致", "PROJECT_GRAPH_INVALID");
+      }
+    }
   }
   const alignment = snapshot.speechAlignment;
   if (alignment) {

@@ -1962,6 +1962,7 @@ test("video-editor-mcp 可通过 stdio 连接并定位新项目", async () => {
       "apply_semantic_units",
       "update_asset_metadata",
       "manage_asset_requirements",
+      "inspect_asset",
       "search_media_candidates",
       "inspect_media_candidate",
       "acquire_media_asset",

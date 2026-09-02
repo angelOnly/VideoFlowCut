@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
-import { createReadStream, existsSync } from "node:fs";
-import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { createReadStream, createWriteStream, existsSync } from "node:fs";
+import { copyFile, mkdir, rm, stat } from "node:fs/promises";
 import { basename, extname, join, relative, resolve } from "node:path";
+import { pipeline } from "node:stream/promises";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import staticPlugin from "@fastify/static";
@@ -12,9 +13,35 @@ import { createApplication, NotFoundError, RevisionConflictError } from "@videoc
 import { DomainError } from "@videocut/domain";
 import { evaluateQuality } from "@videocut/quality";
 import type { AssetKind, EditorFocus, ProjectSnapshot } from "@videocut/contracts";
+import { inspectAsset } from "./source-review.js";
 
 const idSchema = z.string().min(1);
 const baseRevisionSchema = z.number().int().positive();
+/**
+ * 素材审阅是只读派生请求，不带 baseRevision；缓存不会进入项目 Revision。
+ * range / dense 的范围合法性和时长上限由共享服务按真实素材时长二次校验。
+ */
+const sourceReviewRequestSchema = z.object({
+  mode: z.enum(["overview", "range", "dense"]).default("overview"),
+  sourceStartFrame: z.number().int().nonnegative().optional(),
+  sourceEndFrame: z.number().int().positive().optional(),
+  contactSheetFrames: z.number().int().positive().max(48).optional()
+}).strict();
+/**
+ * 对白处理只接受人工复听后明确的问题与依据。首版固定整条 SpeechAsset，
+ * Worker 生成候选但不会在这里悄悄替换当前 Dialogue。
+ */
+const dialogueProcessingIssueSchema = z.enum(["noise", "low_frequency", "sibilance", "loudness", "true_peak"]);
+const dialogueProcessingSubmitSchema = z.object({
+  baseRevision: baseRevisionSchema,
+  issueTypes: z.array(dialogueProcessingIssueSchema).min(1).max(5),
+  evidenceNote: z.string().trim().min(1).max(2_000),
+  idempotencyKey: z.string().trim().min(1).max(240).optional()
+}).strict();
+const dialogueProcessingSelectionSchema = z.object({
+  baseRevision: baseRevisionSchema,
+  profile: z.enum(["original", "minimal", "strong"])
+}).strict();
 const actorAnchorSchema = z.object({
   x: z.number().min(0).max(1),
   y: z.number().min(0).max(1),
@@ -181,7 +208,14 @@ const assetKindFromFile = (fileName: string): AssetKind => {
 };
 
 const safeFileName = (fileName: string) => basename(fileName).replace(/[<>:"/\\|?*\x00-\x1F]/g, "_");
-const hashFile = async (path: string) => createHash("sha256").update(await readFile(path)).digest("hex");
+/** 大素材导入和去重都以流式哈希完成，不能为了计算 sourceHash 把整段视频读入内存。 */
+const hashFile = async (path: string): Promise<string> => new Promise((resolveHash, rejectHash) => {
+  const hash = createHash("sha256");
+  const stream = createReadStream(path);
+  stream.on("data", (chunk: string | Buffer) => hash.update(chunk));
+  stream.once("error", rejectHash);
+  stream.once("end", () => resolveHash(hash.digest("hex")));
+});
 
 const parseBaseRevision = (value: unknown) => baseRevisionSchema.parse(Number(value));
 
@@ -190,6 +224,32 @@ function assertPathWithin(root: string, candidate: string): void {
   if (rel.startsWith("..") || resolve(root, rel) !== resolve(candidate)) {
     throw new DomainError("文件路径不在允许的项目目录内", "UNSAFE_FILE_PATH");
   }
+}
+
+/**
+ * 原素材播放器需要按字节跳转，尤其是 range / dense 反复复核时不能每次下载整段长视频。
+ * 第一版只接受一段标准 bytes Range；多段响应会显著增加流式实现和浏览器兼容复杂度，直接返回 416。
+ */
+function parseSingleByteRange(value: string | undefined, size: number): { start: number; end: number } | undefined | null {
+  if (!value) return undefined;
+  if (!Number.isSafeInteger(size) || size <= 0) return null;
+  const match = /^bytes=(\d*)-(\d*)$/iu.exec(value.trim());
+  if (!match || (!match[1] && !match[2])) return null;
+  const parseInteger = (input: string): number | undefined => {
+    if (!input) return undefined;
+    const parsed = Number(input);
+    return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : undefined;
+  };
+  const requestedStart = parseInteger(match[1]);
+  const requestedEnd = parseInteger(match[2]);
+  if (match[1] && requestedStart === undefined || match[2] && requestedEnd === undefined) return null;
+  if (requestedStart === undefined) {
+    if (!requestedEnd || requestedEnd <= 0) return null;
+    return { start: Math.max(0, size - requestedEnd), end: size - 1 };
+  }
+  if (requestedStart >= size) return null;
+  const end = requestedEnd === undefined ? size - 1 : Math.min(requestedEnd, size - 1);
+  return end < requestedStart ? null : { start: requestedStart, end };
 }
 
 export interface ServerOptions {
@@ -374,12 +434,29 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     for await (const part of request.files()) {
       const filename = safeFileName(part.filename);
       const tempPath = join(uploadDirectory, `${Date.now()}-${Math.random().toString(36).slice(2)}-${filename}`);
-      await writeFile(tempPath, await part.toBuffer());
-      results.push(await importFile({ projectId, baseRevision: query.baseRevision, sourcePath: tempPath, originalPath: filename }));
-      const latest = application.readProject(projectId);
-      query.baseRevision = latest.revision.number;
+      try {
+        // multipart 流直接落盘；512MB 限制仍由 Fastify 执行，避免 toBuffer 造成堆内存峰值。
+        await pipeline(part.file, createWriteStream(tempPath, { flags: "wx" }));
+        if (part.file.truncated) throw new DomainError(`上传文件超过大小限制：${filename}`, "UPLOAD_FILE_TOO_LARGE");
+        results.push(await importFile({ projectId, baseRevision: query.baseRevision, sourcePath: tempPath, originalPath: filename }));
+        const latest = application.readProject(projectId);
+        query.baseRevision = latest.revision.number;
+      } finally {
+        // importFile 已把源文件复制进受管 assets/source；临时上传文件不应长期占用 cache/uploads。
+        await rm(tempPath, { force: true }).catch(() => undefined);
+      }
     }
     return { imports: results };
+  });
+
+  /**
+   * 原素材审阅只生成项目 cache/source-review 下可重建的代理与证据，
+   * 不注册 Asset、不改 Revision；MCP 复用同一 inspectAsset 服务。
+   */
+  app.post("/api/projects/:projectId/assets/:assetId/inspect", async (request) => {
+    const { projectId, assetId } = z.object({ projectId: idSchema, assetId: idSchema }).parse(request.params);
+    const body = sourceReviewRequestSchema.parse(request.body ?? {});
+    return inspectAsset(application, { projectId, assetId, ...body });
   });
 
   app.post("/api/projects/:projectId/transcription", async (request, reply) => {
@@ -885,6 +962,23 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return reply.status(202).send(application.submitVoiceSynthesis({ projectId, ...body }));
   });
 
+  /**
+   * 生成原声 / 最小处理 / 强处理三个可比较版本。提交只创建异步 Job，
+   * 任何候选都必须由操作者试听并经下一条显式选择接口才会进入 Dialogue 轨。
+   */
+  app.post("/api/projects/:projectId/dialogue-processing", async (request, reply) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = dialogueProcessingSubmitSchema.parse(request.body);
+    return reply.status(202).send(application.submitDialogueProcessing({ projectId, ...body }));
+  });
+
+  /** 选择候选会创建新 Revision；不得由 Job 完成或 Web 自动调用。 */
+  app.post("/api/projects/:projectId/dialogue-processing/select", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = dialogueProcessingSelectionSchema.parse(request.body);
+    return application.selectDialogueProcessingVariant({ projectId, ...body });
+  });
+
   /** 词级对齐是可选异步任务；没有明确 workflow 时不把段级时序伪装成 word_exact。 */
   app.post("/api/projects/:projectId/speech-alignment", async (request, reply) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
@@ -1037,6 +1131,27 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   app.post("/api/jobs/:jobId/retry", async (request, reply) => {
     const { jobId } = z.object({ jobId: idSchema }).parse(request.params);
     const oldJob = application.trackJob(jobId);
+    // 只有明确未完成的终态可以重新入队。unknown 代表外部调用结果未对账，
+    // 直接重试可能重复生成、重复扣费或造成两份不可区分的副作用。
+    if (oldJob.status === "unknown") {
+      throw new DomainError("任务结果未知；请先对账外部 Provider 或人工确认后再决定是否重试", "JOB_RETRY_REQUIRES_RECONCILIATION");
+    }
+    if (oldJob.status === "running" || oldJob.status === "queued") {
+      throw new DomainError("任务仍在执行或等待执行，不能创建重复重试任务", "JOB_RETRY_NOT_TERMINAL");
+    }
+    if (oldJob.status === "succeeded") {
+      throw new DomainError("任务已成功完成，不能创建重试任务", "JOB_RETRY_SUCCEEDED");
+    }
+    if (oldJob.status !== "failed" && oldJob.status !== "cancelled") {
+      throw new DomainError(`任务状态 ${oldJob.status} 不支持重试`, "JOB_RETRY_STATUS_UNSUPPORTED");
+    }
+    if (oldJob.kind === "dialogue_processing") {
+      const requestedRevision = (oldJob.payload as { requestedRevision?: unknown }).requestedRevision;
+      const currentRevision = application.readProject(oldJob.projectId).revision.number;
+      if (!Number.isInteger(requestedRevision) || requestedRevision !== currentRevision) {
+        throw new DomainError("对白处理绑定的 SpeechAsset / Script Revision 已变化；请基于当前 Revision 重新试听并提交，而不是重试旧任务", "DIALOGUE_PROCESSING_RETRY_STALE");
+      }
+    }
     const retry = application.repository.createJob({
       projectId: oldJob.projectId,
       kind: oldJob.kind,
@@ -1067,8 +1182,29 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const filePath = resolve(mediaRoot, wildcard);
     assertPathWithin(mediaRoot, filePath);
     if (!existsSync(filePath)) throw new NotFoundError("媒体文件不存在");
+    const file = await stat(filePath);
+    if (!file.isFile()) throw new NotFoundError("媒体路径不是可读取文件");
     const mime = mimeByExtension[extname(filePath).toLowerCase()] ?? "application/octet-stream";
-    return reply.type(mime).send(createReadStream(filePath));
+    const byteRange = parseSingleByteRange(request.headers.range, file.size);
+    if (byteRange === null) {
+      return reply.code(416).header("content-range", `bytes */${file.size}`).send();
+    }
+    if (!byteRange) {
+      return reply
+        .code(200)
+        .type(mime)
+        .header("accept-ranges", "bytes")
+        .header("content-length", String(file.size))
+        .send(createReadStream(filePath));
+    }
+    const length = byteRange.end - byteRange.start + 1;
+    return reply
+      .code(206)
+      .type(mime)
+      .header("accept-ranges", "bytes")
+      .header("content-range", `bytes ${byteRange.start}-${byteRange.end}/${file.size}`)
+      .header("content-length", String(length))
+      .send(createReadStream(filePath, byteRange));
   });
 
   if (options.serveWeb) {

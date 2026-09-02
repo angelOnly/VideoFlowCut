@@ -1,0 +1,382 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { copyFile, mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import test from "node:test";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { createServer } from "../apps/server/src/app.js";
+import { inspectAsset } from "../apps/server/src/source-review.js";
+import { probeMedia, runProcess } from "@videocut/speech";
+
+async function createSourceReviewFixture(directory: string): Promise<string> {
+  const path = join(directory, "source-review-fixture.mp4");
+  await runProcess("ffmpeg", [
+    "-y",
+    "-f", "lavfi", "-i", "testsrc2=size=96x72:rate=24:duration=3",
+    "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=1",
+    "-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono:d=1",
+    "-f", "lavfi", "-i", "sine=frequency=660:sample_rate=48000:duration=1",
+    "-filter_complex", "[1:a][2:a][3:a]concat=n=3:v=0:a=1[a]",
+    "-map", "0:v:0",
+    "-map", "[a]",
+    "-c:v", "libx264",
+    "-preset", "ultrafast",
+    "-pix_fmt", "yuv420p",
+    "-c:a", "aac",
+    "-shortest",
+    "-movflags", "+faststart",
+    path
+  ]);
+  return path;
+}
+
+async function createSpeechReviewFixture(directory: string): Promise<string> {
+  const path = join(directory, "source-review-speech.m4a");
+  await runProcess("ffmpeg", [
+    "-y",
+    "-f", "lavfi", "-i", "sine=frequency=520:sample_rate=48000:duration=2",
+    "-c:a", "aac",
+    "-movflags", "+faststart",
+    path
+  ]);
+  return path;
+}
+
+async function createVideoOnlyReviewFixture(directory: string): Promise<string> {
+  const path = join(directory, "source-review-video-only.mp4");
+  await runProcess("ffmpeg", [
+    "-y",
+    "-f", "lavfi", "-i", "testsrc2=size=96x72:rate=24:duration=3",
+    "-map", "0:v:0",
+    "-c:v", "libx264",
+    "-preset", "ultrafast",
+    "-pix_fmt", "yuv420p",
+    "-movflags", "+faststart",
+    path
+  ]);
+  return path;
+}
+
+test("inspect_asset 只生成可重建审阅缓存，并交付 overview、range、dense 的真实声画证据", async () => {
+  const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-source-review-"));
+  const server = await createServer({ workspaceRoot });
+  try {
+    const created = server.application.createProject({ name: "素材审阅测试", profile: "hybrid" });
+    const projectId = created.snapshot.project.id;
+    const fixture = await createSourceReviewFixture(workspaceRoot);
+    const sourceHash = createHash("sha256").update(await readFile(fixture)).digest("hex");
+    const registered = server.application.registerImportedAsset({
+      projectId,
+      baseRevision: server.application.readProject(projectId).revision.number,
+      name: "源素材.mp4",
+      kind: "video",
+      managedPath: "assets/source/source-review.mp4",
+      sourceHash,
+      provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+    });
+    const targetPath = join(server.application.readProject(projectId).snapshot.project.rootPath, registered.asset.managedPath);
+    await mkdir(dirname(targetPath), { recursive: true });
+    await copyFile(fixture, targetPath);
+    server.application.applyMediaAnalysis({
+      projectId,
+      assetId: registered.asset.id,
+      metadata: await probeMedia(targetPath)
+    });
+    server.application.applyTranscript({ projectId, assetId: registered.asset.id, text: "第一句。第二句。", source: "manual" });
+    server.application.buildPresenterTimeline({
+      projectId,
+      baseRevision: server.application.readProject(projectId).revision.number,
+      assetIds: [registered.asset.id]
+    });
+    const revisionBeforeInspect = server.application.readProject(projectId).revision.number;
+
+    const overview = await inspectAsset(server.application, {
+      projectId,
+      assetId: registered.asset.id,
+      mode: "overview",
+      contactSheetFrames: 4
+    });
+    assert.equal(overview.revision, revisionBeforeInspect);
+    assert.equal(server.application.readProject(projectId).revision.number, revisionBeforeInspect, "审阅缓存不应创建 Revision");
+    assert.equal(overview.contactSheet.frames.length, 4);
+    assert.ok(overview.contactSheet.frames.every((frame) => frame.relativePath.startsWith("cache/source-review/")));
+    assert.ok(overview.contactSheet.frames.every((frame) => frame.mediaPath.startsWith(`/media/${projectId}/cache/source-review/`)));
+    assert.equal(overview.transcript?.timingPrecision, "unavailable");
+    assert.ok(overview.usage.timelineItems.length > 0, "返回当前素材在 Timeline 的使用位置");
+    assert.ok(overview.requestableRanges.length > 0, "overview 应提供后续短范围候选");
+    for (const frame of overview.contactSheet.frames) {
+      const file = join(server.application.readProject(projectId).snapshot.project.rootPath, frame.relativePath);
+      assert.ok((await stat(file)).size > 0);
+    }
+
+    const range = await inspectAsset(server.application, {
+      projectId,
+      assetId: registered.asset.id,
+      mode: "range",
+      sourceStartFrame: 12,
+      sourceEndFrame: 48,
+      contactSheetFrames: 4
+    });
+    assert.equal(range.proxy?.kind, "video");
+    assert.ok(range.proxy?.relativePath.startsWith("cache/source-review/"));
+    assert.ok(range.audio.waveform, "带音轨的短范围应生成波形");
+    assert.ok(range.audio.silenceRanges.length >= 1, "静音段应作为辅助证据返回");
+    const proxyMetadata = await probeMedia(join(server.application.readProject(projectId).snapshot.project.rootPath, range.proxy!.relativePath));
+    assert.equal(proxyMetadata.videoCodec, "h264");
+    assert.equal(proxyMetadata.hasAudio, true);
+
+    const dense = await inspectAsset(server.application, {
+      projectId,
+      assetId: registered.asset.id,
+      mode: "dense",
+      sourceStartFrame: 24,
+      sourceEndFrame: 48
+    });
+    assert.equal(dense.contactSheet.density, "high");
+    assert.ok(dense.contactSheet.frames.length >= 8, "dense 在短窗口内应比 range 提供更高的帧密度");
+
+    const cachedOverview = await inspectAsset(server.application, {
+      projectId,
+      assetId: registered.asset.id,
+      mode: "overview",
+      contactSheetFrames: 4
+    });
+    assert.deepEqual(cachedOverview.contactSheet.frames.map((frame) => frame.relativePath), overview.contactSheet.frames.map((frame) => frame.relativePath), "同一缓存键必须复用同一派生文件");
+
+    const response = await server.app.inject({
+      method: "POST",
+      url: `/api/projects/${projectId}/assets/${registered.asset.id}/inspect`,
+      payload: { mode: "range", sourceStartFrame: 12, sourceEndFrame: 48, contactSheetFrames: 3 }
+    });
+    assert.equal(response.statusCode, 200);
+    const fromHttp = response.json() as { mode: string; proxy?: { mediaPath: string }; sourceRange?: { startFrame: number; endFrame: number } };
+    assert.equal(fromHttp.mode, "range");
+    assert.equal(fromHttp.sourceRange?.startFrame, 12);
+    assert.ok(fromHttp.proxy?.mediaPath.startsWith(`/media/${projectId}/`));
+    assert.equal(server.application.readProject(projectId).revision.number, revisionBeforeInspect, "HTTP 入口同样不能改 Revision");
+
+    // MCP 必须复用同一个只读服务；不能为了工具入口另建临时素材或不同缓存语义。
+    const environment = Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
+    const transport = new StdioClientTransport({
+      command: process.platform === "win32" ? "npm.cmd" : "npm",
+      args: ["run", "mcp"],
+      cwd: process.cwd(),
+      env: { ...environment, VIDEOCUT_WORKSPACE: workspaceRoot },
+      stderr: "pipe"
+    });
+    const client = new Client({ name: "videocut-source-review-test", version: "1.0.0" });
+    try {
+      await client.connect(transport);
+      assert.ok((await client.listTools()).tools.some((tool) => tool.name === "inspect_asset"), "MCP 必须发现 inspect_asset");
+      const toolResult = await client.callTool({
+        name: "inspect_asset",
+        arguments: { project_id: projectId, asset_id: registered.asset.id, mode: "dense", source_start_frame: 24, source_end_frame: 48, contact_sheet_frames: 8 }
+      });
+      const content = (toolResult as { content?: unknown }).content;
+      assert.ok(Array.isArray(content), "inspect_asset 必须返回 MCP content 数组");
+      const text = content.find((entry): entry is { type: "text"; text: string } => (
+        Boolean(entry) && typeof entry === "object" && (entry as { type?: unknown }).type === "text"
+          && typeof (entry as { text?: unknown }).text === "string"
+      ))?.text;
+      assert.ok(text, "inspect_asset 必须返回标准文本结果");
+      const fromMcp = JSON.parse(text) as { mode: string; sourceRange?: { startFrame: number; endFrame: number }; contactSheet: { frames: unknown[] } };
+      assert.equal(fromMcp.mode, "dense");
+      assert.deepEqual(fromMcp.sourceRange, { startFrame: 24, endFrame: 48, startMs: 1_000, endMs: 2_000, fps: 24 });
+      assert.equal(fromMcp.contactSheet.frames.length, 8);
+      assert.equal(server.application.readProject(projectId).revision.number, revisionBeforeInspect, "MCP 审阅同样不能创建 Revision");
+    } finally {
+      await transport.close().catch(() => undefined);
+    }
+  } finally {
+    await server.app.close();
+    server.application.close();
+    await rm(workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("inspect_asset 把 SpeechAsset 当作连续音频候选，范围复核会生成音频代理与波形", async () => {
+  const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-source-review-speech-"));
+  const server = await createServer({ workspaceRoot });
+  try {
+    const created = server.application.createProject({ name: "旁白审阅测试", profile: "presenter_motion" });
+    const projectId = created.snapshot.project.id;
+    const fixture = await createSpeechReviewFixture(workspaceRoot);
+    const sourceHash = createHash("sha256").update(await readFile(fixture)).digest("hex");
+    const registered = server.application.registerImportedAsset({
+      projectId,
+      baseRevision: server.application.readProject(projectId).revision.number,
+      name: "旁白候选.m4a",
+      kind: "speech",
+      managedPath: "assets/source/source-review-speech.m4a",
+      sourceHash,
+      provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+    });
+    const targetPath = join(server.application.readProject(projectId).snapshot.project.rootPath, registered.asset.managedPath);
+    await mkdir(dirname(targetPath), { recursive: true });
+    await copyFile(fixture, targetPath);
+    server.application.applyMediaAnalysis({
+      projectId,
+      assetId: registered.asset.id,
+      metadata: await probeMedia(targetPath)
+    });
+
+    const beforeInspect = server.application.readProject(projectId).revision.number;
+    const review = await inspectAsset(server.application, {
+      projectId,
+      assetId: registered.asset.id,
+      mode: "range",
+      sourceStartFrame: 0,
+      sourceEndFrame: 24
+    });
+    assert.equal(review.proxy?.kind, "audio");
+    assert.ok(review.proxy?.relativePath.endsWith(".m4a"));
+    assert.ok(review.audio.waveform, "speech 范围复核必须生成波形");
+    assert.equal(server.application.readProject(projectId).revision.number, beforeInspect, "语音审阅同样不应创建 Revision");
+  } finally {
+    await server.app.close();
+    server.application.close();
+    await rm(workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("inspect_asset 对无音轨 derived 视频与 derived 音频按真实媒体流选择审阅路径", async () => {
+  const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-source-review-derived-"));
+  const server = await createServer({ workspaceRoot });
+  try {
+    const created = server.application.createProject({ name: "派生素材审阅测试", profile: "hybrid" });
+    const projectId = created.snapshot.project.id;
+    const videoFixture = await createVideoOnlyReviewFixture(workspaceRoot);
+    const audioFixture = await createSpeechReviewFixture(workspaceRoot);
+
+    const registerDerived = async (name: string, fixture: string) => {
+      const sourceHash = createHash("sha256").update(await readFile(fixture)).digest("hex");
+      const registered = server.application.registerImportedAsset({
+        projectId,
+        baseRevision: server.application.readProject(projectId).revision.number,
+        name,
+        kind: "derived",
+        managedPath: `assets/derived/${name}`,
+        sourceHash,
+        provenance: { source: "generated", provider: "source-review-test", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+      });
+      const targetPath = join(server.application.readProject(projectId).snapshot.project.rootPath, registered.asset.managedPath);
+      await mkdir(dirname(targetPath), { recursive: true });
+      await copyFile(fixture, targetPath);
+      server.application.applyMediaAnalysis({
+        projectId,
+        assetId: registered.asset.id,
+        metadata: await probeMedia(targetPath)
+      });
+      return { assetId: registered.asset.id, targetPath };
+    };
+
+    const video = await registerDerived("generated-video.mp4", videoFixture);
+    const audio = await registerDerived("generated-audio.m4a", audioFixture);
+    const videoReview = await inspectAsset(server.application, {
+      projectId,
+      assetId: video.assetId,
+      mode: "range",
+      sourceStartFrame: 0,
+      sourceEndFrame: 24,
+      contactSheetFrames: 4
+    });
+    assert.equal(videoReview.proxy?.kind, "video", "有 videoCodec 和时长的 derived 必须按视频审阅");
+    assert.equal(videoReview.contactSheet.frames.length, 4, "derived 视频必须生成联系表");
+    assert.equal(videoReview.audio.hasAudio, false, "无音轨视频必须明确降级而非伪造波形");
+    assert.equal(videoReview.audio.waveform, undefined);
+    const videoProxy = await probeMedia(join(server.application.readProject(projectId).snapshot.project.rootPath, videoReview.proxy!.relativePath));
+    assert.equal(videoProxy.hasAudio, false, "无音轨范围代理仍必须可播放");
+
+    const audioReview = await inspectAsset(server.application, {
+      projectId,
+      assetId: audio.assetId,
+      mode: "range",
+      sourceStartFrame: 0,
+      sourceEndFrame: 24
+    });
+    assert.equal(audioReview.proxy?.kind, "audio", "无视觉流的 derived 必须按音频审阅");
+    assert.ok(audioReview.audio.waveform, "derived 音频范围复核必须生成波形");
+  } finally {
+    await server.app.close();
+    server.application.close();
+    await rm(workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("inspect_asset 的当前使用只返回实际 Composition 可达对象", async () => {
+  const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-source-review-reachability-"));
+  const server = await createServer({ workspaceRoot });
+  try {
+    const created = server.application.createProject({ name: "素材审阅可达性测试", profile: "presenter_motion" });
+    const projectId = created.snapshot.project.id;
+    const fixture = await createSourceReviewFixture(workspaceRoot);
+    const sourceHash = createHash("sha256").update(await readFile(fixture)).digest("hex");
+    const registered = server.application.registerImportedAsset({
+      projectId,
+      baseRevision: server.application.readProject(projectId).revision.number,
+      name: "可达性源素材.mp4",
+      kind: "video",
+      managedPath: "assets/source/reachability.mp4",
+      sourceHash,
+      provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+    });
+    const targetPath = join(server.application.readProject(projectId).snapshot.project.rootPath, registered.asset.managedPath);
+    await mkdir(dirname(targetPath), { recursive: true });
+    await copyFile(fixture, targetPath);
+    server.application.applyMediaAnalysis({ projectId, assetId: registered.asset.id, metadata: await probeMedia(targetPath) });
+    const presenter = server.application.buildPresenterTimeline({
+      projectId,
+      baseRevision: server.application.readProject(projectId).revision.number,
+      assetIds: [registered.asset.id],
+      sceneSize: 1
+    });
+    const hostScene = presenter.snapshot.scenes[0]!;
+    const withCutaway = server.application.manageCutaway({
+      projectId,
+      baseRevision: presenter.revision.number,
+      action: "create",
+      hostSceneId: hostScene.id,
+      assetId: registered.asset.id,
+      mode: "fullscreen",
+      fit: "cover",
+      audioMode: "continue_dialogue",
+      purpose: "测试失效 Cutaway 不应算当前使用",
+      audienceTask: "仅验证可达性",
+      sourceStartFrame: 0,
+      sourceEndFrame: 12,
+      startFrame: hostScene.startFrame,
+      endFrame: hostScene.startFrame + 12
+    });
+    server.application.repository.commit(projectId, withCutaway.revision.number, "素材审阅可达性测试状态", (snapshot) => {
+      const videoItem = snapshot.timeline.items.find((item) => item.assetId === registered.asset.id && item.sceneId === hostScene.id);
+      const videoTrack = snapshot.timeline.tracks.find((track) => track.id === videoItem?.trackId);
+      const audioTrack = snapshot.timeline.tracks.find((track) => track.kind === "audio");
+      const cutaway = snapshot.cutaways[0];
+      assert.ok(videoItem && videoTrack && audioTrack && cutaway, "测试必须建立主画面、音频轨与 Cutaway");
+      videoTrack.hidden = true;
+      audioTrack.muted = true;
+      snapshot.timeline.items.push({
+        id: "muted-source-review-audio",
+        trackId: audioTrack.id,
+        assetId: registered.asset.id,
+        startFrame: 0,
+        endFrame: 12,
+        sourceStartFrame: 0,
+        sourceEndFrame: 12,
+        disabled: false
+      });
+      cutaway.status = "stale";
+    });
+
+    const review = await inspectAsset(server.application, { projectId, assetId: registered.asset.id, mode: "overview" });
+    assert.equal(review.usage.timelineItems.length, 0, "隐藏视频轨和静音音频轨不能称为当前成片使用");
+    assert.equal(review.usage.cutaways.length, 0, "stale Cutaway 不能称为当前成片使用");
+    assert.equal(review.usage.scenes.length, 0, "只有不可达 Item 的 Scene 不能称为当前成片使用");
+  } finally {
+    await server.app.close();
+    server.application.close();
+    await rm(workspaceRoot, { recursive: true, force: true });
+  }
+});

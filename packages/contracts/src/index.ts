@@ -160,6 +160,8 @@ export type JobKind =
   | "asset_acquisition"
   | "transcription"
   | "voice_synthesis"
+  /** 保留原声并生成最小 / 强处理候选；选择候选是独立的 Revision 写入。 */
+  | "dialogue_processing"
   /** 对已组装的 SpeechAsset 执行真实强制对齐；没有真实输出时不能把精度标为 word_exact。 */
   | "speech_alignment"
   /** 受控音乐 Provider 的异步生成；运行前必须动态读取其最新 Schema。 */
@@ -622,7 +624,43 @@ export interface SpeechAsset {
   scriptRevision: number;
   segmentAssetIds: Id[];
   timing: SpeechTiming;
+  /**
+   * 对当前旁白总轨的受控处理记录。候选生成不会替换 assetId，只有人工试听后
+   * 显式选择 variant 才会切换 Dialogue 轨，避免“更干净”被自动当成更好。
+   */
+  dialogueProcessing?: DialogueProcessing;
   status: "ready" | "failed";
+}
+
+/** 首版只处理完整 SpeechAsset，不把源素材、Room Tone 或局部拼接伪装成已经支持。 */
+export type DialogueProcessingIssue = "noise" | "low_frequency" | "sibilance" | "loudness" | "true_peak";
+export type DialogueProcessingProfile = "original" | "minimal" | "strong";
+
+export interface DialogueProcessingVariant {
+  profile: DialogueProcessingProfile;
+  /** original 直接引用未改写的源 Asset；其它 profile 是 Worker 生成并核验的本地 WAV。 */
+  assetId: Id;
+  /** 实际启用的 FFmpeg 滤镜摘要，供试听与问题追溯，不能把它当成审美通过结论。 */
+  filters: string[];
+  durationMs: number;
+  contentHash?: string;
+}
+
+/**
+ * Job 是异步执行审计；该对象保存当前 SpeechAsset 可试听候选与已选版本，
+ * 因而随 Revision 可回读，且不会滥用仅属于 BGM / SFX 的 AudioCue。
+ */
+export interface DialogueProcessing {
+  jobId: Id;
+  requestedRevision: number;
+  sourceAssetId: Id;
+  sourceDurationMs: number;
+  issueTypes: DialogueProcessingIssue[];
+  evidenceNote: string;
+  processingVersion: "v1";
+  variants: DialogueProcessingVariant[];
+  selectedProfile?: DialogueProcessingProfile;
+  createdAt: string;
 }
 
 /** VoiceReference 只记录本地参考音频 Asset，不保存或伪造远端 Voice ID。 */
@@ -961,6 +999,76 @@ export interface EffectCue {
   motion: EffectMotion;
   stylePackId: string;
   qualityRules: string[];
+}
+
+/**
+ * EffectCue 的内容完整性是派生事实：它只读取当前 Revision 中的 Cue、Props 与正式素材，
+ * 不单独写回项目状态。这样 Renderer、质量门禁和 Web 可以共享同一条“能否正式出现”的边界。
+ */
+export interface EffectContentContractResult {
+  ready: boolean;
+  /** 面向操作者的最小缺失项；不包含任何调试占位文案。 */
+  missing: string[];
+}
+
+const nonEmptyEffectText = (value: unknown): boolean => typeof value === "string" && Boolean(value.trim());
+const finiteEffectNumber = (value: unknown): boolean => typeof value === "number" && Number.isFinite(value);
+
+/**
+ * 每种 Registry 效果都必须消费项目真实内容。此函数不评价动效好不好，
+ * 只阻止缺素材、缺文案时把“示例卡/默认口号”渲染进 Preview 或成片。
+ */
+export function inspectEffectContentContract(cue: EffectCue, assets: readonly Asset[]): EffectContentContractResult {
+  const readyAssetIds = new Set(assets.filter((asset) => asset.status === "ready").map((asset) => asset.id));
+  const boundAssetCount = (cue.assetBindings ?? []).filter((binding) => readyAssetIds.has(binding.assetId)).length;
+  const props = cue.props ?? {};
+  const text = (...keys: string[]) => keys.some((key) => nonEmptyEffectText(props[key]));
+  // note 是剪辑理由与审计备注，不是可直接进成片的文案；正式可视文字必须明确写进 props。
+  const headline = text("headline", "title", "label", "text");
+  const missing: string[] = [];
+
+  switch (cue.type) {
+    case "MetricBackdrop":
+      if (!(text("metric", "value") || finiteEffectNumber(props.metric) || finiteEffectNumber(props.value) || headline)) missing.push("可核对的指标或标题");
+      break;
+    case "ProductFan":
+      if (boundAssetCount < 1) missing.push("至少一个已就绪的产品素材绑定");
+      break;
+    case "GlowCTA":
+      if (!headline) missing.push("行动文案");
+      break;
+    case "PortfolioWall":
+      if (boundAssetCount < 1) missing.push("至少一个已就绪的案例素材绑定");
+      break;
+    case "CommentCloud": {
+      const comments = Array.isArray(props.comments)
+        ? props.comments.filter((entry) => nonEmptyEffectText(entry))
+        : [];
+      if (comments.length === 0) missing.push("至少一条真实评论文本");
+      break;
+    }
+    case "EvidenceCard":
+      if (boundAssetCount < 1) missing.push("已就绪的证据素材绑定");
+      if (!(headline || text("source", "caption", "claim"))) missing.push("证据说明");
+      break;
+    case "CameraPunch":
+      break;
+    case "FullScreenMeme":
+      if (!headline) missing.push("全屏表达文案");
+      break;
+    case "DeviceShowcase":
+      if (boundAssetCount < 1) missing.push("已就绪的设备或界面素材绑定");
+      break;
+    case "ContentCarousel":
+      if (boundAssetCount < 1) missing.push("至少一个已就绪的内容素材绑定");
+      break;
+    case "EndCard":
+      if (!text("brand", "brandName")) missing.push("项目品牌");
+      if (!(headline || text("headline", "title"))) missing.push("结束主文案");
+      if (!text("cta", "ctaText")) missing.push("行动文案");
+      break;
+  }
+  return { ready: missing.length === 0, missing };
 }
 
 export interface TimelineTrack {
