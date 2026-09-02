@@ -1,8 +1,8 @@
-# VideoFlowCut Professional Skills Suite
+# VideoFlowCut Professional Skills Suite（历史评审资料）
 
-这是一套面向 VideoFlowCut 的完整专业 Skills 草案，覆盖架构文档中定义的 **23 个 Skills**。它不是只描述业务流程的占位文件，而是把剪辑、导演、声音、文字、视觉、动效、证据、素材和质量判断写成可执行的 Agent 方法。
+这里保留早期 23 个 Skills 的评审、目录和来源资料。其可执行 `.agents/skills/` 已由 V5 接入根目录并移除，避免与当前运行时 Skills 形成第二个权威来源。
 
-## 目录
+## 已归档的原始结构
 
 ```text
 .agents/skills/
@@ -17,9 +17,9 @@
 - 与项目 MCP 的职责边界；
 - 对真实合成画面和完整声画的验证要求。
 
-## 推荐阅读顺序
+## 当前推荐阅读顺序
 
-1. `.agents/skills/_shared/editorial-principles.md`
+1. `.agents/skills/_shared/EDITORIAL_FOUNDATIONS.md`
 2. `.agents/skills/production-director/SKILL.md`
 3. 当前主模式：
    - 人物口播：`presenter-motion-director`
@@ -35,23 +35,9 @@
 5. `SKILLS_CATALOG.md`
 6. `SKILL_EVALS.md`
 
-## 集成方式
+## 当前使用
 
-将本包中的：
-
-```text
-.agents/skills/
-```
-
-复制到 VideoFlowCut 仓库根目录。先保留当前实现做对比，不建议未经审查直接覆盖。逐个检查：
-
-- 实际 MCP 工具名；
-- 项目对象名；
-- Web 对象定位能力；
-- 当前 Scene/Effect Registry；
-- 运行中的 API 合同。
-
-Skills 内没有直接查询数据库或实现 MCP。执行时始终以实时工具 Schema 和项目状态为准。
+运行时唯一来源是根目录 `.agents/skills/`。V5 的结构、主工作流、交接合同和 MCP 输入约束以 `docs/skills-v5/`、根目录 `AGENTS.md`、`.agents/skills/_shared/MCP_EXECUTION_CONTRACT.md` 及其静态测试为准。
 
 ## 本套 Skills 的设计原则
 

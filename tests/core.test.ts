@@ -569,7 +569,7 @@ test("ProductionRun 缺少真实创作证据时保持 incomplete，且不复制 
     const run = await context.app.startProductionRun({
       projectId: created.snapshot.project.id,
       loadedSkills: ["production-director", "semantic-continuity"],
-      loadedReferences: ["_shared/editorial-principles.md"]
+      loadedReferences: [".agents/skills/_shared/EDITORIAL_FOUNDATIONS.md"]
     });
     const recorded = await context.app.recordCreativeDecision({
       projectId: created.snapshot.project.id,
@@ -1129,9 +1129,14 @@ test("项目级 Codex 配置校验真实 Skill 合同，而不是旧 Markdown �
     "web-editor-operator",
     "production-director",
     "asset-import",
+    "visual-asset-sourcing",
     "transcription",
     "voice-production",
     "presenter-motion-director",
+    "avatar-performance",
+    "visual-explainer-director",
+    "evidence-visualization",
+    "vlog-director",
     "captions",
     "quality-verification",
     "export",
@@ -1147,8 +1152,8 @@ test("项目级 Codex 配置校验真实 Skill 合同，而不是旧 Markdown �
     assert.ok(frontMatter, `${skillName} 缺少 YAML Front Matter`);
     assert.match(frontMatter![1], new RegExp(`^name:\\s*${skillName.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}\\s*$`, "mu"), `${skillName} 的 name 必须与目录一致`);
     assert.match(frontMatter![1], /^description:\s*\S+/mu, `${skillName} 缺少 description`);
-    assert.match(skill, /##\s+(退出条件|验证与退出)/u, `${skillName} 缺少退出条件`);
-    assert.match(skill, /##\s+(专业判断|角色|当前执行顺序|工作方法|执行步骤|使用范围|操作前|调整原则|先建立生产合同|选择主路线|每次写入前|写后验证|启用状态|后续工作原则)/u, `${skillName} 缺少可执行的专业方法`);
+    assert.match(skill, /##\s+(退出条件|验证与退出|停止条件|最终检查|完成标准|交接合同|交接)/u, `${skillName} 缺少退出或交接条件`);
+    assert.ok(skill.length >= 1_000, `${skillName} 应保留足够的专业方法与案例，而不是退回短标题索引`);
     const references = [...skill.matchAll(/\]\(([^)]+\.md)\)/gu)].map((match) => match[1]!);
     for (const reference of references) {
       if (/^[a-z]+:\/\//iu.test(reference)) continue;

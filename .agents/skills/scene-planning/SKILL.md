@@ -1,36 +1,106 @@
 ---
 name: scene-planning
-description: 以认知或情绪任务规划、创建和复核 Scene，避免把每句话或每张卡片误当成一个独立场景。
+description: 把 NarrativeBeat、Visual Treatment、可用素材和主画面转换为有明确认知任务、边界、内部状态、进入、稳定与退出的 Scene；不把每句旁白拆成独立卡片。
 ---
 
-# Scene 规划与场景语法
+# Scene 规划、边界和内部状态
 
-## 使用范围
+## Scene 是持续的视觉模型
 
-新增、合并、拆分或重构 Scene，以及选择 PresenterScene、ExplainerScene、VlogMontageScene、CutawayScene 或 EndCardScene 时使用。
+Scene 不是一个动画，也不是一张卡片。它是一段观众能够持续理解的视觉或空间模型：人物在同一构图中完成一组观点；一张页面从全貌逐步聚焦到证据；一个分类图从空框架逐项填充；一段 Vlog 在同一地点和事件里推进动作。
 
-## 必须执行
+如果每句话都创建一个新 Scene，观众必须反复重新建立空间、对象和规则，视频会像逐页 PPT。若完全不分 Scene，人物、证据、UI 和解释对象又会在同一个容器中堆叠，失去主次。`scene-planning` 的任务是找到“需要重新建立视觉模型”的真正边界。
 
-1. 用一句话定义：观众在本 Scene 结束时应理解或感受到什么。
-2. 读取相邻 Beat、Scene、SpeechTiming、目标画幅、字幕与人物/素材状态。
-3. 只在认知模型、地点/时间、证据类型、章节或情绪明显改变时切新 Scene。
-4. 当前可创建的基础 Scene 使用 create_scene；写后读取 Project 与 ImpactReport。
-5. 预览入口、稳定状态、信息递进和退出，确认跨 Scene 连续播放不迷失。
+## Scene 边界由什么触发
 
-## 专业判断
+常见边界包括：观众问题发生变化；主视觉从人物转为证据或机制；地点、时间或事件改变；主要对象和空间关系改变；情绪阶段改变；需要全屏阅读；章节进入或结尾收束。
 
-同一空间、对象、比较框架、文件、UI 或情绪状态的多个 Beat 应尽量共享 Scene，通过逐步增加对象、标签、关系或状态推进，而不是每句话换背景。
+不应只因为素材文件换了、旁白句号出现或某个动画结束就切 Scene。Presenter 可以在同一 Scene 内连续说多个 SemanticUnit，并由 EffectCue 做局部变化；Explainer 可以在一个大 Scene 中逐步增加对象和状态；Vlog 同一事件可以由多个 Shot 组成。
 
-## 当前能力边界
+## 为每个 Scene 写一个认知任务
 
-项目 Scene 目前只持久化类型、标题、目的、范围和素材引用，不保存 Entry/Progressive/Settled/Exit 状态，也没有完整 Scene 编译器。它们可写入本次计划和预览检查，不能伪造为项目字段。
+“展示三个卡片”不是任务；“让观众理解三类用户的差异，并记住第三类风险最高”才是任务。Scene 任务应说明：进入时观众知道什么；离开时应新增什么；第一注意目标是什么；哪些对象需要持续存在；什么信息不能提前出现。
 
-## 按需读取
+当一个 Scene 同时承担身份、复杂流程、证据、情绪和 CTA，通常说明范围过大。反过来，若两个连续 Scene 共享同一对象、同一问题和同一视觉规则，只是旁白继续解释，应考虑合并。
 
-- 何时切场景：references/scene-boundaries.md。
-- 场景内递进：references/internal-progression.md。
-- 对象连续与信息上限：references/scene-coherence.md。
+## 内部状态：Entry、Progressive、Settled、Exit
 
-## 退出条件
+### Entry
 
-每个 Scene 有明确任务和合理边界；现有能力实际创建的 Scene 与预览结果保持一致。
+先让观众知道自己在哪里、正在看什么。人物 Scene 可能只需保持人物；文档 Scene 先显示页面全貌和来源；分类 Scene 先建立容器或坐标；UI Scene 先显示设备和当前页面。直接从复杂局部开始会让观众迷失。
+
+### Progressive
+
+内部变化应对应旁白或动作的逻辑。列表逐项出现、流程沿路径推进、对比先 A 后 B、页面先聚焦再高亮。Progressive State 不是为了不停动，而是控制信息释放。
+
+### Settled
+
+信息完整、可读、空间关系清楚。复杂 Scene 的价值往往在稳定状态，而不是入场。Settled Frame 应给观众足够时间比较和记忆。
+
+### Exit
+
+为下一 Scene 让路并保留必要连续性。对象可以淡出、缩回、被新画面接管或通过声音桥连接。退出不应在观众刚看懂时立刻发生，也不应留下无意义停顿。
+
+## 对象持续性
+
+如果一个对象跨多个解释步骤保持含义，应尽量在同一 Scene 内持续，而不是每步重新创建。对象位置、颜色和名称稳定可以降低认知成本。只有当对象角色、空间或观看任务改变时才重新建立。
+
+例如解释“收入—时间—自由”的关系，可以在同一 Scene 中先出现收入和时间，再显示箭头与限制，最后让自由区域缩小；不需要三句话三张不同卡片。反之，从这个抽象模型转到真实日常 B-roll 时，主视觉和证据类型改变，应切 Scene。
+
+## 当前 Scene Type 的选择
+
+当前 MCP 的 `create_scene` 只可创建以下五种类型：
+
+- PresenterScene：人物关系和语言主导；
+- ExplainerScene：认知模型、关系、状态或数据主导；
+- CutawayScene：现实素材、完整展示或短中断；
+- VlogMontageScene：事件、动作、反应和环境声主导；
+- EndCardScene：收束、记忆与行动。
+
+来源阅读、文档和 UI 操作目前没有独立的 Scene 类型。先把真实文档、网页、截图或 UI 录屏登记为 Asset：需要解释状态、关系或阅读顺序时使用 `ExplainerScene`，需要完整展示或短暂打断人物主画面时使用 `CutawayScene`。`DocumentScene` 与 `UIShowcaseScene` 在本 Skill 中只是在描述观看任务，不是当前 MCP 可创建类型，也不能传给 `create_scene`。
+
+类型帮助默认布局和质量规则，不代替具体任务。
+
+## Presenter、Explainer 和 Vlog 的 Scene 差异
+
+PresenterScene 的连续性来自同一人物关系和声音；内部 Effect可以变化，但人物通常持续。ExplainerScene 的连续性来自同一认知对象和空间模型；人物可以消失。VlogMontageScene 的连续性来自同一事件、地点、动作或音乐段落；多个镜头可以快速变化。
+
+同样的 10 秒时长在三种 Scene 中意义不同。不能用统一“每 Scene 两个素材”规则。
+
+## Scene 和 StoryBeat 的关系
+
+一个 Beat 可以被一个 Scene完整表达，也可以跨多个 Scene（人物提出问题、全屏解释、回人物结论）；一个 Scene 也可以覆盖多个紧密相关 Beat。关系应由观看任务决定，并保持可追溯。Scene purpose 不能只写“承载主叙事”。
+
+## Scene 之间的桥
+
+桥可以来自声音、持续对象、颜色、动作、问题或空间。人物说“具体看这张图”并 L-cut 到文档；流程中的一个对象放大后成为下一 Scene 主体；Vlog 中门的声音提前引入室内。Transition 特效不是唯一桥。
+
+## 锁定与自动编译
+
+用户通过 Web 精调 Scene 或 Cue 后，后续自动编译不应静默覆盖。若项目已有 direct_override 或批准状态，重编译应保留、产生冲突或请求复核。删除上游 Beat 后，锁定对象也不能留下悬空语义。
+
+## Scene 质量问题的根因
+
+Scene 太短可能是信息过多、旁白太快或边界错误；Scene 太长可能是内部没有 Progressive State、内容重复或需要 Reality B-roll；看起来像 PPT 可能是视觉机制错误，不只是动画少；切换突兀可能来自声音和问题没有桥。
+
+## 当前项目写入
+
+当前 MCP 可以 `browse_scene_types`、`create_scene`，Presenter 正式链路还可使用 `compile_presenter_scenes`。创建 Scene 时必须有真实 start/end frame、purpose、类型和相关 Asset。架构中的完整 Scene Compiler、内部 State 和可编辑 Scene Props 尚未全部实现时，可以先形成计划并使用当前能表达的范围，不声称复杂渐进状态已经自动编译。
+
+Scene 创建后读回 Project、Scene、Timeline、Impact，并渲染必要范围。若 Scene 内部需要 Remotion 组件，再调用 `remotion-production`；时机交给 `effect-timing`，空间交给 `depth-composition`。
+
+## 场景切换的声音
+
+视觉切 Scene 不一定要切声音。L-cut 可以让人物声音继续，J-cut 可以提前引入新环境；证据 Scene 可能保持旁白稳定；Vlog 地点切换需要环境声建立新空间。Scene Planning 应把声音交接写清，避免视觉和听觉同时突然断裂。
+
+## 反例：逐句 PPT
+
+旁白：“第一类用户追求便宜。第二类用户追求稳定。第三类用户担心隐私。”错误做法是每句话一张标题卡。更好的做法是一个 ProgressiveClassification Scene：先建立三列，随着旁白逐项出现，最后用颜色或空间突出第三类风险。观众保留同一坐标，理解是累积的。
+
+## 边界案例：人物与全屏解释
+
+人物先讲个人经历，随后说“真正的问题是一个循环”。如果观众仍需要相信人物，先在人物旁边出现轻量循环提示；当开始解释循环各环节时，切全屏 ExplainerScene。边界不是关键词“循环”出现的瞬间，而是观看任务从相信人物转为理解模型的时刻。
+
+## 交接合同
+
+输入是 StoryBeat、Visual Treatment、可用 Asset、声音/人物状态和当前 Timeline。输出是 Scene 类型、目的、边界、内部状态、持续对象和声音交接。它会影响 EffectCue、Caption、Cutaway 和 Preview。验证是 Entry、Progressive、Settled、Exit 与连续播放。结果回到主工作流或 `remotion-production`。

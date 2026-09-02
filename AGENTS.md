@@ -14,6 +14,19 @@
 - 只是文字说不清时，自己找最少该改的位置；如果会改变产品决定、功能范围或已确认方案，先说清影响，等用户决定。
 - 改完检查差异，撤回范围外改动，并告诉用户改了什么、为什么改、有什么代价或未处理事项。
 
+## Skills 工作流规则
+
+- 完整视频任务先读取 `project-basics` 与 `production-director`，由后者只选择一个主要视频工作流。
+- 人物口播、视觉解释片和 Vlog 分别由 `presenter-motion-director`、`visual-explainer-director`、`vlog-director` 从输入负责到交付。
+- 主工作流到达具体阶段后才读取专项 Skill；专项结果必须以项目对象、失效范围和验证证据返回主工作流。
+- 局部字幕、声音、B-roll、单个 Remotion Scene 或遮挡任务可以直接进入对应专项 Skill，不重跑整片。
+- `.codex/config.toml` 登记表示可发现，不表示一次任务全部加载。
+- `loadedSkills`、SkillExecutionReport 和文件存在都不能代替实际交接、Preview 和审片。
+- 运行时 Skills 的唯一来源是根目录 `.agents/skills/`；`docs/` 只保存架构、目录、评审与验收资料，不保存第二棵可执行 Skills 树。
+- 引用 MCP 工具时必须读取实时 Schema；架构目标尚未实现时只形成计划，不伪造执行。
+- 代码能力、Skill、配置和路由/交接测试必须在同一个 PR 更新。
+- 创作型 Skill 以连续专业解释和案例为主体，清单只用于执行和防漏。
+
 ## 注意事项
 
 - 关键代码添加精炼易懂的中文注释

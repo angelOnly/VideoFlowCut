@@ -70,7 +70,7 @@ async function main(): Promise<void> {
     const projectId = created.snapshot.project.id;
     const run = JSON.parse(textFromToolResult(await client.callTool({
       name: "start_production_run",
-      arguments: { project_id: projectId, base_revision_id: created.revision.number, loaded_skills: requiredSkills, loaded_references: ["_shared/editorial-principles.md"] }
+      arguments: { project_id: projectId, base_revision_id: created.revision.number, loaded_skills: requiredSkills, loaded_references: [".agents/skills/_shared/EDITORIAL_FOUNDATIONS.md"] }
     }))) as { id: string; loadedSkills: string[] };
     assert.deepEqual(run.loadedSkills, requiredSkills);
 

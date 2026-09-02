@@ -25,6 +25,10 @@ path = "../.agents/skills/asset-import"
 enabled = true
 
 [[skills.config]]
+path = "../.agents/skills/visual-asset-sourcing"
+enabled = true
+
+[[skills.config]]
 path = "../.agents/skills/transcription"
 enabled = true
 
@@ -34,6 +38,10 @@ enabled = true
 
 [[skills.config]]
 path = "../.agents/skills/presenter-motion-director"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/avatar-performance"
 enabled = true
 
 [[skills.config]]
@@ -71,6 +79,18 @@ enabled = true
 
 [[skills.config]]
 path = "../.agents/skills/cutaway-planning"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/visual-explainer-director"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/evidence-visualization"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/vlog-director"
 enabled = true
 
 [[skills.config]]

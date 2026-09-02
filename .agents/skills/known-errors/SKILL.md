@@ -1,41 +1,101 @@
 ---
 name: known-errors
-description: 诊断 VideoCut 的 Revision、素材、Bridge、渲染、质量和导出失败，并在不重复副作用的前提下恢复或降级。
+description: 处理 Revision 过期、素材未就绪、Bridge 409、run_id 丢失、输出缺失、浏览器解码、Remotion、Mask、Preview、导出和结果未知等确定性错误；创作问题退回专业负责人。
 ---
 
-# 已知错误、降级与恢复
+# 已知错误、结果未知与可靠恢复
 
-## 使用范围
+## 先区分技术错误和创作问题
 
-任意 MCP、Web、Worker、Bridge、预览或导出任务失败、冲突、超时或结果未知时使用；也用于“能渲染但不好看”的创作失败路由。
+技术错误有明确状态或合同，例如 Revision 冲突、Schema 409、文件损坏、Job 失败、Asset 不可读、Remotion 渲染异常。创作问题是语义不完整、B-roll 无关、节奏单调、字幕竞争和 Scene 像 PPT。不要把所有问题都放进 known-errors，也不要用重试处理审美问题。
 
-## 必须执行
+## Revision 过期
 
-1. 保存原始错误、项目与 Revision、对象、Job/run_id、幂等键、请求摘要、输出和观察时间。
-2. 先分类为 contract、revision、job、asset、timing、scene、remotion、quality、export 或 unknown。
-3. 超时或断连时先读回 Revision、对象和 Job，确认是否已产生副作用后再重试。
-4. 每次恢复后写后读回，并只重验受影响范围和必要的连续播放。
+症状：写入基于旧 `base_revision_id` 被拒绝。处理：重新 `read_project` 和目标对象，查看其它修改与 Impact，重新判断原操作是否仍成立，再基于新 Revision 提交。禁止简单替换 Revision 数字后重放。
 
-## 常见处理
+## Project 未定位或对象不存在
 
-- Revision 冲突：重新读取最新状态、重新判断，不静默覆盖。
-- Bridge Run 丢失、失败或缺输出：保留诊断，检查当前 Schema、输出种类和源媒体，再决定是否重试。
-- QUALITY_GATE_BLOCKED：修复阻塞状态，不绕过导出门禁。
-- 动效像 PPT、B-roll 无关、字幕抢画面、音乐压对白：路由到对应专业 Skill，而不是把创作问题伪装成 HTTP 错误。
+先 `list_projects` / `target_project`。对象 ID 来自当前 Revision；旧 Scene、Cue 或 Item 可能已被删除。不要用名称猜 ID，也不要创建一个“差不多”的新对象掩盖引用失效。
 
-## 禁止行为
+## Asset 未就绪
 
-- 看到 500 或超时就重复提交。
-- 删除对象或错误证据来掩盖问题。
-- 用静默降级掩盖当前能力缺失。
-- 将技术恢复当作审美通过。
+区分文件不存在、元数据失败、无音轨、浏览器不支持、Render Worker 不可读、权利未知和角色错误。查看 Asset、Job 和 failureReason。无音轨对静音 B-roll可以合法，对 VoiceReference 不合法。不要把所有状态都标记为 failed。
 
-## 按需读取
+## Bridge 409
 
-- 错误域的重试、降级和阻断：references/recovery-matrix.md。
-- Bridge HTTP 状态：references/bridge-and-api-errors.md。
-- 创作失败症状路由：references/creative-failure-patterns.md。
+工作流 Schema 已变化或不可用。重新读取 Workflow Detail，检查 available/reason，用新的 schemaVersion、fields 和 itemSlots 重建请求。不能只替换版本号而保留旧 field ID。
 
-## 退出条件
+## run_id 丢失
 
-错误已恢复、明确降级或明确阻断；项目没有结果未知的半写状态，下一步和代价可被用户理解。
+ComfyUI 重启后旧 run 可能无法查询。检查本项目 Job、请求摘要、本地下载和目标 Asset。如果输出已下载并验证，不重复生成；没有副作用且任务无法恢复时，使用幂等策略重提。对生成内容要记录新 run 和结果差异。
+
+## Job succeeded 但输出缺失
+
+这是失败，不是成功。检查 outputs kind、downloadUrl、MIME、文件大小和本地注册。文本工作流读取 text，不寻找文件；音视频要下载并校验。HTML 错误页不能当媒体。
+
+## Preview 抽帧失败
+
+确认 Preview Job 属于当前 Project、Revision 和范围，文件存在且可解码。当前实现会先删除同名旧帧，防止误用历史证据。不要在抽帧失败时仍引用旧截图作为本次审片。
+
+## 浏览器和 Render Worker 不一致
+
+检查是否使用同一 Revision Snapshot、资源路径、字体、编解码器、画幅和 Runtime 版本。浏览器正常而导出失败时，不用浏览器截图冒充最终 Artifact；修复环境或资源。
+
+## Mask 错误
+
+检查 Mask Asset、时长、帧率、分辨率和边缘。无 Mask 时使用明确降级，不把 rear layer 当真实人物后景。Mask 失败属于人物/合成技术问题；“后景不该出现”属于视觉判断。
+
+## Remotion 组件失败
+
+先区分 Props/AssetBinding 错、组件 Bug、局部时间错误、资源不可读和布局问题。生产任务只使用 Registry；新组件开发失败不能手写未审核代码作为 Fallback。组件修复后需要 Registry/Golden/Player/Render 回归。
+
+## Export 失败
+
+Delivery 门禁失败时先查看 blocking 或 EditorialReview 缺失；Render 失败时查看日志和 Asset；文件技术验证失败时保留临时诊断但不发布。禁止静默交付只有 A-roll、缺字幕或缺动效的降级文件。
+
+## 结果未知的通用规则
+
+```text
+先读 Job
+→ 读 Project/Revision
+→ 查目标对象和本地文件
+→ 判断是否已有副作用
+→ 只有确认没有时才重试
+```
+
+不要把“没有收到响应”当“没有执行”。
+
+## 常见错误代码与归属示例
+
+| 情况 | 首先检查 | 返回负责人 |
+|---|---|---|
+| `PROJECT_NOT_TARGETED` | Project ID / target_project | project-basics |
+| Revision conflict | 当前 Revision 和并发修改 | 原专项重新判断 |
+| `UNSUPPORTED_MEDIA` / media failed | 扩展、MIME、ffprobe、编码 | asset-import |
+| Bridge 409 | Workflow Detail 与新 Schema | transcription / voice / provider |
+| `PREVIEW_NOT_READY` | Job 类型、状态、Revision | web/quality |
+| `COMPOSED_FRAME_EXTRACTION_FAILED` | Preview 文件、帧范围、ffmpeg | preview runtime |
+| `PROJECT_GRAPH_INVALID` | 悬空 Story/Scene/Item/Cue | Application + 原负责人 |
+| `EDITORIAL_REVIEW_REQUIRED` | 同 Revision Preview 与五轮 Review | quality-verification |
+| `REMOTION_EXPORT_FAILED` | Runtime、Asset、字体、组件 | remotion/export |
+| B-roll 无关 | 不是技术重试问题 | visual-treatment/cutaway |
+
+具体错误名称以当前代码为准，表格用于分类思路。
+
+## 日志和用户沟通
+
+用户需要知道发生了什么、是否产生副作用、下一步是什么；不需要看到无法行动的长堆栈。内部日志保存 Project、Revision、Job、run_id、工具、错误码和资源，但避免泄露密钥和敏感本地内容。
+
+## 不允许的恢复
+
+- 删除数据库行让错误“消失”；
+- 将 failed Job 改成 succeeded；
+- 使用旧 Preview/帧冒充新证据；
+- 跳过 Rights 或 Review；
+- Remotion 失败时交付只含主轨文件；
+- 工具缺失时伪造返回；
+- 创作问题反复重试同一技术任务。
+
+## 交接
+
+技术错误恢复后返回原主工作流或专项 Skill，让其重新判断结果是否仍符合创作意图。已恢复不代表质量通过；必要时重新 Preview 和审片。

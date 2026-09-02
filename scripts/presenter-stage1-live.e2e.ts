@@ -122,8 +122,8 @@ async function main(): Promise<void> {
       loaded_skills: liveSkills,
       loaded_references: [
         "docs/asr接入.md",
-        ".agents/skills/_shared/editorial-principles.md",
-        ".agents/skills/_shared/mcp-and-project-contract.md"
+        ".agents/skills/_shared/EDITORIAL_FOUNDATIONS.md",
+        ".agents/skills/_shared/PROJECT_REVISION_AND_HANDOFF.md"
       ]
     });
 
