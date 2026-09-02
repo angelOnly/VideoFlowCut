@@ -586,13 +586,69 @@ server.registerTool("submit_voice_synthesis", {
 
 server.registerTool("read_captions", {
   title: "读取字幕卡",
-  description: "读取最终 Caption Program 与其时序精度。",
+  description: "读取最终 Caption Program、语音来源文字与其段级时序精度。",
   inputSchema: { project_id: z.string().optional() },
   annotations: { readOnlyHint: true }
 }, async ({ project_id }) => {
   try {
     const snapshot = application.readProject(projectIdFrom(project_id)).snapshot;
     return asText(snapshot.timeline.captions);
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("edit_captions", {
+  title: "编辑稳定字幕卡",
+  description: "只编辑当前 SpeechAsset 对应 Caption Card 的屏幕文案、有限排版和一个连续短语强调；不会改 Script、语音或段级时间。occurrence 从 0 开始计数。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    caption_id: z.string().min(1),
+    action: z.enum(["update", "reset"]),
+    text: z.string().max(80).optional(),
+    format: z.object({
+      font_size: z.number().int().min(16).max(72).optional(),
+      font_weight: z.number().int().min(400).max(900).optional(),
+      color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").optional(),
+      background_color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").nullable().optional(),
+      bottom_percent: z.number().min(4).max(20).optional(),
+      horizontal_inset_percent: z.number().min(3).max(20).optional(),
+      text_align: z.enum(["left", "center", "right"]).optional()
+    }).strict().optional(),
+    emphasis: z.object({
+      text: z.string().min(1).max(40),
+      occurrence: z.number().int().nonnegative(),
+      color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").optional(),
+      background_color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").optional(),
+      font_weight: z.number().int().min(400).max(900).optional(),
+      scale: z.number().min(0.8).max(1.35).optional()
+    }).strict().nullable().optional()
+  }
+}, async ({ project_id, base_revision_id, caption_id, action, text, format, emphasis }) => {
+  try {
+    return asText(application.editCaptions({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id,
+      captionId: caption_id,
+      action,
+      text,
+      format: format === undefined ? undefined : {
+        fontSize: format.font_size,
+        fontWeight: format.font_weight,
+        color: format.color,
+        backgroundColor: format.background_color,
+        bottomPercent: format.bottom_percent,
+        horizontalInsetPercent: format.horizontal_inset_percent,
+        textAlign: format.text_align
+      },
+      emphasis: emphasis === undefined || emphasis === null ? emphasis : {
+        text: emphasis.text,
+        occurrence: emphasis.occurrence,
+        color: emphasis.color,
+        backgroundColor: emphasis.background_color,
+        fontWeight: emphasis.font_weight,
+        scale: emphasis.scale
+      }
+    }));
   } catch (error) { return asError(error); }
 });
 

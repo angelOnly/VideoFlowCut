@@ -71,7 +71,7 @@ description: 为最终可播放语音建立准确、可读、语义分卡、与�
 
 ## 当前工具与能力
 
-当前 MCP 可 `read_captions`，项目会基于 SpeechAsset 建立稳定段级字幕。架构目标 `edit_captions` 的完整 Card/Span/Style 能力尚未在当前代码全部暴露时，可以通过现有 Web/项目能力做有限调整，不能声称动态逐词系统已完成。
+当前 MCP 可 `read_captions` 与 `edit_captions`。后者只能对当前、与 Script 一致的 SpeechAsset 所生成的稳定 Card 做原子修改：屏幕文案（最多两行）、有限字号/颜色/安全区、一个连续强调短语，或恢复语音原文；它不接受时间范围，也不会改 Script、SpeechSegment 和声音。若主线原文或时序变化，旧 Card 会被明确 stale 或重建，不能静默沿用。`occurrence` 从 0 开始，仍没有逐词时间或逐词动画能力。
 
 任何修改后要读回 Caption、Revision、Impact，渲染真实 Preview。只看文本 JSON 不能发现遮挡、行宽、画幅和阅读时间问题。
 

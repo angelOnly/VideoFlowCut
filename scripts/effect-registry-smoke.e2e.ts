@@ -276,6 +276,73 @@ async function verifyCutawayRender(application: ReturnType<typeof createApplicat
   return { fullscreenPath: fullscreenPreviewPath, pipPath: pipPreviewPath, fullscreenPixel, pipPixel, backgroundPixel };
 }
 
+/**
+ * 字幕不是只在 JSON 中存在：用明确的红色 Card 背景验证稳定文案、换行安全区和样式
+ * 已进入真实 Remotion 合成。这里不声称词级时间，只验证 Card 级渲染路径。
+ */
+async function verifyCaptionCardRender(application: ReturnType<typeof createApplication>, renderer: RevisionRenderer): Promise<{ outputPath: string; pixel: [number, number, number] }> {
+  const created = application.createProject({ name: "Caption Card Render" });
+  const projectId = created.snapshot.project.id;
+  const projectRoot = created.snapshot.project.rootPath;
+  const sourceDirectory = join(projectRoot, "assets", "source");
+  await mkdir(sourceDirectory, { recursive: true });
+  const backgroundPath = join(sourceDirectory, "caption-background.mp4");
+  await createColorVideo(backgroundPath, "0x102040", 2);
+  const background = application.registerImportedAsset({
+    projectId,
+    baseRevision: created.revision.number,
+    name: "caption-background.mp4",
+    kind: "video",
+    managedPath: join("assets", "source", "caption-background.mp4"),
+    sourceHash: "caption-render-background"
+  });
+  application.applyMediaAnalysis({ projectId, assetId: background.asset.id, metadata: await probeMedia(backgroundPath) });
+  const presenter = application.buildPresenterTimeline({
+    projectId,
+    baseRevision: application.readProject(projectId).revision.number,
+    assetIds: [background.asset.id],
+    sceneSize: 1
+  });
+  const withCaption = application.repository.commit(projectId, presenter.revision.number, "写入字幕渲染冒烟数据", (snapshot) => {
+    snapshot.speechSegments.push({
+      id: "caption_smoke_segment",
+      semanticUnitIds: [],
+      text: "CAPTION",
+      order: 0,
+      pauseBefore: { durationMs: 0, reason: "sentence" },
+      status: "ready"
+    });
+    snapshot.timeline.captions.push({
+      id: "caption_smoke_card",
+      speechSegmentId: "caption_smoke_segment",
+      sourceText: "CAPTION",
+      text: "CAPTION",
+      textMode: "derived",
+      startFrame: 0,
+      endFrame: 24,
+      style: "stable",
+      format: {
+        fontSize: 64,
+        fontWeight: 800,
+        color: "#ffffff",
+        backgroundColor: "#ff0000",
+        bottomPercent: 10,
+        horizontalInsetPercent: 8,
+        textAlign: "center"
+      },
+      emphasis: { text: "TION", occurrence: 0, color: "#ffd166", fontWeight: 850, scale: 1.05 },
+      precision: "segment_exact"
+    });
+  });
+  const outputPath = join(projectRoot, "previews", "caption-card.mp4");
+  await renderer.renderRange(withCaption.snapshot, 0, 1, outputPath);
+  await validateExport(outputPath, Math.round(1_000 / withCaption.snapshot.timeline.fps));
+  // 红色背景位于底部 10% 的中央文字 Card，取首行上方填充区，避开浅色字形。
+  const pixel = await readRgbPixel(outputPath, 275, 1_118);
+  assert.ok(pixel[0] > pixel[1] + 70 && pixel[0] > pixel[2] + 70, `稳定字幕 Card 应写入真实合成，实际 RGB=${pixel.join(",")}`);
+  return { outputPath, pixel };
+}
+
 /** 单组件单项目渲染，避免 Registry 冒烟因并行视频解码而掩盖某个组件本身的失败。 */
 async function renderRegisteredEffect(input: {
   application: ReturnType<typeof createApplication>;
@@ -365,6 +432,7 @@ async function main(): Promise<void> {
       results.push(await renderRegisteredEffect({ application, renderer, fixturePath, type, index }));
     }
     assert.equal(results.length, EFFECT_TYPES.length, "11 个 Registry 类型必须都完成真实合成");
+    const captionRender = await verifyCaptionCardRender(application, renderer);
     // 局部时间验证使用独立 Project/Renderer，避免 Registry 冒烟的多项目缓存影响短素材解码。
     const lateWorkspaceRoot = await mkdtemp(join(tmpdir(), "videocut-late-bound-"));
     const lateApplication = createApplication(lateWorkspaceRoot);
@@ -397,6 +465,7 @@ async function main(): Promise<void> {
       test: "effect-registry-smoke",
       effectTypes: EFFECT_TYPES,
       results,
+      captionRender,
       lateBoundPlayback,
       rearCueFallback,
       cutawayRender

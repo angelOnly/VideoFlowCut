@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill, Audio, Sequence, useCurrentFrame, Video } from "remotion";
-import type { ActorPerformance, Cutaway, EffectCue, ProjectSnapshot, TimelineItem, TimelineTrack } from "@videocut/contracts";
+import type { ActorPerformance, CaptionCard, CaptionFormat, Cutaway, EffectCue, ProjectSnapshot, TimelineItem, TimelineTrack } from "@videocut/contracts";
 import { compileCutawayLayout, cutawaySourceVolume } from "./cutaway-layout";
 import { compileCameraPunchLayout, compileMotionLayout, resolveEffectStylePack, type EffectStylePack } from "./motion-layout";
 
@@ -8,6 +8,19 @@ export interface CompositionProps {
   snapshot: ProjectSnapshot;
   mediaBaseUrl: string;
 }
+
+/**
+ * Render Worker 当前不会解析工作区 TypeScript 路径别名；此处保持与 Contract 相同的受类型约束默认值，
+ * 让 Player 与 Render 均可直接打包。Card 上保存的 format 始终优先于默认值。
+ */
+const DEFAULT_RENDER_CAPTION_FORMAT = {
+  fontSize: 32,
+  fontWeight: 750,
+  color: "#ffffff",
+  bottomPercent: 7,
+  horizontalInsetPercent: 8,
+  textAlign: "center"
+} satisfies CaptionFormat;
 
 const mediaUrl = (snapshot: ProjectSnapshot, mediaBaseUrl: string, managedPath: string) => {
   const safePath = managedPath.replace(/\\/g, "/").split("/").map(encodeURIComponent).join("/");
@@ -126,21 +139,38 @@ const CueLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue:
   </div>;
 };
 
-const CaptionLayer: React.FC<{ text: string }> = ({ text }) => (
-  <div style={{
+function captionEmphasisIndex(text: string, phrase: string, occurrence: number): number {
+  let index = -1;
+  for (let current = 0; current <= occurrence; current += 1) {
+    index = text.indexOf(phrase, index + 1);
+    if (index < 0) return -1;
+  }
+  return index;
+}
+
+/** 首版只做 Card 级强调：不按字符猜时间，不把稳定字幕升级成逐词弹跳。 */
+const CaptionLayer: React.FC<{ caption: CaptionCard }> = ({ caption }) => {
+  const format = { ...DEFAULT_RENDER_CAPTION_FORMAT, ...caption.format };
+  const emphasis = caption.emphasis;
+  const emphasisIndex = emphasis ? captionEmphasisIndex(caption.text, emphasis.text, emphasis.occurrence) : -1;
+  const before = emphasisIndex >= 0 && emphasis ? caption.text.slice(0, emphasisIndex) : caption.text;
+  const focused = emphasisIndex >= 0 && emphasis ? caption.text.slice(emphasisIndex, emphasisIndex + emphasis.text.length) : "";
+  const after = emphasisIndex >= 0 && emphasis ? caption.text.slice(emphasisIndex + emphasis.text.length) : "";
+  return <div style={{
     position: "absolute",
-    left: "8%",
-    right: "8%",
-    bottom: "7%",
-    color: "#fff",
-    fontSize: 32,
-    fontWeight: 750,
+    left: `${format.horizontalInsetPercent}%`,
+    right: `${format.horizontalInsetPercent}%`,
+    bottom: `${format.bottomPercent}%`,
+    color: format.color,
+    fontSize: format.fontSize,
+    fontWeight: format.fontWeight,
     lineHeight: 1.36,
-    textAlign: "center",
+    textAlign: format.textAlign,
     textShadow: "0 3px 14px #000",
-    fontFamily: "Inter, Noto Sans SC, sans-serif"
-  }}>{text}</div>
-);
+    fontFamily: "Inter, Noto Sans SC, sans-serif",
+    whiteSpace: "pre-wrap"
+  }}><span style={format.backgroundColor ? { display: "inline", padding: "0.13em 0.32em", borderRadius: "0.22em", backgroundColor: format.backgroundColor } : undefined}>{before}{focused && emphasis && <span style={{ display: "inline-block", color: emphasis.color ?? format.color, backgroundColor: emphasis.backgroundColor, fontWeight: emphasis.fontWeight ?? Math.min(900, format.fontWeight + 100), transform: emphasis.scale === undefined ? undefined : `scale(${emphasis.scale})`, transformOrigin: "center bottom" }}>{focused}</span>}{after}</span></div>;
+};
 
 const itemDuration = (item: TimelineItem) => item.endFrame - item.startFrame;
 const itemVolume = (item: TimelineItem, track: TimelineTrack) => track.muted ? 0 : Math.pow(10, (item.gainDb ?? 0) / 20);
@@ -239,7 +269,7 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
     {rearCues.filter((cue) => !hasMaskedActorFor(cue)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} fallback />)}
     {cuesAt("actor", "front").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
     {cuesAt("fullscreen").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
-    {snapshot.timeline.captions.map((caption) => <Sequence key={caption.id} from={caption.startFrame} durationInFrames={caption.endFrame - caption.startFrame}><CaptionLayer text={caption.text} /></Sequence>)}
+    {snapshot.timeline.captions.map((caption) => <Sequence key={caption.id} from={caption.startFrame} durationInFrames={caption.endFrame - caption.startFrame}><CaptionLayer caption={caption} /></Sequence>)}
     {audioItems.map((item) => <AudioLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} />)}
   </AbsoluteFill>;
 };

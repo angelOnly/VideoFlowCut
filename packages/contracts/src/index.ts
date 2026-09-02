@@ -551,12 +551,48 @@ export interface Cutaway {
 export interface CaptionCard {
   id: Id;
   speechSegmentId: Id;
+  /** 当前 SpeechSegment 的原始可播放文字；手工改屏幕文案时仍可回到语音事实。 */
+  sourceText?: string;
   text: string;
+  /** derived 表示仍显示语音原文，manual 仅表示屏幕文案被单独编辑，不会改写 Script。 */
+  textMode?: "derived" | "manual";
   startFrame: number;
   endFrame: number;
   style: "stable";
+  /** 稳定字幕允许有限的排版与强调，不开放任意 CSS 或伪造词级时间。 */
+  format?: CaptionFormat;
+  emphasis?: CaptionEmphasis;
   precision: TimingPrecision;
 }
+
+export interface CaptionFormat {
+  fontSize: number;
+  fontWeight: number;
+  color: string;
+  backgroundColor?: string;
+  bottomPercent: number;
+  horizontalInsetPercent: number;
+  textAlign: "left" | "center" | "right";
+}
+
+/** 第一版只支持一个连续短语强调；它始终在 Card 级时序内，不声称具备逐词时间。 */
+export interface CaptionEmphasis {
+  text: string;
+  occurrence: number;
+  color?: string;
+  backgroundColor?: string;
+  fontWeight?: number;
+  scale?: number;
+}
+
+export const DEFAULT_CAPTION_FORMAT: CaptionFormat = {
+  fontSize: 32,
+  fontWeight: 750,
+  color: "#ffffff",
+  bottomPercent: 7,
+  horizontalInsetPercent: 8,
+  textAlign: "center"
+};
 
 export interface TimelineDocument {
   fps: number;

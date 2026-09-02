@@ -11,6 +11,9 @@ import type {
   ActorMaskMode,
   ActorPerformanceSource,
   BridgeRunAudit,
+  CaptionCard,
+  CaptionEmphasis,
+  CaptionFormat,
   CreativeBrief,
   Cutaway,
   CutawayAudioMode,
@@ -75,6 +78,7 @@ import {
   now,
   trackByName
 } from "@videocut/domain";
+import { DEFAULT_CAPTION_FORMAT } from "@videocut/contracts";
 import { evaluateQuality } from "@videocut/quality";
 
 type ProjectRow = {
@@ -158,6 +162,12 @@ function normalizeSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
   snapshot.cutaways ??= [];
   snapshot.voiceReferences ??= [];
   snapshot.transcriptSentenceCandidates ??= [];
+  for (const caption of snapshot.timeline.captions ?? []) {
+    // 旧快照没有保存原始语音文案时，以当时已经渲染的文字作为可回退来源。
+    caption.sourceText ??= caption.text;
+    caption.textMode ??= "derived";
+    caption.format ??= { ...DEFAULT_CAPTION_FORMAT };
+  }
   for (const reference of snapshot.voiceReferences) {
     // 旧 Revision 没有这些字段时只补默认提示，不伪造用户已取得授权的事实。
     reference.source ??= "local_asset";
@@ -260,6 +270,94 @@ function requireText(value: string | undefined, label: string): string {
   const text = value?.trim() ?? "";
   if (!text) throw new DomainError(`${label}不能为空`, "REQUIRED_TEXT_MISSING");
   return text;
+}
+
+type CaptionFormatPatch = Partial<Omit<CaptionFormat, "backgroundColor">> & { backgroundColor?: string | null };
+
+const captionColorPattern = /^#[0-9a-f]{6}$/iu;
+
+/** 保留用户主动换行，但限制为稳定双行字幕，避免把段级 Card 变成整页文字。 */
+function normalizeCaptionText(value: string, label = "字幕文案"): string {
+  const text = value
+    .replace(/\r\n?/gu, "\n")
+    .replace(/[ \t]+\n/gu, "\n")
+    .replace(/\n[ \t]+/gu, "\n")
+    .replace(/\n{3,}/gu, "\n\n")
+    .trim();
+  if (!text) throw new DomainError(`${label}不能为空`, "CAPTION_TEXT_REQUIRED");
+  if (text.length > 80) throw new DomainError(`${label}不能超过 80 个字符`, "CAPTION_TEXT_TOO_LONG");
+  if (text.split("\n").length > 2) throw new DomainError(`${label}最多允许两行`, "CAPTION_TOO_MANY_LINES");
+  return text;
+}
+
+function requireCaptionColor(value: string | undefined, label: string): string | undefined {
+  if (value === undefined) return undefined;
+  if (!captionColorPattern.test(value)) throw new DomainError(`${label}必须是 #RRGGBB 颜色`, "INVALID_CAPTION_COLOR");
+  return value.toLowerCase();
+}
+
+/** 只接收明确的字幕排版字段，避免把任意 CSS 写进可渲染 Project Snapshot。 */
+function applyCaptionFormat(current: CaptionFormat | undefined, patch: CaptionFormatPatch): CaptionFormat {
+  // backgroundColor 的 null 只表示显式移除背景，不应作为运行时颜色写入 Snapshot。
+  const { backgroundColor, ...rawFormatPatch } = patch;
+  // MCP 解构会携带未传字段的 undefined；它们不能覆盖既有安全排版值。
+  const formatPatch = Object.fromEntries(Object.entries(rawFormatPatch).filter(([, value]) => value !== undefined)) as Partial<Omit<CaptionFormat, "backgroundColor">>;
+  const next: CaptionFormat = { ...DEFAULT_CAPTION_FORMAT, ...current, ...formatPatch };
+  if (backgroundColor === null) delete next.backgroundColor;
+  else if (backgroundColor !== undefined) next.backgroundColor = backgroundColor;
+  if (!Number.isInteger(next.fontSize) || next.fontSize < 16 || next.fontSize > 72) {
+    throw new DomainError("字幕字号必须在 16 到 72 之间", "INVALID_CAPTION_FONT_SIZE");
+  }
+  if (!Number.isInteger(next.fontWeight) || next.fontWeight < 400 || next.fontWeight > 900) {
+    throw new DomainError("字幕字重必须在 400 到 900 之间", "INVALID_CAPTION_FONT_WEIGHT");
+  }
+  if (!Number.isFinite(next.bottomPercent) || next.bottomPercent < 4 || next.bottomPercent > 20) {
+    throw new DomainError("字幕底部安全区必须在 4% 到 20% 之间", "INVALID_CAPTION_BOTTOM");
+  }
+  if (!Number.isFinite(next.horizontalInsetPercent) || next.horizontalInsetPercent < 3 || next.horizontalInsetPercent > 20) {
+    throw new DomainError("字幕左右安全区必须在 3% 到 20% 之间", "INVALID_CAPTION_INSET");
+  }
+  next.color = requireCaptionColor(next.color, "字幕颜色")!;
+  const normalizedBackgroundColor = requireCaptionColor(next.backgroundColor, "字幕背景颜色");
+  if (normalizedBackgroundColor === undefined) delete next.backgroundColor;
+  else next.backgroundColor = normalizedBackgroundColor;
+  if (!["left", "center", "right"].includes(next.textAlign)) {
+    throw new DomainError("字幕对齐方式无效", "INVALID_CAPTION_ALIGNMENT");
+  }
+  return next;
+}
+
+function occurrenceIndex(text: string, phrase: string, occurrence: number): number {
+  let index = -1;
+  for (let offset = 0; offset <= occurrence; offset += 1) {
+    index = text.indexOf(phrase, index + 1);
+    if (index < 0) return -1;
+  }
+  return index;
+}
+
+function normalizeCaptionEmphasis(value: CaptionEmphasis, captionText: string): CaptionEmphasis {
+  const text = requireText(value.text, "字幕强调短语");
+  if (text.length > 40 || text.includes("\n")) {
+    throw new DomainError("字幕强调短语必须是一行不超过 40 个字符的连续文字", "INVALID_CAPTION_EMPHASIS_TEXT");
+  }
+  if (!Number.isInteger(value.occurrence) || value.occurrence < 0 || occurrenceIndex(captionText, text, value.occurrence) < 0) {
+    throw new DomainError("字幕强调短语必须是当前字幕中的连续文字", "CAPTION_EMPHASIS_NOT_FOUND");
+  }
+  if (value.scale !== undefined && (!Number.isFinite(value.scale) || value.scale < 0.8 || value.scale > 1.35)) {
+    throw new DomainError("字幕强调缩放必须在 0.8 到 1.35 之间", "INVALID_CAPTION_EMPHASIS_SCALE");
+  }
+  if (value.fontWeight !== undefined && (!Number.isInteger(value.fontWeight) || value.fontWeight < 400 || value.fontWeight > 900)) {
+    throw new DomainError("字幕强调字重必须在 400 到 900 之间", "INVALID_CAPTION_EMPHASIS_WEIGHT");
+  }
+  return {
+    text,
+    occurrence: value.occurrence,
+    color: requireCaptionColor(value.color, "字幕强调颜色"),
+    backgroundColor: requireCaptionColor(value.backgroundColor, "字幕强调背景颜色"),
+    fontWeight: value.fontWeight,
+    scale: value.scale
+  };
 }
 
 function normalizedTextList(values: string[] | undefined): string[] {
@@ -1649,6 +1747,11 @@ export class EditingApplication {
     };
     snapshot.speechSegmentAssets = snapshot.speechSegmentAssets.filter((segmentAsset) => currentIds.has(segmentAsset.speechSegmentId));
     snapshot.speechAsset = undefined;
+    if (snapshot.timeline.captions.length > 0) {
+      // 不能静默沿用旧语音的 Card；下一次 SpeechAsset 组装会以最新段级时序重建字幕。
+      impact.stale.push(...snapshot.timeline.captions.map((caption) => caption.id));
+      impact.recomputed.push("失效 Caption Program");
+    }
     snapshot.timeline.captions = [];
     for (const performance of snapshot.actorPerformances) {
       if (performance.source === "generated" && performance.scriptRevision !== snapshot.script.revision) {
@@ -2853,16 +2956,38 @@ export class EditingApplication {
     });
     snapshot.timeline.items.push(dialogueItem);
     snapshot.speechAsset = speechAsset;
+    const previousCaptions = new Map(snapshot.timeline.captions.map((caption) => [caption.speechSegmentId, caption]));
     snapshot.timeline.captions = speechAsset.timing.segments.map((timing) => {
       const segment = snapshot.speechSegments.find((candidate) => candidate.id === timing.speechSegmentId);
       if (!segment) throw new DomainError("SpeechTiming 引用了不存在的 SpeechSegment", "SPEECH_TIMING_SEGMENT_MISSING");
+      const previous = previousCaptions.get(segment.id);
+      const sourceUnchanged = previous && (previous.sourceText ?? previous.text) === segment.text;
+      if (previous) {
+        // 重新组装同一段语音时保留用户已确认的屏幕文案与排版；原文变化则回到语音事实，避免旧强调悄悄错位。
+        return {
+          ...previous,
+          speechSegmentId: segment.id,
+          sourceText: segment.text,
+          text: sourceUnchanged ? previous.text : segment.text,
+          textMode: sourceUnchanged ? previous.textMode ?? (previous.text === segment.text ? "derived" : "manual") : "derived",
+          startFrame: timing.startFrame,
+          endFrame: timing.endFrame,
+          style: "stable" as const,
+          format: previous.format ?? { ...DEFAULT_CAPTION_FORMAT },
+          emphasis: sourceUnchanged ? previous.emphasis : undefined,
+          precision: speechAsset.timing.precision
+        };
+      }
       return {
         id: createId("caption"),
         speechSegmentId: segment.id,
+        sourceText: segment.text,
         text: segment.text,
+        textMode: "derived" as const,
         startFrame: timing.startFrame,
         endFrame: timing.endFrame,
         style: "stable" as const,
+        format: { ...DEFAULT_CAPTION_FORMAT },
         precision: speechAsset.timing.precision
       };
     });
@@ -2913,6 +3038,70 @@ export class EditingApplication {
       impact.changed.push(speechAsset.id, synced.dialogueItem.id, ...synced.replacedItemIds);
       impact.recomputed.push("修复 Dialogue 旁白轨、稳定短句字幕");
       impact.dirtyRanges.push({ startFrame: 0, endFrame: Math.max(snapshot.timeline.durationInFrames, synced.durationFrames), reason: "修复旧 SpeechAsset Timeline" });
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /**
+   * 字幕是对可播放 SpeechSegment 的独立屏幕呈现：只允许改 Card 文案与有限排版，
+   * 不允许在这里修改 Script、语音文件或段级时间范围。
+   */
+  editCaptions(input: {
+    projectId: Id;
+    baseRevision: number;
+    captionId: Id;
+    action: "update" | "reset";
+    text?: string;
+    format?: CaptionFormatPatch;
+    emphasis?: CaptionEmphasis | null;
+  }): ProjectState {
+    if (input.action === "update" && input.text === undefined && input.format === undefined && input.emphasis === undefined) {
+      throw new DomainError("更新字幕至少需要文案、排版或强调之一", "EMPTY_CAPTION_UPDATE");
+    }
+    const state = this.repository.commit(input.projectId, input.baseRevision, input.action === "reset" ? "恢复字幕语音原文" : "编辑字幕卡", (snapshot, impact) => {
+      const speechAsset = snapshot.speechAsset;
+      if (!speechAsset || speechAsset.status !== "ready" || speechAsset.scriptRevision !== snapshot.script.revision) {
+        throw new DomainError("当前没有与 Script 一致的 SpeechAsset，不能编辑字幕", "CAPTION_SOURCE_NOT_READY");
+      }
+      const caption = snapshot.timeline.captions.find((candidate) => candidate.id === input.captionId);
+      if (!caption) throw new DomainError("未找到要编辑的字幕卡", "CAPTION_NOT_FOUND");
+      const segment = snapshot.speechSegments.find((candidate) => candidate.id === caption.speechSegmentId);
+      const timing = speechAsset.timing.segments.find((candidate) => candidate.speechSegmentId === caption.speechSegmentId);
+      if (!segment || !timing || caption.startFrame !== timing.startFrame || caption.endFrame !== timing.endFrame) {
+        throw new DomainError("字幕时序已不再对应当前 SpeechAsset；请先重建字幕", "CAPTION_TIMING_STALE");
+      }
+      if ((caption.sourceText ?? caption.text) !== segment.text) {
+        throw new DomainError("字幕来源文字已变化；请先重建字幕，再进行屏幕文案微调", "CAPTION_SOURCE_STALE");
+      }
+
+      if (input.action === "reset") {
+        caption.sourceText = segment.text;
+        caption.text = segment.text;
+        caption.textMode = "derived";
+        caption.format = { ...DEFAULT_CAPTION_FORMAT };
+        caption.emphasis = undefined;
+      } else {
+        const nextText = input.text === undefined ? caption.text : normalizeCaptionText(input.text);
+        const textChanged = nextText !== caption.text;
+        caption.sourceText = segment.text;
+        caption.text = nextText;
+        caption.textMode = nextText === segment.text ? "derived" : "manual";
+        if (input.format !== undefined) caption.format = applyCaptionFormat(caption.format, input.format);
+        else caption.format ??= { ...DEFAULT_CAPTION_FORMAT };
+
+        if (input.emphasis === null || (textChanged && input.emphasis === undefined)) {
+          // 改文案后旧短语不再可信，默认移除；调用方可在同一原子写入中提供新的强调。
+          caption.emphasis = undefined;
+        } else if (input.emphasis !== undefined) {
+          caption.emphasis = normalizeCaptionEmphasis(input.emphasis, nextText);
+        } else if (caption.emphasis) {
+          caption.emphasis = normalizeCaptionEmphasis(caption.emphasis, nextText);
+        }
+      }
+      impact.changed.push(caption.id);
+      impact.recomputed.push("稳定字幕文案、有限排版与 Card 级强调");
+      impact.dirtyRanges.push({ startFrame: caption.startFrame, endFrame: caption.endFrame, reason: "字幕卡编辑" });
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     return state;

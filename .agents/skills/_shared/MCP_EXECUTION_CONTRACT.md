@@ -20,6 +20,7 @@
 | 转写 | `submit_transcription(asset_id, idempotency_key?)`；人工文本用 `apply_manual_transcript(base_revision_id, asset_id, text)` | Job 完成后 `read_script`；候选句不等于 SemanticUnit。 |
 | 语义与脚本 | `apply_semantic_units(base_revision_id, units)`；再以新 Revision 调 `apply_script(base_revision_id, semantic_unit_ids)` | `read_script`、`read_impact_report`；根据 stale 范围重建声音和包装。 |
 | Story 与语音 | `manage_story(base_revision_id, beats)`；`manage_voice_references(base_revision_id, asset_id)`；`submit_voice_synthesis(voice_reference_id? / voice_reference_asset_id?, speech_segment_ids?, idempotency_key?)` | `track_job`、`read_speech_asset`、`read_speech_timing`；旧 Timeline 必要时用 `rebuild_speech_timeline(base_revision_id)`。 |
+| 稳定字幕 | `read_captions(project_id?)`；`edit_captions(base_revision_id, caption_id, action, text?, format?, emphasis?)` | 只修改当前 SpeechAsset 的 Card 屏幕呈现，不改 Script、SpeechSegment、声音或时间范围；`action=reset` 恢复语音原文和默认样式。修改后读回 Revision、Impact 与 Caption，再渲染真实 Preview。 |
 | Presenter 主线 | `assemble_presenter_track(base_revision_id, asset_ids)`；`compile_presenter_scenes(base_revision_id, scenes)`；`manage_actor_performance(base_revision_id, timeline_item_id, source, mask_mode, audio_mode?, mask_asset_id?, speech_asset_id?)` | 每步使用上一写入返回的 Revision，读回 Project、ActorPerformance 和 Impact。 |
 | Scene 与 Effect | `create_scene(base_revision_id, type, title, purpose, start_frame, end_frame, asset_ids?)`；`manage_effect_cues(base_revision_id, scene_id, type, layer, start_frame, end_frame, ...)` | Effect 还应传入适用的 `narrative_purpose`、`audience_task`、`semantic_anchor`、`spatial_anchor`、`asset_bindings`、`props`、`motion`、`style_pack_id` 与 `quality_rules`；随后读 Impact。 |
 | 视觉计划与 Cutaway | `manage_visual_treatment(base_revision_id, action, ...)`；`manage_cutaways(base_revision_id, action, ...)`；替换单条本地源素材用 `replace_scene_asset(base_revision_id, cutaway_id, asset_id, source_start_frame, source_end_frame)` | VisualTreatment 先说明为什么离开人物；Cutaway 只接受已就绪本地视频，原子写入 CutawayScene 和顶层 Item。主线变化后读取 Impact：系统会停用并标记 stale，必须重新确认相关性、进入和返回。 |
@@ -30,11 +31,11 @@
 
 ### 当前已实现，可按实时 Schema 调用
 
-上表中的命令，以及 `read_story`、`read_impact_report`、`list_revisions`、`rollback_revision`、`update_asset_metadata`、`read_captions`、`browse_scene_types`、`browse_effect_types`、`move_item`、`preview_timeline`、`record_creative_decision`、`complete_production_run`、`read_skill_execution_report`、`validate_project_graph`、`read_quality_report`、`get_editor_url` 与 `focus_editor_object`。
+上表中的命令，以及 `read_story`、`read_impact_report`、`list_revisions`、`rollback_revision`、`update_asset_metadata`、`browse_scene_types`、`browse_effect_types`、`move_item`、`preview_timeline`、`record_creative_decision`、`complete_production_run`、`read_skill_execution_report`、`validate_project_graph`、`read_quality_report`、`get_editor_url` 与 `focus_editor_object`。
 
 ### 架构目标，当前不得伪造调用
 
-`edit_captions`、`manage_audio`、`smooth_audio`、`run_render_preflight`、`read_export_artifact`、`read_actor_capabilities`、`submit_avatar_job` 与 `read_narrative_map` 只可作为架构目标、计划或能力缺口描述；它们没有进入当前 MCP Tool Schema。
+`manage_audio`、`smooth_audio`、`run_render_preflight`、`read_export_artifact`、`read_actor_capabilities`、`submit_avatar_job` 与 `read_narrative_map` 只可作为架构目标、计划或能力缺口描述；它们没有进入当前 MCP Tool Schema。
 
 ### 兼容入口，不作为正式主链
 

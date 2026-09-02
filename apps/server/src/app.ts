@@ -424,6 +424,33 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return application.rebuildSpeechAssetTimeline({ projectId, ...body });
   });
 
+  app.patch("/api/projects/:projectId/captions/:captionId", async (request) => {
+    const { projectId, captionId } = z.object({ projectId: idSchema, captionId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      action: z.enum(["update", "reset"]),
+      text: z.string().max(80).optional(),
+      format: z.object({
+        fontSize: z.number().int().min(16).max(72).optional(),
+        fontWeight: z.number().int().min(400).max(900).optional(),
+        color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").optional(),
+        backgroundColor: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").nullable().optional(),
+        bottomPercent: z.number().min(4).max(20).optional(),
+        horizontalInsetPercent: z.number().min(3).max(20).optional(),
+        textAlign: z.enum(["left", "center", "right"]).optional()
+      }).strict().optional(),
+      emphasis: z.object({
+        text: z.string().min(1).max(40),
+        occurrence: z.number().int().nonnegative(),
+        color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").optional(),
+        backgroundColor: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").optional(),
+        fontWeight: z.number().int().min(400).max(900).optional(),
+        scale: z.number().min(0.8).max(1.35).optional()
+      }).strict().nullable().optional()
+    }).parse(request.body);
+    return application.editCaptions({ projectId, captionId, ...body });
+  });
+
   app.post("/api/projects/:projectId/previews", async (request, reply) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({ revision: z.number().int().positive().optional(), fromFrame: z.number().int().nonnegative().optional(), toFrame: z.number().int().positive().optional(), idempotencyKey: z.string().optional() }).parse(request.body);

@@ -16,7 +16,7 @@ import { createServer } from "../apps/server/src/app.js";
 import { evaluateQuality } from "@videocut/quality";
 import { runProcess } from "@videocut/speech";
 import { compileCameraPunchLayout, compileCutawayLayout, compileMotionLayout, cutawaySourceVolume } from "@videocut/remotion";
-import type { EditorialReviewPass } from "@videocut/contracts";
+import type { CaptionCard, EditorialReviewPass } from "@videocut/contracts";
 
 function textFromToolResult(result: unknown): string {
   if (!result || typeof result !== "object" || !("content" in result) || !Array.isArray(result.content)) {
@@ -289,10 +289,52 @@ test("SpeechAsset 写入 Dialogue 轨并在 Script 改动后移除旧旁白和�
     assert.equal(repaired.snapshot.timeline.items.filter((item) => item.trackId === dialogueTrack.id && item.assetId === speechFileAssetId).length, 1);
     assert.equal(repaired.snapshot.timeline.captions.length, 2);
 
-    context.app.applyScript({
+    const originalCaption = repaired.snapshot.timeline.captions[0]!;
+    const editedCaptionState = context.app.editCaptions({
       projectId: created.snapshot.project.id,
       baseRevision: repaired.revision.number,
-      semanticUnitIds: [repaired.snapshot.semanticUnits[0]!.id]
+      captionId: originalCaption.id,
+      action: "update",
+      text: "第一句\n请注意",
+      format: { fontSize: 38, bottomPercent: 10, backgroundColor: "#101820" },
+      emphasis: { text: "请注意", occurrence: 0, color: "#ffd166", fontWeight: 850, scale: 1.05 }
+    });
+    const editedCaption = editedCaptionState.snapshot.timeline.captions.find((caption) => caption.id === originalCaption.id)!;
+    assert.equal(editedCaption.sourceText, segments[0]!.text);
+    assert.equal(editedCaption.textMode, "manual");
+    assert.equal(editedCaption.text, "第一句\n请注意");
+    assert.equal(editedCaption.format?.fontSize, 38);
+    assert.equal(editedCaption.format?.bottomPercent, 10);
+    assert.equal(editedCaption.emphasis?.text, "请注意");
+    assert.deepEqual(editedCaptionState.snapshot.script, repaired.snapshot.script, "编辑字幕不得改 Script");
+    assert.deepEqual(editedCaptionState.snapshot.speechAsset, repaired.snapshot.speechAsset, "编辑字幕不得改 SpeechAsset");
+    assert.ok(editedCaptionState.revision.impact.changed.includes(originalCaption.id));
+    assert.ok(editedCaptionState.revision.impact.dirtyRanges.some((range) => range.startFrame === originalCaption.startFrame && range.endFrame === originalCaption.endFrame));
+
+    assert.throws(
+      () => context.app.editCaptions({ projectId: created.snapshot.project.id, baseRevision: editedCaptionState.revision.number, captionId: originalCaption.id, action: "update", text: "第一行\n第二行\n第三行" }),
+      (error: unknown) => error instanceof DomainError && error.code === "CAPTION_TOO_MANY_LINES"
+    );
+    assert.throws(
+      () => context.app.editCaptions({ projectId: created.snapshot.project.id, baseRevision: editedCaptionState.revision.number, captionId: originalCaption.id, action: "update", format: { color: "#fff" } }),
+      (error: unknown) => error instanceof DomainError && error.code === "INVALID_CAPTION_COLOR"
+    );
+    assert.throws(
+      () => context.app.editCaptions({ projectId: created.snapshot.project.id, baseRevision: editedCaptionState.revision.number, captionId: originalCaption.id, action: "update", emphasis: { text: "不存在", occurrence: 0 } }),
+      (error: unknown) => error instanceof DomainError && error.code === "CAPTION_EMPHASIS_NOT_FOUND"
+    );
+    assert.equal(context.app.readProject(created.snapshot.project.id).revision.number, editedCaptionState.revision.number, "无效字幕编辑必须原子回滚");
+
+    const rebuiltAfterCaptionEdit = context.app.rebuildSpeechAssetTimeline({ projectId: created.snapshot.project.id, baseRevision: editedCaptionState.revision.number });
+    const preservedCaption = rebuiltAfterCaptionEdit.snapshot.timeline.captions.find((caption) => caption.id === originalCaption.id)!;
+    assert.equal(preservedCaption.text, "第一句\n请注意", "同一语音段重建时应保留手工屏幕文案");
+    assert.equal(preservedCaption.format?.fontSize, 38);
+    assert.equal(preservedCaption.emphasis?.text, "请注意");
+
+    context.app.applyScript({
+      projectId: created.snapshot.project.id,
+      baseRevision: rebuiltAfterCaptionEdit.revision.number,
+      semanticUnitIds: [rebuiltAfterCaptionEdit.snapshot.semanticUnits[0]!.id]
     });
     const afterScript = context.app.readProject(created.snapshot.project.id);
     assert.equal(afterScript.snapshot.speechAsset, undefined);
@@ -301,10 +343,83 @@ test("SpeechAsset 写入 Dialogue 轨并在 Script 改动后移除旧旁白和�
     assert.equal(afterScript.snapshot.speechSegments.length, 1);
     assert.equal(afterScript.snapshot.speechSegments[0]!.status, "ready");
     assert.equal(afterScript.snapshot.speechSegmentAssets.length, 1);
+    assert.ok(afterScript.revision.impact.stale.includes(originalCaption.id), "主线改动必须明确标记旧字幕失效");
     const reassemblyJob = context.app.submitVoiceSynthesis({ projectId: created.snapshot.project.id, voiceReferenceId });
     assert.deepEqual(reassemblyJob.payload.speechSegmentIds, []);
   } finally {
     await context.dispose();
+  }
+});
+
+test("HTTP 字幕编辑只修改 Caption Card，并校验有限样式输入", async () => {
+  const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-caption-http-test-"));
+  const { app: server, application } = await createServer({ workspaceRoot });
+  try {
+    const created = application.createProject({ name: "HTTP 字幕编辑测试" });
+    const projectId = created.snapshot.project.id;
+    const referenceAssetId = addReadyAsset(application, projectId, "caption-reference.wav", "audio");
+    application.applyTranscript({ projectId, assetId: referenceAssetId, text: "这是一句完整的字幕测试。", source: "manual" });
+    applySemanticUnitsFromCandidates(application, projectId);
+    const beforeSpeech = application.readProject(projectId);
+    const speechFileAssetId = addReadyAsset(application, projectId, "caption-speech.wav", "speech");
+    const segments = beforeSpeech.snapshot.speechSegments;
+    const segmentAssets = segments.map((segment, index) => ({
+      id: `caption_http_segment_${index}`,
+      speechSegmentId: segment.id,
+      voiceReferenceAssetId: referenceAssetId,
+      assetId: speechFileAssetId,
+      durationMs: 1_000,
+      bridgeRunId: `caption-http-run-${index}`,
+      schemaVersion: "v1",
+      quality: "passed" as const
+    }));
+    const assembled = application.applySpeechAssembly({
+      projectId,
+      generatedAssets: [],
+      segmentAssets,
+      speechAsset: {
+        id: "caption_http_speech_asset",
+        assetId: speechFileAssetId,
+        scriptRevision: beforeSpeech.snapshot.script.revision,
+        segmentAssetIds: segmentAssets.map((entry) => entry.id),
+        timing: {
+          precision: "segment_exact",
+          source: "HTTP 测试段级边界",
+          segments: segments.map((segment, index) => ({ speechSegmentId: segment.id, startMs: index * 1_000, endMs: (index + 1) * 1_000, startFrame: index * 24, endFrame: (index + 1) * 24 }))
+        },
+        status: "ready"
+      }
+    });
+    const caption = assembled.snapshot.timeline.captions[0]!;
+    const editedResponse = await server.inject({
+      method: "PATCH",
+      url: `/api/projects/${projectId}/captions/${caption.id}`,
+      payload: {
+        baseRevision: assembled.revision.number,
+        action: "update",
+        text: "这是一句\n屏幕字幕测试",
+        format: { fontSize: 36, bottomPercent: 9 },
+        emphasis: { text: "屏幕", occurrence: 0, color: "#ffd166", scale: 1.05 }
+      }
+    });
+    assert.equal(editedResponse.statusCode, 200);
+    const edited = editedResponse.json() as { snapshot: { timeline: { captions: CaptionCard[] }; script: unknown; speechAsset: unknown } };
+    assert.equal(edited.snapshot.timeline.captions[0]?.textMode, "manual");
+    assert.equal(edited.snapshot.timeline.captions[0]?.format?.fontSize, 36);
+    assert.equal(edited.snapshot.timeline.captions[0]?.emphasis?.text, "屏幕");
+    assert.deepEqual(edited.snapshot.script, assembled.snapshot.script);
+    assert.deepEqual(edited.snapshot.speechAsset, assembled.snapshot.speechAsset);
+
+    const invalidResponse = await server.inject({
+      method: "PATCH",
+      url: `/api/projects/${projectId}/captions/${caption.id}`,
+      payload: { baseRevision: (editedResponse.json() as { revision: { number: number } }).revision.number, action: "update", format: { color: "#fff" } }
+    });
+    assert.equal(invalidResponse.statusCode, 400);
+  } finally {
+    await server.close();
+    application.close();
+    await rm(workspaceRoot, { recursive: true, force: true });
   }
 });
 
@@ -1572,6 +1687,7 @@ test("video-editor-mcp 可通过 stdio 连接并定位新项目", async () => {
       "submit_transcription",
       "apply_manual_transcript",
       "apply_script",
+      "edit_captions",
       "manage_voice_references",
       "submit_voice_synthesis",
       "apply_semantic_units",
@@ -1621,6 +1737,97 @@ test("video-editor-mcp 可通过 stdio 连接并定位新项目", async () => {
     const editor = JSON.parse(textFromToolResult(await client.callTool({ name: "get_editor_url", arguments: { project_id: projectId, frame: 0 } }))) as { editorUrl: string };
     assert.match(editor.editorUrl, new RegExp(`projectId=${projectId}`, "u"));
     assert.match(editor.editorUrl, /frame=0/u);
+  } finally {
+    await transport.close().catch(() => undefined);
+    await rm(workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("video-editor-mcp 的 edit_captions 接受稀疏样式更新且保留其它默认值", async () => {
+  const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-mcp-caption-test-"));
+  const seedApplication = createApplication(workspaceRoot);
+  let projectId = "";
+  let seededRevision = 0;
+  let captionId = "";
+  try {
+    const created = seedApplication.createProject({ name: "MCP 字幕稀疏更新测试" });
+    projectId = created.snapshot.project.id;
+    const speechAssetId = addReadyAsset(seedApplication, projectId, "mcp-caption-speech.wav", "speech");
+    const seeded = seedApplication.repository.commit(projectId, seedApplication.readProject(projectId).revision.number, "建立 MCP 字幕测试数据", (snapshot) => {
+      snapshot.speechSegments.push({
+        id: "mcp_caption_segment",
+        semanticUnitIds: [],
+        text: "MCP 字幕测试",
+        order: 0,
+        pauseBefore: { durationMs: 0, reason: "sentence" },
+        status: "ready"
+      });
+      snapshot.script = { semanticUnitIds: [], speechSegmentIds: ["mcp_caption_segment"], revision: 0 };
+      snapshot.speechSegmentAssets.push({
+        id: "mcp_caption_segment_asset",
+        speechSegmentId: "mcp_caption_segment",
+        voiceReferenceAssetId: speechAssetId,
+        assetId: speechAssetId,
+        durationMs: 1_000,
+        bridgeRunId: "mcp-caption-run",
+        schemaVersion: "v1",
+        quality: "passed"
+      });
+      snapshot.speechAsset = {
+        id: "mcp_caption_speech_asset",
+        assetId: speechAssetId,
+        scriptRevision: 0,
+        segmentAssetIds: ["mcp_caption_segment_asset"],
+        timing: {
+          precision: "segment_exact",
+          source: "MCP 字幕测试",
+          segments: [{ speechSegmentId: "mcp_caption_segment", startMs: 0, endMs: 1_000, startFrame: 0, endFrame: 24 }]
+        },
+        status: "ready"
+      };
+      captionId = "mcp_caption_card";
+      snapshot.timeline.captions.push({
+        id: captionId,
+        speechSegmentId: "mcp_caption_segment",
+        sourceText: "MCP 字幕测试",
+        text: "MCP 字幕测试",
+        textMode: "derived",
+        startFrame: 0,
+        endFrame: 24,
+        style: "stable",
+        format: { fontSize: 32, fontWeight: 750, color: "#ffffff", bottomPercent: 7, horizontalInsetPercent: 8, textAlign: "center" },
+        precision: "segment_exact"
+      });
+    });
+    seededRevision = seeded.revision.number;
+  } finally {
+    seedApplication.close();
+  }
+
+  const environment = Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
+  const transport = new StdioClientTransport({
+    command: process.platform === "win32" ? "npm.cmd" : "npm",
+    args: ["run", "mcp"],
+    cwd: process.cwd(),
+    env: { ...environment, VIDEOCUT_WORKSPACE: workspaceRoot },
+    stderr: "pipe"
+  });
+  const client = new Client({ name: "videocut-caption-mcp-test", version: "1.0.0" });
+  try {
+    await client.connect(transport);
+    await client.callTool({ name: "target_project", arguments: { project_id: projectId } });
+    const result = await client.callTool({ name: "edit_captions", arguments: {
+      base_revision_id: seededRevision,
+      caption_id: captionId,
+      action: "update",
+      format: { font_size: 38 }
+    } });
+    assert.equal(result.isError, undefined, textFromToolResult(result));
+    const edited = JSON.parse(textFromToolResult(result)) as { snapshot: { timeline: { captions: CaptionCard[] } } };
+    const caption = edited.snapshot.timeline.captions.find((entry) => entry.id === captionId)!;
+    assert.equal(caption.format?.fontSize, 38);
+    assert.equal(caption.format?.color, "#ffffff", "MCP 未传的样式字段不能被 undefined 覆盖");
+    assert.equal(caption.format?.bottomPercent, 7);
   } finally {
     await transport.close().catch(() => undefined);
     await rm(workspaceRoot, { recursive: true, force: true });

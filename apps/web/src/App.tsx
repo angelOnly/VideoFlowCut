@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
-import { EFFECT_TYPES, type Asset, type EffectCue, type ProjectSnapshot, type Scene, type TimelineItem } from "@videocut/contracts";
+import { EFFECT_TYPES, type Asset, type CaptionCard, type EffectCue, type ProjectSnapshot, type Scene, type TimelineItem } from "@videocut/contracts";
 import { ProjectComposition, mediaUrl } from "@videocut/remotion";
 import { API_BASE, api, type ProjectState } from "./api";
 
@@ -317,7 +317,9 @@ export function App() {
             onRegisterVoiceReference={(assetId) => void act("登记 VoiceReference", () => api.registerVoiceReference(snapshot.project.id, currentRevision, assetId))}
             onSubmitVoiceSynthesis={(voiceReferenceId) => void act("提交 OmniVoice 旁白", () => api.voiceSynthesis(snapshot.project.id, voiceReferenceId))}
             onRebuildSpeechTimeline={() => void act("修复 SpeechAsset 时间线", () => api.rebuildSpeechTimeline(snapshot.project.id, currentRevision))}
+            onEditCaption={(captionId, payload) => void act("更新字幕卡", () => api.editCaption(snapshot.project.id, captionId, { baseRevision: currentRevision, ...payload }))}
             onAlignPresenterToSpeech={() => void act("按旁白收齐 Presenter 主线", () => api.alignPresenterToSpeech(snapshot.project.id, currentRevision))}
+            busy={busy}
             selectedARollIds={selectedForTimeline}
             onToggleARoll={(assetId) => setSelectedARollIds((old) => old.includes(assetId) ? old.filter((id) => id !== assetId) : [...old, assetId])}
             onBuildTimeline={() => void act("组装所选 Presenter A-roll", () => api.assemblePresenterTrack(snapshot.project.id, currentRevision, selectedForTimeline))}
@@ -412,7 +414,9 @@ interface PanelContentProps {
   onRegisterVoiceReference: (assetId: string) => void;
   onSubmitVoiceSynthesis: (voiceReferenceId: string) => void;
   onRebuildSpeechTimeline: () => void;
+  onEditCaption: (captionId: string, payload: Record<string, unknown>) => void;
   onAlignPresenterToSpeech: () => void;
+  busy: boolean;
   selectedARollIds: string[];
   onToggleARoll: (assetId: string) => void;
   onBuildTimeline: () => void;
@@ -487,9 +491,10 @@ function PanelContent(props: PanelContentProps) {
   }
   if (panel === "captions") {
     return <>
-      <PanelTitle title="Captions" meta={`${snapshot.timeline.captions.length} 张字幕卡`} />
+      <PanelTitle title="字幕 Caption" meta={`${snapshot.timeline.captions.length} 张字幕卡`} />
       {snapshot.timeline.captions.length === 0 && <p className="empty-panel">当前没有可用的段级语音时序。字幕只会在 SpeechAsset 组装成功后生成。</p>}
-      {snapshot.timeline.captions.map((caption) => <article key={caption.id} className="caption-card" data-testid={`caption-${caption.id}`} data-object-id={caption.id} onClick={() => props.onSeek(caption.startFrame)}><strong>{caption.text}</strong><small>F{caption.startFrame}–{caption.endFrame} · {caption.precision}</small></article>)}
+      <p className="empty-panel">仅编辑屏幕呈现：双行文案、字号、底部安全区和一个强调短语。不会修改 Script、旁白或段级时序。</p>
+      {snapshot.timeline.captions.map((caption) => <CaptionEditor key={caption.id} caption={caption} disabled={props.busy} onSeek={props.onSeek} onSave={props.onEditCaption} />)}
     </>;
   }
   return <>
@@ -498,6 +503,64 @@ function PanelContent(props: PanelContentProps) {
     <section><h3>任务</h3>{props.jobs.map((job) => <div className="job-row" key={job.id} data-testid={`job-${job.id}`} data-object-id={job.id}><span className={`status status-${job.status}`}>{statusText(job.status)}</span><div><strong>{job.kind}</strong><small>{job.error ?? job.id.slice(0, 14)}</small></div>{job.status === "failed" && <button onClick={() => props.onRetryJob(job.id)}>重试</button>}</div>)}</section>
     <section><h3>Revision</h3>{props.revisions.map((revision) => <div className="revision-row" key={revision.id} data-testid={`revision-${revision.number}`} data-object-id={revision.id}><div><strong>R{revision.number}</strong><span>{revision.summary}</span></div>{revision.number !== props.currentRevision && <button onClick={() => props.onRollback(revision.number)}>回退</button>}</div>)}</section>
   </>;
+}
+
+/** 字幕面板只开放稳定 Card 的最小微调，复杂逐词动画仍由后续能力与真实时序支持。 */
+function CaptionEditor({ caption, disabled, onSeek, onSave }: {
+  caption: CaptionCard;
+  disabled: boolean;
+  onSeek: (frame: number) => void;
+  onSave: (captionId: string, payload: Record<string, unknown>) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [text, setText] = useState(caption.text);
+  const [fontSize, setFontSize] = useState(caption.format?.fontSize ?? 32);
+  const [bottomPercent, setBottomPercent] = useState(caption.format?.bottomPercent ?? 7);
+  const [emphasisText, setEmphasisText] = useState(caption.emphasis?.text ?? "");
+
+  useEffect(() => {
+    setText(caption.text);
+    setFontSize(caption.format?.fontSize ?? 32);
+    setBottomPercent(caption.format?.bottomPercent ?? 7);
+    setEmphasisText(caption.emphasis?.text ?? "");
+  }, [caption.id, caption.text, caption.format?.fontSize, caption.format?.bottomPercent, caption.emphasis?.text]);
+
+  const save = () => {
+    const phrase = emphasisText.trim();
+    const previousEmphasis = caption.emphasis;
+    onSave(caption.id, {
+      action: "update",
+      text,
+      format: { fontSize, bottomPercent },
+      emphasis: phrase ? {
+        text: phrase,
+        occurrence: previousEmphasis?.text === phrase ? previousEmphasis.occurrence : 0,
+        color: previousEmphasis?.text === phrase ? previousEmphasis.color : "#ffd166",
+        backgroundColor: previousEmphasis?.text === phrase ? previousEmphasis.backgroundColor : undefined,
+        fontWeight: previousEmphasis?.text === phrase ? previousEmphasis.fontWeight : 850,
+        scale: previousEmphasis?.text === phrase ? previousEmphasis.scale : 1.05
+      } : null
+    });
+  };
+
+  return <article className="caption-card" data-testid={`caption-${caption.id}`} data-object-id={caption.id}>
+    <button className="caption-summary" type="button" onClick={() => { onSeek(caption.startFrame); setExpanded((value) => !value); }}>
+      <strong>{caption.text}</strong>
+      <small>F{caption.startFrame}–{caption.endFrame} · {caption.precision} · {caption.textMode === "manual" ? "屏幕文案已编辑" : "语音原文"}</small>
+    </button>
+    {expanded && <div className="caption-editor">
+      <label>屏幕文案<textarea aria-label={`字幕文案：${caption.id}`} value={text} maxLength={80} rows={2} onChange={(event) => setText(event.target.value)} /></label>
+      <div className="caption-field-row">
+        <label>字号<input aria-label={`字幕字号：${caption.id}`} type="number" min="16" max="72" value={fontSize} onChange={(event) => setFontSize(Number(event.target.value))} /></label>
+        <label>底部 %<input aria-label={`字幕底部安全区：${caption.id}`} type="number" min="4" max="20" step="0.5" value={bottomPercent} onChange={(event) => setBottomPercent(Number(event.target.value))} /></label>
+      </div>
+      <label>强调短语（可留空）<input aria-label={`字幕强调短语：${caption.id}`} value={emphasisText} maxLength={40} onChange={(event) => setEmphasisText(event.target.value)} /></label>
+      <div className="button-row">
+        <button type="button" disabled={disabled} onClick={save}>保存字幕</button>
+        <button type="button" disabled={disabled} onClick={() => onSave(caption.id, { action: "reset" })}>恢复语音原文</button>
+      </div>
+    </div>}
+  </article>;
 }
 
 /**

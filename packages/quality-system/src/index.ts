@@ -9,6 +9,17 @@ function cuesOverlap(left: { startFrame: number; endFrame: number }, right: { st
   return left.startFrame < right.endFrame && right.startFrame < left.endFrame;
 }
 
+function captionOccurrenceIndex(text: string, phrase: string, occurrence: number): number {
+  let index = -1;
+  for (let current = 0; current <= occurrence; current += 1) {
+    index = text.indexOf(phrase, index + 1);
+    if (index < 0) return -1;
+  }
+  return index;
+}
+
+const isCaptionColor = (value: string | undefined) => value === undefined || /^#[0-9a-f]{6}$/iu.test(value);
+
 /**
  * 可确定的规则只报告可验证事实；遮挡、节奏与审美仍须由真实预览帧进行人工/视觉复核。
  */
@@ -187,8 +198,71 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     }
   }
   for (const caption of timeline.captions) {
+    const speechSegment = snapshot.speechSegments.find((segment) => segment.id === caption.speechSegmentId);
+    const timing = snapshot.speechAsset?.timing.segments.find((segment) => segment.speechSegmentId === caption.speechSegmentId);
     if (caption.endFrame <= caption.startFrame) {
       issues.push(issue({ level: "blocking", code: "INVALID_CAPTION_RANGE", message: "字幕卡的帧范围无效。", objectId: caption.id }));
+    }
+    if (!caption.text.trim()) {
+      issues.push(issue({ level: "blocking", code: "CAPTION_TEXT_EMPTY", message: "字幕卡文案不能为空。", objectId: caption.id }));
+    }
+    if (caption.text.length > 80 || caption.text.split("\n").length > 2) {
+      issues.push(issue({ level: "blocking", code: "CAPTION_TEXT_LAYOUT_INVALID", message: "稳定字幕最多 80 个字符、两行；请拆分语义 Card，而不是缩小文字。", objectId: caption.id }));
+    }
+    const sourceText = caption.sourceText ?? caption.text;
+    if (speechSegment && sourceText !== speechSegment.text) {
+      issues.push(issue({
+        level: "blocking",
+        code: "CAPTION_SOURCE_STALE",
+        message: "字幕引用的语音原文已经变化；请按当前 SpeechAsset 重建 Card，不能静默沿用旧字幕。",
+        objectId: caption.id,
+        frameRange: { startFrame: caption.startFrame, endFrame: caption.endFrame }
+      }));
+    }
+    if (caption.textMode === "derived" && caption.text !== sourceText) {
+      issues.push(issue({
+        level: "blocking",
+        code: "CAPTION_DERIVED_TEXT_MISMATCH",
+        message: "标记为语音原文的字幕与来源文字不一致；请恢复原文或明确标记为手工屏幕文案。",
+        objectId: caption.id
+      }));
+    }
+    if (caption.textMode === "manual" && caption.text !== sourceText) {
+      issues.push(issue({
+        level: "warning",
+        code: "CAPTION_MANUAL_TEXT_REVIEW",
+        message: "该字幕已单独编辑屏幕文案；请在有声预览中确认没有改变事实、否定和数字。",
+        objectId: caption.id,
+        frameRange: { startFrame: caption.startFrame, endFrame: caption.endFrame }
+      }));
+    }
+    if (timing && (caption.startFrame !== timing.startFrame || caption.endFrame !== timing.endFrame)) {
+      issues.push(issue({
+        level: "blocking",
+        code: "CAPTION_TIMING_STALE",
+        message: "字幕卡范围与当前 SpeechAsset 的段级时序不一致；请重新生成或重建字幕。",
+        objectId: caption.id,
+        frameRange: { startFrame: caption.startFrame, endFrame: caption.endFrame }
+      }));
+    }
+    if (caption.emphasis && (!Number.isInteger(caption.emphasis.occurrence)
+      || caption.emphasis.occurrence < 0
+      || captionOccurrenceIndex(caption.text, caption.emphasis.text, caption.emphasis.occurrence) < 0)) {
+      issues.push(issue({
+        level: "blocking",
+        code: "CAPTION_EMPHASIS_STALE",
+        message: "字幕强调短语不再位于当前 Card 文案中；请重新选择强调或清除它。",
+        objectId: caption.id
+      }));
+    }
+    const format = caption.format;
+    if (format && (!Number.isInteger(format.fontSize) || format.fontSize < 16 || format.fontSize > 72
+      || !Number.isInteger(format.fontWeight) || format.fontWeight < 400 || format.fontWeight > 900
+      || format.bottomPercent < 4 || format.bottomPercent > 20
+      || format.horizontalInsetPercent < 3 || format.horizontalInsetPercent > 20
+      || !["left", "center", "right"].includes(format.textAlign)
+      || !isCaptionColor(format.color) || !isCaptionColor(format.backgroundColor))) {
+      issues.push(issue({ level: "blocking", code: "CAPTION_FORMAT_INVALID", message: "字幕排版参数超出稳定字幕支持范围；请恢复默认或使用受支持的字号、颜色与安全区。", objectId: caption.id }));
     }
     if (caption.text.length > 28) {
       issues.push(issue({ level: "warning", code: "CAPTION_READING_SPEED", message: "字幕卡文字较长，请在预览中确认阅读速度与安全区。", objectId: caption.id, frameRange: { startFrame: caption.startFrame, endFrame: caption.endFrame } }));
