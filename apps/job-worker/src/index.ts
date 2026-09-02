@@ -1,24 +1,58 @@
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { mkdir, open, rename, rm, stat } from "node:fs/promises";
+import { mkdir, open, rename, rm } from "node:fs/promises";
 import { extname, isAbsolute, join } from "node:path";
-import { AssetProviderRegistry, createDefaultAssetProviderRegistry } from "@videocut/acquisition";
+import {
+  AssetProviderRegistry,
+  assertDownloadedProviderMedia,
+  assertProviderMediaAnalysis,
+  createDefaultAssetProviderRegistry
+} from "@videocut/acquisition";
 import { ComfyUIBridgeClient } from "@videocut/bridge";
 import { createApplication, type EditingApplication } from "@videocut/application";
 import { assetById, DomainError } from "@videocut/domain";
 import { runOneQueuedJob, type JobProcessor } from "@videocut/job-runtime";
 import { FunASRService, OmniVoiceSegmentService, probeMedia, runProcess } from "@videocut/speech";
 import type { Asset, JobKind, JobRecord, ProjectSnapshot } from "@videocut/contracts";
+import { runAvatarGeneration } from "./avatar-generation.js";
+import { runMulticamSync } from "./multicam-sync.js";
+import { runMusicGeneration } from "./music-generation.js";
+import { runSpeechAlignment } from "./speech-alignment.js";
+import { runVideoGeneration } from "./video-generation.js";
+import { runVlogAnalysis } from "./vlog-analysis.js";
 
 const workspaceRoot = process.env.VIDEOCUT_WORKSPACE ?? join(process.cwd(), "workspace");
 let defaultApplication: EditingApplication | undefined;
 const getDefaultApplication = () => (defaultApplication ??= createApplication(workspaceRoot));
 
-export const MEDIA_JOB_KINDS: JobKind[] = ["media_analysis", "asset_acquisition", "transcription", "voice_synthesis"];
+export const MEDIA_JOB_KINDS: JobKind[] = ["media_analysis", "vlog_analysis", "multicam_sync", "asset_acquisition", "transcription", "voice_synthesis", "speech_alignment", "music_generation", "video_generation", "avatar_generation"];
 
 const resolveAssetPath = (snapshot: ProjectSnapshot, asset: Asset) => isAbsolute(asset.managedPath) ? asset.managedPath : join(snapshot.project.rootPath, asset.managedPath);
 
+/**
+ * Evidence 的原始 PDF 不会进入 Timeline 或被 ffprobe 伪装成视频；
+ * Worker 只确认其基础文件头后登记为 ready，实际可视页面仍必须由独立图片快照绑定。
+ */
+async function analyzeDocument(path: string): Promise<NonNullable<Asset["metadata"]>> {
+  if (extname(path).toLocaleLowerCase() !== ".pdf") {
+    throw new DomainError("当前只支持将 PDF 作为可追溯的原始证据文档导入", "DOCUMENT_FORMAT_UNSUPPORTED");
+  }
+  const handle = await open(path, "r");
+  try {
+    const header = Buffer.alloc(5);
+    const { bytesRead } = await handle.read(header, 0, header.length, 0);
+    if (bytesRead < 5 || header.toString("ascii") !== "%PDF-") {
+      throw new DomainError("证据文档不是可识别的 PDF 文件", "DOCUMENT_PDF_INVALID");
+    }
+  } finally {
+    await handle.close();
+  }
+  return { durationMs: 0, hasAudio: false, mime: "application/pdf" };
+}
+
 async function createThumbnail(snapshot: ProjectSnapshot, asset: Asset): Promise<string | undefined> {
+  // 静态图片本身可直接作为素材预览；不把它送进视频 seek 流程，避免没有时长的图片被误报失败。
+  if (asset.kind !== "video" && asset.kind !== "actor_video") return undefined;
   if (!asset.metadata?.videoCodec) return undefined;
   const relativePath = join("assets", "proxy", `${asset.id}.jpg`);
   const targetPath = join(snapshot.project.rootPath, relativePath);
@@ -34,7 +68,10 @@ async function runMediaAnalysis(application: EditingApplication, job: JobRecord)
   const current = application.readProject(job.projectId);
   const asset = assetById(current.snapshot, assetId);
   try {
-    const metadata = await probeMedia(resolveAssetPath(current.snapshot, asset));
+    const sourcePath = resolveAssetPath(current.snapshot, asset);
+    const metadata = asset.kind === "document"
+      ? await analyzeDocument(sourcePath)
+      : await probeMedia(sourcePath);
     metadata.thumbnailPath = await createThumbnail(current.snapshot, { ...asset, metadata });
     application.applyMediaAnalysis({ projectId: job.projectId, assetId, metadata });
     return { assetId, durationMs: metadata.durationMs, hasAudio: metadata.hasAudio, thumbnailPath: metadata.thumbnailPath };
@@ -55,29 +92,9 @@ async function hashFile(path: string): Promise<string> {
   });
 }
 
-/** 先识别常见 HTML 错误页，再交给 ffprobe 做最终媒体校验，不能只相信扩展名。 */
-async function assertDownloadedVideo(path: string, contentType?: string): Promise<void> {
-  if (contentType && !contentType.startsWith("video/")) {
-    throw new DomainError(`下载内容 MIME 不符合视频要求：${contentType}`, "ASSET_DOWNLOAD_MIME_INVALID");
-  }
-  const fileInfo = await stat(path);
-  if (!fileInfo.isFile() || fileInfo.size <= 0) throw new DomainError("下载素材为空或不是文件", "ASSET_DOWNLOAD_EMPTY");
-  const handle = await open(path, "r");
-  try {
-    const header = Buffer.alloc(Math.min(512, fileInfo.size));
-    await handle.read(header, 0, header.length, 0);
-    const text = header.toString("utf8").trimStart().toLocaleLowerCase();
-    if (text.startsWith("<!doctype html") || text.startsWith("<html") || text.startsWith("<?xml")) {
-      throw new DomainError("下载内容是网页错误页，不是视频素材", "ASSET_DOWNLOAD_HTML");
-    }
-  } finally {
-    await handle.close();
-  }
-}
-
 /**
- * 下载只发生在 Worker：候选中的公开来源和授权信息先由 Application 校验，
- * 二进制通过 MIME、文件头、哈希和 ffprobe 后才进入项目受管 assets/source 目录。
+ * 下载只发生在 Worker：候选中的公开来源和授权信息先由 Application 校验。
+ * 图片和视频均须通过 MIME、文件头、哈希与 ffprobe 的视觉流核验后，才进入项目受管目录。
  */
 async function runAssetAcquisition(
   application: EditingApplication,
@@ -94,9 +111,14 @@ async function runAssetAcquisition(
     const provider = providers.get(inspected.candidate.provider);
     temporaryDirectory = join(application.readProject(job.projectId).snapshot.project.rootPath, "cache", "asset-acquisition", job.id);
     const downloaded = await provider.download({ candidate: inspected.candidate, temporaryDirectory });
-    await assertDownloadedVideo(downloaded.filePath, downloaded.contentType);
+    await assertDownloadedProviderMedia({
+      filePath: downloaded.filePath,
+      contentType: downloaded.contentType,
+      expectedKind: inspected.candidate.kind,
+      expectedMimeType: inspected.candidate.mimeType
+    });
     const metadata = await probeMedia(downloaded.filePath);
-    if (!metadata.videoCodec) throw new DomainError("下载媒体没有可用的视频轨，不能作为 B-roll 候选", "ASSET_DOWNLOAD_VIDEO_TRACK_MISSING");
+    assertProviderMediaAnalysis({ candidate: inspected.candidate, metadata });
     const sourceHash = await hashFile(downloaded.filePath);
     const current = application.readProject(job.projectId);
     const duplicate = current.snapshot.assets.find((asset) => asset.sourceHash === sourceHash);
@@ -155,6 +177,10 @@ export function createMediaJobProcessor(
     switch (job.kind) {
       case "media_analysis":
         return runMediaAnalysis(app, job);
+      case "vlog_analysis":
+        return runVlogAnalysis(app, job);
+      case "multicam_sync":
+        return runMulticamSync(app, job);
       case "asset_acquisition":
         return runAssetAcquisition(app, job, providers);
       case "transcription":
@@ -168,6 +194,14 @@ export function createMediaJobProcessor(
           typeof job.payload.voiceReferenceId === "string" ? job.payload.voiceReferenceId : undefined,
           (audit) => { app.recordBridgeRun(job.id, audit); }
         );
+      case "speech_alignment":
+        return runSpeechAlignment(app, job, bridge);
+      case "music_generation":
+        return runMusicGeneration(app, job, bridge);
+      case "video_generation":
+        return runVideoGeneration(app, job, bridge);
+      case "avatar_generation":
+        return runAvatarGeneration(app, job, bridge);
       default:
         throw new DomainError(`任务类型 ${job.kind} 不属于媒体 Worker`, "JOB_NOT_IMPLEMENTED");
     }

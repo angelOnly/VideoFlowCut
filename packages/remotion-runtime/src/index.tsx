@@ -1,7 +1,8 @@
 import React from "react";
 import { AbsoluteFill, Audio, Sequence, useCurrentFrame, Video } from "remotion";
-import type { ActorPerformance, AudioCue, CaptionCard, CaptionFormat, Cutaway, EffectCue, ProjectSnapshot, TimelineItem, TimelineTrack } from "@videocut/contracts";
+import type { ActorPerformance, AudioCue, CaptionCard, CaptionEmphasis, CaptionFormat, Cutaway, EffectCue, ProjectSnapshot, TimelineItem, TimelineTrack } from "@videocut/contracts";
 import { compileCutawayLayout, cutawaySourceVolume } from "./cutaway-layout";
+import { ExplainerSceneLayer } from "./explainer-registry";
 import { compileCameraPunchLayout, compileMotionLayout, resolveEffectStylePack, type EffectStylePack } from "./motion-layout";
 
 export interface CompositionProps {
@@ -131,7 +132,16 @@ const CueVisual: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue
 const CueLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue: EffectCue; fallback?: boolean }> = ({ snapshot, mediaBaseUrl, cue, fallback = false }) => {
   const frame = useCurrentFrame();
   if (frame < cue.startFrame || frame >= cue.endFrame) return null;
-  const layout = compileMotionLayout(cue, frame);
+  // actor_head / actor_hands 只从当前帧的 Actor / A-roll 已就绪表演读取。
+  // 多人物同时命中时不猜数组第一个，Quality 会阻止交付，这里安全降级到普通位置。
+  const tracksById = new Map(snapshot.timeline.tracks.map((track) => [track.id, track]));
+  const actorPerformances = snapshot.timeline.items.flatMap((item) => {
+    if (item.sceneId !== cue.sceneId || item.disabled || item.startFrame > frame || item.endFrame <= frame || tracksById.get(item.trackId)?.name !== "Actor / A-roll") return [];
+    const performance = snapshot.actorPerformances.find((candidate) => candidate.timelineItemId === item.id && candidate.status === "ready");
+    return performance ? [performance] : [];
+  });
+  const actorLayout = actorPerformances.length === 1 ? actorPerformances[0]?.layout : undefined;
+  const layout = compileMotionLayout(cue, frame, actorLayout);
   return <div style={{ position: "absolute", inset: 0, opacity: layout.motion.opacity, fontFamily: layout.stylePack.fontFamily, color: layout.stylePack.foreground, letterSpacing: "0.02em", pointerEvents: "none" }}>
     <div style={{ ...layout.container, transform: `${layout.anchorTransform} ${layout.motion.transform}`.trim(), transformOrigin: "center" }}>
       <CueVisual snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} fallback={fallback} stylePack={layout.stylePack} />
@@ -148,10 +158,48 @@ function captionEmphasisIndex(text: string, phrase: string, occurrence: number):
   return index;
 }
 
-/** 首版只做 Card 级强调：不按字符猜时间，不把稳定字幕升级成逐词弹跳。 */
-const CaptionLayer: React.FC<{ caption: CaptionCard }> = ({ caption }) => {
+/**
+ * 只有当前 SpeechAsset、当前 Script 与真实强制对齐都一致时，才让词级时间驱动字幕高亮。
+ * 手工改写过的字幕可能不再逐字对应语音，因此宁可回退到其原有 Card 强调，也不做字符猜测。
+ */
+export function resolveWordExactCaptionHighlight(
+  snapshot: ProjectSnapshot,
+  caption: CaptionCard,
+  frame: number
+): CaptionEmphasis | undefined {
+  const alignment = snapshot.speechAlignment;
+  const speechAsset = snapshot.speechAsset;
+  if (caption.precision !== "word_exact" || caption.textMode === "manual"
+    || !alignment || alignment.status !== "ready" || !speechAsset
+    || alignment.speechAssetId !== speechAsset.id
+    || alignment.scriptRevision !== speechAsset.scriptRevision
+    || alignment.scriptRevision !== snapshot.script.revision) return undefined;
+  const current = alignment.words.find((word) => word.speechSegmentId === caption.speechSegmentId
+    && frame >= word.startFrame && frame < word.endFrame);
+  const text = current?.text.trim();
+  if (!current || !text || !caption.text.includes(text)) return undefined;
+  const occurrence = alignment.words
+    .filter((word) => word.speechSegmentId === caption.speechSegmentId
+      && (word.startFrame < current.startFrame || (word.startFrame === current.startFrame && word.endFrame < current.endFrame))
+      && word.text.trim() === text)
+    .length;
+  // 文案中的第 N 次出现必须真实存在；不使用 normalizedText 去猜屏幕排版位置。
+  if (captionEmphasisIndex(caption.text, text, occurrence) < 0) return undefined;
+  return {
+    text,
+    occurrence,
+    color: "#ffe08a",
+    backgroundColor: "#382b0ab8",
+    fontWeight: 900,
+    scale: 1.06
+  };
+}
+
+/** 段级字幕保持稳定；只有经真实对齐验证的当前词才会覆盖为短暂的词级强调。 */
+const CaptionLayer: React.FC<{ snapshot: ProjectSnapshot; caption: CaptionCard }> = ({ snapshot, caption }) => {
+  const frame = useCurrentFrame();
   const format = { ...DEFAULT_RENDER_CAPTION_FORMAT, ...caption.format };
-  const emphasis = caption.emphasis;
+  const emphasis = resolveWordExactCaptionHighlight(snapshot, caption, frame) ?? caption.emphasis;
   const emphasisIndex = emphasis ? captionEmphasisIndex(caption.text, emphasis.text, emphasis.occurrence) : -1;
   const before = emphasisIndex >= 0 && emphasis ? caption.text.slice(0, emphasisIndex) : caption.text;
   const focused = emphasisIndex >= 0 && emphasis ? caption.text.slice(emphasisIndex, emphasisIndex + emphasis.text.length) : "";
@@ -176,6 +224,78 @@ const itemDuration = (item: TimelineItem) => item.endFrame - item.startFrame;
 const itemVolume = (item: TimelineItem, track: TimelineTrack) => track.muted ? 0 : Math.pow(10, (item.gainDb ?? 0) / 20);
 
 const dbToVolume = (gainDb: number) => Math.pow(10, gainDb / 20);
+
+/**
+ * Vlog 的画面与现场声必须走两条不同的播放路径：Background 只负责画面，
+ * Ambient 才负责被明确保留的原始现场声。这里不依赖 gainDb 的约定，避免后续
+ * 修改 Timeline 时意外把同一源声播放两次。
+ */
+export function resolveVideoSourceVolume(
+  snapshot: ProjectSnapshot,
+  item: TimelineItem,
+  track: TimelineTrack,
+  performance?: ActorPerformance,
+  cutaway?: Cutaway
+): number {
+  if (cutaway) return cutawaySourceVolume(cutaway, item, track);
+  const isVlogPrimaryVideo = (snapshot.vlogShotSelects ?? []).some((select) => select.status === "ready" && select.timelineItemId === item.id);
+  const isMulticamPrimaryVideo = (snapshot.multicamCuts ?? []).some((cut) => cut.status === "ready" && cut.timelineItemId === item.id);
+  if (isVlogPrimaryVideo || isMulticamPrimaryVideo) return 0;
+  // 有 Dialogue 时，未登记的旧人物 Item 也默认静音，优先避免“原声 + OmniVoice”双重播放。
+  const audioMode = performance?.audioMode ?? (snapshot.speechAsset ? "use_dialogue_track" : "use_source_audio");
+  return audioMode === "use_source_audio" ? itemVolume(item, track) : 0;
+}
+
+/**
+ * 返回 undefined 表示这不是 Vlog Ambient Item，调用方应继续沿用普通 AudioCue 混音。
+ * 返回 0 则代表它声称属于 Vlog，但缺少 keep Select 或可追溯 AmbientCue，不能静默播放。
+ */
+export function resolveVlogAmbientVolume(snapshot: ProjectSnapshot, item: TimelineItem, track: TimelineTrack): number | undefined {
+  if (track.name !== "Ambient") return undefined;
+  const multicamGroup = (snapshot.multicamGroups ?? []).find((group) => group.masterAudioTimelineItemId === item.id);
+  if (multicamGroup) {
+    const valid = multicamGroup.status === "ready" && multicamGroup.sceneId === item.sceneId
+      && multicamGroup.masterAudioAssetId === item.assetId && !item.disabled && (item.gainDb ?? 0) > -80;
+    return valid ? itemVolume(item, track) : 0;
+  }
+  const select = (snapshot.vlogShotSelects ?? []).find((candidate) => candidate.ambientTimelineItemId === item.id);
+  if (!select) return undefined;
+  const cue = (snapshot.vlogAmbientCues ?? []).find((candidate) => candidate.timelineItemId === item.id);
+  if (!cue
+    || cue.status !== "ready"
+    || select.status !== "ready"
+    || select.sourceAudioMode !== "keep"
+    || select.ambientTimelineItemId !== item.id
+    || cue.shotSelectId !== select.id
+    || cue.assetId !== item.assetId) {
+    return 0;
+  }
+  return itemVolume(item, track);
+}
+
+/**
+ * 运行时复核独立 Mask 的最小事实，避免旧 Revision 或手工篡改只改 mode 字段后，
+ * 让普通图片在 Player 中被误当成真实人物遮挡。
+ */
+function usableAlphaMaskAsset(snapshot: ProjectSnapshot, item: TimelineItem, performance: ActorPerformance | undefined) {
+  if (performance?.maskMode !== "alpha_asset" || !performance.maskAssetId) return undefined;
+  const actor = snapshot.assets.find((asset) => asset.id === item.assetId);
+  const mask = snapshot.assets.find((asset) => asset.id === performance.maskAssetId);
+  if (!actor?.metadata?.width || !actor.metadata.height
+    || !mask || mask.status !== "ready" || !["image", "derived"].includes(mask.kind)
+    || mask.role !== "actor_mask" || !mask.metadata?.hasAlpha
+    || mask.metadata.width !== actor.metadata.width || mask.metadata.height !== actor.metadata.height
+    || !performance.layout) return undefined;
+  return mask;
+}
+
+function hasUsableActorMask(snapshot: ProjectSnapshot, item: TimelineItem, performance: ActorPerformance | undefined): boolean {
+  if (!performance) return false;
+  if (performance.maskMode === "embedded_alpha") {
+    return Boolean(snapshot.assets.find((asset) => asset.id === item.assetId)?.metadata?.hasAlpha);
+  }
+  return Boolean(usableAlphaMaskAsset(snapshot, item, performance));
+}
 
 /** 当前帧的 Duck 强度取 Dialogue 的实际可听区间；短停顿不会立即把音乐推回原音量。 */
 function duckIntensityAt(snapshot: ProjectSnapshot, frame: number, cue: AudioCue): number {
@@ -221,12 +341,10 @@ const VideoLayer: React.FC<{
 }> = ({ snapshot, mediaBaseUrl, item, track, performance, cutaway, compositionFrame }) => {
   const asset = snapshot.assets.find((candidate) => candidate.id === item.assetId);
   if (!asset) return null;
-  const maskAsset = performance?.maskMode === "alpha_asset" && performance.maskAssetId
-    ? snapshot.assets.find((candidate) => candidate.id === performance.maskAssetId)
-    : undefined;
+  const maskAsset = usableAlphaMaskAsset(snapshot, item, performance);
   const cameraPunch = !cutaway && (snapshot.effectCues ?? []).find((cue) => cue.type === "CameraPunch" && cue.status === "ready" && cue.sceneId === item.sceneId && cue.startFrame <= compositionFrame && compositionFrame < cue.endFrame);
   // 推近和回位由与普通 Cue 共用的编译器决定，避免 Presenter 主画面另有一套隐藏的线性运动逻辑。
-  const cameraLayout = cameraPunch ? compileCameraPunchLayout(cameraPunch, compositionFrame) : undefined;
+  const cameraLayout = cameraPunch ? compileCameraPunchLayout(cameraPunch, compositionFrame, performance?.layout) : undefined;
   const videoStyle: React.CSSProperties = {
     width: "100%",
     height: "100%",
@@ -238,9 +356,7 @@ const VideoLayer: React.FC<{
     const maskUrl = mediaUrl(snapshot, mediaBaseUrl, maskAsset.managedPath);
     Object.assign(videoStyle, { maskImage: `url("${maskUrl}")`, maskSize: "100% 100%", maskRepeat: "no-repeat", WebkitMaskImage: `url("${maskUrl}")`, WebkitMaskSize: "100% 100%", WebkitMaskRepeat: "no-repeat" });
   }
-  // 有 Dialogue 时，未登记的旧人物 Item 也默认静音，优先避免“原声 + OmniVoice”双重播放。
-  const audioMode = performance?.audioMode ?? (snapshot.speechAsset ? "use_dialogue_track" : "use_source_audio");
-  const sourceVolume = cutaway ? cutawaySourceVolume(cutaway, item, track) : audioMode === "use_source_audio" ? itemVolume(item, track) : 0;
+  const sourceVolume = resolveVideoSourceVolume(snapshot, item, track, performance, cutaway);
   if (cutaway) {
     const aspectRatio = asset.metadata?.width && asset.metadata.height ? asset.metadata.width / asset.metadata.height : undefined;
     const layout = compileCutawayLayout(cutaway, aspectRatio);
@@ -259,7 +375,8 @@ const AudioLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; it
   // loop 会让 Audio 自身的回调帧回到源片段开头；Duck 必须始终按整条成片的全局时间判断。
   const compositionFrame = useCurrentFrame();
   const timelineLocalFrame = compositionFrame - item.startFrame;
-  return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}><Audio src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} loop={cue?.kind === "bgm" && cue.loop} volume={() => audioCueVolumeAt(snapshot, item, track, cue, timelineLocalFrame)} /></Sequence>;
+  const vlogAmbientVolume = resolveVlogAmbientVolume(snapshot, item, track);
+  return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}><Audio src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} loop={cue?.kind === "bgm" && cue.loop} volume={() => vlogAmbientVolume ?? audioCueVolumeAt(snapshot, item, track, cue, timelineLocalFrame)} /></Sequence>;
 };
 
 /**
@@ -290,27 +407,35 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
   const audioCuesByItem = new Map((snapshot.audioCues ?? []).filter((cue) => cue.status === "ready").map((cue) => [cue.timelineItemId, cue]));
   const readyCues = (snapshot.effectCues ?? []).filter((cue) => cue.status === "ready");
   const cuesAt = (...layers: EffectCue["layer"][]) => readyCues.filter((cue) => layers.includes(cue.layer));
-  // 没有登记人物表演或独立 Mask 文件时必须走可见前景降级，不能因 undefined !== "none" 误判为已抠像。
+  // 后景 Cue 只有被同一个 Actor / A-roll 人物在完整范围内覆盖时才能置于人物后方。
   const hasMaskedActorFor = (cue: EffectCue) => videoItems.some((item) => {
-    if (item.sceneId !== cue.sceneId) return false;
+    if (item.sceneId !== cue.sceneId || item.startFrame > cue.startFrame || item.endFrame < cue.endFrame
+      || tracksById.get(item.trackId)?.name !== "Actor / A-roll") return false;
     const performance = performancesByItem.get(item.id);
-    if (!performance) return false;
-    if (performance.maskMode === "embedded_alpha") return true;
-    return performance.maskMode === "alpha_asset"
-      && Boolean(performance.maskAssetId)
-      && snapshot.assets.some((asset) => asset.id === performance.maskAssetId && asset.status === "ready");
+    return hasUsableActorMask(snapshot, item, performance);
   });
   const rearCues = cuesAt("rear");
 
   return <AbsoluteFill style={{ backgroundColor: "#070914", overflow: "hidden" }}>
     {rearCues.filter(hasMaskedActorFor).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
     {videoItems.map((item) => <VideoLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} performance={performancesByItem.get(item.id)} cutaway={cutawaysByItem.get(item.id)} compositionFrame={frame} />)}
+    {/* ExplainerProgram 是主视觉，不借用 Presenter Cue；没有对应 Program 的普通 Scene 不会凭空渲染。 */}
+    <ExplainerSceneLayer snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} />
     {rearCues.filter((cue) => !hasMaskedActorFor(cue)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} fallback />)}
     {cuesAt("actor", "front").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
     {cuesAt("fullscreen").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
-    {snapshot.timeline.captions.map((caption) => <Sequence key={caption.id} from={caption.startFrame} durationInFrames={caption.endFrame - caption.startFrame}><CaptionLayer caption={caption} /></Sequence>)}
+    {snapshot.timeline.captions.map((caption) => <Sequence key={caption.id} from={caption.startFrame} durationInFrames={caption.endFrame - caption.startFrame}><CaptionLayer snapshot={snapshot} caption={caption} /></Sequence>)}
     {audioItems.map((item) => <AudioLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} cue={audioCuesByItem.get(item.id)} />)}
   </AbsoluteFill>;
 };
 
 export { mediaUrl, compileCameraPunchLayout, compileMotionLayout, resolveEffectStylePack, compileCutawayLayout, cutawaySourceVolume };
+export {
+  ADVANCED_VISUAL_RUNTIME_CAPABILITIES,
+  RESTRICTED_SCENE_ACCENTS,
+  RESTRICTED_SCENE_SCHEMA_VERSION,
+  RESTRICTED_SCENE_TEMPLATES,
+  RestrictedSceneVisual,
+  resolveAdvancedVisualRequest,
+  resolveRestrictedScene
+} from "./restricted-scene-registry";

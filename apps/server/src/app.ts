@@ -15,6 +15,145 @@ import type { AssetKind, EditorFocus, ProjectSnapshot } from "@videocut/contract
 
 const idSchema = z.string().min(1);
 const baseRevisionSchema = z.number().int().positive();
+const actorAnchorSchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  source: z.literal("manual_static")
+}).strict();
+const actorLayoutSchema = z.object({
+  actorHead: actorAnchorSchema.optional(),
+  actorHands: actorAnchorSchema.optional()
+}).strict().refine((layout) => Boolean(layout.actorHead || layout.actorHands), {
+  message: "人物布局至少需要一个头部或手部锚点"
+});
+const actorGenerationRangeSchema = z.object({
+  startFrame: z.number().int().min(0),
+  endFrame: z.number().int().positive(),
+  speechSegmentIds: z.array(idSchema).min(1).max(200)
+}).strict().refine((range) => range.endFrame > range.startFrame, {
+  message: "人物生成范围的结束帧必须大于开始帧"
+});
+const actorPlacementSchema = z.object({
+  sceneId: idSchema,
+  startFrame: z.number().int().min(0),
+  endFrame: z.number().int().positive()
+}).strict().refine((placement) => placement.endFrame > placement.startFrame, {
+  message: "人物放置范围的结束帧必须大于开始帧"
+});
+/** 提供即表示请求把本次生成标为可交付；Application 仍会拒绝三项不完整的确认。 */
+const avatarUsageRightsConfirmationSchema = z.object({
+  portraitRightsBasis: z.string().trim().max(2_000).optional(),
+  voiceRightsBasis: z.string().trim().max(2_000).optional(),
+  providerUsageRightsBasis: z.string().trim().max(2_000).optional()
+}).strict();
+
+/**
+ * Avatar 请求只表达项目内已确认的意图。Worker 会在真正调用前动态读取 Bridge Schema，
+ * 因而这里不接受或承诺未验证的姿态、目光、手势与 Provider 字段。
+ */
+const avatarGenerationRequestSchema = z.object({
+  baseRevision: baseRevisionSchema,
+  capabilityProfileId: idSchema,
+  referenceImageAssetId: idSchema,
+  speechAssetId: idSchema.optional(),
+  replaceActorPerformanceId: idSchema.optional(),
+  generationRange: actorGenerationRangeSchema,
+  placement: actorPlacementSchema,
+  prompt: z.string().trim().min(1).max(4_000).optional(),
+  // 当前 Bridge 尚未验证 Alpha / Mask 输出，生成型人物只能明确走无 Mask 前景降级。
+  maskMode: z.literal("none").optional(),
+  // 生成画面默认由当前 Dialogue 承担声音，避免与人物视频原声重复播放。
+  audioMode: z.enum(["use_dialogue_track", "muted"]).optional(),
+  // 未提供时生成结果保持 unknown；不能由 Profile 的泛化说明自动放行交付。
+  rightsConfirmation: avatarUsageRightsConfirmationSchema.optional(),
+  layout: actorLayoutSchema.optional(),
+  note: z.string().trim().max(1_000).optional(),
+  idempotencyKey: z.string().trim().min(1).max(240).optional()
+}).strict();
+
+/**
+ * 视频生成只接收已登记的 Asset ID 与受控参数。动态 Schema 的字段/槽位映射留给 Worker，
+ * HTTP 层不接受 Provider 私有字段、下载 URL、文件路径或任意代码。
+ */
+const videoGenerationRequestSchema = z.object({
+  baseRevision: baseRevisionSchema,
+  workflowId: z.string().trim().min(1).max(240),
+  mode: z.enum(["text_to_video", "image_to_video", "first_last_frame", "multi_reference"]),
+  inputAssetIds: z.array(idSchema).max(10).optional(),
+  prompt: z.string().trim().min(1).max(4_000),
+  durationSeconds: z.number().int().min(1).max(1_800),
+  aspectRatio: z.enum(["9:16", "16:9", "1:1"]).optional(),
+  outputSlotId: z.string().trim().min(1).max(240).optional(),
+  seed: z.number().int().nonnegative().optional(),
+  megapixels: z.number().min(0.1).max(16).optional(),
+  initialSeed: z.number().int().nonnegative().optional(),
+  finalSeed: z.number().int().nonnegative().optional(),
+  initialMegapixels: z.number().min(0.1).max(16).optional(),
+  finalMegapixels: z.number().min(0.1).max(16).optional(),
+  assetRequestId: idSchema.optional(),
+  idempotencyKey: z.string().trim().min(1).max(240).optional()
+}).strict();
+
+const multicamMarkerSchema = z.object({
+  assetId: idSchema,
+  label: z.string().trim().min(1).max(80),
+  sourceFrame: z.number().int().nonnegative(),
+  note: z.string().trim().min(1).max(1_200)
+}).strict();
+
+/** Web 只创建可审计意图；接手和完成必须通过 MCP，由 Codex 用当前 Revision 回写。 */
+const agentWorkOrderCreateSchema = z.object({
+  baseRevision: baseRevisionSchema,
+  title: z.string().trim().min(1).max(160),
+  intent: z.string().trim().min(1).max(4_000),
+  relatedObjectIds: z.array(idSchema).max(80).optional()
+}).strict();
+const agentWorkOrderCancelSchema = z.object({
+  baseRevision: baseRevisionSchema,
+  reason: z.string().trim().min(1).max(2_000)
+}).strict();
+
+const explainerKindSchema = z.enum([
+  "HeroReveal",
+  "Comparison",
+  "ProgressiveClassification",
+  "RouteAndFlow",
+  "EvidenceDocument",
+  "UIWalkthrough",
+  "DataConclusion",
+  "PeopleGrouping",
+  "LayerStack",
+  "HistoryTimeline",
+  "QuotePortrait",
+  "RealityBroll"
+]);
+const evidenceHighlightSchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  width: z.number().positive().max(1),
+  height: z.number().positive().max(1),
+  label: z.string().trim().min(1).max(160).optional()
+}).strict().refine((highlight) => highlight.x + highlight.width <= 1 && highlight.y + highlight.height <= 1, {
+  message: "证据高亮必须位于归一化页面范围内"
+});
+const explainerStateSchema = z.object({
+  id: idSchema.optional(),
+  phase: z.enum(["entry", "progressive", "settled", "exit"]),
+  startFrame: z.number().int().nonnegative(),
+  endFrame: z.number().int().positive(),
+  label: z.string().trim().min(1).max(500),
+  detail: z.string().trim().min(1).max(2_000).optional()
+}).strict().refine((state) => state.endFrame > state.startFrame, {
+  message: "Explainer 状态结束帧必须大于开始帧"
+});
+const explainerVisualTreatmentSchema = z.object({
+  mode: z.enum(["keep_presenter", "quiet", "light_overlay", "remotion", "b_roll", "cutaway", "evidence"]).optional(),
+  intensity: z.enum(["low", "medium", "high"]).optional(),
+  primaryAttention: z.string().trim().min(1).max(500).optional(),
+  narrativePurpose: z.string().trim().min(1).max(800).optional(),
+  quietReason: z.string().trim().min(1).max(800).optional(),
+  fallbackPlan: z.string().trim().min(1).max(800).optional()
+}).strict();
 
 const mimeByExtension: Record<string, string> = {
   ".mp4": "video/mp4",
@@ -27,7 +166,9 @@ const mimeByExtension: Record<string, string> = {
   ".m4a": "audio/mp4",
   ".png": "image/png",
   ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg"
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".pdf": "application/pdf"
 };
 
 const assetKindFromFile = (fileName: string): AssetKind => {
@@ -35,6 +176,7 @@ const assetKindFromFile = (fileName: string): AssetKind => {
   if ([".mp4", ".mov", ".webm", ".mkv"].includes(extension)) return "video";
   if ([".mp3", ".wav", ".flac", ".m4a", ".aac"].includes(extension)) return "audio";
   if ([".png", ".jpg", ".jpeg", ".webp"].includes(extension)) return "image";
+  if (extension === ".pdf") return "document";
   throw new DomainError(`不支持的素材格式：${extension || "无扩展名"}`, "UNSUPPORTED_MEDIA");
 };
 
@@ -139,6 +281,24 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   app.get("/api/projects/:projectId/revisions", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     return application.readRevisions(projectId);
+  });
+
+  app.get("/api/projects/:projectId/agent-work-orders", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    return application.readAgentWorkOrders(projectId);
+  });
+
+  app.post("/api/projects/:projectId/agent-work-orders", async (request, reply) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = agentWorkOrderCreateSchema.parse(request.body);
+    const result = application.createAgentWorkOrder({ projectId, ...body });
+    return reply.status(201).send(result);
+  });
+
+  app.post("/api/projects/:projectId/agent-work-orders/:workOrderId/cancel", async (request) => {
+    const { projectId, workOrderId } = z.object({ projectId: idSchema, workOrderId: idSchema }).parse(request.params);
+    const body = agentWorkOrderCancelSchema.parse(request.body);
+    return application.cancelAgentWorkOrder({ projectId, workOrderId, ...body });
   });
 
   app.get("/api/projects/:projectId/jobs", async (request) => {
@@ -294,6 +454,42 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return application.alignPresenterToSpeech({ projectId, ...body });
   });
 
+  app.get("/api/projects/:projectId/actor-capabilities", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    return application.listActorCapabilityProfiles(projectId);
+  });
+
+  app.get("/api/projects/:projectId/actor-performances", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const state = application.readProject(projectId);
+    return { revision: state.revision.number, actorPerformances: state.snapshot.actorPerformances };
+  });
+
+  app.post("/api/projects/:projectId/actor-capabilities", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      action: z.enum(["create", "update", "remove"]),
+      profileId: idSchema.optional(),
+      provider: z.literal("minimax_h3_multi_reference").optional(),
+      label: z.string().min(1).max(120).optional(),
+      workflowId: z.string().min(1).max(200).optional(),
+      inputModes: z.array(z.enum(["audio", "text"])).min(1).max(2).optional(),
+      maskModes: z.array(z.enum(["alpha_asset", "embedded_alpha", "none"])).min(1).max(3).optional(),
+      supportsReferenceImage: z.boolean().optional(),
+      supportsReferenceVideo: z.boolean().optional(),
+      // 参考音频可上传不等于已验证口型；只有实测通过时才允许声明 true。
+      supportsAudioDrivenLipSync: z.boolean().optional(),
+      supportsGazeControl: z.boolean().optional(),
+      supportsGestureControl: z.boolean().optional(),
+      supportsPartialRegeneration: z.boolean().optional(),
+      maxDurationSeconds: z.number().int().min(1).max(1800).optional(),
+      rightsNote: z.string().min(1).max(2_000).optional(),
+      privacyNote: z.string().min(1).max(2_000).optional()
+    }).parse(request.body);
+    return application.manageActorCapabilityProfile({ projectId, ...body });
+  });
+
   app.post("/api/projects/:projectId/actor-performances", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({
@@ -304,9 +500,286 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       audioMode: z.enum(["use_source_audio", "use_dialogue_track", "muted"]).optional(),
       maskAssetId: idSchema.optional(),
       speechAssetId: idSchema.optional(),
+      capabilityProfileId: idSchema.optional(),
+      layout: actorLayoutSchema.optional(),
       note: z.string().max(500).optional()
     }).parse(request.body);
     return application.registerActorPerformance({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/avatar-jobs", async (request, reply) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = avatarGenerationRequestSchema.parse(request.body);
+    return reply.status(202).send(application.submitAvatarGeneration({ projectId, ...body }));
+  });
+
+  app.post("/api/projects/:projectId/video-generation", async (request, reply) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = videoGenerationRequestSchema.parse(request.body);
+    return reply.status(202).send(application.submitVideoGeneration({ projectId, ...body }));
+  });
+
+  /** 视觉解释主线：NarrativeMap 只表达观众理解路径，Scene 仍由后续编译接口原子生成。 */
+  app.get("/api/projects/:projectId/narrative-map", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    return application.readNarrativeMap({ projectId });
+  });
+
+  app.post("/api/projects/:projectId/narrative-map", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      viewerQuestion: z.string().trim().min(1).max(800),
+      promisedModel: z.string().trim().min(1).max(1_200),
+      conclusion: z.string().trim().min(1).max(1_200),
+      beats: z.array(z.object({
+        narrativeBeatId: idSchema,
+        enteringKnowledge: z.string().trim().min(1).max(1_200),
+        question: z.string().trim().min(1).max(1_200),
+        newKnowledge: z.string().trim().min(1).max(1_200),
+        deferredInformation: z.string().trim().min(1).max(1_200),
+        claim: z.string().trim().min(1).max(1_200).optional(),
+        evidenceCaptureIds: z.array(idSchema).max(40).optional(),
+        sceneIds: z.array(idSchema).max(40).optional()
+      }).strict()).min(1).max(80)
+    }).strict().parse(request.body);
+    return application.manageNarrativeMap({ projectId, ...body });
+  });
+
+  app.get("/api/projects/:projectId/evidence-captures", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const { evidenceCaptureId } = z.object({ evidenceCaptureId: idSchema.optional() }).parse(request.query);
+    return application.readEvidenceCapture({ projectId, evidenceCaptureId });
+  });
+
+  app.post("/api/projects/:projectId/evidence-captures", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      action: z.enum(["create", "update", "remove"]),
+      evidenceCaptureId: idSchema.optional(),
+      sourceAssetId: idSchema.optional(),
+      snapshotAssetId: idSchema.optional(),
+      sourceTitle: z.string().trim().min(1).max(800).optional(),
+      publisher: z.string().trim().min(1).max(400).optional(),
+      sourceUrl: z.string().url().max(2_000).optional(),
+      capturedAt: z.string().datetime({ offset: true }).optional(),
+      pageOrRange: z.string().trim().min(1).max(500).optional(),
+      excerpt: z.string().trim().min(1).max(8_000).optional(),
+      claim: z.string().trim().min(1).max(2_000).optional(),
+      limitation: z.string().trim().min(1).max(2_000).optional(),
+      highlights: z.array(evidenceHighlightSchema).min(1).max(12).optional()
+    }).strict().parse(request.body);
+    return application.manageEvidenceCapture({ projectId, ...body });
+  });
+
+  app.get("/api/projects/:projectId/explainer-scenes", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const { sceneId } = z.object({ sceneId: idSchema.optional() }).parse(request.query);
+    return application.readExplainerScenePrograms({ projectId, sceneId });
+  });
+
+  app.post("/api/projects/:projectId/explainer-scenes/compile", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      plans: z.array(z.object({
+        title: z.string().trim().min(1).max(160),
+        purpose: z.string().trim().min(1).max(1_200),
+        startFrame: z.number().int().nonnegative(),
+        endFrame: z.number().int().positive(),
+        narrativeMapBeatId: idSchema,
+        kind: explainerKindSchema,
+        primaryTask: z.string().trim().min(1).max(1_200),
+        assetIds: z.array(idSchema).max(60).optional(),
+        evidenceCaptureId: idSchema.optional(),
+        states: z.array(explainerStateSchema).min(4).max(12),
+        props: z.record(z.unknown()).optional(),
+        stylePackId: z.string().trim().min(1).max(160).optional(),
+        visualTreatment: explainerVisualTreatmentSchema.optional()
+      }).strict().refine((plan) => plan.endFrame > plan.startFrame, {
+        message: "Explainer 场景结束帧必须大于开始帧"
+      })).min(1).max(80)
+    }).strict().parse(request.body);
+    return application.compileExplainerScenes({ projectId, ...body });
+  });
+
+  app.get("/api/projects/:projectId/vlog-plan", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    return application.readVlogPlan(projectId);
+  });
+
+  app.post("/api/projects/:projectId/vlog-analysis", async (request, reply) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      assetIds: z.array(idSchema).min(1).max(120),
+      sceneThreshold: z.number().min(0.05).max(0.9).optional(),
+      idempotencyKey: z.string().trim().min(1).max(240).optional()
+    }).parse(request.body);
+    // 分析任务只产出可测量的边界；事件与剪辑意图仍由后续 Event / Select 接口明确写入。
+    return reply.status(202).send(application.submitVlogAnalysis({ projectId, ...body }));
+  });
+
+  app.post("/api/projects/:projectId/vlog-events", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      action: z.enum(["create", "update", "remove"]),
+      eventId: idSchema.optional(),
+      order: z.number().int().nonnegative().optional(),
+      title: z.string().trim().min(1).max(160).optional(),
+      summary: z.string().trim().min(1).max(2_000).optional(),
+      shotAnalysisIds: z.array(idSchema).min(1).max(300).optional(),
+      goal: z.string().max(800).optional(),
+      actionNote: z.string().max(800).optional(),
+      change: z.string().max(800).optional(),
+      reaction: z.string().max(800).optional(),
+      outcome: z.string().max(800).optional(),
+      locationNote: z.string().max(800).optional(),
+      continuityNote: z.string().max(1_200).optional(),
+      status: z.enum(["draft", "ready"]).optional()
+    }).parse(request.body);
+    return application.manageVlogEvents({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/vlog-shot-selects", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      action: z.enum(["create", "update", "remove"]),
+      shotSelectId: idSchema.optional(),
+      eventId: idSchema.optional(),
+      shotAnalysisId: idSchema.optional(),
+      order: z.number().int().nonnegative().optional(),
+      sourceStartFrame: z.number().int().nonnegative().optional(),
+      sourceEndFrame: z.number().int().positive().optional(),
+      function: z.enum(["establish", "action", "detail", "reaction", "transition", "atmosphere"]).optional(),
+      selectionReason: z.string().max(1_200).optional(),
+      continuityNote: z.string().max(1_200).optional(),
+      sourceAudioMode: z.enum(["keep", "mute"]).optional(),
+      status: z.enum(["planned", "ready"]).optional()
+    }).parse(request.body);
+    return application.manageVlogShotSelects({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/timeline/compile-vlog-montage", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      shotSelectIds: z.array(idSchema).min(1).max(300),
+      startFrame: z.number().int().nonnegative().optional(),
+      titlePrefix: z.string().trim().min(1).max(120).optional()
+    }).parse(request.body);
+    return application.compileVlogMontage({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/vlog-music-beats", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      action: z.enum(["create", "update", "remove"]),
+      beatId: idSchema.optional(),
+      audioCueId: idSchema.optional(),
+      frame: z.number().int().nonnegative().optional(),
+      note: z.string().max(1_000).optional()
+    }).parse(request.body);
+    return application.manageVlogMusicBeats({ projectId, ...body });
+  });
+
+  app.get("/api/projects/:projectId/multicam", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    return application.readMulticamPlan(projectId);
+  });
+
+  app.post("/api/projects/:projectId/multicam/sync", async (request, reply) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      title: z.string().trim().min(1).max(160).optional(),
+      assetIds: z.array(idSchema).min(2).max(24),
+      angleLabels: z.record(z.string().trim().min(1).max(80)),
+      referenceAssetId: idSchema.optional(),
+      masterAudioAssetId: idSchema.optional(),
+      sourceRanges: z.record(z.object({
+        startFrame: z.number().int().nonnegative(),
+        endFrame: z.number().int().positive()
+      }).strict().refine((range) => range.endFrame > range.startFrame, {
+        message: "同步源区间的结束帧必须大于开始帧"
+      })).optional(),
+      maxSearchSeconds: z.number().int().min(20).max(1_800).optional(),
+      idempotencyKey: z.string().trim().min(1).max(240).optional()
+    }).strict().parse(request.body);
+    // 自动相关只会生成 candidate；之后仍须调用 verify 写入连续预览确认。
+    return reply.status(202).send(application.submitMulticamSync({ projectId, ...body }));
+  });
+
+  app.post("/api/projects/:projectId/multicam/manual", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      title: z.string().trim().min(1).max(160),
+      referenceAssetId: idSchema,
+      masterAudioAssetId: idSchema,
+      markers: z.array(multicamMarkerSchema).min(2).max(24)
+    }).strict().parse(request.body);
+    return application.createManualMulticamGroup({ projectId, ...body });
+  });
+
+  /**
+   * 仅确认已由所属同步 Job 生成并绑定受管并排 Preview 的自动 candidate；
+   * previewEvidence 必须记录人工连续核对说明，不能用接口成功替代预览。
+   */
+  app.post("/api/projects/:projectId/multicam/verify", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      groupId: idSchema,
+      previewEvidence: z.string().trim().min(1).max(2_000)
+    }).strict().parse(request.body);
+    return application.verifyMulticamGroup({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/multicam/cuts", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      action: z.enum(["create", "update", "remove"]),
+      groupId: idSchema.optional(),
+      cutId: idSchema.optional(),
+      order: z.number().int().nonnegative().optional(),
+      angleAssetId: idSchema.optional(),
+      sessionStartFrame: z.number().int().nonnegative().optional(),
+      sessionEndFrame: z.number().int().positive().optional(),
+      reason: z.string().trim().min(1).max(1_200).optional(),
+      continuityNote: z.string().trim().min(1).max(1_200).optional()
+    }).strict().parse(request.body);
+    return application.manageMulticamCuts({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/timeline/compile-multicam", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      groupId: idSchema,
+      cutIds: z.array(idSchema).min(1).max(300),
+      startFrame: z.number().int().nonnegative().optional(),
+      titlePrefix: z.string().trim().min(1).max(120).optional()
+    }).strict().parse(request.body);
+    return application.compileMulticamProgram({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/music-generation", async (request, reply) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      workflowId: z.string().trim().min(1).max(240),
+      prompt: z.string().trim().min(1).max(4_000),
+      durationSeconds: z.number().int().min(1).max(1_800),
+      outputSlotId: z.string().trim().min(1).max(240).optional(),
+      idempotencyKey: z.string().trim().min(1).max(240).optional()
+    }).strict().parse(request.body);
+    return reply.status(202).send(application.submitMusicGeneration({ projectId, ...body }));
   });
 
   app.post("/api/projects/:projectId/scenes", async (request) => {
@@ -410,6 +883,24 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       .refine((value) => Boolean(value.voiceReferenceId || value.voiceReferenceAssetId), { message: "必须指定 VoiceReference" })
       .parse(request.body);
     return reply.status(202).send(application.submitVoiceSynthesis({ projectId, ...body }));
+  });
+
+  /** 词级对齐是可选异步任务；没有明确 workflow 时不把段级时序伪装成 word_exact。 */
+  app.post("/api/projects/:projectId/speech-alignment", async (request, reply) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      workflowId: z.string().trim().min(1).max(240),
+      speechAssetId: idSchema.optional(),
+      outputSlotId: z.string().trim().min(1).max(240).optional(),
+      idempotencyKey: z.string().trim().min(1).max(240).optional()
+    }).strict().parse(request.body);
+    return reply.status(202).send(application.submitSpeechAlignment({ projectId, ...body }));
+  });
+
+  app.get("/api/projects/:projectId/speech-alignment", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    return { speechAlignment: application.readSpeechAlignment(projectId) };
   });
 
   app.post("/api/projects/:projectId/voice-references", async (request) => {

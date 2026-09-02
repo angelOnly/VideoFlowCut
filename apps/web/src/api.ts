@@ -1,4 +1,4 @@
-import type { ExportArtifact, ExportPurpose, JobRecord, ProjectSnapshot, ProjectSummary, QualityReport, RevisionRecord } from "@videocut/contracts";
+import type { AgentWorkOrder, ExportArtifact, ExportPurpose, JobRecord, ProductionProfile, ProjectSnapshot, ProjectSummary, QualityReport, RevisionRecord, VideoGenerationMode } from "@videocut/contracts";
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:3100";
 
@@ -19,11 +19,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   listProjects: () => request<ProjectSummary[]>("/api/projects"),
-  createProject: (name: string) => request<ProjectState>("/api/projects", { method: "POST", body: JSON.stringify({ name, profile: "presenter_motion" }) }),
+  createProject: (name: string, profile: ProductionProfile) => request<ProjectState>("/api/projects", { method: "POST", body: JSON.stringify({ name, profile }) }),
   project: (projectId: string) => request<ProjectState>(`/api/projects/${projectId}`),
   quality: (projectId: string) => request<QualityReport>(`/api/projects/${projectId}/quality`),
   jobs: (projectId: string) => request<JobRecord[]>(`/api/projects/${projectId}/jobs`),
   revisions: (projectId: string) => request<Array<Pick<RevisionRecord, "id" | "number" | "summary" | "createdAt" | "impact">>>(`/api/projects/${projectId}/revisions`),
+  agentWorkOrders: (projectId: string) => request<{ revision: number; agentWorkOrders: AgentWorkOrder[] }>(`/api/projects/${projectId}/agent-work-orders`),
+  createAgentWorkOrder: (projectId: string, payload: { baseRevision: number; title: string; intent: string; relatedObjectIds: string[] }) => request<{ state: ProjectState; workOrder: AgentWorkOrder }>(`/api/projects/${projectId}/agent-work-orders`, { method: "POST", body: JSON.stringify(payload) }),
+  cancelAgentWorkOrder: (projectId: string, workOrderId: string, payload: { baseRevision: number; reason: string }) => request<{ state: ProjectState; workOrder: AgentWorkOrder }>(`/api/projects/${projectId}/agent-work-orders/${workOrderId}/cancel`, { method: "POST", body: JSON.stringify(payload) }),
   importPath: (projectId: string, baseRevision: number, filePath: string) => request(`/api/projects/${projectId}/assets/import-path`, { method: "POST", body: JSON.stringify({ baseRevision, filePath }) }),
   upload: (projectId: string, baseRevision: number, files: File[]) => {
     const body = new FormData();
@@ -54,6 +57,31 @@ export const api = {
   exportArtifacts: (projectId: string) => request<ExportArtifact[]>(`/api/projects/${projectId}/export-artifacts`),
   approveExportArtifact: (projectId: string, artifactId: string, note?: string) => request<ExportArtifact>(`/api/projects/${projectId}/export-artifacts/${artifactId}/approve`, { method: "POST", body: JSON.stringify({ note }) }),
   preview: (projectId: string, payload: Record<string, unknown>) => request<JobRecord>(`/api/projects/${projectId}/previews`, { method: "POST", body: JSON.stringify(payload) }),
+  /** 高级面板只提交可测量的 Vlog 镜头分析，不在 Web 端伪造事件或剪辑语义。 */
+  submitVlogAnalysis: (projectId: string, payload: { baseRevision: number; assetIds: string[]; sceneThreshold?: number }) => request<JobRecord>(`/api/projects/${projectId}/vlog-analysis`, { method: "POST", body: JSON.stringify(payload) }),
+  /** 自动同步只会生成 candidate；是否 verified 仍须由连续预览证据通过 MCP 回写。 */
+  submitMulticamSync: (projectId: string, payload: {
+    baseRevision: number;
+    title?: string;
+    assetIds: string[];
+    angleLabels: Record<string, string>;
+    referenceAssetId: string;
+    masterAudioAssetId: string;
+    sourceRanges: Record<string, { startFrame: number; endFrame: number }>;
+  }) => request<JobRecord>(`/api/projects/${projectId}/multicam/sync`, { method: "POST", body: JSON.stringify(payload) }),
+  /** 只能在受管并排 Preview 已生成后写入人工连续核对结论；服务端会再次校验 Preview 的哈希和范围。 */
+  verifyMulticamGroup: (projectId: string, payload: { baseRevision: number; groupId: string; previewEvidence: string }) => request<unknown>(`/api/projects/${projectId}/multicam/verify`, { method: "POST", body: JSON.stringify(payload) }),
+  /** workflowId 必须来自本次实时 Bridge Schema；Web 不保存 Provider 私有字段。 */
+  submitVideoGeneration: (projectId: string, payload: {
+    baseRevision: number;
+    workflowId: string;
+    mode: VideoGenerationMode;
+    inputAssetIds: string[];
+    prompt: string;
+    durationSeconds: number;
+  }) => request<JobRecord>(`/api/projects/${projectId}/video-generation`, { method: "POST", body: JSON.stringify(payload) }),
+  submitMusicGeneration: (projectId: string, payload: { baseRevision: number; workflowId: string; prompt: string; durationSeconds: number }) => request<JobRecord>(`/api/projects/${projectId}/music-generation`, { method: "POST", body: JSON.stringify(payload) }),
+  submitSpeechAlignment: (projectId: string, payload: { baseRevision: number; workflowId: string; speechAssetId?: string }) => request<JobRecord>(`/api/projects/${projectId}/speech-alignment`, { method: "POST", body: JSON.stringify(payload) }),
   rollback: (projectId: string, revision: number, baseRevision: number) => request<ProjectState>(`/api/projects/${projectId}/revisions/${revision}/rollback`, { method: "POST", body: JSON.stringify({ baseRevision }) }),
   retryJob: (jobId: string) => request<JobRecord>(`/api/jobs/${jobId}/retry`, { method: "POST" })
 };

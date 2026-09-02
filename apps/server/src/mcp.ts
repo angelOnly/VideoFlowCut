@@ -29,10 +29,11 @@ const kindFromPath = (path: string) => {
   if ([".mp4", ".mov", ".webm", ".mkv"].includes(extension)) return "video" as const;
   if ([".mp3", ".wav", ".flac", ".m4a", ".aac"].includes(extension)) return "audio" as const;
   if ([".png", ".jpg", ".jpeg", ".webp"].includes(extension)) return "image" as const;
+  if (extension === ".pdf") return "document" as const;
   throw new DomainError(`不支持的素材格式：${extension}`, "UNSUPPORTED_MEDIA");
 };
 
-const assetRoleSchema = z.enum(["a_roll", "b_roll", "actor_mask", "voice_reference", "evidence", "cutaway", "style_reference", "generated_visual"]);
+const assetRoleSchema = z.enum(["a_roll", "b_roll", "vlog_source", "actor_mask", "voice_reference", "evidence", "cutaway", "style_reference", "generated_visual"]);
 const assetProvenanceSchema = z.object({
   source: z.enum(["local_import", "generated", "provider"]),
   provider: z.string().max(240).optional(),
@@ -40,10 +41,91 @@ const assetProvenanceSchema = z.object({
   original_asset_id: z.string().max(240).optional(),
   creator: z.string().max(240).optional(),
   license: z.string().max(500).optional(),
+  license_url: z.string().url().max(2_000).optional(),
   attribution_text: z.string().max(1_000).optional(),
   rights_status: z.enum(["unknown", "cleared", "attribution_required", "restricted", "rejected"])
 });
 type McpAssetProvenance = z.infer<typeof assetProvenanceSchema>;
+
+const actorAnchorSchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  source: z.literal("manual_static")
+}).strict();
+const actorLayoutSchema = z.object({
+  actor_head: actorAnchorSchema.optional(),
+  actor_hands: actorAnchorSchema.optional()
+}).strict().refine((layout) => Boolean(layout.actor_head || layout.actor_hands), {
+  message: "人物布局至少需要一个头部或手部锚点"
+});
+const actorGenerationRangeSchema = z.object({
+  start_frame: z.number().int().nonnegative(),
+  end_frame: z.number().int().positive(),
+  speech_segment_ids: z.array(z.string().min(1)).min(1).max(200)
+}).strict().refine((range) => range.end_frame > range.start_frame, {
+  message: "人物生成范围的结束帧必须大于开始帧"
+});
+const actorPlacementSchema = z.object({
+  scene_id: z.string().min(1),
+  start_frame: z.number().int().nonnegative(),
+  end_frame: z.number().int().positive()
+}).strict().refine((placement) => placement.end_frame > placement.start_frame, {
+  message: "人物放置范围的结束帧必须大于开始帧"
+});
+const avatarUsageRightsConfirmationSchema = z.object({
+  portrait_rights_basis: z.string().trim().max(2_000).optional(),
+  voice_rights_basis: z.string().trim().max(2_000).optional(),
+  provider_usage_rights_basis: z.string().trim().max(2_000).optional()
+}).strict();
+
+const multicamMarkerSchema = z.object({
+  asset_id: z.string().min(1),
+  label: z.string().min(1).max(80),
+  source_frame: z.number().int().nonnegative(),
+  note: z.string().min(1).max(1_200)
+}).strict();
+
+const explainerKindSchema = z.enum([
+  "HeroReveal",
+  "Comparison",
+  "ProgressiveClassification",
+  "RouteAndFlow",
+  "EvidenceDocument",
+  "UIWalkthrough",
+  "DataConclusion",
+  "PeopleGrouping",
+  "LayerStack",
+  "HistoryTimeline",
+  "QuotePortrait",
+  "RealityBroll"
+]);
+const evidenceHighlightSchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  width: z.number().positive().max(1),
+  height: z.number().positive().max(1),
+  label: z.string().min(1).max(160).optional()
+}).strict().refine((highlight) => highlight.x + highlight.width <= 1 && highlight.y + highlight.height <= 1, {
+  message: "证据高亮必须位于归一化页面范围内"
+});
+const explainerStateSchema = z.object({
+  id: z.string().min(1).optional(),
+  phase: z.enum(["entry", "progressive", "settled", "exit"]),
+  start_frame: z.number().int().nonnegative(),
+  end_frame: z.number().int().positive(),
+  label: z.string().min(1).max(500),
+  detail: z.string().min(1).max(2_000).optional()
+}).strict().refine((state) => state.end_frame > state.start_frame, {
+  message: "Explainer 状态结束帧必须大于开始帧"
+});
+const explainerVisualTreatmentSchema = z.object({
+  mode: z.enum(["keep_presenter", "quiet", "light_overlay", "remotion", "b_roll", "cutaway", "evidence"]).optional(),
+  intensity: z.enum(["low", "medium", "high"]).optional(),
+  primary_attention: z.string().min(1).max(500).optional(),
+  narrative_purpose: z.string().min(1).max(800).optional(),
+  quiet_reason: z.string().min(1).max(800).optional(),
+  fallback_plan: z.string().min(1).max(800).optional()
+}).strict();
 
 function provenanceFromMcp(input?: McpAssetProvenance): Omit<AssetProvenance, "acquiredAt"> | undefined {
   if (!input) return undefined;
@@ -55,6 +137,7 @@ function provenanceFromMcp(input?: McpAssetProvenance): Omit<AssetProvenance, "a
     originalAssetId: optional(input.original_asset_id),
     creator: optional(input.creator),
     license: optional(input.license),
+    licenseUrl: optional(input.license_url),
     attributionText: optional(input.attribution_text),
     rightsStatus: input.rights_status
   };
@@ -241,6 +324,77 @@ server.registerTool("list_revisions", {
   annotations: { readOnlyHint: true }
 }, async ({ project_id }) => {
   try { return asText(application.readRevisions(projectIdFrom(project_id))); } catch (error) { return asError(error); }
+});
+
+server.registerTool("read_agent_work_orders", {
+  title: "读取 Agent 工作单",
+  description: "读取 Web 用户提交的意图、关联对象 ID 与当前状态；工作单不复制 Timeline，接手前请使用返回的 revision。",
+  inputSchema: { project_id: z.string().optional() },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id }) => {
+  try { return asText(application.readAgentWorkOrders(projectIdFrom(project_id))); } catch (error) { return asError(error); }
+});
+
+server.registerTool("claim_agent_work_order", {
+  title: "接手 Agent 工作单",
+  description: "由 Codex 使用当前 Revision 原子接手一条待处理工作单；不会自动执行剪辑或调用 LLM。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    work_order_id: z.string().min(1),
+    agent_id: z.string().trim().min(1).max(160)
+  }
+}, async ({ project_id, base_revision_id, work_order_id, agent_id }) => {
+  try {
+    return asText(application.claimAgentWorkOrder({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id,
+      workOrderId: work_order_id,
+      agentId: agent_id
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("complete_agent_work_order", {
+  title: "完成 Agent 工作单",
+  description: "由原接手 Codex 回写完成摘要。edited 必须从 Revision 历史取得实际对象变化；reviewed_no_change 只记录明确审查结论。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    work_order_id: z.string().min(1),
+    agent_id: z.string().trim().min(1).max(160),
+    completion_summary: z.string().trim().min(1).max(4_000),
+    completion_kind: z.enum(["edited", "reviewed_no_change"])
+  }
+}, async ({ project_id, base_revision_id, work_order_id, agent_id, completion_summary, completion_kind }) => {
+  try {
+    return asText(application.completeAgentWorkOrder({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id,
+      workOrderId: work_order_id,
+      agentId: agent_id,
+      completionSummary: completion_summary,
+      completionKind: completion_kind
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("release_agent_work_order", {
+  title: "释放 Agent 工作单",
+  description: "原接手 Codex 无法继续时，用当前 Revision 将 claimed 工作单释放回 open；不会伪造完成。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    work_order_id: z.string().min(1),
+    agent_id: z.string().trim().min(1).max(160),
+    reason: z.string().trim().min(1).max(2_000)
+  }
+}, async ({ project_id, base_revision_id, work_order_id, agent_id, reason }) => {
+  try {
+    return asText(application.releaseAgentWorkOrder({
+      projectId: projectIdFrom(project_id), baseRevision: base_revision_id, workOrderId: work_order_id, agentId: agent_id, reason
+    }));
+  } catch (error) { return asError(error); }
 });
 
 server.registerTool("rollback_revision", {
@@ -497,7 +651,7 @@ server.registerTool("apply_script", {
 
 server.registerTool("read_speech_asset", {
   title: "读取语音资产",
-  description: "读取 SpeechSegment、SegmentAsset、最终 SpeechAsset 与本地 VoiceReference；不会伪造远端 Voice ID。",
+  description: "读取 SpeechSegment、SegmentAsset、最终 SpeechAsset、可选真实词级对齐与本地 VoiceReference；不会伪造远端 Voice ID。",
   inputSchema: { project_id: z.string().optional() },
   annotations: { readOnlyHint: true }
 }, async ({ project_id }) => {
@@ -508,7 +662,8 @@ server.registerTool("read_speech_asset", {
       voiceReferences: snapshot.voiceReferences,
       speechSegments: snapshot.speechSegments,
       speechSegmentAssets: snapshot.speechSegmentAssets,
-      speechAsset: snapshot.speechAsset
+      speechAsset: snapshot.speechAsset,
+      speechAlignment: snapshot.speechAlignment
     });
   } catch (error) { return asError(error); }
 });
@@ -539,14 +694,49 @@ server.registerTool("manage_voice_references", {
 
 server.registerTool("read_speech_timing", {
   title: "读取语音时序",
-  description: "读取 SpeechTiming 的精度与真实段级范围；第一版不把它描述成词级时序。",
+  description: "读取 SpeechTiming 的当前精度、段级范围和可选真实词级对齐摘要；没有对齐审计时不会描述成词级时序。",
   inputSchema: { project_id: z.string().optional() },
   annotations: { readOnlyHint: true }
 }, async ({ project_id }) => {
   try {
     const snapshot = application.readProject(projectIdFrom(project_id)).snapshot;
-    return asText(snapshot.speechAsset ? { scriptRevision: snapshot.speechAsset.scriptRevision, timing: snapshot.speechAsset.timing } : { timing: undefined, reason: "尚未组装 SpeechAsset" });
+    return asText(snapshot.speechAsset
+      ? { scriptRevision: snapshot.speechAsset.scriptRevision, timing: snapshot.speechAsset.timing, speechAlignment: snapshot.speechAlignment }
+      : { timing: undefined, speechAlignment: undefined, reason: "尚未组装 SpeechAsset" });
   } catch (error) { return asError(error); }
+});
+
+server.registerTool("submit_speech_alignment", {
+  title: "提交真实词级强制对齐",
+  description: "对当前 SpeechAsset 以明确 Bridge workflow 提交强制对齐。Worker 会动态读取 Schema、上传本地音频和当前 Script，只接收明确 JSON 时间戳；run_id 丢失时不会自动重复提交。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    workflow_id: z.string().min(1).max(240),
+    speech_asset_id: z.string().min(1).optional(),
+    output_slot_id: z.string().min(1).max(240).optional(),
+    idempotency_key: z.string().min(1).max(240).optional()
+  }
+}, async (input) => {
+  try {
+    return asText(application.submitSpeechAlignment({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      workflowId: input.workflow_id,
+      speechAssetId: input.speech_asset_id,
+      outputSlotId: input.output_slot_id,
+      idempotencyKey: input.idempotency_key
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("read_speech_alignment", {
+  title: "读取真实词级对齐",
+  description: "读取当前 Revision 绑定的词/字时间戳、SpeechAsset、Script Revision 和 Bridge 审计；没有结果时返回空，不把段级时间升级为词级。",
+  inputSchema: { project_id: z.string().optional() },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id }) => {
+  try { return asText({ speechAlignment: application.readSpeechAlignment(projectIdFrom(project_id)) }); } catch (error) { return asError(error); }
 });
 
 server.registerTool("rebuild_speech_timeline", {
@@ -771,6 +961,554 @@ server.registerTool("align_presenter_to_speech", {
   } catch (error) { return asError(error); }
 });
 
+server.registerTool("read_narrative_map", {
+  title: "读取视觉解释 NarrativeMap",
+  description: "读取当前 Revision 的观众问题、知识状态、递进问题与证据交接；它不另建一份 Story。",
+  inputSchema: { project_id: z.string().optional() },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id }) => {
+  try { return asText(application.readNarrativeMap({ projectId: projectIdFrom(project_id) })); } catch (error) { return asError(error); }
+});
+
+server.registerTool("manage_narrative_map", {
+  title: "管理视觉解释 NarrativeMap",
+  description: "将既有 Story Beat 映射为观众已知信息、当前问题、新理解和延迟披露。变更会让依赖该拍的 Explainer Program 明确失效，而不会静默沿用旧画面。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    viewer_question: z.string().min(1).max(800),
+    promised_model: z.string().min(1).max(1_200),
+    conclusion: z.string().min(1).max(1_200),
+    beats: z.array(z.object({
+      narrative_beat_id: z.string().min(1),
+      entering_knowledge: z.string().min(1).max(1_200),
+      question: z.string().min(1).max(1_200),
+      new_knowledge: z.string().min(1).max(1_200),
+      deferred_information: z.string().min(1).max(1_200),
+      claim: z.string().min(1).max(1_200).optional(),
+      evidence_capture_ids: z.array(z.string().min(1)).max(40).optional(),
+      scene_ids: z.array(z.string().min(1)).max(40).optional()
+    }).strict()).min(1).max(80)
+  }
+}, async (input) => {
+  try {
+    return asText(application.manageNarrativeMap({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      viewerQuestion: input.viewer_question,
+      promisedModel: input.promised_model,
+      conclusion: input.conclusion,
+      beats: input.beats.map((beat) => ({
+        narrativeBeatId: beat.narrative_beat_id,
+        enteringKnowledge: beat.entering_knowledge,
+        question: beat.question,
+        newKnowledge: beat.new_knowledge,
+        deferredInformation: beat.deferred_information,
+        claim: beat.claim,
+        evidenceCaptureIds: beat.evidence_capture_ids,
+        sceneIds: beat.scene_ids
+      }))
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("read_evidence_capture", {
+  title: "读取证据快照",
+  description: "读取已本地化真实来源、页面快照、原文摘录、适用限制和归一化高亮；不会把生成图或网页标题当成证据。",
+  inputSchema: { project_id: z.string().optional(), evidence_capture_id: z.string().min(1).optional() },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id, evidence_capture_id }) => {
+  try { return asText(application.readEvidenceCapture({ projectId: projectIdFrom(project_id), evidenceCaptureId: evidence_capture_id })); } catch (error) { return asError(error); }
+});
+
+server.registerTool("manage_evidence_capture", {
+  title: "管理证据快照与页面高亮",
+  description: "登记或更新真实来源 Asset、非生成页面截图、原文摘录、主张、限制和页面高亮。更新会让依赖证据的 Explainer Scene 失效，待重新编译和预览。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    action: z.enum(["create", "update", "remove"]),
+    evidence_capture_id: z.string().min(1).optional(),
+    source_asset_id: z.string().min(1).optional(),
+    snapshot_asset_id: z.string().min(1).optional(),
+    source_title: z.string().min(1).max(800).optional(),
+    publisher: z.string().min(1).max(400).optional(),
+    source_url: z.string().url().max(2_000).optional(),
+    captured_at: z.string().datetime({ offset: true }).optional(),
+    page_or_range: z.string().min(1).max(500).optional(),
+    excerpt: z.string().min(1).max(8_000).optional(),
+    claim: z.string().min(1).max(2_000).optional(),
+    limitation: z.string().min(1).max(2_000).optional(),
+    highlights: z.array(evidenceHighlightSchema).min(1).max(12).optional()
+  }
+}, async (input) => {
+  try {
+    return asText(application.manageEvidenceCapture({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      action: input.action,
+      evidenceCaptureId: input.evidence_capture_id,
+      sourceAssetId: input.source_asset_id,
+      snapshotAssetId: input.snapshot_asset_id,
+      sourceTitle: input.source_title,
+      publisher: input.publisher,
+      sourceUrl: input.source_url,
+      capturedAt: input.captured_at,
+      pageOrRange: input.page_or_range,
+      excerpt: input.excerpt,
+      claim: input.claim,
+      limitation: input.limitation,
+      highlights: input.highlights
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("read_explainer_scene_programs", {
+  title: "读取 Explainer Scene Program",
+  description: "读取当前 Revision 中已编译的场景视觉语法、局部状态、素材与缓存键；只读且不把 Program 当成第二份 Timeline。",
+  inputSchema: { project_id: z.string().optional(), scene_id: z.string().min(1).optional() },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id, scene_id }) => {
+  try { return asText(application.readExplainerScenePrograms({ projectId: projectIdFrom(project_id), sceneId: scene_id })); } catch (error) { return asError(error); }
+});
+
+server.registerTool("compile_explainer_scenes", {
+  title: "编译视觉解释场景",
+  description: "将 NarrativeMap Beat 原子编译为 ExplainerScene、Program 与 VisualTreatment。每个场景必须有 Entry、Progressive、Settled、Exit 的连续局部状态；不会将每句话降级成贴纸。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    plans: z.array(z.object({
+      title: z.string().min(1).max(160),
+      purpose: z.string().min(1).max(1_200),
+      start_frame: z.number().int().nonnegative(),
+      end_frame: z.number().int().positive(),
+      narrative_map_beat_id: z.string().min(1),
+      kind: explainerKindSchema,
+      primary_task: z.string().min(1).max(1_200),
+      asset_ids: z.array(z.string().min(1)).max(60).optional(),
+      evidence_capture_id: z.string().min(1).optional(),
+      states: z.array(explainerStateSchema).min(4).max(12),
+      props: z.record(z.unknown()).optional(),
+      style_pack_id: z.string().min(1).max(160).optional(),
+      visual_treatment: explainerVisualTreatmentSchema.optional()
+    }).strict().refine((plan) => plan.end_frame > plan.start_frame, {
+      message: "Explainer 场景结束帧必须大于开始帧"
+    })).min(1).max(80)
+  }
+}, async (input) => {
+  try {
+    return asText(application.compileExplainerScenes({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      plans: input.plans.map((plan) => ({
+        title: plan.title,
+        purpose: plan.purpose,
+        startFrame: plan.start_frame,
+        endFrame: plan.end_frame,
+        narrativeMapBeatId: plan.narrative_map_beat_id,
+        kind: plan.kind,
+        primaryTask: plan.primary_task,
+        assetIds: plan.asset_ids,
+        evidenceCaptureId: plan.evidence_capture_id,
+        states: plan.states.map((state) => ({
+          id: state.id,
+          phase: state.phase,
+          startFrame: state.start_frame,
+          endFrame: state.end_frame,
+          label: state.label,
+          detail: state.detail
+        })),
+        props: plan.props,
+        stylePackId: plan.style_pack_id,
+        visualTreatment: plan.visual_treatment ? {
+          mode: plan.visual_treatment.mode,
+          intensity: plan.visual_treatment.intensity,
+          primaryAttention: plan.visual_treatment.primary_attention,
+          narrativePurpose: plan.visual_treatment.narrative_purpose,
+          quietReason: plan.visual_treatment.quiet_reason,
+          fallbackPlan: plan.visual_treatment.fallback_plan
+        } : undefined
+      }))
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("read_vlog_plan", {
+  title: "读取 Vlog 剪辑计划",
+  description: "读取当前 Revision 的镜头边界证据、Event Map、Shot Select、环境声和人工确认的音乐拍点；不会把技术边界解释成事件或自动剪辑。",
+  inputSchema: { project_id: z.string().optional() },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id }) => {
+  try { return asText(application.readVlogPlan(projectIdFrom(project_id))); } catch (error) { return asError(error); }
+});
+
+server.registerTool("submit_vlog_analysis", {
+  title: "提交 Vlog 镜头边界分析",
+  description: "对已完成媒体分析的实拍视频执行 FFmpeg 场景变化检测，回传源范围、变化分数与音轨事实。它不会推断人物动作、事件意义，也不会自动选择或剪辑镜头。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    asset_ids: z.array(z.string().min(1)).min(1).max(120),
+    scene_threshold: z.number().min(0.05).max(0.9).optional(),
+    idempotency_key: z.string().min(1).max(240).optional()
+  }
+}, async ({ project_id, base_revision_id, asset_ids, scene_threshold, idempotency_key }) => {
+  try {
+    return asText(application.submitVlogAnalysis({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id,
+      assetIds: asset_ids,
+      sceneThreshold: scene_threshold,
+      idempotencyKey: idempotency_key
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("manage_vlog_events", {
+  title: "管理 Vlog 事件地图",
+  description: "将已分析的真实 Shot 组织为导演确认的 Event Map。目标、行动、变化、结果和反应都需要明确写入，系统不会按文件名、画质或镜头数量猜故事。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    action: z.enum(["create", "update", "remove"]),
+    event_id: z.string().min(1).optional(),
+    order: z.number().int().nonnegative().optional(),
+    title: z.string().min(1).max(160).optional(),
+    summary: z.string().min(1).max(2_000).optional(),
+    shot_analysis_ids: z.array(z.string().min(1)).min(1).max(300).optional(),
+    goal: z.string().max(800).optional(),
+    action_note: z.string().max(800).optional(),
+    change: z.string().max(800).optional(),
+    reaction: z.string().max(800).optional(),
+    outcome: z.string().max(800).optional(),
+    location_note: z.string().max(800).optional(),
+    continuity_note: z.string().max(1_200).optional(),
+    status: z.enum(["draft", "ready"]).optional()
+  }
+}, async (input) => {
+  try {
+    return asText(application.manageVlogEvents({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      action: input.action,
+      eventId: input.event_id,
+      order: input.order,
+      title: input.title,
+      summary: input.summary,
+      shotAnalysisIds: input.shot_analysis_ids,
+      goal: input.goal,
+      actionNote: input.action_note,
+      change: input.change,
+      reaction: input.reaction,
+      outcome: input.outcome,
+      locationNote: input.location_note,
+      continuityNote: input.continuity_note,
+      status: input.status
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("manage_vlog_shot_selects", {
+  title: "管理 Vlog Shot Select",
+  description: "从 Event Map 的真实镜头边界中明确选择主线素材、镜头功能、连续性理由和原始现场声策略；不会因技术分数高就自动入选。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    action: z.enum(["create", "update", "remove"]),
+    shot_select_id: z.string().min(1).optional(),
+    event_id: z.string().min(1).optional(),
+    shot_analysis_id: z.string().min(1).optional(),
+    order: z.number().int().nonnegative().optional(),
+    source_start_frame: z.number().int().nonnegative().optional(),
+    source_end_frame: z.number().int().positive().optional(),
+    function: z.enum(["establish", "action", "detail", "reaction", "transition", "atmosphere"]).optional(),
+    selection_reason: z.string().max(1_200).optional(),
+    continuity_note: z.string().max(1_200).optional(),
+    source_audio_mode: z.enum(["keep", "mute"]).optional(),
+    status: z.enum(["planned", "ready"]).optional()
+  }
+}, async (input) => {
+  try {
+    return asText(application.manageVlogShotSelects({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      action: input.action,
+      shotSelectId: input.shot_select_id,
+      eventId: input.event_id,
+      shotAnalysisId: input.shot_analysis_id,
+      order: input.order,
+      sourceStartFrame: input.source_start_frame,
+      sourceEndFrame: input.source_end_frame,
+      function: input.function,
+      selectionReason: input.selection_reason,
+      continuityNote: input.continuity_note,
+      sourceAudioMode: input.source_audio_mode,
+      status: input.status
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("compile_vlog_montage", {
+  title: "编译 Vlog Montage 主线",
+  description: "将导演已确认的 Shot Select 按 Event 与 Select 顺序编译到 Background 和 Ambient 轨。视频层会静音，只有明确 keep 的现场声才会在独立 Ambient 轨播放；不会自动变速或按音乐拍点改剪。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    shot_select_ids: z.array(z.string().min(1)).min(1).max(300),
+    start_frame: z.number().int().nonnegative().optional(),
+    title_prefix: z.string().min(1).max(120).optional()
+  }
+}, async ({ project_id, base_revision_id, shot_select_ids, start_frame, title_prefix }) => {
+  try {
+    return asText(application.compileVlogMontage({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id,
+      shotSelectIds: shot_select_ids,
+      startFrame: start_frame,
+      titlePrefix: title_prefix
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("manage_vlog_music_beats", {
+  title: "管理 Vlog 人工音乐拍点",
+  description: "记录已由人试听确认的 BGM 拍点，供导演参考切点。拍点不会自动移动镜头，也不能代替动作、空间、声音和事件变化。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    action: z.enum(["create", "update", "remove"]),
+    beat_id: z.string().min(1).optional(),
+    audio_cue_id: z.string().min(1).optional(),
+    frame: z.number().int().nonnegative().optional(),
+    note: z.string().max(1_000).optional()
+  }
+}, async ({ project_id, base_revision_id, action, beat_id, audio_cue_id, frame, note }) => {
+  try {
+    return asText(application.manageVlogMusicBeats({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id,
+      action,
+      beatId: beat_id,
+      audioCueId: audio_cue_id,
+      frame,
+      note
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("read_multicam_plan", {
+  title: "读取多机位同步与切换计划",
+  description: "读取同步 Group、每个机位的结构化证据、候选/确认状态及平铺 Cut。自动相关只是 candidate，不能据此假装已经可剪。",
+  inputSchema: { project_id: z.string().optional() },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id }) => {
+  try { return asText(application.readMulticamPlan(projectIdFrom(project_id))); } catch (error) { return asError(error); }
+});
+
+server.registerTool("submit_multicam_sync", {
+  title: "提交多机位音频同步",
+  description: "使用输入机位的共同可解码音轨搜索固定偏移，只生成同步候选。机位名称必须显式提供；不会从文件名、creation_time 或画面相似性推断 A/B/C。当前首版只支持相机内录，不支持独立录音机。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    title: z.string().min(1).max(160).optional(),
+    asset_ids: z.array(z.string().min(1)).min(2).max(24),
+    angle_labels: z.record(z.string().min(1).max(80)),
+    reference_asset_id: z.string().min(1).optional(),
+    master_audio_asset_id: z.string().min(1).optional(),
+    source_ranges: z.record(z.object({
+      start_frame: z.number().int().nonnegative(),
+      end_frame: z.number().int().positive()
+    }).strict().refine((range) => range.end_frame > range.start_frame, {
+      message: "同步源区间的结束帧必须大于开始帧"
+    })).optional(),
+    max_search_seconds: z.number().int().min(20).max(1_800).optional(),
+    idempotency_key: z.string().min(1).max(240).optional()
+  }
+}, async (input) => {
+  try {
+    return asText(application.submitMulticamSync({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      title: input.title,
+      assetIds: input.asset_ids,
+      angleLabels: input.angle_labels,
+      referenceAssetId: input.reference_asset_id,
+      masterAudioAssetId: input.master_audio_asset_id,
+      sourceRanges: input.source_ranges && Object.fromEntries(Object.entries(input.source_ranges).map(([assetId, range]) => [assetId, {
+        startFrame: range.start_frame,
+        endFrame: range.end_frame
+      }])),
+      maxSearchSeconds: input.max_search_seconds,
+      idempotencyKey: input.idempotency_key
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("create_manual_multicam_group", {
+  title: "建立人工多机位同步",
+  description: "在所有机位标记同一个拍手、落物或明确动作帧后建立已确认同步 Group。没有共同音轨或自动候选不可信时使用；不允许用文件日期、估算时长或猜测偏移替代同一事件。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    title: z.string().min(1).max(160),
+    reference_asset_id: z.string().min(1),
+    master_audio_asset_id: z.string().min(1),
+    markers: z.array(multicamMarkerSchema).min(2).max(24)
+  }
+}, async (input) => {
+  try {
+    return asText(application.createManualMulticamGroup({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      title: input.title,
+      referenceAssetId: input.reference_asset_id,
+      masterAudioAssetId: input.master_audio_asset_id,
+      markers: input.markers.map((marker) => ({
+        assetId: marker.asset_id,
+        label: marker.label,
+        sourceFrame: marker.source_frame,
+        note: marker.note
+      }))
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("verify_multicam_group", {
+  title: "确认多机位同步预览",
+  description: "只可确认已由所属同步 Job 生成并绑定受管并排 Preview 的自动 candidate。在该 Preview 的真实连续播放中核对口型、动作和现场声，并将明确人工核对说明写入 preview_evidence 后才标为 verified；缺少受管 Preview 或说明不能开始切机位。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    group_id: z.string().min(1),
+    preview_evidence: z.string().min(1).max(2_000)
+  }
+}, async ({ project_id, base_revision_id, group_id, preview_evidence }) => {
+  try { return asText(application.verifyMulticamGroup({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, groupId: group_id, previewEvidence: preview_evidence })); } catch (error) { return asError(error); }
+});
+
+server.registerTool("manage_multicam_cuts", {
+  title: "管理多机位切换",
+  description: "只在已确认 Group 的同步会话坐标中选择主画面机位、范围和连续性理由。源帧范围由同步偏移计算，不能绕过证据直接猜时间；首版不支持速度补偿。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    action: z.enum(["create", "update", "remove"]),
+    group_id: z.string().min(1).optional(),
+    cut_id: z.string().min(1).optional(),
+    order: z.number().int().nonnegative().optional(),
+    angle_asset_id: z.string().min(1).optional(),
+    session_start_frame: z.number().int().nonnegative().optional(),
+    session_end_frame: z.number().int().positive().optional(),
+    reason: z.string().min(1).max(1_200).optional(),
+    continuity_note: z.string().min(1).max(1_200).optional()
+  }
+}, async (input) => {
+  try {
+    return asText(application.manageMulticamCuts({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      action: input.action,
+      groupId: input.group_id,
+      cutId: input.cut_id,
+      order: input.order,
+      angleAssetId: input.angle_asset_id,
+      sessionStartFrame: input.session_start_frame,
+      sessionEndFrame: input.session_end_frame,
+      reason: input.reason,
+      continuityNote: input.continuity_note
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("compile_multicam_program", {
+  title: "编译多机位主线",
+  description: "把同一已确认 Group 的连续 Cut 平铺到 Background，并从唯一 master audio 机位写入一条 Ambient。所有画面源声会静音；不同 Group、同步候选、会话空档和重叠都会被拒绝。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    group_id: z.string().min(1),
+    cut_ids: z.array(z.string().min(1)).min(1).max(300),
+    start_frame: z.number().int().nonnegative().optional(),
+    title_prefix: z.string().min(1).max(120).optional()
+  }
+}, async ({ project_id, base_revision_id, group_id, cut_ids, start_frame, title_prefix }) => {
+  try { return asText(application.compileMulticamProgram({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, groupId: group_id, cutIds: cut_ids, startFrame: start_frame, titlePrefix: title_prefix })); } catch (error) { return asError(error); }
+});
+
+server.registerTool("submit_music_generation", {
+  title: "提交受控音乐生成",
+  description: "用明确的 Bridge workflow、提示词和精确时长提交音乐生成。Worker 会动态读取 Schema、核验音频输出并保存审计；没有明确权利确认时结果默认 unknown，不能直接作为 delivery。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    workflow_id: z.string().min(1).max(240),
+    prompt: z.string().min(1).max(4_000),
+    duration_seconds: z.number().int().min(1).max(1_800),
+    output_slot_id: z.string().min(1).max(240).optional(),
+    idempotency_key: z.string().min(1).max(240).optional()
+  }
+}, async (input) => {
+  try {
+    return asText(application.submitMusicGeneration({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      workflowId: input.workflow_id,
+      prompt: input.prompt,
+      durationSeconds: input.duration_seconds,
+      outputSlotId: input.output_slot_id,
+      idempotencyKey: input.idempotency_key
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("submit_video_generation", {
+  title: "提交受控视频生成",
+  description: "提交文生、图生、首尾帧或多参考 MiniMax 视频生成。Worker 会动态读取 Bridge Schema、校验受管输入、下载并验证输出；生成结果默认权利 unknown，不自动进入 Timeline。证据类 AssetRequest 不允许用生成画面替代。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    workflow_id: z.string().min(1).max(240),
+    mode: z.enum(["text_to_video", "image_to_video", "first_last_frame", "multi_reference"]),
+    input_asset_ids: z.array(z.string().min(1)).max(10).optional(),
+    prompt: z.string().trim().min(1).max(4_000),
+    duration_seconds: z.number().int().min(1).max(1_800),
+    aspect_ratio: z.enum(["9:16", "16:9", "1:1"]).optional(),
+    output_slot_id: z.string().min(1).max(240).optional(),
+    seed: z.number().int().nonnegative().optional(),
+    megapixels: z.number().min(0.1).max(16).optional(),
+    initial_seed: z.number().int().nonnegative().optional(),
+    final_seed: z.number().int().nonnegative().optional(),
+    initial_megapixels: z.number().min(0.1).max(16).optional(),
+    final_megapixels: z.number().min(0.1).max(16).optional(),
+    asset_request_id: z.string().min(1).optional(),
+    idempotency_key: z.string().min(1).max(240).optional()
+  }
+}, async (input) => {
+  try {
+    return asText(application.submitVideoGeneration({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      workflowId: input.workflow_id,
+      mode: input.mode,
+      inputAssetIds: input.input_asset_ids,
+      prompt: input.prompt,
+      durationSeconds: input.duration_seconds,
+      aspectRatio: input.aspect_ratio,
+      outputSlotId: input.output_slot_id,
+      seed: input.seed,
+      megapixels: input.megapixels,
+      initialSeed: input.initial_seed,
+      finalSeed: input.final_seed,
+      initialMegapixels: input.initial_megapixels,
+      finalMegapixels: input.final_megapixels,
+      assetRequestId: input.asset_request_id,
+      idempotencyKey: input.idempotency_key
+    }));
+  } catch (error) { return asError(error); }
+});
+
 server.registerTool("read_actor_performances", {
   title: "读取人物表演",
   description: "读取绑定 Timeline Item 的导入/生成型人物表演、Mask、声音所有权与版本关系。",
@@ -780,6 +1518,63 @@ server.registerTool("read_actor_performances", {
   try {
     const snapshot = application.readProject(projectIdFrom(project_id)).snapshot;
     return asText(snapshot.actorPerformances);
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("read_actor_capabilities", {
+  title: "读取人物能力档案",
+  description: "读取当前项目中已登记的数字人 Provider、输入、Mask、音频驱动口型、局部重生成和隐私/权利边界；参考音频输入本身不等于已验证口型同步，实际提交前仍会读取 Provider 的最新 Schema。",
+  inputSchema: { project_id: z.string().optional() },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id }) => {
+  try { return asText(application.listActorCapabilityProfiles(projectIdFrom(project_id))); } catch (error) { return asError(error); }
+});
+
+server.registerTool("manage_actor_capabilities", {
+  title: "管理人物能力档案",
+  description: "创建、更新或移除项目内的 ActorCapabilityProfile。档案只记录已确认能力；上传音频不自动代表口型同步，也不会把静态布局或生成结果伪装成姿态追踪。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    action: z.enum(["create", "update", "remove"]),
+    profile_id: z.string().optional(),
+    provider: z.literal("minimax_h3_multi_reference").optional(),
+    label: z.string().min(1).max(120).optional(),
+    workflow_id: z.string().min(1).max(200).optional(),
+    input_modes: z.array(z.enum(["audio", "text"])).min(1).max(2).optional(),
+    mask_modes: z.array(z.enum(["alpha_asset", "embedded_alpha", "none"])).min(1).max(3).optional(),
+    supports_reference_image: z.boolean().optional(),
+    supports_reference_video: z.boolean().optional(),
+    supports_audio_driven_lip_sync: z.boolean().optional(),
+    supports_gaze_control: z.boolean().optional(),
+    supports_gesture_control: z.boolean().optional(),
+    supports_partial_regeneration: z.boolean().optional(),
+    max_duration_seconds: z.number().int().min(1).max(1800).optional(),
+    rights_note: z.string().min(1).max(2000).optional(),
+    privacy_note: z.string().min(1).max(2000).optional()
+  }
+}, async (input) => {
+  try {
+    return asText(application.manageActorCapabilityProfile({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      action: input.action,
+      profileId: input.profile_id,
+      provider: input.provider,
+      label: input.label,
+      workflowId: input.workflow_id,
+      inputModes: input.input_modes,
+      maskModes: input.mask_modes,
+      supportsReferenceImage: input.supports_reference_image,
+      supportsReferenceVideo: input.supports_reference_video,
+      supportsAudioDrivenLipSync: input.supports_audio_driven_lip_sync,
+      supportsGazeControl: input.supports_gaze_control,
+      supportsGestureControl: input.supports_gesture_control,
+      supportsPartialRegeneration: input.supports_partial_regeneration,
+      maxDurationSeconds: input.max_duration_seconds,
+      rightsNote: input.rights_note,
+      privacyNote: input.privacy_note
+    }));
   } catch (error) { return asError(error); }
 });
 
@@ -795,6 +1590,8 @@ server.registerTool("manage_actor_performance", {
     audio_mode: z.enum(["use_source_audio", "use_dialogue_track", "muted"]).optional(),
     mask_asset_id: z.string().optional(),
     speech_asset_id: z.string().optional(),
+    capability_profile_id: z.string().optional(),
+    layout: actorLayoutSchema.optional(),
     note: z.string().max(500).optional()
   }
 }, async (input) => {
@@ -808,7 +1605,70 @@ server.registerTool("manage_actor_performance", {
       audioMode: input.audio_mode,
       maskAssetId: input.mask_asset_id,
       speechAssetId: input.speech_asset_id,
+      capabilityProfileId: input.capability_profile_id,
+      layout: input.layout ? {
+        actorHead: input.layout.actor_head,
+        actorHands: input.layout.actor_hands
+      } : undefined,
       note: input.note
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("submit_avatar_job", {
+  title: "提交数字人生成人物",
+  description: "使用当前 SpeechAsset 与已登记的能力档案提交 MiniMax H3 多参考人物生成。提交会固定 base_revision_id；Worker 在实际调用前动态读取 Bridge Schema，不接受或承诺逐帧姿态、目光、手势追踪。当前生成结果仅支持无 Mask 的前景降级，人物声音只能由 Dialogue 或静音承担。若提供 rights_confirmation，肖像、声音、Provider 使用权依据必须三项完整，结果才会从默认 unknown 标为 cleared；完成后用 track_job 和 read_actor_performances 读回。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    capability_profile_id: z.string().min(1),
+    // 当前已验证的 MiniMax 路径只接受一张本地化人物参考图，不把参考视频能力提前暴露为可用。
+    reference_image_asset_id: z.string().min(1),
+    speech_asset_id: z.string().min(1).optional(),
+    replace_actor_performance_id: z.string().min(1).optional(),
+    generation_range: actorGenerationRangeSchema,
+    placement: actorPlacementSchema,
+    prompt: z.string().trim().min(1).max(4_000).optional(),
+    mask_mode: z.literal("none").optional(),
+    audio_mode: z.enum(["use_dialogue_track", "muted"]).optional(),
+    rights_confirmation: avatarUsageRightsConfirmationSchema.optional(),
+    layout: actorLayoutSchema.optional(),
+    note: z.string().trim().max(1_000).optional(),
+    idempotency_key: z.string().trim().min(1).max(240).optional()
+  }
+}, async (input) => {
+  try {
+    return asText(application.submitAvatarGeneration({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      capabilityProfileId: input.capability_profile_id,
+      referenceImageAssetId: input.reference_image_asset_id,
+      speechAssetId: input.speech_asset_id,
+      replaceActorPerformanceId: input.replace_actor_performance_id,
+      generationRange: {
+        startFrame: input.generation_range.start_frame,
+        endFrame: input.generation_range.end_frame,
+        speechSegmentIds: input.generation_range.speech_segment_ids
+      },
+      placement: {
+        sceneId: input.placement.scene_id,
+        startFrame: input.placement.start_frame,
+        endFrame: input.placement.end_frame
+      },
+      prompt: input.prompt,
+      maskMode: input.mask_mode,
+      audioMode: input.audio_mode,
+      rightsConfirmation: input.rights_confirmation ? {
+        portraitRightsBasis: input.rights_confirmation.portrait_rights_basis,
+        voiceRightsBasis: input.rights_confirmation.voice_rights_basis,
+        providerUsageRightsBasis: input.rights_confirmation.provider_usage_rights_basis
+      } : undefined,
+      layout: input.layout ? {
+        actorHead: input.layout.actor_head,
+        actorHands: input.layout.actor_hands
+      } : undefined,
+      note: input.note,
+      idempotencyKey: input.idempotency_key
     }));
   } catch (error) { return asError(error); }
 });

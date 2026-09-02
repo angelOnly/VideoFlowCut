@@ -21,6 +21,10 @@
     "test:creative-eval": "tsx scripts/presenter-creative-agent.eval.ts",
     "test:stage1-live": "tsx scripts/presenter-stage1-live.e2e.ts",
     "test:stage1-full-live": "tsx scripts/presenter-stage1-live.e2e.ts --full",
+    "test:stage3-explainer": "tsx scripts/explainer-stage3.e2e.ts",
+    "test:stage3-explainer-full": "tsx scripts/explainer-stage3.e2e.ts --full",
+    "test:stage3-delivery": "tsx scripts/explainer-stage3-delivery.e2e.ts",
+    "test:stage4-vlog": "tsx scripts/vlog-stage4.e2e.ts",
     "test:e2e": "npm run test:effect-registry"
   },
   "dependencies": {

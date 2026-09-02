@@ -1,5 +1,5 @@
 import { EFFECT_QUALITY_RULES, type EditorialQualityReview, type ExportPurpose, type ProjectSnapshot, type QualityIssue, type QualityReport } from "@videocut/contracts";
-import { assertProjectGraphValid, createId, DomainError } from "@videocut/domain";
+import { assertProjectGraphValid, createId, DomainError, millisecondsToFrames } from "@videocut/domain";
 
 const issue = (input: Omit<QualityIssue, "id">): QualityIssue => ({ id: createId("quality"), ...input });
 const effectQualityRuleSet = new Set<string>(EFFECT_QUALITY_RULES);
@@ -19,6 +19,642 @@ function captionOccurrenceIndex(text: string, phrase: string, occurrence: number
 }
 
 const isCaptionColor = (value: string | undefined) => value === undefined || /^#[0-9a-f]{6}$/iu.test(value);
+const normalizeAlignmentText = (value: string) => value.normalize("NFKC").toLocaleLowerCase().replace(/[\s\p{P}\p{S}]+/gu, "");
+
+/**
+ * word_exact 不是普通的显示标签：它必须由当前 SpeechAsset、当前 Script 和已完成 Bridge Run 的
+ * 实际 token 返回共同支撑。这里重复核心事实校验，确保手工改写快照时也能在交付 Gate 被阻止。
+ */
+function evaluateSpeechAlignmentQuality(snapshot: ProjectSnapshot, issues: QualityIssue[]): void {
+  const speechAsset = snapshot.speechAsset;
+  const alignment = snapshot.speechAlignment;
+  if (!speechAsset) return;
+  if (speechAsset.timing.precision !== "word_exact") {
+    if (alignment?.status === "stale") {
+      issues.push(issue({
+        level: "warning",
+        code: "SPEECH_ALIGNMENT_STALE",
+        message: "词级对齐已过期，当前已回退到段级时序；若需要逐词效果，请对当前 SpeechAsset 重新强制对齐。",
+        objectId: alignment.id
+      }));
+    }
+    return;
+  }
+  if (!alignment || alignment.status !== "ready" || alignment.speechAssetId !== speechAsset.id
+    || alignment.scriptRevision !== speechAsset.scriptRevision || alignment.scriptRevision !== snapshot.script.revision) {
+    issues.push(issue({
+      level: "blocking",
+      code: "WORD_ALIGNMENT_REQUIRED",
+      message: "当前 SpeechTiming 标记为 word_exact，但没有绑定同一 SpeechAsset 与 Script Revision 的已就绪真实词级对齐。",
+      objectId: speechAsset.id
+    }));
+    return;
+  }
+  const speechFile = snapshot.assets.find((asset) => asset.id === speechAsset.assetId);
+  const durationMs = speechFile?.metadata?.durationMs;
+  const segmentById = new Map(speechAsset.timing.segments.map((timing) => [timing.speechSegmentId, timing]));
+  let invalid = !speechFile?.metadata?.hasAudio || typeof durationMs !== "number" || !Number.isInteger(durationMs) || durationMs <= 0
+    || !alignment.audit.workflowId?.trim() || !alignment.audit.runId?.trim() || !alignment.audit.schemaVersion?.trim() || !alignment.audit.completedAt
+    || alignment.words.length === 0;
+  let previousEndMs = -1;
+  const normalizedWords: string[] = [];
+  for (const word of alignment.words) {
+    const segment = segmentById.get(word.speechSegmentId);
+    const normalized = typeof word.text === "string" ? normalizeAlignmentText(word.text) : "";
+    if (!segment || !normalized || word.normalizedText !== normalized
+      || !Number.isInteger(word.startMs) || !Number.isInteger(word.endMs) || word.startMs < 0 || word.endMs <= word.startMs
+      || word.endMs > (durationMs ?? 0) || word.startMs < previousEndMs
+      || word.startMs < segment.startMs || word.endMs > segment.endMs
+      || !Number.isInteger(word.startFrame) || !Number.isInteger(word.endFrame)
+      || word.startFrame !== millisecondsToFrames(word.startMs, snapshot.timeline.fps)
+      || word.endFrame !== millisecondsToFrames(word.endMs, snapshot.timeline.fps)
+      || word.endFrame <= word.startFrame
+      || (word.confidence !== undefined && (!Number.isFinite(word.confidence) || word.confidence < 0 || word.confidence > 1))) {
+      invalid = true;
+      break;
+    }
+    previousEndMs = word.endMs;
+    normalizedWords.push(normalized);
+  }
+  const expectedText = speechAsset.timing.segments
+    .slice()
+    .sort((left, right) => left.startMs - right.startMs)
+    .map((timing) => snapshot.speechSegments.find((segment) => segment.id === timing.speechSegmentId)?.text ?? "")
+    .join("");
+  if (!normalizeAlignmentText(expectedText) || normalizedWords.join("") !== normalizeAlignmentText(expectedText)) invalid = true;
+  if (invalid) {
+    issues.push(issue({
+      level: "blocking",
+      code: "WORD_ALIGNMENT_INVALID",
+      message: "当前词级对齐的文本、段边界、真实音频范围、帧换算或 Bridge 审计不一致，不能用于逐词效果或交付。",
+      objectId: alignment.id
+    }));
+    return;
+  }
+  const lowConfidence = alignment.words.filter((word) => word.confidence !== undefined && word.confidence < 0.5);
+  if (lowConfidence.length > 0) {
+    issues.push(issue({
+      level: "warning",
+      code: "WORD_ALIGNMENT_LOW_CONFIDENCE_REVIEW",
+      message: `真实词级对齐中有 ${lowConfidence.length} 个 token 的 Provider 置信度低于 0.5；请在对应预览区间复听，不要只依赖数值。`,
+      objectId: alignment.id,
+      frameRange: {
+        startFrame: Math.min(...lowConfidence.map((word) => word.startFrame)),
+        endFrame: Math.max(...lowConfidence.map((word) => word.endFrame))
+      }
+    }));
+  }
+}
+
+/**
+ * Vlog 的确定性检查只验证已写入 Revision 的镜头、事件、现场声和拍点绑定。
+ * 动作是否顺、反应是否真实、音乐是否好听仍必须通过连续 Preview 和专项审片判断。
+ */
+function evaluateVlogSpecificQuality(snapshot: ProjectSnapshot, issues: QualityIssue[]): void {
+  const { timeline } = snapshot;
+  const backgroundTrack = timeline.tracks.find((track) => track.name === "Background");
+  const ambientTrack = timeline.tracks.find((track) => track.name === "Ambient");
+  const shotById = new Map((snapshot.vlogShotAnalyses ?? []).map((shot) => [shot.id, shot]));
+  const eventById = new Map((snapshot.vlogEvents ?? []).map((event) => [event.id, event]));
+  const itemById = new Map(timeline.items.map((item) => [item.id, item]));
+  const sceneById = new Map(snapshot.scenes.map((scene) => [scene.id, scene]));
+  const activeItems = timeline.items.filter((item) => !item.disabled);
+  const readyMontageScenes = snapshot.scenes.filter((scene) => scene.type === "VlogMontageScene" && scene.status === "ready");
+
+  for (const shot of snapshot.vlogShotAnalyses ?? []) {
+    if (shot.status === "stale") {
+      issues.push(issue({
+        level: "warning",
+        code: "VLOG_SHOT_ANALYSIS_STALE",
+        message: "Vlog 镜头边界证据已过期；不要继续将它当作当前 Event 或 Select 的依据。",
+        objectId: shot.id,
+        frameRange: { startFrame: shot.sourceStartFrame, endFrame: shot.sourceEndFrame }
+      }));
+    }
+  }
+  for (const event of snapshot.vlogEvents ?? []) {
+    if (event.status === "stale") {
+      issues.push(issue({
+        level: "warning",
+        code: "VLOG_EVENT_STALE",
+        message: "Vlog Event Map 已因镜头证据或事件说明变化而过期，需要重新确认后再编译 Montage。",
+        objectId: event.id
+      }));
+    }
+  }
+
+  for (const scene of readyMontageScenes) {
+    const sceneItems = activeItems.filter((item) => item.sceneId === scene.id && item.trackId === backgroundTrack?.id);
+    if (!sceneItems.length) {
+      issues.push(issue({
+        level: "blocking",
+        code: "VLOG_MONTAGE_SCENE_EMPTY",
+        message: "已就绪 VlogMontageScene 没有位于 Background 轨的可播放主画面。",
+        objectId: scene.id,
+        frameRange: { startFrame: scene.startFrame, endFrame: scene.endFrame }
+      }));
+    }
+  }
+
+  const selectKeyGroups = new Map<string, string[]>();
+  const keepSelectIds = new Set<string>();
+  for (const select of snapshot.vlogShotSelects ?? []) {
+    const shot = shotById.get(select.shotAnalysisId);
+    const event = eventById.get(select.eventId);
+    if (select.status === "stale") {
+      issues.push(issue({
+        level: "warning",
+        code: "VLOG_SELECT_STALE",
+        message: "Vlog Shot Select 已过期，不能继续作为当前 Montage 主线的一部分。",
+        objectId: select.id
+      }));
+      continue;
+    }
+    if (select.status !== "ready") continue;
+    if (!shot || !event || shot.status !== "ready" || event.status !== "ready") {
+      issues.push(issue({
+        level: "blocking",
+        code: "VLOG_SELECT_SOURCE_STALE",
+        message: "已就绪 Vlog Shot Select 引用了缺失或过期的 Event / 镜头边界证据。",
+        objectId: select.id
+      }));
+      continue;
+    }
+    const scene = select.sceneId ? sceneById.get(select.sceneId) : undefined;
+    const item = select.timelineItemId ? itemById.get(select.timelineItemId) : undefined;
+    if (!scene || scene.type !== "VlogMontageScene" || scene.status !== "ready" || !item || item.disabled
+      || item.trackId !== backgroundTrack?.id || item.sceneId !== scene.id || item.assetId !== shot.assetId
+      || item.sourceStartFrame !== select.sourceStartFrame || item.sourceEndFrame !== select.sourceEndFrame) {
+      issues.push(issue({
+        level: "blocking",
+        code: "VLOG_SELECT_TIMELINE_BINDING_INVALID",
+        message: "已就绪 Vlog Shot Select 没有以同一源范围绑定到 Background / VlogMontageScene。",
+        objectId: select.id
+      }));
+    }
+
+    const key = `${shot.assetId}:${select.sourceStartFrame}-${select.sourceEndFrame}`;
+    const duplicates = selectKeyGroups.get(key) ?? [];
+    duplicates.push(select.id);
+    selectKeyGroups.set(key, duplicates);
+
+    const ambientCues = (snapshot.vlogAmbientCues ?? []).filter((cue) => cue.shotSelectId === select.id && cue.status === "ready");
+    if (select.sourceAudioMode === "keep") {
+      keepSelectIds.add(select.id);
+      const ambient = ambientCues[0];
+      const ambientItem = ambient ? itemById.get(ambient.timelineItemId) : undefined;
+      if (ambientCues.length !== 1 || !ambient || !ambientItem || ambientItem.disabled || ambientTrack?.muted
+        || ambientItem.trackId !== ambientTrack?.id || ambient.assetId !== shot.assetId || ambientItem.assetId !== shot.assetId
+        || ambientItem.sourceStartFrame !== select.sourceStartFrame || ambientItem.sourceEndFrame !== select.sourceEndFrame
+        || select.ambientTimelineItemId !== ambientItem.id || (ambientItem.gainDb ?? 0) <= -80) {
+        issues.push(issue({
+          level: "blocking",
+          code: "VLOG_AMBIENT_BINDING_INVALID",
+          message: "标记为保留现场声的 Vlog Select 缺少同源、可播放的 Ambient 绑定，或该现场声已被静音。",
+          objectId: select.id
+        }));
+      }
+    } else if (ambientCues.length > 0 || select.ambientTimelineItemId) {
+      issues.push(issue({
+        level: "blocking",
+        code: "VLOG_AMBIENT_UNEXPECTED",
+        message: "标记为静音原声的 Vlog Select 仍保留 Ambient 绑定，会造成与剪辑意图不一致的现场声。",
+        objectId: select.id
+      }));
+    }
+  }
+
+  for (const [sourceRange, selectIds] of selectKeyGroups) {
+    if (selectIds.length > 1) {
+      issues.push(issue({
+        level: "warning",
+        code: "VLOG_DUPLICATE_SHOT_REVIEW",
+        message: `同一源范围 ${sourceRange} 被多个已就绪 Shot Select 重复使用；请在连续预览中确认不是无意重复镜头。`,
+        objectId: selectIds[0]
+      }));
+    }
+  }
+
+  for (const ambient of snapshot.vlogAmbientCues ?? []) {
+    if (ambient.status === "stale") {
+      issues.push(issue({ level: "warning", code: "VLOG_AMBIENT_STALE", message: "Vlog 环境声已过期，必须重新试听并确认对应镜头。", objectId: ambient.id }));
+      continue;
+    }
+    if (!keepSelectIds.has(ambient.shotSelectId)) {
+      issues.push(issue({
+        level: "blocking",
+        code: "VLOG_AMBIENT_ORPHAN",
+        message: "已就绪 Ambient Cue 没有对应的、明确保留原声的 Vlog Shot Select。",
+        objectId: ambient.id
+      }));
+    }
+  }
+  if (readyMontageScenes.length > 0 && keepSelectIds.size === 0) {
+    const hasMulticamMasterAudio = (snapshot.multicamGroups ?? []).some((group) => group.status === "ready" && Boolean(group.masterAudioTimelineItemId));
+    if (hasMulticamMasterAudio) return;
+    issues.push(issue({
+      level: "warning",
+      code: "VLOG_AMBIENT_ABSENT_REVIEW",
+      message: "当前 Vlog Montage 没有保留任何现场声；请在真实试听中确认这是有意的声音策略，而不是被 BGM 或静音覆盖。"
+    }));
+  }
+  for (const item of activeItems.filter((candidate) => candidate.trackId === ambientTrack?.id && candidate.sceneId && sceneById.get(candidate.sceneId)?.type === "VlogMontageScene")) {
+    const linked = (snapshot.vlogAmbientCues ?? []).some((cue) => cue.status === "ready" && cue.timelineItemId === item.id);
+    const multicamMaster = (snapshot.multicamGroups ?? []).some((group) => group.status === "ready" && group.masterAudioTimelineItemId === item.id && group.sceneId === item.sceneId);
+    if (!linked && !multicamMaster) {
+      issues.push(issue({
+        level: "warning",
+        code: "VLOG_AMBIENT_ITEM_UNMANAGED",
+        message: "Vlog Montage 的 Ambient 轨存在未登记的现场声 Item；请明确它来自哪个 Shot Select 或停止该 Item。",
+        objectId: item.id,
+        frameRange: { startFrame: item.startFrame, endFrame: item.endFrame }
+      }));
+    }
+  }
+
+  const beatsByCueAndFrame = new Set<string>();
+  const readyBeatFrames = new Set<number>();
+  for (const beat of snapshot.vlogMusicBeats ?? []) {
+    if (beat.status === "stale") {
+      issues.push(issue({ level: "warning", code: "VLOG_MUSIC_BEAT_STALE", message: "Vlog 音乐拍点已过期；BGM 或主线变化后不能继续用它判断切点。", objectId: beat.id }));
+      continue;
+    }
+    const cue = (snapshot.audioCues ?? []).find((candidate) => candidate.id === beat.audioCueId);
+    const item = cue ? itemById.get(cue.timelineItemId) : undefined;
+    const key = `${beat.audioCueId}:${beat.frame}`;
+    if (beatsByCueAndFrame.has(key) || !cue || cue.kind !== "bgm" || cue.status !== "ready" || !item || item.disabled
+      || item.startFrame > beat.frame || item.endFrame <= beat.frame) {
+      issues.push(issue({
+        level: "blocking",
+        code: "VLOG_MUSIC_BEAT_BINDING_INVALID",
+        message: "Vlog 音乐拍点没有绑定当前可播放 BGM，或同一 BGM 的同一帧被重复登记。",
+        objectId: beat.id
+      }));
+    }
+    beatsByCueAndFrame.add(key);
+    readyBeatFrames.add(beat.frame);
+  }
+  const montageCuts = [...(snapshot.vlogShotSelects ?? [])]
+    .filter((select) => select.status === "ready" && Boolean(select.timelineItemId))
+    .map((select) => itemById.get(select.timelineItemId!)?.startFrame)
+    .filter((frame): frame is number => frame !== undefined)
+    .sort((left, right) => left - right)
+    .slice(1);
+  if (montageCuts.length >= 3 && montageCuts.every((frame) => readyBeatFrames.has(frame))) {
+    issues.push(issue({
+      level: "warning",
+      code: "VLOG_MUSIC_CUT_DOMINANCE_REVIEW",
+      message: "所有已记录的 Vlog 切点都恰好落在人工音乐拍点；请在连续预览中确认动作、视线和现场声没有被机械卡点覆盖。"
+    }));
+  }
+}
+
+/**
+ * 多机位只验证可确定的同步事实、平铺绑定和单一主声音；口型、手势、反应和切点是否合适仍要在连续预览中确认。
+ * 自动音频相关在未记录人工确认前永远只是 candidate，不能以“相关分数高”绕过这道门。
+ */
+function evaluateMulticamQuality(snapshot: ProjectSnapshot, issues: QualityIssue[]): void {
+  const groups = snapshot.multicamGroups ?? [];
+  const cuts = snapshot.multicamCuts ?? [];
+  if (!groups.length && !cuts.length) return;
+  const groupById = new Map(groups.map((group) => [group.id, group]));
+  const itemById = new Map(snapshot.timeline.items.map((item) => [item.id, item]));
+  const sceneById = new Map(snapshot.scenes.map((scene) => [scene.id, scene]));
+  const assetById = new Map(snapshot.assets.map((asset) => [asset.id, asset]));
+  const background = snapshot.timeline.tracks.find((track) => track.name === "Background");
+  const ambient = snapshot.timeline.tracks.find((track) => track.name === "Ambient");
+  /** 旧 Group 缺失 sourceRange 时按整条素材解释，保持历史项目可审片。 */
+  const sourceRangeFor = (sync: typeof groups[number]["angleSyncs"][number]) => {
+    const asset = assetById.get(sync.assetId);
+    const duration = asset?.metadata ? millisecondsToFrames(asset.metadata.durationMs, snapshot.timeline.fps) : 0;
+    const range = sync.sourceRange ?? { startFrame: 0, endFrame: duration };
+    if (!Number.isInteger(range.startFrame) || !Number.isInteger(range.endFrame)
+      || range.startFrame < 0 || range.endFrame <= range.startFrame || range.endFrame > duration) return undefined;
+    return range;
+  };
+  const commonSessionRangeFor = (group: typeof groups[number]) => {
+    let startFrame = Number.NEGATIVE_INFINITY;
+    let endFrame = Number.POSITIVE_INFINITY;
+    for (const sync of group.angleSyncs) {
+      const range = sourceRangeFor(sync);
+      if (!range) return undefined;
+      startFrame = Math.max(startFrame, range.startFrame + sync.sessionOffsetFrames);
+      endFrame = Math.min(endFrame, range.endFrame + sync.sessionOffsetFrames);
+    }
+    return Number.isInteger(startFrame) && Number.isInteger(endFrame) && startFrame >= 0 && endFrame > startFrame
+      ? { startFrame, endFrame }
+      : undefined;
+  };
+
+  for (const group of groups) {
+    const groupCuts = cuts.filter((cut) => cut.groupId === group.id);
+    const hasProgram = Boolean(group.sceneId || group.masterAudioTimelineItemId || groupCuts.some((cut) => cut.status === "ready"));
+    const commonSessionRange = commonSessionRangeFor(group);
+    if (!commonSessionRange) {
+      issues.push(issue({
+        level: "blocking",
+        code: "MULTICAM_SYNC_RANGE_INVALID",
+        message: "多机位同步源范围无效，或各机位没有共同可切换会话区间；不能把不同会话片段当成同一 Group。",
+        objectId: group.id
+      }));
+    }
+    if (group.status !== "ready" && hasProgram) {
+      issues.push(issue({
+        level: "blocking",
+        code: "MULTICAM_SYNC_NOT_VERIFIED",
+        message: "多机位同步仍是候选或已过期，却已有切机位/主声音参与 Timeline；请先重新确认同步证据。",
+        objectId: group.id
+      }));
+    }
+    if (group.status === "candidate") {
+      issues.push(issue({
+        level: "warning",
+        code: "MULTICAM_SYNC_CANDIDATE_REVIEW",
+        message: "多机位音频相关只生成了候选偏移；必须连续预览确认口型、动作和现场声后才能开始切机位。",
+        objectId: group.id
+      }));
+    }
+    if (group.status === "ready" && group.angleSyncs.some((sync) => sync.status !== "verified" || !sync.evidence.verifiedAt)) {
+      issues.push(issue({
+        level: "blocking",
+        code: "MULTICAM_EVIDENCE_UNVERIFIED",
+        message: "已就绪多机位 Group 含未完成预览确认的同步证据，不能作为剪辑基线。",
+        objectId: group.id
+      }));
+    }
+    const scene = group.sceneId ? sceneById.get(group.sceneId) : undefined;
+    const masterItem = group.masterAudioTimelineItemId ? itemById.get(group.masterAudioTimelineItemId) : undefined;
+    if (hasProgram && (!scene || scene.type !== "VlogMontageScene" || scene.status !== "ready" || !masterItem || masterItem.disabled
+      || masterItem.trackId !== ambient?.id || masterItem.assetId !== group.masterAudioAssetId
+      || masterItem.startFrame !== group.programStartFrame || masterItem.endFrame !== group.programEndFrame
+      || (masterItem.gainDb ?? 0) <= -80)) {
+      issues.push(issue({
+        level: "blocking",
+        code: "MULTICAM_MASTER_AUDIO_BINDING_INVALID",
+        message: "多机位主声音没有作为一条可播放 Ambient Item 绑定到当前同步 Group；不能随镜头切换声源或叠加多个原声。",
+        objectId: group.id,
+        frameRange: group.programStartFrame !== undefined && group.programEndFrame !== undefined
+          ? { startFrame: group.programStartFrame, endFrame: group.programEndFrame }
+          : undefined
+      }));
+    }
+    const masterAsset = assetById.get(group.masterAudioAssetId);
+    if (hasProgram && (!masterAsset?.metadata?.hasAudio || masterAsset.status !== "ready")) {
+      issues.push(issue({ level: "blocking", code: "MULTICAM_MASTER_AUDIO_UNAVAILABLE", message: "多机位主声音机位已不可用或没有真实音轨。", objectId: group.id }));
+    }
+    const masterSync = group.angleSyncs.find((sync) => sync.assetId === group.masterAudioAssetId);
+    const masterSourceRange = masterSync ? sourceRangeFor(masterSync) : undefined;
+    if (hasProgram && masterItem && masterSync && masterSourceRange && commonSessionRange
+      && (masterItem.sourceStartFrame < masterSourceRange.startFrame || masterItem.sourceEndFrame > masterSourceRange.endFrame
+        || masterItem.sourceStartFrame + masterSync.sessionOffsetFrames < commonSessionRange.startFrame
+        || masterItem.sourceEndFrame + masterSync.sessionOffsetFrames > commonSessionRange.endFrame)) {
+      issues.push(issue({
+        level: "blocking",
+        code: "MULTICAM_MASTER_AUDIO_OUTSIDE_SYNC_RANGE",
+        message: "多机位 Ambient 主声音越过了本次确认的同步源范围，不能把另一会话的原声拼入当前 Program。",
+        objectId: group.id
+      }));
+    }
+  }
+
+  for (const cut of cuts) {
+    const group = groupById.get(cut.groupId);
+    if (!group) {
+      issues.push(issue({ level: "blocking", code: "MULTICAM_CUT_GROUP_MISSING", message: "多机位 Cut 引用了不存在的同步 Group。", objectId: cut.id }));
+      continue;
+    }
+    const sync = group.angleSyncs.find((entry) => entry.assetId === cut.angleAssetId);
+    if (!sync || sync.status !== "verified" || cut.sourceStartFrame !== cut.sessionStartFrame - sync.sessionOffsetFrames
+      || cut.sourceEndFrame !== cut.sessionEndFrame - sync.sessionOffsetFrames
+      || cut.sourceEndFrame - cut.sourceStartFrame !== cut.sessionEndFrame - cut.sessionStartFrame) {
+      issues.push(issue({
+        level: "blocking",
+        code: "MULTICAM_CUT_SYNC_MAPPING_INVALID",
+        message: "多机位 Cut 的源范围没有严格映射到已确认的 1:1 同步会话范围。",
+        objectId: cut.id,
+        frameRange: { startFrame: cut.sessionStartFrame, endFrame: cut.sessionEndFrame }
+      }));
+    }
+    const sourceRange = sync ? sourceRangeFor(sync) : undefined;
+    const commonSessionRange = commonSessionRangeFor(group);
+    if (!sourceRange || !commonSessionRange || cut.sourceStartFrame < sourceRange.startFrame || cut.sourceEndFrame > sourceRange.endFrame
+      || cut.sessionStartFrame < commonSessionRange.startFrame || cut.sessionEndFrame > commonSessionRange.endFrame) {
+      issues.push(issue({
+        level: "blocking",
+        code: "MULTICAM_CUT_OUTSIDE_SYNC_RANGE",
+        message: "多机位 Cut 超出了当前 Group 已确认的源范围或共同会话范围，必须缩短 Cut 或重新建立同步 Group。",
+        objectId: cut.id,
+        frameRange: { startFrame: cut.sessionStartFrame, endFrame: cut.sessionEndFrame }
+      }));
+    }
+    if (cut.status !== "ready") continue;
+    const item = cut.timelineItemId ? itemById.get(cut.timelineItemId) : undefined;
+    const scene = cut.sceneId ? sceneById.get(cut.sceneId) : undefined;
+    if (!item || item.disabled || !scene || scene.id !== group.sceneId || scene.type !== "VlogMontageScene" || scene.status !== "ready"
+      || item.trackId !== background?.id || item.assetId !== cut.angleAssetId || item.sceneId !== scene.id
+      || item.sourceStartFrame !== cut.sourceStartFrame || item.sourceEndFrame !== cut.sourceEndFrame
+      || (item.gainDb ?? 0) > -80) {
+      issues.push(issue({
+        level: "blocking",
+        code: "MULTICAM_CUT_TIMELINE_BINDING_INVALID",
+        message: "多机位 Cut 没有以静音视频层、同一同步 Group 和正确源范围平铺到 Background。",
+        objectId: cut.id
+      }));
+    }
+  }
+
+  for (const group of groups.filter((entry) => entry.sceneId && entry.programStartFrame !== undefined && entry.programEndFrame !== undefined)) {
+    const readyCuts = cuts.filter((cut) => cut.groupId === group.id && cut.status === "ready")
+      .sort((left, right) => left.sessionStartFrame - right.sessionStartFrame || left.order - right.order);
+    if (!readyCuts.length || readyCuts[0]!.sessionStartFrame > readyCuts[0]!.sessionEndFrame) continue;
+    for (let index = 1; index < readyCuts.length; index += 1) {
+      if (readyCuts[index - 1]!.sessionEndFrame !== readyCuts[index]!.sessionStartFrame) {
+        issues.push(issue({
+          level: "blocking",
+          code: "MULTICAM_PROGRAM_NOT_CONTIGUOUS",
+          message: "已编译多机位主线包含会话空档或重叠；第一版不做隐藏黑帧或自动变速补偿。",
+          objectId: group.id
+        }));
+        break;
+      }
+    }
+  }
+}
+
+/**
+ * 解释片的确定性规则只核对 Program、证据和事实合同；
+ * “是否一眼看懂”仍必须由场景级 Preview 与 Editorial Review 判断，不能在这里伪造审美结论。
+ */
+function evaluateExplainerSpecificQuality(snapshot: ProjectSnapshot, issues: QualityIssue[]): void {
+  const sceneById = new Map(snapshot.scenes.map((scene) => [scene.id, scene]));
+  const captureById = new Map((snapshot.evidenceCaptures ?? []).map((capture) => [capture.id, capture]));
+  const assetById = new Map(snapshot.assets.map((asset) => [asset.id, asset]));
+  const programBySceneId = new Map<string, typeof snapshot.explainerPrograms>();
+  const phaseOrder = { entry: 0, progressive: 1, settled: 2, exit: 3 } as const;
+  const hasText = (value: unknown): value is string => typeof value === "string" && Boolean(value.trim());
+  const textList = (value: unknown): string[] => Array.isArray(value)
+    ? value.filter((item): item is string => hasText(item)).map((item) => item.trim())
+    : [];
+  const hasHistoryEvents = (value: unknown): boolean => Array.isArray(value) && value.length >= 2 && value.every((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return false;
+    const event = item as Record<string, unknown>;
+    return hasText(event.date) && hasText(event.label);
+  });
+  const hasReadyRealVisualAsset = (assetIds: string[]): boolean => assetIds.length > 0 && assetIds.every((assetId) => {
+    const asset = assetById.get(assetId);
+    return Boolean(asset && asset.status === "ready" && (asset.kind === "image" || asset.kind === "video") && asset.provenance?.source !== "generated");
+  });
+
+  for (const program of snapshot.explainerPrograms ?? []) {
+    const scene = sceneById.get(program.sceneId);
+    const sceneRange = scene ? { startFrame: scene.startFrame, endFrame: scene.endFrame } : undefined;
+    if (!scene || scene.type !== "ExplainerScene") {
+      issues.push(issue({ level: "blocking", code: "EXPLAINER_PROGRAM_SCENE_INVALID", message: "Explainer Program 没有绑定有效的 ExplainerScene。", objectId: program.id }));
+      continue;
+    }
+    const sameScenePrograms = programBySceneId.get(scene.id) ?? [];
+    sameScenePrograms.push(program);
+    programBySceneId.set(scene.id, sameScenePrograms);
+    if (program.status === "stale" || scene.status === "stale") {
+      issues.push(issue({
+        level: "blocking",
+        code: "EXPLAINER_PROGRAM_STALE",
+        message: "Explainer Scene 的 NarrativeMap、证据或可视素材已变化；必须重新编译并预览后才能交付。",
+        objectId: program.id,
+        frameRange: sceneRange
+      }));
+      continue;
+    }
+    if (scene.status !== "ready") {
+      issues.push(issue({ level: "blocking", code: "EXPLAINER_SCENE_NOT_READY", message: "Explainer Program 对应的场景尚未就绪。", objectId: scene.id, frameRange: sceneRange }));
+    }
+    const duration = scene.endFrame - scene.startFrame;
+    const requiredPhases = ["entry", "progressive", "settled", "exit"] as const;
+    const phases = new Set(program.states.map((state) => state.phase));
+    const stateOrderValid = program.states.every((state, index) => index === 0 || phaseOrder[program.states[index - 1]!.phase] <= phaseOrder[state.phase]);
+    const stateCoverageValid = program.states.length >= 4
+      && program.states[0]?.startFrame === 0
+      && program.states.at(-1)?.endFrame === duration
+      && program.states.every((state, index) => Number.isInteger(state.startFrame) && Number.isInteger(state.endFrame)
+        && state.startFrame >= 0 && state.endFrame > state.startFrame && state.endFrame <= duration
+        && (index === 0 || program.states[index - 1]!.endFrame === state.startFrame));
+    if (!requiredPhases.every((phase) => phases.has(phase)) || !stateOrderValid || !stateCoverageValid) {
+      issues.push(issue({
+        level: "blocking",
+        code: "EXPLAINER_STATE_PROGRAM_INVALID",
+        message: "Explainer Scene 必须以 Entry → Progressive → Settled → Exit 的连续局部状态完整覆盖当前场景。",
+        objectId: program.id,
+        frameRange: sceneRange
+      }));
+    }
+    if (!program.cacheKey.trim()) {
+      issues.push(issue({ level: "blocking", code: "EXPLAINER_CACHE_KEY_MISSING", message: "Explainer Program 缺少场景级缓存键，无法证明当前 Preview 对应输入事实。", objectId: program.id }));
+    }
+    if (program.kind === "EvidenceDocument") {
+      const capture = program.evidenceCaptureId ? captureById.get(program.evidenceCaptureId) : undefined;
+      const source = capture ? assetById.get(capture.sourceAssetId) : undefined;
+      const visual = capture ? assetById.get(capture.snapshotAssetId ?? capture.sourceAssetId) : undefined;
+      if (!capture || capture.status !== "ready" || !source || source.status !== "ready" || source.provenance?.source === "generated"
+        || !visual || visual.status !== "ready" || visual.provenance?.source === "generated" || (visual.kind !== "image" && visual.kind !== "derived")
+        || !capture.sourceUrl.trim() || !capture.excerpt.trim() || !capture.claim.trim() || !capture.limitation.trim() || capture.highlights.length === 0) {
+        issues.push(issue({
+          level: "blocking",
+          code: "EVIDENCE_DOCUMENT_FACTS_INVALID",
+          message: "EvidenceDocument 必须绑定非生成的真实来源、可视页面截图、原文摘录、主张、适用限制和高亮范围。",
+          objectId: program.id,
+          frameRange: sceneRange
+        }));
+      }
+    }
+    if (program.kind === "UIWalkthrough") {
+      const assets = program.assetIds.map((assetId) => assetById.get(assetId)).filter((asset): asset is NonNullable<typeof asset> => Boolean(asset));
+      if (assets.length === 0 || assets.some((asset) => asset.status !== "ready" || asset.provenance?.source === "generated")) {
+        issues.push(issue({
+          level: "blocking",
+          code: "UI_WALKTHROUGH_FACTS_INVALID",
+          message: "UIWalkthrough 必须使用已就绪、非生成的真实产品界面截图或录屏。",
+          objectId: program.id,
+          frameRange: sceneRange
+        }));
+      }
+    }
+    if (program.kind === "DataConclusion") {
+      const values = Array.isArray(program.props.values) ? program.props.values : [];
+      const labels = Array.isArray(program.props.labels) ? program.props.labels : [];
+      if (values.length === 0 || values.some((value) => typeof value !== "number" || !Number.isFinite(value))
+        || labels.length !== values.length || labels.some((label) => !hasText(label))
+        || !hasText(program.props.source) || !hasText(program.props.unit) || !hasText(program.props.baseline)) {
+        issues.push(issue({
+          level: "blocking",
+          code: "DATA_CONCLUSION_FACTS_INVALID",
+          message: "DataConclusion 必须保存同长度数据/标签、来源、单位和基线，不能用装饰性图表替代事实。",
+          objectId: program.id,
+          frameRange: sceneRange
+        }));
+      }
+    }
+    if (program.kind === "PeopleGrouping" && (textList(program.props.groups).length < 2 || !hasText(program.props.dimension))) {
+      issues.push(issue({
+        level: "blocking",
+        code: "PEOPLE_GROUPING_FACTS_INVALID",
+        message: "PeopleGrouping 必须保存至少两个人群及清晰分组维度，不能根据人物外观临时推断身份。",
+        objectId: program.id,
+        frameRange: sceneRange
+      }));
+    }
+    if (program.kind === "LayerStack" && (textList(program.props.layers).length < 2 || !hasText(program.props.relationship))) {
+      issues.push(issue({
+        level: "blocking",
+        code: "LAYER_STACK_FACTS_INVALID",
+        message: "LayerStack 必须保存至少两层结构与层间关系，不能将装饰卡片当作结构解释。",
+        objectId: program.id,
+        frameRange: sceneRange
+      }));
+    }
+    if (program.kind === "HistoryTimeline" && (!hasHistoryEvents(program.props.events) || !hasText(program.props.source))) {
+      issues.push(issue({
+        level: "blocking",
+        code: "HISTORY_TIMELINE_FACTS_INVALID",
+        message: "HistoryTimeline 必须保存至少两个日期和事件标签完整的节点，以及可追溯来源。",
+        objectId: program.id,
+        frameRange: sceneRange
+      }));
+    }
+    if (program.kind === "QuotePortrait" && (Boolean(program.evidenceCaptureId)
+      || !hasText(program.props.quote) || !hasText(program.props.attribution) || !hasText(program.props.source)
+      || !hasReadyRealVisualAsset(program.assetIds))) {
+      issues.push(issue({
+        level: "blocking",
+        code: "QUOTE_PORTRAIT_FACTS_INVALID",
+        message: "QuotePortrait 必须保留引语、归属、来源和已就绪的非生成真实人物或机构素材；文档举证请使用 EvidenceDocument。",
+        objectId: program.id,
+        frameRange: sceneRange
+      }));
+    }
+    if (program.kind === "RealityBroll" && (Boolean(program.evidenceCaptureId) || !hasReadyRealVisualAsset(program.assetIds))) {
+      issues.push(issue({
+        level: "blocking",
+        code: "REALITY_BROLL_FACTS_INVALID",
+        message: "RealityBroll 必须绑定已就绪、非生成的真实图片或视频，且不能把 EvidenceCapture 当作现实素材。",
+        objectId: program.id,
+        frameRange: sceneRange
+      }));
+    }
+  }
+
+  for (const scene of snapshot.scenes.filter((candidate) => candidate.type === "ExplainerScene" && candidate.status === "ready")) {
+    const programs = programBySceneId.get(scene.id) ?? [];
+    if (programs.length !== 1 || programs[0]?.status !== "ready") {
+      issues.push(issue({
+        level: "blocking",
+        code: "EXPLAINER_SCENE_PROGRAM_MISSING",
+        message: "已就绪 ExplainerScene 必须恰好关联一个当前已就绪的 Explainer Program。",
+        objectId: scene.id,
+        frameRange: { startFrame: scene.startFrame, endFrame: scene.endFrame }
+      }));
+    }
+  }
+}
 
 /**
  * 可确定的规则只报告可验证事实；遮挡、节奏与审美仍须由真实预览帧进行人工/视觉复核。
@@ -29,13 +665,42 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
   const assetIds = new Set(snapshot.assets.map((asset) => asset.id));
   const actorTrack = timeline.tracks.find((track) => track.name === "Actor / A-roll");
   const dialogueTrack = timeline.tracks.find((track) => track.name === "Dialogue");
+  const backgroundTrack = timeline.tracks.find((track) => track.name === "Background");
+  const isVlogProfile = snapshot.project.profile === "vlog";
+  const isExplainerProfile = snapshot.project.profile === "visual_explainer";
+  const hasVlogContent = snapshot.scenes.some((scene) => scene.type === "VlogMontageScene") || (snapshot.vlogShotSelects ?? []).length > 0;
+  const readyVlogSceneIds = new Set(snapshot.scenes
+    .filter((scene) => scene.type === "VlogMontageScene" && scene.status === "ready")
+    .map((scene) => scene.id));
+  const hasVlogPrimaryVideo = Boolean(backgroundTrack && timeline.items.some((item) => (
+    !item.disabled && item.trackId === backgroundTrack.id && Boolean(item.sceneId) && readyVlogSceneIds.has(item.sceneId!)
+  )));
+  const hasMulticamPrimaryVideo = Boolean(backgroundTrack && (snapshot.multicamGroups ?? []).some((group) => (
+    group.status === "ready" && Boolean(group.sceneId) && timeline.items.some((item) => !item.disabled && item.trackId === backgroundTrack.id && item.sceneId === group.sceneId)
+  )));
+  const hasExplainerContent = snapshot.scenes.some((scene) => scene.type === "ExplainerScene") || (snapshot.explainerPrograms ?? []).length > 0;
   try {
     assertProjectGraphValid(snapshot);
   } catch (error) {
     const message = error instanceof DomainError ? error.message : "项目对象关系校验失败。";
     issues.push(issue({ level: "blocking", code: "PROJECT_GRAPH_INVALID", message }));
   }
-  if (!actorTrack || !timeline.items.some((item) => item.trackId === actorTrack.id && !item.disabled)) {
+  if (isVlogProfile) {
+    if (!hasVlogPrimaryVideo) {
+      issues.push(issue({ level: "blocking", code: "VLOG_PRIMARY_MONTAGE_MISSING", message: "Vlog 必须以 Background 轨上的已就绪 VlogMontageScene 承担主画面。" }));
+    }
+  } else if (isExplainerProfile) {
+    const hasExplainerPrimaryVisual = (snapshot.explainerPrograms ?? []).some((program) => {
+      const scene = snapshot.scenes.find((candidate) => candidate.id === program.sceneId);
+      return program.status === "ready" && scene?.type === "ExplainerScene" && scene.status === "ready";
+    });
+    if (!hasExplainerPrimaryVisual) {
+      issues.push(issue({ level: "blocking", code: "EXPLAINER_PRIMARY_VISUAL_MISSING", message: "视觉解释片必须由当前已就绪的 ExplainerScene / Program 承担主视觉。" }));
+    }
+  // Hybrid 的实拍主线可以由 VlogMontageScene 承担；Presenter / Explainer 仍各自保留原有门禁。
+  } else if ((!actorTrack || !timeline.items.some((item) => item.trackId === actorTrack.id && !item.disabled))
+    && !hasMulticamPrimaryVideo
+    && !(snapshot.project.profile === "hybrid" && hasVlogPrimaryVideo)) {
     issues.push(issue({ level: "blocking", code: "MISSING_PRIMARY_VIDEO", message: "主画面轨道没有可播放素材。" }));
   }
   for (const item of timeline.items) {
@@ -46,6 +711,9 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
       issues.push(issue({ level: "blocking", code: "INVALID_RANGE", message: "时间线片段的帧范围无效。", objectId: item.id }));
     }
   }
+  if (isVlogProfile || hasVlogContent) evaluateVlogSpecificQuality(snapshot, issues);
+  evaluateMulticamQuality(snapshot, issues);
+  if (isExplainerProfile || hasExplainerContent) evaluateExplainerSpecificQuality(snapshot, issues);
   for (const track of timeline.tracks) {
     const items = timeline.items.filter((item) => item.trackId === track.id && !item.disabled).sort((left, right) => left.startFrame - right.startFrame);
     for (let index = 1; index < items.length; index += 1) {
@@ -66,7 +734,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     ...snapshot.effectCues.flatMap((cue) => cue.assetBindings.map((binding) => binding.assetId)),
     ...(snapshot.actorPerformances ?? []).flatMap((performance) => performance.maskAssetId ? [performance.maskAssetId] : [])
   ]);
-  for (const asset of snapshot.assets.filter((candidate) => usedAssetIds.has(candidate.id) && candidate.provenance?.source === "provider")) {
+  for (const asset of snapshot.assets.filter((candidate) => usedAssetIds.has(candidate.id) && (candidate.provenance?.source === "provider" || candidate.provenance?.source === "generated"))) {
     const provenance = asset.provenance!;
     if (provenance.rightsStatus === "unknown") {
       issues.push(issue({ level: "blocking", code: "EXTERNAL_ASSET_RIGHTS_UNKNOWN", message: `外部素材“${asset.name}”尚未确认授权，不能正式导出。`, objectId: asset.id }));
@@ -84,16 +752,37 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
   }
   const performances = snapshot.actorPerformances ?? [];
   const performanceByItem = new Map(performances.map((performance) => [performance.timelineItemId, performance]));
-  // 未登记的人物不能被推断为“已经有 Mask”；否则后景效果会假装拥有不存在的遮挡能力。
-  const hasUsableActorMask = (sceneId: string) => timeline.items.some((item) => {
-    if (item.sceneId !== sceneId) return false;
-    const performance = performanceByItem.get(item.id);
-    if (!performance) return false;
-    if (performance.maskMode === "embedded_alpha") return true;
+  const capabilityById = new Map((snapshot.actorCapabilityProfiles ?? []).map((profile) => [profile.id, profile]));
+  const assetsById = new Map(snapshot.assets.map((asset) => [asset.id, asset]));
+  const tracksById = new Map(timeline.tracks.map((track) => [track.id, track]));
+  const maskAssetFor = (performance: typeof performances[number]) => performance.maskAssetId
+    ? assetsById.get(performance.maskAssetId)
+    : undefined;
+  const isUsableActorMask = (performance: typeof performances[number], item: typeof timeline.items[number]) => {
+    const actorAsset = assetsById.get(item.assetId);
+    if (performance.maskMode === "embedded_alpha") return Boolean(actorAsset?.metadata?.hasAlpha);
+    const mask = maskAssetFor(performance);
     return performance.maskMode === "alpha_asset"
-      && Boolean(performance.maskAssetId)
-      && snapshot.assets.some((asset) => asset.id === performance.maskAssetId && asset.status === "ready");
-  });
+      && Boolean(mask && mask.status === "ready" && ["image", "derived"].includes(mask.kind)
+        && mask.role === "actor_mask" && mask.metadata?.hasAlpha
+        && actorAsset?.metadata?.width && actorAsset.metadata.height
+        && mask.metadata?.width === actorAsset.metadata.width && mask.metadata.height === actorAsset.metadata.height
+        && performance.layout);
+  };
+  /**
+   * 精确人物锚点只能从当前范围内 Actor / A-roll 轨的已就绪人物表演选择。
+   * 不允许同一 Scene 中的 Dialogue、Cutaway 或数组顺序抢走人物布局。
+   */
+  const readyActorPerformancesForRange = (sceneId: string, startFrame: number, endFrame: number) => timeline.items
+    .filter((item) => item.sceneId === sceneId && !item.disabled && item.startFrame < endFrame && item.endFrame > startFrame
+      && tracksById.get(item.trackId)?.name === "Actor / A-roll")
+    .flatMap((item) => {
+      const performance = performanceByItem.get(item.id);
+      return performance?.status === "ready" ? [{ item, performance }] : [];
+    });
+  // 未登记、尺寸不匹配或无 Alpha 的人物不能被推断为“已经有 Mask”。
+  const hasUsableActorMask = (sceneId: string, startFrame: number, endFrame: number) => readyActorPerformancesForRange(sceneId, startFrame, endFrame)
+    .some(({ item, performance }) => item.startFrame <= startFrame && item.endFrame >= endFrame && isUsableActorMask(performance, item));
   for (const performance of performances) {
     const item = timeline.items.find((candidate) => candidate.id === performance.timelineItemId);
     if (!item) {
@@ -108,10 +797,29 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
       issues.push(issue({ level: "blocking", code: "ACTOR_PERFORMANCE_STALE", message: "人物表演与当前 Script 或素材版本不一致，需要重新生成或重新绑定。", objectId: performance.id }));
     }
     if (performance.maskMode === "alpha_asset") {
-      const mask = performance.maskAssetId ? snapshot.assets.find((candidate) => candidate.id === performance.maskAssetId) : undefined;
+      const mask = maskAssetFor(performance);
       if (!mask || mask.status !== "ready") {
         issues.push(issue({ level: "blocking", code: "ACTOR_MASK_MISSING", message: "人物表演声明使用独立 Mask，但 Mask 素材不可用。", objectId: performance.id }));
+      } else if (!actorAsset?.metadata?.width || !actorAsset.metadata.height || !mask.metadata?.width || !mask.metadata.height) {
+        issues.push(issue({ level: "blocking", code: "ACTOR_MASK_DIMENSIONS_MISSING", message: "人物视频或静态 Mask 缺少已分析尺寸，无法确认遮挡对齐。", objectId: performance.id }));
+      } else if (mask.kind !== "image" && mask.kind !== "derived") {
+        issues.push(issue({ level: "blocking", code: "ACTOR_MASK_KIND_INVALID", message: "独立人物 Mask 只能是静态图片或派生图片，动态遮挡尚未实现。", objectId: performance.id }));
+      } else if (mask.role !== "actor_mask" || !mask.metadata.hasAlpha) {
+        issues.push(issue({ level: "blocking", code: "ACTOR_MASK_ALPHA_INVALID", message: "独立人物 Mask 必须标为 actor_mask 且经媒体分析确认包含 Alpha。", objectId: performance.id }));
+      } else if (mask.metadata.width !== actorAsset?.metadata?.width || mask.metadata.height !== actorAsset?.metadata?.height) {
+        issues.push(issue({ level: "blocking", code: "ACTOR_MASK_DIMENSIONS_MISMATCH", message: "独立人物 Mask 与人物视频尺寸不一致，不能通过拉伸伪造遮挡对齐。", objectId: performance.id }));
+      } else if (!performance.layout) {
+        issues.push(issue({ level: "blocking", code: "ACTOR_MASK_STATIC_LAYOUT_REQUIRED", message: "静态人物 Mask 只能用于已登记人工静态布局的人物；动态动作请降级为前景效果。", objectId: performance.id }));
+      } else if (!(editorialReview?.revision === revision
+        && editorialReview.passes.includes("mute_visual")
+        && editorialReview.passes.includes("audiovisual")
+        && editorialReview.previewEvidence.length > 0)) {
+        // 静态图 Mask 在单帧正确仍可能在动作中错位，必须由当前 Revision 的真实连续预览审片收口。
+        issues.push(issue({ level: "blocking", code: "ACTOR_MASK_CONTINUOUS_PREVIEW_REQUIRED", message: "静态人物 Mask 需要当前 Revision 的静音画面与声画连续预览证据，确认头发、手部和动作过程中没有错位。", objectId: performance.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame } }));
       }
+    }
+    if (performance.maskMode === "embedded_alpha" && !actorAsset?.metadata?.hasAlpha) {
+      issues.push(issue({ level: "blocking", code: "ACTOR_EMBEDDED_ALPHA_INVALID", message: "人物表演声明 embedded_alpha，但视频媒体分析没有确认 Alpha 通道。", objectId: performance.id }));
     }
     if (performance.maskMode === "none") {
       issues.push(issue({ level: "warning", code: "ACTOR_MASK_FALLBACK", message: "人物表演没有 Mask，后景效果会以可见前景降级；请在预览中确认遮挡关系。", objectId: performance.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame } }));
@@ -119,6 +827,17 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     if (performance.source === "generated") {
       if (!snapshot.speechAsset || performance.speechAssetId !== snapshot.speechAsset.id || performance.scriptRevision !== snapshot.speechAsset.scriptRevision) {
         issues.push(issue({ level: "blocking", code: "ACTOR_SPEECH_VERSION_MISMATCH", message: "生成型人物表演没有绑定当前 SpeechAsset 与 Script Revision。", objectId: performance.id }));
+      }
+      if (!performance.capabilityProfileId || !capabilityById.has(performance.capabilityProfileId)) {
+        issues.push(issue({ level: "blocking", code: "ACTOR_CAPABILITY_PROFILE_MISSING", message: "生成型人物表演缺少可读回的 Provider 能力档案。", objectId: performance.id }));
+      } else if (!capabilityById.get(performance.capabilityProfileId)?.supportsAudioDrivenLipSync) {
+        // H3 多参考工作流能接收参考音频，不等于已经验证音频驱动口型；未声明时不能以“数字人口播”交付。
+        issues.push(issue({ level: "blocking", code: "ACTOR_LIP_SYNC_CAPABILITY_UNVERIFIED", message: "当前人物 Provider 未明确声明音频驱动口型同步能力；请改用已验证 Provider、重新登记能力，或不要把该生成画面作为同步口播人物交付。", objectId: performance.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame } }));
+      }
+      if (!performance.generationJobId || !performance.generationRange) {
+        issues.push(issue({ level: "blocking", code: "ACTOR_GENERATION_TRACE_MISSING", message: "生成型人物表演缺少生成 Job 或可局部重生成的 SpeechSegment 范围。", objectId: performance.id }));
+      } else if (performance.generationRange.startFrame < item.startFrame || performance.generationRange.endFrame > item.endFrame) {
+        issues.push(issue({ level: "blocking", code: "ACTOR_GENERATION_RANGE_INVALID", message: "人物生成范围没有被对应 Timeline Item 完整覆盖。", objectId: performance.id }));
       }
     }
   }
@@ -336,9 +1055,60 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
       issues.push(issue({ level: "warning", code: "FRONT_LAYER_REVIEW", message: "前景效果需在真实预览中检查是否遮挡人物脸部、嘴部和字幕。", objectId: cue.id, frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame } }));
     }
     if (cue.layer === "rear") {
-      if (!hasUsableActorMask(cue.sceneId)) {
+      if (!hasUsableActorMask(cue.sceneId, cue.startFrame, cue.endFrame)) {
         issues.push(issue({ level: "warning", code: "REAR_EFFECT_FALLBACK", message: "后景效果缺少可用人物 Mask，渲染会降级为前景可见层，需复核遮挡。", objectId: cue.id, frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame } }));
       }
+    }
+    const actorCandidatesForCue = readyActorPerformancesForRange(cue.sceneId, cue.startFrame, cue.endFrame);
+    if (cue.spatialAnchor === "actor_head" || cue.spatialAnchor === "actor_hands") {
+      if (actorCandidatesForCue.length > 1) {
+        issues.push(issue({
+          level: "blocking",
+          code: "EFFECT_ACTOR_ANCHOR_AMBIGUOUS",
+          message: `效果“${cue.type}”在当前范围内命中多个 Actor / A-roll 人物，不能按 Timeline 数组顺序猜测头部或手部锚点。`,
+          objectId: cue.id,
+          frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
+        }));
+      } else if (!actorCandidatesForCue[0]
+        || actorCandidatesForCue[0].item.startFrame > cue.startFrame
+        || actorCandidatesForCue[0].item.endFrame < cue.endFrame) {
+        issues.push(issue({
+          level: "blocking",
+          code: "EFFECT_ACTOR_ANCHOR_RANGE_UNCOVERED",
+          message: `效果“${cue.type}”的${cue.spatialAnchor === "actor_head" ? "头部" : "手部"}锚点没有被同一人物完整覆盖；请缩短 Cue 或改用安全区。`,
+          objectId: cue.id,
+          frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
+        }));
+      } else {
+        const performance = actorCandidatesForCue[0].performance;
+        const point = cue.spatialAnchor === "actor_head" ? performance.layout?.actorHead : performance.layout?.actorHands;
+        if (!point) {
+          issues.push(issue({
+            level: "blocking",
+            code: "EFFECT_ACTOR_ANCHOR_MISSING",
+            message: `效果“${cue.type}”要求${cue.spatialAnchor === "actor_head" ? "人物头部" : "人物手部"}锚点，但当前场景没有已确认的人物布局。`,
+            objectId: cue.id,
+            frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
+          }));
+        } else {
+          issues.push(issue({
+            level: "warning",
+            code: "EFFECT_ACTOR_ANCHOR_MANUAL_REVIEW",
+            message: `效果“${cue.type}”使用人工静态人物锚点；必须通过连续预览确认动作过程中没有漂移或遮挡。`,
+            objectId: cue.id,
+            frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
+          }));
+        }
+      }
+    }
+    if (cue.spatialAnchor === "behind_actor" && (cue.layer !== "rear" || !hasUsableActorMask(cue.sceneId, cue.startFrame, cue.endFrame))) {
+      issues.push(issue({
+        level: "blocking",
+        code: "EFFECT_BEHIND_ACTOR_MASK_REQUIRED",
+        message: `效果“${cue.type}”要求人物后景遮挡，但当前没有同场景可用 Mask 的 rear Cue。`,
+        objectId: cue.id,
+        frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
+      }));
     }
     const assetRequired = new Set(["ProductFan", "PortfolioWall", "EvidenceCard", "DeviceShowcase", "ContentCarousel"]);
     if (assetRequired.has(cue.type) && (cue.assetBindings?.length ?? 0) === 0) {
@@ -440,7 +1210,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
         }
       }
       if (rule === "actor_mask_required") {
-        if (cue.layer !== "rear" || !hasUsableActorMask(cue.sceneId)) {
+        if (cue.layer !== "rear" || !hasUsableActorMask(cue.sceneId, cue.startFrame, cue.endFrame)) {
           issues.push(issue({
             level: "blocking",
             code: "EFFECT_RULE_ACTOR_MASK_REQUIRED",
@@ -461,6 +1231,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     }
   }
   if (snapshot.speechAsset) {
+    evaluateSpeechAlignmentQuality(snapshot, issues);
     if (snapshot.speechAsset.scriptRevision !== snapshot.script.revision) {
       issues.push(issue({ level: "blocking", code: "SPEECH_SCRIPT_STALE", message: "SpeechAsset 与当前 Script Revision 不一致，需要重新生成受影响的语音段。", objectId: snapshot.speechAsset.id }));
     }
@@ -468,12 +1239,12 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     if (dialogueItems.length !== 1) {
       issues.push(issue({ level: "blocking", code: "SPEECH_DIALOGUE_ITEM_MISSING", message: "SpeechAsset 没有以唯一 Item 写入 Dialogue 轨，最终导出不会可靠包含旁白。", objectId: snapshot.speechAsset.id }));
     }
-    if (timeline.captions.some((caption) => caption.precision !== snapshot.speechAsset?.timing.precision)) {
+    if (!isVlogProfile && timeline.captions.some((caption) => caption.precision !== snapshot.speechAsset?.timing.precision)) {
       issues.push(issue({ level: "warning", code: "CAPTION_SPEECH_MISMATCH", message: "字幕时序精度与当前 SpeechAsset 不一致，需要重新检查字幕。", objectId: snapshot.speechAsset.id }));
     }
     const captionedSegmentIds = new Set(timeline.captions.map((caption) => caption.speechSegmentId));
     const missingCaptionSegment = snapshot.speechSegments.find((segment) => !captionedSegmentIds.has(segment.id));
-    if (missingCaptionSegment) {
+    if (!isVlogProfile && missingCaptionSegment) {
       issues.push(issue({
         level: "blocking",
         code: "PRESENTER_CAPTION_MISSING",
@@ -486,19 +1257,21 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
      * 人物口播的主画面和旁白相差太大时，通常意味着只合成了首段旁白，
      * 却保留了整条视频主线。这个问题不能靠导出成功掩盖，必须先补齐 Script/语音或重剪主画面。
      */
-    const primaryVideoEnd = timeline.items
-      .filter((item) => item.trackId === actorTrack?.id && !item.disabled)
-      .reduce((latest, item) => Math.max(latest, item.endFrame), 0);
-    const speechEnd = dialogueItems[0]?.endFrame ?? 0;
-    const permittedGap = timeline.fps * 4;
-    if (primaryVideoEnd > 0 && speechEnd > 0 && Math.abs(primaryVideoEnd - speechEnd) > permittedGap) {
-      issues.push(issue({
-        level: "blocking",
-        code: "PRESENTER_SPEECH_VISUAL_DURATION_MISMATCH",
-        message: `人物主画面与旁白总轨相差超过 4 秒（主画面 F${primaryVideoEnd}，旁白 F${speechEnd}）；请补齐旁白或调整 Presenter 主线。`,
-        objectId: snapshot.speechAsset.id,
-        frameRange: { startFrame: Math.min(primaryVideoEnd, speechEnd), endFrame: Math.max(primaryVideoEnd, speechEnd) }
-      }));
+    if (!isVlogProfile) {
+      const primaryVideoEnd = timeline.items
+        .filter((item) => item.trackId === actorTrack?.id && !item.disabled)
+        .reduce((latest, item) => Math.max(latest, item.endFrame), 0);
+      const speechEnd = dialogueItems[0]?.endFrame ?? 0;
+      const permittedGap = timeline.fps * 4;
+      if (primaryVideoEnd > 0 && speechEnd > 0 && Math.abs(primaryVideoEnd - speechEnd) > permittedGap) {
+        issues.push(issue({
+          level: "blocking",
+          code: "PRESENTER_SPEECH_VISUAL_DURATION_MISMATCH",
+          message: `人物主画面与旁白总轨相差超过 4 秒（主画面 F${primaryVideoEnd}，旁白 F${speechEnd}）；请补齐旁白或调整 Presenter 主线。`,
+          objectId: snapshot.speechAsset.id,
+          frameRange: { startFrame: Math.min(primaryVideoEnd, speechEnd), endFrame: Math.max(primaryVideoEnd, speechEnd) }
+        }));
+      }
     }
   }
   if (timeline.durationInFrames === 0) {

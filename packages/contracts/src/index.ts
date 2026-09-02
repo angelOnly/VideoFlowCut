@@ -25,6 +25,8 @@ export type AssetKind =
 export type AssetRole =
   | "a_roll"
   | "b_roll"
+  /** 实拍事件驱动主线的原始素材；不等同于 Presenter 的 A-roll。 */
+  | "vlog_source"
   | "actor_mask"
   | "voice_reference"
   | "evidence"
@@ -43,9 +45,40 @@ export interface AssetProvenance {
   originalAssetId?: string;
   creator?: string;
   license?: string;
+  /** 许可名称不足以证明可用性时，保留逐文件可回溯的许可页。 */
+  licenseUrl?: string;
   attributionText?: string;
+  /**
+   * 生成型人物在提交任务时由操作者给出的肖像、声音和 Provider 使用权依据。
+   * 未完整确认时不写入此字段，生成结果必须保持 unknown，不能因为技术生成成功而默认可交付。
+   */
+  avatarUsageRights?: AvatarUsageRightsConfirmation;
+  /**
+   * 生成视频的可追溯提交事实。它只记录已经写入本项目的 Job、工作流和输入，
+   * 不保存 Provider 的临时下载地址或任何二进制数据。
+   */
+  generationJobId?: Id;
+  generation?: GeneratedVideoProvenance;
   rightsStatus: "unknown" | "cleared" | "attribution_required" | "restricted" | "rejected";
   acquiredAt: string;
+}
+
+/** 当前 Bridge 已接入的四类 MiniMax 视频生成输入合同。 */
+export type VideoGenerationMode =
+  | "text_to_video"
+  | "image_to_video"
+  | "first_last_frame"
+  | "multi_reference";
+
+/** 生成视频进入 Asset 后仍能解释它来自哪次受管任务，而非把 Prompt 藏在 Worker 内存里。 */
+export interface GeneratedVideoProvenance {
+  jobId: Id;
+  workflowId: string;
+  mode: VideoGenerationMode;
+  inputAssetIds: Id[];
+  prompt: string;
+  durationSeconds: number;
+  aspectRatio: "9:16" | "16:9" | "1:1";
 }
 
 /**
@@ -90,14 +123,17 @@ export interface AssetCandidate {
   provider: string;
   originalAssetId: string;
   name: string;
-  kind: "video";
+  /** Provider 候选可为视频或图片；文档证据仍优先通过受控本地导入登记。 */
+  kind: "video" | "image";
   sourceUrl: string;
   previewUrl?: string;
+  mimeType?: string;
   width?: number;
   height?: number;
   durationMs?: number;
   creator?: string;
   license?: string;
+  licenseUrl?: string;
   attributionText?: string;
   rightsStatus: AssetProvenance["rightsStatus"];
   tags: string[];
@@ -117,9 +153,20 @@ export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "unknown
 export type ExportPurpose = "draft" | "delivery";
 export type JobKind =
   | "media_analysis"
+  /** 对已就绪实拍素材做基础镜头边界和现场声可用性分析。 */
+  | "vlog_analysis"
+  /** 只在可验证的共同音轨上估计固定机位偏移；证据不足时必须失败并等待人工同步点。 */
+  | "multicam_sync"
   | "asset_acquisition"
   | "transcription"
   | "voice_synthesis"
+  /** 对已组装的 SpeechAsset 执行真实强制对齐；没有真实输出时不能把精度标为 word_exact。 */
+  | "speech_alignment"
+  /** 受控音乐 Provider 的异步生成；运行前必须动态读取其最新 Schema。 */
+  | "music_generation"
+  /** 文生、图生、首尾帧和多参考视频均走同一受管的 Bridge 视频生成 Job。 */
+  | "video_generation"
+  | "avatar_generation"
   | "speech_assembly"
   | "preview"
   | "render_preflight"
@@ -171,6 +218,10 @@ export interface MediaMetadata {
   sampleRate?: number;
   channels?: number;
   videoCodec?: string;
+  /** ffprobe 返回的像素格式；仅用于保守判断是否实际带 Alpha。 */
+  pixelFormat?: string;
+  /** 由媒体分析从已知 Alpha 像素格式得出，不能由客户端自由声称。 */
+  hasAlpha?: boolean;
   thumbnailPath?: string;
   waveformPath?: string;
   mime?: string;
@@ -190,6 +241,208 @@ export interface Asset {
   metadata?: MediaMetadata;
   createdAt: string;
   failureReason?: string;
+}
+
+/**
+ * Vlog 的 Shot 证据只描述可由 Worker 或人工确认的源片段，不把“人物在做什么”伪装成视觉模型结论。
+ * 第一版的 ffmpeg_scene 仅提供场景变化边界、变化分数和音轨存在性；事件意义仍由导演层写入 VlogEvent。
+ */
+export type VlogShotAnalysisSource = "ffmpeg_scene" | "manual";
+export interface VlogShotAnalysis {
+  id: Id;
+  assetId: Id;
+  analysisJobId?: Id;
+  sourceStartFrame: number;
+  sourceEndFrame: number;
+  source: VlogShotAnalysisSource;
+  /** ffmpeg scene filter 的原始变化分数；手工边界可以不填写。 */
+  sceneChangeScore?: number;
+  /** 仅是技术可用性评分，不能替代事件价值、表演或叙事判断。 */
+  technicalScore: number;
+  hasAudio: boolean;
+  evidenceNote: string;
+  status: "ready" | "stale";
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Event Map 保存导演从真实 Shot 证据中发现的事件，不会从文件名或画质自动推断故事。 */
+export interface VlogEvent {
+  id: Id;
+  order: number;
+  title: string;
+  summary: string;
+  shotAnalysisIds: Id[];
+  goal?: string;
+  action?: string;
+  change?: string;
+  reaction?: string;
+  outcome?: string;
+  locationNote?: string;
+  continuityNote?: string;
+  status: "draft" | "ready" | "stale";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type VlogShotFunction = "establish" | "action" | "detail" | "reaction" | "transition" | "atmosphere";
+export type VlogSourceAudioMode = "keep" | "mute";
+
+/**
+ * ShotSelect 是唯一可进入 Vlog Timeline 的镜头选择。程序时长暂时等于源范围时长；
+ * 未实现变速、补帧或自动节拍剪辑前，不允许通过伪造 programDuration 改变这个事实。
+ */
+export interface VlogShotSelect {
+  id: Id;
+  eventId: Id;
+  shotAnalysisId: Id;
+  order: number;
+  sourceStartFrame: number;
+  sourceEndFrame: number;
+  function: VlogShotFunction;
+  selectionReason: string;
+  continuityNote: string;
+  sourceAudioMode: VlogSourceAudioMode;
+  sceneId?: Id;
+  timelineItemId?: Id;
+  ambientTimelineItemId?: Id;
+  status: "planned" | "ready" | "stale";
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Ambient 使用同一条受管视频的音轨，但在独立 Ambient 轨播放，避免视频层与环境声层重复输出。
+ * 它保留“这段现场声来自哪个真实 Shot”的追溯，而不是用一条 BGM 冒充现场感。
+ */
+export interface VlogAmbientCue {
+  id: Id;
+  shotSelectId: Id;
+  assetId: Id;
+  timelineItemId: Id;
+  purpose: string;
+  status: "ready" | "stale";
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** 手工确认的音乐拍点，供 Vlog 导演对照切点；它不声称系统已自动完成节拍检测。 */
+export interface VlogMusicBeat {
+  id: Id;
+  audioCueId: Id;
+  frame: number;
+  note: string;
+  source: "manual_verified";
+  status: "ready" | "stale";
+  createdAt: string;
+}
+
+/**
+ * 多机位同步先保存“同一真实时刻”怎样映射到每台相机的源帧，而不是只把若干视频并排放进 Timeline。
+ * sessionOffsetFrames 的定义为：sessionFrame = sourceFrame + sessionOffsetFrames；参考机位始终为 0。
+ */
+export type MulticamSyncMethod = "audio_correlation" | "manual_marker";
+/** 自动相关只产出 candidate；必须经过连续预览或人工同一事件确认后才能用于编译。 */
+export type MulticamSyncEvidenceStatus = "candidate" | "verified" | "rejected" | "insufficient";
+/**
+ * 本次多机位同步实际验证过的原始素材区间，统一使用项目 Timeline FPS 的半开帧区间。
+ * 它不是物理裁片：Timeline 仍直接引用完整受管素材，再由 Cut 的 source 范围取用。
+ */
+export interface MulticamSourceRange {
+  startFrame: number;
+  endFrame: number;
+}
+export interface MulticamSyncEvidence {
+  /** 参考机位和目标机位中确实被比较/确认的同一事件帧，均归一化到项目 Timeline FPS。 */
+  referenceSourceFrame: number;
+  angleSourceFrame: number;
+  windowFrames: number;
+  analysisVersion: string;
+  referenceSourceHash: string;
+  angleSourceHash: string;
+  /** 人工确认或 Worker 分析的简洁可读说明；文件名和 creation_time 只能作为提示，不能成为同步结论。 */
+  note: string;
+  verifiedAt?: string;
+}
+export interface MulticamAngleSync {
+  assetId: Id;
+  /** 由操作者显式命名（如 A 机、B 机），绝不从文件名、路径或 creation_time 猜测。 */
+  label: string;
+  sessionOffsetFrames: number;
+  method: MulticamSyncMethod;
+  /** 自动音频相关的归一化置信度；人工同步点固定为 1，但仍须保留其依据。 */
+  confidence: number;
+  /** 最优峰和次优峰的差值过小时，不能把偶然的环境声当作唯一同步事实。 */
+  peakMargin?: number;
+  /** 双窗口检测到的偏移差；第一版不做变速补偿，超过阈值只能拆短段或人工重同步。 */
+  driftFrames?: number;
+  /**
+   * 自动同步只在此源区间内建立和复核固定偏移。旧项目缺失时兼容解释为整条素材，
+   * 但新自动同步 Group 必须写入该字段，避免跨会话原片被误用于切机位。
+   */
+  sourceRange?: MulticamSourceRange;
+  status: MulticamSyncEvidenceStatus;
+  evidence: MulticamSyncEvidence;
+}
+
+/**
+ * 自动共同音轨同步生成的受管连续预览。它仅证明选定会话范围内的声画对齐，
+ * 不等同于正式 Timeline Preview，也不替代人工核对说明。
+ */
+export interface MulticamSyncPreview {
+  /** 相对项目根目录的 MP4 路径，不能引用项目外任意文件。 */
+  relativePath: string;
+  contentHash: string;
+  durationMs: number;
+  fps: number;
+  sessionStartFrame: number;
+  sessionEndFrame: number;
+  /** 每个角度实际进入并排预览的原片源范围，统一为项目 Timeline FPS。 */
+  sourceWindows: Record<Id, MulticamSourceRange>;
+}
+
+/**
+ * 一个 Group 只描述同步事实和主声音来源，不替代剪辑决定。
+ * 音频相关无法得出唯一高置信偏移时不创建 ready Group，改由人工同一事件标记兜底。
+ */
+export interface MulticamGroup {
+  id: Id;
+  title: string;
+  referenceAssetId: Id;
+  masterAudioAssetId: Id;
+  angleAssetIds: Id[];
+  angleSyncs: MulticamAngleSync[];
+  syncJobId?: Id;
+  status: "candidate" | "ready" | "stale";
+  /** 当前一次编译产物；重编时旧 Timeline Item 会被停用而不是覆盖历史 Revision。 */
+  sceneId?: Id;
+  masterAudioTimelineItemId?: Id;
+  programStartFrame?: number;
+  programEndFrame?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Cut 是导演选定的机位和已同步的会话范围。source 范围由 Group 的同步偏移计算并固化，
+ * 因此绝不允许调用方按猜测直接写入某个机位的源时间。
+ */
+export interface MulticamCut {
+  id: Id;
+  groupId: Id;
+  order: number;
+  angleAssetId: Id;
+  sessionStartFrame: number;
+  sessionEndFrame: number;
+  sourceStartFrame: number;
+  sourceEndFrame: number;
+  reason: string;
+  continuityNote: string;
+  sceneId?: Id;
+  timelineItemId?: Id;
+  status: "planned" | "ready" | "stale";
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
@@ -317,6 +570,39 @@ export interface SpeechTiming {
   segments: SpeechSegmentTiming[];
 }
 
+/**
+ * 对齐器实际返回的词、字或其它最小可读 token 的时序。
+ * `normalizedText` 由本地校验器生成，用来证明这些 token 仍对应当前可播放 Script，
+ * 绝不由按字数估算的算法生成。
+ */
+export interface WordTiming {
+  speechSegmentId: Id;
+  text: string;
+  normalizedText: string;
+  startMs: number;
+  endMs: number;
+  startFrame: number;
+  endFrame: number;
+  /** Provider 未公开置信度时保持 undefined，不能伪造一个分数。 */
+  confidence?: number;
+}
+
+/**
+ * 可选的真实词级对齐结果。它与当前 SpeechAsset、Script Revision 和 Bridge Run 绑定；
+ * 主声音或文字变化后必须 stale，不能让旧时间戳继续被当成 word_exact。
+ */
+export interface SpeechAlignment {
+  id: Id;
+  generationJobId: Id;
+  speechAssetId: Id;
+  scriptRevision: number;
+  status: "ready" | "stale";
+  words: WordTiming[];
+  source: string;
+  audit: BridgeRunAudit;
+  createdAt: string;
+}
+
 export interface SpeechSegmentAsset {
   id: Id;
   speechSegmentId: Id;
@@ -374,12 +660,173 @@ export interface StoryDocument {
 }
 
 /**
+ * NarrativeMap 不是第二份 Story：它把既有 StoryBeat 转换成观众问题、已知信息和延迟披露，
+ * 供视觉解释片决定何时建立或切换认知模型。
+ */
+export interface NarrativeMapBeat {
+  id: Id;
+  narrativeBeatId: Id;
+  enteringKnowledge: string;
+  question: string;
+  newKnowledge: string;
+  deferredInformation: string;
+  claim?: string;
+  evidenceCaptureIds: Id[];
+  sceneIds: Id[];
+}
+
+export interface NarrativeMap {
+  id: Id;
+  viewerQuestion: string;
+  promisedModel: string;
+  conclusion: string;
+  beats: NarrativeMapBeat[];
+  updatedAt: string;
+}
+
+/** EvidenceCapture 保存真实文件/截图及它支持的主张，不能把项目自己的结论伪装成原文。 */
+export interface EvidenceHighlight {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label?: string;
+}
+
+export interface EvidenceCapture {
+  id: Id;
+  /** 原始页面、文档或原图；截图可只作为预览入口，不能替代来源本体。 */
+  sourceAssetId: Id;
+  /** 实际可视的页面快照，可与原始 PDF / 文档不同。 */
+  snapshotAssetId?: Id;
+  sourceTitle: string;
+  publisher?: string;
+  sourceUrl: string;
+  capturedAt: string;
+  pageOrRange?: string;
+  excerpt: string;
+  claim: string;
+  limitation: string;
+  highlights: EvidenceHighlight[];
+  status: "ready" | "stale";
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** 第一版 Registry 覆盖架构 9.1 固定解释样片所需的通用视觉语法。 */
+export type ExplainerSceneKind =
+  | "HeroReveal"
+  | "Comparison"
+  | "ProgressiveClassification"
+  | "RouteAndFlow"
+  | "EvidenceDocument"
+  | "UIWalkthrough"
+  | "DataConclusion"
+  | "PeopleGrouping"
+  | "LayerStack"
+  | "HistoryTimeline"
+  | "QuotePortrait"
+  | "RealityBroll";
+
+/** 状态使用 Scene 内局部帧，避免 Scene 移动后把渐进揭示错误固定在整片绝对帧。 */
+export interface ExplainerSceneState {
+  id: Id;
+  phase: "entry" | "progressive" | "settled" | "exit";
+  startFrame: number;
+  endFrame: number;
+  label: string;
+  detail?: string;
+}
+
+/**
+ * Program 是 ExplainerScene 的可渲染合同。props 只承载该 Registry 类型的展示数据；
+ * 原始证据、素材、NarrativeMap 和 Scene 均以 ID 显式关联，避免自由文本变成第二份工程状态。
+ */
+export interface ExplainerSceneProgram {
+  id: Id;
+  sceneId: Id;
+  kind: ExplainerSceneKind;
+  narrativeMapBeatId?: Id;
+  primaryTask: string;
+  assetIds: Id[];
+  evidenceCaptureId?: Id;
+  states: ExplainerSceneState[];
+  props: Record<string, unknown>;
+  /** 同一输入得到稳定键；输入或素材哈希变化后 Application 会让它失效。 */
+  cacheKey: string;
+  status: "ready" | "stale";
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
  * 第一阶段只管理已导入或已生成的人物成片；外部数字人 Provider 的能力协商留到阶段 2。
  * 人物表演绑定既有 Timeline Item，避免另建一条脱离时间线的播放真相。
  */
 export type ActorPerformanceSource = "imported" | "generated";
 export type ActorMaskMode = "alpha_asset" | "embedded_alpha" | "none";
 export type ActorAudioMode = "use_source_audio" | "use_dialogue_track" | "muted";
+
+/**
+ * 明确记录一次 Avatar 提交所依据的三类使用权事实。它不是 Provider 条款的自动推断；
+ * 三项必须同时存在，才允许该次生成结果从默认 unknown 标为 cleared。
+ */
+export interface AvatarUsageRightsConfirmation {
+  portraitRightsBasis: string;
+  voiceRightsBasis: string;
+  providerUsageRightsBasis: string;
+  confirmedAt: string;
+}
+
+/**
+ * 这是 Provider 实际可用能力的项目内记录，不是营销页能力的复制。
+ * Worker 在真正提交前仍会读取 Bridge 的最新 workflow schema；Profile 用于让导演知道可规划什么。
+ */
+export type AvatarProviderKind = "minimax_h3_multi_reference";
+export type AvatarInputMode = "audio" | "text";
+
+export interface ActorCapabilityProfile {
+  id: Id;
+  provider: AvatarProviderKind;
+  label: string;
+  workflowId: string;
+  inputModes: AvatarInputMode[];
+  maskModes: ActorMaskMode[];
+  supportsReferenceImage: boolean;
+  supportsReferenceVideo: boolean;
+  /** 只有经 Provider 实测确认后才可声明；“可上传参考音频”本身不等于可口型同步。 */
+  supportsAudioDrivenLipSync: boolean;
+  supportsGazeControl: boolean;
+  supportsGestureControl: boolean;
+  /** 仅表示可按范围重新提交生成任务，不暗示 Provider 有逐帧无缝修补能力。 */
+  supportsPartialRegeneration: boolean;
+  maxDurationSeconds: number;
+  rightsNote: string;
+  privacyNote: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * 目前只支持人工确认的静态位置，不把一张图或一次生成伪装成逐帧人体追踪。
+ * x/y 采用 0 到 1 的画布归一化坐标，供 Cue 在真实预览中继续复核。
+ */
+export interface ActorAnchorPoint {
+  x: number;
+  y: number;
+  source: "manual_static";
+}
+
+export interface ActorLayout {
+  actorHead?: ActorAnchorPoint;
+  actorHands?: ActorAnchorPoint;
+}
+
+export interface ActorGenerationRange {
+  startFrame: number;
+  endFrame: number;
+  speechSegmentIds: Id[];
+}
 
 export interface ActorPerformance {
   id: Id;
@@ -391,6 +838,12 @@ export interface ActorPerformance {
   scriptRevision?: number;
   /** 人物画面的声音所有权，防止视频原声与 Dialogue 同时输出。 */
   audioMode: ActorAudioMode;
+  /** 已生成的人物必须能追溯到真实 Provider 能力、Job、SpeechAsset 和局部范围。 */
+  capabilityProfileId?: Id;
+  generationJobId?: Id;
+  generationRange?: ActorGenerationRange;
+  layout?: ActorLayout;
+  bridgeAudit?: BridgeRunAudit;
   status: "ready" | "stale" | "failed";
   note: string;
   createdAt: string;
@@ -436,7 +889,20 @@ export interface VisualTreatment {
 
 export type EffectSemanticAnchorType = "speech_segment" | "narrative_beat" | "scene" | "absolute";
 export type EffectAnchorRelation = "anticipate" | "land_on" | "react_after" | "hold_through";
-export type SpatialAnchor = "top_left" | "top_right" | "middle_left" | "middle_right" | "bottom_left" | "bottom_right" | "center" | "full_frame";
+export type SpatialAnchor =
+  | "top_left"
+  | "top_right"
+  | "middle_left"
+  | "middle_right"
+  | "bottom_left"
+  | "bottom_right"
+  | "center"
+  | "full_frame"
+  | "safe_left"
+  | "safe_right"
+  | "actor_head"
+  | "actor_hands"
+  | "behind_actor";
 
 /**
  * 第一阶段可由 QualityReport 确定性执行的 Cue 级规则。
@@ -757,6 +1223,68 @@ export interface SkillExecutionReport {
   completedAt?: string;
 }
 
+/**
+ * Web 用户提交给 Codex 的可审计工作单。它只保存意图与项目对象引用，
+ * 不复制 Scene、Timeline 或任何媒体状态；真实编辑结果始终由 Revision 快照保存。
+ */
+export type AgentWorkOrderStatus = "open" | "claimed" | "completed" | "cancelled";
+export type AgentWorkOrderCompletionKind = "edited" | "reviewed_no_change";
+
+/** 工作单完成时固化的 Revision 影响，避免把聊天摘要误当成实际剪辑证据。 */
+export interface AgentWorkOrderResultImpact {
+  fromRevision: number;
+  toRevision: number;
+  revisions: Array<{
+    revision: number;
+    summary: string;
+    changedObjectIds: Id[];
+    movedObjectIds: Id[];
+    staleObjectIds: Id[];
+    dirtyRanges: DirtyRange[];
+    warnings: string[];
+  }>;
+}
+
+/** 关联对象在接手或完成时的可执行性提示；缺失会阻止操作，stale 会被明确留痕。 */
+export interface AgentWorkOrderRelatedObjectIssue {
+  objectId: Id;
+  kind: "stale";
+  message: string;
+}
+
+export interface AgentWorkOrder {
+  id: Id;
+  title: string;
+  intent: string;
+  /** 创建时已在该 Revision 中存在的对象 ID；后续对象被删除时仍保留这条历史引用。 */
+  relatedObjectIds: Id[];
+  status: AgentWorkOrderStatus;
+  /** 保存该工作单的 Revision。 */
+  createdRevision: number;
+  claimedBy?: string;
+  /** 接手状态写入的 Revision。 */
+  claimedRevision?: number;
+  /** 已接手的工作单可被原 Codex 释放回 open；释放不删除审计事实。 */
+  releasedRevision?: number;
+  releaseReason?: string;
+  /** Web 用户只能取消尚未接手的工作单，避免撤销正在执行的真实任务。 */
+  cancelledRevision?: number;
+  cancellationReason?: string;
+  /** Codex 实际完成编辑后、回写完成状态前的当前 Revision。 */
+  resultRevision?: number;
+  /** 保存完成回写本身的 Revision。 */
+  completedRevision?: number;
+  /** edited 必须有真实项目改动；reviewed_no_change 是显式审查结论，不能伪装为编辑。 */
+  completionKind?: AgentWorkOrderCompletionKind;
+  /** edited 时从接手后到结果 Revision 聚合出的实际对象变化。 */
+  resultChangedObjectIds?: Id[];
+  resultImpact?: AgentWorkOrderResultImpact;
+  relatedObjectIssues?: AgentWorkOrderRelatedObjectIssue[];
+  completionSummary?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProjectSnapshot {
   project: {
     id: Id;
@@ -773,6 +1301,17 @@ export interface ProjectSnapshot {
   assetRequests: AssetRequest[];
   searchIntents: SearchIntent[];
   assetCandidates: AssetCandidate[];
+  narrativeMap?: NarrativeMap;
+  evidenceCaptures: EvidenceCapture[];
+  explainerPrograms: ExplainerSceneProgram[];
+  vlogShotAnalyses: VlogShotAnalysis[];
+  vlogEvents: VlogEvent[];
+  vlogShotSelects: VlogShotSelect[];
+  vlogAmbientCues: VlogAmbientCue[];
+  vlogMusicBeats: VlogMusicBeat[];
+  multicamGroups: MulticamGroup[];
+  multicamCuts: MulticamCut[];
+  agentWorkOrders: AgentWorkOrder[];
   visualTreatments: VisualTreatment[];
   cutaways: Cutaway[];
   audioCues: AudioCue[];
@@ -784,6 +1323,8 @@ export interface ProjectSnapshot {
   speechSegments: SpeechSegment[];
   speechSegmentAssets: SpeechSegmentAsset[];
   speechAsset?: SpeechAsset;
+  speechAlignment?: SpeechAlignment;
+  actorCapabilityProfiles: ActorCapabilityProfile[];
   actorPerformances: ActorPerformance[];
   scenes: Scene[];
   effectCues: EffectCue[];
@@ -865,6 +1406,7 @@ export interface AttributionManifestEntry {
   sourceUrl?: string;
   creator?: string;
   license?: string;
+  licenseUrl?: string;
   attributionText?: string;
   rightsStatus: AssetProvenance["rightsStatus"];
 }
@@ -963,6 +1505,7 @@ export const DEFAULT_TRACKS: Array<Pick<TimelineTrack, "name" | "kind">> = [
   { name: "Background", kind: "video" },
   { name: "Captions", kind: "caption" },
   { name: "Dialogue", kind: "audio" },
+  { name: "Ambient", kind: "audio" },
   { name: "SFX", kind: "audio" },
   { name: "BGM", kind: "audio" }
 ];

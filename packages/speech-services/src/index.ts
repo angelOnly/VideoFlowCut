@@ -76,16 +76,25 @@ function createBridgeRunAudit(submission: BridgeRunSubmission, completed?: Bridg
   };
 }
 
+/**
+ * 只接受 ffmpeg 明确标为带 Alpha 的常见像素格式；不把普通 PNG、pal8 或文件扩展名
+ * 误判为透明人物 Mask。遇到未知格式时保守返回 false，由后续人工/Provider 能力链路降级。
+ */
+function hasVerifiedAlphaPixelFormat(pixelFormat: string | undefined): boolean {
+  const normalized = pixelFormat?.trim().toLowerCase();
+  return Boolean(normalized && /^(?:rgba|argb|bgra|abgr|yuva|gbrap|ya\d|ayuv)/u.test(normalized));
+}
+
 export async function probeMedia(filePath: string): Promise<MediaMetadata> {
   const output = await runProcess("ffprobe", [
     "-v", "error",
-    "-show_entries", "format=duration:format=format_name:stream=codec_type,codec_name,width,height,r_frame_rate,sample_rate,channels",
+    "-show_entries", "format=duration:format=format_name:stream=codec_type,codec_name,pix_fmt,width,height,r_frame_rate,sample_rate,channels",
     "-of", "json",
     filePath
   ], 60_000);
   const data = JSON.parse(output) as {
     format?: { duration?: string; format_name?: string };
-    streams?: Array<{ codec_type?: string; codec_name?: string; width?: number; height?: number; r_frame_rate?: string; sample_rate?: string; channels?: number }>;
+    streams?: Array<{ codec_type?: string; codec_name?: string; pix_fmt?: string; width?: number; height?: number; r_frame_rate?: string; sample_rate?: string; channels?: number }>;
   };
   const video = data.streams?.find((stream) => stream.codec_type === "video");
   const audio = data.streams?.find((stream) => stream.codec_type === "audio");
@@ -101,6 +110,8 @@ export async function probeMedia(filePath: string): Promise<MediaMetadata> {
     sampleRate: audio?.sample_rate ? Number(audio.sample_rate) : undefined,
     channels: audio?.channels,
     videoCodec: video?.codec_name,
+    pixelFormat: video?.pix_fmt,
+    hasAlpha: hasVerifiedAlphaPixelFormat(video?.pix_fmt),
     mime: data.format?.format_name
   };
 }

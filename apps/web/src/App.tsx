@@ -1,21 +1,31 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
-import { EFFECT_TYPES, type Asset, type AudioCue, type CaptionCard, type EffectCue, type ExportArtifact, type ProjectSnapshot, type Scene, type TimelineItem } from "@videocut/contracts";
+import { EFFECT_TYPES, type AgentWorkOrder, type Asset, type AudioCue, type CaptionCard, type EffectCue, type ExportArtifact, type ProductionProfile, type ProjectSnapshot, type Scene, type TimelineItem } from "@videocut/contracts";
 import { ProjectComposition, mediaUrl } from "@videocut/remotion";
 import { API_BASE, api, type ProjectState } from "./api";
+import { AdvancedWorkflowsPanel } from "./AdvancedWorkflowsPanel";
 
-type Panel = "assets" | "script" | "audio" | "actors" | "scenes" | "captions" | "jobs";
+type Panel = "assets" | "agent_work_orders" | "script" | "audio" | "actors" | "scenes" | "captions" | "advanced" | "jobs";
 type Selection = { kind: "asset" | "scene" | "item" | "cue"; id: string } | undefined;
 type EditorFocusQuery = { sceneId?: string; itemId?: string; effectCueId?: string; frame?: number };
 
 const panelMeta: Array<{ id: Panel; label: string; icon: string }> = [
   { id: "assets", label: "素材", icon: "▦" },
+  { id: "agent_work_orders", label: "工作单", icon: "✦" },
   { id: "script", label: "文字稿", icon: "¶" },
   { id: "audio", label: "声音", icon: "♬" },
   { id: "actors", label: "人物", icon: "◉" },
   { id: "scenes", label: "场景", icon: "◇" },
   { id: "captions", label: "字幕", icon: "CC" },
+  { id: "advanced", label: "高级", icon: "◆" },
   { id: "jobs", label: "任务 / QC", icon: "✓" }
+];
+
+const projectProfileOptions: Array<{ value: ProductionProfile; label: string }> = [
+  { value: "presenter_motion", label: "人物口播" },
+  { value: "visual_explainer", label: "视觉解释片" },
+  { value: "vlog", label: "Vlog" },
+  { value: "hybrid", label: "混合视频" }
 ];
 
 const effectTrackNameByLayer: Record<EffectCue["layer"], string> = {
@@ -46,8 +56,24 @@ const formatTimecode = (frame: number, fps: number) => {
   const frames = frame % fps;
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}:${String(frames).padStart(2, "0")}`;
 };
-const statusText = (status: string) => ({ queued: "排队中", analyzing: "分析中", ready: "已就绪", failed: "失败", running: "运行中", succeeded: "完成", cancelled: "已取消", unknown: "未知", missing: "缺失", pending: "待生成", stale: "需复核" }[status] ?? status);
+const statusText = (status: string) => ({ queued: "排队中", analyzing: "分析中", ready: "已就绪", failed: "失败", running: "运行中", succeeded: "完成", cancelled: "已取消", unknown: "未知", missing: "缺失", pending: "待生成", stale: "需复核", open: "待处理", claimed: "Codex 已接手", completed: "已完成" }[status] ?? status);
 const assetIcon = (asset: Asset) => asset.kind === "video" || asset.kind === "actor_video" ? "▶" : asset.kind === "audio" || asset.kind === "speech" ? "♬" : "▧";
+
+type WorkOrderObjectOption = { id: string; label: string; kind: string };
+
+/** 工作单只允许关联当前快照中真实存在的对象；保存的是 ID，不带走对象副本。 */
+function workOrderObjectOptions(snapshot: ProjectSnapshot): WorkOrderObjectOption[] {
+  const assetName = (assetId: string) => snapshot.assets.find((asset) => asset.id === assetId)?.name ?? assetId;
+  return [
+    { id: snapshot.project.id, kind: "项目", label: snapshot.project.name },
+    ...snapshot.story.beats.map((beat) => ({ id: beat.id, kind: "Story Beat", label: beat.title })),
+    ...snapshot.scenes.map((scene) => ({ id: scene.id, kind: "Scene", label: scene.title })),
+    ...snapshot.assets.map((asset) => ({ id: asset.id, kind: "素材", label: asset.name })),
+    ...snapshot.timeline.items.filter((item) => !item.disabled).map((item) => ({ id: item.id, kind: "Timeline", label: `${assetName(item.assetId)} · F${item.startFrame}–${item.endFrame}` })),
+    ...snapshot.effectCues.map((cue) => ({ id: cue.id, kind: "EffectCue", label: `${cue.type} · F${cue.startFrame}–${cue.endFrame}` })),
+    ...snapshot.cutaways.map((cutaway) => ({ id: cutaway.id, kind: "Cutaway", label: cutaway.purpose }))
+  ];
+}
 
 function readEditorFocus(): EditorFocusQuery {
   const params = new URLSearchParams(window.location.search);
@@ -86,9 +112,13 @@ export function App() {
   const [exportArtifacts, setExportArtifacts] = useState<ExportArtifact[]>([]);
   const [revisions, setRevisions] = useState<Awaited<ReturnType<typeof api.revisions>>>([]);
   const [newProjectName, setNewProjectName] = useState("数字人口播项目");
+  const [newProjectProfile, setNewProjectProfile] = useState<ProductionProfile>("presenter_motion");
   const [localPath, setLocalPath] = useState("");
   const [selectedUnitIds, setSelectedUnitIds] = useState<string[]>([]);
   const [selectedARollIds, setSelectedARollIds] = useState<string[]>([]);
+  const [workOrderTitle, setWorkOrderTitle] = useState("");
+  const [workOrderIntent, setWorkOrderIntent] = useState("");
+  const [selectedWorkOrderObjectIds, setSelectedWorkOrderObjectIds] = useState<string[]>([]);
   const [message, setMessage] = useState("准备就绪");
   const [busy, setBusy] = useState(false);
   const playerRef = useRef<PlayerRef>(null);
@@ -149,6 +179,8 @@ export function App() {
       .filter((asset) => (asset.kind === "video" || asset.kind === "actor_video") && asset.status === "ready")
       .map((asset) => asset.id));
     setSelectedARollIds((current) => current.filter((assetId) => readyVideoIds.has(assetId)));
+    const existingWorkOrderObjectIds = new Set(workOrderObjectOptions(state.snapshot).map((option) => option.id));
+    setSelectedWorkOrderObjectIds((current) => current.filter((objectId) => existingWorkOrderObjectIds.has(objectId)));
   }, [state?.revision.id]);
 
   /**
@@ -234,7 +266,7 @@ export function App() {
     try {
       setBusy(true);
       setMessage("创建项目…");
-      const created = await api.createProject(newProjectName.trim() || "未命名项目");
+      const created = await api.createProject(newProjectName.trim() || "未命名项目", newProjectProfile);
       const createdProjectId = created.snapshot.project.id;
       setProjectId(createdProjectId);
       // 新建后直接读回新项目，避免顶部入口仍短暂显示旧项目状态。
@@ -256,6 +288,9 @@ export function App() {
         <p>创建项目后，导入视频并建立可继续编辑的时间线。</p>
         <div className="create-project-row">
           <input aria-label="项目名称" value={newProjectName} onChange={(event) => setNewProjectName(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void createProject()} />
+          <select aria-label="项目类型" value={newProjectProfile} onChange={(event) => setNewProjectProfile(event.target.value as ProductionProfile)}>
+            {projectProfileOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
           <button className="primary" onClick={() => void createProject()} disabled={busy}>创建项目</button>
         </div>
         {message !== "准备就绪" && <p className="message">{message}</p>}
@@ -279,6 +314,9 @@ export function App() {
           {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
         </select>
         <input className="new-project-input" aria-label="新建项目名称" value={newProjectName} onChange={(event) => setNewProjectName(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void createProject()} />
+        <select className="new-project-profile" aria-label="新建项目类型" value={newProjectProfile} onChange={(event) => setNewProjectProfile(event.target.value as ProductionProfile)}>
+          {projectProfileOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
         <button data-testid="create-project-button" onClick={() => void createProject()} disabled={busy}>新建</button>
         <strong data-testid="project-name" data-object-id={snapshot.project.id} className="project-name">{snapshot.project.name}</strong>
         <span className="save-state">● 已保存</span>
@@ -331,6 +369,31 @@ export function App() {
             onBuildTimeline={() => void act("组装所选 Presenter A-roll", () => api.assemblePresenterTrack(snapshot.project.id, currentRevision, selectedForTimeline))}
             onToggleUnit={(unitId) => setSelectedUnitIds((old) => old.includes(unitId) ? old.filter((id) => id !== unitId) : [...old, unitId])}
             onApplyScript={() => void act("应用 Script", () => api.applyScript(snapshot.project.id, currentRevision, selectedUnitIds))}
+            workOrderTitle={workOrderTitle}
+            workOrderIntent={workOrderIntent}
+            selectedWorkOrderObjectIds={selectedWorkOrderObjectIds}
+            onChangeWorkOrderTitle={setWorkOrderTitle}
+            onChangeWorkOrderIntent={setWorkOrderIntent}
+            onToggleWorkOrderObject={(objectId) => setSelectedWorkOrderObjectIds((current) => current.includes(objectId) ? current.filter((id) => id !== objectId) : [...current, objectId])}
+            onCreateWorkOrder={() => void act("创建 Agent 工作单", async () => {
+              await api.createAgentWorkOrder(snapshot.project.id, {
+                baseRevision: currentRevision,
+                title: workOrderTitle,
+                intent: workOrderIntent,
+                relatedObjectIds: selectedWorkOrderObjectIds
+              });
+              setWorkOrderTitle("");
+              setWorkOrderIntent("");
+              setSelectedWorkOrderObjectIds([]);
+            })}
+            onCancelWorkOrder={(workOrderId) => {
+              const reason = window.prompt("说明取消原因（将写入项目 Revision）：", "用户撤回该工作单");
+              if (!reason?.trim()) return;
+              void act("取消 Agent 工作单", () => api.cancelAgentWorkOrder(snapshot.project.id, workOrderId, {
+                baseRevision: currentRevision,
+                reason: reason.trim()
+              }));
+            }}
             onRegisterActor={(timelineItemId, maskAssetId) => void act("登记人物表演", () => api.registerActorPerformance(snapshot.project.id, {
               baseRevision: currentRevision,
               timelineItemId,
@@ -342,6 +405,7 @@ export function App() {
             }))}
             onAddEffect={(scene, type) => void act("添加效果", () => api.createEffect(snapshot.project.id, { baseRevision: currentRevision, sceneId: scene.id, type, layer: effectLayerByType[type], startFrame: scene.startFrame, endFrame: Math.min(scene.endFrame, scene.startFrame + Math.max(48, snapshot.timeline.fps * 3)), note: `${type}：由工作台添加` }))}
             onRetryJob={(jobId) => void act("重试任务", () => api.retryJob(jobId))}
+            onRunAdvancedAction={(label, operation) => void act(label, operation)}
             onApproveExportArtifact={(artifactId) => {
               if (window.confirm("确认已完整播放并试听此最终文件，且同意批准这个固定 Artifact 吗？")) {
                 void act("批准交付产物", () => api.approveExportArtifact(snapshot.project.id, artifactId));
@@ -436,9 +500,18 @@ interface PanelContentProps {
   onBuildTimeline: () => void;
   onToggleUnit: (unitId: string) => void;
   onApplyScript: () => void;
+  workOrderTitle: string;
+  workOrderIntent: string;
+  selectedWorkOrderObjectIds: string[];
+  onChangeWorkOrderTitle: (value: string) => void;
+  onChangeWorkOrderIntent: (value: string) => void;
+  onToggleWorkOrderObject: (objectId: string) => void;
+  onCreateWorkOrder: () => void;
+  onCancelWorkOrder: (workOrderId: string) => void;
   onRegisterActor: (timelineItemId: string, maskAssetId?: string) => void;
   onAddEffect: (scene: Scene, type: EffectCue["type"]) => void;
   onRetryJob: (jobId: string) => void;
+  onRunAdvancedAction: (label: string, operation: () => Promise<unknown>) => void;
   onApproveExportArtifact: (artifactId: string) => void;
   onRollback: (revision: number) => void;
 }
@@ -459,6 +532,29 @@ function PanelContent(props: PanelContentProps) {
         {(asset.kind === "video" || asset.kind === "actor_video") && asset.status === "ready" && asset.metadata?.hasAudio && <button className="compact" onClick={(event) => { event.stopPropagation(); props.onTranscribe(asset.id); }}>转写</button>}
       </article>)}</div>
     </>;
+  }
+  if (panel === "agent_work_orders") {
+    return <AgentWorkOrdersPanel
+      snapshot={snapshot}
+      title={props.workOrderTitle}
+      intent={props.workOrderIntent}
+      selectedObjectIds={props.selectedWorkOrderObjectIds}
+      disabled={props.busy}
+      onChangeTitle={props.onChangeWorkOrderTitle}
+      onChangeIntent={props.onChangeWorkOrderIntent}
+      onToggleObject={props.onToggleWorkOrderObject}
+      onCreate={props.onCreateWorkOrder}
+      onCancel={props.onCancelWorkOrder}
+    />;
+  }
+  if (panel === "advanced") {
+    return <AdvancedWorkflowsPanel
+      snapshot={snapshot}
+      currentRevision={props.currentRevision}
+      jobs={props.jobs}
+      busy={props.busy}
+      onRunAction={props.onRunAdvancedAction}
+    />;
   }
   if (panel === "script") {
     return <>
@@ -553,6 +649,63 @@ function PanelContent(props: PanelContentProps) {
       </article>)}</section>
     <section><h3>Revision</h3>{props.revisions.map((revision) => <div className="revision-row" key={revision.id} data-testid={`revision-${revision.number}`} data-object-id={revision.id}><div><strong>R{revision.number}</strong><span>{revision.summary}</span></div>{revision.number !== props.currentRevision && <button onClick={() => props.onRollback(revision.number)}>回退</button>}</div>)}</section>
   </>;
+}
+
+/**
+ * Web 只负责把用户意图落成受 Revision 管理的工作单；这里不模拟 LLM，也不允许
+ * 在页面中直接把工作单标记完成。Codex 必须通过 MCP 接手、执行并回写真实 Revision。
+ */
+function AgentWorkOrdersPanel({ snapshot, title, intent, selectedObjectIds, disabled, onChangeTitle, onChangeIntent, onToggleObject, onCreate, onCancel }: {
+  snapshot: ProjectSnapshot;
+  title: string;
+  intent: string;
+  selectedObjectIds: string[];
+  disabled: boolean;
+  onChangeTitle: (value: string) => void;
+  onChangeIntent: (value: string) => void;
+  onToggleObject: (objectId: string) => void;
+  onCreate: () => void;
+  onCancel: (workOrderId: string) => void;
+}) {
+  const options = workOrderObjectOptions(snapshot);
+  const orders = [...snapshot.agentWorkOrders].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  return <>
+    <PanelTitle title="Agent 工作单" meta={`${orders.length} 条 · 当前 Revision`} />
+    <p className="empty-panel">把要完成的剪辑意图交给 Codex。关联对象只保存当前项目对象 ID，不复制时间线；Codex 接手和完成都会产生新的 Revision。</p>
+    <section className="agent-work-order-form" data-testid="agent-work-order-form">
+      <label>工作单标题<input aria-label="Agent 工作单标题" value={title} maxLength={160} placeholder="例如：收紧开场并复核前两段节奏" onChange={(event) => onChangeTitle(event.target.value)} /></label>
+      <label>给 Codex 的意图<textarea aria-label="Agent 工作单意图" value={intent} maxLength={4_000} rows={4} placeholder="说明要解决的问题、保留的内容和验收依据。" onChange={(event) => onChangeIntent(event.target.value)} /></label>
+      <div className="agent-work-order-objects">
+        <strong>关联当前对象（可选）</strong>
+        {options.length === 0 ? <small>当前还没有可关联对象。</small> : options.map((option) => <label key={option.id} className="agent-work-order-object" data-object-id={option.id}>
+          <input type="checkbox" aria-label={`关联${option.kind}：${option.label}`} checked={selectedObjectIds.includes(option.id)} onChange={() => onToggleObject(option.id)} />
+          <span>{option.kind}</span><em>{option.label}</em>
+        </label>)}
+      </div>
+      <button className="primary wide-button" data-testid="create-agent-work-order" type="button" disabled={disabled || !title.trim() || !intent.trim()} onClick={onCreate}>提交给 Codex</button>
+    </section>
+    <PanelTitle title="交接记录" meta={`${orders.filter((order) => order.status === "open").length} 条待处理`} />
+    {orders.length === 0 && <p className="empty-panel">尚无工作单。提交后可由 Codex 从 MCP 读取并接手。</p>}
+    <div className="agent-work-order-list">{orders.map((order) => <AgentWorkOrderCard key={order.id} order={order} disabled={disabled} onCancel={onCancel} />)}</div>
+  </>;
+}
+
+function AgentWorkOrderCard({ order, disabled, onCancel }: { order: AgentWorkOrder; disabled: boolean; onCancel: (workOrderId: string) => void }) {
+  return <article className={`agent-work-order-card ${order.status}`} data-testid={`agent-work-order-${order.id}`} data-object-id={order.id}>
+    <div className="agent-work-order-heading"><strong>{order.title}</strong><span className={`status status-${order.status}`}>{statusText(order.status)}</span></div>
+    <p>{order.intent}</p>
+    <small>创建 R{order.createdRevision} · 关联 {order.relatedObjectIds.length} 个对象</small>
+    {order.claimedBy && <small>接手：{order.claimedBy} · R{order.claimedRevision}</small>}
+    {order.status === "open" && <button className="agent-work-order-cancel" type="button" disabled={disabled} onClick={() => onCancel(order.id)}>取消工作单</button>}
+    {order.status === "cancelled" && <small>取消 R{order.cancelledRevision} · {order.cancellationReason}</small>}
+    {order.releasedRevision && <small>上次释放 R{order.releasedRevision} · {order.releaseReason}</small>}
+    {order.status === "completed" && <>
+      <small>{order.completionKind === "reviewed_no_change" ? "已审查，无编辑改动" : `已编辑 ${order.resultChangedObjectIds?.length ?? 0} 个对象`} · 实际结果 R{order.resultRevision} · 完成回写 R{order.completedRevision}</small>
+      <p className="agent-work-order-summary">{order.completionSummary}</p>
+      {order.resultImpact && <small>影响证据：R{order.resultImpact.fromRevision}–R{order.resultImpact.toRevision}，{order.resultImpact.revisions.length} 次 Revision</small>}
+    </>}
+    {(order.relatedObjectIssues?.length ?? 0) > 0 && <small className="agent-work-order-warning">关联对象需复核：{order.relatedObjectIssues?.map((issue) => issue.objectId).join("、")}</small>}
+  </article>;
 }
 
 /** 字幕面板只开放稳定 Card 的最小微调，复杂逐词动画仍由后续能力与真实时序支持。 */

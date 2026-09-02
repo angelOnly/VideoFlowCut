@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync } from "node:fs";
-import { mkdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
@@ -135,6 +135,67 @@ function resolveManagedAssetPath(snapshot: ProjectSnapshot, managedPath: string)
   const targetPath = resolve(projectRoot, managedPath);
   assertPathWithin(projectRoot, targetPath);
   return targetPath;
+}
+
+type ExplainerScenePreviewCache = {
+  cacheKey: string;
+  sceneId: string;
+  localFromFrame: number;
+  localToFrame: number;
+  relativePath: string;
+};
+
+const rangesOverlap = (leftStart: number, leftEnd: number, rightStart: number, rightEnd: number) => (
+  leftStart < rightEnd && leftEnd > rightStart
+);
+
+/**
+ * 首版只缓存“独占画面”的 Explainer Scene 预览。若同一帧还有字幕、Cue、Cutaway、
+ * 或任何 Timeline Item，直接重新合成，避免把其它对象的旧画面错误复用。
+ */
+function isolatedExplainerScenePreviewCache(
+  snapshot: ProjectSnapshot,
+  fromFrame: number,
+  toFrame: number
+): ExplainerScenePreviewCache | undefined {
+  const candidates = snapshot.explainerPrograms.flatMap((program) => {
+    if (program.status !== "ready" || !/^[a-f0-9]{16,128}$/iu.test(program.cacheKey)) return [];
+    const scene = snapshot.scenes.find((candidate) => candidate.id === program.sceneId);
+    if (!scene || scene.type !== "ExplainerScene" || scene.status !== "ready"
+      || fromFrame < scene.startFrame || toFrame > scene.endFrame) return [];
+    return [{ program, scene }];
+  });
+  if (candidates.length !== 1) return undefined;
+
+  const { program, scene } = candidates[0]!;
+  const hasOtherVisual = snapshot.timeline.items.some((item) => !item.disabled
+    && rangesOverlap(item.startFrame, item.endFrame, fromFrame, toFrame));
+  const hasCaption = snapshot.timeline.captions.some((caption) => rangesOverlap(caption.startFrame, caption.endFrame, fromFrame, toFrame));
+  const hasCue = snapshot.effectCues.some((cue) => cue.status === "ready"
+    && rangesOverlap(cue.startFrame, cue.endFrame, fromFrame, toFrame));
+  if (hasOtherVisual || hasCaption || hasCue) return undefined;
+
+  const localFromFrame = fromFrame - scene.startFrame;
+  const localToFrame = toFrame - scene.startFrame;
+  return {
+    cacheKey: program.cacheKey,
+    sceneId: scene.id,
+    localFromFrame,
+    localToFrame,
+    relativePath: join("cache", "explainer-scenes", program.cacheKey, `range-${localFromFrame}-${localToFrame}.mp4`)
+  };
+}
+
+async function isValidScenePreviewCache(path: string, expectedDurationMs: number): Promise<boolean> {
+  try {
+    const file = await stat(path);
+    if (!file.isFile() || file.size <= 0) return false;
+    const metadata = await probeMedia(path);
+    return metadata.durationMs > 0 && Boolean(metadata.videoCodec)
+      && Math.abs(metadata.durationMs - expectedDurationMs) <= 1_000;
+  } catch {
+    return false;
+  }
 }
 
 /** 以流式方式计算最终文件哈希，避免大文件验证耗尽 Worker 内存。 */
@@ -509,9 +570,32 @@ export async function runPreviewJob(
   const relativePath = join("previews", `revision-${revisionNumber}-${fromFrame}-${toFrame}.mp4`);
   const targetPath = join(revision.snapshot.project.rootPath, relativePath);
   await mkdir(dirname(targetPath), { recursive: true });
-  await renderer.renderRange(revision.snapshot, fromFrame, toFrame, targetPath);
-  const metadata = await probeMedia(targetPath);
   const expectedDurationMs = Math.round(((toFrame - fromFrame) / revision.snapshot.timeline.fps) * 1000);
+  const sceneCache = isolatedExplainerScenePreviewCache(revision.snapshot, fromFrame, toFrame);
+  const cachePath = sceneCache ? join(revision.snapshot.project.rootPath, sceneCache.relativePath) : undefined;
+  let cacheHit = false;
+
+  if (cachePath && await isValidScenePreviewCache(cachePath, expectedDurationMs)) {
+    // 缓存永远只是可重建的优化：复制到当前 Revision 的 Preview 位置，保留 Revision 级证据边界。
+    await copyFile(cachePath, targetPath);
+    cacheHit = true;
+  } else {
+    if (cachePath) await rm(cachePath, { force: true }).catch(() => undefined);
+    const renderTarget = cachePath ? `${cachePath}.${job.id}.rendering.mp4` : targetPath;
+    if (cachePath) await mkdir(dirname(cachePath), { recursive: true });
+    try {
+      await renderer.renderRange(revision.snapshot, fromFrame, toFrame, renderTarget);
+      if (cachePath) {
+        // 同一 Key 的并发渲染只会产生相同输入的可替换优化文件；正式证据仍是 targetPath。
+        await rename(renderTarget, cachePath);
+        await copyFile(cachePath, targetPath);
+      }
+    } catch (error) {
+      if (cachePath) await rm(renderTarget, { force: true }).catch(() => undefined);
+      throw error;
+    }
+  }
+  const metadata = await probeMedia(targetPath);
   if (metadata.durationMs <= 0 || !metadata.videoCodec || Math.abs(metadata.durationMs - expectedDurationMs) > 1_000) {
     throw new DomainError("局部预览文件不可读或时长异常", "INVALID_PREVIEW_OUTPUT");
   }
@@ -522,6 +606,13 @@ export async function runPreviewJob(
     path: targetPath,
     relativePath,
     durationMs: metadata.durationMs,
-    hasAudio: metadata.hasAudio
+    hasAudio: metadata.hasAudio,
+    sceneCache: sceneCache ? {
+      sceneId: sceneCache.sceneId,
+      cacheKey: sceneCache.cacheKey,
+      localFromFrame: sceneCache.localFromFrame,
+      localToFrame: sceneCache.localToFrame,
+      hit: cacheHit
+    } : undefined
   };
 }

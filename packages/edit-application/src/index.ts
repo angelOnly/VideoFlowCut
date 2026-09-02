@@ -1,16 +1,25 @@
 import { createHash } from "node:crypto";
-import { createReadStream, existsSync, mkdirSync } from "node:fs";
+import { createReadStream, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type {
+  AgentWorkOrder,
+  AgentWorkOrderRelatedObjectIssue,
+  AgentWorkOrderResultImpact,
   Asset,
   AssetCandidate,
   AssetRequest,
   AssetRightsRequirement,
+  ActorCapabilityProfile,
+  ActorGenerationRange,
+  ActorLayout,
   ActorAudioMode,
   ActorMaskMode,
   ActorPerformanceSource,
+  AvatarInputMode,
+  AvatarProviderKind,
+  AvatarUsageRightsConfirmation,
   AudioCue,
   AudioCueKind,
   AudioDucking,
@@ -27,6 +36,8 @@ import type {
   EffectCue,
   EffectMotion,
   EffectType,
+  EvidenceCapture,
+  EvidenceHighlight,
   EditorialQualityReview,
   EditorialReviewFinding,
   EditorialReviewCategory,
@@ -35,12 +46,22 @@ import type {
   ExportPurpose,
   ExportArtifact,
   ExportArtifactReview,
+  ExplainerSceneKind,
+  ExplainerSceneProgram,
+  ExplainerSceneState,
   Id,
   ImpactReport,
   JobKind,
   JobRecord,
   JobStatus,
   MediaMetadata,
+  MulticamAngleSync,
+  MulticamCut,
+  MulticamGroup,
+  MulticamSourceRange,
+  MulticamSyncPreview,
+  NarrativeMap,
+  NarrativeMapBeat,
   ProjectSnapshot,
   ProjectSummary,
   RevisionRecord,
@@ -50,14 +71,23 @@ import type {
   SkillExecutionReport,
   SpatialAnchor,
   StoryBeat,
+  SpeechAlignment,
   SpeechAsset,
   SpeechSegmentAsset,
   SpeechTiming,
   TimelineItem,
+  VideoGenerationMode,
   VisualTreatment,
   VisualTreatmentIntensity,
   VisualTreatmentMode,
-  VoiceReference
+  VlogEvent,
+  VlogMusicBeat,
+  VlogShotAnalysis,
+  VlogShotFunction,
+  VlogShotSelect,
+  VlogSourceAudioMode,
+  VoiceReference,
+  WordTiming
 } from "@videocut/contracts";
 import {
   assetById,
@@ -66,6 +96,7 @@ import {
   cloneSnapshot,
   compileSpeechSegments,
   createActorPerformance,
+  createAgentWorkOrder,
   createAudioCue,
   createCutaway,
   createEffectCue,
@@ -86,7 +117,7 @@ import {
   now,
   trackByName
 } from "@videocut/domain";
-import { DEFAULT_CAPTION_FORMAT } from "@videocut/contracts";
+import { DEFAULT_CAPTION_FORMAT, DEFAULT_TRACKS } from "@videocut/contracts";
 import { evaluateQuality } from "@videocut/quality";
 
 type ProjectRow = {
@@ -146,6 +177,155 @@ type PreviewInspectionEvidence = {
   frames: Array<{ frame: number; relativePath: string }>;
 };
 
+/**
+ * Avatar Job 只保存一次提交时已确认的输入事实。Worker 只消费这份合同，
+ * 不能在异步完成后按“当前最新项目”猜测人物该落到哪里。
+ */
+type AvatarGenerationPlacement = {
+  sceneId: Id;
+  startFrame: number;
+  endFrame: number;
+};
+
+/** API 可逐项接收依据，但写入 Job 前必须归一成完整的可审计确认。 */
+type AvatarUsageRightsConfirmationInput = Partial<Pick<AvatarUsageRightsConfirmation,
+  "portraitRightsBasis" | "voiceRightsBasis" | "providerUsageRightsBasis"
+>>;
+
+type AvatarGenerationJobPayload = {
+  requestedRevision: number;
+  capabilityProfileId: Id;
+  workflowId: string;
+  referenceImageAssetId: Id;
+  speechAssetId: Id;
+  generationRange: ActorGenerationRange;
+  placement: AvatarGenerationPlacement;
+  replaceActorPerformanceId?: Id;
+  prompt?: string;
+  maskMode: "none";
+  audioMode: "use_dialogue_track" | "muted";
+  /** 未提供完整确认时保持 undefined，生成资产仍必须以 unknown 进入 Delivery 门禁。 */
+  rightsConfirmation?: AvatarUsageRightsConfirmation;
+  layout?: ActorLayout;
+  note?: string;
+};
+
+type CompletedAvatarVideo = {
+  /** Worker 已完成下载、ffprobe 与哈希校验的项目内绝对路径。 */
+  path: string;
+  /** 相对于 Project 根目录的受管路径，用于 Revision 和 Render Worker。 */
+  relativePath: string;
+  name: string;
+  contentHash: string;
+  sourceHash: string;
+  durationMs: number;
+  metadata: MediaMetadata;
+};
+
+/** Vlog Worker 只返回可测量的镜头边界和音轨事实；事件含义与 Select 仍由导演明确写入。 */
+type VlogAnalysisJobPayload = {
+  requestedRevision: number;
+  assetIds: Id[];
+  sceneThreshold: number;
+};
+
+/** 多机位 Worker 只回传经共同音轨验证的固定偏移，不会根据画面相似度猜测同步。 */
+type MulticamSyncJobPayload = {
+  requestedRevision: number;
+  title: string;
+  assetIds: Id[];
+  /** 机位名称必须由调用方显式提供；Worker 不从文件名或时间元数据猜 A/B/C。 */
+  angleLabels: Record<Id, string>;
+  /** 防止异步 Worker 对“同名但已替换”的二进制继续写入同步结论。 */
+  sourceHashes: Record<Id, string>;
+  referenceAssetId: Id;
+  masterAudioAssetId: Id;
+  maxSearchSeconds: number;
+  /** 缺失仅用于兼容旧的排队 Job；新提交会归一为每个机位一条完整源范围。 */
+  sourceRanges?: Record<Id, MulticamSourceRange>;
+};
+
+export type CompletedMulticamAngleSync = Omit<MulticamAngleSync, "method"> & {
+  method: "audio_correlation";
+};
+
+/** 音乐 Provider 由调用方明确指定 workflowId；不以文件名或一个隐含的默认模型猜测。 */
+type MusicGenerationJobPayload = {
+  requestedRevision: number;
+  workflowId: string;
+  prompt: string;
+  durationSeconds: number;
+  outputSlotId?: string;
+};
+
+/**
+ * 视频生成 Job 固化提交时的创作输入。Worker 仍会读取当前 Bridge Schema，
+ * 这里不保存 Schema 字段 ID 或下载 URL，避免工作流升级后把旧实现当成当前能力。
+ */
+type VideoGenerationJobPayload = {
+  requestedRevision: number;
+  workflowId: string;
+  mode: VideoGenerationMode;
+  inputAssetIds: Id[];
+  prompt: string;
+  durationSeconds: number;
+  aspectRatio: ProjectSnapshot["project"]["brief"]["aspectRatio"];
+  outputSlotId?: string;
+  seed?: number;
+  megapixels?: number;
+  initialSeed?: number;
+  finalSeed?: number;
+  initialMegapixels?: number;
+  finalMegapixels?: number;
+  assetRequestId?: Id;
+};
+
+/** Worker 只在下载、解码和哈希都已验证后才可把这个对象交回 Application。 */
+type CompletedGeneratedVideo = {
+  path: string;
+  relativePath: string;
+  name: string;
+  contentHash: string;
+  sourceHash: string;
+  durationMs: number;
+  metadata: MediaMetadata;
+};
+
+/** 词级对齐必须由调用方明确指定真实 workflow，避免把某个 ASR 或 TTS 默认当成强制对齐器。 */
+type SpeechAlignmentJobPayload = {
+  requestedRevision: number;
+  speechAssetId: Id;
+  scriptRevision: number;
+  workflowId: string;
+  outputSlotId?: string;
+};
+
+export type CompletedSpeechAlignment = {
+  words: WordTiming[];
+  source: string;
+};
+
+type CompletedMusicAudio = {
+  path: string;
+  relativePath: string;
+  name: string;
+  contentHash: string;
+  sourceHash: string;
+  durationMs: number;
+  metadata: MediaMetadata;
+};
+
+export type CompletedVlogShotAnalysis = {
+  assetId: Id;
+  sourceStartFrame: number;
+  sourceEndFrame: number;
+  source: VlogShotAnalysis["source"];
+  sceneChangeScore?: number;
+  technicalScore: number;
+  hasAudio: boolean;
+  evidenceNote: string;
+};
+
 /** 用流式读取核对最终文件，避免批准大文件时一次性把整段视频读入内存。 */
 async function sha256File(path: string): Promise<string> {
   const hash = createHash("sha256");
@@ -187,6 +367,39 @@ function normalizeSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
   snapshot.assetRequests ??= [];
   snapshot.searchIntents ??= [];
   snapshot.assetCandidates ??= [];
+  for (const candidate of snapshot.assetCandidates) candidate.kind ??= "video";
+  snapshot.evidenceCaptures ??= [];
+  snapshot.explainerPrograms ??= [];
+  snapshot.vlogShotAnalyses ??= [];
+  snapshot.vlogEvents ??= [];
+  snapshot.vlogShotSelects ??= [];
+  snapshot.vlogAmbientCues ??= [];
+  snapshot.vlogMusicBeats ??= [];
+  snapshot.multicamGroups ??= [];
+  snapshot.multicamCuts ??= [];
+  snapshot.agentWorkOrders ??= [];
+  for (const workOrder of snapshot.agentWorkOrders) {
+    // 旧完成记录没有结果对象与 Impact 证据，不能在升级后倒推为“已编辑”。
+    if (workOrder.status === "completed" && !workOrder.completionKind) {
+      workOrder.completionKind = "reviewed_no_change";
+      workOrder.resultChangedObjectIds = undefined;
+      workOrder.resultImpact = undefined;
+    }
+  }
+  // 新增 Ambient 后，旧项目不需要重建 Revision；仅补一条空轨，原有 Item 与顺序保持不变。
+  if (!snapshot.timeline.tracks.some((track) => track.name === "Ambient")) {
+    const ambient = DEFAULT_TRACKS.find((track) => track.name === "Ambient");
+    if (ambient) {
+      snapshot.timeline.tracks.push({
+        id: createId("track"),
+        ...ambient,
+        order: Math.max(-1, ...snapshot.timeline.tracks.map((track) => track.order)) + 1,
+        locked: false,
+        hidden: false,
+        muted: false
+      });
+    }
+  }
   snapshot.visualTreatments ??= [];
   snapshot.cutaways ??= [];
   snapshot.audioCues ??= [];
@@ -206,6 +419,11 @@ function normalizeSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
     reference.recommendedRange ??= { startMs: 0, endMs: 0 };
     reference.quality ??= "warning";
     reference.usable ??= true;
+  }
+  snapshot.actorCapabilityProfiles ??= [];
+  for (const profile of snapshot.actorCapabilityProfiles) {
+    // 旧档案没有明确声明口型能力时，一律按未验证处理，不能因为可上传音频就假定已同步。
+    profile.supportsAudioDrivenLipSync ??= false;
   }
   snapshot.actorPerformances ??= [];
   for (const performance of snapshot.actorPerformances) {
@@ -284,6 +502,38 @@ function assetCandidateById(snapshot: ProjectSnapshot, assetCandidateId: Id): As
   return candidate;
 }
 
+function vlogShotById(snapshot: ProjectSnapshot, shotAnalysisId: Id): VlogShotAnalysis {
+  const shot = snapshot.vlogShotAnalyses.find((candidate) => candidate.id === shotAnalysisId);
+  if (!shot) throw new NotFoundError(`Vlog 镜头分析不存在：${shotAnalysisId}`);
+  return shot;
+}
+
+function vlogEventById(snapshot: ProjectSnapshot, eventId: Id): VlogEvent {
+  const event = snapshot.vlogEvents.find((candidate) => candidate.id === eventId);
+  if (!event) throw new NotFoundError(`Vlog 事件不存在：${eventId}`);
+  return event;
+}
+
+function vlogShotSelectById(snapshot: ProjectSnapshot, shotSelectId: Id): VlogShotSelect {
+  const select = snapshot.vlogShotSelects.find((candidate) => candidate.id === shotSelectId);
+  if (!select) throw new NotFoundError(`Vlog Shot Select 不存在：${shotSelectId}`);
+  return select;
+}
+
+function normalizeVlogFunction(value: VlogShotFunction | undefined): VlogShotFunction {
+  if (!value || !["establish", "action", "detail", "reaction", "transition", "atmosphere"].includes(value)) {
+    throw new DomainError("Vlog 镜头功能必须是 establish/action/detail/reaction/transition/atmosphere 之一", "INVALID_VLOG_SHOT_FUNCTION");
+  }
+  return value;
+}
+
+function normalizeVlogSourceAudioMode(value: VlogSourceAudioMode | undefined): VlogSourceAudioMode {
+  if (value !== "keep" && value !== "mute") {
+    throw new DomainError("Vlog 镜头必须明确保留或静音原始现场声", "VLOG_SOURCE_AUDIO_MODE_REQUIRED");
+  }
+  return value;
+}
+
 function visualTreatmentById(snapshot: ProjectSnapshot, visualTreatmentId: Id): VisualTreatment {
   const treatment = snapshot.visualTreatments.find((candidate) => candidate.id === visualTreatmentId);
   if (!treatment) throw new NotFoundError(`VisualTreatment 不存在：${visualTreatmentId}`);
@@ -300,6 +550,83 @@ function requireText(value: string | undefined, label: string): string {
   const text = value?.trim() ?? "";
   if (!text) throw new DomainError(`${label}不能为空`, "REQUIRED_TEXT_MISSING");
   return text;
+}
+
+/**
+ * 强制对齐的文字核验只忽略空白和标点；绝不按字符数补时间，也不允许 Provider 偷换可朗读内容。
+ * NFKC 让全半角数字等同后再比较，保留汉字、字母和数字本体。
+ */
+function normalizeAlignmentText(value: string): string {
+  return value.normalize("NFKC").toLocaleLowerCase().replace(/[\s\p{P}\p{S}]+/gu, "");
+}
+
+function expectedSpeechAlignmentText(snapshot: ProjectSnapshot, speechAsset: SpeechAsset): string {
+  return speechAsset.timing.segments
+    .slice()
+    .sort((left, right) => left.startMs - right.startMs)
+    .map((timing) => snapshot.speechSegments.find((segment) => segment.id === timing.speechSegmentId)?.text ?? "")
+    .join("");
+}
+
+/**
+ * Worker 已经验证一次；Application 再次用当前 Revision 的真实音频、段边界和文本复核，
+ * 避免任何外部输出或过期 Job 绕过 Project 的共同事实。
+ */
+function validateCompletedSpeechAlignment(
+  snapshot: ProjectSnapshot,
+  speechAsset: SpeechAsset,
+  words: WordTiming[]
+): WordTiming[] {
+  const speechFile = assetById(snapshot, speechAsset.assetId);
+  const durationMs = speechFile.metadata?.durationMs;
+  if (typeof durationMs !== "number" || !Number.isInteger(durationMs) || durationMs <= 0) {
+    throw new DomainError("SpeechAsset 缺少可验证的真实音频时长，不能接收词级对齐", "SPEECH_ALIGNMENT_AUDIO_DURATION_MISSING");
+  }
+  if (words.length === 0 || words.length > 20_000) {
+    throw new DomainError("真实词级对齐必须返回 1 到 20000 个词或字时间戳", "SPEECH_ALIGNMENT_WORDS_REQUIRED");
+  }
+  const segmentTimings = speechAsset.timing.segments.slice().sort((left, right) => left.startMs - right.startMs);
+  let previousEndMs = -1;
+  const normalized = words.map((word) => {
+    const text = word.text.trim();
+    const normalizedText = normalizeAlignmentText(text);
+    if (!text || !normalizedText || text.length > 160 || word.normalizedText !== normalizedText) {
+      throw new DomainError("词级对齐返回了空 token 或与本地归一化结果不一致的文本", "SPEECH_ALIGNMENT_WORD_TEXT_INVALID");
+    }
+    if (!Number.isInteger(word.startMs) || !Number.isInteger(word.endMs) || word.startMs < 0 || word.endMs <= word.startMs
+      || word.endMs > durationMs || word.startMs < previousEndMs) {
+      throw new DomainError("词级对齐时间戳超出真实音频范围、重叠或无效", "SPEECH_ALIGNMENT_WORD_RANGE_INVALID");
+    }
+    const segmentTiming = segmentTimings.find((segment) => word.startMs >= segment.startMs && word.endMs <= segment.endMs);
+    if (!segmentTiming || word.speechSegmentId !== segmentTiming.speechSegmentId) {
+      throw new DomainError("词级对齐 token 没有完整落在当前 SpeechSegment 的真实范围内", "SPEECH_ALIGNMENT_SEGMENT_MISMATCH");
+    }
+    const startFrame = millisecondsToFrames(word.startMs, snapshot.timeline.fps);
+    const endFrame = millisecondsToFrames(word.endMs, snapshot.timeline.fps);
+    if (word.startFrame !== startFrame || word.endFrame !== endFrame || endFrame <= startFrame) {
+      throw new DomainError("词级对齐帧号必须由真实毫秒时间按当前 Timeline FPS 换算", "SPEECH_ALIGNMENT_FRAME_INVALID");
+    }
+    if (word.confidence !== undefined && (!Number.isFinite(word.confidence) || word.confidence < 0 || word.confidence > 1)) {
+      throw new DomainError("词级对齐置信度必须在 0 到 1 之间，或由 Provider 明确省略", "SPEECH_ALIGNMENT_CONFIDENCE_INVALID");
+    }
+    previousEndMs = word.endMs;
+    return { ...word, text, normalizedText };
+  });
+  const expected = normalizeAlignmentText(expectedSpeechAlignmentText(snapshot, speechAsset));
+  if (!expected || normalized.map((word) => word.normalizedText).join("") !== expected) {
+    throw new DomainError("词级对齐 token 与当前可播放 Script 不一致，不能标记为 word_exact", "SPEECH_ALIGNMENT_TEXT_MISMATCH");
+  }
+  return normalized;
+}
+
+/** 主声音或 Script 变化后保留旧审计供追溯，但绝不让旧时间戳继续升级当前成片精度。 */
+function markSpeechAlignmentStale(snapshot: ProjectSnapshot, impact: ImpactReport, reason: string): void {
+  const alignment = snapshot.speechAlignment;
+  if (!alignment || alignment.status === "stale") return;
+  alignment.status = "stale";
+  impact.changed.push(alignment.id);
+  impact.stale.push(alignment.id);
+  impact.warnings.push(`词级对齐已过期：${reason}`);
 }
 
 type CaptionFormatPatch = Partial<Omit<CaptionFormat, "backgroundColor">> & { backgroundColor?: string | null };
@@ -434,6 +761,191 @@ function normalizedTextList(values: string[] | undefined): string[] {
   return [...new Set((values ?? []).map((value) => value.trim()).filter(Boolean))];
 }
 
+/** 从 Scene props 读取必填文字；不接受空白字符串冒充已提供事实。 */
+function asRequiredString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+/** 仅保留可展示的文字项，避免把任意 JSON 直接写进视觉解释场景。 */
+function asStringList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean)
+    : [];
+}
+
+/** 历史节点必须保留日期与发生内容；不能把一串无来源的装饰文字当作时间线。 */
+function asHistoryEvents(value: unknown): Array<{ date: string; label: string; detail?: string }> {
+  if (!Array.isArray(value)) return [];
+  const events = value.map((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return undefined;
+    const record = item as Record<string, unknown>;
+    const date = asRequiredString(record.date);
+    const label = asRequiredString(record.label);
+    if (!date || !label) return undefined;
+    return { date, label, detail: asRequiredString(record.detail) };
+  });
+  return events.every((item) => item !== undefined) ? events : [];
+}
+
+const EXPLAINER_KINDS: ExplainerSceneKind[] = [
+  "HeroReveal",
+  "Comparison",
+  "ProgressiveClassification",
+  "RouteAndFlow",
+  "EvidenceDocument",
+  "UIWalkthrough",
+  "DataConclusion",
+  "PeopleGrouping",
+  "LayerStack",
+  "HistoryTimeline",
+  "QuotePortrait",
+  "RealityBroll"
+];
+
+/**
+ * Explainer 的可渲染画面发生兼容性变化时必须递增此版本。
+ * 它进入 Scene Cache Key，避免旧的局部预览被错误复用于新版组件。
+ */
+const EXPLAINER_SCENE_RUNTIME_VERSION = "1";
+
+/** 递归排序让同一 Scene 输入产生稳定缓存键，而不是受对象字段插入顺序影响。 */
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.entries(value as Record<string, unknown>).sort(([left], [right]) => left.localeCompare(right)).map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function explainerCacheKey(input: {
+  kind: ExplainerSceneKind;
+  primaryTask: string;
+  assetHashes: string[];
+  states: ExplainerSceneState[];
+  props: Record<string, unknown>;
+  stylePackId: string;
+  renderTarget: { fps: number; width: number; height: number };
+  runtimeVersion: string;
+  narrativeMapBeat: NarrativeMapBeat;
+  evidence?: Pick<EvidenceCapture, "id" | "sourceAssetId" | "snapshotAssetId" | "excerpt" | "claim" | "limitation" | "highlights">;
+}): string {
+  return createHash("sha256").update(stableJson(input)).digest("hex").slice(0, 32);
+}
+
+function requireExplainerKind(value: ExplainerSceneKind | undefined): ExplainerSceneKind {
+  if (!value || !EXPLAINER_KINDS.includes(value)) throw new DomainError("Explainer Scene 类型尚未注册", "EXPLAINER_SCENE_KIND_UNSUPPORTED");
+  return value;
+}
+
+function normalizeEvidenceHighlights(highlights: EvidenceHighlight[] | undefined): EvidenceHighlight[] {
+  const normalized = (highlights ?? []).map((highlight) => ({
+    x: highlight.x,
+    y: highlight.y,
+    width: highlight.width,
+    height: highlight.height,
+    label: highlight.label?.trim() || undefined
+  }));
+  if (normalized.length === 0 || normalized.length > 12) throw new DomainError("证据必须提供 1 到 12 个高亮区域", "EVIDENCE_HIGHLIGHT_REQUIRED");
+  for (const highlight of normalized) {
+    if (![highlight.x, highlight.y, highlight.width, highlight.height].every(Number.isFinite)
+      || highlight.x < 0 || highlight.y < 0 || highlight.width <= 0 || highlight.height <= 0
+      || highlight.x + highlight.width > 1 || highlight.y + highlight.height > 1) {
+      throw new DomainError("证据高亮必须位于 0 到 1 的页面归一化范围内", "INVALID_EVIDENCE_HIGHLIGHT");
+    }
+  }
+  return normalized;
+}
+
+function normalizeExplainerStates(states: ExplainerSceneState[], duration: number): ExplainerSceneState[] {
+  if (states.length < 4 || states.length > 12) throw new DomainError("Explainer Scene 必须提供 Entry、Progressive、Settled、Exit 四类局部状态", "EXPLAINER_STATE_REQUIRED");
+  const normalized = states.map((state) => ({
+    id: state.id || createId("explainer_state"),
+    phase: state.phase,
+    startFrame: state.startFrame,
+    endFrame: state.endFrame,
+    label: requireText(state.label, "Explainer 状态标签"),
+    detail: state.detail?.trim() || undefined
+  })).sort((left, right) => left.startFrame - right.startFrame);
+  const required = new Set<ExplainerSceneState["phase"]>(["entry", "progressive", "settled", "exit"]);
+  const present = new Set(normalized.map((state) => state.phase));
+  if (![...required].every((phase) => present.has(phase))) throw new DomainError("Explainer Scene 缺少 Entry、Progressive、Settled 或 Exit 状态", "EXPLAINER_STATE_PHASE_MISSING");
+  // 允许一个阶段拆成多段，但叙事顺序必须始终是建立 → 推进 → 稳定阅读 → 退出。
+  const phaseOrder: Record<ExplainerSceneState["phase"], number> = { entry: 0, progressive: 1, settled: 2, exit: 3 };
+  if (normalized.some((state, index) => index > 0 && phaseOrder[normalized[index - 1]!.phase] > phaseOrder[state.phase])) {
+    throw new DomainError("Explainer 局部状态必须按 Entry、Progressive、Settled、Exit 顺序推进", "EXPLAINER_STATE_PHASE_ORDER_INVALID");
+  }
+  if (normalized[0]?.startFrame !== 0 || normalized.at(-1)?.endFrame !== duration) {
+    throw new DomainError("Explainer 局部状态必须从场景第 0 帧连续覆盖到结束帧", "EXPLAINER_STATE_COVERAGE_INVALID");
+  }
+  for (let index = 0; index < normalized.length; index += 1) {
+    const state = normalized[index]!;
+    if (!Number.isInteger(state.startFrame) || !Number.isInteger(state.endFrame) || state.startFrame < 0 || state.endFrame <= state.startFrame || state.endFrame > duration) {
+      throw new DomainError("Explainer 局部状态帧范围无效", "EXPLAINER_STATE_RANGE_INVALID");
+    }
+    if (index > 0 && normalized[index - 1]!.endFrame !== state.startFrame) {
+      throw new DomainError("Explainer 局部状态不能重叠或留下未解释空档", "EXPLAINER_STATE_GAP_INVALID");
+    }
+  }
+  return normalized;
+}
+
+/** 人物头部/手部锚点只能是人工确认的静态画布位置，不能伪装成逐帧追踪数据。 */
+function normalizeActorLayout(layout: ActorLayout | undefined): ActorLayout | undefined {
+  if (!layout) return undefined;
+  const normalizePoint = (point: ActorLayout["actorHead"] | undefined, label: string) => {
+    if (!point) return undefined;
+    if (point.source !== "manual_static") throw new DomainError(`${label}目前只支持人工确认的静态锚点`, "ACTOR_ANCHOR_SOURCE_UNSUPPORTED");
+    if (!Number.isFinite(point.x) || !Number.isFinite(point.y) || point.x < 0 || point.x > 1 || point.y < 0 || point.y > 1) {
+      throw new DomainError(`${label}必须位于 0 到 1 的画布范围内`, "INVALID_ACTOR_ANCHOR");
+    }
+    return { x: point.x, y: point.y, source: "manual_static" as const };
+  };
+  const actorHead = normalizePoint(layout.actorHead, "人物头部锚点");
+  const actorHands = normalizePoint(layout.actorHands, "人物手部锚点");
+  if (!actorHead && !actorHands) throw new DomainError("人物布局至少需要一个头部或手部锚点", "EMPTY_ACTOR_LAYOUT");
+  return { actorHead, actorHands };
+}
+
+/**
+ * 生成 Avatar 的权利确认不能靠 Profile 中的泛化说明推断。调用方若提供确认，
+ * 必须同时给出肖像、声音与 Provider 使用权依据；否则宁可维持 unknown 并由 Delivery 阻止。
+ */
+function normalizeAvatarUsageRightsConfirmation(
+  input: AvatarUsageRightsConfirmationInput | undefined
+): AvatarUsageRightsConfirmation | undefined {
+  if (input === undefined) return undefined;
+  const portraitRightsBasis = input.portraitRightsBasis?.trim() ?? "";
+  const voiceRightsBasis = input.voiceRightsBasis?.trim() ?? "";
+  const providerUsageRightsBasis = input.providerUsageRightsBasis?.trim() ?? "";
+  if (!portraitRightsBasis || !voiceRightsBasis || !providerUsageRightsBasis) {
+    throw new DomainError("Avatar 权利确认必须同时提供肖像、声音和 Provider 使用权依据；缺失时请不要提交确认并保留 unknown。", "AVATAR_RIGHTS_CONFIRMATION_INCOMPLETE");
+  }
+  return { portraitRightsBasis, voiceRightsBasis, providerUsageRightsBasis, confirmedAt: now() };
+}
+
+function isAvatarUsageRightsConfirmation(value: unknown): value is AvatarUsageRightsConfirmation {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return ["portraitRightsBasis", "voiceRightsBasis", "providerUsageRightsBasis", "confirmedAt"]
+    .every((key) => typeof record[key] === "string" && record[key].trim().length > 0);
+}
+
+function normalizeAvatarInputModes(inputModes: AvatarInputMode[]): AvatarInputMode[] {
+  const next = [...new Set(inputModes)];
+  if (next.length === 0 || next.some((mode) => mode !== "audio" && mode !== "text")) {
+    throw new DomainError("人物能力档案至少需要声明 audio 或 text 输入", "INVALID_AVATAR_INPUT_MODE");
+  }
+  return next;
+}
+
+function normalizeActorMaskModes(maskModes: ActorMaskMode[]): ActorMaskMode[] {
+  const next = [...new Set(maskModes)];
+  if (next.length === 0 || next.some((mode) => !["alpha_asset", "embedded_alpha", "none"].includes(mode))) {
+    throw new DomainError("人物能力档案必须声明至少一种有效 Mask 模式", "INVALID_AVATAR_MASK_MODE");
+  }
+  return next;
+}
+
 function candidateFilterReasons(
   candidate: Pick<AssetCandidate, "originalAssetId" | "sourceUrl" | "durationMs" | "rightsStatus">,
   request: Pick<AssetRequest, "minDurationMs" | "rightsRequirement">
@@ -460,13 +972,16 @@ function candidateIsAllowed(candidate: Pick<AssetCandidate, "originalAssetId" | 
 export interface AssetSearchCandidateInput {
   originalAssetId: string;
   name: string;
+  kind?: AssetCandidate["kind"];
   sourceUrl: string;
   previewUrl?: string;
+  mimeType?: string;
   width?: number;
   height?: number;
   durationMs?: number;
   creator?: string;
   license?: string;
+  licenseUrl?: string;
   attributionText?: string;
   rightsStatus: AssetCandidate["rightsStatus"];
   tags?: string[];
@@ -848,6 +1363,81 @@ export class EditingApplication {
     for (const listener of this.listeners) listener(event);
   }
 
+  private agentWorkOrderById(snapshot: ProjectSnapshot, workOrderId: Id): AgentWorkOrder {
+    const workOrder = snapshot.agentWorkOrders.find((candidate) => candidate.id === workOrderId);
+    if (!workOrder) throw new NotFoundError(`Agent 工作单不存在：${workOrderId}`);
+    return workOrder;
+  }
+
+  /**
+   * 工作单引用始终指向当前 Revision：对象消失时阻止接手/完成，已 stale 则留下提示，
+   * 让 Codex 先复核，而不是把旧对象当作仍然可编辑的事实。
+   */
+  private inspectAgentWorkOrderObjects(snapshot: ProjectSnapshot, relatedObjectIds: Id[]): AgentWorkOrderRelatedObjectIssue[] {
+    const objects = [
+      snapshot.project, snapshot.story, ...snapshot.assets, ...snapshot.assetRequests, ...snapshot.searchIntents,
+      ...snapshot.assetCandidates, ...(snapshot.narrativeMap ? [snapshot.narrativeMap] : []), ...snapshot.evidenceCaptures,
+      ...snapshot.explainerPrograms, ...snapshot.vlogShotAnalyses, ...snapshot.vlogEvents, ...snapshot.vlogShotSelects,
+      ...snapshot.vlogAmbientCues, ...snapshot.vlogMusicBeats, ...snapshot.multicamGroups, ...snapshot.multicamCuts,
+      ...snapshot.visualTreatments, ...snapshot.cutaways, ...snapshot.audioCues, ...snapshot.voiceReferences,
+      ...snapshot.transcripts, ...snapshot.transcriptSentenceCandidates, ...snapshot.semanticUnits, ...snapshot.speechSegments,
+      ...snapshot.speechSegmentAssets, ...(snapshot.speechAsset ? [snapshot.speechAsset] : []), ...snapshot.actorCapabilityProfiles,
+      ...snapshot.actorPerformances, ...snapshot.scenes, ...snapshot.effectCues, ...snapshot.timeline.tracks,
+      ...snapshot.timeline.items, ...snapshot.timeline.captions, ...snapshot.markers
+    ] as Array<{ id: Id; status?: unknown }>;
+    const objectById = new Map(objects.map((object) => [object.id, object]));
+    const missing = relatedObjectIds.filter((objectId) => !objectById.has(objectId));
+    if (missing.length > 0) {
+      throw new DomainError(`Agent 工作单关联对象不存在于当前 Revision：${missing.join(", ")}`, "AGENT_WORK_ORDER_OBJECT_NOT_FOUND");
+    }
+    return relatedObjectIds.flatMap((objectId) => objectById.get(objectId)?.status === "stale"
+      ? [{ objectId, kind: "stale" as const, message: "关联对象当前为 stale，完成前需要确认它仍满足工作单意图。" }]
+      : []);
+  }
+
+  /** 完成前比较编辑快照，排除工作单和 project.updatedAt 的纯审计变化。 */
+  private hasActualAgentWorkOrderEdit(projectId: Id, claimedRevision: number, resultRevision: number): boolean {
+    const comparable = (revision: number) => {
+      const snapshot = cloneSnapshot(this.repository.getRevision(projectId, revision).snapshot);
+      snapshot.agentWorkOrders = [];
+      snapshot.project.updatedAt = "";
+      return JSON.stringify(snapshot);
+    };
+    return comparable(claimedRevision) !== comparable(resultRevision);
+  }
+
+  /** 从不可变 Revision 历史聚合实际影响，完成记录不依赖会话文字或临时 UI 状态。 */
+  private agentWorkOrderResultImpact(projectId: Id, claimedRevision: number, resultRevision: number): {
+    changedObjectIds: Id[];
+    impact: AgentWorkOrderResultImpact;
+  } {
+    const revisions = this.repository.listRevisions(projectId)
+      .filter((revision) => revision.number > claimedRevision && revision.number <= resultRevision)
+      .sort((left, right) => left.number - right.number);
+    const workOrderIds = new Set<Id>();
+    for (const revision of revisions) {
+      for (const workOrder of this.repository.getRevision(projectId, revision.number).snapshot.agentWorkOrders) workOrderIds.add(workOrder.id);
+    }
+    const changedObjectIds = [...new Set(revisions.flatMap((revision) => [...revision.impact.changed, ...revision.impact.moved])
+      .filter((objectId) => !workOrderIds.has(objectId)))];
+    return {
+      changedObjectIds,
+      impact: {
+        fromRevision: claimedRevision,
+        toRevision: resultRevision,
+        revisions: revisions.map((revision) => ({
+          revision: revision.number,
+          summary: revision.summary,
+          changedObjectIds: revision.impact.changed.filter((objectId) => !workOrderIds.has(objectId)),
+          movedObjectIds: revision.impact.moved.filter((objectId) => !workOrderIds.has(objectId)),
+          staleObjectIds: revision.impact.stale.filter((objectId) => !workOrderIds.has(objectId)),
+          dirtyRanges: revision.impact.dirtyRanges,
+          warnings: revision.impact.warnings
+        }))
+      }
+    };
+  }
+
   createProject(input: { name: string; profile?: ProjectSnapshot["project"]["profile"]; brief?: Partial<CreativeBrief> }): ProjectState {
     const state = this.repository.createProject(input);
     this.publish({ projectId: state.snapshot.project.id, revision: state.revision.number, type: "revision" });
@@ -864,6 +1454,185 @@ export class EditingApplication {
 
   readRevisions(projectId: Id) {
     return this.repository.listRevisions(projectId);
+  }
+
+  /**
+   * 工作单是 Web 与 Codex 的交接队列，不是另一份 Timeline。读取时连同当前 Revision 返回，
+   * 让接手方可以在修改前显式处理并发冲突。
+   */
+  readAgentWorkOrders(projectId: Id): { revision: number; agentWorkOrders: AgentWorkOrder[] } {
+    const state = this.readProject(projectId);
+    return { revision: state.revision.number, agentWorkOrders: state.snapshot.agentWorkOrders };
+  }
+
+  /** Web 用户创建可审计意图；关联对象只保存 ID，不复制它们的内容或 Timeline。 */
+  createAgentWorkOrder(input: {
+    projectId: Id;
+    baseRevision: number;
+    title: string;
+    intent: string;
+    relatedObjectIds?: Id[];
+  }): { state: ProjectState; workOrder: AgentWorkOrder } {
+    let workOrder!: AgentWorkOrder;
+    const state = this.repository.commit(input.projectId, input.baseRevision, "创建 Agent 工作单", (snapshot, impact) => {
+      const title = requireText(input.title, "Agent 工作单标题");
+      const intent = requireText(input.intent, "Agent 工作单意图");
+      if (title.length > 160 || intent.length > 4_000) {
+        throw new DomainError("Agent 工作单标题或意图过长", "AGENT_WORK_ORDER_TEXT_TOO_LONG");
+      }
+      const relatedObjectIds = [...new Set((input.relatedObjectIds ?? []).map((id) => id.trim()))];
+      if (relatedObjectIds.some((id) => !id) || relatedObjectIds.length > 80) {
+        throw new DomainError("Agent 工作单关联对象不能为空且不能超过 80 个", "AGENT_WORK_ORDER_RELATION_INVALID");
+      }
+      this.inspectAgentWorkOrderObjects(snapshot, relatedObjectIds);
+      workOrder = createAgentWorkOrder({ title, intent, relatedObjectIds, createdRevision: input.baseRevision + 1 });
+      snapshot.agentWorkOrders.push(workOrder);
+      impact.changed.push(workOrder.id);
+      impact.recomputed.push("已建立可由 Codex 接手的 Agent 工作单");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return { state, workOrder };
+  }
+
+  /** Codex 接手必须写入新 Revision，避免“已处理”只停留在会话文字中。 */
+  claimAgentWorkOrder(input: {
+    projectId: Id;
+    baseRevision: number;
+    workOrderId: Id;
+    agentId: string;
+  }): { state: ProjectState; workOrder: AgentWorkOrder } {
+    let workOrder!: AgentWorkOrder;
+    const state = this.repository.commit(input.projectId, input.baseRevision, "Codex 接手 Agent 工作单", (snapshot, impact) => {
+      workOrder = this.agentWorkOrderById(snapshot, input.workOrderId);
+      if (workOrder.status !== "open") {
+        throw new DomainError("只有待处理的 Agent 工作单可以接手", "AGENT_WORK_ORDER_NOT_OPEN");
+      }
+      const agentId = requireText(input.agentId, "Codex 接手者");
+      if (agentId.length > 160) throw new DomainError("Codex 接手者名称不能超过 160 个字符", "AGENT_WORK_ORDER_AGENT_TOO_LONG");
+      workOrder.relatedObjectIssues = this.inspectAgentWorkOrderObjects(snapshot, workOrder.relatedObjectIds);
+      workOrder.status = "claimed";
+      workOrder.claimedBy = agentId;
+      workOrder.claimedRevision = input.baseRevision + 1;
+      workOrder.updatedAt = now();
+      impact.changed.push(workOrder.id);
+      impact.recomputed.push("Agent 工作单已由 Codex 接手");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return { state, workOrder };
+  }
+
+  /** 原接手者可释放尚未完成的工作单回到 open，供另一位 Codex 在新 Revision 中重新接手。 */
+  releaseAgentWorkOrder(input: {
+    projectId: Id;
+    baseRevision: number;
+    workOrderId: Id;
+    agentId: string;
+    reason: string;
+  }): { state: ProjectState; workOrder: AgentWorkOrder } {
+    let workOrder!: AgentWorkOrder;
+    const state = this.repository.commit(input.projectId, input.baseRevision, "Codex 释放 Agent 工作单", (snapshot, impact) => {
+      workOrder = this.agentWorkOrderById(snapshot, input.workOrderId);
+      if (workOrder.status !== "claimed") throw new DomainError("只有已接手的 Agent 工作单可以释放", "AGENT_WORK_ORDER_NOT_CLAIMED");
+      const agentId = requireText(input.agentId, "Codex 释放者");
+      if (workOrder.claimedBy !== agentId) throw new DomainError("只有原接手的 Codex 可以释放工作单", "AGENT_WORK_ORDER_CLAIMER_MISMATCH");
+      const reason = requireText(input.reason, "释放原因");
+      if (reason.length > 2_000) throw new DomainError("Agent 工作单释放原因不能超过 2000 个字符", "AGENT_WORK_ORDER_RELEASE_REASON_TOO_LONG");
+      workOrder.status = "open";
+      workOrder.releasedRevision = input.baseRevision + 1;
+      workOrder.releaseReason = reason;
+      workOrder.claimedBy = undefined;
+      workOrder.claimedRevision = undefined;
+      workOrder.relatedObjectIssues = this.inspectAgentWorkOrderObjects(snapshot, workOrder.relatedObjectIds);
+      workOrder.updatedAt = now();
+      impact.changed.push(workOrder.id);
+      impact.recomputed.push("Agent 工作单已由 Codex 释放回待处理队列");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return { state, workOrder };
+  }
+
+  /** Web 用户可撤回尚未被接手的意图；已接手任务只能由原 Codex 释放，避免静默中断执行。 */
+  cancelAgentWorkOrder(input: {
+    projectId: Id;
+    baseRevision: number;
+    workOrderId: Id;
+    reason: string;
+  }): { state: ProjectState; workOrder: AgentWorkOrder } {
+    let workOrder!: AgentWorkOrder;
+    const state = this.repository.commit(input.projectId, input.baseRevision, "取消 Agent 工作单", (snapshot, impact) => {
+      workOrder = this.agentWorkOrderById(snapshot, input.workOrderId);
+      if (workOrder.status !== "open") throw new DomainError("只有待处理的 Agent 工作单可以由 Web 取消", "AGENT_WORK_ORDER_NOT_OPEN");
+      const reason = requireText(input.reason, "取消原因");
+      if (reason.length > 2_000) throw new DomainError("Agent 工作单取消原因不能超过 2000 个字符", "AGENT_WORK_ORDER_CANCEL_REASON_TOO_LONG");
+      workOrder.status = "cancelled";
+      workOrder.cancelledRevision = input.baseRevision + 1;
+      workOrder.cancellationReason = reason;
+      workOrder.updatedAt = now();
+      impact.changed.push(workOrder.id);
+      impact.recomputed.push("Web 用户已取消未接手的 Agent 工作单");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return { state, workOrder };
+  }
+
+  /**
+   * 完成回写永远从当前 Revision 推导实际结果 Revision，调用方不能伪造一个旧编号。
+   * 本次状态写入自身会再生成一个 Revision，因此同时保存 resultRevision 与 completedRevision。
+   */
+  completeAgentWorkOrder(input: {
+    projectId: Id;
+    baseRevision: number;
+    workOrderId: Id;
+    agentId: string;
+    completionSummary: string;
+    completionKind: "edited" | "reviewed_no_change";
+  }): { state: ProjectState; workOrder: AgentWorkOrder } {
+    let workOrder!: AgentWorkOrder;
+    const state = this.repository.commit(input.projectId, input.baseRevision, "Codex 完成 Agent 工作单", (snapshot, impact) => {
+      workOrder = this.agentWorkOrderById(snapshot, input.workOrderId);
+      if (workOrder.status !== "claimed") {
+        throw new DomainError("只有已接手的 Agent 工作单可以完成", "AGENT_WORK_ORDER_NOT_CLAIMED");
+      }
+      const agentId = requireText(input.agentId, "Codex 完成者");
+      if (workOrder.claimedBy !== agentId) {
+        throw new DomainError("只有原接手的 Codex 可以回写完成状态", "AGENT_WORK_ORDER_CLAIMER_MISMATCH");
+      }
+      const completionSummary = requireText(input.completionSummary, "Agent 工作单完成摘要");
+      if (completionSummary.length > 4_000) throw new DomainError("Agent 工作单完成摘要不能超过 4000 个字符", "AGENT_WORK_ORDER_SUMMARY_TOO_LONG");
+      const relatedObjectIssues = this.inspectAgentWorkOrderObjects(snapshot, workOrder.relatedObjectIds);
+      if (input.completionKind !== "edited" && input.completionKind !== "reviewed_no_change") {
+        throw new DomainError("Agent 工作单完成类型无效", "AGENT_WORK_ORDER_COMPLETION_KIND_INVALID");
+      }
+      let resultChangedObjectIds: Id[] | undefined;
+      let resultImpact: AgentWorkOrderResultImpact | undefined;
+      if (input.completionKind === "edited") {
+        if (input.baseRevision <= workOrder.claimedRevision! || !this.hasActualAgentWorkOrderEdit(input.projectId, workOrder.claimedRevision!, input.baseRevision)) {
+          throw new DomainError("接手后没有实际编辑变化；请改用 reviewed_no_change 明确回写审查结论", "AGENT_WORK_ORDER_NO_EDIT_RESULT");
+        }
+        const evidence = this.agentWorkOrderResultImpact(input.projectId, workOrder.claimedRevision!, input.baseRevision);
+        if (evidence.changedObjectIds.length === 0) {
+          throw new DomainError("实际编辑没有可追溯的对象影响；不能把无证据的工作单标记为已编辑完成", "AGENT_WORK_ORDER_EDIT_EVIDENCE_MISSING");
+        }
+        resultChangedObjectIds = evidence.changedObjectIds;
+        resultImpact = evidence.impact;
+      }
+      workOrder.status = "completed";
+      workOrder.resultRevision = input.baseRevision;
+      workOrder.completedRevision = input.baseRevision + 1;
+      workOrder.completionSummary = completionSummary;
+      workOrder.completionKind = input.completionKind;
+      workOrder.resultChangedObjectIds = resultChangedObjectIds;
+      workOrder.resultImpact = resultImpact;
+      workOrder.relatedObjectIssues = relatedObjectIssues;
+      workOrder.updatedAt = now();
+      impact.changed.push(workOrder.id);
+      impact.recomputed.push("Agent 工作单已回写实际 Revision 与完成摘要");
+      if (workOrder.completionKind === "reviewed_no_change") {
+        impact.warnings.push("该工作单以 reviewed_no_change 完成：仅固化审查结论，不声称产生了编辑改动。");
+      }
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return { state, workOrder };
   }
 
   /** Story 与 Scene、Timeline 一样由 Revision 事务管理，避免 Web 另存一份叙事说明。 */
@@ -1006,6 +1775,88 @@ export class EditingApplication {
     const relativePath = relative(rootPath, resolvedPath);
     if (!relativePath || /^\.\.(?:[\\/]|$)/u.test(relativePath) || isAbsolute(relativePath)) return undefined;
     return resolvedPath;
+  }
+
+  /**
+   * 自动同步候选只能依赖当前 Job 写出的受管并排预览。这里同时核对文件哈希、共同会话
+   * 与每个机位的反向源映射，避免客户端用任意 MP4 或脱离 sourceRange 的裁片伪造确认依据。
+   */
+  private assertMulticamSyncPreview(input: {
+    projectId: Id;
+    snapshot: ProjectSnapshot;
+    angleSyncs: readonly MulticamAngleSync[];
+    assetIds: readonly Id[];
+    syncPreview: MulticamSyncPreview;
+  }): MulticamSyncPreview {
+    const preview = input.syncPreview as unknown as Record<string, unknown>;
+    if (!preview || typeof preview !== "object" || Array.isArray(preview)
+      || typeof preview.relativePath !== "string" || !preview.relativePath.trim() || isAbsolute(preview.relativePath)
+      || typeof preview.contentHash !== "string" || !/^[a-f0-9]{64}$/u.test(preview.contentHash)
+      || !Number.isFinite(preview.durationMs) || (preview.durationMs as number) <= 0
+      || !Number.isFinite(preview.fps) || preview.fps !== input.snapshot.timeline.fps
+      || !Number.isInteger(preview.sessionStartFrame) || !Number.isInteger(preview.sessionEndFrame)
+      || (preview.sessionEndFrame as number) <= (preview.sessionStartFrame as number)
+      || !preview.sourceWindows || typeof preview.sourceWindows !== "object" || Array.isArray(preview.sourceWindows)) {
+      throw new DomainError("多机位 Worker 没有返回有效的受管连续预览合同", "MULTICAM_SYNC_PREVIEW_INVALID");
+    }
+    const previewPath = this.resolveProjectEvidencePath(input.projectId, preview.relativePath);
+    if (!previewPath) throw new DomainError("多机位同步预览必须位于当前项目目录内", "MULTICAM_SYNC_PREVIEW_PATH_INVALID");
+    try {
+      const info = statSync(previewPath);
+      // 同步预览固定为短窗口；异常巨大的文件更可能是路径或 Worker 输出错误，不能同步读入校验。
+      if (!info.isFile() || info.size <= 0 || info.size > 256 * 1024 * 1024) {
+        throw new DomainError("多机位同步预览文件不存在、为空或异常过大", "MULTICAM_SYNC_PREVIEW_MISSING");
+      }
+      const actualHash = createHash("sha256").update(readFileSync(previewPath)).digest("hex");
+      if (actualHash !== preview.contentHash) {
+        throw new DomainError("多机位同步预览文件已变化，不能据此确认同步", "MULTICAM_SYNC_PREVIEW_HASH_MISMATCH");
+      }
+    } catch (error) {
+      if (error instanceof DomainError) throw error;
+      throw new DomainError("多机位同步预览文件不存在或不可读", "MULTICAM_SYNC_PREVIEW_MISSING");
+    }
+
+    const sourceWindows = preview.sourceWindows as Record<string, unknown>;
+    const expected = new Set(input.assetIds);
+    if (Object.keys(sourceWindows).length !== input.assetIds.length || Object.keys(sourceWindows).some((assetId) => !expected.has(assetId))) {
+      throw new DomainError("多机位同步预览没有完整覆盖当前 Job 的全部机位", "MULTICAM_SYNC_PREVIEW_WINDOWS_INVALID");
+    }
+    const commonSessionRange = this.resolveMulticamCommonSessionRange(input.snapshot, { angleSyncs: input.angleSyncs });
+    const sessionStartFrame = preview.sessionStartFrame as number;
+    const sessionEndFrame = preview.sessionEndFrame as number;
+    if (sessionStartFrame < commonSessionRange.startFrame || sessionEndFrame > commonSessionRange.endFrame) {
+      throw new DomainError("多机位同步预览超出已验证的共同会话范围", "MULTICAM_SYNC_PREVIEW_RANGE_INVALID");
+    }
+    const normalizedWindows: Record<Id, MulticamSourceRange> = {};
+    for (const assetId of input.assetIds) {
+      const sync = input.angleSyncs.find((candidate) => candidate.assetId === assetId);
+      const window = sourceWindows[assetId];
+      if (!sync || !window || typeof window !== "object" || Array.isArray(window)) {
+        throw new DomainError("多机位同步预览缺少机位窗口", "MULTICAM_SYNC_PREVIEW_WINDOWS_INVALID");
+      }
+      const candidate = window as Record<string, unknown>;
+      const startFrame = candidate.startFrame;
+      const endFrame = candidate.endFrame;
+      const sourceRange = this.multicamSourceRangeFor(input.snapshot, sync);
+      const expectedStart = sessionStartFrame - sync.sessionOffsetFrames;
+      const expectedEnd = sessionEndFrame - sync.sessionOffsetFrames;
+      if (Object.keys(candidate).some((key) => key !== "startFrame" && key !== "endFrame")
+        || !Number.isInteger(startFrame) || !Number.isInteger(endFrame)
+        || startFrame !== expectedStart || endFrame !== expectedEnd
+        || (startFrame as number) < sourceRange.startFrame || (endFrame as number) > sourceRange.endFrame) {
+        throw new DomainError("多机位同步预览的机位窗口没有遵守已验证偏移和源范围", "MULTICAM_SYNC_PREVIEW_WINDOWS_INVALID");
+      }
+      normalizedWindows[assetId] = { startFrame: startFrame as number, endFrame: endFrame as number };
+    }
+    return {
+      relativePath: preview.relativePath,
+      contentHash: preview.contentHash,
+      durationMs: Math.round(preview.durationMs as number),
+      fps: preview.fps as number,
+      sessionStartFrame,
+      sessionEndFrame,
+      sourceWindows: normalizedWindows
+    };
   }
 
   /** Preview 必须由 Render Worker 成功产出当前 Revision 的真实文件，不能只登记一个 Job。 */
@@ -1546,13 +2397,16 @@ export class EditingApplication {
           if (duplicate.status !== "acquired" && duplicate.status !== "acquisition_queued" && duplicate.status !== "acquiring") {
             duplicate.searchIntentId = intent.id;
             duplicate.name = source.name.trim() || "未命名候选素材";
+            duplicate.kind = source.kind ?? "video";
             duplicate.sourceUrl = source.sourceUrl.trim();
             duplicate.previewUrl = source.previewUrl?.trim() || undefined;
+            duplicate.mimeType = source.mimeType?.trim().toLocaleLowerCase() || undefined;
             duplicate.width = source.width;
             duplicate.height = source.height;
             duplicate.durationMs = source.durationMs;
             duplicate.creator = source.creator?.trim() || undefined;
             duplicate.license = source.license?.trim() || undefined;
+            duplicate.licenseUrl = source.licenseUrl?.trim() || undefined;
             duplicate.attributionText = source.attributionText?.trim() || undefined;
             duplicate.rightsStatus = source.rightsStatus;
             duplicate.tags = normalizedTextList(source.tags);
@@ -1572,14 +2426,16 @@ export class EditingApplication {
           provider: input.provider,
           originalAssetId: source.originalAssetId.trim(),
           name: source.name.trim() || "未命名候选素材",
-          kind: "video",
+          kind: source.kind ?? "video",
           sourceUrl: source.sourceUrl.trim(),
           previewUrl: source.previewUrl?.trim() || undefined,
+          mimeType: source.mimeType?.trim().toLocaleLowerCase() || undefined,
           width: source.width,
           height: source.height,
           durationMs: source.durationMs,
           creator: source.creator?.trim() || undefined,
           license: source.license?.trim() || undefined,
+          licenseUrl: source.licenseUrl?.trim() || undefined,
           attributionText: source.attributionText?.trim() || undefined,
           rightsStatus: source.rightsStatus,
           tags: normalizedTextList(source.tags),
@@ -1691,6 +2547,7 @@ export class EditingApplication {
           originalAssetId: candidate.originalAssetId,
           creator: candidate.creator,
           license: candidate.license,
+          licenseUrl: candidate.licenseUrl,
           attributionText: candidate.attributionText,
           rightsStatus: candidate.rightsStatus,
           acquiredAt
@@ -1698,7 +2555,7 @@ export class EditingApplication {
         assertAssetProvenanceValid(provenance);
         asset = createMediaAsset({
           name: input.name,
-          kind: "video",
+          kind: candidate.kind,
           managedPath: input.managedPath,
           sourceHash: input.sourceHash,
           role: request.role,
@@ -1801,6 +2658,1104 @@ export class EditingApplication {
     return state;
   }
 
+  /**
+   * 提交实拍镜头的基础分析。这里固定的是源文件、阈值和当时 Revision；Worker 只能回传可测量的边界，
+   * 不会把场景变化误写成“人物完成了某个动作”。
+   */
+  submitVlogAnalysis(input: {
+    projectId: Id;
+    baseRevision: number;
+    assetIds: Id[];
+    sceneThreshold?: number;
+    idempotencyKey?: string;
+  }): JobRecord {
+    const state = this.readProject(input.projectId);
+    if (state.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, state.revision.number);
+    if (state.snapshot.project.profile !== "vlog" && state.snapshot.project.profile !== "hybrid") {
+      throw new DomainError("镜头分析只适用于 Vlog 或以实拍事件为主的混合项目", "VLOG_PROFILE_REQUIRED");
+    }
+    const assetIds = [...new Set(input.assetIds)];
+    if (!assetIds.length || assetIds.length !== input.assetIds.length) {
+      throw new DomainError("请提供至少一条且不重复的 Vlog 视频素材", "VLOG_ANALYSIS_ASSETS_REQUIRED");
+    }
+    for (const assetId of assetIds) {
+      const asset = assetById(state.snapshot, assetId);
+      if (asset.status !== "ready" || asset.kind !== "video" || !asset.metadata?.videoCodec || asset.metadata.durationMs <= 0) {
+        throw new DomainError("Vlog 镜头分析只能提交已完成媒体分析的本地视频素材", "VLOG_ANALYSIS_ASSET_NOT_READY");
+      }
+    }
+    const sceneThreshold = input.sceneThreshold ?? 0.18;
+    if (!Number.isFinite(sceneThreshold) || sceneThreshold < 0.05 || sceneThreshold > 0.9) {
+      throw new DomainError("镜头边界阈值必须在 0.05 到 0.9 之间", "INVALID_VLOG_SCENE_THRESHOLD");
+    }
+    const payload: VlogAnalysisJobPayload = { requestedRevision: state.revision.number, assetIds, sceneThreshold };
+    const job = this.repository.createJob({
+      projectId: input.projectId,
+      kind: "vlog_analysis",
+      payload,
+      idempotencyKey: input.idempotencyKey ?? `vlog_analysis:${assetIds.join(",")}:${sceneThreshold}`
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
+    return job;
+  }
+
+  /** Worker 完成后原子登记 Shot Evidence；重复领取同一 Job 时只读回已写入的结果。 */
+  completeVlogAnalysis(input: {
+    projectId: Id;
+    jobId: Id;
+    analyses: CompletedVlogShotAnalysis[];
+  }): { state: ProjectState; analyses: VlogShotAnalysis[]; duplicate: boolean } {
+    const job = this.repository.getJob(input.jobId);
+    if (job.projectId !== input.projectId || job.kind !== "vlog_analysis") {
+      throw new DomainError("该任务不是当前项目的 Vlog 镜头分析任务", "VLOG_ANALYSIS_JOB_NOT_FOUND");
+    }
+    const alreadyCompleted = this.readProject(input.projectId).snapshot.vlogShotAnalyses.filter((shot) => shot.analysisJobId === job.id);
+    if (alreadyCompleted.length > 0) {
+      const current = this.readProject(input.projectId);
+      this.repository.updateJob(job.id, {
+        status: job.status,
+        result: { ...(job.result ?? {}), analysisIds: alreadyCompleted.map((shot) => shot.id), revision: current.revision.number }
+      });
+      return { state: current, analyses: alreadyCompleted, duplicate: true };
+    }
+    const payload = job.payload as Partial<VlogAnalysisJobPayload>;
+    if (!Number.isInteger(payload.requestedRevision) || !Array.isArray(payload.assetIds) || !payload.assetIds.every((assetId) => typeof assetId === "string")
+      || !Number.isFinite(payload.sceneThreshold)) {
+      throw new DomainError("Vlog 镜头分析任务缺少受管提交合同", "VLOG_ANALYSIS_PAYLOAD_INVALID");
+    }
+    if (!input.analyses.length) throw new DomainError("Vlog 镜头分析没有产出任何源片段", "VLOG_ANALYSIS_EMPTY_OUTPUT");
+    const selectedAssetIds = new Set(payload.assetIds);
+    const outputAssetIds = new Set(input.analyses.map((analysis) => analysis.assetId));
+    if (input.analyses.some((analysis) => !selectedAssetIds.has(analysis.assetId)) || [...selectedAssetIds].some((assetId) => !outputAssetIds.has(assetId))) {
+      throw new DomainError("Vlog 镜头分析结果必须覆盖且只能覆盖提交时选择的素材", "VLOG_ANALYSIS_ASSET_MISMATCH");
+    }
+    const rangeKeys = new Set<string>();
+    for (const analysis of input.analyses) {
+      if (!Number.isInteger(analysis.sourceStartFrame) || !Number.isInteger(analysis.sourceEndFrame) || analysis.sourceStartFrame < 0 || analysis.sourceEndFrame <= analysis.sourceStartFrame
+        || !Number.isFinite(analysis.technicalScore) || analysis.technicalScore < 0 || analysis.technicalScore > 1 || !analysis.evidenceNote.trim()) {
+        throw new DomainError("Vlog 镜头分析结果包含无效范围、评分或证据说明", "INVALID_VLOG_ANALYSIS_OUTPUT");
+      }
+      const key = `${analysis.assetId}:${analysis.sourceStartFrame}-${analysis.sourceEndFrame}`;
+      if (rangeKeys.has(key)) throw new DomainError("Vlog 镜头分析不能重复写入同一源范围", "DUPLICATE_VLOG_ANALYSIS_RANGE");
+      rangeKeys.add(key);
+    }
+    const current = this.readProject(input.projectId);
+    let written: VlogShotAnalysis[] = [];
+    const state = this.repository.commit(input.projectId, current.revision.number, "完成 Vlog 镜头分析", (snapshot, impact) => {
+      for (const assetId of selectedAssetIds) {
+        const asset = assetById(snapshot, assetId);
+        if (asset.status !== "ready" || asset.kind !== "video" || !asset.metadata?.videoCodec) {
+          throw new DomainError("镜头分析完成时素材已不可用或不是视频", "STALE_VLOG_ANALYSIS_ASSET");
+        }
+      }
+      const staleShotIds = new Set(snapshot.vlogShotAnalyses.filter((shot) => selectedAssetIds.has(shot.assetId) && shot.status !== "stale").map((shot) => shot.id));
+      for (const shot of snapshot.vlogShotAnalyses.filter((candidate) => staleShotIds.has(candidate.id))) {
+        shot.status = "stale";
+        shot.updatedAt = now();
+        impact.changed.push(shot.id);
+        impact.stale.push(shot.id);
+      }
+      for (const event of snapshot.vlogEvents.filter((candidate) => candidate.shotAnalysisIds.some((shotId) => staleShotIds.has(shotId)))) {
+        event.status = "stale";
+        event.updatedAt = now();
+        impact.changed.push(event.id);
+        impact.stale.push(event.id);
+      }
+      for (const select of snapshot.vlogShotSelects.filter((candidate) => staleShotIds.has(candidate.shotAnalysisId))) {
+        this.markVlogShotSelectStale(snapshot, select, impact, "其源镜头分析已重新运行");
+      }
+      written = input.analyses.map((analysis) => {
+        const asset = assetById(snapshot, analysis.assetId);
+        const sourceDuration = millisecondsToFrames(asset.metadata!.durationMs, snapshot.timeline.fps);
+        if (analysis.sourceEndFrame > sourceDuration) {
+          throw new DomainError(`镜头分析范围超出素材“${asset.name}”的真实时长`, "VLOG_ANALYSIS_RANGE_OUT_OF_BOUNDS");
+        }
+        const shot: VlogShotAnalysis = {
+          id: createId("vlog_shot"),
+          assetId: analysis.assetId,
+          analysisJobId: job.id,
+          sourceStartFrame: analysis.sourceStartFrame,
+          sourceEndFrame: analysis.sourceEndFrame,
+          source: analysis.source,
+          sceneChangeScore: analysis.sceneChangeScore,
+          technicalScore: analysis.technicalScore,
+          hasAudio: analysis.hasAudio,
+          evidenceNote: analysis.evidenceNote.trim(),
+          status: "ready",
+          createdAt: now(),
+          updatedAt: now()
+        };
+        snapshot.vlogShotAnalyses.push(shot);
+        impact.changed.push(shot.id);
+        return shot;
+      });
+      impact.recomputed.push("Vlog 镜头边界、技术可用性与现场声证据");
+    });
+    const updatedJob = this.repository.updateJob(job.id, {
+      status: job.status,
+      result: { ...(job.result ?? {}), analysisIds: written.map((shot) => shot.id), revision: state.revision.number }
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    this.publish({ projectId: updatedJob.projectId, revision: state.revision.number, type: "job" });
+    return { state, analyses: written, duplicate: false };
+  }
+
+  readVlogPlan(projectId: Id): Pick<ProjectSnapshot, "vlogShotAnalyses" | "vlogEvents" | "vlogShotSelects" | "vlogAmbientCues" | "vlogMusicBeats"> & { revision: number } {
+    const state = this.readProject(projectId);
+    return {
+      revision: state.revision.number,
+      vlogShotAnalyses: state.snapshot.vlogShotAnalyses,
+      vlogEvents: state.snapshot.vlogEvents,
+      vlogShotSelects: state.snapshot.vlogShotSelects,
+      vlogAmbientCues: state.snapshot.vlogAmbientCues,
+      vlogMusicBeats: state.snapshot.vlogMusicBeats
+    };
+  }
+
+  /**
+   * 多机位同步事实与切机位决定分开读取。Group 是不可被 Timeline 编辑改写的同步基线，
+   * Cut 才是导演在该基线上做出的主画面选择。
+   */
+  readMulticamPlan(projectId: Id): Pick<ProjectSnapshot, "multicamGroups" | "multicamCuts"> & { revision: number } {
+    const state = this.readProject(projectId);
+    return {
+      revision: state.revision.number,
+      multicamGroups: state.snapshot.multicamGroups,
+      multicamCuts: state.snapshot.multicamCuts
+    };
+  }
+
+  /**
+   * 音频相关只能产生同步候选。它固定输入二进制哈希与分析边界，Worker 成功后仍须由
+   * verifyMulticamGroup 记录连续预览/人工确认，才允许任何 Cut 进入 Timeline。
+   */
+  submitMulticamSync(input: {
+    projectId: Id;
+    baseRevision: number;
+    title?: string;
+    assetIds: Id[];
+    angleLabels: Record<Id, string>;
+    referenceAssetId?: Id;
+    masterAudioAssetId?: Id;
+    maxSearchSeconds?: number;
+    /**
+     * 每个机位实际参与本次自动同步的原始源范围。传入后必须完整覆盖 assetIds；
+     * 不创建物理裁片，范围坐标统一使用项目 Timeline FPS。
+     */
+    sourceRanges?: Record<Id, MulticamSourceRange>;
+    idempotencyKey?: string;
+  }): JobRecord {
+    const state = this.readProject(input.projectId);
+    if (state.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, state.revision.number);
+    if (state.snapshot.project.profile === "visual_explainer") {
+      throw new DomainError("多机位同步只适用于 Presenter、Vlog 或 Hybrid 项目", "MULTICAM_PROFILE_UNSUPPORTED");
+    }
+    const assetIds = [...new Set(input.assetIds)];
+    if (assetIds.length < 2 || assetIds.length !== input.assetIds.length) {
+      throw new DomainError("多机位同步至少需要两条且不重复的视频素材", "MULTICAM_ASSETS_REQUIRED");
+    }
+    const referenceAssetId = input.referenceAssetId ?? assetIds[0]!;
+    const masterAudioAssetId = input.masterAudioAssetId ?? referenceAssetId;
+    this.assertMulticamAssets(state.snapshot, assetIds, referenceAssetId, masterAudioAssetId, true);
+    const sourceRanges = this.normalizeMulticamSourceRanges(state.snapshot, assetIds, input.sourceRanges);
+    const angleLabels = Object.fromEntries(assetIds.map((assetId) => {
+      const label = input.angleLabels[assetId]?.trim();
+      if (!label) throw new DomainError("多机位同步必须为每个输入机位显式提供名称，不能从文件名或拍摄日期猜测", "MULTICAM_ANGLE_LABEL_REQUIRED");
+      return [assetId, label];
+    })) as Record<Id, string>;
+    if (new Set(Object.values(angleLabels)).size !== assetIds.length) {
+      throw new DomainError("同一多机位 Group 的机位名称不能重复", "MULTICAM_ANGLE_LABEL_DUPLICATED");
+    }
+    const maxSearchSeconds = input.maxSearchSeconds ?? 600;
+    if (!Number.isInteger(maxSearchSeconds) || maxSearchSeconds < 20 || maxSearchSeconds > 1_800) {
+      throw new DomainError("多机位自动同步搜索范围必须在 20 到 1800 秒之间", "MULTICAM_SEARCH_RANGE_INVALID");
+    }
+    const sourceHashes = Object.fromEntries(assetIds.map((assetId) => [assetId, assetById(state.snapshot, assetId).sourceHash!])) as Record<Id, string>;
+    const title = input.title?.trim() || "多机位同步";
+    const payload: MulticamSyncJobPayload = {
+      requestedRevision: state.revision.number,
+      title,
+      assetIds,
+      angleLabels,
+      sourceHashes,
+      referenceAssetId,
+      masterAudioAssetId,
+      maxSearchSeconds,
+      sourceRanges
+    };
+    const sourceRangeKey = assetIds.map((assetId) => {
+      const range = sourceRanges[assetId]!;
+      return `${assetId}:${range.startFrame}-${range.endFrame}`;
+    }).join(",");
+    const job = this.repository.createJob({
+      projectId: input.projectId,
+      kind: "multicam_sync",
+      payload,
+      // 相同素材换了同步区间必须是不同的分析输入，不能被旧 Job 错误去重。
+      idempotencyKey: input.idempotencyKey ?? `multicam_sync:${assetIds.join(",")}:${referenceAssetId}:${masterAudioAssetId}:${maxSearchSeconds}:${sourceRangeKey}`
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
+    return job;
+  }
+
+  /** Worker 写回的是候选证据。低相关、峰值歧义或双窗口漂移均必须在 Worker 端失败，不写入误导性的 Group。 */
+  completeMulticamSync(input: {
+    projectId: Id;
+    jobId: Id;
+    angleSyncs: CompletedMulticamAngleSync[];
+    /** Worker 成功生成的受管并排预览；自动 candidate 没有它不得进入确认流程。 */
+    syncPreview: MulticamSyncPreview;
+  }): { state: ProjectState; group: MulticamGroup; duplicate: boolean } {
+    const job = this.repository.getJob(input.jobId);
+    if (job.projectId !== input.projectId || job.kind !== "multicam_sync") {
+      throw new DomainError("该任务不是当前项目的多机位同步任务", "MULTICAM_SYNC_JOB_NOT_FOUND");
+    }
+    const current = this.readProject(input.projectId);
+    const completed = current.snapshot.multicamGroups.find((group) => group.syncJobId === job.id);
+    if (completed) {
+      const preview = this.assertMulticamSyncPreview({
+        projectId: input.projectId,
+        snapshot: current.snapshot,
+        angleSyncs: completed.angleSyncs,
+        assetIds: completed.angleAssetIds,
+        syncPreview: input.syncPreview
+      });
+      this.repository.updateJob(job.id, {
+        status: job.status,
+        result: { ...(job.result ?? {}), multicamGroupId: completed.id, revision: current.revision.number, multicamSyncPreview: preview }
+      });
+      return { state: current, group: completed, duplicate: true };
+    }
+    const payload = job.payload as Partial<MulticamSyncJobPayload>;
+    if (!Number.isInteger(payload.requestedRevision) || !Array.isArray(payload.assetIds) || payload.assetIds.length < 2
+      || !payload.assetIds.every((assetId): assetId is Id => typeof assetId === "string")
+      || !payload.referenceAssetId || !payload.masterAudioAssetId || !payload.sourceHashes
+      || !payload.angleLabels
+      || !Number.isInteger(payload.maxSearchSeconds) || typeof payload.title !== "string") {
+      throw new DomainError("多机位同步任务缺少受管提交合同", "MULTICAM_SYNC_PAYLOAD_INVALID");
+    }
+    const assetIds = payload.assetIds;
+    const expected = new Set(assetIds);
+    if (new Set(assetIds).size !== assetIds.length || input.angleSyncs.length !== assetIds.length
+      || new Set(input.angleSyncs.map((sync) => sync.assetId)).size !== assetIds.length
+      || input.angleSyncs.some((sync) => !expected.has(sync.assetId) || sync.method !== "audio_correlation" || sync.status !== "candidate")) {
+      throw new DomainError("多机位同步结果没有完整覆盖提交时的机位，或混入了未经验证的同步状态", "MULTICAM_SYNC_RESULT_INVALID");
+    }
+    let group!: MulticamGroup;
+    let preview!: MulticamSyncPreview;
+    const state = this.repository.commit(input.projectId, current.revision.number, "完成多机位音频同步候选", (snapshot, impact) => {
+      this.assertMulticamAssets(snapshot, assetIds, payload.referenceAssetId!, payload.masterAudioAssetId!, true);
+      const referenceAsset = assetById(snapshot, payload.referenceAssetId!);
+      // 旧排队 Job 没有 sourceRanges 时按整条素材补齐；新 Job 的 Worker 必须原样回传范围。
+      const sourceRanges = this.normalizeMulticamSourceRanges(snapshot, assetIds, payload.sourceRanges);
+      const referenceRange = sourceRanges[payload.referenceAssetId!]!;
+      const fps = snapshot.timeline.fps;
+      const driftLimitFrames = Math.max(2, Math.round(fps * 0.12));
+      const normalizedAngleSyncs: MulticamAngleSync[] = [];
+      for (const sync of input.angleSyncs) {
+        const asset = assetById(snapshot, sync.assetId);
+        const expectedHash = payload.sourceHashes![sync.assetId];
+        const expectedRange = sourceRanges[sync.assetId]!;
+        // 只兼容旧 payload 缺少字段的情况；新提交不得让 Worker 静默省略或改写范围。
+        const returnedRange = sync.sourceRange ?? (payload.sourceRanges === undefined ? expectedRange : undefined);
+        if (!expectedHash || asset.sourceHash !== expectedHash || sync.evidence.referenceSourceHash !== referenceAsset.sourceHash
+          || sync.evidence.angleSourceHash !== asset.sourceHash) {
+          throw new DomainError("多机位同步期间源文件已变化，不能把旧分析结论写入当前 Revision", "MULTICAM_SYNC_SOURCE_CHANGED");
+        }
+        if (sync.label !== payload.angleLabels![sync.assetId] || !Number.isInteger(sync.sessionOffsetFrames) || !Number.isFinite(sync.confidence) || sync.confidence < 0 || sync.confidence > 1
+          || !Number.isInteger(sync.evidence.referenceSourceFrame) || !Number.isInteger(sync.evidence.angleSourceFrame)
+          || !Number.isInteger(sync.evidence.windowFrames) || sync.evidence.windowFrames <= 0
+          || !sync.evidence.analysisVersion.trim() || !sync.evidence.note.trim()) {
+          throw new DomainError("多机位 Worker 返回了无效的同步证据", "MULTICAM_SYNC_EVIDENCE_INVALID");
+        }
+        if (!returnedRange || returnedRange.startFrame !== expectedRange.startFrame || returnedRange.endFrame !== expectedRange.endFrame
+          || sync.evidence.referenceSourceFrame < referenceRange.startFrame
+          || sync.evidence.referenceSourceFrame + sync.evidence.windowFrames > referenceRange.endFrame
+          || sync.evidence.angleSourceFrame < expectedRange.startFrame
+          || sync.evidence.angleSourceFrame + sync.evidence.windowFrames > expectedRange.endFrame) {
+          throw new DomainError("多机位 Worker 返回的同步范围或锚点超出提交时受管源范围", "MULTICAM_SYNC_SOURCE_RANGE_INVALID");
+        }
+        if (sync.driftFrames !== undefined && sync.driftFrames > driftLimitFrames) {
+          throw new DomainError(`多机位“${asset.name}”的双窗口偏移漂移为 ${sync.driftFrames} 帧，超过 ${driftLimitFrames} 帧；请拆短段或使用人工同步点，不能静默变速补偿。`, "MULTICAM_SYNC_DRIFT_EXCEEDED");
+        }
+        normalizedAngleSyncs.push({ ...sync, sourceRange: structuredClone(expectedRange) });
+      }
+      const referenceSync = normalizedAngleSyncs.find((sync) => sync.assetId === payload.referenceAssetId!);
+      if (!referenceSync || referenceSync.sessionOffsetFrames !== 0) {
+        throw new DomainError("多机位 Worker 必须将参考机位写为 0 偏移", "MULTICAM_REFERENCE_OFFSET_INVALID");
+      }
+      // 在写入 candidate 前，先把 Worker 文件与当前 sourceRange/固定偏移交叉核对。
+      preview = this.assertMulticamSyncPreview({
+        projectId: input.projectId,
+        snapshot,
+        angleSyncs: normalizedAngleSyncs,
+        assetIds,
+        syncPreview: input.syncPreview
+      });
+      group = {
+        id: createId("multicam_group"),
+        title: payload.title!.trim(),
+        referenceAssetId: payload.referenceAssetId!,
+        masterAudioAssetId: payload.masterAudioAssetId!,
+        angleAssetIds: assetIds,
+        angleSyncs: normalizedAngleSyncs,
+        syncJobId: job.id,
+        status: "candidate",
+        createdAt: now(),
+        updatedAt: now()
+      };
+      // 所有角度必须真正拥有同一个可切换会话区间，不能各自只在不同片段成立。
+      this.resolveMulticamCommonSessionRange(snapshot, group);
+      snapshot.multicamGroups.push(group);
+      impact.changed.push(group.id);
+      impact.recomputed.push("多机位共同音轨同步候选与受管连续预览；等待人工确认");
+      impact.warnings.push("自动音频相关只生成了同步候选。请在此 Job 的受管连续预览中确认所有角度的口型、动作和现场声一致后再启用切机位。");
+    });
+    const updatedJob = this.repository.updateJob(job.id, {
+      status: job.status,
+      result: { ...(job.result ?? {}), multicamGroupId: group.id, revision: state.revision.number, multicamSyncPreview: preview }
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    this.publish({ projectId: updatedJob.projectId, revision: state.revision.number, type: "job" });
+    return { state, group, duplicate: false };
+  }
+
+  /**
+   * 无共同可用音轨时，允许操作者在每个机位标记同一拍手、落物或明确动作帧。
+   * 手工标记是可追溯事实，不会从文件名、拍摄日期或平均时长推导偏移。
+   */
+  createManualMulticamGroup(input: {
+    projectId: Id;
+    baseRevision: number;
+    title: string;
+    referenceAssetId: Id;
+    masterAudioAssetId: Id;
+    markers: Array<{ assetId: Id; label: string; sourceFrame: number; note: string }>;
+  }): { state: ProjectState; group: MulticamGroup } {
+    let group!: MulticamGroup;
+    const state = this.repository.commit(input.projectId, input.baseRevision, "建立人工确认的多机位同步", (snapshot, impact) => {
+      const assetIds = input.markers.map((marker) => marker.assetId);
+      if (assetIds.length < 2 || new Set(assetIds).size !== assetIds.length) {
+        throw new DomainError("人工多机位同步必须为每个且仅每个机位提供一个同一事件标记", "MULTICAM_MANUAL_MARKERS_INVALID");
+      }
+      this.assertMulticamAssets(snapshot, assetIds, input.referenceAssetId, input.masterAudioAssetId, false);
+      const byAsset = new Map(input.markers.map((marker) => [marker.assetId, marker]));
+      if (new Set(input.markers.map((marker) => marker.label.trim())).size !== input.markers.length || input.markers.some((marker) => !marker.label.trim())) {
+        throw new DomainError("人工多机位同步必须为每个机位提供唯一且明确的名称", "MULTICAM_ANGLE_LABEL_REQUIRED");
+      }
+      const referenceMarker = byAsset.get(input.referenceAssetId);
+      if (!referenceMarker || !Number.isInteger(referenceMarker.sourceFrame) || referenceMarker.sourceFrame < 0 || !referenceMarker.note.trim()) {
+        throw new DomainError("人工多机位同步缺少参考机位的有效同一事件标记", "MULTICAM_REFERENCE_MARKER_INVALID");
+      }
+      const referenceAsset = assetById(snapshot, input.referenceAssetId);
+      const angleSyncs: MulticamAngleSync[] = assetIds.map((assetId) => {
+        const marker = byAsset.get(assetId)!;
+        const asset = assetById(snapshot, assetId);
+        const sourceDuration = millisecondsToFrames(asset.metadata!.durationMs, snapshot.timeline.fps);
+        if (!Number.isInteger(marker.sourceFrame) || marker.sourceFrame < 0 || marker.sourceFrame >= sourceDuration || !marker.note.trim()) {
+          throw new DomainError(`机位“${asset.name}”的人工同步点不在其真实源范围内`, "MULTICAM_MANUAL_MARKER_OUT_OF_BOUNDS");
+        }
+        return {
+          assetId,
+          label: marker.label.trim(),
+          sessionOffsetFrames: referenceMarker.sourceFrame - marker.sourceFrame,
+          method: "manual_marker",
+          confidence: 1,
+          status: "verified",
+          evidence: {
+            referenceSourceFrame: referenceMarker.sourceFrame,
+            angleSourceFrame: marker.sourceFrame,
+            windowFrames: 1,
+            analysisVersion: "manual-marker-v1",
+            referenceSourceHash: referenceAsset.sourceHash!,
+            angleSourceHash: asset.sourceHash!,
+            note: marker.note.trim(),
+            verifiedAt: now()
+          }
+        };
+      });
+      group = {
+        id: createId("multicam_group"),
+        title: requireText(input.title, "多机位 Group 标题"),
+        referenceAssetId: input.referenceAssetId,
+        masterAudioAssetId: input.masterAudioAssetId,
+        angleAssetIds: assetIds,
+        angleSyncs,
+        status: "ready",
+        createdAt: now(),
+        updatedAt: now()
+      };
+      snapshot.multicamGroups.push(group);
+      impact.changed.push(group.id);
+      impact.recomputed.push("人工确认的多机位同步基线");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return { state, group };
+  }
+
+  /** 自动相关的 candidate 必须一次性确认全部机位；部分确认不能让 Group 进入可编译状态。 */
+  verifyMulticamGroup(input: {
+    projectId: Id;
+    baseRevision: number;
+    groupId: Id;
+    previewEvidence: string;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "确认多机位同步预览", (snapshot, impact) => {
+      const group = this.multicamGroupById(snapshot, input.groupId);
+      if (group.status === "stale") throw new DomainError("多机位 Group 已过期，请重新同步后再确认", "MULTICAM_GROUP_STALE");
+      if (!input.previewEvidence.trim()) throw new DomainError("确认多机位同步必须记录连续预览或人工逐角度核对证据", "MULTICAM_PREVIEW_EVIDENCE_REQUIRED");
+      if (group.syncJobId) {
+        const syncJob = this.repository.getJob(group.syncJobId);
+        if (syncJob.projectId !== input.projectId || syncJob.kind !== "multicam_sync") {
+          throw new DomainError("多机位 Group 绑定的同步 Job 不属于当前项目", "MULTICAM_SYNC_JOB_NOT_FOUND");
+        }
+        // completeMulticamSync 在 Worker 运行中写入候选；只有 Runtime 成功收口后，
+        // 才允许把这个候选升级为可剪辑的 ready，避免失败 Job 留下半成品 Group。
+        if (syncJob.status !== "succeeded") {
+          throw new DomainError("多机位同步 Job 尚未成功完成，不能确认自动同步候选", "MULTICAM_SYNC_PREVIEW_JOB_NOT_READY");
+        }
+        if (syncJob.result?.multicamGroupId !== group.id) {
+          throw new DomainError("多机位同步 Job 没有返回当前 Group 的受管预览结果", "MULTICAM_SYNC_PREVIEW_RESULT_INVALID");
+        }
+        this.assertMulticamSyncPreview({
+          projectId: input.projectId,
+          snapshot,
+          angleSyncs: group.angleSyncs,
+          assetIds: group.angleAssetIds,
+          syncPreview: syncJob.result?.multicamSyncPreview as MulticamSyncPreview
+        });
+      }
+      if (group.angleSyncs.some((sync) => sync.status !== "candidate" && sync.status !== "verified")) {
+        throw new DomainError("多机位 Group 含被拒绝或证据不足的机位，不能确认", "MULTICAM_EVIDENCE_NOT_VERIFIABLE");
+      }
+      for (const sync of group.angleSyncs) {
+        sync.status = "verified";
+        sync.evidence.verifiedAt = now();
+        sync.evidence.note = `${sync.evidence.note}；预览确认：${input.previewEvidence.trim()}`;
+      }
+      group.status = "ready";
+      group.updatedAt = now();
+      impact.changed.push(group.id, ...group.angleSyncs.map((sync) => sync.assetId));
+      impact.recomputed.push("多机位同步候选已通过人工连续预览确认");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /** 导演只选择机位和会话范围；源范围由已验证同步偏移推导，不能由调用者越过同步事实直接指定。 */
+  manageMulticamCuts(input: {
+    projectId: Id;
+    baseRevision: number;
+    action: "create" | "update" | "remove";
+    groupId?: Id;
+    cutId?: Id;
+    order?: number;
+    angleAssetId?: Id;
+    sessionStartFrame?: number;
+    sessionEndFrame?: number;
+    reason?: string;
+    continuityNote?: string;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, input.action === "create" ? "建立多机位切换" : input.action === "update" ? "调整多机位切换" : "移除多机位切换", (snapshot, impact) => {
+      const disableExistingProgram = (group: MulticamGroup) => {
+        if (group.sceneId) this.disableMulticamProgram(snapshot, group, impact, "机位切换已调整", "planned");
+      };
+      if (input.action === "remove") {
+        const cut = this.multicamCutById(snapshot, requireText(input.cutId, "多机位 Cut ID"));
+        const group = this.multicamGroupById(snapshot, cut.groupId);
+        disableExistingProgram(group);
+        snapshot.multicamCuts = snapshot.multicamCuts.filter((candidate) => candidate.id !== cut.id);
+        impact.changed.push(cut.id);
+        impact.stale.push(cut.id);
+        return;
+      }
+      const existing = input.action === "update" ? this.multicamCutById(snapshot, requireText(input.cutId, "多机位 Cut ID")) : undefined;
+      const group = this.multicamGroupById(snapshot, input.groupId ?? existing?.groupId ?? "");
+      if (group.status !== "ready") throw new DomainError("多机位 Group 尚未完成同步确认，不能建立或调整切换", "MULTICAM_GROUP_NOT_READY");
+      if (existing && group.id !== existing.groupId) throw new DomainError("调整多机位 Cut 不能悄悄换到另一个 Group；请新建 Cut", "MULTICAM_CUT_GROUP_IMMUTABLE");
+      disableExistingProgram(group);
+      const candidate = {
+        groupId: group.id,
+        order: input.order ?? existing?.order,
+        angleAssetId: input.angleAssetId ?? existing?.angleAssetId,
+        sessionStartFrame: input.sessionStartFrame ?? existing?.sessionStartFrame,
+        sessionEndFrame: input.sessionEndFrame ?? existing?.sessionEndFrame,
+        reason: input.reason ?? existing?.reason,
+        continuityNote: input.continuityNote ?? existing?.continuityNote
+      };
+      const normalized = this.assertMulticamCut(snapshot, candidate, existing?.id);
+      if (existing) {
+        Object.assign(existing, normalized, { status: "planned", sceneId: undefined, timelineItemId: undefined, updatedAt: now() });
+        impact.changed.push(existing.id);
+      } else {
+        const cut: MulticamCut = {
+          id: createId("multicam_cut"),
+          ...normalized,
+          status: "planned",
+          createdAt: now(),
+          updatedAt: now()
+        };
+        snapshot.multicamCuts.push(cut);
+        impact.changed.push(cut.id);
+      }
+      impact.recomputed.push("多机位会话范围与可切换机位计划");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /**
+   * 将同一已确认 Group 的 Cut 平铺到现有 Background/Ambient；所有画面源声静音，
+   * 整段只从明确的 master audio 角度播放，避免镜头切换时声画跳变或多路叠音。
+   */
+  compileMulticamProgram(input: {
+    projectId: Id;
+    baseRevision: number;
+    groupId: Id;
+    cutIds: Id[];
+    startFrame?: number;
+    titlePrefix?: string;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "编译多机位主线", (snapshot, impact) => {
+      const group = this.multicamGroupById(snapshot, input.groupId);
+      if (group.status !== "ready" || group.angleSyncs.some((sync) => sync.status !== "verified")) {
+        throw new DomainError("多机位同步尚未被完整确认，不能编译到 Timeline", "MULTICAM_GROUP_NOT_READY");
+      }
+      if (!input.cutIds.length || new Set(input.cutIds).size !== input.cutIds.length) {
+        throw new DomainError("多机位编译必须明确选择至少一个且不重复的 Cut", "MULTICAM_CUTS_REQUIRED");
+      }
+      const selected = input.cutIds.map((cutId) => this.multicamCutById(snapshot, cutId));
+      if (selected.some((cut) => cut.groupId !== group.id || cut.status === "stale")) {
+        throw new DomainError("多机位编译不能混用不同 Group 或已过期的 Cut", "MULTICAM_CUT_GROUP_MISMATCH");
+      }
+      const ordered = [...selected].sort((left, right) => left.sessionStartFrame - right.sessionStartFrame || left.order - right.order || left.id.localeCompare(right.id));
+      for (let index = 1; index < ordered.length; index += 1) {
+        if (ordered[index - 1]!.sessionEndFrame !== ordered[index]!.sessionStartFrame) {
+          throw new DomainError("首版多机位只能编译连续、无重叠的会话范围；请补齐空档或拆成另一段", "MULTICAM_SESSION_NOT_CONTIGUOUS");
+        }
+      }
+      const sessionStartFrame = ordered[0]!.sessionStartFrame;
+      const sessionEndFrame = ordered[ordered.length - 1]!.sessionEndFrame;
+      const masterSync = group.angleSyncs.find((sync) => sync.assetId === group.masterAudioAssetId);
+      const masterAsset = assetById(snapshot, group.masterAudioAssetId);
+      if (!masterSync || masterSync.status !== "verified" || masterAsset.status !== "ready" || !masterAsset.metadata?.hasAudio) {
+        throw new DomainError("多机位主声音必须来自当前已确认、可播放且含音轨的机位", "MULTICAM_MASTER_AUDIO_UNAVAILABLE");
+      }
+      const masterSourceStart = sessionStartFrame - masterSync.sessionOffsetFrames;
+      const masterSourceEnd = sessionEndFrame - masterSync.sessionOffsetFrames;
+      const masterDuration = millisecondsToFrames(masterAsset.metadata.durationMs, snapshot.timeline.fps);
+      const masterSourceRange = this.multicamSourceRangeFor(snapshot, masterSync);
+      const commonSessionRange = this.resolveMulticamCommonSessionRange(snapshot, group);
+      if (masterSourceStart < 0 || masterSourceEnd > masterDuration || masterSourceEnd <= masterSourceStart
+        || masterSourceStart < masterSourceRange.startFrame || masterSourceEnd > masterSourceRange.endFrame
+        || sessionStartFrame < commonSessionRange.startFrame || sessionEndFrame > commonSessionRange.endFrame) {
+        throw new DomainError("主声音机位没有完整覆盖本次已确认同步的共同会话范围", "MULTICAM_MASTER_AUDIO_RANGE_INVALID");
+      }
+      for (const cut of ordered) this.assertMulticamCut(snapshot, cut, cut.id);
+      const startFrame = input.startFrame ?? 0;
+      if (!Number.isInteger(startFrame) || startFrame < 0) throw new DomainError("多机位主线起点必须是非负整数帧", "MULTICAM_PROGRAM_START_INVALID");
+      const endFrame = startFrame + sessionEndFrame - sessionStartFrame;
+      const backgroundTrack = trackByName(snapshot, "Background");
+      const ambientTrack = trackByName(snapshot, "Ambient");
+      if (backgroundTrack.locked || ambientTrack.locked) throw new DomainError("Background 或 Ambient 轨已锁定，不能编译多机位主线", "TRACK_LOCKED");
+      this.disableMulticamProgram(snapshot, group, impact, "正在重新编译", "planned");
+      const overlaps = (trackId: Id) => snapshot.timeline.items.some((item) => !item.disabled && item.trackId === trackId && item.startFrame < endFrame && item.endFrame > startFrame);
+      if (overlaps(backgroundTrack.id) || overlaps(ambientTrack.id)) {
+        throw new DomainError("目标范围已有可播放主画面或环境声；请明确选择空闲位置后再编译多机位主线", "MULTICAM_PROGRAM_TRACK_OVERLAP");
+      }
+      const scene = createScene({
+        type: "VlogMontageScene",
+        title: `${input.titlePrefix?.trim() || "多机位"}：${group.title}`,
+        purpose: "在已验证同步基线上选择叙事机位，并固定使用一条主声音。",
+        startFrame,
+        endFrame,
+        assetIds: [...new Set([...ordered.map((cut) => cut.angleAssetId), group.masterAudioAssetId])]
+      });
+      scene.status = "ready";
+      scene.stylePackId = snapshot.project.stylePackId;
+      snapshot.scenes.push(scene);
+      let cursor = startFrame;
+      for (const cut of ordered) {
+        const duration = cut.sessionEndFrame - cut.sessionStartFrame;
+        const videoItem = createTimelineItem({
+          trackId: backgroundTrack.id,
+          sceneId: scene.id,
+          assetId: cut.angleAssetId,
+          startFrame: cursor,
+          endFrame: cursor + duration,
+          sourceStartFrame: cut.sourceStartFrame,
+          sourceEndFrame: cut.sourceEndFrame,
+          gainDb: -96
+        });
+        snapshot.timeline.items.push(videoItem);
+        const asset = assetById(snapshot, cut.angleAssetId);
+        asset.role = "vlog_source";
+        cut.sceneId = scene.id;
+        cut.timelineItemId = videoItem.id;
+        cut.status = "ready";
+        cut.updatedAt = now();
+        impact.changed.push(cut.id, videoItem.id, asset.id);
+        cursor += duration;
+      }
+      const masterAudioItem = createTimelineItem({
+        trackId: ambientTrack.id,
+        sceneId: scene.id,
+        assetId: masterAsset.id,
+        startFrame,
+        endFrame,
+        sourceStartFrame: masterSourceStart,
+        sourceEndFrame: masterSourceEnd,
+        gainDb: 0
+      });
+      snapshot.timeline.items.push(masterAudioItem);
+      group.sceneId = scene.id;
+      group.masterAudioTimelineItemId = masterAudioItem.id;
+      group.programStartFrame = startFrame;
+      group.programEndFrame = endFrame;
+      group.updatedAt = now();
+      impact.changed.push(scene.id, masterAudioItem.id, group.id);
+      this.staleAudioCuesForMainline(snapshot, impact, "多机位主线已重新编译");
+      impact.recomputed.push("多机位 Background 切换、单一 Ambient 主声音与主线时长");
+      impact.dirtyRanges.push({ startFrame, endFrame, reason: "编译多机位主线；需要连续预览检查口型、动作、视线与声音同步" });
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /** Event Map 必须显式引用已分析 Shot；系统不根据文件名、镜头数量或技术评分猜测故事。 */
+  manageVlogEvents(input: {
+    projectId: Id;
+    baseRevision: number;
+    action: "create" | "update" | "remove";
+    eventId?: Id;
+    order?: number;
+    title?: string;
+    summary?: string;
+    shotAnalysisIds?: Id[];
+    goal?: string;
+    actionNote?: string;
+    change?: string;
+    reaction?: string;
+    outcome?: string;
+    locationNote?: string;
+    continuityNote?: string;
+    status?: "draft" | "ready";
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, input.action === "create" ? "建立 Vlog 事件地图" : input.action === "update" ? "更新 Vlog 事件地图" : "移除 Vlog 事件", (snapshot, impact) => {
+      const assertEventOrder = (order: number, ownId?: Id) => {
+        if (!Number.isInteger(order) || order < 0) throw new DomainError("Vlog 事件顺序必须是非负整数", "INVALID_VLOG_EVENT_ORDER");
+        if (snapshot.vlogEvents.some((event) => event.id !== ownId && event.order === order && event.status !== "stale")) {
+          throw new DomainError("Vlog 事件顺序不能重复，请明确真实事件的先后关系", "DUPLICATE_VLOG_EVENT_ORDER");
+        }
+      };
+      const assertShotIds = (shotIds: Id[], allowStale = false) => {
+        const unique = [...new Set(shotIds)];
+        if (!unique.length || unique.length !== shotIds.length) throw new DomainError("每个 Vlog 事件必须关联不重复的镜头分析", "VLOG_EVENT_SHOTS_REQUIRED");
+        for (const shotId of unique) {
+          const shot = vlogShotById(snapshot, shotId);
+          if (!allowStale && shot.status !== "ready") throw new DomainError("Vlog 事件不能使用已过期的镜头分析，请重新检查素材", "VLOG_EVENT_SHOT_STALE");
+        }
+        return unique;
+      };
+      if (input.action === "remove") {
+        const event = vlogEventById(snapshot, requireText(input.eventId, "Vlog 事件 ID"));
+        if (snapshot.vlogShotSelects.some((select) => select.eventId === event.id)) {
+          throw new DomainError("该 Vlog 事件仍被 Shot Select 引用；请先停止或重新归属这些镜头选择", "VLOG_EVENT_IN_USE");
+        }
+        snapshot.vlogEvents = snapshot.vlogEvents.filter((candidate) => candidate.id !== event.id);
+        impact.changed.push(event.id);
+        impact.stale.push(event.id);
+        return;
+      }
+      if (input.action === "create") {
+        if (input.order === undefined || input.shotAnalysisIds === undefined) throw new DomainError("创建 Vlog 事件必须提供顺序和镜头分析", "VLOG_EVENT_FIELDS_REQUIRED");
+        assertEventOrder(input.order);
+        const shotAnalysisIds = assertShotIds(input.shotAnalysisIds);
+        const status = input.status ?? "ready";
+        const event: VlogEvent = {
+          id: createId("vlog_event"),
+          order: input.order,
+          title: requireText(input.title, "Vlog 事件标题"),
+          summary: requireText(input.summary, "Vlog 事件说明"),
+          shotAnalysisIds,
+          goal: input.goal?.trim() || undefined,
+          action: input.actionNote?.trim() || undefined,
+          change: input.change?.trim() || undefined,
+          reaction: input.reaction?.trim() || undefined,
+          outcome: input.outcome?.trim() || undefined,
+          locationNote: input.locationNote?.trim() || undefined,
+          continuityNote: input.continuityNote?.trim() || undefined,
+          status,
+          createdAt: now(),
+          updatedAt: now()
+        };
+        snapshot.vlogEvents.push(event);
+        impact.changed.push(event.id);
+        impact.recomputed.push("Vlog 事件地图");
+        return;
+      }
+      const event = vlogEventById(snapshot, requireText(input.eventId, "Vlog 事件 ID"));
+      const nextShotIds = input.shotAnalysisIds === undefined ? event.shotAnalysisIds : assertShotIds(input.shotAnalysisIds);
+      for (const select of snapshot.vlogShotSelects.filter((candidate) => candidate.eventId === event.id)) {
+        if (!nextShotIds.includes(select.shotAnalysisId)) {
+          throw new DomainError("不能从已被 Shot Select 使用的事件中移除镜头；请先处理对应 Select", "VLOG_EVENT_SHOT_IN_USE");
+        }
+        this.markVlogShotSelectStale(snapshot, select, impact, "其事件地图已更新");
+      }
+      const nextOrder = input.order ?? event.order;
+      assertEventOrder(nextOrder, event.id);
+      const nextStatus = input.status ?? (event.status === "stale" ? "ready" : event.status);
+      if (nextStatus === "ready") assertShotIds(nextShotIds);
+      event.order = nextOrder;
+      event.title = input.title === undefined ? event.title : requireText(input.title, "Vlog 事件标题");
+      event.summary = input.summary === undefined ? event.summary : requireText(input.summary, "Vlog 事件说明");
+      event.shotAnalysisIds = nextShotIds;
+      if (input.goal !== undefined) event.goal = input.goal.trim() || undefined;
+      if (input.actionNote !== undefined) event.action = input.actionNote.trim() || undefined;
+      if (input.change !== undefined) event.change = input.change.trim() || undefined;
+      if (input.reaction !== undefined) event.reaction = input.reaction.trim() || undefined;
+      if (input.outcome !== undefined) event.outcome = input.outcome.trim() || undefined;
+      if (input.locationNote !== undefined) event.locationNote = input.locationNote.trim() || undefined;
+      if (input.continuityNote !== undefined) event.continuityNote = input.continuityNote.trim() || undefined;
+      event.status = nextStatus;
+      event.updatedAt = now();
+      impact.changed.push(event.id);
+      impact.recomputed.push("Vlog 事件地图与 Shot Select 复核");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /** Shot Select 由导演明确给出用途与连续性理由，不能把“最高技术评分”当成自动入选。 */
+  manageVlogShotSelects(input: {
+    projectId: Id;
+    baseRevision: number;
+    action: "create" | "update" | "remove";
+    shotSelectId?: Id;
+    eventId?: Id;
+    shotAnalysisId?: Id;
+    order?: number;
+    sourceStartFrame?: number;
+    sourceEndFrame?: number;
+    function?: VlogShotFunction;
+    selectionReason?: string;
+    continuityNote?: string;
+    sourceAudioMode?: VlogSourceAudioMode;
+    status?: "planned" | "ready";
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, input.action === "create" ? "建立 Vlog Shot Select" : input.action === "update" ? "调整 Vlog Shot Select" : "停止 Vlog Shot Select", (snapshot, impact) => {
+      const assertSelection = (candidate: {
+        eventId: Id;
+        shotAnalysisId: Id;
+        order: number;
+        sourceStartFrame: number;
+        sourceEndFrame: number;
+        function: VlogShotFunction | undefined;
+        selectionReason: string | undefined;
+        continuityNote: string | undefined;
+        sourceAudioMode: VlogSourceAudioMode | undefined;
+        status: "planned" | "ready";
+      }, ownId?: Id) => {
+        const event = vlogEventById(snapshot, candidate.eventId);
+        const shot = vlogShotById(snapshot, candidate.shotAnalysisId);
+        if (!event.shotAnalysisIds.includes(shot.id)) throw new DomainError("Shot Select 的镜头必须属于指定 Vlog 事件", "VLOG_SELECT_EVENT_SHOT_MISMATCH");
+        if (!Number.isInteger(candidate.order) || candidate.order < 0 || snapshot.vlogShotSelects.some((select) => select.id !== ownId && select.eventId === event.id && select.order === candidate.order && select.status !== "stale")) {
+          throw new DomainError("同一 Vlog 事件内的 Shot Select 顺序必须是唯一非负整数", "INVALID_VLOG_SELECT_ORDER");
+        }
+        if (!Number.isInteger(candidate.sourceStartFrame) || !Number.isInteger(candidate.sourceEndFrame)
+          || candidate.sourceStartFrame < shot.sourceStartFrame || candidate.sourceEndFrame > shot.sourceEndFrame || candidate.sourceEndFrame <= candidate.sourceStartFrame) {
+          throw new DomainError("Shot Select 源范围必须完全落在已分析镜头内", "INVALID_VLOG_SELECT_RANGE");
+        }
+        const asset = assetById(snapshot, shot.assetId);
+        if (asset.status !== "ready" || asset.kind !== "video" || !asset.metadata?.videoCodec) throw new DomainError("Shot Select 只能使用已就绪视频素材", "VLOG_SELECT_ASSET_NOT_READY");
+        if (candidate.status === "ready" && (event.status !== "ready" || shot.status !== "ready")) {
+          throw new DomainError("要启用 Shot Select，事件和镜头分析都必须是当前已就绪状态", "VLOG_SELECT_SOURCE_STALE");
+        }
+        const sourceAudioMode = normalizeVlogSourceAudioMode(candidate.sourceAudioMode);
+        if (sourceAudioMode === "keep" && (!shot.hasAudio || !asset.metadata.hasAudio)) {
+          throw new DomainError("没有真实音轨的镜头不能声明保留现场声", "VLOG_AMBIENT_SOURCE_MISSING");
+        }
+        return { event, shot, function: normalizeVlogFunction(candidate.function), sourceAudioMode };
+      };
+      if (input.action === "remove") {
+        const select = vlogShotSelectById(snapshot, requireText(input.shotSelectId, "Vlog Shot Select ID"));
+        this.markVlogShotSelectStale(snapshot, select, impact, "已被停止使用");
+        return;
+      }
+      if (input.action === "create") {
+        if (input.eventId === undefined || input.shotAnalysisId === undefined || input.order === undefined || input.sourceStartFrame === undefined || input.sourceEndFrame === undefined) {
+          throw new DomainError("创建 Shot Select 必须提供事件、镜头、顺序和完整源范围", "VLOG_SELECT_FIELDS_REQUIRED");
+        }
+        const status = input.status ?? "ready";
+        const checked = assertSelection({
+          eventId: input.eventId,
+          shotAnalysisId: input.shotAnalysisId,
+          order: input.order,
+          sourceStartFrame: input.sourceStartFrame,
+          sourceEndFrame: input.sourceEndFrame,
+          function: input.function,
+          selectionReason: input.selectionReason,
+          continuityNote: input.continuityNote,
+          sourceAudioMode: input.sourceAudioMode,
+          status
+        });
+        const select: VlogShotSelect = {
+          id: createId("vlog_select"),
+          eventId: checked.event.id,
+          shotAnalysisId: checked.shot.id,
+          order: input.order,
+          sourceStartFrame: input.sourceStartFrame,
+          sourceEndFrame: input.sourceEndFrame,
+          function: checked.function,
+          selectionReason: requireText(input.selectionReason, "Shot Select 入选理由"),
+          continuityNote: requireText(input.continuityNote, "Shot Select 连续性说明"),
+          sourceAudioMode: checked.sourceAudioMode,
+          status,
+          createdAt: now(),
+          updatedAt: now()
+        };
+        snapshot.vlogShotSelects.push(select);
+        impact.changed.push(select.id);
+        impact.recomputed.push("Vlog Shot Select 与现场声策略");
+        return;
+      }
+      const select = vlogShotSelectById(snapshot, requireText(input.shotSelectId, "Vlog Shot Select ID"));
+      if (select.sceneId) this.markVlogShotSelectStale(snapshot, select, impact, "镜头选择已更新");
+      const status = input.status ?? "ready";
+      const candidate = {
+        eventId: input.eventId ?? select.eventId,
+        shotAnalysisId: input.shotAnalysisId ?? select.shotAnalysisId,
+        order: input.order ?? select.order,
+        sourceStartFrame: input.sourceStartFrame ?? select.sourceStartFrame,
+        sourceEndFrame: input.sourceEndFrame ?? select.sourceEndFrame,
+        function: input.function ?? select.function,
+        selectionReason: input.selectionReason ?? select.selectionReason,
+        continuityNote: input.continuityNote ?? select.continuityNote,
+        sourceAudioMode: input.sourceAudioMode ?? select.sourceAudioMode,
+        status
+      };
+      const checked = assertSelection(candidate, select.id);
+      select.eventId = checked.event.id;
+      select.shotAnalysisId = checked.shot.id;
+      select.order = candidate.order;
+      select.sourceStartFrame = candidate.sourceStartFrame;
+      select.sourceEndFrame = candidate.sourceEndFrame;
+      select.function = checked.function;
+      select.selectionReason = requireText(candidate.selectionReason, "Shot Select 入选理由");
+      select.continuityNote = requireText(candidate.continuityNote, "Shot Select 连续性说明");
+      select.sourceAudioMode = checked.sourceAudioMode;
+      select.status = status;
+      select.updatedAt = now();
+      impact.changed.push(select.id);
+      impact.recomputed.push("Vlog Shot Select 与现场声策略");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /**
+   * 将已确认的 Shot Select 编译为统一 Timeline。第一版不变速、不自动卡点，也不按素材文件顺序猜故事；
+   * 每个视频 Item 始终静音，选择保留的现场声在独立 Ambient 轨以同一源范围播放，避免重复输出。
+   */
+  compileVlogMontage(input: {
+    projectId: Id;
+    baseRevision: number;
+    shotSelectIds: Id[];
+    startFrame?: number;
+    titlePrefix?: string;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "编译 Vlog Montage 主线", (snapshot, impact) => {
+      if (snapshot.project.profile !== "vlog" && snapshot.project.profile !== "hybrid") {
+        throw new DomainError("Vlog Montage 只能写入 Vlog 或以实拍事件为主的混合项目", "VLOG_PROFILE_REQUIRED");
+      }
+      const selectIds = [...new Set(input.shotSelectIds)];
+      if (!selectIds.length || selectIds.length !== input.shotSelectIds.length) {
+        throw new DomainError("编译 Vlog Montage 必须明确选择至少一个且不重复的 Shot Select", "VLOG_MONTAGE_SELECTS_REQUIRED");
+      }
+      const selects = selectIds.map((selectId) => vlogShotSelectById(snapshot, selectId));
+      const eventById = new Map(snapshot.vlogEvents.map((event) => [event.id, event]));
+      const shotById = new Map(snapshot.vlogShotAnalyses.map((shot) => [shot.id, shot]));
+      for (const select of selects) {
+        const event = eventById.get(select.eventId);
+        const shot = shotById.get(select.shotAnalysisId);
+        if (!event || event.status !== "ready" || !shot || shot.status !== "ready" || select.status === "stale") {
+          throw new DomainError("Vlog Montage 只能使用当前已就绪的事件、镜头分析和 Shot Select", "VLOG_MONTAGE_SOURCE_STALE");
+        }
+        if (!event.shotAnalysisIds.includes(shot.id) || select.sourceStartFrame < shot.sourceStartFrame || select.sourceEndFrame > shot.sourceEndFrame) {
+          throw new DomainError("Shot Select 已不属于其事件或超出镜头证据范围", "VLOG_MONTAGE_SELECT_INVALID");
+        }
+        const asset = assetById(snapshot, shot.assetId);
+        if (asset.status !== "ready" || asset.kind !== "video" || !asset.metadata?.videoCodec) {
+          throw new DomainError("Vlog Montage 引用的视频素材尚未就绪", "VLOG_MONTAGE_ASSET_NOT_READY");
+        }
+        if (select.sourceAudioMode === "keep" && (!shot.hasAudio || !asset.metadata.hasAudio)) {
+          throw new DomainError("被要求保留现场声的 Vlog 镜头没有可播放音轨", "VLOG_AMBIENT_SOURCE_MISSING");
+        }
+      }
+      const ordered = [...selects].sort((left, right) => {
+        const eventDelta = eventById.get(left.eventId)!.order - eventById.get(right.eventId)!.order;
+        return eventDelta || left.order - right.order || left.id.localeCompare(right.id);
+      });
+      const startFrame = input.startFrame ?? 0;
+      if (!Number.isInteger(startFrame) || startFrame < 0) throw new DomainError("Vlog Montage 起点必须是非负整数帧", "INVALID_VLOG_MONTAGE_START");
+      const backgroundTrack = trackByName(snapshot, "Background");
+      const ambientTrack = trackByName(snapshot, "Ambient");
+      if (backgroundTrack.locked || ambientTrack.locked) throw new DomainError("Background 或 Ambient 轨已锁定，不能编译 Vlog Montage", "TRACK_LOCKED");
+
+      // 先停用本次重编涉及的旧场景；未选中的旧 Select 不会被静默删掉，仍保留为 stale 审计记录。
+      const sceneIdsToStale = new Set(ordered.map((select) => select.sceneId).filter((sceneId): sceneId is Id => Boolean(sceneId)));
+      for (const sceneId of sceneIdsToStale) this.markVlogMontageSceneStale(snapshot, sceneId, impact, "正在重新编译");
+
+      const totalFrames = ordered.reduce((sum, select) => sum + (select.sourceEndFrame - select.sourceStartFrame), 0);
+      const endFrame = startFrame + totalFrames;
+      const overlaps = (trackId: Id) => snapshot.timeline.items.some((item) => !item.disabled && item.trackId === trackId && item.startFrame < endFrame && item.endFrame > startFrame);
+      if (overlaps(backgroundTrack.id) || overlaps(ambientTrack.id)) {
+        throw new DomainError("目标范围已有可播放的 Vlog 或环境声片段；请先选择空闲位置或通过明确编辑调整现有主线", "VLOG_MONTAGE_TRACK_OVERLAP");
+      }
+
+      const grouped = new Map<Id, VlogShotSelect[]>();
+      for (const select of ordered) {
+        const group = grouped.get(select.eventId) ?? [];
+        group.push(select);
+        grouped.set(select.eventId, group);
+      }
+      let cursor = startFrame;
+      for (const [eventId, eventSelects] of [...grouped.entries()].sort((left, right) => eventById.get(left[0])!.order - eventById.get(right[0])!.order)) {
+        const event = eventById.get(eventId)!;
+        const sceneStart = cursor;
+        const assetIds = [...new Set(eventSelects.map((select) => shotById.get(select.shotAnalysisId)!.assetId))];
+        const scene = createScene({
+          type: "VlogMontageScene",
+          title: `${input.titlePrefix?.trim() || "Vlog"}：${event.title}`,
+          purpose: event.summary,
+          startFrame: sceneStart,
+          endFrame: sceneStart + eventSelects.reduce((sum, select) => sum + (select.sourceEndFrame - select.sourceStartFrame), 0),
+          assetIds
+        });
+        scene.status = "ready";
+        scene.stylePackId = snapshot.project.stylePackId;
+        snapshot.scenes.push(scene);
+        impact.changed.push(scene.id);
+        for (const select of eventSelects) {
+          const shot = shotById.get(select.shotAnalysisId)!;
+          const asset = assetById(snapshot, shot.assetId);
+          const duration = select.sourceEndFrame - select.sourceStartFrame;
+          // VideoLayer 的源声由 gainDb 控制；统一静音后才由独立 Ambient Item 决定何时保留现场感。
+          const videoItem = createTimelineItem({
+            trackId: backgroundTrack.id,
+            sceneId: scene.id,
+            assetId: asset.id,
+            startFrame: cursor,
+            endFrame: cursor + duration,
+            sourceStartFrame: select.sourceStartFrame,
+            sourceEndFrame: select.sourceEndFrame,
+            gainDb: -96
+          });
+          snapshot.timeline.items.push(videoItem);
+          asset.role = "vlog_source";
+          select.sceneId = scene.id;
+          select.timelineItemId = videoItem.id;
+          select.ambientTimelineItemId = undefined;
+          select.status = "ready";
+          select.updatedAt = now();
+          impact.changed.push(select.id, videoItem.id, asset.id);
+          if (select.sourceAudioMode === "keep") {
+            const ambientItem = createTimelineItem({
+              trackId: ambientTrack.id,
+              sceneId: scene.id,
+              assetId: asset.id,
+              startFrame: cursor,
+              endFrame: cursor + duration,
+              sourceStartFrame: select.sourceStartFrame,
+              sourceEndFrame: select.sourceEndFrame,
+              gainDb: 0
+            });
+            snapshot.timeline.items.push(ambientItem);
+            snapshot.vlogAmbientCues.push({
+              id: createId("vlog_ambient"),
+              shotSelectId: select.id,
+              assetId: asset.id,
+              timelineItemId: ambientItem.id,
+              purpose: `保留${select.function}镜头的真实现场声`,
+              status: "ready",
+              createdAt: now(),
+              updatedAt: now()
+            });
+            select.ambientTimelineItemId = ambientItem.id;
+            impact.changed.push(ambientItem.id);
+          }
+          cursor += duration;
+        }
+      }
+      this.staleAudioCuesForMainline(snapshot, impact, "Vlog 主线已重新编译");
+      impact.recomputed.push("VlogMontageScene、Background 主画面、Ambient 现场声与主线时长");
+      impact.dirtyRanges.push({ startFrame, endFrame, reason: "编译 Vlog Montage；需要连续预览动作、空间和声音连续性" });
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /** 只记录已经由人试听确认的 BGM 拍点，供剪辑参考；不会自动移动镜头或声称完成音乐分析。 */
+  manageVlogMusicBeats(input: {
+    projectId: Id;
+    baseRevision: number;
+    action: "create" | "update" | "remove";
+    beatId?: Id;
+    audioCueId?: Id;
+    frame?: number;
+    note?: string;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, input.action === "create" ? "记录 Vlog 音乐拍点" : input.action === "update" ? "调整 Vlog 音乐拍点" : "移除 Vlog 音乐拍点", (snapshot, impact) => {
+      const assertBeat = (audioCueId: Id, frame: number, ownId?: Id) => {
+        const cue = snapshot.audioCues.find((candidate) => candidate.id === audioCueId);
+        const item = cue ? snapshot.timeline.items.find((candidate) => candidate.id === cue.timelineItemId) : undefined;
+        if (!cue || cue.kind !== "bgm" || cue.status !== "ready" || !item || item.disabled) {
+          throw new DomainError("Vlog 拍点必须绑定当前已就绪的 BGM", "VLOG_BEAT_BGM_NOT_READY");
+        }
+        if (!Number.isInteger(frame) || frame < item.startFrame || frame >= item.endFrame) {
+          throw new DomainError("Vlog 拍点必须落在 BGM 的实际播放范围内", "INVALID_VLOG_BEAT_FRAME");
+        }
+        if (snapshot.vlogMusicBeats.some((beat) => beat.id !== ownId && beat.audioCueId === cue.id && beat.frame === frame && beat.status === "ready")) {
+          throw new DomainError("同一 BGM 的同一帧不能重复登记拍点", "DUPLICATE_VLOG_BEAT");
+        }
+        return cue;
+      };
+      if (input.action === "remove") {
+        const beatId = requireText(input.beatId, "Vlog 拍点 ID");
+        if (!snapshot.vlogMusicBeats.some((beat) => beat.id === beatId)) throw new NotFoundError("Vlog 音乐拍点不存在");
+        snapshot.vlogMusicBeats = snapshot.vlogMusicBeats.filter((beat) => beat.id !== beatId);
+        impact.changed.push(beatId);
+        return;
+      }
+      if (input.action === "create") {
+        if (!input.audioCueId || input.frame === undefined) throw new DomainError("记录 Vlog 拍点必须提供 BGM 和帧", "VLOG_BEAT_FIELDS_REQUIRED");
+        const cue = assertBeat(input.audioCueId, input.frame);
+        const beat: VlogMusicBeat = {
+          id: createId("vlog_beat"),
+          audioCueId: cue.id,
+          frame: input.frame,
+          note: requireText(input.note, "Vlog 拍点说明"),
+          source: "manual_verified",
+          status: "ready",
+          createdAt: now()
+        };
+        snapshot.vlogMusicBeats.push(beat);
+        impact.changed.push(beat.id);
+        return;
+      }
+      const beat = snapshot.vlogMusicBeats.find((candidate) => candidate.id === requireText(input.beatId, "Vlog 拍点 ID"));
+      if (!beat) throw new NotFoundError("Vlog 音乐拍点不存在");
+      const cue = assertBeat(input.audioCueId ?? beat.audioCueId, input.frame ?? beat.frame, beat.id);
+      beat.audioCueId = cue.id;
+      beat.frame = input.frame ?? beat.frame;
+      beat.note = input.note === undefined ? beat.note : requireText(input.note, "Vlog 拍点说明");
+      beat.status = "ready";
+      impact.changed.push(beat.id);
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
   submitTranscription(input: { projectId: Id; assetId: Id; idempotencyKey?: string }): JobRecord {
     const state = this.readProject(input.projectId);
     const asset = assetById(state.snapshot, input.assetId);
@@ -1885,6 +3840,9 @@ export class EditingApplication {
       revision: snapshot.script.revision + 1
     };
     snapshot.speechSegmentAssets = snapshot.speechSegmentAssets.filter((segmentAsset) => currentIds.has(segmentAsset.speechSegmentId));
+    // 历史 Revision 仍保留旧对齐审计；当前 Script 已改变时不能把旧词级时间戳留在当前图中。
+    markSpeechAlignmentStale(snapshot, impact, "Script 已重新编译");
+    snapshot.speechAlignment = undefined;
     snapshot.speechAsset = undefined;
     if (snapshot.timeline.captions.length > 0) {
       // 不能静默沿用旧语音的 Card；下一次 SpeechAsset 组装会以最新段级时序重建字幕。
@@ -2006,6 +3964,13 @@ export class EditingApplication {
       impact.changed.push(item.id);
       impact.dirtyRanges.push({ startFrame: item.startFrame, endFrame: item.endFrame, reason: "声音包装等待主线复核" });
     }
+    // 节拍标记依附 BGM 的实际播放范围；音乐被重新确认前，旧拍点不能继续被当作可用编辑证据。
+    for (const beat of snapshot.vlogMusicBeats ?? []) {
+      if (beat.audioCueId !== cue.id || beat.status === "stale") continue;
+      beat.status = "stale";
+      impact.changed.push(beat.id);
+      impact.stale.push(beat.id);
+    }
     impact.stale.push(cue.id);
     impact.warnings.push(`${cue.kind === "bgm" ? "BGM" : "SFX"}「${cue.purpose}」${reason}，已停止参与合成，等待重新确认。`);
   }
@@ -2013,6 +3978,255 @@ export class EditingApplication {
   private staleAudioCuesForMainline(snapshot: ProjectSnapshot, impact: ImpactReport, reason: string): void {
     for (const cue of snapshot.audioCues ?? []) {
       this.markAudioCueStale(snapshot, cue, impact, reason);
+    }
+  }
+
+  private multicamGroupById(snapshot: ProjectSnapshot, groupId: Id): MulticamGroup {
+    const group = snapshot.multicamGroups.find((candidate) => candidate.id === groupId);
+    if (!group) throw new NotFoundError("多机位 Group 不存在");
+    return group;
+  }
+
+  private multicamCutById(snapshot: ProjectSnapshot, cutId: Id): MulticamCut {
+    const cut = snapshot.multicamCuts.find((candidate) => candidate.id === cutId);
+    if (!cut) throw new NotFoundError("多机位 Cut 不存在");
+    return cut;
+  }
+
+  /**
+   * 新自动同步必须明确覆盖每个机位；旧 Job / 旧 Group 缺失范围时才兼容为整条素材。
+   * 坐标刻意统一为项目 Timeline FPS，避免把 25fps 与 50fps 的源物理帧混进同一 Group。
+   */
+  private normalizeMulticamSourceRanges(
+    snapshot: ProjectSnapshot,
+    assetIds: Id[],
+    sourceRanges: unknown
+  ): Record<Id, MulticamSourceRange> {
+    const hasExplicitRanges = sourceRanges !== undefined;
+    if (hasExplicitRanges && (!sourceRanges || typeof sourceRanges !== "object" || Array.isArray(sourceRanges))) {
+      throw new DomainError("多机位 sourceRanges 必须是按机位素材 ID 索引的范围对象", "MULTICAM_SOURCE_RANGES_INVALID");
+    }
+    const rawRanges = hasExplicitRanges ? sourceRanges as Record<string, unknown> : undefined;
+    if (rawRanges) {
+      const keys = Object.keys(rawRanges);
+      if (keys.length !== assetIds.length || keys.some((assetId) => !assetIds.includes(assetId as Id))) {
+        throw new DomainError("多机位 sourceRanges 必须完整且仅覆盖本次提交的每个机位", "MULTICAM_SOURCE_RANGES_INVALID");
+      }
+    }
+    const normalized: Record<Id, MulticamSourceRange> = {};
+    for (const assetId of assetIds) {
+      const asset = assetById(snapshot, assetId);
+      const duration = millisecondsToFrames(asset.metadata!.durationMs, snapshot.timeline.fps);
+      const rawRange = rawRanges?.[assetId];
+      const range = rawRange ?? (hasExplicitRanges ? undefined : { startFrame: 0, endFrame: duration });
+      if (!range || typeof range !== "object" || Array.isArray(range)) {
+        throw new DomainError("多机位 sourceRanges 缺少机位范围", "MULTICAM_SOURCE_RANGES_INVALID");
+      }
+      const candidate = range as Record<string, unknown>;
+      const startFrame = candidate.startFrame;
+      const endFrame = candidate.endFrame;
+      if (Object.keys(candidate).some((key) => key !== "startFrame" && key !== "endFrame")
+        || !Number.isInteger(startFrame) || !Number.isInteger(endFrame)
+        || (startFrame as number) < 0 || (endFrame as number) <= (startFrame as number) || (endFrame as number) > duration) {
+        throw new DomainError("多机位 sourceRange 必须位于对应素材的有效源范围内", "MULTICAM_SOURCE_RANGE_INVALID");
+      }
+      normalized[assetId] = { startFrame: startFrame as number, endFrame: endFrame as number };
+    }
+    return normalized;
+  }
+
+  /** 旧 Group 缺少 sourceRange 时保留整条素材语义；新自动 Group 的范围会在提交/完成时严格校验。 */
+  private multicamSourceRangeFor(snapshot: ProjectSnapshot, sync: MulticamAngleSync): MulticamSourceRange {
+    return this.normalizeMulticamSourceRanges(snapshot, [sync.assetId], sync.sourceRange
+      ? { [sync.assetId]: sync.sourceRange }
+      : undefined)[sync.assetId]!;
+  }
+
+  /** 将每个机位的有效源范围映射到 session 坐标后求交集，确保它们真的是同一个可切换会话。 */
+  private resolveMulticamCommonSessionRange(snapshot: ProjectSnapshot, group: { angleSyncs: readonly MulticamAngleSync[] }): MulticamSourceRange {
+    let startFrame = Number.NEGATIVE_INFINITY;
+    let endFrame = Number.POSITIVE_INFINITY;
+    for (const sync of group.angleSyncs) {
+      const sourceRange = this.multicamSourceRangeFor(snapshot, sync);
+      startFrame = Math.max(startFrame, sourceRange.startFrame + sync.sessionOffsetFrames);
+      endFrame = Math.min(endFrame, sourceRange.endFrame + sync.sessionOffsetFrames);
+    }
+    if (!Number.isInteger(startFrame) || !Number.isInteger(endFrame) || startFrame < 0 || endFrame <= startFrame) {
+      throw new DomainError("多机位各机位的已同步源范围没有有效的共同会话区间", "MULTICAM_SYNC_COMMON_RANGE_INVALID");
+    }
+    return { startFrame, endFrame };
+  }
+
+  /**
+   * 自动相关要求每个角度都有可实际解码的音轨；人工标记允许静音机位，但主声音仍必须真实可播。
+   * sourceHash 是异步同步的输入身份，不能因文件名相同就省略。
+   */
+  private assertMulticamAssets(snapshot: ProjectSnapshot, assetIds: Id[], referenceAssetId: Id, masterAudioAssetId: Id, requireAllAudio: boolean): void {
+    if (!assetIds.includes(referenceAssetId) || !assetIds.includes(masterAudioAssetId)) {
+      throw new DomainError("当前首版多机位仅支持相机内录：参考机位和主声音必须属于输入视频机位集合；独立录音机同步尚未接入。", "MULTICAM_ASSET_MEMBERSHIP_INVALID");
+    }
+    for (const assetId of assetIds) {
+      const asset = assetById(snapshot, assetId);
+      if (asset.status !== "ready" || asset.kind !== "video" || !asset.metadata?.videoCodec || asset.metadata.durationMs <= 0 || !asset.sourceHash) {
+        throw new DomainError("多机位只能使用已完成媒体分析、具有受管二进制哈希的本地视频素材", "MULTICAM_ASSET_NOT_READY");
+      }
+      if (requireAllAudio && !asset.metadata.hasAudio) {
+        throw new DomainError("自动多机位同步要求每个机位都具有真实可解码音轨；无音轨机位请使用人工同一事件标记", "MULTICAM_AUDIO_REQUIRED");
+      }
+    }
+    const master = assetById(snapshot, masterAudioAssetId);
+    if (!master.metadata?.hasAudio) throw new DomainError("多机位主声音机位必须具有真实音轨", "MULTICAM_MASTER_AUDIO_REQUIRED");
+  }
+
+  /** 统一以项目 Timeline FPS 表达 session/source 帧，避免把 25fps 与 50fps 源物理帧直接混用。 */
+  private assertMulticamCut(snapshot: ProjectSnapshot, candidate: {
+    groupId: Id;
+    order: number | undefined;
+    angleAssetId: Id | undefined;
+    sessionStartFrame: number | undefined;
+    sessionEndFrame: number | undefined;
+    reason: string | undefined;
+    continuityNote: string | undefined;
+  }, ownId?: Id): Pick<MulticamCut, "groupId" | "order" | "angleAssetId" | "sessionStartFrame" | "sessionEndFrame" | "sourceStartFrame" | "sourceEndFrame" | "reason" | "continuityNote"> {
+    const group = this.multicamGroupById(snapshot, candidate.groupId);
+    const angleAssetId = requireText(candidate.angleAssetId, "多机位机位素材 ID");
+    const sync = group.angleSyncs.find((entry) => entry.assetId === angleAssetId);
+    if (!sync || sync.status !== "verified") throw new DomainError("多机位 Cut 只能选择已确认同步的机位", "MULTICAM_ANGLE_NOT_VERIFIED");
+    const order = candidate.order;
+    if (!Number.isInteger(order) || order === undefined || order < 0) {
+      throw new DomainError("同一多机位 Group 的 Cut 顺序必须唯一且为非负整数", "MULTICAM_CUT_ORDER_INVALID");
+    }
+    const resolvedOrder: number = order;
+    if (snapshot.multicamCuts.some((cut) => cut.id !== ownId && cut.groupId === group.id && cut.order === resolvedOrder && cut.status !== "stale")) {
+      throw new DomainError("同一多机位 Group 的 Cut 顺序必须唯一且为非负整数", "MULTICAM_CUT_ORDER_INVALID");
+    }
+    const sessionStartFrame = candidate.sessionStartFrame;
+    const sessionEndFrame = candidate.sessionEndFrame;
+    if (!Number.isInteger(sessionStartFrame) || sessionStartFrame === undefined || !Number.isInteger(sessionEndFrame) || sessionEndFrame === undefined || sessionStartFrame < 0 || sessionEndFrame <= sessionStartFrame) {
+      throw new DomainError("多机位 Cut 的会话范围必须是有效的非负连续帧区间", "MULTICAM_CUT_RANGE_INVALID");
+    }
+    const resolvedSessionStartFrame: number = sessionStartFrame;
+    const resolvedSessionEndFrame: number = sessionEndFrame;
+    const sourceStartFrame = resolvedSessionStartFrame - sync.sessionOffsetFrames;
+    const sourceEndFrame = resolvedSessionEndFrame - sync.sessionOffsetFrames;
+    const asset = assetById(snapshot, angleAssetId);
+    const sourceDuration = millisecondsToFrames(asset.metadata!.durationMs, snapshot.timeline.fps);
+    if (sourceStartFrame < 0 || sourceEndFrame > sourceDuration || sourceEndFrame - sourceStartFrame !== resolvedSessionEndFrame - resolvedSessionStartFrame) {
+      throw new DomainError("多机位 Cut 在所选机位中不具备完整 1:1 源范围；请缩短会话范围或改选可覆盖机位", "MULTICAM_CUT_SOURCE_RANGE_INVALID");
+    }
+    const sourceRange = this.multicamSourceRangeFor(snapshot, sync);
+    const commonSessionRange = this.resolveMulticamCommonSessionRange(snapshot, group);
+    if (sourceStartFrame < sourceRange.startFrame || sourceEndFrame > sourceRange.endFrame
+      || resolvedSessionStartFrame < commonSessionRange.startFrame || resolvedSessionEndFrame > commonSessionRange.endFrame) {
+      throw new DomainError("多机位 Cut 超出了本次已确认同步的共同源范围；请缩短范围或为另一段会话新建同步 Group", "MULTICAM_CUT_OUTSIDE_SYNC_RANGE");
+    }
+    const overlaps = snapshot.multicamCuts.some((cut) => cut.id !== ownId && cut.groupId === group.id && cut.status !== "stale"
+      && cut.sessionStartFrame < resolvedSessionEndFrame && cut.sessionEndFrame > resolvedSessionStartFrame);
+    if (overlaps) throw new DomainError("同一多机位 Group 的 Cut 会话范围不能重叠；请明确唯一主画面", "MULTICAM_CUT_SESSION_OVERLAP");
+    return {
+      groupId: group.id,
+      order: resolvedOrder,
+      angleAssetId,
+      sessionStartFrame: resolvedSessionStartFrame,
+      sessionEndFrame: resolvedSessionEndFrame,
+      sourceStartFrame,
+      sourceEndFrame,
+      reason: requireText(candidate.reason, "多机位切换理由"),
+      continuityNote: requireText(candidate.continuityNote, "多机位连续性说明")
+    };
+  }
+
+  /** 停用旧平铺 Timeline，不改写同步 Group；切换决定仍保留为 planned/stale，供下一次明确重编。 */
+  private disableMulticamProgram(
+    snapshot: ProjectSnapshot,
+    group: MulticamGroup,
+    impact: ImpactReport,
+    reason: string,
+    nextCutStatus: "planned" | "stale"
+  ): void {
+    const sceneId = group.sceneId;
+    const scene = sceneId ? snapshot.scenes.find((candidate) => candidate.id === sceneId) : undefined;
+    let changed = false;
+    if (scene && scene.status !== "stale") {
+      scene.status = "stale";
+      impact.changed.push(scene.id);
+      changed = true;
+    }
+    for (const item of snapshot.timeline.items.filter((candidate) => candidate.sceneId === sceneId && !candidate.disabled)) {
+      item.disabled = true;
+      impact.changed.push(item.id);
+      impact.dirtyRanges.push({ startFrame: item.startFrame, endFrame: item.endFrame, reason: "多机位主线等待重新编译" });
+      changed = true;
+    }
+    for (const cut of snapshot.multicamCuts.filter((candidate) => candidate.groupId === group.id)) {
+      if (cut.sceneId || cut.timelineItemId || cut.status === "ready") {
+        cut.sceneId = undefined;
+        cut.timelineItemId = undefined;
+        cut.status = nextCutStatus;
+        cut.updatedAt = now();
+        impact.changed.push(cut.id);
+        if (nextCutStatus === "stale") impact.stale.push(cut.id);
+        changed = true;
+      }
+    }
+    if (!changed) return;
+    group.sceneId = undefined;
+    group.masterAudioTimelineItemId = undefined;
+    group.programStartFrame = undefined;
+    group.programEndFrame = undefined;
+    group.updatedAt = now();
+    impact.changed.push(group.id);
+    impact.warnings.push(`多机位 Group「${group.title}」${reason}，旧画面与主声音已停止参与合成，等待重新编译。`);
+  }
+
+  /** Vlog 的一个 Scene 内多个 Select 共同承担事件；任一 Select 改动时整段必须回到待复核状态。 */
+  private markVlogMontageSceneStale(snapshot: ProjectSnapshot, sceneId: Id, impact: ImpactReport, reason: string): void {
+    const scene = snapshot.scenes.find((candidate) => candidate.id === sceneId);
+    if (scene && scene.status !== "stale") {
+      scene.status = "stale";
+      impact.changed.push(scene.id);
+    }
+    for (const select of snapshot.vlogShotSelects ?? []) {
+      if (select.sceneId !== sceneId) continue;
+      const videoItem = select.timelineItemId ? snapshot.timeline.items.find((item) => item.id === select.timelineItemId) : undefined;
+      const ambientItem = select.ambientTimelineItemId ? snapshot.timeline.items.find((item) => item.id === select.ambientTimelineItemId) : undefined;
+      const ambient = snapshot.vlogAmbientCues.find((cue) => cue.shotSelectId === select.id);
+      if (videoItem && !videoItem.disabled) {
+        videoItem.disabled = true;
+        impact.changed.push(videoItem.id);
+        impact.dirtyRanges.push({ startFrame: videoItem.startFrame, endFrame: videoItem.endFrame, reason: "Vlog 镜头选择等待重新编译" });
+      }
+      if (ambientItem && !ambientItem.disabled) {
+        ambientItem.disabled = true;
+        impact.changed.push(ambientItem.id);
+      }
+      if (ambient && ambient.status !== "stale") {
+        ambient.status = "stale";
+        ambient.updatedAt = now();
+        impact.changed.push(ambient.id);
+        impact.stale.push(ambient.id);
+      }
+      select.sceneId = undefined;
+      select.timelineItemId = undefined;
+      select.ambientTimelineItemId = undefined;
+      select.status = "stale";
+      select.updatedAt = now();
+      impact.changed.push(select.id);
+      impact.stale.push(select.id);
+    }
+    impact.warnings.push(`Vlog 场景${reason}，相关镜头和现场声已停止参与合成，等待重新编译。`);
+  }
+
+  private markVlogShotSelectStale(snapshot: ProjectSnapshot, select: VlogShotSelect, impact: ImpactReport, reason: string): void {
+    if (select.sceneId) {
+      this.markVlogMontageSceneStale(snapshot, select.sceneId, impact, reason);
+      return;
+    }
+    if (select.status !== "stale") {
+      select.status = "stale";
+      select.updatedAt = now();
+      impact.changed.push(select.id);
+      impact.stale.push(select.id);
     }
   }
 
@@ -2311,6 +4525,108 @@ export class EditingApplication {
     return state;
   }
 
+  /** 人物能力档案属于 Project Revision，便于后续生成结果与当时允许的能力准确对账。 */
+  manageActorCapabilityProfile(input: {
+    projectId: Id;
+    baseRevision: number;
+    action: "create" | "update" | "remove";
+    profileId?: Id;
+    provider?: AvatarProviderKind;
+    label?: string;
+    workflowId?: string;
+    inputModes?: AvatarInputMode[];
+    maskModes?: ActorMaskMode[];
+    supportsReferenceImage?: boolean;
+    supportsReferenceVideo?: boolean;
+    supportsAudioDrivenLipSync?: boolean;
+    supportsGazeControl?: boolean;
+    supportsGestureControl?: boolean;
+    supportsPartialRegeneration?: boolean;
+    maxDurationSeconds?: number;
+    rightsNote?: string;
+    privacyNote?: string;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, input.action === "create" ? "创建人物能力档案" : input.action === "update" ? "更新人物能力档案" : "移除人物能力档案", (snapshot, impact) => {
+      const ensureProvider = (provider: AvatarProviderKind | undefined): AvatarProviderKind => {
+        if (provider !== "minimax_h3_multi_reference") throw new DomainError("当前只支持 minimax_h3_multi_reference 人物 Provider", "AVATAR_PROVIDER_UNSUPPORTED");
+        return provider;
+      };
+      const ensureDuration = (value: number | undefined): number => {
+        if (!Number.isFinite(value) || !Number.isInteger(value) || value! < 1 || value! > 1_800) {
+          throw new DomainError("人物生成最大时长必须是 1 到 1800 的整数秒", "INVALID_AVATAR_MAX_DURATION");
+        }
+        return value!;
+      };
+      const profiles = snapshot.actorCapabilityProfiles;
+      if (input.action === "remove") {
+        const profileId = input.profileId;
+        if (!profileId) throw new DomainError("移除人物能力档案必须指定 profileId", "ACTOR_CAPABILITY_ID_REQUIRED");
+        if (!profiles.some((profile) => profile.id === profileId)) throw new DomainError("要移除的人物能力档案不存在", "ACTOR_CAPABILITY_NOT_FOUND");
+        if (snapshot.actorPerformances.some((performance) => performance.capabilityProfileId === profileId)) {
+          throw new DomainError("该能力档案仍被人物表演引用，不能直接移除", "ACTOR_CAPABILITY_IN_USE");
+        }
+        snapshot.actorCapabilityProfiles = profiles.filter((profile) => profile.id !== profileId);
+        impact.changed.push(profileId);
+        impact.recomputed.push("人物能力档案引用检查");
+        return;
+      }
+
+      if (input.action === "create") {
+        const profile: ActorCapabilityProfile = {
+          id: createId("actor_capability"),
+          provider: ensureProvider(input.provider),
+          label: requireText(input.label, "人物能力档案名称"),
+          workflowId: requireText(input.workflowId, "人物 Provider 工作流 ID"),
+          inputModes: normalizeAvatarInputModes(input.inputModes ?? []),
+          maskModes: normalizeActorMaskModes(input.maskModes ?? []),
+          supportsReferenceImage: input.supportsReferenceImage ?? false,
+          supportsReferenceVideo: input.supportsReferenceVideo ?? false,
+          supportsAudioDrivenLipSync: input.supportsAudioDrivenLipSync ?? false,
+          supportsGazeControl: input.supportsGazeControl ?? false,
+          supportsGestureControl: input.supportsGestureControl ?? false,
+          supportsPartialRegeneration: input.supportsPartialRegeneration ?? false,
+          maxDurationSeconds: ensureDuration(input.maxDurationSeconds),
+          rightsNote: requireText(input.rightsNote, "人物 Provider 权利说明"),
+          privacyNote: requireText(input.privacyNote, "人物 Provider 隐私说明"),
+          createdAt: now(),
+          updatedAt: now()
+        };
+        profiles.push(profile);
+        impact.changed.push(profile.id);
+        impact.recomputed.push("人物 Provider 能力与表演规划边界");
+        return;
+      }
+
+      const profileId = input.profileId;
+      if (!profileId) throw new DomainError("更新人物能力档案必须指定 profileId", "ACTOR_CAPABILITY_ID_REQUIRED");
+      const profile = profiles.find((candidate) => candidate.id === profileId);
+      if (!profile) throw new DomainError("要更新的人物能力档案不存在", "ACTOR_CAPABILITY_NOT_FOUND");
+      if (input.provider !== undefined) profile.provider = ensureProvider(input.provider);
+      if (input.label !== undefined) profile.label = requireText(input.label, "人物能力档案名称");
+      if (input.workflowId !== undefined) profile.workflowId = requireText(input.workflowId, "人物 Provider 工作流 ID");
+      if (input.inputModes !== undefined) profile.inputModes = normalizeAvatarInputModes(input.inputModes);
+      if (input.maskModes !== undefined) profile.maskModes = normalizeActorMaskModes(input.maskModes);
+      if (input.supportsReferenceImage !== undefined) profile.supportsReferenceImage = input.supportsReferenceImage;
+      if (input.supportsReferenceVideo !== undefined) profile.supportsReferenceVideo = input.supportsReferenceVideo;
+      if (input.supportsAudioDrivenLipSync !== undefined) profile.supportsAudioDrivenLipSync = input.supportsAudioDrivenLipSync;
+      if (input.supportsGazeControl !== undefined) profile.supportsGazeControl = input.supportsGazeControl;
+      if (input.supportsGestureControl !== undefined) profile.supportsGestureControl = input.supportsGestureControl;
+      if (input.supportsPartialRegeneration !== undefined) profile.supportsPartialRegeneration = input.supportsPartialRegeneration;
+      if (input.maxDurationSeconds !== undefined) profile.maxDurationSeconds = ensureDuration(input.maxDurationSeconds);
+      if (input.rightsNote !== undefined) profile.rightsNote = requireText(input.rightsNote, "人物 Provider 权利说明");
+      if (input.privacyNote !== undefined) profile.privacyNote = requireText(input.privacyNote, "人物 Provider 隐私说明");
+      profile.updatedAt = now();
+      impact.changed.push(profile.id);
+      impact.recomputed.push("人物 Provider 能力与表演规划边界");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  listActorCapabilityProfiles(projectId: Id): ActorCapabilityProfile[] {
+    return this.readProject(projectId).snapshot.actorCapabilityProfiles;
+  }
+
   /**
    * 将既有主画面 Item 明确登记为人物表演。Mask 只接受已就绪的本地透明图片；
    * 没有 Mask 时保留可播放的前景降级，而不伪造人物抠像。
@@ -2324,6 +4640,8 @@ export class EditingApplication {
     audioMode?: ActorAudioMode;
     maskAssetId?: Id;
     speechAssetId?: Id;
+    capabilityProfileId?: Id;
+    layout?: ActorLayout;
     note?: string;
   }): ProjectState {
     const state = this.repository.commit(input.projectId, input.baseRevision, "登记人物表演", (snapshot, impact) => {
@@ -2334,15 +4652,34 @@ export class EditingApplication {
       if (!item.sceneId) throw new DomainError("人物表演必须先归属一个 PresenterScene", "ACTOR_SCENE_REQUIRED");
       const actorAsset = assetById(snapshot, item.assetId);
       if (actorAsset.status !== "ready" || !actorAsset.metadata?.videoCodec) throw new DomainError("人物视频尚未就绪或不是有效视频", "ACTOR_ASSET_NOT_READY");
+      const layout = input.layout === undefined ? undefined : normalizeActorLayout(input.layout);
 
       if (input.maskMode === "alpha_asset") {
         if (!input.maskAssetId) throw new DomainError("alpha_asset 模式必须指定透明 Mask 素材", "MASK_REQUIRED");
         const mask = assetById(snapshot, input.maskAssetId);
-        if (mask.status !== "ready" || !["image", "derived"].includes(mask.kind)) {
-          throw new DomainError("Mask 必须是已就绪的图片或派生素材", "INVALID_MASK_ASSET");
+        if (mask.status !== "ready" || !["image", "derived"].includes(mask.kind) || mask.role !== "actor_mask") {
+          throw new DomainError("静态 Mask 必须是已就绪且角色为 actor_mask 的图片或派生素材", "INVALID_MASK_ASSET");
+        }
+        if (!mask.metadata?.hasAlpha) {
+          throw new DomainError("静态 Mask 必须经媒体分析确认包含 Alpha，普通图片不能冒充透明遮挡", "ACTOR_MASK_ALPHA_REQUIRED");
+        }
+        if (!actorAsset.metadata.width || !actorAsset.metadata.height || !mask.metadata.width || !mask.metadata.height) {
+          throw new DomainError("人物视频与静态 Mask 都必须有已分析的尺寸，才能确认遮挡对齐", "ACTOR_MASK_DIMENSIONS_REQUIRED");
+        }
+        if (actorAsset.metadata.width !== mask.metadata.width || actorAsset.metadata.height !== mask.metadata.height) {
+          throw new DomainError("静态 Mask 尺寸必须与人物视频完全一致，不能靠 CSS 拉伸伪造对齐", "ACTOR_MASK_DIMENSIONS_MISMATCH");
+        }
+        if (!layout) {
+          throw new DomainError("静态 Mask 只允许已明确登记人工静态布局的人物；动态动作请保持无 Mask 降级或导入匹配 Alpha 视频", "STATIC_MASK_LAYOUT_REQUIRED");
         }
       } else if (input.maskAssetId) {
         throw new DomainError("仅 alpha_asset 模式允许指定独立 Mask 素材", "UNEXPECTED_MASK_ASSET");
+      }
+      if (input.maskMode === "embedded_alpha" && !actorAsset.metadata.hasAlpha) {
+        throw new DomainError("embedded_alpha 必须经媒体分析确认人物视频本身包含 Alpha，不能只靠模式字段声明", "EMBEDDED_ALPHA_REQUIRED");
+      }
+      if (input.capabilityProfileId && !snapshot.actorCapabilityProfiles.some((profile) => profile.id === input.capabilityProfileId)) {
+        throw new DomainError("人物表演引用的能力档案不存在", "ACTOR_CAPABILITY_NOT_FOUND");
       }
 
       let speechAssetId = input.speechAssetId;
@@ -2370,6 +4707,8 @@ export class EditingApplication {
         speechAssetId,
         scriptRevision,
         audioMode,
+        capabilityProfileId: input.capabilityProfileId,
+        layout,
         note: input.note
       });
       if (existing) {
@@ -2379,6 +4718,8 @@ export class EditingApplication {
         existing.speechAssetId = speechAssetId;
         existing.scriptRevision = scriptRevision;
         existing.audioMode = audioMode;
+        if (input.capabilityProfileId !== undefined) existing.capabilityProfileId = input.capabilityProfileId;
+        if (layout !== undefined) existing.layout = layout;
         existing.status = "ready";
         existing.note = input.note ?? existing.note;
       } else {
@@ -2391,6 +4732,420 @@ export class EditingApplication {
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     return state;
+  }
+
+  /** NarrativeMap 复用 Story 的 Beat，只补充观众知识状态，不另建叙事真相。 */
+  readNarrativeMap(input: { projectId: Id }): { revision: number; narrativeMap?: NarrativeMap } {
+    const state = this.readProject(input.projectId);
+    return { revision: state.revision.number, narrativeMap: state.snapshot.narrativeMap };
+  }
+
+  manageNarrativeMap(input: {
+    projectId: Id;
+    baseRevision: number;
+    viewerQuestion: string;
+    promisedModel: string;
+    conclusion: string;
+    beats: Array<{
+      narrativeBeatId: Id;
+      enteringKnowledge: string;
+      question: string;
+      newKnowledge: string;
+      deferredInformation: string;
+      claim?: string;
+      evidenceCaptureIds?: Id[];
+      sceneIds?: Id[];
+    }>;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "更新视觉解释 NarrativeMap", (snapshot, impact) => {
+      if (input.beats.length === 0) throw new DomainError("NarrativeMap 至少需要一个与 Story Beat 对应的认知步骤", "NARRATIVE_MAP_BEAT_REQUIRED");
+      const previous = snapshot.narrativeMap;
+      const previousByStoryBeat = new Map((previous?.beats ?? []).map((beat) => [beat.narrativeBeatId, beat]));
+      const seenStoryBeatIds = new Set<Id>();
+      const beats: NarrativeMapBeat[] = input.beats.map((draft) => {
+        if (seenStoryBeatIds.has(draft.narrativeBeatId)) throw new DomainError("NarrativeMap 不能重复引用同一个 Story Beat", "NARRATIVE_MAP_BEAT_DUPLICATED");
+        seenStoryBeatIds.add(draft.narrativeBeatId);
+        if (!snapshot.story.beats.some((beat) => beat.id === draft.narrativeBeatId)) throw new DomainError("NarrativeMap 引用了不存在的 Story Beat", "NARRATIVE_MAP_STORY_BEAT_NOT_FOUND");
+        const existing = previousByStoryBeat.get(draft.narrativeBeatId);
+        const evidenceCaptureIds = [...new Set(draft.evidenceCaptureIds ?? existing?.evidenceCaptureIds ?? [])];
+        for (const evidenceCaptureId of evidenceCaptureIds) {
+          if (!snapshot.evidenceCaptures.some((capture) => capture.id === evidenceCaptureId)) {
+            throw new DomainError("NarrativeMap 引用了不存在的 EvidenceCapture", "NARRATIVE_MAP_EVIDENCE_NOT_FOUND");
+          }
+        }
+        const sceneIds = [...new Set(draft.sceneIds ?? existing?.sceneIds ?? [])];
+        for (const sceneId of sceneIds) {
+          if (!snapshot.scenes.some((scene) => scene.id === sceneId)) throw new DomainError("NarrativeMap 引用了不存在的 Scene", "NARRATIVE_MAP_SCENE_NOT_FOUND");
+        }
+        return {
+          id: existing?.id ?? createId("narrative_map_beat"),
+          narrativeBeatId: draft.narrativeBeatId,
+          enteringKnowledge: requireText(draft.enteringKnowledge, "进入场景前观众已知信息"),
+          question: requireText(draft.question, "当前观众问题"),
+          newKnowledge: requireText(draft.newKnowledge, "本拍新增理解"),
+          deferredInformation: requireText(draft.deferredInformation, "延后披露的信息"),
+          claim: draft.claim?.trim() || undefined,
+          evidenceCaptureIds,
+          sceneIds
+        };
+      });
+      const next: NarrativeMap = {
+        id: previous?.id ?? createId("narrative_map"),
+        viewerQuestion: requireText(input.viewerQuestion, "观众核心问题"),
+        promisedModel: requireText(input.promisedModel, "视频承诺的理解模型"),
+        conclusion: requireText(input.conclusion, "NarrativeMap 结论"),
+        beats,
+        updatedAt: now()
+      };
+      const validMapBeatIds = new Set(next.beats.map((beat) => beat.id));
+      snapshot.narrativeMap = next;
+      for (const program of snapshot.explainerPrograms) {
+        if (!program.narrativeMapBeatId) continue;
+        const previousBeat = previous?.beats.find((beat) => beat.id === program.narrativeMapBeatId);
+        const nextBeat = next.beats.find((beat) => beat.id === program.narrativeMapBeatId);
+        if (!nextBeat) {
+          this.markExplainerProgramStale(snapshot, impact, program, "NarrativeMap 结构已变化");
+        } else if (!previousBeat || stableJson(previousBeat) !== stableJson(nextBeat)
+          || previous?.viewerQuestion !== next.viewerQuestion
+          || previous.promisedModel !== next.promisedModel
+          || previous.conclusion !== next.conclusion) {
+          // Scene 视觉语法依赖“观众此刻应理解什么”，因此 Map 文案或证据绑定变更不能继续复用旧 Program。
+          this.markExplainerProgramStale(snapshot, impact, program, "NarrativeMap 的观众问题、知识状态或结论已变化");
+        }
+      }
+      impact.changed.push(next.id, ...next.beats.map((beat) => beat.id));
+      impact.recomputed.push("NarrativeMap 观众知识状态与 Explainer 失效范围");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /** EvidenceCapture 接受已本地化的原始来源与真实页面快照；不会用网页标题或生成图冒充证据。 */
+  manageEvidenceCapture(input: {
+    projectId: Id;
+    baseRevision: number;
+    action: "create" | "update" | "remove";
+    evidenceCaptureId?: Id;
+    sourceAssetId?: Id;
+    snapshotAssetId?: Id;
+    sourceTitle?: string;
+    publisher?: string;
+    sourceUrl?: string;
+    capturedAt?: string;
+    pageOrRange?: string;
+    excerpt?: string;
+    claim?: string;
+    limitation?: string;
+    highlights?: EvidenceHighlight[];
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, input.action === "create" ? "登记证据快照" : input.action === "update" ? "更新证据快照" : "移除证据快照", (snapshot, impact) => {
+      if (input.action === "remove") {
+        const captureId = requireText(input.evidenceCaptureId, "EvidenceCapture ID");
+        if (!snapshot.evidenceCaptures.some((capture) => capture.id === captureId)) throw new NotFoundError("EvidenceCapture 不存在");
+        const referencedByMap = snapshot.narrativeMap?.beats.some((beat) => beat.evidenceCaptureIds.includes(captureId));
+        const referencedByProgram = snapshot.explainerPrograms.some((program) => program.evidenceCaptureId === captureId);
+        if (referencedByMap || referencedByProgram) throw new DomainError("EvidenceCapture 仍被 NarrativeMap 或 Explainer Scene 使用，不能直接移除", "EVIDENCE_CAPTURE_IN_USE");
+        snapshot.evidenceCaptures = snapshot.evidenceCaptures.filter((capture) => capture.id !== captureId);
+        impact.changed.push(captureId);
+        return;
+      }
+
+      const existing = input.evidenceCaptureId ? snapshot.evidenceCaptures.find((capture) => capture.id === input.evidenceCaptureId) : undefined;
+      if (input.action === "update" && !existing) throw new NotFoundError("要更新的 EvidenceCapture 不存在");
+      const sourceAssetId = input.sourceAssetId ?? existing?.sourceAssetId;
+      if (!sourceAssetId) throw new DomainError("EvidenceCapture 必须指定原始来源 Asset", "EVIDENCE_SOURCE_ASSET_REQUIRED");
+      const sourceAsset = assetById(snapshot, sourceAssetId);
+      if (sourceAsset.status !== "ready" || sourceAsset.provenance?.source === "generated") {
+        throw new DomainError("证据原始素材必须是已就绪且非生成的真实来源", "EVIDENCE_SOURCE_ASSET_INVALID");
+      }
+      const snapshotAssetId = input.snapshotAssetId ?? existing?.snapshotAssetId;
+      if (snapshotAssetId) {
+        const snapshotAsset = assetById(snapshot, snapshotAssetId);
+        if (snapshotAsset.status !== "ready" || !["image", "derived"].includes(snapshotAsset.kind) || snapshotAsset.provenance?.source === "generated") {
+          throw new DomainError("证据页面快照必须是已就绪且非生成的图片素材", "EVIDENCE_SNAPSHOT_ASSET_INVALID");
+        }
+      }
+      const capture: EvidenceCapture = {
+        id: existing?.id ?? createId("evidence_capture"),
+        sourceAssetId,
+        snapshotAssetId,
+        sourceTitle: requireText(input.sourceTitle ?? existing?.sourceTitle, "证据来源标题"),
+        publisher: input.publisher?.trim() || existing?.publisher,
+        sourceUrl: requireText(input.sourceUrl ?? existing?.sourceUrl, "证据来源 URL"),
+        capturedAt: input.capturedAt ?? existing?.capturedAt ?? now(),
+        pageOrRange: input.pageOrRange?.trim() || existing?.pageOrRange,
+        excerpt: requireText(input.excerpt ?? existing?.excerpt, "证据原文摘录"),
+        claim: requireText(input.claim ?? existing?.claim, "证据支持的主张"),
+        limitation: requireText(input.limitation ?? existing?.limitation, "证据适用限制"),
+        highlights: normalizeEvidenceHighlights(input.highlights ?? existing?.highlights),
+        status: "ready",
+        createdAt: existing?.createdAt ?? now(),
+        updatedAt: now()
+      };
+      if (existing) {
+        Object.assign(existing, capture);
+      } else {
+        snapshot.evidenceCaptures.push(capture);
+      }
+      for (const program of snapshot.explainerPrograms.filter((program) => program.evidenceCaptureId === capture.id)) {
+        this.markExplainerProgramStale(snapshot, impact, program, "证据截图、原文或高亮已变化");
+      }
+      impact.changed.push(capture.id);
+      impact.recomputed.push("证据来源、页面快照、高亮和 Explainer 复核范围");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  readEvidenceCapture(input: { projectId: Id; evidenceCaptureId?: Id }): { revision: number; evidenceCaptures: EvidenceCapture[] } {
+    const state = this.readProject(input.projectId);
+    const captures = input.evidenceCaptureId
+      ? state.snapshot.evidenceCaptures.filter((capture) => capture.id === input.evidenceCaptureId)
+      : state.snapshot.evidenceCaptures;
+    if (input.evidenceCaptureId && captures.length === 0) throw new NotFoundError("EvidenceCapture 不存在");
+    return { revision: state.revision.number, evidenceCaptures: captures };
+  }
+
+  /** Explainer 编译原子生成 Scene、Program 与 VisualTreatment；不会将每句旁白退化成独立卡片。 */
+  compileExplainerScenes(input: {
+    projectId: Id;
+    baseRevision: number;
+    plans: Array<{
+      title: string;
+      purpose: string;
+      startFrame: number;
+      endFrame: number;
+      narrativeMapBeatId: Id;
+      kind: ExplainerSceneKind;
+      primaryTask: string;
+      assetIds?: Id[];
+      evidenceCaptureId?: Id;
+      states: Array<Omit<ExplainerSceneState, "id"> & { id?: Id }>;
+      props?: Record<string, unknown>;
+      stylePackId?: string;
+      visualTreatment?: {
+        mode?: VisualTreatment["mode"];
+        intensity?: VisualTreatment["intensity"];
+        primaryAttention?: string;
+        narrativePurpose?: string;
+        quietReason?: string;
+        fallbackPlan?: string;
+      };
+    }>;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "编译视觉解释场景", (snapshot, impact) => {
+      const narrativeMap = snapshot.narrativeMap;
+      if (!narrativeMap) throw new DomainError("必须先建立 NarrativeMap，才能编译 Explainer Scene", "NARRATIVE_MAP_REQUIRED");
+      if (input.plans.length === 0) throw new DomainError("至少需要一个 Explainer Scene 计划", "EXPLAINER_SCENE_PLAN_REQUIRED");
+      const sortedPlans = [...input.plans].sort((left, right) => left.startFrame - right.startFrame);
+      for (let index = 0; index < sortedPlans.length; index += 1) {
+        const plan = sortedPlans[index]!;
+        if (!Number.isInteger(plan.startFrame) || !Number.isInteger(plan.endFrame) || plan.startFrame < 0 || plan.endFrame <= plan.startFrame) {
+          throw new DomainError("Explainer Scene 的帧范围无效", "INVALID_EXPLAINER_SCENE_RANGE");
+        }
+        if (index > 0 && sortedPlans[index - 1]!.endFrame > plan.startFrame) throw new DomainError("主视觉 Explainer Scene 不能重叠", "EXPLAINER_SCENE_OVERLAP");
+      }
+
+      const previousPrograms = [...snapshot.explainerPrograms];
+      const previousSceneIds = new Set(previousPrograms.map((program) => program.sceneId));
+      this.removeCutawaysForHostScenes(snapshot, previousSceneIds, impact);
+      const removedCueIds = snapshot.effectCues.filter((cue) => previousSceneIds.has(cue.sceneId)).map((cue) => cue.id);
+      const removedItemIds = snapshot.timeline.items.filter((item) => item.sceneId && previousSceneIds.has(item.sceneId)).map((item) => item.id);
+      snapshot.effectCues = snapshot.effectCues.filter((cue) => !previousSceneIds.has(cue.sceneId));
+      snapshot.timeline.items = snapshot.timeline.items.filter((item) => !previousSceneIds.has(item.sceneId ?? ""));
+      snapshot.scenes = snapshot.scenes.filter((scene) => !previousSceneIds.has(scene.id));
+      snapshot.explainerPrograms = [];
+      for (const storyBeat of snapshot.story.beats) storyBeat.sceneIds = storyBeat.sceneIds.filter((sceneId) => !previousSceneIds.has(sceneId));
+      for (const mapBeat of narrativeMap.beats) mapBeat.sceneIds = mapBeat.sceneIds.filter((sceneId) => !previousSceneIds.has(sceneId));
+      const treatmentIdsToRemove = new Set<Id>();
+      for (const treatment of snapshot.visualTreatments) {
+        if (!treatment.sceneId || !previousSceneIds.has(treatment.sceneId)) continue;
+        if (treatment.narrativeBeatId) {
+          treatment.sceneId = undefined;
+          treatment.status = "stale";
+          treatment.updatedAt = now();
+          impact.stale.push(treatment.id);
+        } else {
+          treatmentIdsToRemove.add(treatment.id);
+        }
+      }
+      snapshot.visualTreatments = snapshot.visualTreatments.filter((treatment) => !treatmentIdsToRemove.has(treatment.id));
+      impact.stale.push(...previousPrograms.map((program) => program.id), ...previousSceneIds, ...removedCueIds, ...removedItemIds, ...treatmentIdsToRemove);
+
+      for (const plan of sortedPlans) {
+        const mapBeat = narrativeMap.beats.find((beat) => beat.id === plan.narrativeMapBeatId);
+        if (!mapBeat) throw new DomainError("Explainer Scene 引用了不存在的 NarrativeMap Beat", "EXPLAINER_MAP_BEAT_NOT_FOUND");
+        const storyBeat = snapshot.story.beats.find((beat) => beat.id === mapBeat.narrativeBeatId);
+        if (!storyBeat) throw new DomainError("NarrativeMap Beat 缺少对应 Story Beat", "EXPLAINER_STORY_BEAT_NOT_FOUND");
+        const kind = requireExplainerKind(plan.kind);
+        const duration = plan.endFrame - plan.startFrame;
+        const states = normalizeExplainerStates(plan.states.map((state) => ({ ...state, id: state.id ?? createId("explainer_state") })) as ExplainerSceneState[], duration);
+        const props = structuredClone(plan.props ?? {});
+        const evidence = plan.evidenceCaptureId ? snapshot.evidenceCaptures.find((capture) => capture.id === plan.evidenceCaptureId) : undefined;
+        if (plan.evidenceCaptureId && !evidence) throw new DomainError("Explainer Scene 引用了不存在的 EvidenceCapture", "EXPLAINER_EVIDENCE_NOT_FOUND");
+        if (kind === "EvidenceDocument" && !evidence) throw new DomainError("EvidenceDocument 必须绑定真实 EvidenceCapture", "EVIDENCE_DOCUMENT_CAPTURE_REQUIRED");
+        // 引语卡只能明确呈现“谁说了什么”，不能借用 EvidenceCapture 把观点包装成已完成事实举证。
+        if (kind === "QuotePortrait" && evidence) {
+          throw new DomainError("QuotePortrait 不能绑定 EvidenceCapture；请分别建立原文证据场景或明确引用来源", "QUOTE_PORTRAIT_EVIDENCE_CAPTURE_BLOCKED");
+        }
+        if (kind === "RealityBroll" && evidence) {
+          throw new DomainError("RealityBroll 不应绑定 EvidenceCapture；现实素材与文档举证必须保持可审查的不同职责", "REALITY_BROLL_EVIDENCE_CAPTURE_BLOCKED");
+        }
+        if (kind === "EvidenceDocument" && evidence) {
+          const visualAssetId = evidence.snapshotAssetId ?? evidence.sourceAssetId;
+          const visualAsset = assetById(snapshot, visualAssetId);
+          if (visualAsset.kind !== "image" && visualAsset.kind !== "derived") {
+            throw new DomainError("EvidenceDocument 必须绑定真实页面截图，或以图片作为来源本体", "EVIDENCE_DOCUMENT_SNAPSHOT_REQUIRED");
+          }
+        }
+        const sourceAssetIds = [...new Set([...(plan.assetIds ?? []), ...(evidence ? [evidence.sourceAssetId, ...(evidence.snapshotAssetId ? [evidence.snapshotAssetId] : [])] : [])])];
+        for (const assetId of sourceAssetIds) {
+          const asset = assetById(snapshot, assetId);
+          if (asset.status !== "ready") throw new DomainError("Explainer Scene 只能绑定已就绪的项目素材", "EXPLAINER_ASSET_NOT_READY");
+        }
+        if (kind === "UIWalkthrough") {
+          if (sourceAssetIds.length === 0) throw new DomainError("UIWalkthrough 必须绑定真实界面截图或录屏", "UI_WALKTHROUGH_ASSET_REQUIRED");
+          if (sourceAssetIds.some((assetId) => assetById(snapshot, assetId).provenance?.source === "generated")) {
+            throw new DomainError("UIWalkthrough 不能把生成画面冒充真实产品界面", "UI_WALKTHROUGH_GENERATED_ASSET_BLOCKED");
+          }
+        }
+        if (kind === "DataConclusion") {
+          const values = Array.isArray(props.values) ? props.values : [];
+          const labels = Array.isArray(props.labels) ? props.labels : [];
+          if (values.length === 0 || values.some((value) => typeof value !== "number" || !Number.isFinite(value)) || labels.length !== values.length
+            || !asRequiredString(props.source) || !asRequiredString(props.unit) || !asRequiredString(props.baseline)) {
+            throw new DomainError("DataConclusion 必须提供同长度数据/标签、来源、单位和基线", "DATA_CONCLUSION_FACTS_REQUIRED");
+          }
+        }
+        if (kind === "ProgressiveClassification" && asStringList(props.items).length < 2) {
+          throw new DomainError("ProgressiveClassification 至少需要两项真实分类", "CLASSIFICATION_ITEMS_REQUIRED");
+        }
+        if (kind === "RouteAndFlow" && asStringList(props.nodes).length < 2) {
+          throw new DomainError("RouteAndFlow 至少需要两个持续存在的流程节点", "FLOW_NODES_REQUIRED");
+        }
+        if (kind === "Comparison" && (!asRequiredString(props.leftLabel) || !asRequiredString(props.rightLabel) || !asRequiredString(props.dimension))) {
+          throw new DomainError("Comparison 必须明确双方和比较维度", "COMPARISON_FACTS_REQUIRED");
+        }
+        if (kind === "HeroReveal" && !asRequiredString(props.metric)) {
+          throw new DomainError("HeroReveal 必须提供可核对的核心数字或对象", "HERO_REVEAL_METRIC_REQUIRED");
+        }
+        if (kind === "PeopleGrouping" && (asStringList(props.groups).length < 2 || !asRequiredString(props.dimension))) {
+          throw new DomainError("PeopleGrouping 至少需要两个人群及其分组维度", "PEOPLE_GROUPING_FACTS_REQUIRED");
+        }
+        if (kind === "LayerStack" && (asStringList(props.layers).length < 2 || !asRequiredString(props.relationship))) {
+          throw new DomainError("LayerStack 至少需要两层结构及层间关系说明", "LAYER_STACK_FACTS_REQUIRED");
+        }
+        if (kind === "HistoryTimeline" && (asHistoryEvents(props.events).length < 2 || !asRequiredString(props.source))) {
+          throw new DomainError("HistoryTimeline 至少需要两个含日期的历史节点和可追溯来源", "HISTORY_TIMELINE_FACTS_REQUIRED");
+        }
+        if (kind === "QuotePortrait") {
+          if (!asRequiredString(props.quote) || !asRequiredString(props.attribution) || !asRequiredString(props.source)) {
+            throw new DomainError("QuotePortrait 必须说明引语、归属与来源，不能把观点写成无主断言", "QUOTE_PORTRAIT_FACTS_REQUIRED");
+          }
+          if (sourceAssetIds.length === 0 || sourceAssetIds.some((assetId) => {
+            const asset = assetById(snapshot, assetId);
+            return !["image", "video"].includes(asset.kind) || asset.provenance?.source === "generated";
+          })) {
+            throw new DomainError("QuotePortrait 必须绑定已就绪、非生成的真实人物或机构视觉素材", "QUOTE_PORTRAIT_ASSET_REQUIRED");
+          }
+        }
+        if (kind === "RealityBroll" && (sourceAssetIds.length === 0 || sourceAssetIds.some((assetId) => {
+          const asset = assetById(snapshot, assetId);
+          return !["image", "video"].includes(asset.kind) || asset.provenance?.source === "generated";
+        }))) {
+          throw new DomainError("RealityBroll 必须绑定已就绪、非生成的本地图片或视频素材", "REALITY_BROLL_ASSET_REQUIRED");
+        }
+
+        const stylePackId = plan.stylePackId?.trim() || snapshot.project.stylePackId;
+        const scene = createScene({ type: "ExplainerScene", title: requireText(plan.title, "Explainer 场景标题"), purpose: requireText(plan.purpose, "Explainer 场景目的"), startFrame: plan.startFrame, endFrame: plan.endFrame, assetIds: sourceAssetIds });
+        scene.narrativeBeatIds = [storyBeat.id];
+        scene.status = "ready";
+        scene.stylePackId = stylePackId;
+        const cacheKey = explainerCacheKey({
+          kind,
+          primaryTask: requireText(plan.primaryTask, "Explainer 主认知任务"),
+          assetHashes: sourceAssetIds.map((assetId) => assetById(snapshot, assetId).sourceHash ?? assetId),
+          states,
+          props,
+          stylePackId,
+          renderTarget: {
+            fps: snapshot.timeline.fps,
+            width: snapshot.timeline.width,
+            height: snapshot.timeline.height
+          },
+          runtimeVersion: EXPLAINER_SCENE_RUNTIME_VERSION,
+          // Map / Evidence 是视觉解释的事实输入，纳入缓存键，重编后不会把旧解释画面误复用。
+          narrativeMapBeat: mapBeat,
+          evidence: evidence ? {
+            id: evidence.id,
+            sourceAssetId: evidence.sourceAssetId,
+            snapshotAssetId: evidence.snapshotAssetId,
+            excerpt: evidence.excerpt,
+            claim: evidence.claim,
+            limitation: evidence.limitation,
+            highlights: evidence.highlights
+          } : undefined
+        });
+        const program: ExplainerSceneProgram = {
+          id: createId("explainer_program"),
+          sceneId: scene.id,
+          kind,
+          narrativeMapBeatId: mapBeat.id,
+          primaryTask: requireText(plan.primaryTask, "Explainer 主认知任务"),
+          assetIds: sourceAssetIds,
+          evidenceCaptureId: evidence?.id,
+          states,
+          props,
+          cacheKey,
+          status: "ready",
+          createdAt: now(),
+          updatedAt: now()
+        };
+        snapshot.scenes.push(scene);
+        snapshot.explainerPrograms.push(program);
+        storyBeat.sceneIds.push(scene.id);
+        mapBeat.sceneIds.push(scene.id);
+        const treatment = plan.visualTreatment;
+        snapshot.visualTreatments.push(createVisualTreatment({
+          sceneId: scene.id,
+          mode: treatment?.mode ?? (kind === "EvidenceDocument" ? "evidence" : "remotion"),
+          primaryAttention: treatment?.primaryAttention?.trim() || program.primaryTask,
+          narrativePurpose: treatment?.narrativePurpose?.trim() || scene.purpose,
+          intensity: treatment?.intensity ?? "medium",
+          quietReason: treatment?.quietReason?.trim() || undefined,
+          fallbackPlan: treatment?.fallbackPlan?.trim() || undefined
+        }));
+        impact.changed.push(scene.id, program.id);
+        impact.dirtyRanges.push({ startFrame: scene.startFrame, endFrame: scene.endFrame, reason: `编译 ${kind} 解释场景` });
+      }
+      impact.recomputed.push("Explainer Scene Registry、VisualTreatment 与场景级缓存键");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  readExplainerScenePrograms(input: { projectId: Id; sceneId?: Id }): { revision: number; programs: ExplainerSceneProgram[] } {
+    const state = this.readProject(input.projectId);
+    const programs = input.sceneId ? state.snapshot.explainerPrograms.filter((program) => program.sceneId === input.sceneId) : state.snapshot.explainerPrograms;
+    if (input.sceneId && programs.length === 0) throw new NotFoundError("Explainer Scene Program 不存在");
+    return { revision: state.revision.number, programs };
+  }
+
+  /** 上游 Map 或证据改变时，保留旧 Program 供审查，但不允许它继续作为 ready 成片渲染。 */
+  private markExplainerProgramStale(snapshot: ProjectSnapshot, impact: ImpactReport, program: ExplainerSceneProgram, reason: string): void {
+    const scene = snapshot.scenes.find((candidate) => candidate.id === program.sceneId);
+    if (program.status !== "stale") {
+      program.status = "stale";
+      program.updatedAt = now();
+      impact.changed.push(program.id);
+      impact.stale.push(program.id);
+    }
+    if (scene && scene.status !== "stale") {
+      scene.status = "stale";
+      impact.changed.push(scene.id);
+      impact.stale.push(scene.id);
+    }
+    impact.warnings.push(`Explainer Scene「${program.kind}」${reason}，已标记为需重新编译。`);
   }
 
   createScene(input: { projectId: Id; baseRevision: number; type: SceneType; title: string; purpose: string; startFrame: number; endFrame: number; assetIds?: Id[] }): ProjectState {
@@ -3019,6 +5774,854 @@ export class EditingApplication {
   }
 
   /**
+   * 音乐生成只固定一个已确认的 Bridge workflow、提示词和精确时长；Worker 会在付费调用前
+   * 动态读取 Schema。生成成功也只登记 unknown 权利素材，是否进入 BGM 仍由后续音频决定和交付门禁判断。
+   */
+  submitMusicGeneration(input: {
+    projectId: Id;
+    baseRevision: number;
+    workflowId: string;
+    prompt: string;
+    durationSeconds: number;
+    outputSlotId?: string;
+    idempotencyKey?: string;
+  }): JobRecord {
+    const state = this.readProject(input.projectId);
+    if (state.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, state.revision.number);
+    const workflowId = requireText(input.workflowId, "音乐 Bridge workflowId");
+    const prompt = requireText(input.prompt, "音乐提示词");
+    if (!Number.isInteger(input.durationSeconds) || input.durationSeconds < 1 || input.durationSeconds > 1_800) {
+      throw new DomainError("音乐生成时长必须是 1 到 1800 秒的整数", "INVALID_MUSIC_DURATION");
+    }
+    const outputSlotId = input.outputSlotId?.trim() || undefined;
+    const payload: MusicGenerationJobPayload = {
+      requestedRevision: state.revision.number,
+      workflowId,
+      prompt,
+      durationSeconds: input.durationSeconds,
+      outputSlotId
+    };
+    const promptHash = createHash("sha256").update(`${workflowId}\n${prompt}\n${input.durationSeconds}\n${outputSlotId ?? ""}`).digest("hex").slice(0, 24);
+    const job = this.repository.createJob({
+      projectId: input.projectId,
+      kind: "music_generation",
+      payload,
+      idempotencyKey: input.idempotencyKey ?? `music_generation:${state.revision.number}:${promptHash}`
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
+    return job;
+  }
+
+  /**
+   * Worker 已完成下载、解码与哈希核验后，才在同一 Revision 中登记生成音乐。这里不自动放到 BGM 轨，
+   * 因为“拿到一首音乐”不等于它适合当前叙事、长度、Duck 或权利交付。
+   */
+  completeMusicGeneration(input: {
+    projectId: Id;
+    jobId: Id;
+    musicAudio: CompletedMusicAudio;
+    bridgeAudit: BridgeRunAudit;
+  }): { state: ProjectState; asset: Asset; duplicate: boolean } {
+    const job = this.repository.getJob(input.jobId);
+    if (job.projectId !== input.projectId || job.kind !== "music_generation") {
+      throw new DomainError("该任务不是当前项目的音乐生成任务", "MUSIC_JOB_NOT_FOUND");
+    }
+    const currentAtStart = this.readProject(input.projectId);
+    const completedAssetId = typeof job.result?.musicAssetId === "string" ? job.result.musicAssetId : undefined;
+    if (completedAssetId) {
+      const existing = currentAtStart.snapshot.assets.find((asset) => asset.id === completedAssetId);
+      if (!existing) throw new DomainError("音乐 Job 已有完成回执，但对应素材不存在", "MUSIC_COMPLETION_CORRUPTED");
+      return { state: currentAtStart, asset: existing, duplicate: true };
+    }
+    const payload = job.payload as Partial<MusicGenerationJobPayload>;
+    const payloadDuration = payload.durationSeconds;
+    if (!Number.isInteger(payload.requestedRevision) || !payload.workflowId?.trim() || !payload.prompt?.trim()
+      || !Number.isInteger(payloadDuration) || payloadDuration === undefined || payloadDuration < 1 || payloadDuration > 1_800) {
+      throw new DomainError("音乐 Job 缺少受管提交合同，不能将远端输出写入项目", "MUSIC_JOB_PAYLOAD_INVALID");
+    }
+    if (!input.bridgeAudit || input.bridgeAudit.workflowId !== payload.workflowId || !input.bridgeAudit.runId || !input.bridgeAudit.schemaVersion) {
+      throw new DomainError("音乐 Worker 没有提供与提交 workflow 一致的 Bridge 审计", "MUSIC_BRIDGE_AUDIT_INVALID");
+    }
+    const current = this.readProject(input.projectId);
+    if (current.revision.number !== payload.requestedRevision) {
+      throw new DomainError("音乐生成期间项目 Revision 已变化；不能自动把旧主线的音乐写入当前版本", "STALE_MUSIC_REQUEST");
+    }
+    const projectRoot = resolve(current.snapshot.project.rootPath);
+    const outputPath = resolve(input.musicAudio.path);
+    const relativeOutput = relative(projectRoot, outputPath).replace(/\\/gu, "/");
+    if (!isAbsolute(input.musicAudio.path) || !relativeOutput || relativeOutput === ".." || relativeOutput.startsWith("../")
+      || !relativeOutput.startsWith("assets/music/") || !existsSync(outputPath)
+      || input.musicAudio.relativePath.replace(/\\/gu, "/") !== relativeOutput) {
+      throw new DomainError("音乐 Worker 输出不在当前项目的受管 assets/music 目录中或文件不存在", "MUSIC_OUTPUT_PATH_INVALID");
+    }
+    if (!input.musicAudio.name.trim() || !input.musicAudio.contentHash || input.musicAudio.contentHash !== input.musicAudio.sourceHash
+      || !Number.isFinite(input.musicAudio.durationMs) || input.musicAudio.durationMs <= 0 || !input.musicAudio.metadata?.hasAudio
+      || !input.musicAudio.metadata.audioCodec) {
+      throw new DomainError("音乐 Worker 输出缺少有效哈希、时长、音轨或编码信息", "MUSIC_OUTPUT_INVALID");
+    }
+    let asset!: Asset;
+    let duplicate = false;
+    const state = this.repository.commit(input.projectId, current.revision.number, "登记生成音乐素材", (snapshot, impact) => {
+      const existing = snapshot.assets.find((candidate) => candidate.sourceHash === input.musicAudio.sourceHash);
+      if (existing) {
+        asset = existing;
+        duplicate = true;
+        return;
+      }
+      asset = createMediaAsset({
+        name: input.musicAudio.name.trim(),
+        kind: "audio",
+        managedPath: input.musicAudio.relativePath,
+        sourceHash: input.musicAudio.sourceHash,
+        tags: ["generated-music"],
+        provenance: {
+          source: "generated",
+          provider: `bridge:${payload.workflowId}`,
+          rightsStatus: "unknown",
+          acquiredAt: now()
+        }
+      });
+      asset.status = "ready";
+      asset.metadata = structuredClone(input.musicAudio.metadata);
+      snapshot.assets.push(asset);
+      impact.changed.push(asset.id);
+      impact.recomputed.push("生成音乐素材与权利状态");
+      impact.warnings.push("生成音乐的使用权状态默认为 unknown；在明确确认 Provider 条款和交付权利前，不能用于 delivery。 ");
+    });
+    const updatedJob = this.repository.updateJob(job.id, {
+      status: job.status,
+      result: { ...(job.result ?? {}), musicAssetId: asset.id, revision: state.revision.number, duplicate }
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    this.publish({ projectId: updatedJob.projectId, revision: state.revision.number, type: "job" });
+    return { state, asset, duplicate };
+  }
+
+  /**
+   * 提交生成画面只创建可追踪 Job，不直接把远端 URL、临时预览或未核验的二进制放进 Timeline。
+   * 四种 mode 的媒体槽匹配由 Worker 根据每次读取到的 Bridge Schema 完成，这里只固定创作意图。
+   */
+  submitVideoGeneration(input: {
+    projectId: Id;
+    baseRevision: number;
+    workflowId: string;
+    mode: VideoGenerationMode;
+    inputAssetIds?: Id[];
+    prompt: string;
+    durationSeconds: number;
+    aspectRatio?: ProjectSnapshot["project"]["brief"]["aspectRatio"];
+    outputSlotId?: string;
+    seed?: number;
+    megapixels?: number;
+    initialSeed?: number;
+    finalSeed?: number;
+    initialMegapixels?: number;
+    finalMegapixels?: number;
+    assetRequestId?: Id;
+    idempotencyKey?: string;
+  }): JobRecord {
+    const state = this.readProject(input.projectId);
+    if (state.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, state.revision.number);
+    if (!["text_to_video", "image_to_video", "first_last_frame", "multi_reference"].includes(input.mode)) {
+      throw new DomainError("视频生成 mode 必须是文生、图生、首尾帧或多参考之一", "VIDEO_GENERATION_MODE_INVALID");
+    }
+    const workflowId = requireText(input.workflowId, "视频 Bridge workflowId");
+    const prompt = requireText(input.prompt, "视频生成提示词");
+    if (prompt.length > 4_000) throw new DomainError("视频生成提示词不能超过 4000 个字符", "VIDEO_GENERATION_PROMPT_TOO_LONG");
+    if (!Number.isInteger(input.durationSeconds) || input.durationSeconds < 1 || input.durationSeconds > 1_800) {
+      throw new DomainError("视频生成时长必须是 1 到 1800 秒的整数", "VIDEO_GENERATION_DURATION_INVALID");
+    }
+    const inputAssetIds = [...(input.inputAssetIds ?? [])];
+    if (new Set(inputAssetIds).size !== inputAssetIds.length || inputAssetIds.some((assetId) => !assetId.trim()) || inputAssetIds.length > 10) {
+      throw new DomainError("视频生成输入素材必须为不重复的 0 到 10 个 Asset ID", "VIDEO_GENERATION_INPUTS_INVALID");
+    }
+    const inputAssets = inputAssetIds.map((assetId) => assetById(state.snapshot, assetId));
+    for (const asset of inputAssets) {
+      if (asset.status !== "ready") throw new DomainError(`视频生成输入“${asset.name}”尚未就绪`, "VIDEO_GENERATION_INPUT_NOT_READY");
+      if (["restricted", "rejected"].includes(asset.provenance?.rightsStatus ?? "unknown")) {
+        throw new DomainError(`视频生成输入“${asset.name}”的权利状态不允许提交给外部 Provider`, "VIDEO_GENERATION_INPUT_RIGHTS_BLOCKED");
+      }
+    }
+    const imageInput = (asset: Asset) => asset.kind === "image" || asset.kind === "derived";
+    if (input.mode === "text_to_video" && inputAssets.length !== 0) {
+      throw new DomainError("文生视频不能提交参考素材", "VIDEO_GENERATION_TEXT_INPUTS_FORBIDDEN");
+    }
+    if (input.mode === "image_to_video" && (inputAssets.length !== 1 || !imageInput(inputAssets[0]!))) {
+      throw new DomainError("图生视频必须且只能提交一张已就绪图片", "VIDEO_GENERATION_IMAGE_INPUT_REQUIRED");
+    }
+    if (input.mode === "first_last_frame" && (inputAssets.length !== 2 || inputAssets.some((asset) => !imageInput(asset)))) {
+      throw new DomainError("首尾帧生视频必须依次提交两张已就绪图片", "VIDEO_GENERATION_FIRST_LAST_INPUT_REQUIRED");
+    }
+    if (input.mode === "multi_reference") {
+      const images = inputAssets.filter(imageInput).length;
+      const videos = inputAssets.filter((asset) => asset.kind === "video" || asset.kind === "actor_video").length;
+      const audio = inputAssets.filter((asset) => asset.kind === "audio" || asset.kind === "speech").length;
+      if (images + videos + audio !== inputAssets.length || images > 6 || videos > 1 || audio > 3) {
+        throw new DomainError("多参考视频只接受最多 6 张图片、1 条视频和 3 条音频", "VIDEO_GENERATION_MULTI_REFERENCE_LIMIT");
+      }
+    }
+    const aspectRatio = input.aspectRatio ?? state.snapshot.project.brief.aspectRatio;
+    if (aspectRatio !== state.snapshot.project.brief.aspectRatio) {
+      throw new DomainError("生成画面比例必须与当前 Project Brief 一致", "VIDEO_GENERATION_ASPECT_RATIO_MISMATCH");
+    }
+    const optionalInteger = (value: number | undefined, label: string) => {
+      if (value === undefined) return undefined;
+      if (!Number.isInteger(value) || value < 0) throw new DomainError(`${label}必须是非负整数`, "VIDEO_GENERATION_OPTION_INVALID");
+      return value;
+    };
+    const optionalMegapixels = (value: number | undefined, label: string) => {
+      if (value === undefined) return undefined;
+      if (!Number.isFinite(value) || value < 0.1 || value > 16) throw new DomainError(`${label}必须在 0.1 到 16 百万像素之间`, "VIDEO_GENERATION_OPTION_INVALID");
+      return value;
+    };
+    const assetRequestId = input.assetRequestId?.trim() || undefined;
+    if (assetRequestId) {
+      const request = assetRequestById(state.snapshot, assetRequestId);
+      if (request.status === "closed") throw new DomainError("已关闭的素材需求不能再提交生成任务", "ASSET_REQUEST_CLOSED");
+      if (request.role === "evidence") {
+        throw new DomainError("证据类素材不能由生成视频替代，请使用原始来源或证据截图", "VIDEO_GENERATION_EVIDENCE_FORBIDDEN");
+      }
+    }
+    const payload: VideoGenerationJobPayload = {
+      requestedRevision: state.revision.number,
+      workflowId,
+      mode: input.mode,
+      inputAssetIds,
+      prompt,
+      durationSeconds: input.durationSeconds,
+      aspectRatio,
+      outputSlotId: input.outputSlotId?.trim() || undefined,
+      seed: optionalInteger(input.seed, "随机种子"),
+      megapixels: optionalMegapixels(input.megapixels, "清晰度"),
+      initialSeed: optionalInteger(input.initialSeed, "初采随机种子"),
+      finalSeed: optionalInteger(input.finalSeed, "二采随机种子"),
+      initialMegapixels: optionalMegapixels(input.initialMegapixels, "初采清晰度"),
+      finalMegapixels: optionalMegapixels(input.finalMegapixels, "最终清晰度"),
+      assetRequestId
+    };
+    const requestHash = createHash("sha256").update(stableJson(payload)).digest("hex").slice(0, 24);
+    const job = this.repository.createJob({
+      projectId: input.projectId,
+      kind: "video_generation",
+      payload,
+      idempotencyKey: input.idempotencyKey ?? `video_generation:${state.revision.number}:${requestHash}`
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
+    return job;
+  }
+
+  /**
+   * 已经由 Worker 本地化且核验通过的生成视频，才可成为当前 Revision 的 Asset。
+   * 生成成功不等于创作采用：这里不创建 Cutaway、Scene 或 Timeline Item，权利也默认 unknown。
+   */
+  completeVideoGeneration(input: {
+    projectId: Id;
+    jobId: Id;
+    generatedVideo: CompletedGeneratedVideo;
+    bridgeAudit: BridgeRunAudit;
+  }): { state: ProjectState; asset: Asset; duplicate: boolean } {
+    const job = this.repository.getJob(input.jobId);
+    if (job.projectId !== input.projectId || job.kind !== "video_generation") {
+      throw new DomainError("该任务不是当前项目的视频生成任务", "VIDEO_GENERATION_JOB_NOT_FOUND");
+    }
+    const currentAtStart = this.readProject(input.projectId);
+    const completedAssetId = typeof job.result?.generatedVideoAssetId === "string" ? job.result.generatedVideoAssetId : undefined;
+    const completedAsset = currentAtStart.snapshot.assets.find((asset) => (
+      completedAssetId ? asset.id === completedAssetId : asset.provenance?.generationJobId === job.id
+    ));
+    if (completedAsset) {
+      if (completedAsset.kind !== "video" || completedAsset.status !== "ready") {
+        throw new DomainError("视频生成 Job 已有完成回执，但对应素材不可用", "VIDEO_GENERATION_COMPLETION_CORRUPTED");
+      }
+      this.repository.updateJob(job.id, {
+        status: job.status,
+        result: { ...(job.result ?? {}), generatedVideoAssetId: completedAsset.id, revision: currentAtStart.revision.number }
+      });
+      return { state: currentAtStart, asset: completedAsset, duplicate: true };
+    }
+    const payload = job.payload as Partial<VideoGenerationJobPayload>;
+    if (!Number.isInteger(payload.requestedRevision) || !payload.workflowId?.trim() || !payload.prompt?.trim()
+      || !["text_to_video", "image_to_video", "first_last_frame", "multi_reference"].includes(payload.mode ?? "")
+      || !Array.isArray(payload.inputAssetIds) || !Number.isInteger(payload.durationSeconds) || (payload.durationSeconds ?? 0) < 1) {
+      throw new DomainError("视频生成 Job 缺少受管提交合同，不能将外部输出写入项目", "VIDEO_GENERATION_JOB_PAYLOAD_INVALID");
+    }
+    if (!input.bridgeAudit || input.bridgeAudit.workflowId !== payload.workflowId || !input.bridgeAudit.runId?.trim() || !input.bridgeAudit.schemaVersion?.trim()) {
+      throw new DomainError("视频 Worker 没有提供与提交 workflow 一致的 Bridge 审计", "VIDEO_GENERATION_BRIDGE_AUDIT_INVALID");
+    }
+    // 上面的完整性检查已确认这些字段存在；收窄到局部常量，避免后续 Revision 回写把可选 Job payload 当成有效事实。
+    const workflowId = payload.workflowId!;
+    const mode = payload.mode!;
+    const inputAssetIds = payload.inputAssetIds!;
+    const prompt = payload.prompt!;
+    const durationSeconds = payload.durationSeconds!;
+    const current = this.readProject(input.projectId);
+    if (current.revision.number !== payload.requestedRevision) {
+      throw new DomainError("视频生成期间项目 Revision 已变化；不能自动把旧画面写入当前版本", "STALE_VIDEO_GENERATION_REQUEST");
+    }
+    const projectRoot = resolve(current.snapshot.project.rootPath);
+    const outputPath = resolve(input.generatedVideo.path);
+    const relativeOutput = relative(projectRoot, outputPath).replace(/\\/gu, "/");
+    if (!isAbsolute(input.generatedVideo.path) || !relativeOutput || relativeOutput === ".." || relativeOutput.startsWith("../")
+      || !relativeOutput.startsWith("assets/generated/") || !existsSync(outputPath)
+      || input.generatedVideo.relativePath.replace(/\\/gu, "/") !== relativeOutput) {
+      throw new DomainError("视频 Worker 输出不在当前项目的受管 assets/generated 目录中或文件不存在", "VIDEO_GENERATION_OUTPUT_PATH_INVALID");
+    }
+    if (!input.generatedVideo.name.trim() || !input.generatedVideo.contentHash || input.generatedVideo.contentHash !== input.generatedVideo.sourceHash
+      || !Number.isFinite(input.generatedVideo.durationMs) || input.generatedVideo.durationMs <= 0 || !input.generatedVideo.metadata?.videoCodec
+      || input.generatedVideo.metadata.videoCodec.toLocaleLowerCase() !== "h264"
+      || (input.generatedVideo.metadata.audioCodec !== undefined && input.generatedVideo.metadata.audioCodec.toLocaleLowerCase() !== "aac")) {
+      throw new DomainError("视频 Worker 输出缺少可播放的 H.264 视频、有效哈希或时长", "VIDEO_GENERATION_OUTPUT_INVALID");
+    }
+    let asset!: Asset;
+    const state = this.repository.commit(input.projectId, current.revision.number, "登记生成视频素材", (snapshot, impact) => {
+      if (payload.assetRequestId) {
+        const request = assetRequestById(snapshot, payload.assetRequestId);
+        if (request.status === "closed" || request.role === "evidence") {
+          throw new DomainError("关联的素材需求已关闭或不允许生成替代", "STALE_VIDEO_GENERATION_REQUEST");
+        }
+        request.status = "fulfilled";
+        request.updatedAt = now();
+        impact.changed.push(request.id);
+      }
+      asset = createMediaAsset({
+        name: input.generatedVideo.name.trim(),
+        kind: "video",
+        managedPath: input.generatedVideo.relativePath,
+        sourceHash: input.generatedVideo.sourceHash,
+        role: "generated_visual",
+        tags: ["generated", "video-generation", payload.mode!],
+        provenance: {
+          source: "generated",
+          provider: `bridge:${workflowId}`,
+          sourceUrl: `bridge-run:${input.bridgeAudit.runId}`,
+          generationJobId: job.id,
+          generation: {
+            jobId: job.id,
+            workflowId,
+            mode,
+            inputAssetIds: [...inputAssetIds],
+            prompt,
+            durationSeconds,
+            aspectRatio: payload.aspectRatio ?? snapshot.project.brief.aspectRatio
+          },
+          rightsStatus: "unknown",
+          acquiredAt: now()
+        }
+      });
+      asset.status = "ready";
+      asset.metadata = structuredClone(input.generatedVideo.metadata);
+      snapshot.assets.push(asset);
+      impact.changed.push(asset.id);
+      impact.recomputed.push("生成视频素材、来源参数与权利状态");
+      impact.warnings.push("生成视频默认权利状态为 unknown；请先审查内容、Provider 条款和使用范围，再决定是否进入时间线或 delivery。");
+    });
+    const updatedJob = this.repository.updateJob(job.id, {
+      status: job.status,
+      result: { ...(job.result ?? {}), generatedVideoAssetId: asset.id, revision: state.revision.number }
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    this.publish({ projectId: updatedJob.projectId, revision: state.revision.number, type: "job" });
+    return { state, asset, duplicate: false };
+  }
+
+  /**
+   * 词级精度是可选的扩展能力。提交时固定当前 SpeechAsset、Script Revision 和显式对齐 workflow，
+   * 不能把普通 ASR、按字数估时或历史旁白误当成当前强制对齐。
+   */
+  submitSpeechAlignment(input: {
+    projectId: Id;
+    baseRevision: number;
+    workflowId: string;
+    speechAssetId?: Id;
+    outputSlotId?: string;
+    idempotencyKey?: string;
+  }): JobRecord {
+    const state = this.readProject(input.projectId);
+    if (state.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, state.revision.number);
+    const speechAsset = state.snapshot.speechAsset;
+    if (!speechAsset || speechAsset.status !== "ready" || speechAsset.scriptRevision !== state.snapshot.script.revision) {
+      throw new DomainError("词级对齐只能使用当前已就绪且与 Script 一致的 SpeechAsset", "SPEECH_ALIGNMENT_SPEECH_STALE");
+    }
+    if (input.speechAssetId && input.speechAssetId !== speechAsset.id) {
+      throw new DomainError("提交的 SpeechAsset 不是当前旁白版本", "SPEECH_ALIGNMENT_SPEECH_MISMATCH");
+    }
+    const speechFile = assetById(state.snapshot, speechAsset.assetId);
+    if (speechFile.status !== "ready" || speechFile.kind !== "speech" || !speechFile.metadata?.hasAudio
+      || typeof speechFile.metadata.durationMs !== "number" || speechFile.metadata.durationMs <= 0) {
+      throw new DomainError("当前 SpeechAsset 的本地音频尚未就绪或缺少真实时长", "SPEECH_ALIGNMENT_AUDIO_NOT_READY");
+    }
+    const existingAlignment = state.snapshot.speechAlignment;
+    if (speechAsset.timing.precision === "word_exact" && existingAlignment?.status === "ready"
+      && existingAlignment.speechAssetId === speechAsset.id && existingAlignment.scriptRevision === speechAsset.scriptRevision) {
+      const existingJob = this.repository.getJob(existingAlignment.generationJobId);
+      if (existingJob.kind !== "speech_alignment" || existingJob.projectId !== input.projectId) {
+        throw new DomainError("当前词级对齐缺少对应 Job，无法安全复用", "SPEECH_ALIGNMENT_COMPLETION_CORRUPTED");
+      }
+      return existingJob;
+    }
+    const workflowId = requireText(input.workflowId, "词级对齐 Bridge workflowId");
+    const outputSlotId = input.outputSlotId?.trim() || undefined;
+    const payload: SpeechAlignmentJobPayload = {
+      requestedRevision: state.revision.number,
+      speechAssetId: speechAsset.id,
+      scriptRevision: speechAsset.scriptRevision,
+      workflowId,
+      outputSlotId
+    };
+    const job = this.repository.createJob({
+      projectId: input.projectId,
+      kind: "speech_alignment",
+      payload,
+      idempotencyKey: input.idempotencyKey ?? `speech_alignment:${state.revision.number}:${speechAsset.id}:${workflowId}:${outputSlotId ?? ""}`
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
+    return job;
+  }
+
+  /** 当前 Revision 只读取可用的对齐对象；旧 Revision 的审计保存在其历史快照中。 */
+  readSpeechAlignment(projectId: Id): SpeechAlignment | undefined {
+    return this.readProject(projectId).snapshot.speechAlignment;
+  }
+
+  /**
+   * Worker 只能提交可追溯的真实 token 时间戳。Application 在 Revision 事务内再次核对音频范围、
+   * 段边界、文字和帧换算，成功后才允许当前 SpeechTiming 升级为 word_exact。
+   */
+  completeSpeechAlignment(input: {
+    projectId: Id;
+    jobId: Id;
+    alignment: CompletedSpeechAlignment;
+    bridgeAudit: BridgeRunAudit;
+  }): { state: ProjectState; alignment: SpeechAlignment; duplicate: boolean } {
+    const job = this.repository.getJob(input.jobId);
+    if (job.projectId !== input.projectId || job.kind !== "speech_alignment") {
+      throw new DomainError("该任务不是当前项目的词级对齐任务", "SPEECH_ALIGNMENT_JOB_NOT_FOUND");
+    }
+    const currentAtStart = this.readProject(input.projectId);
+    const existingAlignment = currentAtStart.snapshot.speechAlignment;
+    if (existingAlignment?.generationJobId === job.id) {
+      return { state: currentAtStart, alignment: existingAlignment, duplicate: true };
+    }
+    if (typeof job.result?.speechAlignmentId === "string") {
+      throw new DomainError("词级对齐 Job 已有完成回执，但当前 Revision 缺少对应对齐对象", "SPEECH_ALIGNMENT_COMPLETION_CORRUPTED");
+    }
+    const payload = job.payload as Partial<SpeechAlignmentJobPayload>;
+    if (!Number.isInteger(payload.requestedRevision) || !payload.speechAssetId?.trim()
+      || !Number.isInteger(payload.scriptRevision) || !payload.workflowId?.trim()) {
+      throw new DomainError("词级对齐 Job 缺少受管提交合同，不能写入外部输出", "SPEECH_ALIGNMENT_JOB_PAYLOAD_INVALID");
+    }
+    if (!input.bridgeAudit || input.bridgeAudit.workflowId !== payload.workflowId || !input.bridgeAudit.runId?.trim()
+      || !input.bridgeAudit.schemaVersion?.trim() || !input.bridgeAudit.completedAt || input.bridgeAudit.response?.status !== "succeeded") {
+      throw new DomainError("词级对齐 Worker 没有提供已完成且与提交 workflow 一致的 Bridge 审计", "SPEECH_ALIGNMENT_BRIDGE_AUDIT_INVALID");
+    }
+    const source = requireText(input.alignment.source, "词级对齐来源");
+    const current = this.readProject(input.projectId);
+    if (current.revision.number !== payload.requestedRevision) {
+      throw new DomainError("词级对齐期间项目 Revision 已变化；不能将旧旁白的时间戳写入当前版本", "STALE_SPEECH_ALIGNMENT_REQUEST");
+    }
+    const currentSpeechAsset = current.snapshot.speechAsset;
+    if (!currentSpeechAsset || currentSpeechAsset.status !== "ready" || currentSpeechAsset.id !== payload.speechAssetId
+      || currentSpeechAsset.scriptRevision !== payload.scriptRevision || current.snapshot.script.revision !== payload.scriptRevision) {
+      throw new DomainError("词级对齐对应的 SpeechAsset 或 Script 已过期", "STALE_SPEECH_ALIGNMENT_REQUEST");
+    }
+    let alignment!: SpeechAlignment;
+    const state = this.repository.commit(input.projectId, current.revision.number, "写入真实词级对齐", (snapshot, impact) => {
+      const speechAsset = snapshot.speechAsset;
+      if (!speechAsset || speechAsset.id !== payload.speechAssetId || speechAsset.scriptRevision !== payload.scriptRevision) {
+        throw new DomainError("词级对齐提交时当前 SpeechAsset 已变化", "STALE_SPEECH_ALIGNMENT_REQUEST");
+      }
+      const words = validateCompletedSpeechAlignment(snapshot, speechAsset, input.alignment.words);
+      alignment = {
+        id: createId("speech_alignment"),
+        generationJobId: job.id,
+        speechAssetId: speechAsset.id,
+        scriptRevision: speechAsset.scriptRevision,
+        status: "ready",
+        words,
+        source,
+        audit: structuredClone(input.bridgeAudit),
+        createdAt: now()
+      };
+      snapshot.speechAlignment = alignment;
+      speechAsset.timing = {
+        ...speechAsset.timing,
+        precision: "word_exact",
+        source: `真实词级强制对齐：${source}（${input.bridgeAudit.workflowId}/${input.bridgeAudit.runId}）`
+      };
+      for (const caption of snapshot.timeline.captions) caption.precision = "word_exact";
+      impact.changed.push(alignment.id, speechAsset.id, ...snapshot.timeline.captions.map((caption) => caption.id));
+      impact.recomputed.push("真实词级时间戳、SpeechTiming、Caption Program 精度");
+      impact.dirtyRanges.push({ startFrame: 0, endFrame: Math.max(1, snapshot.timeline.durationInFrames), reason: "词级对齐已写入，需在真实预览中复核逐词高亮或节奏效果" });
+    });
+    const updatedJob = this.repository.updateJob(job.id, {
+      status: job.status,
+      result: { ...(job.result ?? {}), speechAlignmentId: alignment.id, revision: state.revision.number }
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    this.publish({ projectId: updatedJob.projectId, revision: state.revision.number, type: "job" });
+    return { state, alignment, duplicate: false };
+  }
+
+  /**
+   * 提交 Avatar 不直接改写 Timeline。先把当时已确认的 Speech、Scene、人物参考和范围
+   * 固定进 Job，避免长时间生成完成后错误套用到新的 Script 或新的 PresenterScene。
+   */
+  submitAvatarGeneration(input: {
+    projectId: Id;
+    baseRevision: number;
+    capabilityProfileId: Id;
+    referenceImageAssetId: Id;
+    speechAssetId?: Id;
+    replaceActorPerformanceId?: Id;
+    generationRange: ActorGenerationRange;
+    placement: AvatarGenerationPlacement;
+    prompt?: string;
+    maskMode?: "none";
+    audioMode?: "use_dialogue_track" | "muted";
+    rightsConfirmation?: AvatarUsageRightsConfirmationInput;
+    layout?: ActorLayout;
+    note?: string;
+    idempotencyKey?: string;
+  }): JobRecord {
+    const state = this.readProject(input.projectId);
+    if (state.revision.number !== input.baseRevision) {
+      throw new DomainError("项目版本已变化；请重新读取人物、SpeechAsset 与 Scene 后再提交生成", "REVISION_CONFLICT");
+    }
+    const snapshot = state.snapshot;
+    const profile = snapshot.actorCapabilityProfiles.find((candidate) => candidate.id === input.capabilityProfileId);
+    if (!profile) throw new DomainError("人物能力档案不存在", "ACTOR_CAPABILITY_NOT_FOUND");
+    if (!profile.supportsReferenceImage) {
+      throw new DomainError("当前人物 Provider 未声明支持肖像图参考，不能提交该生成任务", "AVATAR_REFERENCE_IMAGE_UNSUPPORTED");
+    }
+    if (!profile.inputModes.includes("audio")) {
+      throw new DomainError("当前人物 Provider 未声明接受最终旁白音频，不能生成与 SpeechAsset 对齐的人物", "AVATAR_AUDIO_INPUT_UNSUPPORTED");
+    }
+    if (!profile.supportsAudioDrivenLipSync) {
+      throw new DomainError("当前人物 Provider 尚未明确声明音频驱动口型同步能力，不能将其作为 SpeechAsset 对齐的数字人口播提交", "AVATAR_LIP_SYNC_CAPABILITY_UNSUPPORTED");
+    }
+    if (input.maskMode !== undefined && input.maskMode !== "none") {
+      throw new DomainError("当前 Avatar Bridge 尚未验证可输出人物 Mask；生成任务只能使用 none，独立 Mask 请在结果后单独登记", "AVATAR_MASK_GENERATION_UNSUPPORTED");
+    }
+    if (!profile.maskModes.includes("none")) {
+      throw new DomainError("人物能力档案没有声明无 Mask 降级，当前生成链无法安全执行", "AVATAR_MASK_MODE_UNSUPPORTED");
+    }
+
+    const reference = assetById(snapshot, input.referenceImageAssetId);
+    if (!reference.status || reference.status !== "ready" || !["image", "derived"].includes(reference.kind)) {
+      throw new DomainError("肖像参考必须是已就绪的图片或派生图片素材", "AVATAR_REFERENCE_IMAGE_NOT_READY");
+    }
+    if (["restricted", "rejected"].includes(reference.provenance?.rightsStatus ?? "unknown")) {
+      throw new DomainError("肖像参考的权利状态不允许交给 Avatar Provider", "AVATAR_REFERENCE_RIGHTS_BLOCKED");
+    }
+
+    const speech = snapshot.speechAsset;
+    if (!speech || speech.status !== "ready" || (input.speechAssetId && input.speechAssetId !== speech.id)) {
+      throw new DomainError("Avatar 只能使用当前已就绪的 SpeechAsset，不能将旧旁白交给 Provider", "STALE_AVATAR_SPEECH");
+    }
+    const speechFile = assetById(snapshot, speech.assetId);
+    if (speechFile.status !== "ready" || speechFile.kind !== "speech" || !speechFile.metadata?.hasAudio) {
+      throw new DomainError("当前 SpeechAsset 的本地音频尚未就绪", "SPEECH_ASSET_NOT_READY");
+    }
+
+    const range = input.generationRange;
+    if (!Number.isInteger(range.startFrame) || !Number.isInteger(range.endFrame) || range.startFrame < 0 || range.endFrame <= range.startFrame || range.endFrame > snapshot.timeline.durationInFrames) {
+      throw new DomainError("人物局部生成范围无效", "INVALID_ACTOR_GENERATION_RANGE");
+    }
+    const requestedSegmentIds = [...new Set(range.speechSegmentIds)];
+    if (requestedSegmentIds.length === 0 || requestedSegmentIds.length !== range.speechSegmentIds.length) {
+      throw new DomainError("人物生成范围必须包含不重复的 SpeechSegment", "INVALID_ACTOR_GENERATION_SEGMENTS");
+    }
+    const currentSegmentIds = new Set(speech.timing.segments.map((segment) => segment.speechSegmentId));
+    if (requestedSegmentIds.some((segmentId) => !currentSegmentIds.has(segmentId))) {
+      throw new DomainError("人物生成范围引用了不属于当前 SpeechAsset 的 SpeechSegment", "STALE_ACTOR_GENERATION_SEGMENT");
+    }
+    const selectedTiming = speech.timing.segments.filter((segment) => requestedSegmentIds.includes(segment.speechSegmentId));
+    const selectedStartFrame = Math.min(...selectedTiming.map((segment) => segment.startFrame));
+    const selectedEndFrame = Math.max(...selectedTiming.map((segment) => segment.endFrame));
+    if (range.startFrame > selectedStartFrame || range.endFrame < selectedEndFrame) {
+      throw new DomainError("人物生成范围必须完整覆盖所选 SpeechSegment 的真实时序", "ACTOR_GENERATION_TIMING_MISMATCH");
+    }
+    if (!profile.supportsPartialRegeneration && (
+      requestedSegmentIds.length !== currentSegmentIds.size
+      || range.startFrame !== selectedStartFrame
+      || range.endFrame !== selectedEndFrame
+    )) {
+      throw new DomainError("当前 Provider 未声明支持局部重生成；必须选择当前 SpeechAsset 的全部 SpeechSegment", "AVATAR_PARTIAL_REGEN_UNSUPPORTED");
+    }
+    const requestedSeconds = (range.endFrame - range.startFrame) / snapshot.timeline.fps;
+    if (requestedSeconds > profile.maxDurationSeconds) {
+      throw new DomainError(`人物生成范围为 ${requestedSeconds.toFixed(2)} 秒，超过 Provider 声明的 ${profile.maxDurationSeconds} 秒上限`, "AVATAR_DURATION_EXCEEDED");
+    }
+
+    const placement = input.placement;
+    if (!Number.isInteger(placement.startFrame) || !Number.isInteger(placement.endFrame) || placement.startFrame !== range.startFrame || placement.endFrame !== range.endFrame) {
+      throw new DomainError("人物播放位置必须与对应的 SpeechSegment 生成范围完全对齐", "ACTOR_PLACEMENT_RANGE_MISMATCH");
+    }
+    const scene = snapshot.scenes.find((candidate) => candidate.id === placement.sceneId);
+    if (!scene || scene.type !== "PresenterScene" || placement.startFrame < scene.startFrame || placement.endFrame > scene.endFrame) {
+      throw new DomainError("人物生成位置必须完全落在已有 PresenterScene 内", "ACTOR_PLACEMENT_SCENE_INVALID");
+    }
+    const layout = input.layout === undefined ? undefined : normalizeActorLayout(input.layout);
+    const rightsConfirmation = normalizeAvatarUsageRightsConfirmation(input.rightsConfirmation);
+    const replacement = input.replaceActorPerformanceId
+      ? snapshot.actorPerformances.find((candidate) => candidate.id === input.replaceActorPerformanceId)
+      : undefined;
+    if (input.replaceActorPerformanceId && !replacement) throw new DomainError("待局部重生的人物表演不存在", "ACTOR_PERFORMANCE_NOT_FOUND");
+    if (replacement && replacement.source !== "generated") throw new DomainError("只能替换既有的生成型人物表演，导入人物请通过 registerActorPerformance 更新", "ACTOR_REPLACEMENT_SOURCE_INVALID");
+
+    const payload: AvatarGenerationJobPayload = {
+      requestedRevision: state.revision.number,
+      capabilityProfileId: profile.id,
+      workflowId: profile.workflowId,
+      referenceImageAssetId: reference.id,
+      speechAssetId: speech.id,
+      generationRange: { startFrame: range.startFrame, endFrame: range.endFrame, speechSegmentIds: requestedSegmentIds },
+      placement: { sceneId: placement.sceneId, startFrame: placement.startFrame, endFrame: placement.endFrame },
+      replaceActorPerformanceId: replacement?.id,
+      prompt: input.prompt?.trim() || undefined,
+      maskMode: "none",
+      audioMode: input.audioMode ?? "use_dialogue_track",
+      rightsConfirmation,
+      layout,
+      note: input.note?.trim() || undefined
+    };
+    const job = this.repository.createJob({
+      projectId: input.projectId,
+      kind: "avatar_generation",
+      payload,
+      idempotencyKey: input.idempotencyKey ?? [
+        "avatar",
+        payload.requestedRevision,
+        payload.capabilityProfileId,
+        payload.referenceImageAssetId,
+        payload.speechAssetId,
+        `${range.startFrame}-${range.endFrame}`,
+        requestedSegmentIds.join(","),
+        `${placement.sceneId}:${placement.startFrame}-${placement.endFrame}`,
+        payload.replaceActorPerformanceId ?? "new",
+        // 依据变更时不得命中旧 Job；仅保存散列，避免把授权文本写入可枚举的幂等键。
+        createHash("sha256").update(stableJson(payload.rightsConfirmation ?? {})).digest("hex").slice(0, 16)
+      ].join(":")
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
+    return job;
+  }
+
+  /**
+   * Avatar Worker 下载并验证二进制后，才由 Application 在同一 Revision 中登记 Asset、
+   * Actor / A-roll Item 与 ActorPerformance。重复领取 Job 时优先复用已写入的结果。
+   */
+  completeAvatarGeneration(input: {
+    projectId: Id;
+    jobId: Id;
+    actorVideo: CompletedAvatarVideo;
+    bridgeAudit: BridgeRunAudit;
+  }): { state: ProjectState; asset: Asset; timelineItem: TimelineItem; actorPerformance: ReturnType<typeof createActorPerformance>; duplicate: boolean } {
+    const job = this.repository.getJob(input.jobId);
+    if (job.projectId !== input.projectId || job.kind !== "avatar_generation") {
+      throw new DomainError("该任务不是当前项目的 Avatar 生成任务", "AVATAR_JOB_NOT_FOUND");
+    }
+    const currentAtStart = this.readProject(input.projectId);
+    const completedPerformanceId = typeof job.result?.actorPerformanceId === "string" ? job.result.actorPerformanceId : undefined;
+    // Revision 写入和 Job 状态更新之间若进程中断，Job.result 可能尚未来得及落盘。
+    // generationJobId 是同一项目事实中的稳定回执，允许安全重领而不会再次调用外部 Provider。
+    const alreadyCompleted = currentAtStart.snapshot.actorPerformances.find((candidate) => (
+      candidate.generationJobId === job.id && (!completedPerformanceId || candidate.id === completedPerformanceId)
+    ));
+    if (alreadyCompleted) {
+      const snapshot = currentAtStart.snapshot;
+      const item = snapshot.timeline.items.find((candidate) => candidate.id === alreadyCompleted.timelineItemId);
+      const asset = item ? snapshot.assets.find((candidate) => candidate.id === item.assetId) : undefined;
+      if (!item || !asset) throw new DomainError("Avatar Job 已有结果，但其人物素材或 Timeline Item 不存在", "AVATAR_COMPLETION_CORRUPTED");
+      this.repository.updateJob(job.id, {
+        status: job.status,
+        result: {
+          ...(job.result ?? {}),
+          actorAssetId: asset.id,
+          timelineItemId: item.id,
+          actorPerformanceId: alreadyCompleted.id,
+          revision: currentAtStart.revision.number
+        }
+      });
+      return { state: currentAtStart, asset, timelineItem: item, actorPerformance: alreadyCompleted, duplicate: true };
+    }
+
+    const payload = job.payload as Partial<AvatarGenerationJobPayload>;
+    const rightsConfirmation = payload.rightsConfirmation;
+    if (
+      !Number.isInteger(payload.requestedRevision)
+      || typeof payload.capabilityProfileId !== "string"
+      || typeof payload.referenceImageAssetId !== "string"
+      || typeof payload.speechAssetId !== "string"
+      || !payload.generationRange
+      || !payload.placement
+      || payload.maskMode !== "none"
+      || (payload.audioMode !== "use_dialogue_track" && payload.audioMode !== "muted")
+      || (rightsConfirmation !== undefined && !isAvatarUsageRightsConfirmation(rightsConfirmation))
+    ) {
+      throw new DomainError("Avatar Job 缺少受管的提交合同，不能将外部结果写入项目", "AVATAR_JOB_PAYLOAD_INVALID");
+    }
+    const current = this.readProject(input.projectId);
+    if (current.revision.number !== payload.requestedRevision) {
+      throw new DomainError("Avatar 生成期间项目 Revision 已变化；结果保留在 Job 审计中，不能自动写入新版本", "STALE_AVATAR_REQUEST");
+    }
+    const projectRoot = resolve(current.snapshot.project.rootPath);
+    const outputPath = resolve(input.actorVideo.path);
+    const relativeOutputPath = relative(projectRoot, outputPath);
+    if (!isAbsolute(input.actorVideo.path) || !relativeOutputPath || relativeOutputPath === ".." || relativeOutputPath.startsWith(`..${String.fromCharCode(92)}`) || relativeOutputPath.startsWith("../") || !existsSync(outputPath)) {
+      throw new DomainError("Avatar Worker 输出不在当前项目受管目录中或文件不存在", "AVATAR_OUTPUT_PATH_INVALID");
+    }
+    if (!input.actorVideo.contentHash || input.actorVideo.contentHash !== input.actorVideo.sourceHash || !Number.isFinite(input.actorVideo.durationMs) || input.actorVideo.durationMs <= 0 || !input.actorVideo.metadata?.videoCodec) {
+      throw new DomainError("Avatar Worker 输出缺少有效哈希、时长或视频轨信息", "INVALID_AVATAR_OUTPUT");
+    }
+    // 当前 Remotion Composition 只承诺播放 MP4/H.264，音轨若存在也必须为 AAC。
+    // Actor 默认静音，因此无音轨合法；不能让 ffprobe 可读但浏览器无法解码的文件进入 Timeline。
+    if (input.actorVideo.metadata.videoCodec.toLowerCase() !== "h264"
+      || (input.actorVideo.metadata.audioCodec !== undefined && input.actorVideo.metadata.audioCodec.toLowerCase() !== "aac")) {
+      throw new DomainError("Avatar 输出必须为 Remotion 可播放的 MP4/H.264（音轨存在时为 AAC）", "AVATAR_OUTPUT_CODEC_UNSUPPORTED");
+    }
+
+    let asset!: Asset;
+    let timelineItem!: TimelineItem;
+    let actorPerformance!: ReturnType<typeof createActorPerformance>;
+    let duplicate = false;
+    const state = this.repository.commit(input.projectId, payload.requestedRevision, "应用 Avatar 生成人物", (snapshot, impact) => {
+      const profile = snapshot.actorCapabilityProfiles.find((candidate) => candidate.id === payload.capabilityProfileId);
+      if (!profile || profile.workflowId !== payload.workflowId) throw new DomainError("Avatar Job 对应的人物能力档案已变更", "STALE_ACTOR_CAPABILITY_PROFILE");
+      if (!profile.supportsReferenceImage || !profile.inputModes.includes("audio") || !profile.supportsAudioDrivenLipSync || !profile.maskModes.includes("none")) {
+        throw new DomainError("人物能力档案不再满足当前 Avatar Job 的输入与降级合同", "STALE_ACTOR_CAPABILITY_PROFILE");
+      }
+      const speech = snapshot.speechAsset;
+      if (!speech || speech.status !== "ready" || speech.id !== payload.speechAssetId) {
+        throw new DomainError("Avatar Job 对应的 SpeechAsset 已失效", "STALE_AVATAR_SPEECH");
+      }
+      const scene = snapshot.scenes.find((candidate) => candidate.id === payload.placement!.sceneId && candidate.type === "PresenterScene");
+      if (!scene || payload.placement!.startFrame < scene.startFrame || payload.placement!.endFrame > scene.endFrame) {
+        throw new DomainError("Avatar Job 对应的 PresenterScene 已失效", "STALE_AVATAR_PLACEMENT");
+      }
+      const range = payload.generationRange!;
+      if (payload.placement!.startFrame !== range.startFrame || payload.placement!.endFrame !== range.endFrame) {
+        throw new DomainError("Avatar Job 的人物位置与生成范围不一致", "ACTOR_PLACEMENT_RANGE_MISMATCH");
+      }
+      const knownSegmentIds = new Set(speech.timing.segments.map((segment) => segment.speechSegmentId));
+      if (!range.speechSegmentIds?.length || range.speechSegmentIds.some((segmentId) => !knownSegmentIds.has(segmentId))) {
+        throw new DomainError("Avatar Job 的 SpeechSegment 已不属于当前 SpeechAsset", "STALE_ACTOR_GENERATION_SEGMENT");
+      }
+      const requiredFrames = payload.placement!.endFrame - payload.placement!.startFrame;
+      const outputFrames = millisecondsToFrames(input.actorVideo.durationMs, snapshot.timeline.fps);
+      if (outputFrames < requiredFrames) {
+        throw new DomainError("Avatar 输出视频短于需要覆盖的人物范围，不能通过拉伸伪造口型时长", "AVATAR_OUTPUT_TOO_SHORT");
+      }
+
+      // Avatar 结果即使哈希碰巧等于已有 B-roll/参考素材，也必须创建独立 Asset。
+      // 不能为了二进制去重改写已有素材的角色、来源或 Timeline 语义。
+      asset = createMediaAsset({
+        name: input.actorVideo.name.trim() || `生成数字人 ${job.id}`,
+        kind: "actor_video",
+        managedPath: relativeOutputPath,
+        sourceHash: input.actorVideo.sourceHash,
+        role: "a_roll",
+        provenance: {
+          source: "generated",
+          provider: profile.provider,
+          sourceUrl: `bridge-run:${input.bridgeAudit.runId}`,
+          originalAssetId: payload.referenceImageAssetId,
+          avatarUsageRights: rightsConfirmation,
+          rightsStatus: rightsConfirmation ? "cleared" : "unknown",
+          acquiredAt: now()
+        },
+        tags: ["avatar", "generated", profile.provider]
+      });
+      asset.status = "ready";
+      asset.metadata = input.actorVideo.metadata;
+      snapshot.assets.push(asset);
+
+      const replace = payload.replaceActorPerformanceId
+        ? snapshot.actorPerformances.find((candidate) => candidate.id === payload.replaceActorPerformanceId)
+        : undefined;
+      if (payload.replaceActorPerformanceId && (!replace || replace.source !== "generated")) {
+        throw new DomainError("待替换的人物表演已变更或不再是生成型人物", "STALE_ACTOR_PERFORMANCE");
+      }
+      if (replace) {
+        const existingItem = snapshot.timeline.items.find((candidate) => candidate.id === replace.timelineItemId);
+        if (!existingItem) throw new DomainError("待替换人物缺少 Timeline Item", "ACTOR_ITEM_NOT_FOUND");
+        timelineItem = existingItem;
+        timelineItem.assetId = asset.id;
+        timelineItem.sceneId = payload.placement!.sceneId;
+        timelineItem.startFrame = payload.placement!.startFrame;
+        timelineItem.endFrame = payload.placement!.endFrame;
+        timelineItem.sourceStartFrame = 0;
+        timelineItem.sourceEndFrame = requiredFrames;
+        replace.source = "generated";
+        replace.maskMode = "none";
+        replace.maskAssetId = undefined;
+        replace.speechAssetId = speech.id;
+        replace.scriptRevision = speech.scriptRevision;
+        replace.audioMode = payload.audioMode!;
+        replace.capabilityProfileId = profile.id;
+        replace.generationJobId = job.id;
+        replace.generationRange = { startFrame: range.startFrame, endFrame: range.endFrame, speechSegmentIds: [...range.speechSegmentIds] };
+        replace.layout = payload.layout;
+        replace.bridgeAudit = input.bridgeAudit;
+        replace.status = "ready";
+        replace.note = payload.note ?? replace.note;
+        actorPerformance = replace;
+      } else {
+        const actorTrack = trackByName(snapshot, "Actor / A-roll");
+        if (actorTrack.locked) throw new DomainError("Actor / A-roll 轨已锁定", "TRACK_LOCKED");
+        timelineItem = createTimelineItem({
+          trackId: actorTrack.id,
+          sceneId: payload.placement!.sceneId,
+          assetId: asset.id,
+          startFrame: payload.placement!.startFrame,
+          endFrame: payload.placement!.endFrame,
+          sourceStartFrame: 0,
+          sourceEndFrame: requiredFrames,
+          gainDb: -96
+        });
+        snapshot.timeline.items.push(timelineItem);
+        actorPerformance = createActorPerformance({
+          timelineItemId: timelineItem.id,
+          source: "generated",
+          maskMode: "none",
+          speechAssetId: speech.id,
+          scriptRevision: speech.scriptRevision,
+          audioMode: payload.audioMode!,
+          capabilityProfileId: profile.id,
+          generationJobId: job.id,
+          generationRange: { startFrame: range.startFrame, endFrame: range.endFrame, speechSegmentIds: [...range.speechSegmentIds] },
+          layout: payload.layout,
+          bridgeAudit: input.bridgeAudit,
+          note: payload.note
+        });
+        snapshot.actorPerformances.push(actorPerformance);
+      }
+      impact.changed.push(asset.id, timelineItem.id, actorPerformance.id);
+      impact.recomputed.push("Avatar 人物主画面、声音所有权与人物空间锚点");
+      impact.dirtyRanges.push({ startFrame: timelineItem.startFrame, endFrame: timelineItem.endFrame, reason: "Avatar 生成人物已写入，需连续预览口型、边缘和段间连续性" });
+      impact.warnings.push("生成型人物必须通过静音、只听声音和声画同步三种审片；当前 Provider 的口型能力以 Actor Capability Profile 为准。");
+    });
+    const updatedJob = this.repository.updateJob(job.id, {
+      status: job.status,
+      result: {
+        ...(job.result ?? {}),
+        actorAssetId: asset.id,
+        timelineItemId: timelineItem.id,
+        actorPerformanceId: actorPerformance.id,
+        revision: state.revision.number,
+        actorVideo: {
+          relativePath: relativeOutputPath,
+          contentHash: input.actorVideo.contentHash,
+          durationMs: input.actorVideo.durationMs
+        }
+      }
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    this.publish({ projectId: updatedJob.projectId, revision: state.revision.number, type: "job" });
+    return { state, asset, timelineItem, actorPerformance, duplicate };
+  }
+
+  /**
    * 外部 Run 一创建就写回本地 Job。即使 ComfyUI 重启导致 run_id 不可查，
    * 也能从 Job 读出 workflow、schema 和请求摘要并决定是否重试。
    */
@@ -3191,11 +6794,28 @@ export class EditingApplication {
       }
       const speechAsset = input.speechAsset;
       const previousSpeechAssetId = snapshot.speechAsset?.assetId;
+      // 即使 Script 没变，重新合成后的 SpeechAsset 也可能改变发音和时长。
+      // 旧对齐属于旧二进制，先写入 Impact 再从当前快照移除，避免旧 token 被误当成当前 word_exact。
+      if (snapshot.speechAlignment) {
+        markSpeechAlignmentStale(snapshot, impact, "SpeechAsset 已重新组装");
+        snapshot.speechAlignment = undefined;
+      }
       const dialogueTrack = trackByName(snapshot, "Dialogue");
       const previousDialogueDuration = snapshot.timeline.items.find((item) => item.trackId === dialogueTrack.id && item.assetId === previousSpeechAssetId && !item.disabled);
       const synced = this.syncSpeechAssetTimeline(snapshot, speechAsset);
       if (previousSpeechAssetId && (previousSpeechAssetId !== speechAsset.assetId || previousDialogueDuration?.endFrame !== synced.durationFrames)) {
         this.staleAudioCuesForMainline(snapshot, impact, "SpeechAsset 时长或旁白文件已变化");
+      }
+      // 人物口型依赖具体的 SpeechAsset 文件而非仅依赖 Script Revision。
+      // 即使文字没变，重新合成后的发音与时长也可能变化，因此先明确标记可局部重生成的范围。
+      for (const performance of snapshot.actorPerformances) {
+        if (performance.source !== "generated" || performance.speechAssetId === speechAsset.id) continue;
+        performance.status = "stale";
+        impact.stale.push(performance.id);
+        const range = performance.generationRange;
+        if (range) {
+          impact.dirtyRanges.push({ startFrame: range.startFrame, endFrame: range.endFrame, reason: "SpeechAsset 已变化，生成型人物需要复核或局部重生成" });
+        }
       }
       impact.changed.push(speechAsset.id, synced.dialogueItem.id, ...synced.replacedItemIds, ...input.segmentAssets.map((segmentAsset) => segmentAsset.id));
       impact.recomputed.push("Dialogue 旁白轨、segment_exact SpeechTiming、稳定短句字幕");

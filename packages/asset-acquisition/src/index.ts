@@ -1,9 +1,10 @@
 import { createWriteStream } from "node:fs";
-import { copyFile, mkdir } from "node:fs/promises";
+import { copyFile, mkdir, open, rm, stat } from "node:fs/promises";
 import { basename, extname, join } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import type { AssetCandidate, AssetRequest } from "@videocut/contracts";
+import type { AssetCandidate, AssetRequest, MediaMetadata } from "@videocut/contracts";
+import { WikimediaCommonsProvider } from "./wikimedia-commons.js";
 
 /** Provider 失败会由 Job Runtime 保留为可诊断的错误码，而不是伪造空候选。 */
 export class AssetProviderError extends Error {
@@ -16,13 +17,18 @@ export class AssetProviderError extends Error {
 export interface ProviderSearchCandidate {
   originalAssetId: string;
   name: string;
+  /** Provider 必须说明候选的真实视觉媒介类型；省略仅兼容阶段 1 的旧视频 Provider。 */
+  kind?: AssetCandidate["kind"];
   sourceUrl: string;
   previewUrl?: string;
+  /** HTTP 下载响应和候选记录都要回到这个 MIME 事实，不能由文件扩展名猜成视频。 */
+  mimeType?: string;
   width?: number;
   height?: number;
   durationMs?: number;
   creator?: string;
   license?: string;
+  licenseUrl?: string;
   attributionText?: string;
   rightsStatus: AssetCandidate["rightsStatus"];
   tags?: string[];
@@ -40,14 +46,127 @@ export interface AssetProvider {
   download(input: { candidate: AssetCandidate; temporaryDirectory: string }): Promise<ProviderDownload>;
 }
 
-const safeFileName = (value: string) => basename(value).replace(/[<>:"/\\|?*\x00-\x1F]/g, "_") || "asset.mp4";
+// 默认名不带视频扩展名，避免缺失文件名的图片被路径后缀误导成 MP4。
+const safeFileName = (value: string) => basename(value).replace(/[<>:"/\\|?*\x00-\x1F]/g, "_") || "asset";
 const positiveNumber = (value: unknown): number | undefined => typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+export type ProviderMediaKind = AssetCandidate["kind"];
 
-async function downloadHttpFile(url: string, temporaryDirectory: string, fileName: string, headers: Record<string, string> = {}): Promise<ProviderDownload> {
+const MIME_BY_EXTENSION: Record<string, string> = {
+  ".avif": "image/avif",
+  ".gif": "image/gif",
+  ".jpeg": "image/jpeg",
+  ".jpg": "image/jpeg",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+  ".m4v": "video/mp4",
+  ".mov": "video/quicktime",
+  ".mp4": "video/mp4",
+  ".ogv": "video/ogg",
+  ".webm": "video/webm"
+};
+
+function normalizedContentType(value: string | undefined): string | undefined {
+  const normalized = value?.split(";", 1)[0]?.trim().toLocaleLowerCase();
+  return normalized || undefined;
+}
+
+/** 只把明确的 image/*、video/* 当作视觉素材；audio、HTML 和二进制下载页不能蒙混过关。 */
+export function providerMediaKindFromMime(value: string | undefined): ProviderMediaKind | undefined {
+  const mimeType = normalizedContentType(value);
+  if (mimeType?.startsWith("image/")) return "image";
+  if (mimeType?.startsWith("video/")) return "video";
+  return undefined;
+}
+
+function mimeTypeFromFileName(value: string): string | undefined {
+  return MIME_BY_EXTENSION[extname(value).toLocaleLowerCase()];
+}
+
+/**
+ * Provider 响应头是下载时可验证的 MIME 事实。Worker 还必须在 ffprobe 后调用
+ * assertProviderMediaAnalysis，二者共同阻断“图片当视频”或下载 HTML 错误页的情况。
+ */
+export function assertProviderDownloadContentType(input: {
+  contentType?: string;
+  expectedKind: ProviderMediaKind;
+  expectedMimeType?: string;
+}): string {
+  const actual = normalizedContentType(input.contentType);
+  if (!actual) throw new AssetProviderError("下载响应缺少图片或视频 MIME，不能安全收录素材", "ASSET_DOWNLOAD_MIME_MISSING");
+  const actualKind = providerMediaKindFromMime(actual);
+  if (!actualKind) throw new AssetProviderError(`下载内容不是图片或视频媒体：${actual}`, "ASSET_DOWNLOAD_MIME_INVALID");
+  if (actualKind !== input.expectedKind) {
+    throw new AssetProviderError(`下载内容类型与候选不一致：期望 ${input.expectedKind}，实际 ${actualKind}`, "ASSET_DOWNLOAD_KIND_MISMATCH");
+  }
+  const expectedMimeType = normalizedContentType(input.expectedMimeType);
+  if (expectedMimeType && expectedMimeType !== actual) {
+    throw new AssetProviderError(`下载内容 MIME 与候选记录不一致：${actual} / ${expectedMimeType}`, "ASSET_DOWNLOAD_MIME_MISMATCH");
+  }
+  return actual;
+}
+
+/**
+ * 下载文件进入受管目录前的最小二进制检查。它不把扩展名当作 MIME，也不误伤合法 SVG 的 XML 头。
+ * 真正的图像尺寸、视频轨和时长由 Worker 使用 assertProviderMediaAnalysis 在 ffprobe 后确认。
+ */
+export async function assertDownloadedProviderMedia(input: {
+  filePath: string;
+  contentType?: string;
+  expectedKind: ProviderMediaKind;
+  expectedMimeType?: string;
+}): Promise<void> {
+  assertProviderDownloadContentType(input);
+  const fileInfo = await stat(input.filePath);
+  if (!fileInfo.isFile() || fileInfo.size <= 0) throw new AssetProviderError("下载素材为空或不是文件", "ASSET_DOWNLOAD_EMPTY");
+  const handle = await open(input.filePath, "r");
+  try {
+    const header = Buffer.alloc(Math.min(512, fileInfo.size));
+    await handle.read(header, 0, header.length, 0);
+    const leadingText = header.toString("utf8").trimStart().toLocaleLowerCase();
+    if (/^(?:<!doctype\s+html|<html(?:\s|>))/u.test(leadingText)) {
+      throw new AssetProviderError("下载内容是网页错误页，不是图片或视频素材", "ASSET_DOWNLOAD_HTML");
+    }
+  } finally {
+    await handle.close();
+  }
+}
+
+/**
+ * MediaMetadata 里的 videoCodec 代表 ffprobe 识别到的视觉流，静态图片也会有该流。
+ * 因而图片只要求图像尺寸和可读视觉流，不能强行要求视频时长或把图片登记为 video Asset。
+ */
+export function assertProviderMediaAnalysis(input: {
+  candidate: Pick<AssetCandidate, "kind" | "name">;
+  metadata: MediaMetadata;
+}): void {
+  const { candidate, metadata } = input;
+  if (!metadata.videoCodec) {
+    throw new AssetProviderError(`下载媒体“${candidate.name}”没有可读取的视觉流`, "ASSET_DOWNLOAD_VISUAL_STREAM_MISSING");
+  }
+  if (candidate.kind === "video" && metadata.durationMs <= 0) {
+    throw new AssetProviderError(`下载视频“${candidate.name}”没有有效时长`, "ASSET_DOWNLOAD_VIDEO_DURATION_MISSING");
+  }
+  if (candidate.kind === "image" && (!metadata.width || !metadata.height)) {
+    throw new AssetProviderError(`下载图片“${candidate.name}”缺少可用尺寸`, "ASSET_DOWNLOAD_IMAGE_DIMENSIONS_MISSING");
+  }
+}
+
+async function downloadHttpFile(
+  url: string,
+  temporaryDirectory: string,
+  fileName: string,
+  expectedKind: ProviderMediaKind,
+  expectedMimeType?: string,
+  headers: Record<string, string> = {}
+): Promise<ProviderDownload> {
   const response = await fetch(url, { headers, redirect: "follow" });
   if (!response.ok) throw new AssetProviderError(`下载素材失败：HTTP ${response.status}`, "ASSET_DOWNLOAD_HTTP_ERROR");
-  const contentType = response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
-  if (!contentType?.startsWith("video/")) throw new AssetProviderError(`下载内容不是视频媒体：${contentType || "未知 MIME"}`, "ASSET_DOWNLOAD_MIME_INVALID");
+  const contentType = assertProviderDownloadContentType({
+    contentType: response.headers.get("content-type") ?? undefined,
+    expectedKind,
+    expectedMimeType
+  });
   const contentLength = Number(response.headers.get("content-length") ?? 0);
   const maxBytes = Number(process.env.VIDEOCUT_MAX_ASSET_DOWNLOAD_BYTES ?? 512 * 1024 * 1024);
   if (Number.isFinite(contentLength) && contentLength > maxBytes) {
@@ -67,7 +186,13 @@ async function downloadHttpFile(url: string, temporaryDirectory: string, fileNam
       callback(null, chunk);
     }
   });
-  await pipeline(Readable.fromWeb(response.body as never), byteLimit, createWriteStream(targetPath));
+  try {
+    await pipeline(Readable.fromWeb(response.body as never), byteLimit, createWriteStream(targetPath));
+    await assertDownloadedProviderMedia({ filePath: targetPath, contentType, expectedKind, expectedMimeType });
+  } catch (error) {
+    await rm(targetPath, { force: true }).catch(() => undefined);
+    throw error;
+  }
   return { filePath: targetPath, fileName: safeFileName(fileName), contentType };
 }
 
@@ -111,14 +236,14 @@ export class PexelsProvider implements AssetProvider {
   }
 
   private selectVideoFile(video: PexelsVideo): PexelsVideoFile | undefined {
-    return (video.video_files ?? [])
+    const mp4Files = (video.video_files ?? [])
       .filter((file) => file.file_type === "video/mp4" && typeof file.link === "string")
       .sort((left, right) => {
         const leftPixels = (left.width ?? 0) * (left.height ?? 0);
         const rightPixels = (right.width ?? 0) * (right.height ?? 0);
         return rightPixels - leftPixels;
-      })
-      .find((file) => file.quality !== "sd") ?? (video.video_files ?? []).find((file) => typeof file.link === "string");
+      });
+    return mp4Files.find((file) => file.quality !== "sd") ?? mp4Files[0];
   }
 
   async search(input: { request: AssetRequest; query: string }): Promise<ProviderSearchCandidate[]> {
@@ -131,13 +256,16 @@ export class PexelsProvider implements AssetProvider {
       return [{
         originalAssetId: String(video.id),
         name: `Pexels ${video.id}`,
+        kind: "video",
         sourceUrl: video.url,
         previewUrl: video.image,
+        mimeType: "video/mp4",
         width: positiveNumber(video.width) ?? positiveNumber(file.width),
         height: positiveNumber(video.height) ?? positiveNumber(file.height),
         durationMs: positiveNumber(video.duration) ? Math.round(video.duration! * 1_000) : undefined,
         creator: video.user?.name,
         license: "Pexels License",
+        licenseUrl: "https://www.pexels.com/license/",
         rightsStatus: "cleared",
         tags: ["pexels", "stock", ...input.request.queryHints]
       }];
@@ -148,29 +276,61 @@ export class PexelsProvider implements AssetProvider {
     const response = await this.request(`/videos/${encodeURIComponent(input.candidate.originalAssetId)}`) as PexelsVideo;
     const file = this.selectVideoFile(response);
     if (!file?.link) throw new AssetProviderError("Pexels 候选已没有可下载的视频文件", "PEXELS_DOWNLOAD_MISSING");
-    return downloadHttpFile(file.link, input.temporaryDirectory, `${input.candidate.originalAssetId}.mp4`);
+    return downloadHttpFile(
+      file.link,
+      input.temporaryDirectory,
+      `${input.candidate.originalAssetId}.mp4`,
+      "video",
+      "video/mp4"
+    );
   }
 }
 
 export interface MockAssetFixture extends ProviderSearchCandidate {
   filePath: string;
   queryIncludes?: string[];
+  /** 仅供测试模拟下载响应头；不会写入候选或 Project Revision。 */
+  downloadContentType?: string;
+}
+
+type ResolvedMockAssetFixture = MockAssetFixture & {
+  kind: ProviderMediaKind;
+  mimeType?: string;
+};
+
+function resolveMockFixture(fixture: MockAssetFixture): ResolvedMockAssetFixture {
+  const declaredMimeType = normalizedContentType(fixture.mimeType);
+  const inferredMimeType = declaredMimeType ?? mimeTypeFromFileName(fixture.name) ?? mimeTypeFromFileName(fixture.filePath);
+  const mimeKind = providerMediaKindFromMime(inferredMimeType);
+  const kind = fixture.kind ?? mimeKind ?? "video";
+  if (mimeKind && mimeKind !== kind) {
+    throw new AssetProviderError(`Mock 素材“${fixture.name}”的 kind 与 MIME 不一致`, "MOCK_ASSET_KIND_MIME_MISMATCH");
+  }
+  return { ...fixture, kind, mimeType: inferredMimeType };
 }
 
 /** CI 专用 Provider：固定候选和本地媒体让测试不依赖网络或搜索排序。 */
 export class MockAssetProvider implements AssetProvider {
   readonly name = "mock";
-  private readonly fixtures = new Map<string, MockAssetFixture>();
+  private readonly fixtures = new Map<string, ResolvedMockAssetFixture>();
 
   constructor(fixtures: MockAssetFixture[]) {
-    for (const fixture of fixtures) this.fixtures.set(fixture.originalAssetId, fixture);
+    for (const fixture of fixtures) {
+      const resolved = resolveMockFixture(fixture);
+      this.fixtures.set(resolved.originalAssetId, resolved);
+    }
   }
 
   async search(input: { request: AssetRequest; query: string }): Promise<ProviderSearchCandidate[]> {
     const lowerQuery = input.query.toLocaleLowerCase();
     return [...this.fixtures.values()]
       .filter((fixture) => !fixture.queryIncludes?.length || fixture.queryIncludes.every((word) => lowerQuery.includes(word.toLocaleLowerCase())))
-      .map(({ filePath: _filePath, queryIncludes: _queryIncludes, ...candidate }) => ({ ...candidate, tags: [...(candidate.tags ?? []), ...input.request.queryHints] }));
+      .map(({
+        filePath: _filePath,
+        queryIncludes: _queryIncludes,
+        downloadContentType: _downloadContentType,
+        ...candidate
+      }) => ({ ...candidate, tags: [...(candidate.tags ?? []), ...input.request.queryHints] }));
   }
 
   async download(input: { candidate: AssetCandidate; temporaryDirectory: string }): Promise<ProviderDownload> {
@@ -180,7 +340,11 @@ export class MockAssetProvider implements AssetProvider {
     const fileName = safeFileName(fixture.name || `${fixture.originalAssetId}.mp4`);
     const targetPath = join(input.temporaryDirectory, `${input.candidate.id}-${fileName}`);
     await copyFile(fixture.filePath, targetPath);
-    return { filePath: targetPath, fileName, contentType: "video/mp4" };
+    return {
+      filePath: targetPath,
+      fileName,
+      contentType: normalizedContentType(fixture.downloadContentType) ?? fixture.mimeType
+    };
   }
 }
 
@@ -202,10 +366,16 @@ export class AssetProviderRegistry {
   }
 }
 
-/** 默认运行环境只在存在 PEXELS_API_KEY 时启用真实网络 Provider。 */
+/**
+ * Commons 不需要项目私钥，因此默认可发现；Pexels 仍只在配置密钥时出现。
+ * 发现 Provider 不等于素材已获授权或适合进入 Scene，后续仍要走候选审查和本地化。
+ */
 export function createDefaultAssetProviderRegistry(): AssetProviderRegistry {
-  const providers: AssetProvider[] = [];
+  const providers: AssetProvider[] = [new WikimediaCommonsProvider()];
   const pexelsApiKey = process.env.PEXELS_API_KEY?.trim();
   if (pexelsApiKey) providers.push(new PexelsProvider(pexelsApiKey));
   return new AssetProviderRegistry(providers);
 }
+
+// Commons 的逐文件许可解析在独立模块中实现，避免 Pexels Provider 承担不同站点的 API 细节。
+export { WikimediaCommonsProvider, type WikimediaCommonsProviderOptions, type WikimediaCommonsSearchCandidate } from "./wikimedia-commons.js";

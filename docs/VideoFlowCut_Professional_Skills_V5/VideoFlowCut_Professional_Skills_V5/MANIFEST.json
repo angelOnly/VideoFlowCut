@@ -1,0 +1,251 @@
+{
+  "name": "VideoFlowCut Professional Skills V5",
+  "architecture": "V6.2 Skills 主工作流编排增量优化开发基线",
+  "codeBaseline": "713821ebb7c32abeffc286e07506a806e6c6f287",
+  "skillCount": 24,
+  "referenceCount": 8,
+  "sharedCount": 6,
+  "markdownCount": 46,
+  "totalBytes": 265364,
+  "files": [
+    {
+      "path": ".agents/skills/_shared/CURRENT_CAPABILITIES.md",
+      "bytes": 5639,
+      "sha256": "759f7d3906f23dc10762dea16820b010c71dd7e0cfee687f91ad2037aaba7856"
+    },
+    {
+      "path": ".agents/skills/_shared/EDITORIAL_FOUNDATIONS.md",
+      "bytes": 5601,
+      "sha256": "324e21e3c9f0bc66b14c04979ea630a8b56dcf36ace954681aa4a5e43db46b1c"
+    },
+    {
+      "path": ".agents/skills/_shared/EVIDENCE_RIGHTS_AND_READINESS.md",
+      "bytes": 2621,
+      "sha256": "2ebd6591ca1a4855ecce107c58a50ebcbd37150c8b45a29796f75aed29c2105f"
+    },
+    {
+      "path": ".agents/skills/_shared/PROJECT_REVISION_AND_HANDOFF.md",
+      "bytes": 3210,
+      "sha256": "389be216dbfeff54891e948355e9eb891af0ae88dd1c57ca723e2f5ba1728050"
+    },
+    {
+      "path": ".agents/skills/_shared/QUALITY_EVIDENCE_AND_DELIVERY.md",
+      "bytes": 2325,
+      "sha256": "8411f2e8c4c4b2f7a41addc5beecef7bf0ea5483ae0d9ef5d68b10867254b28a"
+    },
+    {
+      "path": ".agents/skills/_shared/SOURCE_MAP.md",
+      "bytes": 1513,
+      "sha256": "1aa02e8651e1185045973ba2a0aaf749661ef23a3707ba9577f1838ab688ecc7"
+    },
+    {
+      "path": ".agents/skills/asset-import/SKILL.md",
+      "bytes": 6916,
+      "sha256": "db49962fd401a73efd3bbd16932b8b392c9dadd42b2921ac77ae22f8e46164ea"
+    },
+    {
+      "path": ".agents/skills/audio-finishing/SKILL.md",
+      "bytes": 6433,
+      "sha256": "4e84ca0aa1aba34ee4360ae5e405e172c9c19ccb2ffa5e93ee94ade9c30f55e5"
+    },
+    {
+      "path": ".agents/skills/avatar-performance/SKILL.md",
+      "bytes": 6626,
+      "sha256": "0ce13fd4493c3b596ca449e1f8a1232194710da15cd62bb6eeaff0fd17f9278c"
+    },
+    {
+      "path": ".agents/skills/captions/SKILL.md",
+      "bytes": 5878,
+      "sha256": "8f15e10350465dcabfc43ceabcceea2ce7a3d983c5e2516d02e3a0f80e8af2a3"
+    },
+    {
+      "path": ".agents/skills/cutaway-planning/SKILL.md",
+      "bytes": 6785,
+      "sha256": "ab2896297d17969ff4e3b1c9b7f0bc8fe9b97773fd12269a1443d7ac3d91b8c6"
+    },
+    {
+      "path": ".agents/skills/depth-composition/SKILL.md",
+      "bytes": 5958,
+      "sha256": "f0055581895afe96ab35d95e2a1ff0d3503463a14335161c4d752a1b16c7f558"
+    },
+    {
+      "path": ".agents/skills/effect-timing/SKILL.md",
+      "bytes": 7134,
+      "sha256": "8073a0395abde1db5ea2fa8d57b1630e8b3ac48fa0c51b8733e0b916194a6711"
+    },
+    {
+      "path": ".agents/skills/evidence-visualization/SKILL.md",
+      "bytes": 5358,
+      "sha256": "09280afe9e389890bf725eb128c223d450a90ea6a308f51c93a145eaa3766ee5"
+    },
+    {
+      "path": ".agents/skills/export/SKILL.md",
+      "bytes": 4505,
+      "sha256": "a6145d22e5ee2eb1f74b6cbef65cdd83eb83c53aca3ef54cb636c8d62543c35a"
+    },
+    {
+      "path": ".agents/skills/known-errors/SKILL.md",
+      "bytes": 5605,
+      "sha256": "8d450dfd2cd7e57b366b35fe19e26358389fc80845570a7116925e9f139b0e88"
+    },
+    {
+      "path": ".agents/skills/presenter-motion-director/SKILL.md",
+      "bytes": 22220,
+      "sha256": "c3cc67361c6b5d5e420515a62b925c2fdb5f843af1158c9bdaa3b0343a606680"
+    },
+    {
+      "path": ".agents/skills/presenter-motion-director/references/talking-head-casebook.md",
+      "bytes": 4494,
+      "sha256": "3eff3ad5e0a2b2ed92914fe4ae3422236f3d202adcd8e375a93b41fb48c8c954"
+    },
+    {
+      "path": ".agents/skills/production-director/SKILL.md",
+      "bytes": 9508,
+      "sha256": "77a688969f139662f8ab3dd7a96ad23dea125be3c19b99dd02fed2f5e0ffc09b"
+    },
+    {
+      "path": ".agents/skills/production-director/references/routing-casebook.md",
+      "bytes": 3880,
+      "sha256": "85de773f9618ad7bbcf168e10fd9a5b6c87e4ea124cd61122260b6c81ff03ad3"
+    },
+    {
+      "path": ".agents/skills/project-basics/SKILL.md",
+      "bytes": 14419,
+      "sha256": "3155ead56010de9eaab83a9826763c912cae2f2617426f6ed841401f92884f5d"
+    },
+    {
+      "path": ".agents/skills/quality-verification/SKILL.md",
+      "bytes": 8580,
+      "sha256": "ce0e0d110644770ab18c63376af468b5d18ef33c95bc5b4c0c884f90a81b703f"
+    },
+    {
+      "path": ".agents/skills/quality-verification/references/mode-specific-rubrics.md",
+      "bytes": 2531,
+      "sha256": "a8371b1a27a86c15831999ee4f7fd66c6f26abd2c0e94adc703089193b258f17"
+    },
+    {
+      "path": ".agents/skills/remotion-production/SKILL.md",
+      "bytes": 16777,
+      "sha256": "86cea89bb4093a0b9b6c6a9c4f3f37fa8eff269510c90da67934320543f1f991"
+    },
+    {
+      "path": ".agents/skills/remotion-production/references/motion-graphics-casebook.md",
+      "bytes": 2759,
+      "sha256": "c40e644db48a6fe870291d2df824cfd929910500b42bc504bd990c23e1dc211a"
+    },
+    {
+      "path": ".agents/skills/remotion-production/references/remotion-component-contract.md",
+      "bytes": 3326,
+      "sha256": "3fdbb7e7329f10709f63976760adad87a212e7863fa31bb6a378b2231d49d403"
+    },
+    {
+      "path": ".agents/skills/scene-planning/SKILL.md",
+      "bytes": 7934,
+      "sha256": "36b3c6b5b951b53302dd87d7c87b5770ab150641438edbcc5073b0da0cf1a64e"
+    },
+    {
+      "path": ".agents/skills/semantic-continuity/SKILL.md",
+      "bytes": 11507,
+      "sha256": "41947f8403bc080b540294d6a901410977f8f849644d82195ccdf6df1cfbffc3"
+    },
+    {
+      "path": ".agents/skills/transcription/SKILL.md",
+      "bytes": 4671,
+      "sha256": "4753348caba0d394a41909ac1116f29b9e8234127616a30118a11c98b22e052f"
+    },
+    {
+      "path": ".agents/skills/visual-asset-sourcing/SKILL.md",
+      "bytes": 5429,
+      "sha256": "ec31dfdbc1ab006c3a8d1015f68a1e5e6fbf86cacf161c8bcf1281b0135752b9"
+    },
+    {
+      "path": ".agents/skills/visual-asset-sourcing/references/provider-and-rights-casebook.md",
+      "bytes": 3178,
+      "sha256": "0aabc0dc9003c9cde54dabb2becdd9fe7cf7d214f6537e35b2e97bc9e3f2b822"
+    },
+    {
+      "path": ".agents/skills/visual-explainer-director/SKILL.md",
+      "bytes": 10387,
+      "sha256": "3b8850e96359beb053fec7836d0b36b28776ce580cd0201c74e76086025d4d5b"
+    },
+    {
+      "path": ".agents/skills/visual-explainer-director/references/explainer-scene-grammar-casebook.md",
+      "bytes": 2988,
+      "sha256": "220e87879866b637a013948370d97b62179c955ff853d6cc3099aa6dc19879e5"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/SKILL.md",
+      "bytes": 7577,
+      "sha256": "6dc36e6cbd59b3a25e806313eb9105df4310f86c4ee2b62231664850724e587e"
+    },
+    {
+      "path": ".agents/skills/vlog-director/SKILL.md",
+      "bytes": 10671,
+      "sha256": "1aedf83cc62886e2919e242682defb6c429a080292ca285f84a90f7c143935cb"
+    },
+    {
+      "path": ".agents/skills/vlog-director/references/vlog-event-casebook.md",
+      "bytes": 2556,
+      "sha256": "cb731bba8f82e23d9961e8ff06104113ef020a736e8462208bf3718c6d17ad70"
+    },
+    {
+      "path": ".agents/skills/voice-production/SKILL.md",
+      "bytes": 6769,
+      "sha256": "ca218c2a5dfd83c1b5ef6e284c727af95020f51bdf10ed4917f1c4f704b03383"
+    },
+    {
+      "path": ".agents/skills/web-editor-operator/SKILL.md",
+      "bytes": 5954,
+      "sha256": "92e1335c5fa64aa5ce0b5890c6c727423093d5a67f4d2881b4316176430cfe98"
+    },
+    {
+      "path": "README.md",
+      "bytes": 4757,
+      "sha256": "1b936e774a492b70178ee4591f3e877a02ab9d723a7fa3b9e8306f284dc8d351"
+    },
+    {
+      "path": "docs/SKILLS_V5_ARCHITECTURE_ALIGNMENT.md",
+      "bytes": 2130,
+      "sha256": "001cc85b4e70fb769a0afec42015748595f0733323749bb7fa254d6cd4f7e73d"
+    },
+    {
+      "path": "evals/01_STATIC_ROUTE_AND_STRUCTURE.md",
+      "bytes": 1013,
+      "sha256": "955f7fda6e8c9ac3b3cde1cf5dc02d557fbe0fd9fd628023c7f0d57be69ebbb6"
+    },
+    {
+      "path": "evals/02_SPECIALIST_HANDOFF_EVALS.md",
+      "bytes": 853,
+      "sha256": "3187554eb58be2cbdef146605f9492b96c88cf6a7d8b4e337c6443995577eadc"
+    },
+    {
+      "path": "evals/03_PRESENTER_REAL_E2E.md",
+      "bytes": 1255,
+      "sha256": "0122284a763702c84d4e7a300ca297dfb4ae78a30634274951d9e4ef8cc6925b"
+    },
+    {
+      "path": "evals/04_REMOTION_PRODUCTION_EVAL.md",
+      "bytes": 930,
+      "sha256": "e97881dedd8e90dd240726a28ef21ed595c4cfa39503f8a4cc410bc8bc5a012c"
+    },
+    {
+      "path": "evals/05_REVIEW_CHECKLIST.md",
+      "bytes": 967,
+      "sha256": "079d240360d2122b13bbd2bab4d32cf87299f71585524ada5a467120030dd1c7"
+    },
+    {
+      "path": "integration/AGENTS_SKILLS_RULES.md",
+      "bytes": 1230,
+      "sha256": "0aede3133f7c69a70c0209734abd7f46368e92872da629a03c22584717d5631d"
+    },
+    {
+      "path": "integration/config.skills-v5.fragment.toml",
+      "bytes": 2007,
+      "sha256": "69f5c1e317fa9c4fccb364f69b77911b50af64c4174a70e5b5fba236f36ff34c"
+    }
+  ],
+  "validation": {
+    "errors": [],
+    "warnings": []
+  }
+}

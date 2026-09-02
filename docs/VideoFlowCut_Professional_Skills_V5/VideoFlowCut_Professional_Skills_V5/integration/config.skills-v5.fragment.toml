@@ -1,0 +1,98 @@
+# 合并到项目 .codex/config.toml。
+# 显式登记只代表可发现，不表示每个任务必须全部加载。
+
+[[skills.config]]
+path = "../.agents/skills/project-basics"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/web-editor-operator"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/production-director"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/asset-import"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/visual-asset-sourcing"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/transcription"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/voice-production"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/semantic-continuity"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/presenter-motion-director"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/avatar-performance"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/visual-treatment-planning"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/scene-planning"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/effect-timing"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/depth-composition"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/cutaway-planning"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/visual-explainer-director"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/evidence-visualization"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/vlog-director"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/captions"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/audio-finishing"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/remotion-production"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/quality-verification"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/export"
+enabled = true
+
+[[skills.config]]
+path = "../.agents/skills/known-errors"
+enabled = true
