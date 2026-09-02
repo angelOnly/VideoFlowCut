@@ -1,0 +1,26 @@
+{
+  "name": "videoflowcut",
+  "version": "0.1.0+codex.20260902165408",
+  "description": "\u5728\u672c\u673a VideoFlowCut \u4ed3\u5e93\u4e2d\u542f\u52a8\u53ef\u7f16\u8f91\u89c6\u9891\u5de5\u4f5c\u53f0\u3001MCP \u4e0e\u4e13\u4e1a\u5de5\u4f5c\u6d41\u3002",
+  "author": {
+    "name": "VideoFlowCut"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "VideoFlowCut",
+    "shortDescription": "\u7528 Codex \u5b8c\u6210\u53ef\u7f16\u8f91\u7684\u89c6\u9891\u526a\u8f91\u5de5\u4f5c\u6d41\u3002",
+    "longDescription": "\u63d0\u4f9b VideoFlowCut \u4e13\u4e1a Skills\u3001video-editor MCP \u542f\u52a8\u5668\uff0c\u4ee5\u53ca\u590d\u7528\u672c\u4ed3\u5e93 API\u3001\u4efb\u52a1\u3001\u6e32\u67d3\u4e0e Web \u5de5\u4f5c\u53f0\u7684\u672c\u673a\u8fd0\u884c\u65f6\u3002",
+    "developerName": "VideoFlowCut",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "\u6253\u5f00 VideoFlowCut \u5de5\u4f5c\u53f0\u5e76\u521b\u5efa\u4e00\u4e2a\u89c6\u9891\u9879\u76ee",
+      "\u5ba1\u9605\u8fd9\u6bb5\u7d20\u6750\u540e\u63d0\u51fa\u53ef\u6267\u884c\u526a\u8f91\u65b9\u6848",
+      "\u68c0\u67e5\u5f53\u524d\u9879\u76ee\u7684\u9884\u89c8\u548c\u4ea4\u4ed8\u98ce\u9669"
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}

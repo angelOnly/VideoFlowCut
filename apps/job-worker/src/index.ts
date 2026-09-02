@@ -218,15 +218,20 @@ export async function runOneJob(
   return runOneQueuedJob(app, MEDIA_JOB_KINDS, processor);
 }
 
-export async function runWorkerForever(app: EditingApplication = getDefaultApplication()): Promise<void> {
-  let stopping = false;
+export async function runWorkerForever(app: EditingApplication = getDefaultApplication(), signal?: AbortSignal): Promise<void> {
+  let stopping = signal?.aborted ?? false;
   const stop = () => { stopping = true; };
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
-  const processor = createMediaJobProcessor(app);
-  while (!stopping) {
-    const worked = await runOneJob(app, processor);
-    if (!worked) await new Promise((resolve) => setTimeout(resolve, 750));
+  signal?.addEventListener("abort", stop, { once: true });
+  try {
+    const processor = createMediaJobProcessor(app);
+    while (!stopping) {
+      const worked = await runOneJob(app, processor);
+      if (!worked) await new Promise((resolve) => setTimeout(resolve, 750));
+    }
+  } finally {
+    signal?.removeEventListener("abort", stop);
   }
 }
 

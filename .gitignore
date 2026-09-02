@@ -12,3 +12,6 @@ workspace/
 previews/
 exports/
 cache/
+
+# VideoFlowCut 插件在本机构建时写入仓库定位指针；它不能携带某台机器的绝对路径提交。
+plugins/videoflowcut/runtime/repo-root.json

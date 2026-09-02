@@ -176,6 +176,13 @@ async function importLocalMedia(projectId: string, baseRevision: number, filePat
 
 const server = new McpServer({ name: "video-editor-mcp", version: "0.1.0" });
 
+server.registerTool("open_web_workbench", {
+  title: "打开剪辑工作台",
+  description: "返回当前 VideoFlowCut Web 工作台地址。插件启动器已确保同一工作区的 API、Worker、Render 与静态工作台可用。",
+  inputSchema: {},
+  annotations: { readOnlyHint: true }
+}, async () => asText({ url: webOrigin, workspaceRoot }));
+
 server.registerTool("list_projects", {
   title: "列出视频项目",
   description: "读取本地 Editing Application 中的项目摘要。",

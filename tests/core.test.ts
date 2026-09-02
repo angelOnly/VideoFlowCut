@@ -1884,13 +1884,22 @@ test("阶段0 Web 服务与独立 MCP 进程读写同一 Project Revision", asyn
   }
 });
 
-test("项目级 Codex 配置校验真实 Skill 合同，而不是旧 Markdown 标题", async () => {
-  const configPath = join(process.cwd(), ".codex", "config.toml");
-  const config = await readFile(configPath, "utf8");
-  assert.match(config, /\[mcp_servers\."video-editor-mcp"\]/u);
-  assert.match(config, /args = \["run", "mcp"\]/u);
-  assert.doesNotMatch(config, /^cwd\s*=/mu, "项目配置不能绑定个人电脑绝对工作目录");
-  const enabledSkillNames = [...config.matchAll(/path = "\.\.\/\.agents\/skills\/([^"\r\n]+)"/gu)].map((match) => match[1]!);
+test("VideoFlowCut 插件配置校验真实 Skill 合同，而不是旧 Markdown 标题", async () => {
+  const pluginRoot = join(process.cwd(), "plugins", "videoflowcut");
+  const manifest = JSON.parse(await readFile(join(pluginRoot, ".codex-plugin", "plugin.json"), "utf8")) as {
+    name: string;
+    skills?: string;
+    mcpServers?: string;
+  };
+  const mcpConfig = JSON.parse(await readFile(join(pluginRoot, ".mcp.json"), "utf8")) as {
+    mcpServers?: Record<string, { args?: string[]; cwd?: string }>;
+  };
+  assert.equal(manifest.name, "videoflowcut");
+  assert.equal(manifest.skills, "./skills/");
+  assert.equal(manifest.mcpServers, "./.mcp.json");
+  assert.deepEqual(mcpConfig.mcpServers?.videoflowcut?.args, ["./scripts/mcp-launcher.mjs"]);
+  assert.equal(mcpConfig.mcpServers?.videoflowcut?.cwd, ".", "插件配置只能使用相对工作目录");
+
   for (const skillName of [
     "project-basics",
     "web-editor-operator",
@@ -1910,10 +1919,8 @@ test("项目级 Codex 配置校验真实 Skill 合同，而不是旧 Markdown �
     "known-errors",
     "audio-finishing"
   ]) {
-    assert.ok(enabledSkillNames.includes(skillName), `缺少启用 Skill：${skillName}`);
-  }
-  for (const skillName of enabledSkillNames) {
-    const skillPath = join(process.cwd(), ".agents", "skills", skillName, "SKILL.md");
+    const skillPath = join(pluginRoot, "skills", skillName, "SKILL.md");
+    await access(skillPath);
     const skill = await readFile(skillPath, "utf8");
     const frontMatter = /^---\r?\n([\s\S]*?)\r?\n---/u.exec(skill);
     assert.ok(frontMatter, `${skillName} 缺少 YAML Front Matter`);

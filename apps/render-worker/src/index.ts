@@ -25,15 +25,20 @@ export async function runOneRenderJob(
   return runOneQueuedJob(app, RENDER_JOB_KINDS, processor, 5 * 60_000);
 }
 
-export async function runRenderWorkerForever(app: EditingApplication = getDefaultApplication()): Promise<void> {
-  let stopping = false;
+export async function runRenderWorkerForever(app: EditingApplication = getDefaultApplication(), signal?: AbortSignal): Promise<void> {
+  let stopping = signal?.aborted ?? false;
   const stop = () => { stopping = true; };
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
-  const processor = createRenderJobProcessor(app);
-  while (!stopping) {
-    const worked = await runOneRenderJob(app, processor);
-    if (!worked) await new Promise((resolve) => setTimeout(resolve, 750));
+  signal?.addEventListener("abort", stop, { once: true });
+  try {
+    const processor = createRenderJobProcessor(app);
+    while (!stopping) {
+      const worked = await runOneRenderJob(app, processor);
+      if (!worked) await new Promise((resolve) => setTimeout(resolve, 750));
+    }
+  } finally {
+    signal?.removeEventListener("abort", stop);
   }
 }
 

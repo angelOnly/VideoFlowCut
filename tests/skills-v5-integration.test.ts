@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { access, readdir, readFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import test from "node:test";
 import { promisify } from "node:util";
 
 const repositoryRoot = process.cwd();
 const skillsRoot = join(repositoryRoot, ".agents", "skills");
+const pluginRoot = join(repositoryRoot, "plugins", "videoflowcut");
+const pluginSkillsRoot = join(pluginRoot, "skills");
+const pluginManifestPath = join(pluginRoot, ".codex-plugin", "plugin.json");
+const pluginMcpPath = join(pluginRoot, ".mcp.json");
 const mcpSourcePath = join(repositoryRoot, "apps", "server", "src", "mcp.ts");
 const execFileAsync = promisify(execFile);
 
@@ -58,8 +62,11 @@ const specialistSkills = [
   "remotion-production"
 ] as const;
 
-const architectureTargets = new Set([
-  "smooth_audio",
+const architectureTargets = new Set(["smooth_audio"]);
+
+/** 已被 Skill 使用的 MCP 必须继续注册，避免再被误降级为“架构目标”。 */
+const currentSkillTools = new Set([
+  "inspect_asset",
   "read_actor_capabilities",
   "submit_avatar_job",
   "read_narrative_map"
@@ -151,18 +158,27 @@ function sceneTypesInTool(toolSource: string): string[] {
   return [...new Set([...toolSource.matchAll(/"([A-Z][A-Za-z]*Scene)"/gu)].map((match) => match[1]!))].sort();
 }
 
-test("Skills V5 结构唯一、完整且可被 Codex 发现", async () => {
-  const configuredNames = [...(await readFile(join(repositoryRoot, ".codex", "config.toml"), "utf8")).matchAll(/path = "\.\.\/\.agents\/skills\/([^"\r\n]+)"/gu)].map((match) => match[1]!);
+test("Skills V5 源唯一、插件发行副本完整且可被 Codex 发现", async () => {
   const onDiskNames = (await readdir(skillsRoot, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory() && entry.name !== "_shared")
     .map((entry) => entry.name)
     .sort();
+  const releasedNames = (await readdir(pluginSkillsRoot, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory() && entry.name !== "_shared")
+    .map((entry) => entry.name)
+    .sort();
+  const manifest = JSON.parse(await readFile(pluginManifestPath, "utf8"));
+  const mcp = JSON.parse(await readFile(pluginMcpPath, "utf8"));
 
   assert.deepEqual(onDiskNames, [...expectedSkills].sort());
-  assert.deepEqual([...new Set(configuredNames)].sort(), [...expectedSkills].sort());
-  assert.equal(configuredNames.length, expectedSkills.length, "每个运行时 Skill 只能登记一次");
+  assert.deepEqual(releasedNames, [...expectedSkills].sort());
+  assert.equal(manifest.name, "videoflowcut");
+  assert.equal(manifest.skills, "./skills/", "插件必须显式发布 Skills 目录");
+  assert.equal(manifest.mcpServers, "./.mcp.json", "插件必须通过自身 MCP 配置暴露工具");
+  assert.equal(mcp.mcpServers?.videoflowcut?.args?.[0], "./scripts/mcp-launcher.mjs", "插件 MCP 必须经统一运行器启动");
   assert.equal(await exists(join(skillsRoot, "_shared", "CURRENT_CAPABILITIES.md")), false, "运行时不得依赖 CURRENT_CAPABILITIES 快照");
   assert.equal(await exists(join(skillsRoot, "_shared", "MCP_EXECUTION_CONTRACT.md")), true);
+  assert.equal(await exists(join(skillsRoot, "_shared", "SOURCE_REVIEW_METHOD.md")), true);
   assert.equal(await hasTrackedNestedExecutableSkills(), false, "docs 中不得保留第二棵可执行 .agents/skills");
 
   const allSkillFiles = await markdownFiles(skillsRoot);
@@ -174,6 +190,11 @@ test("Skills V5 结构唯一、完整且可被 Codex 发现", async () => {
     assert.match(frontMatter![1], new RegExp(`^name:\\s*${name}$`, "mu"), `${name} 的 name 必须与目录一致`);
     assert.match(frontMatter![1], /^description:\s*\S+/mu, `${name} 缺少 description`);
     assert.match(skill, /##\s+(退出条件|验证与退出|停止条件|最终检查|完成标准|交接合同|交接)/u, `${name} 缺少可验证的退出或交接条件`);
+    assert.equal(
+      await readFile(join(pluginSkillsRoot, name, "SKILL.md"), "utf8"),
+      skill,
+      `插件发行副本与根 Skills 源漂移：${name}`
+    );
   }
 
   for (const markdownPath of allSkillFiles) {
@@ -183,6 +204,9 @@ test("Skills V5 结构唯一、完整且可被 Codex 发现", async () => {
       const resolved = resolve(dirname(markdownPath), reference);
       assert.equal(await exists(resolved), true, `${markdownPath} 引用了不存在的资料：${reference}`);
     }
+    const releasedPath = join(pluginSkillsRoot, relative(skillsRoot, markdownPath));
+    assert.equal(await exists(releasedPath), true, `插件发行副本缺少共享资料：${relative(skillsRoot, markdownPath)}`);
+    assert.equal(await readFile(releasedPath, "utf8"), markdown, `插件发行副本与根 Skills 源漂移：${relative(skillsRoot, markdownPath)}`);
   }
 });
 
@@ -229,11 +253,16 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
     assert.equal(currentTools.has(target), false, `${target} 已进入 MCP 时必须先更新分类`);
     assert.match(contract, new RegExp("`" + target + "`"), `调用合同遗漏架构目标 ${target}`);
   }
+  for (const tool of currentSkillTools) {
+    assert.equal(currentTools.has(tool), true, `${tool} 已被 Skill 使用，MCP 不得缺失或被误写为架构目标`);
+    assert.match(contract, new RegExp("`" + tool + "(?:`|\\()"), `调用合同遗漏当前工具 ${tool}`);
+  }
   assert.equal(currentTools.has("create_presenter_timeline"), true);
   assert.match(contract, /兼容入口，不作为正式主链/u);
 
   const requiredInputs: Record<string, string[]> = {
     import_media: ["base_revision_id", "file_path"],
+    inspect_asset: ["asset_id", "mode"],
     manage_asset_requirements: ["base_revision_id", "action"],
     search_media_candidates: ["base_revision_id", "asset_request_id", "provider", "query"],
     inspect_media_candidate: ["asset_candidate_id"],
@@ -258,7 +287,11 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
     inspect_composed_frames: ["preview_job_id"],
     record_editorial_quality_review: ["run_id", "revision", "passes", "preview_evidence", "findings"],
     run_render_preflight: ["revision"],
-    submit_export: ["revision", "purpose"]
+    submit_export: ["revision", "purpose"],
+    track_export: ["job_id"],
+    read_export_artifact: ["artifact_id"],
+    record_export_artifact_review: ["artifact_id", "passes", "evidence", "findings"],
+    approve_export_artifact: ["artifact_id"]
   };
 
   for (const [tool, fields] of Object.entries(requiredInputs)) {
