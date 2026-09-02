@@ -2314,5 +2314,13 @@ server.registerTool("track_job", {
 });
 
 const transport = new StdioServerTransport();
-await server.connect(transport);
-console.error("video-editor-mcp 已通过 stdio 启动");
+/** CommonJS 发行构建不能保留顶层 await；开发与发行都从同一启动函数连接 stdio。 */
+async function startMcpServer(): Promise<void> {
+  await server.connect(transport);
+  console.error("video-editor-mcp 已通过 stdio 启动");
+}
+
+void startMcpServer().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

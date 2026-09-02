@@ -1,6 +1,11 @@
 import type { AgentWorkOrder, DialogueProcessingIssue, DialogueProcessingProfile, ExportArtifact, ExportPurpose, JobRecord, ProductionProfile, ProjectSnapshot, ProjectSummary, QualityReport, RevisionRecord, VideoGenerationMode } from "@videocut/contracts";
 
-export const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:3100";
+/**
+ * 开发服务器仍默认访问本地 API；插件 Runtime 则把静态 Web 与 API 放在同一 origin，
+ * 因此可安全使用隔离端口，不会把 E2E 或第二个工作区误连到 3100。
+ */
+export const API_BASE = import.meta.env.VITE_API_BASE
+  ?? (import.meta.env.DEV ? "http://127.0.0.1:3100" : window.location.origin);
 
 export interface ProjectState {
   revision: RevisionRecord;

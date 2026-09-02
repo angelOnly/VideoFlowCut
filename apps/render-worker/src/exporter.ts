@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 import { createReadStream, existsSync } from "node:fs";
 import { copyFile, mkdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
-import { fileURLToPath } from "node:url";
 import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { bundle } from "@remotion/bundler";
 import { ensureBrowser, renderMedia, selectComposition } from "@remotion/renderer";
@@ -32,9 +31,36 @@ const contentTypeByExtension: Record<string, string> = {
  * Render Worker 由 Remotion 的独立 Webpack 进程打包，不会读取根 tsconfig 的 paths。
  * 显式复用工作区 Contracts 源码，确保正式 Render、Web Player 与 TypeScript 类型看到同一份内容合同。
  */
-const remotionBundleAlias = {
-  "@videocut/contracts": fileURLToPath(new URL("../../../packages/contracts/src/index.ts", import.meta.url))
-};
+/**
+ * 开发态的 Remotion webpack 直接读取源码；插件发行版则读取构建时生成的
+ * render-entry.cjs，不能让安装缓存重新跳回 apps/ 或 packages/ 源目录。
+ */
+const moduleDirectory = typeof __dirname === "string"
+  ? __dirname
+  : process.env.VIDEOFLOWCUT_RENDER_SOURCE_ROOT ?? join(process.cwd(), "apps", "render-worker", "src");
+
+/**
+ * 发行 Runtime 的 Remotion webpack 从插件缓存启动，默认只会向缓存目录寻找包。
+ * 启动器显式传入宿主仓库 node_modules，避免二次打包时把 zod 等运行依赖误判为缺失。
+ */
+function remotionResolveModules(existingModules: string[] | undefined): string[] | undefined {
+  const runtimeNodeModules = process.env.VIDEOFLOWCUT_NODE_MODULES;
+  if (!runtimeNodeModules) return existingModules;
+  return [...new Set([runtimeNodeModules, ...(existingModules ?? [])])];
+}
+
+/**
+ * 只有开发态的 TSX 入口需要让 Remotion webpack 回到 Contracts 源码。插件发行的
+ * render-entry.cjs 已把本地 Contracts 打进入口；若仍设 source alias，安装缓存会
+ * 错误依赖仓库的 packages/ 源目录。
+ */
+function remotionBundleAliasFor(entryPoint: string): Record<string, string> {
+  if (process.env.VIDEOFLOWCUT_RUNTIME_DIST || /\.cjs$/iu.test(entryPoint)) return {};
+  return {
+    "@videocut/contracts": process.env.VIDEOFLOWCUT_REMOTION_CONTRACTS_ENTRY
+      ?? join(moduleDirectory, "../../../packages/contracts/src/index.ts")
+  };
+}
 
 function assertPathWithin(root: string, candidate: string): void {
   const relativePath = relative(root, candidate);
@@ -341,7 +367,8 @@ export class RevisionRenderer {
   private readonly concurrency: string | number | null;
 
   constructor(
-    entryPoint = fileURLToPath(new URL("./render-entry.tsx", import.meta.url)),
+    entryPoint = process.env.VIDEOFLOWCUT_REMOTION_ENTRY
+      ?? join(moduleDirectory, "render-entry.tsx"),
     concurrency: string | number | null = "50%"
   ) {
     this.entryPoint = entryPoint;
@@ -352,6 +379,7 @@ export class RevisionRenderer {
     this.bundleLocation ??= bundle(this.entryPoint, undefined, {
       webpackOverride: (configuration) => {
         const existingAlias = configuration.resolve?.alias;
+        const remotionBundleAlias = remotionBundleAliasFor(this.entryPoint);
         return {
           ...configuration,
           resolve: {
@@ -360,7 +388,8 @@ export class RevisionRenderer {
             alias: {
               ...(Array.isArray(existingAlias) ? {} : existingAlias ?? {}),
               ...remotionBundleAlias
-            }
+            },
+            modules: remotionResolveModules(configuration.resolve?.modules)
           }
         };
       }

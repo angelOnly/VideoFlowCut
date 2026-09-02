@@ -42,7 +42,9 @@ export async function runRenderWorkerForever(app: EditingApplication = getDefaul
   }
 }
 
-if (import.meta.url === `file:///${process.argv[1]?.replace(/\\/g, "/")}`) {
+// 发行 Runtime 以 CommonJS bundle 引入本模块；只让源码 Worker 入口自行启动。
+const launchedAsStandaloneRenderWorker = /(?:^|\/)apps\/render-worker\/src\/index\.(?:ts|js)$/u.test(process.argv[1]?.replace(/\\/g, "/") ?? "");
+if (launchedAsStandaloneRenderWorker) {
   runRenderWorkerForever().catch((error) => {
     console.error(error);
     process.exitCode = 1;

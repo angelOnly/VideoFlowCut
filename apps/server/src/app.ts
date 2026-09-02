@@ -256,6 +256,11 @@ export interface ServerOptions {
   workspaceRoot?: string;
   webOrigin?: string;
   serveWeb?: boolean;
+  /**
+   * 插件发行版把 Vite 产物复制到 runtime/dist/web；显式路径避免 Node 进程
+   * 从安装缓存的 cwd 误回退到仓库源码目录。
+   */
+  webRoot?: string;
 }
 
 export async function createServer(options: ServerOptions = {}): Promise<{ app: FastifyInstance; application: ReturnType<typeof createApplication> }> {
@@ -1208,7 +1213,12 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   });
 
   if (options.serveWeb) {
-    const webRoot = join(process.cwd(), "apps", "web", "dist");
+    // 发行 Runtime 一定传入或设置 VIDEOFLOWCUT_WEB_ROOT。开发模式才允许沿用
+    // 仓库 cwd 下的 Vite 目录，保证本地 `npm run runtime` 仍可直接调试。
+    const configuredWebRoot = options.webRoot ?? process.env.VIDEOFLOWCUT_WEB_ROOT;
+    const webRoot = configuredWebRoot
+      ? resolve(configuredWebRoot)
+      : join(process.cwd(), "apps", "web", "dist");
     if (existsSync(webRoot)) {
       await app.register(staticPlugin, { root: webRoot, prefix: "/" });
       app.get("/", async (_request, reply) => reply.sendFile("index.html"));

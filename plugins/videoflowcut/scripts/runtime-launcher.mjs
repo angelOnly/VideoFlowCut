@@ -1,48 +1,58 @@
 import { spawn, spawnSync } from "node:child_process";
 import { closeSync, existsSync, openSync } from "node:fs";
 import { mkdir, open, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { createServer as createTcpServer } from "node:net";
 import { join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import {
   pluginRootFromModule,
   readOption,
+  releaseNodePath,
+  resolveReleaseRuntime,
   resolveRepoRoot,
-  resolveWorkspaceRoot,
-  tsxCliPath
+  resolveWorkspaceRoot
 } from "./repo-root.mjs";
 
 const HOST = "127.0.0.1";
-const PORT = 3100;
+const DEFAULT_PORT = 3100;
 const STARTUP_TIMEOUT_MS = 30_000;
 const STOP_TIMEOUT_MS = 8_000;
+// 仅记录本次启动器进程亲自创建的 ChildProcess；不能把磁盘状态里的 PID 当作终止授权。
+const locallyStartedRuntimes = new Map();
 
 function sleep(milliseconds) {
   return new Promise((resolveSleep) => setTimeout(resolveSleep, milliseconds));
 }
 
-function runtimePaths(workspaceRoot) {
+function runtimePaths(workspaceRoot, port = DEFAULT_PORT) {
   const directory = join(workspaceRoot, ".videoflowcut-runtime");
+  const suffix = port === DEFAULT_PORT ? "runtime" : `runtime-${port}`;
   return {
     directory,
-    state: join(directory, "runtime.json"),
+    state: join(directory, `${suffix}.json`),
     lock: join(directory, "launch.lock"),
-    log: join(directory, "runtime.log")
+    log: join(directory, `${suffix}.log`)
   };
 }
 
-function apiUrl() {
-  return `http://${HOST}:${PORT}`;
+function apiUrl(port) {
+  return `http://${HOST}:${port}`;
+}
+
+function normalizePort(rawPort) {
+  const port = Number(rawPort);
+  if (!Number.isInteger(port) || port < 1024 || port > 65_535) {
+    throw new Error("VIDEOFLOWCUT_PORT 必须是 1024 到 65535 之间的整数。");
+  }
+  return port;
 }
 
 function normalizeOptions(options = {}) {
   const pluginRoot = options.pluginRoot ?? pluginRootFromModule(import.meta.url);
   const repoRoot = resolve(options.repoRoot ?? resolveRepoRoot({ pluginRoot }));
   const workspaceRoot = resolveWorkspaceRoot(repoRoot, options.workspaceRoot);
-  const configuredPort = Number(options.port ?? process.env.VIDEOFLOWCUT_PORT ?? PORT);
-  if (!Number.isInteger(configuredPort) || configuredPort !== PORT) {
-    throw new Error("当前 Web 构建固定连接 http://127.0.0.1:3100；请勿为插件运行时设置其它 VIDEOFLOWCUT_PORT。");
-  }
-  return { pluginRoot, repoRoot, workspaceRoot, port: PORT, apiUrl: apiUrl() };
+  const port = normalizePort(options.port ?? process.env.VIDEOFLOWCUT_PORT ?? DEFAULT_PORT);
+  return { pluginRoot, repoRoot, workspaceRoot, port, apiUrl: apiUrl(port) };
 }
 
 async function readJson(path) {
@@ -103,39 +113,72 @@ async function readInternalStatus(url, controlToken) {
   }
 }
 
-function isMatchingState(state, options) {
+function isMatchingState(state, options, release) {
   return state
-    && state.schemaVersion === 1
+    // schema 2 明确记录发行入口，旧版 tsx Runtime 不能被当成当前发行 Runtime 复用或终止。
+    && state.schemaVersion === 2
     && state.repoRoot === options.repoRoot
     && state.workspaceRoot === options.workspaceRoot
     && state.apiUrl === options.apiUrl
     && typeof state.controlToken === "string"
-    && typeof state.runtimeId === "string";
+    && typeof state.runtimeId === "string"
+    && typeof state.runtimeEntry === "string"
+    && typeof state.distributionRoot === "string"
+    // 插件升级后，旧缓存的 Runtime 必须被当作未知服务，而不能跨发行物复用。
+    && (!release || (
+      state.runtimeEntry === release.runtimeEntry
+      && state.distributionRoot === release.root
+    ));
 }
 
 async function readState(options) {
-  return readJson(runtimePaths(options.workspaceRoot).state);
+  return readJson(runtimePaths(options.workspaceRoot, options.port).state);
 }
 
-async function ensureWebBuild(options) {
-  const entry = join(options.repoRoot, "apps", "web", "dist", "index.html");
-  if (existsSync(entry)) return;
-  const viteCli = join(options.repoRoot, "node_modules", "vite", "bin", "vite.js");
-  if (!existsSync(viteCli)) throw new Error("找不到 Vite。请先在 VideoFlowCut 仓库根目录执行 npm install。");
-  const result = spawnSync(process.execPath, [viteCli, "build", "--config", "apps/web/vite.config.ts"], {
-    cwd: options.repoRoot,
-    encoding: "utf8",
-    windowsHide: true,
-    stdio: ["ignore", "pipe", "pipe"]
+/**
+ * 只探测本机回环地址是否还能绑定，不终止、也不接管任何未知监听进程。
+ */
+async function isPortInUse(port) {
+  return new Promise((resolveProbe, rejectProbe) => {
+    const probe = createTcpServer();
+    probe.once("error", (error) => {
+      // 无法绑定也一律视为不可安全使用，避免在权限或网络异常时覆盖未知服务。
+      if (error?.code === "EADDRINUSE" || error?.code === "EACCES") return resolveProbe(true);
+      return resolveProbe(true);
+    });
+    probe.listen({ host: HOST, port, exclusive: true }, () => {
+      probe.close((error) => {
+        if (error) rejectProbe(error);
+        else resolveProbe(false);
+      });
+    });
   });
-  if (result.status !== 0 || !existsSync(entry)) {
-    const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`.trim();
-    throw new Error(`Web 构建失败。${output ? `\n${output.slice(-4_000)}` : ""}`);
-  }
+}
+
+/**
+ * E2E 使用临时工作区和临时端口，避免因用户正常运行的 3100 工作台而相互影响。
+ * 端口在释放到 Runtime 真正监听之间仍可能发生竞争，调用方应保留启动失败处理。
+ */
+export async function findAvailablePort() {
+  return new Promise((resolvePort, rejectPort) => {
+    const reservation = createTcpServer();
+    reservation.once("error", rejectPort);
+    reservation.listen({ host: HOST, port: 0, exclusive: true }, () => {
+      const address = reservation.address();
+      if (!address || typeof address === "string" || !Number.isInteger(address.port)) {
+        reservation.close(() => rejectPort(new Error("无法分配 VideoFlowCut E2E 端口。")));
+        return;
+      }
+      reservation.close((error) => {
+        if (error) rejectPort(error);
+        else resolvePort(address.port);
+      });
+    });
+  });
 }
 
 async function withLaunchLock(options, operation) {
-  const paths = runtimePaths(options.workspaceRoot);
+  const paths = runtimePaths(options.workspaceRoot, options.port);
   await mkdir(paths.directory, { recursive: true });
   for (let attempt = 0; attempt < 100; attempt += 1) {
     let handle;
@@ -170,28 +213,31 @@ async function tailLog(path) {
   }
 }
 
-function spawnRuntime(options, state) {
-  const paths = runtimePaths(options.workspaceRoot);
+function spawnRuntime(options, state, release) {
+  const paths = runtimePaths(options.workspaceRoot, options.port);
   const descriptor = openSync(paths.log, "a");
   try {
-    const child = spawn(process.execPath, [tsxCliPath(options.repoRoot), join(options.repoRoot, "apps", "runtime", "src", "index.ts")], {
-      cwd: options.repoRoot,
+    const child = spawn(process.execPath, [release.runtimeEntry], {
+      // CWD 不再指向源码仓库；发行入口通过 __dirname 定位自身的 Web 和 Remotion 文件。
+      cwd: options.pluginRoot,
       detached: true,
       windowsHide: true,
       stdio: ["ignore", descriptor, descriptor],
       env: {
         ...process.env,
+        NODE_PATH: releaseNodePath(options.repoRoot),
+        VIDEOFLOWCUT_NODE_MODULES: join(options.repoRoot, "node_modules"),
         HOST,
-        PORT: String(PORT),
-        SERVE_WEB: "true",
+        PORT: String(options.port),
         WEB_ORIGIN: options.apiUrl,
         VIDEOCUT_WORKSPACE: options.workspaceRoot,
+        VIDEOFLOWCUT_RUNTIME_DIST: release.root,
         VIDEOFLOWCUT_RUNTIME_ID: state.runtimeId,
         VIDEOFLOWCUT_RUNTIME_TOKEN: state.controlToken
       }
     });
     child.unref();
-    return child.pid;
+    return child;
   } finally {
     closeSync(descriptor);
   }
@@ -210,13 +256,20 @@ async function waitUntilReady(options, state) {
     }
     await sleep(250);
   }
-  throw new Error(`Runtime 未能在 ${STARTUP_TIMEOUT_MS / 1_000} 秒内就绪。\n${await tailLog(runtimePaths(options.workspaceRoot).log)}`);
+  throw new Error(`Runtime 未能在 ${STARTUP_TIMEOUT_MS / 1_000} 秒内就绪。\n${await tailLog(runtimePaths(options.workspaceRoot, options.port).log)}`);
 }
 
 export async function getRuntimeStatus(rawOptions = {}) {
   const options = normalizeOptions(rawOptions);
+  const release = resolveReleaseRuntime(options.pluginRoot);
   const state = await readState(options);
-  if (!isMatchingState(state, options)) return { configured: Boolean(state), ready: false, reason: state ? "状态文件不属于当前仓库或工作区" : "未启动" };
+  if (!isMatchingState(state, options, release)) {
+    return {
+      configured: Boolean(state),
+      ready: false,
+      reason: state ? "状态文件不属于当前发行 Runtime、仓库或工作区" : "未启动"
+    };
+  }
   const [apiReady, internal] = await Promise.all([
     isApiAndWebReady(options.apiUrl),
     readInternalStatus(options.apiUrl, state.controlToken)
@@ -230,6 +283,7 @@ export async function getRuntimeStatus(rawOptions = {}) {
     processAlive,
     apiUrl: options.apiUrl,
     webUrl: `${options.apiUrl}/`,
+    port: options.port,
     pid: state.pid,
     startedAt: state.startedAt,
     bridge: "可选服务；不可用不会阻断基础剪辑"
@@ -238,38 +292,44 @@ export async function getRuntimeStatus(rawOptions = {}) {
 
 export async function ensureRuntime(rawOptions = {}) {
   const options = normalizeOptions(rawOptions);
+  // 先验证发行物，绝不在缺少 dist 时退回到 tsx 或仓库源码入口。
+  const release = resolveReleaseRuntime(options.pluginRoot);
   return withLaunchLock(options, async () => {
-    const paths = runtimePaths(options.workspaceRoot);
+    const paths = runtimePaths(options.workspaceRoot, options.port);
     const state = await readState(options);
-    if (isMatchingState(state, options)) {
+    if (isMatchingState(state, options, release)) {
       const current = await getRuntimeStatus(options);
       if (current.ready) return { ...current, reused: true };
-      if (await isApiAndWebReady(options.apiUrl)) {
-        throw new Error("端口 3100 上已有未确认的 VideoFlowCut 服务。为避免误杀其它进程，未自动覆盖；请先执行 runtime-launcher.mjs status 或 stop。 ");
+      if (await isPortInUse(options.port)) {
+        throw new Error(`端口 ${options.port} 上的服务与当前 Runtime 状态不一致。为避免误杀其它进程，未自动覆盖；请先执行 runtime-launcher.mjs status 或 stop。`);
       }
       if (isProcessAlive(state.pid)) {
         throw new Error("已有 VideoFlowCut Runtime 进程仍在启动或异常退出，请先执行 runtime-launcher.mjs stop 后重试。");
       }
       await rm(paths.state, { force: true });
-    } else if (await isApiAndWebReady(options.apiUrl)) {
-      throw new Error("端口 3100 已被未知服务占用。VideoFlowCut 不会自动终止未知进程。");
+    } else if (await isPortInUse(options.port)) {
+      throw new Error(`端口 ${options.port} 已被未知服务占用。VideoFlowCut 不会自动终止未知进程。`);
     } else if (state) {
       await rm(paths.state, { force: true });
     }
 
-    await ensureWebBuild(options);
     const nextState = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       runtimeId: randomUUID(),
       controlToken: randomUUID(),
       repoRoot: options.repoRoot,
       workspaceRoot: options.workspaceRoot,
+      port: options.port,
       apiUrl: options.apiUrl,
+      runtimeEntry: release.runtimeEntry,
+      distributionRoot: release.root,
       startedAt: new Date().toISOString(),
       pid: 0
     };
-    nextState.pid = spawnRuntime(options, nextState);
+    const runtimeChild = spawnRuntime(options, nextState, release);
+    nextState.pid = runtimeChild.pid;
     if (!nextState.pid) throw new Error("无法启动 VideoFlowCut Runtime 进程。");
+    locallyStartedRuntimes.set(nextState.pid, runtimeChild);
     await writeJsonAtomically(paths.state, nextState);
     try {
       await waitUntilReady(options, nextState);
@@ -298,12 +358,30 @@ function terminateProcessTree(pid) {
 
 export async function stopRuntime(rawOptions = {}, { force = false } = {}) {
   const options = normalizeOptions(rawOptions);
-  const paths = runtimePaths(options.workspaceRoot);
+  const release = resolveReleaseRuntime(options.pluginRoot);
+  const paths = runtimePaths(options.workspaceRoot, options.port);
   const state = await readState(options);
-  if (!isMatchingState(state, options)) return { stopped: false, reason: "未找到当前工作区的 Runtime 状态" };
+  if (!isMatchingState(state, options, release)) return { stopped: false, reason: "未找到当前发行 Runtime 的状态" };
 
   let graceful = false;
-  if (await isApiAndWebReady(options.apiUrl)) {
+  const internal = await readInternalStatus(options.apiUrl, state.controlToken);
+  const ownsRuntime = internal?.runtimeId === state.runtimeId;
+  const locallyStartedRuntime = locallyStartedRuntimes.get(state.pid);
+  const startedByThisLauncher = locallyStartedRuntime?.pid === state.pid
+    && locallyStartedRuntime.exitCode === null
+    && locallyStartedRuntime.signalCode === null;
+  if (!ownsRuntime && !startedByThisLauncher) {
+    if (!isProcessAlive(state.pid)) {
+      await rm(paths.state, { force: true });
+      return { stopped: true, graceful: false, reason: "已清理没有存活进程的陈旧 Runtime 状态。" };
+    }
+    return {
+      stopped: false,
+      graceful: false,
+      reason: "Runtime 未能通过控制令牌确认归属，未终止任何进程，也保留状态文件供人工诊断。"
+    };
+  }
+  if (ownsRuntime) {
     try {
       const response = await fetchWithTimeout(`${options.apiUrl}/internal/runtime/shutdown`, {
         method: "POST",
@@ -315,10 +393,28 @@ export async function stopRuntime(rawOptions = {}, { force = false } = {}) {
     }
   }
   const stopped = await waitForExit(state.pid, STOP_TIMEOUT_MS);
-  if (!stopped && (force || isProcessAlive(state.pid))) terminateProcessTree(state.pid);
+  if (!stopped && ownsRuntime) {
+    // 已通过控制令牌认证，才允许按 PID 终止整个 Runtime 进程树。
+    terminateProcessTree(state.pid);
+  } else if (!stopped && startedByThisLauncher) {
+    // 启动尚未完成时没有可认证的 HTTP 状态；只通过仍存活的 ChildProcess 句柄停止它，
+    // 不对磁盘状态中的 PID 直接执行 taskkill，避免 PID 复用误杀。
+    locallyStartedRuntime.kill();
+  }
   await waitForExit(state.pid, 2_000);
-  await rm(paths.state, { force: true });
-  return { stopped: !isProcessAlive(state.pid), graceful };
+  const isStopped = !isProcessAlive(state.pid);
+  if (isStopped) {
+    locallyStartedRuntimes.delete(state.pid);
+    await rm(paths.state, { force: true });
+    return { stopped: true, graceful };
+  }
+  return {
+    stopped: false,
+    graceful,
+    reason: force
+      ? "已确认 Runtime 归属但强制停止失败；已保留状态文件供人工诊断。"
+      : "已确认 Runtime 归属但未能停止；已保留状态文件供人工诊断。"
+  };
 }
 
 async function main() {
@@ -326,7 +422,8 @@ async function main() {
   const pluginRoot = pluginRootFromModule(import.meta.url);
   const repoRoot = readOption(args, "--repo-root") ?? process.env.VIDEOFLOWCUT_REPO_ROOT;
   const workspaceRoot = readOption(args, "--workspace") ?? process.env.VIDEOCUT_WORKSPACE;
-  const options = { pluginRoot, repoRoot, workspaceRoot };
+  const port = readOption(args, "--port") ?? process.env.VIDEOFLOWCUT_PORT;
+  const options = { pluginRoot, repoRoot, workspaceRoot, port };
   if (command === "ensure" || command === "start" || command === "open") {
     const runtime = await ensureRuntime(options);
     console.log(JSON.stringify(command === "open" ? { ...runtime, url: runtime.webUrl } : runtime, null, 2));
@@ -340,7 +437,7 @@ async function main() {
     console.log(JSON.stringify(await stopRuntime(options, { force: true }), null, 2));
     return;
   }
-  throw new Error("用法：runtime-launcher.mjs <ensure|start|open|status|stop> [--repo-root 路径] [--workspace 路径]");
+  throw new Error("用法：runtime-launcher.mjs <ensure|start|open|status|stop> [--repo-root 路径] [--workspace 路径] [--port 端口]");
 }
 
 if (import.meta.url === `file:///${process.argv[1]?.replace(/\\/g, "/")}`) {

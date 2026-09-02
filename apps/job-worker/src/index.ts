@@ -235,7 +235,9 @@ export async function runWorkerForever(app: EditingApplication = getDefaultAppli
   }
 }
 
-if (import.meta.url === `file:///${process.argv[1]?.replace(/\\/g, "/")}`) {
+// 发行 Runtime 以 CommonJS bundle 引入本模块；只让源码 Worker 入口自行启动。
+const launchedAsStandaloneWorker = /(?:^|\/)apps\/job-worker\/src\/index\.(?:ts|js)$/u.test(process.argv[1]?.replace(/\\/g, "/") ?? "");
+if (launchedAsStandaloneWorker) {
   runWorkerForever().catch((error) => {
     console.error(error);
     process.exitCode = 1;

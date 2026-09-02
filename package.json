@@ -2,6 +2,9 @@
   "name": "video-cut",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "type": "module",
   "scripts": {
     "dev": "concurrently -k -n server,worker,render,web -c cyan,magenta,green,yellow \"npm:dev:server\" \"npm:dev:worker\" \"npm:dev:render-worker\" \"npm:dev:web\"",
@@ -18,7 +21,8 @@
     "runtime": "tsx apps/runtime/src/index.ts",
     "mcp": "tsx apps/server/src/mcp.ts",
     "plugin:sync-skills": "node plugins/videoflowcut/scripts/sync-skills.mjs",
-    "plugin:build": "npm run typecheck && npm run build:web && npm run plugin:sync-skills && node plugins/videoflowcut/scripts/configure-repo.mjs",
+    "plugin:build": "npm run typecheck && npm run build:web && npm run plugin:sync-skills && node plugins/videoflowcut/scripts/build-runtime.mjs && node plugins/videoflowcut/scripts/configure-repo.mjs",
+    "plugin:build-runtime": "node plugins/videoflowcut/scripts/build-runtime.mjs",
     "plugin:verify": "node plugins/videoflowcut/scripts/verify-plugin.mjs",
     "plugin:e2e": "node plugins/videoflowcut/scripts/plugin-e2e.mjs",
     "test": "tsx --test tests/**/*.test.ts",
@@ -52,6 +56,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.0.0",
     "concurrently": "^9.1.2",
+    "esbuild": "0.28.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vite": "^7.0.0"
