@@ -69,7 +69,7 @@ Vlog 中环境声是事实的一部分；Stock B-roll 的环境声不一定属�
 
 ## 当前能力边界
 
-当前代码已支持人物声音所有权、Dialogue 和导出音轨技术检查，但完整 BGM/SFX/Ducking 写入工具仍未全部实现。架构中的 `manage_audio`、`smooth_audio` 等为目标合同。现阶段可以检查现有声音、形成可执行计划、通过可用 Web/代码能力有限处理，并明确未执行部分。
+当前代码已支持人物声音所有权、Dialogue、导出音轨技术检查和 `manage_audio`：它只接受已就绪的独立本地音频，原子写入 `AudioCue` 与 BGM/SFX 专用 Timeline Item。BGM 支持有限淡入淡出、循环和基于实际 Dialogue 区间的 Duck；SFX 必须显式给出观众实际听见的 `event_frame` 与相对所选源片段的 `onset_offset_frames`，系统不会伪造自动 onset 检测。主线、Script、Scene 或旁白时长变化后，旧声音包装会停止合成并标 `stale`，需要通过 `manage_audio(action=update)` 重新确认。`smooth_audio` 以及自动配乐、Room Tone 生成、EQ、降噪、J/L Cut 自动化和通用 DAW 仍是架构目标；遇到这些需求应给出可执行计划与能力缺口，不要宣称已经写入成片。
 
 ## 三类案例
 

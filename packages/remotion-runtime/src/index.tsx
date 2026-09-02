@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill, Audio, Sequence, useCurrentFrame, Video } from "remotion";
-import type { ActorPerformance, CaptionCard, CaptionFormat, Cutaway, EffectCue, ProjectSnapshot, TimelineItem, TimelineTrack } from "@videocut/contracts";
+import type { ActorPerformance, AudioCue, CaptionCard, CaptionFormat, Cutaway, EffectCue, ProjectSnapshot, TimelineItem, TimelineTrack } from "@videocut/contracts";
 import { compileCutawayLayout, cutawaySourceVolume } from "./cutaway-layout";
 import { compileCameraPunchLayout, compileMotionLayout, resolveEffectStylePack, type EffectStylePack } from "./motion-layout";
 
@@ -175,6 +175,41 @@ const CaptionLayer: React.FC<{ caption: CaptionCard }> = ({ caption }) => {
 const itemDuration = (item: TimelineItem) => item.endFrame - item.startFrame;
 const itemVolume = (item: TimelineItem, track: TimelineTrack) => track.muted ? 0 : Math.pow(10, (item.gainDb ?? 0) / 20);
 
+const dbToVolume = (gainDb: number) => Math.pow(10, gainDb / 20);
+
+/** 当前帧的 Duck 强度取 Dialogue 的实际可听区间；短停顿不会立即把音乐推回原音量。 */
+function duckIntensityAt(snapshot: ProjectSnapshot, frame: number, cue: AudioCue): number {
+  const ducking = cue.ducking;
+  if (cue.kind !== "bgm" || !ducking?.enabled) return 0;
+  const tracksById = new Map(snapshot.timeline.tracks.map((track) => [track.id, track]));
+  let intensity = 0;
+  for (const item of snapshot.timeline.items) {
+    const track = tracksById.get(item.trackId);
+    if (!track || track.name !== "Dialogue" || track.muted || item.disabled || (item.gainDb ?? 0) <= -80) continue;
+    if (frame >= item.startFrame && frame < item.endFrame) {
+      const attack = ducking.attackFrames;
+      intensity = Math.max(intensity, attack === 0 ? 1 : Math.min(1, (frame - item.startFrame + 1) / attack));
+      continue;
+    }
+    if (frame >= item.endFrame && ducking.releaseFrames > 0) {
+      intensity = Math.max(intensity, Math.max(0, 1 - (frame - item.endFrame) / ducking.releaseFrames));
+    }
+  }
+  return Math.min(1, intensity);
+}
+
+/** 混音曲线同时消费淡入淡出与 Duck，避免 Web Player 和 Render Worker 各自计算一套音量。 */
+export function audioCueVolumeAt(snapshot: ProjectSnapshot, item: TimelineItem, track: TimelineTrack, cue: AudioCue | undefined, localFrame: number): number {
+  const baseVolume = itemVolume(item, track);
+  if (!cue) return baseVolume;
+  const duration = itemDuration(item);
+  const fadeIn = cue.fadeInFrames > 0 ? Math.min(1, (localFrame + 1) / cue.fadeInFrames) : 1;
+  const fadeOut = cue.fadeOutFrames > 0 ? Math.min(1, (duration - localFrame) / cue.fadeOutFrames) : 1;
+  const ducking = cue.ducking;
+  const duckVolume = ducking ? dbToVolume(ducking.reductionDb * duckIntensityAt(snapshot, item.startFrame + localFrame, cue)) : 1;
+  return baseVolume * fadeIn * fadeOut * duckVolume;
+}
+
 const VideoLayer: React.FC<{
   snapshot: ProjectSnapshot;
   mediaBaseUrl: string;
@@ -218,10 +253,13 @@ const VideoLayer: React.FC<{
   return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}><Video src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} volume={sourceVolume} style={videoStyle} /></Sequence>;
 };
 
-const AudioLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; item: TimelineItem; track: TimelineTrack }> = ({ snapshot, mediaBaseUrl, item, track }) => {
+const AudioLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; item: TimelineItem; track: TimelineTrack; cue?: AudioCue }> = ({ snapshot, mediaBaseUrl, item, track, cue }) => {
   const asset = snapshot.assets.find((candidate) => candidate.id === item.assetId);
   if (!asset) return null;
-  return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}><Audio src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} volume={itemVolume(item, track)} /></Sequence>;
+  // loop 会让 Audio 自身的回调帧回到源片段开头；Duck 必须始终按整条成片的全局时间判断。
+  const compositionFrame = useCurrentFrame();
+  const timelineLocalFrame = compositionFrame - item.startFrame;
+  return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}><Audio src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} loop={cue?.kind === "bgm" && cue.loop} volume={() => audioCueVolumeAt(snapshot, item, track, cue, timelineLocalFrame)} /></Sequence>;
 };
 
 /**
@@ -249,6 +287,7 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
       return track?.kind === "audio" && !track.muted && !item.disabled;
     })
     .sort((left, right) => left.startFrame - right.startFrame);
+  const audioCuesByItem = new Map((snapshot.audioCues ?? []).filter((cue) => cue.status === "ready").map((cue) => [cue.timelineItemId, cue]));
   const readyCues = (snapshot.effectCues ?? []).filter((cue) => cue.status === "ready");
   const cuesAt = (...layers: EffectCue["layer"][]) => readyCues.filter((cue) => layers.includes(cue.layer));
   // 没有登记人物表演或独立 Mask 文件时必须走可见前景降级，不能因 undefined !== "none" 误判为已抠像。
@@ -270,7 +309,7 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
     {cuesAt("actor", "front").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
     {cuesAt("fullscreen").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
     {snapshot.timeline.captions.map((caption) => <Sequence key={caption.id} from={caption.startFrame} durationInFrames={caption.endFrame - caption.startFrame}><CaptionLayer caption={caption} /></Sequence>)}
-    {audioItems.map((item) => <AudioLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} />)}
+    {audioItems.map((item) => <AudioLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} cue={audioCuesByItem.get(item.id)} />)}
   </AbsoluteFill>;
 };
 

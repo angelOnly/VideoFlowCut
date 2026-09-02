@@ -62,7 +62,7 @@ Job 是异步执行记录，不是创作状态。ProductionRun/SkillExecutionRep
 
 ## 确定性写入与读回
 
-会创建或修改 Project Revision 的确定性写操作携带当前 `base_revision_id`。当前实际工具包括 `manage_story`、`apply_semantic_units`、`apply_script`、`assemble_presenter_track`、`compile_presenter_scenes`、`manage_actor_performance`、`create_scene`、`manage_effect_cues`、`move_item` 等；转写、语音、预览和导出等异步 Job 使用各自的 `asset_id`、`revision` 或 `idempotency_key`。具体参数以实时 Tool Schema 和 [_shared/MCP_EXECUTION_CONTRACT.md](../_shared/MCP_EXECUTION_CONTRACT.md) 为准。
+会创建或修改 Project Revision 的确定性写操作携带当前 `base_revision_id`。当前实际工具包括 `manage_story`、`apply_semantic_units`、`apply_script`、`assemble_presenter_track`、`compile_presenter_scenes`、`manage_actor_performance`、`create_scene`、`manage_effect_cues`、`manage_audio`、`move_item` 等；转写、语音、预览和导出等异步 Job 使用各自的 `asset_id`、`revision` 或 `idempotency_key`。具体参数以实时 Tool Schema 和 [_shared/MCP_EXECUTION_CONTRACT.md](../_shared/MCP_EXECUTION_CONTRACT.md) 为准。
 
 写入成功后不能只看工具返回的 success。至少：
 
@@ -124,6 +124,14 @@ Browser Operator 不是绕开模型的快捷方式。DOM 临时样式、浏览�
 
 若 `align_presenter_to_speech` 因已有 Cue、缺画面或 direct override 拒绝自动修改，这是正确保护，不应通过直接改数据库绕过。主工作流需要重新决定补 Cutaway、重生人物、裁声音还是保留差异。
 
+### BGM、SFX 与声音包装
+
+- `manage_audio`：将已就绪的独立本地音频写成可追溯的 `AudioCue` 与 BGM/SFX 专用 Timeline Item；
+- BGM 可设置有限淡入淡出、循环与 Dialogue Duck；SFX 必须显式给出观众实际听见的 `event_frame` 和相对所选源片段的 `onset_offset_frames`，不能猜测能量峰值；
+- `move_item` 不可直接移动受管 BGM/SFX，主线、Script、Scene 或旁白时长改变时旧声音包装会被停止并标 `stale`，要通过 `manage_audio(action=update)` 重新确认。
+
+声音写入后先读回 `AudioCue`、关联 Item 和 Impact，再用真实 Preview 进行只听声音复核。当前不支持自动配乐、自动 onset 检测、Room Tone 生成、EQ/降噪或通用 DAW 编辑。
+
 ### 审计、预览、质量和导出
 
 - `start_production_run`、`record_creative_decision`、`complete_production_run`、`read_skill_execution_report`；
@@ -136,7 +144,7 @@ Browser Operator 不是绕开模型的快捷方式。DOM 临时样式、浏览�
 
 ## 当前状态与架构目标的区别
 
-当前阶段已实现 `manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset` 与 `read_asset_provenance`：候选经检查和 Worker 本地化后才会成为 Asset。`manage_visual_treatment` 可以保存每个 Beat/Scene 的主视觉决定；`manage_cutaways` 只能将已就绪、本地化的视频写成 Fullscreen/PiP Cutaway，并同步 CutawayScene、顶层 Item 与声音策略；`replace_scene_asset` 只替换单条 Cutaway 的本地源素材和源范围。`edit_captions` 已可编辑当前 SpeechAsset 的稳定字幕 Card，但不支持逐词时间、逐词高亮或任意 CSS。真实 Pexels 查询仍需要本地配置 `PEXELS_API_KEY`；CI 使用 Mock Provider，不依赖网络。`manage_audio`、`run_render_preflight`、`read_export_artifact` 等仍是架构目标。Skill 在讲专业工作流时可以说明这些目标，但执行时必须先查工具表；工具不存在时只能输出可执行的最小步骤和能力缺口，不能把架构表格当成已连接 API。
+当前阶段已实现 `manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset` 与 `read_asset_provenance`：候选经检查和 Worker 本地化后才会成为 Asset。`manage_visual_treatment` 可以保存每个 Beat/Scene 的主视觉决定；`manage_cutaways` 只能将已就绪、本地化的视频写成 Fullscreen/PiP Cutaway，并同步 CutawayScene、顶层 Item 与声音策略；`replace_scene_asset` 只替换单条 Cutaway 的本地源素材和源范围。`edit_captions` 已可编辑当前 SpeechAsset 的稳定字幕 Card，但不支持逐词时间、逐词高亮或任意 CSS。`manage_audio` 已支持最小 BGM/SFX、有限淡入淡出、循环、Dialogue Duck 和显式 SFX onset，但不支持自动配乐、自动 onset 检测或通用混音。真实 Pexels 查询仍需要本地配置 `PEXELS_API_KEY`；CI 使用 Mock Provider，不依赖网络。`smooth_audio`、`run_render_preflight`、`read_export_artifact` 等仍是架构目标。Skill 在讲专业工作流时可以说明这些目标，但执行时必须先查工具表；工具不存在时只能输出可执行的最小步骤和能力缺口，不能把架构表格当成已连接 API。
 
 ## 三个完整写入示例
 

@@ -59,7 +59,6 @@ const specialistSkills = [
 ] as const;
 
 const architectureTargets = new Set([
-  "manage_audio",
   "smooth_audio",
   "run_render_preflight",
   "read_export_artifact",
@@ -248,6 +247,7 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
     manage_story: ["base_revision_id", "beats"],
     manage_voice_references: ["base_revision_id", "asset_id"],
     edit_captions: ["base_revision_id", "caption_id", "action"],
+    manage_audio: ["base_revision_id", "action"],
     assemble_presenter_track: ["base_revision_id", "asset_ids"],
     compile_presenter_scenes: ["base_revision_id", "scenes"],
     manage_actor_performance: ["base_revision_id", "timeline_item_id", "source", "mask_mode"],

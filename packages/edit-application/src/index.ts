@@ -10,6 +10,9 @@ import type {
   ActorAudioMode,
   ActorMaskMode,
   ActorPerformanceSource,
+  AudioCue,
+  AudioCueKind,
+  AudioDucking,
   BridgeRunAudit,
   CaptionCard,
   CaptionEmphasis,
@@ -59,6 +62,7 @@ import {
   cloneSnapshot,
   compileSpeechSegments,
   createActorPerformance,
+  createAudioCue,
   createCutaway,
   createEffectCue,
   createId,
@@ -160,6 +164,7 @@ function normalizeSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
   snapshot.assetCandidates ??= [];
   snapshot.visualTreatments ??= [];
   snapshot.cutaways ??= [];
+  snapshot.audioCues ??= [];
   snapshot.voiceReferences ??= [];
   snapshot.transcriptSentenceCandidates ??= [];
   for (const caption of snapshot.timeline.captions ?? []) {
@@ -273,6 +278,46 @@ function requireText(value: string | undefined, label: string): string {
 }
 
 type CaptionFormatPatch = Partial<Omit<CaptionFormat, "backgroundColor">> & { backgroundColor?: string | null };
+type AudioDuckingPatch = Partial<AudioDucking>;
+
+const DEFAULT_BGM_DUCKING: AudioDucking = {
+  enabled: true,
+  reductionDb: -14,
+  attackFrames: 4,
+  releaseFrames: 14
+};
+
+/** BGM / SFX 只接收已本地化的独立音频，不能把任意带声视频悄悄当作音乐或音效。 */
+function requireReadyAudioAsset(snapshot: ProjectSnapshot, assetId: Id): Asset {
+  const asset = assetById(snapshot, assetId);
+  if (asset.kind !== "audio" || asset.status !== "ready" || !asset.metadata?.hasAudio || !asset.managedPath.trim()) {
+    throw new DomainError("BGM / SFX 必须使用已就绪、已本地化的独立音频素材", "AUDIO_ASSET_NOT_READY");
+  }
+  return asset;
+}
+
+function requireAudioFrame(value: number, label: string, minimum = 0, maximum = Number.MAX_SAFE_INTEGER): number {
+  if (!Number.isInteger(value) || value < minimum || value > maximum) {
+    throw new DomainError(`${label}必须是 ${minimum} 到 ${maximum} 之间的整数帧`, "INVALID_AUDIO_FRAME");
+  }
+  return value;
+}
+
+function normalizeAudioDucking(patch: AudioDuckingPatch | undefined, current?: AudioDucking): AudioDucking {
+  // MCP / HTTP 的可选嵌套字段可能显式传入 undefined；这不应覆盖已有 Duck 参数。
+  const definedPatch = Object.fromEntries(Object.entries(patch ?? {}).filter(([, value]) => value !== undefined)) as AudioDuckingPatch;
+  const next = { ...DEFAULT_BGM_DUCKING, ...current, ...definedPatch };
+  if (typeof next.enabled !== "boolean") throw new DomainError("Duck 开关必须是布尔值", "INVALID_AUDIO_DUCKING");
+  if (!Number.isFinite(next.reductionDb) || next.reductionDb > -1 || next.reductionDb < -36) {
+    throw new DomainError("Duck 衰减必须在 -36 到 -1 dB 之间", "INVALID_AUDIO_DUCKING");
+  }
+  for (const [label, value] of [["Duck 攻击", next.attackFrames], ["Duck 释放", next.releaseFrames]] as const) {
+    if (!Number.isInteger(value) || value < 0 || value > 240) {
+      throw new DomainError(`${label}必须是 0 到 240 帧`, "INVALID_AUDIO_DUCKING");
+    }
+  }
+  return next;
+}
 
 const captionColorPattern = /^#[0-9a-f]{6}$/iu;
 
@@ -1766,6 +1811,8 @@ export class EditingApplication {
         impact.stale.push(cue.id);
       }
     }
+    // 音乐长度、Duck 与音效事件都依赖主声音；Script 变化后不能悄悄沿用旧包装。
+    this.staleAudioCuesForMainline(snapshot, impact, "Script 或主声音结构已变化");
   }
 
   /**
@@ -1850,6 +1897,29 @@ export class EditingApplication {
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     return state;
+  }
+
+  /** 主线变化时先停止旧声音包装，避免旧 SFX 落在新语义上或 BGM 沿用过期 Duck。 */
+  private markAudioCueStale(snapshot: ProjectSnapshot, cue: AudioCue, impact: ImpactReport, reason: string): void {
+    const item = snapshot.timeline.items.find((candidate) => candidate.id === cue.timelineItemId);
+    if (cue.status !== "stale") {
+      cue.status = "stale";
+      cue.updatedAt = now();
+      impact.changed.push(cue.id);
+    }
+    if (item && !item.disabled) {
+      item.disabled = true;
+      impact.changed.push(item.id);
+      impact.dirtyRanges.push({ startFrame: item.startFrame, endFrame: item.endFrame, reason: "声音包装等待主线复核" });
+    }
+    impact.stale.push(cue.id);
+    impact.warnings.push(`${cue.kind === "bgm" ? "BGM" : "SFX"}「${cue.purpose}」${reason}，已停止参与合成，等待重新确认。`);
+  }
+
+  private staleAudioCuesForMainline(snapshot: ProjectSnapshot, impact: ImpactReport, reason: string): void {
+    for (const cue of snapshot.audioCues ?? []) {
+      this.markAudioCueStale(snapshot, cue, impact, reason);
+    }
   }
 
   /** stale Cutaway 不再参与真实合成，但会保留在当前 Revision 供主工作流复核和替换。 */
@@ -2099,6 +2169,7 @@ export class EditingApplication {
   assemblePresenterTrack(input: { projectId: Id; baseRevision: number; assetIds: Id[] }): ProjectState {
     const state = this.repository.commit(input.projectId, input.baseRevision, "组装 Presenter A-roll 主线", (snapshot, impact) => {
       this.assemblePresenterTrackInSnapshot(snapshot, impact, input.assetIds);
+      this.staleAudioCuesForMainline(snapshot, impact, "Presenter 主画面重新组装");
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     return state;
@@ -2114,6 +2185,7 @@ export class EditingApplication {
       // Scene 重新编译时，旧 Scene / Cue 必须成组失效，A-roll 物理拼接保持不动。
       this.clearPresenterScenes(snapshot, impact);
       this.compilePresenterScenesInSnapshot(snapshot, impact, { scenes: input.scenes });
+      this.staleAudioCuesForMainline(snapshot, impact, "叙事 Scene 已重新编译");
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     return state;
@@ -2138,6 +2210,7 @@ export class EditingApplication {
         });
       }
       this.compilePresenterScenesInSnapshot(snapshot, impact, { scenes: plans });
+      this.staleAudioCuesForMainline(snapshot, impact, "Presenter 主线与场景重新建立");
       impact.warnings.push("当前通过兼容入口按素材分组生成 Scene；正式创作请使用 assemblePresenterTrack + compilePresenterScenes。");
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
@@ -2785,6 +2858,9 @@ export class EditingApplication {
     const state = this.repository.commit(input.projectId, input.baseRevision, "移动时间线片段", (snapshot, impact) => {
       const item = snapshot.timeline.items.find((candidate) => candidate.id === input.itemId);
       if (!item) throw new DomainError("时间线片段不存在", "ITEM_NOT_FOUND");
+      if (snapshot.audioCues.some((cue) => cue.timelineItemId === item.id)) {
+        throw new DomainError("BGM / SFX 必须通过 manage_audio 修改，不能直接移动后丢失事件与 Duck 关系", "MANAGED_AUDIO_ITEM_DIRECT_MOVE");
+      }
       const movedCutaway = snapshot.cutaways.find((cutaway) => cutaway.timelineItemId === item.id);
       if (movedCutaway?.status === "stale") {
         throw new DomainError("该 Cutaway 已因主线变化失效，请先通过 manage_cutaways 重新确认范围", "CUTAWAY_STALE_NEEDS_REVIEW");
@@ -2810,6 +2886,9 @@ export class EditingApplication {
         }
       }
       this.propagateTimelineMove(snapshot, affectedItemIds, impact);
+      if (track.kind === "video" || track.name === "Dialogue") {
+        this.staleAudioCuesForMainline(snapshot, impact, "主线 Timeline Item 已移动");
+      }
       impact.dirtyRanges.push({ startFrame: Math.min(oldStart, item.startFrame), endFrame: Math.max(oldStart + duration, item.endFrame), reason: "移动时间线片段" });
       if (!input.ripple) impact.warnings.push("未启用 ripple；请检查独立轨道和主轨之间是否留下空隙。");
     });
@@ -3017,7 +3096,13 @@ export class EditingApplication {
         return;
       }
       const speechAsset = input.speechAsset;
+      const previousSpeechAssetId = snapshot.speechAsset?.assetId;
+      const dialogueTrack = trackByName(snapshot, "Dialogue");
+      const previousDialogueDuration = snapshot.timeline.items.find((item) => item.trackId === dialogueTrack.id && item.assetId === previousSpeechAssetId && !item.disabled);
       const synced = this.syncSpeechAssetTimeline(snapshot, speechAsset);
+      if (previousSpeechAssetId && (previousSpeechAssetId !== speechAsset.assetId || previousDialogueDuration?.endFrame !== synced.durationFrames)) {
+        this.staleAudioCuesForMainline(snapshot, impact, "SpeechAsset 时长或旁白文件已变化");
+      }
       impact.changed.push(speechAsset.id, synced.dialogueItem.id, ...synced.replacedItemIds, ...input.segmentAssets.map((segmentAsset) => segmentAsset.id));
       impact.recomputed.push("Dialogue 旁白轨、segment_exact SpeechTiming、稳定短句字幕");
       impact.dirtyRanges.push({ startFrame: 0, endFrame: Math.max(snapshot.timeline.durationInFrames, synced.durationFrames), reason: "旁白时序更新" });
@@ -3108,6 +3193,252 @@ export class EditingApplication {
   }
 
   /**
+   * BGM / SFX 的最小包装入口：用 AudioCue 记录编辑意图，再同步写入专用声音轨。
+   * 不在这里生成音乐、猜测 onset 或实现通用 DAW；所有精确事件均由调用方显式给出。
+   */
+  manageAudio(input: {
+    projectId: Id;
+    baseRevision: number;
+    action: "create" | "update" | "remove";
+    audioCueId?: Id;
+    kind?: AudioCueKind;
+    assetId?: Id;
+    purpose?: string;
+    startFrame?: number;
+    endFrame?: number;
+    sourceStartFrame?: number;
+    sourceEndFrame?: number;
+    loop?: boolean;
+    gainDb?: number;
+    fadeInFrames?: number;
+    fadeOutFrames?: number;
+    eventFrame?: number;
+    onsetOffsetFrames?: number;
+    ducking?: AudioDuckingPatch;
+  }): ProjectState {
+    const summary = input.action === "create" ? "添加 BGM / SFX" : input.action === "remove" ? "移除 BGM / SFX" : "调整 BGM / SFX";
+    const state = this.repository.commit(input.projectId, input.baseRevision, summary, (snapshot, impact) => {
+      const managedAudioItemIds = new Set((snapshot.audioCues ?? []).map((cue) => cue.timelineItemId));
+      // 声音包装不能悄悄拉长成片；目标范围始终以当前非 AudioCue 主线为准。
+      const programEndFrame = snapshot.timeline.items
+        .filter((item) => !item.disabled && !managedAudioItemIds.has(item.id))
+        .reduce((maximum, item) => Math.max(maximum, item.endFrame), 0);
+
+      const validateGain = (value: number): number => {
+        if (!Number.isFinite(value) || value < -48 || value > 12) {
+          throw new DomainError("声音增益必须在 -48 到 12 dB 之间", "INVALID_AUDIO_GAIN");
+        }
+        return value;
+      };
+      const validateFades = (fadeInFrames: number, fadeOutFrames: number, duration: number) => {
+        requireAudioFrame(fadeInFrames, "淡入时长", 0, 480);
+        requireAudioFrame(fadeOutFrames, "淡出时长", 0, 480);
+        if (fadeInFrames + fadeOutFrames > duration) {
+          throw new DomainError("淡入和淡出总时长不能超过声音片段时长", "INVALID_AUDIO_FADE");
+        }
+      };
+      const sourceRangeFor = (asset: Asset, defaultStart: number, defaultEnd: number) => {
+        const assetDuration = millisecondsToFrames(asset.metadata!.durationMs, snapshot.timeline.fps);
+        if (assetDuration <= 0) throw new DomainError("声音素材时长无效", "INVALID_AUDIO_SOURCE_RANGE");
+        const sourceStartFrame = input.sourceStartFrame ?? defaultStart;
+        const sourceEndFrame = input.sourceEndFrame ?? defaultEnd;
+        requireAudioFrame(sourceStartFrame, "声音源起点", 0, assetDuration - 1);
+        requireAudioFrame(sourceEndFrame, "声音源终点", 1, assetDuration);
+        if (sourceEndFrame <= sourceStartFrame) {
+          throw new DomainError("声音源范围必须至少包含一帧", "INVALID_AUDIO_SOURCE_RANGE");
+        }
+        return { sourceStartFrame, sourceEndFrame };
+      };
+      const requireProgramRange = (startFrame: number, endFrame: number) => {
+        if (programEndFrame <= 0) throw new DomainError("必须先建立可播放主线，才能添加 BGM 或 SFX", "AUDIO_PROGRAM_NOT_READY");
+        requireAudioFrame(startFrame, "声音起点", 0, Math.max(0, programEndFrame - 1));
+        requireAudioFrame(endFrame, "声音终点", 1, programEndFrame);
+        if (endFrame <= startFrame) throw new DomainError("声音目标范围无效", "INVALID_AUDIO_RANGE");
+      };
+      const createOrUpdateItem = (cue: AudioCue | undefined, trackName: "BGM" | "SFX", assetId: Id, startFrame: number, endFrame: number, sourceStartFrame: number, sourceEndFrame: number, gainDb: number) => {
+        const track = trackByName(snapshot, trackName);
+        if (track.locked) throw new DomainError(`${trackName} 轨已锁定`, "TRACK_LOCKED");
+        if (!cue) {
+          const item = createTimelineItem({ trackId: track.id, assetId, startFrame, endFrame, sourceStartFrame, sourceEndFrame, gainDb });
+          snapshot.timeline.items.push(item);
+          return item;
+        }
+        const item = snapshot.timeline.items.find((candidate) => candidate.id === cue.timelineItemId);
+        if (!item) throw new DomainError("AudioCue 缺少关联 Timeline Item", "AUDIO_ITEM_MISSING");
+        if (item.trackId !== track.id) throw new DomainError("AudioCue 不在对应声音轨", "AUDIO_TRACK_MISMATCH");
+        item.assetId = assetId;
+        item.startFrame = startFrame;
+        item.endFrame = endFrame;
+        item.sourceStartFrame = sourceStartFrame;
+        item.sourceEndFrame = sourceEndFrame;
+        item.gainDb = gainDb;
+        item.disabled = false;
+        return item;
+      };
+
+      if (input.action === "remove") {
+        if (!input.audioCueId) throw new DomainError("移除声音需要 audioCueId", "AUDIO_CUE_REQUIRED");
+        const cue = snapshot.audioCues.find((candidate) => candidate.id === input.audioCueId);
+        if (!cue) throw new NotFoundError("AudioCue 不存在");
+        const item = snapshot.timeline.items.find((candidate) => candidate.id === cue.timelineItemId);
+        snapshot.audioCues = snapshot.audioCues.filter((candidate) => candidate.id !== cue.id);
+        snapshot.timeline.items = snapshot.timeline.items.filter((candidate) => candidate.id !== cue.timelineItemId);
+        impact.changed.push(cue.id, cue.timelineItemId);
+        if (item) impact.dirtyRanges.push({ startFrame: item.startFrame, endFrame: item.endFrame, reason: "移除声音包装" });
+        impact.recomputed.push("移除 BGM / SFX Timeline Item");
+        return;
+      }
+
+      if (input.action === "create") {
+        if (!input.kind || !input.assetId) throw new DomainError("添加声音必须指定 kind 和 assetId", "AUDIO_CREATE_FIELDS_REQUIRED");
+        const asset = requireReadyAudioAsset(snapshot, input.assetId);
+        const purpose = requireText(input.purpose, "声音用途");
+        const kind = input.kind;
+        const assetDuration = millisecondsToFrames(asset.metadata!.durationMs, snapshot.timeline.fps);
+        const loop = input.loop ?? false;
+        const gainDb = validateGain(input.gainDb ?? (kind === "bgm" ? -18 : -6));
+        let startFrame: number;
+        let endFrame: number;
+        let sourceStartFrame: number;
+        let sourceEndFrame: number;
+        let fadeInFrames: number;
+        let fadeOutFrames: number;
+        let eventFrame: number | undefined;
+        let onsetOffsetFrames: number | undefined;
+        let ducking: AudioDucking | undefined;
+
+        if (kind === "bgm") {
+          if (input.eventFrame !== undefined || input.onsetOffsetFrames !== undefined) {
+            throw new DomainError("BGM 使用整片范围，不接受 SFX 事件与 onsetOffset", "UNEXPECTED_AUDIO_EVENT");
+          }
+          startFrame = input.startFrame ?? 0;
+          endFrame = input.endFrame ?? programEndFrame;
+          requireProgramRange(startFrame, endFrame);
+          ({ sourceStartFrame, sourceEndFrame } = sourceRangeFor(asset, 0, assetDuration));
+          if (!loop && sourceEndFrame - sourceStartFrame < endFrame - startFrame) {
+            throw new DomainError("BGM 源范围不足以覆盖目标范围；请裁短、开启循环或更换音乐", "BGM_SOURCE_TOO_SHORT");
+          }
+          fadeInFrames = input.fadeInFrames ?? Math.min(12, Math.floor((endFrame - startFrame) / 2));
+          fadeOutFrames = input.fadeOutFrames ?? Math.min(24, Math.floor((endFrame - startFrame) / 2));
+          validateFades(fadeInFrames, fadeOutFrames, endFrame - startFrame);
+          ducking = normalizeAudioDucking(input.ducking);
+        } else {
+          if (loop) throw new DomainError("SFX 不支持循环，请明确放置每个声音事件", "SFX_LOOP_UNSUPPORTED");
+          if (input.startFrame !== undefined || input.endFrame !== undefined || input.ducking !== undefined) {
+            throw new DomainError("SFX 的位置由 eventFrame 与 onsetOffset 决定，不能混用 BGM 范围或 Duck", "SFX_EVENT_FIELDS_REQUIRED");
+          }
+          if (input.eventFrame === undefined) throw new DomainError("SFX 必须提供实际听见的 eventFrame", "SFX_EVENT_REQUIRED");
+          eventFrame = input.eventFrame;
+          requireAudioFrame(eventFrame, "SFX 事件帧", 0, Math.max(0, programEndFrame - 1));
+          onsetOffsetFrames = input.onsetOffsetFrames ?? 0;
+          requireAudioFrame(onsetOffsetFrames, "SFX onsetOffset", 0, assetDuration - 1);
+          ({ sourceStartFrame, sourceEndFrame } = sourceRangeFor(asset, 0, assetDuration));
+          if (onsetOffsetFrames >= sourceEndFrame - sourceStartFrame) {
+            throw new DomainError("SFX onsetOffset 必须落在当前源范围内", "INVALID_SFX_ONSET");
+          }
+          startFrame = eventFrame - onsetOffsetFrames;
+          endFrame = startFrame + sourceEndFrame - sourceStartFrame;
+          requireProgramRange(startFrame, endFrame);
+          fadeInFrames = input.fadeInFrames ?? 0;
+          fadeOutFrames = input.fadeOutFrames ?? 0;
+          validateFades(fadeInFrames, fadeOutFrames, endFrame - startFrame);
+        }
+
+        const item = createOrUpdateItem(undefined, kind === "bgm" ? "BGM" : "SFX", asset.id, startFrame, endFrame, sourceStartFrame, sourceEndFrame, gainDb);
+        const cue = createAudioCue({
+          kind,
+          assetId: asset.id,
+          timelineItemId: item.id,
+          purpose,
+          anchor: kind === "bgm" ? "sequence_global" : "media_event",
+          eventFrame,
+          onsetOffsetFrames,
+          fadeInFrames,
+          fadeOutFrames,
+          loop: kind === "bgm" && loop,
+          ducking
+        });
+        snapshot.audioCues.push(cue);
+        impact.changed.push(cue.id, item.id, asset.id);
+        impact.dirtyRanges.push({ startFrame, endFrame, reason: `添加 ${kind === "bgm" ? "BGM" : "SFX"}` });
+        impact.recomputed.push(kind === "bgm" ? "BGM 淡入淡出与 Dialogue Duck" : "SFX onset 与声音事件落点");
+        return;
+      }
+
+      if (!input.audioCueId) throw new DomainError("更新声音需要 audioCueId", "AUDIO_CUE_REQUIRED");
+      const cue = snapshot.audioCues.find((candidate) => candidate.id === input.audioCueId);
+      if (!cue) throw new NotFoundError("AudioCue 不存在");
+      if (input.kind && input.kind !== cue.kind) throw new DomainError("不能把既有 BGM 直接改成 SFX，或反向修改", "AUDIO_KIND_IMMUTABLE");
+      const existingItem = snapshot.timeline.items.find((candidate) => candidate.id === cue.timelineItemId);
+      if (!existingItem) throw new DomainError("AudioCue 缺少关联 Timeline Item", "AUDIO_ITEM_MISSING");
+      const assetChanged = input.assetId !== undefined && input.assetId !== cue.assetId;
+      const asset = requireReadyAudioAsset(snapshot, input.assetId ?? cue.assetId);
+      const assetDuration = millisecondsToFrames(asset.metadata!.durationMs, snapshot.timeline.fps);
+      const sourceDefaults = assetChanged ? { start: 0, end: assetDuration } : { start: existingItem.sourceStartFrame, end: existingItem.sourceEndFrame };
+      const { sourceStartFrame, sourceEndFrame } = sourceRangeFor(asset, sourceDefaults.start, sourceDefaults.end);
+      const gainDb = validateGain(input.gainDb ?? existingItem.gainDb ?? (cue.kind === "bgm" ? -18 : -6));
+      const purpose = input.purpose === undefined ? cue.purpose : requireText(input.purpose, "声音用途");
+      let startFrame: number;
+      let endFrame: number;
+      let eventFrame: number | undefined;
+      let onsetOffsetFrames: number | undefined;
+      let ducking: AudioDucking | undefined;
+      let loop = false;
+
+      if (cue.kind === "bgm") {
+        if (input.eventFrame !== undefined || input.onsetOffsetFrames !== undefined) {
+          throw new DomainError("BGM 使用整片范围，不接受 SFX 事件与 onsetOffset", "UNEXPECTED_AUDIO_EVENT");
+        }
+        startFrame = input.startFrame ?? existingItem.startFrame;
+        endFrame = input.endFrame ?? existingItem.endFrame;
+        requireProgramRange(startFrame, endFrame);
+        loop = input.loop ?? cue.loop;
+        if (!loop && sourceEndFrame - sourceStartFrame < endFrame - startFrame) {
+          throw new DomainError("BGM 源范围不足以覆盖目标范围；请裁短、开启循环或更换音乐", "BGM_SOURCE_TOO_SHORT");
+        }
+        ducking = normalizeAudioDucking(input.ducking, cue.ducking);
+      } else {
+        if (input.startFrame !== undefined || input.endFrame !== undefined || input.ducking !== undefined || input.loop === true) {
+          throw new DomainError("SFX 的位置由 eventFrame 与 onsetOffset 决定，不能混用 BGM 范围、Duck 或循环", "SFX_EVENT_FIELDS_REQUIRED");
+        }
+        eventFrame = input.eventFrame ?? cue.eventFrame;
+        if (eventFrame === undefined) throw new DomainError("SFX 缺少实际听见的 eventFrame", "SFX_EVENT_REQUIRED");
+        requireAudioFrame(eventFrame, "SFX 事件帧", 0, Math.max(0, programEndFrame - 1));
+        onsetOffsetFrames = input.onsetOffsetFrames ?? cue.onsetOffsetFrames ?? 0;
+        requireAudioFrame(onsetOffsetFrames, "SFX onsetOffset", 0, assetDuration - 1);
+        if (onsetOffsetFrames >= sourceEndFrame - sourceStartFrame) {
+          throw new DomainError("SFX onsetOffset 必须落在当前源范围内", "INVALID_SFX_ONSET");
+        }
+        startFrame = eventFrame - onsetOffsetFrames;
+        endFrame = startFrame + sourceEndFrame - sourceStartFrame;
+        requireProgramRange(startFrame, endFrame);
+      }
+      const fadeInFrames = input.fadeInFrames ?? cue.fadeInFrames;
+      const fadeOutFrames = input.fadeOutFrames ?? cue.fadeOutFrames;
+      validateFades(fadeInFrames, fadeOutFrames, endFrame - startFrame);
+      const oldStartFrame = existingItem.startFrame;
+      const oldEndFrame = existingItem.endFrame;
+      const item = createOrUpdateItem(cue, cue.kind === "bgm" ? "BGM" : "SFX", asset.id, startFrame, endFrame, sourceStartFrame, sourceEndFrame, gainDb);
+      cue.assetId = asset.id;
+      cue.purpose = purpose;
+      cue.anchor = cue.kind === "bgm" ? "sequence_global" : "media_event";
+      cue.eventFrame = eventFrame;
+      cue.onsetOffsetFrames = onsetOffsetFrames;
+      cue.fadeInFrames = fadeInFrames;
+      cue.fadeOutFrames = fadeOutFrames;
+      cue.loop = loop;
+      cue.ducking = ducking;
+      cue.status = "ready";
+      cue.updatedAt = now();
+      impact.changed.push(cue.id, item.id, asset.id);
+      impact.dirtyRanges.push({ startFrame: Math.min(oldStartFrame, startFrame), endFrame: Math.max(oldEndFrame, endFrame), reason: `调整 ${cue.kind === "bgm" ? "BGM" : "SFX"}` });
+      impact.recomputed.push(cue.kind === "bgm" ? "BGM 淡入淡出与 Dialogue Duck" : "SFX onset 与声音事件落点");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /**
    * 旁白是当前 Presenter 主线的节奏基准时，将未被手工覆盖的 A-roll 收齐到最终 SpeechAsset。
    * 只允许裁短已有素材；若需要补画面或会碰到既有 Cue，则拒绝自动改写，交回导演层决定。
    */
@@ -3180,6 +3511,7 @@ export class EditingApplication {
         }
       }
       this.staleCutawaysForHostScenes(snapshot, affectedSceneIds, impact, "旁白时长收齐改变了主场景边界");
+      this.staleAudioCuesForMainline(snapshot, impact, "旁白时长收齐改变了主线边界");
       impact.recomputed.push("Presenter 主画面、Scene Strip 与旁白时长对齐");
       assertTimelineValid(snapshot);
     });

@@ -22,6 +22,43 @@ async function createColorVideo(path: string, color: string, durationSeconds: nu
   ]);
 }
 
+/** 生成确定性的单音 BGM，供真实合成中的循环与 Duck 验证使用。 */
+async function createToneAudio(path: string, durationSeconds: number, frequency: number): Promise<void> {
+  await runProcess("ffmpeg", [
+    "-y",
+    "-f", "lavfi", "-i", `sine=frequency=${frequency}:sample_rate=48000:duration=${durationSeconds}`,
+    "-c:a", "pcm_s16le",
+    path
+  ]);
+}
+
+/** 静音 Dialogue 仍保留真实时间范围，用来隔离验证 BGM Duck 本身。 */
+async function createSilentAudio(path: string, durationSeconds: number): Promise<void> {
+  await runProcess("ffmpeg", [
+    "-y",
+    "-f", "lavfi", "-i", `anullsrc=r=48000:cl=mono:d=${durationSeconds}`,
+    "-c:a", "pcm_s16le",
+    path
+  ]);
+}
+
+/** 从已导出的真实媒体读取指定区间平均响度；数值越接近 0，声音越响。 */
+async function readMeanVolume(videoPath: string, startSeconds: number, durationSeconds: number): Promise<number> {
+  const output = await runProcess("ffmpeg", [
+    "-hide_banner",
+    "-ss", startSeconds.toFixed(3),
+    "-t", durationSeconds.toFixed(3),
+    "-i", videoPath,
+    "-vn",
+    "-af", "volumedetect",
+    "-f", "null",
+    "-"
+  ]);
+  const match = /mean_volume:\s*(-?[\d.]+)\s+dB/iu.exec(output);
+  if (!match) throw new Error(`无法读取导出音频的平均响度：${output}`);
+  return Number(match[1]);
+}
+
 async function createRedThenBlueVideo(path: string): Promise<void> {
   await runProcess("ffmpeg", [
     "-y",
@@ -343,6 +380,105 @@ async function verifyCaptionCardRender(application: ReturnType<typeof createAppl
   return { outputPath, pixel };
 }
 
+/**
+ * 声音包装必须进入实际 Renderer，而不只是保存 AudioCue JSON：
+ * 1 秒 BGM 在 4 秒成片中循环；中间 1～3 秒存在静音 Dialogue Item，
+ * 因此导出音量应在 Dialogue 区间显著 Duck，前后恢复为原音乐响度。
+ */
+async function verifyAudioDuckingRender(application: ReturnType<typeof createApplication>, renderer: RevisionRenderer): Promise<{
+  outputPath: string;
+  beforeDb: number;
+  duckedDb: number;
+  tailDb: number;
+}> {
+  const created = application.createProject({ name: "AudioCue Loop 与 Duck Render" });
+  const projectId = created.snapshot.project.id;
+  const projectRoot = created.snapshot.project.rootPath;
+  const sourceDirectory = join(projectRoot, "assets", "source");
+  await mkdir(sourceDirectory, { recursive: true });
+  const presenterPath = join(sourceDirectory, "audio-presenter.mp4");
+  const bgmPath = join(sourceDirectory, "audio-bgm.wav");
+  const dialoguePath = join(sourceDirectory, "audio-dialogue-silence.wav");
+  await createColorVideo(presenterPath, "0x102040", 4);
+  await createToneAudio(bgmPath, 1, 880);
+  await createSilentAudio(dialoguePath, 4);
+
+  const presenter = application.registerImportedAsset({
+    projectId,
+    baseRevision: created.revision.number,
+    name: "audio-presenter.mp4",
+    kind: "video",
+    managedPath: join("assets", "source", "audio-presenter.mp4"),
+    sourceHash: "audio-duck-presenter"
+  });
+  application.applyMediaAnalysis({ projectId, assetId: presenter.asset.id, metadata: await probeMedia(presenterPath) });
+  const bgm = application.registerImportedAsset({
+    projectId,
+    baseRevision: application.readProject(projectId).revision.number,
+    name: "audio-bgm.wav",
+    kind: "audio",
+    managedPath: join("assets", "source", "audio-bgm.wav"),
+    sourceHash: "audio-duck-bgm"
+  });
+  application.applyMediaAnalysis({ projectId, assetId: bgm.asset.id, metadata: await probeMedia(bgmPath) });
+  const dialogue = application.registerImportedAsset({
+    projectId,
+    baseRevision: application.readProject(projectId).revision.number,
+    name: "audio-dialogue-silence.wav",
+    kind: "speech",
+    managedPath: join("assets", "source", "audio-dialogue-silence.wav"),
+    sourceHash: "audio-duck-dialogue"
+  });
+  application.applyMediaAnalysis({ projectId, assetId: dialogue.asset.id, metadata: await probeMedia(dialoguePath) });
+  const assembled = application.buildPresenterTimeline({
+    projectId,
+    baseRevision: application.readProject(projectId).revision.number,
+    assetIds: [presenter.asset.id],
+    sceneSize: 1
+  });
+  const dialogueTrack = assembled.snapshot.timeline.tracks.find((track) => track.name === "Dialogue")!;
+  const withDialogue = application.repository.commit(projectId, assembled.revision.number, "写入 Duck 渲染测试的静音 Dialogue", (snapshot) => {
+    snapshot.timeline.items.push({
+      id: "audio_duck_dialogue_item",
+      trackId: dialogueTrack.id,
+      assetId: dialogue.asset.id,
+      startFrame: 24,
+      endFrame: 72,
+      sourceStartFrame: 0,
+      sourceEndFrame: 48,
+      disabled: false,
+      gainDb: 0
+    });
+  });
+  const withBgm = application.manageAudio({
+    projectId,
+    baseRevision: withDialogue.revision.number,
+    action: "create",
+    kind: "bgm",
+    assetId: bgm.asset.id,
+    purpose: "验证真实 Renderer 中的循环背景音乐与旁白 Duck",
+    loop: true,
+    gainDb: 0,
+    fadeInFrames: 0,
+    fadeOutFrames: 0,
+    ducking: { enabled: true, reductionDb: -20, attackFrames: 0, releaseFrames: 0 }
+  });
+  const cue = withBgm.snapshot.audioCues[0]!;
+  assert.equal(cue.kind, "bgm");
+  assert.equal(cue.loop, true);
+  assert.equal(withBgm.snapshot.timeline.items.find((item) => item.id === cue.timelineItemId)?.endFrame, 96);
+
+  const outputPath = join(projectRoot, "previews", "audio-duck-loop.mp4");
+  await renderer.render(withBgm.snapshot, outputPath);
+  await validateExport(outputPath, 4_000);
+  const beforeDb = await readMeanVolume(outputPath, 0.25, 0.5);
+  const duckedDb = await readMeanVolume(outputPath, 1.5, 0.5);
+  const tailDb = await readMeanVolume(outputPath, 3.25, 0.5);
+  assert.ok(beforeDb > duckedDb + 12, `Dialogue 区间应显著 Duck BGM，导出前/中为 ${beforeDb.toFixed(1)}dB / ${duckedDb.toFixed(1)}dB`);
+  assert.ok(tailDb > duckedDb + 12, `Dialogue 结束后 BGM 应恢复且仍循环，导出中/尾为 ${duckedDb.toFixed(1)}dB / ${tailDb.toFixed(1)}dB`);
+  return { outputPath, beforeDb, duckedDb, tailDb };
+}
+
 /** 单组件单项目渲染，避免 Registry 冒烟因并行视频解码而掩盖某个组件本身的失败。 */
 async function renderRegisteredEffect(input: {
   application: ReturnType<typeof createApplication>;
@@ -433,6 +569,7 @@ async function main(): Promise<void> {
     }
     assert.equal(results.length, EFFECT_TYPES.length, "11 个 Registry 类型必须都完成真实合成");
     const captionRender = await verifyCaptionCardRender(application, renderer);
+    const audioMix = await verifyAudioDuckingRender(application, renderer);
     // 局部时间验证使用独立 Project/Renderer，避免 Registry 冒烟的多项目缓存影响短素材解码。
     const lateWorkspaceRoot = await mkdtemp(join(tmpdir(), "videocut-late-bound-"));
     const lateApplication = createApplication(lateWorkspaceRoot);
@@ -466,6 +603,7 @@ async function main(): Promise<void> {
       effectTypes: EFFECT_TYPES,
       results,
       captionRender,
+      audioMix,
       lateBoundPlayback,
       rearCueFallback,
       cutawayRender

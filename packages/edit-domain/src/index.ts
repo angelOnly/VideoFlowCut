@@ -5,6 +5,7 @@ import type {
   ActorAudioMode,
   ActorPerformance,
   ActorPerformanceSource,
+  AudioCue,
   AssetKind,
   Cutaway,
   CutawayAudioMode,
@@ -104,6 +105,7 @@ export function createProjectSnapshot(input: {
     assetCandidates: [],
     visualTreatments: [],
     cutaways: [],
+    audioCues: [],
     voiceReferences: [],
     transcripts: [],
     transcriptSentenceCandidates: [],
@@ -284,6 +286,28 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
     // stale Cutaway 会临时保留旧决定供导演复核，但不再要求它仍覆盖新的主场景边界。
     if (cutaway.status === "ready" && (item.disabled || cutaway.startFrame < hostScene.startFrame || cutaway.endFrame > hostScene.endFrame)) {
       throw new DomainError("已就绪 Cutaway 必须位于主场景内且可播放", "PROJECT_GRAPH_INVALID");
+    }
+  }
+  for (const cue of snapshot.audioCues ?? []) {
+    requireId(assetIds, cue.assetId, "AudioCue 素材");
+    requireId(itemIds, cue.timelineItemId, "AudioCue Timeline Item");
+    const item = snapshot.timeline.items.find((candidate) => candidate.id === cue.timelineItemId)!;
+    const track = snapshot.timeline.tracks.find((candidate) => candidate.id === item.trackId);
+    const expectedTrack = cue.kind === "bgm" ? "BGM" : "SFX";
+    if (track?.name !== expectedTrack || item.assetId !== cue.assetId) {
+      throw new DomainError("AudioCue、Timeline Item 与声音轨的绑定不一致", "PROJECT_GRAPH_INVALID");
+    }
+    if (cue.kind === "bgm" && cue.anchor !== "sequence_global") {
+      throw new DomainError("BGM 必须绑定整条时间线或明确章节", "PROJECT_GRAPH_INVALID");
+    }
+    if (cue.kind === "sfx") {
+      if (cue.anchor !== "media_event" || cue.eventFrame === undefined || cue.onsetOffsetFrames === undefined
+        || cue.eventFrame !== item.startFrame + cue.onsetOffsetFrames) {
+        throw new DomainError("SFX 必须保存与物理 Item 一致的显式事件与 onsetOffset", "PROJECT_GRAPH_INVALID");
+      }
+    }
+    if (cue.status === "ready" && item.disabled) {
+      throw new DomainError("已就绪 AudioCue 必须关联可播放 Timeline Item", "PROJECT_GRAPH_INVALID");
     }
   }
   for (const performance of snapshot.actorPerformances ?? []) requireId(itemIds, performance.timelineItemId, "ActorPerformance");
@@ -493,6 +517,12 @@ export function createCutaway(input: {
     createdAt,
     updatedAt: createdAt
   };
+}
+
+/** AudioCue 只创建声音决策与 Item 的稳定关联，不在 Domain 层猜测音乐或音效时机。 */
+export function createAudioCue(input: Omit<AudioCue, "id" | "status" | "createdAt" | "updatedAt">): AudioCue {
+  const createdAt = now();
+  return { id: createId("audio_cue"), ...input, status: "ready", createdAt, updatedAt: createdAt };
 }
 
 export function createEffectCue(input: {

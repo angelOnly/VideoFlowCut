@@ -451,6 +451,35 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return application.editCaptions({ projectId, captionId, ...body });
   });
 
+  app.post("/api/projects/:projectId/audio", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      action: z.enum(["create", "update", "remove"]),
+      audioCueId: idSchema.optional(),
+      kind: z.enum(["bgm", "sfx"]).optional(),
+      assetId: idSchema.optional(),
+      purpose: z.string().max(800).optional(),
+      startFrame: z.number().int().min(0).optional(),
+      endFrame: z.number().int().positive().optional(),
+      sourceStartFrame: z.number().int().min(0).optional(),
+      sourceEndFrame: z.number().int().positive().optional(),
+      loop: z.boolean().optional(),
+      gainDb: z.number().min(-48).max(12).optional(),
+      fadeInFrames: z.number().int().min(0).max(480).optional(),
+      fadeOutFrames: z.number().int().min(0).max(480).optional(),
+      eventFrame: z.number().int().min(0).optional(),
+      onsetOffsetFrames: z.number().int().min(0).optional(),
+      ducking: z.object({
+        enabled: z.boolean().optional(),
+        reductionDb: z.number().min(-36).max(-1).optional(),
+        attackFrames: z.number().int().min(0).max(240).optional(),
+        releaseFrames: z.number().int().min(0).max(240).optional()
+      }).strict().optional()
+    }).parse(request.body);
+    return application.manageAudio({ projectId, ...body });
+  });
+
   app.post("/api/projects/:projectId/previews", async (request, reply) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({ revision: z.number().int().positive().optional(), fromFrame: z.number().int().nonnegative().optional(), toFrame: z.number().int().positive().optional(), idempotencyKey: z.string().optional() }).parse(request.body);

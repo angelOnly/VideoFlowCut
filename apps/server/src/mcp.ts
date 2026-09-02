@@ -652,6 +652,64 @@ server.registerTool("edit_captions", {
   } catch (error) { return asError(error); }
 });
 
+server.registerTool("manage_audio", {
+  title: "管理 BGM 与 SFX",
+  description: "将已就绪的本地音频作为 BGM 或 SFX 写入专用轨。BGM 支持有限淡入淡出、循环和 Dialogue Duck；SFX 必须显式提供实际听见的 event_frame 与 onset_offset_frames，系统不会猜测文件能量峰值。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    action: z.enum(["create", "update", "remove"]),
+    audio_cue_id: z.string().min(1).optional(),
+    kind: z.enum(["bgm", "sfx"]).optional(),
+    asset_id: z.string().min(1).optional(),
+    purpose: z.string().max(800).optional(),
+    start_frame: z.number().int().nonnegative().optional(),
+    end_frame: z.number().int().positive().optional(),
+    source_start_frame: z.number().int().nonnegative().optional(),
+    source_end_frame: z.number().int().positive().optional(),
+    loop: z.boolean().optional(),
+    gain_db: z.number().min(-48).max(12).optional(),
+    fade_in_frames: z.number().int().min(0).max(480).optional(),
+    fade_out_frames: z.number().int().min(0).max(480).optional(),
+    event_frame: z.number().int().nonnegative().optional(),
+    onset_offset_frames: z.number().int().nonnegative().optional(),
+    ducking: z.object({
+      enabled: z.boolean().optional(),
+      reduction_db: z.number().min(-36).max(-1).optional(),
+      attack_frames: z.number().int().min(0).max(240).optional(),
+      release_frames: z.number().int().min(0).max(240).optional()
+    }).strict().optional()
+  }
+}, async (input) => {
+  try {
+    return asText(application.manageAudio({
+      projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id,
+      action: input.action,
+      audioCueId: input.audio_cue_id,
+      kind: input.kind,
+      assetId: input.asset_id,
+      purpose: input.purpose,
+      startFrame: input.start_frame,
+      endFrame: input.end_frame,
+      sourceStartFrame: input.source_start_frame,
+      sourceEndFrame: input.source_end_frame,
+      loop: input.loop,
+      gainDb: input.gain_db,
+      fadeInFrames: input.fade_in_frames,
+      fadeOutFrames: input.fade_out_frames,
+      eventFrame: input.event_frame,
+      onsetOffsetFrames: input.onset_offset_frames,
+      ducking: input.ducking === undefined ? undefined : {
+        enabled: input.ducking.enabled,
+        reductionDb: input.ducking.reduction_db,
+        attackFrames: input.ducking.attack_frames,
+        releaseFrames: input.ducking.release_frames
+      }
+    }));
+  } catch (error) { return asError(error); }
+});
+
 server.registerTool("assemble_presenter_track", {
   title: "组装 Presenter A-roll",
   description: "仅将明确选择的已就绪视频拼接到 Actor / A-roll 轨；不会按素材数量猜测叙事 Scene。",

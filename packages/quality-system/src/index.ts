@@ -132,6 +132,59 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     return track.id === dialogueTrack?.id && !track.muted && !item.disabled && (item.gainDb ?? 0) > -80;
   });
   const overlapsDialogue = (item: { startFrame: number; endFrame: number }) => audibleDialogueItems.some((dialogue) => dialogue.startFrame < item.endFrame && dialogue.endFrame > item.startFrame);
+  const managedAudioItemIds = new Set((snapshot.audioCues ?? []).map((cue) => cue.timelineItemId));
+  for (const cue of snapshot.audioCues ?? []) {
+    const item = timeline.items.find((candidate) => candidate.id === cue.timelineItemId);
+    const asset = snapshot.assets.find((candidate) => candidate.id === cue.assetId);
+    const expectedTrackName = cue.kind === "bgm" ? "BGM" : "SFX";
+    const track = item ? timeline.tracks.find((candidate) => candidate.id === item.trackId) : undefined;
+    if (cue.status === "stale") {
+      issues.push(issue({
+        level: "warning",
+        code: "STALE_AUDIO_CUE",
+        message: `${cue.kind === "bgm" ? "BGM" : "SFX"} 的主线关联已变化，当前应停止参与合成；请重新确认时长、Duck 或事件落点。`,
+        objectId: cue.id,
+        frameRange: item ? { startFrame: item.startFrame, endFrame: item.endFrame } : undefined
+      }));
+      if (item && !item.disabled) {
+        issues.push(issue({ level: "blocking", code: "STALE_AUDIO_CUE_AUDIBLE", message: "已过期的 AudioCue 仍在可播放声音轨上；请重新确认或停止该 Item。", objectId: cue.id }));
+      }
+      continue;
+    }
+    if (!item || item.disabled || !asset || asset.status !== "ready" || asset.kind !== "audio" || !asset.metadata?.hasAudio || track?.name !== expectedTrackName || item.assetId !== cue.assetId) {
+      issues.push(issue({ level: "blocking", code: "AUDIO_CUE_BINDING_INVALID", message: "已就绪 AudioCue 缺少可播放的独立音频、专用轨道或一致的 Timeline Item 绑定。", objectId: cue.id }));
+      continue;
+    }
+    const duration = item.endFrame - item.startFrame;
+    const sourceDuration = item.sourceEndFrame - item.sourceStartFrame;
+    if (!Number.isFinite(item.gainDb ?? 0) || (item.gainDb ?? 0) < -48 || (item.gainDb ?? 0) > 12
+      || !Number.isInteger(cue.fadeInFrames) || !Number.isInteger(cue.fadeOutFrames)
+      || cue.fadeInFrames < 0 || cue.fadeOutFrames < 0 || cue.fadeInFrames + cue.fadeOutFrames > duration) {
+      issues.push(issue({ level: "blocking", code: "AUDIO_CUE_MIX_INVALID", message: "声音增益或淡入淡出参数超出当前可渲染范围。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame } }));
+    }
+    if (cue.kind === "bgm") {
+      if (cue.anchor !== "sequence_global" || (!cue.loop && sourceDuration < duration)) {
+        issues.push(issue({ level: "blocking", code: "BGM_RANGE_INVALID", message: "BGM 必须绑定整片/章节，且非循环音乐的源范围必须覆盖目标时长。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame } }));
+      }
+      const ducking = cue.ducking;
+      if (!ducking || !Number.isFinite(ducking.reductionDb) || ducking.reductionDb > -1 || ducking.reductionDb < -36
+        || !Number.isInteger(ducking.attackFrames) || !Number.isInteger(ducking.releaseFrames) || ducking.attackFrames < 0 || ducking.releaseFrames < 0) {
+        issues.push(issue({ level: "blocking", code: "BGM_DUCKING_INVALID", message: "BGM 缺少可执行的 Duck 配置；请明确开关、衰减、攻击和释放。", objectId: cue.id }));
+      } else if (overlapsDialogue(item) && !ducking.enabled) {
+        issues.push(issue({ level: "warning", code: "BGM_DIALOGUE_DUCK_REVIEW", message: "BGM 与 Dialogue 重叠但 Duck 已关闭；请在真实试听中确认旁白仍清楚。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame } }));
+      }
+    } else if (cue.anchor !== "media_event" || cue.eventFrame === undefined || cue.onsetOffsetFrames === undefined
+      || cue.onsetOffsetFrames < 0 || cue.eventFrame !== item.startFrame + cue.onsetOffsetFrames
+      || cue.eventFrame < item.startFrame || cue.eventFrame >= item.endFrame || cue.loop || cue.ducking !== undefined) {
+      issues.push(issue({ level: "blocking", code: "SFX_EVENT_INVALID", message: "SFX 必须以显式 media_event 与可追溯 onsetOffset 放置，且不能循环或承载 Duck。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame } }));
+    }
+  }
+  for (const item of timeline.items.filter((candidate) => !candidate.disabled && ["BGM", "SFX"].includes(timeline.tracks.find((track) => track.id === candidate.trackId)?.name ?? "") && !managedAudioItemIds.has(candidate.id))) {
+    issues.push(issue({ level: "warning", code: "UNMANAGED_AUDIO_ITEM", message: "BGM / SFX 轨存在未关联 AudioCue 的旧 Item；请通过 manage_audio 重新登记用途、淡化与事件。", objectId: item.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame } }));
+  }
+  if ((snapshot.audioCues ?? []).some((cue) => cue.status === "ready")) {
+    issues.push(issue({ level: "warning", code: "AUDIO_ONLY_PREVIEW_REQUIRED", message: "当前存在 BGM 或 SFX；请在真实 Preview 和最终导出中只听声音，确认 Duck、淡化、SFX 落点与头尾没有爆点或突兀回升。" }));
+  }
   for (const item of timeline.items.filter((candidate) => candidate.trackId === actorTrack?.id && !candidate.disabled)) {
     const source = snapshot.assets.find((asset) => asset.id === item.assetId);
     if (!source?.metadata?.hasAudio || actorTrack?.muted || (item.gainDb ?? 0) <= -80 || !overlapsDialogue(item)) continue;

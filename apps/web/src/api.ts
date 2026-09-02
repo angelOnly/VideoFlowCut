@@ -35,6 +35,7 @@ export const api = {
   voiceSynthesis: (projectId: string, voiceReferenceId: string) => request<JobRecord>(`/api/projects/${projectId}/voice-synthesis`, { method: "POST", body: JSON.stringify({ voiceReferenceId }) }),
   rebuildSpeechTimeline: (projectId: string, baseRevision: number) => request<ProjectState>(`/api/projects/${projectId}/speech-asset/rebuild-timeline`, { method: "POST", body: JSON.stringify({ baseRevision }) }),
   editCaption: (projectId: string, captionId: string, payload: Record<string, unknown>) => request<ProjectState>(`/api/projects/${projectId}/captions/${captionId}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  manageAudio: (projectId: string, payload: Record<string, unknown>) => request<ProjectState>(`/api/projects/${projectId}/audio`, { method: "POST", body: JSON.stringify(payload) }),
   alignPresenterToSpeech: (projectId: string, baseRevision: number) => request<ProjectState>(`/api/projects/${projectId}/timeline/align-presenter-to-speech`, { method: "POST", body: JSON.stringify({ baseRevision }) }),
   updateStory: (projectId: string, payload: Record<string, unknown>) => request<ProjectState>(`/api/projects/${projectId}/story`, { method: "PATCH", body: JSON.stringify(payload) }),
   applySemanticUnits: (projectId: string, payload: Record<string, unknown>) => request<ProjectState>(`/api/projects/${projectId}/semantic-units`, { method: "POST", body: JSON.stringify(payload) }),

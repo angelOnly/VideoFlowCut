@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
-import { EFFECT_TYPES, type Asset, type CaptionCard, type EffectCue, type ProjectSnapshot, type Scene, type TimelineItem } from "@videocut/contracts";
+import { EFFECT_TYPES, type Asset, type AudioCue, type CaptionCard, type EffectCue, type ProjectSnapshot, type Scene, type TimelineItem } from "@videocut/contracts";
 import { ProjectComposition, mediaUrl } from "@videocut/remotion";
 import { API_BASE, api, type ProjectState } from "./api";
 
@@ -318,7 +318,9 @@ export function App() {
             onSubmitVoiceSynthesis={(voiceReferenceId) => void act("提交 OmniVoice 旁白", () => api.voiceSynthesis(snapshot.project.id, voiceReferenceId))}
             onRebuildSpeechTimeline={() => void act("修复 SpeechAsset 时间线", () => api.rebuildSpeechTimeline(snapshot.project.id, currentRevision))}
             onEditCaption={(captionId, payload) => void act("更新字幕卡", () => api.editCaption(snapshot.project.id, captionId, { baseRevision: currentRevision, ...payload }))}
+            onManageAudio={(payload) => void act("更新声音包装", () => api.manageAudio(snapshot.project.id, { baseRevision: currentRevision, ...payload }))}
             onAlignPresenterToSpeech={() => void act("按旁白收齐 Presenter 主线", () => api.alignPresenterToSpeech(snapshot.project.id, currentRevision))}
+            playhead={playhead}
             busy={busy}
             selectedARollIds={selectedForTimeline}
             onToggleARoll={(assetId) => setSelectedARollIds((old) => old.includes(assetId) ? old.filter((id) => id !== assetId) : [...old, assetId])}
@@ -415,7 +417,9 @@ interface PanelContentProps {
   onSubmitVoiceSynthesis: (voiceReferenceId: string) => void;
   onRebuildSpeechTimeline: () => void;
   onEditCaption: (captionId: string, payload: Record<string, unknown>) => void;
+  onManageAudio: (payload: Record<string, unknown>) => void;
   onAlignPresenterToSpeech: () => void;
+  playhead: number;
   busy: boolean;
   selectedARollIds: string[];
   onToggleARoll: (assetId: string) => void;
@@ -467,6 +471,8 @@ function PanelContent(props: PanelContentProps) {
     const needsAssembly = Boolean(!snapshot.speechAsset && snapshot.speechSegments.length > 0 && pendingSegments.length === 0);
     const dialogueTrack = snapshot.timeline.tracks.find((track) => track.name === "Dialogue");
     const hasSpeechOnDialogue = Boolean(snapshot.speechAsset && snapshot.timeline.items.some((item) => item.trackId === dialogueTrack?.id && item.assetId === snapshot.speechAsset?.assetId && !item.disabled));
+    const readyMixAssets = snapshot.assets.filter((asset) => asset.kind === "audio" && asset.status === "ready" && asset.metadata?.hasAudio);
+    const audioItemsById = new Map(snapshot.timeline.items.map((item) => [item.id, item]));
     return <>
       <PanelTitle title="Audio / Voice" meta={`${snapshot.voiceReferences.length} 条参考声音`} />
       {snapshot.voiceReferences.length === 0 && <p className="empty-panel">先在文字稿面板登记一个已就绪的本地音频。VoiceReference 仅保存本地 Asset，不会创建不存在的远端 Voice ID。</p>}
@@ -480,6 +486,33 @@ function PanelContent(props: PanelContentProps) {
       {snapshot.speechAsset
         ? <section className="audio-card" data-testid="speech-asset" data-object-id={snapshot.speechAsset.id}><strong>{speechFile?.name ?? "旁白总轨"}</strong><small>Script R{snapshot.speechAsset.scriptRevision} · {snapshot.speechAsset.timing.segments.length} 个段边界 · {hasSpeechOnDialogue ? "已写入 Dialogue 轨" : "尚未写入 Dialogue 轨"}</small><small>{speechFile?.metadata?.durationMs ? `${(speechFile.metadata.durationMs / 1000).toFixed(2)} 秒` : "等待音频元数据"} · 不提供词级时间</small>{!hasSpeechOnDialogue && <button className="wide-button" data-testid="rebuild-speech-timeline" onClick={props.onRebuildSpeechTimeline}>修复 Dialogue 与字幕</button>}{hasSpeechOnDialogue && <button className="wide-button" data-testid="align-presenter-to-speech" onClick={props.onAlignPresenterToSpeech}>按旁白时长收齐 Presenter 主线</button>}</section>
         : <p className="empty-panel">选择 VoiceReference 后，系统会仅生成 pending / stale 的 SpeechSegment，完成后组装为可播放的 SpeechAsset、Dialogue Item 和稳定字幕。</p>}
+      <PanelTitle title="BGM / SFX" meta={`${snapshot.audioCues.length} 条声音包装`} />
+      <p className="empty-panel">BGM 只服务当前主线并按 Dialogue Duck；SFX 必须以播放头作为明确事件落点。这里不猜测音效起音，需在真实试听中复核。</p>
+      {readyMixAssets.length === 0 && <p className="empty-panel">导入并分析完成独立音频后，才可作为 BGM 或 SFX 使用。</p>}
+      {readyMixAssets.map((asset) => {
+        const sourceFrames = Math.max(1, Math.round((asset.metadata!.durationMs / 1_000) * snapshot.timeline.fps));
+        const programFrames = snapshot.timeline.durationInFrames;
+        return <article className="audio-card audio-source-card" key={asset.id} data-testid={`mix-source-${asset.id}`} data-object-id={asset.id}>
+          <strong>{asset.name}</strong><small>{formatDuration(sourceFrames, snapshot.timeline.fps)} · 已就绪本地音频</small>
+          <div className="button-row">
+            <button type="button" disabled={props.busy || programFrames <= 0} onClick={() => props.onManageAudio({
+              action: "create", kind: "bgm", assetId: asset.id, purpose: `为当前主线提供克制的背景音乐：${asset.name}`,
+              loop: sourceFrames < programFrames, gainDb: -18,
+              fadeInFrames: Math.min(12, Math.floor(programFrames / 2)), fadeOutFrames: Math.min(24, Math.floor(programFrames / 2)),
+              ducking: { enabled: true, reductionDb: -14, attackFrames: 4, releaseFrames: 14 }
+            })}>作为 BGM</button>
+            <button type="button" disabled={props.busy || programFrames <= 0} onClick={() => props.onManageAudio({
+              action: "create", kind: "sfx", assetId: asset.id, purpose: `为当前画面事件提供声音强调：${asset.name}`,
+              eventFrame: Math.min(props.playhead, Math.max(0, programFrames - 1)), onsetOffsetFrames: 0, gainDb: -6
+            })}>在播放头加 SFX</button>
+          </div>
+        </article>;
+      })}
+      {snapshot.audioCues.map((cue) => {
+        const item = audioItemsById.get(cue.timelineItemId);
+        const asset = snapshot.assets.find((candidate) => candidate.id === cue.assetId);
+        return item && <AudioCueEditor key={cue.id} cue={cue} item={item} asset={asset} disabled={props.busy} onSeek={props.onSeek} onSave={props.onManageAudio} />;
+      })}
       <div className="speech-list">{snapshot.speechSegments.map((segment) => <div className="speech-row" key={segment.id} data-testid={`audio-segment-${segment.id}`} data-object-id={segment.id}><span>{segment.text}</span><small>{statusText(segment.status)}</small></div>)}</div>
     </>;
   }
@@ -558,6 +591,90 @@ function CaptionEditor({ caption, disabled, onSeek, onSave }: {
       <div className="button-row">
         <button type="button" disabled={disabled} onClick={save}>保存字幕</button>
         <button type="button" disabled={disabled} onClick={() => onSave(caption.id, { action: "reset" })}>恢复语音原文</button>
+      </div>
+    </div>}
+  </article>;
+}
+
+/** BGM / SFX 仅暴露当前阶段可安全持久化的参数；复杂 EQ、自动配乐和波形编辑不伪装成已实现。 */
+function AudioCueEditor({ cue, item, asset, disabled, onSeek, onSave }: {
+  cue: AudioCue;
+  item: TimelineItem;
+  asset?: Asset;
+  disabled: boolean;
+  onSeek: (frame: number) => void;
+  onSave: (payload: Record<string, unknown>) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [gainDb, setGainDb] = useState(item.gainDb ?? (cue.kind === "bgm" ? -18 : -6));
+  const [fadeInFrames, setFadeInFrames] = useState(cue.fadeInFrames);
+  const [fadeOutFrames, setFadeOutFrames] = useState(cue.fadeOutFrames);
+  const [loop, setLoop] = useState(cue.loop);
+  const [eventFrame, setEventFrame] = useState(cue.eventFrame ?? item.startFrame);
+  const [onsetOffsetFrames, setOnsetOffsetFrames] = useState(cue.onsetOffsetFrames ?? 0);
+  const [duckEnabled, setDuckEnabled] = useState(cue.ducking?.enabled ?? true);
+  const [duckReductionDb, setDuckReductionDb] = useState(cue.ducking?.reductionDb ?? -14);
+  const [duckAttackFrames, setDuckAttackFrames] = useState(cue.ducking?.attackFrames ?? 4);
+  const [duckReleaseFrames, setDuckReleaseFrames] = useState(cue.ducking?.releaseFrames ?? 14);
+
+  useEffect(() => {
+    setGainDb(item.gainDb ?? (cue.kind === "bgm" ? -18 : -6));
+    setFadeInFrames(cue.fadeInFrames);
+    setFadeOutFrames(cue.fadeOutFrames);
+    setLoop(cue.loop);
+    setEventFrame(cue.eventFrame ?? item.startFrame);
+    setOnsetOffsetFrames(cue.onsetOffsetFrames ?? 0);
+    setDuckEnabled(cue.ducking?.enabled ?? true);
+    setDuckReductionDb(cue.ducking?.reductionDb ?? -14);
+    setDuckAttackFrames(cue.ducking?.attackFrames ?? 4);
+    setDuckReleaseFrames(cue.ducking?.releaseFrames ?? 14);
+  }, [cue.id, cue.kind, cue.fadeInFrames, cue.fadeOutFrames, cue.loop, cue.eventFrame, cue.onsetOffsetFrames, cue.ducking?.enabled, cue.ducking?.reductionDb, cue.ducking?.attackFrames, cue.ducking?.releaseFrames, item.id, item.gainDb, item.startFrame]);
+
+  const save = () => {
+    const payload: Record<string, unknown> = {
+      action: "update",
+      audioCueId: cue.id,
+      gainDb,
+      fadeInFrames,
+      fadeOutFrames
+    };
+    if (cue.kind === "bgm") {
+      payload.loop = loop;
+      payload.ducking = { enabled: duckEnabled, reductionDb: duckReductionDb, attackFrames: duckAttackFrames, releaseFrames: duckReleaseFrames };
+    } else {
+      payload.eventFrame = eventFrame;
+      payload.onsetOffsetFrames = onsetOffsetFrames;
+    }
+    onSave(payload);
+  };
+
+  return <article className={`audio-card audio-cue-card ${cue.status === "stale" ? "stale" : ""}`} data-testid={`audio-cue-${cue.id}`} data-object-id={cue.id}>
+    <button className="caption-summary" type="button" onClick={() => { onSeek(item.startFrame); setExpanded((value) => !value); }}>
+      <strong>{cue.kind === "bgm" ? "BGM" : "SFX"} · {asset?.name ?? "缺失素材"}</strong>
+      <small>F{item.startFrame}–{item.endFrame} · {cue.status === "stale" ? "主线变化，需重新确认" : cue.kind === "bgm" ? (cue.ducking?.enabled ? "Dialogue Duck 已开启" : "Duck 已关闭") : `事件 F${cue.eventFrame} / onset +${cue.onsetOffsetFrames}`}</small>
+      <small>{cue.purpose}</small>
+    </button>
+    {expanded && <div className="audio-cue-editor">
+      <div className="caption-field-row">
+        <label>增益 dB<input aria-label={`声音增益：${cue.id}`} type="number" min="-48" max="12" step="0.5" value={gainDb} onChange={(event) => setGainDb(Number(event.target.value))} /></label>
+        <label>淡入帧<input aria-label={`声音淡入：${cue.id}`} type="number" min="0" max="480" value={fadeInFrames} onChange={(event) => setFadeInFrames(Number(event.target.value))} /></label>
+      </div>
+      <label>淡出帧<input aria-label={`声音淡出：${cue.id}`} type="number" min="0" max="480" value={fadeOutFrames} onChange={(event) => setFadeOutFrames(Number(event.target.value))} /></label>
+      {cue.kind === "bgm" ? <>
+        <label className="audio-check"><input aria-label={`循环 BGM：${cue.id}`} type="checkbox" checked={loop} onChange={(event) => setLoop(event.target.checked)} />循环当前源片段</label>
+        <label className="audio-check"><input aria-label={`启用 Duck：${cue.id}`} type="checkbox" checked={duckEnabled} onChange={(event) => setDuckEnabled(event.target.checked)} />Dialogue 时压低音乐</label>
+        <div className="caption-field-row">
+          <label>Duck dB<input aria-label={`Duck 衰减：${cue.id}`} type="number" min="-36" max="-1" step="1" value={duckReductionDb} onChange={(event) => setDuckReductionDb(Number(event.target.value))} /></label>
+          <label>攻击帧<input aria-label={`Duck 攻击：${cue.id}`} type="number" min="0" max="240" value={duckAttackFrames} onChange={(event) => setDuckAttackFrames(Number(event.target.value))} /></label>
+        </div>
+        <label>释放帧<input aria-label={`Duck 释放：${cue.id}`} type="number" min="0" max="240" value={duckReleaseFrames} onChange={(event) => setDuckReleaseFrames(Number(event.target.value))} /></label>
+      </> : <div className="caption-field-row">
+        <label>事件帧<input aria-label={`SFX 事件帧：${cue.id}`} type="number" min="0" value={eventFrame} onChange={(event) => setEventFrame(Number(event.target.value))} /></label>
+        <label>onset 偏移<input aria-label={`SFX onset 偏移：${cue.id}`} type="number" min="0" value={onsetOffsetFrames} onChange={(event) => setOnsetOffsetFrames(Number(event.target.value))} /></label>
+      </div>}
+      <div className="button-row">
+        <button type="button" disabled={disabled} onClick={save}>{cue.status === "stale" ? "重新确认并启用" : "保存声音"}</button>
+        <button type="button" disabled={disabled} onClick={() => onSave({ action: "remove", audioCueId: cue.id })}>移除</button>
       </div>
     </div>}
   </article>;

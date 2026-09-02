@@ -423,6 +423,176 @@ test("HTTP 字幕编辑只修改 Caption Card，并校验有限样式输入", as
   }
 });
 
+test("BGM 与 SFX 通过 AudioCue 绑定专用轨，主线变化会停止旧声音包装", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "声音包装对象与失效传播测试" });
+    const projectId = created.snapshot.project.id;
+    const presenterAssetId = addReadyAsset(context.app, projectId, "audio-presenter.mp4", "video", 4_000);
+    context.app.buildPresenterTimeline({
+      projectId,
+      baseRevision: context.app.readProject(projectId).revision.number,
+      assetIds: [presenterAssetId],
+      sceneSize: 1
+    });
+    const bgmAssetId = addReadyAsset(context.app, projectId, "audio-bgm.wav", "audio", 1_000);
+    const sfxAssetId = addReadyAsset(context.app, projectId, "audio-sfx.wav", "audio", 1_000);
+
+    const withBgm = context.app.manageAudio({
+      projectId,
+      baseRevision: context.app.readProject(projectId).revision.number,
+      action: "create",
+      kind: "bgm",
+      assetId: bgmAssetId,
+      purpose: "为完整人物口播提供克制的结构性音乐",
+      loop: true,
+      gainDb: -16,
+      fadeInFrames: 6,
+      fadeOutFrames: 12,
+      ducking: { reductionDb: -12 }
+    });
+    const bgmCue = withBgm.snapshot.audioCues.find((cue) => cue.kind === "bgm")!;
+    const bgmItem = withBgm.snapshot.timeline.items.find((item) => item.id === bgmCue.timelineItemId)!;
+    const bgmTrack = withBgm.snapshot.timeline.tracks.find((track) => track.id === bgmItem.trackId)!;
+    assert.equal(bgmTrack.name, "BGM");
+    assert.equal(bgmCue.anchor, "sequence_global");
+    assert.equal(bgmCue.loop, true);
+    assert.deepEqual(bgmCue.ducking, { enabled: true, reductionDb: -12, attackFrames: 4, releaseFrames: 14 }, "稀疏 Duck 更新应保留当前阶段的安全默认值");
+    assert.equal(bgmItem.startFrame, 0);
+    assert.equal(bgmItem.endFrame, 96, "BGM 的目标范围应遵从主线时长，而不是把 1 秒素材当作整片长度");
+
+    assert.throws(
+      () => context.app.manageAudio({
+        projectId,
+        baseRevision: withBgm.revision.number,
+        action: "create",
+        kind: "sfx",
+        assetId: sfxAssetId,
+        purpose: "没有事件锚点的音效"
+      }),
+      (error: unknown) => error instanceof DomainError && error.code === "SFX_EVENT_REQUIRED"
+    );
+    assert.equal(context.app.readProject(projectId).revision.number, withBgm.revision.number, "无锚点 SFX 必须原子回滚");
+
+    const withSfx = context.app.manageAudio({
+      projectId,
+      baseRevision: withBgm.revision.number,
+      action: "create",
+      kind: "sfx",
+      assetId: sfxAssetId,
+      purpose: "数字落定时提供一次轻提示",
+      eventFrame: 36,
+      onsetOffsetFrames: 4,
+      gainDb: -8
+    });
+    const sfxCue = withSfx.snapshot.audioCues.find((cue) => cue.kind === "sfx")!;
+    const sfxItem = withSfx.snapshot.timeline.items.find((item) => item.id === sfxCue.timelineItemId)!;
+    const sfxTrack = withSfx.snapshot.timeline.tracks.find((track) => track.id === sfxItem.trackId)!;
+    assert.equal(sfxTrack.name, "SFX");
+    assert.equal(sfxCue.anchor, "media_event");
+    assert.equal(sfxCue.eventFrame, 36);
+    assert.equal(sfxCue.onsetOffsetFrames, 4);
+    assert.equal(sfxItem.startFrame, 32);
+    assert.equal(sfxCue.eventFrame, sfxItem.startFrame + sfxCue.onsetOffsetFrames);
+    assert.ok(evaluateQuality(withSfx.snapshot, withSfx.revision.number).issues.some((entry) => entry.code === "AUDIO_ONLY_PREVIEW_REQUIRED"));
+
+    assert.throws(
+      () => context.app.moveItem({
+        projectId,
+        baseRevision: withSfx.revision.number,
+        itemId: bgmItem.id,
+        startFrame: 1
+      }),
+      (error: unknown) => error instanceof DomainError && error.code === "MANAGED_AUDIO_ITEM_DIRECT_MOVE"
+    );
+    assert.equal(context.app.readProject(projectId).revision.number, withSfx.revision.number, "直接移动受管声音不得产生半成品 Revision");
+
+    const actorTrack = withSfx.snapshot.timeline.tracks.find((track) => track.name === "Actor / A-roll")!;
+    const actorItem = withSfx.snapshot.timeline.items.find((item) => item.trackId === actorTrack.id && !item.disabled)!;
+    const afterMainlineMove = context.app.moveItem({
+      projectId,
+      baseRevision: withSfx.revision.number,
+      itemId: actorItem.id,
+      startFrame: 1
+    });
+    for (const cue of afterMainlineMove.snapshot.audioCues) {
+      const item = afterMainlineMove.snapshot.timeline.items.find((candidate) => candidate.id === cue.timelineItemId)!;
+      assert.equal(cue.status, "stale");
+      assert.equal(item.disabled, true);
+      assert.ok(afterMainlineMove.revision.impact.stale.includes(cue.id));
+    }
+
+    const recheckedBgm = context.app.manageAudio({
+      projectId,
+      baseRevision: afterMainlineMove.revision.number,
+      action: "update",
+      audioCueId: bgmCue.id,
+      gainDb: -18
+    });
+    const refreshedCue = recheckedBgm.snapshot.audioCues.find((cue) => cue.id === bgmCue.id)!;
+    const refreshedItem = recheckedBgm.snapshot.timeline.items.find((item) => item.id === refreshedCue.timelineItemId)!;
+    assert.equal(refreshedCue.status, "ready", "显式 update 才能重新启用已经 stale 的 BGM");
+    assert.equal(refreshedItem.disabled, false);
+    assert.equal(recheckedBgm.snapshot.audioCues.find((cue) => cue.id === sfxCue.id)?.status, "stale", "未复核的 SFX 仍应保持停止状态");
+  } finally {
+    await context.dispose();
+  }
+});
+
+test("HTTP 声音包装建立 AudioCue，并拒绝缺少 SFX 事件的请求", async () => {
+  const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-audio-http-test-"));
+  const { app: server, application } = await createServer({ workspaceRoot });
+  try {
+    const created = application.createProject({ name: "HTTP 声音包装测试" });
+    const projectId = created.snapshot.project.id;
+    const presenterAssetId = addReadyAsset(application, projectId, "http-audio-presenter.mp4", "video", 2_000);
+    application.buildPresenterTimeline({
+      projectId,
+      baseRevision: application.readProject(projectId).revision.number,
+      assetIds: [presenterAssetId],
+      sceneSize: 1
+    });
+    const bgmAssetId = addReadyAsset(application, projectId, "http-audio-bgm.wav", "audio", 1_000);
+    const sfxAssetId = addReadyAsset(application, projectId, "http-audio-sfx.wav", "audio", 1_000);
+    const ready = application.readProject(projectId);
+
+    const createdResponse = await server.inject({
+      method: "POST",
+      url: `/api/projects/${projectId}/audio`,
+      payload: {
+        baseRevision: ready.revision.number,
+        action: "create",
+        kind: "bgm",
+        assetId: bgmAssetId,
+        purpose: "HTTP 写入的背景音乐",
+        loop: true,
+        ducking: { enabled: true, reductionDb: -10, attackFrames: 3, releaseFrames: 9 }
+      }
+    });
+    assert.equal(createdResponse.statusCode, 200);
+    const createdState = createdResponse.json() as { revision: { number: number }; snapshot: { audioCues: Array<{ kind: string; purpose: string }> } };
+    assert.equal(createdState.snapshot.audioCues[0]?.kind, "bgm");
+    assert.equal(createdState.snapshot.audioCues[0]?.purpose, "HTTP 写入的背景音乐");
+
+    const invalidResponse = await server.inject({
+      method: "POST",
+      url: `/api/projects/${projectId}/audio`,
+      payload: {
+        baseRevision: createdState.revision.number,
+        action: "create",
+        kind: "sfx",
+        assetId: sfxAssetId,
+        purpose: "没有事件锚点的 HTTP 音效"
+      }
+    });
+    assert.equal(invalidResponse.statusCode, 400);
+  } finally {
+    await server.close();
+    application.close();
+    await rm(workspaceRoot, { recursive: true, force: true });
+  }
+});
+
 test("Presenter 有语义段但没有语音与稳定字幕时不能交付", async () => {
   const context = await createTestApplication();
   try {
@@ -1688,6 +1858,7 @@ test("video-editor-mcp 可通过 stdio 连接并定位新项目", async () => {
       "apply_manual_transcript",
       "apply_script",
       "edit_captions",
+      "manage_audio",
       "manage_voice_references",
       "submit_voice_synthesis",
       "apply_semantic_units",
@@ -1828,6 +1999,58 @@ test("video-editor-mcp 的 edit_captions 接受稀疏样式更新且保留其它
     assert.equal(caption.format?.fontSize, 38);
     assert.equal(caption.format?.color, "#ffffff", "MCP 未传的样式字段不能被 undefined 覆盖");
     assert.equal(caption.format?.bottomPercent, 7);
+  } finally {
+    await transport.close().catch(() => undefined);
+    await rm(workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("video-editor-mcp 的 manage_audio 接受稀疏 Duck 更新", async () => {
+  const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-mcp-audio-test-"));
+  const seedApplication = createApplication(workspaceRoot);
+  let projectId = "";
+  let seededRevision = 0;
+  let bgmAssetId = "";
+  try {
+    const created = seedApplication.createProject({ name: "MCP 声音包装稀疏更新测试" });
+    projectId = created.snapshot.project.id;
+    const presenterAssetId = addReadyAsset(seedApplication, projectId, "mcp-audio-presenter.mp4", "video", 2_000);
+    bgmAssetId = addReadyAsset(seedApplication, projectId, "mcp-audio-bgm.wav", "audio", 1_000);
+    const assembled = seedApplication.buildPresenterTimeline({
+      projectId,
+      baseRevision: seedApplication.readProject(projectId).revision.number,
+      assetIds: [presenterAssetId],
+      sceneSize: 1
+    });
+    seededRevision = assembled.revision.number;
+  } finally {
+    seedApplication.close();
+  }
+
+  const environment = Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
+  const transport = new StdioClientTransport({
+    command: process.platform === "win32" ? "npm.cmd" : "npm",
+    args: ["run", "mcp"],
+    cwd: process.cwd(),
+    env: { ...environment, VIDEOCUT_WORKSPACE: workspaceRoot },
+    stderr: "pipe"
+  });
+  const client = new Client({ name: "videocut-audio-mcp-test", version: "1.0.0" });
+  try {
+    await client.connect(transport);
+    await client.callTool({ name: "target_project", arguments: { project_id: projectId } });
+    const result = await client.callTool({ name: "manage_audio", arguments: {
+      base_revision_id: seededRevision,
+      action: "create",
+      kind: "bgm",
+      asset_id: bgmAssetId,
+      purpose: "验证 MCP 只修改 Duck 衰减时保留其它默认值",
+      loop: true,
+      ducking: { reduction_db: -11 }
+    } });
+    assert.equal(result.isError, undefined, textFromToolResult(result));
+    const mixed = JSON.parse(textFromToolResult(result)) as { snapshot: { audioCues: Array<{ kind: string; ducking?: { enabled: boolean; reductionDb: number; attackFrames: number; releaseFrames: number } }> } };
+    assert.deepEqual(mixed.snapshot.audioCues[0]?.ducking, { enabled: true, reductionDb: -11, attackFrames: 4, releaseFrames: 14 });
   } finally {
     await transport.close().catch(() => undefined);
     await rm(workspaceRoot, { recursive: true, force: true });

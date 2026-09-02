@@ -125,6 +125,9 @@ export type JobKind =
   | "export";
 
 export type TrackKind = "video" | "audio" | "caption";
+/** 当前阶段只把独立 BGM / SFX 作为可编辑声音包装；主 Dialogue 仍由 SpeechAsset 管理。 */
+export type AudioCueKind = "bgm" | "sfx";
+export type AudioCueStatus = "ready" | "stale";
 export type SceneType =
   | "PresenterScene"
   | "ExplainerScene"
@@ -518,6 +521,42 @@ export interface TimelineItem {
 }
 
 /**
+ * Duck 是 BGM 相对自身基础增益的附加衰减，不保存一个与 Dialogue 脱节的固定音量。
+ * 这样 Player 和正式 Render 能以同一份 Timeline 计算进出场与旁白重叠。
+ */
+export interface AudioDucking {
+  enabled: boolean;
+  reductionDb: number;
+  attackFrames: number;
+  releaseFrames: number;
+}
+
+/**
+ * AudioCue 保存声音为什么出现在这里；物理播放、源裁切和基础增益仍由关联 TimelineItem 保存。
+ * SFX 只接受显式 media_event 与 onsetOffset，首版不会猜测文件内能量峰值。
+ */
+export interface AudioCue {
+  id: Id;
+  kind: AudioCueKind;
+  assetId: Id;
+  timelineItemId: Id;
+  purpose: string;
+  anchor: "sequence_global" | "media_event";
+  /** SFX 实际被听见的编辑事件帧；BGM 使用 sequence_global，不填写该字段。 */
+  eventFrame?: number;
+  /** 当前 SFX 源片段起点到可感知事件的已确认偏移，0 代表事件就在所选片段开头。 */
+  onsetOffsetFrames?: number;
+  fadeInFrames: number;
+  fadeOutFrames: number;
+  /** 仅 BGM 允许循环同一段受管本地音频。 */
+  loop: boolean;
+  ducking?: AudioDucking;
+  status: AudioCueStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
  * Cutaway 同时保存导演决定和物理播放范围。它引用由 Application 创建的顶层 TimelineItem，
  * 不能把未本地化的 Candidate 或远程 URL 直接写进 Renderer。
  */
@@ -735,6 +774,7 @@ export interface ProjectSnapshot {
   assetCandidates: AssetCandidate[];
   visualTreatments: VisualTreatment[];
   cutaways: Cutaway[];
+  audioCues: AudioCue[];
   voiceReferences: VoiceReference[];
   transcripts: TranscriptText[];
   transcriptSentenceCandidates: TranscriptSentenceCandidate[];
