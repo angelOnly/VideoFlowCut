@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
-import { EFFECT_TYPES, type Asset, type AudioCue, type CaptionCard, type EffectCue, type ProjectSnapshot, type Scene, type TimelineItem } from "@videocut/contracts";
+import { EFFECT_TYPES, type Asset, type AudioCue, type CaptionCard, type EffectCue, type ExportArtifact, type ProjectSnapshot, type Scene, type TimelineItem } from "@videocut/contracts";
 import { ProjectComposition, mediaUrl } from "@videocut/remotion";
 import { API_BASE, api, type ProjectState } from "./api";
 
@@ -83,6 +83,7 @@ export function App() {
   const [playhead, setPlayhead] = useState(0);
   const [quality, setQuality] = useState<Awaited<ReturnType<typeof api.quality>>>();
   const [jobs, setJobs] = useState<Awaited<ReturnType<typeof api.jobs>>>([]);
+  const [exportArtifacts, setExportArtifacts] = useState<ExportArtifact[]>([]);
   const [revisions, setRevisions] = useState<Awaited<ReturnType<typeof api.revisions>>>([]);
   const [newProjectName, setNewProjectName] = useState("数字人口播项目");
   const [localPath, setLocalPath] = useState("");
@@ -99,10 +100,11 @@ export function App() {
   );
 
   const load = useCallback(async (id: string) => {
-    const [nextState, nextQuality, nextJobs, nextRevisions] = await Promise.all([api.project(id), api.quality(id), api.jobs(id), api.revisions(id)]);
+    const [nextState, nextQuality, nextJobs, nextArtifacts, nextRevisions] = await Promise.all([api.project(id), api.quality(id), api.jobs(id), api.exportArtifacts(id), api.revisions(id)]);
     setState(nextState);
     setQuality(nextQuality);
     setJobs(nextJobs);
+    setExportArtifacts(nextArtifacts);
     setRevisions(nextRevisions);
     setProjects((previous) => previous.some((project) => project.id === id) ? previous : [...previous, { id, name: nextState.snapshot.project.name }]);
   }, []);
@@ -289,6 +291,7 @@ export function App() {
           fromFrame: Math.max(0, playhead - snapshot.timeline.fps * 2),
           toFrame: Math.min(snapshot.timeline.durationInFrames, Math.max(playhead + snapshot.timeline.fps * 3, snapshot.timeline.fps))
         }))} disabled={busy || !snapshot.timeline.durationInFrames}>局部预览</button>
+        <button onClick={() => void act("执行渲染前检查", () => api.renderPreflight(snapshot.project.id, currentRevision))} disabled={busy || !snapshot.timeline.durationInFrames}>渲染预检</button>
         <button onClick={() => void act("提交草稿导出", () => api.export(snapshot.project.id, currentRevision, "draft"))} disabled={busy || blockingIssues.length > 0}>草稿导出</button>
         <button className="primary" data-testid="export-button" onClick={() => void act("提交交付导出", () => api.export(snapshot.project.id, currentRevision, "delivery"))} disabled={busy || blockingIssues.length > 0 || !deliveryReviewReady} title={deliveryReviewReady ? "" : "交付导出需要当前 Revision 的真实预览、完整声画审片和首次观众复核"}>交付导出</button>
       </header>
@@ -305,6 +308,7 @@ export function App() {
             currentRevision={currentRevision}
             quality={quality}
             jobs={jobs}
+            exportArtifacts={exportArtifacts}
             revisions={revisions}
             selectedUnitIds={selectedUnitIds}
             localPath={localPath}
@@ -338,6 +342,11 @@ export function App() {
             }))}
             onAddEffect={(scene, type) => void act("添加效果", () => api.createEffect(snapshot.project.id, { baseRevision: currentRevision, sceneId: scene.id, type, layer: effectLayerByType[type], startFrame: scene.startFrame, endFrame: Math.min(scene.endFrame, scene.startFrame + Math.max(48, snapshot.timeline.fps * 3)), note: `${type}：由工作台添加` }))}
             onRetryJob={(jobId) => void act("重试任务", () => api.retryJob(jobId))}
+            onApproveExportArtifact={(artifactId) => {
+              if (window.confirm("确认已完整播放并试听此最终文件，且同意批准这个固定 Artifact 吗？")) {
+                void act("批准交付产物", () => api.approveExportArtifact(snapshot.project.id, artifactId));
+              }
+            }}
             onRollback={(revision) => void act("回退 Revision", () => api.rollback(snapshot.project.id, revision, currentRevision))}
           />
         </aside>
@@ -404,6 +413,7 @@ interface PanelContentProps {
   currentRevision: number;
   quality: Awaited<ReturnType<typeof api.quality>> | undefined;
   jobs: Awaited<ReturnType<typeof api.jobs>>;
+  exportArtifacts: ExportArtifact[];
   revisions: Awaited<ReturnType<typeof api.revisions>>;
   selectedUnitIds: string[];
   localPath: string;
@@ -429,6 +439,7 @@ interface PanelContentProps {
   onRegisterActor: (timelineItemId: string, maskAssetId?: string) => void;
   onAddEffect: (scene: Scene, type: EffectCue["type"]) => void;
   onRetryJob: (jobId: string) => void;
+  onApproveExportArtifact: (artifactId: string) => void;
   onRollback: (revision: number) => void;
 }
 
@@ -534,6 +545,12 @@ function PanelContent(props: PanelContentProps) {
     <PanelTitle title="Jobs / Quality / Revision" meta="统一状态" />
     <section className="quality-section"><h3>质量门禁</h3>{props.quality && <p className="quality-review-status">编辑审片：{props.quality.editorial.status === "reviewed" ? "已记录" : props.quality.editorial.status === "stale" ? "已过期，需复核当前 Revision" : "尚未记录"} · 预览证据 {props.quality.editorial.previewEvidence.length} 条</p>}{props.quality?.issues.length ? props.quality.issues.map((issue) => <div className={`quality-row ${issue.level}`} key={issue.id}><strong>{issue.level === "blocking" ? "阻塞" : "建议"}</strong><span>{issue.message}</span></div>) : <p className="success-text">没有检测到结构性问题</p>}</section>
     <section><h3>任务</h3>{props.jobs.map((job) => <div className="job-row" key={job.id} data-testid={`job-${job.id}`} data-object-id={job.id}><span className={`status status-${job.status}`}>{statusText(job.status)}</span><div><strong>{job.kind}</strong><small>{job.error ?? job.id.slice(0, 14)}</small></div>{job.status === "failed" && <button onClick={() => props.onRetryJob(job.id)}>重试</button>}</div>)}</section>
+    <section><h3>Export Artifact</h3>{props.exportArtifacts.length === 0
+      ? <p className="empty-panel">尚无最终文件。先运行预检、导出，再对实际文件完成五轮复核。</p>
+      : props.exportArtifacts.map((artifact) => <article className="artifact-row" key={artifact.id} data-testid={`export-artifact-${artifact.id}`} data-object-id={artifact.id}>
+        <div><strong>{artifact.purpose === "delivery" ? "交付" : "草稿"} · R{artifact.revision}</strong><small>预检 {artifact.preflight.status === "passed" ? "通过" : "失败"} · {artifact.validation.durationMs}ms · SHA-256 {artifact.fileHash.slice(0, 12)}…</small><small>{artifact.approval ? `已批准 · ${artifact.approval.approvedAt}` : artifact.artifactReview ? "成片复核已记录，等待用户批准" : "尚未记录绑定最终文件的成片复核"}</small></div>
+        <div className="artifact-actions"><a href={mediaUrl(snapshot, API_BASE, artifact.relativePath)} target="_blank" rel="noreferrer">打开文件</a>{artifact.purpose === "delivery" && !artifact.approval && <button onClick={() => props.onApproveExportArtifact(artifact.id)}>批准</button>}</div>
+      </article>)}</section>
     <section><h3>Revision</h3>{props.revisions.map((revision) => <div className="revision-row" key={revision.id} data-testid={`revision-${revision.number}`} data-object-id={revision.id}><div><strong>R{revision.number}</strong><span>{revision.summary}</span></div>{revision.number !== props.currentRevision && <button onClick={() => props.onRollback(revision.number)}>回退</button>}</div>)}</section>
   </>;
 }

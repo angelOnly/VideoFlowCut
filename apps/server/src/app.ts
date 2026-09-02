@@ -492,6 +492,51 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return reply.status(202).send(application.submitExport({ projectId, ...body }));
   });
 
+  app.post("/api/projects/:projectId/render-preflight", async (request, reply) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ revision: z.number().int().positive().optional(), idempotencyKey: z.string().optional() }).parse(request.body);
+    return reply.status(202).send(application.submitRenderPreflight({ projectId, ...body }));
+  });
+
+  app.get("/api/projects/:projectId/export-artifacts", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    return application.listExportArtifacts(projectId);
+  });
+
+  app.get("/api/projects/:projectId/export-artifacts/:artifactId", async (request) => {
+    const { projectId, artifactId } = z.object({ projectId: idSchema, artifactId: idSchema }).parse(request.params);
+    return application.readExportArtifact({ projectId, artifactId });
+  });
+
+  const artifactFindingSchema = z.object({
+    pass: z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"]),
+    severity: z.enum(["blocking", "warning", "major", "minor", "suggestion", "inconclusive"]),
+    category: z.enum(["semantic", "pacing", "attention", "motion", "typography", "audio", "mode_specific"]),
+    summary: z.string().min(1).max(2_000),
+    evidence: z.string().min(1).max(2_000),
+    impact: z.string().min(1).max(2_000),
+    suggestedFix: z.string().max(2_000).optional(),
+    verificationMethod: z.string().max(2_000).optional(),
+    objectId: idSchema.optional(),
+    frameRange: z.object({ startFrame: z.number().int().min(0), endFrame: z.number().int().positive() }).optional()
+  });
+
+  app.post("/api/projects/:projectId/export-artifacts/:artifactId/review", async (request) => {
+    const { projectId, artifactId } = z.object({ projectId: idSchema, artifactId: idSchema }).parse(request.params);
+    const body = z.object({
+      passes: z.array(z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"])).min(5).max(5),
+      evidence: z.array(z.string().min(1).max(2_000)).min(1).max(40),
+      findings: z.array(artifactFindingSchema).max(120)
+    }).parse(request.body);
+    return application.recordExportArtifactReview({ projectId, artifactId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/export-artifacts/:artifactId/approve", async (request) => {
+    const { projectId, artifactId } = z.object({ projectId: idSchema, artifactId: idSchema }).parse(request.params);
+    const body = z.object({ note: z.string().max(1_000).optional() }).parse(request.body);
+    return application.approveExportArtifact({ projectId, artifactId, ...body });
+  });
+
   app.post("/api/projects/:projectId/revisions/:revision/rollback", async (request) => {
     const { projectId, revision } = z.object({ projectId: idSchema, revision: z.coerce.number().int().positive() }).parse(request.params);
     const body = z.object({ baseRevision: baseRevisionSchema }).parse(request.body);

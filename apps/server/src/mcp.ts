@@ -1286,6 +1286,89 @@ server.registerTool("submit_export", {
   try { return asText(application.submitExport({ projectId: projectIdFrom(project_id), revision, purpose, idempotencyKey: idempotency_key })); } catch (error) { return asError(error); }
 });
 
+server.registerTool("run_render_preflight", {
+  title: "执行渲染前检查",
+  description: "固定目标 Revision，检查实际引用素材、本地文件、可解码性、权利、Mask 与当前 Remotion 组件依赖；检查通过不替代正式渲染或完整审片。",
+  inputSchema: { project_id: z.string().optional(), revision: z.number().int().positive().optional(), idempotency_key: z.string().optional() }
+}, async ({ project_id, revision, idempotency_key }) => {
+  try { return asText(application.submitRenderPreflight({ projectId: projectIdFrom(project_id), revision, idempotencyKey: idempotency_key })); } catch (error) { return asError(error); }
+});
+
+server.registerTool("track_export", {
+  title: "跟踪导出任务",
+  description: "读取指定 Export Job 的状态、Render Preflight、最终文件校验和 Artifact ID；Job 成功不等于用户已批准。",
+  inputSchema: { project_id: z.string().optional(), job_id: z.string().min(1) },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id, job_id }) => {
+  try {
+    const projectId = projectIdFrom(project_id);
+    const job = application.trackJob(job_id);
+    if (job.projectId !== projectId || job.kind !== "export") throw new DomainError("该任务不是当前项目的 Export Job", "EXPORT_JOB_NOT_FOUND");
+    return asText(job);
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("read_export_artifact", {
+  title: "读取导出产物",
+  description: "读取不可变 ExportArtifact 的目标 Revision、哈希、技术校验、署名清单、成片复核和批准状态。",
+  inputSchema: { project_id: z.string().optional(), artifact_id: z.string().min(1) },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id, artifact_id }) => {
+  try { return asText(application.readExportArtifact({ projectId: projectIdFrom(project_id), artifactId: artifact_id })); } catch (error) { return asError(error); }
+});
+
+server.registerTool("record_export_artifact_review", {
+  title: "记录最终文件复核",
+  description: "在实际播放指定 delivery 文件后，记录绑定该 ExportArtifact 的五轮成片复核；不会修改 Project Revision。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    artifact_id: z.string().min(1),
+    passes: z.array(z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"])).min(5).max(5),
+    evidence: z.array(z.string().min(1).max(2_000)).min(1).max(40),
+    findings: z.array(z.object({
+      pass: z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"]),
+      severity: z.enum(["blocking", "warning", "major", "minor", "suggestion", "inconclusive"]),
+      category: z.enum(["semantic", "pacing", "attention", "motion", "typography", "audio", "mode_specific"]),
+      summary: z.string().min(1).max(2_000),
+      evidence: z.string().min(1).max(2_000),
+      impact: z.string().min(1).max(2_000),
+      suggested_fix: z.string().max(2_000).optional(),
+      verification_method: z.string().max(2_000).optional(),
+      object_id: z.string().optional(),
+      frame_range: z.object({ start_frame: z.number().int().min(0), end_frame: z.number().int().positive() }).optional()
+    })).max(120)
+  }
+}, async (input) => {
+  try {
+    return asText(await application.recordExportArtifactReview({
+      projectId: projectIdFrom(input.project_id),
+      artifactId: input.artifact_id,
+      passes: input.passes,
+      evidence: input.evidence,
+      findings: input.findings.map((finding) => ({
+        pass: finding.pass,
+        severity: finding.severity,
+        category: finding.category,
+        summary: finding.summary,
+        evidence: finding.evidence,
+        impact: finding.impact,
+        suggestedFix: finding.suggested_fix,
+        verificationMethod: finding.verification_method,
+        objectId: finding.object_id,
+        frameRange: finding.frame_range ? { startFrame: finding.frame_range.start_frame, endFrame: finding.frame_range.end_frame } : undefined
+      }))
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("approve_export_artifact", {
+  title: "批准交付产物",
+  description: "把用户批准绑定到已完成五轮复核且文件哈希未变化的 delivery ExportArtifact；后续 Revision 不会改变该记录。",
+  inputSchema: { project_id: z.string().optional(), artifact_id: z.string().min(1), note: z.string().max(1_000).optional() }
+}, async ({ project_id, artifact_id, note }) => {
+  try { return asText(await application.approveExportArtifact({ projectId: projectIdFrom(project_id), artifactId: artifact_id, note })); } catch (error) { return asError(error); }
+});
+
 server.registerTool("track_job", {
   title: "跟踪任务",
   description: "读取异步任务的 queued/running/succeeded/failed 状态与诊断信息。",

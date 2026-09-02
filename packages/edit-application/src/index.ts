@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { createReadStream, existsSync, mkdirSync } from "node:fs";
 import { mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -27,10 +28,13 @@ import type {
   EffectMotion,
   EffectType,
   EditorialQualityReview,
+  EditorialReviewFinding,
   EditorialReviewCategory,
   EditorialReviewPass,
   EditorialReviewSeverity,
   ExportPurpose,
+  ExportArtifact,
+  ExportArtifactReview,
   Id,
   ImpactReport,
   JobKind,
@@ -122,6 +126,15 @@ type JobRow = {
   updated_at: string;
 };
 
+type ExportArtifactRow = {
+  id: Id;
+  project_id: Id;
+  revision_number: number;
+  job_id: Id;
+  artifact_json: string;
+  created_at: string;
+};
+
 /**
  * 预览检查是 Job 的派生证据：只有 inspect_composed_frames 成功后才会写入。
  * 它不进入 Revision Snapshot，避免把审片产物误当成剪辑状态。
@@ -132,6 +145,18 @@ type PreviewInspectionEvidence = {
   inspectedAt: string;
   frames: Array<{ frame: number; relativePath: string }>;
 };
+
+/** 用流式读取核对最终文件，避免批准大文件时一次性把整段视频读入内存。 */
+async function sha256File(path: string): Promise<string> {
+  const hash = createHash("sha256");
+  await new Promise<void>((resolvePromise, reject) => {
+    const stream = createReadStream(path);
+    stream.on("data", (chunk: string | Buffer) => { hash.update(chunk); });
+    stream.once("error", reject);
+    stream.once("end", resolvePromise);
+  });
+  return hash.digest("hex");
+}
 
 export class RevisionConflictError extends Error {
   constructor(public readonly expected: number, public readonly actual: number) {
@@ -499,6 +524,18 @@ export class ProjectRepository {
         UNIQUE(project_id, idempotency_key),
         FOREIGN KEY(project_id) REFERENCES projects(id)
       );
+      CREATE TABLE IF NOT EXISTS export_artifacts (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        revision_number INTEGER NOT NULL,
+        job_id TEXT NOT NULL,
+        artifact_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(project_id, job_id),
+        FOREIGN KEY(project_id) REFERENCES projects(id)
+      );
+      CREATE INDEX IF NOT EXISTS export_artifacts_project_created_idx
+        ON export_artifacts(project_id, created_at DESC);
     `);
   }
 
@@ -546,6 +583,14 @@ export class ProjectRepository {
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };
+  }
+
+  private exportArtifactFromRow(row: ExportArtifactRow): ExportArtifact {
+    const artifact = JSON.parse(row.artifact_json) as ExportArtifact;
+    if (artifact.id !== row.id || artifact.projectId !== row.project_id || artifact.revision !== row.revision_number || artifact.jobId !== row.job_id) {
+      throw new DomainError("ExportArtifact 持久化记录不一致", "EXPORT_ARTIFACT_CORRUPTED");
+    }
+    return artifact;
   }
 
   createProject(input: {
@@ -732,6 +777,55 @@ export class ProjectRepository {
     this.db.prepare("UPDATE jobs SET status = ?, result_json = ?, error = ?, lease_until = ?, updated_at = ? WHERE id = ?")
       .run(input.status, input.result ? JSON.stringify(input.result) : old.result ? JSON.stringify(old.result) : null, input.error ?? null, input.leaseUntil ?? null, now(), jobId);
     return this.getJob(jobId);
+  }
+
+  createExportArtifact(artifact: ExportArtifact): ExportArtifact {
+    this.getProjectRow(artifact.projectId);
+    this.getRevision(artifact.projectId, artifact.revision);
+    const job = this.getJob(artifact.jobId);
+    const jobPurpose = job.payload.purpose === "draft" ? "draft" : "delivery";
+    if (job.projectId !== artifact.projectId || job.kind !== "export" || Number(job.payload.revision) !== artifact.revision || jobPurpose !== artifact.purpose) {
+      throw new DomainError("ExportArtifact 必须绑定同一项目的 Export Job", "EXPORT_ARTIFACT_JOB_MISMATCH");
+    }
+    const existing = this.db.prepare("SELECT * FROM export_artifacts WHERE project_id = ? AND job_id = ?")
+      .get(artifact.projectId, artifact.jobId) as ExportArtifactRow | undefined;
+    if (existing) return this.exportArtifactFromRow(existing);
+    this.db.prepare(`INSERT INTO export_artifacts (id, project_id, revision_number, job_id, artifact_json, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)`)
+      .run(artifact.id, artifact.projectId, artifact.revision, artifact.jobId, JSON.stringify(artifact), artifact.createdAt);
+    return artifact;
+  }
+
+  getExportArtifact(projectId: Id, artifactId: Id): ExportArtifact {
+    this.getProjectRow(projectId);
+    const row = this.db.prepare("SELECT * FROM export_artifacts WHERE id = ? AND project_id = ?")
+      .get(artifactId, projectId) as ExportArtifactRow | undefined;
+    if (!row) throw new NotFoundError(`导出产物不存在：${artifactId}`);
+    return this.exportArtifactFromRow(row);
+  }
+
+  getExportArtifactForJob(projectId: Id, jobId: Id): ExportArtifact | undefined {
+    this.getProjectRow(projectId);
+    const row = this.db.prepare("SELECT * FROM export_artifacts WHERE project_id = ? AND job_id = ?")
+      .get(projectId, jobId) as ExportArtifactRow | undefined;
+    return row ? this.exportArtifactFromRow(row) : undefined;
+  }
+
+  listExportArtifacts(projectId: Id): ExportArtifact[] {
+    this.getProjectRow(projectId);
+    const rows = this.db.prepare("SELECT * FROM export_artifacts WHERE project_id = ? ORDER BY created_at DESC")
+      .all(projectId) as ExportArtifactRow[];
+    return rows.map((row) => this.exportArtifactFromRow(row));
+  }
+
+  updateExportArtifact(projectId: Id, artifactId: Id, mutate: (artifact: ExportArtifact) => void): ExportArtifact {
+    return this.transaction(() => {
+      const artifact = this.getExportArtifact(projectId, artifactId);
+      mutate(artifact);
+      this.db.prepare("UPDATE export_artifacts SET artifact_json = ? WHERE id = ? AND project_id = ?")
+        .run(JSON.stringify(artifact), artifactId, projectId);
+      return artifact;
+    });
   }
 }
 
@@ -3533,6 +3627,140 @@ export class EditingApplication {
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
     return job;
+  }
+
+  /**
+   * 预检是独立异步 Job，便于用户在正式渲染前查看目标 Revision 的文件、权利和运行时依赖问题。
+   * Export Worker 仍会在真正渲染前再执行一次，避免预检通过后素材被移动或被修改。
+   */
+  submitRenderPreflight(input: { projectId: Id; revision?: number; idempotencyKey?: string }): JobRecord {
+    const state = this.readProject(input.projectId);
+    const revision = input.revision ?? state.revision.number;
+    this.repository.getRevision(input.projectId, revision);
+    const job = this.repository.createJob({
+      projectId: input.projectId,
+      kind: "render_preflight",
+      payload: { revision },
+      idempotencyKey: `${input.idempotencyKey ?? "render-preflight"}:${revision}`
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
+    return job;
+  }
+
+  /** Render Worker 只通过 Application 登记已验证的文件，避免直接绕过项目状态中心写 SQLite。 */
+  registerExportArtifact(artifact: ExportArtifact): ExportArtifact {
+    const stored = this.repository.createExportArtifact(artifact);
+    this.publish({ projectId: artifact.projectId, revision: artifact.revision, type: "job" });
+    return stored;
+  }
+
+  readExportArtifact(input: { projectId: Id; artifactId: Id }): ExportArtifact {
+    return this.repository.getExportArtifact(input.projectId, input.artifactId);
+  }
+
+  listExportArtifacts(projectId: Id): ExportArtifact[] {
+    return this.repository.listExportArtifacts(projectId);
+  }
+
+  /** 只接受项目目录中的原始导出文件；复核和批准都先检查其哈希没有被替换。 */
+  private async assertExportArtifactIntact(artifact: ExportArtifact): Promise<void> {
+    const projectRoot = resolve(this.getProjectRoot(artifact.projectId));
+    const artifactPath = resolve(projectRoot, artifact.relativePath);
+    const relativePath = relative(projectRoot, artifactPath);
+    if (!relativePath || /^\.\.(?:[\\/]|$)/u.test(relativePath) || isAbsolute(relativePath)) {
+      throw new DomainError("ExportArtifact 文件路径不在项目目录内", "UNSAFE_EXPORT_ARTIFACT_PATH");
+    }
+    if (!existsSync(artifactPath)) throw new DomainError("ExportArtifact 文件已丢失，不能复核或批准", "EXPORT_ARTIFACT_MISSING");
+    const file = await stat(artifactPath);
+    if (!file.isFile() || file.size <= 0 || file.size !== artifact.fileSizeBytes) {
+      throw new DomainError("ExportArtifact 文件大小与导出记录不一致，不能复核或批准", "EXPORT_ARTIFACT_CHANGED");
+    }
+    const fileHash = await sha256File(artifactPath);
+    if (fileHash !== artifact.fileHash) {
+      throw new DomainError("ExportArtifact 文件哈希已变化，不能把新的文件当作旧批准版本", "EXPORT_ARTIFACT_CHANGED");
+    }
+  }
+
+  async recordExportArtifactReview(input: {
+    projectId: Id;
+    artifactId: Id;
+    passes: EditorialReviewPass[];
+    evidence: string[];
+    findings: Array<{
+      pass: EditorialReviewPass;
+      severity: EditorialReviewSeverity;
+      category: EditorialReviewCategory;
+      summary: string;
+      evidence: string;
+      impact: string;
+      suggestedFix?: string;
+      verificationMethod?: string;
+      objectId?: Id;
+      frameRange?: { startFrame: number; endFrame: number };
+    }>;
+  }): Promise<ExportArtifact> {
+    const artifact = this.readExportArtifact({ projectId: input.projectId, artifactId: input.artifactId });
+    if (artifact.purpose !== "delivery") throw new DomainError("只有 delivery ExportArtifact 可以登记正式成片复核", "EXPORT_ARTIFACT_REVIEW_PURPOSE_INVALID");
+    await this.assertExportArtifactIntact(artifact);
+    const requiredPasses: EditorialReviewPass[] = ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"];
+    const passes = [...new Set(input.passes)];
+    if (!requiredPasses.every((pass) => passes.includes(pass))) {
+      throw new DomainError("成片复核必须包含只听声音、静音画面、完整声画、首次观众和模式专项五轮记录", "EXPORT_ARTIFACT_REVIEW_INCOMPLETE");
+    }
+    const evidence = [...new Set(input.evidence.map((value) => value.trim()).filter(Boolean))];
+    if (evidence.length === 0) throw new DomainError("成片复核必须说明实际播放或试听最终文件的证据", "EXPORT_ARTIFACT_EVIDENCE_REQUIRED");
+    const findings: EditorialReviewFinding[] = input.findings.map((finding) => {
+      if (!passes.includes(finding.pass)) throw new DomainError("成片复核问题引用了未执行的审片轮次", "EXPORT_ARTIFACT_REVIEW_PASS_MISSING");
+      const summary = finding.summary.trim();
+      const evidenceText = finding.evidence.trim();
+      const impact = finding.impact.trim();
+      if (!summary || !evidenceText || !impact) throw new DomainError("成片复核问题必须说明现象、证据和影响", "INVALID_EXPORT_ARTIFACT_FINDING");
+      if (finding.frameRange && (finding.frameRange.startFrame < 0 || finding.frameRange.endFrame <= finding.frameRange.startFrame)) {
+        throw new DomainError("成片复核问题的帧范围无效", "INVALID_EXPORT_ARTIFACT_FRAME_RANGE");
+      }
+      return {
+        id: createId("export_artifact_finding"),
+        pass: finding.pass,
+        severity: finding.severity,
+        category: finding.category,
+        summary,
+        evidence: evidenceText,
+        impact,
+        suggestedFix: finding.suggestedFix?.trim() || undefined,
+        verificationMethod: finding.verificationMethod?.trim() || undefined,
+        objectId: finding.objectId,
+        frameRange: finding.frameRange
+      };
+    });
+    const review: ExportArtifactReview = { passes, evidence, findings, reviewedAt: now() };
+    const updated = this.repository.updateExportArtifact(input.projectId, input.artifactId, (stored) => {
+      if (stored.approval) throw new DomainError("已批准的 ExportArtifact 不能覆盖成片复核记录", "EXPORT_ARTIFACT_APPROVED");
+      stored.artifactReview = review;
+    });
+    this.publish({ projectId: input.projectId, revision: artifact.revision, type: "job" });
+    return updated;
+  }
+
+  async approveExportArtifact(input: { projectId: Id; artifactId: Id; note?: string }): Promise<ExportArtifact> {
+    const artifact = this.readExportArtifact({ projectId: input.projectId, artifactId: input.artifactId });
+    if (artifact.purpose !== "delivery") throw new DomainError("只能批准 delivery ExportArtifact，draft 仍是内部审片文件", "EXPORT_ARTIFACT_APPROVAL_PURPOSE_INVALID");
+    await this.assertExportArtifactIntact(artifact);
+    const review = artifact.artifactReview;
+    const requiredPasses: EditorialReviewPass[] = ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"];
+    if (!review || !requiredPasses.every((pass) => review.passes.includes(pass))) {
+      throw new DomainError("批准前必须完成绑定该最终文件的五轮成片复核", "EXPORT_ARTIFACT_REVIEW_REQUIRED");
+    }
+    if (review.findings.some((finding) => finding.severity === "blocking" || finding.severity === "inconclusive")) {
+      throw new DomainError("成片复核仍有阻塞或证据不足的问题，不能批准交付", "EXPORT_ARTIFACT_REVIEW_BLOCKED");
+    }
+    const note = input.note?.trim();
+    if (note && note.length > 1_000) throw new DomainError("批准说明不能超过 1000 个字符", "EXPORT_ARTIFACT_APPROVAL_NOTE_TOO_LONG");
+    const updated = this.repository.updateExportArtifact(input.projectId, input.artifactId, (stored) => {
+      // 已批准记录不可被后续同名请求改写，保证“用户批准的是哪个文件”可以稳定读回。
+      if (!stored.approval) stored.approval = { approvedAt: now(), note: note || undefined };
+    });
+    this.publish({ projectId: input.projectId, revision: artifact.revision, type: "job" });
+    return updated;
   }
 
   rollbackToRevision(input: { projectId: Id; baseRevision: number; targetRevision: number }): ProjectState {

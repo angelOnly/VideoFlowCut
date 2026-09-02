@@ -60,8 +60,6 @@ const specialistSkills = [
 
 const architectureTargets = new Set([
   "smooth_audio",
-  "run_render_preflight",
-  "read_export_artifact",
   "read_actor_capabilities",
   "submit_avatar_job",
   "read_narrative_map"
@@ -259,6 +257,7 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
     render_preview_range: ["revision", "from_frame", "to_frame"],
     inspect_composed_frames: ["preview_job_id"],
     record_editorial_quality_review: ["run_id", "revision", "passes", "preview_evidence", "findings"],
+    run_render_preflight: ["revision"],
     submit_export: ["revision", "purpose"]
   };
 
@@ -269,6 +268,12 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
       assert.match(block, new RegExp(`\\b${field}:`), `${tool} 的 MCP Schema 缺少字段 ${field}`);
       assert.match(contract, new RegExp(`\\b${field}\\b`), `调用合同未说明 ${tool}.${field}`);
     }
+  }
+
+  // 交付闭环已进入当前 MCP：预检、读取 Artifact、成片复核和批准必须是独立步骤，
+  // 不能再把 Export Job succeeded 当成用户批准。
+  for (const tool of ["run_render_preflight", "track_export", "read_export_artifact", "record_export_artifact_review", "approve_export_artifact"]) {
+    assert.equal(currentTools.has(tool), true, `MCP 缺少交付闭环工具：${tool}`);
   }
 });
 

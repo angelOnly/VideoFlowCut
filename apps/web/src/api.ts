@@ -1,4 +1,4 @@
-import type { ExportPurpose, JobRecord, ProjectSnapshot, ProjectSummary, QualityReport, RevisionRecord } from "@videocut/contracts";
+import type { ExportArtifact, ExportPurpose, JobRecord, ProjectSnapshot, ProjectSummary, QualityReport, RevisionRecord } from "@videocut/contracts";
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:3100";
 
@@ -49,7 +49,10 @@ export const api = {
   createEffect: (projectId: string, payload: Record<string, unknown>) => request<ProjectState>(`/api/projects/${projectId}/effects`, { method: "POST", body: JSON.stringify(payload) }),
   updateEffect: (projectId: string, cueId: string, payload: Record<string, unknown>) => request<ProjectState>(`/api/projects/${projectId}/effects/${cueId}`, { method: "PATCH", body: JSON.stringify(payload) }),
   moveItem: (projectId: string, itemId: string, payload: Record<string, unknown>) => request<ProjectState>(`/api/projects/${projectId}/items/${itemId}/move`, { method: "POST", body: JSON.stringify(payload) }),
+  renderPreflight: (projectId: string, revision?: number) => request<JobRecord>(`/api/projects/${projectId}/render-preflight`, { method: "POST", body: JSON.stringify({ revision }) }),
   export: (projectId: string, revision?: number, purpose: ExportPurpose = "delivery") => request<JobRecord>(`/api/projects/${projectId}/export`, { method: "POST", body: JSON.stringify({ revision, purpose }) }),
+  exportArtifacts: (projectId: string) => request<ExportArtifact[]>(`/api/projects/${projectId}/export-artifacts`),
+  approveExportArtifact: (projectId: string, artifactId: string, note?: string) => request<ExportArtifact>(`/api/projects/${projectId}/export-artifacts/${artifactId}/approve`, { method: "POST", body: JSON.stringify({ note }) }),
   preview: (projectId: string, payload: Record<string, unknown>) => request<JobRecord>(`/api/projects/${projectId}/previews`, { method: "POST", body: JSON.stringify(payload) }),
   rollback: (projectId: string, revision: number, baseRevision: number) => request<ProjectState>(`/api/projects/${projectId}/revisions/${revision}/rollback`, { method: "POST", body: JSON.stringify({ baseRevision }) }),
   retryJob: (jobId: string) => request<JobRecord>(`/api/jobs/${jobId}/retry`, { method: "POST" })

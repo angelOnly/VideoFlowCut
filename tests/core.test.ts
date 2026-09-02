@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -91,6 +91,16 @@ function addReadyAsset(app: EditingApplication, projectId: string, name: string,
     }
   });
   return imported.asset.id;
+}
+
+/** 为需要经过 Render Preflight 的测试把确定性媒体放入该 Asset 的受管路径。 */
+async function materializeFixtureForAsset(app: EditingApplication, projectId: string, assetId: string, fixturePath: string): Promise<void> {
+  const state = app.readProject(projectId);
+  const asset = state.snapshot.assets.find((candidate) => candidate.id === assetId);
+  assert.ok(asset, "测试 Asset 必须存在");
+  const targetPath = join(state.snapshot.project.rootPath, asset.managedPath);
+  await mkdir(dirname(targetPath), { recursive: true });
+  await copyFile(fixturePath, targetPath);
 }
 
 /** 测试显式模拟 semantic-continuity：标点候选本身不会自动变成 SemanticUnit。 */
@@ -832,11 +842,34 @@ test("人物音频所有权阻止原声与 Dialogue 重复播放", async () => {
   }
 });
 
+test("Render Preflight 会把目标 Revision 的缺失受管文件报告为失败结果", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "Render Preflight 文件依赖测试" });
+    const videoAssetId = addReadyAsset(context.app, created.snapshot.project.id, "missing-presenter.mp4", "video", 1_000);
+    const built = context.app.buildPresenterTimeline({
+      projectId: created.snapshot.project.id,
+      baseRevision: context.app.readProject(created.snapshot.project.id).revision.number,
+      assetIds: [videoAssetId]
+    });
+    const preflightJob = context.app.submitRenderPreflight({ projectId: created.snapshot.project.id, revision: built.revision.number });
+    assert.equal(await runOneRenderJob(context.app), true);
+    const completed = context.app.trackJob(preflightJob.id);
+    assert.equal(completed.status, "succeeded", "预检执行完成与预检通过是两件事");
+    const preflight = completed.result?.preflight as { status?: string; checks?: Array<{ code?: string; status?: string }> } | undefined;
+    assert.equal(preflight?.status, "failed");
+    assert.ok(preflight?.checks?.some((check) => check.code === "PREFLIGHT_ASSET_FILE_MISSING" && check.status === "failed"));
+  } finally {
+    await context.dispose();
+  }
+});
+
 test("Remotion 正式导出失败不会降级为仅 A-roll 成片", async () => {
   const context = await createTestApplication();
   try {
     const created = context.app.createProject({ name: "导出降级保护测试" });
     const videoAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video", 1_000);
+    await materializeFixtureForAsset(context.app, created.snapshot.project.id, videoAssetId, await createDeterministicVideoFixture(context.root));
     const built = context.app.buildPresenterTimeline({ projectId: created.snapshot.project.id, baseRevision: context.app.readProject(created.snapshot.project.id).revision.number, assetIds: [videoAssetId], sceneSize: 1 });
     const exportJob = context.app.submitExport({ projectId: created.snapshot.project.id, revision: built.revision.number, purpose: "draft", idempotencyKey: "remotion-must-fail" });
     await assert.rejects(
@@ -995,6 +1028,7 @@ test("delivery 导出要求目标 Revision 已完成真实审片，draft 可进�
   try {
     const created = context.app.createProject({ name: "导出用途门禁测试" });
     const videoAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video", 1_000);
+    await materializeFixtureForAsset(context.app, created.snapshot.project.id, videoAssetId, await createDeterministicVideoFixture(context.root));
     const assembled = context.app.buildPresenterTimeline({ projectId: created.snapshot.project.id, baseRevision: context.app.readProject(created.snapshot.project.id).revision.number, assetIds: [videoAssetId], sceneSize: 1 });
     const delivery = context.app.submitExport({ projectId: created.snapshot.project.id, revision: assembled.revision.number, purpose: "delivery" });
     assert.equal(delivery.payload.purpose, "delivery");
@@ -1008,6 +1042,70 @@ test("delivery 导出要求目标 Revision 已完成真实审片，draft 可进�
       () => runExportJob(context.app, draft, { render: async () => { throw new Error("已进入草稿渲染链路"); } } as never),
       (error: unknown) => error instanceof DomainError && error.code === "REMOTION_EXPORT_FAILED"
     );
+  } finally {
+    await context.dispose();
+  }
+});
+
+test("delivery ExportArtifact 固定 Revision、保留署名快照并让批准不受后续编辑影响", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "ExportArtifact 交付闭环测试" });
+    const fixturePath = await createDeterministicVideoFixture(context.root);
+    const videoAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video", 1_000);
+    await materializeFixtureForAsset(context.app, created.snapshot.project.id, videoAssetId, fixturePath);
+    const assembled = context.app.buildPresenterTimeline({
+      projectId: created.snapshot.project.id,
+      baseRevision: context.app.readProject(created.snapshot.project.id).revision.number,
+      assetIds: [videoAssetId]
+    });
+    const run = await context.app.startProductionRun({ projectId: created.snapshot.project.id, loadedSkills: ["quality-verification", "export"] });
+    await context.app.recordEditorialQualityReview({
+      projectId: created.snapshot.project.id,
+      runId: run.id,
+      revision: assembled.revision.number,
+      passes: ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"],
+      previewEvidence: ["已查看目标 Revision 的真实局部预览。"],
+      findings: []
+    });
+    const renderFixture = { render: async (_snapshot: unknown, targetPath: string) => copyFile(fixturePath, targetPath) } as never;
+    const firstJob = context.app.submitExport({ projectId: created.snapshot.project.id, revision: assembled.revision.number, purpose: "delivery", idempotencyKey: "artifact-first" });
+    const firstResult = await runExportJob(context.app, firstJob, renderFixture) as { artifactId: string; relativePath: string };
+    const firstArtifact = context.app.readExportArtifact({ projectId: created.snapshot.project.id, artifactId: firstResult.artifactId });
+    assert.equal(firstArtifact.revision, assembled.revision.number);
+    assert.equal(firstArtifact.purpose, "delivery");
+    assert.equal(firstArtifact.preflight.status, "passed");
+    assert.match(firstArtifact.fileHash, /^[a-f0-9]{64}$/u);
+    assert.ok(firstArtifact.fileSizeBytes > 0);
+    assert.equal(firstArtifact.attributionManifest.entries.length, 0);
+    await access(join(created.snapshot.project.rootPath, firstArtifact.relativePath));
+    const manifest = JSON.parse(await readFile(join(created.snapshot.project.rootPath, firstArtifact.attributionManifest.relativePath), "utf8")) as { entries: unknown[] };
+    assert.deepEqual(manifest.entries, []);
+    const replayed = await runExportJob(context.app, firstJob, renderFixture) as { artifactId: string; relativePath: string };
+    assert.equal(replayed.artifactId, firstArtifact.id, "结果未知后重领同一 Export Job 必须复用已登记 Artifact");
+    assert.equal(replayed.relativePath, firstArtifact.relativePath);
+
+    await context.app.recordExportArtifactReview({
+      projectId: created.snapshot.project.id,
+      artifactId: firstArtifact.id,
+      passes: ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"],
+      evidence: ["已完整播放并试听 delivery 文件。"],
+      findings: []
+    });
+    const approved = await context.app.approveExportArtifact({ projectId: created.snapshot.project.id, artifactId: firstArtifact.id, note: "用户确认该文件可以交付。" });
+    assert.ok(approved.approval);
+
+    const nextRevision = context.app.updateStory({ projectId: created.snapshot.project.id, baseRevision: assembled.revision.number, title: "后续修改不改写旧交付" });
+    const preserved = context.app.readExportArtifact({ projectId: created.snapshot.project.id, artifactId: firstArtifact.id });
+    assert.equal(preserved.revision, assembled.revision.number);
+    assert.equal(preserved.approval?.note, "用户确认该文件可以交付。");
+    assert.equal(nextRevision.revision.number, assembled.revision.number + 1);
+
+    const secondJob = context.app.submitExport({ projectId: created.snapshot.project.id, revision: assembled.revision.number, purpose: "delivery", idempotencyKey: "artifact-second" });
+    const secondResult = await runExportJob(context.app, secondJob, renderFixture) as { artifactId: string; relativePath: string };
+    assert.notEqual(secondResult.artifactId, firstArtifact.id);
+    assert.notEqual(secondResult.relativePath, firstArtifact.relativePath, "同一 Revision 的重新导出不得覆盖旧 Artifact 文件");
+    await access(join(created.snapshot.project.rootPath, firstArtifact.relativePath));
   } finally {
     await context.dispose();
   }
@@ -1885,7 +1983,12 @@ test("video-editor-mcp 可通过 stdio 连接并定位新项目", async () => {
       "inspect_composed_frames",
       "align_presenter_to_speech",
       "render_preview_range",
-      "submit_export"
+      "run_render_preflight",
+      "submit_export",
+      "track_export",
+      "read_export_artifact",
+      "record_export_artifact_review",
+      "approve_export_artifact"
     ]) {
       assert.ok(toolNames.has(name), `MCP 缺少 ${name}`);
     }

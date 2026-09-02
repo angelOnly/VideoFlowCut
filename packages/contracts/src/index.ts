@@ -122,6 +122,7 @@ export type JobKind =
   | "voice_synthesis"
   | "speech_assembly"
   | "preview"
+  | "render_preflight"
   | "export";
 
 export type TrackKind = "video" | "audio" | "caption";
@@ -830,6 +831,89 @@ export interface JobRecord {
   leaseUntil?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Render Preflight 只检查目标 Revision 在当前运行环境是否具备渲染前提；
+ * 它不替代真实渲染、最终文件校验或人的完整声画审片。
+ */
+export type RenderPreflightCheckStatus = "passed" | "warning" | "failed";
+
+export interface RenderPreflightCheck {
+  code: string;
+  status: RenderPreflightCheckStatus;
+  message: string;
+  objectId?: Id;
+}
+
+export interface RenderPreflight {
+  id: Id;
+  projectId: Id;
+  revision: number;
+  status: "passed" | "failed";
+  checks: RenderPreflightCheck[];
+  checkedAt: string;
+}
+
+/** 每次导出都保存实际使用外部/生成素材的来源快照，避免后续 Revision 覆盖历史交付依据。 */
+export interface AttributionManifestEntry {
+  assetId: Id;
+  name: string;
+  sourceHash?: string;
+  source: AssetProvenance["source"];
+  provider?: string;
+  sourceUrl?: string;
+  creator?: string;
+  license?: string;
+  attributionText?: string;
+  rightsStatus: AssetProvenance["rightsStatus"];
+}
+
+export interface AttributionManifest {
+  relativePath: string;
+  generatedAt: string;
+  entries: AttributionManifestEntry[];
+}
+
+/** 最终文件校验只描述可确定的媒体事实，不把审美判断伪装成技术结果。 */
+export interface ExportTechnicalValidation {
+  durationMs: number;
+  hasAudio: boolean;
+  blackSegments: Array<{ startSeconds: number; endSeconds: number; durationSeconds: number }>;
+}
+
+/** 成片复核绑定一个真实文件，而不是泛指“当前项目”。 */
+export interface ExportArtifactReview {
+  passes: EditorialReviewPass[];
+  evidence: string[];
+  findings: EditorialReviewFinding[];
+  reviewedAt: string;
+}
+
+export interface ExportArtifactApproval {
+  approvedAt: string;
+  note?: string;
+}
+
+/**
+ * ExportArtifact 与 Project Revision 分开持久化：后续继续编辑只会产生新 Revision，
+ * 不会改写曾经导出的文件、校验、署名或批准记录。
+ */
+export interface ExportArtifact {
+  id: Id;
+  projectId: Id;
+  revision: number;
+  jobId: Id;
+  purpose: ExportPurpose;
+  relativePath: string;
+  fileHash: string;
+  fileSizeBytes: number;
+  preflight: RenderPreflight;
+  validation: ExportTechnicalValidation;
+  attributionManifest: AttributionManifest;
+  createdAt: string;
+  artifactReview?: ExportArtifactReview;
+  approval?: ExportArtifactApproval;
 }
 
 export interface ProjectSummary {
