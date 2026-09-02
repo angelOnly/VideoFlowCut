@@ -6,9 +6,9 @@ import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path
 import { bundle } from "@remotion/bundler";
 import { ensureBrowser, renderMedia, selectComposition } from "@remotion/renderer";
 import type { EditingApplication } from "@videocut/application";
-import type { JobRecord, ProjectSnapshot } from "@videocut/contracts";
+import type { ExportPurpose, JobRecord, ProjectSnapshot } from "@videocut/contracts";
 import { DomainError } from "@videocut/domain";
-import { canExport, evaluateQuality } from "@videocut/quality";
+import { canExport, evaluateQuality, requiresEditorialReview } from "@videocut/quality";
 import { probeMedia, runProcess } from "@videocut/speech";
 
 const contentTypeByExtension: Record<string, string> = {
@@ -228,15 +228,23 @@ export async function runExportJob(
   renderer = new RevisionRenderer()
 ): Promise<Record<string, unknown>> {
   const revisionNumber = Number(job.payload.revision);
+  // 旧 Job 没有 purpose 时按 delivery 处理，避免历史队列绕过新交付门禁。
+  const purpose: ExportPurpose = job.payload.purpose === "draft" ? "draft" : "delivery";
   if (!Number.isInteger(revisionNumber) || revisionNumber <= 0) throw new DomainError("导出任务缺少有效 Revision", "INVALID_EXPORT_REVISION");
   const revision = application.repository.getRevision(job.projectId, revisionNumber);
-  const editorialReview = await application.readLatestEditorialQualityReview({ projectId: job.projectId });
+  const editorialReview = await application.readEditorialQualityReview({ projectId: job.projectId, revision: revisionNumber });
   const report = evaluateQuality(revision.snapshot, revisionNumber, editorialReview);
-  if (!canExport(report)) {
-    throw new DomainError(`质量门禁阻止导出：${report.issues.filter((entry) => entry.level === "blocking").map((entry) => entry.message).join("；")}`, "QUALITY_GATE_BLOCKED");
+  if (!canExport(report, purpose)) {
+    const blockingMessages = report.issues.filter((entry) => entry.level === "blocking").map((entry) => entry.message);
+    if (blockingMessages.length > 0) throw new DomainError(`质量门禁阻止导出：${blockingMessages.join("；")}`, "QUALITY_GATE_BLOCKED");
+    if (requiresEditorialReview(report, purpose)) {
+      throw new DomainError(`交付导出要求 R${revisionNumber} 已完成当前 Revision 的真实 Preview、完整声画审片与首次观众复核；请先记录 Editorial Review。`, "EDITORIAL_REVIEW_REQUIRED");
+    }
+    throw new DomainError("导出门禁未通过。", "QUALITY_GATE_BLOCKED");
   }
-  const targetPath = join(revision.snapshot.project.rootPath, "exports", `revision-${revisionNumber}.mp4`);
-  const temporaryPath = join(revision.snapshot.project.rootPath, "exports", `revision-${revisionNumber}.${job.id}.rendering.mp4`);
+  const fileStem = purpose === "draft" ? `revision-${revisionNumber}-draft` : `revision-${revisionNumber}`;
+  const targetPath = join(revision.snapshot.project.rootPath, "exports", `${fileStem}.mp4`);
+  const temporaryPath = join(revision.snapshot.project.rootPath, "exports", `${fileStem}.${job.id}.rendering.mp4`);
   await mkdir(dirname(targetPath), { recursive: true });
   try {
     await renderer.render(revision.snapshot, temporaryPath);
@@ -254,8 +262,9 @@ export async function runExportJob(
     await rename(temporaryPath, targetPath);
     return {
       revision: revisionNumber,
+      purpose,
       path: targetPath,
-      relativePath: join("exports", `revision-${revisionNumber}.mp4`),
+      relativePath: join("exports", `${fileStem}.mp4`),
       renderer: "remotion",
       durationMs: validation.durationMs,
       hasAudio: validation.hasAudio,

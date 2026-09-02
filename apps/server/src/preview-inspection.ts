@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdir } from "node:fs/promises";
+import { mkdir, rm, stat } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { DomainError } from "@videocut/domain";
 import { runProcess } from "@videocut/speech";
@@ -50,16 +50,20 @@ export async function inspectComposedFrames(input: {
     const relativePath = join("previews", "frames", `revision-${input.revision}-frame-${frame}.jpg`);
     const path = join(projectRoot, relativePath);
     const seekSeconds = (frame - input.fromFrame) / input.fps;
+    // 先清掉同名旧证据，避免 FFmpeg 无输出时误把上一轮图片当作本次审片结果。
+    await rm(path, { force: true });
     await runProcess("ffmpeg", [
       "-y",
-      "-ss", seekSeconds.toFixed(3),
       "-i", previewPath,
+      // 输出端精确跳转，不能在输入前按毫秒快速跳转，否则 24fps 的最后一帧可能被越过。
+      "-ss", seekSeconds.toFixed(6),
       "-frames:v", "1",
       "-vf", "scale=640:-2",
       "-q:v", "2",
       path
     ], 120_000);
-    if (!existsSync(path)) throw new DomainError("合成帧抽取失败", "COMPOSED_FRAME_EXTRACTION_FAILED");
+    const artifact = await stat(path).catch(() => undefined);
+    if (!artifact?.isFile() || artifact.size === 0) throw new DomainError("合成帧抽取失败", "COMPOSED_FRAME_EXTRACTION_FAILED");
     artifacts.push({ frame, path, relativePath });
   }
   return artifacts;

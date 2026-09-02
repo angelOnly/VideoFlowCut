@@ -50,6 +50,8 @@ export interface AssetProvenance {
 
 export type AssetStatus = "queued" | "analyzing" | "ready" | "failed" | "missing";
 export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "unknown" | "cancelled";
+/** 草稿只用于内部审片；交付版必须经过当前 Revision 的完整审片。 */
+export type ExportPurpose = "draft" | "delivery";
 export type JobKind =
   | "media_analysis"
   | "transcription"
@@ -349,6 +351,20 @@ export type EffectSemanticAnchorType = "speech_segment" | "narrative_beat" | "sc
 export type EffectAnchorRelation = "anticipate" | "land_on" | "react_after" | "hold_through";
 export type SpatialAnchor = "top_left" | "top_right" | "middle_left" | "middle_right" | "bottom_left" | "bottom_right" | "center" | "full_frame";
 
+/**
+ * 第一阶段可由 QualityReport 确定性执行的 Cue 级规则。
+ * 旧项目中保存的自由文本仍会被保留并在质量报告中提示，但不会被误当成已执行的规则。
+ */
+export const EFFECT_QUALITY_RULES = [
+  "semantic_anchor_required",
+  "asset_binding_required",
+  "settled_frame_required",
+  "caption_safe_area",
+  "no_competing_visual",
+  "actor_mask_required"
+] as const;
+export type EffectQualityRule = typeof EFFECT_QUALITY_RULES[number];
+
 export interface EffectSemanticAnchor {
   type: EffectSemanticAnchorType;
   targetId?: Id;
@@ -493,6 +509,8 @@ export interface QualityReport {
   /** 由 Skill + 真实预览补充的编辑判断；未评审时保持空数组而不是伪造通过。 */
   editorial: {
     status: "not_recorded" | "reviewed" | "stale";
+    /** 仅在当前 Revision 已有真实审片记录时返回，供交付门禁确认审片覆盖范围。 */
+    passes: EditorialReviewPass[];
     semantic: QualityIssue[];
     pacing: QualityIssue[];
     attention: QualityIssue[];
@@ -507,7 +525,8 @@ export interface QualityReport {
   issues: QualityIssue[];
 }
 
-export type ProductionRunStatus = "active" | "completed" | "abandoned";
+/** incomplete 表示已经尝试收口，但缺少阶段 1 的必需证据；仍可继续补充同一 Run。 */
+export type ProductionRunStatus = "active" | "incomplete" | "completed" | "abandoned";
 
 export interface CreativeDecision {
   id: Id;
@@ -538,8 +557,12 @@ export interface SkillExecutionReport {
   rejectedAlternatives: string[];
   mcpCommands: Array<{ name: string; revision?: number; createdAt: string }>;
   previewEvidence: string[];
+  /** inspect_composed_frames 真正产出的当前 Revision 帧文件，不接受人工字符串冒充。 */
+  composedFrameEvidence: string[];
   qualityReview: string[];
   editorialReview?: EditorialQualityReview;
+  /** 调用 complete 时未满足的条件；完成后为空。 */
+  completionBlockers: string[];
   createdAt: string;
   completedAt?: string;
 }

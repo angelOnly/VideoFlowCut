@@ -154,7 +154,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   app.get("/api/projects/:projectId/quality", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const state = application.readProject(projectId);
-    const editorialReview = await application.readLatestEditorialQualityReview({ projectId });
+    const editorialReview = await application.readEditorialQualityReview({ projectId, revision: state.revision.number });
     return evaluateQuality(state.snapshot, state.revision.number, editorialReview);
   });
 
@@ -378,7 +378,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.post("/api/projects/:projectId/export", async (request, reply) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    const body = z.object({ revision: z.number().int().positive().optional(), idempotencyKey: z.string().optional() }).parse(request.body);
+    const body = z.object({ revision: z.number().int().positive().optional(), purpose: z.enum(["draft", "delivery"]).optional(), idempotencyKey: z.string().optional() }).parse(request.body);
     return reply.status(202).send(application.submitExport({ projectId, ...body }));
   });
 

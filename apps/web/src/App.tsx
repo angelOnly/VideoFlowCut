@@ -264,6 +264,10 @@ export function App() {
   const videoAssets = snapshot.assets.filter((asset) => (asset.kind === "video" || asset.kind === "actor_video") && asset.status === "ready");
   const selectedForTimeline = selectedARollIds.filter((assetId) => videoAssets.some((asset) => asset.id === assetId));
   const blockingIssues = quality?.issues.filter((issue) => issue.level === "blocking") ?? [];
+  const deliveryReviewReady = quality?.editorial.status === "reviewed"
+    && quality.editorial.previewEvidence.length > 0
+    && quality.editorial.passes.includes("audiovisual")
+    && quality.editorial.passes.includes("first_viewer");
 
   return (
     <main className="workbench" data-testid="workbench" data-project-id={snapshot.project.id} data-revision={currentRevision}>
@@ -285,7 +289,8 @@ export function App() {
           fromFrame: Math.max(0, playhead - snapshot.timeline.fps * 2),
           toFrame: Math.min(snapshot.timeline.durationInFrames, Math.max(playhead + snapshot.timeline.fps * 3, snapshot.timeline.fps))
         }))} disabled={busy || !snapshot.timeline.durationInFrames}>局部预览</button>
-        <button className="primary" data-testid="export-button" onClick={() => void act("提交导出", () => api.export(snapshot.project.id, currentRevision))} disabled={busy || blockingIssues.length > 0}>导出</button>
+        <button onClick={() => void act("提交草稿导出", () => api.export(snapshot.project.id, currentRevision, "draft"))} disabled={busy || blockingIssues.length > 0}>草稿导出</button>
+        <button className="primary" data-testid="export-button" onClick={() => void act("提交交付导出", () => api.export(snapshot.project.id, currentRevision, "delivery"))} disabled={busy || blockingIssues.length > 0 || !deliveryReviewReady} title={deliveryReviewReady ? "" : "交付导出需要当前 Revision 的真实预览、完整声画审片和首次观众复核"}>交付导出</button>
       </header>
 
       <section className="editor-grid">

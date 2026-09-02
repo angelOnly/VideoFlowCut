@@ -1,9 +1,0 @@
-
-> video-cut@0.1.0 dev:web
-> vite --config apps/web/vite.config.ts --port 5174
-
-
-  VITE v7.3.6  ready in 215 ms
-
-  ➜  Local:   http://127.0.0.1:5174/
-  ➜  press h + enter to show help

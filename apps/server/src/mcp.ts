@@ -7,7 +7,7 @@ import { z } from "zod";
 import { createApplication } from "@videocut/application";
 import { DomainError } from "@videocut/domain";
 import { evaluateQuality } from "@videocut/quality";
-import { EFFECT_TYPES, type Asset, type AssetProvenance } from "@videocut/contracts";
+import { EFFECT_QUALITY_RULES, EFFECT_TYPES, type Asset, type AssetProvenance } from "@videocut/contracts";
 import { inspectComposedFrames } from "./preview-inspection.js";
 
 const workspaceRoot = process.env.VIDEOCUT_WORKSPACE ?? join(process.cwd(), "workspace");
@@ -661,7 +661,8 @@ server.registerTool("manage_effect_cues", {
     props: z.record(z.unknown()).optional(),
     motion: z.object({ enter_preset: z.string().max(80).optional(), settle_preset: z.string().max(80).optional(), exit_preset: z.string().max(80).optional(), enter_frames: z.number().int().min(1).max(240).optional(), hold_frames: z.number().int().min(0).max(10_000).optional(), exit_frames: z.number().int().min(1).max(240).optional() }).optional(),
     style_pack_id: z.string().max(160).optional(),
-    quality_rules: z.array(z.string().max(400)).max(20).optional()
+    // 不接受无执行语义的自由文本；具体的创作理由请写入 note / narrative_purpose。
+    quality_rules: z.array(z.enum(EFFECT_QUALITY_RULES)).max(EFFECT_QUALITY_RULES.length).optional()
   }
 }, async (input) => {
   try {
@@ -891,7 +892,7 @@ server.registerTool("read_quality_report", {
   try {
     const projectId = projectIdFrom(project_id);
     const state = application.readProject(projectId);
-    const editorialReview = await application.readLatestEditorialQualityReview({ projectId });
+    const editorialReview = await application.readEditorialQualityReview({ projectId, revision: state.revision.number });
     return asText(evaluateQuality(state.snapshot, state.revision.number, editorialReview));
   } catch (error) { return asError(error); }
 });
@@ -940,16 +941,22 @@ server.registerTool("inspect_composed_frames", {
       fps: targetRevision.snapshot.timeline.fps,
       frames
     });
+    await application.recordPreviewInspection({
+      projectId,
+      previewJobId: job.id,
+      revision,
+      frames: artifacts.map((artifact) => ({ frame: artifact.frame, relativePath: artifact.relativePath }))
+    });
     return asText({ revision, sourcePreviewJobId: job.id, currentRevision: state.revision.number, frames: artifacts });
   } catch (error) { return asError(error); }
 });
 
 server.registerTool("submit_export", {
   title: "提交导出",
-  description: "固定指定 Revision 后异步提交完整 Remotion MP4 导出；Remotion 失败会使正式导出失败，绝不静默交付仅主轨降级文件。",
-  inputSchema: { project_id: z.string().optional(), revision: z.number().int().positive().optional(), idempotency_key: z.string().optional() }
-}, async ({ project_id, revision, idempotency_key }) => {
-  try { return asText(application.submitExport({ projectId: projectIdFrom(project_id), revision, idempotencyKey: idempotency_key })); } catch (error) { return asError(error); }
+  description: "提交 draft 或 delivery 导出。draft 可用于内部审片；delivery 必须有目标 Revision 的完整真实审片与 Preview 证据，且 Remotion 失败绝不静默交付仅主轨文件。",
+  inputSchema: { project_id: z.string().optional(), revision: z.number().int().positive().optional(), purpose: z.enum(["draft", "delivery"]).optional(), idempotency_key: z.string().optional() }
+}, async ({ project_id, revision, purpose, idempotency_key }) => {
+  try { return asText(application.submitExport({ projectId: projectIdFrom(project_id), revision, purpose, idempotencyKey: idempotency_key })); } catch (error) { return asError(error); }
 });
 
 server.registerTool("track_job", {

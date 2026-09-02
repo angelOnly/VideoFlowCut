@@ -1,6 +1,6 @@
-import { mkdirSync } from "node:fs";
-import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { existsSync, mkdirSync } from "node:fs";
+import { mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type {
   Asset,
@@ -17,6 +17,7 @@ import type {
   EditorialReviewCategory,
   EditorialReviewPass,
   EditorialReviewSeverity,
+  ExportPurpose,
   Id,
   ImpactReport,
   JobKind,
@@ -60,6 +61,7 @@ import {
   now,
   trackByName
 } from "@videocut/domain";
+import { evaluateQuality } from "@videocut/quality";
 
 type ProjectRow = {
   id: string;
@@ -96,6 +98,17 @@ type JobRow = {
   lease_until: string | null;
   created_at: string;
   updated_at: string;
+};
+
+/**
+ * 预览检查是 Job 的派生证据：只有 inspect_composed_frames 成功后才会写入。
+ * 它不进入 Revision Snapshot，避免把审片产物误当成剪辑状态。
+ */
+type PreviewInspectionEvidence = {
+  revision: number;
+  sourcePreviewJobId: Id;
+  inspectedAt: string;
+  frames: Array<{ frame: number; relativePath: string }>;
 };
 
 export class RevisionConflictError extends Error {
@@ -623,6 +636,75 @@ export class EditingApplication {
     return this.repository.getProjectRow(projectId).root_path;
   }
 
+  /** incomplete 不是终态；补充决定或审片后可继续同一份 ProductionRun。 */
+  private resumeIncompleteProductionRun(report: SkillExecutionReport, action: string): void {
+    if (report.status === "completed" || report.status === "abandoned") {
+      throw new DomainError(`ProductionRun 已结束，不能继续${action}`, "PRODUCTION_RUN_CLOSED");
+    }
+    if (report.status === "incomplete") {
+      report.status = "active";
+      report.completedAt = undefined;
+      report.completionBlockers = [];
+    }
+  }
+
+  /** 只接受位于项目目录内的预览或帧文件，避免报告引用任意本机路径。 */
+  private resolveProjectEvidencePath(projectId: Id, candidatePath: string): string | undefined {
+    if (!candidatePath.trim()) return undefined;
+    const rootPath = resolve(this.getProjectRoot(projectId));
+    const resolvedPath = resolve(rootPath, candidatePath);
+    const relativePath = relative(rootPath, resolvedPath);
+    if (!relativePath || /^\.\.(?:[\\/]|$)/u.test(relativePath) || isAbsolute(relativePath)) return undefined;
+    return resolvedPath;
+  }
+
+  /** Preview 必须由 Render Worker 成功产出当前 Revision 的真实文件，不能只登记一个 Job。 */
+  private async hasSucceededPreviewForRevision(projectId: Id, revision: number): Promise<boolean> {
+    for (const job of this.repository.listJobs(projectId)) {
+      if (job.kind !== "preview" || job.status !== "succeeded" || Number(job.result?.revision ?? job.payload.revision) !== revision) continue;
+      const previewPath = typeof job.result?.path === "string" ? this.resolveProjectEvidencePath(projectId, job.result.path) : undefined;
+      if (!previewPath || !existsSync(previewPath)) continue;
+      try {
+        const preview = await stat(previewPath);
+        if (preview.isFile() && preview.size > 0) return true;
+      } catch {
+        // Worker 写入失败或文件被清理时，这个 Job 不能成为交付证据。
+      }
+    }
+    return false;
+  }
+
+  /**
+   * 合成帧必须同时满足：来自成功 Preview Job、由 inspect_composed_frames 登记、文件仍可读。
+   * 这样手工放一个同名 jpg，或仅伪造 Job.result.path，都不能让 ProductionRun 收口。
+   */
+  private async findComposedFrameEvidence(projectId: Id, revision: number): Promise<Array<{ frame: number; relativePath: string }>> {
+    const evidence = new Map<string, { frame: number; relativePath: string }>();
+    for (const job of this.repository.listJobs(projectId)) {
+      if (job.kind !== "preview" || job.status !== "succeeded" || Number(job.result?.revision ?? job.payload.revision) !== revision) continue;
+      const inspection = job.result?.inspection as Partial<PreviewInspectionEvidence> | undefined;
+      if (!inspection || inspection.revision !== revision || inspection.sourcePreviewJobId !== job.id || !Array.isArray(inspection.frames)) continue;
+      // 默认的检查会抽取进入、稳定、退出三帧；少于三帧不能支撑完整的效果审片。
+      if (inspection.frames.length < 3) continue;
+      const validFrames: Array<{ frame: number; relativePath: string }> = [];
+      for (const artifact of inspection.frames) {
+        if (!artifact || !Number.isInteger(artifact.frame) || typeof artifact.relativePath !== "string") continue;
+        const artifactPath = this.resolveProjectEvidencePath(projectId, artifact.relativePath);
+        if (!artifactPath || !existsSync(artifactPath)) continue;
+        try {
+          const artifactStat = await stat(artifactPath);
+          if (artifactStat.isFile() && artifactStat.size > 0) validFrames.push({ frame: artifact.frame, relativePath: artifact.relativePath });
+        } catch {
+          // 文件被清理或损坏时，不再作为当前收口依据。
+        }
+      }
+      if (validFrames.length === inspection.frames.length) {
+        validFrames.forEach((artifact) => evidence.set(`${artifact.frame}:${artifact.relativePath}`, artifact));
+      }
+    }
+    return [...evidence.values()].sort((left, right) => left.frame - right.frame || left.relativePath.localeCompare(right.relativePath));
+  }
+
   /** ProductionRun 只落为项目内 JSON 审计，不进入 Revision Snapshot，避免制造第二份剪辑状态。 */
   private reportPath(projectId: Id, reportId: Id): string {
     if (!/^production_run_[a-zA-Z0-9-]+$/u.test(reportId)) {
@@ -646,6 +728,9 @@ export class EditingApplication {
       if (report.projectId !== input.projectId || report.id !== input.runId) {
         throw new DomainError("ProductionRun 报告与当前项目不匹配", "PRODUCTION_RUN_MISMATCH");
       }
+      // 旧报告没有收口证据字段时按空值处理，不能把历史记录误判为已通过新门禁。
+      report.composedFrameEvidence ??= [];
+      report.completionBlockers ??= [];
       return report;
     } catch (error) {
       if (error instanceof DomainError) throw error;
@@ -657,7 +742,7 @@ export class EditingApplication {
    * QualityReport 只消费最新的一份审片记录；审片报告仍然留在项目目录，
    * 不把人工判断复制进 Revision Snapshot。
    */
-  async readLatestEditorialQualityReview(input: { projectId: Id }): Promise<EditorialQualityReview | undefined> {
+  async readLatestEditorialQualityReview(input: { projectId: Id; revision?: number }): Promise<EditorialQualityReview | undefined> {
     const reportsDirectory = join(this.getProjectRoot(input.projectId), "reports");
     let entries: Array<{ name: string; isFile: () => boolean }>;
     try {
@@ -677,9 +762,19 @@ export class EditingApplication {
         }
       }));
     return reports
-      .filter((report): report is SkillExecutionReport => Boolean(report && report.projectId === input.projectId && report.editorialReview))
+      .filter((report): report is SkillExecutionReport => Boolean(
+        report
+        && report.projectId === input.projectId
+        && report.editorialReview
+        && (input.revision === undefined || report.editorialReview.revision === input.revision)
+      ))
       .sort((left, right) => (right.editorialReview!.reviewedAt).localeCompare(left.editorialReview!.reviewedAt))[0]
       ?.editorialReview;
+  }
+
+  /** 导出和当前 QualityReport 都必须读取目标 Revision 的审片，不能被另一版本的最新报告覆盖。 */
+  async readEditorialQualityReview(input: { projectId: Id; revision: number }): Promise<EditorialQualityReview | undefined> {
+    return this.readLatestEditorialQualityReview(input);
   }
 
   async startProductionRun(input: { projectId: Id; baseRevision?: number; loadedSkills: string[]; loadedReferences?: string[] }): Promise<SkillExecutionReport> {
@@ -699,7 +794,9 @@ export class EditingApplication {
       rejectedAlternatives: [],
       mcpCommands: [{ name: "start_production_run", revision: current.revision.number, createdAt: now() }],
       previewEvidence: [],
+      composedFrameEvidence: [],
       qualityReview: [],
+      completionBlockers: [],
       createdAt: now()
     };
     await this.writeSkillExecutionReport(report);
@@ -723,7 +820,7 @@ export class EditingApplication {
     qualityReview?: string;
   }): Promise<SkillExecutionReport> {
     const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
-    if (report.status !== "active") throw new DomainError("ProductionRun 已结束，不能继续记录创作判断", "PRODUCTION_RUN_CLOSED");
+    this.resumeIncompleteProductionRun(report, "创作判断");
     const decision = input.decision.trim();
     const rationale = input.rationale.trim();
     if (!decision || !rationale) throw new DomainError("创作判断必须说明决定与原因", "INVALID_CREATIVE_DECISION");
@@ -773,7 +870,7 @@ export class EditingApplication {
     }>;
   }): Promise<SkillExecutionReport> {
     const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
-    if (report.status !== "active") throw new DomainError("ProductionRun 已结束，不能继续记录审片", "PRODUCTION_RUN_CLOSED");
+    this.resumeIncompleteProductionRun(report, "审片");
     this.repository.getRevision(input.projectId, input.revision);
     const requiredPasses: EditorialReviewPass[] = ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"];
     const passes = [...new Set(input.passes)];
@@ -819,18 +916,61 @@ export class EditingApplication {
     return report;
   }
 
+  /**
+   * Presenter 正式生产只能在真实结构、预览、合成帧和完整审片都已归属同一 Revision 时收口。
+   * 未满足时保留 incomplete 状态，调用方可以继续补证据而不会丢失本次导演判断。
+   */
   async completeProductionRun(input: { projectId: Id; runId: Id; finalRevision?: number; qualityReview?: string[]; previewEvidence?: string[] }): Promise<SkillExecutionReport> {
     const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
-    if (report.status !== "active") throw new DomainError("ProductionRun 已结束", "PRODUCTION_RUN_CLOSED");
+    this.resumeIncompleteProductionRun(report, "收口");
     const current = this.readProject(input.projectId);
     const finalRevision = input.finalRevision ?? current.revision.number;
-    this.repository.getRevision(input.projectId, finalRevision);
-    report.finalRevision = finalRevision;
-    report.status = "completed";
-    report.completedAt = now();
-    report.mcpCommands.push({ name: "complete_production_run", revision: finalRevision, createdAt: report.completedAt });
+    const target = this.repository.getRevision(input.projectId, finalRevision);
     if (input.previewEvidence) report.previewEvidence.push(...input.previewEvidence.map((value) => value.trim()).filter(Boolean));
     if (input.qualityReview) report.qualityReview.push(...input.qualityReview.map((value) => value.trim()).filter(Boolean));
+
+    const blockers: string[] = [];
+    if (finalRevision !== current.revision.number) blockers.push(`正式 ProductionRun 必须收口当前 Revision（当前 R${current.revision.number}，请求 R${finalRevision}）。`);
+    const decisionCategories = new Set(report.creativeDecisions.map((decision) => decision.category));
+    for (const category of ["semantic", "story", "visual"] as const) {
+      if (!decisionCategories.has(category)) blockers.push(`缺少 ${category === "semantic" ? "语义" : category === "story" ? "故事" : "视觉处理"}决策记录。`);
+    }
+    if (!(await this.hasSucceededPreviewForRevision(input.projectId, finalRevision))) blockers.push(`R${finalRevision} 没有成功且文件仍可读的局部 Preview Job。`);
+    const composedFrameEvidence = await this.findComposedFrameEvidence(input.projectId, finalRevision);
+    const composedFramePaths = composedFrameEvidence.map((artifact) => artifact.relativePath);
+    report.composedFrameEvidence = composedFramePaths;
+    if (composedFrameEvidence.length === 0) blockers.push(`R${finalRevision} 没有 inspect_composed_frames 生成的合成帧证据。`);
+    for (const cue of target.snapshot.effectCues.filter((candidate) => candidate.status === "ready")) {
+      if (!composedFrameEvidence.some((artifact) => artifact.frame >= cue.startFrame && artifact.frame < cue.endFrame)) {
+        blockers.push(`效果 ${cue.id} 没有任何对应的真实合成帧证据，不能确认进入、位置或遮挡。`);
+      }
+    }
+    if (!report.editorialReview || report.editorialReview.revision !== finalRevision) {
+      blockers.push(`R${finalRevision} 缺少当前 ProductionRun 的完整 Editorial Review。`);
+    } else {
+      // 审片必须指向 inspect_composed_frames 的实际文件，不能用“已看过”之类的自由文本替代。
+      if (!report.editorialReview.previewEvidence.some((evidence) => composedFramePaths.includes(evidence))) {
+        blockers.push(`R${finalRevision} 的 Editorial Review 没有引用本次真实合成帧证据。`);
+      }
+      if (report.editorialReview.findings.some((finding) => finding.severity === "inconclusive")) {
+        blockers.push(`R${finalRevision} 仍有未决的审片结论，不能标记为 completed。`);
+      }
+    }
+
+    const quality = evaluateQuality(target.snapshot, finalRevision, report.editorialReview);
+    blockers.push(...quality.issues.filter((entry) => entry.level === "blocking").map((entry) => `质量门禁：${entry.message}`));
+    report.finalRevision = finalRevision;
+    report.mcpCommands.push({ name: "complete_production_run", revision: finalRevision, createdAt: now() });
+    report.completionBlockers = [...new Set(blockers)];
+    if (report.completionBlockers.length > 0) {
+      report.status = "incomplete";
+      report.completedAt = undefined;
+      await this.writeSkillExecutionReport(report);
+      return report;
+    }
+    report.status = "completed";
+    report.completedAt = now();
+    report.completionBlockers = [];
     await this.writeSkillExecutionReport(report);
     return report;
   }
@@ -1679,6 +1819,55 @@ export class EditingApplication {
     return job;
   }
 
+  /**
+   * 将 inspect_composed_frames 的真实产物回写到对应 Preview Job。
+   * MCP 是唯一调用入口；此处仍重复校验 Job、帧范围和项目内文件，避免审片报告依赖自由文本。
+   */
+  async recordPreviewInspection(input: {
+    projectId: Id;
+    previewJobId: Id;
+    revision: number;
+    frames: Array<{ frame: number; relativePath: string }>;
+  }): Promise<JobRecord> {
+    const job = this.repository.getJob(input.previewJobId);
+    if (job.projectId !== input.projectId || job.kind !== "preview") {
+      throw new DomainError("该任务不是当前项目的局部预览", "PREVIEW_JOB_NOT_FOUND");
+    }
+    if (job.status !== "succeeded" || !job.result) {
+      throw new DomainError("局部预览尚未成功，不能登记合成帧", "PREVIEW_NOT_READY");
+    }
+    const revision = Number(job.result.revision ?? job.payload.revision);
+    const fromFrame = Number(job.result.fromFrame ?? job.payload.fromFrame);
+    const toFrame = Number(job.result.toFrame ?? job.payload.toFrame);
+    if (revision !== input.revision || !Number.isInteger(fromFrame) || !Number.isInteger(toFrame) || fromFrame < 0 || toFrame <= fromFrame) {
+      throw new DomainError("Preview Job 的 Revision 或帧范围无效", "INVALID_PREVIEW_INSPECTION");
+    }
+    const previewPath = typeof job.result.path === "string" ? this.resolveProjectEvidencePath(input.projectId, job.result.path) : undefined;
+    if (!previewPath || !existsSync(previewPath)) {
+      throw new DomainError("局部预览文件不存在，不能登记合成帧", "PREVIEW_NOT_FOUND");
+    }
+    const uniqueFrames = new Map<number, string>();
+    for (const artifact of input.frames) {
+      if (!Number.isInteger(artifact.frame) || artifact.frame < fromFrame || artifact.frame >= toFrame || !artifact.relativePath?.trim()) {
+        throw new DomainError("合成帧不在该 Preview 的有效范围内", "PREVIEW_FRAME_OUT_OF_RANGE");
+      }
+      if (uniqueFrames.has(artifact.frame)) throw new DomainError("合成帧不能重复登记同一帧", "DUPLICATE_COMPOSED_FRAME");
+      const artifactPath = this.resolveProjectEvidencePath(input.projectId, artifact.relativePath);
+      if (!artifactPath || !existsSync(artifactPath)) throw new DomainError("合成帧文件不存在或超出项目目录", "COMPOSED_FRAME_EXTRACTION_FAILED");
+      const artifactStat = await stat(artifactPath);
+      if (!artifactStat.isFile() || artifactStat.size === 0) throw new DomainError("合成帧文件为空，不能作为审片证据", "COMPOSED_FRAME_EXTRACTION_FAILED");
+      uniqueFrames.set(artifact.frame, artifact.relativePath);
+    }
+    if (uniqueFrames.size === 0) throw new DomainError("至少需要一帧真实合成画面", "COMPOSED_FRAME_EVIDENCE_REQUIRED");
+    const inspection: PreviewInspectionEvidence = {
+      revision,
+      sourcePreviewJobId: job.id,
+      inspectedAt: now(),
+      frames: [...uniqueFrames.entries()].sort(([left], [right]) => left - right).map(([frame, relativePath]) => ({ frame, relativePath }))
+    };
+    return this.updateJob(job.id, { status: "succeeded", result: { ...job.result, inspection } });
+  }
+
   /** 将当前 SpeechAsset 的最终音频、字幕和真实段级时序同步到可播放 Timeline。 */
   private syncSpeechAssetTimeline(snapshot: ProjectSnapshot, speechAsset: SpeechAsset): { dialogueItem: TimelineItem; replacedItemIds: Id[]; durationFrames: number } {
     const dialogueTrack = trackByName(snapshot, "Dialogue");
@@ -1849,15 +2038,17 @@ export class EditingApplication {
     return state;
   }
 
-  submitExport(input: { projectId: Id; revision?: number; idempotencyKey?: string }): JobRecord {
+  submitExport(input: { projectId: Id; revision?: number; purpose?: ExportPurpose; idempotencyKey?: string }): JobRecord {
     const state = this.readProject(input.projectId);
     const revision = input.revision ?? state.revision.number;
+    const purpose = input.purpose ?? "delivery";
     this.repository.getRevision(input.projectId, revision);
     const job = this.repository.createJob({
       projectId: input.projectId,
       kind: "export",
-      payload: { revision },
-      idempotencyKey: input.idempotencyKey ?? `export:${revision}`
+      payload: { revision, purpose },
+      // 草稿不能复用正式交付 Job；否则一次旧草稿会绕过当前 Revision 的交付门禁。
+      idempotencyKey: `${input.idempotencyKey ?? "export"}:${purpose}:${revision}`
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
     return job;

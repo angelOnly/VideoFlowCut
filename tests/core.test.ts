@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -13,6 +13,9 @@ import { runOneRenderJob } from "../apps/render-worker/src/index.js";
 import { runExportJob } from "../apps/render-worker/src/exporter.js";
 import { createServer } from "../apps/server/src/app.js";
 import { evaluateQuality } from "@videocut/quality";
+import { runProcess } from "@videocut/speech";
+import { compileCameraPunchLayout, compileMotionLayout } from "@videocut/remotion";
+import type { EditorialReviewPass } from "@videocut/contracts";
 
 function textFromToolResult(result: unknown): string {
   if (!result || typeof result !== "object" || !("content" in result) || !Array.isArray(result.content)) {
@@ -36,6 +39,25 @@ async function createTestApplication(): Promise<{ root: string; app: EditingAppl
       await rm(root, { recursive: true, force: true });
     }
   };
+}
+
+/**
+ * 核心 HTTP 合同只需要可分析的最小媒体，不应依赖完整的数字人口播素材库。
+ * Fixture 在临时目录生成，CI 与本地都使用同一条 1 秒、64px、含静音音轨的确定性媒体。
+ */
+async function createDeterministicVideoFixture(directory: string): Promise<string> {
+  const path = join(directory, "tiny-fixture.mp4");
+  await runProcess("ffmpeg", [
+    "-y",
+    "-f", "lavfi", "-i", "color=c=0x264653:s=64x64:r=24:d=1",
+    "-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono",
+    "-shortest",
+    "-c:v", "mpeg4", "-q:v", "5",
+    "-c:a", "aac",
+    "-movflags", "+faststart",
+    path
+  ]);
+  return path;
 }
 
 function addReadyAsset(app: EditingApplication, projectId: string, name: string, kind: "video" | "audio" | "speech" = "video", durationMs = 1_000) {
@@ -285,6 +307,22 @@ test("SpeechAsset 写入 Dialogue 轨并在 Script 改动后移除旧旁白和�
   }
 });
 
+test("Presenter 有语义段但没有语音与稳定字幕时不能交付", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "Presenter 字幕门禁", profile: "presenter_motion" });
+    const videoAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video");
+    const transcriptAssetId = addReadyAsset(context.app, created.snapshot.project.id, "source.wav", "audio");
+    context.app.buildPresenterTimeline({ projectId: created.snapshot.project.id, baseRevision: context.app.readProject(created.snapshot.project.id).revision.number, assetIds: [videoAssetId] });
+    context.app.applyTranscript({ projectId: created.snapshot.project.id, assetId: transcriptAssetId, text: "这是可理解的完整表达。", source: "manual" });
+    const semantic = applySemanticUnitsFromCandidates(context.app, created.snapshot.project.id);
+    const quality = evaluateQuality(semantic.snapshot, semantic.revision.number);
+    assert.ok(quality.issues.some((entry) => entry.code === "PRESENTER_CAPTION_SOURCE_REQUIRED" && entry.level === "blocking"));
+  } finally {
+    await context.dispose();
+  }
+});
+
 test("Bridge 在 schemaVersion 409 后读取最新工作流并重试", async () => {
   const originalFetch = globalThis.fetch;
   let detailCalls = 0;
@@ -514,7 +552,7 @@ test("Remotion 正式导出失败不会降级为仅 A-roll 成片", async () => 
     const created = context.app.createProject({ name: "导出降级保护测试" });
     const videoAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video", 1_000);
     const built = context.app.buildPresenterTimeline({ projectId: created.snapshot.project.id, baseRevision: context.app.readProject(created.snapshot.project.id).revision.number, assetIds: [videoAssetId], sceneSize: 1 });
-    const exportJob = context.app.submitExport({ projectId: created.snapshot.project.id, revision: built.revision.number, idempotencyKey: "remotion-must-fail" });
+    const exportJob = context.app.submitExport({ projectId: created.snapshot.project.id, revision: built.revision.number, purpose: "draft", idempotencyKey: "remotion-must-fail" });
     await assert.rejects(
       () => runExportJob(context.app, exportJob, { render: async () => { throw new Error("渲染器不可用"); } } as never),
       (error: unknown) => error instanceof DomainError && error.code === "REMOTION_EXPORT_FAILED"
@@ -524,7 +562,7 @@ test("Remotion 正式导出失败不会降级为仅 A-roll 成片", async () => 
   }
 });
 
-test("ProductionRun 持久化创作判断且不复制 Project Snapshot", async () => {
+test("ProductionRun 缺少真实创作证据时保持 incomplete，且不复制 Project Snapshot", async () => {
   const context = await createTestApplication();
   try {
     const created = context.app.createProject({ name: "ProductionRun 测试" });
@@ -544,11 +582,146 @@ test("ProductionRun 持久化创作判断且不复制 Project Snapshot", async (
     });
     assert.equal(recorded.creativeDecisions.length, 1);
     const completed = await context.app.completeProductionRun({ projectId: created.snapshot.project.id, runId: run.id });
-    assert.equal(completed.status, "completed");
+    assert.equal(completed.status, "incomplete");
     assert.equal(completed.finalRevision, context.app.readProject(created.snapshot.project.id).revision.number);
+    assert.ok(completed.completionBlockers.some((blocker) => blocker.includes("语义决策")));
+    assert.ok(completed.completionBlockers.some((blocker) => blocker.includes("合成帧证据")));
     const readBack = await context.app.readSkillExecutionReport({ projectId: created.snapshot.project.id, runId: run.id });
     assert.equal(readBack.quietRanges[0]?.reason, "开场不堆动效");
     assert.equal("skillExecutionReport" in context.app.readProject(created.snapshot.project.id).snapshot, false, "报告不写入项目快照");
+  } finally {
+    await context.dispose();
+  }
+});
+
+test("Presenter ProductionRun 仅在当前 Revision 的决策、Preview、合成帧与审片齐全后完成", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "ProductionRun 收口测试" });
+    const videoAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video", 1_000);
+    const assembled = context.app.buildPresenterTimeline({
+      projectId: created.snapshot.project.id,
+      baseRevision: context.app.readProject(created.snapshot.project.id).revision.number,
+      assetIds: [videoAssetId],
+      sceneSize: 1
+    });
+    const revision = assembled.revision.number;
+    const run = await context.app.startProductionRun({ projectId: created.snapshot.project.id, baseRevision: revision, loadedSkills: ["production-director", "quality-verification"] });
+    for (const [category, decision] of [["semantic", "保留完整表达"], ["story", "先建立观点再给例子"], ["visual", "开场保持安静人物"]] as const) {
+      await context.app.recordCreativeDecision({
+        projectId: created.snapshot.project.id,
+        runId: run.id,
+        category,
+        decision,
+        rationale: "测试当前 Revision 的收口条件"
+      });
+    }
+    const preview = context.app.submitPreview({ projectId: created.snapshot.project.id, revision, fromFrame: 0, toFrame: assembled.snapshot.timeline.durationInFrames });
+    const previewPath = join(created.snapshot.project.rootPath, "previews", "revision-test.mp4");
+    await mkdir(join(created.snapshot.project.rootPath, "previews", "frames"), { recursive: true });
+    await writeFile(previewPath, "mock preview");
+    const inspectionFrames = [0, Math.floor(assembled.snapshot.timeline.durationInFrames / 2), assembled.snapshot.timeline.durationInFrames - 1];
+    const inspectionEvidencePaths = inspectionFrames.map((frame) => join("previews", "frames", `revision-${revision}-frame-${frame}.jpg`));
+    for (const frame of inspectionFrames) {
+      await writeFile(join(created.snapshot.project.rootPath, "previews", "frames", `revision-${revision}-frame-${frame}.jpg`), `mock frame ${frame}`);
+    }
+    context.app.updateJob(preview.id, { status: "succeeded", result: { revision, path: previewPath, fromFrame: 0, toFrame: assembled.snapshot.timeline.durationInFrames } });
+    await context.app.recordEditorialQualityReview({
+      projectId: created.snapshot.project.id,
+      runId: run.id,
+      revision,
+      passes: ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"],
+      previewEvidence: [inspectionEvidencePaths[1]!],
+      findings: []
+    });
+    const withoutInspection = await context.app.completeProductionRun({ projectId: created.snapshot.project.id, runId: run.id, finalRevision: revision });
+    assert.equal(withoutInspection.status, "incomplete");
+    assert.ok(withoutInspection.completionBlockers.some((blocker) => blocker.includes("inspect_composed_frames")));
+    await context.app.recordPreviewInspection({
+      projectId: created.snapshot.project.id,
+      previewJobId: preview.id,
+      revision,
+      frames: inspectionFrames.map((frame, index) => ({ frame, relativePath: inspectionEvidencePaths[index]! }))
+    });
+    const completed = await context.app.completeProductionRun({ projectId: created.snapshot.project.id, runId: run.id, finalRevision: revision });
+    assert.equal(completed.status, "completed");
+    assert.deepEqual(completed.completionBlockers, []);
+    assert.equal(completed.composedFrameEvidence.length, 3);
+  } finally {
+    await context.dispose();
+  }
+});
+
+test("ProductionRun 会要求每个已启用 EffectCue 至少有一张对应合成帧", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "EffectCue 审片覆盖" });
+    const videoAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video", 1_000);
+    const built = context.app.buildPresenterTimeline({ projectId: created.snapshot.project.id, baseRevision: context.app.readProject(created.snapshot.project.id).revision.number, assetIds: [videoAssetId] });
+    const scene = built.snapshot.scenes[0]!;
+    const withCue = context.app.createEffectCue({
+      projectId: created.snapshot.project.id,
+      baseRevision: built.revision.number,
+      sceneId: scene.id,
+      type: "CameraPunch",
+      layer: "actor",
+      startFrame: 5,
+      endFrame: 10,
+      note: "只在这个短区间强调人物"
+    });
+    const revision = withCue.revision.number;
+    const run = await context.app.startProductionRun({ projectId: created.snapshot.project.id, loadedSkills: ["production-director", "quality-verification"] });
+    for (const category of ["semantic", "story", "visual"] as const) {
+      await context.app.recordCreativeDecision({ projectId: created.snapshot.project.id, runId: run.id, category, decision: `${category} 决策`, rationale: "验证每个视觉事件都必须被实际检查" });
+    }
+    const preview = context.app.submitPreview({ projectId: created.snapshot.project.id, revision, fromFrame: 0, toFrame: withCue.snapshot.timeline.durationInFrames });
+    const previewPath = join(created.snapshot.project.rootPath, "previews", "effect-coverage.mp4");
+    const frameDirectory = join(created.snapshot.project.rootPath, "previews", "frames");
+    await mkdir(frameDirectory, { recursive: true });
+    await writeFile(previewPath, "mock preview");
+    const outsideFrames = [0, 15, withCue.snapshot.timeline.durationInFrames - 1];
+    for (const frame of [...outsideFrames, 7]) await writeFile(join(frameDirectory, `revision-${revision}-frame-${frame}.jpg`), `frame ${frame}`);
+    context.app.updateJob(preview.id, { status: "succeeded", result: { revision, path: previewPath, fromFrame: 0, toFrame: withCue.snapshot.timeline.durationInFrames } });
+    const toArtifact = (frame: number) => ({ frame, relativePath: join("previews", "frames", `revision-${revision}-frame-${frame}.jpg`) });
+    await context.app.recordPreviewInspection({ projectId: created.snapshot.project.id, previewJobId: preview.id, revision, frames: outsideFrames.map(toArtifact) });
+    await context.app.recordEditorialQualityReview({
+      projectId: created.snapshot.project.id,
+      runId: run.id,
+      revision,
+      passes: ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"],
+      previewEvidence: [toArtifact(outsideFrames[0]!).relativePath],
+      findings: []
+    });
+    const missingCueFrame = await context.app.completeProductionRun({ projectId: created.snapshot.project.id, runId: run.id, finalRevision: revision });
+    assert.equal(missingCueFrame.status, "incomplete");
+    assert.ok(missingCueFrame.completionBlockers.some((blocker) => blocker.includes("EffectCue") || blocker.includes("效果")));
+
+    await context.app.recordPreviewInspection({ projectId: created.snapshot.project.id, previewJobId: preview.id, revision, frames: [...outsideFrames, 7].map(toArtifact) });
+    const completed = await context.app.completeProductionRun({ projectId: created.snapshot.project.id, runId: run.id, finalRevision: revision });
+    assert.equal(completed.status, "completed");
+  } finally {
+    await context.dispose();
+  }
+});
+
+test("delivery 导出要求目标 Revision 已完成真实审片，draft 可进入渲染链路", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "导出用途门禁测试" });
+    const videoAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video", 1_000);
+    const assembled = context.app.buildPresenterTimeline({ projectId: created.snapshot.project.id, baseRevision: context.app.readProject(created.snapshot.project.id).revision.number, assetIds: [videoAssetId], sceneSize: 1 });
+    const delivery = context.app.submitExport({ projectId: created.snapshot.project.id, revision: assembled.revision.number, purpose: "delivery" });
+    assert.equal(delivery.payload.purpose, "delivery");
+    await assert.rejects(
+      () => runExportJob(context.app, delivery, { render: async () => assert.fail("没有审片的 delivery 不应进入渲染") } as never),
+      (error: unknown) => error instanceof DomainError && error.code === "EDITORIAL_REVIEW_REQUIRED"
+    );
+    const draft = context.app.submitExport({ projectId: created.snapshot.project.id, revision: assembled.revision.number, purpose: "draft" });
+    assert.equal(draft.payload.purpose, "draft");
+    await assert.rejects(
+      () => runExportJob(context.app, draft, { render: async () => { throw new Error("已进入草稿渲染链路"); } } as never),
+      (error: unknown) => error instanceof DomainError && error.code === "REMOTION_EXPORT_FAILED"
+    );
   } finally {
     await context.dispose();
   }
@@ -583,6 +756,7 @@ test("真实审片记录会按 Revision 合并到 QualityReport，过期记录�
     const review = await context.app.readLatestEditorialQualityReview({ projectId: created.snapshot.project.id });
     const quality = evaluateQuality(created.snapshot, created.revision.number, review);
     assert.equal(quality.editorial.status, "reviewed");
+    assert.ok(quality.editorial.passes.includes("audiovisual"));
     assert.equal(quality.editorial.previewEvidence.length, 1);
     assert.equal(quality.editorial.typography[0]?.code, "EDITORIAL_TYPOGRAPHY");
     assert.equal(quality.technical.some((issue) => issue.code === "EDITORIAL_TYPOGRAPHY"), false, "编辑审片不能冒充技术检测结果");
@@ -591,6 +765,30 @@ test("真实审片记录会按 Revision 合并到 QualityReport，过期记录�
     const stale = evaluateQuality(updated.snapshot, updated.revision.number, await context.app.readLatestEditorialQualityReview({ projectId: created.snapshot.project.id }));
     assert.equal(stale.editorial.status, "stale");
     assert.equal(stale.editorial.typography.length, 0);
+  } finally {
+    await context.dispose();
+  }
+});
+
+test("目标 Revision 导出只读取自身的审片记录，不被更新版本覆盖", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "目标 Revision 审片查询" });
+    const reviewInput: { passes: EditorialReviewPass[]; previewEvidence: string[]; findings: [] } = {
+      passes: ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"],
+      previewEvidence: ["真实 Preview 已完成检查"],
+      findings: []
+    };
+    const firstRun = await context.app.startProductionRun({ projectId: created.snapshot.project.id, loadedSkills: ["quality-verification"] });
+    await context.app.recordEditorialQualityReview({ projectId: created.snapshot.project.id, runId: firstRun.id, revision: created.revision.number, ...reviewInput });
+    const second = context.app.updateStory({ projectId: created.snapshot.project.id, baseRevision: created.revision.number, title: "R2" });
+    const secondRun = await context.app.startProductionRun({ projectId: created.snapshot.project.id, loadedSkills: ["quality-verification"] });
+    await context.app.recordEditorialQualityReview({ projectId: created.snapshot.project.id, runId: secondRun.id, revision: second.revision.number, ...reviewInput });
+
+    const firstReview = await context.app.readEditorialQualityReview({ projectId: created.snapshot.project.id, revision: created.revision.number });
+    const secondReview = await context.app.readEditorialQualityReview({ projectId: created.snapshot.project.id, revision: second.revision.number });
+    assert.equal(firstReview?.revision, created.revision.number);
+    assert.equal(secondReview?.revision, second.revision.number);
   } finally {
     await context.dispose();
   }
@@ -684,6 +882,144 @@ test("StoryBeat 保持稳定 ID，移动 Item 会重算关联 Scene 与 Cue", as
   }
 });
 
+test("MotionLayoutCompiler 将空间锚点、运动预设、风格包和强度落为可渲染参数", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "动效布局编译测试" });
+    const videoAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video", 2_000);
+    const assembled = context.app.buildPresenterTimeline({ projectId: created.snapshot.project.id, baseRevision: context.app.readProject(created.snapshot.project.id).revision.number, assetIds: [videoAssetId], sceneSize: 1 });
+    const scene = assembled.snapshot.scenes[0]!;
+    const withCue = context.app.createEffectCue({
+      projectId: created.snapshot.project.id,
+      baseRevision: assembled.revision.number,
+      sceneId: scene.id,
+      type: "EvidenceCard",
+      layer: "front",
+      startFrame: 8,
+      endFrame: 36,
+      spatialAnchor: "top_left",
+      stylePackId: "warm-editorial",
+      motion: { enterPreset: "slide_left", settlePreset: "pulse", exitPreset: "scale", enterFrames: 10, exitFrames: 8 }
+    });
+    const cue = withCue.snapshot.effectCues[0]!;
+    const initial = compileMotionLayout(cue, cue.startFrame);
+    const settled = compileMotionLayout(cue, cue.startFrame + 12);
+    const intense = compileMotionLayout({ ...cue, intensity: 1, spatialAnchor: "bottom_right", stylePackId: "evidence-paper" }, cue.startFrame + 3);
+    assert.equal(initial.container.left, "5%");
+    assert.equal(initial.container.top, "8%");
+    assert.notEqual(initial.motion.transform, settled.motion.transform, "进入预设必须实际改变运动路径");
+    assert.equal(intense.container.right, "5%");
+    assert.equal(intense.container.bottom, "20%");
+    assert.notEqual(intense.motion.transform, compileMotionLayout({ ...cue, intensity: 0 }, cue.startFrame + 3).motion.transform, "强度必须改变运动距离、速度或缩放");
+    assert.equal(initial.stylePack.id, "warm-editorial");
+    assert.equal(intense.stylePack.id, "evidence-paper");
+    assert.notEqual(initial.stylePack.fontFamily, intense.stylePack.fontFamily, "stylePackId 必须改变实际视觉参数");
+  } finally {
+    await context.dispose();
+  }
+});
+
+test("CameraPunch 由 MotionLayoutCompiler 消费进入、退出预设和安全取景重心", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "人物推近编译测试" });
+    const videoAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video", 2_000);
+    const assembled = context.app.buildPresenterTimeline({ projectId: created.snapshot.project.id, baseRevision: context.app.readProject(created.snapshot.project.id).revision.number, assetIds: [videoAssetId], sceneSize: 1 });
+    const scene = assembled.snapshot.scenes[0]!;
+    const withCue = context.app.createEffectCue({
+      projectId: created.snapshot.project.id,
+      baseRevision: assembled.revision.number,
+      sceneId: scene.id,
+      type: "CameraPunch",
+      layer: "actor",
+      startFrame: 4,
+      endFrame: 28,
+      spatialAnchor: "top_left",
+      motion: { enterPreset: "scale", settlePreset: "hold", exitPreset: "scale", enterFrames: 10, exitFrames: 8 }
+    });
+    const cue = withCue.snapshot.effectCues[0]!;
+    const entering = compileCameraPunchLayout(cue, cue.startFrame + 3);
+    const settled = compileCameraPunchLayout(cue, cue.startFrame + cue.motion.enterFrames + 2);
+    const exiting = compileCameraPunchLayout(cue, cue.endFrame - 2);
+    const popped = compileCameraPunchLayout({ ...cue, motion: { ...cue.motion, enterPreset: "pop" } }, cue.startFrame + 8);
+    assert.equal(entering.transformOrigin, "28% 26%");
+    assert.ok(entering.scale > 1 && entering.scale < settled.scale, "scale 预设必须逐步推近");
+    assert.ok(exiting.scale < settled.scale && exiting.scale > 1, "退出预设必须自然回位");
+    assert.ok(popped.scale > compileCameraPunchLayout(cue, cue.startFrame + 8).scale, "pop 预设必须改变实际推近曲线");
+  } finally {
+    await context.dispose();
+  }
+});
+
+test("EffectCue qualityRules 会进入质量门禁，旧自由文本不会被静默当作已执行", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "Cue 质量规则执行测试" });
+    const videoAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video", 3_000);
+    const assembled = context.app.buildPresenterTimeline({
+      projectId: created.snapshot.project.id,
+      baseRevision: context.app.readProject(created.snapshot.project.id).revision.number,
+      assetIds: [videoAssetId],
+      sceneSize: 1
+    });
+    const scene = assembled.snapshot.scenes[0]!;
+    const first = context.app.createEffectCue({
+      projectId: created.snapshot.project.id,
+      baseRevision: assembled.revision.number,
+      sceneId: scene.id,
+      type: "MetricBackdrop",
+      layer: "front",
+      startFrame: 0,
+      endFrame: 12,
+      spatialAnchor: "full_frame",
+      semanticAnchor: { type: "absolute", relation: "land_on" },
+      motion: { enterFrames: 6, exitFrames: 6 },
+      qualityRules: ["semantic_anchor_required", "settled_frame_required", "caption_safe_area", "no_competing_visual", "旧项目的自由文本规则"]
+    });
+    const second = context.app.createEffectCue({
+      projectId: created.snapshot.project.id,
+      baseRevision: first.revision.number,
+      sceneId: scene.id,
+      type: "GlowCTA",
+      layer: "front",
+      startFrame: 2,
+      endFrame: 10,
+      qualityRules: ["no_competing_visual"]
+    });
+    const third = context.app.createEffectCue({
+      projectId: created.snapshot.project.id,
+      baseRevision: second.revision.number,
+      sceneId: scene.id,
+      type: "ProductFan",
+      layer: "front",
+      startFrame: 14,
+      endFrame: 36,
+      qualityRules: ["asset_binding_required"]
+    });
+    const fourth = context.app.createEffectCue({
+      projectId: created.snapshot.project.id,
+      baseRevision: third.revision.number,
+      sceneId: scene.id,
+      type: "MetricBackdrop",
+      layer: "rear",
+      startFrame: 38,
+      endFrame: 60,
+      qualityRules: ["actor_mask_required"]
+    });
+    const quality = evaluateQuality(fourth.snapshot, fourth.revision.number);
+    const codes = new Set(quality.issues.map((entry) => entry.code));
+    assert.ok(codes.has("EFFECT_SEMANTIC_ANCHOR_REQUIRED"));
+    assert.ok(codes.has("EFFECT_RULE_SETTLED_FRAME_REQUIRED"));
+    assert.ok(codes.has("EFFECT_RULE_CAPTION_SAFE_AREA"));
+    assert.ok(codes.has("EFFECT_RULE_COMPETING_VISUAL"));
+    assert.ok(codes.has("EFFECT_RULE_ASSET_BINDING_REQUIRED"));
+    assert.ok(codes.has("EFFECT_RULE_ACTOR_MASK_REQUIRED"));
+    assert.ok(codes.has("EFFECT_QUALITY_RULE_UNSUPPORTED"));
+  } finally {
+    await context.dispose();
+  }
+});
+
 test("阶段0 HTTP 导入、Scene、Revision 回退与定位链接保持同一状态", async () => {
   const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-stage0-test-"));
   const { app: server, application } = await createServer({ workspaceRoot, webOrigin: "http://127.0.0.1:5173" });
@@ -692,7 +1028,7 @@ test("阶段0 HTTP 导入、Scene、Revision 回退与定位链接保持同一�
     assert.equal(createdResponse.statusCode, 201);
     const created = createdResponse.json() as { revision: { number: number }; snapshot: { project: { id: string } } };
     const projectId = created.snapshot.project.id;
-    const sourcePath = join(process.cwd(), "videos", "数字人口播", "segment-01.mp4");
+    const sourcePath = await createDeterministicVideoFixture(workspaceRoot);
     const importedResponse = await server.inject({
       method: "POST",
       url: `/api/projects/${projectId}/assets/import-path`,
@@ -702,7 +1038,7 @@ test("阶段0 HTTP 导入、Scene、Revision 回退与定位链接保持同一�
     assert.equal(await runOneJob(application), true);
     const imported = application.readProject(projectId);
     const readyAsset = imported.snapshot.assets[0];
-    assert.equal(readyAsset?.status, "ready");
+    assert.equal(readyAsset?.status, "ready", readyAsset?.failureReason ?? "媒体分析未返回失败原因");
 
     const built = application.buildPresenterTimeline({ projectId, baseRevision: imported.revision.number, assetIds: [readyAsset!.id] });
     const scene = built.snapshot.scenes[0];

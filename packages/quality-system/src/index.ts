@@ -1,7 +1,13 @@
-import type { EditorialQualityReview, ProjectSnapshot, QualityIssue, QualityReport } from "@videocut/contracts";
+import { EFFECT_QUALITY_RULES, type EditorialQualityReview, type ExportPurpose, type ProjectSnapshot, type QualityIssue, type QualityReport } from "@videocut/contracts";
 import { assertProjectGraphValid, createId, DomainError } from "@videocut/domain";
 
 const issue = (input: Omit<QualityIssue, "id">): QualityIssue => ({ id: createId("quality"), ...input });
+const effectQualityRuleSet = new Set<string>(EFFECT_QUALITY_RULES);
+
+/** 返回相交帧区间；仅用于 Cue 的显式“不要争夺主视觉”规则。 */
+function cuesOverlap(left: { startFrame: number; endFrame: number }, right: { startFrame: number; endFrame: number }): boolean {
+  return left.startFrame < right.endFrame && right.startFrame < left.endFrame;
+}
 
 /**
  * 可确定的规则只报告可验证事实；遮挡、节奏与审美仍须由真实预览帧进行人工/视觉复核。
@@ -67,6 +73,16 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
   }
   const performances = snapshot.actorPerformances ?? [];
   const performanceByItem = new Map(performances.map((performance) => [performance.timelineItemId, performance]));
+  // 未登记的人物不能被推断为“已经有 Mask”；否则后景效果会假装拥有不存在的遮挡能力。
+  const hasUsableActorMask = (sceneId: string) => timeline.items.some((item) => {
+    if (item.sceneId !== sceneId) return false;
+    const performance = performanceByItem.get(item.id);
+    if (!performance) return false;
+    if (performance.maskMode === "embedded_alpha") return true;
+    return performance.maskMode === "alpha_asset"
+      && Boolean(performance.maskAssetId)
+      && snapshot.assets.some((asset) => asset.id === performance.maskAssetId && asset.status === "ready");
+  });
   for (const performance of performances) {
     const item = timeline.items.find((candidate) => candidate.id === performance.timelineItemId);
     if (!item) {
@@ -158,8 +174,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
       issues.push(issue({ level: "warning", code: "FRONT_LAYER_REVIEW", message: "前景效果需在真实预览中检查是否遮挡人物脸部、嘴部和字幕。", objectId: cue.id, frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame } }));
     }
     if (cue.layer === "rear") {
-      const hasMask = timeline.items.some((item) => item.sceneId === cue.sceneId && performanceByItem.get(item.id)?.maskMode !== "none");
-      if (!hasMask) {
+      if (!hasUsableActorMask(cue.sceneId)) {
         issues.push(issue({ level: "warning", code: "REAR_EFFECT_FALLBACK", message: "后景效果缺少可用人物 Mask，渲染会降级为前景可见层，需复核遮挡。", objectId: cue.id, frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame } }));
       }
     }
@@ -182,9 +197,106 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
         frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
       }));
     }
+
+    /**
+     * qualityRules 不是审美替代品，只执行能够从同一 Revision 确定的事实。
+     * 遮挡、节奏与美感仍由真实 Preview + Editorial Review 判定。
+     */
+    const rules = cue.qualityRules ?? [];
+    for (const rule of rules) {
+      if (!effectQualityRuleSet.has(rule)) {
+        issues.push(issue({
+          level: "warning",
+          code: "EFFECT_QUALITY_RULE_UNSUPPORTED",
+          message: `效果“${cue.type}”引用了未执行的质量规则“${rule}”；请改用当前 Registry 中的具名规则或把说明移到叙事目的。`,
+          objectId: cue.id,
+          frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
+        }));
+        continue;
+      }
+      if (rule === "semantic_anchor_required") {
+        const anchor = cue.semanticAnchor;
+        if (anchor.type === "absolute" || !anchor.targetId?.trim()) {
+          issues.push(issue({
+            level: "blocking",
+            code: "EFFECT_SEMANTIC_ANCHOR_REQUIRED",
+            message: `效果“${cue.type}”要求语义锚点，但当前没有绑定 SpeechSegment、Story Beat 或 Scene。`,
+            objectId: cue.id,
+            frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
+          }));
+        }
+      }
+      if (rule === "asset_binding_required" && (cue.assetBindings?.length ?? 0) === 0) {
+        issues.push(issue({
+          level: "blocking",
+          code: "EFFECT_RULE_ASSET_BINDING_REQUIRED",
+          message: `效果“${cue.type}”要求真实素材绑定，但尚未绑定项目素材。`,
+          objectId: cue.id,
+          frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
+        }));
+      }
+      if (rule === "settled_frame_required") {
+        const stableFrames = cue.endFrame - cue.startFrame - cue.motion.enterFrames - cue.motion.exitFrames;
+        const minimumStableFrames = Math.max(3, Math.round(timeline.fps * 0.25));
+        if (stableFrames < minimumStableFrames) {
+          issues.push(issue({
+            level: "blocking",
+            code: "EFFECT_RULE_SETTLED_FRAME_REQUIRED",
+            message: `效果“${cue.type}”没有至少 ${minimumStableFrames} 帧的稳定阅读区；请缩短进出场或延长 Cue。`,
+            objectId: cue.id,
+            frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
+          }));
+        }
+      }
+      if (rule === "caption_safe_area" && cue.layer === "front" && cue.spatialAnchor === "full_frame") {
+        issues.push(issue({
+          level: "blocking",
+          code: "EFFECT_RULE_CAPTION_SAFE_AREA",
+          message: `前景效果“${cue.type}”占满画面，会与稳定字幕争夺阅读区域；请使用两侧安全区或改为 fullscreen 场景。`,
+          objectId: cue.id,
+          frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
+        }));
+      }
+      if (rule === "no_competing_visual") {
+        const competitor = snapshot.effectCues.find((candidate) => candidate.id !== cue.id
+          && candidate.status === "ready"
+          && candidate.type !== "CameraPunch"
+          && cue.type !== "CameraPunch"
+          && candidate.sceneId === cue.sceneId
+          && cuesOverlap(candidate, cue));
+        if (competitor) {
+          issues.push(issue({
+            level: "blocking",
+            code: "EFFECT_RULE_COMPETING_VISUAL",
+            message: `效果“${cue.type}”与“${competitor.type}”在同一时间段同时争夺主视觉；请错开、降低为辅助层，或移除此规则。`,
+            objectId: cue.id,
+            frameRange: {
+              startFrame: Math.max(cue.startFrame, competitor.startFrame),
+              endFrame: Math.min(cue.endFrame, competitor.endFrame)
+            }
+          }));
+        }
+      }
+      if (rule === "actor_mask_required") {
+        if (cue.layer !== "rear" || !hasUsableActorMask(cue.sceneId)) {
+          issues.push(issue({
+            level: "blocking",
+            code: "EFFECT_RULE_ACTOR_MASK_REQUIRED",
+            message: `效果“${cue.type}”要求人物 Mask，但当前不是有可用 Mask 的后景 Cue。`,
+            objectId: cue.id,
+            frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
+          }));
+        }
+      }
+    }
   }
   if (!snapshot.speechAsset && snapshot.speechSegments.length > 0) {
     issues.push(issue({ level: "warning", code: "SPEECH_PENDING", message: "已有 SpeechSegment，但尚未组装 SpeechAsset；不可将文字稿当作已生成旁白。" }));
+    if (snapshot.project.profile === "presenter_motion") {
+      // 第一阶段的 Presenter 交付必须有可播放声音与稳定字幕的同一事实源。
+      // 当前没有源音频强制对齐器，不能把按字数猜出的字幕范围当成已经完成的字幕。
+      issues.push(issue({ level: "blocking", code: "PRESENTER_CAPTION_SOURCE_REQUIRED", message: "Presenter 已有语义段但没有可用 SpeechAsset 与稳定字幕；请先完成段级语音组装，或接入真实源音频对齐后再交付。" }));
+    }
   }
   if (snapshot.speechAsset) {
     if (snapshot.speechAsset.scriptRevision !== snapshot.script.revision) {
@@ -196,6 +308,16 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     }
     if (timeline.captions.some((caption) => caption.precision !== snapshot.speechAsset?.timing.precision)) {
       issues.push(issue({ level: "warning", code: "CAPTION_SPEECH_MISMATCH", message: "字幕时序精度与当前 SpeechAsset 不一致，需要重新检查字幕。", objectId: snapshot.speechAsset.id }));
+    }
+    const captionedSegmentIds = new Set(timeline.captions.map((caption) => caption.speechSegmentId));
+    const missingCaptionSegment = snapshot.speechSegments.find((segment) => !captionedSegmentIds.has(segment.id));
+    if (missingCaptionSegment) {
+      issues.push(issue({
+        level: "blocking",
+        code: "PRESENTER_CAPTION_MISSING",
+        message: "SpeechAsset 已就绪，但至少一个 SpeechSegment 没有稳定字幕，不能作为 Presenter 交付。",
+        objectId: missingCaptionSegment.id
+      }));
     }
 
     /**
@@ -224,6 +346,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
   const allIssues = [...technicalIssues];
   const editorial: QualityReport["editorial"] = {
     status: editorialReview ? editorialReview.revision === revision ? "reviewed" : "stale" : "not_recorded",
+    passes: editorialReview?.revision === revision ? [...editorialReview.passes] : [],
     semantic: [],
     pacing: [],
     attention: [],
@@ -261,6 +384,15 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
   };
 }
 
-export function canExport(report: QualityReport): boolean {
-  return !report.issues.some((entry) => entry.level === "blocking");
+/** Delivery 需要能证明当前 Revision 已经真实看过；Draft 只跳过这项人工审片要求。 */
+export function requiresEditorialReview(report: QualityReport, purpose: ExportPurpose): boolean {
+  if (purpose !== "delivery") return false;
+  const requiredPasses = ["audiovisual", "first_viewer"] as const;
+  return report.editorial.status !== "reviewed"
+    || report.editorial.previewEvidence.length === 0
+    || !requiredPasses.every((pass) => report.editorial.passes.includes(pass));
+}
+
+export function canExport(report: QualityReport, purpose: ExportPurpose = "delivery"): boolean {
+  return !report.issues.some((entry) => entry.level === "blocking") && !requiresEditorialReview(report, purpose);
 }

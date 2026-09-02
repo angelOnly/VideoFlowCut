@@ -19,6 +19,8 @@
     "test": "tsx --test tests/**/*.test.ts",
     "test:effect-registry": "tsx scripts/effect-registry-smoke.e2e.ts",
     "test:creative-eval": "tsx scripts/presenter-creative-agent.eval.ts",
+    "test:stage1-live": "tsx scripts/presenter-stage1-live.e2e.ts",
+    "test:stage1-full-live": "tsx scripts/presenter-stage1-live.e2e.ts --full",
     "test:e2e": "npm run test:effect-registry"
   },
   "dependencies": {

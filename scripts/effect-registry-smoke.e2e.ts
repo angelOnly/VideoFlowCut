@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import { copyFile, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -7,12 +8,244 @@ import { createApplication } from "@videocut/application";
 import { EFFECT_TYPES } from "@videocut/contracts";
 import { RevisionRenderer, validateExport } from "../apps/render-worker/src/exporter.js";
 import { inspectComposedFrames } from "../apps/server/src/preview-inspection.js";
-import { probeMedia } from "@videocut/speech";
+import { probeMedia, runProcess } from "@videocut/speech";
+
+async function createColorVideo(path: string, color: string, durationSeconds: number): Promise<void> {
+  await runProcess("ffmpeg", [
+    "-y",
+    "-f", "lavfi", "-i", `color=c=${color}:s=240x420:r=24:d=${durationSeconds}`,
+    "-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono",
+    "-shortest",
+    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "ultrafast",
+    "-c:a", "aac",
+    path
+  ]);
+}
+
+async function createRedThenBlueVideo(path: string): Promise<void> {
+  await runProcess("ffmpeg", [
+    "-y",
+    // 单一连续流避免 concat 在个别 FFmpeg/Chromium 组合下造成短视频寻帧不稳定。
+    "-f", "lavfi", "-i", "color=c=blue:s=240x420:r=24:d=0.5,drawbox=x=0:y=0:w=iw:h=ih:color=red:t=fill:enable='lt(n,6)'",
+    "-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono",
+    "-map", "0:v",
+    "-map", "1:a",
+    "-shortest",
+    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "ultrafast",
+    "-c:a", "aac",
+    path
+  ]);
+}
+
+/** 直接读取一个合成像素，验证 Cue 内视频的时间轴而不是只检查组件有没有渲染。 */
+async function readRgbPixel(videoPath: string, x: number, y: number): Promise<[number, number, number]> {
+  return new Promise((resolve, reject) => {
+    // H.264 常为 4:2:0，取 2×2 偶数区域避免 FFmpeg 将 1px crop 对齐为 0。
+    const child = spawn("ffmpeg", ["-v", "error", "-i", videoPath, "-vf", `crop=2:2:${x}:${y},format=rgb24`, "-frames:v", "1", "-f", "rawvideo", "pipe:1"], { windowsHide: true });
+    const chunks: Buffer[] = [];
+    let stderr = "";
+    child.stdout.on("data", (chunk: Buffer) => chunks.push(chunk));
+    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      const output = Buffer.concat(chunks);
+      if (code !== 0 || output.length < 3) {
+        reject(new Error(`无法读取合成像素：${stderr || `ffmpeg 退出码 ${code}`}`));
+        return;
+      }
+      resolve([output[0]!, output[1]!, output[2]!]);
+    });
+  });
+}
+
+/**
+ * Cue 位于整片后半段时，绑定短视频必须从自身第 0 帧开始，而不是继承全局 Composition Frame。
+ * 红色首帧和蓝色末帧让这个行为可以通过真实合成像素确定性验证。
+ */
+async function verifyLateBoundVideoStartsAtZero(application: ReturnType<typeof createApplication>, renderer: RevisionRenderer): Promise<{ outputPath: string; pixel: [number, number, number] }> {
+  const created = application.createProject({ name: "Late Bound Asset Playback" });
+  const projectId = created.snapshot.project.id;
+  const projectRoot = created.snapshot.project.rootPath;
+  const sourceDirectory = join(projectRoot, "assets", "source");
+  await mkdir(sourceDirectory, { recursive: true });
+  const backgroundPath = join(sourceDirectory, "late-background.mp4");
+  const cuePath = join(sourceDirectory, "late-bound.mp4");
+  await createColorVideo(backgroundPath, "0x405060", 4);
+  // 先红后蓝：Cue 开始的局部第 0 帧必须读到红色，全局第 2 秒则已经超出这个短素材。
+  await createRedThenBlueVideo(cuePath);
+
+  const background = application.registerImportedAsset({
+    projectId,
+    baseRevision: created.revision.number,
+    name: "late-background.mp4",
+    kind: "video",
+    managedPath: join("assets", "source", "late-background.mp4"),
+    sourceHash: "late-bound-background"
+  });
+  application.applyMediaAnalysis({ projectId, assetId: background.asset.id, metadata: await probeMedia(backgroundPath) });
+  const bound = application.registerImportedAsset({
+    projectId,
+    baseRevision: application.readProject(projectId).revision.number,
+    name: "late-bound.mp4",
+    kind: "video",
+    managedPath: join("assets", "source", "late-bound.mp4"),
+    sourceHash: "late-bound-red"
+  });
+  application.applyMediaAnalysis({ projectId, assetId: bound.asset.id, metadata: await probeMedia(cuePath) });
+  const assembled = application.buildPresenterTimeline({
+    projectId,
+    baseRevision: application.readProject(projectId).revision.number,
+    assetIds: [background.asset.id],
+    sceneSize: 1
+  });
+  const scene = assembled.snapshot.scenes[0]!;
+  const cueStart = assembled.snapshot.timeline.fps * 2;
+  application.createEffectCue({
+    projectId,
+    baseRevision: assembled.revision.number,
+    sceneId: scene.id,
+    type: "ContentCarousel",
+    layer: "front",
+    startFrame: cueStart,
+    endFrame: cueStart + 12,
+    spatialAnchor: "center",
+    assetBindings: [{ slot: "primary", assetId: bound.asset.id }],
+    narrativePurpose: "验证后半段绑定素材的局部播放时间",
+    audienceTask: "冒烟验证",
+    motion: { enterPreset: "none", settlePreset: "hold", exitPreset: "none", enterFrames: 1, exitFrames: 1 }
+  });
+  const snapshot = application.readProject(projectId).snapshot;
+  const outputPath = join(projectRoot, "previews", "late-bound-local-time.mp4");
+  await renderer.renderRange(snapshot, cueStart, cueStart + 1, outputPath);
+  // ContentCarousel 居中时第一张卡片位于画布左侧约 5%～34%、高度约 39%～47%，避开标题文字取中部像素。
+  const pixel = await readRgbPixel(outputPath, 100, 550);
+  assert.ok(pixel[0] > pixel[2] + 70, `后半段 Cue 的绑定视频应从红色第 0 帧开始，实际 RGB=${pixel.join(",")}`);
+  return { outputPath, pixel };
+}
+
+/**
+ * 没有 ActorPerformance / Mask 时，rear Cue 必须显式降级为可见前景。
+ * 纯黑人物底片让“被错误藏在人物后面”和“正确显示”可以通过合成像素区分。
+ */
+async function verifyRearCueFallsBackWithoutMask(application: ReturnType<typeof createApplication>, renderer: RevisionRenderer): Promise<{ outputPath: string; pixel: [number, number, number] }> {
+  const created = application.createProject({ name: "Rear Cue Mask Fallback" });
+  const projectId = created.snapshot.project.id;
+  const projectRoot = created.snapshot.project.rootPath;
+  const sourceDirectory = join(projectRoot, "assets", "source");
+  await mkdir(sourceDirectory, { recursive: true });
+  const backgroundPath = join(sourceDirectory, "black-actor.mp4");
+  await createColorVideo(backgroundPath, "black", 3);
+  const imported = application.registerImportedAsset({
+    projectId,
+    baseRevision: created.revision.number,
+    name: "black-actor.mp4",
+    kind: "video",
+    managedPath: join("assets", "source", "black-actor.mp4"),
+    sourceHash: "rear-cue-fallback"
+  });
+  application.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: await probeMedia(backgroundPath) });
+  const assembled = application.buildPresenterTimeline({
+    projectId,
+    baseRevision: application.readProject(projectId).revision.number,
+    assetIds: [imported.asset.id],
+    sceneSize: 1
+  });
+  const scene = assembled.snapshot.scenes[0]!;
+  application.createEffectCue({
+    projectId,
+    baseRevision: assembled.revision.number,
+    sceneId: scene.id,
+    type: "MetricBackdrop",
+    layer: "rear",
+    startFrame: 0,
+    endFrame: 24,
+    note: "Mask 缺失降级检查",
+    motion: { enterPreset: "none", settlePreset: "hold", exitPreset: "none", enterFrames: 1, exitFrames: 1 }
+  });
+  const snapshot = application.readProject(projectId).snapshot;
+  const outputPath = join(projectRoot, "previews", "rear-cue-mask-fallback.mp4");
+  await renderer.renderRange(snapshot, 6, 7, outputPath);
+  // MetricBackdrop 位于中左安全区；底片全黑，像素变亮才说明 Cue 没有被错误藏到人物后面。
+  const pixel = await readRgbPixel(outputPath, 120, 560);
+  assert.ok(Math.max(...pixel) > 55, `无 Mask 的 rear Cue 应降级为可见前景，实际 RGB=${pixel.join(",")}`);
+  return { outputPath, pixel };
+}
+
+/** 单组件单项目渲染，避免 Registry 冒烟因并行视频解码而掩盖某个组件本身的失败。 */
+async function renderRegisteredEffect(input: {
+  application: ReturnType<typeof createApplication>;
+  renderer: RevisionRenderer;
+  fixturePath: string;
+  type: typeof EFFECT_TYPES[number];
+  index: number;
+}): Promise<{ type: string; outputPath: string; durationMs: number; inspectedFrames: number }> {
+  const created = input.application.createProject({ name: `Effect Registry Smoke ${input.type}` });
+  const projectId = created.snapshot.project.id;
+  const projectRoot = created.snapshot.project.rootPath;
+  const relativePath = join("assets", "source", `effect-smoke-${input.index}.mp4`);
+  const managedPath = join(projectRoot, relativePath);
+  await mkdir(join(projectRoot, "assets", "source"), { recursive: true });
+  await copyFile(input.fixturePath, managedPath);
+  const imported = input.application.registerImportedAsset({
+    projectId,
+    baseRevision: created.revision.number,
+    name: `effect-smoke-${input.index}.mp4`,
+    kind: "video",
+    managedPath: relativePath,
+    originalPath: input.fixturePath,
+    sourceHash: `effect-registry-smoke-${input.index}`
+  });
+  input.application.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: await probeMedia(managedPath) });
+  const assembled = input.application.buildPresenterTimeline({
+    projectId,
+    baseRevision: input.application.readProject(projectId).revision.number,
+    assetIds: [imported.asset.id],
+    sceneSize: 1
+  });
+  const scene = assembled.snapshot.scenes[0];
+  if (!scene) throw new Error("Effect Registry Smoke 缺少 PresenterScene");
+  const rangeEnd = scene.startFrame + 4;
+  input.application.createEffectCue({
+    projectId,
+    baseRevision: assembled.revision.number,
+    sceneId: scene.id,
+    type: input.type,
+    layer: input.type === "MetricBackdrop" ? "rear" : input.type === "CameraPunch" ? "actor" : input.type === "FullScreenMeme" || input.type === "EndCard" ? "fullscreen" : "front",
+    startFrame: scene.startFrame,
+    endFrame: rangeEnd,
+    narrativePurpose: "验证已注册组件能合成",
+    audienceTask: "冒烟验证",
+    assetBindings: ["ProductFan", "PortfolioWall", "EvidenceCard", "DeviceShowcase", "ContentCarousel"].includes(input.type) ? [{ slot: "primary", assetId: imported.asset.id }] : [],
+    props: input.type === "CommentCloud" ? { comments: ["真实项目评论 A", "真实项目评论 B"] } : {},
+    note: `Smoke: ${input.type}`,
+    motion: { enterFrames: 1, exitFrames: 2 }
+  });
+  const snapshot = input.application.readProject(projectId).snapshot;
+  assert.equal(snapshot.effectCues[0]?.type, input.type, `${input.type} 必须被写入 Project Snapshot`);
+  const outputPath = join(projectRoot, "previews", `effect-${input.type}.mp4`);
+  await input.renderer.renderRange(snapshot, scene.startFrame, rangeEnd, outputPath);
+  const validation = await validateExport(outputPath, Math.round(((rangeEnd - scene.startFrame) / snapshot.timeline.fps) * 1000));
+  // 包含局部预览最后一帧，防止 FFmpeg 跳帧让“退出帧已审片”的证据实际上缺失。
+  const inspectionFrames = Array.from(
+    { length: rangeEnd - scene.startFrame },
+    (_, offset) => scene.startFrame + offset
+  );
+  const inspectedFrames = await inspectComposedFrames({
+    projectRoot,
+    previewPath: outputPath,
+    revision: input.application.readProject(projectId).revision.number,
+    fromFrame: scene.startFrame,
+    toFrame: rangeEnd,
+    fps: snapshot.timeline.fps,
+    frames: inspectionFrames
+  });
+  assert.equal(inspectedFrames.length, inspectionFrames.length, `${input.type} 必须能抽取进入、稳定、退出及最后一帧的真实合成帧`);
+  return { type: input.type, outputPath, durationMs: validation.durationMs, inspectedFrames: inspectedFrames.length };
+}
 
 /**
  * 这是 Effect Registry 的渲染冒烟测试，而不是产品创作效果测试。
- * 它故意直接建立最小 Project，用同一真实视频绑定所有组件，只验证 11 种
- * Remotion 组件可以被构建并合成。语义、Skill、MCP 与质量链路请运行
+ * 它用同一真实视频分别验证 11 种已注册组件可被构建和合成；语义、Skill、MCP 与质量链路请运行
  * presenter-creative-agent.eval.ts。
  */
 async function main(): Promise<void> {
@@ -21,73 +254,37 @@ async function main(): Promise<void> {
   const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-effect-registry-"));
   const application = createApplication(workspaceRoot);
   try {
-    const created = application.createProject({ name: "Effect Registry Smoke" });
-    const projectId = created.snapshot.project.id;
-    const projectRoot = created.snapshot.project.rootPath;
-    const relativePath = join("assets", "source", "effect-smoke.mp4");
-    const managedPath = join(projectRoot, relativePath);
-    await mkdir(join(projectRoot, "assets", "source"), { recursive: true });
-    await copyFile(fixturePath, managedPath);
-    const imported = application.registerImportedAsset({
-      projectId,
-      baseRevision: created.revision.number,
-      name: "effect-smoke.mp4",
-      kind: "video",
-      managedPath: relativePath,
-      originalPath: fixturePath,
-      sourceHash: "effect-registry-smoke"
-    });
-    application.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: await probeMedia(managedPath) });
-    const assembled = application.buildPresenterTimeline({
-      projectId,
-      baseRevision: application.readProject(projectId).revision.number,
-      assetIds: [imported.asset.id],
-      sceneSize: 1
-    });
-    const scene = assembled.snapshot.scenes[0];
-    if (!scene) throw new Error("Effect Registry Smoke 缺少 PresenterScene");
-    const rangeEnd = Math.min(scene.endFrame, assembled.snapshot.timeline.fps * 2);
-    if (rangeEnd <= scene.startFrame) throw new Error("测试视频时长不足 2 秒");
-    for (const type of EFFECT_TYPES) {
-      const state = application.readProject(projectId);
-      application.createEffectCue({
-        projectId,
-        baseRevision: state.revision.number,
-        sceneId: scene.id,
-        type,
-        layer: type === "MetricBackdrop" ? "rear" : type === "CameraPunch" ? "actor" : type === "FullScreenMeme" || type === "EndCard" ? "fullscreen" : "front",
-        startFrame: scene.startFrame,
-        endFrame: rangeEnd,
-        narrativePurpose: "验证已注册组件能合成",
-        audienceTask: "冒烟验证",
-        assetBindings: ["ProductFan", "PortfolioWall", "EvidenceCard", "DeviceShowcase", "ContentCarousel"].includes(type) ? [{ slot: "primary", assetId: imported.asset.id }] : [],
-        props: type === "CommentCloud" ? { comments: ["真实项目评论 A", "真实项目评论 B"] } : {},
-        note: `Smoke: ${type}`
-      });
-    }
-    const snapshot = application.readProject(projectId).snapshot;
-    assert.equal(new Set(snapshot.effectCues.map((cue) => cue.type)).size, EFFECT_TYPES.length, "11 个 EffectCue 必须全部存在");
-    const outputPath = join(projectRoot, "previews", "effect-registry-smoke.mp4");
-    // 冒烟测试只需证明组件可合成，单并发避免与开发中的 Render Worker 争抢浏览器资源。
     const renderer = new RevisionRenderer(undefined, 1);
-    await renderer.renderRange(snapshot, scene.startFrame, rangeEnd, outputPath);
-    const validation = await validateExport(outputPath, Math.round(((rangeEnd - scene.startFrame) / snapshot.timeline.fps) * 1000));
-    const inspectedFrames = await inspectComposedFrames({
-      projectRoot,
-      previewPath: outputPath,
-      revision: application.readProject(projectId).revision.number,
-      fromFrame: scene.startFrame,
-      toFrame: rangeEnd,
-      fps: snapshot.timeline.fps
-    });
-    assert.equal(inspectedFrames.length, 3, "冒烟预览必须能抽取进入、稳定和退出三张真实合成帧");
+    const results = [];
+    for (const [index, type] of EFFECT_TYPES.entries()) {
+      results.push(await renderRegisteredEffect({ application, renderer, fixturePath, type, index }));
+    }
+    assert.equal(results.length, EFFECT_TYPES.length, "11 个 Registry 类型必须都完成真实合成");
+    // 局部时间验证使用独立 Project/Renderer，避免 Registry 冒烟的多项目缓存影响短素材解码。
+    const lateWorkspaceRoot = await mkdtemp(join(tmpdir(), "videocut-late-bound-"));
+    const lateApplication = createApplication(lateWorkspaceRoot);
+    let lateBoundPlayback: { outputPath: string; pixel: [number, number, number] };
+    try {
+      lateBoundPlayback = await verifyLateBoundVideoStartsAtZero(lateApplication, new RevisionRenderer(undefined, 1));
+    } finally {
+      lateApplication.close();
+      await rm(lateWorkspaceRoot, { recursive: true, force: true });
+    }
+    const rearFallbackWorkspace = await mkdtemp(join(tmpdir(), "videocut-rear-fallback-"));
+    const rearFallbackApplication = createApplication(rearFallbackWorkspace);
+    let rearCueFallback: { outputPath: string; pixel: [number, number, number] };
+    try {
+      rearCueFallback = await verifyRearCueFallsBackWithoutMask(rearFallbackApplication, new RevisionRenderer(undefined, 1));
+    } finally {
+      rearFallbackApplication.close();
+      await rm(rearFallbackWorkspace, { recursive: true, force: true });
+    }
     console.log(JSON.stringify({
       test: "effect-registry-smoke",
       effectTypes: EFFECT_TYPES,
-      outputPath,
-      durationMs: validation.durationMs,
-      hasAudio: validation.hasAudio,
-      inspectedFrames
+      results,
+      lateBoundPlayback,
+      rearCueFallback
     }, null, 2));
   } finally {
     application.close();

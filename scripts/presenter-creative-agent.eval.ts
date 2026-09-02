@@ -90,12 +90,13 @@ async function main(): Promise<void> {
     const report = JSON.parse(textFromToolResult(await client.callTool({ name: "read_skill_execution_report", arguments: { project_id: projectId, run_id: run.id } }))) as { id: string; status: string };
     assert.equal(report.id, run.id);
     assert.equal(report.status, "active");
-    const completed = JSON.parse(textFromToolResult(await client.callTool({ name: "complete_production_run", arguments: { project_id: projectId, run_id: run.id } }))) as { status: string };
-    assert.equal(completed.status, "completed");
+    const completed = JSON.parse(textFromToolResult(await client.callTool({ name: "complete_production_run", arguments: { project_id: projectId, run_id: run.id } }))) as { status: string; completionBlockers?: string[] };
+    assert.equal(completed.status, "incomplete", "没有真实项目、预览和审片证据的 Run 不能被伪装成完成");
+    assert.ok(completed.completionBlockers?.length, "不完整 Run 必须返回可补齐的收口条件");
 
     console.log(JSON.stringify({
       test: "presenter-creative-agent.eval",
-      result: "MCP 与 SkillExecutionReport 接入通过",
+      result: "MCP 与 SkillExecutionReport 接入通过，未执行真实创作时会被正确保留为 incomplete",
       requiredSkills,
       requiredTools,
       nextStep: "在真实视频项目中由 Codex 按这些 Skill 生成语义、Scene、Cue，渲染 Preview 后把证据和质量复核写入同一 ProductionRun。"
