@@ -1,4 +1,3 @@
-
 # ComfyUI 已接入应用 HTTP API 调用说明
 
 本文档对应应用目录中已发布的 6 个业务应用：FunASR 本地音频转文字、OmniVoice 自动音色克隆，以及 4 个 MiniMax H3 视频生成应用。
