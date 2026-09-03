@@ -8,7 +8,10 @@ const repositoryRoot = process.cwd();
 const sourceSkillsRoot = join(repositoryRoot, ".agents", "skills");
 const pluginRoot = join(repositoryRoot, "plugins", "videoflowcut");
 const pluginSkillsRoot = join(pluginRoot, "skills");
-const generatedSharedSkill = "_shared/SKILL.md";
+const generatedSharedFiles = new Set([
+  "_shared/SKILL.md",
+  "_shared/agents/openai.yaml"
+]);
 
 async function listFiles(root: string, base = root): Promise<string[]> {
   const entries = await readdir(root, { withFileTypes: true });
@@ -22,7 +25,7 @@ async function listFiles(root: string, base = root): Promise<string[]> {
 
 test("插件发行副本只由根目录 Skills 源同步，并声明唯一 MCP 入口", async () => {
   const [sourceFiles, rawPluginFiles] = await Promise.all([listFiles(sourceSkillsRoot), listFiles(pluginSkillsRoot)]);
-  const pluginFiles = rawPluginFiles.filter((file) => file !== generatedSharedSkill);
+  const pluginFiles = rawPluginFiles.filter((file) => !generatedSharedFiles.has(file));
   assert.deepEqual(pluginFiles.sort(), sourceFiles.sort(), "插件 Skills 不能手工漂移；请执行 npm run plugin:sync-skills");
   for (const file of sourceFiles) {
     assert.deepEqual(
@@ -31,7 +34,17 @@ test("插件发行副本只由根目录 Skills 源同步，并声明唯一 MCP �
       `插件 Skills 内容已漂移：${file}`
     );
   }
-  assert.match(await readFile(join(pluginSkillsRoot, generatedSharedSkill), "utf8"), /内部共享参考资料/u);
+  assert.match(await readFile(join(pluginSkillsRoot, "_shared", "SKILL.md"), "utf8"), /内部共享参考资料/u);
+  const sharedMetadata = (await readFile(join(pluginSkillsRoot, "_shared", "agents", "openai.yaml"), "utf8"))
+    .replace(/\r\n/g, "\n");
+  assert.equal(sharedMetadata, [
+    "interface:",
+    "  display_name: \"VideoFlowCut 共享参考资料\"",
+    "  short_description: \"仅供 VideoFlowCut Skills 按需引用\"",
+    "policy:",
+    "  allow_implicit_invocation: false",
+    ""
+  ].join("\n"), "内部共享参考 Skill 必须有合法的界面元数据并禁止隐式调用，避免成为独立自动工作流");
 
   const manifest = JSON.parse(await readFile(join(pluginRoot, ".codex-plugin", "plugin.json"), "utf8"));
   const mcp = JSON.parse(await readFile(join(pluginRoot, ".mcp.json"), "utf8"));

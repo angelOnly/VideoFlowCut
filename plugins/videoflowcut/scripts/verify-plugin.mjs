@@ -8,7 +8,10 @@ const pluginRoot = pluginRootFromModule(import.meta.url);
 const repoRoot = resolveRepoRoot({ pluginRoot });
 const sourceRoot = join(repoRoot, ".agents", "skills");
 const targetRoot = join(pluginRoot, "skills");
-const generatedSharedSkill = "_shared/SKILL.md";
+const generatedSharedFiles = new Set([
+  "_shared/SKILL.md",
+  "_shared/agents/openai.yaml"
+]);
 const runtimeRoot = join(pluginRoot, "runtime", "dist");
 const releaseFiles = [
   ["Runtime 入口", join(runtimeRoot, "runtime.cjs")],
@@ -54,7 +57,7 @@ async function assertNoSourceRuntimeLaunch(path) {
 
 if (!existsSync(targetRoot)) throw new Error("插件 Skills 尚未生成。请先执行 npm run plugin:sync-skills。");
 const sourceFiles = await listFiles(sourceRoot);
-const targetFiles = (await listFiles(targetRoot)).filter((file) => file !== generatedSharedSkill);
+const targetFiles = (await listFiles(targetRoot)).filter((file) => !generatedSharedFiles.has(file));
 if (sourceFiles.sort().join("\n") !== targetFiles.sort().join("\n")) {
   throw new Error("插件 Skills 与根目录 .agents/skills 不一致。请执行 npm run plugin:sync-skills。");
 }
@@ -62,7 +65,21 @@ for (const file of sourceFiles) {
   const [source, target] = await Promise.all([readFile(join(sourceRoot, file)), readFile(join(targetRoot, file))]);
   if (digest(source) !== digest(target)) throw new Error(`插件 Skills 文件已漂移：${file}`);
 }
-if (!existsSync(join(targetRoot, generatedSharedSkill))) throw new Error("插件缺少 _shared 校验适配文件。");
+const generatedSharedSkillPath = join(targetRoot, "_shared", "SKILL.md");
+const generatedSharedMetadataPath = join(targetRoot, "_shared", "agents", "openai.yaml");
+if (!existsSync(generatedSharedSkillPath)) throw new Error("插件缺少 _shared 校验适配文件。");
+const generatedSharedMetadata = await readFile(generatedSharedMetadataPath, "utf8").catch(() => undefined);
+const expectedGeneratedSharedMetadata = [
+  "interface:",
+  "  display_name: \"VideoFlowCut 共享参考资料\"",
+  "  short_description: \"仅供 VideoFlowCut Skills 按需引用\"",
+  "policy:",
+  "  allow_implicit_invocation: false",
+  ""
+].join("\n");
+if (generatedSharedMetadata?.replace(/\r\n/g, "\n") !== expectedGeneratedSharedMetadata) {
+  throw new Error("插件 _shared 必须禁止隐式加载。");
+}
 
 await Promise.all(releaseFiles.map(([label, path]) => requireNonEmptyFile(label, path)));
 const releaseManifest = JSON.parse(await readFile(join(runtimeRoot, "manifest.json"), "utf8"));
