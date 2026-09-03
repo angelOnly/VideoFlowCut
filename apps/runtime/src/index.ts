@@ -1,23 +1,16 @@
 import { createServer } from "../../server/src/app.js";
 import { runWorkerForever } from "../../job-worker/src/index.js";
 import { runRenderWorkerForever } from "../../render-worker/src/index.js";
-import { join } from "node:path";
+import { applyReleaseRuntimeDefaults } from "@videocut/project-overview";
 
-const port = Number(process.env.PORT ?? 3100);
-const host = process.env.HOST ?? "127.0.0.1";
-const runtimeToken = process.env.VIDEOFLOWCUT_RUNTIME_TOKEN;
-const runtimeId = process.env.VIDEOFLOWCUT_RUNTIME_ID ?? "manual";
 /**
  * 发布构建是 CommonJS，__dirname 即 runtime/dist；开发时 TypeScript 以 ESM
  * 运行则不存在该变量，继续由 Server 使用仓库内 Web 构建目录。
  */
-const releaseRuntimeDirectory = process.env.VIDEOFLOWCUT_RUNTIME_DIST
-  ?? (typeof __dirname === "string" ? __dirname : undefined);
-if (releaseRuntimeDirectory) {
-  process.env.VIDEOFLOWCUT_RUNTIME_DIST ??= releaseRuntimeDirectory;
-  process.env.VIDEOFLOWCUT_WEB_ROOT ??= join(releaseRuntimeDirectory, "web");
-  process.env.VIDEOFLOWCUT_REMOTION_ENTRY ??= join(releaseRuntimeDirectory, "remotion", "render-entry.cjs");
-}
+const runtimeConfig = applyReleaseRuntimeDefaults(typeof __dirname === "string" ? __dirname : undefined);
+const { port, host } = runtimeConfig.http;
+const runtimeToken = runtimeConfig.runtime.runtimeToken;
+const runtimeId = runtimeConfig.runtime.runtimeId;
 
 /**
  * 保持入口没有顶层 await，发行构建可稳定输出 CommonJS，Node 才能通过
@@ -26,7 +19,7 @@ if (releaseRuntimeDirectory) {
 async function main(): Promise<void> {
   const { app, application } = await createServer({
     serveWeb: true,
-    webRoot: process.env.VIDEOFLOWCUT_WEB_ROOT
+    webRoot: runtimeConfig.runtime.webRoot
   });
   const workersAbort = new AbortController();
   let stopping = false;

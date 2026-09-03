@@ -1,7 +1,8 @@
 import { createServer } from "./app.js";
+import { readRuntimeConfig } from "@videocut/project-overview";
 
-const port = Number(process.env.PORT ?? 3100);
-const host = process.env.HOST ?? "127.0.0.1";
+const runtimeConfig = readRuntimeConfig();
+const { port, host, serveWeb } = runtimeConfig.http;
 
-const { app } = await createServer({ serveWeb: process.env.SERVE_WEB === "true" });
+const { app } = await createServer({ serveWeb });
 await app.listen({ port, host });

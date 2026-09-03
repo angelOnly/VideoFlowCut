@@ -4,16 +4,18 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { createDefaultAssetProviderRegistry } from "@videocut/acquisition";
-import { createApplication } from "@videocut/application";
+import { createApplication, PROJECT_DATABASE_TABLES } from "@videocut/application";
 import { DomainError } from "@videocut/domain";
+import { getProjectOverview, readRuntimeConfig } from "@videocut/project-overview";
 import { evaluateQuality } from "@videocut/quality";
 import { EFFECT_QUALITY_RULES, EFFECT_TYPES, type Asset, type AssetProvenance } from "@videocut/contracts";
 import { inspectComposedFrames } from "./preview-inspection.js";
 import { inspectAsset } from "./source-review.js";
 import { sha256File } from "./media-hash.js";
 
-const workspaceRoot = process.env.VIDEOCUT_WORKSPACE ?? join(process.cwd(), "workspace");
-const webOrigin = process.env.WEB_ORIGIN ?? "http://127.0.0.1:5173";
+const runtimeConfig = readRuntimeConfig();
+const workspaceRoot = runtimeConfig.workspace.root;
+const webOrigin = runtimeConfig.http.webOrigin;
 const application = createApplication(workspaceRoot);
 const assetProviders = createDefaultAssetProviderRegistry();
 let targetProjectId: string | undefined;
@@ -175,6 +177,22 @@ async function importLocalMedia(projectId: string, baseRevision: number, filePat
 }
 
 const server = new McpServer({ name: "video-editor-mcp", version: "0.1.0" });
+
+server.registerTool("read_project_overview", {
+  title: "读取项目总览",
+  description: "只读返回运行配置、顶层生产流程、关键入口、数据库表结构和 MCP 能力分组；不会执行视频任务。",
+  inputSchema: {},
+  annotations: { readOnlyHint: true }
+}, async () => asText({
+  ...getProjectOverview(),
+  // 表结构来自真实 DDL 的唯一来源，不在总览中复制一份易漂移的 Schema。
+  database: {
+    engine: "SQLite",
+    databasePath: join(workspaceRoot, "app.sqlite"),
+    schemaSource: "packages/edit-application/src/persistence/schema.ts",
+    tables: PROJECT_DATABASE_TABLES
+  }
+}));
 
 server.registerTool("open_web_workbench", {
   title: "打开剪辑工作台",

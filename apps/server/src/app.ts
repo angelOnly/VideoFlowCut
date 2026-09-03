@@ -11,6 +11,7 @@ import { z } from "zod";
 import { ComfyUIBridgeClient } from "@videocut/bridge";
 import { createApplication, NotFoundError, RevisionConflictError } from "@videocut/application";
 import { DomainError } from "@videocut/domain";
+import { readRuntimeConfig } from "@videocut/project-overview";
 import { evaluateQuality } from "@videocut/quality";
 import type { AssetKind, EditorFocus, ProjectSnapshot } from "@videocut/contracts";
 import { inspectAsset } from "./source-review.js";
@@ -264,11 +265,12 @@ export interface ServerOptions {
 }
 
 export async function createServer(options: ServerOptions = {}): Promise<{ app: FastifyInstance; application: ReturnType<typeof createApplication> }> {
-  const workspaceRoot = options.workspaceRoot ?? process.env.VIDEOCUT_WORKSPACE ?? join(process.cwd(), "workspace");
-  const webOrigin = options.webOrigin ?? process.env.WEB_ORIGIN ?? "http://127.0.0.1:5173";
+  const runtimeConfig = readRuntimeConfig();
+  const workspaceRoot = options.workspaceRoot ?? runtimeConfig.workspace.root;
+  const webOrigin = options.webOrigin ?? runtimeConfig.http.webOrigin;
   const application = createApplication(workspaceRoot);
   const bridge = new ComfyUIBridgeClient();
-  const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" } });
+  const app = Fastify({ logger: { level: runtimeConfig.http.logLevel } });
 
   await app.register(cors, { origin: true });
   await app.register(multipart, { limits: { files: 18, fileSize: 512 * 1024 * 1024 } });
@@ -1215,7 +1217,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   if (options.serveWeb) {
     // 发行 Runtime 一定传入或设置 VIDEOFLOWCUT_WEB_ROOT。开发模式才允许沿用
     // 仓库 cwd 下的 Vite 目录，保证本地 `npm run runtime` 仍可直接调试。
-    const configuredWebRoot = options.webRoot ?? process.env.VIDEOFLOWCUT_WEB_ROOT;
+    const configuredWebRoot = options.webRoot ?? runtimeConfig.runtime.webRoot;
     const webRoot = configuredWebRoot
       ? resolve(configuredWebRoot)
       : join(process.cwd(), "apps", "web", "dist");

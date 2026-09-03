@@ -24,7 +24,8 @@ const aliases = {
   "@videocut/speech": join(repoRoot, "packages", "speech-services", "src", "index.ts"),
   "@videocut/quality": join(repoRoot, "packages", "quality-system", "src", "index.ts"),
   "@videocut/job-runtime": join(repoRoot, "packages", "job-runtime", "src", "index.ts"),
-  "@videocut/remotion": join(repoRoot, "packages", "remotion-runtime", "src", "index.tsx")
+  "@videocut/remotion": join(repoRoot, "packages", "remotion-runtime", "src", "index.tsx"),
+  "@videocut/project-overview": join(repoRoot, "packages", "project-overview", "src", "index.ts")
 };
 
 const outputPaths = {

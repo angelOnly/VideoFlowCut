@@ -12,6 +12,7 @@ import { ComfyUIBridgeClient } from "@videocut/bridge";
 import { createApplication, type EditingApplication } from "@videocut/application";
 import { assetById, DomainError } from "@videocut/domain";
 import { runOneQueuedJob, type JobProcessor } from "@videocut/job-runtime";
+import { readRuntimeConfig } from "@videocut/project-overview";
 import { FunASRService, OmniVoiceSegmentService, probeMedia, runProcess } from "@videocut/speech";
 import type { Asset, JobKind, JobRecord, ProjectSnapshot } from "@videocut/contracts";
 import { runAvatarGeneration } from "./avatar-generation.js";
@@ -22,7 +23,7 @@ import { runSpeechAlignment } from "./speech-alignment.js";
 import { runVideoGeneration } from "./video-generation.js";
 import { runVlogAnalysis } from "./vlog-analysis.js";
 
-const workspaceRoot = process.env.VIDEOCUT_WORKSPACE ?? join(process.cwd(), "workspace");
+const workspaceRoot = readRuntimeConfig().workspace.root;
 let defaultApplication: EditingApplication | undefined;
 const getDefaultApplication = () => (defaultApplication ??= createApplication(workspaceRoot));
 

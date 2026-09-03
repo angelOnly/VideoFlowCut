@@ -4,6 +4,7 @@ import { basename, extname, join } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { AssetCandidate, AssetRequest } from "@videocut/contracts";
+import { readRuntimeConfig } from "@videocut/project-overview";
 import { AssetProviderError, assertDownloadedProviderMedia, type AssetProvider, type ProviderDownload, type ProviderSearchCandidate } from "./index.js";
 
 const COMMONS_API = "https://commons.wikimedia.org/w/api.php";
@@ -198,7 +199,7 @@ export class WikimediaCommonsProvider implements AssetProvider {
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.maxResults = boundedPositiveInteger(options.maxResults, DEFAULT_MAX_RESULTS, 50);
     this.maxDownloadBytes = boundedPositiveInteger(
-      options.maxDownloadBytes ?? Number(process.env.VIDEOCUT_MAX_WIKIMEDIA_DOWNLOAD_BYTES ?? DEFAULT_MAX_DOWNLOAD_BYTES),
+      options.maxDownloadBytes ?? readRuntimeConfig().downloads.maxWikimediaBytes,
       DEFAULT_MAX_DOWNLOAD_BYTES
     );
     this.userAgent = options.userAgent?.trim() || "VideoFlowCut/0.1 (Wikimedia Commons asset provider)";

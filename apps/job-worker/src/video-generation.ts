@@ -15,6 +15,7 @@ import {
 } from "@videocut/bridge";
 import type { Asset, BridgeRunAudit, JobRecord, MediaMetadata, ProjectSnapshot } from "@videocut/contracts";
 import { DomainError } from "@videocut/domain";
+import { readRuntimeConfig } from "@videocut/project-overview";
 import { probeMedia } from "@videocut/speech";
 
 /**
@@ -109,7 +110,7 @@ type PreparedInputAsset = {
 };
 
 const MAX_BRIDGE_INPUT_BYTES = 512 * 1024 * 1024;
-const MAX_GENERATED_VIDEO_BYTES = Number(process.env.VIDEOCUT_MAX_GENERATED_VIDEO_BYTES ?? 512 * 1024 * 1024);
+const MAX_GENERATED_VIDEO_BYTES = readRuntimeConfig().downloads.maxGeneratedVideoBytes;
 const generatedVideoDirectory = (snapshot: ProjectSnapshot) => join(snapshot.project.rootPath, "assets", "generated");
 const safeFileName = (value: string) => value.replace(/[^a-zA-Z0-9._-]/g, "_");
 

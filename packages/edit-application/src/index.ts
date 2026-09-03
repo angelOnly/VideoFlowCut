@@ -1,8 +1,7 @@
 import { createHash } from "node:crypto";
-import { createReadStream, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
 import type {
   AgentWorkOrder,
   AgentWorkOrderRelatedObjectIssue,
@@ -106,72 +105,37 @@ import {
   createEffectCue,
   createId,
   createMediaAsset,
-  createProjectSnapshot,
   createScene,
   createSemanticUnit,
-  createStoryDocument,
   createTranscriptSentenceCandidates,
   createVoiceReference,
   createTimelineItem,
   createVisualTreatment,
   DomainError,
-  emptyImpact,
   framesToMilliseconds,
   millisecondsToFrames,
   now,
   trackByName
 } from "@videocut/domain";
-import { DEFAULT_CAPTION_FORMAT, DEFAULT_TRACKS } from "@videocut/contracts";
+import { DEFAULT_CAPTION_FORMAT } from "@videocut/contracts";
 import { evaluateQuality } from "@videocut/quality";
+import { readRuntimeConfig } from "@videocut/project-overview";
+import {
+  NotFoundError,
+  ProjectRepository,
+  RevisionConflictError,
+  type ProjectState
+} from "./persistence";
 
-type ProjectRow = {
-  id: string;
-  name: string;
-  profile: string;
-  root_path: string;
-  current_revision_id: string;
-  current_revision_number: number;
-  created_at: string;
-  updated_at: string;
-};
-
-type RevisionRow = {
-  id: string;
-  project_id: string;
-  revision_number: number;
-  parent_id: string | null;
-  summary: string;
-  snapshot_json: string;
-  impact_json: string;
-  created_at: string;
-};
-
-/** Revision 列表只显示历史摘要；不要为此反序列化每个可能很大的项目快照。 */
-type RevisionSummaryRow = Pick<RevisionRow, "id" | "revision_number" | "summary" | "impact_json" | "created_at">;
-
-type JobRow = {
-  id: string;
-  project_id: string;
-  kind: JobKind;
-  status: JobStatus;
-  payload_json: string;
-  result_json: string | null;
-  error: string | null;
-  idempotency_key: string;
-  attempt: number;
-  lease_until: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-type ExportArtifactRow = {
-  id: Id;
-  project_id: Id;
-  revision_number: number;
-  job_id: Id;
-  artifact_json: string;
-  created_at: string;
-};
+// 保持既有 @videocut/application 导入兼容；数据库实现集中在 persistence/。
+export {
+  NotFoundError,
+  PROJECT_DATABASE_SCHEMA_SQL,
+  PROJECT_DATABASE_TABLES,
+  ProjectRepository,
+  RevisionConflictError,
+  type ProjectState
+} from "./persistence";
 
 /**
  * 预览检查是 Job 的派生证据：只有 inspect_composed_frames 成功后才会写入。
@@ -371,147 +335,10 @@ async function sha256File(path: string): Promise<string> {
   return hash.digest("hex");
 }
 
-export class RevisionConflictError extends Error {
-  constructor(public readonly expected: number, public readonly actual: number) {
-    super(`Revision 已过期：请求基于 ${expected}，当前为 ${actual}`);
-  }
-}
-
-export class NotFoundError extends Error {
-  constructor(message: string) {
-    super(message);
-  }
-}
-
-export interface ProjectState {
-  revision: RevisionRecord;
-  snapshot: ProjectSnapshot;
-}
-
 export interface AppEvent {
   projectId: Id;
   revision: number;
   type: "revision" | "job";
-}
-
-/** 为已有项目补齐新增的快照字段；旧 Revision 在下一次提交时自然升级，不改写历史记录。 */
-function normalizeSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
-  snapshot.story ??= createStoryDocument(snapshot.project.name, snapshot.project.updatedAt);
-  snapshot.assetRequests ??= [];
-  snapshot.searchIntents ??= [];
-  snapshot.assetCandidates ??= [];
-  for (const candidate of snapshot.assetCandidates) candidate.kind ??= "video";
-  snapshot.evidenceCaptures ??= [];
-  snapshot.explainerPrograms ??= [];
-  snapshot.vlogShotAnalyses ??= [];
-  snapshot.vlogEvents ??= [];
-  snapshot.vlogShotSelects ??= [];
-  snapshot.vlogAmbientCues ??= [];
-  snapshot.vlogMusicBeats ??= [];
-  snapshot.multicamGroups ??= [];
-  snapshot.multicamCuts ??= [];
-  snapshot.agentWorkOrders ??= [];
-  for (const workOrder of snapshot.agentWorkOrders) {
-    // 旧完成记录没有结果对象与 Impact 证据，不能在升级后倒推为“已编辑”。
-    if (workOrder.status === "completed" && !workOrder.completionKind) {
-      workOrder.completionKind = "reviewed_no_change";
-      workOrder.resultChangedObjectIds = undefined;
-      workOrder.resultImpact = undefined;
-    }
-  }
-  // 新增 Ambient 后，旧项目不需要重建 Revision；仅补一条空轨，原有 Item 与顺序保持不变。
-  if (!snapshot.timeline.tracks.some((track) => track.name === "Ambient")) {
-    const ambient = DEFAULT_TRACKS.find((track) => track.name === "Ambient");
-    if (ambient) {
-      snapshot.timeline.tracks.push({
-        id: createId("track"),
-        ...ambient,
-        order: Math.max(-1, ...snapshot.timeline.tracks.map((track) => track.order)) + 1,
-        locked: false,
-        hidden: false,
-        muted: false
-      });
-    }
-  }
-  snapshot.visualTreatments ??= [];
-  snapshot.cutaways ??= [];
-  snapshot.audioCues ??= [];
-  snapshot.voiceReferences ??= [];
-  snapshot.transcriptSentenceCandidates ??= [];
-  for (const caption of snapshot.timeline.captions ?? []) {
-    // 旧快照没有保存原始语音文案时，以当时已经渲染的文字作为可回退来源。
-    caption.sourceText ??= caption.text;
-    caption.textMode ??= "derived";
-    caption.format ??= { ...DEFAULT_CAPTION_FORMAT };
-  }
-  for (const reference of snapshot.voiceReferences) {
-    // 旧 Revision 没有这些字段时只补默认提示，不伪造用户已取得授权的事实。
-    reference.source ??= "local_asset";
-    reference.authorizationNote ??= "未填写授权信息；仅在已获得声音使用授权的前提下使用。";
-    reference.usageNote ??= "仅用于当前项目的本地语音合成。";
-    reference.recommendedRange ??= { startMs: 0, endMs: 0 };
-    reference.quality ??= "warning";
-    reference.usable ??= true;
-  }
-  snapshot.actorCapabilityProfiles ??= [];
-  for (const profile of snapshot.actorCapabilityProfiles) {
-    // 旧档案没有明确声明口型能力时，一律按未验证处理，不能因为可上传音频就假定已同步。
-    profile.supportsAudioDrivenLipSync ??= false;
-  }
-  snapshot.actorPerformances ??= [];
-  for (const performance of snapshot.actorPerformances) {
-    // 旧快照缺少声音所有权时，优先选择 Dialogue，宁可提示复核也不能继续双声叠加。
-    performance.audioMode ??= snapshot.speechAsset ? "use_dialogue_track" : "use_source_audio";
-  }
-  for (const unit of snapshot.semanticUnits ?? []) {
-    if (!unit.candidateIds?.length) {
-      const legacyCandidateId = `sentence_candidate_legacy_${unit.id}`;
-      if (!snapshot.transcriptSentenceCandidates.some((candidate) => candidate.id === legacyCandidateId)) {
-        snapshot.transcriptSentenceCandidates.push({
-          id: legacyCandidateId,
-          transcriptId: unit.transcriptId,
-          sourceAssetId: unit.sourceAssetId,
-          text: unit.text,
-          order: unit.order
-        });
-      }
-      unit.candidateIds = [legacyCandidateId];
-    }
-    unit.kind ??= "statement";
-    unit.dependencies ??= [];
-    unit.precedingContext ??= "";
-    unit.followingContext ??= "";
-    unit.confidence ??= 0.5;
-  }
-  for (const segment of snapshot.speechSegments ?? []) {
-    segment.pauseBefore ??= { durationMs: segment.prePauseMs ?? 0, reason: "sentence" };
-    if (segment.pauseAfter === undefined && (segment.postPauseMs ?? 0) > 0) {
-      segment.pauseAfter = { durationMs: segment.postPauseMs ?? 0, reason: "sentence" };
-    }
-  }
-  for (const cue of snapshot.effectCues ?? []) {
-    cue.narrativePurpose ??= cue.note || "支持当前叙事重点";
-    cue.audienceTask ??= "理解当前表达";
-    cue.semanticAnchor ??= {
-      type: cue.anchorTargetId ? "speech_segment" : "scene",
-      targetId: cue.anchorTargetId ?? cue.sceneId,
-      relation: "land_on"
-    };
-    cue.spatialAnchor ??= cue.layer === "fullscreen" ? "full_frame" : cue.layer === "rear" ? "middle_left" : "bottom_right";
-    cue.assetBindings ??= [];
-    cue.props ??= {};
-    cue.motion ??= {
-      enterPreset: "fade_slide",
-      settlePreset: "hold",
-      exitPreset: "fade",
-      enterFrames: 10,
-      holdFrames: Math.max(0, cue.endFrame - cue.startFrame - 20),
-      exitFrames: 10
-    };
-    cue.stylePackId ??= "default-clean";
-    cue.qualityRules ??= [];
-  }
-  return snapshot;
 }
 
 function assertAssetProvenanceValid(provenance: NonNullable<Asset["provenance"]>): void {
@@ -1044,367 +871,6 @@ export interface AssetSearchCandidateInput {
   attributionText?: string;
   rightsStatus: AssetCandidate["rightsStatus"];
   tags?: string[];
-}
-
-/**
- * SQLite 只保存不可变 Revision 快照与任务状态；任何编辑写入都通过此仓储提交，
- * 防止 Web、MCP 和 Worker 各自维护一份 Timeline。
- */
-export class ProjectRepository {
-  private readonly db: DatabaseSync;
-
-  constructor(public readonly workspaceRoot: string) {
-    mkdirSync(workspaceRoot, { recursive: true });
-    mkdirSync(join(workspaceRoot, "projects"), { recursive: true });
-    this.db = new DatabaseSync(join(workspaceRoot, "app.sqlite"));
-    // Server 与独立 Worker 会同时访问同一份 SQLite；短暂等待可避免正常事务互相误判为失败。
-    this.db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS projects (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        profile TEXT NOT NULL,
-        root_path TEXT NOT NULL,
-        current_revision_id TEXT NOT NULL,
-        current_revision_number INTEGER NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS revisions (
-        id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        revision_number INTEGER NOT NULL,
-        parent_id TEXT,
-        summary TEXT NOT NULL,
-        snapshot_json TEXT NOT NULL,
-        impact_json TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        UNIQUE(project_id, revision_number),
-        FOREIGN KEY(project_id) REFERENCES projects(id)
-      );
-      CREATE TABLE IF NOT EXISTS jobs (
-        id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        kind TEXT NOT NULL,
-        status TEXT NOT NULL,
-        payload_json TEXT NOT NULL,
-        result_json TEXT,
-        error TEXT,
-        idempotency_key TEXT NOT NULL,
-        attempt INTEGER NOT NULL,
-        lease_until TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        UNIQUE(project_id, idempotency_key),
-        FOREIGN KEY(project_id) REFERENCES projects(id)
-      );
-      CREATE TABLE IF NOT EXISTS export_artifacts (
-        id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        revision_number INTEGER NOT NULL,
-        job_id TEXT NOT NULL,
-        artifact_json TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        UNIQUE(project_id, job_id),
-        FOREIGN KEY(project_id) REFERENCES projects(id)
-      );
-      CREATE INDEX IF NOT EXISTS export_artifacts_project_created_idx
-        ON export_artifacts(project_id, created_at DESC);
-    `);
-  }
-
-  close(): void {
-    this.db.close();
-  }
-
-  private transaction<T>(work: () => T): T {
-    this.db.exec("BEGIN IMMEDIATE");
-    try {
-      const result = work();
-      this.db.exec("COMMIT");
-      return result;
-    } catch (error) {
-      this.db.exec("ROLLBACK");
-      throw error;
-    }
-  }
-
-  private revisionFromRow(row: RevisionRow): RevisionRecord {
-    return {
-      id: row.id,
-      projectId: row.project_id,
-      number: row.revision_number,
-      parentId: row.parent_id ?? undefined,
-      summary: row.summary,
-      snapshot: normalizeSnapshot(JSON.parse(row.snapshot_json) as ProjectSnapshot),
-      impact: JSON.parse(row.impact_json) as ImpactReport,
-      createdAt: row.created_at
-    };
-  }
-
-  private jobFromRow(row: JobRow): JobRecord {
-    return {
-      id: row.id,
-      projectId: row.project_id,
-      kind: row.kind,
-      status: row.status,
-      payload: JSON.parse(row.payload_json) as Record<string, unknown>,
-      result: row.result_json ? (JSON.parse(row.result_json) as Record<string, unknown>) : undefined,
-      error: row.error ?? undefined,
-      idempotencyKey: row.idempotency_key,
-      attempt: row.attempt,
-      leaseUntil: row.lease_until ?? undefined,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at
-    };
-  }
-
-  private exportArtifactFromRow(row: ExportArtifactRow): ExportArtifact {
-    const artifact = JSON.parse(row.artifact_json) as ExportArtifact;
-    if (artifact.id !== row.id || artifact.projectId !== row.project_id || artifact.revision !== row.revision_number || artifact.jobId !== row.job_id) {
-      throw new DomainError("ExportArtifact 持久化记录不一致", "EXPORT_ARTIFACT_CORRUPTED");
-    }
-    return artifact;
-  }
-
-  createProject(input: {
-    name: string;
-    profile?: ProjectSnapshot["project"]["profile"];
-    brief?: Partial<CreativeBrief>;
-  }): ProjectState {
-    const projectId = createId("project");
-    const rootPath = join(this.workspaceRoot, "projects", projectId);
-    for (const directory of ["assets/source", "assets/proxy", "assets/voice-reference", "assets/speech", "assets/actor", "assets/derived", "previews", "exports", "cache", "reports"]) {
-      mkdirSync(join(rootPath, directory), { recursive: true });
-    }
-    const snapshot = createProjectSnapshot({ projectId, rootPath, name: input.name, profile: input.profile, brief: input.brief });
-    const revision: RevisionRecord = {
-      id: createId("revision"),
-      projectId,
-      number: 1,
-      summary: "创建项目",
-      snapshot,
-      impact: emptyImpact(),
-      createdAt: now()
-    };
-    this.transaction(() => {
-      this.db.prepare(`INSERT INTO projects (id, name, profile, root_path, current_revision_id, current_revision_number, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-        .run(projectId, input.name, snapshot.project.profile, rootPath, revision.id, revision.number, revision.createdAt, revision.createdAt);
-      this.insertRevision(revision);
-    });
-    return { revision, snapshot };
-  }
-
-  private insertRevision(revision: RevisionRecord): void {
-    this.db.prepare(`INSERT INTO revisions (id, project_id, revision_number, parent_id, summary, snapshot_json, impact_json, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-      .run(
-        revision.id,
-        revision.projectId,
-        revision.number,
-        revision.parentId ?? null,
-        revision.summary,
-        JSON.stringify(revision.snapshot),
-        JSON.stringify(revision.impact),
-        revision.createdAt
-      );
-  }
-
-  getProjectRow(projectId: Id): ProjectRow {
-    const row = this.db.prepare("SELECT * FROM projects WHERE id = ?").get(projectId) as ProjectRow | undefined;
-    if (!row) throw new NotFoundError(`项目不存在：${projectId}`);
-    return row;
-  }
-
-  getCurrent(projectId: Id): ProjectState {
-    const project = this.getProjectRow(projectId);
-    const row = this.db.prepare("SELECT * FROM revisions WHERE id = ?").get(project.current_revision_id) as RevisionRow | undefined;
-    if (!row) throw new NotFoundError(`项目 ${projectId} 缺少当前 Revision`);
-    const revision = this.revisionFromRow(row);
-    return { revision, snapshot: revision.snapshot };
-  }
-
-  getRevision(projectId: Id, number: number): RevisionRecord {
-    const row = this.db.prepare("SELECT * FROM revisions WHERE project_id = ? AND revision_number = ?").get(projectId, number) as RevisionRow | undefined;
-    if (!row) throw new NotFoundError(`不存在 Revision ${number}`);
-    return this.revisionFromRow(row);
-  }
-
-  listProjects(): ProjectSummary[] {
-    const rows = this.db.prepare("SELECT * FROM projects ORDER BY updated_at DESC").all() as ProjectRow[];
-    return rows.map((row) => {
-      const revisionRow = this.db.prepare("SELECT snapshot_json FROM revisions WHERE id = ?").get(row.current_revision_id) as { snapshot_json: string };
-      const snapshot = normalizeSnapshot(JSON.parse(revisionRow.snapshot_json) as ProjectSnapshot);
-      return {
-        id: row.id,
-        name: row.name,
-        profile: row.profile as ProjectSnapshot["project"]["profile"],
-        currentRevision: row.current_revision_number,
-        updatedAt: row.updated_at,
-        durationInFrames: snapshot.timeline.durationInFrames,
-        assetCount: snapshot.assets.length
-      };
-    });
-  }
-
-  listRevisions(projectId: Id): Array<Pick<RevisionRecord, "id" | "number" | "summary" | "createdAt" | "impact">> {
-    this.getProjectRow(projectId);
-    const rows = this.db.prepare(`SELECT id, revision_number, summary, impact_json, created_at
-      FROM revisions WHERE project_id = ? ORDER BY revision_number DESC`).all(projectId) as RevisionSummaryRow[];
-    return rows.map((row) => ({
-      id: row.id,
-      number: row.revision_number,
-      summary: row.summary,
-      createdAt: row.created_at,
-      impact: JSON.parse(row.impact_json) as ImpactReport
-    }));
-  }
-
-  commit(projectId: Id, baseRevision: number, summary: string, mutate: (snapshot: ProjectSnapshot, impact: ImpactReport) => void): ProjectState {
-    return this.transaction(() => {
-      const current = this.getCurrent(projectId);
-      if (current.revision.number !== baseRevision) {
-        throw new RevisionConflictError(baseRevision, current.revision.number);
-      }
-      const snapshot = cloneSnapshot(current.snapshot);
-      const impact = emptyImpact();
-      mutate(snapshot, impact);
-      snapshot.project.updatedAt = now();
-      assertTimelineValid(snapshot);
-      assertProjectGraphValid(snapshot);
-      const revision: RevisionRecord = {
-        id: createId("revision"),
-        projectId,
-        number: current.revision.number + 1,
-        parentId: current.revision.id,
-        summary,
-        snapshot,
-        impact,
-        createdAt: now()
-      };
-      this.insertRevision(revision);
-      this.db.prepare(`UPDATE projects SET name = ?, profile = ?, current_revision_id = ?, current_revision_number = ?, updated_at = ? WHERE id = ?`)
-        .run(snapshot.project.name, snapshot.project.profile, revision.id, revision.number, revision.createdAt, projectId);
-      return { revision, snapshot };
-    });
-  }
-
-  createJob(input: { projectId: Id; kind: JobKind; payload: Record<string, unknown>; idempotencyKey: string }): JobRecord {
-    this.getProjectRow(input.projectId);
-    const existing = this.db.prepare("SELECT * FROM jobs WHERE project_id = ? AND idempotency_key = ?").get(input.projectId, input.idempotencyKey) as JobRow | undefined;
-    if (existing) return this.jobFromRow(existing);
-    const createdAt = now();
-    const job: JobRecord = {
-      id: createId("job"),
-      projectId: input.projectId,
-      kind: input.kind,
-      status: "queued",
-      payload: input.payload,
-      idempotencyKey: input.idempotencyKey,
-      attempt: 0,
-      createdAt,
-      updatedAt: createdAt
-    };
-    this.db.prepare(`INSERT INTO jobs (id, project_id, kind, status, payload_json, result_json, error, idempotency_key, attempt, lease_until, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, NULL, ?, ?)`)
-      .run(job.id, job.projectId, job.kind, job.status, JSON.stringify(job.payload), job.idempotencyKey, job.attempt, job.createdAt, job.updatedAt);
-    return job;
-  }
-
-  listJobs(projectId: Id): JobRecord[] {
-    this.getProjectRow(projectId);
-    const rows = this.db.prepare("SELECT * FROM jobs WHERE project_id = ? ORDER BY created_at DESC").all(projectId) as JobRow[];
-    return rows.map((row) => this.jobFromRow(row));
-  }
-
-  getJob(jobId: Id): JobRecord {
-    const row = this.db.prepare("SELECT * FROM jobs WHERE id = ?").get(jobId) as JobRow | undefined;
-    if (!row) throw new NotFoundError(`任务不存在：${jobId}`);
-    return this.jobFromRow(row);
-  }
-
-  claimNextJob(kinds?: JobKind[], leaseMilliseconds = 60_000): JobRecord | undefined {
-    return this.transaction(() => {
-      const nowIso = now();
-      const kindsClause = kinds?.length ? `AND kind IN (${kinds.map(() => "?").join(",")})` : "";
-      const parameters = kinds?.length ? [nowIso, ...kinds] : [nowIso];
-      const row = this.db.prepare(`SELECT * FROM jobs WHERE (status = 'queued' OR (status = 'running' AND lease_until < ?)) ${kindsClause} ORDER BY created_at ASC LIMIT 1`).get(...parameters) as JobRow | undefined;
-      if (!row) return undefined;
-      const leaseUntil = new Date(Date.now() + leaseMilliseconds).toISOString();
-      const updatedAt = now();
-      this.db.prepare("UPDATE jobs SET status = 'running', attempt = attempt + 1, lease_until = ?, updated_at = ? WHERE id = ?")
-        .run(leaseUntil, updatedAt, row.id);
-      return this.getJob(row.id);
-    });
-  }
-
-  renewJobLease(jobId: Id, leaseMilliseconds = 60_000): JobRecord {
-    const job = this.getJob(jobId);
-    if (job.status !== "running") {
-      throw new DomainError(`任务 ${jobId} 当前不是运行状态，不能续租`, "JOB_NOT_RUNNING");
-    }
-    const leaseUntil = new Date(Date.now() + leaseMilliseconds).toISOString();
-    this.db.prepare("UPDATE jobs SET lease_until = ?, updated_at = ? WHERE id = ?")
-      .run(leaseUntil, now(), jobId);
-    return this.getJob(jobId);
-  }
-
-  updateJob(jobId: Id, input: { status: JobStatus; result?: Record<string, unknown>; error?: string; leaseUntil?: string }): JobRecord {
-    const old = this.getJob(jobId);
-    this.db.prepare("UPDATE jobs SET status = ?, result_json = ?, error = ?, lease_until = ?, updated_at = ? WHERE id = ?")
-      .run(input.status, input.result ? JSON.stringify(input.result) : old.result ? JSON.stringify(old.result) : null, input.error ?? null, input.leaseUntil ?? null, now(), jobId);
-    return this.getJob(jobId);
-  }
-
-  createExportArtifact(artifact: ExportArtifact): ExportArtifact {
-    this.getProjectRow(artifact.projectId);
-    this.getRevision(artifact.projectId, artifact.revision);
-    const job = this.getJob(artifact.jobId);
-    const jobPurpose = job.payload.purpose === "draft" ? "draft" : "delivery";
-    if (job.projectId !== artifact.projectId || job.kind !== "export" || Number(job.payload.revision) !== artifact.revision || jobPurpose !== artifact.purpose) {
-      throw new DomainError("ExportArtifact 必须绑定同一项目的 Export Job", "EXPORT_ARTIFACT_JOB_MISMATCH");
-    }
-    const existing = this.db.prepare("SELECT * FROM export_artifacts WHERE project_id = ? AND job_id = ?")
-      .get(artifact.projectId, artifact.jobId) as ExportArtifactRow | undefined;
-    if (existing) return this.exportArtifactFromRow(existing);
-    this.db.prepare(`INSERT INTO export_artifacts (id, project_id, revision_number, job_id, artifact_json, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)`)
-      .run(artifact.id, artifact.projectId, artifact.revision, artifact.jobId, JSON.stringify(artifact), artifact.createdAt);
-    return artifact;
-  }
-
-  getExportArtifact(projectId: Id, artifactId: Id): ExportArtifact {
-    this.getProjectRow(projectId);
-    const row = this.db.prepare("SELECT * FROM export_artifacts WHERE id = ? AND project_id = ?")
-      .get(artifactId, projectId) as ExportArtifactRow | undefined;
-    if (!row) throw new NotFoundError(`导出产物不存在：${artifactId}`);
-    return this.exportArtifactFromRow(row);
-  }
-
-  getExportArtifactForJob(projectId: Id, jobId: Id): ExportArtifact | undefined {
-    this.getProjectRow(projectId);
-    const row = this.db.prepare("SELECT * FROM export_artifacts WHERE project_id = ? AND job_id = ?")
-      .get(projectId, jobId) as ExportArtifactRow | undefined;
-    return row ? this.exportArtifactFromRow(row) : undefined;
-  }
-
-  listExportArtifacts(projectId: Id): ExportArtifact[] {
-    this.getProjectRow(projectId);
-    const rows = this.db.prepare("SELECT * FROM export_artifacts WHERE project_id = ? ORDER BY created_at DESC")
-      .all(projectId) as ExportArtifactRow[];
-    return rows.map((row) => this.exportArtifactFromRow(row));
-  }
-
-  updateExportArtifact(projectId: Id, artifactId: Id, mutate: (artifact: ExportArtifact) => void): ExportArtifact {
-    return this.transaction(() => {
-      const artifact = this.getExportArtifact(projectId, artifactId);
-      mutate(artifact);
-      this.db.prepare("UPDATE export_artifacts SET artifact_json = ? WHERE id = ? AND project_id = ?")
-        .run(JSON.stringify(artifact), artifactId, projectId);
-      return artifact;
-    });
-  }
 }
 
 /** Editing Application 是唯一命令入口；HTTP、MCP 和 Worker 都委托这里。 */
@@ -7727,9 +7193,12 @@ export class EditingApplication {
   }
 }
 
-export function createApplication(workspaceRoot = join(process.cwd(), "workspace")): EditingApplication {
+export function createApplication(workspaceRoot = readRuntimeConfig().workspace.root): EditingApplication {
   return new EditingApplication(new ProjectRepository(workspaceRoot));
 }
+
+// 高层五阶段入口单独放置，避免日常阅读时先进入庞大的具体业务命令实现。
+export * from "./production-flow";
 
 export function resolveItemDuration(item: TimelineItem): number {
   return item.endFrame - item.startFrame;

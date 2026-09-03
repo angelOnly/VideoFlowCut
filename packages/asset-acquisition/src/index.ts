@@ -4,6 +4,7 @@ import { basename, extname, join } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { AssetCandidate, AssetRequest, MediaMetadata } from "@videocut/contracts";
+import { readRuntimeConfig } from "@videocut/project-overview";
 import { WikimediaCommonsProvider } from "./wikimedia-commons.js";
 
 /** Provider 失败会由 Job Runtime 保留为可诊断的错误码，而不是伪造空候选。 */
@@ -168,7 +169,7 @@ async function downloadHttpFile(
     expectedMimeType
   });
   const contentLength = Number(response.headers.get("content-length") ?? 0);
-  const maxBytes = Number(process.env.VIDEOCUT_MAX_ASSET_DOWNLOAD_BYTES ?? 512 * 1024 * 1024);
+  const maxBytes = readRuntimeConfig().downloads.maxAssetBytes;
   if (Number.isFinite(contentLength) && contentLength > maxBytes) {
     throw new AssetProviderError(`素材文件超过 ${Math.floor(maxBytes / 1024 / 1024)}MB 下载上限`, "ASSET_DOWNLOAD_TOO_LARGE");
   }
@@ -372,7 +373,7 @@ export class AssetProviderRegistry {
  */
 export function createDefaultAssetProviderRegistry(): AssetProviderRegistry {
   const providers: AssetProvider[] = [new WikimediaCommonsProvider()];
-  const pexelsApiKey = process.env.PEXELS_API_KEY?.trim();
+  const pexelsApiKey = readRuntimeConfig().providers.pexelsApiKey;
   if (pexelsApiKey) providers.push(new PexelsProvider(pexelsApiKey));
   return new AssetProviderRegistry(providers);
 }

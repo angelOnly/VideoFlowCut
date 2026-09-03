@@ -8,6 +8,7 @@ import { ensureBrowser, renderMedia, selectComposition } from "@remotion/rendere
 import type { EditingApplication } from "@videocut/application";
 import { EFFECT_TYPES, type AttributionManifest, type ExportArtifact, type ExportPurpose, type ExportTechnicalValidation, type JobRecord, type ProjectSnapshot, type RenderPreflight, type RenderPreflightCheck } from "@videocut/contracts";
 import { createId, DomainError, resolveCompositionReachability } from "@videocut/domain";
+import { readRuntimeConfig } from "@videocut/project-overview";
 import { canExport, evaluateQuality, requiresEditorialReview } from "@videocut/quality";
 import { probeMedia, runProcess } from "@videocut/speech";
 
@@ -37,14 +38,14 @@ const contentTypeByExtension: Record<string, string> = {
  */
 const moduleDirectory = typeof __dirname === "string"
   ? __dirname
-  : process.env.VIDEOFLOWCUT_RENDER_SOURCE_ROOT ?? join(process.cwd(), "apps", "render-worker", "src");
+  : readRuntimeConfig().runtime.renderSourceRoot ?? join(process.cwd(), "apps", "render-worker", "src");
 
 /**
  * 发行 Runtime 的 Remotion webpack 从插件缓存启动，默认只会向缓存目录寻找包。
  * 启动器显式传入宿主仓库 node_modules，避免二次打包时把 zod 等运行依赖误判为缺失。
  */
 function remotionResolveModules(existingModules: string[] | undefined): string[] | undefined {
-  const runtimeNodeModules = process.env.VIDEOFLOWCUT_NODE_MODULES;
+  const runtimeNodeModules = readRuntimeConfig().runtime.nodeModules;
   if (!runtimeNodeModules) return existingModules;
   return [...new Set([runtimeNodeModules, ...(existingModules ?? [])])];
 }
@@ -55,9 +56,10 @@ function remotionResolveModules(existingModules: string[] | undefined): string[]
  * 错误依赖仓库的 packages/ 源目录。
  */
 function remotionBundleAliasFor(entryPoint: string): Record<string, string> {
-  if (process.env.VIDEOFLOWCUT_RUNTIME_DIST || /\.cjs$/iu.test(entryPoint)) return {};
+  const runtimeConfig = readRuntimeConfig();
+  if (runtimeConfig.runtime.distributionDirectory || /\.cjs$/iu.test(entryPoint)) return {};
   return {
-    "@videocut/contracts": process.env.VIDEOFLOWCUT_REMOTION_CONTRACTS_ENTRY
+    "@videocut/contracts": runtimeConfig.runtime.remotionContractsEntry
       ?? join(moduleDirectory, "../../../packages/contracts/src/index.ts")
   };
 }
@@ -367,7 +369,7 @@ export class RevisionRenderer {
   private readonly concurrency: string | number | null;
 
   constructor(
-    entryPoint = process.env.VIDEOFLOWCUT_REMOTION_ENTRY
+    entryPoint = readRuntimeConfig().runtime.remotionEntry
       ?? join(moduleDirectory, "render-entry.tsx"),
     concurrency: string | number | null = "50%"
   ) {

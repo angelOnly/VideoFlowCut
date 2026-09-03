@@ -21,7 +21,8 @@
       "@videocut/speech": ["packages/speech-services/src/index.ts"],
       "@videocut/quality": ["packages/quality-system/src/index.ts"],
       "@videocut/job-runtime": ["packages/job-runtime/src/index.ts"],
-      "@videocut/remotion": ["packages/remotion-runtime/src/index.tsx"]
+      "@videocut/remotion": ["packages/remotion-runtime/src/index.tsx"],
+      "@videocut/project-overview": ["packages/project-overview/src/index.ts"]
     }
   },
   "include": ["apps/**/*.ts", "apps/**/*.tsx", "packages/**/*.ts", "packages/**/*.tsx", "scripts/**/*.ts", "tests/**/*.ts"]

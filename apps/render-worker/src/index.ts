@@ -1,10 +1,10 @@
-import { join } from "node:path";
 import { createApplication, type EditingApplication } from "@videocut/application";
 import { runOneQueuedJob, type JobProcessor } from "@videocut/job-runtime";
+import { readRuntimeConfig } from "@videocut/project-overview";
 import type { JobKind } from "@videocut/contracts";
 import { RevisionRenderer, runExportJob, runPreviewJob, runRenderPreflightJob } from "./exporter.js";
 
-const workspaceRoot = process.env.VIDEOCUT_WORKSPACE ?? join(process.cwd(), "workspace");
+const workspaceRoot = readRuntimeConfig().workspace.root;
 let defaultApplication: EditingApplication | undefined;
 const getDefaultApplication = () => (defaultApplication ??= createApplication(workspaceRoot));
 export const RENDER_JOB_KINDS: JobKind[] = ["preview", "render_preflight", "export"];

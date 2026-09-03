@@ -1,6 +1,7 @@
 import { openAsBlob } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { basename } from "node:path";
+import { readRuntimeConfig } from "@videocut/project-overview";
 
 export interface BridgeWorkflowField {
   id: string;
@@ -128,7 +129,7 @@ export class ComfyUIBridgeClient {
   readonly apiBaseUrl: string;
   readonly serverBaseUrl: string;
 
-  constructor(apiBaseUrl = process.env.COMFYUI_BRIDGE_URL ?? "http://127.0.0.1:8188/comfyui-bridge/v1") {
+  constructor(apiBaseUrl = readRuntimeConfig().bridge.apiBaseUrl) {
     this.apiBaseUrl = ensureNoTrailingSlash(apiBaseUrl);
     this.serverBaseUrl = serverOriginFromApiBase(this.apiBaseUrl);
   }
