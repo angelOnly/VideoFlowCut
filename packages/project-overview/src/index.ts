@@ -6,16 +6,16 @@ import { join } from "node:path";
  */
 
 export const RUNTIME_CONFIG_DEFAULTS = {
-  workspaceDirectoryName: "workspace",
-  serverHost: "127.0.0.1",
-  serverPort: 3100,
-  webOrigin: "http://127.0.0.1:5173",
-  logLevel: "info",
-  bridgeApiBaseUrl: "http://127.0.0.1:8188/comfyui-bridge/v1",
-  maxAssetDownloadBytes: 512 * 1024 * 1024,
-  maxWikimediaDownloadBytes: 256 * 1024 * 1024,
-  maxGeneratedVideoBytes: 512 * 1024 * 1024,
-  runtimeId: "manual"
+  workspaceDirectoryName: "workspace", // 未设置工作区时，在当前目录下使用的子目录名。
+  serverHost: "127.0.0.1", // 默认仅监听本机，避免开发服务意外暴露到局域网。
+  serverPort: 3100, // Server 与本地 Runtime 默认使用的 API 端口。
+  webOrigin: "http://127.0.0.1:5173", // Vite 开发工作台的默认来源地址。
+  logLevel: "info", // 未配置日志级别时的 Fastify 日志详细程度。
+  bridgeApiBaseUrl: "http://127.0.0.1:8188/comfyui-bridge/v1", // ComfyUI Bridge 的默认 HTTP API 根地址。
+  maxAssetDownloadBytes: 512 * 1024 * 1024, // 普通素材下载的最大文件体积：512 MB。
+  maxWikimediaDownloadBytes: 256 * 1024 * 1024, // Wikimedia Commons 素材下载的最大文件体积：256 MB。
+  maxGeneratedVideoBytes: 512 * 1024 * 1024, // Bridge 生成视频下载的最大文件体积：512 MB。
+  runtimeId: "manual" // 未由插件启动时，标识当前 Runtime 为手工启动实例。
 } as const;
 
 export type RuntimeEnvironment = Record<string, string | undefined>;
@@ -25,35 +25,60 @@ export type RuntimeEnvironment = Record<string, string | undefined>;
  * 因此测试或插件启动器在导入模块后修改环境变量仍保持原先的行为。
  */
 export interface RuntimeConfig {
+  /** 项目文件、数据库、受管素材和导出产物的根目录。 */
   workspace: {
+    /** 当前实际使用的工作区绝对路径。 */
     root: string;
   };
+  /** HTTP Server 和 Web 工作台之间的连接配置。 */
   http: {
+    /** Server 监听的网络地址。 */
     host: string;
+    /** Server 监听的网络端口。 */
     port: number;
+    /** 允许访问 Server 的 Web 工作台来源地址。 */
     webOrigin: string;
+    /** 是否由 Server 直接托管已构建的 Web 静态文件。 */
     serveWeb: boolean;
+    /** Fastify 日志级别。 */
     logLevel: string;
   };
+  /** 与 ComfyUI Bridge 通信的入口配置。 */
   bridge: {
+    /** Bridge HTTP API 根地址。 */
     apiBaseUrl: string;
   };
+  /** 第三方素材 Provider 的可选凭据；总览只显示是否已配置。 */
   providers: {
+    /** Pexels API 密钥；不得写入日志或 MCP 总览结果。 */
     pexelsApiKey?: string;
   };
+  /** 下载外部或生成素材时的文件大小保护阈值。 */
   downloads: {
+    /** 普通 Provider 素材的最大下载字节数。 */
     maxAssetBytes: number;
+    /** Wikimedia Commons 素材的最大下载字节数。 */
     maxWikimediaBytes: number;
+    /** Bridge 返回生成视频的最大下载字节数。 */
     maxGeneratedVideoBytes: number;
   };
+  /** 插件发行版 Runtime 和 Remotion 渲染器的可选路径与实例信息。 */
   runtime: {
+    /** 插件发行 Runtime 的根目录。 */
     distributionDirectory?: string;
+    /** Runtime 内部控制令牌；只能以“是否已配置”对外展示。 */
     runtimeToken?: string;
+    /** 用于识别当前 Runtime 实例的名称。 */
     runtimeId: string;
+    /** 已构建 Web 静态文件的目录。 */
     webRoot?: string;
+    /** 发行版 Remotion 渲染入口。 */
     remotionEntry?: string;
+    /** Remotion 额外查找依赖的 node_modules 目录。 */
     nodeModules?: string;
+    /** 开发态 Render Worker 的源码根目录。 */
     renderSourceRoot?: string;
+    /** 开发态 Remotion Contracts 的入口文件。 */
     remotionContractsEntry?: string;
   };
 }
@@ -123,6 +148,7 @@ export function applyReleaseRuntimeDefaults(
 
 /** 用户只需按这个顺序理解整条业务调用链；每一步内部实现由对应应用层封装。 */
 export const CORE_PRODUCTION_FLOW = [
+  // 第 1 步：把外部文件变成项目可追溯、可管理的素材记录。
   {
     step: 1,
     name: "素材读取",
@@ -133,6 +159,7 @@ export const CORE_PRODUCTION_FLOW = [
       { name: "ProjectRepository", kind: "持久化类" }
     ]
   },
+  // 第 2 步：从音视频中提取事实，不在此阶段替用户做创作判断。
   {
     step: 2,
     name: "理解视频",
@@ -142,12 +169,14 @@ export const CORE_PRODUCTION_FLOW = [
       { name: "EditingApplication", kind: "项目应用类" }
     ]
   },
+  // 第 3 步：依据已确认的事实形成故事与视觉计划。
   {
     step: 3,
     name: "导演规划",
     responsibility: "由主工作流组织故事、场景、人物、视觉处理和素材需求。",
     entryPoints: [{ name: "EditingApplication", kind: "项目应用类" }]
   },
+  // 第 4 步：把计划编译为实际时间线、声音和视觉内容。
   {
     step: 4,
     name: "成片生产",
@@ -159,6 +188,7 @@ export const CORE_PRODUCTION_FLOW = [
       { name: "RevisionRenderer", kind: "渲染器类" }
     ]
   },
+  // 第 5 步：通过真实预览和门禁后，固定为可交付的导出文件。
   {
     step: 5,
     name: "预览与交付",
@@ -187,18 +217,22 @@ export const KEY_APPLICATION_ENTRIES = [
 ] as const;
 
 export interface McpCapabilityGroup {
+  /** 稳定的分组标识，供测试和程序定位。 */
   id: string;
+  /** 显示给用户的能力分组名称。 */
   name: string;
+  /** 用一句话说明该分组解决的业务问题。 */
   description: string;
+  /** 属于该分组的真实 MCP 工具名；必须与 mcp.ts 注册结果一致。 */
   tools: readonly string[];
 }
 
 /** MCP 的连接入口只保留协议和公开名称；业务工具的内部实现不在总览展开。 */
 export const MCP_SERVER_DESCRIPTOR = {
-  name: "video-editor-mcp",
-  transport: "stdio",
-  entry: "video-editor-mcp 模块",
-  overviewTool: "read_project_overview"
+  name: "video-editor-mcp", // Codex 配置中注册的 MCP Server 名称。
+  transport: "stdio", // 当前通过标准输入输出与 Codex 通信，不开放额外网络端口。
+  entry: "video-editor-mcp 模块", // 启动 MCP Server 的应用模块名称。
+  overviewTool: "read_project_overview" // 用于读取本总览的只读 MCP 工具。
 } as const;
 
 /**
@@ -206,12 +240,14 @@ export const MCP_SERVER_DESCRIPTOR = {
  * tests/project-overview.test.ts 会静态比对，防止目录悄悄过期。
  */
 export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
+  // 只读入口：先看全局配置和工具目录，再选择实际业务工具。
   {
     id: "overview",
     name: "项目总览",
     description: "读取本文件汇总的配置、流程、关键入口和 MCP 目录。",
     tools: ["read_project_overview"]
   },
+  // 项目对象、Revision 和多人/多 Agent 协作的基础操作。
   {
     id: "project",
     name: "项目与协作",
@@ -222,6 +258,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
       "claim_agent_work_order", "complete_agent_work_order", "release_agent_work_order", "rollback_revision"
     ]
   },
+  // 素材文件、候选素材、来源和版权/许可信息。
   {
     id: "assets",
     name: "素材与来源",
@@ -231,6 +268,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
       "acquire_media_asset", "read_asset_provenance", "import_media", "update_asset_metadata"
     ]
   },
+  // 音频主线：转写、脚本、语音、字幕与音乐音效。
   {
     id: "speech",
     name: "转写、语音与声音",
@@ -242,12 +280,14 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
       "select_dialogue_processing_variant", "read_captions", "edit_captions", "manage_audio"
     ]
   },
+  // 人物口播和 Presenter 场景的主线组装。
   {
     id: "presenter",
     name: "人物口播主线",
     description: "组装 A-roll、人物场景和人物语音时间线。",
     tools: ["assemble_presenter_track", "compile_presenter_scenes", "create_presenter_timeline", "align_presenter_to_speech"]
   },
+  // 以旁白、证据、数据或 UI 解释为主的片型。
   {
     id: "explainer",
     name: "视觉解释片",
@@ -257,6 +297,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
       "read_explainer_scene_programs", "compile_explainer_scenes"
     ]
   },
+  // 实拍事件驱动的 Vlog，以及多机位同步和切换。
   {
     id: "vlog_multicam",
     name: "Vlog 与多机位",
@@ -267,6 +308,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
       "verify_multicam_group", "manage_multicam_cuts", "compile_multicam_program"
     ]
   },
+  // 生成内容与数字人物的可验证任务和能力记录。
   {
     id: "generation_actor",
     name: "生成与人物能力",
@@ -276,6 +318,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
       "manage_actor_capabilities", "manage_actor_performance", "submit_avatar_job"
     ]
   },
+  // 场景、视觉处理、Cutaway、效果和时间线的编排操作。
   {
     id: "timeline_visuals",
     name: "场景、视觉与时间线",
@@ -285,6 +328,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
       "browse_effect_types", "manage_effect_cues", "move_item", "preview_timeline"
     ]
   },
+  // 生产运行、创作决定、质量报告和连续预览证据。
   {
     id: "production_quality",
     name: "生产与质量",
@@ -295,6 +339,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
       "inspect_composed_frames"
     ]
   },
+  // 导出、渲染预检、Artifact 审核与异步任务查询。
   {
     id: "delivery",
     name: "交付与异步任务",
@@ -308,17 +353,23 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
 
 /** Node 服务、Worker 与发行 Runtime 的环境变量目录；敏感值只展示“是否已配置”。 */
 export const NODE_RUNTIME_CONFIGURATION_CATALOG = [
+  // 工作区：所有项目级持久化数据的落盘位置。
   { key: "VIDEOCUT_WORKSPACE", group: "工作区", description: "项目数据库、素材与导出目录", defaultValue: "<cwd>/workspace" },
+  // HTTP：本地 Server、Web 工作台与日志的连接配置。
   { key: "HOST", group: "HTTP", description: "Server 与 Runtime 监听地址", defaultValue: RUNTIME_CONFIG_DEFAULTS.serverHost },
   { key: "PORT", group: "HTTP", description: "Server 与 Runtime 监听端口", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.serverPort) },
   { key: "WEB_ORIGIN", group: "HTTP", description: "开发态 Web 工作台地址", defaultValue: RUNTIME_CONFIG_DEFAULTS.webOrigin },
   { key: "SERVE_WEB", group: "HTTP", description: "Server 是否托管静态 Web 产物", defaultValue: "false" },
   { key: "LOG_LEVEL", group: "HTTP", description: "Fastify 日志级别", defaultValue: RUNTIME_CONFIG_DEFAULTS.logLevel },
+  // Bridge：所有 ComfyUI Bridge HTTP 调用共用的地址。
   { key: "COMFYUI_BRIDGE_URL", group: "Bridge", description: "ComfyUI Bridge HTTP API 根地址", defaultValue: RUNTIME_CONFIG_DEFAULTS.bridgeApiBaseUrl },
+  // Provider：第三方素材服务的凭据；密钥不会出现在项目总览响应中。
   { key: "PEXELS_API_KEY", group: "Provider", description: "启用 Pexels 素材 Provider 的密钥", sensitive: true },
+  // 下载限制：防止单个外部文件异常占满工作区磁盘。
   { key: "VIDEOCUT_MAX_ASSET_DOWNLOAD_BYTES", group: "下载限制", description: "普通 Provider 素材下载上限", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.maxAssetDownloadBytes) },
   { key: "VIDEOCUT_MAX_WIKIMEDIA_DOWNLOAD_BYTES", group: "下载限制", description: "Wikimedia Commons 下载上限", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.maxWikimediaDownloadBytes) },
   { key: "VIDEOCUT_MAX_GENERATED_VIDEO_BYTES", group: "下载限制", description: "Bridge 生成视频下载上限", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.maxGeneratedVideoBytes) },
+  // 发行 Runtime：插件打包版本定位 Web、Remotion 与开发回退路径所需的信息。
   { key: "VIDEOFLOWCUT_RUNTIME_DIST", group: "发行 Runtime", description: "插件发行运行时目录" },
   { key: "VIDEOFLOWCUT_WEB_ROOT", group: "发行 Runtime", description: "静态 Web 产物目录" },
   { key: "VIDEOFLOWCUT_REMOTION_ENTRY", group: "发行 Runtime", description: "发行版 Remotion 入口" },
@@ -334,6 +385,7 @@ export const NODE_RUNTIME_CONFIGURATION_CATALOG = [
  * 但 project-overview 不会被 Web 打包入口导入，避免把 Node 依赖带进浏览器。
  */
 export const WEB_CONFIGURATION_CATALOG = [
+  // 浏览器向 Server 请求 API 的地址；开发、生产默认值不同。
   {
     key: "VITE_API_BASE",
     group: "Web API",
@@ -341,6 +393,7 @@ export const WEB_CONFIGURATION_CATALOG = [
     source: "apps/web/src/api.ts",
     description: "Web 工作台请求 API 的基础地址；开发态默认 http://127.0.0.1:3100，生产态默认当前页面来源。"
   },
+  // Vite 自带的构建环境标记，不是项目维护者手动设置的变量。
   {
     key: "DEV",
     group: "Web API",
@@ -348,6 +401,7 @@ export const WEB_CONFIGURATION_CATALOG = [
     source: "apps/web/src/api.ts",
     description: "判断当前是否为 Vite 开发态；它不是用户设置的环境变量。"
   },
+  // 本地 Vite 工作台的固定监听地址，方便一眼查到开发访问入口。
   {
     key: "vite.server.host",
     group: "Vite 开发服务",
@@ -356,6 +410,7 @@ export const WEB_CONFIGURATION_CATALOG = [
     description: "Vite 开发服务监听地址；当前不是环境变量。",
     defaultValue: "127.0.0.1"
   },
+  // 本地 Vite 工作台的固定监听端口。
   {
     key: "vite.server.port",
     group: "Vite 开发服务",
@@ -368,6 +423,7 @@ export const WEB_CONFIGURATION_CATALOG = [
 
 /** 插件启动器自己的配置不会传给浏览器，也不会改变 Server 的 HOST / PORT 含义。 */
 export const PLUGIN_LAUNCHER_CONFIGURATION_CATALOG = [
+  // 插件启动器需先定位宿主仓库，再启动相应 Runtime。
   {
     key: "VIDEOFLOWCUT_REPO_ROOT",
     group: "插件启动器",
@@ -375,6 +431,7 @@ export const PLUGIN_LAUNCHER_CONFIGURATION_CATALOG = [
     source: "plugins/videoflowcut/scripts/runtime-launcher.mjs",
     description: "定位宿主仓库；未设置时依次尝试发行指针和插件相对目录。"
   },
+  // 插件 Runtime 独立于 Vite 的对外服务端口。
   {
     key: "VIDEOFLOWCUT_PORT",
     group: "插件启动器",
@@ -383,6 +440,7 @@ export const PLUGIN_LAUNCHER_CONFIGURATION_CATALOG = [
     description: "插件 Runtime 端口，必须是 1024 到 65535 的整数。",
     defaultValue: "3100"
   },
+  // Node 的依赖查找路径；启动器会在保留现有值的前提下追加项目依赖目录。
   {
     key: "NODE_PATH",
     group: "插件启动器",
@@ -394,6 +452,7 @@ export const PLUGIN_LAUNCHER_CONFIGURATION_CATALOG = [
 
 /** 真实服务不会读取该变量；它只用于手工触发阶段 1 live E2E 的隔离工作区。 */
 export const EVALUATION_CONFIGURATION_CATALOG = [
+  // 该变量只影响手工 live E2E，不会改变普通项目的生产工作区。
   {
     key: "VIDEOCUT_LIVE_WORKSPACE",
     group: "本地 E2E",
@@ -418,34 +477,34 @@ export const RUNTIME_CONFIGURATION_CATALOG = [
 export function getProjectOverview(options: ReadRuntimeConfigOptions = {}) {
   const config = readRuntimeConfig(options);
   return {
-    title: "VideoFlowCut 项目总览",
+    title: "VideoFlowCut 项目总览", // MCP 返回对象的显示标题。
     configuration: {
-      workspaceRoot: config.workspace.root,
-      http: config.http,
-      bridge: config.bridge,
-      downloads: config.downloads,
-      providers: { pexelsConfigured: Boolean(config.providers.pexelsApiKey) },
+      workspaceRoot: config.workspace.root, // 当前项目实际写入磁盘的根目录。
+      http: config.http, // Server、Web 工作台和日志配置。
+      bridge: config.bridge, // ComfyUI Bridge 的安全地址信息。
+      downloads: config.downloads, // 外部素材和生成文件的下载上限。
+      providers: { pexelsConfigured: Boolean(config.providers.pexelsApiKey) }, // 仅返回 Pexels 密钥是否存在。
       runtime: {
-        distributionDirectory: config.runtime.distributionDirectory,
-        runtimeId: config.runtime.runtimeId,
-        webRoot: config.runtime.webRoot,
-        remotionEntry: config.runtime.remotionEntry,
-        nodeModulesConfigured: Boolean(config.runtime.nodeModules),
-        renderSourceRoot: config.runtime.renderSourceRoot,
-        remotionContractsEntry: config.runtime.remotionContractsEntry,
-        runtimeTokenConfigured: Boolean(config.runtime.runtimeToken)
+        distributionDirectory: config.runtime.distributionDirectory, // 插件发行 Runtime 根目录。
+        runtimeId: config.runtime.runtimeId, // 当前 Runtime 实例标识。
+        webRoot: config.runtime.webRoot, // 静态 Web 产物目录。
+        remotionEntry: config.runtime.remotionEntry, // Remotion 渲染入口。
+        nodeModulesConfigured: Boolean(config.runtime.nodeModules), // 仅提示是否配置额外依赖路径。
+        renderSourceRoot: config.runtime.renderSourceRoot, // 开发态渲染源码目录。
+        remotionContractsEntry: config.runtime.remotionContractsEntry, // 开发态渲染契约入口。
+        runtimeTokenConfigured: Boolean(config.runtime.runtimeToken) // 仅提示内部令牌是否存在。
       }
     },
     configurationCatalog: {
-      all: RUNTIME_CONFIGURATION_CATALOG,
-      nodeRuntime: NODE_RUNTIME_CONFIGURATION_CATALOG,
-      web: WEB_CONFIGURATION_CATALOG,
-      pluginLauncher: PLUGIN_LAUNCHER_CONFIGURATION_CATALOG,
-      evaluation: EVALUATION_CONFIGURATION_CATALOG
+      all: RUNTIME_CONFIGURATION_CATALOG, // 全部可见配置项的汇总目录。
+      nodeRuntime: NODE_RUNTIME_CONFIGURATION_CATALOG, // Node Server、Worker、Runtime 的配置。
+      web: WEB_CONFIGURATION_CATALOG, // 浏览器和 Vite 开发服务的配置。
+      pluginLauncher: PLUGIN_LAUNCHER_CONFIGURATION_CATALOG, // 插件启动脚本的配置。
+      evaluation: EVALUATION_CONFIGURATION_CATALOG // 仅测试脚本使用的配置。
     },
-    coreProductionFlow: CORE_PRODUCTION_FLOW,
-    keyApplicationEntries: KEY_APPLICATION_ENTRIES,
-    mcpServer: MCP_SERVER_DESCRIPTOR,
-    mcpCapabilityGroups: MCP_CAPABILITY_GROUPS
+    coreProductionFlow: CORE_PRODUCTION_FLOW, // 用户只需按此顺序理解的五步生产链。
+    keyApplicationEntries: KEY_APPLICATION_ENTRIES, // 每一步会接触到的真实公开入口。
+    mcpServer: MCP_SERVER_DESCRIPTOR, // Codex 连接 MCP 时使用的协议入口。
+    mcpCapabilityGroups: MCP_CAPABILITY_GROUPS // MCP 工具按业务能力归类后的目录。
   };
 }
