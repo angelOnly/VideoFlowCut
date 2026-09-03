@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { appendFile, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { appendFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { ComfyUIBridgeClient, type BridgeWorkflow } from "@videocut/bridge";
+import { BridgeError, ComfyUIBridgeClient, type BridgeWorkflow } from "@videocut/bridge";
 import { sha256File } from "../apps/server/src/media-hash.js";
 
 test("本地媒体 SHA-256 按流读取，长文件哈希仍与标准结果一致", async () => {
@@ -61,5 +61,59 @@ test("Bridge multipart 上传使用文件背载 Blob，保持原有表单合同�
   } finally {
     globalThis.fetch = originalFetch;
     await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("Bridge 文件输出的相对下载地址始终从 ComfyUI 服务根地址解析", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "videocut-bridge-download-url-"));
+  const target = join(directory, "result.mp4");
+  const originalFetch = globalThis.fetch;
+  try {
+    let requestedUrl = "";
+    globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+      requestedUrl = String(input);
+      assert.equal(init?.redirect, "error", "下载 Bridge 输出时不得自动跟随 HTTP 重定向");
+      return new Response(Buffer.from("bridge-output"), { headers: { "content-type": "video/mp4" } });
+    }) as typeof fetch;
+
+    // API 路径可被部署配置带上前缀；Bridge 规定 downloadUrl 仍相对 ComfyUI 服务根地址。
+    const client = new ComfyUIBridgeClient("http://bridge.test/proxy/comfyui-bridge/v1");
+    await client.downloadOutput({
+      outputSlotId: "video",
+      displayName: "成片",
+      kind: "video",
+      downloadUrl: "/comfyui-bridge/v1/runs/run-1/outputs/output-1"
+    }, target);
+
+    assert.equal(requestedUrl, "http://bridge.test/comfyui-bridge/v1/runs/run-1/outputs/output-1");
+    assert.equal((await readFile(target, "utf8")), "bridge-output");
+  } finally {
+    globalThis.fetch = originalFetch;
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("Bridge 文件输出拒绝非单斜杠同源 downloadUrl", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = (async () => {
+      assert.fail("非法 downloadUrl 不得发起下载请求");
+    }) as typeof fetch;
+    const client = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1");
+    const invalidUrls = [
+      "http://bridge.test/comfyui-bridge/v1/runs/run-1/outputs/output-1",
+      "https://untrusted.test/output.mp4",
+      "//untrusted.test/output.mp4",
+      "/\\untrusted.test/output.mp4"
+    ];
+
+    for (const downloadUrl of invalidUrls) {
+      await assert.rejects(
+        () => client.downloadOutput({ outputSlotId: "video", displayName: "成片", kind: "video", downloadUrl }, "unused.mp4"),
+        (error: unknown) => error instanceof BridgeError && error.code === "UNSAFE_OUTPUT_DOWNLOAD_URL"
+      );
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 });

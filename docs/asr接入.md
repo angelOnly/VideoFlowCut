@@ -1,549 +1,335 @@
-# ComfyUI 已接入应用 HTTP API 调用说明
+# ComfyUI Bridge 全部应用 HTTP 接入文档
 
-本文档对应应用目录中已发布的 6 个业务应用：FunASR 本地音频转文字、OmniVoice 自动音色克隆，以及 4 个 MiniMax H3 视频生成应用。
+本文覆盖当前插件发现到的全部应用：3DGenStudio、FunASR、LTX2.3、4 个 MiniMax H3 工作流、OmniVoice，以及 2 个当前不可调用的 MiniMax 超级工作流。
 
-生成日期：2026-08-31。接口由 Comfyui-AppApi Bridge 提供。
+## 1. 使用前提与安全边界
 
-> 重要：保存或重新构建应用后，schemaVersion 可能变化。每次正式调用前都应读取工作流详情接口，使用其返回的 schemaVersion 和字段 ID；不要长期硬编码本文中的版本号。
+Bridge 基础地址为：
 
-## 已接入的业务应用
-
-| 分类      | 应用                    | 工作流 ID                            | 输入                                       | 主要输出 |
-| --------- | ----------------------- | ------------------------------------ | ------------------------------------------ | -------- |
-| funasr    | FunASR_本地音频转文字   | dd564543-d02d-4247-9e97-089417db9e7a | 音频                                       | 文本     |
-| omnivoice | OmniVoice_自动音色克隆  | ba6238d0-3ee4-41d5-a1f4-a2aefc3933ce | 参考音频、待合成文本                       | 克隆音频 |
-| minimax   | MiniMax_H3_文生视频     | 4d02d4eb-a4a5-4c13-95d5-6b6a594b4daa | 提示词、视频参数                           | 视频     |
-| minimax   | MiniMax H3 图生视频     | 96dac139-f645-46a7-8dc4-f8d1fb5586d9 | 首帧图像、提示词、视频参数                 | 视频     |
-| minimax   | MiniMax H3 首尾帧生视频 | ffa80b03-339d-47ba-b8c4-94577d52f775 | 首帧、尾帧、提示词、视频参数               | 视频     |
-| minimax   | MiniMax H3 多参考视频   | 79ae27fd-bd4d-4e67-8dc3-6fcd7e8ce09d | 图像、参考视频、参考音频、提示词、视频参数 | 视频     |
-
-说明：Bridge 当前还会列出一个名为“Bridge E2E 图像保存”的内部验证工作流；它不在应用目录的业务应用中，也不建议作为对外接口使用。
-
-## 1. 服务地址与调用流程
-
-本机默认服务地址：
-
-```
-服务根地址： http://127.0.0.1:8188
-API 根地址：  http://127.0.0.1:8188/comfyui-bridge/v1
+```text
+http://127.0.0.1:8188/comfyui-bridge/v1
 ```
 
-完整调用流程：
+服务没有内置鉴权。只应在本机或受控内网使用；不要将 ComfyUI 端口直接暴露到公网。
 
-1. 读取工作流详情，取得最新 schemaVersion、fields 和 itemSlots。
-2. 创建任务，取得 run_id。
-3. 轮询 run_id，直到状态为 succeeded 或 failed。
-4. 成功后从 outputs 取得 downloadUrl 并下载文件。
+工作流来源有两类：
 
-任务状态：
+- App Mode 工作流：`<ComfyUI 用户目录>/default/workflows/**/*.json`，只要文件存在 `extra.linearData` 就会被递归发现；
+- 静态 API 工作流：插件的 `api_workflows/**/*.bridge.json`，目前包含 Trellis2 的 GLB 生成应用。
 
-| 状态      | 含义                         |
-| --------- | ---------------------------- |
-| queued    | 已入队，尚未开始。           |
-| running   | ComfyUI 正在执行。           |
-| succeeded | 执行成功，outputs 中有结果。 |
-| failed    | 执行失败，error 中有原因。   |
+每个 App Mode 工作流将执行快照、公开输入/输出映射和源图指纹保存在同一个工作流 JSON 的 `extra.comfyuiBridge` 中。图被修改后，旧快照会保留，但其指纹不再匹配，列表会返回 `available: false`，创建任务会返回 `409`；Bridge **绝不会执行旧快照中的旧工作流**。在 ComfyUI 中等待图转换完成后正常保存一次，即会生成新快照并恢复调用。
 
-## 2. 通用接口
+## 2. 通用调用协议
 
-| 方法 | 路径                               | 用途                                           |
-| ---- | ---------------------------------- | ---------------------------------------------- |
-| GET  | /health                            | 检查 Bridge 是否可用。                         |
-| GET  | /workflows                         | 列出全部已构建的应用。                         |
-| GET  | /workflows/{workflow_id}           | 读取一个应用的最新输入、输出及 schemaVersion。 |
-| POST | /workflows/{workflow_id}/runs      | 创建一次生成任务。                             |
-| GET  | /runs/{run_id}                     | 查询任务状态和输出。                           |
-| GET  | /runs/{run_id}/outputs/{output_id} | 下载指定输出文件。                             |
+### 2.1 接口
 
-PowerShell 中可先定义：
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| `GET` | `/health` | 检查 Bridge 与可调用工作流数量 |
+| `GET` | `/workflows` | 列出全部工作流及可用状态 |
+| `GET` | `/workflows/{workflowId}` | 获取当前输入、输出和 `schemaVersion` |
+| `POST` | `/workflows/{workflowId}/runs` | 创建异步任务 |
+| `GET` | `/runs/{runId}` | 查询任务状态和结果 |
+| `GET` | `/runs/{runId}/outputs/{outputId}` | 下载文件结果 |
 
-```powershell
-$server = 'http://127.0.0.1:8188'
-$api = "$server/comfyui-bridge/v1"
-```
+每次运行前都必须重新请求工作流详情，使用刚刚返回的 `schemaVersion`。工作流重新保存后版本会改变，不能写死。
 
-健康检查：
+### 2.2 请求格式
 
-```powershell
-Invoke-RestMethod -Uri "$api/health"
-```
-
-正常响应示例：
+没有媒体输入的应用使用 JSON：
 
 ```json
 {
-  "status": "ready",
-  "protocolVersion": 1,
-  "workflowCount": 7
-}
-```
-
-列出应用：
-
-```powershell
-$catalog = Invoke-RestMethod -Uri "$api/workflows"
-$catalog.workflows | Format-Table name, id, available, schemaVersion
-```
-
-列表响应的外层结构是：
-
-```json
-{
-  "workflows": [
-    {
-      "id": "工作流 ID",
-      "name": "应用名称",
-      "available": true,
-      "reason": null,
-      "schemaVersion": "当前结构版本"
-    }
-  ]
-}
-```
-
-读取一个应用的最新结构：
-
-```powershell
-$workflowId = '4d02d4eb-a4a5-4c13-95d5-6b6a594b4daa'
-$detail = Invoke-RestMethod -Uri "$api/workflows/$workflowId"
-$detail | ConvertTo-Json -Depth 8
-```
-
-| 详情属性      | 含义                                                 |
-| ------------- | ---------------------------------------------------- |
-| schemaVersion | 创建任务时必须原样带回的版本号。                     |
-| fields        | 文本、数字、下拉等普通输入，放进 fieldValues。       |
-| itemSlots     | 图像、视频、音频输入；上传字段名为 file_ 加该项 id。 |
-| outputs       | 对外公开的输出槽位。                                 |
-| available     | 是否可执行；为 false 时查看 reason。                 |
-
-## 3. 创建任务与返回值
-
-创建任务时都要提供这个 JSON：
-
-```json
-{
-  "schemaVersion": "从详情接口获取的值",
+  "schemaVersion": "从详情接口读取",
   "fieldValues": {
-    "普通字段 ID": "字段值"
+    "字段 ID": "字段值"
   }
 }
 ```
 
-规则：
+有图片、视频或音频输入的应用使用 `multipart/form-data`：
 
-- fieldValues 的 key 必须是 fields 返回的 id，不能使用中文标签，也不能自行添加字段。
-- 未传的普通字段会使用工作流保存时的默认值。建议始终明确传入提示词，避免运行到工作流示例提示词。
-- 下拉框的值必须与详情接口 options 中的 value 完全一致。
-- 未上传媒体时，可以使用 application/json。
-- 上传任何图像、视频或音频时，必须使用 multipart/form-data，并包含名为 request 的文本字段，值为上面的 JSON。
-- 每个媒体文件字段名固定为 file_{itemSlot.id}。例如 itemSlot 的 id 为 input-39357e2212d4c8cb16fa160c，则文件字段名是 file_input-39357e2212d4c8cb16fa160c。
-- request 元数据最大 1 MB；单个上传文件最大 512 MB。
+| 表单字段 | 内容 |
+| --- | --- |
+| `request` | 上述 JSON 的字符串形式 |
+| `file_{媒体槽位 ID}` | 对应媒体文件 |
 
-创建成功返回 HTTP 201：
+例如媒体槽位 ID 为 `input-xxx` 时，文件字段名就是 `file_input-xxx`。可选媒体不上传时，直接不要传该字段；Bridge 会移除工作流中对应的示例媒体连线，避免错误复用示例文件。单文件上限为 512 MB。
+
+`fieldValues` 只能填写详情接口 `fields` 中给出的 ID；省略非必填字段会保留工作流快照的默认值。
+
+### 2.3 结果与状态
+
+创建成功返回 HTTP `201`，响应的 `id` 是 `runId`。轮询状态包括：
+
+| 状态 | 含义 |
+| --- | --- |
+| `queued` | 已提交，等待 ComfyUI 执行 |
+| `running` | 正在执行 |
+| `succeeded` | 完成；`outputs` 中有结果 |
+| `failed` | 失败；读取 `error` |
+
+文本结果直接包含在 `outputs[].text`。图片、视频、音频、GLB 等文件结果会包含：
 
 ```json
 {
-  "id": "9b27c6ab-79c7-4f9b-8f28-6f54a6ed54b3",
-  "status": "queued",
-  "error": null,
-  "outputs": []
+  "outputSlotId": "输出槽位 ID",
+  "displayName": "输出名称",
+  "kind": "image | video | audio | file",
+  "fileName": "结果文件名",
+  "mime": "MIME 类型",
+  "outputId": "本次任务的文件 ID",
+  "downloadUrl": "/comfyui-bridge/v1/runs/{runId}/outputs/{outputId}"
 }
 ```
 
-其中 id 就是后续使用的 run_id。
+`downloadUrl` 是相对 ComfyUI 服务根地址的路径，应以 `http://127.0.0.1:8188` 拼接，不能再次拼接 Bridge 基础路径。任务记录和下载索引只保存在当前 ComfyUI 进程内，成功后请及时下载。
 
-正常视频生成完成后，查询任务会得到类似结果：
+### 2.4 通用 JavaScript 调用器
 
-```json
-{
-  "id": "9b27c6ab-79c7-4f9b-8f28-6f54a6ed54b3",
-  "status": "succeeded",
-  "error": null,
-  "outputs": [
-    {
-      "outputSlotId": "output-6c7fe43db63ba2c534ab2323",
-      "displayName": "Video Combine 🎥🅥🅗🅢",
-      "kind": "video",
-      "fileName": "MiniMax_H3_00001.mp4",
-      "mime": "video/mp4",
-      "outputId": "c6aa5d40-6b51-4b70-8e06-28661073b7f2",
-      "downloadUrl": "/comfyui-bridge/v1/runs/9b27c6ab-79c7-4f9b-8f28-6f54a6ed54b3/outputs/c6aa5d40-6b51-4b70-8e06-28661073b7f2"
+下面的代码适用于本文件列出的所有可调用应用。`files` 的键为媒体槽位 ID，值为浏览器 `File` 对象；无媒体应用传空对象即可。
+
+```js
+const origin = "http://127.0.0.1:8188";
+const api = `${origin}/comfyui-bridge/v1`;
+
+async function runBridgeApplication(workflowId, fieldValues = {}, files = {}) {
+  const definitionResponse = await fetch(`${api}/workflows/${workflowId}`);
+  if (!definitionResponse.ok) throw new Error(await definitionResponse.text());
+  const definition = await definitionResponse.json();
+  if (!definition.available) throw new Error(definition.reason || "工作流当前不可调用");
+
+  const request = {
+    schemaVersion: definition.schemaVersion,
+    fieldValues,
+  };
+  const slots = Object.keys(files);
+  let response;
+  if (slots.length === 0) {
+    response = await fetch(`${api}/workflows/${workflowId}/runs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+  } else {
+    const form = new FormData();
+    form.append("request", JSON.stringify(request));
+    for (const [slotId, file] of Object.entries(files)) {
+      form.append(`file_${slotId}`, file, file.name);
     }
-  ]
-}
-```
-
-| 输出属性     | 含义                                                                                                               |
-| ------------ | ------------------------------------------------------------------------------------------------------------------ |
-| outputSlotId | 工作流公开输出槽位 ID。                                                                                            |
-| displayName  | 应用里的输出名称。                                                                                                 |
-| kind         | video、image、audio、file 或 text。FunASR 返回 text，OmniVoice 返回 audio，4 个 MiniMax 应用正常情况下返回 video。 |
-| fileName     | 输出文件名；文本输出没有该属性。                                                                                   |
-| mime         | 文件 MIME 类型；文本输出没有该属性。                                                                               |
-| outputId     | 下载 ID；文本输出没有该属性。                                                                                      |
-| downloadUrl  | 相对路径，需要在前面拼接服务根地址。                                                                               |
-
-通用轮询和下载代码：
-
-```powershell
-do {
-    Start-Sleep -Seconds 2
-    $result = Invoke-RestMethod -Uri "$api/runs/$($run.id)"
-    Write-Host "状态：$($result.status)"
-} while ($result.status -in @('queued', 'running'))
-
-if ($result.status -eq 'failed') {
-    throw "任务失败：$($result.error)"
+    response = await fetch(`${api}/workflows/${workflowId}/runs`, {
+      method: "POST",
+      body: form,
+    });
+  }
+  if (!response.ok) throw new Error(await response.text());
+  return response.json();
 }
 
-$video = $result.outputs | Where-Object { $_.kind -eq 'video' } | Select-Object -First 1
-if ($null -eq $video) {
-    throw '任务完成，但没有找到视频输出。'
+async function waitForBridgeRun(runId) {
+  while (true) {
+    const response = await fetch(`${api}/runs/${runId}`);
+    if (!response.ok) throw new Error(await response.text());
+    const run = await response.json();
+    if (run.status === "succeeded") return run;
+    if (run.status === "failed") throw new Error(run.error || "ComfyUI 执行失败");
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
 }
 
-$target = Join-Path $PWD $video.fileName
-Invoke-WebRequest -Uri ($server + $video.downloadUrl) -OutFile $target
-Write-Host "已下载：$target"
+// 文件结果下载：fetch(origin + output.downloadUrl)
 ```
 
-## 4. MiniMax H3 通用画面比例
+## 3. 当前可调用应用
 
-比例字段只能使用下列字符串：
+下方字段 ID 来自当前工作流快照，用于帮助首次接入。运行时仍以详情接口为准。
 
-| 可用值                     |
-| -------------------------- |
-| 1:1 (Square)               |
-| 2:3 (Portrait Photo)       |
-| 3:2 (Photo)                |
-| 3:4 (Portrait Standard)    |
-| 4:3 (Standard)             |
-| 9:16 (Portrait Widescreen) |
-| 16:9 (Widescreen)          |
-| 21:9 (Ultrawide)           |
+### 3.1 3DGenStudio Trellis2 Native 单图生成贴图 GLB
 
-## 5. FunASR 本地音频转文字
+| 项目 | 值 |
+| --- | --- |
+| 工作流 ID | `3dgenstudio-trellis2-native-int8` |
+| 请求方式 | multipart |
+| 必填媒体 | `file_source-image`：源图片（image） |
+| 输出 | `textured-glb`：带贴图 GLB（file） |
 
-| 项目               | 值                                                               |
-| ------------------ | ---------------------------------------------------------------- |
-| 工作流 ID          | dd564543-d02d-4247-9e97-089417db9e7a                             |
-| 当前 schemaVersion | 15c8439f2d842f50890163f2906a37465a0a0abc59aa99dd6ee04adc8ae077a0 |
-| 请求类型           | multipart/form-data，音频必传                                    |
-| 输出槽位           | output-a754f8f91fab898b68713986                                  |
+可选字段：
 
-该应用没有普通输入字段，fieldValues 传空对象即可。内部固定使用 language=auto 和 use_itn=true。请上传 ComfyUI 可以解码的音频文件，例如 mp3、wav、flac、m4a。
+| 字段 ID | 含义 | 默认值 |
+| --- | --- | --- |
+| `target-face-count` | 目标面数 | `500000` |
+| `remove-background` | 去除背景 | `true` |
+| `texture-size` | 贴图尺寸 | `2048` |
+| `seed` | 随机种子 | `1234` |
+| `upsample-resolution` | 几何上采样分辨率 | `1536` |
+| `remesh-resolution` | 重拓扑分辨率 | `768` |
+| `sign-mode` | 重拓扑符号模式：`udf` / `sdf` | `udf` |
+| `qef` | 启用 QEF | `false` |
 
-媒体输入：
+该应用还依赖本机已安装 Trellis2 Native、网格保存节点及相应模型；HTTP 任务创建成功不代表模型执行一定成功，最终以任务状态为准。
 
-| 中文含义 | 表单文件字段名                      | 必填 |
-| -------- | ----------------------------------- | ---- |
-| 音频     | file_input-5885c94eaaaea66971d2aae7 | 是   |
+### 3.2 FunASR 本地音频转文字
 
-PowerShell 7+ 调用：
+| 项目 | 值 |
+| --- | --- |
+| 工作流 ID | `dd564543-d02d-4247-9e97-089417db9e7a` |
+| 请求方式 | multipart |
+| 必填媒体 | `file_input-5885c94eaaaea66971d2aae7`：音频（audio） |
+| 标量字段 | 无 |
+| 输出 | `output-a754f8f91fab898b68713986`：文本（text） |
 
-```powershell
-$server = 'http://127.0.0.1:8188'
-$api = "$server/comfyui-bridge/v1"
-$workflowId = 'dd564543-d02d-4247-9e97-089417db9e7a'
-$detail = Invoke-RestMethod -Uri "$api/workflows/$workflowId"
-$request = @{ schemaVersion = $detail.schemaVersion; fieldValues = @{} } | ConvertTo-Json -Compress
-$form = @{ request = $request; 'file_input-5885c94eaaaea66971d2aae7' = Get-Item -LiteralPath 'E:\素材\待转写音频.mp3' }
-$run = Invoke-RestMethod -Method Post -Uri "$api/workflows/$workflowId/runs" -Form $form
-$run
+成功后从 `outputs` 中读取 `kind: "text"` 的 `text`，无需下载文件。
+
+### 3.3 LTX2.3 数字人
+
+| 项目 | 值 |
+| --- | --- |
+| 工作流 ID | `7f5e0c56-93b4-4937-b7f2-efd0f1853e33` |
+| 请求方式 | multipart |
+| 必填媒体 | `file_input-841ec65c7590d1ca16cc8693`：人物图片（image） |
+| 必填媒体 | `file_input-f6b9636fc08252300e35b9d7`：驱动音频（audio） |
+| 标量字段 | 无 |
+| 输出 | `output-b8b44adb7d4d3baedaccf80d`：视频（通常为 MP4） |
+
+示例：
+
+```js
+const run = await runBridgeApplication(
+  "7f5e0c56-93b4-4937-b7f2-efd0f1853e33",
+  {},
+  {
+    "input-841ec65c7590d1ca16cc8693": portraitFile,
+    "input-f6b9636fc08252300e35b9d7": speechFile,
+  },
+);
+const finished = await waitForBridgeRun(run.id);
+const video = finished.outputs.find((item) => item.kind === "video");
 ```
 
-curl.exe 调用：
-
-```powershell
-curl.exe -sS -X POST 'http://127.0.0.1:8188/comfyui-bridge/v1/workflows/dd564543-d02d-4247-9e97-089417db9e7a/runs' --form-string 'request={"schemaVersion":"15c8439f2d842f50890163f2906a37465a0a0abc59aa99dd6ee04adc8ae077a0","fieldValues":{}}' -F 'file_input-5885c94eaaaea66971d2aae7=@E:/素材/待转写音频.mp3;type=audio/mpeg'
-```
-
-成功后的 Bridge 输出直接包含转写文本，不需要下载文件：
-
-```json
-{
-  "status": "succeeded",
-  "outputs": [
-    {
-      "outputSlotId": "output-a754f8f91fab898b68713986",
-      "displayName": "本地 FunASR 音频转文字",
-      "kind": "text",
-      "text": "这是一段识别出来的文本。"
-    }
-  ]
-}
-```
-
-工作流同时会在本机 ComfyUI/output 目录保存一份 funasr_transcript 前缀的 txt 文件；HTTP 接口以 outputs 中的 text 为准。
-
-## 6. OmniVoice 自动音色克隆
-
-| 项目               | 值                                                               |
-| ------------------ | ---------------------------------------------------------------- |
-| 工作流 ID          | ba6238d0-3ee4-41d5-a1f4-a2aefc3933ce                             |
-| 当前 schemaVersion | c3c54039c03a3ceeacc32a0d6181a4bd8b9838204b944a31b4bd2f597099cf9c |
-| 请求类型           | multipart/form-data，参考音频必传                                |
-| 输出槽位           | output-491586216985ba5e8fe28c56                                  |
-
-该应用会把参考音频同时送给本地 FunASR 和 OmniVoice：FunASR 自动识别 reference_text，再交给 OmniVoice 克隆。因此 HTTP 调用只需提供参考音频和待合成文本，不存在需要手动传入的 reference_text 字段。
-
-普通输入：
-
-| 中文含义   | fieldValues 的 key             | 类型   | 当前默认值                                                |
-| ---------- | ------------------------------ | ------ | --------------------------------------------------------- |
-| 待合成文本 | input-caf62e956e5d99e3e2f4b68e | string | 你好，这是本地 OmniVoice 自动转写参考文本的音色克隆测试。 |
-
-媒体输入：
-
-| 中文含义 | 表单文件字段名                      | 必填 |
-| -------- | ----------------------------------- | ---- |
-| 参考音频 | file_input-1f85f7c29fbfbb2985331aae | 是   |
-
-参考音频建议为 3 至 15 秒、清晰、只含一人说话的音频。当前模型输出采样率为 24000 Hz；预览节点将音频作为临时 FLAC 文件公开，最终文件名和 MIME 类型以返回的 outputs 为准。
-
-PowerShell 7+ 调用：
-
-```powershell
-$server = 'http://127.0.0.1:8188'
-$api = "$server/comfyui-bridge/v1"
-$workflowId = 'ba6238d0-3ee4-41d5-a1f4-a2aefc3933ce'
-$detail = Invoke-RestMethod -Uri "$api/workflows/$workflowId"
-$request = @{ schemaVersion = $detail.schemaVersion; fieldValues = @{ 'input-caf62e956e5d99e3e2f4b68e' = '你好，这是一段通过本地 OmniVoice 自动音色克隆生成的语音。' } } | ConvertTo-Json -Compress -Depth 5
-$form = @{ request = $request; 'file_input-1f85f7c29fbfbb2985331aae' = Get-Item -LiteralPath 'E:\素材\参考音色.wav' }
-$run = Invoke-RestMethod -Method Post -Uri "$api/workflows/$workflowId/runs" -Form $form
-$run
-```
-
-curl.exe 调用：
-
-```powershell
-curl.exe -sS -X POST 'http://127.0.0.1:8188/comfyui-bridge/v1/workflows/ba6238d0-3ee4-41d5-a1f4-a2aefc3933ce/runs' --form-string 'request={"schemaVersion":"c3c54039c03a3ceeacc32a0d6181a4bd8b9838204b944a31b4bd2f597099cf9c","fieldValues":{"input-caf62e956e5d99e3e2f4b68e":"你好，这是一段通过本地 OmniVoice 自动音色克隆生成的语音。"}}' -F 'file_input-1f85f7c29fbfbb2985331aae=@E:/素材/参考音色.wav;type=audio/wav'
-```
-
-成功后从 outputs 中取得音频下载地址：
-
-```json
-{
-  "status": "succeeded",
-  "outputs": [
-    {
-      "outputSlotId": "output-491586216985ba5e8fe28c56",
-      "displayName": "预览克隆结果",
-      "kind": "audio",
-      "fileName": "ComfyUI_temp_xxxxx.flac",
-      "mime": "audio/flac",
-      "outputId": "输出 ID",
-      "downloadUrl": "/comfyui-bridge/v1/runs/任务 ID/outputs/输出 ID"
-    }
-  ]
-}
-```
-
-下载方式与第 3 节的通用轮询和下载代码相同；将其中筛选条件从 video 改为 audio 即可。
-
-## 7. MiniMax H3 文生视频
-
-| 项目               | 值                                                               |
-| ------------------ | ---------------------------------------------------------------- |
-| 工作流 ID          | 4d02d4eb-a4a5-4c13-95d5-6b6a594b4daa                             |
-| 当前 schemaVersion | e05f2fe8241fa9aceb4bbf0a5fada951050eaf660d4b3dc0dad80d228a033ec4 |
-| 请求类型           | application/json                                                 |
-| 输出槽位           | output-6c7fe43db63ba2c534ab2323                                  |
-
-所有普通输入均可省略，省略时使用工作流默认值：
-
-| 中文含义           | fieldValues 的 key             | 类型   | 当前默认值                 |
-| ------------------ | ------------------------------ | ------ | -------------------------- |
-| 提示词             | input-9cba93bc1180fbcd475a6981 | string | 工作流示例提示词           |
-| 视频时长（秒）     | input-ec1635efae33c980f7339d0d | number | 6                          |
-| 画面比例           | input-82c76755986379efa7f1ed67 | string | 9:16 (Portrait Widescreen) |
-| 清晰度（百万像素） | input-3d3b5074f3c4a7ee70252e54 | number | 0.9，范围 0.1 至 16        |
-| 随机种子           | input-e93ffea95203063ef1b0002f | number | 773405159843938            |
-
-PowerShell 调用：
-
-```powershell
-$server = 'http://127.0.0.1:8188'
-$api = "$server/comfyui-bridge/v1"
-$workflowId = '4d02d4eb-a4a5-4c13-95d5-6b6a594b4daa'
-$detail = Invoke-RestMethod -Uri "$api/workflows/$workflowId"
-$body = @{ schemaVersion = $detail.schemaVersion; fieldValues = @{ 'input-9cba93bc1180fbcd475a6981' = '一只橘猫坐在窗台上看雨，电影感，慢速推镜，柔和钢琴配乐。'; 'input-ec1635efae33c980f7339d0d' = 6; 'input-82c76755986379efa7f1ed67' = '16:9 (Widescreen)'; 'input-3d3b5074f3c4a7ee70252e54' = 0.9; 'input-e93ffea95203063ef1b0002f' = 123456 } } | ConvertTo-Json -Depth 5
-$run = Invoke-RestMethod -Method Post -Uri "$api/workflows/$workflowId/runs" -ContentType 'application/json; charset=utf-8' -Body $body
-$run
-```
-
-## 8. MiniMax H3 图生视频
-
-| 项目               | 值                                                               |
-| ------------------ | ---------------------------------------------------------------- |
-| 工作流 ID          | 96dac139-f645-46a7-8dc4-f8d1fb5586d9                             |
-| 当前 schemaVersion | c0b580fdabbaaabe022e186743a7541bc5490b4684d0ecc6fcc843b3051999a5 |
-| 请求类型           | multipart/form-data，首帧图像必传                                |
-| 输出槽位           | output-a4afdad358a04688707ea738                                  |
-
-普通输入：
-
-| 中文含义           | fieldValues 的 key             | 类型   | 当前默认值              |
-| ------------------ | ------------------------------ | ------ | ----------------------- |
-| 提示词             | input-430a9ac52e063fb5990c7484 | string | 工作流示例提示词        |
-| 视频时长（秒）     | input-78e423877b75bc90a4e52547 | number | 8                       |
-| 画面比例           | input-095fc48f851fa45251839c3f | string | 3:4 (Portrait Standard) |
-| 清晰度（百万像素） | input-7bfa6da95fd6cb345d72a268 | number | 0.9，范围 0.1 至 16     |
-| 随机种子           | input-9ee3d0e1afb379070c9f2ece | number | 202098902293030         |
-
-媒体输入：
-
-| 中文含义     | 表单文件字段名                      | 必填 |
-| ------------ | ----------------------------------- | ---- |
-| 参考首帧图像 | file_input-39357e2212d4c8cb16fa160c | 是   |
-
-PowerShell 7+ 调用：
-
-```powershell
-$server = 'http://127.0.0.1:8188'
-$api = "$server/comfyui-bridge/v1"
-$workflowId = '96dac139-f645-46a7-8dc4-f8d1fb5586d9'
-$detail = Invoke-RestMethod -Uri "$api/workflows/$workflowId"
-$request = @{ schemaVersion = $detail.schemaVersion; fieldValues = @{ 'input-430a9ac52e063fb5990c7484' = '镜头缓慢推进，人物自然眨眼并微笑，保持参考图像中的服装和构图。'; 'input-78e423877b75bc90a4e52547' = 8; 'input-095fc48f851fa45251839c3f' = '3:4 (Portrait Standard)'; 'input-7bfa6da95fd6cb345d72a268' = 0.9; 'input-9ee3d0e1afb379070c9f2ece' = 123456 } } | ConvertTo-Json -Compress -Depth 5
-$form = @{ request = $request; 'file_input-39357e2212d4c8cb16fa160c' = Get-Item -LiteralPath 'E:\素材\首帧.png' }
-$run = Invoke-RestMethod -Method Post -Uri "$api/workflows/$workflowId/runs" -Form $form
-$run
-```
-
-curl.exe 调用。这里的 schemaVersion 仅为当前版本；若得到 HTTP 409，请重新读取详情接口后替换。PowerShell 中请使用 curl.exe，不要使用 curl 别名。
-
-```powershell
-curl.exe -sS -X POST 'http://127.0.0.1:8188/comfyui-bridge/v1/workflows/96dac139-f645-46a7-8dc4-f8d1fb5586d9/runs' --form-string 'request={"schemaVersion":"c0b580fdabbaaabe022e186743a7541bc5490b4684d0ecc6fcc843b3051999a5","fieldValues":{"input-430a9ac52e063fb5990c7484":"镜头缓慢推进，人物自然眨眼并微笑。","input-78e423877b75bc90a4e52547":8,"input-095fc48f851fa45251839c3f":"3:4 (Portrait Standard)","input-7bfa6da95fd6cb345d72a268":0.9,"input-9ee3d0e1afb379070c9f2ece":123456}}' -F 'file_input-39357e2212d4c8cb16fa160c=@E:/素材/首帧.png;type=image/png'
-```
-
-## 9. MiniMax H3 首尾帧生视频
-
-| 项目               | 值                                                               |
-| ------------------ | ---------------------------------------------------------------- |
-| 工作流 ID          | ffa80b03-339d-47ba-b8c4-94577d52f775                             |
-| 当前 schemaVersion | b9a8e8d5c764064a86e9bb1bbb8174db93814be5831ef4aa61431499a52fe572 |
-| 请求类型           | multipart/form-data，首帧和尾帧图像必传                          |
-| 输出槽位           | output-c05cebe99263ebdc05e8d38e                                  |
-
-普通输入：
-
-| 中文含义           | fieldValues 的 key             | 类型   | 当前默认值              |
-| ------------------ | ------------------------------ | ------ | ----------------------- |
-| 提示词             | input-5a2e9f7ec4073c663eccf036 | string | 空字符串                |
-| 视频时长（秒）     | input-b587e9be1cb4fe730baeda5f | number | 10                      |
-| 画面比例           | input-194dc9fef7e731fe355fec7d | string | 3:4 (Portrait Standard) |
-| 清晰度（百万像素） | input-685cf6ed95997eef190ff5dc | number | 0.9，范围 0.1 至 16     |
-| 随机种子           | input-aa48dd9a3095a593a659cab7 | number | 573299373916122         |
-
-媒体输入：
-
-| 中文含义 | 表单文件字段名                      | 必填 |
-| -------- | ----------------------------------- | ---- |
-| 首帧图像 | file_input-e5410f0549b2698117eea16c | 是   |
-| 尾帧图像 | file_input-d6a3609e515cfe83aead3c20 | 是   |
-
-PowerShell 7+ 调用：
-
-```powershell
-$server = 'http://127.0.0.1:8188'
-$api = "$server/comfyui-bridge/v1"
-$workflowId = 'ffa80b03-339d-47ba-b8c4-94577d52f775'
-$detail = Invoke-RestMethod -Uri "$api/workflows/$workflowId"
-$request = @{ schemaVersion = $detail.schemaVersion; fieldValues = @{ 'input-5a2e9f7ec4073c663eccf036' = '镜头从首帧自然过渡到尾帧，主体持续行走，光线和服装保持连贯。'; 'input-b587e9be1cb4fe730baeda5f' = 10; 'input-194dc9fef7e731fe355fec7d' = '16:9 (Widescreen)'; 'input-685cf6ed95997eef190ff5dc' = 0.9; 'input-aa48dd9a3095a593a659cab7' = 123456 } } | ConvertTo-Json -Compress -Depth 5
-$form = @{ request = $request; 'file_input-e5410f0549b2698117eea16c' = Get-Item -LiteralPath 'E:\素材\首帧.png'; 'file_input-d6a3609e515cfe83aead3c20' = Get-Item -LiteralPath 'E:\素材\尾帧.png' }
-$run = Invoke-RestMethod -Method Post -Uri "$api/workflows/$workflowId/runs" -Form $form
-$run
-```
-
-curl.exe 调用：
-
-```powershell
-curl.exe -sS -X POST 'http://127.0.0.1:8188/comfyui-bridge/v1/workflows/ffa80b03-339d-47ba-b8c4-94577d52f775/runs' --form-string 'request={"schemaVersion":"b9a8e8d5c764064a86e9bb1bbb8174db93814be5831ef4aa61431499a52fe572","fieldValues":{"input-5a2e9f7ec4073c663eccf036":"镜头从首帧自然过渡到尾帧。","input-b587e9be1cb4fe730baeda5f":10,"input-194dc9fef7e731fe355fec7d":"16:9 (Widescreen)","input-685cf6ed95997eef190ff5dc":0.9,"input-aa48dd9a3095a593a659cab7":123456}}' -F 'file_input-e5410f0549b2698117eea16c=@E:/素材/首帧.png;type=image/png' -F 'file_input-d6a3609e515cfe83aead3c20=@E:/素材/尾帧.png;type=image/png'
-```
-
-## 10. MiniMax H3 多参考视频
-
-| 项目               | 值                                                                        |
-| ------------------ | ------------------------------------------------------------------------- |
-| 工作流 ID          | 79ae27fd-bd4d-4e67-8dc3-6fcd7e8ce09d                                      |
-| 当前 schemaVersion | 08f7abc3fc1a67567cd66aa2c0caa5ea59fcdc65329d909a97640f520bc74546          |
-| 请求类型           | 未上传媒体时可用 application/json；上传任意媒体时使用 multipart/form-data |
-| 输出槽位           | output-88829de5bdd392e91d396314                                           |
-
-所有参考媒体都是可选项。未上传某一项时，Bridge 会移除该项到生成节点的连接，不会继续使用工作流里的样例媒体。提示词中的 Picture 1 至 Picture 6 分别对应参考图像 1 至参考图像 6。
-
-普通输入：
-
-| 中文含义               | fieldValues 的 key             | 类型   | 当前默认值          |
-| ---------------------- | ------------------------------ | ------ | ------------------- |
-| 提示词                 | input-8a3551cf4e00e8f6c1227f21 | string | 工作流示例提示词    |
-| 视频时长（秒）         | input-e6d51ade08a92ce0ece3f5c6 | number | 12                  |
-| 初采画面比例           | input-9132a699ed38b888e08a5770 | string | 16:9 (Widescreen)   |
-| 初采清晰度（百万像素） | input-2673498cfad358686687df93 | number | 0.4，范围 0.1 至 16 |
-| 最终画面比例           | input-39ad94877131325afab1e27e | string | 16:9 (Widescreen)   |
-| 最终清晰度（百万像素） | input-98031c4a91bceb25a4e8479e | number | 0.9，范围 0.1 至 16 |
-| 初采随机种子           | input-3aedc32ad032bcc507395110 | number | 813357748329420     |
-| 二采随机种子           | input-30925a51399f3d64e1bc6890 | number | 398645500441357     |
-
-媒体输入：
-
-| 中文含义   | 表单文件字段名                      | 必填 |
-| ---------- | ----------------------------------- | ---- |
-| 参考图像 1 | file_input-6c34d91a401708239425b2d0 | 否   |
-| 参考图像 2 | file_input-4e3badbedb0f409ad8e4c0a1 | 否   |
-| 参考图像 3 | file_input-d42f70bdf10e7e04ab77e89b | 否   |
-| 参考图像 4 | file_input-39c9e20bfa5cdffb1507e31e | 否   |
-| 参考图像 5 | file_input-9515c1fa94d36413a37c3267 | 否   |
-| 参考图像 6 | file_input-4155d142acb167358743f81c | 否   |
-| 参考视频   | file_input-7d82d872cc299131e9b39617 | 否   |
-| 参考音频 1 | file_input-6a686c95af18351ff7f60862 | 否   |
-| 参考音频 2 | file_input-468f71c6757ad772bcab095f | 否   |
-| 参考音频 3 | file_input-26a1730b22aac74d867526b7 | 否   |
-
-PowerShell 7+ 调用。要省略某个参考项，只需删除对应的表单行：
-
-```powershell
-$server = 'http://127.0.0.1:8188'
-$api = "$server/comfyui-bridge/v1"
-$workflowId = '79ae27fd-bd4d-4e67-8dc3-6fcd7e8ce09d'
-$detail = Invoke-RestMethod -Uri "$api/workflows/$workflowId"
-$request = @{ schemaVersion = $detail.schemaVersion; fieldValues = @{ 'input-8a3551cf4e00e8f6c1227f21' = 'Picture 1 是人物外观参考，Picture 2 是场景参考。人物走进场景，镜头平稳跟拍，保留参考视频的运镜节奏。'; 'input-e6d51ade08a92ce0ece3f5c6' = 12; 'input-9132a699ed38b888e08a5770' = '16:9 (Widescreen)'; 'input-2673498cfad358686687df93' = 0.4; 'input-39ad94877131325afab1e27e' = '16:9 (Widescreen)'; 'input-98031c4a91bceb25a4e8479e' = 0.9; 'input-3aedc32ad032bcc507395110' = 123456; 'input-30925a51399f3d64e1bc6890' = 654321 } } | ConvertTo-Json -Compress -Depth 5
-$form = @{ request = $request; 'file_input-6c34d91a401708239425b2d0' = Get-Item -LiteralPath 'E:\素材\人物.png'; 'file_input-4e3badbedb0f409ad8e4c0a1' = Get-Item -LiteralPath 'E:\素材\场景.png'; 'file_input-7d82d872cc299131e9b39617' = Get-Item -LiteralPath 'E:\素材\参考运镜.mp4'; 'file_input-6a686c95af18351ff7f60862' = Get-Item -LiteralPath 'E:\素材\参考声音.wav' }
-$run = Invoke-RestMethod -Method Post -Uri "$api/workflows/$workflowId/runs" -Form $form
-$run
-```
-
-curl.exe 调用：
-
-```powershell
-curl.exe -sS -X POST 'http://127.0.0.1:8188/comfyui-bridge/v1/workflows/79ae27fd-bd4d-4e67-8dc3-6fcd7e8ce09d/runs' --form-string 'request={"schemaVersion":"08f7abc3fc1a67567cd66aa2c0caa5ea59fcdc65329d909a97640f520bc74546","fieldValues":{"input-8a3551cf4e00e8f6c1227f21":"Picture 1 是人物外观参考，Picture 2 是场景参考。","input-e6d51ade08a92ce0ece3f5c6":12,"input-9132a699ed38b888e08a5770":"16:9 (Widescreen)","input-2673498cfad358686687df93":0.4,"input-39ad94877131325afab1e27e":"16:9 (Widescreen)","input-98031c4a91bceb25a4e8479e":0.9,"input-3aedc32ad032bcc507395110":123456,"input-30925a51399f3d64e1bc6890":654321}}' -F 'file_input-6c34d91a401708239425b2d0=@E:/素材/人物.png;type=image/png' -F 'file_input-4e3badbedb0f409ad8e4c0a1=@E:/素材/场景.png;type=image/png' -F 'file_input-7d82d872cc299131e9b39617=@E:/素材/参考运镜.mp4;type=video/mp4' -F 'file_input-6a686c95af18351ff7f60862=@E:/素材/参考声音.wav;type=audio/wav'
-```
-
-## 11. 错误与限制
-
-| HTTP 状态 / 状态 | 常见原因                                            | 处理方式                                                             |
-| ---------------- | --------------------------------------------------- | -------------------------------------------------------------------- |
-| 400              | 字段 ID、文件字段名、请求类型错误，或缺少必传媒体。 | 重新读取详情接口，严格使用 fields、itemSlots 返回的 id。             |
-| 404              | 工作流、任务或输出不存在。                          | 检查 workflow_id、run_id、outputId 是否正确。                        |
-| 409              | schemaVersion 已变化，或应用不可执行。              | 重新读取详情，使用新的 schemaVersion；同时查看 available 和 reason。 |
-| 413              | request 超过 1 MB，或单文件超过 512 MB。            | 缩小文本或媒体文件。                                                 |
-| 500              | Bridge 与 ComfyUI 通信异常或执行错误。              | 查看 ComfyUI 控制台，以及任务的 error。                              |
-| failed           | 任务已创建，但 ComfyUI 执行失败。                   | 查询 GET /runs/{run_id} 的 error，不要下载 outputs。                 |
-
-## 12. 对外部署注意事项
-
-- 当前接口没有鉴权机制。默认本机地址可以直接使用。
-- 不要把 8188 端口直接暴露到公网；如需局域网或公网调用，请在反向代理层增加 HTTPS、身份认证、访问控制和上传大小限制。
-- 任务记录和下载映射只保存在 ComfyUI 进程内存中。重启 ComfyUI 后，之前的 run_id 无法继续查询或下载。
-- POST 成功只代表已入队，视频仍需通过轮询确认是否生成完成。
-
-## 13. 最小联调
-
-先执行：
-
-```powershell
-Invoke-RestMethod -Uri 'http://127.0.0.1:8188/comfyui-bridge/v1/health'
-Invoke-RestMethod -Uri 'http://127.0.0.1:8188/comfyui-bridge/v1/workflows/4d02d4eb-a4a5-4c13-95d5-6b6a594b4daa'
-```
-
-然后运行第 7 节的文生视频脚本创建任务，最后使用第 3 节的轮询与下载脚本取得视频。
+### 3.4 MiniMax H3 文生视频
+
+| 项目 | 值 |
+| --- | --- |
+| 工作流 ID | `4d02d4eb-a4a5-4c13-95d5-6b6a594b4daa` |
+| 请求方式 | JSON |
+| 媒体输入 | 无 |
+| 输出 | `output-6c7fe43db63ba2c534ab2323`：视频 |
+
+| 字段 ID | 含义 |
+| --- | --- |
+| `input-9cba93bc1180fbcd475a6981` | 提示词 |
+| `input-ec1635efae33c980f7339d0d` | 视频时长（秒） |
+| `input-82c76755986379efa7f1ed67` | 画面比例 |
+| `input-3d3b5074f3c4a7ee70252e54` | 清晰度（百万像素） |
+| `input-e93ffea95203063ef1b0002f` | 随机种子 |
+
+### 3.5 MiniMax H3 图生视频
+
+| 项目 | 值 |
+| --- | --- |
+| 工作流 ID | `96dac139-f645-46a7-8dc4-f8d1fb5586d9` |
+| 请求方式 | multipart |
+| 必填媒体 | `file_input-39357e2212d4c8cb16fa160c`：参考首帧图像（image） |
+| 输出 | `output-a4afdad358a04688707ea738`：视频 |
+
+| 字段 ID | 含义 |
+| --- | --- |
+| `input-430a9ac52e063fb5990c7484` | 提示词 |
+| `input-78e423877b75bc90a4e52547` | 视频时长（秒） |
+| `input-095fc48f851fa45251839c3f` | 画面比例 |
+| `input-7bfa6da95fd6cb345d72a268` | 清晰度（百万像素） |
+| `input-9ee3d0e1afb379070c9f2ece` | 随机种子 |
+
+### 3.6 MiniMax H3 首尾帧生视频
+
+| 项目 | 值 |
+| --- | --- |
+| 工作流 ID | `ffa80b03-339d-47ba-b8c4-94577d52f775` |
+| 请求方式 | multipart |
+| 必填媒体 | `file_input-e5410f0549b2698117eea16c`：首帧图像（image） |
+| 必填媒体 | `file_input-d6a3609e515cfe83aead3c20`：尾帧图像（image） |
+| 输出 | `output-c05cebe99263ebdc05e8d38e`：视频 |
+
+| 字段 ID | 含义 |
+| --- | --- |
+| `input-5a2e9f7ec4073c663eccf036` | 提示词 |
+| `input-b587e9be1cb4fe730baeda5f` | 视频时长（秒） |
+| `input-194dc9fef7e731fe355fec7d` | 画面比例 |
+| `input-685cf6ed95997eef190ff5dc` | 清晰度（百万像素） |
+| `input-aa48dd9a3095a593a659cab7` | 随机种子 |
+
+### 3.7 MiniMax H3 多参考视频
+
+| 项目 | 值 |
+| --- | --- |
+| 工作流 ID | `79ae27fd-bd4d-4e67-8dc3-6fcd7e8ce09d` |
+| 请求方式 | multipart |
+| 输出 | `output-88829de5bdd392e91d396314`：视频 |
+
+所有媒体槽位均为可选；按实际需要上传一个或多个，不上传的槽位不要提交：
+
+| 文件字段 | 媒体含义 |
+| --- | --- |
+| `file_input-6c34d91a401708239425b2d0` | 参考图像 1 |
+| `file_input-4e3badbedb0f409ad8e4c0a1` | 参考图像 2 |
+| `file_input-d42f70bdf10e7e04ab77e89b` | 参考图像 3 |
+| `file_input-39c9e20bfa5cdffb1507e31e` | 参考图像 4 |
+| `file_input-9515c1fa94d36413a37c3267` | 参考图像 5 |
+| `file_input-4155d142acb167358743f81c` | 参考图像 6 |
+| `file_input-7d82d872cc299131e9b39617` | 参考视频 |
+| `file_input-6a686c95af18351ff7f60862` | 参考音频 1 |
+| `file_input-468f71c6757ad772bcab095f` | 参考音频 2 |
+| `file_input-26a1730b22aac74d867526b7` | 参考音频 3 |
+
+| 字段 ID | 含义 |
+| --- | --- |
+| `input-8a3551cf4e00e8f6c1227f21` | 提示词 |
+| `input-e6d51ade08a92ce0ece3f5c6` | 视频时长（秒） |
+| `input-9132a699ed38b888e08a5770` | 初采画面比例 |
+| `input-2673498cfad358686687df93` | 初采清晰度（百万像素） |
+| `input-39ad94877131325afab1e27e` | 最终画面比例 |
+| `input-98031c4a91bceb25a4e8479e` | 最终清晰度（百万像素） |
+| `input-3aedc32ad032bcc507395110` | 初采随机种子 |
+| `input-30925a51399f3d64e1bc6890` | 二采随机种子 |
+
+### 3.8 OmniVoice 自动音色克隆
+
+| 项目 | 值 |
+| --- | --- |
+| 工作流 ID | `ba6238d0-3ee4-41d5-a1f4-a2aefc3933ce` |
+| 请求方式 | multipart |
+| 必填媒体 | `file_input-1f85f7c29fbfbb2985331aae`：参考音频（audio） |
+| 输出 | `output-491586216985ba5e8fe28c56`：克隆音频 |
+
+| 字段 ID | 含义 |
+| --- | --- |
+| `input-caf62e956e5d99e3e2f4b68e` | 待合成文本 |
+
+## 4. 当前不可调用的应用
+
+这两个文件同样会出现在 `/workflows`，但不能创建任务。它们不是被删除或隐藏，而是明确暴露修复原因。
+
+| 工作流 ID | 应用 | 当前原因 | 恢复方法 |
+| --- | --- | --- | --- |
+| `24073813-2bf5-44d7-8997-14ccf86bbb18` | YZ金鱼 MiniMax H3 超级多合一工作流（官方版） | 未生成 Bridge 执行快照 | 在 ComfyUI 中打开工作流，确认 App Mode 的公开输入/输出，然后等待图转换完成并正常保存。 |
+| `8088131a-5936-4f7b-aa9e-b589c5dfaa83` | YZ金鱼 MiniMax H3 超级多合一工作流（全部可用输入输出） | `expression` 公开输入无法唯一映射到执行图 | 在 App Mode 中让该公开输入只对应一个实际 Widget；若有多个同名 `expression`，分别命名或只公开正确的一个，然后正常保存。 |
+
+修复后先请求 `GET /workflows/{workflowId}`，确认 `available` 为 `true`，再按该接口实时返回的字段重新接入。
+
+## 5. 常见错误
+
+| HTTP 状态 | 原因 | 处理 |
+| --- | --- | --- |
+| `400` | 媒体字段名错误、缺少必填媒体、提交了未知字段或字段值无效 | 重新读取详情，按 `file_{slotId}` 与 `fields` 发送。 |
+| `404` | 工作流、任务或输出 ID 不存在 | 检查 ID；ComfyUI 重启后旧任务 ID 无效。 |
+| `409` | `schemaVersion` 过期，或工作流快照因图变更而失效 | 重新请求详情；若 `available: false`，在 ComfyUI 重新保存工作流。 |
+| `413` | 媒体文件或请求元数据超过限制 | 单个媒体文件需小于等于 512 MB。 |
+| `500` / `failed` | 模型、节点、显存、编码或工作流本身执行失败 | 读取 `error`，并查看 ComfyUI 控制台日志。 |
+
+## 6. 重启后的验收步骤
+
+1. 重启 ComfyUI。
+2. 请求 `GET /comfyui-bridge/v1/health`。
+3. 请求 `GET /comfyui-bridge/v1/workflows`，确认本文件第 3 节的 8 个应用显示 `available: true`。
+4. 先用 FunASR、LTX2.3 和一个 MiniMax 工作流各完成一次真实调用，确认音频上传、视频输出和可选媒体路径都正常。
+5. 对需要长期保留的文件结果，立即请求其 `downloadUrl` 保存到业务侧存储。

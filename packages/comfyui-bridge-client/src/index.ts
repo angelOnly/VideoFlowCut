@@ -90,6 +90,37 @@ export class BridgeRunLostError extends BridgeError {
 const ensureNoTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 
 /**
+ * Bridge 返回的 downloadUrl 相对于 ComfyUI 服务根地址，而不是 API 根路径。
+ * 因此即使调用方把 Bridge API 配在带前缀的反向代理路径下，下载也不能重复拼接该前缀。
+ */
+function serverOriginFromApiBase(apiBaseUrl: string): string {
+  try {
+    const parsed = new URL(apiBaseUrl);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("unsupported protocol");
+    return parsed.origin;
+  } catch {
+    throw new BridgeError("COMFYUI_BRIDGE_URL 必须是完整的 HTTP(S) 地址", undefined, apiBaseUrl, "BRIDGE_API_URL_INVALID");
+  }
+}
+
+/** Bridge 合同只允许服务根相对路径；拒绝被输出元数据引导到其他主机。 */
+function resolveSameOriginDownloadUrl(downloadUrl: string, serverBaseUrl: string): string {
+  if (!downloadUrl.startsWith("/") || downloadUrl.startsWith("//")) {
+    throw new BridgeError("Bridge 输出的 downloadUrl 必须是以单个 / 开头的同源路径", undefined, downloadUrl, "UNSAFE_OUTPUT_DOWNLOAD_URL");
+  }
+  try {
+    const resolved = new URL(downloadUrl, serverBaseUrl);
+    if (resolved.origin !== serverBaseUrl) {
+      throw new BridgeError("Bridge 输出的 downloadUrl 指向了其他服务", undefined, downloadUrl, "UNSAFE_OUTPUT_DOWNLOAD_URL");
+    }
+    return resolved.toString();
+  } catch (error) {
+    if (error instanceof BridgeError) throw error;
+    throw new BridgeError("Bridge 输出的 downloadUrl 无法解析为同源路径", undefined, downloadUrl, "UNSAFE_OUTPUT_DOWNLOAD_URL");
+  }
+}
+
+/**
  * 所有外部工作流共享这个客户端。每次提交都重新读取 Workflow 详情，
  * 因此不会把 schemaVersion、field ID 或 itemSlot ID 写死为长期合同。
  */
@@ -99,7 +130,7 @@ export class ComfyUIBridgeClient {
 
   constructor(apiBaseUrl = process.env.COMFYUI_BRIDGE_URL ?? "http://127.0.0.1:8188/comfyui-bridge/v1") {
     this.apiBaseUrl = ensureNoTrailingSlash(apiBaseUrl);
-    this.serverBaseUrl = this.apiBaseUrl.replace(/\/comfyui-bridge\/v1$/, "");
+    this.serverBaseUrl = serverOriginFromApiBase(this.apiBaseUrl);
   }
 
   async health(): Promise<{ status: string; protocolVersion?: number; workflowCount?: number }> {
@@ -181,8 +212,9 @@ export class ComfyUIBridgeClient {
 
   async downloadOutput(output: BridgeOutput, targetPath: string): Promise<void> {
     if (!output.downloadUrl) throw new BridgeError("输出缺少 downloadUrl", undefined, output, "MISSING_DOWNLOAD_URL");
-    const url = output.downloadUrl.startsWith("http") ? output.downloadUrl : `${this.serverBaseUrl}${output.downloadUrl}`;
-    const response = await fetch(url);
+    const url = resolveSameOriginDownloadUrl(output.downloadUrl, this.serverBaseUrl);
+    // 输出端点不应将本地 Worker 重定向到其他网络位置。
+    const response = await fetch(url, { redirect: "error" });
     if (!response.ok) throw new BridgeError(`下载输出失败：HTTP ${response.status}`, response.status, undefined, "OUTPUT_DOWNLOAD_FAILED");
     await writeFile(targetPath, Buffer.from(await response.arrayBuffer()));
   }
