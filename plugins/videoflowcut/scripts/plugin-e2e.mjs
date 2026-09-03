@@ -1,15 +1,16 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createRequire } from "node:module";
-import { pluginRootFromModule, resolveRepoRoot } from "./repo-root.mjs";
+import { pluginRootFromModule, resolveReleaseRuntime, resolveRepoRoot } from "./repo-root.mjs";
 import { ensureRuntime, findAvailablePort, getRuntimeStatus, stopRuntime } from "./runtime-launcher.mjs";
 
 const pluginRoot = pluginRootFromModule(import.meta.url);
 const repoRoot = resolveRepoRoot({ pluginRoot });
+const release = resolveReleaseRuntime(pluginRoot);
 const workspaceRoot = await mkdtemp(join(tmpdir(), "videoflowcut-plugin-e2e-"));
 const runtimePort = await findAvailablePort();
 const requireFromRepo = createRequire(join(repoRoot, "package.json"));
@@ -49,7 +50,7 @@ try {
   const runtimeStateName = runtimePort === 3100 ? "runtime.json" : `runtime-${runtimePort}.json`;
   await mkdir(runtimeStateDirectory, { recursive: true });
   await writeFile(join(runtimeStateDirectory, runtimeStateName), `${JSON.stringify({
-    schemaVersion: 2,
+    schemaVersion: 3,
     runtimeId: "stale-runtime",
     controlToken: "not-a-real-runtime-token",
     repoRoot,
@@ -58,6 +59,7 @@ try {
     apiUrl: `http://127.0.0.1:${runtimePort}`,
     runtimeEntry: join(pluginRoot, "runtime", "dist", "runtime.cjs"),
     distributionRoot: join(pluginRoot, "runtime", "dist"),
+    releaseId: release.releaseId,
     pid: untrustedProcess.pid
   }, null, 2)}\n`, "utf8");
   const rejectedStop = await stopRuntime({ pluginRoot, repoRoot, workspaceRoot, port: runtimePort }, { force: true });
@@ -68,10 +70,27 @@ try {
 
   const runtime = await ensureRuntime({ pluginRoot, repoRoot, workspaceRoot, port: runtimePort });
   assert.equal(runtime.ready, true, "运行器必须报告 ready");
+  assert.equal(runtime.releaseId, release.releaseId, "Runtime 状态必须包含当前构建 Release ID");
   assert.equal(runtime.port, runtimePort, "E2E 必须使用独立 Runtime 端口");
   const projects = await fetchWithTimeout(`${runtime.apiUrl}/api/projects`);
   assert.equal(projects.status, 200, "API 必须可读项目列表");
   assert.ok(Array.isArray(await projects.json()), "项目列表必须是数组");
+  const runtimeReleaseResponse = await fetchWithTimeout(`${runtime.apiUrl}/api/runtime/status`);
+  assert.equal(runtimeReleaseResponse.status, 200, "Runtime 必须提供不含控制令牌的发行状态接口");
+  const runtimeRelease = await runtimeReleaseResponse.json();
+  assert.equal(runtimeRelease.releaseId, release.releaseId, "Runtime 公开发行状态必须匹配 manifest");
+
+  // 模拟新构建落地后磁盘仍记录旧 Release 的常见切换现场：只有控制令牌认证成功，
+  // 启动器才可停止旧 Runtime 并拉起新实例；未知 PID 仍由前面的安全性用例保护。
+  const currentRuntimeStatePath = join(runtimeStateDirectory, runtimeStateName);
+  const recordedRuntime = JSON.parse(await readFile(currentRuntimeStatePath, "utf8"));
+  await writeFile(currentRuntimeStatePath, `${JSON.stringify({
+    ...recordedRuntime,
+    releaseId: `release-${"0".repeat(64)}`
+  }, null, 2)}\n`, "utf8");
+  const cutoverRuntime = await ensureRuntime({ pluginRoot, repoRoot, workspaceRoot, port: runtimePort });
+  assert.equal(cutoverRuntime.ready, true, "旧发行状态必须通过受控切换重新部署 Runtime");
+  assert.equal(cutoverRuntime.releaseId, release.releaseId, "受控切换后 Runtime 必须恢复 manifest Release ID");
   const web = await fetchWithTimeout(runtime.webUrl);
   assert.equal(web.status, 200, "Web 工作台必须可访问");
   assert.match(await web.text(), /id="root"/u, "Web 必须返回 React 根节点");
@@ -111,6 +130,8 @@ try {
   assert.ok(tools.tools.some((tool) => tool.name === "inspect_asset"), "插件 MCP 必须发现 inspect_asset");
   assert.ok(tools.tools.some((tool) => tool.name === "list_projects"), "插件 MCP 必须发现基础只读工具");
   assert.ok(tools.tools.some((tool) => tool.name === "open_web_workbench"), "插件 MCP 必须提供工作台入口");
+  assert.ok(tools.tools.some((tool) => tool.name === "read_runtime_release"), "插件 MCP 必须提供发行版本核验");
+  assert.ok(tools.tools.some((tool) => tool.name === "report_editing_blocker"), "插件 MCP 必须提供剪辑阻断报告");
   const workbench = await call("open_web_workbench", {});
   assert.equal(workbench.url, runtime.webUrl, "MCP 工作台入口必须指向同一个隔离 Runtime");
 
@@ -118,6 +139,39 @@ try {
   const sourceVideo = join(repoRoot, "videos", "数字人口播", "segment-01.mp4");
   assert.equal(existsSync(sourceVideo), true, "插件 E2E 需要 videos/数字人口播/segment-01.mp4 测试素材");
   const project = await call("create_project", { name: "插件 Runtime 媒体任务验收", profile: "presenter_motion" });
+  const releaseRead = await call("read_runtime_release", {});
+  assert.equal(releaseRead.aligned, true, "MCP 与 Runtime 必须报告同一 Release ID");
+  assert.equal(releaseRead.mcpReleaseId, release.releaseId);
+  const ticket = await call("report_editing_blocker", {
+    project_id: project.snapshot.project.id,
+    reported_revision: project.revision.number,
+    category: "tool_error",
+    summary: "E2E 验证平台修复交接，不执行临时绕过。",
+    reporter_id: "plugin-e2e-editor",
+    idempotency_key: "plugin-e2e-repair-ticket"
+  });
+  assert.equal(ticket.status, "open", "阻断报告必须写入独立 Repair Ticket");
+  const claimedTicket = await call("claim_repair_ticket", { ticket_id: ticket.id, repairer_id: "plugin-e2e-repairer" });
+  const readyTicket = await call("mark_repair_candidate_ready", {
+    ticket_id: ticket.id,
+    repairer_id: "plugin-e2e-repairer",
+    candidate_release_id: release.releaseId,
+    validation_summary: "E2E 在隔离工作区验证发行 Runtime、MCP 与健康检查。"
+  });
+  assert.equal(claimedTicket.status, "claimed");
+  assert.equal(readyTicket.status, "ready_for_cutover");
+  const deployedTicket = await call("mark_repair_deployed", {
+    ticket_id: ticket.id,
+    repairer_id: "plugin-e2e-repairer",
+    deployment_evidence: "同一 Release ID 的 MCP、Runtime、媒体 Worker 和渲染 Worker 均健康。"
+  });
+  assert.equal(deployedTicket.status, "deployed");
+  const acknowledgedTicket = await call("acknowledge_repair_deployment", {
+    ticket_id: ticket.id,
+    editor_id: "plugin-e2e-editor",
+    observed_revision: project.revision.number
+  });
+  assert.equal(acknowledgedTicket.status, "acknowledged", "剪辑任务必须在新版 MCP 实测后确认恢复");
   const imported = await call("import_media", {
     project_id: project.snapshot.project.id,
     base_revision_id: project.revision.number,

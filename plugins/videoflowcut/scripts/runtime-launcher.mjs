@@ -113,10 +113,13 @@ async function readInternalStatus(url, controlToken) {
   }
 }
 
-function isMatchingState(state, options, release) {
+/**
+ * 发行版本不同也可能是同一启动器此前创建的 Runtime。只有环境、实例标识和控制令牌
+ * 都可供后续 HTTP 认证时，才允许把它当作“可安全切换”的旧版，而非未知监听进程。
+ */
+function isManagedStateForOptions(state, options) {
   return state
-    // schema 2 明确记录发行入口，旧版 tsx Runtime 不能被当成当前发行 Runtime 复用或终止。
-    && state.schemaVersion === 2
+    && state.schemaVersion === 3
     && state.repoRoot === options.repoRoot
     && state.workspaceRoot === options.workspaceRoot
     && state.apiUrl === options.apiUrl
@@ -124,10 +127,16 @@ function isMatchingState(state, options, release) {
     && typeof state.runtimeId === "string"
     && typeof state.runtimeEntry === "string"
     && typeof state.distributionRoot === "string"
-    // 插件升级后，旧缓存的 Runtime 必须被当作未知服务，而不能跨发行物复用。
+    && typeof state.releaseId === "string";
+}
+
+function isMatchingState(state, options, release) {
+  return isManagedStateForOptions(state, options)
+    // schema 3 明确绑定构建内容；路径相同但发行物已更新时绝不能复用旧 Runtime。
     && (!release || (
       state.runtimeEntry === release.runtimeEntry
       && state.distributionRoot === release.root
+      && state.releaseId === release.releaseId
     ));
 }
 
@@ -233,7 +242,8 @@ function spawnRuntime(options, state, release) {
         VIDEOCUT_WORKSPACE: options.workspaceRoot,
         VIDEOFLOWCUT_RUNTIME_DIST: release.root,
         VIDEOFLOWCUT_RUNTIME_ID: state.runtimeId,
-        VIDEOFLOWCUT_RUNTIME_TOKEN: state.controlToken
+        VIDEOFLOWCUT_RUNTIME_TOKEN: state.controlToken,
+        VIDEOFLOWCUT_RELEASE_ID: release.releaseId
       }
     });
     child.unref();
@@ -250,6 +260,7 @@ async function waitUntilReady(options, state) {
     if (await isApiAndWebReady(options.apiUrl)) {
       const internal = await readInternalStatus(options.apiUrl, state.controlToken);
       if (internal?.status === "ready" && internal.runtimeId === state.runtimeId
+        && internal.releaseId === state.releaseId
         && internal.workers?.media === true && internal.workers?.render === true) {
         return;
       }
@@ -263,11 +274,25 @@ export async function getRuntimeStatus(rawOptions = {}) {
   const options = normalizeOptions(rawOptions);
   const release = resolveReleaseRuntime(options.pluginRoot);
   const state = await readState(options);
-  if (!isMatchingState(state, options, release)) {
+  if (!isManagedStateForOptions(state, options)) {
     return {
       configured: Boolean(state),
       ready: false,
       reason: state ? "状态文件不属于当前发行 Runtime、仓库或工作区" : "未启动"
+    };
+  }
+  if (!isMatchingState(state, options, release)) {
+    return {
+      configured: true,
+      ready: false,
+      processAlive: isProcessAlive(state.pid),
+      apiUrl: options.apiUrl,
+      webUrl: `${options.apiUrl}/`,
+      port: options.port,
+      pid: state.pid,
+      startedAt: state.startedAt,
+      releaseId: state.releaseId,
+      reason: "检测到可认证的旧发行 Runtime；运行 ensure 将执行受控切换。"
     };
   }
   const [apiReady, internal] = await Promise.all([
@@ -276,6 +301,7 @@ export async function getRuntimeStatus(rawOptions = {}) {
   ]);
   const processAlive = isProcessAlive(state.pid);
   const ready = apiReady && processAlive && internal?.status === "ready" && internal.runtimeId === state.runtimeId
+    && internal.releaseId === state.releaseId
     && internal.workers?.media === true && internal.workers?.render === true;
   return {
     configured: true,
@@ -286,6 +312,7 @@ export async function getRuntimeStatus(rawOptions = {}) {
     port: options.port,
     pid: state.pid,
     startedAt: state.startedAt,
+    releaseId: state.releaseId,
     bridge: "可选服务；不可用不会阻断基础剪辑"
   };
 }
@@ -307,6 +334,15 @@ export async function ensureRuntime(rawOptions = {}) {
         throw new Error("已有 VideoFlowCut Runtime 进程仍在启动或异常退出，请先执行 runtime-launcher.mjs stop 后重试。");
       }
       await rm(paths.state, { force: true });
+    } else if (state && isManagedStateForOptions(state, options)) {
+      // 旧 Release 不能被复用，但可先用控制令牌认证后停止，完成从 A 到 B 的受控切换。
+      const stopped = await stopRuntime(options, { force: true });
+      if (!stopped.stopped) {
+        throw new Error(`发现旧发行 Runtime，但无法安全停止：${stopped.reason ?? "控制令牌认证失败"}`);
+      }
+      if (await isPortInUse(options.port)) {
+        throw new Error(`旧发行 Runtime 停止后端口 ${options.port} 仍被占用；未覆盖未知进程。`);
+      }
     } else if (await isPortInUse(options.port)) {
       throw new Error(`端口 ${options.port} 已被未知服务占用。VideoFlowCut 不会自动终止未知进程。`);
     } else if (state) {
@@ -314,7 +350,7 @@ export async function ensureRuntime(rawOptions = {}) {
     }
 
     const nextState = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       runtimeId: randomUUID(),
       controlToken: randomUUID(),
       repoRoot: options.repoRoot,
@@ -323,6 +359,7 @@ export async function ensureRuntime(rawOptions = {}) {
       apiUrl: options.apiUrl,
       runtimeEntry: release.runtimeEntry,
       distributionRoot: release.root,
+      releaseId: release.releaseId,
       startedAt: new Date().toISOString(),
       pid: 0
     };
@@ -358,10 +395,9 @@ function terminateProcessTree(pid) {
 
 export async function stopRuntime(rawOptions = {}, { force = false } = {}) {
   const options = normalizeOptions(rawOptions);
-  const release = resolveReleaseRuntime(options.pluginRoot);
   const paths = runtimePaths(options.workspaceRoot, options.port);
   const state = await readState(options);
-  if (!isMatchingState(state, options, release)) return { stopped: false, reason: "未找到当前发行 Runtime 的状态" };
+  if (!isManagedStateForOptions(state, options)) return { stopped: false, reason: "未找到当前 Runtime 的受管状态" };
 
   let graceful = false;
   const internal = await readInternalStatus(options.apiUrl, state.controlToken);

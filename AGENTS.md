@@ -27,6 +27,16 @@
 - 代码能力、Skill、配置和路由/交接测试必须在同一个 PR 更新。
 - 创作型 Skill 以连续专业解释和案例为主体，清单只用于执行和防漏。
 
+## 双任务剪辑与平台修复边界
+
+- **剪辑任务**只通过当前 MCP Tool Schema 使用已发布能力完成视频创作；不得修改源码、`package.json`、插件启动器、发行产物、MCP 配置、服务进程或正式项目外的文件，也不得用 shell、浏览器脚本或临时代码绕过 MCP。
+- 剪辑任务遇到工具缺失、工具错误、Runtime 故障或无法继续的工作流时，立即停止该步，调用 `report_editing_blocker` 写入独立 Repair Ticket；不得自行“修好”、猜测成功、重试不确定写入，或因为报障新建视频 Revision。
+- **修复任务**只处理平台源码、测试、构建、候选 Runtime 与部署；不得创建、导入、删除或修改正式视频 Project、素材、Story、Scene、Timeline、Revision、Job 和 ExportArtifact。它可以读取 Repair Ticket 和必要的只读运行证据，但不能代替剪辑任务继续创作。
+- 两个任务可共享同一源码目录，且不要求 Git 分支或 worktree；但生产 Runtime A 必须持续服务剪辑任务，候选版 B 只能用独立端口和独立工作区验证，绝不能与 A 共用生产 `app.sqlite` 的 Worker 队列。
+- 修复必须找根因、补回归测试、构建 Release ID 并验证候选版。不得为了让当前任务通过而写临时补丁、硬编码、跳过校验、直接改插件缓存或把未验证构建称为已部署。
+- 正式切换只在候选验证完成后进行：重新部署 Runtime/MCP，确认二者的 `releaseId` 相同且 API、媒体 Worker、渲染 Worker 健康；随后由原剪辑任务重新连接 MCP，读取当前 Revision，并调用 `acknowledge_repair_deployment` 后才能继续。旧 MCP 会话不能确认新版部署。
+- Repair Ticket 只能放在 SQLite 的 `repair_tickets` 独立表，不得放进 `ProjectSnapshot`、视频 Revision、AgentWorkOrder 或素材目录；构建出的发行物只能放在 `plugins/videoflowcut/runtime/dist/`，不得手工覆盖 Codex 已安装插件缓存。
+
 ## 注意事项
 
 - 关键代码添加精炼易懂的中文注释

@@ -51,7 +51,7 @@ export type PersistenceTable = {
 /**
  * 项目 SQLite 的可读总览。
  *
- * 这里列出当前仅有的四张表、字段、实际数据库约束和应用层补充关系；
+ * 这里列出当前五张表、字段、实际数据库约束和应用层补充关系；
  * 下方 SQL 是唯一会被执行的建表来源，不能在其他位置复制 DDL。
  */
 export const PROJECT_DATABASE_TABLES: PersistenceTable[] = [
@@ -148,6 +148,47 @@ export const PROJECT_DATABASE_TABLES: PersistenceTable[] = [
       { name: "export_artifacts_project_job_unique", columns: ["project_id", "job_id"], kind: "unique", description: "一个导出任务最多登记一个产物。" },
       { name: "export_artifacts_project_created_idx", columns: ["project_id", "created_at DESC"], kind: "index", description: "按项目倒序读取导出历史。" }
     ]
+  },
+  // repair_tickets：平台修复与发行切换的协作记录，故意不放进 ProjectSnapshot 或 Revision。
+  {
+    name: "repair_tickets",
+    description: "剪辑阻断、正式修复、部署与新 MCP 确认的独立协作记录。",
+    columns: [
+      { name: "id", sqlType: "TEXT", constraints: ["PRIMARY KEY"], description: "修复工单 ID。" },
+      { name: "project_id", sqlType: "TEXT", constraints: ["NOT NULL"], description: "被阻断的视频项目。" },
+      { name: "reported_revision", sqlType: "INTEGER", constraints: ["NOT NULL"], description: "报告时所见的视频 Revision。" },
+      { name: "category", sqlType: "TEXT", constraints: ["NOT NULL"], description: "工具缺失、工具错误、Runtime 故障或工作流阻断。" },
+      { name: "summary", sqlType: "TEXT", constraints: ["NOT NULL"], description: "简短、可操作的问题摘要。" },
+      { name: "detail", sqlType: "TEXT", nullable: true, description: "已脱敏的复现事实或错误上下文。" },
+      { name: "tool_name", sqlType: "TEXT", nullable: true, description: "发生阻断的 MCP 工具名。" },
+      { name: "job_id", sqlType: "TEXT", nullable: true, description: "关联的异步任务 ID。" },
+      { name: "reporter_id", sqlType: "TEXT", constraints: ["NOT NULL"], description: "报告剪辑 Agent 的标识。" },
+      { name: "reported_release_id", sqlType: "TEXT", constraints: ["NOT NULL"], description: "报告时 MCP/Runtime 的发行版本。" },
+      { name: "idempotency_key", sqlType: "TEXT", constraints: ["NOT NULL"], description: "同一剪辑 Agent 重试报告时的幂等键。" },
+      { name: "status", sqlType: "TEXT", constraints: ["NOT NULL"], description: "open、claimed、ready_for_cutover、deployed 或 acknowledged。" },
+      { name: "repairer_id", sqlType: "TEXT", nullable: true, description: "当前接手修复的 Agent 标识。" },
+      { name: "released_by", sqlType: "TEXT", nullable: true, description: "释放已接手工单的修复 Agent。" },
+      { name: "release_reason", sqlType: "TEXT", nullable: true, description: "释放原因，供下一位修复者继续。" },
+      { name: "candidate_release_id", sqlType: "TEXT", nullable: true, description: "通过隔离验证的候选发行版本。" },
+      { name: "validation_summary", sqlType: "TEXT", nullable: true, description: "候选版本的复现与回归验证摘要。" },
+      { name: "deployed_release_id", sqlType: "TEXT", nullable: true, description: "已实际部署并由 MCP/Runtime 验证的发行版本。" },
+      { name: "deployment_evidence", sqlType: "TEXT", nullable: true, description: "部署健康检查与切换证据。" },
+      { name: "acknowledged_by", sqlType: "TEXT", nullable: true, description: "重新连接新 MCP 后确认恢复的剪辑 Agent。" },
+      { name: "acknowledged_release_id", sqlType: "TEXT", nullable: true, description: "剪辑 Agent 实际观察到的发行版本。" },
+      { name: "acknowledged_revision", sqlType: "INTEGER", nullable: true, description: "确认恢复时读到的视频 Revision。" },
+      { name: "created_at", sqlType: "TEXT", constraints: ["NOT NULL"], description: "创建时间（ISO 字符串）。" },
+      { name: "updated_at", sqlType: "TEXT", constraints: ["NOT NULL"], description: "最近状态更新时间（ISO 字符串）。" }
+    ],
+    relations: [
+      { column: "project_id", target: "projects.id", enforcement: "foreign_key", description: "SQLite 外键；工单必须属于真实项目。" },
+      { column: "reported_revision", target: "revisions.(project_id, revision_number)", enforcement: "application", description: "应用层确认报告时引用的是该项目的历史 Revision。" },
+      { column: "job_id", target: "jobs.id", enforcement: "application", description: "如果提供 Job ID，应用层确认属于同一项目。" }
+    ],
+    indexes: [
+      { name: "repair_tickets_pkey", columns: ["id"], kind: "primary_key", description: "修复工单主键。" },
+      { name: "repair_tickets_project_reporter_idempotency_unique", columns: ["project_id", "reporter_id", "idempotency_key"], kind: "unique", description: "同一剪辑 Agent 的同一阻断重试不会重复建单。" },
+      { name: "repair_tickets_project_status_updated_idx", columns: ["project_id", "status", "updated_at DESC"], kind: "index", description: "监测任务按项目和状态读取最新工单。" }
+    ]
   }
 ];
 
@@ -217,6 +258,38 @@ export const PROJECT_DATABASE_SCHEMA_SQL = `
   -- 按项目和创建时间倒序查询导出历史时使用的普通索引。
   CREATE INDEX IF NOT EXISTS export_artifacts_project_created_idx
     ON export_artifacts(project_id, created_at DESC); -- 先按项目筛选，再按最新导出排序。
+  -- repair_tickets：跨 Agent 的平台修复记录，不进入 Project Revision，避免监测行为制造剪辑冲突。
+  CREATE TABLE IF NOT EXISTS repair_tickets (
+    id TEXT PRIMARY KEY, -- 修复工单唯一 ID。
+    project_id TEXT NOT NULL, -- 被阻断的视频项目。
+    reported_revision INTEGER NOT NULL, -- 报告时读取到的项目 Revision。
+    category TEXT NOT NULL, -- 阻断类别。
+    summary TEXT NOT NULL, -- 简短问题摘要。
+    detail TEXT, -- 已脱敏的错误或复现细节。
+    tool_name TEXT, -- 关联 MCP 工具。
+    job_id TEXT, -- 可选关联 Job。
+    reporter_id TEXT NOT NULL, -- 报告剪辑 Agent。
+    reported_release_id TEXT NOT NULL, -- 报告时的发行版本。
+    idempotency_key TEXT NOT NULL, -- 避免同一阻断重复建单。
+    status TEXT NOT NULL, -- 工单生命周期状态。
+    repairer_id TEXT, -- 当前接手修复的 Agent。
+    released_by TEXT, -- 最近一次释放者。
+    release_reason TEXT, -- 释放原因。
+    candidate_release_id TEXT, -- 已验证候选版本。
+    validation_summary TEXT, -- 候选验证摘要。
+    deployed_release_id TEXT, -- 已部署版本。
+    deployment_evidence TEXT, -- 部署与健康检查证据。
+    acknowledged_by TEXT, -- 重新连接后确认的剪辑 Agent。
+    acknowledged_release_id TEXT, -- 剪辑 Agent 实测版本。
+    acknowledged_revision INTEGER, -- 确认恢复时的当前 Revision。
+    created_at TEXT NOT NULL, -- 创建时间。
+    updated_at TEXT NOT NULL, -- 更新时间。
+    UNIQUE(project_id, reporter_id, idempotency_key), -- 报告重试幂等。
+    FOREIGN KEY(project_id) REFERENCES projects(id) -- 工单必须指向真实项目。
+  );
+  -- 监测任务常按项目、状态和更新时间轮询，不扫描无关项目。
+  CREATE INDEX IF NOT EXISTS repair_tickets_project_status_updated_idx
+    ON repair_tickets(project_id, status, updated_at DESC);
 `;
 
 /** 所有 SQLite 初始化只能从这个函数进入，避免 DDL 分散到业务代码。 */

@@ -129,7 +129,7 @@ test("显式环境变量与总览配置目录严格一致", async () => {
   assert.deepEqual([...actual].sort(), [...catalogued].sort());
 });
 
-test("项目总览 MCP 可发现并返回真实四表结构，且不泄漏密钥", async () => {
+test("项目总览 MCP 可发现并返回真实五表结构，且不泄漏密钥", async () => {
   const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-overview-mcp-"));
   const inheritedEnvironment = Object.fromEntries(
     Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === "string")
@@ -155,7 +155,7 @@ test("项目总览 MCP 可发现并返回真实四表结构，且不泄漏密钥
       database: { engine: string; tables: Array<{ name: string }> };
     };
     assert.equal(overview.database.engine, "SQLite");
-    assert.deepEqual(overview.database.tables.map((table) => table.name), ["projects", "revisions", "jobs", "export_artifacts"]);
+    assert.deepEqual(overview.database.tables.map((table) => table.name), ["projects", "revisions", "jobs", "export_artifacts", "repair_tickets"]);
     assert.doesNotMatch(JSON.stringify(overview), /overview-test-pexels-secret|overview-test-runtime-secret/u);
   } finally {
     await transport.close().catch(() => undefined);

@@ -23,7 +23,9 @@ try {
       VIDEOFLOWCUT_NODE_MODULES: join(repoRoot, "node_modules"),
       VIDEOCUT_WORKSPACE: workspaceRoot,
       WEB_ORIGIN: runtime.webUrl,
-      VIDEOFLOWCUT_RUNTIME_DIST: release.root
+      VIDEOFLOWCUT_RUNTIME_DIST: release.root,
+      // MCP 必须带着与已确认 Runtime 相同的构建摘要启动；mcp.ts 会再通过公开状态接口核验。
+      VIDEOFLOWCUT_RELEASE_ID: release.releaseId
     }
   });
   const stop = () => child.kill();

@@ -27,6 +27,52 @@ const projectIdFrom = (projectId?: string) => {
   if (!resolved) throw new DomainError("请先调用 target_project 或显式传入 project_id", "PROJECT_NOT_TARGETED");
   return resolved;
 };
+
+type RuntimeReleaseStatus = {
+  status: "ready" | "stopping";
+  runtimeId: string;
+  releaseId: string;
+  workers: { media: boolean; render: boolean };
+};
+
+/** Runtime 状态接口没有控制令牌；它只提供版本一致性所需的最小健康事实。 */
+async function readRuntimeReleaseStatus(): Promise<RuntimeReleaseStatus> {
+  const endpoint = new URL("/api/runtime/status", `${webOrigin.replace(/\/$/u, "")}/`).toString();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3_000);
+  try {
+    const response = await fetch(endpoint, { signal: controller.signal });
+    if (!response.ok) throw new DomainError(`Runtime 版本状态不可用（HTTP ${response.status}）`, "RUNTIME_RELEASE_UNAVAILABLE");
+    const value = await response.json() as Partial<RuntimeReleaseStatus>;
+    if ((value.status !== "ready" && value.status !== "stopping") || typeof value.runtimeId !== "string"
+      || typeof value.releaseId !== "string" || typeof value.workers?.media !== "boolean"
+      || typeof value.workers?.render !== "boolean") {
+      throw new DomainError("Runtime 返回了无效的版本状态", "RUNTIME_RELEASE_STATUS_INVALID");
+    }
+    return value as RuntimeReleaseStatus;
+  } catch (error) {
+    if (error instanceof DomainError) throw error;
+    throw new DomainError(`无法连接 Runtime 版本状态：${error instanceof Error ? error.message : String(error)}`, "RUNTIME_RELEASE_UNAVAILABLE");
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
+ * 真正改变工单部署状态前，MCP 与 Runtime 必须报告同一个发行摘要。
+ * 这让旧会话即使还持有工具名，也不能为新版 Runtime 或候选版伪造“已部署”。
+ */
+async function requireAlignedRuntimeRelease(): Promise<RuntimeReleaseStatus> {
+  const runtime = await readRuntimeReleaseStatus();
+  const mcpReleaseId = runtimeConfig.runtime.releaseId;
+  if (runtime.releaseId !== mcpReleaseId) {
+    throw new DomainError("当前 MCP 与 Runtime 不是同一发行版本；请重新部署并重新连接 MCP", "RUNTIME_RELEASE_MISMATCH");
+  }
+  if (runtime.status !== "ready" || !runtime.workers.media || !runtime.workers.render) {
+    throw new DomainError("当前 Runtime 未完成 API、媒体 Worker 与渲染 Worker 健康检查", "RUNTIME_NOT_READY");
+  }
+  return runtime;
+}
 const kindFromPath = (path: string) => {
   const extension = extname(path).toLowerCase();
   if ([".mp4", ".mov", ".webm", ".mkv"].includes(extension)) return "video" as const;
@@ -193,6 +239,22 @@ server.registerTool("read_project_overview", {
     tables: PROJECT_DATABASE_TABLES
   }
 }));
+
+server.registerTool("read_runtime_release", {
+  title: "读取 MCP 与 Runtime 发行版本",
+  description: "只读核对当前 MCP 和 Runtime 的 Release ID、Worker 健康状态；不会部署、重启或修改视频项目。",
+  inputSchema: {},
+  annotations: { readOnlyHint: true }
+}, async () => {
+  try {
+    const runtime = await readRuntimeReleaseStatus();
+    return asText({
+      mcpReleaseId: runtimeConfig.runtime.releaseId,
+      runtime,
+      aligned: runtime.releaseId === runtimeConfig.runtime.releaseId
+    });
+  } catch (error) { return asError(error); }
+});
 
 server.registerTool("open_web_workbench", {
   title: "打开剪辑工作台",
@@ -420,6 +482,134 @@ server.registerTool("release_agent_work_order", {
   try {
     return asText(application.releaseAgentWorkOrder({
       projectId: projectIdFrom(project_id), baseRevision: base_revision_id, workOrderId: work_order_id, agentId: agent_id, reason
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("report_editing_blocker", {
+  title: "报告剪辑阻断",
+  description: "剪辑 Agent 因现有 MCP 工具缺失、报错、Runtime 故障或工作流无法继续时创建修复工单；不会创建视频 Revision、修改源码或尝试临时绕过。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    reported_revision: z.number().int().positive(),
+    category: z.enum(["tool_missing", "tool_error", "runtime_failure", "workflow_blocker"]),
+    summary: z.string().trim().min(1).max(1_000),
+    detail: z.string().trim().min(1).max(8_000).optional(),
+    tool_name: z.string().trim().min(1).max(160).optional(),
+    job_id: z.string().min(1).optional(),
+    reporter_id: z.string().trim().min(1).max(160),
+    idempotency_key: z.string().trim().min(1).max(240)
+  }
+}, async (input) => {
+  try {
+    // Runtime 恰好已不可达时仍必须能留下故障记录；报告保存 MCP 自己携带的发行摘要，
+    // 而“已部署/已恢复”两类状态才强制要求 Runtime 在线且版本一致。
+    return asText(application.reportEditingBlocker({
+      projectId: projectIdFrom(input.project_id),
+      reportedRevision: input.reported_revision,
+      category: input.category,
+      summary: input.summary,
+      detail: input.detail,
+      toolName: input.tool_name,
+      jobId: input.job_id,
+      reporterId: input.reporter_id,
+      reportedReleaseId: runtimeConfig.runtime.releaseId,
+      idempotencyKey: input.idempotency_key
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("list_repair_tickets", {
+  title: "读取修复工单",
+  description: "读取独立于视频 Revision 的平台修复工单和当前视频 Revision；只读，不会接手、部署或改动 Timeline。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    statuses: z.array(z.enum(["open", "claimed", "ready_for_cutover", "deployed", "acknowledged"])).max(5).optional()
+  },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id, statuses }) => {
+  try { return asText(application.readRepairTickets({ projectId: projectIdFrom(project_id), statuses })); } catch (error) { return asError(error); }
+});
+
+server.registerTool("claim_repair_ticket", {
+  title: "接手平台修复工单",
+  description: "修复 Agent 接手一条待处理平台工单。报告剪辑 Agent 不能自行接手，且接手不授予修改正式视频项目的权限。",
+  inputSchema: {
+    ticket_id: z.string().min(1),
+    repairer_id: z.string().trim().min(1).max(160)
+  }
+}, async ({ ticket_id, repairer_id }) => {
+  try { return asText(application.claimRepairTicket({ ticketId: ticket_id, repairerId: repairer_id })); } catch (error) { return asError(error); }
+});
+
+server.registerTool("release_repair_ticket", {
+  title: "释放平台修复工单",
+  description: "原接手修复 Agent 无法继续时释放工单，保留原因供下一位修复者复现；不会把未完成修复伪装成已部署。",
+  inputSchema: {
+    ticket_id: z.string().min(1),
+    repairer_id: z.string().trim().min(1).max(160),
+    reason: z.string().trim().min(1).max(4_000)
+  }
+}, async ({ ticket_id, repairer_id, reason }) => {
+  try { return asText(application.releaseRepairTicket({ ticketId: ticket_id, repairerId: repairer_id, reason })); } catch (error) { return asError(error); }
+});
+
+server.registerTool("mark_repair_candidate_ready", {
+  title: "标记修复候选版就绪",
+  description: "记录已在独立工作区和独立端口完成复现与回归的候选 Release ID；不切换正式 Runtime，也不修改正式视频数据。",
+  inputSchema: {
+    ticket_id: z.string().min(1),
+    repairer_id: z.string().trim().min(1).max(160),
+    candidate_release_id: z.string().regex(/^release-[a-f0-9]{64}$/u),
+    validation_summary: z.string().trim().min(1).max(8_000)
+  }
+}, async ({ ticket_id, repairer_id, candidate_release_id, validation_summary }) => {
+  try {
+    return asText(application.markRepairTicketReadyForCutover({
+      ticketId: ticket_id,
+      repairerId: repairer_id,
+      candidateReleaseId: candidate_release_id,
+      validationSummary: validation_summary
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("mark_repair_deployed", {
+  title: "确认修复版已部署",
+  description: "仅当当前 MCP 与 Runtime 均报告同一健康 Release ID 时，才把已验证候选版记为部署完成；旧 MCP 或旧 Runtime 无法确认。",
+  inputSchema: {
+    ticket_id: z.string().min(1),
+    repairer_id: z.string().trim().min(1).max(160),
+    deployment_evidence: z.string().trim().min(1).max(8_000)
+  }
+}, async ({ ticket_id, repairer_id, deployment_evidence }) => {
+  try {
+    const runtime = await requireAlignedRuntimeRelease();
+    return asText(application.markRepairTicketDeployed({
+      ticketId: ticket_id,
+      repairerId: repairer_id,
+      releaseId: runtime.releaseId,
+      deploymentEvidence: deployment_evidence
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("acknowledge_repair_deployment", {
+  title: "确认新版 MCP 后恢复剪辑",
+  description: "原报告阻断的剪辑 Agent 在重新连接 MCP 后，用当前 Revision 与实际 Runtime Release ID 确认恢复；确认后才可继续剪辑。",
+  inputSchema: {
+    ticket_id: z.string().min(1),
+    editor_id: z.string().trim().min(1).max(160),
+    observed_revision: z.number().int().positive()
+  }
+}, async ({ ticket_id, editor_id, observed_revision }) => {
+  try {
+    const runtime = await requireAlignedRuntimeRelease();
+    return asText(application.acknowledgeRepairTicketDeployment({
+      ticketId: ticket_id,
+      editorId: editor_id,
+      releaseId: runtime.releaseId,
+      observedRevision: observed_revision
     }));
   } catch (error) { return asError(error); }
 });

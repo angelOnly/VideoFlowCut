@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, relative } from "node:path";
-import { pluginRootFromModule, resolveRepoRoot } from "./repo-root.mjs";
+import { pluginRootFromModule, resolveReleaseRuntime, resolveRepoRoot } from "./repo-root.mjs";
 
 const pluginRoot = pluginRootFromModule(import.meta.url);
 const repoRoot = resolveRepoRoot({ pluginRoot });
@@ -83,12 +83,14 @@ if (generatedSharedMetadata?.replace(/\r\n/g, "\n") !== expectedGeneratedSharedM
 
 await Promise.all(releaseFiles.map(([label, path]) => requireNonEmptyFile(label, path)));
 const releaseManifest = JSON.parse(await readFile(join(runtimeRoot, "manifest.json"), "utf8"));
-if (releaseManifest.schemaVersion !== 1 || releaseManifest.format !== "commonjs"
+if (releaseManifest.schemaVersion !== 2 || releaseManifest.format !== "commonjs"
   || releaseManifest.runtimeEntry !== "runtime.cjs" || releaseManifest.mcpEntry !== "mcp.cjs"
   || releaseManifest.remotionEntry !== "remotion/render-entry.cjs" || releaseManifest.webRoot !== "web"
-  || releaseManifest.nodeRuntime !== ">=22.5.0") {
+  || releaseManifest.nodeRuntime !== ">=22.5.0" || !/^release-[a-f0-9]{64}$/u.test(releaseManifest.releaseId ?? "")) {
   throw new Error("插件发行 Runtime manifest 与启动约定不一致。请重新执行 npm run plugin:build。");
 }
+// 启动器也会执行这一校验；verify 提前失败让“只改 manifest”的伪发行无法进入部署流程。
+resolveReleaseRuntime(pluginRoot);
 await Promise.all([
   "repo-root.mjs",
   "runtime-launcher.mjs",

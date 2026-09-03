@@ -9,6 +9,8 @@ import type {
   JobKind,
   JobRecord,
   JobStatus,
+  RepairTicket,
+  RepairTicketStatus,
   ProjectSnapshot,
   ProjectSummary,
   RevisionRecord
@@ -74,6 +76,33 @@ type ExportArtifactRow = {
   job_id: Id;
   artifact_json: string;
   created_at: string;
+};
+
+type RepairTicketRow = {
+  id: Id;
+  project_id: Id;
+  reported_revision: number;
+  category: RepairTicket["category"];
+  summary: string;
+  detail: string | null;
+  tool_name: string | null;
+  job_id: Id | null;
+  reporter_id: string;
+  reported_release_id: string;
+  idempotency_key: string;
+  status: RepairTicketStatus;
+  repairer_id: string | null;
+  released_by: string | null;
+  release_reason: string | null;
+  candidate_release_id: string | null;
+  validation_summary: string | null;
+  deployed_release_id: string | null;
+  deployment_evidence: string | null;
+  acknowledged_by: string | null;
+  acknowledged_release_id: string | null;
+  acknowledged_revision: number | null;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -143,6 +172,36 @@ export class ProjectRepository {
       throw new DomainError("ExportArtifact 持久化记录不一致", "EXPORT_ARTIFACT_CORRUPTED");
     }
     return artifact;
+  }
+
+  /** 修复工单独立于视频快照，读取时仍完整保留每次角色交接与发行版本证据。 */
+  private repairTicketFromRow(row: RepairTicketRow): RepairTicket {
+    return {
+      id: row.id,
+      projectId: row.project_id,
+      reportedRevision: row.reported_revision,
+      category: row.category,
+      summary: row.summary,
+      detail: row.detail ?? undefined,
+      toolName: row.tool_name ?? undefined,
+      jobId: row.job_id ?? undefined,
+      reporterId: row.reporter_id,
+      reportedReleaseId: row.reported_release_id,
+      idempotencyKey: row.idempotency_key,
+      status: row.status,
+      repairerId: row.repairer_id ?? undefined,
+      releasedBy: row.released_by ?? undefined,
+      releaseReason: row.release_reason ?? undefined,
+      candidateReleaseId: row.candidate_release_id ?? undefined,
+      validationSummary: row.validation_summary ?? undefined,
+      deployedReleaseId: row.deployed_release_id ?? undefined,
+      deploymentEvidence: row.deployment_evidence ?? undefined,
+      acknowledgedBy: row.acknowledged_by ?? undefined,
+      acknowledgedReleaseId: row.acknowledged_release_id ?? undefined,
+      acknowledgedRevision: row.acknowledged_revision ?? undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
   }
 
   createProject(input: {
@@ -372,6 +431,154 @@ export class ProjectRepository {
     const rows = this.db.prepare("SELECT * FROM export_artifacts WHERE project_id = ? ORDER BY created_at DESC")
       .all(projectId) as ExportArtifactRow[];
     return rows.map((row) => this.exportArtifactFromRow(row));
+  }
+
+  /**
+   * 新建阻断记录不会提交 Project Revision。视频项目只负责成片事实，
+   * 协作协议保存在独立表，避免监测 Agent 与剪辑 Agent 产生无意义 Revision 冲突。
+   */
+  createRepairTicket(input: Omit<RepairTicket, "id" | "status" | "createdAt" | "updatedAt">): RepairTicket {
+    this.getProjectRow(input.projectId);
+    this.getRevision(input.projectId, input.reportedRevision);
+    if (input.jobId) {
+      const job = this.getJob(input.jobId);
+      if (job.projectId !== input.projectId) throw new DomainError("修复工单关联的 Job 不属于当前项目", "REPAIR_TICKET_JOB_PROJECT_MISMATCH");
+    }
+    return this.transaction(() => {
+      const existing = this.db.prepare(`SELECT * FROM repair_tickets
+        WHERE project_id = ? AND reporter_id = ? AND idempotency_key = ?`)
+        .get(input.projectId, input.reporterId, input.idempotencyKey) as RepairTicketRow | undefined;
+      if (existing) return this.repairTicketFromRow(existing);
+      const createdAt = now();
+      const ticket: RepairTicket = {
+        ...input,
+        id: createId("repair_ticket"),
+        status: "open",
+        createdAt,
+        updatedAt: createdAt
+      };
+      this.db.prepare(`INSERT INTO repair_tickets (
+        id, project_id, reported_revision, category, summary, detail, tool_name, job_id,
+        reporter_id, reported_release_id, idempotency_key, status, repairer_id, released_by,
+        release_reason, candidate_release_id, validation_summary, deployed_release_id,
+        deployment_evidence, acknowledged_by, acknowledged_release_id, acknowledged_revision,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?)`)
+        .run(
+          ticket.id, ticket.projectId, ticket.reportedRevision, ticket.category, ticket.summary,
+          ticket.detail ?? null, ticket.toolName ?? null, ticket.jobId ?? null, ticket.reporterId,
+          ticket.reportedReleaseId, ticket.idempotencyKey, ticket.status, ticket.createdAt, ticket.updatedAt
+        );
+      return ticket;
+    });
+  }
+
+  getRepairTicket(ticketId: Id): RepairTicket {
+    const row = this.db.prepare("SELECT * FROM repair_tickets WHERE id = ?").get(ticketId) as RepairTicketRow | undefined;
+    if (!row) throw new NotFoundError(`修复工单不存在：${ticketId}`);
+    return this.repairTicketFromRow(row);
+  }
+
+  listRepairTickets(input: { projectId?: Id; statuses?: RepairTicketStatus[] } = {}): RepairTicket[] {
+    if (input.projectId) this.getProjectRow(input.projectId);
+    const clauses: string[] = [];
+    const parameters: Array<string> = [];
+    if (input.projectId) {
+      clauses.push("project_id = ?");
+      parameters.push(input.projectId);
+    }
+    if (input.statuses?.length) {
+      clauses.push(`status IN (${input.statuses.map(() => "?").join(",")})`);
+      parameters.push(...input.statuses);
+    }
+    const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+    const rows = this.db.prepare(`SELECT * FROM repair_tickets ${where} ORDER BY updated_at DESC`).all(...parameters) as RepairTicketRow[];
+    return rows.map((row) => this.repairTicketFromRow(row));
+  }
+
+  claimRepairTicket(input: { ticketId: Id; repairerId: string }): RepairTicket {
+    return this.transaction(() => {
+      const ticket = this.getRepairTicket(input.ticketId);
+      if (ticket.status !== "open") throw new DomainError("只有待处理的修复工单可以接手", "REPAIR_TICKET_NOT_OPEN");
+      if (ticket.reporterId === input.repairerId) {
+        throw new DomainError("报告剪辑 Agent 不能自行接手平台修复工单", "REPAIR_TICKET_ROLE_CONFLICT");
+      }
+      this.db.prepare(`UPDATE repair_tickets
+        SET status = 'claimed', repairer_id = ?, released_by = NULL, release_reason = NULL, updated_at = ?
+        WHERE id = ?`).run(input.repairerId, now(), input.ticketId);
+      return this.getRepairTicket(input.ticketId);
+    });
+  }
+
+  releaseRepairTicket(input: { ticketId: Id; repairerId: string; reason: string }): RepairTicket {
+    return this.transaction(() => {
+      const ticket = this.getRepairTicket(input.ticketId);
+      if (ticket.status !== "claimed") throw new DomainError("只有已接手的修复工单可以释放", "REPAIR_TICKET_NOT_CLAIMED");
+      if (ticket.repairerId !== input.repairerId) throw new DomainError("只有原接手修复 Agent 可以释放工单", "REPAIR_TICKET_CLAIMER_MISMATCH");
+      this.db.prepare(`UPDATE repair_tickets
+        SET status = 'open', repairer_id = NULL, released_by = ?, release_reason = ?, updated_at = ?
+        WHERE id = ?`).run(input.repairerId, input.reason, now(), input.ticketId);
+      return this.getRepairTicket(input.ticketId);
+    });
+  }
+
+  markRepairTicketReadyForCutover(input: {
+    ticketId: Id;
+    repairerId: string;
+    candidateReleaseId: string;
+    validationSummary: string;
+  }): RepairTicket {
+    return this.transaction(() => {
+      const ticket = this.getRepairTicket(input.ticketId);
+      if (ticket.status !== "claimed") throw new DomainError("只有已接手的修复工单可以标记候选版本就绪", "REPAIR_TICKET_NOT_CLAIMED");
+      if (ticket.repairerId !== input.repairerId) throw new DomainError("只有原接手修复 Agent 可以提交候选版本", "REPAIR_TICKET_CLAIMER_MISMATCH");
+      this.db.prepare(`UPDATE repair_tickets
+        SET status = 'ready_for_cutover', candidate_release_id = ?, validation_summary = ?, updated_at = ?
+        WHERE id = ?`).run(input.candidateReleaseId, input.validationSummary, now(), input.ticketId);
+      return this.getRepairTicket(input.ticketId);
+    });
+  }
+
+  markRepairTicketDeployed(input: {
+    ticketId: Id;
+    repairerId: string;
+    releaseId: string;
+    deploymentEvidence: string;
+  }): RepairTicket {
+    return this.transaction(() => {
+      const ticket = this.getRepairTicket(input.ticketId);
+      if (ticket.status !== "ready_for_cutover") throw new DomainError("候选版本尚未就绪，不能记录部署", "REPAIR_TICKET_NOT_READY_FOR_CUTOVER");
+      if (ticket.repairerId !== input.repairerId) throw new DomainError("只有原接手修复 Agent 可以记录部署", "REPAIR_TICKET_CLAIMER_MISMATCH");
+      if (ticket.candidateReleaseId !== input.releaseId) throw new DomainError("已部署版本必须与已验证候选版本完全一致", "REPAIR_TICKET_RELEASE_MISMATCH");
+      this.db.prepare(`UPDATE repair_tickets
+        SET status = 'deployed', deployed_release_id = ?, deployment_evidence = ?, updated_at = ?
+        WHERE id = ?`).run(input.releaseId, input.deploymentEvidence, now(), input.ticketId);
+      return this.getRepairTicket(input.ticketId);
+    });
+  }
+
+  acknowledgeRepairTicketDeployment(input: {
+    ticketId: Id;
+    editorId: string;
+    releaseId: string;
+    observedRevision: number;
+  }): RepairTicket {
+    return this.transaction(() => {
+      const ticket = this.getRepairTicket(input.ticketId);
+      if (ticket.status !== "deployed") throw new DomainError("只有已部署的修复工单可以由剪辑 Agent 确认", "REPAIR_TICKET_NOT_DEPLOYED");
+      if (ticket.deployedReleaseId !== input.releaseId) throw new DomainError("剪辑 Agent 确认的版本与已部署版本不一致", "REPAIR_TICKET_RELEASE_MISMATCH");
+      if (ticket.reporterId !== input.editorId) {
+        throw new DomainError("只有原报告阻断的剪辑 Agent 可以确认恢复", "REPAIR_TICKET_REPORTER_MISMATCH");
+      }
+      const current = this.getCurrent(ticket.projectId);
+      if (current.revision.number !== input.observedRevision) {
+        throw new RevisionConflictError(input.observedRevision, current.revision.number);
+      }
+      this.db.prepare(`UPDATE repair_tickets
+        SET status = 'acknowledged', acknowledged_by = ?, acknowledged_release_id = ?, acknowledged_revision = ?, updated_at = ?
+        WHERE id = ?`).run(input.editorId, input.releaseId, input.observedRevision, now(), input.ticketId);
+      return this.getRepairTicket(input.ticketId);
+    });
   }
 
   updateExportArtifact(projectId: Id, artifactId: Id, mutate: (artifact: ExportArtifact) => void): ExportArtifact {

@@ -1,5 +1,6 @@
 import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { dirname, join, relative, resolve } from "node:path";
 import { build } from "esbuild";
 import { pluginRootFromModule, resolveRepoRoot } from "./repo-root.mjs";
@@ -95,6 +96,32 @@ async function assertReleaseEntry(path) {
   if (hit) throw new Error(`发行入口仍包含源码启动引用 ${hit}：${path}`);
 }
 
+/**
+ * Release ID 只由本次实际执行的 Runtime、MCP、Remotion 与 Web 产物计算。
+ * manifest 自身不参与哈希，避免“把 ID 写进 manifest 后又改变自己的输入”的循环。
+ */
+async function releaseFiles(root, directory = root) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files = await Promise.all(entries.map(async (entry) => {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) return releaseFiles(root, path);
+    return [path];
+  }));
+  return files.flat().sort((left, right) => relative(root, left).localeCompare(relative(root, right)));
+}
+
+async function createReleaseId(root) {
+  const hash = createHash("sha256");
+  for (const path of await releaseFiles(root)) {
+    const pathInRelease = relative(root, path).replace(/\\/gu, "/");
+    hash.update(pathInRelease);
+    hash.update("\u0000");
+    hash.update(await readFile(path));
+    hash.update("\u0000");
+  }
+  return `release-${hash.digest("hex")}`;
+}
+
 async function main() {
   if (!existsSync(webSourceRoot)) {
     throw new Error(`找不到 Web 构建产物：${webSourceRoot}。请先执行 npm run build:web。`);
@@ -134,9 +161,11 @@ async function main() {
     assertReleaseEntry(outputPaths.mcp),
     assertReleaseEntry(outputPaths.remotion)
   ]);
+  const releaseId = await createReleaseId(distRoot);
   await writeFile(outputPaths.manifest, `${JSON.stringify({
-    schemaVersion: 1,
+    schemaVersion: 2,
     format: "commonjs",
+    releaseId,
     runtimeEntry: "runtime.cjs",
     mcpEntry: "mcp.cjs",
     remotionEntry: "remotion/render-entry.cjs",

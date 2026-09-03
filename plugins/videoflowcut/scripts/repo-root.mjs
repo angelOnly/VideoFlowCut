@@ -1,5 +1,6 @@
-import { existsSync, readFileSync } from "node:fs";
-import { delimiter, dirname, join, resolve } from "node:path";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { delimiter, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export function pluginRootFromModule(metaUrl) {
@@ -56,6 +57,31 @@ function assertSupportedNodeRuntime() {
   }
 }
 
+/** Release ID 是构建产物的 SHA-256 摘要，不接受人工写入的“latest”等可漂移名称。 */
+function isReleaseId(value) {
+  return typeof value === "string" && /^release-[a-f0-9]{64}$/u.test(value);
+}
+
+/** 启动前重新计算摘要，防止有人只改 manifest 的 Release ID 而未真正部署对应构建产物。 */
+function releaseFiles(root, directory = root) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) return releaseFiles(root, path);
+    return relative(root, path).replace(/\\/gu, "/") === "manifest.json" ? [] : [path];
+  }).sort((left, right) => relative(root, left).localeCompare(relative(root, right)));
+}
+
+function calculateReleaseId(root) {
+  const hash = createHash("sha256");
+  for (const path of releaseFiles(root)) {
+    hash.update(relative(root, path).replace(/\\/gu, "/"));
+    hash.update("\u0000");
+    hash.update(readFileSync(path));
+    hash.update("\u0000");
+  }
+  return `release-${hash.digest("hex")}`;
+}
+
 /**
  * 发行插件只能执行自身 runtime/dist 的 CommonJS 入口。这里集中校验生成物，
  * 避免安装缓存悄悄退回到仓库的 TypeScript 源码或 tsx。
@@ -78,9 +104,14 @@ export function resolveReleaseRuntime(pluginRoot) {
   }
   try {
     const manifest = JSON.parse(readFileSync(release.manifest, "utf8"));
-    if (manifest?.schemaVersion !== 1 || manifest?.format !== "commonjs" || manifest?.nodeRuntime !== ">=22.5.0") {
+    if (manifest?.schemaVersion !== 2 || manifest?.format !== "commonjs" || manifest?.nodeRuntime !== ">=22.5.0"
+      || !isReleaseId(manifest?.releaseId)) {
       throw new Error("manifest 内容不兼容");
     }
+    if (manifest.releaseId !== calculateReleaseId(root)) {
+      throw new Error("manifest Release ID 与实际发行产物摘要不一致");
+    }
+    release.releaseId = manifest.releaseId;
   } catch (error) {
     throw new Error(`插件发行 Runtime manifest 无效：${error instanceof Error ? error.message : String(error)}。请重新执行 npm run plugin:build。`);
   }

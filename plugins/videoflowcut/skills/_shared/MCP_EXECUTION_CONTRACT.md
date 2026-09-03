@@ -34,6 +34,20 @@
 
 ## 工具状态必须明确区分
 
+## 平台修复协作命令
+
+这些命令管理平台能力缺口，不是视频编辑命令。调用前仍以实时 Tool Schema 为准；它们不会创建或修改 Project Revision。
+
+| 阶段 | MCP 命令与关键输入 | 允许的下一步 |
+|---|---|---|
+| 读取发行健康 | `read_runtime_release()` | 比较 `mcpReleaseId` 与 `runtime.releaseId`，并确认 API、媒体 Worker、渲染 Worker 均健康；不一致时不能确认部署或恢复。 |
+| 剪辑阻断 | `report_editing_blocker(reported_revision, category, summary, reporter_id, idempotency_key, detail?, tool_name?, job_id?)` | 剪辑任务停在当前步骤；Ticket 保存 MCP 的 Release ID 和报告 Revision，不进入视频 Revision。Runtime 不可达时也可报告，不能因报障失败而伪造恢复。 |
+| 修复接手与候选验证 | `list_repair_tickets(statuses?)`；`claim_repair_ticket(ticket_id, repairer_id)`；`mark_repair_candidate_ready(ticket_id, repairer_id, candidate_release_id, validation_summary)` | Repairer 只在隔离 Runtime/工作区验证根因修复与回归；候选 ID 必须是构建 Manifest 的 `release-<sha256>`，不能使用 latest 或口头版本。 |
+| 正式切换 | `mark_repair_deployed(ticket_id, repairer_id, deployment_evidence)` | 该命令自行读取当前 MCP/Runtime Release ID；只有两者一致且等于已验证候选版才会写入 deployed。旧 MCP 或旧 Runtime 必须先重新部署/重连。 |
+| 剪辑恢复 | `acknowledge_repair_deployment(ticket_id, editor_id, observed_revision)` | 原报告者重新连接新版 MCP、读回当前 Project 后确认。`observed_revision` 必须仍是当前 Revision；成功后才继续剪辑。 |
+
+修复任务不得把修改正式视频、修改插件缓存、临时跳过失败、在生产工作区跑候选 Worker，作为完成 Ticket 的方式。需要放弃接手时使用 `release_repair_ticket(ticket_id, repairer_id, reason)`，保留复现事实给下一位修复者。
+
 ### 当前已实现，可按实时 Schema 调用
 
 上表中的命令，以及 `read_story`、`read_impact_report`、`list_revisions`、`rollback_revision`、`update_asset_metadata`、`browse_scene_types`、`browse_effect_types`、`move_item`、`preview_timeline`、`record_creative_decision`、`complete_production_run`、`read_skill_execution_report`、`validate_project_graph`、`read_quality_report`、`get_editor_url` 与 `focus_editor_object`。

@@ -67,6 +67,9 @@ import type {
   NarrativeMapBeat,
   ProjectSnapshot,
   ProjectSummary,
+  RepairTicket,
+  RepairTicketCategory,
+  RepairTicketStatus,
   RevisionRecord,
   SceneType,
   SemanticUnitKind,
@@ -338,7 +341,8 @@ async function sha256File(path: string): Promise<string> {
 export interface AppEvent {
   projectId: Id;
   revision: number;
-  type: "revision" | "job";
+  /** 修复工单不写入视频 Revision，但仍要通知同项目的监测方刷新状态。 */
+  type: "revision" | "job" | "repair_ticket";
 }
 
 function assertAssetProvenanceValid(provenance: NonNullable<Asset["provenance"]>): void {
@@ -410,6 +414,15 @@ function requireText(value: string | undefined, label: string): string {
   const text = value?.trim() ?? "";
   if (!text) throw new DomainError(`${label}不能为空`, "REQUIRED_TEXT_MISSING");
   return text;
+}
+
+/** 正式切换只能引用构建产物的内容摘要，不能用 latest、分支名或人工版本号代替。 */
+function requireReleaseId(value: string | undefined, label: string): string {
+  const releaseId = requireText(value, label);
+  if (!/^release-[a-f0-9]{64}$/u.test(releaseId)) {
+    throw new DomainError(`${label}必须是构建 manifest 的 release-<sha256>`, "REPAIR_TICKET_RELEASE_ID_INVALID");
+  }
+  return releaseId;
 }
 
 /**
@@ -992,6 +1005,142 @@ export class EditingApplication {
   readAgentWorkOrders(projectId: Id): { revision: number; agentWorkOrders: AgentWorkOrder[] } {
     const state = this.readProject(projectId);
     return { revision: state.revision.number, agentWorkOrders: state.snapshot.agentWorkOrders };
+  }
+
+  /**
+   * 平台修复工单与视频编辑 Revision 严格分表保存。剪辑 Agent 因 MCP 或 Runtime 被阻断时，
+   * 只能报告事实并暂停；它不能借“报障”修改 Timeline、素材或源码。
+   */
+  reportEditingBlocker(input: {
+    projectId: Id;
+    reportedRevision: number;
+    category: RepairTicketCategory;
+    summary: string;
+    detail?: string;
+    toolName?: string;
+    jobId?: Id;
+    reporterId: string;
+    reportedReleaseId: string;
+    idempotencyKey: string;
+  }): RepairTicket {
+    if (!Number.isInteger(input.reportedRevision) || input.reportedRevision <= 0) {
+      throw new DomainError("修复工单必须绑定一个有效的视频 Revision", "REPAIR_TICKET_REVISION_INVALID");
+    }
+    if (!(["tool_missing", "tool_error", "runtime_failure", "workflow_blocker"] as const).includes(input.category)) {
+      throw new DomainError("修复工单类别无效", "REPAIR_TICKET_CATEGORY_INVALID");
+    }
+    const summary = requireText(input.summary, "修复工单摘要");
+    const reporterId = requireText(input.reporterId, "剪辑 Agent 标识");
+    const reportedReleaseId = requireText(input.reportedReleaseId, "报告时发行版本");
+    const idempotencyKey = requireText(input.idempotencyKey, "修复工单幂等键");
+    const detail = input.detail?.trim() || undefined;
+    const toolName = input.toolName?.trim() || undefined;
+    if (summary.length > 1_000 || detail && detail.length > 8_000 || toolName && toolName.length > 160
+      || reporterId.length > 160 || reportedReleaseId.length > 160 || idempotencyKey.length > 240) {
+      throw new DomainError("修复工单字段超过允许长度", "REPAIR_TICKET_TEXT_TOO_LONG");
+    }
+    const ticket = this.repository.createRepairTicket({
+      projectId: input.projectId,
+      reportedRevision: input.reportedRevision,
+      category: input.category,
+      summary,
+      detail,
+      toolName,
+      jobId: input.jobId,
+      reporterId,
+      reportedReleaseId,
+      idempotencyKey
+    });
+    // 事件只通知外部刷新；ticket 不会制造一个虚假的视频 Revision。
+    this.publish({ projectId: ticket.projectId, revision: this.readProject(ticket.projectId).revision.number, type: "repair_ticket" });
+    return ticket;
+  }
+
+  /** 读取工单时同时带回当前视频 Revision，剪辑 Agent 重新开始前仍必须显式处理并发变化。 */
+  readRepairTickets(input: { projectId: Id; statuses?: RepairTicketStatus[] }): { revision: number; repairTickets: RepairTicket[] } {
+    const state = this.readProject(input.projectId);
+    const statuses = input.statuses ? [...new Set(input.statuses)] : undefined;
+    if (statuses && statuses.some((status) => !(["open", "claimed", "ready_for_cutover", "deployed", "acknowledged"] as const).includes(status))) {
+      throw new DomainError("修复工单状态筛选无效", "REPAIR_TICKET_STATUS_INVALID");
+    }
+    return { revision: state.revision.number, repairTickets: this.repository.listRepairTickets({ projectId: input.projectId, statuses }) };
+  }
+
+  /** 修复任务只可接手平台工单；不能接手后顺便进入正式视频项目做剪辑。 */
+  claimRepairTicket(input: { ticketId: Id; repairerId: string }): RepairTicket {
+    const repairerId = requireText(input.repairerId, "修复 Agent 标识");
+    if (repairerId.length > 160) throw new DomainError("修复 Agent 标识不能超过 160 个字符", "REPAIR_TICKET_AGENT_TOO_LONG");
+    const ticket = this.repository.claimRepairTicket({ ticketId: input.ticketId, repairerId });
+    this.publish({ projectId: ticket.projectId, revision: this.readProject(ticket.projectId).revision.number, type: "repair_ticket" });
+    return ticket;
+  }
+
+  releaseRepairTicket(input: { ticketId: Id; repairerId: string; reason: string }): RepairTicket {
+    const repairerId = requireText(input.repairerId, "修复 Agent 标识");
+    const reason = requireText(input.reason, "修复工单释放原因");
+    if (repairerId.length > 160 || reason.length > 4_000) {
+      throw new DomainError("修复工单释放字段超过允许长度", "REPAIR_TICKET_TEXT_TOO_LONG");
+    }
+    const ticket = this.repository.releaseRepairTicket({ ticketId: input.ticketId, repairerId, reason });
+    this.publish({ projectId: ticket.projectId, revision: this.readProject(ticket.projectId).revision.number, type: "repair_ticket" });
+    return ticket;
+  }
+
+  /** 候选版必须经隔离复现与回归验证，不能把临时绕过描述成可切换版本。 */
+  markRepairTicketReadyForCutover(input: {
+    ticketId: Id;
+    repairerId: string;
+    candidateReleaseId: string;
+    validationSummary: string;
+  }): RepairTicket {
+    const repairerId = requireText(input.repairerId, "修复 Agent 标识");
+    const candidateReleaseId = requireReleaseId(input.candidateReleaseId, "候选发行版本");
+    const validationSummary = requireText(input.validationSummary, "候选版本验证摘要");
+    if (repairerId.length > 160 || candidateReleaseId.length > 160 || validationSummary.length > 8_000) {
+      throw new DomainError("候选版本字段超过允许长度", "REPAIR_TICKET_TEXT_TOO_LONG");
+    }
+    const ticket = this.repository.markRepairTicketReadyForCutover({
+      ticketId: input.ticketId, repairerId, candidateReleaseId, validationSummary
+    });
+    this.publish({ projectId: ticket.projectId, revision: this.readProject(ticket.projectId).revision.number, type: "repair_ticket" });
+    return ticket;
+  }
+
+  /** 部署记录只接受与已经验证的候选版完全相同的 Release ID。 */
+  markRepairTicketDeployed(input: {
+    ticketId: Id;
+    repairerId: string;
+    releaseId: string;
+    deploymentEvidence: string;
+  }): RepairTicket {
+    const repairerId = requireText(input.repairerId, "修复 Agent 标识");
+    const releaseId = requireReleaseId(input.releaseId, "已部署发行版本");
+    const deploymentEvidence = requireText(input.deploymentEvidence, "部署证据");
+    if (repairerId.length > 160 || releaseId.length > 160 || deploymentEvidence.length > 8_000) {
+      throw new DomainError("部署字段超过允许长度", "REPAIR_TICKET_TEXT_TOO_LONG");
+    }
+    const ticket = this.repository.markRepairTicketDeployed({ ticketId: input.ticketId, repairerId, releaseId, deploymentEvidence });
+    this.publish({ projectId: ticket.projectId, revision: this.readProject(ticket.projectId).revision.number, type: "repair_ticket" });
+    return ticket;
+  }
+
+  /** 剪辑 Agent 重连新版 MCP 后，以当前实际 Revision 确认恢复；不允许旧会话代替确认。 */
+  acknowledgeRepairTicketDeployment(input: {
+    ticketId: Id;
+    editorId: string;
+    releaseId: string;
+    observedRevision: number;
+  }): RepairTicket {
+    const editorId = requireText(input.editorId, "剪辑 Agent 标识");
+    const releaseId = requireReleaseId(input.releaseId, "确认发行版本");
+    if (editorId.length > 160 || releaseId.length > 160 || !Number.isInteger(input.observedRevision) || input.observedRevision <= 0) {
+      throw new DomainError("部署确认字段无效", "REPAIR_TICKET_ACKNOWLEDGEMENT_INVALID");
+    }
+    const ticket = this.repository.acknowledgeRepairTicketDeployment({
+      ticketId: input.ticketId, editorId, releaseId, observedRevision: input.observedRevision
+    });
+    this.publish({ projectId: ticket.projectId, revision: ticket.acknowledgedRevision!, type: "repair_ticket" });
+    return ticket;
   }
 
   /** Web 用户创建可审计意图；关联对象只保存 ID，不复制它们的内容或 Timeline。 */

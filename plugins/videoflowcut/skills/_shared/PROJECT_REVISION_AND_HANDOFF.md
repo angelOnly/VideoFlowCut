@@ -29,6 +29,16 @@ MCP 返回 success 只证明命令执行，不证明对象关系、画面和听�
 
 会创建或修改 Project Revision 的确定性命令必须携带刚读回的 `base_revision_id`。提交转写、语音、预览和导出等异步 Job 则使用其自身的 `asset_id`、`revision` 或 `idempotency_key`，不能为了形式统一伪造 `base_revision_id`。每次写入返回新 Revision 后，下一次写入必须以新 Revision 为起点。
 
+## 剪辑阻断与平台修复交接
+
+视频创作与平台修复有两个不同事实源：Project/Revision 记录成片事实；SQLite `repair_tickets` 记录剪辑任务无法继续时的能力缺口、修复、发行切换和恢复确认。Repair Ticket 不进入 `ProjectSnapshot`，因此报告、接手或部署工单绝不能制造视频 Revision 或改变 Timeline。
+
+剪辑 Agent 只用已发布 MCP 能力。遇到阻断时读取当前 Project 和 Revision，使用 `report_editing_blocker(reported_revision, category, summary, reporter_id, idempotency_key, ...)` 记录可复现事实并暂停；不能改源码、重启服务、切换插件缓存或以临时绕过继续写入项目。`reported_revision` 是当时所见的历史事实，不因其他任务后来产生新 Revision 而失真。
+
+修复 Agent 接手 `open` Ticket 后只改平台源码和隔离候选环境；它不能编辑正式视频项目。候选版必须在独立端口、独立工作区验证，不能让 A/B 两个 Runtime 同时消费生产 `app.sqlite` 的 Job。通过复现和回归后，以构建 Manifest 的 `releaseId` 调用 `mark_repair_candidate_ready`。只有重部署后新版 MCP 与 Runtime 的 `read_runtime_release` 都返回相同、健康的 `releaseId`，原接手者才能调用 `mark_repair_deployed`。
+
+最后由**原报告阻断的剪辑 Agent**重新连接 MCP，读取当前 Project，确认仍能看到当前 Revision，再调用 `acknowledge_repair_deployment(observed_revision, ...)`。这个确认不产生 Revision，但防止旧 MCP 会话或其它 Agent 把部署写成已恢复。Release ID 不一致、Worker 未健康、候选版与部署版不一致、Reporter/Repairer 角色不匹配时一律停下并读取工单状态，不猜测成功。
+
 ## 对象选择
 
 用户意图应落到最接近的对象：删一句改 SemanticUnit/Script；修改叙事顺序改 Story；改变一段怎样被看见改 Scene/Visual Treatment；微调某个动画改 EffectCue；替换 Effect 绑定改 AssetBinding；替换单条 Cutaway 源素材改 `replace_scene_asset`；移动物理播放范围改 TimelineItem；重新导出不修改创作状态。

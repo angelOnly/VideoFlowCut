@@ -15,7 +15,8 @@ export const RUNTIME_CONFIG_DEFAULTS = {
   maxAssetDownloadBytes: 512 * 1024 * 1024, // 普通素材下载的最大文件体积：512 MB。
   maxWikimediaDownloadBytes: 256 * 1024 * 1024, // Wikimedia Commons 素材下载的最大文件体积：256 MB。
   maxGeneratedVideoBytes: 512 * 1024 * 1024, // Bridge 生成视频下载的最大文件体积：512 MB。
-  runtimeId: "manual" // 未由插件启动时，标识当前 Runtime 为手工启动实例。
+  runtimeId: "manual", // 未由插件启动时，标识当前 Runtime 为手工启动实例。
+  releaseId: "manual" // 未由插件发行启动时，标识 MCP 与 Runtime 未绑定正式发行物。
 } as const;
 
 export type RuntimeEnvironment = Record<string, string | undefined>;
@@ -70,6 +71,8 @@ export interface RuntimeConfig {
     runtimeToken?: string;
     /** 用于识别当前 Runtime 实例的名称。 */
     runtimeId: string;
+    /** 当前 Runtime / MCP 应共同持有的不可伪造发行版本标识。 */
+    releaseId: string;
     /** 已构建 Web 静态文件的目录。 */
     webRoot?: string;
     /** 发行版 Remotion 渲染入口。 */
@@ -120,6 +123,7 @@ export function readRuntimeConfig(options: ReadRuntimeConfigOptions = {}): Runti
       distributionDirectory: environment.VIDEOFLOWCUT_RUNTIME_DIST,
       runtimeToken: environment.VIDEOFLOWCUT_RUNTIME_TOKEN,
       runtimeId: environment.VIDEOFLOWCUT_RUNTIME_ID ?? RUNTIME_CONFIG_DEFAULTS.runtimeId,
+      releaseId: environment.VIDEOFLOWCUT_RELEASE_ID ?? RUNTIME_CONFIG_DEFAULTS.releaseId,
       webRoot: environment.VIDEOFLOWCUT_WEB_ROOT,
       remotionEntry: environment.VIDEOFLOWCUT_REMOTION_ENTRY,
       nodeModules: environment.VIDEOFLOWCUT_NODE_MODULES,
@@ -245,17 +249,19 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     id: "overview",
     name: "项目总览",
     description: "读取本文件汇总的配置、流程、关键入口和 MCP 目录。",
-    tools: ["read_project_overview"]
+    tools: ["read_project_overview", "read_runtime_release"]
   },
   // 项目对象、Revision 和多人/多 Agent 协作的基础操作。
   {
     id: "project",
     name: "项目与协作",
-    description: "创建和定位项目、读取 Revision 与故事、打开工作台、管理 Codex 工作单。",
+    description: "创建和定位项目、读取 Revision 与故事、打开工作台、管理 Codex 工作单和平台修复交接。",
     tools: [
       "open_web_workbench", "list_projects", "create_project", "target_project", "read_project", "read_story", "manage_story",
       "get_editor_url", "focus_editor_object", "read_impact_report", "list_revisions", "read_agent_work_orders",
-      "claim_agent_work_order", "complete_agent_work_order", "release_agent_work_order", "rollback_revision"
+      "claim_agent_work_order", "complete_agent_work_order", "release_agent_work_order", "report_editing_blocker",
+      "list_repair_tickets", "claim_repair_ticket", "release_repair_ticket", "mark_repair_candidate_ready",
+      "mark_repair_deployed", "acknowledge_repair_deployment", "rollback_revision"
     ]
   },
   // 素材文件、候选素材、来源和版权/许可信息。
@@ -377,7 +383,8 @@ export const NODE_RUNTIME_CONFIGURATION_CATALOG = [
   { key: "VIDEOFLOWCUT_RENDER_SOURCE_ROOT", group: "发行 Runtime", description: "开发态 Render Worker 源码根目录" },
   { key: "VIDEOFLOWCUT_REMOTION_CONTRACTS_ENTRY", group: "发行 Runtime", description: "开发态 Remotion Contracts 入口" },
   { key: "VIDEOFLOWCUT_RUNTIME_TOKEN", group: "发行 Runtime", description: "Runtime 内部控制接口令牌", sensitive: true },
-  { key: "VIDEOFLOWCUT_RUNTIME_ID", group: "发行 Runtime", description: "Runtime 实例标识", defaultValue: RUNTIME_CONFIG_DEFAULTS.runtimeId }
+  { key: "VIDEOFLOWCUT_RUNTIME_ID", group: "发行 Runtime", description: "Runtime 实例标识", defaultValue: RUNTIME_CONFIG_DEFAULTS.runtimeId },
+  { key: "VIDEOFLOWCUT_RELEASE_ID", group: "发行 Runtime", description: "Runtime 与 MCP 必须一致的发行版本标识", defaultValue: RUNTIME_CONFIG_DEFAULTS.releaseId }
 ] as const;
 
 /**
@@ -487,6 +494,7 @@ export function getProjectOverview(options: ReadRuntimeConfigOptions = {}) {
       runtime: {
         distributionDirectory: config.runtime.distributionDirectory, // 插件发行 Runtime 根目录。
         runtimeId: config.runtime.runtimeId, // 当前 Runtime 实例标识。
+        releaseId: config.runtime.releaseId, // 当前 MCP/Runtime 应共同验证的发行版本。
         webRoot: config.runtime.webRoot, // 静态 Web 产物目录。
         remotionEntry: config.runtime.remotionEntry, // Remotion 渲染入口。
         nodeModulesConfigured: Boolean(config.runtime.nodeModules), // 仅提示是否配置额外依赖路径。

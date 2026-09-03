@@ -11,6 +11,7 @@ const runtimeConfig = applyReleaseRuntimeDefaults(typeof __dirname === "string" 
 const { port, host } = runtimeConfig.http;
 const runtimeToken = runtimeConfig.runtime.runtimeToken;
 const runtimeId = runtimeConfig.runtime.runtimeId;
+const releaseId = runtimeConfig.runtime.releaseId;
 
 /**
  * 保持入口没有顶层 await，发行构建可稳定输出 CommonJS，Node 才能通过
@@ -42,7 +43,7 @@ async function main(): Promise<void> {
       if (request.headers["x-videoflowcut-runtime-token"] !== runtimeToken) {
         return reply.code(403).send({ error: "RUNTIME_TOKEN_INVALID" });
       }
-      return { status: stopping ? "stopping" : "ready", runtimeId, workers };
+      return { status: stopping ? "stopping" : "ready", runtimeId, releaseId, workers };
     });
 
     app.post("/internal/runtime/shutdown", async (request, reply) => {
@@ -54,6 +55,17 @@ async function main(): Promise<void> {
       return { status: "stopping" };
     });
   }
+
+  /**
+   * MCP 在不接触内部控制令牌的前提下核对自己与 Runtime 是否来自同一发行物。
+   * 返回值没有路径、令牌或用户数据；它仅用于阻止旧 MCP 对新版 Runtime 伪造部署确认。
+   */
+  app.get("/api/runtime/status", async () => ({
+    status: stopping ? "stopping" : "ready",
+    runtimeId,
+    releaseId,
+    workers
+  }));
 
   process.once("SIGINT", () => { void shutdown("SIGINT"); });
   process.once("SIGTERM", () => { void shutdown("SIGTERM"); });

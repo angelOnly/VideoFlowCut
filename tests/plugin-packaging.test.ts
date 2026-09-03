@@ -84,9 +84,12 @@ test("插件安装时只启动已构建的 CommonJS Runtime", async () => {
   assert.doesNotMatch(repoRoot, /apps[\\/]server[\\/]src[\\/]mcp/iu);
   assert.doesNotMatch(runtimeLauncher, /tsxCliPath|apps[\\/]runtime[\\/]src/iu);
   assert.doesNotMatch(mcpLauncher, /tsxCliPath|apps[\\/]server[\\/]src[\\/]mcp/iu);
-  assert.deepEqual(JSON.parse(manifest), {
-    schemaVersion: 1,
+  const releaseManifest = JSON.parse(manifest) as { releaseId?: unknown; [key: string]: unknown };
+  assert.match(String(releaseManifest.releaseId ?? ""), /^release-[a-f0-9]{64}$/u, "发行物必须包含内容哈希 Release ID");
+  assert.deepEqual({ ...releaseManifest, releaseId: "<dynamic-release-id>" }, {
+    schemaVersion: 2,
     format: "commonjs",
+    releaseId: "<dynamic-release-id>",
     runtimeEntry: "runtime.cjs",
     mcpEntry: "mcp.cjs",
     remotionEntry: "remotion/render-entry.cjs",

@@ -1393,6 +1393,43 @@ export interface AgentWorkOrder {
   updatedAt: string;
 }
 
+/**
+ * 修复工单不属于视频创作 Revision：它记录 Agent 协作中的能力缺口、修复和版本切换，
+ * 不能因为报告一个 MCP 故障而改写 Timeline、素材或 Story。
+ */
+export type RepairTicketCategory = "tool_missing" | "tool_error" | "runtime_failure" | "workflow_blocker";
+export type RepairTicketStatus = "open" | "claimed" | "ready_for_cutover" | "deployed" | "acknowledged";
+
+export interface RepairTicket {
+  id: Id;
+  projectId: Id;
+  /** 剪辑 Agent 报告问题时所见的不可变视频 Revision，仅用于复现与交接。 */
+  reportedRevision: number;
+  category: RepairTicketCategory;
+  summary: string;
+  detail?: string;
+  toolName?: string;
+  jobId?: Id;
+  reporterId: string;
+  /** 报告问题的 MCP/Runtime 发行版本，避免用“最新版”这种不可验证的描述。 */
+  reportedReleaseId: string;
+  idempotencyKey: string;
+  status: RepairTicketStatus;
+  repairerId?: string;
+  releasedBy?: string;
+  releaseReason?: string;
+  candidateReleaseId?: string;
+  validationSummary?: string;
+  deployedReleaseId?: string;
+  deploymentEvidence?: string;
+  acknowledgedBy?: string;
+  acknowledgedReleaseId?: string;
+  /** 剪辑 Agent 重新连接新 MCP 后读到的当前视频 Revision。 */
+  acknowledgedRevision?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProjectSnapshot {
   project: {
     id: Id;
