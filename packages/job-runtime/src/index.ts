@@ -30,9 +30,12 @@ export async function processClaimedJob(
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     const code = error && typeof error === "object" && "code" in error ? String((error as { code?: unknown }).code ?? "JOB_FAILED") : "JOB_FAILED";
+    // 外部提交在网络中断后可能已经被 Provider 接受；这种结果不能被伪装成普通失败，
+    // 否则通用 retry 会再次创建不可区分的外部运行。
+    const status = code === "EXTERNAL_RUN_OUTCOME_UNKNOWN" ? "unknown" : "failed";
     // 保留先前记录的 run_id / schema / 请求摘要，令 failed、输出缺失与 run_id 丢失都可诊断。
     const persisted = application.trackJob(job.id).result ?? {};
-    application.updateJob(job.id, { status: "failed", error: detail, result: { ...persisted, diagnostic: { code, message: detail } } });
+    application.updateJob(job.id, { status, error: detail, result: { ...persisted, diagnostic: { code, message: detail } } });
   } finally {
     clearInterval(heartbeat);
   }

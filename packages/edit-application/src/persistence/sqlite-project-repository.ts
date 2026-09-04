@@ -2,6 +2,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type {
+  CaptionCard,
   CreativeBrief,
   ExportArtifact,
   Id,
@@ -13,7 +14,8 @@ import type {
   RepairTicketStatus,
   ProjectSnapshot,
   ProjectSummary,
-  RevisionRecord
+  RevisionRecord,
+  SourceAudioAlignment
 } from "@videocut/contracts";
 import {
   assertProjectGraphValid,
@@ -104,6 +106,90 @@ type RepairTicketRow = {
   created_at: string;
   updated_at: string;
 };
+
+/** 对齐证据的来源一旦变化，旧 token 时间就不能继续驱动字幕卡。 */
+function sourceAudioAlignmentIsCurrent(snapshot: ProjectSnapshot, alignment: SourceAudioAlignment): boolean {
+  const item = snapshot.timeline.items.find((candidate) => candidate.id === alignment.sourceTimelineItemId);
+  const asset = snapshot.assets.find((candidate) => candidate.id === alignment.sourceAssetId);
+  const actorTrack = snapshot.timeline.tracks.find((track) => track.name === "Actor / A-roll");
+  const performance = snapshot.actorPerformances?.find((candidate) => candidate.timelineItemId === alignment.sourceTimelineItemId);
+  return Boolean(item && asset && actorTrack && performance
+    && !item.disabled && item.trackId === actorTrack.id && item.assetId === asset.id
+    && asset.status === "ready" && asset.metadata?.hasAudio
+    && asset.sourceHash === alignment.sourceAssetHash
+    && item.sourceStartFrame === alignment.sourceStartFrame && item.sourceEndFrame === alignment.sourceEndFrame
+    && item.startFrame === alignment.timelineStartFrame && item.endFrame === alignment.timelineEndFrame
+    && item.sourceEndFrame - item.sourceStartFrame === item.endFrame - item.startFrame
+    && performance.status === "ready" && performance.audioMode === "use_source_audio");
+}
+
+/** 原声卡的物理来源改变时不能保留旧坐标；其余结构损坏仍交给 Graph 显式报错。 */
+function sourceAudioCaptionMappingIsStale(snapshot: ProjectSnapshot, caption: CaptionCard): boolean {
+  if (caption.sourceKind !== "source_audio"
+    || !caption.sourceAssetId || !caption.sourceTimelineItemId
+    || caption.sourceStartFrame === undefined || caption.sourceEndFrame === undefined) return false;
+  const item = snapshot.timeline.items.find((candidate) => candidate.id === caption.sourceTimelineItemId);
+  if (!item) return true;
+  return item.disabled || item.assetId !== caption.sourceAssetId
+    || caption.sourceStartFrame < item.sourceStartFrame || caption.sourceEndFrame > item.sourceEndFrame
+    || caption.sourceEndFrame <= caption.sourceStartFrame
+    || caption.startFrame !== item.startFrame + (caption.sourceStartFrame - item.sourceStartFrame)
+    || caption.endFrame !== item.startFrame + (caption.sourceEndFrame - item.sourceStartFrame);
+}
+
+function pushUnique(target: string[], values: string[]): void {
+  const existing = new Set(target);
+  for (const value of values) {
+    if (!existing.has(value)) {
+      target.push(value);
+      existing.add(value);
+    }
+  }
+}
+
+/**
+ * 所有写入都经过 Repository，因此在提交 Graph 前统一让失去来源的 token 对齐失效。
+ * 这不是静默修补：保留 Alignment 审计、记录 Impact，并移除无法再正确显示的 Program/Card，
+ * 迫使后续流程基于新 A-roll 重新对齐和审片，而不是让旧字幕跟着错误画面继续播放。
+ */
+function reconcileStaleSourceAudioArtifacts(snapshot: ProjectSnapshot, impact: ImpactReport): void {
+  const alignments = snapshot.sourceAudioAlignments ?? [];
+  const staleAlignmentIds = new Set(alignments.filter((alignment) => alignment.status === "stale").map((alignment) => alignment.id));
+  const newlyStaleAlignmentIds: string[] = [];
+  for (const alignment of alignments) {
+    if (alignment.status === "ready" && !sourceAudioAlignmentIsCurrent(snapshot, alignment)) {
+      alignment.status = "stale";
+      staleAlignmentIds.add(alignment.id);
+      newlyStaleAlignmentIds.push(alignment.id);
+    }
+  }
+  const stalePrograms = (snapshot.sourceCaptionPrograms ?? []).filter((program) => staleAlignmentIds.has(program.alignmentId));
+  const staleProgramIds = new Set(stalePrograms.map((program) => program.id));
+  if (stalePrograms.length > 0) {
+    snapshot.sourceCaptionPrograms = snapshot.sourceCaptionPrograms.filter((program) => !staleProgramIds.has(program.id));
+  }
+  const removedCaptions = snapshot.timeline.captions.filter((caption) => caption.sourceKind === "source_audio" && (
+    sourceAudioCaptionMappingIsStale(snapshot, caption)
+    || (caption.sourceAlignmentId !== undefined && staleAlignmentIds.has(caption.sourceAlignmentId))
+    || (caption.sourceCaptionProgramId !== undefined && staleProgramIds.has(caption.sourceCaptionProgramId))
+  ));
+  if (removedCaptions.length > 0) {
+    const removedCaptionIds = new Set(removedCaptions.map((caption) => caption.id));
+    snapshot.timeline.captions = snapshot.timeline.captions.filter((caption) => !removedCaptionIds.has(caption.id));
+    for (const caption of removedCaptions) {
+      if (caption.startFrame >= 0 && caption.endFrame > caption.startFrame) {
+        impact.dirtyRanges.push({ startFrame: caption.startFrame, endFrame: caption.endFrame, reason: "原声字幕来源或 token 对齐已过期" });
+      }
+    }
+  }
+  if (newlyStaleAlignmentIds.length > 0 || stalePrograms.length > 0 || removedCaptions.length > 0) {
+    pushUnique(impact.stale, [...newlyStaleAlignmentIds, ...stalePrograms.map((program) => program.id), ...removedCaptions.map((caption) => caption.id)]);
+    pushUnique(impact.changed, [...newlyStaleAlignmentIds, ...stalePrograms.map((program) => program.id), ...removedCaptions.map((caption) => caption.id)]);
+    if (!impact.recomputed.includes("原声 token 对齐/语义字幕因 A-roll 变化失效")) {
+      impact.recomputed.push("原声 token 对齐/语义字幕因 A-roll 变化失效");
+    }
+  }
+}
 
 /**
  * SQLite 只保存不可变 Revision 快照与任务状态；任何编辑写入都通过此仓储提交，
@@ -307,6 +393,7 @@ export class ProjectRepository {
       const snapshot = cloneSnapshot(current.snapshot);
       const impact = emptyImpact();
       mutate(snapshot, impact);
+      reconcileStaleSourceAudioArtifacts(snapshot, impact);
       snapshot.project.updatedAt = now();
       assertTimelineValid(snapshot);
       assertProjectGraphValid(snapshot);
@@ -389,8 +476,11 @@ export class ProjectRepository {
 
   updateJob(jobId: Id, input: { status: JobStatus; result?: Record<string, unknown>; error?: string; leaseUntil?: string }): JobRecord {
     const old = this.getJob(jobId);
+    // Worker 在运行中写入 Bridge 审计或恢复检查点时，不能意外清空已有租约；
+    // 否则进程在该瞬间退出会留下永远无法重新领取的 running Job。
+    const leaseUntil = input.leaseUntil ?? (input.status === "running" ? old.leaseUntil : undefined);
     this.db.prepare("UPDATE jobs SET status = ?, result_json = ?, error = ?, lease_until = ?, updated_at = ? WHERE id = ?")
-      .run(input.status, input.result ? JSON.stringify(input.result) : old.result ? JSON.stringify(old.result) : null, input.error ?? null, input.leaseUntil ?? null, now(), jobId);
+      .run(input.status, input.result ? JSON.stringify(input.result) : old.result ? JSON.stringify(old.result) : null, input.error ?? null, leaseUntil ?? null, now(), jobId);
     return this.getJob(jobId);
   }
 

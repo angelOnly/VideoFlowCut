@@ -24,6 +24,14 @@ const DEFAULT_RENDER_CAPTION_FORMAT = {
   textAlign: "center"
 } satisfies CaptionFormat;
 
+/** 透明度只作用于字幕底板，不降低文字或强调短语的可读性。 */
+const captionBackgroundColor = (format: CaptionFormat): string | undefined => {
+  if (!format.backgroundColor) return undefined;
+  if (format.backgroundOpacity === undefined) return format.backgroundColor;
+  const alpha = Math.round(format.backgroundOpacity * 255).toString(16).padStart(2, "0");
+  return `${format.backgroundColor}${alpha}`;
+};
+
 const mediaUrl = (snapshot: ProjectSnapshot, mediaBaseUrl: string, managedPath: string) => {
   const safePath = managedPath.replace(/\\/g, "/").split("/").map(encodeURIComponent).join("/");
   return `${mediaBaseUrl.replace(/\/$/, "")}/media/${encodeURIComponent(snapshot.project.id)}/${safePath}`;
@@ -195,6 +203,7 @@ export function resolveWordExactCaptionHighlight(
 const CaptionLayer: React.FC<{ snapshot: ProjectSnapshot; caption: CaptionCard }> = ({ snapshot, caption }) => {
   const frame = useCurrentFrame();
   const format = { ...DEFAULT_RENDER_CAPTION_FORMAT, ...caption.format };
+  const backgroundColor = captionBackgroundColor(format);
   const emphasis = resolveWordExactCaptionHighlight(snapshot, caption, frame) ?? caption.emphasis;
   const emphasisIndex = emphasis ? captionEmphasisIndex(caption.text, emphasis.text, emphasis.occurrence) : -1;
   const before = emphasisIndex >= 0 && emphasis ? caption.text.slice(0, emphasisIndex) : caption.text;
@@ -213,7 +222,7 @@ const CaptionLayer: React.FC<{ snapshot: ProjectSnapshot; caption: CaptionCard }
     textShadow: "0 3px 14px #000",
     fontFamily: "Inter, Noto Sans SC, sans-serif",
     whiteSpace: "pre-wrap"
-  }}><span style={format.backgroundColor ? { display: "inline", padding: "0.13em 0.32em", borderRadius: "0.22em", backgroundColor: format.backgroundColor } : undefined}>{before}{focused && emphasis && <span style={{ display: "inline-block", color: emphasis.color ?? format.color, backgroundColor: emphasis.backgroundColor, fontWeight: emphasis.fontWeight ?? Math.min(900, format.fontWeight + 100), transform: emphasis.scale === undefined ? undefined : `scale(${emphasis.scale})`, transformOrigin: "center bottom" }}>{focused}</span>}{after}</span></div>;
+  }}><span style={backgroundColor ? { display: "inline", padding: "0.13em 0.32em", borderRadius: "0.22em", backgroundColor } : undefined}>{before}{focused && emphasis && <span style={{ display: "inline-block", color: emphasis.color ?? format.color, backgroundColor: emphasis.backgroundColor, fontWeight: emphasis.fontWeight ?? Math.min(900, format.fontWeight + 100), transform: emphasis.scale === undefined ? undefined : `scale(${emphasis.scale})`, transformOrigin: "center bottom" }}>{focused}</span>}{after}</span></div>;
 };
 
 const itemDuration = (item: TimelineItem) => item.endFrame - item.startFrame;

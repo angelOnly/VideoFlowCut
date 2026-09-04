@@ -12,6 +12,7 @@ import { EFFECT_QUALITY_RULES, EFFECT_TYPES, type Asset, type AssetProvenance } 
 import { inspectComposedFrames } from "./preview-inspection.js";
 import { inspectAsset } from "./source-review.js";
 import { sha256File } from "./media-hash.js";
+import { browseLocalSoundEffects, inspectLocalSoundEffect, resolveLocalSoundEffectForImport } from "./local-sound-effects.js";
 
 const runtimeConfig = readRuntimeConfig();
 const workspaceRoot = runtimeConfig.workspace.root;
@@ -780,6 +781,82 @@ server.registerTool("import_media", {
   } catch (error) { return asError(error); }
 });
 
+server.registerTool("browse_local_sound_effects", {
+  title: "浏览本地音效库",
+  description: "只浏览由 VIDEOFLOWCUT_SFX_ROOTS 显式配置的本地音效根目录；返回相对路径、时长与格式，不泄漏根目录外文件。",
+  inputSchema: {
+    query: z.string().trim().min(1).max(160).optional(),
+    max_results: z.number().int().min(1).max(100).optional()
+  },
+  annotations: { readOnlyHint: true }
+}, async ({ query, max_results }) => {
+  try {
+    return asText(await browseLocalSoundEffects({
+      configuredRoots: runtimeConfig.localSoundEffects.roots,
+      query,
+      maxResults: max_results
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("inspect_local_sound_effect", {
+  title: "检测本地音效起点",
+  description: "读取一个已配置根目录内的音效，并用 silencedetect 提供可复核的非静音起点候选；该检测不等于人工确认。",
+  inputSchema: {
+    root_id: z.string().regex(/^sfx-root-\d+$/u),
+    relative_path: z.string().min(1).max(1_000)
+  },
+  annotations: { readOnlyHint: true }
+}, async ({ root_id, relative_path }) => {
+  try {
+    return asText(await inspectLocalSoundEffect({
+      configuredRoots: runtimeConfig.localSoundEffects.roots,
+      rootId: root_id,
+      relativePath: relative_path
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("import_local_sound_effect", {
+  title: "导入本地音效",
+  description: "将已检测、且仍位于配置音效根目录内的文件复制到项目受管目录并创建媒体分析任务；导入默认不会声称已取得交付授权。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    root_id: z.string().regex(/^sfx-root-\d+$/u),
+    relative_path: z.string().min(1).max(1_000),
+    tags: z.array(z.string().trim().min(1).max(80)).max(20).optional(),
+    rights_status: z.enum(["unknown", "cleared", "attribution_required", "restricted", "rejected"]).optional(),
+    license: z.string().trim().min(1).max(500).optional(),
+    attribution_text: z.string().trim().min(1).max(1_000).optional()
+  }
+}, async ({ project_id, base_revision_id, root_id, relative_path, tags, rights_status, license, attribution_text }) => {
+  try {
+    const local = await resolveLocalSoundEffectForImport({
+      configuredRoots: runtimeConfig.localSoundEffects.roots,
+      rootId: root_id,
+      relativePath: relative_path
+    });
+    const result = await importLocalMedia(projectIdFrom(project_id), base_revision_id, local.absolutePath, {
+      tags: [...new Set(["local_sound_effect", ...(tags ?? [])])],
+      provenance: {
+        source: "local_import",
+        rightsStatus: rights_status ?? "unknown",
+        license,
+        attributionText: attribution_text
+      }
+    });
+    return asText({
+      ...result,
+      importedSoundEffect: {
+        rootId: local.effect.rootId,
+        relativePath: local.effect.relativePath,
+        defaultRightsStatus: local.effect.defaultRightsStatus
+      }
+    });
+  } catch (error) { return asError(error); }
+});
+
 server.registerTool("update_asset_metadata", {
   title: "标注素材角色与来源",
   description: "为已导入素材记录叙事角色、标签、来源、授权和署名；不改变媒体文件或分析任务。",
@@ -811,6 +888,115 @@ server.registerTool("submit_transcription", {
   inputSchema: { project_id: z.string().optional(), asset_id: z.string().min(1), idempotency_key: z.string().optional() }
 }, async ({ project_id, asset_id, idempotency_key }) => {
   try { return asText(application.submitTranscription({ projectId: projectIdFrom(project_id), assetId: asset_id, idempotencyKey: idempotency_key })); } catch (error) { return asError(error); }
+});
+
+server.registerTool("submit_source_audio_captions", {
+  title: "提交原声 A-roll 分块字幕",
+  description: "仅为已登记 use_source_audio 的 A-roll 使用按真实静音边界提交 FunASR 分块；不生成旁白、不改 Script，结果只会以 chunk_coarse 字幕写回同一来源。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    timeline_item_id: z.string().min(1),
+    idempotency_key: z.string().min(1).max(240).optional()
+  }
+}, async ({ project_id, base_revision_id, timeline_item_id, idempotency_key }) => {
+  try {
+    return asText(application.submitSourceAudioCaptions({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id,
+      timelineItemId: timeline_item_id,
+      idempotencyKey: idempotency_key
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("submit_source_audio_sentence_alignment", {
+  title: "提交原声 A-roll token 对齐（兼容旧名）",
+  description: "兼容入口。采集 FunASR 同源 token 时间证据与自动标点候选，不直接生成最终视觉字幕；不按标点、字符或估算时长拆卡。请优先使用 submit_source_audio_token_alignment。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    timeline_item_id: z.string().min(1),
+    idempotency_key: z.string().min(1).max(240).optional()
+  }
+}, async ({ project_id, base_revision_id, timeline_item_id, idempotency_key }) => {
+  try {
+    return asText(application.submitSourceAudioSentenceAlignment({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id,
+      timelineItemId: timeline_item_id,
+      idempotencyKey: idempotency_key
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("submit_source_audio_token_alignment", {
+  title: "提交原声 A-roll token 对齐",
+  description: "为已登记 use_source_audio 的 A-roll 采集 FunASR Provider token 时间证据和候选句。候选句只供阅读；完成后必须先读取证据，再由剪辑 Agent 提交语义字幕 Program，不能把自动标点直接当成最终字幕。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    timeline_item_id: z.string().min(1),
+    idempotency_key: z.string().min(1).max(240).optional()
+  }
+}, async ({ project_id, base_revision_id, timeline_item_id, idempotency_key }) => {
+  try {
+    return asText(application.submitSourceAudioSentenceAlignment({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id,
+      timelineItemId: timeline_item_id,
+      idempotencyKey: idempotency_key
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("read_source_audio_alignment", {
+  title: "读取原声 token 对齐证据",
+  description: "读取指定 A-roll 的 Provider token 时间、自动标点候选和 Bridge 审计。它是语义分卡的唯一时间事实，不执行任何项目写入。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    alignment_id: z.string().min(1).optional(),
+    timeline_item_id: z.string().min(1).optional()
+  },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id, alignment_id, timeline_item_id }) => {
+  try {
+    return asText({ sourceAudioAlignments: application.readSourceAudioAlignment({
+      projectId: projectIdFrom(project_id),
+      alignmentId: alignment_id,
+      timelineItemId: timeline_item_id
+    }) });
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("apply_source_caption_program", {
+  title: "应用原声语义字幕 Program",
+  description: "根据已读取的 token 对齐证据提交完整、连续的语义分卡。每张卡只引用 token 范围并给出阅读/语义理由；display_text 仅可调整标点或空白，不能增删或改写原声实义词，也不能手填时间。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    alignment_id: z.string().min(1),
+    cards: z.array(z.object({
+      token_start_index: z.number().int().min(0),
+      token_end_index: z.number().int().positive(),
+      display_text: z.string().trim().min(1).max(2_000).optional(),
+      rationale: z.string().trim().min(1).max(240)
+    })).min(1).max(300)
+  }
+}, async ({ project_id, base_revision_id, alignment_id, cards }) => {
+  try {
+    return asText(application.applySourceCaptionProgram({
+      projectId: projectIdFrom(project_id),
+      baseRevision: base_revision_id,
+      alignmentId: alignment_id,
+      cards: cards.map((card) => ({
+        tokenStartIndex: card.token_start_index,
+        tokenEndIndex: card.token_end_index,
+        displayText: card.display_text,
+        rationale: card.rationale
+      }))
+    }));
+  } catch (error) { return asError(error); }
 });
 
 server.registerTool("apply_manual_transcript", {
@@ -1071,18 +1257,20 @@ server.registerTool("read_captions", {
 
 server.registerTool("edit_captions", {
   title: "编辑稳定字幕卡",
-  description: "只编辑当前 SpeechAsset 对应 Caption Card 的屏幕文案、有限排版和一个连续短语强调；不会改 Script、语音或段级时间。occurrence 从 0 开始计数。",
+  description: "可编辑当前 SpeechAsset 或已审计 source_audio Caption Card 的屏幕文案、有限排版和一个连续短语强调；bulk_source_format 可原子统一同一 A-roll 的明确 Card 集合。不会改 Script、音频、Card 边界或时间范围；chunk_coarse 原声字幕不能被伪拆分或重定时。occurrence 从 0 开始计数。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
-    caption_id: z.string().min(1),
-    action: z.enum(["update", "reset"]),
+    caption_id: z.string().min(1).optional(),
+    caption_ids: z.array(z.string().min(1)).min(1).max(200).optional(),
+    action: z.enum(["update", "reset", "bulk_source_format"]),
     text: z.string().max(80).optional(),
     format: z.object({
       font_size: z.number().int().min(16).max(72).optional(),
       font_weight: z.number().int().min(400).max(900).optional(),
       color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").optional(),
       background_color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").nullable().optional(),
+      background_opacity: z.number().min(0.1).max(1).nullable().optional(),
       bottom_percent: z.number().min(4).max(20).optional(),
       horizontal_inset_percent: z.number().min(3).max(20).optional(),
       text_align: z.enum(["left", "center", "right"]).optional()
@@ -1096,12 +1284,13 @@ server.registerTool("edit_captions", {
       scale: z.number().min(0.8).max(1.35).optional()
     }).strict().nullable().optional()
   }
-}, async ({ project_id, base_revision_id, caption_id, action, text, format, emphasis }) => {
+}, async ({ project_id, base_revision_id, caption_id, caption_ids, action, text, format, emphasis }) => {
   try {
     return asText(application.editCaptions({
       projectId: projectIdFrom(project_id),
       baseRevision: base_revision_id,
       captionId: caption_id,
+      captionIds: caption_ids,
       action,
       text,
       format: format === undefined ? undefined : {
@@ -1109,6 +1298,7 @@ server.registerTool("edit_captions", {
         fontWeight: format.font_weight,
         color: format.color,
         backgroundColor: format.background_color,
+        backgroundOpacity: format.background_opacity,
         bottomPercent: format.bottom_percent,
         horizontalInsetPercent: format.horizontal_inset_percent,
         textAlign: format.text_align

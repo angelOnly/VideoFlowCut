@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process";
-import { mkdir, stat } from "node:fs/promises";
+import { mkdir, rm, stat } from "node:fs/promises";
 import { basename, extname, isAbsolute, join } from "node:path";
-import type { Asset, BridgeRunAudit, MediaMetadata, ProjectSnapshot, SpeechAsset, SpeechSegmentAsset, SpeechTiming } from "@videocut/contracts";
-import { FUNASR_WORKFLOW_ID, OMNIVOICE_WORKFLOW_ID, ComfyUIBridgeClient, type BridgeRun, type BridgeRunSubmission } from "@videocut/bridge";
+import type { Asset, BridgeRunAudit, JobRecord, MediaMetadata, ProjectSnapshot, SpeechAsset, SpeechSegmentAsset, SpeechTiming } from "@videocut/contracts";
+import { BridgeError, BridgeRunLostError, FUNASR_SOURCE_TOKEN_ALIGNMENT_WORKFLOW_ID, FUNASR_WORKFLOW_ID, OMNIVOICE_WORKFLOW_ID, ComfyUIBridgeClient, type BridgeRun, type BridgeRunSubmission, type BridgeWorkflow } from "@videocut/bridge";
 import { assetById, createId, createMediaAsset, DomainError, millisecondsToFrames, now } from "@videocut/domain";
 import { EditingApplication } from "@videocut/application";
 
@@ -43,7 +43,12 @@ export type BridgeRunReporter = (audit: BridgeRunAudit) => void | Promise<void>;
  * 只记录请求字段、文件槽位和 Bridge 响应子集；媒体二进制仍保存在受管 Asset 中。
  * 这份审计会先写入本地 Job，随后在成功时一并落入 Transcript / SpeechSegmentAsset。
  */
-function createBridgeRunAudit(submission: BridgeRunSubmission, completed?: BridgeRun, submittedAt = now()): BridgeRunAudit {
+function createBridgeRunAudit(
+  submission: BridgeRunSubmission,
+  completed?: BridgeRun,
+  submittedAt = now(),
+  metadata?: Record<string, string | number | boolean>
+): BridgeRunAudit {
   return {
     workflowId: submission.workflow.id,
     runId: submission.run.id,
@@ -57,7 +62,8 @@ function createBridgeRunAudit(submission: BridgeRunSubmission, completed?: Bridg
         id: file.slot.id,
         kind: file.slot.kind,
         fileName: basename(file.path)
-      })) ?? []
+      })) ?? [],
+      metadata
     },
     response: completed ? {
       status: completed.status,
@@ -73,6 +79,27 @@ function createBridgeRunAudit(submission: BridgeRunSubmission, completed?: Bridg
         text: output.text
       }))
     } : undefined
+  };
+}
+
+function completeBridgeRunAudit(previous: BridgeRunAudit, completed: BridgeRun): BridgeRunAudit {
+  return {
+    ...previous,
+    completedAt: now(),
+    response: {
+      status: completed.status,
+      error: completed.error,
+      outputs: completed.outputs.map((output) => ({
+        outputSlotId: output.outputSlotId,
+        displayName: output.displayName,
+        kind: output.kind,
+        fileName: output.fileName,
+        mime: output.mime,
+        outputId: output.outputId,
+        downloadUrl: output.downloadUrl,
+        text: output.text
+      }))
+    }
   };
 }
 
@@ -128,6 +155,40 @@ export async function extractAudioForTranscription(snapshot: ProjectSnapshot, as
 export class FunASRService {
   constructor(private readonly application: EditingApplication, private readonly bridge: ComfyUIBridgeClient) {}
 
+  private existingTranscript(projectId: string, assetId: string, runId: string) {
+    return this.application.readProject(projectId).snapshot.transcripts.find((transcript) => (
+      transcript.assetId === assetId && transcript.source === "funasr" && transcript.bridgeRunId === runId
+    ));
+  }
+
+  private async applyCompletedRun(
+    projectId: string,
+    assetId: string,
+    completed: BridgeRun,
+    audit: BridgeRunAudit,
+    onBridgeRun?: BridgeRunReporter
+  ): Promise<{ runId: string; textLength: number }> {
+    const existing = this.existingTranscript(projectId, assetId, completed.id);
+    if (existing) {
+      await onBridgeRun?.(existing.bridgeAudit ?? audit);
+      return { runId: completed.id, textLength: existing.text.length };
+    }
+    const output = completed.outputs.find((candidate) => candidate.kind === "text" && typeof candidate.text === "string");
+    if (!output?.text?.trim()) throw new DomainError("FunASR 已完成，但没有返回文本输出", "MISSING_TRANSCRIPT_OUTPUT");
+    const completedAudit = completeBridgeRunAudit(audit, completed);
+    this.application.applyTranscript({
+      projectId,
+      assetId,
+      text: output.text,
+      bridgeRunId: completed.id,
+      schemaVersion: audit.schemaVersion,
+      bridgeAudit: completedAudit
+    });
+    // 先写入幂等的 Transcript 回执，再补 Job 审计；两步之间崩溃时可按 bridgeRunId 安全恢复。
+    await onBridgeRun?.(completedAudit);
+    return { runId: completed.id, textLength: output.text.length };
+  }
+
   async transcribe(projectId: string, assetId: string, onBridgeRun?: BridgeRunReporter): Promise<{ runId: string; textLength: number }> {
     const state = this.application.readProject(projectId);
     const asset = assetById(state.snapshot, assetId);
@@ -138,19 +199,925 @@ export class FunASRService {
       files: [{ slot: this.bridge.findRequiredSlot(detail, "audio"), path: audioPath, mime: "audio/wav" }]
     }));
     const submittedAt = now();
-    await onBridgeRun?.(createBridgeRunAudit(submission, undefined, submittedAt));
+    const audit = createBridgeRunAudit(submission, undefined, submittedAt);
+    await onBridgeRun?.(audit);
     const completed = await this.bridge.waitForRun(submission.run.id);
-    const output = completed.outputs.find((candidate) => candidate.kind === "text" && typeof candidate.text === "string");
-    if (!output?.text?.trim()) throw new DomainError("FunASR 已完成，但没有返回文本输出", "MISSING_TRANSCRIPT_OUTPUT");
-    this.application.applyTranscript({
-      projectId,
-      assetId,
-      text: output.text,
-      bridgeRunId: completed.id,
-      schemaVersion: submission.workflow.schemaVersion,
-      bridgeAudit: createBridgeRunAudit(submission, completed, submittedAt)
+    return this.applyCompletedRun(projectId, assetId, completed, audit, onBridgeRun);
+  }
+
+  /**
+   * 超时或 Worker 重启后只等待已持久化的 run_id。Run 丢失必须显式失败，
+   * 绝不能把“查询不到”解释成“从未提交”并自动创建第二次转写。
+   */
+  async resumeTranscription(
+    projectId: string,
+    assetId: string,
+    audit: BridgeRunAudit,
+    onBridgeRun?: BridgeRunReporter
+  ): Promise<{ runId: string; textLength: number }> {
+    if (audit.workflowId !== FUNASR_WORKFLOW_ID || !audit.runId) {
+      throw new DomainError("转写任务的 Bridge 审计与当前 FunASR 工作流不匹配", "TRANSCRIPTION_BRIDGE_AUDIT_INVALID");
+    }
+    // 将来源 Job 的恢复依据复制到当前 Job，保证再次中断后仍从同一个 run_id 继续。
+    await onBridgeRun?.(audit);
+    const existing = this.existingTranscript(projectId, assetId, audit.runId);
+    if (existing) {
+      await onBridgeRun?.(existing.bridgeAudit ?? audit);
+      return { runId: audit.runId, textLength: existing.text.length };
+    }
+    let completed: BridgeRun;
+    try {
+      completed = await this.bridge.waitForRun(audit.runId);
+    } catch (error) {
+      if (!(error instanceof BridgeRunLostError)) throw error;
+      throw new DomainError(
+        `FunASR Run ${audit.runId} 已不可查询，无法确认原转写结果；系统未自动创建新 Run，请确认后重新提交转写。`,
+        "TRANSCRIPTION_RUN_LOST_REQUIRES_RESUBMISSION"
+      );
+    }
+    return this.applyCompletedRun(projectId, assetId, completed, audit, onBridgeRun);
+  }
+}
+
+/**
+ * 原声字幕只能按检测到的静音边界分块：不根据字符数或均分时长伪造字幕时间。
+ * 这个阈值是字幕可读性的上限，不是对讲话内容的切分判断；连续讲话超限会明确报障。
+ */
+const SOURCE_CAPTION_SILENCE_NOISE_DB = -42;
+const SOURCE_CAPTION_SILENCE_SECONDS = 0.28;
+const SOURCE_CAPTION_MIN_CHUNK_SECONDS = 0.18;
+const SOURCE_CAPTION_MAX_CHUNK_SECONDS = 12;
+const SOURCE_CAPTION_MAX_CHUNKS = 160;
+
+type SourceCaptionJobPayload = {
+  requestedRevision: number;
+  assetId: string;
+  timelineItemId: string;
+  sourceStartFrame: number;
+  sourceEndFrame: number;
+  timelineStartFrame: number;
+  timelineEndFrame: number;
+};
+
+type SourceCaptionChunkPlan = {
+  index: number;
+  sourceStartFrame: number;
+  sourceEndFrame: number;
+};
+
+type SourceCaptionPlan = SourceCaptionJobPayload & {
+  version: 1;
+  chunks: SourceCaptionChunkPlan[];
+};
+
+type SourceCaptionSubmissionIntent = SourceCaptionChunkPlan & {
+  kind: "source_caption_chunk";
+  createdAt: string;
+};
+
+type SourceCaptionResult = {
+  chunk: SourceCaptionChunkPlan;
+  bridgeRunId: string;
+  text: string;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value));
+
+function integer(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value);
+}
+
+function sourceCaptionPayloadFromJob(
+  job: JobRecord,
+  expectedKind: "source_caption_generation" | "source_caption_sentence_alignment" = "source_caption_generation"
+): SourceCaptionJobPayload {
+  const payload = job.payload;
+  const fields = [
+    "requestedRevision", "sourceStartFrame", "sourceEndFrame", "timelineStartFrame", "timelineEndFrame"
+  ] as const;
+  if (job.kind !== expectedKind || typeof payload.assetId !== "string" || !payload.assetId.trim()
+    || typeof payload.timelineItemId !== "string" || !payload.timelineItemId.trim()
+    || fields.some((field) => !integer(payload[field]))) {
+    throw new DomainError("原声字幕 Job 缺少完整且可恢复的来源定位", "SOURCE_CAPTION_JOB_PAYLOAD_INVALID");
+  }
+  const parsed: SourceCaptionJobPayload = {
+    requestedRevision: payload.requestedRevision as number,
+    assetId: payload.assetId,
+    timelineItemId: payload.timelineItemId,
+    sourceStartFrame: payload.sourceStartFrame as number,
+    sourceEndFrame: payload.sourceEndFrame as number,
+    timelineStartFrame: payload.timelineStartFrame as number,
+    timelineEndFrame: payload.timelineEndFrame as number
+  };
+  if (parsed.requestedRevision < 1 || parsed.sourceStartFrame < 0 || parsed.timelineStartFrame < 0
+    || parsed.sourceEndFrame <= parsed.sourceStartFrame || parsed.timelineEndFrame <= parsed.timelineStartFrame
+    || parsed.sourceEndFrame - parsed.sourceStartFrame !== parsed.timelineEndFrame - parsed.timelineStartFrame) {
+    throw new DomainError("原声字幕 Job 的源范围或一比一时间映射无效", "SOURCE_CAPTION_JOB_PAYLOAD_INVALID");
+  }
+  return parsed;
+}
+
+function sourceCaptionPlanFromResult(value: unknown): SourceCaptionPlan | undefined {
+  if (!isRecord(value)) return undefined;
+  const plan = value.sourceCaptionPlan;
+  if (plan === undefined) return undefined;
+  if (!isRecord(plan) || plan.version !== 1 || typeof plan.assetId !== "string" || typeof plan.timelineItemId !== "string"
+    || !integer(plan.requestedRevision) || !integer(plan.sourceStartFrame) || !integer(plan.sourceEndFrame)
+    || !integer(plan.timelineStartFrame) || !integer(plan.timelineEndFrame) || !Array.isArray(plan.chunks)) {
+    throw new DomainError("原声字幕 Job 的持久化分块计划已损坏，不能安全恢复", "SOURCE_CAPTION_PLAN_INVALID");
+  }
+  const planSourceStartFrame = plan.sourceStartFrame as number;
+  const planSourceEndFrame = plan.sourceEndFrame as number;
+  let previousEnd = planSourceStartFrame;
+  const chunks = plan.chunks.map((candidate, index): SourceCaptionChunkPlan => {
+    if (!isRecord(candidate) || !integer(candidate.index) || !integer(candidate.sourceStartFrame) || !integer(candidate.sourceEndFrame)
+      || candidate.index !== index || candidate.sourceStartFrame < planSourceStartFrame || candidate.sourceEndFrame <= candidate.sourceStartFrame
+      || candidate.sourceEndFrame > planSourceEndFrame || candidate.sourceStartFrame < previousEnd) {
+      throw new DomainError("原声字幕 Job 的持久化分块范围已损坏，不能安全恢复", "SOURCE_CAPTION_PLAN_INVALID");
+    }
+    previousEnd = candidate.sourceEndFrame;
+    return {
+      index: candidate.index,
+      sourceStartFrame: candidate.sourceStartFrame,
+      sourceEndFrame: candidate.sourceEndFrame
+    };
+  });
+  if (chunks.length === 0 || chunks.length > SOURCE_CAPTION_MAX_CHUNKS) {
+    throw new DomainError("原声字幕 Job 的持久化分块数量无效，不能安全恢复", "SOURCE_CAPTION_PLAN_INVALID");
+  }
+  return {
+    version: 1,
+    requestedRevision: plan.requestedRevision,
+    assetId: plan.assetId,
+    timelineItemId: plan.timelineItemId,
+    sourceStartFrame: plan.sourceStartFrame,
+    sourceEndFrame: plan.sourceEndFrame,
+    timelineStartFrame: plan.timelineStartFrame,
+    timelineEndFrame: plan.timelineEndFrame,
+    chunks
+  };
+}
+
+function sourceCaptionPlanMatchesPayload(plan: SourceCaptionPlan, payload: SourceCaptionJobPayload): boolean {
+  return plan.requestedRevision === payload.requestedRevision && plan.assetId === payload.assetId
+    && plan.timelineItemId === payload.timelineItemId && plan.sourceStartFrame === payload.sourceStartFrame
+    && plan.sourceEndFrame === payload.sourceEndFrame && plan.timelineStartFrame === payload.timelineStartFrame
+    && plan.timelineEndFrame === payload.timelineEndFrame;
+}
+
+function sameSourceCaptionPlan(left: SourceCaptionPlan, right: SourceCaptionPlan): boolean {
+  return sourceCaptionPlanMatchesPayload(left, right)
+    && left.chunks.length === right.chunks.length
+    && left.chunks.every((chunk, index) => chunk.index === right.chunks[index]?.index
+      && chunk.sourceStartFrame === right.chunks[index]?.sourceStartFrame
+      && chunk.sourceEndFrame === right.chunks[index]?.sourceEndFrame);
+}
+
+function isBridgeRunAudit(value: unknown): value is BridgeRunAudit {
+  if (!isRecord(value)) return false;
+  return typeof value.workflowId === "string" && typeof value.runId === "string" && typeof value.schemaVersion === "string"
+    && typeof value.schemaRetryCount === "number" && typeof value.submittedAt === "string" && isRecord(value.request);
+}
+
+function sourceCaptionChunkFromAudit(audit: BridgeRunAudit, plan: SourceCaptionPlan): SourceCaptionChunkPlan | undefined {
+  if (audit.workflowId !== FUNASR_WORKFLOW_ID) return undefined;
+  const metadata = audit.request.metadata;
+  if (!metadata || metadata.sourceCaptionKind !== "chunk"
+    || metadata.sourceCaptionAssetId !== plan.assetId || metadata.sourceCaptionTimelineItemId !== plan.timelineItemId
+    || metadata.sourceCaptionRequestedRevision !== plan.requestedRevision
+    || !integer(metadata.sourceCaptionChunkIndex) || !integer(metadata.sourceCaptionStartFrame) || !integer(metadata.sourceCaptionEndFrame)) {
+    return undefined;
+  }
+  return plan.chunks.find((chunk) => chunk.index === metadata.sourceCaptionChunkIndex
+    && chunk.sourceStartFrame === metadata.sourceCaptionStartFrame
+    && chunk.sourceEndFrame === metadata.sourceCaptionEndFrame);
+}
+
+function sourceCaptionMetadata(plan: SourceCaptionPlan, chunk: SourceCaptionChunkPlan): Record<string, string | number | boolean> {
+  return {
+    sourceCaptionKind: "chunk",
+    sourceCaptionAssetId: plan.assetId,
+    sourceCaptionTimelineItemId: plan.timelineItemId,
+    sourceCaptionRequestedRevision: plan.requestedRevision,
+    sourceCaptionChunkIndex: chunk.index,
+    sourceCaptionStartFrame: chunk.sourceStartFrame,
+    sourceCaptionEndFrame: chunk.sourceEndFrame,
+    bridgeQueueMode: "foreground"
+  };
+}
+
+function sourceCaptionIntentFromUnknown(value: unknown): SourceCaptionSubmissionIntent | undefined {
+  if (!isRecord(value) || value.kind !== "source_caption_chunk" || !integer(value.index)
+    || !integer(value.sourceStartFrame) || !integer(value.sourceEndFrame) || typeof value.createdAt !== "string") return undefined;
+  return {
+    kind: "source_caption_chunk",
+    index: value.index,
+    sourceStartFrame: value.sourceStartFrame,
+    sourceEndFrame: value.sourceEndFrame,
+    createdAt: value.createdAt
+  };
+}
+
+function silenceRanges(output: string, durationSeconds: number): Array<{ startSeconds: number; endSeconds: number }> {
+  const starts = [...output.matchAll(/silence_start:\s*(-?\d+(?:\.\d+)?)/gu)]
+    .map((match) => Number(match[1]))
+    .filter((value) => Number.isFinite(value) && value >= 0);
+  const ends = [...output.matchAll(/silence_end:\s*(-?\d+(?:\.\d+)?)/gu)]
+    .map((match) => Number(match[1]))
+    .filter((value) => Number.isFinite(value) && value >= 0);
+  return starts.map((start, index) => ({
+    startSeconds: Math.min(durationSeconds, Math.max(0, start)),
+    endSeconds: Math.min(durationSeconds, Math.max(start, ends[index] ?? durationSeconds))
+  })).filter((range) => range.endSeconds > range.startSeconds)
+    .sort((left, right) => left.startSeconds - right.startSeconds);
+}
+
+function buildSourceCaptionChunks(input: {
+  sourceStartFrame: number;
+  sourceEndFrame: number;
+  fps: number;
+  silenceOutput: string;
+}): SourceCaptionChunkPlan[] {
+  const durationSeconds = (input.sourceEndFrame - input.sourceStartFrame) / input.fps;
+  const voicedRanges: Array<{ startSeconds: number; endSeconds: number }> = [];
+  let cursor = 0;
+  for (const silence of silenceRanges(input.silenceOutput, durationSeconds)) {
+    if (silence.startSeconds - cursor >= SOURCE_CAPTION_MIN_CHUNK_SECONDS) {
+      voicedRanges.push({ startSeconds: cursor, endSeconds: silence.startSeconds });
+    }
+    cursor = Math.max(cursor, silence.endSeconds);
+  }
+  if (durationSeconds - cursor >= SOURCE_CAPTION_MIN_CHUNK_SECONDS) {
+    voicedRanges.push({ startSeconds: cursor, endSeconds: durationSeconds });
+  }
+  if (voicedRanges.length === 0) {
+    throw new DomainError("所选 A-roll 范围只检测到静音，无法生成原声字幕", "SOURCE_CAPTION_NO_SPEECH");
+  }
+  const chunks = voicedRanges.map((range, index) => {
+    const sourceStartFrame = Math.max(input.sourceStartFrame, Math.min(input.sourceEndFrame,
+      input.sourceStartFrame + Math.round(range.startSeconds * input.fps)));
+    const sourceEndFrame = Math.max(sourceStartFrame, Math.min(input.sourceEndFrame,
+      input.sourceStartFrame + Math.round(range.endSeconds * input.fps)));
+    if (sourceEndFrame <= sourceStartFrame) {
+      throw new DomainError("静音边界无法映射为有效的原声字幕帧范围", "SOURCE_CAPTION_CHUNK_INVALID");
+    }
+    if ((sourceEndFrame - sourceStartFrame) / input.fps > SOURCE_CAPTION_MAX_CHUNK_SECONDS) {
+      throw new DomainError(
+        `检测到连续讲话超过 ${SOURCE_CAPTION_MAX_CHUNK_SECONDS} 秒，不能按字符或均分时长伪切字幕；请在真实停顿处拆分 A-roll 后重试。`,
+        "SOURCE_CAPTION_CONTINUOUS_SPEECH_TOO_LONG"
+      );
+    }
+    return { index, sourceStartFrame, sourceEndFrame };
+  });
+  if (chunks.length > SOURCE_CAPTION_MAX_CHUNKS) {
+    throw new DomainError("原声字幕分块数量超过安全上限；请先将 A-roll 拆为更小的独立使用范围。", "SOURCE_CAPTION_CHUNK_COUNT_EXCEEDED");
+  }
+  return chunks;
+}
+
+/**
+ * 原声 A-roll 字幕的 Worker 服务。它只把检测到的静音边界和 FunASR 的完整分块文本
+ * 写成 chunk_coarse CaptionCard，不创建 Transcript、Script 或替代任何 Dialogue 音频。
+ */
+export class SourceCaptionService {
+  constructor(private readonly application: EditingApplication, private readonly bridge: ComfyUIBridgeClient) {}
+
+  private jobLineage(job: JobRecord, payload: SourceCaptionJobPayload): JobRecord[] {
+    const lineage = [job];
+    const visited = new Set<string>([job.id]);
+    let parentId: unknown = job.payload.retryOfJobId;
+    while (parentId !== undefined) {
+      if (typeof parentId !== "string" || !parentId.trim() || visited.has(parentId)) {
+        throw new DomainError("原声字幕重试来源无效或形成循环，不能安全恢复外部 Run", "SOURCE_CAPTION_RETRY_SOURCE_INVALID");
+      }
+      visited.add(parentId);
+      const parent = this.application.trackJob(parentId);
+      if (parent.projectId !== job.projectId || parent.kind !== "source_caption_generation") {
+        throw new DomainError("原声字幕重试来源必须是同一项目的原声字幕 Job", "SOURCE_CAPTION_RETRY_SOURCE_MISMATCH");
+      }
+      const parentPayload = sourceCaptionPayloadFromJob(parent);
+      if (JSON.stringify(parentPayload) !== JSON.stringify(payload)) {
+        throw new DomainError("原声字幕重试来源的 A-roll 使用或源范围已变化，不能复用旧 Run", "SOURCE_CAPTION_RETRY_SOURCE_MISMATCH");
+      }
+      lineage.push(parent);
+      parentId = parent.payload.retryOfJobId;
+    }
+    return lineage;
+  }
+
+  private sourceCaptionIntents(job: JobRecord): SourceCaptionSubmissionIntent[] {
+    const stored = job.result?.sourceCaptionSubmissionIntents;
+    if (stored === undefined) return [];
+    if (!Array.isArray(stored)) {
+      throw new DomainError("原声字幕 Job 的外部提交检查点已损坏，不能安全重试", "SOURCE_CAPTION_SUBMISSION_INTENT_INVALID");
+    }
+    return stored.map((entry) => {
+      const intent = sourceCaptionIntentFromUnknown(entry);
+      if (!intent) throw new DomainError("原声字幕 Job 的外部提交检查点已损坏，不能安全重试", "SOURCE_CAPTION_SUBMISSION_INTENT_INVALID");
+      return intent;
     });
-    return { runId: completed.id, textLength: output.text.length };
+  }
+
+  private intentMatchesChunk(intent: SourceCaptionSubmissionIntent, chunk: SourceCaptionChunkPlan): boolean {
+    return intent.index === chunk.index && intent.sourceStartFrame === chunk.sourceStartFrame && intent.sourceEndFrame === chunk.sourceEndFrame;
+  }
+
+  private saveSubmissionIntent(jobId: string, chunk: SourceCaptionChunkPlan): void {
+    const job = this.application.trackJob(jobId);
+    const intents = this.sourceCaptionIntents(job);
+    if (intents.some((intent) => this.intentMatchesChunk(intent, chunk))) return;
+    this.application.recordJobCheckpoint(jobId, {
+      sourceCaptionSubmissionIntents: [...intents, {
+        kind: "source_caption_chunk" as const,
+        index: chunk.index,
+        sourceStartFrame: chunk.sourceStartFrame,
+        sourceEndFrame: chunk.sourceEndFrame,
+        createdAt: now()
+      }]
+    });
+  }
+
+  private clearSubmissionIntent(jobId: string, chunk: SourceCaptionChunkPlan): void {
+    const job = this.application.trackJob(jobId);
+    this.application.recordJobCheckpoint(jobId, {
+      sourceCaptionSubmissionIntents: this.sourceCaptionIntents(job)
+        .filter((intent) => !this.intentMatchesChunk(intent, chunk))
+    });
+  }
+
+  private planFromLineage(job: JobRecord, payload: SourceCaptionJobPayload, lineage: JobRecord[]): SourceCaptionPlan | undefined {
+    let recovered: SourceCaptionPlan | undefined;
+    for (const candidate of lineage) {
+      const plan = sourceCaptionPlanFromResult(candidate.result);
+      if (!plan) continue;
+      if (!sourceCaptionPlanMatchesPayload(plan, payload)) {
+        throw new DomainError("原声字幕 Job 的持久化分块计划与当前 A-roll 使用不匹配", "SOURCE_CAPTION_PLAN_MISMATCH");
+      }
+      if (recovered && !sameSourceCaptionPlan(recovered, plan)) {
+        throw new DomainError("原声字幕重试链存在互相冲突的分块计划，不能猜测采用哪一份", "SOURCE_CAPTION_PLAN_MISMATCH");
+      }
+      recovered = plan;
+    }
+    if (recovered && sourceCaptionPlanFromResult(job.result) === undefined) {
+      this.application.recordJobCheckpoint(job.id, { sourceCaptionPlan: recovered });
+    }
+    return recovered;
+  }
+
+  private knownAudits(job: JobRecord, plan: SourceCaptionPlan, lineage: JobRecord[]): Map<number, BridgeRunAudit> {
+    const byChunk = new Map<number, BridgeRunAudit>();
+    const seenRunIds = new Set<string>();
+    for (const candidate of lineage) {
+      const stored = candidate.result?.bridgeRuns;
+      if (stored === undefined) continue;
+      if (!Array.isArray(stored)) {
+        throw new DomainError("原声字幕 Job 的 Bridge 审计格式损坏，不能安全恢复", "SOURCE_CAPTION_BRIDGE_AUDIT_INVALID");
+      }
+      for (const entry of stored) {
+        if (!isBridgeRunAudit(entry)) {
+          throw new DomainError("原声字幕 Job 保存了无法识别的 Bridge 审计，不能安全恢复", "SOURCE_CAPTION_BRIDGE_AUDIT_INVALID");
+        }
+        const chunk = sourceCaptionChunkFromAudit(entry, plan);
+        if (!chunk) {
+          throw new DomainError("原声字幕 Job 的 Bridge 审计不属于当前分块计划，不能安全恢复", "SOURCE_CAPTION_BRIDGE_AUDIT_INVALID");
+        }
+        const previous = byChunk.get(chunk.index);
+        if (previous && previous.runId !== entry.runId) {
+          throw new DomainError("同一原声字幕分块存在多个 Bridge Run；系统不会猜测采用哪一次结果", "SOURCE_CAPTION_DUPLICATE_BRIDGE_RUN");
+        }
+        if (!seenRunIds.has(entry.runId) && candidate.id !== job.id) this.application.recordBridgeRun(job.id, entry);
+        seenRunIds.add(entry.runId);
+        byChunk.set(chunk.index, entry);
+      }
+    }
+    return byChunk;
+  }
+
+  private assertNoUnresolvedSubmissionIntent(lineage: JobRecord[], plan: SourceCaptionPlan, knownAudits: Map<number, BridgeRunAudit>, chunk: SourceCaptionChunkPlan): void {
+    for (const candidate of lineage) {
+      for (const intent of this.sourceCaptionIntents(candidate)) {
+        const planChunk = plan.chunks.find((entry) => entry.index === intent.index
+          && entry.sourceStartFrame === intent.sourceStartFrame && entry.sourceEndFrame === intent.sourceEndFrame);
+        if (!planChunk) {
+          throw new DomainError("原声字幕 Job 的外部提交检查点不属于当前分块计划，不能安全恢复", "SOURCE_CAPTION_SUBMISSION_INTENT_INVALID");
+        }
+        if (this.intentMatchesChunk(intent, chunk) && !knownAudits.has(chunk.index)) {
+          throw new DomainError(
+            "该原声字幕分块曾开始提交 Bridge，但本地没有收到 run_id；结果未知，系统不会自动重复提交。请先对账外部 Bridge 后重新发起一个明确的新任务。",
+            "EXTERNAL_RUN_OUTCOME_UNKNOWN"
+          );
+        }
+      }
+    }
+  }
+
+  private async createPlanFromSource(projectId: string, payload: SourceCaptionJobPayload): Promise<SourceCaptionPlan> {
+    const state = this.application.readProject(projectId);
+    if (state.revision.number !== payload.requestedRevision) {
+      throw new DomainError("A-roll 已在原声字幕分块前发生变化；请基于当前 Revision 重新提交", "SOURCE_CAPTION_REVISION_STALE");
+    }
+    const item = state.snapshot.timeline.items.find((candidate) => candidate.id === payload.timelineItemId);
+    const asset = state.snapshot.assets.find((candidate) => candidate.id === payload.assetId);
+    if (!item || !asset || item.disabled || item.assetId !== asset.id || !asset.metadata?.hasAudio
+      || item.sourceStartFrame !== payload.sourceStartFrame || item.sourceEndFrame !== payload.sourceEndFrame
+      || item.startFrame !== payload.timelineStartFrame || item.endFrame !== payload.timelineEndFrame) {
+      throw new DomainError("原声字幕 Job 所绑定的 A-roll 已改变或不再带有可用音频", "SOURCE_CAPTION_REVISION_STALE");
+    }
+    const durationSeconds = (payload.sourceEndFrame - payload.sourceStartFrame) / state.snapshot.timeline.fps;
+    const silenceOutput = await runProcess("ffmpeg", [
+      "-hide_banner", "-nostdin",
+      "-ss", (payload.sourceStartFrame / state.snapshot.timeline.fps).toFixed(6),
+      "-t", durationSeconds.toFixed(6),
+      "-i", assetPath(state.snapshot, asset),
+      "-vn", "-af", `asetpts=PTS-STARTPTS,silencedetect=n=${SOURCE_CAPTION_SILENCE_NOISE_DB}dB:d=${SOURCE_CAPTION_SILENCE_SECONDS}`,
+      "-f", "null", "-"
+    ], Math.max(120_000, Math.ceil(durationSeconds * 8_000)));
+    return {
+      version: 1,
+      ...payload,
+      chunks: buildSourceCaptionChunks({
+        sourceStartFrame: payload.sourceStartFrame,
+        sourceEndFrame: payload.sourceEndFrame,
+        fps: state.snapshot.timeline.fps,
+        silenceOutput
+      })
+    };
+  }
+
+  private async extractChunkAudio(job: JobRecord, plan: SourceCaptionPlan, chunk: SourceCaptionChunkPlan): Promise<string> {
+    const state = this.application.readProject(job.projectId);
+    const asset = assetById(state.snapshot, plan.assetId);
+    const item = state.snapshot.timeline.items.find((candidate) => candidate.id === plan.timelineItemId);
+    if (!item || item.disabled || item.assetId !== asset.id || !asset.metadata?.hasAudio) {
+      throw new DomainError("原声字幕分块时 A-roll 已不可播放", "SOURCE_CAPTION_REVISION_STALE");
+    }
+    const directory = join(state.snapshot.project.rootPath, "cache", "source-captions", safeOutputName(job.id));
+    const path = join(directory, `chunk-${String(chunk.index).padStart(3, "0")}-${chunk.sourceStartFrame}-${chunk.sourceEndFrame}.wav`);
+    const durationSeconds = (chunk.sourceEndFrame - chunk.sourceStartFrame) / state.snapshot.timeline.fps;
+    await mkdir(directory, { recursive: true });
+    await runProcess("ffmpeg", [
+      "-hide_banner", "-nostdin", "-y",
+      "-ss", (chunk.sourceStartFrame / state.snapshot.timeline.fps).toFixed(6),
+      "-t", durationSeconds.toFixed(6),
+      "-i", assetPath(state.snapshot, asset),
+      "-vn", "-map", "0:a:0", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", path
+    ], Math.max(120_000, Math.ceil(durationSeconds * 8_000)));
+    return path;
+  }
+
+  private async submitChunkRun(input: {
+    audioPath: string;
+    beforeSubmit: () => void;
+    onSchemaRejected: () => void;
+  }): Promise<BridgeRunSubmission> {
+    let workflow = await this.bridge.getWorkflow(FUNASR_WORKFLOW_ID);
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const request = {
+        fieldValues: {},
+        queueMode: "foreground" as const,
+        files: [{ slot: this.bridge.findRequiredSlot(workflow, "audio"), path: input.audioPath, mime: "audio/wav" }]
+      };
+      input.beforeSubmit();
+      try {
+        const run = await this.bridge.createRun({ workflow, ...request });
+        return { workflow, run, request, schemaRetryCount: attempt };
+      } catch (error) {
+        // HTTP 409 明确表示旧 schema 没有接收 Run；可重新读取只读 workflow 后安全重试一次。
+        if (error instanceof BridgeError && error.status === 409 && attempt === 0) {
+          input.onSchemaRejected();
+          workflow = await this.bridge.getWorkflow(FUNASR_WORKFLOW_ID);
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw new DomainError("无法使用当前 FunASR Workflow 提交原声字幕分块", "SOURCE_CAPTION_SUBMISSION_FAILED");
+  }
+
+  private async waitForChunk(job: JobRecord, chunk: SourceCaptionChunkPlan, audit: BridgeRunAudit): Promise<SourceCaptionResult> {
+    this.application.recordBridgeRun(job.id, audit);
+    let completed: BridgeRun;
+    try {
+      completed = await this.bridge.waitForRun(audit.runId);
+    } catch (error) {
+      if (error instanceof BridgeRunLostError) {
+        throw new DomainError(
+          `原声字幕 FunASR Run ${audit.runId} 已不可查询；系统未自动创建新 Run，请在 Bridge 对账后明确重新提交。`,
+          "SOURCE_CAPTION_RUN_LOST_REQUIRES_RESUBMISSION"
+        );
+      }
+      throw error;
+    }
+    const completedAudit = completeBridgeRunAudit(audit, completed);
+    this.application.recordBridgeRun(job.id, completedAudit);
+    const output = completed.outputs.find((candidate) => candidate.kind === "text" && typeof candidate.text === "string");
+    if (!output?.text?.trim()) {
+      throw new DomainError("FunASR 原声字幕分块已完成，但没有返回可显示文本", "MISSING_SOURCE_CAPTION_OUTPUT");
+    }
+    return { chunk, bridgeRunId: completed.id, text: output.text.trim() };
+  }
+
+  async generate(job: JobRecord): Promise<Record<string, unknown>> {
+    const payload = sourceCaptionPayloadFromJob(job);
+    const lineage = this.jobLineage(job, payload);
+    let plan = this.planFromLineage(job, payload, lineage);
+    if (!plan) {
+      plan = await this.createPlanFromSource(job.projectId, payload);
+      this.application.recordJobCheckpoint(job.id, { sourceCaptionPlan: plan });
+    }
+    // 先确认 Bridge 实际支持前置队列；不支持时不再创建会被长视频任务饿死的新 Run。
+    await this.bridge.requireQueueMode("foreground");
+    const knownAudits = this.knownAudits(job, plan, lineage);
+    const results: SourceCaptionResult[] = [];
+    const cacheDirectory = join(this.application.readProject(job.projectId).snapshot.project.rootPath, "cache", "source-captions", safeOutputName(job.id));
+    try {
+      for (const chunk of plan.chunks) {
+        let audit = knownAudits.get(chunk.index);
+        if (!audit) {
+          const currentRevision = this.application.readProject(job.projectId).revision.number;
+          if (currentRevision !== payload.requestedRevision) {
+            throw new DomainError("A-roll 已在原声字幕生成期间发生变化；不会为旧 Revision 新建 Bridge Run", "SOURCE_CAPTION_REVISION_STALE");
+          }
+          this.assertNoUnresolvedSubmissionIntent(lineage, plan, knownAudits, chunk);
+          const audioPath = await this.extractChunkAudio(job, plan, chunk);
+          let externalSubmissionPending = false;
+          try {
+            const submission = await this.submitChunkRun({
+              audioPath,
+              beforeSubmit: () => {
+                this.saveSubmissionIntent(job.id, chunk);
+                externalSubmissionPending = true;
+              },
+              onSchemaRejected: () => {
+                this.clearSubmissionIntent(job.id, chunk);
+                externalSubmissionPending = false;
+              }
+            });
+            audit = createBridgeRunAudit(submission, undefined, now(), sourceCaptionMetadata(plan, chunk));
+            this.application.recordBridgeRun(job.id, audit);
+            this.clearSubmissionIntent(job.id, chunk);
+            knownAudits.set(chunk.index, audit);
+          } catch (error) {
+            // 有完整 HTTP 响应时可确定本次 Run 没有被接受；网络中断则保持检查点并阻止盲重试。
+            if (!externalSubmissionPending) throw error;
+            if (error instanceof BridgeError && error.status !== undefined) {
+              this.clearSubmissionIntent(job.id, chunk);
+              throw error;
+            }
+            if (error instanceof DomainError && error.code === "SOURCE_CAPTION_SUBMISSION_FAILED") throw error;
+            throw new DomainError(
+              "提交原声字幕 Bridge Run 时连接中断，外部结果未知；系统已保留检查点且不会自动重提。请先对账。",
+              "EXTERNAL_RUN_OUTCOME_UNKNOWN"
+            );
+          }
+        }
+        results.push(await this.waitForChunk(job, chunk, audit));
+      }
+      const state = this.application.completeSourceAudioCaptions({
+        projectId: job.projectId,
+        ...payload,
+        chunks: results.map((result) => ({
+          sourceStartFrame: result.chunk.sourceStartFrame,
+          sourceEndFrame: result.chunk.sourceEndFrame,
+          text: result.text,
+          bridgeRunId: result.bridgeRunId
+        }))
+      });
+      return {
+        requestedRevision: payload.requestedRevision,
+        revision: state.revision.number,
+        chunkCount: plan.chunks.length,
+        captionCount: results.length,
+        bridgeRunIds: results.map((result) => result.bridgeRunId)
+      };
+    } finally {
+      await rm(cacheDirectory, { recursive: true, force: true }).catch(() => undefined);
+    }
+  }
+}
+
+type SourceCaptionSentenceAlignmentIntent = {
+  kind: "source_caption_sentence_alignment";
+  createdAt: string;
+};
+
+type SourceCaptionTokenAlignmentToken = {
+  text: string;
+  startMs: number;
+  endMs: number;
+};
+
+type SourceCaptionTokenAlignmentSentence = {
+  text: string;
+  startMs: number;
+  endMs: number;
+  tokenStartIndex: number;
+  tokenEndIndex: number;
+};
+
+type SourceCaptionTokenAlignmentResult = {
+  tokens: SourceCaptionTokenAlignmentToken[];
+  sentences: SourceCaptionTokenAlignmentSentence[];
+  sentenceCandidateMode: "none";
+};
+
+function sourceCaptionSentenceAlignmentMetadata(payload: SourceCaptionJobPayload): Record<string, string | number | boolean> {
+  return {
+    sourceCaptionKind: "token_alignment",
+    sourceCaptionAssetId: payload.assetId,
+    sourceCaptionTimelineItemId: payload.timelineItemId,
+    sourceCaptionRequestedRevision: payload.requestedRevision,
+    sourceCaptionStartFrame: payload.sourceStartFrame,
+    sourceCaptionEndFrame: payload.sourceEndFrame,
+    bridgeQueueMode: "foreground"
+  };
+}
+
+function sourceCaptionSentenceAlignmentAuditMatches(audit: BridgeRunAudit, payload: SourceCaptionJobPayload): boolean {
+  if (audit.workflowId !== FUNASR_SOURCE_TOKEN_ALIGNMENT_WORKFLOW_ID) return false;
+  const metadata = audit.request.metadata;
+  return Boolean(metadata
+    && metadata.sourceCaptionKind === "token_alignment"
+    && metadata.sourceCaptionAssetId === payload.assetId
+    && metadata.sourceCaptionTimelineItemId === payload.timelineItemId
+    && metadata.sourceCaptionRequestedRevision === payload.requestedRevision
+    && metadata.sourceCaptionStartFrame === payload.sourceStartFrame
+    && metadata.sourceCaptionEndFrame === payload.sourceEndFrame
+    && metadata.bridgeQueueMode === "foreground");
+}
+
+function sourceCaptionSentenceAlignmentIntentFromUnknown(value: unknown): SourceCaptionSentenceAlignmentIntent | undefined {
+  if (!isRecord(value) || value.kind !== "source_caption_sentence_alignment" || typeof value.createdAt !== "string") return undefined;
+  return { kind: "source_caption_sentence_alignment", createdAt: value.createdAt };
+}
+
+function requireTextOutputSlot(workflow: BridgeWorkflow, outputSlotId: string): void {
+  const matching = workflow.outputs.filter((output) => output.id === outputSlotId);
+  if (matching.length !== 1 || matching[0]?.kind !== "text") {
+    throw new DomainError(
+      `FunASR 原声 token 对齐 Workflow 缺少独立的文本输出槽位 ${outputSlotId}；不会改用任意第一个文本输出。`,
+      "MISSING_SOURCE_CAPTION_ALIGNMENT_OUTPUT_SLOT"
+    );
+  }
+}
+
+function requireTextOutput(run: BridgeRun, outputSlotId: string): string {
+  const matching = run.outputs.filter((output) => output.outputSlotId === outputSlotId);
+  if (matching.length !== 1 || matching[0]?.kind !== "text" || typeof matching[0].text !== "string" || !matching[0].text.trim()) {
+    throw new DomainError(
+      `FunASR 原声 token 对齐完成但缺少 ${outputSlotId} 文本输出；不会改用任意第一个输出。`,
+      "MISSING_SOURCE_CAPTION_ALIGNMENT_OUTPUT"
+    );
+  }
+  return matching[0].text.trim();
+}
+
+function parseSourceCaptionTokenAlignmentOutput(value: string): SourceCaptionTokenAlignmentResult {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new DomainError("FunASR 原声 token 时间输出不是合法 JSON", "SOURCE_CAPTION_SENTENCE_OUTPUT_INVALID");
+  }
+  if (!isRecord(parsed) || parsed.version !== 3 || parsed.precision !== "provider_token_timed"
+    || parsed.sentenceCandidateMode !== "none" || !Array.isArray(parsed.tokens) || parsed.tokens.length === 0
+    || !Array.isArray(parsed.sentences) || parsed.sentences.length !== 0) {
+    throw new DomainError("FunASR 原声 token 时间输出必须是 version=3、provider_token_timed、sentenceCandidateMode=none 与空 candidates", "SOURCE_CAPTION_SENTENCE_OUTPUT_INVALID");
+  }
+  const tokens = parsed.tokens.map((candidate, index) => {
+    if (!isRecord(candidate) || typeof candidate.text !== "string" || !candidate.text.trim()
+      || !integer(candidate.startMs) || !integer(candidate.endMs) || candidate.startMs < 0 || candidate.endMs <= candidate.startMs) {
+      throw new DomainError(`FunASR 第 ${index + 1} 个 token 结果结构无效`, "SOURCE_CAPTION_SENTENCE_OUTPUT_INVALID");
+    }
+    return {
+      text: candidate.text,
+      startMs: candidate.startMs,
+      endMs: candidate.endMs
+    };
+  });
+  return { tokens, sentences: [], sentenceCandidateMode: "none" };
+}
+
+/**
+ * 在已有 chunk_coarse 字幕上采集整段 A-roll 的 FunASR 原始 token 对齐证据。
+ * 不运行标点或分词；结果不会直接生成视觉 CaptionCard。
+ */
+export class SourceCaptionSentenceAlignmentService {
+  constructor(private readonly application: EditingApplication, private readonly bridge: ComfyUIBridgeClient) {}
+
+  private jobLineage(job: JobRecord, payload: SourceCaptionJobPayload): JobRecord[] {
+    const lineage = [job];
+    const visited = new Set<string>([job.id]);
+    let parentId: unknown = job.payload.retryOfJobId;
+    while (parentId !== undefined) {
+      if (typeof parentId !== "string" || !parentId.trim() || visited.has(parentId)) {
+        throw new DomainError("原声句级字幕重试来源无效或形成循环，不能安全恢复外部 Run", "SOURCE_CAPTION_ALIGNMENT_RETRY_SOURCE_INVALID");
+      }
+      visited.add(parentId);
+      const parent = this.application.trackJob(parentId);
+      if (parent.projectId !== job.projectId || parent.kind !== "source_caption_sentence_alignment") {
+        throw new DomainError("原声句级字幕重试来源必须是同一项目的句级对齐 Job", "SOURCE_CAPTION_ALIGNMENT_RETRY_SOURCE_MISMATCH");
+      }
+      const parentPayload = sourceCaptionPayloadFromJob(parent, "source_caption_sentence_alignment");
+      if (JSON.stringify(parentPayload) !== JSON.stringify(payload)) {
+        throw new DomainError("原声句级字幕重试来源的 A-roll 使用或源范围已变化，不能复用旧 Run", "SOURCE_CAPTION_ALIGNMENT_RETRY_SOURCE_MISMATCH");
+      }
+      lineage.push(parent);
+      parentId = parent.payload.retryOfJobId;
+    }
+    return lineage;
+  }
+
+  private intents(job: JobRecord): SourceCaptionSentenceAlignmentIntent[] {
+    const stored = job.result?.sourceCaptionSentenceAlignmentIntents;
+    if (stored === undefined) return [];
+    if (!Array.isArray(stored)) {
+      throw new DomainError("原声句级字幕 Job 的外部提交检查点已损坏，不能安全重试", "SOURCE_CAPTION_ALIGNMENT_SUBMISSION_INTENT_INVALID");
+    }
+    return stored.map((value) => {
+      const intent = sourceCaptionSentenceAlignmentIntentFromUnknown(value);
+      if (!intent) throw new DomainError("原声句级字幕 Job 的外部提交检查点已损坏，不能安全重试", "SOURCE_CAPTION_ALIGNMENT_SUBMISSION_INTENT_INVALID");
+      return intent;
+    });
+  }
+
+  private saveIntent(jobId: string): void {
+    const job = this.application.trackJob(jobId);
+    if (this.intents(job).length > 0) return;
+    this.application.recordJobCheckpoint(jobId, {
+      sourceCaptionSentenceAlignmentIntents: [{ kind: "source_caption_sentence_alignment", createdAt: now() }]
+    });
+  }
+
+  private clearIntent(jobId: string): void {
+    this.application.recordJobCheckpoint(jobId, { sourceCaptionSentenceAlignmentIntents: [] });
+  }
+
+  private knownAudit(job: JobRecord, payload: SourceCaptionJobPayload, lineage: JobRecord[]): BridgeRunAudit | undefined {
+    let found: BridgeRunAudit | undefined;
+    for (const candidate of lineage) {
+      const stored = candidate.result?.bridgeRuns;
+      if (stored === undefined) continue;
+      if (!Array.isArray(stored)) {
+        throw new DomainError("原声句级字幕 Job 的 Bridge 审计格式损坏，不能安全恢复", "SOURCE_CAPTION_ALIGNMENT_BRIDGE_AUDIT_INVALID");
+      }
+      for (const entry of stored) {
+        if (!isBridgeRunAudit(entry) || !sourceCaptionSentenceAlignmentAuditMatches(entry, payload)) {
+          throw new DomainError("原声句级字幕 Job 的 Bridge 审计不属于当前 A-roll 对齐请求，不能安全恢复", "SOURCE_CAPTION_ALIGNMENT_BRIDGE_AUDIT_INVALID");
+        }
+        if (found && found.runId !== entry.runId) {
+          throw new DomainError("同一原声句级字幕请求存在多个 Bridge Run；系统不会猜测采用哪一次结果", "SOURCE_CAPTION_ALIGNMENT_DUPLICATE_BRIDGE_RUN");
+        }
+        found = entry;
+        if (candidate.id !== job.id) this.application.recordBridgeRun(job.id, entry);
+      }
+    }
+    return found;
+  }
+
+  private assertNoUnresolvedIntent(lineage: JobRecord[], audit: BridgeRunAudit | undefined): void {
+    if (!audit && lineage.some((candidate) => this.intents(candidate).length > 0)) {
+      throw new DomainError(
+        "原声 token 对齐曾开始提交 Bridge，但本地没有收到 run_id；结果未知，系统不会自动重复提交。请先对账外部 Bridge 后重新发起一个明确的新任务。",
+        "EXTERNAL_RUN_OUTCOME_UNKNOWN"
+      );
+    }
+  }
+
+  private async extractArollAudio(job: JobRecord, payload: SourceCaptionJobPayload): Promise<string> {
+    const state = this.application.readProject(job.projectId);
+    if (state.revision.number !== payload.requestedRevision) {
+      throw new DomainError("A-roll 已在 token 对齐前发生变化；不会为旧 Revision 新建 Bridge Run", "SOURCE_CAPTION_ALIGNMENT_REVISION_STALE");
+    }
+    const item = state.snapshot.timeline.items.find((candidate) => candidate.id === payload.timelineItemId);
+    const asset = state.snapshot.assets.find((candidate) => candidate.id === payload.assetId);
+    if (!item || !asset || item.disabled || item.assetId !== asset.id || !asset.metadata?.hasAudio
+      || item.sourceStartFrame !== payload.sourceStartFrame || item.sourceEndFrame !== payload.sourceEndFrame
+      || item.startFrame !== payload.timelineStartFrame || item.endFrame !== payload.timelineEndFrame) {
+      throw new DomainError("原声 token 对齐 Job 所绑定的 A-roll 已改变或不再带有可用音频", "SOURCE_CAPTION_ALIGNMENT_REVISION_STALE");
+    }
+    const directory = join(state.snapshot.project.rootPath, "cache", "source-caption-token-alignment", safeOutputName(job.id));
+    const path = join(directory, `aroll-${payload.sourceStartFrame}-${payload.sourceEndFrame}.wav`);
+    const durationSeconds = (payload.sourceEndFrame - payload.sourceStartFrame) / state.snapshot.timeline.fps;
+    await mkdir(directory, { recursive: true });
+    await runProcess("ffmpeg", [
+      "-hide_banner", "-nostdin", "-y",
+      "-ss", (payload.sourceStartFrame / state.snapshot.timeline.fps).toFixed(6),
+      "-t", durationSeconds.toFixed(6),
+      "-i", assetPath(state.snapshot, asset),
+      "-vn", "-map", "0:a:0", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", path
+    ], Math.max(120_000, Math.ceil(durationSeconds * 8_000)));
+    return path;
+  }
+
+  private async submitRun(audioPath: string, beforeSubmit: () => void, onSchemaRejected: () => void): Promise<BridgeRunSubmission> {
+    let workflow = await this.bridge.getWorkflow(FUNASR_SOURCE_TOKEN_ALIGNMENT_WORKFLOW_ID);
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      requireTextOutputSlot(workflow, "transcript-text");
+      requireTextOutputSlot(workflow, "token-alignment-json");
+      const request = {
+        fieldValues: {},
+        queueMode: "foreground" as const,
+        files: [{ slot: this.bridge.findRequiredSlot(workflow, "audio"), path: audioPath, mime: "audio/wav" }]
+      };
+      beforeSubmit();
+      try {
+        const run = await this.bridge.createRun({ workflow, ...request });
+        return { workflow, run, request, schemaRetryCount: attempt };
+      } catch (error) {
+        // 409 表示服务明确拒绝旧 Schema，因此可清除 Intent 后重读一次动态 Schema；
+        // 网络中断则保留 Intent，避免将可能已创建的 Run 当作不存在。
+        if (error instanceof BridgeError && error.status === 409 && attempt === 0) {
+          onSchemaRejected();
+          workflow = await this.bridge.getWorkflow(FUNASR_SOURCE_TOKEN_ALIGNMENT_WORKFLOW_ID);
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw new DomainError("无法使用当前 FunASR Workflow 提交原声 token 对齐", "SOURCE_CAPTION_ALIGNMENT_SUBMISSION_FAILED");
+  }
+
+  async align(job: JobRecord): Promise<Record<string, unknown>> {
+    const payload = sourceCaptionPayloadFromJob(job, "source_caption_sentence_alignment");
+    const lineage = this.jobLineage(job, payload);
+    await this.bridge.requireQueueMode("foreground");
+    let audit = this.knownAudit(job, payload, lineage);
+    this.assertNoUnresolvedIntent(lineage, audit);
+    const cacheDirectory = join(this.application.readProject(job.projectId).snapshot.project.rootPath, "cache", "source-caption-token-alignment", safeOutputName(job.id));
+    try {
+      if (!audit) {
+        const audioPath = await this.extractArollAudio(job, payload);
+        let externalSubmissionPending = false;
+        try {
+          const submission = await this.submitRun(
+            audioPath,
+            () => {
+              this.saveIntent(job.id);
+              externalSubmissionPending = true;
+            },
+            () => {
+              this.clearIntent(job.id);
+              externalSubmissionPending = false;
+            }
+          );
+          audit = createBridgeRunAudit(submission, undefined, now(), sourceCaptionSentenceAlignmentMetadata(payload));
+          this.application.recordBridgeRun(job.id, audit);
+          this.clearIntent(job.id);
+        } catch (error) {
+          if (!externalSubmissionPending) throw error;
+          if (error instanceof BridgeError && error.status !== undefined) {
+            this.clearIntent(job.id);
+            throw error;
+          }
+          if (error instanceof DomainError && error.code === "SOURCE_CAPTION_ALIGNMENT_SUBMISSION_FAILED") throw error;
+          throw new DomainError(
+            "提交原声 token 对齐 Bridge Run 时连接中断，外部结果未知；系统已保留检查点且不会自动重提。请先对账。",
+            "EXTERNAL_RUN_OUTCOME_UNKNOWN"
+          );
+        }
+      }
+      let completed: BridgeRun;
+      try {
+        completed = await this.bridge.waitForRun(audit.runId);
+      } catch (error) {
+        if (error instanceof BridgeRunLostError) {
+          throw new DomainError(
+            `原声 token 对齐 FunASR Run ${audit.runId} 已不可查询；系统未自动创建新 Run，请在 Bridge 对账后明确重新提交。`,
+            "SOURCE_CAPTION_ALIGNMENT_RUN_LOST_REQUIRES_RESUBMISSION"
+          );
+        }
+        throw error;
+      }
+      const completedAudit = completeBridgeRunAudit(audit, completed);
+      this.application.recordBridgeRun(job.id, completedAudit);
+      const transcriptText = requireTextOutput(completed, "transcript-text");
+      const alignment = parseSourceCaptionTokenAlignmentOutput(requireTextOutput(completed, "token-alignment-json"));
+      const state = this.application.completeSourceAudioTokenAlignment({
+        projectId: job.projectId,
+        ...payload,
+        transcriptText,
+        bridgeAudit: completedAudit,
+        tokens: alignment.tokens,
+        sentences: alignment.sentences,
+        sentenceCandidateMode: alignment.sentenceCandidateMode
+      });
+      const completedAlignment = state.snapshot.sourceAudioAlignments.find((candidate) => candidate.sourceTimelineItemId === payload.timelineItemId
+        && candidate.bridgeAudit.runId === completed.id && candidate.status === "ready");
+      if (!completedAlignment) throw new DomainError("原声 token 对齐已写入 Revision，但找不到对应对齐证据", "SOURCE_CAPTION_ALIGNMENT_COMPLETION_MISSING");
+      return {
+        requestedRevision: payload.requestedRevision,
+        revision: state.revision.number,
+        alignmentId: completedAlignment.id,
+        tokenCount: alignment.tokens.length,
+        sentenceCandidateCount: alignment.sentences.length,
+        sentenceCandidateMode: alignment.sentenceCandidateMode,
+        bridgeRunId: completed.id,
+        timingPrecision: "source_token_anchored"
+      };
+    } finally {
+      await rm(cacheDirectory, { recursive: true, force: true }).catch(() => undefined);
+    }
   }
 }
 

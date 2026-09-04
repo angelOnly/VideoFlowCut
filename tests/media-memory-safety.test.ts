@@ -64,6 +64,34 @@ test("Bridge multipart 上传使用文件背载 Blob，保持原有表单合同�
   }
 });
 
+test("Bridge 只在服务明确声明后允许原声字幕使用前置队列", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      assert.match(String(input), /\/health$/u);
+      return Response.json({ status: "ready", queueModes: ["normal", "foreground"] });
+    }) as typeof fetch;
+    const client = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1");
+    await client.requireQueueMode("foreground");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Bridge 未声明前置队列时拒绝新字幕 Run", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = (async () => Response.json({ status: "ready", queueModes: ["normal"] })) as typeof fetch;
+    const client = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1");
+    await assert.rejects(
+      () => client.requireQueueMode("foreground"),
+      (error: unknown) => error instanceof BridgeError && error.code === "BRIDGE_QUEUE_MODE_UNSUPPORTED"
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("Bridge 文件输出的相对下载地址始终从 ComfyUI 服务根地址解析", async () => {
   const directory = await mkdtemp(join(tmpdir(), "videocut-bridge-download-url-"));
   const target = join(directory, "result.mp4");

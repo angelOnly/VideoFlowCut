@@ -213,7 +213,10 @@ async function ensureCachedFile(path: string, create: (temporaryPath: string) =>
 function durationFrames(snapshot: ProjectSnapshot, asset: Asset): number | undefined {
   const durationMs = asset.metadata?.durationMs;
   if (!Number.isFinite(durationMs) || !durationMs || durationMs <= 0) return undefined;
-  return Math.max(1, Math.ceil(durationMs / 1_000 * snapshot.timeline.fps));
+  // 源素材的容器时长常落在两个项目帧之间。向上取整会让 overview 的最后一帧
+  // 落到真实可解码末帧之后，尤其会在 25fps 素材进入 24fps 项目时触发 FFmpeg -22。
+  // 审阅范围采用可播放的半开区间，向下取整后最后一个采样点始终仍在源素材内。
+  return Math.max(1, Math.floor(durationMs / 1_000 * snapshot.timeline.fps));
 }
 
 /**

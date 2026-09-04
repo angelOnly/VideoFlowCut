@@ -5,7 +5,7 @@ import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { BridgeRunLostError, ComfyUIBridgeClient } from "@videocut/bridge";
+import { BridgeRunLostError, BridgeUnavailableError, ComfyUIBridgeClient, FUNASR_WORKFLOW_ID } from "@videocut/bridge";
 import { AssetProviderRegistry, MockAssetProvider } from "@videocut/acquisition";
 import { createApplication, RevisionConflictError, type EditingApplication } from "@videocut/application";
 import { DomainError } from "@videocut/domain";
@@ -408,7 +408,7 @@ test("HTTP 字幕编辑只修改 Caption Card，并校验有限样式输入", as
         baseRevision: assembled.revision.number,
         action: "update",
         text: "这是一句\n屏幕字幕测试",
-        format: { fontSize: 36, bottomPercent: 9 },
+        format: { fontSize: 36, bottomPercent: 9, backgroundColor: "#101820", backgroundOpacity: 0.68 },
         emphasis: { text: "屏幕", occurrence: 0, color: "#ffd166", scale: 1.05 }
       }
     });
@@ -416,6 +416,7 @@ test("HTTP 字幕编辑只修改 Caption Card，并校验有限样式输入", as
     const edited = editedResponse.json() as { snapshot: { timeline: { captions: CaptionCard[] }; script: unknown; speechAsset: unknown } };
     assert.equal(edited.snapshot.timeline.captions[0]?.textMode, "manual");
     assert.equal(edited.snapshot.timeline.captions[0]?.format?.fontSize, 36);
+    assert.equal(edited.snapshot.timeline.captions[0]?.format?.backgroundOpacity, 0.68);
     assert.equal(edited.snapshot.timeline.captions[0]?.emphasis?.text, "屏幕");
     assert.deepEqual(edited.snapshot.script, assembled.snapshot.script);
     assert.deepEqual(edited.snapshot.speechAsset, assembled.snapshot.speechAsset);
@@ -658,6 +659,68 @@ test("Bridge 在 schemaVersion 409 后读取最新工作流并重试", async () 
   }
 });
 
+test("Bridge 在读取 Workflow 时等待短暂的网络未就绪，但不会重放 Run 创建", async () => {
+  const originalFetch = globalThis.fetch;
+  let workflowCalls = 0;
+  let healthCalls = 0;
+  let runCalls = 0;
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url.endsWith("/workflows/recovering-workflow")) {
+      workflowCalls += 1;
+      if (workflowCalls === 1) throw new TypeError("fetch failed");
+      return new Response(JSON.stringify({
+        id: "recovering-workflow",
+        name: "恢复中的测试工作流",
+        available: true,
+        schemaVersion: "v1",
+        fields: [],
+        itemSlots: [],
+        outputs: []
+      }), { headers: { "content-type": "application/json" } });
+    }
+    if (url.endsWith("/health")) {
+      healthCalls += 1;
+      return new Response(JSON.stringify({ status: "ready" }), { headers: { "content-type": "application/json" } });
+    }
+    if (url.endsWith("/workflows/recovering-workflow/runs")) {
+      runCalls += 1;
+      return new Response(JSON.stringify({ id: "run-once", status: "queued", outputs: [] }), { headers: { "content-type": "application/json" } });
+    }
+    throw new Error(`未预期的请求：${url}`);
+  };
+  try {
+    const client = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1", {
+      readinessTimeoutMs: 50,
+      readinessPollIntervalMs: 1
+    });
+    const result = await client.createRunWithSchemaRetry("recovering-workflow", async () => ({ fieldValues: {} }));
+    assert.equal(result.run.id, "run-once");
+    assert.equal(workflowCalls, 2, "仅重读尚未产生副作用的 Workflow Schema");
+    assert.equal(healthCalls, 1);
+    assert.equal(runCalls, 1, "Bridge Run 创建请求不能因网络恢复而自动重放");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Bridge 网络不可达会保留安全且可行动的诊断", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new TypeError("fetch failed"); };
+  try {
+    const client = new ComfyUIBridgeClient("http://user:secret@bridge.test/comfyui-bridge/v1");
+    await assert.rejects(
+      () => client.health(),
+      (error: unknown) => error instanceof BridgeUnavailableError
+        && error.code === "BRIDGE_UNAVAILABLE"
+        && error.message.includes("http://bridge.test/comfyui-bridge/v1/health")
+        && !error.message.includes("secret")
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("Bridge run_id 丢失会保留明确的可诊断错误", async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({ error: "run not found" }), { status: 404, headers: { "content-type": "application/json" } });
@@ -838,6 +901,112 @@ test("人物音频所有权阻止原声与 Dialogue 重复播放", async () => {
     });
     assert.equal(evaluateQuality(withDialogueAudio.snapshot, withDialogueAudio.revision.number).issues.some((issue) => issue.code === "DUPLICATE_DIALOGUE_AUDIO"), false);
   } finally {
+    await context.dispose();
+  }
+});
+
+test("转写重试恢复既有 FunASR Run，成功写回 Transcript 且不创建第二个 Run", async () => {
+  const context = await createTestApplication();
+  const originalFetch = globalThis.fetch;
+  let runReads = 0;
+  let runCreates = 0;
+  try {
+    const created = context.app.createProject({ name: "FunASR Run 恢复测试" });
+    const projectId = created.snapshot.project.id;
+    const assetId = addReadyAsset(context.app, projectId, "recover-existing.wav", "audio");
+    for (const seedJob of context.app.listJobs(projectId)) {
+      if (seedJob.kind === "media_analysis" && seedJob.status === "queued") context.app.updateJob(seedJob.id, { status: "succeeded" });
+    }
+    const original = context.app.submitTranscription({ projectId, assetId, idempotencyKey: "funasr-existing-run" });
+    context.app.recordBridgeRun(original.id, {
+      workflowId: FUNASR_WORKFLOW_ID,
+      runId: "funasr-existing-run",
+      schemaVersion: "funasr-v1",
+      schemaRetryCount: 0,
+      submittedAt: new Date().toISOString(),
+      request: { fieldValues: {}, fileSlots: [{ id: "audio", kind: "audio", fileName: "recover-existing.wav" }] }
+    });
+    context.app.updateJob(original.id, { status: "failed", error: "等待 Bridge 任务超时" });
+    const retry = context.app.repository.createJob({
+      projectId,
+      kind: "transcription",
+      payload: { assetId, retryOfJobId: original.id },
+      idempotencyKey: "funasr-existing-run-retry"
+    });
+    globalThis.fetch = async (input, init) => {
+      const url = String(input);
+      if (url.endsWith("/runs/funasr-existing-run")) {
+        runReads += 1;
+        assert.equal(init?.method ?? "GET", "GET");
+        return new Response(JSON.stringify({
+          id: "funasr-existing-run",
+          status: "succeeded",
+          outputs: [{ outputSlotId: "text", displayName: "转写文本", kind: "text", text: "这是恢复后的真实转写文本。" }]
+        }), { headers: { "content-type": "application/json" } });
+      }
+      if (url.endsWith(`/workflows/${FUNASR_WORKFLOW_ID}/runs`)) runCreates += 1;
+      throw new Error(`未预期的 FunASR 恢复请求：${url}`);
+    };
+    assert.equal(await runOneJob(context.app, createMediaJobProcessor(context.app, new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1"))), true);
+    const completed = context.app.trackJob(retry.id);
+    assert.equal(completed.status, "succeeded");
+    assert.equal(runReads, 1);
+    assert.equal(runCreates, 0, "已有 run_id 的转写重试绝不能再次 POST Run");
+    const transcript = context.app.readProject(projectId).snapshot.transcripts.find((candidate) => candidate.assetId === assetId);
+    assert.equal(transcript?.text, "这是恢复后的真实转写文本。");
+    assert.equal(transcript?.bridgeRunId, "funasr-existing-run");
+    const retryAudits = completed.result?.bridgeRuns as Array<{ runId?: string; completedAt?: string }> | undefined;
+    assert.equal(retryAudits?.[0]?.runId, "funasr-existing-run");
+    assert.ok(retryAudits?.[0]?.completedAt, "恢复成功后必须更新当前 Job 的完成审计");
+  } finally {
+    globalThis.fetch = originalFetch;
+    await context.dispose();
+  }
+});
+
+test("转写重试遇到已丢失的 FunASR Run 时明确失败且不自动重提", async () => {
+  const context = await createTestApplication();
+  const originalFetch = globalThis.fetch;
+  let runCreates = 0;
+  try {
+    const created = context.app.createProject({ name: "FunASR Run 丢失测试" });
+    const projectId = created.snapshot.project.id;
+    const assetId = addReadyAsset(context.app, projectId, "lost-existing.wav", "audio");
+    for (const seedJob of context.app.listJobs(projectId)) {
+      if (seedJob.kind === "media_analysis" && seedJob.status === "queued") context.app.updateJob(seedJob.id, { status: "succeeded" });
+    }
+    const original = context.app.submitTranscription({ projectId, assetId, idempotencyKey: "funasr-lost-run" });
+    context.app.recordBridgeRun(original.id, {
+      workflowId: FUNASR_WORKFLOW_ID,
+      runId: "funasr-lost-run",
+      schemaVersion: "funasr-v1",
+      schemaRetryCount: 0,
+      submittedAt: new Date().toISOString(),
+      request: { fieldValues: {}, fileSlots: [{ id: "audio", kind: "audio", fileName: "lost-existing.wav" }] }
+    });
+    context.app.updateJob(original.id, { status: "failed", error: "等待 Bridge 任务超时" });
+    const retry = context.app.repository.createJob({
+      projectId,
+      kind: "transcription",
+      payload: { assetId, retryOfJobId: original.id },
+      idempotencyKey: "funasr-lost-run-retry"
+    });
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      if (url.endsWith(`/workflows/${FUNASR_WORKFLOW_ID}/runs`)) runCreates += 1;
+      if (url.endsWith("/runs/funasr-lost-run")) {
+        return new Response(JSON.stringify({ error: "run not found" }), { status: 404, headers: { "content-type": "application/json" } });
+      }
+      throw new Error(`未预期的 FunASR 丢失恢复请求：${url}`);
+    };
+    assert.equal(await runOneJob(context.app, createMediaJobProcessor(context.app, new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1"))), true);
+    const failed = context.app.trackJob(retry.id);
+    assert.equal(failed.status, "failed");
+    assert.equal((failed.result?.diagnostic as { code?: string } | undefined)?.code, "TRANSCRIPTION_RUN_LOST_REQUIRES_RESUBMISSION");
+    assert.equal(runCreates, 0, "Run 丢失只能显式失败，不能自动 POST 第二个 Run");
+    assert.equal(context.app.readProject(projectId).snapshot.transcripts.length, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
     await context.dispose();
   }
 });
@@ -1644,6 +1813,49 @@ test("StoryBeat 保持稳定 ID，移动 Item 会重算关联 Scene 与 Cue", as
     assert.equal(movedScene.startFrame, 24);
     assert.equal(movedCue.startFrame, 24);
     assert.equal(movedCue.status, "ready");
+  } finally {
+    await context.dispose();
+  }
+});
+
+test("结构化 NarrativeBeat 锚点会覆盖遗留 SpeechSegment 锚点", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "NarrativeBeat 效果锚点" });
+    const videoAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video", 1_000);
+    const assembled = context.app.assemblePresenterTrack({
+      projectId: created.snapshot.project.id,
+      baseRevision: context.app.readProject(created.snapshot.project.id).revision.number,
+      assetIds: [videoAssetId]
+    });
+    const story = context.app.updateStory({
+      projectId: created.snapshot.project.id,
+      baseRevision: assembled.revision.number,
+      beats: [{ title: "关键转折", purpose: "验证原声 A-roll 可直接绑定 NarrativeBeat" }]
+    });
+    const beatId = story.snapshot.story.beats[0]!.id;
+    const scene = context.app.compilePresenterScenes({
+      projectId: created.snapshot.project.id,
+      baseRevision: story.revision.number,
+      scenes: [{ title: "转折段", purpose: "承载关键观点", startFrame: 0, endFrame: 24, narrativeBeatIds: [beatId] }]
+    });
+
+    const withCue = context.app.createEffectCue({
+      projectId: created.snapshot.project.id,
+      baseRevision: scene.revision.number,
+      sceneId: scene.snapshot.scenes[0]!.id,
+      type: "CameraPunch",
+      layer: "actor",
+      startFrame: 0,
+      endFrame: 12,
+      // 模拟旧客户端仍附带的字段；它不存在也不能否决新的结构化锚点。
+      anchorTargetId: "legacy-speech-segment-that-does-not-exist",
+      semanticAnchor: { type: "narrative_beat", targetId: beatId, relation: "land_on" }
+    });
+
+    const cue = withCue.snapshot.effectCues[0]!;
+    assert.equal(cue.anchorTargetId, undefined);
+    assert.deepEqual(cue.semanticAnchor, { type: "narrative_beat", targetId: beatId, relation: "land_on" });
   } finally {
     await context.dispose();
   }

@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 
 /**
  * 这是面向项目维护者的单一阅读入口：只保留配置、顶层流程、关键类名和 MCP 能力目录。
@@ -63,6 +63,11 @@ export interface RuntimeConfig {
     /** Bridge 返回生成视频的最大下载字节数。 */
     maxGeneratedVideoBytes: number;
   };
+  /** 本机音效库只允许通过这些受控根目录被 MCP 浏览和导入。 */
+  localSoundEffects: {
+    /** 由系统路径分隔符分隔的根目录；空数组表示未配置。 */
+    roots: string[];
+  };
   /** 插件发行版 Runtime 和 Remotion 渲染器的可选路径与实例信息。 */
   runtime: {
     /** 插件发行 Runtime 的根目录。 */
@@ -93,6 +98,10 @@ export interface ReadRuntimeConfigOptions {
   cwd?: string;
 }
 
+function configuredPathRoots(value: string | undefined): string[] {
+  return value?.split(delimiter).map((entry) => entry.trim()).filter(Boolean) ?? [];
+}
+
 /** 集中读取所有 Node 端运行配置，不在这里校验 Provider 或启动外部服务。 */
 export function readRuntimeConfig(options: ReadRuntimeConfigOptions = {}): RuntimeConfig {
   const environment = options.environment ?? process.env;
@@ -118,6 +127,9 @@ export function readRuntimeConfig(options: ReadRuntimeConfigOptions = {}): Runti
       maxAssetBytes: Number(environment.VIDEOCUT_MAX_ASSET_DOWNLOAD_BYTES ?? RUNTIME_CONFIG_DEFAULTS.maxAssetDownloadBytes),
       maxWikimediaBytes: Number(environment.VIDEOCUT_MAX_WIKIMEDIA_DOWNLOAD_BYTES ?? RUNTIME_CONFIG_DEFAULTS.maxWikimediaDownloadBytes),
       maxGeneratedVideoBytes: Number(environment.VIDEOCUT_MAX_GENERATED_VIDEO_BYTES ?? RUNTIME_CONFIG_DEFAULTS.maxGeneratedVideoBytes)
+    },
+    localSoundEffects: {
+      roots: configuredPathRoots(environment.VIDEOFLOWCUT_SFX_ROOTS)
     },
     runtime: {
       distributionDirectory: environment.VIDEOFLOWCUT_RUNTIME_DIST,
@@ -214,6 +226,8 @@ export const KEY_APPLICATION_ENTRIES = [
   { name: "AssetProviderRegistry", kind: "素材 Provider 类", responsibility: "素材搜索、候选审阅和受管下载 Provider 的目录", module: "@videocut/acquisition" },
   { name: "ComfyUIBridgeClient", kind: "Bridge 客户端类", responsibility: "动态读取 ComfyUI Workflow Schema 并提交 Bridge 任务", module: "@videocut/bridge" },
   { name: "FunASRService", kind: "转写服务类", responsibility: "转写与时间信息的服务边界", module: "@videocut/speech" },
+  { name: "SourceCaptionService", kind: "原声字幕服务类", responsibility: "按真实静音边界恢复可回退的 chunk_coarse 字幕；它不是最终视觉分卡", module: "@videocut/speech" },
+  { name: "SourceCaptionSentenceAlignmentService", kind: "原声 token 对齐服务类", responsibility: "采集 Provider token 时间证据和自动标点候选，交给语义字幕 Program 编译", module: "@videocut/speech" },
   { name: "OmniVoiceSegmentService", kind: "语音服务类", responsibility: "段级语音合成与真实音频时长校验", module: "@videocut/speech" },
   { name: "RevisionRenderer", kind: "渲染器类", responsibility: "Preview、Render Preflight 与导出渲染", module: "Render Worker" },
   { name: "evaluateQuality", kind: "函数", responsibility: "质量规则、审片结论与交付门禁", module: "@videocut/quality" },
@@ -280,10 +294,11 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     name: "转写、语音与声音",
     description: "处理转写、语义脚本、语音合成与对齐、字幕、对白和 BGM/SFX。",
     tools: [
-      "submit_transcription", "apply_manual_transcript", "read_script", "apply_semantic_units", "apply_script",
+      "submit_transcription", "submit_source_audio_captions", "submit_source_audio_sentence_alignment", "submit_source_audio_token_alignment", "read_source_audio_alignment", "apply_source_caption_program", "apply_manual_transcript", "read_script", "apply_semantic_units", "apply_script",
       "read_speech_asset", "manage_voice_references", "read_speech_timing", "submit_speech_alignment",
       "read_speech_alignment", "rebuild_speech_timeline", "submit_voice_synthesis", "submit_dialogue_processing",
-      "select_dialogue_processing_variant", "read_captions", "edit_captions", "manage_audio"
+      "select_dialogue_processing_variant", "read_captions", "edit_captions", "browse_local_sound_effects",
+      "inspect_local_sound_effect", "import_local_sound_effect", "manage_audio"
     ]
   },
   // 人物口播和 Presenter 场景的主线组装。
@@ -375,6 +390,8 @@ export const NODE_RUNTIME_CONFIGURATION_CATALOG = [
   { key: "VIDEOCUT_MAX_ASSET_DOWNLOAD_BYTES", group: "下载限制", description: "普通 Provider 素材下载上限", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.maxAssetDownloadBytes) },
   { key: "VIDEOCUT_MAX_WIKIMEDIA_DOWNLOAD_BYTES", group: "下载限制", description: "Wikimedia Commons 下载上限", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.maxWikimediaDownloadBytes) },
   { key: "VIDEOCUT_MAX_GENERATED_VIDEO_BYTES", group: "下载限制", description: "Bridge 生成视频下载上限", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.maxGeneratedVideoBytes) },
+  // 本地声音资产只接受白名单根目录；MCP 从不接收自由绝对路径来绕过该限制。
+  { key: "VIDEOFLOWCUT_SFX_ROOTS", group: "本地音效", description: "本地音效根目录，多个目录用当前系统路径分隔符分开", defaultValue: "（未配置）" },
   // 发行 Runtime：插件打包版本定位 Web、Remotion 与开发回退路径所需的信息。
   { key: "VIDEOFLOWCUT_RUNTIME_DIST", group: "发行 Runtime", description: "插件发行运行时目录" },
   { key: "VIDEOFLOWCUT_WEB_ROOT", group: "发行 Runtime", description: "静态 Web 产物目录" },
@@ -490,6 +507,7 @@ export function getProjectOverview(options: ReadRuntimeConfigOptions = {}) {
       http: config.http, // Server、Web 工作台和日志配置。
       bridge: config.bridge, // ComfyUI Bridge 的安全地址信息。
       downloads: config.downloads, // 外部素材和生成文件的下载上限。
+      localSoundEffects: { roots: config.localSoundEffects.roots }, // 仅受控根目录可用于本地音效浏览和导入。
       providers: { pexelsConfigured: Boolean(config.providers.pexelsApiKey) }, // 仅返回 Pexels 密钥是否存在。
       runtime: {
         distributionDirectory: config.runtime.distributionDirectory, // 插件发行 Runtime 根目录。

@@ -8,13 +8,13 @@ import {
   assertProviderMediaAnalysis,
   createDefaultAssetProviderRegistry
 } from "@videocut/acquisition";
-import { ComfyUIBridgeClient } from "@videocut/bridge";
+import { ComfyUIBridgeClient, FUNASR_WORKFLOW_ID } from "@videocut/bridge";
 import { createApplication, type EditingApplication } from "@videocut/application";
 import { assetById, DomainError } from "@videocut/domain";
 import { runOneQueuedJob, type JobProcessor } from "@videocut/job-runtime";
 import { readRuntimeConfig } from "@videocut/project-overview";
-import { FunASRService, OmniVoiceSegmentService, probeMedia, runProcess } from "@videocut/speech";
-import type { Asset, JobKind, JobRecord, ProjectSnapshot } from "@videocut/contracts";
+import { FunASRService, OmniVoiceSegmentService, SourceCaptionSentenceAlignmentService, SourceCaptionService, probeMedia, runProcess } from "@videocut/speech";
+import type { Asset, BridgeRunAudit, JobKind, JobRecord, ProjectSnapshot } from "@videocut/contracts";
 import { runAvatarGeneration } from "./avatar-generation.js";
 import { runDialogueProcessing } from "./dialogue-processing.js";
 import { runMulticamSync } from "./multicam-sync.js";
@@ -27,7 +27,7 @@ const workspaceRoot = readRuntimeConfig().workspace.root;
 let defaultApplication: EditingApplication | undefined;
 const getDefaultApplication = () => (defaultApplication ??= createApplication(workspaceRoot));
 
-export const MEDIA_JOB_KINDS: JobKind[] = ["media_analysis", "vlog_analysis", "multicam_sync", "asset_acquisition", "transcription", "voice_synthesis", "dialogue_processing", "speech_alignment", "music_generation", "video_generation", "avatar_generation"];
+export const MEDIA_JOB_KINDS: JobKind[] = ["media_analysis", "vlog_analysis", "multicam_sync", "asset_acquisition", "transcription", "source_caption_generation", "source_caption_sentence_alignment", "voice_synthesis", "dialogue_processing", "speech_alignment", "music_generation", "video_generation", "avatar_generation"];
 
 const resolveAssetPath = (snapshot: ProjectSnapshot, asset: Asset) => isAbsolute(asset.managedPath) ? asset.managedPath : join(snapshot.project.rootPath, asset.managedPath);
 
@@ -165,6 +165,56 @@ async function runAssetAcquisition(
   }
 }
 
+function isBridgeRunAudit(value: unknown): value is BridgeRunAudit {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.workflowId === "string"
+    && typeof record.runId === "string"
+    && typeof record.schemaVersion === "string"
+    && typeof record.schemaRetryCount === "number"
+    && typeof record.submittedAt === "string"
+    && Boolean(record.request)
+    && typeof record.request === "object";
+}
+
+function latestTranscriptionAudit(job: JobRecord): BridgeRunAudit | undefined {
+  const stored = job.result?.bridgeRuns;
+  if (stored === undefined) return undefined;
+  if (!Array.isArray(stored)) {
+    throw new DomainError("转写 Job 的 Bridge 审计格式损坏，不能安全判断是否已提交 Run", "TRANSCRIPTION_BRIDGE_AUDIT_INVALID");
+  }
+  if (stored.length === 0) return undefined;
+  const audit = [...stored].reverse().find((entry): entry is BridgeRunAudit => (
+    isBridgeRunAudit(entry) && entry.workflowId === FUNASR_WORKFLOW_ID
+  ));
+  if (!audit) {
+    throw new DomainError("转写 Job 已保留外部运行记录，但没有可识别的 FunASR 审计", "TRANSCRIPTION_BRIDGE_AUDIT_INVALID");
+  }
+  return audit;
+}
+
+/** 沿 retryOfJobId 追溯原任务；只要任一层已有 Run，就必须恢复它而不能重新提交。 */
+function resolveTranscriptionAudit(application: EditingApplication, job: JobRecord): BridgeRunAudit | undefined {
+  const ownAudit = latestTranscriptionAudit(job);
+  if (ownAudit) return ownAudit;
+  const visited = new Set<string>([job.id]);
+  let sourceId: unknown = job.payload.retryOfJobId;
+  while (sourceId !== undefined) {
+    if (typeof sourceId !== "string" || visited.has(sourceId)) {
+      throw new DomainError("转写重试来源无效或形成循环，不能安全恢复外部 Run", "TRANSCRIPTION_RETRY_SOURCE_INVALID");
+    }
+    visited.add(sourceId);
+    const source = application.trackJob(sourceId);
+    if (source.projectId !== job.projectId || source.kind !== "transcription" || source.payload.assetId !== job.payload.assetId) {
+      throw new DomainError("转写重试来源必须是同一项目、同一素材的转写 Job", "TRANSCRIPTION_RETRY_SOURCE_MISMATCH");
+    }
+    const audit = latestTranscriptionAudit(source);
+    if (audit) return audit;
+    sourceId = source.payload.retryOfJobId;
+  }
+  return undefined;
+}
+
 /**
  * 为注入的 Application 创建处理器。这样测试与独立 Worker 都不会误用进程级全局实例。
  */
@@ -174,6 +224,8 @@ export function createMediaJobProcessor(
   providers: AssetProviderRegistry = createDefaultAssetProviderRegistry()
 ): JobProcessor {
   const funAsr = new FunASRService(app, bridge);
+  const sourceCaptions = new SourceCaptionService(app, bridge);
+  const sourceCaptionSentenceAlignment = new SourceCaptionSentenceAlignmentService(app, bridge);
   const omniVoice = new OmniVoiceSegmentService(app, bridge);
   return async (job) => {
     switch (job.kind) {
@@ -185,8 +237,18 @@ export function createMediaJobProcessor(
         return runMulticamSync(app, job);
       case "asset_acquisition":
         return runAssetAcquisition(app, job, providers);
-      case "transcription":
-        return funAsr.transcribe(job.projectId, String(job.payload.assetId), (audit) => { app.recordBridgeRun(job.id, audit); });
+      case "transcription": {
+        const assetId = String(job.payload.assetId);
+        const audit = resolveTranscriptionAudit(app, job);
+        const report = (entry: BridgeRunAudit) => { app.recordBridgeRun(job.id, entry); };
+        return audit
+          ? funAsr.resumeTranscription(job.projectId, assetId, audit, report)
+          : funAsr.transcribe(job.projectId, assetId, report);
+      }
+      case "source_caption_generation":
+        return sourceCaptions.generate(job);
+      case "source_caption_sentence_alignment":
+        return sourceCaptionSentenceAlignment.align(job);
       case "voice_synthesis":
         return omniVoice.synthesize(
           job.projectId,

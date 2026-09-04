@@ -48,9 +48,17 @@ export function normalizeSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
   snapshot.cutaways ??= [];
   snapshot.audioCues ??= [];
   snapshot.voiceReferences ??= [];
+  // 旧 Revision 没有分离保存原声时间证据和视觉字幕 Program；只补空集合，绝不倒推或伪造 token 对齐。
+  snapshot.sourceAudioAlignments ??= [];
+  for (const alignment of snapshot.sourceAudioAlignments) {
+    // 历史 v2 记录保留 Provider 标点候选；新 token-only 对齐会显式保存 none。
+    alignment.sentenceCandidateMode ??= alignment.sentences?.length ? "provider_punctuation" : "none";
+  }
+  snapshot.sourceCaptionPrograms ??= [];
   snapshot.transcriptSentenceCandidates ??= [];
   for (const caption of snapshot.timeline.captions ?? []) {
     // 旧快照没有保存原始语音文案时，以当时已经渲染的文字作为可回退来源。
+    caption.sourceKind ??= "speech_asset";
     caption.sourceText ??= caption.text;
     caption.textMode ??= "derived";
     caption.format ??= { ...DEFAULT_CAPTION_FORMAT };

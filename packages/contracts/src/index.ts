@@ -159,6 +159,10 @@ export type JobKind =
   | "multicam_sync"
   | "asset_acquisition"
   | "transcription"
+  /** 原声 A-roll 的静音边界分块字幕；不生成或替换 Dialogue 音频。 */
+  | "source_caption_generation"
+  /** 采集 FunASR 同源 token 时间与候选句，等待语义字幕 Program 原子编译；保留旧名称兼容已有 Job。 */
+  | "source_caption_sentence_alignment"
   | "voice_synthesis"
   /** 保留原声并生成最小 / 强处理候选；选择候选是独立的 Revision 写入。 */
   | "dialogue_processing"
@@ -198,7 +202,11 @@ export type EffectType =
   | "ContentCarousel"
   | "EndCard";
 
-export type TimingPrecision = "segment_exact" | "chunk_coarse" | "word_exact" | "unavailable";
+/**
+ * `source_token_anchored` 表示原声字幕卡的起止来自 Provider 明确返回的 token 时间。
+ * token 可以是汉字、词或子词，不能把它误读成适用于逐词动画的 `word_exact`。
+ */
+export type TimingPrecision = "segment_exact" | "sentence_exact" | "chunk_coarse" | "source_token_anchored" | "word_exact" | "unavailable";
 
 export interface CreativeBrief {
   platform: string;
@@ -453,6 +461,8 @@ export interface MulticamCut {
 export interface BridgeRequestSummary {
   fieldValues: Record<string, unknown>;
   fileSlots: Array<{ id: string; kind: string; fileName: string }>;
+  /** 受控 Worker 可补充不含二进制或秘密的请求定位信息，用于安全恢复同一次外部 Run。 */
+  metadata?: Record<string, string | number | boolean>;
 }
 
 /** Bridge Run 的可持久化响应子集，避免项目长期依赖 Bridge 进程内的临时状态。 */
@@ -1162,9 +1172,82 @@ export interface Cutaway {
   updatedAt: string;
 }
 
+export type CaptionSourceKind = "speech_asset" | "source_audio";
+
+/** FunASR / 强制对齐 Provider 同源返回的最小文本时间证据，不允许由应用层估算。 */
+export interface SourceAudioAlignmentToken {
+  index: number;
+  text: string;
+  startMs: number;
+  endMs: number;
+}
+
+/** Provider 的自动标点只作为候选边界，不能直接等同于最终视觉字幕。 */
+export interface SourceAudioAlignmentSentence {
+  index: number;
+  text: string;
+  startMs: number;
+  endMs: number;
+  /** 左闭右开 token 区间。 */
+  tokenStartIndex: number;
+  tokenEndIndex: number;
+}
+
+/** 原始 token 对齐可选择完全不生成 Provider 句子候选，避免把标点模型误读为剪辑决策。 */
+export type SourceAudioAlignmentSentenceCandidateMode = "provider_punctuation" | "none";
+
+/**
+ * 原声 A-roll 的真实 token 对齐证据。它与一次明确的素材使用、源范围、Revision 和 Bridge Run 绑定；
+ * 它不是 Caption Program，更不能被当成已经过语义审查的视觉分卡。
+ */
+export interface SourceAudioAlignment {
+  id: Id;
+  sourceAssetId: Id;
+  sourceAssetHash?: string;
+  sourceTimelineItemId: Id;
+  sourceStartFrame: number;
+  sourceEndFrame: number;
+  timelineStartFrame: number;
+  timelineEndFrame: number;
+  requestedRevision: number;
+  transcriptText: string;
+  tokens: SourceAudioAlignmentToken[];
+  sentenceCandidateMode: SourceAudioAlignmentSentenceCandidateMode;
+  sentences: SourceAudioAlignmentSentence[];
+  bridgeAudit: BridgeRunAudit;
+  status: "ready" | "stale";
+  createdAt: string;
+}
+
+/** Agent 提交并由服务端编译的视觉字幕 Program；卡片始终以 Alignment token 锚点定位。 */
+export interface SourceCaptionProgram {
+  id: Id;
+  alignmentId: Id;
+  sourceAssetId: Id;
+  sourceTimelineItemId: Id;
+  captionIds: Id[];
+  createdAt: string;
+}
+
 export interface CaptionCard {
   id: Id;
-  speechSegmentId: Id;
+  /** TTS / SpeechAsset 字幕才绑定 SpeechSegment；原声分块字幕没有伪造的 SpeechSegment。 */
+  speechSegmentId?: Id;
+  /** 缺省值兼容历史 SpeechAsset 字幕。 */
+  sourceKind?: CaptionSourceKind;
+  /** source_audio 字幕必须可追溯到原始 A-roll 与它在当前 Timeline 的一次使用。 */
+  sourceAssetId?: Id;
+  sourceTimelineItemId?: Id;
+  sourceStartFrame?: number;
+  sourceEndFrame?: number;
+  sourceBridgeRunId?: string;
+  /** 只有语义 Program 编译出的原声字幕才拥有这些 token 锚点。 */
+  sourceAlignmentId?: Id;
+  sourceCaptionProgramId?: Id;
+  sourceTokenStartIndex?: number;
+  sourceTokenEndIndex?: number;
+  /** 由剪辑 Agent 记录该卡承担的完整阅读/语义任务，便于复核而非仅按标点切分。 */
+  sourceCaptionRationale?: string;
   /** 当前 SpeechSegment 的原始可播放文字；手工改屏幕文案时仍可回到语音事实。 */
   sourceText?: string;
   text: string;
@@ -1184,6 +1267,8 @@ export interface CaptionFormat {
   fontWeight: number;
   color: string;
   backgroundColor?: string;
+  /** 背景与文字分层渲染；只允许受限透明度，避免把任意 CSS 写入项目。 */
+  backgroundOpacity?: number;
   bottomPercent: number;
   horizontalInsetPercent: number;
   textAlign: "left" | "center" | "right";
@@ -1461,6 +1546,9 @@ export interface ProjectSnapshot {
   cutaways: Cutaway[];
   audioCues: AudioCue[];
   voiceReferences: VoiceReference[];
+  /** 原声时间证据与最终视觉字幕 Program 分离保存，避免自动标点直接成为成片字幕。 */
+  sourceAudioAlignments: SourceAudioAlignment[];
+  sourceCaptionPrograms: SourceCaptionProgram[];
   transcripts: TranscriptText[];
   transcriptSentenceCandidates: TranscriptSentenceCandidate[];
   semanticUnits: SemanticUnit[];

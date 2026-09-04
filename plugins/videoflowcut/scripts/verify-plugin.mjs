@@ -106,4 +106,8 @@ const mcp = JSON.parse(await readFile(join(pluginRoot, ".mcp.json"), "utf8"));
 if (mcp.mcpServers?.videoflowcut?.command !== "node" || mcp.mcpServers?.videoflowcut?.args?.[0] !== "./scripts/mcp-launcher.mjs") {
   throw new Error("插件 MCP 必须以 Node 启动发行 Runtime 启动器。");
 }
+if (mcp.mcpServers?.videoflowcut?.env?.VIDEOFLOWCUT_SFX_ROOTS !== undefined
+  && typeof mcp.mcpServers.videoflowcut.env.VIDEOFLOWCUT_SFX_ROOTS !== "string") {
+  throw new Error("插件 MCP 的 VIDEOFLOWCUT_SFX_ROOTS 必须是可传递给 Runtime 的字符串路径列表。");
+}
 console.log(`插件 Skills、发行 Runtime、manifest 与 MCP 入口验证通过：${pluginRoot}`);

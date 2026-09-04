@@ -473,6 +473,17 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return reply.status(202).send(job);
   });
 
+  /** 原声字幕单独异步处理，既不创建 Script / Transcript，也不替换当前 Dialogue。 */
+  app.post("/api/projects/:projectId/source-audio-captions", async (request, reply) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      timelineItemId: idSchema,
+      idempotencyKey: z.string().trim().min(1).max(240).optional()
+    }).strict().parse(request.body);
+    return reply.status(202).send(application.submitSourceAudioCaptions({ projectId, ...body }));
+  });
+
   app.post("/api/projects/:projectId/transcripts/manual", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({ baseRevision: baseRevisionSchema.optional(), assetId: idSchema, text: z.string().trim().min(1) }).parse(request.body);
@@ -1027,6 +1038,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
         fontWeight: z.number().int().min(400).max(900).optional(),
         color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").optional(),
         backgroundColor: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").nullable().optional(),
+        backgroundOpacity: z.number().min(0.1).max(1).nullable().optional(),
         bottomPercent: z.number().min(4).max(20).optional(),
         horizontalInsetPercent: z.number().min(3).max(20).optional(),
         textAlign: z.enum(["left", "center", "right"]).optional()
@@ -1041,6 +1053,32 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       }).strict().nullable().optional()
     }).parse(request.body);
     return application.editCaptions({ projectId, captionId, ...body });
+  });
+
+  /** 批量接口仅统一同一原声 A-roll 的安全版式，不允许借此重写文字或伪造卡片时间。 */
+  app.patch("/api/projects/:projectId/captions/source-format", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      captionIds: z.array(idSchema).min(1).max(200),
+      format: z.object({
+        fontSize: z.number().int().min(16).max(72).optional(),
+        fontWeight: z.number().int().min(400).max(900).optional(),
+        color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").optional(),
+        backgroundColor: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").nullable().optional(),
+        backgroundOpacity: z.number().min(0.1).max(1).nullable().optional(),
+        bottomPercent: z.number().min(4).max(20).optional(),
+        horizontalInsetPercent: z.number().min(3).max(20).optional(),
+        textAlign: z.enum(["left", "center", "right"]).optional()
+      }).strict()
+    }).strict().parse(request.body);
+    return application.editCaptions({
+      projectId,
+      baseRevision: body.baseRevision,
+      captionIds: body.captionIds,
+      action: "bulk_source_format",
+      format: body.format
+    });
   });
 
   app.post("/api/projects/:projectId/audio", async (request) => {
@@ -1159,10 +1197,20 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
         throw new DomainError("对白处理绑定的 SpeechAsset / Script Revision 已变化；请基于当前 Revision 重新试听并提交，而不是重试旧任务", "DIALOGUE_PROCESSING_RETRY_STALE");
       }
     }
+    if (oldJob.kind === "source_caption_generation" || oldJob.kind === "source_caption_sentence_alignment") {
+      const requestedRevision = oldJob.payload.requestedRevision;
+      const currentRevision = application.readProject(oldJob.projectId).revision.number;
+      if (!Number.isInteger(requestedRevision) || requestedRevision !== currentRevision) {
+        throw new DomainError("原声字幕绑定的 A-roll Revision 已变化；请读取当前 Timeline 后明确重新提交，不能重试旧字幕任务", "SOURCE_CAPTION_RETRY_STALE");
+      }
+    }
     const retry = application.repository.createJob({
       projectId: oldJob.projectId,
       kind: oldJob.kind,
-      payload: oldJob.payload,
+      // 转写、原声分块和句级对齐重试必须携带来源 Job，Worker 才能恢复其 run_id，避免超时后重复提交外部运行。
+      payload: oldJob.kind === "transcription" || oldJob.kind === "source_caption_generation" || oldJob.kind === "source_caption_sentence_alignment"
+        ? { ...oldJob.payload, retryOfJobId: oldJob.id }
+        : oldJob.payload,
       idempotencyKey: `${oldJob.idempotencyKey}:retry:${Date.now()}`
     });
     return reply.status(202).send(retry);

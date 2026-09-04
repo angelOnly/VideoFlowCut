@@ -71,7 +71,7 @@ description: 为最终可播放语音建立准确、可读、语义分卡、与�
 
 ## 当前工具与能力
 
-当前 MCP 可 `read_captions` 与 `edit_captions`。后者只能对当前、与 Script 一致的 SpeechAsset 所生成的稳定 Card 做原子修改：屏幕文案（最多两行）、有限字号/颜色/安全区、一个连续强调短语，或恢复语音原文；它不接受时间范围，也不会改 Script、SpeechSegment 和声音。若主线原文或时序变化，旧 Card 会被明确 stale 或重建，不能静默沿用。`occurrence` 从 0 开始，仍没有逐词时间或逐词动画能力。
+当前 MCP 可 `read_captions` 与 `edit_captions`。单卡 `update` / `reset` 可用于当前 SpeechAsset 或已审计 `source_audio` 的稳定 Card：屏幕文案最多两行、有限字号/颜色/安全区、深色底板及受限透明度、一个连续强调短语，或恢复来源文案；不会改 Script、SpeechSegment 和声音。原声 A-roll 需要统一底板时，读取明确 Card ID 后以 `action=bulk_source_format`、`caption_ids` 与 `format` 原子应用到同一 A-roll，避免逐张提交造成 Revision 冲突。它不接受时间范围，也不会新增、删除、拆分或重定时 Card。`chunk_coarse` 原声字幕没有可靠的句内时间，不能为了短句效果按标点或字符伪拆；应保留真实静音边界，必要时只做不改变时间的双行屏幕文案。若主线原文或时序变化，旧 Card 会被明确 stale 或重建，不能静默沿用。`occurrence` 从 0 开始，仍没有逐词时间或逐词动画能力。
 
 任何修改后要读回 Caption、Revision、Impact，渲染真实 Preview。只看文本 JSON 不能发现遮挡、行宽、画幅和阅读时间问题。
 

@@ -1,0 +1,103 @@
+import assert from "node:assert/strict";
+import { mkdtemp, mkdir, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import test from "node:test";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { runProcess } from "@videocut/speech";
+
+function textFromToolResult(result: unknown): string {
+  if (!result || typeof result !== "object" || !("content" in result) || !Array.isArray(result.content)) assert.fail("MCP 应返回标准 content 结果");
+  const first = result.content[0];
+  if (!first || typeof first !== "object" || first.type !== "text" || typeof first.text !== "string") assert.fail("MCP 应返回文本内容");
+  return first.text;
+}
+
+async function createSoundEffectFixture(root: string): Promise<string> {
+  const nested = join(root, "ui", "hits");
+  await mkdir(nested, { recursive: true });
+  const path = join(nested, "soft-hit.wav");
+  await runProcess("ffmpeg", [
+    "-y",
+    "-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono:d=0.08",
+    "-f", "lavfi", "-i", "sine=frequency=880:sample_rate=48000:duration=0.20",
+    "-filter_complex", "[0:a][1:a]concat=n=2:v=0:a=1[a]",
+    "-map", "[a]", "-c:a", "pcm_s16le", path
+  ]);
+  return path;
+}
+
+test("MCP 只能浏览、检测并导入配置根目录内的本地音效", async () => {
+  const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-sfx-workspace-"));
+  const soundRoot = await mkdtemp(join(tmpdir(), "videocut-sfx-library-"));
+  const sourceFile = await createSoundEffectFixture(soundRoot);
+  const inheritedEnvironment = Object.fromEntries(
+    Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === "string")
+  );
+  const transport = new StdioClientTransport({
+    command: process.platform === "win32" ? "npm.cmd" : "npm",
+    args: ["run", "mcp"],
+    cwd: process.cwd(),
+    env: {
+      ...inheritedEnvironment,
+      VIDEOCUT_WORKSPACE: workspaceRoot,
+      VIDEOFLOWCUT_SFX_ROOTS: soundRoot
+    },
+    stderr: "pipe"
+  });
+  const client = new Client({ name: "videocut-local-sfx-test", version: "1.0.0" });
+  try {
+    await client.connect(transport);
+    const tools = await client.listTools();
+    assert.ok(tools.tools.some((tool) => tool.name === "browse_local_sound_effects"));
+    assert.ok(tools.tools.some((tool) => tool.name === "inspect_local_sound_effect"));
+    assert.ok(tools.tools.some((tool) => tool.name === "import_local_sound_effect"));
+
+    const browsed = JSON.parse(textFromToolResult(await client.callTool({
+      name: "browse_local_sound_effects",
+      arguments: { query: "soft", max_results: 10 }
+    }))) as { effects: Array<{ rootId: string; relativePath: string; durationMs: number; defaultRightsStatus: string }> };
+    assert.equal(browsed.effects.length, 1);
+    const effect = browsed.effects[0]!;
+    assert.equal(effect.relativePath, "ui/hits/soft-hit.wav");
+    assert.ok(effect.durationMs > 0);
+    assert.equal(effect.defaultRightsStatus, "unknown");
+
+    const inspected = JSON.parse(textFromToolResult(await client.callTool({
+      name: "inspect_local_sound_effect",
+      arguments: { root_id: effect.rootId, relative_path: effect.relativePath }
+    }))) as { onset: { method: string; detectedNonSilentOnsetMs?: number } };
+    assert.equal(inspected.onset.method, "silencedetect");
+    assert.ok(inspected.onset.detectedNonSilentOnsetMs !== undefined && inspected.onset.detectedNonSilentOnsetMs >= 40);
+
+    const unsafe = await client.callTool({
+      name: "inspect_local_sound_effect",
+      arguments: { root_id: effect.rootId, relative_path: "../outside.wav" }
+    });
+    assert.equal(unsafe.isError, true);
+    assert.match(textFromToolResult(unsafe), /相对路径|根目录/u);
+
+    const project = JSON.parse(textFromToolResult(await client.callTool({
+      name: "create_project",
+      arguments: { name: "本地音效导入测试" }
+    }))) as { revision: { number: number }; snapshot: { project: { id: string } } };
+    const imported = JSON.parse(textFromToolResult(await client.callTool({
+      name: "import_local_sound_effect",
+      arguments: {
+        project_id: project.snapshot.project.id,
+        base_revision_id: project.revision.number,
+        root_id: effect.rootId,
+        relative_path: effect.relativePath
+      }
+    }))) as { asset: { kind: string; provenance?: { rightsStatus?: string } }; importedSoundEffect: { relativePath: string } };
+    assert.equal(imported.asset.kind, "audio");
+    assert.equal(imported.asset.provenance?.rightsStatus, "unknown");
+    assert.equal(imported.importedSoundEffect.relativePath, effect.relativePath);
+    assert.ok(sourceFile.endsWith("soft-hit.wav"));
+  } finally {
+    await transport.close().catch(() => undefined);
+    await rm(workspaceRoot, { recursive: true, force: true });
+    await rm(soundRoot, { recursive: true, force: true });
+  }
+});

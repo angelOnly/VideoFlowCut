@@ -132,6 +132,10 @@ try {
   assert.ok(tools.tools.some((tool) => tool.name === "open_web_workbench"), "插件 MCP 必须提供工作台入口");
   assert.ok(tools.tools.some((tool) => tool.name === "read_runtime_release"), "插件 MCP 必须提供发行版本核验");
   assert.ok(tools.tools.some((tool) => tool.name === "report_editing_blocker"), "插件 MCP 必须提供剪辑阻断报告");
+  assert.ok(tools.tools.some((tool) => tool.name === "submit_source_audio_captions"), "插件 MCP 必须提供原声分块字幕入口");
+  assert.ok(tools.tools.some((tool) => tool.name === "submit_source_audio_sentence_alignment"), "插件 MCP 必须提供原声句级对齐入口");
+  assert.ok(tools.tools.some((tool) => tool.name === "browse_local_sound_effects"), "插件 MCP 必须提供受控本地音效浏览");
+  assert.ok(tools.tools.some((tool) => tool.name === "import_local_sound_effect"), "插件 MCP 必须提供受控本地音效导入");
   const workbench = await call("open_web_workbench", {});
   assert.equal(workbench.url, runtime.webUrl, "MCP 工作台入口必须指向同一个隔离 Runtime");
 

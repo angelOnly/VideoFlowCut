@@ -59,6 +59,65 @@ async function createVideoOnlyReviewFixture(directory: string): Promise<string> 
   return path;
 }
 
+async function createMismatchedFrameRateReviewFixture(directory: string): Promise<string> {
+  const path = join(directory, "source-review-25fps-3_8s.mp4");
+  await runProcess("ffmpeg", [
+    "-y",
+    "-f", "lavfi", "-i", "testsrc2=size=96x72:rate=25:duration=3.8",
+    "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=3.8",
+    "-map", "0:v:0",
+    "-map", "1:a:0",
+    "-c:v", "libx264",
+    "-preset", "ultrafast",
+    "-pix_fmt", "yuv420p",
+    "-c:a", "aac",
+    "-shortest",
+    "-movflags", "+faststart",
+    path
+  ]);
+  return path;
+}
+
+test("inspect_asset 不会把 25fps 源素材的 overview 末帧采样到 24fps 项目边界之外", async () => {
+  const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-source-review-fps-"));
+  const server = await createServer({ workspaceRoot });
+  try {
+    const created = server.application.createProject({ name: "帧率错配素材审阅", profile: "presenter_motion" });
+    const projectId = created.snapshot.project.id;
+    const fixture = await createMismatchedFrameRateReviewFixture(workspaceRoot);
+    const sourceHash = createHash("sha256").update(await readFile(fixture)).digest("hex");
+    const registered = server.application.registerImportedAsset({
+      projectId,
+      baseRevision: server.application.readProject(projectId).revision.number,
+      name: "25fps 源素材.mp4",
+      kind: "video",
+      managedPath: "assets/source/source-review-25fps.mp4",
+      sourceHash,
+      provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+    });
+    const targetPath = join(server.application.readProject(projectId).snapshot.project.rootPath, registered.asset.managedPath);
+    await mkdir(dirname(targetPath), { recursive: true });
+    await copyFile(fixture, targetPath);
+    server.application.applyMediaAnalysis({
+      projectId,
+      assetId: registered.asset.id,
+      metadata: await probeMedia(targetPath)
+    });
+
+    const overview = await inspectAsset(server.application, {
+      projectId,
+      assetId: registered.asset.id,
+      mode: "overview",
+      contactSheetFrames: 12
+    });
+    assert.equal(overview.contactSheet.frames.length, 12);
+    assert.ok(overview.contactSheet.frames.every((frame) => frame.sourceMs < 3_800));
+  } finally {
+    server.application.close();
+    await rm(workspaceRoot, { recursive: true, force: true });
+  }
+});
+
 test("inspect_asset 只生成可重建审阅缓存，并交付 overview、range、dense 的真实声画证据", async () => {
   const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-source-review-"));
   const server = await createServer({ workspaceRoot });

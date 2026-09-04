@@ -47,15 +47,27 @@ export interface BridgeOutput {
   text?: string;
 }
 
+/** 仅用于不应被长时生成排队饿死的交互式工作；不会中断已在执行的任务。 */
+export type BridgeQueueMode = "foreground";
+
+export interface BridgeHealth {
+  status: string;
+  protocolVersion?: number;
+  workflowCount?: number;
+  queueModes?: Array<"normal" | BridgeQueueMode>;
+}
+
 export interface BridgeRun {
   id: string;
   status: "queued" | "running" | "succeeded" | "failed";
+  queueMode?: "normal" | BridgeQueueMode;
   error?: string | null;
   outputs: BridgeOutput[];
 }
 
 export interface BridgeRunRequest {
   fieldValues: Record<string, unknown>;
+  queueMode?: BridgeQueueMode;
   files?: Array<{ slot: BridgeItemSlot; path: string; mime?: string }>;
 }
 
@@ -70,6 +82,22 @@ export class BridgeError extends Error {
   constructor(message: string, public readonly status?: number, public readonly body?: unknown, public readonly code = "BRIDGE_HTTP_ERROR") {
     super(message);
     this.name = "BridgeError";
+  }
+}
+
+/**
+ * 网络层在尚未拿到 HTTP 响应时会把原因压缩为 fetch failed。单独建模后，
+ * Job 才能把“Bridge 未就绪”与已提交 Run 的未知结果、工作流 409 区分开。
+ */
+export class BridgeUnavailableError extends BridgeError {
+  constructor(public readonly endpoint: string, public readonly reason: string, message?: string) {
+    super(
+      message ?? `无法连接 ComfyUI Bridge（${endpoint}）：${reason}。请确认服务已启动，并检查 /health 是否返回 200。`,
+      undefined,
+      undefined,
+      "BRIDGE_UNAVAILABLE"
+    );
+    this.name = "BridgeUnavailableError";
   }
 }
 
@@ -89,6 +117,32 @@ export class BridgeRunLostError extends BridgeError {
 }
 
 const ensureNoTrailingSlash = (value: string) => value.replace(/\/+$/, "");
+const DEFAULT_BRIDGE_READINESS_TIMEOUT_MS = 120_000;
+const DEFAULT_BRIDGE_READINESS_POLL_INTERVAL_MS = 2_000;
+
+export interface ComfyUIBridgeClientOptions {
+  /** 仅在无副作用的 Workflow 读取遇到网络未就绪时使用，绝不重放 Run 创建请求。 */
+  readinessTimeoutMs?: number;
+  readinessPollIntervalMs?: number;
+}
+
+function endpointForDiagnostics(endpoint: string): string {
+  const parsed = new URL(endpoint);
+  // 配置 URL 可能带查询串或凭据；诊断只需要服务和路径，不能把它们写入 Job 错误。
+  return `${parsed.protocol}//${parsed.host}${parsed.pathname}`;
+}
+
+function transportFailureReason(error: unknown): string {
+  if (error instanceof Error) return error.message || error.name;
+  return String(error);
+}
+
+function isTransportFailure(error: unknown): boolean {
+  return error instanceof TypeError
+    || (error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError"));
+}
+
+const sleep = (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 
 /**
  * Bridge 返回的 downloadUrl 相对于 ComfyUI 服务根地址，而不是 API 根路径。
@@ -128,14 +182,33 @@ function resolveSameOriginDownloadUrl(downloadUrl: string, serverBaseUrl: string
 export class ComfyUIBridgeClient {
   readonly apiBaseUrl: string;
   readonly serverBaseUrl: string;
+  private readonly readinessTimeoutMs: number;
+  private readonly readinessPollIntervalMs: number;
 
-  constructor(apiBaseUrl = readRuntimeConfig().bridge.apiBaseUrl) {
+  constructor(apiBaseUrl = readRuntimeConfig().bridge.apiBaseUrl, options: ComfyUIBridgeClientOptions = {}) {
     this.apiBaseUrl = ensureNoTrailingSlash(apiBaseUrl);
     this.serverBaseUrl = serverOriginFromApiBase(this.apiBaseUrl);
+    this.readinessTimeoutMs = Math.max(0, options.readinessTimeoutMs ?? DEFAULT_BRIDGE_READINESS_TIMEOUT_MS);
+    this.readinessPollIntervalMs = Math.max(1, options.readinessPollIntervalMs ?? DEFAULT_BRIDGE_READINESS_POLL_INTERVAL_MS);
   }
 
-  async health(): Promise<{ status: string; protocolVersion?: number; workflowCount?: number }> {
-    return this.requestJson("/health");
+  async health(): Promise<BridgeHealth> {
+    return this.requestJson<BridgeHealth>("/health");
+  }
+
+  /**
+   * 前置队列必须由 Bridge 明确声明支持，避免客户端误以为已隔离、实际仍被长任务饿死。
+   */
+  async requireQueueMode(queueMode: BridgeQueueMode): Promise<void> {
+    const health = await this.health();
+    if (health.status !== "ready" || !health.queueModes?.includes(queueMode)) {
+      throw new BridgeError(
+        `当前 ComfyUI Bridge 未声明支持 ${queueMode} 队列；不会提交可能再次被长任务饿死的工作。`,
+        undefined,
+        health,
+        "BRIDGE_QUEUE_MODE_UNSUPPORTED"
+      );
+    }
   }
 
   async listWorkflows(): Promise<{ workflows: BridgeWorkflow[] }> {
@@ -143,7 +216,17 @@ export class ComfyUIBridgeClient {
   }
 
   async getWorkflow(workflowId: string): Promise<BridgeWorkflow> {
-    const workflow = await this.requestJson<BridgeWorkflow>(`/workflows/${encodeURIComponent(workflowId)}`);
+    const path = `/workflows/${encodeURIComponent(workflowId)}`;
+    let workflow: BridgeWorkflow;
+    try {
+      workflow = await this.requestJson<BridgeWorkflow>(path);
+    } catch (error) {
+      // 读取 Schema 不会产生 Provider 副作用；因此 Bridge 刚重启时可以等待其健康，
+      // 但 createRun 网络失败一律原样抛出，避免误以为未提交而重复生成。
+      if (!(error instanceof BridgeUnavailableError)) throw error;
+      await this.waitForBridgeReadiness(error);
+      workflow = await this.requestJson<BridgeWorkflow>(path);
+    }
     if (!workflow.available) {
       throw new WorkflowUnavailableError(`工作流不可用：${workflow.reason ?? workflow.name}`, 409, workflow);
     }
@@ -161,7 +244,11 @@ export class ComfyUIBridgeClient {
 
   async createRun(input: BridgeRunRequest & { workflow: BridgeWorkflow }): Promise<BridgeRun> {
     const path = `/workflows/${encodeURIComponent(input.workflow.id)}/runs`;
-    const request = { schemaVersion: input.workflow.schemaVersion, fieldValues: input.fieldValues };
+    const request = {
+      schemaVersion: input.workflow.schemaVersion,
+      fieldValues: input.fieldValues,
+      ...(input.queueMode ? { queueMode: input.queueMode } : {})
+    };
     if (!input.files?.length) {
       return this.requestJson<BridgeRun>(path, {
         method: "POST",
@@ -215,7 +302,13 @@ export class ComfyUIBridgeClient {
     if (!output.downloadUrl) throw new BridgeError("输出缺少 downloadUrl", undefined, output, "MISSING_DOWNLOAD_URL");
     const url = resolveSameOriginDownloadUrl(output.downloadUrl, this.serverBaseUrl);
     // 输出端点不应将本地 Worker 重定向到其他网络位置。
-    const response = await fetch(url, { redirect: "error" });
+    let response: Response;
+    try {
+      response = await fetch(url, { redirect: "error" });
+    } catch (error) {
+      if (isTransportFailure(error)) throw this.unavailableError(url, error);
+      throw error;
+    }
     if (!response.ok) throw new BridgeError(`下载输出失败：HTTP ${response.status}`, response.status, undefined, "OUTPUT_DOWNLOAD_FAILED");
     await writeFile(targetPath, Buffer.from(await response.arrayBuffer()));
   }
@@ -234,7 +327,14 @@ export class ComfyUIBridgeClient {
   }
 
   private async requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-    const response = await fetch(`${this.apiBaseUrl}${path}`, init);
+    const endpoint = `${this.apiBaseUrl}${path}`;
+    let response: Response;
+    try {
+      response = await fetch(endpoint, init);
+    } catch (error) {
+      if (isTransportFailure(error)) throw this.unavailableError(endpoint, error);
+      throw error;
+    }
     const contentType = response.headers.get("content-type") ?? "";
     const body = contentType.includes("application/json") ? await response.json().catch(() => undefined) : await response.text().catch(() => undefined);
     if (!response.ok) {
@@ -243,7 +343,36 @@ export class ComfyUIBridgeClient {
     }
     return body as T;
   }
+
+  private unavailableError(endpoint: string, error: unknown): BridgeUnavailableError {
+    return new BridgeUnavailableError(endpointForDiagnostics(endpoint), transportFailureReason(error));
+  }
+
+  private async waitForBridgeReadiness(initialError: BridgeUnavailableError): Promise<void> {
+    if (this.readinessTimeoutMs === 0) throw initialError;
+    const deadline = Date.now() + this.readinessTimeoutMs;
+    let latestError = initialError;
+    while (Date.now() < deadline) {
+      await sleep(Math.min(this.readinessPollIntervalMs, Math.max(1, deadline - Date.now())));
+      try {
+        await this.health();
+        return;
+      } catch (error) {
+        if (!(error instanceof BridgeUnavailableError)) throw error;
+        latestError = error;
+      }
+    }
+    throw new BridgeUnavailableError(
+      latestError.endpoint,
+      latestError.reason,
+      `ComfyUI Bridge 在 ${Math.ceil(this.readinessTimeoutMs / 1_000)} 秒内仍未就绪（${latestError.endpoint}）：${latestError.reason}。请确认服务已启动，并检查 /health。`
+    );
+  }
 }
 
 export const FUNASR_WORKFLOW_ID = "dd564543-d02d-4247-9e97-089417db9e7a";
+/**
+ * 静态公开工作流：只返回同源原始 token 与显式时间，不使用标点模型决定任何边界。
+ */
+export const FUNASR_SOURCE_TOKEN_ALIGNMENT_WORKFLOW_ID = "funasr-source-token-alignment-v3";
 export const OMNIVOICE_WORKFLOW_ID = "ba6238d0-3ee4-41d5-a1f4-a2aefc3933ce";

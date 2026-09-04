@@ -36,6 +36,21 @@ test("Job Retry 只重试已明确失败或取消的任务，未知结果必须�
       assert.equal(server.application.trackJob(original.id).status, status, "重试不能改写原任务的终态记录");
     }
 
+    const failedTranscription = server.application.repository.createJob({
+      projectId,
+      kind: "transcription",
+      payload: { assetId: "asset-transcription-retry" },
+      idempotencyKey: "job-retry-transcription"
+    });
+    server.application.updateJob(failedTranscription.id, { status: "failed", error: "模拟转写超时" });
+    const transcriptionResponse = await server.app.inject({ method: "POST", url: `/api/jobs/${failedTranscription.id}/retry` });
+    assert.equal(transcriptionResponse.statusCode, 202, transcriptionResponse.body);
+    const transcriptionRetry = transcriptionResponse.json() as { payload: Record<string, unknown> };
+    assert.deepEqual(transcriptionRetry.payload, {
+      assetId: "asset-transcription-retry",
+      retryOfJobId: failedTranscription.id
+    }, "转写重试必须保留来源 Job，供 Worker 恢复既有 run_id");
+
     const rejectedCases: Array<{ status: JobStatus; error: string }> = [
       { status: "queued", error: "JOB_RETRY_NOT_TERMINAL" },
       { status: "running", error: "JOB_RETRY_NOT_TERMINAL" },
