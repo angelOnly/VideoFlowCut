@@ -1,0 +1,21 @@
+{
+  "name": "时钟拨快：同一束晨光，两套时间刻度",
+  "width": 720,
+  "height": 1280,
+  "fps": 30,
+  "durationInFrames": 420,
+  "props": {
+    "title": "把时钟，拨快一小时。",
+    "subtitle": "同一束晨光，换了一套时间刻度。",
+    "sunriseLabel": "太阳升起",
+    "departureLabel": "上班出门",
+    "conclusion": "读数向前，出门更早。"
+  },
+  "reviewFrames": [0, 60, 132, 198, 260, 330, 419],
+  "beats": [
+    { "startFrame": 0, "endFrame": 67, "description": "建立同一只倾斜的瓷面时钟和下方日照带，初始读数 08:00。" },
+    { "startFrame": 68, "endFrame": 225, "description": "分针完整旋转一圈、时针由 8 移至 9；一天的读数整体加一，日出位置保持不动。" },
+    { "startFrame": 226, "endFrame": 323, "description": "出门时间仍按 09:00，通勤图标沿同一日照带向左移动一小时，保留虚线原位。" },
+    { "startFrame": 324, "endFrame": 419, "description": "定格同一时钟与新的通勤位置，得出读数改变而日照不变的结论。" }
+  ]
+}

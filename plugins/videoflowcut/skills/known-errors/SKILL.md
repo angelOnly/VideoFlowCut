@@ -47,7 +47,7 @@ ComfyUI 重启后旧 run 可能无法查询。检查本项目 Job、请求摘要
 
 ## Remotion 组件失败
 
-先区分 Props/AssetBinding 错、组件 Bug、局部时间错误、资源不可读和布局问题。生产任务只使用 Registry；新组件开发失败不能手写未审核代码作为 Fallback。组件修复后需要 Registry/Golden/Player/Render 回归。
+先区分 Props/AssetBinding 错、组件 Bug、局部时间错误、资源不可读和布局问题。生产任务使用已发布 Registry，或实时 MCP Schema 已支持的受管作品路径；受管作品的源码修订、重新生成与审阅交回 [remotion-production](../remotion-production/SKILL.md)，不能用本地案例 MP4 或开发命令绕过入库和验证。平台新组件开发失败不能手写未审核代码作为 Fallback，组件修复后需要 Registry/Golden/Player/Render 回归。
 
 ## Export 失败
 

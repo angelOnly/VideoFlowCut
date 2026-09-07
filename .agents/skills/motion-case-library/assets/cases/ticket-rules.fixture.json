@@ -1,0 +1,25 @@
+{
+  "name": "ticket-rules",
+  "width": 720,
+  "height": 1280,
+  "fps": 30,
+  "durationInFrames": 420,
+  "props": {
+    "title": "一张券，算清三件事",
+    "ticketName": "周末入场优惠凭证",
+    "discount": 30,
+    "serviceFee": 8,
+    "minimumSpend": 100,
+    "cancelHours": 24,
+    "accent": "#D1FA57"
+  },
+  "reviewFrames": [24, 66, 110, 166, 239, 304, 359, 405],
+  "beats": [
+    {"frames": [0, 66], "label": "完整票据落位，票面优惠先被看见", "purpose": "建立同一主对象与阅读起点"},
+    {"frames": [67, 124], "label": "右上折角翻起，纸张向下展开条款", "purpose": "由物体动作引导注意，不用换页解释"},
+    {"frames": [125, 196], "label": "01 费用：服务费从优惠中扣除", "purpose": "第一层条件独立获得阅读时间"},
+    {"frames": [197, 268], "label": "02 门槛：满足金额才能使用", "purpose": "同一纸面里转移强调"},
+    {"frames": [269, 332], "label": "03 退改：时间条件单独核对", "purpose": "保留前两条，累计理解"},
+    {"frames": [333, 419], "label": "票根转为实际优惠汇总，沿虚线轻轻分离", "purpose": "用保留票根承接计算结论与行动提醒"}
+  ]
+}

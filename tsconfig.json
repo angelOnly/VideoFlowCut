@@ -25,5 +25,5 @@
       "@videocut/project-overview": ["packages/project-overview/src/index.ts"]
     }
   },
-  "include": ["apps/**/*.ts", "apps/**/*.tsx", "packages/**/*.ts", "packages/**/*.tsx", "scripts/**/*.ts", "tests/**/*.ts"]
+  "include": ["apps/**/*.ts", "apps/**/*.tsx", "packages/**/*.ts", "packages/**/*.tsx", "scripts/**/*.ts", "tests/**/*.ts", ".agents/skills/motion-case-library/assets/cases/*.tsx"]
 }

@@ -25,6 +25,7 @@ const expectedSkills = [
   "evidence-visualization",
   "export",
   "known-errors",
+  "motion-case-library",
   "presenter-motion-director",
   "production-director",
   "project-basics",
@@ -189,6 +190,24 @@ test("人物剪辑专业资料从导演与相关专项可达，发行内容保�
     await readFile(grammar, "utf8"),
     "专业资料的发行副本与唯一源不一致"
   );
+});
+
+test("连续动效案例可从生产入口读取，源码和参数随插件一起发行", async () => {
+  const reachable = await reachableMarkdown(join(skillsRoot, "remotion-production/SKILL.md"));
+  for (const path of ["SKILL.md", "references/case-methods.md", "references/four-source-worked-example.md"]) {
+    assert.ok(reachable.has(join(skillsRoot, "motion-case-library", path)), `生产入口无法读取案例资料：${path}`);
+  }
+  const caseDirectory = "motion-case-library/assets/cases";
+  const sourceFiles = (await readdir(join(skillsRoot, caseDirectory))).sort();
+  const releasedFiles = (await readdir(join(pluginSkillsRoot, caseDirectory))).sort();
+  assert.deepEqual(releasedFiles, sourceFiles);
+  for (const file of sourceFiles) {
+    assert.equal(await readFile(join(pluginSkillsRoot, caseDirectory, file), "utf8"), await readFile(join(skillsRoot, caseDirectory, file), "utf8"), `案例发行副本不同步：${file}`);
+  }
+  for (const sourceFile of sourceFiles.filter((file) => file.endsWith(".tsx"))) {
+    const videoPath = `motion-case-library/assets/videos/${sourceFile.replace(/\.tsx$/u, ".mp4")}`;
+    assert.deepEqual(await readFile(join(pluginSkillsRoot, videoPath)), await readFile(join(skillsRoot, videoPath)), `案例视频缺失或发行副本不同步：${sourceFile}`);
+  }
 });
 
 test("Skills V5 源唯一、插件发行副本完整且可被 Codex 发现", async () => {
