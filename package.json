@@ -15,6 +15,7 @@
     "build": "npm run typecheck && npm run build:web",
     "build:web": "vite build --config apps/web/vite.config.ts",
     "typecheck": "tsc --noEmit",
+    "motion:cases": "node --import tsx scripts/render-motion-cases.ts",
     "start": "tsx apps/server/src/index.ts",
     "worker": "tsx apps/job-worker/src/index.ts",
     "render-worker": "tsx apps/render-worker/src/index.ts",

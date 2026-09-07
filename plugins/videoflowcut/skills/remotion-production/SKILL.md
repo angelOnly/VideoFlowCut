@@ -31,6 +31,8 @@ Remotion 是表现与合成层，不是导演。它可以用 React、CSS、SVG�
 
 例如原站用“文字从遮罩后揭示→强调底色建立→安静停留”突出短句，应保留这个节奏和空间关系，不能实现成整个圆角卡片飞入就称作复现。换成较长中文时先调整信息结构和分行，不靠缩小字体硬塞；语音落点来自本项目的真实时序，不照搬参考秒数。跨多个效果共享排印与运动语气，不意味着所有 Scene 都套同一种容器。
 
+需要学习连续对象、跨拍状态和设计理由时，按需读取 [动效总 Skill](../motion-case-library/SKILL.md)，再选择其中一个独立案例 Skill，对照该例的独立 MP4、生成思路和源码；四站选型示范也由总 Skill 按需引用。其本地案例帮助选择和改写视觉机制，不替代本节的在线参考观察、受管提交与合成审片，也不构成当前 `reference.url` 的合法输入。
+
 ### 受管作品生成和修改
 
 `submit_motion_work` 的 `work` 包含名称、默认导出的 React/Remotion TSX、可编辑 Props、目标 width/height/fps/durationInFrames、参考 URL、layout/motion/rhythm/adaptation/evidence 观察说明及权利依据。源码只用当前 Schema/校验器支持的 API。首版支持文字、CSS、SVG 和受管图片的帧驱动 2D 动效：`imageBindings` 将命名 Slot 对应到已就绪的项目图片 Asset ID，源码以 `<Img src={props.assets.logo} />` 消费对应图片。平台固定图片字节哈希并保守合并权利，不能自行覆盖 props.assets。不开放外部资源 URL、任意依赖、DOM/网络/文件访问、音视频隐式出声或 CSS 计时动画。需要这些能力时报告明确缺口，不能丢掉关键素材后仍声称效果已实现。

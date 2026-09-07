@@ -1,0 +1,23 @@
+{
+  "name": "product-multiply",
+  "width": 720,
+  "height": 1280,
+  "fps": 30,
+  "durationInFrames": 420,
+  "props": {
+    "productName": "轻薄工作平板",
+    "quantity": 70,
+    "actionLabel": "查看配置清单",
+    "accent": "#4979F5",
+    "transparent": true
+  },
+  "reviewFrames": [24, 62, 140, 213, 283, 316, 350, 402],
+  "beats": [
+    {"frames": [0, 74], "label": "一台精细自绘平板在下半屏落位", "purpose": "上方600px为人物预留的构图假设，须在真实人物和字幕画面复核"},
+    {"frames": [75, 177], "label": "两台从首台后方展开，形成三件团队视图", "purpose": "用可追踪的复制运动讲述从个人到团队"},
+    {"frames": [178, 283], "label": "前三台缩为阵列首行，其余设备逐行补齐", "purpose": "70由确实存在的70台产品轮廓支持，计数跟随可见对象"},
+    {"frames": [284, 323], "label": "十列七行与70台数量同时稳定停留", "purpose": "给出清晰可核对的数量语义"},
+    {"frames": [324, 385], "label": "阵列沿路径归并，首台成长为结尾主产品", "purpose": "保持首件连续，收拢注意力"},
+    {"frames": [386, 419], "label": "同一产品与配置清单行动提示共同停留", "purpose": "结束在可读的下一步，不制造网页交互假象"}
+  ]
+}

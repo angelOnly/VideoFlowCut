@@ -1,0 +1,22 @@
+{
+  "name": "容量流：瓶颈扩宽与同一资源流的再分配",
+  "width": 720,
+  "height": 1280,
+  "fps": 30,
+  "durationInFrames": 420,
+  "props": {
+    "title": "流量，挤在这一处。",
+    "expandedTitle": "通道打开，流向重排。",
+    "sourceLabels": ["文字请求", "图像请求", "批量请求"],
+    "outputLabels": ["资料检索", "内容合成", "结果写入"],
+    "conclusion": "找到瓶颈，再安排每一份流量。"
+  },
+  "reviewFrames": [0, 80, 150, 220, 278, 325, 419],
+  "beats": [
+    { "startFrame": 0, "endFrame": 63, "description": "三入口流线持续穿过共同窄口到三出口，建立同一装置的整体关系。" },
+    { "startFrame": 64, "endFrame": 177, "description": "窄口前的包转为橙色，标记排队位置和 48 单位/秒的假设容量。" },
+    { "startFrame": 178, "endFrame": 284, "description": "机械挡片退开，原有流线展开；容量连续增加至 120，包恢复顺畅通过。" },
+    { "startFrame": 285, "endFrame": 353, "description": "同一组下游曲线转向新的任务配额，数值从均分 40/40/40 改为 36/60/24。" },
+    { "startFrame": 354, "endFrame": 419, "description": "流动包用 30 帧平滑减速至冻结，保留容量和 30%/50%/20% 配额（30 条流线分为 9/15/6），末尾 36 帧留给阅读，并明确标注假设模型。" }
+  ]
+}
