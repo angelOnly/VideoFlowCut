@@ -31,11 +31,17 @@ description: 为最终可播放语音建立准确、可读、语义分卡、与�
 
 人物、MG 和 B-roll已经有高动态时，字幕保持稳定短句。Kinetic Caption 只在画面简单、时间精度可靠、文字本身承担主要节奏时使用，而且应限制在少量关键词和重复视觉语法。全程逐字弹跳会与人物口型、手势和视觉对象竞争。
 
-当前只有 `segment_exact` 时，可以按 SpeechSegment 或稳定 Card 显示；不能按字符平均做逐字高亮。若必须强调句中短语，优先调整 SpeechSegment 或通过真实 Preview 人工微调，并标明来源。
+当前只有 `segment_exact` 时，可以按 SpeechSegment 或稳定 Card 显示；不能按字符平均做逐字高亮。句中短语强调优先利用可验证的短语边界，或在实际工具允许的独立 Cue 上通过连续声画复核时机并标明来源；不要为动效改写已经确认的声音、强拆原声 Card 或重新合成语音。
 
 ## 强调
 
 强调不是把所有“重要词”变色。它应帮助发现结构：数字、对比、否定、行动、关键词或结论。一次 Card 通常只有一个主要强调；同一风格中颜色、字重、尺寸和运动应有稳定语义。强调不能提前泄露笑点、转折和结论。
+
+### 基础字幕与重点排印的角色分离
+
+基础字幕提供完整语言与连续阅读，重点排印建立瞬时重音。反问、判断和关键短语可以通过更高字级、字重或色彩成为主视觉，不将“大字”一概归为营销风格。根据背景和目标观看尺寸建立可感知差异，避免全片只有微小颜色变化；同一时刻保留一个主要阅读中心。
+
+需要稳定 Card 内的局部强调时使用当前 `edit_captions` 能力；其 emphasis 是静态显示样式，不是逐词动画或弹出特效。需要独立短语揭示、尺度变化或空间调度时，交给 `remotion-production` 的已发布受管作品流程，基础 Caption 仍保持正确文本与时间。协调二者的位置、对比与出现阶段，不能删除必要语言、改写事实或假定不存在的自动互斥/隐藏能力。若必须的布局操作没有进入实时 Schema，报告缺口并重新选择可读方案。
 
 ## 字幕与其它画面的分工
 
@@ -71,11 +77,21 @@ description: 为最终可播放语音建立准确、可读、语义分卡、与�
 
 ## 当前工具与能力
 
-当前 MCP 可 `read_captions` 与 `edit_captions`。单卡 `update` / `reset` 可用于当前 SpeechAsset 或已审计 `source_audio` 的稳定 Card：屏幕文案最多两行、有限字号/颜色/安全区、深色底板及受限透明度、一个连续强调短语，或恢复来源文案；不会改 Script、SpeechSegment 和声音。原声 A-roll 需要统一底板时，读取明确 Card ID 后以 `action=bulk_source_format`、`caption_ids` 与 `format` 原子应用到同一 A-roll，避免逐张提交造成 Revision 冲突。它不接受时间范围，也不会新增、删除、拆分或重定时 Card。`chunk_coarse` 原声字幕没有可靠的句内时间，不能为了短句效果按标点或字符伪拆；应保留真实静音边界，必要时只做不改变时间的双行屏幕文案。若主线原文或时序变化，旧 Card 会被明确 stale 或重建，不能静默沿用。`occurrence` 从 0 开始，仍没有逐词时间或逐词动画能力。
+当前 MCP 可 `generate_source_audio_captions`、`generate_speech_captions`、`read_source_audio_alignment`、`apply_source_caption_program`、`read_captions` 与 `edit_captions`。原声 A-roll 默认调用 `generate_source_audio_captions`；当前完整 SpeechAsset 已组装到唯一 Dialogue 时，用 `generate_speech_captions(base_revision_id, idempotency_key?)` 从最终可听音频生成字幕。两条入口复用 FunASR 的真实 `startMs/endMs`：每个 Provider 字幕 segment 自动对应一屏，不重生 TTS。一个 segment 可以自然排成一至两行，但同一时刻不合并多个 segment。
+
+自然 SpeechSegment 是配音生产单位，不是强制一屏的阅读单位。不要因一段自然旁白的默认字幕溢出，就拆碎配音、按字符均分时间、缩小字或删成摘要。旁白入口保留 Script、SpeechSegment、SpeechAsset、Dialogue 和画面，只在成功后原子替换未人工改写的默认字幕；统一版式沿用，已有不同局部版式或人工改写会拒绝静默覆盖。Job 期间暂缓其他项目写入，结束后读回当前 Revision；冲突先对账，不自动重放。`source_audio` 表示从实际音频派生，Alignment 的 `speechSource` 明确记录最终旁白来源，不是假 A-roll，也不会把字幕 token 升级成 SpeechTiming 的 word_exact。
+
+Provider 能提供严格 token 时间时，Alignment 标记为 `provider_token_timed`，才可在单段实际排版超过两行、Provider 分段明显破坏完整语义、回听确认错分段，或用户明确要求重新分屏时，读取 Alignment 并用 `apply_source_caption_program` 原子覆盖默认 Program。它不能手填时间、按字符均分时间或改写实义词。若 Alignment 标记为 `tokenPrecision: unavailable`，其 Provider segments 仍是可正常使用的 `sentence_exact` 原声字幕；但没有可验证的新切点，`apply_source_caption_program` 必须拒绝，不能为了排版或错字猜测时间。此时应保留默认段、重新取得带严格 token 证据的对齐，或回到源音频完成可追溯的纠错。
+
+单卡 `update` / `reset` 可用于当前 SpeechAsset 或已审计 `source_audio` 的稳定 Card：屏幕文案最多两行、有限字号/颜色/安全区、深色底板及受限透明度、一个连续强调短语，或恢复来源文案；不会改 Script、SpeechSegment 和声音。原声 A-roll 需要统一底板时，读取明确 Card ID 后以 `action=bulk_source_format`、`caption_ids` 与 `format` 原子应用到同一 A-roll，避免逐张提交造成 Revision 冲突。它不接受时间范围，也不会新增、删除、拆分或重定时 Card。历史 `chunk_coarse` 仅供旧 Revision 读取；新的原声字幕不会创建它。若主线原文或时序变化，旧 Card 会被明确 stale 或重建，不能静默沿用。`occurrence` 从 0 开始，仍没有逐词时间或逐词动画能力。
+
+识别错词、数字和英文显示需要对照原稿回听，原稿和 ASR 都不能自动代替实际声音。对已有对齐 Card，用 `edit_captions(action=update, text, source_text_review={note})` 记录实际回听确认的显示纠正；服务端保留原 `sourceText`、Alignment、真实时间和纠错审计，不改 Script 或把它当强制对齐。没有回听证据不能声明确认，声音本身读错则退回配音。只调整标点、空格和换行不需要实义纠错记录。先完成必要分屏，再纠错；纠错后重分屏会被阻止，只有明确 reset 放弃这些显示纠正后才能重分并重新复核。
 
 任何修改后要读回 Caption、Revision、Impact，渲染真实 Preview。只看文本 JSON 不能发现遮挡、行宽、画幅和阅读时间问题。
 
 ## 验证
+
+质量门禁认可当前完整旁白的有效 Alignment / Program / Card 链，不要求再给每个 SpeechSegment 补一张字幕。若仍报缺失，先查来源是否为当前 SpeechAsset、Program 是否完整、真实时间与双向引用是否有效；静音间隙不需要补卡，结构通过仍须回到实际声画验证。
 
 完整播放检查：文字是否与声音一致；Card 是否有足够阅读时间；换行是否自然；强调是否帮助而不是干扰；近景、产品、证据和 UI 是否被遮；静音时观众能否理解必要内容；有声时字幕是否重复主视觉。
 

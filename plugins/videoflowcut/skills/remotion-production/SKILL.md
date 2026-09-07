@@ -19,7 +19,31 @@ Remotion 是表现与合成层，不是导演。它可以用 React、CSS、SVG�
 
 ### 开发新组件
 
-用户需要现有 Registry 无法表达的新视觉机制时，这是代码开发任务，不是普通视频生产。必须设计组件合同、实现、注册、测试、Golden Frame、Player/Render 一致性和安全检查，完成后才能被生产 Skill调用。当前项目不允许 Codex 在生产任务中把任意 JSX 直接写入服务器执行。
+先区分项目作品与平台组件。单条视频需要新的表达时，可通过 `submit_motion_work` 提交本次作品的 Remotion TSX、Props 和观察依据，由平台隔离渲染为固定版本；它不修改平台源码、不安装依赖、不更新插件。只有需要增加全局 API、依赖、组件 Runtime 或修复平台实现时，才进入平台开发任务。禁止在 shell 中写文件、改包或绕过 MCP 执行 JSX。
+
+## 在线参考驱动的作品创作
+
+用 `browse_motion_sources` 进入 Onda、Jitter、RemotionLab 和 Mixkit。它们是在线视觉参考，不是需要搬到本地的全量模板仓库；AE、Jitter 工程或没有源码不妨碍选型。有合适授权的源码可复用，其他效果根据实际观察的视觉机制独立编写 Remotion，不要求安装 AE。不得把品牌、照片、音乐或会员源码的权利当作随视觉参考一起取得。
+
+`inspect_motion_reference(source_url)` 先返回页面、公开链接和 preview 索引，再用该工具的 preview_index 参数查看同一项连续采样。页面截图只能证明页面存在；采样没有变化、资源被阻止或出现登录/验证页时，明确尚未看懂，不根据名称编造运动。采样不包含复听，也不提供精确语音时间。四个站点都可作为候选，不按源码格式排序。没有适合的参考时，不用弱相关特效填满视频。
+
+先解释让效果成立的关系：静止时信息怎样排列，哪些对象先后进入，遮罩/位移/缩放怎样建立主次，停稳后观众有多久可以阅读，如何退出。随后决定哪些关系必须保留，哪些文字、配色、位置和时长需要适配真实中文、画幅、人物与字幕。这份短设计说明由剪辑者完成；用户只需描述观感，无须填写专业参数。
+
+例如原站用“文字从遮罩后揭示→强调底色建立→安静停留”突出短句，应保留这个节奏和空间关系，不能实现成整个圆角卡片飞入就称作复现。换成较长中文时先调整信息结构和分行，不靠缩小字体硬塞；语音落点来自本项目的真实时序，不照搬参考秒数。跨多个效果共享排印与运动语气，不意味着所有 Scene 都套同一种容器。
+
+### 受管作品生成和修改
+
+`submit_motion_work` 的 `work` 包含名称、默认导出的 React/Remotion TSX、可编辑 Props、目标 width/height/fps/durationInFrames、参考 URL、layout/motion/rhythm/adaptation/evidence 观察说明及权利依据。源码只用当前 Schema/校验器支持的 API。首版支持文字、CSS、SVG 和受管图片的帧驱动 2D 动效：`imageBindings` 将命名 Slot 对应到已就绪的项目图片 Asset ID，源码以 `<Img src={props.assets.logo} />` 消费对应图片。平台固定图片字节哈希并保守合并权利，不能自行覆盖 props.assets。不开放外部资源 URL、任意依赖、DOM/网络/文件访问、音视频隐式出声或 CSS 计时动画。需要这些能力时报告明确缺口，不能丢掉关键素材后仍声称效果已实现。
+
+提交只创建固定输入的 Job，不改变 Timeline。`track_job` 完成后用 `read_motion_work` 读回源码、版本和 Asset，再通过 `inspect_asset` 审阅生成的动态代理。需要改字、调布局或节奏时提交新作品，并以 `previousAssetId` 关联旧版；旧源码、缓存和已使用版本不能覆盖。Job 失败保留诊断，不把安全拒绝改成绕过；同一幂等键不能提交不同输入。
+
+确认参考对照后用 `review_motion_work` 记录实际运动、布局和节奏差异。通过并不代表合成审片通过。`manage_effect_cues` 使用 `type=ManagedMotion`，只绑定 `slot=motion` 的生成 Asset，明确所属 Scene、叙事目的和语义锚点；时长、画幅、fps 必须匹配。作品内部已经包含布局和进出场，Cue 只决定时间、层级及语义归属；省略 Props、Motion、空间锚点、强度和 StylePack 覆盖，修改这些内容必须生成新作品版本。
+
+只修正已放置作品的语义归属、出场范围或换绑已审阅的新版本时，用 `manage_effect_cues(action=update, cue_id=已有ID, ...)` 就地更新，保留未指定字段和 Cue ID；不能借此更换 Scene、类型、层级或裁短固定作品。放弃这次使用时用 `action=remove`，只提交 Cue ID 与当前版本，不删除作品 Asset，也不回退整片。每次写后读回目标与 Impact，移动后同时复查原位置和新位置。
+
+正式合成使用固定版本的透明 PNG 帧，不使用带背景的 MP4 审阅代理。源码与 Props 保留可编辑，修改后需等待局部渲染，这是缓存策略而非把代码焊死成视频。放入目标人物画面后再检查进入、运动中、停稳、退出及前后连续；结合声音审阅字幕竞争、阅读时间和语义落点。最终导出必须与同 Revision 的 Preview 一致。
+
+作品要替换既有 ExplainerScene 的主视觉时，先读 `read_explainer_scene_programs`：换绑 Cue 不会自动关闭底层 Program。确需退出旧主视觉，用实时 Schema 中的 `set_explainer_program_enabled(base_revision_id, program_id, enabled=false)` 局部停用；它保留 Scene 语义、其它 Cue、字幕与音效，不是整批 `compile_explainer_scenes`。不要用额外不透明底板遮住仍运行的旧内容。停用后检查新作品透明处、退出及前后画面，并复听原音效是否仍匹配新视觉事件；保存音效对象不等于声音仍适宜。需要恢复旧画面时可启用，但 stale 内容不会因此修好。工具不可用则报平台阻断，不绕过 MCP。
 
 ### 修改现有组件
 
@@ -39,7 +63,9 @@ Remotion 是表现与合成层，不是导演。它可以用 React、CSS、SVG�
 
 ## Design Map
 
-批量或复杂 MG 前，为每个计划项写紧凑 Design Map：观众任务、准确内容、非文字视觉机制、语义范围、进入/稳定/退出、Settled Frame、阅读时间、大小、构图关系、AssetBinding、Props、是否与另一个 MG 有意重复、降级和验证。
+涉及声音时，将作品内需要配合的动作命名并交付其局部帧，区分开始进入、主要攻击对应的动作和停稳；不要只提供整段起止。声音专项通过 `manage_audio` 的 effect_event 绑定放置后的 Cue 和当前视觉签名，不在作品源码内嵌音频。纯平移可以保留关系；改作品或内部时序后，读回 Impact 中的 stale AudioCue，并把新动作帧交回声音专项复核，而非继续套旧绝对帧。
+
+批量或复杂 MG 前，为每个计划项写紧凑 Design Map：观众任务、准确内容、排印或非文字视觉机制、语义范围、进入/稳定/退出、Settled Frame、阅读时间、大小、构图关系、AssetBinding、Props、声画共同落点、是否与另一个 MG 有意重复、降级和验证。声音由 Audio 轨实现，作品不隐式出声。
 
 Design Map 防止两个极端：所有内容都套同一圆角卡片；每个 MG 风格和运动完全不同。共享的是视觉语言，形式由内容任务决定。
 
@@ -54,6 +80,14 @@ Design Map 防止两个极端：所有内容都套同一圆角卡片；每个 MG
 MG 可以使用空间分组、状态变化、路径、数量、层级、比较、时间和真实素材。短结论可以用排印；分类需要共同坐标；流程需要持续对象和路径；数字需要单位和基线；证据需要来源；产品展示需要真实 Asset。
 
 默认 Glow、Glass、Gradient、Card、Spring、Sweep 和 Shine 都需要内容理由。它们不是“高级感”的同义词。
+
+### 中文重点排印与人物同屏
+
+重点短语可作为独立视觉对象，不必包在卡片里，也不必因为字幕已出现同样语义就被删掉。先用有限字级、字重、对比色、对齐与负空间建立主次；保留否定、单位和条件。基础字幕承担连续语言，动效承担注意与记忆，两者由 captions 协调。相关专业选择见 [人物剪辑语法](../presenter-motion-director/references/presenter-editing-grammar.md)，只在人物包装任务按需读取。
+
+在真实中文与目标人物背景上设计停稳画面。揭示可用遮罩、紧凑位移或尺度收敛建立重点，动作的距离、缓动和过冲要与对象体量一致，随后停止运动供阅读。不能让每个字各自弹跳造成振动，也不能将有语义的主文字去掉后只剩难以识别的装饰线。边框、底板或阴影用于分离背景与阅读，强度来自实际对比需求，不默认所有内容同一卡片。
+
+对比采用共同基线和持续对象，按语义逐步揭示或聚焦差异；短标签可以直接组成关系，不强制双框。逐帧确定性仍由 Remotion 局部 frame 驱动，不用 CSS 计时动画；作品进入时间线后，在正常播放和目标显示尺寸中复核显著性、停留与前后连接。单独透明作品漂亮，不代表叠入人物与字幕后成立。
 
 ## Registry、EffectCue 与真实素材
 
@@ -77,7 +111,9 @@ Timeline 范围必须容纳 Enter、Settled、Hold 和 Exit。不能用更短 It
 
 ## Natural Box 与 Timeline Canvas
 
-Overlay 组件的自然 Asset Box 应紧密包围可见内容，便于定位；真正全屏 Scene 才占满画布。把所有 MG 都做成全画布透明组件，会让 Inspector、碰撞和布局难以理解。
+Registry Overlay 组件的自然 Asset Box 应紧密包围可见内容，便于定位；真正全屏 Scene 才占满画布。受管作品首版采用目标画布大小的透明缓存，因此内部排版由源码负责，不声称 Inspector 能直接移动可见对象的自然盒。
+
+透明画布的 `full_frame` 只是坐标系，不等于遮挡全屏。Worker 从实际 PNG Alpha 逐帧测量可见像素外包区域；与同时段字幕安全预算不相交才可排除这项遮挡，相交仅表示待审，不等于字形已被挡。旧作品缺少测量时会明确提示未知，可重生成取得证据；无论测量结果如何，都不能代替人物、字幕、进入退出和整片观感的真实连续审片。
 
 最终放置要结合目标帧、人物、字幕、证据和画幅。固定 Safe Zone 不是万能答案；同一 Anchor 只有在观众任务和构图关系重复时才应复用。
 
@@ -97,7 +133,7 @@ MotionPreset 字段存在不代表 Runtime 已完整实现所有语法。当前�
 
 ## 当前代码安全边界
 
-生产只使用已注册组件。未来开放代码型 MG 时必须：静态分析、允许 Import/API、禁止文件/网络访问、构建超时、沙箱、Props Schema、注册和测试。不要在 Skill 中提供一个“生成失败就手写任意 JSX”的后门。
+生产使用已注册组件，或通过已发布 MCP 创建的受管作品。作品代码只在独立 Chromium OS sandbox 与 CSP opaque origin 中执行，网络默认拒绝；静态分析只是依赖和确定性约束，不代替隔离。禁止关闭 sandbox、访问宿主文件/凭据、临时安装依赖，或将未验证作品直接注入主工作台。
 
 ## 当前 EffectCue 写入合同
 
@@ -259,7 +295,7 @@ read_project / preview_timeline / inspect目标画面
 → quality-verification
 ```
 
-当前 `manage_effect_cues` 可以直接创建 Cue，但没有完整编辑/删除批量 Tool 时，应使用现有 Application/Web 能力或明确缺口。不要因为代码层可改就绕过项目 Revision。
+当前 `manage_effect_cues` 的 `action` 支持 `create`（省略时默认）、`update` 和 `remove`，后两者必须指定 `cue_id`。它是单对象原子操作，不是批量回退；冲突后重新读 Project 和目标再判断，不机械重放，也不绕过 MCP 或 Revision。
 
 ## 验证
 
@@ -271,7 +307,7 @@ read_project / preview_timeline / inspect目标画面
 
 ## 反例：哲学口播套全部组件
 
-“我一直把生活推到以后”不需要 ProductFan、CommentCloud、PortfolioWall 和 FullScreenMeme。可能最合适的是人物安静表达，随后一个全屏“以后不断后退”的简单关系 Scene。Registry Coverage 属于组件冒烟测试，不属于创作验收。
+“我一直把生活推到以后”不自动需要 ProductFan、CommentCloud、PortfolioWall 和 FullScreenMeme。可依据表演与语义选择短语排印、心理距离变化或关系 Scene，也可以在真实反应承担表达时保持人物；题材不预设强度上限。Registry Coverage 属于组件冒烟测试，不属于创作验收。
 
 ## 交接合同
 
@@ -292,4 +328,4 @@ EffectCue 或 ExplainerScene 绑定图片、视频、产品、证据或 UI Asset
 
 人物、字幕、证据和动效同屏时只设一个第一注意目标。进入全屏 Scene、人物做关键手势或证据正在阅读时，CameraPunch、大字幕、背景运动和 SFX 要相应退让。横版和竖版分别检查主体、动作路径、负空间和信息层级。
 
-同类 Scene 批量生产前，先完成一个代表性样例，并与“不使用效果”或“最小处理”版本比较。若移除动效后信息没有损失，当前效果可能只是在装饰。
+同类 Scene 批量生产前，先完成包含铺垫、运动、阅读与恢复的代表性连续样段，比较当前、最小处理、更强处理或不使用的实际结果。除信息理解外，还检查注意、记忆、情绪与节奏；移除效果后事实不变，并不证明效果没有价值。只有收益不成立或代价更大时才重新设计或取消；与 SFX 配合的事件须检查实际混合声画，不能用无声代理代替整段验收。

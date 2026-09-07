@@ -51,10 +51,18 @@ export function normalizeSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
   // 旧 Revision 没有分离保存原声时间证据和视觉字幕 Program；只补空集合，绝不倒推或伪造 token 对齐。
   snapshot.sourceAudioAlignments ??= [];
   for (const alignment of snapshot.sourceAudioAlignments) {
-    // 历史 v2 记录保留 Provider 标点候选；新 token-only 对齐会显式保存 none。
+    // 历史 v2/v3 记录保留 Provider 标点候选；正式 v4 段级对齐会显式保存 none。
     alignment.sentenceCandidateMode ??= alignment.sentences?.length ? "provider_punctuation" : "none";
+    // 旧快照中只要有 token，就只能按已存在的 Provider token 时间处理；没有时绝不倒推或估算。
+    alignment.tokenPrecision ??= alignment.tokens?.length ? "provider_token_timed" : "unavailable";
+    // 旧记录没有正式段级结果；保留原审计以供读取，但绝不倒推或估算 segment 时间。
+    alignment.segments ??= [];
   }
   snapshot.sourceCaptionPrograms ??= [];
+  for (const program of snapshot.sourceCaptionPrograms) {
+    // 旧 Program 都来自人工/Agent 分卡，不能在升级时伪称 Provider 默认结果。
+    program.source ??= "editorial_override";
+  }
   snapshot.transcriptSentenceCandidates ??= [];
   for (const caption of snapshot.timeline.captions ?? []) {
     // 旧快照没有保存原始语音文案时，以当时已经渲染的文字作为可回退来源。
@@ -83,7 +91,7 @@ export function normalizeSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
     performance.audioMode ??= snapshot.speechAsset ? "use_dialogue_track" : "use_source_audio";
   }
   for (const unit of snapshot.semanticUnits ?? []) {
-    if (!unit.candidateIds?.length) {
+    if (unit.sourceKind !== "authored" && !unit.candidateIds?.length && unit.transcriptId && unit.sourceAssetId) {
       const legacyCandidateId = `sentence_candidate_legacy_${unit.id}`;
       if (!snapshot.transcriptSentenceCandidates.some((candidate) => candidate.id === legacyCandidateId)) {
         snapshot.transcriptSentenceCandidates.push({

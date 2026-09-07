@@ -372,7 +372,8 @@ export class ComfyUIBridgeClient {
 
 export const FUNASR_WORKFLOW_ID = "dd564543-d02d-4247-9e97-089417db9e7a";
 /**
- * 静态公开工作流：只返回同源原始 token 与显式时间，不使用标点模型决定任何边界。
+ * 正式原声字幕工作流：返回 Provider 已分好的字幕段及其同源时间证据。
+ * 正常 VideoFlowCut 路径只消费 segment 的 displayText/startMs/endMs。
  */
-export const FUNASR_SOURCE_TOKEN_ALIGNMENT_WORKFLOW_ID = "funasr-source-token-alignment-v3";
+export const FUNASR_SOURCE_CAPTION_WORKFLOW_ID = "funasr-source-caption-v4";
 export const OMNIVOICE_WORKFLOW_ID = "ba6238d0-3ee4-41d5-a1f4-a2aefc3933ce";

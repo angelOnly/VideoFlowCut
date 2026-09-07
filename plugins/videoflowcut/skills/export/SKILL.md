@@ -15,6 +15,8 @@ Draft 用于内部审片、A/B、技术调试和分享候选。它可以在完�
 
 不要为了快速拿到文件把 Delivery 改成 Draft 后对外宣称完成。用途属于 Artifact 元数据和用户沟通的一部分。
 
+Draft 仍受技术与素材权利门禁约束，不能把受限素材改成 cleared，也不用伪报动效或声音已审来取文件。草稿失败时只处理该用途的真实阻挡；现有完整 Preview 可以明确标记为内部待审预览，但不登记或宣称为 ExportArtifact。
+
 ## 导出前
 
 确认 Project、目标 Timeline/Sequence、Revision、画幅、帧率、时长和编码规格。读取 QualityReport、EditorialReview、Preview Evidence、Asset/Provenance 和 Attribution；使用 `run_render_preflight` 检查当前 Revision 的所有实际引用是否本地存在、可解码、字体/Mask/组件可用、Speech 与 Script 一致、权利允许。Preflight 通过不替代真实 Preview、审片和最终文件验证。

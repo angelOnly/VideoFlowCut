@@ -29,6 +29,8 @@ export type AssetRole =
   | "vlog_source"
   | "actor_mask"
   | "voice_reference"
+  | "sfx"
+  | "bgm"
   | "evidence"
   | "cutaway"
   | "style_reference"
@@ -93,14 +95,17 @@ export interface AssetRequest {
   id: Id;
   title: string;
   purpose: string;
-  visualBrief: string;
+  /** 历史需求省略时按视觉处理；音频不需要伪造画幅或画面说明。 */
+  mediaKind?: "visual" | "audio";
+  visualBrief?: string;
+  audioBrief?: string;
   role: AssetRole;
   queryHints: string[];
   excludedTerms: string[];
-  targetAspectRatio: "9:16" | "16:9" | "1:1";
+  targetAspectRatio?: "9:16" | "16:9" | "1:1";
   minDurationMs?: number;
   rightsRequirement: AssetRightsRequirement;
-  fallbackPlan: "keep_presenter" | "remotion" | "minimax" | "ask_user";
+  fallbackPlan: "keep_presenter" | "remotion" | "minimax" | "ask_user" | "local_audio" | "omit_audio";
   status: AssetRequestStatus;
   closeReason?: string;
   createdAt: string;
@@ -123,8 +128,8 @@ export interface AssetCandidate {
   provider: string;
   originalAssetId: string;
   name: string;
-  /** Provider 候选可为视频或图片；文档证据仍优先通过受控本地导入登记。 */
-  kind: "video" | "image";
+  /** 候选的真实媒介类型；音频与视觉需求不能混用。 */
+  kind: "video" | "image" | "audio";
   sourceUrl: string;
   previewUrl?: string;
   mimeType?: string;
@@ -159,10 +164,12 @@ export type JobKind =
   | "multicam_sync"
   | "asset_acquisition"
   | "transcription"
-  /** 原声 A-roll 的静音边界分块字幕；不生成或替换 Dialogue 音频。 */
+  /** 历史 VAD 分块 Job；只为读取旧记录保留，新的 Worker 绝不能执行或创建。 */
   | "source_caption_generation"
-  /** 采集 FunASR 同源 token 时间与候选句，等待语义字幕 Program 原子编译；保留旧名称兼容已有 Job。 */
+  /** 历史 token-only Job；只为读取旧记录保留。 */
   | "source_caption_sentence_alignment"
+  /** 原声 A-roll 的正式段级字幕对齐：Provider segment、默认 Program 与 Caption 在同一提交中写入。 */
+  | "source_caption_alignment"
   | "voice_synthesis"
   /** 保留原声并生成最小 / 强处理候选；选择候选是独立的 Revision 写入。 */
   | "dialogue_processing"
@@ -172,6 +179,7 @@ export type JobKind =
   | "music_generation"
   /** 文生、图生、首尾帧和多参考视频均走同一受管的 Bridge 视频生成 Job。 */
   | "video_generation"
+  | "motion_generation"
   | "avatar_generation"
   | "speech_assembly"
   | "preview"
@@ -200,11 +208,13 @@ export type EffectType =
   | "FullScreenMeme"
   | "DeviceShowcase"
   | "ContentCarousel"
-  | "EndCard";
+  | "EndCard"
+  | "ManagedMotion";
 
 /**
  * `source_token_anchored` 表示原声字幕卡的起止来自 Provider 明确返回的 token 时间。
  * token 可以是汉字、词或子词，不能把它误读成适用于逐词动画的 `word_exact`。
+ * `sentence_exact` 可表示 Provider 直接给出、但没有可验证 token 细节的原声字幕段时间。
  */
 export type TimingPrecision = "segment_exact" | "sentence_exact" | "chunk_coarse" | "source_token_anchored" | "word_exact" | "unavailable";
 
@@ -237,6 +247,13 @@ export interface MediaMetadata {
   mime?: string;
 }
 
+/** 每一局部帧中非零 Alpha 的保守外包矩形；null 表示整帧透明，不等于审美通过。 */
+export interface MotionVisibility {
+  method: "png_alpha_bbox_v1";
+  alphaThreshold: 1;
+  frames: Array<{ x: number; y: number; width: number; height: number } | null>;
+}
+
 export interface Asset {
   id: Id;
   name: string;
@@ -251,6 +268,22 @@ export interface Asset {
   metadata?: MediaMetadata;
   createdAt: string;
   failureReason?: string;
+  /** 受管作品保留源码来源和透明帧缓存；审阅代理不能替代正式 Alpha 合成。 */
+  motion?: {
+    jobId: Id;
+    version: string;
+    engineVersion: string;
+    previousAssetId?: Id;
+    sourcePath: string;
+    framesDirectory: string;
+    frameCount: number;
+    fps: number;
+    width: number;
+    height: number;
+    referenceUrl: string;
+    visibility?: MotionVisibility;
+    review?: { referenceMatch: "passed" | "failed" | "inconclusive"; note: string; reviewedAt: string };
+  };
 }
 
 /**
@@ -538,10 +571,13 @@ export interface SpeechPause {
 
 export interface SemanticUnit {
   id: Id;
-  transcriptId: Id;
+  /** 旧数据未填写时仍表示转写；原创语义不虚构音频或候选来源。 */
+  sourceKind?: "transcript" | "authored";
+  sourceNote?: string;
+  transcriptId?: Id;
   text: string;
   order: number;
-  sourceAssetId: Id;
+  sourceAssetId?: Id;
   status: "included" | "deleted";
   /** 该语义单元由哪些标点候选组合而来，保持可追溯性。 */
   candidateIds: Id[];
@@ -803,6 +839,8 @@ export interface ExplainerSceneProgram {
   /** 同一输入得到稳定键；输入或素材哈希变化后 Application 会让它失效。 */
   cacheKey: string;
   status: "ready" | "stale";
+  /** 只停用本 Program 的渲染，不删除宿主 Scene 或附属 Cue；旧 Revision 缺省启用。 */
+  disabled?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -1028,7 +1066,7 @@ const finiteEffectNumber = (value: unknown): boolean => typeof value === "number
  * 每种 Registry 效果都必须消费项目真实内容。此函数不评价动效好不好，
  * 只阻止缺素材、缺文案时把“示例卡/默认口号”渲染进 Preview 或成片。
  */
-export function inspectEffectContentContract(cue: EffectCue, assets: readonly Asset[]): EffectContentContractResult {
+export function inspectEffectContentContract(cue: EffectCue, assets: readonly Asset[], canvas?: { width: number; height: number; fps: number }): EffectContentContractResult {
   const readyAssetIds = new Set(assets.filter((asset) => asset.status === "ready").map((asset) => asset.id));
   const boundAssetCount = (cue.assetBindings ?? []).filter((binding) => readyAssetIds.has(binding.assetId)).length;
   const props = cue.props ?? {};
@@ -1038,6 +1076,22 @@ export function inspectEffectContentContract(cue: EffectCue, assets: readonly As
   const missing: string[] = [];
 
   switch (cue.type) {
+    case "ManagedMotion": {
+      const binding = cue.assetBindings.find((item) => item.slot === "motion");
+      const asset = assets.find((item) => item.id === binding?.assetId && item.status === "ready");
+      if (!asset?.motion) missing.push("已渲染的受管 Remotion 作品");
+      else {
+        if (asset.motion.frameCount !== cue.endFrame - cue.startFrame) missing.push("作品完整时长（不可隐式裁切或拉伸）");
+        // 明确待审的作品可进入草稿；审阅是否通过由交付质量门禁负责，不冒充内容缺失。
+        if (!["passed", "inconclusive"].includes(asset.motion.review?.referenceMatch ?? "")) missing.push("真实动态预览的参考对照审阅，或明确登记 inconclusive 待审草稿");
+        if (canvas && (asset.motion.width !== canvas.width || asset.motion.height !== canvas.height || asset.motion.fps !== canvas.fps)) missing.push("与当前画布和帧率匹配的作品版本");
+      }
+      if (cue.assetBindings.length !== 1) missing.push("唯一的 motion 素材绑定；图片在作品内绑定");
+      if (Object.keys(props).length || cue.spatialAnchor !== "full_frame" || cue.stylePackId !== "managed-source" || cue.intensity !== 1
+        || cue.motion.enterPreset !== "none" || cue.motion.settlePreset !== "hold" || cue.motion.exitPreset !== "none"
+        || cue.motion.enterFrames !== 0 || cue.motion.exitFrames !== 0 || cue.motion.holdFrames !== cue.endFrame - cue.startFrame) missing.push("固定作品参数；布局、样式和运动修改须生成新版本");
+      break;
+    }
     case "MetricBackdrop":
       if (!(text("metric", "value") || finiteEffectNumber(props.metric) || finiteEffectNumber(props.value) || headline)) missing.push("可核对的指标或标题");
       break;
@@ -1127,10 +1181,14 @@ export interface AudioCue {
   timelineItemId: Id;
   purpose: string;
   anchor: "sequence_global" | "media_event";
-  /** SFX 实际被听见的编辑事件帧；BGM 使用 sequence_global，不填写该字段。 */
+  /** SFX 计划同步的编辑事件帧；是否实际复听由 onsetReview 和成片审片分别记录。 */
   eventFrame?: number;
-  /** 当前 SFX 源片段起点到可感知事件的已确认偏移，0 代表事件就在所选片段开头。 */
+  /** 当前 SFX 源片段起点到目标声音事件的偏移；候选值不代表已听过，0 表示所选片段开头。 */
   onsetOffsetFrames?: number;
+  /** 只确认所选源范围的起音，不替代混合声画审片；旧数据缺省视为未确认。 */
+  onsetReview?: { status: "confirmed" | "inconclusive"; note: string; recordedAt: string };
+  /** 绑定当前视觉版本内的明确动作，不把声音烘焙进 Remotion。 */
+  effectEvent?: EffectAudioEvent;
   fadeInFrames: number;
   fadeOutFrames: number;
   /** 仅 BGM 允许循环同一段受管本地音频。 */
@@ -1139,6 +1197,17 @@ export interface AudioCue {
   status: AudioCueStatus;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface EffectAudioEvent {
+  effectCueId: Id;
+  eventName: string;
+  /** 相对 Cue 起点的视觉动作帧。 */
+  localFrame: number;
+  /** 可听起音相对视觉动作的偏移，可为负；不是源文件 onset。 */
+  syncOffsetFrames: number;
+  /** 由平台从视觉内容、作品版本与内部时序计算，不接受调用方伪造。 */
+  cueSignature: string;
 }
 
 /**
@@ -1172,9 +1241,10 @@ export interface Cutaway {
   updatedAt: string;
 }
 
+/** speech_asset 是语音段派生；source_audio 是真实音频对齐派生，音频也可来自已合成旁白。 */
 export type CaptionSourceKind = "speech_asset" | "source_audio";
 
-/** FunASR / 强制对齐 Provider 同源返回的最小文本时间证据，不允许由应用层估算。 */
+/** FunASR / 强制对齐 Provider 同源返回的最小 token 时间证据，不允许由应用层估算。 */
 export interface SourceAudioAlignmentToken {
   index: number;
   text: string;
@@ -1193,15 +1263,34 @@ export interface SourceAudioAlignmentSentence {
   tokenEndIndex: number;
 }
 
+/**
+ * Provider 直接返回的正式字幕段。一个 segment 就是一屏字幕，而非 token 或逐字动画。
+ * token 区间只在 Provider 能严格给出时保存；没有它仍可使用 Provider 真实的段级时间。
+ */
+export interface SourceAudioAlignmentSegment {
+  displayText: string;
+  startMs: number;
+  endMs: number;
+  /** 左闭右开 token 区间；可选，且不进入正常渲染流程。 */
+  tokenStartIndex?: number;
+  tokenEndIndex?: number;
+}
+
+/** token 是否具备可验证的逐项时间；不可用时不能为编辑重分段猜测时间。 */
+export type SourceAudioAlignmentTokenPrecision = "provider_token_timed" | "unavailable";
+
 /** 原始 token 对齐可选择完全不生成 Provider 句子候选，避免把标点模型误读为剪辑决策。 */
 export type SourceAudioAlignmentSentenceCandidateMode = "provider_punctuation" | "none";
 
 /**
- * 原声 A-roll 的真实 token 对齐证据。它与一次明确的素材使用、源范围、Revision 和 Bridge Run 绑定；
- * 它不是 Caption Program，更不能被当成已经过语义审查的视觉分卡。
+ * 原声 A-roll 的真实对齐证据。它与一次明确的素材使用、源范围、Revision 和 Bridge Run 绑定；
+ * `segments` 是 Provider 给出的默认一屏字幕。`tokens` 只在严格可验证时保留作例外重分段；
+ * token 不可用不降低 Provider 段自身的真实 startMs/endMs，也不阻塞默认字幕。
  */
 export interface SourceAudioAlignment {
   id: Id;
+  /** 最终旁白的真实音频字幕明确绑定语音版本，不伪造 A-roll 或人物表演。缺省仍为原声 A-roll。 */
+  speechSource?: { speechAssetId: Id; scriptRevision: number; scriptText: string };
   sourceAssetId: Id;
   sourceAssetHash?: string;
   sourceTimelineItemId: Id;
@@ -1211,21 +1300,32 @@ export interface SourceAudioAlignment {
   timelineEndFrame: number;
   requestedRevision: number;
   transcriptText: string;
-  tokens: SourceAudioAlignmentToken[];
+  tokenPrecision: SourceAudioAlignmentTokenPrecision;
+  tokens?: SourceAudioAlignmentToken[];
+  segments: SourceAudioAlignmentSegment[];
+  /** 旧 v2/v3 快照的自动标点候选；正式 v4 段级链不再读取它。 */
   sentenceCandidateMode: SourceAudioAlignmentSentenceCandidateMode;
   sentences: SourceAudioAlignmentSentence[];
   bridgeAudit: BridgeRunAudit;
+  /** 裁剪只截取既有时间证据；保留其原点，避免 24fps 等帧率在毫秒往返换算时漂移。 */
+  sourceEdit?: { parentAlignmentId: Id; originSourceFrame: number; parentTokenStartIndex?: number };
   status: "ready" | "stale";
   createdAt: string;
 }
 
-/** Agent 提交并由服务端编译的视觉字幕 Program；卡片始终以 Alignment token 锚点定位。 */
+/** Provider 毫秒时间的源坐标原点；剪辑派生仍使用原始时间，不伪造一次新的 Provider Run。 */
+export function sourceAudioTimeOrigin(alignment: SourceAudioAlignment): number {
+  return alignment.sourceEdit?.originSourceFrame ?? alignment.sourceStartFrame;
+}
+
+/** 当前 A-roll 的最终字幕分屏记录；默认由 Provider segments 自动生成，也可被明确编辑覆盖。 */
 export interface SourceCaptionProgram {
   id: Id;
   alignmentId: Id;
   sourceAssetId: Id;
   sourceTimelineItemId: Id;
   captionIds: Id[];
+  source: "provider_segments" | "editorial_override";
   createdAt: string;
 }
 
@@ -1253,6 +1353,8 @@ export interface CaptionCard {
   text: string;
   /** derived 表示仍显示语音原文，manual 仅表示屏幕文案被单独编辑，不会改写 Script。 */
   textMode?: "derived" | "manual";
+  /** 回听后的显示纠错；保留 Provider 原文和时间，不冒充强制对齐或修改声音。 */
+  sourceTextReview?: { sourceText: string; text: string; note: string; reviewedAt: string };
   startFrame: number;
   endFrame: number;
   style: "stable";
@@ -1317,6 +1419,9 @@ export interface QualityIssue {
   message: string;
   objectId?: Id;
   frameRange?: { startFrame: number; endFrame: number };
+  /** 保留人工判断来源，不冒充自动检测。 */
+  editorialFindingId?: Id;
+  editorialSeverity?: EditorialReviewSeverity;
 }
 
 /** 质量 Skill 的四轮审片及模式专项检查，必须说明实际看过的范围。 */
@@ -1336,11 +1441,40 @@ export interface EditorialReviewFinding {
   verificationMethod?: string;
   objectId?: Id;
   frameRange?: { startFrame: number; endFrame: number };
+  revision?: number;
+  recordedAt?: string;
+}
+
+/** 范围使用成片坐标、endFrame 排他；抽帧不能充当连续声画审阅。 */
+export interface EditorialReviewObservation {
+  pass: EditorialReviewPass;
+  previewJobId: Id;
+  startFrame: number;
+  endFrame: number;
+  method: "frames" | "continuous_video" | "audio" | "audiovisual";
+  observation: string;
+}
+
+export interface EditorialReviewEvidence extends EditorialReviewObservation {
+  id: Id;
+  revision: number;
+  relativePath: string;
+  contentHash: string;
+  recordedAt: string;
+}
+
+export interface EditorialFindingResolution {
+  findingId: Id;
+  revision: number;
+  evidenceIds: Id[];
+  note: string;
+  resolvedAt: string;
+  frameRange: { startFrame: number; endFrame: number };
 }
 
 /**
  * 这不是自动审美结论，而是 Skill 在真实预览后留下的可追溯审片记录。
- * blocking/warning 会投影到 QualityReport；其余严重级别保留在 ProductionRun 中供人判断。
+ * 记录可分阶段累积；问题必须显式复核关闭，旧文字记录不自动获得连续审阅资格。
  */
 export interface EditorialQualityReview {
   revision: number;
@@ -1348,6 +1482,8 @@ export interface EditorialQualityReview {
   previewEvidence: string[];
   findings: EditorialReviewFinding[];
   reviewedAt: string;
+  evidenceRecords?: EditorialReviewEvidence[];
+  resolutions?: EditorialFindingResolution[];
 }
 
 export interface QualityReport {
@@ -1357,7 +1493,7 @@ export interface QualityReport {
   technical: QualityIssue[];
   /** 由 Skill + 真实预览补充的编辑判断；未评审时保持空数组而不是伪造通过。 */
   editorial: {
-    status: "not_recorded" | "reviewed" | "stale";
+    status: "not_recorded" | "partial" | "reviewed" | "stale";
     /** 仅在当前 Revision 已有真实审片记录时返回，供交付门禁确认审片覆盖范围。 */
     passes: EditorialReviewPass[];
     semantic: QualityIssue[];
@@ -1368,7 +1504,24 @@ export interface QualityReport {
     audio: QualityIssue[];
     modeSpecific: QualityIssue[];
     previewEvidence: string[];
+    coverage?: Array<{ pass: EditorialReviewPass; complete: boolean; missingRanges: Array<{ startFrame: number; endFrame: number }> }>;
+    openFindings?: EditorialReviewFinding[];
   };
+  /** 从当前对象推导的对账，不保存第二份时间线，也不对审美自动打分。 */
+  productionReconciliation?: Array<{
+    beatId: Id;
+    title: string;
+    treatmentIds: Id[];
+    staleTreatmentIds: Id[];
+    linkedEffectCueIds: Id[];
+    linkedCutawayIds: Id[];
+    linkedExplainerProgramIds: Id[];
+    /** 仅为场景内的实际使用线索，不表示完成了该 Beat 的声音/字幕设计。 */
+    sceneAudioCueIds: Id[];
+    sceneCaptionIds: Id[];
+    sceneIds: Id[];
+    needs: string[];
+  }>;
   requiredFixes: QualityIssue[];
   /** 兼容现有 Web / API 的扁平视图。 */
   issues: QualityIssue[];
@@ -1410,6 +1563,8 @@ export interface SkillExecutionReport {
   composedFrameEvidence: string[];
   qualityReview: string[];
   editorialReview?: EditorialQualityReview;
+  /** 旧 Revision 的审片保留，不能因继续编辑覆盖尚未解决的问题。 */
+  editorialReviewHistory?: EditorialQualityReview[];
   /** 调用 complete 时未满足的条件；完成后为空。 */
   completionBlockers: string[];
   createdAt: string;
@@ -1726,7 +1881,8 @@ export const EFFECT_TYPES: EffectType[] = [
   "FullScreenMeme",
   "DeviceShowcase",
   "ContentCarousel",
-  "EndCard"
+  "EndCard",
+  "ManagedMotion"
 ];
 
 export const DEFAULT_TRACKS: Array<Pick<TimelineTrack, "name" | "kind">> = [

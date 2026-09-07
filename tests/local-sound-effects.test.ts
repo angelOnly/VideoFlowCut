@@ -53,6 +53,12 @@ test("MCP 只能浏览、检测并导入配置根目录内的本地音效", asyn
     assert.ok(tools.tools.some((tool) => tool.name === "browse_local_sound_effects"));
     assert.ok(tools.tools.some((tool) => tool.name === "inspect_local_sound_effect"));
     assert.ok(tools.tools.some((tool) => tool.name === "import_local_sound_effect"));
+    assert.equal(tools.tools.find((tool) => tool.name === "browse_sound_sources")?.annotations?.readOnlyHint, true);
+    const sources = JSON.parse(textFromToolResult(await client.callTool({ name: "browse_sound_sources", arguments: {} })));
+    assert.deepEqual(sources.sources.map((source: { id: string }) => source.id), ["mixkit", "a-sound-effect", "freesound", "ear0", "boom"]);
+    assert.ok(sources.categories.includes("interface"));
+    const manageSchema = tools.tools.find((tool) => tool.name === "manage_audio")!.inputSchema;
+    assert.ok(manageSchema.properties?.effect_event);
 
     const browsed = JSON.parse(textFromToolResult(await client.callTool({
       name: "browse_local_sound_effects",
@@ -95,6 +101,13 @@ test("MCP 只能浏览、检测并导入配置根目录内的本地音效", asyn
     assert.equal(imported.asset.provenance?.rightsStatus, "unknown");
     assert.equal(imported.importedSoundEffect.relativePath, effect.relativePath);
     assert.ok(sourceFile.endsWith("soft-hit.wav"));
+    const current = JSON.parse(textFromToolResult(await client.callTool({ name: "read_project", arguments: { project_id: project.snapshot.project.id } })));
+    const requirement = JSON.parse(textFromToolResult(await client.callTool({ name: "manage_asset_requirements", arguments: {
+      project_id: project.snapshot.project.id, base_revision_id: current.revision.number, action: "create",
+      title: "公开音效候选", purpose: "测试工具与真实合同", media_kind: "audio", audio_brief: "无语音的短提示", role: "sfx", fallback_plan: "local_audio"
+    } })));
+    assert.equal(requirement.snapshot.assetRequests[0].mediaKind, "audio");
+    assert.equal(requirement.snapshot.assetRequests[0].targetAspectRatio, undefined);
   } finally {
     await transport.close().catch(() => undefined);
     await rm(workspaceRoot, { recursive: true, force: true });

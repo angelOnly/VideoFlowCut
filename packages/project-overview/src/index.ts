@@ -84,6 +84,8 @@ export interface RuntimeConfig {
     remotionEntry?: string;
     /** Remotion 额外查找依赖的 node_modules 目录。 */
     nodeModules?: string;
+    /** 切换前已准备并启动验证的浏览器，不从插件目录临时下载。 */
+    browserExecutable?: string;
     /** 开发态 Render Worker 的源码根目录。 */
     renderSourceRoot?: string;
     /** 开发态 Remotion Contracts 的入口文件。 */
@@ -139,6 +141,7 @@ export function readRuntimeConfig(options: ReadRuntimeConfigOptions = {}): Runti
       webRoot: environment.VIDEOFLOWCUT_WEB_ROOT,
       remotionEntry: environment.VIDEOFLOWCUT_REMOTION_ENTRY,
       nodeModules: environment.VIDEOFLOWCUT_NODE_MODULES,
+      browserExecutable: environment.VIDEOFLOWCUT_BROWSER_EXECUTABLE,
       renderSourceRoot: environment.VIDEOFLOWCUT_RENDER_SOURCE_ROOT,
       remotionContractsEntry: environment.VIDEOFLOWCUT_REMOTION_CONTRACTS_ENTRY
     }
@@ -226,8 +229,7 @@ export const KEY_APPLICATION_ENTRIES = [
   { name: "AssetProviderRegistry", kind: "素材 Provider 类", responsibility: "素材搜索、候选审阅和受管下载 Provider 的目录", module: "@videocut/acquisition" },
   { name: "ComfyUIBridgeClient", kind: "Bridge 客户端类", responsibility: "动态读取 ComfyUI Workflow Schema 并提交 Bridge 任务", module: "@videocut/bridge" },
   { name: "FunASRService", kind: "转写服务类", responsibility: "转写与时间信息的服务边界", module: "@videocut/speech" },
-  { name: "SourceCaptionService", kind: "原声字幕服务类", responsibility: "按真实静音边界恢复可回退的 chunk_coarse 字幕；它不是最终视觉分卡", module: "@videocut/speech" },
-  { name: "SourceCaptionSentenceAlignmentService", kind: "原声 token 对齐服务类", responsibility: "采集 Provider token 时间证据和自动标点候选，交给语义字幕 Program 编译", module: "@videocut/speech" },
+  { name: "SourceCaptionAlignmentService", kind: "原声字幕服务类", responsibility: "使用 Provider 段级时间证据，自动生成一段一屏的默认字幕 Program；内部 token 仅用于校验和异常重分屏", module: "@videocut/speech" },
   { name: "OmniVoiceSegmentService", kind: "语音服务类", responsibility: "段级语音合成与真实音频时长校验", module: "@videocut/speech" },
   { name: "RevisionRenderer", kind: "渲染器类", responsibility: "Preview、Render Preflight 与导出渲染", module: "Render Worker" },
   { name: "evaluateQuality", kind: "函数", responsibility: "质量规则、审片结论与交付门禁", module: "@videocut/quality" },
@@ -294,11 +296,11 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     name: "转写、语音与声音",
     description: "处理转写、语义脚本、语音合成与对齐、字幕、对白和 BGM/SFX。",
     tools: [
-      "submit_transcription", "submit_source_audio_captions", "submit_source_audio_sentence_alignment", "submit_source_audio_token_alignment", "read_source_audio_alignment", "apply_source_caption_program", "apply_manual_transcript", "read_script", "apply_semantic_units", "apply_script",
+      "submit_transcription", "generate_source_audio_captions", "generate_speech_captions", "read_source_audio_alignment", "apply_source_caption_program", "apply_manual_transcript", "read_script", "apply_semantic_units", "apply_authored_script", "apply_script",
       "read_speech_asset", "manage_voice_references", "read_speech_timing", "submit_speech_alignment",
       "read_speech_alignment", "rebuild_speech_timeline", "submit_voice_synthesis", "submit_dialogue_processing",
       "select_dialogue_processing_variant", "read_captions", "edit_captions", "browse_local_sound_effects",
-      "inspect_local_sound_effect", "import_local_sound_effect", "manage_audio"
+      "inspect_local_sound_effect", "import_local_sound_effect", "browse_sound_sources", "manage_audio"
     ]
   },
   // 人物口播和 Presenter 场景的主线组装。
@@ -306,7 +308,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     id: "presenter",
     name: "人物口播主线",
     description: "组装 A-roll、人物场景和人物语音时间线。",
-    tools: ["assemble_presenter_track", "compile_presenter_scenes", "create_presenter_timeline", "align_presenter_to_speech"]
+    tools: ["assemble_presenter_track", "edit_presenter_source", "compile_presenter_scenes", "create_presenter_timeline", "align_presenter_to_speech"]
   },
   // 以旁白、证据、数据或 UI 解释为主的片型。
   {
@@ -315,7 +317,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     description: "管理叙事地图、证据采集和 Explainer Scene 程序。",
     tools: [
       "read_narrative_map", "manage_narrative_map", "read_evidence_capture", "manage_evidence_capture",
-      "read_explainer_scene_programs", "compile_explainer_scenes"
+      "read_explainer_scene_programs", "compile_explainer_scenes", "set_explainer_program_enabled"
     ]
   },
   // 实拍事件驱动的 Vlog，以及多机位同步和切换。
@@ -346,7 +348,8 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     description: "创建场景、管理视觉处理、Cutaway、效果和时间线位置，并请求轻量预览。",
     tools: [
       "browse_scene_types", "create_scene", "manage_visual_treatment", "manage_cutaways", "replace_scene_asset",
-      "browse_effect_types", "manage_effect_cues", "move_item", "preview_timeline"
+      "browse_effect_types", "manage_effect_cues", "move_item", "preview_timeline",
+      "browse_motion_sources", "inspect_motion_reference", "submit_motion_work", "read_motion_work", "review_motion_work"
     ]
   },
   // 生产运行、创作决定、质量报告和连续预览证据。
@@ -397,6 +400,7 @@ export const NODE_RUNTIME_CONFIGURATION_CATALOG = [
   { key: "VIDEOFLOWCUT_WEB_ROOT", group: "发行 Runtime", description: "静态 Web 产物目录" },
   { key: "VIDEOFLOWCUT_REMOTION_ENTRY", group: "发行 Runtime", description: "发行版 Remotion 入口" },
   { key: "VIDEOFLOWCUT_NODE_MODULES", group: "发行 Runtime", description: "Remotion 打包时额外查找的 node_modules 目录" },
+  { key: "VIDEOFLOWCUT_BROWSER_EXECUTABLE", group: "发行 Runtime", description: "部署前已准备并验证的渲染浏览器绝对路径" },
   { key: "VIDEOFLOWCUT_RENDER_SOURCE_ROOT", group: "发行 Runtime", description: "开发态 Render Worker 源码根目录" },
   { key: "VIDEOFLOWCUT_REMOTION_CONTRACTS_ENTRY", group: "发行 Runtime", description: "开发态 Remotion Contracts 入口" },
   { key: "VIDEOFLOWCUT_RUNTIME_TOKEN", group: "发行 Runtime", description: "Runtime 内部控制接口令牌", sensitive: true },
@@ -476,6 +480,20 @@ export const PLUGIN_LAUNCHER_CONFIGURATION_CATALOG = [
 
 /** 真实服务不会读取该变量；它只用于手工触发阶段 1 live E2E 的隔离工作区。 */
 export const EVALUATION_CONFIGURATION_CATALOG = [
+  {
+    key: "VIDEOCUT_AUDIT_SOURCE_ENTRY",
+    group: "渲染回归审计",
+    scope: "scripts/render-snapshot-regression.e2e.ts",
+    source: "scripts/render-snapshot-regression.e2e.ts",
+    description: "仅手动回归脚本使用；值为 1 时验证源码入口，不改变正式 Runtime 配置。"
+  },
+  {
+    key: "VIDEOCUT_AUDIT_CONCURRENCY",
+    group: "渲染回归审计",
+    scope: "scripts/render-snapshot-regression.e2e.ts",
+    source: "scripts/render-snapshot-regression.e2e.ts",
+    description: "仅控制手动渲染审计的并发，默认 1；不是生产 Worker 配置。"
+  },
   // 该变量只影响手工 live E2E，不会改变普通项目的生产工作区。
   {
     key: "VIDEOCUT_LIVE_WORKSPACE",

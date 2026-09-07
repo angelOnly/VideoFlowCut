@@ -66,10 +66,12 @@ const architectureTargets = new Set(["smooth_audio"]);
 
 /** 已被 Skill 使用的 MCP 必须继续注册，避免再被误降级为“架构目标”。 */
 const currentSkillTools = new Set([
+  "apply_authored_script",
   "inspect_asset",
   "read_actor_capabilities",
   "submit_avatar_job",
-  "read_narrative_map"
+  "read_narrative_map",
+  "set_explainer_program_enabled"
 ]);
 
 const compatibilityOnlyTools = new Set(["create_presenter_timeline"]);
@@ -158,6 +160,37 @@ function sceneTypesInTool(toolSource: string): string[] {
   return [...new Set([...toolSource.matchAll(/"([A-Z][A-Za-z]*Scene)"/gu)].map((match) => match[1]!))].sort();
 }
 
+/** 检查实际引用图，避免专业资料已发布却没有可达入口；不将可达性冒称创作验收。 */
+async function reachableMarkdown(entry: string): Promise<Set<string>> {
+  const visited = new Set<string>();
+  const pending = [resolve(entry)];
+  while (pending.length > 0) {
+    const path = pending.pop()!;
+    if (visited.has(path)) continue;
+    visited.add(path);
+    for (const reference of localMarkdownLinks(await readFile(path, "utf8"))) {
+      const target = resolve(dirname(path), reference);
+      const fromRoot = relative(skillsRoot, target);
+      assert.ok(fromRoot !== ".." && !fromRoot.startsWith("../") && !fromRoot.startsWith("..\\"), `专业资料越出唯一 Skills 源：${target}`);
+      pending.push(target);
+    }
+  }
+  return visited;
+}
+
+test("人物剪辑专业资料从导演与相关专项可达，发行内容保持一致", async () => {
+  const grammar = resolve(skillsRoot, "presenter-motion-director/references/presenter-editing-grammar.md");
+  for (const entry of ["presenter-motion-director", "visual-treatment-planning", "remotion-production"]) {
+    const reachable = await reachableMarkdown(join(skillsRoot, entry, "SKILL.md"));
+    assert.ok(reachable.has(grammar), `${entry} 无法沿正式引用读取人物剪辑语法`);
+  }
+  assert.equal(
+    await readFile(join(pluginSkillsRoot, relative(skillsRoot, grammar)), "utf8"),
+    await readFile(grammar, "utf8"),
+    "专业资料的发行副本与唯一源不一致"
+  );
+});
+
 test("Skills V5 源唯一、插件发行副本完整且可被 Codex 发现", async () => {
   const onDiskNames = (await readdir(skillsRoot, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory() && entry.name !== "_shared")
@@ -236,7 +269,7 @@ test("总导演只路由一个主工作流，专项 Skill 具备交接合同", a
 });
 
 test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", async () => {
-  const mcpSource = await readFile(mcpSourcePath, "utf8");
+  const mcpSource = await readFile(mcpSourcePath, "utf8") + await readFile(join(repositoryRoot, "apps/server/src/motion-tools.ts"), "utf8");
   const currentTools = registeredToolNames(mcpSource);
   const contract = await readFile(join(skillsRoot, "_shared", "MCP_EXECUTION_CONTRACT.md"), "utf8");
 
@@ -261,6 +294,10 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
   assert.match(contract, /兼容入口，不作为正式主链/u);
 
   const requiredInputs: Record<string, string[]> = {
+    submit_motion_work: ["base_revision_id", "idempotency_key", "work"],
+    inspect_motion_reference: ["source_url", "preview_index"],
+    read_motion_work: ["job_id"],
+    review_motion_work: ["asset_id", "reference_match", "note"],
     import_media: ["base_revision_id", "file_path"],
     inspect_asset: ["asset_id", "mode"],
     manage_asset_requirements: ["base_revision_id", "action"],
@@ -274,7 +311,11 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
     manage_story: ["base_revision_id", "beats"],
     manage_voice_references: ["base_revision_id", "asset_id"],
     edit_captions: ["base_revision_id", "caption_id", "caption_ids", "action"],
-    manage_audio: ["base_revision_id", "action"],
+      manage_audio: ["base_revision_id", "action", "event_frame", "onset_offset_frames", "source_start_frame", "source_end_frame", "effect_event"],
+      browse_sound_sources: [],
+    browse_local_sound_effects: ["query", "max_results"],
+    inspect_local_sound_effect: ["root_id", "relative_path"],
+    import_local_sound_effect: ["base_revision_id", "root_id", "relative_path", "rights_status"],
     assemble_presenter_track: ["base_revision_id", "asset_ids"],
     compile_presenter_scenes: ["base_revision_id", "scenes"],
     manage_actor_performance: ["base_revision_id", "timeline_item_id", "source", "mask_mode"],
@@ -282,7 +323,7 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
     manage_visual_treatment: ["base_revision_id", "action"],
     manage_cutaways: ["base_revision_id", "action"],
     replace_scene_asset: ["base_revision_id", "cutaway_id", "asset_id", "source_start_frame", "source_end_frame"],
-    manage_effect_cues: ["base_revision_id", "scene_id", "type", "layer", "start_frame", "end_frame", "semantic_anchor", "motion", "quality_rules"],
+    manage_effect_cues: ["base_revision_id", "action", "cue_id", "scene_id", "type", "layer", "start_frame", "end_frame", "semantic_anchor", "motion", "quality_rules"],
     render_preview_range: ["revision", "from_frame", "to_frame"],
     inspect_composed_frames: ["preview_job_id"],
     record_editorial_quality_review: ["run_id", "revision", "passes", "preview_evidence", "findings"],

@@ -1,6 +1,7 @@
 import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { dirname, join, relative, resolve } from "node:path";
 import { build } from "esbuild";
 import { pluginRootFromModule, resolveRepoRoot } from "./repo-root.mjs";
@@ -10,6 +11,7 @@ const repoRoot = resolveRepoRoot({ pluginRoot });
 const runtimeRoot = join(pluginRoot, "runtime");
 const distRoot = join(runtimeRoot, "dist");
 const webSourceRoot = join(repoRoot, "apps", "web", "dist");
+const semanticVersionPattern = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u;
 
 /**
  * 发行入口只打包本仓库的 TypeScript 与 JSX；第三方包仍由宿主仓库的 node_modules
@@ -31,6 +33,7 @@ const aliases = {
 
 const outputPaths = {
   runtime: join(distRoot, "runtime.cjs"),
+  renderThread: join(distRoot, "render-thread.cjs"),
   mcp: join(distRoot, "mcp.cjs"),
   remotion: join(distRoot, "remotion", "render-entry.cjs"),
   web: join(distRoot, "web"),
@@ -110,8 +113,13 @@ async function releaseFiles(root, directory = root) {
   return files.flat().sort((left, right) => relative(root, left).localeCompare(relative(root, right)));
 }
 
-async function createReleaseId(root) {
+async function createReleaseId(root, pluginVersion) {
   const hash = createHash("sha256");
+  // 插件版本也是正式发行身份的一部分；仅改 manifest 版本不能复用旧 Release ID。
+  hash.update("plugin-version");
+  hash.update("\u0000");
+  hash.update(pluginVersion);
+  hash.update("\u0000");
   for (const path of await releaseFiles(root)) {
     const pathInRelease = relative(root, path).replace(/\\/gu, "/");
     hash.update(pathInRelease);
@@ -127,6 +135,11 @@ async function main() {
     throw new Error(`找不到 Web 构建产物：${webSourceRoot}。请先执行 npm run build:web。`);
   }
   assertUnder(runtimeRoot, distRoot);
+  const pluginManifest = JSON.parse(await readFile(join(pluginRoot, ".codex-plugin", "plugin.json"), "utf8"));
+  if (pluginManifest?.name !== "videoflowcut" || !semanticVersionPattern.test(pluginManifest?.version ?? "")) {
+    throw new Error("插件 manifest 缺少可发布版本；请先更新 plugins/videoflowcut/.codex-plugin/plugin.json。");
+  }
+  const pluginVersion = pluginManifest.version;
   // dist 是唯一允许整目录覆盖的生成目标；repo-root.json 和用户数据不会触及。
   await rm(distRoot, { recursive: true, force: true });
   await mkdir(dirname(outputPaths.remotion), { recursive: true });
@@ -144,28 +157,38 @@ async function main() {
     }),
     build({
       ...buildOptions,
+      entryPoints: [join(repoRoot, "apps", "render-worker", "src", "render-thread.ts")],
+      outfile: outputPaths.renderThread
+    }),
+    build({
+      ...buildOptions,
       entryPoints: [join(repoRoot, "apps", "render-worker", "src", "render-entry.tsx")],
       outfile: outputPaths.remotion
     })
   ]);
   await cp(webSourceRoot, outputPaths.web, { recursive: true, force: true });
   await trimReleaseTextWhitespace(outputPaths.web);
+  // Provider 修正版随 Runtime 发行并参与 Release ID，不能在生产环境手改 site-packages。
+  execFileSync("python", [join(pluginRoot, "scripts", "build-funasr-provider.py")], { stdio: "inherit" });
   await Promise.all([
     requireNonEmpty(outputPaths.runtime, "Runtime 入口"),
+    requireNonEmpty(outputPaths.renderThread, "渲染线程入口"),
     requireNonEmpty(outputPaths.mcp, "MCP 入口"),
     requireNonEmpty(outputPaths.remotion, "Remotion 入口"),
     requireNonEmpty(join(outputPaths.web, "index.html"), "Web 入口")
   ]);
   await Promise.all([
     assertReleaseEntry(outputPaths.runtime),
+    assertReleaseEntry(outputPaths.renderThread),
     assertReleaseEntry(outputPaths.mcp),
     assertReleaseEntry(outputPaths.remotion)
   ]);
-  const releaseId = await createReleaseId(distRoot);
+  const releaseId = await createReleaseId(distRoot, pluginVersion);
   await writeFile(outputPaths.manifest, `${JSON.stringify({
     schemaVersion: 2,
     format: "commonjs",
     releaseId,
+    pluginVersion,
     runtimeEntry: "runtime.cjs",
     mcpEntry: "mcp.cjs",
     remotionEntry: "remotion/render-entry.cjs",

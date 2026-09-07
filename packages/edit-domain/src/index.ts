@@ -41,7 +41,8 @@ import type {
   VisualTreatmentMode,
   VoiceReference
 } from "@videocut/contracts";
-import { DEFAULT_TRACKS } from "@videocut/contracts";
+import { DEFAULT_TRACKS, sourceAudioTimeOrigin } from "@videocut/contracts";
+import { resolveCompositionReachability } from "./composition-reachability";
 
 export { resolveCompositionReachability, type CompositionReachability } from "./composition-reachability";
 
@@ -68,6 +69,39 @@ export const secondsToFrames = (seconds: number, fps: number): number => Math.ma
 export const millisecondsToFrames = (milliseconds: number, fps: number): number => Math.max(0, Math.round((milliseconds / 1000) * fps));
 export const framesToMilliseconds = (frames: number, fps: number): number => Math.round((frames / fps) * 1000);
 
+/** 原始识别受音频毫秒时长约束；裁剪沿用父证据，范围判断必须与字幕使用相同的整帧映射。 */
+export function sourceAudioTimingWithinRange(alignment: SourceAudioAlignment, fps: number, startMs: number, endMs: number): boolean {
+  if (!Number.isFinite(fps) || fps <= 0 || !Number.isInteger(startMs) || !Number.isInteger(endMs)
+    || startMs < 0 || endMs <= startMs) return false;
+  const origin = sourceAudioTimeOrigin(alignment);
+  if (alignment.sourceEdit) {
+    return origin + millisecondsToFrames(startMs, fps) >= alignment.sourceStartFrame
+      && origin + millisecondsToFrames(endMs, fps) <= alignment.sourceEndFrame;
+  }
+  return endMs <= Math.ceil(((alignment.sourceEndFrame - origin) / fps) * 1000);
+}
+
+/** 字幕来源可以是真实原声或最终旁白；两者分别核验所有权，不能用虚构 A-roll 绕过。 */
+export function sourceAudioAlignmentOwnerMatches(snapshot: ProjectSnapshot, alignment: Pick<SourceAudioAlignment, "sourceAssetId" | "sourceTimelineItemId" | "speechSource">): boolean {
+  const item = snapshot.timeline.items.find(candidate => candidate.id === alignment.sourceTimelineItemId);
+  if (!item || item.disabled || item.assetId !== alignment.sourceAssetId) return false;
+  const speechSource = alignment.speechSource;
+  if (speechSource !== undefined) {
+    const speech = snapshot.speechAsset;
+    const dialogue = snapshot.timeline.tracks.find(track => track.name === "Dialogue");
+    return Boolean(speechSource && speechSource.speechAssetId && Number.isInteger(speechSource.scriptRevision)
+      && speechSource.scriptRevision > 0 && speechSource.scriptText?.trim()
+      && speech?.status === "ready" && speech.id === speechSource.speechAssetId
+      && speech.assetId === alignment.sourceAssetId && speech.scriptRevision === speechSource.scriptRevision
+      && snapshot.script.revision === speechSource.scriptRevision && item.trackId === dialogue?.id
+      && speechSource.scriptText === speech.timing.segments.map(timing => snapshot.speechSegments.find(segment => segment.id === timing.speechSegmentId)?.text ?? "").join("")
+      && snapshot.timeline.items.filter(candidate => !candidate.disabled && candidate.trackId === dialogue?.id && candidate.assetId === speech.assetId).length === 1);
+  }
+  const actor = snapshot.timeline.tracks.find(track => track.name === "Actor / A-roll");
+  const performance = snapshot.actorPerformances.find(candidate => candidate.timelineItemId === item.id);
+  return Boolean(actor && item.trackId === actor.id && performance?.status === "ready" && performance.audioMode === "use_source_audio");
+}
+
 /**
  * 原声 token 的文本比较只能忽略排版性的空白、标点和拉丁大小写。
  * 这使语义 Program 可以调整读屏排版，但不能借机增删人名、数字、否定或其他实义内容。
@@ -76,8 +110,20 @@ function normalizeSourceCaptionComparisonText(value: string): string {
   return value.normalize("NFKC").replace(/[\p{White_Space}\p{P}]/gu, "").toLocaleLowerCase("en-US");
 }
 
+/** 显示纠错与时间证据分离：实义变化必须有绑定本次文案的回听记录。 */
+export function sourceCaptionDisplayTextIsValid(caption: CaptionCard): boolean {
+  const source = caption.sourceText;
+  if (!source?.trim() || !caption.text?.trim()
+    || caption.textMode !== (caption.text === source ? "derived" : "manual")) return false;
+  const review = caption.sourceTextReview;
+  if (review && (caption.sourceKind !== "source_audio" || !caption.sourceAlignmentId
+    || review.sourceText !== source || review.text !== caption.text || !review.note?.trim()
+    || review.note.length > 1000 || !Number.isFinite(Date.parse(review.reviewedAt)))) return false;
+  return normalizeSourceCaptionComparisonText(caption.text) === normalizeSourceCaptionComparisonText(source) || Boolean(review);
+}
+
 /** Provider 返回的 token 顺序是时间事实；这里只补回相邻拉丁 token 的可读空格，不参与定时。 */
-function joinSourceAudioTokens(tokens: Array<Pick<SourceAudioAlignment["tokens"][number], "text">>): string {
+function joinSourceAudioTokens(tokens: Array<Pick<NonNullable<SourceAudioAlignment["tokens"]>[number], "text">>): string {
   let text = "";
   let previous = "";
   for (const token of tokens) {
@@ -95,8 +141,10 @@ function joinSourceAudioTokens(tokens: Array<Pick<SourceAudioAlignment["tokens"]
  * 它不是 word_exact：Provider 的 token 可以是汉字、词或子词，因此不能拿来驱动逐词动画。
  */
 function assertSourceTokenCaptionCardGraph(snapshot: ProjectSnapshot, caption: CaptionCard, alignment: SourceAudioAlignment): void {
+  const tokens = alignment.tokens;
   const sourceItem = snapshot.timeline.items.find((item) => item.id === alignment.sourceTimelineItemId);
-  if (!sourceItem || sourceItem.disabled || sourceItem.assetId !== alignment.sourceAssetId
+  if (alignment.tokenPrecision !== "provider_token_timed" || !tokens?.length
+    || !sourceItem || sourceItem.disabled || sourceItem.assetId !== alignment.sourceAssetId
     || caption.sourceKind !== "source_audio" || caption.speechSegmentId !== undefined
     || caption.sourceAssetId !== alignment.sourceAssetId || caption.sourceTimelineItemId !== alignment.sourceTimelineItemId
     || caption.sourceAlignmentId !== alignment.id || caption.sourceBridgeRunId !== alignment.bridgeAudit.runId
@@ -104,30 +152,68 @@ function assertSourceTokenCaptionCardGraph(snapshot: ProjectSnapshot, caption: C
     || !Number.isInteger(caption.sourceTokenStartIndex) || !Number.isInteger(caption.sourceTokenEndIndex)
     || caption.sourceTokenStartIndex === undefined || caption.sourceTokenEndIndex === undefined
     || caption.sourceTokenStartIndex < 0 || caption.sourceTokenEndIndex <= caption.sourceTokenStartIndex
-    || caption.sourceTokenEndIndex > alignment.tokens.length
+    || caption.sourceTokenEndIndex > tokens.length
     || typeof caption.sourceCaptionRationale !== "string" || !caption.sourceCaptionRationale.trim() || caption.sourceCaptionRationale.length > 240
     || typeof caption.sourceText !== "string" || !caption.sourceText.trim()
     || typeof caption.text !== "string" || !caption.text.trim()) {
     throw new DomainError("token 锚定原声字幕缺少同源 Alignment、完整 token 范围、语义理由或可验证来源文字", "PROJECT_GRAPH_INVALID");
   }
-  const sourceTokens = alignment.tokens.slice(caption.sourceTokenStartIndex, caption.sourceTokenEndIndex);
+  const sourceTokens = tokens.slice(caption.sourceTokenStartIndex, caption.sourceTokenEndIndex);
   const first = sourceTokens[0]!;
   const last = sourceTokens[sourceTokens.length - 1]!;
   const sourceText = joinSourceAudioTokens(sourceTokens);
-  const expectedSourceStartFrame = sourceItem.sourceStartFrame + millisecondsToFrames(first.startMs, snapshot.timeline.fps);
-  const expectedSourceEndFrame = sourceItem.sourceStartFrame + millisecondsToFrames(last.endMs, snapshot.timeline.fps);
+  const expectedSourceStartFrame = sourceAudioTimeOrigin(alignment) + millisecondsToFrames(first.startMs, snapshot.timeline.fps);
+  const expectedSourceEndFrame = sourceAudioTimeOrigin(alignment) + millisecondsToFrames(last.endMs, snapshot.timeline.fps);
   const expectedStartFrame = sourceItem.startFrame + (expectedSourceStartFrame - sourceItem.sourceStartFrame);
   const expectedEndFrame = sourceItem.startFrame + (expectedSourceEndFrame - sourceItem.sourceStartFrame);
-  if (caption.sourceText !== sourceText
-    || !normalizeSourceCaptionComparisonText(caption.text)
-    || normalizeSourceCaptionComparisonText(caption.text) !== normalizeSourceCaptionComparisonText(sourceText)
-    || (caption.text === sourceText ? caption.textMode !== "derived" : caption.textMode !== "manual")
+  // v4 Provider segment 可带自然标点；token 串只保存语音实义文字，不能要求两者字面完全相同。
+  // 仍严格比对归一化后的实义字符，避免任何人借标点链路改写字幕内容。
+  if (!normalizeSourceCaptionComparisonText(caption.sourceText)
+    || normalizeSourceCaptionComparisonText(caption.sourceText) !== normalizeSourceCaptionComparisonText(sourceText)
+    || !sourceCaptionDisplayTextIsValid(caption)
     || caption.sourceStartFrame !== expectedSourceStartFrame || caption.sourceEndFrame !== expectedSourceEndFrame
     || caption.startFrame !== expectedStartFrame || caption.endFrame !== expectedEndFrame
     || expectedSourceStartFrame < sourceItem.sourceStartFrame || expectedSourceEndFrame <= expectedSourceStartFrame
     || expectedSourceEndFrame > sourceItem.sourceEndFrame || expectedStartFrame < sourceItem.startFrame
     || expectedEndFrame <= expectedStartFrame || expectedEndFrame > sourceItem.endFrame) {
     throw new DomainError("token 锚定原声字幕的文字、token 时间或 Timeline 映射不属于当前 Alignment", "PROJECT_GRAPH_INVALID");
+  }
+}
+
+/** 无逐 token 证据时，唯一安全的成片字幕是 Provider 原样段：一段一屏、原样文字、原样时间。 */
+function assertProviderSegmentCaptionCardGraph(
+  snapshot: ProjectSnapshot,
+  caption: CaptionCard,
+  alignment: SourceAudioAlignment,
+  segment: SourceAudioAlignment["segments"][number]
+): void {
+  const sourceItem = snapshot.timeline.items.find((item) => item.id === alignment.sourceTimelineItemId);
+  const expectedSourceStartFrame = sourceItem
+    ? sourceAudioTimeOrigin(alignment) + millisecondsToFrames(segment.startMs, snapshot.timeline.fps)
+    : undefined;
+  const expectedSourceEndFrame = sourceItem
+    ? sourceAudioTimeOrigin(alignment) + millisecondsToFrames(segment.endMs, snapshot.timeline.fps)
+    : undefined;
+  const expectedStartFrame = sourceItem && expectedSourceStartFrame !== undefined
+    ? sourceItem.startFrame + (expectedSourceStartFrame - sourceItem.sourceStartFrame) : undefined;
+  const expectedEndFrame = sourceItem && expectedSourceEndFrame !== undefined
+    ? sourceItem.startFrame + (expectedSourceEndFrame - sourceItem.sourceStartFrame) : undefined;
+  if (alignment.tokenPrecision !== "unavailable" || alignment.tokens?.length
+    || !sourceItem || sourceItem.disabled || sourceItem.assetId !== alignment.sourceAssetId
+    || caption.sourceKind !== "source_audio" || caption.speechSegmentId !== undefined
+    || caption.sourceAssetId !== alignment.sourceAssetId || caption.sourceTimelineItemId !== alignment.sourceTimelineItemId
+    || caption.sourceAlignmentId !== alignment.id || caption.sourceBridgeRunId !== alignment.bridgeAudit.runId
+    || caption.precision !== "sentence_exact"
+    || caption.sourceTokenStartIndex !== undefined || caption.sourceTokenEndIndex !== undefined || caption.sourceCaptionRationale !== undefined
+    || caption.sourceText !== segment.displayText || !sourceCaptionDisplayTextIsValid(caption)
+    || caption.sourceStartFrame !== expectedSourceStartFrame || caption.sourceEndFrame !== expectedSourceEndFrame
+    || caption.startFrame !== expectedStartFrame || caption.endFrame !== expectedEndFrame
+    || expectedSourceStartFrame === undefined || expectedSourceEndFrame === undefined
+    || expectedStartFrame === undefined || expectedEndFrame === undefined
+    || expectedSourceStartFrame < sourceItem.sourceStartFrame || expectedSourceEndFrame <= expectedSourceStartFrame
+    || expectedSourceEndFrame > sourceItem.sourceEndFrame || expectedStartFrame < sourceItem.startFrame
+    || expectedEndFrame <= expectedStartFrame || expectedEndFrame > sourceItem.endFrame) {
+    throw new DomainError("段级 Provider 字幕必须原样绑定同一段真实时间，不能伪造 token 或重新分段", "PROJECT_GRAPH_INVALID");
   }
 }
 
@@ -274,10 +360,13 @@ export function assertTimelineValid(snapshot: ProjectSnapshot): void {
     }
   }
   recomputeTimelineDuration(timeline);
-  // ExplainerScene 可由 Remotion Program 直接生成而没有物理视频 Item；但 stale / draft Scene 不能继续撑大可交付成片的时长。
+  const disabledExplainerSceneIds = new Set((snapshot.explainerPrograms ?? []).filter((program) => program.disabled).map((program) => program.sceneId));
+  const { effectCueIds } = resolveCompositionReachability(snapshot);
+  // 停用的旧 Program 不再撑出空尾；独立 Cue 仍然渲染，不能随宿主主视觉一起截断。
   timeline.durationInFrames = Math.max(
     timeline.durationInFrames,
-    ...snapshot.scenes.filter((scene) => scene.status === "ready").map((scene) => scene.endFrame)
+    ...snapshot.scenes.filter((scene) => scene.status === "ready" && !disabledExplainerSceneIds.has(scene.id)).map((scene) => scene.endFrame),
+    ...snapshot.effectCues.filter((cue) => effectCueIds.has(cue.id) && disabledExplainerSceneIds.has(cue.sceneId)).map((cue) => cue.endFrame)
   );
 }
 
@@ -287,6 +376,8 @@ export function assertTimelineValid(snapshot: ProjectSnapshot): void {
  */
 export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
   const assetIds = new Set(snapshot.assets.map((asset) => asset.id));
+  const motionAssetIds = new Set(snapshot.assets.filter((asset) => asset.motion).map((asset) => asset.id));
+  if (snapshot.timeline.items.some((item) => motionAssetIds.has(item.assetId))) throw new DomainError("受管动效审阅代理不能作为普通时间线视频；请绑定 ManagedMotion EffectCue", "MOTION_PROXY_NOT_RENDERABLE");
   const assetRequestIds = new Set((snapshot.assetRequests ?? []).map((request) => request.id));
   const searchIntentById = new Map((snapshot.searchIntents ?? []).map((intent) => [intent.id, intent]));
   const vlogShotById = new Map((snapshot.vlogShotAnalyses ?? []).map((shot) => [shot.id, shot]));
@@ -406,6 +497,7 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
 
   const explainerSceneIds = new Set<Id>();
   for (const program of snapshot.explainerPrograms ?? []) {
+    if (program.disabled !== undefined && typeof program.disabled !== "boolean") throw new DomainError("Explainer Program 启停状态无效", "PROJECT_GRAPH_INVALID");
     const scene = sceneById.get(program.sceneId);
     if (!scene || scene.type !== "ExplainerScene") throw new DomainError("Explainer Program 必须绑定 ExplainerScene", "PROJECT_GRAPH_INVALID");
     if (explainerSceneIds.has(program.sceneId)) throw new DomainError("一个 ExplainerScene 只能绑定一个 Program", "PROJECT_GRAPH_INVALID");
@@ -640,8 +732,17 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
     requireId(assetIds, candidate.sourceAssetId, "转写候选素材");
   }
   for (const unit of snapshot.semanticUnits) {
-    requireId(transcriptIds, unit.transcriptId, "SemanticUnit");
-    requireId(assetIds, unit.sourceAssetId, "SemanticUnit 素材");
+    if (unit.sourceKind === "authored") {
+      if (!unit.sourceNote?.trim() || unit.transcriptId !== undefined || unit.sourceAssetId !== undefined || unit.candidateIds.length !== 0) {
+        throw new DomainError("原创新稿必须记录来源说明，且不得绑定转写、音色素材或候选", "PROJECT_GRAPH_INVALID");
+      }
+    } else {
+      if (!unit.transcriptId || !unit.sourceAssetId || !unit.candidateIds?.length) {
+        throw new DomainError("转写语义必须保留真实素材与候选来源", "PROJECT_GRAPH_INVALID");
+      }
+      requireId(transcriptIds, unit.transcriptId, "SemanticUnit");
+      requireId(assetIds, unit.sourceAssetId, "SemanticUnit 素材");
+    }
     for (const candidateId of unit.candidateIds ?? []) requireId(candidateIds, candidateId, "SemanticUnit 候选");
     for (const dependencyId of unit.dependencies ?? []) requireId(semanticIds, dependencyId, "SemanticUnit 依赖");
   }
@@ -761,8 +862,10 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
   const sourceCaptionPrograms = snapshot.sourceCaptionPrograms ?? [];
   const sourceAlignmentById = new Map<Id, SourceAudioAlignment>();
   const readyAlignmentByTimelineItemId = new Map<Id, SourceAudioAlignment>();
-  const actorTrack = snapshot.timeline.tracks.find((track) => track.name === "Actor / A-roll");
   for (const alignment of sourceAudioAlignments) {
+    const tokens = Array.isArray(alignment.tokens) ? alignment.tokens : [];
+    const tokenPrecision = alignment.tokenPrecision;
+    const hasTokenEvidence = tokenPrecision === "provider_token_timed";
     if (!alignment.id?.trim() || sourceAlignmentById.has(alignment.id)
       || !alignment.sourceAssetId?.trim() || !alignment.sourceTimelineItemId?.trim()
       || !Number.isInteger(alignment.sourceStartFrame) || !Number.isInteger(alignment.sourceEndFrame)
@@ -777,67 +880,137 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
       || !alignment.bridgeAudit.schemaVersion?.trim() || !alignment.bridgeAudit.submittedAt?.trim()
       || !alignment.bridgeAudit.completedAt?.trim()
       || !Number.isInteger(alignment.bridgeAudit.schemaRetryCount) || alignment.bridgeAudit.schemaRetryCount < 0
-      || !Array.isArray(alignment.tokens) || alignment.tokens.length === 0 || alignment.tokens.length > 20_000
+      || (tokenPrecision !== "provider_token_timed" && tokenPrecision !== "unavailable")
+      || (alignment.tokens !== undefined && !Array.isArray(alignment.tokens))
+      || (hasTokenEvidence && (tokens.length === 0 || tokens.length > 20_000))
+      || (!hasTokenEvidence && tokens.length !== 0)
+      || !Array.isArray(alignment.segments) || alignment.segments.length > 2_000
       || !Array.isArray(alignment.sentences) || alignment.sentences.length > 2_000
       || (alignment.sentenceCandidateMode !== "none" && alignment.sentenceCandidateMode !== "provider_punctuation")
       || (alignment.sentenceCandidateMode === "none" && alignment.sentences.length !== 0)
-      || (alignment.sentenceCandidateMode === "provider_punctuation" && alignment.sentences.length === 0)) {
-      throw new DomainError("原声 token 对齐缺少完整的来源、Bridge 审计、全文或 Provider token 证据", "PROJECT_GRAPH_INVALID");
+      || (alignment.sentenceCandidateMode === "provider_punctuation" && (alignment.sentences.length === 0 || !hasTokenEvidence))) {
+      throw new DomainError("原声段级对齐缺少完整的来源、Bridge 审计、全文或与精度匹配的 Provider 证据", "PROJECT_GRAPH_INVALID");
     }
     requireId(assetIds, alignment.sourceAssetId, "原声 token 对齐素材");
-    requireId(itemIds, alignment.sourceTimelineItemId, "原声 token 对齐 Timeline Item");
+    // 旁白重组会替换 Dialogue Item；过期对齐只保留原始审计，不再要求旧 Item 可播放。
+    if (alignment.status === "ready" || !alignment.speechSource) requireId(itemIds, alignment.sourceTimelineItemId, "原声 token 对齐 Timeline Item");
     const sourceItem = snapshot.timeline.items.find((item) => item.id === alignment.sourceTimelineItemId)!;
     const sourceAsset = assetById(snapshot, alignment.sourceAssetId);
-    const alignmentDurationMs = Math.ceil(((alignment.sourceEndFrame - alignment.sourceStartFrame) / snapshot.timeline.fps) * 1000);
-    let previousTokenEndMs = -1;
-    for (let tokenIndex = 0; tokenIndex < alignment.tokens.length; tokenIndex += 1) {
-      const token = alignment.tokens[tokenIndex]!;
-      if (token.index !== tokenIndex || !token.text?.trim() || token.text.length > 160
-        || !normalizeSourceCaptionComparisonText(token.text)
-        || !Number.isInteger(token.startMs) || !Number.isInteger(token.endMs)
-        || token.startMs < 0 || token.endMs <= token.startMs || token.endMs > alignmentDurationMs
-        || token.startMs < previousTokenEndMs) {
-        throw new DomainError("原声 token 的索引、文字或时间不属于同一次 Provider 对齐", "PROJECT_GRAPH_INVALID");
+    if (alignment.sourceEdit) {
+      // 父证据必须先存在，既阻止循环引用，也让每次裁剪都能回到未改写的 Provider 时间。
+      const parent = sourceAlignmentById.get(alignment.sourceEdit.parentAlignmentId);
+      const origin = sourceAudioTimeOrigin(alignment);
+      if (!parent || parent.sourceAssetId !== alignment.sourceAssetId || parent.sourceAssetHash !== alignment.sourceAssetHash
+        || JSON.stringify(parent.bridgeAudit) !== JSON.stringify(alignment.bridgeAudit)
+        || !Number.isInteger(origin) || origin < 0 || origin !== sourceAudioTimeOrigin(parent)
+        || alignment.sourceStartFrame < parent.sourceStartFrame || alignment.sourceEndFrame > parent.sourceEndFrame
+        || alignment.tokenPrecision !== parent.tokenPrecision) {
+        throw new DomainError("裁剪后的字幕时间必须可追溯到同素材、同 Provider 的父对齐证据", "PROJECT_GRAPH_INVALID");
       }
-      previousTokenEndMs = token.endMs;
+      if (hasTokenEvidence) {
+        const offset = alignment.sourceEdit.parentTokenStartIndex;
+        if (!Number.isInteger(offset) || offset === undefined || offset < 0
+          || offset + tokens.length > (parent.tokens?.length ?? 0)
+          || tokens.some((token, index) => {
+            const original = parent.tokens![offset + index]!;
+            return token.text !== original.text || token.startMs !== original.startMs || token.endMs !== original.endMs;
+          })) throw new DomainError("裁剪不得改写、重定时或伪造原声 token", "PROJECT_GRAPH_INVALID");
+      } else if (alignment.sourceEdit.parentTokenStartIndex !== undefined
+        || alignment.segments.some((segment) => !parent.segments.some((original) => JSON.stringify(original) === JSON.stringify(segment)))) {
+        throw new DomainError("无 token 证据时只能保留完整的原 Provider 字幕段", "PROJECT_GRAPH_INVALID");
+      }
     }
-    const tokenText = joinSourceAudioTokens(alignment.tokens);
-    if (!normalizeSourceCaptionComparisonText(tokenText)
-      || normalizeSourceCaptionComparisonText(tokenText) !== normalizeSourceCaptionComparisonText(alignment.transcriptText)) {
-      throw new DomainError("原声 token 与同次 FunASR 全文不一致，不能把它作为字幕事实", "PROJECT_GRAPH_INVALID");
+    // v4 的每个 Provider segment 是默认的一屏字幕。旧 Alignment 可无段只读迁移；
+    // 有段时先验证其真实时间与全文，不用 token 反推或估时。
+    if (alignment.segments.length > 0) {
+      let previousSegmentEndMs = -1;
+      for (const segment of alignment.segments) {
+        if (!segment.displayText?.trim() || !Number.isInteger(segment.startMs) || !Number.isInteger(segment.endMs)
+          || !normalizeSourceCaptionComparisonText(segment.displayText)
+          || !sourceAudioTimingWithinRange(alignment, snapshot.timeline.fps, segment.startMs, segment.endMs)
+          || segment.startMs < previousSegmentEndMs) {
+          throw new DomainError("Provider 字幕段的文字、顺序或时间无效", "PROJECT_GRAPH_INVALID");
+        }
+        previousSegmentEndMs = segment.endMs;
+      }
+      if (normalizeSourceCaptionComparisonText(alignment.segments.map((segment) => segment.displayText).join(""))
+        !== normalizeSourceCaptionComparisonText(alignment.transcriptText)) {
+        throw new DomainError("Provider 字幕段与同次 FunASR 全文不一致，不能静默省略或补写文字", "PROJECT_GRAPH_INVALID");
+      }
     }
-    if (alignment.sentenceCandidateMode === "provider_punctuation") {
-      let expectedSentenceTokenStart = 0;
-      for (let sentenceIndex = 0; sentenceIndex < alignment.sentences.length; sentenceIndex += 1) {
-        const sentence = alignment.sentences[sentenceIndex]!;
-        if (sentence.index !== sentenceIndex || !sentence.text?.trim()
-          || !Number.isInteger(sentence.startMs) || !Number.isInteger(sentence.endMs)
-          || !Number.isInteger(sentence.tokenStartIndex) || !Number.isInteger(sentence.tokenEndIndex)
-          || sentence.tokenStartIndex !== expectedSentenceTokenStart || sentence.tokenEndIndex <= sentence.tokenStartIndex
-          || sentence.tokenEndIndex > alignment.tokens.length) {
-          throw new DomainError("原声自动标点候选的 token 范围必须连续且完整，不能猜测遗漏文本", "PROJECT_GRAPH_INVALID");
+    if (hasTokenEvidence) {
+      let previousTokenEndMs = -1;
+      for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex += 1) {
+        const token = tokens[tokenIndex]!;
+        if (token.index !== tokenIndex || !token.text?.trim() || token.text.length > 160
+          || !normalizeSourceCaptionComparisonText(token.text)
+          || !Number.isInteger(token.startMs) || !Number.isInteger(token.endMs)
+          || !sourceAudioTimingWithinRange(alignment, snapshot.timeline.fps, token.startMs, token.endMs)
+          || token.startMs < previousTokenEndMs) {
+          throw new DomainError("原声 token 的索引、文字或时间不属于同一次 Provider 对齐", "PROJECT_GRAPH_INVALID");
         }
-        const sentenceTokens = alignment.tokens.slice(sentence.tokenStartIndex, sentence.tokenEndIndex);
-        const expectedSentenceText = joinSourceAudioTokens(sentenceTokens);
-        if (normalizeSourceCaptionComparisonText(sentence.text) !== normalizeSourceCaptionComparisonText(expectedSentenceText)
-          || sentence.startMs !== sentenceTokens[0]!.startMs || sentence.endMs !== sentenceTokens[sentenceTokens.length - 1]!.endMs) {
-          throw new DomainError("原声自动标点候选的文字或时间与 Provider token 不一致", "PROJECT_GRAPH_INVALID");
+        previousTokenEndMs = token.endMs;
+      }
+      const tokenText = joinSourceAudioTokens(tokens);
+      if (!normalizeSourceCaptionComparisonText(tokenText)
+        || normalizeSourceCaptionComparisonText(tokenText) !== normalizeSourceCaptionComparisonText(alignment.transcriptText)) {
+        throw new DomainError("原声 token 与同次 FunASR 全文不一致，不能把它作为字幕事实", "PROJECT_GRAPH_INVALID");
+      }
+      if (alignment.sentenceCandidateMode === "provider_punctuation") {
+        let expectedSentenceTokenStart = 0;
+        for (let sentenceIndex = 0; sentenceIndex < alignment.sentences.length; sentenceIndex += 1) {
+          const sentence = alignment.sentences[sentenceIndex]!;
+          if (sentence.index !== sentenceIndex || !sentence.text?.trim()
+            || !Number.isInteger(sentence.startMs) || !Number.isInteger(sentence.endMs)
+            || !Number.isInteger(sentence.tokenStartIndex) || !Number.isInteger(sentence.tokenEndIndex)
+            || sentence.tokenStartIndex !== expectedSentenceTokenStart || sentence.tokenEndIndex <= sentence.tokenStartIndex
+            || sentence.tokenEndIndex > tokens.length) {
+            throw new DomainError("原声自动标点候选的 token 范围必须连续且完整，不能猜测遗漏文本", "PROJECT_GRAPH_INVALID");
+          }
+          const sentenceTokens = tokens.slice(sentence.tokenStartIndex, sentence.tokenEndIndex);
+          const expectedSentenceText = joinSourceAudioTokens(sentenceTokens);
+          if (normalizeSourceCaptionComparisonText(sentence.text) !== normalizeSourceCaptionComparisonText(expectedSentenceText)
+            || sentence.startMs !== sentenceTokens[0]!.startMs || sentence.endMs !== sentenceTokens[sentenceTokens.length - 1]!.endMs) {
+            throw new DomainError("原声自动标点候选的文字或时间与 Provider token 不一致", "PROJECT_GRAPH_INVALID");
+          }
+          expectedSentenceTokenStart = sentence.tokenEndIndex;
         }
-        expectedSentenceTokenStart = sentence.tokenEndIndex;
+        if (expectedSentenceTokenStart !== tokens.length) {
+          throw new DomainError("原声自动标点候选没有完整覆盖 Provider token", "PROJECT_GRAPH_INVALID");
+        }
       }
-      if (expectedSentenceTokenStart !== alignment.tokens.length) {
-        throw new DomainError("原声自动标点候选没有完整覆盖 Provider token", "PROJECT_GRAPH_INVALID");
+      if (alignment.segments.length > 0) {
+        let expectedSegmentTokenStart = 0;
+        for (const segment of alignment.segments) {
+          const tokenStartIndex = segment.tokenStartIndex;
+          const tokenEndIndex = segment.tokenEndIndex;
+          if (typeof tokenStartIndex !== "number" || typeof tokenEndIndex !== "number"
+            || !Number.isInteger(tokenStartIndex) || !Number.isInteger(tokenEndIndex)
+            || tokenStartIndex !== expectedSegmentTokenStart || tokenEndIndex <= tokenStartIndex
+            || tokenEndIndex > tokens.length) {
+            throw new DomainError("Provider 字幕段的 token 范围无效", "PROJECT_GRAPH_INVALID");
+          }
+          const segmentTokens = tokens.slice(tokenStartIndex, tokenEndIndex);
+          if (normalizeSourceCaptionComparisonText(segment.displayText) !== normalizeSourceCaptionComparisonText(joinSourceAudioTokens(segmentTokens))
+            || segment.startMs !== segmentTokens[0]!.startMs || segment.endMs !== segmentTokens.at(-1)!.endMs) {
+            throw new DomainError("Provider 字幕段文字或时间不属于当前同源 token", "PROJECT_GRAPH_INVALID");
+          }
+          expectedSegmentTokenStart = tokenEndIndex;
+        }
+        if (expectedSegmentTokenStart !== tokens.length) {
+          throw new DomainError("Provider 字幕段没有完整覆盖同源 token", "PROJECT_GRAPH_INVALID");
+        }
       }
+    } else if (alignment.segments.some((segment) => segment.tokenStartIndex !== undefined || segment.tokenEndIndex !== undefined)) {
+      throw new DomainError("没有完整 token 证据的 Provider 字幕段不得携带 token 范围", "PROJECT_GRAPH_INVALID");
     }
     if (alignment.status === "ready") {
-      const performance = (snapshot.actorPerformances ?? []).find((candidate) => candidate.timelineItemId === sourceItem.id);
-      if (!actorTrack || sourceItem.trackId !== actorTrack.id || sourceItem.disabled || sourceItem.assetId !== sourceAsset.id
+      if (!sourceAudioAlignmentOwnerMatches(snapshot, alignment) || sourceItem.disabled || sourceItem.assetId !== sourceAsset.id
         || sourceAsset.status !== "ready" || !sourceAsset.metadata?.hasAudio
         || sourceAsset.sourceHash !== alignment.sourceAssetHash
         || sourceItem.sourceStartFrame !== alignment.sourceStartFrame || sourceItem.sourceEndFrame !== alignment.sourceEndFrame
         || sourceItem.startFrame !== alignment.timelineStartFrame || sourceItem.endFrame !== alignment.timelineEndFrame
-        || sourceItem.sourceEndFrame - sourceItem.sourceStartFrame !== sourceItem.endFrame - sourceItem.startFrame
-        || performance?.status !== "ready" || performance.audioMode !== "use_source_audio") {
+        || sourceItem.sourceEndFrame - sourceItem.sourceStartFrame !== sourceItem.endFrame - sourceItem.startFrame) {
         throw new DomainError("就绪原声 token 对齐不再绑定当前可播放的 use_source_audio A-roll；必须重新对齐", "PROJECT_GRAPH_INVALID");
       }
       if (readyAlignmentByTimelineItemId.has(sourceItem.id)) {
@@ -861,7 +1034,8 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
   for (const program of sourceCaptionPrograms) {
     if (!program.id?.trim() || sourceCaptionProgramById.has(program.id)
       || !program.alignmentId?.trim() || !program.sourceAssetId?.trim() || !program.sourceTimelineItemId?.trim()
-      || !program.createdAt?.trim() || !Array.isArray(program.captionIds)
+      || !program.createdAt?.trim() || (program.source !== "provider_segments" && program.source !== "editorial_override")
+      || !Array.isArray(program.captionIds)
       || program.captionIds.length === 0 || program.captionIds.length > 300
       || new Set(program.captionIds).size !== program.captionIds.length) {
       throw new DomainError("原声字幕 Program 缺少唯一 ID、Alignment、来源或连续 Card 列表", "PROJECT_GRAPH_INVALID");
@@ -873,22 +1047,48 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
       throw new DomainError("原声字幕 Program 必须唯一绑定一份当前就绪的同源 token 对齐", "PROJECT_GRAPH_INVALID");
     }
     const sourceItem = snapshot.timeline.items.find((item) => item.id === program.sourceTimelineItemId)!;
+    if (program.source === "provider_segments"
+      && (alignment.segments.length === 0 || alignment.segments.length !== program.captionIds.length)) {
+      throw new DomainError("Provider 默认字幕 Program 必须与同一次 Alignment 的字幕段一一对应", "PROJECT_GRAPH_INVALID");
+    }
+    const tokens = alignment.tokens ?? [];
+    const hasTokenEvidence = alignment.tokenPrecision === "provider_token_timed";
+    if (!hasTokenEvidence && program.source !== "provider_segments") {
+      throw new DomainError("没有完整 token 证据时不能创建编辑覆盖 Program；必须保留 Provider 原始分段", "PROJECT_GRAPH_INVALID");
+    }
     let expectedTokenStart = 0;
     let previousSourceEndFrame = sourceItem.sourceStartFrame;
-    for (const captionId of program.captionIds) {
+    for (const [index, captionId] of program.captionIds.entries()) {
       const caption = captionById.get(captionId);
       if (!caption || caption.sourceCaptionProgramId !== program.id || caption.sourceAlignmentId !== alignment.id) {
         throw new DomainError("原声字幕 Program 的 Card 列表与 CaptionCard 双向引用不一致", "PROJECT_GRAPH_INVALID");
       }
-      assertSourceTokenCaptionCardGraph(snapshot, caption, alignment);
-      if (caption.sourceTokenStartIndex !== expectedTokenStart || caption.sourceStartFrame === undefined
-        || caption.sourceStartFrame < previousSourceEndFrame) {
-        throw new DomainError("原声字幕 Program 的 Card token 范围必须连续、无重叠且按时间顺序排列", "PROJECT_GRAPH_INVALID");
+      if (hasTokenEvidence) {
+        assertSourceTokenCaptionCardGraph(snapshot, caption, alignment);
+        if (program.source === "provider_segments") {
+          const segment = alignment.segments[index]!;
+          if (caption.sourceTokenStartIndex !== segment.tokenStartIndex || caption.sourceTokenEndIndex !== segment.tokenEndIndex
+            || caption.sourceText !== segment.displayText || !sourceCaptionDisplayTextIsValid(caption)) {
+            throw new DomainError("Provider 默认字幕 Card 必须原样对应同序 Provider segment", "PROJECT_GRAPH_INVALID");
+          }
+        }
+        if (caption.sourceTokenStartIndex !== expectedTokenStart || caption.sourceStartFrame === undefined
+          || caption.sourceStartFrame < previousSourceEndFrame) {
+          throw new DomainError("原声字幕 Program 的 Card token 范围必须连续、无重叠且按时间顺序排列", "PROJECT_GRAPH_INVALID");
+        }
+        expectedTokenStart = caption.sourceTokenEndIndex!;
+        previousSourceEndFrame = caption.sourceEndFrame!;
+      } else {
+        const segment = alignment.segments[index];
+        if (!segment) throw new DomainError("Provider 默认字幕 Program 缺少同序字幕段", "PROJECT_GRAPH_INVALID");
+        assertProviderSegmentCaptionCardGraph(snapshot, caption, alignment, segment);
+        if (caption.sourceStartFrame === undefined || caption.sourceStartFrame < previousSourceEndFrame) {
+          throw new DomainError("Provider 默认字幕 Card 的段级时间必须按顺序且不能重叠", "PROJECT_GRAPH_INVALID");
+        }
+        previousSourceEndFrame = caption.sourceEndFrame!;
       }
-      expectedTokenStart = caption.sourceTokenEndIndex!;
-      previousSourceEndFrame = caption.sourceEndFrame!;
     }
-    if (expectedTokenStart !== alignment.tokens.length) {
+    if (hasTokenEvidence && expectedTokenStart !== tokens.length) {
       throw new DomainError("原声字幕 Program 没有完整覆盖已对齐的 spoken token", "PROJECT_GRAPH_INVALID");
     }
     const reverseCards = snapshot.timeline.captions.filter((caption) => caption.sourceCaptionProgramId === program.id);
@@ -922,8 +1122,8 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
         || (caption.precision !== "chunk_coarse" && caption.precision !== "sentence_exact" && caption.precision !== "source_token_anchored")) {
         throw new DomainError("原声字幕的源范围、Timeline 映射或精度不符合合同", "PROJECT_GRAPH_INVALID");
       }
-      const hasTokenProgramFields = caption.sourceAlignmentId !== undefined || caption.sourceCaptionProgramId !== undefined
-        || caption.sourceTokenStartIndex !== undefined || caption.sourceTokenEndIndex !== undefined || caption.sourceCaptionRationale !== undefined;
+      const hasProgramFields = caption.sourceAlignmentId !== undefined || caption.sourceCaptionProgramId !== undefined;
+      const hasTokenFields = caption.sourceTokenStartIndex !== undefined || caption.sourceTokenEndIndex !== undefined || caption.sourceCaptionRationale !== undefined;
       const currentProgram = sourceCaptionProgramByTimelineItemId.get(caption.sourceTimelineItemId);
       if (caption.precision === "source_token_anchored") {
         const alignment = caption.sourceAlignmentId ? sourceAlignmentById.get(caption.sourceAlignmentId) : undefined;
@@ -932,11 +1132,23 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
           throw new DomainError("token 锚定原声字幕必须归属同一份就绪 Alignment 和语义 Program", "PROJECT_GRAPH_INVALID");
         }
         assertSourceTokenCaptionCardGraph(snapshot, caption, alignment);
-      } else if (hasTokenProgramFields) {
-        throw new DomainError("非 token 锚定原声字幕不能携带 Program/token 字段，避免把粗分块伪装为最终字幕", "PROJECT_GRAPH_INVALID");
+      } else if (caption.precision === "sentence_exact" && hasProgramFields) {
+        const alignment = caption.sourceAlignmentId ? sourceAlignmentById.get(caption.sourceAlignmentId) : undefined;
+        const program = caption.sourceCaptionProgramId ? sourceCaptionProgramById.get(caption.sourceCaptionProgramId) : undefined;
+        const segmentIndex = program?.captionIds.indexOf(caption.id) ?? -1;
+        const segment = segmentIndex >= 0 ? alignment?.segments[segmentIndex] : undefined;
+        if (!alignment || !program || alignment.tokenPrecision !== "unavailable" || program.source !== "provider_segments"
+          || program.alignmentId !== alignment.id || !segment || hasTokenFields) {
+          throw new DomainError("段级原声字幕只能来自同一份无 token Provider Alignment 的默认 Program，不能伪造重分段", "PROJECT_GRAPH_INVALID");
+        }
+        assertProviderSegmentCaptionCardGraph(snapshot, caption, alignment, segment);
+      } else if (hasProgramFields || hasTokenFields) {
+        throw new DomainError("非 Program 原声字幕不能携带 Alignment、Program 或 token 字段，避免把粗分块伪装为最终字幕", "PROJECT_GRAPH_INVALID");
       }
       // 对齐期间可暂留旧的 chunk_coarse 回退卡；但 Program 编译后必须原子替换，不能两套字幕叠加。
-      if (currentProgram && (caption.precision !== "source_token_anchored" || caption.sourceCaptionProgramId !== currentProgram.id)) {
+      const currentAlignment = currentProgram ? sourceAlignmentById.get(currentProgram.alignmentId) : undefined;
+      const expectedPrecision = currentAlignment?.tokenPrecision === "provider_token_timed" ? "source_token_anchored" : "sentence_exact";
+      if (currentProgram && (caption.precision !== expectedPrecision || caption.sourceCaptionProgramId !== currentProgram.id)) {
         throw new DomainError("已有原声字幕 Program 时，同一 A-roll 不能混入旧的自动分块或别的 Program Card", "PROJECT_GRAPH_INVALID");
       }
       continue;
@@ -1081,8 +1293,10 @@ export function createTranscriptSentenceCandidates(transcriptId: Id, assetId: Id
 
 /** 由 semantic-continuity 的判断调用，而不是把标点候选直接伪装成语义结论。 */
 export function createSemanticUnit(input: {
-  transcriptId: Id;
-  sourceAssetId: Id;
+  sourceKind?: "transcript" | "authored";
+  sourceNote?: string;
+  transcriptId?: Id;
+  sourceAssetId?: Id;
   candidateIds: Id[];
   text: string;
   order: number;
@@ -1096,9 +1310,17 @@ export function createSemanticUnit(input: {
 }): SemanticUnit {
   const text = input.text.trim();
   if (!text) throw new DomainError("SemanticUnit 文本不能为空", "INVALID_SEMANTIC_UNIT");
-  if (input.candidateIds.length === 0) throw new DomainError("SemanticUnit 必须引用至少一个转写候选", "SEMANTIC_CANDIDATE_REQUIRED");
+  if (input.sourceKind === "authored") {
+    if (!input.sourceNote?.trim() || input.transcriptId !== undefined || input.sourceAssetId !== undefined || input.candidateIds.length !== 0) {
+      throw new DomainError("原创新稿需要来源说明，不能冒充已有素材转写", "INVALID_AUTHORED_SOURCE");
+    }
+  } else if (!input.transcriptId || !input.sourceAssetId || input.candidateIds.length === 0) {
+    throw new DomainError("SemanticUnit 必须引用至少一个转写候选及其真实来源", "SEMANTIC_CANDIDATE_REQUIRED");
+  }
   return {
     id: createId("semantic"),
+    sourceKind: input.sourceKind ?? "transcript",
+    sourceNote: input.sourceNote?.trim(),
     transcriptId: input.transcriptId,
     sourceAssetId: input.sourceAssetId,
     candidateIds: [...input.candidateIds],
@@ -1255,7 +1477,7 @@ export function createEffectCue(input: {
     startFrame: input.startFrame,
     holdFrame: Math.max(input.startFrame + 1, Math.floor((input.startFrame + input.endFrame) / 2)),
     endFrame: input.endFrame,
-    intensity: 0.6,
+    intensity: input.type === "ManagedMotion" ? 1 : 0.6,
     status: "ready",
     note: input.note ?? "",
     narrativePurpose: input.narrativePurpose?.trim() || input.note?.trim() || "支持当前叙事重点",
@@ -1265,10 +1487,10 @@ export function createEffectCue(input: {
       targetId: legacyAnchorTargetId ?? input.sceneId,
       relation: "land_on"
     },
-    spatialAnchor: input.spatialAnchor ?? defaultSpatialAnchor,
+    spatialAnchor: input.spatialAnchor ?? (input.type === "ManagedMotion" ? "full_frame" : defaultSpatialAnchor),
     assetBindings: input.assetBindings ?? [],
     props: input.props ?? {},
-    motion: {
+    motion: input.type === "ManagedMotion" ? { enterPreset: "none", settlePreset: "hold", exitPreset: "none", enterFrames: 0, holdFrames: input.endFrame - input.startFrame, exitFrames: 0, ...input.motion } : {
       enterPreset: input.motion?.enterPreset ?? "fade_slide",
       settlePreset: input.motion?.settlePreset ?? "hold",
       exitPreset: input.motion?.exitPreset ?? "fade",
@@ -1276,7 +1498,7 @@ export function createEffectCue(input: {
       holdFrames: Math.max(0, input.motion?.holdFrames ?? Math.max(0, input.endFrame - input.startFrame - enterFrames - exitFrames)),
       exitFrames
     },
-    stylePackId: input.stylePackId ?? "default-clean",
+    stylePackId: input.stylePackId ?? (input.type === "ManagedMotion" ? "managed-source" : "default-clean"),
     qualityRules: input.qualityRules ?? []
   };
 }

@@ -17,7 +17,7 @@ type RevisionState = {
     story: { beats: Array<{ id: string; title: string }> };
     narrativeMap?: { beats: Array<{ id: string }> };
     evidenceCaptures: Array<{ id: string }>;
-    explainerPrograms: Array<{ id: string; kind: string; status: string }>;
+    explainerPrograms: Array<{ id: string; kind: string; status: string; disabled?: boolean }>;
   };
 };
 
@@ -244,6 +244,19 @@ test("HTTP 入口完整建立 Explainer 证据、Program 与质量读取，错�
     assert.equal(invalidCompile.statusCode, 400);
     assert.equal((invalidCompile.json() as { error: string }).error, "REALITY_BROLL_ASSET_REQUIRED");
     assert.equal(server.application.readProject(projectId).revision.number, beforeInvalidRevision, "被拒绝的 HTTP 编译不能覆盖已确认的 Explainer Program");
+    const enabledUrl = `/api/projects/${projectId}/explainer-programs/${compiled.snapshot.explainerPrograms[0]!.id}/enabled`;
+    const disabledResponse = await server.app.inject({ method: "POST", url: enabledUrl, payload: { baseRevision: beforeInvalidRevision, enabled: false } });
+    assert.equal(disabledResponse.statusCode, 200);
+    const disabled = disabledResponse.json() as RevisionState;
+    assert.equal(disabled.snapshot.explainerPrograms[0]!.disabled, true);
+    for (const payload of [{ baseRevision: beforeInvalidRevision, enabled: true }, { baseRevision: disabled.revision.number, enabled: "false" }]) {
+      const invalidToggle = await server.app.inject({ method: "POST", url: enabledUrl, payload });
+      assert.ok(invalidToggle.statusCode >= 400);
+      assert.equal(server.application.readProject(projectId).revision.number, disabled.revision.number);
+    }
+    const enabledResponse = await server.app.inject({ method: "POST", url: enabledUrl, payload: { baseRevision: disabled.revision.number, enabled: true } });
+    assert.equal(enabledResponse.statusCode, 200);
+    assert.equal((enabledResponse.json() as RevisionState).snapshot.explainerPrograms[0]!.disabled, false);
   } finally {
     await server.app.close();
     server.application.close();
@@ -387,6 +400,15 @@ test("MCP 入口以 snake_case 走完整 Explainer 编译并在错误时保留�
     assert.equal((invalid as { isError?: boolean }).isError, true);
     assert.match(textFromToolResult(invalid), /RealityBroll 必须绑定/u);
     assert.equal(workerApplication.readProject(projectId).revision.number, beforeInvalidRevision, "MCP 被拒绝的编译不能覆盖当前 Explainer Revision");
+    assert.ok(toolNames.has("set_explainer_program_enabled"));
+    const toggle = { program_id: compiled.snapshot.explainerPrograms[0]!.id, enabled: false };
+    const disabled = readMcpResult<RevisionState>(await client.callTool({ name: "set_explainer_program_enabled", arguments: { base_revision_id: beforeInvalidRevision, ...toggle } }));
+    assert.equal(disabled.snapshot.explainerPrograms[0]!.disabled, true);
+    const staleToggle = await client.callTool({ name: "set_explainer_program_enabled", arguments: { base_revision_id: beforeInvalidRevision, ...toggle, enabled: true } });
+    assert.equal(staleToggle.isError, true);
+    assert.equal(workerApplication.readProject(projectId).revision.number, disabled.revision.number);
+    const enabled = readMcpResult<RevisionState>(await client.callTool({ name: "set_explainer_program_enabled", arguments: { base_revision_id: disabled.revision.number, ...toggle, enabled: true } }));
+    assert.equal(enabled.snapshot.explainerPrograms[0]!.disabled, false);
   } finally {
     await transport.close().catch(() => undefined);
     workerApplication.close();

@@ -11,8 +11,10 @@ import { evaluateQuality } from "@videocut/quality";
 import { EFFECT_QUALITY_RULES, EFFECT_TYPES, type Asset, type AssetProvenance } from "@videocut/contracts";
 import { inspectComposedFrames } from "./preview-inspection.js";
 import { inspectAsset } from "./source-review.js";
+import { registerMotionTools } from "./motion-tools.js";
 import { sha256File } from "./media-hash.js";
 import { browseLocalSoundEffects, inspectLocalSoundEffect, resolveLocalSoundEffectForImport } from "./local-sound-effects.js";
+import { SOUND_SOURCES, MIXKIT_SOUND_CATEGORIES } from "../../../packages/asset-acquisition/src/sound-catalog.js";
 
 const runtimeConfig = readRuntimeConfig();
 const workspaceRoot = runtimeConfig.workspace.root;
@@ -83,7 +85,7 @@ const kindFromPath = (path: string) => {
   throw new DomainError(`不支持的素材格式：${extension}`, "UNSUPPORTED_MEDIA");
 };
 
-const assetRoleSchema = z.enum(["a_roll", "b_roll", "vlog_source", "actor_mask", "voice_reference", "evidence", "cutaway", "style_reference", "generated_visual"]);
+const assetRoleSchema = z.enum(["a_roll", "b_roll", "vlog_source", "actor_mask", "voice_reference", "sfx", "bgm", "evidence", "cutaway", "style_reference", "generated_visual"]);
 const assetProvenanceSchema = z.object({
   source: z.enum(["local_import", "generated", "provider"]),
   provider: z.string().max(240).optional(),
@@ -661,9 +663,17 @@ server.registerTool("inspect_asset", {
   } catch (error) { return asError(error); }
 });
 
+server.registerTool("browse_sound_sources", {
+  title: "在线音效候选来源",
+  description: "返回用户选定的五个音效来源、合法获取边界和已接入分类；不下载、不购买，也不表示已试听或适合成片。",
+  inputSchema: {}, annotations: { readOnlyHint: true }
+}, async () => asText({ sources: SOUND_SOURCES, provider: "mixkit", categories: MIXKIT_SOUND_CATEGORIES,
+  workflow: "manage_asset_requirements(media_kind=audio, audio_brief, role=sfx) → search_media_candidates(provider=mixkit, query=一个分类) → inspect_media_candidate → acquire_media_asset → track_job → inspect_asset → manage_audio(effect_event) → 真实 Preview 声画审阅",
+  listening: "浏览器可试听；本接口不提供模型听觉能力，未实际接收音频不得填写听感通过。" }));
+
 server.registerTool("manage_asset_requirements", {
   title: "管理素材需求",
-  description: "在当前 Revision 中创建、更新或关闭明确的视觉素材需求；需求本身不等于候选，也不会自动进入 Scene。",
+  description: "在当前 Revision 创建、更新或关闭视觉/声音需求。音频用 media_kind=audio、audio_brief、role=sfx/bgm，不填画幅；候选不会自动进入 Timeline。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -672,16 +682,18 @@ server.registerTool("manage_asset_requirements", {
     title: z.string().max(160).optional(),
     purpose: z.string().max(800).optional(),
     visual_brief: z.string().max(1_600).optional(),
+    media_kind: z.enum(["visual", "audio"]).optional(),
+    audio_brief: z.string().max(1_600).optional(),
     role: assetRoleSchema.optional(),
     query_hints: z.array(z.string().min(1).max(160)).max(12).optional(),
     excluded_terms: z.array(z.string().min(1).max(160)).max(20).optional(),
     target_aspect_ratio: z.enum(["9:16", "16:9", "1:1"]).optional(),
     min_duration_ms: z.number().int().positive().max(300_000).optional(),
     rights_requirement: z.enum(["cleared_only", "cleared_or_attribution"]).optional(),
-    fallback_plan: z.enum(["keep_presenter", "remotion", "minimax", "ask_user"]).optional(),
+    fallback_plan: z.enum(["keep_presenter", "remotion", "minimax", "ask_user", "local_audio", "omit_audio"]).optional(),
     close_reason: z.string().max(800).optional()
   }
-}, async ({ project_id, base_revision_id, action, asset_request_id, title, purpose, visual_brief, role, query_hints, excluded_terms, target_aspect_ratio, min_duration_ms, rights_requirement, fallback_plan, close_reason }) => {
+}, async ({ project_id, base_revision_id, action, asset_request_id, title, purpose, visual_brief, media_kind, audio_brief, role, query_hints, excluded_terms, target_aspect_ratio, min_duration_ms, rights_requirement, fallback_plan, close_reason }) => {
   try {
     return asText(application.manageAssetRequirement({
       projectId: projectIdFrom(project_id),
@@ -691,6 +703,8 @@ server.registerTool("manage_asset_requirements", {
       title,
       purpose,
       visualBrief: visual_brief,
+      mediaKind: media_kind,
+      audioBrief: audio_brief,
       role,
       queryHints: query_hints,
       excludedTerms: excluded_terms,
@@ -838,6 +852,7 @@ server.registerTool("import_local_sound_effect", {
       relativePath: relative_path
     });
     const result = await importLocalMedia(projectIdFrom(project_id), base_revision_id, local.absolutePath, {
+      role: "sfx",
       tags: [...new Set(["local_sound_effect", ...(tags ?? [])])],
       provenance: {
         source: "local_import",
@@ -890,9 +905,9 @@ server.registerTool("submit_transcription", {
   try { return asText(application.submitTranscription({ projectId: projectIdFrom(project_id), assetId: asset_id, idempotencyKey: idempotency_key })); } catch (error) { return asError(error); }
 });
 
-server.registerTool("submit_source_audio_captions", {
-  title: "提交原声 A-roll 分块字幕",
-  description: "仅为已登记 use_source_audio 的 A-roll 使用按真实静音边界提交 FunASR 分块；不生成旁白、不改 Script，结果只会以 chunk_coarse 字幕写回同一来源。",
+server.registerTool("generate_source_audio_captions", {
+  title: "生成原声 A-roll 字幕",
+  description: "为已登记 use_source_audio 的 A-roll 提交 FunASR 段级对齐。Provider 返回的每个 segment 会自动生成一屏带真实原声时间的字幕；不生成旁白、不改 Script，也不需要手工逐条提交字幕 Program。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -901,7 +916,7 @@ server.registerTool("submit_source_audio_captions", {
   }
 }, async ({ project_id, base_revision_id, timeline_item_id, idempotency_key }) => {
   try {
-    return asText(application.submitSourceAudioCaptions({
+    return asText(application.generateSourceAudioCaptions({
       projectId: projectIdFrom(project_id),
       baseRevision: base_revision_id,
       timelineItemId: timeline_item_id,
@@ -910,49 +925,19 @@ server.registerTool("submit_source_audio_captions", {
   } catch (error) { return asError(error); }
 });
 
-server.registerTool("submit_source_audio_sentence_alignment", {
-  title: "提交原声 A-roll token 对齐（兼容旧名）",
-  description: "兼容入口。采集 FunASR 同源 token 时间证据与自动标点候选，不直接生成最终视觉字幕；不按标点、字符或估算时长拆卡。请优先使用 submit_source_audio_token_alignment。",
-  inputSchema: {
-    project_id: z.string().optional(),
-    base_revision_id: z.number().int().positive(),
-    timeline_item_id: z.string().min(1),
-    idempotency_key: z.string().min(1).max(240).optional()
-  }
-}, async ({ project_id, base_revision_id, timeline_item_id, idempotency_key }) => {
+server.registerTool("generate_speech_captions", {
+  title: "从最终旁白生成真实分屏字幕",
+  description: "对当前已就绪 SpeechAsset 的完整 Dialogue 音频使用 FunASR 生成真实时间字幕段，原子替换未人工改写的整段默认卡。保留 Script、自然语音段、声音、Scene 与动效；不伪装原声 A-roll，不按字符估时。完成后用 read_source_audio_alignment、read_captions 核查；有可靠 token 时间时才可用 apply_source_caption_program 重分溢出卡。",
+  inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), idempotency_key: z.string().min(1).max(240).optional() }
+}, async ({ project_id, base_revision_id, idempotency_key }) => {
   try {
-    return asText(application.submitSourceAudioSentenceAlignment({
-      projectId: projectIdFrom(project_id),
-      baseRevision: base_revision_id,
-      timelineItemId: timeline_item_id,
-      idempotencyKey: idempotency_key
-    }));
-  } catch (error) { return asError(error); }
-});
-
-server.registerTool("submit_source_audio_token_alignment", {
-  title: "提交原声 A-roll token 对齐",
-  description: "为已登记 use_source_audio 的 A-roll 采集 FunASR Provider token 时间证据和候选句。候选句只供阅读；完成后必须先读取证据，再由剪辑 Agent 提交语义字幕 Program，不能把自动标点直接当成最终字幕。",
-  inputSchema: {
-    project_id: z.string().optional(),
-    base_revision_id: z.number().int().positive(),
-    timeline_item_id: z.string().min(1),
-    idempotency_key: z.string().min(1).max(240).optional()
-  }
-}, async ({ project_id, base_revision_id, timeline_item_id, idempotency_key }) => {
-  try {
-    return asText(application.submitSourceAudioSentenceAlignment({
-      projectId: projectIdFrom(project_id),
-      baseRevision: base_revision_id,
-      timelineItemId: timeline_item_id,
-      idempotencyKey: idempotency_key
-    }));
+    return asText(application.generateSpeechCaptions({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, idempotencyKey: idempotency_key }));
   } catch (error) { return asError(error); }
 });
 
 server.registerTool("read_source_audio_alignment", {
-  title: "读取原声 token 对齐证据",
-  description: "读取指定 A-roll 的 Provider token 时间、自动标点候选和 Bridge 审计。它是语义分卡的唯一时间事实，不执行任何项目写入。",
+  title: "读取原声字幕段对齐",
+  description: "读取指定音频使用的 Provider 字幕段、内部 token 时间证据和 Bridge 审计；speechSource 明确标注最终旁白版本，缺省为原声 A-roll。正常生成已自动完成；仅在排版溢出、错分段或回听纠错时用于诊断，不执行项目写入。",
   inputSchema: {
     project_id: z.string().optional(),
     alignment_id: z.string().min(1).optional(),
@@ -970,8 +955,8 @@ server.registerTool("read_source_audio_alignment", {
 });
 
 server.registerTool("apply_source_caption_program", {
-  title: "应用原声语义字幕 Program",
-  description: "根据已读取的 token 对齐证据提交完整、连续的语义分卡。每张卡只引用 token 范围并给出阅读/语义理由；display_text 仅可调整标点或空白，不能增删或改写原声实义词，也不能手填时间。",
+  title: "覆盖原声字幕分屏",
+  description: "仅在 Provider 单段实际超过两行、分段明显破坏语义、已回听确认错字或用户明确要求重新分屏时使用。根据已读取的内部时间证据原子替换当前默认 Program；不能手填时间、删词、补词或伪造时间。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -1064,6 +1049,36 @@ server.registerTool("apply_semantic_units", {
         followingContext: unit.following_context,
         retakeGroupId: unit.retake_group_id,
         confidence: unit.confidence,
+        pauseBefore: unit.pause_before ? { durationMs: unit.pause_before.duration_ms, reason: unit.pause_before.reason } : undefined
+      }))
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("apply_authored_script", {
+  title: "应用原创新稿",
+  description: "将已经过语义审阅的原创新稿整体替换为当前 Script，生成无时间估算的 SpeechSegment。填写 source_note 说明来源；不需要也不允许把新稿绑定到音色素材或转写候选。不是局部追加：旧旁白、字幕和声音包装会按既有 Script 规则失效，写后读取 Revision、Script 与 Impact，再用 VoiceReference 合成真实旁白。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    source_note: z.string().trim().min(1).max(2_000),
+    units: z.array(z.object({
+      text: z.string().trim().min(1).max(2_000),
+      kind: z.enum(["statement", "question", "answer", "cause", "conclusion", "contrast", "list_item", "setup", "payoff", "retake", "intentional_repetition"]),
+      dependencies: z.array(z.string()).optional(),
+      preceding_context: z.string().max(2_000).optional(),
+      following_context: z.string().max(2_000).optional(),
+      confidence: z.number().min(0).max(1).optional(),
+      pause_before: z.object({ duration_ms: z.number().int().min(0).max(10_000), reason: z.enum(["sentence", "contrast", "emotion", "breath", "chapter"]) }).optional()
+    }).strict()).min(1).max(200)
+  }
+}, async (input) => {
+  try {
+    return asText(application.applyAuthoredScript({
+      projectId: projectIdFrom(input.project_id), baseRevision: input.base_revision_id, sourceNote: input.source_note,
+      units: input.units.map((unit) => ({
+        text: unit.text, kind: unit.kind, dependencies: unit.dependencies,
+        precedingContext: unit.preceding_context, followingContext: unit.following_context, confidence: unit.confidence,
         pauseBefore: unit.pause_before ? { durationMs: unit.pause_before.duration_ms, reason: unit.pause_before.reason } : undefined
       }))
     }));
@@ -1265,6 +1280,7 @@ server.registerTool("edit_captions", {
     caption_ids: z.array(z.string().min(1)).min(1).max(200).optional(),
     action: z.enum(["update", "reset", "bulk_source_format"]),
     text: z.string().max(80).optional(),
+    source_text_review: z.object({ note: z.string().min(1).max(1000).describe("实际回听确认的错词/数字显示纠正及理由；不是摘要改写，不改变原音频时间") }).strict().optional(),
     format: z.object({
       font_size: z.number().int().min(16).max(72).optional(),
       font_weight: z.number().int().min(400).max(900).optional(),
@@ -1284,13 +1300,14 @@ server.registerTool("edit_captions", {
       scale: z.number().min(0.8).max(1.35).optional()
     }).strict().nullable().optional()
   }
-}, async ({ project_id, base_revision_id, caption_id, caption_ids, action, text, format, emphasis }) => {
+}, async ({ project_id, base_revision_id, caption_id, caption_ids, action, text, format, emphasis, source_text_review }) => {
   try {
     return asText(application.editCaptions({
       projectId: projectIdFrom(project_id),
       baseRevision: base_revision_id,
       captionId: caption_id,
       captionIds: caption_ids,
+      sourceTextReview: source_text_review,
       action,
       text,
       format: format === undefined ? undefined : {
@@ -1317,7 +1334,7 @@ server.registerTool("edit_captions", {
 
 server.registerTool("manage_audio", {
   title: "管理 BGM 与 SFX",
-  description: "将已就绪的本地音频作为 BGM 或 SFX 写入专用轨。BGM 支持有限淡入淡出、循环和 Dialogue Duck；SFX 必须显式提供实际听见的 event_frame 与 onset_offset_frames，系统不会猜测文件能量峰值。",
+  description: "将已就绪的本地音频作为 BGM 或 SFX 写入专用轨。BGM 支持有限淡入淡出、循环和 Dialogue Duck。SFX 的 event_frame 是计划同步的事件，onset_offset_frames 是所选源范围内的偏移；检测候选或尚未复听时用 onset_review.status=inconclusive（缺省也是待审）并说明依据，允许草稿混合但阻挡交付。只有实际复听所选原文件范围后才能写 confirmed，仍不代表成片混合声画通过。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -1336,6 +1353,13 @@ server.registerTool("manage_audio", {
     fade_out_frames: z.number().int().min(0).max(480).optional(),
     event_frame: z.number().int().nonnegative().optional(),
     onset_offset_frames: z.number().int().nonnegative().optional(),
+    onset_review: z.object({ status: z.enum(["confirmed", "inconclusive"]), note: z.string().min(16).max(2400) }).strict().optional(),
+    effect_event: z.object({
+      effect_cue_id: z.string().min(1),
+      event_name: z.string().trim().min(1).max(160),
+      local_frame: z.number().int().nonnegative(),
+      sync_offset_frames: z.number().int().optional()
+    }).strict().nullable().optional(),
     ducking: z.object({
       enabled: z.boolean().optional(),
       reduction_db: z.number().min(-36).max(-1).optional(),
@@ -1363,6 +1387,13 @@ server.registerTool("manage_audio", {
       fadeOutFrames: input.fade_out_frames,
       eventFrame: input.event_frame,
       onsetOffsetFrames: input.onset_offset_frames,
+      onsetReview: input.onset_review,
+      effectEvent: input.effect_event === null ? null : input.effect_event ? {
+        effectCueId: input.effect_event.effect_cue_id,
+        eventName: input.effect_event.event_name,
+        localFrame: input.effect_event.local_frame,
+        syncOffsetFrames: input.effect_event.sync_offset_frames
+      } : undefined,
       ducking: input.ducking === undefined ? undefined : {
         enabled: input.ducking.enabled,
         reductionDb: input.ducking.reduction_db,
@@ -1379,6 +1410,21 @@ server.registerTool("assemble_presenter_track", {
   inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), asset_ids: z.array(z.string()).min(1) }
 }, async ({ project_id, base_revision_id, asset_ids }) => {
   try { return asText(application.assemblePresenterTrack({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, assetIds: asset_ids })); } catch (error) { return asError(error); }
+});
+
+server.registerTool("edit_presenter_source", {
+  title: "裁剪原声人物片段",
+  description: "对既有无Mask、use_source_audio导入人物Item按明确保留源区间原子裁剪/拆分，原视频与原声同步；源帧统一使用项目FPS，范围有序且不重叠，空列表仅可删除非最后一条主画面。自动前移后续主轨及准确字幕，保留字幕版式与Provider时间证据；切口跨字幕卡会拒绝，须先按真实token分卡，不能按字数估时。与切口相交的效果、受影响Cutaway/BGM/SFX会标stale待复核，不生成媒体或隐式Job。先审阅源片、记录理由；有未终态Job/锁定轨道/独立Dialogue时拒绝。写后读回Impact并真实预览复听。",
+  inputSchema: {
+    project_id: z.string().optional(), base_revision_id: z.number().int().positive(), timeline_item_id: z.string(),
+    keep_ranges: z.array(z.object({ source_start_frame: z.number().int().nonnegative(), source_end_frame: z.number().int().positive() }).strict()).max(160),
+    reason: z.string().trim().min(1).max(2000)
+  }
+}, async (input) => {
+  try { return asText(application.editPresenterSource({ projectId: projectIdFrom(input.project_id), baseRevision: input.base_revision_id,
+    timelineItemId: input.timeline_item_id, reason: input.reason,
+    keepRanges: input.keep_ranges.map((range) => ({ sourceStartFrame: range.source_start_frame, sourceEndFrame: range.source_end_frame })) })); }
+  catch (error) { return asError(error); }
 });
 
 server.registerTool("compile_presenter_scenes", {
@@ -1543,6 +1589,24 @@ server.registerTool("read_explainer_scene_programs", {
   annotations: { readOnlyHint: true }
 }, async ({ project_id, scene_id }) => {
   try { return asText(application.readExplainerScenePrograms({ projectId: projectIdFrom(project_id), sceneId: scene_id })); } catch (error) { return asError(error); }
+});
+
+server.registerTool("set_explainer_program_enabled", {
+  title: "局部启停场景主视觉",
+  description: "只启停指定 ExplainerProgram 的渲染；保留宿主 Scene 语义、ManagedMotion Cue、字幕、音效和素材。不会修复 stale，不会整批重编。停用后需预览检查替代画面及真实退出。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    program_id: z.string().min(1),
+    enabled: z.boolean()
+  }
+}, async (input) => {
+  try {
+    return asText(application.setExplainerProgramEnabled({
+      projectId: projectIdFrom(input.project_id), baseRevision: input.base_revision_id,
+      programId: input.program_id, enabled: input.enabled
+    }));
+  } catch (error) { return asError(error); }
 });
 
 server.registerTool("compile_explainer_scenes", {
@@ -2298,17 +2362,21 @@ server.registerTool("browse_effect_types", {
   annotations: { readOnlyHint: true }
 }, async () => asText(EFFECT_TYPES));
 
+registerMotionTools(server, application, projectIdFrom);
+
 server.registerTool("manage_effect_cues", {
   title: "管理视觉效果",
-  description: "创建带叙事目的、语义锚点、真实素材绑定和运动参数的 EffectCue，并强制其位于所属 Scene 内。",
+  description: "创建、按 cue_id 就地更新或移除单个 EffectCue，均须当前 Revision。action 默认 create；update 保留 Cue ID 和未指定字段，不能更换 Scene/类型/层级；remove 只移除该 Cue，不删除作品或回退整片。ManagedMotion 的源码、Props、画幅和完整时长仍固定，改作品需提交新版本。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
-    scene_id: z.string(),
-    type: z.enum(["MetricBackdrop", "ProductFan", "GlowCTA", "PortfolioWall", "CommentCloud", "EvidenceCard", "CameraPunch", "FullScreenMeme", "DeviceShowcase", "ContentCarousel", "EndCard"]),
-    layer: z.enum(["rear", "actor", "front", "fullscreen"]),
-    start_frame: z.number().int().nonnegative(),
-    end_frame: z.number().int().positive(),
+    action: z.enum(["create", "update", "remove"]).default("create"),
+    cue_id: z.string().min(1).optional(),
+    scene_id: z.string().optional(),
+    type: z.enum(["MetricBackdrop", "ProductFan", "GlowCTA", "PortfolioWall", "CommentCloud", "EvidenceCard", "CameraPunch", "FullScreenMeme", "DeviceShowcase", "ContentCarousel", "EndCard", "ManagedMotion"]).optional(),
+    layer: z.enum(["rear", "actor", "front", "fullscreen"]).optional(),
+    start_frame: z.number().int().nonnegative().optional(),
+    end_frame: z.number().int().positive().optional(),
     anchor_target_id: z.string().optional(),
     note: z.string().optional(),
     narrative_purpose: z.string().max(800).optional(),
@@ -2317,17 +2385,20 @@ server.registerTool("manage_effect_cues", {
     spatial_anchor: z.enum(["top_left", "top_right", "middle_left", "middle_right", "bottom_left", "bottom_right", "center", "full_frame"]).optional(),
     asset_bindings: z.array(z.object({ slot: z.string().min(1).max(80), asset_id: z.string().min(1) })).max(12).optional(),
     props: z.record(z.unknown()).optional(),
-    motion: z.object({ enter_preset: z.string().max(80).optional(), settle_preset: z.string().max(80).optional(), exit_preset: z.string().max(80).optional(), enter_frames: z.number().int().min(1).max(240).optional(), hold_frames: z.number().int().min(0).max(10_000).optional(), exit_frames: z.number().int().min(1).max(240).optional() }).optional(),
+    motion: z.object({ enter_preset: z.string().max(80).optional(), settle_preset: z.string().max(80).optional(), exit_preset: z.string().max(80).optional(), enter_frames: z.number().int().min(0).max(240).optional(), hold_frames: z.number().int().min(0).max(10_000).optional(), exit_frames: z.number().int().min(0).max(240).optional() }).optional(),
     style_pack_id: z.string().max(160).optional(),
     // 不接受无执行语义的自由文本；具体的创作理由请写入 note / narrative_purpose。
     quality_rules: z.array(z.enum(EFFECT_QUALITY_RULES)).max(EFFECT_QUALITY_RULES.length).optional()
   }
 }, async (input) => {
   try {
-    return asText(application.createEffectCue({
-      projectId: projectIdFrom(input.project_id), baseRevision: input.base_revision_id, sceneId: input.scene_id,
-      type: input.type, layer: input.layer, startFrame: input.start_frame, endFrame: input.end_frame,
-      anchorTargetId: input.anchor_target_id,
+    const identity = { projectId: projectIdFrom(input.project_id), baseRevision: input.base_revision_id };
+    if (input.action !== "create" && !input.cue_id) throw new Error("更新或移除效果必须提供 cue_id");
+    if (input.action === "remove") {
+      if (Object.entries(input).some(([key, value]) => value !== undefined && !["project_id", "base_revision_id", "action", "cue_id"].includes(key))) throw new Error("移除效果只接受 cue_id 和版本，不接受被忽略的编辑字段");
+      return asText(application.removeEffectCue({ ...identity, cueId: input.cue_id! }));
+    }
+    const details = {
       note: input.note,
       narrativePurpose: input.narrative_purpose,
       audienceTask: input.audience_task,
@@ -2335,17 +2406,24 @@ server.registerTool("manage_effect_cues", {
       spatialAnchor: input.spatial_anchor,
       assetBindings: input.asset_bindings?.map((binding) => ({ slot: binding.slot, assetId: binding.asset_id })),
       props: input.props,
-      motion: input.motion ? {
+      motion: input.motion ? Object.fromEntries(Object.entries({
         enterPreset: input.motion.enter_preset,
         settlePreset: input.motion.settle_preset,
         exitPreset: input.motion.exit_preset,
         enterFrames: input.motion.enter_frames,
         holdFrames: input.motion.hold_frames,
         exitFrames: input.motion.exit_frames
-      } : undefined,
+      }).filter(([, value]) => value !== undefined)) : undefined,
       stylePackId: input.style_pack_id,
       qualityRules: input.quality_rules
-    }));
+    };
+    if (input.action === "update") {
+      if (input.scene_id !== undefined || input.type !== undefined || input.layer !== undefined || input.anchor_target_id !== undefined) throw new Error("更新不能更换 Scene/类型/层级；锚点请用 semantic_anchor");
+      if (input.start_frame === undefined && input.end_frame === undefined && !Object.values(details).some((value) => value !== undefined)) throw new Error("更新效果至少需要一个明确字段");
+      return asText(application.updateEffectCue({ ...identity, cueId: input.cue_id!, startFrame: input.start_frame, endFrame: input.end_frame, ...details }));
+    }
+    if (input.cue_id !== undefined || !input.scene_id || !input.type || !input.layer || input.start_frame === undefined || input.end_frame === undefined) throw new Error("创建效果须提供 scene_id、type、layer、start_frame、end_frame，且不能指定已有 cue_id");
+    return asText(application.createEffectCue({ ...identity, sceneId: input.scene_id, type: input.type, layer: input.layer, startFrame: input.start_frame, endFrame: input.end_frame, anchorTargetId: input.anchor_target_id, ...details }));
   } catch (error) { return asError(error); }
 });
 
@@ -2455,13 +2533,26 @@ server.registerTool("record_creative_decision", {
 
 server.registerTool("record_editorial_quality_review", {
   title: "记录真实审片结论",
-  description: "把四轮审片、模式专项、预览证据和可定位问题写入当前 ProductionRun；不会自动生成审美结论。",
+  description: "累积局部或全片审片证据与问题；observations 绑定成功 Preview、Revision、范围和真实观察方式。空 findings 不清除旧问题；resolutions 通过已登记的当前证据 ID 逐项复核关闭。记录不改变视频 Revision，不代表自动审美通过。",
   inputSchema: {
     project_id: z.string().optional(),
     run_id: z.string().min(1),
     revision: z.number().int().positive(),
-    passes: z.array(z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"])).min(5).max(5),
-    preview_evidence: z.array(z.string().min(1).max(2_000)).min(1).max(40),
+    passes: z.array(z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"])).min(1).max(5),
+    preview_evidence: z.array(z.string().min(1).max(2_000)).max(40).default([]),
+    observations: z.array(z.object({
+      pass: z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"]),
+      preview_job_id: z.string().min(1),
+      start_frame: z.number().int().nonnegative(),
+      end_frame: z.number().int().positive(),
+      method: z.enum(["frames", "continuous_video", "audio", "audiovisual"]),
+      observation: z.string().min(1).max(2_000)
+    })).max(40).optional(),
+    resolutions: z.array(z.object({
+      finding_id: z.string().min(1),
+      evidence_ids: z.array(z.string().min(1)).min(1).max(40),
+      note: z.string().min(1).max(2_000)
+    })).max(120).optional(),
     findings: z.array(z.object({
       pass: z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"]),
       severity: z.enum(["blocking", "warning", "major", "minor", "suggestion", "inconclusive"]),
@@ -2483,6 +2574,8 @@ server.registerTool("record_editorial_quality_review", {
       revision: input.revision,
       passes: input.passes,
       previewEvidence: input.preview_evidence,
+      observations: input.observations?.map((entry) => ({ pass: entry.pass, previewJobId: entry.preview_job_id, startFrame: entry.start_frame, endFrame: entry.end_frame, method: entry.method, observation: entry.observation })),
+      resolutions: input.resolutions?.map((entry) => ({ findingId: entry.finding_id, evidenceIds: entry.evidence_ids, note: entry.note })),
       findings: input.findings.map((finding) => ({
         pass: finding.pass,
         severity: finding.severity,
@@ -2545,7 +2638,7 @@ server.registerTool("validate_project_graph", {
 
 server.registerTool("read_quality_report", {
   title: "读取质量报告",
-  description: "执行技术检查，并合并同一 Revision 已记录的真实审片结论；不会把未审片伪装成通过。",
+  description: "执行技术检查、从当前 Story/VisualTreatment/有效对象推导整片对账，并返回逐轮审阅缺口和跨 Run 未关闭问题；不会把对象存在、抽帧或局部审片伪装成整片通过。",
   inputSchema: { project_id: z.string().optional() },
   annotations: { readOnlyHint: true }
 }, async ({ project_id }) => {

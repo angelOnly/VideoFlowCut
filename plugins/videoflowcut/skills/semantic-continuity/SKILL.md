@@ -43,6 +43,8 @@ TranscriptSentenceCandidate 只提供阅读分块。一个完整思想可能跨�
 
 当前代码要求通过 `apply_semantic_units` 将 candidate_ids 组合为 SemanticUnit，并可以记录 kind、dependencies、上下文、retakeGroup、confidence 和 pauseBefore。这里的结构不是为了让 Agent 填满字段，而是把影响后续编译的专业判断保存到 Project。
 
+原创新稿不属于转写清理。用户提供或委托新写、尚未录音的旁白，经完整思想与事实审阅后用 `apply_authored_script(base_revision_id, source_note, units)` 整体写入当前 Script；每段给出 text、kind 和必要的上下文、停顿判断。`source_note` 说明真实文稿来源，不填写 candidate_ids，也不把音色样本当作台词来源。该入口直接建立 authored SemanticUnit 与待合成 SpeechSegment，不制造 Transcript、媒体 Asset 或时间戳。VoiceReference 只在后续配音时提供音色。写后读回 Script、Revision 和 Impact，再交回主工作流生成真实旁白；之后的选段重排仍可用 `apply_script`。新稿入口是整稿替换而非追加，修改已有主线会使旧旁白、字幕和包装失效，必须复核后续链路。若任务是在剪真实原声，仍走转写候选入口，不能用原创新稿改写人物实际说过的话。
+
 ## 完整思想怎样判断
 
 一个范围至少要让观众知道谁或什么在做判断、判断对象是什么、条件和否定是否完整，以及它与前后句的关系。高风险信号包括：

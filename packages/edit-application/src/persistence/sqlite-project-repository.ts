@@ -25,9 +25,11 @@ import {
   createProjectSnapshot,
   DomainError,
   emptyImpact,
+  sourceAudioAlignmentOwnerMatches,
   now
 } from "@videocut/domain";
 import { normalizeSnapshot } from "./normalize-snapshot";
+import { reconcileEffectAudioEvents } from "../effect-audio-events.js";
 import { initializeProjectDatabase } from "./schema";
 import { NotFoundError, RevisionConflictError, type ProjectState } from "./types";
 
@@ -111,16 +113,13 @@ type RepairTicketRow = {
 function sourceAudioAlignmentIsCurrent(snapshot: ProjectSnapshot, alignment: SourceAudioAlignment): boolean {
   const item = snapshot.timeline.items.find((candidate) => candidate.id === alignment.sourceTimelineItemId);
   const asset = snapshot.assets.find((candidate) => candidate.id === alignment.sourceAssetId);
-  const actorTrack = snapshot.timeline.tracks.find((track) => track.name === "Actor / A-roll");
-  const performance = snapshot.actorPerformances?.find((candidate) => candidate.timelineItemId === alignment.sourceTimelineItemId);
-  return Boolean(item && asset && actorTrack && performance
-    && !item.disabled && item.trackId === actorTrack.id && item.assetId === asset.id
+  return Boolean(item && asset && sourceAudioAlignmentOwnerMatches(snapshot, alignment)
+    && !item.disabled && item.assetId === asset.id
     && asset.status === "ready" && asset.metadata?.hasAudio
     && asset.sourceHash === alignment.sourceAssetHash
     && item.sourceStartFrame === alignment.sourceStartFrame && item.sourceEndFrame === alignment.sourceEndFrame
     && item.startFrame === alignment.timelineStartFrame && item.endFrame === alignment.timelineEndFrame
-    && item.sourceEndFrame - item.sourceStartFrame === item.endFrame - item.startFrame
-    && performance.status === "ready" && performance.audioMode === "use_source_audio");
+    && item.sourceEndFrame - item.sourceStartFrame === item.endFrame - item.startFrame);
 }
 
 /** 原声卡的物理来源改变时不能保留旧坐标；其余结构损坏仍交给 Graph 显式报错。 */
@@ -393,6 +392,7 @@ export class ProjectRepository {
       const snapshot = cloneSnapshot(current.snapshot);
       const impact = emptyImpact();
       mutate(snapshot, impact);
+      reconcileEffectAudioEvents(snapshot, impact);
       reconcileStaleSourceAudioArtifacts(snapshot, impact);
       snapshot.project.updatedAt = now();
       assertTimelineValid(snapshot);

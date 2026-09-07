@@ -36,7 +36,7 @@ export function resolveCompositionReachability(snapshot: ProjectSnapshot): Compo
     .filter((cue) => cue.status === "ready" && inspectEffectContentContract(cue, snapshot.assets).ready)
     .map((cue) => cue.id));
   const explainerProgramIds = new Set((snapshot.explainerPrograms ?? [])
-    .filter((program) => program.status === "ready" && snapshot.scenes.some((scene) => (
+    .filter((program) => !program.disabled && program.status === "ready" && snapshot.scenes.some((scene) => (
       scene.id === program.sceneId && scene.type === "ExplainerScene" && scene.status === "ready"
     )))
     .map((program) => program.id));

@@ -95,6 +95,8 @@ PiP 要足够看清主体，又不能抢人物。位置由人物脸、手、字�
 
 当前 MCP 已实现 `manage_cutaways`：它只接受已就绪、本地化的视频，创建或调整时会原子写入 Cutaway、CutawayScene 和 `Cutaway / Fullscreen` 顶层 Item。`fullscreen` 接管画面，`pip` 必须给出安全区锚点和 0.2～0.6 的缩放；`continue_dialogue` 与 `mute_source_audio` 不播放素材原声，只有 `include_source_audio` 才会输出现场声。替换某一条素材使用 `replace_scene_asset`，必须同时给出新的源范围，不能直接修改 Asset URL。主线 Scene 变化后，系统会停用并标记相关 Cutaway 为 stale；先重新判断相关性、进入和返回，再通过 `manage_cutaways` 重新确认，不要把旧 B-roll 自动贴到新句子上。
 
+解释片的原生 Program 与所属 ExplainerScene 的 `fullscreen` Cue 共同承担底层主视觉，Cutaway 在它们之上接管；明确的 `front` 包装和基础字幕仍可显示，PiP 只覆盖自己的区域。不要把应临时离开的完整模型放在 `front`，也不要缩短完整作品来模拟接管。返回时模型沿原局部时间继续，不会自动重播被实拍遮住的入场；需要观众看见的关键变化仍须由导演安排并连续复核。
+
 ## 案例：读书口播“陌生的城市和海”
 
 如果人物在讲实际旅行和生活选择，城市与海的现实 B-roll 可以具体化；人物声音继续，先城市行走，再短海面，最后回人物结论。若这句话只是抽象比喻，使用海边会让观众误以为真的旅行，应改为文字/关系 Scene 或保持人物。素材选择必须依据上下文，不只依据名词。

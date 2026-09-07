@@ -1,44 +1,81 @@
-import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
 import { join } from "node:path";
-import { pluginRootFromModule, releaseNodePath, resolveReleaseRuntime, resolveRepoRoot, resolveWorkspaceRoot } from "./repo-root.mjs";
-import { ensureRuntime } from "./runtime-launcher.mjs";
+import { pluginRootFromModule, releaseNodePath, resolveRepoRoot, resolveWorkspaceRoot } from "./repo-root.mjs";
+import { recoverMcpDeployment, withRuntimeOperationLock } from "./runtime-launcher.mjs";
+import { createReloadingMcpSession } from "./mcp-session.mjs";
 
 const pluginRoot = pluginRootFromModule(import.meta.url);
 const repoRoot = resolveRepoRoot({ pluginRoot });
 const workspaceRoot = resolveWorkspaceRoot(repoRoot);
+// Windows 会锁住进程的工作目录。完成绝对路径定位后离开安装槽，让官方插件更新可清理旧版本。
+process.chdir(repoRoot);
+
+const require = createRequire(join(repoRoot, "package.json"));
+const { Client } = require("@modelcontextprotocol/sdk/client/index.js");
+const { StdioClientTransport } = require("@modelcontextprotocol/sdk/client/stdio.js");
+const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
+const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
+const { ListToolsRequestSchema, CallToolRequestSchema } = require("@modelcontextprotocol/sdk/types.js");
+const options = { pluginRoot, repoRoot, workspaceRoot };
+let activeDeployment;
+let poll;
+let session;
+const server = new Server({ name: "video-editor-mcp", version: "1.0.0" }, { capabilities: { tools: { listChanged: true } } });
 
 try {
-  // 将发行物校验放入统一错误处理，缺少 dist 时给出可操作的中文诊断。
-  const release = resolveReleaseRuntime(pluginRoot);
-  const runtime = await ensureRuntime({ pluginRoot, repoRoot, workspaceRoot });
-  // MCP stdout 属于 JSON-RPC 协议，所有运行提示只能写 stderr。
-  console.error(`VideoFlowCut Runtime 已${runtime.reused ? "复用" : "启动"}：${runtime.webUrl}`);
-  const child = spawn(process.execPath, [release.mcpEntry], {
-    cwd: pluginRoot,
-    windowsHide: true,
-    stdio: "inherit",
-    env: {
-      ...process.env,
-      NODE_PATH: releaseNodePath(repoRoot),
-      VIDEOFLOWCUT_NODE_MODULES: join(repoRoot, "node_modules"),
-      VIDEOCUT_WORKSPACE: workspaceRoot,
-      WEB_ORIGIN: runtime.webUrl,
-      VIDEOFLOWCUT_RUNTIME_DIST: release.root,
-      // MCP 必须带着与已确认 Runtime 相同的构建摘要启动；mcp.ts 会再通过公开状态接口核验。
-      VIDEOFLOWCUT_RELEASE_ID: release.releaseId
-    }
+  session = createReloadingMcpSession({
+    runExclusive: (action) => withRuntimeOperationLock(options, action),
+    resolveDeployment: async () => {
+      activeDeployment = await recoverMcpDeployment(options, activeDeployment);
+      return activeDeployment;
+    },
+    connect: async (release) => {
+      const transport = new StdioClientTransport({
+        command: process.execPath, args: [release.mcpEntry], cwd: repoRoot, stderr: "pipe",
+        env: {
+          ...process.env, NODE_PATH: releaseNodePath(repoRoot),
+          VIDEOFLOWCUT_NODE_MODULES: join(repoRoot, "node_modules"), VIDEOCUT_WORKSPACE: workspaceRoot,
+          WEB_ORIGIN: `${release.apiUrl}/`, VIDEOFLOWCUT_RUNTIME_DIST: release.root, VIDEOFLOWCUT_RELEASE_ID: release.releaseId
+        }
+      });
+      transport.stderr?.on("data", (data) => process.stderr.write(data));
+      const client = new Client({ name: "videoflowcut-stable-session", version: "1.0.0" });
+      let alive = true;
+      client.onclose = () => { alive = false; };
+      try {
+        await client.connect(transport);
+        const result = await client.callTool({ name: "read_runtime_release", arguments: {} });
+        const status = JSON.parse(result.content.find((item) => item.type === "text").text);
+        if (result.isError || !status.aligned || status.mcpReleaseId !== release.releaseId) throw new Error("新 MCP 未通过同版握手");
+        const { tools } = await client.listTools();
+        return {
+          releaseId: release.releaseId, runtimeId: release.runtimeId, tools, isAlive: () => alive,
+          callTool: (params, requestOptions) => client.callTool(params, undefined, requestOptions),
+          close: () => client.close()
+        };
+      } catch (error) { await transport.close(); throw error; }
+    },
+    onToolsChanged: () => server.sendToolListChanged()
   });
-  const stop = () => child.kill();
-  process.once("SIGINT", stop);
-  process.once("SIGTERM", stop);
-  child.on("error", (error) => {
-    console.error(`VideoFlowCut MCP 启动失败：${error.message}`);
-    process.exitCode = 1;
-  });
-  child.on("exit", (code) => {
-    process.exitCode = code ?? 1;
-  });
+  server.setRequestHandler(ListToolsRequestSchema, () => session.listTools());
+  server.setRequestHandler(CallToolRequestSchema, (request, extra) => session.callTool(request.params, { signal: extra.signal, timeout: 180_000 }));
+  // 先建立宿主协议连接；业务 Runtime 暂不可用不应永久毒化宿主的 MCP 启动状态。
+  await server.connect(new StdioServerTransport());
+  let polling = false;
+  poll = setInterval(async () => {
+    if (polling) return;
+    polling = true;
+    try { await session.refresh(); } catch { /* 发布间隙保持宿主连接，工具调用会返回实际阻断。 */ }
+    finally { polling = false; }
+  }, 2_000);
+  const close = async () => { clearInterval(poll); await session.close(); await server.close(); };
+  process.once("SIGINT", close);
+  process.once("SIGTERM", close);
+  process.stdin.once("end", close);
+  console.error("VideoFlowCut 稳定 MCP 连接已启动；业务进程按已验证部署切换。");
 } catch (error) {
-  console.error(error instanceof Error ? `VideoFlowCut MCP 未启动：${error.message}` : error);
+  clearInterval(poll);
+  await session?.close();
+  console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
 }

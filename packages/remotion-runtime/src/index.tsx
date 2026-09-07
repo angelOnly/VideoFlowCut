@@ -1,7 +1,16 @@
 import React from "react";
-import { AbsoluteFill, Audio, Sequence, useCurrentFrame, Video } from "remotion";
+import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, useCurrentFrame } from "remotion";
 import { inspectEffectContentContract, type ActorPerformance, type AudioCue, type CaptionCard, type CaptionEmphasis, type CaptionFormat, type Cutaway, type EffectCue, type ProjectSnapshot, type TimelineItem, type TimelineTrack } from "@videocut/contracts";
 import { compileCutawayLayout, cutawaySourceVolume } from "./cutaway-layout";
+import {
+  CAPTION_BACKGROUND_VERTICAL_PADDING_EM,
+  CAPTION_FONT_FAMILY,
+  CAPTION_LINE_HEIGHT,
+  CaptionLayoutError,
+  CaptionTimelineOverlapError,
+  DEFAULT_RENDER_CAPTION_FORMAT,
+  layoutCaptionInBrowser
+} from "./caption-layout";
 import { resolveCompositionReachability } from "./composition-reachability";
 import { ExplainerSceneLayer } from "./explainer-registry";
 import { compileCameraPunchLayout, compileMotionLayout, resolveEffectStylePack, type EffectStylePack } from "./motion-layout";
@@ -10,19 +19,6 @@ export interface CompositionProps {
   snapshot: ProjectSnapshot;
   mediaBaseUrl: string;
 }
-
-/**
- * Render Worker 当前不会解析工作区 TypeScript 路径别名；此处保持与 Contract 相同的受类型约束默认值，
- * 让 Player 与 Render 均可直接打包。Card 上保存的 format 始终优先于默认值。
- */
-const DEFAULT_RENDER_CAPTION_FORMAT = {
-  fontSize: 32,
-  fontWeight: 750,
-  color: "#ffffff",
-  bottomPercent: 7,
-  horizontalInsetPercent: 8,
-  textAlign: "center"
-} satisfies CaptionFormat;
 
 /** 透明度只作用于字幕底板，不降低文字或强调短语的可读性。 */
 const captionBackgroundColor = (format: CaptionFormat): string | undefined => {
@@ -78,7 +74,7 @@ const BoundAssetVisual: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: stri
   const src = mediaUrl(snapshot, mediaBaseUrl, entry.asset.managedPath);
   if (entry.asset.kind === "video" || entry.asset.kind === "actor_video") {
     // Cue 可能位于整片后半段；Sequence 把绑定素材的时间轴重置到 Cue 起点，确保从素材第 0 帧播放。
-    return <Sequence from={cue.startFrame} durationInFrames={cue.endFrame - cue.startFrame} layout="none"><Video src={src} volume={0} style={{ ...style, objectFit: "cover" }} /></Sequence>;
+    return <Sequence from={cue.startFrame} durationInFrames={cue.endFrame - cue.startFrame} layout="none"><OffthreadVideo src={src} volume={0} transparent={Boolean(entry.asset.metadata?.hasAlpha)} style={{ ...style, objectFit: "cover" }} /></Sequence>;
   }
   return <img src={src} alt={entry.asset.name} style={{ ...style, objectFit: "cover" }} />;
 };
@@ -135,7 +131,15 @@ const CueLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue:
   const frame = useCurrentFrame();
   if (frame < cue.startFrame || frame >= cue.endFrame) return null;
   // 无法满足正式内容合同的 Cue 由 QualityReport 标为问题；Preview 和交付都不能绘制调试占位。
-  if (!inspectEffectContentContract(cue, snapshot.assets).ready) return null;
+  if (!inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline).ready) return null;
+  if (cue.type === "ManagedMotion") {
+    const asset = snapshot.assets.find((entry) => entry.id === cue.assetBindings.find((binding) => binding.slot === "motion")?.assetId);
+    if (!asset?.motion) return null;
+    const localFrame = frame - cue.startFrame;
+    const framePath = `${asset.motion.framesDirectory}/frame-${String(localFrame).padStart(5, "0")}.png`;
+    // 直接使用固定版本的透明帧，不叠加旧 Registry 的通用进出场，也不播放审阅代理的背景。
+    return <AbsoluteFill><Img src={mediaUrl(snapshot, mediaBaseUrl, framePath)} style={{ width: "100%", height: "100%", objectFit: "contain" }} /></AbsoluteFill>;
+  }
   // actor_head / actor_hands 只从当前帧的 Actor / A-roll 已就绪表演读取。
   // 多人物同时命中时不猜数组第一个，Quality 会阻止交付，这里安全降级到普通位置。
   const tracksById = new Map(snapshot.timeline.tracks.map((track) => [track.id, track]));
@@ -199,30 +203,100 @@ export function resolveWordExactCaptionHighlight(
   };
 }
 
-/** 段级字幕保持稳定；只有经真实对齐验证的当前词才会覆盖为短暂的词级强调。 */
+/**
+ * 段级字幕保持稳定；只有经真实对齐验证的当前词才会覆盖为短暂的词级强调。
+ * 关键点：浏览器只收到一或两条明确的行，并使用 whiteSpace: pre。绝不让 CSS 再把一条
+ * Provider segment 偷偷折成第三行；真正不能装下时显式抛出 CAPTION_LAYOUT_OVERFLOW。
+ */
 const CaptionLayer: React.FC<{ snapshot: ProjectSnapshot; caption: CaptionCard }> = ({ snapshot, caption }) => {
   const frame = useCurrentFrame();
   const format = { ...DEFAULT_RENDER_CAPTION_FORMAT, ...caption.format };
   const backgroundColor = captionBackgroundColor(format);
   const emphasis = resolveWordExactCaptionHighlight(snapshot, caption, frame) ?? caption.emphasis;
-  const emphasisIndex = emphasis ? captionEmphasisIndex(caption.text, emphasis.text, emphasis.occurrence) : -1;
-  const before = emphasisIndex >= 0 && emphasis ? caption.text.slice(0, emphasisIndex) : caption.text;
-  const focused = emphasisIndex >= 0 && emphasis ? caption.text.slice(emphasisIndex, emphasisIndex + emphasis.text.length) : "";
-  const after = emphasisIndex >= 0 && emphasis ? caption.text.slice(emphasisIndex + emphasis.text.length) : "";
+  // emphasis 的 transform 不参与普通 CSS 流式布局；先按最大字号/字重预留空间，避免视觉上越出安全区。
+  const layout = React.useMemo(() => layoutCaptionInBrowser({
+    text: caption.text,
+    compositionWidth: snapshot.timeline.width,
+    format,
+    emphasisScale: emphasis?.scale,
+    emphasisFontWeight: emphasis?.fontWeight
+  }), [caption.text, emphasis?.fontWeight, emphasis?.scale, format, snapshot.timeline.width]);
+  const displayText = layout.ready ? layout.lines.join("\n") : "";
+  const emphasisIndex = emphasis ? captionEmphasisIndex(displayText, emphasis.text, emphasis.occurrence) : -1;
+  const before = emphasisIndex >= 0 && emphasis ? displayText.slice(0, emphasisIndex) : displayText;
+  const focused = emphasisIndex >= 0 && emphasis ? displayText.slice(emphasisIndex, emphasisIndex + emphasis.text.length) : "";
+  const after = emphasisIndex >= 0 && emphasis ? displayText.slice(emphasisIndex + emphasis.text.length) : "";
+  const contentRef = React.useRef<HTMLSpanElement>(null);
+  const layoutCheckKey = `${displayText}\u0000${format.fontSize}\u0000${format.fontWeight}\u0000${format.horizontalInsetPercent}\u0000${backgroundColor ?? ""}`;
+  const [domCheck, setDomCheck] = React.useState<{ key: string; overflowReason?: string }>({ key: layoutCheckKey });
+
+  React.useLayoutEffect(() => {
+    if (!layout.ready || !contentRef.current) return;
+    const element = contentRef.current;
+    const verticalPadding = backgroundColor ? format.fontSize * CAPTION_BACKGROUND_VERTICAL_PADDING_EM : 0;
+    const allowedHeight = format.fontSize * CAPTION_LINE_HEIGHT * layout.lines.length + verticalPadding;
+    // Canvas 是同一 Chromium / 同一字体栈的分行依据；DOM 再以实际 box 复核，防止字体回退、
+    // 字重或浏览器实现差异变成横向溢出或意外第三行。
+    // 所有测量使用未变换的 CSS 布局像素；Player 的整体缩放不能与 scrollWidth 混比。
+    const renderedWidth = element.offsetWidth;
+    const availableWidth = element.parentElement?.clientWidth ?? 0;
+    const horizontalOverflow = renderedWidth > availableWidth + 1
+      || (renderedWidth > 0 && element.scrollWidth > Math.ceil(renderedWidth) + 1);
+    const verticalOverflow = element.scrollHeight > Math.ceil(allowedHeight) + 1;
+    const reason = horizontalOverflow || verticalOverflow
+      ? `DOM_MEASURED_OVERFLOW(width ${element.scrollWidth}/${Math.ceil(renderedWidth)}/${Math.ceil(availableWidth)}; height ${element.scrollHeight}/${Math.ceil(allowedHeight)})`
+      : undefined;
+    setDomCheck((previous) => previous.key === layoutCheckKey && previous.overflowReason === reason
+      ? previous
+      : { key: layoutCheckKey, overflowReason: reason });
+  }, [backgroundColor, displayText, format.fontSize, layout, layoutCheckKey]);
+
+  if (!layout.ready) throw new CaptionLayoutError(layout.reason);
+  // 切到下一张 Card 时，前一张的 DOM 复核结果不能污染新布局；新布局会在 layout effect 后写回。
+  if (domCheck.key === layoutCheckKey && domCheck.overflowReason) throw new CaptionLayoutError(domCheck.overflowReason);
+
   return <div style={{
     position: "absolute",
     left: `${format.horizontalInsetPercent}%`,
-    right: `${format.horizontalInsetPercent}%`,
+    // selectComposition 元数据阶段的父画布还可能为零宽；字幕安全宽度由同一 Timeline
+    // 尺寸确定，不能靠百分比收缩成仅剩底板 padding，也不能跳过真实溢出校验。
+    width: snapshot.timeline.width * (1 - format.horizontalInsetPercent * 2 / 100),
     bottom: `${format.bottomPercent}%`,
     color: format.color,
     fontSize: format.fontSize,
     fontWeight: format.fontWeight,
-    lineHeight: 1.36,
+    lineHeight: CAPTION_LINE_HEIGHT,
     textAlign: format.textAlign,
     textShadow: "0 3px 14px #000",
-    fontFamily: "Inter, Noto Sans SC, sans-serif",
-    whiteSpace: "pre-wrap"
-  }}><span style={backgroundColor ? { display: "inline", padding: "0.13em 0.32em", borderRadius: "0.22em", backgroundColor } : undefined}>{before}{focused && emphasis && <span style={{ display: "inline-block", color: emphasis.color ?? format.color, backgroundColor: emphasis.backgroundColor, fontWeight: emphasis.fontWeight ?? Math.min(900, format.fontWeight + 100), transform: emphasis.scale === undefined ? undefined : `scale(${emphasis.scale})`, transformOrigin: "center bottom" }}>{focused}</span>}{after}</span></div>;
+    fontFamily: CAPTION_FONT_FAMILY
+  }}><span
+      ref={contentRef}
+      data-caption-layout="two-lines-max"
+      style={{
+        display: "inline-block",
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        // 只显示 layoutCaptionInBrowser 产出的 \n；pre 禁止浏览器进行额外自动折行。
+        whiteSpace: "pre",
+        padding: backgroundColor ? "0.13em 0.32em" : undefined,
+        borderRadius: backgroundColor ? "0.22em" : undefined,
+        backgroundColor
+      }}
+    >{before}{focused && emphasis && <span style={{ display: "inline-block", color: emphasis.color ?? format.color, backgroundColor: emphasis.backgroundColor, fontWeight: emphasis.fontWeight ?? Math.min(900, format.fontWeight + 100), transform: emphasis.scale === undefined ? undefined : `scale(${emphasis.scale})`, transformOrigin: "center bottom" }}>{focused}</span>}{after}</span></div>;
+};
+
+/** 纯函数也供质量/测试核对：半开区间内同一帧最多只能命中一条 CaptionCard。 */
+export function activeCaptionsAtFrame(captions: CaptionCard[], frame: number): CaptionCard[] {
+  return captions.filter((caption) => frame >= caption.startFrame && frame < caption.endFrame);
+}
+
+/** 统一字幕轨只渲染当前一条 Card；错误数据不会靠 DOM 叠加假装成功。 */
+const CaptionTrackLayer: React.FC<{ snapshot: ProjectSnapshot }> = ({ snapshot }) => {
+  const frame = useCurrentFrame();
+  const active = activeCaptionsAtFrame(snapshot.timeline.captions, frame);
+  if (active.length === 0) return null;
+  if (active.length > 1) throw new CaptionTimelineOverlapError();
+  return <CaptionLayer snapshot={snapshot} caption={active[0]!} />;
 };
 
 const itemDuration = (item: TimelineItem) => item.endFrame - item.startFrame;
@@ -362,16 +436,17 @@ const VideoLayer: React.FC<{
     Object.assign(videoStyle, { maskImage: `url("${maskUrl}")`, maskSize: "100% 100%", maskRepeat: "no-repeat", WebkitMaskImage: `url("${maskUrl}")`, WebkitMaskSize: "100% 100%", WebkitMaskRepeat: "no-repeat" });
   }
   const sourceVolume = resolveVideoSourceVolume(snapshot, item, track, performance, cutaway);
+  // 导出按时间戳解码确切源帧，不截取 HTML5 seek 后可能仍显示的旧帧；Player 仍正常连续播放。
   if (cutaway) {
     const aspectRatio = asset.metadata?.width && asset.metadata.height ? asset.metadata.width / asset.metadata.height : undefined;
     const layout = compileCutawayLayout(cutaway, aspectRatio);
     return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}>
       <div style={layout.container}>
-        <Video src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} volume={sourceVolume} style={layout.media} />
+        <OffthreadVideo src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} volume={sourceVolume} transparent={Boolean(asset.metadata?.hasAlpha)} style={layout.media} />
       </div>
     </Sequence>;
   }
-  return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}><Video src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} volume={sourceVolume} style={videoStyle} /></Sequence>;
+  return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}><OffthreadVideo src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} volume={sourceVolume} transparent={Boolean(asset.metadata?.hasAlpha)} style={videoStyle} /></Sequence>;
 };
 
 const AudioLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; item: TimelineItem; track: TimelineTrack; cue?: AudioCue }> = ({ snapshot, mediaBaseUrl, item, track, cue }) => {
@@ -405,6 +480,11 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
   const audioCuesByItem = new Map((snapshot.audioCues ?? []).filter((cue) => cue.status === "ready").map((cue) => [cue.timelineItemId, cue]));
   const readyCues = (snapshot.effectCues ?? []).filter((cue) => reachability.effectCueIds.has(cue.id));
   const cuesAt = (...layers: EffectCue["layer"][]) => readyCues.filter((cue) => layers.includes(cue.layer));
+  // 解释片的全屏 Cue 与原生 Program 都是主视觉，不能在 Cutaway 之上再次盖回模型。
+  // 明确 front 包装仍在 Cutaway 上方；主视觉一直使用原局部时间，返回不重启动画。
+  const explainerSceneIds = new Set(snapshot.scenes.filter(scene => scene.type === "ExplainerScene").map(scene => scene.id));
+  const primaryExplainerCues = cuesAt("fullscreen").filter(cue => explainerSceneIds.has(cue.sceneId));
+  const renderVideoItem = (item: TimelineItem) => <VideoLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} performance={performancesByItem.get(item.id)} cutaway={cutawaysByItem.get(item.id)} compositionFrame={frame} />;
   // 后景 Cue 只有被同一个 Actor / A-roll 人物在完整范围内覆盖时才能置于人物后方。
   const hasMaskedActorFor = (cue: EffectCue) => videoItems.some((item) => {
     if (item.sceneId !== cue.sceneId || item.startFrame > cue.startFrame || item.endFrame < cue.endFrame
@@ -416,13 +496,15 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
 
   return <AbsoluteFill style={{ backgroundColor: "#070914", overflow: "hidden" }}>
     {rearCues.filter(hasMaskedActorFor).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
-    {videoItems.map((item) => <VideoLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} performance={performancesByItem.get(item.id)} cutaway={cutawaysByItem.get(item.id)} compositionFrame={frame} />)}
+    {videoItems.filter(item => !cutawaysByItem.has(item.id)).map(renderVideoItem)}
     {/* ExplainerProgram 是主视觉，不借用 Presenter Cue；没有对应 Program 的普通 Scene 不会凭空渲染。 */}
     <ExplainerSceneLayer snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} />
+    {primaryExplainerCues.map(cue => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
+    {videoItems.filter(item => cutawaysByItem.has(item.id)).map(renderVideoItem)}
     {rearCues.filter((cue) => !hasMaskedActorFor(cue)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
     {cuesAt("actor", "front").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
-    {cuesAt("fullscreen").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
-    {snapshot.timeline.captions.map((caption) => <Sequence key={caption.id} from={caption.startFrame} durationInFrames={caption.endFrame - caption.startFrame}><CaptionLayer snapshot={snapshot} caption={caption} /></Sequence>)}
+    {cuesAt("fullscreen").filter(cue => !explainerSceneIds.has(cue.sceneId)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
+    <CaptionTrackLayer snapshot={snapshot} />
     {audioItems.map((item) => <AudioLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} cue={audioCuesByItem.get(item.id)} />)}
   </AbsoluteFill>;
 };

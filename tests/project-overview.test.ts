@@ -36,7 +36,8 @@ async function sourceFiles(directory: string): Promise<string[]> {
 }
 
 function environmentKeys(source: string): string[] {
-  return [...source.matchAll(/(?:process\.env|import\.meta\.env|environment)\.([A-Z][A-Z0-9_]*)/gu)]
+  // 不把 Windows 的 SystemRoot 截断识别成一个名为 S 的项目配置。
+  return [...source.matchAll(/(?:process\.env|import\.meta\.env|environment)\.([A-Z][A-Z0-9_]*)(?![A-Za-z0-9_])/gu)]
     .map((match) => match[1]!);
 }
 
@@ -52,7 +53,7 @@ function textFromToolResult(result: unknown): string {
 }
 
 test("MCP 注册工具全部归入项目总览能力目录", async () => {
-  const source = await readFile(mcpSourcePath, "utf8");
+  const source = await readFile(mcpSourcePath, "utf8") + await readFile(join(repositoryRoot, "apps/server/src/motion-tools.ts"), "utf8");
   const registered = registeredToolNames(source);
   const catalogued = MCP_CAPABILITY_GROUPS.flatMap((group) => group.tools);
   const missing = registered.filter((name) => !catalogued.includes(name));
@@ -106,6 +107,10 @@ test("Web 与插件启动器配置也在项目总览中可见", async () => {
   assert.deepEqual(launcherKeys, ["VIDEOFLOWCUT_REPO_ROOT", "VIDEOFLOWCUT_PORT", "NODE_PATH"]);
   assert.match(launcherSource, /VIDEOFLOWCUT_REPO_ROOT/u);
   assert.match(launcherSource, /VIDEOFLOWCUT_PORT/u);
+});
+
+test("环境变量目录扫描不截断混合大小写系统变量", () => {
+  assert.deepEqual(environmentKeys("process.env.SystemRoot; process.env.VIDEOCUT_WORKSPACE; environment.PORT"), ["VIDEOCUT_WORKSPACE", "PORT"]);
 });
 
 test("显式环境变量与总览配置目录严格一致", async () => {

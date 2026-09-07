@@ -13,8 +13,10 @@ const generatedSharedFiles = new Set([
   "_shared/agents/openai.yaml"
 ]);
 const runtimeRoot = join(pluginRoot, "runtime", "dist");
+const semanticVersionPattern = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u;
 const releaseFiles = [
   ["Runtime 入口", join(runtimeRoot, "runtime.cjs")],
+  ["渲染线程入口", join(runtimeRoot, "render-thread.cjs")],
   ["MCP 入口", join(runtimeRoot, "mcp.cjs")],
   ["Remotion 入口", join(runtimeRoot, "remotion", "render-entry.cjs")],
   ["Web 入口", join(runtimeRoot, "web", "index.html")],
@@ -83,10 +85,18 @@ if (generatedSharedMetadata?.replace(/\r\n/g, "\n") !== expectedGeneratedSharedM
 
 await Promise.all(releaseFiles.map(([label, path]) => requireNonEmptyFile(label, path)));
 const releaseManifest = JSON.parse(await readFile(join(runtimeRoot, "manifest.json"), "utf8"));
+const manifest = JSON.parse(await readFile(join(pluginRoot, ".codex-plugin", "plugin.json"), "utf8"));
+if (manifest.name !== "videoflowcut" || manifest.mcpServers !== "./.mcp.json" || manifest.skills !== "./skills/") {
+  throw new Error("插件 manifest 未声明预期的 Skills 或 MCP 入口。");
+}
+if (!semanticVersionPattern.test(manifest.version ?? "")) {
+  throw new Error("插件 manifest 缺少可发布版本。");
+}
 if (releaseManifest.schemaVersion !== 2 || releaseManifest.format !== "commonjs"
   || releaseManifest.runtimeEntry !== "runtime.cjs" || releaseManifest.mcpEntry !== "mcp.cjs"
   || releaseManifest.remotionEntry !== "remotion/render-entry.cjs" || releaseManifest.webRoot !== "web"
-  || releaseManifest.nodeRuntime !== ">=22.5.0" || !/^release-[a-f0-9]{64}$/u.test(releaseManifest.releaseId ?? "")) {
+  || releaseManifest.nodeRuntime !== ">=22.5.0" || releaseManifest.pluginVersion !== manifest.version
+  || !/^release-[a-f0-9]{64}$/u.test(releaseManifest.releaseId ?? "")) {
   throw new Error("插件发行 Runtime manifest 与启动约定不一致。请重新执行 npm run plugin:build。");
 }
 // 启动器也会执行这一校验；verify 提前失败让“只改 manifest”的伪发行无法进入部署流程。
@@ -94,14 +104,11 @@ resolveReleaseRuntime(pluginRoot);
 await Promise.all([
   "repo-root.mjs",
   "runtime-launcher.mjs",
-  "mcp-launcher.mjs"
+  "mcp-launcher.mjs",
+  "candidate-runtime.mjs"
 ].map((file) => assertNoSourceRuntimeLaunch(join(pluginRoot, "scripts", file))));
 await Promise.all(releaseFiles.slice(0, 3).map(([, path]) => assertNoSourceRuntimeLaunch(path)));
 
-const manifest = JSON.parse(await readFile(join(pluginRoot, ".codex-plugin", "plugin.json"), "utf8"));
-if (manifest.name !== "videoflowcut" || manifest.mcpServers !== "./.mcp.json" || manifest.skills !== "./skills/") {
-  throw new Error("插件 manifest 未声明预期的 Skills 或 MCP 入口。");
-}
 const mcp = JSON.parse(await readFile(join(pluginRoot, ".mcp.json"), "utf8"));
 if (mcp.mcpServers?.videoflowcut?.command !== "node" || mcp.mcpServers?.videoflowcut?.args?.[0] !== "./scripts/mcp-launcher.mjs") {
   throw new Error("插件 MCP 必须以 Node 启动发行 Runtime 启动器。");

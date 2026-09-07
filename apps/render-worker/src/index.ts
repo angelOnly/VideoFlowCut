@@ -2,15 +2,17 @@ import { createApplication, type EditingApplication } from "@videocut/applicatio
 import { runOneQueuedJob, type JobProcessor } from "@videocut/job-runtime";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import type { JobKind } from "@videocut/contracts";
-import { RevisionRenderer, runExportJob, runPreviewJob, runRenderPreflightJob } from "./exporter.js";
+import { RevisionRenderer, runExportJob, runPreviewJob, runRenderPreflightJob, type RevisionRenderEngine } from "./exporter.js";
+import { runMotionJob } from "./motion-job.js";
 
 const workspaceRoot = readRuntimeConfig().workspace.root;
 let defaultApplication: EditingApplication | undefined;
 const getDefaultApplication = () => (defaultApplication ??= createApplication(workspaceRoot));
-export const RENDER_JOB_KINDS: JobKind[] = ["preview", "render_preflight", "export"];
+export const RENDER_JOB_KINDS: JobKind[] = ["preview", "render_preflight", "export", "motion_generation"];
 
-export function createRenderJobProcessor(app: EditingApplication, renderer = new RevisionRenderer()): JobProcessor {
+export function createRenderJobProcessor(app: EditingApplication, renderer: RevisionRenderEngine = new RevisionRenderer()): JobProcessor {
   return async (job) => {
+    if (job.kind === "motion_generation") return runMotionJob(app, job);
     if (job.kind === "preview") return runPreviewJob(app, job, renderer);
     if (job.kind === "render_preflight") return runRenderPreflightJob(app, job);
     if (job.kind === "export") return runExportJob(app, job, renderer);
@@ -25,14 +27,14 @@ export async function runOneRenderJob(
   return runOneQueuedJob(app, RENDER_JOB_KINDS, processor, 5 * 60_000);
 }
 
-export async function runRenderWorkerForever(app: EditingApplication = getDefaultApplication(), signal?: AbortSignal): Promise<void> {
+export async function runRenderWorkerForever(app: EditingApplication = getDefaultApplication(), signal?: AbortSignal, renderer: RevisionRenderEngine = new RevisionRenderer()): Promise<void> {
   let stopping = signal?.aborted ?? false;
   const stop = () => { stopping = true; };
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
   signal?.addEventListener("abort", stop, { once: true });
   try {
-    const processor = createRenderJobProcessor(app);
+    const processor = createRenderJobProcessor(app, renderer);
     while (!stopping) {
       const worked = await runOneRenderJob(app, processor);
       if (!worked) await new Promise((resolve) => setTimeout(resolve, 750));

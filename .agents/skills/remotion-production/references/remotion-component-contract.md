@@ -2,7 +2,7 @@
 
 ## 生产组件与代码组件
 
-视频生产任务只能使用已经进入 Registry、通过类型检查、渲染测试和 Golden Frame 的组件。创建新组件属于代码开发，不能在一次成片任务中临时执行任意 JSX。开发完成后，组件以明确 Effect/Scene Type、Props Schema、Asset Slot、默认值、质量规则和版本进入 Registry。
+平台组件仍通过 Registry、类型检查、渲染测试和 Golden Frame 发布。项目独有作品可经 `submit_motion_work` 保存固定源码/Props 并隔离渲染，不改平台 Registry、不重新部署服务；只有改变运行能力和全局组件才属于平台开发。剪辑任务不能直接改源码文件或绕过 MCP 执行 JSX。
 
 ## 组件输入
 
@@ -26,7 +26,7 @@ Props 应避免 `Record<string, any>` 无约束扩散。即使 EffectCue 当前�
 
 ## Natural Box
 
-Overlay 组件的根布局尽量对应可见内容自然盒；全屏 Scene 才占 `AbsoluteFill`。时间线放置和 Inspector 缩放应作用于组件盒，避免透明全画布导致碰撞和 Selection 不准确。
+Registry Overlay 组件的根布局尽量对应可见内容自然盒；全屏 Scene 才占 `AbsoluteFill`。受管作品首版固定为目标画布大小的透明帧，内部定位和尺寸从源码/Props 修改后重渲染；Cue 不提供自然盒缩放，不假装通用空间参数已经生效。
 
 ## 字体、资源和确定性
 
@@ -38,7 +38,7 @@ Overlay 组件的根布局尽量对应可见内容自然盒；全屏 Scene 才�
 
 ## 安全
 
-未来代码型 MG 需要 AST/Import allowlist、构建超时、无文件和网络访问、输出大小限制、运行隔离、审查和测试。失败时返回代码诊断，不能自动绕过安全检查或手写 Shader 作为 Fallback。
+受管作品使用 AST/Import allowlist、帧驱动约束、独立 Chromium sandbox、响应级 CSP sandbox、网络拒绝、执行超时和输出限额。它只在渲染环境执行，主工作台读取已验证透明帧。AST 扫描并非安全沙箱；失败返回诊断，不能关闭隔离或手写 Shader 绕过。
 
 ## Registry 条目建议
 

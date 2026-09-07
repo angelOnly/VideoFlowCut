@@ -1,6 +1,7 @@
 import React from "react";
-import { AbsoluteFill, Sequence, Video, useCurrentFrame } from "remotion";
+import { AbsoluteFill, OffthreadVideo, Sequence, useCurrentFrame } from "remotion";
 import type { Asset, ExplainerSceneKind, ProjectSnapshot, Scene } from "@videocut/contracts";
+import { resolveCompositionReachability } from "./composition-reachability";
 import { CuratedShaderVisual, RestrictedSceneVisual, resolveAdvancedVisualRequest, resolveRestrictedScene } from "./restricted-scene-registry";
 
 /**
@@ -147,7 +148,7 @@ const SceneAsset: React.FC<{ snapshot: ExplainerSnapshot; mediaBaseUrl: string; 
   if (!asset) return <div style={{ ...style, display: "grid", placeItems: "center", color: "#d7dced", background: "#1c2437", fontWeight: 700 }}>缺少已绑定的项目素材</div>;
   const src = mediaUrl(snapshot, mediaBaseUrl, asset.managedPath);
   if (asset.kind === "video" || asset.kind === "actor_video") {
-    return <Video src={src} volume={0} style={{ width: "100%", height: "100%", objectFit: "cover", ...style }} />;
+    return <OffthreadVideo src={src} volume={0} transparent={Boolean(asset.metadata?.hasAlpha)} style={{ width: "100%", height: "100%", objectFit: "cover", ...style }} />;
   }
   return <img src={src} alt={asset.name} style={{ width: "100%", height: "100%", objectFit: "contain", ...style }} />;
 };
@@ -296,8 +297,9 @@ const ExplainerVisual: React.FC<{ snapshot: ExplainerSnapshot; mediaBaseUrl: str
 export const ExplainerSceneLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string }> = ({ snapshot: rawSnapshot, mediaBaseUrl }) => {
   const snapshot = rawSnapshot as ExplainerSnapshot;
   const frame = useCurrentFrame();
+  const { explainerProgramIds } = resolveCompositionReachability(rawSnapshot);
   return <>
-    {(snapshot.explainerPrograms ?? []).filter((program) => program.status === "ready").map((program) => {
+    {(snapshot.explainerPrograms ?? []).filter((program) => explainerProgramIds.has(program.id)).map((program) => {
       const scene = snapshot.scenes.find((candidate) => candidate.id === program.sceneId && candidate.type === "ExplainerScene" && candidate.status === "ready");
       if (!scene || frame < scene.startFrame || frame >= scene.endFrame) return null;
       const localFrame = frame - scene.startFrame;

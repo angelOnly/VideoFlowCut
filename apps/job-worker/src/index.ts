@@ -13,7 +13,7 @@ import { createApplication, type EditingApplication } from "@videocut/applicatio
 import { assetById, DomainError } from "@videocut/domain";
 import { runOneQueuedJob, type JobProcessor } from "@videocut/job-runtime";
 import { readRuntimeConfig } from "@videocut/project-overview";
-import { FunASRService, OmniVoiceSegmentService, SourceCaptionSentenceAlignmentService, SourceCaptionService, probeMedia, runProcess } from "@videocut/speech";
+import { FunASRService, OmniVoiceSegmentService, SourceCaptionAlignmentService, probeMedia, runProcess } from "@videocut/speech";
 import type { Asset, BridgeRunAudit, JobKind, JobRecord, ProjectSnapshot } from "@videocut/contracts";
 import { runAvatarGeneration } from "./avatar-generation.js";
 import { runDialogueProcessing } from "./dialogue-processing.js";
@@ -27,7 +27,11 @@ const workspaceRoot = readRuntimeConfig().workspace.root;
 let defaultApplication: EditingApplication | undefined;
 const getDefaultApplication = () => (defaultApplication ??= createApplication(workspaceRoot));
 
-export const MEDIA_JOB_KINDS: JobKind[] = ["media_analysis", "vlog_analysis", "multicam_sync", "asset_acquisition", "transcription", "source_caption_generation", "source_caption_sentence_alignment", "voice_synthesis", "dialogue_processing", "speech_alignment", "music_generation", "video_generation", "avatar_generation"];
+/**
+ * 历史 source_caption_generation / source_caption_sentence_alignment 仍可从 SQLite 读取，
+ * 但绝不能被 Worker claim 或重新执行；唯一正式入口是段级 source_caption_alignment。
+ */
+export const MEDIA_JOB_KINDS: JobKind[] = ["media_analysis", "vlog_analysis", "multicam_sync", "asset_acquisition", "transcription", "source_caption_alignment", "voice_synthesis", "dialogue_processing", "speech_alignment", "music_generation", "video_generation", "avatar_generation"];
 
 const resolveAssetPath = (snapshot: ProjectSnapshot, asset: Asset) => isAbsolute(asset.managedPath) ? asset.managedPath : join(snapshot.project.rootPath, asset.managedPath);
 
@@ -124,7 +128,8 @@ async function runAssetAcquisition(
     const sourceHash = await hashFile(downloaded.filePath);
     const current = application.readProject(job.projectId);
     const duplicate = current.snapshot.assets.find((asset) => asset.sourceHash === sourceHash);
-    const extension = extname(downloaded.fileName).toLocaleLowerCase() || ".mp4";
+    const extension = extname(downloaded.fileName).toLocaleLowerCase();
+    if (!extension) throw new DomainError("Provider 必须提供与已验证媒体一致的文件后缀", "ASSET_DOWNLOAD_EXTENSION_MISSING");
     const relativePath = join("assets", "source", `${sourceHash.slice(0, 20)}${extension}`);
     storedPath = join(current.snapshot.project.rootPath, relativePath);
     if (duplicate) {
@@ -224,8 +229,7 @@ export function createMediaJobProcessor(
   providers: AssetProviderRegistry = createDefaultAssetProviderRegistry()
 ): JobProcessor {
   const funAsr = new FunASRService(app, bridge);
-  const sourceCaptions = new SourceCaptionService(app, bridge);
-  const sourceCaptionSentenceAlignment = new SourceCaptionSentenceAlignmentService(app, bridge);
+  const sourceCaptionAlignment = new SourceCaptionAlignmentService(app, bridge);
   const omniVoice = new OmniVoiceSegmentService(app, bridge);
   return async (job) => {
     switch (job.kind) {
@@ -245,10 +249,8 @@ export function createMediaJobProcessor(
           ? funAsr.resumeTranscription(job.projectId, assetId, audit, report)
           : funAsr.transcribe(job.projectId, assetId, report);
       }
-      case "source_caption_generation":
-        return sourceCaptions.generate(job);
-      case "source_caption_sentence_alignment":
-        return sourceCaptionSentenceAlignment.align(job);
+      case "source_caption_alignment":
+        return sourceCaptionAlignment.align(job);
       case "voice_synthesis":
         return omniVoice.synthesize(
           job.projectId,

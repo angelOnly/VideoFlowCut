@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
+import { usePreviewInput } from "./use-preview-input";
 import { EFFECT_TYPES, type AgentWorkOrder, type Asset, type AudioCue, type CaptionCard, type DialogueProcessingIssue, type DialogueProcessingProfile, type EffectCue, type ExportArtifact, type ProductionProfile, type ProjectSnapshot, type Scene, type SpeechAsset, type TimelineItem } from "@videocut/contracts";
 import { ProjectComposition, mediaUrl } from "@videocut/remotion";
 import { API_BASE, api, type ProjectState } from "./api";
 import { AdvancedWorkflowsPanel } from "./AdvancedWorkflowsPanel";
 import { SourceReviewPanel } from "./SourceReviewPanel";
+import { MotionLibraryPanel } from "./MotionLibraryPanel";
+import { SoundLibraryPanel } from "./SoundLibraryPanel";
 
 type Panel = "assets" | "agent_work_orders" | "script" | "audio" | "actors" | "scenes" | "captions" | "advanced" | "jobs";
 type Selection = { kind: "asset" | "scene" | "item" | "cue"; id: string } | undefined;
@@ -48,7 +51,8 @@ const effectLayerByType: Record<EffectCue["type"], EffectCue["layer"]> = {
   FullScreenMeme: "fullscreen",
   DeviceShowcase: "front",
   ContentCarousel: "front",
-  EndCard: "fullscreen"
+  EndCard: "fullscreen",
+  ManagedMotion: "front"
 };
 
 const formatDuration = (frames: number, fps: number) => `${(frames / fps).toFixed(1)} 秒`;
@@ -256,6 +260,7 @@ export function App() {
   };
 
   const snapshot = state?.snapshot;
+  const previewInput = usePreviewInput(snapshot, API_BASE);
   const currentRevision = state?.revision.number ?? 0;
   const selectedAsset = selection?.kind === "asset" ? snapshot?.assets.find((asset) => asset.id === selection.id) : undefined;
   const selectedScene = selection?.kind === "scene" ? snapshot?.scenes.find((scene) => scene.id === selection.id) : undefined;
@@ -429,7 +434,7 @@ export function App() {
             <Player
               ref={playerRef}
               component={ProjectComposition}
-              inputProps={{ snapshot, mediaBaseUrl: API_BASE }}
+              inputProps={previewInput!}
               durationInFrames={Math.max(1, snapshot.timeline.durationInFrames)}
               compositionWidth={snapshot.timeline.width}
               compositionHeight={snapshot.timeline.height}
@@ -534,7 +539,7 @@ function PanelContent(props: PanelContentProps) {
       <div className="asset-list">{snapshot.assets.map((asset) => <article key={asset.id} className="asset-card" data-testid={`asset-${asset.id}`} data-object-id={asset.id} aria-label={`素材：${asset.name}`} onClick={() => props.onSelect({ kind: "asset", id: asset.id })}>
         {asset.metadata?.thumbnailPath ? <img src={mediaUrl(snapshot, API_BASE, asset.metadata.thumbnailPath)} alt="素材缩略图" /> : <div className="asset-placeholder">{assetIcon(asset)}</div>}
         <div className="asset-copy"><strong>{asset.name}</strong><small>{asset.metadata?.durationMs ? `${(asset.metadata.durationMs / 1000).toFixed(1)} 秒` : "等待媒体分析"}</small><span className={`status status-${asset.status}`}>{statusText(asset.status)}</span></div>
-        {(asset.kind === "video" || asset.kind === "actor_video") && asset.status === "ready" && <button className="compact" onClick={(event) => { event.stopPropagation(); props.onToggleARoll(asset.id); }}>{props.selectedARollIds.includes(asset.id) ? "取消 A-roll" : "选为 A-roll"}</button>}
+        {(asset.kind === "video" || asset.kind === "actor_video") && !asset.motion && asset.status === "ready" && <button className="compact" onClick={(event) => { event.stopPropagation(); props.onToggleARoll(asset.id); }}>{props.selectedARollIds.includes(asset.id) ? "取消 A-roll" : "选为 A-roll"}</button>}
         {(asset.kind === "video" || asset.kind === "actor_video") && asset.status === "ready" && asset.metadata?.hasAudio && <button className="compact" onClick={(event) => { event.stopPropagation(); props.onTranscribe(asset.id); }}>转写</button>}
       </article>)}</div>
     </>;
@@ -609,6 +614,7 @@ function PanelContent(props: PanelContentProps) {
         onSelect={props.onSelectDialogueProcessingVariant}
       />}
       <PanelTitle title="BGM / SFX" meta={`${snapshot.audioCues.length} 条声音包装`} />
+      <SoundLibraryPanel snapshot={snapshot} />
       <p className="empty-panel">BGM 只服务当前主线并按 Dialogue Duck；SFX 必须以播放头作为明确事件落点。这里不猜测音效起音，需在真实试听中复核。</p>
       {readyMixAssets.length === 0 && <p className="empty-panel">导入并分析完成独立音频后，才可作为 BGM 或 SFX 使用。</p>}
       {readyMixAssets.map((asset) => {
@@ -654,7 +660,7 @@ function PanelContent(props: PanelContentProps) {
   }
   return <>
     <PanelTitle title="Jobs / Quality / Revision" meta="统一状态" />
-    <section className="quality-section"><h3>质量门禁</h3>{props.quality && <p className="quality-review-status">编辑审片：{props.quality.editorial.status === "reviewed" ? "已记录" : props.quality.editorial.status === "stale" ? "已过期，需复核当前 Revision" : "尚未记录"} · 预览证据 {props.quality.editorial.previewEvidence.length} 条</p>}{props.quality?.issues.length ? props.quality.issues.map((issue) => <div className={`quality-row ${issue.level}`} key={issue.id}><strong>{issue.level === "blocking" ? "阻塞" : "建议"}</strong><span>{issue.message}</span></div>) : <p className="success-text">没有检测到结构性问题</p>}</section>
+    <section className="quality-section"><h3>质量门禁</h3>{props.quality && <p className="quality-review-status">编辑审片：{props.quality.editorial.status === "reviewed" ? "本版五轮覆盖完整" : props.quality.editorial.status === "partial" ? "阶段记录，整片尚未审完" : props.quality.editorial.status === "stale" ? "已过期，需复核当前 Revision" : "尚未记录"} · 预览证据 {props.quality.editorial.previewEvidence.length} 条</p>}{props.quality?.issues.length ? props.quality.issues.map((issue) => <div className={`quality-row ${issue.level}`} key={issue.id}><strong>{issue.level === "blocking" ? "阻塞" : "建议"}</strong><span>{issue.message}</span></div>) : <p className="success-text">没有检测到结构性问题</p>}</section>
     <section><h3>任务</h3>{props.jobs.map((job) => <div className="job-row" key={job.id} data-testid={`job-${job.id}`} data-object-id={job.id}><span className={`status status-${job.status}`}>{statusText(job.status)}</span><div><strong>{job.kind}</strong><small>{job.error ?? job.id.slice(0, 14)}</small></div>{job.status === "failed" && <button onClick={() => props.onRetryJob(job.id)}>重试</button>}</div>)}</section>
     <section><h3>Export Artifact</h3>{props.exportArtifacts.length === 0
       ? <p className="empty-panel">尚无最终文件。先运行预检、导出，再对实际文件完成五轮复核。</p>
@@ -941,6 +947,7 @@ function AudioCueEditor({ cue, item, asset, disabled, onSeek, onSave }: {
       <strong>{cue.kind === "bgm" ? "BGM" : "SFX"} · {asset?.name ?? "缺失素材"}</strong>
       <small>F{item.startFrame}–{item.endFrame} · {cue.status === "stale" ? "主线变化，需重新确认" : cue.kind === "bgm" ? (cue.ducking?.enabled ? "Dialogue Duck 已开启" : "Duck 已关闭") : `事件 F${cue.eventFrame} / onset +${cue.onsetOffsetFrames}`}</small>
       <small>{cue.purpose}</small>
+      {cue.effectEvent && <small>关联动作：{cue.effectEvent.eventName} · 局部 F{cue.effectEvent.localFrame} · {cue.status === "stale" ? "视觉已改版，请由剪辑任务重新确认动作" : "同版本平移可跟随，听感仍须复核"}</small>}
     </button>
     {expanded && <div className="audio-cue-editor">
       <div className="caption-field-row">
@@ -957,11 +964,11 @@ function AudioCueEditor({ cue, item, asset, disabled, onSeek, onSave }: {
         </div>
         <label>释放帧<input aria-label={`Duck 释放：${cue.id}`} type="number" min="0" max="240" value={duckReleaseFrames} onChange={(event) => setDuckReleaseFrames(Number(event.target.value))} /></label>
       </> : <div className="caption-field-row">
-        <label>事件帧<input aria-label={`SFX 事件帧：${cue.id}`} type="number" min="0" value={eventFrame} onChange={(event) => setEventFrame(Number(event.target.value))} /></label>
+        <label>事件帧<input aria-label={`SFX 事件帧：${cue.id}`} type="number" min="0" disabled={Boolean(cue.effectEvent)} value={eventFrame} onChange={(event) => setEventFrame(Number(event.target.value))} /></label>
         <label>onset 偏移<input aria-label={`SFX onset 偏移：${cue.id}`} type="number" min="0" value={onsetOffsetFrames} onChange={(event) => setOnsetOffsetFrames(Number(event.target.value))} /></label>
       </div>}
       <div className="button-row">
-        <button type="button" disabled={disabled} onClick={save}>{cue.status === "stale" ? "重新确认并启用" : "保存声音"}</button>
+        <button type="button" disabled={disabled || Boolean(cue.effectEvent && cue.status === "stale")} onClick={save}>{cue.status === "stale" ? "重新确认并启用" : "保存声音"}</button>
         <button type="button" disabled={disabled} onClick={() => onSave({ action: "remove", audioCueId: cue.id })}>移除</button>
       </div>
     </div>}
@@ -980,6 +987,7 @@ function ScenesPanel({ snapshot, onSelect, onSeek, onAddEffect }: {
   const [effectType, setEffectType] = useState<EffectCue["type"]>("MetricBackdrop");
   return <>
     <PanelTitle title="Story / Scenes" meta={`${snapshot.scenes.length} 个场景`} />
+    <MotionLibraryPanel snapshot={snapshot} onSelectAsset={(id) => onSelect({ kind: "asset", id })} />
     <section className="story-card" data-testid="story-document" data-object-id={snapshot.story.id}>
       <strong>{snapshot.story.title}</strong>
       <p>{snapshot.story.summary || "尚未填写叙事摘要；可通过 Codex 的 manage_story 先稳定创作意图。"}</p>
@@ -987,7 +995,7 @@ function ScenesPanel({ snapshot, onSelect, onSeek, onAddEffect }: {
     </section>
     <label className="effect-picker">新增效果
       <select aria-label="效果类型" data-testid="effect-type-select" value={effectType} onChange={(event) => setEffectType(event.target.value as EffectCue["type"])}>
-        {EFFECT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+        {EFFECT_TYPES.filter((type) => type !== "ManagedMotion").map((type) => <option key={type} value={type}>{type}</option>)}
       </select>
     </label>
     {snapshot.scenes.length === 0 && <p className="empty-panel">A-roll 已组装后，请由 production-director / scene-planning 通过 MCP 根据 Story Beat 编译 Scene Strip。</p>}
@@ -1063,11 +1071,13 @@ function Inspector({ snapshot, selectedAsset, selectedScene, selectedItem, selec
           <button className="wide-button" onClick={() => onSeek(selectedCue.startFrame)}>跳到进入帧</button>
         </InspectorGroup>
         <InspectorGroup title="Animation">
+          {selectedCue.type === "ManagedMotion" ? <p>此作品的布局与动效已固定。请让 Codex 修改作品源码或参数并生成新版本，再替换绑定。</p> : <>
           <label className="range-label">强度 <b>{Math.round(selectedCue.intensity * 100)}%</b></label>
           <div className="button-row">
             <button onClick={() => onUpdateCue(selectedCue, Math.max(0, selectedCue.intensity - 0.1))}>−</button>
             <button onClick={() => onUpdateCue(selectedCue, Math.min(1, selectedCue.intensity + 0.1))}>+</button>
           </div>
+          </>}
         </InspectorGroup>
         <InspectorGroup title="Quality"><p>前景层效果需在真实预览中复核脸部、嘴部与字幕安全区。</p></InspectorGroup>
       </>

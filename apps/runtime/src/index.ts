@@ -2,6 +2,7 @@ import { createServer } from "../../server/src/app.js";
 import { runWorkerForever } from "../../job-worker/src/index.js";
 import { runRenderWorkerForever } from "../../render-worker/src/index.js";
 import { applyReleaseRuntimeDefaults } from "@videocut/project-overview";
+import { ThreadedRevisionRenderer } from "../../render-worker/src/threaded-renderer.js";
 
 /**
  * 发布构建是 CommonJS，__dirname 即 runtime/dist；开发时 TypeScript 以 ESM
@@ -25,10 +26,11 @@ async function main(): Promise<void> {
   const workersAbort = new AbortController();
   let stopping = false;
   const workers = { media: false, render: false };
+  const status = () => stopping ? "stopping" : workers.media && workers.render ? "ready" : "starting";
 
   /**
-   * 插件运行时将 API、媒体 Worker 与渲染 Worker 放进同一个 Node 进程，
-   * 让三者共享同一个 EditingApplication，避免多进程各自打开本地状态。
+   * API 与任务领取仍共享一个 EditingApplication。只把不可变 Snapshot 的
+   * 渲染计算移到线程，避免第三方同步调用堵住健康接口，不另开 SQLite 队列。
    */
   const shutdown = async (reason: string) => {
     if (stopping) return;
@@ -43,7 +45,7 @@ async function main(): Promise<void> {
       if (request.headers["x-videoflowcut-runtime-token"] !== runtimeToken) {
         return reply.code(403).send({ error: "RUNTIME_TOKEN_INVALID" });
       }
-      return { status: stopping ? "stopping" : "ready", runtimeId, releaseId, workers };
+      return { status: status(), runtimeId, releaseId, workers };
     });
 
     app.post("/internal/runtime/shutdown", async (request, reply) => {
@@ -61,7 +63,7 @@ async function main(): Promise<void> {
    * 返回值没有路径、令牌或用户数据；它仅用于阻止旧 MCP 对新版 Runtime 伪造部署确认。
    */
   app.get("/api/runtime/status", async () => ({
-    status: stopping ? "stopping" : "ready",
+    status: status(),
     runtimeId,
     releaseId,
     workers
@@ -70,16 +72,26 @@ async function main(): Promise<void> {
   process.once("SIGINT", () => { void shutdown("SIGINT"); });
   process.once("SIGTERM", () => { void shutdown("SIGTERM"); });
 
+  const renderer = new ThreadedRevisionRenderer(undefined, (error) => {
+    workers.render = false;
+    void shutdown(`渲染线程不可用：${error.message}`);
+  });
   try {
     await app.listen({ port, host });
     console.error(`VideoFlowCut Runtime 已启动：http://${host}:${port}`);
+    // 浏览器和冷启动打包全部完成后才领取 Job，避免首个预览打包阻塞在线健康检查。
+    await renderer.prepare();
+    if (stopping) return;
     workers.media = true;
     workers.render = true;
     await Promise.all([
       runWorkerForever(application, workersAbort.signal),
-      runRenderWorkerForever(application, workersAbort.signal)
+      runRenderWorkerForever(application, workersAbort.signal, renderer)
     ]);
   } finally {
+    workers.media = false;
+    workers.render = false;
+    await renderer.close();
     await app.close().catch(() => undefined);
     application.close();
   }

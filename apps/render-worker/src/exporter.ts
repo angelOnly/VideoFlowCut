@@ -1,12 +1,13 @@
 import { createHash } from "node:crypto";
-import { createReadStream, existsSync } from "node:fs";
-import { copyFile, mkdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { createReadStream, existsSync, type ReadStream } from "node:fs";
+import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
+import { pipeline } from "node:stream/promises";
 import { bundle } from "@remotion/bundler";
-import { ensureBrowser, renderMedia, selectComposition } from "@remotion/renderer";
+import { ensureBrowser, openBrowser, renderMedia, selectComposition } from "@remotion/renderer";
 import type { EditingApplication } from "@videocut/application";
-import { EFFECT_TYPES, type AttributionManifest, type ExportArtifact, type ExportPurpose, type ExportTechnicalValidation, type JobRecord, type ProjectSnapshot, type RenderPreflight, type RenderPreflightCheck } from "@videocut/contracts";
+import { EFFECT_TYPES, inspectEffectContentContract, type AttributionManifest, type ExportArtifact, type ExportPurpose, type ExportTechnicalValidation, type JobRecord, type ProjectSnapshot, type RenderPreflight, type RenderPreflightCheck } from "@videocut/contracts";
 import { createId, DomainError, resolveCompositionReachability } from "@videocut/domain";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { canExport, evaluateQuality, requiresEditorialReview } from "@videocut/quality";
@@ -91,6 +92,8 @@ function parseRange(range: string | undefined, size: number): { start: number; e
 export async function startProjectMediaServer(snapshot: ProjectSnapshot): Promise<{ mediaBaseUrl: string; close: () => Promise<void> }> {
   const projectRoot = resolve(snapshot.project.rootPath);
   const expectedPrefix = `/media/${encodeURIComponent(snapshot.project.id)}/`;
+  const activeStreams = new Set<ReadStream>();
+  let closing = false;
   const server = createServer(async (request, response) => {
     try {
       const requestUrl = new URL(request.url ?? "/", "http://127.0.0.1");
@@ -107,6 +110,8 @@ export async function startProjectMediaServer(snapshot: ProjectSnapshot): Promis
         return;
       }
       const info = await stat(targetPath);
+      // stat 等待期间浏览器可能已取消或服务开始关闭，不能再创建无消费者的文件流。
+      if (closing || response.destroyed) return;
       if (!info.isFile()) {
         response.writeHead(404).end();
         return;
@@ -118,13 +123,19 @@ export async function startProjectMediaServer(snapshot: ProjectSnapshot): Promis
       };
       if (range) {
         response.writeHead(206, { ...headers, "Content-Range": `bytes ${range.start}-${range.end}/${info.size}`, "Content-Length": range.end - range.start + 1 });
-        createReadStream(targetPath, range).pipe(response);
-        return;
+      } else {
+        response.writeHead(200, { ...headers, "Content-Length": info.size });
       }
-      response.writeHead(200, { ...headers, "Content-Length": info.size });
-      createReadStream(targetPath).pipe(response);
+      // pipeline 将响应取消和异步磁盘错误传回文件流，防止 seek 后句柄无限累积。
+      const stream = createReadStream(targetPath, range);
+      activeStreams.add(stream);
+      try { await pipeline(stream, response); }
+      finally { activeStreams.delete(stream); }
     } catch {
-      response.writeHead(500).end();
+      if (!response.destroyed) {
+        if (!response.headersSent) response.writeHead(500).end();
+        else response.destroy();
+      }
     }
   });
   await new Promise<void>((resolvePromise, reject) => {
@@ -141,7 +152,16 @@ export async function startProjectMediaServer(snapshot: ProjectSnapshot): Promis
   }
   return {
     mediaBaseUrl: `http://127.0.0.1:${address.port}`,
-    close: () => closeServer(server)
+    close: async () => {
+      closing = true;
+      // 不等待已暂停的 Range 消费者；Render 生命周期结束须收回全部连接和句柄。
+      const closed = closeServer(server);
+      const streams = [...activeStreams];
+      const streamClosures = streams.map((stream) => stream.closed ? Promise.resolve() : new Promise<void>((done) => stream.once("close", done)));
+      for (const stream of streams) stream.destroy();
+      server.closeAllConnections();
+      await Promise.all([closed, ...streamClosures]);
+    }
   };
 }
 
@@ -152,6 +172,28 @@ function closeServer(server: Server): Promise<void> {
 function usedAssetIds(snapshot: ProjectSnapshot): Set<string> {
   // 与 ProjectComposition 共用同一推导，避免 stale Scene/Cue 或隐藏轨道被预检、署名清单误算为成片依赖。
   return new Set(resolveCompositionReachability(snapshot).assetIds);
+}
+
+/** 透明帧也是正式依赖，不能只验证审阅 MP4 存在就放行导出。 */
+export async function verifyMotionFrameCaches(snapshot: ProjectSnapshot): Promise<void> {
+  const used = usedAssetIds(snapshot);
+  for (const cue of snapshot.effectCues.filter((cue) => cue.type === "ManagedMotion" && cue.status === "ready")) {
+    const content = inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline);
+    if (!content.ready) throw new DomainError(content.missing.join("；"), "MOTION_CONTENT_INVALID");
+  }
+  const proxyItem = snapshot.timeline.items.find((item) => !item.disabled && snapshot.assets.some((asset) => asset.id === item.assetId && asset.motion));
+  if (proxyItem) throw new DomainError("受管作品的审阅代理不能作为普通视频放入时间线，请使用 ManagedMotion EffectCue", "MOTION_PROXY_NOT_RENDERABLE");
+  for (const asset of snapshot.assets.filter((entry) => entry.motion && used.has(entry.id))) {
+    const motion = asset.motion!;
+    const manifestPath = resolveManagedAssetPath(snapshot, `${motion.framesDirectory}/../manifest.json`);
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as { version: string; engineVersion: string; frameHashes: string[] };
+    if (manifest.version !== motion.version || manifest.engineVersion !== motion.engineVersion || !Array.isArray(manifest.frameHashes) || manifest.frameHashes.length !== motion.frameCount) throw new DomainError("作品帧缓存版本不一致", "MOTION_CACHE_CORRUPT");
+    for (let frame = 0; frame < motion.frameCount; frame++) {
+      const framePath = resolveManagedAssetPath(snapshot, `${motion.framesDirectory}/frame-${String(frame).padStart(5, "0")}.png`);
+      const hash = createHash("sha256").update(await readFile(framePath)).digest("hex");
+      if (hash !== manifest.frameHashes[frame]) throw new DomainError("作品透明帧缺失或已改变，不能用代理替代", "MOTION_CACHE_CORRUPT");
+    }
+  }
 }
 
 function addPreflightCheck(checks: RenderPreflightCheck[], status: RenderPreflightCheck["status"], code: string, message: string, objectId?: string): void {
@@ -189,8 +231,9 @@ function isolatedExplainerScenePreviewCache(
   fromFrame: number,
   toFrame: number
 ): ExplainerScenePreviewCache | undefined {
+  const { explainerProgramIds } = resolveCompositionReachability(snapshot);
   const candidates = snapshot.explainerPrograms.flatMap((program) => {
-    if (program.status !== "ready" || !/^[a-f0-9]{16,128}$/iu.test(program.cacheKey)) return [];
+    if (!explainerProgramIds.has(program.id) || !/^[a-f0-9]{16,128}$/iu.test(program.cacheKey)) return [];
     const scene = snapshot.scenes.find((candidate) => candidate.id === program.sceneId);
     if (!scene || scene.type !== "ExplainerScene" || scene.status !== "ready"
       || fromFrame < scene.startFrame || toFrame > scene.endFrame) return [];
@@ -249,6 +292,8 @@ export async function runRenderPreflight(application: EditingApplication, projec
   const revision = application.repository.getRevision(projectId, revisionNumber);
   const snapshot = revision.snapshot;
   const checks: RenderPreflightCheck[] = [];
+  try { await verifyMotionFrameCaches(snapshot); }
+  catch (error) { addPreflightCheck(checks, "failed", "MOTION_CACHE_CORRUPT", error instanceof Error ? error.message : String(error)); }
   const review = await application.readEditorialQualityReview({ projectId, revision: revisionNumber });
   const quality = evaluateQuality(snapshot, revisionNumber, review);
   for (const issue of quality.technical.filter((entry) => entry.level === "blocking")) {
@@ -359,11 +404,35 @@ async function writeAttributionManifest(snapshot: ProjectSnapshot, manifest: Att
   await rename(temporaryPath, targetPath);
 }
 
-/**
- * Remotion bundle 在一个 Worker 进程内复用，但每个 Job 都新开隔离媒体服务，
- * 因此导出始终读取任务绑定的不可变 Revision 快照。
- */
-export class RevisionRenderer {
+/** 发行环境不允许渲染 Job 临时下载依赖；源码直跑保留 Remotion 的开发准备入口。 */
+export async function resolveRenderBrowser(): Promise<string> {
+  const config = readRuntimeConfig().runtime;
+  const browserExecutable = config.browserExecutable;
+  if (config.distributionDirectory && !browserExecutable) {
+    throw new DomainError("发行 Runtime 缺少部署前准备的浏览器路径", "RENDER_BROWSER_NOT_PREPARED");
+  }
+  if (browserExecutable && (!isAbsolute(browserExecutable) || !existsSync(browserExecutable))) {
+    throw new DomainError("已配置的渲染浏览器路径无效，必须重新准备部署依赖", "RENDER_BROWSER_NOT_PREPARED");
+  }
+  const browser = await ensureBrowser({ browserExecutable, logLevel: "error" });
+  if (!("path" in browser)) throw new DomainError("渲染浏览器未就绪", "RENDER_BROWSER_NOT_PREPARED");
+  return browser.path;
+}
+
+export async function verifyRenderBrowserReady(): Promise<void> {
+  const browserExecutable = await resolveRenderBrowser();
+  const browser = await openBrowser("chrome", { browserExecutable, logLevel: "error" });
+  await browser.close({ silent: true });
+}
+
+/** 队列仅提交不可变 Snapshot；渲染实现不负责数据库或 Job 状态。 */
+export interface RevisionRenderEngine {
+  render(snapshot: ProjectSnapshot, targetPath: string): Promise<void>;
+  renderRange(snapshot: ProjectSnapshot, fromFrame: number, toFrame: number, targetPath: string): Promise<void>;
+}
+
+/** Bundle 在 Worker 内复用，每个 Job 独立提供其不可变 Revision 的媒体资源。 */
+export class RevisionRenderer implements RevisionRenderEngine {
   private bundleLocation?: Promise<string>;
   private readonly entryPoint: string;
   private readonly concurrency: string | number | null;
@@ -375,6 +444,12 @@ export class RevisionRenderer {
   ) {
     this.entryPoint = entryPoint;
     this.concurrency = concurrency;
+  }
+
+  /** 冷启动打包会占用 Node 事件循环，必须在接收正式 Job、宣告 API 就绪之前完成。 */
+  async prepare(): Promise<void> {
+    await verifyRenderBrowserReady();
+    await this.getBundle();
   }
 
   private getBundle(): Promise<string> {
@@ -400,13 +475,15 @@ export class RevisionRenderer {
   }
 
   async render(snapshot: ProjectSnapshot, targetPath: string): Promise<void> {
+    await verifyMotionFrameCaches(snapshot);
     const mediaServer = await startProjectMediaServer(snapshot);
     try {
-      await ensureBrowser({ logLevel: "error" });
+      const browserExecutable = await resolveRenderBrowser();
       const serveUrl = await this.getBundle();
       const inputProps = { snapshot, mediaBaseUrl: mediaServer.mediaBaseUrl };
-      const composition = await selectComposition({ serveUrl, id: "videocut-project", inputProps, logLevel: "error" });
+      const composition = await selectComposition({ serveUrl, id: "videocut-project", inputProps, browserExecutable, logLevel: "error" });
       await renderMedia({
+        browserExecutable,
         composition,
         serveUrl,
         codec: "h264",
@@ -428,16 +505,18 @@ export class RevisionRenderer {
 
   /** 局部预览仍从完整 Composition 的全局帧坐标渲染，避免把 Cue 和字幕错误地从第 0 帧重算。 */
   async renderRange(snapshot: ProjectSnapshot, fromFrame: number, toFrame: number, targetPath: string): Promise<void> {
+    await verifyMotionFrameCaches(snapshot);
     if (fromFrame < 0 || toFrame <= fromFrame || toFrame > snapshot.timeline.durationInFrames) {
       throw new DomainError("局部预览范围无效", "INVALID_PREVIEW_RANGE");
     }
     const mediaServer = await startProjectMediaServer(snapshot);
     try {
-      await ensureBrowser({ logLevel: "error" });
+      const browserExecutable = await resolveRenderBrowser();
       const serveUrl = await this.getBundle();
       const inputProps = { snapshot, mediaBaseUrl: mediaServer.mediaBaseUrl };
-      const composition = await selectComposition({ serveUrl, id: "videocut-project", inputProps, logLevel: "error" });
+      const composition = await selectComposition({ serveUrl, id: "videocut-project", inputProps, browserExecutable, logLevel: "error" });
       await renderMedia({
+        browserExecutable,
         composition,
         serveUrl,
         codec: "h264",
@@ -486,7 +565,7 @@ export async function validateExport(targetPath: string, expectedDurationMs: num
 export async function runExportJob(
   application: EditingApplication,
   job: JobRecord,
-  renderer = new RevisionRenderer()
+  renderer: RevisionRenderEngine = new RevisionRenderer()
 ): Promise<Record<string, unknown>> {
   const revisionNumber = Number(job.payload.revision);
   // 旧 Job 没有 purpose 时按 delivery 处理，避免历史队列绕过新交付门禁。
@@ -520,7 +599,8 @@ export async function runExportJob(
   const editorialReview = await application.readEditorialQualityReview({ projectId: job.projectId, revision: revisionNumber });
   const report = evaluateQuality(revision.snapshot, revisionNumber, editorialReview);
   if (!canExport(report, purpose)) {
-    const blockingMessages = report.issues.filter((entry) => entry.level === "blocking").map((entry) => entry.message);
+    // 拒绝原因必须与 canExport 使用相同用途；草稿不能把仅阻挡交付的待审项列为失败原因。
+    const blockingMessages = (purpose === "draft" ? report.technical : report.issues).filter((entry) => entry.level === "blocking").map((entry) => entry.message);
     if (blockingMessages.length > 0) throw new DomainError(`质量门禁阻止导出：${blockingMessages.join("；")}`, "QUALITY_GATE_BLOCKED");
     if (requiresEditorialReview(report, purpose)) {
       throw new DomainError(`交付导出要求 R${revisionNumber} 已完成当前 Revision 的真实 Preview、完整声画审片与首次观众复核；请先记录 Editorial Review。`, "EDITORIAL_REVIEW_REQUIRED");
@@ -604,7 +684,7 @@ export async function runRenderPreflightJob(application: EditingApplication, job
 export async function runPreviewJob(
   application: EditingApplication,
   job: JobRecord,
-  renderer = new RevisionRenderer()
+  renderer: RevisionRenderEngine = new RevisionRenderer()
 ): Promise<Record<string, unknown>> {
   const revisionNumber = Number(job.payload.revision);
   const fromFrame = Number(job.payload.fromFrame);

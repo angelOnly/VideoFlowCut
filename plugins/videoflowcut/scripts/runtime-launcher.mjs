@@ -4,6 +4,7 @@ import { mkdir, open, readFile, rename, rm, stat, writeFile } from "node:fs/prom
 import { createServer as createTcpServer } from "node:net";
 import { join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
+import { prepareRenderBrowser } from "./prepare-render-browser.mjs";
 import {
   pluginRootFromModule,
   readOption,
@@ -47,12 +48,23 @@ function normalizePort(rawPort) {
   return port;
 }
 
+/**
+ * Bridge 地址也属于 Runtime 的实际执行环境。候选环境变更 Bridge 时必须重新
+ * 拉起 Worker，不能复用仍指向旧 ComfyUI 队列的 Runtime。
+ */
+function normalizeBridgeUrl(rawBridgeUrl) {
+  if (rawBridgeUrl === undefined || rawBridgeUrl === null) return undefined;
+  const bridgeUrl = String(rawBridgeUrl).trim();
+  return bridgeUrl || undefined;
+}
+
 function normalizeOptions(options = {}) {
   const pluginRoot = options.pluginRoot ?? pluginRootFromModule(import.meta.url);
   const repoRoot = resolve(options.repoRoot ?? resolveRepoRoot({ pluginRoot }));
   const workspaceRoot = resolveWorkspaceRoot(repoRoot, options.workspaceRoot);
   const port = normalizePort(options.port ?? process.env.VIDEOFLOWCUT_PORT ?? DEFAULT_PORT);
-  return { pluginRoot, repoRoot, workspaceRoot, port, apiUrl: apiUrl(port) };
+  const bridgeUrl = normalizeBridgeUrl(options.bridgeUrl ?? process.env.COMFYUI_BRIDGE_URL);
+  return { pluginRoot, repoRoot, workspaceRoot, port, bridgeUrl, apiUrl: apiUrl(port) };
 }
 
 async function readJson(path) {
@@ -127,7 +139,10 @@ function isManagedStateForOptions(state, options) {
     && typeof state.runtimeId === "string"
     && typeof state.runtimeEntry === "string"
     && typeof state.distributionRoot === "string"
-    && typeof state.releaseId === "string";
+    && typeof state.releaseId === "string"
+    // schemaVersion 3 的旧状态尚未记录 Bridge；仍可被安全识别和停止，
+    // 但绝不能在显式指定候选 Bridge 时被复用。
+    && (state.bridgeUrl === undefined || typeof state.bridgeUrl === "string");
 }
 
 function isMatchingState(state, options, release) {
@@ -137,11 +152,63 @@ function isMatchingState(state, options, release) {
       state.runtimeEntry === release.runtimeEntry
       && state.distributionRoot === release.root
       && state.releaseId === release.releaseId
+      && state.bridgeUrl === options.bridgeUrl
     ));
 }
 
 async function readState(options) {
   return readJson(runtimePaths(options.workspaceRoot, options.port).state);
+}
+
+/** MCP 只跟随通过控制令牌认证的运行实例，不因旧插件启动而回滚 Runtime。 */
+export async function readActiveMcpDeployment(rawOptions = {}, previousDeployment) {
+  const options = normalizeOptions(rawOptions);
+  const state = await readState(options);
+  if (!isManagedStateForOptions(state, options) || state.bridgeUrl !== options.bridgeUrl) {
+    throw new Error("找不到与当前工作区、端口和 Bridge 一致的受管 Runtime");
+  }
+  const internal = await readInternalStatus(options.apiUrl, state.controlToken);
+  if (!internal) throw new Error("Runtime 状态接口超时或不可达，MCP 暂不执行；不会重放已提交调用");
+  if (internal?.runtimeId !== state.runtimeId || internal?.releaseId !== state.releaseId
+    || internal.status !== "ready" || !internal.workers?.media || !internal.workers?.render) {
+    throw new Error("Runtime 尚未同版健康，MCP 暂不执行；不会重放已提交调用");
+  }
+  if (previousDeployment?.runtimeId === state.runtimeId && previousDeployment.releaseId === state.releaseId
+    && previousDeployment.root === state.distributionRoot) return previousDeployment;
+  const activePluginRoot = resolve(state.distributionRoot, "..", "..");
+  const release = resolveReleaseRuntime(activePluginRoot);
+  if (release.releaseId !== state.releaseId || release.runtimeEntry !== state.runtimeEntry
+    || release.root !== state.distributionRoot) throw new Error("运行实例与实际发行摘要不一致");
+  return { ...release, pluginRoot: activePluginRoot, runtimeId: state.runtimeId, apiUrl: options.apiUrl };
+}
+
+/** 调用方必须持有 Runtime 操作锁；只恢复已部署版本，不让旧插件执行隐式升级或回滚。 */
+export async function recoverMcpDeployment(rawOptions = {}, previousDeployment) {
+  let options = normalizeOptions(rawOptions);
+  const paths = runtimePaths(options.workspaceRoot, options.port);
+  const state = await readState(options);
+  if (!state && (existsSync(paths.state) || previousDeployment)) {
+    throw new Error("Runtime 状态已移除或损坏；不自动覆盖或重启已停止的服务");
+  }
+  let release;
+  if (state) {
+    if (!isManagedStateForOptions(state, options) || state.bridgeUrl !== options.bridgeUrl) {
+      throw new Error("Runtime 状态不属于当前工作区、端口或 Bridge；未自动恢复");
+    }
+    // 活进程或被占用端口必须通过原有认证，不能因健康探测失败就重启或杀进程。
+    if (isProcessAlive(state.pid) || await isPortInUse(options.port)) {
+      return readActiveMcpDeployment(options, previousDeployment);
+    }
+    options = { ...options, pluginRoot: resolve(state.distributionRoot, "..", "..") };
+    release = resolveReleaseRuntime(options.pluginRoot);
+    if (release.releaseId !== state.releaseId || release.runtimeEntry !== state.runtimeEntry
+      || release.root !== state.distributionRoot) throw new Error("恢复被拒绝：已部署发行物摘要或入口不匹配");
+  } else {
+    release = resolveReleaseRuntime(options.pluginRoot);
+  }
+  const browserExecutable = await prepareRenderBrowser({ repoRoot: options.repoRoot });
+  await ensureRuntimeUnlocked(options, release, browserExecutable);
+  return readActiveMcpDeployment(options);
 }
 
 /**
@@ -204,7 +271,8 @@ async function withLaunchLock(options, operation) {
       await handle?.close().catch(() => undefined);
       if (error?.code !== "EEXIST") throw error;
       const lockStat = await stat(paths.lock).catch(() => undefined);
-      if (lockStat && Date.now() - lockStat.mtimeMs > STARTUP_TIMEOUT_MS * 2) {
+      const owner = await readJson(paths.lock);
+      if (lockStat && Date.now() - lockStat.mtimeMs > STARTUP_TIMEOUT_MS * 2 && !isLaunchLockOwnerCurrent(owner)) {
         await rm(paths.lock, { force: true }).catch(() => undefined);
       } else {
         await sleep(250);
@@ -212,6 +280,24 @@ async function withLaunchLock(options, operation) {
     }
   }
   throw new Error("等待 VideoFlowCut Runtime 启动锁超时，请确认没有遗留的启动进程。");
+}
+
+/** PID 会被系统复用：后来出生的同号进程不可能持有更早创建的锁，且绝不能被终止。 */
+export function isLaunchLockOwnerCurrent(owner) {
+  if (!isProcessAlive(owner?.pid)) return false;
+  const createdAt = Date.parse(owner?.createdAt);
+  if (!Number.isFinite(createdAt)) return true;
+  // 只在过期锁恢复时查询进程出生时间；查不到时保守保留，不按固定超时抢活跃操作的锁。
+  const result = process.platform === "win32"
+    ? spawnSync(join(process.env.SystemRoot ?? "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe"), ["-NoProfile", "-NonInteractive", "-Command", `try { (Get-Process -Id ${Number(owner.pid)} -ErrorAction Stop).StartTime.ToUniversalTime().ToString('o') } catch { exit 1 }`], { encoding: "utf8", windowsHide: true, timeout: 5000 })
+    : spawnSync("ps", ["-p", String(owner.pid), "-o", "lstart="], { encoding: "utf8", timeout: 5000, env: { ...process.env, LC_ALL: "C" } });
+  const processStartedAt = result.status === 0 ? Date.parse(result.stdout.trim()) : NaN;
+  return !Number.isFinite(processStartedAt) || processStartedAt <= createdAt + 1500;
+}
+
+/** 与部署共用同一互斥锁，避免一个 MCP 仍在写入时另一个进程已经切换 Runtime。 */
+export function withRuntimeOperationLock(rawOptions, operation) {
+  return withLaunchLock(normalizeOptions(rawOptions), operation);
 }
 
 async function tailLog(path) {
@@ -227,8 +313,8 @@ function spawnRuntime(options, state, release) {
   const descriptor = openSync(paths.log, "a");
   try {
     const child = spawn(process.execPath, [release.runtimeEntry], {
-      // CWD 不再指向源码仓库；发行入口通过 __dirname 定位自身的 Web 和 Remotion 文件。
-      cwd: options.pluginRoot,
+      // 工作目录不能占用可替换的插件安装槽；发行文件仍只按绝对路径/__dirname 定位，不执行源码。
+      cwd: options.repoRoot,
       detached: true,
       windowsHide: true,
       stdio: ["ignore", descriptor, descriptor],
@@ -236,10 +322,14 @@ function spawnRuntime(options, state, release) {
         ...process.env,
         NODE_PATH: releaseNodePath(options.repoRoot),
         VIDEOFLOWCUT_NODE_MODULES: join(options.repoRoot, "node_modules"),
+        VIDEOFLOWCUT_BROWSER_EXECUTABLE: state.browserExecutable,
         HOST,
         PORT: String(options.port),
         WEB_ORIGIN: options.apiUrl,
         VIDEOCUT_WORKSPACE: options.workspaceRoot,
+        // 候选启动器会显式传入独立 Bridge；这里覆盖继承环境，确保媒体 Worker
+        // 与状态文件使用同一个端点，而不是误连生产 ComfyUI。
+        ...(options.bridgeUrl ? { COMFYUI_BRIDGE_URL: options.bridgeUrl } : {}),
         VIDEOFLOWCUT_RUNTIME_DIST: release.root,
         VIDEOFLOWCUT_RUNTIME_ID: state.runtimeId,
         VIDEOFLOWCUT_RUNTIME_TOKEN: state.controlToken,
@@ -321,7 +411,13 @@ export async function ensureRuntime(rawOptions = {}) {
   const options = normalizeOptions(rawOptions);
   // 先验证发行物，绝不在缺少 dist 时退回到 tsx 或仓库源码入口。
   const release = resolveReleaseRuntime(options.pluginRoot);
-  return withLaunchLock(options, async () => {
+  // 升级依赖失败必须发生在获取切换锁、停止旧服务之前；实例复用仍在锁内对账。
+  const browserExecutable = await prepareRenderBrowser({ repoRoot: options.repoRoot });
+  return withLaunchLock(options, () => ensureRuntimeUnlocked(options, release, browserExecutable));
+}
+
+/** 与显式发布共用启动实现；恢复路径已经持锁，不能再次获取同一把锁。 */
+async function ensureRuntimeUnlocked(options, release, browserExecutable) {
     const paths = runtimePaths(options.workspaceRoot, options.port);
     const state = await readState(options);
     if (isMatchingState(state, options, release)) {
@@ -336,7 +432,7 @@ export async function ensureRuntime(rawOptions = {}) {
       await rm(paths.state, { force: true });
     } else if (state && isManagedStateForOptions(state, options)) {
       // 旧 Release 不能被复用，但可先用控制令牌认证后停止，完成从 A 到 B 的受控切换。
-      const stopped = await stopRuntime(options, { force: true });
+      const stopped = await stopRuntimeUnlocked(options, { force: true, requireIdle: true });
       if (!stopped.stopped) {
         throw new Error(`发现旧发行 Runtime，但无法安全停止：${stopped.reason ?? "控制令牌认证失败"}`);
       }
@@ -357,6 +453,8 @@ export async function ensureRuntime(rawOptions = {}) {
       workspaceRoot: options.workspaceRoot,
       port: options.port,
       apiUrl: options.apiUrl,
+      bridgeUrl: options.bridgeUrl,
+      browserExecutable,
       runtimeEntry: release.runtimeEntry,
       distributionRoot: release.root,
       releaseId: release.releaseId,
@@ -372,10 +470,9 @@ export async function ensureRuntime(rawOptions = {}) {
       await waitUntilReady(options, nextState);
       return { ...(await getRuntimeStatus(options)), reused: false };
     } catch (error) {
-      await stopRuntime(options, { force: true });
+      await stopRuntimeUnlocked(options, { force: true });
       throw error;
     }
-  });
 }
 
 async function waitForExit(pid, timeoutMs) {
@@ -393,7 +490,12 @@ function terminateProcessTree(pid) {
   process.kill(pid, "SIGTERM");
 }
 
-export async function stopRuntime(rawOptions = {}, { force = false } = {}) {
+export async function stopRuntime(rawOptions = {}, stopOptions = {}) {
+  const options = normalizeOptions(rawOptions);
+  return withLaunchLock(options, () => stopRuntimeUnlocked(options, stopOptions));
+}
+
+async function stopRuntimeUnlocked(rawOptions = {}, { force = false, requireIdle = false } = {}) {
   const options = normalizeOptions(rawOptions);
   const paths = runtimePaths(options.workspaceRoot, options.port);
   const state = await readState(options);
@@ -418,6 +520,19 @@ export async function stopRuntime(rawOptions = {}, { force = false } = {}) {
     };
   }
   if (ownsRuntime) {
+    if (requireIdle) {
+      // 异步 Job 不占用 MCP 调用锁。切换前单独确认队列清空，不能为更新强杀在途生成或渲染。
+      const projectsResponse = await fetchWithTimeout(`${options.apiUrl}/api/projects`);
+      if (!projectsResponse.ok) throw new Error("无法核对异步队列，未切换 Runtime");
+      for (const project of await projectsResponse.json()) {
+        const jobsResponse = await fetchWithTimeout(`${options.apiUrl}/api/projects/${encodeURIComponent(project.id)}/jobs`);
+        if (!jobsResponse.ok) throw new Error("无法核对项目 Job，未切换 Runtime");
+        const jobs = await jobsResponse.json();
+        if (jobs.some((job) => ["queued", "running", "unknown"].includes(job.status))) {
+          return { stopped: false, reason: "仍有排队、运行中或结果未知的 Job；待其完成或对账后再部署，未强制中断。" };
+        }
+      }
+    }
     try {
       const response = await fetchWithTimeout(`${options.apiUrl}/internal/runtime/shutdown`, {
         method: "POST",

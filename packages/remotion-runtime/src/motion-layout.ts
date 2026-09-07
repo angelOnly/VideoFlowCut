@@ -89,7 +89,8 @@ function dimensionsFor(cue: EffectCue): Pick<CSSProperties, "width" | "height" |
     case "DeviceShowcase": return { width: "26%", maxWidth: 360, aspectRatio: "0.53" };
     case "ContentCarousel": return { width: "90%", maxWidth: 1200 };
     case "FullScreenMeme":
-    case "EndCard": return { width: "100%", height: "100%" };
+    case "EndCard":
+    case "ManagedMotion": return { width: "100%", height: "100%" };
   }
 }
 

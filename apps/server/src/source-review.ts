@@ -315,6 +315,7 @@ function cacheKey(input: {
     frameWidth: 480,
     proxyWidth: 960,
     proxyCodec: "h264-aac",
+    proxyScale: "decrease-even",
     waveform: "960x160",
     audioAnalysis: "silencedetect:-45dB:0.25,volumedetect"
   });
@@ -397,7 +398,8 @@ async function createRangeProxy(input: {
       ...common,
       "-map", "0:v:0?",
       "-map", "0:a:0?",
-      "-vf", "scale=960:-2:force_original_aspect_ratio=decrease",
+      // 宽银幕缩到 960 后可能得到 401 等奇数高；YUV420 编码必须再次约束为偶数。
+      "-vf", "scale=960:-2:force_original_aspect_ratio=decrease:force_divisible_by=2",
       // H.264/AAC 是浏览器连续声画审阅的公共可播交集，且显式 CFR 与项目源帧坐标一致。
       "-c:v", "libx264",
       "-preset", "ultrafast",

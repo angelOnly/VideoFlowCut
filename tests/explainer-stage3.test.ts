@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { createApplication, type EditingApplication } from "@videocut/application";
 import type { AssetKind, ExplainerSceneKind, ExplainerSceneState, Id } from "@videocut/contracts";
-import { assertProjectGraphValid, DomainError } from "@videocut/domain";
+import { assertProjectGraphValid, DomainError, resolveCompositionReachability } from "@videocut/domain";
 import { evaluateQuality } from "@videocut/quality";
 
 async function createTestApplication(): Promise<{ root: string; app: EditingApplication; dispose: () => Promise<void> }> {
@@ -534,6 +534,77 @@ test("Data、Comparison、Classification 和有空档的状态范围必须在编
   } finally {
     await context.dispose();
   }
+});
+
+test("局部启停 Program 保留其它对象、可恢复并持久化，失败不产生 Revision", async () => {
+  const context = await createTestApplication();
+  try {
+    const projectId = context.app.createProject({ name: "局部主视觉回归", profile: "hybrid" }).snapshot.project.id;
+    const assetId = addReadyAsset(context.app, projectId, "unused-old-visual.png", "image");
+    const { narrativeMap } = createStoryAndNarrativeMap(context.app, projectId, ["旧比较", "其它场景"]);
+    const compiled = context.app.compileExplainerScenes({ projectId, baseRevision: context.app.readProject(projectId).revision.number, plans: [
+      createPlan({ kind: "Comparison", narrativeMapBeatId: narrativeMap.beats[0]!.id, assetIds: [assetId] }),
+      createPlan({ kind: "HeroReveal", narrativeMapBeatId: narrativeMap.beats[1]!.id, startFrame: 24, endFrame: 48 })
+    ] });
+    const program = compiled.snapshot.explainerPrograms[0]!;
+    // 缺省字段的既有 Revision 必须继续正常渲染。
+    assert.equal(program.disabled, undefined);
+    assert.ok(resolveCompositionReachability(compiled.snapshot).explainerProgramIds.has(program.id));
+    const withCue = context.app.createEffectCue({ projectId, baseRevision: compiled.revision.number, sceneId: program.sceneId, type: "CameraPunch", layer: "actor", startFrame: 0, endFrame: 24 });
+    const before = context.app.readProject(projectId);
+    const off = context.app.setExplainerProgramEnabled({ projectId, baseRevision: withCue.revision.number, programId: program.id, enabled: false });
+    assert.equal(off.snapshot.explainerPrograms[0]!.disabled, true);
+    for (const key of ["scenes", "story", "narrativeMap", "effectCues", "timeline", "audioCues", "assets", "sourceCaptionPrograms"] as const) {
+      assert.deepEqual(off.snapshot[key], before.snapshot[key], `${key} 不得跟随旧主视觉被删除或重建`);
+    }
+    assert.deepEqual(off.snapshot.explainerPrograms[1], before.snapshot.explainerPrograms[1]);
+    assert.deepEqual(off.revision.impact.changed, [program.id]);
+    assert.deepEqual(off.revision.impact.stale, []);
+    assert.ok(off.revision.impact.dirtyRanges.some((range) => range.startFrame === 0 && range.endFrame === 24));
+    const reachable = resolveCompositionReachability(off.snapshot);
+    assert.ok(!reachable.explainerProgramIds.has(program.id));
+    assert.ok(!reachable.assetIds.has(assetId), "旧主视觉独占的素材不再是渲染依赖");
+    assert.ok(reachable.effectCueIds.has(withCue.snapshot.effectCues[0]!.id));
+    assert.equal(evaluateQuality(off.snapshot, off.revision.number).issues.some((item) => item.code === "EXPLAINER_SCENE_PROGRAM_MISSING"), false);
+    for (const input of [
+      { baseRevision: withCue.revision.number, programId: program.id, enabled: true },
+      { baseRevision: off.revision.number, programId: "missing", enabled: false },
+      { baseRevision: off.revision.number, programId: program.id, enabled: "false" as unknown as boolean }
+    ]) assert.throws(() => context.app.setExplainerProgramEnabled({ projectId, ...input }));
+    assert.deepEqual(context.app.readProject(projectId), off);
+    const reader = createApplication(context.root);
+    try { assert.equal(reader.readProject(projectId).snapshot.explainerPrograms[0]!.disabled, true); } finally { reader.close(); }
+    const on = context.app.setExplainerProgramEnabled({ projectId, baseRevision: off.revision.number, programId: program.id, enabled: true });
+    assert.equal(on.snapshot.explainerPrograms[0]!.disabled, false);
+    assert.ok(resolveCompositionReachability(on.snapshot).assetIds.has(assetId));
+    assert.equal(on.snapshot.explainerPrograms[0]!.cacheKey, program.cacheKey);
+    assert.equal(context.app.repository.getRevision(projectId, compiled.revision.number).snapshot.explainerPrograms[0]!.disabled, undefined, "历史不被覆盖");
+    const stale = context.app.repository.commit(projectId, on.revision.number, "模拟上游失效", (snapshot) => { snapshot.explainerPrograms[0]!.status = "stale"; });
+    const staleOff = context.app.setExplainerProgramEnabled({ projectId, baseRevision: stale.revision.number, programId: program.id, enabled: false });
+    assert.throws(() => context.app.setExplainerProgramEnabled({ projectId, baseRevision: staleOff.revision.number, programId: program.id, enabled: true }), /失效|未就绪/u);
+    assert.equal(context.app.readProject(projectId).revision.number, staleOff.revision.number);
+    assert.equal(evaluateQuality(staleOff.snapshot, staleOff.revision.number).issues.some((item) => item.code === "EXPLAINER_PROGRAM_STALE" && item.objectId === program.id), false);
+    const malformed = structuredClone(staleOff.snapshot);
+    malformed.scenes.find((scene) => scene.id === program.sceneId)!.type = "PresenterScene";
+    assert.throws(() => assertProjectGraphValid(malformed), /ExplainerScene/u);
+  } finally { await context.dispose(); }
+});
+
+test("停用最后 Program 不撑出空尾，不把纯解释片伪装为已具备主视觉", async () => {
+  const context = await createTestApplication();
+  try {
+    const projectId = context.app.createProject({ name: "停用主视觉时长", profile: "visual_explainer" }).snapshot.project.id;
+    const { narrativeMap } = createStoryAndNarrativeMap(context.app, projectId, ["唯一主视觉"]);
+    const compiled = context.app.compileExplainerScenes({ projectId, baseRevision: context.app.readProject(projectId).revision.number, plans: [createPlan({ kind: "HeroReveal", narrativeMapBeatId: narrativeMap.beats[0]!.id })] });
+    const program = compiled.snapshot.explainerPrograms[0]!;
+    const off = context.app.setExplainerProgramEnabled({ projectId, baseRevision: compiled.revision.number, programId: program.id, enabled: false });
+    assert.equal(off.snapshot.timeline.durationInFrames, 0);
+    assert.ok(evaluateQuality(off.snapshot, off.revision.number).issues.some((item) => item.code === "EXPLAINER_PRIMARY_VISUAL_MISSING" && item.level === "blocking"));
+    const withCue = context.app.createEffectCue({ projectId, baseRevision: off.revision.number, sceneId: program.sceneId, type: "MetricBackdrop", layer: "front", startFrame: 0, endFrame: 20, props: { value: "42", unit: "%", label: "技术测试" } });
+    assert.equal(withCue.snapshot.timeline.durationInFrames, 20, "局部停用不能裁掉仍然实际渲染的 Cue");
+    const on = context.app.setExplainerProgramEnabled({ projectId, baseRevision: withCue.revision.number, programId: program.id, enabled: true });
+    assert.equal(on.snapshot.timeline.durationInFrames, 24);
+  } finally { await context.dispose(); }
 });
 
 test("PresenterScene 与 ExplainerScene 可以保留在同一 Hybrid 项目和同一 Revision", async () => {

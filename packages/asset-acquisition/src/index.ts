@@ -6,6 +6,7 @@ import { pipeline } from "node:stream/promises";
 import type { AssetCandidate, AssetRequest, MediaMetadata } from "@videocut/contracts";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { WikimediaCommonsProvider } from "./wikimedia-commons.js";
+import { MixkitSoundProvider } from "./mixkit.js";
 
 /** Provider 失败会由 Job Runtime 保留为可诊断的错误码，而不是伪造空候选。 */
 export class AssetProviderError extends Error {
@@ -64,7 +65,13 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   ".mov": "video/quicktime",
   ".mp4": "video/mp4",
   ".ogv": "video/ogg",
-  ".webm": "video/webm"
+  ".webm": "video/webm",
+  ".wav": "audio/wav",
+  ".mp3": "audio/mpeg",
+  ".flac": "audio/flac",
+  ".m4a": "audio/mp4",
+  ".aac": "audio/aac",
+  ".ogg": "audio/ogg"
 };
 
 function normalizedContentType(value: string | undefined): string | undefined {
@@ -72,11 +79,12 @@ function normalizedContentType(value: string | undefined): string | undefined {
   return normalized || undefined;
 }
 
-/** 只把明确的 image/*、video/* 当作视觉素材；audio、HTML 和二进制下载页不能蒙混过关。 */
+/** MIME 只确认媒介类型，实际流、时长仍须经 ffprobe 核验。 */
 export function providerMediaKindFromMime(value: string | undefined): ProviderMediaKind | undefined {
   const mimeType = normalizedContentType(value);
   if (mimeType?.startsWith("image/")) return "image";
   if (mimeType?.startsWith("video/")) return "video";
+  if (mimeType?.startsWith("audio/")) return "audio";
   return undefined;
 }
 
@@ -94,9 +102,9 @@ export function assertProviderDownloadContentType(input: {
   expectedMimeType?: string;
 }): string {
   const actual = normalizedContentType(input.contentType);
-  if (!actual) throw new AssetProviderError("下载响应缺少图片或视频 MIME，不能安全收录素材", "ASSET_DOWNLOAD_MIME_MISSING");
+  if (!actual) throw new AssetProviderError("下载响应缺少媒体 MIME，不能安全收录素材", "ASSET_DOWNLOAD_MIME_MISSING");
   const actualKind = providerMediaKindFromMime(actual);
-  if (!actualKind) throw new AssetProviderError(`下载内容不是图片或视频媒体：${actual}`, "ASSET_DOWNLOAD_MIME_INVALID");
+  if (!actualKind) throw new AssetProviderError(`下载内容不是图片、视频或音频媒体：${actual}`, "ASSET_DOWNLOAD_MIME_INVALID");
   if (actualKind !== input.expectedKind) {
     throw new AssetProviderError(`下载内容类型与候选不一致：期望 ${input.expectedKind}，实际 ${actualKind}`, "ASSET_DOWNLOAD_KIND_MISMATCH");
   }
@@ -126,7 +134,7 @@ export async function assertDownloadedProviderMedia(input: {
     await handle.read(header, 0, header.length, 0);
     const leadingText = header.toString("utf8").trimStart().toLocaleLowerCase();
     if (/^(?:<!doctype\s+html|<html(?:\s|>))/u.test(leadingText)) {
-      throw new AssetProviderError("下载内容是网页错误页，不是图片或视频素材", "ASSET_DOWNLOAD_HTML");
+      throw new AssetProviderError("下载内容是网页错误页，不是媒体素材", "ASSET_DOWNLOAD_HTML");
     }
   } finally {
     await handle.close();
@@ -142,6 +150,15 @@ export function assertProviderMediaAnalysis(input: {
   metadata: MediaMetadata;
 }): void {
   const { candidate, metadata } = input;
+  if (candidate.kind === "audio") {
+    if (!metadata.audioCodec || !metadata.hasAudio || metadata.durationMs <= 0) {
+      throw new AssetProviderError(`下载音频“${candidate.name}”缺少有效音轨或时长`, "ASSET_DOWNLOAD_AUDIO_STREAM_MISSING");
+    }
+    if (metadata.videoCodec && metadata.width && metadata.height) {
+      throw new AssetProviderError("音频候选不能包含可播放视频流", "ASSET_DOWNLOAD_AUDIO_KIND_MISMATCH");
+    }
+    return;
+  }
   if (!metadata.videoCodec) {
     throw new AssetProviderError(`下载媒体“${candidate.name}”没有可读取的视觉流`, "ASSET_DOWNLOAD_VISUAL_STREAM_MISSING");
   }
@@ -153,15 +170,23 @@ export function assertProviderMediaAnalysis(input: {
   }
 }
 
-async function downloadHttpFile(
+export async function downloadHttpFile(
   url: string,
   temporaryDirectory: string,
   fileName: string,
   expectedKind: ProviderMediaKind,
   expectedMimeType?: string,
-  headers: Record<string, string> = {}
+  headers: Record<string, string> = {},
+  safety?: { allowedHosts: string[] }
 ): Promise<ProviderDownload> {
-  const response = await fetch(url, { headers, redirect: "follow" });
+  if (safety) {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password || !safety.allowedHosts.includes(parsed.host)) {
+      throw new AssetProviderError("下载地址不在该 Provider 的公开媒体域名中", "ASSET_DOWNLOAD_HOST_REJECTED");
+    }
+  }
+  // 受控音效下载拒绝隐式重定向，防止公开地址跳到本机或未知站点。
+  const response = await fetch(url, { headers, redirect: safety ? "error" : "follow", signal: safety ? AbortSignal.timeout(60_000) : undefined });
   if (!response.ok) throw new AssetProviderError(`下载素材失败：HTTP ${response.status}`, "ASSET_DOWNLOAD_HTTP_ERROR");
   const contentType = assertProviderDownloadContentType({
     contentType: response.headers.get("content-type") ?? undefined,
@@ -372,7 +397,7 @@ export class AssetProviderRegistry {
  * 发现 Provider 不等于素材已获授权或适合进入 Scene，后续仍要走候选审查和本地化。
  */
 export function createDefaultAssetProviderRegistry(): AssetProviderRegistry {
-  const providers: AssetProvider[] = [new WikimediaCommonsProvider()];
+  const providers: AssetProvider[] = [new WikimediaCommonsProvider(), new MixkitSoundProvider()];
   const pexelsApiKey = readRuntimeConfig().providers.pexelsApiKey;
   if (pexelsApiKey) providers.push(new PexelsProvider(pexelsApiKey));
   return new AssetProviderRegistry(providers);

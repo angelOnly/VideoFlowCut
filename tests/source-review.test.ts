@@ -10,11 +10,11 @@ import { createServer } from "../apps/server/src/app.js";
 import { inspectAsset } from "../apps/server/src/source-review.js";
 import { probeMedia, runProcess } from "@videocut/speech";
 
-async function createSourceReviewFixture(directory: string): Promise<string> {
+async function createSourceReviewFixture(directory: string, size = "96x72"): Promise<string> {
   const path = join(directory, "source-review-fixture.mp4");
   await runProcess("ffmpeg", [
     "-y",
-    "-f", "lavfi", "-i", "testsrc2=size=96x72:rate=24:duration=3",
+    "-f", "lavfi", "-i", `testsrc2=size=${size}:rate=24:duration=3`,
     "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=1",
     "-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono:d=1",
     "-f", "lavfi", "-i", "sine=frequency=660:sample_rate=48000:duration=1",
@@ -253,6 +253,32 @@ test("inspect_asset 只生成可重建审阅缓存，并交付 overview、range�
     server.application.close();
     await rm(workspaceRoot, { recursive: true, force: true });
   }
+});
+
+test("宽银幕素材预览缩放保证偶数尺寸，1920×802 不再编码为 960×401", async () => {
+  const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-source-review-even-"));
+  const server = await createServer({ workspaceRoot });
+  try {
+    const projectId = server.application.createProject({ name: "宽幅代理回归" }).snapshot.project.id;
+    const fixture = await createSourceReviewFixture(workspaceRoot, "1920x802");
+    const registered = server.application.registerImportedAsset({ projectId, baseRevision: 1, name: "wide.mp4", kind: "video", managedPath: "assets/wide.mp4", sourceHash: createHash("sha256").update(await readFile(fixture)).digest("hex"), provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() } });
+    const root = registered.state.snapshot.project.rootPath;
+    const path = join(root, registered.asset.managedPath);
+    await mkdir(dirname(path), { recursive: true });
+    await copyFile(fixture, path);
+    server.application.applyMediaAnalysis({ projectId, assetId: registered.asset.id, metadata: await probeMedia(path) });
+    const revision = server.application.readProject(projectId).revision.number;
+    const result = await inspectAsset(server.application, { projectId, assetId: registered.asset.id, mode: "range", sourceStartFrame: 0, sourceEndFrame: 48, contactSheetFrames: 4 });
+    assert.equal(result.contactSheet.frames.length, 4);
+    assert.ok(result.proxy);
+    const proxy = await probeMedia(join(root, result.proxy.relativePath));
+    assert.equal(proxy.width! % 2, 0);
+    assert.equal(proxy.height! % 2, 0);
+    assert.equal(proxy.videoCodec, "h264");
+    assert.equal(proxy.hasAudio, true);
+    await runProcess("ffmpeg", ["-v", "error", "-i", join(root, result.proxy.relativePath), "-f", "null", "-"]);
+    assert.equal(server.application.readProject(projectId).revision.number, revision);
+  } finally { await server.app.close(); server.application.close(); await rm(workspaceRoot, { recursive: true, force: true }); }
 });
 
 test("inspect_asset 把 SpeechAsset 当作连续音频候选，范围复核会生成音频代理与波形", async () => {

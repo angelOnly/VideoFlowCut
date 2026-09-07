@@ -71,8 +71,12 @@ function releaseFiles(root, directory = root) {
   }).sort((left, right) => relative(root, left).localeCompare(relative(root, right)));
 }
 
-function calculateReleaseId(root) {
+function calculateReleaseId(root, pluginVersion) {
   const hash = createHash("sha256");
+  hash.update("plugin-version");
+  hash.update("\u0000");
+  hash.update(pluginVersion);
+  hash.update("\u0000");
   for (const path of releaseFiles(root)) {
     hash.update(relative(root, path).replace(/\\/gu, "/"));
     hash.update("\u0000");
@@ -104,11 +108,13 @@ export function resolveReleaseRuntime(pluginRoot) {
   }
   try {
     const manifest = JSON.parse(readFileSync(release.manifest, "utf8"));
+    const pluginManifest = JSON.parse(readFileSync(join(pluginRoot, ".codex-plugin", "plugin.json"), "utf8"));
     if (manifest?.schemaVersion !== 2 || manifest?.format !== "commonjs" || manifest?.nodeRuntime !== ">=22.5.0"
-      || !isReleaseId(manifest?.releaseId)) {
+      || typeof manifest?.pluginVersion !== "string" || manifest.pluginVersion.trim().length === 0
+      || manifest.pluginVersion !== pluginManifest?.version || !isReleaseId(manifest?.releaseId)) {
       throw new Error("manifest 内容不兼容");
     }
-    if (manifest.releaseId !== calculateReleaseId(root)) {
+    if (manifest.releaseId !== calculateReleaseId(root, manifest.pluginVersion)) {
       throw new Error("manifest Release ID 与实际发行产物摘要不一致");
     }
     release.releaseId = manifest.releaseId;

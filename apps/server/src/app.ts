@@ -15,6 +15,9 @@ import { readRuntimeConfig } from "@videocut/project-overview";
 import { evaluateQuality } from "@videocut/quality";
 import type { AssetKind, EditorFocus, ProjectSnapshot } from "@videocut/contracts";
 import { inspectAsset } from "./source-review.js";
+import { MOTION_SOURCES } from "../../../packages/motion-work/src/catalog.js";
+import { motionSubmissionSchema } from "../../../packages/motion-work/src/schema.js";
+import { inspectMotionReference } from "./motion-reference.js";
 
 const idSchema = z.string().min(1);
 const baseRevisionSchema = z.number().int().positive();
@@ -481,7 +484,13 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       timelineItemId: idSchema,
       idempotencyKey: z.string().trim().min(1).max(240).optional()
     }).strict().parse(request.body);
-    return reply.status(202).send(application.submitSourceAudioCaptions({ projectId, ...body }));
+    return reply.status(202).send(application.generateSourceAudioCaptions({ projectId, ...body }));
+  });
+
+  app.post("/api/projects/:projectId/speech-captions", async (request, reply) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, idempotencyKey: z.string().trim().min(1).max(240).optional() }).strict().parse(request.body);
+    return reply.status(202).send(application.generateSpeechCaptions({ projectId, ...body }));
   });
 
   app.post("/api/projects/:projectId/transcripts/manual", async (request) => {
@@ -494,6 +503,24 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({ baseRevision: baseRevisionSchema, semanticUnitIds: z.array(idSchema) }).parse(request.body);
     return application.applyScript({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/script/authored", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      sourceNote: z.string().trim().min(1).max(2_000),
+      units: z.array(z.object({
+        text: z.string().trim().min(1).max(2_000),
+        kind: z.enum(["statement", "question", "answer", "cause", "conclusion", "contrast", "list_item", "setup", "payoff", "retake", "intentional_repetition"]),
+        dependencies: z.array(idSchema).optional(),
+        precedingContext: z.string().max(2_000).optional(),
+        followingContext: z.string().max(2_000).optional(),
+        confidence: z.number().min(0).max(1).optional(),
+        pauseBefore: z.object({ durationMs: z.number().int().min(0).max(10_000), reason: z.enum(["sentence", "contrast", "emotion", "breath", "chapter"]) }).optional()
+      }).strict()).min(1).max(200)
+    }).strict().parse(request.body);
+    return application.applyAuthoredScript({ projectId, ...body });
   });
 
   app.post("/api/projects/:projectId/semantic-units", async (request) => {
@@ -535,6 +562,14 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       })).min(1).max(80)
     }).parse(request.body);
     return application.compilePresenterScenes({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/timeline/edit-presenter-source", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, timelineItemId: idSchema, reason: z.string().trim().min(1).max(2000),
+      keepRanges: z.array(z.object({ sourceStartFrame: z.number().int().nonnegative(), sourceEndFrame: z.number().int().positive() }).strict()).max(160)
+    }).strict().parse(request.body);
+    return application.editPresenterSource({ projectId, ...body });
   });
 
   app.post("/api/projects/:projectId/timeline/build-presenter", async (request) => {
@@ -697,6 +732,12 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       })).min(1).max(80)
     }).strict().parse(request.body);
     return application.compileExplainerScenes({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/explainer-programs/:programId/enabled", async (request) => {
+    const { projectId, programId } = z.object({ projectId: idSchema, programId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, enabled: z.boolean() }).strict().parse(request.body);
+    return application.setExplainerProgramEnabled({ projectId, programId, ...body });
   });
 
   app.get("/api/projects/:projectId/vlog-plan", async (request) => {
@@ -950,14 +991,44 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const body = z.object({
       baseRevision: baseRevisionSchema,
       sceneId: idSchema,
-      type: z.enum(["MetricBackdrop", "ProductFan", "GlowCTA", "PortfolioWall", "CommentCloud", "EvidenceCard", "CameraPunch", "FullScreenMeme", "DeviceShowcase", "ContentCarousel", "EndCard"]),
+      type: z.enum(["MetricBackdrop", "ProductFan", "GlowCTA", "PortfolioWall", "CommentCloud", "EvidenceCard", "CameraPunch", "FullScreenMeme", "DeviceShowcase", "ContentCarousel", "EndCard", "ManagedMotion"]),
       layer: z.enum(["rear", "actor", "front", "fullscreen"]),
       startFrame: z.number().int().min(0),
       endFrame: z.number().int().positive(),
       anchorTargetId: z.string().optional(),
-      note: z.string().optional()
+      note: z.string().optional(),
+      assetBindings: z.array(z.object({ slot: z.string(), assetId: idSchema })).optional()
     }).parse(request.body);
     return application.createEffectCue({ projectId, ...body });
+  });
+
+  app.get("/api/motion/sources", async () => ({ sources: MOTION_SOURCES }));
+  // 与渲染 Worker 共用部署前验证的浏览器；此只读服务不创建 Project、Revision 或 Job。
+  app.post("/api/motion/inspect-reference", async (request, reply) => {
+    if (request.headers["x-videoflowcut-release-id"] !== runtimeConfig.runtime.releaseId) {
+      throw new DomainError("当前 MCP 与动效审阅 Runtime 版本不一致", "RUNTIME_RELEASE_MISMATCH");
+    }
+    const body = z.object({
+      sourceUrl: z.string().url(),
+      previewIndex: z.number().int().nonnegative().max(300).optional(),
+      sampleDurationMs: z.number().int().min(1000).max(20000).default(6000)
+    }).strict().parse(request.body);
+    const evidence = await inspectMotionReference(body.sourceUrl, body.previewIndex, body.sampleDurationMs);
+    return reply.header("x-videoflowcut-release-id", runtimeConfig.runtime.releaseId).send(evidence);
+  });
+  app.post("/api/projects/:projectId/motion-works", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, idempotencyKey: z.string().min(1).max(160), work: motionSubmissionSchema }).strict().parse(request.body);
+    return application.submitManagedMotion({ projectId, ...body });
+  });
+  app.get("/api/projects/:projectId/motion-works/:jobId", async (request) => {
+    const { projectId, jobId } = z.object({ projectId: idSchema, jobId: idSchema }).parse(request.params);
+    return application.readManagedMotion(projectId, jobId);
+  });
+  app.post("/api/projects/:projectId/motion-works/:assetId/review", async (request) => {
+    const { projectId, assetId } = z.object({ projectId: idSchema, assetId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, referenceMatch: z.enum(["passed", "failed", "inconclusive"]), note: z.string().min(16).max(2400) }).strict().parse(request.body);
+    return application.reviewManagedMotion({ projectId, assetId, ...body });
   });
 
   app.patch("/api/projects/:projectId/effects/:cueId", async (request) => {
@@ -1033,6 +1104,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       baseRevision: baseRevisionSchema,
       action: z.enum(["update", "reset"]),
       text: z.string().max(80).optional(),
+      sourceTextReview: z.object({ note: z.string().min(1).max(1000) }).strict().optional(),
       format: z.object({
         fontSize: z.number().int().min(16).max(72).optional(),
         fontWeight: z.number().int().min(400).max(900).optional(),
@@ -1100,6 +1172,13 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       fadeOutFrames: z.number().int().min(0).max(480).optional(),
       eventFrame: z.number().int().min(0).optional(),
       onsetOffsetFrames: z.number().int().min(0).optional(),
+      onsetReview: z.object({ status: z.enum(["confirmed", "inconclusive"]), note: z.string().min(16).max(2400) }).strict().optional(),
+      effectEvent: z.object({
+        effectCueId: idSchema,
+        eventName: z.string().trim().min(1).max(160),
+        localFrame: z.number().int().nonnegative(),
+        syncOffsetFrames: z.number().int().optional()
+      }).strict().nullable().optional(),
       ducking: z.object({
         enabled: z.boolean().optional(),
         reductionDb: z.number().min(-36).max(-1).optional(),
@@ -1197,7 +1276,11 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
         throw new DomainError("对白处理绑定的 SpeechAsset / Script Revision 已变化；请基于当前 Revision 重新试听并提交，而不是重试旧任务", "DIALOGUE_PROCESSING_RETRY_STALE");
       }
     }
+    // 旧 VAD / token-only Job 只允许历史读取，不能通过通用重试重新创建。
     if (oldJob.kind === "source_caption_generation" || oldJob.kind === "source_caption_sentence_alignment") {
+      throw new DomainError("旧原声字幕 Job 已停用；请读取当前 A-roll 后使用 generate_source_audio_captions", "SOURCE_CAPTION_LEGACY_JOB_DISABLED");
+    }
+    if (oldJob.kind === "source_caption_alignment") {
       const requestedRevision = oldJob.payload.requestedRevision;
       const currentRevision = application.readProject(oldJob.projectId).revision.number;
       if (!Number.isInteger(requestedRevision) || requestedRevision !== currentRevision) {
@@ -1207,8 +1290,8 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const retry = application.repository.createJob({
       projectId: oldJob.projectId,
       kind: oldJob.kind,
-      // 转写、原声分块和句级对齐重试必须携带来源 Job，Worker 才能恢复其 run_id，避免超时后重复提交外部运行。
-      payload: oldJob.kind === "transcription" || oldJob.kind === "source_caption_generation" || oldJob.kind === "source_caption_sentence_alignment"
+      // 转写和段级原声字幕重试必须携带来源 Job，Worker 才能恢复其 run_id，避免超时后重复提交外部运行。
+      payload: oldJob.kind === "transcription" || oldJob.kind === "source_caption_alignment"
         ? { ...oldJob.payload, retryOfJobId: oldJob.id }
         : oldJob.payload,
       idempotencyKey: `${oldJob.idempotencyKey}:retry:${Date.now()}`

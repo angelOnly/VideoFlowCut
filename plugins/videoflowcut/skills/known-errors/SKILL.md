@@ -55,6 +55,10 @@ Delivery 门禁失败时先查看 blocking 或 EditorialReview 缺失；Render �
 
 ## 结果未知的通用规则
 
+稳定 MCP 连接在已部署 Runtime 通过发行摘要与健康核验后，才会在两次调用之间切换业务进程。`MCP_TOOL_SCHEMA_CHANGED` 表示该次未执行：刷新实时工具表后重新判断参数；`MCP_CALL_CANCELLED` 表示排队期间取消、未执行。`MCP_CALL_OUTCOME_UNKNOWN` 不表示失败前没有写入，必须按下面的对账规则处理。部署切换后仍需重新读取当前 Project/Revision，并由原剪辑任务确认 Repair Ticket；保留了项目定位不等于保留了当前 Revision。
+
+`Transport closed` 表示宿主到连接管理层本身已经断开，不能通过重复提交写操作恢复，也不能声称后台 Runtime 健康就代表这个任务已经接上。修复任务应使用宿主支持的会话恢复机制，并以原任务的真实调用作为恢复证据。
+
 ```text
 先读 Job
 → 读 Project/Revision

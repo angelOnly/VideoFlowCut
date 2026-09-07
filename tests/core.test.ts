@@ -93,6 +93,15 @@ function addReadyAsset(app: EditingApplication, projectId: string, name: string,
   return imported.asset.id;
 }
 
+/** 测试模拟观察声明，真实文件用于验证服务端范围/哈希合同，不代表 AI 实际听过。 */
+function fixtureObservations(previewJobId: string, endFrame: number) {
+  return (["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"] as const).map((pass) => ({
+    pass, previewJobId, startFrame: 0, endFrame,
+    method: pass === "audio_only" ? "audio" as const : pass === "mute_visual" ? "continuous_video" as const : "audiovisual" as const,
+    observation: "自动测试的观察声明，仅验证持久化合同"
+  }));
+}
+
 /** 为需要经过 Render Preflight 的测试把确定性媒体放入该 Asset 的受管路径。 */
 async function materializeFixtureForAsset(app: EditingApplication, projectId: string, assetId: string, fixturePath: string): Promise<void> {
   const state = app.readProject(projectId);
@@ -1107,7 +1116,7 @@ test("Presenter ProductionRun 仅在当前 Revision 的决策、Preview、合成
     const preview = context.app.submitPreview({ projectId: created.snapshot.project.id, revision, fromFrame: 0, toFrame: assembled.snapshot.timeline.durationInFrames });
     const previewPath = join(created.snapshot.project.rootPath, "previews", "revision-test.mp4");
     await mkdir(join(created.snapshot.project.rootPath, "previews", "frames"), { recursive: true });
-    await writeFile(previewPath, "mock preview");
+    await copyFile(await createDeterministicVideoFixture(context.root), previewPath);
     const inspectionFrames = [0, Math.floor(assembled.snapshot.timeline.durationInFrames / 2), assembled.snapshot.timeline.durationInFrames - 1];
     const inspectionEvidencePaths = inspectionFrames.map((frame) => join("previews", "frames", `revision-${revision}-frame-${frame}.jpg`));
     for (const frame of inspectionFrames) {
@@ -1120,6 +1129,7 @@ test("Presenter ProductionRun 仅在当前 Revision 的决策、Preview、合成
       revision,
       passes: ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"],
       previewEvidence: [inspectionEvidencePaths[1]!],
+      observations: fixtureObservations(preview.id, assembled.snapshot.timeline.durationInFrames),
       findings: []
     });
     const withoutInspection = await context.app.completeProductionRun({ projectId: created.snapshot.project.id, runId: run.id, finalRevision: revision });
@@ -1166,7 +1176,7 @@ test("ProductionRun 会要求每个已启用 EffectCue 至少有一张对应合�
     const previewPath = join(created.snapshot.project.rootPath, "previews", "effect-coverage.mp4");
     const frameDirectory = join(created.snapshot.project.rootPath, "previews", "frames");
     await mkdir(frameDirectory, { recursive: true });
-    await writeFile(previewPath, "mock preview");
+    await copyFile(await createDeterministicVideoFixture(context.root), previewPath);
     const outsideFrames = [0, 15, withCue.snapshot.timeline.durationInFrames - 1];
     for (const frame of [...outsideFrames, 7]) await writeFile(join(frameDirectory, `revision-${revision}-frame-${frame}.jpg`), `frame ${frame}`);
     context.app.updateJob(preview.id, { status: "succeeded", result: { revision, path: previewPath, fromFrame: 0, toFrame: withCue.snapshot.timeline.durationInFrames } });
@@ -1178,6 +1188,7 @@ test("ProductionRun 会要求每个已启用 EffectCue 至少有一张对应合�
       revision,
       passes: ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"],
       previewEvidence: [toArtifact(outsideFrames[0]!).relativePath],
+      observations: fixtureObservations(preview.id, withCue.snapshot.timeline.durationInFrames),
       findings: []
     });
     const missingCueFrame = await context.app.completeProductionRun({ projectId: created.snapshot.project.id, runId: run.id, finalRevision: revision });
@@ -1216,6 +1227,28 @@ test("delivery 导出要求目标 Revision 已完成真实审片，draft 可进�
   }
 });
 
+test("draft 错误只列真实技术阻断，不将待审观感误报为草稿拒绝原因", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "草稿拒绝原因" });
+    const projectId = created.snapshot.project.id;
+    const assetId = addReadyAsset(context.app, projectId, "restricted.mp4", "video", 1000);
+    const built = context.app.buildPresenterTimeline({ projectId, baseRevision: context.app.readProject(projectId).revision.number, assetIds: [assetId] });
+    const state = context.app.updateAssetEditorialMetadata({ projectId, baseRevision: built.revision.number, assetId, provenance: { ...built.snapshot.assets.find(asset => asset.id === assetId)!.provenance!, source: "generated", rightsStatus: "restricted" } });
+    const run = await context.app.startProductionRun({ projectId, loadedSkills: ["quality-verification"] });
+    await context.app.recordEditorialQualityReview({ projectId, runId: run.id, revision: state.revision.number, passes: ["mute_visual"], previewEvidence: ["测试输入"], findings: [{ pass: "mute_visual", category: "motion", severity: "inconclusive", summary: "观感等待连续复核", impact: "不代表失败", evidence: "合约模拟" }] });
+    for (const purpose of ["draft", "delivery"] as const) {
+      const job = context.app.submitExport({ projectId, revision: state.revision.number, purpose });
+      await assert.rejects(() => runExportJob(context.app, job, { render: async () => assert.fail("受限素材不应被导出") } as never), (error: unknown) => {
+        assert.ok(error instanceof DomainError && error.code === "QUALITY_GATE_BLOCKED", String(error));
+        assert.equal(error.message.includes("观感等待连续复核"), purpose === "delivery");
+        assert.match(error.message, /权利|限制|许可|授权/);
+        return true;
+      });
+    }
+  } finally { await context.dispose(); }
+});
+
 test("delivery ExportArtifact 固定 Revision、保留署名快照并让批准不受后续编辑影响", async () => {
   const context = await createTestApplication();
   try {
@@ -1229,12 +1262,18 @@ test("delivery ExportArtifact 固定 Revision、保留署名快照并让批准�
       assetIds: [videoAssetId]
     });
     const run = await context.app.startProductionRun({ projectId: created.snapshot.project.id, loadedSkills: ["quality-verification", "export"] });
+    const preview = context.app.submitPreview({ projectId: created.snapshot.project.id, revision: assembled.revision.number, fromFrame: 0, toFrame: assembled.snapshot.timeline.durationInFrames });
+    const previewPath = join(created.snapshot.project.rootPath, "previews", "artifact-gate.mp4");
+    await mkdir(join(created.snapshot.project.rootPath, "previews"), { recursive: true });
+    await copyFile(fixturePath, previewPath);
+    context.app.updateJob(preview.id, { status: "succeeded", result: { revision: assembled.revision.number, path: previewPath, fromFrame: 0, toFrame: assembled.snapshot.timeline.durationInFrames } });
     await context.app.recordEditorialQualityReview({
       projectId: created.snapshot.project.id,
       runId: run.id,
       revision: assembled.revision.number,
       passes: ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"],
       previewEvidence: ["已查看目标 Revision 的真实局部预览。"],
+      observations: fixtureObservations(preview.id, assembled.snapshot.timeline.durationInFrames),
       findings: []
     });
     const renderFixture = { render: async (_snapshot: unknown, targetPath: string) => copyFile(fixturePath, targetPath) } as never;
@@ -1308,7 +1347,7 @@ test("真实审片记录会按 Revision 合并到 QualityReport，过期记录�
     assert.equal(recorded.editorialReview?.revision, created.revision.number);
     const review = await context.app.readLatestEditorialQualityReview({ projectId: created.snapshot.project.id });
     const quality = evaluateQuality(created.snapshot, created.revision.number, review);
-    assert.equal(quality.editorial.status, "reviewed");
+    assert.equal(quality.editorial.status, "partial", "旧自由文字不能证明全片已连续审阅");
     assert.ok(quality.editorial.passes.includes("audiovisual"));
     assert.equal(quality.editorial.previewEvidence.length, 1);
     assert.equal(quality.editorial.typography[0]?.code, "EDITORIAL_TYPOGRAPHY");
@@ -1317,7 +1356,7 @@ test("真实审片记录会按 Revision 合并到 QualityReport，过期记录�
     const updated = context.app.updateStory({ projectId: created.snapshot.project.id, baseRevision: created.revision.number, title: "R2" });
     const stale = evaluateQuality(updated.snapshot, updated.revision.number, await context.app.readLatestEditorialQualityReview({ projectId: created.snapshot.project.id }));
     assert.equal(stale.editorial.status, "stale");
-    assert.equal(stale.editorial.typography.length, 0);
+    assert.equal(stale.editorial.typography.length, 1, "换 Revision 不能清除尚未复核的问题");
   } finally {
     await context.dispose();
   }

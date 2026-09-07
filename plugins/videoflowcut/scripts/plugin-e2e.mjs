@@ -1,15 +1,19 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createRequire } from "node:module";
 import { pluginRootFromModule, resolveReleaseRuntime, resolveRepoRoot } from "./repo-root.mjs";
 import { ensureRuntime, findAvailablePort, getRuntimeStatus, stopRuntime } from "./runtime-launcher.mjs";
 
-const pluginRoot = pluginRootFromModule(import.meta.url);
-const repoRoot = resolveRepoRoot({ pluginRoot });
+const sourcePluginRoot = pluginRootFromModule(import.meta.url);
+const repoRoot = resolveRepoRoot({ pluginRoot: sourcePluginRoot });
+// 安装快照必须位于仓库之外，否则 CWD 向上找到 package.json 会掩盖浏览器依赖缺失。
+const installationRoot = await mkdtemp(join(tmpdir(), "videoflowcut-install-e2e-"));
+const pluginRoot = join(installationRoot, "videoflowcut");
+await cp(sourcePluginRoot, pluginRoot, { recursive: true });
 const release = resolveReleaseRuntime(pluginRoot);
 const workspaceRoot = await mkdtemp(join(tmpdir(), "videoflowcut-plugin-e2e-"));
 const runtimePort = await findAvailablePort();
@@ -115,7 +119,10 @@ try {
     if (result?.isError || typeof first?.text !== "string") throw new Error(first?.text ?? "MCP 未返回标准文本结果");
     return first.text;
   };
-  const call = async (name, args) => JSON.parse(textFromResult(await client.callTool({ name, arguments: args })));
+  const call = async (name, args) => {
+    try { return JSON.parse(textFromResult(await client.callTool({ name, arguments: args }))); }
+    catch (error) { throw new Error(`E2E 调用 ${name} 失败：${error.message}`, { cause: error }); }
+  };
   const waitForJob = async (jobId) => {
     const deadline = Date.now() + 60_000;
     while (Date.now() < deadline) {
@@ -131,13 +138,36 @@ try {
   assert.ok(tools.tools.some((tool) => tool.name === "list_projects"), "插件 MCP 必须发现基础只读工具");
   assert.ok(tools.tools.some((tool) => tool.name === "open_web_workbench"), "插件 MCP 必须提供工作台入口");
   assert.ok(tools.tools.some((tool) => tool.name === "read_runtime_release"), "插件 MCP 必须提供发行版本核验");
+  // Windows 不允许移动被进程当作 CWD 持有的安装目录；运行中升级不能依赖重启 Codex 来释放它。
+  const relocatedPluginRoot = `${pluginRoot}-cwd-check`;
+  await rename(pluginRoot, relocatedPluginRoot);
+  await rename(relocatedPluginRoot, pluginRoot);
   assert.ok(tools.tools.some((tool) => tool.name === "report_editing_blocker"), "插件 MCP 必须提供剪辑阻断报告");
-  assert.ok(tools.tools.some((tool) => tool.name === "submit_source_audio_captions"), "插件 MCP 必须提供原声分块字幕入口");
-  assert.ok(tools.tools.some((tool) => tool.name === "submit_source_audio_sentence_alignment"), "插件 MCP 必须提供原声句级对齐入口");
+  assert.ok(tools.tools.some((tool) => tool.name === "generate_source_audio_captions"), "插件 MCP 必须提供原声段级字幕入口");
+  assert.equal(tools.tools.some((tool) => tool.name === "submit_source_audio_captions"), false, "插件 MCP 不得暴露旧 VAD 粗字幕入口");
+  assert.equal(tools.tools.some((tool) => tool.name === "submit_source_audio_sentence_alignment"), false, "插件 MCP 不得暴露旧 token-only 字幕入口");
+  assert.equal(tools.tools.some((tool) => tool.name === "submit_source_audio_token_alignment"), false, "插件 MCP 不得暴露重复的 token-only 字幕入口");
   assert.ok(tools.tools.some((tool) => tool.name === "browse_local_sound_effects"), "插件 MCP 必须提供受控本地音效浏览");
   assert.ok(tools.tools.some((tool) => tool.name === "import_local_sound_effect"), "插件 MCP 必须提供受控本地音效导入");
+  assert.equal(tools.tools.find((tool) => tool.name === "browse_sound_sources")?.annotations?.readOnlyHint, true);
+  assert.equal((await call("browse_sound_sources", {})).sources.length, 5);
+  assert.ok(tools.tools.find((tool) => tool.name === "manage_audio")?.inputSchema?.properties?.effect_event);
   const workbench = await call("open_web_workbench", {});
   assert.equal(workbench.url, runtime.webUrl, "MCP 工作台入口必须指向同一个隔离 Runtime");
+
+  const authoredProject = await call("create_project", { name: "发行版原创旁白入口验收", profile: "visual_explainer" });
+  const authoredState = await call("apply_authored_script", {
+    project_id: authoredProject.snapshot.project.id,
+    base_revision_id: authoredProject.revision.number,
+    source_note: "隔离发行验收的新写旁白，不是已有素材转写",
+    units: [{ text: "流量大小不代表下载速度。", kind: "statement" }]
+  });
+  assert.equal(authoredState.snapshot.semanticUnits[0].sourceKind, "authored");
+  assert.equal(authoredState.snapshot.speechSegments[0].text, "流量大小不代表下载速度。");
+  assert.equal(authoredState.snapshot.assets.length, 0);
+  assert.equal(authoredState.snapshot.transcripts.length, 0);
+  assert.equal(authoredState.snapshot.transcriptSentenceCandidates.length, 0);
+  assert.equal((await call("read_script", { project_id: authoredProject.snapshot.project.id })).semanticUnits[0].sourceAssetId, undefined);
 
   // 使用仓库内真实视频证明 Runtime 中的媒体 Worker 不只是“进程存在”，而是会消费新任务。
   const sourceVideo = join(repoRoot, "videos", "数字人口播", "segment-01.mp4");
@@ -212,6 +242,30 @@ try {
   });
   projectState = await call("read_project", { project_id: project.snapshot.project.id });
   const previewToFrame = Math.min(projectState.snapshot.timeline.durationInFrames, 24);
+  // 音效在真实发行 Worker 中参与合成；不把无声作品或只读 Schema 当声画链已通过。
+  const soundPath = join(workspaceRoot, "event-fixture.wav");
+  const soundBytes = Buffer.alloc(44 + 4800 * 2);
+  soundBytes.write("RIFF"); soundBytes.writeUInt32LE(soundBytes.length - 8, 4); soundBytes.write("WAVEfmt ", 8);
+  soundBytes.writeUInt32LE(16, 16); soundBytes.writeUInt16LE(1, 20); soundBytes.writeUInt16LE(1, 22);
+  soundBytes.writeUInt32LE(48000, 24); soundBytes.writeUInt32LE(96000, 28); soundBytes.writeUInt16LE(2, 32); soundBytes.writeUInt16LE(16, 34);
+  soundBytes.write("data", 36); soundBytes.writeUInt32LE(9600, 40);
+  for (let i = 0; i < 4800; i++) soundBytes.writeInt16LE(Math.round(Math.sin(i * 880 * Math.PI * 2 / 48000) * 6000), 44 + i * 2);
+  await writeFile(soundPath, soundBytes);
+  const soundImport = await call("import_media", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number, file_path: soundPath, role: "sfx", provenance: { source: "local_import", rights_status: "cleared" } });
+  await waitForJob(soundImport.job.id);
+  projectState = await call("read_project", { project_id: project.snapshot.project.id });
+  const effectState = await call("manage_effect_cues", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
+    action: "create", scene_id: projectState.snapshot.scenes[0].id, type: "CameraPunch", layer: "actor", start_frame: 2, end_frame: 22,
+    narrative_purpose: "独立测试一个有声音关联的动作", audience_task: "验证物理事件", semantic_anchor: { type: "absolute", relation: "land_on" } });
+  const effectId = effectState.snapshot.effectCues.at(-1).id;
+  const soundState = await call("manage_audio", { project_id: project.snapshot.project.id, base_revision_id: effectState.revision.number,
+    action: "create", kind: "sfx", asset_id: soundImport.asset.id, purpose: "测试动作落点", event_frame: 8, onset_offset_frames: 0,
+    effect_event: { effect_cue_id: effectId, event_name: "局部动作", local_frame: 6 } });
+  assert.match(soundState.snapshot.audioCues[0].effectEvent.cueSignature, /^[a-f0-9]{64}$/u);
+  const movedState = await call("manage_effect_cues", { project_id: project.snapshot.project.id, base_revision_id: soundState.revision.number,
+    action: "update", cue_id: effectId, start_frame: 4, end_frame: 24 });
+  assert.equal(movedState.snapshot.audioCues[0].eventFrame, 10);
+  projectState = movedState;
   const preview = await call("render_preview_range", {
     project_id: project.snapshot.project.id,
     revision: projectState.revision.number,
@@ -221,12 +275,27 @@ try {
   });
   const rendered = await waitForJob(preview.id);
   assert.equal(rendered.status, "succeeded", "发行版 Render Worker 必须完成 Preview 合成");
+  assert.equal(existsSync(join(pluginRoot, ".remotion")), false, "正式安装目录不能因 Job 渲染而下载浏览器");
   const composedFrames = await call("inspect_composed_frames", {
     project_id: project.snapshot.project.id,
     preview_job_id: preview.id,
     frames: [0, previewToFrame - 1]
   });
   assert.equal(composedFrames.frames.length, 2, "发行版 Preview 必须可提取实际合成帧");
+  const reviewRun = await call("start_production_run", { project_id: project.snapshot.project.id, loaded_skills: ["quality-verification"] });
+  const review = await call("record_editorial_quality_review", {
+    project_id: project.snapshot.project.id,
+    run_id: reviewRun.id,
+    revision: projectState.revision.number,
+    passes: ["mute_visual"],
+    findings: [],
+    observations: [{ pass: "mute_visual", preview_job_id: preview.id, start_frame: 0, end_frame: previewToFrame, method: "continuous_video", observation: "发行 E2E 模拟观察声明，只验证合同，不声称审美通过" }]
+  });
+  assert.match(review.editorialReview.evidenceRecords[0].contentHash, /^[a-f0-9]{64}$/u);
+  const reviewQuality = await call("read_quality_report", { project_id: project.snapshot.project.id });
+  assert.equal(reviewQuality.editorial.status, "partial", "一轮观察不能冒充五轮完整审阅");
+  assert.ok(Array.isArray(reviewQuality.productionReconciliation));
+  assert.equal((await call("read_project", { project_id: project.snapshot.project.id })).revision.number, projectState.revision.number, "审片不得创建视频 Revision");
   await transport.close();
   transport = undefined;
 
@@ -237,9 +306,16 @@ try {
   const afterStop = await getRuntimeStatus({ pluginRoot, repoRoot, workspaceRoot, port: runtimePort });
   assert.equal(afterStop.ready, false, "停止后 Runtime 不应继续可用");
   console.log("VideoFlowCut 插件 Runtime、Web 与 MCP E2E 验证通过。");
+} catch (error) {
+  // 保留失败现场摘要，避免 finally 清理隔离环境后只剩一条含糊的健康错误。
+  const logName = runtimePort === 3100 ? "runtime.log" : `runtime-${runtimePort}.log`;
+  const log = await readFile(join(workspaceRoot, ".videoflowcut-runtime", logName), "utf8").catch(() => "无运行日志");
+  console.error(log.slice(-6_000));
+  throw error;
 } finally {
   if (transport) await transport.close().catch(() => undefined);
   await stopRuntime({ pluginRoot, repoRoot, workspaceRoot, port: runtimePort }, { force: true }).catch(() => undefined);
   if (untrustedProcess?.pid && processIsAlive(untrustedProcess.pid)) untrustedProcess.kill();
   await rm(workspaceRoot, { recursive: true, force: true });
+  await rm(installationRoot, { recursive: true, force: true });
 }

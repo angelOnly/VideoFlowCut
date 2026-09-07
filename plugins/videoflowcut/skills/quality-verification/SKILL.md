@@ -11,6 +11,8 @@ description: 读取当前 Revision 的项目结构、真实 Preview、最终 Art
 
 `quality-verification` 不直接代替 Director 决定如何创作，也不靠模型想象画面。它读取当前 Revision、Project Graph、Preview、合成帧、声音和最终 Artifact；没有看过的范围写 inconclusive。
 
+原声裁剪会保留 `disabled` 的旧 Timeline Item 和 `stale` 的人物表演作为审计记录。这些记录不参与合成，不要求为了交付重新绑定、补 Mask 或伪改为 ready；有效片段仍接受完整人物质量检查，重新启用旧片段也会恢复检查。引用的 Item 真正丢失仍是图结构错误。若禁用审计记录仍触发人物 blocking，应报告平台问题，不通过修改旧记录或权限消除提示。
+
 ## 四级证据
 
 ### 项目结构
@@ -65,7 +67,17 @@ blocking 包括事实/权利错误、严重语义断裂、重复人声、关键�
 
 ## A/B/不使用
 
-高影响视觉和声音问题应比较当前、最小修复和不使用。只要删除效果后更清楚，就不应因为已经开发了组件而保留。质量系统不以效果数量和覆盖率为分数。
+高影响视觉和声音问题应比较当前、最小修复、更强处理或不使用。比较理解、注意、记忆、情绪和节奏，以及阅读、表演与连续性的代价；删除效果后事实信息没变，不代表效果没有价值。实际收益不足或代价更大时重新设计或取消，不因为已开发而保留，也不因为最少处理最容易通过技术校验就默认采用。质量系统不以效果数量和覆盖率为分数。
+
+## 表现不足与未兑现计划
+
+对于完整制作的短视频，正常速度与目标观看尺寸下，重点是否自然进入注意、转折是否被感知、对比是否可追随、结论是否留下记忆，与不挡脸、无错误同样需要检查。连续多个高价值 Beat 只有同样的大近景与基础字幕，人物表演也没有承担变化；核心图形必须暂停放大才能识别；对比只是两个文本框但关系仍靠朗读；或音效在独奏时存在、混入 Dialogue 后没有可感知作用，均是具体失败线索。结合任务目标与实际范围判断 major/minor，不按动画数量自动定级。
+
+安静区的理由必须由真实表演、阅读或前后密度对比支持。对当前重要 Beat 对账 VisualTreatment 与实际有效 Scene、EffectCue、Caption、Audio：计划未放置、对象 stale、Job 未完成或工具阻断不能计为主动留白。保留合法 disabled/stale 历史审计记录，不要求清空历史；检查的是当前承诺有没有被有效对象兑现。
+
+声音审查分别核实功能、音色/包络、可听起音、主攻击落点、尾音释放、对白遮蔽与重复疲劳。可测音轨和波形不替代听感；没有音频输入时对这些听觉结论写 inconclusive，并保留需要复听的范围。不能以无声动效代理通过，代表整段声画已经通过。
+
+代表段必须包含铺垫、主要事件、阅读与恢复，再检查放入整片后的分布。短样段通过只支持该范围，不覆盖全片、后续 Revision 或最终导出。用户普通观感要求由导演转成专业验收，用户不需要逐项补充字号、缓动或音效参数。
 
 ## 确定性技术检查矩阵
 
@@ -93,6 +105,8 @@ Quality Skill 应读取这些结果，但不能把可由代码确定的错误全
 - B-roll 是解释/证明/具体化还是关键词联想；
 - 前后景是否依赖真实 Mask；
 - 字幕、人物和 Effect 是否有清楚第一重点；
+- 在需要强调的 Beat 上，排印、构图与声音是否足够可感知，而非一律退让；
+- 数字人物是否根据实际表演承载力获得适当 Treatment，而非借用不存在的眼神/手势；
 - 主声音版本、口型和 AudioMode 是否一致。
 
 ## Explainer 质量的深入问题
@@ -121,6 +135,8 @@ Quality Skill 应读取这些结果，但不能把可由代码确定的错误全
 
 ## Review 的版本约束
 
+音效与动效关联的检查分两层：结构上读 AudioCue.effectEvent、对应 Cue、localFrame、syncOffsetFrames、作品版本签名及实际 Item；听感上复核选中的动作是否正是需要强化的动作、攻击是否相合、尾音是否干扰下一句。纯平移自动跟随不代表混音仍成立，stale 声音被停用也不代表原声音需求已兑现。源文件、动作前后语境和完整混合声画需要分别检查；检测指标或外部模型描述只作为辅助证据，未实际完成相应感知输入时仍保留 inconclusive。
+
 EditorialReview 只适用于它绑定的 Revision。新 Revision 即使只改一个 Cue，也至少需要重新检查 Dirty Range；如果改变 Style、主声音、Story、Scene 长度或音乐结构，还需要更大范围甚至整片。旧 Artifact 的 Review 不能自动用于新导出。
 
 ## 无法判断时
@@ -129,9 +145,13 @@ EditorialReview 只适用于它绑定的 Revision。新 Revision 即使只改一
 
 ## 当前工具流程
 
-整片任务通常已有 ProductionRun。通过 `read_quality_report` 查看技术问题，渲染/检查 Preview，随后使用 `record_editorial_quality_review` 提交五个 Pass、Preview Evidence 和 Findings。修复后生成新 Revision，旧 Review 不自动适用于新版本；需要重新检查受影响范围和必要整片。
+整片任务通常已有 ProductionRun。先读 `read_quality_report` 的 `productionReconciliation`、`editorial.openFindings` 和 `editorial.coverage`：分别回答计划有没有实际对象、旧问题是否仍待修、哪些范围还没以正确方式审过。对账里的场景音效/字幕只是实际使用线索，共用长 Scene 不能证明每拍都已实施；对象关联完整也不能证明设计兑现，需要回到观看结果。
 
-`complete_production_run` 固定最终 Revision 和审计，但不能代替 Delivery Gate。当前导出代码会为 delivery 要求同一 Revision 的 Preview Evidence、audiovisual 和 first_viewer 审查。
+`record_editorial_quality_review` 可以只提交本阶段实际执行的一个或多个 Pass，不必为了保存一个局部发现虚填五轮。`observations` 逐条写成功 Preview Job、成片 start/end（end 排他）、pass、method 与实际观察，服务端验证版本、文件哈希、真实时长和音轨。frames 只支持静态观察；audio_only 使用 audio，mute_visual 使用 continuous_video，其余轮次使用 audiovisual。播放器启动、音轨存在、波形或 Contact Sheet 都不证明模型真正看过、听过；没有对应感知输入，记录具体范围的 inconclusive，继续可验证的专项，不虚报该轮。
+
+问题保存后使用返回的 Finding ID 持续跟进。新 Revision 或新 Run 不会清除旧问题；空 findings 只是没有新增发现。修复后先登记当前范围的新观察，再用 `resolutions` 引用返回的 evidenceIds，说明怎样复核原问题。跨版本复核跟随当前对象范围；未关联可定位对象时要求整片，不能任选一小段关闭旧问题。关闭保留原始发现，文件丢失或替换会使对应证据和关闭资格失效。
+
+`complete_production_run` 和 delivery 要求当前 Revision 的五轮连续审阅覆盖完整时间线，first_viewer 必须一次连续看完整片；阶段证据可累积，但抽帧、旧版、局部范围和自由文字不补足全片门禁。未关闭的 blocking、major、inconclusive 阻挡收口，仍允许编辑和草稿预览。只改局部时先验证局部；准备最终收口再做当前版本的整片审阅。最终 Artifact 仍须独立复核和批准，不以 ProductionRun 代替交付。
 
 ## 自动修订的边界
 

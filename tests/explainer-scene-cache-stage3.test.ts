@@ -148,3 +148,29 @@ function mapBeatId(app: EditingApplication, projectId: string): string {
   assert.ok(mapBeat, "测试项目必须保留 NarrativeMap Beat");
   return mapBeat.id;
 }
+
+test("停用 Program 后不能复用仍存在的旧场景视频缓存，恢复时可复用同一输入", async () => {
+  const context = await createIsolatedExplainer();
+  try {
+    // 另一个场景维持项目长度，使被停用的局部范围仍可请求 Preview。
+    const extended = context.app.repository.commit(context.projectId, context.revision, "候选后续场景", (snapshot) => {
+      snapshot.scenes.push({ ...snapshot.scenes[0]!, id: "cache-following-scene", type: "PresenterScene", startFrame: 48, endFrame: 96, narrativeBeatIds: [] });
+    });
+    const renderer = new CountingPreviewRenderer();
+    const preview = async (revision: number) => runPreviewJob(context.app, context.app.submitPreview({ projectId: context.projectId, revision, fromFrame: 0, toFrame: 48 }), renderer);
+    const first = await preview(extended.revision.number);
+    assert.equal((first.sceneCache as { hit: boolean }).hit, false);
+    const programId = extended.snapshot.explainerPrograms[0]!.id;
+    const off = context.app.setExplainerProgramEnabled({ projectId: context.projectId, baseRevision: extended.revision.number, programId, enabled: false });
+    const disabledPreview = await preview(off.revision.number);
+    assert.equal(renderer.calls, 2, "旧缓存文件仍在，但停用后必须重新合成底层");
+    assert.equal(disabledPreview.sceneCache, undefined);
+    const on = context.app.setExplainerProgramEnabled({ projectId: context.projectId, baseRevision: off.revision.number, programId, enabled: true });
+    const enabledPreview = await preview(on.revision.number);
+    assert.equal((enabledPreview.sceneCache as { hit: boolean }).hit, true);
+    assert.equal(renderer.calls, 2);
+  } finally {
+    context.app.close();
+    await rm(context.root, { recursive: true, force: true });
+  }
+});
