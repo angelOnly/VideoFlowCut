@@ -25,7 +25,11 @@ const expectedSkills = [
   "evidence-visualization",
   "export",
   "known-errors",
+  "motion-case-capacity-stream",
+  "motion-case-clock-shift",
   "motion-case-library",
+  "motion-case-product-multiply",
+  "motion-case-ticket-rules",
   "presenter-motion-director",
   "production-director",
   "project-basics",
@@ -194,19 +198,25 @@ test("人物剪辑专业资料从导演与相关专项可达，发行内容保�
 
 test("连续动效案例可从生产入口读取，源码和参数随插件一起发行", async () => {
   const reachable = await reachableMarkdown(join(skillsRoot, "remotion-production/SKILL.md"));
-  for (const path of ["SKILL.md", "references/case-methods.md", "references/four-source-worked-example.md"]) {
+  for (const path of ["SKILL.md", "references/four-source-worked-example.md"]) {
     assert.ok(reachable.has(join(skillsRoot, "motion-case-library", path)), `生产入口无法读取案例资料：${path}`);
   }
-  const caseDirectory = "motion-case-library/assets/cases";
-  const sourceFiles = (await readdir(join(skillsRoot, caseDirectory))).sort();
-  const releasedFiles = (await readdir(join(pluginSkillsRoot, caseDirectory))).sort();
-  assert.deepEqual(releasedFiles, sourceFiles);
-  for (const file of sourceFiles) {
-    assert.equal(await readFile(join(pluginSkillsRoot, caseDirectory, file), "utf8"), await readFile(join(skillsRoot, caseDirectory, file), "utf8"), `案例发行副本不同步：${file}`);
-  }
-  for (const sourceFile of sourceFiles.filter((file) => file.endsWith(".tsx"))) {
-    const videoPath = `motion-case-library/assets/videos/${sourceFile.replace(/\.tsx$/u, ".mp4")}`;
-    assert.deepEqual(await readFile(join(pluginSkillsRoot, videoPath)), await readFile(join(skillsRoot, videoPath)), `案例视频缺失或发行副本不同步：${sourceFile}`);
+  const overview = await readSkill("motion-case-library");
+  for (const id of ["ticket-rules", "product-multiply", "clock-shift", "capacity-stream"]) {
+    const name = `motion-case-${id}`;
+    const skillPath = join(skillsRoot, name, "SKILL.md");
+    assert.ok(reachable.has(skillPath), `总 Skill 无法读取独立案例：${name}`);
+    const skill = await readFile(skillPath, "utf8");
+    const videos = [...skill.matchAll(/\]\(([^)]+\.mp4)\)/gu)].map((match) => resolve(dirname(skillPath), match[1]!));
+    const videoPath = join(skillsRoot, name, "assets", `${id}.mp4`);
+    assert.deepEqual([...new Set(videos)], [videoPath], `案例须引用自身的独立效果：${name}`);
+    assert.ok(overview.includes(`../${name}/assets/${id}.mp4`), `总 Skill 缺少独立效果入口：${name}`);
+    const assetFiles = (await readdir(join(skillsRoot, name, "assets"))).sort();
+    assert.deepEqual(assetFiles, ["fixture.json", "motion.tsx", `${id}.mp4`].sort());
+    assert.deepEqual((await readdir(join(pluginSkillsRoot, name, "assets"))).sort(), assetFiles);
+    for (const file of assetFiles) {
+      assert.deepEqual(await readFile(join(pluginSkillsRoot, name, "assets", file)), await readFile(join(skillsRoot, name, "assets", file)), `案例发行副本不同步：${name}/${file}`);
+    }
   }
 });
 

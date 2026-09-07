@@ -9,7 +9,8 @@ import { validateMotionSource } from "../packages/motion-work/src/compiler.js";
 
 /** 仅渲染随仓库审阅的教学源码；不连接 MCP、数据库或正式视频项目。 */
 const root = process.cwd();
-const casesRoot = join(root, ".agents/skills/motion-case-library/assets/cases");
+const skillsRoot = join(root, ".agents/skills");
+const caseAssets = (id: string) => join(skillsRoot, `motion-case-${id}`, "assets");
 const outputRoot = join(root, "previews/motion-cases");
 const fixtureSchema = z.object({
   name: z.string().min(1),
@@ -32,15 +33,17 @@ const args = process.argv.slice(2);
 const stillsOnly = args.includes("--stills");
 const offline = args.includes("--offline");
 const names = args.filter((arg) => arg !== "--stills" && arg !== "--offline");
-const available = (await readdir(casesRoot)).filter((file) => file.endsWith(".tsx")).map((file) => file.slice(0, -4)).sort();
+const available = (await readdir(skillsRoot, { withFileTypes: true }))
+  .filter((entry) => entry.isDirectory() && entry.name.startsWith("motion-case-") && entry.name !== "motion-case-library")
+  .map((entry) => entry.name.slice("motion-case-".length)).sort();
 if (!available.length) throw new Error("案例源码目录为空");
 if (names.some((name) => !available.includes(name))) throw new Error(`支持的案例：${available.join(", ")}`);
 const selected = names.length ? available.filter((name) => names.includes(name)) : available;
 const cases = await Promise.all(selected.map(async (id) => {
-  const source = await readFile(join(casesRoot, `${id}.tsx`), "utf8");
+  const source = await readFile(join(caseAssets(id), "motion.tsx"), "utf8");
   if (source.length > 60_000) throw new Error(`${id} 超出 MotionWork 源码大小限制`);
   validateMotionSource(source);
-  const fixture = fixtureSchema.parse(JSON.parse(await readFile(join(casesRoot, `${id}.fixture.json`), "utf8")));
+  const fixture = fixtureSchema.parse(JSON.parse(await readFile(join(caseAssets(id), "fixture.json"), "utf8")));
   return { id, ...fixture };
 }));
 
@@ -48,7 +51,7 @@ await mkdir(join(root, ".candidate"), { recursive: true });
 await mkdir(outputRoot, { recursive: true });
 const working = await mkdtemp(join(root, ".candidate/motion-cases-"));
 const entryPoint = join(working, "root.tsx");
-const imports = cases.map((item, index) => `import Case${index} from ${JSON.stringify(resolve(casesRoot, `${item.id}.tsx`))};`).join("\n");
+const imports = cases.map((item, index) => `import Case${index} from ${JSON.stringify(resolve(caseAssets(item.id), "motion.tsx"))};`).join("\n");
 const compositions = cases.map((item, index) => `<Composition id=${JSON.stringify(item.id)} component={Case${index}} width={${item.width}} height={${item.height}} fps={${item.fps}} durationInFrames={${item.durationInFrames}} defaultProps={${JSON.stringify(item.props)}} />`).join("\n");
 await writeFile(entryPoint, `import React from 'react';\nimport {Composition,registerRoot} from 'remotion';\n${imports}\nregisterRoot(()=> <>${compositions}</>);\n`);
 
@@ -63,7 +66,7 @@ try {
         await mkdir(directory, { recursive: true });
         const frameDirectory = join(working, item.id);
         await mkdir(frameDirectory);
-        const playerEntry = `import React from 'react';import {createRoot} from 'react-dom/client';import {flushSync} from 'react-dom';import {Player} from '@remotion/player';import Motion from ${JSON.stringify(resolve(casesRoot, `${item.id}.tsx`))};
+        const playerEntry = `import React from 'react';import {createRoot} from 'react-dom/client';import {flushSync} from 'react-dom';import {Player} from '@remotion/player';import Motion from ${JSON.stringify(resolve(caseAssets(item.id), "motion.tsx"))};
 const ref=React.createRef();flushSync(()=>createRoot(document.getElementById('root')).render(React.createElement(Player,{ref,component:Motion,inputProps:${JSON.stringify(item.props)},durationInFrames:${item.durationInFrames},fps:${item.fps},compositionWidth:${item.width},compositionHeight:${item.height},controls:false,autoPlay:false,style:{width:${item.width},height:${item.height}}})));
 window.seek=async frame=>{ref.current.seekTo(frame);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));await document.fonts.ready;};`;
         const built = await build({ stdin: { contents: playerEntry, loader: "tsx", resolveDir: root }, bundle: true, write: false, platform: "browser", format: "iife", minify: true, define: { "process.env.NODE_ENV": '"production"' } });
