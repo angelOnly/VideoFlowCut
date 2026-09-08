@@ -69,3 +69,7 @@
 主工作流把观众任务、语义范围、视觉机制、音效功能、空间与时序依据写入现有 VisualTreatment 或 Creative Decision，分别交给 Scene、Remotion、Caption、Effect Timing、Depth 与 Audio 专项；这些描述不是新增数据库字段。专项返回实际 Scene/Cue/Caption/Audio、失效范围和同 Revision 的 Preview，而不是仅返回“已按手法执行”。
 
 先审阅包含前后语境的代表段，再扩展与审阅整片。重点能否自然被发现，比较能否追随，返回人物是否连续，声音是否可感又不压字，恢复是否成立，均需实际播放。抽帧只支持画面采样，波形只支持信号事实；没有声音输入或未完成复听时，声音结论保留 inconclusive，不从字幕、动画或音效文件名想象听感。基础校验、计划检查和一次样段通过均不等于用户批准。
+
+## 原创段落的落地
+
+从完整观看任务进入 [Remotion 原创流程](../../remotion-production/SKILL.md)：内容构思与关键状态、creativeBrief、受管提交、Job/Asset 读回、作品审阅、覆盖 Beat 与 Cue 放置，最后回到真实人物/字幕/声音的连续合成。代表段成立后继续整片，不能只提交单个效果结束。

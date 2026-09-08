@@ -23,6 +23,8 @@ AssetRequest 应说明这段画面要做什么。例如“表现自由”几乎�
 
 独立音效的功能与音色选择由 `audio-finishing` 负责，不套视觉构图标准。它复用 AssetRequest → Candidate → 本地 Asset 的获取合同：media_kind=audio、audio_brief、sfx/bgm 角色，无需画幅。`browse_sound_sources` 返回来源与访问边界，Mixkit 的公开分类已接入现有 Provider；候选不自动进入 Timeline，其它站点仍遵守原站合法获取与许可。不要为了声音需求调用生成画面的 fallback。
 
+可选参考研究用于理解运动机制，不是原创二维对象的前置模板搜索。灵感、作品绑定图片、真实证据与实拍分别记录用途；只有实际使用的素材进入获取链。无原始文件时不能把预览当素材。
+
 在线动效不是 Stock 下载任务。Onda、Jitter、RemotionLab、Mixkit 由 `browse_motion_sources` 提供入口，`inspect_motion_reference` 支持公开页面与动态采样。把选中链接和观察依据交给 `remotion-production`；无源码或 AE 格式不妨碍独立实现。只有确实要使用第三方图片、视频或音频时才进入本 Skill 的授权和素材获取流程，不把参考预览登记成正式素材。
 
 当前最小 Asset Acquisition System 已提供 `manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset` 和 `read_asset_provenance`。它会把需求、SearchIntent 与 Candidate 写入同一 Revision；Candidate 通过授权和技术硬过滤后，由 Worker 下载到受管目录、校验 MIME、文件头、内容哈希和 ffprobe，随后才注册为 Asset 并进入媒体分析。Candidate 永远不能直接写入 Scene 或 Timeline。

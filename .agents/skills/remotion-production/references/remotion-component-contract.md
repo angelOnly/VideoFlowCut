@@ -62,3 +62,7 @@ interface EffectDefinition {
 ## 更新与兼容
 
 组件版本变化可能改变旧 Revision 的渲染。Snapshot 应保存 Registry/Runtime 版本，或通过迁移保持旧 Props 可解释。破坏性更新需要 Golden 回归和旧项目兼容策略。
+
+## 原创项目作品与版本
+
+无参考原创是正常生产路径：段内构思后写 creativeBrief，通过受管 MCP 生成固定作品，再审阅与放置。平台组件注册服务全局 Runtime；单片设计不需要增加 Registry。源码、Props、设计说明、画布和绑定形成作品版本，审阅绑定该版本；换版不继承旧结论，旧 source.json 与缓存保持可读。相关教学见 [完整创作案例](motion-graphics-casebook.md)。

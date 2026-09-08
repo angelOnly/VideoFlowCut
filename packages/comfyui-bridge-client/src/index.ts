@@ -133,6 +133,13 @@ function endpointForDiagnostics(endpoint: string): string {
 }
 
 function transportFailureReason(error: unknown): string {
+  // fetch failed 会隐藏服务未启动的原因；只提取已知错误码，不输出 cause 中的凭据或请求。
+  const cause = error instanceof Error ? error.cause : undefined;
+  if (cause && typeof cause === "object" && "code" in cause) {
+    if (cause.code === "ECONNREFUSED") return "ECONNREFUSED：连接被拒绝，请检查目标端口是否有 ComfyUI 服务监听";
+    if (cause.code === "ENOTFOUND") return "ENOTFOUND：无法解析 ComfyUI 服务主机名，请检查 Bridge 地址";
+    if (cause.code === "ETIMEDOUT" || cause.code === "UND_ERR_CONNECT_TIMEOUT") return "连接 ComfyUI 服务超时，请检查服务和网络";
+  }
   if (error instanceof Error) return error.message || error.name;
   return String(error);
 }

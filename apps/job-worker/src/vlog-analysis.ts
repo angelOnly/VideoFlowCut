@@ -2,17 +2,12 @@ import { isAbsolute, join } from "node:path";
 import type { CompletedVlogShotAnalysis, EditingApplication } from "@videocut/application";
 import type { Asset, JobRecord, ProjectSnapshot } from "@videocut/contracts";
 import { assetById, DomainError, millisecondsToFrames } from "@videocut/domain";
-import { runProcess } from "@videocut/speech";
+import { detectSceneBoundaries, type SceneBoundary } from "../../../packages/media-intelligence/src/structure.js";
 
 type VlogAnalysisPayload = {
   requestedRevision: number;
   assetIds: string[];
   sceneThreshold: number;
-};
-
-type SceneBoundary = {
-  seconds: number;
-  score?: number;
 };
 
 const maxSceneBoundariesPerAsset = 600;
@@ -33,41 +28,6 @@ function readPayload(job: JobRecord): VlogAnalysisPayload {
     throw new DomainError("Vlog 镜头分析任务缺少有效的素材、Revision 或场景边界阈值", "VLOG_ANALYSIS_PAYLOAD_INVALID");
   }
   return { requestedRevision, assetIds, sceneThreshold };
-}
-
-/**
- * metadata=print 会把 select 命中的 pts_time 与 lavfi.scene_score 写到 FFmpeg 日志。
- * 这里仅解析两个可观测事实，不会据此猜测人物动作、地点或故事事件。
- */
-function parseSceneBoundaries(output: string): SceneBoundary[] {
-  const times = [...output.matchAll(/pts_time:\s*(-?\d+(?:\.\d+)?)/gu)]
-    .map((match) => Number(match[1]))
-    .filter((value) => Number.isFinite(value) && value >= 0);
-  const scores = [...output.matchAll(/lavfi\.scene_score\s*=\s*(-?\d+(?:\.\d+)?)/gu)]
-    .map((match) => Number(match[1]));
-  return times.map((seconds, index) => ({
-    seconds,
-    score: Number.isFinite(scores[index]) ? scores[index] : undefined
-  }));
-}
-
-async function detectSceneBoundaries(path: string, threshold: number): Promise<SceneBoundary[]> {
-  let output: string;
-  try {
-    output = await runProcess("ffmpeg", [
-      "-hide_banner",
-      "-i", path,
-      // select 只输出跨过阈值的帧；metadata 输出原始 score，供后续人工判断镜头价值时回看。
-      "-vf", `select='gt(scene,${threshold.toFixed(4)})',metadata=print:key=lavfi.scene_score`,
-      "-an",
-      "-f", "null",
-      "-"
-    ], 10 * 60_000);
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    throw new DomainError(`FFmpeg 无法完成镜头边界分析：${detail}`, "VLOG_ANALYSIS_FFMPEG_FAILED");
-  }
-  return parseSceneBoundaries(output);
 }
 
 function analysesForAsset(input: {

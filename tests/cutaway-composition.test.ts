@@ -29,7 +29,7 @@ test("全屏 Cutaway 接管宿主主视觉、保留明确前景和声音，返�
       const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: layer, work: { ...motionFixture, source } });
       await runMotionJob(app, job);
       const asset = app.readManagedMotion(projectId, job.id).asset!;
-      app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, referenceMatch: "inconclusive", note: "隔离像素夹具，只测试合成，不冒称艺术审片通过。" });
+      await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "隔离像素夹具，只测试合成，不冒称艺术审片通过。" });
       app.createEffectCue({ projectId, baseRevision: revision(), sceneId: scene.id, type: "ManagedMotion", layer, startFrame: 0, endFrame: 18, assetBindings: [{ slot: "motion", assetId: asset.id }] });
     }
     app.manageCutaway({ projectId, baseRevision: revision(), action: "create", hostSceneId: scene.id, assetId: media.id, mode: "fullscreen", fit: "contain", audioMode: "continue_dialogue", purpose: "暂时接管主视觉", audienceTask: "看见实拍再回原模型", startFrame: 6, endFrame: 12, sourceStartFrame: 0, sourceEndFrame: 6 });

@@ -12,6 +12,7 @@ import { EFFECT_QUALITY_RULES, EFFECT_TYPES, type Asset, type AssetProvenance } 
 import { inspectComposedFrames } from "./preview-inspection.js";
 import { inspectAsset } from "./source-review.js";
 import { registerMotionTools } from "./motion-tools.js";
+import { registerMediaIntelligenceTools } from "./media-intelligence-tools.js";
 import { sha256File } from "./media-hash.js";
 import { browseLocalSoundEffects, inspectLocalSoundEffect, resolveLocalSoundEffectForImport } from "./local-sound-effects.js";
 import { SOUND_SOURCES, MIXKIT_SOUND_CATEGORIES } from "../../../packages/asset-acquisition/src/sound-catalog.js";
@@ -2363,6 +2364,7 @@ server.registerTool("browse_effect_types", {
 }, async () => asText(EFFECT_TYPES));
 
 registerMotionTools(server, application, projectIdFrom);
+registerMediaIntelligenceTools(server, application, projectIdFrom);
 
 server.registerTool("manage_effect_cues", {
   title: "管理视觉效果",
@@ -2382,6 +2384,7 @@ server.registerTool("manage_effect_cues", {
     narrative_purpose: z.string().max(800).optional(),
     audience_task: z.string().max(800).optional(),
     semantic_anchor: z.object({ type: z.enum(["speech_segment", "narrative_beat", "scene", "absolute"]), target_id: z.string().optional(), relation: z.enum(["anticipate", "land_on", "react_after", "hold_through"]) }).optional(),
+    covered_narrative_beat_ids: z.array(z.string().min(1)).max(64).optional(),
     spatial_anchor: z.enum(["top_left", "top_right", "middle_left", "middle_right", "bottom_left", "bottom_right", "center", "full_frame"]).optional(),
     asset_bindings: z.array(z.object({ slot: z.string().min(1).max(80), asset_id: z.string().min(1) })).max(12).optional(),
     props: z.record(z.unknown()).optional(),
@@ -2403,6 +2406,7 @@ server.registerTool("manage_effect_cues", {
       narrativePurpose: input.narrative_purpose,
       audienceTask: input.audience_task,
       semanticAnchor: input.semantic_anchor ? { type: input.semantic_anchor.type, targetId: input.semantic_anchor.target_id, relation: input.semantic_anchor.relation } : undefined,
+      coveredNarrativeBeatIds: input.covered_narrative_beat_ids,
       spatialAnchor: input.spatial_anchor,
       assetBindings: input.asset_bindings?.map((binding) => ({ slot: binding.slot, assetId: binding.asset_id })),
       props: input.props,

@@ -16,6 +16,32 @@ export function validateMotionSource(source: string): void {
   const file = ts.createSourceFile("motion.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const diagnostics = (file as ts.SourceFile & { parseDiagnostics: readonly ts.Diagnostic[] }).parseDiagnostics;
   if (diagnostics.length) throw new Error(`MOTION_SOURCE_INVALID: ${ts.flattenDiagnosticMessageText(diagnostics[0].messageText, " ")}`);
+  // 只绑定当前源码中的词法作用域，不读取宿主文件或解析外部依赖。
+  // 同名局部变量可以用于几何计算；未绑定的浏览器全局仍须拒绝。
+  const checker = ts.createProgram([file.fileName], { noLib: true, noResolve: true }, {
+    getSourceFile: (name) => name === file.fileName ? file : undefined,
+    getDefaultLibFileName: () => "", writeFile: () => {}, getCurrentDirectory: () => "",
+    getDirectories: () => [], fileExists: (name) => name === file.fileName,
+    readFile: (name) => name === file.fileName ? source : undefined,
+    getCanonicalFileName: (name) => name, useCaseSensitiveFileNames: () => true, getNewLine: () => "\n"
+  }).getTypeChecker();
+  const isLocalValue = (node: ts.Identifier) => {
+    const symbol = ts.isShorthandPropertyAssignment(node.parent)
+      ? checker.getShorthandAssignmentValueSymbol(node.parent) : checker.getSymbolAtLocation(node);
+    // 类型、接口、declare 声明不会建立运行时绑定，不能据此放行浏览器全局。
+    return symbol?.declarations?.some((declaration) => {
+      if (!ts.isVariableDeclaration(declaration) && !ts.isParameter(declaration) && !ts.isBindingElement(declaration)
+        && !ts.isFunctionDeclaration(declaration) && !ts.isFunctionExpression(declaration)
+        && !ts.isClassDeclaration(declaration) && !ts.isClassExpression(declaration)
+        && !ts.isImportClause(declaration) && !ts.isImportSpecifier(declaration)) return false;
+      if (ts.isFunctionDeclaration(declaration) && !declaration.body) return false;
+      for (let ancestor: ts.Node | undefined = declaration; ancestor; ancestor = ancestor.parent) {
+        if (ts.canHaveModifiers(ancestor) && ts.getModifiers(ancestor)?.some((m) => m.kind === ts.SyntaxKind.DeclareKeyword)) return false;
+        if ((ts.isImportClause(ancestor) || ts.isImportSpecifier(ancestor)) && ancestor.isTypeOnly) return false;
+      }
+      return declaration.getSourceFile() === file;
+    }) ?? false;
+  };
   let hasDefault = false;
   const visit = (node: ts.Node) => {
     if (ts.isImportDeclaration(node)) {
@@ -30,7 +56,9 @@ export function validateMotionSource(source: string): void {
     if (ts.isExportDeclaration(node) || ts.isImportEqualsDeclaration(node) || ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) throw new Error("MOTION_IMPORT_REJECTED: 不允许转导出、require 或动态 import");
     if (ts.isExportAssignment(node) && !node.isExportEquals || ts.canHaveModifiers(node) && ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.DefaultKeyword)) hasDefault = true;
     const literalPropertyName = node.parent && (ts.isPropertyAssignment(node.parent) || ts.isPropertySignature(node.parent)) && node.parent.name === node;
-    if (ts.isIdentifier(node) && !literalPropertyName && forbidden.has(node.text) || ts.isStringLiteral(node) && ts.isElementAccessExpression(node.parent) && forbidden.has(node.text)) throw new Error(`MOTION_API_REJECTED: ${node.getText(file)}`);
+    const forbiddenIdentifier = ts.isIdentifier(node) && !literalPropertyName && forbidden.has(node.text)
+      && (ts.isPropertyAccessExpression(node.parent) && node.parent.name === node || !isLocalValue(node));
+    if (forbiddenIdentifier || ts.isStringLiteral(node) && ts.isElementAccessExpression(node.parent) && forbidden.has(node.text)) throw new Error(`MOTION_API_REJECTED: ${node.getText(file)}`);
     if (ts.isPropertyAccessExpression(node) && node.expression.getText(file) === "Math" && node.name.text === "random") throw new Error("MOTION_NONDETERMINISTIC: 使用 Remotion random(seed)，不要 Math.random()");
     if (ts.isJsxAttribute(node)) {
       const name = node.name.getText(file);

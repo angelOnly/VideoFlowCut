@@ -1,17 +1,78 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import test from "node:test";
 import { createApplication } from "@videocut/application";
 import { motionSubmissionSchema } from "../packages/motion-work/src/schema.js";
-import { compileMotion, validateMotionSource } from "../packages/motion-work/src/compiler.js";
+import { compileMotion, validateMotionSource, motionHash } from "../packages/motion-work/src/compiler.js";
 import { MOTION_SOURCES, motionSourceForUrl } from "../packages/motion-work/src/catalog.js";
 import { motionFixture } from "./fixtures/managed-motion.js";
-import { inspectEffectContentContract } from "@videocut/contracts";
+import { inspectEffectContentContract, managedMotionReviewOutcome } from "@videocut/contracts";
+import { probeMedia, runProcess } from "@videocut/speech";
+import { readFile } from "node:fs/promises";
 import { runMotionJob } from "../apps/render-worker/src/motion-job.js";
 import { evaluateQuality } from "@videocut/quality";
+
+test("原创提交要求创作说明、参考可选，历史幂等重试保持原输入和哈希", async () => {
+  const root = await mkdtemp(join(tmpdir(), "videocut-motion-original-"));
+  const app = createApplication(root);
+  try {
+    const state = app.createProject({ name: "原创与旧输入兼容" });
+    const projectId = state.snapshot.project.id;
+    const { creativeBrief: _brief, ...oldWork } = motionFixture;
+    const before = JSON.stringify(oldWork);
+    assert.equal(motionHash(oldWork), "3410b595854392bb0cc94936f1f19dedf56c1a8a8c1f8c9c56a46d6da0d6ce82", "历史固定输入哈希不应因新增可选字段改变");
+    assert.equal(JSON.stringify(motionSubmissionSchema.parse(oldWork)), before, "读取旧输入不得注入字段或改变次序");
+    const legacy = app.repository.createJob({ projectId, kind: "motion_generation", idempotencyKey: "motion:legacy", payload: { work: oldWork, version: motionHash(oldWork), boundImages: [] } });
+    assert.equal(app.submitManagedMotion({ projectId, baseRevision: 0, idempotencyKey: "legacy", work: oldWork }).id, legacy.id);
+    assert.throws(() => app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "new", work: oldWork }), /creativeBrief/u);
+    const original = { ...motionFixture, reference: undefined };
+    const job = app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "new", work: original });
+    assert.equal((job.payload.work as typeof original).reference, undefined);
+    assert.throws(() => app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "new", work: { ...original, creativeBrief: "不同的内容关系与设计" } }), /幂等/u);
+    assert.throws(() => app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "budget", work: { ...original, width: 1920, height: 1080, durationInFrames: 900 } }), /预算/u);
+    const oldAsset = app.completeManagedMotion({ projectId, jobId: legacy.id, sourceHash: "legacy", engineVersion: "legacy", metadata: { durationMs: 600, width: 320, height: 320, hasAudio: false } });
+    await app.reviewManagedMotion({ projectId, baseRevision: app.readProject(projectId).revision.number, assetId: oldAsset.id, referenceMatch: "passed", note: "仅验证历史参考记录兼容，不将它冒充新版原创证据。" });
+    assert.equal(managedMotionReviewOutcome(app.readProject(projectId).snapshot.assets.find(a => a.id === oldAsset.id)!.motion), "passed");
+    assert.equal(app.readManagedMotion(projectId, legacy.id).asset!.motion!.creativeBrief, undefined);
+  } finally { app.close(); await rm(root, { recursive: true, force: true }); }
+});
+
+test("新作品审阅验证真实代理、完整范围和版本，旧别名及伪造声画不能绕过", async () => {
+  const root = await mkdtemp(join(tmpdir(), "videocut-motion-evidence-"));
+  const app = createApplication(root);
+  try {
+    const project = app.createProject({ name: "真实作品证据" });
+    const projectId = project.snapshot.project.id;
+    const revision = () => app.readProject(projectId).revision.number;
+    const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "proxy", work: { ...motionFixture, reference: undefined } });
+    const path = join(project.snapshot.project.rootPath, `assets/derived/motion/${job.id}/${job.payload.version}/preview.mp4`);
+    await mkdir(dirname(path), { recursive: true });
+    await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=320x320:r=30", "-frames:v", "18", "-c:v", "libx264", "-pix_fmt", "yuv420p", path]);
+    const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: createHash("sha256").update(await readFile(path)).digest("hex"), engineVersion: "fixture", metadata: await probeMedia(path) });
+    const request = () => ({ projectId, baseRevision: revision(), assetId: asset.id, note: "此媒体只验证证据合同的身份与帧范围，不构成实际剪辑审美验收。" });
+    const evidence = { kind: "work_proxy" as const, method: "continuous_video" as const, startFrame: 0, endFrame: 18 };
+    await assert.rejects(app.reviewManagedMotion({ ...request(), referenceMatch: "passed" }), /旧参考别名/u);
+    await assert.rejects(app.reviewManagedMotion({ ...request(), outcome: "passed" }), /连续动态证据/u);
+    await assert.rejects(app.reviewManagedMotion({ ...request(), outcome: "passed", referenceMatch: "passed", evidence }), /同时/u);
+    for (const wrong of [{ ...evidence, method: "audio" as const }, { ...evidence, method: "frames" as const }, { ...evidence, endFrame: 17 }, { ...evidence, endFrame: 19 }]) {
+      const before = revision();
+      await assert.rejects(app.reviewManagedMotion({ ...request(), outcome: "passed", evidence: wrong }));
+      assert.equal(revision(), before);
+    }
+    const reviewed = await app.reviewManagedMotion({ ...request(), outcome: "passed", evidence });
+    const motion = reviewed.snapshot.assets.find(a => a.id === asset.id)!.motion!;
+    assert.equal(motion.review!.version, motion.version);
+    assert.equal(motion.review!.evidence!.contentHash, asset.sourceHash);
+    assert.equal(managedMotionReviewOutcome(motion), "passed");
+    assert.equal(managedMotionReviewOutcome({ ...motion, version: "changed" }), undefined);
+    await assert.rejects(app.reviewManagedMotion({ ...request(), baseRevision: reviewed.revision.number - 1, outcome: "passed", evidence }), /Revision/u);
+    await writeFile(path, "changed");
+    await assert.rejects(app.reviewManagedMotion({ ...request(), outcome: "passed", evidence }));
+  } finally { app.close(); await rm(root, { recursive: true, force: true }); }
+});
 
 test("四个来源按视觉选型；不包含用户排除的官方 Elements", () => {
   assert.deepEqual(MOTION_SOURCES.map((source) => source.id), ["onda", "jitter", "remotionlab", "mixkit"]);
@@ -56,20 +117,20 @@ test("技术生成成功不等于审美通过；更新作品不会覆盖旧版�
     const placement = { projectId, sceneId, type: "ManagedMotion" as const, layer: "front" as const, startFrame: 20, endFrame: 38, assetBindings: [{ slot: "motion", assetId: asset.id }] };
     assert.throws(() => app.createEffectCue({ ...placement, baseRevision: revision() }), /审阅/u);
     const beforeInvalidReview = revision();
-    assert.throws(() => app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, referenceMatch: "unknown" as never, note: "非法枚举不能通过应用层入口伪装成待审状态。" }), /结论无效/u);
+    await assert.rejects(() => app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "unknown" as never, note: "非法枚举不能通过应用层入口伪装成待审状态。" }), /结论无效/u);
     assert.equal(revision(), beforeInvalidReview);
-    app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, referenceMatch: "inconclusive", note: "仅完成技术生成，尚未获得连续动态感知，草稿叠加后需要完整复核。" });
+    await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "仅完成技术生成，尚未获得连续动态感知，草稿叠加后需要完整复核。" });
     const draft = app.createEffectCue({ ...placement, baseRevision: revision() });
     const draftCue = draft.snapshot.effectCues.at(-1)!;
     assert.equal(inspectEffectContentContract(draftCue, draft.snapshot.assets, draft.snapshot.timeline).ready, true);
     const pending = evaluateQuality(draft.snapshot, draft.revision.number);
-    assert.equal(pending.technical.some((entry) => entry.code === "MOTION_REFERENCE_REVIEW_REQUIRED"), false);
-    assert.ok(pending.editorial.motion.some((entry) => entry.code === "MOTION_REFERENCE_REVIEW_REQUIRED" && entry.level === "blocking" && entry.objectId === draftCue.id));
-    app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, referenceMatch: "failed", note: "隔离测试：确认失败仍拒绝把未修复的作品作为正常效果使用。" });
+    assert.equal(pending.technical.some((entry) => entry.code === "MOTION_WORK_REVIEW_REQUIRED"), false);
+    assert.ok(pending.editorial.motion.some((entry) => entry.code === "MOTION_WORK_REVIEW_REQUIRED" && entry.level === "blocking" && entry.objectId === draftCue.id));
+    await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "failed", note: "隔离测试：确认失败仍拒绝把未修复的作品作为正常效果使用。" });
     const failed = app.readProject(projectId);
     assert.equal(inspectEffectContentContract(failed.snapshot.effectCues.at(-1)!, failed.snapshot.assets, failed.snapshot.timeline).ready, false);
     app.removeEffectCue({ projectId, baseRevision: revision(), cueId: draftCue.id });
-    app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, referenceMatch: "passed", note: "这是单元测试的固定审阅记录，不是正式成片的视觉判断。" });
+    await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "这是单元测试的固定审阅记录，不是正式成片的视觉判断。" });
     const placed = app.createEffectCue({ ...placement, baseRevision: revision() });
     const cue = placed.snapshot.effectCues.at(-1)!;
     assert.equal(inspectEffectContentContract(cue, placed.snapshot.assets, { width: 1920, height: 1080, fps: 30 }).ready, false);
@@ -96,7 +157,7 @@ test("解释片受管主视觉要求全场景连续覆盖，短装饰、缺失�
     const revision = () => app.readProject(projectId).revision.number;
     const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "primary", work: motionFixture });
     const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 600, width: 320, height: 320, fps: 30, hasAudio: false } });
-    app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, referenceMatch: "inconclusive", note: "仅测试结构门禁，不代表实际观感通过" });
+    await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "仅测试结构门禁，不代表实际观感通过" });
     const sceneState = app.createScene({ projectId, baseRevision: revision(), type: "ExplainerScene", title: "连续机制", purpose: "受管作品承担主视觉", startFrame: 0, endFrame: 36 });
     const sceneId = sceneState.snapshot.scenes.at(-1)!.id;
     const placement = { projectId, sceneId, type: "ManagedMotion" as const, layer: "front" as const, assetBindings: [{ slot: "motion", assetId: asset.id }] };
@@ -108,7 +169,7 @@ test("解释片受管主视觉要求全场景连续覆盖，短装饰、缺失�
     assert.equal(primaryMissing(whole.snapshot), false, JSON.stringify({ scenes: whole.snapshot.scenes, cues: whole.snapshot.effectCues.map(cue => ({ status: cue.status, layer: cue.layer, start: cue.startFrame, end: cue.endFrame, content: inspectEffectContentContract(cue, whole.snapshot.assets, whole.snapshot.timeline) })) }));
     const quality = evaluateQuality(whole.snapshot, revision());
     assert.equal(quality.issues.some(issue => issue.code === "EXPLAINER_SCENE_PROGRAM_MISSING"), false);
-    assert.ok(quality.editorial.motion.some(issue => issue.code === "MOTION_REFERENCE_REVIEW_REQUIRED"), "仍保留真实动态审阅门禁");
+    assert.ok(quality.editorial.motion.some(issue => issue.code === "MOTION_WORK_REVIEW_REQUIRED"), "仍保留真实动态审阅门禁");
     for (const change of [
       (snapshot: typeof short.snapshot) => { snapshot.effectCues[1]!.startFrame++; },
       (snapshot: typeof short.snapshot) => { snapshot.effectCues[1]!.status = "stale"; },
@@ -169,4 +230,24 @@ test("图片绑定固定哈希与授权，跨项目及提交后字节改变不�
     assert.equal(asset.provenance?.rightsStatus, "unknown", "作品声明 cleared 不能覆盖图片的未知授权");
     assert.throws(() => motionSubmissionSchema.parse({ ...work, props: { assets: { logo: "https://example.com/logo" } } }));
   } finally { app.repository.close(); await rm(root, { recursive: true, force: true }); }
+});
+
+
+test("历史已排队输入真实渲染后再次读取缓存，不注入新字段或重复渲染", { timeout: 60_000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "videocut-legacy-motion-cache-"));
+  const app = createApplication(root);
+  try {
+    const projectId = app.createProject({ name: "历史缓存兼容" }).snapshot.project.id;
+    const { creativeBrief: _brief, ...oldWork } = motionFixture;
+    const job = app.repository.createJob({ projectId, kind: "motion_generation", idempotencyKey: "motion:old-cache", payload: { work: oldWork, version: motionHash(oldWork), boundImages: [] } });
+    const first = await runMotionJob(app, job);
+    const asset = app.readManagedMotion(projectId, job.id).asset!;
+    const sourcePath = join(app.readProject(projectId).snapshot.project.rootPath, asset.motion!.sourcePath);
+    const bytes = await readFile(sourcePath);
+    assert.equal(JSON.parse(bytes.toString()).creativeBrief, undefined);
+    const reused = await runMotionJob(app, job, async () => { throw new Error("缓存命中不应重新渲染"); });
+    assert.equal(reused.assetId, first.assetId);
+    assert.equal(reused.version, first.version);
+    assert.deepEqual(await readFile(sourcePath), bytes);
+  } finally { app.close(); await rm(root, { recursive: true, force: true }); }
 });

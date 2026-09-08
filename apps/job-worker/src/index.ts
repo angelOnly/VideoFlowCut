@@ -22,6 +22,7 @@ import { runMusicGeneration } from "./music-generation.js";
 import { runSpeechAlignment } from "./speech-alignment.js";
 import { runVideoGeneration } from "./video-generation.js";
 import { runVlogAnalysis } from "./vlog-analysis.js";
+import { runMediaUnderstanding, runMediaSearch } from "./media-understanding.js";
 
 const workspaceRoot = readRuntimeConfig().workspace.root;
 let defaultApplication: EditingApplication | undefined;
@@ -32,6 +33,7 @@ const getDefaultApplication = () => (defaultApplication ??= createApplication(wo
  * 但绝不能被 Worker claim 或重新执行；唯一正式入口是段级 source_caption_alignment。
  */
 export const MEDIA_JOB_KINDS: JobKind[] = ["media_analysis", "vlog_analysis", "multicam_sync", "asset_acquisition", "transcription", "source_caption_alignment", "voice_synthesis", "dialogue_processing", "speech_alignment", "music_generation", "video_generation", "avatar_generation"];
+MEDIA_JOB_KINDS.push("media_understanding", "media_search");
 
 const resolveAssetPath = (snapshot: ProjectSnapshot, asset: Asset) => isAbsolute(asset.managedPath) ? asset.managedPath : join(snapshot.project.rootPath, asset.managedPath);
 
@@ -235,6 +237,10 @@ export function createMediaJobProcessor(
     switch (job.kind) {
       case "media_analysis":
         return runMediaAnalysis(app, job);
+      case "media_understanding":
+        return runMediaUnderstanding(app, job, bridge, providers);
+      case "media_search":
+        return runMediaSearch(app, job, bridge);
       case "vlog_analysis":
         return runVlogAnalysis(app, job);
       case "multicam_sync":

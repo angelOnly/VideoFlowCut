@@ -1,0 +1,164 @@
+/** 源事实和分析操作独立于创作 Revision；采用时只固定必要依据。 */
+export type MediaModality = "visual" | "audio" | "speech" | "text";
+export type AnalysisDepth = "discovery" | "index" | "review";
+export interface SourceTimeRange { startMs: number; endMs: number }
+export interface SourceRegion { page?: number; x: number; y: number; width: number; height: number }
+export type MediaTarget = { assetId: string; candidateId?: never } | { candidateId: string; assetId?: never };
+
+export interface MediaSource {
+  id: string;
+  projectId: string;
+  target: MediaTarget;
+  identity: "original" | "preview" | "derived";
+  hash: string;
+  path: string;
+  kind: "video" | "audio" | "image" | "document";
+  durationMs: number;
+  hasAudio: boolean;
+  width?: number;
+  height?: number;
+  streams: Array<{ index: number; kind: string; timeBase?: string; startSeconds: number; sampleRate?: number; rotation?: number }>;
+  /** 派生文件从源起点开始的偏移；预览没有可靠映射时不填写。 */
+  parent?: { sourceId: string; offsetMs: number; rate: number; region?: SourceRegion };
+  createdAt: string;
+}
+
+export interface MediaFact {
+  modality: MediaModality;
+  text: string;
+  range?: SourceTimeRange;
+  region?: SourceRegion;
+  basis: "model" | "measurement" | "transcript" | "human";
+  precision: "sampled" | "model_estimated" | "provider_timed" | "measured" | "reviewed";
+  /** 排除条件只读取明确观察，不从文字缺词推断不存在。 */
+  speechPresence?: "present" | "absent" | "unknown";
+  musicPresence?: "present" | "absent" | "unknown";
+  keywords: string[];
+}
+
+export interface MediaObservation {
+  id: string;
+  projectId: string;
+  sourceId: string;
+  sourceHash: string;
+  range?: SourceTimeRange;
+  region?: SourceRegion;
+  depth: AnalysisDepth;
+  modalities: MediaModality[];
+  facts: MediaFact[];
+  unknowns: string[];
+  context: string;
+  rawText: string;
+  version: { workflowId: string; schemaVersion: string; model: string; prompt: string; preprocessing: string; samplingFps?: number };
+  jobId: string;
+  runId?: string;
+  supersedes?: string;
+  correction?: { reason: string; author: string };
+  createdAt: string;
+}
+
+export interface MediaAnalysisWindow {
+  id: string;
+  range?: SourceTimeRange;
+  region?: SourceRegion;
+  status: "pending" | "submitting" | "running" | "succeeded" | "failed" | "unknown";
+  runId?: string;
+  schemaVersion?: string;
+  workflowId?: string;
+  observationId?: string;
+  error?: string;
+}
+
+export interface MediaAnalysisRecord {
+  id: string;
+  projectId: string;
+  sourceId: string;
+  key: string;
+  depth: AnalysisDepth;
+  modalities: MediaModality[];
+  targetRange?: SourceTimeRange;
+  context: string;
+  windows: MediaAnalysisWindow[];
+  shotRanges: SourceTimeRange[];
+  status: "pending" | "running" | "partial" | "succeeded" | "failed" | "unknown";
+  updatedAt: string;
+}
+
+export interface MediaSearchQuery {
+  query: string;
+  modality: MediaModality;
+  assetIds?: string[];
+  candidateIds?: string[];
+  minDurationMs?: number;
+  excludeSpeech?: boolean;
+  excludeMusic?: boolean;
+  excludedTerms?: string[];
+  allowMute?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export interface MediaMatch {
+  source: MediaSource;
+  observationId: string;
+  range?: SourceTimeRange;
+  region?: SourceRegion;
+  text: string;
+  score: number;
+  lexicalScore: number;
+  semanticScore?: number;
+  status: "usable" | "conditional" | "insufficient" | "rejected";
+  reasons: string[];
+  conditions: string[];
+}
+
+export interface MediaAdoption {
+  id: string;
+  assetId: string;
+  sourceHash: string;
+  observationIds: string[];
+  requestId?: string;
+  requestVersion?: string;
+  range?: SourceTimeRange;
+  region?: SourceRegion;
+  purpose: string;
+  audioPolicy: "mute" | "retain" | "not_applicable";
+  conditions: string[];
+  status: "current" | "needs_review";
+  reviewReason?: string;
+  createdAt: string;
+}
+
+export interface SoundIntent {
+  id: string;
+  function: "anticipation" | "settle" | "reaction" | "connection" | "ambience" | "music" | "silence";
+  brief: string;
+  requestId?: string;
+  motionEventId?: string;
+}
+export interface SoundPlan {
+  id: string;
+  startFrame: number;
+  endFrame: number;
+  narrationDirection: string;
+  dominantRole: AudioRole;
+  musicDirection: string;
+  intents: SoundIntent[];
+  version: number;
+  status: "current" | "needs_review";
+  updatedAt: string;
+}
+export type AudioRole = "narration" | "source_speech" | "demonstration" | "sfx" | "ambience" | "music";
+export interface AudioEnvelopePoint { frame: number; gainDb: number }
+export interface MotionEvent {
+  id: string;
+  meaning: string;
+  startFrame: number;
+  endFrame?: number;
+}
+export interface MotionEventMap {
+  version: string;
+  fps: number;
+  frameCount: number;
+  events: MotionEvent[];
+}

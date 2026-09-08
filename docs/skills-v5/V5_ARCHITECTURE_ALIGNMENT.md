@@ -18,7 +18,7 @@ V5 只调整 Codex Skills 的知识组织、主从关系、交接合同和验收
 
 ## 3. 24 个 Skill
 
-本版新增 `visual-asset-sourcing`，因此总数为 24。Shader 与 Multicam 不增加空 Skill，只有真实 Runtime 和工具落地后再新增。
+V5 接入时新增 `visual-asset-sourcing`，当前总数仍为 24。Shader 不增加空 Skill；多机位已有有限 Runtime/工具，由现有主工作流按合同使用，当前没有独立 Multicam Skill。新增总案例 Skill 与四例属于[连续原创动效待评审方案](../VideoFlowCut_动效案例阅读包/完整开发方案.md)，本轮不把运行时总数改成 29。
 
 ## 4. 主工作流
 
@@ -32,8 +32,10 @@ V5 只调整 Codex Skills 的知识组织、主从关系、交接合同和验收
 
 ## 6. References
 
-只保留八份完整案例或代码合同，每份都能独立构成专项章节。没有三五行的短 Reference。主工作流 `SKILL.md` 不读取 Reference 也能理解完整流程。
+V5 初始资料为八份 Reference；2026-09-07 当前源码为九份 Reference、七份 Shared。Reference 应能独立构成专项章节，不拆成三五行短卡；主工作流 `SKILL.md` 不读取 Reference 也应能理解完整流程。
 
 ## 7. 当前运行时事实
 
-V5 接入后不保留 `_shared/CURRENT_CAPABILITIES.md` 这类手工能力快照。运行时判断以实时 MCP Tool Schema、当前 Project/Revision、Contracts、Registry 和测试结果为准；根目录 `.agents/skills/_shared/MCP_EXECUTION_CONTRACT.md` 只记录并测试当前阶段一的关键调用字段，以及当前工具、架构目标和兼容入口的明确边界。
+V5 接入后不保留 `_shared/CURRENT_CAPABILITIES.md` 这类手工能力快照。运行时判断以实时 MCP Tool Schema、当前 Project/Revision、Contracts、Registry 和测试结果为准；根目录 `.agents/skills/_shared/MCP_EXECUTION_CONTRACT.md` 已覆盖后续字幕、作品、声音、审阅等调用合同，不再仅代表阶段一。当前与拟开发边界以[主架构文档](../ai_video_platform_architecture_development_plan.md)对应章节区分，本轮不修改运行时合同。
+
+当前仓库没有 `.codex/config.toml`；源 Skill 唯一位于 `.agents/skills/`，插件通过 `.codex-plugin/plugin.json` 和 `.mcp.json` / launcher 发现，发行镜像由同步脚本生成。文档中的发现配置检查不应要求创建一个当前未使用的配置文件。

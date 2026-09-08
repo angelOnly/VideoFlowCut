@@ -9,7 +9,7 @@ description: 作为旁白、机制、数据、证据和 UI 驱动视频的主要
 
 视觉解释片的价值在于让观众看见关系、状态、空间、流程、比较和证据。旁白可以说明方向，但视觉应承担真实理解。如果每一句旁白都换成一个标题卡，观众只是在同时听和读同一内容，视频会像动态 PPT；如果只找泛化 B-roll，又会让复杂机制失去精度。
 
-`visual-explainer-director` 是完整主工作流。它从 Script/旁白、问题和证据建立 NarrativeMap，规划 Scene 边界和内部状态，调用素材、证据、Remotion、字幕和声音专项 Skill，并负责整片认知连续和交付。当前代码的 Explainer 自动编译能力不完整时，它仍可形成可执行计划和有限 Scene，但不能声称完整成片已自动生成。
+`visual-explainer-director` 是完整主工作流。它从 Script/旁白、问题和证据建立 NarrativeMap，规划 Scene 边界和内部状态，调用素材、证据、Remotion、字幕和声音专项 Skill，并负责整片认知连续和交付。现有 Scene 加受管 ManagedMotion 可以实现原创二维主视觉；通用自动编译仍不完整，实际生成与审阅必须执行。
 
 ## 适用范围
 
@@ -32,6 +32,8 @@ description: 作为旁白、机制、数据、证据和 UI 驱动视频的主要
 旁白应在没有画面的情况下仍能理解基本逻辑，但不需要把视觉中已经清楚的所有关系重复念一遍。若使用 OmniVoice，调用 `voice-production`；若来自原视频，调用 `transcription`/`semantic-continuity`。稳定主声音后再编译 Scene。
 
 ## Scene Grammar：选择视觉机制
+
+以下语法是构思方法，不是封闭模板或 MCP 必选枚举；可组合、变形或另建适合当前关系的表达。
 
 ### HeroReveal
 
@@ -89,6 +91,8 @@ Scene 切换发生在观看任务改变时：从分类模型转到真实证据�
 
 ## 从 Script 到 NarrativeMap 的实际方法
 
+第三遍得到的视觉模型是候选，由动效专项细化关键画面与变化；已确认事实和知识推进不变，语法名称不能直接锁定组件。
+
 第一遍只读/听内容，标记问题、主张、解释、证据、例子、反例和结论。第二遍合并属于同一认知模型的语句，避免按句号切分。第三遍为每个模型选择最适合的视觉语法，并写清进入时观众已有知识和离开时新增知识。
 
 例如一段旁白：
@@ -98,6 +102,8 @@ Scene 切换发生在观看任务改变时：从分类模型转到真实证据�
 它不是三张卡。可以是一个 RouteAndFlow Scene：广告主、平台、创作者三个对象持续存在，资金路径先到平台，抽成分支出现，最后结算到创作者。官方分成规则另建 EvidenceDocument，而不是把证据和解释混在同一视觉层。
 
 ## Scene 计划表
+
+计划同时记录前后段入口/出口状态、共享对象、硬约束与允许调整的候选设计；它不是新增数据库字段要求。
 
 每个 Scene 建议记录：
 
@@ -120,7 +126,7 @@ validation
 
 ## 工具与当前落地
 
-当前 MCP 已实现 `manage_story` 保存 Beat、`manage_narrative_map` 写入 NarrativeMap、`read_narrative_map` 读回当前 Revision 的问题/知识/递进与证据交接、`manage_visual_treatment` 保存主视觉决定、`create_scene` 创建基础 ExplainerScene 或 CutawayScene、`manage_cutaways` 将已就绪本地视频放入 Fullscreen/PiP、`manage_effect_cues` 表达有限视觉，以及 `render_preview_range` 与 `inspect_composed_frames` 验证。当前 Scene Schema 没有独立 DocumentScene；文档、网页和证据只能作为已登记 Asset 进入已有 Scene。
+当前 MCP 已实现 `manage_story` 保存 Beat、`manage_narrative_map` 写入 NarrativeMap、`read_narrative_map` 读回当前 Revision 的问题/知识/递进与证据交接、`manage_visual_treatment` 保存主视觉决定、`create_scene` 创建基础 ExplainerScene 或 CutawayScene、`manage_cutaways` 将已就绪本地视频放入 Fullscreen/PiP、`submit_motion_work` 生成原创固定版本，`review_motion_work` 审阅，`manage_effect_cues` 放置，以及 `render_preview_range` 与 `inspect_composed_frames` 验证。当前 Scene Schema 没有独立 DocumentScene；文档、网页和证据只能作为已登记 Asset 进入已有 Scene。
 
 这些对象和命令已有确定性 MCP/项目图测试，但不等于 Evidence Provider、完整 Scene Registry、复杂数据/文档组件或审美效果已经完成真实验证。每次写入 NarrativeMap 后读回对象、Revision、Impact 和 Preview；缺失组件不能用错误的通用卡片替代后声称完成。
 
@@ -136,15 +142,19 @@ validation
 
 当一张 Scene 有超过观众能同时比较的对象时，应分阶段、分组或拆 Scene。不要用更小字体、更多箭头和更快动画解决。旁白可以省略视觉已经表达的内容，视觉也不必显示所有旁白词语。
 
-## 参考视频复用
+## 自主设计与可选参考
+
+没有参考也正常推进，从知识关系和素材自主确定本片视觉语言。不是每份作品都要匹配网站样片。
 
 参考视频用于提炼 Scene 持续时间、内部状态、字体层级、运动语气、证据切换和 AttentionCurve。不要逐镜复制素材和效果。Golden Test 比较的是本项目重建的代表性帧和运动，而不是原参考画面。
 
 ## Gate B：具体生产
 
-调用 `visual-treatment-planning` 给每个 Beat 选择机制和 AttentionCurve；`scene-planning` 定义 Scene 边界与 Entry/Progressive/Settled/Exit；需要外部素材调用 `visual-asset-sourcing`；证据调用 `evidence-visualization`；Motion Graphics 调用 `remotion-production` 和 `effect-timing`；字幕、声音分别交给 `captions` 与 `audio-finishing`。
+`visual-treatment-planning` 确认当前观看任务、主要表达方式和整片 AttentionCurve；`scene-planning` 形成范围与前后接口；[原创动效专项](../remotion-production/SKILL.md)（`remotion-production`） 将完整解释段转成具体视觉构思、关键画面和连续运动。Scene Grammar 提供思考工具，不能把所有内容强行装入现有卡片或有限 Program。
 
-当前 MCP 可以创建基础 Scene、EffectCue 和 Preview，但完整 Explainer Registry、数据/文档组件和自动编译尚未落地。有限执行必须与计划区分，缺失组件不能用错误的通用卡片替代后声称完成。
+原创主视觉可以由受管 Remotion 作品实现，并通过现有 ExplainerScene 与 ManagedMotion 放置。先确认素材与实现能力，再生成、审阅和合成。需要真实证据时由 `evidence-visualization` 提供可追溯素材；需要视频时由素材与 Cutaway 链路承担播放，不假定受管作品已经支持嵌入任意视频或声音。
+
+作品替换现有 Program 时，明确谁承担主视觉，再对旧 Program 局部停用。不能用新的不透明背景把旧内容遮住后就宣称替换完成。结构上覆盖完整 Scene，只证明有可用主视觉；内部是否真的解释了内容，仍由真实连续观看验证。
 
 ## 字幕和声音
 
@@ -169,6 +179,8 @@ validation
 - 每个对象都动，观众不知道先看哪里。
 
 ## 交接合同
+
+原创交接必须带模型取舍、关键状态、固定作品版本、多 Beat 覆盖、命名事件帧与真实合成证据。代表段成立后继续全片，并用换题检查是否只是换标题。
 
 本主工作流接收各专项结果并负责最终认知连续。完成条件包括 NarrativeMap 清楚、Scene 有任务和渐进、解释/证据/现实分工、声音与字幕不重复主视觉、真实 Preview 和五轮审片通过、能力缺口明确、Delivery 绑定目标 Revision。
 

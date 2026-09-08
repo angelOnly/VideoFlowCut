@@ -1233,8 +1233,9 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
   }
   for (const cue of snapshot.effectCues) {
     requireId(new Set(sceneById.keys()), cue.sceneId, "EffectCue");
+    if (cue.status !== "stale") assertEffectCoverage(snapshot, cue);
     const semanticAnchor = cue.semanticAnchor;
-    if (semanticAnchor?.targetId) {
+    if (semanticAnchor?.targetId && !(cue.status === "stale" && (cue.type === "ManagedMotion" || cue.coveredNarrativeBeatIds !== undefined))) {
       if (semanticAnchor.type === "speech_segment") requireId(speechSegmentIds, semanticAnchor.targetId, "EffectCue SpeechSegment 锚点");
       if (semanticAnchor.type === "narrative_beat") {
         if (!beatById.has(semanticAnchor.targetId)) throw new DomainError(`EffectCue Story Beat 锚点不存在：${semanticAnchor.targetId}`, "PROJECT_GRAPH_INVALID");
@@ -1244,6 +1245,26 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
     // 兼容仍只保存 anchorTargetId 的旧 Revision。
     if (!semanticAnchor && cue.anchorTargetId) requireId(speechSegmentIds, cue.anchorTargetId, "EffectCue 旧 SpeechSegment 锚点");
     for (const binding of cue.assetBindings ?? []) requireId(assetIds, binding.assetId, "EffectCue 素材绑定");
+  }
+}
+
+/** 优先用真实语音映射；缺少精确时序时仅以已关联 Scene 作范围下界，不推断内容兑现。 */
+export function effectBeatRanges(snapshot: ProjectSnapshot, beatId: Id, sceneId: Id) {
+  const beat = snapshot.story.beats.find(candidate => candidate.id === beatId);
+  const scene = snapshot.scenes.find(candidate => candidate.id === sceneId);
+  if (!beat || !scene || !beat.sceneIds.includes(sceneId)) return [];
+  if (beat.semanticUnitIds.some(id => !snapshot.semanticUnits.some(unit => unit.id === id && unit.status === "included"))) return [];
+  const segmentIds = new Set(snapshot.speechSegments.filter(segment => segment.semanticUnitIds.some(id => beat.semanticUnitIds.includes(id))).map(segment => segment.id));
+  const timings = snapshot.speechAsset?.timing.segments.filter(timing => segmentIds.has(timing.speechSegmentId)) ?? [];
+  return timings.length ? timings : [{ startFrame: scene.startFrame, endFrame: scene.endFrame }];
+}
+
+export function assertEffectCoverage(snapshot: ProjectSnapshot, cue: EffectCue): void {
+  const ids = cue.coveredNarrativeBeatIds;
+  if (ids === undefined) return;
+  if (!Array.isArray(ids) || ids.length > 64 || new Set(ids).size !== ids.length
+    || ids.some(id => typeof id !== "string" || !effectBeatRanges(snapshot, id, cue.sceneId).some(range => range.startFrame < cue.endFrame && range.endFrame > cue.startFrame))) {
+    throw new DomainError("作品覆盖的 Beat 必须属于当前项目、关联宿主 Scene 且具有相交的有效内容范围", "MOTION_BEAT_COVERAGE_INVALID");
   }
 }
 
@@ -1453,6 +1474,7 @@ export function createEffectCue(input: {
   narrativePurpose?: string;
   audienceTask?: string;
   semanticAnchor?: EffectCue["semanticAnchor"];
+  coveredNarrativeBeatIds?: Id[];
   spatialAnchor?: EffectCue["spatialAnchor"];
   assetBindings?: EffectAssetBinding[];
   props?: Record<string, unknown>;
@@ -1470,6 +1492,7 @@ export function createEffectCue(input: {
   return {
     id: createId("cue"),
     sceneId: input.sceneId,
+    ...(input.coveredNarrativeBeatIds !== undefined ? { coveredNarrativeBeatIds: [...new Set(input.coveredNarrativeBeatIds)] } : {}),
     type: input.type,
     layer: input.layer,
     anchor: legacyAnchorTargetId ? "segment_start" : "scene",

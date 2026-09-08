@@ -29,3 +29,7 @@ Draft 用于内部审片、A/B 和调试，可以在完整 Editorial Review 前�
 ## 修复回路
 
 质量问题应退回最接近根因的负责人：残句回到 semantic-continuity；人物声音和口型回到 voice/avatar；无关 B-roll 回到 visual-treatment 与 cutaway；字幕遮挡回到 captions/depth；动画像 PPT 回到 remotion/scene；整片主线错误回到主要视频工作流。Quality 不是无人处理的报告终点。
+
+## 原创作品的证据范围
+
+作品、代表段、整片和最终 Artifact 分别审阅。创作说明与实际输出共同用于判断设计和实现，覆盖 Beat 只证明结构关联；不能把渲染成功、自写设计或关键帧联系表当作动态审美通过。无参考合法，未充分感知记 inconclusive；保留原 Artifact 批准规则，不新增逐段用户审批。

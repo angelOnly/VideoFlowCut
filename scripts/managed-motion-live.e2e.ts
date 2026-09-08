@@ -44,7 +44,7 @@ try {
   app.repository.commit(projectId, revision(), "放置候选背景", (snapshot) => {
     snapshot.timeline.items.push(createTimelineItem({ trackId: snapshot.timeline.tracks.find((track) => track.name === "Background")!.id, sceneId, assetId: background.asset.id, startFrame: 0, endFrame: 60, sourceStartFrame: 0, sourceEndFrame: 60 }));
   });
-  app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, referenceMatch: "passed", note: "候选 fixture 用于验证渲染位置、透明度和版本，不代表正式视频审美批准。" });
+  await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "候选 fixture 用于验证渲染位置、透明度和版本，不代表正式视频审美批准。" });
   app.createEffectCue({ projectId, baseRevision: revision(), sceneId, type: "ManagedMotion", layer: "front", startFrame: 20, endFrame: 38, assetBindings: [{ slot: "motion", assetId: asset.id }] });
   const finalSnapshot = app.readProject(projectId).snapshot;
   const compositionPath = join(root, "composition.mp4");

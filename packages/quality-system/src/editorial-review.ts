@@ -58,7 +58,8 @@ export function productionReconciliation(snapshot: ProjectSnapshot): NonNullable
   return [...snapshot.story.beats].sort((a, b) => a.order - b.order).map((beat) => {
     // 同属一个长 Scene 不代表某个 Cue 实现了这个 Scene 内的每一拍。
     const treatments = snapshot.visualTreatments.filter((entry) => entry.narrativeBeatId === beat.id);
-    const cues = snapshot.effectCues.filter((cue) => active.effectCueIds.has(cue.id) && cue.semanticAnchor.type === "narrative_beat" && cue.semanticAnchor.targetId === beat.id);
+    const cues = snapshot.effectCues.filter((cue) => active.effectCueIds.has(cue.id) && (cue.coveredNarrativeBeatIds !== undefined
+      ? cue.coveredNarrativeBeatIds.includes(beat.id) : cue.semanticAnchor.type === "narrative_beat" && cue.semanticAnchor.targetId === beat.id));
     const cutaways = snapshot.cutaways.filter((entry) => entry.status === "ready" && treatments.some((treatment) => treatment.id === entry.visualTreatmentId) && active.videoItemIds.has(entry.timelineItemId));
     const programs = snapshot.explainerPrograms.filter((program) => active.explainerProgramIds.has(program.id) && snapshot.narrativeMap?.beats.some((entry) => entry.id === program.narrativeMapBeatId && entry.narrativeBeatId === beat.id));
     const scenes = snapshot.scenes.filter((scene) => beat.sceneIds.includes(scene.id));

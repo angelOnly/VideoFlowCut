@@ -114,6 +114,8 @@ Browser Operator 不是绕开模型的快捷方式。DOM 临时样式、浏览�
 
 ### Presenter、Scene 和 Effect
 
+原创二维段先写 creativeBrief，可省略 reference；`submit_motion_work` → `track_job` / `read_motion_work` / `inspect_asset` → `review_motion_work` → `manage_effect_cues` 放置完整版本与覆盖 Beat → 读回 Project/Revision/Impact → 真实 Preview。证据不足以 inconclusive 制作待审草稿，不能 delivery。组件复用案例保留，但不是所有效果的前置路线。
+
 - `assemble_presenter_track`：物理组装明确 A-roll；
 - `compile_presenter_scenes`：根据已确定的 Beat/计划创建叙事 Scene；
 - `create_presenter_timeline`：兼容入口，不用于正式创作；

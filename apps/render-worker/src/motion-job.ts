@@ -69,5 +69,5 @@ export async function runMotionJob(application: EditingApplication, job: JobReco
   visibility ??= await measureMotionVisibility(directory, work.durationInFrames, work.width, work.height);
   if (manifest.visibility && JSON.stringify(manifest.visibility) !== JSON.stringify(visibility)) throw new Error("MOTION_VISIBILITY_CACHE_CORRUPT");
   const asset = application.completeManagedMotion({ projectId: job.projectId, jobId: job.id, engineVersion: manifest.engineVersion, sourceHash, metadata, visibility });
-  return { assetId: asset.id, version, sandbox: manifest.sandbox, referenceReviewRequired: true, sourcePath: asset.motion!.sourcePath, previewPath: asset.managedPath };
+  return { assetId: asset.id, version, sandbox: manifest.sandbox, workReviewRequired: true, sourcePath: asset.motion!.sourcePath, previewPath: asset.managedPath };
 }

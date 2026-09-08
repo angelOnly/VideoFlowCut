@@ -21,6 +21,19 @@ export async function evidenceHash(root: string, path: string): Promise<string> 
   return hash.digest("hex");
 }
 
+/** Preview 与作品代理共用真实媒体检查，不把代理伪装成 Preview Job。 */
+export async function inspectEvidenceMedia(root: string, path: string, durationSeconds: number, fps: number) {
+  const hash = await evidenceHash(root, path);
+  let metadata: { streams?: Array<{ codec_type?: string }>; format?: { duration?: string } };
+  try {
+    const output = await runFile("ffprobe", ["-v", "error", "-show_entries", "format=duration:stream=codec_type", "-of", "json", resolve(root, path)], { windowsHide: true, timeout: 30_000, maxBuffer: 1024 * 1024 });
+    metadata = JSON.parse(output.stdout) as typeof metadata;
+  } catch { throw new DomainError("证据无法解析为真实媒体", "EDITORIAL_EVIDENCE_MEDIA_INVALID"); }
+  const duration = Number(metadata.format?.duration);
+  if (!metadata.streams?.some((stream) => stream.codec_type === "video") || !Number.isFinite(duration) || Math.abs(duration - durationSeconds) > 2 / fps) throw new DomainError("证据实际时长与声明范围不一致", "EDITORIAL_EVIDENCE_MEDIA_INVALID");
+  return { path: relative(root, resolve(root, path)), hash, hasAudio: metadata.streams.some((stream) => stream.codec_type === "audio") };
+}
+
 /** 只验证文件、版本与观察方式的事实；不声称程序能代替真实观看和听觉判断。 */
 export async function validateEditorialObservations(snapshot: ProjectSnapshot, revision: number, jobs: JobRecord[], observations: EditorialReviewObservation[]): Promise<EditorialReviewEvidence[]> {
   const media = new Map<string, { path: string; hash: string; hasAudio: boolean }>();
@@ -37,15 +50,7 @@ export async function validateEditorialObservations(snapshot: ProjectSnapshot, r
     if (!file) {
       if (typeof job.result.path !== "string") throw new DomainError("Preview 缺少实际文件", "EDITORIAL_EVIDENCE_FILE_INVALID");
       const path = resolve(snapshot.project.rootPath, job.result.path);
-      const hash = await evidenceHash(snapshot.project.rootPath, path);
-      let metadata: { streams?: Array<{ codec_type?: string }>; format?: { duration?: string } };
-      try {
-        const output = await runFile("ffprobe", ["-v", "error", "-show_entries", "format=duration:stream=codec_type", "-of", "json", path], { windowsHide: true, timeout: 30_000, maxBuffer: 1024 * 1024 });
-        metadata = JSON.parse(output.stdout) as typeof metadata;
-      } catch { throw new DomainError("Preview 无法解析为真实媒体，不能登记审阅证据", "EDITORIAL_EVIDENCE_MEDIA_INVALID"); }
-      const duration = Number(metadata.format?.duration);
-      if (!metadata.streams?.some((stream) => stream.codec_type === "video") || !Number.isFinite(duration) || Math.abs(duration - (to - from) / snapshot.timeline.fps) > 2 / snapshot.timeline.fps) throw new DomainError("Preview 实际时长与声明范围不一致", "EDITORIAL_EVIDENCE_MEDIA_INVALID");
-      file = { path: relative(snapshot.project.rootPath, path), hash, hasAudio: metadata.streams.some((stream) => stream.codec_type === "audio") };
+      file = await inspectEvidenceMedia(snapshot.project.rootPath, path, (to - from) / snapshot.timeline.fps, snapshot.timeline.fps);
       media.set(job.id, file);
     }
     if (["audio", "audiovisual"].includes(entry.method) && !file.hasAudio) throw new DomainError("无音轨 Preview 不能作为声音或声画审阅证据", "EDITORIAL_AUDIO_MISSING");

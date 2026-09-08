@@ -2,6 +2,8 @@
  * Web、MCP、Worker 共用的契约。这里仅描述数据，不放业务规则，避免形成第二套状态。
  */
 export type Id = string;
+export * from "./media-intelligence.js";
+import type { MediaAdoption, SoundPlan, AudioRole, AudioEnvelopePoint, MotionEventMap } from "./media-intelligence.js";
 
 export type ProductionProfile =
   | "presenter_motion"
@@ -158,6 +160,9 @@ export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "unknown
 export type ExportPurpose = "draft" | "delivery";
 export type JobKind =
   | "media_analysis"
+  | "media_understanding"
+  | "media_search"
+  | "sound_comparison"
   /** 对已就绪实拍素材做基础镜头边界和现场声可用性分析。 */
   | "vlog_analysis"
   /** 只在可验证的共同音轨上估计固定机位偏移；证据不足时必须失败并等待人工同步点。 */
@@ -254,6 +259,36 @@ export interface MotionVisibility {
   frames: Array<{ x: number; y: number; width: number; height: number } | null>;
 }
 
+export type MotionReviewOutcome = "passed" | "failed" | "inconclusive";
+export interface MotionReviewEvidenceInput {
+  kind: "work_proxy" | "project_preview";
+  previewJobId?: Id;
+  startFrame: number;
+  endFrame: number;
+  method: "frames" | "continuous_video" | "audio" | "audiovisual";
+}
+export interface MotionReviewEvidence extends MotionReviewEvidenceInput {
+  relativePath: string;
+  contentHash: string;
+  revision: number;
+  workStartFrame: number;
+  workEndFrame: number;
+  recordedAt: string;
+}
+
+/** 统一解释新旧审阅；旧参考记录只适用于没有创作说明的历史作品。 */
+export function managedMotionReviewOutcome(motion: Asset["motion"]): MotionReviewOutcome | undefined {
+  const review = motion?.review;
+  if (!review || !motion) return undefined;
+  if (review.outcome !== undefined) {
+    if (review.version !== motion.version) return undefined;
+    if (review.outcome === "passed" && (!review.evidence || !["continuous_video", "audiovisual"].includes(review.evidence.method)
+      || review.evidence.workStartFrame !== 0 || review.evidence.workEndFrame !== motion.frameCount)) return undefined;
+    return review.outcome;
+  }
+  return !motion.creativeBrief && motion.referenceUrl ? review.referenceMatch : undefined;
+}
+
 export interface Asset {
   id: Id;
   name: string;
@@ -280,9 +315,11 @@ export interface Asset {
     fps: number;
     width: number;
     height: number;
-    referenceUrl: string;
+    referenceUrl?: string;
+    creativeBrief?: string;
     visibility?: MotionVisibility;
-    review?: { referenceMatch: "passed" | "failed" | "inconclusive"; note: string; reviewedAt: string };
+    eventMap?: MotionEventMap;
+    review?: { referenceMatch?: MotionReviewOutcome; outcome?: MotionReviewOutcome; version?: string; evidence?: MotionReviewEvidence; note: string; reviewedAt: string };
   };
 }
 
@@ -1026,6 +1063,8 @@ export interface EffectMotion {
 }
 
 export interface EffectCue {
+  /** 本次放置兑现的叙事点，与决定位置的单一时间锚点分开。 */
+  coveredNarrativeBeatIds?: Id[];
   id: Id;
   sceneId: Id;
   type: EffectType;
@@ -1083,7 +1122,7 @@ export function inspectEffectContentContract(cue: EffectCue, assets: readonly As
       else {
         if (asset.motion.frameCount !== cue.endFrame - cue.startFrame) missing.push("作品完整时长（不可隐式裁切或拉伸）");
         // 明确待审的作品可进入草稿；审阅是否通过由交付质量门禁负责，不冒充内容缺失。
-        if (!["passed", "inconclusive"].includes(asset.motion.review?.referenceMatch ?? "")) missing.push("真实动态预览的参考对照审阅，或明确登记 inconclusive 待审草稿");
+        if (!["passed", "inconclusive"].includes(managedMotionReviewOutcome(asset.motion) ?? "")) missing.push("作品连续动态审阅，或明确登记 inconclusive 待审草稿");
         if (canvas && (asset.motion.width !== canvas.width || asset.motion.height !== canvas.height || asset.motion.fps !== canvas.fps)) missing.push("与当前画布和帧率匹配的作品版本");
       }
       if (cue.assetBindings.length !== 1) missing.push("唯一的 motion 素材绑定；图片在作品内绑定");
@@ -1168,6 +1207,7 @@ export interface AudioDucking {
   reductionDb: number;
   attackFrames: number;
   releaseFrames: number;
+  holdFrames?: number;
 }
 
 /**
@@ -1189,6 +1229,13 @@ export interface AudioCue {
   onsetReview?: { status: "confirmed" | "inconclusive"; note: string; recordedAt: string };
   /** 绑定当前视觉版本内的明确动作，不把声音烘焙进 Remotion。 */
   effectEvent?: EffectAudioEvent;
+  soundPlanId?: Id;
+  soundIntentId?: Id;
+  planVersion?: number;
+  role?: AudioRole;
+  envelope?: AudioEnvelopePoint[];
+  adoptionId?: Id;
+  loopCrossfadeFrames?: number;
   fadeInFrames: number;
   fadeOutFrames: number;
   /** 仅 BGM 允许循环同一段受管本地音频。 */
@@ -1204,6 +1251,7 @@ export interface EffectAudioEvent {
   eventName: string;
   /** 相对 Cue 起点的视觉动作帧。 */
   localFrame: number;
+  endLocalFrame?: number;
   /** 可听起音相对视觉动作的偏移，可为负；不是源文件 onset。 */
   syncOffsetFrames: number;
   /** 由平台从视觉内容、作品版本与内部时序计算，不接受调用方伪造。 */
@@ -1700,6 +1748,9 @@ export interface ProjectSnapshot {
   visualTreatments: VisualTreatment[];
   cutaways: Cutaway[];
   audioCues: AudioCue[];
+  /** 只保存正式声音意图及采用依据；模型原文、分窗与索引不进入快照。 */
+  soundPlans?: SoundPlan[];
+  mediaAdoptions?: MediaAdoption[];
   voiceReferences: VoiceReference[];
   /** 原声时间证据与最终视觉字幕 Program 分离保存，避免自动标点直接成为成片字幕。 */
   sourceAudioAlignments: SourceAudioAlignment[];

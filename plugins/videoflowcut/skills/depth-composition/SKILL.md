@@ -35,6 +35,8 @@ CameraPunch、轻构图变化和表情反应用于短落点。长期推近、抖
 
 ## Fullscreen 与返回
 
+共同设计入口、关键状态与出口的主体尺度和可见范围，记录人物离开/返回时的位置、姿态与字幕预算。遮盖中的底层作品仍运行，关键关系必须在实际可见时展示。
+
 复杂文档、UI、解释、B-roll 和强笑点需要全屏。进入前应有语言或声音交接，退出时观众要重新定位到人物的新姿态、情绪和句子。全屏不是把一个前景卡片放大；它拥有自己的 Scene 任务和阅读时间。
 
 ## 视觉重量和第一重点
@@ -75,6 +77,8 @@ Mask 边缘、人物肤色和产品颜色会受背景影响。高对比动态图
 
 ## 当前工具
 
+ManagedMotion 内部图形的位置由源码固定，外层 Cue 不能任意拖动内部对象或重排人物。改变内部构图要新作品版本；没有真实 Mask 时按可实现同屏与全屏设计。
+
 EffectCue 支持 top_left、top_right、middle_left、middle_right、bottom_left、bottom_right、center、full_frame。架构中的 actor_head、actor_hands、behind_actor 等逻辑锚点尚未完整进入当前 Tool Schema。Skill 可以规划这些语义位置，但执行时必须使用当前可用 Anchor 或 Browser Inspector 微调，并记录能力差异。
 
 ## 案例：人物手势与产品
@@ -82,5 +86,7 @@ EffectCue 支持 top_left、top_right、middle_left、middle_right、bottom_left
 人物说“这里有三种方案”，右手向画面左侧展开。若产品卡从右侧进入，会和视线/手势方向矛盾；若字幕也位于左下，产品会压字幕。合理方案可能是让三项在人物左侧上方逐步出现，字幕保持下方中央，人物手势结束后对象稳定。没有手势证据时，不要写“从手中展开”，改为安全区出现。
 
 ## 交接合同
+
+连续作品交接还带入口/出口约束、真实可用范围与局部事件；素材、时序或作品版本变化后相关 Cue/声音需要复核。验证必须对应当前版本实际合成。
 
 输入是人物/主体、Mask、字幕、画幅、Scene 和 Effect。输出是空间布局、安全区、层级、运动路径和降级。它会影响 EffectCue 与 Scene Layout。验证是静止构图、完整运动、Mask 边缘、字幕和多画幅。结果返回 `remotion-production` 或主工作流。

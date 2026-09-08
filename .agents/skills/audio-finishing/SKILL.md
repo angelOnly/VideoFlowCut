@@ -57,6 +57,8 @@ SFX 应绑定明确的叙事或视觉事件：预示变化、对象落定、数�
 
 ### 绑定一个实际动作，而非只绑定“这段有动画”
 
+原创作品可交付多个命名动作，只为有听觉价值的事件配声，用完整包络服务连续动作，不给每个元素都加音效。换作品版本后读取新的局部事件帧与 stale AudioCue；旧绝对帧不能继续冒充正确落点。无声代理不能证明声画通过。
+
 为重要动效配音时，`manage_audio` 的 effect_event 指定 effect_cue_id、event_name、local_frame、sync_offset_frames。先区分同一作品里的标题进入、关系建立与结论落定；选择真正要强化的动作。可听事件全局帧为 Cue.startFrame + local_frame + sync_offset_frames，Item 起点仍为 event_frame − onset_offset_frames。sync_offset_frames 表达听觉相对视觉的预示/滞后，onset_offset_frames 表达所选声音源范围内部的偏移，二者不能混用。
 
 平台固定当前视觉版本签名。同版本动效纯平移会同步移动关联声音；换作品、改 Props、内部运动、时长或删除动效会停用旧声音并标 stale。重新使用时显式提交复核后的 effect_event；只调音量不能恢复失效的关系。确实改成独立叙事事件才传 null 解除关联，不把解除关联作为绕过复核。源音效或源起点改变后也要重新确认 onset。自动跟随只保护物理关系，不能证明新位置的语音遮蔽与听感仍成立。

@@ -1,6 +1,8 @@
 import { mkdirSync } from "node:fs";
+import { reconcileMotionDependencies } from "../motion-dependencies.js";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { MediaIntelligenceStore } from "../../../media-intelligence/src/store.js";
 import type {
   CaptionCard,
   CreativeBrief,
@@ -196,6 +198,7 @@ function reconcileStaleSourceAudioArtifacts(snapshot: ProjectSnapshot, impact: I
  */
 export class ProjectRepository {
   private readonly db: DatabaseSync;
+  readonly mediaIntelligence: MediaIntelligenceStore;
 
   constructor(public readonly workspaceRoot: string) {
     mkdirSync(workspaceRoot, { recursive: true });
@@ -203,6 +206,7 @@ export class ProjectRepository {
     this.db = new DatabaseSync(join(workspaceRoot, "app.sqlite"));
     // Server 与独立 Worker 会同时访问同一份 SQLite；短暂等待可避免正常事务互相误判为失败。
     initializeProjectDatabase(this.db);
+    this.mediaIntelligence = new MediaIntelligenceStore(this.db);
   }
 
   close(): void {
@@ -392,6 +396,7 @@ export class ProjectRepository {
       const snapshot = cloneSnapshot(current.snapshot);
       const impact = emptyImpact();
       mutate(snapshot, impact);
+      reconcileMotionDependencies(current.snapshot, snapshot, impact);
       reconcileEffectAudioEvents(snapshot, impact);
       reconcileStaleSourceAudioArtifacts(snapshot, impact);
       snapshot.project.updatedAt = now();

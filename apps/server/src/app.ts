@@ -15,8 +15,9 @@ import { readRuntimeConfig } from "@videocut/project-overview";
 import { evaluateQuality } from "@videocut/quality";
 import type { AssetKind, EditorFocus, ProjectSnapshot } from "@videocut/contracts";
 import { inspectAsset } from "./source-review.js";
+import { registerMediaIntelligenceRoutes } from "./media-intelligence-tools.js";
 import { MOTION_SOURCES } from "../../../packages/motion-work/src/catalog.js";
-import { motionSubmissionSchema } from "../../../packages/motion-work/src/schema.js";
+import { motionSubmissionSchema, motionReviewFields } from "../../../packages/motion-work/src/schema.js";
 import { inspectMotionReference } from "./motion-reference.js";
 
 const idSchema = z.string().min(1);
@@ -274,6 +275,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   const application = createApplication(workspaceRoot);
   const bridge = new ComfyUIBridgeClient();
   const app = Fastify({ logger: { level: runtimeConfig.http.logLevel } });
+  registerMediaIntelligenceRoutes(app, application);
 
   await app.register(cors, { origin: true });
   await app.register(multipart, { limits: { files: 18, fileSize: 512 * 1024 * 1024 } });
@@ -990,6 +992,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({
       baseRevision: baseRevisionSchema,
+      coveredNarrativeBeatIds: z.array(idSchema).max(64).optional(),
       sceneId: idSchema,
       type: z.enum(["MetricBackdrop", "ProductFan", "GlowCTA", "PortfolioWall", "CommentCloud", "EvidenceCard", "CameraPunch", "FullScreenMeme", "DeviceShowcase", "ContentCarousel", "EndCard", "ManagedMotion"]),
       layer: z.enum(["rear", "actor", "front", "fullscreen"]),
@@ -1027,13 +1030,13 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   });
   app.post("/api/projects/:projectId/motion-works/:assetId/review", async (request) => {
     const { projectId, assetId } = z.object({ projectId: idSchema, assetId: idSchema }).parse(request.params);
-    const body = z.object({ baseRevision: baseRevisionSchema, referenceMatch: z.enum(["passed", "failed", "inconclusive"]), note: z.string().min(16).max(2400) }).strict().parse(request.body);
+    const body = z.object({ baseRevision: baseRevisionSchema, ...motionReviewFields }).strict().parse(request.body);
     return application.reviewManagedMotion({ projectId, assetId, ...body });
   });
 
   app.patch("/api/projects/:projectId/effects/:cueId", async (request) => {
     const { projectId, cueId } = z.object({ projectId: idSchema, cueId: idSchema }).parse(request.params);
-    const body = z.object({ baseRevision: baseRevisionSchema, startFrame: z.number().int().min(0).optional(), endFrame: z.number().int().positive().optional(), intensity: z.number().min(0).max(1).optional(), note: z.string().optional() }).parse(request.body);
+    const body = z.object({ baseRevision: baseRevisionSchema, coveredNarrativeBeatIds: z.array(idSchema).max(64).optional(), startFrame: z.number().int().min(0).optional(), endFrame: z.number().int().positive().optional(), intensity: z.number().min(0).max(1).optional(), note: z.string().optional() }).parse(request.body);
     return application.updateEffectCue({ projectId, cueId, ...body });
   });
 

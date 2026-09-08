@@ -47,7 +47,9 @@ ComfyUI 重启后旧 run 可能无法查询。检查本项目 Job、请求摘要
 
 ## Remotion 组件失败
 
-先区分 Props/AssetBinding 错、组件 Bug、局部时间错误、资源不可读和布局问题。生产任务只使用 Registry；新组件开发失败不能手写未审核代码作为 Fallback。组件修复后需要 Registry/Golden/Player/Render 回归。
+候选渲染器对内部 index.html 的“but got no response”最多恢复两次：这是并发导航的 CDP 响应事件竞态，每次仍须完整渲染成功。持续失败保留 Job 诊断，不由剪辑任务重放写入；资源、安全、内容和外部生成错误不走该恢复。
+
+先区分 Props/AssetBinding 错、组件 Bug、局部时间错误、资源不可读和布局问题。生产任务使用 Registry 或受管作品；平台组件开发失败不能绕过受管链执行未审核代码作为 Fallback。组件修复后需要 Registry/Golden/Player/Render 回归。
 
 ## Export 失败
 

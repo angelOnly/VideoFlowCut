@@ -1,3 +1,4 @@
+import "../../../plugins/videoflowcut/scripts/background-processes.mjs";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync, type ReadStream } from "node:fs";
 import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
@@ -6,6 +7,7 @@ import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path
 import { pipeline } from "node:stream/promises";
 import { bundle } from "@remotion/bundler";
 import { ensureBrowser, openBrowser, renderMedia, selectComposition } from "@remotion/renderer";
+import { withRenderNavigationRecovery } from "./navigation-recovery.js";
 import type { EditingApplication } from "@videocut/application";
 import { EFFECT_TYPES, inspectEffectContentContract, type AttributionManifest, type ExportArtifact, type ExportPurpose, type ExportTechnicalValidation, type JobRecord, type ProjectSnapshot, type RenderPreflight, type RenderPreflightCheck } from "@videocut/contracts";
 import { createId, DomainError, resolveCompositionReachability } from "@videocut/domain";
@@ -475,6 +477,10 @@ export class RevisionRenderer implements RevisionRenderEngine {
   }
 
   async render(snapshot: ProjectSnapshot, targetPath: string): Promise<void> {
+    return withRenderNavigationRecovery(() => this.renderOnce(snapshot, targetPath));
+  }
+
+  private async renderOnce(snapshot: ProjectSnapshot, targetPath: string): Promise<void> {
     await verifyMotionFrameCaches(snapshot);
     const mediaServer = await startProjectMediaServer(snapshot);
     try {
@@ -505,6 +511,10 @@ export class RevisionRenderer implements RevisionRenderEngine {
 
   /** 局部预览仍从完整 Composition 的全局帧坐标渲染，避免把 Cue 和字幕错误地从第 0 帧重算。 */
   async renderRange(snapshot: ProjectSnapshot, fromFrame: number, toFrame: number, targetPath: string): Promise<void> {
+    return withRenderNavigationRecovery(() => this.renderRangeOnce(snapshot, fromFrame, toFrame, targetPath));
+  }
+
+  private async renderRangeOnce(snapshot: ProjectSnapshot, fromFrame: number, toFrame: number, targetPath: string): Promise<void> {
     await verifyMotionFrameCaches(snapshot);
     if (fromFrame < 0 || toFrame <= fromFrame || toFrame > snapshot.timeline.durationInFrames) {
       throw new DomainError("局部预览范围无效", "INVALID_PREVIEW_RANGE");

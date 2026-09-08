@@ -1,3 +1,4 @@
+import "./background-processes.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { isAbsolute, join, resolve } from "node:path";

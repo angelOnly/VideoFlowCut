@@ -1,9 +1,9 @@
 # AI 视频创作与剪辑平台：架构与开发方案
 
-> 文档状态：V6.2 Skills 主工作流编排增量优化开发基线  
+> 文档状态：V6.3 架构基线与素材理解、声音链路待评审增补｜2026-09-08<br>
 > 核心方向：数字人口播 + 人物前后景 Remotion 动效 + 全屏视觉解释场景，并在同一工程内支持视觉解释片、Vlog 与混合视频  
-> 工程约定：所有模块直接按本架构实现；项目状态由 Editing Application 统一持有；Codex 通过项目 Skills、统一 MCP 与浏览器操作完成视频生产；项目内 `docs/` 是实现外部能力和吸收 ChatCut 方法的必读资料  
-> 本版边界：以 V6.1 为唯一底稿，保留其产品、领域、MCP、Web、Remotion、Job、Quality 和开发阶段设计；本次只调整 Skills 的主从关系、完整工作流责任、专项交接、路由测试与阶段验收，不重构 Editing Application，也不增加 Skill 调度服务或第二份项目状态
+> 工程约定：现有行为与旧文档不一致时，以代码实现为准；项目状态由 Editing Application 统一持有；Codex 通过项目 Skills、统一 MCP 与浏览器操作完成视频生产；外部调用仍须读取实时 Schema<br>
+> 本次边界：保留此前实现对齐与历史阶段目标；第 28 章为原连续原创动效需求，第 29 章为在线声音链路，第 30 章新增通用素材理解与多模态检索，供整体评审。新增合同按各自核对基线说明，工作区进展与正式部署仍需逐项确认；本次仅更新相关开发文档，不修改源码、运行时 Skills、配置、模型服务或视频项目。
 
 ---
 
@@ -32,28 +32,45 @@
 - 所有自动生产结果必须可读回、可预览、可验证、可继续修改；
 - `Asset ready`、`Job succeeded`、`Timeline 可播放`、`Preview 可见`、`Export 成功` 和 `完整审片通过` 不得合并成一个笼统的完成状态。
 
+### 1.1 本次对齐依据与阅读边界
+
+本次以仓库提交 `f7789fd5a01380409770c168ffe9ad892dfe0c99` 及用户已有的工作区修复为实现依据，核对 Contracts、Application、Worker、Web、MCP 注册与当前会话工具 Schema。本文的“已实现”表示找到对应实现与接口，不表示本次重跑了视频验收，也不表示工作区内容已经部署到正式 Runtime。
+
+发生不一致时，先更新本文的当前行为说明，不为迁就旧文档回退已有修复。尚未实现的原设计保留为目标或历史阶段要求；新增需求集中在第 28–30 章，不能覆盖当前调用合同。运行时唯一 Skills 源仍为 `.agents/skills/`，`docs/` 内的历史 Skills 包与动效案例阅读包只供评审。2026-09-08 声音与素材理解能力核对和缺口分别见两份配套方案第 1 章；原动效实现表保留此前核对日期，不以文档快照否定后来工作区的代码进展。
+
+| 已对齐的范围 | 当前依据 | 本文位置 |
+|---|---|---|
+| 原声剪辑、最终旁白字幕、真实对齐与显示纠错 | [Contracts](../packages/contracts/src/index.ts)、[原声剪辑](../packages/edit-application/src/presenter-source-edit.ts)、[Speech Services](../packages/speech-services/src/index.ts) | 6.5、8、12.2、18.3 |
+| 受管 TSX 作品、透明帧、固定版本与参考审阅 | [作品 Schema](../packages/motion-work/src/schema.ts)、[生成 Worker](../apps/render-worker/src/motion-job.ts)、[工具入口](../apps/server/src/motion-tools.ts) | 6.12、9.1、11.5、16.7 |
+| 动效音效事件与失效传播 | [事件对账](../packages/edit-application/src/effect-audio-events.ts) | 13.6 |
+| 素材 Provider、权利状态与证据能力边界 | [素材 Provider](../packages/asset-acquisition/src/index.ts)、[质量系统](../packages/quality-system/src/index.ts) | 12.8、21 |
+| 当前工具、界面、部署及修复隔离 | [MCP](../apps/server/src/mcp.ts)、[Web](../apps/web/src/App.tsx)、[Runtime](../apps/runtime/src/index.ts)、[候选运行器](../plugins/videoflowcut/scripts/candidate-runtime.mjs) | 15、17、19 |
+| 五轮审阅、跨版本问题与交付证据 | [证据校验](../packages/edit-application/src/editorial-evidence.ts)、[审阅与对账](../packages/quality-system/src/editorial-review.ts) | 21、23 |
+
+阅读顺序：先读本文的实现依据与第 28–30 章替代关系，再读[素材理解与多模态检索开发方案](VideoFlowCut_动效案例阅读包/素材理解与多模态检索开发方案.md)、[音效链路优化开发方案](VideoFlowCut_动效案例阅读包/音效链路优化开发方案.md)与[连续原创动效完整方案](VideoFlowCut_动效案例阅读包/完整开发方案.md)。三者分别详述公共事实与检索、声音选材同步混音、视觉创作及案例验证；按依赖组合开发，不是三套独立平台，也都不是已发布能力清单。
+
 ## 2. 项目资料、Agent 配置与开发约定
 
 ### 2.1 项目内 `docs/` 是必读实现依据
 
 项目目录中的 `docs/` 保存产品拆解、官方 Skill 译文和已经可用的外部接口说明。开发 Agent 在实现对应模块前必须先读取这些资料，禁止凭记忆猜测接口，也禁止在架构文档中复制一份长期失效的字段表。
 
-当前必须维护以下目录约定：
+当前实际资料位置如下；不为适应早期目录草图新建同内容副本：
 
 ```text
 docs/
-├─ ARCHITECTURE.md
-│  └─ 本文档在新项目中的正式位置
+├─ ai_video_platform_architecture_development_plan.md
+│  └─ 本文：产品架构、当前实现与待评审变更入口
 ├─ chatcut视频剪辑工具拆解/
 │  ├─ 产品、项目、Script、Timeline、MCP、验证和 Web 交互拆解
 │  └─ 官方Skill与插件译文/
 │     └─ skills/                     ChatCut 官方 Skills 译文
-├─ asr接入.md
+├─ comfyui模型接入.md
 │  └─ ComfyUI-AppApi Bridge、FunASR、OmniVoice 及相关工作流 HTTP API
-└─ asset-sourcing/
-   ├─ provider-contracts.md          各素材 Provider 的查询、预览、下载和限流合同
-   ├─ licensing-policy.md            项目的素材许可、署名、禁止和导出 Gate
-   └─ provider-notes/                Pexels、Pixabay、Wikimedia 等官方文档核对记录
+├─ skills-v5/                       当前架构对齐、目录与验收规范
+├─ VideoFlowCut_素材审阅Skills增量与阶段1-5漏洞收口方案_最终版.md
+│  └─ 上一轮增量方案；其早期建议不能覆盖当前实现
+└─ VideoFlowCut_动效案例阅读包/       连续原创动效、声音链路待评审方案与案例快照
 ```
 
 开发时的读取要求：
@@ -66,13 +83,13 @@ docs/
   - `docs/chatcut视频剪辑工具拆解/08-实测记录浏览器验证与字段样例.md`；
   - `docs/chatcut视频剪辑工具拆解/10-能力边界风险与可复用设计.md`；
   - `docs/chatcut视频剪辑工具拆解/11-Codex、ChatCut MCP 与 Web 编辑器交互链路.md`；
-  - `docs/chatcut视频剪辑工具拆解/13-ChatCut从导演计划到可交付成片的四层状态机.md`；
+  - 本文第 5.4 节的产品闭环视图；早期引用的第 13 篇四层状态机文件不在当前仓库，不作为执行前置；
   - `docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/` 中与 UI、文字稿、素材库、Timeline 和验证相关的资料；
 - 编写项目 Skills 前，读取 `docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/`，提取方法、顺序、禁止行为和退出条件；
-- 接入 FunASR 或 OmniVoice 前，读取 `docs/asr接入.md`，以运行时工作流详情接口返回的 `schemaVersion`、`fields`、`itemSlots` 和 `outputs` 为准；
-- `docs/asr接入.md` 中的示例版本号和字段 ID 只用于说明，不得作为长期硬编码合同；
-- 接入任何外部素材 Provider 前，先在 `docs/asset-sourcing/provider-notes/` 记录官方接口、当前限制、许可要求和最后核对日期；Provider 的接口、限流和许可条款不得只存在于代码注释；
-- `docs/asset-sourcing/licensing-policy.md` 是导入和导出的正式策略来源，任何来源不明、许可未知或需要额外确认的素材都不得绕过它进入已批准 Revision；
+- 接入 FunASR 或 OmniVoice 前，读取 `docs/comfyui模型接入.md`，以运行时工作流详情接口返回的 `schemaVersion`、`fields`、`itemSlots` 和 `outputs` 为准；
+- 接口资料中的示例版本号和字段 ID 只用于说明，不得作为长期硬编码合同；
+- 当前未建立早期草图中的 `docs/asset-sourcing/`。Provider 实现及其限制见第 12.8 节和 `packages/asset-acquisition/src/`；外部接口变化需在对应维护资料中记录，不按不存在的文件猜测能力；
+- 当前素材权利规则由 Contracts、Application 与 Quality/Export 实现，第 12.8.5 节与代码保持一致；许可未知不能因文件可读而变成可交付；
 - ChatCut 资料用于复用产品方法和交互逻辑，不直接复制其品牌、服务端字段或运行时工具名。
 
 使用 ChatCut 调研结论时，必须保留其证据等级：
@@ -84,7 +101,7 @@ docs/
 
 VideoFlowCut 可以吸收被证据支持的产品边界，例如“素材可编辑不等于可渲染”“项目结构正确不等于成片审美通过”；不能因为调研文档使用了某个解释性名称，就机械新增同名数据库对象或服务。
 
-`docs/asr接入.md` 当前确认的调用入口是：
+`docs/comfyui模型接入.md` 记录的调用入口是：
 
 ```text
 服务根地址：http://127.0.0.1:8188
@@ -105,7 +122,7 @@ workflow_id = ba6238d0-3ee4-41d5-a1f4-a2aefc3933ce
 
 1. 先 `GET /workflows/{workflow_id}` 读取最新结构和 `schemaVersion`；
 2. 再 `POST /workflows/{workflow_id}/runs` 创建任务；
-3. 使用返回的 `run_id` 轮询 `GET /runs/{run_id}`；
+3. 使用创建响应的 `id` 作为外部 Run ID，轮询 `GET /runs/{runId}`；本项目审计保留对应运行身份；
 4. 只有状态为 `succeeded` 才读取输出；
 5. 音视频文件通过 `downloadUrl` 立即下载并注册成本地 Asset；
 6. `failed` 必须保存外部错误，不能假装生成成功；
@@ -160,7 +177,7 @@ AGENTS.md
 6. 人物口播、视觉解释片和 Vlog 分别由 `presenter-motion-director`、`visual-explainer-director`、`vlog-director` 对完整生产闭环负责；
 7. 主工作流到达具体阶段后再按需读取专项 Skill，不能把一组平级 Skill 的“已加载”当成工作流已经成立；
 8. 局部编辑任务可以直接读取 `project-basics`、对应专项 Skill 与必要的 `quality-verification`，不要求重跑整条主工作流；
-9. `.codex/config.toml` 中显式登记 Skill 只表示可发现，不表示每个任务都应同时加载；
+9. 通过插件发现配置（或项目实际使用的 `.codex/config.toml`）登记 Skill 只表示可发现，不表示每个任务都应同时加载；
 10. 完成开发后运行静态路由测试、专项交接测试、模块测试、契约测试和相关端到端样例。
 
 #### Skills 的物理目录与逻辑层级
@@ -198,6 +215,8 @@ Codex → Browser Operator → Web 剪辑工作台 → Editing Application
 - Codex 不得用两条路径同时提交同一个写操作；
 - 用户只负责查看结果、提出反馈和批准交付；视频编辑操作由 Codex 完成；
 - Web 第一阶段不设置 AI 聊天面板，所有自然语言交互留在 Codex。
+
+当前 Web 已提供 `AgentWorkOrder` 工作单：用户提交意图与关联对象，Codex 接手后用同一 Application 编辑或回写“审阅后无需修改”。它不是内嵌模型聊天或自动执行服务。工作单属于项目 Revision；平台故障使用独立 Repair Ticket，二者不得混用。
 
 #### 新会话、Worker 重启与项目交接
 
@@ -357,9 +376,9 @@ Scene 保存创作意图和内部结构；Timeline 保存最终播放关系。�
 
 每个短语或 Beat 应明确一个主动作，其他元素保持稳定。
 
-### 4.7 所有修改都产生 Revision
+### 4.7 创作状态修改产生 Revision
 
-Web 和 MCP 的写入都必须：
+Web 和 MCP 修改已有项目的创作状态时必须：
 
 - 基于明确 `base_revision`；
 - 先校验；
@@ -368,6 +387,8 @@ Web 和 MCP 的写入都必须：
 - 返回 ImpactReport；
 - 标记 Dirty Range；
 - 支持回退和比较。
+
+Job 状态、生产审计、成片审阅、Artifact 复核/批准和 RepairTicket 使用各自记录，不因登记记录而新建视频 Revision。当前单件 `review_motion_work` 会更新素材审阅并生成 Revision，不能与成片审阅混为一谈。
 
 ### 4.8 可编辑、可预览、可导出和已验收必须分开
 
@@ -522,9 +543,9 @@ Visual Treatment Plan
 → Scene / Timeline
 ```
 
-所有搜索、预览、下载、网页证据截取和 MiniMax 生成任务都由 Editing Application 持久化 Job。Scene、Timeline 和 Remotion 永远只引用已经本地化并登记来源的 Asset，不引用临时 CDN 或搜索结果 URL。
+预览、下载和 MiniMax 生成等长任务由 Editing Application 持久化 Job；搜索保存 SearchIntent/Candidate，现有证据登记不等于自动网页截取 Job。Scene、Timeline 和 Remotion 只引用已经本地化并登记来源的 Asset，不引用临时 CDN 或搜索结果 URL。各能力是否已实现见 12.8、17.4 和 20 章。
 
-FunASR 和 OmniVoice 不加载到本项目进程内，也不各自建立一套 Provider SDK。服务端通过一个通用 `ComfyUIBridgeClient` 直接调用 `docs/asr接入.md` 描述的 HTTP API；领域层只接收归一化的 TranscriptText、SpeechAsset 和 JobResult。
+FunASR 和 OmniVoice 不加载到本项目进程内，也不各自建立一套 Provider SDK。服务端通过一个通用 `ComfyUIBridgeClient` 直接调用 `docs/comfyui模型接入.md` 描述的 HTTP API；领域层只接收归一化的 TranscriptText、SpeechAsset 和 JobResult。
 
 ### 5.1 Codex Production Operator 的实现位置
 
@@ -613,6 +634,8 @@ Web UI 操作 ──────────┘
 
 这张辅助视图的价值是防止把“素材已上传”“Timeline 已有对象”或“导出任务成功”扩大为完整交付；实际代码仍按前面的模块化单体架构实现。
 
+当前 `production-flow.ts` 将阅读导航细分为“素材读取、理解视频、导演规划、成片生产、预览与交付”五步；前两步合起来对应上表第一阶段。五步只是已有 Application 方法的导航，不是自动运行的流水线，不新增业务状态。
+
 ## 6. 核心领域模型
 
 ### 6.1 Project
@@ -641,7 +664,7 @@ Revision
 = 该 Timeline / Sequence 内的连续修改历史
 ```
 
-第一阶段可以只创建一个默认 Timeline / Sequence；但领域边界和 Web 路由不得把“创建短版”实现成覆盖当前长版，也不得把平行版本混入同一条 Revision 历史。
+当前 `ProjectSnapshot` 只有一份 `timeline`，Revision 保存项目快照，尚无多 Timeline/Sequence 的创建和切换接口。上述平行版本是保留的产品目标，不是当前能力；不能用覆盖长版或回退 Revision 冒充创建独立短版。
 
 ### 6.2 CreativeBrief
 
@@ -756,11 +779,11 @@ Agent 不需要一次性把整条视频和全部网页塞入上下文。对会�
 
 ### 6.5 TranscriptText、TranscriptChunk、SemanticUnit、SpeechSegment 与 SpeechTiming
 
-`docs/asr接入.md` 中的当前 FunASR HTTP 工作流只公开完整文本输出，不公开可依赖的 Segment、Token 或词级时间。因此，文字理解、语义切分和时间定位必须由不同对象承担：
+当前普通 FunASR 转写链仍读取全文，不能由全文推断时间；后续已另行实现 Provider 段级字幕对齐与可选 SpeechAsset 强制对齐。普通转写、字幕分屏、语义剪辑和词级对齐使用不同对象，不能把“已有对齐入口”理解成所有转写自动拥有精确时间：
 
 - `TranscriptText`：一次 FunASR 调用返回的完整文字、原始响应和对应音频 Asset；
-- `TranscriptChunk`：可选的项目侧粗粒度切片。系统先通过 VAD / 静音检测切出已知源时间范围，再分别调用 FunASR；它只表示“这段音频范围大致说了什么”，不是词级时间；
-- `SemanticUnit`：根据 TranscriptText、标点、上下文和叙事结构构建的完整句、观点、因果、转折、列表项、问答和重录候选；
+- `TranscriptChunk`：历史或粗粒度片段定位；不能替代当前 Provider 字幕段。旧 VAD 分块字幕 Job 仅兼容读取，新 Worker 不再创建或执行；
+- `SemanticUnit`：由 Agent 根据全文、候选句、上下文和真实素材确认的语义单元；转写自动产生的 `TranscriptSentenceCandidate` 不等于已确认语义。用户原创文案通过 `apply_authored_script` 写入，不伪造源视频转写；
 - `SpeechSegment`：面向 OmniVoice 合成和动效编排的可独立朗读语义段，必须语义完整，并可将重要效果触发点放在段首或段尾；
 - `SpeechTiming`：最终语音在成片中的时序映射；第一版以段级时序为主；
 - `CaptionProgram`：最终屏幕字幕，不等于原始转写，也不等于 SpeechSegment 本身。
@@ -776,8 +799,14 @@ segment_exact
 chunk_coarse
 由本项目 VAD / 静音切片的源时间范围与该片段的 FunASR 文本组成；适合素材定位，不适合逐词卡点
 
+sentence_exact
+Provider 直接返回的字幕段时间；没有可验证 token 时仍可使用真实段边界
+
+source_token_anchored
+字幕卡首尾来自 Provider token 时间，仅表示原声字幕锚定，不等于 word_exact
+
 word_exact
-未来可选能力；只能来自真实公开词级时间戳的工作流或未来可选强制对齐服务
+已实现可选 SpeechAsset 强制对齐入口；只有当前声音、Script 与真实输出审计一致时成立，不是默认保证
 
 unavailable
 当前没有可用时间信息
@@ -790,7 +819,13 @@ unavailable
 - 段首、段尾、停顿点上的 Remotion 动效；
 - 通过 Browser Operator 预览后做少量帧级微调。
 
-第一版不以 `word_exact` 作为前置依赖。若某个效果必须精确命中句中单词，系统应优先调整 SpeechSegment 边界，让该短语成为独立可朗读段；仍无法满足时，标记为需要人工式预览微调或降级为句级效果。
+当前仍不以 `word_exact` 作为生产前置。已有可用对齐工作流时可按真实输出使用；证据不足时保留段级设计与预览微调，不能为动画卡点破坏自然语句。
+
+#### 6.5.1 原声与最终旁白的字幕修复合同
+
+`generate_source_audio_captions` 对 `use_source_audio` 的 A-roll，`generate_speech_captions` 对当前完整、唯一 Dialogue/SpeechAsset 提交 `source_caption_alignment`。Provider 返回的每个真实 segment 自动成为一屏默认字幕，保存 `SourceAudioAlignment`、`SourceCaptionProgram` 与 Bridge 审计；最终旁白通过 `speechSource` 绑定声音和原稿身份，不伪装成 A-roll。
+
+真实段没有 token 时照常生成默认字幕。只有需要处理溢出或确有分屏问题、且存在可靠 token 时，才用 `apply_source_caption_program` 按 token 索引重分，不能手填时间或按字数摊分。`edit_captions` 只改有限版式、显示文案和一个短语强调，不改变 Card 边界、Script 或音频；回听确认的实义错字需 `source_text_review`，保留原文和纠错审计。已人工修改的卡不能被重新生成静默覆盖。
 
 ### 6.6 StoryDocument
 
@@ -821,21 +856,21 @@ Story 不直接决定每一帧怎么播放。
 - `Scene / EffectCue / Cutaway`：已经确认并进入项目的视觉与时间意图；
 - `QualityReport / Marker`：仍需修复、接受或复核的问题。
 
-可选的 `SkillExecutionReport` 只记录某次 Codex 读取了什么、做了哪些尝试、调用了哪些工具和如何验证。它是任务审计日志，不参与 Scene、Timeline、Remotion 或 Export 编译，删除它不能改变成片。
+`SkillExecutionReport` 记录 ProductionRun、创作决定、工具调用与审阅证据，不参与画面编译；但当前完整生产收口和 delivery 会读取其中的有效审阅，不能把它当成可随意丢弃的交付依据。缺少报告不妨碍已有工程继续编辑和草稿预览，却可能阻挡正式完成与交付。
 
 ### 6.7 SceneDocument
 
 SceneDocument 表达“这段内容怎样被看见”。
 
-核心 Scene 类型：
+当前可创建的 Scene 类型：
 
 - PresenterScene；
 - ExplainerScene；
 - VlogMontageScene；
-- DocumentScene；
-- UIShowcaseScene；
 - CutawayScene；
 - EndCardScene。
+
+早期设计中的 `DocumentScene`、`UIShowcaseScene` 尚不是可创建类型；文档与 UI 解释使用现有 `ExplainerScene` 的 `EvidenceDocument`、`UIWalkthrough` Program，或符合当前合同的受管作品。Scene 类型与 Program 的视觉语法不是同一个枚举。
 
 每个 Scene 记录：
 
@@ -958,13 +993,13 @@ SpeechSegment 2 → OmniVoice → 真实时长 d2
 → 生成 segment_exact SpeechTiming
 ```
 
-该策略能可靠支持段级字幕、段落 Cutaway 和语义动效，但不声称知道段内每个词的真实时间。词级时间以后作为可选增强能力接入，不阻塞第一版。
+该策略支持段级字幕、段落 Cutaway 和语义动效，本身不提供词级时间。当前可通过独立字幕对齐细分真实字幕段，也可通过 `submit_speech_alignment` 获取有效的词级结果；二者都不要求拆碎自然 TTS 段。
 
 ### 6.10 ActorPerformance
 
 数字人适配器不能只返回 MP4。
 
-ActorPerformance 应至少关联：
+ActorPerformance 的设计信息包括（按当前素材与能力记录，缺少的事实不能补造）：
 
 - 人物视频；
 - 人物音频；
@@ -974,6 +1009,8 @@ ActorPerformance 应至少关联：
 - 实际头部、身体、手部位置；
 - 可安全放置动效的区域；
 - 对应脚本、SpeechAsset 和 Revision。
+
+当前已有导入和 MiniMax H3 多参考生成路径。生成仅支持 `mask_mode=none`，音频使用 Dialogue 或静音；导入人物可登记可用 Mask。头、手布局为人工静态位置，不是自动姿态追踪。能力档案里的可上传参考音频不等于已验证口型同步，生成成功也不自动证明表演与连续性成立。
 
 ### 6.11 PresenterScene
 
@@ -1011,6 +1048,10 @@ EffectCue 不是任意贴纸，而是一次有明确编辑目的的视觉事件�
 - 强度；
 - 质量规则。
 
+当前普通 Registry Cue 消费类型支持的 Props、Motion、Style 与空间参数；`ManagedMotion` 则绑定固定版本 Asset，必须使用完整帧数、同画幅和帧率，内部文字、布局、运动修改需生成新版本。它不能通过 Cue Props、缩放或通用进出场改变已渲染内容。
+
+当前 Cue 只有一个 `semanticAnchor`，没有 `coveredNarrativeBeatIds`。质量对账主要用 `narrative_beat` 单锚点认定关联，不会因为同属一个 Scene 就自动认定覆盖该 Scene 所有 Beat。多 Beat 显式覆盖是第 28 章待评审变更。
+
 ### 6.13 AttentionCurve
 
 AttentionCurve 用于控制整条视频的视觉强弱：
@@ -1041,6 +1082,8 @@ StylePack 不是一个动画模板，而是一套统一视觉语言：
 - 画幅安全区。
 
 同一 Scene Type 可以套用不同 StylePack。
+
+以上是视觉语言的设计职责。当前只保存 StylePack ID 并由具体组件消费有限样式，不存在一套已完整实现的全局 StylePack 自动主题系统；受管作品的内部美术固定在源码和 Props 中。
 
 ### 6.15 Revision
 
@@ -1085,7 +1128,7 @@ PresenterScene
 
 ## 8. 数字人口播 + Remotion 动效完整链路
 
-这是第一版最重要的垂直闭环。
+这是第一版最重要的垂直闭环。下图保留需要新生成语音和人物时的链路；已有真人/数字人成片走 Existing Avatar Assembly，使用原声音和真实表演，不因要加动效而重复 TTS 或生成人物。Mask、Pose 是按能力提供的信息，不是当前 Avatar 输出的必备产物。
 
 ```text
 Creative Brief
@@ -1141,7 +1184,7 @@ MP4 导出
 
 - `segment_exact`：允许短语级字幕、段首/段尾动画、Cutaway、Scene 切换、SFX 和 CTA 卡点；
 - `chunk_coarse`：只用于导入素材的粗粒度定位、句级字幕和低频场景变化；
-- `word_exact`：未来存在真实时间戳能力后，才允许严格逐词高亮和句中关键词精确卡点；
+- `word_exact`：仅在当前已校验强制对齐结果存在时使用；普通全文转写和字幕 token 不自动升级为该精度；
 - `unavailable`：阻止任何依赖语音同步的正式效果。
 
 如果一个重要效果必须命中句中的某个词，优先通过 Speech Segment Plan 调整可朗读边界；不能自然分段时，先使用段内相对进度生成候选，再由 Codex 在 Web 预览中进行帧级修正，不能伪装为自动获得了词级时间。
@@ -1156,7 +1199,7 @@ MP4 导出
 → 手势、构图和效果经常不匹配
 ```
 
-正确链路：
+新生成人物时的设计链路：
 
 ```text
 先分析脚本语义
@@ -1166,6 +1209,8 @@ MP4 导出
 → 微调效果位置
 → 合成
 ```
+
+已有视频不重新规划不存在的动作：先观看人物位置、姿态、停顿和已有手势，再选可实现的图形或全屏接管。下表示例是创作建议，当前 API 不提供逐帧动作控制或自动手部跟随；没有 Mask 时不能承诺人物后景穿插。
 
 示例：
 
@@ -1179,7 +1224,7 @@ MP4 导出
 
 ### 8.2 Presenter 空间锚点
 
-第一版支持逻辑锚点：
+早期设计的逻辑锚点（用于描述构图意图，不是当前 Cue Schema 枚举）：
 
 ```text
 behind_actor
@@ -1193,7 +1238,7 @@ upper_background
 fullscreen
 ```
 
-数字人生成后，将逻辑锚点转换为实际坐标，并检查：
+当前 `manage_effect_cues` MCP 的 `spatial_anchor` 输入只开放 `top_left`、`top_right`、`middle_left`、`middle_right`、`bottom_left`、`bottom_right`、`center`、`full_frame`。Contracts/Renderer 还支持 `safe_left`、`safe_right`、`actor_head`、`actor_hands`、`behind_actor`，二者不是同一可调用范围；头手取 ActorLayout 的人工静态位置，behind_actor 需有效 Mask，均不是自动姿态跟踪。`actor_torso`、`lower_center`、`upper_background` 仍是早期构图意图，`fullscreen` 的当前字段值为 `full_frame`。按实际入口和构图检查：
 
 - 是否挡脸；
 - 是否挡嘴；
@@ -1210,7 +1255,7 @@ fullscreen
 
 ### 8.3 Presenter Effect Registry
 
-第一版优先实现参考人物视频中最有价值的效果：
+当前 Registry 提供下列 11 个普通组件及 `ManagedMotion` 放置类型；能注册或渲染不等于适合当前内容：
 
 | Effect Type | 作用 |
 |---|---|
@@ -1221,7 +1266,7 @@ fullscreen
 | `CommentCloud` | 评论、弹幕、反馈逐步填充背景 |
 | `EvidenceCard` | 人物前景展示截图、节目或证据 |
 | `CameraPunch` | 轻微或快速推近，强调包袱或结论 |
-| `ComicReaction` | 短促搞笑反应，第一版可用预生成片段 |
+| `ManagedMotion` | 由受管 TSX 生成的固定版本透明作品；不作为可直接修改内部 Props 的普通模板 |
 | `DeviceShowcase` | 手机、网页或 App 全屏展示 |
 | `ContentCarousel` | 未来作品、案例或产品逐项出现 |
 | `FullScreenMeme` | 极短梗图或中断画面 |
@@ -1232,6 +1277,8 @@ fullscreen
 - 预生成数字人反应片段；
 - 独立视频效果 Worker 预处理；
 - Remotion 在笑点处切换。
+
+`ComicReaction` 是早期表现设想，未注册为 EffectType；不能直接以该名称创建 Cue。
 
 ### 8.4 字幕策略
 
@@ -1266,13 +1313,13 @@ fullscreen
 
 ### 9.1 Explainer Scene Registry
 
-第一批通用场景：
+当前 `ExplainerSceneProgram.kind` 支持下列视觉语法；宿主仍为 `ExplainerScene`，不能把语法名传给 `create_scene.type`：
 
-| Scene Type | 适用内容 |
+| Program kind | 适用内容 |
 |---|---|
 | `HeroReveal` | 开场数字、极端结果、核心冲击 |
 | `ProgressiveClassification` | 分类、等级、区域、用户分群 |
-| `ComparisonScene` | 价格、方案、前后、正确与错误 |
+| `Comparison` | 价格、方案、前后、正确与错误 |
 | `EvidenceDocument` | 法规、论文、投诉、报告、合同 |
 | `UIWalkthrough` | App、网页、软件、手机流程 |
 | `PeopleGrouping` | 用户画像、阵营、人群分层 |
@@ -1292,6 +1339,10 @@ fullscreen
 - 图片或视频生成结果。
 
 Remotion 负责叠加、时序和合成。
+
+当前还可用 `create_scene(type=ExplainerScene)` 加 `ManagedMotion` 承担主视觉：就绪、同规格作品在 front/fullscreen 连续覆盖整个 Scene；短装饰、过期或缺失作品不算主视觉。这里是结构覆盖检查，不能证明内容、美术或透明区域已通过审阅。
+
+替换已有原生 Program 时使用 `set_explainer_program_enabled` 局部停用，保留 Scene、Cue、字幕、声音和素材。`compile_explainer_scenes` 是整批编译，会清理关联旧场景的内容，不用于单作品替换。停用不是删除，也不能恢复 stale Program。
 
 ### 9.2 解释、证据、现实素材要交替
 
@@ -1315,9 +1366,9 @@ Vlog 的故事通常存在于素材里，而不是先有完整旁白。
 ```text
 导入大量素材
 → 镜头切分
-→ 人物、地点、动作、环境声分析
-→ 镜头质量评分
-→ 事件聚类
+→ FFmpeg 场景变化边界、变化分数与音轨事实
+→ Agent 按需查看真实源片，判断人物、地点、动作与环境声
+→ 明确 Event Map 与连续性理由
 → Story 结构
 → Shot Selects
 → VlogMontageScene
@@ -1338,6 +1389,8 @@ Vlog Director 重点：
 - MG 是否喧宾夺主。
 
 Vlog 的效果核心是镜头和声音，不是大量 Remotion 动效。
+
+自动人物/动作识别、语义事件聚类与审美评分仍不是当前镜头分析器的能力；技术分数不会自动选择成片镜头。现有多机位同步只估计共同内录音轨的固定偏移，候选经过受管并排 Preview 的真实核对后才能编译；不支持独立录音机或漂移变速补偿。
 
 ---
 
@@ -1405,7 +1458,7 @@ Project Revision
 
 ### 11.5 自定义 Remotion 代码安全
 
-第一版优先使用：
+普通组件复用使用：
 
 ```text
 注册组件
@@ -1417,7 +1470,7 @@ StylePack
 
 不要允许 Codex 将任意 JSX 直接在服务器执行。
 
-后续开放代码型 MG 时必须：
+当前已开放的受限代码型 MG 必须：
 
 - 静态分析；
 - 组件和 API 允许列表；
@@ -1426,13 +1479,23 @@ StylePack
 - 沙箱运行；
 - 产物注册后再进入 Timeline。
 
+当前主链是 `submit_motion_work → motion_generation Job → runMotionJob → renderManagedMotion → completeManagedMotion → read_motion_work → review_motion_work → manage_effect_cues`。提交固定源码、Props、图片绑定、权利、画布与参考观察，只创建 Job；Worker 登记 Asset 后产生新 Revision，审阅写入也产生 Revision，放置前必须重读。它不安装平台组件，也不自动改 Timeline。
+
+当前作品仍必须提供四站之一的 `reference` 及布局、运动、节奏、适配和实际观察记录；单件审阅输入为 `reference_match=passed|failed|inconclusive` 与 `note`。未审或 failed 不能作为正常就绪作品放置；明确 inconclusive 的技术就绪作品可合成草稿，阻挡交付。当前单件审阅尚不接收结构化媒体 evidence 或自动绑定审阅 version；这两项与可选参考都属于第 28 章待评审需求。
+
+每件作品最多 900 帧且不超过 30 秒，另受 650,000,000 像素帧、256 MiB PNG 缓存和浏览器 5 分钟截止约束，上限同时生效。作品仅支持确定性的 React/指定 Remotion API、CSS、SVG、文字和最多 8 张受管图片；源码不能访问文件、网络、任意依赖，不能直接嵌入视频或音频。`imageBindings` 固定图片身份与字节哈希；真实视频与声音走外层 Timeline/Cutaway/Audio。
+
+Worker 保存 `source.json`、manifest、透明 PNG 帧和无声 MP4 审阅代理，校验源码、图片、逐帧与代理哈希、完整帧数、画幅和时长。正式合成读取透明帧，不把代理背景带入成片，也不再套一次通用入场。修改源码、Props、时长或图片需新提交并关联 `previousAssetId`；旧 Asset、旧放置和旧 Revision 保留。当前引擎为 `managed-motion-3`，不能因文档新增字段改变旧作品哈希。
+
+实际相关层序从下到上为：人物/普通视频、原生 ExplainerProgram、ExplainerScene 的 fullscreen Cue、Cutaway、actor/front Cue、非 ExplainerScene 的 fullscreen Cue、字幕。需要在实拍上绘制遮罩或高亮时按真实层序选择 front；不能假定所有 fullscreen 都覆盖 Cutaway。透明、进出状态及字幕安全必须查看合成结果。
+
 ---
 
 ## 12. Media Intelligence、ComfyUI Bridge HTTP 接入与 Derived Asset Factory
 
 ### 12.1 `ComfyUIBridgeClient`
 
-FunASR 和 OmniVoice 都由本项目服务端直接调用 `docs/asr接入.md` 描述的 ComfyUI-AppApi Bridge HTTP API。第一版不在本项目中加载模型，也不为两个工作流各写一套独立 SDK；实现一个可靠的通用 Client，再在其上建立薄业务服务。
+FunASR 和 OmniVoice 都由本项目服务端直接调用 `docs/comfyui模型接入.md` 描述的 ComfyUI-AppApi Bridge HTTP API。本项目不在 Node Runtime 中加载模型；通用 Client 上建立薄业务服务，Provider 模型在 Bridge 一侧执行。
 
 `ComfyUIBridgeClient` 负责：
 
@@ -1454,7 +1517,7 @@ downloadOutput(downloadUrl)
 5. 媒体字段使用 `file_{itemSlot.id}`；
 6. 有媒体时使用 `multipart/form-data`，并包含名为 `request` 的 JSON 文本字段；
 7. 将 Bridge 的 `queued / running / succeeded / failed` 映射到本项目 Job；
-8. HTTP 409 时重新获取工作流详情，并基于新 Schema 重建请求；
+8. 明确 HTTP 409 时最多刷新一次工作流详情并重建请求；读取 Schema 可等待 Bridge 恢复，创建 Run 的网络结果未知不能自动重放；
 9. 只有输出下载、文件校验和本地 Asset 注册全部完成，项目 Job 才能标记 `succeeded`；
 10. 8188 端口默认只供本机访问，不直接暴露公网；
 11. Bridge 重启可能丢失旧 run_id，因此本项目必须持久化请求摘要、幂等键和已下载结果。
@@ -1481,14 +1544,14 @@ workflow_id = dd564543-d02d-4247-9e97-089417db9e7a
 - 从 `outputs` 中读取 `kind=text` 的文字；
 - 保存原始文本、Bridge run ID、schemaVersion、原始响应和错误；
 - 写入 TranscriptText；
-- 触发 SemanticUnit Builder；
+- 生成 TranscriptSentenceCandidate，后续由 Agent 确认 SemanticUnit；
 - 不伪造 Segment、Token、WordTiming 或说话人信息。
 
-FunASR 当前内部固定使用 `language=auto` 和 `use_itn=true`。若以后需要语言、ITN、说话人或时间戳，必须先在工作流中公开真实输入或输出，并同步更新 `docs/asr接入.md` 和契约测试。
+普通转写入口不依赖时间戳。当前 `SourceCaptionAlignmentService` 使用已接入的段级字幕 Provider，解析真实 segments、可选 tokens 和审计；这与全文转写是两条链。Provider 参数、输出格式与可用状态以运行时工作流详情为准，不把早期内部模型默认值当作永远固定的接口。
 
-#### 可选的粗粒度时间模式
+#### 历史粗粒度时间模式
 
-对于导入的真人口播或 Vlog 素材，项目可以先在本地执行 VAD / 静音切片，再将每个已知源时间范围分别提交 FunASR：
+早期 VAD 分块方式如下，仅解释历史记录，不作为当前新字幕任务的执行路线：
 
 ```text
 源音频
@@ -1498,7 +1561,7 @@ FunASR 当前内部固定使用 `language=auto` 和 `use_itn=true`。若以后�
 → TranscriptChunk(start, end, text, precision=chunk_coarse)
 ```
 
-这只提供片段级定位，不代表 FunASR 返回了词级时间。切片过短会破坏语义，必须以自然停顿和最小时长约束控制。
+这只提供片段级定位，不代表词级时间。`source_caption_generation`、`source_caption_sentence_alignment` 旧 Job 保留可读，新任务使用 `source_caption_alignment`；禁止为恢复旧路线绕过当前 Worker 的拒绝。
 
 ### 12.3 OmniVoice HTTP 服务
 
@@ -1565,7 +1628,7 @@ SpeechSegment Text
 - Remotion 效果优先锚定段首、段尾、停顿和 Scene 边界；
 - 需要句中精确落词的效果，优先调整 SpeechSegment 设计；
 - 不能自然分段时，由 Browser Operator 根据真实预览微调帧偏移；
-- 未来确有需求时，再接入提供真实词级时间的工作流或强制对齐服务，作为可选增强，不阻塞第一版。
+- 当前可通过独立强制对齐服务增强为真实词级时间，需核对当前 Script/SpeechAsset 和输出，不是每次制作都必须执行。
 
 ### 12.5 FunASR 回听质量检查
 
@@ -1593,11 +1656,13 @@ Media Intelligence 负责生成可查询证据：
 - FunASR 产生的 TranscriptText / TranscriptChunk；
 - SpeechAssembly 产生的 segment_exact SpeechTiming。
 
-Python Worker 只提交分析结果，不直接修改 Story、Scene 或 Timeline。所有结果由 Application 校验后写入项目。
+上述列表包含保留的分析目标；当前自动实现主要是 FFmpeg/ffprobe、代理/缩略图/波形、静音与基础镜头边界，不能据此声称已有通用人物、动作或姿态识别。本仓库没有独立 `apps/media-worker-python` 常驻 Worker，Node Job Worker 调用媒体工具与外部 Bridge，结果由 Application 校验后写入。
+
+2026-09-08 的完整优化见[第 30 章](#30-通用素材理解与多模态检索待评审优化方案)及[公共素材方案](VideoFlowCut_动效案例阅读包/素材理解与多模态检索开发方案.md)：以源身份与真实定位为基础，分别建立镜头、语言和声音范围，经外部 MiniCPM/FunASR 取得有覆盖记录的观察，再以条件、关键词和 Qwen 向量检索片段。分析操作数据与正式采用分开，素材事实不自动变成创作决定；声音为第一个完整应用，不另建本地模型执行器。
 
 ### 12.7 Derived Asset Factory
 
-Derived Asset Factory 负责把项目已有内容转换成可直接用于视觉表现的素材：
+Derived Asset Factory 是早期职责划分，用于把项目已有内容转换成可直接用于视觉表现的素材；当前没有独立同名服务或通用派生素材 MCP。现有组件和受管作品按各自支持的输入实现以下表现，尚未实现的自动素材生成仍保留为目标：
 
 - 视频封面墙；
 - 评论文字云；
@@ -1633,7 +1698,7 @@ Derived Asset 必须保留素材来源和生成过程，证据类内容不得使
 4. Scene、Timeline 和 Remotion 只引用本地受管 Asset；
 5. 证据、现实 B-roll、官方品牌素材和生成画面必须明确区分；
 6. 来源未知、许可未知、下载失败或文件损坏不能静默降级为“可用”；
-7. 测试环境不依赖实时搜索，生产环境才允许真实联网。
+7. 单元与固定回归使用隔离素材/Mock；独立候选 E2E 可显式验证真实 Provider，不使用正式项目或正式队列。
 
 完整链路：
 
@@ -1647,7 +1712,7 @@ NarrativeBeat / Scene 存在视觉缺口
 → 选中候选 / 拒绝候选 / 进入降级
 → Acquire、Evidence Capture 或 Generate Job
 → 下载到项目目录并计算哈希
-→ ffprobe、代理、缩略图、水印和安全检查
+→ ffprobe、代理、缩略图与技术校验；Agent 另行检查水印和内容
 → 注册 Asset + AssetProvenance
 → 绑定 Scene / Cutaway
 → 局部预览与 Quality Gate
@@ -1665,40 +1730,41 @@ NarrativeBeat / Scene 存在视觉缺口
 | 抽象概念、机制、流程、比较和层级 | Remotion Scene → Creative Library → MiniMax | 可以 | 优先可编辑视觉解释，不为了“真实感”搜索无关空镜 |
 | 历史照片、地图和公共资料 | Wikimedia Commons 等开放资料 → 官方档案 | 仅在明确标注为说明画面时允许 | 每个文件单独核对许可、作者、署名和相同方式共享要求 |
 | 过渡和遮盖跳切 | 项目已有 B-roll → Stock → 简单 Remotion 转场 | 可以 | 先解决镜头连续性，不机械匹配名词 |
+| 独立音效与音乐（第 29 章拟更新策略） | 本期在线来源优先；同项目已采用文件可复用，不以前置本地库检索为条件 | 不自动转视觉生成 | 按声音功能和实际音频分析选材，采用原文件入项目；当前已接 Mixkit 音效分类，扩展能力待开发 |
 
 对一个 AssetRequest，系统必须允许“保持人物画面”作为合法决定。找不到合适素材时，不得为了填满画面而插入只匹配关键词的弱相关 Stock。
 
 #### 12.8.2 Provider Registry 与第一版实现范围
 
-所有来源实现同一 Provider Contract，至少包含：
+当前 Provider Contract 只有以下两个执行方法；来源和许可通过归一化候选保存，不要求实现不存在的统一 refreshRights/health 服务：
 
 ```text
-search(searchIntent)
-inspect(candidateId)
-acquire(candidateId, targetProfile)
-refreshRights(candidateId)
-health()
+search({ request, query })
+download({ candidate, temporaryDirectory })
 ```
 
-第一版 Provider：
+当前来源与早期 Provider 设想的对应关系：
 
-| Provider | 作用 | 第一版要求 |
+| Provider / 来源 | 当前实现 | 边界 |
 |---|---|---|
-| `ProjectAssetProvider` | 当前项目已有素材 | 必须 |
-| `CreativeLibraryProvider` | 已认证模板、B-roll、音效和视觉资产 | 必须 |
-| `PexelsProvider` | 竖屏/横屏现实视频和图片搜索 | 必须 |
-| `PixabayProvider` | 视频和图片补充来源 | 必须 |
-| `WebEvidenceProvider` | 官方网页、文档和数据页面的证据截取 | 必须 |
-| `MiniMaxGeneratedProvider` | 搜索失败后的解释性或情绪型视频生成 | 必须 |
-| `MockAssetProvider` | CI 和固定回归测试 | 必须 |
-| `WikimediaCommonsProvider` | 历史、地图、公共资料 | 第二阶段 |
+| `ProjectAssetProvider` | 项目素材通过 browse_assets/read_project 读取，没有同名 Provider 类 | 项目已有素材优先，不能声称另有统一跨项目素材库 |
+| `CreativeLibraryProvider` | 尚无完整同名 Provider | 组件目录、本地音效库与项目素材各用已有入口 |
+| `PexelsProvider` | 配置密钥后启用，当前实现视频搜索与下载 | 图片搜索不由此实现自动保证 |
+| `PixabayProvider` | 尚未实现 | 不因配置设想存在就声称可查询 |
+| `WebEvidenceProvider` | 尚无自动网页抓取 Provider；已有 manage_evidence_capture 登记真实本地来源 | 保留来源、摘录、限制和高亮，不能生成假证据 |
+| `MiniMaxGeneratedProvider` | 由独立 video_generation Job 实现四种生成输入，不是搜索 Provider 类 | 需显式提交，不自动搜索失败后生成或放入 Timeline |
+| `MockAssetProvider` | 测试注入本地 Fixture | 不作为生产真实搜索结果 |
+| `WikimediaCommonsProvider` | 默认注册，逐文件读取来源和许可 | 媒体类型与权利仍须逐项核查 |
+| `MixkitSoundProvider` | 默认注册，受控公开音效分类查询和下载 | query 为单个分类，不是任意全文搜索 |
+
+2026-09-08 声音核对：现有 Mixkit 适配器仅接六个分类，来源目录的其它网站不等于已有获取 Adapter。第 29 章拟扩展分类、单独接入音乐及 Freesound，并增加实际音频分析和原文件复核；音乐/音效许可、网站 API 使用条件与自动访问边界分别检查。该计划不要求下载整库，也不修改上述当前 Provider Contract 的事实说明。
 
 当前官方接口核对基线：
 
-- Pexels 视频搜索使用 `/v1/videos/search`，可按 `portrait`、`landscape` 或 `square` 筛选；搜索界面必须保留明显的 Pexels 来源入口，并尽可能保留作者信息；
+- 当前 Pexels 实现调用 `https://api.pexels.com/videos/search`，按支持的画幅筛选，保留来源和作者；
 - Pixabay 视频搜索使用 `/api/videos/`；查询响应应缓存，正式使用的文件下载到本地，禁止永久热链，也不能做系统性批量抓取；
 - Wikimedia Commons 不能按“整站统一许可”处理，必须读取每个文件描述页中的具体许可、作者、署名、许可链接和可能的相同方式共享要求；
-- Provider 条款和接口会变化，正式发布前必须重新读取官方文档并更新 `docs/asset-sourcing/provider-notes/` 的核对日期。
+- Provider 条款和接口会变化，接入或发布变更前重新读取官方资料；Pixabay 条目仅是早期接口研究，不代表已配置 Provider。
 
 通用网页搜索只能用于发现官方证据页、公共档案或 Provider 入口，不能把任意网页的视频地址当作可下载剪辑素材。YouTube、抖音、新闻站和社交平台内容默认只可作为参考或证据入口，除非项目拥有明确授权和正式导入策略。
 
@@ -1735,7 +1801,7 @@ AssetRequest 应围绕叙事任务编写，而不是围绕单个名词。例如�
 MiniMax 生成安静城市黄昏空镜；仍失败则保留人物口播并使用轻微 CameraPunch
 ```
 
-Query Planner 根据 AssetRequest 生成 3～6 组搜索意图：
+Agent 根据 AssetRequest 组织必要的查询批次，Application 接收明确的 Provider 与 query，不会自动生成固定 3～6 组查询。可按以下维度组织：
 
 - 主题词：人物、动作、地点和对象；
 - 情绪词：quiet、reflective、tired、warm 等；
@@ -1776,24 +1842,26 @@ Query Planner 根据 AssetRequest 生成 3～6 组搜索意图：
 
 技术层先将候选收敛到少量结果，Codex 再通过联系表、缩略图和预览做语义复核。Candidate Ranker 不能替代创作判断，也不能仅凭向量相似度自动选中最终素材。
 
+当前代码执行媒介、尺寸、时长、画幅、权利、下载内容与去重等确定性检查；动作、年代、明显水印、情绪、构图和近似镜头判断需要真实审阅。上述软硬维度不表示已部署统一视觉评分或自动水印识别模型。
+
 #### 12.8.5 来源、许可与导出策略
 
 每个 Candidate 和 Asset 都有 `rightsStatus`：
 
 ```text
-auto_allowed
-allowed_with_attribution
-requires_user_confirmation
-reference_only
-blocked
 unknown
+cleared
+attribution_required
+restricted
+rejected
 ```
 
 规则：
 
-- `unknown`、`blocked` 和 `reference_only` 不能进入可导出的正式 Scene；
-- `requires_user_confirmation` 必须生成明确问题，不能由 Agent 自行假定获得授权；
-- `allowed_with_attribution` 必须生成 AttributionManifest，并在要求的位置提供署名；
+- `unknown`、`restricted`、`rejected` 阻挡适用素材的导出，不能靠选择 draft 绕过权利限制；内部 Preview 与正式导出分别处理；
+- `cleared` 需要真实许可依据，不能从下载成功或用户已要求制作推断第三方授权；
+- `attribution_required` 需保留署名并生成 AttributionManifest；
+- 早期 `reference_only` 不是当前 rightsStatus，参考用途通过 AssetRole（如 style_reference）及来源记录表达；用途和授权是不同事实；
 - 即使来源声称“免费”，仍保存来源页面、作者和当时许可说明；
 - 版权许可之外的商标、肖像、隐私、人格权和地域限制仍需独立考虑；
 - 产品只能执行项目政策，不能向用户承诺法律结论。
@@ -1809,7 +1877,7 @@ Web 的素材候选和 Asset Inspector 必须展示：来源 Provider、作者�
 → 下载到临时目录
 → 校验 HTTP 状态、MIME、文件头和文件大小
 → 防止 HTML 错误页伪装成视频
-→ 计算内容哈希并做跨项目去重
+→ 计算内容哈希并按当前项目登记去重；不承诺已有跨项目共享素材存储
 → ffprobe 检查时长、分辨率、帧率、音轨和可解码性
 → 生成代理、缩略图、波形和可选镜头切分
 → 移入项目受管目录
@@ -1821,7 +1889,7 @@ Timeline、Scene 和 Remotion 不得长期引用 Provider URL。远程链接失�
 
 #### 12.8.7 WebEvidenceProvider
 
-证据素材与普通 Stock 分开处理。WebEvidenceProvider 负责：
+证据素材与普通 Stock 分开处理。下列是网页证据采集的目标流程，当前没有自动 WebEvidenceProvider；已有接口负责登记实际获得并本地化的来源资料，而不是自动完成全部抓取：
 
 - 打开官方页面、论文、报告、产品规则或用户指定链接；
 - 保存页面标题、来源、抓取时间和目标证据范围；
@@ -1834,7 +1902,7 @@ Timeline、Scene 和 Remotion 不得长期引用 Provider URL。远程链接失�
 
 #### 12.8.8 MiniMax H3 生成降级
 
-`docs/asr接入.md` 已记录文生视频、图生视频、首尾帧生视频和多参考视频 HTTP 工作流。`MiniMaxGeneratedProvider` 复用 `ComfyUIBridgeClient`：
+`docs/comfyui模型接入.md` 已记录文生视频、图生视频、首尾帧生视频和多参考视频 HTTP 工作流。当前使用 `submit_video_generation` 提交独立 `video_generation` Job，经 Worker 调用 `ComfyUIBridgeClient`；没有名为 `MiniMaxGeneratedProvider` 的统一素材 Provider。内容生成流程为：
 
 ```text
 AssetRequest
@@ -1865,7 +1933,7 @@ AssetRequest
 
 #### 12.8.9 缓存、限流与可重复性
 
-Asset Acquisition 必须实现：
+以下保留为素材系统的可靠性设计目标，不表示每个 Provider 已具备全部机制；当前具体实现以 12.8.2 的 Adapter 和测试为准：
 
 - SearchIntent 级缓存；
 - Provider 级速率限制和指数退避；
@@ -1877,9 +1945,9 @@ Asset Acquisition 必须实现：
 - 网络恢复后的 Job 重试；
 - 取消任务和部分结果保留。
 
-Pixabay 查询缓存不得短于其当前官方要求的 24 小时；其它 Provider 使用各自配置，不能把限流数值散落硬编码在业务代码中。
+当前没有 Pixabay Provider；后续接入新 Provider 时须核对其当时的缓存和限流要求，不能把早期示例数值当作当前合同。
 
-运行模式：
+下列是逻辑运行模式，尚不是统一的四档产品开关；尤其 offline 不能据此推断当前存在 Creative Library：
 
 ```text
 deterministic_test
@@ -1973,16 +2041,24 @@ segment_exact
 TTS 分段输出的真实时长与最终拼接偏移；段边界准确
 
 chunk_coarse
-导入音频经 VAD 切片后得到的源时间范围；只适合片段定位
+历史粗粒度源时间范围；只适合片段定位，不作为新字幕生成链
+
+sentence_exact
+当前 Provider 直接返回的真实字幕段边界
+
+source_token_anchored
+字幕卡首尾锚定真实 Provider token，不等同 word_exact
 
 word_exact
-未来由真实时间戳工作流或强制对齐服务提供
+当前可选强制对齐的有效输出；须与目标声音、文本和审计一致
 
 unavailable
 没有可用时序
 ```
 
 ### 13.3 六类语义和时间锚点
+
+以下六类是设计意图分类，不是一个通用 MCP 枚举。当前 EffectCue 的 `semanticAnchor.type` 实际为 `speech_segment`、`narrative_beat`、`scene`、`absolute`；AudioCue 的 anchor 为 `sequence_global` 或 `media_event`，后者可通过 effectEvent 关联局部动效事件。源时间和 Item 相对时间由对应素材/Timeline 字段表达。
 
 ```text
 source_time
@@ -2006,7 +2082,7 @@ sequence_global
 
 `media_event` 不替代物理 Timeline Item。它用于表达编辑意图与文件内部事件之间的偏移，例如“Ding 应在结论落点被听见”，而不是“音频文件必须从结论帧开始”。缺少真实 onset 或动作证据时，应先预览和测量，不能猜精确偏移。
 
-Presenter 额外支持空间锚点：
+Presenter 的空间构图示意如下；当前 Contracts 与 MCP 可输入范围见 8.2，不把示意名称全部视为已开放：
 
 ```text
 actor_head
@@ -2019,6 +2095,8 @@ fullscreen
 ```
 
 ### 13.4 Motion Timing Compiler
+
+本节保留创作计划到时序的职责设计；当前应用层只按已登记锚点、范围和偏移编译，不自动推断笑点、主动作、段内语义或最佳注意力。下列创作决定需由 Agent 依据真实声音与预览提供。
 
 输入：
 
@@ -2049,7 +2127,7 @@ fullscreen
 - 文档先建立画面，再在同一 Segment 中以相对进度高亮；
 - 没有 `word_exact` 时，不生成伪精确逐词动画；
 - 段内相对进度只能作为候选，正式发布前必须经过真实预览检查；
-- 若必须命中关键词，优先重构 SpeechSegment 边界，随后才考虑 Web 帧级微调。
+- 若必须命中关键词，优先使用当前有效对齐证据；不足时保留自然语句并预览微调或降级，不能为卡点强行拆碎 SpeechSegment。
 
 ### 13.5 ImpactReport
 
@@ -2063,18 +2141,18 @@ fullscreen
 - dirty ranges；
 - warnings。
 
-典型传播：
+依赖处理应按对象区分；下表说明当前操作与需要复核的范围，不承诺所有包装在主线变化后自动重新匹配：
 
 | 对象 | 主线变化后的处理 |
 |---|---|
 | Caption 绑定 SpeechSegment | 按新 SegmentTiming 重新排布；若只具备段级时序，不伪造逐词精度 |
 | EffectCue 绑定仍存在的语义 | 自动重定位到新的段边界或保留已确认偏移 |
 | EffectCue 对应语句被删除 | 标记 stale，不自动换绑到相邻句 |
-| SpeechSegment 文本变化 | 只重生成对应 SegmentAsset，并重算后续偏移 |
+| SpeechSegment 文本变化 | 标记对应声音及下游失效；显式提交语音任务，完成后按真实时长重建 |
 | SFX 绑定语义或 media_event | 重算物理 Item 起点与 onsetOffset，并进入实际试听复核 |
 | 人物手势锚点变化 | 重新检查空间位置和完整运动路径 |
 | Cutaway / B-roll 绑定句子 | 可以重定位，但必须重新判断素材相关性、进入和返回是否仍成立 |
-| BGM 绑定整条 Sequence / 章节 | 重算裁切、循环、淡出、Duck 和章节关系 |
+| BGM 绑定整条片 | 主线变化后检查 stale 和实际范围，显式复核裁切、循环、淡出、Duck；不宣称已自动完成重新配乐 |
 | Clip-bound 视觉效果 | 跟随目标 Item，但重新检查构图与有效时长 |
 | 绝对时间效果或锁定 Override | 保持原位，不静默覆盖，并产生复核警告 |
 
@@ -2094,14 +2172,18 @@ Caption / EffectCue / Cutaway / BGM / SFX / Camera Treatment
 
 这一区分的目的不是让所有包装都重新生成，而是让主线变化后，每类对象根据自身依赖进入“自动重算、保持、失效或复核”之一。应用层可以用两个 Command Handler、两个业务目录或同一事务中的两个步骤实现，不要求新进程和新数据库。
 
+当前动效音效事件已在项目提交时统一对账（`packages/edit-application/src/effect-audio-events.ts`）：`eventFrame = cue.startFrame + localFrame + syncOffsetFrames`，音频素材的放置起点为 `item.startFrame = eventFrame - onsetOffsetFrames`。Cue 纯平移时，绑定音效跟随；作品源码、Props、版本、时长等事件签名改变或 Cue 移除时，关联 AudioCue 标记 stale 并禁用，复核后显式恢复。已有 stale 不因后续平移自动恢复。多 Beat 覆盖和固定作品在主线变化后的完整传播仍属于第 28 章待评审需求，不能由这条现有音效规则推断为已实现。
+
+第 29 章进一步提出 MotionEventMap、点/范围声音和实际原文件锚点：事件来自作品与画面共用的时序，声音通过 AudioCue 绑定；内部重定时经验证重新计算，语义改变或事件消失时停用旧绑定。旁白、音乐或周围内容变化后，物理跟随与听感复核分别处理。包装的正式写入仍依赖真实主线，但声音意图在最终旁白和动效制作前共同设计，不能把编译顺序误解成最后才考虑声音。
+
 ## 14. Revision 与 EditTransaction
 
-所有修改统一经过 EditTransaction：
+创作状态修改统一经过应用层校验和项目快照提交。当前没有注册 `preview_edit_transaction` MCP 工具；下图的影响评估是内部职责，不是要求 Agent 调用一个不存在的接口：
 
 ```text
 读取当前 Revision
 → 构造操作
-→ preview_edit_transaction
+→ 应用层影响评估
 → 校验
 → 原子提交
 → 新 Revision
@@ -2112,7 +2194,7 @@ Caption / EffectCue / Cutaway / BGM / SFX / Camera Treatment
 
 ### 14.1 强制规则
 
-- 每个写操作携带 `base_revision`；
+- 修改已有项目创作状态的操作携带 `base_revision`；创建项目、Job 跟踪、审片与修复记录等按各自实时 Schema 执行，不一概产生视频 Revision；
 - MCP 操作与 Browser Operator 操作并发时，陈旧写入必须拒绝；
 - 批量操作要么全部成功，要么全部失败；
 - 不允许 MCP 直接绕过 Application 写数据库；
@@ -2135,7 +2217,7 @@ Codex 通过 Browser Operator 在 Timeline 或 Inspector 中直接修改 Scene �
 
 长版、短版、横版、竖版或高光版属于不同 Timeline / Sequence；同一版本内部的连续修改才属于 Revision。
 
-第一版若只支持一个默认 Sequence，也必须保证：
+以下是平行版本的产品设计目标，当前尚无创建、复制和切换多 Sequence 的接口。当前 ProjectSnapshot 只有一条 timeline，Revision 是该项目快照的修改历史。未来实现平行版本时应保证：
 
 - “另做一个短版”不会覆盖当前版本；
 - 从当前版本创建平行版本时共享 Asset，但复制 Story、Scene 和 Timeline Snapshot；
@@ -2160,6 +2242,10 @@ docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/
 ```
 
 第一版不在 Web 中放 AI Chat。所有自然语言任务由用户在 Codex 中提出；Codex 通过 MCP 或 Browser Operator 操作工作台。
+
+**当前界面边界（2026-09-07）**：左侧实际入口为 `assets`、`agent_work_orders`、`script`、`audio`、`actors`、`scenes`、`captions`、`advanced`、`jobs`。顶栏提供项目选择/创建、Revision、画布、播放、局部预览、预检和草稿/交付导出。工作单用于把结构化请求交给 Agent，不是内嵌 AI Chat。下列布局图、尺寸和“必须支持”清单保留为界面设计目标，不是当前逐项已实现清单；完整 Undo/Redo、多 Sequence/Variant、任意拖拽裁切和全部 Inspector 属性尚不能据此当作可调用操作。
+
+当前 Inspector 只编辑已开放的对象字段和 Registry 参数；受管 ManagedMotion 内部 TSX/Props 修改需要提交新作品版本。服务端按 draft/delivery 分别判定门禁；Web 草稿按钮仍可能因汇总 blockingIssues 而采用更严格的禁用条件，不能据此声称所有入口行为完全一致。
 
 ### 15.1 工作台整体布局
 
@@ -2401,6 +2487,7 @@ Captions
 Dialogue
 SFX
 BGM
+Ambient
 ```
 
 视觉解释片可用 Main Visual 轨道替代 Actor；Vlog 可显示 Main Video、B-roll、Ambient、Music 分组，但仍使用同一个 Timeline 内核。
@@ -2554,6 +2641,8 @@ quality-verification
 ### 16.3 物理目录与逻辑关系
 
 推荐物理目录仍然平铺：
+
+当前共有 24 个运行时 Skill；此外 `_shared/` 保存 7 份公共合同，专项 `references/` 共 9 份，Markdown 合计 40。下面只列 Skill 入口目录，不把 Shared 当作独立 Skill。第 28 章拟新增的五份案例尚未接入。
 
 ```text
 .agents/skills/
@@ -2886,7 +2975,7 @@ Codex 可以只审查而不修改，也可以在证据不足时停止并请求�
 - Timeline 放置、修改已有 Cue、局部预览和失败恢复；
 - 进入、中间、稳定、退出与连续播放验证。
 
-视频生产任务默认只使用已注册组件。开发新组件属于代码开发任务，必须完成审查、Registry 登记和测试后才能被生产 Skill 调用。
+当前视频生产支持两条已实现路径：复用 Registry 组件，或通过受管 MCP 提交、审阅并放置固定版本的 Remotion 作品。后者当前仍要求四站参考及 `referenceMatch` 审阅，具体边界见 11.5；任意修改平台组件、Registry 或渲染器属于代码开发任务。原创参考可选、完整段落交接及中性作品审阅属于第 28 章待评审变更，尚未生效。
 
 #### `quality-verification`
 
@@ -2969,6 +3058,8 @@ Codex 可以只审查而不修改，也可以在证据不足时停止并请求�
 
 负责主声音连续性、Room Tone、呼吸、音乐 Spotting、BGM 时长、Duck、J/L Cut、声音桥、SFX onset、静音和最终复听。
 
+第 29 章拟将其扩展为前期段落声音设计与后期混音两个入口，并新增 `sound-asset-sourcing` 负责在线候选、实际音频观察及推荐交接。两者由同一个主要视频工作流收拢；本期在线选材不依赖全局本地库。这里登记的是后续 Skill 调整，尚未新增运行时入口或改变现有安装统计。
+
 #### `export`
 
 负责固定目标 Timeline / Sequence 与 Revision、Draft/Delivery 目的、Render Preflight、异步导出、最终文件验证、Attribution 和 Artifact 记录；不改变创作状态。
@@ -2992,12 +3083,12 @@ References 只有在同时满足以下条件时才单独存在：
 
 基础操作型 Skill 可以主要使用步骤和状态表；创作型 Skill 必须以专业解释为主体，清单只用于执行和最终防漏。
 
-代码能力变化时，相关 Skill、References、`AGENTS.md`、`.codex/config.toml` 和测试必须在同一个 PR 中更新。CI 至少检查：
+代码能力变化时，相关 Skill、References、实际发现配置和测试必须在同一个 PR 中更新。当前仓库没有 `.codex/config.toml`；插件通过 `.codex-plugin/plugin.json` 的 `skills: "./skills/"` 和 `.mcp.json` / launcher 发现能力，Skill 源码唯一位于根目录 `.agents/skills/`，插件镜像由同步脚本生成。只有项目实际使用 `.codex/config.toml` 时才检查其登记。CI 至少检查：
 
 - Skill 引用的 MCP 工具是否存在且未废弃；
 - 主工作流引用的专项 Skill 是否存在；
 - Reference 路径是否有效；
-- `.codex/config.toml` 登记路径是否存在；
+- 插件 Skill/MCP 发现路径是否存在；如使用 `.codex/config.toml`，检查其登记路径；
 - 当前代码已经支持的字段没有被 Skill 描述为缺失；
 - 当前代码尚未实现的能力没有被 Skill 声称为已完成。
 
@@ -3031,7 +3122,7 @@ ChatCut 资料用于吸收产品工作方法、专业判断、工具边界和验
 | `export` | `export` | 依赖 `quality-verification` 和交付门禁 |
 | `known-errors` | `known-errors` | 被所有主工作流与操作型 Skill 调用 |
 | `shader-gen` | 当前无对应 Skill | 真正实现 Shader Asset、Runtime、属性 Schema 和 Timeline 绑定后再增加 `shader-production` |
-| `multicam-sync` | 当前无独立运行时 Skill | 多机位能力实际实现后，由 Presenter/Vlog 主工作流调用专项 Skill |
+| `multicam-sync` | 当前无独立运行时 Skill | 已有同步、人工分组、验证和编译工具，由 Presenter/Vlog 主工作流按现有合同调用；不等于自动导播质量已通过 |
 
 最重要的对应关系不是：
 
@@ -3080,7 +3171,7 @@ MCP 不负责：
 
 ### 17.3 写工具统一约束
 
-所有写工具应支持或隐含：
+创作状态写工具的合同目标如下；当前具体字段、批次和返回值以实时 Schema 为准，不能假设每个工具都有 dry-run、幂等键或批量能力：
 
 - `project_id`；
 - `base_revision_id`；
@@ -3093,137 +3184,153 @@ MCP 不负责：
 
 长任务返回 Job ID，通过 `track_job` 或专项跟踪工具读取状态。
 
-### 17.4 推荐 MCP 工具面
+### 17.4 MCP 工具与旧设计名称对照
 
-以下名称是推荐契约，可在编码中微调，但不得改变职责边界。
+以下表保留原设计职责，并在“当前入口”列标明真实工具或缺口；阶段列是历史开发规划，不代表发布状态。操作前必须读取实时 Schema。没有同名工具的职责不能通过猜名称调用，也不能用相近工具扩大能力。
 
 #### 项目与 Revision
 
-| 工具 | 作用 | 阶段 |
-|---|---|---|
-| `list_projects` | 列出项目 | V1 |
-| `create_project` | 创建项目和 Brief | V1 |
-| `target_project` | 设置当前 Codex 项目上下文 | V1 |
-| `read_project` | 读取项目概要、当前 Revision、状态 | V1 |
-| `edit_project` | 修改 Brief、Profile、StylePack 引用 | V1 |
-| `get_editor_url` | 返回 Web 工作台地址 | V1 |
-| `focus_editor_object` | 返回定位 Scene、Item、Cue 或帧的编辑器地址 | V1 |
-| `manage_markers` | 创建、读取、修改审片 Marker | V1 |
-| `manage_revisions` | 列表、比较和回退同一 Timeline / Sequence 的 Revision | V1 |
-| `manage_timeline_variants` | 创建、复制、命名和切换长版、短版、横竖版等平行 Timeline；第一版可只支持 default | 后续 / 需要平行版本时 |
+| 旧设计名称 / 工具 | 设计职责或当前受限作用 | 历史阶段 | 当前入口 |
+|---|---|---|---|
+| `list_projects` | 列出项目 | V1 | 已注册，参数以实时 Schema 为准 |
+| `create_project` | 创建项目和 Brief | V1 | 已注册，参数以实时 Schema 为准 |
+| `target_project` | 设置当前 Codex 项目上下文 | V1 | 已注册，参数以实时 Schema 为准 |
+| `read_project` | 读取项目概要、当前 Revision、状态 | V1 | 已注册，参数以实时 Schema 为准 |
+| `edit_project` | 修改 Brief、Profile、StylePack 引用 | V1 | 未注册同名工具，保留为设计目标 |
+| `get_editor_url` | 返回 Web 工作台地址 | V1 | 已注册，参数以实时 Schema 为准 |
+| `focus_editor_object` | 返回定位 Scene、Item、Cue 或帧的编辑器地址 | V1 | 已注册，参数以实时 Schema 为准 |
+| `manage_markers` | 创建、读取、修改审片 Marker | V1 | 未注册同名工具，保留为设计目标 |
+| `manage_revisions` | 列表、比较和回退同一 Timeline / Sequence 的 Revision | V1 | `list_revisions` / `rollback_revision`；当前是项目快照历史，无多 Sequence 比较 |
+| `manage_timeline_variants` | 创建、复制、命名和切换长版、短版、横竖版等平行 Timeline；第一版可只支持 default | 后续 / 需要平行版本时 | 未注册同名工具，保留为设计目标 |
 
 #### 素材与任务
 
-| 工具 | 作用 | 阶段 |
-|---|---|---|
-| `browse_assets` | 查询项目素材和处理状态 | V1 |
-| `inspect_asset` | 读取素材元数据、代理、证据 | V1 |
-| `read_asset_readiness` | 读取字节、分析、Timeline、当前渲染链和权利就绪状态 | V1 |
-| `import_media` | 创建上传/导入任务 | V1 |
-| `edit_asset` | 修改素材标题、标签、用途 | V1 |
-| `submit_media_analysis` | 提交代理、波形、镜头等分析 | V1 |
-| `submit_transcription` | 通过 FunASR HTTP 工作流提交音频转文字 | V1 |
-| `find_transcript` | 按文本、人物或时间查询转写 | V1 |
-| `manage_transcript` | 修正 TranscriptText 和语义文本；不伪造时间 | V1 |
-| `browse_library` | 查询项目素材、Creative Library 和已缓存素材 | V1 |
-| `manage_asset_requirements` | 创建、修改、读取和关闭 AssetRequest | V1 |
-| `search_media_candidates` | 根据 AssetRequest 生成 SearchIntent 并查询 Provider | V1 |
-| `list_asset_candidates` | 读取候选、技术预过滤、语义评分、来源和 rightsStatus | V1 |
-| `inspect_media_candidate` | 查看候选联系表、短预览、媒体参数和来源信息 | V1 |
-| `acquire_media_asset` | 下载、校验、本地化并注册正式 Asset | V1 |
-| `generate_media_asset` | 通过 Remotion、Creative Library 或 MiniMax H3 生成允许生成的资产 | V1 |
-| `read_asset_provenance` | 读取 Asset 的来源、许可、署名、生成参数和导入记录 | V1 |
-| `read_asset_coverage` | 检查 NarrativeBeat / Scene 的素材需求覆盖和未解决缺口 | V1 |
-| `replace_scene_asset` | 在保持 Scene 与 Cue 结构的情况下替换素材 | V1 |
-| `submit_derived_asset_job` | 生成封面墙、评论云、图表等派生资产 | V1 |
-| `track_job` | 跟踪搜索、下载、生成、Avatar、预览和导出任务 | V1 |
+| 旧设计名称 / 工具 | 设计职责或当前受限作用 | 历史阶段 | 当前入口 |
+|---|---|---|---|
+| `browse_assets` | 查询项目素材和处理状态 | V1 | 已注册，参数以实时 Schema 为准 |
+| `inspect_asset` | 读取素材元数据、代理、证据 | V1 | 已注册，参数以实时 Schema 为准 |
+| `read_asset_readiness` | 读取字节、分析、Timeline、当前渲染链和权利就绪状态 | V1 | `inspect_asset` / `read_project` 中的用途就绪状态 |
+| `import_media` | 创建上传/导入任务 | V1 | 已注册，参数以实时 Schema 为准 |
+| `edit_asset` | 修改素材标题、标签、用途 | V1 | `update_asset_metadata`，以实际开放字段为准 |
+| `submit_media_analysis` | 提交代理、波形、镜头等分析 | V1 | 导入后的 `media_analysis` Job；无独立同名 MCP |
+| `submit_transcription` | 通过 FunASR HTTP 工作流提交音频转文字 | V1 | 已注册，参数以实时 Schema 为准 |
+| `find_transcript` | 按文本、人物或时间查询转写 | V1 | `read_script`，无独立全文搜索接口 |
+| `manage_transcript` | 修正 TranscriptText 和语义文本；不伪造时间 | V1 | `apply_manual_transcript`；语义决定用 `apply_semantic_units` |
+| `browse_library` | 查询项目素材、Creative Library 和已缓存素材 | V1 | `browse_assets` 读取项目素材；无统一跨项目 Creative Library |
+| `manage_asset_requirements` | 创建、修改、读取和关闭 AssetRequest | V1 | 已注册，参数以实时 Schema 为准 |
+| `search_media_candidates` | 根据 AssetRequest 生成 SearchIntent 并查询 Provider | V1 | 已注册，参数以实时 Schema 为准 |
+| `list_asset_candidates` | 读取候选、技术预过滤、语义评分、来源和 rightsStatus | V1 | `read_project` 中的候选集合 |
+| `inspect_media_candidate` | 查看候选联系表、短预览、媒体参数和来源信息 | V1 | 已注册，参数以实时 Schema 为准 |
+| `acquire_media_asset` | 下载、校验、本地化并注册正式 Asset | V1 | 已注册，参数以实时 Schema 为准 |
+| `generate_media_asset` | 通过 Remotion、Creative Library 或 MiniMax H3 生成允许生成的资产 | V1 | `submit_video_generation` / `submit_motion_work`；不是通用生成服务 |
+| `read_asset_provenance` | 读取 Asset 的来源、许可、署名、生成参数和导入记录 | V1 | 已注册，参数以实时 Schema 为准 |
+| `read_asset_coverage` | 检查 NarrativeBeat / Scene 的素材需求覆盖和未解决缺口 | V1 | `read_project` / `read_quality_report` 的相关集合与问题 |
+| `replace_scene_asset` | 在保持 Scene 与 Cue 结构的情况下替换素材 | V1 | 已注册，参数以实时 Schema 为准 |
+| `submit_derived_asset_job` | 生成封面墙、评论云、图表等派生资产 | V1 | 未注册同名工具，保留为设计目标 |
+| `track_job` | 跟踪搜索、下载、生成、Avatar、预览和导出任务 | V1 | 已注册，参数以实时 Schema 为准 |
 
 Provider 专用 API Key、页码、限流、下载 URL 和许可字段不直接暴露给 Codex。MCP 面向的是 AssetRequest、AssetCandidate、Asset 和 Provenance；Provider 差异由 Application Adapter 归一化。
 
 #### Story 与 Script
 
-| 工具 | 作用 | 阶段 |
-|---|---|---|
-| `read_script` | 读取最终观众会听到的 Script | V1 |
-| `apply_script` | 应用语义删改、重排并更新项目 | V1 |
-| `read_semantic_units` | 读取完整句、观点、转折和重录候选 | V1 |
-| `manage_story` | 创建和修改 Section、NarrativeBeat | V1 |
-| `read_narrative_map` | 读取 Hook、证据、笑点、CTA 等结构 | V1 |
-| `manage_speech_segments` | 读取和调整可独立朗读的 SpeechSegment 与段间停顿 | V1 |
-| `read_speech_timing` | 读取段级 SpeechTiming、精度和来源；词级为未来可选 | V1 |
+| 旧设计名称 / 工具 | 设计职责或当前受限作用 | 历史阶段 | 当前入口 |
+|---|---|---|---|
+| `read_script` | 读取最终观众会听到的 Script | V1 | 已注册，参数以实时 Schema 为准 |
+| `apply_script` | 应用语义删改、重排并更新项目 | V1 | 已注册，参数以实时 Schema 为准 |
+| `read_semantic_units` | 读取完整句、观点、转折和重录候选 | V1 | `read_script` |
+| `manage_story` | 创建和修改 Section、NarrativeBeat | V1 | 已注册，参数以实时 Schema 为准 |
+| `read_narrative_map` | 读取 Hook、证据、笑点、CTA 等结构 | V1 | 已注册，参数以实时 Schema 为准 |
+| `manage_speech_segments` | 读取和调整可独立朗读的 SpeechSegment 与段间停顿 | V1 | Script 编译形成 SpeechSegment，`read_script` 读取；无同名编辑工具 |
+| `read_speech_timing` | 读取 SpeechTiming、精度和来源；词级只在真实强制对齐结果可用时使用 | V1 | 已注册，参数以实时 Schema 为准 |
 
 #### Scene 与视觉处理
 
-| 工具 | 作用 | 阶段 |
-|---|---|---|
-| `browse_scene_types` | 查询可用 Scene Type 和能力 | V1 |
-| `create_scene` | 创建 Presenter/Explainer/Cutaway 等 Scene | V1 |
-| `edit_scene` | 修改 Scene 目的、时长、Props 和资产 | V1 |
-| `inspect_scene` | 读取 Scene、Cue、质量状态 | V1 |
-| `browse_effect_types` | 查询 Presenter Effect 模板 | V1 |
-| `manage_effect_cues` | 批量创建、修改、删除 EffectCue | V1 |
-| `manage_cutaways` | 管理全屏 UI、B-roll、梗图和解释段 | V1 |
-| `manage_visual_treatment` | 管理 Attention Curve 和整片效果计划 | V1 |
-| `inspect_spatial_anchors` | 读取人物空间、安全区和遮挡信息 | V1 |
-| `preview_scene` | 预览单个 Scene | V1 |
+| 旧设计名称 / 工具 | 设计职责或当前受限作用 | 历史阶段 | 当前入口 |
+|---|---|---|---|
+| `browse_scene_types` | 查询可用 Scene Type 和能力 | V1 | 已注册，参数以实时 Schema 为准 |
+| `create_scene` | 创建 Presenter/Explainer/Cutaway 等 Scene | V1 | 已注册，参数以实时 Schema 为准 |
+| `edit_scene` | 修改 Scene 目的、时长、Props 和资产 | V1 | 无通用同名入口；按对象使用编译工具、`replace_scene_asset` 或 `manage_effect_cues` |
+| `inspect_scene` | 读取 Scene、Cue、质量状态 | V1 | `read_project`；需要 UI 定位时用 `focus_editor_object` |
+| `browse_effect_types` | 查询 Presenter Effect 模板 | V1 | 已注册，参数以实时 Schema 为准 |
+| `manage_effect_cues` | 单次创建、修改或删除一个 EffectCue；update 不能改 Scene、type、layer | V1 | 已注册，参数以实时 Schema 为准 |
+| `manage_cutaways` | 管理全屏 UI、B-roll、梗图和解释段 | V1 | 已注册，参数以实时 Schema 为准 |
+| `manage_visual_treatment` | 管理 Attention Curve 和整片效果计划 | V1 | 已注册，参数以实时 Schema 为准 |
+| `inspect_spatial_anchors` | 读取人物空间、安全区和遮挡信息 | V1 | 读取 Scene/Actor 的已登记固定空间信息，无自动手势追踪接口 |
+| `preview_scene` | 预览单个 Scene | V1 | `render_preview_range` 指定 Scene 对应帧范围 |
 
 #### Timeline、字幕和音频
 
-| 工具 | 作用 | 阶段 |
-|---|---|---|
-| `preview_timeline` | 读取指定范围的结构和播放状态 | V1 |
-| `edit_track` | 创建、排序、锁定或禁用 Track | V1 |
-| `edit_item` | 原子修改 Item 的位置、时长和属性 | V1 |
-| `inspect_item` | 读取 Item 与 Scene、Asset、Anchor 关系 | V1 |
-| `split_item` | 明确物理切点；不用于逐词剪口播 | V1 |
-| `detach_audio` | 解除音画绑定 | 后续 |
-| `smooth_audio` | 平滑语音切口 | V1 |
-| `read_captions` | 读取 Caption Program | V1 |
-| `edit_captions` | 修改字幕内容、Card、样式和强调 | V1 |
-| `manage_audio` | 管理 Dialogue、BGM、SFX、Duck | V1 |
+| 旧设计名称 / 工具 | 设计职责或当前受限作用 | 历史阶段 | 当前入口 |
+|---|---|---|---|
+| `preview_timeline` | 读取指定范围的结构和播放状态 | V1 | 已注册，参数以实时 Schema 为准 |
+| `edit_track` | 创建、排序、锁定或禁用 Track | V1 | 未注册同名工具，保留为设计目标 |
+| `edit_item` | 原子修改 Item 的位置、时长和属性 | V1 | `move_item` 仅移动；原声范围用 `edit_presenter_source`，不是任意 Trim |
+| `inspect_item` | 读取 Item 与 Scene、Asset、Anchor 关系 | V1 | `read_project`；需要 UI 定位时用 `focus_editor_object` |
+| `split_item` | 明确物理切点；不用于逐词剪口播 | V1 | 未注册同名工具，保留为设计目标 |
+| `detach_audio` | 解除音画绑定 | 后续 | 未注册同名工具，保留为设计目标 |
+| `smooth_audio` | 平滑语音切口 | V1 | 无同名接口；`submit_dialogue_processing` 不等于任意剪口自动平滑 |
+| `read_captions` | 读取 Caption Program | V1 | 已注册，参数以实时 Schema 为准 |
+| `edit_captions` | 修改字幕内容、Card、样式和强调 | V1 | 已注册，参数以实时 Schema 为准 |
+| `manage_audio` | 管理 BGM、SFX 及其开放参数；Dialogue 由 SpeechAsset/主线流程管理 | V1 | 已注册，参数以实时 Schema 为准 |
 
 #### 声音、数字人与人物表演
 
-| 工具 | 作用 | 阶段 |
-|---|---|---|
-| `manage_voice_references` | 选择、读取和校验本地参考音频 Asset | V1 |
-| `submit_voice_synthesis` | 对变更的 SpeechSegments 批量调用 OmniVoice，并组装最终 SpeechAsset | V1 |
-| `read_speech_asset` | 读取 SegmentAsset、最终 SpeechAsset、Bridge run、时序和质量信息 | V1 |
-| `read_actor_capabilities` | 读取数字人 Provider 和人物能力 | V1 |
-| `submit_avatar_job` | 使用 SpeechAsset 提交数字人生成 | V1 |
-| `read_actor_performance` | 读取人物视频、Mask、SpeechTiming 和姿态 | V1 |
-| `manage_actor_performance` | 替换、局部重生成、绑定 Scene | V1 |
+| 旧设计名称 / 工具 | 设计职责或当前受限作用 | 历史阶段 | 当前入口 |
+|---|---|---|---|
+| `manage_voice_references` | 选择、读取和校验本地参考音频 Asset | V1 | 已注册，参数以实时 Schema 为准 |
+| `submit_voice_synthesis` | 对变更的 SpeechSegments 批量调用 OmniVoice，并组装最终 SpeechAsset | V1 | 已注册，参数以实时 Schema 为准 |
+| `read_speech_asset` | 读取 SegmentAsset、最终 SpeechAsset、Bridge run、时序和质量信息 | V1 | 已注册，参数以实时 Schema 为准 |
+| `read_actor_capabilities` | 读取数字人 Provider 和人物能力 | V1 | 已注册，参数以实时 Schema 为准 |
+| `submit_avatar_job` | 使用 SpeechAsset 提交数字人生成 | V1 | 已注册，参数以实时 Schema 为准 |
+| `read_actor_performance` | 读取人物视频、Mask、SpeechTiming 和姿态 | V1 | `read_actor_performances` |
+| `manage_actor_performance` | 替换、局部重生成、绑定 Scene | V1 | 已注册，参数以实时 Schema 为准 |
 
 #### Preview、Quality 与 Export
 
-| 工具 | 作用 | 阶段 |
-|---|---|---|
-| `preview_edit_transaction` | 写入前查看影响 | V1 |
-| `read_impact_report` | 读取重算、失效、冲突和 Dirty Range | V1 |
-| `render_preview_range` | 渲染局部范围 | V1 |
-| `inspect_composed_frames` | 读取进入、稳定、退出等关键帧 | V1 |
-| `read_quality_report` | 读取技术和创作质量问题 | V1 |
-| `record_editorial_review` | 记录绑定当前 Timeline / Sequence 与 Revision 的完整声画审片结果 | V1 |
-| `run_render_preflight` | 检查目标 Revision 引用的素材、字体、Mask、组件、权利和渲染依赖 | V1 |
-| `submit_export` | 固定 Timeline / Sequence 与 Revision，按 draft 或 delivery 用途提交导出 | V1 |
-| `track_export` | 跟踪导出、最终文件技术检查和 Artifact 状态 | V1 |
-| `read_export_artifact` | 读取最终文件、目标 Revision、技术验证、已知限制和批准状态 | V1 |
+| 旧设计名称 / 工具 | 设计职责或当前受限作用 | 历史阶段 | 当前入口 |
+|---|---|---|---|
+| `preview_edit_transaction` | 写入前查看影响 | V1 | 未注册；应用层内部校验/影响评估 |
+| `read_impact_report` | 读取重算、失效、冲突和 Dirty Range | V1 | 已注册，参数以实时 Schema 为准 |
+| `render_preview_range` | 渲染局部范围 | V1 | 已注册，参数以实时 Schema 为准 |
+| `inspect_composed_frames` | 读取进入、稳定、退出等关键帧 | V1 | 已注册，参数以实时 Schema 为准 |
+| `read_quality_report` | 读取技术和创作质量问题 | V1 | 已注册，参数以实时 Schema 为准 |
+| `record_editorial_review` | 记录绑定当前 Timeline / Sequence 与 Revision 的完整声画审片结果 | V1 | `record_editorial_quality_review` |
+| `run_render_preflight` | 检查目标 Revision 引用的素材、字体、Mask、组件、权利和渲染依赖 | V1 | 已注册，参数以实时 Schema 为准 |
+| `submit_export` | 固定 Timeline / Sequence 与 Revision，按 draft 或 delivery 用途提交导出 | V1 | 已注册，参数以实时 Schema 为准 |
+| `track_export` | 跟踪导出、最终文件技术检查和 Artifact 状态 | V1 | 已注册，参数以实时 Schema 为准 |
+| `read_export_artifact` | 读取最终文件、目标 Revision、技术验证、已知限制和批准状态 | V1 | 已注册，参数以实时 Schema 为准 |
+
+
+#### 已补充的实际入口
+
+| 能力 | 当前工具及边界 |
+|---|---|
+| 原创文稿与语义 | `apply_authored_script`、`apply_manual_transcript`、`apply_semantic_units`；文本候选、语义决定与原声物理剪辑分开 |
+| 原声剪辑与字幕 | `edit_presenter_source`、`generate_source_audio_captions`、`read_source_audio_alignment`、`apply_source_caption_program`；源范围和 Provider token 不得用估时替代 |
+| 最终语音字幕/对齐 | `generate_speech_captions`、`submit_speech_alignment`、`read_speech_alignment`；以当前 SpeechAsset 和真实输出为准 |
+| 受管动效作品 | `browse_motion_sources`、`inspect_motion_reference`、`submit_motion_work`、`read_motion_work`、`review_motion_work`；当前合同见 11.5，新合同见 28 章 |
+| 音效素材与事件 | `browse_sound_sources`；在线 Mixkit 沿 `manage_asset_requirements → search_media_candidates → inspect_media_candidate → acquire_media_asset` 获取；本地入口仍存在，正式放置用 `manage_audio`，失效见 13.6。候选元数据检查不等于音频理解；第 29 章新增能力尚属计划 |
+| 解释片/Vlog | `manage_narrative_map`、`compile_explainer_scenes`、`set_explainer_program_enabled`、`submit_vlog_analysis`、`manage_vlog_events`、`manage_vlog_shot_selects`、`compile_vlog_montage`；计划与审片由 Agent 负责 |
+| 音乐与多机位 | `submit_music_generation`、`submit_multicam_sync`、`create_manual_multicam_group`、`verify_multicam_group`、`read_multicam_plan`、`manage_multicam_cuts`、`compile_multicam_program`；不等于自动配乐/导播质量已验收 |
+| 生产记录与工作单 | `start_production_run`、`record_creative_decision`、`complete_production_run`、`read_skill_execution_report`；`read_agent_work_orders` 及 claim/release/complete 操作管理 Web 请求 |
+| 成片复核与批准 | `record_editorial_quality_review`、`record_export_artifact_review`、`approve_export_artifact`；分别绑定项目预览或具体 Artifact，见 21.4 |
+| 修复隔离 | `report_editing_blocker`、`list_repair_tickets`、claim/release/mark 系列、`read_runtime_release`、`acknowledge_repair_deployment`；按 19.4 的双任务边界操作 |
 
 ### 17.5 暂缓 MCP 能力
 
-第一版不实现或不优先：
+当前仍未开放的能力包括：
 
 - 股票素材搜索；
 - 通用网页浏览器；
 - 任意 Shader；
-- 自动音乐生成；
-- 多机位；
 - 视频翻译；
 - 数字人商城；
 - 任意代码型 MG；
 - 用户摩擦遥测工具。
 
 这些能力以后仍通过同一个 MCP 增加，不单独创建新 MCP 服务。
+
+音乐生成和有限多机位已实现，已移入 17.4。受管 TSX 动效也已实现，但不开放任意宿主代码、任意 Shader 或绕过沙箱的 MG 执行。
 
 ---
 
@@ -3241,8 +3348,8 @@ Provider 专用 API Key、页码、限流、下载 URL 和许可字段不直接�
 → 需要时调用 transcription / semantic-continuity，稳定 A-roll / Script 主线
 → 需要时调用 voice-production
    ├─ manage_voice_references
-   ├─ manage_speech_segments
-   ├─ 每个变更 Segment 直接调用 OmniVoice HTTP API
+   ├─ read_script 确认已编译 SpeechSegment
+   ├─ submit_voice_synthesis，由 Worker 调用 OmniVoice HTTP API
    ├─ 下载并校验 SegmentAsset
    └─ 组装 SpeechAsset + segment_exact SpeechTiming
 → 需要时调用 avatar-performance，生成或登记 ActorPerformance
@@ -3280,6 +3387,8 @@ Codex 调用 get_editor_url / focus_editor_object
 
 这条链路由 Codex 完成，不要求用户亲自操作 Web。
 
+以上仅适用于 Inspector 已开放的参数。ManagedMotion 的内部构图、TSX 或 Props 修改必须提交新作品版本并重新审阅，不能当作普通组件的任意拖拽编辑。
+
 ### 18.3 Script 删除一句话
 
 ```text
@@ -3291,12 +3400,14 @@ Codex 通过 apply_script 提交语义删改
 → ActorPerformance 标记局部或全部重生成
 → Caption 按新 SegmentTiming 重算
 → 绑定被删语义的 EffectCue 标记 stale
-→ 后续 Cue 按新段边界重新定位
-→ BGM 重算
+→ 检查后续 Cue、Cutaway、字幕与声音的 Impact/stale，按真实锚点重新编译或复核
+→ 显式复核 BGM 范围、音效事件与固定作品版本
 → ImpactReport
 → 只渲染受影响 Scene
 → Codex 检查预览并继续修正
 ```
+
+这条链用于需要重新生成语音的 Script 修改。已导入且使用原声音轨的人物视频，应通过 `edit_presenter_source` 提交有序、不重叠的源帧 keep_ranges，同步重排原音画；`apply_script` 本身不执行物理原声剪辑。切穿字幕卡时应先按真实 token 重分屏；锁轨、未终态 Job 或不兼容的独立 Dialogue 会拒绝剪辑。受影响包装进入 stale 后需复核，不产生隐式生成 Job，也不宣称多 Beat 固定作品已自动适配。
 
 ### 18.4 MCP 与 Browser Operator 的 Revision 冲突
 
@@ -3304,7 +3415,7 @@ Codex 通过 apply_script 提交语义删改
 MCP 基于 Revision 12 提交修改
 但 Browser Operator 已经通过 Web 更新到 Revision 13
 → 后端拒绝陈旧写入
-→ Codex read_project / inspect_scene
+→ Codex read_project，定位受影响 Scene
 → 重新判断
 → 基于 Revision 13 提交
 ```
@@ -3315,19 +3426,19 @@ MCP 基于 Revision 12 提交修改
 
 ```text
 主要视频工作流读取 Story、NarrativeBeat 和 Visual Treatment
-→ read_asset_coverage
+→ read_project / read_quality_report 检查素材需求与缺口
 → 为缺口调用 manage_asset_requirements
 → 调用 visual-asset-sourcing 生成查询计划
 → search_media_candidates
-→ list_asset_candidates / inspect_media_candidate
+→ read_project 中的候选集合 / inspect_media_candidate
 → Codex 比较语义、动作、构图、情绪、来源和 rightsStatus
 → acquire_media_asset
 → track_job
 → read_asset_provenance
-→ replace_scene_asset 或 create_scene(CutawayScene)
+→ manage_cutaways 放置，或 replace_scene_asset 替换现有绑定
 → render_preview_range
 → inspect_composed_frames / read_quality_report
-→ 不合适则更换候选、改用 Remotion 或 generate_media_asset
+→ 不合适则更换候选、改用 Registry/submit_motion_work 或 submit_video_generation
 → 通过后关闭 AssetRequest，并生成新 Revision
 ```
 
@@ -3383,6 +3494,10 @@ MCP 基于 Revision 12 提交修改
 
 采用模块化单体和独立 Job Worker。业务领域、Web、MCP、Asset Acquisition、ComfyUI Bridge HTTP Client 和 Remotion 在同一仓库维护；媒体算法、外部 Provider 查询、候选下载、外部工作流轮询和渲染使用后台任务执行。
 
+**当前物理目录**：`apps/` 实际包含 `web`、`server`、`job-worker`、`render-worker`、`runtime`；`packages/` 实际包含 `contracts`、`edit-domain`、`edit-application`、`project-overview`、`asset-acquisition`、`motion-work`、`remotion-runtime`、`comfyui-bridge-client`、`speech-services`、`job-runtime`、`quality-system`。MCP 在 `apps/server`，故事/场景编译在现有领域与应用层，受管动效合同在 `packages/motion-work`。没有独立的 `story-engine`、`scene-engine`、`mcp-tools`、`avatar-integrations`、`creative-library` 或常驻 `media-worker-python` 包。
+
+下图保留早期逻辑拆分草图，不能当作当前路径清单或新增这些包的要求。实际文档位置见 2.1；目录内不存在的 Provider/算法模块仍是目标。
+
 ```text
 AGENTS.md
 
@@ -3437,12 +3552,12 @@ FunASRService、OmniVoiceSegmentService、SpeechAssembler、Asset Provider、Pyt
 
 ### 19.2 运行方式
 
-第一阶段默认在 Windows 本机运行：
+当前默认在 Windows 本机运行；以下为运行职责，具体由现有 Node Runtime/Worker、FFmpeg 子进程和外部 Bridge 承担：
 
 - Node Server；
 - Web 应用；
 - Job Worker；
-- Python Media Worker；
+- 媒体处理由现有 Worker 调用 FFmpeg 等工具；Python 模型服务通过外部 Provider/Bridge 接入，无独立常驻 Python Media Worker；
 - Remotion Render Worker；
 - SQLite；
 - 本地文件系统；
@@ -3481,9 +3596,19 @@ workspace/
 
 项目索引、Revision、Job、VoiceReference、SpeechSegment、SpeechTiming、Bridge run、AssetRequest、SearchIntent、AssetCandidate 和 AssetProvenance 状态进入 SQLite；媒体文件、候选预览、来源清单和渲染产物保存在项目目录。
 
+### 19.4 剪辑任务、修复任务与候选 Runtime
+
+剪辑任务只调用已发布 MCP 能力；遇到平台阻断通过 `report_editing_blocker` 创建独立 RepairTicket，停止受阻步骤。修复任务处理平台源码、回归测试、候选构建和部署，不能代替剪辑任务修改正式 Project、素材、Timeline、Job 或 ExportArtifact。RepairTicket 存于 SQLite 的 `repair_tickets` 独立表，不进入 ProjectSnapshot、视频 Revision 或 AgentWorkOrder。
+
+正式 Runtime A 持续服务剪辑；候选 Runtime B 必须使用独立端口、独立工作区和自己的 `app.sqlite`，不能争抢生产 Worker 队列。候选运行器检查端口/工作区隔离；默认生产 3100 与 Bridge 8188 不能被候选占用。发布产物只在 `plugins/videoflowcut/runtime/dist/` 构建，不手改 Codex 插件缓存。
+
+候选验证完成后才切换 Runtime/MCP，核对一致的 `releaseId` 和 API、媒体 Worker、渲染 Worker 健康。原剪辑任务重新连接 MCP、读当前 Revision，再调用 `acknowledge_repair_deployment` 后继续；旧 MCP 会话不能确认新版。源码或发行文件存在不等于已经切换成功。
+
 ## 20. Job System
 
-异步任务类型：
+当前 JobKind 包括 `media_analysis`、`vlog_analysis`、`multicam_sync`、`asset_acquisition`、`transcription`、`source_caption_alignment`、`voice_synthesis`、`dialogue_processing`、`speech_alignment`、`music_generation`、`video_generation`、`motion_generation`、`avatar_generation`、`speech_assembly`、`preview`、`render_preflight`、`export`。`source_caption_generation` 和 `source_caption_sentence_alignment` 仅为历史兼容枚举，旧路径不再新执行。
+
+下列保留为后台处理职责清单；不代表各项都有独立 JobKind。素材搜索、来源登记、证据登记、审片和用户批准不应统称为 Job：
 
 - 上传和媒体导入；
 - 代理和分析；
@@ -3522,7 +3647,7 @@ cancelled
 - 重试策略；
 - 结果未知后的对账；
 - Bridge 409 后刷新 workflow detail；
-- ComfyUI 重启导致 run_id 丢失时的重提交流程；
+- ComfyUI 重启导致 Run ID 丢失时先对账并报告阻断，不自动重提可能已经执行的创建；仅明确收到创建 409 时允许刷新 Schema 后有限重试一次；
 - Provider 级限流、缓存、退避、熔断和健康状态；
 - Candidate 下载 URL 过期后的元数据刷新；
 - 成功输出立即下载并注册本地 Asset；
@@ -3622,12 +3747,16 @@ cancelled
 
 ### 21.4 Quality Gate
 
-导出前阻塞条件：
+`draft` 仍须通过适用技术与权利门禁；感知审阅不足等问题可保留为待审草稿。`delivery` 提交前必须有当前 Revision 的完整预览审阅，并通过全部适用质量门禁。受管作品的 `inconclusive` 可进入放置和技术合格的草稿，但不能据此正式交付。
+
+上述是创作执行顺序；当前 `submit_export` 本身登记 Job，强制质量门禁由 Export Worker 在实际渲染前按目标 Revision 和 purpose 执行。获得 Job ID 不表示门禁已经通过。
+
+以下问题按用途和实际门禁分类处理，不能把所有建议都视为草稿技术失败：
 
 - 严重语义不完整；
 - 素材缺失；
 - 正式 Scene 仍引用远程临时 URL；
-- 外部素材 rightsStatus 为 unknown、blocked 或 reference_only；
+- 被使用的外部素材 rightsStatus 为 `unknown`、`restricted` 或 `rejected`；`attribution_required` 必须满足署名要求；参考用途不作为权利枚举；
 - 必需的 AttributionManifest 缺失；
 - 证据使用生成或来源无法核对；
 - 主体遮挡；
@@ -3637,14 +3766,21 @@ cancelled
 - 音频缺失；
 - 技术渲染失败；
 - 目标 Revision 的必要 Asset 未通过 Render Preflight；
-- 正式 `delivery` 导出缺少最终文件技术校验；
-- 正式 `delivery` 导出缺少绑定当前 Artifact 的完整声画审片记录。
+- 正式 `delivery` 提交前缺少当前 Revision 的必要预览审阅或仍有阻塞问题。
+
+当前交付顺序为：**当前 Revision 完整 Preview 的五轮审阅 → delivery 导出 → Artifact 技术检查 → 实际 delivery 文件的五轮复核 → 用户批准该 Artifact**。最终文件的技术检查和 Artifact 审阅发生在导出之后，不能作为尚不存在文件的导出前置。Worker 检查文件探测、解码、时长、音轨、黑帧和哈希；技术通过不代替观看。
+
+五轮为 `audio_only`、`mute_visual`、`audiovisual`、`first_viewer`、`mode_specific`。登记观察时验证成功的本项目、本 Revision Preview、帧范围、受管媒体路径、哈希、时长和必要音轨；静态帧不能代替连续运动或听觉证据。首次观众轮需要一份覆盖整片的连续声画证据，不能拼凑局部预览。单件 `review_motion_work` 当前只保存参考对照结果和说明，不能代替这些成片证据。
+
+`record_editorial_quality_review` 按 Run 保存审阅，不修改视频 Revision；旧问题跨 Run/Revision 保留，提交空 findings 不会清空旧问题，关闭必须通过 resolutions 引用新复核证据。Artifact 复核与批准也不新建视频 Revision。正式生产收口会读取适用报告和证据，因此“报告不参与画面编译”不等于“缺报告也可正式交付”。
 
 建议级问题由 Codex 汇总给用户，用户可以接受或要求继续修改。用户批准必须绑定具体 Timeline / Sequence、Revision 和 ExportArtifact，不能只记录“当前项目已批准”。
 
 ---
 
 ## 22. 开发阶段
+
+本章阶段 0–5 是历史路线与验收目标，保留用于追溯，不作为当前待开发清单或通过报告。现有代码已覆盖语音/原声字幕、Avatar 的有限能力、Explainer/Vlog、受管 Remotion、可选强制对齐、音乐生成、多机位和 Web 工作单；具体限制见第 6–21 章。任意 Shader、复杂 3D、统一 Creative Library、多 Sequence 等仍未按此路线完整实现。本轮仅对齐文档，未重新执行任何阶段验收。
 
 ### 阶段 0：工程基线
 
@@ -3751,7 +3887,7 @@ cancelled
 - `loadedSkills`、SkillExecutionReport 或文件存在只能作为审计证据，不能代替实际项目对象、Preview 和 Editorial Review；
 - Codex 能通过 Skills + MCP 生成和修改；
 - Codex 能通过 Browser Operator 使用 Web 的素材、文字稿、Scene、Preview、Inspector 和 Timeline；
-- FunASR 和 OmniVoice 均通过 `docs/asr接入.md` 定义的 HTTP 流程直接运行；
+- FunASR 和 OmniVoice 均通过 `docs/comfyui模型接入.md` 定义的 HTTP 流程直接运行；
 - 每次 Run 都动态读取最新 schemaVersion 和公开字段；
 - 409、failed、输出缺失和 run_id 丢失都有可诊断处理；
 - VoiceReference 不被误建模为远端 Voice ID；
@@ -3844,6 +3980,8 @@ cancelled
 
 ## 23. 测试策略与固定素材基线
 
+本章区分固定测试覆盖与真实创作选择。用于覆盖 Registry、外部素材和降级分支的样本约束，不要求普通成片集齐全部效果或强行插入两条 B-roll。本文列的是验收要求与已有测试入口，不是本轮执行结果。
+
 测试分为可重复的自动化测试和允许联网的人工端到端测试。CI、回归测试和 Golden Test 禁止依赖实时网页搜索、临时 CDN、每次重新生成的 AI 视频或不固定的第三方返回结果；运行时产品可以联网寻找素材，但测试必须冻结输入和期望结果。
 
 ### 23.1 测试素材目录
@@ -3934,7 +4072,7 @@ docs/references/<reference-name>/
 └─ frame-samples/               仅用于内部分析的关键帧
 ```
 
-项目根据拆解结果重新实现 Remotion Scene、Effect Registry 和 StylePack。Golden Test 比较的是本项目重建场景的固定帧，不把原参考视频画面复制到最终成片中。若参考视频仅用于内部研究，必须标记 `reference_only`，不能被 Asset Resolver 自动选入正式 Timeline。
+项目根据拆解结果重新实现 Remotion Scene、Effect Registry 和 StylePack。Golden Test 比较的是本项目重建场景的固定帧，不把原参考视频画面复制到最终成片中。仅用于研究的参考素材登记相应用途（如 `style_reference`）及真实权利，不使用不存在的 `reference_only` 权利枚举；参考用途不构成使用授权，也不应因文件可用自动选入正式 Timeline。
 
 ### 23.4 视觉解释片固定测试包
 
@@ -3982,7 +4120,7 @@ Vlog 验收重点：故事清楚、镜头不重复、环境声自然、音乐不
 - 测试 AssetRequest → SearchIntent → AssetCandidate → Acquire → AssetProvenance → Scene；
 - 验证联系表、短预览、硬过滤、软评分和候选去重；
 - 模拟无结果、限流、来源不明、rightsStatus 阻塞、下载 URL 过期、HTML 错误页伪装、文件损坏、重复文件和时长不足；
-- 验证 unknown / blocked / reference_only 无法进入导出 Revision；
+- 验证被使用的外部素材为 unknown / restricted / rejected 时阻止受影响导出，attribution_required 必须有有效署名；参考用途单独验证，不作为权利枚举；
 - 验证 AttributionManifest；
 - 禁止访问真实网络。
 
@@ -4055,7 +4193,7 @@ Vlog 验收重点：故事清楚、镜头不重复、环境声自然、音乐不
 - FunASRService、OmniVoiceSegmentService 与 SpeechAssembler；
 - SegmentTiming、局部重生成和拼接偏移；
 - Avatar Integration；
-- Project/Creative/Pexels/Pixabay/WebEvidence/MiniMax/Mock Provider Contract；
+- 当前 Wikimedia/Mixkit、按配置启用的 Pexels、Mock Provider Contract；MiniMax 按独立视频生成 Job 验证，尚未实现的 Provider 保留为后续接入测试；
 - Provider 缓存、限流、候选刷新和错误归一化；
 - Asset 下载、MIME、文件头、哈希、ffprobe、本地化和 Provenance；
 - AttributionManifest 与 Export Gate；
@@ -4117,7 +4255,7 @@ Vlog 验收重点：故事清楚、镜头不重复、环境声自然、音乐不
 - 只调整字幕、声音、B-roll 或单个 Remotion Scene 时，可以直接进入对应专项 Skill；
 - 混合视频必须只有一个主要工作流，第二工作流只在对应 Scene 范围参与；
 - 主工作流引用的专项 Skill、Reference 和 MCP 工具必须真实存在；
-- `.codex/config.toml` 中登记全部 Skill 不得被测试解释为一次任务必须全部加载。
+- 插件发现全部 Skill 不得被测试解释为一次任务必须全部加载；当前仓库没有 `.codex/config.toml`。
 
 #### 专项交接测试
 
@@ -4137,7 +4275,7 @@ Vlog 验收重点：故事清楚、镜头不重复、环境声自然、音乐不
 - Visual Treatment 完成后，Remotion 与素材获取不会各自重新猜一次视觉策略；
 - B-roll 搜索完成后，`cutaway-planning` 仍负责是否使用、时长和返回人物；
 - `quality-verification` 的问题能返回正确负责人；
-- `SkillExecutionReport` 缺失时项目仍可编译、预览和导出；
+- `SkillExecutionReport` 不参与画面编译；缺失不改变画面，但正式收口/交付仍需适用审阅报告和证据，不能据此推导 delivery 自动通过；
 - 只有 `loadedSkills` 而没有上述交接结果时，测试必须失败。
 
 #### 真实视频路由验收
@@ -4170,6 +4308,8 @@ Vlog 验收重点：故事清楚、镜头不重复、环境声自然、音乐不
 - 文件可播放代替“剪得好”。
 
 阶段 1 的 Presenter 样本至少保留一份完整 `ExportArtifact + Editorial Review`；后续 Explainer 和 Vlog 也使用同一证据矩阵。
+
+当前回归入口包括 `tests/managed-motion.test.ts`、`tests/managed-motion-render.test.ts`、`tests/motion-cue-repair.test.ts`、`tests/source-caption-worker.test.ts`、`tests/speech-caption-worker.test.ts`、`tests/speech-alignment-stage5.test.ts`、`tests/editorial-review-loop.test.ts`、`tests/repair-coordination.test.ts`、`tests/candidate-runtime.test.ts` 和 `tests/skills-v5-integration.test.ts`。这些文件存在只说明验证入口已建立；本轮没有运行它们，也没有使用正式视频项目完成验收。
 
 ---
 
@@ -4219,8 +4359,8 @@ Visual Director 读取 Capability 后，只选择兼容效果。不能假设所�
 - 所有远程结果先成为 AssetCandidate；
 - 查询响应、候选元数据和许可说明保存快照；
 - 正式使用素材必须下载到本地并计算哈希；
-- Provider 规则集中在 Adapter 和 `docs/asset-sourcing/`，不散落到业务代码；
-- unknown、blocked、reference_only 不能进入可导出 Revision；
+- 当前 Provider 规则集中在 Adapter；没有 `docs/asset-sourcing/` 目录，不将假定文档路径作为前置；
+- 被使用外部素材的 unknown、restricted、rejected 状态阻止受影响导出，参考用途和权利状态分别登记；
 - 无法确认来源时降级为用户确认、其它开放来源、Remotion 解释场景或带生成标记的 MiniMax 资产；
 - 已使用素材的权利状态变化时保留历史 Revision，但阻止新的受影响导出并提示替换；
 - 定期复核 Provider 官方文档、限流和许可要求。
@@ -4237,9 +4377,9 @@ Timeline、字幕和 EffectCue 已读回，只能证明可编辑状态。局部�
 
 字幕、MG、B-roll、SFX、BGM 和绝对时间效果具有不同锚点。通过 ImpactReport 的“重算、保持、stale、复核”策略处理，禁止统一 ripple，也禁止悄悄保留已失去语义关系的包装。
 
-#### 当前 API 没有词级时间
+#### 当前任务缺少真实词级时间
 
-FunASR 只返回文本，OmniVoice 只返回音频。第一版通过 SpeechSegment 分段生成和真实音频时长建立 `segment_exact` 时序，并在 Web 预览中微调需要更精确的效果。不得用按字数平均分配的方式伪造 WordTiming。未来只有在真实时间戳能力接入后，才开启逐词高亮和严格句中卡点。
+普通全文转写只提供文本，OmniVoice 生成音频；SpeechAsset 通过真实段时长得到 `segment_exact`。当前另有 Provider 字幕 token 和可选强制对齐，只有对应任务的真实输出通过校验时才使用相应精度。无证据时保留段级设计和预览微调，不按字数均分伪造 WordTiming，也不把字幕源 token 自动等同于 word_exact。
 
 #### 分段 TTS 的连贯性
 
@@ -4270,12 +4410,14 @@ Remotion、数字人 Provider 和生成模型在正式商业发布前必须完�
 15. ChatCut 调研中的实测、合同、推断和未验证结论必须保留证据等级，不把解释性抽象直接复制成领域对象；
 16. 完整视频生产必须只有一个主要工作流负责人，不能由多个平级专项 Skill 临时相加后无人收口；
 17. 专项 Skill 必须声明输入、输出、下游失效和验证证据，完成后结果回到主要工作流；
-18. `.codex/config.toml` 中登记 Skill 只代表可发现，不能把“全部登记”实现成“每次全部加载”；
+18. 插件 Skill 发现配置（如另有 `.codex/config.toml`，同样适用）只代表可发现，不能把“全部登记”实现成“每次全部加载”；
 19. 新增或重写 Skill 时优先补完整生产手册和交接关系，不以文件数量、标题数量或关键词覆盖率作为完成标准。
 
 ---
 
 ## 26. 第一版完成定义
+
+本章保留第一版产品目标，结合第 6–21 章当前实现边界阅读；其中未实现的界面、素材库和多版本能力仍是目标，不能据此报告本轮验收通过。新增原创动效不纳入已有第一版通过范围，见第 28 章。
 
 第一版不是“能导出视频”，而是必须完成以下闭环：
 
@@ -4290,26 +4432,26 @@ Remotion、数字人 Provider 和生成模型在正式商业发布前必须完�
 → production-director 选择 presenter-motion-director 作为主要工作流
 → presenter-motion-director 按阶段调用专项 Skills，并规划 Story、AttentionCurve、视觉、字幕和声音
 → 为现实 B-roll、证据和说明画面创建 AssetRequest
-→ 自动查询项目素材、Creative Library、Pexels/Pixabay 和 Web Evidence
+→ 查询项目素材及当前配置的受控 Provider；证据按现有素材登记能力处理
 → Codex 复核 Candidate，下载并注册本地 Asset；无结果时按策略使用 Remotion 或 MiniMax
 → 通过 MCP 创建 PresenterScene、EffectCue 和 Cutaway
 → Remotion 在 ChatCut 式 Web 工作台中真实预览
 → Codex 通过 MCP 或 Browser Operator 修改
-→ 每次修改产生 Revision 和 ImpactReport
+→ 创作状态修改产生 Revision 和 ImpactReport；Job/审阅记录按各自合同保存
 → Quality System 检查语义、语音、动效、遮挡、字幕和节奏
 → 局部修改并重新预览
 → 对指定 Revision 运行 Render Preflight
 → 导出指定 Timeline / Sequence 与 Revision
 → 读取实际 ExportArtifact，完成时长、音轨、解码和黑帧检查
 → 完整播放和试听，记录绑定该 Artifact 的 Editorial Review
-→ 批准后仍可继续创建新 Revision 或平行版本
+→ 批准后仍可继续创建新 Revision；平行 Sequence 保留为未实现目标
 ```
 
 同时满足：
 
 - Web、Codex 和 MCP 操作同一个项目；
 - 完整人物口播由一个 `presenter-motion-director` 主工作流从主线负责到交付，专项 Skills 有明确交接，不再依赖多个平级小 Skill 临时拼装；
-- FunASR 和 OmniVoice 只通过 `docs/asr接入.md` 定义的 Bridge HTTP API 调用；
+- FunASR 和 OmniVoice 只通过 `docs/comfyui模型接入.md` 定义的 Bridge HTTP API 调用；
 - 不存在伪造的远端 Voice Profile、隐含的词级时间或默认对齐服务；
 - 人物前景、后景、Cutaway 和字幕关系正确；
 - 动效由语义和 SpeechSegment 边界触发；
@@ -4318,11 +4460,13 @@ Remotion、数字人 Provider 和生成模型在正式商业发布前必须完�
 - 外部素材具有 AssetRequest、Candidate、rightsStatus、Provenance 和 AttributionManifest 闭环；
 - Web 具备素材库、候选搜索、来源/许可、文字稿、Scene、预览、Inspector、Timeline、Jobs/QC/Revision 完整工作区；
 - 不是模板贴纸集合，也不是无关 Stock 拼接；
-- 后续可无破坏地增加 word_exact、ExplainerScene 和 VlogMontageScene；
-- 同一个 Project 可以安全保留长版、短版或横竖版等平行 Timeline，而不会混入同一条 Revision 历史；
+- 已有可选强制对齐、ExplainerScene 和 VlogMontageScene，按真实能力和证据使用；
+- 后续平行 Timeline 需独立实现，当前不把一条项目 Revision 历史当成长短版同时保留；
 - 项目结构、局部预览、最终 Artifact 和完整声画审片四级证据可分别读回。
 
 ## 27. 最终架构摘要
+
+本章概括原架构职责，不是已发布能力逐项清单；素材 Provider、语音分支、界面、版本及交付顺序以本次修订的对应章节为准。
 
 项目核心链路是：
 
@@ -4406,4 +4550,165 @@ V6.2 相对 V6.1 只调整 Skills 编排：
 
 项目第一优先级应是：
 
-> 先把“FunASR 直接 HTTP 文本转写 + OmniVoice 直接 HTTP 分段语音合成 + SpeechAsset 段级时序 + 数字人口播 + 人物前后景动效 + 自动联网搜索和本地化 B-roll + Remotion/MiniMax 降级 + 全屏解释场景 + 稳定字幕 + Codex 自动操作 ChatCut 式 Web/MCP”做成高质量完整闭环，再扩展真实词级时间、完整视觉解释片和 Vlog。
+> 历史第一优先级是建立人物口播完整闭环。当前已扩展可选强制对齐、视觉解释片与 Vlog 的有限实现；后续优化以真实使用缺口和相应验收为依据，不再把这些已有能力整体列为未来。
+
+## 28. 连续原创动效：待评审需求与旧规则替代关系
+
+### 28.1 状态与范围
+
+本章将用户此次提出的动效优化纳入产品文档，供阅读确认；**方案尚未实现，本轮仅改文档，用户审阅后另行授权开发**。第 6–21 章记录的是现有代码行为，本章是未来变更；不能因为拟定了字段，就在当前 MCP 提交它们。完整创作方法、逐文件修改、兼容合同、案例与验收保留在[完整开发方案](VideoFlowCut_动效案例阅读包/完整开发方案.md)，本章只说明它将替代什么。
+
+目标是让用户只提供内容、素材和普通剪辑要求时，人物口播与视觉解说两条主流程能主动构思、制作、合成和审阅适合内容的连续原创动效。已有视频沿用原声音画；主导演仍负责事实、主线与整片节奏，Remotion 专项负责段内具体视觉设计。一个段落可保持人物、实拍或简单字幕，不强制每个 Beat 生成作品。
+
+### 28.2 替代关系
+
+| 当前规则或缺口 | 拟更新规则 | 替代/补充位置 | 继续保留的边界 |
+|---|---|---|---|
+| 受管作品 `reference` 必填，来源限定四站 | 新建作品必须有 `creativeBrief`，`reference` 可选；没有用户参考、没有访问四站也可正常原创 | 11.5、16.7；完整方案 7.2–7.4 | 四站工具保留为可选研究；不扩大抓取范围；作品仍受管执行 |
+| 作品审阅只保存 `referenceMatch` 和 note | 使用中性 `outcome`、具体作品版本和实际 `evidence`，判断设计兑现与实际效果；有参考时补充对照 | 11.5、17.4、21.4；完整方案 7.5 | `inconclusive` 可待审合成、不可交付；技术成功不能自动 passed；成片五轮和用户批准继续有效 |
+| Scene 可关联多个 Beat，但 Cue 对账主要只认一个锚点 | Cue 增加 `coveredNarrativeBeatIds`，明确本次放置兑现哪些 Beat；`semanticAnchor` 继续只负责定位 | 6.12、13.5–13.6；完整方案 7.6 | 仍是一个宿主 Scene 内的固定作品；范围相交不证明语义兑现；不自动覆盖宿主全部 Beat |
+| 部分主线变更路径可能通过 fit 调时长并恢复 ready，非主锚点覆盖关系缺失 | 覆盖 Beat 删除、含义/内部时间/归属变化均传播 stale；纯平移可复用，缩放时长/内部重排不能静默裁切并恢复 | 13、18.3；完整方案 7.6 | 固定作品不变速、不自动拉长；换版后重审，旧音效事件按现有规则失效 |
+| 原导演/视觉计划容易在逐 Beat 交接时提前固定组件或卡片 | 主导演交接完整表达段的内容目标、事实、素材、真实时序、人物/字幕与前后边界；专项自主设计构图、对象、动作和衔接 | 8、9、16.5–16.7；完整方案 2–6 | 只有一个主要工作流，不增加导演服务；不擅改事实、旁白和用户已确认内容 |
+| Registry 复用与四站参考是现有主要入口，案例未进入运行时 | 原创受管作品成为正常路径，Registry 仍按需复用；拟加入总案例 Skill 和四个案例 Skill | 16、23；完整方案 6、9 | 源码仍唯一在 `.agents/skills/`，通过同步发布镜像；案例不是四个固定模板 |
+| 固定帧、覆盖检查和技术测试不足以判断美观与连续 | 代表段、人物/解说两类完整成片、换题复验及六组十二段对照，保存实际观察与修订 | 21、23；完整方案 8 | 不以自动审美分、关键词、渲染成功或四段无声教学视频代替成片质量 |
+
+### 28.3 兼容与实现约束
+
+新字段读取时允许历史缺省；新建作品入口再校验真实创作说明。旧 Job、幂等命中、源码快照和缓存验证沿用原输入，不补默认值、不调整旧字段次序、不随意更换引擎版本，避免改变旧作品哈希。旧 `referenceMatch` 通过统一读取兼容历史记录，新版本不能继承旧作品审阅。
+
+新作品 passed 必须关联覆盖完整动态过程的有效观察；缺证据或只有静帧时为 inconclusive。无音轨作品代理不能登记为已听声音，声画审阅使用真实带音轨合成 Preview。服务端只验证身份、版本、媒体、范围和状态，不能据此证明审阅者理解了画面或审美合格。
+
+继续使用现有 Job → 固定 Asset → 审阅 → Cue → Preview/Export 链路，不新增跨 Scene Cue、独立设计数据库、另一套渲染服务或运行时 Skills 树。保持已有图片绑定、透明帧、层序、像素帧预算和资源限制；视频与声音通过正常素材/合成链路承担，不能在受管作品内偷偷开放任意资源类型。未来实施须同步相关源码、Skills、配置引用和测试，并遵守 19.4 的候选隔离与发布规则。
+
+### 28.4 文档评审与后续验收
+
+先阅读完整方案的第 2–5 章（正常剪辑怎样改变）、第 7 章（合同、兼容和失效）、第 8 章（如何判断有效），再按需观看第 9 章案例。阅读包的总 Skill、四个案例 Skill、源码、Fixture 和无声视频仍是待审材料；当前运行时仍为 24 个 Skill，五份案例接入后才可能变为 29 个，本轮没有安装或修改运行时 Skill。
+
+后续获准开发时，人物口播与视觉解说分别保存代表段、完整成片和换题复验证据；案例教学价值用六个新任务、旧/新流程各一版形成六组十二段对照。完整方案提出的偏好门槛是待评审验收标准，不是本轮成绩，也不保证所有未来作品有效。本轮只做代码/文档核对、引用和差异检查，没有重渲染案例、运行视频验收或部署 Runtime。
+
+2026-09-08 声音方案与本章共同评审：原视觉方案继续保留，声音设计前置、在线选材、作品事件表和混音验收见下一章及配套详细方案。原案例素材保持无声，不把文档更新写成声音已接入或整片已通过。
+
+## 29. 在线声音链路：待评审优化方案
+
+### 29.1 范围和状态
+
+本章承接用户“本地音效很少，本期优先在线查找，并完整说明怎样开发”的决定。详细创作流程、HTTP 合同、数据、代码落点、失败处理与验收统一保存在[音效链路优化开发方案](VideoFlowCut_动效案例阅读包/音效链路优化开发方案.md)，此处只登记架构关系与旧规则调整。
+
+本次仅把方案写入 docs，供整体阅读。新增 Skill、模型纯音频输入、候选分析工具、MotionEventMap、持续音效和混音扩展均不能当成已发布能力；不修改源码、运行时 Skills、外部服务、正式视频项目或部署。
+
+### 29.2 最终调用链与职责
+
+```text
+主要视频工作流：段落内容、旁白表演与 SoundPlan
+→ 声音选材 Skill：结构化需求、在线查询和候选推荐
+→ Provider：实际搜索、预览与原文件获取
+→ 公共素材理解模块：源身份、范围、分析任务、观察与用途复核
+→ ComfyUI Bridge HTTP：Qwen 文本排序、MiniCPM 实际音频/声画观察
+→ Worker：原文件核验、声学锚点、必要派生处理
+→ Application：当前作品事件表、声音采用、AudioCue 与失效传播
+→ Renderer：独立声音轨、音乐编排、角色混音与统一预览/导出
+→ 音频技术检查、真实连续声画及最终 Artifact 审阅
+```
+
+Skill 负责专业判断，Provider 提供受控获取，模型提供可追溯观察，Application 持有正式状态。VideoCut 仅使用已部署外部 HTTP，不启动 MiniCPM/Qwen 子进程或读取模型目录；复用现有 ComfyUIBridgeClient 的动态 Schema、multipart、run 轮询与失败语义。
+
+现有 MiniCPM 工作流输入为视频；纯音频工作流或 file_audio 需要外部服务补齐。Qwen3-Embedding 只编码文字，1024 维向量用于本次有限候选排序，不直接理解音轨。视频短窗携带必要上下文，但观察必须标明实际输入、覆盖范围和不确定项。
+
+### 29.3 旧规则与拟变更
+
+| 当前规则或缺口 | 本期拟更新规则 | 影响位置 |
+|---|---|---|
+| 用户本地音效包优先，在线来源只是补充入口 | 在线来源优先，同项目已采用文件可复用；不先下载或索引全站 | 12.8、16.8；声音方案 4、7 |
+| 来源目录有多个网站，真正获取仅 Mixkit 六类音效 | 扩展 Mixkit 分类、单独接音乐、按实际条件启用 Freesound；每个来源报告真实能力 | 12.8.2、17.4；声音方案 4、11 |
+| 候选主要看元数据，模型尚未接入该链路 | 硬过滤、Qwen 排序、少量真实音频分析、原文件复核和上下文比较 | 12.8、17、20；声音方案 6–7 |
+| 声音主要在主线稳定后收尾 | 制作最终旁白和动效前共同确定段落声音；实际放置仍依赖真实时长 | 8–9、13.6、16.8；声音方案 5 |
+| 自由事件名和局部帧绑定，主要针对单点 SFX | MotionEventMap 与画面共用时序；点/范围事件、源攻击和尾音分别处理 | 6.12、13.6；声音方案 8–9 |
+| Duck 主要识别 Dialogue 轨道范围 | 显式声音角色、主导区间、包络与短停顿保持；内容演示可有明确例外 | 16.8、17.4；声音方案 10 |
+| 每轮搜索候选进入创作 Revision | 查询、试听和分析放操作数据；正式计划、采纳、Asset 与 Cue 变化进入 Revision | 14、19–20；声音方案 7.3 |
+| 播放控件、结构或导出成功容易替代听感判断 | 同上下文对比、实际音轨证据、完整音频解码与最终混音检查 | 15、21、23；声音方案 10–14 |
+
+### 29.4 数据与工程边界
+
+新增 SoundPlan 保存段落声音意图；MotionEventMap 保存当前作品解析出的时序；原 AudioObservation 设想统一为第 30 章公共 MediaObservation 的音频部分，保留攻击/尾音等专门内容；AudioCue 扩展为最终采用及编排。它们不复制 Script/Scene 状态、不替代动效 creativeBrief，也不新增独立声音事实库、设计数据库或完整音频工作站。
+
+在线元数据、有限试听缓存、项目原文件分别管理。选中的文件及派生版本保留来源、许可和哈希；渲染不直接依赖远程热链。搜索候选正式采纳时验证当前需求和 Revision，沿现有应用层事务进入受管素材链。
+
+历史对象允许缺省，不补造事件或已听审状态。当前平移跟随和失效规则保留为基线；新作品时序、旁白或源文件变化后重新绑定、计算和审阅。预览与导出使用同一份声音编排与处理产物，编码文件哈希不同不能简单认定混音不一致。
+
+### 29.5 来源条件与失败处理
+
+Mixkit 按实际分类和需要获取少量文件，音乐与音效分别核对许可；不进行批量整库镜像。Freesound 逐条检查 CC0、CC BY、CC BY-NC 等许可，同时落实 API 凭据、原文件 OAuth 和相应 API 使用条件。禁止自动访问或没有支持接口的网站不宣称全自动接入。
+
+来源未启用、无结果、限流、错误文件、模型失败、未知提交、版本失效与遮字问题分别返回；不自动改用未建设的本地库，不用视觉生成代替声音，不把必要音效悄悄省略。实际输入、原始模型响应和 run ID 可追溯，未知事实不被 JSON 修复或高相似度掩盖。
+
+### 29.6 实施与联合验收
+
+按在线获取与真实分析、自动选材与对比、段落同步与混音、质量与一致发布四批推进；每批有可听结果，完成第一批不等于整条链路完成。外部纯音频服务是必须落实的依赖，未配置来源不计入检索覆盖成绩。
+
+第一批同时落实第 30 章公共身份、源时间、观察、HTTP、任务与操作存储的必要部分，以在线声音验证闭环。Provider、SoundPlan、作品事件表和混音可按依赖推进，不需要先完成长视频、图片或整库索引；模型、观察和检索不能各自建立音效专用实现。
+
+源码、MCP、Skills、配置和路由/交接测试同批更新，并按 19.4 隔离候选 Runtime。核对安装态 releaseId、实际 Schema 和相关 Worker 后才能宣称发布。新增能力不通过本次文档修改自动获得开发授权。
+
+真实验收覆盖数字人进入全屏动效再返回、持续动作、声音本身承担内容演示；包含真实音轨、相同上下文对比、改稿同步、完整音频解码、混音检查和原有整片审阅。声音方案列明的检索比例与偏好要求是待验证目标，不是本轮测评成绩。
+
+## 30. 通用素材理解与多模态检索：待评审优化方案
+
+### 30.1 范围与方案归属
+
+详细合同、代码依据、模型限制、调用链与验收统一保存在[素材理解与多模态检索开发方案](VideoFlowCut_动效案例阅读包/素材理解与多模态检索开发方案.md)。本章登记公共架构及与声音、动效的依赖，保留已有视觉创作和声音专业方案；本次只写文档，尚未实施新增能力。
+
+目标是让视频、音频、图片及证据材料返回带源范围/区域、观察依据和使用条件的候选。把素材事实、本次用途评估、正式采用三个层次分开，不将整条摘要、网站元数据或模型相似度当作可直接进入成片的结论。
+
+### 30.2 公共调用链与旧规则调整
+
+```text
+本地导入 / 在线候选 / 生成素材
+→ 源身份、技术探测、真实源时间或区域映射
+→ 视觉镜头、语言、声音事件分别分段，建立全时长目录与覆盖
+→ 按发现 / 索引 / 复核深度调用外部服务及媒体工具
+→ 保存 MediaObservation、原始响应、证据、未知与版本
+→ 条件过滤 + 中文关键词/全文 + Qwen 向量检索
+→ 具体需求下复核候选范围、原文件与使用限制
+→ 主工作流决定采用，Application 保存正式引用与 Revision
+→ 真实合成验证，纠错及范围级失效、局部重分析或重选
+```
+
+| 当前规则或缺口 | 拟更新规则 | 影响位置 |
+|---|---|---|
+| 技术 ready 容易被扩大为素材已理解 | 文件技术、语义覆盖、索引版本和本次适用性分别表达 | 6、12.6、21；公共方案 1、7 |
+| 源审阅以有限抽帧、代理、技术原声辅助为主 | 保留只读证据入口，增加显式异步观察、覆盖及片段定位 | 12.6、15、17；公共方案 4–7、12 |
+| 镜头分析主要在 Vlog，默认范围建议有限 | 技术分段下沉公共模块；全时长分页，镜头/语音/声音边界分别表示 | 12.6、20；公共方案 5 |
+| 全文、候选句和源时间证据容易混用 | 复用真实转写/对齐，抽出源范围服务，不要求先放入 Timeline | 8、12.2–12.3；公共方案 6 |
+| 候选筛选主要依据元数据及整条时长 | 检索具体片段，连续时长按条件在同一范围的交集判断，未知单列 | 12.8、17.4；公共方案 8–9 |
+| 搜索候选进 Revision，尚无统一语义记录 | 分段、观察、索引、搜索与任务为操作数据，正式采用留版本引用 | 14、19–20；公共方案 7、10–11 |
+| 声音方案初步提出单独 AudioObservation | 统一为公共 MediaObservation 的音频部分，共享 HTTP/时间/纠错/索引 | 29；公共方案 7、14 |
+
+### 30.3 模型、时间与证据边界
+
+MiniCPM/Qwen 仅通过用户部署的外部 ComfyUI Bridge HTTP 调用，不在 VideoCut 加模型子进程或权重管理。当前 MiniCPM 为视频输入、0.1–30 秒窗口、约 1fps 画面与 16kHz 单声道音轨；纯音频、图片以及更密采样能力必须按外部实际 Schema 补齐，不能提前宣称可用。Qwen 只编码文字；FunASR 与现有真实对齐继续负责语言证据。
+
+观察绑定源哈希/版本、流、时间或区域及派生映射。当前项目 fps 下的源范围数值不能当成原视频帧号；新分析采用独立源时间，进入项目时统一换算。预览与原文件映射未知时重新定位，图片/PDF 使用图像区域/页码，不伪造时长。
+
+短窗补上下文，但当前画面、实际原声、转写、可见文字和背景资料分别标来源。未覆盖不等于不存在，模型估时不代替声学瞬态，1fps 不证明微表情或口型。技术测量、语义观察、来源核验和真实合成各自提供证据。
+
+### 30.4 模块、存储与正式采用
+
+拟新增公共 `packages/media-intelligence/`，在现有模块化单体内复用 Bridge Client、Speech Services、Job Worker、source-review 和 acquisition。职责是分析、覆盖、检索与用途评估，不接管主导演、不另建推理服务或全网素材库。
+
+分段、窗口、观察、向量、搜索与外部 run 放 SQLite 操作记录，不复制到每份 ProjectSnapshot。正式 AssetRequest、采用、Asset/Scene/Cue/Timeline 仍由 Application 在 Revision 中管理；采用时验证需求版本与源身份，并保存必要候选、许可、观察版本和范围依据。被正式引用的原文件与必要证据不能随临时缓存清理。
+
+模型升级和索引重建不自动替换已用素材。源变化失效相关观察/定位，文字纠错更新相关索引及受影响使用，需求变化重做用途评估，Timeline 平移保留源事实但重审合成上下文。语义分析失败不把可播放素材改为技术损坏。
+
+保留 `inspect_asset` 的证据入口，拟增加少量分析、片段检索、用途复核和观察纠错入口；耗时工作显式返回 Job，不在只读查看中偷偷执行整片推理。Web、MCP 和 Worker 共用应用规则，主工作流继续负责是否采用、全屏/PiP、裁切、原声策略与返回方式。
+
+### 30.5 与音效的依赖及实施验收
+
+实施分为公共基础与在线声音闭环、视频片段理解与检索、图片/证据及不同用途、纠错与成片一致发布四阶段。身份、时间、纠错和幂等在每阶段即需验证，最后一阶段做跨链路收口，不能先带错误依据进入创作。
+
+第 29 章的在线 Provider、SoundPlan、MotionEventMap 和音乐混音可按依赖推进；共同模型客户端、MediaObservation、范围、任务和检索先统一并实现，以声音验证首个完整应用。不先建全局本地音效库，也不等所有历史视频深度索引完成。
+
+验收覆盖长视频后半段、连续条件交集、中文检索、画面/旁白/声音混淆、否定与未知、预览/原文件差异、变帧率和音轨偏移、分析任务恢复、观察纠错、Revision 隔离和真实采用。确定性时间与状态用回归测试，语义质量用真实标注需求和采用结果做前后对比；模型自评分或部署测试不能替代。
+
+来源/模型失败、覆盖不完整、Schema 变化、提交未知、run 丢失、索引过期和采用冲突分别返回；复用 Bridge 恢复，不盲目重复提交。已知代价为外部推理加载与排队、证据/索引存储和采用前复核，通过按需分析、缓存及局部失效控制，不承诺全量即时理解。
+
+后续源码、MCP、Skills、配置及路由/交接测试共同更新，沿 19.4 的候选隔离与发布验证执行。本文不新增运行时 Skills 树、不修改正式项目；功能与真实成片结果等待另行授权开发和验证。

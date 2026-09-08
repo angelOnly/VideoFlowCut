@@ -1,6 +1,10 @@
+import { assertEffectCoverage } from "@videocut/domain";
+import { MediaIntelligenceApplication } from "./media-intelligence.js";
 import { createHash } from "node:crypto";
 import { bindEffectAudioEvent, type EffectAudioEventInput } from "./effect-audio-events.js";
 import { evidenceHash, validateEditorialObservations } from "./editorial-evidence.js";
+import { validateMotionReviewEvidence } from "./motion-review.js";
+import type { MotionReviewEvidenceInput, MotionReviewOutcome } from "@videocut/contracts";
 import { EDITORIAL_PASSES, evidenceSupportsPass, mergeEditorialReviews, missingReviewRanges, openEditorialFindings, reviewCoverage } from "../../quality-system/src/editorial-review.js";
 import { boundMotionImageSchema, motionSubmissionSchema, type MotionSubmission } from "../../motion-work/src/schema.js";
 import { motionHash, validateMotionSource } from "../../motion-work/src/compiler.js";
@@ -1349,7 +1353,10 @@ export class EditingApplication {
     }
   }
 
-  constructor(public readonly repository: ProjectRepository) {}
+  readonly intelligence: MediaIntelligenceApplication;
+  constructor(public readonly repository: ProjectRepository) {
+    this.intelligence = new MediaIntelligenceApplication(this);
+  }
 
   close(): void {
     this.repository.close();
@@ -2365,6 +2372,9 @@ export class EditingApplication {
       if (existing.kind !== "motion_generation" || motionHash(motionSubmissionSchema.parse(existing.payload.work)) !== motionHash(work)) throw new DomainError("幂等键已用于不同作品输入", "MOTION_IDEMPOTENCY_CONFLICT");
       return existing;
     }
+    if (!work.creativeBrief) throw new DomainError("新作品必须提供创作说明 creativeBrief；参考可选，不填写占位参考", "MOTION_CREATIVE_BRIEF_REQUIRED");
+    const pixelFrames = work.width * work.height * work.durationInFrames;
+    if (pixelFrames > 650_000_000) throw new DomainError(`作品预计 ${work.durationInFrames} 帧、${pixelFrames} 像素帧，超过 650000000 预算；请按自然段边界调整范围或画布`, "MOTION_BUDGET_EXCEEDED");
     const current = this.readProject(input.projectId);
     if (current.revision.number !== input.baseRevision) throw new DomainError("项目 Revision 已变化，请重新读取", "REVISION_CONFLICT");
     if (work.previousAssetId && !current.snapshot.assets.some((asset) => asset.id === work.previousAssetId && asset.motion)) throw new DomainError("上一版本不是当前项目的受管作品", "MOTION_PREVIOUS_VERSION_MISSING");
@@ -2383,7 +2393,7 @@ export class EditingApplication {
     const job = this.repository.getJob(jobId);
     if (job.projectId !== projectId || job.kind !== "motion_generation") throw new DomainError("作品任务不属于当前项目", "MOTION_JOB_NOT_FOUND");
     const asset = this.readProject(projectId).snapshot.assets.find((item) => item.motion?.jobId === jobId);
-    return { job, asset, nextStep: asset ? "通过 inspect_asset 连续审阅代理；参考对照通过后才能放置，正式合成仍须另审" : "等待 track_job；失败时读取诊断，不猜测已生成" };
+    return { job, asset, nextStep: asset ? "连续查看作品并以 outcome、note、evidence 审阅；未看清可登记 inconclusive 后放入待审草稿。审阅和放置前重读 Revision，正式合成仍须另审。" : "等待 track_job；失败时读取诊断，不猜测已生成" };
   }
 
   /** Worker 可重复完成，但同一任务只登记一个固定版本的作品 Asset。 */
@@ -2407,9 +2417,9 @@ export class EditingApplication {
     const state = this.repository.commit(input.projectId, current.revision.number, "登记受管 Remotion 作品（待审阅）", (snapshot, impact) => {
       asset = {
         id: createId("asset"), name: work.name, kind: "video", status: "ready", managedPath: `${directory}/preview.mp4`, sourceHash: input.sourceHash,
-        role: "generated_visual", tags: ["managed_motion", "reference_review_required"], createdAt: now(), metadata: input.metadata,
+        role: "generated_visual", tags: ["managed_motion", "work_review_required"], createdAt: now(), metadata: input.metadata,
         provenance: { source: "generated", provider: "managed_remotion", generationJobId: job.id, rightsStatus: derivedRights, license: work.rights.basis, attributionText: [work.rights.attribution, ...images.map((image) => image.attribution)].filter(Boolean).join("\n") || undefined, acquiredAt: now() },
-        motion: { jobId: job.id, version, engineVersion: input.engineVersion, previousAssetId: work.previousAssetId, sourcePath: `${directory}/source.json`, framesDirectory: `${directory}/frames`, frameCount: work.durationInFrames, fps: work.fps, width: work.width, height: work.height, referenceUrl: work.reference.url, visibility: input.visibility }
+        motion: { jobId: job.id, version, engineVersion: input.engineVersion, previousAssetId: work.previousAssetId, sourcePath: `${directory}/source.json`, framesDirectory: `${directory}/frames`, frameCount: work.durationInFrames, fps: work.fps, width: work.width, height: work.height, referenceUrl: work.reference?.url, creativeBrief: work.creativeBrief, visibility: input.visibility }
       };
       snapshot.assets.push(asset);
       impact.changed.push(asset.id);
@@ -2418,13 +2428,24 @@ export class EditingApplication {
     return asset;
   }
 
-  reviewManagedMotion(input: { projectId: Id; baseRevision: number; assetId: Id; referenceMatch: "passed" | "failed" | "inconclusive"; note: string }): ProjectState {
-    if (!["passed", "failed", "inconclusive"].includes(input.referenceMatch)) throw new DomainError("动效审阅结论无效", "MOTION_REVIEW_INVALID");
-    if (input.note.trim().length < 16 || input.note.length > 2400) throw new DomainError("请记录真实动态对照依据，或说明待审原因和最小复核范围", "MOTION_REVIEW_EVIDENCE_REQUIRED");
-    const state = this.repository.commit(input.projectId, input.baseRevision, "记录受管作品参考对照", (snapshot, impact) => {
+  async reviewManagedMotion(input: { projectId: Id; baseRevision: number; assetId: Id; outcome?: MotionReviewOutcome; referenceMatch?: MotionReviewOutcome; note: string; evidence?: MotionReviewEvidenceInput }): Promise<ProjectState> {
+    const outcome = input.outcome ?? input.referenceMatch;
+    if (!outcome || !["passed", "failed", "inconclusive"].includes(outcome)) throw new DomainError("动效审阅结论无效", "MOTION_REVIEW_INVALID");
+    if (input.note.trim().length < 16 || input.note.length > 2400) throw new DomainError("请说明设计兑现和实际效果，或待审原因与复核范围", "MOTION_REVIEW_EVIDENCE_REQUIRED");
+    if (input.outcome && input.referenceMatch) throw new DomainError("不能同时提交新结果与旧参考别名", "MOTION_REVIEW_INPUT_CONFLICT");
+    const current = this.readProject(input.projectId);
+    if (current.revision.number !== input.baseRevision) throw new DomainError("项目 Revision 已变化，请重新读取", "REVISION_CONFLICT");
+    const target = assetById(current.snapshot, input.assetId);
+    if (!target.motion) throw new DomainError("不是受管作品", "MOTION_ASSET_REQUIRED");
+    const legacy = input.outcome === undefined;
+    if (legacy && (target.motion.creativeBrief || !target.motion.referenceUrl || input.evidence)) throw new DomainError("旧参考别名只兼容历史参考作品；新作品使用 outcome 和实际 evidence", "MOTION_LEGACY_REVIEW_REJECTED");
+    const evidence = legacy ? undefined : await validateMotionReviewEvidence(current.snapshot, input.baseRevision, this.repository.listJobs(input.projectId), target, outcome, input.evidence);
+    // 媒体验证有异步等待；提交再次检查 Revision，不能用旧证据覆盖并发修改。
+    const state = this.repository.commit(input.projectId, input.baseRevision, "记录受管作品动态审阅", (snapshot, impact) => {
       const asset = assetById(snapshot, input.assetId);
       if (!asset.motion) throw new DomainError("不是受管作品", "MOTION_ASSET_REQUIRED");
-      asset.motion.review = { referenceMatch: input.referenceMatch, note: input.note.trim(), reviewedAt: now() };
+      asset.motion.review = legacy ? { referenceMatch: outcome, note: input.note.trim(), reviewedAt: now() }
+        : { outcome, version: asset.motion.version, evidence, note: input.note.trim(), reviewedAt: now() };
       impact.changed.push(asset.id);
       for (const cue of snapshot.effectCues.filter((item) => item.assetBindings.some((binding) => binding.assetId === asset.id))) {
         impact.dirtyRanges.push({ startFrame: cue.startFrame, endFrame: cue.endFrame, reason: "作品审阅结论变化" });
@@ -6278,6 +6299,7 @@ export class EditingApplication {
     narrativePurpose?: string;
     audienceTask?: string;
     semanticAnchor?: EffectCue["semanticAnchor"];
+    coveredNarrativeBeatIds?: Id[];
     spatialAnchor?: EffectCue["spatialAnchor"];
     assetBindings?: EffectAssetBinding[];
     props?: Record<string, unknown>;
@@ -6312,6 +6334,7 @@ export class EditingApplication {
         if (asset.status !== "ready") throw new DomainError(`效果素材尚未就绪：${asset.name}`, "EFFECT_ASSET_NOT_READY");
       }
       const cue = createEffectCue({ ...input, anchorTargetId: legacyAnchorTargetId });
+      assertEffectCoverage(snapshot, cue);
       this.assertManagedMotionCue(snapshot, cue);
       snapshot.effectCues.push(cue);
       impact.changed.push(cue.id);
@@ -6332,6 +6355,7 @@ export class EditingApplication {
     narrativePurpose?: string;
     audienceTask?: string;
     semanticAnchor?: EffectCue["semanticAnchor"];
+    coveredNarrativeBeatIds?: Id[];
     spatialAnchor?: EffectCue["spatialAnchor"];
     assetBindings?: EffectAssetBinding[];
     props?: Record<string, unknown>;
@@ -6356,6 +6380,7 @@ export class EditingApplication {
       cue.props = input.props ?? cue.props;
       cue.stylePackId = input.stylePackId?.trim() || cue.stylePackId;
       cue.qualityRules = input.qualityRules ?? cue.qualityRules;
+      if (input.coveredNarrativeBeatIds !== undefined) cue.coveredNarrativeBeatIds = [...new Set(input.coveredNarrativeBeatIds)];
       if (input.semanticAnchor) {
         const anchor = input.semanticAnchor;
         if (anchor.type === "speech_segment" && anchor.targetId && !snapshot.speechSegments.some((segment) => segment.id === anchor.targetId)) {
@@ -6391,7 +6416,10 @@ export class EditingApplication {
       if (cue.startFrame < scene.startFrame || cue.endFrame > scene.endFrame || cue.endFrame <= cue.startFrame) {
         throw new DomainError("调整后的效果范围无效", "INVALID_CUE_RANGE");
       }
+      assertEffectCoverage(snapshot, cue);
       this.assertManagedMotionCue(snapshot, cue);
+      if (cue.type !== "ManagedMotion" && cue.coveredNarrativeBeatIds === undefined
+        || input.coveredNarrativeBeatIds !== undefined || input.assetBindings !== undefined) cue.status = "ready";
       impact.changed.push(cue.id);
       impact.dirtyRanges.push(previousRange);
       impact.dirtyRanges.push({ startFrame: cue.startFrame, endFrame: cue.endFrame, reason: "调整视觉效果" });
@@ -6421,7 +6449,13 @@ export class EditingApplication {
     const oldStart = cue.startFrame;
     const oldEnd = cue.endFrame;
     const duration = oldEnd - oldStart;
+    if (cue.status === "stale" && (cue.type === "ManagedMotion" || cue.coveredNarrativeBeatIds !== undefined)) return;
     const fit = (startFrame: number, desiredDuration = duration) => {
+      if (cue.type === "ManagedMotion") {
+        if (desiredDuration !== duration || startFrame < scene.startFrame || startFrame + duration > scene.endFrame
+          || scene.endFrame - scene.startFrame !== previousScene.endFrame - previousScene.startFrame) return undefined;
+        return { start: startFrame, end: startFrame + duration };
+      }
       const start = Math.max(scene.startFrame, Math.min(startFrame, scene.endFrame - 1));
       const end = Math.min(scene.endFrame, start + Math.max(1, desiredDuration));
       if (end <= start) return undefined;
@@ -6434,7 +6468,10 @@ export class EditingApplication {
       targetId: cue.anchorTargetId ?? cue.sceneId,
       relation: "land_on" as const
     };
-    if (anchor.type === "scene") {
+    if (cue.type === "ManagedMotion" && anchor.type !== "absolute"
+      && scene.endFrame - scene.startFrame === previousScene.endFrame - previousScene.startFrame) {
+      next = fit(oldStart + scene.startFrame - previousScene.startFrame);
+    } else if (anchor.type === "scene") {
       const relativeStart = oldStart - previousScene.startFrame;
       next = fit(scene.startFrame + relativeStart);
     } else if (anchor.type === "speech_segment" && anchor.targetId) {

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { EFFECT_QUALITY_RULES, inspectEffectContentContract, sourceAudioTimeOrigin, type EditorialQualityReview, type ExportPurpose, type ProjectSnapshot, type QualityIssue, type QualityReport } from "@videocut/contracts";
+import { managedMotionReviewOutcome, EFFECT_QUALITY_RULES, inspectEffectContentContract, sourceAudioTimeOrigin, type EditorialQualityReview, type ExportPurpose, type ProjectSnapshot, type QualityIssue, type QualityReport } from "@videocut/contracts";
 import { assertProjectGraphValid, DomainError, millisecondsToFrames, resolveCompositionReachability, sourceAudioTimingWithinRange, sourceAudioAlignmentOwnerMatches, sourceCaptionDisplayTextIsValid } from "@videocut/domain";
 import { layoutCaptionConservatively } from "../../remotion-runtime/src/caption-layout.js";
 import { motionCaptionSafety } from "./motion-caption-safety.js";
@@ -1576,8 +1576,8 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     const contentContract = inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline);
     if (cue.type === "ManagedMotion" && cue.status === "ready") {
       const asset = snapshot.assets.find((entry) => entry.id === cue.assetBindings.find((binding) => binding.slot === "motion")?.assetId);
-      if (asset?.motion && asset.motion.review?.referenceMatch !== "passed") {
-        pendingPerception.push({ category: "motion", entry: issue({ level: "blocking", code: "MOTION_REFERENCE_REVIEW_REQUIRED", message: "该作品的连续动态参考对照尚未通过；明确 inconclusive 后可合成待审草稿，但不能正式交付或完成制作。", objectId: cue.id, frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }, editorialSeverity: "inconclusive" }) });
+      if (asset?.motion && managedMotionReviewOutcome(asset.motion) !== "passed") {
+        pendingPerception.push({ category: "motion", entry: issue({ level: "blocking", code: "MOTION_WORK_REVIEW_REQUIRED", message: "该作品的连续动态审阅尚未通过；明确 inconclusive 后可合成待审草稿，但不能正式交付或完成制作。", objectId: cue.id, frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }, editorialSeverity: "inconclusive" }) });
       }
     }
     if (!contentContract.ready) {

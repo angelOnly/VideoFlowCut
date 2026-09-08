@@ -4,6 +4,8 @@
 
 > Skills：24；References：8；Shared：6。
 
+> 2026-09-07 当前源码目录核对：Skills 24、References 9、Shared 7，Markdown 共 40。下表的字符数、行数和旧 Reference 数保持历史值，不是当前测量报告。新增五份案例 Skill 尚待评审，见[完整动效方案](../VideoFlowCut_动效案例阅读包/完整开发方案.md)第 6、9 章；本轮没有接入运行时。
+
 | Skill | 字符数 | 行数 | 完整 References |
 |---|---:|---:|---:|
 | `project-basics` | 8,137 | 220 | 0 |

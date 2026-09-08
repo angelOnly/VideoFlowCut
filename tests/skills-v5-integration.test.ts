@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { access, readdir, readFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import test from "node:test";
@@ -25,6 +26,13 @@ const expectedSkills = [
   "evidence-visualization",
   "export",
   "known-errors",
+  "motion-case-library",
+  "motion-case-sim-paper",
+  "motion-case-smooth-relay",
+  "motion-case-ticket-phone",
+  "motion-case-product-fan",
+  "motion-case-cover-flow",
+  "motion-case-comment-focus",
   "presenter-motion-director",
   "production-director",
   "project-basics",
@@ -297,7 +305,7 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
     submit_motion_work: ["base_revision_id", "idempotency_key", "work"],
     inspect_motion_reference: ["source_url", "preview_index"],
     read_motion_work: ["job_id"],
-    review_motion_work: ["asset_id", "reference_match", "note"],
+    review_motion_work: ["asset_id", "outcome", "evidence", "reference_match", "note"],
     import_media: ["base_revision_id", "file_path"],
     inspect_asset: ["asset_id", "mode"],
     manage_asset_requirements: ["base_revision_id", "action"],
@@ -323,7 +331,7 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
     manage_visual_treatment: ["base_revision_id", "action"],
     manage_cutaways: ["base_revision_id", "action"],
     replace_scene_asset: ["base_revision_id", "cutaway_id", "asset_id", "source_start_frame", "source_end_frame"],
-    manage_effect_cues: ["base_revision_id", "action", "cue_id", "scene_id", "type", "layer", "start_frame", "end_frame", "semantic_anchor", "motion", "quality_rules"],
+    manage_effect_cues: ["base_revision_id", "action", "cue_id", "scene_id", "type", "layer", "start_frame", "end_frame", "semantic_anchor", "covered_narrative_beat_ids", "motion", "quality_rules"],
     render_preview_range: ["revision", "from_frame", "to_frame"],
     inspect_composed_frames: ["preview_job_id"],
     record_editorial_quality_review: ["run_id", "revision", "passes", "preview_evidence", "findings"],
@@ -376,5 +384,39 @@ test("活动脚本与测试不再引用已删除的旧共享合同", async () =>
   const legacySharedPattern = /_shared\/(editorial-principles|mcp-and-project-contract|decision-record|timing-precision|quality-vocabulary|skill-execution-report|source-map)\.md/u;
   for (const filePath of activeFiles) {
     assert.doesNotMatch(await readFile(filePath, "utf8"), legacySharedPattern, `${filePath} 仍引用已删除的旧共享合同`);
+  }
+});
+
+
+test("用户选定六项案例从两条正常入口可达，固定版本素材与源码完整发布", async () => {
+  const caseNames = ["sim-paper", "smooth-relay", "ticket-phone", "product-fan", "cover-flow", "comment-focus"];
+  // 正常入口必须指向原创专项，不能靠测试直接加载教学案例冒充路由。
+  for (const workflow of ["presenter-motion-director", "visual-explainer-director"]) {
+    const reached = await reachableMarkdown(join(skillsRoot, workflow, "SKILL.md"));
+    for (const name of caseNames) assert.ok(reached.has(resolve(skillsRoot, `motion-case-${name}/SKILL.md`)), `${workflow} 无法到达 ${name}`);
+  }
+  for (const name of caseNames) {
+    const folder = `motion-case-${name}`;
+    const fixture = JSON.parse(await readFile(join(skillsRoot, folder, "assets/fixture.json"), "utf8"));
+    const assets = await readdir(join(skillsRoot, folder, "assets"));
+    assert.equal(fixture.caseId, name);
+    assert.equal(fixture.selectedByUser, true);
+    assert.ok(assets.includes("fixture.json") && assets.includes(fixture.preview));
+    assert.ok(fixture.sourceFiles.length > 0);
+    for (const source of fixture.sourceFiles) assert.ok(assets.includes(source), `${folder} 缺少源码 ${source}`);
+    const integrity = JSON.parse(await readFile(join(skillsRoot, folder, "assets/integrity.json"), "utf8"));
+    const frames = assets.filter(file => /^preview-\d+\.png$/u.test(file));
+    assert.equal(frames.length, fixture.reviewFrames.length);
+    assert.ok(frames.length > 0);
+    for (const file of frames) assert.ok(fixture.reviewFrames.includes(Number(/\d+/u.exec(file)![0])));
+    for (const file of assets) {
+      const source = await readFile(join(skillsRoot, folder, "assets", file));
+      assert.ok(source.length > 0);
+      if (file !== "integrity.json") {
+        assert.equal(createHash("sha256").update(source).digest("hex"), integrity.files[file], `${folder}/${file} 不再对应归档版本`);
+      }
+      assert.deepEqual(await readFile(join(pluginSkillsRoot, folder, "assets", file)), source, `${folder}/${file} 字节漂移`);
+    }
+    assert.deepEqual(Object.keys(integrity.files).sort(), assets.filter(file => file !== "integrity.json").sort());
   }
 });

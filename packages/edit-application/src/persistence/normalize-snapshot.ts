@@ -117,6 +117,7 @@ export function normalizeSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
     }
   }
   for (const cue of snapshot.effectCues ?? []) {
+    // coveredNarrativeBeatIds 原样保留；旧快照缺省时继续单锚点对账，不填满宿主 Scene。
     cue.narrativePurpose ??= cue.note || "支持当前叙事重点";
     cue.audienceTask ??= "理解当前表达";
     cue.semanticAnchor ??= {

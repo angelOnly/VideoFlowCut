@@ -13,7 +13,9 @@ import { motionSubmissionSchema } from "../packages/motion-work/src/schema.js";
 // 输入只读真实报障作品；项目、队列、渲染和审阅缓存全部在独立候选目录。
 assert.ok(process.argv[2], "提供报障作品的只读 source.json 路径");
 const sourcePath = resolve(process.argv[2]!);
-const work = motionSubmissionSchema.parse(JSON.parse(await readFile(sourcePath, "utf8")));
+const original = motionSubmissionSchema.parse(JSON.parse(await readFile(sourcePath, "utf8")));
+// 新候选提交补技术用途说明，不覆盖只读旧源码或其缓存哈希。
+const work = { ...original, creativeBrief: original.creativeBrief ?? "重新渲染只读历史作品以检验透明像素和代理一致性；保留原设计，不将技术结果作为审美通过。" };
 assert.equal(Object.keys(work.imageBindings).length, 0, "此回归仅接受独立文字/SVG，不复制正式素材绑定");
 const require = createRequire(import.meta.url);
 const { findAvailablePort } = require("../plugins/videoflowcut/scripts/runtime-launcher.mjs");

@@ -21,13 +21,15 @@ export const motionSubmissionSchema = z.object({
       adaptation: description,
       evidence: description
     }).strict()
-  }).strict(),
+  }).strict().optional(),
   rights: z.object({
     basis: description,
     status: z.enum(["unknown", "cleared", "attribution_required", "restricted"]),
     attribution: z.string().max(1200).optional()
   }).strict(),
-  previousAssetId: z.string().max(150).optional()
+  previousAssetId: z.string().max(150).optional(),
+  // 追加字段不注入默认值，不改变历史输入的字段次序和作品哈希。
+  creativeBrief: z.string().trim().min(1).max(6000).optional()
 }).strict().superRefine((value, ctx) => {
   if (value.durationInFrames / value.fps > 30) ctx.addIssue({ code: "custom", message: "单个受管动效最长 30 秒" });
   if (JSON.stringify(value.props).length > 24_000) ctx.addIssue({ code: "custom", message: "Props 超过大小上限" });
@@ -37,6 +39,17 @@ export const motionSubmissionSchema = z.object({
   if (value.rights.status === "attribution_required" && !value.rights.attribution?.trim()) ctx.addIssue({ code: "custom", message: "需要署名时必须提供署名内容" });
 });
 export type MotionSubmission = z.infer<typeof motionSubmissionSchema>;
+
+export const motionReviewEvidenceSchema = z.object({
+  kind: z.enum(["work_proxy", "project_preview"]), previewJobId: z.string().min(1).optional(),
+  startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(),
+  method: z.enum(["frames", "continuous_video", "audio", "audiovisual"])
+}).strict();
+export const motionReviewFields = {
+  outcome: z.enum(["passed", "failed", "inconclusive"]).optional(),
+  referenceMatch: z.enum(["passed", "failed", "inconclusive"]).optional(),
+  note: z.string().min(16).max(2400), evidence: motionReviewEvidenceSchema.optional()
+};
 
 /** 提交时固定素材身份、字节哈希与权利，不让后台任务读取后来变更的绑定。 */
 export const boundMotionImageSchema = z.object({

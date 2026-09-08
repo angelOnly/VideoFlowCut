@@ -8,7 +8,9 @@
 - 所有 Front Matter `name` 与目录一致；
 - 主工作流引用的专项 Skill 存在；
 - Reference 链接存在且每份是完整章节，不是短知识卡；
-- `.codex/config.toml` 可发现路径存在。
+- 当前插件 `.codex-plugin/plugin.json` 的 Skills 入口、`.mcp.json` 和 launcher 路径存在，源目录与同步镜像关系正确；仓库当前没有 `.codex/config.toml`，只有以后实际使用时才检查其登记。
+
+当前 24 个 Skill 是现状断言。阅读包中的五份案例 Skill 尚未接入运行时；获准开发并完成同步后，才按实际范围更新数量、非 Markdown 案例材料及路由测试，不能先把断言写成 29。本轮只更新验收文档，未执行接入测试。
 
 ## 路由
 

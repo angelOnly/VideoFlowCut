@@ -33,6 +33,8 @@ description: 根据 SemanticUnit、SpeechTiming、Scene 状态、人物动作和
 
 ## 动作阶段
 
+一份作品可包含多个语义事件与多次阅读停留。逐个命名真正需要强调的动作，给出局部帧、落点依据与时间精度；不把完整作品套一次统一入场。
+
 每个重要 Cue 至少考虑：进入前、Enter、主要落点、Settled、Hold、Release、Exit。简单效果可以压缩阶段，但必须有稳定状态和清楚结束。若动画在整个范围持续漂浮，没有信息完成时刻，观众很难知道何时读取。
 
 ## 不同内容的时机
@@ -111,6 +113,8 @@ Cue 不应在 Scene 开始第一帧就处于半动画状态，除非从上一 Sc
 
 ## 当前写入和验证
 
+普通 Registry Cue 可修改 Motion；ManagedMotion 内部时序由源码/Props 固定，需重新生成版本。整体平移只改变 Cue 时间，内部重定时必须重新交付事件帧、读回 stale AudioCue 并复核。
+
 使用 `manage_effect_cues` 写入 start/end、semantic_anchor、motion 和 quality_rules。当前 MotionLayoutCompiler 已消费 `spatial_anchor`、进入/稳定/退出预设与 `style_pack_id`；不同组件的实际曲线、素材布局和人物关系仍必须以 Preview 验证。写后读取 Impact，渲染目标范围，检查进入、中间、Settled、退出和前后完整语句。
 
 ## 案例：结论大字
@@ -118,5 +122,7 @@ Cue 不应在 Scene 开始第一帧就处于半动画状态，除非从上一 Sc
 人物说：“所以真正稀缺的不是钱，是你能支配的时间。”错误做法是在“真正稀缺”开始就让所有文字同时爆出。更合理：保持人物建立前半句，转折“不是钱”时短暂显示被划去的钱；“是你能支配的时间”落音时让“时间”稳定为主视觉，并保持一小段阅读。若人物表情是关键，也可只用轻排印而不全屏。
 
 ## 交接合同
+
+连续作品交接还带入口/出口约束、真实可用范围与局部事件；素材、时序或作品版本变化后相关 Cue/声音需要复核。验证必须对应当前版本实际合成。
 
 输入是 SpeechTiming、Scene、语义/动作事件、人物状态、Caption 和其它声音。输出是 Cue 时序、落点、稳定/阅读时间、精度和需要 Preview 微调的标记。它会影响 Preview、SFX 和字幕注意力。验证是完整动作阶段与连续播放。结果交回 `remotion-production` 或主工作流。

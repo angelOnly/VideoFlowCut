@@ -1,0 +1,44 @@
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { FastifyInstance } from "fastify";
+import type { EditingApplication } from "@videocut/application";
+import { z } from "zod";
+import { analysisInputSchema, factSchema, regionSchema, searchQuerySchema, timeRangeSchema } from "../../../packages/media-intelligence/src/index.js";
+
+const inspectSchema = z.object({ assetId: z.string().min(1).optional(), candidateId: z.string().min(1).optional(), offset: z.number().int().nonnegative().default(0), limit: z.number().int().min(1).max(100).default(40) }).strict();
+const correctionSchema = z.object({ observationId: z.string().min(1), facts: z.array(factSchema).max(100), unknowns: z.array(z.string().max(1000)).max(100), reason: z.string().trim().min(8).max(3000), author: z.string().trim().min(1).max(120), baseRevision: z.number().int().positive().optional() }).strict();
+const adoptionSchema = z.object({ baseRevision: z.number().int().positive(), assetId: z.string().min(1), observationIds: z.array(z.string().min(1)).min(1).max(100), range: timeRangeSchema.optional(), region: regionSchema.optional(), requestId: z.string().min(1).optional(), purpose: z.string().trim().min(1).max(2000), audioPolicy: z.enum(["mute", "retain", "not_applicable"]), conditions: z.array(z.string().max(1000)).max(30).default([]) }).strict();
+
+export function registerMediaIntelligenceTools(server: McpServer, app: EditingApplication, projectIdFrom: (value?: string) => string) {
+  const result = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value) }] });
+  const failure = (error: unknown) => ({ ...result({ error: error instanceof Error ? error.message : String(error), code: error && typeof error === "object" && "code" in error ? error.code : undefined }), isError: true });
+  server.registerTool("analyze_media", { title: "分析素材声画", description: "对项目原素材或受控在线候选提交异步多模态分析。使用源毫秒或图片区域，保存实际覆盖、原文与版本，不修改技术 ready 或创作 Revision。通过 track_job 查询；深度 review 仍是模型观察，不冒充实际听审。", inputSchema: { project_id: z.string().optional(), input: analysisInputSchema } }, async ({ project_id, input }) => {
+    try { return result(app.intelligence.submitAnalysis(projectIdFrom(project_id), input)); } catch (error) { return failure(error); }
+  });
+  server.registerTool("read_media_observations", { title: "读取素材观察与覆盖", description: "分页读取源身份、事实、未知项、分析覆盖和错误；未分析不能当成不存在。", inputSchema: { project_id: z.string().optional(), input: inspectSchema }, annotations: { readOnlyHint: true } }, async ({ project_id, input }) => {
+    try { return result(app.intelligence.inspect(projectIdFrom(project_id), input, input.offset, input.limit)); } catch (error) { return failure(error); }
+  });
+  server.registerTool("search_media_fragments", { title: "检索素材片段", description: "按视觉、声音、语言或原文分开检索，返回源范围及满足/违反/未知条件。hybrid 经共享 Job 调用 Qwen，lexical 只查询已有事实；两者均不自动采用素材。", inputSchema: { project_id: z.string().optional(), query: searchQuerySchema, mode: z.enum(["hybrid", "lexical"]).default("hybrid") } }, async ({ project_id, query, mode }) => {
+    try { const id = projectIdFrom(project_id); return result(mode === "hybrid" ? app.intelligence.submitSearch(id, query) : app.intelligence.search(id, query)); } catch (error) { return failure(error); }
+  });
+  server.registerTool("correct_media_observation", { title: "纠正实际素材观察", description: "基于真实复核修订观察，保留模型原文和旧版本。影响已采用依据时必须携带当前 Revision，并标记相关采用待复核；索引不会继续使用旧观察。", inputSchema: { project_id: z.string().optional(), input: correctionSchema } }, async ({ project_id, input }) => {
+    try { return result(app.intelligence.correct(projectIdFrom(project_id), input)); } catch (error) { return failure(error); }
+  });
+  server.registerTool("adopt_media_fragment", { title: "保存素材范围采用依据", description: "核对受管原文件真实哈希、观察覆盖和当前 Revision，保存本次用途、原声策略及条件。只确认采用依据，具体全屏/PiP或声音放置仍由相应创作工具决定。", inputSchema: { project_id: z.string().optional(), input: adoptionSchema } }, async ({ project_id, input }) => {
+    try { return result(await app.intelligence.adopt(projectIdFrom(project_id), input)); } catch (error) { return failure(error); }
+  });
+}
+
+export function registerMediaIntelligenceRoutes(server: FastifyInstance, app: EditingApplication) {
+  const projectId = (params: unknown) => z.object({ projectId: z.string().min(1) }).parse(params).projectId;
+  server.post("/api/projects/:projectId/media-analysis", async (request, reply) => reply.code(202).send(app.intelligence.submitAnalysis(projectId(request.params), analysisInputSchema.parse(request.body))));
+  server.post("/api/projects/:projectId/media-observations/read", async (request) => {
+    const input = inspectSchema.parse(request.body ?? {});
+    return app.intelligence.inspect(projectId(request.params), input, input.offset, input.limit);
+  });
+  server.post("/api/projects/:projectId/media-fragments/search", async (request, reply) => {
+    const input = z.object({ query: searchQuerySchema, mode: z.enum(["hybrid", "lexical"]).default("hybrid") }).strict().parse(request.body);
+    return input.mode === "hybrid" ? reply.code(202).send(app.intelligence.submitSearch(projectId(request.params), input.query)) : app.intelligence.search(projectId(request.params), input.query);
+  });
+  server.post("/api/projects/:projectId/media-observations/correct", async (request) => app.intelligence.correct(projectId(request.params), correctionSchema.parse(request.body)));
+  server.post("/api/projects/:projectId/media-fragments/adopt", async (request) => app.intelligence.adopt(projectId(request.params), adoptionSchema.parse(request.body)));
+}

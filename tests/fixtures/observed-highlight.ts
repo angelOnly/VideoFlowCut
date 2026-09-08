@@ -2,6 +2,7 @@ import { motionSubmissionSchema } from "../../packages/motion-work/src/schema.js
 
 /** 根据 Onda Highlight 公开动态观察独立编写；不是复制其工程或字体资源。 */
 export const observedHighlight = motionSubmissionSchema.parse({
+  creativeBrief: "候选技术验证：以真实中文重点揭示与稳定阅读检查固定版本、透明合成和局部时间，不将测试输入当作审美通过。",
   name: "在线观察复现候选 · 中文重点揭示",
   source: `import React from 'react';import {AbsoluteFill,useCurrentFrame,interpolate,Easing} from 'remotion';
 export default function Highlight(props:{text:string;accent:string}) {

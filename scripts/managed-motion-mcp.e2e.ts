@@ -93,25 +93,43 @@ try {
   const schema = await client.listTools();
   for (const tool of ["browse_motion_sources", "inspect_motion_reference", "submit_motion_work", "read_motion_work", "review_motion_work"]) assert.ok(schema.tools.some((item) => item.name === tool));
   const cueSchema = schema.tools.find((item) => item.name === "manage_effect_cues")!.inputSchema;
-  assert.ok(cueSchema.properties?.action && cueSchema.properties?.cue_id);
+  assert.ok(cueSchema.properties?.action && cueSchema.properties?.cue_id && cueSchema.properties?.covered_narrative_beat_ids);
+  const submitSchema = schema.tools.find(item => item.name === "submit_motion_work")!.inputSchema.properties!.work as { properties: Record<string, unknown>; required?: string[] };
+  assert.ok(submitSchema.properties.creativeBrief);
+  assert.ok(!submitSchema.required?.includes("reference"));
+  const reviewSchema = schema.tools.find(item => item.name === "review_motion_work")!.inputSchema;
+  assert.ok(reviewSchema.properties?.outcome && reviewSchema.properties?.evidence);
+  assert.ok(!reviewSchema.required?.includes("reference_match"));
   assert.deepEqual((cueSchema.properties.action as { enum: string[] }).enum, ["create", "update", "remove"]);
   const release = await call("read_runtime_release");
   assert.equal(release.aligned, true);
   assert.equal((await call("browse_motion_sources")).sources.length, 4);
   const baseRevision = await revision();
-  const job = await call("submit_motion_work", { project_id: projectId, base_revision_id: baseRevision, idempotency_key: "release-motion", work: motionFixture });
+  const job = await call("submit_motion_work", { project_id: projectId, base_revision_id: baseRevision, idempotency_key: "release-motion", work: { ...motionFixture, reference: undefined } });
   await waitJob(job.id);
   const work = await call("read_motion_work", { project_id: projectId, job_id: job.id });
   assert.ok(work.asset?.motion?.version);
+  assert.equal(work.asset.motion.creativeBrief, motionFixture.creativeBrief);
+  assert.equal(work.asset.motion.referenceUrl, undefined);
+  const missingEvidence = await client.callTool({ name: "review_motion_work", arguments: { project_id: projectId, base_revision_id: await revision(), asset_id: work.asset.id, outcome: "passed", note: "技术测试故意缺少动态证据，必须拒绝，不能让成功渲染冒充实际通过。" } });
+  assert.equal(missingEvidence.isError, true);
   assert.equal(work.asset.motion.visibility?.method, "png_alpha_bbox_v1");
   assert.equal(work.asset.motion.visibility.frames.length, motionFixture.durationInFrames);
-  assert.ok((schema.tools.find((item) => item.name === "review_motion_work")!.inputSchema.properties!.reference_match as { enum: string[] }).enum.includes("inconclusive"));
+  assert.ok((schema.tools.find((item) => item.name === "review_motion_work")!.inputSchema.properties!.outcome as { enum: string[] }).enum.includes("inconclusive"));
   assert.ok(schema.tools.find((item) => item.name === "manage_audio")!.inputSchema.properties!.onset_review);
-  await call("review_motion_work", { project_id: projectId, base_revision_id: await revision(), asset_id: work.asset.id, reference_match: "inconclusive", note: "固定候选 fixture 仅验证技术闭环，未作连续动态参考对照，不能标记审美通过。" });
+  await call("review_motion_work", { project_id: projectId, base_revision_id: await revision(), asset_id: work.asset.id, outcome: "inconclusive", note: "固定候选 fixture 仅验证技术闭环，未作连续动态参考对照，不能标记审美通过。" });
   const scene = await call("create_scene", { project_id: projectId, base_revision_id: await revision(), type: "PresenterScene", title: "候选透明叠加", purpose: "验证局部帧与透明度", start_frame: 0, end_frame: 120 });
   const sceneId = scene.snapshot.scenes.at(-1).id;
-  const created = await call("manage_effect_cues", { project_id: projectId, base_revision_id: await revision(), scene_id: sceneId, type: "ManagedMotion", layer: "front", start_frame: 20, end_frame: 80, asset_bindings: [{ slot: "motion", asset_id: work.asset.id }], semantic_anchor: { type: "absolute", relation: "land_on" }, quality_rules: ["caption_safe_area", "semantic_anchor_required"] });
+  const coverageStory = await call("manage_story", { project_id: projectId, base_revision_id: await revision(), beats: [
+    { title: "建立重点", purpose: "技术用覆盖第一拍", scene_ids: [sceneId] },
+    { title: "稳定阅读", purpose: "技术用覆盖第二拍", scene_ids: [sceneId] }
+  ] });
+  const coveredBeats = coverageStory.snapshot.story.beats.map((beat: any) => beat.id);
+  const created = await call("manage_effect_cues", { project_id: projectId, base_revision_id: await revision(), scene_id: sceneId, type: "ManagedMotion", layer: "front", start_frame: 20, end_frame: 80, covered_narrative_beat_ids: [...coveredBeats, coveredBeats[0]], asset_bindings: [{ slot: "motion", asset_id: work.asset.id }], semantic_anchor: { type: "absolute", relation: "land_on" }, quality_rules: ["caption_safe_area", "semantic_anchor_required"] });
   const cueId = created.snapshot.effectCues.at(-1).id;
+  assert.deepEqual(created.snapshot.effectCues.at(-1).coveredNarrativeBeatIds, coveredBeats);
+  assert.equal(created.snapshot.effectCues.length, 1);
+  await rejected({ action: "update", cue_id: cueId, covered_narrative_beat_ids: ["foreign-beat"] });
   const quality = await call("read_quality_report", { project_id: projectId });
   assert.ok(quality.issues.some((issue: any) => issue.code === "EFFECT_SEMANTIC_ANCHOR_REQUIRED"));
   assert.equal(quality.issues.some((issue: any) => issue.code === "EFFECT_RULE_CAPTION_SAFE_AREA"), false);
@@ -130,13 +148,21 @@ try {
   const withPendingSound = await call("manage_audio", { project_id: projectId, base_revision_id: await revision(), action: "create", kind: "sfx", asset_id: sfx.id, purpose: "仅以技术候选测试草稿声画合成，不声称听过", event_frame: 32, onset_offset_frames: 2, source_start_frame: 0, source_end_frame: 12, gain_db: -6, onset_review: { status: "inconclusive", note: "固定测试音的候选偏移，只验证草稿混合与事件跟随，尚未作实际听觉判断。" }, effect_event: { effect_cue_id: cueId, event_name: "候选揭示动作", local_frame: 12 } });
   const pendingSoundId = withPendingSound.snapshot.audioCues.at(-1).id;
   const pendingQuality = await call("read_quality_report", { project_id: projectId });
-  for (const code of ["MOTION_REFERENCE_REVIEW_REQUIRED", "SFX_ONSET_REVIEW_REQUIRED"]) {
+  for (const code of ["MOTION_WORK_REVIEW_REQUIRED", "SFX_ONSET_REVIEW_REQUIRED"]) {
     assert.ok(pendingQuality.issues.some((entry: any) => entry.code === code && entry.level === "blocking"));
     assert.equal(pendingQuality.technical.some((entry: any) => entry.code === code), false, "待审不是技术错误，不能挡住草稿");
   }
   await rejected({ action: "update", base_revision_id: created.revision.number, cue_id: cueId, note: "过期写入" });
   const preview = await call("render_preview_range", { project_id: projectId, revision: await revision(), from_frame: 0, to_frame: 120, idempotency_key: "release-preview" });
   const rendered = await waitJob(preview.id);
+  const observedRevision = await revision();
+  const pendingEvidence = await call("review_motion_work", { project_id: projectId, base_revision_id: observedRevision, asset_id: work.asset.id, outcome: "inconclusive", note: "真实候选媒体已生成，仅验证证据身份保存；尚未作连续视觉与听觉感知，不能声称审美通过。", evidence: { kind: "project_preview", previewJobId: preview.id, startFrame: 20, endFrame: 80, method: "frames" } });
+  const recordedReview = pendingEvidence.snapshot.assets.find((entry: any) => entry.id === work.asset.id).motion.review;
+  assert.equal(recordedReview.version, work.asset.motion.version);
+  assert.equal(recordedReview.evidence.revision, observedRevision);
+  assert.match(recordedReview.evidence.contentHash, /^[a-f0-9]{64}$/u);
+  const reread = await call("read_motion_work", { project_id: projectId, job_id: job.id });
+  assert.deepEqual(reread.asset.motion.review, recordedReview);
   const moved = await call("manage_effect_cues", { project_id: projectId, base_revision_id: await revision(), action: "update", cue_id: cueId, start_frame: 60, end_frame: 120 });
   assert.equal(moved.snapshot.effectCues[0].id, cueId);
   for (const range of [[20, 80], [60, 120]]) assert.ok(moved.revision.impact.dirtyRanges.some((dirty: any) => dirty.startFrame <= range[0] && dirty.endFrame >= range[1]));
@@ -178,7 +204,7 @@ try {
   const alphaWork = await call("read_motion_work", { project_id: projectId, job_id: alphaJob.id });
   const full = { x: 0, y: 0, width: 320, height: 320 };
   assert.deepEqual(alphaWork.asset.motion.visibility.frames, [full, full, null, full, full, full, full, null]);
-  await call("review_motion_work", { project_id: projectId, base_revision_id: await revision(), asset_id: alphaWork.asset.id, reference_match: "inconclusive", note: "隔离技术 fixture 只验证透明帧测量和真实合成，不代表用户审美或参考匹配通过。" });
+  await call("review_motion_work", { project_id: projectId, base_revision_id: await revision(), asset_id: alphaWork.asset.id, outcome: "inconclusive", note: "隔离技术 fixture 只验证透明帧测量和真实合成，不代表用户审美或参考匹配通过。" });
   await call("manage_effect_cues", { project_id: projectId, base_revision_id: await revision(), scene_id: sceneId, type: "ManagedMotion", layer: "front", start_frame: 20, end_frame: 28, asset_bindings: [{ slot: "motion", asset_id: alphaWork.asset.id }], semantic_anchor: { type: "scene", target_id: sceneId, relation: "land_on" } });
   const alphaPreview = await waitJob((await call("render_preview_range", { project_id: projectId, revision: await revision(), from_frame: 0, to_frame: 40, idempotency_key: "release-alpha-preview" })).id);
   const alphaPixels = { opaque: await centerLuma(alphaPreview, 20), middleClear: await centerLuma(alphaPreview, 22), lastClear: await centerLuma(alphaPreview, 27), after: await centerLuma(alphaPreview, 28) };
@@ -218,7 +244,7 @@ try {
   const programToggle = { programId: program.id, oldPreview, disabledPreview, enabledPreview, programPixels, decodedAudioUnchanged: true };
   const report = { verified: true, root, projectId, port, release, rendered, movedPreview, removedPreview, pixels, pendingAudioPixels, pendingQuality, rejectedDelivery, artifact, asset: work.asset, alphaPreview, alphaPixels, alphaVisibility: alphaWork.asset.motion.visibility, programToggle, webUrl: `http://127.0.0.1:${port}/?project=${projectId}` };
   await writeFile(join(root, "report.json"), JSON.stringify(report, null, 2));
-  console.log(JSON.stringify(report));
+  console.log(JSON.stringify({ verified: true, root, projectId, port, releaseId: runtime.releaseId, reportPath: join(root, "report.json"), artifact: artifact.result, scope: "技术链路，非真实创作或声画审美验收" }));
 } finally {
   await client.close().catch(() => undefined);
   await transport.close().catch(() => undefined);

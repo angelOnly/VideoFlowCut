@@ -23,7 +23,7 @@ async function fixture() {
   });
   const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "fixture", work: motionFixture });
   const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", visibility: clearVisibility(), metadata: { durationMs: 600, width: 320, height: 320, fps: 30, hasAudio: false } });
-  app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, referenceMatch: "passed", note: "单元测试固定状态，不代表真实用户视频审片。" });
+  await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "单元测试固定状态，不代表真实用户视频审片。" });
   const sceneState = app.createScene({ projectId, baseRevision: revision(), type: "PresenterScene", title: "测试", purpose: "局部编辑回归", startFrame: 0, endFrame: 120 });
   const sceneId = sceneState.snapshot.scenes.at(-1)!.id;
   const state = app.createEffectCue({ projectId, baseRevision: revision(), sceneId, type: "ManagedMotion", layer: "front", startFrame: 20, endFrame: 38, assetBindings: [{ slot: "motion", assetId: asset.id }], qualityRules: ["caption_safe_area", "semantic_anchor_required"], semanticAnchor: { type: "absolute", relation: "land_on" }, note: "保留的说明" });
