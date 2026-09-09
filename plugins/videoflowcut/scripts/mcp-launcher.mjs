@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { pluginRootFromModule, releaseNodePath, resolveRepoRoot, resolveWorkspaceRoot } from "./repo-root.mjs";
+import { pluginRootFromModule, releaseNodePath, resolveReleaseRuntime, resolveRepoRoot, resolveWorkspaceRoot } from "./repo-root.mjs";
 import { recoverMcpDeployment, withRuntimeOperationLock } from "./runtime-launcher.mjs";
 import { createReloadingMcpSession } from "./mcp-session.mjs";
 
@@ -23,7 +24,11 @@ let session;
 const server = new Server({ name: "video-editor-mcp", version: "1.0.0" }, { capabilities: { tools: { listChanged: true } } });
 
 try {
+  const initialRelease = resolveReleaseRuntime(pluginRoot);
+  const catalog = JSON.parse(readFileSync(join(initialRelease.root, "mcp-tools.json"), "utf8"));
+  if (catalog.schemaVersion !== 1) throw new Error("MCP 发行工具目录版本不兼容，请重新构建并安装插件");
   session = createReloadingMcpSession({
+    initialTools: catalog.tools,
     runExclusive: (action) => withRuntimeOperationLock(options, action),
     resolveDeployment: async () => {
       activeDeployment = await recoverMcpDeployment(options, activeDeployment);

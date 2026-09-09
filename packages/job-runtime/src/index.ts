@@ -24,10 +24,12 @@ export async function processClaimedJob(
   heartbeat.unref();
   try {
     const result = await processor(job);
+    if (application.trackJob(job.id).status === "cancelled") return;
     // 外部 Bridge Run 可能已在处理过程中写入诊断信息；成功结果不能把这份恢复依据覆盖掉。
     const persisted = application.trackJob(job.id).result ?? {};
     application.updateJob(job.id, { status: "succeeded", result: { ...persisted, ...result } });
   } catch (error) {
+    if (application.trackJob(job.id).status === "cancelled") return;
     const detail = error instanceof Error ? error.message : String(error);
     const code = error && typeof error === "object" && "code" in error ? String((error as { code?: unknown }).code ?? "JOB_FAILED") : "JOB_FAILED";
     // 外部提交在网络中断后可能已经被 Provider 接受；这种结果不能被伪装成普通失败，

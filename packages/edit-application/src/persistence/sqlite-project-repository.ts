@@ -1,3 +1,4 @@
+import { reconcileSoundDesign } from "../sound-design.js";
 import { mkdirSync } from "node:fs";
 import { reconcileMotionDependencies } from "../motion-dependencies.js";
 import { join } from "node:path";
@@ -398,6 +399,7 @@ export class ProjectRepository {
       mutate(snapshot, impact);
       reconcileMotionDependencies(current.snapshot, snapshot, impact);
       reconcileEffectAudioEvents(snapshot, impact);
+      reconcileSoundDesign(current.snapshot, snapshot, impact);
       reconcileStaleSourceAudioArtifacts(snapshot, impact);
       snapshot.project.updatedAt = now();
       assertTimelineValid(snapshot);

@@ -150,6 +150,8 @@ Props 需要默认值、合法范围、类型和回退。Asset 通过项目 Bind
 
 ## 局部时间与 Remotion Sequence
 
+声音需要绑定作品实际执行产生的事件。受管源码可导出 `resolveMotionEvents(props, {fps, durationInFrames})`，返回包含 id、meaning、startFrame 和可选 endFrame 的数组；画面与事件必须共用同一份时序常量或计算函数。渲染器在隔离浏览器读取并检查确定性、重复 ID 和范围，随作品固定 eventMap 版本。用 `read_motion_work`/Asset 读回实际事件，再交给 effect-timing 和 audio-finishing；不要另写一张与画面无关的手填时间表。持续动作交付起止范围，是否全程发声由 SoundPlan 决定。学习案例以当前 [motion-case-library](../motion-case-library/SKILL.md) 的六个固定案例为准，配声版本另行生成，不改归档样例。
+
 Cue 在整条 Composition 中可能从第 1000 帧开始，但绑定视频、内部动画和计数通常需要从 Cue 局部第 0 帧开始。组件应使用局部 Frame 或在外层 `Sequence` 中重置时间，不能直接把全局 Composition Frame 当作素材内部帧，否则晚时间 Cue 可能从视频中间或末尾播放。
 
 Timeline 范围必须容纳 Enter、Settled、Hold 和 Exit。不能用更短 Item 截断组件内部未完成动画；主线时长变化时，重新编译或调整 Cue，而不是依赖偶然裁切。

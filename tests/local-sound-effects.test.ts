@@ -55,8 +55,9 @@ test("MCP 只能浏览、检测并导入配置根目录内的本地音效", asyn
     assert.ok(tools.tools.some((tool) => tool.name === "import_local_sound_effect"));
     assert.equal(tools.tools.find((tool) => tool.name === "browse_sound_sources")?.annotations?.readOnlyHint, true);
     const sources = JSON.parse(textFromToolResult(await client.callTool({ name: "browse_sound_sources", arguments: {} })));
-    assert.deepEqual(sources.sources.map((source: { id: string }) => source.id), ["mixkit", "a-sound-effect", "freesound", "ear0", "boom"]);
-    assert.ok(sources.categories.includes("interface"));
+    assert.deepEqual(sources.sources.map((source: { id: string }) => source.id), ["mixkit", "mixkit_music", "freesound"]);
+    assert.equal(sources.sources[0].original, true);
+    assert.ok(sources.sources[0].categories.includes("interface"));
     const manageSchema = tools.tools.find((tool) => tool.name === "manage_audio")!.inputSchema;
     assert.ok(manageSchema.properties?.effect_event);
 

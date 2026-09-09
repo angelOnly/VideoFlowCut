@@ -7,8 +7,10 @@ import { compileMotion, MOTION_ENGINE_VERSION } from "../../../packages/motion-w
 import type { MotionSubmission } from "../../../packages/motion-work/src/schema.js";
 import { resolveRenderBrowser } from "./exporter.js";
 import { runProcess } from "@videocut/speech";
+import { parseMotionEvents } from "../../../packages/motion-work/src/schema.js";
+import type { MotionEvent } from "@videocut/contracts";
 
-export interface MotionRenderResult { frameHashes: string[]; previewPath: string; engineVersion: string; sandbox: string; }
+export interface MotionRenderResult { frameHashes: string[]; previewPath: string; engineVersion: string; sandbox: string; events?: MotionEvent[]; }
 export const motionFrameName = (frame: number) => `frame-${String(frame).padStart(5, "0")}.png`;
 
 /** Chromium 会省略全不透明帧的 Alpha；入库前固定 RGBA，避免后续像素步长与滤镜状态跳变。 */
@@ -67,6 +69,9 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
     page.on("popup", (popup) => { errors.push("MOTION_POPUP_BLOCKED"); void popup?.close(); });
     await page.goto("https://motion.invalid/", { waitUntil: "load", timeout: 15_000 });
     await page.waitForFunction("window.__motionReady === true", { timeout: 15_000 });
+    const readEvents = () => page.evaluate(() => (window as unknown as { __readMotionEvents: () => unknown }).__readMotionEvents());
+    const rawEvents = await readEvents();
+    const events = rawEvents === null ? undefined : parseMotionEvents(rawEvents, input.durationInFrames);
     const frameHashes: string[] = [];
     let totalBytes = 0;
     const capture = async (frame: number) => {
@@ -98,6 +103,7 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
       const repeated = createHash("sha256").update(await capture(frame)).digest("hex");
       if (repeated !== frameHashes[frame]) throw new Error("MOTION_NONDETERMINISTIC: 重复定位同一帧得到不同画面");
     }
+    if (JSON.stringify(await readEvents()) !== JSON.stringify(rawEvents)) throw new Error("MOTION_EVENT_NONDETERMINISTIC: 事件计算依赖渲染副作用");
     await browser.close();
     const previewPath = join(directory, "preview.mp4");
     // 只有审阅代理使用背景；正式合成始终读取带 Alpha 的 PNG 帧，不烧入棋盘格或安全区。
@@ -105,7 +111,7 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
     await runProcess("ffmpeg", ["-y", "-v", "error", "-framerate", String(input.fps), "-i", join(directory, "frames", "frame-%05d.png"), "-f", "lavfi", "-i", `color=c=0x172033:s=${input.width}x${input.height}:r=${input.fps}`, "-filter_complex", "[0:v]format=rgba[fg];[1:v][fg]overlay=shortest=1:format=auto,format=yuv420p", "-frames:v", String(input.durationInFrames), "-an", "-c:v", "libx264", "-crf", "18", previewPath], 120_000);
     await readFile(previewPath); // ffmpeg 返回成功还必须有真实输出。
     await verifyMotionPreviewFrames(previewPath, input.durationInFrames, input.fps);
-    return { frameHashes, previewPath, engineVersion: MOTION_ENGINE_VERSION, sandbox: "chromium-os-sandbox+csp-opaque-origin+deny-network" };
+    return { frameHashes, previewPath, engineVersion: MOTION_ENGINE_VERSION, sandbox: "chromium-os-sandbox+csp-opaque-origin+deny-network", events };
   } catch (error) {
     throw new Error(timedOut ? "MOTION_RENDER_TIMEOUT" : [...errors.slice(0, 3), error instanceof Error ? error.message : String(error)].join("; "));
   } finally { clearTimeout(deadline); await browser.close().catch(() => undefined); }

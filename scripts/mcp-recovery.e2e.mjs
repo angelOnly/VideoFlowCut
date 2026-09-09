@@ -79,13 +79,15 @@ try {
   await writeFile(statePath, JSON.stringify({ ...JSON.parse(recoveredState), pid: process.pid }));
   closed = false;
   await connect();
-  assert.deepEqual((await client.listTools()).tools, []);
+  const initialTools = (await client.listTools()).tools;
+  assert.ok(initialTools.some((tool) => tool.name === "read_runtime_release"));
+  assert.ok(initialTools.some((tool) => tool.name === "report_editing_blocker"));
   assert.equal((await call()).isError, true);
   assert.equal(closed, false, "初始依赖故障仍须完成外层握手");
   await writeFile(statePath, recoveredState);
-  await client.listTools();
+  // 模拟宿主缓存首次目录、不响应通知；修复后直接调用已发现的工具。
   assert.notEqual((await call()).isError, true);
-  assert.ok(catalogChanges > 0, "初始空目录恢复后必须通知宿主发现真实工具");
+  assert.equal(catalogChanges, 0, "同一发行恢复无需工具变更通知");
   await client.close();
   console.log(JSON.stringify({ verified: true, releaseId: release.releaseId, staleStateRecovered: true,
     sameConnectionRecovered: true, unknownProcessProtected: true, initialFailureHandshakeSurvived: true,

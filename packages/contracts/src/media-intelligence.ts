@@ -15,6 +15,8 @@ export interface MediaSource {
   kind: "video" | "audio" | "image" | "document";
   durationMs: number;
   hasAudio: boolean;
+  startSeconds?: number;
+  pageCount?: number;
   width?: number;
   height?: number;
   streams: Array<{ index: number; kind: string; timeBase?: string; startSeconds: number; sampleRate?: number; rotation?: number }>;
@@ -49,9 +51,13 @@ export interface MediaObservation {
   unknowns: string[];
   context: string;
   rawText: string;
+  audioMeasurements?: { range: SourceTimeRange; sampleRate: number; sampleOriginMs: number; hopSamples: number; firstAudibleSample: number | null; effectiveEndSample: number | null; attackCandidates: Array<{ sample: number; strength: number }>; rms: number[]; peaks: number[]; thresholdDb: number; precision: "measurement_candidate"; reviewStatus: "unreviewed" };
+  speechEvidence?: { rawText: string; runId: string; schemaVersion: string; tokenPrecision: string };
   version: { workflowId: string; schemaVersion: string; model: string; prompt: string; preprocessing: string; samplingFps?: number };
   jobId: string;
   runId?: string;
+  inputEvidence?: { hash: string; path: string; mapping: Record<string, unknown> };
+  reusedFromObservationId?: string;
   supersedes?: string;
   correction?: { reason: string; author: string };
   createdAt: string;
@@ -66,6 +72,7 @@ export interface MediaAnalysisWindow {
   schemaVersion?: string;
   workflowId?: string;
   observationId?: string;
+  modalityStatus?: Partial<Record<MediaModality, "observed" | "unknown" | "failed" | "unavailable">>;
   error?: string;
 }
 
@@ -112,6 +119,8 @@ export interface MediaMatch {
   conditions: string[];
 }
 
+export type MediaUsageTarget = { timelineItemId: string; effectCueId?: never; slot?: never } | { effectCueId: string; slot: string; timelineItemId?: never };
+
 export interface MediaAdoption {
   id: string;
   assetId: string;
@@ -126,12 +135,14 @@ export interface MediaAdoption {
   conditions: string[];
   status: "current" | "needs_review";
   reviewReason?: string;
+  /** 正式放置的具体用途，保存当时范围与上下文签名。 */
+  uses?: Array<{ target: MediaUsageTarget; signature: string }>;
   createdAt: string;
 }
 
 export interface SoundIntent {
   id: string;
-  function: "anticipation" | "settle" | "reaction" | "connection" | "ambience" | "music" | "silence";
+  function: "anticipation" | "settle" | "reaction" | "connection" | "ambience" | "music" | "silence" | "demonstration";
   brief: string;
   requestId?: string;
   motionEventId?: string;
@@ -144,6 +155,7 @@ export interface SoundPlan {
   dominantRole: AudioRole;
   musicDirection: string;
   intents: SoundIntent[];
+  dominantRanges?: Array<{ startFrame: number; endFrame: number; role: AudioRole; reason: string }>;
   version: number;
   status: "current" | "needs_review";
   updatedAt: string;

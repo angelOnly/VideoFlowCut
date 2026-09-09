@@ -1,3 +1,4 @@
+import { runSoundRanking } from "./sound-ranking.js";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { mkdir, open, rename, rm } from "node:fs/promises";
@@ -33,7 +34,7 @@ const getDefaultApplication = () => (defaultApplication ??= createApplication(wo
  * 但绝不能被 Worker claim 或重新执行；唯一正式入口是段级 source_caption_alignment。
  */
 export const MEDIA_JOB_KINDS: JobKind[] = ["media_analysis", "vlog_analysis", "multicam_sync", "asset_acquisition", "transcription", "source_caption_alignment", "voice_synthesis", "dialogue_processing", "speech_alignment", "music_generation", "video_generation", "avatar_generation"];
-MEDIA_JOB_KINDS.push("media_understanding", "media_search");
+MEDIA_JOB_KINDS.push("media_understanding", "media_search", "sound_ranking");
 
 const resolveAssetPath = (snapshot: ProjectSnapshot, asset: Asset) => isAbsolute(asset.managedPath) ? asset.managedPath : join(snapshot.project.rootPath, asset.managedPath);
 
@@ -239,6 +240,7 @@ export function createMediaJobProcessor(
         return runMediaAnalysis(app, job);
       case "media_understanding":
         return runMediaUnderstanding(app, job, bridge, providers);
+      case "sound_ranking": return runSoundRanking(app, job, bridge);
       case "media_search":
         return runMediaSearch(app, job, bridge);
       case "vlog_analysis":

@@ -899,7 +899,7 @@ function normalizeSourceCaptionComparableText(value: string): string {
  * 严格接收 v4 段级合同。Provider 的 segment 时间本身就是正式字幕的时间事实；
  * token 只有能逐项核验时才开放给编辑重分段，绝不用字符或标点补算。
  */
-function parseSourceCaptionAlignmentOutput(value: string): SourceCaptionAlignmentResult {
+export function parseSourceCaptionAlignmentOutput(value: string): SourceCaptionAlignmentResult {
   let parsed: unknown;
   try {
     parsed = JSON.parse(value);

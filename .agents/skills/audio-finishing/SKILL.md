@@ -51,9 +51,9 @@ SFX 应绑定明确的叙事或视觉事件：预示变化、对象落定、数�
 
 ### 在线候选与按需获取
 
-用户允许在线选音时，用 `browse_sound_sources` 查看 Mixkit、A Sound Effect、Freesound、耳聆网与 BOOM Library 的入口。它们是候选来源，不代表所有声音已适合本片或获得许可。本地用户音效包继续保留，比较的是具体事件的功能、攻击、情绪与尾音，不因来自付费合集或网上就默认更好。
+默认在线选音，由 [sound-asset-sourcing](../sound-asset-sourcing/SKILL.md) 完成按功能检索、有限候选原声分析、取得原文件与采用依据。用 `browse_sound_sources` 读取当前 Provider、分类、凭据和许可能力，Mixkit 音效、Mixkit 音乐与 Freesound 分开处理。来源名称不证明适配或许可，本地用户音效包也按同一范围和试听标准选择。
 
-当前 Mixkit 通过既有素材链获取：`manage_asset_requirements` 使用 media_kind=audio、audio_brief 和 role=sfx，不填 visual_brief 或画幅；再用 `search_media_candidates(provider=mixkit)` 浏览一个已支持分类（由来源工具返回），`inspect_media_candidate` 查看试听地址、来源、许可和过滤理由。只将准备采用的候选交给 `acquire_media_asset`，等待下载及媒体分析成功后，复核本地原文件再使用。网页试听版可能与下载 WAV 的时长/编码不同，不能沿用试听版的精确源偏移。其它网站先走原站合法获取或已有授权文件导入，不批量镜像、不自动购买，不把 Freesound 预览当作 OAuth 原文件下载。
+`manage_asset_requirements` 使用 media_kind=audio、audio_brief、role=sfx/bgm 和结构化 sound 条件，不填画幅。`recommend_sound_candidates` 先对描述排序，再为有限候选建立音频分析子 Job；继续读取子任务结果，不能把父任务成功当成听过。`acquire_media_asset` 后等待下载和媒体分析，原文件经范围复核与 `adopt_media_fragment` 保存依据。预览版和原文件分别定位；Freesound 原文件需要配置实际 OAuth，不把预览下载伪装成原文件。
 
 ### 绑定一个实际动作，而非只绑定“这段有动画”
 
@@ -61,11 +61,15 @@ SFX 应绑定明确的叙事或视觉事件：预示变化、对象落定、数�
 
 为重要动效配音时，`manage_audio` 的 effect_event 指定 effect_cue_id、event_name、local_frame、sync_offset_frames。先区分同一作品里的标题进入、关系建立与结论落定；选择真正要强化的动作。可听事件全局帧为 Cue.startFrame + local_frame + sync_offset_frames，Item 起点仍为 event_frame − onset_offset_frames。sync_offset_frames 表达听觉相对视觉的预示/滞后，onset_offset_frames 表达所选声音源范围内部的偏移，二者不能混用。
 
+绑定作品的完整持续动作时，带上实际 event_id、work_version、local_frame 和 end_local_frame，并显式设置 design.durationFrames。持续声终点必须等于 Cue.startFrame + end_local_frame + sync_offset_frames，因此播放时长为 end_local_frame − local_frame + onset_offset_frames；非循环源范围必须足够覆盖这段播放时长。仅缩短 source_end_frame 不能替代显式持续时长。淡出包含在播放范围内，不额外增加尾部帧。例如动作106–124、onset为0时，durationFrames为18；若真实源起音候选为3帧，则所需播放时长为21帧，不能把这3帧源前导混成声画偏移。
+
+只在动作起势或落定发一声、允许声音自然短尾时，使用事件起点或终点的点绑定，省略 end_local_frame；此时可保留比动作范围长的源尾音。点绑定表达实际声音设计选择，不用于冒充完整持续动作。所有起音候选和未复听结果仍保持 inconclusive，并在实际段落里检查提前/滞后及尾音遮蔽。
+
 平台固定当前视觉版本签名。同版本动效纯平移会同步移动关联声音；换作品、改 Props、内部运动、时长或删除动效会停用旧声音并标 stale。重新使用时显式提交复核后的 effect_event；只调音量不能恢复失效的关系。确实改成独立叙事事件才传 null 解除关联，不把解除关联作为绕过复核。源音效或源起点改变后也要重新确认 onset。自动跟随只保护物理关系，不能证明新位置的语音遮蔽与听感仍成立。
 
 ### 可感知且不遮蔽对白
 
-先选合适音色与包络，再调整增益。短促高频攻击可能遮住辅音，长尾可能占据下一句或恢复段，纯低频效果在小扬声器上可能弱化；这些是需要实际复听的风险，不以统一 dB 值下结论。当前工具不提供通用 EQ 或任意包络编辑时，优先选择更合适的源音效/范围与已支持的增益、淡化，不承诺不存在的混音能力。
+先选合适音色与包络，再调整增益。短促高频攻击可能遮住辅音，长尾可能占据下一句，纯低频效果在小扬声器上可能弱化，需要实际复听。`manage_audio` 的 design 支持角色、局部增益包络、持续时长及循环交叉淡化；循环需显式设置并复核接缝，不通过隐式拉伸凑长度。通用 EQ 和降噪仍未实现。
 
 不抢人声并不等于接近静音。对代表性连续段保持同一回放条件，比较有声、无该音效与调整版：重点是否更明确，语句是否仍可懂，攻击是否与动作吻合，尾音是否完成释放，相邻重复是否造成疲劳。若只在单独播放音效时有效，混入实际 Dialogue 后几乎无感或产生遮蔽，则尚未完成。
 
@@ -101,7 +105,11 @@ Vlog 中环境声是事实的一部分；Stock B-roll 的环境声不一定属�
 
 ## 当前能力边界
 
-当前代码已支持人物声音所有权、Dialogue、导出音轨技术检查和 `manage_audio`：它只接受已就绪的独立本地音频，原子写入 `AudioCue` 与 BGM/SFX 专用 Timeline Item。BGM 支持有限淡入淡出、循环和基于实际 Dialogue 区间的 Duck；SFX 必须显式给出观众实际听见的 `event_frame` 与相对所选源片段的 `onset_offset_frames`，系统不会伪造自动 onset 检测。主线、Script、Scene 或旁白时长变化后，旧声音包装会停止合成并标 `stale`，需要通过 `manage_audio(action=update)` 重新确认。`smooth_audio` 以及自动配乐、Room Tone 生成、EQ、降噪、J/L Cut 自动化和通用 DAW 仍是架构目标；遇到这些需求应给出可执行计划与能力缺口，不要宣称已经写入成片。
+当前 `manage_audio` 接受已就绪原文件，原子写入 AudioCue 与声音 Item；design 可引用 SoundPlan、意图版本和 adoptionId。候选尚无采用依据时，保留当前 soundPlanId、soundIntentId、planVersion，不填 adoptionId，可以先生成比较片或写入待审草稿。关联需求的原文件采用缺失会形成独立的 `SOUND_ADOPTION_REQUIRED` 交付阻断；起音 confirmed 或混合 reviewed 不能替代采用。显式传入的错误需求、过期文件或不覆盖源范围的采用依据仍拒绝，不能删除计划关联、伪造采用或把候选试听当成正式通过。
+
+角色 Duck 依据当前主声音范围、可听视频原声和 attack/hold/release 退让，演示声音主导时音乐同样让位。SFX 的 event_frame、onset_offset_frames 仍须明确；作品事件优先使用实际 eventMap 的 ID、版本和范围。上下文变化会使混合复核失效；源范围/循环参数变化还需重查起音和接缝。`preview_sound_alternatives` 用正式声音计算生成比较片，正式 Preview 后再 `review_sound_mix`。`set_audio_output_target` 仅设置最终完整文件测量目标，不自动调音量或取得听审通过。`smooth_audio`、Room Tone 生成、EQ、降噪、自动 J/L Cut 和通用 DAW 仍是架构目标。
+
+具有 design 角色的 SFX 会实际使用 Duck，它不是被渲染忽略的通用字段。旁白或人物原声触发时，基础 gain_db 之外还会叠加 reductionDb，例如 -18 dB 与 -14 dB 在完整触发区间合为 -32 dB，实际触发范围仍取决于主声音、对齐与包络。当前修改这类 SFX 的 ducking 时需同时显式提供 `design: { role: "sfx" }`，也可带回已核对的计划/意图/版本；只传 ducking 会被旧 SFX 范围合同拒绝。已有计划关联会保留，关闭 Duck 后混合仍回到待审，须重新比较旁白清晰度和音效强度。
 
 ## 三类案例
 

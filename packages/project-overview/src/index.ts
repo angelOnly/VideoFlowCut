@@ -49,10 +49,22 @@ export interface RuntimeConfig {
     /** Bridge HTTP API 根地址。 */
     apiBaseUrl: string;
   };
+  /** 冻结到分析 Job 的外部 HTTP 配置；不管理模型进程。 */
+  semantic: {
+    videoWorkflowId: string;
+    audioWorkflowId: string;
+    imageWorkflowId: string;
+    embeddingWorkflowId: string;
+    modelRevision: string;
+    embeddingRevision: string;
+  };
   /** 第三方素材 Provider 的可选凭据；总览只显示是否已配置。 */
   providers: {
     /** Pexels API 密钥；不得写入日志或 MCP 总览结果。 */
     pexelsApiKey?: string;
+    freesoundApiKey?: string;
+    freesoundOAuthToken?: string;
+    freesoundCommercialApiApproved: boolean;
   };
   /** 下载外部或生成素材时的文件大小保护阈值。 */
   downloads: {
@@ -122,8 +134,19 @@ export function readRuntimeConfig(options: ReadRuntimeConfigOptions = {}): Runti
     bridge: {
       apiBaseUrl: environment.COMFYUI_BRIDGE_URL ?? RUNTIME_CONFIG_DEFAULTS.bridgeApiBaseUrl
     },
+    semantic: {
+      videoWorkflowId: environment.VIDEOCUT_VIDEO_ANALYSIS_WORKFLOW_ID ?? "ee8e9c17-bd16-566f-ad2d-a7ec239bf4b8",
+      audioWorkflowId: environment.VIDEOCUT_AUDIO_ANALYSIS_WORKFLOW_ID ?? "863d530d-8066-52b2-a59d-de4301f41013",
+      imageWorkflowId: environment.VIDEOCUT_IMAGE_ANALYSIS_WORKFLOW_ID ?? "d8bc75ad-5737-5d68-b9fd-44739c4700df",
+      embeddingWorkflowId: environment.VIDEOCUT_EMBEDDING_WORKFLOW_ID ?? "15904667-24ab-5e91-bc56-19ee2ad9eb4f",
+      modelRevision: environment.VIDEOCUT_ANALYSIS_MODEL_REVISION ?? "073dbbc8c5bc0af2d789e1ce12e7c17a6be746e1",
+      embeddingRevision: environment.VIDEOCUT_EMBEDDING_MODEL_REVISION ?? "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3"
+    },
     providers: {
-      pexelsApiKey: environment.PEXELS_API_KEY?.trim() || undefined
+      pexelsApiKey: environment.PEXELS_API_KEY?.trim() || undefined,
+      freesoundApiKey: environment.FREESOUND_API_KEY?.trim() || undefined,
+      freesoundOAuthToken: environment.FREESOUND_OAUTH_TOKEN?.trim() || undefined,
+      freesoundCommercialApiApproved: environment.FREESOUND_COMMERCIAL_API_APPROVED === "true"
     },
     downloads: {
       maxAssetBytes: Number(environment.VIDEOCUT_MAX_ASSET_DOWNLOAD_BYTES ?? RUNTIME_CONFIG_DEFAULTS.maxAssetDownloadBytes),
@@ -287,7 +310,8 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     description: "浏览、导入、检验、搜索、获取素材，并保留来源、许可和需求事实。",
     tools: [
       "browse_assets", "inspect_asset", "manage_asset_requirements", "search_media_candidates", "inspect_media_candidate",
-      "acquire_media_asset", "read_asset_provenance", "import_media", "update_asset_metadata"
+      "acquire_media_asset", "read_asset_provenance", "import_media", "update_asset_metadata",
+      "analyze_media", "read_media_observations", "search_media_fragments", "correct_media_observation", "adopt_media_fragment", "bind_media_adoption", "retry_media_job"
     ]
   },
   // 音频主线：转写、脚本、语音、字幕与音乐音效。
@@ -300,7 +324,8 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
       "read_speech_asset", "manage_voice_references", "read_speech_timing", "submit_speech_alignment",
       "read_speech_alignment", "rebuild_speech_timeline", "submit_voice_synthesis", "submit_dialogue_processing",
       "select_dialogue_processing_variant", "read_captions", "edit_captions", "browse_local_sound_effects",
-      "inspect_local_sound_effect", "import_local_sound_effect", "browse_sound_sources", "manage_audio"
+      "inspect_local_sound_effect", "import_local_sound_effect", "browse_sound_sources", "manage_audio",
+      "manage_sound_plans", "recommend_sound_candidates", "preview_sound_alternatives", "review_sound_mix", "set_audio_output_target"
     ]
   },
   // 人物口播和 Presenter 场景的主线组装。
@@ -387,8 +412,17 @@ export const NODE_RUNTIME_CONFIGURATION_CATALOG = [
   { key: "LOG_LEVEL", group: "HTTP", description: "Fastify 日志级别", defaultValue: RUNTIME_CONFIG_DEFAULTS.logLevel },
   // Bridge：所有 ComfyUI Bridge HTTP 调用共用的地址。
   { key: "COMFYUI_BRIDGE_URL", group: "Bridge", description: "ComfyUI Bridge HTTP API 根地址", defaultValue: RUNTIME_CONFIG_DEFAULTS.bridgeApiBaseUrl },
+  { key: "VIDEOCUT_VIDEO_ANALYSIS_WORKFLOW_ID", group: "素材理解", description: "外部视频原声理解工作流" },
+  { key: "VIDEOCUT_AUDIO_ANALYSIS_WORKFLOW_ID", group: "素材理解", description: "外部原生音频理解工作流" },
+  { key: "VIDEOCUT_IMAGE_ANALYSIS_WORKFLOW_ID", group: "素材理解", description: "外部图片及页面理解工作流" },
+  { key: "VIDEOCUT_EMBEDDING_WORKFLOW_ID", group: "素材理解", description: "外部文本向量工作流" },
+  { key: "VIDEOCUT_ANALYSIS_MODEL_REVISION", group: "素材理解", description: "观察模型版本，隔离分析缓存" },
+  { key: "VIDEOCUT_EMBEDDING_MODEL_REVISION", group: "素材理解", description: "向量模型版本，隔离语义索引" },
   // Provider：第三方素材服务的凭据；密钥不会出现在项目总览响应中。
   { key: "PEXELS_API_KEY", group: "Provider", description: "启用 Pexels 素材 Provider 的密钥", sensitive: true },
+  { key: "FREESOUND_API_KEY", group: "Provider", description: "Freesound 官方搜索 API 密钥", sensitive: true },
+  { key: "FREESOUND_OAUTH_TOKEN", group: "Provider", description: "Freesound 原文件 OAuth 凭据", sensitive: true },
+  { key: "FREESOUND_COMMERCIAL_API_APPROVED", group: "Provider", description: "是否已确认 Freesound 商业 API 使用条件", defaultValue: "false" },
   // 下载限制：防止单个外部文件异常占满工作区磁盘。
   { key: "VIDEOCUT_MAX_ASSET_DOWNLOAD_BYTES", group: "下载限制", description: "普通 Provider 素材下载上限", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.maxAssetDownloadBytes) },
   { key: "VIDEOCUT_MAX_WIKIMEDIA_DOWNLOAD_BYTES", group: "下载限制", description: "Wikimedia Commons 下载上限", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.maxWikimediaDownloadBytes) },
@@ -524,9 +558,10 @@ export function getProjectOverview(options: ReadRuntimeConfigOptions = {}) {
       workspaceRoot: config.workspace.root, // 当前项目实际写入磁盘的根目录。
       http: config.http, // Server、Web 工作台和日志配置。
       bridge: config.bridge, // ComfyUI Bridge 的安全地址信息。
+      semantic: config.semantic,
       downloads: config.downloads, // 外部素材和生成文件的下载上限。
       localSoundEffects: { roots: config.localSoundEffects.roots }, // 仅受控根目录可用于本地音效浏览和导入。
-      providers: { pexelsConfigured: Boolean(config.providers.pexelsApiKey) }, // 仅返回 Pexels 密钥是否存在。
+      providers: { pexelsConfigured: Boolean(config.providers.pexelsApiKey), freesoundApiConfigured: Boolean(config.providers.freesoundApiKey), freesoundOriginalConfigured: Boolean(config.providers.freesoundOAuthToken), freesoundCommercialApiApproved: config.providers.freesoundCommercialApiApproved },
       runtime: {
         distributionDirectory: config.runtime.distributionDirectory, // 插件发行 Runtime 根目录。
         runtimeId: config.runtime.runtimeId, // 当前 Runtime 实例标识。

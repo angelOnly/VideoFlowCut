@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, useCurrentFrame } from "remotion";
-import { inspectEffectContentContract, type ActorPerformance, type AudioCue, type CaptionCard, type CaptionEmphasis, type CaptionFormat, type Cutaway, type EffectCue, type ProjectSnapshot, type TimelineItem, type TimelineTrack } from "@videocut/contracts";
+import { sourceAudioTimeOrigin, inspectEffectContentContract, type ActorPerformance, type AudioCue, type CaptionCard, type CaptionEmphasis, type CaptionFormat, type Cutaway, type EffectCue, type ProjectSnapshot, type TimelineItem, type TimelineTrack } from "@videocut/contracts";
 import { compileCutawayLayout, cutawaySourceVolume } from "./cutaway-layout";
 import {
   CAPTION_BACKGROUND_VERTICAL_PADDING_EM,
@@ -300,7 +300,7 @@ const CaptionTrackLayer: React.FC<{ snapshot: ProjectSnapshot }> = ({ snapshot }
 };
 
 const itemDuration = (item: TimelineItem) => item.endFrame - item.startFrame;
-const itemVolume = (item: TimelineItem, track: TimelineTrack) => track.muted ? 0 : Math.pow(10, (item.gainDb ?? 0) / 20);
+const itemVolume = (item: TimelineItem, track: TimelineTrack) => track.muted || item.mediaAudioPolicy === "mute" ? 0 : Math.pow(10, (item.gainDb ?? 0) / 20);
 
 const dbToVolume = (gainDb: number) => Math.pow(10, gainDb / 20);
 
@@ -316,6 +316,7 @@ export function resolveVideoSourceVolume(
   performance?: ActorPerformance,
   cutaway?: Cutaway
 ): number {
+  if (item.mediaAudioPolicy === "mute") return 0;
   if (cutaway) return cutawaySourceVolume(cutaway, item, track);
   const isVlogPrimaryVideo = (snapshot.vlogShotSelects ?? []).some((select) => select.status === "ready" && select.timelineItemId === item.id);
   const isMulticamPrimaryVideo = (snapshot.multicamCuts ?? []).some((cut) => cut.status === "ready" && cut.timelineItemId === item.id);
@@ -379,12 +380,33 @@ function hasUsableActorMask(snapshot: ProjectSnapshot, item: TimelineItem, perfo
 /** 当前帧的 Duck 强度取 Dialogue 的实际可听区间；短停顿不会立即把音乐推回原音量。 */
 function duckIntensityAt(snapshot: ProjectSnapshot, frame: number, cue: AudioCue): number {
   const ducking = cue.ducking;
-  if (cue.kind !== "bgm" || !ducking?.enabled) return 0;
+  if (!ducking?.enabled) return 0;
   const tracksById = new Map(snapshot.timeline.tracks.map((track) => [track.id, track]));
   let intensity = 0;
   for (const item of snapshot.timeline.items) {
     const track = tracksById.get(item.trackId);
-    if (!track || track.name !== "Dialogue" || track.muted || item.disabled || (item.gainDb ?? 0) <= -80) continue;
+    if (!track || track.muted || item.disabled || item.mediaAudioPolicy === "mute" || (item.gainDb ?? 0) <= -80 || item.id === cue.timelineItemId) continue;
+    const otherCue = snapshot.audioCues.find((entry) => entry.timelineItemId === item.id && entry.status === "ready");
+    const role = otherCue?.role ?? (track.name === "Dialogue" ? "narration" : undefined);
+    const sourceAudible = !otherCue && snapshot.assets.some((asset) => asset.id === item.assetId && asset.metadata?.hasAudio && ["video", "actor_video"].includes(asset.kind))
+      && resolveVideoSourceVolume(snapshot, item, track, snapshot.actorPerformances.find((performance) => performance.timelineItemId === item.id), snapshot.cutaways.find((cutaway) => cutaway.timelineItemId === item.id)) > 0;
+    if (cue.role ? !["narration", "source_speech", "demonstration"].includes(role ?? "") && !sourceAudible : track.name !== "Dialogue") continue;
+    const dominant = (snapshot.soundPlans ?? []).filter((plan) => plan.status === "current" && frame >= plan.startFrame && frame < plan.endFrame).flatMap((plan) => {
+      const overrides = plan.dominantRanges?.filter((range) => frame >= range.startFrame && frame < range.endFrame).map((range) => range.role);
+      return overrides?.length ? overrides : [plan.dominantRole];
+    });
+    if (cue.role && dominant.includes(cue.role)) continue;
+    const alignment = snapshot.sourceAudioAlignments.find((entry) => entry.status === "ready" && entry.sourceTimelineItemId === item.id);
+    const ranges = cue.role && alignment?.segments.length ? alignment.segments.map((segment) => ({ startFrame: Math.max(item.startFrame, item.startFrame + sourceAudioTimeOrigin(alignment) - item.sourceStartFrame + segment.startMs * snapshot.timeline.fps / 1000), endFrame: Math.min(item.endFrame, item.startFrame + sourceAudioTimeOrigin(alignment) - item.sourceStartFrame + segment.endMs * snapshot.timeline.fps / 1000) })) : [{ startFrame: item.startFrame, endFrame: item.endFrame }];
+    if (cue.role) {
+      for (const range of ranges) {
+        const hold = ducking.holdFrames ?? 6;
+        if (frame >= range.startFrame && frame < range.endFrame + hold) intensity = 1;
+        else if (frame < range.startFrame && ducking.attackFrames > 0) intensity = Math.max(intensity, 1 - (range.startFrame - frame) / ducking.attackFrames);
+        else if (frame >= range.endFrame + hold && ducking.releaseFrames > 0) intensity = Math.max(intensity, 1 - (frame - range.endFrame - hold) / ducking.releaseFrames);
+      }
+      continue;
+    }
     if (frame >= item.startFrame && frame < item.endFrame) {
       const attack = ducking.attackFrames;
       intensity = Math.max(intensity, attack === 0 ? 1 : Math.min(1, (frame - item.startFrame + 1) / attack));
@@ -394,19 +416,51 @@ function duckIntensityAt(snapshot: ProjectSnapshot, frame: number, cue: AudioCue
       intensity = Math.max(intensity, Math.max(0, 1 - (frame - item.endFrame) / ducking.releaseFrames));
     }
   }
-  return Math.min(1, intensity);
+  return Math.max(0, Math.min(1, intensity));
+}
+
+/** 明确让内容声音主导时，真实 Dialogue/人物原声也要退让，不能只取消演示声自己的 Duck。 */
+export function plannedVoiceVolumeAt(snapshot: ProjectSnapshot, item: TimelineItem, role: "narration" | "source_speech", frame: number): number {
+  let gain = 1;
+  for (const plan of snapshot.soundPlans ?? []) {
+    if (plan.status !== "current" || frame < plan.startFrame || frame >= plan.endFrame) continue;
+    const ranges = plan.dominantRanges?.filter((range) => frame >= range.startFrame && frame < range.endFrame) ?? [];
+    const dominant = ranges.length ? ranges.map((range) => range.role) : [plan.dominantRole];
+    if (dominant.includes(role)) continue;
+    for (const primary of snapshot.audioCues) {
+      if (primary.status !== "ready" || !primary.role || !dominant.includes(primary.role) || primary.timelineItemId === item.id) continue;
+      const voiceTarget = snapshot.timeline.items.find((entry) => entry.id === primary.timelineItemId);
+      const track = snapshot.timeline.tracks.find((entry) => entry.id === voiceTarget?.trackId);
+      if (!voiceTarget || !track || voiceTarget.disabled || itemVolume(voiceTarget, track) <= 0.0001) continue;
+      const attack = primary.ducking?.attackFrames ?? 3, release = primary.ducking?.releaseFrames ?? 12;
+      const strength = frame < voiceTarget.startFrame ? (attack ? 1 - (voiceTarget.startFrame - frame) / attack : 0)
+        : frame >= voiceTarget.endFrame ? (release ? 1 - (frame - voiceTarget.endFrame) / release : 0) : 1;
+      gain = Math.min(gain, dbToVolume((primary.ducking?.reductionDb ?? -14) * Math.max(0, Math.min(1, strength))));
+    }
+  }
+  return gain;
 }
 
 /** 混音曲线同时消费淡入淡出与 Duck，避免 Web Player 和 Render Worker 各自计算一套音量。 */
 export function audioCueVolumeAt(snapshot: ProjectSnapshot, item: TimelineItem, track: TimelineTrack, cue: AudioCue | undefined, localFrame: number): number {
-  const baseVolume = itemVolume(item, track);
+  const voiceRole = cue?.role === "narration" || cue?.role === "source_speech" ? cue.role : !cue && track.name === "Dialogue" ? "narration" : undefined;
+  const baseVolume = itemVolume(item, track) * (voiceRole ? plannedVoiceVolumeAt(snapshot, item, voiceRole, item.startFrame + localFrame) : 1);
   if (!cue) return baseVolume;
   const duration = itemDuration(item);
   const fadeIn = cue.fadeInFrames > 0 ? Math.min(1, (localFrame + 1) / cue.fadeInFrames) : 1;
   const fadeOut = cue.fadeOutFrames > 0 ? Math.min(1, (duration - localFrame) / cue.fadeOutFrames) : 1;
   const ducking = cue.ducking;
   const duckVolume = ducking ? dbToVolume(ducking.reductionDb * duckIntensityAt(snapshot, item.startFrame + localFrame, cue)) : 1;
-  return baseVolume * fadeIn * fadeOut * duckVolume;
+  const points = cue.envelope ?? [];
+  let envelopeDb = points[0]?.gainDb ?? 0;
+  for (let index = 0; index < points.length; index++) {
+    if (localFrame >= points[index].frame) envelopeDb = points[index].gainDb;
+    if (index + 1 < points.length && localFrame >= points[index].frame && localFrame < points[index + 1].frame) {
+      const ratio = (localFrame - points[index].frame) / (points[index + 1].frame - points[index].frame);
+      envelopeDb = points[index].gainDb + ratio * (points[index + 1].gainDb - points[index].gainDb); break;
+    }
+  }
+  return baseVolume * fadeIn * fadeOut * duckVolume * dbToVolume(envelopeDb);
 }
 
 const VideoLayer: React.FC<{
@@ -435,7 +489,7 @@ const VideoLayer: React.FC<{
     const maskUrl = mediaUrl(snapshot, mediaBaseUrl, maskAsset.managedPath);
     Object.assign(videoStyle, { maskImage: `url("${maskUrl}")`, maskSize: "100% 100%", maskRepeat: "no-repeat", WebkitMaskImage: `url("${maskUrl}")`, WebkitMaskSize: "100% 100%", WebkitMaskRepeat: "no-repeat" });
   }
-  const sourceVolume = resolveVideoSourceVolume(snapshot, item, track, performance, cutaway);
+  const sourceVolume = resolveVideoSourceVolume(snapshot, item, track, performance, cutaway) * plannedVoiceVolumeAt(snapshot, item, "source_speech", compositionFrame);
   // 导出按时间戳解码确切源帧，不截取 HTML5 seek 后可能仍显示的旧帧；Player 仍正常连续播放。
   if (cutaway) {
     const aspectRatio = asset.metadata?.width && asset.metadata.height ? asset.metadata.width / asset.metadata.height : undefined;
@@ -451,12 +505,22 @@ const VideoLayer: React.FC<{
 
 const AudioLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; item: TimelineItem; track: TimelineTrack; cue?: AudioCue }> = ({ snapshot, mediaBaseUrl, item, track, cue }) => {
   const asset = snapshot.assets.find((candidate) => candidate.id === item.assetId);
-  if (!asset) return null;
+  if (!asset || item.mediaAudioPolicy === "mute") return null;
   // loop 会让 Audio 自身的回调帧回到源片段开头；Duck 必须始终按整条成片的全局时间判断。
   const compositionFrame = useCurrentFrame();
   const timelineLocalFrame = compositionFrame - item.startFrame;
   const vlogAmbientVolume = resolveVlogAmbientVolume(snapshot, item, track);
-  return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}><Audio src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} loop={cue?.kind === "bgm" && cue.loop} volume={() => vlogAmbientVolume ?? audioCueVolumeAt(snapshot, item, track, cue, timelineLocalFrame)} /></Sequence>;
+  if (cue?.loop && (cue.loopCrossfadeFrames ?? 0) > 0) {
+    const length = item.sourceEndFrame - item.sourceStartFrame, crossfade = cue.loopCrossfadeFrames!, step = length - crossfade;
+    const offsets = Array.from({ length: Math.ceil(itemDuration(item) / step) }, (_, index) => index * step);
+    return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}>{offsets.map((offset, index) => <Sequence key={offset} from={offset} durationInFrames={Math.min(length, itemDuration(item) - offset)}><Audio src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} volume={() => {
+      const local = timelineLocalFrame - offset;
+      const enter = index ? Math.min(1, Math.max(0, local / crossfade)) : 1;
+      const leave = offset + step < itemDuration(item) ? Math.min(1, Math.max(0, (length - local) / crossfade)) : 1;
+      return audioCueVolumeAt(snapshot, item, track, cue, timelineLocalFrame) * enter * leave;
+    }} /></Sequence>)}</Sequence>;
+  }
+  return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}><Audio src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} loop={cue?.loop ?? false} volume={() => vlogAmbientVolume ?? audioCueVolumeAt(snapshot, item, track, cue, timelineLocalFrame)} /></Sequence>;
 };
 
 /**

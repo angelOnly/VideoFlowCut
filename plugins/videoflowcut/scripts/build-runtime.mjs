@@ -5,6 +5,7 @@ import { execFileSync } from "node:child_process";
 import { dirname, join, relative, resolve } from "node:path";
 import { build } from "esbuild";
 import { pluginRootFromModule, resolveRepoRoot } from "./repo-root.mjs";
+import { buildMcpCatalog } from "./build-mcp-catalog.mjs";
 
 const pluginRoot = pluginRootFromModule(import.meta.url);
 const repoRoot = resolveRepoRoot({ pluginRoot });
@@ -183,6 +184,8 @@ async function main() {
     assertReleaseEntry(outputPaths.mcp),
     assertReleaseEntry(outputPaths.remotion)
   ]);
+  const toolCount = await buildMcpCatalog({ repoRoot, distRoot });
+  console.log(`已从发行 MCP 导出 ${toolCount} 个工具定义，首次发现不依赖 Runtime 状态。`);
   const releaseId = await createReleaseId(distRoot, pluginVersion);
   await writeFile(outputPaths.manifest, `${JSON.stringify({
     schemaVersion: 2,

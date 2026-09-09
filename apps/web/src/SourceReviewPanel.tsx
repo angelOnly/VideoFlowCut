@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { MediaIntelligencePanel } from "./MediaIntelligencePanel";
 import type { Asset, ProjectSnapshot } from "@videocut/contracts";
 import { API_BASE, api, type SourceReviewMode, type SourceReviewResult, type SourceReviewShot, type SourceReviewUsageItem } from "./api";
 
@@ -189,6 +190,10 @@ export function SourceReviewPanel({ snapshot, asset, onSeekTimeline }: SourceRev
       <span>{asset.status === "ready" ? "只读证据" : "等待素材就绪"}</span>
     </div>
     <p className="source-review-help">先看概览，再对会改变选片、切口或表演判断的短范围请求连续声画或密集帧。</p>
+    <MediaIntelligencePanel snapshot={snapshot} asset={asset} onLocate={(seconds) => {
+      if (sourceRef.current) sourceRef.current.currentTime = seconds;
+      setStartDraft(String(Math.floor(seconds * fps)));
+    }} />
 
     <div className="source-review-player">
       {reviewableVideo

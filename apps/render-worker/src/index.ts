@@ -1,3 +1,4 @@
+import { runSoundComparison } from "./sound-comparison.js";
 import { createApplication, type EditingApplication } from "@videocut/application";
 import { runOneQueuedJob, type JobProcessor } from "@videocut/job-runtime";
 import { readRuntimeConfig } from "@videocut/project-overview";
@@ -8,10 +9,11 @@ import { runMotionJob } from "./motion-job.js";
 const workspaceRoot = readRuntimeConfig().workspace.root;
 let defaultApplication: EditingApplication | undefined;
 const getDefaultApplication = () => (defaultApplication ??= createApplication(workspaceRoot));
-export const RENDER_JOB_KINDS: JobKind[] = ["preview", "render_preflight", "export", "motion_generation"];
+export const RENDER_JOB_KINDS: JobKind[] = ["preview", "render_preflight", "export", "motion_generation", "sound_comparison"];
 
 export function createRenderJobProcessor(app: EditingApplication, renderer: RevisionRenderEngine = new RevisionRenderer()): JobProcessor {
   return async (job) => {
+    if (job.kind === "sound_comparison") return runSoundComparison(app, job, renderer);
     if (job.kind === "motion_generation") return runMotionJob(app, job);
     if (job.kind === "preview") return runPreviewJob(app, job, renderer);
     if (job.kind === "render_preflight") return runRenderPreflightJob(app, job);

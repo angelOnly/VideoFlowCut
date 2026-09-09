@@ -211,6 +211,9 @@ async function ensureCachedFile(path: string, create: (temporaryPath: string) =>
 }
 
 function durationFrames(snapshot: ProjectSnapshot, asset: Asset): number | undefined {
+  // 同帧率受管作品已由渲染 Worker 验证精确帧数，不能再用取整毫秒反推而丢掉末帧。
+  const motion = asset.motion;
+  if (motion && Number.isInteger(motion.frameCount) && motion.frameCount > 0 && motion.fps === snapshot.timeline.fps) return motion.frameCount;
   const durationMs = asset.metadata?.durationMs;
   if (!Number.isFinite(durationMs) || !durationMs || durationMs <= 0) return undefined;
   // 源素材的容器时长常落在两个项目帧之间。向上取整会让 overview 的最后一帧
@@ -313,6 +316,7 @@ function cacheKey(input: {
     contactSheetFrames: input.contactSheetFrames,
     // 这几个派生参数也属于缓存合同，修改后不会错误复用旧代理。
     frameWidth: 480,
+    frameSeek: "floor-microsecond-v2",
     proxyWidth: 960,
     proxyCodec: "h264-aac",
     proxyScale: "decrease-even",
@@ -332,7 +336,8 @@ async function createFrame(input: {
 }): Promise<void> {
   await runProcess("ffmpeg", [
     "-hide_banner", "-nostdin", "-v", "error",
-    "-ss", (input.sourceMs / 1_000).toFixed(6),
+    // FFmpeg 按 PTS 取下一帧；向上取整甚至一微秒都可能越过最后一个可解码 PTS。
+    "-ss", (Math.floor(input.sourceMs * 1_000) / 1_000_000).toFixed(6),
     "-i", input.sourcePath,
     "-frames:v", "1",
     "-vf", "scale=480:-2",
@@ -352,7 +357,7 @@ async function createContactSheet(input: {
   for (const [index, sourceFrame] of input.frames.entries()) {
     const sourceMs = Math.round(sourceFrame / input.range.fps * 1_000);
     const path = outputPath(input.snapshot, input.key, "frames", `${String(index).padStart(2, "0")}-${sourceFrame}.jpg`);
-    await ensureCachedFile(path, (temporaryPath) => createFrame({ sourcePath: input.sourcePath, temporaryPath, sourceMs }));
+    await ensureCachedFile(path, (temporaryPath) => createFrame({ sourcePath: input.sourcePath, temporaryPath, sourceMs: sourceFrame / input.range.fps * 1_000 }));
     const relativePath = toRelativePath(input.snapshot, path);
     results.push({
       ...mediaFile(input.snapshot, relativePath),

@@ -9,6 +9,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { createServer } from "../apps/server/src/app.js";
 import { inspectAsset } from "../apps/server/src/source-review.js";
 import { probeMedia, runProcess } from "@videocut/speech";
+import { motionFixture } from "./fixtures/managed-motion.js";
 
 async function createSourceReviewFixture(directory: string, size = "96x72"): Promise<string> {
   const path = join(directory, "source-review-fixture.mp4");
@@ -114,6 +115,41 @@ test("inspect_asset 不会把 25fps 源素材的 overview 末帧采样到 24fps 
     assert.ok(overview.contactSheet.frames.every((frame) => frame.sourceMs < 3_800));
   } finally {
     server.application.close();
+    await rm(workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("inspect_asset 完整审阅 245 帧受管作品并准确解码末帧，不把毫秒取整误差变成越界", async () => {
+  const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-source-review-exact-"));
+  const server = await createServer({ workspaceRoot });
+  const app = server.application;
+  try {
+    const created = app.createProject({ name: "受管作品末帧回归", profile: "presenter_motion" });
+    const projectId = created.snapshot.project.id;
+    const job = app.submitManagedMotion({ projectId, baseRevision: created.revision.number, idempotencyKey: "245-frames", work: { ...motionFixture, fps: 24, durationInFrames: 245 } });
+    const path = join(created.snapshot.project.rootPath, `assets/derived/motion/${job.id}/${job.payload.version}/preview.mp4`);
+    await mkdir(dirname(path), { recursive: true });
+    await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=320x320:rate=24", "-frames:v", "245", "-vf", "drawbox=color=red:t=fill:enable='eq(n,244)'", "-c:v", "libx264", "-pix_fmt", "yuv420p", path]);
+    const metadata = await probeMedia(path);
+    assert.equal(metadata.durationMs, 10208, "容器毫秒不足以无损表达 245/24 秒");
+    const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: createHash("sha256").update(await readFile(path)).digest("hex"), engineVersion: "fixture", metadata });
+    const revision = app.readProject(projectId).revision.number;
+    const range = await inspectAsset(app, { projectId, assetId: asset.id, mode: "range", sourceStartFrame: 0, sourceEndFrame: 245, contactSheetFrames: 8 });
+    const overview = await inspectAsset(app, { projectId, assetId: asset.id, mode: "overview", contactSheetFrames: 3 });
+    assert.equal(range.sourceRange?.endFrame, 245);
+    assert.equal(overview.sourceRange?.endFrame, 245);
+    assert.equal(overview.requestableRanges.at(-1)?.endFrame, 245);
+    assert.equal(range.contactSheet.frames.at(-1)?.sourceFrame, 244);
+    const reference = join(workspaceRoot, "exact-last-frame.jpg");
+    await runProcess("ffmpeg", ["-y", "-v", "error", "-i", path, "-vf", "select=eq(n\\,244),scale=480:-2", "-frames:v", "1", "-q:v", "3", reference]);
+    assert.deepEqual(await readFile(join(created.snapshot.project.rootPath, range.contactSheet.frames.at(-1)!.relativePath)), await readFile(reference), "抽图必须是实际第 244 帧，而不是末帧前的替代图片");
+    const proxyPath = join(created.snapshot.project.rootPath, range.proxy!.relativePath);
+    const probe = JSON.parse(await runProcess("ffprobe", ["-v", "error", "-select_streams", "v:0", "-count_frames", "-show_entries", "stream=nb_read_frames", "-of", "json", proxyPath]));
+    assert.equal(Number(probe.streams[0].nb_read_frames), 245);
+    await assert.rejects(inspectAsset(app, { projectId, assetId: asset.id, mode: "range", sourceStartFrame: 0, sourceEndFrame: 246 }), /真实时长/u);
+    assert.equal(app.readProject(projectId).revision.number, revision, "完整审阅和越界拒绝均不修改视频 Revision");
+  } finally {
+    app.close();
     await rm(workspaceRoot, { recursive: true, force: true });
   }
 });

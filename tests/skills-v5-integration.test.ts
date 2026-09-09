@@ -18,6 +18,7 @@ const execFileAsync = promisify(execFile);
 const expectedSkills = [
   "asset-import",
   "audio-finishing",
+  "sound-asset-sourcing",
   "avatar-performance",
   "captions",
   "cutaway-planning",
@@ -67,6 +68,7 @@ const specialistSkills = [
   "evidence-visualization",
   "captions",
   "audio-finishing",
+  "sound-asset-sourcing",
   "remotion-production"
 ] as const;
 
@@ -276,8 +278,19 @@ test("总导演只路由一个主工作流，专项 Skill 具备交接合同", a
   }
 });
 
+test("Presenter Skill 的概要、Gate A 与示范路线都先编译 Scene 再登记人物", async () => {
+  const skill = await readSkill("presenter-motion-director");
+  // 与 core.test.ts 的实际调用回归配对，防止示范路线再次引导到 ACTOR_SCENE_REQUIRED。
+  assert.match(skill, /→ StoryBeat \/ PresenterScene 骨架\s+→ 人物版本和 AudioMode/u);
+  const sceneSection = skill.indexOf("### Story 与 PresenterScene");
+  const actorSection = skill.indexOf("### 人物表演");
+  assert.ok(sceneSection >= 0 && actorSection > sceneSection, "Gate A 应先建立 Scene，再登记人物表演");
+  const example = skill.slice(skill.indexOf("## 从空项目到交付的示范路线"));
+  assert.match(example, /→ assemble_presenter_track\s+→ compile_presenter_scenes\s+→ manage_actor_performance/u);
+});
+
 test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", async () => {
-  const mcpSource = await readFile(mcpSourcePath, "utf8") + await readFile(join(repositoryRoot, "apps/server/src/motion-tools.ts"), "utf8");
+  const mcpSource = (await Promise.all([mcpSourcePath, ...["motion-tools", "media-intelligence-tools", "sound-tools"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
   const currentTools = registeredToolNames(mcpSource);
   const contract = await readFile(join(skillsRoot, "_shared", "MCP_EXECUTION_CONTRACT.md"), "utf8");
 
@@ -357,6 +370,22 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
   for (const tool of ["run_render_preflight", "track_export", "read_export_artifact", "record_export_artifact_review", "approve_export_artifact"]) {
     assert.equal(currentTools.has(tool), true, `MCP 缺少交付闭环工具：${tool}`);
   }
+});
+
+test("声音待审与合成帧批量上限在剪辑工具和 Skill 中可发现", async () => {
+  const mcpSource = await readFile(mcpSourcePath, "utf8");
+  const audioTool = toolSourceBlock(mcpSource, "manage_audio");
+  assert.match(audioTool, /允许草稿混合但阻挡交付/u);
+  for (const name of ["audio-finishing", "sound-asset-sourcing"]) {
+    const skill = await readSkill(name);
+    assert.match(skill, /SOUND_ADOPTION_REQUIRED/u);
+    assert.match(skill, /soundPlanId、soundIntentId、planVersion/u);
+    assert.match(skill, /原文件采用、起音和混合分别核查|起音 confirmed 或混合 reviewed 不能替代采用/u);
+  }
+  const frameTool = toolSourceBlock(mcpSource, "inspect_composed_frames");
+  assert.match(frameTool, /\.max\(12\)/u);
+  assert.match(await readSkill("quality-verification"), /每次最多 12 帧/u);
+  assert.match(await readSkill("known-errors"), /结束活动轮再续办不保证刷新/u);
 });
 
 test("当前 Scene Registry 与 Skill 的可创建类型说明一致", async () => {

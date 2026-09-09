@@ -1,3 +1,5 @@
+import { inspectFinalAudio } from "../../../packages/media-intelligence/src/acoustics.js";
+import { hashMediaFile } from "../../../packages/edit-application/src/media-intelligence.js";
 import "../../../plugins/videoflowcut/scripts/background-processes.mjs";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync, type ReadStream } from "node:fs";
@@ -569,7 +571,8 @@ export async function validateExport(targetPath: string, expectedDurationMs: num
   if (blackSegments.length > 0) {
     throw new DomainError(`导出包含持续黑帧：${blackSegments.map((segment) => `${segment.startSeconds.toFixed(2)}–${segment.endSeconds.toFixed(2)}s`).join("，")}`, "BLACK_FRAME_DETECTED");
   }
-  return { durationMs: metadata.durationMs, hasAudio: metadata.hasAudio, blackSegments };
+  const audio = await inspectFinalAudio(targetPath);
+  return { durationMs: metadata.durationMs, hasAudio: metadata.hasAudio, blackSegments, audio };
 }
 
 export async function runExportJob(
@@ -638,6 +641,10 @@ export async function runExportJob(
   try {
     const expectedDurationMs = Math.round((revision.snapshot.timeline.durationInFrames / revision.snapshot.timeline.fps) * 1000);
     const validation = await validateExport(temporaryPath, expectedDurationMs);
+    const target = revision.snapshot.audioOutputTarget;
+    const audiblePlanned = revision.snapshot.audioCues.some((cue) => cue.status === "ready" && revision.snapshot.timeline.items.some((item) => item.id === cue.timelineItemId && !item.disabled && !revision.snapshot.timeline.tracks.find((track) => track.id === item.trackId)?.muted)) || Boolean(revision.snapshot.speechAsset);
+    if (audiblePlanned && validation.audio?.truePeakDbfs === null) throw new DomainError("成片计划有声音但实际混音无有效信号", "EXPORT_AUDIO_MISSING");
+    if (purpose === "delivery" && target && (validation.audio?.integratedLufs == null || validation.audio.truePeakDbfs == null || Math.abs(validation.audio.integratedLufs - target.targetLufs) > target.toleranceLu || validation.audio.truePeakDbfs > target.maxTruePeakDbfs)) throw new DomainError("实际响度或 true peak 未达到当前项目输出目标；请在混音中调整并重新预览", "EXPORT_AUDIO_TARGET_FAILED");
     await rename(temporaryPath, targetPath);
     const file = await stat(targetPath);
     const manifest = buildAttributionManifest(revision.snapshot, artifactId);
@@ -746,6 +753,8 @@ export async function runPreviewJob(
     relativePath,
     durationMs: metadata.durationMs,
     hasAudio: metadata.hasAudio,
+    audio: metadata.hasAudio ? await inspectFinalAudio(targetPath) : undefined,
+    sourceHash: await hashMediaFile(targetPath),
     sceneCache: sceneCache ? {
       sceneId: sceneCache.sceneId,
       cacheKey: sceneCache.cacheKey,

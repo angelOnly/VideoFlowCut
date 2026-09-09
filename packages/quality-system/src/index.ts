@@ -4,6 +4,8 @@ import { assertProjectGraphValid, DomainError, millisecondsToFrames, resolveComp
 import { layoutCaptionConservatively } from "../../remotion-runtime/src/caption-layout.js";
 import { motionCaptionSafety } from "./motion-caption-safety.js";
 import { missingReviewRanges, openEditorialFindings, productionReconciliation, reviewCoverage } from "./editorial-review.js";
+import { soundDependencySignature } from "../../media-intelligence/src/sound-signature.js";
+import { mediaUsageFindings } from "../../media-intelligence/src/usage.js";
 
 /**
  * 质量问题会在 Web 刷新、预检与导出时被重复计算。不能使用随机 ID，
@@ -1092,7 +1094,8 @@ function evaluateExplainerSpecificQuality(snapshot: ProjectSnapshot, issues: Qua
 export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, editorialReview?: EditorialQualityReview): QualityReport {
   const issues: QualityIssue[] = [];
   // 未完成感知审阅不是渲染错误：草稿必须能产出，正式交付仍逐对象阻挡。
-  const pendingPerception: Array<{ category: "motion" | "audio"; entry: QualityIssue }> = [];
+  const pendingPerception: Array<{ category: "motion" | "audio" | "semantic"; entry: QualityIssue }> = [];
+  for (const finding of mediaUsageFindings(snapshot)) pendingPerception.push({ category: "semantic", entry: issue({ level: "blocking", code: "MEDIA_USAGE_REVIEW_REQUIRED", message: finding.reason, objectId: finding.objectId, frameRange: finding.frameRange, editorialSeverity: "inconclusive" }) });
   const { timeline } = snapshot;
   const assetIds = new Set(snapshot.assets.map((asset) => asset.id));
   const actorTrack = timeline.tracks.find((track) => track.name === "Actor / A-roll");
@@ -1318,6 +1321,14 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     }
     const duration = item.endFrame - item.startFrame;
     const sourceDuration = item.sourceEndFrame - item.sourceStartFrame;
+    const soundRequirement = cue.soundPlanId && cue.soundIntentId ? snapshot.assetRequests.find((entry) => entry.status !== "closed" && entry.sound?.soundPlanId === cue.soundPlanId && entry.sound?.soundIntentId === cue.soundIntentId) : undefined;
+    const soundAdoption = snapshot.mediaAdoptions?.find((entry) => entry.id === cue.adoptionId);
+    // 试听需要先听到候选；原文件采用、起音和混合复核分别阻挡正式交付。
+    if (soundRequirement && !cue.adoptionId && !track.muted) pendingPerception.push({ category: "audio", entry: issue({ level: "blocking", code: "SOUND_ADOPTION_REQUIRED", message: "该声音意图尚无覆盖当前需求及源范围的原文件采用依据；可保留计划关联制作待审草稿，正式交付前须完成采用。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame }, editorialSeverity: "inconclusive" }) });
+    const validMixReview = cue.mixReview === "reviewed" && snapshot.soundReviews?.some((review) => review.outcome === "passed" && review.previewHash && review.signature === soundDependencySignature(snapshot) && review.fromFrame <= item.startFrame && review.toFrame >= item.endFrame);
+    if (cue.role && !validMixReview && !track.muted) pendingPerception.push({ category: "audio", entry: issue({ level: "blocking", code: "SOUND_MIX_REVIEW_REQUIRED", message: "当前段落混合尚未完成真实声音复核；原文件观察、波形和模型排名不能替代最终混合。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame }, editorialSeverity: "inconclusive" }) });
+    if (cue.loop && cue.sustained && cue.loopReview?.status !== "confirmed") pendingPerception.push({ category: "audio", entry: issue({ level: "blocking", code: "SOUND_LOOP_REVIEW_REQUIRED", message: "持续音效循环接缝仍需实际复核。", objectId: cue.id, editorialSeverity: "inconclusive" }) });
+    if (cue.soundPlanId && snapshot.soundPlans?.find((plan) => plan.id === cue.soundPlanId)?.version !== cue.planVersion || cue.adoptionId && (soundAdoption?.status !== "current" || soundRequirement && soundAdoption?.requestId !== soundRequirement.id)) issues.push(issue({ level: "blocking", code: "SOUND_SELECTION_STALE", message: "声音计划或原文件采用依据已变化，需要重新确认选择。", objectId: cue.id }));
     if (cue.kind === "sfx" && !track.muted && cue.onsetReview?.status !== "confirmed") {
       pendingPerception.push({ category: "audio", entry: issue({ level: "blocking", code: "SFX_ONSET_REVIEW_REQUIRED", message: "该音效起音仅为候选或未记录复听；可制作待审草稿，正式交付前须确认所选源范围并复核混合声画。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame }, editorialSeverity: "inconclusive" }) });
     }
@@ -1339,8 +1350,8 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
       }
     } else if (cue.anchor !== "media_event" || cue.eventFrame === undefined || cue.onsetOffsetFrames === undefined
       || cue.onsetOffsetFrames < 0 || cue.eventFrame !== item.startFrame + cue.onsetOffsetFrames
-      || cue.eventFrame < item.startFrame || cue.eventFrame >= item.endFrame || cue.loop || cue.ducking !== undefined) {
-      issues.push(issue({ level: "blocking", code: "SFX_EVENT_INVALID", message: "SFX 必须以显式 media_event 与可追溯 onsetOffset 放置，且不能循环或承载 Duck。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame } }));
+      || cue.eventFrame < item.startFrame || cue.eventFrame >= item.endFrame || cue.loop && (!cue.sustained || !(cue.loopCrossfadeFrames && cue.loopCrossfadeFrames * 2 < sourceDuration)) || cue.ducking !== undefined && !cue.role || !cue.loop && duration > sourceDuration) {
+      issues.push(issue({ level: "blocking", code: "SFX_EVENT_INVALID", message: "SFX 的事件、源范围、持续播放或角色混音参数不一致。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame } }));
     }
   }
   for (const item of timeline.items.filter((candidate) => !candidate.disabled && ["BGM", "SFX"].includes(timeline.tracks.find((track) => track.id === candidate.trackId)?.name ?? "") && !managedAudioItemIds.has(candidate.id))) {

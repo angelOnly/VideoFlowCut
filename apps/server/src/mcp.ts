@@ -1,3 +1,7 @@
+import { registerSoundTools } from "./sound-tools.js";
+import { audioDesignSchema, soundRequirementSchema } from "../../../packages/edit-application/src/sound-design.js";
+import { assetRequestVersion } from "../../../packages/media-intelligence/src/index.js";
+import { soundSourceCapabilities } from "@videocut/acquisition";
 import { copyFile, mkdir } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -666,11 +670,9 @@ server.registerTool("inspect_asset", {
 
 server.registerTool("browse_sound_sources", {
   title: "在线音效候选来源",
-  description: "返回用户选定的五个音效来源、合法获取边界和已接入分类；不下载、不购买，也不表示已试听或适合成片。",
+  description: "返回当前在线音效/音乐 Provider 的实际搜索、试听、原文件、分类、凭据与许可边界；不下载，也不表示已试听或适合成片。",
   inputSchema: {}, annotations: { readOnlyHint: true }
-}, async () => asText({ sources: SOUND_SOURCES, provider: "mixkit", categories: MIXKIT_SOUND_CATEGORIES,
-  workflow: "manage_asset_requirements(media_kind=audio, audio_brief, role=sfx) → search_media_candidates(provider=mixkit, query=一个分类) → inspect_media_candidate → acquire_media_asset → track_job → inspect_asset → manage_audio(effect_event) → 真实 Preview 声画审阅",
-  listening: "浏览器可试听；本接口不提供模型听觉能力，未实际接收音频不得填写听感通过。" }));
+}, async () => asText({ sources: soundSourceCapabilities(), workflow: "段落计划 → 在线需求 → 搜索 → Qwen候选排序 → 原音频观察 → 原文件获取与复核 → manage_audio → 正式Preview与实际复核", listening: "来源可用不代表音效合适；模型观察与最终混合听审分别保存。" }));
 
 server.registerTool("manage_asset_requirements", {
   title: "管理素材需求",
@@ -685,6 +687,7 @@ server.registerTool("manage_asset_requirements", {
     visual_brief: z.string().max(1_600).optional(),
     media_kind: z.enum(["visual", "audio"]).optional(),
     audio_brief: z.string().max(1_600).optional(),
+    sound: soundRequirementSchema.optional(),
     role: assetRoleSchema.optional(),
     query_hints: z.array(z.string().min(1).max(160)).max(12).optional(),
     excluded_terms: z.array(z.string().min(1).max(160)).max(20).optional(),
@@ -694,7 +697,7 @@ server.registerTool("manage_asset_requirements", {
     fallback_plan: z.enum(["keep_presenter", "remotion", "minimax", "ask_user", "local_audio", "omit_audio"]).optional(),
     close_reason: z.string().max(800).optional()
   }
-}, async ({ project_id, base_revision_id, action, asset_request_id, title, purpose, visual_brief, media_kind, audio_brief, role, query_hints, excluded_terms, target_aspect_ratio, min_duration_ms, rights_requirement, fallback_plan, close_reason }) => {
+}, async ({ project_id, base_revision_id, action, asset_request_id, title, purpose, visual_brief, media_kind, audio_brief, sound, role, query_hints, excluded_terms, target_aspect_ratio, min_duration_ms, rights_requirement, fallback_plan, close_reason }) => {
   try {
     return asText(application.manageAssetRequirement({
       projectId: projectIdFrom(project_id),
@@ -706,6 +709,7 @@ server.registerTool("manage_asset_requirements", {
       visualBrief: visual_brief,
       mediaKind: media_kind,
       audioBrief: audio_brief,
+      sound,
       role,
       queryHints: query_hints,
       excludedTerms: excluded_terms,
@@ -720,7 +724,7 @@ server.registerTool("manage_asset_requirements", {
 
 server.registerTool("search_media_candidates", {
   title: "搜索素材候选",
-  description: "将已存在的素材需求交给已配置 Provider 查询，并把归一化候选、来源、授权和技术预过滤写入当前 Revision；不会下载或自动选入成片。",
+  description: "将已存在的素材需求交给已配置 Provider 查询，将候选、来源、授权与预过滤保存在独立搜索会话，不改变创作 Revision；不会下载或自动选入成片。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -738,7 +742,7 @@ server.registerTool("search_media_candidates", {
     const request = state.snapshot.assetRequests.find((entry) => entry.id === asset_request_id);
     if (!request) throw new DomainError(`素材需求不存在：${asset_request_id}`, "ASSET_REQUEST_NOT_FOUND");
     const candidates = await assetProviders.get(provider).search({ request, query });
-    return asText(application.recordAssetSearch({ projectId, baseRevision: base_revision_id, assetRequestId: asset_request_id, provider, query, candidates }));
+    return asText(application.recordAssetSearch({ projectId, baseRevision: base_revision_id, assetRequestId: asset_request_id, provider, query, candidates, requestVersion: assetRequestVersion(request) }));
   } catch (error) { return asError(error); }
 });
 
@@ -1342,6 +1346,7 @@ server.registerTool("manage_audio", {
     action: z.enum(["create", "update", "remove"]),
     audio_cue_id: z.string().min(1).optional(),
     kind: z.enum(["bgm", "sfx"]).optional(),
+    design: audioDesignSchema.optional(),
     asset_id: z.string().min(1).optional(),
     purpose: z.string().max(800).optional(),
     start_frame: z.number().int().nonnegative().optional(),
@@ -1359,13 +1364,17 @@ server.registerTool("manage_audio", {
       effect_cue_id: z.string().min(1),
       event_name: z.string().trim().min(1).max(160),
       local_frame: z.number().int().nonnegative(),
+      end_local_frame: z.number().int().positive().optional(),
+      event_id: z.string().optional(),
+      work_version: z.string().optional(),
       sync_offset_frames: z.number().int().optional()
     }).strict().nullable().optional(),
     ducking: z.object({
       enabled: z.boolean().optional(),
       reduction_db: z.number().min(-36).max(-1).optional(),
       attack_frames: z.number().int().min(0).max(240).optional(),
-      release_frames: z.number().int().min(0).max(240).optional()
+      release_frames: z.number().int().min(0).max(240).optional(),
+      hold_frames: z.number().int().min(0).max(240).optional()
     }).strict().optional()
   }
 }, async (input) => {
@@ -1376,6 +1385,7 @@ server.registerTool("manage_audio", {
       action: input.action,
       audioCueId: input.audio_cue_id,
       kind: input.kind,
+      design: input.design,
       assetId: input.asset_id,
       purpose: input.purpose,
       startFrame: input.start_frame,
@@ -1393,13 +1403,17 @@ server.registerTool("manage_audio", {
         effectCueId: input.effect_event.effect_cue_id,
         eventName: input.effect_event.event_name,
         localFrame: input.effect_event.local_frame,
+        endLocalFrame: input.effect_event.end_local_frame,
+        eventId: input.effect_event.event_id,
+        workVersion: input.effect_event.work_version,
         syncOffsetFrames: input.effect_event.sync_offset_frames
       } : undefined,
       ducking: input.ducking === undefined ? undefined : {
         enabled: input.ducking.enabled,
         reductionDb: input.ducking.reduction_db,
         attackFrames: input.ducking.attack_frames,
-        releaseFrames: input.ducking.release_frames
+        releaseFrames: input.ducking.release_frames,
+        holdFrames: input.ducking.hold_frames
       }
     }));
   } catch (error) { return asError(error); }
@@ -2365,6 +2379,7 @@ server.registerTool("browse_effect_types", {
 
 registerMotionTools(server, application, projectIdFrom);
 registerMediaIntelligenceTools(server, application, projectIdFrom);
+registerSoundTools(server, application, projectIdFrom);
 
 server.registerTool("manage_effect_cues", {
   title: "管理视觉效果",

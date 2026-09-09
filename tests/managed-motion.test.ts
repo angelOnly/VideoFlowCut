@@ -23,9 +23,9 @@ test("原创提交要求创作说明、参考可选，历史幂等重试保持�
     const projectId = state.snapshot.project.id;
     const { creativeBrief: _brief, ...oldWork } = motionFixture;
     const before = JSON.stringify(oldWork);
-    assert.equal(motionHash(oldWork), "3410b595854392bb0cc94936f1f19dedf56c1a8a8c1f8c9c56a46d6da0d6ce82", "历史固定输入哈希不应因新增可选字段改变");
+    assert.equal(motionHash(oldWork, [], "managed-motion-3"), "3410b595854392bb0cc94936f1f19dedf56c1a8a8c1f8c9c56a46d6da0d6ce82", "历史固定输入哈希不应因新增可选字段改变");
     assert.equal(JSON.stringify(motionSubmissionSchema.parse(oldWork)), before, "读取旧输入不得注入字段或改变次序");
-    const legacy = app.repository.createJob({ projectId, kind: "motion_generation", idempotencyKey: "motion:legacy", payload: { work: oldWork, version: motionHash(oldWork), boundImages: [] } });
+    const legacy = app.repository.createJob({ projectId, kind: "motion_generation", idempotencyKey: "motion:legacy", payload: { work: oldWork, version: motionHash(oldWork, [], "managed-motion-3"), boundImages: [] } });
     assert.equal(app.submitManagedMotion({ projectId, baseRevision: 0, idempotencyKey: "legacy", work: oldWork }).id, legacy.id);
     assert.throws(() => app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "new", work: oldWork }), /creativeBrief/u);
     const original = { ...motionFixture, reference: undefined };

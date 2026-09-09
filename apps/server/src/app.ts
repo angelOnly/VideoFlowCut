@@ -1,3 +1,5 @@
+import { audioDesignSchema } from "../../../packages/edit-application/src/sound-design.js";
+import { registerSoundRoutes } from "./sound-tools.js";
 import { createHash } from "node:crypto";
 import { createReadStream, createWriteStream, existsSync } from "node:fs";
 import { copyFile, mkdir, rm, stat } from "node:fs/promises";
@@ -276,6 +278,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   const bridge = new ComfyUIBridgeClient();
   const app = Fastify({ logger: { level: runtimeConfig.http.logLevel } });
   registerMediaIntelligenceRoutes(app, application);
+  registerSoundRoutes(app, application);
 
   await app.register(cors, { origin: true });
   await app.register(multipart, { limits: { files: 18, fileSize: 512 * 1024 * 1024 } });
@@ -1163,6 +1166,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       action: z.enum(["create", "update", "remove"]),
       audioCueId: idSchema.optional(),
       kind: z.enum(["bgm", "sfx"]).optional(),
+      design: audioDesignSchema.optional(),
       assetId: idSchema.optional(),
       purpose: z.string().max(800).optional(),
       startFrame: z.number().int().min(0).optional(),
@@ -1179,14 +1183,14 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       effectEvent: z.object({
         effectCueId: idSchema,
         eventName: z.string().trim().min(1).max(160),
-        localFrame: z.number().int().nonnegative(),
+        localFrame: z.number().int().nonnegative(), endLocalFrame: z.number().int().positive().optional(), eventId: z.string().optional(), workVersion: z.string().optional(),
         syncOffsetFrames: z.number().int().optional()
       }).strict().nullable().optional(),
       ducking: z.object({
         enabled: z.boolean().optional(),
         reductionDb: z.number().min(-36).max(-1).optional(),
         attackFrames: z.number().int().min(0).max(240).optional(),
-        releaseFrames: z.number().int().min(0).max(240).optional()
+        releaseFrames: z.number().int().min(0).max(240).optional(), holdFrames: z.number().int().min(0).max(240).optional()
       }).strict().optional()
     }).parse(request.body);
     return application.manageAudio({ projectId, ...body });
@@ -1294,7 +1298,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       projectId: oldJob.projectId,
       kind: oldJob.kind,
       // 转写和段级原声字幕重试必须携带来源 Job，Worker 才能恢复其 run_id，避免超时后重复提交外部运行。
-      payload: oldJob.kind === "transcription" || oldJob.kind === "source_caption_alignment"
+      payload: ["transcription", "source_caption_alignment", "media_understanding", "media_search", "sound_ranking"].includes(oldJob.kind)
         ? { ...oldJob.payload, retryOfJobId: oldJob.id }
         : oldJob.payload,
       idempotencyKey: `${oldJob.idempotencyKey}:retry:${Date.now()}`

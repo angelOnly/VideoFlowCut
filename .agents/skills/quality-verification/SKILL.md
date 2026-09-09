@@ -29,7 +29,7 @@ Presenter 检查人物与图形是否有明确主次交换，同屏和全屏的�
 
 根据已确认方向进行必要修改是正常内部流程，不默认要求用户逐段审批。已有重大问题应修复并复核；可选建议不导致无限重渲染。超出当前能力或感知证据不足时保留具体阻断/未知，报告已完成的可检验范围，不能降低严重级别或虚报观看结果来收口。
 
-`render_preview_range` 产生固定 Revision 的 Preview，`inspect_composed_frames` 抽取帧并记录检查。还需要连续播放，单张图不能检查运动、时机和听感。
+`render_preview_range` 产生固定 Revision 的 Preview，`inspect_composed_frames` 抽取帧并记录检查；frames 每次最多 12 帧，更多关键帧分批只读检查。宿主把 Schema 简写成 Array<number> 时仍须遵守此上限。还需要连续播放，单张图不能检查运动、时机和听感。
 
 ### 最终 Artifact
 
@@ -76,6 +76,8 @@ blocking 包括事实/权利错误、严重语义断裂、重复人声、关键�
 问题分派：语义回 semantic-continuity；声音生成回 voice-production；人物回 avatar-performance；视觉计划回 visual-treatment-planning；MG 回 remotion-production；B-roll 回 cutaway/asset sourcing；字幕回 captions；音频回 audio-finishing；整片结构回主要工作流。
 
 ## A/B/不使用
+
+`preview_sound_alternatives` 固定当前段落与旁白，比较少量方案及无该音效；候选比较不替代正式混合证据。正式 Preview 成功后通过 `review_sound_mix` 保存真实听审/声画复核，系统校验当前依赖签名、实际文件哈希与覆盖；改稿后旧结果失效。最终 Artifact 完整解码并测量 LUFS、true peak、静音区间；技术达标与是否遮蔽旁白分别判断。没有听觉输入的结论保持 inconclusive，不把模型或测试模拟的 passed 写成真实效果验收。
 
 高影响视觉和声音问题应比较当前、最小修复、更强处理或不使用。比较理解、注意、记忆、情绪和节奏，以及阅读、表演与连续性的代价；删除效果后事实信息没变，不代表效果没有价值。实际收益不足或代价更大时重新设计或取消，不因为已开发而保留，也不因为最少处理最容易通过技术校验就默认采用。质量系统不以效果数量和覆盖率为分数。
 

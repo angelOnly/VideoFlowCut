@@ -128,6 +128,8 @@ Browser Operator 不是绕开模型的快捷方式。DOM 临时样式、浏览�
 
 ### BGM、SFX 与声音包装
 
+公共分析入口为 `analyze_media`、`read_media_observations`、`search_media_fragments`；事实与向量保存在独立操作表。`correct_media_observation` 保留纠错链，影响正式采用时核验 Revision；`adopt_media_fragment` 固定采用依据。`manage_sound_plans` 管理段落声音意图，选音转 [sound-asset-sourcing](../sound-asset-sourcing/SKILL.md)，再以 `recommend_sound_candidates`、`preview_sound_alternatives`、`manage_audio`、`review_sound_mix` 完成获取、采用和复核。`set_audio_output_target` 设置实际导出文件的测量目标。运行前读取当前 MCP Schema，源码有实现不表示已安装会话具备能力。
+
 - `manage_audio`：将已就绪的独立本地音频写成可追溯的 `AudioCue` 与 BGM/SFX 专用 Timeline Item；
 - BGM 可设置有限淡入淡出、循环与 Dialogue Duck；SFX 必须显式给出观众实际听见的 `event_frame` 和相对所选源片段的 `onset_offset_frames`，不能猜测能量峰值；
 - `move_item` 不可直接移动受管 BGM/SFX，主线、Script、Scene 或旁白时长改变时旧声音包装会被停止并标 `stale`，要通过 `manage_audio(action=update)` 重新确认。

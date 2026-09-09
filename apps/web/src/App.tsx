@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
 import { usePreviewInput } from "./use-preview-input";
 import { EFFECT_TYPES, type AgentWorkOrder, type Asset, type AudioCue, type CaptionCard, type DialogueProcessingIssue, type DialogueProcessingProfile, type EffectCue, type ExportArtifact, type ProductionProfile, type ProjectSnapshot, type Scene, type SpeechAsset, type TimelineItem } from "@videocut/contracts";
@@ -8,6 +8,7 @@ import { AdvancedWorkflowsPanel } from "./AdvancedWorkflowsPanel";
 import { SourceReviewPanel } from "./SourceReviewPanel";
 import { MotionLibraryPanel } from "./MotionLibraryPanel";
 import { SoundLibraryPanel } from "./SoundLibraryPanel";
+import { TimelineEditor } from "./TimelineEditor";
 
 type Panel = "assets" | "agent_work_orders" | "script" | "audio" | "actors" | "scenes" | "captions" | "advanced" | "jobs";
 type Selection = { kind: "asset" | "scene" | "item" | "cue"; id: string } | undefined;
@@ -31,13 +32,6 @@ const projectProfileOptions: Array<{ value: ProductionProfile; label: string }> 
   { value: "vlog", label: "Vlog" },
   { value: "hybrid", label: "混合视频" }
 ];
-
-const effectTrackNameByLayer: Record<EffectCue["layer"], string> = {
-  rear: "Rear FX",
-  actor: "Actor FX",
-  front: "Front FX",
-  fullscreen: "Cutaway / Fullscreen"
-};
 
 // 每种效果使用固定图层，避免 Web 端再次维护一套效果布局规则。
 const effectLayerByType: Record<EffectCue["type"], EffectCue["layer"]> = {
@@ -307,6 +301,7 @@ export function App() {
   const videoAssets = snapshot.assets.filter((asset) => (asset.kind === "video" || asset.kind === "actor_video") && asset.status === "ready");
   const selectedForTimeline = selectedARollIds.filter((assetId) => videoAssets.some((asset) => asset.id === assetId));
   const blockingIssues = quality?.issues.filter((issue) => issue.level === "blocking") ?? [];
+  const draftBlockingIssues = quality?.technical.filter((issue) => issue.level === "blocking") ?? [];
   const deliveryReviewReady = quality?.editorial.status === "reviewed"
     && quality.editorial.previewEvidence.length > 0
     && quality.editorial.passes.includes("audiovisual")
@@ -336,7 +331,7 @@ export function App() {
           toFrame: Math.min(snapshot.timeline.durationInFrames, Math.max(playhead + snapshot.timeline.fps * 3, snapshot.timeline.fps))
         }))} disabled={busy || !snapshot.timeline.durationInFrames}>局部预览</button>
         <button onClick={() => void act("执行渲染前检查", () => api.renderPreflight(snapshot.project.id, currentRevision))} disabled={busy || !snapshot.timeline.durationInFrames}>渲染预检</button>
-        <button onClick={() => void act("提交草稿导出", () => api.export(snapshot.project.id, currentRevision, "draft"))} disabled={busy || blockingIssues.length > 0}>草稿导出</button>
+        <button onClick={() => void act("提交草稿导出", () => api.export(snapshot.project.id, currentRevision, "draft"))} disabled={busy || draftBlockingIssues.length > 0}>草稿导出</button>
         <button className="primary" data-testid="export-button" onClick={() => void act("提交交付导出", () => api.export(snapshot.project.id, currentRevision, "delivery"))} disabled={busy || blockingIssues.length > 0 || !deliveryReviewReady} title={deliveryReviewReady ? "" : "交付导出需要当前 Revision 的真实预览、完整声画审片和首次观众复核"}>交付导出</button>
       </header>
 
@@ -472,8 +467,7 @@ export function App() {
         </aside>
 
         <section className="timeline-area">
-          <SceneStrip scenes={snapshot.scenes} duration={snapshot.timeline.durationInFrames} playhead={playhead} onSelect={(scene) => { setSelection({ kind: "scene", id: scene.id }); seekTo(scene.startFrame); }} />
-          <Timeline snapshot={snapshot} selection={selection} playhead={playhead} onSelect={(selectionValue, frame) => { setSelection(selectionValue); seekTo(frame); }} onSeek={seekTo} />
+          <TimelineEditor key={snapshot.project.id} snapshot={snapshot} selection={selection} playhead={playhead} onSelect={(selectionValue, frame) => { setSelection(selectionValue); seekTo(frame); }} onSeek={seekTo} onScrubStart={() => playerRef.current?.pause()} />
         </section>
       </section>
     </main>
@@ -615,7 +609,7 @@ function PanelContent(props: PanelContentProps) {
       />}
       <PanelTitle title="BGM / SFX" meta={`${snapshot.audioCues.length} 条声音包装`} />
       <SoundLibraryPanel snapshot={snapshot} />
-      <p className="empty-panel">BGM 只服务当前主线并按 Dialogue Duck；SFX 必须以播放头作为明确事件落点。这里不猜测音效起音，需在真实试听中复核。</p>
+      <p className="empty-panel">音乐按段落主声音退让；动作音效可绑定作品的起势、落定或持续范围。原文件起音和整体听感需在实际声画中复核。</p>
       {readyMixAssets.length === 0 && <p className="empty-panel">导入并分析完成独立音频后，才可作为 BGM 或 SFX 使用。</p>}
       {readyMixAssets.map((asset) => {
         const sourceFrames = Math.max(1, Math.round((asset.metadata!.durationMs / 1_000) * snapshot.timeline.fps));
@@ -1120,107 +1114,3 @@ function Inspector({ snapshot, selectedAsset, selectedScene, selectedItem, selec
 
 function InspectorGroup({ title, children }: { title: string; children: React.ReactNode }) { return <section className="inspector-group"><h3>{title}</h3>{children}</section>; }
 function InspectorRow({ label, value }: { label: string; value: string }) { return <div className="inspector-row"><span>{label}</span><strong>{value}</strong></div>; }
-
-function SceneStrip({ scenes, duration, playhead, onSelect }: { scenes: Scene[]; duration: number; playhead: number; onSelect: (scene: Scene) => void }) {
-  return (
-    <section className="scene-strip" aria-label="Scene Strip" data-testid="scene-strip">
-      <div className="strip-label">Scenes</div>
-      <div className="strip-canvas">
-        {scenes.map((scene) => (
-          <button
-            key={scene.id}
-            className={`scene-chip ${scene.startFrame <= playhead && playhead < scene.endFrame ? "current" : ""}`}
-            data-testid={`scene-strip-${scene.id}`}
-            data-object-id={scene.id}
-            aria-label={`定位场景：${scene.title}`}
-            style={{
-              left: `${duration ? (scene.startFrame / duration) * 100 : 0}%`,
-              width: `${duration ? ((scene.endFrame - scene.startFrame) / duration) * 100 : 0}%`
-            }}
-            onClick={() => onSelect(scene)}
-          >
-            {scene.title}
-          </button>
-        ))}
-        <div className="playhead" style={{ left: `${duration ? (playhead / duration) * 100 : 0}%` }} />
-      </div>
-    </section>
-  );
-}
-
-function Timeline({ snapshot, selection, playhead, onSelect, onSeek }: { snapshot: ProjectSnapshot; selection: Selection; playhead: number; onSelect: (selection: Selection, frame: number) => void; onSeek: (frame: number) => void }) {
-  const { timeline } = snapshot;
-  const duration = Math.max(1, timeline.durationInFrames);
-  const seekFromRuler = (event: React.MouseEvent<HTMLDivElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    onSeek(Math.round(((event.clientX - rect.left) / rect.width) * duration));
-  };
-  return (
-    <section className="timeline" aria-label="多轨时间线" data-testid="timeline">
-      <div className="timeline-header">
-        <span>轨道</span>
-        <div className="ruler" data-testid="timeline-ruler" onClick={seekFromRuler}>
-          {[0, 0.25, 0.5, 0.75, 1].map((point) => <span key={point} style={{ left: `${point * 100}%` }}>F{Math.round(duration * point)}</span>)}
-          {snapshot.markers.map((marker) => <button key={marker.id} type="button" className={`timeline-marker ${marker.level}`} data-testid={`marker-${marker.id}`} data-object-id={marker.id} aria-label={`标记：${marker.label}，F${marker.frame}`} style={{ left: `${(marker.frame / duration) * 100}%` }} onClick={(event) => { event.stopPropagation(); onSeek(marker.frame); }} />)}
-        </div>
-      </div>
-      <div className="timeline-body">
-        {timeline.tracks.map((track) => (
-          <div className="track-row" key={track.id} data-testid={`track-${track.id}`} data-object-id={track.id}>
-            <div className="track-name"><strong>{track.name}</strong><small>{track.kind}</small></div>
-            <div className="track-canvas" aria-label={`轨道：${track.name}`}>
-              {timeline.items.filter((item) => item.trackId === track.id).map((item) => (
-                <TimelineBlock
-                  key={item.id}
-                  item={item}
-                  snapshot={snapshot}
-                  duration={duration}
-                  active={selection?.kind === "item" && selection.id === item.id}
-                  onClick={() => onSelect({ kind: "item", id: item.id }, item.startFrame)}
-                />
-              ))}
-              {track.kind === "caption" && timeline.captions.map((caption) => (
-                <button
-                  className="caption-block"
-                  key={caption.id}
-                  data-testid={`timeline-caption-${caption.id}`}
-                  data-object-id={caption.id}
-                  aria-label={`字幕：${caption.text}`}
-                  style={{ left: `${(caption.startFrame / duration) * 100}%`, width: `${((caption.endFrame - caption.startFrame) / duration) * 100}%` }}
-                  onClick={() => onSeek(caption.startFrame)}
-                >{caption.text}</button>
-              ))}
-              {snapshot.effectCues.filter((cue) => effectTrackNameByLayer[cue.layer] === track.name).map((cue) => (
-                <TimelineCue
-                  key={cue.id}
-                  cue={cue}
-                  duration={duration}
-                  active={selection?.kind === "cue" && selection.id === cue.id}
-                  onClick={() => onSelect({ kind: "cue", id: cue.id }, cue.startFrame)}
-                />
-              ))}
-              <div className="playhead" style={{ left: `${(playhead / duration) * 100}%` }} />
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function TimelineBlock({ item, snapshot, duration, active, onClick }: { item: TimelineItem; snapshot: ProjectSnapshot; duration: number; active: boolean; onClick: () => void }) {
-  const asset = snapshot.assets.find((candidate) => candidate.id === item.assetId);
-  const style: CSSProperties = {
-    left: `${(item.startFrame / duration) * 100}%`,
-    width: `${((item.endFrame - item.startFrame) / duration) * 100}%`
-  };
-  return <button className={`timeline-item ${active ? "selected" : ""}`} data-testid={`timeline-item-${item.id}`} data-object-id={item.id} data-start-frame={item.startFrame} data-end-frame={item.endFrame} aria-label={`时间线片段：${asset?.name ?? "缺失素材"}，F${item.startFrame} 到 F${item.endFrame}`} style={style} onClick={onClick}><span>{asset?.name ?? "缺失素材"}</span><small>F{item.startFrame}</small></button>;
-}
-
-function TimelineCue({ cue, duration, active, onClick }: { cue: EffectCue; duration: number; active: boolean; onClick: () => void }) {
-  const style: CSSProperties = {
-    left: `${(cue.startFrame / duration) * 100}%`,
-    width: `${((cue.endFrame - cue.startFrame) / duration) * 100}%`
-  };
-  return <button className={`timeline-cue ${active ? "selected" : ""}`} data-testid={`timeline-cue-${cue.id}`} data-object-id={cue.id} data-start-frame={cue.startFrame} data-end-frame={cue.endFrame} aria-label={`效果：${cue.type}，F${cue.startFrame} 到 F${cue.endFrame}`} style={style} onClick={onClick}><span>{cue.type}</span><small>F{cue.startFrame}</small></button>;
-}

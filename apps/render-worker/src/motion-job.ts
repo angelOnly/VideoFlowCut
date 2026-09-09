@@ -4,15 +4,16 @@ import { isAbsolute, join, relative, resolve } from "node:path";
 import type { EditingApplication } from "@videocut/application";
 import type { JobRecord, MotionVisibility } from "@videocut/contracts";
 import { probeMedia } from "@videocut/speech";
-import { boundMotionImageSchema, motionSubmissionSchema } from "../../../packages/motion-work/src/schema.js";
-import { motionHash } from "../../../packages/motion-work/src/compiler.js";
+import { boundMotionImageSchema, motionSubmissionSchema, parseMotionEvents } from "../../../packages/motion-work/src/schema.js";
+import { motionHash, motionHashEngine } from "../../../packages/motion-work/src/compiler.js";
 import { motionFrameName, renderManagedMotion, verifyMotionPreviewFrames, type MotionRenderResult } from "./motion-renderer.js";
 import { measureMotionVisibility } from "./motion-visibility.js";
 
 export async function runMotionJob(application: EditingApplication, job: JobRecord, render = renderManagedMotion): Promise<Record<string, unknown>> {
   const work = motionSubmissionSchema.parse(job.payload.work);
   const boundImages = boundMotionImageSchema.array().parse(job.payload.boundImages ?? []);
-  const version = motionHash(work, boundImages);
+  const hashEngineVersion = motionHashEngine(work, boundImages, job.payload.version, job.payload.engineVersion);
+  const version = motionHash(work, boundImages, hashEngineVersion);
   if (job.kind !== "motion_generation" || version !== job.payload.version) throw new Error("MOTION_VERSION_MISMATCH");
   if (Object.keys(work.imageBindings).length !== boundImages.length || new Set(boundImages.map((image) => image.slot)).size !== boundImages.length || boundImages.some((image) => work.imageBindings[image.slot] !== image.assetId)) throw new Error("MOTION_IMAGE_BINDING_MISMATCH");
   const snapshot = application.readProject(job.projectId).snapshot;
@@ -42,16 +43,16 @@ export async function runMotionJob(application: EditingApplication, job: JobReco
       visibility = await measureMotionVisibility(temporary, work.durationInFrames, work.width, work.height);
       await writeFile(join(temporary, "source.json"), JSON.stringify(work, null, 2));
       const previewHash = createHash("sha256").update(await readFile(rendered.previewPath)).digest("hex");
-      await writeFile(join(temporary, "manifest.json"), JSON.stringify({ version, previewHash, frameHashes: rendered.frameHashes, engineVersion: rendered.engineVersion, sandbox: rendered.sandbox, boundImages, visibility }, null, 2));
+      await writeFile(join(temporary, "manifest.json"), JSON.stringify({ version, hashEngineVersion, previewHash, frameHashes: rendered.frameHashes, engineVersion: rendered.engineVersion, sandbox: rendered.sandbox, boundImages, visibility, events: rendered.events }, null, 2));
       await rename(temporary, directory);
     } finally {
       // temporary 由 mkdtemp 在此任务的受管目录中创建，绝不删除项目根或旧作品版本。
       await rm(temporary, { recursive: true, force: true });
     }
   }
-  const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8")) as MotionRenderResult & { version: string; previewHash: string; visibility?: MotionVisibility };
+  const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8")) as MotionRenderResult & { version: string; hashEngineVersion?: string; previewHash: string; visibility?: MotionVisibility };
   const storedSource = motionSubmissionSchema.parse(JSON.parse(await readFile(join(directory, "source.json"), "utf8")));
-  if (manifest.version !== version || !Array.isArray(manifest.frameHashes) || manifest.frameHashes.length !== work.durationInFrames || motionHash(storedSource, boundImages, manifest.engineVersion) !== version) throw new Error("MOTION_CACHE_CORRUPT");
+  if (manifest.version !== version || !Array.isArray(manifest.frameHashes) || manifest.frameHashes.length !== work.durationInFrames || motionHash(storedSource, boundImages, manifest.hashEngineVersion ?? manifest.engineVersion) !== version) throw new Error("MOTION_CACHE_CORRUPT");
   for (const image of boundImages) {
     if (createHash("sha256").update(await readFile(join(directory, "resources", image.slot))).digest("hex") !== image.hash) throw new Error("MOTION_RESOURCE_CACHE_CORRUPT");
   }
@@ -68,6 +69,7 @@ export async function runMotionJob(application: EditingApplication, job: JobReco
   // 缓存命中也从已校验 PNG 重测，不能让损坏的元数据伪装成安全证据；兼容没有测量的旧缓存。
   visibility ??= await measureMotionVisibility(directory, work.durationInFrames, work.width, work.height);
   if (manifest.visibility && JSON.stringify(manifest.visibility) !== JSON.stringify(visibility)) throw new Error("MOTION_VISIBILITY_CACHE_CORRUPT");
-  const asset = application.completeManagedMotion({ projectId: job.projectId, jobId: job.id, engineVersion: manifest.engineVersion, sourceHash, metadata, visibility });
+  const eventMap = manifest.events === undefined ? undefined : { version, fps: work.fps, frameCount: work.durationInFrames, events: parseMotionEvents(manifest.events, work.durationInFrames) };
+  const asset = application.completeManagedMotion({ projectId: job.projectId, jobId: job.id, engineVersion: manifest.engineVersion, sourceHash, metadata, visibility, eventMap });
   return { assetId: asset.id, version, sandbox: manifest.sandbox, workReviewRequired: true, sourcePath: asset.motion!.sourcePath, previewPath: asset.managedPath };
 }

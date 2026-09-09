@@ -51,7 +51,7 @@ export type PersistenceTable = {
 /**
  * 项目 SQLite 的可读总览。
  *
- * 这里列出当前五张表、字段、实际数据库约束和应用层补充关系；
+ * 这里列出当前全部表、字段、实际数据库约束和应用层补充关系；
  * 下方 SQL 是唯一会被执行的建表来源，不能在其他位置复制 DDL。
  */
 export const PROJECT_DATABASE_TABLES: PersistenceTable[] = [
@@ -189,7 +189,40 @@ export const PROJECT_DATABASE_TABLES: PersistenceTable[] = [
       { name: "repair_tickets_project_reporter_idempotency_unique", columns: ["project_id", "reporter_id", "idempotency_key"], kind: "unique", description: "同一剪辑 Agent 的同一阻断重试不会重复建单。" },
       { name: "repair_tickets_project_status_updated_idx", columns: ["project_id", "status", "updated_at DESC"], kind: "index", description: "监测任务按项目和状态读取最新工单。" }
     ]
-  }
+  },
+  { name: "media_sources", description: "实际输入身份、哈希与源定位。", columns: [
+    { name: "id", sqlType: "TEXT", nullable: false, description: "记录 ID。" },
+    { name: "project_id", sqlType: "TEXT", nullable: false, description: "所属项目。" },
+    { name: "target_key", sqlType: "TEXT", nullable: false, description: "素材或候选标识。" },
+    { name: "hash", sqlType: "TEXT", nullable: false, description: "实际内容哈希。" },
+    { name: "data", sqlType: "TEXT", nullable: false, description: "版本化结构化记录。" }
+  ], relations: [], indexes: [] },
+  { name: "media_observations", description: "不可变观察及纠错历史。", columns: [
+    { name: "id", sqlType: "TEXT", nullable: false, description: "记录 ID。" },
+    { name: "project_id", sqlType: "TEXT", nullable: false, description: "所属项目。" },
+    { name: "source_id", sqlType: "TEXT", nullable: false, description: "输入身份。" },
+    { name: "superseded_by", sqlType: "TEXT", nullable: true, description: "替代观察 ID。" },
+    { name: "data", sqlType: "TEXT", nullable: false, description: "版本化结构化记录。" }
+  ], relations: [], indexes: [] },
+  { name: "media_vectors", description: "有效观察的分模态向量。", columns: [
+    { name: "observation_id", sqlType: "TEXT", nullable: false, description: "观察依据。" },
+    { name: "modality", sqlType: "TEXT", nullable: false, description: "模态与片段视图。" },
+    { name: "model", sqlType: "TEXT", nullable: false, description: "模型版本。" },
+    { name: "text_hash", sqlType: "TEXT", nullable: false, description: "实际索引文字哈希。" },
+    { name: "data", sqlType: "TEXT", nullable: false, description: "版本化结构化记录。" }
+  ], relations: [], indexes: [] },
+  { name: "media_analysis_records", description: "分析窗口覆盖与恢复检查点。", columns: [
+    { name: "id", sqlType: "TEXT", nullable: false, description: "记录 ID。" },
+    { name: "project_id", sqlType: "TEXT", nullable: false, description: "所属项目。" },
+    { name: "analysis_key", sqlType: "TEXT", nullable: false, description: "请求与版本缓存键。" },
+    { name: "data", sqlType: "TEXT", nullable: false, description: "版本化结构化记录。" }
+  ], relations: [], indexes: [] },
+  { name: "media_search_sessions", description: "在线搜索会话，不进入创作版本。", columns: [
+    { name: "id", sqlType: "TEXT", nullable: false, description: "记录 ID。" },
+    { name: "project_id", sqlType: "TEXT", nullable: false, description: "所属项目。" },
+    { name: "request_id", sqlType: "TEXT", nullable: false, description: "创作需求 ID。" },
+    { name: "data", sqlType: "TEXT", nullable: false, description: "版本化结构化记录。" }
+  ], relations: [], indexes: [] }
 ];
 
 /** SQLite 连接层参数；调用方无需在仓储外重复设置。 */
@@ -290,6 +323,17 @@ export const PROJECT_DATABASE_SCHEMA_SQL = `
   -- 监测任务常按项目、状态和更新时间轮询，不扫描无关项目。
   CREATE INDEX IF NOT EXISTS repair_tickets_project_status_updated_idx
     ON repair_tickets(project_id, status, updated_at DESC);
+  -- 素材理解操作数据与创作快照共库，独立保存，不复制入 Revision。
+      CREATE TABLE IF NOT EXISTS media_sources (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, target_key TEXT NOT NULL, hash TEXT NOT NULL, data TEXT NOT NULL);
+      CREATE INDEX IF NOT EXISTS media_sources_project ON media_sources(project_id,target_key);
+      CREATE TABLE IF NOT EXISTS media_observations (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, source_id TEXT NOT NULL REFERENCES media_sources(id), superseded_by TEXT, data TEXT NOT NULL);
+      CREATE INDEX IF NOT EXISTS media_observations_source ON media_observations(project_id,source_id,superseded_by);
+      CREATE TABLE IF NOT EXISTS media_vectors (observation_id TEXT NOT NULL REFERENCES media_observations(id), modality TEXT NOT NULL, model TEXT NOT NULL, text_hash TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(observation_id,modality,model));
+      CREATE TABLE IF NOT EXISTS media_analysis_records (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, analysis_key TEXT NOT NULL, data TEXT NOT NULL);
+      CREATE INDEX IF NOT EXISTS media_analysis_key ON media_analysis_records(project_id,analysis_key);
+      CREATE TABLE IF NOT EXISTS media_search_sessions (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, request_id TEXT NOT NULL, data TEXT NOT NULL);
+      CREATE INDEX IF NOT EXISTS media_search_project ON media_search_sessions(project_id,request_id);
+
 `;
 
 /** 所有 SQLite 初始化只能从这个函数进入，避免 DDL 分散到业务代码。 */

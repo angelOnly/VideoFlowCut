@@ -1,6 +1,6 @@
 import { openAsBlob } from "node:fs";
 import { writeFile } from "node:fs/promises";
-import { basename } from "node:path";
+import { basename, toNamespacedPath } from "node:path";
 import { readRuntimeConfig } from "@videocut/project-overview";
 
 export interface BridgeWorkflowField {
@@ -267,7 +267,9 @@ export class ComfyUIBridgeClient {
     form.set("request", JSON.stringify(request));
     for (const file of input.files) {
       // openAsBlob 让 Undici 从磁盘按需读取 multipart 内容，避免把长视频/音频完整复制到 Node 堆。
-      const blob = await openAsBlob(file.path, { type: file.mime ?? "application/octet-stream" });
+      let blob: Blob;
+      try { blob = await openAsBlob(toNamespacedPath(file.path), { type: file.mime ?? "application/octet-stream" }); }
+      catch (error) { throw new BridgeError(`上传前无法读取本地文件：${error instanceof Error ? error.message : String(error)}`, undefined, undefined, "BRIDGE_INPUT_UNREADABLE"); }
       form.set(`file_${file.slot.id}`, blob, basename(file.path));
     }
     return this.requestJson<BridgeRun>(path, { method: "POST", body: form });
@@ -300,6 +302,7 @@ export class ComfyUIBridgeClient {
       options?.onUpdate?.(run);
       if (run.status === "succeeded") return run;
       if (run.status === "failed") throw new BridgeError(`Bridge 任务失败：${run.error ?? "未知错误"}`, undefined, run, "BRIDGE_RUN_FAILED");
+      if (String(run.status) === "canceled" || String(run.status) === "cancelled") throw new BridgeError("Bridge 任务已取消", undefined, run, "BRIDGE_RUN_CANCELLED");
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
     }
     throw new BridgeError(`等待 Bridge 任务超时：${runId}`, undefined, undefined, "BRIDGE_RUN_TIMEOUT");

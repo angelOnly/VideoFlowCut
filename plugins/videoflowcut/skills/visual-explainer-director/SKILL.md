@@ -29,6 +29,8 @@ description: 作为旁白、机制、数据、证据和 UI 驱动视频的主要
 
 ### 主声音
 
+制作前用 `manage_sound_plans` 将每段的旁白表演、动作声音功能、音乐和留白共同确定。语音实际生成后才锁定物理时长。需要声音素材时进入 [sound-asset-sourcing](../sound-asset-sourcing/SKILL.md)（`sound-asset-sourcing`），默认在线搜索、原声理解、原文件采用与上下文比较，再交 audio-finishing。解释声音本身的段落使用 demonstration 主导区间，不能固定让旁白和音乐覆盖需要听辨的内容。
+
 旁白应在没有画面的情况下仍能理解基本逻辑，但不需要把视觉中已经清楚的所有关系重复念一遍。若使用 OmniVoice，调用 `voice-production`；若来自原视频，调用 `transcription`/`semantic-continuity`。稳定主声音后再编译 Scene。
 
 ## Scene Grammar：选择视觉机制

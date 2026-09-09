@@ -1,12 +1,48 @@
+const schemaNotes = new Set(["description", "title", "$comment", "examples"]);
+const schemaMaps = new Set(["properties", "patternProperties", "$defs", "definitions", "dependentSchemas", "dependencies"]);
+const schemaChildren = new Set(["items", "additionalItems", "additionalProperties", "unevaluatedItems", "unevaluatedProperties", "contains", "propertyNames", "not", "if", "then", "else", "allOf", "anyOf", "oneOf", "prefixItems", "contentSchema"]);
+
+/** 只排除 Schema 的说明，不能误删名为 title/description 的输入字段或默认值。 */
+function schemaContract(schema) {
+  if (Array.isArray(schema)) return schema.map(schemaContract);
+  if (!schema || typeof schema !== "object") return schema;
+  return Object.fromEntries(Object.entries(schema).filter(([key]) => !schemaNotes.has(key)).map(([key, value]) => {
+    if (schemaMaps.has(key) && value && typeof value === "object" && !Array.isArray(value)) return [key, Object.fromEntries(Object.entries(value).map(([name, child]) => [name, schemaContract(child)]))];
+    return [key, schemaChildren.has(key) ? schemaContract(value) : value];
+  }));
+}
+
+function canonical(value) {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical(value[key])]));
+}
+
+function toolContract(tool) {
+  const { description, title, icons, ...contract } = tool;
+  if (contract.inputSchema) contract.inputSchema = schemaContract(contract.inputSchema);
+  if (contract.outputSchema) contract.outputSchema = schemaContract(contract.outputSchema);
+  if (contract.annotations) {
+    const { title: annotationTitle, ...behavior } = contract.annotations;
+    if (Object.keys(behavior).length) contract.annotations = behavior;
+    else delete contract.annotations;
+  }
+  return JSON.stringify(canonical(contract));
+}
+
 /** 保持宿主连接，仅在已完成调用之间切换业务 MCP；任何未知结果都不自动重放。 */
-export function createReloadingMcpSession({ resolveDeployment, connect, onToolsChanged = async () => {}, runExclusive = (action) => action() }) {
+export function createReloadingMcpSession({ initialTools, resolveDeployment, connect, onToolsChanged = async () => {}, runExclusive = (action) => action() }) {
+  if (!Array.isArray(initialTools) || initialTools.length === 0
+    || initialTools.some((tool) => !tool?.name || tool.inputSchema?.type !== "object")
+    || new Set(initialTools.map((tool) => tool.name)).size !== initialTools.length) {
+    throw new Error("MCP 发行工具目录缺失或无效，请重新构建并安装插件");
+  }
   let current;
   let targetProjectId;
   let exposed = new Map();
   let queue = Promise.resolve();
   let closed = false;
-  let emptyCatalogExposed = false;
-  const fingerprint = (tool) => JSON.stringify(tool);
+  const fingerprint = toolContract;
   const serial = (action) => {
     const result = queue.then(() => {
       if (closed) throw new Error("MCP 连接管理层已关闭");
@@ -29,8 +65,7 @@ export function createReloadingMcpSession({ resolveDeployment, connect, onToolsC
       current = next;
       try { await previous?.close(); }
       finally {
-        if (emptyCatalogExposed || (previous && JSON.stringify(previous.tools) !== JSON.stringify(next.tools))) await onToolsChanged();
-        emptyCatalogExposed = false;
+        if (exposed.size && JSON.stringify(previous?.tools ?? initialTools) !== JSON.stringify(next.tools)) await onToolsChanged();
       }
     } catch (error) {
       if (current !== next) await next.close();
@@ -39,15 +74,14 @@ export function createReloadingMcpSession({ resolveDeployment, connect, onToolsC
   };
   return {
     refresh: () => serial(refresh),
-    listTools: () => serial(async () => {
-      try { await refresh(); } catch {
-        // 工具目录仍可发现，实际执行继续受实时健康门禁约束；首次失败后恢复会通知宿主。
-        if (!current) emptyCatalogExposed = true;
-      }
-      const tools = current?.tools ?? [];
+    listTools: async () => {
+      if (closed) throw new Error("MCP 连接管理层已关闭");
+      // Codex 可能缓存首次目录且不响应变更通知；发现能力不能等待 Runtime 或部署锁。
+      // 初始目录由同一发行 MCP 实际导出并纳入 Release ID，调用仍经过实时健康与 Schema 门禁。
+      const tools = current?.tools ?? initialTools;
       exposed = new Map(tools.map((tool) => [tool.name, fingerprint(tool)]));
       return { tools };
-    }),
+    },
     callTool: (params, options) => serial(async () => {
       try { await refresh(); } catch (error) {
         return { isError: true, content: [{ type: "text", text: `MCP_RUNTIME_UNAVAILABLE：${error instanceof Error ? error.message : error}。本次未执行；连接保留，恢复后请重新读回状态。` }] };

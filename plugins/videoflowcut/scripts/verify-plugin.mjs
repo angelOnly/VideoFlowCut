@@ -18,6 +18,7 @@ const releaseFiles = [
   ["Runtime 入口", join(runtimeRoot, "runtime.cjs")],
   ["渲染线程入口", join(runtimeRoot, "render-thread.cjs")],
   ["MCP 入口", join(runtimeRoot, "mcp.cjs")],
+  ["MCP 工具目录", join(runtimeRoot, "mcp-tools.json")],
   ["Remotion 入口", join(runtimeRoot, "remotion", "render-entry.cjs")],
   ["Web 入口", join(runtimeRoot, "web", "index.html")],
   ["发行 manifest", join(runtimeRoot, "manifest.json")]

@@ -4,7 +4,7 @@ import { build } from "esbuild";
 import ts from "typescript";
 import type { BoundMotionImage, MotionSubmission } from "./schema.js";
 
-export const MOTION_ENGINE_VERSION = "managed-motion-3";
+export const MOTION_ENGINE_VERSION = "managed-motion-4";
 const forbidden = new Set(["eval", "Function", "globalThis", "window", "document", "navigator", "location", "parent", "top", "opener", "self", "fetch", "XMLHttpRequest", "WebSocket", "Worker", "SharedWorker", "process", "require", "Date", "performance", "setTimeout", "setInterval", "requestAnimationFrame", "localStorage", "sessionStorage", "indexedDB", "constructor", "__proto__", "prototype"]);
 const allowedImports: Record<string, Set<string>> = {
   react: new Set(["default", "Fragment", "createElement", "useMemo"]),
@@ -79,12 +79,20 @@ export function validateMotionSource(source: string): void {
 export function motionHash(input: MotionSubmission, images: BoundMotionImage[] = [], engineVersion = MOTION_ENGINE_VERSION): string {
   return createHash("sha256").update(engineVersion).update(JSON.stringify(input)).update(JSON.stringify(images)).digest("hex");
 }
+/** 旧 Job 的输入哈希保持可核验；新提交固定新引擎，不能使历史作品版本漂移。 */
+export function motionHashEngine(input: MotionSubmission, images: BoundMotionImage[], version: unknown, declared?: unknown): string {
+  const accepted = [MOTION_ENGINE_VERSION, "managed-motion-3"];
+  const engine = accepted.find((candidate) => (declared === undefined || declared === candidate) && motionHash(input, images, candidate) === version);
+  if (!engine) throw new Error("MOTION_VERSION_MISMATCH");
+  return engine;
+}
 
 /** esbuild 只转换用户源码，不在 Node 中求值；只有受信任依赖可由文件系统解析。 */
 export async function compileMotion(input: MotionSubmission, imageData: Record<string, string> = {}): Promise<string> {
   validateMotionSource(input.source);
   const require = createRequire(typeof __filename === "string" ? __filename : import.meta.url);
-  const entry = `import React from 'react';import {createRoot} from 'react-dom/client';import {flushSync} from 'react-dom';import {Player} from '@remotion/player';import Motion from 'motion-user';
+  const entry = `import React from 'react';import {createRoot} from 'react-dom/client';import {flushSync} from 'react-dom';import {Player} from '@remotion/player';import Motion,* as motionModule from 'motion-user';
+window.__readMotionEvents=()=>typeof motionModule.resolveMotionEvents==='function'?motionModule.resolveMotionEvents(${JSON.stringify(input.props)},{fps:${input.fps},durationInFrames:${input.durationInFrames}}):null;
 const ref=React.createRef();const root=createRoot(document.getElementById('root'));
 flushSync(()=>root.render(React.createElement(Player,{ref,component:Motion,inputProps:${JSON.stringify({ ...input.props, assets: imageData })},durationInFrames:${input.durationInFrames},fps:${input.fps},compositionWidth:${input.width},compositionHeight:${input.height},controls:false,autoPlay:false,loop:false,style:{width:${input.width},height:${input.height}}})));
 window.__motionReady=true;window.__motionSeek=async(frame)=>{ref.current.seekTo(frame);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));await document.fonts.ready;};`;

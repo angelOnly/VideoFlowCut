@@ -6,7 +6,18 @@ import { pipeline } from "node:stream/promises";
 import type { AssetCandidate, AssetRequest, MediaMetadata } from "@videocut/contracts";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { WikimediaCommonsProvider } from "./wikimedia-commons.js";
-import { MixkitSoundProvider } from "./mixkit.js";
+import { MixkitSoundProvider, MixkitMusicProvider } from "./mixkit.js";
+import { FreesoundProvider } from "./freesound.js";
+import { MIXKIT_SOUND_CATEGORIES, MIXKIT_MUSIC_CATEGORIES } from "./sound-catalog.js";
+
+export function soundSourceCapabilities() {
+  const config = readRuntimeConfig().providers;
+  return [
+    { id: "mixkit", name: "Mixkit 音效", enabled: true, search: "public_category", preview: true, original: true, categories: MIXKIT_SOUND_CATEGORIES, licenseUrl: "https://mixkit.co/license/#sfxFree", limits: "一次读取一个分类的至多30条；按需获取少量文件" },
+    { id: "mixkit_music", name: "Mixkit 音乐", enabled: true, search: "public_category", preview: true, original: true, categories: MIXKIT_MUSIC_CATEGORIES, licenseUrl: "https://mixkit.co/license/#musicFree", limits: "单独音乐许可，面向符合许可的网络视频用途" },
+    { id: "freesound", name: "Freesound", enabled: Boolean(config.freesoundApiKey && config.freesoundCommercialApiApproved), search: "official_api", preview: Boolean(config.freesoundApiKey && config.freesoundCommercialApiApproved), original: Boolean(config.freesoundApiKey && config.freesoundOAuthToken && config.freesoundCommercialApiApproved), categories: [], licenseUrl: "https://freesound.org/help/faq/#licenses", limits: !config.freesoundApiKey ? "缺少 API 凭据" : !config.freesoundCommercialApiApproved ? "尚未确认商业 API 使用条件" : !config.freesoundOAuthToken ? "缺少原文件下载 OAuth" : "逐条核对 CC0 / CC BY；不采用 NC" }
+  ];
+}
 
 /** Provider 失败会由 Job Runtime 保留为可诊断的错误码，而不是伪造空候选。 */
 export class AssetProviderError extends Error {
@@ -44,6 +55,7 @@ export interface ProviderDownload {
 
 export interface AssetProvider {
   readonly name: string;
+  readonly previewHosts?: string[];
   search(input: { request: AssetRequest; query: string }): Promise<ProviderSearchCandidate[]>;
   download(input: { candidate: AssetCandidate; temporaryDirectory: string }): Promise<ProviderDownload>;
 }
@@ -67,6 +79,8 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   ".ogv": "video/ogg",
   ".webm": "video/webm",
   ".wav": "audio/wav",
+  ".aiff": "audio/aiff",
+  ".aif": "audio/aiff",
   ".mp3": "audio/mpeg",
   ".flac": "audio/flac",
   ".m4a": "audio/mp4",
@@ -187,6 +201,11 @@ export async function downloadHttpFile(
   }
   // 受控音效下载拒绝隐式重定向，防止公开地址跳到本机或未知站点。
   const response = await fetch(url, { headers, redirect: safety ? "error" : "follow", signal: safety ? AbortSignal.timeout(60_000) : undefined });
+  return saveProviderMediaResponse(response, temporaryDirectory, fileName, expectedKind, expectedMimeType);
+}
+
+/** 直接响应和受控重定向的最终媒体共用 MIME、体积与解码检查。 */
+export async function saveProviderMediaResponse(response: Response, temporaryDirectory: string, fileName: string, expectedKind: ProviderMediaKind, expectedMimeType?: string): Promise<ProviderDownload> {
   if (!response.ok) throw new AssetProviderError(`下载素材失败：HTTP ${response.status}`, "ASSET_DOWNLOAD_HTTP_ERROR");
   const contentType = assertProviderDownloadContentType({
     contentType: response.headers.get("content-type") ?? undefined,
@@ -397,7 +416,9 @@ export class AssetProviderRegistry {
  * 发现 Provider 不等于素材已获授权或适合进入 Scene，后续仍要走候选审查和本地化。
  */
 export function createDefaultAssetProviderRegistry(): AssetProviderRegistry {
-  const providers: AssetProvider[] = [new WikimediaCommonsProvider(), new MixkitSoundProvider()];
+  const providers: AssetProvider[] = [new WikimediaCommonsProvider(), new MixkitSoundProvider(), new MixkitMusicProvider()];
+  const soundConfig = readRuntimeConfig().providers;
+  if (soundConfig.freesoundApiKey && soundConfig.freesoundCommercialApiApproved) providers.push(new FreesoundProvider(soundConfig.freesoundApiKey, soundConfig.freesoundOAuthToken));
   const pexelsApiKey = readRuntimeConfig().providers.pexelsApiKey;
   if (pexelsApiKey) providers.push(new PexelsProvider(pexelsApiKey));
   return new AssetProviderRegistry(providers);

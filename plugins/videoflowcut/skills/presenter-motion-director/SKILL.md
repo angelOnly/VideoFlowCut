@@ -74,8 +74,8 @@ description: 作为人物口播、访谈、课程、教程、数字人主持和 
 → 识别任务分支
 → 转写与语义/A-roll 主线
 → 最终声音与 SpeechTiming
-→ 人物版本和 AudioMode
 → StoryBeat / PresenterScene 骨架
+→ 人物版本和 AudioMode
 → AttentionCurve / Visual Treatment
 → 素材需求、Remotion、Cutaway
 → Captions
@@ -109,15 +109,17 @@ description: 作为人物口播、访谈、课程、教程、数字人主持和 
 
 ### 最终声音
 
+人物表演与动效制作前，用 `manage_sound_plans` 确定段落主声音、旁白重音/停顿、动作功能、音乐走向和留白；计划不替代实际生成音频。实际语音稳定后再核对时长与动作。需要音乐或音效时进入 [sound-asset-sourcing](../sound-asset-sourcing/SKILL.md)（`sound-asset-sourcing`），默认在线取得有限候选与原文件采用依据，再交 audio-finishing 完成合成。人物进入全屏动效再返回时，旁白所有权保持唯一；如果段内演示声音需要被听见，计划明确主导区间，让音乐退让。
+
 真人原声、人物视频自带最终声音、OmniVoice Dialogue 或纯视觉人物必须明确。需要 TTS 时调用 `voice-production`，使用真实 SegmentAsset 时长生成 `segment_exact`。没有 word_exact 时，不把句中每个词当作精确动效锚点。
-
-### 人物表演
-
-调用 `avatar-performance` 登记或审查 ActorPerformance。当前实际工具 `manage_actor_performance` 能保存 imported/generated、MaskMode、AudioMode、MaskAsset、SpeechAsset 和 note；自动姿态和手势仍是后续能力。没有 Mask 时，后景穿插不能伪装成立，应降级到左右安全区、前景或 Fullscreen。
 
 ### Story 与 PresenterScene
 
 StoryBeat 不是每两个视频一组。它应对应一个问题、观点、证据、转折、例子、CTA 或结论。使用 `manage_story` 保存 Beat，再用 `compile_presenter_scenes` 让 A-roll Item 被明确 Scene 覆盖。Scene 边界应跟随认知、人物状态或视觉模式变化，不只跟随素材边界。
+
+### 人物表演
+
+先读回 Project，确认目标 A-roll Item 已归属 PresenterScene，再调用 `avatar-performance` 登记或审查 ActorPerformance。尚未归属 Scene 时先完成 `compile_presenter_scenes`，不能直接重试人物登记。当前实际工具 `manage_actor_performance` 能保存 imported/generated、MaskMode、AudioMode、MaskAsset、SpeechAsset 和 note；自动姿态和手势仍是后续能力。没有 Mask 时，后景穿插不能伪装成立，应降级到左右安全区、前景或 Fullscreen。
 
 Gate A 通过的证据：来源和主线可回溯；Script 与人物/声音版本一致；只听声音成立；A-roll、StoryBeat 和 PresenterScene 有真实关系；包装尚未被用来掩盖问题。
 
@@ -294,8 +296,8 @@ create_project(profile=presenter_motion)
 → manage_voice_references / submit_voice_synthesis
 → read_speech_asset / read_speech_timing
 → assemble_presenter_track
-→ manage_actor_performance
 → compile_presenter_scenes
+→ manage_actor_performance
 → manage_visual_treatment，为关键 Beat 写入 Visual Treatment 和安静区
 → 获取/导入真实视觉资产
 → manage_cutaways / replace_scene_asset（仅在 Cutaway 计划成立时）

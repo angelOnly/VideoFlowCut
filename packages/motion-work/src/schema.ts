@@ -40,6 +40,13 @@ export const motionSubmissionSchema = z.object({
 });
 export type MotionSubmission = z.infer<typeof motionSubmissionSchema>;
 
+/** 事件必须由受管代码实际计算，平台只校验结果和绑定版本。 */
+export function parseMotionEvents(value: unknown, frameCount: number) {
+  const events = z.array(z.object({ id: z.string().trim().min(1).max(160), meaning: z.string().trim().min(1).max(500), startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive().optional() }).strict()).max(100).parse(value);
+  if (new Set(events.map((event) => event.id)).size !== events.length || events.some((event) => event.startFrame >= frameCount || event.endFrame !== undefined && (event.endFrame <= event.startFrame || event.endFrame > frameCount))) throw new Error("MOTION_EVENT_RANGE_INVALID: 事件 ID 重复或范围不在当前作品内");
+  return events;
+}
+
 export const motionReviewEvidenceSchema = z.object({
   kind: z.enum(["work_proxy", "project_preview"]), previewJobId: z.string().min(1).optional(),
   startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(),

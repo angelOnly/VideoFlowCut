@@ -7,4 +7,15 @@ export const SOUND_SOURCES = [
   { id: "boom", name: "BOOM Library", url: "https://www.boomlibrary.com/sound-effects/", tags: ["专业音色", "设计音效", "付费合集"], access: "原站试听；不自动购买，只导入已有授权文件", licenseUrl: "https://www.boomlibrary.com/terms-conditions/" }
 ] as const;
 
-export const MIXKIT_SOUND_CATEGORIES = ["interface", "transition", "notification", "whoosh", "click", "pop"] as const;
+export const MIXKIT_SOUND_CATEGORIES = ["interface", "transition", "notification", "whoosh", "click", "pop", "paper", "metal", "wood", "lifestyle", "technology", "nature", "human", "transport", "traffic", "footsteps", "water", "rain", "wind", "engine", "doors", "clock", "beep", "glitch", "error", "ambience", "appliances", "city", "forest", "beach", "electricity", "camera", "crowd", "cartoon"] as const;
+export const MIXKIT_MUSIC_CATEGORIES = ["ambient", "cinematic", "minimalism", "corporate-music", "lo-fi-beats", "chillout", "electronic", "mood/calm", "mood/cheerful", "mood/atmospheric"] as const;
+
+/** 自然语言映射到原站真实分类；不伪装为网站关键词搜索 API。 */
+export function mixkitCategory(query: string, music = false): string | undefined {
+  const value = query.trim().toLowerCase();
+  const categories: readonly string[] = music ? MIXKIT_MUSIC_CATEGORIES : MIXKIT_SOUND_CATEGORIES;
+  if (categories.includes(value)) return value;
+  const rules: Array<[RegExp, string]> = music ? [[/安静|平静|calm/u, "mood/calm"], [/环境|氛围|ambient/u, "ambient"], [/克制|极简|minimal/u, "minimalism"], [/科技|electronic/u, "electronic"], [/轻松|lo.?fi|chill/u, "lo-fi-beats"], [/电影|cinematic/u, "cinematic"]]
+    : [[/纸|paper|rustl|unfold/u, "paper"], [/金属|metal/u, "metal"], [/木|wood/u, "wood"], [/机械|servo|mechanic|slide|latch/u, "technology"], [/脚步|footstep/u, "footsteps"], [/门|door/u, "doors"], [/时钟|clock|tick/u, "clock"], [/故障|glitch/u, "glitch"], [/提示|确认|beep|confirm/u, "beep"], [/风|wind/u, "wind"], [/水|water/u, "water"], [/雨|rain/u, "rain"], [/弹|pop/u, "pop"], [/点击|click/u, "click"], [/飞入|划过|whoosh|swish/u, "whoosh"], [/交通|traffic/u, "traffic"], [/环境|ambient/u, "ambience"]];
+  return rules.find(([pattern]) => pattern.test(value))?.[1];
+}

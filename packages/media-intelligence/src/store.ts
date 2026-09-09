@@ -10,17 +10,7 @@ type JsonRow = { data: string };
 /** 同一个 SQLite 内的操作表；不会随每个创作 Revision 重复复制。 */
 export class MediaIntelligenceStore {
   constructor(private readonly db: DatabaseSync) {
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS media_sources (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, target_key TEXT NOT NULL, hash TEXT NOT NULL, data TEXT NOT NULL);
-      CREATE INDEX IF NOT EXISTS media_sources_project ON media_sources(project_id,target_key);
-      CREATE TABLE IF NOT EXISTS media_observations (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, source_id TEXT NOT NULL REFERENCES media_sources(id), superseded_by TEXT, data TEXT NOT NULL);
-      CREATE INDEX IF NOT EXISTS media_observations_source ON media_observations(project_id,source_id,superseded_by);
-      CREATE TABLE IF NOT EXISTS media_vectors (observation_id TEXT NOT NULL REFERENCES media_observations(id), modality TEXT NOT NULL, model TEXT NOT NULL, text_hash TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(observation_id,modality,model));
-      CREATE TABLE IF NOT EXISTS media_analysis_records (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, analysis_key TEXT NOT NULL, data TEXT NOT NULL);
-      CREATE INDEX IF NOT EXISTS media_analysis_key ON media_analysis_records(project_id,analysis_key);
-      CREATE TABLE IF NOT EXISTS media_search_sessions (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, request_id TEXT NOT NULL, data TEXT NOT NULL);
-      CREATE INDEX IF NOT EXISTS media_search_project ON media_search_sessions(project_id,request_id);
-    `);
+
   }
   saveSource(source: MediaSource): void {
     this.db.prepare("INSERT INTO media_sources(id,project_id,target_key,hash,data) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data")

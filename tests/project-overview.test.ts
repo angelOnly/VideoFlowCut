@@ -53,7 +53,7 @@ function textFromToolResult(result: unknown): string {
 }
 
 test("MCP 注册工具全部归入项目总览能力目录", async () => {
-  const source = await readFile(mcpSourcePath, "utf8") + await readFile(join(repositoryRoot, "apps/server/src/motion-tools.ts"), "utf8");
+  const source = (await Promise.all([mcpSourcePath, ...["motion-tools", "media-intelligence-tools", "sound-tools"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
   const registered = registeredToolNames(source);
   const catalogued = MCP_CAPABILITY_GROUPS.flatMap((group) => group.tools);
   const missing = registered.filter((name) => !catalogued.includes(name));
@@ -134,7 +134,7 @@ test("显式环境变量与总览配置目录严格一致", async () => {
   assert.deepEqual([...actual].sort(), [...catalogued].sort());
 });
 
-test("项目总览 MCP 可发现并返回真实五表结构，且不泄漏密钥", async () => {
+test("项目总览 MCP 可发现并返回创作与素材操作表结构，且不泄漏密钥", async () => {
   const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-overview-mcp-"));
   const inheritedEnvironment = Object.fromEntries(
     Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === "string")
@@ -160,7 +160,7 @@ test("项目总览 MCP 可发现并返回真实五表结构，且不泄漏密钥
       database: { engine: string; tables: Array<{ name: string }> };
     };
     assert.equal(overview.database.engine, "SQLite");
-    assert.deepEqual(overview.database.tables.map((table) => table.name), ["projects", "revisions", "jobs", "export_artifacts", "repair_tickets"]);
+    assert.deepEqual(overview.database.tables.map((table) => table.name).sort(), ["projects", "revisions", "jobs", "export_artifacts", "repair_tickets", "media_sources", "media_analysis_records", "media_observations", "media_vectors", "media_search_sessions"].sort());
     assert.doesNotMatch(JSON.stringify(overview), /overview-test-pexels-secret|overview-test-runtime-secret/u);
   } finally {
     await transport.close().catch(() => undefined);

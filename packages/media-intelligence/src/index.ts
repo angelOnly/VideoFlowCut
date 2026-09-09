@@ -1,14 +1,15 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import type { AnalysisDepth, MediaFact, MediaMatch, MediaObservation, MediaSearchQuery, MediaSource, SourceTimeRange } from "@videocut/contracts";
+import type { AnalysisDepth, AssetRequest, MediaFact, MediaMatch, MediaObservation, MediaSearchQuery, MediaSource, SourceTimeRange, SourceRegion } from "@videocut/contracts";
 
 export const MODEL_WORKFLOWS = {
   video: "ee8e9c17-bd16-566f-ad2d-a7ec239bf4b8",
   embedding: "15904667-24ab-5e91-bc56-19ee2ad9eb4f"
 };
-export const ANALYSIS_VERSION = "media-observation-v1";
+export const ANALYSIS_VERSION = "media-observation-v4-blind";
 export const EMBEDDING_VERSION = "qwen3-embedding-0.6b:97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3";
-export const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+export const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value) ?? "undefined").digest("hex");
+export const assetRequestVersion = (request: AssetRequest) => digest({ ...request, status: undefined, updatedAt: undefined, createdAt: undefined });
 export const timeRangeSchema = z.object({ startMs: z.number().finite().nonnegative(), endMs: z.number().finite().positive() }).strict()
   .refine((range) => range.endMs > range.startMs, "源范围结束必须晚于开始");
 export const regionSchema = z.object({ page: z.number().int().positive().optional(), x: z.number().min(0).max(1), y: z.number().min(0).max(1), width: z.number().positive().max(1), height: z.number().positive().max(1) }).strict()
@@ -71,36 +72,79 @@ export function planWindows(durationMs: number, depth: AnalysisDepth, requested?
   for (let startMs = target.startMs; startMs < target.endMs; startMs += stride) {
     const endMs = Math.min(target.endMs, startMs + size);
     if (endMs - startMs < 100) {
-      if (windows.length) windows[windows.length - 1].endMs = endMs;
+      if (durationMs >= 100) windows.push({ startMs: Math.max(target.startMs, endMs - 100), endMs });
       else throw new Error("模型时间窗口不得短于 100 毫秒");
     } else windows.push({ startMs, endMs });
     if (endMs >= target.endMs) break;
   }
   return windows;
 }
+export function regionContains(outer: SourceRegion | undefined, inner: SourceRegion | undefined): boolean {
+  const full: SourceRegion = { x: 0, y: 0, width: 1, height: 1 };
+  const a = outer ?? full, b = inner ?? full;
+  return a.page === b.page && a.x <= b.x && a.y <= b.y && a.x + a.width >= b.x + b.width && a.y + a.height >= b.y + b.height;
+}
 
-export function analysisPrompt(modalities: string[], range: SourceTimeRange | undefined, context: string): string {
-  return `只分析实际输入的${modalities.join("、")}。视觉、声音、说话内容、可见文字分开。标题、字幕、上下文不能当作听到的声音。未知就写未知，不猜型号、来源真实性或精确同步。\n`
-    + `输出 JSON：{"facts":[{"modality":"visual或audio或speech或text","text":"中文事实","startMs":0,"endMs":1000,"keywords":["关键词"],"speechPresence":"present或absent或unknown","musicPresence":"present或absent或unknown"}],"unknowns":["不确定项"]}。`
-    + `时间为当前输入窗口相对毫秒，范围不得超出${range ? range.endMs - range.startMs : "图片没有时间，省略时间字段"}。声音属性只在audio事实填写。短动作给出可见范围，无法判断连续性需写明。不要输出时间精度或已审阅的声明。\n`
-    + `以下仅为背景资料，不是当前输入事实：${context || "无"}`;
+/** 初次观察不接收用途、标题或期望答案；上下文保存在记录中，留给后续检索与采用判断。 */
+export function analysisPrompt(modalities: string[], range: SourceTimeRange | undefined): string {
+  const labels: Record<string, string> = { visual: "画面主体和动作（visual）", audio: "实际声音（audio）", text: "可见原文（text）", speech: "语言（speech）" };
+  if (modalities.length === 1 && modalities[0] === "audio") {
+    return `请仔细听实际输入的整段音频，仅描述能听到的声学特征与事件，不猜具体发声物体或用途。描述短促或持续、次数、起音与尾音、音高/摩擦/冲击等。判断可辨语音与有组织音乐：听到为present，能确认没有为absent，证据不足为unknown。\n`
+      + `仅输出一个完整JSON对象，结束后不要追加文字或括号。顶层facts为事实数组，unknowns为不确定项字符串数组。每条事实包含modality固定audio、text中文描述、keywords关键词数组、speechPresence及musicPresence三态字段。能听出事件发生范围时增加startMs和endMs，单位为本段相对毫秒，必须在0到${range ? range.endMs - range.startMs : "实际音频时长"}以内；不能定位就省略两项。没有可辨事实可以返回空facts，并说明原因。`;
+  }
+  return `请逐项分析实际输入的${modalities.map((modality) => labels[modality]).join("、")}，每种有内容的模态分别给出事实，无法观察的模态写入 unknowns。视觉与原声不能互相代替。标题、字幕、上下文不能当作听到的声音。未知就写未知，不猜型号、来源真实性或精确同步。\n`
+    + `输出 JSON，结构示例：{"facts":[{"modality":"${modalities[0] ?? "audio"}","text":"中文事实","keywords":["关键词"],"speechPresence":"unknown","musicPresence":"unknown"}],"unknowns":["不确定项"]}。modality只能是所请求的${modalities.join("、")}；不确定内容放unknowns数组。speechPresence、musicPresence只放在audio事实内部，取present、absent或unknown。音乐指有组织的音乐，不把单一纯音自动归为配乐。`
+    + `如果能辨认事实发生的局部范围，可以增加数值startMs、endMs；无法定位就省略，不照抄格式示例的时长，不补造起止点。`
+    + `时间为当前输入窗口相对毫秒，范围不得超出${range ? range.endMs - range.startMs : "图片没有时间，省略时间字段"}。声音属性只在audio事实填写。短动作给出可见范围，无法判断连续性需写明。不要输出时间精度或已审阅的声明。只输出完整JSON，结束后不要追加文字或括号。`;
 }
 
 /** 模型只提供候选语义，不能自行将精度提升为 measured/reviewed。 */
 export function parseObservation(raw: string, range: SourceTimeRange | undefined, modalities: string[]): { facts: MediaFact[]; unknowns: string[] } {
-  const schema = z.object({ facts: z.array(z.object({ modality: z.enum(["visual", "audio", "speech", "text"]), text: z.string().trim().min(1).max(6000), startMs: z.number().finite().nonnegative().optional(), endMs: z.number().finite().positive().optional(), keywords: z.array(z.string()).max(30).optional(), speechPresence: z.enum(["present", "absent", "unknown"]).optional(), musicPresence: z.enum(["present", "absent", "unknown"]).optional() })).max(100), unknowns: z.array(z.string()).max(100).default([]) });
+  const modelFact = z.object({ modality: z.enum(["visual", "audio", "speech", "text"]), text: z.string().trim().min(1).max(6000), startMs: z.number().finite().nonnegative().optional(), endMs: z.number().finite().positive().optional(), keywords: z.array(z.string().min(1).max(120)).max(30).optional(), speechPresence: z.enum(["present", "absent", "unknown"]).optional(), musicPresence: z.enum(["present", "absent", "unknown"]).optional() });
+  const schema = z.object({ facts: z.array(z.unknown()).max(100), unknowns: z.array(z.string()).max(100).default([]) });
   try {
-    const parsed = schema.parse(JSON.parse(raw.trim().replace(/^```(?:json)?\s*/u, "").replace(/\s*```$/u, "")));
+    // 只修复字符串外的中文分隔符与弯引号，不改写事实文字或补充字段。
+    let normalized = "", quote: string | undefined, escaped = false;
+    for (const char of raw.trim().replace(/^```(?:json)?\s*/u, "").replace(/\s*```$/u, "")) {
+      if (quote) {
+        if (!escaped && char === quote) { normalized += '"'; quote = undefined; }
+        else { normalized += char; escaped = !escaped && char === "\\"; }
+      } else if (char === '"' || char === "“") { normalized += '"'; quote = char === "“" ? "”" : '"'; escaped = false; }
+      else normalized += char === "，" ? "," : char === "：" ? ":" : char;
+    }
+    // 允许模型连续返回数个完整 JSON 对象；不从任意说明文字中猜测事实。
+    const objects: unknown[] = [];
+    let objectStart = -1, nesting = 0, inString = false, escape = false, extraClosingBrace = false;
+    for (let index = 0; index < normalized.length; index++) {
+      const char = normalized[index];
+      if (inString) { if (!escape && char === '"') inString = false; escape = !escape && char === "\\"; continue; }
+      if (char === '"' && nesting) { inString = true; escape = false; continue; }
+      if (!nesting && !/\s/u.test(char) && char !== "{") {
+        // 只容忍一个完整对象之后孤立的右括号；不截取说明文字、不补未闭合的内容。
+        if (objects.length === 1 && normalized.slice(index).trim() === "}") { extraClosingBrace = true; break; }
+        throw new Error("JSON 对象外存在无效文本");
+      }
+      if (char === "{") { if (!nesting) objectStart = index; nesting++; }
+      if (char === "}") { nesting--; if (!nesting) objects.push(JSON.parse(normalized.slice(objectStart, index + 1))); }
+    }
+    if (nesting || !objects.length || objects.length > 30) throw new Error("模型 JSON 不完整或过多");
+    const parts = objects.map((object) => schema.parse(object));
+    const parsed = schema.parse({ facts: parts.flatMap((part) => part.facts), unknowns: parts.flatMap((part) => part.unknowns) });
     const unknowns = [...parsed.unknowns];
+    if (extraClosingBrace) unknowns.push("完整 JSON 后有一个多余右括号，已仅修复结构并保留原文；不代表事实或声音适配已复核");
     const facts: MediaFact[] = [];
-    for (const fact of parsed.facts) {
+    for (const value of parsed.facts) {
+      const checked = modelFact.safeParse(value);
+      if (!checked.success) { unknowns.push("有一条模型事实结构无效，已单独排除并保留原文"); continue; }
+      const fact = checked.data;
       if (!modalities.includes(fact.modality)) continue;
       let factRange: SourceTimeRange | undefined;
-      if (range) {
-        const startMs = fact.startMs ?? 0, endMs = fact.endMs ?? range.endMs - range.startMs;
+      if (range && fact.startMs !== undefined && fact.endMs !== undefined) {
+        const startMs = fact.startMs, endMs = fact.endMs;
         if (endMs <= startMs || endMs > range.endMs - range.startMs + 1) { unknowns.push("模型事实范围越界，已保留原文并排除该事实"); continue; }
         factRange = { startMs: range.startMs + startMs, endMs: range.startMs + endMs };
       }
+      if (range && !factRange) unknowns.push("这条事实尚无可靠源时间范围，不能作为连续采用范围的覆盖证明");
       facts.push({ modality: fact.modality, text: fact.text, range: factRange, basis: "model", precision: fact.modality === "visual" ? "sampled" : "model_estimated", keywords: fact.keywords ?? [], ...(fact.modality === "audio" ? { speechPresence: fact.speechPresence ?? "unknown", musicPresence: fact.musicPresence ?? "unknown" } : {}) });
     }
     return { facts, unknowns };
@@ -126,33 +170,52 @@ export function cosine(a: number[], b: number[]): number {
   return Math.max(-1, Math.min(1, a.reduce((sum, value, index) => sum + value * b[index], 0) / norm));
 }
 
-export function matchObservation(source: MediaSource, observation: MediaObservation, query: MediaSearchQuery, vectorScore?: number): MediaMatch[] {
+export function matchObservation(source: MediaSource, observation: MediaObservation, query: MediaSearchQuery, vectorScore?: number, factScores?: Array<number | undefined>): MediaMatch[] {
   if (source.hash !== observation.sourceHash) return [];
   const tokens = lexicalTokens(query.query);
-  return observation.facts.filter((fact) => fact.modality === query.modality).flatMap((fact) => {
+  return observation.facts.flatMap((fact, factIndex) => {
+    if (fact.modality !== query.modality) return [];
+    const scoreForFact = factScores ? factScores[factIndex] : vectorScore;
     const haystack = `${fact.text} ${fact.keywords.join(" ")}`.normalize("NFKC").toLowerCase();
     const indexed = lexicalTokens(haystack);
     const lexicalScore = tokens.size ? [...tokens].filter((token) => indexed.has(token)).length / tokens.size : 0;
-    if (!lexicalScore && (vectorScore === undefined || vectorScore < 0.25)) return [];
-    const rejected: string[] = [], unknown: string[] = [], conditions: string[] = [];
-    let range = fact.range;
-    for (const word of query.excludedTerms ?? []) if (haystack.includes(word.normalize("NFKC").toLowerCase())) rejected.push(`命中排除词：${word}`);
-    const checkAudio = (property: "speechPresence" | "musicPresence", label: string) => {
-      if (query.allowMute && query.modality === "visual") { conditions.push("本次采用必须静音"); return; }
-      const audio = observation.facts.filter((entry) => entry.modality === "audio" && entry.range && range && intersection(entry.range, range));
-      if (audio.some((entry) => entry[property] === "present")) { rejected.push(`拟用范围实际含${label}`); return; }
-      const absent = audio.filter((entry) => entry[property] === "absent").map((entry) => intersection(entry.range!, range!)!).filter(Boolean);
-      if (!range || uncoveredRanges(range, absent).length) unknown.push(`拟用范围没有足够的无${label}证据`);
-    };
-    if (query.excludeSpeech) checkAudio("speechPresence", "人声");
-    if (query.excludeMusic) checkAudio("musicPresence", "音乐");
-    if (query.minDurationMs) {
-      if (!range || range.endMs - range.startMs < query.minDurationMs) rejected.push("同一连续可用范围不足所需时长");
-      else if (fact.precision === "sampled") unknown.push("低密度画面观察尚未确认整个连续范围，需复核");
+    if (!lexicalScore && (scoreForFact === undefined || scoreForFact < 0.25)) return [];
+    // 条件以同一源区间求交，含人声的一小段不会吞掉前后可用范围。
+    const audio = observation.facts.filter((entry) => entry.modality === "audio" && entry.range && fact.range && intersection(entry.range, fact.range));
+    const boundaries = fact.range && (query.excludeSpeech || query.excludeMusic) && !(query.allowMute && query.modality === "visual")
+      ? [...new Set([fact.range.startMs, fact.range.endMs, ...audio.flatMap((entry) => { const range = intersection(entry.range!, fact.range!)!; return [range.startMs, range.endMs]; })])].sort((a, b) => a - b) : [];
+    const parts: Array<SourceTimeRange | undefined> = boundaries.length ? boundaries.slice(0, -1).map((startMs, index) => ({ startMs, endMs: boundaries[index + 1] })) : [fact.range];
+    const fragments = parts.map((range) => {
+      const rejected: string[] = [], unknown: string[] = [], conditions: string[] = [];
+      for (const word of query.excludedTerms ?? []) if (haystack.includes(word.normalize("NFKC").toLowerCase())) rejected.push("命中排除词：" + word);
+      const checkAudio = (property: "speechPresence" | "musicPresence", label: string) => {
+        if (query.allowMute && query.modality === "visual") { if (!conditions.includes("本次采用必须静音")) conditions.push("本次采用必须静音"); return; }
+        if (!source.hasAudio) { if (query.modality === "audio") rejected.push("源文件没有音轨"); return; }
+        const overlapping = audio.filter((entry) => range && intersection(entry.range!, range));
+        if (overlapping.some((entry) => entry[property] === "present")) { rejected.push("拟用范围实际含" + label); return; }
+        const absent = overlapping.filter((entry) => entry[property] === "absent").map((entry) => entry.range!);
+        if (!range || uncoveredRanges(range, absent).length) unknown.push("拟用范围没有足够的无" + label + "证据");
+      };
+      if (query.excludeSpeech) checkAudio("speechPresence", "人声");
+      if (query.excludeMusic) checkAudio("musicPresence", "音乐");
+      return { range, rejected, unknown, conditions };
+    });
+    // 同条件相邻范围可以合并；中间的未知或违例区间不能被跨越。
+    const joined: typeof fragments = [];
+    for (const fragment of fragments) {
+      const previous = joined.at(-1);
+      if (previous?.range && fragment.range && previous.range.endMs === fragment.range.startMs && JSON.stringify([previous.rejected, previous.unknown, previous.conditions]) === JSON.stringify([fragment.rejected, fragment.unknown, fragment.conditions])) previous.range.endMs = fragment.range.endMs;
+      else joined.push({ ...fragment, range: fragment.range && { ...fragment.range } });
     }
-    if (source.identity === "preview") conditions.push("预览仅用于筛选，采用前须取得并复核原文件");
-    if (observation.depth !== "review") conditions.push("采用前核对原文件及本次声画上下文");
-    const status = rejected.length ? "rejected" : unknown.length ? "insufficient" : conditions.length ? "conditional" : "usable";
-    return [{ source, observationId: observation.id, range, region: fact.region ?? observation.region, text: fact.text, score: vectorScore === undefined ? lexicalScore : 0.45 * lexicalScore + 0.55 * Math.max(0, vectorScore), lexicalScore, semanticScore: vectorScore, status, reasons: [...rejected, ...unknown], conditions } satisfies MediaMatch];
+    return joined.map(({ range, rejected, unknown, conditions }) => {
+      if (query.minDurationMs) {
+        if (!range || range.endMs - range.startMs < query.minDurationMs) rejected.push("同一连续可用范围不足所需时长");
+        else if (fact.precision === "sampled") unknown.push("低密度画面观察尚未确认整个连续范围，需复核");
+      }
+      if (source.identity === "preview") conditions.push("预览仅用于筛选，采用前须取得并复核原文件");
+      if (observation.depth !== "review" || fact.basis === "model") conditions.push("采用前核对原文件及本次声画上下文");
+      const status = rejected.length ? "rejected" : unknown.length ? "insufficient" : conditions.length ? "conditional" : "usable";
+      return { source, observationId: observation.id, range, region: fact.region ?? observation.region, text: fact.text, score: scoreForFact === undefined ? lexicalScore : 0.45 * lexicalScore + 0.55 * Math.max(0, scoreForFact), lexicalScore, semanticScore: scoreForFact, status, reasons: [...rejected, ...unknown], conditions } satisfies MediaMatch;
+    });
   });
 }

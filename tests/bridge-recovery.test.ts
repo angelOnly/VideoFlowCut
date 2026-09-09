@@ -2,9 +2,33 @@ import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import test from "node:test";
+import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { BridgeUnavailableError, ComfyUIBridgeClient } from "@videocut/bridge";
 
 const workflow = { id: "recovery", name: "恢复验证", available: true, schemaVersion: "v1", fields: [], itemSlots: [], outputs: [] };
+
+test("超过 260 字符的受管文件正常 multipart 上传，上传前错误不算未知提交", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vfc-bridge-path-"));
+  let submissions = 0;
+  const server = createServer(async (request, response) => {
+    const chunks: Buffer[] = []; for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    const body = Buffer.concat(chunks).toString("utf8");
+    assert.ok(body.includes('name="file_audio"') && body.includes("原声测试"));
+    submissions++; response.setHeader("content-type", "application/json"); response.end(JSON.stringify({ id: "long-path", status: "queued", outputs: [] }));
+  });
+  const port = await listen(server);
+  try {
+    const directory = join(root, ...Array.from({ length: 8 }, (_, index) => `segment-${index}-${"x".repeat(30)}`));
+    await mkdir(directory, { recursive: true }); const path = join(directory, "source.wav"); await writeFile(path, "原声测试");
+    const client = new ComfyUIBridgeClient(`http://127.0.0.1:${port}`);
+    const slot = { id: "audio", label: "音频", kind: "audio" as const, required: true };
+    assert.equal((await client.createRun({ workflow, fieldValues: {}, files: [{ slot, path, mime: "audio/wav" }] })).id, "long-path");
+    await assert.rejects(client.createRun({ workflow, fieldValues: {}, files: [{ slot, path: join(root, "missing.wav") }] }), (error: unknown) => error instanceof Error && "code" in error && error.code === "BRIDGE_INPUT_UNREADABLE");
+    assert.equal(submissions, 1);
+  } finally { await close(server); await rm(root, { recursive: true, force: true }); }
+});
 const listen = (server: Server, port = 0) => new Promise<number>((resolve, reject) => {
   server.once("error", reject);
   server.listen(port, "127.0.0.1", () => {

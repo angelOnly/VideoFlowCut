@@ -2,7 +2,7 @@
  * Web、MCP、Worker 共用的契约。这里仅描述数据，不放业务规则，避免形成第二套状态。
  */
 export type Id = string;
-export * from "./media-intelligence.js";
+export type * from "./media-intelligence.js";
 import type { MediaAdoption, SoundPlan, AudioRole, AudioEnvelopePoint, MotionEventMap } from "./media-intelligence.js";
 
 export type ProductionProfile =
@@ -101,6 +101,7 @@ export interface AssetRequest {
   mediaKind?: "visual" | "audio";
   visualBrief?: string;
   audioBrief?: string;
+  sound?: { soundPlanId: string; soundIntentId: string; material?: string; attack?: string; tail?: string; energy?: string; excludeSpeech: boolean; excludeMusic: boolean; maxDurationMs?: number };
   role: AssetRole;
   queryHints: string[];
   excludedTerms: string[];
@@ -162,7 +163,7 @@ export type JobKind =
   | "media_analysis"
   | "media_understanding"
   | "media_search"
-  | "sound_comparison"
+  | "sound_comparison" | "sound_ranking"
   /** 对已就绪实拍素材做基础镜头边界和现场声可用性分析。 */
   | "vlog_analysis"
   /** 只在可验证的共同音轨上估计固定机位偏移；证据不足时必须失败并等待人工同步点。 */
@@ -1196,6 +1197,8 @@ export interface TimelineItem {
   disabled: boolean;
   directOverride?: boolean;
   gainDb?: number;
+  /** 将采用策略落实到实际播放，独立于音量旋钮。 */
+  mediaAudioPolicy?: "mute" | "retain";
 }
 
 /**
@@ -1236,9 +1239,12 @@ export interface AudioCue {
   envelope?: AudioEnvelopePoint[];
   adoptionId?: Id;
   loopCrossfadeFrames?: number;
+  sustained?: boolean;
+  loopReview?: { status: "confirmed" | "inconclusive"; note: string };
+  mixReview?: "needs_review" | "reviewed";
   fadeInFrames: number;
   fadeOutFrames: number;
-  /** 仅 BGM 允许循环同一段受管本地音频。 */
+  /** 持续 SFX 循环另需明确交叉淡化及接缝复核。 */
   loop: boolean;
   ducking?: AudioDucking;
   status: AudioCueStatus;
@@ -1252,6 +1258,9 @@ export interface EffectAudioEvent {
   /** 相对 Cue 起点的视觉动作帧。 */
   localFrame: number;
   endLocalFrame?: number;
+  eventId?: string;
+  workVersion?: string;
+  meaning?: string;
   /** 可听起音相对视觉动作的偏移，可为负；不是源文件 onset。 */
   syncOffsetFrames: number;
   /** 由平台从视觉内容、作品版本与内部时序计算，不接受调用方伪造。 */
@@ -1750,6 +1759,8 @@ export interface ProjectSnapshot {
   audioCues: AudioCue[];
   /** 只保存正式声音意图及采用依据；模型原文、分窗与索引不进入快照。 */
   soundPlans?: SoundPlan[];
+  audioOutputTarget?: { targetLufs: number; toleranceLu: number; maxTruePeakDbfs: number };
+  soundReviews?: Array<{ baseRevision: number; previewJobId: string; previewHash?: string; outcome: "passed" | "failed" | "inconclusive"; method: "audio" | "audiovisual"; note: string; signature: string; fromFrame: number; toFrame: number; recordedAt: string }>;
   mediaAdoptions?: MediaAdoption[];
   voiceReferences: VoiceReference[];
   /** 原声时间证据与最终视觉字幕 Program 分离保存，避免自动标点直接成为成片字幕。 */
@@ -1861,6 +1872,7 @@ export interface ExportTechnicalValidation {
   durationMs: number;
   hasAudio: boolean;
   blackSegments: Array<{ startSeconds: number; endSeconds: number; durationSeconds: number }>;
+  audio?: { decoded: boolean; integratedLufs: number | null; truePeakDbfs: number | null; loudnessRangeLu: number | null; silence: Array<{ startSeconds: number; endSeconds: number }>; trailingSilenceStartSeconds?: number; method: string; rawSummary: string };
 }
 
 /** 成片复核绑定一个真实文件，而不是泛指“当前项目”。 */

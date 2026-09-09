@@ -1816,6 +1816,43 @@ test("Cutaway Runtime 对 Fullscreen/PiP 和声音策略使用同一项目事实
   }
 });
 
+test("Presenter 先编译 Scene 再登记人物，前置拒绝不产生 Revision 或改变原声", async () => {
+  const context = await createTestApplication();
+  try {
+    const created = context.app.createProject({ name: "人物前置顺序回归", profile: "presenter_motion" });
+    const projectId = created.snapshot.project.id;
+    const assetId = addReadyAsset(context.app, projectId, "presenter.mp4");
+    const assembled = context.app.assemblePresenterTrack({
+      projectId, baseRevision: context.app.readProject(projectId).revision.number, assetIds: [assetId]
+    });
+    const item = assembled.snapshot.timeline.items.find((candidate) => candidate.assetId === assetId)!;
+    const actorInput = { projectId, timelineItemId: item.id, source: "imported" as const,
+      maskMode: "none" as const, audioMode: "use_source_audio" as const };
+    const revisionsBefore = context.app.readRevisions(projectId).length;
+
+    // 未归属 Scene 是明确的前置拒绝，不能靠重试或新建版本消除。
+    assert.throws(() => context.app.registerActorPerformance({ ...actorInput, baseRevision: assembled.revision.number }),
+      (error: unknown) => error instanceof DomainError && error.code === "ACTOR_SCENE_REQUIRED");
+    assert.deepEqual(context.app.readProject(projectId), assembled);
+    assert.equal(context.app.readRevisions(projectId).length, revisionsBefore);
+
+    const story = context.app.updateStory({ projectId, baseRevision: assembled.revision.number,
+      beats: [{ title: "完整观点", purpose: "建立人物片段的叙事归属" }] });
+    const compiled = context.app.compilePresenterScenes({ projectId, baseRevision: story.revision.number,
+      scenes: [{ title: "人物段落", purpose: "承载完整观点", startFrame: item.startFrame, endFrame: item.endFrame,
+        narrativeBeatIds: [story.snapshot.story.beats[0]!.id] }] });
+    const registered = context.app.registerActorPerformance({ ...actorInput, baseRevision: compiled.revision.number });
+    const registeredItem = registered.snapshot.timeline.items.find((candidate) => candidate.id === item.id)!;
+    assert.equal(registeredItem.sceneId, compiled.snapshot.scenes[0]!.id);
+    assert.deepEqual({ ...registeredItem, sceneId: undefined }, { ...item, sceneId: undefined });
+    assert.equal(registered.snapshot.actorPerformances.length, 1);
+    assert.equal(registered.snapshot.actorPerformances[0]!.audioMode, "use_source_audio");
+    assert.equal(registered.snapshot.speechAsset, undefined);
+  } finally {
+    await context.dispose();
+  }
+});
+
 test("StoryBeat 保持稳定 ID，移动 Item 会重算关联 Scene 与 Cue", async () => {
   const context = await createTestApplication();
   try {
