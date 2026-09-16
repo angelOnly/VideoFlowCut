@@ -262,7 +262,7 @@ export function createMediaJobProcessor(
       case "voice_synthesis":
         return omniVoice.synthesize(
           job.projectId,
-          String(job.payload.voiceReferenceAssetId),
+          typeof job.payload.voiceReferenceAssetId === "string" ? job.payload.voiceReferenceAssetId : undefined,
           Array.isArray(job.payload.speechSegmentIds) ? job.payload.speechSegmentIds.map(String) : [],
           Number(job.payload.scriptRevision),
           typeof job.payload.voiceReferenceId === "string" ? job.payload.voiceReferenceId : undefined,

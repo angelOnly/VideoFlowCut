@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
+import { promisify } from "node:util";
 import { existsSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -134,6 +135,14 @@ try {
     throw new Error(`Worker 未在时限内消费任务：${jobId}`);
   };
   const tools = await client.listTools();
+  const motionTool = tools.tools.find((tool) => tool.name === "submit_motion_work");
+  const composedTool = tools.tools.find((tool) => tool.name === "inspect_composed_frames");
+  assert.equal(composedTool.inputSchema.properties.frames.maxItems, 12, "实时MCP Schema必须保留抽帧数量上限");
+  assert.match(composedTool.description, /1–12.*分批/u, "压缩工具声明未展示maxItems时，描述仍须明确上限");
+  assert.match(tools.tools.find((tool) => tool.name === "inspect_asset")?.description ?? "", /range最长60秒，dense最长12秒/u, "发行工具表须公开素材短范围限制");
+  assert.match(tools.tools.find((tool) => tool.name === "render_preview_range")?.description ?? "", /result.audio.*integratedLufs.*truePeakDbfs/u, "发行工具表须明确混合响度的读取位置");
+  assert.match(motionTool?.description ?? "", /width×height×durationInFrames≤650000000/u, "发行工具表必须公开动效联合预算");
+  assert.match(motionTool.inputSchema.properties.work.properties.durationInFrames.description, /floor\(650000000\/\(width×height\)\)/u, "发行字段必须公开可计算的帧数上限");
   assert.ok(tools.tools.some((tool) => tool.name === "inspect_asset"), "插件 MCP 必须发现 inspect_asset");
   assert.ok(tools.tools.some((tool) => tool.name === "list_projects"), "插件 MCP 必须发现基础只读工具");
   assert.ok(tools.tools.some((tool) => tool.name === "open_web_workbench"), "插件 MCP 必须提供工作台入口");
@@ -150,7 +159,8 @@ try {
   assert.ok(tools.tools.some((tool) => tool.name === "browse_local_sound_effects"), "插件 MCP 必须提供受控本地音效浏览");
   assert.ok(tools.tools.some((tool) => tool.name === "import_local_sound_effect"), "插件 MCP 必须提供受控本地音效导入");
   assert.equal(tools.tools.find((tool) => tool.name === "browse_sound_sources")?.annotations?.readOnlyHint, true);
-  assert.equal((await call("browse_sound_sources", {})).sources.length, 5);
+  // 当前入口返回实际 Provider 能力，旧版五个网站目录的数量不再是发行合同。
+  assert.deepEqual((await call("browse_sound_sources", {})).sources.map((source) => source.id).sort(), ["freesound", "mixkit", "mixkit_music"]);
   assert.ok(tools.tools.find((tool) => tool.name === "manage_audio")?.inputSchema?.properties?.effect_event);
   const workbench = await call("open_web_workbench", {});
   assert.equal(workbench.url, runtime.webUrl, "MCP 工作台入口必须指向同一个隔离 Runtime");
@@ -169,9 +179,11 @@ try {
   assert.equal(authoredState.snapshot.transcriptSentenceCandidates.length, 0);
   assert.equal((await call("read_script", { project_id: authoredProject.snapshot.project.id })).semanticUnits[0].sourceAssetId, undefined);
 
-  // 使用仓库内真实视频证明 Runtime 中的媒体 Worker 不只是“进程存在”，而是会消费新任务。
-  const sourceVideo = join(repoRoot, "videos", "数字人口播", "segment-01.mp4");
-  assert.equal(existsSync(sourceVideo), true, "插件 E2E 需要 videos/数字人口播/segment-01.mp4 测试素材");
+  // 在隔离目录生成可解码的声画测试文件，发行验收不依赖开发者私有素材。
+  const sourceVideo = join(workspaceRoot, "media-worker-fixture.mp4");
+  await promisify(execFile)("ffmpeg", ["-y", "-f", "lavfi", "-i", "testsrc2=size=320x240:rate=24:duration=2",
+    "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2", "-c:v", "libx264",
+    "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", "-movflags", "+faststart", sourceVideo], { windowsHide: true });
   const project = await call("create_project", { name: "插件 Runtime 媒体任务验收", profile: "presenter_motion" });
   const releaseRead = await call("read_runtime_release", {});
   assert.equal(releaseRead.aligned, true, "MCP 与 Runtime 必须报告同一 Release ID");
@@ -275,6 +287,11 @@ try {
   });
   const rendered = await waitForJob(preview.id);
   assert.equal(rendered.status, "succeeded", "发行版 Render Worker 必须完成 Preview 合成");
+  assert.equal(rendered.result.audio.decoded, true, "实际Preview音轨必须完整解码");
+  assert.ok(Number.isFinite(rendered.result.audio.integratedLufs), "实际Preview须返回LUFS");
+  assert.ok(Number.isFinite(rendered.result.audio.truePeakDbfs), "实际Preview须返回true peak");
+  assert.equal(rendered.result.audio.method, "ffmpeg_ebur128_true_peak_complete_decode");
+  assert.deepEqual([rendered.result.fromFrame, rendered.result.toFrame], [0, previewToFrame], "响度绑定实际合成范围");
   assert.equal(existsSync(join(pluginRoot, ".remotion")), false, "正式安装目录不能因 Job 渲染而下载浏览器");
   const composedFrames = await call("inspect_composed_frames", {
     project_id: project.snapshot.project.id,

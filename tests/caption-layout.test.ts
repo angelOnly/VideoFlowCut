@@ -5,10 +5,11 @@ import { join } from "node:path";
 import test from "node:test";
 import { createApplication } from "@videocut/application";
 import type { CaptionCard, ProjectSnapshot } from "@videocut/contracts";
-import { evaluateQuality } from "@videocut/quality";
+import { evaluateQuality, evaluateQualityWithBrowser } from "@videocut/quality";
 import { activeCaptionsAtFrame } from "@videocut/remotion";
-import { layoutCaptionWithMeasure } from "../packages/remotion-runtime/src/caption-layout.js";
-import { RevisionRenderer } from "../apps/render-worker/src/exporter.js";
+import { layoutCaptionWithMeasure, layoutCaptionConservatively } from "../packages/remotion-runtime/src/caption-layout.js";
+import { measureCaptionLayouts } from "../packages/quality-system/src/caption-measurement.js";
+import { RevisionRenderer, runRenderPreflight } from "../apps/render-worker/src/exporter.js";
 
 const measuredWidth = (text: string) => Array.from(text).length * 10;
 
@@ -71,7 +72,7 @@ test("统一字幕轨按半开区间选择唯一 Card，质量门禁阻止空段
     assert.deepEqual(activeCaptionsAtFrame(snapshot.timeline.captions, 29).map((entry) => entry.id), ["first", "overlap"]);
     assert.deepEqual(activeCaptionsAtFrame(snapshot.timeline.captions, 48).map((entry) => entry.id), ["empty"]);
 
-    const codes = new Set(evaluateQuality(snapshot, created.revision.number).issues.map((entry) => entry.code));
+    const codes = new Set((await evaluateQualityWithBrowser(snapshot, created.revision.number)).issues.map((entry) => entry.code));
     assert.ok(codes.has("CAPTION_TIMELINE_OVERLAP"));
     assert.ok(codes.has("CAPTION_SEGMENT_EMPTY"));
     assert.ok(codes.has("CAPTION_SEGMENT_TIME_INVALID"));
@@ -80,6 +81,59 @@ test("统一字幕轨按半开区间选择唯一 Card，质量门禁阻止空段
     application.close();
     await rm(root, { recursive: true, force: true });
   }
+});
+
+const reportedCaptionInput = {
+  text: "先说流量，它更像这个月\n能用多少水，解决的是总量。",
+  compositionWidth: 768,
+  format: { fontSize: 40, fontWeight: 700, color: "#ffffff", backgroundColor: "#111111",
+    bottomPercent: 12, horizontalInsetPercent: 10, textAlign: "center" as const }
+};
+
+test("真实字宽统一质量与预检：保守预算误报的两行通过，真正溢出仍阻断", { timeout: 120_000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "videocut-caption-browser-quality-"));
+  const application = createApplication(root);
+  try {
+    assert.equal(layoutCaptionConservatively(reportedCaptionInput).ready, false, "先复现原1.25em预算超限");
+    const [valid, narrow, emphasized, thirdLine, mixed] = await measureCaptionLayouts([
+      reportedCaptionInput,
+      { ...reportedCaptionInput, compositionWidth: 400 },
+      { ...reportedCaptionInput, emphasisScale: 2, emphasisFontWeight: 900 },
+      { ...reportedCaptionInput, text: "一\n二\n三" },
+      { ...reportedCaptionInput, text: "5G network / Wi-Fi 测速 👨‍👩‍👧‍👦 AVATAR" }
+    ]);
+    assert.deepEqual(valid, { ready: true, measurement: "browser", lines: reportedCaptionInput.text.split("\n") });
+    for (const result of [narrow, emphasized, thirdLine]) assert.equal(result!.ready, false);
+    assert.equal(mixed!.ready, true, "拉丁字偶距与emoji组合按完整字串测量");
+    const created = application.createProject({ name: "字幕测量隔离回归" });
+    const state = application.repository.commit(created.snapshot.project.id, created.revision.number, "创建隔离字幕夹具", (snapshot) => {
+      snapshot.timeline.width = 768;
+      snapshot.timeline.height = 1344;
+      snapshot.timeline.durationInFrames = 24;
+      snapshot.scenes = [{ id: "scene_fixture", type: "PresenterScene", title: "字幕隔离夹具", purpose: "测试字宽",
+        startFrame: 0, endFrame: 24, assetIds: [], narrativeBeatIds: [], status: "ready", stylePackId: "default-clean" }];
+      snapshot.speechSegments = [{ id: "segment_reported", semanticUnitIds: [], text: reportedCaptionInput.text, order: 0,
+        pauseBefore: { durationMs: 0, reason: "sentence" }, status: "ready" }];
+      snapshot.timeline.captions = [{ ...caption("reported", reportedCaptionInput.text, 0, 24), format: reportedCaptionInput.format }];
+    });
+    const original = application.readProject(state.snapshot.project.id);
+    const report = await evaluateQualityWithBrowser(state.snapshot, state.revision.number);
+    assert.equal(report.issues.some((entry) => entry.code.startsWith("CAPTION_LAYOUT_")), false);
+    assert.ok(evaluateQuality(state.snapshot, state.revision.number).issues.some((entry) => entry.code === "CAPTION_LAYOUT_MEASUREMENT_REQUIRED"), "静态预算不得宣称已证实溢出");
+    const preflight = await runRenderPreflight(application, state.snapshot.project.id, state.revision.number);
+    assert.equal(preflight.checks.some((entry) => entry.code.includes("CAPTION_LAYOUT_")), false);
+    assert.deepEqual(application.readProject(state.snapshot.project.id), original, "测量/预检不写视频Revision");
+    assert.equal(application.repository.listJobs(state.snapshot.project.id).length, 0, "测量不创建Job");
+
+    const previousBrowser = process.env.VIDEOFLOWCUT_BROWSER_EXECUTABLE;
+    process.env.VIDEOFLOWCUT_BROWSER_EXECUTABLE = join(root, "不存在的浏览器.exe");
+    try {
+      await assert.rejects(evaluateQualityWithBrowser(state.snapshot, state.revision.number), { code: "CAPTION_LAYOUT_MEASUREMENT_UNAVAILABLE" }, "浏览器不可用须失败，不能退回估算通过");
+    } finally {
+      if (previousBrowser === undefined) delete process.env.VIDEOFLOWCUT_BROWSER_EXECUTABLE;
+      else process.env.VIDEOFLOWCUT_BROWSER_EXECUTABLE = previousBrowser;
+    }
+  } finally { application.close(); await rm(root, { recursive: true, force: true }); }
 });
 
 /**
@@ -108,6 +162,10 @@ test("Remotion 真实字体排版只渲染一到两行，溢出会失败而不�
       bottomPercent: 7, horizontalInsetPercent: 8, textAlign: "center"
     };
     await renderer.renderRange(backed, 0, 2, join(root, "backed-caption.mp4"));
+
+    const reported = structuredClone(backed);
+    reported.timeline.captions = [{ ...caption("reported", reportedCaptionInput.text, 0, 24), format: reportedCaptionInput.format }];
+    await renderer.renderRange(reported, 0, 2, join(root, "reported-caption.mp4"));
 
     const overlapping = structuredClone(base);
     overlapping.timeline.captions = [

@@ -5,6 +5,12 @@ description: 处理 Revision 过期、素材未就绪、Bridge 409、run_id 丢�
 
 # 已知错误、结果未知与可靠恢复
 
+## 协调者、创意负责人和修复任务的边界
+
+主任务按[协调入口](../production-coordinator/SKILL.md)只读核对当前 Project、Revision、Job 和副作用。创意方案是否仍成立交回原子代理判断；本 Skill 中的“重新判断”不授权主任务补做创意。剪辑任务遇到工具或 Runtime 故障时停止该步并提交独立 Repair Ticket，环境和源码修复交独立修复任务。本 Skill 后文的重提、修复和恢复方法均受[运行合同](../_shared/MCP_EXECUTION_CONTRACT.md)约束：需要部署修复时，原剪辑任务重新连接并确认部署后，才由主任务基于重新读取的事实提交；没有副作用本身不构成重试许可，结果未知不得重放。
+
+素材搜索错误以结构化 `code`、`stage`、`recovery` 和副作用信息定位。`ASSET_PROVIDER_UNKNOWN` 是名称无效，先读 `list_asset_providers`；`ASSET_PROVIDER_NOT_CONFIGURED` 才是已知服务未启用。只有 `sideEffects="none"` 与 `safeToRetry=true` 同时成立且有具体纠正依据时，主任务可纠正参数或等待限流时间后再搜索一次，同因再次失败即报障。`ASSET_NETWORK_TIMEOUT` 等环境故障仍交修复任务，不能在剪辑中改代理配置。部分候选的 `diagnostics.complete=false` 不等于空结果；保留已得候选和警告，不复用其作为完整搜索结论。
+
 ## 先区分技术错误和创作问题
 
 技术错误有明确状态或合同，例如 Revision 冲突、Schema 409、文件损坏、Job 失败、Asset 不可读、Remotion 渲染异常。创作问题是语义不完整、B-roll 无关、节奏单调、字幕竞争和 Scene 像 PPT。不要把所有问题都放进 known-errors，也不要用重试处理审美问题。
@@ -55,13 +61,15 @@ Bridge succeeded 只表示推理结束。读取原文、输入哈希、分析版
 
 ## Remotion 组件失败
 
+`MOTION_NONDETERMINISTIC` 先读取 `track_job.result.motionDiagnostics`：其中 `reportPath` 指向包含具体帧号、可见差异幅度和区域的 JSON，`differences[].paths` 相对于报告目录，分别保存首次画面、重复截图和放大差异图。失败证据独立保留，临时帧缓存清理，不创建作品 Asset 或视频 Revision。哈希不同会继续比较黑、白背景上的合成像素；每个通道最多两个色阶的差异标为 `tolerated` 并允许生成待审代理，超过则失败。不能只看全图平均差异忽略局部丢字，也不能把 tolerated 当作审美通过；缓存文件完整性仍要求哈希完全一致。剪辑任务遇到失败仍提交独立 Repair Ticket，由修复任务依据对比证据定位，不重放写入或自行放宽检查。
+
 候选渲染器对内部 index.html 的“but got no response”最多恢复两次：这是并发导航的 CDP 响应事件竞态，每次仍须完整渲染成功。持续失败保留 Job 诊断，不由剪辑任务重放写入；资源、安全、内容和外部生成错误不走该恢复。
 
 先区分 Props/AssetBinding 错、组件 Bug、局部时间错误、资源不可读和布局问题。生产任务使用 Registry 或受管作品；平台组件开发失败不能绕过受管链执行未审核代码作为 Fallback。组件修复后需要 Registry/Golden/Player/Render 回归。
 
 ## Export 失败
 
-Delivery 门禁失败时先查看 blocking 或 EditorialReview 缺失；Render 失败时查看日志和 Asset；文件技术验证失败时保留临时诊断但不发布。禁止静默交付只有 A-roll、缺字幕或缺动效的降级文件。
+导出条件失败时先查看该 purpose 的技术/许可阻挡；AI 审阅缺失或待复核不阻挡制作和导出。Render 失败时查看日志和 Asset；文件技术验证失败时保留临时诊断但不发布。禁止静默交付只有 A-roll、缺字幕或缺动效的降级文件。
 
 ## 结果未知的通用规则
 
@@ -92,7 +100,7 @@ Delivery 门禁失败时先查看 blocking 或 EditorialReview 缺失；Render �
 | `PREVIEW_NOT_READY` | Job 类型、状态、Revision | web/quality |
 | `COMPOSED_FRAME_EXTRACTION_FAILED` | Preview 文件、帧范围、ffmpeg | preview runtime |
 | `PROJECT_GRAPH_INVALID` | 悬空 Story/Scene/Item/Cue | Application + 原负责人 |
-| `EDITORIAL_REVIEW_REQUIRED` | 同 Revision Preview 与五轮 Review | quality-verification |
+| 旧版 `EDITORIAL_REVIEW_REQUIRED` | 当前发行已取消 AI 审阅导出依赖；核对 Runtime/MCP 版本 | 平台修复 |
 | `REMOTION_EXPORT_FAILED` | Runtime、Asset、字体、组件 | remotion/export |
 | B-roll 无关 | 不是技术重试问题 | visual-treatment/cutaway |
 
@@ -107,7 +115,7 @@ Delivery 门禁失败时先查看 blocking 或 EditorialReview 缺失；Render �
 - 删除数据库行让错误“消失”；
 - 将 failed Job 改成 succeeded；
 - 使用旧 Preview/帧冒充新证据；
-- 跳过 Rights 或 Review；
+- 伪造许可依据或审阅通过；
 - Remotion 失败时交付只含主轨文件；
 - 工具缺失时伪造返回；
 - 创作问题反复重试同一技术任务。

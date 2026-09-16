@@ -1,10 +1,11 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { AssetCandidate, MediaAnalysisRecord, MediaObservation, MediaSource, SearchIntent } from "@videocut/contracts";
+import type { AssetCandidate, AssetSearchDiagnostics, MediaAnalysisRecord, MediaObservation, MediaSource, SearchIntent } from "@videocut/contracts";
 import { randomUUID } from "node:crypto";
 
 export interface MediaSearchSession {
   id: string; projectId: string; requestId: string; requestVersion: string;
   intent: SearchIntent; candidates: AssetCandidate[]; createdAt: string;
+  diagnostics?: AssetSearchDiagnostics;
 }
 type JsonRow = { data: string };
 /** 同一个 SQLite 内的操作表；不会随每个创作 Revision 重复复制。 */

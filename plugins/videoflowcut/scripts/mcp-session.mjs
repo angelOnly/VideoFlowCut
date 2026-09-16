@@ -43,10 +43,10 @@ export function createReloadingMcpSession({ initialTools, resolveDeployment, con
   let queue = Promise.resolve();
   let closed = false;
   const fingerprint = toolContract;
-  const serial = (action) => {
+  const serial = (action, lockOptions) => {
     const result = queue.then(() => {
       if (closed) throw new Error("MCP 连接管理层已关闭");
-      return runExclusive(action);
+      return runExclusive(action, lockOptions);
     });
     queue = result.catch(() => {});
     return result;
@@ -73,7 +73,8 @@ export function createReloadingMcpSession({ initialTools, resolveDeployment, con
     }
   };
   return {
-    refresh: () => serial(refresh),
+    // 后台探活争锁失败可留到下次；不能占着本会话队列等待一次完整业务时限。
+    refresh: () => serial(refresh, { waitTimeoutMs: 1000, operationName: "MCP后台探活" }),
     listTools: async () => {
       if (closed) throw new Error("MCP 连接管理层已关闭");
       // Codex 可能缓存首次目录且不响应变更通知；发现能力不能等待 Runtime 或部署锁。
@@ -106,6 +107,12 @@ export function createReloadingMcpSession({ initialTools, resolveDeployment, con
         // 断连可能发生在写入之后；只返回未知结果，不重试当前操作。
         return { isError: true, content: [{ type: "text", text: `MCP_CALL_OUTCOME_UNKNOWN：${error instanceof Error ? error.message : error}。未自动重放；请先读取 Job、Revision 和对象核对副作用。` }] };
       }
+    }, { signal: options?.signal, operationName: `MCP工具:${params.name}` }).catch((error) => {
+      // 抢锁失败发生在业务派发前，与已派发后的未知结果分开记录。
+      if (error?.code === "RUNTIME_LOCK_CANCELLED") return { isError: true, content: [{ type: "text", text: "MCP_CALL_CANCELLED：等待操作锁时请求已取消，本次未执行。" }] };
+      if (error?.code === "RUNTIME_LOCK_TIMEOUT") return { isError: true, content: [{ type: "text", text: `MCP_RUNTIME_BUSY：${error.message}。未自动重放；连接保留。` }] };
+      if (error?.code === "RUNTIME_LOCK_RELEASE_FAILED") return { isError: true, content: [{ type: "text", text: `MCP_CALL_OUTCOME_UNKNOWN：${error.message}。未自动重放；连接保留。` }] };
+      throw error;
     }),
     close: async () => {
       closed = true;

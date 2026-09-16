@@ -20,7 +20,7 @@ test("并发追加不会丢失问题，损坏审计不得静默放行", async ()
     await Promise.all([0, 1].map((index) => f.app.recordEditorialQualityReview({ ...f.base, passes: ["mute_visual"], previewEvidence: ["观察"], findings: [{ pass: "mute_visual", category: "motion", severity: "major", summary: `问题 ${index}`, impact: "损害观看", evidence: "回归输入" }] })));
     const review = await f.app.readEditorialQualityReview(f.base);
     assert.equal(review!.findings.length, 2);
-    assert.equal(new Set(evaluateQuality(f.state.snapshot, f.base.revision, review).requiredFixes.map((entry) => entry.id)).size, 2, "同类别不同问题保持独立身份");
+    assert.equal(new Set(evaluateQuality(f.state.snapshot, f.base.revision, review).editorial.motion.map((entry) => entry.id)).size, 2, "同类别不同问题保持独立身份");
     await writeFile(join(f.state.snapshot.project.rootPath, "reports", `production-run-${f.run.id}.json`), "corrupted");
     await assert.rejects(() => f.app.readEditorialQualityReview(f.base), (error: unknown) => error instanceof DomainError && error.code === "EDITORIAL_REVIEW_READ_FAILED");
   } finally { await f.dispose(); }
@@ -86,7 +86,7 @@ test("局部和抽帧证据不等于全片，逐阶段累积并保留真实哈�
     review = await f.app.readEditorialQualityReview(f.base);
     let quality = evaluateQuality(f.state.snapshot, f.base.revision, review);
     assert.equal(quality.editorial.status, "partial");
-    assert.equal(canExport(quality, "delivery"), false);
+    assert.equal(canExport(quality, "delivery"), true, "未审完不阻挡生成文件");
     assert.equal(canExport(quality, "draft"), true, "未审片仍允许草稿迭代");
     assert.match(review!.evidenceRecords![0]!.contentHash, /^[a-f0-9]{64}$/);
     const tail = await f.preview(f.base.revision, 24, 48);
@@ -178,7 +178,7 @@ test("严重观感问题不得被质量门禁丢弃，空报告和新 Run 不得
     const first = await app.recordEditorialQualityReview({ ...input, findings: [{ pass: "mute_visual", severity: "major", category: "attention", summary: "重点遮挡人物五官", evidence: "局部观察", impact: "影响阅读与人物表达" }] });
     const findingId = first.editorialReview!.findings[0]!.id;
     const quality = evaluateQuality(state.snapshot, revision, first.editorialReview);
-    assert.ok(quality.requiredFixes.some((issue) => issue.message === "重点遮挡人物五官"));
+    assert.ok(quality.editorial.attention.some((issue) => issue.message === "重点遮挡人物五官"));
     await app.recordEditorialQualityReview({ ...input, findings: [] });
     const secondRun = await app.startProductionRun({ projectId, loadedSkills: ["quality-verification"] });
     await app.recordEditorialQualityReview({ ...input, runId: secondRun.id, findings: [] });

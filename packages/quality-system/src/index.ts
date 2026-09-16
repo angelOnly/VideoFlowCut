@@ -1,7 +1,12 @@
+import { captionDisplayRanges, validCaptionDisplay, captionPlacementSchema } from "../../contracts/src/caption-presentation.js";
 import { createHash } from "node:crypto";
 import { managedMotionReviewOutcome, EFFECT_QUALITY_RULES, inspectEffectContentContract, sourceAudioTimeOrigin, type EditorialQualityReview, type ExportPurpose, type ProjectSnapshot, type QualityIssue, type QualityReport } from "@videocut/contracts";
 import { assertProjectGraphValid, DomainError, millisecondsToFrames, resolveCompositionReachability, sourceAudioTimingWithinRange, sourceAudioAlignmentOwnerMatches, sourceCaptionDisplayTextIsValid } from "@videocut/domain";
-import { layoutCaptionConservatively } from "../../remotion-runtime/src/caption-layout.js";
+import { assetExportRestriction } from "@videocut/domain";
+import { exportBlockingIssues } from "./export-policy.js";
+export { exportBlockingIssues } from "./export-policy.js";
+import { layoutCaptionConservatively, type CaptionLayoutInput, type CaptionLayoutResult } from "../../remotion-runtime/src/caption-layout.js";
+import { measureCaptionLayouts } from "./caption-measurement.js";
 import { motionCaptionSafety } from "./motion-caption-safety.js";
 import { missingReviewRanges, openEditorialFindings, productionReconciliation, reviewCoverage } from "./editorial-review.js";
 import { soundDependencySignature } from "../../media-intelligence/src/sound-signature.js";
@@ -59,7 +64,12 @@ const normalizeSourceCaptionComparisonText = (value: string) => value.normalize(
  * Caption 是一条独占的视觉轨：它不属于任意视频轨的混排规则。这里先收集所有可由
  * Snapshot 确定的失败；真正字体宽度由 Remotion/Chromium 在渲染时用同一安全宽度复核。
  */
-function evaluateCaptionTrackQuality(snapshot: ProjectSnapshot, issues: QualityIssue[]): void {
+function captionLayoutInput(snapshot: ProjectSnapshot, caption: ProjectSnapshot["timeline"]["captions"][number]): CaptionLayoutInput {
+  return { text: caption.text, compositionWidth: snapshot.timeline.width, compositionHeight: snapshot.timeline.height, format: caption.format,
+    emphasisScale: caption.emphasis?.scale, emphasisFontWeight: caption.emphasis?.fontWeight };
+}
+
+function evaluateCaptionTrackQuality(snapshot: ProjectSnapshot, issues: QualityIssue[], layouts?: Map<string, CaptionLayoutResult>): void {
   const { timeline } = snapshot;
   const validTimedCaptions: typeof timeline.captions = [];
   for (const caption of timeline.captions) {
@@ -77,7 +87,7 @@ function evaluateCaptionTrackQuality(snapshot: ProjectSnapshot, issues: QualityI
           : undefined
       }));
     } else {
-      validTimedCaptions.push(caption);
+      if (validCaptionDisplay(caption)) for (const range of captionDisplayRanges(caption)) validTimedCaptions.push({ ...caption, ...range });
     }
     if (typeof caption.text !== "string" || !caption.text.trim()) {
       issues.push(issue({
@@ -89,18 +99,21 @@ function evaluateCaptionTrackQuality(snapshot: ProjectSnapshot, issues: QualityI
       }));
       continue;
     }
-    const layout = layoutCaptionConservatively({
-      text: caption.text,
-      compositionWidth: timeline.width,
-      format: caption.format,
-      emphasisScale: caption.emphasis?.scale,
-      emphasisFontWeight: caption.emphasis?.fontWeight
-    });
+    if (!validCaptionDisplay(caption)) {
+      issues.push(issue({ level: "blocking", code: "CAPTION_DISPLAY_INVALID", message: "字幕显示范围越界、重叠或与隐藏模式冲突。", objectId: caption.id }));
+      continue;
+    }
+    if (snapshot.project.brief.captionMode === "none" || captionDisplayRanges(caption).length === 0) continue;
+    const layout = layouts?.get(caption.id) ?? layoutCaptionConservatively(captionLayoutInput(snapshot, caption));
     if (!layout.ready) {
+      const needsMeasurement = layout.measurement === "conservative" && ["LINE_TOO_WIDE", "TWO_LINES_INSUFFICIENT"].includes(layout.reason);
       issues.push(issue({
         level: "blocking",
-        code: "CAPTION_LAYOUT_OVERFLOW",
-        message: "字幕段无法在当前画幅、字号和安全宽度的两行合同内显示；请只重分这一段，不要缩小、截断或合并其它字幕段。",
+        code: needsMeasurement ? "CAPTION_LAYOUT_MEASUREMENT_REQUIRED" : layout.reason === "BROWSER_METRICS_UNAVAILABLE" ? "CAPTION_LAYOUT_MEASUREMENT_UNAVAILABLE" : "CAPTION_LAYOUT_OVERFLOW",
+        message: needsMeasurement ? "字幕超过静态字宽预算，必须通过浏览器实测确认；此估算不能作为拆卡依据。"
+          : layout.reason === "BROWSER_METRICS_UNAVAILABLE"
+          ? "字幕浏览器字宽测量不可用，无法确认两行布局；请恢复渲染浏览器后重查，不要据此修改字幕。"
+          : "字幕段无法在当前画幅、字号和安全宽度的两行合同内显示；请只重分这一段，不要缩小、截断或合并其它字幕段。",
         objectId: caption.id,
         frameRange: validTime ? { startFrame: caption.startFrame, endFrame: caption.endFrame } : undefined
       }));
@@ -108,7 +121,7 @@ function evaluateCaptionTrackQuality(snapshot: ProjectSnapshot, issues: QualityI
   }
 
   // 半开帧区间下 end === next.start 是正常换屏；只有真正相交才阻止交付。
-  const ordered = validTimedCaptions.slice().sort((left, right) => left.startFrame - right.startFrame || left.endFrame - right.endFrame || left.id.localeCompare(right.id));
+  const ordered = (snapshot.project.brief.captionMode === "none" ? [] : validTimedCaptions).slice().sort((left, right) => left.startFrame - right.startFrame || left.endFrame - right.endFrame || left.id.localeCompare(right.id));
   let furthestEnd = -1;
   let furthestCaption: typeof timeline.captions[number] | undefined;
   for (const caption of ordered) {
@@ -456,8 +469,8 @@ function evaluateSourceCaptionProgramQuality(snapshot: ProjectSnapshot, issues: 
           continue;
         }
         const expectedSourceText = segment?.displayText ?? expectedText;
-        const textValid = Boolean(expectedSourceText && caption.sourceText === expectedSourceText && sourceCaptionDisplayTextIsValid(caption));
-        if (!textValid) issues.push(issue({ level: "blocking", code: "SOURCE_TOKEN_CAPTION_TEXT_MISMATCH", message: "原声字幕的来源文字或屏幕文案增删、改写了实义内容；识别更正必须先完成真实回听或强制对齐确认。", objectId: caption.id }));
+        const textValid = Boolean(expectedSourceText && caption.sourceText === expectedSourceText && sourceCaptionDisplayTextIsValid(caption, snapshot));
+        if (!textValid) issues.push(issue({ level: "blocking", code: "SOURCE_TOKEN_CAPTION_TEXT_MISMATCH", message: "原声字幕的来源文字或屏幕文案增删、改写了实义内容；识别显示更正必须提供有效的回听、当前原稿或用户指令依据。", objectId: caption.id }));
         if (program.source === "editorial_override" && (typeof caption.sourceCaptionRationale !== "string" || !caption.sourceCaptionRationale.trim())) {
           issues.push(issue({ level: "blocking", code: "SOURCE_CAPTION_OVERRIDE_RATIONALE_REQUIRED", message: "编辑覆盖的原声字幕必须说明为何重分屏或改写，便于回听复核。", objectId: caption.id }));
         }
@@ -476,7 +489,7 @@ function evaluateSourceCaptionProgramQuality(snapshot: ProjectSnapshot, issues: 
           && caption.sourceAssetId === alignment.sourceAssetId && caption.sourceTimelineItemId === alignment.sourceTimelineItemId
           && caption.sourceBridgeRunId === alignment.bridgeAudit.runId && caption.precision === "sentence_exact"
           && caption.sourceTokenStartIndex === undefined && caption.sourceTokenEndIndex === undefined && caption.sourceCaptionRationale === undefined
-          && caption.sourceText === segment.displayText && sourceCaptionDisplayTextIsValid(caption)
+          && caption.sourceText === segment.displayText && sourceCaptionDisplayTextIsValid(caption, snapshot)
           && caption.sourceStartFrame === expectedSourceStartFrame && caption.sourceEndFrame === expectedSourceEndFrame
           && caption.startFrame === expectedStartFrame && caption.endFrame === expectedEndFrame
           && expectedSourceStartFrame >= previousSourceEndFrame && expectedSourceEndFrame > expectedSourceStartFrame
@@ -1089,11 +1102,12 @@ function evaluateExplainerSpecificQuality(snapshot: ProjectSnapshot, issues: Qua
 }
 
 /**
- * 可确定的规则只报告可验证事实；遮挡、节奏与审美仍须由真实预览帧进行人工/视觉复核。
+ * 同步结构检查保留给对象图和纯规则测试；正式质量入口使用 evaluateQualityWithBrowser。
+ * 遮挡、节奏与审美仍须由真实预览帧进行人工/视觉复核。
  */
-export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, editorialReview?: EditorialQualityReview): QualityReport {
+export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, editorialReview?: EditorialQualityReview, captionLayouts?: Map<string, CaptionLayoutResult>): QualityReport {
   const issues: QualityIssue[] = [];
-  // 未完成感知审阅不是渲染错误：草稿必须能产出，正式交付仍逐对象阻挡。
+  // 感知审阅只提供提示；制作和导出由技术条件及对应用途的许可决定。
   const pendingPerception: Array<{ category: "motion" | "audio" | "semantic"; entry: QualityIssue }> = [];
   for (const finding of mediaUsageFindings(snapshot)) pendingPerception.push({ category: "semantic", entry: issue({ level: "blocking", code: "MEDIA_USAGE_REVIEW_REQUIRED", message: finding.reason, objectId: finding.objectId, frameRange: finding.frameRange, editorialSeverity: "inconclusive" }) });
   const { timeline } = snapshot;
@@ -1120,7 +1134,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     const message = error instanceof DomainError ? error.message : "项目对象关系校验失败。";
     issues.push(issue({ level: "blocking", code: "PROJECT_GRAPH_INVALID", message }));
   }
-  evaluateCaptionTrackQuality(snapshot, issues);
+  evaluateCaptionTrackQuality(snapshot, issues, captionLayouts);
   const sourceCaptionItemIds = evaluateSourceCaptionProgramQuality(snapshot, issues);
   if (isVlogProfile) {
     if (!hasVlogPrimaryVideo) {
@@ -1166,22 +1180,15 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
       issues.push(issue({ level: "blocking", code: "ASSET_NOT_READY", message: `素材“${asset.name}”不可用：${asset.failureReason ?? asset.status}。`, objectId: asset.id }));
     }
   }
-  // 只检查实际进入当前成片的外部素材；素材库中的候选可先保持 unknown，不能因尚未使用而阻塞导出。
-  for (const asset of snapshot.assets.filter((candidate) => compositionAssetIds.has(candidate.id) && (candidate.provenance?.source === "provider" || candidate.provenance?.source === "generated"))) {
-    const provenance = asset.provenance!;
-    if (provenance.rightsStatus === "unknown") {
-      issues.push(issue({ level: "blocking", code: "EXTERNAL_ASSET_RIGHTS_UNKNOWN", message: `外部素材“${asset.name}”尚未确认授权，不能正式导出。`, objectId: asset.id }));
+  // 只检查实际使用的素材；两种用途共用权限判断，派生作品同时核验来源。
+  for (const asset of snapshot.assets.filter(candidate => compositionAssetIds.has(candidate.id))) {
+    const blocked = (["draft", "delivery"] as const).filter(purpose => assetExportRestriction(asset, snapshot.assets, purpose));
+    if (blocked.length) {
+      const code = asset.provenance?.rightsStatus === "unknown" ? "EXTERNAL_ASSET_RIGHTS_UNKNOWN"
+        : asset.provenance?.rightsStatus === "attribution_required" && !asset.provenance.attributionText?.trim() ? "ATTRIBUTION_TEXT_MISSING" : "EXTERNAL_ASSET_RIGHTS_RESTRICTED";
+      issues.push(issue({ level: "blocking", code, message: blocked.map(purpose => assetExportRestriction(asset, snapshot.assets, purpose)).join("；"), objectId: asset.id, blockingPurposes: blocked }));
     }
-    if (provenance.rightsStatus === "restricted" || provenance.rightsStatus === "rejected") {
-      issues.push(issue({ level: "blocking", code: "EXTERNAL_ASSET_RIGHTS_RESTRICTED", message: `外部素材“${asset.name}”当前授权状态为 ${provenance.rightsStatus}，不能正式导出。`, objectId: asset.id }));
-    }
-    if (provenance.rightsStatus === "attribution_required") {
-      if (!provenance.attributionText?.trim()) {
-        issues.push(issue({ level: "blocking", code: "ATTRIBUTION_TEXT_MISSING", message: `外部素材“${asset.name}”要求署名，但没有署名文本。`, objectId: asset.id }));
-      } else {
-        issues.push(issue({ level: "warning", code: "ATTRIBUTION_MANIFEST_REQUIRED", message: `外部素材“${asset.name}”需要随交付保存署名清单。`, objectId: asset.id }));
-      }
-    }
+    if (asset.provenance?.attributionText?.trim()) issues.push(issue({ level: "warning", code: "ATTRIBUTION_MANIFEST_REQUIRED", message: `素材“${asset.name}”需要随文件保存署名清单。`, objectId: asset.id }));
   }
   const performances = snapshot.actorPerformances ?? [];
   const performanceByItem = new Map(performances.map((performance) => [performance.timelineItemId, performance]));
@@ -1280,6 +1287,9 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
    * 人物视频与 Dialogue 同时可听会直接造成重声。音频所有权只由 ActorPerformance 决定，
    * Renderer 与导出共用该判断，质量门禁则负责在明确选择原声时阻止错误交付。
    */
+  if (!Number.isFinite(snapshot.audioMixGainDb ?? 0) || (snapshot.audioMixGainDb ?? 0) < -48 || (snapshot.audioMixGainDb ?? 0) > 24) {
+    issues.push(issue({ level: "blocking", code: "INVALID_AUDIO_MIX_GAIN", message: "整体混合增益必须在 -48 到 24 dB 之间。", objectId: "audioMixGainDb" }));
+  }
   const audibleDialogueItems = timeline.items.filter((item) => {
     const track = timeline.tracks.find((candidate) => candidate.id === item.trackId);
     if (!track) return false;
@@ -1323,14 +1333,14 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     const sourceDuration = item.sourceEndFrame - item.sourceStartFrame;
     const soundRequirement = cue.soundPlanId && cue.soundIntentId ? snapshot.assetRequests.find((entry) => entry.status !== "closed" && entry.sound?.soundPlanId === cue.soundPlanId && entry.sound?.soundIntentId === cue.soundIntentId) : undefined;
     const soundAdoption = snapshot.mediaAdoptions?.find((entry) => entry.id === cue.adoptionId);
-    // 试听需要先听到候选；原文件采用、起音和混合复核分别阻挡正式交付。
-    if (soundRequirement && !cue.adoptionId && !track.muted) pendingPerception.push({ category: "audio", entry: issue({ level: "blocking", code: "SOUND_ADOPTION_REQUIRED", message: "该声音意图尚无覆盖当前需求及源范围的原文件采用依据；可保留计划关联制作待审草稿，正式交付前须完成采用。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame }, editorialSeverity: "inconclusive" }) });
+    // 原文件采用、起音和混合复核分别保留辅助提示，不作为文件导出的前提。
+    if (soundRequirement && !cue.adoptionId && !track.muted) pendingPerception.push({ category: "audio", entry: issue({ level: "blocking", code: "SOUND_ADOPTION_REQUIRED", message: "该声音意图尚无覆盖当前需求及源范围的原文件采用依据；可保留计划关联继续制作和导出，该采用依据仍待复核。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame }, editorialSeverity: "inconclusive" }) });
     const validMixReview = cue.mixReview === "reviewed" && snapshot.soundReviews?.some((review) => review.outcome === "passed" && review.previewHash && review.signature === soundDependencySignature(snapshot) && review.fromFrame <= item.startFrame && review.toFrame >= item.endFrame);
     if (cue.role && !validMixReview && !track.muted) pendingPerception.push({ category: "audio", entry: issue({ level: "blocking", code: "SOUND_MIX_REVIEW_REQUIRED", message: "当前段落混合尚未完成真实声音复核；原文件观察、波形和模型排名不能替代最终混合。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame }, editorialSeverity: "inconclusive" }) });
     if (cue.loop && cue.sustained && cue.loopReview?.status !== "confirmed") pendingPerception.push({ category: "audio", entry: issue({ level: "blocking", code: "SOUND_LOOP_REVIEW_REQUIRED", message: "持续音效循环接缝仍需实际复核。", objectId: cue.id, editorialSeverity: "inconclusive" }) });
     if (cue.soundPlanId && snapshot.soundPlans?.find((plan) => plan.id === cue.soundPlanId)?.version !== cue.planVersion || cue.adoptionId && (soundAdoption?.status !== "current" || soundRequirement && soundAdoption?.requestId !== soundRequirement.id)) issues.push(issue({ level: "blocking", code: "SOUND_SELECTION_STALE", message: "声音计划或原文件采用依据已变化，需要重新确认选择。", objectId: cue.id }));
     if (cue.kind === "sfx" && !track.muted && cue.onsetReview?.status !== "confirmed") {
-      pendingPerception.push({ category: "audio", entry: issue({ level: "blocking", code: "SFX_ONSET_REVIEW_REQUIRED", message: "该音效起音仅为候选或未记录复听；可制作待审草稿，正式交付前须确认所选源范围并复核混合声画。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame }, editorialSeverity: "inconclusive" }) });
+      pendingPerception.push({ category: "audio", entry: issue({ level: "blocking", code: "SFX_ONSET_REVIEW_REQUIRED", message: "该音效起音仅为候选或未记录复听；可继续制作和导出，所选源范围与混合声画仍待复核。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame }, editorialSeverity: "inconclusive" }) });
     }
     if (!Number.isFinite(item.gainDb ?? 0) || (item.gainDb ?? 0) < -48 || (item.gainDb ?? 0) > 12
       || !Number.isInteger(cue.fadeInFrames) || !Number.isInteger(cue.fadeOutFrames)
@@ -1504,8 +1514,9 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     const format = caption.format;
     if (format && (!Number.isInteger(format.fontSize) || format.fontSize < 16 || format.fontSize > 72
       || !Number.isInteger(format.fontWeight) || format.fontWeight < 400 || format.fontWeight > 900
-      || format.bottomPercent < 4 || format.bottomPercent > 20
-      || format.horizontalInsetPercent < 3 || format.horizontalInsetPercent > 20
+      || !Number.isFinite(format.bottomPercent) || format.bottomPercent < 0 || format.bottomPercent > 95
+      || !Number.isFinite(format.horizontalInsetPercent) || format.horizontalInsetPercent < 0 || format.horizontalInsetPercent > 45
+      || format.placement !== undefined && !captionPlacementSchema.safeParse(format.placement).success
       || !["left", "center", "right"].includes(format.textAlign)
       || !isCaptionColor(format.color) || !isCaptionColor(format.backgroundColor))) {
       issues.push(issue({ level: "blocking", code: "CAPTION_FORMAT_INVALID", message: "字幕排版参数超出稳定字幕支持范围；请恢复默认或使用受支持的字号、颜色与安全区。", objectId: caption.id }));
@@ -1588,7 +1599,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     if (cue.type === "ManagedMotion" && cue.status === "ready") {
       const asset = snapshot.assets.find((entry) => entry.id === cue.assetBindings.find((binding) => binding.slot === "motion")?.assetId);
       if (asset?.motion && managedMotionReviewOutcome(asset.motion) !== "passed") {
-        pendingPerception.push({ category: "motion", entry: issue({ level: "blocking", code: "MOTION_WORK_REVIEW_REQUIRED", message: "该作品的连续动态审阅尚未通过；明确 inconclusive 后可合成待审草稿，但不能正式交付或完成制作。", objectId: cue.id, frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }, editorialSeverity: "inconclusive" }) });
+        pendingPerception.push({ category: "motion", entry: issue({ level: "blocking", code: "MOTION_WORK_REVIEW_REQUIRED", message: "该作品的连续动态审阅尚未通过；可继续放置、制作、修订和导出，效果由用户观看后确认。", objectId: cue.id, frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }, editorialSeverity: "inconclusive" }) });
       }
     }
     if (!contentContract.ready) {
@@ -1817,7 +1828,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     coverage,
     openFindings
   };
-  // 历史未解决问题也保留；严重观感与未知结论阻挡收口，但不冒充技术检测。
+  // 历史问题与严重程度保留，不能把未审阅伪造成通过，也不阻挡文件产出。
   for (const { category, entry } of pendingPerception) {
     const pending = withStableQualityIssueId(revision, entry);
     editorial[category].push(pending);
@@ -1848,20 +1859,32 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     technical: technicalIssues,
     editorial,
     productionReconciliation: productionReconciliation(snapshot),
-    requiredFixes: allIssues.filter((entry) => entry.level === "blocking"),
+    exportReadiness: Object.fromEntries((["draft", "delivery"] as const).map(purpose => {
+      const blockers = exportBlockingIssues({ technical: technicalIssues }, purpose);
+      return [purpose, { allowed: blockers.length === 0, blockers }];
+    })) as QualityReport["exportReadiness"],
+    requiredFixes: exportBlockingIssues({ technical: technicalIssues }, "delivery"),
     issues: allIssues
   };
 }
 
-/** Delivery 需要能证明当前 Revision 已经真实看过；Draft 只跳过这项人工审片要求。 */
-export function requiresEditorialReview(report: QualityReport, purpose: ExportPurpose): boolean {
-  if (purpose !== "delivery") return false;
-  return report.editorial.status !== "reviewed"
-    || !report.editorial.coverage?.length
-    || !report.editorial.coverage.every((entry) => entry.complete);
+/** 正式报告、预检、导出与收口统一使用 Renderer 的真实字体宽度；不可回退到估算放行。 */
+export async function evaluateQualityWithBrowser(snapshot: ProjectSnapshot, revision: number, editorialReview?: EditorialQualityReview): Promise<QualityReport> {
+  const captions = snapshot.project.brief.captionMode === "none" ? [] : snapshot.timeline.captions.filter((caption) => typeof caption.text === "string" && caption.text.trim() && validCaptionDisplay(caption) && captionDisplayRanges(caption).length > 0);
+  let measured: CaptionLayoutResult[];
+  try {
+    measured = await measureCaptionLayouts(captions.map((caption) => captionLayoutInput(snapshot, caption)));
+  } catch (error) {
+    throw new DomainError(`字幕浏览器字宽测量失败，未放行布局检查：${error instanceof Error ? error.message : String(error)}`, "CAPTION_LAYOUT_MEASUREMENT_UNAVAILABLE");
+  }
+  return evaluateQuality(snapshot, revision, editorialReview, new Map(captions.map((caption, index) => [caption.id, measured[index]!])));
+}
+
+/** 兼容旧调用方：文件导出不再依赖辅助审阅，人工定稿绑定具体 Artifact。 */
+export function requiresEditorialReview(_report: QualityReport, _purpose: ExportPurpose): boolean {
+  return false;
 }
 
 export function canExport(report: QualityReport, purpose: ExportPurpose = "delivery"): boolean {
-  const issues = purpose === "draft" ? report.technical : report.issues;
-  return !issues.some((entry) => entry.level === "blocking") && !requiresEditorialReview(report, purpose);
+  return exportBlockingIssues(report, purpose).length === 0;
 }

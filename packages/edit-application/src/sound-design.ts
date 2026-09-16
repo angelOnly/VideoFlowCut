@@ -11,13 +11,19 @@ export const soundRequirementSchema = z.object({
   attack: z.string().max(500).optional(), tail: z.string().max(500).optional(), energy: z.string().max(200).optional(),
   excludeSpeech: z.boolean().default(true), excludeMusic: z.boolean().default(true), maxDurationMs: z.number().int().positive().optional()
 }).strict();
-export const soundPlanInputSchema = z.object({
-  action: z.enum(["create", "update", "remove"]), soundPlanId: z.string().min(1).optional(),
-  startFrame: z.number().int().nonnegative().optional(), endFrame: z.number().int().positive().optional(),
-  narrationDirection: z.string().trim().min(1).max(2000).optional(), dominantRole: audioRoleSchema.optional(), musicDirection: z.string().trim().min(1).max(2000).optional(),
-  intents: z.array(z.object({ id: z.string().min(1).max(160), function: z.enum(["anticipation", "settle", "reaction", "connection", "ambience", "music", "silence", "demonstration"]), brief: z.string().trim().min(1).max(1600), requestId: z.string().optional(), motionEventId: z.string().optional() }).strict()).max(30).optional(),
+const soundPlanFields = z.object({
+  startFrame: z.number().int().nonnegative().describe("段落起始帧；配音前按项目 fps 换算预估范围，配音后按实测声音更新。"),
+  endFrame: z.number().int().positive().describe("段落结束帧（不含），必须大于 startFrame；预估范围不表示已锁定成片时长。"),
+  narrationDirection: z.string().trim().min(1).max(2000), dominantRole: audioRoleSchema, musicDirection: z.string().trim().min(1).max(2000),
+  intents: z.array(z.object({ id: z.string().min(1).max(160), function: z.enum(["anticipation", "settle", "reaction", "connection", "ambience", "music", "silence", "demonstration"]), brief: z.string().trim().min(1).max(1600), requestId: z.string().optional(), motionEventId: z.string().optional() }).strict()).max(30),
   dominantRanges: z.array(z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(), role: audioRoleSchema, reason: z.string().trim().min(8).max(800) }).strict()).max(40).optional()
 }).strict();
+// 创建必须在工具发现时声明完整输入；更新仍可继承已保存字段，删除只需要计划 ID。
+export const soundPlanInputSchema = z.discriminatedUnion("action", [
+  soundPlanFields.extend({ action: z.literal("create"), soundPlanId: z.string().min(1).optional() }),
+  soundPlanFields.partial().extend({ action: z.literal("update"), soundPlanId: z.string().min(1) }),
+  z.object({ action: z.literal("remove"), soundPlanId: z.string().min(1) }).strict()
+]);
 export const audioDesignSchema = z.object({
   soundPlanId: z.string().min(1).optional(), soundIntentId: z.string().min(1).optional(), planVersion: z.number().int().positive().optional(),
   role: audioRoleSchema.optional(), adoptionId: z.string().min(1).optional(),

@@ -5,13 +5,17 @@ description: 固定目标 Timeline/Sequence 与 Revision，区分 draft/delivery
 
 # Draft、Delivery 与最终文件
 
+## 主任务执行与专业审片
+
+主任务负责固定 Revision、门禁与规格检查、导出提交、跟踪、最终文件读回和交付；按 [production-coordinator](../production-coordinator/SKILL.md) 管理执行。最终文件的表达、节奏、自然度和完整声画审阅交 `quality-verification` 审片子代理，主任务转录实际结果，不能用技术通过代替专业审片，也不能代替用户批准。创意失败回原专项或导演修订；本 Skill 不自行改稿、改时机或补设计。
+
 ## 导出是固定版本的交付动作
 
 Export 读取一个不可变 Revision Snapshot，把它交给 Remotion Render Worker，并记录最终文件。它不应该在导出过程中自动修 Story、替换素材或调整效果。若质量门禁不通过，应返回负责人修复后产生新 Revision，再重新导出。
 
 ## Draft 与 Delivery
 
-Draft 用于内部审片、A/B、技术调试和分享候选。它可以在完整 Editorial Review 前产生，但必须明确是草稿。Delivery 用于正式交付，当前代码要求目标 Revision 已有真实 Preview、完整声画和首次观众复核，并且 blocking 为零。
+Draft 用于内部审阅、A/B 和技术调试；Delivery 用于对外交付。两者在技术与相应用途的许可满足后都可导出，不要求先有 AI 审阅、五轮覆盖或关闭全部 Findings。AI 未审或效果待复核如实提示，用户观看文件后决定是否定稿。
 
 不要为了快速拿到文件把 Delivery 改成 Draft 后对外宣称完成。用途属于 Artifact 元数据和用户沟通的一部分。
 
@@ -19,25 +23,25 @@ Draft 仍受技术与素材权利门禁约束，不能把受限素材改成 clea
 
 ## 导出前
 
-确认 Project、目标 Timeline/Sequence、Revision、画幅、帧率、时长和编码规格。读取 QualityReport、EditorialReview、Preview Evidence、Asset/Provenance 和 Attribution；使用 `run_render_preflight` 检查当前 Revision 的所有实际引用是否本地存在、可解码、字体/Mask/组件可用、Speech 与 Script 一致、权利允许。Preflight 通过不替代真实 Preview、审片和最终文件验证。
+确认 Project、目标 Timeline/Sequence、Revision、画幅、帧率、时长和编码规格。读取 QualityReport、EditorialReview、Preview Evidence、Asset/Provenance 和 Attribution；使用 `run_render_preflight(revision,purpose)` 检查当前 Revision 的所有实际引用是否本地存在、可解码、字体/Mask/组件可用、Speech 与 Script 一致、权利允许。Preflight 通过不替代真实 Preview、审片和最终文件验证。
 
-Delivery 阻塞包括：语义/结构 blocking、未知权利、缺署名、远程临时 URL、人物/声音版本错、关键遮挡、缺音频、Remotion 失败、缺 Preview/Review。
+导出阻挡来自确定性技术错误与用途不符，例如文件损坏/缺失、引用失效、版本错配、无法渲染或缺少相应用途许可。辅助审阅的遮挡、节奏、观感问题和缺少 Preview/Review 提供提示，不参与导出阻挡。
 
 ## 提交和跟踪
 
 使用 `submit_export`，明确 revision 和 purpose，保存 Job ID，再 `track_job` 到终态。旧 Job 没有 purpose 时当前代码按 delivery 处理，防止绕过门禁。Remotion 失败会使正式导出失败，不会自动返回只有主轨的 FFmpeg 文件。
 
-Job succeeded 后用 `track_export` 读取导出状态，并用 `read_export_artifact` 读取结果、目标 Revision、依赖和路径；随后以 `record_export_artifact_review` 记录成片复核，只有用户对具体 Artifact 调用 `approve_export_artifact` 后才是批准。不能只凭文件名猜目标 Revision，也不能把 Job succeeded 当作批准。
+Job succeeded 后用 `track_export` 和 `read_export_artifact` 核对文件、目标 Revision、校验和哈希。`record_export_artifact_review` 只记录实际执行的一个或多个复核轮次，不必补齐五轮。人工定稿通过 `approve_export_artifact(artifact_id,file_hash,confirmed_by_user=true,note?)` 绑定用户实际确认的文件；调用前必须已有明确用户确认。缺少人工确认时交付文件并标明尚未定稿，不停在等待 AI 审阅，也不伪造批准。
 
 ## 最终文件验证
 
 检查文件存在且非零、容器可解码、视频时长与 Timeline 合理、画幅/帧率、音轨、头尾黑帧、缺帧、静音、关键画面和哈希。播放最终文件而不只播放 Web Preview，因为浏览器和 Render Worker 可能存在字体、解码和资源差异。
 
-完整 Delivery 还要完成整片声画审片，并让批准绑定具体 Artifact。项目后续新 Revision 不改变旧 Artifact；重新导出产生新的文件和记录。
+文件导出与人工定稿分别记录；用户观看后明确批准具体 Artifact，无需 AI 五轮报告。项目后续 Revision 不继承旧批准，新导出产生新文件和记录。
 
 ## 权利和署名
 
-Attribution Required 的素材必须进入描述、片尾或约定位置。证据、生成内容和外部素材的来源状态需要随 Artifact 保存。产品只执行项目政策，不向用户作法律结论。
+按真实许可登记允许的用途：`provenance.usage_rights={purposes:["draft"],basis:"允许内部审阅的实际依据"}`；服务端保存确认时间。没有明确依据时，旧 unknown/restricted/rejected 不因“内部使用”获得许可；rejected 仍不可用。派生动效保留来源 ID 并受来源限制，不能只把作品改成 cleared 来对外交付。需要署名时保留署名文本，来源与用途随 Artifact 清单保存。
 
 ## Render Preflight 的检查范围
 

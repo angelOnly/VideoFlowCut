@@ -284,6 +284,21 @@ test("EvidenceCapture 必须绑定真实来源与归一化高亮，并拒绝生�
       (error: unknown) => error instanceof DomainError && error.code === "INVALID_EVIDENCE_HIGHLIGHT"
     );
     assert.equal(context.app.readProject(projectId).revision.number, beforeFailures.revision.number, "无效证据写入必须原子回滚");
+    // 创建必填与局部更新可省略是同一合同，不能为了必填说明破坏更新/删除。
+    for (const highlights of [undefined, [], [{ x: 828, y: 828, width: 480, height: 155 }], [{ x: 0, y: 0, width: 0, height: 0.1 }]]) {
+      assert.throws(() => context.app.manageEvidenceCapture({
+        projectId, baseRevision: beforeFailures.revision.number, action: "create", sourceAssetId, snapshotAssetId,
+        sourceTitle: "坐标合同回归", sourceUrl: "https://example.test/coordinate-contract", excerpt: "测试原文",
+        claim: "验证归一化范围", limitation: "仅用于隔离测试", highlights
+      }), (error: unknown) => error instanceof DomainError && ["EVIDENCE_HIGHLIGHT_REQUIRED", "INVALID_EVIDENCE_HIGHLIGHT"].includes(error.code));
+      assert.equal(context.app.readProject(projectId).revision.number, beforeFailures.revision.number);
+    }
+    const updated = context.app.manageEvidenceCapture({ projectId, baseRevision: beforeFailures.revision.number,
+      action: "update", evidenceCaptureId: capture.id, limitation: "仅更新限制，不替换高亮" });
+    assert.deepEqual(updated.snapshot.evidenceCaptures[0]!.highlights, capture.highlights);
+    const removed = context.app.manageEvidenceCapture({ projectId, baseRevision: updated.revision.number,
+      action: "remove", evidenceCaptureId: capture.id });
+    assert.equal(removed.snapshot.evidenceCaptures.length, 0);
   } finally {
     await context.dispose();
   }

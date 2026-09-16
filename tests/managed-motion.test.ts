@@ -115,7 +115,9 @@ test("技术生成成功不等于审美通过；更新作品不会覆盖旧版�
     const sceneState = app.createScene({ projectId, baseRevision: revision(), type: "PresenterScene", title: "隔离测试", purpose: "验证受管作品", startFrame: 0, endFrame: 60 });
     const sceneId = sceneState.snapshot.scenes.at(-1)!.id;
     const placement = { projectId, sceneId, type: "ManagedMotion" as const, layer: "front" as const, startFrame: 20, endFrame: 38, assetBindings: [{ slot: "motion", assetId: asset.id }] };
-    assert.throws(() => app.createEffectCue({ ...placement, baseRevision: revision() }), /审阅/u);
+    const unreviewed = app.createEffectCue({ ...placement, baseRevision: revision() });
+    assert.equal(unreviewed.snapshot.assets.find(a => a.id === asset.id)!.motion!.review, undefined);
+    app.removeEffectCue({ projectId, baseRevision: revision(), cueId: unreviewed.snapshot.effectCues.at(-1)!.id });
     const beforeInvalidReview = revision();
     await assert.rejects(() => app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "unknown" as never, note: "非法枚举不能通过应用层入口伪装成待审状态。" }), /结论无效/u);
     assert.equal(revision(), beforeInvalidReview);
@@ -126,9 +128,9 @@ test("技术生成成功不等于审美通过；更新作品不会覆盖旧版�
     const pending = evaluateQuality(draft.snapshot, draft.revision.number);
     assert.equal(pending.technical.some((entry) => entry.code === "MOTION_WORK_REVIEW_REQUIRED"), false);
     assert.ok(pending.editorial.motion.some((entry) => entry.code === "MOTION_WORK_REVIEW_REQUIRED" && entry.level === "blocking" && entry.objectId === draftCue.id));
-    await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "failed", note: "隔离测试：确认失败仍拒绝把未修复的作品作为正常效果使用。" });
+    await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "failed", note: "隔离测试：确认观感问题保留但不使已生成作品失去技术就绪。" });
     const failed = app.readProject(projectId);
-    assert.equal(inspectEffectContentContract(failed.snapshot.effectCues.at(-1)!, failed.snapshot.assets, failed.snapshot.timeline).ready, false);
+    assert.equal(inspectEffectContentContract(failed.snapshot.effectCues.at(-1)!, failed.snapshot.assets, failed.snapshot.timeline).ready, true);
     app.removeEffectCue({ projectId, baseRevision: revision(), cueId: draftCue.id });
     await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "这是单元测试的固定审阅记录，不是正式成片的视觉判断。" });
     const placed = app.createEffectCue({ ...placement, baseRevision: revision() });
@@ -182,6 +184,39 @@ test("解释片受管主视觉要求全场景连续覆盖，短装饰、缺失�
       assert.equal(primaryMissing(invalid), true);
     }
     assert.equal(app.readProject(projectId).snapshot.explainerPrograms.length, 0, "不建立无意义占位 Program");
+  } finally { app.close(); await rm(root, { recursive: true, force: true }); }
+});
+
+test("空项目的待审独立动效按实际合成范围计时，失效和移除后不留空尾", async () => {
+  const root = await mkdtemp(join(tmpdir(), "videocut-motion-duration-"));
+  const app = createApplication(root);
+  try {
+    const created = app.createProject({ name: "独立动效预览计时回归", profile: "visual_explainer" });
+    const projectId = created.snapshot.project.id;
+    const revision = () => app.readProject(projectId).revision.number;
+    const work = { ...motionFixture, width: 768, height: 1344, fps: 24, durationInFrames: 144 };
+    const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "duration", work });
+    // 只模拟 Worker 元数据以验证项目合同；真实渲染由隔离候选验收另行覆盖。
+    const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 6000, width: 768, height: 1344, fps: 24, hasAudio: false } });
+    await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "这是计时回归的待审记录，不代表实际连续观看或审美通过。" });
+    const scene = app.createScene({ projectId, baseRevision: revision(), type: "ExplainerScene", title: "独立段落", purpose: "仅验证空时间线中的动效计时", startFrame: 0, endFrame: 180 }).snapshot.scenes.at(-1)!;
+    assert.equal(app.readProject(projectId).snapshot.timeline.durationInFrames, 0, "草稿 Scene 自身不产生可播放内容");
+    const placed = app.createEffectCue({ projectId, baseRevision: revision(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 0, endFrame: 144, semanticAnchor: { type: "scene", targetId: scene.id, relation: "hold_through" }, assetBindings: [{ slot: "motion", assetId: asset.id }] });
+    const cueId = placed.snapshot.effectCues.at(-1)!.id;
+    assert.equal(placed.snapshot.timeline.durationInFrames, 144);
+    assert.equal(placed.snapshot.scenes.at(-1)!.status, "draft", "计时修复不升级场景或审片状态");
+    assert.ok(evaluateQuality(placed.snapshot, revision()).issues.some(issue => issue.code === "MOTION_WORK_REVIEW_REQUIRED"));
+    assert.equal(app.submitPreview({ projectId, revision: revision(), fromFrame: 0, toFrame: 144 }).kind, "preview");
+    assert.throws(() => app.submitPreview({ projectId, revision: revision(), fromFrame: 0, toFrame: 145 }), /范围/u);
+    assert.equal(app.updateEffectCue({ projectId, baseRevision: revision(), cueId, startFrame: 24, endFrame: 168 }).snapshot.timeline.durationInFrames, 168);
+    await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "failed", note: "单元测试记录观感失败，作品仍参与合成以便检查修订。" });
+    assert.equal(app.readProject(projectId).snapshot.timeline.durationInFrames, 168);
+    await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "单元测试恢复待审，验证草稿计时而不是交付状态。" });
+    assert.equal(app.readProject(projectId).snapshot.timeline.durationInFrames, 168);
+    const stale = app.repository.commit(projectId, revision(), "模拟上游失效", snapshot => { snapshot.effectCues.find(cue => cue.id === cueId)!.status = "stale"; });
+    assert.equal(stale.snapshot.timeline.durationInFrames, 0);
+    assert.equal(app.removeEffectCue({ projectId, baseRevision: revision(), cueId }).snapshot.timeline.durationInFrames, 0);
+    assert.equal(app.repository.getRevision(projectId, placed.revision.number).snapshot.timeline.durationInFrames, 144, "历史版本不可变");
   } finally { app.close(); await rm(root, { recursive: true, force: true }); }
 });
 

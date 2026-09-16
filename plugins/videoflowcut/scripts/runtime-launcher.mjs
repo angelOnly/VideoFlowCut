@@ -20,6 +20,8 @@ const STARTUP_TIMEOUT_MS = 30_000;
 const STOP_TIMEOUT_MS = 8_000;
 // 仅记录本次启动器进程亲自创建的 ChildProcess；不能把磁盘状态里的 PID 当作终止授权。
 const locallyStartedRuntimes = new Map();
+// 只记本进程已经结束业务、却暂未删除成功的锁；不凭 PID 回收仍在执行的操作。
+const completedOperationLocks = new Map();
 
 function sleep(milliseconds) {
   return new Promise((resolveSleep) => setTimeout(resolveSleep, milliseconds));
@@ -253,33 +255,70 @@ export async function findAvailablePort() {
   });
 }
 
-async function withLaunchLock(options, operation) {
+async function releaseCompletedLock(path, lockId) {
+  const deadline = Date.now() + 3000;
+  while (true) {
+    try {
+      const owner = JSON.parse(await readFile(path, "utf8"));
+      if (owner?.lockId !== lockId || owner?.pid !== process.pid) {
+        completedOperationLocks.delete(path);
+        return;
+      }
+      await rm(path, { force: true });
+      completedOperationLocks.delete(path);
+      return;
+    } catch (error) {
+      if (error?.code === "ENOENT") {
+        completedOperationLocks.delete(path);
+        return;
+      }
+      // Windows 的短暂文件占用可以恢复；持续失败必须保留身份和明确错误，不能静默留死锁。
+      if (!["EPERM", "EBUSY", "EACCES"].includes(error?.code) || Date.now() >= deadline) {
+        throw Object.assign(new Error("Runtime操作已结束，但释放操作锁失败；结果可能已落地，请先读回状态，禁止重放"), { code: "RUNTIME_LOCK_RELEASE_FAILED", cause: error });
+      }
+      await sleep(100);
+    }
+  }
+}
+
+async function withLaunchLock(options, operation, { waitTimeoutMs = STARTUP_TIMEOUT_MS, signal, operationName = "Runtime启动或部署" } = {}) {
   const paths = runtimePaths(options.workspaceRoot, options.port);
   await mkdir(paths.directory, { recursive: true });
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+  const deadline = Date.now() + waitTimeoutMs;
+  const checkWaiting = () => {
+    if (signal?.aborted) throw Object.assign(new Error("等待Runtime操作锁时请求已取消，本次未执行"), { code: "RUNTIME_LOCK_CANCELLED" });
+    if (Date.now() >= deadline) throw Object.assign(new Error(`等待Runtime操作锁超过${waitTimeoutMs}毫秒，本次未执行；当前可能有正常调用或部署正在持锁`), { code: "RUNTIME_LOCK_TIMEOUT" });
+  };
+  while (true) {
+    checkWaiting();
+    const completedId = completedOperationLocks.get(paths.lock);
+    if (completedId) await releaseCompletedLock(paths.lock, completedId);
     let handle;
     try {
       handle = await open(paths.lock, "wx");
-      await handle.writeFile(JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() }));
-      try {
-        return await operation();
-      } finally {
-        await handle.close().catch(() => undefined);
-        await rm(paths.lock, { force: true }).catch(() => undefined);
-      }
     } catch (error) {
-      await handle?.close().catch(() => undefined);
       if (error?.code !== "EEXIST") throw error;
       const lockStat = await stat(paths.lock).catch(() => undefined);
       const owner = await readJson(paths.lock);
       if (lockStat && Date.now() - lockStat.mtimeMs > STARTUP_TIMEOUT_MS * 2 && !isLaunchLockOwnerCurrent(owner)) {
         await rm(paths.lock, { force: true }).catch(() => undefined);
       } else {
-        await sleep(250);
+        await sleep(Math.max(1, Math.min(250, deadline - Date.now())));
       }
+      continue;
+    }
+    // 只重试抢锁冲突；业务内部的 EEXIST 也不能导致已执行操作被自动重放。
+    const lockId = randomUUID();
+    try {
+      await handle.writeFile(JSON.stringify({ pid: process.pid, lockId, createdAt: new Date().toISOString(), operation: operationName }));
+      checkWaiting();
+      return await operation();
+    } finally {
+      await handle.close().catch(() => undefined);
+      completedOperationLocks.set(paths.lock, lockId);
+      await releaseCompletedLock(paths.lock, lockId);
     }
   }
-  throw new Error("等待 VideoFlowCut Runtime 启动锁超时，请确认没有遗留的启动进程。");
 }
 
 /** PID 会被系统复用：后来出生的同号进程不可能持有更早创建的锁，且绝不能被终止。 */
@@ -296,8 +335,9 @@ export function isLaunchLockOwnerCurrent(owner) {
 }
 
 /** 与部署共用同一互斥锁，避免一个 MCP 仍在写入时另一个进程已经切换 Runtime。 */
-export function withRuntimeOperationLock(rawOptions, operation) {
-  return withLaunchLock(normalizeOptions(rawOptions), operation);
+export function withRuntimeOperationLock(rawOptions, operation, lockOptions = {}) {
+  // MCP允许180秒业务调用；不能用25秒抢锁循环误判仍在正常运行的持锁者。
+  return withLaunchLock(normalizeOptions(rawOptions), operation, { waitTimeoutMs: 180_000, ...lockOptions });
 }
 
 async function tailLog(path) {

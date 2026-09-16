@@ -1259,7 +1259,7 @@ export class OmniVoiceSegmentService {
 
   async synthesize(
     projectId: string,
-    voiceReferenceAssetId: string,
+    voiceReferenceAssetId: string | undefined,
     segmentIds: string[],
     expectedScriptRevision: number,
     voiceReferenceId?: string,
@@ -1269,8 +1269,8 @@ export class OmniVoiceSegmentService {
     if (initial.snapshot.script.revision !== expectedScriptRevision) {
       throw new DomainError("Script 已变化，拒绝将旧语音写入当前项目", "STALE_SCRIPT");
     }
-    const voiceReference = assetById(initial.snapshot, voiceReferenceAssetId);
-    const referencePath = assetPath(initial.snapshot, voiceReference);
+    const voiceReference = voiceReferenceAssetId ? assetById(initial.snapshot, voiceReferenceAssetId) : undefined;
+    const referencePath = voiceReference ? assetPath(initial.snapshot, voiceReference) : undefined;
     const requested = segmentIds.map((segmentId) => {
       const segment = initial.snapshot.speechSegments.find((candidate) => candidate.id === segmentId);
       if (!segment) throw new DomainError(`SpeechSegment 不存在：${segmentId}`, "SPEECH_SEGMENT_NOT_FOUND");
@@ -1281,12 +1281,14 @@ export class OmniVoiceSegmentService {
     const replacement = new Map<string, SpeechSegmentAsset>();
 
     for (const segment of requested) {
-      const submission = await this.bridge.createRunWithSchemaRetry(OMNIVOICE_WORKFLOW_ID, async (detail) => {
-        const referenceSlot = this.bridge.findRequiredSlot(detail, "audio");
+      const submission = await this.bridge.createRunWithSchemaRetry(referencePath ? OMNIVOICE_WORKFLOW_ID : "omnivoice-default-reference-v1", async (detail) => {
         const textField = this.bridge.findTextField(detail);
+        if (!referencePath && detail.itemSlots.some((slot) => slot.required)) {
+          throw new DomainError("服务端默认音色工作流仍要求上传文件，请修复默认音色配置", "VOICE_DEFAULT_NOT_CONFIGURED");
+        }
         return {
           fieldValues: { [textField.id]: segment.text },
-          files: [{ slot: referenceSlot, path: referencePath, mime: "audio/wav" }]
+          files: referencePath ? [{ slot: this.bridge.findRequiredSlot(detail, "audio"), path: referencePath, mime: "audio/wav" }] : []
         };
       });
       const submittedAt = now();

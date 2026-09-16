@@ -16,10 +16,13 @@
 
 ## Skills 工作流规则
 
-- 完整视频任务先读取 `project-basics` 与 `production-director`，由后者只选择一个主要视频工作流。
-- 人物口播、视觉解释片和 Vlog 分别由 `presenter-motion-director`、`visual-explainer-director`、`vlog-director` 从输入负责到交付。
-- 主工作流到达具体阶段后才读取专项 Skill；专项结果必须以项目对象、失效范围和验证证据返回主工作流。
-- 局部字幕、声音、B-roll、单个 Remotion Scene 或遮挡任务可以直接进入对应专项 Skill，不重跑整片。
+- 视频创作主任务先读取 `project-basics` 与 `production-coordinator`，负责沟通、项目事实、调度、确定性提交、技术检查和交付；凡需判断“怎样表达才合适”的主线、风格、选材、文稿、节奏、视觉、声音和专业审片，必须真实调用宿主子代理执行，不能在主线程补做。
+- 完整视频由主任务启动导演子代理读取 `production-director`，只选择一个主要视频工作流。人物口播、视觉解释片和 Vlog 分别在导演子代理中运行 `presenter-motion-director`、`visual-explainer-director`、`vlog-director`，从输入负责到专业收口。
+- 导演到达具体阶段后提出专项范围与依赖，由主任务通过宿主 `spawn_agent` 分派、`followup_task` 续接原负责人；已授权创意子代理可直接创作并按需读取多个相关 Skills，不递归分派，不为案例资料创建代理。
+- 局部字幕、声音、B-roll、单个 Remotion Scene 或遮挡创意直接分派对应专项子代理，不重跑整片；用户已给完整参数的机械修改可以由主任务执行。
+- 所有正式项目写入、生成与渲染提交、审计保存由主任务排序执行，包括完成时会回写的异步 Job。子代理返回输入 Revision、完整产物与参数、对象和失效范围、证据请求及实际观察；主任务只回填无歧义 ID 和经核验版本，不补创意。
+- 实际对象与 Preview 回传原子代理修订；跨段分歧交导演，最终专业审片交审片子代理。输入或依赖变化须把差异交原负责人重新确认，不只更换 base Revision 重发旧方案。
+- 子代理缺产物时回派补全，缺证据时保留待审，宿主能力缺失或 MCP 阻断时停止该步并由主任务沿 Repair Ticket 流程报障，不静默退回主线程创作。委派审计字段只作追溯，不能替代宿主真实调用记录。
 - `.codex/config.toml` 登记表示可发现，不表示一次任务全部加载。
 - `loadedSkills`、SkillExecutionReport 和文件存在都不能代替实际交接、Preview 和审片。
 - 运行时 Skills 的唯一来源是根目录 `.agents/skills/`；`docs/` 只保存架构、目录、评审与验收资料，不保存第二棵可执行 Skills 树。
@@ -31,6 +34,7 @@
 
 - **剪辑任务**只通过当前 MCP Tool Schema 使用已发布能力完成视频创作；不得修改源码、`package.json`、插件启动器、发行产物、MCP 配置、服务进程或正式项目外的文件，也不得用 shell、浏览器脚本或临时代码绕过 MCP。
 - 剪辑任务遇到工具缺失、工具错误、Runtime 故障或无法继续的工作流时，立即停止该步，调用 `report_editing_blocker` 写入独立 Repair Ticket；不得自行“修好”、猜测成功、重试不确定写入，或因为报障新建视频 Revision。
+- 素材搜索的窄例外：只有正式工具明确返回 `sideEffects="none"`、`safeToRetry=true` 和纠正依据时，才可按服务目录纠正参数，或按 `retryAfterMs` 等待后再搜索一次；同因再次失败即报障。该例外不适用于下载、生成、项目写入或未知结果，不允许改配置、换幂等键或用外部方式绕过。
 - **修复任务**只处理平台源码、测试、构建、候选 Runtime 与部署；不得创建、导入、删除或修改正式视频 Project、素材、Story、Scene、Timeline、Revision、Job 和 ExportArtifact。它可以读取 Repair Ticket 和必要的只读运行证据，但不能代替剪辑任务继续创作。
 - 两个任务可共享同一源码目录，且不要求 Git 分支或 worktree；但生产 Runtime A 必须持续服务剪辑任务，候选版 B 只能用独立端口和独立工作区验证，绝不能与 A 共用生产 `app.sqlite` 的 Worker 队列。
 - 修复必须找根因、补回归测试、构建 Release ID 并验证候选版。不得为了让当前任务通过而写临时补丁、硬编码、跳过校验、直接改插件缓存或把未验证构建称为已部署。

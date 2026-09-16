@@ -1,5 +1,6 @@
+import { captionIsDisplayed, captionBoxWidthPercent } from "../../contracts/src/caption-presentation.js";
 import React from "react";
-import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, useCurrentFrame, getRemotionEnvironment } from "remotion";
 import { sourceAudioTimeOrigin, inspectEffectContentContract, type ActorPerformance, type AudioCue, type CaptionCard, type CaptionEmphasis, type CaptionFormat, type Cutaway, type EffectCue, type ProjectSnapshot, type TimelineItem, type TimelineTrack } from "@videocut/contracts";
 import { compileCutawayLayout, cutawaySourceVolume } from "./cutaway-layout";
 import {
@@ -217,6 +218,7 @@ const CaptionLayer: React.FC<{ snapshot: ProjectSnapshot; caption: CaptionCard }
   const layout = React.useMemo(() => layoutCaptionInBrowser({
     text: caption.text,
     compositionWidth: snapshot.timeline.width,
+    compositionHeight: snapshot.timeline.height,
     format,
     emphasisScale: emphasis?.scale,
     emphasisFontWeight: emphasis?.fontWeight
@@ -257,11 +259,12 @@ const CaptionLayer: React.FC<{ snapshot: ProjectSnapshot; caption: CaptionCard }
 
   return <div style={{
     position: "absolute",
-    left: `${format.horizontalInsetPercent}%`,
+    left: `${format.placement?.leftPercent ?? format.horizontalInsetPercent}%`,
     // selectComposition 元数据阶段的父画布还可能为零宽；字幕安全宽度由同一 Timeline
     // 尺寸确定，不能靠百分比收缩成仅剩底板 padding，也不能跳过真实溢出校验。
-    width: snapshot.timeline.width * (1 - format.horizontalInsetPercent * 2 / 100),
-    bottom: `${format.bottomPercent}%`,
+    width: snapshot.timeline.width * captionBoxWidthPercent(format) / 100,
+    top: format.placement ? `${format.placement.topPercent}%` : undefined,
+    bottom: format.placement ? undefined : `${format.bottomPercent}%`,
     color: format.color,
     fontSize: format.fontSize,
     fontWeight: format.fontWeight,
@@ -287,13 +290,13 @@ const CaptionLayer: React.FC<{ snapshot: ProjectSnapshot; caption: CaptionCard }
 
 /** 纯函数也供质量/测试核对：半开区间内同一帧最多只能命中一条 CaptionCard。 */
 export function activeCaptionsAtFrame(captions: CaptionCard[], frame: number): CaptionCard[] {
-  return captions.filter((caption) => frame >= caption.startFrame && frame < caption.endFrame);
+  return captions.filter((caption) => captionIsDisplayed(caption, frame));
 }
 
 /** 统一字幕轨只渲染当前一条 Card；错误数据不会靠 DOM 叠加假装成功。 */
 const CaptionTrackLayer: React.FC<{ snapshot: ProjectSnapshot }> = ({ snapshot }) => {
   const frame = useCurrentFrame();
-  const active = activeCaptionsAtFrame(snapshot.timeline.captions, frame);
+  const active = snapshot.project.brief.captionMode === "none" ? [] : activeCaptionsAtFrame(snapshot.timeline.captions, frame);
   if (active.length === 0) return null;
   if (active.length > 1) throw new CaptionTimelineOverlapError();
   return <CaptionLayer snapshot={snapshot} caption={active[0]!} />;
@@ -303,6 +306,11 @@ const itemDuration = (item: TimelineItem) => item.endFrame - item.startFrame;
 const itemVolume = (item: TimelineItem, track: TimelineTrack) => track.muted || item.mediaAudioPolicy === "mute" ? 0 : Math.pow(10, (item.gainDb ?? 0) / 20);
 
 const dbToVolume = (gainDb: number) => Math.pow(10, gainDb / 20);
+
+/** Player 在线性求和前统一缩放等价于总线增益；离线渲染只在最终混合后处理，避免重复。 */
+function previewMixGain(snapshot: ProjectSnapshot): number {
+  return getRemotionEnvironment().isRendering ? 1 : dbToVolume(snapshot.audioMixGainDb ?? 0);
+}
 
 /**
  * Vlog 的画面与现场声必须走两条不同的播放路径：Background 只负责画面，
@@ -489,18 +497,18 @@ const VideoLayer: React.FC<{
     const maskUrl = mediaUrl(snapshot, mediaBaseUrl, maskAsset.managedPath);
     Object.assign(videoStyle, { maskImage: `url("${maskUrl}")`, maskSize: "100% 100%", maskRepeat: "no-repeat", WebkitMaskImage: `url("${maskUrl}")`, WebkitMaskSize: "100% 100%", WebkitMaskRepeat: "no-repeat" });
   }
-  const sourceVolume = resolveVideoSourceVolume(snapshot, item, track, performance, cutaway) * plannedVoiceVolumeAt(snapshot, item, "source_speech", compositionFrame);
+  const sourceVolume = resolveVideoSourceVolume(snapshot, item, track, performance, cutaway) * plannedVoiceVolumeAt(snapshot, item, "source_speech", compositionFrame) * previewMixGain(snapshot);
   // 导出按时间戳解码确切源帧，不截取 HTML5 seek 后可能仍显示的旧帧；Player 仍正常连续播放。
   if (cutaway) {
     const aspectRatio = asset.metadata?.width && asset.metadata.height ? asset.metadata.width / asset.metadata.height : undefined;
     const layout = compileCutawayLayout(cutaway, aspectRatio);
     return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}>
       <div style={layout.container}>
-        <OffthreadVideo src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} volume={sourceVolume} transparent={Boolean(asset.metadata?.hasAlpha)} style={layout.media} />
+        <OffthreadVideo useWebAudioApi={Boolean(snapshot.audioMixGainDb)} src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} volume={sourceVolume} transparent={Boolean(asset.metadata?.hasAlpha)} style={layout.media} />
       </div>
     </Sequence>;
   }
-  return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}><OffthreadVideo src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} volume={sourceVolume} transparent={Boolean(asset.metadata?.hasAlpha)} style={videoStyle} /></Sequence>;
+  return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}><OffthreadVideo useWebAudioApi={Boolean(snapshot.audioMixGainDb)} src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} volume={sourceVolume} transparent={Boolean(asset.metadata?.hasAlpha)} style={videoStyle} /></Sequence>;
 };
 
 const AudioLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; item: TimelineItem; track: TimelineTrack; cue?: AudioCue }> = ({ snapshot, mediaBaseUrl, item, track, cue }) => {
@@ -513,14 +521,14 @@ const AudioLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; it
   if (cue?.loop && (cue.loopCrossfadeFrames ?? 0) > 0) {
     const length = item.sourceEndFrame - item.sourceStartFrame, crossfade = cue.loopCrossfadeFrames!, step = length - crossfade;
     const offsets = Array.from({ length: Math.ceil(itemDuration(item) / step) }, (_, index) => index * step);
-    return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}>{offsets.map((offset, index) => <Sequence key={offset} from={offset} durationInFrames={Math.min(length, itemDuration(item) - offset)}><Audio src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} volume={() => {
+    return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}>{offsets.map((offset, index) => <Sequence key={offset} from={offset} durationInFrames={Math.min(length, itemDuration(item) - offset)}><Audio useWebAudioApi={Boolean(snapshot.audioMixGainDb)} src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} volume={() => {
       const local = timelineLocalFrame - offset;
       const enter = index ? Math.min(1, Math.max(0, local / crossfade)) : 1;
       const leave = offset + step < itemDuration(item) ? Math.min(1, Math.max(0, (length - local) / crossfade)) : 1;
-      return audioCueVolumeAt(snapshot, item, track, cue, timelineLocalFrame) * enter * leave;
+      return audioCueVolumeAt(snapshot, item, track, cue, timelineLocalFrame) * enter * leave * previewMixGain(snapshot);
     }} /></Sequence>)}</Sequence>;
   }
-  return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}><Audio src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} loop={cue?.loop ?? false} volume={() => vlogAmbientVolume ?? audioCueVolumeAt(snapshot, item, track, cue, timelineLocalFrame)} /></Sequence>;
+  return <Sequence from={item.startFrame} durationInFrames={itemDuration(item)}><Audio useWebAudioApi={Boolean(snapshot.audioMixGainDb)} src={mediaUrl(snapshot, mediaBaseUrl, asset.managedPath)} startFrom={item.sourceStartFrame} endAt={item.sourceEndFrame} loop={cue?.loop ?? false} volume={() => (vlogAmbientVolume ?? audioCueVolumeAt(snapshot, item, track, cue, timelineLocalFrame)) * previewMixGain(snapshot)} /></Sequence>;
 };
 
 /**

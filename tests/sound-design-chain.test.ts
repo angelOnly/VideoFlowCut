@@ -82,7 +82,7 @@ test("计划不允许重复意图、旧版本采用或删除后继续发声", as
   } finally { await f.close(); }
 });
 
-test("声音计划可保留关联制作待审草稿，原文件采用缺失独立阻挡交付且错误依据仍拒绝", async () => {
+test("声音计划保留采用待复核提示但可导出，错误依据仍原子拒绝", async () => {
   const f = await fixture(true);
   try {
     let state = manageSoundPlan(f.app, f.id, f.rev(), { action: "create", startFrame: 0, endFrame: 90, narrationDirection: "协议验证", musicDirection: "保持主声音", dominantRole: "narration", intents: [{ id: "paper", function: "connection", brief: "待审声音" }] });
@@ -114,7 +114,8 @@ test("声音计划可保留关联制作待审草稿，原文件采用缺失独�
     const beforeBad = f.rev();
     assert.throws(() => f.app.manageAudio({ projectId: f.id, baseRevision: beforeBad, action: "update", audioCueId: cue.id, design: { ...design, adoptionId: "不存在的采用" } }), /采用依据/u);
     assert.equal(f.rev(), beforeBad);
-    await assert.rejects(runExportJob(f.app, f.app.submitExport({ projectId: f.id, revision: f.rev(), purpose: "delivery" })), /审阅|质量|交付|预检/u);
+    const delivery = await runExportJob(f.app, f.app.submitExport({ projectId: f.id, revision: f.rev(), purpose: "delivery" }));
+    assert.equal(f.app.readExportArtifact({ projectId: f.id, artifactId: String(delivery.artifactId) }).approval, undefined);
     assert.equal(f.app.readProject(f.id).snapshot.mediaAdoptions?.length ?? 0, 0, "试听和草稿不能自动制造采用记录");
   } finally { await f.close(); }
 });

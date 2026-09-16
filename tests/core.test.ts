@@ -1082,7 +1082,7 @@ test("ProductionRun 缺少真实创作证据时保持 incomplete，且不复制 
     assert.equal(completed.status, "incomplete");
     assert.equal(completed.finalRevision, context.app.readProject(created.snapshot.project.id).revision.number);
     assert.ok(completed.completionBlockers.some((blocker) => blocker.includes("语义决策")));
-    assert.ok(completed.completionBlockers.some((blocker) => blocker.includes("合成帧证据")));
+    assert.ok(completed.completionBlockers.some((blocker) => blocker.includes("Preview Job")));
     const readBack = await context.app.readSkillExecutionReport({ projectId: created.snapshot.project.id, runId: run.id });
     assert.equal(readBack.quietRanges[0]?.reason, "开场不堆动效");
     assert.equal("skillExecutionReport" in context.app.readProject(created.snapshot.project.id).snapshot, false, "报告不写入项目快照");
@@ -1091,66 +1091,32 @@ test("ProductionRun 缺少真实创作证据时保持 incomplete，且不复制 
   }
 });
 
-test("Presenter ProductionRun 仅在当前 Revision 的决策、Preview、合成帧与审片齐全后完成", async () => {
+test("ProductionRun 有当前版本的制作记录和真实预览即可完成，未审状态继续保留", async () => {
   const context = await createTestApplication();
   try {
-    const created = context.app.createProject({ name: "ProductionRun 收口测试" });
-    const videoAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video", 1_000);
-    const assembled = context.app.buildPresenterTimeline({
-      projectId: created.snapshot.project.id,
-      baseRevision: context.app.readProject(created.snapshot.project.id).revision.number,
-      assetIds: [videoAssetId],
-      sceneSize: 1
-    });
-    const revision = assembled.revision.number;
-    const run = await context.app.startProductionRun({ projectId: created.snapshot.project.id, baseRevision: revision, loadedSkills: ["production-director", "quality-verification"] });
-    for (const [category, decision] of [["semantic", "保留完整表达"], ["story", "先建立观点再给例子"], ["visual", "开场保持安静人物"]] as const) {
-      await context.app.recordCreativeDecision({
-        projectId: created.snapshot.project.id,
-        runId: run.id,
-        category,
-        decision,
-        rationale: "测试当前 Revision 的收口条件"
-      });
-    }
-    const preview = context.app.submitPreview({ projectId: created.snapshot.project.id, revision, fromFrame: 0, toFrame: assembled.snapshot.timeline.durationInFrames });
-    const previewPath = join(created.snapshot.project.rootPath, "previews", "revision-test.mp4");
-    await mkdir(join(created.snapshot.project.rootPath, "previews", "frames"), { recursive: true });
-    await copyFile(await createDeterministicVideoFixture(context.root), previewPath);
-    const inspectionFrames = [0, Math.floor(assembled.snapshot.timeline.durationInFrames / 2), assembled.snapshot.timeline.durationInFrames - 1];
-    const inspectionEvidencePaths = inspectionFrames.map((frame) => join("previews", "frames", `revision-${revision}-frame-${frame}.jpg`));
-    for (const frame of inspectionFrames) {
-      await writeFile(join(created.snapshot.project.rootPath, "previews", "frames", `revision-${revision}-frame-${frame}.jpg`), `mock frame ${frame}`);
-    }
-    context.app.updateJob(preview.id, { status: "succeeded", result: { revision, path: previewPath, fromFrame: 0, toFrame: assembled.snapshot.timeline.durationInFrames } });
-    await context.app.recordEditorialQualityReview({
-      projectId: created.snapshot.project.id,
-      runId: run.id,
-      revision,
-      passes: ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"],
-      previewEvidence: [inspectionEvidencePaths[1]!],
-      observations: fixtureObservations(preview.id, assembled.snapshot.timeline.durationInFrames),
-      findings: []
-    });
-    const withoutInspection = await context.app.completeProductionRun({ projectId: created.snapshot.project.id, runId: run.id, finalRevision: revision });
-    assert.equal(withoutInspection.status, "incomplete");
-    assert.ok(withoutInspection.completionBlockers.some((blocker) => blocker.includes("inspect_composed_frames")));
-    await context.app.recordPreviewInspection({
-      projectId: created.snapshot.project.id,
-      previewJobId: preview.id,
-      revision,
-      frames: inspectionFrames.map((frame, index) => ({ frame, relativePath: inspectionEvidencePaths[index]! }))
-    });
-    const completed = await context.app.completeProductionRun({ projectId: created.snapshot.project.id, runId: run.id, finalRevision: revision });
+    const projectId = context.app.createProject({ name: "制作完成与审阅分离" }).snapshot.project.id;
+    const assetId = addReadyAsset(context.app, projectId, "presenter.mp4", "video", 1000);
+    const state = context.app.buildPresenterTimeline({ projectId, baseRevision: context.app.readProject(projectId).revision.number, assetIds: [assetId] });
+    const run = await context.app.startProductionRun({ projectId, loadedSkills: ["production-director"] });
+    for (const category of ["semantic", "story", "visual"] as const) await context.app.recordCreativeDecision({ projectId, runId: run.id, category, decision: "合约测试制作决策", rationale: "不代表真实创意与观看" });
+    const missing = await context.app.completeProductionRun({ projectId, runId: run.id });
+    assert.equal(missing.status, "incomplete");
+    assert.ok(missing.completionBlockers.some(message => message.includes("Preview Job")));
+    const preview = context.app.submitPreview({ projectId, revision: state.revision.number, fromFrame: 0, toFrame: state.snapshot.timeline.durationInFrames });
+    const path = join(state.snapshot.project.rootPath, "previews", "complete.mp4");
+    await mkdir(dirname(path), { recursive: true });
+    await copyFile(await createDeterministicVideoFixture(context.root), path);
+    context.app.updateJob(preview.id, { status: "succeeded", result: { revision: state.revision.number, path, fromFrame: 0, toFrame: state.snapshot.timeline.durationInFrames } });
+    const completed = await context.app.completeProductionRun({ projectId, runId: run.id });
     assert.equal(completed.status, "completed");
-    assert.deepEqual(completed.completionBlockers, []);
-    assert.equal(completed.composedFrameEvidence.length, 3);
-  } finally {
-    await context.dispose();
-  }
+    assert.deepEqual(completed.composedFrameEvidence, []);
+    assert.equal(completed.editorialReview, undefined);
+    assert.equal((await context.app.readEditorialQualityReview({ projectId, revision: state.revision.number })), undefined);
+    assert.deepEqual(context.app.listExportArtifacts(projectId), [], "完成制作不伪造导出与人工定稿");
+  } finally { await context.dispose(); }
 });
 
-test("ProductionRun 会要求每个已启用 EffectCue 至少有一张对应合成帧", async () => {
+test("ProductionRun 不要求每个效果抽帧，已有证据仍按真实范围保存", async () => {
   const context = await createTestApplication();
   try {
     const created = context.app.createProject({ name: "EffectCue 审片覆盖" });
@@ -1192,18 +1158,15 @@ test("ProductionRun 会要求每个已启用 EffectCue 至少有一张对应合�
       findings: []
     });
     const missingCueFrame = await context.app.completeProductionRun({ projectId: created.snapshot.project.id, runId: run.id, finalRevision: revision });
-    assert.equal(missingCueFrame.status, "incomplete");
-    assert.ok(missingCueFrame.completionBlockers.some((blocker) => blocker.includes("EffectCue") || blocker.includes("效果")));
-
-    await context.app.recordPreviewInspection({ projectId: created.snapshot.project.id, previewJobId: preview.id, revision, frames: [...outsideFrames, 7].map(toArtifact) });
-    const completed = await context.app.completeProductionRun({ projectId: created.snapshot.project.id, runId: run.id, finalRevision: revision });
-    assert.equal(completed.status, "completed");
+    assert.equal(missingCueFrame.status, "completed");
+    assert.deepEqual(missingCueFrame.completionBlockers, []);
+    assert.equal(missingCueFrame.composedFrameEvidence.length, outsideFrames.length);
   } finally {
     await context.dispose();
   }
 });
 
-test("delivery 导出要求目标 Revision 已完成真实审片，draft 可进入渲染链路", async () => {
+test("未审阅的 delivery 与 draft 都能进入渲染，渲染失败不伪装成功", async () => {
   const context = await createTestApplication();
   try {
     const created = context.app.createProject({ name: "导出用途门禁测试" });
@@ -1213,8 +1176,8 @@ test("delivery 导出要求目标 Revision 已完成真实审片，draft 可进�
     const delivery = context.app.submitExport({ projectId: created.snapshot.project.id, revision: assembled.revision.number, purpose: "delivery" });
     assert.equal(delivery.payload.purpose, "delivery");
     await assert.rejects(
-      () => runExportJob(context.app, delivery, { render: async () => assert.fail("没有审片的 delivery 不应进入渲染") } as never),
-      (error: unknown) => error instanceof DomainError && error.code === "EDITORIAL_REVIEW_REQUIRED"
+      () => runExportJob(context.app, delivery, { render: async () => { throw new Error("已进入交付渲染链路"); } } as never),
+      (error: unknown) => error instanceof DomainError && error.code === "REMOTION_EXPORT_FAILED"
     );
     const draft = context.app.submitExport({ projectId: created.snapshot.project.id, revision: assembled.revision.number, purpose: "draft" });
     assert.equal(draft.payload.purpose, "draft");
@@ -1241,7 +1204,7 @@ test("draft 错误只列真实技术阻断，不将待审观感误报为草稿�
       const job = context.app.submitExport({ projectId, revision: state.revision.number, purpose });
       await assert.rejects(() => runExportJob(context.app, job, { render: async () => assert.fail("受限素材不应被导出") } as never), (error: unknown) => {
         assert.ok(error instanceof DomainError && error.code === "QUALITY_GATE_BLOCKED", String(error));
-        assert.equal(error.message.includes("观感等待连续复核"), purpose === "delivery");
+        assert.equal(error.message.includes("观感等待连续复核"), false);
         assert.match(error.message, /权利|限制|许可|授权/);
         return true;
       });
@@ -1300,13 +1263,13 @@ test("delivery ExportArtifact 固定 Revision、保留署名快照并让批准�
       evidence: ["已完整播放并试听 delivery 文件。"],
       findings: []
     });
-    const approved = await context.app.approveExportArtifact({ projectId: created.snapshot.project.id, artifactId: firstArtifact.id, note: "用户确认该文件可以交付。" });
+    const approved = await context.app.approveExportArtifact({ projectId: created.snapshot.project.id, artifactId: firstArtifact.id, fileHash: firstArtifact.fileHash, confirmedByUser: true, note: "合约测试模拟用户确认，不代表真人验收。" });
     assert.ok(approved.approval);
 
     const nextRevision = context.app.updateStory({ projectId: created.snapshot.project.id, baseRevision: assembled.revision.number, title: "后续修改不改写旧交付" });
     const preserved = context.app.readExportArtifact({ projectId: created.snapshot.project.id, artifactId: firstArtifact.id });
     assert.equal(preserved.revision, assembled.revision.number);
-    assert.equal(preserved.approval?.note, "用户确认该文件可以交付。");
+    assert.equal(preserved.approval?.note, "合约测试模拟用户确认，不代表真人验收。");
     assert.equal(nextRevision.revision.number, assembled.revision.number + 1);
 
     const secondJob = context.app.submitExport({ projectId: created.snapshot.project.id, revision: assembled.revision.number, purpose: "delivery", idempotencyKey: "artifact-second" });

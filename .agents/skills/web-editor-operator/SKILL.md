@@ -1,15 +1,21 @@
 ---
 name: web-editor-operator
-description: 通过 VideoFlowCut Web 工作台定位对象、观察真实合成、完成可持久化的微调并采集 Preview 证据；不绕过 Revision，也不替代专业质量判断。
+description: 通过 VideoFlowCut Web 工作台定位对象、观察真实合成、采集 Preview 证据并交接微调参数；正式写入由主任务使用 MCP 完成，创意判断交专业子代理。
 ---
 
 # Web 工作台操作与视觉证据
 
+## 观察职责与统一提交
+
+主任务可以定位对象、采集当前 Revision 的可见事实与可访问媒体；是否可读、是否自然、怎样构图或调整等专业结论交对应创意/审片子代理。按 [production-coordinator](../production-coordinator/SKILL.md) 回传实际证据，浏览器被打开或播放被启动不证明子代理已经观看或听过。
+
+正式剪辑只通过已发布 MCP 写入，由主任务提交已确定的参数并读回 Revision、Impact；子代理不操作 UI 修改正式项目，主任务也不使用浏览器脚本、临时代码或未发布接口绕过。下文保留的 UI 微调方法用于理解对象和已支持交互；在当前剪辑合同下，需把确定的修改交给主任务的 MCP 执行，缺对应能力则报告阻断，不用 UI 代替缺失的写入能力。
+
 ## Web Operator 的角色
 
-MCP 能准确修改项目对象，却不能仅凭结构判断视觉是否成立；Web 能显示真实 Remotion Composition、人物、字幕、前后景和 Timeline，但浏览器画面本身也不能替代领域状态。`web-editor-operator` 的任务，是把这两部分连起来：在正确 Revision 上定位对象，使用可持久化的 UI 操作，随后取得真实帧和连续播放证据。
+MCP 能准确修改项目对象，却不能仅凭结构判断视觉是否成立；Web 能显示真实 Remotion Composition、人物、字幕、前后景和 Timeline，但浏览器画面本身也不能替代领域状态。`web-editor-operator` 在正确 Revision 上定位对象、获取真实帧和连续播放证据，将确定的微调参数交给主任务通过 MCP 提交后再读回。
 
-它不是独立剪辑师。是否应加一个效果由主工作流和专项 Skill 判断；Web Operator 负责证明该效果放在真实画面里是否挡脸、是否可读、是否与人物动作冲突，以及 UI 修改是否真的生成了新 Revision。
+它不是独立剪辑师。是否应加效果由导演或专项子代理判断；主任务核对对象和实际 Revision，创意/审片子代理可读取本 Skill 的观察方法，判断真实画面里是否挡脸、是否可读及是否与人物动作冲突。
 
 ## 定位之前先确认事实
 
@@ -26,6 +32,8 @@ MCP 能准确修改项目对象，却不能仅凭结构判断视觉是否成立�
 Settled Frame 应单独成立。观众应该能迅速识别第一重点，文字可以读完，人物的脸、嘴、手和字幕安全，证据没有被裁掉，画面在运动停止后仍然有构图。若效果只有不停漂浮时才显得“丰富”，通常是稳定画面本身没有设计好。
 
 ## 如何做微调
+
+把初稿的大约秒级范围与实际预览中的动作、阅读、旁白和前后画面一起核对，按 [秒级初始节奏与预览修订](../_shared/EDITORIAL_FOUNDATIONS.md#秒级初始节奏与预览修订) 局部前移、后移或延长；记录改前改后秒数及依据，再换算为当前 fps 的帧数。已讲清就收尾或交接，保留主体、美术和接续意图以及锁定声音/总长，避免统一倍速。
 
 普通 Cue 参数调整与受管作品内部修改分开：ManagedMotion 内部排版/节奏需回 remotion-production 提交新版本，不能用网页临时 CSS 或无效 Inspector 参数冒充持久修改。
 
@@ -63,7 +71,7 @@ Settled Frame 应单独成立。观众应该能迅速识别第一重点，文字
 
 ## Timeline Canvas 的可访问性
 
-若 Timeline 使用 Canvas，页面仍需通过 DOM/辅助语义层暴露 Track、Item ID、起止帧、选中和状态，供自动化定位。不要根据像素坐标盲拖。拖动后读取 Inspector 数值和新 Revision。
+若 Timeline 使用 Canvas，页面仍需通过 DOM/辅助语义层暴露 Track、Item ID、起止帧、选中和状态，供自动化定位。不要根据像素坐标盲拖。需要调整位置时将已确定参数交主任务提交 MCP，再读取 Inspector 数值和新 Revision。
 
 ## Job 和状态观察
 

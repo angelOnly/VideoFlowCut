@@ -1,4 +1,5 @@
 import { inspectFinalAudio } from "../../../packages/media-intelligence/src/acoustics.js";
+import { applyFinalAudioMixGain } from "./audio-mix-gain.js";
 import { hashMediaFile } from "../../../packages/edit-application/src/media-intelligence.js";
 import "../../../plugins/videoflowcut/scripts/background-processes.mjs";
 import { createHash } from "node:crypto";
@@ -8,13 +9,15 @@ import { createServer, type Server } from "node:http";
 import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { bundle } from "@remotion/bundler";
-import { ensureBrowser, openBrowser, renderMedia, selectComposition } from "@remotion/renderer";
+import { openBrowser, renderMedia, selectComposition } from "@remotion/renderer";
+import { resolveRenderBrowser } from "../../../packages/remotion-runtime/src/browser.js";
+export { resolveRenderBrowser } from "../../../packages/remotion-runtime/src/browser.js";
 import { withRenderNavigationRecovery } from "./navigation-recovery.js";
 import type { EditingApplication } from "@videocut/application";
 import { EFFECT_TYPES, inspectEffectContentContract, type AttributionManifest, type ExportArtifact, type ExportPurpose, type ExportTechnicalValidation, type JobRecord, type ProjectSnapshot, type RenderPreflight, type RenderPreflightCheck } from "@videocut/contracts";
 import { createId, DomainError, resolveCompositionReachability } from "@videocut/domain";
 import { readRuntimeConfig } from "@videocut/project-overview";
-import { canExport, evaluateQuality, requiresEditorialReview } from "@videocut/quality";
+import { canExport, evaluateQualityWithBrowser, exportBlockingIssues } from "@videocut/quality";
 import { probeMedia, runProcess } from "@videocut/speech";
 
 const contentTypeByExtension: Record<string, string> = {
@@ -260,7 +263,7 @@ function isolatedExplainerScenePreviewCache(
     sceneId: scene.id,
     localFromFrame,
     localToFrame,
-    relativePath: join("cache", "explainer-scenes", program.cacheKey, `range-${localFromFrame}-${localToFrame}.mp4`)
+    relativePath: join("cache", "explainer-scenes", program.cacheKey, `range-${localFromFrame}-${localToFrame}-gain-${snapshot.audioMixGainDb ?? 0}.mp4`)
   };
 }
 
@@ -292,15 +295,15 @@ async function sha256File(path: string): Promise<string> {
  * 预检只验证当前 Revision 的实际引用和当前 Renderer 可确定的依赖。
  * 它不会假装已做完整声画审片；真正的 Remotion 渲染和 Artifact 复核仍是后续独立证据。
  */
-export async function runRenderPreflight(application: EditingApplication, projectId: string, revisionNumber: number): Promise<RenderPreflight> {
+export async function runRenderPreflight(application: EditingApplication, projectId: string, revisionNumber: number, purpose: ExportPurpose = "delivery"): Promise<RenderPreflight> {
   const revision = application.repository.getRevision(projectId, revisionNumber);
   const snapshot = revision.snapshot;
   const checks: RenderPreflightCheck[] = [];
   try { await verifyMotionFrameCaches(snapshot); }
   catch (error) { addPreflightCheck(checks, "failed", "MOTION_CACHE_CORRUPT", error instanceof Error ? error.message : String(error)); }
   const review = await application.readEditorialQualityReview({ projectId, revision: revisionNumber });
-  const quality = evaluateQuality(snapshot, revisionNumber, review);
-  for (const issue of quality.technical.filter((entry) => entry.level === "blocking")) {
+  const quality = await evaluateQualityWithBrowser(snapshot, revisionNumber, review);
+  for (const issue of exportBlockingIssues(quality, purpose)) {
     addPreflightCheck(checks, "failed", `QUALITY_${issue.code}`, issue.message, issue.objectId);
   }
 
@@ -344,14 +347,8 @@ export async function runRenderPreflight(application: EditingApplication, projec
       addPreflightCheck(checks, "passed", "PREFLIGHT_ASSET_BYTES_AVAILABLE", `素材“${asset.name}”的本地文件可读取。`, asset.id);
     }
 
-    const provenance = asset.provenance;
-    if (provenance && provenance.source !== "local_import") {
-      if (["unknown", "restricted", "rejected"].includes(provenance.rightsStatus)) {
-        addPreflightCheck(checks, "failed", "PREFLIGHT_RIGHTS_BLOCKED", `素材“${asset.name}”的权利状态为 ${provenance.rightsStatus}，不能交付。`, asset.id);
-      } else if (provenance.rightsStatus === "attribution_required" && !provenance.attributionText?.trim()) {
-        addPreflightCheck(checks, "failed", "PREFLIGHT_ATTRIBUTION_MISSING", `素材“${asset.name}”需要署名，但缺少署名文本。`, asset.id);
-      }
-    }
+    // 权利条件已由上面的共享质量策略按用途核验，避免另一路径把内部许可误拦。
+
   }
 
   for (const cue of snapshot.effectCues.filter((candidate) => candidate.status === "ready")) {
@@ -369,6 +366,7 @@ export async function runRenderPreflight(application: EditingApplication, projec
     id: createId("render_preflight"),
     projectId,
     revision: revisionNumber,
+    purpose,
     status: checks.some((check) => check.status === "failed") ? "failed" : "passed",
     checks,
     checkedAt: new Date().toISOString()
@@ -390,7 +388,8 @@ function buildAttributionManifest(snapshot: ProjectSnapshot, artifactId: string)
       creator: asset.provenance!.creator,
       license: asset.provenance!.license,
       attributionText: asset.provenance!.attributionText,
-      rightsStatus: asset.provenance!.rightsStatus
+      rightsStatus: asset.provenance!.rightsStatus,
+      usageRights: asset.provenance!.usageRights
     }));
   return {
     relativePath: join("manifests", "attribution", `${artifactId}.json`),
@@ -406,21 +405,6 @@ async function writeAttributionManifest(snapshot: ProjectSnapshot, manifest: Att
   const temporaryPath = `${targetPath}.tmp`;
   await writeFile(temporaryPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   await rename(temporaryPath, targetPath);
-}
-
-/** 发行环境不允许渲染 Job 临时下载依赖；源码直跑保留 Remotion 的开发准备入口。 */
-export async function resolveRenderBrowser(): Promise<string> {
-  const config = readRuntimeConfig().runtime;
-  const browserExecutable = config.browserExecutable;
-  if (config.distributionDirectory && !browserExecutable) {
-    throw new DomainError("发行 Runtime 缺少部署前准备的浏览器路径", "RENDER_BROWSER_NOT_PREPARED");
-  }
-  if (browserExecutable && (!isAbsolute(browserExecutable) || !existsSync(browserExecutable))) {
-    throw new DomainError("已配置的渲染浏览器路径无效，必须重新准备部署依赖", "RENDER_BROWSER_NOT_PREPARED");
-  }
-  const browser = await ensureBrowser({ browserExecutable, logLevel: "error" });
-  if (!("path" in browser)) throw new DomainError("渲染浏览器未就绪", "RENDER_BROWSER_NOT_PREPARED");
-  return browser.path;
 }
 
 export async function verifyRenderBrowserReady(): Promise<void> {
@@ -465,6 +449,8 @@ export class RevisionRenderer implements RevisionRenderEngine {
           ...configuration,
           resolve: {
             ...configuration.resolve,
+            // 源码按 Node ESM 写 .js 导入；开发态由 Webpack 映射到同名 TS，发行态继续使用真实 JS。
+            extensionAlias: { ...configuration.resolve?.extensionAlias, ".js": [".js", ".ts", ".tsx"] },
             // Remotion 支持对象或数组两种 alias 形式；当前项目只合并对象形式，数组配置由运行时保留。
             alias: {
               ...(Array.isArray(existingAlias) ? {} : existingAlias ?? {}),
@@ -506,6 +492,7 @@ export class RevisionRenderer implements RevisionRenderEngine {
         timeoutInMilliseconds: 30 * 60_000,
         logLevel: "error"
       });
+      await applyFinalAudioMixGain(snapshot, targetPath);
     } finally {
       await mediaServer.close();
     }
@@ -544,6 +531,7 @@ export class RevisionRenderer implements RevisionRenderEngine {
         timeoutInMilliseconds: 30 * 60_000,
         logLevel: "error"
       });
+      await applyFinalAudioMixGain(snapshot, targetPath);
     } finally {
       await mediaServer.close();
     }
@@ -610,17 +598,12 @@ export async function runExportJob(
     };
   }
   const editorialReview = await application.readEditorialQualityReview({ projectId: job.projectId, revision: revisionNumber });
-  const report = evaluateQuality(revision.snapshot, revisionNumber, editorialReview);
+  const report = await evaluateQualityWithBrowser(revision.snapshot, revisionNumber, editorialReview);
   if (!canExport(report, purpose)) {
-    // 拒绝原因必须与 canExport 使用相同用途；草稿不能把仅阻挡交付的待审项列为失败原因。
-    const blockingMessages = (purpose === "draft" ? report.technical : report.issues).filter((entry) => entry.level === "blocking").map((entry) => entry.message);
-    if (blockingMessages.length > 0) throw new DomainError(`质量门禁阻止导出：${blockingMessages.join("；")}`, "QUALITY_GATE_BLOCKED");
-    if (requiresEditorialReview(report, purpose)) {
-      throw new DomainError(`交付导出要求 R${revisionNumber} 已完成当前 Revision 的真实 Preview、完整声画审片与首次观众复核；请先记录 Editorial Review。`, "EDITORIAL_REVIEW_REQUIRED");
-    }
-    throw new DomainError("导出门禁未通过。", "QUALITY_GATE_BLOCKED");
+    const blockingMessages = exportBlockingIssues(report, purpose).map(entry => entry.message);
+    throw new DomainError(`技术/用途条件阻止导出：${blockingMessages.join("；")}`, "QUALITY_GATE_BLOCKED");
   }
-  const preflight = await runRenderPreflight(application, job.projectId, revisionNumber);
+  const preflight = await runRenderPreflight(application, job.projectId, revisionNumber, purpose);
   if (preflight.status !== "passed") {
     const failures = preflight.checks.filter((check) => check.status === "failed").map((check) => check.message);
     throw new DomainError(`Render Preflight 未通过：${failures.join("；")}`, "RENDER_PREFLIGHT_FAILED");
@@ -693,7 +676,9 @@ export async function runExportJob(
 export async function runRenderPreflightJob(application: EditingApplication, job: JobRecord): Promise<Record<string, unknown>> {
   const revisionNumber = Number(job.payload.revision);
   if (!Number.isInteger(revisionNumber) || revisionNumber <= 0) throw new DomainError("Render Preflight 任务缺少有效 Revision", "INVALID_PREFLIGHT_REVISION");
-  const preflight = await runRenderPreflight(application, job.projectId, revisionNumber);
+  const purpose = job.payload.purpose ?? "delivery";
+  if (purpose !== "draft" && purpose !== "delivery") throw new DomainError("预检用途无效", "INVALID_PREFLIGHT_PURPOSE");
+  const preflight = await runRenderPreflight(application, job.projectId, revisionNumber, purpose);
   return { revision: revisionNumber, preflight };
 }
 

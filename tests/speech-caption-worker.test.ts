@@ -17,6 +17,77 @@ import type { ProjectSnapshot } from "@videocut/contracts";
 const text = "流量总量并不等于下载速度，网络拥挤时还要看资源怎样分。";
 const phrases = ["流量总量并不等于下载速度，", "网络拥挤时还要看资源怎样分。"];
 
+test("字幕显隐和静态位置经HTTP原子读回，保留语音原文与对齐，越界不写版本", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vfc-caption-presentation-"));
+  const f = await fixture(root);
+  const server = await createServer({ workspaceRoot: root });
+  try {
+    const before = f.app.readProject(f.projectId);
+    const card = before.snapshot.timeline.captions[0]!;
+    assert.ok(card);
+    const patch = (payload: Record<string, unknown>) => server.app.inject({ method: "PATCH", url: `/api/projects/${f.projectId}/captions/${card.id}`, payload: { baseRevision: f.app.readProject(f.projectId).revision.number, action: "update", ...payload } });
+    for (const display of [{ mode: "shown", ranges: [{ startFrame: -1, endFrame: 12 }] }, { mode: "shown", ranges: [{ startFrame: 0, endFrame: 193 }] }, { mode: "hidden", ranges: [{ startFrame: 0, endFrame: 12 }] }, { mode: "shown", ranges: [{ startFrame: 0, endFrame: 12 }, { startFrame: 10, endFrame: 20 }] }]) assert.equal((await patch({ display })).statusCode, 400);
+    assert.equal(f.app.readProject(f.projectId).revision.number, before.revision.number);
+    const display = { mode: "shown", ranges: [{ startFrame: 12, endFrame: 36 }, { startFrame: 96, endFrame: 150 }] };
+    const placement = { leftPercent: 50, topPercent: 15, widthPercent: 45 };
+    const updated = await patch({ display, format: { placement } });
+    assert.equal(updated.statusCode, 200, updated.body);
+    const after = f.app.readProject(f.projectId);
+    assert.deepEqual(after.snapshot.timeline.captions[0]!.display, display);
+    assert.deepEqual(after.snapshot.timeline.captions[0]!.format!.placement, placement);
+    assert.deepEqual(after.snapshot.speechAsset, before.snapshot.speechAsset);
+    assert.deepEqual(after.snapshot.script, before.snapshot.script);
+    assert.deepEqual([after.snapshot.timeline.captions[0]!.sourceText, after.snapshot.timeline.captions[0]!.startFrame, after.snapshot.timeline.captions[0]!.endFrame], [card.sourceText, card.startFrame, card.endFrame]);
+    assert.equal((await patch({ format: { placement: { ...placement, widthPercent: 80 } } })).statusCode, 400);
+    assert.equal((await patch({ display: { mode: "hidden" } })).statusCode, 200);
+    assert.equal((await patch({ display: null, format: { placement: null } })).statusCode, 200);
+    const reset = f.app.readProject(f.projectId).snapshot.timeline.captions[0]!;
+    assert.equal(reset.display, undefined); assert.equal(reset.format!.placement, undefined);
+  } finally { await server.app.close(); server.application.close(); f.app.close(); await rm(root, { recursive: true, force: true }); }
+});
+
+test("HTTP 按当前原稿或明确用户指令纠正显示，错误版本/片段/依据拒绝且不改声音和时间", async () => {
+  const root = await mkdtemp(join(tmpdir(), "videocut-caption-basis-"));
+  const f = await fixture(root);
+  const wrongPhrases = [phrases[0]!.replace("流量", "留量"), phrases[1]!];
+  const provider = mockProvider({ phrases: wrongPhrases, transcript: wrongPhrases.join("") });
+  const server = await createServer({ workspaceRoot: root });
+  try {
+    const projectId = f.projectId;
+    f.app.generateSpeechCaptions({ projectId, baseRevision: f.app.readProject(projectId).revision.number });
+    await runOneJob(f.app, createMediaJobProcessor(f.app, new ComfyUIBridgeClient("http://bridge.test/v1")));
+    const before = f.app.readProject(projectId);
+    const card = before.snapshot.timeline.captions[0]!;
+    assert.equal(card.text, wrongPhrases[0]);
+    const review = { basis: "confirmed_script", note: "测试模拟已确认原稿正字，不代表回听", scriptRevision: before.snapshot.script.revision, speechSegmentIds: before.snapshot.speechSegments.map(s => s.id) };
+    const patch = (sourceTextReview: unknown, text = phrases[0], baseRevision = before.revision.number) => server.app.inject({ method: "PATCH", url: `/api/projects/${projectId}/captions/${card.id}`, payload: { baseRevision, action: "update", text, sourceTextReview } });
+    for (const invalid of [undefined, { ...review, scriptRevision: review.scriptRevision + 1 }, { ...review, speechSegmentIds: ["other"] }, { ...review, speechSegmentIds: [...review.speechSegmentIds, ...review.speechSegmentIds] }, { basis: "user_instruction", note: "没有真实指令来源" }]) {
+      assert.equal((await patch(invalid)).statusCode, 400);
+      assert.equal(f.app.readProject(projectId).revision.number, before.revision.number);
+    }
+    assert.equal((await patch(review, "不在所指原稿中的新内容")).statusCode, 400);
+    const response = await patch(review);
+    assert.equal(response.statusCode, 200, response.body);
+    const corrected = f.app.readProject(projectId);
+    assert.equal(corrected.snapshot.timeline.captions[0]!.text, phrases[0]);
+    assert.equal(corrected.snapshot.timeline.captions[0]!.sourceText, wrongPhrases[0]);
+    assert.equal(corrected.snapshot.timeline.captions[0]!.sourceTextReview!.basis, "confirmed_script");
+    const formatted = await patch(undefined, "流量总量\n并不等于下载速度，", corrected.revision.number);
+    assert.equal(formatted.statusCode, 200, formatted.body);
+    const formattedState = f.app.readProject(projectId);
+    assert.equal(formattedState.snapshot.timeline.captions[0]!.sourceTextReview!.reviewedAt, corrected.snapshot.timeline.captions[0]!.sourceTextReview!.reviewedAt);
+    assert.equal((await patch(undefined, "再次改变实义内容", formattedState.revision.number)).statusCode, 400);
+    const human = await patch({ basis: "user_instruction", note: "测试模拟显示修改授权", instruction: "将字幕写为“流量不代表下载速度”", source: "测试会话的明确用户反馈" }, "流量不代表下载速度", formattedState.revision.number);
+    assert.equal(human.statusCode, 200, human.body);
+    const after = f.app.readProject(projectId);
+    for (const key of ["sourceAudioAlignments", "script", "speechSegments", "speechAsset", "assets"] as const) assert.deepEqual(after.snapshot[key], before.snapshot[key], key);
+    assert.deepEqual(after.snapshot.timeline.items, before.snapshot.timeline.items);
+    const changed = after.snapshot.timeline.captions[0]!;
+    assert.deepEqual([changed.startFrame, changed.endFrame], [card.startFrame, card.endFrame]);
+    assertProjectGraphValid(after.snapshot);
+  } finally { provider.restore(); await server.app.close(); server.application.close(); f.app.close(); await rm(root, { recursive: true, force: true }); }
+});
+
 async function fixture(root: string) {
   const app = createApplication(root);
   const projectId = app.createProject({ name: "完整旁白独立字幕回归", profile: "visual_explainer" }).snapshot.project.id;
@@ -127,10 +198,10 @@ test("HTTP 与实时 MCP 均通过正式入口提交旁白字幕和显示纠错"
   } finally { provider.restore(); await client.close(); await transport.close(); await server.app.close(); server.application.close(); f.app.close(); await rm(root, { recursive: true, force: true }); }
 });
 
-function mockProvider(options: { tokenTimed?: boolean; transcript?: string; onRead?: () => void } = {}) {
+function mockProvider(options: { tokenTimed?: boolean; transcript?: string; phrases?: string[]; onRead?: () => void } = {}) {
   const savedFetch = globalThis.fetch;
   let submissions = 0;
-  const tokens = phrases.map((value, i) => ({ text: value, startMs: 100 + i * 4000, endMs: 3900 + i * 4000 }));
+  const tokens = (options.phrases ?? phrases).map((value, i) => ({ text: value, startMs: 100 + i * 4000, endMs: 3900 + i * 4000 }));
   const timed = options.tokenTimed !== false;
   const output = { version: 4, precision: "provider_segment_timed", text: options.transcript ?? text, alignment: { tokenEvidence: timed ? "verified" : "unavailable", tokenPrecision: timed ? "provider_token_timed" : "unavailable", tokens: timed ? tokens : [] }, segments: tokens.map((token, i) => ({ displayText: token.text, startMs: token.startMs, endMs: token.endMs, ...(timed ? { tokenStart: i, tokenEnd: i + 1 } : {}) })) };
   globalThis.fetch = async (input, init) => {

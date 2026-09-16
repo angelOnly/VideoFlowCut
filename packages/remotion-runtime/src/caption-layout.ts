@@ -1,3 +1,4 @@
+import { captionBoxWidthPercent } from "../../contracts/src/caption-presentation.js";
 import type { CaptionFormat } from "@videocut/contracts";
 
 /**
@@ -22,6 +23,7 @@ export const DEFAULT_RENDER_CAPTION_FORMAT = {
 export interface CaptionLayoutInput {
   text: string;
   compositionWidth: number;
+  compositionHeight?: number;
   format?: Partial<CaptionFormat>;
   /** 强调的视觉缩放会放大实际字形，布局必须预留这一部分宽度。 */
   emphasisScale?: number;
@@ -48,11 +50,15 @@ export type CaptionLayoutResult = {
   ready: false;
   code: typeof CAPTION_LAYOUT_OVERFLOW;
   /** 仅用于诊断，不作为稳定对外错误合同。 */
-  reason: "TEXT_EMPTY" | "EXPLICIT_LINE_COUNT" | "LINE_TOO_WIDE" | "TWO_LINES_INSUFFICIENT" | "BROWSER_METRICS_UNAVAILABLE";
+  reason: "TEXT_EMPTY" | "EXPLICIT_LINE_COUNT" | "LINE_TOO_WIDE" | "TWO_LINES_INSUFFICIENT" | "BROWSER_METRICS_UNAVAILABLE" | "CANVAS_VERTICAL_OVERFLOW";
   measurement: "browser" | "conservative";
 };
 
 export type CaptionTextMeasure = (text: string) => number;
+
+/** Canvas 字体声明由正式 Renderer 和 Node 发起的浏览器测量共用。 */
+export const captionCanvasFont = (input: ResolvedCaptionLayoutInput): string =>
+  `normal ${input.fontWeight} ${input.fontSize}px ${input.fontFamily}`;
 
 /**
  * 这个输入归一化在质量系统和 Renderer 之间共享：两边必须用同一安全宽度、字号和底板内边距。
@@ -64,7 +70,7 @@ export function resolveCaptionLayoutInput(input: CaptionLayoutInput): ResolvedCa
   const fontSize = format.fontSize * emphasisScale;
   const fontWeight = Math.max(format.fontWeight, input.emphasisFontWeight ?? format.fontWeight);
   const hasBackground = Boolean(format.backgroundColor);
-  const safeWidth = input.compositionWidth * (1 - (format.horizontalInsetPercent * 2) / 100);
+  const safeWidth = input.compositionWidth * captionBoxWidthPercent(format) / 100;
   const backgroundPadding = hasBackground ? fontSize * CAPTION_BACKGROUND_HORIZONTAL_PADDING_EM : 0;
   const maxLineWidth = safeWidth - backgroundPadding;
   if (!Number.isFinite(input.compositionWidth) || input.compositionWidth <= 0
@@ -81,6 +87,16 @@ export function resolveCaptionLayoutInput(input: CaptionLayoutInput): ResolvedCa
     maxLineWidth,
     hasBackground
   };
+}
+
+/** 与字宽同次核对画布边缘，不把可自由定位解释成可以越出画面。 */
+export function layoutCaptionWithMeasure(input: CaptionLayoutInput, measure: CaptionTextMeasure, measurement: CaptionLayoutResult["measurement"]): CaptionLayoutResult {
+  const layout = layoutCaptionRowsWithMeasure(input, measure, measurement);
+  if (!layout.ready || input.compositionHeight === undefined) return layout;
+  const format = { ...DEFAULT_RENDER_CAPTION_FORMAT, ...input.format };
+  const height = format.fontSize * Math.max(1, input.emphasisScale ?? 1) * (CAPTION_LINE_HEIGHT * layout.lines.length + (format.backgroundColor ? CAPTION_BACKGROUND_VERTICAL_PADDING_EM : 0));
+  const top = format.placement ? input.compositionHeight * format.placement.topPercent / 100 : input.compositionHeight * (1 - format.bottomPercent / 100) - height;
+  return top < 0 || top + height > input.compositionHeight ? { ready: false, code: CAPTION_LAYOUT_OVERFLOW, reason: "CANVAS_VERTICAL_OVERFLOW", measurement } : layout;
 }
 
 const splitGraphemes = (text: string): string[] => {
@@ -110,11 +126,28 @@ function trimLineForDisplay(value: string): string {
   return value.replace(/^\s+/u, "").replace(/\s+$/u, "");
 }
 
+/** 一次收集分行算法可能测量的完整字符串，保留字偶距和组合字形，不能逐字相加。 */
+export function captionMeasurementTexts(input: CaptionLayoutInput): string[] {
+  const resolved = resolveCaptionLayoutInput(input);
+  if (!resolved) return [];
+  const lines = resolved.text.split("\n");
+  const texts = new Set(lines);
+  if (lines.length === 1) {
+    const graphemes = splitGraphemes(lines[0]!);
+    for (let index = 1; index < graphemes.length; index += 1) {
+      if (!canBreakBetween(graphemes[index - 1]!, graphemes[index]!)) continue;
+      texts.add(trimLineForDisplay(graphemes.slice(0, index).join("")));
+      texts.add(trimLineForDisplay(graphemes.slice(index).join("")));
+    }
+  }
+  return [...texts];
+}
+
 /**
  * 根据注入的真实或保守测量函数，选择一行或两行。该函数不接触 DOM，因此可在 Node 单元测试中
  * 验证分行合同；只有 measure 的来源决定它是浏览器实测还是保守预算。
  */
-export function layoutCaptionWithMeasure(
+function layoutCaptionRowsWithMeasure(
   input: CaptionLayoutInput,
   measure: CaptionTextMeasure,
   measurement: CaptionLayoutResult["measurement"]
@@ -182,13 +215,12 @@ export function layoutCaptionInBrowser(input: CaptionLayoutInput): CaptionLayout
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   if (!context) return { ready: false, code: CAPTION_LAYOUT_OVERFLOW, reason: "BROWSER_METRICS_UNAVAILABLE", measurement: "browser" };
-  context.font = `normal ${resolved.fontWeight} ${resolved.fontSize}px ${resolved.fontFamily}`;
+  context.font = captionCanvasFont(resolved);
   return layoutCaptionWithMeasure(input, (text) => context.measureText(text).width, "browser");
 }
 
 /**
- * Quality 是同步 Node 规则，不能也不应伪造浏览器字体 API。这里使用保守的字符盒预算：
- * 它只拦截“即使按最大常见字宽也装不进两行”的确定性风险；Renderer 的 Chromium 实测仍是最终裁决。
+ * 仅用于无浏览器的静态预算。上界超限不能证明真实溢出，正式质量报告和交付门禁必须实测。
  */
 export function layoutCaptionConservatively(input: CaptionLayoutInput): CaptionLayoutResult {
   const resolved = resolveCaptionLayoutInput(input);

@@ -5,7 +5,7 @@ import test from "node:test";
 
 const { createReloadingMcpSession } = await import(pathToFileURL(resolve("plugins/videoflowcut/scripts/mcp-session.mjs")).href);
 const catalog = ["target_project", "read_project", "write"].map((name) => ({ name, inputSchema: { type: "object" } }));
-function fixture(initialTools = catalog) {
+function fixture(initialTools = catalog, runExclusive = (action: () => Promise<unknown>, _options?: any) => action()) {
   let releaseId = "A";
   let tools = initialTools;
   let healthy = true;
@@ -15,6 +15,7 @@ function fixture(initialTools = catalog) {
   const closed: string[] = [];
   const session = createReloadingMcpSession({
     initialTools,
+    runExclusive,
     resolveDeployment: async () => {
       if (!healthy) throw new Error("not ready");
       return { releaseId };
@@ -170,5 +171,44 @@ test("排队期间已取消的调用不能在发布后继续写入", async () =>
   const result = await f.session.callTool({ name: "write" }, { signal: controller.signal });
   assert.match(result.content[0].text, /MCP_CALL_CANCELLED/);
   assert.equal(f.calls.length, 0);
+  await f.session.close();
+});
+
+test("抢锁超时明确未执行，取消信号传至操作锁，连接恢复后仍可正常调用", async () => {
+  const controller = new AbortController();
+  let errorCode: string | undefined = "RUNTIME_LOCK_TIMEOUT";
+  const received: any[] = [];
+  const f = fixture(catalog, async (action, options) => {
+    received.push(options);
+    if (errorCode) throw Object.assign(new Error("等待操作锁超时，本次未执行"), { code: errorCode });
+    return action();
+  });
+  await f.session.listTools();
+  assert.match((await f.session.callTool({ name: "write" })).content[0].text, /MCP_RUNTIME_BUSY.*本次未执行/);
+  errorCode = "RUNTIME_LOCK_CANCELLED";
+  assert.match((await f.session.callTool({ name: "write" }, { signal: controller.signal })).content[0].text, /MCP_CALL_CANCELLED.*本次未执行/);
+  assert.equal(received[1].signal, controller.signal);
+  assert.equal(received[1].operationName, "MCP工具:write");
+  assert.equal(f.calls.length, 0);
+  errorCode = "RUNTIME_LOCK_RELEASE_FAILED";
+  assert.match((await f.session.callTool({ name: "write" })).content[0].text, /MCP_CALL_OUTCOME_UNKNOWN/);
+  errorCode = undefined;
+  assert.notEqual((await f.session.callTool({ name: "read_project" })).isError, true);
+  assert.equal(f.calls.length, 1);
+  await f.session.close();
+});
+
+test("后台探活只短暂等待争锁，失败不堵住后续工具队列", async () => {
+  const f = fixture(catalog, async (action, options) => {
+    if (options?.operationName === "MCP后台探活") {
+      assert.equal(options.waitTimeoutMs, 1000);
+      throw Object.assign(new Error("忙"), { code: "RUNTIME_LOCK_TIMEOUT" });
+    }
+    return action();
+  });
+  await f.session.listTools();
+  await assert.rejects(f.session.refresh(), { code: "RUNTIME_LOCK_TIMEOUT" });
+  assert.notEqual((await f.session.callTool({ name: "read_project" })).isError, true);
+  assert.equal(f.calls.length, 1);
   await f.session.close();
 });

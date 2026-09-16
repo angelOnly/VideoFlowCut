@@ -60,6 +60,8 @@ export interface RuntimeConfig {
   };
   /** 第三方素材 Provider 的可选凭据；总览只显示是否已配置。 */
   providers: {
+    /** 可选 yt-dlp 可执行路径；缺省使用 python -m yt_dlp。 */
+    youtubeDownloaderPath?: string;
     /** Pexels API 密钥；不得写入日志或 MCP 总览结果。 */
     pexelsApiKey?: string;
     freesoundApiKey?: string;
@@ -143,6 +145,7 @@ export function readRuntimeConfig(options: ReadRuntimeConfigOptions = {}): Runti
       embeddingRevision: environment.VIDEOCUT_EMBEDDING_MODEL_REVISION ?? "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3"
     },
     providers: {
+      youtubeDownloaderPath: environment.VIDEOCUT_YT_DLP_PATH?.trim() || undefined,
       pexelsApiKey: environment.PEXELS_API_KEY?.trim() || undefined,
       freesoundApiKey: environment.FREESOUND_API_KEY?.trim() || undefined,
       freesoundOAuthToken: environment.FREESOUND_OAUTH_TOKEN?.trim() || undefined,
@@ -309,7 +312,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     name: "素材与来源",
     description: "浏览、导入、检验、搜索、获取素材，并保留来源、许可和需求事实。",
     tools: [
-      "browse_assets", "inspect_asset", "manage_asset_requirements", "search_media_candidates", "inspect_media_candidate",
+      "browse_assets", "inspect_asset", "manage_asset_requirements", "list_asset_providers", "search_media_candidates", "inspect_media_candidate",
       "acquire_media_asset", "read_asset_provenance", "import_media", "update_asset_metadata",
       "analyze_media", "read_media_observations", "search_media_fragments", "correct_media_observation", "adopt_media_fragment", "bind_media_adoption", "retry_media_job"
     ]
@@ -420,6 +423,7 @@ export const NODE_RUNTIME_CONFIGURATION_CATALOG = [
   { key: "VIDEOCUT_EMBEDDING_MODEL_REVISION", group: "素材理解", description: "向量模型版本，隔离语义索引" },
   // Provider：第三方素材服务的凭据；密钥不会出现在项目总览响应中。
   { key: "PEXELS_API_KEY", group: "Provider", description: "启用 Pexels 素材 Provider 的密钥", sensitive: true },
+  { key: "VIDEOCUT_YT_DLP_PATH", group: "Provider", description: "可选 yt-dlp 可执行文件路径；缺省使用 python -m yt_dlp，须安装 yt-dlp[default] 并提供 Node 与 FFmpeg" },
   { key: "FREESOUND_API_KEY", group: "Provider", description: "Freesound 官方搜索 API 密钥", sensitive: true },
   { key: "FREESOUND_OAUTH_TOKEN", group: "Provider", description: "Freesound 原文件 OAuth 凭据", sensitive: true },
   { key: "FREESOUND_COMMERCIAL_API_APPROVED", group: "Provider", description: "是否已确认 Freesound 商业 API 使用条件", defaultValue: "false" },

@@ -1,3 +1,8 @@
+import { YoutubeProvider } from "./youtube.js";
+import { AssetProviderError } from "./errors.js";
+import { assetFetch, assetDownloadFetch } from "./http.js";
+export { AssetProviderError } from "./errors.js";
+export type { AssetFailureDetails } from "./errors.js";
 import { createWriteStream } from "node:fs";
 import { copyFile, mkdir, open, rm, stat } from "node:fs/promises";
 import { basename, extname, join } from "node:path";
@@ -19,12 +24,9 @@ export function soundSourceCapabilities() {
   ];
 }
 
-/** Provider 失败会由 Job Runtime 保留为可诊断的错误码，而不是伪造空候选。 */
-export class AssetProviderError extends Error {
-  constructor(message: string, public readonly code: string) {
-    super(message);
-  }
-}
+export interface ProviderSearchInput { request: AssetRequest; query: string; mediaType?: AssetCandidate["kind"]; }
+export interface ProviderSearchWarning { code: string; message: string; source?: string; stage?: string; retryAfterMs?: number; }
+export interface ProviderSearchResult { candidates: ProviderSearchCandidate[]; complete: boolean; warnings: ProviderSearchWarning[]; }
 
 /** Provider 到 Application 的最小归一化边界；下载 URL 和 API Key 不写入 Project Revision。 */
 export interface ProviderSearchCandidate {
@@ -56,7 +58,8 @@ export interface ProviderDownload {
 export interface AssetProvider {
   readonly name: string;
   readonly previewHosts?: string[];
-  search(input: { request: AssetRequest; query: string }): Promise<ProviderSearchCandidate[]>;
+  search(input: ProviderSearchInput): Promise<ProviderSearchCandidate[]>;
+  searchDetailed?(input: ProviderSearchInput): Promise<ProviderSearchResult>;
   download(input: { candidate: AssetCandidate; temporaryDirectory: string }): Promise<ProviderDownload>;
 }
 
@@ -200,7 +203,7 @@ export async function downloadHttpFile(
     }
   }
   // 受控音效下载拒绝隐式重定向，防止公开地址跳到本机或未知站点。
-  const response = await fetch(url, { headers, redirect: safety ? "error" : "follow", signal: safety ? AbortSignal.timeout(60_000) : undefined });
+  const response = await assetDownloadFetch(url, { headers, redirect: safety ? "error" : "follow", signal: safety ? AbortSignal.timeout(60_000) : undefined });
   return saveProviderMediaResponse(response, temporaryDirectory, fileName, expectedKind, expectedMimeType);
 }
 
@@ -273,7 +276,7 @@ export class PexelsProvider implements AssetProvider {
   constructor(private readonly apiKey: string) {}
 
   private async request(path: string): Promise<PexelsResponse | PexelsVideo> {
-    const response = await fetch(`https://api.pexels.com${path}`, { headers: { Authorization: this.apiKey } });
+    const response = await assetFetch(`https://api.pexels.com${path}`, { headers: { Authorization: this.apiKey } });
     if (response.status === 401 || response.status === 403) throw new AssetProviderError("Pexels API Key 无效或没有访问权限", "PEXELS_AUTH_FAILED");
     if (response.status === 429) throw new AssetProviderError("Pexels 请求过于频繁，请稍后重试", "PEXELS_RATE_LIMITED");
     if (!response.ok) throw new AssetProviderError(`Pexels 查询失败：HTTP ${response.status}`, "PEXELS_SEARCH_FAILED");
@@ -402,8 +405,25 @@ export class AssetProviderRegistry {
 
   get(name: string): AssetProvider {
     const provider = this.providers.get(name);
-    if (!provider) throw new AssetProviderError(`素材 Provider “${name}”当前未配置；请使用已启用 Provider 或配置本地密钥。`, "ASSET_PROVIDER_NOT_CONFIGURED");
+    if (!provider) {
+      const known = this.catalog().find(entry => entry.id === name);
+      throw new AssetProviderError(known ? `素材服务 ${name} 不可用：${known.unavailableReason}` : `未知素材服务 ${name}；请从 list_asset_providers 返回的 id 中选择`, known ? "ASSET_PROVIDER_NOT_CONFIGURED" : "ASSET_PROVIDER_UNKNOWN", { stage: "provider", provider: name, availableProviders: this.names(), recovery: known ? "configure_provider" : "select_provider" });
+    }
     return provider;
+  }
+
+  catalog() {
+    const config = readRuntimeConfig().providers;
+    const known = [
+      { id: "wikimedia-commons", name: "Wikimedia Commons", mediaTypes: ["image", "video"], queryMode: "keywords", requiresKey: false, unavailableReason: "当前注册表未启用" },
+      { id: "pexels", name: "Pexels", mediaTypes: ["video"], queryMode: "keywords", requiresKey: true, unavailableReason: config.pexelsApiKey ? "当前注册表未启用" : "缺少 PEXELS_API_KEY" },
+      { id: "youtube", name: "YouTube", mediaTypes: ["video"], queryMode: "single_video_url", requiresKey: false, unavailableReason: "当前注册表未启用" },
+      { id: "mixkit", name: "Mixkit 音效", mediaTypes: ["audio"], queryMode: "category", requiresKey: false, unavailableReason: "当前注册表未启用" },
+      { id: "mixkit_music", name: "Mixkit 音乐", mediaTypes: ["audio"], queryMode: "category", requiresKey: false, unavailableReason: "当前注册表未启用" },
+      { id: "freesound", name: "Freesound", mediaTypes: ["audio"], queryMode: "keywords", requiresKey: true, unavailableReason: !config.freesoundApiKey ? "缺少 FREESOUND_API_KEY" : !config.freesoundCommercialApiApproved ? "尚未确认商业 API 使用条件" : "当前注册表未启用" }
+    ];
+    return [...known, ...this.names().filter(id => !known.some(entry => entry.id === id)).map(id => ({ id, name: id, mediaTypes: ["image", "video", "audio"], queryMode: "provider_defined", requiresKey: false, unavailableReason: "" }))]
+      .map(entry => ({ ...entry, enabled: this.providers.has(entry.id), unavailableReason: this.providers.has(entry.id) ? undefined : entry.unavailableReason }));
   }
 
   names(): string[] {
@@ -416,7 +436,7 @@ export class AssetProviderRegistry {
  * 发现 Provider 不等于素材已获授权或适合进入 Scene，后续仍要走候选审查和本地化。
  */
 export function createDefaultAssetProviderRegistry(): AssetProviderRegistry {
-  const providers: AssetProvider[] = [new WikimediaCommonsProvider(), new MixkitSoundProvider(), new MixkitMusicProvider()];
+  const providers: AssetProvider[] = [new WikimediaCommonsProvider(), new MixkitSoundProvider(), new MixkitMusicProvider(), new YoutubeProvider()];
   const soundConfig = readRuntimeConfig().providers;
   if (soundConfig.freesoundApiKey && soundConfig.freesoundCommercialApiApproved) providers.push(new FreesoundProvider(soundConfig.freesoundApiKey, soundConfig.freesoundOAuthToken));
   const pexelsApiKey = readRuntimeConfig().providers.pexelsApiKey;

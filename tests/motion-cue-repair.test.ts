@@ -44,7 +44,7 @@ test("Alpha 解析保留透明帧并拒绝缺帧、重复、负坐标和越界�
     [{ x: 4, y: 5, width: 6, height: 7 }, null, { x: 4, y: 5, width: 6, height: 7 }]);
 });
 
-test("透明画布按真实像素和共同时间检查，语义与整片审片门禁不被放宽", async () => {
+test("透明画布保留真实像素和语义校验，辅助审片不阻挡导出", async () => {
   const f = await fixture();
   try {
     const snapshot = structuredClone(f.state.snapshot);
@@ -56,7 +56,7 @@ test("透明画布按真实像素和共同时间检查，语义与整片审片�
     assert.equal(codes().some((issue) => issue.code.includes("CAPTION_SAFE")), false);
     assert.ok(codes().some((issue) => issue.code === "EFFECT_SEMANTIC_ANCHOR_REQUIRED" && issue.level === "blocking"));
     assert.equal(evaluateQuality(snapshot, f.revision()).editorial.status, "not_recorded");
-    assert.equal(requiresEditorialReview(evaluateQuality(snapshot, f.revision()), "delivery"), true);
+    assert.equal(requiresEditorialReview(evaluateQuality(snapshot, f.revision()), "delivery"), false);
     const motion = snapshot.assets.find((entry) => entry.id === f.asset.id)!.motion!;
     motion.visibility!.frames[9] = { x: 20, y: 270, width: 200, height: 30 };
     assert.equal(motionCaptionSafety(snapshot, cue), "review");

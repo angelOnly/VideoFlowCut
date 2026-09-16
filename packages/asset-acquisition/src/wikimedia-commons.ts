@@ -5,7 +5,8 @@ import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { AssetCandidate, AssetRequest } from "@videocut/contracts";
 import { readRuntimeConfig } from "@videocut/project-overview";
-import { AssetProviderError, assertDownloadedProviderMedia, type AssetProvider, type ProviderDownload, type ProviderSearchCandidate } from "./index.js";
+import { AssetProviderError, assertDownloadedProviderMedia, type AssetProvider, type ProviderDownload, type ProviderSearchCandidate, type ProviderSearchInput, type ProviderSearchResult } from "./index.js";
+import { assetFetch, assetDownloadFetch, retryAfterMilliseconds } from "./http.js";
 
 const COMMONS_API = "https://commons.wikimedia.org/w/api.php";
 const DEFAULT_MAX_RESULTS = 12;
@@ -188,6 +189,7 @@ function fallbackAttribution(creator: string | undefined, license: string | unde
  */
 export class WikimediaCommonsProvider implements AssetProvider {
   readonly name = "wikimedia-commons";
+  readonly previewHosts = ["upload.wikimedia.org"];
   private readonly apiEndpoint: string;
   private readonly fetchImpl: typeof fetch;
   private readonly maxResults: number;
@@ -196,7 +198,8 @@ export class WikimediaCommonsProvider implements AssetProvider {
 
   constructor(options: WikimediaCommonsProviderOptions = {}) {
     this.apiEndpoint = options.apiEndpoint ?? COMMONS_API;
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    this.fetchImpl = options.fetchImpl ?? assetFetch;
+    this.downloadFetch = options.fetchImpl ?? assetDownloadFetch;
     this.maxResults = boundedPositiveInteger(options.maxResults, DEFAULT_MAX_RESULTS, 50);
     this.maxDownloadBytes = boundedPositiveInteger(
       options.maxDownloadBytes ?? readRuntimeConfig().downloads.maxWikimediaBytes,
@@ -205,17 +208,26 @@ export class WikimediaCommonsProvider implements AssetProvider {
     this.userAgent = options.userAgent?.trim() || "VideoFlowCut/0.1 (Wikimedia Commons asset provider)";
   }
 
-  private async request<T extends { error?: { code?: unknown; info?: unknown } }>(parameters: Record<string, string>): Promise<T> {
+  private readonly downloadFetch: typeof fetch;
+
+  private async request<T extends { error?: { code?: unknown; info?: unknown } }>(parameters: Record<string, string>, signal?: AbortSignal): Promise<T> {
     const url = new URL(this.apiEndpoint);
     const query = new URLSearchParams({ action: "query", format: "json", formatversion: "2", origin: "*", ...parameters });
     url.search = query.toString();
-    const response = await this.fetchImpl(url, { headers: { Accept: "application/json", "User-Agent": this.userAgent } });
-    if (response.status === 429) throw new AssetProviderError("Wikimedia Commons 请求过于频繁，请稍后再试", "WIKIMEDIA_RATE_LIMITED");
+    const response = await this.fetchImpl(url, { headers: { Accept: "application/json", "User-Agent": this.userAgent }, signal });
+    if (response.status === 429) {
+      const retryAfterMs = retryAfterMilliseconds(response.headers.get("retry-after"));
+      await response.body?.cancel();
+      throw new AssetProviderError("Wikimedia Commons 请求过于频繁，请按返回等待时间稍后再试", "WIKIMEDIA_RATE_LIMITED", { retryAfterMs, recovery: "retry_search" });
+    }
     if (!response.ok) throw new AssetProviderError(`Wikimedia Commons 查询失败：HTTP ${response.status}`, "WIKIMEDIA_API_FAILED");
     let decoded: T;
     try {
       decoded = await response.json() as T;
-    } catch {
+    } catch (error) {
+      if (signal?.aborted || (error instanceof Error && ["AbortError", "TimeoutError"].includes(error.name))) {
+        throw new AssetProviderError("Wikimedia Commons 响应正文读取超时", "ASSET_NETWORK_TIMEOUT", { recovery: "repair" });
+      }
       throw new AssetProviderError("Wikimedia Commons 返回了无法解析的响应", "WIKIMEDIA_API_INVALID_RESPONSE");
     }
     if (decoded.error) {
@@ -226,20 +238,25 @@ export class WikimediaCommonsProvider implements AssetProvider {
     return decoded;
   }
 
-  private async readFileDetails(title: string): Promise<CommonsFileDetails | undefined> {
+  private async readFileDetails(title: string, signal?: AbortSignal): Promise<CommonsFileDetails | undefined> {
+    return (await this.readFilesDetails([title], signal))[0];
+  }
+
+  private async readFilesDetails(titles: string[], signal?: AbortSignal): Promise<CommonsFileDetails[]> {
     const response = await this.request<CommonsFileResponse>({
-      titles: title,
+      titles: titles.join("|"),
       prop: "imageinfo|info",
       inprop: "url",
       iiprop: "url|size|mime|extmetadata",
       iiurlwidth: "640"
+    }, signal);
+    return (response.query?.pages ?? []).flatMap((page) => {
+      const info = page.imageinfo?.[0];
+      const title = nonEmptyText(page.title);
+      if (page.missing || !info || !title) return [];
+      const canonicalUrl = nonEmptyText(page.canonicalurl) ?? nonEmptyText(page.fullurl);
+      return [{ title, sourceUrl: isHttpUrl(canonicalUrl) ? canonicalUrl : sourcePageUrl(title), info }];
     });
-    const page = response.query?.pages?.find((candidate) => !candidate.missing && candidate.imageinfo?.length);
-    const info = page?.imageinfo?.[0];
-    const resolvedTitle = nonEmptyText(page?.title) ?? title;
-    if (!page || !info) return undefined;
-    const canonicalUrl = nonEmptyText(page.canonicalurl) ?? nonEmptyText(page.fullurl);
-    return { title: resolvedTitle, sourceUrl: isHttpUrl(canonicalUrl) ? canonicalUrl : sourcePageUrl(resolvedTitle), info };
   }
 
   private candidateFromDetails(details: CommonsFileDetails, request: AssetRequest): WikimediaCommonsSearchCandidate | undefined {
@@ -261,7 +278,8 @@ export class WikimediaCommonsProvider implements AssetProvider {
       kind,
       mimeType,
       sourceUrl: details.sourceUrl,
-      previewUrl: nonEmptyText(details.info.thumburl),
+      // 视频缩略图通常是 JPEG，不能把静态封面交给视频分析器。
+      previewUrl: kind === "video" ? mediaUrl : nonEmptyText(details.info.thumburl) ?? mediaUrl,
       width: positiveInteger(details.info.width),
       height: positiveInteger(details.info.height),
       durationMs: kind === "video" && durationSeconds !== undefined ? Math.round(durationSeconds * 1_000) : undefined,
@@ -275,25 +293,41 @@ export class WikimediaCommonsProvider implements AssetProvider {
     };
   }
 
-  async search(input: { request: AssetRequest; query: string }): Promise<WikimediaCommonsSearchCandidate[]> {
-    const query = input.query.trim();
-    if (!query) return [];
-    const response = await this.request<CommonsSearchResponse>({
+  async search(input: ProviderSearchInput): Promise<WikimediaCommonsSearchCandidate[]> {
+    return (await this.searchDetailed(input)).candidates as WikimediaCommonsSearchCandidate[];
+  }
+
+  async searchDetailed(input: ProviderSearchInput): Promise<ProviderSearchResult> {
+    if (input.mediaType === "audio") throw new AssetProviderError("Commons 视觉入口仅支持图片或视频", "ASSET_MEDIA_TYPE_UNSUPPORTED", { recovery: "change_media_type", stage: "provider" });
+    let query = input.query.trim();
+    if (!query) return { candidates: [], complete: true, warnings: [] };
+    // 显式类型优先于关键词里的 filetype，返回后还会复核真实 MIME。
+    // CirrusSearch 的同一字段多值用 |；括号内 OR 会让这个过滤表达式返回零结果。
+    if (input.mediaType) query = `${query.replace(/\bfiletype:\S+/giu, "").trim()} ${input.mediaType === "image" ? "filetype:bitmap|drawing" : "filetype:video"}`;
+    const signal = AbortSignal.timeout(45_000);
+    let response: CommonsSearchResponse;
+    try { response = await this.request<CommonsSearchResponse>({
       list: "search",
       srnamespace: "6",
       srlimit: String(this.maxResults),
       srsearch: query
-    });
+    }, signal); } catch (error) { throw this.stageError(error, "search"); }
     const titles = [...new Set((response.query?.search ?? []).map((entry) => nonEmptyText(entry.title)).filter((title): title is string => Boolean(title)))];
-    const candidates: WikimediaCommonsSearchCandidate[] = [];
-    // 逐文件请求能保证每个候选都有自己的一份 imageinfo/extmetadata，而不是把搜索摘要误作授权事实。
-    for (const title of titles) {
-      const details = await this.readFileDetails(title);
-      if (!details) continue;
-      const candidate = this.candidateFromDetails(details, input.request);
-      if (candidate) candidates.push(candidate);
-    }
-    return candidates;
+    if (!titles.length) return { candidates: [], complete: true, warnings: [] };
+    // MediaWiki 支持一次读取至多 50 个标题，各页仍有独立许可。避免连续详情请求触发限流。
+    let details: CommonsFileDetails[];
+    try { details = await this.readFilesDetails(titles, signal); }
+    catch (error) { throw this.stageError(error, "metadata"); }
+    const candidates = details.flatMap(detail => {
+      const candidate = this.candidateFromDetails(detail, input.request);
+      return candidate && (!input.mediaType || candidate.kind === input.mediaType) ? [candidate] : [];
+    });
+    return { candidates, complete: true, warnings: [] };
+  }
+
+  private stageError(error: unknown, stage: "search" | "metadata"): AssetProviderError {
+    if (error instanceof AssetProviderError) return new AssetProviderError(error.message, error.code, { ...error.details, stage, provider: this.name });
+    return new AssetProviderError("Commons 请求未完成，请检查网络连接", "ASSET_NETWORK_FAILED", { stage, provider: this.name, recovery: "repair" });
   }
 
   async download(input: { candidate: AssetCandidate; temporaryDirectory: string }): Promise<ProviderDownload> {
@@ -318,7 +352,7 @@ export class WikimediaCommonsProvider implements AssetProvider {
       throw new AssetProviderError(`素材文件超过 ${Math.floor(this.maxDownloadBytes / 1024 / 1024)}MB 下载上限`, "WIKIMEDIA_DOWNLOAD_TOO_LARGE");
     }
 
-    const response = await this.fetchImpl(mediaUrl, { redirect: "follow", headers: { Accept: "image/*,video/*;q=0.9" } });
+    const response = await this.downloadFetch(mediaUrl, { redirect: "follow", headers: { Accept: "image/*,video/*;q=0.9" } });
     if (!response.ok) throw new AssetProviderError(`Wikimedia Commons 下载失败：HTTP ${response.status}`, "WIKIMEDIA_DOWNLOAD_HTTP_ERROR");
     const contentType = normalizedMime(response.headers.get("content-type") ?? undefined);
     if (!mediaKindFromMime(contentType)) {

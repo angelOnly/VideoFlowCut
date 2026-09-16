@@ -49,7 +49,7 @@ function fileDetails(input: {
   };
 }
 
-test("Wikimedia Commons 搜索逐文件读取授权元数据，并区分图片、视频和不完整许可", async () => {
+test("Wikimedia Commons 批量读取独立授权元数据，并区分图片、视频和不完整许可", async () => {
   const detailTitles: string[] = [];
   const fetchImpl: typeof fetch = async (input) => {
     const url = new URL(input.toString());
@@ -96,13 +96,13 @@ test("Wikimedia Commons 搜索逐文件读取授权元数据，并区分图片�
         licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/"
       })
     };
-    return json(details[title]);
+    return json({ query: { pages: title.split('|').flatMap(name => (details[name] as { query: { pages: unknown[] } }).query.pages) } });
   };
   const provider = new WikimediaCommonsProvider({ apiEndpoint: "https://commons.test/w/api.php", fetchImpl });
 
   const candidates = await provider.search({ request, query: "city at night" });
 
-  assert.deepEqual(detailTitles, ["File:Sunset.jpg", "File:Street.webm", "File:Incomplete.png", "File:Audio.ogg"]);
+  assert.deepEqual(detailTitles, ["File:Sunset.jpg|File:Street.webm|File:Incomplete.png|File:Audio.ogg"]);
   assert.equal(candidates.length, 3);
   const image = candidates.find((candidate) => candidate.originalAssetId === "File:Sunset.jpg")!;
   assert.equal(image.kind, "image");
@@ -114,6 +114,8 @@ test("Wikimedia Commons 搜索逐文件读取授权元数据，并区分图片�
   assert.match(image.sourceUrl, /commons\.wikimedia\.org/u);
   const video = candidates.find((candidate) => candidate.originalAssetId === "File:Street.webm")!;
   assert.equal(video.kind, "video");
+  assert.equal(video.previewUrl, "https://upload.wikimedia.org/street.webm");
+  assert.deepEqual(provider.previewHosts, ["upload.wikimedia.org"]);
   assert.equal(video.durationMs, 5_250);
   assert.equal(video.rightsStatus, "cleared");
   const incomplete = candidates.find((candidate) => candidate.originalAssetId === "File:Incomplete.png")!;

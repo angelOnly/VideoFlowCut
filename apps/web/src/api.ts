@@ -172,7 +172,7 @@ export const api = {
   renderPreflight: (projectId: string, revision?: number) => request<JobRecord>(`/api/projects/${projectId}/render-preflight`, { method: "POST", body: JSON.stringify({ revision }) }),
   export: (projectId: string, revision?: number, purpose: ExportPurpose = "delivery") => request<JobRecord>(`/api/projects/${projectId}/export`, { method: "POST", body: JSON.stringify({ revision, purpose }) }),
   exportArtifacts: (projectId: string) => request<ExportArtifact[]>(`/api/projects/${projectId}/export-artifacts`),
-  approveExportArtifact: (projectId: string, artifactId: string, note?: string) => request<ExportArtifact>(`/api/projects/${projectId}/export-artifacts/${artifactId}/approve`, { method: "POST", body: JSON.stringify({ note }) }),
+  approveExportArtifact: (projectId: string, artifactId: string, fileHash: string, note?: string) => request<ExportArtifact>(`/api/projects/${projectId}/export-artifacts/${artifactId}/approve`, { method: "POST", body: JSON.stringify({ note, fileHash, confirmedByUser: true }) }),
   preview: (projectId: string, payload: Record<string, unknown>) => request<JobRecord>(`/api/projects/${projectId}/previews`, { method: "POST", body: JSON.stringify(payload) }),
   /** 高级面板只提交可测量的 Vlog 镜头分析，不在 Web 端伪造事件或剪辑语义。 */
   submitVlogAnalysis: (projectId: string, payload: { baseRevision: number; assetIds: string[]; sceneThreshold?: number }) => request<JobRecord>(`/api/projects/${projectId}/vlog-analysis`, { method: "POST", body: JSON.stringify(payload) }),

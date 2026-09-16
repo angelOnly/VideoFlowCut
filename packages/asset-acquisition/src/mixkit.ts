@@ -1,4 +1,5 @@
 import type { AssetCandidate, AssetRequest } from "@videocut/contracts";
+import { assetSingleAttemptFetch } from "./http.js";
 import { AssetProviderError, downloadHttpFile, type AssetProvider, type ProviderSearchCandidate } from "./index.js";
 import { MIXKIT_SOUND_CATEGORIES, MIXKIT_MUSIC_CATEGORIES, mixkitCategory } from "./sound-catalog.js";
 
@@ -35,7 +36,7 @@ export async function mixkitPage(path: string): Promise<string> {
       || !/^\/(?:free-sound-effects\/|free-stock-music\/|license\/$)/u.test(page.pathname)) {
       throw new AssetProviderError("Mixkit 页面跳转超出已核验的公开目录", "MIXKIT_REDIRECT_REJECTED");
     }
-    response = await fetch(page, { redirect: "manual", signal });
+    response = await assetSingleAttemptFetch(page, { redirect: "manual", signal });
     if (![301, 302, 303, 307, 308].includes(response.status)) break;
     await response.body?.cancel();
     const location = response.headers.get("location");

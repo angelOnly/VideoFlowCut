@@ -45,6 +45,7 @@ import { DEFAULT_TRACKS, sourceAudioTimeOrigin } from "@videocut/contracts";
 import { resolveCompositionReachability } from "./composition-reachability";
 
 export { resolveCompositionReachability, type CompositionReachability } from "./composition-reachability";
+export { assetExportRestriction, assetProvenanceAllowsExport, validAssetUsageRights } from "./asset-usage.js";
 
 export const DEFAULT_BRIEF: CreativeBrief = {
   platform: "短视频",
@@ -110,8 +111,8 @@ function normalizeSourceCaptionComparisonText(value: string): string {
   return value.normalize("NFKC").replace(/[\p{White_Space}\p{P}]/gu, "").toLocaleLowerCase("en-US");
 }
 
-/** 显示纠错与时间证据分离：实义变化必须有绑定本次文案的回听记录。 */
-export function sourceCaptionDisplayTextIsValid(caption: CaptionCard): boolean {
+/** 显示纠错与时间证据分离，原稿依据还须绑定当前旁白、脚本及对应片段。 */
+export function sourceCaptionDisplayTextIsValid(caption: CaptionCard, snapshot?: ProjectSnapshot): boolean {
   const source = caption.sourceText;
   if (!source?.trim() || !caption.text?.trim()
     || caption.textMode !== (caption.text === source ? "derived" : "manual")) return false;
@@ -119,6 +120,18 @@ export function sourceCaptionDisplayTextIsValid(caption: CaptionCard): boolean {
   if (review && (caption.sourceKind !== "source_audio" || !caption.sourceAlignmentId
     || review.sourceText !== source || review.text !== caption.text || !review.note?.trim()
     || review.note.length > 1000 || !Number.isFinite(Date.parse(review.reviewedAt)))) return false;
+  if (review?.basis === "confirmed_script") {
+    const alignment = snapshot?.sourceAudioAlignments.find(entry => entry.id === caption.sourceAlignmentId);
+    if (!snapshot || !alignment?.speechSource || !sourceAudioAlignmentOwnerMatches(snapshot, alignment)
+      || review.scriptRevision !== snapshot.script.revision || !review.speechSegmentIds?.length
+      || new Set(review.speechSegmentIds).size !== review.speechSegmentIds.length) return false;
+    const timings = snapshot.speechAsset!.timing.segments.filter(segment => segment.startFrame < caption.endFrame && segment.endFrame > caption.startFrame);
+    if (timings.length !== review.speechSegmentIds.length || timings.some(segment => !review.speechSegmentIds.includes(segment.speechSegmentId))) return false;
+    const scriptText = timings.map(timing => snapshot.speechSegments.find(segment => segment.id === timing.speechSegmentId)?.text ?? "").join("");
+    if (!normalizeSourceCaptionComparisonText(scriptText).includes(normalizeSourceCaptionComparisonText(caption.text))) return false;
+  } else if (review?.basis === "user_instruction") {
+    if (!review.instruction?.trim() || review.instruction.length > 2000 || !review.source?.trim() || review.source.length > 1000) return false;
+  } else if (review?.basis !== undefined && review.basis !== "listening") return false;
   return normalizeSourceCaptionComparisonText(caption.text) === normalizeSourceCaptionComparisonText(source) || Boolean(review);
 }
 
@@ -170,7 +183,7 @@ function assertSourceTokenCaptionCardGraph(snapshot: ProjectSnapshot, caption: C
   // 仍严格比对归一化后的实义字符，避免任何人借标点链路改写字幕内容。
   if (!normalizeSourceCaptionComparisonText(caption.sourceText)
     || normalizeSourceCaptionComparisonText(caption.sourceText) !== normalizeSourceCaptionComparisonText(sourceText)
-    || !sourceCaptionDisplayTextIsValid(caption)
+    || !sourceCaptionDisplayTextIsValid(caption, snapshot)
     || caption.sourceStartFrame !== expectedSourceStartFrame || caption.sourceEndFrame !== expectedSourceEndFrame
     || caption.startFrame !== expectedStartFrame || caption.endFrame !== expectedEndFrame
     || expectedSourceStartFrame < sourceItem.sourceStartFrame || expectedSourceEndFrame <= expectedSourceStartFrame
@@ -205,7 +218,7 @@ function assertProviderSegmentCaptionCardGraph(
     || caption.sourceAlignmentId !== alignment.id || caption.sourceBridgeRunId !== alignment.bridgeAudit.runId
     || caption.precision !== "sentence_exact"
     || caption.sourceTokenStartIndex !== undefined || caption.sourceTokenEndIndex !== undefined || caption.sourceCaptionRationale !== undefined
-    || caption.sourceText !== segment.displayText || !sourceCaptionDisplayTextIsValid(caption)
+    || caption.sourceText !== segment.displayText || !sourceCaptionDisplayTextIsValid(caption, snapshot)
     || caption.sourceStartFrame !== expectedSourceStartFrame || caption.sourceEndFrame !== expectedSourceEndFrame
     || caption.startFrame !== expectedStartFrame || caption.endFrame !== expectedEndFrame
     || expectedSourceStartFrame === undefined || expectedSourceEndFrame === undefined
@@ -362,11 +375,11 @@ export function assertTimelineValid(snapshot: ProjectSnapshot): void {
   recomputeTimelineDuration(timeline);
   const disabledExplainerSceneIds = new Set((snapshot.explainerPrograms ?? []).filter((program) => program.disabled).map((program) => program.sceneId));
   const { effectCueIds } = resolveCompositionReachability(snapshot);
-  // 停用的旧 Program 不再撑出空尾；独立 Cue 仍然渲染，不能随宿主主视觉一起截断。
+  // 与实际合成共用 Cue 可达性：独立动效即使挂在草稿 Scene 下也要计时，失效或缺内容的 Cue 不撑出空尾。
   timeline.durationInFrames = Math.max(
     timeline.durationInFrames,
     ...snapshot.scenes.filter((scene) => scene.status === "ready" && !disabledExplainerSceneIds.has(scene.id)).map((scene) => scene.endFrame),
-    ...snapshot.effectCues.filter((cue) => effectCueIds.has(cue.id) && disabledExplainerSceneIds.has(cue.sceneId)).map((cue) => cue.endFrame)
+    ...snapshot.effectCues.filter((cue) => effectCueIds.has(cue.id)).map((cue) => cue.endFrame)
   );
 }
 
@@ -1068,7 +1081,7 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
         if (program.source === "provider_segments") {
           const segment = alignment.segments[index]!;
           if (caption.sourceTokenStartIndex !== segment.tokenStartIndex || caption.sourceTokenEndIndex !== segment.tokenEndIndex
-            || caption.sourceText !== segment.displayText || !sourceCaptionDisplayTextIsValid(caption)) {
+            || caption.sourceText !== segment.displayText || !sourceCaptionDisplayTextIsValid(caption, snapshot)) {
             throw new DomainError("Provider 默认字幕 Card 必须原样对应同序 Provider segment", "PROJECT_GRAPH_INVALID");
           }
         }

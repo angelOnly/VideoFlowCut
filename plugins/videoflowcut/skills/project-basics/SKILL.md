@@ -5,6 +5,12 @@ description: 在任何 VideoFlowCut 项目读写前建立完整运行合同：�
 
 # 项目基础与 Revision 安全
 
+## 协调入口与创意边界
+
+主任务建立本 Skill 的项目事实后，读取 [production-coordinator](../production-coordinator/SKILL.md) 决定执行位置。完整视频真实分派导演子代理，局部创意直接分派专项子代理；用户已给完整参数的机械修改、指定文件导入、客观转写与技术核验可以留在主任务。任何还需决定如何表达、选择与审美的工作均由子代理完成，不在本入口顺便补设计。
+
+项目事实带 Project、当前 Revision、对象、Job、Readiness、Impact 和可访问证据交给子代理；实际写入、生成与渲染提交、审计保存由主任务统一执行。包括异步完成时回写的 Job，依赖写入前须跟踪终态并读回；输入变化交原子代理重新确认，不只替换版本重发。完整规则见 [代理角色与交接](../_shared/PROJECT_REVISION_AND_HANDOFF.md#代理角色与交接)。
+
 ## 这份 Skill 解决什么
 
 `project-basics` 是所有 VideoFlowCut 任务的共同入口。它不负责决定视频要不要加 B-roll、字幕应该什么颜色，也不负责选择人物口播还是 Vlog；它负责保证后续任何专业判断都落在正确的 Project、正确的 Timeline/Sequence、正确的 Revision 和正确的领域对象上。
@@ -32,7 +38,7 @@ list_projects
 
 ### Project 与 CreativeBrief
 
-Project 是完整工程和共享素材容器。CreativeBrief 保存平台、画幅、目标时长、受众、语气、风格和交付标准。改变“这条视频要给谁看、做多长、是否允许高密度动效”属于 Brief，而不是某个 EffectCue。
+Project 是完整工程和共享素材容器。CreativeBrief 保存平台、画幅、目标时长、受众、语气、风格和交付标准。区分用户锁定总长、已有旁白的实测时间与可调整的初稿节奏；创作先按 [秒级初始节奏与预览修订](../_shared/EDITORIAL_FOUNDATIONS.md#秒级初始节奏与预览修订) 用秒级范围安排动作和阅读，完整预览后修订，不能把示例秒数当作硬约束。改变“这条视频要给谁看、做多长、是否允许高密度动效”属于 Brief，而不是某个 EffectCue。
 
 ### Asset 与 Asset 在 Timeline 中的一次使用
 
@@ -85,7 +91,7 @@ Revision 冲突表示当前项目在你读取后已经变化。不要自动用�
 
 ## MCP 与 Web 的边界
 
-MCP 适合批量、语义化、幂等和可重复的项目修改。Web 适合观察真实合成、空间微调、Timeline 拖动和 Inspector 参数调整。两者调用同一 Editing Application；同一修改不得先由 MCP 提交、又在 Web 中重复操作。
+主任务通过已发布 MCP 完成批量、语义化、幂等和可重复的项目修改。Web 用于观察真实合成、定位空间与 Inspector 事实；正式剪辑写入仍由主任务提交 MCP，不用浏览器脚本或临时代码绕过，也不由子代理拖动 Timeline 产生并发写入。
 
 Browser Operator 不是绕开模型的快捷方式。DOM 临时样式、浏览器内未提交的状态和 Canvas 上看见的内容，都必须通过 Application 产生新 Revision 才属于项目事实。
 
@@ -105,7 +111,7 @@ Browser Operator 不是绕开模型的快捷方式。DOM 临时样式、浏览�
 ### 素材、转写和语音
 
 - `browse_assets`、`import_media`、`update_asset_metadata`；
-- `manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset`、`read_asset_provenance`；
+- `list_asset_providers`、`manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset`、`read_asset_provenance`；
 - `submit_transcription`、`apply_manual_transcript`、`read_script`；
 - `apply_semantic_units`、`apply_script`；
 - `manage_voice_references`、`submit_voice_synthesis`、`read_speech_asset`、`read_speech_timing`、`rebuild_speech_timeline`。
@@ -114,7 +120,7 @@ Browser Operator 不是绕开模型的快捷方式。DOM 临时样式、浏览�
 
 ### Presenter、Scene 和 Effect
 
-原创二维段先写 creativeBrief，可省略 reference；`submit_motion_work` → `track_job` / `read_motion_work` / `inspect_asset` → `review_motion_work` → `manage_effect_cues` 放置完整版本与覆盖 Beat → 读回 Project/Revision/Impact → 真实 Preview。证据不足以 inconclusive 制作待审草稿，不能 delivery。组件复用案例保留，但不是所有效果的前置路线。
+原创二维段先写 creativeBrief，可省略 reference；`submit_motion_work` → `track_job` / `read_motion_work` / `inspect_asset` → 可按需 `review_motion_work` → `manage_effect_cues` 放置完整版本与覆盖 Beat → 读回 Project/Revision/Impact → 真实 Preview。未审或证据不足如实保留，不阻挡放置、修订或导出；效果与定稿由用户决定。组件复用案例保留，但不是所有效果的前置路线。
 
 - `assemble_presenter_track`：物理组装明确 A-roll；
 - `compile_presenter_scenes`：根据已确定的 Beat/计划创建叙事 Scene；
@@ -148,7 +154,7 @@ Browser Operator 不是绕开模型的快捷方式。DOM 临时样式、浏览�
 
 ## 当前状态与架构目标的区别
 
-当前阶段已实现 `manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset` 与 `read_asset_provenance`：候选经检查和 Worker 本地化后才会成为 Asset。`inspect_asset` 已能以 overview/range/dense 只读审阅原素材；`manage_visual_treatment` 可以保存每个 Beat/Scene 的主视觉决定；`manage_cutaways` 只能将已就绪、本地化的视频写成 Fullscreen/PiP Cutaway，并同步 CutawayScene、顶层 Item 与声音策略；`replace_scene_asset` 只替换单条 Cutaway 的本地源素材和源范围。原声 A-roll 使用 `generate_source_audio_captions`，由 Provider 的段级真实时间自动生成一段一屏的稳定字幕；`read_source_audio_alignment` 与 `apply_source_caption_program` 仅用于溢出、错分段或回听纠错。`edit_captions` 已可编辑当前 SpeechAsset 和已审计 `source_audio` 的稳定字幕 Card，并可对同一 A-roll 的明确 Card 集合原子统一有限版式（含受限底板透明度）；它不支持逐词时间、逐词高亮、任意 CSS，也不允许按字符伪造时间。历史 `chunk_coarse` 只供旧 Revision 读取。`manage_audio` 已支持最小 BGM/SFX、有限淡入淡出、循环、Dialogue Duck 和显式 SFX onset，但不支持自动配乐、自动 onset 检测或通用混音。`run_render_preflight` 与 `read_export_artifact` 已进入 MCP，仍须同目标 Revision 的 Preview、Editorial Review、Artifact Review 和用户批准分别验证；真实 Pexels 查询仍需要本地配置 `PEXELS_API_KEY`，CI 使用 Mock Provider，不依赖网络。`smooth_audio` 仍是架构目标。Skill 在讲专业工作流时可以说明这些目标，但执行时必须先查工具表；工具不存在时只能输出可执行的最小步骤和能力缺口，不能把架构表格当成已连接 API。
+当前阶段已实现 `manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset` 与 `read_asset_provenance`：候选经检查和 Worker 本地化后才会成为 Asset。`inspect_asset` 已能以 overview/range/dense 只读审阅原素材；`manage_visual_treatment` 可以保存每个 Beat/Scene 的主视觉决定；`manage_cutaways` 只能将已就绪、本地化的视频写成 Fullscreen/PiP Cutaway，并同步 CutawayScene、顶层 Item 与声音策略；`replace_scene_asset` 只替换单条 Cutaway 的本地源素材和源范围。原声 A-roll 使用 `generate_source_audio_captions`，由 Provider 的段级真实时间自动生成一段一屏的稳定字幕；`read_source_audio_alignment` 与 `apply_source_caption_program` 仅用于溢出、错分段或回听纠错。`edit_captions` 已可编辑当前 SpeechAsset 和已审计 `source_audio` 的稳定字幕 Card，并可对同一 A-roll 的明确 Card 集合原子统一有限版式（含受限底板透明度）；它不支持逐词时间、逐词高亮、任意 CSS，也不允许按字符伪造时间。历史 `chunk_coarse` 只供旧 Revision 读取。`manage_audio` 已支持最小 BGM/SFX、有限淡入淡出、循环、Dialogue Duck 和显式 SFX onset，但不支持自动配乐、自动 onset 检测或通用混音。`run_render_preflight` 与 `read_export_artifact` 已进入 MCP，技术条件、用途许可、辅助审阅和人工定稿分别记录；真实 Pexels 查询仍需要本地配置 `PEXELS_API_KEY`，CI 使用 Mock Provider，不依赖网络。`smooth_audio` 仍是架构目标。Skill 在讲专业工作流时可以说明这些目标，但执行时必须先查工具表；工具不存在时只能输出可执行的最小步骤和能力缺口，不能把架构表格当成已连接 API。
 
 ## 三个完整写入示例
 
@@ -184,7 +190,7 @@ read_project / read_story / preview_timeline
 
 ```text
 read_project / read_quality_report
-→ 确认目标 Revision 的 Preview Evidence 和 Editorial Review
+→ 核对技术条件、用途许可，读取已有审阅提示
 → submit_export(revision, purpose=delivery)
 → track_job
 → 检查最终文件与目标 Revision
@@ -215,7 +221,7 @@ FunASR Job 成功只表示有 TranscriptText；还没有 SemanticUnit、最终 S
 
 ### 把局部任务升级成整片重构
 
-用户只要求字幕上移，应直接进入 `captions` 和必要的 `quality-verification`。重新运行 production-director、重建声音和全部 Scene 不但浪费，也可能破坏用户已经认可的内容。
+用户只要求指定字幕上移 20 像素，可由主任务执行明确参数并核验；要求更舒服的位置时直接分派 `captions` 子代理和必要的审片子代理。重新运行 production-director、重建声音和全部 Scene 不但浪费，也可能破坏用户已经认可的内容。
 
 ## 最终检查
 
@@ -233,7 +239,7 @@ FunASR Job 成功只表示有 TranscriptText；还没有 SemanticUnit、最终 S
 
 ## 源素材坐标与按需审阅合同
 
-Asset 保存源文件及其处理事实；TimelineItem 保存某个成片版本对 Asset 源范围的一次使用。源素材审阅始终使用 Asset 的源时间或源帧坐标，不直接改变 Timeline。只有主工作流完成选择并调用现有写入工具后，判断才成为新的 Project Revision。
+Asset 保存源文件及其处理事实；TimelineItem 保存某个成片版本对 Asset 源范围的一次使用。源素材审阅始终使用 Asset 的源时间或源帧坐标，不直接改变 Timeline。只有导演或专项子代理完成选择，由主任务调用现有写入工具后，判断才成为新的 Project Revision。
 
 `inspect_asset` 是统一的只读审阅入口。`overview` 用来发现候选范围，适合第一次浏览整份素材；`range` 用来理解一个候选范围的连续动作、声音和上下文；`dense` 只用于快速动作、微表情、人物停顿、口型、镜头运动起止和精确切口等高影响短窗口。低密度概览不能支持的结论，必须进入更高密度证据后再写入项目。
 
@@ -246,7 +252,7 @@ browse_assets
 → inspect_asset overview
 → 对候选范围使用 inspect_asset range
 → 只有边界或短暂事件会改变判断时使用 dense
-→ 当前主工作流写入既有项目对象
+→ 导演或专项子代理完成选择，主任务写入既有项目对象
 → read_project / read_impact_report
 → 在成片 Preview 中连续验证
 ```

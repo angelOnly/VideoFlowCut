@@ -2,11 +2,13 @@ import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { build } from "esbuild";
 import ts from "typescript";
-import type { BoundMotionImage, MotionSubmission } from "./schema.js";
+import type { BoundMotionImage, BoundMotionVideo, DecodedMotionVideo, MotionSubmission } from "./schema.js";
 
-export const MOTION_ENGINE_VERSION = "managed-motion-4";
+export const MOTION_ENGINE_VERSION = "managed-motion-7";
 const forbidden = new Set(["eval", "Function", "globalThis", "window", "document", "navigator", "location", "parent", "top", "opener", "self", "fetch", "XMLHttpRequest", "WebSocket", "Worker", "SharedWorker", "process", "require", "Date", "performance", "setTimeout", "setInterval", "requestAnimationFrame", "localStorage", "sessionStorage", "indexedDB", "constructor", "__proto__", "prototype"]);
+const prototypeProperties = new Set(["constructor", "__proto__", "prototype"]);
 const allowedImports: Record<string, Set<string>> = {
+  "@videoflowcut/motion": new Set(["BoundVideo"]),
   react: new Set(["default", "Fragment", "createElement", "useMemo"]),
   remotion: new Set(["AbsoluteFill", "Img", "Sequence", "Series", "useCurrentFrame", "useVideoConfig", "interpolate", "interpolateColors", "spring", "Easing", "random"])
 };
@@ -42,6 +44,42 @@ export function validateMotionSource(source: string): void {
       return declaration.getSourceFile() === file;
     }) ?? false;
   };
+  // 同名字段只对可确认的数据接收者开放，不把任意对象上的 window/fetch 当成数据。
+  // Props 来自平台 JSON；普通局部常量仅沿字面量与数据展开追溯，类型断言不作为证明。
+  const isDataValue = (node: ts.Expression, seen = new Set<ts.Node>()): boolean => {
+    if (seen.has(node) || seen.size > 32) return false;
+    const next = new Set(seen).add(node);
+    if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isTypeAssertionExpression(node)
+      || ts.isSatisfiesExpression(node) || ts.isNonNullExpression(node)) return isDataValue(node.expression, next);
+    if (ts.isStringLiteralLike(node) || ts.isNumericLiteral(node)
+      || [ts.SyntaxKind.TrueKeyword, ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.NullKeyword].includes(node.kind)) return true;
+    if (ts.isPrefixUnaryExpression(node) && [ts.SyntaxKind.MinusToken, ts.SyntaxKind.PlusToken].includes(node.operator)) return isDataValue(node.operand, next);
+    if (ts.isArrayLiteralExpression(node)) return node.elements.every((item) => isDataValue(ts.isSpreadElement(item) ? item.expression : item, next));
+    if (ts.isObjectLiteralExpression(node)) return node.properties.every((item) => {
+      if (ts.isSpreadAssignment(item)) return isDataValue(item.expression, next);
+      if (ts.isShorthandPropertyAssignment(item)) return isDataValue(item.name, next);
+      return ts.isPropertyAssignment(item) && !ts.isComputedPropertyName(item.name)
+        && !prototypeProperties.has(item.name.text) && isDataValue(item.initializer, next);
+    });
+    if (ts.isPropertyAccessExpression(node)) return !prototypeProperties.has(node.name.text) && isDataValue(node.expression, next);
+    if (ts.isElementAccessExpression(node)) return ts.isStringLiteralLike(node.argumentExpression)
+      && !prototypeProperties.has(node.argumentExpression.text) && isDataValue(node.expression, next);
+    if (!ts.isIdentifier(node)) return false;
+    const symbol = ts.isShorthandPropertyAssignment(node.parent)
+      ? checker.getShorthandAssignmentValueSymbol(node.parent) : checker.getSymbolAtLocation(node);
+    const declaration = symbol?.valueDeclaration;
+    if (!declaration || declaration.getSourceFile() !== file || !isLocalValue(node)) return false;
+    if (ts.isVariableDeclaration(declaration)) return ts.isVariableDeclarationList(declaration.parent)
+      && Boolean(declaration.parent.flags & ts.NodeFlags.Const) && Boolean(declaration.initializer && isDataValue(declaration.initializer, next));
+    if (!ts.isParameter(declaration)) return false;
+    const owner = declaration.parent;
+    if (!ts.isFunctionDeclaration(owner) && !ts.isFunctionExpression(owner) && !ts.isArrowFunction(owner)) return false;
+    return owner.parameters[0] === declaration && (
+      ts.isFunctionDeclaration(owner) && Boolean(ts.getModifiers(owner)?.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword))
+      || ts.isExportAssignment(owner.parent) && !owner.parent.isExportEquals);
+  };
+  const isDataProperty = (node: ts.PropertyAccessExpression | ts.ElementAccessExpression, name: string) =>
+    !prototypeProperties.has(name) && isDataValue(node.expression);
   let hasDefault = false;
   const visit = (node: ts.Node) => {
     if (ts.isImportDeclaration(node)) {
@@ -57,8 +95,11 @@ export function validateMotionSource(source: string): void {
     if (ts.isExportAssignment(node) && !node.isExportEquals || ts.canHaveModifiers(node) && ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.DefaultKeyword)) hasDefault = true;
     const literalPropertyName = node.parent && (ts.isPropertyAssignment(node.parent) || ts.isPropertySignature(node.parent)) && node.parent.name === node;
     const forbiddenIdentifier = ts.isIdentifier(node) && !literalPropertyName && forbidden.has(node.text)
-      && (ts.isPropertyAccessExpression(node.parent) && node.parent.name === node || !isLocalValue(node));
-    if (forbiddenIdentifier || ts.isStringLiteral(node) && ts.isElementAccessExpression(node.parent) && forbidden.has(node.text)) throw new Error(`MOTION_API_REJECTED: ${node.getText(file)}`);
+      && (ts.isPropertyAccessExpression(node.parent) && node.parent.name === node
+        ? !isDataProperty(node.parent, node.text) : !isLocalValue(node));
+    const forbiddenElement = ts.isStringLiteralLike(node) && ts.isElementAccessExpression(node.parent)
+      && node.parent.argumentExpression === node && forbidden.has(node.text) && !isDataProperty(node.parent, node.text);
+    if (forbiddenIdentifier || forbiddenElement) throw new Error(`MOTION_API_REJECTED: ${node.getText(file)}`);
     if (ts.isPropertyAccessExpression(node) && node.expression.getText(file) === "Math" && node.name.text === "random") throw new Error("MOTION_NONDETERMINISTIC: 使用 Remotion random(seed)，不要 Math.random()");
     if (ts.isJsxAttribute(node)) {
       const name = node.name.getText(file);
@@ -76,31 +117,44 @@ export function validateMotionSource(source: string): void {
   if (/\b(?:transition|animation)\s*:/u.test(source)) throw new Error("MOTION_NONDETERMINISTIC: 动画必须由 useCurrentFrame 驱动，不能使用 CSS transition/animation");
 }
 
-export function motionHash(input: MotionSubmission, images: BoundMotionImage[] = [], engineVersion = MOTION_ENGINE_VERSION): string {
-  return createHash("sha256").update(engineVersion).update(JSON.stringify(input)).update(JSON.stringify(images)).digest("hex");
+export function motionHash(input: MotionSubmission, images: BoundMotionImage[] = [], engineVersion = MOTION_ENGINE_VERSION, videos: BoundMotionVideo[] = []): string {
+  const hash = createHash("sha256").update(engineVersion).update(JSON.stringify(input)).update(JSON.stringify(images));
+  // 无视频时不追加空数组，历史作品哈希保持原样。
+  if (videos.length) hash.update(JSON.stringify(videos));
+  return hash.digest("hex");
 }
 /** 旧 Job 的输入哈希保持可核验；新提交固定新引擎，不能使历史作品版本漂移。 */
-export function motionHashEngine(input: MotionSubmission, images: BoundMotionImage[], version: unknown, declared?: unknown): string {
-  const accepted = [MOTION_ENGINE_VERSION, "managed-motion-3"];
-  const engine = accepted.find((candidate) => (declared === undefined || declared === candidate) && motionHash(input, images, candidate) === version);
+export function motionHashEngine(input: MotionSubmission, images: BoundMotionImage[], version: unknown, declared?: unknown, videos: BoundMotionVideo[] = []): string {
+  const accepted = [MOTION_ENGINE_VERSION, "managed-motion-6", "managed-motion-5", "managed-motion-4", "managed-motion-3"];
+  const engine = accepted.find((candidate) => (declared === undefined || declared === candidate) && motionHash(input, images, candidate, videos) === version);
   if (!engine) throw new Error("MOTION_VERSION_MISMATCH");
   return engine;
 }
 
 /** esbuild 只转换用户源码，不在 Node 中求值；只有受信任依赖可由文件系统解析。 */
-export async function compileMotion(input: MotionSubmission, imageData: Record<string, string> = {}): Promise<string> {
+export async function compileMotion(input: MotionSubmission, imageData: Record<string, string> = {}, videos: Record<string, DecodedMotionVideo> = {}): Promise<string> {
   validateMotionSource(input.source);
   const require = createRequire(typeof __filename === "string" ? __filename : import.meta.url);
   const entry = `import React from 'react';import {createRoot} from 'react-dom/client';import {flushSync} from 'react-dom';import {Player} from '@remotion/player';import Motion,* as motionModule from 'motion-user';
 window.__readMotionEvents=()=>typeof motionModule.resolveMotionEvents==='function'?motionModule.resolveMotionEvents(${JSON.stringify(input.props)},{fps:${input.fps},durationInFrames:${input.durationInFrames}}):null;
 const ref=React.createRef();const root=createRoot(document.getElementById('root'));
-flushSync(()=>root.render(React.createElement(Player,{ref,component:Motion,inputProps:${JSON.stringify({ ...input.props, assets: imageData })},durationInFrames:${input.durationInFrames},fps:${input.fps},compositionWidth:${input.width},compositionHeight:${input.height},controls:false,autoPlay:false,loop:false,style:{width:${input.width},height:${input.height}}})));
-window.__motionReady=true;window.__motionSeek=async(frame)=>{ref.current.seekTo(frame);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));await document.fonts.ready;};`;
+flushSync(()=>root.render(React.createElement(Player,{ref,component:Motion,errorFallback:({error})=>{window.__motionError=String(error);return null},inputProps:${JSON.stringify({ ...input.props, assets: imageData })},durationInFrames:${input.durationInFrames},fps:${input.fps},compositionWidth:${input.width},compositionHeight:${input.height},controls:false,autoPlay:false,loop:false,style:{width:${input.width},height:${input.height}}})));
+window.__motionReady=true;window.__motionSeek=async(frame)=>{if(window.__motionError)throw new Error(window.__motionError);ref.current.seekTo(frame);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));await document.fonts.ready;if(window.__motionError)throw new Error(window.__motionError);};`;
   const result = await build({
     stdin: { contents: entry, sourcefile: "motion-entry.tsx", loader: "tsx" }, bundle: true, write: false,
     // 浏览器依赖只看到固定构建常量，不注入任何宿主环境变量。
     platform: "browser", format: "iife", minify: true, define: { "process.env": JSON.stringify({ NODE_ENV: "production" }) }, logLevel: "silent",
     plugins: [{ name: "motion-closed-imports", setup(builder) {
+      builder.onResolve({ filter: /^@videoflowcut\/motion$/ }, () => ({ path: "bound-video", namespace: "trusted-video" }));
+      builder.onLoad({ filter: /.*/, namespace: "trusted-video" }, () => ({ loader: "tsx", contents: `
+import React from 'react';import {useCurrentFrame,Img} from 'remotion';
+const counts=${JSON.stringify(Object.fromEntries(Object.entries(videos).map(([slot, video]) => [slot, video.framePaths.length])))};
+export function BoundVideo({slot,offsetInFrames=0,style,fit='cover'}) {
+ const frame=useCurrentFrame()+offsetInFrames;
+ if(!Number.isInteger(frame)||frame<0||!Object.hasOwn(counts,slot)||frame>=counts[slot]) throw new Error('MOTION_VIDEO_RANGE: '+slot+' frame '+frame);
+ if(!['cover','contain','fill'].includes(fit)) throw new Error('MOTION_VIDEO_FIT');
+ return <Img src={'https://motion.invalid/video/'+slot+'/'+frame+'.png'} style={{width:'100%',height:'100%',objectFit:fit,...style}}/>;
+}` }));
       builder.onResolve({ filter: /^motion-user$/ }, () => ({ path: "motion-user", namespace: "motion" }));
       builder.onLoad({ filter: /.*/, namespace: "motion" }, () => ({ contents: input.source, loader: "tsx" }));
       builder.onResolve({ filter: /.*/ }, (args) => {

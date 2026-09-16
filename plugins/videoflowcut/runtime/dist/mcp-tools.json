@@ -73,6 +73,19 @@
             "type": "string",
             "minLength": 1
           },
+          "brief": {
+            "type": "object",
+            "properties": {
+              "captionMode": {
+                "type": "string",
+                "enum": [
+                  "stable",
+                  "none"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
           "profile": {
             "type": "string",
             "enum": [
@@ -829,7 +842,7 @@
     {
       "name": "inspect_asset",
       "title": "审阅原素材",
-      "description": "只读地按 overview、range 或 dense 获取原素材的连续声画、联系表、声音辅助证据、转写、Shot 与当前使用位置。派生文件只写入可重建缓存，不会创建 Revision 或自动做剪辑判断。",
+      "description": "只读地按 overview、range 或 dense 获取原素材的连续声画、联系表、声音辅助证据、转写、Shot 与当前使用位置。overview覆盖素材全长的概览，不生成完整连续代理；range最长60秒，dense最长12秒，源范围按项目fps的半开区间[start,end)计，range/dense必须提供起止帧。联系表上限分别为25/24/48帧。overview的声音只确认音轨；range/dense提供当前窗口的波形、静音和meanVolumeDb/maxVolumeDb（dBFS），均不提供LUFS或true peak，不能拼接短窗口读数推断全片响度。需要实际合成响度时，通过render_preview_range生成目标范围，再读取成功Job.result.audio；只有覆盖完整Timeline的输出才是全片混合测量，当前没有直接测原素材全长LUFS的独立MCP入口。音视频返回 reviewPath，只读审阅页面提供播放、暂停、重播和进度控件，浏览器优先打开此路径。派生文件只写入可重建缓存，不会创建 Revision 或自动做剪辑判断。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -847,20 +860,24 @@
               "range",
               "dense"
             ],
-            "default": "overview"
+            "default": "overview",
+            "description": "overview为全长概览；range最长60秒，dense最长12秒；后两者必填源起止帧。"
           },
           "source_start_frame": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "description": "源起始帧（含），按项目fps计；range/dense必填。"
           },
           "source_end_frame": {
             "type": "integer",
-            "exclusiveMinimum": 0
+            "exclusiveMinimum": 0,
+            "description": "源结束帧（不含），按项目fps计；range/dense必填，差值分别≤60×fps/12×fps，且不超过素材真实范围。"
           },
           "contact_sheet_frames": {
             "type": "integer",
             "exclusiveMinimum": 0,
-            "maximum": 48
+            "maximum": 48,
+            "description": "联系表采样数：overview为1–25，range为1–24，dense为1–48。"
           }
         },
         "required": [
@@ -1069,9 +1086,25 @@
       }
     },
     {
+      "name": "list_asset_providers",
+      "title": "读取素材服务目录",
+      "description": "只读返回真实注册服务的准确 id、支持媒体类型、查询形式与配置缺口；enabled 表示已注册，不代表外网或下载器已通过连通性验证。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "search_media_candidates",
       "title": "搜索素材候选",
-      "description": "将已存在的素材需求交给已配置 Provider 查询，将候选、来源、授权与预过滤保存在独立搜索会话，不改变创作 Revision；不会下载或自动选入成片。",
+      "description": "先从 list_asset_providers 选择准确 provider id。media_type 明确筛选图片/视频/音频；youtube 的 query 是选中的单条 HTTPS 视频页面（不是关键词）。返回 diagnostics.complete 和 warnings，部分结果不能视为完整搜索。仅保存独立搜索会话，不改变创作 Revision，不下载或自动采用素材。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1089,7 +1122,16 @@
           "provider": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 80
+            "maxLength": 80,
+            "description": "使用 list_asset_providers 返回的 id，例如 wikimedia-commons"
+          },
+          "media_type": {
+            "type": "string",
+            "enum": [
+              "image",
+              "video",
+              "audio"
+            ]
           },
           "query": {
             "type": "string",
@@ -1141,7 +1183,7 @@
     {
       "name": "acquire_media_asset",
       "title": "下载并本地化素材候选",
-      "description": "只允许已通过技术和授权过滤的候选进入异步下载任务。Worker 会校验 MIME、文件头、内容哈希和 ffprobe 后才登记正式 Asset。",
+      "description": "只允许通过技术过滤且具备来源许可或明确用途依据的候选进入异步下载任务。Worker 会校验 MIME、文件头、内容哈希和 ffprobe 后才登记正式 Asset。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1155,6 +1197,34 @@
           "asset_candidate_id": {
             "type": "string",
             "minLength": 1
+          },
+          "usage_rights": {
+            "type": "object",
+            "properties": {
+              "purposes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "draft",
+                    "delivery"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 2
+              },
+              "basis": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "purposes",
+              "basis"
+            ],
+            "additionalProperties": false,
+            "description": "已核实的具体使用许可依据与用途；不伪造来源 cleared，也不绕过技术或人工拒绝。"
           },
           "idempotency_key": {
             "type": "string",
@@ -1294,6 +1364,34 @@
                   "restricted",
                   "rejected"
                 ]
+              },
+              "usage_rights": {
+                "type": "object",
+                "properties": {
+                  "purposes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "delivery"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 2
+                  },
+                  "basis": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "purposes",
+                  "basis"
+                ],
+                "additionalProperties": false,
+                "description": "仅凭真实许可依据指定 draft 内部审阅、delivery 对外交付；不提供则沿用原限制"
               }
             },
             "required": [
@@ -1531,6 +1629,34 @@
                   "restricted",
                   "rejected"
                 ]
+              },
+              "usage_rights": {
+                "type": "object",
+                "properties": {
+                  "purposes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "delivery"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 2
+                  },
+                  "basis": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "purposes",
+                  "basis"
+                ],
+                "additionalProperties": false,
+                "description": "仅凭真实许可依据指定 draft 内部审阅、delivery 对外交付；不提供则沿用原限制"
               }
             },
             "required": [
@@ -2233,7 +2359,7 @@
     {
       "name": "submit_voice_synthesis",
       "title": "提交段级声音合成",
-      "description": "用已登记的本地 VoiceReference 加当前 SpeechSegment 文本调用 OmniVoice；返回可跟踪 Job。",
+      "description": "按当前 SpeechSegment 文本调用 OmniVoice；省略参考参数时由服务端使用已配置的本地音色，不必向用户索要音频路径。指定 VoiceReference 时上传该参考覆盖默认音色。返回可跟踪 Job；默认音色工作流未配置时明确报错。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -2375,7 +2501,7 @@
     {
       "name": "edit_captions",
       "title": "编辑稳定字幕卡",
-      "description": "可编辑当前 SpeechAsset 或已审计 source_audio Caption Card 的屏幕文案、有限排版和一个连续短语强调；bulk_source_format 可原子统一同一 A-roll 的明确 Card 集合。不会改 Script、音频、Card 边界或时间范围；chunk_coarse 原声字幕不能被伪拆分或重定时。occurrence 从 0 开始计数。",
+      "description": "可编辑当前 SpeechAsset 或已审计 source_audio Caption Card 的屏幕文案、显隐范围、静态位置和一个连续短语强调；bulk_source_format 可原子统一同一 A-roll 的明确 Card 集合。不会改 Script、音频、Card 边界或时间范围；chunk_coarse 原声字幕不能被伪拆分或重定时。occurrence 从 0 开始计数。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -2411,24 +2537,177 @@
             "type": "string",
             "maxLength": 80
           },
-          "source_text_review": {
-            "type": "object",
-            "properties": {
-              "note": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 1000,
-                "description": "实际回听确认的错词/数字显示纠正及理由；不是摘要改写，不改变原音频时间"
+          "display": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "shown",
+                      "hidden"
+                    ]
+                  },
+                  "ranges": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "startFrame": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "endFrame": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0
+                        }
+                      },
+                      "required": [
+                        "startFrame",
+                        "endFrame"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1,
+                    "maxItems": 50
+                  }
+                },
+                "required": [
+                  "mode"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
               }
-            },
-            "required": [
-              "note"
             ],
-            "additionalProperties": false
+            "description": "仅改变显示。shown 可指定本卡内的时间线绝对帧半开 ranges；hidden 隐藏整卡；null 恢复整卡显示。"
+          },
+          "source_text_review": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "basis": {
+                    "type": "string",
+                    "const": "listening"
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "note"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "basis": {
+                    "type": "string",
+                    "const": "confirmed_script"
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  },
+                  "scriptRevision": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "speechSegmentIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "minItems": 1,
+                    "maxItems": 20
+                  }
+                },
+                "required": [
+                  "basis",
+                  "note",
+                  "scriptRevision",
+                  "speechSegmentIds"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "basis": {
+                    "type": "string",
+                    "const": "user_instruction"
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  },
+                  "instruction": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "basis",
+                  "note",
+                  "instruction",
+                  "source"
+                ],
+                "additionalProperties": false
+              }
+            ],
+            "description": "显示纠错依据：listening 实际回听（兼容仅 note）；confirmed_script 须提供 scriptRevision 和 speechSegmentIds 并核验当前配音关系；user_instruction 须提供 instruction 与 source。只改显示，不改变原音频或时间"
           },
           "format": {
             "type": "object",
             "properties": {
+              "placement": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "leftPercent": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 95
+                      },
+                      "topPercent": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 95
+                      },
+                      "widthPercent": {
+                        "type": "number",
+                        "minimum": 5,
+                        "maximum": 100
+                      }
+                    },
+                    "required": [
+                      "leftPercent",
+                      "topPercent",
+                      "widthPercent"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "font_size": {
                 "type": "integer",
                 "minimum": 16,
@@ -2468,13 +2747,13 @@
               },
               "bottom_percent": {
                 "type": "number",
-                "minimum": 4,
-                "maximum": 20
+                "minimum": 0,
+                "maximum": 95
               },
               "horizontal_inset_percent": {
                 "type": "number",
-                "minimum": 3,
-                "maximum": 20
+                "minimum": 0,
+                "maximum": 45
               },
               "text_align": {
                 "type": "string",
@@ -3202,7 +3481,7 @@
     {
       "name": "manage_evidence_capture",
       "title": "管理证据快照与页面高亮",
-      "description": "登记或更新真实来源 Asset、非生成页面截图、原文摘录、主张、限制和页面高亮。更新会让依赖证据的 Explainer Scene 失效，待重新编译和预览。",
+      "description": "登记或更新真实来源 Asset、非生成页面截图、原文摘录、主张、限制和页面高亮。create 必须提供 source_asset_id、source_title、source_url、excerpt、claim、limitation 和1到12个 highlights；update/remove 必须提供 evidence_capture_id，update 省略字段会保留原值，remove 无需 highlights。高亮按 snapshot_asset_id 对应页面快照的完整宽高归一化；未指定快照时使用 source_asset_id 页面。x/y为左上角，width/height为框大小，均为0到1比例而非像素，宽高必须大于0，x+width<=1且y+height<=1。更新会让依赖证据的 Explainer Scene 失效，待重新编译和预览。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -3280,22 +3559,26 @@
                 "x": {
                   "type": "number",
                   "minimum": 0,
-                  "maximum": 1
+                  "maximum": 1,
+                  "description": "页面快照左边缘到高亮框左边缘的距离 / 页面快照宽度，0到1；不是像素"
                 },
                 "y": {
                   "type": "number",
                   "minimum": 0,
-                  "maximum": 1
+                  "maximum": 1,
+                  "description": "页面快照上边缘到高亮框上边缘的距离 / 页面快照高度，0到1；不是像素"
                 },
                 "width": {
                   "type": "number",
                   "exclusiveMinimum": 0,
-                  "maximum": 1
+                  "maximum": 1,
+                  "description": "高亮框宽度 / 页面快照宽度，大于0且x+width<=1"
                 },
                 "height": {
                   "type": "number",
                   "exclusiveMinimum": 0,
-                  "maximum": 1
+                  "maximum": 1,
+                  "description": "高亮框高度 / 页面快照高度，大于0且y+height<=1"
                 },
                 "label": {
                   "type": "string",
@@ -3312,7 +3595,8 @@
               "additionalProperties": false
             },
             "minItems": 1,
-            "maxItems": 12
+            "maxItems": 12,
+            "description": "create必填1到12个框；update省略时保留现有框，提供时替换全部框；remove无需提供。坐标相对完整页面快照宽高归一化，不包含播放器留白或画布尺寸。"
           }
         },
         "required": [
@@ -5259,7 +5543,7 @@
     {
       "name": "submit_motion_work",
       "title": "生成受管 Remotion 作品",
-      "description": "保存固定版本源码、Props、创作说明与可选参考观察记录，排队隔离渲染。不会修改平台代码或自动放入 Timeline；修改作品重新提交并填写 previousAssetId。支持文字、CSS、SVG 和受管图片的帧驱动 2D 动效；imageBindings 把图片 Asset ID 映射到 props.assets 的命名 Slot，源码用 Remotion Img 消费，不直接填资源 URL。",
+      "description": "保存固定版本源码、Props、创作说明与可选参考观察记录，排队隔离渲染。不会修改平台代码或自动放入 Timeline；修改作品重新提交并填写 previousAssetId。支持文字、CSS、SVG、受管图片与最多4路正常速度静音视频。videoBindings 按 slot 固定源素材和毫秒半开范围，源码 import {BoundVideo} from '@videoflowcut/motion'，用 slot、offsetInFrames、fit、style 控制；播放帧为 Sequence 局部帧加 offsetInFrames，接管同一视频须延续偏移。源不足报错，不自动循环或冻结；原声须在声音轨显式编排。视频源合计512MB、解码512MB及650000000像素帧预算；imageBindings 把图片 Asset ID 映射到 props.assets 的命名 Slot，源码用 Remotion Img 消费，不直接填资源 URL。单作品限制：宽高为64–1920的偶数，fps为15–60的整数，durationInFrames为2–900的整数，durationInFrames/fps≤30秒，width×height×durationInFrames≤650000000像素帧。最大帧数=min(900,30×fps,floor(650000000/(width×height)))；须在创作前核算，预算拒绝不会创建Job、Asset、Cue或视频Revision。超限应由原创意负责人按自然内容节点分为独立作品或调整画布，每件使用独立幂等键、从0开始的局部帧与完整源码；可在同一Scene内分别审阅并连续放置Cue，作品分段不要求拆Scene，衔接仍需真实合成审阅。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -5308,22 +5592,26 @@
               "width": {
                 "type": "integer",
                 "minimum": 64,
-                "maximum": 1920
+                "maximum": 1920,
+                "description": "画布宽度（像素），64–1920 的偶数；须同时满足 width×height×durationInFrames≤650000000。"
               },
               "height": {
                 "type": "integer",
                 "minimum": 64,
-                "maximum": 1920
+                "maximum": 1920,
+                "description": "画布高度（像素），64–1920 的偶数；须同时满足 width×height×durationInFrames≤650000000。"
               },
               "fps": {
                 "type": "integer",
                 "minimum": 15,
-                "maximum": 60
+                "maximum": 60,
+                "description": "帧率，15–60 的整数；durationInFrames/fps≤30 秒。"
               },
               "durationInFrames": {
                 "type": "integer",
                 "minimum": 2,
-                "maximum": 900
+                "maximum": 900,
+                "description": "单作品完整帧数，2–900 的整数，且不超过30秒及650000000像素帧；最大帧数为min(900,30×fps,floor(650000000/(width×height)))。"
               },
               "reference": {
                 "type": "object",
@@ -5387,6 +5675,33 @@
                   "attribution": {
                     "type": "string",
                     "maxLength": 1200
+                  },
+                  "usageRights": {
+                    "type": "object",
+                    "properties": {
+                      "purposes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "draft",
+                            "delivery"
+                          ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 2
+                      },
+                      "basis": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "purposes",
+                      "basis"
+                    ],
+                    "additionalProperties": false
                   }
                 },
                 "required": [
@@ -5403,6 +5718,37 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 6000
+              },
+              "videoBindings": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "assetId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 150
+                    },
+                    "sourceStartMs": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "sourceEndMs": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    }
+                  },
+                  "required": [
+                    "assetId",
+                    "sourceStartMs",
+                    "sourceEndMs"
+                  ],
+                  "additionalProperties": false
+                },
+                "propertyNames": {
+                  "pattern": "^[a-z][a-z0-9_]{0,39}$"
+                },
+                "description": "受管动态视频，最多4路；源范围为毫秒半开区间，正常速度且静音。源码从 @videoflowcut/motion 导入 BoundVideo，以 slot 引用，offsetInFrames 与 Sequence 局部帧共同确定播放位置。"
               }
             },
             "required": [
@@ -5459,7 +5805,7 @@
     {
       "name": "review_motion_work",
       "title": "记录作品动态审阅",
-      "description": "对照 creativeBrief 查看完整作品动态，再记录 outcome、note 和 evidence。passed 需要完整连续画面及真实版本证据；证据不足用 inconclusive，可放入待审草稿，不能交付。reference_match 只兼容历史参考作品，不能与 outcome 同传。合成与最终文件仍须独立审阅。",
+      "description": "对照 creativeBrief 查看作品，再记录 outcome、note 和 evidence。evidence范围为半开区间[startFrame,endFrame)：work_proxy使用作品局部帧；project_preview使用项目全局帧，并绑定同Revision成功Preview。failed/inconclusive可记录与该版本有效Cue相交的实际局部观察，无需覆盖整件；抽帧点和未确认范围写入note，不把未观看范围扩大成证据。只有passed要求完整覆盖作品及continuous_video/audiovisual连续证据。未审或证据不足如实保留，不阻挡放置、修订、制作完成或导出；只有技术/用途条件参与阻挡。reference_match只兼容历史参考作品，不能与outcome同传。合成与最终文件仍须独立审阅。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -5502,7 +5848,8 @@
                 "enum": [
                   "work_proxy",
                   "project_preview"
-                ]
+                ],
+                "description": "work_proxy用作品局部帧；project_preview用项目全局帧"
               },
               "previewJobId": {
                 "type": "string",
@@ -5510,11 +5857,13 @@
               },
               "startFrame": {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 0,
+                "description": "实际观察半开区间的起点；坐标系取决于kind"
               },
               "endFrame": {
                 "type": "integer",
-                "exclusiveMinimum": 0
+                "exclusiveMinimum": 0,
+                "description": "实际观察半开区间的终点；failed/inconclusive允许局部范围，passed须完整覆盖作品"
               },
               "method": {
                 "type": "string",
@@ -6358,9 +6707,40 @@
       }
     },
     {
+      "name": "set_audio_mix_gain",
+      "title": "设置整体混合增益",
+      "description": "将最终混合增益设为绝对 dB 值（-48 到 24，0 为恢复原混合），不会累加或修改各轨比例、时间、Duck 与包络。写入新 Revision 并使全片混合待复核；正式 Preview 与 Export 在最终混合后应用一次。不会自动限制峰值或归一化，需重新读取全片实际响度和 true peak。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "gain_db": {
+            "type": "number",
+            "minimum": -48,
+            "maximum": 24
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "gain_db"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "manage_sound_plans",
       "title": "管理段落声音计划",
-      "description": "在真实旁白和作品制作前确定段落主声音、表演意图、动作功能、音乐与留白。读不改变 Revision，写验证当前版本。",
+      "description": "在真实旁白和作品制作前确定段落主声音、表演意图、动作功能、音乐与留白。create 必须提供完整 startFrame/endFrame、narrationDirection、dominantRole、musicDirection 和 intents；配音前按项目 fps 提交预估帧范围，配音后用 update 按实测时长修订。update/remove 必须提供 soundPlanId，update 可只传待改字段。无 input 只读；写入必须提供当前 base_revision_id。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -6372,130 +6752,197 @@
             "exclusiveMinimum": 0
           },
           "input": {
-            "type": "object",
-            "properties": {
-              "action": {
-                "type": "string",
-                "enum": [
-                  "create",
-                  "update",
-                  "remove"
-                ]
-              },
-              "soundPlanId": {
-                "type": "string",
-                "minLength": 1
-              },
-              "startFrame": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "endFrame": {
-                "type": "integer",
-                "exclusiveMinimum": 0
-              },
-              "narrationDirection": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 2000
-              },
-              "dominantRole": {
-                "type": "string",
-                "enum": [
-                  "narration",
-                  "source_speech",
-                  "demonstration",
-                  "sfx",
-                  "ambience",
-                  "music"
-                ]
-              },
-              "musicDirection": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 2000
-              },
-              "intents": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 160
-                    },
-                    "function": {
-                      "type": "string",
-                      "enum": [
-                        "anticipation",
-                        "settle",
-                        "reaction",
-                        "connection",
-                        "ambience",
-                        "music",
-                        "silence",
-                        "demonstration"
-                      ]
-                    },
-                    "brief": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 1600
-                    },
-                    "requestId": {
-                      "type": "string"
-                    },
-                    "motionEventId": {
-                      "type": "string"
-                    }
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "startFrame": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "段落起始帧；配音前按项目 fps 换算预估范围，配音后按实测声音更新。"
                   },
-                  "required": [
-                    "id",
-                    "function",
-                    "brief"
-                  ],
-                  "additionalProperties": false
-                },
-                "maxItems": 30
-              },
-              "dominantRanges": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "startFrame": {
-                      "type": "integer",
-                      "minimum": 0
-                    },
-                    "endFrame": {
-                      "type": "integer",
-                      "exclusiveMinimum": 0
-                    },
-                    "role": {
-                      "$ref": "#/properties/input/properties/dominantRole"
-                    },
-                    "reason": {
-                      "type": "string",
-                      "minLength": 8,
-                      "maxLength": 800
-                    }
+                  "endFrame": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "description": "段落结束帧（不含），必须大于 startFrame；预估范围不表示已锁定成片时长。"
                   },
-                  "required": [
-                    "startFrame",
-                    "endFrame",
-                    "role",
-                    "reason"
-                  ],
-                  "additionalProperties": false
+                  "narrationDirection": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "dominantRole": {
+                    "type": "string",
+                    "enum": [
+                      "narration",
+                      "source_speech",
+                      "demonstration",
+                      "sfx",
+                      "ambience",
+                      "music"
+                    ]
+                  },
+                  "musicDirection": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "intents": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        },
+                        "function": {
+                          "type": "string",
+                          "enum": [
+                            "anticipation",
+                            "settle",
+                            "reaction",
+                            "connection",
+                            "ambience",
+                            "music",
+                            "silence",
+                            "demonstration"
+                          ]
+                        },
+                        "brief": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1600
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "motionEventId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "function",
+                        "brief"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "maxItems": 30
+                  },
+                  "dominantRanges": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "startFrame": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "endFrame": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0
+                        },
+                        "role": {
+                          "$ref": "#/properties/input/anyOf/0/properties/dominantRole"
+                        },
+                        "reason": {
+                          "type": "string",
+                          "minLength": 8,
+                          "maxLength": 800
+                        }
+                      },
+                      "required": [
+                        "startFrame",
+                        "endFrame",
+                        "role",
+                        "reason"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "maxItems": 40
+                  },
+                  "action": {
+                    "type": "string",
+                    "const": "create"
+                  },
+                  "soundPlanId": {
+                    "type": "string",
+                    "minLength": 1
+                  }
                 },
-                "maxItems": 40
+                "required": [
+                  "startFrame",
+                  "endFrame",
+                  "narrationDirection",
+                  "dominantRole",
+                  "musicDirection",
+                  "intents",
+                  "action"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "startFrame": {
+                    "$ref": "#/properties/input/anyOf/0/properties/startFrame",
+                    "description": "段落起始帧；配音前按项目 fps 换算预估范围，配音后按实测声音更新。"
+                  },
+                  "endFrame": {
+                    "$ref": "#/properties/input/anyOf/0/properties/endFrame",
+                    "description": "段落结束帧（不含），必须大于 startFrame；预估范围不表示已锁定成片时长。"
+                  },
+                  "narrationDirection": {
+                    "$ref": "#/properties/input/anyOf/0/properties/narrationDirection"
+                  },
+                  "dominantRole": {
+                    "$ref": "#/properties/input/anyOf/0/properties/dominantRole"
+                  },
+                  "musicDirection": {
+                    "$ref": "#/properties/input/anyOf/0/properties/musicDirection"
+                  },
+                  "intents": {
+                    "$ref": "#/properties/input/anyOf/0/properties/intents"
+                  },
+                  "dominantRanges": {
+                    "$ref": "#/properties/input/anyOf/0/properties/dominantRanges"
+                  },
+                  "action": {
+                    "type": "string",
+                    "const": "update"
+                  },
+                  "soundPlanId": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "action",
+                  "soundPlanId"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "const": "remove"
+                  },
+                  "soundPlanId": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "action",
+                  "soundPlanId"
+                ],
+                "additionalProperties": false
               }
-            },
-            "required": [
-              "action"
-            ],
-            "additionalProperties": false
+            ]
           }
         },
         "additionalProperties": false,
@@ -7176,7 +7623,7 @@
     {
       "name": "record_creative_decision",
       "title": "记录创作判断",
-      "description": "把已加载 Skill 的创作决定、依据、安静区、效果取舍或预览证据写入当前 ProductionRun。",
+      "description": "将创作决定、依据和证据写入 ProductionRun，不产生视频 Revision。协调者转录子代理结果时填写 delegation，关联真实代理标识、分派和输入历史版本；该来源为审计声明，不认证身份或代替宿主调用与真实审片。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7230,6 +7677,41 @@
               "maxLength": 1000
             },
             "maxItems": 20
+          },
+          "delegation": {
+            "type": "object",
+            "properties": {
+              "agent_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "assignment_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "director",
+                  "specialist",
+                  "reviewer"
+                ]
+              },
+              "input_revision": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "agent_id",
+              "assignment_id",
+              "role",
+              "input_revision"
+            ],
+            "additionalProperties": false
           },
           "quiet_range": {
             "type": "object",
@@ -7625,7 +8107,7 @@
     {
       "name": "read_quality_report",
       "title": "读取质量报告",
-      "description": "执行技术检查、从当前 Story/VisualTreatment/有效对象推导整片对账，并返回逐轮审阅缺口和跨 Run 未关闭问题；不会把对象存在、抽帧或局部审片伪装成整片通过。",
+      "description": "执行技术检查、从当前Story/VisualTreatment/有效对象推导整片对账，并返回逐轮审阅缺口和跨Run未关闭问题。字幕使用与Renderer相同的已部署Chromium、字体、字号、字重和安全宽度批量实测；浏览器不可用会明确失败，不回退到字符宽度估算。不会把布局通过、对象存在、抽帧或局部审片伪装成整片通过；只读，不创建Job或视频Revision。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7646,7 +8128,7 @@
     {
       "name": "render_preview_range",
       "title": "渲染局部预览",
-      "description": "固定指定 Revision 与帧范围，提交可追踪的 Remotion 局部预览任务。",
+      "description": "固定指定 Revision 与帧范围，提交可追踪的 Remotion 预览任务。范围按Timeline的半开区间[from_frame,to_frame)计，省略时默认0到该Revision的timeline.durationInFrames；可覆盖全片，不适用inspect_asset的60秒/12秒短范围限制。track_job成功后的result包含revision/fromFrame/toFrame/sourceHash；有音轨时result.audio包含实际输出文件完整解码的integratedLufs、truePeakDbfs、loudnessRangeLu和method。测量只代表该输出的合成范围，局部值不能当全片值，也不是原WAV的独立测量或真实听审。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7679,7 +8161,7 @@
     {
       "name": "inspect_composed_frames",
       "title": "检查真实合成帧",
-      "description": "从已完成的 Remotion 局部预览抽取进入、稳定、退出等关键帧；不会重新渲染或修改项目。",
+      "description": "从已完成的 Remotion 预览抽取进入、稳定、退出等关键帧；frames若提供，每次必须为1–12个非负整数，使用项目全局帧并落在该Preview的[fromFrame,toFrame)内。合并多个专项证据点后须去重并按最多12帧分批读取同一preview_job_id；省略frames由服务选择关键帧。不会重新渲染或修改视频Revision。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7697,7 +8179,8 @@
               "minimum": 0
             },
             "minItems": 1,
-            "maxItems": 12
+            "maxItems": 12,
+            "description": "每次1–12个项目全局帧号，须位于当前Preview范围；更多证据点按最多12帧分批读取同一Preview。"
           }
         },
         "required": [
@@ -7758,6 +8241,13 @@
           "revision": {
             "type": "integer",
             "exclusiveMinimum": 0
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "delivery"
+            ]
           },
           "idempotency_key": {
             "type": "string"
@@ -7829,7 +8319,7 @@
     {
       "name": "record_export_artifact_review",
       "title": "记录最终文件复核",
-      "description": "在实际播放指定 delivery 文件后，记录绑定该 ExportArtifact 的五轮成片复核；不会修改 Project Revision。",
+      "description": "在实际播放指定 delivery 文件后，记录实际执行的文件复核轮次及问题，辅助审阅不阻挡导出或人工定稿；不会修改 Project Revision。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7852,7 +8342,7 @@
                 "mode_specific"
               ]
             },
-            "minItems": 5,
+            "minItems": 1,
             "maxItems": 5
           },
           "evidence": {
@@ -7977,7 +8467,7 @@
     {
       "name": "approve_export_artifact",
       "title": "批准交付产物",
-      "description": "把用户批准绑定到已完成五轮复核且文件哈希未变化的 delivery ExportArtifact；后续 Revision 不会改变该记录。",
+      "description": "仅在用户明确确认此文件后登记人工定稿；须传 file_hash 与 confirmed_by_user=true。无需 AI 五轮审阅；导出成功、AI 判断或用户沉默均不表示批准。后续 Revision 不继承此批准。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7988,13 +8478,23 @@
             "type": "string",
             "minLength": 1
           },
+          "file_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "confirmed_by_user": {
+            "type": "boolean",
+            "const": true
+          },
           "note": {
             "type": "string",
             "maxLength": 1000
           }
         },
         "required": [
-          "artifact_id"
+          "artifact_id",
+          "file_hash",
+          "confirmed_by_user"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"

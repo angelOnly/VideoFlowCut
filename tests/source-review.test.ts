@@ -45,6 +45,41 @@ async function createSpeechReviewFixture(directory: string): Promise<string> {
   return path;
 }
 
+test("素材审阅60秒与12秒边界明确，短范围dBFS不得冒充全片LUFS", async () => {
+  const root = await mkdtemp(join(tmpdir(), "source-review-limits-"));
+  const server = await createServer({ workspaceRoot: root });
+  const app = server.application;
+  try {
+    const created = app.createProject({ name: "音频审阅范围边界" });
+    const projectId = created.snapshot.project.id;
+    const registered = app.registerImportedAsset({ projectId, baseRevision: created.revision.number, name: "边界音频.wav", kind: "audio", managedPath: "assets/source/limits.wav" });
+    const path = join(created.snapshot.project.rootPath, registered.asset.managedPath);
+    await mkdir(dirname(path), { recursive: true });
+    await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=16000:duration=61", "-c:a", "pcm_s16le", path]);
+    app.applyMediaAnalysis({ projectId, assetId: registered.asset.id, metadata: await probeMedia(path) });
+    const before = app.readProject(projectId);
+    const jobs = app.repository.listJobs(projectId);
+    const fps = before.snapshot.timeline.fps;
+    for (const [mode, seconds] of [["range", 60], ["dense", 12]] as const) {
+      await assert.rejects(inspectAsset(app, { projectId, assetId: registered.asset.id, mode, sourceStartFrame: 0, sourceEndFrame: seconds * fps + 1 }), new RegExp(`最长${seconds}秒.*${seconds * fps}帧.*不提供LUFS`));
+      const result = await inspectAsset(app, { projectId, assetId: registered.asset.id, mode, sourceStartFrame: 0, sourceEndFrame: seconds * fps });
+      assert.equal(result.sourceRange!.endFrame, seconds * fps);
+      assert.ok(Number.isFinite(result.audio.meanVolumeDb));
+      assert.equal("integratedLufs" in result.audio, false);
+      assert.equal("truePeakDbfs" in result.audio, false);
+    }
+    const overview = await inspectAsset(app, { projectId, assetId: registered.asset.id, mode: "overview" });
+    assert.equal(overview.sourceRange!.endFrame, 61 * fps);
+    assert.equal(overview.audio.meanVolumeDb, undefined);
+    assert.deepEqual(app.readProject(projectId), before);
+    assert.deepEqual(app.repository.listJobs(projectId), jobs, "审阅或拒绝只允许可重建缓存，不创建Job");
+  } finally {
+    await server.app.close();
+    app.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 async function createVideoOnlyReviewFixture(directory: string): Promise<string> {
   const path = join(directory, "source-review-video-only.mp4");
   await runProcess("ffmpeg", [
@@ -215,6 +250,7 @@ test("inspect_asset 只生成可重建审阅缓存，并交付 overview、range�
       contactSheetFrames: 4
     });
     assert.equal(range.proxy?.kind, "video");
+    assert.equal(range.proxy?.reviewPath, range.proxy?.mediaPath.replace(/^\/media\//u, "/review/"));
     assert.ok(range.proxy?.relativePath.startsWith("cache/source-review/"));
     assert.ok(range.audio.waveform, "带音轨的短范围应生成波形");
     assert.ok(range.audio.silenceRanges.length >= 1, "静音段应作为辅助证据返回");
@@ -264,7 +300,13 @@ test("inspect_asset 只生成可重建审阅缓存，并交付 overview、range�
     const client = new Client({ name: "videocut-source-review-test", version: "1.0.0" });
     try {
       await client.connect(transport);
-      assert.ok((await client.listTools()).tools.some((tool) => tool.name === "inspect_asset"), "MCP 必须发现 inspect_asset");
+      const catalog = (await client.listTools()).tools;
+      const inspectTool = catalog.find((tool) => tool.name === "inspect_asset")!;
+      assert.match(inspectTool.description!, /range最长60秒，dense最长12秒/u);
+      assert.match(inspectTool.description!, /dBFS.*不提供LUFS或true peak/u);
+      const previewTool = catalog.find((tool) => tool.name === "render_preview_range")!;
+      assert.match(previewTool.description!, /省略时默认0.*timeline.durationInFrames/u);
+      assert.match(previewTool.description!, /result.audio.*integratedLufs.*truePeakDbfs/u);
       const toolResult = await client.callTool({
         name: "inspect_asset",
         arguments: { project_id: projectId, asset_id: registered.asset.id, mode: "dense", source_start_frame: 24, source_end_frame: 48, contact_sheet_frames: 8 }
@@ -352,6 +394,7 @@ test("inspect_asset 把 SpeechAsset 当作连续音频候选，范围复核会�
       sourceEndFrame: 24
     });
     assert.equal(review.proxy?.kind, "audio");
+    assert.equal(review.proxy?.reviewPath, review.proxy?.mediaPath.replace(/^\/media\//u, "/review/"));
     assert.ok(review.proxy?.relativePath.endsWith(".m4a"));
     assert.ok(review.audio.waveform, "speech 范围复核必须生成波形");
     assert.equal(server.application.readProject(projectId).revision.number, beforeInspect, "语音审阅同样不应创建 Revision");

@@ -9,6 +9,7 @@ import { productionReconciliation } from "../packages/quality-system/src/editori
 import { runProcess } from "@videocut/speech";
 import { managedMotionReviewOutcome } from "@videocut/contracts";
 import { motionFixture } from "./fixtures/managed-motion.js";
+import { validateMotionReviewEvidence } from "../packages/edit-application/src/motion-review.js";
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), "videocut-motion-coverage-"));
@@ -94,9 +95,21 @@ test("合成审阅必须来自当前项目、版本和实际完整 Cue，单件�
     const evidence = { kind: "project_preview" as const, previewJobId: sound.id, startFrame: 10, endFrame: 28, method: "audiovisual" as const };
     await assert.rejects(f.app.reviewManagedMotion({ ...request(), evidence: { ...evidence, previewJobId: silent.id } }), /无音轨/u);
     await assert.rejects(f.app.reviewManagedMotion({ ...request(), evidence: { ...evidence, endFrame: 27 } }), /完整覆盖/u);
-    await assert.rejects(f.app.reviewManagedMotion({ ...request(), evidence: { ...evidence, startFrame: 40, endFrame: 58 } }), /参与/u);
+    await assert.rejects(f.app.reviewManagedMotion({ ...request(), evidence: { ...evidence, startFrame: 40, endFrame: 58 } }), /完整覆盖/u);
     await assert.rejects(f.app.reviewManagedMotion({ ...request(), evidence: { ...evidence, previewJobId: "foreign-job" } }), /本项目/u);
     await assert.rejects(f.app.reviewManagedMotion({ ...request(), evidence: { ...evidence, method: "frames" } }), /静帧/u);
+    // 失败或待审可记录局部静帧，但坐标仍是项目全局帧，不能冒充完整连续观看。
+    const beforePartial = f.app.readProject(f.projectId);
+    const target = beforePartial.snapshot.assets.find(asset => asset.id === assetId)!;
+    const jobs = f.app.repository.listJobs(f.projectId);
+    for (const outcome of ["failed", "inconclusive"] as const) {
+      const local = await validateMotionReviewEvidence(beforePartial.snapshot, f.revision(), jobs, target, outcome,
+        { ...evidence, method: "frames", startFrame: 14, endFrame: 17 });
+      assert.deepEqual([local!.workStartFrame, local!.workEndFrame], [4, 7]);
+      await assert.rejects(validateMotionReviewEvidence(beforePartial.snapshot, f.revision(), jobs, target, outcome,
+        { ...evidence, method: "frames", startFrame: 4, endFrame: 7 }), /项目全局帧.*未与.*相交/u);
+    }
+    assert.deepEqual(f.app.readProject(f.projectId), beforePartial, "局部证据验证和错误拒绝没有视频写入");
     const oldRevision = f.revision();
     const passed = await f.app.reviewManagedMotion({ ...request(), evidence });
     const motion = passed.snapshot.assets.find(a => a.id === assetId)!.motion!;
@@ -106,7 +119,7 @@ test("合成审阅必须来自当前项目、版本和实际完整 Cue，单件�
     assert.deepEqual([motion.review!.evidence!.workStartFrame, motion.review!.evidence!.workEndFrame], [0, 18]);
     await assert.rejects(f.app.reviewManagedMotion({ ...request(), evidence }), /目标 Revision/u);
     f.app.removeEffectCue({ projectId: f.projectId, baseRevision: f.revision(), cueId: state.snapshot.effectCues[0]!.id });
-    await assert.rejects(f.app.reviewManagedMotion({ ...request(), evidence }), /参与/u);
+    await assert.rejects(f.app.reviewManagedMotion({ ...request(), evidence }), /完整覆盖/u);
   } finally { await f.close(); }
 });
 

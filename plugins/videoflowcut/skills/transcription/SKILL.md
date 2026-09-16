@@ -5,6 +5,10 @@ description: 通过当前 FunASR Bridge 生成可追溯 TranscriptText 和候选
 
 # FunASR 转写与文本证据
 
+## 主任务执行边界
+
+转写提交、事实回听纠错和时间精度核查可由主任务执行；标点候选不升级为剪辑选择，删留、重排、Take、停顿和新稿创作交 `semantic-continuity` 子代理。按 [production-coordinator](../production-coordinator/SKILL.md) 排序可能回写项目的 Job，读回实际文本、Revision 和 Impact 后把源证据交给子代理，不在主线程顺手优化表述。
+
 ## 转写的边界
 
 转写回答“音频大致说了什么”，不回答“成片应保留什么”，也不自动给出剪辑切点。当前 FunASR 工作流公开完整文本输出，没有可靠 Segment、Token、说话人或词级时间。因此本 Skill 的责任是保存可追溯文本、发现识别风险、生成阅读候选，并把语义判断交给 `semantic-continuity`。

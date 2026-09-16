@@ -1,11 +1,14 @@
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { pluginRootFromModule, releaseNodePath, resolveReleaseRuntime, resolveRepoRoot, resolveWorkspaceRoot } from "./repo-root.mjs";
 import { recoverMcpDeployment, withRuntimeOperationLock } from "./runtime-launcher.mjs";
 import { createReloadingMcpSession } from "./mcp-session.mjs";
 
 const pluginRoot = pluginRootFromModule(import.meta.url);
+const launcherCodeHash = createHash("sha256").update(["mcp-launcher.mjs", "mcp-session.mjs", "runtime-launcher.mjs"]
+  .map(name => `${name}\n${readFileSync(join(pluginRoot, "scripts", name), "utf8")}`).join("\n")).digest("hex");
 const repoRoot = resolveRepoRoot({ pluginRoot });
 const workspaceRoot = resolveWorkspaceRoot(repoRoot);
 // Windows 会锁住进程的工作目录。完成绝对路径定位后离开安装槽，让官方插件更新可清理旧版本。
@@ -29,7 +32,7 @@ try {
   if (catalog.schemaVersion !== 1) throw new Error("MCP 发行工具目录版本不兼容，请重新构建并安装插件");
   session = createReloadingMcpSession({
     initialTools: catalog.tools,
-    runExclusive: (action) => withRuntimeOperationLock(options, action),
+    runExclusive: (action, lockOptions) => withRuntimeOperationLock(options, action, lockOptions),
     resolveDeployment: async () => {
       activeDeployment = await recoverMcpDeployment(options, activeDeployment);
       return activeDeployment;
@@ -63,7 +66,15 @@ try {
     onToolsChanged: () => server.sendToolListChanged()
   });
   server.setRequestHandler(ListToolsRequestSchema, () => session.listTools());
-  server.setRequestHandler(CallToolRequestSchema, (request, extra) => session.callTool(request.params, { signal: extra.signal, timeout: 180_000 }));
+  server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+    const result = await session.callTool(request.params, { signal: extra.signal, timeout: 180_000 });
+    if (request.params.name !== "read_runtime_release" || result.isError) return result;
+    // 内层 MCP 可热切，外壳代码不会自动重载；部署核验必须能区分这两个版本。
+    return { ...result, content: result.content.map((item) => {
+      if (item.type !== "text") return item;
+      return { ...item, text: JSON.stringify({ ...JSON.parse(item.text), launcherReleaseId: initialRelease.releaseId, launcherCodeHash, launcherPid: process.pid }) };
+    }) };
+  });
   // 先建立宿主协议连接；业务 Runtime 暂不可用不应永久毒化宿主的 MCP 启动状态。
   await server.connect(new StdioServerTransport());
   let polling = false;

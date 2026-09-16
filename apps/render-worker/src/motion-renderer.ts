@@ -4,13 +4,14 @@ import { join } from "node:path";
 import puppeteer from "puppeteer-core";
 import { PNG } from "pngjs";
 import { compileMotion, MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compiler.js";
-import type { MotionSubmission } from "../../../packages/motion-work/src/schema.js";
+import type { DecodedMotionVideo, MotionSubmission } from "../../../packages/motion-work/src/schema.js";
 import { resolveRenderBrowser } from "./exporter.js";
 import { runProcess } from "@videocut/speech";
 import { parseMotionEvents } from "../../../packages/motion-work/src/schema.js";
 import type { MotionEvent } from "@videocut/contracts";
+import { verifyMotionDeterminism, type MotionDeterminismReport } from "./motion-determinism.js";
 
-export interface MotionRenderResult { frameHashes: string[]; previewPath: string; engineVersion: string; sandbox: string; events?: MotionEvent[]; }
+export interface MotionRenderResult { frameHashes: string[]; previewPath: string; engineVersion: string; sandbox: string; events?: MotionEvent[]; determinism?: MotionDeterminismReport; }
 export const motionFrameName = (frame: number) => `frame-${String(frame).padStart(5, "0")}.png`;
 
 /** Chromium 会省略全不透明帧的 Alpha；入库前固定 RGBA，避免后续像素步长与滤镜状态跳变。 */
@@ -34,18 +35,21 @@ export async function verifyMotionPreviewFrames(path: string, frameCount: number
  * 生成代码只在无凭据的独立 Chromium 中运行，不使用 Remotion 默认的 --no-sandbox。
  * 响应级 CSP sandbox 建立 opaque origin；所有网络请求由拦截器拒绝，只有唯一内存文档可加载。
  */
-export async function renderManagedMotion(input: MotionSubmission, directory: string, imageData: Record<string, string> = {}): Promise<MotionRenderResult> {
-  const javascript = `window.addEventListener('securitypolicyviolation',e=>console.error('MOTION_CSP_VIOLATION:'+e.violatedDirective));\n${await compileMotion(input, imageData)}`.replace(/<\/script/giu, "<\\/script");
+export async function renderManagedMotion(input: MotionSubmission, directory: string, imageData: Record<string, string> = {}, videos: Record<string, DecodedMotionVideo> = {}): Promise<MotionRenderResult> {
+  const javascript = `window.addEventListener('securitypolicyviolation',e=>console.error('MOTION_CSP_VIOLATION:'+e.violatedDirective));\n${await compileMotion(input, imageData, videos)}`.replace(/<\/script/giu, "<\\/script");
   if (input.width * input.height * input.durationInFrames > 650_000_000) throw new Error("MOTION_RENDER_BUDGET: 本次像素帧总量超过上限，请缩短单个动效");
   await mkdir(join(directory, "frames"), { recursive: true });
   const scriptHash = createHash("sha256").update(javascript).digest("base64");
   // Player 内部有 data: 静音音频探测；允许内嵌数据并不开放外部媒体或网络。
-  const csp = `default-src 'none'; script-src 'sha256-${scriptHash}'; style-src 'unsafe-inline'; img-src data:; font-src data:; media-src data:; connect-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; sandbox allow-scripts`;
-  const html = `<!doctype html><html><head><meta charset="utf-8"><style>html,body,#root{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;font-family:'Microsoft YaHei','Noto Sans SC',sans-serif}</style></head><body><div id="root"></div><script>${javascript}</script></body></html>`;
+  const csp = `default-src 'none'; script-src 'sha256-${scriptHash}'; style-src 'unsafe-inline'; img-src data: https://motion.invalid/video/; font-src data:; media-src data:; connect-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; sandbox allow-scripts`;
+  const videoFrames = new Map<string, string>(Object.entries(videos).flatMap(([slot, video]) => video.framePaths.map((path, frame) => [`https://motion.invalid/video/${slot}/${frame}.png`, path] as const)));
+  // SVG 的 auto 字体模式会按缩放历史复用字形栅格；几何精度模式使文字按当前帧的变换绘制。
+  const html = `<!doctype html><html><head><meta charset="utf-8"><style>html,body,#root{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;font-family:'Microsoft YaHei','Noto Sans SC',sans-serif}svg{text-rendering:geometricPrecision}</style></head><body><div id="root"></div><script>${javascript}</script></body></html>`;
   const browser = await puppeteer.launch({
     executablePath: await resolveRenderBrowser(), headless: true, pipe: true,
     defaultViewport: { width: input.width, height: input.height, deviceScaleFactor: 1 },
-    args: ["--disable-background-networking", "--disable-component-update", "--disable-sync", "--no-first-run", "--js-flags=--max-old-space-size=128"],
+    // 局部栅格重绘会让 SVG 曲线/虚线边缘受上一帧脏区影响；每帧完整重绘，保留原抗锯齿与沙箱。
+    args: ["--disable-partial-raster", "--disable-background-networking", "--disable-component-update", "--disable-sync", "--no-first-run", "--js-flags=--max-old-space-size=128"],
     timeout: 30_000
   });
   const forbiddenFlags = browser.process()?.spawnargs.filter((arg) => /--(?:no-sandbox|disable-setuid-sandbox|disable-web-security|single-process)/u.test(arg)) ?? [];
@@ -61,6 +65,9 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
       if (!served && request.isNavigationRequest() && request.frame() === page.mainFrame() && request.url() === "https://motion.invalid/") {
         served = true;
         void request.respond({ status: 200, headers: { "content-security-policy": csp, "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }, body: html });
+      } else if (request.resourceType() === "image" && videoFrames.has(request.url())) {
+        // 只提供本次 Worker 已解码的精确白名单帧，不访问 URL 或把宿主路径交给源码。
+        void readFile(videoFrames.get(request.url())!).then(body => request.respond({ status: 200, contentType: "image/png", headers: { "access-control-allow-origin": "*" }, body })).catch(error => { errors.push(String(error)); void request.abort(); });
       } else if (request.url().startsWith("data:") && ["image", "font", "media"].includes(request.resourceType())) void request.continue();
       else { errors.push(`MOTION_NETWORK_BLOCKED: ${request.resourceType()}`); void request.abort("blockedbyclient"); }
     });
@@ -98,11 +105,7 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
       frameHashes.push(createHash("sha256").update(png).digest("hex"));
       await writeFile(join(directory, "frames", motionFrameName(frame)), png, { flag: "wx" });
     }
-    // 相同帧必须与渲染顺序无关，不能依赖 CSS 计时、随机状态或上一帧副作用。
-    for (const frame of [...new Set([0, Math.floor(input.durationInFrames / 2), input.durationInFrames - 1])]) {
-      const repeated = createHash("sha256").update(await capture(frame)).digest("hex");
-      if (repeated !== frameHashes[frame]) throw new Error("MOTION_NONDETERMINISTIC: 重复定位同一帧得到不同画面");
-    }
+    const determinism = await verifyMotionDeterminism(directory, frameHashes, capture);
     if (JSON.stringify(await readEvents()) !== JSON.stringify(rawEvents)) throw new Error("MOTION_EVENT_NONDETERMINISTIC: 事件计算依赖渲染副作用");
     await browser.close();
     const previewPath = join(directory, "preview.mp4");
@@ -111,8 +114,9 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
     await runProcess("ffmpeg", ["-y", "-v", "error", "-framerate", String(input.fps), "-i", join(directory, "frames", "frame-%05d.png"), "-f", "lavfi", "-i", `color=c=0x172033:s=${input.width}x${input.height}:r=${input.fps}`, "-filter_complex", "[0:v]format=rgba[fg];[1:v][fg]overlay=shortest=1:format=auto,format=yuv420p", "-frames:v", String(input.durationInFrames), "-an", "-c:v", "libx264", "-crf", "18", previewPath], 120_000);
     await readFile(previewPath); // ffmpeg 返回成功还必须有真实输出。
     await verifyMotionPreviewFrames(previewPath, input.durationInFrames, input.fps);
-    return { frameHashes, previewPath, engineVersion: MOTION_ENGINE_VERSION, sandbox: "chromium-os-sandbox+csp-opaque-origin+deny-network", events };
+    return { frameHashes, previewPath, engineVersion: MOTION_ENGINE_VERSION, sandbox: "chromium-os-sandbox+csp-opaque-origin+deny-network", events, determinism };
   } catch (error) {
+    if (!timedOut && !errors.length && error instanceof Error) throw error;
     throw new Error(timedOut ? "MOTION_RENDER_TIMEOUT" : [...errors.slice(0, 3), error instanceof Error ? error.message : String(error)].join("; "));
   } finally { clearTimeout(deadline); await browser.close().catch(() => undefined); }
 }

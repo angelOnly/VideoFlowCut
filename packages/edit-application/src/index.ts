@@ -1,3 +1,5 @@
+import { assetUsageRightsInputSchema } from "../../contracts/src/editorial-inputs.js";
+import { captionPlacementSchema, captionDisplaySchema, validCaptionDisplay, type CaptionDisplay } from "../../contracts/src/caption-presentation.js";
 import { applyAudioDesign, soundRequirementSchema, type AudioDesignInput } from "./sound-design.js";
 import { digest as mediaDigest, assetRequestVersion } from "../../media-intelligence/src/index.js";
 import { assertEffectCoverage } from "@videocut/domain";
@@ -8,7 +10,7 @@ import { evidenceHash, validateEditorialObservations } from "./editorial-evidenc
 import { validateMotionReviewEvidence } from "./motion-review.js";
 import type { MotionReviewEvidenceInput, MotionReviewOutcome } from "@videocut/contracts";
 import { EDITORIAL_PASSES, evidenceSupportsPass, mergeEditorialReviews, missingReviewRanges, openEditorialFindings, reviewCoverage } from "../../quality-system/src/editorial-review.js";
-import { boundMotionImageSchema, motionSubmissionSchema, type MotionSubmission } from "../../motion-work/src/schema.js";
+import { boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema, type MotionSubmission } from "../../motion-work/src/schema.js";
 import { motionHash, motionHashEngine, MOTION_ENGINE_VERSION, validateMotionSource } from "../../motion-work/src/compiler.js";
 import { inspectEffectContentContract } from "@videocut/contracts";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
@@ -39,6 +41,7 @@ import type {
   CaptionEmphasis,
   CaptionFormat,
   CreativeBrief,
+  CreativeDelegation,
   Cutaway,
   CutawayAudioMode,
   CutawayFit,
@@ -144,7 +147,10 @@ import {
   trackByName
 } from "@videocut/domain";
 import { DEFAULT_CAPTION_FORMAT, sourceAudioTimeOrigin } from "@videocut/contracts";
-import { evaluateQuality } from "@videocut/quality";
+import { evaluateQualityWithBrowser, exportBlockingIssues } from "@videocut/quality";
+import { sourceCaptionTextReviewSchema, exportApprovalSchema } from "../../contracts/src/editorial-inputs.js";
+import { assetProvenanceAllowsExport, validAssetUsageRights, sourceCaptionDisplayTextIsValid } from "@videocut/domain";
+import type { SourceCaptionTextReviewInput, AssetProvenance } from "@videocut/contracts";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { editPresenterSourceInSnapshot, type PresenterSourceEditInput } from "./presenter-source-edit";
 import {
@@ -370,6 +376,9 @@ export interface AppEvent {
 }
 
 function assertAssetProvenanceValid(provenance: NonNullable<Asset["provenance"]>): void {
+  if (provenance.usageRights && (!validAssetUsageRights(provenance.usageRights) || provenance.rightsStatus === "rejected")) {
+    throw new DomainError("素材用途许可必须有明确范围、依据和确认时间，且不能覆盖 rejected 状态", "ASSET_USAGE_RIGHTS_INVALID");
+  }
   if (provenance.source === "provider" && (!provenance.provider?.trim() || !provenance.sourceUrl?.trim())) {
     throw new DomainError("外部素材必须记录来源平台和原始页面", "PROVENANCE_SOURCE_REQUIRED");
   }
@@ -526,9 +535,10 @@ function markSpeechAlignmentStale(snapshot: ProjectSnapshot, impact: ImpactRepor
   impact.warnings.push(`词级对齐已过期：${reason}`);
 }
 
-type CaptionFormatPatch = Partial<Omit<CaptionFormat, "backgroundColor" | "backgroundOpacity">> & {
+type CaptionFormatPatch = Partial<Omit<CaptionFormat, "backgroundColor" | "backgroundOpacity" | "placement">> & {
   backgroundColor?: string | null;
   backgroundOpacity?: number | null;
+  placement?: CaptionFormat["placement"] | null;
 };
 type AudioDuckingPatch = Partial<AudioDucking>;
 
@@ -642,10 +652,12 @@ function requireCaptionColor(value: string | undefined, label: string): string |
 /** 只接收明确的字幕排版字段，避免把任意 CSS 写进可渲染 Project Snapshot。 */
 function applyCaptionFormat(current: CaptionFormat | undefined, patch: CaptionFormatPatch): CaptionFormat {
   // null 只表示显式移除背景或透明度，不应作为运行时样式写入 Snapshot。
-  const { backgroundColor, backgroundOpacity, ...rawFormatPatch } = patch;
+  const { backgroundColor, backgroundOpacity, placement, ...rawFormatPatch } = patch;
   // MCP 解构会携带未传字段的 undefined；它们不能覆盖既有安全排版值。
-  const formatPatch = Object.fromEntries(Object.entries(rawFormatPatch).filter(([, value]) => value !== undefined)) as Partial<Omit<CaptionFormat, "backgroundColor" | "backgroundOpacity">>;
+  const formatPatch = Object.fromEntries(Object.entries(rawFormatPatch).filter(([, value]) => value !== undefined)) as Partial<Omit<CaptionFormat, "backgroundColor" | "backgroundOpacity" | "placement">>;
   const next: CaptionFormat = { ...DEFAULT_CAPTION_FORMAT, ...current, ...formatPatch };
+  if (placement === null) delete next.placement;
+  else if (placement !== undefined) next.placement = captionPlacementSchema.parse(placement);
   if (backgroundColor === null) {
     delete next.backgroundColor;
     delete next.backgroundOpacity;
@@ -659,11 +671,11 @@ function applyCaptionFormat(current: CaptionFormat | undefined, patch: CaptionFo
   if (!Number.isInteger(next.fontWeight) || next.fontWeight < 400 || next.fontWeight > 900) {
     throw new DomainError("字幕字重必须在 400 到 900 之间", "INVALID_CAPTION_FONT_WEIGHT");
   }
-  if (!Number.isFinite(next.bottomPercent) || next.bottomPercent < 4 || next.bottomPercent > 20) {
-    throw new DomainError("字幕底部安全区必须在 4% 到 20% 之间", "INVALID_CAPTION_BOTTOM");
+  if (!Number.isFinite(next.bottomPercent) || next.bottomPercent < 0 || next.bottomPercent > 95) {
+    throw new DomainError("字幕底部位置必须在 0% 到 95% 之间", "INVALID_CAPTION_BOTTOM");
   }
-  if (!Number.isFinite(next.horizontalInsetPercent) || next.horizontalInsetPercent < 3 || next.horizontalInsetPercent > 20) {
-    throw new DomainError("字幕左右安全区必须在 3% 到 20% 之间", "INVALID_CAPTION_INSET");
+  if (!Number.isFinite(next.horizontalInsetPercent) || next.horizontalInsetPercent < 0 || next.horizontalInsetPercent > 45) {
+    throw new DomainError("字幕左右边距必须在 0% 到 45% 之间", "INVALID_CAPTION_INSET");
   }
   next.color = requireCaptionColor(next.color, "字幕颜色")!;
   const normalizedBackgroundColor = requireCaptionColor(next.backgroundColor, "字幕背景颜色");
@@ -1295,7 +1307,7 @@ function normalizeActorMaskModes(maskModes: ActorMaskMode[]): ActorMaskMode[] {
 }
 
 function candidateFilterReasons(
-  candidate: Pick<AssetCandidate, "originalAssetId" | "sourceUrl" | "durationMs" | "rightsStatus"> & { kind?: AssetCandidate["kind"] },
+  candidate: Pick<AssetCandidate, "originalAssetId" | "sourceUrl" | "durationMs" | "rightsStatus" | "usageRights" | "attributionText"> & { kind?: AssetCandidate["kind"] },
   request: Pick<AssetRequest, "minDurationMs" | "rightsRequirement" | "mediaKind">
 ): string[] {
   const reasons: string[] = [];
@@ -1308,11 +1320,12 @@ function candidateFilterReasons(
   const allowed = request.rightsRequirement === "cleared_only"
     ? candidate.rightsStatus === "cleared"
     : candidate.rightsStatus === "cleared" || candidate.rightsStatus === "attribution_required";
-  if (!allowed) reasons.push("授权状态不满足当前素材需求。");
+  const confirmed = candidate.usageRights?.purposes.some(purpose => assetProvenanceAllowsExport({ source: "provider", rightsStatus: candidate.rightsStatus, usageRights: candidate.usageRights, attributionText: candidate.attributionText, acquiredAt: now() }, purpose));
+  if (!allowed && !confirmed) reasons.push("授权状态不满足当前素材需求。");
   return reasons;
 }
 
-function candidateIsAllowed(candidate: Pick<AssetCandidate, "originalAssetId" | "sourceUrl" | "durationMs" | "rightsStatus" | "hardFilterPassed" | "kind">, request: Pick<AssetRequest, "minDurationMs" | "rightsRequirement" | "mediaKind">): boolean {
+function candidateIsAllowed(candidate: Pick<AssetCandidate, "originalAssetId" | "sourceUrl" | "durationMs" | "rightsStatus" | "hardFilterPassed" | "kind" | "usageRights" | "attributionText">, request: Pick<AssetRequest, "minDurationMs" | "rightsRequirement" | "mediaKind">): boolean {
   if (!candidate.hardFilterPassed) return false;
   return candidateFilterReasons(candidate, request).length === 0;
 }
@@ -2165,6 +2178,7 @@ export class EditingApplication {
     objectIds?: Id[];
     evidence?: string[];
     alternatives?: string[];
+    delegation?: CreativeDelegation;
     quietRange?: { startFrame: number; endFrame: number; reason: string };
     effectDecision?: string;
     rejectedAlternative?: string;
@@ -2175,12 +2189,30 @@ export class EditingApplication {
     return this.withProductionAuditLock(input.projectId, () => this.recordCreativeDecisionUnlocked(input));
   }
 
+  private validateCreativeDelegation(projectId: Id, value: CreativeDelegation | undefined): CreativeDelegation | undefined {
+    if (value === undefined) return undefined;
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new DomainError("子代理来源必须包含代理、分派、职责和输入版本", "INVALID_CREATIVE_DELEGATION");
+    }
+    const agentId = typeof value.agentId === "string" ? value.agentId.trim() : "";
+    const assignmentId = typeof value.assignmentId === "string" ? value.assignmentId.trim() : "";
+    if (!agentId || agentId.length > 160 || !assignmentId || assignmentId.length > 160
+      || !["director", "specialist", "reviewer"].includes(value.role)
+      || !Number.isSafeInteger(value.inputRevision) || value.inputRevision < 1) {
+      throw new DomainError("子代理来源的标识、职责或输入版本无效", "INVALID_CREATIVE_DELEGATION");
+    }
+    // 核对本项目的真实历史，不把自报来源升级成权限证明，也不自动重定基旧方案。
+    this.repository.getRevision(projectId, value.inputRevision);
+    return { agentId, assignmentId, role: value.role, inputRevision: value.inputRevision };
+  }
+
   private async recordCreativeDecisionUnlocked(input: Parameters<EditingApplication["recordCreativeDecision"]>[0]): Promise<SkillExecutionReport> {
     const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
     this.resumeIncompleteProductionRun(report, "创作判断");
     const decision = input.decision.trim();
     const rationale = input.rationale.trim();
     if (!decision || !rationale) throw new DomainError("创作判断必须说明决定与原因", "INVALID_CREATIVE_DECISION");
+    const delegation = this.validateCreativeDelegation(input.projectId, input.delegation);
     report.creativeDecisions.push({
       id: createId("creative_decision"),
       category: input.category,
@@ -2189,6 +2221,7 @@ export class EditingApplication {
       objectIds: input.objectIds ?? [],
       evidence: input.evidence ?? [],
       alternatives: input.alternatives?.filter(Boolean),
+      ...(delegation ? { delegation } : {}),
       createdAt: now()
     });
     if (input.quietRange) {
@@ -2328,27 +2361,10 @@ export class EditingApplication {
     const composedFrameEvidence = await this.findComposedFrameEvidence(input.projectId, finalRevision);
     const composedFramePaths = composedFrameEvidence.map((artifact) => artifact.relativePath);
     report.composedFrameEvidence = composedFramePaths;
-    if (composedFrameEvidence.length === 0) blockers.push(`R${finalRevision} 没有 inspect_composed_frames 生成的合成帧证据。`);
-    for (const cue of target.snapshot.effectCues.filter((candidate) => candidate.status === "ready")) {
-      if (!composedFrameEvidence.some((artifact) => artifact.frame >= cue.startFrame && artifact.frame < cue.endFrame)) {
-        blockers.push(`效果 ${cue.id} 没有任何对应的真实合成帧证据，不能确认进入、位置或遮挡。`);
-      }
-    }
-    if (!report.editorialReview || report.editorialReview.revision !== finalRevision) {
-      blockers.push(`R${finalRevision} 缺少当前 ProductionRun 的完整 Editorial Review。`);
-    } else {
-      // 审片必须指向 inspect_composed_frames 的实际文件，不能用“已看过”之类的自由文本替代。
-      if (!report.editorialReview.evidenceRecords?.length && !report.editorialReview.previewEvidence.some((evidence) => composedFramePaths.includes(evidence))) {
-        blockers.push(`R${finalRevision} 的 Editorial Review 没有引用本次真实合成帧证据。`);
-      }
-    }
-
+    // 制作完成只表明当前版本可产出；抽帧、辅助审阅与人工定稿另行保留事实。
     const projectReview = await this.readEditorialQualityReview({ projectId: input.projectId, revision: finalRevision });
-    for (const coverage of reviewCoverage(projectReview, finalRevision, target.snapshot.timeline.durationInFrames)) {
-      if (!coverage.complete) blockers.push(`R${finalRevision} 的 ${coverage.pass} 尚未覆盖整片连续审阅，缺少 ${coverage.missingRanges.map((range) => `F${range.startFrame}–${range.endFrame}`).join("、")}。`);
-    }
-    const quality = evaluateQuality(target.snapshot, finalRevision, projectReview);
-    blockers.push(...quality.issues.filter((entry) => entry.level === "blocking").map((entry) => `质量门禁：${entry.message}`));
+    const quality = await evaluateQualityWithBrowser(target.snapshot, finalRevision, projectReview);
+    blockers.push(...exportBlockingIssues(quality, "draft").map(entry => `技术/用途条件：${entry.message}`));
     report.finalRevision = finalRevision;
     report.mcpCommands.push({ name: "complete_production_run", revision: finalRevision, createdAt: now() });
     report.completionBlockers = [...new Set(blockers)];
@@ -2383,10 +2399,16 @@ export class EditingApplication {
     const boundImages = Object.entries(work.imageBindings).map(([slot, assetId]) => {
       const asset = assetById(current.snapshot, assetId);
       if (asset.kind !== "image" || asset.status !== "ready" || !asset.sourceHash) throw new DomainError("作品只绑定已就绪且有内容哈希的项目图片", "MOTION_IMAGE_NOT_READY");
-      return { slot, assetId, managedPath: asset.managedPath, hash: asset.sourceHash, rightsStatus: asset.provenance?.rightsStatus ?? "unknown", attribution: asset.provenance?.attributionText };
+      return { slot, assetId, managedPath: asset.managedPath, hash: asset.sourceHash, rightsStatus: asset.provenance?.rightsStatus ?? "unknown", attribution: asset.provenance?.attributionText, ...(asset.provenance?.usageRights ? { usageRights: asset.provenance.usageRights } : {}) };
     });
-    const version = motionHash(work, boundImages);
-    const job = this.repository.createJob({ projectId: input.projectId, kind: "motion_generation", payload: { work, version, engineVersion: MOTION_ENGINE_VERSION, requestedRevision: input.baseRevision, boundImages }, idempotencyKey: `motion:${input.idempotencyKey}` });
+    const boundVideos = boundMotionVideoSchema.array().parse(Object.entries(work.videoBindings ?? {}).map(([slot, binding]) => {
+      const asset = assetById(current.snapshot, binding.assetId);
+      if (asset.kind !== "video" || asset.status !== "ready" || !asset.sourceHash || !asset.metadata?.durationMs || asset.motion) throw new DomainError("绑定已就绪且有真实时长和哈希的源视频；受管动效请直接放置", "MOTION_VIDEO_NOT_READY");
+      if (binding.sourceEndMs > asset.metadata.durationMs) throw new DomainError("视频源范围超出素材时长", "MOTION_VIDEO_SOURCE_RANGE");
+      return { slot, ...binding, managedPath: asset.managedPath, hash: asset.sourceHash, rightsStatus: asset.provenance?.rightsStatus ?? "unknown", attribution: asset.provenance?.attributionText, ...(asset.provenance?.usageRights ? { usageRights: asset.provenance.usageRights } : {}) };
+    }));
+    const version = motionHash(work, boundImages, MOTION_ENGINE_VERSION, boundVideos);
+    const job = this.repository.createJob({ projectId: input.projectId, kind: "motion_generation", payload: { work, version, engineVersion: MOTION_ENGINE_VERSION, requestedRevision: input.baseRevision, boundImages, ...(boundVideos.length ? { boundVideos } : {}) }, idempotencyKey: `motion:${input.idempotencyKey}` });
     this.publish({ projectId: input.projectId, revision: current.revision.number, type: "job" });
     return job;
   }
@@ -2395,7 +2417,7 @@ export class EditingApplication {
     const job = this.repository.getJob(jobId);
     if (job.projectId !== projectId || job.kind !== "motion_generation") throw new DomainError("作品任务不属于当前项目", "MOTION_JOB_NOT_FOUND");
     const asset = this.readProject(projectId).snapshot.assets.find((item) => item.motion?.jobId === jobId);
-    return { job, asset, nextStep: asset ? "连续查看作品并以 outcome、note、evidence 审阅；未看清可登记 inconclusive 后放入待审草稿。审阅和放置前重读 Revision，正式合成仍须另审。" : "等待 track_job；失败时读取诊断，不猜测已生成" };
+    return { job, asset, nextStep: asset ? "连续查看作品并以 outcome、note、evidence 审阅；未审或未看清仍可放置、预览、修改和导出，审阅状态如实保留。写入前重读 Revision，最终效果由用户确认。" : "等待 track_job；失败时读取诊断，不猜测已生成" };
   }
 
   /** Worker 可重复完成，但同一任务只登记一个固定版本的作品 Asset。 */
@@ -2407,22 +2429,30 @@ export class EditingApplication {
     if (existing) return existing;
     const work = motionSubmissionSchema.parse(job.payload.work);
     const boundImages = boundMotionImageSchema.array().parse(job.payload.boundImages ?? []);
-    const version = motionHash(work, boundImages, motionHashEngine(work, boundImages, job.payload.version, job.payload.engineVersion));
+    const boundVideos = boundMotionVideoSchema.array().parse(job.payload.boundVideos ?? []);
+    const version = motionHash(work, boundImages, motionHashEngine(work, boundImages, job.payload.version, job.payload.engineVersion, boundVideos), boundVideos);
     if (version !== job.payload.version) throw new DomainError("作品固定输入已损坏", "MOTION_VERSION_MISMATCH");
     const directory = `assets/derived/motion/${job.id}/${version}`;
-    const images = (job.payload.boundImages ?? []) as Array<{ rightsStatus: string; attribution?: string }>;
+    const images = [...boundImages, ...boundVideos];
     // 派生不创造新许可：保留最严格的已知限制，不能把 restricted / rejected 丢成 unknown。
     const rightsOrder = ["cleared", "attribution_required", "unknown", "restricted", "rejected"] as const;
     const imageRights = images.map(image => !rightsOrder.includes(image.rightsStatus as typeof rightsOrder[number])
       || image.rightsStatus === "attribution_required" && !image.attribution?.trim() ? "unknown" : image.rightsStatus);
     const derivedRights = rightsOrder[Math.max(...[work.rights.status, ...imageRights].map(status => rightsOrder.indexOf(status as typeof rightsOrder[number])))]!;
+    // 提交时固定的许可与当前来源限制共同约束派生作品；生成不会创造新授权。
+    const ownProvenance: AssetProvenance = { source: "generated", rightsStatus: work.rights.status, attributionText: work.rights.attribution, acquiredAt: now(), usageRights: work.rights.usageRights ? { ...work.rights.usageRights, confirmedAt: now() } : undefined };
+    const permitted = (["draft", "delivery"] as const).filter(purpose => assetProvenanceAllowsExport(ownProvenance, purpose) && images.every(image => assetProvenanceAllowsExport({ source: "provider", rightsStatus: image.rightsStatus as AssetProvenance["rightsStatus"], usageRights: image.usageRights, attributionText: image.attribution, acquiredAt: now() }, purpose)));
+    const usageRights = permitted.length && (work.rights.usageRights || images.some(image => image.usageRights))
+      ? { purposes: permitted, basis: [work.rights.usageRights?.basis ?? work.rights.basis, ...images.map(image => image.usageRights?.basis).filter(Boolean)].join("；").slice(0, 2000), confirmedAt: now() } : undefined;
+    // 两个各有许可的输入也可能没有共同用途；空交集不能回退成 cleared。
+    const effectiveRights = !permitted.length && (work.rights.usageRights || images.some(image => image.usageRights)) && derivedRights !== "rejected" ? "restricted" : derivedRights;
     let asset!: Asset;
     const state = this.repository.commit(input.projectId, current.revision.number, "登记受管 Remotion 作品（待审阅）", (snapshot, impact) => {
       asset = {
         id: createId("asset"), name: work.name, kind: "video", status: "ready", managedPath: `${directory}/preview.mp4`, sourceHash: input.sourceHash,
         role: "generated_visual", tags: ["managed_motion", "work_review_required"], createdAt: now(), metadata: input.metadata,
-        provenance: { source: "generated", provider: "managed_remotion", generationJobId: job.id, rightsStatus: derivedRights, license: work.rights.basis, attributionText: [work.rights.attribution, ...images.map((image) => image.attribution)].filter(Boolean).join("\n") || undefined, acquiredAt: now() },
-        motion: { jobId: job.id, version, engineVersion: input.engineVersion, previousAssetId: work.previousAssetId, sourcePath: `${directory}/source.json`, framesDirectory: `${directory}/frames`, frameCount: work.durationInFrames, fps: work.fps, width: work.width, height: work.height, referenceUrl: work.reference?.url, creativeBrief: work.creativeBrief, visibility: input.visibility, eventMap: input.eventMap }
+        provenance: { source: "generated", provider: "managed_remotion", generationJobId: job.id, rightsStatus: effectiveRights, license: work.rights.basis, usageRights, attributionText: [work.rights.attribution, ...images.map((image) => image.attribution)].filter(Boolean).join("\n") || undefined, acquiredAt: now() },
+        motion: { jobId: job.id, version, engineVersion: input.engineVersion, previousAssetId: work.previousAssetId, sourceAssetIds: images.map(image => image.assetId), sourcePath: `${directory}/source.json`, framesDirectory: `${directory}/frames`, frameCount: work.durationInFrames, fps: work.fps, width: work.width, height: work.height, referenceUrl: work.reference?.url, creativeBrief: work.creativeBrief, visibility: input.visibility, eventMap: input.eventMap }
       };
       snapshot.assets.push(asset);
       impact.changed.push(asset.id);
@@ -2519,6 +2549,13 @@ export class EditingApplication {
       if (input.tags !== undefined) asset.tags = [...new Set(input.tags.map((tag) => tag.trim()).filter(Boolean))];
       if (input.provenance !== undefined) {
         assertAssetProvenanceValid(input.provenance);
+        if (asset.motion) {
+          // 历史作品仅在显式修改许可时，从原 Job 补回真实来源；不替旧数据授予新许可。
+          const job = this.repository.getJob(asset.motion.jobId);
+          if (job.projectId !== input.projectId || job.kind !== "motion_generation") throw new DomainError("作品来源任务无效", "MOTION_JOB_NOT_FOUND");
+          asset.motion.sourceAssetIds = [...boundMotionImageSchema.array().parse(job.payload.boundImages ?? []), ...boundMotionVideoSchema.array().parse(job.payload.boundVideos ?? [])].map(image => image.assetId);
+          if (input.provenance.source !== "generated") throw new DomainError("受管作品必须保留生成来源", "MOTION_PROVENANCE_INVALID");
+        }
         asset.provenance = input.provenance;
       }
       impact.changed.push(asset.id);
@@ -2676,7 +2713,9 @@ export class EditingApplication {
   recordAssetSearch(input: {
     projectId: Id; baseRevision: number; assetRequestId: Id; provider: string; query: string;
     candidates: AssetSearchCandidateInput[]; requestVersion?: string;
-  }): { state: ProjectState; intent: SearchIntent; candidates: AssetCandidate[]; reused: boolean; sessionId: string; requestVersion: string } {
+    mediaType?: "image" | "video" | "audio";
+    diagnostics?: import("@videocut/contracts").AssetSearchDiagnostics;
+  }): { state: ProjectState; intent: SearchIntent; candidates: AssetCandidate[]; reused: boolean; sessionId: string; requestVersion: string; diagnostics: import("@videocut/contracts").AssetSearchDiagnostics } {
     const state = this.readProject(input.projectId);
     const request = assetRequestById(state.snapshot, input.assetRequestId);
     const version = assetRequestVersion(request);
@@ -2684,10 +2723,12 @@ export class EditingApplication {
     if (request.status === "closed") throw new DomainError("素材需求已关闭", "ASSET_REQUEST_CLOSED");
     const query = input.query.trim();
     if (!query) throw new DomainError("搜索查询不能为空", "EMPTY_ASSET_SEARCH_QUERY");
-    const existing = this.repository.mediaIntelligence.searches(input.projectId).find((entry) => entry.requestId === request.id && entry.requestVersion === version && entry.intent.provider === input.provider && entry.intent.query === query && Date.now() - Date.parse(entry.createdAt) < 30 * 60_000);
-    if (existing) return { state, intent: existing.intent, candidates: existing.candidates, reused: true, sessionId: existing.id, requestVersion: version };
+    const diagnostics = input.diagnostics ?? { complete: true, warnings: [] };
+    // 部分结果不能挡住修复后的再次搜索，不同媒体过滤也不能共用旧候选。
+    const existing = diagnostics.complete && this.repository.mediaIntelligence.searches(input.projectId).find((entry) => entry.diagnostics?.complete !== false && entry.intent.mediaType === input.mediaType && entry.requestId === request.id && entry.requestVersion === version && entry.intent.provider === input.provider && entry.intent.query === query && Date.now() - Date.parse(entry.createdAt) < 30 * 60_000);
+    if (existing) return { state, intent: existing.intent, candidates: existing.candidates, reused: true, sessionId: existing.id, requestVersion: version, diagnostics: existing.diagnostics ?? { complete: true, warnings: [] } };
     const createdAt = now();
-    const intent: SearchIntent = { id: createId("search_intent"), assetRequestId: request.id, provider: input.provider, query, createdAt };
+    const intent: SearchIntent = { id: createId("search_intent"), assetRequestId: request.id, provider: input.provider, query, mediaType: input.mediaType, createdAt };
     const candidates: AssetCandidate[] = input.candidates.slice(0, 30).map((source) => {
       const filterReasons = candidateFilterReasons(source, request);
       return { ...source, id: createId("asset_candidate"), assetRequestId: request.id, searchIntentId: intent.id, provider: input.provider,
@@ -2695,10 +2736,10 @@ export class EditingApplication {
         sourceUrl: source.sourceUrl.trim(), tags: normalizedTextList(source.tags), hardFilterPassed: !filterReasons.length, filterReasons,
         status: filterReasons.length ? "rejected" : "available", rejectionReason: filterReasons.length ? filterReasons.join(" ") : undefined, createdAt, updatedAt: createdAt };
     });
-    const session = { id: createId("search_session"), projectId: input.projectId, requestId: request.id, requestVersion: version, intent, candidates, createdAt };
+    const session = { id: createId("search_session"), projectId: input.projectId, requestId: request.id, requestVersion: version, intent, candidates, diagnostics, createdAt };
     this.repository.mediaIntelligence.saveSearch(session);
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
-    return { state, intent, candidates, reused: false, sessionId: session.id, requestVersion: version };
+    return { state, intent, candidates, reused: false, sessionId: session.id, requestVersion: version, diagnostics };
   }
 
   readAssetCandidate(input: { projectId: Id; assetCandidateId: Id }): { revision: number; request: AssetRequest; intent: SearchIntent; candidate: AssetCandidate; requestVersion: string; observations: unknown[] } {
@@ -2714,11 +2755,14 @@ export class EditingApplication {
   }
 
   /** Candidate 只有经过硬过滤且授权允许时才能进入下载队列。 */
-  acquireAssetCandidate(input: { projectId: Id; baseRevision: number; assetCandidateId: Id; idempotencyKey?: string }): { state: ProjectState; candidate: AssetCandidate; job: JobRecord } {
+  acquireAssetCandidate(input: { projectId: Id; baseRevision: number; assetCandidateId: Id; idempotencyKey?: string; usageRights?: { purposes: ("draft" | "delivery")[]; basis: string } }): { state: ProjectState; candidate: AssetCandidate; job: JobRecord } {
     const current = this.readProject(input.projectId);
     const existing = this.repository.listJobs(input.projectId).find((job) => job.kind === "asset_acquisition" && job.payload.assetCandidateId === input.assetCandidateId && !["failed", "cancelled"].includes(job.status));
     const currentCandidate = current.snapshot.assetCandidates.find((entry) => entry.id === input.assetCandidateId);
-    if (existing && currentCandidate) return { state: current, candidate: currentCandidate, job: existing };
+    if (existing && currentCandidate) {
+      if (input.usageRights && (JSON.stringify(input.usageRights.purposes) !== JSON.stringify(currentCandidate.usageRights?.purposes) || input.usageRights.basis !== currentCandidate.usageRights?.basis)) throw new DomainError("获取任务已存在，不能用重试更换许可依据", "ASSET_ACQUISITION_IDEMPOTENCY_CONFLICT");
+      return { state: current, candidate: currentCandidate, job: existing };
+    }
     let candidateId!: Id;
     let job!: JobRecord;
     const state = this.repository.commit(input.projectId, input.baseRevision, "提交素材本地化任务", (snapshot, impact) => {
@@ -2732,6 +2776,16 @@ export class EditingApplication {
       }
       const candidate = assetCandidateById(snapshot, input.assetCandidateId);
       const request = assetRequestById(snapshot, candidate.assetRequestId);
+      if (input.usageRights !== undefined) {
+        const usage = assetUsageRightsInputSchema.parse(input.usageRights);
+        // 只重核因来源许可未知而被过滤的候选；明确拒绝和技术失败不能被用途说明洗掉。
+        const rightsOnly = candidate.status === "rejected" && candidate.filterReasons.length === 1 && candidate.filterReasons[0] === "授权状态不满足当前素材需求。" && candidate.rejectionReason === candidate.filterReasons.join(" ");
+        if (candidate.status !== "available" && !rightsOnly) throw new DomainError("候选不是仅因许可待确认而受阻，不能覆盖技术或人工拒绝", "ASSET_CANDIDATE_NOT_ALLOWED");
+        candidate.usageRights = { ...usage, confirmedAt: now() };
+        candidate.filterReasons = candidateFilterReasons(candidate, request);
+        candidate.hardFilterPassed = candidate.filterReasons.length === 0;
+        if (candidate.hardFilterPassed) { candidate.status = "available"; candidate.rejectionReason = undefined; }
+      }
       if (candidate.status !== "available") throw new DomainError("只有可用候选才能提交本地化任务", "ASSET_CANDIDATE_NOT_AVAILABLE");
       if (!candidateIsAllowed(candidate, request)) {
         throw new DomainError("候选素材没有通过授权或技术过滤，不能下载", "ASSET_CANDIDATE_NOT_ALLOWED");
@@ -2803,6 +2857,7 @@ export class EditingApplication {
           licenseUrl: candidate.licenseUrl,
           attributionText: candidate.attributionText,
           rightsStatus: candidate.rightsStatus,
+          usageRights: candidate.usageRights,
           acquiredAt
         };
         assertAssetProvenanceValid(provenance);
@@ -6555,10 +6610,10 @@ export class EditingApplication {
     const reference = input.voiceReferenceId
       ? state.snapshot.voiceReferences.find((candidate) => candidate.id === input.voiceReferenceId)
       : state.snapshot.voiceReferences.find((candidate) => candidate.assetId === input.voiceReferenceAssetId);
-    if (!reference) throw new DomainError("必须先登记本地 VoiceReference，不能把普通 Asset 当作远端 Voice ID 使用", "VOICE_REFERENCE_NOT_FOUND");
-    if (!reference.usable) throw new DomainError("VoiceReference 当前不可用于 OmniVoice，请先更换或重新分析参考音频", "VOICE_REFERENCE_UNUSABLE");
-    const voiceReference = assetById(state.snapshot, reference.assetId);
-    if (voiceReference.kind !== "audio" || voiceReference.status !== "ready") {
+    if ((input.voiceReferenceId || input.voiceReferenceAssetId) && !reference) throw new DomainError("指定的 VoiceReference 未登记", "VOICE_REFERENCE_NOT_FOUND");
+    if (reference && !reference.usable) throw new DomainError("VoiceReference 当前不可用于 OmniVoice，请先更换或重新分析参考音频", "VOICE_REFERENCE_UNUSABLE");
+    const voiceReference = reference ? assetById(state.snapshot, reference.assetId) : undefined;
+    if (voiceReference && (voiceReference.kind !== "audio" || voiceReference.status !== "ready")) {
       throw new DomainError("VoiceReference 必须是已就绪的音频素材", "INVALID_VOICE_REFERENCE");
     }
     const changedSegments = state.snapshot.speechSegments.filter((segment) => segment.status !== "ready").map((segment) => segment.id);
@@ -6571,8 +6626,9 @@ export class EditingApplication {
     const job = this.repository.createJob({
       projectId: input.projectId,
       kind: "voice_synthesis",
-      payload: { voiceReferenceId: reference.id, voiceReferenceAssetId: reference.assetId, speechSegmentIds: segments, scriptRevision: state.snapshot.script.revision, workflowId: "ba6238d0-3ee4-41d5-a1f4-a2aefc3933ce" },
-      idempotencyKey: input.idempotencyKey ?? `voice:${reference.id}:${state.snapshot.script.revision}:${segments.join(",")}`
+      // 省略参考参数时使用服务端配置；不能把默认音色伪造为项目里的 Asset。
+      payload: { voiceReferenceId: reference?.id, voiceReferenceAssetId: reference?.assetId, speechSegmentIds: segments, scriptRevision: state.snapshot.script.revision, workflowId: reference ? "ba6238d0-3ee4-41d5-a1f4-a2aefc3933ce" : "omnivoice-default-reference-v1" },
+      idempotencyKey: input.idempotencyKey ?? `voice:${reference?.id ?? "server-default"}:${state.snapshot.script.revision}:${segments.join(",")}`
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
     return job;
@@ -7817,6 +7873,7 @@ export class EditingApplication {
           style: "stable" as const,
           format: previous.format ?? { ...DEFAULT_CAPTION_FORMAT },
           emphasis: sourceUnchanged ? previous.emphasis : undefined,
+          display: sourceUnchanged && previous.startFrame === timing.startFrame && previous.endFrame === timing.endFrame ? previous.display : undefined,
           precision: speechAsset.timing.precision
         };
       }
@@ -7923,12 +7980,13 @@ export class EditingApplication {
     text?: string;
     format?: CaptionFormatPatch;
     emphasis?: CaptionEmphasis | null;
-    sourceTextReview?: { note: string };
+    sourceTextReview?: SourceCaptionTextReviewInput;
+    display?: CaptionDisplay | null;
   }): ProjectState {
     const isBulkSourceFormat = input.action === "bulk_source_format";
     if (isBulkSourceFormat) {
       if (input.captionId !== undefined || !input.captionIds?.length || input.captionIds.length > 200 || !input.format
-        || input.text !== undefined || input.emphasis !== undefined || input.sourceTextReview !== undefined) {
+        || input.text !== undefined || input.emphasis !== undefined || input.sourceTextReview !== undefined || input.display !== undefined) {
         throw new DomainError("批量原声字幕版式需要明确 Card 列表和 format，且不能同时改文案或强调", "INVALID_SOURCE_CAPTION_BULK_FORMAT");
       }
       if (new Set(input.captionIds).size !== input.captionIds.length) {
@@ -7937,7 +7995,7 @@ export class EditingApplication {
     } else if (!input.captionId?.trim()) {
       throw new DomainError("单卡字幕编辑必须提供 captionId", "CAPTION_ID_REQUIRED");
     }
-    if (input.action === "update" && input.text === undefined && input.format === undefined && input.emphasis === undefined) {
+    if (input.action === "update" && input.text === undefined && input.format === undefined && input.emphasis === undefined && input.display === undefined) {
       throw new DomainError("更新字幕至少需要文案、排版或强调之一", "EMPTY_CAPTION_UPDATE");
     }
     const state = this.repository.commit(input.projectId, input.baseRevision,
@@ -7965,9 +8023,14 @@ export class EditingApplication {
       }
       const caption = snapshot.timeline.captions.find((candidate) => candidate.id === input.captionId);
       if (!caption) throw new DomainError("未找到要编辑的字幕卡", "CAPTION_NOT_FOUND");
+      if (input.action === "reset" || input.display === null) delete caption.display;
+      else if (input.display !== undefined) {
+        caption.display = captionDisplaySchema.parse(input.display);
+        if (!validCaptionDisplay(caption)) throw new DomainError("显示范围必须有序、不重叠且位于原卡内；隐藏卡不带范围", "CAPTION_DISPLAY_INVALID");
+      }
       if (input.sourceTextReview !== undefined && (input.action !== "update" || input.text === undefined
         || caption.sourceKind !== "source_audio" || !caption.sourceAlignmentId)) {
-        throw new DomainError("回听纠错只能与同源对齐字幕的新文案一起提交", "CAPTION_SOURCE_TEXT_REVIEW_INVALID");
+        throw new DomainError("显示纠错依据只能与同源对齐字幕的新文案一起提交", "CAPTION_SOURCE_TEXT_REVIEW_INVALID");
       }
       if (caption.sourceKind === "source_audio") {
         assertCurrentSourceAudioCaption(snapshot, caption);
@@ -7983,17 +8046,22 @@ export class EditingApplication {
           const nextText = input.text === undefined ? caption.text : normalizeCaptionText(input.text);
           const textChanged = nextText !== caption.text;
           if (input.sourceTextReview !== undefined) {
-            const note = requireText(input.sourceTextReview.note, "字幕回听纠错说明");
-            if (note.length > 1000) throw new DomainError("字幕回听纠错说明不能超过 1000 字", "CAPTION_SOURCE_TEXT_REVIEW_INVALID");
-            caption.sourceTextReview = { sourceText, text: nextText, note, reviewedAt: now() };
-          } else if (textChanged) caption.sourceTextReview = undefined;
+            const review = sourceCaptionTextReviewSchema.safeParse(input.sourceTextReview);
+            if (!review.success) throw new DomainError("字幕纠错依据不完整或包含无效字段", "CAPTION_SOURCE_TEXT_REVIEW_INVALID");
+            caption.sourceTextReview = { ...review.data, sourceText, text: nextText, reviewedAt: now() };
+          } else if (textChanged) {
+            // 只改换行、标点或空白时沿用原实义纠错依据，不要求用户重复确认同一文字。
+            caption.sourceTextReview = caption.sourceTextReview && normalizeCaptionComparisonText(nextText) === normalizeCaptionComparisonText(caption.text)
+              ? { ...caption.sourceTextReview, text: nextText } : undefined;
+          }
           if (caption.sourceAlignmentId && normalizeCaptionComparisonText(nextText) !== normalizeCaptionComparisonText(sourceText)
             && !caption.sourceTextReview) {
-            throw new DomainError("修改识别实义文字需要先回听，并提交 sourceTextReview.note；不改变原始时间或声音", "CAPTION_SOURCE_TEXT_REVIEW_REQUIRED");
+            throw new DomainError("修改识别实义文字需要提交回听、已确认原稿或明确用户指令的 sourceTextReview 依据；不改变原始时间或声音", "CAPTION_SOURCE_TEXT_REVIEW_REQUIRED");
           }
           caption.sourceText = sourceText;
           caption.text = nextText;
           caption.textMode = nextText === sourceText ? "derived" : "manual";
+          if (!sourceCaptionDisplayTextIsValid(caption, snapshot)) throw new DomainError("字幕纠错依据与当前旁白、脚本版本、片段或新文案不一致", "CAPTION_SOURCE_TEXT_REVIEW_INVALID");
           if (input.format !== undefined) caption.format = applyCaptionFormat(caption.format, input.format);
           else caption.format ??= { ...DEFAULT_CAPTION_FORMAT };
           if (input.emphasis === null || (textChanged && input.emphasis === undefined)) caption.emphasis = undefined;
@@ -8439,15 +8507,16 @@ export class EditingApplication {
    * 预检是独立异步 Job，便于用户在正式渲染前查看目标 Revision 的文件、权利和运行时依赖问题。
    * Export Worker 仍会在真正渲染前再执行一次，避免预检通过后素材被移动或被修改。
    */
-  submitRenderPreflight(input: { projectId: Id; revision?: number; idempotencyKey?: string }): JobRecord {
+  submitRenderPreflight(input: { projectId: Id; revision?: number; purpose?: ExportPurpose; idempotencyKey?: string }): JobRecord {
     const state = this.readProject(input.projectId);
     const revision = input.revision ?? state.revision.number;
     this.repository.getRevision(input.projectId, revision);
     const job = this.repository.createJob({
       projectId: input.projectId,
       kind: "render_preflight",
-      payload: { revision },
-      idempotencyKey: `${input.idempotencyKey ?? "render-preflight"}:${revision}`
+      payload: { revision, purpose: input.purpose ?? "delivery" },
+      // 预检与导出允许共用调用方业务键，但绝不能互相复用不同 kind 的 Job。
+      idempotencyKey: `render-preflight:${input.idempotencyKey ?? "default"}:${input.purpose ?? "delivery"}:${revision}`
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
     return job;
@@ -8508,10 +8577,9 @@ export class EditingApplication {
     const artifact = this.readExportArtifact({ projectId: input.projectId, artifactId: input.artifactId });
     if (artifact.purpose !== "delivery") throw new DomainError("只有 delivery ExportArtifact 可以登记正式成片复核", "EXPORT_ARTIFACT_REVIEW_PURPOSE_INVALID");
     await this.assertExportArtifactIntact(artifact);
-    const requiredPasses: EditorialReviewPass[] = ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"];
     const passes = [...new Set(input.passes)];
-    if (!requiredPasses.every((pass) => passes.includes(pass))) {
-      throw new DomainError("成片复核必须包含只听声音、静音画面、完整声画、首次观众和模式专项五轮记录", "EXPORT_ARTIFACT_REVIEW_INCOMPLETE");
+    if (!passes.length || passes.some(pass => !["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"].includes(pass))) {
+      throw new DomainError("只登记实际执行的文件复核轮次，至少提供一项", "EXPORT_ARTIFACT_REVIEW_INCOMPLETE");
     }
     const evidence = [...new Set(input.evidence.map((value) => value.trim()).filter(Boolean))];
     if (evidence.length === 0) throw new DomainError("成片复核必须说明实际播放或试听最终文件的证据", "EXPORT_ARTIFACT_EVIDENCE_REQUIRED");
@@ -8548,23 +8616,17 @@ export class EditingApplication {
     return updated;
   }
 
-  async approveExportArtifact(input: { projectId: Id; artifactId: Id; note?: string }): Promise<ExportArtifact> {
+  async approveExportArtifact(input: { projectId: Id; artifactId: Id; confirmedByUser?: true; fileHash?: string; note?: string }): Promise<ExportArtifact> {
     const artifact = this.readExportArtifact({ projectId: input.projectId, artifactId: input.artifactId });
     if (artifact.purpose !== "delivery") throw new DomainError("只能批准 delivery ExportArtifact，draft 仍是内部审片文件", "EXPORT_ARTIFACT_APPROVAL_PURPOSE_INVALID");
     await this.assertExportArtifactIntact(artifact);
-    const review = artifact.artifactReview;
-    const requiredPasses: EditorialReviewPass[] = ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"];
-    if (!review || !requiredPasses.every((pass) => review.passes.includes(pass))) {
-      throw new DomainError("批准前必须完成绑定该最终文件的五轮成片复核", "EXPORT_ARTIFACT_REVIEW_REQUIRED");
-    }
-    if (review.findings.some((finding) => finding.severity === "blocking" || finding.severity === "major" || finding.severity === "inconclusive")) {
-      throw new DomainError("成片复核仍有阻塞或证据不足的问题，不能批准交付", "EXPORT_ARTIFACT_REVIEW_BLOCKED");
-    }
-    const note = input.note?.trim();
-    if (note && note.length > 1_000) throw new DomainError("批准说明不能超过 1000 个字符", "EXPORT_ARTIFACT_APPROVAL_NOTE_TOO_LONG");
+    const confirmation = exportApprovalSchema.safeParse({ confirmedByUser: input.confirmedByUser, fileHash: input.fileHash, note: input.note });
+    if (!confirmation.success) throw new DomainError("人工定稿需要用户对指定文件的明确确认及完整哈希；导出成功或 AI 审阅不能代替", "EXPORT_ARTIFACT_USER_CONFIRMATION_REQUIRED");
+    if (confirmation.data.fileHash !== artifact.fileHash) throw new DomainError("用户确认的文件哈希与此产物不一致", "EXPORT_ARTIFACT_CONFIRMATION_MISMATCH");
+    const note = confirmation.data.note;
     const updated = this.repository.updateExportArtifact(input.projectId, input.artifactId, (stored) => {
       // 已批准记录不可被后续同名请求改写，保证“用户批准的是哪个文件”可以稳定读回。
-      if (!stored.approval) stored.approval = { approvedAt: now(), note: note || undefined };
+      if (!stored.approval) stored.approval = { approvedAt: now(), confirmedByUser: true, fileHash: artifact.fileHash, note: note || undefined };
     });
     this.publish({ projectId: input.projectId, revision: artifact.revision, type: "job" });
     return updated;

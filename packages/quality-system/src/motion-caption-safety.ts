@@ -1,3 +1,4 @@
+import { captionIsDisplayed, captionDisplayRanges, validCaptionDisplay, captionBoxWidthPercent } from "../../contracts/src/caption-presentation.js";
 import { DEFAULT_CAPTION_FORMAT, type EffectCue, type ProjectSnapshot } from "@videocut/contracts";
 import { CAPTION_LINE_HEIGHT, CAPTION_BACKGROUND_VERTICAL_PADDING_EM } from "../../remotion-runtime/src/caption-layout.js";
 
@@ -6,7 +7,9 @@ import { CAPTION_LINE_HEIGHT, CAPTION_BACKGROUND_VERTICAL_PADDING_EM } from "../
  * Alpha 外包矩形与字幕保守区域不相交可排除遮挡；相交只表示待审，不能冒称已遮挡。
  */
 export function motionCaptionSafety(snapshot: ProjectSnapshot, cue: EffectCue): "clear" | "review" | "unknown" {
-  const captions = snapshot.timeline.captions.filter((card) => card.startFrame < cue.endFrame && card.endFrame > cue.startFrame);
+  if (snapshot.project.brief.captionMode === "none") return "clear";
+  if (snapshot.timeline.captions.some(card => !validCaptionDisplay(card))) return "unknown";
+  const captions = snapshot.timeline.captions.filter(card => captionDisplayRanges(card).some(range => range.startFrame < cue.endFrame && range.endFrame > cue.startFrame));
   if (!captions.length) return "clear";
   const motion = snapshot.assets.find((asset) => asset.id === cue.assetBindings.find((binding) => binding.slot === "motion")?.assetId)?.motion;
   const visibility = motion?.visibility;
@@ -22,11 +25,13 @@ export function motionCaptionSafety(snapshot: ProjectSnapshot, cue: EffectCue): 
     const format = { ...DEFAULT_CAPTION_FORMAT, ...card.format };
     const scale = Math.max(1, card.emphasis?.scale ?? 1);
     // 预留两行、强调字缩放、底板与阴影；它是安全预算，不是伪造的字体实测。
-    const bottom = height * (1 - format.bottomPercent / 100) + 18;
-    const top = height * (1 - format.bottomPercent / 100) - format.fontSize * scale * (2 * CAPTION_LINE_HEIGHT + CAPTION_BACKGROUND_VERTICAL_PADDING_EM) - 18;
-    const left = width * format.horizontalInsetPercent / 100 - 18;
-    const right = width - left;
+    const boxHeight = format.fontSize * scale * (2 * CAPTION_LINE_HEIGHT + CAPTION_BACKGROUND_VERTICAL_PADDING_EM);
+    const top = (format.placement ? height * format.placement.topPercent / 100 : height * (1 - format.bottomPercent / 100) - boxHeight) - 18;
+    const bottom = top + boxHeight + 36;
+    const left = width * (format.placement?.leftPercent ?? format.horizontalInsetPercent) / 100 - 18;
+    const right = left + width * captionBoxWidthPercent(format) / 100 + 36;
     for (let frame = Math.max(card.startFrame, cue.startFrame); frame < Math.min(card.endFrame, cue.endFrame); frame++) {
+      if (!captionIsDisplayed(card, frame)) continue;
       const box = visibility.frames[frame - cue.startFrame];
       if (box && box.x < right && box.x + box.width > left && box.y < bottom && box.y + box.height > top) return "review";
     }

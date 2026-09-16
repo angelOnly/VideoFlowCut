@@ -64,6 +64,8 @@ export interface AssetProvenance {
   generationJobId?: Id;
   generation?: GeneratedVideoProvenance;
   rightsStatus: "unknown" | "cleared" | "attribution_required" | "restricted" | "rejected";
+  /** 明确许可的用途及依据；缺省沿用原权限，不能由“内部使用”推断授权。 */
+  usageRights?: { purposes: ExportPurpose[]; basis: string; confirmedAt: string };
   acquiredAt: string;
 }
 
@@ -121,10 +123,19 @@ export interface SearchIntent {
   assetRequestId: Id;
   provider: string;
   query: string;
+  mediaType?: "image" | "video" | "audio";
   createdAt: string;
 }
 
+/** 搜索是否完整独立保存；少量候选不代表已经检索完全部结果。 */
+export interface AssetSearchDiagnostics {
+  complete: boolean;
+  warnings: { code: string; message: string; source?: string; stage?: string; retryAfterMs?: number }[];
+}
+
 export interface AssetCandidate {
+  /** 采用方确认的具体用途依据，不把来源公开许可改成 cleared。 */
+  usageRights?: AssetProvenance["usageRights"];
   id: Id;
   assetRequestId: Id;
   searchIntentId: Id;
@@ -310,6 +321,8 @@ export interface Asset {
     version: string;
     engineVersion: string;
     previousAssetId?: Id;
+    /** 平台登记的派生来源；修改作品许可不能越过来源限制。 */
+    sourceAssetIds?: Id[];
     sourcePath: string;
     framesDirectory: string;
     frameCount: number;
@@ -692,7 +705,7 @@ export interface SpeechAlignment {
 export interface SpeechSegmentAsset {
   id: Id;
   speechSegmentId: Id;
-  voiceReferenceAssetId: Id;
+  voiceReferenceAssetId?: Id;
   voiceReferenceId?: Id;
   assetId: Id;
   durationMs: number;
@@ -1122,8 +1135,7 @@ export function inspectEffectContentContract(cue: EffectCue, assets: readonly As
       if (!asset?.motion) missing.push("已渲染的受管 Remotion 作品");
       else {
         if (asset.motion.frameCount !== cue.endFrame - cue.startFrame) missing.push("作品完整时长（不可隐式裁切或拉伸）");
-        // 明确待审的作品可进入草稿；审阅是否通过由交付质量门禁负责，不冒充内容缺失。
-        if (!["passed", "inconclusive"].includes(managedMotionReviewOutcome(asset.motion) ?? "")) missing.push("作品连续动态审阅，或明确登记 inconclusive 待审草稿");
+        // 审阅状态独立于技术就绪；未审或有观感问题的作品仍可放置和修订。
         if (canvas && (asset.motion.width !== canvas.width || asset.motion.height !== canvas.height || asset.motion.fps !== canvas.fps)) missing.push("与当前画布和帧率匹配的作品版本");
       }
       if (cue.assetBindings.length !== 1) missing.push("唯一的 motion 素材绑定；图片在作品内绑定");
@@ -1387,6 +1399,8 @@ export interface SourceCaptionProgram {
 }
 
 export interface CaptionCard {
+  /** 仅控制屏幕显示；省略沿用整卡显示，语音与源 token 始终保留。 */
+  display?: import("./caption-presentation.js").CaptionDisplay;
   id: Id;
   /** TTS / SpeechAsset 字幕才绑定 SpeechSegment；原声分块字幕没有伪造的 SpeechSegment。 */
   speechSegmentId?: Id;
@@ -1411,7 +1425,7 @@ export interface CaptionCard {
   /** derived 表示仍显示语音原文，manual 仅表示屏幕文案被单独编辑，不会改写 Script。 */
   textMode?: "derived" | "manual";
   /** 回听后的显示纠错；保留 Provider 原文和时间，不冒充强制对齐或修改声音。 */
-  sourceTextReview?: { sourceText: string; text: string; note: string; reviewedAt: string };
+  sourceTextReview?: SourceCaptionTextReviewInput & { sourceText: string; text: string; reviewedAt: string };
   startFrame: number;
   endFrame: number;
   style: "stable";
@@ -1422,6 +1436,8 @@ export interface CaptionCard {
 }
 
 export interface CaptionFormat {
+  /** 百分比静态框，锚定左上角；存在时优先于旧底部布局。 */
+  placement?: import("./caption-presentation.js").CaptionPlacement;
   fontSize: number;
   fontWeight: number;
   color: string;
@@ -1469,6 +1485,12 @@ export interface Marker {
   level: "info" | "warning" | "blocking";
 }
 
+/** 兼容旧的仅 note 回听记录；其它依据必须明确来源，不能冒充听审。 */
+export type SourceCaptionTextReviewInput =
+  | { basis?: "listening"; note: string }
+  | { basis: "confirmed_script"; note: string; scriptRevision: number; speechSegmentIds: Id[] }
+  | { basis: "user_instruction"; note: string; instruction: string; source: string };
+
 export interface QualityIssue {
   id: Id;
   level: "blocking" | "warning";
@@ -1479,6 +1501,8 @@ export interface QualityIssue {
   /** 保留人工判断来源，不冒充自动检测。 */
   editorialFindingId?: Id;
   editorialSeverity?: EditorialReviewSeverity;
+  /** 仅用于技术/权利阻挡；缺省同时适用于两种导出用途。 */
+  blockingPurposes?: ExportPurpose[];
 }
 
 /** 质量 Skill 的四轮审片及模式专项检查，必须说明实际看过的范围。 */
@@ -1548,6 +1572,8 @@ export interface QualityReport {
   generatedAt: string;
   /** 可由代码确定的结构与媒体规则。 */
   technical: QualityIssue[];
+  /** 生成文件的条件独立于辅助审阅状态。 */
+  exportReadiness: Record<ExportPurpose, { allowed: boolean; blockers: QualityIssue[] }>;
   /** 由 Skill + 真实预览补充的编辑判断；未评审时保持空数组而不是伪造通过。 */
   editorial: {
     status: "not_recorded" | "partial" | "reviewed" | "stale";
@@ -1587,6 +1613,15 @@ export interface QualityReport {
 /** incomplete 表示已经尝试收口，但缺少阶段 1 的必需证据；仍可继续补充同一 Run。 */
 export type ProductionRunStatus = "active" | "incomplete" | "completed" | "abandoned";
 
+/** 协调者记录的子代理来源，只用于追溯，不认证宿主身份或代替实际调用证据。 */
+export interface CreativeDelegation {
+  agentId: string;
+  assignmentId: string;
+  role: "director" | "specialist" | "reviewer";
+  /** 子代理实际使用的历史版本；记录审计时不得替换成当前版本。 */
+  inputRevision: number;
+}
+
 export interface CreativeDecision {
   id: Id;
   category: "story" | "semantic" | "scene" | "visual" | "audio" | "quality";
@@ -1595,6 +1630,8 @@ export interface CreativeDecision {
   objectIds: Id[];
   evidence: string[];
   alternatives?: string[];
+  /** 旧报告及用户已明确指定的操作可以省略；对象和产物沿用 objectIds、evidence。 */
+  delegation?: CreativeDelegation;
   createdAt: string;
 }
 
@@ -1760,6 +1797,8 @@ export interface ProjectSnapshot {
   /** 只保存正式声音意图及采用依据；模型原文、分窗与索引不进入快照。 */
   soundPlans?: SoundPlan[];
   audioOutputTarget?: { targetLufs: number; toleranceLu: number; maxTruePeakDbfs: number };
+  /** 最终混合的绝对增益；旧版本缺省为 0 dB，不改各轨音量。 */
+  audioMixGainDb?: number;
   soundReviews?: Array<{ baseRevision: number; previewJobId: string; previewHash?: string; outcome: "passed" | "failed" | "inconclusive"; method: "audio" | "audiovisual"; note: string; signature: string; fromFrame: number; toFrame: number; recordedAt: string }>;
   mediaAdoptions?: MediaAdoption[];
   voiceReferences: VoiceReference[];
@@ -1841,6 +1880,8 @@ export interface RenderPreflight {
   id: Id;
   projectId: Id;
   revision: number;
+  /** 旧记录缺省为 delivery。 */
+  purpose?: ExportPurpose;
   status: "passed" | "failed";
   checks: RenderPreflightCheck[];
   checkedAt: string;
@@ -1859,6 +1900,7 @@ export interface AttributionManifestEntry {
   licenseUrl?: string;
   attributionText?: string;
   rightsStatus: AssetProvenance["rightsStatus"];
+  usageRights?: AssetProvenance["usageRights"];
 }
 
 export interface AttributionManifest {
@@ -1886,6 +1928,9 @@ export interface ExportArtifactReview {
 export interface ExportArtifactApproval {
   approvedAt: string;
   note?: string;
+  /** 新批准显式记录人工确认及文件身份，旧记录不补造确认来源。 */
+  confirmedByUser?: true;
+  fileHash?: string;
 }
 
 /**

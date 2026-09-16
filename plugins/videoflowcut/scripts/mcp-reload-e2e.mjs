@@ -31,7 +31,8 @@ try {
   await ensureRuntime({ ...options, pluginRoot: baselineRoot });
   transport = new StdioClientTransport({
     command: process.execPath,
-    args: [join(verifyMotionReference ? baselineRoot : pluginRoot, "scripts", "mcp-launcher.mjs")], cwd: repoRoot, stderr: "pipe",
+    // 模拟真实旧会话：首次暴露的 Schema 必须也来自基线，不能把新版目录套在旧业务进程上。
+    args: [join(baselineRoot, "scripts", "mcp-launcher.mjs")], cwd: repoRoot, stderr: "pipe",
     env: { ...process.env, VIDEOFLOWCUT_REPO_ROOT: repoRoot, VIDEOCUT_WORKSPACE: workspaceRoot, VIDEOFLOWCUT_PORT: String(port), COMFYUI_BRIDGE_URL: options.bridgeUrl }
   });
   const client = new Client({ name: "videoflowcut-live-reload-verification", version: "1.0.0" });

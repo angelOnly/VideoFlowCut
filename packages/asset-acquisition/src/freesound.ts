@@ -1,4 +1,5 @@
 import type { AssetCandidate, AssetRequest } from "@videocut/contracts";
+import { assetSingleAttemptFetch, assetDownloadFetch } from "./http.js";
 import { AssetProviderError, downloadHttpFile, saveProviderMediaResponse, type AssetProvider, type ProviderSearchCandidate } from "./index.js";
 
 type Sound = { id: number; name: string; url: string; duration: number; username: string; license: string; tags?: string[]; type?: string; previews?: Record<string, string> };
@@ -12,7 +13,7 @@ export class FreesoundProvider implements AssetProvider {
   readonly previewHosts = ["cdn.freesound.org", "freesound.org"];
   constructor(private readonly apiKey: string, private readonly oauthToken?: string) {}
   private async request(path: string): Promise<unknown> {
-    const response = await fetch(`https://freesound.org/apiv2${path}`, { headers: { Authorization: `Token ${this.apiKey}` }, redirect: "error", signal: AbortSignal.timeout(20_000) });
+    const response = await assetSingleAttemptFetch(`https://freesound.org/apiv2${path}`, { headers: { Authorization: `Token ${this.apiKey}` }, redirect: "error", signal: AbortSignal.timeout(20_000) });
     if (response.status === 429) throw new AssetProviderError("Freesound 限流，请按来源要求稍后重试", "FREESOUND_RATE_LIMITED");
     if (response.status === 401 || response.status === 403) throw new AssetProviderError("Freesound 凭据或 API 使用权限不可用", "FREESOUND_AUTH_FAILED");
     if (!response.ok) throw new AssetProviderError(`Freesound HTTP ${response.status}`, "FREESOUND_HTTP_ERROR");
@@ -31,7 +32,7 @@ export class FreesoundProvider implements AssetProvider {
     const sound = await this.request(`/sounds/${candidate.originalAssetId}/`) as Sound;
     if (String(sound.id) !== candidate.originalAssetId) throw new AssetProviderError("返回的原文件身份与候选不一致", "FREESOUND_CANDIDATE_INVALID");
     if (freesoundRights(sound.license) !== candidate.rightsStatus || sound.license !== candidate.license) throw new AssetProviderError("声音许可已变化，需要重新选择", "FREESOUND_LICENSE_CHANGED");
-    const response = await fetch(`https://freesound.org/apiv2/sounds/${sound.id}/download/`, { headers: { Authorization: `Bearer ${this.oauthToken}` }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+    const response = await assetDownloadFetch(`https://freesound.org/apiv2/sounds/${sound.id}/download/`, { headers: { Authorization: `Bearer ${this.oauthToken}` }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
     if (response.status === 401 || response.status === 403) throw new AssetProviderError("Freesound OAuth 或原文件权限不可用", "FREESOUND_AUTH_FAILED");
     if (response.status === 429) throw new AssetProviderError("Freesound 原文件下载限流", "FREESOUND_RATE_LIMITED");
     const extension = ["wav", "mp3", "flac", "ogg", "aiff", "aif"].includes(sound.type ?? "") ? sound.type : "wav";

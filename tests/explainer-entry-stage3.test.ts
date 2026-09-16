@@ -279,7 +279,17 @@ test("MCP 入口以 snake_case 走完整 Explainer 编译并在错误时保留�
   const client = new Client({ name: "videocut-explainer-mcp-entry-test", version: "1.0.0" });
   try {
     await client.connect(transport);
-    const toolNames = new Set((await client.listTools()).tools.map((tool) => tool.name));
+    const liveTools = (await client.listTools()).tools;
+    const toolNames = new Set(liveTools.map((tool) => tool.name));
+    const evidenceTool = liveTools.find((tool) => tool.name === "manage_evidence_capture")!;
+    assert.match(evidenceTool.description!, /create 必须提供.*1到12个 highlights/u);
+    assert.match(evidenceTool.description!, /update 省略字段会保留原值.*remove 无需 highlights/u);
+    const highlightSchema = evidenceTool.inputSchema.properties!.highlights as { description: string; items: { properties: Record<string, { description: string }> } };
+    assert.match(highlightSchema.description, /不包含播放器留白或画布尺寸/u);
+    assert.match(highlightSchema.items.properties.x!.description, /页面快照宽度.*不是像素/u);
+    assert.match(highlightSchema.items.properties.y!.description, /页面快照高度.*不是像素/u);
+    assert.match(highlightSchema.items.properties.width!.description, /x\+width<=1/u);
+    assert.match(highlightSchema.items.properties.height!.description, /y\+height<=1/u);
     for (const name of ["import_media", "read_narrative_map", "manage_narrative_map", "read_evidence_capture", "manage_evidence_capture", "read_explainer_scene_programs", "compile_explainer_scenes", "read_quality_report"]) {
       assert.ok(toolNames.has(name), `MCP 缺少阶段 3 入口：${name}`);
     }

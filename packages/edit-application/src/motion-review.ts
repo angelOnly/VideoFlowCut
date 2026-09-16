@@ -24,7 +24,9 @@ export async function validateMotionReviewEvidence(snapshot: ProjectSnapshot, re
       && cue.assetBindings.some(binding => binding.slot === "motion" && binding.assetId === asset.id)
       && cue.startFrame < input.endFrame && cue.endFrame > input.startFrame);
     const cue = outcome === "passed" ? cues.find(c => input.startFrame <= c.startFrame && input.endFrame >= c.endFrame) : cues[0];
-    if (!cue) throw new DomainError("目标版本未参与该观察范围的合成，或未完整覆盖作品", "MOTION_REVIEW_CUE_MISMATCH");
+    if (!cue) throw new DomainError(outcome === "passed"
+      ? "project_preview 使用项目全局帧；passed 的观察范围必须完整覆盖目标版本的有效 Cue"
+      : "project_preview 使用项目全局帧；观察范围未与目标版本的有效 Cue 相交，不能传入作品局部帧", "MOTION_REVIEW_CUE_MISMATCH");
     const [record] = await validateEditorialObservations(snapshot, revision, jobs, [{ ...input, previewJobId: input.previewJobId,
       pass: input.method === "audio" ? "audio_only" : input.method === "audiovisual" ? "audiovisual" : "mute_visual", observation: "校验此作品版本在合成范围内的真实媒体，具体审阅写入作品说明。" }]);
     evidence = { ...input, relativePath: record!.relativePath, contentHash: record!.contentHash, revision,

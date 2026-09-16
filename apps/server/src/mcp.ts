@@ -1,3 +1,5 @@
+import { captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
+import { sourceCaptionTextReviewSchema, assetUsageRightsInputSchema } from "../../../packages/contracts/src/editorial-inputs.js";
 import { registerSoundTools } from "./sound-tools.js";
 import { audioDesignSchema, soundRequirementSchema } from "../../../packages/edit-application/src/sound-design.js";
 import { assetRequestVersion } from "../../../packages/media-intelligence/src/index.js";
@@ -7,11 +9,12 @@ import { basename, extname, join, resolve } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { createDefaultAssetProviderRegistry } from "@videocut/acquisition";
+import { AssetProviderError, createDefaultAssetProviderRegistry } from "@videocut/acquisition";
+import { assetSearchErrorResult } from "./asset-search-errors.js";
 import { createApplication, PROJECT_DATABASE_TABLES } from "@videocut/application";
 import { DomainError } from "@videocut/domain";
 import { getProjectOverview, readRuntimeConfig } from "@videocut/project-overview";
-import { evaluateQuality } from "@videocut/quality";
+import { evaluateQuality, evaluateQualityWithBrowser } from "@videocut/quality";
 import { EFFECT_QUALITY_RULES, EFFECT_TYPES, type Asset, type AssetProvenance } from "@videocut/contracts";
 import { inspectComposedFrames } from "./preview-inspection.js";
 import { inspectAsset } from "./source-review.js";
@@ -100,7 +103,8 @@ const assetProvenanceSchema = z.object({
   license: z.string().max(500).optional(),
   license_url: z.string().url().max(2_000).optional(),
   attribution_text: z.string().max(1_000).optional(),
-  rights_status: z.enum(["unknown", "cleared", "attribution_required", "restricted", "rejected"])
+  rights_status: z.enum(["unknown", "cleared", "attribution_required", "restricted", "rejected"]),
+  usage_rights: assetUsageRightsInputSchema.optional().describe("仅凭真实许可依据指定 draft 内部审阅、delivery 对外交付；不提供则沿用原限制")
 });
 type McpAssetProvenance = z.infer<typeof assetProvenanceSchema>;
 
@@ -157,10 +161,10 @@ const explainerKindSchema = z.enum([
   "RealityBroll"
 ]);
 const evidenceHighlightSchema = z.object({
-  x: z.number().min(0).max(1),
-  y: z.number().min(0).max(1),
-  width: z.number().positive().max(1),
-  height: z.number().positive().max(1),
+  x: z.number().min(0).max(1).describe("页面快照左边缘到高亮框左边缘的距离 / 页面快照宽度，0到1；不是像素"),
+  y: z.number().min(0).max(1).describe("页面快照上边缘到高亮框上边缘的距离 / 页面快照高度，0到1；不是像素"),
+  width: z.number().positive().max(1).describe("高亮框宽度 / 页面快照宽度，大于0且x+width<=1"),
+  height: z.number().positive().max(1).describe("高亮框高度 / 页面快照高度，大于0且y+height<=1"),
   label: z.string().min(1).max(160).optional()
 }).strict().refine((highlight) => highlight.x + highlight.width <= 1 && highlight.y + highlight.height <= 1, {
   message: "证据高亮必须位于归一化页面范围内"
@@ -196,7 +200,8 @@ function provenanceFromMcp(input?: McpAssetProvenance): Omit<AssetProvenance, "a
     license: optional(input.license),
     licenseUrl: optional(input.license_url),
     attributionText: optional(input.attribution_text),
-    rightsStatus: input.rights_status
+    rightsStatus: input.rights_status,
+    usageRights: input.usage_rights ? { ...input.usage_rights, confirmedAt: new Date().toISOString() } : undefined
   };
 }
 
@@ -239,6 +244,7 @@ server.registerTool("read_project_overview", {
   annotations: { readOnlyHint: true }
 }, async () => asText({
   ...getProjectOverview(),
+  assetProviders: assetProviders.catalog(),
   // 表结构来自真实 DDL 的唯一来源，不在总览中复制一份易漂移的 Schema。
   database: {
     engine: "SQLite",
@@ -284,6 +290,7 @@ server.registerTool("create_project", {
   description: "创建含 Revision 1 的项目与受管媒体目录。",
   inputSchema: {
     name: z.string().min(1),
+    brief: z.object({ captionMode: z.enum(["stable", "none"]).optional() }).strict().optional(),
     profile: z.enum(["presenter_motion", "visual_explainer", "vlog", "hybrid"]).optional()
   }
 }, async (input) => {
@@ -644,15 +651,15 @@ server.registerTool("browse_assets", {
 
 server.registerTool("inspect_asset", {
   title: "审阅原素材",
-  description: "只读地按 overview、range 或 dense 获取原素材的连续声画、联系表、声音辅助证据、转写、Shot 与当前使用位置。派生文件只写入可重建缓存，不会创建 Revision 或自动做剪辑判断。",
+  description: "只读地按 overview、range 或 dense 获取原素材的连续声画、联系表、声音辅助证据、转写、Shot 与当前使用位置。overview覆盖素材全长的概览，不生成完整连续代理；range最长60秒，dense最长12秒，源范围按项目fps的半开区间[start,end)计，range/dense必须提供起止帧。联系表上限分别为25/24/48帧。overview的声音只确认音轨；range/dense提供当前窗口的波形、静音和meanVolumeDb/maxVolumeDb（dBFS），均不提供LUFS或true peak，不能拼接短窗口读数推断全片响度。需要实际合成响度时，通过render_preview_range生成目标范围，再读取成功Job.result.audio；只有覆盖完整Timeline的输出才是全片混合测量，当前没有直接测原素材全长LUFS的独立MCP入口。音视频返回 reviewPath，只读审阅页面提供播放、暂停、重播和进度控件，浏览器优先打开此路径。派生文件只写入可重建缓存，不会创建 Revision 或自动做剪辑判断。",
   inputSchema: {
     project_id: z.string().optional(),
     asset_id: z.string().min(1),
-    mode: z.enum(["overview", "range", "dense"]).default("overview"),
-    source_start_frame: z.number().int().nonnegative().optional(),
-    source_end_frame: z.number().int().positive().optional(),
+    mode: z.enum(["overview", "range", "dense"]).default("overview").describe("overview为全长概览；range最长60秒，dense最长12秒；后两者必填源起止帧。"),
+    source_start_frame: z.number().int().nonnegative().optional().describe("源起始帧（含），按项目fps计；range/dense必填。"),
+    source_end_frame: z.number().int().positive().optional().describe("源结束帧（不含），按项目fps计；range/dense必填，差值分别≤60×fps/12×fps，且不超过素材真实范围。"),
     // 与 HTTP 合同保持一致；不同入口不能对同一请求给出不同的帧数边界。
-    contact_sheet_frames: z.number().int().positive().max(48).optional()
+    contact_sheet_frames: z.number().int().positive().max(48).optional().describe("联系表采样数：overview为1–25，range为1–24，dense为1–48。")
   },
   annotations: { readOnlyHint: true }
 }, async ({ project_id, asset_id, mode, source_start_frame, source_end_frame, contact_sheet_frames }) => {
@@ -722,17 +729,26 @@ server.registerTool("manage_asset_requirements", {
   } catch (error) { return asError(error); }
 });
 
+server.registerTool("list_asset_providers", {
+  title: "读取素材服务目录",
+  description: "只读返回真实注册服务的准确 id、支持媒体类型、查询形式与配置缺口；enabled 表示已注册，不代表外网或下载器已通过连通性验证。",
+  inputSchema: {},
+  annotations: { readOnlyHint: true }
+}, async () => asText({ providers: assetProviders.catalog(), network: { proxyConfigured: Boolean(process.env.https_proxy || process.env.HTTPS_PROXY || process.env.http_proxy || process.env.HTTP_PROXY), scope: "素材外网请求；本地地址直连" } }));
+
 server.registerTool("search_media_candidates", {
   title: "搜索素材候选",
-  description: "将已存在的素材需求交给已配置 Provider 查询，将候选、来源、授权与预过滤保存在独立搜索会话，不改变创作 Revision；不会下载或自动选入成片。",
+  description: "先从 list_asset_providers 选择准确 provider id。media_type 明确筛选图片/视频/音频；youtube 的 query 是选中的单条 HTTPS 视频页面（不是关键词）。返回 diagnostics.complete 和 warnings，部分结果不能视为完整搜索。仅保存独立搜索会话，不改变创作 Revision，不下载或自动采用素材。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
     asset_request_id: z.string().min(1),
-    provider: z.string().trim().min(1).max(80),
+    provider: z.string().trim().min(1).max(80).describe("使用 list_asset_providers 返回的 id，例如 wikimedia-commons"),
+    media_type: z.enum(["image", "video", "audio"]).optional(),
     query: z.string().trim().min(1).max(400)
   }
-}, async ({ project_id, base_revision_id, asset_request_id, provider, query }) => {
+}, async ({ project_id, base_revision_id, asset_request_id, provider, query, media_type }) => {
+  let beforePersistence = true;
   try {
     const projectId = projectIdFrom(project_id);
     const state = application.readProject(projectId);
@@ -741,9 +757,14 @@ server.registerTool("search_media_candidates", {
     }
     const request = state.snapshot.assetRequests.find((entry) => entry.id === asset_request_id);
     if (!request) throw new DomainError(`素材需求不存在：${asset_request_id}`, "ASSET_REQUEST_NOT_FOUND");
-    const candidates = await assetProviders.get(provider).search({ request, query });
-    return asText(application.recordAssetSearch({ projectId, baseRevision: base_revision_id, assetRequestId: asset_request_id, provider, query, candidates, requestVersion: assetRequestVersion(request) }));
-  } catch (error) { return asError(error); }
+    const source = assetProviders.get(provider);
+    if (media_type && !assetProviders.catalog().find(entry => entry.id === provider)?.mediaTypes.includes(media_type)) throw new AssetProviderError("该素材服务不支持所选媒体类型，请查看服务目录", "ASSET_MEDIA_TYPE_UNSUPPORTED", { provider, stage: "provider", recovery: "change_media_type" });
+    const input = { request, query, mediaType: media_type };
+    const result = source.searchDetailed ? await source.searchDetailed(input) : { candidates: await source.search(input), complete: true, warnings: [] };
+    const candidates = result.candidates.filter(candidate => !media_type || (candidate.kind ?? "video") === media_type);
+    beforePersistence = false;
+    return asText(application.recordAssetSearch({ projectId, baseRevision: base_revision_id, assetRequestId: asset_request_id, provider, query, candidates, mediaType: media_type, diagnostics: { complete: result.complete, warnings: result.warnings }, requestVersion: assetRequestVersion(request) }));
+  } catch (error) { return assetSearchErrorResult(error, beforePersistence); }
 });
 
 server.registerTool("inspect_media_candidate", {
@@ -757,16 +778,17 @@ server.registerTool("inspect_media_candidate", {
 
 server.registerTool("acquire_media_asset", {
   title: "下载并本地化素材候选",
-  description: "只允许已通过技术和授权过滤的候选进入异步下载任务。Worker 会校验 MIME、文件头、内容哈希和 ffprobe 后才登记正式 Asset。",
+  description: "只允许通过技术过滤且具备来源许可或明确用途依据的候选进入异步下载任务。Worker 会校验 MIME、文件头、内容哈希和 ffprobe 后才登记正式 Asset。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
     asset_candidate_id: z.string().min(1),
+    usage_rights: assetUsageRightsInputSchema.optional().describe("已核实的具体使用许可依据与用途；不伪造来源 cleared，也不绕过技术或人工拒绝。"),
     idempotency_key: z.string().min(1).max(240).optional()
   }
-}, async ({ project_id, base_revision_id, asset_candidate_id, idempotency_key }) => {
+}, async ({ project_id, base_revision_id, asset_candidate_id, idempotency_key, usage_rights }) => {
   try {
-    return asText(application.acquireAssetCandidate({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, assetCandidateId: asset_candidate_id, idempotencyKey: idempotency_key }));
+    return asText(application.acquireAssetCandidate({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, assetCandidateId: asset_candidate_id, idempotencyKey: idempotency_key, usageRights: usage_rights }));
   } catch (error) { return asError(error); }
 });
 
@@ -1203,7 +1225,7 @@ server.registerTool("rebuild_speech_timeline", {
 
 server.registerTool("submit_voice_synthesis", {
   title: "提交段级声音合成",
-  description: "用已登记的本地 VoiceReference 加当前 SpeechSegment 文本调用 OmniVoice；返回可跟踪 Job。",
+  description: "按当前 SpeechSegment 文本调用 OmniVoice；省略参考参数时由服务端使用已配置的本地音色，不必向用户索要音频路径。指定 VoiceReference 时上传该参考覆盖默认音色。返回可跟踪 Job；默认音色工作流未配置时明确报错。",
   inputSchema: {
     project_id: z.string().optional(),
     voice_reference_id: z.string().min(1).optional(),
@@ -1277,7 +1299,7 @@ server.registerTool("read_captions", {
 
 server.registerTool("edit_captions", {
   title: "编辑稳定字幕卡",
-  description: "可编辑当前 SpeechAsset 或已审计 source_audio Caption Card 的屏幕文案、有限排版和一个连续短语强调；bulk_source_format 可原子统一同一 A-roll 的明确 Card 集合。不会改 Script、音频、Card 边界或时间范围；chunk_coarse 原声字幕不能被伪拆分或重定时。occurrence 从 0 开始计数。",
+  description: "可编辑当前 SpeechAsset 或已审计 source_audio Caption Card 的屏幕文案、显隐范围、静态位置和一个连续短语强调；bulk_source_format 可原子统一同一 A-roll 的明确 Card 集合。不会改 Script、音频、Card 边界或时间范围；chunk_coarse 原声字幕不能被伪拆分或重定时。occurrence 从 0 开始计数。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -1285,15 +1307,17 @@ server.registerTool("edit_captions", {
     caption_ids: z.array(z.string().min(1)).min(1).max(200).optional(),
     action: z.enum(["update", "reset", "bulk_source_format"]),
     text: z.string().max(80).optional(),
-    source_text_review: z.object({ note: z.string().min(1).max(1000).describe("实际回听确认的错词/数字显示纠正及理由；不是摘要改写，不改变原音频时间") }).strict().optional(),
+    display: captionDisplaySchema.nullable().optional().describe("仅改变显示。shown 可指定本卡内的时间线绝对帧半开 ranges；hidden 隐藏整卡；null 恢复整卡显示。"),
+    source_text_review: sourceCaptionTextReviewSchema.optional().describe("显示纠错依据：listening 实际回听（兼容仅 note）；confirmed_script 须提供 scriptRevision 和 speechSegmentIds 并核验当前配音关系；user_instruction 须提供 instruction 与 source。只改显示，不改变原音频或时间"),
     format: z.object({
+      placement: captionPlacementSchema.nullable().optional(),
       font_size: z.number().int().min(16).max(72).optional(),
       font_weight: z.number().int().min(400).max(900).optional(),
       color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").optional(),
       background_color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").nullable().optional(),
       background_opacity: z.number().min(0.1).max(1).nullable().optional(),
-      bottom_percent: z.number().min(4).max(20).optional(),
-      horizontal_inset_percent: z.number().min(3).max(20).optional(),
+      bottom_percent: z.number().min(0).max(95).optional(),
+      horizontal_inset_percent: z.number().min(0).max(45).optional(),
       text_align: z.enum(["left", "center", "right"]).optional()
     }).strict().optional(),
     emphasis: z.object({
@@ -1305,7 +1329,7 @@ server.registerTool("edit_captions", {
       scale: z.number().min(0.8).max(1.35).optional()
     }).strict().nullable().optional()
   }
-}, async ({ project_id, base_revision_id, caption_id, caption_ids, action, text, format, emphasis, source_text_review }) => {
+}, async ({ project_id, base_revision_id, caption_id, caption_ids, action, text, format, emphasis, source_text_review, display }) => {
   try {
     return asText(application.editCaptions({
       projectId: projectIdFrom(project_id),
@@ -1313,9 +1337,11 @@ server.registerTool("edit_captions", {
       captionId: caption_id,
       captionIds: caption_ids,
       sourceTextReview: source_text_review,
+      display,
       action,
       text,
       format: format === undefined ? undefined : {
+        placement: format.placement,
         fontSize: format.font_size,
         fontWeight: format.font_weight,
         color: format.color,
@@ -1557,7 +1583,7 @@ server.registerTool("read_evidence_capture", {
 
 server.registerTool("manage_evidence_capture", {
   title: "管理证据快照与页面高亮",
-  description: "登记或更新真实来源 Asset、非生成页面截图、原文摘录、主张、限制和页面高亮。更新会让依赖证据的 Explainer Scene 失效，待重新编译和预览。",
+  description: "登记或更新真实来源 Asset、非生成页面截图、原文摘录、主张、限制和页面高亮。create 必须提供 source_asset_id、source_title、source_url、excerpt、claim、limitation 和1到12个 highlights；update/remove 必须提供 evidence_capture_id，update 省略字段会保留原值，remove 无需 highlights。高亮按 snapshot_asset_id 对应页面快照的完整宽高归一化；未指定快照时使用 source_asset_id 页面。x/y为左上角，width/height为框大小，均为0到1比例而非像素，宽高必须大于0，x+width<=1且y+height<=1。更新会让依赖证据的 Explainer Scene 失效，待重新编译和预览。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -1573,7 +1599,7 @@ server.registerTool("manage_evidence_capture", {
     excerpt: z.string().min(1).max(8_000).optional(),
     claim: z.string().min(1).max(2_000).optional(),
     limitation: z.string().min(1).max(2_000).optional(),
-    highlights: z.array(evidenceHighlightSchema).min(1).max(12).optional()
+    highlights: z.array(evidenceHighlightSchema).min(1).max(12).optional().describe("create必填1到12个框；update省略时保留现有框，提供时替换全部框；remove无需提供。坐标相对完整页面快照宽高归一化，不包含播放器留白或画布尺寸。")
   }
 }, async (input) => {
   try {
@@ -2512,7 +2538,7 @@ server.registerTool("start_production_run", {
 
 server.registerTool("record_creative_decision", {
   title: "记录创作判断",
-  description: "把已加载 Skill 的创作决定、依据、安静区、效果取舍或预览证据写入当前 ProductionRun。",
+  description: "将创作决定、依据和证据写入 ProductionRun，不产生视频 Revision。协调者转录子代理结果时填写 delegation，关联真实代理标识、分派和输入历史版本；该来源为审计声明，不认证身份或代替宿主调用与真实审片。",
   inputSchema: {
     project_id: z.string().optional(),
     run_id: z.string().min(1),
@@ -2522,6 +2548,12 @@ server.registerTool("record_creative_decision", {
     object_ids: z.array(z.string()).max(80).optional(),
     evidence: z.array(z.string().max(1_000)).max(80).optional(),
     alternatives: z.array(z.string().max(1_000)).max(20).optional(),
+    delegation: z.object({
+      agent_id: z.string().trim().min(1).max(160),
+      assignment_id: z.string().trim().min(1).max(160),
+      role: z.enum(["director", "specialist", "reviewer"]),
+      input_revision: z.number().int().positive().max(Number.MAX_SAFE_INTEGER)
+    }).strict().optional(),
     quiet_range: z.object({ start_frame: z.number().int().min(0), end_frame: z.number().int().positive(), reason: z.string().min(1).max(800) }).optional(),
     effect_decision: z.string().max(2_000).optional(),
     rejected_alternative: z.string().max(2_000).optional(),
@@ -2540,6 +2572,12 @@ server.registerTool("record_creative_decision", {
       objectIds: input.object_ids,
       evidence: input.evidence,
       alternatives: input.alternatives,
+      delegation: input.delegation ? {
+        agentId: input.delegation.agent_id,
+        assignmentId: input.delegation.assignment_id,
+        role: input.delegation.role,
+        inputRevision: input.delegation.input_revision
+      } : undefined,
       quietRange: input.quiet_range ? { startFrame: input.quiet_range.start_frame, endFrame: input.quiet_range.end_frame, reason: input.quiet_range.reason } : undefined,
       effectDecision: input.effect_decision,
       rejectedAlternative: input.rejected_alternative,
@@ -2657,7 +2695,7 @@ server.registerTool("validate_project_graph", {
 
 server.registerTool("read_quality_report", {
   title: "读取质量报告",
-  description: "执行技术检查、从当前 Story/VisualTreatment/有效对象推导整片对账，并返回逐轮审阅缺口和跨 Run 未关闭问题；不会把对象存在、抽帧或局部审片伪装成整片通过。",
+  description: "执行技术检查、从当前Story/VisualTreatment/有效对象推导整片对账，并返回逐轮审阅缺口和跨Run未关闭问题。字幕使用与Renderer相同的已部署Chromium、字体、字号、字重和安全宽度批量实测；浏览器不可用会明确失败，不回退到字符宽度估算。不会把布局通过、对象存在、抽帧或局部审片伪装成整片通过；只读，不创建Job或视频Revision。",
   inputSchema: { project_id: z.string().optional() },
   annotations: { readOnlyHint: true }
 }, async ({ project_id }) => {
@@ -2665,13 +2703,13 @@ server.registerTool("read_quality_report", {
     const projectId = projectIdFrom(project_id);
     const state = application.readProject(projectId);
     const editorialReview = await application.readEditorialQualityReview({ projectId, revision: state.revision.number });
-    return asText(evaluateQuality(state.snapshot, state.revision.number, editorialReview));
+    return asText(await evaluateQualityWithBrowser(state.snapshot, state.revision.number, editorialReview));
   } catch (error) { return asError(error); }
 });
 
 server.registerTool("render_preview_range", {
   title: "渲染局部预览",
-  description: "固定指定 Revision 与帧范围，提交可追踪的 Remotion 局部预览任务。",
+  description: "固定指定 Revision 与帧范围，提交可追踪的 Remotion 预览任务。范围按Timeline的半开区间[from_frame,to_frame)计，省略时默认0到该Revision的timeline.durationInFrames；可覆盖全片，不适用inspect_asset的60秒/12秒短范围限制。track_job成功后的result包含revision/fromFrame/toFrame/sourceHash；有音轨时result.audio包含实际输出文件完整解码的integratedLufs、truePeakDbfs、loudnessRangeLu和method。测量只代表该输出的合成范围，局部值不能当全片值，也不是原WAV的独立测量或真实听审。",
   inputSchema: {
     project_id: z.string().optional(),
     revision: z.number().int().positive().optional(),
@@ -2685,11 +2723,11 @@ server.registerTool("render_preview_range", {
 
 server.registerTool("inspect_composed_frames", {
   title: "检查真实合成帧",
-  description: "从已完成的 Remotion 局部预览抽取进入、稳定、退出等关键帧；不会重新渲染或修改项目。",
+  description: "从已完成的 Remotion 预览抽取进入、稳定、退出等关键帧；frames若提供，每次必须为1–12个非负整数，使用项目全局帧并落在该Preview的[fromFrame,toFrame)内。合并多个专项证据点后须去重并按最多12帧分批读取同一preview_job_id；省略frames由服务选择关键帧。不会重新渲染或修改视频Revision。",
   inputSchema: {
     project_id: z.string().optional(),
     preview_job_id: z.string().min(1),
-    frames: z.array(z.number().int().nonnegative()).min(1).max(12).optional()
+    frames: z.array(z.number().int().nonnegative()).min(1).max(12).optional().describe("每次1–12个项目全局帧号，须位于当前Preview范围；更多证据点按最多12帧分批读取同一Preview。")
   },
   annotations: { readOnlyHint: true }
 }, async ({ project_id, preview_job_id, frames }) => {
@@ -2734,9 +2772,9 @@ server.registerTool("submit_export", {
 server.registerTool("run_render_preflight", {
   title: "执行渲染前检查",
   description: "固定目标 Revision，检查实际引用素材、本地文件、可解码性、权利、Mask 与当前 Remotion 组件依赖；检查通过不替代正式渲染或完整审片。",
-  inputSchema: { project_id: z.string().optional(), revision: z.number().int().positive().optional(), idempotency_key: z.string().optional() }
-}, async ({ project_id, revision, idempotency_key }) => {
-  try { return asText(application.submitRenderPreflight({ projectId: projectIdFrom(project_id), revision, idempotencyKey: idempotency_key })); } catch (error) { return asError(error); }
+  inputSchema: { project_id: z.string().optional(), revision: z.number().int().positive().optional(), purpose: z.enum(["draft", "delivery"]).optional(), idempotency_key: z.string().optional() }
+}, async ({ project_id, revision, purpose, idempotency_key }) => {
+  try { return asText(application.submitRenderPreflight({ projectId: projectIdFrom(project_id), revision, purpose, idempotencyKey: idempotency_key })); } catch (error) { return asError(error); }
 });
 
 server.registerTool("track_export", {
@@ -2764,11 +2802,11 @@ server.registerTool("read_export_artifact", {
 
 server.registerTool("record_export_artifact_review", {
   title: "记录最终文件复核",
-  description: "在实际播放指定 delivery 文件后，记录绑定该 ExportArtifact 的五轮成片复核；不会修改 Project Revision。",
+  description: "在实际播放指定 delivery 文件后，记录实际执行的文件复核轮次及问题，辅助审阅不阻挡导出或人工定稿；不会修改 Project Revision。",
   inputSchema: {
     project_id: z.string().optional(),
     artifact_id: z.string().min(1),
-    passes: z.array(z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"])).min(5).max(5),
+    passes: z.array(z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"])).min(1).max(5),
     evidence: z.array(z.string().min(1).max(2_000)).min(1).max(40),
     findings: z.array(z.object({
       pass: z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"]),
@@ -2808,10 +2846,10 @@ server.registerTool("record_export_artifact_review", {
 
 server.registerTool("approve_export_artifact", {
   title: "批准交付产物",
-  description: "把用户批准绑定到已完成五轮复核且文件哈希未变化的 delivery ExportArtifact；后续 Revision 不会改变该记录。",
-  inputSchema: { project_id: z.string().optional(), artifact_id: z.string().min(1), note: z.string().max(1_000).optional() }
-}, async ({ project_id, artifact_id, note }) => {
-  try { return asText(await application.approveExportArtifact({ projectId: projectIdFrom(project_id), artifactId: artifact_id, note })); } catch (error) { return asError(error); }
+  description: "仅在用户明确确认此文件后登记人工定稿；须传 file_hash 与 confirmed_by_user=true。无需 AI 五轮审阅；导出成功、AI 判断或用户沉默均不表示批准。后续 Revision 不继承此批准。",
+  inputSchema: { project_id: z.string().optional(), artifact_id: z.string().min(1), file_hash: z.string().regex(/^[a-f0-9]{64}$/u), confirmed_by_user: z.literal(true), note: z.string().max(1_000).optional() }
+}, async ({ project_id, artifact_id, file_hash, confirmed_by_user, note }) => {
+  try { return asText(await application.approveExportArtifact({ projectId: projectIdFrom(project_id), artifactId: artifact_id, fileHash: file_hash, confirmedByUser: confirmed_by_user, note })); } catch (error) { return asError(error); }
 });
 
 server.registerTool("track_job", {

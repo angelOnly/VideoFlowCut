@@ -29,6 +29,8 @@ export interface SourceReviewMediaFile {
   relativePath: string;
   /** 不绑定具体 Web Host 的媒体路由路径。 */
   mediaPath: string;
+  /** 音视频使用普通网页播放控件的只读入口，避免直接打开媒体页的宿主崩溃。 */
+  reviewPath?: string;
 }
 
 export interface SourceReviewFrame extends SourceReviewMediaFile {
@@ -155,7 +157,9 @@ function mediaPath(projectId: string, relativePath: string): string {
 
 function mediaFile(snapshot: ProjectSnapshot, relativePath: string): SourceReviewMediaFile {
   const normalized = relativePath.replace(/\\/gu, "/");
-  return { relativePath: normalized, mediaPath: mediaPath(snapshot.project.id, normalized) };
+  const path = mediaPath(snapshot.project.id, normalized);
+  const playable = /\.(mp4|webm|mov|mkv|mp3|wav|m4a|aac|ogg|flac)$/iu.test(normalized);
+  return { relativePath: normalized, mediaPath: path, ...(playable ? { reviewPath: path.replace(/^\/media\//u, "/review/") } : {}) };
 }
 
 function hashValue(value: unknown): string {
@@ -284,7 +288,7 @@ function sourceReviewRange(snapshot: ProjectSnapshot, asset: Asset, input: Inspe
   const maximumSeconds = input.mode === "dense" ? MAX_DENSE_SECONDS : MAX_RANGE_SECONDS;
   if ((endFrame - startFrame) / snapshot.timeline.fps > maximumSeconds) {
     const label = input.mode === "dense" ? "dense" : "range";
-    throw new DomainError(`${label} 审阅范围过长；请只展开会改变剪辑判断的最小窗口`, "SOURCE_REVIEW_RANGE_TOO_LONG");
+    throw new DomainError(`${label} 审阅范围过长；最长${maximumSeconds}秒（项目${snapshot.timeline.fps}fps下为${maximumSeconds * snapshot.timeline.fps}帧），当前${endFrame - startFrame}帧；请只展开会改变剪辑判断的最小窗口。此入口不提供LUFS或true peak`, "SOURCE_REVIEW_RANGE_TOO_LONG");
   }
   return rangeFromFrames(snapshot, startFrame, endFrame);
 }

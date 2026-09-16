@@ -1,3 +1,4 @@
+import { exportBlockingIssues } from "../../../packages/quality-system/src/export-policy.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
 import { usePreviewInput } from "./use-preview-input";
@@ -300,12 +301,8 @@ export function App() {
 
   const videoAssets = snapshot.assets.filter((asset) => (asset.kind === "video" || asset.kind === "actor_video") && asset.status === "ready");
   const selectedForTimeline = selectedARollIds.filter((assetId) => videoAssets.some((asset) => asset.id === assetId));
-  const blockingIssues = quality?.issues.filter((issue) => issue.level === "blocking") ?? [];
-  const draftBlockingIssues = quality?.technical.filter((issue) => issue.level === "blocking") ?? [];
-  const deliveryReviewReady = quality?.editorial.status === "reviewed"
-    && quality.editorial.previewEvidence.length > 0
-    && quality.editorial.passes.includes("audiovisual")
-    && quality.editorial.passes.includes("first_viewer");
+  const blockingIssues = quality ? exportBlockingIssues(quality, "delivery") : [];
+  const draftBlockingIssues = quality ? exportBlockingIssues(quality, "draft") : [];
 
   return (
     <main className="workbench" data-testid="workbench" data-project-id={snapshot.project.id} data-revision={currentRevision}>
@@ -331,8 +328,8 @@ export function App() {
           toFrame: Math.min(snapshot.timeline.durationInFrames, Math.max(playhead + snapshot.timeline.fps * 3, snapshot.timeline.fps))
         }))} disabled={busy || !snapshot.timeline.durationInFrames}>局部预览</button>
         <button onClick={() => void act("执行渲染前检查", () => api.renderPreflight(snapshot.project.id, currentRevision))} disabled={busy || !snapshot.timeline.durationInFrames}>渲染预检</button>
-        <button onClick={() => void act("提交草稿导出", () => api.export(snapshot.project.id, currentRevision, "draft"))} disabled={busy || draftBlockingIssues.length > 0}>草稿导出</button>
-        <button className="primary" data-testid="export-button" onClick={() => void act("提交交付导出", () => api.export(snapshot.project.id, currentRevision, "delivery"))} disabled={busy || blockingIssues.length > 0 || !deliveryReviewReady} title={deliveryReviewReady ? "" : "交付导出需要当前 Revision 的真实预览、完整声画审片和首次观众复核"}>交付导出</button>
+        <button onClick={() => void act("提交草稿导出", () => api.export(snapshot.project.id, currentRevision, "draft"))} disabled={busy || draftBlockingIssues.length > 0} title={draftBlockingIssues.map(issue => issue.message).join("；")}>草稿导出</button>
+        <button className="primary" data-testid="export-button" onClick={() => void act("提交交付导出", () => api.export(snapshot.project.id, currentRevision, "delivery"))} disabled={busy || blockingIssues.length > 0} title={blockingIssues.map(issue => issue.message).join("；")}>交付导出</button>
       </header>
 
       <section className="editor-grid">
@@ -411,8 +408,9 @@ export function App() {
             onRetryJob={(jobId) => void act("重试任务", () => api.retryJob(jobId))}
             onRunAdvancedAction={(label, operation) => void act(label, operation)}
             onApproveExportArtifact={(artifactId) => {
-              if (window.confirm("确认已完整播放并试听此最终文件，且同意批准这个固定 Artifact 吗？")) {
-                void act("批准交付产物", () => api.approveExportArtifact(snapshot.project.id, artifactId));
+              const artifact = exportArtifacts.find(entry => entry.id === artifactId);
+              if (artifact && window.confirm(`确认已观看并同意将 R${artifact.revision} 的这个文件定稿吗？未关闭的辅助审阅提示将保留。`)) {
+                void act("批准交付产物", () => api.approveExportArtifact(snapshot.project.id, artifactId, artifact.fileHash));
               }
             }}
             onRollback={(revision) => void act("回退 Revision", () => api.rollback(snapshot.project.id, revision, currentRevision))}
@@ -654,13 +652,13 @@ function PanelContent(props: PanelContentProps) {
   }
   return <>
     <PanelTitle title="Jobs / Quality / Revision" meta="统一状态" />
-    <section className="quality-section"><h3>质量门禁</h3>{props.quality && <p className="quality-review-status">编辑审片：{props.quality.editorial.status === "reviewed" ? "本版五轮覆盖完整" : props.quality.editorial.status === "partial" ? "阶段记录，整片尚未审完" : props.quality.editorial.status === "stale" ? "已过期，需复核当前 Revision" : "尚未记录"} · 预览证据 {props.quality.editorial.previewEvidence.length} 条</p>}{props.quality?.issues.length ? props.quality.issues.map((issue) => <div className={`quality-row ${issue.level}`} key={issue.id}><strong>{issue.level === "blocking" ? "阻塞" : "建议"}</strong><span>{issue.message}</span></div>) : <p className="success-text">没有检测到结构性问题</p>}</section>
+    <section className="quality-section"><h3>技术检查与审阅提示</h3>{props.quality && <p className="quality-review-status">辅助审阅（不阻挡导出）：{props.quality.editorial.status === "reviewed" ? "本版五轮覆盖完整" : props.quality.editorial.status === "partial" ? "阶段记录，整片尚未审完" : props.quality.editorial.status === "stale" ? "已过期，需复核当前 Revision" : "尚未记录"} · 预览证据 {props.quality.editorial.previewEvidence.length} 条</p>}{props.quality?.issues.length ? props.quality.issues.map((issue) => <div className={`quality-row ${issue.editorialSeverity ? "warning" : issue.level}`} key={issue.id}><strong>{issue.editorialSeverity ? "审阅提示" : issue.level === "blocking" ? `阻挡${issue.blockingPurposes?.length === 1 ? issue.blockingPurposes[0] === "draft" ? "内部审阅" : "对外交付" : "导出"}` : "建议"}</strong><span>{issue.message}</span></div>) : <p className="success-text">没有检测到结构性问题</p>}</section>
     <section><h3>任务</h3>{props.jobs.map((job) => <div className="job-row" key={job.id} data-testid={`job-${job.id}`} data-object-id={job.id}><span className={`status status-${job.status}`}>{statusText(job.status)}</span><div><strong>{job.kind}</strong><small>{job.error ?? job.id.slice(0, 14)}</small></div>{job.status === "failed" && <button onClick={() => props.onRetryJob(job.id)}>重试</button>}</div>)}</section>
     <section><h3>Export Artifact</h3>{props.exportArtifacts.length === 0
-      ? <p className="empty-panel">尚无最终文件。先运行预检、导出，再对实际文件完成五轮复核。</p>
+      ? <p className="empty-panel">尚无导出文件。技术与用途条件满足即可导出，观看后由用户决定是否定稿。</p>
       : props.exportArtifacts.map((artifact) => <article className="artifact-row" key={artifact.id} data-testid={`export-artifact-${artifact.id}`} data-object-id={artifact.id}>
-        <div><strong>{artifact.purpose === "delivery" ? "交付" : "草稿"} · R{artifact.revision}</strong><small>预检 {artifact.preflight.status === "passed" ? "通过" : "失败"} · {artifact.validation.durationMs}ms · SHA-256 {artifact.fileHash.slice(0, 12)}…</small><small>{artifact.approval ? `已批准 · ${artifact.approval.approvedAt}` : artifact.artifactReview ? "成片复核已记录，等待用户批准" : "尚未记录绑定最终文件的成片复核"}</small></div>
-        <div className="artifact-actions"><a href={mediaUrl(snapshot, API_BASE, artifact.relativePath)} target="_blank" rel="noreferrer">打开文件</a>{artifact.purpose === "delivery" && !artifact.approval && <button onClick={() => props.onApproveExportArtifact(artifact.id)}>批准</button>}</div>
+        <div><strong>{artifact.purpose === "delivery" ? "交付" : "草稿"} · R{artifact.revision}</strong><small>预检 {artifact.preflight.status === "passed" ? "通过" : "失败"} · {artifact.validation.durationMs}ms · SHA-256 {artifact.fileHash.slice(0, 12)}…</small><small>{artifact.approval ? `人工已定稿 · ${artifact.approval.approvedAt}` : "文件已导出 · 尚未人工定稿"}</small></div>
+        <div className="artifact-actions"><a href={mediaUrl(snapshot, API_BASE, artifact.relativePath)} target="_blank" rel="noreferrer">打开文件</a>{artifact.purpose === "delivery" && !artifact.approval && <button onClick={() => props.onApproveExportArtifact(artifact.id)}>人工定稿</button>}</div>
       </article>)}</section>
     <section><h3>Revision</h3>{props.revisions.map((revision) => <div className="revision-row" key={revision.id} data-testid={`revision-${revision.number}`} data-object-id={revision.id}><div><strong>R{revision.number}</strong><span>{revision.summary}</span></div>{revision.number !== props.currentRevision && <button onClick={() => props.onRollback(revision.number)}>回退</button>}</div>)}</section>
   </>;
@@ -837,14 +835,18 @@ function CaptionEditor({ caption, disabled, onSeek, onSave }: {
   const [text, setText] = useState(caption.text);
   const [fontSize, setFontSize] = useState(caption.format?.fontSize ?? 32);
   const [bottomPercent, setBottomPercent] = useState(caption.format?.bottomPercent ?? 7);
+  const [shown, setShown] = useState(caption.display?.mode !== "hidden");
+  const [placement, setPlacement] = useState(caption.format?.placement);
   const [emphasisText, setEmphasisText] = useState(caption.emphasis?.text ?? "");
 
   useEffect(() => {
+    setShown(caption.display?.mode !== "hidden");
+    setPlacement(caption.format?.placement);
     setText(caption.text);
     setFontSize(caption.format?.fontSize ?? 32);
     setBottomPercent(caption.format?.bottomPercent ?? 7);
     setEmphasisText(caption.emphasis?.text ?? "");
-  }, [caption.id, caption.text, caption.format?.fontSize, caption.format?.bottomPercent, caption.emphasis?.text]);
+  }, [caption.display, caption.format?.placement, caption.id, caption.text, caption.format?.fontSize, caption.format?.bottomPercent, caption.emphasis?.text]);
 
   const save = () => {
     const phrase = emphasisText.trim();
@@ -852,7 +854,8 @@ function CaptionEditor({ caption, disabled, onSeek, onSave }: {
     onSave(caption.id, {
       action: "update",
       text,
-      format: { fontSize, bottomPercent },
+      format: { fontSize, bottomPercent, placement: placement ?? null },
+      display: shown ? { mode: "shown", ...(caption.display?.mode === "shown" && caption.display.ranges ? { ranges: caption.display.ranges } : {}) } : { mode: "hidden" },
       emphasis: phrase ? {
         text: phrase,
         occurrence: previousEmphasis?.text === phrase ? previousEmphasis.occurrence : 0,
@@ -870,10 +873,14 @@ function CaptionEditor({ caption, disabled, onSeek, onSave }: {
       <small>F{caption.startFrame}–{caption.endFrame} · {caption.precision} · {caption.textMode === "manual" ? "屏幕文案已编辑" : "语音原文"}</small>
     </button>
     {expanded && <div className="caption-editor">
+      <label><input type="checkbox" checked={shown} onChange={event => setShown(event.target.checked)} />显示这张字幕</label>
+      {caption.display?.ranges && <p>显示范围：{caption.display.ranges.map(r => `F${r.startFrame}–${r.endFrame}`).join("、")} <button type="button" disabled={disabled} onClick={() => onSave(caption.id, { action: "update", display: null })}>恢复整卡显示</button></p>}
+      <label>布局<select value={placement ? "placed" : "bottom"} onChange={event => setPlacement(event.target.value === "placed" ? { leftPercent: 8, topPercent: 12, widthPercent: 84 } : undefined)}><option value="bottom">底部布局</option><option value="placed">自定位置</option></select></label>
+      {placement && <div className="caption-field-row">{([["leftPercent", "左侧 %"], ["topPercent", "顶部 %"], ["widthPercent", "宽度 %"]] as const).map(([key, label]) => <label key={key}>{label}<input type="number" min={key === "widthPercent" ? 5 : 0} max={100} value={placement[key]} onChange={event => setPlacement({ ...placement, [key]: Number(event.target.value) })} /></label>)}</div>}
       <label>屏幕文案<textarea aria-label={`字幕文案：${caption.id}`} value={text} maxLength={80} rows={2} onChange={(event) => setText(event.target.value)} /></label>
       <div className="caption-field-row">
         <label>字号<input aria-label={`字幕字号：${caption.id}`} type="number" min="16" max="72" value={fontSize} onChange={(event) => setFontSize(Number(event.target.value))} /></label>
-        <label>底部 %<input aria-label={`字幕底部安全区：${caption.id}`} type="number" min="4" max="20" step="0.5" value={bottomPercent} onChange={(event) => setBottomPercent(Number(event.target.value))} /></label>
+        <label>底部 %<input aria-label={`字幕底部安全区：${caption.id}`} type="number" min="0" max="95" step="0.5" value={bottomPercent} onChange={(event) => setBottomPercent(Number(event.target.value))} /></label>
       </div>
       <label>强调短语（可留空）<input aria-label={`字幕强调短语：${caption.id}`} value={emphasisText} maxLength={40} onChange={(event) => setEmphasisText(event.target.value)} /></label>
       <div className="button-row">

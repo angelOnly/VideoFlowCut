@@ -1,6 +1,8 @@
+import { captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
+import { sourceCaptionTextReviewSchema, exportApprovalSchema } from "../../../packages/contracts/src/editorial-inputs.js";
 import { audioDesignSchema } from "../../../packages/edit-application/src/sound-design.js";
 import { registerSoundRoutes } from "./sound-tools.js";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { createReadStream, createWriteStream, existsSync } from "node:fs";
 import { copyFile, mkdir, rm, stat } from "node:fs/promises";
 import { basename, extname, join, relative, resolve } from "node:path";
@@ -14,9 +16,11 @@ import { ComfyUIBridgeClient } from "@videocut/bridge";
 import { createApplication, NotFoundError, RevisionConflictError } from "@videocut/application";
 import { DomainError } from "@videocut/domain";
 import { readRuntimeConfig } from "@videocut/project-overview";
-import { evaluateQuality } from "@videocut/quality";
+import { evaluateQualityWithBrowser } from "@videocut/quality";
+import { measureCaptionTextInBrowser } from "../../../packages/quality-system/src/caption-measurement.js";
 import type { AssetKind, EditorFocus, ProjectSnapshot } from "@videocut/contracts";
 import { inspectAsset } from "./source-review.js";
+import { mediaReviewPage } from "./media-review-page.js";
 import { registerMediaIntelligenceRoutes } from "./media-intelligence-tools.js";
 import { MOTION_SOURCES } from "../../../packages/motion-work/src/catalog.js";
 import { motionSubmissionSchema, motionReviewFields } from "../../../packages/motion-work/src/schema.js";
@@ -278,7 +282,6 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   const bridge = new ComfyUIBridgeClient();
   const app = Fastify({ logger: { level: runtimeConfig.http.logLevel } });
   registerMediaIntelligenceRoutes(app, application);
-  registerSoundRoutes(app, application);
 
   await app.register(cors, { origin: true });
   await app.register(multipart, { limits: { files: 18, fileSize: 512 * 1024 * 1024 } });
@@ -294,6 +297,9 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     app.log.error(error);
     return reply.status(500).send({ error: "INTERNAL_ERROR", message: error instanceof Error ? error.message : "未知服务器错误" });
   });
+
+  // 声音路由在错误处理器之后注册，参数校验才能返回 400，而不是默认的 500。
+  registerSoundRoutes(app, application);
 
   app.get("/health", async () => {
     let bridgeStatus: unknown;
@@ -386,11 +392,20 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return application.trackJob(jobId);
   });
 
+  app.post("/api/captions/measure-text", async (request, reply) => {
+    if (request.headers["x-videoflowcut-release-id"] !== runtimeConfig.runtime.releaseId) {
+      throw new DomainError("字幕测量必须使用同版 Runtime", "RUNTIME_RELEASE_MISMATCH");
+    }
+    const inputs = z.array(z.object({ font: z.string().min(1), texts: z.array(z.string()) }).strict()).parse(request.body);
+    const widths = await measureCaptionTextInBrowser(inputs);
+    return reply.header("x-videoflowcut-release-id", runtimeConfig.runtime.releaseId).send(widths);
+  });
+
   app.get("/api/projects/:projectId/quality", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const state = application.readProject(projectId);
     const editorialReview = await application.readEditorialQualityReview({ projectId, revision: state.revision.number });
-    return evaluateQuality(state.snapshot, state.revision.number, editorialReview);
+    return evaluateQualityWithBrowser(state.snapshot, state.revision.number, editorialReview);
   });
 
   app.get("/api/projects/:projectId/editor-url", async (request) => {
@@ -1052,7 +1067,6 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   app.post("/api/projects/:projectId/voice-synthesis", async (request, reply) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({ voiceReferenceId: idSchema.optional(), voiceReferenceAssetId: idSchema.optional(), speechSegmentIds: z.array(idSchema).optional(), idempotencyKey: z.string().optional() })
-      .refine((value) => Boolean(value.voiceReferenceId || value.voiceReferenceAssetId), { message: "必须指定 VoiceReference" })
       .parse(request.body);
     return reply.status(202).send(application.submitVoiceSynthesis({ projectId, ...body }));
   });
@@ -1110,15 +1124,17 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       baseRevision: baseRevisionSchema,
       action: z.enum(["update", "reset"]),
       text: z.string().max(80).optional(),
-      sourceTextReview: z.object({ note: z.string().min(1).max(1000) }).strict().optional(),
+      sourceTextReview: sourceCaptionTextReviewSchema.optional(),
+      display: captionDisplaySchema.nullable().optional(),
       format: z.object({
+        placement: captionPlacementSchema.nullable().optional(),
         fontSize: z.number().int().min(16).max(72).optional(),
         fontWeight: z.number().int().min(400).max(900).optional(),
         color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").optional(),
         backgroundColor: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").nullable().optional(),
         backgroundOpacity: z.number().min(0.1).max(1).nullable().optional(),
-        bottomPercent: z.number().min(4).max(20).optional(),
-        horizontalInsetPercent: z.number().min(3).max(20).optional(),
+        bottomPercent: z.number().min(0).max(95).optional(),
+        horizontalInsetPercent: z.number().min(0).max(45).optional(),
         textAlign: z.enum(["left", "center", "right"]).optional()
       }).strict().optional(),
       emphasis: z.object({
@@ -1140,13 +1156,14 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       baseRevision: baseRevisionSchema,
       captionIds: z.array(idSchema).min(1).max(200),
       format: z.object({
+        placement: captionPlacementSchema.nullable().optional(),
         fontSize: z.number().int().min(16).max(72).optional(),
         fontWeight: z.number().int().min(400).max(900).optional(),
         color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").optional(),
         backgroundColor: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").nullable().optional(),
         backgroundOpacity: z.number().min(0.1).max(1).nullable().optional(),
-        bottomPercent: z.number().min(4).max(20).optional(),
-        horizontalInsetPercent: z.number().min(3).max(20).optional(),
+        bottomPercent: z.number().min(0).max(95).optional(),
+        horizontalInsetPercent: z.number().min(0).max(45).optional(),
         textAlign: z.enum(["left", "center", "right"]).optional()
       }).strict()
     }).strict().parse(request.body);
@@ -1210,7 +1227,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.post("/api/projects/:projectId/render-preflight", async (request, reply) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    const body = z.object({ revision: z.number().int().positive().optional(), idempotencyKey: z.string().optional() }).parse(request.body);
+    const body = z.object({ revision: z.number().int().positive().optional(), purpose: z.enum(["draft", "delivery"]).optional(), idempotencyKey: z.string().optional() }).parse(request.body);
     return reply.status(202).send(application.submitRenderPreflight({ projectId, ...body }));
   });
 
@@ -1240,7 +1257,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   app.post("/api/projects/:projectId/export-artifacts/:artifactId/review", async (request) => {
     const { projectId, artifactId } = z.object({ projectId: idSchema, artifactId: idSchema }).parse(request.params);
     const body = z.object({
-      passes: z.array(z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"])).min(5).max(5),
+      passes: z.array(z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"])).min(1).max(5),
       evidence: z.array(z.string().min(1).max(2_000)).min(1).max(40),
       findings: z.array(artifactFindingSchema).max(120)
     }).parse(request.body);
@@ -1249,7 +1266,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.post("/api/projects/:projectId/export-artifacts/:artifactId/approve", async (request) => {
     const { projectId, artifactId } = z.object({ projectId: idSchema, artifactId: idSchema }).parse(request.params);
-    const body = z.object({ note: z.string().max(1_000).optional() }).parse(request.body);
+    const body = exportApprovalSchema.parse(request.body);
     return application.approveExportArtifact({ projectId, artifactId, ...body });
   });
 
@@ -1319,6 +1336,23 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     });
     request.raw.on("close", unsubscribe);
     return reply;
+  });
+
+  // 审阅页面只包装现有受管文件；不导入素材、不创建 Job 或 Revision。
+  app.get("/review/*", async (request, reply) => {
+    const wildcard = (request.params as { "*": string })["*"];
+    const mediaRoot = join(workspaceRoot, "projects");
+    const filePath = resolve(mediaRoot, wildcard);
+    assertPathWithin(mediaRoot, filePath);
+    if (!existsSync(filePath) || !(await stat(filePath)).isFile()) throw new NotFoundError("媒体文件不存在");
+    const mime = mimeByExtension[extname(filePath).toLowerCase()] ?? "";
+    if (!mime.startsWith("video/") && !mime.startsWith("audio/")) throw new DomainError("审阅页面只支持音视频文件", "UNSUPPORTED_REVIEW_MEDIA");
+    const mediaPath = `/media/${relative(mediaRoot, filePath).replace(/\\/gu, "/").split("/").map(encodeURIComponent).join("/")}`;
+    const nonce = randomUUID();
+    return reply.type("text/html; charset=utf-8")
+      .header("content-security-policy", `default-src 'none'; media-src 'self'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}'; base-uri 'none'; frame-ancestors 'self'`)
+      .header("cache-control", "no-store")
+      .send(mediaReviewPage(mediaPath, basename(filePath), mime.startsWith("audio/") ? "audio" : "video", nonce));
   });
 
   app.get("/media/*", async (request, reply) => {
