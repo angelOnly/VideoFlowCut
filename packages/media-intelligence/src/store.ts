@@ -3,6 +3,8 @@ import type { AssetCandidate, AssetSearchDiagnostics, MediaAnalysisRecord, Media
 import { randomUUID } from "node:crypto";
 
 export interface MediaSearchSession {
+  resultFormatVersion?: number;
+  nextCursor?: string;
   id: string; projectId: string; requestId: string; requestVersion: string;
   intent: SearchIntent; candidates: AssetCandidate[]; createdAt: string;
   diagnostics?: AssetSearchDiagnostics;
@@ -15,7 +17,7 @@ export class MediaIntelligenceStore {
   }
   saveSource(source: MediaSource): void {
     this.db.prepare("INSERT INTO media_sources(id,project_id,target_key,hash,data) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data")
-      .run(source.id, source.projectId, source.target.assetId ?? source.target.candidateId, source.hash, JSON.stringify(source));
+      .run(source.id, source.projectId, (source.target.assetId ?? source.target.candidateId ?? source.target.exportArtifactId ?? source.target.previewJobId)!, source.hash, JSON.stringify(source));
   }
   source(projectId: string, id: string): MediaSource | undefined {
     const row = this.db.prepare("SELECT data FROM media_sources WHERE id=? AND project_id=?").get(id, projectId) as JsonRow | undefined;

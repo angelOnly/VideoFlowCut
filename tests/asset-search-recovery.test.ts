@@ -5,7 +5,7 @@ import { connect, type Socket } from "node:net";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AssetProviderError, AssetProviderRegistry, type ProviderSearchCandidate } from "../packages/asset-acquisition/src/index.js";
+import { AssetProviderError, AssetProviderRegistry, createDefaultAssetProviderRegistry, soundSourceCapabilities, type ProviderSearchCandidate } from "../packages/asset-acquisition/src/index.js";
 import { createAssetFetch, retryAfterMilliseconds } from "../packages/asset-acquisition/src/http.js";
 import { WikimediaCommonsProvider } from "../packages/asset-acquisition/src/wikimedia-commons.js";
 import { assetSearchErrorResult } from "../apps/server/src/asset-search-errors.js";
@@ -13,6 +13,20 @@ import { createApplication } from "../packages/edit-application/src/index.js";
 import type { AssetRequest } from "@videocut/contracts";
 
 const request = { queryHints: [] } as unknown as AssetRequest;
+test("旧环境残留 Key 也不会重新启用已删除的搜索接口", (t) => {
+  for (const key of ["PEXELS_API_KEY", "TAVILY_API_KEY", "FREESOUND_API_KEY", "FREESOUND_OAUTH_TOKEN", "FREESOUND_COMMERCIAL_API_APPROVED"]) {
+    const previous = process.env[key];
+    process.env[key] = "true";
+    t.after(() => { if (previous === undefined) delete process.env[key]; else process.env[key] = previous; });
+  }
+  const registry = createDefaultAssetProviderRegistry();
+  assert.deepEqual(registry.names(), ["mixkit", "mixkit_music", "wikimedia-commons", "youtube"]);
+  assert.ok(registry.catalog().every(source => !source.requiresKey && source.enabled));
+  assert.deepEqual(soundSourceCapabilities().map(source => source.id), ["mixkit", "mixkit_music"]);
+  for (const name of ["pexels", "freesound", "tavily"]) {
+    assert.throws(() => registry.get(name), (error: unknown) => error instanceof AssetProviderError && error.code === "ASSET_PROVIDER_UNKNOWN");
+  }
+});
 const json = (value: unknown) => new Response(JSON.stringify(value), { headers: { "content-type": "application/json" } });
 const details = (title: string, mime = "video/webm") => json({ query: { pages: [{ title, imageinfo: [{ url: "https://upload.wikimedia.org/fixture.webm", mime, width: 1920, height: 1080, duration: 5, extmetadata: {} }] }] } });
 
@@ -47,8 +61,8 @@ test("图片搜索保留矢量图，正文超时不能误报为 JSON 格式错�
 test("未知名称给出准确目录；缺凭据与拼写错误分开，不能把写入未知标为可重试", () => {
   const registry = new AssetProviderRegistry([new WikimediaCommonsProvider()]);
   assert.equal(registry.catalog().find(p => p.id === "wikimedia-commons")?.requiresKey, false);
-  assert.equal(registry.catalog().find(p => p.id === "pexels")?.enabled, false);
-  assert.throws(() => registry.get("pexels"), (error: unknown) => error instanceof AssetProviderError && error.code === "ASSET_PROVIDER_NOT_CONFIGURED");
+  assert.equal(registry.catalog().find(p => p.id === "pexels"), undefined);
+  assert.throws(() => registry.get("pexels"), (error: unknown) => error instanceof AssetProviderError && error.code === "ASSET_PROVIDER_UNKNOWN");
   try { registry.get("wikimedia"); assert.fail(); } catch (error) {
     const failure = JSON.parse(assetSearchErrorResult(error, true).content[0].text);
     assert.equal(failure.code, "ASSET_PROVIDER_UNKNOWN");

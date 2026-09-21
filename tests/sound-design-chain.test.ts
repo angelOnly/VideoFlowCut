@@ -51,6 +51,33 @@ async function fixture(real = false) {
   return { root, app, id, rev, sound, visual, add, close: async () => { app.repository.close(); await rm(root, { recursive: true, force: true }); } };
 }
 
+test("专项声音复核确实透传问题并隔离不同问题缓存，初看仍保持盲观察", async () => {
+  const f = await fixture(true);
+  try {
+    const bridge = new ComfyUIBridgeClient(readRuntimeConfig().bridge.apiBaseUrl);
+    const schema = (id: string): BridgeWorkflow => ({ id, schemaVersion: "review-fixture", name: "复核协议", available: true, fields: ["prompt", "start_seconds", "duration_seconds"].map((id) => ({ id, label: id, kind: "text", required: false })), itemSlots: [{ id: "audio", kind: "audio", label: "声音", required: true }], outputs: [] });
+    const prompts: string[] = [];
+    bridge.getWorkflow = async (id) => schema(id);
+    bridge.createRunWithSchemaRetry = async (id, build) => {
+      const workflow = schema(id), request = await build(workflow);
+      prompts.push(String(request.fieldValues.prompt));
+      assert.equal(request.files?.[0].mime, "audio/wav");
+      assert.equal((await probeMedia(request.files![0].path)).sampleRate, 16000);
+      return { workflow, request, schemaRetryCount: 0, run: { id: `review-${prompts.length}`, status: "queued", outputs: [] } };
+    };
+    bridge.waitForRun = async (id) => ({ id, status: "succeeded", outputs: [{ outputSlotId: "result", kind: "text", displayName: "观察", text: JSON.stringify({ facts: [{ modality: "audio", text: "协议测试：持续纯音", startMs: 0, endMs: 1000 }], unknowns: ["不是人工听审"] }) }] });
+    const revision = f.rev();
+    for (const context of ["核查起音是否有爆点", "核查尾部是否突然截断"]) {
+      const job = await f.app.intelligence.submitAnalysis(f.id, { assetId: f.sound.id, depth: "review", modalities: ["audio"], context });
+      await runMediaUnderstanding(f.app, job, bridge, new AssetProviderRegistry());
+      assert.ok(prompts.at(-1)!.includes(context));
+      assert.equal(f.app.intelligence.store.observations(f.id).at(-1)!.promptText, prompts.at(-1));
+    }
+    assert.equal(prompts.length, 2, "不同复核问题不能误复用旧回答");
+    assert.equal(f.rev(), revision);
+  } finally { await f.close(); }
+});
+
 test("持续声必须有足够源范围或明确循环接缝，源变更使循环与起音复核失效", async () => {
   const f = await fixture();
   try {
@@ -219,7 +246,7 @@ test("ASR 多输出按槽读取，部分失败恢复补回独立观察且不重�
         { outputSlotId: "caption-alignment-json", kind: "text", displayName: "时间", text: aligned }
       ] : [{ outputSlotId: "result", kind: "text", displayName: "观察", text: JSON.stringify({ facts: [{ modality: "audio", text: "协议测试音", startMs: 0, endMs: 1000 }] }) }] };
     };
-    const job = f.app.intelligence.submitAnalysis(f.id, { assetId: f.sound.id, depth: "review", modalities: ["audio", "speech"], range: { startMs: 0, endMs: 1000 }, context: "测试恢复协议，文本不代表测试音的真实语义" });
+    const job = await f.app.intelligence.submitAnalysis(f.id, { assetId: f.sound.id, depth: "review", modalities: ["audio", "speech"], range: { startMs: 0, endMs: 1000 }, context: "测试恢复协议，文本不代表测试音的真实语义" });
     await assert.rejects(runMediaUnderstanding(f.app, job, bridge, new AssetProviderRegistry()), /完成|失败/u);
     f.app.updateJob(job.id, { status: "failed", error: "模拟读取中断" });
     const before = f.app.intelligence.store.observations(f.id);
@@ -256,7 +283,7 @@ test("原声观察不接收用途答案，语义无效的成功 Run 在显式重
     };
     bridge.waitForRun = async (id) => ({ id, status: "succeeded", outputs: [{ outputSlotId: "result", kind: "text", displayName: "观察", text: id.endsWith("-1") ? "结构损坏，不能恢复成事实" : JSON.stringify({ facts: [{ modality: "audio", text: "协议测试的持续音", startMs: 0, endMs: 1000, speechPresence: "unknown", musicPresence: "unknown" }], unknowns: ["仅验证协议"] }) }] });
     const revision = f.rev();
-    const job = f.app.intelligence.submitAnalysis(f.id, { assetId: f.sound.id, depth: "review", modalities: ["audio"], context });
+    const job = await f.app.intelligence.submitAnalysis(f.id, { assetId: f.sound.id, depth: "index", modalities: ["audio"], context });
     await assert.rejects(runMediaUnderstanding(f.app, job, bridge, new AssetProviderRegistry()), /校验|完成/u);
     assert.equal(prompts[0].includes(context), false, "用途和标题不能进入原声观察提示");
     f.app.updateJob(job.id, { status: "failed", error: "结构无效" });

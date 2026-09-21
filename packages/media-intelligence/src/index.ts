@@ -6,7 +6,7 @@ export const MODEL_WORKFLOWS = {
   video: "ee8e9c17-bd16-566f-ad2d-a7ec239bf4b8",
   embedding: "15904667-24ab-5e91-bc56-19ee2ad9eb4f"
 };
-export const ANALYSIS_VERSION = "media-observation-v4-blind";
+export const ANALYSIS_VERSION = "media-observation-v5-review";
 export const EMBEDDING_VERSION = "qwen3-embedding-0.6b:97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3";
 export const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value) ?? "undefined").digest("hex");
 export const assetRequestVersion = (request: AssetRequest) => digest({ ...request, status: undefined, updatedAt: undefined, createdAt: undefined });
@@ -25,11 +25,13 @@ export const factSchema = z.object({
 }).strict();
 export const analysisInputSchema = z.object({
   assetId: z.string().min(1).optional(), candidateId: z.string().min(1).optional(),
+  exportArtifactId: z.string().min(1).optional(), previewJobId: z.string().min(1).optional(),
   depth: z.enum(["discovery", "index", "review"]).default("index"),
   range: timeRangeSchema.optional(), region: regionSchema.optional(),
   modalities: z.array(z.enum(["visual", "audio", "speech", "text"])).min(1).max(4).default(["visual", "audio", "speech", "text"]),
   context: z.string().max(8000).default(""), idempotencyKey: z.string().min(1).max(240).optional()
-}).strict().refine((input) => Number(Boolean(input.assetId)) + Number(Boolean(input.candidateId)) === 1, "必须指定一个素材或候选");
+}).strict().refine((input) => [input.assetId, input.candidateId, input.exportArtifactId, input.previewJobId].filter(Boolean).length === 1, "必须指定一个素材、候选、导出或预览")
+  .refine((input) => !(input.exportArtifactId || input.previewJobId) || input.depth === "review" && !input.region, "成片与预览仅支持时间范围复核");
 export type AnalysisInput = z.infer<typeof analysisInputSchema>;
 export const searchQuerySchema = z.object({
   query: z.string().trim().min(1).max(2000), modality: z.enum(["visual", "audio", "speech", "text"]),
@@ -86,8 +88,10 @@ export function regionContains(outer: SourceRegion | undefined, inner: SourceReg
 }
 
 /** 初次观察不接收用途、标题或期望答案；上下文保存在记录中，留给后续检索与采用判断。 */
-export function analysisPrompt(modalities: string[], range: SourceTimeRange | undefined): string {
+export function analysisPrompt(modalities: string[], range: SourceTimeRange | undefined, reviewContext?: string): string {
   const labels: Record<string, string> = { visual: "画面主体和动作（visual）", audio: "实际声音（audio）", text: "可见原文（text）", speech: "语言（speech）" };
+  // 素材初看保持盲观察；专项复核的问题真正送入模型，但不把问题中的预期当证据。
+  if (reviewContext?.trim()) return `本次是针对实际媒体的专项模型复核。请逐项回答下面的问题，将可观察结果写入facts，不确定或超出输入/采样能力的部分写入unknowns。问题中的脚本、候选答案和预期均不是观察证据，不得照抄当作听见或看见。音频字词核查须直接依据音轨；无法区分的同音字、精确同步、快速动作必须明确不确定。不得宣称人工听审或自动验收通过。\n复核问题：\n${reviewContext.trim()}\n输出合同：只输出一个JSON对象，facts为事实数组，每条包含modality（仅限${modalities.join("、")}）、text中文具体回答、keywords数组；声音事实可包含speechPresence/musicPresence（present/absent/unknown）。逐字听辨作为audio事实，保留重复和不确定处。unknowns为不确定项字符串数组。能定位才填写相对本窗口的startMs/endMs，范围0到${range ? range.endMs - range.startMs : "实际输入时长"}毫秒。不要给未观察内容补全答案或精确时间。`;
   if (modalities.length === 1 && modalities[0] === "audio") {
     return `请仔细听实际输入的整段音频，仅描述能听到的声学特征与事件，不猜具体发声物体或用途。描述短促或持续、次数、起音与尾音、音高/摩擦/冲击等。判断可辨语音与有组织音乐：听到为present，能确认没有为absent，证据不足为unknown。\n`
       + `仅输出一个完整JSON对象，结束后不要追加文字或括号。顶层facts为事实数组，unknowns为不确定项字符串数组。每条事实包含modality固定audio、text中文描述、keywords关键词数组、speechPresence及musicPresence三态字段。能听出事件发生范围时增加startMs和endMs，单位为本段相对毫秒，必须在0到${range ? range.endMs - range.startMs : "实际音频时长"}以内；不能定位就省略两项。没有可辨事实可以返回空facts，并说明原因。`;

@@ -3,7 +3,11 @@ export type MediaModality = "visual" | "audio" | "speech" | "text";
 export type AnalysisDepth = "discovery" | "index" | "review";
 export interface SourceTimeRange { startMs: number; endMs: number }
 export interface SourceRegion { page?: number; x: number; y: number; width: number; height: number }
-export type MediaTarget = { assetId: string; candidateId?: never } | { candidateId: string; assetId?: never };
+export type MediaTarget =
+  | { assetId: string; candidateId?: never; exportArtifactId?: never; previewJobId?: never }
+  | { candidateId: string; assetId?: never; exportArtifactId?: never; previewJobId?: never }
+  | { exportArtifactId: string; assetId?: never; candidateId?: never; previewJobId?: never }
+  | { previewJobId: string; assetId?: never; candidateId?: never; exportArtifactId?: never };
 
 export interface MediaSource {
   id: string;
@@ -20,6 +24,8 @@ export interface MediaSource {
   width?: number;
   height?: number;
   streams: Array<{ index: number; kind: string; timeBase?: string; startSeconds: number; sampleRate?: number; rotation?: number }>;
+  /** 成片分析以文件起点计毫秒，映射回原时间线时加 fromFrame。 */
+  composition?: { revision: number; fromFrame: number; toFrame: number; fps: number };
   /** 派生文件从源起点开始的偏移；预览没有可靠映射时不填写。 */
   parent?: { sourceId: string; offsetMs: number; rate: number; region?: SourceRegion };
   createdAt: string;
@@ -51,6 +57,8 @@ export interface MediaObservation {
   unknowns: string[];
   context: string;
   rawText: string;
+  /** 实际发给模型的指令，区别于仅保存的用途上下文。 */
+  promptText?: string;
   audioMeasurements?: { range: SourceTimeRange; sampleRate: number; sampleOriginMs: number; hopSamples: number; firstAudibleSample: number | null; effectiveEndSample: number | null; attackCandidates: Array<{ sample: number; strength: number }>; rms: number[]; peaks: number[]; thresholdDb: number; precision: "measurement_candidate"; reviewStatus: "unreviewed" };
   speechEvidence?: { rawText: string; runId: string; schemaVersion: string; tokenPrecision: string };
   version: { workflowId: string; schemaVersion: string; model: string; prompt: string; preprocessing: string; samplingFps?: number };
@@ -119,7 +127,7 @@ export interface MediaMatch {
   conditions: string[];
 }
 
-export type MediaUsageTarget = { timelineItemId: string; effectCueId?: never; slot?: never } | { effectCueId: string; slot: string; timelineItemId?: never };
+export type MediaUsageTarget = { timelineItemId: string; effectCueId?: never; slot?: never; motionVideoSlot?: never } | { effectCueId: string; slot: string; timelineItemId?: never; motionVideoSlot?: never } | { effectCueId: string; motionVideoSlot: string; timelineItemId?: never; slot?: never };
 
 export interface MediaAdoption {
   id: string;

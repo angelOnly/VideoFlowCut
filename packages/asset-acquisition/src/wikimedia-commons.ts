@@ -1,3 +1,4 @@
+import { decodeSearchCursor, encodeSearchCursor } from "./cursor.js";
 import { createWriteStream } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
 import { basename, extname, join } from "node:path";
@@ -34,6 +35,7 @@ type CommonsPage = {
 };
 
 type CommonsSearchResponse = {
+  continue?: { sroffset?: number; continue?: string };
   error?: { code?: unknown; info?: unknown };
   query?: { search?: Array<{ title?: unknown }> };
 };
@@ -200,7 +202,7 @@ export class WikimediaCommonsProvider implements AssetProvider {
     this.apiEndpoint = options.apiEndpoint ?? COMMONS_API;
     this.fetchImpl = options.fetchImpl ?? assetFetch;
     this.downloadFetch = options.fetchImpl ?? assetDownloadFetch;
-    this.maxResults = boundedPositiveInteger(options.maxResults, DEFAULT_MAX_RESULTS, 50);
+    this.maxResults = boundedPositiveInteger(options.maxResults, DEFAULT_MAX_RESULTS, 30);
     this.maxDownloadBytes = boundedPositiveInteger(
       options.maxDownloadBytes ?? readRuntimeConfig().downloads.maxWikimediaBytes,
       DEFAULT_MAX_DOWNLOAD_BYTES
@@ -299,6 +301,7 @@ export class WikimediaCommonsProvider implements AssetProvider {
 
   async searchDetailed(input: ProviderSearchInput): Promise<ProviderSearchResult> {
     if (input.mediaType === "audio") throw new AssetProviderError("Commons 视觉入口仅支持图片或视频", "ASSET_MEDIA_TYPE_UNSUPPORTED", { recovery: "change_media_type", stage: "provider" });
+    const offset = decodeSearchCursor(this.name, input);
     let query = input.query.trim();
     if (!query) return { candidates: [], complete: true, warnings: [] };
     // 显式类型优先于关键词里的 filetype，返回后还会复核真实 MIME。
@@ -310,10 +313,13 @@ export class WikimediaCommonsProvider implements AssetProvider {
       list: "search",
       srnamespace: "6",
       srlimit: String(this.maxResults),
-      srsearch: query
+      srsearch: query,
+      ...(offset !== undefined ? { sroffset: String(offset) } : {})
     }, signal); } catch (error) { throw this.stageError(error, "search"); }
     const titles = [...new Set((response.query?.search ?? []).map((entry) => nonEmptyText(entry.title)).filter((title): title is string => Boolean(title)))];
-    if (!titles.length) return { candidates: [], complete: true, warnings: [] };
+    const next = response.continue?.sroffset;
+    const continuation = Number.isSafeInteger(next) && next! > (offset ?? 0) ? { nextCursor: encodeSearchCursor(this.name, input, next!) } : {};
+    if (!titles.length) return { candidates: [], complete: true, warnings: [], ...continuation };
     // MediaWiki 支持一次读取至多 50 个标题，各页仍有独立许可。避免连续详情请求触发限流。
     let details: CommonsFileDetails[];
     try { details = await this.readFilesDetails(titles, signal); }
@@ -322,7 +328,7 @@ export class WikimediaCommonsProvider implements AssetProvider {
       const candidate = this.candidateFromDetails(detail, input.request);
       return candidate && (!input.mediaType || candidate.kind === input.mediaType) ? [candidate] : [];
     });
-    return { candidates, complete: true, warnings: [] };
+    return { candidates, complete: true, warnings: [], ...continuation };
   }
 
   private stageError(error: unknown, stage: "search" | "metadata"): AssetProviderError {

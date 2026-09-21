@@ -75,7 +75,7 @@ PDF 证据应保存文件和页码；网页保存 URL、标题、抓取时间和
 
 ## 当前能力
 
-当前代码可以导入 evidence Asset、保存 Provenance、创建基础 Scene/EffectCue 和真实 Preview，但完整 WebEvidenceProvider、页面抓取、高亮区域和 EvidenceDocument Registry 仍是架构目标。现阶段可以对用户提供的截图/文件做可追溯展示，无法自动抓取时明确计划。
+现有 EvidenceCapture 支持真实来源、摘录、高亮与 EvidenceDocument 编译。来源发现与正文阅读通过宿主浏览器的 Google 搜索和原站页面完成，保存真实摘录、URL、时间与阅读范围；材料取得使用无需 Key 的 `acquire_source_material`，先读取实时 Schema。搜索摘要不能代替原文，服务生成的公开页面快照不能冒充浏览器当前选区。PDF 入画时取得选定页 PNG，并以原 PDF 为 sourceAssetId、页面图片为 snapshotAssetId；只有 document 导入成功不能证明画面可渲染。提取正文与快照的时间、范围分别保留。网页截图可能在子资源失败时保存：先读 Job.result.capture.complete、warnings、reviewStatus=pending，再实际核对截图中的正文、条件及相关图表是否完整可读；失败请求不得静默忽略，无法判明对主张的影响时保持待审。complete=true 也不代替内容核验。核实后才按现有 EvidenceCapture 合同保存摘录、主张与 limitation，并保留抓取缺口及适用边界。主页面失败、登录/验证码、安全限制和预算超限仍不产生截图资产。
 
 ## 案例：官方条款
 

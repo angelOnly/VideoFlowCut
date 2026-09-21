@@ -1,6 +1,6 @@
 import { YoutubeProvider } from "./youtube.js";
 import { AssetProviderError } from "./errors.js";
-import { assetFetch, assetDownloadFetch } from "./http.js";
+import { assetDownloadFetch } from "./http.js";
 export { AssetProviderError } from "./errors.js";
 export type { AssetFailureDetails } from "./errors.js";
 import { createWriteStream } from "node:fs";
@@ -12,21 +12,18 @@ import type { AssetCandidate, AssetRequest, MediaMetadata } from "@videocut/cont
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { WikimediaCommonsProvider } from "./wikimedia-commons.js";
 import { MixkitSoundProvider, MixkitMusicProvider } from "./mixkit.js";
-import { FreesoundProvider } from "./freesound.js";
 import { MIXKIT_SOUND_CATEGORIES, MIXKIT_MUSIC_CATEGORIES } from "./sound-catalog.js";
 
 export function soundSourceCapabilities() {
-  const config = readRuntimeConfig().providers;
   return [
     { id: "mixkit", name: "Mixkit 音效", enabled: true, search: "public_category", preview: true, original: true, categories: MIXKIT_SOUND_CATEGORIES, licenseUrl: "https://mixkit.co/license/#sfxFree", limits: "一次读取一个分类的至多30条；按需获取少量文件" },
     { id: "mixkit_music", name: "Mixkit 音乐", enabled: true, search: "public_category", preview: true, original: true, categories: MIXKIT_MUSIC_CATEGORIES, licenseUrl: "https://mixkit.co/license/#musicFree", limits: "单独音乐许可，面向符合许可的网络视频用途" },
-    { id: "freesound", name: "Freesound", enabled: Boolean(config.freesoundApiKey && config.freesoundCommercialApiApproved), search: "official_api", preview: Boolean(config.freesoundApiKey && config.freesoundCommercialApiApproved), original: Boolean(config.freesoundApiKey && config.freesoundOAuthToken && config.freesoundCommercialApiApproved), categories: [], licenseUrl: "https://freesound.org/help/faq/#licenses", limits: !config.freesoundApiKey ? "缺少 API 凭据" : !config.freesoundCommercialApiApproved ? "尚未确认商业 API 使用条件" : !config.freesoundOAuthToken ? "缺少原文件下载 OAuth" : "逐条核对 CC0 / CC BY；不采用 NC" }
   ];
 }
 
-export interface ProviderSearchInput { request: AssetRequest; query: string; mediaType?: AssetCandidate["kind"]; }
+export interface ProviderSearchInput { request: AssetRequest; query: string; mediaType?: AssetCandidate["kind"]; cursor?: string; }
 export interface ProviderSearchWarning { code: string; message: string; source?: string; stage?: string; retryAfterMs?: number; }
-export interface ProviderSearchResult { candidates: ProviderSearchCandidate[]; complete: boolean; warnings: ProviderSearchWarning[]; }
+export interface ProviderSearchResult { nextCursor?: string; candidates: ProviderSearchCandidate[]; complete: boolean; warnings: ProviderSearchWarning[]; }
 
 /** Provider 到 Application 的最小归一化边界；下载 URL 和 API Key 不写入 Project Revision。 */
 export interface ProviderSearchCandidate {
@@ -65,7 +62,6 @@ export interface AssetProvider {
 
 // 默认名不带视频扩展名，避免缺失文件名的图片被路径后缀误导成 MP4。
 const safeFileName = (value: string) => basename(value).replace(/[<>:"/\\|?*\x00-\x1F]/g, "_") || "asset";
-const positiveNumber = (value: unknown): number | undefined => typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
 export type ProviderMediaKind = AssetCandidate["kind"];
 
 const MIME_BY_EXTENSION: Record<string, string> = {
@@ -244,96 +240,6 @@ export async function saveProviderMediaResponse(response: Response, temporaryDir
   return { filePath: targetPath, fileName: safeFileName(fileName), contentType };
 }
 
-type PexelsVideoFile = {
-  id?: number;
-  quality?: string;
-  file_type?: string;
-  width?: number;
-  height?: number;
-  link?: string;
-};
-
-type PexelsVideo = {
-  id?: number;
-  url?: string;
-  image?: string;
-  width?: number;
-  height?: number;
-  duration?: number;
-  user?: { name?: string };
-  video_files?: PexelsVideoFile[];
-};
-
-type PexelsResponse = { videos?: PexelsVideo[] };
-
-/**
- * Pexels 的 Token 只保留在运行进程；MCP 只能看到归一化候选、来源和授权字段。
- * Pexels 仅用于现实 B-roll，不作为网页证据或用户产品图来源。
- */
-export class PexelsProvider implements AssetProvider {
-  readonly name = "pexels";
-
-  constructor(private readonly apiKey: string) {}
-
-  private async request(path: string): Promise<PexelsResponse | PexelsVideo> {
-    const response = await assetFetch(`https://api.pexels.com${path}`, { headers: { Authorization: this.apiKey } });
-    if (response.status === 401 || response.status === 403) throw new AssetProviderError("Pexels API Key 无效或没有访问权限", "PEXELS_AUTH_FAILED");
-    if (response.status === 429) throw new AssetProviderError("Pexels 请求过于频繁，请稍后重试", "PEXELS_RATE_LIMITED");
-    if (!response.ok) throw new AssetProviderError(`Pexels 查询失败：HTTP ${response.status}`, "PEXELS_SEARCH_FAILED");
-    return response.json() as Promise<PexelsResponse | PexelsVideo>;
-  }
-
-  private selectVideoFile(video: PexelsVideo): PexelsVideoFile | undefined {
-    const mp4Files = (video.video_files ?? [])
-      .filter((file) => file.file_type === "video/mp4" && typeof file.link === "string")
-      .sort((left, right) => {
-        const leftPixels = (left.width ?? 0) * (left.height ?? 0);
-        const rightPixels = (right.width ?? 0) * (right.height ?? 0);
-        return rightPixels - leftPixels;
-      });
-    return mp4Files.find((file) => file.quality !== "sd") ?? mp4Files[0];
-  }
-
-  async search(input: { request: AssetRequest; query: string }): Promise<ProviderSearchCandidate[]> {
-    const params = new URLSearchParams({ query: input.query, per_page: "12" });
-    const response = await this.request(`/videos/search?${params.toString()}`) as PexelsResponse;
-    return (response.videos ?? []).flatMap((video) => {
-      if (!video.id || !video.url) return [];
-      const file = this.selectVideoFile(video);
-      if (!file) return [];
-      return [{
-        originalAssetId: String(video.id),
-        name: `Pexels ${video.id}`,
-        kind: "video",
-        sourceUrl: video.url,
-        previewUrl: video.image,
-        mimeType: "video/mp4",
-        width: positiveNumber(video.width) ?? positiveNumber(file.width),
-        height: positiveNumber(video.height) ?? positiveNumber(file.height),
-        durationMs: positiveNumber(video.duration) ? Math.round(video.duration! * 1_000) : undefined,
-        creator: video.user?.name,
-        license: "Pexels License",
-        licenseUrl: "https://www.pexels.com/license/",
-        rightsStatus: "cleared",
-        tags: ["pexels", "stock", ...input.request.queryHints]
-      }];
-    });
-  }
-
-  async download(input: { candidate: AssetCandidate; temporaryDirectory: string }): Promise<ProviderDownload> {
-    const response = await this.request(`/videos/${encodeURIComponent(input.candidate.originalAssetId)}`) as PexelsVideo;
-    const file = this.selectVideoFile(response);
-    if (!file?.link) throw new AssetProviderError("Pexels 候选已没有可下载的视频文件", "PEXELS_DOWNLOAD_MISSING");
-    return downloadHttpFile(
-      file.link,
-      input.temporaryDirectory,
-      `${input.candidate.originalAssetId}.mp4`,
-      "video",
-      "video/mp4"
-    );
-  }
-}
-
 export interface MockAssetFixture extends ProviderSearchCandidate {
   filePath: string;
   queryIncludes?: string[];
@@ -369,7 +275,7 @@ export class MockAssetProvider implements AssetProvider {
     }
   }
 
-  async search(input: { request: AssetRequest; query: string }): Promise<ProviderSearchCandidate[]> {
+  async search(input: ProviderSearchInput): Promise<ProviderSearchCandidate[]> {
     const lowerQuery = input.query.toLocaleLowerCase();
     return [...this.fixtures.values()]
       .filter((fixture) => !fixture.queryIncludes?.length || fixture.queryIncludes.every((word) => lowerQuery.includes(word.toLocaleLowerCase())))
@@ -413,14 +319,11 @@ export class AssetProviderRegistry {
   }
 
   catalog() {
-    const config = readRuntimeConfig().providers;
     const known = [
       { id: "wikimedia-commons", name: "Wikimedia Commons", mediaTypes: ["image", "video"], queryMode: "keywords", requiresKey: false, unavailableReason: "当前注册表未启用" },
-      { id: "pexels", name: "Pexels", mediaTypes: ["video"], queryMode: "keywords", requiresKey: true, unavailableReason: config.pexelsApiKey ? "当前注册表未启用" : "缺少 PEXELS_API_KEY" },
       { id: "youtube", name: "YouTube", mediaTypes: ["video"], queryMode: "single_video_url", requiresKey: false, unavailableReason: "当前注册表未启用" },
       { id: "mixkit", name: "Mixkit 音效", mediaTypes: ["audio"], queryMode: "category", requiresKey: false, unavailableReason: "当前注册表未启用" },
       { id: "mixkit_music", name: "Mixkit 音乐", mediaTypes: ["audio"], queryMode: "category", requiresKey: false, unavailableReason: "当前注册表未启用" },
-      { id: "freesound", name: "Freesound", mediaTypes: ["audio"], queryMode: "keywords", requiresKey: true, unavailableReason: !config.freesoundApiKey ? "缺少 FREESOUND_API_KEY" : !config.freesoundCommercialApiApproved ? "尚未确认商业 API 使用条件" : "当前注册表未启用" }
     ];
     return [...known, ...this.names().filter(id => !known.some(entry => entry.id === id)).map(id => ({ id, name: id, mediaTypes: ["image", "video", "audio"], queryMode: "provider_defined", requiresKey: false, unavailableReason: "" }))]
       .map(entry => ({ ...entry, enabled: this.providers.has(entry.id), unavailableReason: this.providers.has(entry.id) ? undefined : entry.unavailableReason }));
@@ -432,17 +335,13 @@ export class AssetProviderRegistry {
 }
 
 /**
- * Commons 不需要项目私钥，因此默认可发现；Pexels 仍只在配置密钥时出现。
+ * 仅注册无需 API Key 的公开素材来源；网页研究由宿主浏览器完成。
  * 发现 Provider 不等于素材已获授权或适合进入 Scene，后续仍要走候选审查和本地化。
  */
 export function createDefaultAssetProviderRegistry(): AssetProviderRegistry {
   const providers: AssetProvider[] = [new WikimediaCommonsProvider(), new MixkitSoundProvider(), new MixkitMusicProvider(), new YoutubeProvider()];
-  const soundConfig = readRuntimeConfig().providers;
-  if (soundConfig.freesoundApiKey && soundConfig.freesoundCommercialApiApproved) providers.push(new FreesoundProvider(soundConfig.freesoundApiKey, soundConfig.freesoundOAuthToken));
-  const pexelsApiKey = readRuntimeConfig().providers.pexelsApiKey;
-  if (pexelsApiKey) providers.push(new PexelsProvider(pexelsApiKey));
   return new AssetProviderRegistry(providers);
 }
 
-// Commons 的逐文件许可解析在独立模块中实现，避免 Pexels Provider 承担不同站点的 API 细节。
+// Commons 的逐文件许可解析在独立模块中实现。
 export { WikimediaCommonsProvider, type WikimediaCommonsProviderOptions, type WikimediaCommonsSearchCandidate } from "./wikimedia-commons.js";

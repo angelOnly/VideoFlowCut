@@ -119,6 +119,7 @@ export interface AssetRequest {
 
 /** Provider 已归一化的查询，不泄露 API Key、下载 URL 或 Provider 私有字段。 */
 export interface SearchIntent {
+  cursor?: string;
   id: Id;
   assetRequestId: Id;
   provider: string;
@@ -180,6 +181,7 @@ export type JobKind =
   /** 只在可验证的共同音轨上估计固定机位偏移；证据不足时必须失败并等待人工同步点。 */
   | "multicam_sync"
   | "asset_acquisition"
+  | "source_material_acquisition"
   | "transcription"
   /** 历史 VAD 分块 Job；只为读取旧记录保留，新的 Worker 绝不能执行或创建。 */
   | "source_caption_generation"
@@ -323,6 +325,8 @@ export interface Asset {
     previousAssetId?: Id;
     /** 平台登记的派生来源；修改作品许可不能越过来源限制。 */
     sourceAssetIds?: Id[];
+    /** 至多四个固定视频槽位，仅由完成 Job 生成。 */
+    videoSources?: Array<{ slot: string; assetId: Id; sourceHash: string; sourceStartMs: number; sourceEndMs: number }>;
     sourcePath: string;
     framesDirectory: string;
     frameCount: number;
@@ -1551,6 +1555,8 @@ export interface EditorialFindingResolution {
   note: string;
   resolvedAt: string;
   frameRange: { startFrame: number; endFrame: number };
+  /** 只确认字幕卡的文字显示，不代表声音、阅读节奏或连续画面通过。 */
+  scope?: "caption_text";
 }
 
 /**

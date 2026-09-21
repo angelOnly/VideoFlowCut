@@ -1047,9 +1047,17 @@
             ]
           },
           "min_duration_ms": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 300000
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 300000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "视频或音频最短源时长，单位毫秒；图片不应用该条件。null 清空限制，省略保持原值，0 无效。"
           },
           "rights_requirement": {
             "type": "string",
@@ -1132,6 +1140,11 @@
               "video",
               "audio"
             ]
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
           },
           "query": {
             "type": "string",
@@ -3672,7 +3685,7 @@
     {
       "name": "compile_explainer_scenes",
       "title": "编译视觉解释场景",
-      "description": "将 NarrativeMap Beat 原子编译为 ExplainerScene、Program 与 VisualTreatment。每个场景必须有 Entry、Progressive、Settled、Exit 的连续局部状态；不会将每句话降级成贴纸。",
+      "description": "将 NarrativeMap Beat 原子编译为带内置主视觉的 ExplainerScene、Program 与 VisualTreatment。按 kind 提供该分支必需的 props 与真实素材，每个场景需四阶段连续局部状态。原创 ManagedMotion 独立承担主视觉时，可用 create_scene 建立基础 ExplainerScene 再放置作品，无需先编译随后停用内置 Program。失败先检查 isError 并保留完整 text；业务错误返回 JSON code/message，协议参数错误可能是文本。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -3686,179 +3699,962 @@
           "plans": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "title": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 160
-                },
-                "purpose": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1200
-                },
-                "start_frame": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "end_frame": {
-                  "type": "integer",
-                  "exclusiveMinimum": 0
-                },
-                "narrative_map_beat_id": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "kind": {
-                  "type": "string",
-                  "enum": [
-                    "HeroReveal",
-                    "Comparison",
-                    "ProgressiveClassification",
-                    "RouteAndFlow",
-                    "EvidenceDocument",
-                    "UIWalkthrough",
-                    "DataConclusion",
-                    "PeopleGrouping",
-                    "LayerStack",
-                    "HistoryTimeline",
-                    "QuotePortrait",
-                    "RealityBroll"
-                  ]
-                },
-                "primary_task": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1200
-                },
-                "asset_ids": {
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "maxItems": 60
-                },
-                "evidence_capture_id": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "states": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    },
+                    "purpose": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "start_frame": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "end_frame": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "narrative_map_beat_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "primary_task": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "asset_ids": {
+                      "type": "array",
+                      "items": {
                         "type": "string",
                         "minLength": 1
                       },
-                      "phase": {
-                        "type": "string",
-                        "enum": [
-                          "entry",
-                          "progressive",
-                          "settled",
-                          "exit"
-                        ]
-                      },
-                      "start_frame": {
-                        "type": "integer",
-                        "minimum": 0
-                      },
-                      "end_frame": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0
-                      },
-                      "label": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 500
-                      },
-                      "detail": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 2000
-                      }
+                      "maxItems": 60
                     },
-                    "required": [
-                      "phase",
-                      "start_frame",
-                      "end_frame",
-                      "label"
-                    ],
-                    "additionalProperties": false
-                  },
-                  "minItems": 4,
-                  "maxItems": 12
-                },
-                "props": {
-                  "type": "object",
-                  "additionalProperties": {}
-                },
-                "style_pack_id": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 160
-                },
-                "visual_treatment": {
-                  "type": "object",
-                  "properties": {
-                    "mode": {
+                    "evidence_capture_id": {
                       "type": "string",
-                      "enum": [
-                        "keep_presenter",
-                        "quiet",
-                        "light_overlay",
-                        "remotion",
-                        "b_roll",
-                        "cutaway",
-                        "evidence"
-                      ]
+                      "minLength": 1
                     },
-                    "intensity": {
-                      "type": "string",
-                      "enum": [
-                        "low",
-                        "medium",
-                        "high"
-                      ]
+                    "states": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "phase": {
+                            "type": "string",
+                            "enum": [
+                              "entry",
+                              "progressive",
+                              "settled",
+                              "exit"
+                            ]
+                          },
+                          "start_frame": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "end_frame": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "detail": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 2000
+                          }
+                        },
+                        "required": [
+                          "phase",
+                          "start_frame",
+                          "end_frame",
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "minItems": 4,
+                      "maxItems": 12
                     },
-                    "primary_attention": {
+                    "style_pack_id": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 500
+                      "maxLength": 160
                     },
-                    "narrative_purpose": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 800
+                    "visual_treatment": {
+                      "type": "object",
+                      "properties": {
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "keep_presenter",
+                            "quiet",
+                            "light_overlay",
+                            "remotion",
+                            "b_roll",
+                            "cutaway",
+                            "evidence"
+                          ]
+                        },
+                        "intensity": {
+                          "type": "string",
+                          "enum": [
+                            "low",
+                            "medium",
+                            "high"
+                          ]
+                        },
+                        "primary_attention": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        },
+                        "narrative_purpose": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 800
+                        },
+                        "quiet_reason": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 800
+                        },
+                        "fallback_plan": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 800
+                        }
+                      },
+                      "additionalProperties": false
                     },
-                    "quiet_reason": {
+                    "kind": {
                       "type": "string",
-                      "minLength": 1,
-                      "maxLength": 800
+                      "const": "HeroReveal"
                     },
-                    "fallback_plan": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 800
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "metric": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "可核对的核心数字或对象"
+                        }
+                      },
+                      "required": [
+                        "metric"
+                      ],
+                      "additionalProperties": true
                     }
                   },
+                  "required": [
+                    "title",
+                    "purpose",
+                    "start_frame",
+                    "end_frame",
+                    "narrative_map_beat_id",
+                    "primary_task",
+                    "states",
+                    "kind",
+                    "props"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/title"
+                    },
+                    "purpose": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/purpose"
+                    },
+                    "start_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/start_frame"
+                    },
+                    "end_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/end_frame"
+                    },
+                    "narrative_map_beat_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/narrative_map_beat_id"
+                    },
+                    "primary_task": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/primary_task"
+                    },
+                    "asset_ids": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/asset_ids"
+                    },
+                    "evidence_capture_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/evidence_capture_id"
+                    },
+                    "states": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/states"
+                    },
+                    "style_pack_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/style_pack_id"
+                    },
+                    "visual_treatment": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/visual_treatment"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "Comparison"
+                    },
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "leftLabel": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "rightLabel": {
+                          "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
+                        },
+                        "dimension": {
+                          "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
+                        }
+                      },
+                      "required": [
+                        "leftLabel",
+                        "rightLabel",
+                        "dimension"
+                      ],
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "purpose",
+                    "start_frame",
+                    "end_frame",
+                    "narrative_map_beat_id",
+                    "primary_task",
+                    "states",
+                    "kind",
+                    "props"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/title"
+                    },
+                    "purpose": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/purpose"
+                    },
+                    "start_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/start_frame"
+                    },
+                    "end_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/end_frame"
+                    },
+                    "narrative_map_beat_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/narrative_map_beat_id"
+                    },
+                    "primary_task": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/primary_task"
+                    },
+                    "asset_ids": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/asset_ids"
+                    },
+                    "evidence_capture_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/evidence_capture_id"
+                    },
+                    "states": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/states"
+                    },
+                    "style_pack_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/style_pack_id"
+                    },
+                    "visual_treatment": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/visual_treatment"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "ProgressiveClassification"
+                    },
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
+                          },
+                          "minItems": 2
+                        }
+                      },
+                      "required": [
+                        "items"
+                      ],
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "purpose",
+                    "start_frame",
+                    "end_frame",
+                    "narrative_map_beat_id",
+                    "primary_task",
+                    "states",
+                    "kind",
+                    "props"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/title"
+                    },
+                    "purpose": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/purpose"
+                    },
+                    "start_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/start_frame"
+                    },
+                    "end_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/end_frame"
+                    },
+                    "narrative_map_beat_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/narrative_map_beat_id"
+                    },
+                    "primary_task": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/primary_task"
+                    },
+                    "asset_ids": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/asset_ids"
+                    },
+                    "evidence_capture_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/evidence_capture_id"
+                    },
+                    "states": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/states"
+                    },
+                    "style_pack_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/style_pack_id"
+                    },
+                    "visual_treatment": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/visual_treatment"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "RouteAndFlow"
+                    },
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "nodes": {
+                          "$ref": "#/properties/plans/items/anyOf/2/properties/props/properties/items"
+                        }
+                      },
+                      "required": [
+                        "nodes"
+                      ],
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "purpose",
+                    "start_frame",
+                    "end_frame",
+                    "narrative_map_beat_id",
+                    "primary_task",
+                    "states",
+                    "kind",
+                    "props"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/title"
+                    },
+                    "purpose": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/purpose"
+                    },
+                    "start_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/start_frame"
+                    },
+                    "end_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/end_frame"
+                    },
+                    "narrative_map_beat_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/narrative_map_beat_id"
+                    },
+                    "primary_task": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/primary_task"
+                    },
+                    "asset_ids": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/asset_ids"
+                    },
+                    "evidence_capture_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/evidence_capture_id"
+                    },
+                    "states": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/states"
+                    },
+                    "style_pack_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/style_pack_id"
+                    },
+                    "visual_treatment": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/visual_treatment"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "EvidenceDocument",
+                      "description": "必须绑定已有 EvidenceCapture；页面素材必须能渲染"
+                    },
+                    "props": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "purpose",
+                    "start_frame",
+                    "end_frame",
+                    "narrative_map_beat_id",
+                    "primary_task",
+                    "states",
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/title"
+                    },
+                    "purpose": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/purpose"
+                    },
+                    "start_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/start_frame"
+                    },
+                    "end_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/end_frame"
+                    },
+                    "narrative_map_beat_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/narrative_map_beat_id"
+                    },
+                    "primary_task": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/primary_task"
+                    },
+                    "asset_ids": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/asset_ids"
+                    },
+                    "evidence_capture_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/evidence_capture_id"
+                    },
+                    "states": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/states"
+                    },
+                    "style_pack_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/style_pack_id"
+                    },
+                    "visual_treatment": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/visual_treatment"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "UIWalkthrough",
+                      "description": "必须绑定已就绪的真实界面截图或录屏，不能使用生成素材"
+                    },
+                    "props": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "purpose",
+                    "start_frame",
+                    "end_frame",
+                    "narrative_map_beat_id",
+                    "primary_task",
+                    "states",
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/title"
+                    },
+                    "purpose": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/purpose"
+                    },
+                    "start_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/start_frame"
+                    },
+                    "end_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/end_frame"
+                    },
+                    "narrative_map_beat_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/narrative_map_beat_id"
+                    },
+                    "primary_task": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/primary_task"
+                    },
+                    "asset_ids": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/asset_ids"
+                    },
+                    "evidence_capture_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/evidence_capture_id"
+                    },
+                    "states": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/states"
+                    },
+                    "style_pack_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/style_pack_id"
+                    },
+                    "visual_treatment": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/visual_treatment"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "DataConclusion"
+                    },
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "values": {
+                          "type": "array",
+                          "items": {
+                            "type": "number"
+                          },
+                          "minItems": 1
+                        },
+                        "labels": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
+                          },
+                          "minItems": 1
+                        },
+                        "source": {
+                          "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
+                        },
+                        "unit": {
+                          "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
+                        },
+                        "baseline": {
+                          "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
+                        }
+                      },
+                      "required": [
+                        "values",
+                        "labels",
+                        "source",
+                        "unit",
+                        "baseline"
+                      ],
+                      "additionalProperties": true,
+                      "description": "values 与 labels 必须同长度；数据来源、单位和基线不可省略"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "purpose",
+                    "start_frame",
+                    "end_frame",
+                    "narrative_map_beat_id",
+                    "primary_task",
+                    "states",
+                    "kind",
+                    "props"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/title"
+                    },
+                    "purpose": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/purpose"
+                    },
+                    "start_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/start_frame"
+                    },
+                    "end_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/end_frame"
+                    },
+                    "narrative_map_beat_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/narrative_map_beat_id"
+                    },
+                    "primary_task": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/primary_task"
+                    },
+                    "asset_ids": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/asset_ids"
+                    },
+                    "evidence_capture_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/evidence_capture_id"
+                    },
+                    "states": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/states"
+                    },
+                    "style_pack_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/style_pack_id"
+                    },
+                    "visual_treatment": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/visual_treatment"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "PeopleGrouping"
+                    },
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "groups": {
+                          "$ref": "#/properties/plans/items/anyOf/2/properties/props/properties/items"
+                        },
+                        "dimension": {
+                          "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
+                        }
+                      },
+                      "required": [
+                        "groups",
+                        "dimension"
+                      ],
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "purpose",
+                    "start_frame",
+                    "end_frame",
+                    "narrative_map_beat_id",
+                    "primary_task",
+                    "states",
+                    "kind",
+                    "props"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/title"
+                    },
+                    "purpose": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/purpose"
+                    },
+                    "start_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/start_frame"
+                    },
+                    "end_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/end_frame"
+                    },
+                    "narrative_map_beat_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/narrative_map_beat_id"
+                    },
+                    "primary_task": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/primary_task"
+                    },
+                    "asset_ids": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/asset_ids"
+                    },
+                    "evidence_capture_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/evidence_capture_id"
+                    },
+                    "states": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/states"
+                    },
+                    "style_pack_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/style_pack_id"
+                    },
+                    "visual_treatment": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/visual_treatment"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "LayerStack"
+                    },
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "layers": {
+                          "$ref": "#/properties/plans/items/anyOf/2/properties/props/properties/items"
+                        },
+                        "relationship": {
+                          "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
+                        }
+                      },
+                      "required": [
+                        "layers",
+                        "relationship"
+                      ],
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "purpose",
+                    "start_frame",
+                    "end_frame",
+                    "narrative_map_beat_id",
+                    "primary_task",
+                    "states",
+                    "kind",
+                    "props"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/title"
+                    },
+                    "purpose": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/purpose"
+                    },
+                    "start_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/start_frame"
+                    },
+                    "end_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/end_frame"
+                    },
+                    "narrative_map_beat_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/narrative_map_beat_id"
+                    },
+                    "primary_task": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/primary_task"
+                    },
+                    "asset_ids": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/asset_ids"
+                    },
+                    "evidence_capture_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/evidence_capture_id"
+                    },
+                    "states": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/states"
+                    },
+                    "style_pack_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/style_pack_id"
+                    },
+                    "visual_treatment": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/visual_treatment"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "HistoryTimeline"
+                    },
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "events": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "date": {
+                                "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
+                              },
+                              "label": {
+                                "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
+                              },
+                              "detail": {
+                                "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
+                              }
+                            },
+                            "required": [
+                              "date",
+                              "label"
+                            ],
+                            "additionalProperties": true
+                          },
+                          "minItems": 2
+                        },
+                        "source": {
+                          "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
+                        }
+                      },
+                      "required": [
+                        "events",
+                        "source"
+                      ],
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "purpose",
+                    "start_frame",
+                    "end_frame",
+                    "narrative_map_beat_id",
+                    "primary_task",
+                    "states",
+                    "kind",
+                    "props"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/title"
+                    },
+                    "purpose": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/purpose"
+                    },
+                    "start_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/start_frame"
+                    },
+                    "end_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/end_frame"
+                    },
+                    "narrative_map_beat_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/narrative_map_beat_id"
+                    },
+                    "primary_task": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/primary_task"
+                    },
+                    "asset_ids": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/asset_ids"
+                    },
+                    "evidence_capture_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/evidence_capture_id"
+                    },
+                    "states": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/states"
+                    },
+                    "style_pack_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/style_pack_id"
+                    },
+                    "visual_treatment": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/visual_treatment"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "QuotePortrait",
+                      "description": "必须绑定真实人物或机构视觉素材，不能绑定 EvidenceCapture"
+                    },
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "quote": {
+                          "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
+                        },
+                        "attribution": {
+                          "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
+                        },
+                        "source": {
+                          "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
+                        }
+                      },
+                      "required": [
+                        "quote",
+                        "attribution",
+                        "source"
+                      ],
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "purpose",
+                    "start_frame",
+                    "end_frame",
+                    "narrative_map_beat_id",
+                    "primary_task",
+                    "states",
+                    "kind",
+                    "props"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/title"
+                    },
+                    "purpose": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/purpose"
+                    },
+                    "start_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/start_frame"
+                    },
+                    "end_frame": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/end_frame"
+                    },
+                    "narrative_map_beat_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/narrative_map_beat_id"
+                    },
+                    "primary_task": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/primary_task"
+                    },
+                    "asset_ids": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/asset_ids"
+                    },
+                    "evidence_capture_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/evidence_capture_id"
+                    },
+                    "states": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/states"
+                    },
+                    "style_pack_id": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/style_pack_id"
+                    },
+                    "visual_treatment": {
+                      "$ref": "#/properties/plans/items/anyOf/0/properties/visual_treatment"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "RealityBroll",
+                      "description": "必须绑定已就绪、非生成的图片或视频，不能绑定 EvidenceCapture"
+                    },
+                    "props": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "purpose",
+                    "start_frame",
+                    "end_frame",
+                    "narrative_map_beat_id",
+                    "primary_task",
+                    "states",
+                    "kind"
+                  ],
                   "additionalProperties": false
                 }
-              },
-              "required": [
-                "title",
-                "purpose",
-                "start_frame",
-                "end_frame",
-                "narrative_map_beat_id",
-                "kind",
-                "primary_task",
-                "states"
-              ],
-              "additionalProperties": false
+              ]
             },
             "minItems": 1,
             "maxItems": 80
@@ -5736,6 +6532,11 @@
                     "sourceEndMs": {
                       "type": "integer",
                       "exclusiveMinimum": 0
+                    },
+                    "decodeScale": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 1
                     }
                   },
                   "required": [
@@ -5899,7 +6700,7 @@
     {
       "name": "analyze_media",
       "title": "分析素材声画",
-      "description": "对项目原素材或受控在线候选提交异步多模态分析。使用源毫秒或图片区域，保存实际覆盖、原文与版本，不修改技术 ready 或创作 Revision。通过 track_job 查询；深度 review 仍是模型观察，不冒充实际听审。",
+      "description": "对素材、候选、不可变 exportArtifactId 或成功 previewJobId 提交异步多模态分析。review 时 context 是实际发给模型的专项问题；index/discovery 的 context 仅作用途备注，初看保持盲观察。导出/预览只允许 review，range 以该文件起点为零的毫秒计，返回 composition 映射到对应 Revision 和时间线。不重新导入素材、不修改视频 Revision。保存实际指令、源哈希、模型版本、覆盖和未知；模型复核有效但不冒充人工或原生听觉，抽样不能证明精确同步。通过 track_job 和 read_media_observations 读取结果。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -5914,6 +6715,14 @@
                 "minLength": 1
               },
               "candidateId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "exportArtifactId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "previewJobId": {
                 "type": "string",
                 "minLength": 1
               },
@@ -6042,6 +6851,14 @@
                 "minLength": 1
               },
               "candidateId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "exportArtifactId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "previewJobId": {
                 "type": "string",
                 "minLength": 1
               },
@@ -6607,6 +7424,25 @@
                       "slot"
                     ],
                     "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "effectCueId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "motionVideoSlot": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 40
+                      }
+                    },
+                    "required": [
+                      "effectCueId",
+                      "motionVideoSlot"
+                    ],
+                    "additionalProperties": false
                   }
                 ]
               }
@@ -6646,6 +7482,165 @@
         },
         "required": [
           "job_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "acquire_source_material",
+      "title": "取得选定来源材料",
+      "description": "异步取得公开页面、直接图片或 PDF。web_snapshot 固定1440像素视口，不传 pages/pageWidth；这两个参数仅用于 PDF，选定页登记独立 PNG。网页子资源失败允许保存截图，Job.result.capture 返回 complete、warnings 与 reviewStatus=pending，必须核对正文后再用作证据；主页面、验证码、安全及预算失败仍拒绝。返回 Job，不创建场景或证据采用。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "input": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "baseRevision": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "maxLength": 4000
+                  },
+                  "basis": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "purposes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "delivery"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 2
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "web_snapshot"
+                  }
+                },
+                "required": [
+                  "baseRevision",
+                  "idempotencyKey",
+                  "url",
+                  "basis",
+                  "purposes",
+                  "kind"
+                ],
+                "additionalProperties": false,
+                "description": "公开网页截图：固定 1440 像素视口，不接受 pages 或 pageWidth"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "baseRevision": {
+                    "$ref": "#/properties/input/anyOf/0/properties/baseRevision"
+                  },
+                  "idempotencyKey": {
+                    "$ref": "#/properties/input/anyOf/0/properties/idempotencyKey"
+                  },
+                  "url": {
+                    "$ref": "#/properties/input/anyOf/0/properties/url"
+                  },
+                  "basis": {
+                    "$ref": "#/properties/input/anyOf/0/properties/basis"
+                  },
+                  "purposes": {
+                    "$ref": "#/properties/input/anyOf/0/properties/purposes"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "image"
+                  }
+                },
+                "required": [
+                  "baseRevision",
+                  "idempotencyKey",
+                  "url",
+                  "basis",
+                  "purposes",
+                  "kind"
+                ],
+                "additionalProperties": false,
+                "description": "直接图片原文件：不接受 pages 或 pageWidth"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "baseRevision": {
+                    "$ref": "#/properties/input/anyOf/0/properties/baseRevision"
+                  },
+                  "idempotencyKey": {
+                    "$ref": "#/properties/input/anyOf/0/properties/idempotencyKey"
+                  },
+                  "url": {
+                    "$ref": "#/properties/input/anyOf/0/properties/url"
+                  },
+                  "basis": {
+                    "$ref": "#/properties/input/anyOf/0/properties/basis"
+                  },
+                  "purposes": {
+                    "$ref": "#/properties/input/anyOf/0/properties/purposes"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "pdf"
+                  },
+                  "pages": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 10000
+                    },
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "description": "仅 PDF：选定页码；省略时仅取得原 PDF，不生成页面图片"
+                  },
+                  "pageWidth": {
+                    "type": "integer",
+                    "minimum": 640,
+                    "maximum": 1920,
+                    "description": "仅 PDF：页面图片最长边像素，默认 1600；不是网页视口宽度"
+                  }
+                },
+                "required": [
+                  "baseRevision",
+                  "idempotencyKey",
+                  "url",
+                  "basis",
+                  "purposes",
+                  "kind"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "input"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
@@ -7885,6 +8880,10 @@
                   },
                   "minItems": 1,
                   "maxItems": 40
+                },
+                "scope": {
+                  "type": "string",
+                  "const": "caption_text"
                 },
                 "note": {
                   "type": "string",

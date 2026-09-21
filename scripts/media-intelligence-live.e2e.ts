@@ -36,7 +36,7 @@ async function add(name: string, kind: Asset["kind"]) {
 }
 async function analyze(asset: Asset, modalities: MediaModality[]) {
   const before = app.readProject(projectId).revision.number;
-  const job = app.intelligence.submitAnalysis(projectId, { assetId: asset.id, depth: "review", modalities, context: "只描述实际输入，测试内容不提供给模型作为答案。" });
+  const job = await app.intelligence.submitAnalysis(projectId, { assetId: asset.id, depth: "review", modalities, context: "只描述实际输入，测试内容不提供给模型作为答案。" });
   await runOneJob(app, processor);
   const latest = app.trackJob(job.id);
   await record({ name: asset.name, job: latest, observations: app.intelligence.inspect(projectId, { assetId: asset.id }), revisionUnchanged: app.readProject(projectId).revision.number === before });

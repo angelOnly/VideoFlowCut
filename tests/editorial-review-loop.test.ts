@@ -75,6 +75,40 @@ async function fixture() {
   return { root, app, projectId, state, run, base, preview, observe, dispose: async () => { app.close(); await rm(root, { recursive: true, force: true }); } };
 }
 
+test("字幕文字单帧复核只关闭对应文字问题，不关闭动态也不补全连续覆盖", async () => {
+  const f = await fixture();
+  try {
+    const state = f.app.repository.commit(f.projectId, f.base.revision, "测试字幕", (snapshot) => {
+      snapshot.speechSegments.push({ id: "static-speech-test", text: "情况", semanticUnitIds: [], scriptRevision: 0, order: 0 } as any);
+      snapshot.timeline.captions.push({ speechSegmentId: "static-speech-test", id: "caption-static-test", startFrame: 5, endFrame: 20, text: "情况" } as any);
+    });
+    const base = { ...f.base, revision: state.revision.number, passes: ["mute_visual"] as EditorialReviewPass[] };
+    const finding = { pass: "mute_visual" as const, severity: "major" as const, category: "semantic" as const, summary: "显示错字", evidence: "测试观察", impact: "影响字义", objectId: "caption-static-test", frameRange: { startFrame: 6, endFrame: 7 } };
+    const first = await f.app.recordEditorialQualityReview({ ...base, previewEvidence: ["发现文字及动态问题"], findings: [finding, { ...finding, category: "motion", summary: "换卡闪烁" }] });
+    const ids = first.editorialReview!.findings.map((entry) => entry.id);
+    const next = f.app.updateStory({ projectId: f.projectId, baseRevision: base.revision, title: "新版" });
+    base.revision = next.revision.number;
+    const preview = await f.preview(base.revision);
+    const checked = await f.app.recordEditorialQualityReview({ ...base, observations: [{ pass: "mute_visual", previewJobId: preview.id, startFrame: 6, endFrame: 7, method: "frames", observation: "只看到该帧文字正确" }] });
+    const evidenceIds = [checked.editorialReview!.evidenceRecords!.at(-1)!.id];
+    const resolve = (findingId: string, scope?: "caption_text") => f.app.recordEditorialQualityReview({ ...base, resolutions: [{ findingId, evidenceIds, note: "仅字面显示复核", scope }] });
+    await assert.rejects(resolve(ids[0]), /连续证据/u);
+    await assert.rejects(resolve(ids[1], "caption_text"), /不能关闭声音或运动/u);
+    // 已结束的旧Run保持不可追加；新Run可引用仍有效的旧Run当前版本证据。
+    checked.status = "completed";
+    await writeFile(join(f.state.snapshot.project.rootPath, "reports", `production-run-${base.runId}.json`), JSON.stringify(checked));
+    await assert.rejects(resolve(ids[0], "caption_text"), /已结束/u);
+    const followup = await f.app.startProductionRun({ projectId: f.projectId, loadedSkills: ["quality-verification"] });
+    base.runId = followup.id;
+    await resolve(ids[0], "caption_text");
+    const review = await f.app.readEditorialQualityReview(base);
+    assert.deepEqual(openEditorialFindings(review).map((entry) => entry.id), [ids[1]]);
+    assert.equal(evaluateQuality(next.snapshot, base.revision, review).editorial.coverage!.find((entry) => entry.pass === "mute_visual")!.complete, false);
+    await writeFile(preview.path, "替换证据");
+    assert.equal(openEditorialFindings(await f.app.readEditorialQualityReview(base)).length, 2);
+  } finally { await f.dispose(); }
+});
+
 test("局部和抽帧证据不等于全片，逐阶段累积并保留真实哈希", async () => {
   const f = await fixture();
   try {

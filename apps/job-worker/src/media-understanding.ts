@@ -13,7 +13,7 @@ import { BridgeError, ComfyUIBridgeClient, type BridgeRunRequest, type BridgeWor
 import type { JobRecord, MediaAnalysisRecord, MediaObservation, MediaSource } from "@videocut/contracts";
 import { assetById, DomainError, now } from "@videocut/domain";
 import { probeMedia, runProcess } from "@videocut/speech";
-import { hashMediaFile, managedSourcePath } from "../../../packages/edit-application/src/media-intelligence.js";
+import { hashMediaFile, managedSourcePath, renderedAnalysisSource } from "../../../packages/edit-application/src/media-intelligence.js";
 import { ANALYSIS_VERSION, MODEL_WORKFLOWS, EMBEDDING_VERSION, analysisInputSchema, analysisPrompt, digest, parseObservation, planWindows, searchQuerySchema } from "../../../packages/media-intelligence/src/index.js";
 import { mediaId } from "../../../packages/media-intelligence/src/store.js";
 import { detectSceneBoundaries } from "../../../packages/media-intelligence/src/structure.js";
@@ -23,6 +23,7 @@ async function resolveSource(app: EditingApplication, job: JobRecord, providers:
   const input = analysisInputSchema.parse(job.payload.input);
   const state = app.readProject(job.projectId);
   let path: string, kind: MediaSource["kind"], identity: MediaSource["identity"];
+  let composition: MediaSource["composition"];
   if (input.assetId) {
     const asset = assetById(state.snapshot, input.assetId);
     path = await managedSourcePath(state.snapshot.project.rootPath, asset.managedPath);
@@ -30,6 +31,10 @@ async function resolveSource(app: EditingApplication, job: JobRecord, providers:
     if (asset.sourceHash && hash !== job.payload.sourceVersion) throw new DomainError("源文件在提交分析后发生变化", "MEDIA_SOURCE_CHANGED");
     kind = asset.kind === "image" || asset.kind === "document" ? asset.kind : asset.kind === "audio" || asset.kind === "speech" ? "audio" : "video";
     identity = "original";
+  } else if (input.exportArtifactId || input.previewJobId) {
+    const rendered = await renderedAnalysisSource(app, job.projectId, input);
+    if (rendered.hash !== job.payload.sourceVersion) throw new DomainError("提交后复核文件已变化", "MEDIA_SOURCE_CHANGED");
+    path = rendered.path; composition = rendered.composition; kind = "video"; identity = "derived";
   } else {
     const { candidate, request } = app.readAssetCandidate({ projectId: job.projectId, assetCandidateId: input.candidateId! });
     if (digest([candidate.previewUrl, assetRequestVersion(request)]) !== job.payload.sourceVersion) throw new DomainError("候选或需求已更新，请重新分析", "MEDIA_CANDIDATE_CHANGED");
@@ -47,8 +52,8 @@ async function resolveSource(app: EditingApplication, job: JobRecord, providers:
   const metadata = kind === "document" ? undefined : await probeMedia(path);
   const probe = kind === "document" ? { streams: [] } : JSON.parse(await runProcess("ffprobe", ["-v", "error", "-show_streams", "-show_format", "-of", "json", path], 120_000));
   const source: MediaSource = {
-    id: `media_source_${digest([job.projectId, input.assetId ?? input.candidateId, identity, hash])}`,
-    projectId: job.projectId, target: input.assetId ? { assetId: input.assetId } : { candidateId: input.candidateId! }, identity, hash, path, kind,
+    id: `media_source_${digest([job.projectId, input.assetId ?? input.candidateId ?? input.exportArtifactId ?? input.previewJobId, identity, hash])}`,
+    projectId: job.projectId, target: input.assetId ? { assetId: input.assetId } : input.exportArtifactId ? { exportArtifactId: input.exportArtifactId } : input.previewJobId ? { previewJobId: input.previewJobId } : { candidateId: input.candidateId! }, identity, hash, path, kind, composition,
     durationMs: kind === "image" || kind === "document" ? 0 : metadata?.durationMs ?? 0,
     startSeconds: Number(probe.format?.start_time ?? 0), pageCount: kind === "document" ? await documentPageCount(path) : undefined, hasAudio: metadata?.hasAudio ?? false, width: metadata?.width, height: metadata?.height,
     streams: (probe.streams ?? []).map((stream: Record<string, unknown>) => ({ index: Number(stream.index), kind: String(stream.codec_type), timeBase: stream.time_base as string | undefined, startSeconds: Number(stream.start_time ?? 0), sampleRate: stream.sample_rate ? Number(stream.sample_rate) : undefined, rotation: Number((stream.side_data_list as Array<{ rotation?: number }> | undefined)?.find((entry) => entry.rotation !== undefined)?.rotation ?? 0) })), createdAt: now()
@@ -130,18 +135,19 @@ export async function runMediaUnderstanding(app: EditingApplication, job: JobRec
     try {
       window.modalityStatus = Object.fromEntries(input.modalities.map((modality) => [modality, modalities.includes(modality) ? "unknown" : "unavailable"]));
       const directory = join(app.readProject(job.projectId).snapshot.project.rootPath, "cache", "mi", digest([job.id, window.id]).slice(0, 24));
-      const derived = await deriveMediaInput(source, directory, window.range, window.region);
+      const derived = await deriveMediaInput(source, directory, window.range, window.region, modalities.every((entry) => entry === "audio" || entry === "speech"));
       const kind = derived.kind;
       const workflowId = kind === "audio" ? config.audioWorkflowId : kind === "image" ? config.imageWorkflowId : config.videoWorkflowId;
       const currentSchema = await bridge.getWorkflow(workflowId);
       const reusable = store.observations(job.projectId).find((entry) => !entry.correction && entry.facts.length > 0 && entry.sourceHash === source.hash && digest(entry.range) === digest(window.range) && digest(entry.region) === digest(window.region) && entry.depth === input.depth && entry.context === record!.context && entry.version.model === config.modelRevision && entry.version.prompt === ANALYSIS_VERSION && entry.version.preprocessing === PREPROCESSING_VERSION && entry.version.workflowId === workflowId && entry.version.schemaVersion === currentSchema.schemaVersion && digest(entry.modalities) === digest(modalities));
-      const requestIdentity = digest([source.hash, window.range, window.region, modalities, config.modelRevision, ANALYSIS_VERSION, PREPROCESSING_VERSION]);
+      const prompt = analysisPrompt(modalities.filter((modality) => modality !== "speech"), window.range, input.depth === "review" ? record.context : undefined);
+      const requestIdentity = digest([source.hash, window.range, window.region, modalities, config.modelRevision, ANALYSIS_VERSION, PREPROCESSING_VERSION, prompt]);
       const response = reusable ? { text: reusable.rawText, schemaVersion: reusable.version.schemaVersion, runId: reusable.runId } : await modelText(app, job, bridge, `window:${window.id}`, workflowId, async (schema) => {
         const slot = bridge.findRequiredSlot(schema, kind);
         const fields: Record<string, unknown> = {};
         const available = new Set(schema.fields.map((field) => field.id));
         if (!available.has("prompt")) throw new DomainError("分析工作流缺少 prompt 字段", "MEDIA_MODEL_SCHEMA_UNSUPPORTED");
-        fields.prompt = analysisPrompt(modalities.filter((modality) => modality !== "speech"), window.range);
+        fields.prompt = prompt;
         if (available.has("max_new_tokens")) fields.max_new_tokens = 4096;
         if (window.range) {
           if (!available.has("start_seconds") || !available.has("duration_seconds")) throw new DomainError("分析接口缺少真实源时间窗口", "MEDIA_MODEL_SCHEMA_UNSUPPORTED");
@@ -153,7 +159,7 @@ export async function runMediaUnderstanding(app: EditingApplication, job: JobRec
       const parsed = parseObservation(response.text!, window.range, modalities.filter((modality) => modality !== "speech"));
       if (!parsed.facts.length && modalities.some((modality) => modality !== "speech")) rejectModelOutput(app, job, `window:${window.id}`, parsed.unknowns.join("；") || "没有可校验的观察事实");
       const observation: MediaObservation = { id: `observation_${digest([window.id, response.runId])}`, projectId: job.projectId, sourceId: source.id, sourceHash: source.hash, range: window.range, region: window.region, depth: input.depth, modalities, ...parsed,
-        context: record.context, rawText: response.text!, version: { workflowId, schemaVersion: response.schemaVersion, model: config.modelRevision, prompt: ANALYSIS_VERSION, preprocessing: PREPROCESSING_VERSION, samplingFps: kind === "video" ? 1 : undefined }, jobId: job.id, runId: response.runId, inputEvidence: { path: derived.path, hash: await hashMediaFile(derived.path), mapping: derived.mapping }, createdAt: now() };
+        context: record.context, promptText: prompt, rawText: response.text!, version: { workflowId, schemaVersion: response.schemaVersion, model: config.modelRevision, prompt: ANALYSIS_VERSION, preprocessing: PREPROCESSING_VERSION, samplingFps: kind === "video" ? 1 : undefined }, jobId: job.id, runId: response.runId, inputEvidence: { path: derived.path, hash: await hashMediaFile(derived.path), mapping: derived.mapping }, createdAt: now() };
       observation.reusedFromObservationId = reusable?.id;
       if (window.region) observation.facts.forEach((fact) => { fact.region = window.region; });
       for (const fact of observation.facts) window.modalityStatus![fact.modality] = "observed";

@@ -1,9 +1,10 @@
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync } from "node:fs";
-import { realpath } from "node:fs/promises";
+import { realpath, stat } from "node:fs/promises";
 import { assetById, createId, DomainError, now } from "@videocut/domain";
 import { readRuntimeConfig } from "@videocut/project-overview";
+import { probeMedia } from "@videocut/speech";
 import { assetRequestVersion, intersection, regionContains } from "../../media-intelligence/src/index.js";
 import type { MediaAdoption, MediaFact, MediaObservation, MediaSearchQuery, MediaSource, MediaUsageTarget, SourceRegion, SourceTimeRange } from "@videocut/contracts";
 import { mediaUsageProblem, mediaUsageState } from "../../media-intelligence/src/usage.js";
@@ -20,6 +21,22 @@ export async function managedSourcePath(root: string, path: string): Promise<str
   const local = relative(base, source);
   if (local.startsWith("..") || isAbsolute(local)) throw new DomainError("素材必须位于受管项目目录", "MEDIA_SOURCE_OUTSIDE_PROJECT");
   return source;
+}
+
+/** 只读绑定不可变输出；不为审片重新导入素材或创建视频版本。 */
+export async function renderedAnalysisSource(app: EditingApplication, projectId: string, input: Pick<AnalysisInput, "exportArtifactId" | "previewJobId">) {
+  const root = app.getProjectRoot(projectId);
+  const artifact = input.exportArtifactId ? app.readExportArtifact({ projectId, artifactId: input.exportArtifactId }) : undefined;
+  const job = app.trackJob(artifact?.jobId ?? input.previewJobId!);
+  if (job.projectId !== projectId || job.status !== "succeeded" || job.kind !== (artifact ? "export" : "preview")) throw new DomainError("复核来源必须为本项目成功的导出或预览", "MEDIA_REVIEW_SOURCE_INVALID");
+  const revision = artifact?.revision ?? Number(job.payload.revision);
+  const snapshot = app.repository.getRevision(projectId, revision).snapshot;
+  const fromFrame = artifact ? 0 : Number(job.payload.fromFrame), toFrame = artifact ? snapshot.timeline.durationInFrames : Number(job.payload.toFrame);
+  const rawPath = artifact?.relativePath ?? job.result?.path;
+  if (typeof rawPath !== "string" || !Number.isInteger(fromFrame) || !Number.isInteger(toFrame) || fromFrame < 0 || toFrame <= fromFrame || toFrame > snapshot.timeline.durationInFrames || (!artifact && (job.result?.revision !== revision || job.result?.fromFrame !== fromFrame || job.result?.toFrame !== toFrame))) throw new DomainError("复核文件缺少一致的版本与范围", "MEDIA_REVIEW_SOURCE_INVALID");
+  const path = await managedSourcePath(root, rawPath), hash = await hashMediaFile(path), file = await stat(path);
+  if (!file.isFile() || file.size <= 0 || artifact && (hash !== artifact.fileHash || file.size !== artifact.fileSizeBytes)) throw new DomainError("成片已丢失或替换，不能沿用原导出身份", "MEDIA_REVIEW_SOURCE_CHANGED");
+  return { path, hash, composition: { revision, fromFrame, toFrame, fps: snapshot.timeline.fps } };
 }
 
 /** Web、MCP 和 Worker 使用同一分析/采用规则，不建立第二份项目快照。 */
@@ -53,7 +70,7 @@ export class MediaIntelligenceApplication {
     return state;
   }
 
-  submitAnalysis(projectId: string, value: AnalysisInput) {
+  async submitAnalysis(projectId: string, value: AnalysisInput) {
     const input = analysisInputSchema.parse(value);
     const state = this.app.readProject(projectId);
     let sourceVersion: string;
@@ -64,6 +81,14 @@ export class MediaIntelligenceApplication {
       if (["image", "document"].includes(asset.kind) && input.range) throw new DomainError("图片和文档使用区域/页码，不使用视频时间", "MEDIA_RANGE_KIND_MISMATCH");
       if (!["image", "document"].includes(asset.kind) && input.region) throw new DomainError("视频/音频分析使用源时间范围", "MEDIA_RANGE_KIND_MISMATCH");
       sourceVersion = asset.sourceHash ?? digest([asset.managedPath, asset.metadata]);
+    } else if (input.exportArtifactId || input.previewJobId) {
+      const rendered = await renderedAnalysisSource(this.app, projectId, input);
+      if (input.range) {
+        // 复核范围属于实际文件；编码后的音轨尾部可略长于画面帧范围，不能按帧数截断核听。
+        const media = await probeMedia(rendered.path);
+        if (!Number.isFinite(media.durationMs) || media.durationMs! <= 0 || input.range.endMs > media.durationMs! + 1) throw new DomainError("复核范围超出所选成片或预览", "MEDIA_REVIEW_RANGE_INVALID");
+      }
+      sourceVersion = rendered.hash;
     } else {
       const { candidate, request } = this.app.readAssetCandidate({ projectId, assetCandidateId: input.candidateId! });
       if (!candidate.previewUrl) throw new DomainError("候选没有可取得的试听/预览文件", "MEDIA_PREVIEW_UNAVAILABLE");
@@ -78,9 +103,9 @@ export class MediaIntelligenceApplication {
     return job;
   }
 
-  inspect(projectId: string, target: { assetId?: string; candidateId?: string; range?: SourceTimeRange; region?: SourceRegion }, offset = 0, limit = 40) {
+  inspect(projectId: string, target: { assetId?: string; candidateId?: string; exportArtifactId?: string; previewJobId?: string; range?: SourceTimeRange; region?: SourceRegion }, offset = 0, limit = 40) {
     const snapshot = this.app.readProject(projectId).snapshot;
-    const sources = this.store.sources(projectId).filter((source) => target.assetId ? source.target.assetId === target.assetId : target.candidateId ? source.target.candidateId === target.candidateId : true);
+    const sources = this.store.sources(projectId).filter((source) => target.assetId ? source.target.assetId === target.assetId : target.candidateId ? source.target.candidateId === target.candidateId : target.exportArtifactId ? source.target.exportArtifactId === target.exportArtifactId : target.previewJobId ? source.target.previewJobId === target.previewJobId : true);
     const currentSources = sources.filter((source) => !source.target.assetId || snapshot.assets.some((asset) => asset.id === source.target.assetId && (!asset.sourceHash || asset.sourceHash === source.hash)));
     const observations = currentSources.flatMap((source) => this.store.observations(projectId, source.id)).filter((observation) => (!target.range || observation.range && intersection(target.range, observation.range)) && (!target.region || observation.region?.page === target.region.page));
     const analyses = currentSources.flatMap((source) => this.store.analyses(projectId, source.id));

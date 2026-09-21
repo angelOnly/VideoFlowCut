@@ -7,7 +7,7 @@ description: 对口播、访谈和旁白执行 Cleanup、Highlight、Restructure
 
 ## 执行角色与代理交接
 
-本 Skill 的创意工作在专项子代理中执行，负责完整文稿、SemanticUnit 删留重排、Take 选择、源范围、停顿及自然听感。主任务通过 [production-coordinator](../production-coordinator/SKILL.md) 真实分派；同一授权子代理可按需读取相关 Skills 并直接创作，不递归分派。涉及整片主线或跨段风格的决定交导演子代理。
+本 Skill 的创意工作在专项子代理中执行，负责采用稿的语义核对、真实口播的 SemanticUnit 删留重排、Take 选择、源范围、停顿及自然听感。主任务通过 [production-coordinator](../production-coordinator/SKILL.md) 真实分派；同一授权子代理可按需读取相关 Skills 并直接创作，不递归分派。涉及整片主线或跨段风格的决定交导演子代理。
 
 执行前读取 [代理角色与交接](../_shared/PROJECT_REVISION_AND_HANDOFF.md#代理角色与交接)：输入带 Project、输入 Revision、对象、事实证据、硬约束和前后接口；返回完整产物与参数、选择理由、影响/失效范围和证据请求。下文的项目写入、生成提交及审阅保存由主任务统一执行，子代理不直接写正式项目。收到实际对象和真实 Preview 后由原子代理审阅修订，不能以摘要、工具成功或等待证据代替完成；输入变化先重新确认，不能只换版本重发。
 
@@ -42,6 +42,8 @@ description: 对口播、访谈和旁白执行 Cleanup、Highlight、Restructure
 不同任务使用不同标准。Cleanup 不应偷偷重写观点；Highlight 不要求保存全部结构；Target Script 不允许 Agent 自行保留“觉得更好”的额外内容。
 
 ## 建立完整内容地图
+
+从零撰写或授权改写解说的创作方法由 narration-writing 承担，它交回准确正文与逐段声画初稿，导演采用后进入本节的语义和项目合同。语义核对可以由同一文案专项按需读取本 Skill 完成，不为此固定新增一轮独立代理或用户审批。本 Skill 继续负责完整思想、原话范围、指代和上下文，不重新把已采用稿压缩成提纲。
 
 第一次阅读 TranscriptText 时不要立即删。先标出：问题、回答、主张、前提、原因、结果、转折、对比、例子、列表、设置、包袱、结论、重录、错误重启、有意重复、口癖、呼吸和情绪停顿。
 

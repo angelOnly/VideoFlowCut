@@ -20,6 +20,7 @@ export async function runSoundRanking(app: EditingApplication, job: JobRecord, b
   const [queryVector] = await encodeModelTexts(app, job, bridge, [query], "query", "sound-query");
   const vectors = await encodeModelTexts(app, job, bridge, texts, "document", "sound-metadata");
   const ranked = candidates.map((candidate, index) => ({ candidateId: candidate.id, score: cosine(vectors[index], queryVector), text: texts[index], basis: "provider_metadata", audioVerified: false })).sort((a, b) => b.score - a.score);
-  const analysisJobIds = ranked.slice(0, Number(job.payload.analyzeTop)).map((entry) => app.intelligence.submitAnalysis(job.projectId, { candidateId: entry.candidateId, depth: "index", modalities: ["audio"], context: `${query}。这是用途背景，不能据此编造实际听到的声音。` }).id);
+  const analysisJobIds: string[] = [];
+  for (const entry of ranked.slice(0, Number(job.payload.analyzeTop))) analysisJobIds.push((await app.intelligence.submitAnalysis(job.projectId, { candidateId: entry.candidateId, depth: "index", modalities: ["audio"], context: `${query}。这是用途背景，不能据此编造实际听到的声音。` })).id);
   return { ...app.trackJob(job.id).result, ranked, analysisJobIds, query, requestVersion: job.payload.requestVersion, embeddingRevision: config.embeddingRevision, nextStep: "待子任务完成，按实际声音与连续范围重新筛选。原文件采用前另做复核。" };
 }

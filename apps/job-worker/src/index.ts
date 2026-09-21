@@ -1,3 +1,4 @@
+import { runSourceMaterialAcquisition } from "./source-material-acquisition.js";
 import { runSoundRanking } from "./sound-ranking.js";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
@@ -34,7 +35,7 @@ const getDefaultApplication = () => (defaultApplication ??= createApplication(wo
  * 但绝不能被 Worker claim 或重新执行；唯一正式入口是段级 source_caption_alignment。
  */
 export const MEDIA_JOB_KINDS: JobKind[] = ["media_analysis", "vlog_analysis", "multicam_sync", "asset_acquisition", "transcription", "source_caption_alignment", "voice_synthesis", "dialogue_processing", "speech_alignment", "music_generation", "video_generation", "avatar_generation"];
-MEDIA_JOB_KINDS.push("media_understanding", "media_search", "sound_ranking");
+MEDIA_JOB_KINDS.push("source_material_acquisition", "media_understanding", "media_search", "sound_ranking");
 
 const resolveAssetPath = (snapshot: ProjectSnapshot, asset: Asset) => isAbsolute(asset.managedPath) ? asset.managedPath : join(snapshot.project.rootPath, asset.managedPath);
 
@@ -236,6 +237,7 @@ export function createMediaJobProcessor(
   const omniVoice = new OmniVoiceSegmentService(app, bridge);
   return async (job) => {
     switch (job.kind) {
+      case "source_material_acquisition": return runSourceMaterialAcquisition(app, job);
       case "media_analysis":
         return runMediaAnalysis(app, job);
       case "media_understanding":

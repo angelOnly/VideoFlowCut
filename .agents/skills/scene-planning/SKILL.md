@@ -125,6 +125,10 @@ Scene 太短可能是信息过多、旁白太快或边界错误；Scene 太长�
 
 当前 MCP 可以 `browse_scene_types`、`create_scene`，Presenter 正式链路还可使用 `compile_presenter_scenes`。创建 Scene 时必须有真实 start/end frame、purpose、类型和相关 Asset。架构中的完整 Scene Compiler、内部 State 和可编辑 Scene Props 尚未全部实现时，可以先形成计划并使用当前能表达的范围，不声称复杂渐进状态已经自动编译。
 
+`compile_explainer_scenes` 会创建带内置主视觉的 Program，并不是空场景接口。实时 Schema 按 kind 分支列出内容条件，例如 HeroReveal 的 props.metric、RouteAndFlow 的 props.nodes，以及 Comparison 的双方名称和比较维度；真实 UI、证据与实拍类型另有素材要求。由原创 ManagedMotion 独立承担主视觉时，导演可选择现有 create_scene 创建基础 ExplainerScene，另交 VisualTreatment 与 Cue 参数，不必为随后停用而填充内置 Program。已有 Program 的局部替换仍按停用合同处理。
+
+读取工具结果先检查 isError 并保留完整 text；成功结果才按 JSON 解码。编译业务错误返回 code/message，宿主或协议参数错误仍可能是纯文本；不能让二次解析错误遮住原始诊断，也不能据此重试写入。
+
 Scene 创建后读回 Project、Scene、Timeline、Impact，并渲染必要范围。若 Scene 内部需要 Remotion 组件，再调用 `remotion-production`；时机交给 `effect-timing`，空间交给 `depth-composition`。
 
 ## 场景切换的声音

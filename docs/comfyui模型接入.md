@@ -1,6 +1,6 @@
 # ComfyUI Bridge 全部应用 HTTP 接入文档
 
-本文覆盖当前插件发现到的全部应用：3DGenStudio、FunASR、LTX2.3、4 个 MiniMax H3 工作流、OmniVoice，以及 2 个当前不可调用的 MiniMax 超级工作流。
+本文覆盖当前插件发现到的全部应用：3DGenStudio、FunASR、LTX2.3、4 个 MiniMax H3 工作流、OmniVoice、Stable Audio 3 Medium，以及 2 个当前不可调用的 MiniMax 超级工作流。
 
 ## 1. 使用前提与安全边界
 
@@ -305,6 +305,50 @@ const video = finished.outputs.find((item) => item.kind === "video");
 | --- | --- |
 | `input-caf62e956e5d99e3e2f4b68e` | 待合成文本 |
 
+### 3.9 Stable Audio 3 Medium 音效、环境声与无歌词音乐
+
+| 项目 | 值 |
+| --- | --- |
+| 工作流 ID | `stable-audio-3-medium-v1` |
+| 请求方式 | JSON |
+| 媒体输入 | 无 |
+| 输出 | `audio`：44.1 kHz 双声道 FLAC 音频 |
+
+该应用使用后训练的 Medium 推理模型，不使用仅供微调的 `medium-base`。模型文件仅从国内镜像下载，并放入以下目录：
+
+| 文件 | 本机目录 | 国内镜像地址 |
+| --- | --- | --- |
+| `stable_audio_3_medium.safetensors` | `ComfyUI/models/checkpoints/` | `https://hf-mirror.com/Comfy-Org/stable-audio-3/resolve/main/checkpoints/stable_audio_3_medium.safetensors` |
+| `t5gemma_b_b_ul2.safetensors` | `ComfyUI/models/text_encoders/` | `https://hf-mirror.com/Comfy-Org/stable-audio-3/resolve/main/text_encoders/t5gemma_b_b_ul2.safetensors` |
+
+| 字段 ID | 类型与规则 | 默认值 |
+| --- | --- | --- |
+| `prompt` | 必填文本；建议用英文描述声音、动作、材质、空间与时长 | — |
+| `duration_seconds` | 数字，范围 1–120 秒；表示最大时长，生成结果可能更短 | `10` |
+| `seed` | 整数，范围 0–9007199254740991 | `20260921` |
+
+运行前必须请求 `GET /workflows/stable-audio-3-medium-v1` 并使用响应中的最新 `schemaVersion`。工作流保存后版本会变化。中文调用方应先将声音意图转换为英文提示词；此工作流不额外加载翻译或提示词扩写模型。
+
+成功后音频输出会同时返回两个地址：`downloadUrl` 保持强制下载行为；`previewUrl` 用于直接试听，返回 `audio/flac`、`Content-Disposition: inline`，并支持 Range 请求，可作为浏览器地址或 HTML `<audio>` 的 `src`。
+
+示例：
+
+```js
+const run = await runBridgeApplication("stable-audio-3-medium-v1", {
+  prompt: "A short cinematic thunder crack followed by distant rolling thunder in a wide valley, no music.",
+  duration_seconds: 8,
+  seed: 2026092101,
+});
+const finished = await waitForBridgeRun(run.id);
+const audio = finished.outputs.find((item) => item.kind === "audio");
+const downloadUrl = origin + audio.downloadUrl;
+const previewUrl = origin + audio.previewUrl;
+```
+
+服务端固定使用 8 步 LCM 采样与 CFG 1，不对外开放这些参数。接口会自动裁掉末尾连续静音：低于 -45 dB 且持续至少 0.35 秒的尾部静音会被移除，并保留最后有效声音后的 0.15 秒自然尾音。因此 `duration_seconds` 表示最大时长而非强制填充时长；音频中的内部停顿会原样保留。当前时长上限为 120 秒；如需提高，须先完成显存与队列压力测试。
+
+已于 2026-09-21 完成木门关闭、远处雷暴、复古科幻按钮及蒸汽喷发共 4 次真实生成验收，结果均为 44.1 kHz 双声道 FLAC；缺少 `prompt` 返回 `400`，过期 `schemaVersion` 返回 `409`。同日完成尾部静音裁剪验收：请求 8 秒“木门关闭”音效，返回 `stable_audio_3_00006.flac` 为 5.67 秒、44.1 kHz 双声道 FLAC；使用 `silencedetect` 检查，文件末尾不存在持续至少 0.35 秒的静音。
+
 ## 4. 当前不可调用的应用
 
 这两个文件同样会出现在 `/workflows`，但不能创建任务。它们不是被删除或隐藏，而是明确暴露修复原因。
@@ -330,6 +374,6 @@ const video = finished.outputs.find((item) => item.kind === "video");
 
 1. 重启 ComfyUI。
 2. 请求 `GET /comfyui-bridge/v1/health`。
-3. 请求 `GET /comfyui-bridge/v1/workflows`，确认本文件第 3 节的 8 个应用显示 `available: true`。
+3. 请求 `GET /comfyui-bridge/v1/workflows`，确认本文件第 3 节的 9 个应用显示 `available: true`。
 4. 先用 FunASR、LTX2.3 和一个 MiniMax 工作流各完成一次真实调用，确认音频上传、视频输出和可选媒体路径都正常。
 5. 对需要长期保留的文件结果，立即请求其 `downloadUrl` 保存到业务侧存储。

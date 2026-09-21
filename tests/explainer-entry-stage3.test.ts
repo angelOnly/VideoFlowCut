@@ -200,6 +200,13 @@ test("HTTP 入口完整建立 Explainer 证据、Program 与质量读取，错�
 
     const mapBeats = narrative.snapshot.narrativeMap?.beats;
     assert.equal(mapBeats?.length, 2);
+    for(const kind of ["HeroReveal","RouteAndFlow","Comparison"]){
+      const invalid: {statusCode:number}=await server.app.inject({method:"POST",url:`/api/projects/${projectId}/explainer-scenes/compile`,payload:{baseRevision:narrative.revision.number,plans:[{title:"缺少内容",purpose:"HTTP合同回归",startFrame:0,endFrame:24,narrativeMapBeatId:mapBeats![0]!.id,kind,primaryTask:"测试",states:continuousStates()}]}});
+      assert.equal(invalid.statusCode,400);
+      assert.equal(server.application.readProject(projectId).revision.number,narrative.revision.number);
+    }
+    assert.throws(()=>server.application.compileExplainerScenes({projectId,baseRevision:narrative.revision.number,plans:[{title:"原始缺失复现",purpose:"原子失败回归",startFrame:0,endFrame:24,narrativeMapBeatId:mapBeats![0]!.id,kind:"HeroReveal",primaryTask:"测试",states:continuousStates()}]}),error=>(error as {code:string}).code==="HERO_REVEAL_METRIC_REQUIRED");
+    assert.equal(server.application.readProject(projectId).revision.number,narrative.revision.number);
     const compileResponse = await server.app.inject({
       method: "POST",
       url: `/api/projects/${projectId}/explainer-scenes/compile`,
@@ -280,6 +287,14 @@ test("MCP 入口以 snake_case 走完整 Explainer 编译并在错误时保留�
   try {
     await client.connect(transport);
     const liveTools = (await client.listTools()).tools;
+    const compileTool = liveTools.find(tool => tool.name === "compile_explainer_scenes")!;
+    const variants = (compileTool.inputSchema.properties!.plans as {items:{anyOf:Array<{properties:Record<string,any>;required:string[]}>}}).items.anyOf;
+    assert.equal(variants.length,12);
+    for(const [kind,fields] of Object.entries({HeroReveal:["metric"],RouteAndFlow:["nodes"],Comparison:["leftLabel","rightLabel","dimension"]})) {
+      const variant=variants.find(item=>item.properties.kind.const===kind)!;
+      assert.ok(variant.required.includes("props"));
+      assert.deepEqual(variant.properties.props.required,fields);
+    }
     const toolNames = new Set(liveTools.map((tool) => tool.name));
     const evidenceTool = liveTools.find((tool) => tool.name === "manage_evidence_capture")!;
     assert.match(evidenceTool.description!, /create 必须提供.*1到12个 highlights/u);
@@ -357,6 +372,12 @@ test("MCP 入口以 snake_case 走完整 Explainer 编译并在错误时保留�
     } }));
     const mapBeats = narrative.snapshot.narrativeMap?.beats;
     assert.equal(mapBeats?.length, 2);
+    for(const kind of ["HeroReveal","RouteAndFlow","Comparison"]){
+      const rejected=await client.callTool({name:"compile_explainer_scenes",arguments:{base_revision_id:narrative.revision.number,plans:[{title:"缺少内容",purpose:"验证参数可发现且拒绝无写入",start_frame:0,end_frame:24,narrative_map_beat_id:mapBeats![0]!.id,kind,primary_task:"测试",states:continuousMcpStates()}]}});
+      assert.equal(rejected.isError,true);
+      assert.ok(textFromToolResult(rejected).length>0);
+      assert.equal(workerApplication.readProject(projectId).revision.number,narrative.revision.number);
+    }
     const compiled = readMcpResult<RevisionState>(await client.callTool({ name: "compile_explainer_scenes", arguments: {
       base_revision_id: narrative.revision.number,
       plans: [
@@ -409,6 +430,7 @@ test("MCP 入口以 snake_case 走完整 Explainer 编译并在错误时保留�
     } });
     assert.equal((invalid as { isError?: boolean }).isError, true);
     assert.match(textFromToolResult(invalid), /RealityBroll 必须绑定/u);
+    assert.equal(JSON.parse(textFromToolResult(invalid)).code,"REALITY_BROLL_ASSET_REQUIRED");
     assert.equal(workerApplication.readProject(projectId).revision.number, beforeInvalidRevision, "MCP 被拒绝的编译不能覆盖当前 Explainer Revision");
     assert.ok(toolNames.has("set_explainer_program_enabled"));
     const toggle = { program_id: compiled.snapshot.explainerPrograms[0]!.id, enabled: false };

@@ -160,7 +160,7 @@ try {
   assert.ok(tools.tools.some((tool) => tool.name === "import_local_sound_effect"), "插件 MCP 必须提供受控本地音效导入");
   assert.equal(tools.tools.find((tool) => tool.name === "browse_sound_sources")?.annotations?.readOnlyHint, true);
   // 当前入口返回实际 Provider 能力，旧版五个网站目录的数量不再是发行合同。
-  assert.deepEqual((await call("browse_sound_sources", {})).sources.map((source) => source.id).sort(), ["freesound", "mixkit", "mixkit_music"]);
+  assert.deepEqual((await call("browse_sound_sources", {})).sources.map((source) => source.id).sort(), ["mixkit", "mixkit_music"]);
   assert.ok(tools.tools.find((tool) => tool.name === "manage_audio")?.inputSchema?.properties?.effect_event);
   const workbench = await call("open_web_workbench", {});
   assert.equal(workbench.url, runtime.webUrl, "MCP 工作台入口必须指向同一个隔离 Runtime");

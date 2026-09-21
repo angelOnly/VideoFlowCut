@@ -50,12 +50,20 @@ test("MCP 只能浏览、检测并导入配置根目录内的本地音效", asyn
   try {
     await client.connect(transport);
     const tools = await client.listTools();
+    const sourceInput = tools.tools.find(tool => tool.name === "acquire_source_material")!.inputSchema.properties!.input as { anyOf: Array<{ properties: Record<string, unknown>; description?: string }> };
+    assert.equal(sourceInput.anyOf.length, 3);
+    assert.ok(!sourceInput.anyOf[0].properties.pageWidth);
+    assert.match(sourceInput.anyOf[0].description!, /1440/);
+    assert.ok(sourceInput.anyOf[2].properties.pageWidth);
+    const duration = tools.tools.find(tool => tool.name === "manage_asset_requirements")!.inputSchema.properties!.min_duration_ms;
+    assert.match(JSON.stringify(duration), /null/);
+    assert.match(JSON.stringify(duration), /图片不应用/);
     assert.ok(tools.tools.some((tool) => tool.name === "browse_local_sound_effects"));
     assert.ok(tools.tools.some((tool) => tool.name === "inspect_local_sound_effect"));
     assert.ok(tools.tools.some((tool) => tool.name === "import_local_sound_effect"));
     assert.equal(tools.tools.find((tool) => tool.name === "browse_sound_sources")?.annotations?.readOnlyHint, true);
     const sources = JSON.parse(textFromToolResult(await client.callTool({ name: "browse_sound_sources", arguments: {} })));
-    assert.deepEqual(sources.sources.map((source: { id: string }) => source.id), ["mixkit", "mixkit_music", "freesound"]);
+    assert.deepEqual(sources.sources.map((source: { id: string }) => source.id), ["mixkit", "mixkit_music"]);
     assert.equal(sources.sources[0].original, true);
     assert.ok(sources.sources[0].categories.includes("interface"));
     const manageSchema = tools.tools.find((tool) => tool.name === "manage_audio")!.inputSchema;

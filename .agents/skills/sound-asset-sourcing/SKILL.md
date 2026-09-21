@@ -25,7 +25,7 @@ description: 从段落声音意图出发，默认在线检索有限候选，分�
 
 ## 在线来源和有限候选
 
-先用 `browse_sound_sources` 读取当前能力和凭据状态，再 `search_media_candidates`。Mixkit 音效与音乐是独立 Provider；分类浏览不冒充全站任意全文搜索。Freesound 仅在实际凭据可用时使用官方检索和原文件获取；未启用时仍可从可用来源继续。免费是费用属性，许可按具体文件保存，不能把预览授权扩大为原文件采用授权。
+先用 `browse_sound_sources` 读取当前无需 Key 的来源与访问能力，再 `search_media_candidates`。Mixkit 音效与音乐是独立 Provider；分类浏览不冒充全站任意全文搜索。不提供需要 Key 或 OAuth 的搜索、下载接口；其它网站只按浏览器入口和已发布导入能力处理。免费是费用属性，许可按具体文件保存，不能把预览授权扩大为原文件采用授权。
 
 `inspect_media_candidate` 返回来源、预览、许可和过滤理由。挑选有限候选交给 `recommend_sound_candidates`，Qwen 对描述文字排序，不直接听音。父 Job 完成后继续追踪其中音频分析子 Job，再读取 `read_media_observations` 或 `search_media_fragments`：MiniCPM 实际观察到了什么，输入覆盖哪里，排除条件是否仍未知。模型漏检音乐或把电子音判断为旋律时保留不确定性，不能用更强提示词制造“无人声”的结论。
 

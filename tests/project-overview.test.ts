@@ -53,7 +53,7 @@ function textFromToolResult(result: unknown): string {
 }
 
 test("MCP 注册工具全部归入项目总览能力目录", async () => {
-  const source = (await Promise.all([mcpSourcePath, ...["motion-tools", "media-intelligence-tools", "sound-tools"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
+  const source = (await Promise.all([mcpSourcePath, ...["motion-tools", "media-intelligence-tools", "sound-tools", "source-research-tools"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
   const registered = registeredToolNames(source);
   const catalogued = MCP_CAPABILITY_GROUPS.flatMap((group) => group.tools);
   const missing = registered.filter((name) => !catalogued.includes(name));
@@ -84,7 +84,9 @@ test("项目总览集中读取 Node 配置且不泄漏敏感值", () => {
   assert.equal(config.http.port, 4100);
   assert.equal(config.http.host, "0.0.0.0");
   assert.equal(config.http.serveWeb, true);
-  assert.equal(overview.configuration.providers.pexelsConfigured, true);
+  assert.equal(overview.configuration.providers.requiresKey, false);
+  assert.deepEqual(Object.keys(config.providers), ["youtubeDownloaderPath"]);
+  assert.doesNotMatch(JSON.stringify(overview.configuration), /TAVILY_API_KEY|PEXELS_API_KEY|FREESOUND_/);
   assert.equal(overview.configuration.runtime.runtimeTokenConfigured, true);
   assert.doesNotMatch(JSON.stringify(overview), /secret-do-not-return|runtime-secret/u);
 });

@@ -14,10 +14,15 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--comfy-root", type=Path, required=True)
     parser.add_argument("--install-nodes", action="store_true", help="备份并安装仓库内外部节点；不会安装模型或自动重启 ComfyUI")
+    parser.add_argument("--nodes-only", action="store_true", help="只安装已构建节点，不改写已有工作流")
     args = parser.parse_args()
+    if args.nodes_only and not args.install_nodes:
+        parser.error("--nodes-only 必须与 --install-nodes 一起使用")
     root = args.comfy_root.resolve()
     if args.install_nodes:
-        bundle = Path(__file__).resolve().parents[1] / "integrations/comfyui-semantic"
+        bundle = Path(__file__).resolve().parents[1] / "plugins/videoflowcut/runtime/dist/comfyui-semantic"
+        if not all((bundle / name).is_file() for name in ("local_semantic_nodes.py", "minicpmo_worker.py")):
+            raise RuntimeError("请先构建包含语义节点的正式发行产物")
         target = root / "custom_nodes/Comfyui-AppApi"
         entry = target / "__init__.py"
         if not entry.is_file() or "SEMANTIC_NODE_CLASS_MAPPINGS" not in entry.read_text(encoding="utf-8"):
@@ -30,6 +35,8 @@ def main():
                 shutil.copy2(target / name, backup / name)
             shutil.copy2(source, target / name)
             print(json.dumps({"installed": name, "sha256": hashlib.sha256(source.read_bytes()).hexdigest(), "backup": str(backup)}, ensure_ascii=False))
+        if args.nodes_only:
+            return
     sys.path.insert(0, str(root))
     sys.path.insert(0, str(root / "custom_nodes" / "Comfyui-AppApi"))
     from workflow_catalog import compute_fingerprint

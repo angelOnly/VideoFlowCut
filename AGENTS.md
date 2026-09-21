@@ -43,6 +43,19 @@
 
 ## 注意事项
 
+- ComfyUI 服务未启动、停止或崩溃时，由修复任务使用以下 PowerShell 命令启动；服务已运行时不重复启动。必须使用指定的 `comfy_5090_313` 环境及下列参数，不擅自更换环境或安装、升级依赖。
+
+  ```powershell
+  & 'C:\Users\13222\anaconda3\envs\comfy_5090_313\python.exe' `
+    'E:\ai\comfyui\ComfyUI-aki-v2\ComfyUI\main.py' `
+    --listen 0.0.0.0 `
+    --auto-launch `
+    --preview-method auto `
+    --use-sage-attention `
+    --cuda-malloc `
+    --disable-smart-memory
+  ```
+
 - 关键代码添加精炼易懂的中文注释
 - 所有的文档描述等都使用中文
 

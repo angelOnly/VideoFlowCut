@@ -1,3 +1,4 @@
+import { sourceMaterialSchema, type SourceMaterialInput } from "../../asset-acquisition/src/source-research.js";
 import { assetUsageRightsInputSchema } from "../../contracts/src/editorial-inputs.js";
 import { captionPlacementSchema, captionDisplaySchema, validCaptionDisplay, type CaptionDisplay } from "../../contracts/src/caption-presentation.js";
 import { applyAudioDesign, soundRequirementSchema, type AudioDesignInput } from "./sound-design.js";
@@ -1314,7 +1315,8 @@ function candidateFilterReasons(
   if ((request.mediaKind === "audio") !== (candidate.kind === "audio")) reasons.push("候选媒介类型不符合声音/视觉需求。");
   if (!candidate.originalAssetId.trim()) reasons.push("Provider 未返回原始素材 ID。");
   if (!candidate.sourceUrl.trim()) reasons.push("Provider 未返回可追溯的来源页面。");
-  if (request.minDurationMs !== undefined && (candidate.durationMs === undefined || candidate.durationMs < request.minDurationMs)) {
+  // 静态图片没有源时长；它在成片中的显示时长由分镜决定。
+  if (candidate.kind !== "image" && request.minDurationMs !== undefined && (candidate.durationMs === undefined || candidate.durationMs < request.minDurationMs)) {
     reasons.push(`时长不足 ${Math.ceil(request.minDurationMs / 1000)} 秒。`);
   }
   const allowed = request.rightsRequirement === "cleared_only"
@@ -2247,7 +2249,7 @@ export class EditingApplication {
     passes: EditorialReviewPass[];
     previewEvidence: string[];
     observations?: EditorialReviewObservation[];
-    resolutions?: Array<{ findingId: Id; evidenceIds: Id[]; note: string }>;
+    resolutions?: Array<{ findingId: Id; evidenceIds: Id[]; note: string; scope?: "caption_text" }>;
     findings: Array<{
       pass: EditorialReviewPass;
       severity: EditorialReviewSeverity;
@@ -2310,6 +2312,15 @@ export class EditingApplication {
       const located = [...target.snapshot.effectCues, ...target.snapshot.cutaways, ...target.snapshot.scenes, ...target.snapshot.timeline.items, ...target.snapshot.timeline.captions].find((entry) => entry.id === finding.objectId);
       const range = (finding.revision === input.revision ? finding.frameRange : located) ?? { startFrame: 0, endFrame: target.snapshot.timeline.durationInFrames };
       const evidence = resolution.evidenceIds.map((id) => availableEvidence.find((entry) => entry.id === id));
+      if (resolution.scope === "caption_text") {
+        const caption = target.snapshot.timeline.captions.find((entry) => entry.id === finding.objectId);
+        // 只允许有实际字幕对象的文字问题；单帧不因此取得声音或整轮连续覆盖资格。
+        if (!caption || finding.pass !== "mute_visual" || !["semantic", "typography"].includes(finding.category)
+          || !evidence.length || evidence.some((entry) => !entry || entry.revision !== input.revision || entry.pass !== "mute_visual" || entry.method !== "frames"
+            || entry.endFrame !== entry.startFrame + 1 || entry.startFrame < caption.startFrame || entry.endFrame > caption.endFrame
+            || (finding.recordedAt && entry.recordedAt < finding.recordedAt))) throw new DomainError("文字复核仅接受当前字幕卡内、发现问题后登记的单帧静音证据；不能关闭声音或运动问题", "EDITORIAL_RESOLUTION_EVIDENCE_REQUIRED");
+        return { findingId: finding.id, revision: input.revision, evidenceIds: [...new Set(resolution.evidenceIds)], note: resolution.note.trim(), resolvedAt: now(), scope: "caption_text", frameRange: { startFrame: caption.startFrame, endFrame: caption.endFrame } };
+      }
       if (!evidence.length || evidence.some((entry) => !entry || entry.revision !== input.revision || entry.pass !== finding.pass || !evidenceSupportsPass(entry) || (finding.recordedAt && entry.recordedAt < finding.recordedAt)) || missingReviewRanges(evidence.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)), range.startFrame, range.endFrame).length) throw new DomainError("问题关闭需要发现问题之后登记的当前 Revision、对应轮次与完整复核范围的连续证据", "EDITORIAL_RESOLUTION_EVIDENCE_REQUIRED");
       return { findingId: finding.id, revision: input.revision, evidenceIds: [...new Set(resolution.evidenceIds)], note: resolution.note.trim(), resolvedAt: now(), frameRange: { startFrame: range.startFrame, endFrame: range.endFrame } };
     });
@@ -2452,7 +2463,7 @@ export class EditingApplication {
         id: createId("asset"), name: work.name, kind: "video", status: "ready", managedPath: `${directory}/preview.mp4`, sourceHash: input.sourceHash,
         role: "generated_visual", tags: ["managed_motion", "work_review_required"], createdAt: now(), metadata: input.metadata,
         provenance: { source: "generated", provider: "managed_remotion", generationJobId: job.id, rightsStatus: effectiveRights, license: work.rights.basis, usageRights, attributionText: [work.rights.attribution, ...images.map((image) => image.attribution)].filter(Boolean).join("\n") || undefined, acquiredAt: now() },
-        motion: { jobId: job.id, version, engineVersion: input.engineVersion, previousAssetId: work.previousAssetId, sourceAssetIds: images.map(image => image.assetId), sourcePath: `${directory}/source.json`, framesDirectory: `${directory}/frames`, frameCount: work.durationInFrames, fps: work.fps, width: work.width, height: work.height, referenceUrl: work.reference?.url, creativeBrief: work.creativeBrief, visibility: input.visibility, eventMap: input.eventMap }
+        motion: { jobId: job.id, version, engineVersion: input.engineVersion, previousAssetId: work.previousAssetId, sourceAssetIds: images.map(image => image.assetId), ...(boundVideos.length ? { videoSources: boundVideos.map(v => ({ slot: v.slot, assetId: v.assetId, sourceHash: v.hash, sourceStartMs: v.sourceStartMs, sourceEndMs: v.sourceEndMs })) } : {}), sourcePath: `${directory}/source.json`, framesDirectory: `${directory}/frames`, frameCount: work.durationInFrames, fps: work.fps, width: work.width, height: work.height, referenceUrl: work.reference?.url, creativeBrief: work.creativeBrief, visibility: input.visibility, eventMap: input.eventMap }
       };
       snapshot.assets.push(asset);
       impact.changed.push(asset.id);
@@ -2587,7 +2598,7 @@ export class EditingApplication {
     queryHints?: string[];
     excludedTerms?: string[];
     targetAspectRatio?: AssetRequest["targetAspectRatio"];
-    minDurationMs?: number;
+    minDurationMs?: number | null;
     rightsRequirement?: AssetRightsRequirement;
     fallbackPlan?: AssetRequest["fallbackPlan"];
     closeReason?: string;
@@ -2599,8 +2610,8 @@ export class EditingApplication {
       if (!input.title?.trim() || !input.purpose?.trim() || !(input.mediaKind === "audio" ? input.audioBrief : input.visualBrief)?.trim()) {
         throw new DomainError("创建素材需求必须说明标题、叙事用途和具体画面/声音", "ASSET_REQUEST_CONTENT_REQUIRED");
       }
-      if (input.minDurationMs !== undefined && (!Number.isFinite(input.minDurationMs) || input.minDurationMs <= 0)) {
-        throw new DomainError("素材最小时长必须是正数", "INVALID_ASSET_REQUEST_DURATION");
+      if (input.minDurationMs != null && (!Number.isInteger(input.minDurationMs) || input.minDurationMs <= 0 || input.minDurationMs > 300_000)) {
+        throw new DomainError("素材最小时长必须是 1 到 300000 的整数，null 表示无时长限制", "INVALID_ASSET_REQUEST_DURATION");
       }
     }
     const state = this.repository.commit(input.projectId, input.baseRevision, input.action === "create" ? "创建素材需求" : input.action === "close" ? "关闭素材需求" : "更新素材需求", (snapshot, impact) => {
@@ -2619,7 +2630,7 @@ export class EditingApplication {
           queryHints: normalizedTextList(input.queryHints),
           excludedTerms: normalizedTextList(input.excludedTerms),
           targetAspectRatio: input.mediaKind === "audio" ? undefined : input.targetAspectRatio ?? snapshot.project.brief.aspectRatio,
-          minDurationMs: input.minDurationMs,
+          minDurationMs: input.minDurationMs ?? undefined,
           rightsRequirement: input.rightsRequirement ?? "cleared_or_attribution",
           fallbackPlan: input.fallbackPlan ?? (input.mediaKind === "audio" ? "ask_user" : "keep_presenter"),
           status: "open",
@@ -2661,8 +2672,8 @@ export class EditingApplication {
           if (input.excludedTerms !== undefined) request.excludedTerms = normalizedTextList(input.excludedTerms);
           if (input.targetAspectRatio !== undefined) request.targetAspectRatio = input.targetAspectRatio;
           if (input.minDurationMs !== undefined) {
-            if (!Number.isFinite(input.minDurationMs) || input.minDurationMs <= 0) throw new DomainError("素材最小时长必须是正数", "INVALID_ASSET_REQUEST_DURATION");
-            request.minDurationMs = input.minDurationMs;
+            if (input.minDurationMs !== null && (!Number.isInteger(input.minDurationMs) || input.minDurationMs <= 0 || input.minDurationMs > 300_000)) throw new DomainError("素材最小时长必须是 1 到 300000 的整数，null 用于清空", "INVALID_ASSET_REQUEST_DURATION");
+            request.minDurationMs = input.minDurationMs ?? undefined;
           }
           if (input.rightsRequirement !== undefined) request.rightsRequirement = input.rightsRequirement;
           if (input.fallbackPlan !== undefined) request.fallbackPlan = input.fallbackPlan;
@@ -2709,13 +2720,48 @@ export class EditingApplication {
     return state;
   }
 
+  /** 选定来源使用既有队列；相同键的重试不能悄悄改 URL 或用途。 */
+  submitSourceMaterial(projectId: Id, raw: SourceMaterialInput): JobRecord {
+    const input = sourceMaterialSchema.parse(raw);
+    const current = this.readProject(projectId);
+    const key = `source-material:${input.idempotencyKey}`;
+    const existing = this.repository.listJobs(projectId).find(j => j.idempotencyKey === key);
+    if (existing) {
+      if (JSON.stringify(existing.payload.input) !== JSON.stringify(input)) throw new DomainError("来源任务幂等输入冲突", "SOURCE_IDEMPOTENCY_CONFLICT");
+      return existing;
+    }
+    if (current.revision.number !== input.baseRevision) throw new DomainError("项目 Revision 已变化", "REVISION_CONFLICT");
+    const job = this.repository.createJob({ projectId, kind: "source_material_acquisition", payload: { input }, idempotencyKey: key });
+    this.publish({ projectId, revision: current.revision.number, type: "job" });
+    return job;
+  }
+
+  completeSourceMaterial(projectId: Id, jobId: Id, manifest: { url: string; fetchedAt: string; capture?: unknown; files: Array<{ file: string; kind: "document" | "image"; hash: string; page?: number }> }) {
+    const job = this.repository.getJob(jobId);
+    if (job.projectId !== projectId || job.kind !== "source_material_acquisition") throw new DomainError("来源任务不属于当前项目", "SOURCE_JOB_MISMATCH");
+    const input = sourceMaterialSchema.parse(job.payload.input);
+    const current = this.readProject(projectId);
+    let assets = current.snapshot.assets.filter(a => a.provenance?.generationJobId === jobId);
+    if (!assets.length) {
+      const state = this.repository.commit(projectId, current.revision.number, "登记选定来源原文件与页面", (snapshot, impact) => {
+        assets = manifest.files.map(file => createMediaAsset({ name: file.page ? `来源第${file.page}页` : new URL(manifest.url).hostname,
+          kind: file.kind, managedPath: `assets/derived/source-material/${jobId}/${file.file}`, sourceHash: file.hash, role: "evidence", tags: ["source_material", ...(file.page ? [`pdf_page:${file.page}`] : [])],
+          provenance: { source: "provider", provider: "source_material", generationJobId: jobId, sourceUrl: manifest.url, originalAssetId: file.page ? `${manifest.url}#page=${file.page}` : manifest.url, acquiredAt: manifest.fetchedAt, rightsStatus: "unknown", usageRights: { purposes: input.purposes, basis: input.basis, confirmedAt: now() } } }));
+        snapshot.assets.push(...assets); impact.changed.push(...assets.map(a => a.id));
+      });
+      this.publish({ projectId, revision: state.revision.number, type: "revision" });
+    }
+    const mediaAnalysisJobs = assets.map(asset => this.repository.createJob({ projectId, kind: "media_analysis", payload: { assetId: asset.id }, idempotencyKey: `media_analysis:${asset.id}` }));
+    return { assetIds: assets.map(a => a.id), sourceAssetId: assets[0].id, pages: manifest.files.flatMap((f,i) => f.page ? [{ page: f.page, snapshotAssetId: assets[i].id, sourceAssetId: assets[0].id }] : []), sourceUrl: manifest.url, acquiredAt: manifest.fetchedAt, capture: manifest.capture, mediaAnalysisJobIds: mediaAnalysisJobs.map(j => j.id) };
+  }
+
   /** 搜索是操作数据；正式采用才把必要候选提升到创作快照。 */
   recordAssetSearch(input: {
     projectId: Id; baseRevision: number; assetRequestId: Id; provider: string; query: string;
-    candidates: AssetSearchCandidateInput[]; requestVersion?: string;
+    candidates: AssetSearchCandidateInput[]; requestVersion?: string; cursor?: string; nextCursor?: string;
     mediaType?: "image" | "video" | "audio";
     diagnostics?: import("@videocut/contracts").AssetSearchDiagnostics;
-  }): { state: ProjectState; intent: SearchIntent; candidates: AssetCandidate[]; reused: boolean; sessionId: string; requestVersion: string; diagnostics: import("@videocut/contracts").AssetSearchDiagnostics } {
+  }): { nextCursor?: string; state: ProjectState; intent: SearchIntent; candidates: AssetCandidate[]; reused: boolean; sessionId: string; requestVersion: string; diagnostics: import("@videocut/contracts").AssetSearchDiagnostics } {
     const state = this.readProject(input.projectId);
     const request = assetRequestById(state.snapshot, input.assetRequestId);
     const version = assetRequestVersion(request);
@@ -2724,22 +2770,23 @@ export class EditingApplication {
     const query = input.query.trim();
     if (!query) throw new DomainError("搜索查询不能为空", "EMPTY_ASSET_SEARCH_QUERY");
     const diagnostics = input.diagnostics ?? { complete: true, warnings: [] };
-    // 部分结果不能挡住修复后的再次搜索，不同媒体过滤也不能共用旧候选。
-    const existing = diagnostics.complete && this.repository.mediaIntelligence.searches(input.projectId).find((entry) => entry.diagnostics?.complete !== false && entry.intent.mediaType === input.mediaType && entry.requestId === request.id && entry.requestVersion === version && entry.intent.provider === input.provider && entry.intent.query === query && Date.now() - Date.parse(entry.createdAt) < 30 * 60_000);
-    if (existing) return { state, intent: existing.intent, candidates: existing.candidates, reused: true, sessionId: existing.id, requestVersion: version, diagnostics: existing.diagnostics ?? { complete: true, warnings: [] } };
+    // 部分结果不能挡住再次搜索；第 3 版过滤不复用旧版误按源时长拒绝的图片。
+    const existing = diagnostics.complete && this.repository.mediaIntelligence.searches(input.projectId).find((entry) => entry.resultFormatVersion === 3 && entry.intent.cursor === input.cursor && entry.diagnostics?.complete !== false && entry.intent.mediaType === input.mediaType && entry.requestId === request.id && entry.requestVersion === version && entry.intent.provider === input.provider && entry.intent.query === query && Date.now() - Date.parse(entry.createdAt) < 30 * 60_000);
+    if (existing) return { nextCursor: existing.nextCursor, state, intent: existing.intent, candidates: existing.candidates, reused: true, sessionId: existing.id, requestVersion: version, diagnostics: existing.diagnostics ?? { complete: true, warnings: [] } };
     const createdAt = now();
-    const intent: SearchIntent = { id: createId("search_intent"), assetRequestId: request.id, provider: input.provider, query, mediaType: input.mediaType, createdAt };
-    const candidates: AssetCandidate[] = input.candidates.slice(0, 30).map((source) => {
+    const intent: SearchIntent = { id: createId("search_intent"), assetRequestId: request.id, provider: input.provider, query, mediaType: input.mediaType, ...(input.cursor ? { cursor: input.cursor } : {}), createdAt };
+    if (input.candidates.length > 30) throw new DomainError("Provider 单页超过30条保存预算", "ASSET_SEARCH_PAGE_BUDGET");
+    const candidates: AssetCandidate[] = [...new Map(input.candidates.map(c => [c.originalAssetId, c])).values()].map((source) => {
       const filterReasons = candidateFilterReasons(source, request);
       return { ...source, id: createId("asset_candidate"), assetRequestId: request.id, searchIntentId: intent.id, provider: input.provider,
         originalAssetId: source.originalAssetId.trim(), name: source.name.trim() || "未命名候选", kind: source.kind ?? "video",
         sourceUrl: source.sourceUrl.trim(), tags: normalizedTextList(source.tags), hardFilterPassed: !filterReasons.length, filterReasons,
         status: filterReasons.length ? "rejected" : "available", rejectionReason: filterReasons.length ? filterReasons.join(" ") : undefined, createdAt, updatedAt: createdAt };
     });
-    const session = { id: createId("search_session"), projectId: input.projectId, requestId: request.id, requestVersion: version, intent, candidates, diagnostics, createdAt };
+    const session = { id: createId("search_session"), projectId: input.projectId, requestId: request.id, requestVersion: version, intent, candidates, diagnostics, resultFormatVersion: 3, nextCursor: input.nextCursor, createdAt };
     this.repository.mediaIntelligence.saveSearch(session);
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
-    return { state, intent, candidates, reused: false, sessionId: session.id, requestVersion: version, diagnostics };
+    return { nextCursor: input.nextCursor, state, intent, candidates, reused: false, sessionId: session.id, requestVersion: version, diagnostics };
   }
 
   readAssetCandidate(input: { projectId: Id; assetCandidateId: Id }): { revision: number; request: AssetRequest; intent: SearchIntent; candidate: AssetCandidate; requestVersion: string; observations: unknown[] } {

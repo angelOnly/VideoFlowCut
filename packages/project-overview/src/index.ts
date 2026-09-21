@@ -62,11 +62,6 @@ export interface RuntimeConfig {
   providers: {
     /** 可选 yt-dlp 可执行路径；缺省使用 python -m yt_dlp。 */
     youtubeDownloaderPath?: string;
-    /** Pexels API 密钥；不得写入日志或 MCP 总览结果。 */
-    pexelsApiKey?: string;
-    freesoundApiKey?: string;
-    freesoundOAuthToken?: string;
-    freesoundCommercialApiApproved: boolean;
   };
   /** 下载外部或生成素材时的文件大小保护阈值。 */
   downloads: {
@@ -146,10 +141,6 @@ export function readRuntimeConfig(options: ReadRuntimeConfigOptions = {}): Runti
     },
     providers: {
       youtubeDownloaderPath: environment.VIDEOCUT_YT_DLP_PATH?.trim() || undefined,
-      pexelsApiKey: environment.PEXELS_API_KEY?.trim() || undefined,
-      freesoundApiKey: environment.FREESOUND_API_KEY?.trim() || undefined,
-      freesoundOAuthToken: environment.FREESOUND_OAUTH_TOKEN?.trim() || undefined,
-      freesoundCommercialApiApproved: environment.FREESOUND_COMMERCIAL_API_APPROVED === "true"
     },
     downloads: {
       maxAssetBytes: Number(environment.VIDEOCUT_MAX_ASSET_DOWNLOAD_BYTES ?? RUNTIME_CONFIG_DEFAULTS.maxAssetDownloadBytes),
@@ -312,7 +303,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     name: "素材与来源",
     description: "浏览、导入、检验、搜索、获取素材，并保留来源、许可和需求事实。",
     tools: [
-      "browse_assets", "inspect_asset", "manage_asset_requirements", "list_asset_providers", "search_media_candidates", "inspect_media_candidate",
+      "browse_assets", "inspect_asset", "manage_asset_requirements", "list_asset_providers", "search_media_candidates", "acquire_source_material", "inspect_media_candidate",
       "acquire_media_asset", "read_asset_provenance", "import_media", "update_asset_metadata",
       "analyze_media", "read_media_observations", "search_media_fragments", "correct_media_observation", "adopt_media_fragment", "bind_media_adoption", "retry_media_job"
     ]
@@ -327,7 +318,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
       "read_speech_asset", "manage_voice_references", "read_speech_timing", "submit_speech_alignment",
       "read_speech_alignment", "rebuild_speech_timeline", "submit_voice_synthesis", "submit_dialogue_processing",
       "select_dialogue_processing_variant", "read_captions", "edit_captions", "browse_local_sound_effects",
-      "inspect_local_sound_effect", "import_local_sound_effect", "browse_sound_sources", "manage_audio",
+      "inspect_local_sound_effect", "import_local_sound_effect", "browse_sound_sources", "manage_audio", "set_audio_mix_gain",
       "manage_sound_plans", "recommend_sound_candidates", "preview_sound_alternatives", "review_sound_mix", "set_audio_output_target"
     ]
   },
@@ -422,11 +413,10 @@ export const NODE_RUNTIME_CONFIGURATION_CATALOG = [
   { key: "VIDEOCUT_ANALYSIS_MODEL_REVISION", group: "素材理解", description: "观察模型版本，隔离分析缓存" },
   { key: "VIDEOCUT_EMBEDDING_MODEL_REVISION", group: "素材理解", description: "向量模型版本，隔离语义索引" },
   // Provider：第三方素材服务的凭据；密钥不会出现在项目总览响应中。
-  { key: "PEXELS_API_KEY", group: "Provider", description: "启用 Pexels 素材 Provider 的密钥", sensitive: true },
+  { key: "HTTP_PROXY", group: "网络", description: "外部素材 HTTP 代理，可包含凭据", sensitive: true },
+  { key: "HTTPS_PROXY", group: "网络", description: "外部素材 HTTPS 代理，可包含凭据", sensitive: true },
+  { key: "NO_PROXY", group: "网络", description: "代理排除地址；本地 API 始终直连" },
   { key: "VIDEOCUT_YT_DLP_PATH", group: "Provider", description: "可选 yt-dlp 可执行文件路径；缺省使用 python -m yt_dlp，须安装 yt-dlp[default] 并提供 Node 与 FFmpeg" },
-  { key: "FREESOUND_API_KEY", group: "Provider", description: "Freesound 官方搜索 API 密钥", sensitive: true },
-  { key: "FREESOUND_OAUTH_TOKEN", group: "Provider", description: "Freesound 原文件 OAuth 凭据", sensitive: true },
-  { key: "FREESOUND_COMMERCIAL_API_APPROVED", group: "Provider", description: "是否已确认 Freesound 商业 API 使用条件", defaultValue: "false" },
   // 下载限制：防止单个外部文件异常占满工作区磁盘。
   { key: "VIDEOCUT_MAX_ASSET_DOWNLOAD_BYTES", group: "下载限制", description: "普通 Provider 素材下载上限", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.maxAssetDownloadBytes) },
   { key: "VIDEOCUT_MAX_WIKIMEDIA_DOWNLOAD_BYTES", group: "下载限制", description: "Wikimedia Commons 下载上限", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.maxWikimediaDownloadBytes) },
@@ -565,7 +555,7 @@ export function getProjectOverview(options: ReadRuntimeConfigOptions = {}) {
       semantic: config.semantic,
       downloads: config.downloads, // 外部素材和生成文件的下载上限。
       localSoundEffects: { roots: config.localSoundEffects.roots }, // 仅受控根目录可用于本地音效浏览和导入。
-      providers: { pexelsConfigured: Boolean(config.providers.pexelsApiKey), freesoundApiConfigured: Boolean(config.providers.freesoundApiKey), freesoundOriginalConfigured: Boolean(config.providers.freesoundOAuthToken), freesoundCommercialApiApproved: config.providers.freesoundCommercialApiApproved },
+      providers: { requiresKey: false, sources: ["wikimedia-commons", "youtube", "mixkit", "mixkit_music"], webResearch: "通过宿主浏览器使用 Google、Pexels 等公开网站搜索和阅读；选定网页、图片或 PDF 通过 acquire_source_material 取得，浏览器不是 MCP 搜索 Provider" },
       runtime: {
         distributionDirectory: config.runtime.distributionDirectory, // 插件发行 Runtime 根目录。
         runtimeId: config.runtime.runtimeId, // 当前 Runtime 实例标识。

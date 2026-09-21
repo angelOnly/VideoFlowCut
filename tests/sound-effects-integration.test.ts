@@ -7,7 +7,6 @@ import { createApplication } from "@videocut/application";
 import { createEffectCue, createMediaAsset, createScene, createTimelineItem } from "@videocut/domain";
 import { AssetProviderRegistry, MockAssetProvider, assertProviderMediaAnalysis, assertDownloadedProviderMedia, downloadHttpFile } from "@videocut/acquisition";
 import { MixkitSoundProvider, mixkitPage, parseMixkitSoundPage, parseMixkitMusicPage } from "../packages/asset-acquisition/src/mixkit.js";
-import { FreesoundProvider } from "../packages/asset-acquisition/src/freesound.js";
 import type { AssetCandidate, AssetRequest } from "@videocut/contracts";
 import { createMediaJobProcessor, runOneJob } from "../apps/job-worker/src/index.js";
 import { evaluateQuality } from "@videocut/quality";
@@ -119,42 +118,6 @@ test("Mixkit 分类迁移仅跟随有限同站公开页，音乐不能借用音�
   const html = '<div data-test-id="audio-player" data-audio-player-item-id-value="12" data-audio-player-preview-url-value="https://assets.mixkit.co/music/12/12.mp3"><h2 class="item-grid-card__title">技术曲目</h2><div data-test-id="duration">0:30</div>';
   assert.throws(() => parseMixkitMusicPage(html, "https://mixkit.co/free-stock-music/", 'data-license="sfxFree"'), /音乐许可/u);
   assert.equal(parseMixkitMusicPage(html, "https://mixkit.co/free-stock-music/", 'data-license="musicFree"')[0].license, "Mixkit Stock Music Free License");
-});
-
-test("Freesound 原文件支持直接响应与受控跳转，凭据隔离且失败不重试", async (t) => {
-  const root = await mkdtemp(join(tmpdir(), "videocut-freesound-"));
-  const license = "https://creativecommons.org/publicdomain/zero/1.0/";
-  const candidate = { kind: "audio", originalAssetId: "12", rightsStatus: "cleared", license } as AssetCandidate;
-  const provider = new FreesoundProvider("fixture-api", "fixture-oauth");
-  let mode = "direct", calls = 0;
-  t.mock.method(globalThis, "fetch", async (input: string | URL | Request, options?: RequestInit) => {
-    calls++;
-    const url = String(input), auth = new Headers(options?.headers).get("authorization");
-    if (url.endsWith("/sounds/12/")) {
-      assert.equal(auth, "Token fixture-api");
-      return Response.json({ id: mode === "identity" ? 13 : 12, license: mode === "license" ? "https://creativecommons.org/licenses/by-nc/4.0/" : license, type: "wav" });
-    }
-    if (url.endsWith("/download/")) {
-      assert.equal(auth, "Bearer fixture-oauth"); assert.equal(options?.redirect, "manual");
-      if (mode === "auth" || mode === "rate") return new Response(null, { status: mode === "auth" ? 403 : 429 });
-      if (mode === "redirect" || mode === "unsafe") return new Response(null, { status: 302, headers: { location: mode === "unsafe" ? "https://example.test/12.wav" : "https://cdn.freesound.org/12.wav" } });
-    } else { assert.equal(url, "https://cdn.freesound.org/12.wav"); assert.equal(auth, null); }
-    return new Response(new Uint8Array(wave()), { headers: { "content-type": "audio/wav" } });
-  });
-  try {
-    await assert.rejects(new FreesoundProvider("fixture-api").download({ candidate, temporaryDirectory: root }), /OAuth/u);
-    assert.equal(calls, 0);
-    for (mode of ["direct", "redirect"]) {
-      calls = 0;
-      const result = await provider.download({ candidate, temporaryDirectory: root });
-      assert.deepEqual(await readFile(result.filePath), wave());
-      assert.equal(calls, mode === "direct" ? 2 : 3);
-    }
-    for (const [scenario, expression, count] of [["identity", /身份/u, 1], ["license", /许可/u, 1], ["auth", /权限/u, 2], ["rate", /限流/u, 2], ["unsafe", /域名/u, 2]] as const) {
-      mode = scenario; calls = 0;
-      await assert.rejects(provider.download({ candidate, temporaryDirectory: root }), expression); assert.equal(calls, count);
-    }
-  } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 async function fixture() {

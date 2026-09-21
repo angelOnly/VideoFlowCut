@@ -169,6 +169,12 @@ async function main() {
   ]);
   await cp(webSourceRoot, outputPaths.web, { recursive: true, force: true });
   await trimReleaseTextWhitespace(outputPaths.web);
+  // 外部语义节点也纳入发行身份，候选验证和部署使用同一份受管产物。
+  const semanticRoot = join(distRoot, "comfyui-semantic");
+  await mkdir(semanticRoot, { recursive: true });
+  for (const name of ["local_semantic_nodes.py", "minicpmo_worker.py"]) {
+    await cp(join(repoRoot, "integrations", "comfyui-semantic", name), join(semanticRoot, name));
+  }
   // Provider 修正版随 Runtime 发行并参与 Release ID，不能在生产环境手改 site-packages。
   execFileSync("python", [join(pluginRoot, "scripts", "build-funasr-provider.py")], { stdio: "inherit" });
   await Promise.all([

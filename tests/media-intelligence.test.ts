@@ -98,8 +98,8 @@ test("分析/观察不产生 Revision，纠错保留原文并只使已采用依�
     app.intelligence.store.saveSource(original);
     const observed = { ...observation({ ...fact("audio", "短促机械落定", { startMs: 0, endMs: 10000 }), speechPresence: "absent" as const }), projectId, sourceHash: hash, range: { startMs: 0, endMs: 10000 } };
     app.intelligence.store.saveObservation(observed);
-    const job = app.intelligence.submitAnalysis(projectId, { assetId, depth: "index", modalities: ["audio"], context: "" });
-    const duplicate = app.intelligence.submitAnalysis(projectId, { assetId, depth: "index", modalities: ["audio"], context: "" });
+    const job = await app.intelligence.submitAnalysis(projectId, { assetId, depth: "index", modalities: ["audio"], context: "" });
+    const duplicate = await app.intelligence.submitAnalysis(projectId, { assetId, depth: "index", modalities: ["audio"], context: "" });
     assert.equal(job.id, duplicate.id);
     assert.equal(app.readProject(projectId).revision.number, state.revision.number);
     state = await app.intelligence.adopt(projectId, { baseRevision: state.revision.number, assetId, observationIds: [observed.id], range: { startMs: 0, endMs: 1000 }, purpose: "机械动作完成", audioPolicy: "retain", conditions: [] });

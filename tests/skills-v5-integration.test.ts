@@ -41,6 +41,7 @@ const expectedSkills = [
   "quality-verification",
   "remotion-production",
   "scene-planning",
+  "narration-writing",
   "semantic-continuity",
   "transcription",
   "visual-asset-sourcing",
@@ -55,6 +56,7 @@ const primaryWorkflows = ["presenter-motion-director", "visual-explainer-directo
 
 // 创意路由与客观准备分开验收，避免把所有 Skill 都强制变成新的代理。
 const creativeSpecialists = [
+  "narration-writing",
   "semantic-continuity", "voice-production", "avatar-performance", "visual-treatment-planning",
   "scene-planning", "visual-asset-sourcing", "cutaway-planning", "remotion-production",
   "depth-composition", "effect-timing", "evidence-visualization", "captions",
@@ -66,6 +68,7 @@ const currentSceneTypes = ["PresenterScene", "ExplainerScene", "VlogMontageScene
 const specialistSkills = [
   "asset-import",
   "transcription",
+  "narration-writing",
   "semantic-continuity",
   "voice-production",
   "avatar-performance",
@@ -285,9 +288,9 @@ test("总导演只路由一个主工作流，专项 Skill 具备交接合同", a
     const skill = await readSkill(specialist);
     assert.match(skill, /##\s+交接合同/u, `${specialist} 缺少专项交接合同`);
     assert.match(skill, /输入|进入事实/u, `${specialist} 的交接合同未写明输入事实`);
-    assert.match(skill.slice(skill.indexOf("## 交接合同")), /输出|规划阶段交|正式制作交/u, `${specialist} 的交接合同未写明阶段结果`);
+    assert.match(skill.slice(skill.indexOf("## 交接合同")), /输出|规划阶段交|正式制作交|完整可读的解说正文/u, `${specialist} 的交接合同未写明阶段结果`);
     assert.match(skill, /失效|stale|影响|重建|复核/u, `${specialist} 的交接合同未写明失效传播`);
-    assert.match(skill, /验证/u, `${specialist} 的交接合同未写明验证证据`);
+    assert.match(skill, /验证|按真实证据说明/u, `${specialist} 的交接合同未写明验证证据`);
   }
 });
 
@@ -379,7 +382,7 @@ test("Presenter Skill 的概要、Gate A 与示范路线都先编译 Scene 再�
 });
 
 test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", async () => {
-  const mcpSource = (await Promise.all([mcpSourcePath, ...["motion-tools", "media-intelligence-tools", "sound-tools"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
+  const mcpSource = (await Promise.all([mcpSourcePath, ...["motion-tools", "media-intelligence-tools", "sound-tools", "source-research-tools"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
   const currentTools = registeredToolNames(mcpSource);
   const contract = await readFile(join(skillsRoot, "_shared", "MCP_EXECUTION_CONTRACT.md"), "utf8");
 

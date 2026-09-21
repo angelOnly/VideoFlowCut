@@ -23,7 +23,7 @@ try {
   Object.assign(asset, { status: "ready", metadata: await probeMedia(path) });
   state = app.repository.commit(id, state.revision.number, "隔离测试输入", (snapshot) => snapshot.assets.push(asset));
   const processor = createMediaJobProcessor(app, new ComfyUIBridgeClient(readRuntimeConfig().bridge.apiBaseUrl));
-  const job = app.intelligence.submitAnalysis(id, { assetId: asset.id, range: { startMs: 0, endMs: 6000 }, depth: "review", modalities: ["audio", "speech"], context: "只分析输入原声，语音时间须由真实 ASR 返回" });
+  const job = await app.intelligence.submitAnalysis(id, { assetId: asset.id, range: { startMs: 0, endMs: 6000 }, depth: "review", modalities: ["audio", "speech"], context: "只分析输入原声，语音时间须由真实 ASR 返回" });
   await runOneJob(app, processor);
   const result = app.trackJob(job.id), observations = app.intelligence.inspect(id, { assetId: asset.id });
   await writeFile(join(output, "report.json"), JSON.stringify({ job: result, observations, sourceHash: asset.sourceHash, note: "真实外部 HTTP、原声音轨与 ASR；不代表人类逐字校对或听感验收" }, null, 2));

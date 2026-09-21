@@ -57,9 +57,9 @@ SFX 应绑定明确的叙事或视觉事件：预示变化、对象落定、数�
 
 ### 在线候选与按需获取
 
-默认在线选音，由 [sound-asset-sourcing](../sound-asset-sourcing/SKILL.md) 完成按功能检索、有限候选原声分析、取得原文件与采用依据。用 `browse_sound_sources` 读取当前 Provider、分类、凭据和许可能力，Mixkit 音效、Mixkit 音乐与 Freesound 分开处理。来源名称不证明适配或许可，本地用户音效包也按同一范围和试听标准选择。
+默认在线选音，由 [sound-asset-sourcing](../sound-asset-sourcing/SKILL.md) 完成按功能检索、有限候选原声分析、取得原文件与采用依据。用 `browse_sound_sources` 读取当前无需 Key 的 Provider、分类和许可能力，Mixkit 音效与 Mixkit 音乐分开处理。来源名称不证明适配或许可，本地用户音效包也按同一范围和试听标准选择。
 
-`manage_asset_requirements` 使用 media_kind=audio、audio_brief、role=sfx/bgm 和结构化 sound 条件，不填画幅。`recommend_sound_candidates` 先对描述排序，再为有限候选建立音频分析子 Job；继续读取子任务结果，不能把父任务成功当成听过。`acquire_media_asset` 后等待下载和媒体分析，原文件经范围复核与 `adopt_media_fragment` 保存依据。预览版和原文件分别定位；Freesound 原文件需要配置实际 OAuth，不把预览下载伪装成原文件。
+`manage_asset_requirements` 使用 media_kind=audio、audio_brief、role=sfx/bgm 和结构化 sound 条件，不填画幅。`recommend_sound_candidates` 先对描述排序，再为有限候选建立音频分析子 Job；继续读取子任务结果，不能把父任务成功当成听过。`acquire_media_asset` 后等待下载和媒体分析，原文件经范围复核与 `adopt_media_fragment` 保存依据。预览版和原文件分别定位，不把预览下载伪装成原文件；不要求搜索 API Key 或下载 OAuth。
 
 ### 绑定一个实际动作，而非只绑定“这段有动画”
 
@@ -146,6 +146,11 @@ Dialogue 始终清楚；产品落定和数字完成可有少量 SFX；CTA 有一
 没有听觉输入或无法实际复听的环境，要把音色、遮蔽、情绪匹配和听感结论标为 inconclusive，明确待检查的源范围与成片范围。可继续读取音轨、起音候选与波形并准备技术验证，但不得把“有音轨”“波形有峰值”“点击了播放”写成已听过或好听；也不能删除声音需求后宣布完成。
 
 ## 交接合同
+
+受管作品中的 BoundVideo 不隐式出声。先核对同一源片声音是否已经在外层
+播放，避免重复；确需原声则沿现有声音／素材音轨合同明确源范围和项目范围。
+作品事件可引导效果音，但真实物体尚未落下时不提前放出落桌声，已有清楚原声
+也不必再覆盖一套相同音效。内部时序改变后复核当前事件与 stale AudioCue。
 
 输入是导演采用的完整场面、声音意图、当前 Dialogue/A-roll、Timeline 和实际素材。先写出这一段实际听到的过程：谁在说话，哪段原声承担动作或演示，音乐怎样起伏和连接，音效强化哪次关系变化，哪里让观众只听或安静观察。说明需要听清的中心及其他声音如何退让，不把整段统一理解为“旁白上加 BGM”。
 

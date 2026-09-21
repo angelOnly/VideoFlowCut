@@ -28,6 +28,240 @@
 
 失败与修订示范：第一次把钟面、日照条和通勤标记同时移动，虽逐帧平滑，观众失去稳定参照。修订先固定日照，再分阶段改变读数和行为，保持足够比较停留。另一种接口失败是实拍遮盖了关键移动：调整 Cutaway 入点或重做作品事件，不能让解释在背后播放完。重新审阅完整变化和切镜前后，单件 passed 不等于整片 passed。
 
+## 完整案例：实拍物品逐步改变构图
+
+**状态：** 以下素材、坐标与时序是假设条件，用于展示从任务到源码的完整方法。本轮没有取得对应实拍、运行这份 TSX 或生成新样片；不能把它标成已验证制作结果。正式试作必须替换为实际素材、真实观察和相应参数。
+
+### 用户任务、素材条件与讲述
+
+任务：用实际收拾物品的过程，讲清楚“这一次需要带走的是机身加配件的一整套”，不只依次显示电脑、电源和线材三个图标，不做缺少测量依据的重量或价格结论。
+
+假设有一段固定机位的竖屏俯拍：桌面上先有笔记本，人依次放下这次确需携带的电源、转接头和线材，最后开始收纳。镜头本身连续，原画面包含后续配件的位置；不是靠生成模型补出原片未拍到的物品。物品放定后有短暂稳定范围，可供标签指认。
+
+试排台词可以是：
+
+> 只带一台电脑？先把电源放过来。还有转接头、这根线。刚才看的是机身，现在这次要装走的，是这一整套。
+
+这不是所有笔记本的通用携带清单，也不是“这台产品必须搭配所有配件”的结论。实际素材只有电源，就删除不存在的配件；不是本片自己完成的操作，不写成“我实测／我带过”。讲述、来源和使用语境由文案作者与导演确认。
+
+### 为什么不采用平铺卡片版
+
+平铺版会先播电脑两秒，再切电源图标、转接头图标、线材图标，最后列一张清单。观众得到三个名词，但原片真实的手部动作、物品集合形成和收纳结果都被丢掉了。
+
+本版让**同一段实拍持续发展**：开始主要看机身；配件接近原观察范围时，视野逐步扩大；标签只帮助认出当前物品；一条范围线由机身范围扩展到整套物品；最后图形退让，让真实收纳动作接管。构图由实际物品改变，而不是每句重新建立一张说明卡。
+
+这里借鉴产品扇开的“集合形成和回收”、机票案例的“原对象留场和观察尺度变化”。没有照搬扇形、手机、历史配色或固定总秒数。
+
+### 完整制作说明：可以交给本段作者继续实施
+
+```text
+本段采用固定机位俯拍实物，不给每件物品另外套卡片或发光边框。桌面保留原有
+纹理、接触阴影和光向。片中共有的字体和强调色继续使用；标签一行一个名称，
+主字幕在外层按当前项目处理，不将整段旁白再做一份大标题覆盖实物。
+
+开场先让机身取得主要面积，保留足以判断它在桌上的空间。不是把横向电脑
+硬拉长填满竖屏，而是在原素材允许的范围内选择观察区域；机身关键轮廓不可被裁掉。
+
+手开始把第一件配件放入时，观察范围已经开始向配件将出现的位置扩展。
+不要等物品先被裁掉，再突然拉远补救。机身始终留在画面里作为参照，新增物品
+通过真实放置动作改变画面重心；不另造一份配件图标从天而降。
+
+物品真正落定、手已离开主要观察区域后，沿实际位置接出短引线和名称。
+先处理本次旁白正在说的物品，已看懂的标签降低存在感。标签沿用真实源坐标；
+物品开始移动前退出，没有跟踪数据就不在运动中继续贴标签。所有文字必须在
+目标观看尺寸可读，不以缩小字号解决位置冲突。
+
+集合形成后，用一条轻的范围线从机身所占范围发展到本次全部物品的范围。
+它表达“观察对象从机身变成整套物品”，不是精确测量，因此不添加面积、重量、
+费用或数量结论。此时物品和整套关系是第一重点，引线和装饰让位。
+
+收纳开始前，范围线和标签先自然退去；实拍继续，不让物体在画面冻结时被图形
+假装收回。结尾停在真实装包／拿走动作的自然接点，让后一镜接住，不增加清单卡。
+
+首版以已查看的源动作安排大约秒数。观察范围变化、标签建立和范围线展开可以
+局部交叠；必须看清的真实动作与阅读保持。实际源范围或旁白更长时按内容调整，
+不能为填满／压进某个样例总长而重复、冻结、循环或统一倍速。
+```
+
+### 首版时序：只示范怎样把变化落实，不当作永久时长
+
+为便于讲解，下面假设实际选段恰好约 10 秒，30 fps。这个“10 秒”不是生产规则；真实收纳需要 15 秒时，不能仅为套用此表把它压成 10 秒。
+
+| 参考范围 | 实拍中实际发生什么 | 画面与图形怎样配合 | 为什么这样安排 |
+|---|---|---|---|
+| 约 0—1.2 秒 | 机身已经可辨认，手准备带入配件 | 从允许裁切的观察区域认识机身，原桌面仍在 | 先建立明确对象，不先给全部清单 |
+| 约 1.2—5.5 秒 | 配件依次进入并落定 | 同一视频持续播放，视野逐步扩大；标签在各物品确实放定后进入 | 真实动作形成集合，构图随着需要改变 |
+| 约 5.5—7.5 秒 | 整套物品暂时稳定 | 保留机身参照，范围线从机身扩展至整套；其他标注退让 | 让“机身”到“整套”的关注变化可见，而不只换一句字幕 |
+| 约 7.5—10 秒 | 开始实际收纳 | 图形在物品移动前退出，源片继续；结尾由真实动作完成 | 不用示意回收替代现实结果 |
+
+实际计算标签的开始和结束，以原片观察为依据，不根据文案中“电源”一词猜测它已经落桌。若标签与手部冲突，先移动或推迟标签，而不是切掉真实动作。若旁白讲完了但收纳仍值得看，可以让原声接管，不把余下时间叫作“空等”。
+
+### 坐标与源时钟怎样处理
+
+把整个原画面当作一个“源坐标平面”：原视频、物品位置、范围线都在这个平面里。这个平面使用受管解码 manifest确定的、方向与宽高比正确的归一化显示坐标；不能把旋转前的编码宽高直接当作旋转后画面的坐标。观察范围改变时，只改变这个平面到作品画布的映射。标签可以通过字号补偿维持最终可读大小，但它与被指对象的归属不能漂移。
+
+假设作品局部帧为 `F`，帧率为 `fps`，素材绑定的起点为 `sourceStartMs`。本例 `BoundVideo` 放在根场面中、不额外套时间偏移，所以读取第 `F` 个已按作品 fps 重采样的源画面。对应的名义源时间为：
+
+```text
+sourceStartMs + 1000 × F / fps
+```
+
+该式用于理解映射，不把源 VFR 视频当作恒定原始帧号。真实取帧仍由平台按时间戳解码。改变画面位置和大小，不改变 `F`；素材不会因为缩放而从头播放。
+
+固定坐标只适用于物体在已观察范围内确实停稳的情况。镜头平移、手持透视变化或物体继续运动时，本模板不提供自动跟踪，需要换素材范围、减少标注，或另行提出真实跟踪能力需求。
+
+### 完整技术试作源码
+
+以下源码展示同一视频实例、共同坐标、连续观察范围和定时标注的实现。**它是需要实际素材驱动的工程试作模板，不是顶级美术效果的自动保证，也不是可以不填参数直接提交的 MCP 请求。** 参数是普通作品 `props`，不是新平台字段；素材仍通过当前 `videoBindings.footage` 绑定。
+
+```tsx
+import React from 'react';
+import {AbsoluteFill, useCurrentFrame, useVideoConfig} from 'remotion';
+import {BoundVideo} from '@videoflowcut/motion';
+
+type Box = {x: number; y: number; width: number; height: number};
+type Mark = {
+  id: string; text: string;
+  x: number; y: number; labelX: number; labelY: number;
+  startSec: number; endSec: number;
+};
+type Props = {
+  sourceWidth: number; sourceHeight: number;
+  viewBefore: Box; viewAfter: Box;
+  cameraStartSec: number; cameraEndSec: number;
+  scopeBefore: Box; scopeAfter: Box;
+  scopeStartSec: number; scopeExpandedSec: number; scopeEndSec: number;
+  marks: Mark[];
+  background: string; ink: string; accent: string; labelFill: string;
+};
+
+const mix = (a: number, b: number, p: number) => a + (b - a) * p;
+function progress(t: number, a: number, b: number) {
+  if (!(b > a)) throw new Error('Invalid time range');
+  const u = Math.max(0, Math.min(1, (t - a) / (b - a)));
+  return u * u * (3 - 2 * u);
+}
+function blendBox(a: Box, b: Box, p: number): Box {
+  return {
+    x: mix(a.x, b.x, p), y: mix(a.y, b.y, p),
+    width: mix(a.width, b.width, p), height: mix(a.height, b.height, p),
+  };
+}
+function visible(t: number, start: number, end: number) {
+  if (!(end > start)) throw new Error('Invalid visible range');
+  const fade = Math.min(0.2, (end - start) / 3);
+  return progress(t, start, start + fade) *
+    (1 - progress(t, end - fade, end));
+}
+
+// 使用与画面相同的参数计算事件。事件表仍不代替真实观看。
+export function resolveMotionEvents(
+  p: Props, c: {fps: number; durationInFrames: number}
+) {
+  const frame = (s: number) => Math.round(s * c.fps);
+  return [
+    {id: 'view-expands', meaning: '观察范围开始扩大',
+      startFrame: frame(p.cameraStartSec), endFrame: frame(p.cameraEndSec)},
+    {id: 'whole-set-visible', meaning: '范围线到达整套物品的观察范围',
+      startFrame: frame(p.scopeExpandedSec)},
+    {id: 'graphics-yield', meaning: '图形让位给后续真实收纳',
+      startFrame: frame(p.scopeEndSec)},
+  ];
+}
+
+export default function Motion(p: Props) {
+  const frame = useCurrentFrame();
+  const {fps, width, height} = useVideoConfig();
+  const t = frame / fps;
+  const view = blendBox(p.viewBefore, p.viewAfter,
+    progress(t, p.cameraStartSec, p.cameraEndSec));
+  if (!(p.sourceWidth > 0 && p.sourceHeight > 0 &&
+        view.width > 0 && view.height > 0)) throw new Error('Invalid geometry');
+  const k = Math.min(width / view.width, height / view.height);
+  const tx = (width - view.width * k) / 2 - view.x * k;
+  const ty = (height - view.height * k) / 2 - view.y * k;
+  const scope = blendBox(p.scopeBefore, p.scopeAfter,
+    progress(t, p.scopeStartSec, p.scopeExpandedSec));
+  const scopeOpacity = visible(t, p.scopeStartSec, p.scopeEndSec);
+
+  return <AbsoluteFill style={{background: p.background, overflow: 'hidden'}}>
+    <div style={{
+      position: 'absolute', left: 0, top: 0,
+      width: p.sourceWidth, height: p.sourceHeight,
+      transformOrigin: '0 0',
+      transform: `translate(${tx}px, ${ty}px) scale(${k})`,
+    }}>
+      <div style={{position: 'absolute', inset: 0}}>
+        <BoundVideo slot="footage" offsetInFrames={0} fit="contain" />
+      </div>
+      <svg width={p.sourceWidth} height={p.sourceHeight}
+        viewBox={`0 0 ${p.sourceWidth} ${p.sourceHeight}`}
+        style={{position: 'absolute', inset: 0, overflow: 'visible'}}>
+        <rect x={scope.x} y={scope.y}
+          width={scope.width} height={scope.height}
+          rx={12 / k} fill="none" stroke={p.accent}
+          strokeWidth={2 / k} opacity={scopeOpacity} />
+        {p.marks.map((mark) => {
+          const alpha = visible(t, mark.startSec, mark.endSec);
+          // 标签尺寸在最终画布上保持；归属位置仍来自同一源坐标。
+          const labelWidth = (mark.text.length * 30 + 28) / k;
+          const labelHeight = 48 / k;
+          return <g key={mark.id} opacity={alpha}>
+            <path d={`M${mark.x} ${mark.y} L${mark.labelX} ${mark.labelY}`}
+              stroke={p.ink} strokeWidth={2 / k} fill="none" />
+            <circle cx={mark.x} cy={mark.y} r={4 / k} fill={p.accent} />
+            <rect x={mark.labelX} y={mark.labelY - labelHeight / 2}
+              width={labelWidth} height={labelHeight}
+              rx={6 / k} fill={p.labelFill} />
+            <text x={mark.labelX + 14 / k} y={mark.labelY + 10 / k}
+              fontFamily="Microsoft YaHei, sans-serif" fontSize={30 / k}
+              fontWeight={600} fill={p.ink}>{mark.text}</text>
+          </g>;
+        })}
+      </svg>
+    </div>
+  </AbsoluteFill>;
+}
+```
+
+**参数怎样填写，才能不是一份空源码：**
+
+| 参数 | 取得依据与填写规则 |
+|---|---|
+| `sourceWidth / sourceHeight` | 当前素材用于画面观察的实际显示尺寸，核对旋转与宽高比；不是随意填一个理想尺寸 |
+| `viewBefore / viewAfter` | 在完整源画面上选定的两个观察区域；保护机身和后续物品，按目标画幅验证，不把示例坐标当实际测量 |
+| `cameraStartSec / cameraEndSec` | 当前选段局部秒数；配件接近原视野边缘时开始扩大，按实际动作与阅读调整 |
+| `scopeBefore / scopeAfter` | 机身与整套物品的实际观察包围范围；只表达观察范围，不作为精确测量数据 |
+| `scopeStartSec / scopeExpandedSec / scopeEndSec` | 物品稳定后开始说明整套关系；范围线建立、到达与退出的局部秒数；退出应先于无跟踪的物体移动 |
+| `marks` | 每个标注的实际对象位置、文字位置、放定之后到再次移动之前的显示范围；可少于或多于教学假设，不编造对象 |
+| 四个色彩参数 | 从本片视觉语言和实际桌面决定；保证可辨认，不强制历史案例的黑底荧光配色 |
+
+纯几何调试时，可以用人为设定的源尺寸 `1080×1920`、入口视域 `{x:90,y:200,width:900,height:1600}`、出口视域 `{x:0,y:0,width:1080,height:1920}`，检查两者在 `720×1280` 画布上的映射。这些数值**不描述一份已取得的素材**。标注坐标、实际源 ID 和源时间必须等待对应材料；没有材料时停在教学／工程测试，不冒充正式作品。
+
+提交前由作者检查：时间严格有序、各事件在当前帧数内；标注 ID 唯一；标签在完整运动中不越界、不挡物体和字幕；真实字体下文字宽度适用。源码用字符数估计标签宽度只是中文短标签的试作做法，不是通用排版测量；长文本和混排需要按实际字形另行安排。
+
+本例只有一次根级 `BoundVideo`，图形与视频共同变换；没有调用浏览器、网络、文件、音频或外部依赖。是否被当前平台校验器接受、是否达到预期观感，仍须实际提交与渲染测试。本轮没有运行项目依赖，所以不将这份源码标为测试通过。
+
+### 生成之后，怎样据实际问题改，而不只加缓动
+
+| 实际观察到的问题 | 修改什么 | 复核什么 |
+|---|---|---|
+| 第一件配件进入时被裁在画面外 | 提前或重新定向扩大观察范围，调整入口视域 | 放入到落定的完整动作是否可见，机身是否仍可辨认 |
+| 标签在手还遮着物品时出现 | 根据真实放定时刻推迟标签，或改标签位置 | 指认是否依附正确物品，手部动作有没有被遮挡 |
+| 全部标签都在抢戏，整套关系不明显 | 已完成指认的标签提前退出；范围线阶段降低其他标注对比 | 观众是否能从单品切换到整套关系 |
+| 拉远以后留白仍无用途 | 按实际物品调整出口视域与标签布局；必要时换更适合的素材构图 | 是否只是换了一个居中小框，还是实际对象改变了构图 |
+| 放大后纹理或接口模糊 | 先核对原片细节与解码尺寸，再按当前视频绑定合同请求足够像素；必要时改观察范围 | 实际输出尺寸下细节是否恢复；不能以增大文字或锐化假装找回原像素 |
+| 收纳时范围线与标签悬在空桌上 | 在实际物体移动前撤去图形，保留真实动作和原声 | 是否让现实过程完成结尾，而不是无根据的静态标注 |
+| 台词结束得太早或重复解释动作 | 回文案作者调整准确台词，或让原声／动作接管 | 声画整体自然，不以冻结画面填满 TTS |
+
+### 换成真实录屏时，迁移什么，不照搬什么
+
+网页或软件题材可以保留共同坐标与源时钟，但不照搬物品集合的范围线：先让实际界面建立对象，靠近将操作的区域；点击和状态变化继续由原录屏演出；图形指认真实变化，再退回能核对结果的画面。
+
+需要引入真实说明页时，可以让仍有参照价值的录屏缩退，实际说明页取得主要阅读面积，再回到相关结果。是否两者同屏取决于阅读负荷，不固定使用左右分栏。原页面文字、高亮和视域共用坐标；没有原文截图时不能绘制一个看似官方的页面冒充来源。
+
+这种迁移重新设计主要画面、阅读时机与出口，不只是把源码标签“电源”改成“设置”。
+
 ## 适合直接复用时
 
 以下 Registry 案例在设计匹配时直接使用，不能作为所有原创任务的默认菜单。

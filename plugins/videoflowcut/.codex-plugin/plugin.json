@@ -1,6 +1,6 @@
 {
   "name": "videoflowcut",
-  "version": "0.1.37",
+  "version": "0.1.47",
   "description": "\u5728\u672c\u673a VideoFlowCut \u4ed3\u5e93\u4e2d\u542f\u52a8\u53ef\u7f16\u8f91\u89c6\u9891\u5de5\u4f5c\u53f0\u3001MCP \u4e0e\u4e13\u4e1a\u5de5\u4f5c\u6d41\u3002",
   "author": {
     "name": "VideoFlowCut"

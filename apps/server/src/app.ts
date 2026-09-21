@@ -1,6 +1,8 @@
 import { captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
+import { explainerPlanWithContent } from "../../../packages/contracts/src/explainer-inputs.js";
 import { sourceCaptionTextReviewSchema, exportApprovalSchema } from "../../../packages/contracts/src/editorial-inputs.js";
 import { audioDesignSchema } from "../../../packages/edit-application/src/sound-design.js";
+import { registerSourceResearchRoutes } from "./source-research-tools.js";
 import { registerSoundRoutes } from "./sound-tools.js";
 import { createHash, randomUUID } from "node:crypto";
 import { createReadStream, createWriteStream, existsSync } from "node:fs";
@@ -151,20 +153,6 @@ const agentWorkOrderCancelSchema = z.object({
   reason: z.string().trim().min(1).max(2_000)
 }).strict();
 
-const explainerKindSchema = z.enum([
-  "HeroReveal",
-  "Comparison",
-  "ProgressiveClassification",
-  "RouteAndFlow",
-  "EvidenceDocument",
-  "UIWalkthrough",
-  "DataConclusion",
-  "PeopleGrouping",
-  "LayerStack",
-  "HistoryTimeline",
-  "QuotePortrait",
-  "RealityBroll"
-]);
 const evidenceHighlightSchema = z.object({
   x: z.number().min(0).max(1),
   y: z.number().min(0).max(1),
@@ -300,6 +288,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   // 声音路由在错误处理器之后注册，参数校验才能返回 400，而不是默认的 500。
   registerSoundRoutes(app, application);
+  registerSourceResearchRoutes(app, application);
 
   app.get("/health", async () => {
     let bridgeStatus: unknown;
@@ -733,21 +722,19 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({
       baseRevision: baseRevisionSchema,
-      plans: z.array(z.object({
+      plans: z.array(explainerPlanWithContent({
         title: z.string().trim().min(1).max(160),
         purpose: z.string().trim().min(1).max(1_200),
         startFrame: z.number().int().nonnegative(),
         endFrame: z.number().int().positive(),
         narrativeMapBeatId: idSchema,
-        kind: explainerKindSchema,
         primaryTask: z.string().trim().min(1).max(1_200),
         assetIds: z.array(idSchema).max(60).optional(),
         evidenceCaptureId: idSchema.optional(),
         states: z.array(explainerStateSchema).min(4).max(12),
-        props: z.record(z.unknown()).optional(),
         stylePackId: z.string().trim().min(1).max(160).optional(),
         visualTreatment: explainerVisualTreatmentSchema.optional()
-      }).strict().refine((plan) => plan.endFrame > plan.startFrame, {
+      }).refine((plan) => plan.endFrame > plan.startFrame, {
         message: "Explainer 场景结束帧必须大于开始帧"
       })).min(1).max(80)
     }).strict().parse(request.body);

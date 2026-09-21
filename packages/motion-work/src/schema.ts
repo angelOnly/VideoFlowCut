@@ -33,7 +33,7 @@ export const motionSubmissionSchema = z.object({
   // 追加字段不注入默认值，不改变历史输入的字段次序和作品哈希。
   creativeBrief: z.string().trim().min(1).max(6000).optional(),
   videoBindings: z.record(z.string().regex(/^[a-z][a-z0-9_]{0,39}$/u), z.object({
-    assetId: z.string().min(1).max(150), sourceStartMs: z.number().int().nonnegative(), sourceEndMs: z.number().int().positive()
+    assetId: z.string().min(1).max(150), sourceStartMs: z.number().int().nonnegative(), sourceEndMs: z.number().int().positive(), decodeScale: z.number().finite().gt(0).max(1).optional()
   }).strict()).optional().describe("受管动态视频，最多4路；源范围为毫秒半开区间，正常速度且静音。源码从 @videoflowcut/motion 导入 BoundVideo，以 slot 引用，offsetInFrames 与 Sequence 局部帧共同确定播放位置。")
 }).strict().superRefine((value, ctx) => {
   if (value.durationInFrames / value.fps > 30) ctx.addIssue({ code: "custom", message: "单个受管动效最长 30 秒" });
@@ -72,6 +72,6 @@ export const boundMotionImageSchema = z.object({
   usageRights: z.object({ purposes: z.array(z.enum(["draft", "delivery"])).min(1).max(2), basis: z.string().trim().min(1).max(2000), confirmedAt: z.string().datetime() }).strict().optional()
 }).strict();
 export type BoundMotionImage = z.infer<typeof boundMotionImageSchema>;
-export const boundMotionVideoSchema = boundMotionImageSchema.extend({ sourceStartMs: z.number().int().nonnegative(), sourceEndMs: z.number().int().positive() });
+export const boundMotionVideoSchema = boundMotionImageSchema.extend({ sourceStartMs: z.number().int().nonnegative(), sourceEndMs: z.number().int().positive(), decodeScale: z.number().finite().gt(0).max(1).optional() });
 export type BoundMotionVideo = z.infer<typeof boundMotionVideoSchema>;
-export interface DecodedMotionVideo { framePaths: string[]; width: number; height: number; }
+export interface DecodedMotionVideo { framePaths: string[]; width: number; height: number; geometry?: { streamIndex: number; encodedWidth: number; encodedHeight: number; sar: number; rotation: number; displayWidth: number; displayHeight: number; durationMs: number }; decodeScale?: number; }

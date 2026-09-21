@@ -1,5 +1,7 @@
 import { captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
+import { explainerPlanWithContent } from "../../../packages/contracts/src/explainer-inputs.js";
 import { sourceCaptionTextReviewSchema, assetUsageRightsInputSchema } from "../../../packages/contracts/src/editorial-inputs.js";
+import { registerSourceResearchTools } from "./source-research-tools.js";
 import { registerSoundTools } from "./sound-tools.js";
 import { audioDesignSchema, soundRequirementSchema } from "../../../packages/edit-application/src/sound-design.js";
 import { assetRequestVersion } from "../../../packages/media-intelligence/src/index.js";
@@ -9,6 +11,7 @@ import { basename, extname, join, resolve } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { decodeSearchCursor } from "../../../packages/asset-acquisition/src/cursor.js";
 import { AssetProviderError, createDefaultAssetProviderRegistry } from "@videocut/acquisition";
 import { assetSearchErrorResult } from "./asset-search-errors.js";
 import { createApplication, PROJECT_DATABASE_TABLES } from "@videocut/application";
@@ -146,20 +149,6 @@ const multicamMarkerSchema = z.object({
   note: z.string().min(1).max(1_200)
 }).strict();
 
-const explainerKindSchema = z.enum([
-  "HeroReveal",
-  "Comparison",
-  "ProgressiveClassification",
-  "RouteAndFlow",
-  "EvidenceDocument",
-  "UIWalkthrough",
-  "DataConclusion",
-  "PeopleGrouping",
-  "LayerStack",
-  "HistoryTimeline",
-  "QuotePortrait",
-  "RealityBroll"
-]);
 const evidenceHighlightSchema = z.object({
   x: z.number().min(0).max(1).describe("页面快照左边缘到高亮框左边缘的距离 / 页面快照宽度，0到1；不是像素"),
   y: z.number().min(0).max(1).describe("页面快照上边缘到高亮框上边缘的距离 / 页面快照高度，0到1；不是像素"),
@@ -699,7 +688,7 @@ server.registerTool("manage_asset_requirements", {
     query_hints: z.array(z.string().min(1).max(160)).max(12).optional(),
     excluded_terms: z.array(z.string().min(1).max(160)).max(20).optional(),
     target_aspect_ratio: z.enum(["9:16", "16:9", "1:1"]).optional(),
-    min_duration_ms: z.number().int().positive().max(300_000).optional(),
+    min_duration_ms: z.number().int().positive().max(300_000).nullable().optional().describe("视频或音频最短源时长，单位毫秒；图片不应用该条件。null 清空限制，省略保持原值，0 无效。"),
     rights_requirement: z.enum(["cleared_only", "cleared_or_attribution"]).optional(),
     fallback_plan: z.enum(["keep_presenter", "remotion", "minimax", "ask_user", "local_audio", "omit_audio"]).optional(),
     close_reason: z.string().max(800).optional()
@@ -745,9 +734,10 @@ server.registerTool("search_media_candidates", {
     asset_request_id: z.string().min(1),
     provider: z.string().trim().min(1).max(80).describe("使用 list_asset_providers 返回的 id，例如 wikimedia-commons"),
     media_type: z.enum(["image", "video", "audio"]).optional(),
+    cursor: z.string().min(1).max(500).optional(),
     query: z.string().trim().min(1).max(400)
   }
-}, async ({ project_id, base_revision_id, asset_request_id, provider, query, media_type }) => {
+}, async ({ project_id, base_revision_id, asset_request_id, provider, query, media_type, cursor }) => {
   let beforePersistence = true;
   try {
     const projectId = projectIdFrom(project_id);
@@ -759,11 +749,12 @@ server.registerTool("search_media_candidates", {
     if (!request) throw new DomainError(`素材需求不存在：${asset_request_id}`, "ASSET_REQUEST_NOT_FOUND");
     const source = assetProviders.get(provider);
     if (media_type && !assetProviders.catalog().find(entry => entry.id === provider)?.mediaTypes.includes(media_type)) throw new AssetProviderError("该素材服务不支持所选媒体类型，请查看服务目录", "ASSET_MEDIA_TYPE_UNSUPPORTED", { provider, stage: "provider", recovery: "change_media_type" });
-    const input = { request, query, mediaType: media_type };
+    const input = { request, query, mediaType: media_type, cursor };
+    decodeSearchCursor(provider, input);
     const result = source.searchDetailed ? await source.searchDetailed(input) : { candidates: await source.search(input), complete: true, warnings: [] };
     const candidates = result.candidates.filter(candidate => !media_type || (candidate.kind ?? "video") === media_type);
     beforePersistence = false;
-    return asText(application.recordAssetSearch({ projectId, baseRevision: base_revision_id, assetRequestId: asset_request_id, provider, query, candidates, mediaType: media_type, diagnostics: { complete: result.complete, warnings: result.warnings }, requestVersion: assetRequestVersion(request) }));
+    return asText(application.recordAssetSearch({ projectId, baseRevision: base_revision_id, assetRequestId: asset_request_id, provider, query, candidates, cursor, nextCursor: "nextCursor" in result ? result.nextCursor as string | undefined : undefined, mediaType: media_type, diagnostics: { complete: result.complete, warnings: result.warnings }, requestVersion: assetRequestVersion(request) }));
   } catch (error) { return assetSearchErrorResult(error, beforePersistence); }
 });
 
@@ -1652,25 +1643,23 @@ server.registerTool("set_explainer_program_enabled", {
 
 server.registerTool("compile_explainer_scenes", {
   title: "编译视觉解释场景",
-  description: "将 NarrativeMap Beat 原子编译为 ExplainerScene、Program 与 VisualTreatment。每个场景必须有 Entry、Progressive、Settled、Exit 的连续局部状态；不会将每句话降级成贴纸。",
+  description: "将 NarrativeMap Beat 原子编译为带内置主视觉的 ExplainerScene、Program 与 VisualTreatment。按 kind 提供该分支必需的 props 与真实素材，每个场景需四阶段连续局部状态。原创 ManagedMotion 独立承担主视觉时，可用 create_scene 建立基础 ExplainerScene 再放置作品，无需先编译随后停用内置 Program。失败先检查 isError 并保留完整 text；业务错误返回 JSON code/message，协议参数错误可能是文本。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
-    plans: z.array(z.object({
+    plans: z.array(explainerPlanWithContent({
       title: z.string().min(1).max(160),
       purpose: z.string().min(1).max(1_200),
       start_frame: z.number().int().nonnegative(),
       end_frame: z.number().int().positive(),
       narrative_map_beat_id: z.string().min(1),
-      kind: explainerKindSchema,
       primary_task: z.string().min(1).max(1_200),
       asset_ids: z.array(z.string().min(1)).max(60).optional(),
       evidence_capture_id: z.string().min(1).optional(),
       states: z.array(explainerStateSchema).min(4).max(12),
-      props: z.record(z.unknown()).optional(),
       style_pack_id: z.string().min(1).max(160).optional(),
       visual_treatment: explainerVisualTreatmentSchema.optional()
-    }).strict().refine((plan) => plan.end_frame > plan.start_frame, {
+    }).refine((plan) => plan.end_frame > plan.start_frame, {
       message: "Explainer 场景结束帧必须大于开始帧"
     })).min(1).max(80)
   }
@@ -1709,7 +1698,7 @@ server.registerTool("compile_explainer_scenes", {
         } : undefined
       }))
     }));
-  } catch (error) { return asError(error); }
+  } catch (error) { return { ...asText({ code: error instanceof DomainError ? error.code : "EXPLAINER_COMPILE_FAILED", message: error instanceof Error ? error.message : String(error) }), isError: true }; }
 });
 
 server.registerTool("read_vlog_plan", {
@@ -2405,6 +2394,7 @@ server.registerTool("browse_effect_types", {
 
 registerMotionTools(server, application, projectIdFrom);
 registerMediaIntelligenceTools(server, application, projectIdFrom);
+registerSourceResearchTools(server, projectIdFrom);
 registerSoundTools(server, application, projectIdFrom);
 
 server.registerTool("manage_effect_cues", {
@@ -2608,6 +2598,7 @@ server.registerTool("record_editorial_quality_review", {
     resolutions: z.array(z.object({
       finding_id: z.string().min(1),
       evidence_ids: z.array(z.string().min(1)).min(1).max(40),
+      scope: z.literal("caption_text").optional(),
       note: z.string().min(1).max(2_000)
     })).max(120).optional(),
     findings: z.array(z.object({
@@ -2632,7 +2623,7 @@ server.registerTool("record_editorial_quality_review", {
       passes: input.passes,
       previewEvidence: input.preview_evidence,
       observations: input.observations?.map((entry) => ({ pass: entry.pass, previewJobId: entry.preview_job_id, startFrame: entry.start_frame, endFrame: entry.end_frame, method: entry.method, observation: entry.observation })),
-      resolutions: input.resolutions?.map((entry) => ({ findingId: entry.finding_id, evidenceIds: entry.evidence_ids, note: entry.note })),
+      resolutions: input.resolutions?.map((entry) => ({ findingId: entry.finding_id, evidenceIds: entry.evidence_ids, note: entry.note, scope: entry.scope })),
       findings: input.findings.map((finding) => ({
         pass: finding.pass,
         severity: finding.severity,
