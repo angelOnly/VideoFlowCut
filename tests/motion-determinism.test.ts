@@ -86,6 +86,27 @@ test("透明帧比较不把隐藏 RGB 当故障，同时检出黑色物体的 Al
   assert.throws(() => compareMotionFrames(Buffer.from("broken"), png([0, 0, 0, 0])));
 });
 
+test("半透明变换图层切换后，字幕阴影不复用顺序渲染的旧绘制状态", { timeout: 60_000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "motion-opacity-shadow-"));
+  try {
+    // 压缩复现历史：中帧顺序到达时背景图层已经存在，跳帧复核则重新出现。
+    const source = `import React from 'react';import {AbsoluteFill,useCurrentFrame} from 'remotion';
+const p=(f,a,b)=>Math.max(0,Math.min(1,(f-a)/(b-a)));const o=x=>1-Math.pow(1-x,3);
+export default function Motion(){const frame=useCurrentFrame(),f=frame===0?0:frame===66?466:200+frame;
+const text=f>=221&&f<268?'再贴近手机和基站这一段。\\n除了强度，还要看质量。':'人多不等于必然拥堵，\\n但满格也不保证一路畅通。';
+return <AbsoluteFill style={{background:'#070a0d'}}>
+{f>=216&&f<467&&<div style={{position:'absolute',inset:0,zIndex:18,opacity:o(p(f,221,248)),transform:'scale(1)'}}>
+<div style={{position:'absolute',left:-92,bottom:-128,width:330,height:610,borderRadius:48,transform:'rotate(22deg)',background:'#7d8588'}}/></div>}
+<div style={{position:'absolute',zIndex:80,left:0,right:0,bottom:0,height:260,background:'linear-gradient(transparent,#070a0d 64%)'}}/>
+<div style={{position:'absolute',zIndex:90,left:46,right:46,top:1178,minHeight:114,display:'flex',justifyContent:'center',alignItems:'center',whiteSpace:'pre-line',textAlign:'center',fontFamily:'"Noto Sans SC","Microsoft YaHei",sans-serif',fontSize:36,lineHeight:1.38,color:'#F8F2E8',fontWeight:600,textShadow:'0 3px 20px #000',opacity:f>=221&&f<268?o(p(f,221,228)):f===0?0:1}}>{text}</div>
+</AbsoluteFill>;}`;
+    const result = await renderManagedMotion({ ...motionFixture, source, props: {}, width: 768, height: 1344, fps: 24, durationInFrames: 67 }, root);
+    assert.equal(result.determinism!.status, "exact");
+    assert.deepEqual(result.determinism!.sampledFrames, [0, 33, 66]);
+    assert.deepEqual(result.determinism!.differences, []);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test("轻微色阶差异保留警告并通过，局部明显差异失败，缓存损坏仍精确拒绝", async () => {
   const root = await mkdtemp(join(tmpdir(), "motion-difference-"));
   try {

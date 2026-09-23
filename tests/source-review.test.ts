@@ -10,6 +10,7 @@ import { createServer } from "../apps/server/src/app.js";
 import { inspectAsset } from "../apps/server/src/source-review.js";
 import { probeMedia, runProcess } from "@videocut/speech";
 import { motionFixture } from "./fixtures/managed-motion.js";
+import { millisecondsToFrames } from "@videocut/domain";
 
 async function createSourceReviewFixture(directory: string, size = "96x72"): Promise<string> {
   const path = join(directory, "source-review-fixture.mp4");
@@ -44,6 +45,38 @@ async function createSpeechReviewFixture(directory: string): Promise<string> {
   ]);
   return path;
 }
+
+test("纯音频审阅接受旁白统一尾帧并保留真实毫秒尾音，仍拒绝多一帧", async () => {
+  const root = await mkdtemp(join(tmpdir(), "source-review-audio-tail-"));
+  const server = await createServer({ workspaceRoot: root }), app = server.application;
+  try {
+    const created = app.createProject({ name: "旁白尾帧边界" });
+    const projectId = created.snapshot.project.id;
+    for (const seconds of [2.07, 2.01, 38.07]) {
+      const current = app.readProject(projectId);
+      const registered = app.registerImportedAsset({ projectId, baseRevision: current.revision.number, name: `speech-${seconds}.wav`, kind: "speech", managedPath: `assets/source/speech-${seconds}.wav` });
+      const path = join(created.snapshot.project.rootPath, registered.asset.managedPath);
+      await mkdir(dirname(path), { recursive: true });
+      await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", `sine=frequency=520:sample_rate=16000:duration=${seconds}`, "-c:a", "pcm_s16le", path]);
+      const metadata = await probeMedia(path);
+      app.applyMediaAnalysis({ projectId, assetId: registered.asset.id, metadata });
+      const before = app.readProject(projectId), jobs = app.repository.listJobs(projectId);
+      const endFrame = millisecondsToFrames(metadata.durationMs, before.snapshot.timeline.fps);
+      const input = { projectId, assetId: registered.asset.id, mode: "range" as const, sourceStartFrame: 0, sourceEndFrame: endFrame };
+      const result = await inspectAsset(app, input);
+      assert.equal(result.sourceRange!.endFrame, endFrame);
+      assert.equal(result.sourceRange!.endMs, metadata.durationMs, "帧坐标取整不改变实际音频终点");
+      const proxy = await probeMedia(join(created.snapshot.project.rootPath, result.proxy!.relativePath));
+      assert.ok(proxy.durationMs >= metadata.durationMs - 1 && proxy.durationMs <= metadata.durationMs + 40, "连续代理应保留尾音");
+      const overview = await inspectAsset(app, { projectId, assetId: registered.asset.id, mode: "overview" });
+      assert.equal(overview.sourceRange!.endFrame, endFrame);
+      assert.equal(overview.requestableRanges.at(-1)!.endMs, metadata.durationMs);
+      await assert.rejects(inspectAsset(app, { ...input, sourceEndFrame: endFrame + 1 }), /真实时长/u);
+      assert.deepEqual(app.readProject(projectId), before);
+      assert.deepEqual(app.repository.listJobs(projectId), jobs);
+    }
+  } finally { await server.app.close(); app.close(); await rm(root, { recursive: true, force: true }); }
+});
 
 test("素材审阅60秒与12秒边界明确，短范围dBFS不得冒充全片LUFS", async () => {
   const root = await mkdtemp(join(tmpdir(), "source-review-limits-"));
@@ -114,6 +147,24 @@ async function createMismatchedFrameRateReviewFixture(directory: string): Promis
   return path;
 }
 
+async function createVp8VorbisAudioTailFixture(directory: string): Promise<string> {
+  const path = join(directory, "source-review-vp8-vorbis-tail.webm");
+  // 故意让 Vorbis 音轨比 VP8 画面多 125ms，复现 WebM 容器总时长大于画面可解码范围的素材。
+  await runProcess("ffmpeg", [
+    "-y", "-v", "error",
+    "-f", "lavfi", "-i", "testsrc2=size=96x72:rate=25:duration=3",
+    "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=3.125",
+    "-map", "0:v:0",
+    "-map", "1:a:0",
+    "-c:v", "libvpx",
+    "-b:v", "300k",
+    "-pix_fmt", "yuv420p",
+    "-c:a", "libvorbis",
+    path
+  ]);
+  return path;
+}
+
 test("inspect_asset 不会把 25fps 源素材的 overview 末帧采样到 24fps 项目边界之外", async () => {
   const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-source-review-fps-"));
   const server = await createServer({ workspaceRoot });
@@ -150,6 +201,54 @@ test("inspect_asset 不会把 25fps 源素材的 overview 末帧采样到 24fps 
     assert.ok(overview.contactSheet.frames.every((frame) => frame.sourceMs < 3_800));
   } finally {
     server.application.close();
+    await rm(workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("inspect_asset 以 VP8 实际画面帧数约束带 Vorbis 音轨尾巴的 WebM 联系表", async () => {
+  const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-source-review-vp8-tail-"));
+  const server = await createServer({ workspaceRoot });
+  const app = server.application;
+  try {
+    const created = app.createProject({ name: "VP8 与 Vorbis 尾部审阅" });
+    const projectId = created.snapshot.project.id;
+    const fixture = await createVp8VorbisAudioTailFixture(workspaceRoot);
+    const registered = app.registerImportedAsset({
+      projectId,
+      baseRevision: created.revision.number,
+      name: "vp8-vorbis-tail.webm",
+      kind: "video",
+      managedPath: "assets/source/vp8-vorbis-tail.webm",
+      sourceHash: createHash("sha256").update(await readFile(fixture)).digest("hex"),
+      provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+    });
+    const sourcePath = join(registered.state.snapshot.project.rootPath, registered.asset.managedPath);
+    await mkdir(dirname(sourcePath), { recursive: true });
+    await copyFile(fixture, sourcePath);
+    const metadata = await probeMedia(sourcePath);
+    assert.equal(metadata.videoCodec, "vp8");
+    assert.equal(metadata.audioCodec, "vorbis");
+    assert.ok(metadata.durationMs > 3_000, "容器时长必须包含音轨尾巴");
+    app.applyMediaAnalysis({ projectId, assetId: registered.asset.id, metadata });
+
+    const revision = app.readProject(projectId).revision.number;
+    const overview = await inspectAsset(app, { projectId, assetId: registered.asset.id, mode: "overview", contactSheetFrames: 16 });
+    assert.equal(overview.sourceRange?.endFrame, 72, "25fps 的 75 个实际视频帧在 24fps 项目中只能审阅到 3 秒");
+    assert.equal(overview.contactSheet.frames.length, 16);
+    assert.ok(overview.contactSheet.frames.every((frame) => frame.sourceFrame < 72 && frame.sourceMs < 3_000));
+    for (const frame of overview.contactSheet.frames) {
+      await runProcess("ffmpeg", ["-v", "error", "-i", join(registered.state.snapshot.project.rootPath, frame.relativePath), "-frames:v", "1", "-f", "null", "-"]);
+    }
+    await assert.rejects(inspectAsset(app, {
+      projectId,
+      assetId: registered.asset.id,
+      mode: "range",
+      sourceStartFrame: 0,
+      sourceEndFrame: 73
+    }), /真实时长/u);
+    assert.equal(app.readProject(projectId).revision.number, revision, "审阅与越界拒绝均不得改写视频 Revision");
+  } finally {
+    app.close();
     await rm(workspaceRoot, { recursive: true, force: true });
   }
 });

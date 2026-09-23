@@ -48,7 +48,13 @@ test("实际旋转/SAR解码方向比例正确，旧版本恢复仍使用原算�
       const expected=join(root,`expected${rotation}.png`);
       await runProcess("ffmpeg",["-y","-v","error","-i",file,"-frames:v","1","-pix_fmt","rgba",expected]);
       const reference=PNG.sync.read(await readFile(expected));assert.deepEqual(frame.data,reference.data);
-      if(rotation===90){const legacy=await prepareMotionVideos(root,join(root,"legacy"),work,[binding],"managed-motion-7");assert.equal(legacy.footage.width,180);assert.equal(legacy.footage.height,100);}
+      if(rotation===90){
+        const previous=await prepareMotionVideos(root,join(root,"previous"),work,[binding],"managed-motion-8");
+        assert.deepEqual(PNG.sync.read(await readFile(previous.footage.framePaths[0])).data,frame.data,"压缩升级不能改变旧版视频解码方向与比例");
+        const ninth=await prepareMotionVideos(root,join(root,"ninth"),work,[binding],"managed-motion-9");
+        assert.deepEqual(PNG.sync.read(await readFile(ninth.footage.framePaths[0])).data,frame.data,"布局升级不能改变第九代视频解码方向与比例");
+        const legacy=await prepareMotionVideos(root,join(root,"legacy"),work,[binding],"managed-motion-7");assert.equal(legacy.footage.width,180);assert.equal(legacy.footage.height,100);
+      }
     }
     const sar=join(root,"sar.mp4");await runProcess("ffmpeg",["-y","-v","error","-i",source,"-vf","setsar=2","-c:v","libx264",sar]);
     const binding={slot:"footage",assetId:"a",managedPath:"sar.mp4",hash:await hashMotionFile(sar),rightsStatus:"cleared",sourceStartMs:0,sourceEndMs:1000};

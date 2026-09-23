@@ -19,12 +19,52 @@ test("PNG 归一化保持彩色与半透明像素，拒绝损坏文件和错误�
   assert.throws(() => normalizeMotionPng(Buffer.from("invalid"), 2, 1));
 });
 
+test("深色渐变帧无损压缩后满足缓存预算，颜色与透明度不降级", { timeout: 60_000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "videocut-motion-gradient-"));
+  try {
+    const source = `import React from 'react';import {useCurrentFrame} from 'remotion';export default function Motion(){return <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse at 48% 40%,#182127,#0b1014 52%,#050709)',opacity:useCurrentFrame()===0?1:0.5}}/>;}`;
+    await renderManagedMotion({ ...motionFixture, source, width: 768, height: 1344, fps: 24, durationInFrames: 2 }, root);
+    for (let frame = 0; frame < 2; frame++) {
+      const bytes = await readFile(join(root, "frames", `frame-0000${frame}.png`));
+      const decoded = PNG.sync.read(bytes);
+      const oldEncoding = PNG.sync.write(decoded, { colorType: 6, inputColorType: 6, bitDepth: 8, deflateLevel: 6, deflateStrategy: 3 });
+      const filtered = PNG.sync.write(decoded, { colorType: 6, inputColorType: 6, bitDepth: 8, deflateLevel: 6, deflateStrategy: 0 });
+      assert.deepEqual(PNG.sync.read(oldEncoding).data, decoded.data, "无损压缩不得改变任一 RGBA 像素");
+      assert.deepEqual(normalizeMotionPng(oldEncoding, 768, 1344), bytes, "旧编码输入应得到相同的新编码");
+      assert.equal(bytes[25], 6);
+      assert.equal(decoded.data[3], frame === 0 ? 255 : 128);
+      assert.ok(bytes.length < oldEncoding.length * 0.8, "不能退回使渐变膨胀的编码方式");
+      assert.ok(bytes.length <= filtered.length, "选择无滤波编码不能让其它画面体积退步");
+      if (frame === 0) {
+        assert.ok(bytes.length < filtered.length * 0.9, "只替换 RLE 仍不足，渐变需要更合适的过滤方式");
+        assert.ok(oldEncoding.length * 467 > 256 * 1024 * 1024, "复现旧编码仅背景就超预算");
+        assert.ok(bytes.length * 467 < 256 * 1024 * 1024, "保持现有预算也能容纳完整背景");
+      }
+    }
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test("真实 Chromium 中的外部资源、动态求值被第二层隔离拒绝", { timeout: 60_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "videocut-motion-security-"));
   try {
     // 刻意绕开 JSX 标签扫描，证明不是只靠关键词过滤才保护宿主。
     await assert.rejects(renderManagedMotion({ ...motionFixture, source: `import React from 'react';export default ()=>React.createElement('img',{src:'https://example.com/leak'});` }, join(root, "network")), /MOTION_(?:CSP_VIOLATION|NETWORK_BLOCKED)/u);
     await assert.rejects(renderManagedMotion({ ...motionFixture, source: `import React from 'react';export default function Motion(){const f=({})['con'+'structor']['con'+'structor'];return React.createElement('div',null,f('return 1')());}` }, join(root, "eval")), /(?:MOTION_CSP_VIOLATION|unsafe-eval|EvalError)/u);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("多层组件传递受管图片实际出图，传入远程地址仍由沙箱拒绝", { timeout: 60_000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "videocut-motion-image-props-"));
+  try {
+    const source = `import React from 'react';import {Img} from 'remotion';function Crop({src}){return <Img src={src} style={{width:320,height:320}}/>;}const Paper=({src})=><Crop src={src}/>;export default p=><Paper src={p.assets.page}/>;`;
+    const png = new PNG({ width: 1, height: 1 });
+    png.data = Buffer.from([24, 160, 72, 255]);
+    const data = `data:image/png;base64,${PNG.sync.write(png).toString("base64")}`;
+    const result = await renderManagedMotion({ ...motionFixture, source, durationInFrames: 2 }, join(root, "managed"), { page: data });
+    const frame = PNG.sync.read(await readFile(join(root, "managed/frames/frame-00000.png")));
+    assert.deepEqual([...frame.data.subarray((160 * 320 + 160) * 4, (160 * 320 + 160) * 4 + 4)], [24, 160, 72, 255]);
+    assert.equal(result.determinism!.status, "exact");
+    await assert.rejects(renderManagedMotion({ ...motionFixture, source, durationInFrames: 2 }, join(root, "remote"), { page: "https://example.com/image.png" }), /MOTION_(?:CSP_VIOLATION|NETWORK_BLOCKED)/u);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 

@@ -18,7 +18,11 @@ export const motionFrameName = (frame: number) => `frame-${String(frame).padStar
 export function normalizeMotionPng(png: Buffer, width: number, height: number): Buffer {
   const decoded = PNG.sync.read(png);
   if (decoded.width !== width || decoded.height !== height) throw new Error("MOTION_OUTPUT_MISMATCH: PNG 画幅不匹配");
-  return PNG.sync.write(decoded, { colorType: 6, inputColorType: 6, bitDepth: 8, deflateLevel: 6 });
+  // RLE 和最小残差滤波未必适合渐变；比较两种无损编码，保留 RGBA 与原缓存限额。
+  const options = { colorType: 6, inputColorType: 6, bitDepth: 8, deflateLevel: 6, deflateStrategy: 0 } as const;
+  const filtered = PNG.sync.write(decoded, options);
+  const unfiltered = PNG.sync.write(decoded, { ...options, filterType: 0 });
+  return unfiltered.length < filtered.length ? unfiltered : filtered;
 }
 
 /** 时长近似不能证明逐帧完整；审阅代理也必须与透明作品一帧不差。 */
@@ -88,6 +92,11 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
           (async () => {
             await page.evaluate(async (value) => {
               await (window as unknown as { __motionSeek: (frame: number) => Promise<void> }).__motionSeek(value);
+              // 半透明变换图层的增删会复用不同的文字阴影绘制状态；每帧重建布局，保留 React 状态以继续检出真实副作用。
+              document.body.style.display = "none";
+              void document.body.offsetHeight;
+              document.body.style.removeProperty("display");
+              void document.body.offsetHeight;
               await Promise.all(Array.from(document.images).map((image) => image.decode()));
             }, frame);
             if (errors.length) throw new Error(errors.slice(0, 3).join("; "));
@@ -101,7 +110,7 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
     for (let frame = 0; frame < input.durationInFrames; frame++) {
       const png = await capture(frame);
       totalBytes += png.length;
-      if (totalBytes > 256 * 1024 * 1024) throw new Error("MOTION_OUTPUT_BUDGET: 透明帧缓存超过 256MB");
+      if (totalBytes > 512 * 1024 * 1024) throw new Error("MOTION_OUTPUT_BUDGET: 透明帧缓存超过 512MiB");
       frameHashes.push(createHash("sha256").update(png).digest("hex"));
       await writeFile(join(directory, "frames", motionFrameName(frame)), png, { flag: "wx" });
     }

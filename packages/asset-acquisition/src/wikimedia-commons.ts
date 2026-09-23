@@ -191,7 +191,8 @@ function fallbackAttribution(creator: string | undefined, license: string | unde
  */
 export class WikimediaCommonsProvider implements AssetProvider {
   readonly name = "wikimedia-commons";
-  readonly previewHosts = ["upload.wikimedia.org"];
+  // Commons 的原文件与缩略图由两个精确主机提供；不放开其他子域名。
+  readonly previewHosts = ["upload.wikimedia.org", "thumb.wikimedia.org"];
   private readonly apiEndpoint: string;
   private readonly fetchImpl: typeof fetch;
   private readonly maxResults: number;

@@ -34,6 +34,12 @@ const expectedSkills = [
   "motion-case-product-fan",
   "motion-case-cover-flow",
   "motion-case-comment-focus",
+  "motion-case-mixed-scene-relay",
+  "motion-case-active-window-focus",
+  "motion-case-occlusion-condition-reveal",
+  "motion-case-context-detail-observation",
+  "motion-case-relation-unfold",
+  "motion-case-object-type-relay",
   "presenter-motion-director",
   "production-coordinator",
   "production-director",
@@ -247,8 +253,8 @@ test("Skills V5 源唯一、插件发行副本完整且可被 Codex 发现", asy
     assert.ok(frontMatter, `${name} 缺少 YAML Front Matter`);
     assert.match(frontMatter![1], new RegExp(`^name:\\s*${name}$`, "mu"), `${name} 的 name 必须与目录一致`);
     assert.match(frontMatter![1], /^description:\s*\S+/mu, `${name} 缺少 description`);
-    // 六节案例将成片检查和交接写在第六节，兼容带编号的正文标题。
-    assert.match(skill, /^##[ \t]+(?:\d+\.[ \t]+)?(?:退出条件|验证与退出|停止条件|最终检查|完成标准|交接合同|交接|如何根据实际成片检查和调整)/mu, `${name} 缺少可验证的退出或交接条件`);
+    // 案例以编号章节交回当前任务，仍须保留实际检查与交接正文。
+    assert.match(skill, /^##[ \t]+(?:\d+\.[ \t]+)?(?:退出条件|验证与退出|停止条件|最终检查|完成标准|交接合同|交接|如何根据实际成片检查和调整|返回当前制作任务)/mu, `${name} 缺少可验证的退出或交接条件`);
     assert.equal(
       await readFile(join(pluginSkillsRoot, name, "SKILL.md"), "utf8"),
       skill,

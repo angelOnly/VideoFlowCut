@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 import { createApplication } from "@videocut/application";
 import { motionSubmissionSchema } from "../packages/motion-work/src/schema.js";
-import { compileMotion, validateMotionSource, motionHash } from "../packages/motion-work/src/compiler.js";
+import { compileMotion, validateMotionSource, motionHash, motionHashEngine, MOTION_ENGINE_VERSION } from "../packages/motion-work/src/compiler.js";
 import { MOTION_SOURCES, motionSourceForUrl } from "../packages/motion-work/src/catalog.js";
 import { motionFixture } from "./fixtures/managed-motion.js";
 import { inspectEffectContentContract, managedMotionReviewOutcome } from "@videocut/contracts";
@@ -14,6 +14,43 @@ import { probeMedia, runProcess } from "@videocut/speech";
 import { readFile } from "node:fs/promises";
 import { runMotionJob } from "../apps/render-worker/src/motion-job.js";
 import { evaluateQuality } from "@videocut/quality";
+
+test("无损压缩升级隔离新作品身份，旧版 Job 哈希仍可恢复", () => {
+  const previous = motionHash(motionFixture, [], "managed-motion-8");
+  assert.notEqual(motionHash(motionFixture), previous);
+  assert.equal(motionHashEngine(motionFixture, [], previous), "managed-motion-8");
+  assert.equal(motionHashEngine(motionFixture, [], previous, "managed-motion-8"), "managed-motion-8");
+  assert.equal(motionHashEngine(motionFixture, [], motionHash(motionFixture)), MOTION_ENGINE_VERSION);
+  assert.throws(() => motionHashEngine(motionFixture, [], previous, MOTION_ENGINE_VERSION), /MOTION_VERSION_MISMATCH/u);
+});
+
+test("布局重建隔离第十代引擎缓存，仍能核验第九代完整冻结输入", () => {
+  const previous = motionHash(motionFixture, [], "managed-motion-9");
+  assert.equal(MOTION_ENGINE_VERSION, "managed-motion-11");
+  assert.notEqual(motionHash(motionFixture), previous);
+  assert.equal(motionHashEngine(motionFixture, [], previous), "managed-motion-9");
+  assert.equal(motionHashEngine(motionFixture, [], previous, "managed-motion-9"), "managed-motion-9");
+  assert.throws(() => motionHashEngine(motionFixture, [], previous, MOTION_ENGINE_VERSION), /MOTION_VERSION_MISMATCH/u);
+});
+
+test("受管图片可经本地函数组件逐层传递，原生标签及别名不能借 src 放行", async () => {
+  const nested = `import React from 'react';import {Img} from 'remotion';
+function Crop({src}){return <Img src={src}/>;}
+const Paper=({src})=><Crop src={src}/>;
+const View=function({src}){return <Paper src={src}/>;};
+export default function Motion(props){return <View src={props.assets.page}/>;}`;
+  assert.doesNotThrow(() => validateMotionSource(nested));
+  assert.ok((await compileMotion({ ...motionFixture, source: nested }, { page: "data:image/png;base64,fixture" })).length);
+  for (const source of [
+    `const Fake='img';export default p=><Fake src={p.assets.page}/>;`,
+    `export default p=><Unknown src={p.assets.page}/>;`,
+    `const C={Image:'img'};export default p=><C.Image src={p.assets.page}/>;`,
+    `function Crop({src}){return <img src={src}/>;}export default p=><Crop src={p.assets.page}/>;`,
+    `function Crop({src}){return <iframe src={src}/>;}export default p=><Crop src={p.assets.page}/>;`,
+    `function Crop(p){return <div/>;}export default p=><Crop srcDoc={p.text}/>;`,
+    `function Crop(p){return <div/>;}export default p=><Crop onLoad={()=>null}/>;`
+  ]) assert.throws(() => validateMotionSource(`import React from 'react';${source}`), /MOTION_DOM_REJECTED/u);
+});
 
 test("原创提交要求创作说明、参考可选，历史幂等重试保持原输入和哈希", async () => {
   const root = await mkdtemp(join(tmpdir(), "videocut-motion-original-"));

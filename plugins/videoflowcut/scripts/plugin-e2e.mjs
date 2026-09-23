@@ -135,6 +135,9 @@ try {
     throw new Error(`Worker 未在时限内消费任务：${jobId}`);
   };
   const tools = await client.listTools();
+  const usageTargets = tools.tools.find((tool) => tool.name === "bind_media_adoption")?.inputSchema.properties.input.properties.target.anyOf;
+  assert.ok(usageTargets?.some((target) => target.required?.includes("motionImageSlot")), "发行 MCP 必须公开受管内部图片采用入口");
+  assert.ok(usageTargets?.some((target) => target.required?.includes("motionVideoSlot")), "新增图片入口不能覆盖已有内部视频合同");
   const motionTool = tools.tools.find((tool) => tool.name === "submit_motion_work");
   const composedTool = tools.tools.find((tool) => tool.name === "inspect_composed_frames");
   assert.equal(composedTool.inputSchema.properties.frames.maxItems, 12, "实时MCP Schema必须保留抽帧数量上限");

@@ -1499,6 +1499,11 @@ export function createEffectCue(input: {
   const enterFrames = Math.max(1, input.motion?.enterFrames ?? 10);
   const exitFrames = Math.max(1, input.motion?.exitFrames ?? 10);
   const defaultSpatialAnchor = input.layer === "fullscreen" ? "full_frame" : input.layer === "rear" ? "middle_left" : "bottom_right";
+  // 通用 Cue 表单会显式发送它的默认 StylePack；受管作品不能被该外层默认值改样式，
+  // 因此只把 default-clean 规范为受管源码的固定标识，其他值仍在应用层按固定作品拒绝。
+  const stylePackId = input.type === "ManagedMotion" && input.stylePackId === "default-clean"
+    ? "managed-source"
+    : input.stylePackId;
   // semanticAnchor 是当前正式合同。旧 anchorTargetId 仅供没有结构化锚点的历史调用
   // 兼容为 SpeechSegment；两者同时出现时不能再让旧字段改变新锚点的语义。
   const legacyAnchorTargetId = input.semanticAnchor ? undefined : input.anchorTargetId;
@@ -1534,7 +1539,7 @@ export function createEffectCue(input: {
       holdFrames: Math.max(0, input.motion?.holdFrames ?? Math.max(0, input.endFrame - input.startFrame - enterFrames - exitFrames)),
       exitFrames
     },
-    stylePackId: input.stylePackId ?? (input.type === "ManagedMotion" ? "managed-source" : "default-clean"),
+    stylePackId: stylePackId ?? (input.type === "ManagedMotion" ? "managed-source" : "default-clean"),
     qualityRules: input.qualityRules ?? []
   };
 }

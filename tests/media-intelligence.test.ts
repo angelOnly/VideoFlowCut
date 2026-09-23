@@ -113,6 +113,36 @@ test("分析/观察不产生 Revision，纠错保留原文并只使已采用依�
   } finally { app.repository.close(); await rm(root, { recursive: true, force: true }); }
 });
 
+test("纠错保留明确的证据来源与精度，模型抽帧不升级成人工连续复核且历史可追溯", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vfc-observation-basis-")), app = createApplication(root);
+  try {
+    const state = app.createProject({ name: "观察来源审计回归" });
+    const projectId = state.snapshot.project.id;
+    app.intelligence.store.saveSource({ ...source, projectId });
+    const original = { ...observation(fact("visual", "车站人群")), projectId };
+    app.intelligence.store.saveObservation(original);
+    let previous = original;
+    for (const [basis, precision] of [["model", "sampled"], ["model", "reviewed"], ["measurement", "measured"], ["transcript", "provider_timed"], ["human", "reviewed"]] as const) {
+      const corrected = app.intelligence.correct(projectId, { observationId: previous.id,
+        facts: [{ ...fact("visual", "车站人群"), basis, precision }], unknowns: [], reason: "按实际观察核对证据来源和精度", author: `${basis}复核者` });
+      const saved = app.intelligence.store.observation(projectId, corrected.observation.id)!;
+      assert.equal(corrected.observation.facts[0].basis, basis);
+      assert.equal(saved.facts[0].basis, basis);
+      assert.equal(saved.facts[0].precision, precision);
+      assert.equal(saved.supersedes, previous.id);
+      assert.equal(saved.rawText, original.rawText);
+      assert.deepEqual(app.intelligence.store.observation(projectId, previous.id), previous, "历史观察不可被就地改写");
+      assert.equal(corrected.revision, state.revision.number, "无采用依赖的纠错不创建视频Revision");
+      if (basis === "model") {
+        const match = matchObservation(source, saved, { query: "车站", modality: "visual", minDurationMs: 6000 })[0];
+        assert.equal(match.status, precision === "sampled" ? "insufficient" : "conditional");
+      }
+      previous = saved;
+    }
+    assert.deepEqual(app.intelligence.store.observations(projectId).map(entry => entry.id), [previous.id]);
+  } finally { app.repository.close(); await rm(root, { recursive: true, force: true }); }
+});
+
 test("visual 需求可采用对应视频范围，需求改版不能沿用旧采用", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-visual-adopt-")), app = createApplication(root);
   try {

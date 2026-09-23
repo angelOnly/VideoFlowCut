@@ -8,7 +8,7 @@ const inspectSchema = z.object({ assetId: z.string().min(1).optional(), candidat
 const correctionSchema = z.object({ observationId: z.string().min(1), facts: z.array(factSchema).max(100), unknowns: z.array(z.string().max(1000)).max(100), reason: z.string().trim().min(8).max(3000), author: z.string().trim().min(1).max(120), baseRevision: z.number().int().positive().optional() }).strict();
 const adoptionSchema = z.object({ baseRevision: z.number().int().positive(), assetId: z.string().min(1), observationIds: z.array(z.string().min(1)).min(1).max(100), range: timeRangeSchema.optional(), region: regionSchema.optional(), requestId: z.string().min(1).optional(), requestVersion: z.string().min(1).optional(), purpose: z.string().trim().min(1).max(2000), audioPolicy: z.enum(["mute", "retain", "not_applicable"]), conditions: z.array(z.string().max(1000)).max(30).default([]) }).strict();
 
-const usageSchema = z.object({ baseRevision: z.number().int().positive(), adoptionId: z.string().min(1), target: z.union([z.object({ timelineItemId: z.string().min(1) }).strict(), z.object({ effectCueId: z.string().min(1), slot: z.string().min(1) }).strict(), z.object({ effectCueId: z.string().min(1), motionVideoSlot: z.string().min(1).max(40) }).strict()]) }).strict();
+const usageSchema = z.object({ baseRevision: z.number().int().positive(), adoptionId: z.string().min(1), target: z.union([z.object({ timelineItemId: z.string().min(1) }).strict(), z.object({ effectCueId: z.string().min(1), slot: z.string().min(1) }).strict(), z.object({ effectCueId: z.string().min(1), motionVideoSlot: z.string().min(1).max(40) }).strict(), z.object({ effectCueId: z.string().min(1), motionImageSlot: z.string().min(1).max(40) }).strict()]) }).strict();
 
 export function registerMediaIntelligenceTools(server: McpServer, app: EditingApplication, projectIdFrom: (value?: string) => string) {
   const result = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value) }] });
@@ -28,7 +28,7 @@ export function registerMediaIntelligenceTools(server: McpServer, app: EditingAp
   server.registerTool("adopt_media_fragment", { title: "保存素材范围采用依据", description: "核对受管原文件真实哈希、观察覆盖和当前 Revision，保存本次用途、原声策略及条件。只确认采用依据，具体全屏/PiP或声音放置仍由相应创作工具决定。", inputSchema: { project_id: z.string().optional(), input: adoptionSchema } }, async ({ project_id, input }) => {
     try { return result(await app.intelligence.adopt(projectIdFrom(project_id), input)); } catch (error) { return failure(error); }
   });
-  server.registerTool("bind_media_adoption", { title: "关联素材实际用途", description: "把已复核采用依据关联到具体 Timeline Item 或图片动效插槽，校验原文件、范围和原声策略。静音策略实际作用于播放；后续范围/上下文变化需重新关联，不能按整条素材推定已审阅。", inputSchema: { project_id: z.string().optional(), input: usageSchema } }, async ({ project_id, input }) => {
+  server.registerTool("bind_media_adoption", { title: "关联素材实际用途", description: "把已复核采用依据关联到具体 Timeline Item、外层图片slot、内部motionImageSlot或motionVideoSlot，校验原文件、范围和原声策略。内部图片缺摘要的旧作品仅从同版成功Job恢复身份，不重新生成。静音策略实际作用于播放；后续范围/上下文变化需重新关联，不能按整条素材推定已审阅。", inputSchema: { project_id: z.string().optional(), input: usageSchema } }, async ({ project_id, input }) => {
     try { return result(app.intelligence.bind(projectIdFrom(project_id), input)); } catch (error) { return failure(error); }
   });
   server.registerTool("retry_media_job", { title: "恢复素材分析任务", description: "恢复明确失败或已取消的素材分析、检索或选音任务，保留外部运行检查点；已知 run ID 继续读取，未知提交不重放。", inputSchema: { project_id: z.string().optional(), job_id: z.string().min(1) } }, async ({ project_id, job_id }) => {

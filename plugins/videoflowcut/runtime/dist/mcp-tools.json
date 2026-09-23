@@ -7374,7 +7374,7 @@
     {
       "name": "bind_media_adoption",
       "title": "关联素材实际用途",
-      "description": "把已复核采用依据关联到具体 Timeline Item 或图片动效插槽，校验原文件、范围和原声策略。静音策略实际作用于播放；后续范围/上下文变化需重新关联，不能按整条素材推定已审阅。",
+      "description": "把已复核采用依据关联到具体 Timeline Item、外层图片slot、内部motionImageSlot或motionVideoSlot，校验原文件、范围和原声策略。内部图片缺摘要的旧作品仅从同版成功Job恢复身份，不重新生成。静音策略实际作用于播放；后续范围/上下文变化需重新关联，不能按整条素材推定已审阅。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7441,6 +7441,25 @@
                     "required": [
                       "effectCueId",
                       "motionVideoSlot"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "effectCueId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "motionImageSlot": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 40
+                      }
+                    },
+                    "required": [
+                      "effectCueId",
+                      "motionImageSlot"
                     ],
                     "additionalProperties": false
                   }

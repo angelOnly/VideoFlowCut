@@ -1,0 +1,159 @@
+{
+  "id": "production_run_62f2ab8b-675e-4b90-98e8-fcaa37e839b6",
+  "projectId": "project_3dc478d3-a5ab-4eff-b5d5-046063eb9bc3",
+  "status": "active",
+  "baseRevision": 50,
+  "loadedSkills": [
+    "project-basics",
+    "production-coordinator"
+  ],
+  "loadedReferences": [
+    "_shared/PROJECT_REVISION_AND_HANDOFF.md",
+    "_shared/MCP_EXECUTION_CONTRACT.md"
+  ],
+  "creativeDecisions": [
+    {
+      "id": "creative_decision_d117ec7c-c91c-4676-94c5-1d6f4e1d4c64",
+      "category": "story",
+      "decision": "沿r50接续《满格之外》，保留467帧规格、两份EvidenceCapture和D v2。A以真实人群活动展开，终端由实际短片或明确示意前景接管；B同一编辑轮廓右移揭条件与暖白主读，允许遮挡换源；C实际设备整体进入可辨局部，必要时原创结构示意接管，再展开SS-SINR概念关系。D保持既有358–467帧作品、内部字幕关闭，统一独立字幕逐字承载全文。",
+      "rationale": "采用本轮完整附件和用户授权的素材适配，取消旧设计中10秒同源手机/特定握姿自然光/单片面板与固定放大倍率的硬条件；实际源选择待素材专项完成，不虚构绑定。导演已实际查看D v2局部0/29/69/108帧，保留静帧inconclusive，连续性待合成。",
+      "objectIds": [
+        "asset_ef67ce3c-d82d-4236-bda6-d6d794b106b1",
+        "cue_efb01a1e-e2b3-4daf-91e7-3e5cbbe0588e"
+      ],
+      "evidence": [
+        "宿主/root/director完整分镜返回；mgzw-director-20260923；输入r50",
+        "用户附件0d62cc67-2d69-4a84-97b5-d6a86ef1076e/已粘贴的文本.txt"
+      ],
+      "delegation": {
+        "agentId": "/root/director",
+        "assignmentId": "mgzw-director-20260923",
+        "role": "director",
+        "inputRevision": 50
+      },
+      "createdAt": "2026-09-23T01:18:46.403Z"
+    },
+    {
+      "id": "creative_decision_571bd053-bcb9-48fe-9d82-430c0ba026b3",
+      "category": "visual",
+      "decision": "采用原motion作者修正：A/B/C/D固定受管主视觉置fullscreen、独立透明字幕置front，保留所有作品源码、源时钟和帧范围。",
+      "rationale": "r76正文字幕被遮挡；原作者在r80真实查看0、43、97帧确认层级交换恢复字幕且主体保留，明确采用同法修正BCD。当前r92完整预览已成功，等待最终各卡复核。",
+      "objectIds": [],
+      "evidence": [
+        "job_5bc62ee9-4ef7-4a16-8de1-58d1ec590631",
+        "job_2eaf0aca-c742-4fa5-a7a7-653c9cb64c2e"
+      ],
+      "delegation": {
+        "agentId": "/root/motion",
+        "assignmentId": "mgzw-motion-layer-correction-20260923",
+        "role": "specialist",
+        "inputRevision": 80
+      },
+      "createdAt": "2026-09-23T01:42:44.492Z"
+    },
+    {
+      "id": "creative_decision_4fc002a1-892f-4f5a-9c07-a3dc0d54698f",
+      "category": "quality",
+      "decision": "r92导演收口允许正式导出；独立审片与原作者确认完整字幕显示已修复。",
+      "rationale": "导演实际查看43/97/98/139/187/220/221/246/326/357/358/466帧；作者逐字复核11卡代表帧26/72/124/171/204/240/274/306/347/390/446并看场界；独立审片另看20帧。均无新增必须修改问题。",
+      "objectIds": [],
+      "evidence": [
+        "job_2eaf0aca-c742-4fa5-a7a7-653c9cb64c2e",
+        "export_artifact_f39064f3-bd0f-47b3-bc64-f7874aa5d0fb"
+      ],
+      "delegation": {
+        "agentId": "/root/director",
+        "assignmentId": "mgzw-director-20260923",
+        "role": "director",
+        "inputRevision": 92
+      },
+      "createdAt": "2026-09-23T01:44:23.419Z"
+    }
+  ],
+  "quietRanges": [],
+  "effectDecisions": [],
+  "rejectedAlternatives": [],
+  "mcpCommands": [
+    {
+      "name": "start_production_run",
+      "revision": 50,
+      "createdAt": "2026-09-23T01:11:51.339Z"
+    },
+    {
+      "name": "record_editorial_quality_review",
+      "revision": 92,
+      "createdAt": "2026-09-23T01:43:17.123Z"
+    }
+  ],
+  "previewEvidence": [
+    "r80全局0/43/97实际抽帧与打开观察；不声明连续审阅。",
+    "job_2eaf0aca-c742-4fa5-a7a7-653c9cb64c2e; hash a2a93ae4323f4ee14639b509ace735e3f281939445382dc96c908d737aeb6a50; /root/materials mgzw-review-20260923"
+  ],
+  "composedFrameEvidence": [],
+  "qualityReview": [
+    "R92 追加 mute_visual 审片记录；全片覆盖以结构化证据为准。",
+    "仅关键帧观察；连续节奏待审。素材采用覆盖、Scene旧purpose、完整交付包入口和最终文件独立帧数验证工单保留。最终文件与已检查Preview的SHA256一致。"
+  ],
+  "completionBlockers": [],
+  "createdAt": "2026-09-23T01:11:51.340Z",
+  "editorialReview": {
+    "revision": 92,
+    "passes": [
+      "mute_visual"
+    ],
+    "previewEvidence": [
+      "job_2eaf0aca-c742-4fa5-a7a7-653c9cb64c2e; hash a2a93ae4323f4ee14639b509ace735e3f281939445382dc96c908d737aeb6a50; /root/materials mgzw-review-20260923",
+      "previews\\revision-92-0-467.mp4"
+    ],
+    "findings": [
+      {
+        "id": "editorial_finding_c88f77f0-a4be-4917-a441-37b5f94e1f12",
+        "revision": 92,
+        "recordedAt": "2026-09-23T01:43:17.122Z",
+        "pass": "mute_visual",
+        "severity": "inconclusive",
+        "category": "motion",
+        "summary": "连续节奏与快速动作尚未连续观看",
+        "evidence": "宿主浏览器返回Browser is not available: iab；本次使用真实关键帧观察。",
+        "impact": "不能宣称全帧运动流畅性与连续阅读时长通过。",
+        "verificationMethod": "frames",
+        "frameRange": {
+          "startFrame": 0,
+          "endFrame": 467
+        }
+      },
+      {
+        "id": "editorial_finding_58c3ac81-3196-4b2f-90ee-b977ef83d7a8",
+        "revision": 92,
+        "recordedAt": "2026-09-23T01:43:17.122Z",
+        "pass": "mute_visual",
+        "severity": "minor",
+        "category": "typography",
+        "summary": "240帧结构示意顶标对比度较低",
+        "evidence": "r92 frame240实际查看，后续标签可辨。",
+        "impact": "过渡中小号辅助身份标签略难读，主体与后续身份仍清楚。",
+        "frameRange": {
+          "startFrame": 240,
+          "endFrame": 241
+        }
+      }
+    ],
+    "evidenceRecords": [
+      {
+        "pass": "mute_visual",
+        "previewJobId": "job_2eaf0aca-c742-4fa5-a7a7-653c9cb64c2e",
+        "startFrame": 0,
+        "endFrame": 467,
+        "method": "frames",
+        "observation": "独立审片/root/materials实际打开20帧：0,43,86,97,98,139,160,187,220,221,240,275,300,326,357,358,396,420,446,466。完整稿件全部字幕卡均见到，最多两行，无截边与遮挡，暖白段暗底。97/98与357/358状态相接；字幕缺失已修复。只证实抽帧文字显示，不证明连续阅读时长。",
+        "id": "editorial_evidence_8022cbc5-8788-4ad9-a767-6d61a2cb31ce",
+        "revision": 92,
+        "relativePath": "previews\\revision-92-0-467.mp4",
+        "contentHash": "a2a93ae4323f4ee14639b509ace735e3f281939445382dc96c908d737aeb6a50",
+        "recordedAt": "2026-09-23T01:43:17.122Z"
+      }
+    ],
+    "resolutions": [],
+    "reviewedAt": "2026-09-23T01:43:17.123Z"
+  }
+}

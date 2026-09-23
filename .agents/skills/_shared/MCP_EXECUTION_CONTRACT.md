@@ -89,7 +89,7 @@ YouTube 获取合同取得选定视频的整条单文件，最高 1080p；同一
 
 `retry_media_job(project_id?, job_id)` 只恢复已失败/取消的素材理解、片段检索或声音排序，保存原检查点；有 run ID 继续读，提交结果未知时不重放 POST。Web 任务中心遵循相同恢复原则。
 
-`bind_media_adoption(project_id?, input)` 输入 baseRevision、adoptionId 和 target（timelineItemId 或 effectCueId+slot），核验实际源范围并关联具体使用；静音策略落实到实际播放。放置后绑定，改范围、换原文件或换上下文后重新确认。音效通过 manage_audio 的 design.adoptionId 关联，不必重复此步。
+`bind_media_adoption(project_id?, input)` 输入 baseRevision、adoptionId 和 target：timelineItemId、外层 effectCueId+slot、内部 effectCueId+motionImageSlot 或 effectCueId+motionVideoSlot，按实时 Schema 选择一种，不混用。内部图片槽对应固定 imageBindings，旧图片摘要只从同版成功 Job 核验恢复；不是外层 slot=motion，也不猜历史视频范围。核验实际原文件、范围并关联具体使用；静音策略落实到实际播放。放置后绑定，改范围、换作品版本、原文件或上下文后重新确认。音效通过 manage_audio 的 design.adoptionId 关联，不必重复此步。
 
 `analyze_media(project_id?, input)` 的 input 使用 assetId 或 candidateId、depth、modalities，以及源毫秒 range 或图片/PDF region；HTTP 模型任务返回 Job，不改 Revision。`read_media_observations(project_id?, input)` 按 offset/limit 分页；`search_media_fragments(project_id?, query, mode)` 的 hybrid 返回 Job、lexical 返回已有事实匹配。处理成功、事实覆盖、使用可行性分别读取。
 

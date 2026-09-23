@@ -8,6 +8,8 @@ import { probeMedia } from "@videocut/speech";
 import { assetRequestVersion, intersection, regionContains } from "../../media-intelligence/src/index.js";
 import type { MediaAdoption, MediaFact, MediaObservation, MediaSearchQuery, MediaSource, MediaUsageTarget, SourceRegion, SourceTimeRange } from "@videocut/contracts";
 import { mediaUsageProblem, mediaUsageState } from "../../media-intelligence/src/usage.js";
+import { boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema } from "../../motion-work/src/schema.js";
+import { motionHash, motionHashEngine } from "../../motion-work/src/compiler.js";
 import { analysisInputSchema, ANALYSIS_VERSION, cosine, digest, EMBEDDING_VERSION, factSchema, matchObservation, regionSchema, searchQuerySchema, timeRangeSchema, uncoveredRanges, type AnalysisInput } from "../../media-intelligence/src/index.js";
 import type { EditingApplication } from "./index.js";
 
@@ -56,6 +58,24 @@ export class MediaIntelligenceApplication {
     const state = this.app.repository.commit(projectId, input.baseRevision, "关联素材采用依据与实际使用", (snapshot, impact) => {
       const adoption = snapshot.mediaAdoptions?.find((entry) => entry.id === input.adoptionId);
       if (!adoption) throw new DomainError("采用依据不存在", "MEDIA_ADOPTION_NOT_FOUND");
+      if (input.target.motionImageSlot) {
+        const cue = snapshot.effectCues.find(entry => entry.id === input.target.effectCueId);
+        const workAsset = snapshot.assets.find(entry => entry.id === cue?.assetBindings.find(binding => binding.slot === "motion")?.assetId);
+        if (cue?.type === "ManagedMotion" && workAsset?.motion && !workAsset.motion.imageSources) {
+          // 旧作品只在显式关联时从同版成功任务恢复摘要，不猜槽位、不重写固定输入。
+          const job = this.app.trackJob(workAsset.motion.jobId);
+          if (job.projectId !== projectId || job.kind !== "motion_generation" || job.status !== "succeeded") throw new DomainError("内部图片摘要需要本项目的原始成功作品任务", "MOTION_IMAGE_SOURCE_UNAVAILABLE");
+          const work = motionSubmissionSchema.parse(job.payload.work);
+          const images = boundMotionImageSchema.array().parse(job.payload.boundImages ?? []);
+          const videos = boundMotionVideoSchema.array().parse(job.payload.boundVideos ?? []);
+          const version = motionHash(work, images, motionHashEngine(work, images, job.payload.version, job.payload.engineVersion, videos), videos);
+          if (version !== workAsset.motion.version || version !== job.payload.version
+            || Object.keys(work.imageBindings).length !== images.length || new Set(images.map(image => image.slot)).size !== images.length
+            || images.some(image => work.imageBindings[image.slot] !== image.assetId)) throw new DomainError("内部图片固定输入与作品版本不一致", "MOTION_IMAGE_SOURCE_MISMATCH");
+          workAsset.motion.imageSources = images.map(image => ({ slot: image.slot, assetId: image.assetId, sourceHash: image.hash }));
+          impact.changed.push(workAsset.id);
+        }
+      }
       const item = input.target.timelineItemId && snapshot.timeline.items.find((entry) => entry.id === input.target.timelineItemId);
       if (item && adoption.audioPolicy !== "not_applicable") item.mediaAudioPolicy = adoption.audioPolicy;
       const problem = mediaUsageProblem(snapshot, adoption, input.target);
@@ -165,8 +185,7 @@ export class MediaIntelligenceApplication {
       if (!regionContains(previous.region, fact.region ?? previous.region)) throw new DomainError("纠正区域不得超出实际输入页面或裁切区域", "MEDIA_CORRECTION_REGION_INVALID");
       // 只改文字不等于确认整个窗口；未定位事实保持未定位，复核者必须显式提交范围。
       if (previous.region && !fact.region) fact.region = previous.region;
-      fact.basis = "human";
-      fact.precision = "reviewed";
+      // 纠错也可能来自模型、测量或转写，保留显式来源和精度，不能自动升级证据。
     }
     const affected = (current.snapshot.mediaAdoptions ?? []).filter((adoption) => adoption.observationIds.includes(previous.id));
     if (affected.length && input.baseRevision !== current.revision.number) throw new DomainError("此纠错影响已采用素材，需要当前 Revision", "REVISION_CONFLICT");

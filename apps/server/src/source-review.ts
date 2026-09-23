@@ -4,7 +4,7 @@ import { mkdir, rename, rm, stat } from "node:fs/promises";
 import { extname, isAbsolute, join, relative, resolve } from "node:path";
 import type { EditingApplication } from "@videocut/application";
 import type { Asset, ProjectSnapshot, TimelineItem, VlogShotAnalysis } from "@videocut/contracts";
-import { assetById, DomainError, resolveCompositionReachability } from "@videocut/domain";
+import { assetById, DomainError, millisecondsToFrames, resolveCompositionReachability } from "@videocut/domain";
 import { probeMedia, runProcess } from "@videocut/speech";
 
 /**
@@ -220,10 +220,39 @@ function durationFrames(snapshot: ProjectSnapshot, asset: Asset): number | undef
   if (motion && Number.isInteger(motion.frameCount) && motion.frameCount > 0 && motion.fps === snapshot.timeline.fps) return motion.frameCount;
   const durationMs = asset.metadata?.durationMs;
   if (!Number.isFinite(durationMs) || !durationMs || durationMs <= 0) return undefined;
+  // 纯音频没有视频末帧解码限制，必须与 SpeechTiming/Timeline 使用同一帧换算。
+  if (isReviewableAudio(asset)) return Math.max(1, millisecondsToFrames(durationMs, snapshot.timeline.fps));
   // 源素材的容器时长常落在两个项目帧之间。向上取整会让 overview 的最后一帧
   // 落到真实可解码末帧之后，尤其会在 25fps 素材进入 24fps 项目时触发 FFmpeg -22。
   // 审阅范围采用可播放的半开区间，向下取整后最后一个采样点始终仍在源素材内。
   return Math.max(1, Math.floor(durationMs / 1_000 * snapshot.timeline.fps));
+}
+
+/**
+ * 容器总时长可能被比画面更长的音轨拉长。联系表只应采样实际可解码的视频帧，
+ * 否则 VP8/WebM 等素材的末尾会把 FFmpeg 带到没有画面的时间点。
+ */
+async function visualDurationFrames(snapshot: ProjectSnapshot, asset: Asset, sourcePath: string): Promise<number | undefined> {
+  if (!isReviewableVideo(asset)) return undefined;
+  const sourceFps = asset.metadata?.fps;
+  if (!Number.isFinite(sourceFps) || !sourceFps || sourceFps <= 0) return undefined;
+  try {
+    const output = await runProcess("ffprobe", [
+      "-v", "error",
+      "-select_streams", "v:0",
+      "-count_frames",
+      "-show_entries", "stream=nb_read_frames",
+      "-of", "json",
+      sourcePath
+    ], 120_000);
+    const data = JSON.parse(output) as { streams?: Array<{ nb_read_frames?: string }> };
+    const sourceFrameCount = Number(data.streams?.[0]?.nb_read_frames);
+    if (!Number.isInteger(sourceFrameCount) || sourceFrameCount <= 0) return undefined;
+    // 只缩短容器时长推得的范围；探测异常或元数据不一致时保守沿用已验证的 Asset 元数据。
+    return Math.max(1, Math.floor(sourceFrameCount / sourceFps * snapshot.timeline.fps + 1e-6));
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -243,13 +272,15 @@ function isReviewableAudio(asset: Asset): boolean {
   return asset.kind === "audio" || asset.kind === "speech" || (asset.kind === "derived" && !isReviewableVideo(asset));
 }
 
-function rangeFromFrames(snapshot: ProjectSnapshot, startFrame: number, endFrame: number): SourceReviewRange {
+function rangeFromFrames(snapshot: ProjectSnapshot, startFrame: number, endFrame: number, asset?: Asset): SourceReviewRange {
   const fps = snapshot.timeline.fps;
   return {
     startFrame,
     endFrame,
     startMs: Math.round(startFrame / fps * 1_000),
-    endMs: Math.round(endFrame / fps * 1_000),
+    // 音频完整尾界保留真实毫秒，不因项目帧取整截尾或声明不存在的声音。
+    endMs: asset && isReviewableAudio(asset) && endFrame === durationFrames(snapshot, asset)
+      ? asset.metadata!.durationMs : Math.round(endFrame / fps * 1_000),
     fps
   };
 }
@@ -273,10 +304,9 @@ function sampleFrames(startFrame: number, endFrame: number, count: number): numb
   ));
 }
 
-function sourceReviewRange(snapshot: ProjectSnapshot, asset: Asset, input: InspectAssetInput): SourceReviewRange | undefined {
-  const totalFrames = durationFrames(snapshot, asset);
+function sourceReviewRange(snapshot: ProjectSnapshot, asset: Asset, input: InspectAssetInput, totalFrames = durationFrames(snapshot, asset)): SourceReviewRange | undefined {
   if (!totalFrames) return undefined;
-  if (input.mode === "overview") return rangeFromFrames(snapshot, 0, totalFrames);
+  if (input.mode === "overview") return rangeFromFrames(snapshot, 0, totalFrames, asset);
   if (!Number.isInteger(input.sourceStartFrame) || !Number.isInteger(input.sourceEndFrame)) {
     throw new DomainError("range 和 dense 审阅必须提供整数 sourceStartFrame 与 sourceEndFrame", "SOURCE_REVIEW_RANGE_REQUIRED");
   }
@@ -290,7 +320,7 @@ function sourceReviewRange(snapshot: ProjectSnapshot, asset: Asset, input: Inspe
     const label = input.mode === "dense" ? "dense" : "range";
     throw new DomainError(`${label} 审阅范围过长；最长${maximumSeconds}秒（项目${snapshot.timeline.fps}fps下为${maximumSeconds * snapshot.timeline.fps}帧），当前${endFrame - startFrame}帧；请只展开会改变剪辑判断的最小窗口。此入口不提供LUFS或true peak`, "SOURCE_REVIEW_RANGE_TOO_LONG");
   }
-  return rangeFromFrames(snapshot, startFrame, endFrame);
+  return rangeFromFrames(snapshot, startFrame, endFrame, asset);
 }
 
 function frameCountFor(input: InspectAssetInput, range: SourceReviewRange): number {
@@ -316,7 +346,7 @@ function cacheKey(input: {
   return hashValue({
     contentHash: input.contentHash,
     mode: input.mode,
-    range: input.range ? [input.range.startFrame, input.range.endFrame, input.range.fps] : undefined,
+    range: input.range ? [input.range.startFrame, input.range.endFrame, input.range.fps, input.range.endMs] : undefined,
     contactSheetFrames: input.contactSheetFrames,
     // 这几个派生参数也属于缓存合同，修改后不会错误复用旧代理。
     frameWidth: 480,
@@ -344,7 +374,8 @@ async function createFrame(input: {
     "-ss", (Math.floor(input.sourceMs * 1_000) / 1_000_000).toFixed(6),
     "-i", input.sourcePath,
     "-frames:v", "1",
-    "-vf", "scale=480:-2",
+    // VP8 等有限色域输入直接写 MJPEG 会被新版 FFmpeg 以 -22 拒绝；显式转为标准 JPEG 的全范围像素格式。
+    "-vf", "scale=480:-2:out_range=full,format=yuvj420p",
     "-q:v", "3",
     "-y", input.temporaryPath
   ], 120_000);
@@ -385,7 +416,7 @@ async function createRangeProxy(input: {
   if (!isVideo && !isReviewableAudio(input.asset)) return undefined;
   const extension = isVideo ? ".mp4" : ".m4a";
   const path = outputPath(input.snapshot, input.key, `source-range${extension}`);
-  const durationSeconds = (input.range.endFrame - input.range.startFrame) / input.range.fps;
+  const durationSeconds = (isVideo ? input.range.endFrame / input.range.fps : input.range.endMs / 1_000) - input.range.startFrame / input.range.fps;
   await ensureCachedFile(path, async (temporaryPath) => {
     const common = [
       "-hide_banner", "-nostdin", "-v", "error",
@@ -485,7 +516,7 @@ async function inspectAudio(input: {
       limitations: ["overview 仅确认音轨事实；请对短范围请求 range 或 dense 以生成波形和声音技术证据。"]
     };
   }
-  const durationSeconds = (input.range.endFrame - input.range.startFrame) / input.range.fps;
+  const durationSeconds = (isReviewableAudio(input.asset) ? input.range.endMs / 1_000 : input.range.endFrame / input.range.fps) - input.range.startFrame / input.range.fps;
   const seek = (input.range.startFrame / input.range.fps).toFixed(6);
   const waveformPath = outputPath(input.snapshot, input.key, "audio-waveform.png");
   await ensureCachedFile(waveformPath, async (temporaryPath) => {
@@ -655,8 +686,7 @@ function transcriptFor(snapshot: ProjectSnapshot, assetId: string): SourceReview
   };
 }
 
-function candidateRanges(snapshot: ProjectSnapshot, asset: Asset): Array<SourceReviewRange & { reason: string }> {
-  const total = durationFrames(snapshot, asset);
+function candidateRanges(snapshot: ProjectSnapshot, asset: Asset, total = durationFrames(snapshot, asset)): Array<SourceReviewRange & { reason: string }> {
   if (!total) return [];
   const shots = snapshot.vlogShotAnalyses
     .filter((analysis) => analysis.assetId === asset.id && analysis.status === "ready")
@@ -664,7 +694,7 @@ function candidateRanges(snapshot: ProjectSnapshot, asset: Asset): Array<SourceR
     .slice(0, 40);
   if (shots.length) {
     return shots.map((shot) => ({
-      ...rangeFromFrames(snapshot, shot.sourceStartFrame, shot.sourceEndFrame),
+      ...rangeFromFrames(snapshot, shot.sourceStartFrame, shot.sourceEndFrame, asset),
       reason: "已存在的技术 Shot Boundary；仍需播放与专业判断确定动作、事件或表演价值。"
     }));
   }
@@ -672,7 +702,7 @@ function candidateRanges(snapshot: ProjectSnapshot, asset: Asset): Array<SourceR
   const chunks: Array<SourceReviewRange & { reason: string }> = [];
   for (let start = 0; start < total && chunks.length < 12; start += chunkFrames) {
     chunks.push({
-      ...rangeFromFrames(snapshot, start, Math.min(total, start + chunkFrames)),
+      ...rangeFromFrames(snapshot, start, Math.min(total, start + chunkFrames), asset),
       reason: "按时间均匀分段，便于继续请求短范围复核；不代表技术镜头或叙事事件边界。"
     });
   }
@@ -732,7 +762,12 @@ export async function inspectAsset(application: EditingApplication, input: Inspe
     };
   }
 
-  const range = sourceReviewRange(snapshot, asset, input);
+  let reviewDuration = durationFrames(snapshot, asset);
+  if (reviewDuration && isReviewableVideo(asset) && existsSync(managedSourcePath)) {
+    const visualDuration = await visualDurationFrames(snapshot, asset, managedSourcePath);
+    if (visualDuration) reviewDuration = Math.min(reviewDuration, visualDuration);
+  }
+  const range = sourceReviewRange(snapshot, asset, input, reviewDuration);
   // PDF、静态图片或缺少时长的素材仍可以经 overview 显示既有资产事实，但不能假装存在声画源范围。
   if (!range) {
     if (input.mode !== "overview") {
@@ -785,7 +820,7 @@ export async function inspectAsset(application: EditingApplication, input: Inspe
     transcript,
     shots: reviewShots(snapshot, asset.id, input.mode === "overview" ? undefined : range),
     usage,
-    requestableRanges: input.mode === "overview" ? candidateRanges(snapshot, asset) : [],
+    requestableRanges: input.mode === "overview" ? candidateRanges(snapshot, asset, reviewDuration) : [],
     evidenceBoundaries: input.mode === "overview"
       ? initialBoundaries
       : [...initialBoundaries, "当前使用位置仅列出与请求源范围可证明相交的 Timeline、Cutaway 和关联对象；未带源范围的独立证据对象不会被误判为当前范围使用。"]

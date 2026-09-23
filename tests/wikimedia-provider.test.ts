@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import type { AssetCandidate, AssetRequest } from "@videocut/contracts";
-import { AssetProviderError } from "@videocut/acquisition";
+import { AssetProviderError, downloadHttpFile } from "@videocut/acquisition";
 import { WikimediaCommonsProvider } from "../packages/asset-acquisition/src/wikimedia-commons.js";
 
 const request = { queryHints: ["城市", "夜晚"] } as AssetRequest;
@@ -17,6 +17,7 @@ function fileDetails(input: {
   title: string;
   mime: string;
   url: string;
+  thumburl?: string;
   license?: string;
   licenseUrl?: string;
   creator?: string;
@@ -31,7 +32,7 @@ function fileDetails(input: {
         canonicalurl: `https://commons.wikimedia.org/wiki/${encodeURIComponent(input.title)}`,
         imageinfo: [{
           url: input.url,
-          thumburl: `${input.url}?width=640`,
+          thumburl: input.thumburl ?? `${input.url}?width=640`,
           mime: input.mime,
           width: 1920,
           height: 1080,
@@ -115,12 +116,43 @@ test("Wikimedia Commons 批量读取独立授权元数据，并区分图片、�
   const video = candidates.find((candidate) => candidate.originalAssetId === "File:Street.webm")!;
   assert.equal(video.kind, "video");
   assert.equal(video.previewUrl, "https://upload.wikimedia.org/street.webm");
-  assert.deepEqual(provider.previewHosts, ["upload.wikimedia.org"]);
+  assert.deepEqual(provider.previewHosts, ["upload.wikimedia.org", "thumb.wikimedia.org"]);
   assert.equal(video.durationMs, 5_250);
   assert.equal(video.rightsStatus, "cleared");
   const incomplete = candidates.find((candidate) => candidate.originalAssetId === "File:Incomplete.png")!;
   assert.equal(incomplete.rightsStatus, "unknown");
   assert.equal(incomplete.licenseUrl, undefined);
+});
+
+test("Commons API 的独立缩略图主机可供候选分析，近似域名及非 HTTPS 地址仍被拒绝", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "videocut-commons-preview-"));
+  const previewUrl = "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ea/Book.jpg/960px-Book.jpg?utm_source=commons.wikimedia.org";
+  const provider = new WikimediaCommonsProvider({ fetchImpl: async (input) => {
+    const url = new URL(String(input));
+    if (url.searchParams.get("list") === "search") return json({ query: { search: [{ title: "File:Book.jpg" }] } });
+    return json(fileDetails({ title: "File:Book.jpg", mime: "image/jpeg", url: "https://upload.wikimedia.org/Book.jpg", thumburl: previewUrl }));
+  } });
+  const [candidate] = await provider.search({ request, query: "library book" });
+  assert.equal(candidate.previewUrl, previewUrl);
+  const calls: string[] = [];
+  t.mock.method(globalThis, "fetch", async (input: string | URL | Request, init?: RequestInit) => {
+    calls.push(String(input));
+    assert.equal(init?.redirect, "error", "缩略图下载继续禁止隐式重定向");
+    return new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]), { headers: { "content-type": "image/jpeg" } });
+  });
+  try {
+    // 使用 Worker 同一下载入口和 Provider 声明，防止只改搜索结果却仍无法分析。
+    const downloaded = await downloadHttpFile(candidate.previewUrl!, root, "preview.jpg", "image", undefined, {}, { allowedHosts: provider.previewHosts });
+    assert.equal(downloaded.contentType, "image/jpeg");
+    assert.deepEqual([...await readFile(downloaded.filePath)], [0xff, 0xd8, 0xff, 0xd9]);
+    for (const url of ["https://thumb.wikimedia.org.evil.test/image.jpg", "https://other.wikimedia.org/image.jpg", "http://thumb.wikimedia.org/image.jpg", "https://user@thumb.wikimedia.org/image.jpg", "https://thumb.wikimedia.org:444/image.jpg"]) {
+      await assert.rejects(downloadHttpFile(url, root, "preview.jpg", "image", undefined, {}, { allowedHosts: provider.previewHosts }),
+        (error: unknown) => error instanceof AssetProviderError && error.code === "ASSET_DOWNLOAD_HOST_REJECTED");
+    }
+    assert.deepEqual(calls, [previewUrl], "拒绝地址不发起网络请求");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test("Wikimedia Commons 下载保留扩展名，并校验实时元数据、MIME 与字节上限", async () => {

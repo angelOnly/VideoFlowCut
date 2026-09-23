@@ -4,7 +4,7 @@ import { build } from "esbuild";
 import ts from "typescript";
 import type { BoundMotionImage, BoundMotionVideo, DecodedMotionVideo, MotionSubmission } from "./schema.js";
 
-export const MOTION_ENGINE_VERSION = "managed-motion-8";
+export const MOTION_ENGINE_VERSION = "managed-motion-11";
 const forbidden = new Set(["eval", "Function", "globalThis", "window", "document", "navigator", "location", "parent", "top", "opener", "self", "fetch", "XMLHttpRequest", "WebSocket", "Worker", "SharedWorker", "process", "require", "Date", "performance", "setTimeout", "setInterval", "requestAnimationFrame", "localStorage", "sessionStorage", "indexedDB", "constructor", "__proto__", "prototype"]);
 const prototypeProperties = new Set(["constructor", "__proto__", "prototype"]);
 const allowedImports: Record<string, Set<string>> = {
@@ -69,6 +69,38 @@ export function validateMotionSource(source: string): void {
       ? checker.getShorthandAssignmentValueSymbol(node.parent) : checker.getSymbolAtLocation(node);
     const declaration = symbol?.valueDeclaration;
     if (!declaration || declaration.getSourceFile() !== file || !isLocalValue(node)) return false;
+    // 解构的子组件参数沿实际 JSX 调用追溯；类型标注或同名字段不能证明数据安全。
+    if (ts.isBindingElement(declaration) && ts.isObjectBindingPattern(declaration.parent)
+      && ts.isParameter(declaration.parent.parent) && !declaration.dotDotDotToken && !declaration.initializer) {
+      const parameter = declaration.parent.parent;
+      const owner = parameter.parent;
+      const key = declaration.propertyName ?? declaration.name;
+      if ((!ts.isArrowFunction(owner) && !ts.isFunctionExpression(owner) && !ts.isFunctionDeclaration(owner))
+        || owner.parameters[0] !== parameter || !ts.isIdentifier(key)) return false;
+      const binding = ts.isFunctionDeclaration(owner) ? owner : owner.parent;
+      if ((!ts.isVariableDeclaration(binding) && !ts.isFunctionDeclaration(binding)) || !binding.name || !ts.isIdentifier(binding.name)) return false;
+      if (ts.isVariableDeclaration(binding) && (!ts.isVariableDeclarationList(binding.parent)
+        || !(binding.parent.flags & ts.NodeFlags.Const))) return false;
+      const component = checker.getSymbolAtLocation(binding.name);
+      let uses = 0, safe = true;
+      const checkUse = (candidate: ts.Node) => {
+        if (ts.isIdentifier(candidate) && candidate !== binding.name && checker.getSymbolAtLocation(candidate) === component) {
+          const tag = candidate.parent;
+          if (ts.isJsxClosingElement(tag)) return;
+          if ((!ts.isJsxOpeningElement(tag) && !ts.isJsxSelfClosingElement(tag)) || tag.tagName !== candidate) { safe = false; return; }
+          const attributes = tag.attributes.properties;
+          const matches = attributes.filter((attribute) => ts.isJsxAttribute(attribute) && attribute.name.getText(file) === key.text);
+          const value = matches[0];
+          uses++;
+          if (attributes.some(ts.isJsxSpreadAttribute) || matches.length !== 1 || !value || !ts.isJsxAttribute(value)
+            || !value.initializer || !ts.isJsxExpression(value.initializer) || !value.initializer.expression
+            || !isDataValue(value.initializer.expression, next)) safe = false;
+        }
+        ts.forEachChild(candidate, checkUse);
+      };
+      checkUse(file);
+      return uses > 0 && safe;
+    }
     if (ts.isVariableDeclaration(declaration)) return ts.isVariableDeclarationList(declaration.parent)
       && Boolean(declaration.parent.flags & ts.NodeFlags.Const) && Boolean(declaration.initializer && isDataValue(declaration.initializer, next));
     if (!ts.isParameter(declaration)) return false;
@@ -104,7 +136,15 @@ export function validateMotionSource(source: string): void {
     if (ts.isJsxAttribute(node)) {
       const name = node.name.getText(file);
       const owner = node.parent.parent;
-      const managedImage = name === "src" && (ts.isJsxOpeningElement(owner) || ts.isJsxSelfClosingElement(owner)) && owner.tagName.getText(file) === "Img" && node.initializer && ts.isJsxExpression(node.initializer);
+      const tag = ts.isJsxOpeningElement(owner) || ts.isJsxSelfClosingElement(owner) ? owner.tagName : undefined;
+      const declaration = tag && ts.isIdentifier(tag) ? checker.getSymbolAtLocation(tag)?.valueDeclaration : undefined;
+      // 本地函数组件的 src 是数据传参，最终 Img 和函数体仍逐项检查；不能仅凭大写名称放行原生标签别名。
+      const localComponent = tag && ts.isIdentifier(tag) && /^[A-Z]/u.test(tag.text)
+        && declaration?.getSourceFile() === file && (ts.isFunctionDeclaration(declaration) && Boolean(declaration.body)
+          || ts.isVariableDeclaration(declaration) && ts.isVariableDeclarationList(declaration.parent)
+          && Boolean(declaration.parent.flags & ts.NodeFlags.Const) && declaration.initializer
+          && (ts.isArrowFunction(declaration.initializer) || ts.isFunctionExpression(declaration.initializer)));
+      const managedImage = name === "src" && (tag?.getText(file) === "Img" || localComponent) && node.initializer && ts.isJsxExpression(node.initializer);
       if (/^on[A-Z]/u.test(name) || ["dangerouslySetInnerHTML", "href", "srcDoc"].includes(name) || name === "src" && !managedImage) throw new Error("MOTION_DOM_REJECTED: 图片用 Img 和 props.assets 的受管数据，其余事件、HTML 或外部链接不可用");
     }
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
@@ -125,7 +165,7 @@ export function motionHash(input: MotionSubmission, images: BoundMotionImage[] =
 }
 /** 旧 Job 的输入哈希保持可核验；新提交固定新引擎，不能使历史作品版本漂移。 */
 export function motionHashEngine(input: MotionSubmission, images: BoundMotionImage[], version: unknown, declared?: unknown, videos: BoundMotionVideo[] = []): string {
-  const accepted = [MOTION_ENGINE_VERSION, "managed-motion-7", "managed-motion-6", "managed-motion-5", "managed-motion-4", "managed-motion-3"];
+  const accepted = [MOTION_ENGINE_VERSION, "managed-motion-10", "managed-motion-9", "managed-motion-8", "managed-motion-7", "managed-motion-6", "managed-motion-5", "managed-motion-4", "managed-motion-3"];
   const engine = accepted.find((candidate) => (declared === undefined || declared === candidate) && motionHash(input, images, candidate, videos) === version);
   if (!engine) throw new Error("MOTION_VERSION_MISMATCH");
   return engine;
@@ -142,6 +182,8 @@ flushSync(()=>root.render(React.createElement(Player,{ref,component:Motion,error
 window.__motionReady=true;window.__motionSeek=async(frame)=>{if(window.__motionError)throw new Error(window.__motionError);ref.current.seekTo(frame);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));await document.fonts.ready;if(window.__motionError)throw new Error(window.__motionError);};`;
   const result = await build({
     stdin: { contents: entry, sourcefile: "motion-entry.tsx", loader: "tsx" }, bundle: true, write: false,
+    // TSX 自动引入受信任的 JSX runtime，源码无需声明未直接使用的 React 变量。
+    jsx: "automatic",
     // 浏览器依赖只看到固定构建常量，不注入任何宿主环境变量。
     platform: "browser", format: "iife", minify: true, define: { "process.env": JSON.stringify({ NODE_ENV: "production" }) }, logLevel: "silent",
     plugins: [{ name: "motion-closed-imports", setup(builder) {

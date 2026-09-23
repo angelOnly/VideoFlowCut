@@ -127,7 +127,11 @@ export interface MediaMatch {
   conditions: string[];
 }
 
-export type MediaUsageTarget = { timelineItemId: string; effectCueId?: never; slot?: never; motionVideoSlot?: never } | { effectCueId: string; slot: string; timelineItemId?: never; motionVideoSlot?: never } | { effectCueId: string; motionVideoSlot: string; timelineItemId?: never; slot?: never };
+export type MediaUsageTarget =
+  | { timelineItemId: string; effectCueId?: never; slot?: never; motionVideoSlot?: never; motionImageSlot?: never }
+  | { effectCueId: string; slot: string; timelineItemId?: never; motionVideoSlot?: never; motionImageSlot?: never }
+  | { effectCueId: string; motionVideoSlot: string; timelineItemId?: never; slot?: never; motionImageSlot?: never }
+  | { effectCueId: string; motionImageSlot: string; timelineItemId?: never; slot?: never; motionVideoSlot?: never };
 
 export interface MediaAdoption {
   id: string;

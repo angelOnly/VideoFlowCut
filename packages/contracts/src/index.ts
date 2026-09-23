@@ -325,6 +325,8 @@ export interface Asset {
     previousAssetId?: Id;
     /** 平台登记的派生来源；修改作品许可不能越过来源限制。 */
     sourceAssetIds?: Id[];
+    /** 固定图片槽位与原图身份，供具体采用关系核验。 */
+    imageSources?: Array<{ slot: string; assetId: Id; sourceHash: string }>;
     /** 至多四个固定视频槽位，仅由完成 Job 生成。 */
     videoSources?: Array<{ slot: string; assetId: Id; sourceHash: string; sourceStartMs: number; sourceEndMs: number }>;
     sourcePath: string;

@@ -108,3 +108,39 @@ test("按 ID 修改锚点与位置不复制片段，移除只动一个 Cue 且�
     assert.ok(removed.revision.impact.dirtyRanges.some((dirty) => dirty.startFrame <= 60 && dirty.endFrame >= 78));
   } finally { await f.close(); }
 });
+
+test("受管作品把通用 default-clean 规范为源码样式，仍拒绝实际外层样式覆写", async () => {
+  const f = await fixture();
+  try {
+    const compatible = f.app.createEffectCue({
+      projectId: f.projectId,
+      baseRevision: f.revision(),
+      sceneId: f.sceneId,
+      type: "ManagedMotion",
+      layer: "fullscreen",
+      startFrame: 40,
+      endFrame: 58,
+      semanticAnchor: { type: "scene", targetId: f.sceneId, relation: "hold_through" },
+      assetBindings: [{ slot: "motion", assetId: f.asset.id }],
+      stylePackId: "default-clean"
+    });
+    const cue = compatible.snapshot.effectCues.at(-1)!;
+    assert.equal(cue.stylePackId, "managed-source");
+    assert.equal(motionCaptionSafety(compatible.snapshot, cue), "clear");
+
+    const beforeInvalid = f.app.readProject(f.projectId);
+    assert.throws(() => f.app.createEffectCue({
+      projectId: f.projectId,
+      baseRevision: f.revision(),
+      sceneId: f.sceneId,
+      type: "ManagedMotion",
+      layer: "fullscreen",
+      startFrame: 80,
+      endFrame: 98,
+      semanticAnchor: { type: "scene", targetId: f.sceneId, relation: "hold_through" },
+      assetBindings: [{ slot: "motion", assetId: f.asset.id }],
+      stylePackId: "warm-editorial"
+    }), /固定作品参数/u);
+    assert.deepEqual(f.app.readProject(f.projectId), beforeInvalid, "实际样式覆写仍无副作用地被拒绝");
+  } finally { await f.close(); }
+});
