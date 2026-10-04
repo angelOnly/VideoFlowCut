@@ -24,6 +24,13 @@ test("无损压缩升级隔离新作品身份，旧版 Job 哈希仍可恢复", 
   assert.throws(() => motionHashEngine(motionFixture, [], previous, MOTION_ENGINE_VERSION), /MOTION_VERSION_MISMATCH/u);
 });
 
+test("创作说明的工具合同明确新作品必填并兼容旧输入", () => {
+  const field = motionSubmissionSchema.innerType().shape.creativeBrief;
+  assert.match(field.description ?? "", /新作品必填/u);
+  const { creativeBrief: _brief, ...legacy } = motionFixture;
+  assert.equal(motionSubmissionSchema.parse(legacy).creativeBrief, undefined);
+});
+
 test("布局重建隔离第十代引擎缓存，仍能核验第九代完整冻结输入", () => {
   const previous = motionHash(motionFixture, [], "managed-motion-9");
   assert.equal(MOTION_ENGINE_VERSION, "managed-motion-12");

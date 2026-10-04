@@ -12,6 +12,7 @@ import type { AssetCandidate, AssetRequest, MediaMetadata } from "@videocut/cont
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { WikimediaCommonsProvider } from "./wikimedia-commons.js";
 import { MixkitSoundProvider, MixkitMusicProvider } from "./mixkit.js";
+import { PexelsProvider } from "./pexels.js";
 import { MIXKIT_SOUND_CATEGORIES, MIXKIT_MUSIC_CATEGORIES } from "./sound-catalog.js";
 
 export function soundSourceCapabilities() {
@@ -324,6 +325,7 @@ export class AssetProviderRegistry {
       { id: "youtube", name: "YouTube", mediaTypes: ["video"], queryMode: "single_video_url", requiresKey: false, unavailableReason: "当前注册表未启用" },
       { id: "mixkit", name: "Mixkit 音效", mediaTypes: ["audio"], queryMode: "category", requiresKey: false, unavailableReason: "当前注册表未启用" },
       { id: "mixkit_music", name: "Mixkit 音乐", mediaTypes: ["audio"], queryMode: "category", requiresKey: false, unavailableReason: "当前注册表未启用" },
+      { id: "pexels", name: "Pexels 视频", mediaTypes: ["video"], queryMode: "keywords_or_video_url", requiresKey: true, unavailableReason: "缺少 PEXELS_API_KEY" },
     ];
     return [...known, ...this.names().filter(id => !known.some(entry => entry.id === id)).map(id => ({ id, name: id, mediaTypes: ["image", "video", "audio"], queryMode: "provider_defined", requiresKey: false, unavailableReason: "" }))]
       .map(entry => ({ ...entry, enabled: this.providers.has(entry.id), unavailableReason: this.providers.has(entry.id) ? undefined : entry.unavailableReason }));
@@ -340,8 +342,10 @@ export class AssetProviderRegistry {
  */
 export function createDefaultAssetProviderRegistry(): AssetProviderRegistry {
   const providers: AssetProvider[] = [new WikimediaCommonsProvider(), new MixkitSoundProvider(), new MixkitMusicProvider(), new YoutubeProvider()];
+  if (process.env.PEXELS_API_KEY?.trim()) providers.push(new PexelsProvider());
   return new AssetProviderRegistry(providers);
 }
 
 // Commons 的逐文件许可解析在独立模块中实现。
 export { WikimediaCommonsProvider, type WikimediaCommonsProviderOptions, type WikimediaCommonsSearchCandidate } from "./wikimedia-commons.js";
+export { PexelsProvider, type PexelsProviderOptions } from "./pexels.js";

@@ -1,5 +1,7 @@
 # r92混合场面案例组
 
+实际材料分支与上下文验收见 [材料分支方法](material-integration-validation.md)。六例各自SKILL已连接新分支；原片、原generation-prompt-v1及历史状态保持，新增指令均尚未渲染。
+
 本组增加一个完整案例与五个局部观看方法，补充现有六例，不覆盖它们。全部原片来自同一个r92来源，真实范围见各case-record.json。
 
 | 案例 | 使用任务 | 入口 |

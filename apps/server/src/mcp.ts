@@ -24,6 +24,7 @@ import { inspectAsset } from "./source-review.js";
 import { registerMotionTools } from "./motion-tools.js";
 import { registerMediaIntelligenceTools } from "./media-intelligence-tools.js";
 import { sha256File } from "./media-hash.js";
+import { extractSourceAudio } from "./extract-source-audio.js";
 import { browseLocalSoundEffects, inspectLocalSoundEffect, resolveLocalSoundEffectForImport } from "./local-sound-effects.js";
 import { SOUND_SOURCES, MIXKIT_SOUND_CATEGORIES } from "../../../packages/asset-acquisition/src/sound-catalog.js";
 
@@ -783,7 +784,7 @@ server.registerTool("inspect_media_candidate", {
 
 server.registerTool("acquire_media_asset", {
   title: "下载并本地化素材候选",
-  description: "只允许通过技术过滤且具备来源许可或明确用途依据的候选进入异步下载任务。Worker 会校验 MIME、文件头、内容哈希和 ffprobe 后才登记正式 Asset。",
+  description: "只允许通过技术过滤且具备来源许可或明确用途依据的候选进入异步下载任务。Worker 会校验 MIME、文件头、内容哈希和 ffprobe 后才登记正式 Asset。故障修复并确认部署后，可对已有明确 failed Job 的失败候选使用新的幂等键恢复；用途依据必须保持一致，仍重核当前技术与许可条件，旧失败记录保留。未知结果或执行中的任务不能重放。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -825,6 +826,22 @@ server.registerTool("import_media", {
       provenance: provenanceFromMcp(provenance)
     }));
   } catch (error) { return asError(error); }
+});
+
+server.registerTool("extract_source_audio", {
+  title: "提取已入库视频原声",
+  description: "从已就绪视频的明确毫秒源范围提取独立 WAV 并登记来源和原素材权利；随后由媒体分析 Job 验证。不会自动写入声音轨，需读回 Asset 后再使用 manage_audio。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    source_asset_id: z.string().min(1),
+    source_start_ms: z.number().int().nonnegative(),
+    source_end_ms: z.number().int().positive()
+  }
+}, async ({ project_id, base_revision_id, source_asset_id, source_start_ms, source_end_ms }) => {
+  try { return asText(await extractSourceAudio(application, { projectId: projectIdFrom(project_id), baseRevision: base_revision_id,
+    sourceAssetId: source_asset_id, startMs: source_start_ms, endMs: source_end_ms })); }
+  catch (error) { return asError(error); }
 });
 
 server.registerTool("browse_local_sound_effects", {
@@ -1224,6 +1241,27 @@ server.registerTool("rebuild_speech_timeline", {
     return asText(application.rebuildSpeechAssetTimeline({
       projectId: projectIdFrom(project_id),
       baseRevision: base_revision_id
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("submit_speech_placement", {
+  title: "按帧编排已生成旁白",
+  description: "按 Script 顺序给全部已就绪 SpeechSegment 指定起始帧；可给 duration_frames 为末段后补静音，令总轨覆盖完整场景。媒体 Worker 复用段音频并插入静音，完成后在同一 Revision 更新 Dialogue 总轨、SpeechTiming 和字幕；不重新合成声音。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    placements: z.array(z.object({ speech_segment_id: z.string().min(1), start_frame: z.number().int().nonnegative() })).min(1),
+    duration_frames: z.number().int().positive().optional(),
+    idempotency_key: z.string().trim().min(1)
+  }
+}, async ({ project_id, base_revision_id, placements, duration_frames, idempotency_key }) => {
+  try {
+    return asText(application.submitSpeechPlacement({
+      projectId: projectIdFrom(project_id), baseRevision: base_revision_id,
+      placements: placements.map((placement) => ({ speechSegmentId: placement.speech_segment_id, startFrame: placement.start_frame })),
+      durationFrames: duration_frames,
+      idempotencyKey: idempotency_key
     }));
   } catch (error) { return asError(error); }
 });
@@ -2286,6 +2324,21 @@ server.registerTool("create_scene", {
       endFrame: input.end_frame,
       assetIds: input.asset_ids
     }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("trim_scene", {
+  title: "缩短场景终点",
+  description: "在当前 Revision 中安全缩短已有 Scene；绑定内容超出新终点时拒绝提交。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    scene_id: z.string().min(1),
+    end_frame: z.number().int().positive()
+  }
+}, async (input) => {
+  try {
+    return asText(application.trimScene({ projectId: projectIdFrom(input.project_id), baseRevision: input.base_revision_id, sceneId: input.scene_id, endFrame: input.end_frame }));
   } catch (error) { return asError(error); }
 });
 

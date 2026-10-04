@@ -377,6 +377,11 @@ export interface AppEvent {
 }
 
 function assertAssetProvenanceValid(provenance: NonNullable<Asset["provenance"]>): void {
+  if (provenance.derivedFrom && (!provenance.derivedFrom.assetId || !provenance.derivedFrom.sourceHash
+    || !Number.isSafeInteger(provenance.derivedFrom.startMs) || !Number.isSafeInteger(provenance.derivedFrom.endMs)
+    || provenance.derivedFrom.startMs < 0 || provenance.derivedFrom.endMs <= provenance.derivedFrom.startMs)) {
+    throw new DomainError("派生音频缺少有效的源素材身份或源范围", "DERIVED_AUDIO_SOURCE_INVALID");
+  }
   if (provenance.usageRights && (!validAssetUsageRights(provenance.usageRights) || provenance.rightsStatus === "rejected")) {
     throw new DomainError("素材用途许可必须有明确范围、依据和确认时间，且不能覆盖 rejected 状态", "ASSET_USAGE_RIGHTS_INVALID");
   }
@@ -2825,7 +2830,8 @@ export class EditingApplication {
   /** Candidate 只有经过硬过滤且授权允许时才能进入下载队列。 */
   acquireAssetCandidate(input: { projectId: Id; baseRevision: number; assetCandidateId: Id; idempotencyKey?: string; usageRights?: { purposes: ("draft" | "delivery")[]; basis: string } }): { state: ProjectState; candidate: AssetCandidate; job: JobRecord } {
     const current = this.readProject(input.projectId);
-    const existing = this.repository.listJobs(input.projectId).find((job) => job.kind === "asset_acquisition" && job.payload.assetCandidateId === input.assetCandidateId && !["failed", "cancelled"].includes(job.status));
+    const jobs = this.repository.listJobs(input.projectId);
+    const existing = jobs.find((job) => job.kind === "asset_acquisition" && job.payload.assetCandidateId === input.assetCandidateId && !["failed", "cancelled"].includes(job.status));
     const currentCandidate = current.snapshot.assetCandidates.find((entry) => entry.id === input.assetCandidateId);
     if (existing && currentCandidate) {
       if (input.usageRights && (JSON.stringify(input.usageRights.purposes) !== JSON.stringify(currentCandidate.usageRights?.purposes) || input.usageRights.basis !== currentCandidate.usageRights?.basis)) throw new DomainError("获取任务已存在，不能用重试更换许可依据", "ASSET_ACQUISITION_IDEMPOTENCY_CONFLICT");
@@ -2844,7 +2850,15 @@ export class EditingApplication {
       }
       const candidate = assetCandidateById(snapshot, input.assetCandidateId);
       const request = assetRequestById(snapshot, candidate.assetRequestId);
-      if (input.usageRights !== undefined) {
+      // 仅恢复已有明确失败 Job 的获取；不把人工拒绝或未知执行结果变成可重试。
+      const recovering = candidate.status === "failed" && jobs.some(entry => entry.kind === "asset_acquisition" && entry.payload.assetCandidateId === candidate.id && entry.status === "failed");
+      if (recovering) {
+        if (input.usageRights && (JSON.stringify(input.usageRights.purposes) !== JSON.stringify(candidate.usageRights?.purposes) || input.usageRights.basis !== candidate.usageRights?.basis)) throw new DomainError("失败恢复不能更换已确认的用途依据", "ASSET_ACQUISITION_IDEMPOTENCY_CONFLICT");
+        if (jobs.some(entry => entry.idempotencyKey === (input.idempotencyKey ?? `asset_acquisition:${candidate.id}:${input.baseRevision}`))) throw new DomainError("失败恢复需要新的获取幂等键，旧 Job 保留失败记录", "ASSET_ACQUISITION_IDEMPOTENCY_CONFLICT");
+        if (!candidateIsAllowed(candidate, request)) throw new DomainError("失败候选不满足当前授权或技术过滤，不能恢复获取", "ASSET_CANDIDATE_NOT_ALLOWED");
+        candidate.status = "available";
+      }
+      if (input.usageRights !== undefined && !recovering) {
         const usage = assetUsageRightsInputSchema.parse(input.usageRights);
         // 只重核因来源许可未知而被过滤的候选；明确拒绝和技术失败不能被用途说明洗掉。
         const rightsOnly = candidate.status === "rejected" && candidate.filterReasons.length === 1 && candidate.filterReasons[0] === "授权状态不满足当前素材需求。" && candidate.rejectionReason === candidate.filterReasons.join(" ");
@@ -6044,6 +6058,32 @@ export class EditingApplication {
     return state;
   }
 
+  trimScene(input: { projectId: Id; baseRevision: number; sceneId: Id; endFrame: number }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "缩短场景终点", (snapshot, impact) => {
+      const scene = snapshot.scenes.find((candidate) => candidate.id === input.sceneId);
+      if (!scene) throw new DomainError("Scene 不存在", "SCENE_NOT_FOUND");
+      if (!Number.isInteger(input.endFrame) || input.endFrame <= scene.startFrame || input.endFrame > scene.endFrame) {
+        throw new DomainError("只能将 Scene 终点缩短到起点之后", "INVALID_SCENE_RANGE");
+      }
+      const outside = (start: number, end: number) => start < scene.startFrame || end > input.endFrame;
+      // 已放置的画面与效果不得被裁成悬空对象；先调整依赖，再缩短场景。
+      if (snapshot.timeline.items.some((item) => item.sceneId === scene.id && outside(item.startFrame, item.endFrame))
+        || snapshot.effectCues.some((cue) => cue.sceneId === scene.id && outside(cue.startFrame, cue.endFrame))
+        || (snapshot.explainerPrograms ?? []).some((program) => program.sceneId === scene.id
+          && program.states.some((phase) => phase.endFrame > input.endFrame - scene.startFrame))
+        || (snapshot.cutaways ?? []).some((cutaway) => (cutaway.hostSceneId === scene.id || cutaway.cutawaySceneId === scene.id)
+          && outside(cutaway.startFrame, cutaway.endFrame))) {
+        throw new DomainError("Scene 终点之后仍有绑定内容，请先调整依赖范围", "SCENE_TRIM_DEPENDENCY_OUT_OF_RANGE");
+      }
+      const oldEnd = scene.endFrame;
+      scene.endFrame = input.endFrame;
+      impact.changed.push(scene.id);
+      impact.dirtyRanges.push({ startFrame: scene.startFrame, endFrame: oldEnd, reason: "缩短场景终点" });
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
   /**
    * 保存主线稳定后做出的视觉选择。它不直接生成卡片或 B-roll，避免导演意图和物理播放重复存储。
    */
@@ -6700,6 +6740,45 @@ export class EditingApplication {
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
     return job;
+  }
+
+  /** 只复用已就绪的段音频；先验证完整顺序与画幅边界，再交媒体 Worker 生成新的可播放总轨。 */
+  submitSpeechPlacement(input: { projectId: Id; baseRevision: number; placements: Array<{ speechSegmentId: Id; startFrame: number }>; durationFrames?: number; idempotencyKey: string }): JobRecord {
+    const state = this.readProject(input.projectId);
+    if (state.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, state.revision.number);
+    const speech = state.snapshot.speechAsset;
+    if (!speech || speech.status !== "ready" || speech.scriptRevision !== state.snapshot.script.revision) throw new DomainError("当前旁白未就绪或与 Script 不一致", "SPEECH_ASSET_NOT_READY");
+    const ordered = state.snapshot.speechSegments.slice().sort((a, b) => a.order - b.order);
+    if (input.placements.length !== ordered.length || input.placements.some((p, i) => p.speechSegmentId !== ordered[i]?.id)) throw new DomainError("必须按 Script 顺序提供全部 SpeechSegment", "SPEECH_PLACEMENT_INCOMPLETE");
+    const frameLimit = Math.max(...state.snapshot.scenes.map((scene) => scene.endFrame), state.snapshot.timeline.durationInFrames);
+    let previousEnd = 0;
+    for (const placement of input.placements) {
+      const segmentAsset = state.snapshot.speechSegmentAssets.find((a) => a.speechSegmentId === placement.speechSegmentId && speech.segmentAssetIds.includes(a.id));
+      if (!segmentAsset || !state.snapshot.assets.some((a) => a.id === segmentAsset.assetId && a.status === "ready")) throw new DomainError("段音频未就绪", "SPEECH_SEGMENT_ASSET_NOT_READY");
+      const durationFrames = millisecondsToFrames(segmentAsset.durationMs, state.snapshot.timeline.fps);
+      if (!Number.isInteger(placement.startFrame) || placement.startFrame < previousEnd || placement.startFrame + durationFrames > frameLimit) throw new DomainError("段起点重叠或超出场景", "INVALID_SPEECH_PLACEMENT");
+      previousEnd = placement.startFrame + durationFrames;
+    }
+    if (input.durationFrames !== undefined && (!Number.isInteger(input.durationFrames) || input.durationFrames < previousEnd || input.durationFrames > frameLimit)) throw new DomainError("旁白总轨时长小于末段或超出场景", "INVALID_SPEECH_PLACEMENT_DURATION");
+    const job = this.repository.createJob({ projectId: input.projectId, kind: "speech_assembly", payload: { requestedRevision: input.baseRevision, speechAssetId: speech.id, scriptRevision: speech.scriptRevision, placements: input.placements, durationFrames: input.durationFrames }, idempotencyKey: input.idempotencyKey });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
+    return job;
+  }
+
+  /** Worker 的新总轨与精确段时间在同一 Revision 提交，避免声音和字幕分离。 */
+  completeSpeechPlacement(input: { projectId: Id; requestedRevision: number; previousSpeechAssetId: Id; speechFile: Asset; speechAsset: SpeechAsset }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.requestedRevision, "按指定帧重排旁白", (snapshot, impact) => {
+      if (snapshot.speechAsset?.id !== input.previousSpeechAssetId || snapshot.script.revision !== input.speechAsset.scriptRevision) throw new DomainError("旁白或 Script 已变化", "STALE_SPEECH_PLACEMENT");
+      snapshot.assets.push(input.speechFile);
+      if (snapshot.speechAlignment) { markSpeechAlignmentStale(snapshot, impact, "旁白总轨已重排"); snapshot.speechAlignment = undefined; }
+      const synced = this.syncSpeechAssetTimeline(snapshot, input.speechAsset);
+      this.staleAudioCuesForMainline(snapshot, impact, "旁白段级时序已变化");
+      impact.changed.push(input.speechFile.id, input.speechAsset.id, synced.dialogueItem.id, ...synced.replacedItemIds);
+      impact.recomputed.push("SpeechTiming、Dialogue 总轨和稳定字幕");
+      impact.dirtyRanges.push({ startFrame: 0, endFrame: Math.max(snapshot.timeline.durationInFrames, synced.durationFrames), reason: "旁白段级重排" });
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
   }
 
   /**

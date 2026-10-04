@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, statfs, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import puppeteer from "puppeteer-core";
 import { PNG } from "pngjs";
@@ -10,6 +10,7 @@ import { runProcess } from "@videocut/speech";
 import { parseMotionEvents } from "../../../packages/motion-work/src/schema.js";
 import type { MotionEvent } from "@videocut/contracts";
 import { verifyMotionDeterminism, type MotionDeterminismReport } from "./motion-determinism.js";
+import { checkMotionDiskSpace, checkMotionOutputBudget, motionOutputBudget } from "./motion-output-budget.js";
 
 export interface MotionRenderResult { frameHashes: string[]; previewPath: string; engineVersion: string; sandbox: string; events?: MotionEvent[]; determinism?: MotionDeterminismReport; }
 export const motionFrameName = (frame: number) => `frame-${String(frame).padStart(5, "0")}.png`;
@@ -40,9 +41,11 @@ export async function verifyMotionPreviewFrames(path: string, frameCount: number
  * 响应级 CSP sandbox 建立 opaque origin；所有网络请求由拦截器拒绝，只有唯一内存文档可加载。
  */
 export async function renderManagedMotion(input: MotionSubmission, directory: string, imageData: Record<string, string> = {}, videos: Record<string, DecodedMotionVideo> = {}): Promise<MotionRenderResult> {
-  const javascript = `window.addEventListener('securitypolicyviolation',e=>console.error('MOTION_CSP_VIOLATION:'+e.violatedDirective));\n${await compileMotion(input, imageData, videos)}`.replace(/<\/script/giu, "<\\/script");
-  if (input.width * input.height * input.durationInFrames > 650_000_000) throw new Error("MOTION_RENDER_BUDGET: 本次像素帧总量超过上限，请缩短单个动效");
+  const outputBudget = motionOutputBudget(input.width, input.height, input.durationInFrames);
   await mkdir(join(directory, "frames"), { recursive: true });
+  const disk = await statfs(directory);
+  checkMotionDiskSpace(disk.bavail * disk.bsize, outputBudget);
+  const javascript = `window.addEventListener('securitypolicyviolation',e=>console.error('MOTION_CSP_VIOLATION:'+e.violatedDirective));\n${await compileMotion(input, imageData, videos)}`.replace(/<\/script/giu, "<\\/script");
   const scriptHash = createHash("sha256").update(javascript).digest("base64");
   // Player 内部有 data: 静音音频探测；允许内嵌数据并不开放外部媒体或网络。
   const csp = `default-src 'none'; script-src 'sha256-${scriptHash}'; style-src 'unsafe-inline'; img-src data: https://motion.invalid/video/; font-src data:; media-src data:; connect-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; sandbox allow-scripts`;
@@ -110,7 +113,7 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
     for (let frame = 0; frame < input.durationInFrames; frame++) {
       const png = await capture(frame);
       totalBytes += png.length;
-      if (totalBytes > 512 * 1024 * 1024) throw new Error("MOTION_OUTPUT_BUDGET: 透明帧缓存超过 512MiB");
+      checkMotionOutputBudget(totalBytes, outputBudget);
       frameHashes.push(createHash("sha256").update(png).digest("hex"));
       await writeFile(join(directory, "frames", motionFrameName(frame)), png, { flag: "wx" });
     }

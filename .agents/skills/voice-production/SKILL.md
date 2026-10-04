@@ -61,6 +61,8 @@ read_script / read_speech_asset
 → read_speech_timing 得到 segment_exact
 ```
 
+若已就绪的完整配音需要与 Scene 留白对齐，先读取每段真实时长及当前帧率，再用 `submit_speech_placement(base_revision_id, placements, duration_frames?, idempotency_key)` 按 Script 顺序提交全部 `speech_segment_id` 与 `start_frame`。相邻段不得重叠，也不得越过当前场景末帧。需要完整片尾时，用 `duration_frames` 明确总轨结束帧，末句后的静音不会延长字幕。Job 复用现有段音频生成带静音的新 Dialogue 总轨，并原子更新 SpeechTiming 和稳定字幕；跟踪终态后读回 Revision、试听并复核画面。此入口不重新调用 OmniVoice，不按文字估算发音时长；项目在 Job 期间变化时会拒绝旧提交，须重新读取后再判断。
+
 每次 OmniVoice 调用前重新读取 Workflow Detail。默认音色 HTTP 入口只传待合成文本，参考音频来自服务端已有配置；显式 VoiceReference 入口上传参考音频和文本。两条入口内部都会自动转写参考音频，不提交不存在的 reference_text。默认音色产物保留真实 Bridge 审计，不伪造本地 VoiceReference 或素材 ID。
 
 ## 组装和停顿

@@ -178,6 +178,8 @@ async function main() {
     })
   ]);
   await cp(webSourceRoot, outputPaths.web, { recursive: true, force: true });
+  // 下载器版本约束随发行物固定，部署时在独立环境安装，不在线自更新。
+  await cp(join(pluginRoot, "requirements-youtube.txt"), join(distRoot, "requirements-youtube.txt"));
   await trimReleaseTextWhitespace(outputPaths.web);
   // 外部语义节点也纳入发行身份，候选验证和部署使用同一份受管产物。
   const semanticRoot = join(distRoot, "comfyui-semantic");

@@ -625,7 +625,10 @@ export async function runExportJob(
     const expectedDurationMs = Math.round((revision.snapshot.timeline.durationInFrames / revision.snapshot.timeline.fps) * 1000);
     const validation = await validateExport(temporaryPath, expectedDurationMs);
     const target = revision.snapshot.audioOutputTarget;
-    const audiblePlanned = revision.snapshot.audioCues.some((cue) => cue.status === "ready" && revision.snapshot.timeline.items.some((item) => item.id === cue.timelineItemId && !item.disabled && !revision.snapshot.timeline.tracks.find((track) => track.id === item.trackId)?.muted)) || Boolean(revision.snapshot.speechAsset);
+    // 保留的 SpeechAsset 不代表实际启用；静音视觉草稿不能因此被误判缺音。
+    const dialoguePlanned = revision.snapshot.timeline.items.some(item => !item.disabled && item.mediaAudioPolicy !== "mute"
+      && revision.snapshot.timeline.tracks.some(track => track.id === item.trackId && track.name === "Dialogue" && !track.muted));
+    const audiblePlanned = revision.snapshot.audioCues.some((cue) => cue.status === "ready" && revision.snapshot.timeline.items.some((item) => item.id === cue.timelineItemId && !item.disabled && !revision.snapshot.timeline.tracks.find((track) => track.id === item.trackId)?.muted)) || dialoguePlanned;
     if (audiblePlanned && validation.audio?.truePeakDbfs === null) throw new DomainError("成片计划有声音但实际混音无有效信号", "EXPORT_AUDIO_MISSING");
     if (purpose === "delivery" && target && (validation.audio?.integratedLufs == null || validation.audio.truePeakDbfs == null || Math.abs(validation.audio.integratedLufs - target.targetLufs) > target.toleranceLu || validation.audio.truePeakDbfs > target.maxTruePeakDbfs)) throw new DomainError("实际响度或 true peak 未达到当前项目输出目标；请在混音中调整并重新预览", "EXPORT_AUDIO_TARGET_FAILED");
     await rename(temporaryPath, targetPath);

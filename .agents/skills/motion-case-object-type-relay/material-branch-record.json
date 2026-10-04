@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "case": "motion-case-object-type-relay",
+  "branch": "material-dependent",
+  "instruction": "references/material-integration-prompt-v1.md",
+  "instructionStatus": "written_not_rendered",
+  "isOriginalInputForObservedMedia": false,
+  "generatedMedia": null,
+  "sourceAssets": [],
+  "evidence": {
+    "graphicInternal": "not_tested_for_this_input",
+    "sourceInternalObservation": "not_tested",
+    "contextIntegration": "not_tested",
+    "fullTopicFilm": "not_tested"
+  },
+  "note": "保留原case-record.json及观察视频。新分支仅作教学；实际生成后在独立material-runs中保存对应结果，不借用历史通过。"
+}

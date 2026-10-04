@@ -7,10 +7,18 @@ import { runProcess, probeMedia } from "@videocut/speech";
 import { createApplication } from "@videocut/application";
 import { runMotionJob } from "../apps/render-worker/src/motion-job.js";
 import { motionFixture } from "./fixtures/managed-motion.js";
-import { motionSubmissionSchema } from "../packages/motion-work/src/schema.js";
+import { boundMotionVideoSchema, motionSubmissionSchema } from "../packages/motion-work/src/schema.js";
 import { prepareMotionVideos, hashMotionFile } from "../apps/render-worker/src/motion-video.js";
 import { renderManagedMotion } from "../apps/render-worker/src/motion-renderer.js";
 import { ThreadedRevisionRenderer } from "../apps/render-worker/src/threaded-renderer.js";
+
+test("受管视频绑定接受与 JSX 对应的驼峰槽名，仍拒绝非法槽名", () => {
+  const binding = { assetId: "asset-node", sourceStartMs: 6792, sourceEndMs: 8000 };
+  const input = { ...motionFixture, videoBindings: { nodePre: binding } };
+  assert.equal(motionSubmissionSchema.safeParse(input).success, true);
+  assert.equal(boundMotionVideoSchema.safeParse({ slot: "nodePre", ...binding, managedPath: "source.mp4", hash: "a".repeat(64), rightsStatus: "unknown" }).success, true);
+  assert.equal(motionSubmissionSchema.safeParse({ ...input, videoBindings: { "node-pre": binding } }).success, false);
+});
 
 test("受管源视频按23.976、25、30及VFR时间采样，拒绝源越界与哈希变化", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-motion-video-"));

@@ -66,7 +66,9 @@ function normalizeOptions(options = {}) {
   const workspaceRoot = resolveWorkspaceRoot(repoRoot, options.workspaceRoot);
   const port = normalizePort(options.port ?? process.env.VIDEOFLOWCUT_PORT ?? DEFAULT_PORT);
   const bridgeUrl = normalizeBridgeUrl(options.bridgeUrl ?? process.env.COMFYUI_BRIDGE_URL);
-  return { pluginRoot, repoRoot, workspaceRoot, port, bridgeUrl, apiUrl: apiUrl(port) };
+  const downloaderSetting = process.env.VIDEOCUT_YT_DLP_PATH?.trim();
+  const youtubeDownloaderPath = downloaderSetting ? resolve(downloaderSetting) : undefined;
+  return { pluginRoot, repoRoot, workspaceRoot, port, bridgeUrl, youtubeDownloaderPath, apiUrl: apiUrl(port) };
 }
 
 async function readJson(path) {
@@ -144,7 +146,8 @@ function isManagedStateForOptions(state, options) {
     && typeof state.releaseId === "string"
     // schemaVersion 3 的旧状态尚未记录 Bridge；仍可被安全识别和停止，
     // 但绝不能在显式指定候选 Bridge 时被复用。
-    && (state.bridgeUrl === undefined || typeof state.bridgeUrl === "string");
+    && (state.bridgeUrl === undefined || typeof state.bridgeUrl === "string")
+    && (state.youtubeDownloaderPath === undefined || typeof state.youtubeDownloaderPath === "string");
 }
 
 function isMatchingState(state, options, release) {
@@ -155,6 +158,8 @@ function isMatchingState(state, options, release) {
       && state.distributionRoot === release.root
       && state.releaseId === release.releaseId
       && state.bridgeUrl === options.bridgeUrl
+      // 下载器由 Runtime 子进程继承；旧进程缺少新配置时不能复用。
+      && state.youtubeDownloaderPath === options.youtubeDownloaderPath
     ));
 }
 
@@ -166,8 +171,8 @@ async function readState(options) {
 export async function readActiveMcpDeployment(rawOptions = {}, previousDeployment) {
   const options = normalizeOptions(rawOptions);
   const state = await readState(options);
-  if (!isManagedStateForOptions(state, options) || state.bridgeUrl !== options.bridgeUrl) {
-    throw new Error("找不到与当前工作区、端口和 Bridge 一致的受管 Runtime");
+  if (!isManagedStateForOptions(state, options) || state.bridgeUrl !== options.bridgeUrl || state.youtubeDownloaderPath !== options.youtubeDownloaderPath) {
+    throw new Error("找不到与当前工作区、端口、Bridge 和下载器配置一致的受管 Runtime");
   }
   const internal = await readInternalStatus(options.apiUrl, state.controlToken);
   if (!internal) throw new Error("Runtime 状态接口超时或不可达，MCP 暂不执行；不会重放已提交调用");
@@ -194,8 +199,8 @@ export async function recoverMcpDeployment(rawOptions = {}, previousDeployment) 
   }
   let release;
   if (state) {
-    if (!isManagedStateForOptions(state, options) || state.bridgeUrl !== options.bridgeUrl) {
-      throw new Error("Runtime 状态不属于当前工作区、端口或 Bridge；未自动恢复");
+    if (!isManagedStateForOptions(state, options) || state.bridgeUrl !== options.bridgeUrl || state.youtubeDownloaderPath !== options.youtubeDownloaderPath) {
+      throw new Error("Runtime 状态不属于当前工作区、端口、Bridge 或下载器配置；未自动恢复");
     }
     // 活进程或被占用端口必须通过原有认证，不能因健康探测失败就重启或杀进程。
     if (isProcessAlive(state.pid) || await isPortInUse(options.port)) {
@@ -471,6 +476,10 @@ async function ensureRuntimeUnlocked(options, release, browserExecutable) {
       }
       await rm(paths.state, { force: true });
     } else if (state && isManagedStateForOptions(state, options)) {
+      // 命令行遗漏下载器配置时不能把已配置的生产进程降级为系统旧版。
+      if (state.youtubeDownloaderPath && !options.youtubeDownloaderPath) {
+        throw new Error("当前启动环境缺少 VIDEOCUT_YT_DLP_PATH；保留现有 Runtime，请从已配置的 MCP 环境执行受控切换。");
+      }
       // 旧 Release 不能被复用，但可先用控制令牌认证后停止，完成从 A 到 B 的受控切换。
       const stopped = await stopRuntimeUnlocked(options, { force: true, requireIdle: true });
       if (!stopped.stopped) {
@@ -494,6 +503,7 @@ async function ensureRuntimeUnlocked(options, release, browserExecutable) {
       port: options.port,
       apiUrl: options.apiUrl,
       bridgeUrl: options.bridgeUrl,
+      youtubeDownloaderPath: options.youtubeDownloaderPath,
       browserExecutable,
       runtimeEntry: release.runtimeEntry,
       distributionRoot: release.root,

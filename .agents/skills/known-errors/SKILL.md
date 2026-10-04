@@ -13,6 +13,8 @@ description: 处理 Revision 过期、素材未就绪、Bridge 409、run_id 丢�
 
 ## 先区分技术错误和创作问题
 
+素材获取故障修复并确认部署后，先读回候选和旧 Job；仅明确 `failed` 且未登记素材时，可通过 `acquire_media_asset` 使用新幂等键恢复原候选。保留已有用途依据，平台重新核验当前技术和许可条件，旧失败 Job 不改写；执行中或结果未知时不得恢复提交，人工拒绝也不能用此路径覆盖。
+
 技术错误有明确状态或合同，例如 Revision 冲突、Schema 409、文件损坏、Job 失败、Asset 不可读、Remotion 渲染异常。创作问题是语义不完整、B-roll 无关、节奏单调、字幕竞争和 Scene 像 PPT。不要把所有问题都放进 known-errors，也不要用重试处理审美问题。
 
 ## Revision 过期

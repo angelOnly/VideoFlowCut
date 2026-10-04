@@ -3,6 +3,8 @@ import { assetUsageRightsInputSchema } from "../../contracts/src/editorial-input
 import { motionSourceForUrl } from "./catalog.js";
 
 const description = z.string().trim().min(8).max(1800);
+// 视频槽名与 JSX 的 slot 原样对应，允许驼峰写法。
+const videoSlotSchema = z.string().regex(/^[a-z][A-Za-z0-9_]{0,39}$/u);
 /** 观察记录是创作判断，不等于平台已自动观看、许可通过或成片审片通过。 */
 export const motionSubmissionSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -31,8 +33,8 @@ export const motionSubmissionSchema = z.object({
   }).strict(),
   previousAssetId: z.string().max(150).optional(),
   // 追加字段不注入默认值，不改变历史输入的字段次序和作品哈希。
-  creativeBrief: z.string().trim().min(1).max(6000).optional(),
-  videoBindings: z.record(z.string().regex(/^[a-z][a-z0-9_]{0,39}$/u), z.object({
+  creativeBrief: z.string().trim().min(1).max(6000).optional().describe("新作品必填的创作说明；仅历史作品按原输入进行幂等重放时可省略。"),
+  videoBindings: z.record(videoSlotSchema, z.object({
     assetId: z.string().min(1).max(150), sourceStartMs: z.number().int().nonnegative(), sourceEndMs: z.number().int().positive(), decodeScale: z.number().finite().gt(0).max(1).optional(),
     startFrame: z.number().int().nonnegative().optional(), endFrame: z.number().int().positive().optional()
   }).strict()).optional().describe("每路视频声明源毫秒半开范围和作品帧半开范围；新作品用 TimelineVideo 取作品全局帧，平台提交前校验帧数一致。")
@@ -76,6 +78,6 @@ export const boundMotionImageSchema = z.object({
   usageRights: z.object({ purposes: z.array(z.enum(["draft", "delivery"])).min(1).max(2), basis: z.string().trim().min(1).max(2000), confirmedAt: z.string().datetime() }).strict().optional()
 }).strict();
 export type BoundMotionImage = z.infer<typeof boundMotionImageSchema>;
-export const boundMotionVideoSchema = boundMotionImageSchema.extend({ sourceStartMs: z.number().int().nonnegative(), sourceEndMs: z.number().int().positive(), decodeScale: z.number().finite().gt(0).max(1).optional(), startFrame: z.number().int().nonnegative().optional(), endFrame: z.number().int().positive().optional() });
+export const boundMotionVideoSchema = boundMotionImageSchema.extend({ slot: videoSlotSchema, sourceStartMs: z.number().int().nonnegative(), sourceEndMs: z.number().int().positive(), decodeScale: z.number().finite().gt(0).max(1).optional(), startFrame: z.number().int().nonnegative().optional(), endFrame: z.number().int().positive().optional() });
 export type BoundMotionVideo = z.infer<typeof boundMotionVideoSchema>;
 export interface DecodedMotionVideo { framePaths: string[]; width: number; height: number; geometry?: { streamIndex: number; encodedWidth: number; encodedHeight: number; sar: number; rotation: number; displayWidth: number; displayHeight: number; durationMs: number }; decodeScale?: number; }

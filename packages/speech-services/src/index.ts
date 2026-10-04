@@ -1231,6 +1231,50 @@ async function assembleAudio(materials: SegmentMaterial[], targetPath: string): 
   await runProcess("ffmpeg", args, 10 * 60_000);
 }
 
+/** 复用真实段音频，在明确的帧起点之间插入静音；不再次调用语音模型。 */
+export async function assemblePlacedSpeech(application: EditingApplication, job: JobRecord): Promise<{ speechAssetId: string; revision: number }> {
+  const requestedRevision = Number(job.payload.requestedRevision);
+  const previousSpeechAssetId = String(job.payload.speechAssetId);
+  const placements = job.payload.placements as Array<{ speechSegmentId: string; startFrame: number }>;
+  const state = application.readProject(job.projectId);
+  if (state.revision.number !== requestedRevision || state.snapshot.speechAsset?.id !== previousSpeechAssetId) throw new DomainError("旁白编排期间项目已变化", "STALE_SPEECH_PLACEMENT");
+  const previous = state.snapshot.speechAsset;
+  const fps = state.snapshot.timeline.fps;
+  const materials: SegmentMaterial[] = [];
+  const timing: SpeechTiming["segments"] = [];
+  let cursorMs = 0;
+  for (const placement of placements) {
+    const segmentAsset = state.snapshot.speechSegmentAssets.find((asset) => asset.speechSegmentId === placement.speechSegmentId && previous.segmentAssetIds.includes(asset.id));
+    if (!segmentAsset) throw new DomainError("段音频已变化", "STALE_SPEECH_PLACEMENT");
+    const asset = assetById(state.snapshot, segmentAsset.assetId);
+    const startMs = placement.startFrame * 1000 / fps;
+    if (startMs < cursorMs - 0.5) throw new DomainError("段音频起点重叠", "INVALID_SPEECH_PLACEMENT");
+    const gapMs = Math.max(0, startMs - cursorMs);
+    materials.push({ speechSegmentId: placement.speechSegmentId, segmentAsset, path: assetPath(state.snapshot, asset), durationMs: segmentAsset.durationMs, prePauseMs: gapMs, postPauseMs: 0 });
+    const endMs = startMs + segmentAsset.durationMs;
+    timing.push({ speechSegmentId: placement.speechSegmentId, startMs, endMs, startFrame: placement.startFrame, endFrame: millisecondsToFrames(endMs, fps) });
+    cursorMs = endMs;
+  }
+  const durationFrames = job.payload.durationFrames === undefined ? undefined : Number(job.payload.durationFrames);
+  if (durationFrames !== undefined) {
+    const durationMs = durationFrames * 1000 / fps;
+    if (!Number.isInteger(durationFrames) || durationMs < cursorMs - 0.5) throw new DomainError("旁白总轨时长无效", "INVALID_SPEECH_PLACEMENT_DURATION");
+    materials[materials.length - 1]!.postPauseMs = Math.max(0, durationMs - cursorMs);
+    cursorMs = durationMs;
+  }
+  const relativePath = join("assets", "speech", `speech-placement-${job.id}.wav`);
+  const targetPath = join(state.snapshot.project.rootPath, relativePath);
+  await assembleAudio(materials, targetPath);
+  const metadata = await probeMedia(targetPath);
+  if (!metadata.hasAudio || metadata.durationMs < cursorMs - 20) throw new DomainError("重排旁白文件不完整", "INVALID_SPEECH_OUTPUT");
+  const speechFile = createMediaAsset({ name: `编排旁白 ${job.id}`, kind: "speech", managedPath: relativePath });
+  speechFile.status = "ready";
+  speechFile.metadata = metadata;
+  const speechAsset: SpeechAsset = { id: createId("speech_asset"), assetId: speechFile.id, scriptRevision: previous.scriptRevision, segmentAssetIds: previous.segmentAssetIds, timing: { precision: "segment_exact", source: "已就绪段音频真实时长 + 指定帧起点", segments: timing }, status: "ready" };
+  const committed = application.completeSpeechPlacement({ projectId: job.projectId, requestedRevision, previousSpeechAssetId, speechFile, speechAsset });
+  return { speechAssetId: speechAsset.id, revision: committed.revision.number };
+}
+
 function makeSpeechTiming(snapshot: ProjectSnapshot, materials: SegmentMaterial[]): SpeechTiming {
   let cursorMs = 0;
   const segments = materials.map((material) => {

@@ -66,6 +66,8 @@ export interface AssetProvenance {
   rightsStatus: "unknown" | "cleared" | "attribution_required" | "restricted" | "rejected";
   /** 明确许可的用途及依据；缺省沿用原权限，不能由“内部使用”推断授权。 */
   usageRights?: { purposes: ExportPurpose[]; basis: string; confirmedAt: string };
+  /** 从本项目已入库视频提取音频时，保留源身份与精确半开源范围。 */
+  derivedFrom?: { assetId: Id; sourceHash: string; startMs: number; endMs: number };
   acquiredAt: string;
 }
 

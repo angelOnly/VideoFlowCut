@@ -939,6 +939,12 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return application.createScene({ projectId, ...body });
   });
 
+  app.post("/api/projects/:projectId/scenes/:sceneId/trim", async (request) => {
+    const { projectId, sceneId } = z.object({ projectId: idSchema, sceneId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, endFrame: z.number().int().positive() }).strict().parse(request.body);
+    return application.trimScene({ projectId, sceneId, ...body });
+  });
+
   app.post("/api/projects/:projectId/visual-treatments", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({
