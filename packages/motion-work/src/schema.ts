@@ -33,8 +33,9 @@ export const motionSubmissionSchema = z.object({
   // 追加字段不注入默认值，不改变历史输入的字段次序和作品哈希。
   creativeBrief: z.string().trim().min(1).max(6000).optional(),
   videoBindings: z.record(z.string().regex(/^[a-z][a-z0-9_]{0,39}$/u), z.object({
-    assetId: z.string().min(1).max(150), sourceStartMs: z.number().int().nonnegative(), sourceEndMs: z.number().int().positive(), decodeScale: z.number().finite().gt(0).max(1).optional()
-  }).strict()).optional().describe("受管动态视频，最多4路；源范围为毫秒半开区间，正常速度且静音。源码从 @videoflowcut/motion 导入 BoundVideo，以 slot 引用，offsetInFrames 与 Sequence 局部帧共同确定播放位置。")
+    assetId: z.string().min(1).max(150), sourceStartMs: z.number().int().nonnegative(), sourceEndMs: z.number().int().positive(), decodeScale: z.number().finite().gt(0).max(1).optional(),
+    startFrame: z.number().int().nonnegative().optional(), endFrame: z.number().int().positive().optional()
+  }).strict()).optional().describe("每路视频声明源毫秒半开范围和作品帧半开范围；新作品用 TimelineVideo 取作品全局帧，平台提交前校验帧数一致。")
 }).strict().superRefine((value, ctx) => {
   if (value.durationInFrames / value.fps > 30) ctx.addIssue({ code: "custom", message: "单个受管动效最长 30 秒" });
   if (JSON.stringify(value.props).length > 24_000) ctx.addIssue({ code: "custom", message: "Props 超过大小上限" });
@@ -42,7 +43,10 @@ export const motionSubmissionSchema = z.object({
   if ("assets" in value.props) ctx.addIssue({ code: "custom", message: "Props.assets 由平台按 imageBindings 注入，不能覆盖" });
   if (value.width % 2 || value.height % 2) ctx.addIssue({ code: "custom", message: "画布宽高必须是偶数" });
   if (Object.keys(value.videoBindings ?? {}).length > 4) ctx.addIssue({ code: "custom", message: "单个作品最多绑定4路视频" });
-  for (const binding of Object.values(value.videoBindings ?? {})) if (binding.sourceEndMs <= binding.sourceStartMs || binding.sourceEndMs - binding.sourceStartMs > 30_000) ctx.addIssue({ code: "custom", message: "视频源范围必须为正且不超过30秒" });
+  for (const binding of Object.values(value.videoBindings ?? {})) {
+    if (binding.sourceEndMs <= binding.sourceStartMs || binding.sourceEndMs - binding.sourceStartMs > 30_000) ctx.addIssue({ code: "custom", message: "视频源范围必须为正且不超过30秒" });
+    if ((binding.startFrame === undefined) !== (binding.endFrame === undefined) || binding.startFrame !== undefined && binding.endFrame !== undefined && (binding.endFrame <= binding.startFrame || binding.endFrame > value.durationInFrames)) ctx.addIssue({ code: "custom", message: "视频作品帧范围无效" });
+  }
   if (value.rights.status === "attribution_required" && !value.rights.attribution?.trim()) ctx.addIssue({ code: "custom", message: "需要署名时必须提供署名内容" });
 });
 export type MotionSubmission = z.infer<typeof motionSubmissionSchema>;
@@ -72,6 +76,6 @@ export const boundMotionImageSchema = z.object({
   usageRights: z.object({ purposes: z.array(z.enum(["draft", "delivery"])).min(1).max(2), basis: z.string().trim().min(1).max(2000), confirmedAt: z.string().datetime() }).strict().optional()
 }).strict();
 export type BoundMotionImage = z.infer<typeof boundMotionImageSchema>;
-export const boundMotionVideoSchema = boundMotionImageSchema.extend({ sourceStartMs: z.number().int().nonnegative(), sourceEndMs: z.number().int().positive(), decodeScale: z.number().finite().gt(0).max(1).optional() });
+export const boundMotionVideoSchema = boundMotionImageSchema.extend({ sourceStartMs: z.number().int().nonnegative(), sourceEndMs: z.number().int().positive(), decodeScale: z.number().finite().gt(0).max(1).optional(), startFrame: z.number().int().nonnegative().optional(), endFrame: z.number().int().positive().optional() });
 export type BoundMotionVideo = z.infer<typeof boundMotionVideoSchema>;
 export interface DecodedMotionVideo { framePaths: string[]; width: number; height: number; geometry?: { streamIndex: number; encodedWidth: number; encodedHeight: number; sar: number; rotation: number; displayWidth: number; displayHeight: number; durationMs: number }; decodeScale?: number; }

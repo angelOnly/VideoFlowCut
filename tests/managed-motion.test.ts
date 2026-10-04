@@ -26,7 +26,7 @@ test("无损压缩升级隔离新作品身份，旧版 Job 哈希仍可恢复", 
 
 test("布局重建隔离第十代引擎缓存，仍能核验第九代完整冻结输入", () => {
   const previous = motionHash(motionFixture, [], "managed-motion-9");
-  assert.equal(MOTION_ENGINE_VERSION, "managed-motion-11");
+  assert.equal(MOTION_ENGINE_VERSION, "managed-motion-12");
   assert.notEqual(motionHash(motionFixture), previous);
   assert.equal(motionHashEngine(motionFixture, [], previous), "managed-motion-9");
   assert.equal(motionHashEngine(motionFixture, [], previous, "managed-motion-9"), "managed-motion-9");

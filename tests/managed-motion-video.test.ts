@@ -10,6 +10,7 @@ import { motionFixture } from "./fixtures/managed-motion.js";
 import { motionSubmissionSchema } from "../packages/motion-work/src/schema.js";
 import { prepareMotionVideos, hashMotionFile } from "../apps/render-worker/src/motion-video.js";
 import { renderManagedMotion } from "../apps/render-worker/src/motion-renderer.js";
+import { ThreadedRevisionRenderer } from "../apps/render-worker/src/threaded-renderer.js";
 
 test("受管源视频按23.976、25、30及VFR时间采样，拒绝源越界与哈希变化", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-motion-video-"));
@@ -23,6 +24,10 @@ test("受管源视频按23.976、25、30及VFR时间采样，拒绝源越界与�
       await mkdir(directory);
       const videos = await prepareMotionVideos(root, directory, work, [binding]);
       assert.equal(videos.footage!.framePaths.length, 24);
+      if (index === 0) {
+        const legacy = await prepareMotionVideos(root, join(root, "legacy11"), work, [binding], "managed-motion-11");
+        assert.equal(legacy.footage!.framePaths.length, 24);
+      }
       assert.notDeepEqual(await readFile(videos.footage!.framePaths[0]!), await readFile(videos.footage!.framePaths[20]!));
       await assert.rejects(prepareMotionVideos(root, join(root, `bad${index}`), work, [{ ...binding, sourceEndMs: 3000 }]), /SOURCE_RANGE/);
       await assert.rejects(prepareMotionVideos(root, join(root, `changed${index}`), work, [{ ...binding, hash: "a".repeat(64) }]), /VIDEO_CHANGED/);
@@ -33,6 +38,9 @@ test("受管源视频按23.976、25、30及VFR时间采样，拒绝源越界与�
         assert.notEqual(rendered.frameHashes[0], rendered.frameHashes[7]);
         assert.ok(rendered.determinism);
         await assert.rejects(renderManagedMotion({ ...work, source: source.replace('offsetInFrames={4}', 'offsetInFrames={25}'), durationInFrames: 8 }, join(root, "overflow"), {}, videos), /MOTION_VIDEO_RANGE/);
+        const timed = motionSubmissionSchema.parse({ ...work, durationInFrames: 12, videoBindings: { footage: { assetId: "test", sourceStartMs: 0, sourceEndMs: 334, startFrame: 2, endFrame: 10 } }, source: `import React from 'react';import {Sequence} from 'remotion';import {TimelineVideo} from '@videoflowcut/motion';export default function Motion(){return <Sequence from={2} durationInFrames={8}><TimelineVideo slot="footage"/></Sequence>}` });
+        const timedRender = await renderManagedMotion(timed, join(root, "timeline"), {}, videos);
+        assert.equal(timedRender.frameHashes.length, 12);
       }
     }
   } finally { await rm(root, { recursive: true, force: true }); }
@@ -49,9 +57,16 @@ test("多路视频经完整Job固定来源与许可、静音合成，缓存损�
     const imported = app.registerImportedAsset({ projectId, baseRevision: 1, name: "video.mp4", kind: "video", managedPath: "assets/source/video.mp4", sourceHash: await hashMotionFile(path), provenance: { source: "local_import", rightsStatus: "unknown", usageRights: { purposes: ["draft"], basis: "自制夹具验证用途交集", confirmedAt: new Date().toISOString() }, acquiredAt: new Date().toISOString() } });
     app.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: await probeMedia(path) });
     const binding = { assetId: imported.asset.id, sourceStartMs: 0, sourceEndMs: 1000 };
-    const work = motionSubmissionSchema.parse({ ...motionFixture, width: 128, height: 64, fps: 24, durationInFrames: 12, videoBindings: { left: binding, right: binding }, source: `import React from 'react';import {BoundVideo} from '@videoflowcut/motion';export default function Motion(){return <div style={{display:'flex',width:128,height:64}}><BoundVideo slot="left" style={{width:64,height:64}}/><BoundVideo slot="right" offsetInFrames={6} style={{width:64,height:64}}/></div>}` });
+    const work = motionSubmissionSchema.parse({ ...motionFixture, width: 128, height: 64, fps: 24, durationInFrames: 12, videoBindings: { left: { ...binding, sourceEndMs: 500, startFrame: 0, endFrame: 12 }, right: { ...binding, sourceEndMs: 500, startFrame: 0, endFrame: 12 } }, source: `import React from 'react';import {TimelineVideo} from '@videoflowcut/motion';export default function Motion(){return <div style={{display:'flex',width:128,height:64}}><TimelineVideo slot="left" style={{width:64,height:64}}/><TimelineVideo slot="right" style={{width:64,height:64}}/></div>}` });
+    const mismatched = motionSubmissionSchema.parse({ ...work, durationInFrames: 66, videoBindings: { left: { ...binding, sourceStartMs: 3292, sourceEndMs: 6000, startFrame: 0, endFrame: 66 } } });
+    assert.throws(() => app.submitManagedMotion({ projectId, baseRevision: app.readProject(projectId).revision.number, idempotencyKey: "bad-frame", work: mismatched }), /需要 66 帧，源选段预计 65 帧/);
+    assert.equal(app.listJobs(projectId).filter(job => job.kind === "motion_generation").length, 0);
     const job = app.submitManagedMotion({ projectId, baseRevision: app.readProject(projectId).revision.number, idempotencyKey: "two", work });
-    const result = await runMotionJob(app, job);
+    const thread = new ThreadedRevisionRenderer();
+    let result: Record<string, unknown>;
+    try { result = await runMotionJob(app, job, undefined, input => thread.renderMotion(input)); }
+    finally { await thread.close(); }
+    assert.equal(result.motionStage, "completed");
     const asset = app.readProject(projectId).snapshot.assets.find(a => a.id === result.assetId)!;
     assert.equal(asset.metadata?.hasAudio, false);
     assert.deepEqual(asset.provenance?.usageRights?.purposes, ["draft"]);

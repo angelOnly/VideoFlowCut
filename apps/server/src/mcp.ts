@@ -528,7 +528,7 @@ server.registerTool("list_repair_tickets", {
   description: "读取独立于视频 Revision 的平台修复工单和当前视频 Revision；只读，不会接手、部署或改动 Timeline。",
   inputSchema: {
     project_id: z.string().optional(),
-    statuses: z.array(z.enum(["open", "claimed", "ready_for_cutover", "deployed", "acknowledged"])).max(5).optional()
+    statuses: z.array(z.enum(["open", "claimed", "ready_for_cutover", "deployed", "acknowledged", "resolved_without_deployment"])).max(6).optional()
   },
   annotations: { readOnlyHint: true }
 }, async ({ project_id, statuses }) => {
@@ -556,6 +556,20 @@ server.registerTool("release_repair_ticket", {
   }
 }, async ({ ticket_id, repairer_id, reason }) => {
   try { return asText(application.releaseRepairTicket({ ticketId: ticket_id, repairerId: repairer_id, reason })); } catch (error) { return asError(error); }
+});
+
+server.registerTool("resolve_repair_ticket_without_deployment", {
+  title: "按非部署原因收口修复工单",
+  description: "仅原接手修复 Agent 可在核实输入错误、重复报告或宿主外部恢复后，用具体证据收口；不会宣称平台代码已部署，也不会因 Job 后来成功自动关闭。",
+  inputSchema: {
+    ticket_id: z.string().min(1),
+    repairer_id: z.string().trim().min(1).max(160),
+    kind: z.enum(["invalid_input", "duplicate", "external_recovery"]),
+    evidence: z.string().trim().min(16).max(8_000)
+  }
+}, async ({ ticket_id, repairer_id, kind, evidence }) => {
+  try { return asText(application.resolveRepairTicketWithoutDeployment({ ticketId: ticket_id, repairerId: repairer_id, kind, evidence })); }
+  catch (error) { return asError(error); }
 });
 
 server.registerTool("mark_repair_candidate_ready", {

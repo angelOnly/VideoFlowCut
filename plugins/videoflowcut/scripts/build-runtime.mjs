@@ -81,10 +81,20 @@ async function trimReleaseTextWhitespace(root) {
     if (entry.isDirectory()) return trimReleaseTextWhitespace(path);
     if (!/\.(?:css|html|js)$/iu.test(entry.name)) return undefined;
     const contents = await readFile(path, "utf8");
-    const normalized = contents.replace(/[\t ]+(?=\r?\n)/gu, "");
+    const normalized = contents.replace(/\r+\n|\r/gu, "\n").replace(/[\t ]+(?=\n)/gu, "");
     if (normalized !== contents) await writeFile(path, normalized, "utf8");
     return undefined;
   }));
+}
+
+/** 发行哈希必须基于跨平台检出后不变的字节；文本一律固定 LF。 */
+async function normalizeReleaseText(root) {
+  for (const path of await releaseFiles(root)) {
+    if (!/\.(?:cjs|js|css|html|json|py)$/iu.test(path)) continue;
+    const contents = await readFile(path, "utf8");
+    const normalized = contents.replace(/\r+\n|\r/gu, "\n");
+    if (normalized !== contents) await writeFile(path, normalized, "utf8");
+  }
 }
 
 async function assertReleaseEntry(path) {
@@ -192,6 +202,7 @@ async function main() {
   ]);
   const toolCount = await buildMcpCatalog({ repoRoot, distRoot });
   console.log(`已从发行 MCP 导出 ${toolCount} 个工具定义，首次发现不依赖 Runtime 状态。`);
+  await normalizeReleaseText(distRoot);
   const releaseId = await createReleaseId(distRoot, pluginVersion);
   await writeFile(outputPaths.manifest, `${JSON.stringify({
     schemaVersion: 2,

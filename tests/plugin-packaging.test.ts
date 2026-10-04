@@ -13,6 +13,15 @@ const generatedSharedFiles = new Set([
   "_shared/agents/openai.yaml"
 ]);
 
+test("发行文本固定 LF，检出后 Release ID 不受 Windows 换行转换影响", async () => {
+  const root = join(pluginRoot, "runtime", "dist");
+  for (const file of await listFiles(root)) {
+    if (!/\.(?:cjs|js|css|html|json|py)$/iu.test(file)) continue;
+    const bytes = await readFile(join(root, file));
+    assert.equal(bytes.includes(13), false, `${file} 含 CR，检出后发行哈希可能变化`);
+  }
+});
+
 async function listFiles(root: string, base = root): Promise<string[]> {
   const entries = await readdir(root, { withFileTypes: true });
   const children = await Promise.all(entries.map(async (entry) => {

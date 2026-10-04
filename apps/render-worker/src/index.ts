@@ -5,6 +5,7 @@ import { readRuntimeConfig } from "@videocut/project-overview";
 import type { JobKind } from "@videocut/contracts";
 import { RevisionRenderer, runExportJob, runPreviewJob, runRenderPreflightJob, type RevisionRenderEngine } from "./exporter.js";
 import { runMotionJob } from "./motion-job.js";
+import { ThreadedRevisionRenderer } from "./threaded-renderer.js";
 
 const workspaceRoot = readRuntimeConfig().workspace.root;
 let defaultApplication: EditingApplication | undefined;
@@ -14,7 +15,8 @@ export const RENDER_JOB_KINDS: JobKind[] = ["preview", "render_preflight", "expo
 export function createRenderJobProcessor(app: EditingApplication, renderer: RevisionRenderEngine = new RevisionRenderer()): JobProcessor {
   return async (job) => {
     if (job.kind === "sound_comparison") return runSoundComparison(app, job, renderer);
-    if (job.kind === "motion_generation") return runMotionJob(app, job);
+    if (job.kind === "motion_generation") return renderer instanceof ThreadedRevisionRenderer
+      ? runMotionJob(app, job, undefined, (input) => renderer.renderMotion(input)) : runMotionJob(app, job);
     if (job.kind === "preview") return runPreviewJob(app, job, renderer);
     if (job.kind === "render_preflight") return runRenderPreflightJob(app, job);
     if (job.kind === "export") return runExportJob(app, job, renderer);

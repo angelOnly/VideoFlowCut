@@ -1,0 +1,2 @@
+plugins/videoflowcut/runtime/dist/** text eol=lf
+plugins/videoflowcut/runtime/dist/**/*.whl -text

@@ -61,6 +61,10 @@ Bridge succeeded 只表示推理结束。读取原文、输入哈希、分析版
 
 ## Remotion 组件失败
 
+新受管视频在提交前按 `videoBindings` 的源毫秒半开范围、作品 `startFrame/endFrame` 和作品 fps 检查帧数。`MOTION_VIDEO_FRAME_MISMATCH` 会拒绝创建 Job：重新观察所需接出帧，调整源选段或作品帧范围，再提交经确认的新作品；不要在源码里添加偏移掩盖差值。Worker 若报 `MOTION_VIDEO_SOURCE_SHORT`，说明真实时间戳解码少于预计，应保留失败 Job 与源证据，由修复任务核查帧率转换和边界；不冻结末帧。新作品使用 `TimelineVideo`，内部 `Sequence` 只决定显示，源片按作品局部全局帧连续读取。历史作品的 `BoundVideo` 按旧引擎合同保留，不能把旧任务原样重提为新版本。
+
+动画 Job 的 `track_job.result.motionStage` 可见资源准备、解码和渲染、产物验证、Asset 登记或完成阶段；失败时保留最后阶段与诊断，临时帧清理后不据此声称已有可交付 Asset。
+
 `MOTION_NONDETERMINISTIC` 先读取 `track_job.result.motionDiagnostics`：其中 `reportPath` 指向包含具体帧号、可见差异幅度和区域的 JSON，`differences[].paths` 相对于报告目录，分别保存首次画面、重复截图和放大差异图。失败证据独立保留，临时帧缓存清理，不创建作品 Asset 或视频 Revision。哈希不同会继续比较黑、白背景上的合成像素；每个通道最多两个色阶的差异标为 `tolerated` 并允许生成待审代理，超过则失败。不能只看全图平均差异忽略局部丢字，也不能把 tolerated 当作审美通过；缓存文件完整性仍要求哈希完全一致。剪辑任务遇到失败仍提交独立 Repair Ticket，由修复任务依据对比证据定位，不重放写入或自行放宽检查。
 
 候选渲染器对内部 index.html 的“but got no response”最多恢复两次：这是并发导航的 CDP 响应事件竞态，每次仍须完整渲染成功。持续失败保留 Job 诊断，不由剪辑任务重放写入；资源、安全、内容和外部生成错误不走该恢复。
@@ -107,6 +111,8 @@ Bridge succeeded 只表示推理结束。读取原文、输入哈希、分析版
 具体错误名称以当前代码为准，表格用于分类思路。
 
 ## 日志和用户沟通
+
+历史 Repair Ticket 先按工具、错误码、Release、Job 和根因审计；没有 Job 关联不等于平台缺陷，Job 后来成功也不等于原报告已经处理。平台缺陷沿候选验证、正式部署、原报告剪辑任务重连确认的路径收口。正确输入拒绝、重复报告或宿主外部恢复，由修复者接手后调用 `resolve_repair_ticket_without_deployment`，明确分类和证据；不能以此替代真正需要部署的修复，也不能批量按状态猜测关闭。
 
 用户需要知道发生了什么、是否产生副作用、下一步是什么；不需要看到无法行动的长堆栈。内部日志保存 Project、Revision、Job、run_id、工具、错误码和资源，但避免泄露密钥和敏感本地内容。
 

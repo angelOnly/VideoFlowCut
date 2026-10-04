@@ -4,13 +4,15 @@ import type { ProjectSnapshot } from "@videocut/contracts";
 import { DomainError } from "@videocut/domain";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import type { RevisionRenderEngine } from "./exporter.js";
+import type { MotionComputeInput, MotionComputeResult } from "./motion-job.js";
 
 type RenderOperation =
   | { action: "prepare" }
   | { action: "render"; snapshot: ProjectSnapshot; targetPath: string }
-  | { action: "renderRange"; snapshot: ProjectSnapshot; targetPath: string; fromFrame: number; toFrame: number };
+  | { action: "renderRange"; snapshot: ProjectSnapshot; targetPath: string; fromFrame: number; toFrame: number }
+  | { action: "motion"; input: MotionComputeInput };
 export type RenderThreadRequest = { id: number } & RenderOperation;
-export type RenderThreadResponse = { id: number; error?: { message: string; code: string } };
+export type RenderThreadResponse = { id: number; result?: MotionComputeResult; error?: { message: string; code: string } };
 
 function createRenderThread(): Worker {
   const config = readRuntimeConfig().runtime;
@@ -26,7 +28,7 @@ function createRenderThread(): Worker {
 /** 隔离第三方渲染的同步 CPU/子进程调用；不增加数据库连接或第二个领取队列。 */
 export class ThreadedRevisionRenderer implements RevisionRenderEngine {
   private readonly thread: Worker;
-  private readonly pending = new Map<number, { resolve: () => void; reject: (error: Error) => void }>();
+  private readonly pending = new Map<number, { resolve: (result: MotionComputeResult | undefined) => void; reject: (error: Error) => void }>();
   private nextId = 0;
   private failure?: Error;
   private closing = false;
@@ -45,13 +47,13 @@ export class ThreadedRevisionRenderer implements RevisionRenderEngine {
       if (!call) return;
       this.pending.delete(message.id);
       if (message.error) call.reject(new DomainError(message.error.message, message.error.code));
-      else call.resolve();
+      else call.resolve(message.result);
     });
     this.thread.on("error", (error) => fail(error));
     this.thread.on("exit", (code) => fail(new DomainError(`渲染线程已退出（${code}），未自动重放渲染`, "RENDER_THREAD_EXITED")));
   }
 
-  private request(payload: RenderOperation): Promise<void> {
+  private request(payload: RenderOperation): Promise<MotionComputeResult | undefined> {
     if (this.failure) return Promise.reject(this.failure);
     if (this.closing) return Promise.reject(new DomainError("渲染线程正在关闭", "RENDER_THREAD_CLOSED"));
     const id = ++this.nextId;
@@ -62,12 +64,18 @@ export class ThreadedRevisionRenderer implements RevisionRenderEngine {
     });
   }
 
-  prepare(): Promise<void> { return this.request({ action: "prepare" }); }
+  async prepare(): Promise<void> { await this.request({ action: "prepare" }); }
   render(snapshot: ProjectSnapshot, targetPath: string): Promise<void> {
-    return this.request({ action: "render", snapshot, targetPath });
+    return this.request({ action: "render", snapshot, targetPath }).then(() => undefined);
   }
   renderRange(snapshot: ProjectSnapshot, fromFrame: number, toFrame: number, targetPath: string): Promise<void> {
-    return this.request({ action: "renderRange", snapshot, fromFrame, toFrame, targetPath });
+    return this.request({ action: "renderRange", snapshot, fromFrame, toFrame, targetPath }).then(() => undefined);
+  }
+
+  async renderMotion(input: MotionComputeInput): Promise<MotionComputeResult> {
+    const result = await this.request({ action: "motion", input });
+    if (!result) throw new DomainError("渲染线程未返回动画计算结果", "MOTION_THREAD_RESULT_MISSING");
+    return result;
   }
 
   async close(): Promise<void> {

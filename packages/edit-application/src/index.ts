@@ -1543,7 +1543,7 @@ export class EditingApplication {
   readRepairTickets(input: { projectId: Id; statuses?: RepairTicketStatus[] }): { revision: number; repairTickets: RepairTicket[] } {
     const state = this.readProject(input.projectId);
     const statuses = input.statuses ? [...new Set(input.statuses)] : undefined;
-    if (statuses && statuses.some((status) => !(["open", "claimed", "ready_for_cutover", "deployed", "acknowledged"] as const).includes(status))) {
+    if (statuses && statuses.some((status) => !(["open", "claimed", "ready_for_cutover", "deployed", "acknowledged", "resolved_without_deployment"] as const).includes(status))) {
       throw new DomainError("修复工单状态筛选无效", "REPAIR_TICKET_STATUS_INVALID");
     }
     return { revision: state.revision.number, repairTickets: this.repository.listRepairTickets({ projectId: input.projectId, statuses }) };
@@ -1565,6 +1565,19 @@ export class EditingApplication {
       throw new DomainError("修复工单释放字段超过允许长度", "REPAIR_TICKET_TEXT_TOO_LONG");
     }
     const ticket = this.repository.releaseRepairTicket({ ticketId: input.ticketId, repairerId, reason });
+    this.publish({ projectId: ticket.projectId, revision: this.readProject(ticket.projectId).revision.number, type: "repair_ticket" });
+    return ticket;
+  }
+
+  /** 输入错误、重复报告或宿主外部恢复走有证据的非部署收口，不伪造 Release 切换。 */
+  resolveRepairTicketWithoutDeployment(input: { ticketId: Id; repairerId: string; kind: "invalid_input" | "duplicate" | "external_recovery"; evidence: string }): RepairTicket {
+    const repairerId = requireText(input.repairerId, "修复 Agent 标识");
+    const evidence = requireText(input.evidence, "非部署收口证据");
+    if (repairerId.length > 160 || evidence.length < 16 || evidence.length > 8_000
+      || !(["invalid_input", "duplicate", "external_recovery"] as const).includes(input.kind)) {
+      throw new DomainError("非部署收口分类或证据无效", "REPAIR_TICKET_RESOLUTION_INVALID");
+    }
+    const ticket = this.repository.resolveRepairTicketWithoutDeployment({ ticketId: input.ticketId, repairerId, kind: input.kind, evidence });
     this.publish({ projectId: ticket.projectId, revision: this.readProject(ticket.projectId).revision.number, type: "repair_ticket" });
     return ticket;
   }
@@ -2407,6 +2420,14 @@ export class EditingApplication {
     const current = this.readProject(input.projectId);
     if (current.revision.number !== input.baseRevision) throw new DomainError("项目 Revision 已变化，请重新读取", "REVISION_CONFLICT");
     if (work.previousAssetId && !current.snapshot.assets.some((asset) => asset.id === work.previousAssetId && asset.motion)) throw new DomainError("上一版本不是当前项目的受管作品", "MOTION_PREVIOUS_VERSION_MISSING");
+    for (const [slot, binding] of Object.entries(work.videoBindings ?? {})) {
+      if (binding.startFrame === undefined || binding.endFrame === undefined) throw new DomainError(`视频槽位 ${slot} 缺少作品帧范围；新作品须使用 TimelineVideo`, "MOTION_VIDEO_CONTRACT_REQUIRED");
+      // 使用同一份绑定计算取帧数量，提交前拒绝晚到第 N 帧才发现的源不足。
+      const available = Math.ceil((binding.sourceEndMs - binding.sourceStartMs) * work.fps / 1000);
+      const required = binding.endFrame - binding.startFrame;
+      if (available !== required) throw new DomainError(`视频槽位 ${slot} 作品需要 ${required} 帧，源选段预计 ${available} 帧；请调整源范围或作品帧范围`, "MOTION_VIDEO_FRAME_MISMATCH");
+    }
+    if (Object.keys(work.videoBindings ?? {}).length && /\bBoundVideo\b/u.test(work.source)) throw new DomainError("新作品视频只能使用 TimelineVideo，由平台按作品帧取源片", "MOTION_VIDEO_LEGACY_COMPONENT");
     const boundImages = Object.entries(work.imageBindings).map(([slot, assetId]) => {
       const asset = assetById(current.snapshot, assetId);
       if (asset.kind !== "image" || asset.status !== "ready" || !asset.sourceHash) throw new DomainError("作品只绑定已就绪且有内容哈希的项目图片", "MOTION_IMAGE_NOT_READY");

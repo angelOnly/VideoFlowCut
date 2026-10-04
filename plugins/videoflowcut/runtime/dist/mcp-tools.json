@@ -592,10 +592,11 @@
                 "claimed",
                 "ready_for_cutover",
                 "deployed",
-                "acknowledged"
+                "acknowledged",
+                "resolved_without_deployment"
               ]
             },
-            "maxItems": 5
+            "maxItems": 6
           }
         },
         "additionalProperties": false,
@@ -662,6 +663,49 @@
           "ticket_id",
           "repairer_id",
           "reason"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "resolve_repair_ticket_without_deployment",
+      "title": "按非部署原因收口修复工单",
+      "description": "仅原接手修复 Agent 可在核实输入错误、重复报告或宿主外部恢复后，用具体证据收口；不会宣称平台代码已部署，也不会因 Job 后来成功自动关闭。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ticket_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "repairer_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "invalid_input",
+              "duplicate",
+              "external_recovery"
+            ]
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "ticket_id",
+          "repairer_id",
+          "kind",
+          "evidence"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
@@ -6339,7 +6383,7 @@
     {
       "name": "submit_motion_work",
       "title": "生成受管 Remotion 作品",
-      "description": "保存固定版本源码、Props、创作说明与可选参考观察记录，排队隔离渲染。不会修改平台代码或自动放入 Timeline；修改作品重新提交并填写 previousAssetId。支持文字、CSS、SVG、受管图片与最多4路正常速度静音视频。videoBindings 按 slot 固定源素材和毫秒半开范围，源码 import {BoundVideo} from '@videoflowcut/motion'，用 slot、offsetInFrames、fit、style 控制；播放帧为 Sequence 局部帧加 offsetInFrames，接管同一视频须延续偏移。源不足报错，不自动循环或冻结；原声须在声音轨显式编排。视频源合计512MB、解码512MB及650000000像素帧预算；imageBindings 把图片 Asset ID 映射到 props.assets 的命名 Slot，源码用 Remotion Img 消费，不直接填资源 URL。单作品限制：宽高为64–1920的偶数，fps为15–60的整数，durationInFrames为2–900的整数，durationInFrames/fps≤30秒，width×height×durationInFrames≤650000000像素帧。最大帧数=min(900,30×fps,floor(650000000/(width×height)))；须在创作前核算，预算拒绝不会创建Job、Asset、Cue或视频Revision。超限应由原创意负责人按自然内容节点分为独立作品或调整画布，每件使用独立幂等键、从0开始的局部帧与完整源码；可在同一Scene内分别审阅并连续放置Cue，作品分段不要求拆Scene，衔接仍需真实合成审阅。",
+      "description": "保存固定版本源码、Props、创作说明与可选参考观察记录，排队隔离渲染。不会修改平台代码或自动放入 Timeline；修改作品重新提交并填写 previousAssetId。支持文字、CSS、SVG、受管图片与最多4路正常速度静音视频。videoBindings 对每个 slot 一次声明源毫秒半开范围与作品 startFrame/endFrame 半开范围，源码 import {TimelineVideo} from '@videoflowcut/motion'；组件按作品全局局部帧取源片，内部 Sequence 不重置源片时间。提交前校验两段帧数相等，Worker 按实际解码复核；源不足报错，不自动循环或冻结；原声须在声音轨显式编排。视频源合计512MB、解码512MB及650000000像素帧预算；imageBindings 把图片 Asset ID 映射到 props.assets 的命名 Slot，源码用 Remotion Img 消费，不直接填资源 URL。单作品限制：宽高为64–1920的偶数，fps为15–60的整数，durationInFrames为2–900的整数，durationInFrames/fps≤30秒，width×height×durationInFrames≤650000000像素帧。最大帧数=min(900,30×fps,floor(650000000/(width×height)))；须在创作前核算，预算拒绝不会创建Job、Asset、Cue或视频Revision。超限应由原创意负责人按自然内容节点分为独立作品或调整画布，每件使用独立幂等键、从0开始的局部帧与完整源码；可在同一Scene内分别审阅并连续放置Cue，作品分段不要求拆Scene，衔接仍需真实合成审阅。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -6537,6 +6581,14 @@
                       "type": "number",
                       "exclusiveMinimum": 0,
                       "maximum": 1
+                    },
+                    "startFrame": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "endFrame": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
                     }
                   },
                   "required": [
@@ -6549,7 +6601,7 @@
                 "propertyNames": {
                   "pattern": "^[a-z][a-z0-9_]{0,39}$"
                 },
-                "description": "受管动态视频，最多4路；源范围为毫秒半开区间，正常速度且静音。源码从 @videoflowcut/motion 导入 BoundVideo，以 slot 引用，offsetInFrames 与 Sequence 局部帧共同确定播放位置。"
+                "description": "每路视频声明源毫秒半开范围和作品帧半开范围；新作品用 TimelineVideo 取作品全局帧，平台提交前校验帧数一致。"
               }
             },
             "required": [

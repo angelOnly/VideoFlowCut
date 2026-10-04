@@ -115,3 +115,31 @@ test("Repair Ticket 独立于视频 Revision，并用角色、版本和当前 Re
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("输入错误和重复报告可凭证据非部署收口，不能冒充已部署", async () => {
+  const root = await mkdtemp(join(tmpdir(), "videocut-repair-resolution-"));
+  const application = createApplication(root);
+  try {
+    const created = application.createProject({ name: "非部署收口验证" });
+    const projectId = created.snapshot.project.id;
+    const revision = created.revision.number;
+    const ticket = application.reportEditingBlocker({ projectId, reportedRevision: revision,
+      category: "tool_error", summary: "作品超过已公布像素帧预算", reporterId: "editor-a",
+      reportedReleaseId: firstRelease, idempotencyKey: "budget" });
+    application.claimRepairTicket({ ticketId: ticket.id, repairerId: "repair-b" });
+    assert.throws(() => application.resolveRepairTicketWithoutDeployment({ ticketId: ticket.id,
+      repairerId: "editor-a", kind: "invalid_input", evidence: "已复算像素帧预算，输入超出当前公开上限。" }), /原接手/u);
+    assert.throws(() => application.resolveRepairTicketWithoutDeployment({ ticketId: ticket.id,
+      repairerId: "repair-b", kind: "invalid_input", evidence: "太短" }), /分类或证据无效/u);
+    const resolved = application.resolveRepairTicketWithoutDeployment({ ticketId: ticket.id,
+      repairerId: "repair-b", kind: "invalid_input", evidence: "画布 1080×1920、360 帧超过 650000000 像素帧，提交前拒绝且未创建 Job。" });
+    assert.equal(resolved.status, "resolved_without_deployment");
+    assert.equal(resolved.resolutionKind, "invalid_input");
+    assert.match(resolved.resolutionEvidence!, /未创建 Job/u);
+    assert.equal(resolved.deployedReleaseId, undefined);
+    assert.equal(application.readRepairTickets({ projectId, statuses: ["resolved_without_deployment"] }).repairTickets.length, 1);
+    assert.equal(application.readProject(projectId).revision.number, revision);
+    assert.throws(() => application.resolveRepairTicketWithoutDeployment({ ticketId: ticket.id,
+      repairerId: "repair-b", kind: "invalid_input", evidence: "已处理完毕且有完整的预算复算与无 Job 证据。" }), /已接手/u);
+  } finally { application.close(); await rm(root, { recursive: true, force: true }); }
+});

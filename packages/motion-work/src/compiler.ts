@@ -4,11 +4,11 @@ import { build } from "esbuild";
 import ts from "typescript";
 import type { BoundMotionImage, BoundMotionVideo, DecodedMotionVideo, MotionSubmission } from "./schema.js";
 
-export const MOTION_ENGINE_VERSION = "managed-motion-11";
+export const MOTION_ENGINE_VERSION = "managed-motion-12";
 const forbidden = new Set(["eval", "Function", "globalThis", "window", "document", "navigator", "location", "parent", "top", "opener", "self", "fetch", "XMLHttpRequest", "WebSocket", "Worker", "SharedWorker", "process", "require", "Date", "performance", "setTimeout", "setInterval", "requestAnimationFrame", "localStorage", "sessionStorage", "indexedDB", "constructor", "__proto__", "prototype"]);
 const prototypeProperties = new Set(["constructor", "__proto__", "prototype"]);
 const allowedImports: Record<string, Set<string>> = {
-  "@videoflowcut/motion": new Set(["BoundVideo"]),
+  "@videoflowcut/motion": new Set(["BoundVideo", "TimelineVideo"]),
   react: new Set(["default", "Fragment", "createElement", "useMemo"]),
   remotion: new Set(["AbsoluteFill", "Img", "Sequence", "Series", "useCurrentFrame", "useVideoConfig", "interpolate", "interpolateColors", "spring", "Easing", "random"])
 };
@@ -165,7 +165,7 @@ export function motionHash(input: MotionSubmission, images: BoundMotionImage[] =
 }
 /** 旧 Job 的输入哈希保持可核验；新提交固定新引擎，不能使历史作品版本漂移。 */
 export function motionHashEngine(input: MotionSubmission, images: BoundMotionImage[], version: unknown, declared?: unknown, videos: BoundMotionVideo[] = []): string {
-  const accepted = [MOTION_ENGINE_VERSION, "managed-motion-10", "managed-motion-9", "managed-motion-8", "managed-motion-7", "managed-motion-6", "managed-motion-5", "managed-motion-4", "managed-motion-3"];
+  const accepted = [MOTION_ENGINE_VERSION, "managed-motion-11", "managed-motion-10", "managed-motion-9", "managed-motion-8", "managed-motion-7", "managed-motion-6", "managed-motion-5", "managed-motion-4", "managed-motion-3"];
   const engine = accepted.find((candidate) => (declared === undefined || declared === candidate) && motionHash(input, images, candidate, videos) === version);
   if (!engine) throw new Error("MOTION_VERSION_MISMATCH");
   return engine;
@@ -175,10 +175,11 @@ export function motionHashEngine(input: MotionSubmission, images: BoundMotionIma
 export async function compileMotion(input: MotionSubmission, imageData: Record<string, string> = {}, videos: Record<string, DecodedMotionVideo> = {}): Promise<string> {
   validateMotionSource(input.source);
   const require = createRequire(typeof __filename === "string" ? __filename : import.meta.url);
-  const entry = `import React from 'react';import {createRoot} from 'react-dom/client';import {flushSync} from 'react-dom';import {Player} from '@remotion/player';import Motion,* as motionModule from 'motion-user';
+  const entry = `import React from 'react';import {createRoot} from 'react-dom/client';import {flushSync} from 'react-dom';import {Player} from '@remotion/player';import Motion,* as motionModule from 'motion-user';import {MotionFrameRoot} from '@videoflowcut/motion';
 window.__readMotionEvents=()=>typeof motionModule.resolveMotionEvents==='function'?motionModule.resolveMotionEvents(${JSON.stringify(input.props)},{fps:${input.fps},durationInFrames:${input.durationInFrames}}):null;
 const ref=React.createRef();const root=createRoot(document.getElementById('root'));
-flushSync(()=>root.render(React.createElement(Player,{ref,component:Motion,errorFallback:({error})=>{window.__motionError=String(error);return null},inputProps:${JSON.stringify({ ...input.props, assets: imageData })},durationInFrames:${input.durationInFrames},fps:${input.fps},compositionWidth:${input.width},compositionHeight:${input.height},controls:false,autoPlay:false,loop:false,style:{width:${input.width},height:${input.height}}})));
+const WrappedMotion=(props)=>React.createElement(MotionFrameRoot,null,React.createElement(Motion,props));
+flushSync(()=>root.render(React.createElement(Player,{ref,component:WrappedMotion,errorFallback:({error})=>{window.__motionError=String(error);return null},inputProps:${JSON.stringify({ ...input.props, assets: imageData })},durationInFrames:${input.durationInFrames},fps:${input.fps},compositionWidth:${input.width},compositionHeight:${input.height},controls:false,autoPlay:false,loop:false,style:{width:${input.width},height:${input.height}}})));
 window.__motionReady=true;window.__motionSeek=async(frame)=>{if(window.__motionError)throw new Error(window.__motionError);ref.current.seekTo(frame);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));await document.fonts.ready;if(window.__motionError)throw new Error(window.__motionError);};`;
   const result = await build({
     stdin: { contents: entry, sourcefile: "motion-entry.tsx", loader: "tsx" }, bundle: true, write: false,
@@ -191,6 +192,18 @@ window.__motionReady=true;window.__motionSeek=async(frame)=>{if(window.__motionE
       builder.onLoad({ filter: /.*/, namespace: "trusted-video" }, () => ({ loader: "tsx", contents: `
 import React from 'react';import {useCurrentFrame,Img} from 'remotion';
 const counts=${JSON.stringify(Object.fromEntries(Object.entries(videos).map(([slot, video]) => [slot, video.framePaths.length])))};
+const ranges=${JSON.stringify(Object.fromEntries(Object.entries(input.videoBindings ?? {}).filter(([,b]) => b.startFrame !== undefined).map(([slot,b]) => [slot, {startFrame:b.startFrame,endFrame:b.endFrame}])))};
+const frameContext=React.createContext(null);
+// 根组件在 Sequence 外保存作品帧；内部重置局部时钟不影响源片取帧。
+export function MotionFrameRoot({children}) {return <frameContext.Provider value={useCurrentFrame()}>{children}</frameContext.Provider>}
+export function TimelineVideo({slot,style,fit='cover'}) {
+ const globalFrame=React.useContext(frameContext);const range=ranges[slot];
+ if(globalFrame===null||!range) throw new Error('MOTION_VIDEO_CONTRACT: '+slot);
+ const frame=globalFrame-range.startFrame;
+ if(globalFrame<range.startFrame||globalFrame>=range.endFrame||frame>=counts[slot]) throw new Error('MOTION_VIDEO_RANGE: '+slot+' frame '+frame);
+ if(!['cover','contain','fill'].includes(fit)) throw new Error('MOTION_VIDEO_FIT');
+ return <Img src={'https://motion.invalid/video/'+slot+'/'+frame+'.png'} style={{width:'100%',height:'100%',objectFit:fit,...style}}/>;
+}
 export function BoundVideo({slot,offsetInFrames=0,style,fit='cover'}) {
  const frame=useCurrentFrame()+offsetInFrames;
  if(!Number.isInteger(frame)||frame<0||!Object.hasOwn(counts,slot)||frame>=counts[slot]) throw new Error('MOTION_VIDEO_RANGE: '+slot+' frame '+frame);

@@ -12,7 +12,7 @@ Props 应避免 `Record<string, any>` 无约束扩散。即使 EffectCue 当前�
 
 ## 局部时间
 
-外层将 Cue 放入 Remotion `Sequence` 或传入 `localFrame = globalFrame - startFrame`。绑定视频和内部动画使用局部时间。Registry 组件按自身合同处理范围外不渲染及所需动作阶段；BoundVideo 的源取帧越界会失败，不能借降级隐藏错误。
+外层将 Cue 放入 Remotion `Sequence` 或传入 `localFrame = globalFrame - startFrame`。内部动画使用该局部时间；新受管视频由平台保存作品全局局部帧，内部 `Sequence` 不重置源片时间。Registry 组件按自身合同处理范围外不渲染及所需动作阶段；视频取帧越界会失败，不能借降级隐藏错误。
 
 示意：
 
@@ -28,26 +28,26 @@ Props 应避免 `Record<string, any>` 无约束扩散。即使 EffectCue 当前�
 
 这里说明当前代码已实现的合同，正式剪辑先核对所连接 Runtime/MCP 版本与实时 Schema；字段缺失或旧会话不能按本文猜测调用。工程回归证明受管执行能力，作品是否实现分镜、是否好看和声画是否成立仍由原专项根据实际媒体观察。
 
-`submit_motion_work.work.videoBindings` 是可选的命名记录，最多四槽，每槽为 `{assetId, sourceStartMs, sourceEndMs}`。Slot 使用小写字母开头的小写字母、数字或下划线，最长 40 字符；只接受 ready、有时长和字节哈希的项目源视频，不嵌套受管动效 Asset。sourceStartMs、sourceEndMs 是源毫秒整数的半开区间，起点非负，终点大于起点，不超出源素材且单槽最长 30 秒。源身份、范围、哈希和权利随作品固定；改绑后提交新作品，不覆盖旧版本。
+`submit_motion_work.work.videoBindings` 是可选的命名记录，最多四槽。新作品每槽为 `{assetId, sourceStartMs, sourceEndMs, startFrame, endFrame}`。源毫秒与作品帧均为半开区间；作品帧是从 0 开始的作品局部全局时钟，不是项目 Timeline 帧。Slot 使用小写字母开头的小写字母、数字或下划线，最长 40 字符；只接受 ready、有时长和字节哈希的项目源视频，不嵌套受管动效 Asset。源范围不超出素材且单槽最长 30 秒，作品范围不超出 `durationInFrames`。平台先按作品 fps 计算源选段预计帧数，要求与 `endFrame - startFrame` 相等；Worker 再以实际解码帧数复核。源身份、范围、哈希和权利随作品固定；改绑后提交新作品，不覆盖旧版本。
 
-源码只通过 `import {BoundVideo} from '@videoflowcut/motion'` 引用该能力，以 `slot` 选择素材。`fit` 可为 cover、contain、fill，默认 cover；`style` 负责受管画布内的静态或帧驱动布局。它以源时间戳按作品 fps 正常速度重采样并静音，不接受任意外部视频 URL，不隐式播放原声。素材内的关键文字、主体与动作决定裁切方式，不能仅为填满窗口而破坏证据。
+源码通过 `import {TimelineVideo} from '@videoflowcut/motion'` 引用新合同，以 `slot` 选择素材。`fit` 可为 cover、contain、fill，默认 cover；`style` 负责受管画布内的静态或帧驱动布局。它以源时间戳按作品 fps 正常速度重采样并静音，不接受任意外部视频 URL，不隐式播放原声。素材内的关键文字、主体与动作决定裁切方式，不能仅为填满窗口而破坏证据。
 
-`BoundVideo` 实际取帧为所在 Sequence 的 `useCurrentFrame() + offsetInFrames`，offsetInFrames 默认 0。它不是全局 Timeline 帧，也不是原视频帧号；源起点已经由 sourceStartMs 固定。嵌套 Sequence 会重置局部帧，同一素材由全屏交给窗口时必须提供接续偏移，否则会从绑定源起点重播。例如下例仅演示 30 fps、120 帧作品中第 60 帧的时间接续，footage 需要已绑定至少四秒真实源范围；窗口的实际美术与运动另按本片分镜设计：
+`TimelineVideo` 由平台读取作品帧 `F`，取绑定源的第 `F - startFrame` 帧。内部 `Sequence` 只控制显示时段，不改变这次源片取帧。一次素材从全屏转入窗口时沿用同一槽位与声明，不再手写偏移。例如 30 fps、120 帧作品使用 `startFrame=0, endFrame=120`，源范围必须预计提供 120 帧；窗口的实际美术与运动另按本片分镜设计：
 
 ```tsx
 import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
-import {BoundVideo} from '@videoflowcut/motion';
+import {TimelineVideo} from '@videoflowcut/motion';
 
 export default function Motion() {
   return (
     <AbsoluteFill>
       <Sequence from={0} durationInFrames={60}>
-        <BoundVideo slot="footage" fit="cover" />
+        <TimelineVideo slot="footage" fit="cover" />
       </Sequence>
       <Sequence from={60} durationInFrames={60}>
         <div style={{position: 'absolute', left: '55%', top: '20%', width: '40%', height: '50%', overflow: 'hidden'}}>
-          <BoundVideo slot="footage" offsetInFrames={60} fit="contain" />
+          <TimelineVideo slot="footage" fit="contain" />
         </div>
       </Sequence>
     </AbsoluteFill>
@@ -57,7 +57,7 @@ export default function Motion() {
 
 四路共同遵守原有作品预算：偶数画布宽高各 64～1920、整数 fps 15～60、2～900 帧、时长不超过 30 秒，width × height × durationInFrames 不超过 650000000。视频源文件合计最多 512 MB，解码结果合计最多 512 MB 与 650000000 像素帧；不是每槽分别获得一份预算。根据真实动作需要选源范围与合适画布，必要拆分时同时交付接点和源时刻。
 
-偏移或取帧越界、源范围不足、哈希变化、缓存不完整、解码失败或超限都保留明确错误；不会用冻结、循环或补帧掩饰。原声如需保留，交 Timeline/Audio 明确范围与所有权，和画面在同一 Preview 复核。23.976、25、30 fps 与 VFR 的源时间换算由平台按真实时间戳完成；正确解码不代表交接、裁切、阅读与表现已通过。
+作品范围和源范围帧数不符在提交前拒绝，不创建 Job；实际解码短缺、取帧越界、哈希变化、缓存不完整、解码失败或超限也保留明确错误，不用冻结、循环或补帧掩饰。旧 Job 仍按原引擎版本保留 `BoundVideo` 行为；新作品不得沿用它。原声如需保留，交 Timeline/Audio 明确范围与所有权，和画面在同一 Preview 复核。23.976、25、30 fps 与 VFR 的源时间换算由平台按真实时间戳完成；正确解码不代表交接、裁切、阅读与表现已通过。
 
 ## Natural Box
 

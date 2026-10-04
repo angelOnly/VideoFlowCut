@@ -17,7 +17,7 @@ export async function hashMotionFile(path: string): Promise<string> {
 
 /** 正常速度按目标帧率重采样；VFR 的时间戳交给 FFmpeg，不能按源帧号猜测时间。 */
 export async function prepareMotionVideos(root: string, directory: string, work: MotionSubmission, bindings: BoundMotionVideo[], engineVersion = MOTION_ENGINE_VERSION): Promise<Record<string, DecodedMotionVideo>> {
-  const modern = engineVersion === MOTION_ENGINE_VERSION || engineVersion === "managed-motion-9" || engineVersion === "managed-motion-8";
+  const modern = [MOTION_ENGINE_VERSION, "managed-motion-11", "managed-motion-9", "managed-motion-8"].includes(engineVersion);
   if (!modern && !["managed-motion-7", "managed-motion-6", "managed-motion-5", "managed-motion-4", "managed-motion-3"].includes(engineVersion)) throw new Error("MOTION_ENGINE_UNSUPPORTED");
   if (!modern && bindings.some(b => b.decodeScale !== undefined)) throw new Error("MOTION_LEGACY_SCALE_UNSUPPORTED: 请生成新版本");
   const result: Record<string, DecodedMotionVideo> = {};

@@ -100,7 +100,7 @@
 
 把整个原画面当作一个“源坐标平面”：原视频、物品位置、范围线都在这个平面里。这个平面使用受管解码 manifest确定的、方向与宽高比正确的归一化显示坐标；不能把旋转前的编码宽高直接当作旋转后画面的坐标。观察范围改变时，只改变这个平面到作品画布的映射。标签可以通过字号补偿维持最终可读大小，但它与被指对象的归属不能漂移。
 
-假设作品局部帧为 `F`，帧率为 `fps`，素材绑定的起点为 `sourceStartMs`。本例 `BoundVideo` 放在根场面中、不额外套时间偏移，所以读取第 `F` 个已按作品 fps 重采样的源画面。对应的名义源时间为：
+假设作品局部帧为 `F`，帧率为 `fps`，素材绑定的起点为 `sourceStartMs`。本例 `videoBindings.footage` 声明 `startFrame=0`、`endFrame=durationInFrames`，`TimelineVideo` 读取第 `F` 个已按作品 fps 重采样的源画面。对应的名义源时间为：
 
 ```text
 sourceStartMs + 1000 × F / fps
@@ -117,7 +117,7 @@ sourceStartMs + 1000 × F / fps
 ```tsx
 import React from 'react';
 import {AbsoluteFill, useCurrentFrame, useVideoConfig} from 'remotion';
-import {BoundVideo} from '@videoflowcut/motion';
+import {TimelineVideo} from '@videoflowcut/motion';
 
 type Box = {x: number; y: number; width: number; height: number};
 type Mark = {
@@ -192,7 +192,7 @@ export default function Motion(p: Props) {
       transform: `translate(${tx}px, ${ty}px) scale(${k})`,
     }}>
       <div style={{position: 'absolute', inset: 0}}>
-        <BoundVideo slot="footage" offsetInFrames={0} fit="contain" />
+        <TimelineVideo slot="footage" fit="contain" />
       </div>
       <svg width={p.sourceWidth} height={p.sourceHeight}
         viewBox={`0 0 ${p.sourceWidth} ${p.sourceHeight}`}
@@ -240,7 +240,7 @@ export default function Motion(p: Props) {
 
 提交前由作者检查：时间严格有序、各事件在当前帧数内；标注 ID 唯一；标签在完整运动中不越界、不挡物体和字幕；真实字体下文字宽度适用。源码用字符数估计标签宽度只是中文短标签的试作做法，不是通用排版测量；长文本和混排需要按实际字形另行安排。
 
-本例只有一次根级 `BoundVideo`，图形与视频共同变换；没有调用浏览器、网络、文件、音频或外部依赖。是否被当前平台校验器接受、是否达到预期观感，仍须实际提交与渲染测试。本轮没有运行项目依赖，所以不将这份源码标为测试通过。
+本例只有一次根级 `TimelineVideo`，图形与视频共同变换；没有调用浏览器、网络、文件、音频或外部依赖。是否被当前平台校验器接受、是否达到预期观感，仍须实际提交与渲染测试。该案例源码仍需结合实际素材单独验证。
 
 ### 生成之后，怎样据实际问题改，而不只加缓动
 

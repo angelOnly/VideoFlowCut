@@ -174,7 +174,7 @@ description: 作为跨视频类型的完整 Motion Graphics 子工作流，负�
 
 **第五步：提交固定版本作品。**
 
-采用实时 `submit_motion_work` 合同，提交源码、Props、画布、时长、图片及所用视频绑定、权利和创作说明；只有实际使用参考时才附参考观察。所有执行都通过受管 MCP，不修改平台源码、不安装依赖、不绕过隔离。源视频使用已实现的 `videoBindings` 与 `BoundVideo` 合同，正式声音仍由 Timeline/Audio 链安排；当前会话缺少所需字段时返回明确能力缺口。
+采用实时 `submit_motion_work` 合同，提交源码、Props、画布、时长、图片及所用视频绑定、权利和创作说明；只有实际使用参考时才附参考观察。所有执行都通过受管 MCP，不修改平台源码、不安装依赖、不绕过隔离。源视频使用已实现的 `videoBindings` 与 `TimelineVideo` 合同，正式声音仍由 Timeline/Audio 链安排；当前会话缺少所需字段时返回明确能力缺口。
 
 提交只创建 Job。通过 `track_job`、`read_motion_work` 和 `inspect_asset` 取得当前版本源码、产物与实际动态观察；未完成 Job 或无法检视的作品保留未审状态。需要修改时提交新作品并关联 `previousAssetId`，原版本和已使用的 Asset 不覆盖。
 
@@ -212,7 +212,7 @@ description: 作为跨视频类型的完整 Motion Graphics 子工作流，负�
 
 ## 受管作品生成和修改
 
-`submit_motion_work` 的 `work` 包含名称、默认导出的 React/Remotion TSX、可编辑 Props、目标 width/height/fps/durationInFrames、非空 creativeBrief（最多 6000 字符）及权利依据；reference 可选，实际使用时填写 URL 与 layout/motion/rhythm/adaptation/evidence 观察说明。源码只用当前 Schema/校验器支持的 API。文字、CSS、SVG 与图片仍按帧驱动：`imageBindings` 将命名 Slot 对应到已就绪的项目图片 Asset ID，源码以 `<Img src={props.assets.logo} />` 消费对应图片，不能自行覆盖 props.assets。已实现的视频合同使用独立 `videoBindings`，由平台固定源身份、范围、字节哈希与权利后注入 `BoundVideo`；具体用法见下方“媒体 Asset 处理”。不开放外部资源 URL、任意依赖、DOM/网络/文件访问、隐式出声或 CSS 计时动画；字段未在连接 Runtime 的实时 Schema 出现时，不假定可用。
+`submit_motion_work` 的 `work` 包含名称、默认导出的 React/Remotion TSX、可编辑 Props、目标 width/height/fps/durationInFrames、非空 creativeBrief（最多 6000 字符）及权利依据；reference 可选，实际使用时填写 URL 与 layout/motion/rhythm/adaptation/evidence 观察说明。源码只用当前 Schema/校验器支持的 API。文字、CSS、SVG 与图片仍按帧驱动：`imageBindings` 将命名 Slot 对应到已就绪的项目图片 Asset ID，源码以 `<Img src={props.assets.logo} />` 消费对应图片，不能自行覆盖 props.assets。已实现的视频合同使用独立 `videoBindings`，由平台固定源身份、源范围、作品帧范围、字节哈希与权利后注入 `TimelineVideo`；具体用法见下方“媒体 Asset 处理”。不开放外部资源 URL、任意依赖、DOM/网络/文件访问、隐式出声或 CSS 计时动画；字段未在连接 Runtime 的实时 Schema 出现时，不假定可用。
 
 提交只创建固定输入的 Job，不改变 Timeline。`track_job` 完成后用 `read_motion_work` 读回源码、版本和 Asset，再通过 `inspect_asset` 审阅生成的动态代理。需要改字、调布局或节奏时提交新作品，并以 `previousAssetId` 关联旧版；旧源码、缓存和已使用版本不能覆盖。Job 失败保留诊断，不把安全拒绝改成绕过；同一幂等键不能提交不同输入。
 
@@ -351,7 +351,7 @@ Props 需要默认值、合法范围、类型和回退。Asset 通过项目 Bind
 
 声音需要绑定作品实际执行产生的事件。受管源码可导出 `resolveMotionEvents(props, {fps, durationInFrames})`，返回包含 id、meaning、startFrame 和可选 endFrame 的数组；画面与事件必须共用同一份时序常量或计算函数。渲染器在隔离浏览器读取并检查确定性、重复 ID 和范围，随作品固定 eventMap 版本。用 `read_motion_work`/Asset 读回实际事件，再交给 effect-timing 和 audio-finishing；不要另写一张与画面无关的手填时间表。持续动作交付起止范围，是否全程发声由 SoundPlan 决定。学习案例以当前 [motion-case-library](../motion-case-library/SKILL.md) 的六个固定案例为准，配声版本另行生成，不改归档样例。
 
-Cue 在整条 Composition 中可能从第 1000 帧开始，但绑定视频、内部动画和计数使用作品局部时钟。外层 `Sequence` 重置 Cue 时间，作品内再嵌套 `Sequence` 时，`useCurrentFrame()` 会再次从该序列零点计数。`BoundVideo` 取这个局部帧加 `offsetInFrames`，跨序列从全屏接到窗口时交付明确偏移，使素材继续同一过程；不能直接继承全局 Composition Frame，也不能因序列重置而意外重播。
+Cue 在整条 Composition 中可能从第 1000 帧开始，但绑定视频、内部动画和计数使用作品局部时钟。外层 `Sequence` 重置 Cue 时间，作品内再嵌套 `Sequence` 时，`useCurrentFrame()` 会再次从该序列零点计数。`TimelineVideo` 读取平台保存的作品局部全局帧，内部 Sequence 重置只影响视觉布局，不重置源片；跨序列仍从同一槽位连续取帧。
 
 Timeline 范围必须容纳本作品实际采用的进入、主要变化、必要阅读与接出。不能用更短 Item 截断组件内部未完成动画；主线时长变化时，重新编译或调整 Cue，而不是依赖偶然裁切。
 
@@ -466,11 +466,11 @@ Registry 设计应让生产 Skill先选择层级：
 固定坐标不构成跟踪。没有真实轨迹就只在可靠停稳范围标注，或重新设计。
 原声不在作品源码里播放；需要时沿现有音轨链明确保留范围并实际听审。
 
-已实现的受管视频入口是 `submit_motion_work.work.videoBindings`，可省略，单作品最多四个命名 Slot。每槽写 `{assetId, sourceStartMs, sourceEndMs}`：源毫秒为正长度半开区间，最长 30 秒且不超出真实素材；只绑定 ready、有真实时长与内容哈希的源视频，不能嵌套另一份 managed motion。平台保留源身份、范围和权利，作品改绑或改范围需要新版本。这里说明实现合同，正式剪辑仍先读取当前连接的版本与实时 Schema。
+已实现的受管视频入口是 `submit_motion_work.work.videoBindings`，可省略，单作品最多四个命名 Slot。每槽写 `{assetId, sourceStartMs, sourceEndMs, startFrame, endFrame}`：源毫秒为正长度半开区间，最长 30 秒且不超出真实素材；只绑定 ready、有真实时长与内容哈希的源视频，不能嵌套另一份 managed motion。平台保留源身份、范围和权利，作品改绑或改范围需要新版本。这里说明实现合同，正式剪辑仍先读取当前连接的版本与实时 Schema。
 
-图片和视频必须来自项目受管 Asset。决定 `cover/contain` 前查看需要保护的文字、主体和动作；证据、UI 与海报不能因为填满窗口而裁掉必要内容。源码从 `@videoflowcut/motion` 导入 `BoundVideo`，例如 `<BoundVideo slot="footage" offsetInFrames={0} fit="cover" style={...} />`，用 slot 引用绑定源，不传外部 URL。`fit` 支持 cover、contain、fill，位置、尺度、遮罩与运动由确定性的源码布局实现；形变是否适合内容仍需实际观看。
+图片和视频必须来自项目受管 Asset。决定 `cover/contain` 前查看需要保护的文字、主体和动作；证据、UI 与海报不能因为填满窗口而裁掉必要内容。源码从 `@videoflowcut/motion` 导入 `TimelineVideo`，例如 `<TimelineVideo slot="footage" fit="cover" style={...} />`，用 slot 引用绑定源，不传外部 URL。`fit` 支持 cover、contain、fill，位置、尺度、遮罩与运动由确定性的源码布局实现；形变是否适合内容仍需实际观看。
 
-`BoundVideo` 的视频帧为所在 Sequence 的 `useCurrentFrame()` 加 `offsetInFrames`。源按真实时间戳以作品 fps 正常速度重采样，播放器内始终静音；不把 23.976、25、30 fps 或 VFR 源直接按原帧号套到作品时钟。全屏播放后改由运动窗口接管时，保持源范围，并给后段接续偏移；所需帧不存在、偏移越界、源哈希变化或解码失败会报错，不自动冻结、循环或补帧。源声音如需延续，由 Timeline/Audio 明确归属和范围，避免重播或双重出声。
+`TimelineVideo` 的视频帧由作品当前帧减去绑定的 startFrame 得出；提交前平台要求源选段预计帧数等于 endFrame - startFrame，Worker 再用实际解码帧数复核。源按真实时间戳以作品 fps 正常速度重采样，播放器内始终静音；不把 23.976、25、30 fps 或 VFR 源直接按原帧号套到作品时钟。全屏播放后改由运动窗口接管时，保持同一槽位与源范围；所需帧不存在、范围越界、源哈希变化或解码失败会报错，不自动冻结、循环或补帧。源声音如需延续，由 Timeline/Audio 明确归属和范围，避免重播或双重出声。
 
 四路视频共享原有画布和作品预算：宽高为 64～1920 的偶数，作品 fps 为 15～60 的整数，2～900 帧、最长 30 秒且画布像素帧不超过 650000000。绑定源文件合计最多 512 MB，解码结果合计最多 512 MB 与 650000000 像素帧；这些是共同上限，不能按槽各算一份。根据实际连续动作与目标显示尺寸选择源范围和画布；超限时回导演调整范围或拆分并设计接点，不静默丢掉一路素材。
 
@@ -529,7 +529,7 @@ Registry 设计应让生产 Skill先选择层级：
 
 EffectCue 或 ExplainerScene 绑定图片、视频、产品、证据或 UI Asset 前，先查看该 Asset 的真实内容、构图、运动路径和可用范围。AssetBinding 缺少必需内容、源文件不可用或 Props 不能完成组件任务时，Cue/Program 应进入 invalid 或 not_ready，并由 Web 与 Quality 显示具体原因；Renderer 不应把调试占位、通用文案或固定品牌渲染进正式画面。
 
-视频 Asset 在 Cue 或 Scene 内要使用局部时间，确保从所选源范围正确播放；同一过程跨内部 Sequence 接管时核对 `offsetInFrames` 与接点源时刻。每个代表性样例检查实际采用的进入、变化、辨认与接出，必要阅读时间可以与窗口内部动作共同存在。源时序正确与实际连续感分别验证。
+视频 Asset 在 Cue 或 Scene 内要使用局部时间，确保从所选源范围正确播放；同一过程跨内部 Sequence 接管时核对声明的作品帧范围与实际接点源时刻。每个代表性样例检查实际采用的进入、变化、辨认与接出，必要阅读时间可以与窗口内部动作共同存在。源时序正确与实际连续感分别验证。
 
 人物、字幕、证据和动效同屏时只设一个第一注意目标。进入全屏 Scene、人物做关键手势或证据正在阅读时，CameraPunch、大字幕、背景运动和 SFX 要相应退让。横版和竖版分别检查主体、动作路径、负空间和信息层级。
 
