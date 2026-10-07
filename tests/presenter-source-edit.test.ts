@@ -20,7 +20,7 @@ async function captionFixture(tokenTimed = true, withFollowing = false, timing: 
   const projectId = created.snapshot.project.id;
   const imported = app.registerImportedAsset({ projectId, baseRevision: created.revision.number,
     name: "presenter.mp4", kind: "video", managedPath: "assets/source/presenter.mp4", sourceHash: "source-edit-caption-fixture",
-    provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() } });
+    provenance: { source: "local_import", acquiredAt: new Date().toISOString() } });
   app.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: { durationMs: timing.durationMs, hasAudio: true, videoCodec: "h264", audioCodec: "aac", fps: 25, width: 720, height: 1280 } });
   for (const job of app.listJobs(projectId)) app.updateJob(job.id, { status: "succeeded" });
   const assembled = app.assemblePresenterTrack({ projectId, baseRevision: app.readProject(projectId).revision.number,
@@ -157,7 +157,7 @@ async function addPackaging(fixture: Awaited<ReturnType<typeof captionFixture>>)
   }
   const audio = app.registerImportedAsset({ projectId, baseRevision: app.readProject(projectId).revision.number,
     name: "bgm.wav", kind: "audio", managedPath: "assets/source/bgm.wav", sourceHash: "source-edit-audio",
-    provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() } });
+    provenance: { source: "local_import", acquiredAt: new Date().toISOString() } });
   app.applyMediaAnalysis({ projectId, assetId: audio.asset.id, metadata: { durationMs: 3000, hasAudio: true, audioCodec: "pcm_s16le" } });
   for (const job of app.listJobs(projectId)) app.updateJob(job.id, { status: "succeeded" });
   app.manageAudio({ projectId, baseRevision: app.readProject(projectId).revision.number, action: "create", kind: "bgm",
@@ -361,7 +361,7 @@ test("原声人物视频可在同一 Revision 中删除中间重复段并保留�
     const projectId = created.snapshot.project.id;
     const imported = app.registerImportedAsset({ projectId, baseRevision: created.revision.number,
       name: "presenter.mp4", kind: "video", managedPath: "assets/source/presenter.mp4", sourceHash: "source-edit-fixture",
-      provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() } });
+      provenance: { source: "local_import", acquiredAt: new Date().toISOString() } });
     app.applyMediaAnalysis({ projectId, assetId: imported.asset.id,
       metadata: { durationMs: 3000, hasAudio: true, videoCodec: "h264", audioCodec: "aac", fps: 25, width: 720, height: 1280 } });
     for (const job of app.listJobs(projectId)) app.updateJob(job.id, { status: "succeeded" });

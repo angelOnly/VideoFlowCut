@@ -13,7 +13,7 @@ for (const music of [false, true]) {
   for (const query of music ? MIXKIT_MUSIC_CATEGORIES : MIXKIT_SOUND_CATEGORIES) {
     try {
       const rows = await provider.search({ request: { mediaKind: "audio", role: music ? "bgm" : "sfx" } as AssetRequest, query });
-      report.push({ provider: provider.name, query, status: "passed", count: rows.length, sourceUrl: rows[0].sourceUrl, license: rows[0].license });
+      report.push({ provider: provider.name, query, status: "passed", count: rows.length, sourceUrl: rows[0].sourceUrl, });
       console.log(`${provider.name}/${query}: ${rows.length}`);
     } catch (error) {
       const code = (error as { code?: string }).code;

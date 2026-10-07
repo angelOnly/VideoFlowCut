@@ -1,0 +1,4401 @@
+{
+  "说明": "10 MB以内审阅包：仅保留四项最终版本视频的压缩副本、源码、文本与五张小型参考图片。视频缩为384×672/24fps，音频为40kbps单声道，画面及声音细节有损失，不替代原件。",
+  "验收状态": "桌面/图书馆原版已导出，手机R118仍是预览且正式导出未通过，五例为草稿；压缩不会改变原验收结论。",
+  "裁减": "去除分段和历史视频、原始大素材、音频素材、编译产物、插件重复Skill副本及依赖/缓存。保留源码和素材引用记录，但不能凭此包无缺失地重渲染全部项目。",
+  "视频": [
+    {
+      "文件": "五例迁移验收_48秒_R32_草稿.mp4",
+      "用途": "低码率审阅副本，原版另存且未修改",
+      "视频码率kbps": 100,
+      "音频码率kbps": 40,
+      "输出": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_type": "video",
+            "width": 384,
+            "height": 672,
+            "nb_frames": "1152",
+            "side_data_list": [
+              {}
+            ]
+          },
+          {
+            "codec_type": "audio",
+            "nb_frames": "2253"
+          }
+        ],
+        "format": {
+          "duration": "48.042000",
+          "size": "631911"
+        }
+      }
+    },
+    {
+      "文件": "图书馆主题成片_R89.mp4",
+      "用途": "低码率审阅副本，原版另存且未修改",
+      "视频码率kbps": 100,
+      "音频码率kbps": 40,
+      "输出": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_type": "video",
+            "width": 384,
+            "height": 672,
+            "nb_frames": "1058",
+            "side_data_list": [
+              {}
+            ]
+          },
+          {
+            "codec_type": "audio",
+            "nb_frames": "2070"
+          }
+        ],
+        "format": {
+          "duration": "44.138000",
+          "size": "783286"
+        }
+      }
+    },
+    {
+      "文件": "手机主题_R118_完整预览_正式导出未通过.mp4",
+      "用途": "低码率审阅副本，原版另存且未修改",
+      "视频码率kbps": 100,
+      "音频码率kbps": 40,
+      "输出": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_type": "video",
+            "width": 384,
+            "height": 672,
+            "nb_frames": "1940",
+            "side_data_list": [
+              {}
+            ]
+          },
+          {
+            "codec_type": "audio",
+            "nb_frames": "3793"
+          }
+        ],
+        "format": {
+          "duration": "80.896000",
+          "size": "1462604"
+        }
+      }
+    },
+    {
+      "文件": "桌面主题成片_R79.mp4",
+      "用途": "低码率审阅副本，原版另存且未修改",
+      "视频码率kbps": 100,
+      "音频码率kbps": 40,
+      "输出": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_type": "video",
+            "width": 384,
+            "height": 672,
+            "nb_frames": "975",
+            "side_data_list": [
+              {}
+            ]
+          },
+          {
+            "codec_type": "audio",
+            "nb_frames": "1908"
+          }
+        ],
+        "format": {
+          "duration": "40.682000",
+          "size": "745579"
+        }
+      }
+    }
+  ],
+  "文件": [
+    {
+      "路径": "01_最终视频/五例迁移验收_48秒_R32_草稿.mp4",
+      "字节数": 631911,
+      "SHA256": "bf6529447611e15cecc097e1a733a1716ca24981d2cb2737678bb6b88bd827ab"
+    },
+    {
+      "路径": "01_最终视频/图书馆主题成片_R89.mp4",
+      "字节数": 783286,
+      "SHA256": "d322af8a012bcf40c2726d0c0d165c49ccf022b302e1a3d55c2b2912f909453c"
+    },
+    {
+      "路径": "01_最终视频/手机主题_R118_完整预览_正式导出未通过.mp4",
+      "字节数": 1462604,
+      "SHA256": "2bab79f73b3c7c2ebf910dbfd051837de652b510f1c12b783b3008c45f4ec14e"
+    },
+    {
+      "路径": "01_最终视频/桌面主题成片_R79.mp4",
+      "字节数": 745579,
+      "SHA256": "fea2149717f44f6acb14e93f0b9325c122cd11895b5ec69c989aa92332602cb9"
+    },
+    {
+      "路径": "02_平台代码/.agents/plugins/marketplace.json",
+      "字节数": 398,
+      "SHA256": "fe8ceb743f1779374a37b232d0545cd78dc42612ba876640557e0989ee232b8c"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/_shared/EDITORIAL_FOUNDATIONS.md",
+      "字节数": 15320,
+      "SHA256": "87ecd8082a3aecb0af53beb88e6dc745a8b4a305e25bfc8eb53869da42829b4c"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/_shared/EVIDENCE_RIGHTS_AND_READINESS.md",
+      "字节数": 2650,
+      "SHA256": "8eefca96685caebbca935fa3d6f4b7aa3be8a5c3f89c9e339fef557b5e91233f"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/_shared/MCP_EXECUTION_CONTRACT.md",
+      "字节数": 34304,
+      "SHA256": "bef2bc6588ba648724f3197eff47d82bb8eedc53985add3f685cec81e12976b3"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/_shared/PROJECT_REVISION_AND_HANDOFF.md",
+      "字节数": 15441,
+      "SHA256": "27c3ef14d6e8baba38dd752ec5d18d606d0bd709f0a58ee218babde791e7355a"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/_shared/QUALITY_EVIDENCE_AND_DELIVERY.md",
+      "字节数": 2754,
+      "SHA256": "740f3b56f9487a86b7af78de921834b9edd04a77210598b2100edc06c233e523"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/_shared/SCENE_DESIGN_HANDOFF.md",
+      "字节数": 5403,
+      "SHA256": "0515d794ccb41c4eb56d6418cb8a74c443e6ad15f8d149df33fc8ad21f40d3e6"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/_shared/SOURCE_MAP.md",
+      "字节数": 1499,
+      "SHA256": "9d97d469dd09a4aceead54abaec7d6e24cebd3ef4de2f5bd8d87acba8e40688e"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/_shared/SOURCE_REVIEW_METHOD.md",
+      "字节数": 5288,
+      "SHA256": "f18a7204ac0ace867bb359824b193af9899d222f003782e0cd3b1aea837133c5"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/_shared/TOPIC_TO_FILM.md",
+      "字节数": 6353,
+      "SHA256": "962c119ea11c25face582205d9f25e80606d07bad95d7ce97faab7ed7ce3a06f"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/asset-import/SKILL.md",
+      "字节数": 7558,
+      "SHA256": "8ac2c24856163aee30892a4fad8acd5bc827deaad1ba55c7a77c7387c5d0df79"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/audio-finishing/SKILL.md",
+      "字节数": 20898,
+      "SHA256": "5baf66ad8b9b914cf0828d8740c9414f4c4d4866882e300052d3baf3145f4458"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/avatar-performance/SKILL.md",
+      "字节数": 10074,
+      "SHA256": "4bb7e0d00862c9b41d2621b2034971bcb2129c593ffbf57de7b673a5b9a7df3c"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/captions/SKILL.md",
+      "字节数": 17227,
+      "SHA256": "ea27510b615906f9f1ed77651e36d0b6790b44fe15dd71a4e303a65f2d11a5c6"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/cutaway-planning/SKILL.md",
+      "字节数": 12258,
+      "SHA256": "27218dcdd9e7ae1d586a64c00a13a81d39062065b6a67bcb28a1be49cf87306f"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/depth-composition/SKILL.md",
+      "字节数": 9226,
+      "SHA256": "a58de040fd08df19b3fae099d94d9021007c895748e1aef32e786f6a0a4ee872"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/effect-timing/references/pacing-by-completion.md",
+      "字节数": 4064,
+      "SHA256": "ae377d08dd042dff3d6d181c00f2ce9198d00c8a26ba879daf01287af08bf0ba"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/effect-timing/SKILL.md",
+      "字节数": 16381,
+      "SHA256": "d7091e794cb733aa3bf387d9933b21161d19aae3ac07e8a417bf108cfeafe499"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/evidence-visualization/SKILL.md",
+      "字节数": 9948,
+      "SHA256": "41c8f17ac15095d4954ecf440db903df875ec77166aa171bb3efa7aaecb6f883"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/export/SKILL.md",
+      "字节数": 6066,
+      "SHA256": "f58392cdb63a2e933232165cb091dda18ce33557f77184d77069bb69c51a91ac"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/known-errors/SKILL.md",
+      "字节数": 10759,
+      "SHA256": "4ba20d08b5834e3e3fa4bf5aa27b49c1968ea5f91b6832d50ab2d3d7a9d81684"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-active-window-focus/agents/openai.yaml",
+      "字节数": 179,
+      "SHA256": "3dd6d73bbfe8790f498ef51bc9a781ce12aaca560354bb05c5cc65a960249b0e"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-active-window-focus/case-record.json",
+      "字节数": 1901,
+      "SHA256": "0fc8beab6b265c8c7df8f8b1133b00c72307d5490a445a4a881f7475f205b745"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-active-window-focus/references/generation-prompt-v1.md",
+      "字节数": 2239,
+      "SHA256": "83063aef56e770e4a103c0081522d52b358472b4131aa9b496dccc45e66ef574"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-active-window-focus/references/implementation-notes.md",
+      "字节数": 1681,
+      "SHA256": "b6d13c2a5063e61083c07cf69a2847e4c74c6377a770e0f46fa3dcb9f5b6271c"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-active-window-focus/SKILL.md",
+      "字节数": 2610,
+      "SHA256": "6daca6de98c70d8f30be62af08734aa47ecd487c3c81e84797d20f5cf46fdfda"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-comment-focus/assets/fixture.json",
+      "字节数": 1012,
+      "SHA256": "7a9b30a8bed433fdf393d02483e8c84ec5482179e3bc77b47a9a2b9878edf285"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-comment-focus/assets/integrity.json",
+      "字节数": 763,
+      "SHA256": "bb3d9ec21d8acbe66b7e2aa6f843e3a36ce0b199918a34a8bb7fa129e12b5a3f"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-comment-focus/assets/motion.tsx",
+      "字节数": 7045,
+      "SHA256": "f23a3cd67aab6dec76157da9c96ce70735d6b4981fc33fe32a6eb0eb05810710"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-comment-focus/references/generation-prompt-v1.md",
+      "字节数": 10836,
+      "SHA256": "e41adb116fce904e142c5c42b412b966d4ce3f0f1383321942863d2c932c8d6b"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-comment-focus/SKILL.md",
+      "字节数": 14222,
+      "SHA256": "4ed4a686a07a31851256cbd2b7b72f9d2133bb302f9db7a670b59a96c46dcc1f"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-context-detail-observation/agents/openai.yaml",
+      "字节数": 173,
+      "SHA256": "60152a398a2e02e6453c088006802fcbaa8bfdf90020d1b03159dda992df2ab5"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-context-detail-observation/case-record.json",
+      "字节数": 1904,
+      "SHA256": "659b8d7963bcddefae60deb46e47b8b025179a9f58ac2cb579219142c0a19a3d"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-context-detail-observation/references/generation-prompt-v1.md",
+      "字节数": 1993,
+      "SHA256": "07fd7d6a6421b32da7b070943acf3d2ca3011598c74bd4a408a58c6b4ef3eba4"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-context-detail-observation/references/implementation-notes.md",
+      "字节数": 1693,
+      "SHA256": "b54bf6c5a9177bef5f0338152d1a3785d589ccd8b9c5d3dca5b1c2452eb812a6"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-context-detail-observation/SKILL.md",
+      "字节数": 2636,
+      "SHA256": "7df458af5bd9e608050d8f7e47e42b66aab82ae19cacee90caee851a2da7d658"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-cover-flow/assets/fixture.json",
+      "字节数": 994,
+      "SHA256": "b648f595d34020365dff4e65f348ef800da1c0c53e887cc0a69f0f23e47f14f4"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-cover-flow/assets/integrity.json",
+      "字节数": 763,
+      "SHA256": "5ce1d6abdf1aa843daa5d11a413e9e34650c12482c6a42130188e33757b4d11d"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-cover-flow/assets/motion.tsx",
+      "字节数": 7069,
+      "SHA256": "4c8df9a5b59af6158e10960616e34c3ad9ee47b39fcce2ed8bf5731b5f525000"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-cover-flow/references/generation-prompt-v1.md",
+      "字节数": 10508,
+      "SHA256": "fecaa493d8cd88db7863edcb934e8477e55c9244eff85ca06ef10b14adc75094"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-cover-flow/SKILL.md",
+      "字节数": 13760,
+      "SHA256": "4b2d59fca6bf856792638d916dfc2f9cbb041af3818c56692cc47ce800afe1db"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-library/references/capsule-opening-prompt.md",
+      "字节数": 15038,
+      "SHA256": "916db2fd1b9042d3b5ca38d34606a003e82765b97df3838f856036deae678ef0"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-library/references/observed-mechanisms.md",
+      "字节数": 4034,
+      "SHA256": "f1320ddecba49c2496e232ffa81f164a2d52b6f634642b2d613eec3f60b8bc65"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-library/references/r92-family-index.md",
+      "字节数": 2806,
+      "SHA256": "30d4fad41f41f7613540bd8d3c90f5d5c42086ba282b804c7245912d9fcd81a2"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-library/references/timing-continuity.md",
+      "字节数": 7589,
+      "SHA256": "1d1e54839f29b1acf98cea497003447596f16fa0d917f548469a1cdbe707172c"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-library/SKILL.md",
+      "字节数": 13952,
+      "SHA256": "3dac1cb000f9ec10bc07815f850956b7ce828dfc802923d2953e1bd64e66e932"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/agents/openai.yaml",
+      "字节数": 173,
+      "SHA256": "2d0b89fc9939bb180724c8c2db0c74b9eb76786c74706b6ecb301407d6af04b3"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/attribution-original.json",
+      "字节数": 6569,
+      "SHA256": "5ecfe63377bf8c3638f01a7c41e6dd79ff1e0469f758ddabdec048059548cd4e"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/original-request.txt",
+      "字节数": 28986,
+      "SHA256": "bcd9737d119d4b25d37fe1be3d53368ee4ff7c0b5a6abaaba1cd556d6a8740cc"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/production-records/production-run-production_run_62f2ab8b-675e-4b90-98e8-fcaa37e839b6.json",
+      "字节数": 7174,
+      "SHA256": "b747e28b14592abc147d7d4d181b36020b9fd432915e4fb81f0e561620c18d3e"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/production-records/production-run-production_run_a794c0cf-37a6-433d-adeb-dc68d61ad709.json",
+      "字节数": 4535,
+      "SHA256": "986fa7c405b6926823c9ebbaf1db89f8e49bf37b562b9265d8b1c0ea9b31f5fc"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_25894360-a15a-4f1e-9f32-1d7c87299c84/manifest.json",
+      "字节数": 22952,
+      "SHA256": "37e42a8284283732544a7f8c6b0606d00e11f67dcb93ec2cd662b3ac662047b1"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_25894360-a15a-4f1e-9f32-1d7c87299c84/source.json",
+      "字节数": 8185,
+      "SHA256": "45ce4a07bbcd8b3d2ddbec2017256851aa9a3e185469cbda6deb383f0b0bd211"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_25894360-a15a-4f1e-9f32-1d7c87299c84/source.tsx",
+      "字节数": 6767,
+      "SHA256": "8bd2edacd34641289301a8530f0014c9bd622e1fb1a7224485b7ead515c083a6"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_502ed314-f65c-41c9-a2eb-ef2c37992952/manifest.json",
+      "字节数": 24356,
+      "SHA256": "b9391f4c911c8700f0009ac7d43426123120fbe6b0964c4260c70a18c6a63486"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_502ed314-f65c-41c9-a2eb-ef2c37992952/source.json",
+      "字节数": 2487,
+      "SHA256": "b21f66c0d6ab46fd21ad0fa310c421e0ed8fa4e86c47c0063129055de26dbe79"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_502ed314-f65c-41c9-a2eb-ef2c37992952/source.tsx",
+      "字节数": 1556,
+      "SHA256": "204b7b9e4fa4b520fb10dd63396e48720bd76ab17f69807649dd497641f523ea"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_74a1aaeb-cf26-4484-ac2c-04a518ebc443/manifest.json",
+      "字节数": 20064,
+      "SHA256": "e8be6318020f628974bbd35b6ed29c1ef7dbc948061b9b2f9173e1bebf6b47b0"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_74a1aaeb-cf26-4484-ac2c-04a518ebc443/source.json",
+      "字节数": 23036,
+      "SHA256": "c8e1dc99d3807d1e8d3bf29009651f5e0569ec13f0fb607f3abeba2c3ece8c11"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_74a1aaeb-cf26-4484-ac2c-04a518ebc443/source.tsx",
+      "字节数": 19853,
+      "SHA256": "31208aeb208d528cd9dcd3bc6fa0bf9fb96ecde41370bcf0aa197bb1291d9aa9"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_9a7886dd-6277-469a-8a7d-c7bcf85f1c24/manifest.json",
+      "字节数": 25517,
+      "SHA256": "51cda0b34caea14faab2bf0df3e4b166640a4a8aba670443a01ac1bb923d4faf"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_9a7886dd-6277-469a-8a7d-c7bcf85f1c24/source.json",
+      "字节数": 8651,
+      "SHA256": "a14a3eb5ec0694fecd48f1da6e118afc156d8ed24d18ede64708e6ad06e337c6"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_9a7886dd-6277-469a-8a7d-c7bcf85f1c24/source.tsx",
+      "字节数": 6535,
+      "SHA256": "db38b4486a92c329992c5740cace905d527bb121f4435ffe32bd332471f38b1d"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_c97c8799-603c-4415-b8d5-03c1121ceb89/manifest.json",
+      "字节数": 19550,
+      "SHA256": "225197a6f15fa51a8c8f17fa8acc2f205895c0038afb29d0178646e825aa290e"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_c97c8799-603c-4415-b8d5-03c1121ceb89/source.json",
+      "字节数": 2487,
+      "SHA256": "c8e61fd147737f738fcafab504ba57a0c0ba1e4f1bff6c44e4119ad62fcfca42"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_c97c8799-603c-4415-b8d5-03c1121ceb89/source.tsx",
+      "字节数": 1556,
+      "SHA256": "204b7b9e4fa4b520fb10dd63396e48720bd76ab17f69807649dd497641f523ea"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_cbcaaf6f-8c3b-4f09-b4c8-d77838304452/manifest.json",
+      "字节数": 17690,
+      "SHA256": "364ff211d223066b7447f741e4733b9470eb3276771ce9f5e3eba08c1fb0238f"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_cbcaaf6f-8c3b-4f09-b4c8-d77838304452/source.json",
+      "字节数": 2480,
+      "SHA256": "76a13615151c504def828b0679636c6d2dc45ab03d10604fcb7b1cc7fee3559d"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_cbcaaf6f-8c3b-4f09-b4c8-d77838304452/source.tsx",
+      "字节数": 1556,
+      "SHA256": "204b7b9e4fa4b520fb10dd63396e48720bd76ab17f69807649dd497641f523ea"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_e43b2b2a-a05e-4cfb-8c05-a090c7661b81/manifest.json",
+      "字节数": 21918,
+      "SHA256": "74b4635dfd48302ec6cf861be076b8d7cb9e470a5e5c29a04e3dce256e4a798c"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_e43b2b2a-a05e-4cfb-8c05-a090c7661b81/source.json",
+      "字节数": 2485,
+      "SHA256": "6951228bc75bcbe100ec23087cb1534d8e86d72aff7f4ad1f7a83429d79f4195"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_e43b2b2a-a05e-4cfb-8c05-a090c7661b81/source.tsx",
+      "字节数": 1556,
+      "SHA256": "204b7b9e4fa4b520fb10dd63396e48720bd76ab17f69807649dd497641f523ea"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_fee74586-395d-46bd-a31b-581e8bcbd2f3/manifest.json",
+      "字节数": 18558,
+      "SHA256": "841d40fee15a6ce0eb0c453f66e97cb3cc077e20bb66490df2f97c2a4a70dd9f"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_fee74586-395d-46bd-a31b-581e8bcbd2f3/source.json",
+      "字节数": 8271,
+      "SHA256": "f21320116ce4c64077de2c247d76294cca3ef6a1cdaaa9f71512b7b01ec2566d"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_fee74586-395d-46bd-a31b-581e8bcbd2f3/source.tsx",
+      "字节数": 6767,
+      "SHA256": "8bd2edacd34641289301a8530f0014c9bd622e1fb1a7224485b7ead515c083a6"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/case-record.json",
+      "字节数": 2052,
+      "SHA256": "372276c56d38bee75cc0ce2f5ae420683956220b6833a5e8965ffc2e4cf9d2e9"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/references/generation-prompt-v1.md",
+      "字节数": 2703,
+      "SHA256": "bf51a61a74595406faa143721483955afa839bc8720c2e86850743b3b8b486be"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/references/implementation-notes.md",
+      "字节数": 1804,
+      "SHA256": "48e1951f698e295b5b25e10bca616be7c123fc2f810cfa11cdc0477ed7c95d82"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-mixed-scene-relay/SKILL.md",
+      "字节数": 3212,
+      "SHA256": "1e538ba6b970b5959221b8ad4bd491e4a069e5e7648d19d2ceb4d5639241f905"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-object-type-relay/agents/openai.yaml",
+      "字节数": 188,
+      "SHA256": "b680096889ef743b8680519d0c2103561fa8fef61ff6a0be9b5a36b782718ac7"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-object-type-relay/case-record.json",
+      "字节数": 1927,
+      "SHA256": "c361d47a4e6132c8a17d11bcd77f3fc2f7e41ad075e2b85e0041d09231fe1415"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-object-type-relay/references/generation-prompt-v1.md",
+      "字节数": 2350,
+      "SHA256": "5d5ed285c4615391328e5b058c669154d3ebd88e76578ab8084d51c0f3c3bf98"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-object-type-relay/references/implementation-notes.md",
+      "字节数": 1691,
+      "SHA256": "07fff826adf300e029ab035724dc8fbff65fa6eaa62f393f53ef24ccb92851fe"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-object-type-relay/SKILL.md",
+      "字节数": 2659,
+      "SHA256": "a3cae57af44d3c8c885c1956e83e0e0720b8fc484a85f8b3c884648e46a03904"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-occlusion-condition-reveal/agents/openai.yaml",
+      "字节数": 188,
+      "SHA256": "0dc3a89c5a3056622dd088276219335f64bf39da63f8265a7703ff1add9ff2c1"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-occlusion-condition-reveal/case-record.json",
+      "字节数": 1946,
+      "SHA256": "54685f1afec1a50465c63450d15cc4a09405d27bd402049570301c190666c9b5"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-occlusion-condition-reveal/references/generation-prompt-v1.md",
+      "字节数": 2112,
+      "SHA256": "ab83d0cf3035ed2b0e6f739887fcc591d2ed6030ddde6814e6ee82a15c10e892"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-occlusion-condition-reveal/references/implementation-notes.md",
+      "字节数": 1726,
+      "SHA256": "71ab438e25b740beffcd3b460408bd15f497793c5473772f1af51c09d1d057a3"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-occlusion-condition-reveal/SKILL.md",
+      "字节数": 2887,
+      "SHA256": "4187638ac9a9a57bf148f7f8f4c219000235661266a5d4c62f4c705103e6c6f1"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-product-fan/assets/before-motion.tsx",
+      "字节数": 7045,
+      "SHA256": "f23a3cd67aab6dec76157da9c96ce70735d6b4981fc33fe32a6eb0eb05810710"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-product-fan/assets/fixture.json",
+      "字节数": 1098,
+      "SHA256": "0457e844dab37d116decf6d6e865078cae005d14d7458f3063c5192fbfa74b2f"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-product-fan/assets/integrity.json",
+      "字节数": 942,
+      "SHA256": "f399cfea5d741b18ba7a01fe21faa5c7cb448b860e5a4f92018a50dd28f4bd1f"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-product-fan/assets/motion.tsx",
+      "字节数": 7068,
+      "SHA256": "1bdc8c5bfb8944685b183146581b2878cdd17fbe4f5b88636cd3e9225d208288"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-product-fan/references/generation-prompt-v1.md",
+      "字节数": 11282,
+      "SHA256": "99e04e545fd89c76b962da3e39513255ca6c1fb8216ccc35ae507baf249a16fe"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-product-fan/SKILL.md",
+      "字节数": 13184,
+      "SHA256": "7771e0c1f87cd4ed497cdd343d9aaf286ed7d03dddb6d8c37a8a9aed3f50b359"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-relation-unfold/agents/openai.yaml",
+      "字节数": 173,
+      "SHA256": "5e332d6fde3ed7f1760bda1b1844ac682663183defcc640bcf8f5b2ed8b6778f"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-relation-unfold/case-record.json",
+      "字节数": 1917,
+      "SHA256": "36999ca15c5bf424471d730e0172ffa9102fa7e703899bc8594c0cc3c664cd08"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-relation-unfold/references/generation-prompt-v1.md",
+      "字节数": 2009,
+      "SHA256": "0ce850eea730a6c2312ef3d57b81587d448954fe480228db62b70ad0b505d5c6"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-relation-unfold/references/implementation-notes.md",
+      "字节数": 1683,
+      "SHA256": "f541cf98feaca7f96024f20fb27569fa69fcdba2cdf5ae80c5966f4de984d326"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-relation-unfold/SKILL.md",
+      "字节数": 2617,
+      "SHA256": "7da33e569ce37872f312ed113202ae7e26cf1c14ed6c4162626fee3f79c533f7"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-sim-paper/assets/before-motion.tsx",
+      "字节数": 10733,
+      "SHA256": "f3a177938e482365a0109c9199320cf5331ba1a8c40c134240af3b60af1c00f4"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-sim-paper/assets/fixture.json",
+      "字节数": 2088,
+      "SHA256": "80daab4acdafaa140f741748a96aef83ea97ca58f70328c2222174682a75f44b"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-sim-paper/assets/integrity.json",
+      "字节数": 1208,
+      "SHA256": "3f2075f348980aec43fe11b37ae67eee4da732a8b0091c5924473e886cbb50aa"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-sim-paper/assets/motion.tsx",
+      "字节数": 10656,
+      "SHA256": "87bac7c0afc8d819515d80f497a077530a5966e05b277f57ba29ea6e1228f0ad"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-sim-paper/references/generation-prompt-v1.md",
+      "字节数": 13315,
+      "SHA256": "b801a861fb6b5ab61c762f0e7e4bf67a08602c77ba36e2790488e1d2c66bc01b"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-sim-paper/SKILL.md",
+      "字节数": 16183,
+      "SHA256": "1fb7fb5599d655b99219043889e1f81b02e6c29f750cd1e4912249c392cb8aa4"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-smooth-relay/assets/before-clock.tsx",
+      "字节数": 5822,
+      "SHA256": "ed7f1ba39d862f32c758fc255fe14cf5bef724c188a11794a7c80f3a9b7190e2"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-smooth-relay/assets/before-qci.tsx",
+      "字节数": 5822,
+      "SHA256": "ed7f1ba39d862f32c758fc255fe14cf5bef724c188a11794a7c80f3a9b7190e2"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-smooth-relay/assets/before-sim.tsx",
+      "字节数": 4617,
+      "SHA256": "c4d445dcc59475b73179dd9ed4503d696d90e4d6cd73aa41963850c3f7506c21"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-smooth-relay/assets/clock.tsx",
+      "字节数": 5913,
+      "SHA256": "3847510279b25971575a73b59008c053bf1624ff2e9ed9d290f5b4a813664b25"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-smooth-relay/assets/fixture.json",
+      "字节数": 2148,
+      "SHA256": "9b05ed1e14f66870e8d69a088d1fafda1297a138ced62e2be63c31b8aa7ae82f"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-smooth-relay/assets/integrity.json",
+      "字节数": 1622,
+      "SHA256": "473551f84a32cbe2e5b54dc9ef1469e5488b02efe2c9fb7b4ca818c6ad4d1c14"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-smooth-relay/assets/qci.tsx",
+      "字节数": 5913,
+      "SHA256": "3847510279b25971575a73b59008c053bf1624ff2e9ed9d290f5b4a813664b25"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-smooth-relay/assets/sim.tsx",
+      "字节数": 4699,
+      "SHA256": "4d51d4f319cca670fe1e1d9aca0d0e28fa7bc19ac37af6b56ba6e44d88c1a175"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-smooth-relay/references/generation-prompt-v1.md",
+      "字节数": 14076,
+      "SHA256": "53ef04f0f711dbf591a28045d3e7dedc64216313ec43cf26cd717e52a9aba75a"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-smooth-relay/SKILL.md",
+      "字节数": 15987,
+      "SHA256": "3c78cce26708f90b0b2ed783d8cb319f6c75af6565a47ee6f13752ba33e98b25"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-ticket-phone/assets/fixture.json",
+      "字节数": 1056,
+      "SHA256": "e5b0289a00c3b3d9403b84c09f1bb65ae008ec2796820791975d79919460e48e"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-ticket-phone/assets/integrity.json",
+      "字节数": 763,
+      "SHA256": "98547009c3efae774e8acb35ddb7f2dc601e4edaab193fa4c3c9a26b6d8600f3"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-ticket-phone/assets/motion.tsx",
+      "字节数": 9529,
+      "SHA256": "9ed8cbbac453b9cc2950afe49bd241e7df9e25ba81dafede871e783b382c4dc4"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-ticket-phone/references/generation-prompt-v1.md",
+      "字节数": 10446,
+      "SHA256": "b60eb9fb94ed81a4fefc0df69aec50f177b04029e1a364bc56e02ea057e59235"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/motion-case-ticket-phone/SKILL.md",
+      "字节数": 14863,
+      "SHA256": "2979162b3f52d2ed3c19ee0dcebedc1b40c2f934a13a6d43022be4cafae6bb07"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/narration-writing/references/browser-investigation-example.md",
+      "字节数": 10917,
+      "SHA256": "e3aeead234580dc449cb954c033903abf562d0f96a0e7f6749100aae248ce889"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/narration-writing/references/daily-observation-example.md",
+      "字节数": 1800,
+      "SHA256": "2a31d850bc458a9fa42f49c2c29b2bc66f951adc214b4895a64f4ed64ec5fdd4"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/narration-writing/references/writing-methods.md",
+      "字节数": 11358,
+      "SHA256": "8d64db321b0cbd12d9e23769af00e6f5256d8d97aaa7aee3fb722400b02a0984"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/narration-writing/SKILL.md",
+      "字节数": 10354,
+      "SHA256": "d50c8a0c05cc62c71774f00c73cac34f4d41872de8ce554bf7d183d9a114d255"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/presenter-motion-director/references/presenter-editing-grammar.md",
+      "字节数": 11971,
+      "SHA256": "2c1a7639257e0aee7bd144dbf5e5af3c2c43e23e21a524a934931419d8b34719"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/presenter-motion-director/references/talking-head-casebook.md",
+      "字节数": 5756,
+      "SHA256": "133042d9ad0b8bf48137a2de8b903ba8b09ba173c7213b6c12319c0071901eb6"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/presenter-motion-director/SKILL.md",
+      "字节数": 37095,
+      "SHA256": "07f90ce93e197bfd188eaf3e551b77c0eb632a43bb81015bab6a33eb2608dde9"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/production-coordinator/SKILL.md",
+      "字节数": 21063,
+      "SHA256": "3fde7d52df69ecdd69ef9d6776ff74611a6cc781d347646e6296d4bb68d0db5a"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/production-director/references/routing-casebook.md",
+      "字节数": 3933,
+      "SHA256": "b7926b7213c1769ae2d0142d76f1e4306f48b436e4bc123cd712f5badd833a61"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/production-director/SKILL.md",
+      "字节数": 31058,
+      "SHA256": "5787988db5a5ff8d4f428dbb7894ecdc996996f86699c5de73081b7a7a597fd8"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/project-basics/SKILL.md",
+      "字节数": 21526,
+      "SHA256": "2bf37ad17ba123e4be890be2f641074a42b630a8b45d454735a9216a3e9e4f8d"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/quality-verification/references/mode-specific-rubrics.md",
+      "字节数": 4166,
+      "SHA256": "4c81bb3a7ac9ddb95cc64957928a306d4925ac90165e3e86e5b76ae370510a6e"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/quality-verification/SKILL.md",
+      "字节数": 28149,
+      "SHA256": "d7583c1272ff2fb03fba15cce2b1a87eb1188b4483e38958c72d91b0021fe45c"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/remotion-production/references/motion-graphics-casebook.md",
+      "字节数": 24844,
+      "SHA256": "ba42ccc4d5d37a186bd380641c49eb59d1d1a0f409bb534f3fc82b46bbdbbb9c"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/remotion-production/references/remotion-component-contract.md",
+      "字节数": 7919,
+      "SHA256": "0d0213abc3fae8e8906efd00720b655c30498a66c4218ad3990d4408391f02af"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/remotion-production/references/scene-art-and-motion.md",
+      "字节数": 5068,
+      "SHA256": "cf13d7c5f5624d2e3ee4cf3333c203f8cd6a527b16262d14d275ea6e32479c72"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/remotion-production/SKILL.md",
+      "字节数": 63261,
+      "SHA256": "6d67801c36a7bc3201ea72223ea708bcedc4173e0e0d03bc44735a9056d6633d"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/scene-planning/SKILL.md",
+      "字节数": 16660,
+      "SHA256": "e2a88dff62b61af264fb97749b54227587f2b733858de9d9d963094ffd826243"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/semantic-continuity/SKILL.md",
+      "字节数": 16046,
+      "SHA256": "4c3dd9d8686b84b9db187dce1378734fd0260c6dbc961dad8b78d27fa02b90aa"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/sound-asset-sourcing/SKILL.md",
+      "字节数": 8541,
+      "SHA256": "c719927164e66e3ac9f42fb0f7f66db729ea3239a62dde532f65b8e823056aac"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/transcription/SKILL.md",
+      "字节数": 5180,
+      "SHA256": "687475faf3a031db6bc2da7f8776a1121a92ff1a511c108f10944cd4ae29a296"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/visual-asset-sourcing/references/provider-and-rights-casebook.md",
+      "字节数": 3227,
+      "SHA256": "b30ae99020d933f42f2f67fb9c79c4a1574d3a7c02d6713106b82c952df5be28"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/visual-asset-sourcing/references/research-and-footage-example.md",
+      "字节数": 3040,
+      "SHA256": "354497badcd854a911499de1455645b9338e6e1d11fd7e62e6696fa88a281ab0"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/visual-asset-sourcing/SKILL.md",
+      "字节数": 28470,
+      "SHA256": "f8019ac6794b0e7ef177b2e15b096431db3219be913818c0089ab0507d005245"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/visual-explainer-director/references/explainer-scene-grammar-casebook.md",
+      "字节数": 3620,
+      "SHA256": "83c14e2eaadf0bd9a967e473eb36b831921b1c77d69d07653d625fabb55a321f"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/visual-explainer-director/SKILL.md",
+      "字节数": 22610,
+      "SHA256": "4a61ea9ecc34f14b41ef00200e23b5671a076419a1a02a5f46839272f329d103"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/visual-treatment-planning/SKILL.md",
+      "字节数": 21818,
+      "SHA256": "47ab9db9cd2df58b4b241fc38580e975c90c5290b6a88fcdbf743fb38c4168bb"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/vlog-director/references/vlog-event-casebook.md",
+      "字节数": 2598,
+      "SHA256": "75035c9b82cc5e531d617747ffa9071bd85aac8f25f63ab7047ec4f7b3f466aa"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/vlog-director/SKILL.md",
+      "字节数": 16247,
+      "SHA256": "c137f24eb4264bba742bc07bc4bc67973b854842a96a88fb0980e94b09251d28"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/voice-production/SKILL.md",
+      "字节数": 11486,
+      "SHA256": "1fff68683bfc320eef1069881cd84d8ab216e0d7507eb885d1339f40ca64d00e"
+    },
+    {
+      "路径": "02_平台代码/.agents/skills/web-editor-operator/SKILL.md",
+      "字节数": 8884,
+      "SHA256": "d7f77acc1cec8e5914edb4c5495fb88822e3c368e2ad71003281cf81f807ddf8"
+    },
+    {
+      "路径": "02_平台代码/.github/workflows/ci.yml",
+      "字节数": 533,
+      "SHA256": "62806758fe1b3a905458a667c537fc0bd65472acdaac96a979b6063f10cd1b4c"
+    },
+    {
+      "路径": "02_平台代码/.gitignore",
+      "字节数": 615,
+      "SHA256": "a970c0ca2d7519b136de624558ced7286a5b25490b8ca9905e61a4bca97b72bb"
+    },
+    {
+      "路径": "02_平台代码/AGENTS.md",
+      "字节数": 6985,
+      "SHA256": "791d6821d830ed67994f61659abb534fa9c1e023094cb3bf6e1beed3beff19fc"
+    },
+    {
+      "路径": "02_平台代码/apps/job-worker/src/avatar-generation.ts",
+      "字节数": 31341,
+      "SHA256": "3199260160824fbad145f0fe12a1d7a9580d1dbfc4559cd5f8ba90f22498f0c5"
+    },
+    {
+      "路径": "02_平台代码/apps/job-worker/src/dialogue-processing.ts",
+      "字节数": 14184,
+      "SHA256": "18be982d65105e671db0eaf52a0f8236e111d2d6a54306c6eb05c7888da5c49c"
+    },
+    {
+      "路径": "02_平台代码/apps/job-worker/src/index.ts",
+      "字节数": 16205,
+      "SHA256": "5c0b20dd24912a65a4c39b02d662e6de3a8d85521709239effcc37b944b3e712"
+    },
+    {
+      "路径": "02_平台代码/apps/job-worker/src/media-understanding.ts",
+      "字节数": 23720,
+      "SHA256": "c20fd3dcfe5fc5ee17709a7b28d488e50dc0425e70f1cb217bc8209afc237388"
+    },
+    {
+      "路径": "02_平台代码/apps/job-worker/src/model-http.ts",
+      "字节数": 7132,
+      "SHA256": "2ac29c1acb5678f8c9d815e8ef5b5edc2c9c3fe081c791826abc466a27028d07"
+    },
+    {
+      "路径": "02_平台代码/apps/job-worker/src/multicam-sync.ts",
+      "字节数": 45304,
+      "SHA256": "d97d21a7f6e29ccc981319498811ec3e94eb40e3b2b2507aea28f02cce7ac3a4"
+    },
+    {
+      "路径": "02_平台代码/apps/job-worker/src/music-generation.ts",
+      "字节数": 23134,
+      "SHA256": "a473243d5a8ff774a8e0604defd4ec1bc8a446106bf8e6a56ee00880a104d494"
+    },
+    {
+      "路径": "02_平台代码/apps/job-worker/src/sound-ranking.ts",
+      "字节数": 3069,
+      "SHA256": "d19d54942744a10493583897bcda784bb3015c8d5ec25c96e529252a847269d6"
+    },
+    {
+      "路径": "02_平台代码/apps/job-worker/src/source-material-acquisition.ts",
+      "字节数": 9300,
+      "SHA256": "d9e1823df9fa53978d2addfc769ca3718346c56c76d10e79c61cc46787499c4c"
+    },
+    {
+      "路径": "02_平台代码/apps/job-worker/src/speech-alignment.ts",
+      "字节数": 26031,
+      "SHA256": "7ae41c5b8a842362d0e902a5c8d836d850156a670abdcbefe054b641a037a65d"
+    },
+    {
+      "路径": "02_平台代码/apps/job-worker/src/video-generation.ts",
+      "字节数": 41989,
+      "SHA256": "b5832e0274dc9cce028889f082c3e7a0901bf5633195dfa60a6fdc1857f85af3"
+    },
+    {
+      "路径": "02_平台代码/apps/job-worker/src/vlog-analysis.ts",
+      "字节数": 5957,
+      "SHA256": "038ac818cce53a08ac1e6497fabc9fa87e861d274ed0d96b25022272ede2911f"
+    },
+    {
+      "路径": "02_平台代码/apps/render-worker/src/audio-mix-gain.ts",
+      "字节数": 1133,
+      "SHA256": "7374b152e02a5a6d796221bef1f4e829fe41505a4a334ee5ddf2516fbf351f2f"
+    },
+    {
+      "路径": "02_平台代码/apps/render-worker/src/exporter.ts",
+      "字节数": 38128,
+      "SHA256": "4ec52ab03f321136e57446e9113f94622f85090882183dd1b12a6ae4d4e4a23a"
+    },
+    {
+      "路径": "02_平台代码/apps/render-worker/src/index.ts",
+      "字节数": 2885,
+      "SHA256": "b9a7bf0aae5a0e881eeb3c0c1e3d34d52ed11f0de5737f2f9f7c448817e85a03"
+    },
+    {
+      "路径": "02_平台代码/apps/render-worker/src/motion-determinism.ts",
+      "字节数": 5667,
+      "SHA256": "acf35340cd67728d9bc7286572122f3862e0e7330923d92e83058894999253e5"
+    },
+    {
+      "路径": "02_平台代码/apps/render-worker/src/motion-job.ts",
+      "字节数": 9994,
+      "SHA256": "b6ce80e0732998c52737699132711da79be6f9b6d677c15eabac71c17ba4396c"
+    },
+    {
+      "路径": "02_平台代码/apps/render-worker/src/motion-renderer.ts",
+      "字节数": 11203,
+      "SHA256": "363de9a7f840d596d11bc5db396f90d65e5f2c50f56969ec58e326e56181cdae"
+    },
+    {
+      "路径": "02_平台代码/apps/render-worker/src/motion-video-geometry.ts",
+      "字节数": 3408,
+      "SHA256": "6acb50c13659cd43a8cf334b88315aca29bf8c378dc237a6bed08b177ca0ed0b"
+    },
+    {
+      "路径": "02_平台代码/apps/render-worker/src/motion-video.ts",
+      "字节数": 7231,
+      "SHA256": "70a0abc0405905fd03c6221f41cd7c196569a09f6bb358ffc1a64679dfef4b8b"
+    },
+    {
+      "路径": "02_平台代码/apps/render-worker/src/motion-visibility.ts",
+      "字节数": 2628,
+      "SHA256": "a65ad3702838104266309b39d811ea1b2566e1dd3d3a6d5ac95694240782d225"
+    },
+    {
+      "路径": "02_平台代码/apps/render-worker/src/navigation-recovery.ts",
+      "字节数": 827,
+      "SHA256": "4e97670dde0f167c55cf610ab154798a4b7377b4a001250f03af7983ece77ce3"
+    },
+    {
+      "路径": "02_平台代码/apps/render-worker/src/render-entry.tsx",
+      "字节数": 1151,
+      "SHA256": "5928b549a8d510b2f96a80b0fd3394458db457cf89c8c129035f2a6d71efa1c3"
+    },
+    {
+      "路径": "02_平台代码/apps/render-worker/src/render-thread-dev.mjs",
+      "字节数": 193,
+      "SHA256": "a25deacfc2a7a5f0375f77dba13788834c54ab1d2766d085f013124678b0c693"
+    },
+    {
+      "路径": "02_平台代码/apps/render-worker/src/render-thread.ts",
+      "字节数": 1454,
+      "SHA256": "d947f4fb329af950d1eae46709cdb3eb3ecf940bb6f036f758feaa124c0b6903"
+    },
+    {
+      "路径": "02_平台代码/apps/render-worker/src/sound-comparison.ts",
+      "字节数": 2884,
+      "SHA256": "8d55423d3b8d5133a2d083494e5f02f75304a309c9f076218c4f968311e8b945"
+    },
+    {
+      "路径": "02_平台代码/apps/render-worker/src/threaded-renderer.ts",
+      "字节数": 3640,
+      "SHA256": "4820cd1dd9ce726967658851a75d8ee8cf61ebccd6eb999df478755be75a487e"
+    },
+    {
+      "路径": "02_平台代码/apps/runtime/src/index.ts",
+      "字节数": 4097,
+      "SHA256": "1a0e3b15df3e208eb0b76cc75858ebad48aae9ad9ed3d3b692e6a294a1dc3cd2"
+    },
+    {
+      "路径": "02_平台代码/apps/server/src/app.ts",
+      "字节数": 75803,
+      "SHA256": "b3456bfa0c5a00f341aeab56de881e00503ad1fe3e2f9186a321599dde565005"
+    },
+    {
+      "路径": "02_平台代码/apps/server/src/asset-search-errors.ts",
+      "字节数": 932,
+      "SHA256": "afd1e93cf3d0b4f0f842d3df903d6ecb080d9298a257bc8defe96e8adc090942"
+    },
+    {
+      "路径": "02_平台代码/apps/server/src/index.ts",
+      "字节数": 287,
+      "SHA256": "6eb5625f549654d47493c09c5926727795ac4bacb9001e8f533b1f0b050efc91"
+    },
+    {
+      "路径": "02_平台代码/apps/server/src/local-sound-effects.ts",
+      "字节数": 9335,
+      "SHA256": "680e9a4159f8e4fff13013b4b7c75d81b229765b935046cb73fe2e8aeb0cf1b2"
+    },
+    {
+      "路径": "02_平台代码/apps/server/src/mcp.ts",
+      "字节数": 150637,
+      "SHA256": "fc337afd0a2b107137c44290bf922e9b5d3070ce4fa53d9b182459e0cfee7d1b"
+    },
+    {
+      "路径": "02_平台代码/apps/server/src/media-hash.ts",
+      "字节数": 438,
+      "SHA256": "fd15d137260dca93ec4b60af78cdf521b6fe3cc42315b64bf978aafb660fae5a"
+    },
+    {
+      "路径": "02_平台代码/apps/server/src/media-intelligence-tools.ts",
+      "字节数": 8720,
+      "SHA256": "88474e6218a5092ef088f596207a4777491cba5b0e165015bcdb18846266fe80"
+    },
+    {
+      "路径": "02_平台代码/apps/server/src/media-review-page.ts",
+      "字节数": 3343,
+      "SHA256": "615e50766f7b857efa4dfcd59b4fe5a434a14af396e345b6d4c03b1d75bdae53"
+    },
+    {
+      "路径": "02_平台代码/apps/server/src/motion-reference-client.ts",
+      "字节数": 1862,
+      "SHA256": "29e1b33827bd7c357ce18d5a48cef46cc158874d6bfb3248cdad6200b6fc456a"
+    },
+    {
+      "路径": "02_平台代码/apps/server/src/motion-reference.ts",
+      "字节数": 6122,
+      "SHA256": "6c5c01a4a154c18a7731411e29654744fef724ef92f3022158eb7046814ed57e"
+    },
+    {
+      "路径": "02_平台代码/apps/server/src/motion-tools.ts",
+      "字节数": 6413,
+      "SHA256": "6bd56df48e1476c9226ea2af33e5f1c2d82177c72792d1e4579140e907f1c172"
+    },
+    {
+      "路径": "02_平台代码/apps/server/src/preview-inspection.ts",
+      "字节数": 3273,
+      "SHA256": "cd2b80a2013e223fb6b53bec132d442e5548273919d9481d086d78f670f32952"
+    },
+    {
+      "路径": "02_平台代码/apps/server/src/sound-tools.ts",
+      "字节数": 11878,
+      "SHA256": "4ecadb91370416fb85a12aea6b59ae4668bc9bc2c819f17e449a7604579f2ab8"
+    },
+    {
+      "路径": "02_平台代码/apps/server/src/source-research-tools.ts",
+      "字节数": 3320,
+      "SHA256": "f997c1c46941a13a3bb52dd1203c34465e132e70575212c052375acca1157404"
+    },
+    {
+      "路径": "02_平台代码/apps/server/src/source-review.ts",
+      "字节数": 39972,
+      "SHA256": "568c6b539a4cf0635bd8f5c47dc83f598c294816faeb917540c768c1e2ee1cba"
+    },
+    {
+      "路径": "02_平台代码/apps/web/index.html",
+      "字节数": 308,
+      "SHA256": "243fb6853b15b3ff08f8607ef5be17aed2386342991fd10f29212f1aee5a065f"
+    },
+    {
+      "路径": "02_平台代码/apps/web/src/advanced-workflow-state.ts",
+      "字节数": 9261,
+      "SHA256": "70d4c45709fd85924cd80a0846084f11db1ceb8d6b0213a90c51bb6beea22f90"
+    },
+    {
+      "路径": "02_平台代码/apps/web/src/AdvancedWorkflowsPanel.tsx",
+      "字节数": 28684,
+      "SHA256": "68e1c1090616b741feea8ce810465e2ae3d3224e08490411b3d6d5423d6ffffe"
+    },
+    {
+      "路径": "02_平台代码/apps/web/src/api.ts",
+      "字节数": 14752,
+      "SHA256": "972ac63642384303eececa44332de7715fdcceb070dc2e72c9b2d35f0ba35c38"
+    },
+    {
+      "路径": "02_平台代码/apps/web/src/App.tsx",
+      "字节数": 79947,
+      "SHA256": "26c52309544052b2c227fddeb806044a844ea9c4ea1547e7eb965792940b70b3"
+    },
+    {
+      "路径": "02_平台代码/apps/web/src/main.tsx",
+      "字节数": 235,
+      "SHA256": "5d6704d12ce5b34800a378c321a58b1c1411477da21c7771e5cb49db49838cf1"
+    },
+    {
+      "路径": "02_平台代码/apps/web/src/MediaIntelligencePanel.tsx",
+      "字节数": 20069,
+      "SHA256": "bf37b6017324a1d19132ce06a32ee41cd7430c4c7a6aa1c0c3605073e6137252"
+    },
+    {
+      "路径": "02_平台代码/apps/web/src/MotionLibraryPanel.tsx",
+      "字节数": 2448,
+      "SHA256": "96d2679e19fa87adc463e8343786808ab48fab3c1b31daf4b439f22d1bbfc9f5"
+    },
+    {
+      "路径": "02_平台代码/apps/web/src/SoundLibraryPanel.tsx",
+      "字节数": 22856,
+      "SHA256": "9c7f5c51915bab3c7744348ed5379859616b2d088574f11ea44939e9ebf2040a"
+    },
+    {
+      "路径": "02_平台代码/apps/web/src/SourceReviewPanel.tsx",
+      "字节数": 16726,
+      "SHA256": "173e45f899ea15790fa66d344e2d7dc8c10a37db932ce9b2b09606b851d4054f"
+    },
+    {
+      "路径": "02_平台代码/apps/web/src/styles.css",
+      "字节数": 34199,
+      "SHA256": "8a2eef63e0fb116217504c7667eed4257b23438c56c192263ffb4f3bb514cc13"
+    },
+    {
+      "路径": "02_平台代码/apps/web/src/timeline-geometry.ts",
+      "字节数": 2075,
+      "SHA256": "e9b67fd73e68a6441c328d0dff48b47f3990f5ab02500771d92b7a15f54cf658"
+    },
+    {
+      "路径": "02_平台代码/apps/web/src/TimelineEditor.tsx",
+      "字节数": 13174,
+      "SHA256": "7a6a5401947d6c30d39e0a777559636436d51e2304b73a9766f82c1c7ee6102c"
+    },
+    {
+      "路径": "02_平台代码/apps/web/src/use-preview-input.ts",
+      "字节数": 515,
+      "SHA256": "ff5953f79afdee7a5f418317b563d786758982135edbfcf4de7284d237724469"
+    },
+    {
+      "路径": "02_平台代码/apps/web/src/useMediaTask.ts",
+      "字节数": 2465,
+      "SHA256": "50a40b45c440a87e20851da62e27c650a86271139dd4f0b09551f151c9ba43ba"
+    },
+    {
+      "路径": "02_平台代码/apps/web/src/vite-env.d.ts",
+      "字节数": 38,
+      "SHA256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5"
+    },
+    {
+      "路径": "02_平台代码/apps/web/vite.config.ts",
+      "字节数": 643,
+      "SHA256": "e7bf8d2f669550121da3546db554953629f338eafaac0afaaace52758ddec42b"
+    },
+    {
+      "路径": "02_平台代码/docs/ai_video_platform_architecture_development_plan.md",
+      "字节数": 243058,
+      "SHA256": "510247810f9e061b736c9ea747ba44fd470a2c2028bce752487785cceb677be0"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/01-产品全景与核心结论.md",
+      "字节数": 19487,
+      "SHA256": "9504c6f7bbf07c90d1276e38f55f4d8cd6e516007a54e43cbee9568c05625acc"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/02-视频类型与主时间轴规划.md",
+      "字节数": 23763,
+      "SHA256": "610f7e9cca55ae4d7332cefd93c0c7279e5b6f275266e67afe60c5f58b841dbd"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/03-从素材理解到成片的完整链路.md",
+      "字节数": 28492,
+      "SHA256": "81db96a3154c0a03eac47400ae7103c63e7bc03e7368ea500846a14fb8a117be"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/04-时间线轨道与改动联动.md",
+      "字节数": 32569,
+      "SHA256": "df6b1ced2156985e8267fb4975e0b975bfe68f99b670e62c15734b87672513c7"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/05-Script-IR与口播语义剪辑.md",
+      "字节数": 22376,
+      "SHA256": "22184c17221ba906000af7c4570f6e6c64f2f9cf14af8ca5b2e02e5427a82cb6"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/06-字幕音效背景音乐与MG动画.md",
+      "字节数": 31063,
+      "SHA256": "a075af74e58fafc991cc8f37eef9ad28669543cba79c0557add33c8ddcaa3891"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/07-MCP工具Skill与Agent如何协作.md",
+      "字节数": 21623,
+      "SHA256": "14cd159f25c229033220d0c3269c1159406599b23216ce81e363bbc04d00fe05"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/08-实测记录浏览器验证与字段样例.md",
+      "字节数": 40758,
+      "SHA256": "b64a669a0fa2832f94aa33a75455fc00093d4f2bbec1925ca04ece24f24db732"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/09-资源库下载能力与授权边界.md",
+      "字节数": 12688,
+      "SHA256": "5bb1a66ae9af56069f4605475105b819bb87a65964d65979f2e65aaa5668934f"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/10-能力边界风险与可复用设计.md",
+      "字节数": 14767,
+      "SHA256": "a3515288a90b232e5586ae5eb2827e5e41654a337a6e5a64d3e21487c9222663"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/11-Codex、ChatCut MCP 与 Web 编辑器交互链路.md",
+      "字节数": 34025,
+      "SHA256": "e9647dfb92f6242775ed9e5ac2aea4751e48e05c248e5d905655be477cdf17bd"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/12-ChatCut深度调研与架构拆解方法论.md",
+      "字节数": 23142,
+      "SHA256": "8fa7c68ddc6978e85cc69cf33cc36f935a93e9be8e25361e0821b253776c6a09"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/README.md",
+      "字节数": 10131,
+      "SHA256": "ddbc110b9ddcc4e70796616308109063489f4cb168ced641afc819f91aecef8c"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/docs/claude-code-install.md",
+      "字节数": 11276,
+      "SHA256": "fc4fc02fee1ffb911d66aa414193a5029a4ae1a1d27e1cfca5b5d054e64e5d96"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/README.md",
+      "字节数": 3483,
+      "SHA256": "ffc6f994ca4682647b4dceeca726b19c3f447255af720084b538344876bb776a"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/asset-import/SKILL.md",
+      "字节数": 2227,
+      "SHA256": "a3f0528a902b77764a5dcaa8314bd8c0613288fd9a2bab3cda1fcbc674f11b08"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/chatcut-plugin-basics/SKILL.md",
+      "字节数": 27212,
+      "SHA256": "f9e10207cd6c432a07efc07038844d7b0de0e3277719780983fbf2e31af00d00"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/create-motion-graphics/SKILL.md",
+      "字节数": 27034,
+      "SHA256": "9f6ae07ab4a0a9e5bbf232bba66208b49867801746824b31d2bd15b314dc2662"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/export/SKILL.md",
+      "字节数": 1611,
+      "SHA256": "9d333b227e6aaf270f4179f25d9e3d7ee2634b8c48411098fb58b99b444db0fa"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/known-errors/SKILL.md",
+      "字节数": 2159,
+      "SHA256": "375faffa859bee401947764728352fabc3620099ca8ed82f0053899be32475d7"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/multicam-sync/SKILL.md",
+      "字节数": 16017,
+      "SHA256": "edb267bce5bcb52fca382a246a3c10ece7e5e49acd13670f2da78db837a14300"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/music/SKILL.md",
+      "字节数": 1954,
+      "SHA256": "fdf18e09eafbbcbf6b5e8cf8f9a47182813a8311087243078c44f25da315cc3c"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/product-help/references/credits-and-plans.md",
+      "字节数": 7609,
+      "SHA256": "722f2c9a013c633c41f6ecb7133b7376ac77cf2041128273a289805d83dcb563"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/product-help/references/desktop-and-agent-plugin.md",
+      "字节数": 2220,
+      "SHA256": "891c289b2ddd786e3f08431bc3e43944e6effa954a9ddb9ffe0123ae775ffbdd"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/product-help/references/ui-and-features.md",
+      "字节数": 8898,
+      "SHA256": "69f197c3536c7718f73fee6214c48a276206eeacd316693a75ce627744181018"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/product-help/SKILL.md",
+      "字节数": 4941,
+      "SHA256": "db9755465ba54762735a0f5a33f0635691aed150b37d1b7a7a0f25dc9b7586d7"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/shader-gen/examples/cube-rotate.md",
+      "字节数": 2228,
+      "SHA256": "0f6772def397a4a8a7d13d1ad74c5e0a47d605a3251ef52fa937df4bf8328198"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/shader-gen/examples/door-open.md",
+      "字节数": 4183,
+      "SHA256": "4bf105078bb0df509076b3b20af03f1078693bd11e0322ad6149ecbb1a050cc5"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/shader-gen/examples/page-curl.md",
+      "字节数": 4071,
+      "SHA256": "4c10430138298be899aec7b3e2f7815a776536080a5a98dedf60a57de74ef55c"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/shader-gen/references/design-principles.md",
+      "字节数": 12560,
+      "SHA256": "8a2c42a365ecaa39353dd24547080971be7e02d91efc87c58b36e36d5d19ed47"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/shader-gen/references/property-changes.md",
+      "字节数": 4539,
+      "SHA256": "34372fc1a3578afbf4aab8cbe0c89a72ceebae418ca35b027dd28e973220dfa0"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/shader-gen/SKILL.md",
+      "字节数": 13706,
+      "SHA256": "5446aeacf7c37767e74fd28213c0fa5123158f5b15d00e317b19da12e0eb25d0"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/talking-head-guide/references/audio-and-music.md",
+      "字节数": 5635,
+      "SHA256": "4cf83df1a40c6d0d83d714f3c85142c2affc9ea0c20ce54119956c89f22d702a"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/talking-head-guide/references/b-roll.md",
+      "字节数": 5796,
+      "SHA256": "5563888ef864d8a6c2021d42b04d1704d9beb79126b504aadf2f6aea8ebe5328"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/talking-head-guide/references/captions.md",
+      "字节数": 4408,
+      "SHA256": "799eec55a77ff32bbd9bf152bbe6a2588f3cb523af777a2b3c92a3a1c74c9b58"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/talking-head-guide/references/motion-graphics.md",
+      "字节数": 15475,
+      "SHA256": "092b971316ba90163cd76c0e258ef5d23c31bebde55065e05815522c77c41ab5"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/talking-head-guide/references/multicam.md",
+      "字节数": 1277,
+      "SHA256": "11a7d400105584d693c969b8acd256d115e9fca1881eb16cc7b1a03a89f7d4de"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/talking-head-guide/references/other-a-roll-editing-scenarios.md",
+      "字节数": 4755,
+      "SHA256": "5bc7988d9c4582fa9fd99469a9bcc50110f0c54768d9d553394e4c25a91ad966"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/talking-head-guide/SKILL.md",
+      "字节数": 21287,
+      "SHA256": "e559dd73a5149cf7e32c2a221f26173a7ee23248c7c3baf9a557a39f385ffea7"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/transcription/SKILL.md",
+      "字节数": 1671,
+      "SHA256": "4c3facdd754db1ad7ec4fe63db716797bf98020898a2de0c6dfb5f507dc5c90f"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/verification/SKILL.md",
+      "字节数": 1364,
+      "SHA256": "df2140ab9ac318eaa456649ebb9044d499ce2cdbbc9e1ef0589171f9149dcc88"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/video-gen/references/kling.md",
+      "字节数": 12003,
+      "SHA256": "16d66932c7f2f6c732e0a182d0b7726d22ed601b92ffc01473855f46f047c7f8"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/video-gen/references/omni.md",
+      "字节数": 10120,
+      "SHA256": "3b4896159518552e12c7d183b8bb8d8a232f2ecb96423da4c6aac99983cc820a"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/video-gen/references/seedance2.md",
+      "字节数": 19041,
+      "SHA256": "f692c1ac042aa351aecc8777e3473cc58905c0ca41f22cd9e2ff06feca73137b"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/video-gen/references/seedance25.md",
+      "字节数": 20392,
+      "SHA256": "80ed77f3dc4d32a6945dc129efd39be08a08221af5b0daf9597b3568acd2ea06"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/video-gen/SKILL.md",
+      "字节数": 20428,
+      "SHA256": "ad8e8caff29ff7a48fe7cd0ed634df5bc8b0678dff2abebf7411b8393d304a51"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/voice/references/video-sync.md",
+      "字节数": 7419,
+      "SHA256": "9f78ab8e58a28d6ccd94142901e1a69265977e6fd68c5439317373b85b831562"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/voice/references/voices.md",
+      "字节数": 11111,
+      "SHA256": "02455101adaf350a9da3935605775b01a58790b4cb1464fd996298fce2f0b4e7"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/voice/SKILL.md",
+      "字节数": 42038,
+      "SHA256": "75d8aff7d074ff5b78226c01f3d36eded52e4ca4cdde51f661cc3538d8f71b05"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/skills/widget-forms/SKILL.md",
+      "字节数": 3814,
+      "SHA256": "4d7e290bbf765d605eb94f907309434d5e0d566ec2688a19ac4de058acd14a63"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/官方插件README.md",
+      "字节数": 2202,
+      "SHA256": "05d024ea695247d22287c5a75e4610a3872e15513a804168f4da8c337ecc662c"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/官方Skill与插件译文/插件元信息.md",
+      "字节数": 1683,
+      "SHA256": "dabbc80a5f42055a0983168bd29efa36c81b0767ca7d250fb99cad13ca1b7ce5"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/附录A-58个MCP工具职责与调用关系.md",
+      "字节数": 20043,
+      "SHA256": "fe600b8f2705113f30b9624762b4eeb8304947d2c4f303cafd7ea5ea9806548a"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/附录B-待验证能力与后续实验清单.md",
+      "字节数": 15378,
+      "SHA256": "870c91e2ab403bf9d76465f8f66efc40f2afa764d1c888144733e62748775a4d"
+    },
+    {
+      "路径": "02_平台代码/docs/chatcut视频剪辑工具拆解/附录C-官方插件包与运行时对照.md",
+      "字节数": 7857,
+      "SHA256": "7dc55e61cbb5d1dbd2d0e9065381a3364d67a62e2432318277c7d043a15e1e6c"
+    },
+    {
+      "路径": "02_平台代码/docs/comfyui模型接入.md",
+      "字节数": 16801,
+      "SHA256": "4e500f3c71c6eb8b9a35067138e0754ff6c341714eb1179d01b64c374b97fb4a"
+    },
+    {
+      "路径": "02_平台代码/docs/skills-v5/evals/01_STATIC_ROUTE_AND_STRUCTURE.md",
+      "字节数": 1510,
+      "SHA256": "3dd4b8499b5d40e6636c211e0d520a76196ca376bccb7e2c68d03310957c99a0"
+    },
+    {
+      "路径": "02_平台代码/docs/skills-v5/evals/02_SPECIALIST_HANDOFF_EVALS.md",
+      "字节数": 2472,
+      "SHA256": "4718bff27c839b7de64fffed957d47eddffd8114d8ffc284ea767d72a758ba7b"
+    },
+    {
+      "路径": "02_平台代码/docs/skills-v5/evals/03_PRESENTER_REAL_E2E.md",
+      "字节数": 3152,
+      "SHA256": "7db0abbdf78c248583f87874c8b6cde2b26ebb3ab6ffdfe635dcaa1bbd693594"
+    },
+    {
+      "路径": "02_平台代码/docs/skills-v5/evals/04_REMOTION_PRODUCTION_EVAL.md",
+      "字节数": 2728,
+      "SHA256": "9f01483f2ab063f573dee91b6d07a87cb977cc150502bc5b07762c4b787ae795"
+    },
+    {
+      "路径": "02_平台代码/docs/skills-v5/evals/05_REVIEW_CHECKLIST.md",
+      "字节数": 1894,
+      "SHA256": "777183d99790b4503dfed515050bc62d7f370a681f5cc924582a5f2b5d6ddc25"
+    },
+    {
+      "路径": "02_平台代码/docs/skills-v5/evals/06_STATIC_VALIDATION_REPORT.md",
+      "字节数": 901,
+      "SHA256": "c0ba81cde8172ffa9188a4fde4a9b1a5c231e64a10afc923c5d05403aed41b51"
+    },
+    {
+      "路径": "02_平台代码/docs/skills-v5/README.md",
+      "字节数": 1546,
+      "SHA256": "3a8fa5922d10ccea78ff36e1da0e06c4b9e08b62adce3d4f04c4183fb0bd8ac8"
+    },
+    {
+      "路径": "02_平台代码/docs/skills-v5/SKILLS_CATALOG.md",
+      "字节数": 1656,
+      "SHA256": "0f9e34f769c4d9c8dd68c5368c09a53dc3d8b22cc79150bbcb3e18f71763d47b"
+    },
+    {
+      "路径": "02_平台代码/docs/skills-v5/V5_ARCHITECTURE_ALIGNMENT.md",
+      "字节数": 3077,
+      "SHA256": "8364df836e7b8f4d5c98ab206a932b84dd78289637ce011eb980ac4dc408e8b3"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_Suite/CHATCUT_ALIGNMENT.md",
+      "字节数": 2115,
+      "SHA256": "9719fd1ea8abf631854935c8b74826f2e21559cab1d2a2b0c96ca3a2b040245f"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_Suite/README.md",
+      "字节数": 2128,
+      "SHA256": "9e48115ee691a4b54562ced39f562391d0b7ded9c26753c481b2a090f42f8bed"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_Suite/SKILL_EVALS.md",
+      "字节数": 11268,
+      "SHA256": "b1fa388c005c12c1901c43e6984a8904f250770de7e42b711a5e08f5606904be"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_Suite/SKILLS_CATALOG.md",
+      "字节数": 11155,
+      "SHA256": "95f9a0c95f28d137a9371c225c2a6a18e680b11e59bb952388ed142ebe0969e0"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_Suite/SKILLS_REVIEW.md",
+      "字节数": 188800,
+      "SHA256": "8c4e847d542ae8675a6c73ffb88c78c34bd43eb6671caf9b9ba9eacebbc3cd57"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_Suite/SOURCES_AND_BOUNDARIES.md",
+      "字节数": 1894,
+      "SHA256": "86d6720f74543e0be4cd715376229fc8026c91f80184057e3e4b9431706722d5"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_Suite/VALIDATION_REPORT.md",
+      "字节数": 1473,
+      "SHA256": "3435b7b084fa890cc03b65ad368d4628872f899e7d6c8b6482b7e268a5571c31"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_V5/VideoFlowCut_Professional_Skills_V5/docs/SKILLS_CATALOG.md",
+      "字节数": 1158,
+      "SHA256": "3ca63426ff57ea71a54a282fa9d8b7f79c59e8154ff8ef8c9375aee0b6159ab0"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_V5/VideoFlowCut_Professional_Skills_V5/docs/SKILLS_V5_ARCHITECTURE_ALIGNMENT.md",
+      "字节数": 2130,
+      "SHA256": "001cc85b4e70fb769a0afec42015748595f0733323749bb7fa254d6cd4f7e73d"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_V5/VideoFlowCut_Professional_Skills_V5/evals/01_STATIC_ROUTE_AND_STRUCTURE.md",
+      "字节数": 1013,
+      "SHA256": "955f7fda6e8c9ac3b3cde1cf5dc02d557fbe0fd9fd628023c7f0d57be69ebbb6"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_V5/VideoFlowCut_Professional_Skills_V5/evals/02_SPECIALIST_HANDOFF_EVALS.md",
+      "字节数": 853,
+      "SHA256": "3187554eb58be2cbdef146605f9492b96c88cf6a7d8b4e337c6443995577eadc"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_V5/VideoFlowCut_Professional_Skills_V5/evals/03_PRESENTER_REAL_E2E.md",
+      "字节数": 1255,
+      "SHA256": "0122284a763702c84d4e7a300ca297dfb4ae78a30634274951d9e4ef8cc6925b"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_V5/VideoFlowCut_Professional_Skills_V5/evals/04_REMOTION_PRODUCTION_EVAL.md",
+      "字节数": 930,
+      "SHA256": "e97881dedd8e90dd240726a28ef21ed595c4cfa39503f8a4cc410bc8bc5a012c"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_V5/VideoFlowCut_Professional_Skills_V5/evals/05_REVIEW_CHECKLIST.md",
+      "字节数": 967,
+      "SHA256": "079d240360d2122b13bbd2bab4d32cf87299f71585524ada5a467120030dd1c7"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_V5/VideoFlowCut_Professional_Skills_V5/evals/06_STATIC_VALIDATION_REPORT.md",
+      "字节数": 375,
+      "SHA256": "5f6eee53699d97fb2e8bdca153b3625ad87945f4b834da8fed4c7651fdebe88c"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_V5/VideoFlowCut_Professional_Skills_V5/integration/AGENTS_SKILLS_RULES.md",
+      "字节数": 1230,
+      "SHA256": "0aede3133f7c69a70c0209734abd7f46368e92872da629a03c22584717d5631d"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_V5/VideoFlowCut_Professional_Skills_V5/integration/config.skills-v5.fragment.toml",
+      "字节数": 2007,
+      "SHA256": "69f5c1e317fa9c4fccb364f69b77911b50af64c4174a70e5b5fba236f36ff34c"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_V5/VideoFlowCut_Professional_Skills_V5/MANIFEST.json",
+      "字节数": 8877,
+      "SHA256": "dfc099bf21f0ee47ddfa38cde7cd2174ed8267dc8b6ade6de84caf32d85c1b3f"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_Professional_Skills_V5/VideoFlowCut_Professional_Skills_V5/README.md",
+      "字节数": 4757,
+      "SHA256": "1b936e774a492b70178ee4591f3e877a02ab9d723a7fa3b9e8306f284dc8d351"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/apply_changes.py",
+      "字节数": 7057,
+      "SHA256": "aefcfa49d276418c58c2d6d506c364ecbc9259ea20666ccbc6171fd8f69e10b6"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/case-build-record.json",
+      "字节数": 1224,
+      "SHA256": "6740738d90165a0d25e7ba51d45347f8f99ce9f3371989fcdffda86ac3ad5132"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/CODEX_IMPLEMENT.md",
+      "字节数": 4353,
+      "SHA256": "0568428dd0f35fded3516b5742e5f238c5a96341fb273a0db7be2578e4312030"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/package-files.json",
+      "字节数": 26208,
+      "SHA256": "07d568779b7cd3a451ce06b3b0b5cef1548d1bbf98837eea4f99ec1ecefcf6f7"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/README.md",
+      "字节数": 1553,
+      "SHA256": "e641e824eba8a7b6dff8c0ef84b6beb7f9ad4de7ebc9e781e7d662f8d05685bb"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/_shared/SCENE_DESIGN_HANDOFF.md",
+      "字节数": 5403,
+      "SHA256": "0515d794ccb41c4eb56d6418cb8a74c443e6ad15f8d149df33fc8ad21f40d3e6"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/_shared/TOPIC_TO_FILM.md",
+      "字节数": 6353,
+      "SHA256": "962c119ea11c25face582205d9f25e80606d07bad95d7ce97faab7ed7ce3a06f"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/effect-timing/references/pacing-by-completion.md",
+      "字节数": 4064,
+      "SHA256": "ae377d08dd042dff3d6d181c00f2ce9198d00c8a26ba879daf01287af08bf0ba"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-active-window-focus/agents/openai.yaml",
+      "字节数": 179,
+      "SHA256": "3dd6d73bbfe8790f498ef51bc9a781ce12aaca560354bb05c5cc65a960249b0e"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-active-window-focus/case-record.json",
+      "字节数": 1901,
+      "SHA256": "0fc8beab6b265c8c7df8f8b1133b00c72307d5490a445a4a881f7475f205b745"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-active-window-focus/references/generation-prompt-v1.md",
+      "字节数": 2239,
+      "SHA256": "83063aef56e770e4a103c0081522d52b358472b4131aa9b496dccc45e66ef574"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-active-window-focus/references/implementation-notes.md",
+      "字节数": 1681,
+      "SHA256": "b6d13c2a5063e61083c07cf69a2847e4c74c6377a770e0f46fa3dcb9f5b6271c"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-active-window-focus/SKILL.md",
+      "字节数": 2610,
+      "SHA256": "6daca6de98c70d8f30be62af08734aa47ecd487c3c81e84797d20f5cf46fdfda"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-context-detail-observation/agents/openai.yaml",
+      "字节数": 173,
+      "SHA256": "60152a398a2e02e6453c088006802fcbaa8bfdf90020d1b03159dda992df2ab5"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-context-detail-observation/case-record.json",
+      "字节数": 1904,
+      "SHA256": "659b8d7963bcddefae60deb46e47b8b025179a9f58ac2cb579219142c0a19a3d"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-context-detail-observation/references/generation-prompt-v1.md",
+      "字节数": 1993,
+      "SHA256": "07fd7d6a6421b32da7b070943acf3d2ca3011598c74bd4a408a58c6b4ef3eba4"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-context-detail-observation/references/implementation-notes.md",
+      "字节数": 1693,
+      "SHA256": "b54bf6c5a9177bef5f0338152d1a3785d589ccd8b9c5d3dca5b1c2452eb812a6"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-context-detail-observation/SKILL.md",
+      "字节数": 2636,
+      "SHA256": "7df458af5bd9e608050d8f7e47e42b66aab82ae19cacee90caee851a2da7d658"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-library/references/r92-family-index.md",
+      "字节数": 2806,
+      "SHA256": "30d4fad41f41f7613540bd8d3c90f5d5c42086ba282b804c7245912d9fcd81a2"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/agents/openai.yaml",
+      "字节数": 173,
+      "SHA256": "2d0b89fc9939bb180724c8c2db0c74b9eb76786c74706b6ecb301407d6af04b3"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/attribution-original.json",
+      "字节数": 6569,
+      "SHA256": "5ecfe63377bf8c3638f01a7c41e6dd79ff1e0469f758ddabdec048059548cd4e"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/original-request.txt",
+      "字节数": 28986,
+      "SHA256": "bcd9737d119d4b25d37fe1be3d53368ee4ff7c0b5a6abaaba1cd556d6a8740cc"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/production-records/production-run-production_run_62f2ab8b-675e-4b90-98e8-fcaa37e839b6.json",
+      "字节数": 7174,
+      "SHA256": "b747e28b14592abc147d7d4d181b36020b9fd432915e4fb81f0e561620c18d3e"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/production-records/production-run-production_run_a794c0cf-37a6-433d-adeb-dc68d61ad709.json",
+      "字节数": 4535,
+      "SHA256": "986fa7c405b6926823c9ebbaf1db89f8e49bf37b562b9265d8b1c0ea9b31f5fc"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_25894360-a15a-4f1e-9f32-1d7c87299c84/manifest.json",
+      "字节数": 22952,
+      "SHA256": "37e42a8284283732544a7f8c6b0606d00e11f67dcb93ec2cd662b3ac662047b1"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_25894360-a15a-4f1e-9f32-1d7c87299c84/source.json",
+      "字节数": 8185,
+      "SHA256": "45ce4a07bbcd8b3d2ddbec2017256851aa9a3e185469cbda6deb383f0b0bd211"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_25894360-a15a-4f1e-9f32-1d7c87299c84/source.tsx",
+      "字节数": 6767,
+      "SHA256": "8bd2edacd34641289301a8530f0014c9bd622e1fb1a7224485b7ead515c083a6"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_502ed314-f65c-41c9-a2eb-ef2c37992952/manifest.json",
+      "字节数": 24356,
+      "SHA256": "b9391f4c911c8700f0009ac7d43426123120fbe6b0964c4260c70a18c6a63486"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_502ed314-f65c-41c9-a2eb-ef2c37992952/source.json",
+      "字节数": 2487,
+      "SHA256": "b21f66c0d6ab46fd21ad0fa310c421e0ed8fa4e86c47c0063129055de26dbe79"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_502ed314-f65c-41c9-a2eb-ef2c37992952/source.tsx",
+      "字节数": 1556,
+      "SHA256": "204b7b9e4fa4b520fb10dd63396e48720bd76ab17f69807649dd497641f523ea"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_74a1aaeb-cf26-4484-ac2c-04a518ebc443/manifest.json",
+      "字节数": 20064,
+      "SHA256": "e8be6318020f628974bbd35b6ed29c1ef7dbc948061b9b2f9173e1bebf6b47b0"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_74a1aaeb-cf26-4484-ac2c-04a518ebc443/source.json",
+      "字节数": 23036,
+      "SHA256": "c8e1dc99d3807d1e8d3bf29009651f5e0569ec13f0fb607f3abeba2c3ece8c11"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_74a1aaeb-cf26-4484-ac2c-04a518ebc443/source.tsx",
+      "字节数": 19853,
+      "SHA256": "31208aeb208d528cd9dcd3bc6fa0bf9fb96ecde41370bcf0aa197bb1291d9aa9"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_9a7886dd-6277-469a-8a7d-c7bcf85f1c24/manifest.json",
+      "字节数": 25517,
+      "SHA256": "51cda0b34caea14faab2bf0df3e4b166640a4a8aba670443a01ac1bb923d4faf"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_9a7886dd-6277-469a-8a7d-c7bcf85f1c24/source.json",
+      "字节数": 8651,
+      "SHA256": "a14a3eb5ec0694fecd48f1da6e118afc156d8ed24d18ede64708e6ad06e337c6"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_9a7886dd-6277-469a-8a7d-c7bcf85f1c24/source.tsx",
+      "字节数": 6535,
+      "SHA256": "db38b4486a92c329992c5740cace905d527bb121f4435ffe32bd332471f38b1d"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_c97c8799-603c-4415-b8d5-03c1121ceb89/manifest.json",
+      "字节数": 19550,
+      "SHA256": "225197a6f15fa51a8c8f17fa8acc2f205895c0038afb29d0178646e825aa290e"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_c97c8799-603c-4415-b8d5-03c1121ceb89/source.json",
+      "字节数": 2487,
+      "SHA256": "c8e61fd147737f738fcafab504ba57a0c0ba1e4f1bff6c44e4119ad62fcfca42"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_c97c8799-603c-4415-b8d5-03c1121ceb89/source.tsx",
+      "字节数": 1556,
+      "SHA256": "204b7b9e4fa4b520fb10dd63396e48720bd76ab17f69807649dd497641f523ea"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_cbcaaf6f-8c3b-4f09-b4c8-d77838304452/manifest.json",
+      "字节数": 17690,
+      "SHA256": "364ff211d223066b7447f741e4733b9470eb3276771ce9f5e3eba08c1fb0238f"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_cbcaaf6f-8c3b-4f09-b4c8-d77838304452/source.json",
+      "字节数": 2480,
+      "SHA256": "76a13615151c504def828b0679636c6d2dc45ab03d10604fcb7b1cc7fee3559d"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_cbcaaf6f-8c3b-4f09-b4c8-d77838304452/source.tsx",
+      "字节数": 1556,
+      "SHA256": "204b7b9e4fa4b520fb10dd63396e48720bd76ab17f69807649dd497641f523ea"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_e43b2b2a-a05e-4cfb-8c05-a090c7661b81/manifest.json",
+      "字节数": 21918,
+      "SHA256": "74b4635dfd48302ec6cf861be076b8d7cb9e470a5e5c29a04e3dce256e4a798c"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_e43b2b2a-a05e-4cfb-8c05-a090c7661b81/source.json",
+      "字节数": 2485,
+      "SHA256": "6951228bc75bcbe100ec23087cb1534d8e86d72aff7f4ad1f7a83429d79f4195"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_e43b2b2a-a05e-4cfb-8c05-a090c7661b81/source.tsx",
+      "字节数": 1556,
+      "SHA256": "204b7b9e4fa4b520fb10dd63396e48720bd76ab17f69807649dd497641f523ea"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_fee74586-395d-46bd-a31b-581e8bcbd2f3/manifest.json",
+      "字节数": 18558,
+      "SHA256": "841d40fee15a6ce0eb0c453f66e97cb3cc077e20bb66490df2f97c2a4a70dd9f"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_fee74586-395d-46bd-a31b-581e8bcbd2f3/source.json",
+      "字节数": 8271,
+      "SHA256": "f21320116ce4c64077de2c247d76294cca3ef6a1cdaaa9f71512b7b01ec2566d"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_fee74586-395d-46bd-a31b-581e8bcbd2f3/source.tsx",
+      "字节数": 6767,
+      "SHA256": "8bd2edacd34641289301a8530f0014c9bd622e1fb1a7224485b7ead515c083a6"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/case-record.json",
+      "字节数": 2052,
+      "SHA256": "372276c56d38bee75cc0ce2f5ae420683956220b6833a5e8965ffc2e4cf9d2e9"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/references/generation-prompt-v1.md",
+      "字节数": 2703,
+      "SHA256": "bf51a61a74595406faa143721483955afa839bc8720c2e86850743b3b8b486be"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/references/implementation-notes.md",
+      "字节数": 1804,
+      "SHA256": "48e1951f698e295b5b25e10bca616be7c123fc2f810cfa11cdc0477ed7c95d82"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-mixed-scene-relay/SKILL.md",
+      "字节数": 3212,
+      "SHA256": "1e538ba6b970b5959221b8ad4bd491e4a069e5e7648d19d2ceb4d5639241f905"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-object-type-relay/agents/openai.yaml",
+      "字节数": 188,
+      "SHA256": "b680096889ef743b8680519d0c2103561fa8fef61ff6a0be9b5a36b782718ac7"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-object-type-relay/case-record.json",
+      "字节数": 1927,
+      "SHA256": "c361d47a4e6132c8a17d11bcd77f3fc2f7e41ad075e2b85e0041d09231fe1415"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-object-type-relay/references/generation-prompt-v1.md",
+      "字节数": 2350,
+      "SHA256": "5d5ed285c4615391328e5b058c669154d3ebd88e76578ab8084d51c0f3c3bf98"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-object-type-relay/references/implementation-notes.md",
+      "字节数": 1691,
+      "SHA256": "07fff826adf300e029ab035724dc8fbff65fa6eaa62f393f53ef24ccb92851fe"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-object-type-relay/SKILL.md",
+      "字节数": 2659,
+      "SHA256": "a3cae57af44d3c8c885c1956e83e0e0720b8fc484a85f8b3c884648e46a03904"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/agents/openai.yaml",
+      "字节数": 188,
+      "SHA256": "0dc3a89c5a3056622dd088276219335f64bf39da63f8265a7703ff1add9ff2c1"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/case-record.json",
+      "字节数": 1946,
+      "SHA256": "54685f1afec1a50465c63450d15cc4a09405d27bd402049570301c190666c9b5"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/references/generation-prompt-v1.md",
+      "字节数": 2112,
+      "SHA256": "ab83d0cf3035ed2b0e6f739887fcc591d2ed6030ddde6814e6ee82a15c10e892"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/references/implementation-notes.md",
+      "字节数": 1726,
+      "SHA256": "71ab438e25b740beffcd3b460408bd15f497793c5473772f1af51c09d1d057a3"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/SKILL.md",
+      "字节数": 2887,
+      "SHA256": "4187638ac9a9a57bf148f7f8f4c219000235661266a5d4c62f4c705103e6c6f1"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-relation-unfold/agents/openai.yaml",
+      "字节数": 173,
+      "SHA256": "5e332d6fde3ed7f1760bda1b1844ac682663183defcc640bcf8f5b2ed8b6778f"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-relation-unfold/case-record.json",
+      "字节数": 1917,
+      "SHA256": "36999ca15c5bf424471d730e0172ffa9102fa7e703899bc8594c0cc3c664cd08"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-relation-unfold/references/generation-prompt-v1.md",
+      "字节数": 2009,
+      "SHA256": "0ce850eea730a6c2312ef3d57b81587d448954fe480228db62b70ad0b505d5c6"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-relation-unfold/references/implementation-notes.md",
+      "字节数": 1683,
+      "SHA256": "f541cf98feaca7f96024f20fb27569fa69fcdba2cdf5ae80c5966f4de984d326"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/motion-case-relation-unfold/SKILL.md",
+      "字节数": 2617,
+      "SHA256": "7da33e569ce37872f312ed113202ae7e26cf1c14ed6c4162626fee3f79c533f7"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/.agents/skills/remotion-production/references/scene-art-and-motion.md",
+      "字节数": 5068,
+      "SHA256": "cf13d7c5f5624d2e3ee4cf3333c203f8cd6a527b16262d14d275ea6e32479c72"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/scripts/check-topic-film-skills.mjs",
+      "字节数": 4763,
+      "SHA256": "c8b773d3f7e2d3da648a7f0e40bbe993b40a4a235192695be4bc08ad5ddd1b32"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/repo-overlay/tests/topic-film-skills.test.ts",
+      "字节数": 528,
+      "SHA256": "beb85278c2721377638bc975ac713c2e90466df16a10279f3f5cb0bc99c33090"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/audio-finishing.md",
+      "字节数": 634,
+      "SHA256": "b22120079bed4589796acb67e4e790408531b14f566a69c0f3830008a055c85d"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/captions.md",
+      "字节数": 944,
+      "SHA256": "8b777b75335cea6c6a70f373dd69f305df66afe7e355768be5e5856bb02ff011"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/edits.json",
+      "字节数": 5950,
+      "SHA256": "90136e17762e7c39863718803e9ccbfc42f30670293ee91a8d8f28deb1edc0b0"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/effect-timing.md",
+      "字节数": 1223,
+      "SHA256": "703f245916e7709245849029efd9019c0275678f3ba40406a5b26c17483d77a5"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/evidence-visualization.md",
+      "字节数": 1249,
+      "SHA256": "4149bca098cb28c237e3d271498a73e2307ef0ec4fc99c9389378862800b5b19"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/motion-case-library.md",
+      "字节数": 1320,
+      "SHA256": "97c5a71a6eb24bb6f88c4398b768dac25dab37bc54e96b5cd98412d7363866db"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/narration-writing.md",
+      "字节数": 1273,
+      "SHA256": "374b2b4533ca341aef48d1b7ccea82dfbc6a11e4704bb23003c1d4f8c0ff37ca"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/production-coordinator.md",
+      "字节数": 1430,
+      "SHA256": "cff0ef96c937a1033563a4a6846faebe7306a44f0512107dbe61c12f50214e76"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/production-director.md",
+      "字节数": 2301,
+      "SHA256": "d708c1e80d4dac15559155334e64074ebb0470b347730b234bd4b2e79941bd6a"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/quality-verification.md",
+      "字节数": 1576,
+      "SHA256": "f658b107278af89a34aaf26734bc07f0b98fc11556749f4e96c2af9a6042032e"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/remotion-production.md",
+      "字节数": 2004,
+      "SHA256": "338989ba332c14fda1b2a4f1276205eac3cfb5d8b03cd7fd03c8b8c47c1f48d1"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/scene-planning.md",
+      "字节数": 964,
+      "SHA256": "d438675f3e857c2af2310400b7ea4c47d17361a46c7e47ed323b94e62318d958"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/shared-handoff.md",
+      "字节数": 686,
+      "SHA256": "ee7e90421e406c607f883102891c36f97e750f7d28354bab537e1aafe9b21e3d"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/sound-asset-sourcing.md",
+      "字节数": 697,
+      "SHA256": "da7cfb36266ef255c530d8334277903e0c71937e2eeb2250a0dd9e700cf1472c"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/visual-asset-sourcing.md",
+      "字节数": 1691,
+      "SHA256": "82699fdb183988a5ff7fadde22fed50e62bfdeffc420c1602616794810fb5269"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/visual-explainer-director.md",
+      "字节数": 1038,
+      "SHA256": "13227f5f64e5a592f50588d37348162860ad1df96ad7b8d4dc3208a85eb1b4bb"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/visual-treatment-planning.md",
+      "字节数": 1249,
+      "SHA256": "87ea82e24a8e1663c4e3db5ebacbee9e039707014a9bb73911fa5d1ee999320c"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/skill-edits/voice-production.md",
+      "字节数": 944,
+      "SHA256": "54dd0c6eb63a60e60c798184aa5568745158f0c0bd42a910795d416e34785f71"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/validation/apply-test.log",
+      "字节数": 635,
+      "SHA256": "f7cfdc6a44dd178fab53443979ecda2ff9e1d98946a8c7f73a29b80177964fc0"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/validation/media-check.json",
+      "字节数": 2922,
+      "SHA256": "6a16bd182a5f591bcba6e51cfee4dcb83f0778064ff87981fb7fcf382a8f9c7c"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/validation/merge-audit.json",
+      "字节数": 64504,
+      "SHA256": "ed38075465437d038e965b031250b8519059be3b6b8a3141eac3be48d7edb6ef"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/validation/static-fixture-report.json",
+      "字节数": 382,
+      "SHA256": "f75cb406268214cf2c58f8b90f7fe061461ac9d9a19e0ca9d4fa52610f571ced"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/validation/test_apply_changes.py",
+      "字节数": 3234,
+      "SHA256": "836b9f64f7f60e0eb077a6430478408e61f6485c65f7850ce344651334794d4f"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/validation/v2_1-apply-tests.log",
+      "字节数": 636,
+      "SHA256": "ef7266b22d82c7a4454aca453e27f98405031c2649b7bb2dcdfd7d7bb84dc8ac"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/validation/v2_1-checks.json",
+      "字节数": 941,
+      "SHA256": "9f4dfc0cb6233ae3dc82d9bdcad3b4c279123b40b847be5c3619f89755dfb219"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/实施方案_v2_1.md",
+      "字节数": 171620,
+      "SHA256": "ee55f01c0af4b42c8c4c76055cf419f4ceb27dcd01536553fcbbccf79689952d"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_v2_1/章节保留与整合对照.md",
+      "字节数": 12783,
+      "SHA256": "d779aa82c6dc0f3891854b1b28331b0d7ee30cace7a39e6f1f9816a6120ad0bf"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_创意子代理分工与落地方案_待审阅.md",
+      "字节数": 21886,
+      "SHA256": "222b57ad6d18038df47de5d460e6e900f3c55ddf550ab538156358e9e9edd65f"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_创意子代理开发与验收记录.md",
+      "字节数": 13692,
+      "SHA256": "83af03a521a5fb603a1eeb528e3e76c854ba04b333355675d28a7e1188ef6e5a"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_动效案例阅读包/README.md",
+      "字节数": 5628,
+      "SHA256": "b84f88840efa26bda656f7e9c66d763b40f3bedb86c514ea72c1f68cb876ad04"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_动效案例阅读包/VideoFlowCut_动效制作与时长策略优化方案.md",
+      "字节数": 126612,
+      "SHA256": "70ff31354b55e4a3e38adc3ee5ebe6357e70ee1b332cb04e89d6fa9279183a99"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_动效案例阅读包/动效案例Skill完整样例_机票手机日期.md",
+      "字节数": 26510,
+      "SHA256": "e9439e5f2254645b5307608cbf7d4ff1788dbae5d08245296d54549045a0f937"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_动效案例阅读包/完整开发方案.md",
+      "字节数": 144703,
+      "SHA256": "5e2b902a0e4111a73de327d1675be22d36b783effb234fba340adb4638700cb9"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_动效案例阅读包/素材理解与多模态检索开发方案.md",
+      "字节数": 44926,
+      "SHA256": "eafa83ccac38e7ec9c0a548c2bc00e6931514b096e00987d374146e58e3e2839"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_动效案例阅读包/音效链路优化开发方案.md",
+      "字节数": 54086,
+      "SHA256": "55d8afa0e7d293c838a9650806c9d44977133aaf1c6f988dc401cfe5ec5c2151"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_总导演主线与素材补全_Skill具体修改审阅稿.md",
+      "字节数": 192519,
+      "SHA256": "fca139a464bb8fecde989517a806a69be005c06e54f81a95610edc7f92f9cba6"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_总导演分镜驱动的整片制作链路优化方案.md",
+      "字节数": 130883,
+      "SHA256": "13a6b904487c3dd3777a635a748a99586048ed4c937cb72a077fec8d3b9fa4f1"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_素材审阅Skills增量与阶段1-5漏洞收口方案_最终版.md",
+      "字节数": 63396,
+      "SHA256": "e6b0cbb1499f8ae815fa1c6bf64783bdc1ab5f43b05ad770afb9f731f2658918"
+    },
+    {
+      "路径": "02_平台代码/docs/VideoFlowCut_解说素材与动效_统一开发实施方案_20260920_结构修订版.md",
+      "字节数": 238998,
+      "SHA256": "6f0be362a294ea4c07e1a41ce31c2ba2970612c40fc085f2abcccc872e4e4753"
+    },
+    {
+      "路径": "02_平台代码/integrations/comfyui-semantic/local_semantic_nodes.py",
+      "字节数": 14338,
+      "SHA256": "40bbd1eb70d5583384a8721e800989c6ee151cbe769da4281fd57872bd1d54fb"
+    },
+    {
+      "路径": "02_平台代码/integrations/comfyui-semantic/minicpmo_worker.py",
+      "字节数": 2279,
+      "SHA256": "39a46a84a3fbfb560b3e3f8275230c4a4ccba67abba77dd8b7b255cd32256cd6"
+    },
+    {
+      "路径": "02_平台代码/package-lock.json",
+      "字节数": 246454,
+      "SHA256": "06d081096d63149a6b75f78c867a3374f574a6771a8c80cff1832f6f96637009"
+    },
+    {
+      "路径": "02_平台代码/package.json",
+      "字节数": 3337,
+      "SHA256": "33609854a09c65eec848469e5a1c1c63c97909965b04e0e9973385dbda571e6b"
+    },
+    {
+      "路径": "02_平台代码/packages/asset-acquisition/src/cursor.ts",
+      "字节数": 1358,
+      "SHA256": "860344238597c39433407303193e1c46282a5c584fb71da5e4389688c03b6ecc"
+    },
+    {
+      "路径": "02_平台代码/packages/asset-acquisition/src/errors.ts",
+      "字节数": 607,
+      "SHA256": "a97376b7b5c075976c218cc8e8578de8b19daa88b8c82b3308376e1c00871552"
+    },
+    {
+      "路径": "02_平台代码/packages/asset-acquisition/src/http.ts",
+      "字节数": 3558,
+      "SHA256": "b503c36e1473998f99050fff522df93e8ad500305463e33e54aed52faf69bb41"
+    },
+    {
+      "路径": "02_平台代码/packages/asset-acquisition/src/index.ts",
+      "字节数": 17432,
+      "SHA256": "6a45e6f39783bdc975ec559817abcb33e640ffaae80061dab09027b04aab4e51"
+    },
+    {
+      "路径": "02_平台代码/packages/asset-acquisition/src/mixkit.ts",
+      "字节数": 9819,
+      "SHA256": "c2931e9d6843dfddc3ef69238b45e7610f7566e0ce615ba38f5c1c6821627458"
+    },
+    {
+      "路径": "02_平台代码/packages/asset-acquisition/src/public-source.ts",
+      "字节数": 5865,
+      "SHA256": "9479de91a77bf53055c64b88e115e9f9742f8fd56d87f5a7f199c3d39ca24ceb"
+    },
+    {
+      "路径": "02_平台代码/packages/asset-acquisition/src/sound-catalog.ts",
+      "字节数": 3292,
+      "SHA256": "66b1c6ed7bb97b0b0ac86ababb449f55182865b462e1938c805980a3d59dae31"
+    },
+    {
+      "路径": "02_平台代码/packages/asset-acquisition/src/source-research.ts",
+      "字节数": 1291,
+      "SHA256": "8c204a881f90303ea107545c5b438f4e8340b04971752a713f8dc2f98c65256a"
+    },
+    {
+      "路径": "02_平台代码/packages/asset-acquisition/src/wikimedia-commons.ts",
+      "字节数": 19779,
+      "SHA256": "2b6332f84acdff2d98a272f16118ac9db560ce203ff580f3c4d044927e623947"
+    },
+    {
+      "路径": "02_平台代码/packages/asset-acquisition/src/youtube.ts",
+      "字节数": 8065,
+      "SHA256": "ec4bc187038d9645c6b433f125f528beaf519e8d55bce20a9dcb6e0ca9ab1648"
+    },
+    {
+      "路径": "02_平台代码/packages/comfyui-bridge-client/src/index.ts",
+      "字节数": 16706,
+      "SHA256": "b239ed225e07387dfa33329d4cf4ba03e92f8e7961a0a241933de70eb50bb7d1"
+    },
+    {
+      "路径": "02_平台代码/packages/contracts/src/caption-presentation.ts",
+      "字节数": 2195,
+      "SHA256": "574dad4dad304ad54f81ba90a37e8ac6c4b90f71eee17fd1b46bc345c2579504"
+    },
+    {
+      "路径": "02_平台代码/packages/contracts/src/editorial-inputs.ts",
+      "字节数": 1281,
+      "SHA256": "5021f34a81d97e612756f792eda2fbdbde1e0a912f8284f5dcde8ebba5db2f03"
+    },
+    {
+      "路径": "02_平台代码/packages/contracts/src/explainer-inputs.ts",
+      "字节数": 2313,
+      "SHA256": "0efcfea47ee09b8244f5c94fa2625bd2a5e008a64de3fa0a6bc5a775472260f7"
+    },
+    {
+      "路径": "02_平台代码/packages/contracts/src/index.ts",
+      "字节数": 70748,
+      "SHA256": "7735a24687489e9369036749ae06c34185b0e5caabff35646f548955878b1640"
+    },
+    {
+      "路径": "02_平台代码/packages/contracts/src/media-intelligence.ts",
+      "字节数": 6859,
+      "SHA256": "e5b90f3384f22403a623eebebefd4504c9be0d1e02c16bba084445cf182aa14b"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-application/src/audio-mix-gain.ts",
+      "字节数": 927,
+      "SHA256": "cec8ddd2a3423d004189144688657c0fb4a7254a06ddf6bb828522ce16d380b7"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-application/src/editorial-evidence.ts",
+      "字节数": 5195,
+      "SHA256": "f79308df72c3a885eb8d942b3bee220b575e5bda7af6eb1b6b2511dfefa7f6f0"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-application/src/effect-audio-events.ts",
+      "字节数": 7323,
+      "SHA256": "00ef725c3f0096f0274ef2612b80e6a02c0a4af885ff26353cbe273b494d9aac"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-application/src/index.ts",
+      "字节数": 527249,
+      "SHA256": "44370dd15dd904f2c39747461ddb2698573065d95fa5dbb59205b12a5b74441a"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-application/src/media-intelligence.ts",
+      "字节数": 27855,
+      "SHA256": "3a1a47e7b8359d7dab8d04142fa4f8b1ca2b52a6e177d7abdacd1fc47f2ee417"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-application/src/motion-dependencies.ts",
+      "字节数": 3454,
+      "SHA256": "684d499ad67f1bf4cdfb53572521b8d66bd9b2305c65926804addb10264b16c5"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-application/src/motion-review.ts",
+      "字节数": 4070,
+      "SHA256": "44a4ce4081015c166833389c982d3618aae2d028e397c600770a61e40929e05a"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-application/src/persistence/index.ts",
+      "字节数": 627,
+      "SHA256": "4d8c0b18d48db731c8baee3895a3e891b578f9695ec0917466f0ba206ff64518"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-application/src/persistence/normalize-snapshot.ts",
+      "字节数": 6829,
+      "SHA256": "1e6f2ce21c324947f27147291fbb3a73094ce3f5b82604a7d87077692231e09b"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-application/src/persistence/schema.ts",
+      "字节数": 25170,
+      "SHA256": "f836aba8821a4a62424d311321bfb22da80009978ea89bf030ff693723717326"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-application/src/persistence/sqlite-project-repository.ts",
+      "字节数": 32570,
+      "SHA256": "f13e363c2cce58e0449fcb9c22ab5686a54aa1a08f607ed2269e96b4728ffef7"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-application/src/persistence/types.ts",
+      "字节数": 722,
+      "SHA256": "32bc4ba4dbd37b9ff7fca28aa90fee837fbf02dfec00a2c81083810da3bc0ebe"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-application/src/presenter-source-edit.ts",
+      "字节数": 17118,
+      "SHA256": "0a4e27b401f6cfda69c6842da316eb69374d1146473faeb01f0464d9216575fb"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-application/src/production-flow.ts",
+      "字节数": 27030,
+      "SHA256": "895be42f42b351117fe79f812a6572ea87d7ef3c27cb9b69993301614ba163bf"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-application/src/sound-design.ts",
+      "字节数": 11848,
+      "SHA256": "fa068c7c9d423978b84c01ffda9a4500ad2c694bff9ee3f15d6fa597af8f5a75"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-application/src/sound-review.ts",
+      "字节数": 3748,
+      "SHA256": "ac3b1ee0bf74336b50f5ec59d39cd00105617933f30b5fef662019903bf315d8"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-domain/src/asset-usage.ts",
+      "字节数": 2503,
+      "SHA256": "92fe099ea3b1b299643d8b2df5f53ed173dc56b00a2009073f35d04ffdf4e178"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-domain/src/composition-reachability.ts",
+      "字节数": 2941,
+      "SHA256": "91cfbe78fbd30392aeee6271b32a1b4bbbb5dc7b372dd9267d4c2db72b608171"
+    },
+    {
+      "路径": "02_平台代码/packages/edit-domain/src/index.ts",
+      "字节数": 96678,
+      "SHA256": "6de0df81a075c01a9996ec8a8f6ac99fe5cafb3eae0ab6dffe845820dd877a9c"
+    },
+    {
+      "路径": "02_平台代码/packages/job-runtime/src/index.ts",
+      "字节数": 2655,
+      "SHA256": "d2799b27255e6cec508a5374f96d51f4e9fcf0b91612815f3dd5744ef9b04b6e"
+    },
+    {
+      "路径": "02_平台代码/packages/media-intelligence/src/acoustics.ts",
+      "字节数": 3712,
+      "SHA256": "db50f3be7dca62df16ed9def1c488a6f7ed3e591fffd93dbb7d08b5c0a84f1f3"
+    },
+    {
+      "路径": "02_平台代码/packages/media-intelligence/src/cache.ts",
+      "字节数": 3190,
+      "SHA256": "0f8cb81a3d60b2c01caa804f38827403d0143b82cab585cdf32daf03a1480b29"
+    },
+    {
+      "路径": "02_平台代码/packages/media-intelligence/src/derive.ts",
+      "字节数": 3565,
+      "SHA256": "365007a8c58d2490686717a4e145d7436d60f2dd79fe49974e2274119b4f2f02"
+    },
+    {
+      "路径": "02_平台代码/packages/media-intelligence/src/index.ts",
+      "字节数": 20577,
+      "SHA256": "632895b50534e2b7d3dad98f646077547e05bd586d2888c78dcc66c2ed54ce32"
+    },
+    {
+      "路径": "02_平台代码/packages/media-intelligence/src/sound-signature.ts",
+      "字节数": 836,
+      "SHA256": "fa5664d65f233e32f4c4e14370d5b420e98f662cdbd7783e805ca8a870983ba2"
+    },
+    {
+      "路径": "02_平台代码/packages/media-intelligence/src/store.ts",
+      "字节数": 6458,
+      "SHA256": "55ff1ce5b388c93a5b84aee9d6d87e9a9ee896305315f709d1692a59de70b46c"
+    },
+    {
+      "路径": "02_平台代码/packages/media-intelligence/src/structure.ts",
+      "字节数": 1136,
+      "SHA256": "a650046455e8785d0238baf96039917a26b3ff49cb97b9bf63b2d21900ae737a"
+    },
+    {
+      "路径": "02_平台代码/packages/media-intelligence/src/usage.ts",
+      "字节数": 5589,
+      "SHA256": "af3dc9dc1569f9f27e8948dcc0fe04b3f7d2f7ad4eb8c6a11617e332ef3ed3ea"
+    },
+    {
+      "路径": "02_平台代码/packages/motion-work/src/catalog.ts",
+      "字节数": 1742,
+      "SHA256": "a826c6ba53c76712624bb2d7465b613a1ca2551e6ea75d4ab458aa9f6d9dafdd"
+    },
+    {
+      "路径": "02_平台代码/packages/motion-work/src/compiler.ts",
+      "字节数": 18753,
+      "SHA256": "73cc133d7c6934f1dbb27d4f7fcf85013f22a658d7621f5e7f6632306de721d6"
+    },
+    {
+      "路径": "02_平台代码/packages/motion-work/src/schema.ts",
+      "字节数": 6935,
+      "SHA256": "147c8221a2a67727c1bab4ea616c9bc8b933184e0c82b22fd1ab9398a46eabaa"
+    },
+    {
+      "路径": "02_平台代码/packages/project-overview/src/index.ts",
+      "字节数": 33677,
+      "SHA256": "60e0b544ef638de44151be84bf4f4e804c11877e655e20fe4d992f0715dc4d19"
+    },
+    {
+      "路径": "02_平台代码/packages/quality-system/src/caption-measurement.ts",
+      "字节数": 4086,
+      "SHA256": "200cbeb227e8b2e7f1e0af7ebce492c371126ebecf9b64e86d726d63779ee76c"
+    },
+    {
+      "路径": "02_平台代码/packages/quality-system/src/editorial-review.ts",
+      "字节数": 7044,
+      "SHA256": "0a76807bcd71ec36a76e607d62e6788e3bb6eb51e4bc9f392e0448dcd58b601a"
+    },
+    {
+      "路径": "02_平台代码/packages/quality-system/src/export-policy.ts",
+      "字节数": 431,
+      "SHA256": "2934b146562b7d27304c060fbbc963dc1f7380dfd53ddc77ea3e7497050f89ae"
+    },
+    {
+      "路径": "02_平台代码/packages/quality-system/src/index.ts",
+      "字节数": 127105,
+      "SHA256": "9d57725aee587119b01a307efd964adc21531f8f139e710373fe386addb050c5"
+    },
+    {
+      "路径": "02_平台代码/packages/quality-system/src/motion-caption-safety.ts",
+      "字节数": 3199,
+      "SHA256": "990acf9b3e35a3b079c27302c18e92e92af5d665ca1e52ab0f4f46bbf69cfec2"
+    },
+    {
+      "路径": "02_平台代码/packages/remotion-runtime/src/browser.ts",
+      "字节数": 1151,
+      "SHA256": "e62f648dea74466d458d691ae4046f3beae95d8cd4516aa9e796980f3052d80e"
+    },
+    {
+      "路径": "02_平台代码/packages/remotion-runtime/src/caption-layout.ts",
+      "字节数": 12505,
+      "SHA256": "b4a0bcac5741d474a07fa9ff46ed1ccdb17d93f7511a6886885c03e20d5339e1"
+    },
+    {
+      "路径": "02_平台代码/packages/remotion-runtime/src/composition-reachability.ts",
+      "字节数": 227,
+      "SHA256": "748a4e65024ca3b926b6a762ea38e7c0091dfc14bd830dae70da6e01950bfb13"
+    },
+    {
+      "路径": "02_平台代码/packages/remotion-runtime/src/cutaway-layout.ts",
+      "字节数": 2449,
+      "SHA256": "3e9783627f94b437267189e73105d0371a0cce7623e37f276afe825eeaad10ec"
+    },
+    {
+      "路径": "02_平台代码/packages/remotion-runtime/src/explainer-registry.tsx",
+      "字节数": 28860,
+      "SHA256": "a101d41333574ca990dbcad8dda68881fa69a65ad04427b4bbc44048e98e4969"
+    },
+    {
+      "路径": "02_平台代码/packages/remotion-runtime/src/index.tsx",
+      "字节数": 44299,
+      "SHA256": "3b03e8239e07d5174b849abac5df54b44430531a714cf71a7b166be4cd9755c0"
+    },
+    {
+      "路径": "02_平台代码/packages/remotion-runtime/src/motion-layout.ts",
+      "字节数": 10891,
+      "SHA256": "0b956a390b049b1118916dbf0b5ab8713e6b9da20ee7e2e6a22b71396e86428a"
+    },
+    {
+      "路径": "02_平台代码/packages/remotion-runtime/src/restricted-scene-registry.tsx",
+      "字节数": 24226,
+      "SHA256": "f57b57a53e1a3c38ceddd66e044f844e045147239cdb46b689a46698fd0cdfaf"
+    },
+    {
+      "路径": "02_平台代码/packages/speech-services/src/index.ts",
+      "字节数": 69968,
+      "SHA256": "b810198b4c6a4dce29bc436797a543bef903002868c86bd2501fd7997e719578"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/.codex-plugin/plugin.json",
+      "字节数": 1279,
+      "SHA256": "95cd538621c41539136bebec6b824a954d85e525d5bb27e1976d346361be2420"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/.mcp.json",
+      "字节数": 282,
+      "SHA256": "8a317edd1ef6d859c7a40210a3311373facbc1d7f621fcf3326da530662e7406"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/runtime/repo-root.json",
+      "字节数": 59,
+      "SHA256": "3970248bb200747f39812004d5d93727db700cb2284c21b02d43cbcdc8424f1c"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/background-processes.mjs",
+      "字节数": 934,
+      "SHA256": "1000fab84d3e0fd142c35d5b66af14109282807851d5efb6f2e0b7207f1c1a16"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/build-funasr-provider.py",
+      "字节数": 4974,
+      "SHA256": "df8b758d81c09789937269b125698f37731d8fbccf38e9b6576dc407d54c3f26"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/build-mcp-catalog.mjs",
+      "字节数": 2296,
+      "SHA256": "29603edbf41a22a11be752e5921609b9c17385dd727b75e48a7fb282807cf0ff"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/build-runtime.mjs",
+      "字节数": 9401,
+      "SHA256": "ed27c0c440a420cf7b9cc2a117584ac247a32dc248312311caf21f32b6947e40"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/candidate-runtime.mjs",
+      "字节数": 7067,
+      "SHA256": "816fc795fed6adb67ffd92b39f927e431dd18877004d3c9604410359e0ea39ad"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/configure-default-voice.mjs",
+      "字节数": 2896,
+      "SHA256": "f43433ed7a306d003d6697bc58721b72e807c91b75224c1126b38448081fa257"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/configure-repo.mjs",
+      "字节数": 932,
+      "SHA256": "350f22dc4dbfc1d4e33e1595e8795dcd01c1c6901b6990bea0d195177ba494bb"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/install-funasr-provider.py",
+      "字节数": 1659,
+      "SHA256": "ce2eb07206e50f25c6b553910b2a339f1b05693db4a05ff339fc9fcf3e11314f"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/mcp-launcher.mjs",
+      "字节数": 5558,
+      "SHA256": "5b5a36b9c8c1dfe1341e104f0b25b3899f781e231786ae6b249893464f317cf1"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/mcp-reload-e2e.mjs",
+      "字节数": 7340,
+      "SHA256": "28c49425b44f497cc042d9ee1bf081d16643b8336fe302d4fad2ee22675abede"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/mcp-session.mjs",
+      "字节数": 7452,
+      "SHA256": "d4054dff4d2e5a8cc3ef89d146a2bd5ae0a152273a0d80f54a8ee78d7e2fc53b"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/plugin-e2e.mjs",
+      "字节数": 22869,
+      "SHA256": "fea435b0707b446d09dafbe64a27897336affee956c68741678fb2121682432e"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/prepare-render-browser.mjs",
+      "字节数": 3176,
+      "SHA256": "13434d7614ec516a7562aa79910a743b7f8ba36dc28f62c73f21283e57dd3219"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/repo-root.mjs",
+      "字节数": 6231,
+      "SHA256": "779fd26652ad905e744189961b6b472ad782d1ec6e88f05d9728f855763985dd"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/runtime-launcher.mjs",
+      "字节数": 28266,
+      "SHA256": "2b9a4b882d9998c0d91d54df52126d5f81cdfff463a3477f8615b6ecc8536e7f"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/sync-skills.mjs",
+      "字节数": 1816,
+      "SHA256": "b8facd5b5a21330cfdee8d1bea8daded86427fd5002d56f47a9ae59f39564f7c"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/verify-installed-release.mjs",
+      "字节数": 9912,
+      "SHA256": "4552cba25d006f74d033a64e99c3b3f5331133886b20d50923a2da215966f589"
+    },
+    {
+      "路径": "02_平台代码/plugins/videoflowcut/scripts/verify-plugin.mjs",
+      "字节数": 6334,
+      "SHA256": "feb0a6c015bacd76cdaf91578c29032962b034c46d9c1335a8698ccb5f5e267b"
+    },
+    {
+      "路径": "02_平台代码/scripts/audio-mix-gain.e2e.ts",
+      "字节数": 5786,
+      "SHA256": "5fb60308234be994d475142cd795b4ba1db6e5650cfacad0d3336dcc785923f5"
+    },
+    {
+      "路径": "02_平台代码/scripts/caption-layout.e2e.ts",
+      "字节数": 7459,
+      "SHA256": "858122bfd745b6c3321639a07ab51e85b5510a2706e0b09bdd72b7bc83383637"
+    },
+    {
+      "路径": "02_平台代码/scripts/check-topic-film-skills.mjs",
+      "字节数": 4763,
+      "SHA256": "c8b773d3f7e2d3da648a7f0e40bbe993b40a4a235192695be4bc08ad5ddd1b32"
+    },
+    {
+      "路径": "02_平台代码/scripts/configure-semantic-workflows.py",
+      "字节数": 4960,
+      "SHA256": "758507f10b08aa580ccc52c9821a0eef96bae87e589e3568c8bd80dfa0e967da"
+    },
+    {
+      "路径": "02_平台代码/scripts/creative-delegation.e2e.ts",
+      "字节数": 16375,
+      "SHA256": "a048027fd9e749ba81f2eac5dea2700bbe1622c76dfb841d180c01f55949e5a6"
+    },
+    {
+      "路径": "02_平台代码/scripts/creative-preview-frames.ts",
+      "字节数": 1130,
+      "SHA256": "5f2fe9a35b2c5cc50216628ef3b92597c531cb99bf0c1cf9ab24d85730c173d3"
+    },
+    {
+      "路径": "02_平台代码/scripts/default-voice.e2e.mjs",
+      "字节数": 4141,
+      "SHA256": "2d257178f356afe7fc95374025d7a281c70bbb4da9221f604d5c57a8f7ff7e73"
+    },
+    {
+      "路径": "02_平台代码/scripts/effect-registry-smoke.e2e.ts",
+      "字节数": 29706,
+      "SHA256": "1519aaa5de1dee62a7a4de83d7f0c0294aa8b965480aca3e9775e28aa5f34bc5"
+    },
+    {
+      "路径": "02_平台代码/scripts/explainer-stage3-delivery.e2e.ts",
+      "字节数": 34005,
+      "SHA256": "79f8db918ebb41966c48e9d009bf358c0b5a701e52c3b247c1f6442368e1bc41"
+    },
+    {
+      "路径": "02_平台代码/scripts/explainer-stage3.e2e.ts",
+      "字节数": 26504,
+      "SHA256": "39b3cfd08c51183ff9d3f7397696430f469c072cbc2843b051b433967a730bf7"
+    },
+    {
+      "路径": "02_平台代码/scripts/human-review.e2e.ts",
+      "字节数": 18787,
+      "SHA256": "ffb91ece492d2ab5a33dfce607ca401422b4c468d3bcbcf2edd5300d81258011"
+    },
+    {
+      "路径": "02_平台代码/scripts/managed-motion-live.e2e.ts",
+      "字节数": 6032,
+      "SHA256": "d23659b216995539c995ab0ee5f91cb30aa8cc2b638cc7819a4e90c45a0d728a"
+    },
+    {
+      "路径": "02_平台代码/scripts/managed-motion-mcp.e2e.ts",
+      "字节数": 28436,
+      "SHA256": "67b1dfbfd371779d601bcac09f98a23b603e8eb98818d20b6da513e623f157df"
+    },
+    {
+      "路径": "02_平台代码/scripts/managed-motion-proxy.e2e.ts",
+      "字节数": 7348,
+      "SHA256": "004e49646c5bd2a24379477ce44828d41cbaca29ca359a49f51f98489b37600e"
+    },
+    {
+      "路径": "02_平台代码/scripts/mcp-recovery.e2e.mjs",
+      "字节数": 5801,
+      "SHA256": "6a93995d5b9f1be16fec993fda0c39ec532ef15a388cf7e4cbc4f71fe724d2b0"
+    },
+    {
+      "路径": "02_平台代码/scripts/media-intelligence-live.e2e.ts",
+      "字节数": 7187,
+      "SHA256": "cca79ba9c90cc1ae5c10fffd28e75ead9e6650dfa9b4310725893fc1ab28c42c"
+    },
+    {
+      "路径": "02_平台代码/scripts/media-speech-live.e2e.ts",
+      "字节数": 3071,
+      "SHA256": "96997eb8b91470e806a28c6a7d214f1abc77064dcc2ba0dd4fafbef7685f9e94"
+    },
+    {
+      "路径": "02_平台代码/scripts/motion-bindings-mcp.e2e.ts",
+      "字节数": 5358,
+      "SHA256": "f091cf08fe95e699840197a5d421afcfb1bd2c2402aca8258260e7b7c32f3627"
+    },
+    {
+      "路径": "02_平台代码/scripts/motion-determinism.e2e.ts",
+      "字节数": 6489,
+      "SHA256": "41f0536744235da2d478a271bf078480de0bc434b3d0eaf505ece8e18fcb9e9d"
+    },
+    {
+      "路径": "02_平台代码/scripts/motion-properties.e2e.ts",
+      "字节数": 6507,
+      "SHA256": "501aae796fa740b9f858c59eeb497b16efe1b89e054d30b1c2a79c19b6179939"
+    },
+    {
+      "路径": "02_平台代码/scripts/motion-reference-live.e2e.ts",
+      "字节数": 760,
+      "SHA256": "35ae2b8b5a29eba07f53b1bdceeb4c52651b270468f40c134116710e3016b42c"
+    },
+    {
+      "路径": "02_平台代码/scripts/presenter-creative-agent.eval.ts",
+      "字节数": 5342,
+      "SHA256": "6d8f4a6cc8210959a3db028a30df5decd3b2bf5c39358a5b7761f270c4fb0cf0"
+    },
+    {
+      "路径": "02_平台代码/scripts/presenter-sound-chain.e2e.ts",
+      "字节数": 12733,
+      "SHA256": "804116e742370e49ec5785573ed25386c717e596b0b79a06383f479e88b6dafa"
+    },
+    {
+      "路径": "02_平台代码/scripts/presenter-source-edit.e2e.mjs",
+      "字节数": 12692,
+      "SHA256": "1f9345bbfd094f19798db10cdf2034e1b2b8fdd5b1da2e8376a383e816f01c69"
+    },
+    {
+      "路径": "02_平台代码/scripts/presenter-stage1-live.e2e.ts",
+      "字节数": 20062,
+      "SHA256": "4f3b897f51b30e888b4c9bb9f7add4dc699365a000694638ad3f571d3c5709b3"
+    },
+    {
+      "路径": "02_平台代码/scripts/render-snapshot-regression.e2e.ts",
+      "字节数": 3164,
+      "SHA256": "9b4716ad179a786e5edb5895ce6ab1a91fd40fda9a318373780e55c8b01fb8d3"
+    },
+    {
+      "路径": "02_平台代码/scripts/resume-media-live.e2e.ts",
+      "字节数": 2139,
+      "SHA256": "c4a5e5c1d0d59f3858a2a2f4297fbadaa4261210946d2f59fc19bca5aca3389f"
+    },
+    {
+      "路径": "02_平台代码/scripts/runtime-lock.e2e.ts",
+      "字节数": 7424,
+      "SHA256": "2ca0250dc433aba4a60d46efc813c17b56a42823730c557d004a2fef780daef2"
+    },
+    {
+      "路径": "02_平台代码/scripts/selected-motion-sound.e2e.ts",
+      "字节数": 6651,
+      "SHA256": "e79b92e8490a58b798adabeda01c0929ca58fe671f6a9ce956d8bcae8243777a"
+    },
+    {
+      "路径": "02_平台代码/scripts/sound-acquisition-live.e2e.ts",
+      "字节数": 2477,
+      "SHA256": "a626734bfebdd0f123dbcd6483eaed7264811baff93e6b8bcbd963563a309f80"
+    },
+    {
+      "路径": "02_平台代码/scripts/sound-plan-contract.e2e.mjs",
+      "字节数": 6154,
+      "SHA256": "ac0cd761d4baee1f4b5cd45ffb4d64cd2e1619339be0f945ce6f74c00b0d1ea8"
+    },
+    {
+      "路径": "02_平台代码/scripts/source-caption-live.e2e.mjs",
+      "字节数": 3837,
+      "SHA256": "f3717e526f5d82f0e5914fd61ef8f2797048dbdb2088540580f957b757408de6"
+    },
+    {
+      "路径": "02_平台代码/scripts/unified-narration-motion.e2e.ts",
+      "字节数": 12035,
+      "SHA256": "f51a8c3696964df2fee680e42a6798ff0064e258423cabea0346311414af7faf"
+    },
+    {
+      "路径": "02_平台代码/scripts/validate-sound-sources-live.e2e.ts",
+      "字节数": 1719,
+      "SHA256": "4e3bb0a6e8af314e14049f04a111fc82a6dd25901e0439ac40a9e91cfd7ee112"
+    },
+    {
+      "路径": "02_平台代码/scripts/verify-codex-mcp-registration.mjs",
+      "字节数": 4303,
+      "SHA256": "f25e4e0a02f952b59ad7e705223d1381fea1d959684a99809fd5140b170c6395"
+    },
+    {
+      "路径": "02_平台代码/scripts/vlog-stage4.e2e.ts",
+      "字节数": 15931,
+      "SHA256": "9047c21f0f7e3c6b1abd8693c9be7f67e2835c64cbab40494c61af5b6231e7f9"
+    },
+    {
+      "路径": "02_平台代码/tests/advanced-visual-render-stage5.test.ts",
+      "字节数": 8729,
+      "SHA256": "66af5622379c0f9d27a6e472f1e04c0642b9630c20d00eee0482477d0d2cdf7a"
+    },
+    {
+      "路径": "02_平台代码/tests/advanced-visual-stage5.test.ts",
+      "字节数": 2226,
+      "SHA256": "5ed3d822dce1e894c4e0bc6b981574726f57217bd4328ec307cfd15901ed4673"
+    },
+    {
+      "路径": "02_平台代码/tests/advanced-workflow-web-stage5.test.ts",
+      "字节数": 6333,
+      "SHA256": "888646e0fdb1c71b99b89b423f0f91c3f4b543629c66ebc956bae9e5607214f9"
+    },
+    {
+      "路径": "02_平台代码/tests/asset-duration-contract.test.ts",
+      "字节数": 3712,
+      "SHA256": "4aa341ed959b68ae47665d39e4f5ae15f9d445707951ff13997f4c0e643f7856"
+    },
+    {
+      "路径": "02_平台代码/tests/asset-image-acquisition-stage3.test.ts",
+      "字节数": 9301,
+      "SHA256": "e1fdc33016c54fbe7f16abac9257d293fde9064fc7ad998fcc0e2fcb78de9cd6"
+    },
+    {
+      "路径": "02_平台代码/tests/asset-search-recovery.test.ts",
+      "字节数": 12028,
+      "SHA256": "9b1146ae2d342650440cefff1e2646c2c95c0f12fd5029e66d7f91999880f391"
+    },
+    {
+      "路径": "02_平台代码/tests/asset-search-upgrade.test.ts",
+      "字节数": 4203,
+      "SHA256": "5693639b9a5b8235d78436eda8c62f694d3c104a903b026e87a411aa60ae5d6b"
+    },
+    {
+      "路径": "02_平台代码/tests/audio-mix-gain.test.ts",
+      "字节数": 6828,
+      "SHA256": "2cd36036193853c97204b77fa9d2f95d8dd415fa9ce2c88a2457736b7b299967"
+    },
+    {
+      "路径": "02_平台代码/tests/authored-script.test.ts",
+      "字节数": 9588,
+      "SHA256": "eb2f190deec28c3721e6f89af3e245f187b0acb61fef9d54a8ed25915c2a4488"
+    },
+    {
+      "路径": "02_平台代码/tests/avatar-stage2.test.ts",
+      "字节数": 53169,
+      "SHA256": "6284f9bcc7c01636096e61fa622e661e4f826e1f47199724d48e834ecf3e952d"
+    },
+    {
+      "路径": "02_平台代码/tests/background-processes.test.ts",
+      "字节数": 6934,
+      "SHA256": "a6bd5c3c9fbe6a8e6f5d079434e89985965f1f65440d060be9bc5df6f8095333"
+    },
+    {
+      "路径": "02_平台代码/tests/bridge-recovery.test.ts",
+      "字节数": 5210,
+      "SHA256": "59b4281b9bb61c51bd623bfac80416687dc7092be33312633b37ba3228067f46"
+    },
+    {
+      "路径": "02_平台代码/tests/candidate-runtime.test.ts",
+      "字节数": 5126,
+      "SHA256": "95e5f5b6eab0ba387beff0809903d0343ad5981330df0c72d6893c7583eefac5"
+    },
+    {
+      "路径": "02_平台代码/tests/caption-layout.test.ts",
+      "字节数": 11227,
+      "SHA256": "fe5a7cdbfb98154884abe8aaf8c467f0534607632493622fb85176626228f005"
+    },
+    {
+      "路径": "02_平台代码/tests/caption-measurement-runtime.test.ts",
+      "字节数": 3504,
+      "SHA256": "628588464b6849fc2d97693c7239d0e829bec397050cbf75b3f9e95a133dba5f"
+    },
+    {
+      "路径": "02_平台代码/tests/caption-presentation.test.ts",
+      "字节数": 1938,
+      "SHA256": "04c7bc0df64d189ea516b5888759727e7a911610a157baf9a8035bd27293f0a2"
+    },
+    {
+      "路径": "02_平台代码/tests/codex-mcp-registration.test.ts",
+      "字节数": 3219,
+      "SHA256": "112f648cb429bf7727f2380f10fc4bb3d9d0eba0cd8397a3fda584b48534acb9"
+    },
+    {
+      "路径": "02_平台代码/tests/composition-reachability.test.ts",
+      "字节数": 8251,
+      "SHA256": "28c2da78ff64f4cf5c93c851e3fde678dc26c90189b927d08e8fcfe96bf61c02"
+    },
+    {
+      "路径": "02_平台代码/tests/core.test.ts",
+      "字节数": 127975,
+      "SHA256": "9e3e1c8e540a5f89f480337f91639960651edd7f686db05edd6d87c726c7390c"
+    },
+    {
+      "路径": "02_平台代码/tests/creative-delegation.test.ts",
+      "字节数": 9344,
+      "SHA256": "0a070e501153c3ca02500660d56b287d33c98c710c49cb9c8193a5ff4510544e"
+    },
+    {
+      "路径": "02_平台代码/tests/creative-preview-frames.test.ts",
+      "字节数": 1821,
+      "SHA256": "dea9cd29ce70b62f014872908d89d61009a43d575586e52a00e9b2e652877e41"
+    },
+    {
+      "路径": "02_平台代码/tests/cutaway-composition.test.ts",
+      "字节数": 5381,
+      "SHA256": "7db49fe90ea837d2e8aed4467bc9ef0e3586794d898d17e0179ffe064c7f4510"
+    },
+    {
+      "路径": "02_平台代码/tests/default-voice.test.ts",
+      "字节数": 2944,
+      "SHA256": "5a471e827793906624fc0ea0b5d42b78efe163f5ccc9d7de682ef90ce60cd0fb"
+    },
+    {
+      "路径": "02_平台代码/tests/dialogue-processing.test.ts",
+      "字节数": 15155,
+      "SHA256": "f45005add5265bbda5ef33cdb8524a31495856d172d22a9ecb630d08ade6f5ac"
+    },
+    {
+      "路径": "02_平台代码/tests/editorial-export-policy.test.ts",
+      "字节数": 11015,
+      "SHA256": "97d623feb4d47584eb2eaaa8980424f02cb3ddef5892abbfe3aba3875076215e"
+    },
+    {
+      "路径": "02_平台代码/tests/editorial-review-loop.test.ts",
+      "字节数": 19521,
+      "SHA256": "6d241bde16afdfa9d93202f8fdbaca1a0c93c56f5630de57511d74740167895d"
+    },
+    {
+      "路径": "02_平台代码/tests/effect-content-contract.test.ts",
+      "字节数": 2770,
+      "SHA256": "666a8de7119fe8d22580e0c23b1b8a46b2b64a8e524d9def86d57dcd8797a05b"
+    },
+    {
+      "路径": "02_平台代码/tests/explainer-entry-stage3.test.ts",
+      "字节数": 25975,
+      "SHA256": "3ff75c0945f4dcf45e581d08172ee68157673c509579fc243e8324576cb0ccc9"
+    },
+    {
+      "路径": "02_平台代码/tests/explainer-scene-cache-stage3.test.ts",
+      "字节数": 8558,
+      "SHA256": "a5d3d547c066c52d966e99e3c45258e0c37b2d057edf5537652b155cdee0d593"
+    },
+    {
+      "路径": "02_平台代码/tests/explainer-stage3.test.ts",
+      "字节数": 36522,
+      "SHA256": "10b8b57107e1566e6506e9b1382dd802b5ab0b941aebb5103afbc00823927d55"
+    },
+    {
+      "路径": "02_平台代码/tests/fixtures/managed-motion.ts",
+      "字节数": 1749,
+      "SHA256": "b18df4f15fe21c5bbae8cfb1bd8637694a2d4b5514d880319b492d92ca7e36df"
+    },
+    {
+      "路径": "02_平台代码/tests/fixtures/observed-highlight.ts",
+      "字节数": 2588,
+      "SHA256": "75cbc0a628da95d5ee058ec3c69b7810a04c221604e27e7db73060cb147b3226"
+    },
+    {
+      "路径": "02_平台代码/tests/fixtures/partial-raster-motion.tsx",
+      "字节数": 6368,
+      "SHA256": "9924956d4e835e10c97430717a4d68f13ccfc4e28f1a8dc0aa1488c7043678b3"
+    },
+    {
+      "路径": "02_平台代码/tests/fixtures/player-clock.html",
+      "字节数": 168,
+      "SHA256": "fce755e5f684ebe4e19b5b24c57395062249c14bda2c366c9548e57513c5d960"
+    },
+    {
+      "路径": "02_平台代码/tests/fixtures/player-clock.tsx",
+      "字节数": 1962,
+      "SHA256": "362751101e2899acddb700bbda2daaed5df14b88a7db8e9f941ee1744d59fc2f"
+    },
+    {
+      "路径": "02_平台代码/tests/funasr-provider.test.ts",
+      "字节数": 449,
+      "SHA256": "f6181fa2b802249f947af7463afe0a8675903e2033e0a724cecadb22d72aa344"
+    },
+    {
+      "路径": "02_平台代码/tests/job-retry-safety.test.ts",
+      "字节数": 4025,
+      "SHA256": "901c00593f2bc272f386477e78cb641ef3208d29aa0f08f20ec5feada77612b7"
+    },
+    {
+      "路径": "02_平台代码/tests/local-sound-effects.test.ts",
+      "字节数": 6994,
+      "SHA256": "42b7741572be6b4f664dfc90883afa7ab4f136a9b1b25b77a29a6a2dc0e2450f"
+    },
+    {
+      "路径": "02_平台代码/tests/managed-motion-adoption.test.ts",
+      "字节数": 2005,
+      "SHA256": "c03fee63ed074a3d54e6a19e01fb80a6c0109a25f7cf63bea996913affd1db52"
+    },
+    {
+      "路径": "02_平台代码/tests/managed-motion-budget.test.ts",
+      "字节数": 4418,
+      "SHA256": "2902eecd4874b54bd2e3a5febc9c475ccf52e20b5d152193a5e7fbd5944dcac2"
+    },
+    {
+      "路径": "02_平台代码/tests/managed-motion-image-adoption.test.ts",
+      "字节数": 9688,
+      "SHA256": "21b8b4a8db862ff90c8ffaabf469eeb743bef3474bb20af3e3429f5af5ce57b2"
+    },
+    {
+      "路径": "02_平台代码/tests/managed-motion-render.test.ts",
+      "字节数": 12189,
+      "SHA256": "e3d842cc9f8d06e230fb14b1f0168b131da717034a3ea6706add259f8da70d75"
+    },
+    {
+      "路径": "02_平台代码/tests/managed-motion-video.test.ts",
+      "字节数": 6085,
+      "SHA256": "1ded7e417883aee65245b9e9399000bf54ac2fd32f5382afec2a6453070de34f"
+    },
+    {
+      "路径": "02_平台代码/tests/managed-motion.test.ts",
+      "字节数": 29971,
+      "SHA256": "ddb13bfae34ac340ff6a79276e6069b50d18951832c62bf1991bd1987d0d707c"
+    },
+    {
+      "路径": "02_平台代码/tests/mcp-session.test.ts",
+      "字节数": 10706,
+      "SHA256": "6935c50aa4a4b128a6a0abd7e1bcacf81a63c8b7a4fa01e625218b0d0b8b1efe"
+    },
+    {
+      "路径": "02_平台代码/tests/media-intelligence.test.ts",
+      "字节数": 17236,
+      "SHA256": "4062a54d24e73259b2984b0a00befd527267cbe6dc399feced6967e2d98649c5"
+    },
+    {
+      "路径": "02_平台代码/tests/media-memory-safety.test.ts",
+      "字节数": 6382,
+      "SHA256": "71eef6e679dbfadc7ad3b5d90f6c5cf7ed2b633a959600effbb1ffbd168c4107"
+    },
+    {
+      "路径": "02_平台代码/tests/media-range.test.ts",
+      "字节数": 2231,
+      "SHA256": "f24ebf1ce512ddaaf37afd8a47a91d487e38b4831d6dc02368db27b4345ef641"
+    },
+    {
+      "路径": "02_平台代码/tests/media-review-page.test.ts",
+      "字节数": 4230,
+      "SHA256": "e66c98cb885dd12daade5e73f27da7dbb3d911f4e4a9bd109ccf24facd624d1e"
+    },
+    {
+      "路径": "02_平台代码/tests/minicpm-allocator.test.ts",
+      "字节数": 1734,
+      "SHA256": "748e345f23852bed02293c840ad1cee0bf6c40d8e9a5e24a85d929778fdac55f"
+    },
+    {
+      "路径": "02_平台代码/tests/model-timeout-resume.test.ts",
+      "字节数": 3239,
+      "SHA256": "42409dfdc4cd2f678a6e1359fbf32653c1199771f1607b432aba9efb1e17ea29"
+    },
+    {
+      "路径": "02_平台代码/tests/motion-component-data.test.ts",
+      "字节数": 2864,
+      "SHA256": "2f961d25ea8550668bab2c65f700dec552aae781e05e6cbe40ab19a78b0237f6"
+    },
+    {
+      "路径": "02_平台代码/tests/motion-coverage.test.ts",
+      "字节数": 15827,
+      "SHA256": "a3b7d5109594ae073dc7572a44983768b0ff210a7c6e0998613dbf4645d47133"
+    },
+    {
+      "路径": "02_平台代码/tests/motion-cue-repair.test.ts",
+      "字节数": 10517,
+      "SHA256": "9dea467246397c804cd5202ba7aff52aa2ccc7796be8027e6ecdbf633fce8bb5"
+    },
+    {
+      "路径": "02_平台代码/tests/motion-determinism.test.ts",
+      "字节数": 11876,
+      "SHA256": "d56e6f7f60cc68c6ba1ece582f706183b1636694c3d16e1db33d5855634b0729"
+    },
+    {
+      "路径": "02_平台代码/tests/motion-image-layout.test.ts",
+      "字节数": 2796,
+      "SHA256": "c3c61da7db8937babd9f21ad45d0eff1145893c3e18381b8afeb750355f815bb"
+    },
+    {
+      "路径": "02_平台代码/tests/motion-reference-runtime.test.ts",
+      "字节数": 4986,
+      "SHA256": "6fab296aeb547ac970bbf2a6b7ba9e1eae804a99da971fe55d5b4cfd22ea18ed"
+    },
+    {
+      "路径": "02_平台代码/tests/motion-source-bindings.test.ts",
+      "字节数": 4742,
+      "SHA256": "8dd827984888b20f4f37fac10c2e278abb3540debc30c243b256920b4ee41a3e"
+    },
+    {
+      "路径": "02_平台代码/tests/motion-video-resolution.test.ts",
+      "字节数": 6564,
+      "SHA256": "8ed2b4b6752d7d57c3dce3b46c3858aaf6d85803fda15998d54e15e624610bf1"
+    },
+    {
+      "路径": "02_平台代码/tests/multicam-stage5.test.ts",
+      "字节数": 20851,
+      "SHA256": "997ca09c61b84d41a567807484c26625bc65f860e3fafaa636ba491814fdd4ec"
+    },
+    {
+      "路径": "02_平台代码/tests/multicam-sync-worker.test.ts",
+      "字节数": 14851,
+      "SHA256": "08385ab3c9ab528448f183475e0554f5c2e46702c50078f54ac10f13af7c296f"
+    },
+    {
+      "路径": "02_平台代码/tests/music-generation-stage5.test.ts",
+      "字节数": 14451,
+      "SHA256": "b61cc0d6f098b4783bad7077876e8498e8561e83f5fd96558eecedf04342b5a9"
+    },
+    {
+      "路径": "02_平台代码/tests/persistence-schema.test.ts",
+      "字节数": 1604,
+      "SHA256": "d8abad6bd167ab010b677a09de9463d6ed4f6505d09aefe9743b6a438f6d85a5"
+    },
+    {
+      "路径": "02_平台代码/tests/player-clock.e2e.ts",
+      "字节数": 4528,
+      "SHA256": "a31fe41f2f98cc69d60c790297c969f22ffd1f9609c454b14c90878a07e79be5"
+    },
+    {
+      "路径": "02_平台代码/tests/plugin-packaging.test.ts",
+      "字节数": 6226,
+      "SHA256": "26cea835dfe0f7052402244552ec39d3a1ad284ff54ba425e412b4c8eaef05a8"
+    },
+    {
+      "路径": "02_平台代码/tests/presenter-source-edit.test.ts",
+      "字节数": 30432,
+      "SHA256": "4ce4c2c7530f686c724cf7d05e5c58d1819e57026a334e4b9da160d401ba0300"
+    },
+    {
+      "路径": "02_平台代码/tests/production-flow.test.ts",
+      "字节数": 5310,
+      "SHA256": "f77f1e66444d3c463168641ef2ad6646c70e19fc84672b266d9bd0e74d4cd7f8"
+    },
+    {
+      "路径": "02_平台代码/tests/project-overview.test.ts",
+      "字节数": 8342,
+      "SHA256": "24a4d871f2770ccf3cac357a8dc36cd7349d178eb2c69538a7be5da86111b62a"
+    },
+    {
+      "路径": "02_平台代码/tests/public-source-proxy.test.ts",
+      "字节数": 5364,
+      "SHA256": "e0c87488542d6dfa5cce719a6c6a2c001f1709bf3baa578058681812c5ca3182"
+    },
+    {
+      "路径": "02_平台代码/tests/quality-issue-stability.test.ts",
+      "字节数": 1824,
+      "SHA256": "d447f53397876de583bc374dd922b7af0d16b05147cc006aa5a744ebc361f712"
+    },
+    {
+      "路径": "02_平台代码/tests/render-browser-preparation.test.ts",
+      "字节数": 3671,
+      "SHA256": "dcb33fe1fc2c3a87d79d1c09f965a17be5642db192e7ed9cff3784b4b67945b9"
+    },
+    {
+      "路径": "02_平台代码/tests/render-media-server.test.ts",
+      "字节数": 4568,
+      "SHA256": "855ee571baf6889754e8bcc4af1a71f34f105f83b53c402ca13465d11d30050e"
+    },
+    {
+      "路径": "02_平台代码/tests/render-navigation-recovery.test.ts",
+      "字节数": 1219,
+      "SHA256": "528e49c00396734977f0fb097acd1847620a1fcc1c91660e57321bf0fcf48bc5"
+    },
+    {
+      "路径": "02_平台代码/tests/render-video-timing.e2e.ts",
+      "字节数": 5355,
+      "SHA256": "4adb325e77461c5495d21dcb2d438803f27869993559e51c5aad432af51c46d1"
+    },
+    {
+      "路径": "02_平台代码/tests/rendered-media-review.test.ts",
+      "字节数": 5874,
+      "SHA256": "e42708bf5e8064f8a9f9d762ff0644748ff746345a1d8dd3ea0ad84c108c55ff"
+    },
+    {
+      "路径": "02_平台代码/tests/repair-coordination.test.ts",
+      "字节数": 5694,
+      "SHA256": "fe9e5c0b67bf3918c15ce2bdc994badc43eb4413c4e156704a3fdc63178915ec"
+    },
+    {
+      "路径": "02_平台代码/tests/restricted-remotion-stage5.test.ts",
+      "字节数": 5170,
+      "SHA256": "c89665a98657574d8b331a4c0421d2f09581387abff09331a7680a05ce60205b"
+    },
+    {
+      "路径": "02_平台代码/tests/runtime-operation-lock.test.ts",
+      "字节数": 6682,
+      "SHA256": "d32933b46b2ae2d9048c75b392884dc5744692aff90e07fba77c7c0b57f88824"
+    },
+    {
+      "路径": "02_平台代码/tests/selected-motion-cases.test.ts",
+      "字节数": 3168,
+      "SHA256": "8d1146e5ab2a6cff305dd4ae3f9dbb62200a0cfe946ab8cf3cc87ab527b2c153"
+    },
+    {
+      "路径": "02_平台代码/tests/skills-v5-integration.test.ts",
+      "字节数": 32186,
+      "SHA256": "9ac662ad126941db3e5acec2d4f2383754d903d59e270143e548c1ba6582e20e"
+    },
+    {
+      "路径": "02_平台代码/tests/sound-design-chain.test.ts",
+      "字节数": 42600,
+      "SHA256": "1ea8bbbc77f747f00e4252b0402cf7c315632061fe33056fe25a2f82daeb3b00"
+    },
+    {
+      "路径": "02_平台代码/tests/sound-effects-integration.test.ts",
+      "字节数": 24932,
+      "SHA256": "2b84c80159aebdc0ad4d7afd727543166c43c08e25bdd2152f83eee9cca34702"
+    },
+    {
+      "路径": "02_平台代码/tests/sound-plan-contract.test.ts",
+      "字节数": 6878,
+      "SHA256": "251ea2adfdc961881ee353a22fcd38c9a8ec089366e46c00696f14d7a62b16aa"
+    },
+    {
+      "路径": "02_平台代码/tests/source-caption-worker.test.ts",
+      "字节数": 24027,
+      "SHA256": "93490ab78b822dc005d5b213125ec22c16b56ef9f0311d24c28628f88660be25"
+    },
+    {
+      "路径": "02_平台代码/tests/source-research.test.ts",
+      "字节数": 17475,
+      "SHA256": "d40c1c0a07492b6e2afd5468a580910c1178a62c909a180553e2d3be6a8cd7e0"
+    },
+    {
+      "路径": "02_平台代码/tests/source-review.test.ts",
+      "字节数": 35285,
+      "SHA256": "f3b9f7a9a7223ec26a764939d3c0583c1ed739ff6a28136542e754a8c503ef2f"
+    },
+    {
+      "路径": "02_平台代码/tests/speech-alignment-stage5.test.ts",
+      "字节数": 16597,
+      "SHA256": "1dd06e2f4bac5ffc474ea26a4c9e10a794690d24c826fe57fb8f09f10c6bdad7"
+    },
+    {
+      "路径": "02_平台代码/tests/speech-caption-worker.test.ts",
+      "字节数": 30799,
+      "SHA256": "2cd799a46c6f911eca8d1ed1260f30a539812d54d56813fb6f85db9d549a7de7"
+    },
+    {
+      "路径": "02_平台代码/tests/test_funasr_provider.py",
+      "字节数": 3852,
+      "SHA256": "d49bac3df41048f7093808d26bed2088de430ec346669013e0137eb0cfb99936"
+    },
+    {
+      "路径": "02_平台代码/tests/threaded-renderer.test.ts",
+      "字节数": 3836,
+      "SHA256": "f3a69619a74cc775c7b5703b128e91ee8cb4d7a34e303c9724104e6bef064875"
+    },
+    {
+      "路径": "02_平台代码/tests/timeline-editor.e2e.ts",
+      "字节数": 13944,
+      "SHA256": "a6a7a00801428fc435010e4742c80a6b695f2c9469f5d477503541a171f7debf"
+    },
+    {
+      "路径": "02_平台代码/tests/timeline-geometry.test.ts",
+      "字节数": 1752,
+      "SHA256": "6902425ea26dbed6979484d89a5825c4b3506ba82cedfc5b230150bed94bbb46"
+    },
+    {
+      "路径": "02_平台代码/tests/topic-film-skills.test.ts",
+      "字节数": 528,
+      "SHA256": "beb85278c2721377638bc975ac713c2e90466df16a10279f3f5cb0bc99c33090"
+    },
+    {
+      "路径": "02_平台代码/tests/topic-film-timing.test.ts",
+      "字节数": 2901,
+      "SHA256": "ffd96e0ec3104ee4463e957eff28bb5f9a1aa430045f755b01494025d0bdcdbf"
+    },
+    {
+      "路径": "02_平台代码/tests/verify-installed-release.test.ts",
+      "字节数": 5453,
+      "SHA256": "c6cd72c2e2c8f16f63ec8f7fd45b6e561cedc445aa4f1f0e9584383fb9469ca3"
+    },
+    {
+      "路径": "02_平台代码/tests/video-generation-application-stage5.test.ts",
+      "字节数": 6945,
+      "SHA256": "fccc45d650e22042a164555229e625b7a003c46a74e16a6ee556ff583d91494d"
+    },
+    {
+      "路径": "02_平台代码/tests/video-generation-stage5.test.ts",
+      "字节数": 10491,
+      "SHA256": "a25c857e4da893df86d80812ce2c4a2952303dafcc8bc25ba5fa1a4d4a83d0fc"
+    },
+    {
+      "路径": "02_平台代码/tests/vlog-runtime-stage4.test.ts",
+      "字节数": 4059,
+      "SHA256": "1be3b399757ce751a4e15d68cae5d107a28a293587c8b23428772a1aeee5c7c9"
+    },
+    {
+      "路径": "02_平台代码/tests/vlog-stage4.test.ts",
+      "字节数": 21591,
+      "SHA256": "02419374c66bf86f22bd09766cb03f66e17a6f278c8115599dfc99c148501bb7"
+    },
+    {
+      "路径": "02_平台代码/tests/web-agent-handoff-stage5.test.ts",
+      "字节数": 15112,
+      "SHA256": "b5a10bc057b56b93abc6774bd8c7375db4b1d54827b8ab2d3c97f47bb91b6cd6"
+    },
+    {
+      "路径": "02_平台代码/tests/wikimedia-provider.test.ts",
+      "字节数": 10861,
+      "SHA256": "cbc0b5b56ec6e795fd3d041d9b73fc8dfb5d2a7dc15f42665057924de73a9979"
+    },
+    {
+      "路径": "02_平台代码/tests/youtube-acquisition.test.ts",
+      "字节数": 5365,
+      "SHA256": "a0c7deae439c1038f9da32da7820c3ef9f503058f060d3d78e4820aeb16292f8"
+    },
+    {
+      "路径": "02_平台代码/tsconfig.json",
+      "字节数": 1235,
+      "SHA256": "3b07d00fb2ef5ed9fb08eb42993319481865deae39cbe4dbb3333c2d78aacfd6"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_2462c74f-7992-4912-af70-10bad173a479/33a73273651811ed957b3c96a30322a37ade87f122ff3fea1bbae7d5c297004f/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "82a1dd13576186c825e2de4de50eea2f9efb6d1fecd781b9ac191d8b2d1469ca"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_2462c74f-7992-4912-af70-10bad173a479/33a73273651811ed957b3c96a30322a37ade87f122ff3fea1bbae7d5c297004f/manifest.json",
+      "字节数": 39468,
+      "SHA256": "02eea0d70e26aba86fd800ee5fcbc165260525aaed14d9b375b740a3a73df46d"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_2462c74f-7992-4912-af70-10bad173a479/33a73273651811ed957b3c96a30322a37ade87f122ff3fea1bbae7d5c297004f/source.json",
+      "字节数": 9939,
+      "SHA256": "b37abe2eeb989b5630f8d2942745e40dce7f5eb6bd8307a23acf7174dbdd7c4f"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_2c1801ca-dc58-4afb-8a00-4cb321f2ef33/0f78e3c31a6df7f32ef0390da5e7c7750fd01fd2f8f4181b2865b6d489de16ef/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "6743249766e9fefe3087f24e21c8e1afbb0c69cc5f3d74265da088c4be010713"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_2c1801ca-dc58-4afb-8a00-4cb321f2ef33/0f78e3c31a6df7f32ef0390da5e7c7750fd01fd2f8f4181b2865b6d489de16ef/manifest.json",
+      "字节数": 44362,
+      "SHA256": "8126a1d784b4977c266f3a2bf494496cf47f10b7c8ff86964c8f151451778dba"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_2c1801ca-dc58-4afb-8a00-4cb321f2ef33/0f78e3c31a6df7f32ef0390da5e7c7750fd01fd2f8f4181b2865b6d489de16ef/source.json",
+      "字节数": 7584,
+      "SHA256": "7216196d5d21f5ac514555eb5139edd7e89bf61609bebd4489d12ccccaaa394f"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_32946247-2898-4139-8aec-8653c5000496/4f0a936583770802468b1d41ccfb8060e512fc9908a1b2ea235225b0cc6eee89/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "75df871a9a7cad3f180873f463b17287cf0af616b27ded66e8d015d44ad98882"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_32946247-2898-4139-8aec-8653c5000496/4f0a936583770802468b1d41ccfb8060e512fc9908a1b2ea235225b0cc6eee89/manifest.json",
+      "字节数": 37616,
+      "SHA256": "83cc4532069c14752fab520b3ff0d4ea7e1f828d75f1194c82a9317ca7b7ca9b"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_32946247-2898-4139-8aec-8653c5000496/4f0a936583770802468b1d41ccfb8060e512fc9908a1b2ea235225b0cc6eee89/source.json",
+      "字节数": 11469,
+      "SHA256": "02c893754d664748316cbcd49d33bc6ad1278d50b50b13f00da201f54e090452"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_471c00a6-e2b5-4ee0-bdba-32f018b56b9b/06a0949bcac9b2359a15e3ac8d443cb4af7dfa66b3968de3561071d7b555c852/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "75df871a9a7cad3f180873f463b17287cf0af616b27ded66e8d015d44ad98882"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_471c00a6-e2b5-4ee0-bdba-32f018b56b9b/06a0949bcac9b2359a15e3ac8d443cb4af7dfa66b3968de3561071d7b555c852/manifest.json",
+      "字节数": 37616,
+      "SHA256": "8801f02b1e919642a54ee91e8e3a00d83d8663ef0a7f25e02a3b1bab3a0633b0"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_471c00a6-e2b5-4ee0-bdba-32f018b56b9b/06a0949bcac9b2359a15e3ac8d443cb4af7dfa66b3968de3561071d7b555c852/source.json",
+      "字节数": 11890,
+      "SHA256": "8296e601326c8cb93fced9a56b00ee782916c1f3b2b09980702e91cc3d6753b7"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_4940d7d2-4463-4a84-a3ad-c44de4d44668/2281d48b8d0b3b6d2672c62c4066bef9505e41e4e5b8b4d2a8a0c1702aeb1dd5/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "75df871a9a7cad3f180873f463b17287cf0af616b27ded66e8d015d44ad98882"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_4940d7d2-4463-4a84-a3ad-c44de4d44668/2281d48b8d0b3b6d2672c62c4066bef9505e41e4e5b8b4d2a8a0c1702aeb1dd5/manifest.json",
+      "字节数": 37442,
+      "SHA256": "7071027bfcb4b07674185adcadd8c91dfcb8ad9c0d7f634e72c00283364de92b"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_4940d7d2-4463-4a84-a3ad-c44de4d44668/2281d48b8d0b3b6d2672c62c4066bef9505e41e4e5b8b4d2a8a0c1702aeb1dd5/source.json",
+      "字节数": 9707,
+      "SHA256": "74f995535661929d01a82acde2dae7393d2c0a6c8fe9f1df2fb1bf95b0055324"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_6b8d6543-b876-4046-9ff8-f4f1ba144ffa/778ead925e8802d629301c630eb8ba9c5066c078f695485e916250f0ce44b177/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "75df871a9a7cad3f180873f463b17287cf0af616b27ded66e8d015d44ad98882"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_6b8d6543-b876-4046-9ff8-f4f1ba144ffa/778ead925e8802d629301c630eb8ba9c5066c078f695485e916250f0ce44b177/manifest.json",
+      "字节数": 37457,
+      "SHA256": "fd9fc25df87376e162a5de4a2fac9d76cf75340b635256c02e0ca11610188e4e"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_6b8d6543-b876-4046-9ff8-f4f1ba144ffa/778ead925e8802d629301c630eb8ba9c5066c078f695485e916250f0ce44b177/source.json",
+      "字节数": 10497,
+      "SHA256": "86500883177d3f07afaf77e1fa3bfd7409139e7de2e314f6b387c2f09a63bde3"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_d1bbf134-ad89-4fd8-9c8f-dc143712855d/e367534ca10ab83e175d0f78259553c7827ff6441c173808d299331490367963/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "6743249766e9fefe3087f24e21c8e1afbb0c69cc5f3d74265da088c4be010713"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_d1bbf134-ad89-4fd8-9c8f-dc143712855d/e367534ca10ab83e175d0f78259553c7827ff6441c173808d299331490367963/manifest.json",
+      "字节数": 44362,
+      "SHA256": "d18094a66318cd6d81b21428c1426fba67449c49ebd4e98fbeae2876ffd7c713"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_d1bbf134-ad89-4fd8-9c8f-dc143712855d/e367534ca10ab83e175d0f78259553c7827ff6441c173808d299331490367963/source.json",
+      "字节数": 7971,
+      "SHA256": "4b96025cba1ac6fd0d7866c59c68219012698a2b222efa4744aeee84faeb44bc"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_ec1a9cdd-8b67-4089-87e6-bded0fd2e5a4/f30d7eb4b34d2eb919b74523d4156d1ebeed227e51b536c2cc7c73b10030100b/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "3be8cffd291f380e83f5ca4567d7842858df189613ebc1eb84a042d905552470"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_ec1a9cdd-8b67-4089-87e6-bded0fd2e5a4/f30d7eb4b34d2eb919b74523d4156d1ebeed227e51b536c2cc7c73b10030100b/manifest.json",
+      "字节数": 41375,
+      "SHA256": "9edbae8a30c7a52c1273ef46b4ce5c328f4cf06ceaa9841bbc4bb4e86c67f649"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/derived/motion/job_ec1a9cdd-8b67-4089-87e6-bded0fd2e5a4/f30d7eb4b34d2eb919b74523d4156d1ebeed227e51b536c2cc7c73b10030100b/source.json",
+      "字节数": 8203,
+      "SHA256": "654276b1e486baf622206a3b51e5f4773e18c0670830b95a1a130406284c0dc7"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/assets/proxy/asset_12b21dcb-749a-416a-a461-677dd106dc3f.jpg",
+      "字节数": 9655,
+      "SHA256": "eabd7f2d94aa7cae19704c819e92a6b44d50393d7b964af498e53b70d36caf0b"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/manifests/attribution/export_artifact_fd61cdd1-98d0-4d46-b79d-e5dc574ced9d.json",
+      "字节数": 4477,
+      "SHA256": "1c3c4699714a1c862c5e93241f024159c508ae2984531206cc426caedd44d065"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/reports/production-run-production_run_64bfa147-99fc-49ca-8eb5-a2df272fe3be.json",
+      "字节数": 32527,
+      "SHA256": "0bd132be43842a63baa00501d83508e4b61a19f854e8688c9f49225b390e745b"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/任务及固定源码记录.json",
+      "字节数": 169119,
+      "SHA256": "41f2f8a735ed06dbf7a180c89811a2f87b9b8c0d97571f97d778641fc45c4c9b"
+    },
+    {
+      "路径": "03_项目素材与源码/五例迁移/项目快照.json",
+      "字节数": 756809,
+      "SHA256": "1a5693e8cfcfae0db52ccb28ff9824b73a49de42caa1a5d9f750feda6d3ace47"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_29e65f7b-3e6c-4baf-a59e-6448d983c04f/bdbcdda9d74b8a2004b65b4dab46cfc8fc4c9ffbf05de4168975558b8352f3dc/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "66f1021d3a14c5afbff70140fde494269bd5ae3201b002031182957e95efe89b"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_29e65f7b-3e6c-4baf-a59e-6448d983c04f/bdbcdda9d74b8a2004b65b4dab46cfc8fc4c9ffbf05de4168975558b8352f3dc/manifest.json",
+      "字节数": 39540,
+      "SHA256": "c85f9b254c743e795f16414ac5f5015985090f4d93aaab79050afb9967daf3ee"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_29e65f7b-3e6c-4baf-a59e-6448d983c04f/bdbcdda9d74b8a2004b65b4dab46cfc8fc4c9ffbf05de4168975558b8352f3dc/source.json",
+      "字节数": 16520,
+      "SHA256": "5c98bd5d98bd8165d58683253e420d1f331679e148980f09115968787bcca63a"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_40a76f98-1abb-424d-b809-ff3afcbbcb91/ebe26fc8eaa33730400556335a1e5fb710f0558b6a8de58717a9792dde37a7b7/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "60720d0dd38007040f074544065c0591f3f8152c779692a2da3d6cc14a1fac09"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_40a76f98-1abb-424d-b809-ff3afcbbcb91/ebe26fc8eaa33730400556335a1e5fb710f0558b6a8de58717a9792dde37a7b7/manifest.json",
+      "字节数": 44322,
+      "SHA256": "4010fe388a449eff2fba48f8a1cf25517a95080da2ca93cc6dfb811a0fb981d4"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_40a76f98-1abb-424d-b809-ff3afcbbcb91/ebe26fc8eaa33730400556335a1e5fb710f0558b6a8de58717a9792dde37a7b7/source.json",
+      "字节数": 17000,
+      "SHA256": "7afba300450334ccde6cf3057b48ba8ff7043d49e73a30a7fbd25b8022e73fc9"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_843fb6f3-2509-4562-9d70-a8f191ec39d0/867a8d9699578e874b074f3d491e1a69fb9adb07578facb951bb80908a86c870/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "281c78a78e233a7ef568b5d2759aae9005aff637519617ac7a47464c6e0598bb"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_843fb6f3-2509-4562-9d70-a8f191ec39d0/867a8d9699578e874b074f3d491e1a69fb9adb07578facb951bb80908a86c870/manifest.json",
+      "字节数": 39237,
+      "SHA256": "be736805514afe267b285ed6c8787088864ad8f829dd5879e6ac28b3c2b14478"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_843fb6f3-2509-4562-9d70-a8f191ec39d0/867a8d9699578e874b074f3d491e1a69fb9adb07578facb951bb80908a86c870/source.json",
+      "字节数": 9550,
+      "SHA256": "0c867b59b91b20d3dc9aeea99ac3a08c15faa83fbba9b2ecb74f03adcc4dd8f7"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_b8dc304d-1c6c-482e-b4ab-fc29b4c4f914/a19f90ed6055b66f461baeab9c2d4e7751a24c8b94756cdf8c298884780f5478/diagnostics/report.json",
+      "字节数": 124,
+      "SHA256": "947a62e5dee843a8f5c25f3f951afa4fadafbc8140af30bb315ab157e0923ed7"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_b8dc304d-1c6c-482e-b4ab-fc29b4c4f914/a19f90ed6055b66f461baeab9c2d4e7751a24c8b94756cdf8c298884780f5478/manifest.json",
+      "字节数": 22552,
+      "SHA256": "ec62c71f527a46942017c139e4361db4d4094b38570c6d2f44ab307b3f87feda"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_b8dc304d-1c6c-482e-b4ab-fc29b4c4f914/a19f90ed6055b66f461baeab9c2d4e7751a24c8b94756cdf8c298884780f5478/source.json",
+      "字节数": 16277,
+      "SHA256": "57d9aee5a4e6f1624ed397d076bc8df9f1a7c24d560043648403b25b8d21fe63"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_c7859b3d-4864-4914-8aa8-6d04be9a0028/219e3ccec3efeeba9cfcfd0900b4db2bd8bb145fe0c17b49e4bb319355b49f1a/diagnostics/report.json",
+      "字节数": 124,
+      "SHA256": "8a7bc1eeca66471a11d87da070862b6c14b3d3302d5326cb96cf7cb6924ebc5c"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_c7859b3d-4864-4914-8aa8-6d04be9a0028/219e3ccec3efeeba9cfcfd0900b4db2bd8bb145fe0c17b49e4bb319355b49f1a/manifest.json",
+      "字节数": 24726,
+      "SHA256": "b3939f260015c6e705abd649f481295cbcb4031138c009919d8fca91b31229fc"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_c7859b3d-4864-4914-8aa8-6d04be9a0028/219e3ccec3efeeba9cfcfd0900b4db2bd8bb145fe0c17b49e4bb319355b49f1a/source.json",
+      "字节数": 15864,
+      "SHA256": "e8ee0fe6005504e62f73002345a8c6a158bf3a899c2f091de9becd3ab2f8a9e1"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_d91f96d8-afe8-481d-99c2-5ff3665569bf/18909f345c431577906b5cab029c23f05d6432a4e90d858300034523fc88ccfb/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "281c78a78e233a7ef568b5d2759aae9005aff637519617ac7a47464c6e0598bb"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_d91f96d8-afe8-481d-99c2-5ff3665569bf/18909f345c431577906b5cab029c23f05d6432a4e90d858300034523fc88ccfb/manifest.json",
+      "字节数": 39237,
+      "SHA256": "db30ea3d15cabe44d07c9a342e1218f7e8322164680da51476804f338adbd4f4"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_d91f96d8-afe8-481d-99c2-5ff3665569bf/18909f345c431577906b5cab029c23f05d6432a4e90d858300034523fc88ccfb/source.json",
+      "字节数": 16776,
+      "SHA256": "fb951fedaa913e55a1fa32eb79fe6b7b6385dba4faabe086cdde2ffbc8303638"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_f4eff400-66a4-4888-9e93-5b76ec6111c6/32b2a15b33fac482f328154da22ee14f80bd7ecd2902917e4f4d68a56f3d7d16/diagnostics/report.json",
+      "字节数": 124,
+      "SHA256": "e3b3a99f79b509f0cfeeb970089aba63cd25894111f7d82c45f8f8b51f052fad"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_f4eff400-66a4-4888-9e93-5b76ec6111c6/32b2a15b33fac482f328154da22ee14f80bd7ecd2902917e4f4d68a56f3d7d16/manifest.json",
+      "字节数": 19965,
+      "SHA256": "a5968777bcd1cab77786312ed80d850f006129d977f7fc33d7863b12548a9a66"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/derived/motion/job_f4eff400-66a4-4888-9e93-5b76ec6111c6/32b2a15b33fac482f328154da22ee14f80bd7ecd2902917e4f4d68a56f3d7d16/source.json",
+      "字节数": 16609,
+      "SHA256": "88fa80a6f49d7a669745b706169fc8ccf43c26cfce6c8983879e4ae68a137b60"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/proxy/asset_879fd055-2d03-4cdb-a5ce-6a21638ba30f.jpg",
+      "字节数": 24867,
+      "SHA256": "739b6cc6a83153f1301724f5534d1a7f60da8f3c7a5c03fa331de8c6ea0a291f"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/assets/proxy/asset_cde79622-6a97-480e-86a1-2c8685e3ce62.jpg",
+      "字节数": 13190,
+      "SHA256": "26bcfbeab68490e5baa4c6fa52ec3c5f4479063561ca809e942b619aa26ca952"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/manifests/attribution/export_artifact_38fcb1f4-89cd-4ccf-a486-b78656f06d48.json",
+      "字节数": 12852,
+      "SHA256": "4148fd7d7508c6dceb6928b8eaafedaea17305829ec3f7c920bd28e9b40a701a"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/reports/production-run-production_run_2f875933-be91-47bc-9599-e996d38eba89.json",
+      "字节数": 37702,
+      "SHA256": "6161f189ccf837b3ca41d1ae89fff98d4b3e9ee2faf69cd3f98a332563c671b7"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/任务及固定源码记录.json",
+      "字节数": 315859,
+      "SHA256": "0aff7ddbcac39519b095d0a80585355b5a5bd7e7685b354676e7d1593a84dfa4"
+    },
+    {
+      "路径": "03_项目素材与源码/图书馆主题/项目快照.json",
+      "字节数": 842617,
+      "SHA256": "35a43f5c4aa7e99dd66becc9c431e30436acdeed984dcc878777826c68029ba5"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_02c6fbaa-4e46-4f0d-a0c3-3cc7732ad70a/17f2e0cf6ff5ba4392ba1148092d3d2b2110210adc95d2c8c65509b322ff9548/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "be59a940660bccff87e63357f58e035bf61103af308ee6c9e0be9d1f0103abd9"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_02c6fbaa-4e46-4f0d-a0c3-3cc7732ad70a/17f2e0cf6ff5ba4392ba1148092d3d2b2110210adc95d2c8c65509b322ff9548/manifest.json",
+      "字节数": 41615,
+      "SHA256": "3b44a1a82b0b381ec41450bf085d5d74701f2453288c6645bf5ab1c3eec93a67"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_02c6fbaa-4e46-4f0d-a0c3-3cc7732ad70a/17f2e0cf6ff5ba4392ba1148092d3d2b2110210adc95d2c8c65509b322ff9548/source.json",
+      "字节数": 9660,
+      "SHA256": "f596cdc5464173c2ca5994630ded7defc8e94e60e417905aeb542e6897aae933"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_1b3b35e0-f9e7-447e-8ee5-9bb9e78ea5c1/29f6cef150f650ce31df51b4c2a4f6e6e82cab4fbeaade5ce785f7a210cc4840/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "be59a940660bccff87e63357f58e035bf61103af308ee6c9e0be9d1f0103abd9"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_1b3b35e0-f9e7-447e-8ee5-9bb9e78ea5c1/29f6cef150f650ce31df51b4c2a4f6e6e82cab4fbeaade5ce785f7a210cc4840/manifest.json",
+      "字节数": 41615,
+      "SHA256": "1c71e5553a8e3ccdcfe33a7643b4598ca60f96c29209bb15d060f2c67e0d9809"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_1b3b35e0-f9e7-447e-8ee5-9bb9e78ea5c1/29f6cef150f650ce31df51b4c2a4f6e6e82cab4fbeaade5ce785f7a210cc4840/source.json",
+      "字节数": 9620,
+      "SHA256": "e5a31d1659f71bfc4195a6e1a9452010b060a3afd3c5380a4fedc25d301f4797"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_3e56ba1b-7d0e-4398-b0f4-23e3978b4282/52b8a501cb753a5a8c83038fea563a55a49b574c83874baf0dbd0efcf01a9eca/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "b0efd21b63aa5f37cc8305de3f88ccfb83d53292d92a9e9c7043046f6f95db26"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_3e56ba1b-7d0e-4398-b0f4-23e3978b4282/52b8a501cb753a5a8c83038fea563a55a49b574c83874baf0dbd0efcf01a9eca/manifest.json",
+      "字节数": 58509,
+      "SHA256": "cf7dec8ceb636db72ab3cc6553c8af6d84b6ccd91b06e7fa200b9977bb06b732"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_3e56ba1b-7d0e-4398-b0f4-23e3978b4282/52b8a501cb753a5a8c83038fea563a55a49b574c83874baf0dbd0efcf01a9eca/source.json",
+      "字节数": 11584,
+      "SHA256": "add288770b42935184206e5ee7f49a8671c1428935dc5dbbc1aa4b6b6230c00a"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_5b90bb3c-4563-459e-853c-4fa00e7fd114/2a567a4d2188dcabe6bcd05faf6973e0107032c9b0364d06c9707d91ef1800fa/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "f9a4c87e81e75df71b7a86fddb12e168bb01ce06534d28166a2a98d9798e6cb3"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_5b90bb3c-4563-459e-853c-4fa00e7fd114/2a567a4d2188dcabe6bcd05faf6973e0107032c9b0364d06c9707d91ef1800fa/manifest.json",
+      "字节数": 79816,
+      "SHA256": "0da70640beefce9456ff71ad52f0ad1e60886f197e908e77fabad004f30fbbd2"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_5b90bb3c-4563-459e-853c-4fa00e7fd114/2a567a4d2188dcabe6bcd05faf6973e0107032c9b0364d06c9707d91ef1800fa/source.json",
+      "字节数": 13626,
+      "SHA256": "31919bfa586388535ff4227cc3029e443efe78209aad5861a87d76543d8ae1cb"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_5f0ab38a-b81c-4689-b3de-aead52590080/0e8f8df75ffb7325dae23cfb748938ed3ddd05c6083cbc1ef49329c23d6b2d56/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "b0efd21b63aa5f37cc8305de3f88ccfb83d53292d92a9e9c7043046f6f95db26"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_5f0ab38a-b81c-4689-b3de-aead52590080/0e8f8df75ffb7325dae23cfb748938ed3ddd05c6083cbc1ef49329c23d6b2d56/manifest.json",
+      "字节数": 58509,
+      "SHA256": "7dc2b4871960b583362dbb0c56b51f0869d83808f454d16516929adae520d6f2"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_5f0ab38a-b81c-4689-b3de-aead52590080/0e8f8df75ffb7325dae23cfb748938ed3ddd05c6083cbc1ef49329c23d6b2d56/source.json",
+      "字节数": 11489,
+      "SHA256": "c9d50528cde7269d656fcc3ca41cfedaa52646e385fa7f683a78b460f32bdc66"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_7dc192c7-feea-49e1-89c4-44e4cb10b6a5/8c2e9ee780dc68c417bd19767937226135f5542b7c79808f843974fddeffdfcb/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "48eb1e6ae95c6610a3617ef22ce91e25972cdaa2cf24c9e3aa55506dd9620987"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_7dc192c7-feea-49e1-89c4-44e4cb10b6a5/8c2e9ee780dc68c417bd19767937226135f5542b7c79808f843974fddeffdfcb/manifest.json",
+      "字节数": 83599,
+      "SHA256": "46f33461dbe0023d66aa795d3bc9d61710b4cf5a55293a9a0906d0befc575e44"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_7dc192c7-feea-49e1-89c4-44e4cb10b6a5/8c2e9ee780dc68c417bd19767937226135f5542b7c79808f843974fddeffdfcb/source.json",
+      "字节数": 17903,
+      "SHA256": "4c7ab17307aae85ffdb299c2081420c9a193cc8dd3181e5a1bb9f406614aadd7"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_9de92981-67d1-4061-8c03-e5ea3df2b39b/c3f9bc91dab1a175c10980cc9f4b192a26624e26a3463334745972a71f93e311/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "be59a940660bccff87e63357f58e035bf61103af308ee6c9e0be9d1f0103abd9"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_9de92981-67d1-4061-8c03-e5ea3df2b39b/c3f9bc91dab1a175c10980cc9f4b192a26624e26a3463334745972a71f93e311/manifest.json",
+      "字节数": 41403,
+      "SHA256": "5266461bc2eeec9b7e72d7843a8bc217ef38262d876bc71d3b30ad473623b2fb"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_9de92981-67d1-4061-8c03-e5ea3df2b39b/c3f9bc91dab1a175c10980cc9f4b192a26624e26a3463334745972a71f93e311/source.json",
+      "字节数": 8875,
+      "SHA256": "8e34b154cfa4930e361a7b70f32b67410572ab3f3962748881fadf3aba8070e9"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_a6abeb30-f72e-412c-bcef-e5514e82553a/87c2030ca6dba76ea64e70b91ec37827cb32444e970161052d605322498a24fa/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "133681088c0f0e441a1eb484d1ca6627af453dd3a22d5b21c79eca271b13dd8e"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_a6abeb30-f72e-412c-bcef-e5514e82553a/87c2030ca6dba76ea64e70b91ec37827cb32444e970161052d605322498a24fa/manifest.json",
+      "字节数": 49617,
+      "SHA256": "5e4a3c2e3cd874a9652a6481ef94bacfdf8cd4e31a7025a0d113ccae6dc9eed1"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_a6abeb30-f72e-412c-bcef-e5514e82553a/87c2030ca6dba76ea64e70b91ec37827cb32444e970161052d605322498a24fa/source.json",
+      "字节数": 5736,
+      "SHA256": "44bb6343ff07883dfb96efa4fbd5eefc8c9287504400011a909a950d7e0f271f"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_b759ca0c-5a5c-4a0f-a4d9-1f505e377087/5e9635c49639f05b326f2a960493caec7cb6dbb32056d24d8a00c19d0fd2dcb0/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "b0efd21b63aa5f37cc8305de3f88ccfb83d53292d92a9e9c7043046f6f95db26"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_b759ca0c-5a5c-4a0f-a4d9-1f505e377087/5e9635c49639f05b326f2a960493caec7cb6dbb32056d24d8a00c19d0fd2dcb0/manifest.json",
+      "字节数": 58509,
+      "SHA256": "53084f003c5dd01c273438d84ebfb3757204a5e7e99e26072e135752e64710d2"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_b759ca0c-5a5c-4a0f-a4d9-1f505e377087/5e9635c49639f05b326f2a960493caec7cb6dbb32056d24d8a00c19d0fd2dcb0/source.json",
+      "字节数": 11813,
+      "SHA256": "f1401c4994b0e0856d3a6a8b9f68422993ac244f2ae1d3193a1f9a6b19b9840b"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_c7a9526a-ea0e-42a3-9ce2-33d14a84133f/f2773dcc417a6db6cf369a2db1f9cdf421c409ff6cb3264f131e716e1f429d96/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "48eb1e6ae95c6610a3617ef22ce91e25972cdaa2cf24c9e3aa55506dd9620987"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_c7a9526a-ea0e-42a3-9ce2-33d14a84133f/f2773dcc417a6db6cf369a2db1f9cdf421c409ff6cb3264f131e716e1f429d96/manifest.json",
+      "字节数": 83599,
+      "SHA256": "50eca0dfb3ae636f02b1f4af664116eafca7f2ffb8a497b0e621dc26361e1bd0"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_c7a9526a-ea0e-42a3-9ce2-33d14a84133f/f2773dcc417a6db6cf369a2db1f9cdf421c409ff6cb3264f131e716e1f429d96/source.json",
+      "字节数": 17708,
+      "SHA256": "944faaecafa5f79ccad80a954ab62ce8e5952d29d0502e2cadaabad9061d8909"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_dd567126-1a29-477d-aa02-0b2c7f9db5c4/3afd3901215d3c9701806552bdede2c2cbac8f8aaaa66e61f8e1f291d4147ce3/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "f9a4c87e81e75df71b7a86fddb12e168bb01ce06534d28166a2a98d9798e6cb3"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_dd567126-1a29-477d-aa02-0b2c7f9db5c4/3afd3901215d3c9701806552bdede2c2cbac8f8aaaa66e61f8e1f291d4147ce3/manifest.json",
+      "字节数": 79816,
+      "SHA256": "285d049dbe54314683ffa34594bab19d59de4082456060689e8a71de3fd2b039"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_dd567126-1a29-477d-aa02-0b2c7f9db5c4/3afd3901215d3c9701806552bdede2c2cbac8f8aaaa66e61f8e1f291d4147ce3/source.json",
+      "字节数": 14188,
+      "SHA256": "98c0c1b208bce93ac577a3d72c7459bb0fd88067ade8df2931b7a22527dab2cb"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_fc5e7b48-8e8c-4855-a884-fdb3a976ddd7/c27a0645afef5add3b81a7672e25aa005ffdc2ce66f7765360072f3a3168cdc7/diagnostics/report.json",
+      "字节数": 124,
+      "SHA256": "0a37ba1d6d127b0ba3770f38a4a74261d570d120792abc4670890316694544a1"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_fc5e7b48-8e8c-4855-a884-fdb3a976ddd7/c27a0645afef5add3b81a7672e25aa005ffdc2ce66f7765360072f3a3168cdc7/manifest.json",
+      "字节数": 23454,
+      "SHA256": "1dd179d5893d7c19032aaf47f4534f35b711e4e0ea893d0e67297a09509cc914"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/motion/job_fc5e7b48-8e8c-4855-a884-fdb3a976ddd7/c27a0645afef5add3b81a7672e25aa005ffdc2ce66f7765360072f3a3168cdc7/source.json",
+      "字节数": 6320,
+      "SHA256": "cd6ae702e88807b16eb6b50e209558ead86a6b86fe07c2eafca025a4886e73a2"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/source-material/job_6d5714cc-43c1-4275-964c-e0b9d5670b8b/manifest.json",
+      "字节数": 1100,
+      "SHA256": "1d7c04ce1beb7e3349d4b0c666917a03f2fdc5ea64134a36f14f4ab76b60c9c8"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/source-material/job_6d5714cc-43c1-4275-964c-e0b9d5670b8b/original.png",
+      "字节数": 272625,
+      "SHA256": "bb442754a48a146cac9510ff2a4ac6478747791ad8c01e97bad759d811bef427"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/source-material/job_75c82121-efd2-4f3a-a7cc-9b37ae7da084/manifest.json",
+      "字节数": 10259,
+      "SHA256": "55ab6bd90a14f8c9269ddfb0c3aade2417b9d20318ed310fead8943a302205d9"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/source-material/job_c47dc4dd-900c-4dcb-8cd2-cb78b4b17eb7/manifest.json",
+      "字节数": 428,
+      "SHA256": "32d6c22229ca2b1dd8701a5798c2e3f4245c11753596cd0fc9bba8b208758f03"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/source-material/job_c47dc4dd-900c-4dcb-8cd2-cb78b4b17eb7/original.jpg",
+      "字节数": 232663,
+      "SHA256": "ad1e6c3b36118fa6f0449bfa5c1dc95646a3c5292b61e9e9ad94513cf29609a0"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/assets/derived/source-material/job_d576411d-607b-45a4-b65c-eb6e7572df52/manifest.json",
+      "字节数": 10204,
+      "SHA256": "f672a1851dec5b11777d23332dba7fcf077d2c4468cadba47f85c6302e989224"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/reports/production-run-production_run_6b345b73-1e48-4e5c-be93-ef4cc5227f2c.json",
+      "字节数": 52113,
+      "SHA256": "99b7180f8e65f67e791b4420ec665fd28ddfe1c4e82c47b32f93c25f0114339b"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/任务及固定源码记录.json",
+      "字节数": 773211,
+      "SHA256": "36886af27db277b8df6b40f282c515bfb39525cd2d905f71de6e5734b74c6748"
+    },
+    {
+      "路径": "03_项目素材与源码/手机主题/项目快照.json",
+      "字节数": 2003601,
+      "SHA256": "efe19dcecb0ff4487afc2ed7b117516e417acf98f38fe71bf64517e9af98cc61"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_17f6464a-3c46-4b0b-bae4-89b01d671322/ff235a1863206c07006ab266b4460dfe0e66f444e5bbe3fdb5089c80839f8f18/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "7e0a6e628c0793634dd871a62816dcb4b08dc956ee6ce59400a0a5738ab68013"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_17f6464a-3c46-4b0b-bae4-89b01d671322/ff235a1863206c07006ab266b4460dfe0e66f444e5bbe3fdb5089c80839f8f18/manifest.json",
+      "字节数": 56721,
+      "SHA256": "348e9c732a96f1520dc670f2d279999e4da546496b51fccb2365ce2660951120"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_17f6464a-3c46-4b0b-bae4-89b01d671322/ff235a1863206c07006ab266b4460dfe0e66f444e5bbe3fdb5089c80839f8f18/source.json",
+      "字节数": 21986,
+      "SHA256": "a57c18acf7c1ef854e6525c7a5713226d86a7b4c0cdd3831df4f73ff1b76e235"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_1d91fe79-135c-4c8c-a8f4-60dacfb81863/b586ebe2dbb3757e562ad38fe20d9e4927a9443ab2916ad18519803894cb2b65/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "7e0a6e628c0793634dd871a62816dcb4b08dc956ee6ce59400a0a5738ab68013"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_1d91fe79-135c-4c8c-a8f4-60dacfb81863/b586ebe2dbb3757e562ad38fe20d9e4927a9443ab2916ad18519803894cb2b65/manifest.json",
+      "字节数": 56721,
+      "SHA256": "29eeca64c1e9ee85d879150fcc0f361e951d39018f0fd20ef6fdf7c8019b3c31"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_1d91fe79-135c-4c8c-a8f4-60dacfb81863/b586ebe2dbb3757e562ad38fe20d9e4927a9443ab2916ad18519803894cb2b65/source.json",
+      "字节数": 22711,
+      "SHA256": "8cad48d3f4fc6d3f1aad14d1b3f97fbe6b4e36fe39b74debc30d2a3c37bba24b"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_4f08e21d-a836-44fd-a233-7e768fad76a6/834c8035a4bd5dff95dfc74ac9bfd03448598c85db8ef2c60eb5086f0894abdf/diagnostics/report.json",
+      "字节数": 124,
+      "SHA256": "9206c43d130f02fe02f831a014c89c7c70b94d41a5a17ea491f060d56412d180"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_4f08e21d-a836-44fd-a233-7e768fad76a6/834c8035a4bd5dff95dfc74ac9bfd03448598c85db8ef2c60eb5086f0894abdf/manifest.json",
+      "字节数": 25176,
+      "SHA256": "3c70bf49722633f6c14fa5891a867fdb4c051892cdc9369eb2f2a39116b0a4a7"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_4f08e21d-a836-44fd-a233-7e768fad76a6/834c8035a4bd5dff95dfc74ac9bfd03448598c85db8ef2c60eb5086f0894abdf/source.json",
+      "字节数": 21610,
+      "SHA256": "796733e04fe98ae4bccef93715cd1e114ea18518efb8f077b2bc0dbc24a22fd9"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_ac24a3d0-b9c5-4ab1-9b53-acd9092731d1/c36cad027ca1035174f43487dd04e88a83cd0a85c008c4e8e3673f4a2edb23f5/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "ffa61fecff1bb6691b7091cfa105fd3c417584a7d31989c2fabf592a2176ae47"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_ac24a3d0-b9c5-4ab1-9b53-acd9092731d1/c36cad027ca1035174f43487dd04e88a83cd0a85c008c4e8e3673f4a2edb23f5/manifest.json",
+      "字节数": 50963,
+      "SHA256": "c7ea121ea5414a0ab4748616e49a832d3f6a1c2edffa4ddee6e85629f1ed527b"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_ac24a3d0-b9c5-4ab1-9b53-acd9092731d1/c36cad027ca1035174f43487dd04e88a83cd0a85c008c4e8e3673f4a2edb23f5/source.json",
+      "字节数": 21749,
+      "SHA256": "f2c53341b9f6631f720fe3423ebdc9e51e4d2b77eb39ae3ef2cce49f3d2d7260"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_c43eb356-7624-4a54-bd73-cc02601d3706/542c134215a691b491d153e4eb6a255bc02e9a204dfb2223f20fbd8f35cf9f39/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "79b687601576b2a4830264861f594a18159501da32d15a276ef88ec9901ef353"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_c43eb356-7624-4a54-bd73-cc02601d3706/542c134215a691b491d153e4eb6a255bc02e9a204dfb2223f20fbd8f35cf9f39/manifest.json",
+      "字节数": 34737,
+      "SHA256": "7d0740fa4959c74c25f7af62a0d2babfdedea4a8977ba48208efcb3820498995"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_c43eb356-7624-4a54-bd73-cc02601d3706/542c134215a691b491d153e4eb6a255bc02e9a204dfb2223f20fbd8f35cf9f39/source.json",
+      "字节数": 21948,
+      "SHA256": "f70635037709a1ecfe0228832546b4f6d2f0e7d1c43483ab732fae7ddb7f8c5b"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_f8821221-a8b2-4441-bad3-357329818c60/3a322b150bb87d0c1f9844b79f23b02c64bfbeb2b71c5bc7a758103137dbb72b/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "ffa61fecff1bb6691b7091cfa105fd3c417584a7d31989c2fabf592a2176ae47"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_f8821221-a8b2-4441-bad3-357329818c60/3a322b150bb87d0c1f9844b79f23b02c64bfbeb2b71c5bc7a758103137dbb72b/manifest.json",
+      "字节数": 50963,
+      "SHA256": "ce97d008a2ac7aae5a63e6916803f8c110fe16ccf27fb6e0f145fde9937b1bd3"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_f8821221-a8b2-4441-bad3-357329818c60/3a322b150bb87d0c1f9844b79f23b02c64bfbeb2b71c5bc7a758103137dbb72b/source.json",
+      "字节数": 21732,
+      "SHA256": "07ec31a55da669294d548856e20ef65ff4da434b93a1f894c61aa7054e15f8d5"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_fc0c4376-6f9b-4a14-8223-c087304d65b8/90760422dbdd8821d6647e318dafb438721803b00d46e26a066fb86cbf558755/diagnostics/report.json",
+      "字节数": 125,
+      "SHA256": "79b687601576b2a4830264861f594a18159501da32d15a276ef88ec9901ef353"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_fc0c4376-6f9b-4a14-8223-c087304d65b8/90760422dbdd8821d6647e318dafb438721803b00d46e26a066fb86cbf558755/manifest.json",
+      "字节数": 34770,
+      "SHA256": "b03b59513c6791ccc59543acfdf2dc68a4af2e217ba8ffd56d6ea364f54d7bb6"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/assets/derived/motion/job_fc0c4376-6f9b-4a14-8223-c087304d65b8/90760422dbdd8821d6647e318dafb438721803b00d46e26a066fb86cbf558755/source.json",
+      "字节数": 12314,
+      "SHA256": "741497b49d2e537ecd1b7142e23e701c613b280b94877aee6b36d7c073de086a"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/manifests/attribution/export_artifact_195016b5-ecc7-4980-afbc-8dad020bb451.json",
+      "字节数": 4775,
+      "SHA256": "4f53f6d86b3f09a20de7276bd2468ae831977f8df14e60e631760583622d032c"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/reports/production-run-production_run_02cb659b-2591-47aa-b4bd-e001e479e261.json",
+      "字节数": 34889,
+      "SHA256": "fccd0ff29c88c3b76defb14a8ee8cb9567121855dbeef5bee09ac2c48a38f3c2"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/任务及固定源码记录.json",
+      "字节数": 303787,
+      "SHA256": "4e638d5c25fd3b76777fac24d49fda0bb5d2e021dff53a72ef1215421a2acf35"
+    },
+    {
+      "路径": "03_项目素材与源码/桌面主题/项目快照.json",
+      "字节数": 1001765,
+      "SHA256": "26c1591ccdcc2556ad50875c88d5d61dbbaa5411a3cf3f0d9b9a2648828ddf9d"
+    },
+    {
+      "路径": "04_五例迁移完整资料/五例完整创作说明.md",
+      "字节数": 19012,
+      "SHA256": "a82d6c72382924b541dcc6073134c1742e4ad7e6a28a06e0b2af0290f30d660a"
+    },
+    {
+      "路径": "04_五例迁移完整资料/作品源码/01-meadow-source.json",
+      "字节数": 7971,
+      "SHA256": "4b96025cba1ac6fd0d7866c59c68219012698a2b222efa4744aeee84faeb44bc"
+    },
+    {
+      "路径": "04_五例迁移完整资料/作品源码/02-seed-source.json",
+      "字节数": 8203,
+      "SHA256": "654276b1e486baf622206a3b51e5f4773e18c0670830b95a1a130406284c0dc7"
+    },
+    {
+      "路径": "04_五例迁移完整资料/作品源码/03-leaf-source.json",
+      "字节数": 10497,
+      "SHA256": "86500883177d3f07afaf77e1fa3bfd7409139e7de2e314f6b387c2f09a63bde3"
+    },
+    {
+      "路径": "04_五例迁移完整资料/作品源码/04-stamps-source.json",
+      "字节数": 9939,
+      "SHA256": "b37abe2eeb989b5630f8d2942745e40dce7f5eb6bd8307a23acf7174dbdd7c4f"
+    },
+    {
+      "路径": "04_五例迁移完整资料/作品源码/05-brush-source.json",
+      "字节数": 11890,
+      "SHA256": "8296e601326c8cb93fced9a56b00ee782916c1f3b2b09980702e91cc3d6753b7"
+    },
+    {
+      "路径": "04_五例迁移完整资料/模型审阅/brush-r32.json",
+      "字节数": 10639,
+      "SHA256": "9396ba8e6d719808063eb3356a8efdcf3ad7d0271d39f1dbd6716ffcd28bb149"
+    },
+    {
+      "路径": "04_五例迁移完整资料/模型审阅/final-export-r32.json",
+      "字节数": 21493,
+      "SHA256": "8da4211a3fec015c14a5359cf70bf1e9220b7b3c2c3b866a9f292c4758cdf3e8"
+    },
+    {
+      "路径": "04_五例迁移完整资料/模型审阅/leaf-r32.json",
+      "字节数": 9665,
+      "SHA256": "7aa1f926c413e65c3d94133565e2e3cea9d1cca7d4a0b8d8dc8ddeb27ad7a6c5"
+    },
+    {
+      "路径": "04_五例迁移完整资料/模型审阅/meadow-r32.json",
+      "字节数": 9906,
+      "SHA256": "04a80e18c52ae7601f813c067e704140570c3695c51da42fcd0d85873067716f"
+    },
+    {
+      "路径": "04_五例迁移完整资料/模型审阅/seed-r32.json",
+      "字节数": 10018,
+      "SHA256": "438a781235fff884554eca6fb5663c5ac1ad0a60adf085ee88131e6e9f58e4c0"
+    },
+    {
+      "路径": "04_五例迁移完整资料/模型审阅/stamps-r32.json",
+      "字节数": 10342,
+      "SHA256": "a1fd378516c6c9751219e6254089dfd392d9316fc471aac5510d02f79bf9631a"
+    },
+    {
+      "路径": "04_五例迁移完整资料/生产审计.json",
+      "字节数": 32528,
+      "SHA256": "4f94b391c4b16813193516acfe0ceda021c34e06ae18c4d5cfd0a72414f8de99"
+    },
+    {
+      "路径": "04_五例迁移完整资料/署名与用途.md",
+      "字节数": 823,
+      "SHA256": "9c4cc7694eb80b621409c4565f2556fdd12bdca78ebccb32e5d4f43a8b48cc76"
+    },
+    {
+      "路径": "04_五例迁移完整资料/署名清单.json",
+      "字节数": 4477,
+      "SHA256": "1c3c4699714a1c862c5e93241f024159c508ae2984531206cc426caedd44d065"
+    },
+    {
+      "路径": "04_五例迁移完整资料/验收报告.md",
+      "字节数": 16032,
+      "SHA256": "121a500e8725f303de827500a78ca6db43ff3ff383daf4517c94582415d3ee4e"
+    },
+    {
+      "路径": "04_五例迁移完整资料/验收证据索引.json",
+      "字节数": 39678,
+      "SHA256": "8d6d6fadc6fe135daea76dbca42d20f876e5b745e670e4b76f5dd12fde15877a"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-acceptance.json",
+      "字节数": 61604,
+      "SHA256": "40feda46df477a40511e8dfc1b5e6d99c500fbf75cf7f3574415ef80986616fe"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-apply-tests.log",
+      "字节数": 449,
+      "SHA256": "a91b8e27a0ad64357faae9ab3b11f5d4745e25a8089f127bb7cdf68ac5b79ad3"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-apply.json",
+      "字节数": 25542,
+      "SHA256": "0947e6743cb7f0de45da07be347506ac060923f58b36473b23e1e1c914b15129"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-audio-tail-red.log",
+      "字节数": 1225,
+      "SHA256": "7a50a217f5930412d506dd85fbf0667ec5a31160f7ac80d0f6f0d34a89c3ec62"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-audit.mjs",
+      "字节数": 7543,
+      "SHA256": "ff920bf78acf3d2a953132c64041a4bfca0ca91484b7adddbe0a2e6c9d1b1020"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-baseline.json",
+      "字节数": 2204,
+      "SHA256": "197885c300757f3514769a9df592f16b4e1af854050fff742fd7f9a10c98c5e1"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-build.log",
+      "字节数": 3026,
+      "SHA256": "7830a30351478839f768c5d1799a2ad13ccc92ebeb32ad140dcbe616abaab230"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-closeout-details.mjs",
+      "字节数": 3456,
+      "SHA256": "2122c1fcb25868e0c27f78f134311d08ab342ac73e614389b2af0fbb62cf2cb4"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-commons-build.log",
+      "字节数": 3026,
+      "SHA256": "051f51eaa7710a631e9a518ebf37812b33545967c7ecd5a5c0264e9278cd46b8"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-commons-deployment.json",
+      "字节数": 390,
+      "SHA256": "a4b817279cdd208dbc13b0025bc19f434a8463a6e5f7eae8ab3b90afc5626cab"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-commons-e2e.log",
+      "字节数": 149,
+      "SHA256": "44412d09e5fde31266d6a7bd1873cfbb2add795a52f18347812df1bef2701985"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-commons-green.log",
+      "字节数": 6700,
+      "SHA256": "ed7d2b967031ea2d1e645a506e08145bd1ca459adde6d752defd4604f7045b2a"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-commons-host-verify.json",
+      "字节数": 283,
+      "SHA256": "a3848411cc9ae492ed3552700e3e533fd6d7fb7090bfd5bbc7f2c9067aacc74e"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-commons-install.json",
+      "字节数": 269,
+      "SHA256": "b214d199ef6c0e388ae53a4cb2bbdfc4543be34e4107e5a3c16fa3d6fe23e06a"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-commons-installed-verify.json",
+      "字节数": 3667,
+      "SHA256": "5f23833bf284d8eef82da0fbfca47a37b5e91ae1570ebed21cab9021751ec9e0"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-commons-live.json",
+      "字节数": 611,
+      "SHA256": "cf2e1ce267182ef61d233d38dced3d3a08ec5acbc6b4a99ac8e1f91a7b60a70a"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-commons-live.ts",
+      "字节数": 2261,
+      "SHA256": "eba9789c49330ad99cd440a86214626db5e64dea74299210f39ee4f498cce7c3"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-commons-red.log",
+      "字节数": 2221,
+      "SHA256": "de326088859819c85bb6682beafea2813ac26ab5fd54db61b03ab8435efbe840"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-commons-registration-change.json",
+      "字节数": 290,
+      "SHA256": "ea64ea4d6ae84ac6d50fee1abd728a6c5a8c4435b7bdce7ba5eea5cf8bb0d805"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-commons-verify.log",
+      "字节数": 200,
+      "SHA256": "82c885e1439eb9994dc5f94043fd0f050d27e961c757506d8ec10c5661e63c20"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-deployment.json",
+      "字节数": 389,
+      "SHA256": "505db04e9c4f2e20faf4e2faec7bbf58a962616697c5e55649b90632e0649366"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-diff-check.log",
+      "字节数": 0,
+      "SHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-dry-run.json",
+      "字节数": 25444,
+      "SHA256": "bdcb4f3ff79f52e7a7e1bf949ff4f0fce8acdb2a1cccb543fbb37c9261703068"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-e2e.log",
+      "字节数": 149,
+      "SHA256": "44412d09e5fde31266d6a7bd1873cfbb2add795a52f18347812df1bef2701985"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-final-audit.mjs",
+      "字节数": 9547,
+      "SHA256": "05b24c2de738fd53b062744978c3175121fd57b24ed9cc07e415b07928642d2c"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-host-verify.json",
+      "字节数": 381,
+      "SHA256": "85b9fd439ffc2e47ac34aee097455923418374f504ab6ac462a00221317b11a1"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-image-adoption-audit.mjs",
+      "字节数": 6668,
+      "SHA256": "6763966151b74c4129f4efd922a4589cd0c5f88fe0626d4b0c201bad7a939db1"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-image-adoption-build.log",
+      "字节数": 3440,
+      "SHA256": "d18fe626e0eaaa99e7087443af886c0b1e2929f9108616e0f873b9ad2936f5fd"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-image-adoption-deploy.mjs",
+      "字节数": 2159,
+      "SHA256": "fdbe3086cb66c0b96365b4eb21d7f23c3552ee85b14a4884a19903328b2a7230"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-image-adoption-deployment.json",
+      "字节数": 389,
+      "SHA256": "6fbd705be9d173255fceb1c7f749df776d97a0a358a69dc94df92f22be5de408"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-image-adoption-e2e.log",
+      "字节数": 149,
+      "SHA256": "44412d09e5fde31266d6a7bd1873cfbb2add795a52f18347812df1bef2701985"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-image-adoption-green.log",
+      "字节数": 8993,
+      "SHA256": "fc2258e1a1cc2483f80a8c0c78ea6a3d639a1744f525391019202c22b31743c0"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-image-adoption-host-verify.json",
+      "字节数": 283,
+      "SHA256": "9a32fd289d10e40e9528f1bc85de29d30da33ad1dfff252bdd7d43a691c56941"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-image-adoption-install.json",
+      "字节数": 269,
+      "SHA256": "6754f952eba1d0f8b232cabfb64d558fb91ff2fc127753742b4bbf144067dcbb"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-image-adoption-installed-verify.json",
+      "字节数": 3756,
+      "SHA256": "ce7445c27664f4e01bade38b8b4ad06908a36e4ce3e4813b85454961aa9a80b2"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-image-adoption-live-schema.json",
+      "字节数": 4311,
+      "SHA256": "cf1e8841cb6816dff9c9e5950d987138a2e437990a706a92b404dc83739f0c62"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-image-adoption-red.log",
+      "字节数": 2855,
+      "SHA256": "afb2736e18a7ad210dc00233d363fb1ff30437d3a7b536dc23883e15232e7d56"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-image-adoption-schema.mjs",
+      "字节数": 1767,
+      "SHA256": "3b505b207510db36fbe7854613647b38c726fb14e3d18036ce4e309121594955"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-image-adoption-verify.log",
+      "字节数": 200,
+      "SHA256": "82c885e1439eb9994dc5f94043fd0f050d27e961c757506d8ec10c5661e63c20"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-install.json",
+      "字节数": 269,
+      "SHA256": "22d1bf936cb1ab86076fca0ae12a67aefd311c10e92287f5e8f800051bc3efcb"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-installed-verify.json",
+      "字节数": 3667,
+      "SHA256": "3a4985684b8eb3df034527d8681d6f45b8c541f32efa39b9297bba0cf20df483"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-matrix-update.mjs",
+      "字节数": 7650,
+      "SHA256": "95c529ffaf89be300bf2ac69efa928a39b187efda3cdc058cc9a6b4b80a9e95a"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-music-asr-diagnostic.json",
+      "字节数": 4872,
+      "SHA256": "dc61bc8b48e4b12b090a2aa3f2ae989bd4ead9f043bbd8406a09059f10cb0b74"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-observation-build.log",
+      "字节数": 3026,
+      "SHA256": "bd4532b76a2e65dac9be2e4d7859dbc2dad8db7881dfc27a84f3547b87436071"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-observation-green.log",
+      "字节数": 4114,
+      "SHA256": "a65dc977f272e34da38b8b3f5c3f6480b423951dcb7bfd61feb561ac75f07caf"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-observation-red.log",
+      "字节数": 3967,
+      "SHA256": "a1f0dd9f788d0cc9e21637f030de96e6c9bfcec3a7466c94e36ab94578887b15"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-plugins.json",
+      "字节数": 11188,
+      "SHA256": "5c629f1b1f19ba21b14dce4153ea53d9624c12ad5c0be27523f5bfa155de472c"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-registration-change.json",
+      "字节数": 290,
+      "SHA256": "c977184a603d00461f55ff1dfbb58d9a4a7f07c6db4fd7b12ca69053132c721c"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-repair-audit.mjs",
+      "字节数": 4300,
+      "SHA256": "f751c5fd40e380abd691fd0689c7a2d17645d9db28ed46f381a8b7fdfd33e74b"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-repeat.json",
+      "字节数": 106,
+      "SHA256": "788ac00e3841a5091433768d2c8efc90684e10356d1f60592b13323212d6baf3"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-review-fixes-audit.mjs",
+      "字节数": 4943,
+      "SHA256": "4dac20783cb46caa0c97b56117b44d6d73ea15ae91de8a4665054b0d0ff2ba37"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-review-fixes-build.log",
+      "字节数": 3026,
+      "SHA256": "f78ae13a2715a34bd5d524ccb53173eb065ea445773a39ebc6b8b0bed3584ce9"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-review-fixes-deployment.json",
+      "字节数": 390,
+      "SHA256": "d5c8bf6020e84e4913445dbab824b1b3a590cedd26fe2aa73346457595eff02f"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-review-fixes-e2e.log",
+      "字节数": 149,
+      "SHA256": "44412d09e5fde31266d6a7bd1873cfbb2add795a52f18347812df1bef2701985"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-review-fixes-green.log",
+      "字节数": 7337,
+      "SHA256": "d245a34004a54a7b23306bee13bcbdd0771549234db45651f5926c3aa9120588"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-review-fixes-host-verify.json",
+      "字节数": 283,
+      "SHA256": "bfa7e54c1d90ecc47b92f3310ee738499e42372bf9e6555e26c85dd842efe7e6"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-review-fixes-install.json",
+      "字节数": 269,
+      "SHA256": "839aaf059f6cd94dcd33cb852d8923441933c2e231d3b86e248c580a22bdcd37"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-review-fixes-installed-verify.json",
+      "字节数": 3667,
+      "SHA256": "fba2439d1d20cc1a715909aa4d66a2d28930753acac7572f1ad463a7799a33a7"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-review-fixes-registration-change.json",
+      "字节数": 290,
+      "SHA256": "c8db46a2ad3f07097849bef2a47c734bb83db4c7335412e72f57188c2d89b514"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-review-fixes-verify.log",
+      "字节数": 200,
+      "SHA256": "82c885e1439eb9994dc5f94043fd0f050d27e961c757506d8ec10c5661e63c20"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-source-review-audio-only.diff",
+      "字节数": 7059,
+      "SHA256": "9214832235fe6716223b7ea2ab458bf22a42c314c9f353ad5dab1678894fba06"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-source-review-before-audio-fix.ts",
+      "字节数": 39317,
+      "SHA256": "4ad18fe65d2f0dfbe07a86ac078585e43ffec0681d821568a81ca227e2115dba"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-source-review-test-before-audio-fix.ts",
+      "字节数": 32674,
+      "SHA256": "435b1fa708f3aa0fbc8de1cf65d87c00fa0cc391785ac2cc905c7f009805a160"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-targeted.log",
+      "字节数": 1653,
+      "SHA256": "060b6a835166f3d5ef53dee68a24ad2212cab1e01accab363fc3407bbd435650"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-tests-final.log",
+      "字节数": 102201,
+      "SHA256": "e9c2505e067461ee534f17b0fc1ce81199f0adc475d52ca870ebdfb8aceb5366"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-tests-image-adoption.log",
+      "字节数": 166157,
+      "SHA256": "367d307ae8e02f9eaa09bd2daff367bd3fda42deb5aa5f50bd0ba326437bceb4"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-tests-post-repair-bounded.log",
+      "字节数": 164534,
+      "SHA256": "c1235695f02797b87d9ab37ff80299d3260ac0cbf3505c6ac18fbcf778294d08"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-tests-post-repair.log",
+      "字节数": 163292,
+      "SHA256": "6af4ca01fd9c4e390f82dc0dfaec22408933fb17a8d53be72c2372b2520c0d0a"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-tests-review-fixes.log",
+      "字节数": 165089,
+      "SHA256": "115d31f9689f145cfc51cdddda843ce26f7fd534cbc0aa96f5bbc43a175fd980"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-tests-tap.log",
+      "字节数": 164351,
+      "SHA256": "496248645e9239def8581c693b374a1cf3cbf6b665435ad21cc2f34902daf332"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-tests.log",
+      "字节数": 102296,
+      "SHA256": "6fcab8a70cb1863a2f5351a67a47f07fcd3a932f542d9e406c5c78f5b60e94fe"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-thread-failures.log",
+      "字节数": 2123,
+      "SHA256": "603a4a02ab34c512828b13b1430bfe69d280e3b634f81fedb5a85153ce2a5e3d"
+    },
+    {
+      "路径": "05_验收记录/topic-film-v2_1-verify.log",
+      "字节数": 200,
+      "SHA256": "82c885e1439eb9994dc5f94043fd0f050d27e961c757506d8ec10c5661e63c20"
+    }
+  ],
+  "视频位置": "全部四个MP4位于本压缩包的01_最终视频目录中，无需外部文件夹。"
+}

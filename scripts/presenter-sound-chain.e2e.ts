@@ -62,7 +62,7 @@ try {
   async function acquire(provider: string, query: string, role: "sfx" | "bgm") {
     const existing = app.readProject(id).snapshot.assets.find((asset) => asset.status === "ready" && asset.provenance?.provider === provider);
     if (existing) return existing;
-    const created = app.manageAssetRequirement({ projectId: id, baseRevision: rev(), action: "create", title: `技术样片 ${query}`, purpose: "按需取得真实网络声音验证本地渲染，不构成实际听审", mediaKind: "audio", role, audioBrief: query, rightsRequirement: "cleared_or_attribution", fallbackPlan: "ask_user", queryHints: [], excludedTerms: [] });
+    const created = app.manageAssetRequirement({ projectId: id, baseRevision: rev(), action: "create", title: `技术样片 ${query}`, purpose: "按需取得真实网络声音验证本地渲染，不构成实际听审", mediaKind: "audio", role, audioBrief: query, fallbackPlan: "ask_user", queryHints: [], excludedTerms: [] });
     const request = created.snapshot.assetRequests.at(-1)!;
     const candidates = await providers.get(provider).search({ request, query });
     const searched = app.recordAssetSearch({ projectId: id, baseRevision: rev(), assetRequestId: request.id, provider, query, candidates });

@@ -16,7 +16,8 @@ const soundPlanFields = z.object({
   endFrame: z.number().int().positive().describe("段落结束帧（不含），必须大于 startFrame；预估范围不表示已锁定成片时长。"),
   narrationDirection: z.string().trim().min(1).max(2000), dominantRole: audioRoleSchema, musicDirection: z.string().trim().min(1).max(2000),
   intents: z.array(z.object({ id: z.string().min(1).max(160), function: z.enum(["anticipation", "settle", "reaction", "connection", "ambience", "music", "silence", "demonstration"]), brief: z.string().trim().min(1).max(1600), requestId: z.string().optional(), motionEventId: z.string().optional() }).strict()).max(30),
-  dominantRanges: z.array(z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(), role: audioRoleSchema, reason: z.string().trim().min(8).max(800) }).strict()).max(40).optional()
+  // 短句也足以说明主导声音；不让长度限制在 MCP 入参层误拒绝有效计划。
+  dominantRanges: z.array(z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(), role: audioRoleSchema, reason: z.string().trim().min(1).max(800) }).strict()).max(40).optional()
 }).strict();
 // 创建必须在工具发现时声明完整输入；更新仍可继承已保存字段，删除只需要计划 ID。
 export const soundPlanInputSchema = z.discriminatedUnion("action", [

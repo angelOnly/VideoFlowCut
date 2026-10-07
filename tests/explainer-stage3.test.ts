@@ -41,14 +41,12 @@ function addReadyAsset(
     provenance: generated
       ? {
         source: "generated",
-        rightsStatus: "cleared",
         acquiredAt: new Date().toISOString()
       }
       : {
         source: "provider",
         provider: "测试来源库",
         sourceUrl: `https://example.test/source/${encodeURIComponent(name)}`,
-        rightsStatus: "cleared",
         acquiredAt: new Date().toISOString()
       }
   });

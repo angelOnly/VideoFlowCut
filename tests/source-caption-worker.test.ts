@@ -142,7 +142,7 @@ async function prepareSourceCaptionFixture(root: string) {
     kind: "video",
     managedPath: "assets/source/presenter.mp4",
     sourceHash: "source-caption-provider-segments-fixture",
-    provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+    provenance: { source: "local_import", acquiredAt: new Date().toISOString() }
   });
   const targetPath = join(app.readProject(projectId).snapshot.project.rootPath, imported.asset.managedPath);
   await mkdir(dirname(targetPath), { recursive: true });

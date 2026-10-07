@@ -214,7 +214,6 @@ function importReadyAsset(input: {
     role: input.role,
     provenance: {
       source: "local_import",
-      rightsStatus: "cleared",
       acquiredAt: new Date().toISOString()
     }
   });

@@ -227,7 +227,7 @@ async function addReadyVideo(input: {
     kind: "video" as AssetKind,
     managedPath: `assets/source/${input.name}`,
     sourceHash: input.sourceHash,
-    provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+    provenance: { source: "local_import", acquiredAt: new Date().toISOString() }
   });
   const asset = input.app.readProject(input.projectId).snapshot.assets.find((candidate) => candidate.id === registered.asset.id);
   assert.ok(asset, "导入后的测试素材必须可读取");

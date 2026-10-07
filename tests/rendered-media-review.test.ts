@@ -19,7 +19,7 @@ test("成片复核绑定真实导出哈希，不导入素材或产生Revision，
     await runProcess("ffmpeg", ["-y", "-f", "lavfi", "-i", "color=c=blue:s=64x64:r=24:d=2", "-f", "lavfi", "-i", "sine=frequency=500:duration=2.08", "-c:v", "libx264", "-c:a", "aac", path]);
     const job = app.repository.createJob({ projectId: id, kind: "export", payload: { revision: current.revision.number }, idempotencyKey: "fixture-output" });
     app.updateJob(job.id, { status: "succeeded", result: { path } });
-    const artifact = app.registerExportArtifact({ id: "artifact-review-test", projectId: id, revision: current.revision.number, jobId: job.id, purpose: "delivery", relativePath: "exports/test.mp4", fileHash: await hashMediaFile(path), fileSizeBytes: (await stat(path)).size, createdAt: new Date().toISOString(), preflight: {} as any, validation: {} as any, attributionManifest: {} as any });
+    const artifact = app.registerExportArtifact({ id: "artifact-review-test", projectId: id, revision: current.revision.number, jobId: job.id, purpose: "delivery", relativePath: "exports/test.mp4", fileHash: await hashMediaFile(path), fileSizeBytes: (await stat(path)).size, createdAt: new Date().toISOString(), preflight: {} as any, validation: {} as any, sourceManifest: {} as any });
     const input = { exportArtifactId: artifact.id, depth: "review" as const, modalities: ["audio" as const], context: "检查起音与尾音" };
     const first = await app.intelligence.submitAnalysis(id, input);
     assert.equal((await app.intelligence.submitAnalysis(id, input)).id, first.id);

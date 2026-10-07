@@ -8,7 +8,7 @@ import { createServer } from "../apps/server/src/app.js";
 
 const workflowId = "4d02d4eb-a4a5-4c13-95d5-6b6a594b4daa";
 
-test("视频生成只登记受管 Asset、生成参数和 unknown 权利，不自动写入时间线", async () => {
+test("视频生成只登记受管 Asset、生成参数和来源，不自动写入时间线", async () => {
   const root = await mkdtemp(join(tmpdir(), "videocut-video-generation-application-"));
   const application = createApplication(root);
   try {
@@ -70,7 +70,6 @@ test("视频生成只登记受管 Asset、生成参数和 unknown 权利，不�
     assert.equal(asset.role, "generated_visual");
     assert.equal(asset.status, "ready");
     assert.equal(asset.provenance?.source, "generated");
-    assert.equal(asset.provenance?.rightsStatus, "unknown");
     assert.equal(asset.provenance?.generationJobId, submitted.id);
     assert.deepEqual(asset.provenance?.generation, {
       jobId: submitted.id,

@@ -136,7 +136,7 @@ async function main(): Promise<void> {
         file_path: currentSourcePath,
         role: "a_roll",
         tags: ["阶段1真实验收", "数字人口播", `原片-${String(index + 1).padStart(2, "0")}`],
-        provenance: { source: "local_import", rights_status: "cleared" }
+        provenance: { source: "local_import", }
       });
       await runMediaJob(importedVideo.job.id);
       importedVideos.push({ id: importedVideo.asset.id, sourcePath: currentSourcePath });
@@ -196,7 +196,7 @@ async function main(): Promise<void> {
       file_path: referencePath,
       role: "voice_reference",
       tags: ["阶段1验收音色参考"],
-      provenance: { source: "local_import", rights_status: "cleared" }
+      provenance: { source: "local_import", }
     });
     await runMediaJob(importedReference.job.id);
     state = await readProject(projectId);
@@ -205,7 +205,6 @@ async function main(): Promise<void> {
       base_revision_id: state.revision.number,
       asset_id: importedReference.asset.id,
       label: "源口播参考音色",
-      authorization_note: "仅用于用户提供的阶段 1 本地验收素材。"
     });
     state = await readProject(projectId);
     const voiceReference = await call<{ voiceReferences: Array<{ id: string }> }>("read_speech_asset", { project_id: projectId });
@@ -285,7 +284,7 @@ async function main(): Promise<void> {
       spatial_anchor: "center",
       motion: { enter_preset: "scale", settle_preset: "hold", exit_preset: "fade", enter_frames: 6, hold_frames: 12, exit_frames: 6 },
       style_pack_id: "default-clean",
-      quality_rules: ["semantic_anchor_required", "settled_frame_required", "caption_safe_area", "no_competing_visual"]
+      quality_rules: ["semantic_anchor_required", "settled_frame_required", "no_competing_visual"]
     });
 
     await call("record_creative_decision", {

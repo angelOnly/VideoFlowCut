@@ -23,8 +23,6 @@ export type LocalSoundEffect = {
   audioCodec?: string;
   sampleRate?: number;
   channels?: number;
-  /** 发现本地文件不等于已经获得交付授权；导入后仍需由项目事实显式记录。 */
-  defaultRightsStatus: "unknown";
 };
 
 export type LocalSoundEffectInspection = LocalSoundEffect & {
@@ -104,7 +102,6 @@ async function summarize(root: SoundEffectRoot, absolutePath: string): Promise<L
     audioCodec: metadata.audioCodec,
     sampleRate: metadata.sampleRate,
     channels: metadata.channels,
-    defaultRightsStatus: "unknown"
   };
 }
 

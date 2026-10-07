@@ -64,4 +64,4 @@
 
 ## 通用通过标准
 
-模式专项通过不等于 Delivery。仍需 Project Graph、局部 Preview、最终 Artifact 技术检查、完整五轮审片、权利与署名、零 blocking 和用户/策略批准。
+模式专项通过不等于 Delivery。仍需 Project Graph、局部 Preview、最终 Artifact 技术检查、完整五轮审片、零 blocking 和用户/策略批准。

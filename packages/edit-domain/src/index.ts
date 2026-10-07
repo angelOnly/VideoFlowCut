@@ -42,10 +42,11 @@ import type {
   VoiceReference
 } from "@videocut/contracts";
 import { DEFAULT_TRACKS, sourceAudioTimeOrigin } from "@videocut/contracts";
+import { projectFrameRateSchema } from "../../contracts/src/frame-rate.js";
+export { projectFrameRateChange } from "./frame-rate-change.js";
 import { resolveCompositionReachability } from "./composition-reachability";
 
 export { resolveCompositionReachability, type CompositionReachability } from "./composition-reachability";
-export { assetExportRestriction, assetProvenanceAllowsExport, validAssetUsageRights } from "./asset-usage.js";
 
 export const DEFAULT_BRIEF: CreativeBrief = {
   platform: "短视频",
@@ -231,6 +232,7 @@ function assertProviderSegmentCaptionCardGraph(
 }
 
 export function createTimeline(fps = 24, width = 768, height = 1344): TimelineDocument {
+  if (!projectFrameRateSchema.safeParse(fps).success) throw new DomainError("项目帧率必须是15至60的整数", "PROJECT_FPS_INVALID");
   const tracks: TimelineTrack[] = DEFAULT_TRACKS.map((track, index) => ({
     id: createId("track"),
     ...track,
@@ -272,6 +274,7 @@ export function createProjectSnapshot(input: {
   rootPath: string;
   profile?: ProjectSnapshot["project"]["profile"];
   brief?: Partial<CreativeBrief>;
+  fps?: number;
 }): ProjectSnapshot {
   const createdAt = now();
   const brief = { ...DEFAULT_BRIEF, ...input.brief };
@@ -319,7 +322,7 @@ export function createProjectSnapshot(input: {
     actorPerformances: [],
     scenes: [],
     effectCues: [],
-    timeline: createTimeline(24, isPortrait ? 768 : 1920, isPortrait ? 1344 : 1080),
+    timeline: createTimeline(input.fps ?? 24, isPortrait ? 768 : 1920, isPortrait ? 1344 : 1080),
     markers: []
   };
 }
@@ -1300,7 +1303,7 @@ export function createMediaAsset(input: {
     originalPath: input.originalPath,
     sourceHash: input.sourceHash,
     role: input.role,
-    provenance: input.provenance ?? { source: "local_import", rightsStatus: "unknown", acquiredAt: now() },
+    provenance: input.provenance ?? { source: "local_import", acquiredAt: now() },
     tags: [...new Set((input.tags ?? []).map((tag) => tag.trim()).filter(Boolean))],
     createdAt: now()
   };
@@ -1582,7 +1585,6 @@ export function createActorPerformance(input: {
 export function createVoiceReference(input: {
   assetId: Id;
   label: string;
-  authorizationNote: string;
   usageNote: string;
   recommendedRange: { startMs: number; endMs: number };
   quality: VoiceReference["quality"];
@@ -1593,7 +1595,6 @@ export function createVoiceReference(input: {
     assetId: input.assetId,
     label: input.label,
     source: "local_asset",
-    authorizationNote: input.authorizationNote,
     usageNote: input.usageNote,
     recommendedRange: input.recommendedRange,
     quality: input.quality,

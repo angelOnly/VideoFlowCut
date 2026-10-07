@@ -13,9 +13,17 @@ description: 处理 Revision 过期、素材未就绪、Bridge 409、run_id 丢�
 
 ## 先区分技术错误和创作问题
 
+`inspect_asset` 返回 `diagnostics.status=partial|unavailable` 是带有效证据与缺口的正常审阅结果，不按通用工具报错停工。依据 `diagnostics.recovery` 分流：`diagnostics.recovery=inspect_available_evidence` 把实际图片、代理与失败位置交原素材作者决定下一步；`diagnostics.recovery=select_another_candidate` 暂不采用当前候选，继续正常搜索与获取；`diagnostics.recovery=report_platform_failure` 才停止受影响步骤并报修，其他无依赖工作继续。`issues[].owner=source|capability|unknown` 分别表示该素材/范围不可用、解码能力限制、原因尚不确定；空输出与超时不能证明原视频损坏。未生成连续代理的 range/dense 不得凭截图宣称正式选段审阅通过。`sideEffects=review_cache_only` 如实表示缓存写入，不是下载/生成重试许可，不改 Asset 状态或视频 Revision。`not_ready` 等待媒体分析；真正的工具调用错误、非法输入和未知写入结果仍沿原合同处理。
+
+理想字体未收录是用户选择问题，不报告平台工单。主任务控制，原视觉作者推荐最多3款库内字体，通过`get_editor_url(panel="fonts",font_preview=...)`提供实际文案预览，等待用户在聊天选择后续接原作者修订。未回复不自动替代，其他无依赖工作继续。`submit_motion_work`仅在返回`code=MOTION_FONT_UNKNOWN`、`stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=select_registered_font`时允许按选择纠正，这是createJob之前的拒绝，不重放原输入；不能扩大到生成失败或未知结果。已登记字体原件损坏、读取/加载失败仍报平台故障。
+
+素材获取故障修复并确认部署后，先读回候选和旧 Job；仅明确 `failed` 且未登记素材时，可通过 `acquire_media_asset` 使用新幂等键恢复原候选。平台重新核验当前技术条件，旧失败 Job 不改写；执行中或结果未知时不得恢复提交，人工拒绝也不能用此路径覆盖。
+
 技术错误有明确状态或合同，例如 Revision 冲突、Schema 409、文件损坏、Job 失败、Asset 不可读、Remotion 渲染异常。创作问题是语义不完整、B-roll 无关、节奏单调、字幕竞争和 Scene 像 PPT。不要把所有问题都放进 known-errors，也不要用重试处理审美问题。
 
 ## Revision 过期
+
+项目默认24fps不再表示无法改成30fps。先读实时工具表与 `timeline.fps`，使用 `preview_project_frame_rate_change` 核对报告，再经 `set_project_frame_rate` 正式提交。`PROJECT_FPS_PENDING_JOB` 要求对账相关未终态任务；`PROJECT_FPS_RANGE_COLLAPSED` 等错误定位实际短范围和切口，不偷偷丢片段或修改原件。分数帧率尚未支持，需明确规格范围。`OUTPUT_FRAME_RATE_MISMATCH` 表示实际 Preview/Export 的帧率或帧数不符合固定Revision，按平台工单处理，不用旧文件冒充新输出。
 
 症状：写入基于旧 `base_revision_id` 被拒绝。处理：重新 `read_project` 和目标对象，查看其它修改与 Impact，重新判断原操作是否仍成立，再基于新 Revision 提交。禁止简单替换 Revision 数字后重放。
 
@@ -25,7 +33,7 @@ description: 处理 Revision 过期、素材未就绪、Bridge 409、run_id 丢�
 
 ## Asset 未就绪
 
-区分文件不存在、元数据失败、无音轨、浏览器不支持、Render Worker 不可读、权利未知和角色错误。查看 Asset、Job 和 failureReason。无音轨对静音 B-roll可以合法，对 VoiceReference 不合法。不要把所有状态都标记为 failed。
+区分文件不存在、元数据失败、无音轨、浏览器不支持、Render Worker 不可读和角色错误。查看 Asset、Job 和 failureReason。无音轨对静音 B-roll可以合法，对 VoiceReference 不合法。不要把所有状态都标记为 failed。
 
 ## Bridge 409
 
@@ -61,6 +69,12 @@ Bridge succeeded 只表示推理结束。读取原文、输入哈希、分析版
 
 ## Remotion 组件失败
 
+受管字体先查询 `read_motion_capabilities`，使用 `fontBindings` 与平台注入的 `props.fonts`。`MOTION_IMPORT_REJECTED: useEffect/useState/delayRender/continueRender` 若来自字体加载代码，由原作者按已发布合同改写；不能只删第一个导入后继续使用浏览器全局。`MOTION_FONT_UNKNOWN` 先核对实际目录；已登记文件缺失、变化、加载失败或超时属于平台修复范围，失败不替换绑定字体、不生成半件 Asset。`MOTION_FONT_CACHE_CORRUPT` 表示完整作品字体副本或绑定损坏，不静默重生覆盖。没有字体文件加载错误，不应把字形覆盖或排版问题扩大成Runtime崩溃。
+
+新受管视频按videoBindings源毫秒半开范围、作品startFrame/endFrame及fps检查，帧数以endFrame-startFrame为准，允许1毫秒取整与不足一帧余量；不匹配时Schema拒绝创建Job。调整选段或作品范围后提交经确认的新版本，不加源码偏移掩盖差值。MOTION_VIDEO_SOURCE_SHORT保留实际源证据，由修复任务核查PTS与边界，不冻结末帧。TimelineVideo读取作品根时钟，Sequence只改变显示与布局。历史产物可读，旧引擎重新生成返回MOTION_ENGINE_UPGRADE_REQUIRED，须按新合同提交。MOTION_DISK_SPACE检查真实空间与安全余量；MOTION_VIDEO_WORKING_SET检查单块工作区配置，不以累计解码512MiB要求导演拆件。MOTION_VIDEO_CHANGED会使解码缓存失效，防止恢复原片后误用错误帧；剪辑任务仍沿Repair Ticket报障，不自行修改平台。
+
+动画Job失败时读取track_job.error与result.diagnostic的实际错误码和信息；成功后读取Asset、固定版本及videoDecodes，不把缓存统计或临时帧当成可交付作品。候选实现新增track_job.result.motionProgress的stage、currentFrame、lastCompletedFrame和lastProgressAt；必须核对实际部署后读取，不能从updatedAt续租心跳推断进展。失败报告在result.motionFailure中保留首次异常栈、附加错误、浏览器事件、退出状态和reportPath，运行诊断独立于素材和Revision。
+
 `MOTION_NONDETERMINISTIC` 先读取 `track_job.result.motionDiagnostics`：其中 `reportPath` 指向包含具体帧号、可见差异幅度和区域的 JSON，`differences[].paths` 相对于报告目录，分别保存首次画面、重复截图和放大差异图。失败证据独立保留，临时帧缓存清理，不创建作品 Asset 或视频 Revision。哈希不同会继续比较黑、白背景上的合成像素；每个通道最多两个色阶的差异标为 `tolerated` 并允许生成待审代理，超过则失败。不能只看全图平均差异忽略局部丢字，也不能把 tolerated 当作审美通过；缓存文件完整性仍要求哈希完全一致。剪辑任务遇到失败仍提交独立 Repair Ticket，由修复任务依据对比证据定位，不重放写入或自行放宽检查。
 
 候选渲染器对内部 index.html 的“but got no response”最多恢复两次：这是并发导航的 CDP 响应事件竞态，每次仍须完整渲染成功。持续失败保留 Job 诊断，不由剪辑任务重放写入；资源、安全、内容和外部生成错误不走该恢复。
@@ -69,7 +83,7 @@ Bridge succeeded 只表示推理结束。读取原文、输入哈希、分析版
 
 ## Export 失败
 
-导出条件失败时先查看该 purpose 的技术/许可阻挡；AI 审阅缺失或待复核不阻挡制作和导出。Render 失败时查看日志和 Asset；文件技术验证失败时保留临时诊断但不发布。禁止静默交付只有 A-roll、缺字幕或缺动效的降级文件。
+导出条件失败时先查看该 purpose 的技术阻挡；AI 审阅缺失或待复核不阻挡制作和导出。Render 失败时查看日志和 Asset；文件技术验证失败时保留临时诊断但不发布。禁止静默交付只有 A-roll、缺字幕或缺动效的降级文件。
 
 ## 结果未知的通用规则
 
@@ -108,6 +122,8 @@ Bridge succeeded 只表示推理结束。读取原文、输入哈希、分析版
 
 ## 日志和用户沟通
 
+历史 Repair Ticket 先按工具、错误码、Release、Job 和根因审计；没有 Job 关联不等于平台缺陷，Job 后来成功也不等于原报告已经处理。平台缺陷沿候选验证、正式部署、原报告剪辑任务重连确认的路径收口。正确输入拒绝、重复报告或宿主外部恢复，由修复者接手后调用 `resolve_repair_ticket_without_deployment`，明确分类和证据；不能以此替代真正需要部署的修复，也不能批量按状态猜测关闭。
+
 用户需要知道发生了什么、是否产生副作用、下一步是什么；不需要看到无法行动的长堆栈。内部日志保存 Project、Revision、Job、run_id、工具、错误码和资源，但避免泄露密钥和敏感本地内容。
 
 ## 不允许的恢复
@@ -115,7 +131,7 @@ Bridge succeeded 只表示推理结束。读取原文、输入哈希、分析版
 - 删除数据库行让错误“消失”；
 - 将 failed Job 改成 succeeded；
 - 使用旧 Preview/帧冒充新证据；
-- 伪造许可依据或审阅通过；
+- 伪造审阅通过；
 - Remotion 失败时交付只含主轨文件；
 - 工具缺失时伪造返回；
 - 创作问题反复重试同一技术任务。
@@ -123,3 +139,8 @@ Bridge succeeded 只表示推理结束。读取原文、输入哈希、分析版
 ## 交接
 
 技术错误恢复后返回原主工作流或专项 Skill，让其重新判断结果是否仍符合创作意图。已恢复不代表质量通过；必要时重新 Preview 和审片。
+
+
+## 参数拒绝与原始错误证据
+
+调用结果先检查 `isError`，保存完整文本后再按实际内容解析 JSON；协议层 Schema 拒绝可能只有文本，解析失败不得覆盖原始错误。参数拒绝、业务冲突、运行故障和写入结果未知分别记录。仅明确 `stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=correct_input` 并指出字段纠正依据的参数拒绝，允许按实时 Schema 纠正后提交一次；不重放原请求，同因再次拒绝报障。协议层文本拒绝必须核对实时 Schema 和当前 Revision，确认未进入业务执行后才能纠正。此例外不允许重试已创建的下载、生成 Job、运行失败或结果未知，不更换幂等键绕过。字体选择继续遵守人工选择合同。

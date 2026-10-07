@@ -26,6 +26,6 @@ try {
   await runOneJob(app, processor);
   const asset = app.readProject(projectId).snapshot.assets[0];
   assert.equal(asset.kind, "audio"); assert.equal(asset.status, "ready"); assert.equal(asset.metadata?.hasAudio, true);
-  assert.ok(asset.metadata!.durationMs > 0); assert.equal(asset.provenance?.license, "Mixkit Sound Effects Free License");
+  assert.ok(asset.metadata!.durationMs > 0); assert.equal(asset.provenance?.provider, "mixkit");
   console.log(JSON.stringify({ workspace: root, projectId, candidates: candidates.length, file: resolve(app.readProject(projectId).snapshot.project.rootPath, asset.managedPath), metadata: asset.metadata, provenance: asset.provenance, listening: "未完成真实审听，不能声称音色/匹配通过" }, null, 2));
 } finally { app.repository.close(); }

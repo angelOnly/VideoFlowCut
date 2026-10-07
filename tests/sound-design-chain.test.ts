@@ -423,7 +423,7 @@ test("真实迟入音轨派生保留 0.7 秒偏移，原声候选测量不自动
 });
 
 test("新版动作引擎隔离版本哈希，同时识别旧已冻结任务", () => {
-  const work = motionSubmissionSchema.parse({ name: "测试", source: "export default function M(){return null}", width: 320, height: 180, fps: 30, durationInFrames: 30, rights: { status: "unknown", basis: "仅用于隔离技术回归测试" } });
+  const work = motionSubmissionSchema.parse({ name: "测试", source: "export default function M(){return null}", width: 320, height: 180, fps: 30, durationInFrames: 30, });
   const legacy = motionHash(work, [], "managed-motion-3");
   assert.notEqual(motionHash(work), legacy); assert.equal(motionHashEngine(work, [], legacy), "managed-motion-3");
   assert.throws(() => motionHashEngine(work, [], legacy, "managed-motion-4"), /MISMATCH/u);

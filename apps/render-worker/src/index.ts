@@ -12,9 +12,9 @@ const getDefaultApplication = () => (defaultApplication ??= createApplication(wo
 export const RENDER_JOB_KINDS: JobKind[] = ["preview", "render_preflight", "export", "motion_generation", "sound_comparison"];
 
 export function createRenderJobProcessor(app: EditingApplication, renderer: RevisionRenderEngine = new RevisionRenderer()): JobProcessor {
-  return async (job) => {
+  return async (job, signal) => {
     if (job.kind === "sound_comparison") return runSoundComparison(app, job, renderer);
-    if (job.kind === "motion_generation") return runMotionJob(app, job);
+    if (job.kind === "motion_generation") return runMotionJob(app, job, undefined, signal);
     if (job.kind === "preview") return runPreviewJob(app, job, renderer);
     if (job.kind === "render_preflight") return runRenderPreflightJob(app, job);
     if (job.kind === "export") return runExportJob(app, job, renderer);
@@ -24,9 +24,10 @@ export function createRenderJobProcessor(app: EditingApplication, renderer: Revi
 
 export async function runOneRenderJob(
   app: EditingApplication = getDefaultApplication(),
-  processor: JobProcessor = createRenderJobProcessor(app)
+  processor: JobProcessor = createRenderJobProcessor(app),
+  signal?: AbortSignal
 ): Promise<boolean> {
-  return runOneQueuedJob(app, RENDER_JOB_KINDS, processor, 5 * 60_000);
+  return runOneQueuedJob(app, RENDER_JOB_KINDS, processor, 5 * 60_000, signal);
 }
 
 export async function runRenderWorkerForever(app: EditingApplication = getDefaultApplication(), signal?: AbortSignal, renderer: RevisionRenderEngine = new RevisionRenderer()): Promise<void> {
@@ -38,7 +39,7 @@ export async function runRenderWorkerForever(app: EditingApplication = getDefaul
   try {
     const processor = createRenderJobProcessor(app, renderer);
     while (!stopping) {
-      const worked = await runOneRenderJob(app, processor);
+      const worked = await runOneRenderJob(app, processor, signal);
       if (!worked) await new Promise((resolve) => setTimeout(resolve, 750));
     }
   } finally {

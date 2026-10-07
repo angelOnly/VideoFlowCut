@@ -72,12 +72,11 @@ test("MCP 只能浏览、检测并导入配置根目录内的本地音效", asyn
     const browsed = JSON.parse(textFromToolResult(await client.callTool({
       name: "browse_local_sound_effects",
       arguments: { query: "soft", max_results: 10 }
-    }))) as { effects: Array<{ rootId: string; relativePath: string; durationMs: number; defaultRightsStatus: string }> };
+    }))) as { effects: Array<{ rootId: string; relativePath: string; durationMs: number; }> };
     assert.equal(browsed.effects.length, 1);
     const effect = browsed.effects[0]!;
     assert.equal(effect.relativePath, "ui/hits/soft-hit.wav");
     assert.ok(effect.durationMs > 0);
-    assert.equal(effect.defaultRightsStatus, "unknown");
 
     const inspected = JSON.parse(textFromToolResult(await client.callTool({
       name: "inspect_local_sound_effect",
@@ -105,9 +104,8 @@ test("MCP 只能浏览、检测并导入配置根目录内的本地音效", asyn
         root_id: effect.rootId,
         relative_path: effect.relativePath
       }
-    }))) as { asset: { kind: string; provenance?: { rightsStatus?: string } }; importedSoundEffect: { relativePath: string } };
+    }))) as { asset: { kind: string; provenance?: { } }; importedSoundEffect: { relativePath: string } };
     assert.equal(imported.asset.kind, "audio");
-    assert.equal(imported.asset.provenance?.rightsStatus, "unknown");
     assert.equal(imported.importedSoundEffect.relativePath, effect.relativePath);
     assert.ok(sourceFile.endsWith("soft-hit.wav"));
     const current = JSON.parse(textFromToolResult(await client.callTool({ name: "read_project", arguments: { project_id: project.snapshot.project.id } })));

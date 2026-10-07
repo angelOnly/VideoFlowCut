@@ -4,13 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { createApplication } from "@videocut/application";
-import type { MotionVisibility } from "@videocut/contracts";
 import { evaluateQuality, requiresEditorialReview } from "@videocut/quality";
-import { parseMotionVisibility } from "../apps/render-worker/src/motion-visibility.js";
-import { motionCaptionSafety } from "../packages/quality-system/src/motion-caption-safety.js";
 import { motionFixture } from "./fixtures/managed-motion.js";
 
-const clearVisibility = (): MotionVisibility => ({ method: "png_alpha_bbox_v1", alphaThreshold: 1, frames: Array.from({ length: 18 }, () => ({ x: 20, y: 10, width: 100, height: 30 })) });
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), "videocut-cue-repair-"));
@@ -22,58 +18,44 @@ async function fixture() {
     Object.assign(snapshot.timeline, { width: 320, height: 320, fps: 30, durationInFrames: 120 });
   });
   const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "fixture", work: motionFixture });
-  const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", visibility: clearVisibility(), metadata: { durationMs: 600, width: 320, height: 320, fps: 30, hasAudio: false } });
+  const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 600, width: 320, height: 320, fps: 30, hasAudio: false } });
   await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "单元测试固定状态，不代表真实用户视频审片。" });
   const sceneState = app.createScene({ projectId, baseRevision: revision(), type: "PresenterScene", title: "测试", purpose: "局部编辑回归", startFrame: 0, endFrame: 120 });
   const sceneId = sceneState.snapshot.scenes.at(-1)!.id;
-  const state = app.createEffectCue({ projectId, baseRevision: revision(), sceneId, type: "ManagedMotion", layer: "front", startFrame: 20, endFrame: 38, assetBindings: [{ slot: "motion", assetId: asset.id }], qualityRules: ["caption_safe_area", "semantic_anchor_required"], semanticAnchor: { type: "absolute", relation: "land_on" }, note: "保留的说明" });
+  const state = app.createEffectCue({ projectId, baseRevision: revision(), sceneId, type: "ManagedMotion", layer: "front", startFrame: 20, endFrame: 38, assetBindings: [{ slot: "motion", assetId: asset.id }], qualityRules: ["semantic_anchor_required"], semanticAnchor: { type: "absolute", relation: "land_on" }, note: "保留的说明" });
   const cueId = state.snapshot.effectCues.at(-1)!.id;
   return { app, projectId, revision, asset, sceneId, cueId, state, close: async () => { app.repository.close(); await rm(root, { recursive: true, force: true }); } };
 }
 
-test("Alpha 解析保留透明帧并拒绝缺帧、重复、负坐标和越界，不将坏测量当安全", () => {
-  const opaque = "frame:0 pts:0\nmotion_alpha_frame=1\nlavfi.bbox.x1=4\nlavfi.bbox.y1=5\nlavfi.bbox.w=6\nlavfi.bbox.h=7\n";
-  const transparent = "frame:1 pts:1\nmotion_alpha_frame=1\n";
-  assert.deepEqual(parseMotionVisibility(opaque + transparent, 2, 32, 32).frames, [{ x: 4, y: 5, width: 6, height: 7 }, null]);
-  assert.throws(() => parseMotionVisibility(opaque, 2, 32, 32), /INCOMPLETE/u);
-  // 滤镜局部 frame 可以合法重置；输入 PTS 不能缺失、重复、跳帧或倒序。
-  for (const invalid of [opaque.replace("pts:0", "pts:1"), opaque.replace("pts:0", "pts:-1"), opaque.replace("pts:0", "pts:N/A"), opaque.replace(" pts:0", ""), opaque + opaque, opaque.replace("x1=4", "x1=-4"), opaque.replace("w=6", "w=60"), opaque.replace("w=6", "w=NaN"), opaque.replace("w=6\n", ""), opaque.replace("motion_alpha_frame=1\n", ""), opaque + "lavfi.bbox.w=6\n"]) {
-    assert.throws(() => parseMotionVisibility(invalid, 1, 32, 32), /INVALID/u);
-  }
-  assert.deepEqual(parseMotionVisibility(opaque + transparent.replace("frame:1", "frame:0") + opaque.replace("pts:0", "pts:2"), 3, 32, 32).frames,
-    [{ x: 4, y: 5, width: 6, height: 7 }, null, { x: 4, y: 5, width: 6, height: 7 }]);
-});
-
-test("透明画布保留真实像素和语义校验，辅助审片不阻挡导出", async () => {
+test("退役安全区规则与旧测量数据不产生阻断或提醒，也不回写快照", async () => {
   const f = await fixture();
   try {
+    const persistedBefore = f.app.readProject(f.projectId);
     const snapshot = structuredClone(f.state.snapshot);
     snapshot.timeline.captions.push({ id: "caption-fixture", text: "字幕", startFrame: 20, endFrame: 38, style: "stable", precision: "segment_exact" });
     const cue = snapshot.effectCues.at(-1)!;
     assert.equal(cue.spatialAnchor, "full_frame");
-    const codes = () => evaluateQuality(snapshot, f.revision()).issues;
-    assert.equal(motionCaptionSafety(snapshot, cue), "clear");
-    assert.equal(codes().some((issue) => issue.code.includes("CAPTION_SAFE")), false);
-    assert.ok(codes().some((issue) => issue.code === "EFFECT_SEMANTIC_ANCHOR_REQUIRED" && issue.level === "blocking"));
-    assert.equal(evaluateQuality(snapshot, f.revision()).editorial.status, "not_recorded");
-    assert.equal(requiresEditorialReview(evaluateQuality(snapshot, f.revision()), "delivery"), false);
-    const motion = snapshot.assets.find((entry) => entry.id === f.asset.id)!.motion!;
-    motion.visibility!.frames[9] = { x: 20, y: 270, width: 200, height: 30 };
-    assert.equal(motionCaptionSafety(snapshot, cue), "review");
-    assert.ok(codes().some((issue) => issue.code === "EFFECT_CAPTION_SAFETY_REVIEW_REQUIRED" && issue.level === "warning"));
-    snapshot.timeline.captions[0].startFrame = 30;
-    assert.equal(motionCaptionSafety(snapshot, cue), "clear", "不相交的时间不能误算遮挡");
-    motion.visibility = undefined;
-    assert.equal(motionCaptionSafety(snapshot, cue), "unknown");
-    assert.ok(codes().some((issue) => issue.code === "EFFECT_CAPTION_SAFETY_REVIEW_REQUIRED"));
-    motion.visibility = clearVisibility();
-    motion.visibility.frames.pop();
-    assert.equal(motionCaptionSafety(snapshot, cue), "unknown");
-    motion.visibility = clearVisibility();
-    motion.visibility.frames[0] = { x: -1, y: 0, width: 20, height: 20 };
-    assert.equal(motionCaptionSafety(snapshot, cue), "unknown");
+    const baseline = evaluateQuality(snapshot, f.revision());
+    assert.ok(baseline.technical.some(entry => entry.code === "EFFECT_SEMANTIC_ANCHOR_REQUIRED" && entry.level === "blocking"));
+    assert.equal(requiresEditorialReview(baseline, "delivery"), false);
+    // 模拟历史 JSON：已退役的附加数据不要求迁移或补测，也不能改变输出门禁。
+    Object.assign(snapshot.assets.find(entry => entry.id === f.asset.id)!.motion!, {
+      visibility: { method: "png_alpha_bbox_v1", alphaThreshold: 1, frames: [{ x: 0, y: 0, width: 320, height: 320 }] }
+    });
+    cue.qualityRules.push("caption_safe_area");
+    const before = structuredClone(snapshot);
+    const report = evaluateQuality(snapshot, f.revision());
+    assert.deepEqual(report.issues, baseline.issues);
+    assert.deepEqual(report.exportReadiness, baseline.exportReadiness);
+    assert.deepEqual(snapshot, before, "只读评估不清洗正式视频状态");
+    assert.deepEqual(f.app.readProject(f.projectId), persistedBefore, "评估不提交新 Revision");
+
     cue.type = "EvidenceCard";
-    assert.ok(codes().some((issue) => issue.code === "EFFECT_RULE_CAPTION_SAFE_AREA" && issue.level === "blocking"), "普通前景组件保护不被削弱");
+    const withRetired = evaluateQuality(snapshot, f.revision());
+    cue.qualityRules = cue.qualityRules.filter(rule => rule !== "caption_safe_area");
+    assert.deepEqual(withRetired.issues, evaluateQuality(snapshot, f.revision()).issues, "普通全画幅前景也没有安全区特殊门禁");
+    cue.qualityRules.push("真实未知规则");
+    assert.ok(evaluateQuality(snapshot, f.revision()).issues.some(entry => entry.code === "EFFECT_QUALITY_RULE_UNSUPPORTED"), "其他未知规则检查保持有效");
   } finally { await f.close(); }
 });
 
@@ -126,7 +108,6 @@ test("受管作品把通用 default-clean 规范为源码样式，仍拒绝实�
     });
     const cue = compatible.snapshot.effectCues.at(-1)!;
     assert.equal(cue.stylePackId, "managed-source");
-    assert.equal(motionCaptionSafety(compatible.snapshot, cue), "clear");
 
     const beforeInvalid = f.app.readProject(f.projectId);
     assert.throws(() => f.app.createEffectCue({

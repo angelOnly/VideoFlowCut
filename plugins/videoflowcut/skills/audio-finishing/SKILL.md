@@ -61,11 +61,11 @@ SFX 应绑定明确的叙事或视觉事件：预示变化、对象落定、数�
 
 先用 `browse_assets(kind=audio)` 检查已登记候选。用户另给本地音效库时，通过 `browse_local_sound_effects` 发现已配置根目录中的候选，再用 `inspect_local_sound_effect` 获取所选文件与非静音起点候选；这两个工具不把素材加入 Timeline。文件名和分类只用于检索，实际采用前须审阅完整音频，判断是否带语音、旋律、强情境、前导和长尾，以及与本片语气是否适配。
 
-对高影响事件比较适量候选与不使用的结果，记录采用的文件/源范围、功能、可听起音、攻击、尾音及拒绝其它候选的原因。用 `import_local_sound_effect` 将选中素材正规导入，完成分析与 Readiness 后才由 `manage_audio` 放置；若已在项目中，复用对应 Asset。用户提供文件表示候选来源，不自动赋予完整交付许可，也不要求消耗整个音效包。
+对高影响事件比较适量候选与不使用的结果，记录采用的文件/源范围、功能、可听起音、攻击、尾音及拒绝其它候选的原因。用 `import_local_sound_effect` 将选中素材正规导入，完成分析与 Readiness 后才由 `manage_audio` 放置；若已在项目中，复用对应 Asset。用户提供文件表示候选来源，也不要求消耗整个音效包。
 
 ### 在线候选与按需获取
 
-默认在线选音，由 [sound-asset-sourcing](../sound-asset-sourcing/SKILL.md) 完成按功能检索、有限候选原声分析、取得原文件与采用依据。用 `browse_sound_sources` 读取当前无需 Key 的 Provider、分类和许可能力，Mixkit 音效与 Mixkit 音乐分开处理。来源名称不证明适配或许可，本地用户音效包也按同一范围和试听标准选择。
+默认在线选音，由 [sound-asset-sourcing](../sound-asset-sourcing/SKILL.md) 完成按功能检索、有限候选原声分析、取得原文件与采用依据。用 `browse_sound_sources` 读取当前无需 Key 的 Provider、分类和访问能力，Mixkit 音效与 Mixkit 音乐分开处理。来源名称不证明适配，本地用户音效包也按同一范围和试听标准选择。
 
 `manage_asset_requirements` 使用 media_kind=audio、audio_brief、role=sfx/bgm 和结构化 sound 条件，不填画幅。`recommend_sound_candidates` 先对描述排序，再为有限候选建立音频分析子 Job；继续读取子任务结果，不能把父任务成功当成听过。`acquire_media_asset` 后等待下载和媒体分析，原文件经范围复核与 `adopt_media_fragment` 保存依据。预览版和原文件分别定位，不把预览下载伪装成原文件；不要求搜索 API Key 或下载 OAuth。
 
@@ -155,7 +155,7 @@ Dialogue 始终清楚；产品落定和数字完成可有少量 SFX；CTA 有一
 
 ## 交接合同
 
-受管作品中的 BoundVideo 不隐式出声。先核对同一源片声音是否已经在外层
+受管作品中的 TimelineVideo 不隐式出声。先核对同一源片声音是否已经在外层
 播放，避免重复；确需原声则沿现有声音／素材音轨合同明确源范围和项目范围。
 作品事件可引导效果音，但真实物体尚未落下时不提前放出落桌声，已有清楚原声
 也不必再覆盖一套相同音效。内部时序改变后复核当前事件与 stale AudioCue。

@@ -3,9 +3,10 @@ import { createReadStream, existsSync } from "node:fs";
 import { mkdir, rename, rm, stat } from "node:fs/promises";
 import { extname, isAbsolute, join, relative, resolve } from "node:path";
 import type { EditingApplication } from "@videocut/application";
-import type { Asset, ProjectSnapshot, TimelineItem, VlogShotAnalysis } from "@videocut/contracts";
+import type { Asset, ProjectSnapshot, TimelineItem, VlogShotAnalysis, SourceReviewDiagnostics } from "@videocut/contracts";
 import { assetById, DomainError, millisecondsToFrames, resolveCompositionReachability } from "@videocut/domain";
 import { probeMedia, runProcess } from "@videocut/speech";
+import { classifySourceReviewFailure, createSourceReviewDiagnostics, finishSourceReviewDiagnostics, SourceReviewOutputEmptyError } from "./source-review-diagnostics.js";
 
 /**
  * 原素材审阅的三种证据密度。它们只读取、解码和缓存原素材，不会写入项目 Revision。
@@ -79,6 +80,7 @@ export interface SourceReviewUsage {
 }
 
 export interface SourceReviewResponse {
+  diagnostics: SourceReviewDiagnostics;
   projectId: string;
   assetId: string;
   /** 审阅读取的当前 Revision；生成缓存不会让它递增。 */
@@ -185,7 +187,7 @@ async function isNonEmptyFile(path: string): Promise<boolean> {
  * 同一素材范围被 Web 和 MCP 同时请求时只生成一次；临时文件完成后才原子换名，
  * 防止任一调用读到另一调用尚未写完的半张联系表或半段代理。
  */
-async function ensureCachedFile(path: string, create: (temporaryPath: string) => Promise<void>): Promise<void> {
+async function ensureCachedFile(path: string, create: (temporaryPath: string) => Promise<void | string>): Promise<void> {
   if (await isNonEmptyFile(path)) return;
   const existing = inFlightCacheWrites.get(path);
   if (existing) return existing;
@@ -196,9 +198,9 @@ async function ensureCachedFile(path: string, create: (temporaryPath: string) =>
     const temporaryPath = `${path.slice(0, Math.max(0, path.length - extension.length))}.partial-${process.pid}-${Math.random().toString(36).slice(2)}${extension}`;
     await rm(temporaryPath, { force: true }).catch(() => undefined);
     try {
-      await create(temporaryPath);
+      const output = await create(temporaryPath);
       if (!await isNonEmptyFile(temporaryPath)) {
-        throw new DomainError("素材审阅派生文件为空", "SOURCE_REVIEW_CACHE_EMPTY");
+        throw new SourceReviewOutputEmptyError(output ?? "");
       }
       await rm(path, { force: true }).catch(() => undefined);
       await rename(temporaryPath, path);
@@ -232,12 +234,12 @@ function durationFrames(snapshot: ProjectSnapshot, asset: Asset): number | undef
  * 容器总时长可能被比画面更长的音轨拉长。联系表只应采样实际可解码的视频帧，
  * 否则 VP8/WebM 等素材的末尾会把 FFmpeg 带到没有画面的时间点。
  */
-async function visualDurationFrames(snapshot: ProjectSnapshot, asset: Asset, sourcePath: string): Promise<number | undefined> {
+async function visualDurationFrames(snapshot: ProjectSnapshot, asset: Asset, sourcePath: string, process: typeof runProcess, diagnostics: SourceReviewDiagnostics): Promise<number | undefined> {
   if (!isReviewableVideo(asset)) return undefined;
   const sourceFps = asset.metadata?.fps;
   if (!Number.isFinite(sourceFps) || !sourceFps || sourceFps <= 0) return undefined;
   try {
-    const output = await runProcess("ffprobe", [
+    const output = await process("ffprobe", [
       "-v", "error",
       "-select_streams", "v:0",
       "-count_frames",
@@ -250,7 +252,8 @@ async function visualDurationFrames(snapshot: ProjectSnapshot, asset: Asset, sou
     if (!Number.isInteger(sourceFrameCount) || sourceFrameCount <= 0) return undefined;
     // 只缩短容器时长推得的范围；探测异常或元数据不一致时保守沿用已验证的 Asset 元数据。
     return Math.max(1, Math.floor(sourceFrameCount / sourceFps * snapshot.timeline.fps + 1e-6));
-  } catch {
+  } catch (error) {
+    diagnostics.issues.push(classifySourceReviewFailure(error, "metadata"));
     return undefined;
   }
 }
@@ -364,11 +367,12 @@ function outputPath(snapshot: ProjectSnapshot, key: string, ...parts: string[]):
 }
 
 async function createFrame(input: {
+  process: typeof runProcess;
   sourcePath: string;
   temporaryPath: string;
   sourceMs: number;
-}): Promise<void> {
-  await runProcess("ffmpeg", [
+}): Promise<string> {
+  return input.process("ffmpeg", [
     "-hide_banner", "-nostdin", "-v", "error",
     // FFmpeg 按 PTS 取下一帧；向上取整甚至一微秒都可能越过最后一个可解码 PTS。
     "-ss", (Math.floor(input.sourceMs * 1_000) / 1_000_000).toFixed(6),
@@ -382,6 +386,8 @@ async function createFrame(input: {
 }
 
 async function createContactSheet(input: {
+  process: typeof runProcess;
+  diagnostics: SourceReviewDiagnostics;
   snapshot: ProjectSnapshot;
   sourcePath: string;
   range: SourceReviewRange;
@@ -389,10 +395,19 @@ async function createContactSheet(input: {
   key: string;
 }): Promise<SourceReviewFrame[]> {
   const results: SourceReviewFrame[] = [];
+  input.diagnostics.requestedFrames = input.frames.length;
   for (const [index, sourceFrame] of input.frames.entries()) {
     const sourceMs = Math.round(sourceFrame / input.range.fps * 1_000);
     const path = outputPath(input.snapshot, input.key, "frames", `${String(index).padStart(2, "0")}-${sourceFrame}.jpg`);
-    await ensureCachedFile(path, (temporaryPath) => createFrame({ sourcePath: input.sourcePath, temporaryPath, sourceMs: sourceFrame / input.range.fps * 1_000 }));
+    try {
+      await ensureCachedFile(path, (temporaryPath) => createFrame({ process: input.process, sourcePath: input.sourcePath, temporaryPath, sourceMs: sourceFrame / input.range.fps * 1_000 }));
+    } catch (error) {
+      const issue = { ...classifySourceReviewFailure(error, "contact_sheet"), sourceFrame, sourceMs };
+      input.diagnostics.issues.push(issue);
+      // 已生成的真实图片保留；明确的平台故障立即中止其余抽取。
+      if (issue.owner === "platform") break;
+      continue;
+    }
     const relativePath = toRelativePath(input.snapshot, path);
     results.push({
       ...mediaFile(input.snapshot, relativePath),
@@ -401,10 +416,13 @@ async function createContactSheet(input: {
       timecode: formatTimecode(sourceMs)
     });
   }
+  input.diagnostics.generatedFrames = results.length;
+  input.diagnostics.components.contactSheet = results.length === input.frames.length ? "complete" : results.length ? "partial" : "unavailable";
   return results;
 }
 
 async function createRangeProxy(input: {
+  process: typeof runProcess;
   snapshot: ProjectSnapshot;
   asset: Asset;
   sourcePath: string;
@@ -425,16 +443,15 @@ async function createRangeProxy(input: {
       "-i", input.sourcePath
     ];
     if (!isVideo) {
-      await runProcess("ffmpeg", [
+      return input.process("ffmpeg", [
         ...common,
         "-map", "0:a:0",
         "-c:a", "aac",
         "-movflags", "+faststart",
         "-y", temporaryPath
       ], Math.max(120_000, Math.ceil(durationSeconds * 8_000)));
-      return;
     }
-    await runProcess("ffmpeg", [
+    const output = await input.process("ffmpeg", [
       ...common,
       "-map", "0:v:0?",
       "-map", "0:a:0?",
@@ -451,9 +468,16 @@ async function createRangeProxy(input: {
       "-movflags", "+faststart",
       "-y", temporaryPath
     ], Math.max(120_000, Math.ceil(durationSeconds * 8_000)));
+    if (!await isNonEmptyFile(temporaryPath)) throw new SourceReviewOutputEmptyError(output);
     const metadata = await probeMedia(temporaryPath);
     if (metadata.videoCodec?.toLowerCase() !== "h264" || !Number.isFinite(metadata.fps) || Math.abs(metadata.fps! - input.range.fps) > 0.001) {
       throw new DomainError("源素材审阅代理不是项目 FPS 一致的 H.264 视频", "SOURCE_REVIEW_PROXY_INVALID");
+    }
+    // 短代理必须覆盖请求范围；局部解码成功不能把缺尾画面包装成连续审阅成功。
+    const decoded = JSON.parse(await input.process("ffprobe", ["-v", "error", "-select_streams", "v:0", "-count_frames",
+      "-show_entries", "stream=nb_read_frames", "-of", "json", temporaryPath], 120_000)) as { streams?: Array<{ nb_read_frames?: string }> };
+    if (Number(decoded.streams?.[0]?.nb_read_frames) !== input.range.endFrame - input.range.startFrame) {
+      throw new DomainError("连续代理未覆盖请求的全部源范围；不能凭截图宣布选段审阅通过", "SOURCE_REVIEW_PROXY_INCOMPLETE");
     }
   });
   const relativePath = toRelativePath(input.snapshot, path);
@@ -494,6 +518,8 @@ function parseVolume(output: string): { meanVolumeDb?: number; maxVolumeDb?: num
 }
 
 async function inspectAudio(input: {
+  process: typeof runProcess;
+  diagnostics: SourceReviewDiagnostics;
   snapshot: ProjectSnapshot;
   asset: Asset;
   sourcePath: string;
@@ -519,36 +545,58 @@ async function inspectAudio(input: {
   const durationSeconds = (isReviewableAudio(input.asset) ? input.range.endMs / 1_000 : input.range.endFrame / input.range.fps) - input.range.startFrame / input.range.fps;
   const seek = (input.range.startFrame / input.range.fps).toFixed(6);
   const waveformPath = outputPath(input.snapshot, input.key, "audio-waveform.png");
-  await ensureCachedFile(waveformPath, async (temporaryPath) => {
-    await runProcess("ffmpeg", [
-      "-hide_banner", "-nostdin", "-v", "error",
-      "-ss", seek,
-      "-t", durationSeconds.toFixed(6),
-      "-i", input.sourcePath,
-      "-filter_complex", "[0:a:0]aformat=channel_layouts=mono,showwavespic=s=960x160:colors=0x71d9ff[wave]",
-      "-map", "[wave]",
-      "-c:v", "png",
-      "-frames:v", "1",
-      "-y", temporaryPath
-    ], Math.max(120_000, Math.ceil(durationSeconds * 8_000)));
-  });
-  const [silenceOutput, volumeOutput] = await Promise.all([
-    runProcess("ffmpeg", [
-      "-hide_banner", "-nostdin", "-ss", seek, "-t", durationSeconds.toFixed(6), "-i", input.sourcePath,
-      // 强制从请求范围的 0 重新计时，随后才能安全地加回 sourceStartFrame。
-      "-vn", "-af", "asetpts=PTS-STARTPTS,silencedetect=n=-45dB:d=0.25", "-f", "null", "-"
-    ], Math.max(120_000, Math.ceil(durationSeconds * 8_000))),
-    runProcess("ffmpeg", [
-      "-hide_banner", "-nostdin", "-ss", seek, "-t", durationSeconds.toFixed(6), "-i", input.sourcePath,
-      "-vn", "-af", "volumedetect", "-f", "null", "-"
-    ], Math.max(120_000, Math.ceil(durationSeconds * 8_000)))
-  ]);
-  const silence = parseSilenceRanges(silenceOutput, input.range);
-  const volume = parseVolume(volumeOutput);
-  const relativePath = toRelativePath(input.snapshot, waveformPath);
+  let waveform: SourceReviewMediaFile | undefined;
+  try {
+    await ensureCachedFile(waveformPath, async (temporaryPath) => {
+      return input.process("ffmpeg", [
+        "-hide_banner", "-nostdin", "-v", "error",
+        "-ss", seek,
+        "-t", durationSeconds.toFixed(6),
+        "-i", input.sourcePath,
+        "-filter_complex", "[0:a:0]aformat=channel_layouts=mono,showwavespic=s=960x160:colors=0x71d9ff[wave]",
+        "-map", "[wave]",
+        "-c:v", "png",
+        "-frames:v", "1",
+        "-y", temporaryPath
+      ], Math.max(120_000, Math.ceil(durationSeconds * 8_000)));
+    });
+    waveform = mediaFile(input.snapshot, toRelativePath(input.snapshot, waveformPath));
+    input.diagnostics.components.waveform = "complete";
+  } catch (error) {
+    input.diagnostics.issues.push({ ...classifySourceReviewFailure(error, "waveform"), sourceRange: input.range });
+    input.diagnostics.components.waveform = "unavailable";
+  }
+  let silence: ReturnType<typeof parseSilenceRanges> = { silenceRanges: [], onsetFrames: [] };
+  let volume: ReturnType<typeof parseVolume> = {};
+  if (input.diagnostics.issues.some(issue => issue.owner === "platform")) {
+    input.diagnostics.components.audioAnalysis = "skipped";
+  } else try {
+    // 声音分析全部结束后才返回；不能留下未结算的子进程。
+    const outputs = await Promise.allSettled([
+      input.process("ffmpeg", [
+        "-hide_banner", "-nostdin", "-ss", seek, "-t", durationSeconds.toFixed(6), "-i", input.sourcePath,
+        // 强制从请求范围的 0 重新计时，随后才能安全地加回 sourceStartFrame。
+        "-vn", "-af", "asetpts=PTS-STARTPTS,silencedetect=n=-45dB:d=0.25", "-f", "null", "-"
+      ], Math.max(120_000, Math.ceil(durationSeconds * 8_000))),
+      input.process("ffmpeg", [
+        "-hide_banner", "-nostdin", "-ss", seek, "-t", durationSeconds.toFixed(6), "-i", input.sourcePath,
+        "-vn", "-af", "volumedetect", "-f", "null", "-"
+      ], Math.max(120_000, Math.ceil(durationSeconds * 8_000)))
+    ]);
+    for (const output of outputs) if (output.status === "rejected") {
+      input.diagnostics.issues.push({ ...classifySourceReviewFailure(output.reason, "audio_analysis"), sourceRange: input.range });
+    }
+    if (outputs[0].status === "fulfilled") silence = parseSilenceRanges(outputs[0].value, input.range);
+    if (outputs[1].status === "fulfilled") volume = parseVolume(outputs[1].value);
+    input.diagnostics.components.audioAnalysis = outputs.every(output => output.status === "fulfilled") ? "complete"
+      : outputs.some(output => output.status === "fulfilled") ? "partial" : "unavailable";
+  } catch (error) {
+    input.diagnostics.issues.push({ ...classifySourceReviewFailure(error, "audio_analysis"), sourceRange: input.range });
+    input.diagnostics.components.audioAnalysis = "unavailable";
+  }
   return {
     hasAudio: true,
-    waveform: mediaFile(input.snapshot, relativePath),
+    waveform,
     silenceRanges: silence.silenceRanges,
     ...volume,
     onsetFrames: silence.onsetFrames,
@@ -727,7 +775,11 @@ function initialEvidenceBoundaries(asset: Asset, mode: SourceReviewMode, transcr
  * 统一的只读原素材审阅入口。服务只写可重建缓存，Application 与 Revision 均保持不变，
  * 所以 MCP、HTTP 和 Web 可以使用同一份证据，而不会绕过现有编辑命令。
  */
-export async function inspectAsset(application: EditingApplication, input: InspectAssetInput): Promise<SourceReviewResponse> {
+export async function inspectAsset(application: EditingApplication, input: InspectAssetInput,
+  dependencies: { runProcess?: typeof runProcess } = {}): Promise<SourceReviewResponse> {
+  // 进程依赖仅供隔离回归注入；HTTP/MCP 不接受命令或路径参数。
+  const process = dependencies.runProcess ?? runProcess;
+  const diagnostics = createSourceReviewDiagnostics();
   const state = application.readProject(input.projectId);
   const snapshot = state.snapshot;
   const asset = assetById(snapshot, input.assetId);
@@ -740,7 +792,9 @@ export async function inspectAsset(application: EditingApplication, input: Inspe
 
   // 尚未完成媒体分析时只交付已持久化的状态事实，不自行把未经 Worker 验证的文件当成可审阅媒体。
   if (asset.status !== "ready" || !asset.metadata) {
+    diagnostics.status = "not_ready";
     return {
+      diagnostics: finishSourceReviewDiagnostics(diagnostics),
       projectId: snapshot.project.id,
       assetId: asset.id,
       revision: state.revision.number,
@@ -762,9 +816,24 @@ export async function inspectAsset(application: EditingApplication, input: Inspe
     };
   }
 
+  // 参数错误仍拒绝；素材容错不放宽源范围和联系表上限。
+  const metadataRange = sourceReviewRange(snapshot, asset, input);
+  if (metadataRange) frameCountFor(input, metadataRange);
+  if (!existsSync(managedSourcePath)) {
+    if (input.mode !== "overview") diagnostics.continuousReview = "unavailable";
+    diagnostics.issues.push(classifySourceReviewFailure(new DomainError("受管原素材文件不存在，无法生成审阅证据", "SOURCE_REVIEW_SOURCE_MISSING"), "metadata"));
+    return {
+      diagnostics: finishSourceReviewDiagnostics(diagnostics), projectId: snapshot.project.id, assetId: asset.id,
+      revision: state.revision.number, mode: input.mode, asset, sourceMedia,
+      contactSheet: { frames: [], density: input.mode === "overview" ? "low" : input.mode === "range" ? "medium" : "high" },
+      audio: { hasAudio: Boolean(asset.metadata.hasAudio), silenceRanges: [], onsetFrames: [], limitations: ["原文件缺失；没有生成审阅证据。"] },
+      transcript, shots: reviewShots(snapshot, asset.id), usage: assetUsage, requestableRanges: [],
+      evidenceBoundaries: [...initialBoundaries, "受管原文件缺失属于平台故障；停止该步骤并报修，其他无依赖工作继续。"]
+    };
+  }
   let reviewDuration = durationFrames(snapshot, asset);
   if (reviewDuration && isReviewableVideo(asset) && existsSync(managedSourcePath)) {
-    const visualDuration = await visualDurationFrames(snapshot, asset, managedSourcePath);
+    const visualDuration = await visualDurationFrames(snapshot, asset, managedSourcePath, process, diagnostics);
     if (visualDuration) reviewDuration = Math.min(reviewDuration, visualDuration);
   }
   const range = sourceReviewRange(snapshot, asset, input, reviewDuration);
@@ -774,6 +843,7 @@ export async function inspectAsset(application: EditingApplication, input: Inspe
       throw new DomainError("该素材没有可播放的源时间范围，不能请求 range 或 dense 审阅", "SOURCE_REVIEW_RANGE_UNAVAILABLE");
     }
     return {
+      diagnostics: finishSourceReviewDiagnostics(diagnostics),
       projectId: snapshot.project.id,
       assetId: asset.id,
       revision: state.revision.number,
@@ -781,7 +851,7 @@ export async function inspectAsset(application: EditingApplication, input: Inspe
       asset,
       sourceMedia,
       contactSheet: { frames: [], density: "low" },
-      audio: await inspectAudio({ snapshot, asset, sourcePath: managedSourcePath, key: "metadata-only" }),
+      audio: await inspectAudio({ process, diagnostics, snapshot, asset, sourcePath: managedSourcePath, key: "metadata-only" }),
       transcript,
       shots: reviewShots(snapshot, asset.id),
       usage: assetUsage,
@@ -791,22 +861,49 @@ export async function inspectAsset(application: EditingApplication, input: Inspe
   }
 
   const path = managedSourcePath;
-  if (!existsSync(path)) throw new DomainError("受管原素材文件不存在，无法生成审阅证据", "SOURCE_REVIEW_SOURCE_MISSING");
-  const contentHash = asset.sourceHash ?? await hashFile(path);
+  let contentHash = asset.sourceHash;
+  if (!contentHash) try { contentHash = await hashFile(path); }
+  catch (error) { diagnostics.issues.push(classifySourceReviewFailure(error, "metadata")); }
   const contactSheetFrames = frameCountFor(input, range);
-  const key = cacheKey({ contentHash, mode: input.mode, range, contactSheetFrames });
+  // 身份读取失败只用于生成诊断；平台故障时不会使用这个占位身份写缓存。
+  const key = cacheKey({ contentHash: contentHash ?? "unavailable", mode: input.mode, range, contactSheetFrames });
   const isVideo = isReviewableVideo(asset);
-  const frames = isVideo ? await createContactSheet({
+  const platformFailed = () => diagnostics.issues.some(issue => issue.owner === "platform");
+  const frames = isVideo && !platformFailed() ? await createContactSheet({
+    process, diagnostics,
     snapshot,
     sourcePath: path,
     range,
     frames: sampleFrames(range.startFrame, range.endFrame, contactSheetFrames),
     key
   }) : [];
-  const proxy = input.mode === "overview" ? undefined : await createRangeProxy({ snapshot, asset, sourcePath: path, range, key });
-  const audio = await inspectAudio({ snapshot, asset, sourcePath: path, range: input.mode === "overview" ? undefined : range, key });
+  if (isVideo && platformFailed() && diagnostics.components.contactSheet === "not_requested") {
+    diagnostics.requestedFrames = sampleFrames(range.startFrame, range.endFrame, contactSheetFrames).length;
+    diagnostics.components.contactSheet = "skipped";
+  }
+  let proxy: SourceReviewResponse["proxy"];
+  if (input.mode !== "overview" && (isVideo || isReviewableAudio(asset))) {
+    diagnostics.continuousReview = "unavailable";
+    if (platformFailed()) diagnostics.components.proxy = "skipped";
+    else try {
+      proxy = await createRangeProxy({ process, snapshot, asset, sourcePath: path, range, key });
+      diagnostics.components.proxy = "complete";
+      diagnostics.continuousReview = "available";
+    } catch (error) {
+      diagnostics.issues.push({ ...classifySourceReviewFailure(error, "proxy"), sourceRange: range });
+      diagnostics.components.proxy = "unavailable";
+    }
+  }
+  const audio: SourceReviewResponse["audio"] = platformFailed()
+    ? { hasAudio: Boolean(asset.metadata.hasAudio), silenceRanges: [], onsetFrames: [], limitations: ["平台故障后停止剩余声音处理；没有声音审阅证据。"] }
+    : await inspectAudio({ process, diagnostics, snapshot, asset, sourcePath: path, range: input.mode === "overview" ? undefined : range, key });
+  if (platformFailed() && input.mode !== "overview" && asset.metadata.hasAudio) {
+    if (diagnostics.components.waveform === "not_requested") diagnostics.components.waveform = "skipped";
+    if (diagnostics.components.audioAnalysis === "not_requested") diagnostics.components.audioAnalysis = "skipped";
+  }
   const usage = sourceUsage(snapshot, asset.id, input.mode === "overview" ? undefined : range);
   return {
+    diagnostics: finishSourceReviewDiagnostics(diagnostics),
     projectId: snapshot.project.id,
     assetId: asset.id,
     revision: state.revision.number,
@@ -821,8 +918,11 @@ export async function inspectAsset(application: EditingApplication, input: Inspe
     shots: reviewShots(snapshot, asset.id, input.mode === "overview" ? undefined : range),
     usage,
     requestableRanges: input.mode === "overview" ? candidateRanges(snapshot, asset, reviewDuration) : [],
-    evidenceBoundaries: input.mode === "overview"
-      ? initialBoundaries
-      : [...initialBoundaries, "当前使用位置仅列出与请求源范围可证明相交的 Timeline、Cutaway 和关联对象；未带源范围的独立证据对象不会被误判为当前范围使用。"]
+    evidenceBoundaries: [
+      ...initialBoundaries,
+      ...(input.mode === "overview" ? [] : ["当前使用位置仅列出与请求源范围可证明相交的 Timeline、Cutaway 和关联对象；未带源范围的独立证据对象不会被误判为当前范围使用。"]),
+      ...(diagnostics.issues.length ? ["审阅存在缺失证据；成功图片不证明失败位置或整段视频可播放，失败也不自动证明原素材损坏。"] : []),
+      ...(input.mode !== "overview" && diagnostics.continuousReview !== "available" ? ["请求范围没有可用连续代理，不能以截图替代连续观看或宣称选段审阅通过。"] : [])
+    ]
   };
 }

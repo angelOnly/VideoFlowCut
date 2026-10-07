@@ -1,13 +1,43 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { normalizeMotionPng, renderManagedMotion, verifyMotionPreviewFrames } from "../apps/render-worker/src/motion-renderer.js";
 import { runProcess } from "@videocut/speech";
 import { motionFixture } from "./fixtures/managed-motion.js";
-import { measureMotionVisibility } from "../apps/render-worker/src/motion-visibility.js";
 import { PNG } from "pngjs";
+import { createApplication } from "@videocut/application";
+import { runMotionJob } from "../apps/render-worker/src/motion-job.js";
+
+test("新作品不保存安全区测量，带旧测量字段的缓存仍校验实际帧并复用", { timeout: 60_000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "videocut-retired-safety-cache-"));
+  const app = createApplication(root);
+  try {
+    const created = app.createProject({ name: "退役测量缓存回归" });
+    const projectId = created.snapshot.project.id;
+    const job = app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "retired-safety-cache", work: {
+      ...motionFixture, durationInFrames: 2,
+      source: "import React from 'react';export default function M(){return <div style={{position:'absolute',inset:0,background:'rgba(255,255,255,0.5)'}}/>}"
+    } });
+    const result = await runMotionJob(app, job);
+    const state = app.readProject(projectId);
+    const asset = state.snapshot.assets.find(entry => entry.id === result.assetId)!;
+    assert.equal(Object.hasOwn(asset.motion!, "visibility"), false);
+    const manifestPath = join(state.snapshot.project.rootPath, asset.motion!.framesDirectory, "..", "manifest.json");
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    assert.equal(Object.hasOwn(manifest, "visibility"), false);
+    // 旧附加字段已经失去运行语义，不应引发补测或破坏合法作品缓存。
+    manifest.visibility = { method: "png_alpha_bbox_v1", alphaThreshold: 1, frames: [] };
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    const replay = await runMotionJob(app, job, async () => { assert.fail("已有完整缓存不能再次渲染"); });
+    assert.equal(replay.assetId, result.assetId);
+    assert.equal(app.readProject(projectId).revision.number, state.revision.number);
+    const framePath = join(state.snapshot.project.rootPath, asset.motion!.framesDirectory, "frame-00000.png");
+    await writeFile(framePath, "损坏帧");
+    await assert.rejects(runMotionJob(app, job, async () => { assert.fail("损坏缓存不能静默重生"); }));
+  } finally { app.close(); await rm(root, { recursive: true, force: true }); }
+});
 
 test("PNG 归一化保持彩色与半透明像素，拒绝损坏文件和错误画幅", () => {
   const data = Buffer.from([188, 131, 47, 255, 27, 83, 72, 127]);
@@ -89,25 +119,34 @@ test("帧计算失控会被终止，不阻断下一个合法作品", { timeout: 
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
-test("真实 PNG Alpha 逐帧测量透明、移动和极淡像素，不以 full_frame 画布代替可见区域", { timeout: 60_000 }, async () => {
+test("真实 PNG 保留透明、移动和极淡像素，不依赖安全区测量", { timeout: 60_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "videocut-motion-alpha-"));
   try {
     const source = `import React from 'react';import {useCurrentFrame} from 'remotion';export default function Motion(){const f=useCurrentFrame();if(f===0)return null;if(f===3)return <div style={{position:'absolute',inset:0,background:'rgba(255,255,255,0.004)'}}/>;return <div style={{position:'absolute',left:20+f*10,top:40,width:30,height:20,background:'#ffffff'}}/>;}`;
     await renderManagedMotion({ ...motionFixture, source, durationInFrames: 4 }, root);
-    const result = await measureMotionVisibility(root, 4, 320, 320);
-    assert.deepEqual(result.frames, [null, { x: 30, y: 40, width: 30, height: 20 }, { x: 40, y: 40, width: 30, height: 20 }, { x: 0, y: 0, width: 320, height: 320 }]);
-    await assert.rejects(measureMotionVisibility(root, 5, 320, 320), /INCOMPLETE/u);
+    const pngs = await Promise.all(Array.from({ length: 4 }, async (_, frame) => PNG.sync.read(await readFile(join(root, "frames", `frame-${String(frame).padStart(5, "0")}.png`)))));
+    const alpha = (frame: number, x: number, y: number) => pngs[frame]!.data[(y * 320 + x) * 4 + 3];
+    assert.equal(alpha(0, 50, 50), 0);
+    assert.equal(alpha(1, 35, 45), 255);
+    assert.equal(alpha(2, 35, 45), 0, "移动后原位置保持透明");
+    assert.equal(alpha(2, 45, 45), 255);
+    assert.equal(alpha(3, 50, 50), 1, "极淡像素不能被删除");
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
-test("全屏作品从不透明淡出到透明再显现，可见性测量保持连续帧号", { timeout: 60_000 }, async () => {
+test("全屏作品从不透明淡出到透明再显现，实际 Alpha 保持连续", { timeout: 60_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "videocut-motion-alpha-transition-"));
   try {
     const source = `import React from 'react';import {useCurrentFrame} from 'remotion';export default function Motion(){const f=useCurrentFrame();return <div style={{position:'absolute',inset:0,background:'#ffffff',opacity:[1,0.5,0,1][f]}}/>;}`;
     await renderManagedMotion({ ...motionFixture, source, durationInFrames: 4 }, root);
-    const result = await measureMotionVisibility(root, 4, 320, 320);
-    const full = { x: 0, y: 0, width: 320, height: 320 };
-    assert.deepEqual(result.frames, [full, full, null, full]);
+    const alphas = await Promise.all(Array.from({ length: 4 }, async (_, frame) => {
+      const png = PNG.sync.read(await readFile(join(root, "frames", `frame-${String(frame).padStart(5, "0")}.png`)));
+      return png.data[(160 * 320 + 160) * 4 + 3]!;
+    }));
+    assert.equal(alphas[0], 255);
+    assert.ok(Math.abs(alphas[1]! - 128) <= 1);
+    assert.equal(alphas[2], 0);
+    assert.equal(alphas[3], 255);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 

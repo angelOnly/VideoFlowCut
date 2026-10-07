@@ -1,0 +1,27 @@
+{
+  "name": "S1_真实桌面到生活示意_v1",
+  "props": {
+    "scene": 1,
+    "showIllustrationLabel": true
+  },
+  "imageBindings": {
+    "desk_photo": "asset_c6146eb2-c1a8-490c-800e-bee634635571"
+  },
+  "width": 768,
+  "height": 1344,
+  "fps": 24,
+  "durationInFrames": 141,
+  "rights": {
+    "basis": "原创图形、动作、排印由本任务作者制作；唯一照片为已受管取得的Yinan Chen/Gfp-office-desk-area.jpg，Wikimedia Commons登记Public Domain，源Asset已cleared。",
+    "status": "cleared",
+    "attribution": "资料照片：Yinan Chen / Good Free Photos，经Wikimedia Commons，Public Domain。",
+    "usageRights": {
+      "purposes": [
+        "draft",
+        "delivery"
+      ],
+      "basis": "原图Asset asset_c6146eb2-c1a8-490c-800e-bee634635571的PD与draft/delivery用途已核实登记；用户授权本主题原创视频制作，照片只作完整短时现实外观建立。"
+    }
+  },
+  "creativeBrief": "本作是《为什么整理过的桌面又会变乱？》S1，准确旁白“桌面刚收好，怎么一开工，又乱了？先别急着怪自己。看看这张桌子，东西是怎么留下来的。”141帧/24fps，全局[0,141)，768×1344。导演统一采用整片v3；实现依据R41，后续R64差异只有字幕等非内容写入；无全文或声音变更。0—60帧完整展示实际取得的资料照片asset_c6146eb2-c1a8-490c-800e-bee634635571，以720×461.6在x24/y330 contain，不裁切、不推进、不暗示整理前后。真实原图3352×2149、PD，作者已实际打开完整原文件复核，sourceHash e011d85a8fffed1b125fd2cb77f65aefbfecae8bf2e0e85e57658df8608a6410。打印机纸、书文件堆、笔、容器和水瓶共同建立现实工作外观，不从照片推断心理或动作顺序。上方准确两行标题“刚收好，”48px和“怎么又乱了？”56px，图下“资料照片”28px，文字不逐字弹跳。60帧明确硬切为原创生活角，标题和资料身份同时结束，不把真实照片柔变为同一地点。原创DeskSpace、柜、笔、盒、工作纸与椅与S2相同，暖灰白背景#F1EEE8、灰褐桌#B8AA9B、墨色#303C3B，远柜与桌间有可见地面。柜门关闭、盒不可见，144:11比例同笔由无身份手握持于工作位，原工作纸保留。60—102帧显示28px“生活场景示意”，102—110退出；此固定作品props.scene=1、showIllustrationLabel=true，S2独立固定false。78—116帧笔在原工作纸上完成短书写，端帽、笔夹、尖端保持一致；116—141收势，完整交给S2入口，不额外加杯线或新任务。画内文字只有上述标题和身份；普通全文字幕不烘焙，y1040以下整体视为字幕/缓冲。使用共享几何，正方容器只是实际柜/桌/物件，不是通用文字卡。illustration_cut60、writing_settle116由源代码事件表固定。作品静音，照片无伪造现场声。现仅源码与原图观察完成，未生成静帧或连续Preview，不声称美术/阅读/听感通过；应复看2.5秒完整照片辨认、60帧现实转示意身份、78—116真实笔纸关系、141跨场投影及实际字幕外框。"
+}

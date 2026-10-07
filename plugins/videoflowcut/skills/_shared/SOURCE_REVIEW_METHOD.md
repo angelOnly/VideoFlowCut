@@ -1,5 +1,13 @@
 # 源素材审阅方法
 
+## 审阅结果有缺口时如何继续
+
+统一读取 `diagnostics`：`status=complete|partial|unavailable|not_ready`、`requestedFrames/generatedFrames`、`components.contactSheet/proxy/waveform/audioAnalysis`、`continuousReview`、`issues`、`recovery` 与 `sideEffects=review_cache_only`。组件状态为 complete/partial/unavailable/not_requested/skipped；问题记录 stage、code、owner、message、可选诊断 detail、失败源时间或范围。联系表图片、连续代理、声音波形与分析分别交付，单张失败不会抹掉其他有效结果。
+
+`recovery=inspect_available_evidence` 时主任务回传有效证据与缺失位置，原素材作者决定新的局部请求、换范围或换候选。`diagnostics.recovery=select_another_candidate` 时当前候选暂不采用，继续匹配需求的其他材料。source 表示该素材/范围有明确解码问题，capability 表示编码能力限制，unknown 表示原因尚不确定；空输出、超时或部分成功不能证明整段损坏或完全正常。只有 `diagnostics.recovery=report_platform_failure` 停止受影响步骤并报修，其他无依赖工作继续。`diagnostics.recovery=wait_for_media_analysis` 等待分析；合法范围、路径边界和真实调用错误仍受原执行合同约束。
+
+range/dense 没有可用连续代理时，截图不能替代连续观看或宣称正式选段审阅通过；声音缺失同样不得虚报听审完成。审阅只写可重建缓存，不自动修改 Asset 状态、采用、视频 Revision 或 Job；换候选走正式新搜索/获取流程，不重放旧下载/生成，不删除失败记录，不把缺素材报成平台故障。
+
 本参考资料由主工作流和专项 Skill 在需要依据真实声画作出选择时按需读取。它不替代实时 MCP Schema、Project Revision 或完整成片审片。
 
 ## 素材审阅的目的
@@ -26,6 +34,12 @@
 4. 仍然未知或存在替代解释的部分。
 
 故事表述应保持事实、用户说明、专业解释和未知的边界；模型描述只作为证据之一，未解决的未知继续显式保留。
+
+## 为混合场面交回可继续设计的内容
+
+认真考虑采用的范围，除事实与未知，还需依据 [素材到场面方法](MATERIAL_TO_SCENE.md) 说明：当前可辨认的源内关注点、所在区域或源时间、清晰度与遮挡限制、可以承担的裁近/指认/比较/延展，以及不能支持的解释。创作建议不是新增事实，不写进facts冒充测量。
+
+工具索引与导演用途分开。当前`analyze_media`只有review模式会将context作为定向问题送入模型；首次盲观察仍可复用。需要源内位置或快速动作时用最小必要的补充观察，坐标未经可靠定位就保留未知或估计，不声称逐帧跟踪完成。照片无动作时间；不同馆、不同时间或不同文件不能因构图相近就被称为同一连续过程。
 
 ## 完整语言、动作与反应单位
 

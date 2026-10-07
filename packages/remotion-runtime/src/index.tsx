@@ -13,6 +13,7 @@ import {
   layoutCaptionInBrowser
 } from "./caption-layout";
 import { resolveCompositionReachability } from "./composition-reachability";
+import { motionFrameAtProjectFrame } from "../../contracts/src/frame-rate.js";
 import { ExplainerSceneLayer } from "./explainer-registry";
 import { compileCameraPunchLayout, compileMotionLayout, resolveEffectStylePack, type EffectStylePack } from "./motion-layout";
 
@@ -136,7 +137,7 @@ const CueLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue:
   if (cue.type === "ManagedMotion") {
     const asset = snapshot.assets.find((entry) => entry.id === cue.assetBindings.find((binding) => binding.slot === "motion")?.assetId);
     if (!asset?.motion) return null;
-    const localFrame = frame - cue.startFrame;
+    const localFrame = motionFrameAtProjectFrame(frame - cue.startFrame, asset.motion.fps, snapshot.timeline.fps, asset.motion.frameCount);
     const framePath = `${asset.motion.framesDirectory}/frame-${String(localFrame).padStart(5, "0")}.png`;
     // 直接使用固定版本的透明帧，不叠加旧 Registry 的通用进出场，也不播放审阅代理的背景。
     return <AbsoluteFill><Img src={mediaUrl(snapshot, mediaBaseUrl, framePath)} style={{ width: "100%", height: "100%", objectFit: "contain" }} /></AbsoluteFill>;

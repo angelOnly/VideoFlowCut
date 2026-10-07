@@ -1,0 +1,2 @@
+# 发行文件带有内容哈希，Git 不得转换换行符，确保检出字节与已验证版本一致。
+plugins/videoflowcut/runtime/dist/** -text

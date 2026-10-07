@@ -48,14 +48,12 @@ type CommonsFileResponse = {
 type WikimediaMediaKind = AssetCandidate["kind"];
 
 /**
- * Commons 的每个候选都带真实 MIME、媒介类型和逐文件许可页；Application 会将这些字段
+ * Commons 的每个候选都带真实 MIME、媒介类型和来源页；Application 会将这些字段
  * 写入 Candidate / Provenance，不能把静态图片降级伪装为视频素材。
  */
 export interface WikimediaCommonsSearchCandidate extends ProviderSearchCandidate {
   kind: WikimediaMediaKind;
   mimeType: string;
-  licenseUrl?: string;
-  attribution?: string;
 }
 
 export interface WikimediaCommonsProviderOptions {
@@ -171,20 +169,6 @@ function mediaFileName(title: string, mediaUrl: string, mime: string): string {
   return safeFileName(`${fromTitle || "wikimedia-asset"}${extensionByMime[mime] ?? ""}`);
 }
 
-function licenseRightsStatus(license: string | undefined, licenseUrl: string | undefined): AssetCandidate["rightsStatus"] {
-  // 许可名称和可回溯 URL 两者缺一不可，不能因 Commons 有文件页就声称已经清权。
-  if (!license || !isHttpUrl(licenseUrl)) return "unknown";
-  const normalized = `${license} ${licenseUrl}`.toLocaleLowerCase();
-  if (/\bcc0\b|public[ _-]?domain|pd[ _-]?mark|publicdomainzero/iu.test(normalized)) return "cleared";
-  if (/cc[ _-]?by|gfdl|free[ _-]?art|art[ _-]?libre|attribution/iu.test(normalized)) return "attribution_required";
-  return "unknown";
-}
-
-function fallbackAttribution(creator: string | undefined, license: string | undefined): string | undefined {
-  if (creator && license) return `${creator}，${license}`;
-  return creator ?? license;
-}
-
 /**
  * 通过 Commons API 发现媒体，并对每个 File 页面重新读取 imageinfo/extmetadata。
  * 搜索结果只描述候选；下载仍会再次读取元数据，避免把短时直链放进 Revision。
@@ -269,10 +253,6 @@ export class WikimediaCommonsProvider implements AssetProvider {
     if (!kind || !mimeType || !isHttpUrl(mediaUrl)) return undefined;
 
     const creator = metadataText(details.info.extmetadata, "Artist");
-    const license = metadataText(details.info.extmetadata, "LicenseShortName") ?? metadataText(details.info.extmetadata, "UsageTerms");
-    const rawLicenseUrl = metadataText(details.info.extmetadata, "LicenseUrl");
-    const licenseUrl = isHttpUrl(rawLicenseUrl) ? rawLicenseUrl : undefined;
-    const attribution = metadataText(details.info.extmetadata, "Attribution") ?? metadataText(details.info.extmetadata, "Credit") ?? fallbackAttribution(creator, license);
     const durationSeconds = positiveNumber(details.info.duration);
 
     return {
@@ -287,11 +267,6 @@ export class WikimediaCommonsProvider implements AssetProvider {
       height: positiveInteger(details.info.height),
       durationMs: kind === "video" && durationSeconds !== undefined ? Math.round(durationSeconds * 1_000) : undefined,
       creator,
-      license,
-      licenseUrl,
-      attribution,
-      attributionText: attribution,
-      rightsStatus: licenseRightsStatus(license, licenseUrl),
       tags: ["wikimedia-commons", kind, ...request.queryHints]
     };
   }
@@ -321,7 +296,7 @@ export class WikimediaCommonsProvider implements AssetProvider {
     const next = response.continue?.sroffset;
     const continuation = Number.isSafeInteger(next) && next! > (offset ?? 0) ? { nextCursor: encodeSearchCursor(this.name, input, next!) } : {};
     if (!titles.length) return { candidates: [], complete: true, warnings: [], ...continuation };
-    // MediaWiki 支持一次读取至多 50 个标题，各页仍有独立许可。避免连续详情请求触发限流。
+    // MediaWiki 支持一次读取至多 50 个标题，各页保留独立来源。避免连续详情请求触发限流。
     let details: CommonsFileDetails[];
     try { details = await this.readFilesDetails(titles, signal); }
     catch (error) { throw this.stageError(error, "metadata"); }

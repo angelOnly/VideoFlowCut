@@ -4,8 +4,6 @@ const sourceMaterialCommon = {
   baseRevision: z.number().int().positive(),
   idempotencyKey: z.string().trim().min(1).max(160),
   url: z.string().url().max(4000),
-  basis: z.string().trim().min(1).max(2000),
-  purposes: z.array(z.enum(["draft", "delivery"])).min(1).max(2)
 };
 
 // 把材料类型的参数边界发布到 JSON Schema，不能只在隐藏的 refine 中拒绝。

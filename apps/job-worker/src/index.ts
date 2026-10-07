@@ -15,7 +15,7 @@ import { createApplication, type EditingApplication } from "@videocut/applicatio
 import { assetById, DomainError } from "@videocut/domain";
 import { runOneQueuedJob, type JobProcessor } from "@videocut/job-runtime";
 import { readRuntimeConfig } from "@videocut/project-overview";
-import { FunASRService, OmniVoiceSegmentService, SourceCaptionAlignmentService, probeMedia, runProcess } from "@videocut/speech";
+import { FunASRService, OmniVoiceSegmentService, SourceCaptionAlignmentService, assemblePlacedSpeech, probeMedia, runProcess } from "@videocut/speech";
 import type { Asset, BridgeRunAudit, JobKind, JobRecord, ProjectSnapshot } from "@videocut/contracts";
 import { runAvatarGeneration } from "./avatar-generation.js";
 import { runDialogueProcessing } from "./dialogue-processing.js";
@@ -34,7 +34,7 @@ const getDefaultApplication = () => (defaultApplication ??= createApplication(wo
  * 历史 source_caption_generation / source_caption_sentence_alignment 仍可从 SQLite 读取，
  * 但绝不能被 Worker claim 或重新执行；唯一正式入口是段级 source_caption_alignment。
  */
-export const MEDIA_JOB_KINDS: JobKind[] = ["media_analysis", "vlog_analysis", "multicam_sync", "asset_acquisition", "transcription", "source_caption_alignment", "voice_synthesis", "dialogue_processing", "speech_alignment", "music_generation", "video_generation", "avatar_generation"];
+export const MEDIA_JOB_KINDS: JobKind[] = ["media_analysis", "vlog_analysis", "multicam_sync", "asset_acquisition", "transcription", "source_caption_alignment", "voice_synthesis", "speech_assembly", "dialogue_processing", "speech_alignment", "music_generation", "video_generation", "avatar_generation"];
 MEDIA_JOB_KINDS.push("source_material_acquisition", "media_understanding", "media_search", "sound_ranking");
 
 const resolveAssetPath = (snapshot: ProjectSnapshot, asset: Asset) => isAbsolute(asset.managedPath) ? asset.managedPath : join(snapshot.project.rootPath, asset.managedPath);
@@ -103,7 +103,7 @@ async function hashFile(path: string): Promise<string> {
 }
 
 /**
- * 下载只发生在 Worker：候选中的公开来源和授权信息先由 Application 校验。
+ * 下载只发生在 Worker：候选中的公开来源和技术信息先由 Application 校验。
  * 图片和视频均须通过 MIME、文件头、哈希与 ffprobe 的视觉流核验后，才进入项目受管目录。
  */
 async function runAssetAcquisition(
@@ -270,6 +270,8 @@ export function createMediaJobProcessor(
           typeof job.payload.voiceReferenceId === "string" ? job.payload.voiceReferenceId : undefined,
           (audit) => { app.recordBridgeRun(job.id, audit); }
         );
+      case "speech_assembly":
+        return assemblePlacedSpeech(app, job);
       case "dialogue_processing":
         return runDialogueProcessing(app, job);
       case "speech_alignment":
@@ -293,18 +295,21 @@ export async function runOneJob(
   return runOneQueuedJob(app, MEDIA_JOB_KINDS, processor);
 }
 
-export async function runWorkerForever(app: EditingApplication = getDefaultApplication(), signal?: AbortSignal): Promise<void> {
+export async function runWorkerForever(app: EditingApplication = getDefaultApplication(), signal?: AbortSignal, processor: JobProcessor = createMediaJobProcessor(app)): Promise<void> {
   let stopping = signal?.aborted ?? false;
   const stop = () => { stopping = true; };
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
   signal?.addEventListener("abort", stop, { once: true });
   try {
-    const processor = createMediaJobProcessor(app);
-    while (!stopping) {
-      const worked = await runOneJob(app, processor);
-      if (!worked) await new Promise((resolve) => setTimeout(resolve, 750));
-    }
+    // 两条有界消费循环允许长时间外部分析等待时，另一条继续领取配音与素材任务。
+    const consume = async () => {
+      while (!stopping) {
+        const worked = await runOneJob(app, processor);
+        if (!worked) await new Promise((resolve) => setTimeout(resolve, 750));
+      }
+    };
+    await Promise.all([consume(), consume()]);
   } finally {
     signal?.removeEventListener("abort", stop);
   }

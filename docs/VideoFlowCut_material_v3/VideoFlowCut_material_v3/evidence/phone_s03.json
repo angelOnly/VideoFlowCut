@@ -1,0 +1,26 @@
+{
+  "name": "Signal S03 — Shared finite resources v3 clear title relay",
+  "props": {},
+  "imageBindings": {
+    "tower": "asset_0e11e571-13ea-4110-af9e-11efe1b44512",
+    "crowd": "asset_f6b12d7b-42fe-4fe0-9834-80a4097f0fca"
+  },
+  "width": 768,
+  "height": 1344,
+  "fps": 24,
+  "durationInFrames": 476,
+  "rights": {
+    "basis": "原创解释图形与项目受管Wikimedia Commons静态照片；基站图Wikideas1 CC0，车站图Henrysz CC BY 4.0。图像仅作为现实锚点，按本片构图裁切。车站为Commons官方缩小版本，成片继续注明按构图裁切。",
+    "status": "attribution_required",
+    "attribution": "Cell tower 2.webp — Wikideas1, CC0, https://commons.wikimedia.org/wiki/File:Cell_tower_2.webp ; Zhengzhou East Railway Station Concourse Balcony View.jpg — Henrysz, CC BY 4.0, https://commons.wikimedia.org/wiki/File:Zhengzhou_East_Railway_Station_Concourse_Balcony_View.jpg ; cropped for composition.",
+    "usageRights": {
+      "purposes": [
+        "draft",
+        "delivery"
+      ],
+      "basis": "原创图形加CC0/CC BY 4.0源图；交付保留作者、原页面、许可及裁切说明。"
+    }
+  },
+  "previousAssetId": "asset_2447d0f0-c163-42e9-92b4-d25c50801b0a",
+  "creativeBrief": "本场在768×1344、24fps中完整表达“无线连接不错，也不代表手机独占一条通道；需求超过可用资源可能降速，但要结合需求与容量”。局部0–54帧为真实通信塔静态图，12–24帧用同一原图靠近上部白色面板，24–54停稳；54帧明确切原创机制图，72帧三台手机、简化单杆基站和固定尺寸资源托盘建立完成。托盘不是测速仪，也不画永久独占管道；不均等时间顺序的三次机会在90、112、132帧从固定托盘传向对应手机并推进内容。142–201帧由真实车站人群静态照片完全取代模型，官方同图960×640版本，裁切源x40,y288,w592,h352；新原文件232663 bytes，已实看人群和通道清楚，保护中央偏左下通道与人群；照片不加人头连线，不承担现场网络状态证据。201帧回原模型同一投影；两台更小手机进入，有限请求先到等待位，再得到传输机会。230帧“需求超过可用资源”可读；256–268帧主手机放大，268帧满格、加载圈、等待与“可能降速”同时可见。367–395帧保持等待，不抢先演恢复。395帧后旧队列按顺序获得机会，托盘边界和内部容量不变；主机在415帧获得对应内容，其他请求继续完成至447帧，不承诺平均分配或必然恢复。425–437帧交叠建立“还要看需求与容量”，保持到468帧。448–475帧侧机、基站和托盘退让，同一主手机移到中心(384,672)、288×568基础投影，接下一场；476是下一作品边界。纸白、墨色、青绿、琥珀配色；青绿表示传输机会/内容推进，琥珀表示等待。主读52–54px，模型辅助22–28px，关键对象下缘不超过约1100；真实正文字幕沿Caption链放在y1135附近，本作品不重画字幕、不放声音、不写实际网速/流量值。本作品事件是编辑帧，来源为已采用分镜与动作时序，不声称词级对齐。沿关系展开和条件揭示案例迁移共同参照、对象让位与限定后释放，未复制历史素材、题材或时长。待真实预览核对照片裁切、资源→内容关系、字幕避让、367–448限定顺序、448–476手机交接以及无SFX/轻SFX比较。425–437标题在82px高裁切盒内由下至上接力，行距82px，不同词不在同一基线透明叠加。"
+}

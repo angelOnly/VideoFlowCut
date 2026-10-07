@@ -36,7 +36,6 @@ try {
     name: "局部几何变量实际渲染", creativeBrief: "仅验证局部 top 数值驱动 SVG 高度时能通过校验并渲染；不作为用户作品或审美通过证据。",
     source: "import React from 'react';import {useCurrentFrame} from 'remotion';export default function Motion(){const p=useCurrentFrame()/11, top=180-p*80, height=40+p*80;return <svg width={320} height={320}><rect x={80} y={top} width={120} height={height} fill='#19aa88'/></svg>}",
     width: 320, height: 320, fps: 30, durationInFrames: 12, props: {}, imageBindings: {},
-    rights: { basis: "独立编写的技术测试 SVG，无外部素材。", status: "cleared" }
   };
   for (const expression of ["top", "window.top", "globalThis.top"]) {
     const rejected = await client.callTool({ name: "submit_motion_work", arguments: { project_id: projectId, base_revision_id: 1, idempotency_key: `reject-${expression}`, work: { ...work, source: `export default function Motion(){return <div>{${expression}}</div>}` } } });

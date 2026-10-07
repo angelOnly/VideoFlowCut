@@ -15,6 +15,62 @@ const pluginMcpPath = join(pluginRoot, ".mcp.json");
 const mcpSourcePath = join(repositoryRoot, "apps", "server", "src", "mcp.ts");
 const execFileAsync = promisify(execFile);
 
+test("字体合同要求查询已发布目录并交接绑定，而非作者异步加载字体", async () => {
+  for (const file of ["remotion-production/SKILL.md", "_shared/MCP_EXECUTION_CONTRACT.md"]) {
+    const text = await readFile(join(skillsRoot, file), "utf8");
+    for (const field of ["read_motion_capabilities", "fontBindings", "props.fonts", "managed-motion-13"]) assert.ok(text.includes(field));
+    for (const font of ["noto-serif-sc-semibold", "noto-serif-sc-black"]) assert.ok(text.includes(font));
+    assert.match(text, /首次.*挂载前/u);
+    assert.match(text, /新增字体.*Runtime/u);
+  }
+  const source = await readFile(join(repositoryRoot, "apps/server/src/motion-tools.ts"), "utf8");
+  assert.match(source, /registerTool\("read_motion_capabilities"/u);
+  assert.match(source, /readOnlyHint: true/u);
+  const fontGuide = await readFile(join(skillsRoot, "remotion-production/SKILL.md"), "utf8");
+  for (const name of ["smiley-sans-oblique", "maoken-yanbo-song", "400 italic", "原件标注200"]) assert.ok(fontGuide.includes(name));
+  assert.match(fontGuide, /没有必须选择的字体模板/u);
+  assert.match(fontGuide, /不再只筛选免费商用或OFL字款/u);
+  for (const name of ["Runtime 0.1.64", "22份", "34份", "aa-jianhao", "wd-xl-huayou-sc", "canger-shuyuan-w01", "云峰静龙行书"]) assert.ok(fontGuide.includes(name));
+  assert.match(fontGuide, /W01.*原件.*400/u);
+  assert.match(source, /不要求花字模板/u);
+  assert.match(source, /select_registered_font/u);
+  for (const file of ["production-coordinator/SKILL.md", "remotion-production/SKILL.md", "web-editor-operator/SKILL.md"]) {
+    const guide = await readFile(join(skillsRoot, file), "utf8");
+    for (const field of ["主任务", "原作者", "聊天", "font_preview", "不自动"]) assert.ok(guide.includes(field), `${file}缺少${field}`);
+  }
+  const coordinator = await readFile(join(skillsRoot, "production-coordinator/SKILL.md"), "utf8");
+  assert.match(coordinator, /主任务不补创意或自行挑选替代/u);
+  assert.match(coordinator, /followup_task/u);
+});
+
+test("字幕位置配置与无固定安全区合同一致，发布指引不要求测量或提示", async () => {
+  const captions = await readFile(join(skillsRoot, "captions/SKILL.md"), "utf8");
+  const motion = await readFile(join(skillsRoot, "remotion-production/SKILL.md"), "utf8");
+  const contract = await readFile(join(skillsRoot, "_shared/MCP_EXECUTION_CONTRACT.md"), "utf8");
+  assert.match(captions, /默认底部布局/u);
+  assert.match(captions, /placement/u);
+  assert.match(captions, /不划定动效禁入区域/u);
+  assert.match(motion, /不统一套用标题栏或固定字幕保留带/u);
+  assert.match(contract, /不执行固定字幕安全区检查/u);
+  assert.doesNotMatch(motion + contract, /返回待审 warning|可重生成取得证据|Worker 保存真实透明帧的 `motion.visibility`/u);
+});
+
+test("视频Skill与MCP统一根时钟、选段字段和资源回收合同", async () => {
+  const skill = await readFile(join(skillsRoot, "remotion-production/SKILL.md"), "utf8");
+  const contract = await readFile(join(skillsRoot, "_shared/MCP_EXECUTION_CONTRACT.md"), "utf8");
+  const component = await readFile(join(skillsRoot, "remotion-production/references/remotion-component-contract.md"), "utf8");
+  for (const text of [skill, contract, component]) {
+    for (const field of ["sourceStartMs", "sourceEndMs", "startFrame", "endFrame", "TimelineVideo"]) assert.ok(text.includes(field));
+    assert.match(text, /managed-motion-12/u);
+    assert.match(text, /不足一.*帧/u);
+    assert.doesNotMatch(text, /源文件合计最多 512|解码结果合计最多 512|最长 30 秒/u);
+  }
+  const source = await readFile(join(repositoryRoot, "packages/motion-work/src/compiler.ts"), "utf8");
+  assert.match(source, /createContext\(null\)/u);
+  assert.match(source, /const frame=useContext\(FrameContext\)/u);
+  assert.doesNotMatch(source, /export function BoundVideo/u);
+});
+
 const expectedSkills = [
   "asset-import",
   "audio-finishing",
@@ -427,7 +483,7 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
     manage_asset_requirements: ["base_revision_id", "action"],
     search_media_candidates: ["base_revision_id", "asset_request_id", "provider", "query"],
     inspect_media_candidate: ["asset_candidate_id"],
-    acquire_media_asset: ["base_revision_id", "asset_candidate_id", "usage_rights"],
+    acquire_media_asset: ["base_revision_id", "asset_candidate_id"],
     read_asset_provenance: ["asset_id"],
     apply_manual_transcript: ["base_revision_id", "asset_id", "text"],
     apply_semantic_units: ["base_revision_id", "units"],
@@ -439,7 +495,7 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
       browse_sound_sources: [],
     browse_local_sound_effects: ["query", "max_results"],
     inspect_local_sound_effect: ["root_id", "relative_path"],
-    import_local_sound_effect: ["base_revision_id", "root_id", "relative_path", "rights_status"],
+    import_local_sound_effect: ["base_revision_id", "root_id", "relative_path"],
     assemble_presenter_track: ["base_revision_id", "asset_ids"],
     compile_presenter_scenes: ["base_revision_id", "scenes"],
     manage_actor_performance: ["base_revision_id", "timeline_item_id", "source", "mask_mode"],

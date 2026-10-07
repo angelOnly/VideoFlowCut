@@ -64,7 +64,7 @@ try {
   const projectId = created.snapshot.project.id;
   const read = () => call("read_project", { project_id: projectId });
   const imported = await call("import_media", { project_id: projectId, base_revision_id: created.revision.number,
-    file_path: source, role: "a_roll", provenance: { source: "local_import", rights_status: "cleared" } });
+    file_path: source, role: "a_roll", provenance: { source: "local_import" } });
   await waitJob(imported.job.id);
   let state = await read();
   state = await call("assemble_presenter_track", { project_id: projectId, base_revision_id: state.revision.number, asset_ids: [imported.asset.id] });

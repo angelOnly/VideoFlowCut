@@ -15,7 +15,7 @@ export async function runSoundRanking(app: EditingApplication, job: JobRecord, b
   if (inspected.some((entry) => entry.request.id !== request.id || entry.requestVersion !== job.payload.requestVersion)) throw new DomainError("候选来自不同需求或旧版本", "MEDIA_REQUEST_STALE");
   const candidates = inspected.map((entry) => entry.candidate).filter((candidate) => candidate.hardFilterPassed && candidate.status === "available");
   const texts = candidates.map((candidate) => `${candidate.name} ${candidate.tags.join(" ")} ${candidate.durationMs ? `全文件时长 ${candidate.durationMs}ms，仅为元数据` : "时长未知"}`);
-  if (!texts.length) return { ranked: [], analysisJobIds: [], reason: "没有满足来源与许可条件的候选" };
+  if (!texts.length) return { ranked: [], analysisJobIds: [], reason: "没有满足来源与技术条件的候选" };
   const query = `${request.audioBrief} ${request.purpose} ${request.sound?.material ?? ""} ${request.sound?.attack ?? ""} ${request.sound?.tail ?? ""}`;
   const [queryVector] = await encodeModelTexts(app, job, bridge, [query], "query", "sound-query");
   const vectors = await encodeModelTexts(app, job, bridge, texts, "document", "sound-metadata");

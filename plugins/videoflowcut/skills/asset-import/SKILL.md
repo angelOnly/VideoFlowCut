@@ -1,6 +1,6 @@
 ---
 name: asset-import
-description: 将本地媒体安全地复制到受管项目目录，登记 AssetRole、Provenance、Rights 和用途就绪状态；不把文件存在或媒体分析成功扩大为值得进入成片。
+description: 将本地媒体安全地复制到受管项目目录，登记 AssetRole、Provenance 和用途就绪状态；不把文件存在或媒体分析成功扩大为值得进入成片。
 ---
 
 # 素材导入、角色和来源
@@ -15,7 +15,7 @@ description: 将本地媒体安全地复制到受管项目目录，登记 AssetR
 
 ## 导入前确认用途
 
-用户提供的文件可能是 A-roll、B-roll、人物 Mask、VoiceReference、证据、Style Reference 或生成画面。角色会改变后续检查：VoiceReference 需要单人清晰声音和授权；证据截图需要来源与完整页面语境；Actor Mask 需要帧率、时长和边缘匹配；B-roll 需要动作、构图和可裁切时长。
+用户提供的文件可能是 A-roll、B-roll、人物 Mask、VoiceReference、证据、Style Reference 或生成画面。角色会改变后续检查：VoiceReference 需要单人清晰声音；证据截图需要来源与完整页面语境；Actor Mask 需要帧率、时长和边缘匹配；B-roll 需要动作、构图和可裁切时长。
 
 不要因为扩展名是 mp4 就默认 `a_roll`。当前 Web 过去曾经把所有视频作为 Presenter 主线候选，这会在项目加入 Cutaway、生成视频和参考视频后产生严重错误。Role 应明确登记，主线必须由 `assemble_presenter_track` 接受一组明确选择的 A-roll ID。
 
@@ -30,19 +30,21 @@ read_project / browse_assets
 → 必要时 update_asset_metadata
 ```
 
-当前 `import_media` 会把本地文件复制到项目受管目录，并创建媒体分析任务。必须使用真实本地路径，不把远程 URL 传给 Timeline。导入后只有状态、文件、媒体分析和权利信息满足对应用途，才允许下游使用。
+当前 `import_media` 会把本地文件复制到项目受管目录，并创建媒体分析任务。必须使用真实本地路径，不把远程 URL 传给 Timeline。导入后只有状态、文件、媒体分析满足对应用途，才允许下游使用。
 
-## Provenance 和 Rights
+Pexels 选定单视频页由 `visual-asset-sourcing` 交给主任务，走 `search_media_candidates(provider="pexels", query=选定页面URL)`、`acquire_media_asset` 与媒体 Worker 的正式获取链路；浏览器无需交回本地路径，也不使用 `import_media` 代替 Provider。只有用户已经拥有本地 MP4、明确选择本地导入时，才按本 Skill 的通用流程记录实际来源和用途。
 
-本地文件并不自动拥有商业使用权。用户自己的原始素材可以记录 local_import 与授权说明；外部 Provider 和生成内容要保存来源页面、作者、许可、署名、原始 ID 和 rightsStatus。unknown、restricted、rejected 不能进入 Delivery；attribution_required 要进入署名清单。
+## Provenance
+
+素材记录来源页面、作者、原始 ID、取得时间和文件哈希。平台不验证素材权限、使用权、版权或署名条件，也不要求授权证明；下载、采用与导出只按技术条件和实际内容推进。
 
 证据和生成画面必须明确区分。MiniMax 可以生成概念或情绪画面，但不能生成看起来像真实法规、投诉、论文、新闻或产品页面的“证据”。
 
 ## Readiness
 
-当前代码的 Asset `status=ready` 主要表示媒体分析完成，但架构需要进一步判断本地字节、可检视、Timeline 可引用、当前 Worker 可渲染和权利可交付。现阶段 Skill 应结合 Asset、Job、Preview 和 Quality 判断，不把一个 ready 布尔值当成全部能力。
+当前代码的 Asset `status=ready` 主要表示媒体分析完成，但架构需要进一步判断本地字节、可检视、Timeline 可引用、当前 Worker 可渲染。现阶段 Skill 应结合 Asset、Job、Preview 和 Quality 判断，不把一个 ready 布尔值当成全部能力。
 
-例如一条 H.265 视频可能能被 ffprobe 识别，却在浏览器 Player 无法解码；一张字体依赖的 SVG 可以在本机预览，却在 Render Worker 缺字体；一个外部素材可以技术可渲染但权利 unknown。每一种都应显示不同失败原因。
+例如一条 H.265 视频可能能被 ffprobe 识别，却在浏览器 Player 无法解码；一张字体依赖的 SVG 可以在本机预览，却在 Render Worker 缺字体。每一种都应显示不同失败原因。
 
 ## 派生与去重
 
@@ -60,7 +62,7 @@ read_project / browse_assets
 
 ### VoiceReference
 
-检查授权、单人、时长、采样率、噪声、混响、背景音乐和情绪代表性。文件技术可读不等于适合克隆。推荐的有效源范围应记录，避免每次使用整段长音频。
+检查单人、时长、采样率、噪声、混响、背景音乐和情绪代表性。文件技术可读不等于适合克隆。推荐的有效源范围应记录，避免每次使用整段长音频。
 
 ### Actor Mask
 
@@ -72,7 +74,7 @@ Mask 与人物视频的分辨率、帧率、时长和帧序必须一致。导入
 
 ### Style Reference
 
-仅用于提取字体、色彩、材质、密度和运动语气，不自动成为成片素材。参考视频关键帧若只允许内部研究，应标记 reference_only，不被 Asset Resolver 选入正式 Scene。
+仅用于提取字体、色彩、材质、密度和运动语气，不自动成为成片素材。参考素材用于风格分析，是否进入正式 Scene 由具体创作需求决定。
 
 ### Generated Visual
 
@@ -98,6 +100,6 @@ Derived Asset 例如封面墙、评论云、产品组合、图表、手机 Mocku
 
 ## 交接合同
 
-进入事实包括文件、Project/Revision、用途和来源。输出是受管 Asset、Role、Provenance、Job 和可读的 Readiness。可能失效的是旧路径引用和基于旧媒体元数据的计划。验证包括文件存在、哈希、ffprobe、状态、重复检查和权利信息。
+进入事实包括文件、Project/Revision、用途和来源。输出是受管 Asset、Role、Provenance、Job 和可读的 Readiness。可能失效的是旧路径引用和基于旧媒体元数据的计划。验证包括文件存在、哈希、ffprobe、状态、重复检查。
 
 导入完成后将结果交回调用它的主工作流或 `visual-asset-sourcing`，不要自行放入 Scene。

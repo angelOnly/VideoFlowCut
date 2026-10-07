@@ -1,6 +1,9 @@
+import { readJobDiagnostics } from "./job-diagnostics.js";
+import { toolErrorResult } from "./tool-error.js";
 import { captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
+import { projectFrameRateSchema } from "../../../packages/contracts/src/frame-rate.js";
 import { explainerPlanWithContent } from "../../../packages/contracts/src/explainer-inputs.js";
-import { sourceCaptionTextReviewSchema, assetUsageRightsInputSchema } from "../../../packages/contracts/src/editorial-inputs.js";
+import { sourceCaptionTextReviewSchema, } from "../../../packages/contracts/src/editorial-inputs.js";
 import { registerSourceResearchTools } from "./source-research-tools.js";
 import { registerSoundTools } from "./sound-tools.js";
 import { audioDesignSchema, soundRequirementSchema } from "../../../packages/edit-application/src/sound-design.js";
@@ -11,6 +14,8 @@ import { basename, extname, join, resolve } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { fontPreviewSchema } from "../../../packages/motion-work/src/font-preview.js";
+import { listMotionFonts } from "../../../packages/motion-work/src/fonts.js";
 import { decodeSearchCursor } from "../../../packages/asset-acquisition/src/cursor.js";
 import { AssetProviderError, createDefaultAssetProviderRegistry } from "@videocut/acquisition";
 import { assetSearchErrorResult } from "./asset-search-errors.js";
@@ -24,6 +29,7 @@ import { inspectAsset } from "./source-review.js";
 import { registerMotionTools } from "./motion-tools.js";
 import { registerMediaIntelligenceTools } from "./media-intelligence-tools.js";
 import { sha256File } from "./media-hash.js";
+import { extractSourceAudio } from "./extract-source-audio.js";
 import { browseLocalSoundEffects, inspectLocalSoundEffect, resolveLocalSoundEffectForImport } from "./local-sound-effects.js";
 import { SOUND_SOURCES, MIXKIT_SOUND_CATEGORIES } from "../../../packages/asset-acquisition/src/sound-catalog.js";
 
@@ -35,7 +41,7 @@ const assetProviders = createDefaultAssetProviderRegistry();
 let targetProjectId: string | undefined;
 
 const asText = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] });
-const asError = (error: unknown) => ({ content: [{ type: "text" as const, text: error instanceof Error ? error.message : String(error) }], isError: true });
+const asError = toolErrorResult;
 const projectIdFrom = (projectId?: string) => {
   const resolved = projectId ?? targetProjectId;
   if (!resolved) throw new DomainError("请先调用 target_project 或显式传入 project_id", "PROJECT_NOT_TARGETED");
@@ -103,12 +109,7 @@ const assetProvenanceSchema = z.object({
   source_url: z.string().url().max(2_000).optional(),
   original_asset_id: z.string().max(240).optional(),
   creator: z.string().max(240).optional(),
-  license: z.string().max(500).optional(),
-  license_url: z.string().url().max(2_000).optional(),
-  attribution_text: z.string().max(1_000).optional(),
-  rights_status: z.enum(["unknown", "cleared", "attribution_required", "restricted", "rejected"]),
-  usage_rights: assetUsageRightsInputSchema.optional().describe("仅凭真实许可依据指定 draft 内部审阅、delivery 对外交付；不提供则沿用原限制")
-});
+}).strict();
 type McpAssetProvenance = z.infer<typeof assetProvenanceSchema>;
 
 const actorAnchorSchema = z.object({
@@ -136,11 +137,6 @@ const actorPlacementSchema = z.object({
 }).strict().refine((placement) => placement.end_frame > placement.start_frame, {
   message: "人物放置范围的结束帧必须大于开始帧"
 });
-const avatarUsageRightsConfirmationSchema = z.object({
-  portrait_rights_basis: z.string().trim().max(2_000).optional(),
-  voice_rights_basis: z.string().trim().max(2_000).optional(),
-  provider_usage_rights_basis: z.string().trim().max(2_000).optional()
-}).strict();
 
 const multicamMarkerSchema = z.object({
   asset_id: z.string().min(1),
@@ -186,11 +182,6 @@ function provenanceFromMcp(input?: McpAssetProvenance): Omit<AssetProvenance, "a
     sourceUrl: optional(input.source_url),
     originalAssetId: optional(input.original_asset_id),
     creator: optional(input.creator),
-    license: optional(input.license),
-    licenseUrl: optional(input.license_url),
-    attributionText: optional(input.attribution_text),
-    rightsStatus: input.rights_status,
-    usageRights: input.usage_rights ? { ...input.usage_rights, confirmedAt: new Date().toISOString() } : undefined
   };
 }
 
@@ -279,6 +270,7 @@ server.registerTool("create_project", {
   description: "创建含 Revision 1 的项目与受管媒体目录。",
   inputSchema: {
     name: z.string().min(1),
+    fps: projectFrameRateSchema.optional(),
     brief: z.object({ captionMode: z.enum(["stable", "none"]).optional() }).strict().optional(),
     profile: z.enum(["presenter_motion", "visual_explainer", "vlog", "hybrid"]).optional()
   }
@@ -288,6 +280,25 @@ server.registerTool("create_project", {
     targetProjectId = state.snapshot.project.id;
     return asText(state);
   } catch (error) { return asError(error); }
+});
+
+server.registerTool("preview_project_frame_rate_change", {
+  title: "预检查项目帧率变更",
+  description: "只读计算保持实际时间的帧率变更；返回取整误差、阻挡对象和需重建结果，不创建Revision。支持15至60整数帧率。",
+  inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), fps: projectFrameRateSchema },
+  annotations: { readOnlyHint: true }
+}, async ({ project_id, base_revision_id, fps }) => {
+  try { return asText(application.previewProjectFrameRateChange({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, fps })); }
+  catch (error) { return asError(error); }
+});
+
+server.registerTool("set_project_frame_rate", {
+  title: "设置项目帧率",
+  description: "按当前Revision原子修改项目帧率并保持实际时间；重算项目坐标，保留源文件、固定作品帧率和真实毫秒证据。零帧范围或相关Job未终态时拒绝。相同帧率不创建Revision；修改后需新预览及声画复核。",
+  inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), fps: projectFrameRateSchema }
+}, async ({ project_id, base_revision_id, fps }) => {
+  try { return asText(application.setProjectFrameRate({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, fps })); }
+  catch (error) { return asError(error); }
 });
 
 server.registerTool("target_project", {
@@ -348,13 +359,15 @@ server.registerTool("manage_story", {
 
 server.registerTool("get_editor_url", {
   title: "获取工作台链接",
-  description: "返回可定位到项目或对象的 Web 工作台 URL。",
+  description: "只读返回项目或对象的工作台URL；panel=fonts可打开字体库，font_preview提供实际文案、预期字体、用途及原视觉作者推荐的最多3款已登记字体和理由。链接只展示候选，不自动选择或修改项目；主任务等待用户在聊天确认后续接原作者。",
   inputSchema: {
     project_id: z.string().optional(),
     scene_id: z.string().optional(),
     item_id: z.string().optional(),
     effect_cue_id: z.string().optional(),
-    frame: z.number().int().nonnegative().optional()
+    frame: z.number().int().nonnegative().optional(),
+    panel: z.literal("fonts").optional(),
+    font_preview: fontPreviewSchema.optional()
   },
   annotations: { readOnlyHint: true }
 }, async (input) => {
@@ -367,6 +380,12 @@ server.registerTool("get_editor_url", {
     if (input.item_id) url.searchParams.set("itemId", input.item_id);
     if (input.effect_cue_id) url.searchParams.set("effectCueId", input.effect_cue_id);
     if (input.frame !== undefined) url.searchParams.set("frame", String(input.frame));
+    if (input.panel || input.font_preview) url.searchParams.set("panel", "fonts");
+    if (input.font_preview) {
+      const available = new Set(listMotionFonts().map(font => font.id));
+      for (const candidate of input.font_preview.candidates) if (!available.has(candidate.font_id)) throw new Error(`MOTION_FONT_UNKNOWN: 推荐字体${candidate.font_id}未登记，请重新查询字体库`);
+      url.searchParams.set("fontPreview", JSON.stringify(input.font_preview));
+    }
     return asText({ editorUrl: url.toString(), revision: state.revision.number });
   } catch (error) { return asError(error); }
 });
@@ -640,7 +659,7 @@ server.registerTool("browse_assets", {
 
 server.registerTool("inspect_asset", {
   title: "审阅原素材",
-  description: "只读地按 overview、range 或 dense 获取原素材的连续声画、联系表、声音辅助证据、转写、Shot 与当前使用位置。overview覆盖素材全长的概览，不生成完整连续代理；range最长60秒，dense最长12秒，源范围按项目fps的半开区间[start,end)计，range/dense必须提供起止帧。联系表上限分别为25/24/48帧。overview的声音只确认音轨；range/dense提供当前窗口的波形、静音和meanVolumeDb/maxVolumeDb（dBFS），均不提供LUFS或true peak，不能拼接短窗口读数推断全片响度。需要实际合成响度时，通过render_preview_range生成目标范围，再读取成功Job.result.audio；只有覆盖完整Timeline的输出才是全片混合测量，当前没有直接测原素材全长LUFS的独立MCP入口。音视频返回 reviewPath，只读审阅页面提供播放、暂停、重播和进度控件，浏览器优先打开此路径。派生文件只写入可重建缓存，不会创建 Revision 或自动做剪辑判断。",
+  description: "只读地按 overview、range 或 dense 获取原素材的连续声画、联系表、声音辅助证据、转写、Shot 与当前使用位置。overview覆盖素材全长的概览，不生成完整连续代理；range最长60秒，dense最长12秒，源范围按项目fps的半开区间[start,end)计，range/dense必须提供起止帧。联系表上限分别为25/24/48帧。overview的声音只确认音轨；range/dense提供当前窗口的波形、静音和meanVolumeDb/maxVolumeDb（dBFS），均不提供LUFS或true peak，不能拼接短窗口读数推断全片响度。需要实际合成响度时，通过render_preview_range生成目标范围，再读取成功Job.result.audio；只有覆盖完整Timeline的输出才是全片混合测量，当前没有直接测原素材全长LUFS的独立MCP入口。音视频返回 reviewPath，只读审阅页面提供播放、暂停、重播和进度控件，浏览器优先打开此路径。派生文件只写入可重建缓存，不会创建 Revision 或自动做剪辑判断。返回diagnostics.status（complete/partial/unavailable/not_ready）、requestedFrames/generatedFrames、components、continuousReview、issues及recovery，sideEffects=review_cache_only。单张预览失败保留其他有效图片，代理和声音证据分别返回；空输出/超时不证明原视频损坏。inspect_available_evidence交原作者查看证据与缺口；select_another_candidate暂不采用当前候选、继续正常选材；只有report_platform_failure停止受影响步骤并报修，其他无依赖工作继续。wait_for_media_analysis等待媒体分析。没有连续代理的range/dense不能以截图宣称正式选段审阅通过；不自动改Asset状态、Revision、Job或创建工单，不授权重放旧下载/生成。",
   inputSchema: {
     project_id: z.string().optional(),
     asset_id: z.string().min(1),
@@ -666,14 +685,14 @@ server.registerTool("inspect_asset", {
 
 server.registerTool("browse_sound_sources", {
   title: "在线音效候选来源",
-  description: "返回当前在线音效/音乐 Provider 的实际搜索、试听、原文件、分类、凭据与许可边界；不下载，也不表示已试听或适合成片。",
+  description: "返回当前在线音效/音乐 Provider 的实际搜索、试听、原文件、分类、访问能力；不下载，也不表示已试听或适合成片。",
   inputSchema: {}, annotations: { readOnlyHint: true }
 }, async () => asText({ sources: soundSourceCapabilities(), workflow: "段落计划 → 在线需求 → 搜索 → Qwen候选排序 → 原音频观察 → 原文件获取与复核 → manage_audio → 正式Preview与实际复核", listening: "来源可用不代表音效合适；模型观察与最终混合听审分别保存。" }));
 
 server.registerTool("manage_asset_requirements", {
   title: "管理素材需求",
   description: "在当前 Revision 创建、更新或关闭视觉/声音需求。音频用 media_kind=audio、audio_brief、role=sfx/bgm，不填画幅；候选不会自动进入 Timeline。",
-  inputSchema: {
+  inputSchema: z.object({
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
     action: z.enum(["create", "update", "close"]),
@@ -689,11 +708,10 @@ server.registerTool("manage_asset_requirements", {
     excluded_terms: z.array(z.string().min(1).max(160)).max(20).optional(),
     target_aspect_ratio: z.enum(["9:16", "16:9", "1:1"]).optional(),
     min_duration_ms: z.number().int().positive().max(300_000).nullable().optional().describe("视频或音频最短源时长，单位毫秒；图片不应用该条件。null 清空限制，省略保持原值，0 无效。"),
-    rights_requirement: z.enum(["cleared_only", "cleared_or_attribution"]).optional(),
     fallback_plan: z.enum(["keep_presenter", "remotion", "minimax", "ask_user", "local_audio", "omit_audio"]).optional(),
     close_reason: z.string().max(800).optional()
-  }
-}, async ({ project_id, base_revision_id, action, asset_request_id, title, purpose, visual_brief, media_kind, audio_brief, sound, role, query_hints, excluded_terms, target_aspect_ratio, min_duration_ms, rights_requirement, fallback_plan, close_reason }) => {
+  }).strict()
+}, async ({ project_id, base_revision_id, action, asset_request_id, title, purpose, visual_brief, media_kind, audio_brief, sound, role, query_hints, excluded_terms, target_aspect_ratio, min_duration_ms, fallback_plan, close_reason }) => {
   try {
     return asText(application.manageAssetRequirement({
       projectId: projectIdFrom(project_id),
@@ -711,7 +729,6 @@ server.registerTool("manage_asset_requirements", {
       excludedTerms: excluded_terms,
       targetAspectRatio: target_aspect_ratio,
       minDurationMs: min_duration_ms,
-      rightsRequirement: rights_requirement,
       fallbackPlan: fallback_plan,
       closeReason: close_reason
     }));
@@ -727,7 +744,7 @@ server.registerTool("list_asset_providers", {
 
 server.registerTool("search_media_candidates", {
   title: "搜索素材候选",
-  description: "先从 list_asset_providers 选择准确 provider id。media_type 明确筛选图片/视频/音频；youtube 的 query 是选中的单条 HTTPS 视频页面（不是关键词）。返回 diagnostics.complete 和 warnings，部分结果不能视为完整搜索。仅保存独立搜索会话，不改变创作 Revision，不下载或自动采用素材。",
+  description: "先从 list_asset_providers 选择准确 provider id。media_type 明确筛选图片/视频/音频；youtube 的 query 是选中的单条 HTTPS 视频页面；pexels 无 API Key 时也只接受选定的单视频页 URL，关键词需要 Key。返回 diagnostics.complete 和 warnings，部分结果不能视为完整搜索。仅保存独立搜索会话，不改变创作 Revision，不下载或自动采用素材。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -760,7 +777,7 @@ server.registerTool("search_media_candidates", {
 
 server.registerTool("inspect_media_candidate", {
   title: "检查素材候选",
-  description: "读取候选的来源、授权、时长、画幅、技术过滤理由及其对应素材需求；只读，不代表候选已被采用。",
+  description: "读取候选的来源、时长、画幅、技术过滤理由及其对应素材需求；只读，不代表候选已被采用。",
   inputSchema: { project_id: z.string().optional(), asset_candidate_id: z.string().min(1) },
   annotations: { readOnlyHint: true }
 }, async ({ project_id, asset_candidate_id }) => {
@@ -769,23 +786,22 @@ server.registerTool("inspect_media_candidate", {
 
 server.registerTool("acquire_media_asset", {
   title: "下载并本地化素材候选",
-  description: "只允许通过技术过滤且具备来源许可或明确用途依据的候选进入异步下载任务。Worker 会校验 MIME、文件头、内容哈希和 ffprobe 后才登记正式 Asset。",
-  inputSchema: {
+  description: "通过技术过滤的候选可以进入异步下载任务。Worker 会校验 MIME、文件头、内容哈希和 ffprobe 后才登记正式 Asset。故障修复并确认部署后，可对已有明确 failed Job 的失败候选使用新的幂等键恢复；仍重核当前技术条件，旧失败记录保留。未知结果或执行中的任务不能重放。",
+  inputSchema: z.object({
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
     asset_candidate_id: z.string().min(1),
-    usage_rights: assetUsageRightsInputSchema.optional().describe("已核实的具体使用许可依据与用途；不伪造来源 cleared，也不绕过技术或人工拒绝。"),
     idempotency_key: z.string().min(1).max(240).optional()
-  }
-}, async ({ project_id, base_revision_id, asset_candidate_id, idempotency_key, usage_rights }) => {
+  }).strict()
+}, async ({ project_id, base_revision_id, asset_candidate_id, idempotency_key, }) => {
   try {
-    return asText(application.acquireAssetCandidate({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, assetCandidateId: asset_candidate_id, idempotencyKey: idempotency_key, usageRights: usage_rights }));
+    return asText(application.acquireAssetCandidate({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, assetCandidateId: asset_candidate_id, idempotencyKey: idempotency_key, }));
   } catch (error) { return asError(error); }
 });
 
 server.registerTool("read_asset_provenance", {
-  title: "读取素材来源与授权",
-  description: "读取已经本地化 Asset 的 Provider、来源页面、作者、许可、署名、授权状态和对应候选；只读。",
+  title: "读取素材来源",
+  description: "读取已经本地化 Asset 的 Provider、来源页面、作者、原始素材 ID、取得时间和对应候选；只读。",
   inputSchema: { project_id: z.string().optional(), asset_id: z.string().min(1) },
   annotations: { readOnlyHint: true }
 }, async ({ project_id, asset_id }) => {
@@ -794,15 +810,15 @@ server.registerTool("read_asset_provenance", {
 
 server.registerTool("import_media", {
   title: "导入本地素材",
-  description: "复制本地媒体到受管项目目录并创建媒体分析任务；可同时登记 A/B-roll 角色、来源和版权状态。",
-  inputSchema: {
+  description: "复制本地媒体到受管项目目录并创建媒体分析任务；可同时登记 A/B-roll 角色、来源信息。",
+  inputSchema: z.object({
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
     file_path: z.string().min(1),
     role: assetRoleSchema.optional(),
     tags: z.array(z.string().min(1).max(80)).max(30).optional(),
     provenance: assetProvenanceSchema.optional()
-  }
+  }).strict()
 }, async ({ project_id, base_revision_id, file_path, role, tags, provenance }) => {
   try {
     return asText(await importLocalMedia(projectIdFrom(project_id), base_revision_id, file_path, {
@@ -811,6 +827,22 @@ server.registerTool("import_media", {
       provenance: provenanceFromMcp(provenance)
     }));
   } catch (error) { return asError(error); }
+});
+
+server.registerTool("extract_source_audio", {
+  title: "提取已入库视频原声",
+  description: "从已就绪视频的明确毫秒源范围提取独立 WAV 并登记来源；随后由媒体分析 Job 验证。不会自动写入声音轨，需读回 Asset 后再使用 manage_audio。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    source_asset_id: z.string().min(1),
+    source_start_ms: z.number().int().nonnegative(),
+    source_end_ms: z.number().int().positive()
+  }
+}, async ({ project_id, base_revision_id, source_asset_id, source_start_ms, source_end_ms }) => {
+  try { return asText(await extractSourceAudio(application, { projectId: projectIdFrom(project_id), baseRevision: base_revision_id,
+    sourceAssetId: source_asset_id, startMs: source_start_ms, endMs: source_end_ms })); }
+  catch (error) { return asError(error); }
 });
 
 server.registerTool("browse_local_sound_effects", {
@@ -851,18 +883,15 @@ server.registerTool("inspect_local_sound_effect", {
 
 server.registerTool("import_local_sound_effect", {
   title: "导入本地音效",
-  description: "将已检测、且仍位于配置音效根目录内的文件复制到项目受管目录并创建媒体分析任务；导入默认不会声称已取得交付授权。",
-  inputSchema: {
+  description: "将已检测、且仍位于配置音效根目录内的文件复制到项目受管目录并创建媒体分析任务。",
+  inputSchema: z.object({
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
     root_id: z.string().regex(/^sfx-root-\d+$/u),
     relative_path: z.string().min(1).max(1_000),
     tags: z.array(z.string().trim().min(1).max(80)).max(20).optional(),
-    rights_status: z.enum(["unknown", "cleared", "attribution_required", "restricted", "rejected"]).optional(),
-    license: z.string().trim().min(1).max(500).optional(),
-    attribution_text: z.string().trim().min(1).max(1_000).optional()
-  }
-}, async ({ project_id, base_revision_id, root_id, relative_path, tags, rights_status, license, attribution_text }) => {
+  }).strict()
+}, async ({ project_id, base_revision_id, root_id, relative_path, tags, }) => {
   try {
     const local = await resolveLocalSoundEffectForImport({
       configuredRoots: runtimeConfig.localSoundEffects.roots,
@@ -874,9 +903,6 @@ server.registerTool("import_local_sound_effect", {
       tags: [...new Set(["local_sound_effect", ...(tags ?? [])])],
       provenance: {
         source: "local_import",
-        rightsStatus: rights_status ?? "unknown",
-        license,
-        attributionText: attribution_text
       }
     });
     return asText({
@@ -884,7 +910,6 @@ server.registerTool("import_local_sound_effect", {
       importedSoundEffect: {
         rootId: local.effect.rootId,
         relativePath: local.effect.relativePath,
-        defaultRightsStatus: local.effect.defaultRightsStatus
       }
     });
   } catch (error) { return asError(error); }
@@ -892,15 +917,15 @@ server.registerTool("import_local_sound_effect", {
 
 server.registerTool("update_asset_metadata", {
   title: "标注素材角色与来源",
-  description: "为已导入素材记录叙事角色、标签、来源、授权和署名；不改变媒体文件或分析任务。",
-  inputSchema: {
+  description: "为已导入素材记录叙事角色、标签、来源信息；不改变媒体文件或分析任务。",
+  inputSchema: z.object({
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
     asset_id: z.string().min(1),
     role: assetRoleSchema.optional(),
     tags: z.array(z.string().min(1).max(80)).max(30).optional(),
     provenance: assetProvenanceSchema.optional()
-  }
+  }).strict()
 }, async ({ project_id, base_revision_id, asset_id, role, tags, provenance }) => {
   try {
     const normalizedProvenance = provenanceFromMcp(provenance);
@@ -1133,22 +1158,20 @@ server.registerTool("read_speech_asset", {
 server.registerTool("manage_voice_references", {
   title: "登记 VoiceReference",
   description: "将已就绪本地音频 Asset 作为 VoiceReference 登记；不会创建远端 Voice ID。",
-  inputSchema: {
+  inputSchema: z.object({
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
     asset_id: z.string().min(1),
     label: z.string().max(160).optional(),
-    authorization_note: z.string().max(500).optional(),
     usage_note: z.string().max(500).optional()
-  }
-}, async ({ project_id, base_revision_id, asset_id, label, authorization_note, usage_note }) => {
+  }).strict()
+}, async ({ project_id, base_revision_id, asset_id, label, usage_note }) => {
   try {
     return asText(application.registerVoiceReference({
       projectId: projectIdFrom(project_id),
       baseRevision: base_revision_id,
       assetId: asset_id,
       label,
-      authorizationNote: authorization_note,
       usageNote: usage_note
     }));
   } catch (error) { return asError(error); }
@@ -1210,6 +1233,27 @@ server.registerTool("rebuild_speech_timeline", {
     return asText(application.rebuildSpeechAssetTimeline({
       projectId: projectIdFrom(project_id),
       baseRevision: base_revision_id
+    }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("submit_speech_placement", {
+  title: "按帧编排已生成旁白",
+  description: "按 Script 顺序给全部已就绪 SpeechSegment 指定起始帧；可给 duration_frames 为末段后补静音，令总轨覆盖完整场景。媒体 Worker 复用段音频并插入静音，完成后在同一 Revision 更新 Dialogue 总轨、SpeechTiming 和字幕；不重新合成声音。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    placements: z.array(z.object({ speech_segment_id: z.string().min(1), start_frame: z.number().int().nonnegative() })).min(1),
+    duration_frames: z.number().int().positive().optional(),
+    idempotency_key: z.string().trim().min(1)
+  }
+}, async ({ project_id, base_revision_id, placements, duration_frames, idempotency_key }) => {
+  try {
+    return asText(application.submitSpeechPlacement({
+      projectId: projectIdFrom(project_id), baseRevision: base_revision_id,
+      placements: placements.map((placement) => ({ speechSegmentId: placement.speech_segment_id, startFrame: placement.start_frame })),
+      durationFrames: duration_frames,
+      idempotencyKey: idempotency_key
     }));
   } catch (error) { return asError(error); }
 });
@@ -1290,7 +1334,7 @@ server.registerTool("read_captions", {
 
 server.registerTool("edit_captions", {
   title: "编辑稳定字幕卡",
-  description: "可编辑当前 SpeechAsset 或已审计 source_audio Caption Card 的屏幕文案、显隐范围、静态位置和一个连续短语强调；bulk_source_format 可原子统一同一 A-roll 的明确 Card 集合。不会改 Script、音频、Card 边界或时间范围；chunk_coarse 原声字幕不能被伪拆分或重定时。occurrence 从 0 开始计数。",
+  description: "可编辑当前 SpeechAsset 或已审计 source_audio Caption Card 的屏幕文案、显隐范围、静态位置和一个连续短语强调；bulk_source_format 可原子统一同一来源使用（sourceTimelineItemId）的明确 Card 集合。不会改 Script、音频、Card 边界或时间范围；chunk_coarse 原声字幕不能被伪拆分或重定时。occurrence 从 0 开始计数。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -1306,7 +1350,7 @@ server.registerTool("edit_captions", {
       font_weight: z.number().int().min(400).max(900).optional(),
       color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").optional(),
       background_color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB").nullable().optional(),
-      background_opacity: z.number().min(0.1).max(1).nullable().optional(),
+      background_opacity: z.number().min(0.1).max(1).nullable().optional().describe("背景透明度0.1–1；取消背景使用background_color:null并省略本字段，不能传0"),
       bottom_percent: z.number().min(0).max(95).optional(),
       horizontal_inset_percent: z.number().min(0).max(45).optional(),
       text_align: z.enum(["left", "center", "right"]).optional()
@@ -2006,7 +2050,7 @@ server.registerTool("compile_multicam_program", {
 
 server.registerTool("submit_music_generation", {
   title: "提交受控音乐生成",
-  description: "用明确的 Bridge workflow、提示词和精确时长提交音乐生成。Worker 会动态读取 Schema、核验音频输出并保存审计；没有明确权利确认时结果默认 unknown，不能直接作为 delivery。",
+  description: "用明确的 Bridge workflow、提示词和精确时长提交音乐生成。Worker 会动态读取 Schema、核验音频输出并保存审计；结果需按实际内容采用。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -2032,7 +2076,7 @@ server.registerTool("submit_music_generation", {
 
 server.registerTool("submit_video_generation", {
   title: "提交受控视频生成",
-  description: "提交文生、图生、首尾帧或多参考 MiniMax 视频生成。Worker 会动态读取 Bridge Schema、校验受管输入、下载并验证输出；生成结果默认权利 unknown，不自动进入 Timeline。证据类 AssetRequest 不允许用生成画面替代。",
+  description: "提交文生、图生、首尾帧或多参考 MiniMax 视频生成。Worker 会动态读取 Bridge Schema、校验受管输入、下载并验证输出；生成结果不自动进入 Timeline。证据类 AssetRequest 不允许用生成画面替代。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -2090,7 +2134,7 @@ server.registerTool("read_actor_performances", {
 
 server.registerTool("read_actor_capabilities", {
   title: "读取人物能力档案",
-  description: "读取当前项目中已登记的数字人 Provider、输入、Mask、音频驱动口型、局部重生成和隐私/权利边界；参考音频输入本身不等于已验证口型同步，实际提交前仍会读取 Provider 的最新 Schema。",
+  description: "读取当前项目中已登记的数字人 Provider、输入、Mask、音频驱动口型、局部重生成和隐私信息；参考音频输入本身不等于已验证口型同步，实际提交前仍会读取 Provider 的最新 Schema。",
   inputSchema: { project_id: z.string().optional() },
   annotations: { readOnlyHint: true }
 }, async ({ project_id }) => {
@@ -2100,7 +2144,7 @@ server.registerTool("read_actor_capabilities", {
 server.registerTool("manage_actor_capabilities", {
   title: "管理人物能力档案",
   description: "创建、更新或移除项目内的 ActorCapabilityProfile。档案只记录已确认能力；上传音频不自动代表口型同步，也不会把静态布局或生成结果伪装成姿态追踪。",
-  inputSchema: {
+  inputSchema: z.object({
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
     action: z.enum(["create", "update", "remove"]),
@@ -2117,9 +2161,8 @@ server.registerTool("manage_actor_capabilities", {
     supports_gesture_control: z.boolean().optional(),
     supports_partial_regeneration: z.boolean().optional(),
     max_duration_seconds: z.number().int().min(1).max(1800).optional(),
-    rights_note: z.string().min(1).max(2000).optional(),
     privacy_note: z.string().min(1).max(2000).optional()
-  }
+  }).strict()
 }, async (input) => {
   try {
     return asText(application.manageActorCapabilityProfile({
@@ -2139,7 +2182,6 @@ server.registerTool("manage_actor_capabilities", {
       supportsGestureControl: input.supports_gesture_control,
       supportsPartialRegeneration: input.supports_partial_regeneration,
       maxDurationSeconds: input.max_duration_seconds,
-      rightsNote: input.rights_note,
       privacyNote: input.privacy_note
     }));
   } catch (error) { return asError(error); }
@@ -2184,8 +2226,8 @@ server.registerTool("manage_actor_performance", {
 
 server.registerTool("submit_avatar_job", {
   title: "提交数字人生成人物",
-  description: "使用当前 SpeechAsset 与已登记的能力档案提交 MiniMax H3 多参考人物生成。提交会固定 base_revision_id；Worker 在实际调用前动态读取 Bridge Schema，不接受或承诺逐帧姿态、目光、手势追踪。当前生成结果仅支持无 Mask 的前景降级，人物声音只能由 Dialogue 或静音承担。若提供 rights_confirmation，肖像、声音、Provider 使用权依据必须三项完整，结果才会从默认 unknown 标为 cleared；完成后用 track_job 和 read_actor_performances 读回。",
-  inputSchema: {
+  description: "使用当前 SpeechAsset 与已登记的能力档案提交 MiniMax H3 多参考人物生成。提交会固定 base_revision_id；Worker 在实际调用前动态读取 Bridge Schema，不接受或承诺逐帧姿态、目光、手势追踪。当前生成结果仅支持无 Mask 的前景降级，人物声音只能由 Dialogue 或静音承担。完成后用 track_job 和 read_actor_performances 读回。",
+  inputSchema: z.object({
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
     capability_profile_id: z.string().min(1),
@@ -2198,11 +2240,10 @@ server.registerTool("submit_avatar_job", {
     prompt: z.string().trim().min(1).max(4_000).optional(),
     mask_mode: z.literal("none").optional(),
     audio_mode: z.enum(["use_dialogue_track", "muted"]).optional(),
-    rights_confirmation: avatarUsageRightsConfirmationSchema.optional(),
     layout: actorLayoutSchema.optional(),
     note: z.string().trim().max(1_000).optional(),
     idempotency_key: z.string().trim().min(1).max(240).optional()
-  }
+  }).strict()
 }, async (input) => {
   try {
     return asText(application.submitAvatarGeneration({
@@ -2225,11 +2266,6 @@ server.registerTool("submit_avatar_job", {
       prompt: input.prompt,
       maskMode: input.mask_mode,
       audioMode: input.audio_mode,
-      rightsConfirmation: input.rights_confirmation ? {
-        portraitRightsBasis: input.rights_confirmation.portrait_rights_basis,
-        voiceRightsBasis: input.rights_confirmation.voice_rights_basis,
-        providerUsageRightsBasis: input.rights_confirmation.provider_usage_rights_basis
-      } : undefined,
       layout: input.layout ? {
         actorHead: input.layout.actor_head,
         actorHands: input.layout.actor_hands
@@ -2272,6 +2308,21 @@ server.registerTool("create_scene", {
       endFrame: input.end_frame,
       assetIds: input.asset_ids
     }));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("trim_scene", {
+  title: "缩短场景终点",
+  description: "在当前 Revision 中安全缩短已有 Scene；绑定内容超出新终点时拒绝提交。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    scene_id: z.string().min(1),
+    end_frame: z.number().int().positive()
+  }
+}, async (input) => {
+  try {
+    return asText(application.trimScene({ projectId: projectIdFrom(input.project_id), baseRevision: input.base_revision_id, sceneId: input.scene_id, endFrame: input.end_frame }));
   } catch (error) { return asError(error); }
 });
 
@@ -2762,7 +2813,7 @@ server.registerTool("submit_export", {
 
 server.registerTool("run_render_preflight", {
   title: "执行渲染前检查",
-  description: "固定目标 Revision，检查实际引用素材、本地文件、可解码性、权利、Mask 与当前 Remotion 组件依赖；检查通过不替代正式渲染或完整审片。",
+  description: "固定目标 Revision，检查实际引用素材、本地文件、可解码性、Mask 与当前 Remotion 组件依赖；检查通过不替代正式渲染或完整审片。",
   inputSchema: { project_id: z.string().optional(), revision: z.number().int().positive().optional(), purpose: z.enum(["draft", "delivery"]).optional(), idempotency_key: z.string().optional() }
 }, async ({ project_id, revision, purpose, idempotency_key }) => {
   try { return asText(application.submitRenderPreflight({ projectId: projectIdFrom(project_id), revision, purpose, idempotencyKey: idempotency_key })); } catch (error) { return asError(error); }
@@ -2784,7 +2835,7 @@ server.registerTool("track_export", {
 
 server.registerTool("read_export_artifact", {
   title: "读取导出产物",
-  description: "读取不可变 ExportArtifact 的目标 Revision、哈希、技术校验、署名清单、成片复核和批准状态。",
+  description: "读取不可变 ExportArtifact 的目标 Revision、哈希、技术校验、来源清单、成片复核和批准状态。",
   inputSchema: { project_id: z.string().optional(), artifact_id: z.string().min(1) },
   annotations: { readOnlyHint: true }
 }, async ({ project_id, artifact_id }) => {
@@ -2842,6 +2893,15 @@ server.registerTool("approve_export_artifact", {
 }, async ({ project_id, artifact_id, file_hash, confirmed_by_user, note }) => {
   try { return asText(await application.approveExportArtifact({ projectId: projectIdFrom(project_id), artifactId: artifact_id, fileHash: file_hash, confirmedByUser: confirmed_by_user, note })); } catch (error) { return asError(error); }
 });
+
+server.registerTool("read_job_diagnostics", {
+  title: "读取任务失败诊断", description: "只读获取指定Job的阶段、异常链、浏览器事件和错误输出。仅读取该Job独立诊断目录，不接受文件路径，不改项目或任务。",
+  inputSchema: { project_id: z.string().optional(), job_id: z.string() }, annotations: { readOnlyHint: true }
+}, async ({ project_id, job_id }) => { try {
+  const job = application.trackJob(job_id);
+  if (job.projectId !== projectIdFrom(project_id)) throw new DomainError("Job不属于当前项目", "JOB_PROJECT_MISMATCH");
+  return asText(await readJobDiagnostics(workspaceRoot, job));
+} catch (error) { return asError(error); } });
 
 server.registerTool("track_job", {
   title: "跟踪任务",

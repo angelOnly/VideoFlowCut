@@ -53,7 +53,7 @@ Mask 需要检查分辨率、帧率、时长、头发、手指、快速动作、
 
 ## Provider Capability 应怎样描述
 
-未来每个 Avatar Provider 需要明确：接受文本还是最终音频；是否保留用户音色；是否输出 Alpha/Mask；支持的分辨率、帧率和时长；口型语言；表情、目光、手势和姿态；局部重生；随机性；版权、隐私和数据处理。营销页说“支持手势”不等于能在某个词精确指向左下。
+未来每个 Avatar Provider 需要明确：接受文本还是最终音频；是否保留用户音色；是否输出 Alpha/Mask；支持的分辨率、帧率和时长；口型语言；表情、目光、手势和姿态；局部重生；随机性；隐私和数据处理。营销页说“支持手势”不等于能在某个词精确指向左下。
 
 主工作流只选择真实支持的表演。若 Provider 只能生成自然说话人物，就使用标准构图和安全区，而不规划精确产品互动。
 
@@ -72,7 +72,7 @@ Mask 需要检查分辨率、帧率、时长、头发、手指、快速动作、
 
 ## 人物安全与隐私
 
-VoiceReference、人物图片、视频和生成结果可能涉及肖像与声音授权。Provenance 和用途说明需要保存；外部 Provider 的数据保留和商业权利应在接入文档中记录。不能因为技术可生成就假设可公开发布。
+VoiceReference、人物图片、视频和生成结果记录实际来源与用途。外部 Provider 的数据保留方式在接入文档中记录；素材链路不做权利审核。
 
 ## 审片细节
 
@@ -80,11 +80,11 @@ VoiceReference、人物图片、视频和生成结果可能涉及肖像与声音
 
 ## 当前执行
 
-使用 `read_actor_performances` 检查已有绑定，用 `read_actor_capabilities` 读取项目中登记的 Provider、输入、Mask、音频驱动口型、局部重生成和权利边界；用 `manage_actor_capabilities` 创建、更新或移除已确认的能力档案；用 `manage_actor_performance` 登记 Timeline Item、来源、MaskMode、AudioMode、MaskAsset 和 SpeechAsset。每次写入后读回 ActorPerformance、Revision、Impact 和 Preview。
+使用 `read_actor_performances` 检查已有绑定，用 `read_actor_capabilities` 读取项目中登记的 Provider、输入、Mask、音频驱动口型、局部重生成和隐私信息；用 `manage_actor_capabilities` 创建、更新或移除已确认的能力档案；用 `manage_actor_performance` 登记 Timeline Item、来源、MaskMode、AudioMode、MaskAsset 和 SpeechAsset。每次写入后读回 ActorPerformance、Revision、Impact 和 Preview。
 
 当前 MCP 已实现 `submit_avatar_job`：它固定 `base_revision_id`，以已登记 Capability Profile、单张本地化人物参考图、可选 SpeechAsset 和明确范围提交 MiniMax H3 多参考生成人物。实际调用前 Worker 会读取 Bridge 的最新 Schema；当前生成只支持无 Mask 的前景降级，人物声音只能使用 Dialogue 或静音，且不承诺逐帧姿态、目光或手势追踪。提交后用 `track_job` 与 `read_actor_performances` 读回。
 
-上述对象链和 MCP 合同已经有确定性测试，但 Provider 可用性、中文口型、真实 Mask、局部重生成连续性与完整审美仍必须由实际输出和 Preview 验证。Capability Profile 或参考音频存在不等于口型已通过；失败、未知结果或不满足权利确认时，不伪造生成成功，交回主工作流说明可执行降级和缺口。
+上述对象链和 MCP 合同已经有确定性测试，但 Provider 可用性、中文口型、真实 Mask、局部重生成连续性与完整审美仍必须由实际输出和 Preview 验证。Capability Profile 或参考音频存在不等于口型已通过；失败或结果未知时，不伪造生成成功，交回主工作流说明可执行降级和缺口。
 
 ## 交接合同
 

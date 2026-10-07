@@ -7,11 +7,6 @@ export const sourceCaptionTextReviewSchema = z.union([
   z.object({ basis: z.literal("user_instruction"), note: z.string().trim().min(1).max(1000), instruction: z.string().trim().min(1).max(2000), source: z.string().trim().min(1).max(1000) }).strict()
 ]);
 
-export const assetUsageRightsInputSchema = z.object({
-  purposes: z.array(z.enum(["draft", "delivery"])).min(1).max(2),
-  basis: z.string().trim().min(1).max(2000)
-}).strict().refine(value => new Set(value.purposes).size === value.purposes.length, "许可用途不能重复");
-
 /** 自动化不能把导出成功当作用户批准；调用方须持有用户对这一哈希的明确确认。 */
 export const exportApprovalSchema = z.object({
   confirmedByUser: z.literal(true),

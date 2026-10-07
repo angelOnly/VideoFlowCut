@@ -18,7 +18,7 @@ const state = () => application.readProject(projectId);
 const source = join(project.snapshot.project.rootPath, "assets/source/fixture.mp4");
 await mkdir(join(project.snapshot.project.rootPath, "assets/source"), { recursive: true });
 await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=320x180:r=24:d=4", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=4", "-af", "volume=-12dB", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", source]);
-const imported = application.registerImportedAsset({ projectId, baseRevision: state().revision.number, name: "技术验证声画", kind: "video", managedPath: "assets/source/fixture.mp4", provenance: { source: "generated", rightsStatus: "cleared", acquiredAt: new Date().toISOString() } });
+const imported = application.registerImportedAsset({ projectId, baseRevision: state().revision.number, name: "技术验证声画", kind: "video", managedPath: "assets/source/fixture.mp4", provenance: { source: "generated", acquiredAt: new Date().toISOString() } });
 application.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: await probeMedia(source) });
 application.buildPresenterTimeline({ projectId, baseRevision: state().revision.number, assetIds: [imported.asset.id] });
 application.repository.commit(projectId, state().revision.number, "隔离小尺寸验证", (snapshot) => { snapshot.timeline.width = 320; snapshot.timeline.height = 180; });

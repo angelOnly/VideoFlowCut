@@ -48,7 +48,7 @@ async function createSpeechContext(application?: EditingApplication, root?: stri
     kind: "speech",
     managedPath: "assets/source/speech.wav",
     sourceHash: "speech-alignment-fixture-hash",
-    provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+    provenance: { source: "local_import", acquiredAt: new Date().toISOString() }
   });
   const projectRoot = app.readProject(projectId).snapshot.project.rootPath;
   const audioPath = join(projectRoot, "assets", "source", "speech.wav");

@@ -1,13 +1,21 @@
+import { toolErrorResult } from "./tool-error.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { EditingApplication } from "@videocut/application";
 import { MOTION_SOURCES } from "../../../packages/motion-work/src/catalog.js";
 import { motionSubmissionSchema, motionReviewFields } from "../../../packages/motion-work/src/schema.js";
 import { inspectMotionReferenceViaRuntime } from "./motion-reference-client.js";
+import { listMotionFonts, MotionFontUnknownError } from "../../../packages/motion-work/src/fonts.js";
+import { motionAllowedImports, MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compiler.js";
 
 export function registerMotionTools(server: McpServer, application: EditingApplication, projectIdFrom: (value?: string) => string) {
   const result = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] });
-  const failure = (error: unknown) => ({ ...result({ error: error instanceof Error ? error.message : String(error) }), isError: true });
+  const failure = toolErrorResult;
+  server.registerTool("read_motion_capabilities", {
+    title: "读取受管动画能力与字体", description: "只读查询当前动画引擎、允许导入的接口及随Runtime发布的字体。fontBindings用槽名映射fontId；平台校验文件并在首次挂载前加载，源码使用props.fonts[槽位]的family、weight、style，不自行加载字体或联网。新增字体需要发布新版Runtime。",
+    inputSchema: {}, annotations: { readOnlyHint: true }
+  }, async () => { try { return result({ engineVersion: MOTION_ENGINE_VERSION, allowedImports: motionAllowedImports(), fonts: listMotionFonts(),
+    fontBindingExample: { title: "noto-sans-sc-bold" }, execution: "仅使用已登记本地字体；通过fontBindings声明，props.fonts由平台注入。配色、描边与帧驱动动效由作者生成，不要求花字模板。理想字体未收录不是平台故障：主任务控制流程，原视觉作者推荐最多3款，使用get_editor_url(panel=fonts,font_preview=...)让用户在工作台预览后通过聊天确认；等待时继续无依赖工作，不报工单、不自动替代。已登记原件缺失、变更或加载失败仍明确报错。" }); } catch (error) { return failure(error); } });
   server.registerTool("inspect_motion_reference", {
     title: "查看在线动效参考", description: "在独立浏览器只读查看四个来源的公开页面。先返回预览索引和页面截图，再通过 preview_index 连续采样一个动效；不下载媒体，不跨越登录、验证或付费限制。",
     inputSchema: { source_url: z.string().url(), preview_index: z.number().int().nonnegative().max(300).optional(), sample_duration_ms: z.number().int().min(1000).max(20000).default(6000) }, annotations: { readOnlyHint: true }
@@ -17,9 +25,15 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   } catch (error) { return failure(error); } });
   server.registerTool("browse_motion_sources", { title: "在线动效来源", description: "返回已选的四个在线视觉参考库与访问入口，不下载整库，不表示已经观看预览。AE/Jitter 与开源组件均可作为 Remotion 实现参考。", inputSchema: {}, annotations: { readOnlyHint: true } }, async () => result({ sources: MOTION_SOURCES, execution: "通过 submit_motion_work 提交默认导出的 React + Remotion TSX；原创作品按内容设计并填写 creativeBrief；仅在需要参考时观看并记录布局、运动、节奏和适配依据。" }));
   server.registerTool("submit_motion_work", {
-    title: "生成受管 Remotion 作品", description: "保存固定版本源码、Props、创作说明与可选参考观察记录，排队隔离渲染。不会修改平台代码或自动放入 Timeline；修改作品重新提交并填写 previousAssetId。支持文字、CSS、SVG、受管图片与最多4路正常速度静音视频。videoBindings 按 slot 固定源素材和毫秒半开范围，源码 import {BoundVideo} from '@videoflowcut/motion'，用 slot、offsetInFrames、fit、style 控制；播放帧为 Sequence 局部帧加 offsetInFrames，接管同一视频须延续偏移。源不足报错，不自动循环或冻结；原声须在声音轨显式编排。视频源合计512MB、解码512MB及650000000像素帧预算；imageBindings 把图片 Asset ID 映射到 props.assets 的命名 Slot，源码用 Remotion Img 消费，不直接填资源 URL。单作品限制：宽高为64–1920的偶数，fps为15–60的整数，durationInFrames为2–900的整数，durationInFrames/fps≤30秒，width×height×durationInFrames≤650000000像素帧。最大帧数=min(900,30×fps,floor(650000000/(width×height)))；须在创作前核算，预算拒绝不会创建Job、Asset、Cue或视频Revision。超限应由原创意负责人按自然内容节点分为独立作品或调整画布，每件使用独立幂等键、从0开始的局部帧与完整源码；可在同一Scene内分别审阅并连续放置Cue，作品分段不要求拆Scene，衔接仍需真实合成审阅。",
+    title: "生成受管 Remotion 作品", description: "新作品填写 work.creativeBrief，提交固定源码、Props、图片及视频绑定，排队隔离渲染；不自动放入Timeline。修改作品重新提交并填写previousAssetId。视频最多4个选段，每槽声明assetId、sourceStartMs、sourceEndMs、startFrame、endFrame及可选decodeScale；源码import {TimelineVideo} from '@videoflowcut/motion'，以slot、fit、style显示。平台使用作品根时钟，内部Sequence不重置源时间，不接受offsetInFrames。输出帧数以endFrame-startFrame为准，源范围允许毫秒取整及不足一帧余量；正常速度且静音，原声在声音轨明确编排。源不足、源变化或取帧越界报错，不自动冻结或循环。原片按内容身份共享，不按槽复制；解码缓存按需生成、有界回收，不按原片或累计解码512MB拒绝。完整作品不设30秒、900帧或650000000累计像素帧门槛，由Worker提前检查完整输出及临时工作区真实磁盘需求；失败不登记半件Asset。画布宽高64–1920偶数、fps15–60整数；所有帧连续渲染并验证，一个Job产生一个完整Asset。imageBindings将图片映射到props.assets，使用Remotion Img，不允许任意资源URL。历史作品产物可读；历史引擎重新生成须按新合同提交。技术生成不替代连续审片。",
     inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), idempotency_key: z.string().min(1).max(160), work: motionSubmissionSchema }
-  }, async ({ project_id, base_revision_id, idempotency_key, work }) => { try { return result(application.submitManagedMotion({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, idempotencyKey: idempotency_key, work })); } catch (error) { return failure(error); } });
+  }, async ({ project_id, base_revision_id, idempotency_key, work }) => { try { return result(application.submitManagedMotion({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, idempotencyKey: idempotency_key, work })); } catch (error) {
+    // 只对明确发生在createJob之前的未知ID开放选择纠正，不放宽运行失败或未知结果重放。
+    if (error instanceof MotionFontUnknownError) return { ...result({ error: error.message, code: "MOTION_FONT_UNKNOWN", stage: "validation", fontId: error.fontId,
+      sideEffects: "none", safeToRetry: true, recovery: "select_registered_font", selectionRequired: true,
+      instruction: "不提交修复工单。主任务请原作者推荐已登记字体，展示工作台预览，收到用户选择后修订方案并正常提交；不能直接重放原输入。" }), isError: true };
+    return failure(error);
+  } });
   server.registerTool("read_motion_work", {
     title: "读取作品源码与状态", description: "读取所属项目的固定输入、Job、生成 Asset 与审阅状态；不会修改作品。", inputSchema: { project_id: z.string().optional(), job_id: z.string() }, annotations: { readOnlyHint: true }
   }, async ({ project_id, job_id }) => { try { return result(application.readManagedMotion(projectIdFrom(project_id), job_id)); } catch (error) { return failure(error); } });

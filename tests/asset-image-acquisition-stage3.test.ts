@@ -29,7 +29,6 @@ test("Mock Provider 能把图片 fixture 作为 image 候选和真实 image MIME
       name: "evidence-chart.png",
       filePath: imagePath,
       sourceUrl: "https://example.test/evidence/chart-001",
-      rightsStatus: "cleared"
     }]);
 
     const [candidate] = await provider.search({ request, query: "chart evidence" });
@@ -73,7 +72,6 @@ test("素材类型、响应 MIME 和分析结果不一致时明确失败，不�
       mimeType: "image/png",
       filePath: "C:/fixture/bad.png",
       sourceUrl: "https://example.test/bad",
-      rightsStatus: "cleared"
     }]),
     (error: unknown) => error instanceof AssetProviderError && error.code === "MOCK_ASSET_KIND_MIME_MISMATCH"
   );
@@ -114,7 +112,6 @@ test("图片候选经 Worker 本地化和 ffprobe 后保持 image Asset、来源
       purpose: "验证视觉解释片可保留图片事实。",
       visualBrief: "一张可读取的证据截图。",
       role: "evidence",
-      rightsRequirement: "cleared_only"
     });
     const assetRequest = requested.snapshot.assetRequests[0]!;
     const provider = new MockAssetProvider([{
@@ -123,9 +120,6 @@ test("图片候选经 Worker 本地化和 ffprobe 后保持 image Asset、来源
       filePath: sourcePath,
       sourceUrl: "https://example.test/evidence/001",
       creator: "测试作者",
-      license: "CC0 1.0",
-      licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
-      rightsStatus: "cleared"
     }]);
     const searched = app.recordAssetSearch({
       projectId: created.snapshot.project.id,
@@ -157,7 +151,6 @@ test("图片候选经 Worker 本地化和 ffprobe 后保持 image Asset、来源
     assert.equal(asset.status, "ready", asset.failureReason);
     assert.equal(asset.metadata?.width, 1);
     assert.equal(asset.metadata?.height, 1);
-    assert.equal(asset.provenance?.licenseUrl, "https://creativecommons.org/publicdomain/zero/1.0/");
   } finally {
     app.close();
     await rm(root, { recursive: true, force: true });
@@ -182,7 +175,6 @@ test("原始 PDF 证据通过受管 Worker 登记为 document，而不会被当�
       role: "evidence",
       provenance: {
         source: "local_import",
-        rightsStatus: "cleared",
         acquiredAt: new Date().toISOString()
       }
     });

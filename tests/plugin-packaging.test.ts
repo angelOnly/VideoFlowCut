@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join, relative } from "node:path";
 import test from "node:test";
+import { createHash } from "node:crypto";
 
 const repositoryRoot = process.cwd();
 const sourceSkillsRoot = join(repositoryRoot, ".agents", "skills");
@@ -12,6 +13,26 @@ const generatedSharedFiles = new Set([
   "_shared/SKILL.md",
   "_shared/agents/openai.yaml"
 ]);
+
+test("登记字体与许可证完整发行，字体字节及MCP真实Schema同步", async () => {
+  const sourceRoot = join(repositoryRoot, "packages/motion-work/fonts"), releaseRoot = join(pluginRoot, "runtime/dist/fonts");
+  const source = JSON.parse(await readFile(join(sourceRoot, "catalog.json"), "utf8"));
+  assert.equal(source.fonts.length, 34);
+  assert.equal(source.fonts.filter((font: { licenseFile?: string }) => font.licenseFile === "NOTICE-UserFonts.txt").length, 22);
+  assert.equal(source.fonts.some((font: { name: string }) => font.name.includes("云峰静龙行书")), false);
+  assert.deepEqual(JSON.parse(await readFile(join(releaseRoot, "catalog.json"), "utf8")), source);
+  for (const font of source.fonts) {
+    const bytes = await readFile(join(releaseRoot, font.file));
+    assert.equal(createHash("sha256").update(bytes).digest("hex"), font.sha256);
+  }
+  for (const license of new Set(["OFL.txt", "OFL-Serif.txt", "NOTICE-RequestedFonts.txt", ...source.fonts.flatMap((font: { licenseFile?: string }) => font.licenseFile ? [font.licenseFile] : [])])) {
+    assert.deepEqual(await readFile(join(sourceRoot, license)), await readFile(join(releaseRoot, license)));
+  }
+  const tools = JSON.parse(await readFile(join(pluginRoot, "runtime/dist/mcp-tools.json"), "utf8")).tools;
+  assert.ok(tools.some((tool: { name: string }) => tool.name === "read_motion_capabilities"));
+  const work = tools.find((tool: { name: string }) => tool.name === "submit_motion_work").inputSchema.properties.work;
+  assert.ok(work.properties.fontBindings);
+});
 
 async function listFiles(root: string, base = root): Promise<string[]> {
   const entries = await readdir(root, { withFileTypes: true });

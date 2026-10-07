@@ -16,11 +16,11 @@ Project Revision 是视频工程的唯一事实。Codex 对话、已加载 Skill
 
 ## 技术检查、辅助审阅与人工定稿
 
-技术检查验证文件、引用、版本、范围、渲染和对应用途的素材许可；失败只阻挡相关操作。AI/子代理审阅用于提示疑似错字、遮挡、节奏、声音和表达问题，不作为放置、修改、继续制作、ProductionRun 完成或导出文件的前提。未审、failed、inconclusive、静帧修复后尚未连续复核及未关闭 Findings 均保留真实状态与严重程度，不伪造 passed，也不导致整片停工。缺少宿主感知能力时暂停该项辅助审阅，交付可观看文件让用户判断，继续其他已授权制作。
+技术检查验证文件、引用、版本、范围、渲染；失败只阻挡相关操作。AI/子代理审阅用于提示疑似错字、遮挡、节奏、声音和表达问题，不作为放置、修改、继续制作、ProductionRun 完成或导出文件的前提。未审、failed、inconclusive、静帧修复后尚未连续复核及未关闭 Findings 均保留真实状态与严重程度，不伪造 passed，也不导致整片停工。缺少宿主感知能力时暂停该项辅助审阅，交付可观看文件让用户判断，继续其他已授权制作。
 
 专业判断仍交真实导演/专项/审片子代理；最终效果和是否定稿由用户把控。用户反馈驱动修订；修改后旧结论不自动覆盖新版本。ProductionRun completed 只表示本轮制作完成；Export Job succeeded 只表示文件生成并经技术校验。人工定稿用 `approve_export_artifact` 绑定指定 Artifact、file_hash 和 confirmed_by_user=true，必须已有用户对该文件的明确确认，不能把沉默、生成成功或 AI 结论当作确认。
 
-`draft` 表示内部审阅，`delivery` 表示对外交付用途；两者都按技术与用途许可导出，不要求 AI 五轮审阅。`read_quality_report.exportReadiness` 分别返回两种用途的阻挡原因。许可不明确时不能因“内部使用”直接放行；只有真实依据允许的范围才能登记到 provenance.usage_rights，派生动效继承来源限制。导出文件和人工定稿分别报告，保留未审范围供用户参考。
+`draft` 表示内部审阅，`delivery` 表示对外交付用途；两者都按技术条件导出，不要求 AI 五轮审阅。`read_quality_report.exportReadiness` 分别返回两种用途的阻挡原因。导出文件和人工定稿分别报告，保留未审范围供用户参考。
 
 ## 代理角色与交接
 
@@ -91,6 +91,8 @@ MCP 返回 success 只证明命令执行，不证明对象关系、画面和听�
 
 ## 剪辑阻断与平台修复交接
 
+理想字体未收录不属于本节平台阻断。主任务控制，原作者推荐库内候选并经工作台预览、聊天选择后修订；未回复不自动采用，等待只影响依赖该字体的画面。只有正式工具明确返回提交前无副作用的`MOTION_FONT_UNKNOWN`选择纠正分支才可据此修订提交；已登记原件故障及结果未知仍遵守本节报障与对账，不能用字体替代掩盖损坏。
+
 视频创作与平台修复有两个不同事实源：Project/Revision 记录成片事实；SQLite `repair_tickets` 记录剪辑任务无法继续时的能力缺口、修复、发行切换和恢复确认。Repair Ticket 不进入 `ProjectSnapshot`，因此报告、接手或部署工单绝不能制造视频 Revision 或改变 Timeline。
 
 剪辑 Agent 只用已发布 MCP 能力。遇到阻断时读取当前 Project 和 Revision，使用 `report_editing_blocker(reported_revision, category, summary, reporter_id, idempotency_key, ...)` 记录可复现事实并暂停；不能改源码、重启服务、切换插件缓存或以临时绕过继续写入项目。`reported_revision` 是当时所见的历史事实，不因其他任务后来产生新 Revision 而失真。
@@ -127,3 +129,10 @@ MCP 返回 success 只证明命令执行，不证明对象关系、画面和听�
 ProductionRun 和 SkillExecutionReport 用于审计：选择了哪个主工作流、实际读了哪些 Skill、做了什么决定、拒绝了什么方案、调用了什么 MCP、查看了哪些 Preview。它们不参与 Remotion 编译，删除报告不能改变成片。
 
 CreativeDecision 可带 delegation 记录真实分派对应的 agentId、assignmentId、role 和 inputRevision，产物与证据沿用 objectIds/evidence。平台核验输入 Revision 属于该 Project，不要求历史输入版本等于写入后的当前版本；主任务仍负责提交前的依赖确认。来源字段只作追溯，不能认证真实宿主调用。旧报告没有 delegation 时继续可读，不能倒填虚构代理或把旧报告当成已完成创意子代理验收。
+
+
+## 浏览器审阅跨回合交接
+
+宿主浏览器的实时文档和能力表优先。临时标签在回合结束会关闭；后续还需使用时，在本回合对实际标签调用宿主支持的 `markHandoff()`，每个继续使用的回合重新保留。交接浏览器身份、标签ID、来源URL、素材ID、源范围、实际最后观察位置和保留结果，不交接旧页面对象作为恢复凭据。下一回合重新绑定实际标签并核对来源、播放位置；标签已消失时按当前合同取得新标签，不操作失效对象。
+
+`iab` 的 `visible` 参数不能套用于 Chrome；Chrome使用实时文档要求的 `sessionName`。能力不支持、标签失效和浏览器入口不可用分别记录，不猜测宿主API。主线程可连接不能证明子代理可连接；恢复验证须在原代理完成真实跨回合调用。入口仍不可用则停止其直接浏览器步骤，保存完整错误并由主任务用正式只读能力回传有效证据；连续代理缺失保持待审，截图不能冒充连续观看。

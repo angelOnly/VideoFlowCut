@@ -52,7 +52,7 @@ test("高级 Web 入口不把候选同步或 unknown 生成资产误说成可交
       id: "generated-video",
       name: "generated.mp4",
       kind: "video",
-      provenance: { source: "generated", rightsStatus: "unknown", acquiredAt: now }
+      provenance: { source: "generated", acquiredAt: now }
     });
     snapshot.assets.push(cameraA, cameraB, silent, generated);
     snapshot.multicamGroups.push({
@@ -94,8 +94,6 @@ test("高级 Web 入口不把候选同步或 unknown 生成资产误说成可交
     const status = getAdvancedWorkflowStatus(snapshot, jobs);
     assert.equal(status.multicam.candidateGroupCount, 1);
     assert.equal(status.multicam.readyGroupCount, 0);
-    assert.equal(status.generated.unknownRightsCount, 1);
-    assert.equal(status.generated.deliveryBlockedCount, 1);
 
     const candidates = multicamSyncCandidates(snapshot);
     assert.match(validateMulticamSubmission({
@@ -138,7 +136,7 @@ test("高级 Web 视频生成表单在提交前保持模式对应的输入约束
   assert.equal(validateVideoGenerationInputs("multi_reference", [image, video]), undefined);
 
   const snapshot = emptySnapshot();
-  const restricted = readyAsset({ id: "restricted", name: "restricted.png", kind: "image", provenance: { source: "local_import", rightsStatus: "restricted", acquiredAt: now } });
+  const restricted = readyAsset({ id: "restricted", name: "restricted.png", kind: "image", provenance: { source: "local_import", acquiredAt: now } });
   snapshot.assets.push(image, restricted);
-  assert.deepEqual(videoGenerationCandidates(snapshot, "image_to_video").map((asset) => asset.id), [image.id], "受限素材不能在 Web 生成参考入口中被选择");
+  assert.deepEqual(videoGenerationCandidates(snapshot, "image_to_video").map((asset) => asset.id), [image.id, restricted.id], "已就绪素材都可选择");
 });

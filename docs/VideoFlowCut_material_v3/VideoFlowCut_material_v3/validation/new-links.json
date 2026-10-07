@@ -1,0 +1,318 @@
+{
+  "mode": "read_only_candidate_connections",
+  "repository": "/mnt/data/vfc_material_v3_work/applied-test",
+  "checked_changes": 26,
+  "checked_new_files": 18,
+  "candidate_checks": 53,
+  "passed": true,
+  "scope": "Only added/changed links and candidate branch states; existing historical-media links excluded.",
+  "checks": [
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/production-director/SKILL.md",
+      "target": "../_shared/MATERIAL_TO_SCENE.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/production-coordinator/SKILL.md",
+      "target": "../_shared/MATERIAL_TO_SCENE.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/narration-writing/SKILL.md",
+      "target": "../_shared/MATERIAL_TO_SCENE.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/visual-explainer-director/SKILL.md",
+      "target": "../_shared/MATERIAL_TO_SCENE.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/visual-asset-sourcing/SKILL.md",
+      "target": "../_shared/MATERIAL_TO_SCENE.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/visual-treatment-planning/SKILL.md",
+      "target": "../_shared/MATERIAL_TO_SCENE.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/scene-planning/SKILL.md",
+      "target": "../_shared/MATERIAL_TO_SCENE.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/remotion-production/SKILL.md",
+      "target": "../_shared/MATERIAL_TO_SCENE.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/remotion-production/SKILL.md",
+      "target": "references/material-space-and-time.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/effect-timing/SKILL.md",
+      "target": "../remotion-production/references/material-space-and-time.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/evidence-visualization/SKILL.md",
+      "target": "../_shared/MATERIAL_TO_SCENE.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/quality-verification/SKILL.md",
+      "target": "references/material-integration-review.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/motion-case-library/SKILL.md",
+      "target": "references/material-integration-validation.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/vlog-director/SKILL.md",
+      "target": "../_shared/MATERIAL_TO_SCENE.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/cutaway-planning/SKILL.md",
+      "target": "../_shared/MATERIAL_TO_SCENE.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/depth-composition/SKILL.md",
+      "target": "../remotion-production/references/material-space-and-time.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/_shared/SCENE_DESIGN_HANDOFF.md",
+      "target": "MATERIAL_TO_SCENE.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/_shared/TOPIC_TO_FILM.md",
+      "target": "MATERIAL_TO_SCENE.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/_shared/SOURCE_REVIEW_METHOD.md",
+      "target": "MATERIAL_TO_SCENE.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/remotion-production/references/scene-art-and-motion.md",
+      "target": "../../_shared/MATERIAL_TO_SCENE.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/remotion-production/references/scene-art-and-motion.md",
+      "target": "material-space-and-time.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/motion-case-active-window-focus/SKILL.md",
+      "target": "material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/motion-case-active-window-focus/SKILL.md",
+      "target": "references/material-integration-prompt-v1.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/motion-case-occlusion-condition-reveal/SKILL.md",
+      "target": "material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/motion-case-occlusion-condition-reveal/SKILL.md",
+      "target": "references/material-integration-prompt-v1.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/motion-case-context-detail-observation/SKILL.md",
+      "target": "material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/motion-case-context-detail-observation/SKILL.md",
+      "target": "references/material-integration-prompt-v1.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/motion-case-relation-unfold/SKILL.md",
+      "target": "material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/motion-case-relation-unfold/SKILL.md",
+      "target": "references/material-integration-prompt-v1.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/motion-case-object-type-relay/SKILL.md",
+      "target": "material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/motion-case-object-type-relay/SKILL.md",
+      "target": "references/material-integration-prompt-v1.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/motion-case-mixed-scene-relay/SKILL.md",
+      "target": "material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/motion-case-mixed-scene-relay/SKILL.md",
+      "target": "references/material-integration-prompt-v1.md",
+      "passed": true
+    },
+    {
+      "kind": "new_link",
+      "from": ".agents/skills/motion-case-library/references/r92-family-index.md",
+      "target": "material-integration-validation.md",
+      "passed": true
+    },
+    {
+      "kind": "new_file_link",
+      "from": ".agents/skills/_shared/MATERIAL_TO_SCENE.md",
+      "target": "../remotion-production/references/material-space-and-time.md",
+      "passed": true
+    },
+    {
+      "kind": "new_file_link",
+      "from": ".agents/skills/motion-case-active-window-focus/references/material-integration-prompt-v1.md",
+      "target": "../../motion-case-library/references/material-integration-validation.md",
+      "passed": true
+    },
+    {
+      "kind": "unrendered_status",
+      "from": ".agents/skills/motion-case-active-window-focus/material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "instruction_link",
+      "from": ".agents/skills/motion-case-active-window-focus/material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "new_file_link",
+      "from": ".agents/skills/motion-case-occlusion-condition-reveal/references/material-integration-prompt-v1.md",
+      "target": "../../motion-case-library/references/material-integration-validation.md",
+      "passed": true
+    },
+    {
+      "kind": "unrendered_status",
+      "from": ".agents/skills/motion-case-occlusion-condition-reveal/material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "instruction_link",
+      "from": ".agents/skills/motion-case-occlusion-condition-reveal/material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "new_file_link",
+      "from": ".agents/skills/motion-case-context-detail-observation/references/material-integration-prompt-v1.md",
+      "target": "../../motion-case-library/references/material-integration-validation.md",
+      "passed": true
+    },
+    {
+      "kind": "unrendered_status",
+      "from": ".agents/skills/motion-case-context-detail-observation/material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "instruction_link",
+      "from": ".agents/skills/motion-case-context-detail-observation/material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "new_file_link",
+      "from": ".agents/skills/motion-case-relation-unfold/references/material-integration-prompt-v1.md",
+      "target": "../../motion-case-library/references/material-integration-validation.md",
+      "passed": true
+    },
+    {
+      "kind": "unrendered_status",
+      "from": ".agents/skills/motion-case-relation-unfold/material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "instruction_link",
+      "from": ".agents/skills/motion-case-relation-unfold/material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "new_file_link",
+      "from": ".agents/skills/motion-case-object-type-relay/references/material-integration-prompt-v1.md",
+      "target": "../../motion-case-library/references/material-integration-validation.md",
+      "passed": true
+    },
+    {
+      "kind": "unrendered_status",
+      "from": ".agents/skills/motion-case-object-type-relay/material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "instruction_link",
+      "from": ".agents/skills/motion-case-object-type-relay/material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "new_file_link",
+      "from": ".agents/skills/motion-case-mixed-scene-relay/references/material-integration-prompt-v1.md",
+      "target": "../../motion-case-library/references/material-integration-validation.md",
+      "passed": true
+    },
+    {
+      "kind": "unrendered_status",
+      "from": ".agents/skills/motion-case-mixed-scene-relay/material-branch-record.json",
+      "passed": true
+    },
+    {
+      "kind": "instruction_link",
+      "from": ".agents/skills/motion-case-mixed-scene-relay/material-branch-record.json",
+      "passed": true
+    }
+  ],
+  "issues": []
+}

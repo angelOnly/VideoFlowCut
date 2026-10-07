@@ -54,7 +54,7 @@ export const VIDEO_PRODUCTION_STAGES = [
   {
     key: "materials",
     title: "1. 素材读取",
-    goal: "建立项目，登记已受管的本地素材，并记录素材需求、来源和授权事实。",
+    goal: "建立项目，登记已受管的本地素材，并记录素材需求、来源事实。",
     coreClass: "EditingApplication",
     // 这一阶段只开放素材事实、素材需求和分析任务的入口。
     entryPoints: [
@@ -64,8 +64,8 @@ export const VIDEO_PRODUCTION_STAGES = [
       { label: "登记素材", applicationMethod: "registerImportedAsset", note: "上层已安全导入文件后，登记素材并提交媒体分析。" },
       // 查看媒体分析是否已完成，避免使用尚未准备好的素材。
       { label: "跟踪素材分析", applicationMethod: "trackJob", note: "确认媒体分析任务已完成；转写、镜头分析和同步只能使用已就绪素材。" },
-      // 补充素材的来源、授权和角色等已知事实，不在此评价创意好坏。
-      { label: "补充素材事实", applicationMethod: "updateAssetEditorialMetadata", note: "记录角色、标签、来源和授权状态，不替代内容判断。" },
+      // 补充素材的来源和角色等已知事实，不在此评价创意好坏。
+      { label: "补充素材事实", applicationMethod: "updateAssetEditorialMetadata", note: "记录角色、标签、来源信息，不替代内容判断。" },
       // 记录成片还缺什么素材以及为什么缺，不直接安排画面切换。
       { label: "提出素材需求", applicationMethod: "manageAssetRequirement", note: "说明缺少什么素材和原因，不直接决定 Cutaway。" },
       // 保存素材平台返回的候选及筛选过程，保证来源可追溯。
@@ -156,7 +156,7 @@ export const VIDEO_PRODUCTION_STAGES = [
     entryPoints: [
       // 为指定项目版本创建预览任务。
       { label: "提交预览", applicationMethod: "submitPreview", note: "创建目标 Revision 的 Preview Job。" },
-      // 导出前检查文件、授权和运行环境依赖。
+      // 导出前检查文件和运行环境依赖。
       { label: "提交交付预检", applicationMethod: "submitRenderPreflight", note: "检查目标 Revision 的文件、权限和运行时依赖。" },
       // 发起草稿或正式交付导出，导出本身不等于用户批准。
       { label: "提交导出", applicationMethod: "submitExport", note: "区分 draft 与 delivery，不把导出当成批准。" },
@@ -205,7 +205,7 @@ export class VideoProductionMaterials {
     return this.application.trackJob(input);
   }
 
-  /** 补充素材角色、标签、来源和授权等编辑事实。 */
+  /** 补充素材角色、标签、来源等编辑事实。 */
   updateAssetEditorialMetadata(input: ApplicationInput<"updateAssetEditorialMetadata">): ApplicationResult<"updateAssetEditorialMetadata"> {
     // 原样交给核心应用服务保存，不替用户判断素材是否好用。
     return this.application.updateAssetEditorialMetadata(input);
@@ -385,7 +385,7 @@ export class VideoProductionDelivery {
     return this.application.submitPreview(input);
   }
 
-  /** 在导出前检查文件、授权和运行时依赖是否齐全。 */
+  /** 在导出前检查文件和运行时依赖是否齐全。 */
   submitRenderPreflight(input: ApplicationInput<"submitRenderPreflight">): ApplicationResult<"submitRenderPreflight"> {
     // 原样调用预检，门面不会跳过任何交付门禁。
     return this.application.submitRenderPreflight(input);

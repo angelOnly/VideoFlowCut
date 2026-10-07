@@ -2,12 +2,10 @@ import { captionDisplayRanges, validCaptionDisplay, captionPlacementSchema } fro
 import { createHash } from "node:crypto";
 import { managedMotionReviewOutcome, EFFECT_QUALITY_RULES, inspectEffectContentContract, sourceAudioTimeOrigin, type EditorialQualityReview, type ExportPurpose, type ProjectSnapshot, type QualityIssue, type QualityReport } from "@videocut/contracts";
 import { assertProjectGraphValid, DomainError, millisecondsToFrames, resolveCompositionReachability, sourceAudioTimingWithinRange, sourceAudioAlignmentOwnerMatches, sourceCaptionDisplayTextIsValid } from "@videocut/domain";
-import { assetExportRestriction } from "@videocut/domain";
 import { exportBlockingIssues } from "./export-policy.js";
 export { exportBlockingIssues } from "./export-policy.js";
 import { layoutCaptionConservatively, type CaptionLayoutInput, type CaptionLayoutResult } from "../../remotion-runtime/src/caption-layout.js";
 import { measureCaptionLayouts } from "./caption-measurement.js";
-import { motionCaptionSafety } from "./motion-caption-safety.js";
 import { missingReviewRanges, openEditorialFindings, productionReconciliation, reviewCoverage } from "./editorial-review.js";
 import { soundDependencySignature } from "../../media-intelligence/src/sound-signature.js";
 import { mediaUsageFindings } from "../../media-intelligence/src/usage.js";
@@ -1093,7 +1091,7 @@ function evaluateExplainerSpecificQuality(snapshot: ProjectSnapshot, issues: Qua
       issues.push(issue({
         level: "blocking",
         code: "EXPLAINER_SCENE_PROGRAM_MISSING",
-        message: "ExplainerScene 需要一个有效 Program，或由同画幅、同帧率的就绪受管作品连续覆盖全场景；草稿容器和局部装饰不能代替主视觉。",
+        message: "ExplainerScene 需要一个有效 Program，或由同画幅、按真实时间采样的就绪受管作品连续覆盖全场景；草稿容器和局部装饰不能代替主视觉。",
         objectId: scene.id,
         frameRange: { startFrame: scene.startFrame, endFrame: scene.endFrame }
       }));
@@ -1107,7 +1105,7 @@ function evaluateExplainerSpecificQuality(snapshot: ProjectSnapshot, issues: Qua
  */
 export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, editorialReview?: EditorialQualityReview, captionLayouts?: Map<string, CaptionLayoutResult>): QualityReport {
   const issues: QualityIssue[] = [];
-  // 感知审阅只提供提示；制作和导出由技术条件及对应用途的许可决定。
+  // 感知审阅只提供提示；制作和导出由技术条件决定。
   const pendingPerception: Array<{ category: "motion" | "audio" | "semantic"; entry: QualityIssue }> = [];
   for (const finding of mediaUsageFindings(snapshot)) pendingPerception.push({ category: "semantic", entry: issue({ level: "blocking", code: "MEDIA_USAGE_REVIEW_REQUIRED", message: finding.reason, objectId: finding.objectId, frameRange: finding.frameRange, editorialSeverity: "inconclusive" }) });
   const { timeline } = snapshot;
@@ -1173,22 +1171,12 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
       }
     }
   }
-  // 结构性规则仍按完整 Revision 检查；只有素材文件与授权门禁跟 Composition 对齐。
+  // 结构性规则仍按完整 Revision 检查；只有素材文件检查跟 Composition 对齐。
   const compositionAssetIds = resolveCompositionReachability(snapshot).assetIds;
   for (const asset of snapshot.assets) {
     if (compositionAssetIds.has(asset.id) && (asset.status === "failed" || asset.status === "missing")) {
       issues.push(issue({ level: "blocking", code: "ASSET_NOT_READY", message: `素材“${asset.name}”不可用：${asset.failureReason ?? asset.status}。`, objectId: asset.id }));
     }
-  }
-  // 只检查实际使用的素材；两种用途共用权限判断，派生作品同时核验来源。
-  for (const asset of snapshot.assets.filter(candidate => compositionAssetIds.has(candidate.id))) {
-    const blocked = (["draft", "delivery"] as const).filter(purpose => assetExportRestriction(asset, snapshot.assets, purpose));
-    if (blocked.length) {
-      const code = asset.provenance?.rightsStatus === "unknown" ? "EXTERNAL_ASSET_RIGHTS_UNKNOWN"
-        : asset.provenance?.rightsStatus === "attribution_required" && !asset.provenance.attributionText?.trim() ? "ATTRIBUTION_TEXT_MISSING" : "EXTERNAL_ASSET_RIGHTS_RESTRICTED";
-      issues.push(issue({ level: "blocking", code, message: blocked.map(purpose => assetExportRestriction(asset, snapshot.assets, purpose)).join("；"), objectId: asset.id, blockingPurposes: blocked }));
-    }
-    if (asset.provenance?.attributionText?.trim()) issues.push(issue({ level: "warning", code: "ATTRIBUTION_MANIFEST_REQUIRED", message: `素材“${asset.name}”需要随文件保存署名清单。`, objectId: asset.id }));
   }
   const performances = snapshot.actorPerformances ?? [];
   const performanceByItem = new Map(performances.map((performance) => [performance.timelineItemId, performance]));
@@ -1616,7 +1604,8 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
      * qualityRules 不是审美替代品，只执行能够从同一 Revision 确定的事实。
      * 遮挡、节奏与美感仍由真实 Preview + Editorial Review 判定。
      */
-    const rules = cue.qualityRules ?? [];
+    // 历史快照中的退役安全区标识不执行，也不产生未知规则提醒；不回写视频状态。
+    const rules = (cue.qualityRules ?? []).filter(rule => rule !== "caption_safe_area");
     for (const rule of rules) {
       if (!effectQualityRuleSet.has(rule)) {
         issues.push(issue({
@@ -1661,21 +1650,6 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
             frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
           }));
         }
-      }
-      if (rule === "caption_safe_area" && cue.layer === "front" && cue.spatialAnchor === "full_frame") {
-        const safety = cue.type === "ManagedMotion" ? motionCaptionSafety(snapshot, cue) : undefined;
-        if (safety === "clear") continue;
-        issues.push(issue({
-          level: safety ? "warning" : "blocking",
-          code: safety ? "EFFECT_CAPTION_SAFETY_REVIEW_REQUIRED" : "EFFECT_RULE_CAPTION_SAFE_AREA",
-          message: safety === "unknown"
-            ? "受管动效缺少完整 Alpha 区域证据，不能从全画幅容器推断遮挡；请重新生成取得测量，并在同版连续预览中核查字幕。"
-            : safety === "review"
-              ? "动效可见像素的外包区域与字幕安全预算相交，尚不能断言字形被遮挡；必须在同版连续预览与审片中复核，必要时修改作品。"
-              : `前景效果“${cue.type}”占满画面，会与稳定字幕争夺阅读区域；请使用两侧安全区或改为 fullscreen 场景。`,
-          objectId: cue.id,
-          frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
-        }));
       }
       if (rule === "no_competing_visual") {
         const competitor = snapshot.effectCues.find((candidate) => candidate.id !== cue.id

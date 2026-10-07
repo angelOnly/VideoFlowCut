@@ -4,6 +4,9 @@ import { sourceCaptionTextReviewSchema, exportApprovalSchema } from "../../../pa
 import { audioDesignSchema } from "../../../packages/edit-application/src/sound-design.js";
 import { registerSourceResearchRoutes } from "./source-research-tools.js";
 import { registerSoundRoutes } from "./sound-tools.js";
+import { listMotionFonts } from "../../../packages/motion-work/src/fonts.js";
+import { registerFontLibraryRoutes } from "./font-library.js";
+import { motionAllowedImports, MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compiler.js";
 import { createHash, randomUUID } from "node:crypto";
 import { createReadStream, createWriteStream, existsSync } from "node:fs";
 import { copyFile, mkdir, rm, stat } from "node:fs/promises";
@@ -26,6 +29,7 @@ import { mediaReviewPage } from "./media-review-page.js";
 import { registerMediaIntelligenceRoutes } from "./media-intelligence-tools.js";
 import { MOTION_SOURCES } from "../../../packages/motion-work/src/catalog.js";
 import { motionSubmissionSchema, motionReviewFields } from "../../../packages/motion-work/src/schema.js";
+import { projectFrameRateSchema } from "../../../packages/contracts/src/frame-rate.js";
 import { inspectMotionReference } from "./motion-reference.js";
 
 const idSchema = z.string().min(1);
@@ -80,12 +84,6 @@ const actorPlacementSchema = z.object({
 }).strict().refine((placement) => placement.endFrame > placement.startFrame, {
   message: "人物放置范围的结束帧必须大于开始帧"
 });
-/** 提供即表示请求把本次生成标为可交付；Application 仍会拒绝三项不完整的确认。 */
-const avatarUsageRightsConfirmationSchema = z.object({
-  portraitRightsBasis: z.string().trim().max(2_000).optional(),
-  voiceRightsBasis: z.string().trim().max(2_000).optional(),
-  providerUsageRightsBasis: z.string().trim().max(2_000).optional()
-}).strict();
 
 /**
  * Avatar 请求只表达项目内已确认的意图。Worker 会在真正调用前动态读取 Bridge Schema，
@@ -104,8 +102,6 @@ const avatarGenerationRequestSchema = z.object({
   maskMode: z.literal("none").optional(),
   // 生成画面默认由当前 Dialogue 承担声音，避免与人物视频原声重复播放。
   audioMode: z.enum(["use_dialogue_track", "muted"]).optional(),
-  // 未提供时生成结果保持 unknown；不能由 Profile 的泛化说明自动放行交付。
-  rightsConfirmation: avatarUsageRightsConfirmationSchema.optional(),
   layout: actorLayoutSchema.optional(),
   note: z.string().trim().max(1_000).optional(),
   idempotencyKey: z.string().trim().min(1).max(240).optional()
@@ -305,6 +301,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   app.post("/api/projects", async (request, reply) => {
     const body = z.object({
       name: z.string().trim().min(1).max(100),
+      fps: projectFrameRateSchema.optional(),
       profile: z.enum(["presenter_motion", "visual_explainer", "vlog", "hybrid"]).optional(),
       brief: z.object({
         platform: z.string().optional(),
@@ -323,6 +320,18 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   app.get("/api/projects/:projectId", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     return application.readProject(projectId);
+  });
+
+  app.post("/api/projects/:projectId/frame-rate/preview", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const input = z.object({ baseRevision: baseRevisionSchema, fps: projectFrameRateSchema }).strict().parse(request.body);
+    return application.previewProjectFrameRateChange({ projectId, ...input });
+  });
+
+  app.post("/api/projects/:projectId/frame-rate", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const input = z.object({ baseRevision: baseRevisionSchema, fps: projectFrameRateSchema }).strict().parse(request.body);
+    return application.setProjectFrameRate({ projectId, ...input });
   });
 
   app.get("/api/projects/:projectId/story", async (request) => {
@@ -470,7 +479,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   /**
    * 原素材审阅只生成项目 cache/source-review 下可重建的代理与证据，
-   * 不注册 Asset、不改 Revision；MCP 复用同一 inspectAsset 服务。
+   * 不注册 Asset、不改 Revision；MCP 复用同一 inspectAsset 服务与 diagnostics 分流。
    */
   app.post("/api/projects/:projectId/assets/:assetId/inspect", async (request) => {
     const { projectId, assetId } = z.object({ projectId: idSchema, assetId: idSchema }).parse(request.params);
@@ -623,9 +632,8 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       supportsGestureControl: z.boolean().optional(),
       supportsPartialRegeneration: z.boolean().optional(),
       maxDurationSeconds: z.number().int().min(1).max(1800).optional(),
-      rightsNote: z.string().min(1).max(2_000).optional(),
       privacyNote: z.string().min(1).max(2_000).optional()
-    }).parse(request.body);
+    }).strict().parse(request.body);
     return application.manageActorCapabilityProfile({ projectId, ...body });
   });
 
@@ -939,6 +947,12 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return application.createScene({ projectId, ...body });
   });
 
+  app.post("/api/projects/:projectId/scenes/:sceneId/trim", async (request) => {
+    const { projectId, sceneId } = z.object({ projectId: idSchema, sceneId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, endFrame: z.number().int().positive() }).strict().parse(request.body);
+    return application.trimScene({ projectId, sceneId, ...body });
+  });
+
   app.post("/api/projects/:projectId/visual-treatments", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({
@@ -1011,6 +1025,8 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   });
 
   app.get("/api/motion/sources", async () => ({ sources: MOTION_SOURCES }));
+  app.get("/api/motion/capabilities", async () => ({ engineVersion: MOTION_ENGINE_VERSION, allowedImports: motionAllowedImports(), fonts: listMotionFonts() }));
+  registerFontLibraryRoutes(app);
   // 与渲染 Worker 共用部署前验证的浏览器；此只读服务不创建 Project、Revision 或 Job。
   app.post("/api/motion/inspect-reference", async (request, reply) => {
     if (request.headers["x-videoflowcut-release-id"] !== runtimeConfig.runtime.releaseId) {
@@ -1095,7 +1111,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.post("/api/projects/:projectId/voice-references", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    const body = z.object({ baseRevision: baseRevisionSchema, assetId: idSchema, label: z.string().max(160).optional(), authorizationNote: z.string().max(500).optional(), usageNote: z.string().max(500).optional() }).parse(request.body);
+    const body = z.object({ baseRevision: baseRevisionSchema, assetId: idSchema, label: z.string().max(160).optional(), usageNote: z.string().max(500).optional() }).strict().parse(request.body);
     return application.registerVoiceReference({ projectId, ...body });
   });
 

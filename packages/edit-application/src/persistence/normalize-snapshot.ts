@@ -72,9 +72,7 @@ export function normalizeSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
     caption.format ??= { ...DEFAULT_CAPTION_FORMAT };
   }
   for (const reference of snapshot.voiceReferences) {
-    // 旧 Revision 没有这些字段时只补默认提示，不伪造用户已取得授权的事实。
     reference.source ??= "local_asset";
-    reference.authorizationNote ??= "未填写授权信息；仅在已获得声音使用授权的前提下使用。";
     reference.usageNote ??= "仅用于当前项目的本地语音合成。";
     reference.recommendedRange ??= { startMs: 0, endMs: 0 };
     reference.quality ??= "warning";

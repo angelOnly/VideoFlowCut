@@ -19,7 +19,7 @@ test("网页和图片合同不暴露 PDF 参数，错误提交不创建 Job 或 
   const app=createApplication(root);
   try {
     const projectId=app.createProject({name:"材料合同"}).snapshot.project.id;
-    const common={baseRevision:1,idempotencyKey:"shape",url:"https://example.org/",basis:"合同测试",purposes:["draft" as const]};
+    const common={baseRevision:1,idempotencyKey:"shape",url:"https://example.org/",};
     for(const kind of ["web_snapshot","image"] as const) {
       assert.equal(sourceMaterialSchema.safeParse({...common,kind}).success,true);
       for(const extra of [{pageWidth:1280},{pages:[1]}]) {
@@ -61,7 +61,7 @@ test("截图导航保留地址拒绝根因，不被Chromium ERR_FAILED覆盖或�
   const root=await mkdtemp(join(tmpdir(),"vfc-capture-error-"));const app=createApplication(root);
   try {
     const state=app.createProject({name:"截图失败根因"});const id=state.snapshot.project.id;
-    const job=app.submitSourceMaterial(id,{baseRevision:1,idempotencyKey:"private",kind:"web_snapshot",url:"http://127.0.0.1/",basis:"仅隔离安全测试",purposes:["draft"]});
+    const job=app.submitSourceMaterial(id,{baseRevision:1,idempotencyKey:"private",kind:"web_snapshot",url:"http://127.0.0.1/",});
     await assert.rejects(runSourceMaterialAcquisition(app,job),error=>(error as {code:string}).code==="SOURCE_URL_REJECTED");
     assert.equal(app.readProject(id).revision.number,1);
     assert.equal(app.readProject(id).snapshot.assets.length,0);
@@ -83,7 +83,7 @@ test("真实浏览器保留Referer，子资源失败保存待核验截图，主�
   };
   try {
     const id=app.createProject({name:"浏览器请求头"}).snapshot.project.id;
-    const input={baseRevision:1,idempotencyKey:"referer",kind:"web_snapshot" as const,url,basis:"隔离工程验证",purposes:["draft" as const]};
+    const input={baseRevision:1,idempotencyKey:"referer",kind:"web_snapshot" as const,url,};
     const clean=await runSourceMaterialAcquisition(app,app.submitSourceMaterial(id,input),fetcher);
     assert.equal((clean.capture as {complete:boolean}).complete,true);
     assert.equal((clean.capture as {reviewStatus:string}).reviewStatus,"pending");
@@ -120,7 +120,7 @@ test("统计POST仅记缺口且不发送，验证码与子资源安全错误仍�
   };
   try{
     const id=app.createProject({name:"截图缺口边界"}).snapshot.project.id;
-    const input={baseRevision:1,idempotencyKey:"beacon",kind:"web_snapshot" as const,url:"https://official.example.test/",basis:"隔离工程测试",purposes:["draft" as const]};
+    const input={baseRevision:1,idempotencyKey:"beacon",kind:"web_snapshot" as const,url:"https://official.example.test/",};
     const result=await runSourceMaterialAcquisition(app,app.submitSourceMaterial(id,input),fetcher);
     const capture=result.capture as {complete:boolean;reviewStatus:string;warnings:Array<{url:string;method:string;code:string}>};
     assert.equal(capture.complete,false);assert.equal(capture.reviewStatus,"pending");assert.equal(forwarded,0);
@@ -139,7 +139,7 @@ test("受管取得真实 PNG、幂等完成、媒体分析与错误页拒绝",as
   const root=await mkdtemp(join(tmpdir(),"vfc-source-worker-")); const app=createApplication(root);
   try {
     const state=app.createProject({name:"来源获取"});const id=state.snapshot.project.id;
-    const input={baseRevision:1,idempotencyKey:"image",url:"https://example.org/image",kind:"image" as const,basis:"自制工程图像验证",purposes:["draft" as const]};
+    const input={baseRevision:1,idempotencyKey:"image",url:"https://example.org/image",kind:"image" as const,};
     const job=app.submitSourceMaterial(id,input);assert.equal(app.submitSourceMaterial(id,input).id,job.id);
     assert.throws(()=>app.submitSourceMaterial(id,{...input,url:"https://example.org/other"}),/幂等/);
     const png=new PNG({width:64,height:64});png.data.fill(255);
@@ -175,7 +175,7 @@ test("PDF 原文件及选页登记、证据绑定并真实渲染，越界页原�
     const created = app.createProject({ name: "PDF 工程验证", profile: "visual_explainer" });
     const projectId = created.snapshot.project.id;
     const revision = () => app.readProject(projectId).revision.number;
-    const input = { baseRevision: revision(), idempotencyKey: "pdf", url: "https://example.org/engineering.pdf", kind: "pdf" as const, pages: [1], pageWidth: 640, basis: "自制工程 PDF", purposes: ["draft" as const] };
+    const input = { baseRevision: revision(), idempotencyKey: "pdf", url: "https://example.org/engineering.pdf", kind: "pdf" as const, pages: [1], pageWidth: 640, };
     const fetcher = async () => ({ bytes: engineeringPdf(), url: input.url, mime: "application/pdf", fetchedAt: new Date().toISOString() });
     const job = app.submitSourceMaterial(projectId, input);
     const result = await runSourceMaterialAcquisition(app, job, fetcher);

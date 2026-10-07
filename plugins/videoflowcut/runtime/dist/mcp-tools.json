@@ -73,6 +73,11 @@
             "type": "string",
             "minLength": 1
           },
+          "fps": {
+            "type": "integer",
+            "minimum": 15,
+            "maximum": 60
+          },
           "brief": {
             "type": "object",
             "properties": {
@@ -98,6 +103,71 @@
         },
         "required": [
           "name"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "preview_project_frame_rate_change",
+      "title": "预检查项目帧率变更",
+      "description": "只读计算保持实际时间的帧率变更；返回取整误差、阻挡对象和需重建结果，不创建Revision。支持15至60整数帧率。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "fps": {
+            "type": "integer",
+            "minimum": 15,
+            "maximum": 60
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "fps"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "set_project_frame_rate",
+      "title": "设置项目帧率",
+      "description": "按当前Revision原子修改项目帧率并保持实际时间；重算项目坐标，保留源文件、固定作品帧率和真实毫秒证据。零帧范围或相关Job未终态时拒绝。相同帧率不创建Revision；修改后需新预览及声画复核。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "fps": {
+            "type": "integer",
+            "minimum": 15,
+            "maximum": 60
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "fps"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
@@ -246,7 +316,7 @@
     {
       "name": "get_editor_url",
       "title": "获取工作台链接",
-      "description": "返回可定位到项目或对象的 Web 工作台 URL。",
+      "description": "只读返回项目或对象的工作台URL；panel=fonts可打开字体库，font_preview提供实际文案、预期字体、用途及原视觉作者推荐的最多3款已登记字体和理由。链接只展示候选，不自动选择或修改项目；主任务等待用户在聊天确认后续接原作者。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -265,6 +335,59 @@
           "frame": {
             "type": "integer",
             "minimum": 0
+          },
+          "panel": {
+            "type": "string",
+            "const": "fonts"
+          },
+          "font_preview": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "expected_font": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "purpose": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "font_id": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9-]{0,79}$"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    }
+                  },
+                  "required": [
+                    "font_id",
+                    "reason"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1,
+                "maxItems": 3
+              }
+            },
+            "required": [
+              "text",
+              "candidates"
+            ],
+            "additionalProperties": false
           }
         },
         "additionalProperties": false,
@@ -842,7 +965,7 @@
     {
       "name": "inspect_asset",
       "title": "审阅原素材",
-      "description": "只读地按 overview、range 或 dense 获取原素材的连续声画、联系表、声音辅助证据、转写、Shot 与当前使用位置。overview覆盖素材全长的概览，不生成完整连续代理；range最长60秒，dense最长12秒，源范围按项目fps的半开区间[start,end)计，range/dense必须提供起止帧。联系表上限分别为25/24/48帧。overview的声音只确认音轨；range/dense提供当前窗口的波形、静音和meanVolumeDb/maxVolumeDb（dBFS），均不提供LUFS或true peak，不能拼接短窗口读数推断全片响度。需要实际合成响度时，通过render_preview_range生成目标范围，再读取成功Job.result.audio；只有覆盖完整Timeline的输出才是全片混合测量，当前没有直接测原素材全长LUFS的独立MCP入口。音视频返回 reviewPath，只读审阅页面提供播放、暂停、重播和进度控件，浏览器优先打开此路径。派生文件只写入可重建缓存，不会创建 Revision 或自动做剪辑判断。",
+      "description": "只读地按 overview、range 或 dense 获取原素材的连续声画、联系表、声音辅助证据、转写、Shot 与当前使用位置。overview覆盖素材全长的概览，不生成完整连续代理；range最长60秒，dense最长12秒，源范围按项目fps的半开区间[start,end)计，range/dense必须提供起止帧。联系表上限分别为25/24/48帧。overview的声音只确认音轨；range/dense提供当前窗口的波形、静音和meanVolumeDb/maxVolumeDb（dBFS），均不提供LUFS或true peak，不能拼接短窗口读数推断全片响度。需要实际合成响度时，通过render_preview_range生成目标范围，再读取成功Job.result.audio；只有覆盖完整Timeline的输出才是全片混合测量，当前没有直接测原素材全长LUFS的独立MCP入口。音视频返回 reviewPath，只读审阅页面提供播放、暂停、重播和进度控件，浏览器优先打开此路径。派生文件只写入可重建缓存，不会创建 Revision 或自动做剪辑判断。返回diagnostics.status（complete/partial/unavailable/not_ready）、requestedFrames/generatedFrames、components、continuousReview、issues及recovery，sideEffects=review_cache_only。单张预览失败保留其他有效图片，代理和声音证据分别返回；空输出/超时不证明原视频损坏。inspect_available_evidence交原作者查看证据与缺口；select_another_candidate暂不采用当前候选、继续正常选材；只有report_platform_failure停止受影响步骤并报修，其他无依赖工作继续。wait_for_media_analysis等待媒体分析。没有连续代理的range/dense不能以截图宣称正式选段审阅通过；不自动改Asset状态、Revision、Job或创建工单，不授权重放旧下载/生成。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -896,7 +1019,7 @@
     {
       "name": "browse_sound_sources",
       "title": "在线音效候选来源",
-      "description": "返回当前在线音效/音乐 Provider 的实际搜索、试听、原文件、分类、凭据与许可边界；不下载，也不表示已试听或适合成片。",
+      "description": "返回当前在线音效/音乐 Provider 的实际搜索、试听、原文件、分类、访问能力；不下载，也不表示已试听或适合成片。",
       "inputSchema": {
         "type": "object",
         "properties": {},
@@ -1059,13 +1182,6 @@
             ],
             "description": "视频或音频最短源时长，单位毫秒；图片不应用该条件。null 清空限制，省略保持原值，0 无效。"
           },
-          "rights_requirement": {
-            "type": "string",
-            "enum": [
-              "cleared_only",
-              "cleared_or_attribution"
-            ]
-          },
           "fallback_plan": {
             "type": "string",
             "enum": [
@@ -1112,7 +1228,7 @@
     {
       "name": "search_media_candidates",
       "title": "搜索素材候选",
-      "description": "先从 list_asset_providers 选择准确 provider id。media_type 明确筛选图片/视频/音频；youtube 的 query 是选中的单条 HTTPS 视频页面（不是关键词）。返回 diagnostics.complete 和 warnings，部分结果不能视为完整搜索。仅保存独立搜索会话，不改变创作 Revision，不下载或自动采用素材。",
+      "description": "先从 list_asset_providers 选择准确 provider id。media_type 明确筛选图片/视频/音频；youtube 的 query 是选中的单条 HTTPS 视频页面；pexels 无 API Key 时也只接受选定的单视频页 URL，关键词需要 Key。返回 diagnostics.complete 和 warnings，部分结果不能视为完整搜索。仅保存独立搜索会话，不改变创作 Revision，不下载或自动采用素材。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1168,7 +1284,7 @@
     {
       "name": "inspect_media_candidate",
       "title": "检查素材候选",
-      "description": "读取候选的来源、授权、时长、画幅、技术过滤理由及其对应素材需求；只读，不代表候选已被采用。",
+      "description": "读取候选的来源、时长、画幅、技术过滤理由及其对应素材需求；只读，不代表候选已被采用。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1196,7 +1312,7 @@
     {
       "name": "acquire_media_asset",
       "title": "下载并本地化素材候选",
-      "description": "只允许通过技术过滤且具备来源许可或明确用途依据的候选进入异步下载任务。Worker 会校验 MIME、文件头、内容哈希和 ffprobe 后才登记正式 Asset。",
+      "description": "通过技术过滤的候选可以进入异步下载任务。Worker 会校验 MIME、文件头、内容哈希和 ffprobe 后才登记正式 Asset。故障修复并确认部署后，可对已有明确 failed Job 的失败候选使用新的幂等键恢复；仍重核当前技术条件，旧失败记录保留。未知结果或执行中的任务不能重放。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1210,34 +1326,6 @@
           "asset_candidate_id": {
             "type": "string",
             "minLength": 1
-          },
-          "usage_rights": {
-            "type": "object",
-            "properties": {
-              "purposes": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "enum": [
-                    "draft",
-                    "delivery"
-                  ]
-                },
-                "minItems": 1,
-                "maxItems": 2
-              },
-              "basis": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 2000
-              }
-            },
-            "required": [
-              "purposes",
-              "basis"
-            ],
-            "additionalProperties": false,
-            "description": "已核实的具体使用许可依据与用途；不伪造来源 cleared，也不绕过技术或人工拒绝。"
           },
           "idempotency_key": {
             "type": "string",
@@ -1258,8 +1346,8 @@
     },
     {
       "name": "read_asset_provenance",
-      "title": "读取素材来源与授权",
-      "description": "读取已经本地化 Asset 的 Provider、来源页面、作者、许可、署名、授权状态和对应候选；只读。",
+      "title": "读取素材来源",
+      "description": "读取已经本地化 Asset 的 Provider、来源页面、作者、原始素材 ID、取得时间和对应候选；只读。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1287,7 +1375,7 @@
     {
       "name": "import_media",
       "title": "导入本地素材",
-      "description": "复制本地媒体到受管项目目录并创建媒体分析任务；可同时登记 A/B-roll 角色、来源和版权状态。",
+      "description": "复制本地媒体到受管项目目录并创建媒体分析任务；可同时登记 A/B-roll 角色、来源信息。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1354,62 +1442,10 @@
               "creator": {
                 "type": "string",
                 "maxLength": 240
-              },
-              "license": {
-                "type": "string",
-                "maxLength": 500
-              },
-              "license_url": {
-                "type": "string",
-                "format": "uri",
-                "maxLength": 2000
-              },
-              "attribution_text": {
-                "type": "string",
-                "maxLength": 1000
-              },
-              "rights_status": {
-                "type": "string",
-                "enum": [
-                  "unknown",
-                  "cleared",
-                  "attribution_required",
-                  "restricted",
-                  "rejected"
-                ]
-              },
-              "usage_rights": {
-                "type": "object",
-                "properties": {
-                  "purposes": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "enum": [
-                        "draft",
-                        "delivery"
-                      ]
-                    },
-                    "minItems": 1,
-                    "maxItems": 2
-                  },
-                  "basis": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 2000
-                  }
-                },
-                "required": [
-                  "purposes",
-                  "basis"
-                ],
-                "additionalProperties": false,
-                "description": "仅凭真实许可依据指定 draft 内部审阅、delivery 对外交付；不提供则沿用原限制"
               }
             },
             "required": [
-              "source",
-              "rights_status"
+              "source"
             ],
             "additionalProperties": false
           }
@@ -1417,6 +1453,46 @@
         "required": [
           "base_revision_id",
           "file_path"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "extract_source_audio",
+      "title": "提取已入库视频原声",
+      "description": "从已就绪视频的明确毫秒源范围提取独立 WAV 并登记来源；随后由媒体分析 Job 验证。不会自动写入声音轨，需读回 Asset 后再使用 manage_audio。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "source_asset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_start_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "source_end_ms": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "source_asset_id",
+          "source_start_ms",
+          "source_end_ms"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
@@ -1487,7 +1563,7 @@
     {
       "name": "import_local_sound_effect",
       "title": "导入本地音效",
-      "description": "将已检测、且仍位于配置音效根目录内的文件复制到项目受管目录并创建媒体分析任务；导入默认不会声称已取得交付授权。",
+      "description": "将已检测、且仍位于配置音效根目录内的文件复制到项目受管目录并创建媒体分析任务。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1515,26 +1591,6 @@
               "maxLength": 80
             },
             "maxItems": 20
-          },
-          "rights_status": {
-            "type": "string",
-            "enum": [
-              "unknown",
-              "cleared",
-              "attribution_required",
-              "restricted",
-              "rejected"
-            ]
-          },
-          "license": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 500
-          },
-          "attribution_text": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 1000
           }
         },
         "required": [
@@ -1552,7 +1608,7 @@
     {
       "name": "update_asset_metadata",
       "title": "标注素材角色与来源",
-      "description": "为已导入素材记录叙事角色、标签、来源、授权和署名；不改变媒体文件或分析任务。",
+      "description": "为已导入素材记录叙事角色、标签、来源信息；不改变媒体文件或分析任务。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1619,62 +1675,10 @@
               "creator": {
                 "type": "string",
                 "maxLength": 240
-              },
-              "license": {
-                "type": "string",
-                "maxLength": 500
-              },
-              "license_url": {
-                "type": "string",
-                "format": "uri",
-                "maxLength": 2000
-              },
-              "attribution_text": {
-                "type": "string",
-                "maxLength": 1000
-              },
-              "rights_status": {
-                "type": "string",
-                "enum": [
-                  "unknown",
-                  "cleared",
-                  "attribution_required",
-                  "restricted",
-                  "rejected"
-                ]
-              },
-              "usage_rights": {
-                "type": "object",
-                "properties": {
-                  "purposes": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "enum": [
-                        "draft",
-                        "delivery"
-                      ]
-                    },
-                    "minItems": 1,
-                    "maxItems": 2
-                  },
-                  "basis": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 2000
-                  }
-                },
-                "required": [
-                  "purposes",
-                  "basis"
-                ],
-                "additionalProperties": false,
-                "description": "仅凭真实许可依据指定 draft 内部审阅、delivery 对外交付；不提供则沿用原限制"
               }
             },
             "required": [
-              "source",
-              "rights_status"
+              "source"
             ],
             "additionalProperties": false
           }
@@ -2237,10 +2241,6 @@
             "type": "string",
             "maxLength": 160
           },
-          "authorization_note": {
-            "type": "string",
-            "maxLength": 500
-          },
           "usage_note": {
             "type": "string",
             "maxLength": 500
@@ -2361,6 +2361,63 @@
         },
         "required": [
           "base_revision_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "submit_speech_placement",
+      "title": "按帧编排已生成旁白",
+      "description": "按 Script 顺序给全部已就绪 SpeechSegment 指定起始帧；可给 duration_frames 为末段后补静音，令总轨覆盖完整场景。媒体 Worker 复用段音频并插入静音，完成后在同一 Revision 更新 Dialogue 总轨、SpeechTiming 和字幕；不重新合成声音。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "placements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "speech_segment_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "start_frame": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "speech_segment_id",
+                "start_frame"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1
+          },
+          "duration_frames": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "placements",
+          "idempotency_key"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
@@ -2514,7 +2571,7 @@
     {
       "name": "edit_captions",
       "title": "编辑稳定字幕卡",
-      "description": "可编辑当前 SpeechAsset 或已审计 source_audio Caption Card 的屏幕文案、显隐范围、静态位置和一个连续短语强调；bulk_source_format 可原子统一同一 A-roll 的明确 Card 集合。不会改 Script、音频、Card 边界或时间范围；chunk_coarse 原声字幕不能被伪拆分或重定时。occurrence 从 0 开始计数。",
+      "description": "可编辑当前 SpeechAsset 或已审计 source_audio Caption Card 的屏幕文案、显隐范围、静态位置和一个连续短语强调；bulk_source_format 可原子统一同一来源使用（sourceTimelineItemId）的明确 Card 集合。不会改 Script、音频、Card 边界或时间范围；chunk_coarse 原声字幕不能被伪拆分或重定时。occurrence 从 0 开始计数。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -2756,7 +2813,8 @@
                   {
                     "type": "null"
                   }
-                ]
+                ],
+                "description": "背景透明度0.1–1；取消背景使用background_color:null并省略本字段，不能传0"
               },
               "bottom_percent": {
                 "type": "number",
@@ -5360,7 +5418,7 @@
     {
       "name": "submit_music_generation",
       "title": "提交受控音乐生成",
-      "description": "用明确的 Bridge workflow、提示词和精确时长提交音乐生成。Worker 会动态读取 Schema、核验音频输出并保存审计；没有明确权利确认时结果默认 unknown，不能直接作为 delivery。",
+      "description": "用明确的 Bridge workflow、提示词和精确时长提交音乐生成。Worker 会动态读取 Schema、核验音频输出并保存审计；结果需按实际内容采用。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -5413,7 +5471,7 @@
     {
       "name": "submit_video_generation",
       "title": "提交受控视频生成",
-      "description": "提交文生、图生、首尾帧或多参考 MiniMax 视频生成。Worker 会动态读取 Bridge Schema、校验受管输入、下载并验证输出；生成结果默认权利 unknown，不自动进入 Timeline。证据类 AssetRequest 不允许用生成画面替代。",
+      "description": "提交文生、图生、首尾帧或多参考 MiniMax 视频生成。Worker 会动态读取 Bridge Schema、校验受管输入、下载并验证输出；生成结果不自动进入 Timeline。证据类 AssetRequest 不允许用生成画面替代。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -5544,7 +5602,7 @@
     {
       "name": "read_actor_capabilities",
       "title": "读取人物能力档案",
-      "description": "读取当前项目中已登记的数字人 Provider、输入、Mask、音频驱动口型、局部重生成和隐私/权利边界；参考音频输入本身不等于已验证口型同步，实际提交前仍会读取 Provider 的最新 Schema。",
+      "description": "读取当前项目中已登记的数字人 Provider、输入、Mask、音频驱动口型、局部重生成和隐私信息；参考音频输入本身不等于已验证口型同步，实际提交前仍会读取 Provider 的最新 Schema。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -5648,11 +5706,6 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 1800
-          },
-          "rights_note": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000
           },
           "privacy_note": {
             "type": "string",
@@ -5776,7 +5829,7 @@
     {
       "name": "submit_avatar_job",
       "title": "提交数字人生成人物",
-      "description": "使用当前 SpeechAsset 与已登记的能力档案提交 MiniMax H3 多参考人物生成。提交会固定 base_revision_id；Worker 在实际调用前动态读取 Bridge Schema，不接受或承诺逐帧姿态、目光、手势追踪。当前生成结果仅支持无 Mask 的前景降级，人物声音只能由 Dialogue 或静音承担。若提供 rights_confirmation，肖像、声音、Provider 使用权依据必须三项完整，结果才会从默认 unknown 标为 cleared；完成后用 track_job 和 read_actor_performances 读回。",
+      "description": "使用当前 SpeechAsset 与已登记的能力档案提交 MiniMax H3 多参考人物生成。提交会固定 base_revision_id；Worker 在实际调用前动态读取 Bridge Schema，不接受或承诺逐帧姿态、目光、手势追踪。当前生成结果仅支持无 Mask 的前景降级，人物声音只能由 Dialogue 或静音承担。完成后用 track_job 和 read_actor_performances 读回。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -5869,24 +5922,6 @@
               "use_dialogue_track",
               "muted"
             ]
-          },
-          "rights_confirmation": {
-            "type": "object",
-            "properties": {
-              "portrait_rights_basis": {
-                "type": "string",
-                "maxLength": 2000
-              },
-              "voice_rights_basis": {
-                "type": "string",
-                "maxLength": 2000
-              },
-              "provider_usage_rights_basis": {
-                "type": "string",
-                "maxLength": 2000
-              }
-            },
-            "additionalProperties": false
           },
           "layout": {
             "type": "object",
@@ -6015,6 +6050,41 @@
           "title",
           "purpose",
           "start_frame",
+          "end_frame"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "trim_scene",
+      "title": "缩短场景终点",
+      "description": "在当前 Revision 中安全缩短已有 Scene；绑定内容超出新终点时拒绝提交。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "scene_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "end_frame": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "scene_id",
           "end_frame"
         ],
         "additionalProperties": false,
@@ -6285,6 +6355,22 @@
       }
     },
     {
+      "name": "read_motion_capabilities",
+      "title": "读取受管动画能力与字体",
+      "description": "只读查询当前动画引擎、允许导入的接口及随Runtime发布的字体。fontBindings用槽名映射fontId；平台校验文件并在首次挂载前加载，源码使用props.fonts[槽位]的family、weight、style，不自行加载字体或联网。新增字体需要发布新版Runtime。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "inspect_motion_reference",
       "title": "查看在线动效参考",
       "description": "在独立浏览器只读查看四个来源的公开页面。先返回预览索引和页面截图，再通过 preview_index 连续采样一个动效；不下载媒体，不跨越登录、验证或付费限制。",
@@ -6339,7 +6425,7 @@
     {
       "name": "submit_motion_work",
       "title": "生成受管 Remotion 作品",
-      "description": "保存固定版本源码、Props、创作说明与可选参考观察记录，排队隔离渲染。不会修改平台代码或自动放入 Timeline；修改作品重新提交并填写 previousAssetId。支持文字、CSS、SVG、受管图片与最多4路正常速度静音视频。videoBindings 按 slot 固定源素材和毫秒半开范围，源码 import {BoundVideo} from '@videoflowcut/motion'，用 slot、offsetInFrames、fit、style 控制；播放帧为 Sequence 局部帧加 offsetInFrames，接管同一视频须延续偏移。源不足报错，不自动循环或冻结；原声须在声音轨显式编排。视频源合计512MB、解码512MB及650000000像素帧预算；imageBindings 把图片 Asset ID 映射到 props.assets 的命名 Slot，源码用 Remotion Img 消费，不直接填资源 URL。单作品限制：宽高为64–1920的偶数，fps为15–60的整数，durationInFrames为2–900的整数，durationInFrames/fps≤30秒，width×height×durationInFrames≤650000000像素帧。最大帧数=min(900,30×fps,floor(650000000/(width×height)))；须在创作前核算，预算拒绝不会创建Job、Asset、Cue或视频Revision。超限应由原创意负责人按自然内容节点分为独立作品或调整画布，每件使用独立幂等键、从0开始的局部帧与完整源码；可在同一Scene内分别审阅并连续放置Cue，作品分段不要求拆Scene，衔接仍需真实合成审阅。",
+      "description": "新作品填写 work.creativeBrief，提交固定源码、Props、图片及视频绑定，排队隔离渲染；不自动放入Timeline。修改作品重新提交并填写previousAssetId。视频最多4个选段，每槽声明assetId、sourceStartMs、sourceEndMs、startFrame、endFrame及可选decodeScale；源码import {TimelineVideo} from '@videoflowcut/motion'，以slot、fit、style显示。平台使用作品根时钟，内部Sequence不重置源时间，不接受offsetInFrames。输出帧数以endFrame-startFrame为准，源范围允许毫秒取整及不足一帧余量；正常速度且静音，原声在声音轨明确编排。源不足、源变化或取帧越界报错，不自动冻结或循环。原片按内容身份共享，不按槽复制；解码缓存按需生成、有界回收，不按原片或累计解码512MB拒绝。完整作品不设30秒、900帧或650000000累计像素帧门槛，由Worker提前检查完整输出及临时工作区真实磁盘需求；失败不登记半件Asset。画布宽高64–1920偶数、fps15–60整数；所有帧连续渲染并验证，一个Job产生一个完整Asset。imageBindings将图片映射到props.assets，使用Remotion Img，不允许任意资源URL。历史作品产物可读；历史引擎重新生成须按新合同提交。技术生成不替代连续审片。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -6389,25 +6475,25 @@
                 "type": "integer",
                 "minimum": 64,
                 "maximum": 1920,
-                "description": "画布宽度（像素），64–1920 的偶数；须同时满足 width×height×durationInFrames≤650000000。"
+                "description": "画布宽度（像素），64–1920 的偶数；完整输出按真实磁盘需求预检。"
               },
               "height": {
                 "type": "integer",
                 "minimum": 64,
                 "maximum": 1920,
-                "description": "画布高度（像素），64–1920 的偶数；须同时满足 width×height×durationInFrames≤650000000。"
+                "description": "画布高度（像素），64–1920 的偶数；完整输出按真实磁盘需求预检。"
               },
               "fps": {
                 "type": "integer",
                 "minimum": 15,
                 "maximum": 60,
-                "description": "帧率，15–60 的整数；durationInFrames/fps≤30 秒。"
+                "description": "帧率，15–60 的整数；视频按真实时间戳重采样。"
               },
               "durationInFrames": {
                 "type": "integer",
                 "minimum": 2,
-                "maximum": 900,
-                "description": "单作品完整帧数，2–900 的整数，且不超过30秒及650000000像素帧；最大帧数为min(900,30×fps,floor(650000000/(width×height)))。"
+                "maximum": 9007199254740991,
+                "description": "作品完整帧数；平台有界取帧并连续渲染，不按30秒、900帧或累计像素帧要求作者拆件。"
               },
               "reference": {
                 "type": "object",
@@ -6453,59 +6539,6 @@
                 ],
                 "additionalProperties": false
               },
-              "rights": {
-                "type": "object",
-                "properties": {
-                  "basis": {
-                    "$ref": "#/properties/work/properties/reference/properties/observation/properties/layout"
-                  },
-                  "status": {
-                    "type": "string",
-                    "enum": [
-                      "unknown",
-                      "cleared",
-                      "attribution_required",
-                      "restricted"
-                    ]
-                  },
-                  "attribution": {
-                    "type": "string",
-                    "maxLength": 1200
-                  },
-                  "usageRights": {
-                    "type": "object",
-                    "properties": {
-                      "purposes": {
-                        "type": "array",
-                        "items": {
-                          "type": "string",
-                          "enum": [
-                            "draft",
-                            "delivery"
-                          ]
-                        },
-                        "minItems": 1,
-                        "maxItems": 2
-                      },
-                      "basis": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 2000
-                      }
-                    },
-                    "required": [
-                      "purposes",
-                      "basis"
-                    ],
-                    "additionalProperties": false
-                  }
-                },
-                "required": [
-                  "basis",
-                  "status"
-                ],
-                "additionalProperties": false
-              },
               "previousAssetId": {
                 "type": "string",
                 "maxLength": 150
@@ -6513,7 +6546,8 @@
               "creativeBrief": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 6000
+                "maxLength": 6000,
+                "description": "新作品必填的创作说明；仅历史作品按原输入进行幂等重放时可省略。"
               },
               "videoBindings": {
                 "type": "object",
@@ -6527,11 +6561,23 @@
                     },
                     "sourceStartMs": {
                       "type": "integer",
-                      "minimum": 0
+                      "minimum": 0,
+                      "maximum": 9007199254740991
                     },
                     "sourceEndMs": {
                       "type": "integer",
-                      "exclusiveMinimum": 0
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "startFrame": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "endFrame": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
                     },
                     "decodeScale": {
                       "type": "number",
@@ -6542,14 +6588,27 @@
                   "required": [
                     "assetId",
                     "sourceStartMs",
-                    "sourceEndMs"
+                    "sourceEndMs",
+                    "startFrame",
+                    "endFrame"
                   ],
                   "additionalProperties": false
                 },
                 "propertyNames": {
-                  "pattern": "^[a-z][a-z0-9_]{0,39}$"
+                  "pattern": "^[a-z][A-Za-z0-9_]{0,39}$"
                 },
-                "description": "受管动态视频，最多4路；源范围为毫秒半开区间，正常速度且静音。源码从 @videoflowcut/motion 导入 BoundVideo，以 slot 引用，offsetInFrames 与 Sequence 局部帧共同确定播放位置。"
+                "description": "最多4个视频选段；声明源毫秒范围和作品帧范围。TimelineVideo读取作品根时钟，Sequence只改变布局；正常速度且静音，不接受offsetInFrames。"
+              },
+              "fontBindings": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{0,79}$"
+                },
+                "propertyNames": {
+                  "pattern": "^[a-z][A-Za-z0-9_]{0,39}$"
+                },
+                "description": "字体槽位到已登记 fontId 的映射，最多8槽。先查询 read_motion_capabilities；平台加载后注入 props.fonts[槽位] 的 family、weight、style，不接受路径或URL。"
               }
             },
             "required": [
@@ -6558,8 +6617,7 @@
               "width",
               "height",
               "fps",
-              "durationInFrames",
-              "rights"
+              "durationInFrames"
             ],
             "additionalProperties": false
           }
@@ -7538,23 +7596,6 @@
                     "format": "uri",
                     "maxLength": 4000
                   },
-                  "basis": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 2000
-                  },
-                  "purposes": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "enum": [
-                        "draft",
-                        "delivery"
-                      ]
-                    },
-                    "minItems": 1,
-                    "maxItems": 2
-                  },
                   "kind": {
                     "type": "string",
                     "const": "web_snapshot"
@@ -7564,8 +7605,6 @@
                   "baseRevision",
                   "idempotencyKey",
                   "url",
-                  "basis",
-                  "purposes",
                   "kind"
                 ],
                 "additionalProperties": false,
@@ -7583,12 +7622,6 @@
                   "url": {
                     "$ref": "#/properties/input/anyOf/0/properties/url"
                   },
-                  "basis": {
-                    "$ref": "#/properties/input/anyOf/0/properties/basis"
-                  },
-                  "purposes": {
-                    "$ref": "#/properties/input/anyOf/0/properties/purposes"
-                  },
                   "kind": {
                     "type": "string",
                     "const": "image"
@@ -7598,8 +7631,6 @@
                   "baseRevision",
                   "idempotencyKey",
                   "url",
-                  "basis",
-                  "purposes",
                   "kind"
                 ],
                 "additionalProperties": false,
@@ -7616,12 +7647,6 @@
                   },
                   "url": {
                     "$ref": "#/properties/input/anyOf/0/properties/url"
-                  },
-                  "basis": {
-                    "$ref": "#/properties/input/anyOf/0/properties/basis"
-                  },
-                  "purposes": {
-                    "$ref": "#/properties/input/anyOf/0/properties/purposes"
                   },
                   "kind": {
                     "type": "string",
@@ -7649,8 +7674,6 @@
                   "baseRevision",
                   "idempotencyKey",
                   "url",
-                  "basis",
-                  "purposes",
                   "kind"
                 ],
                 "additionalProperties": false
@@ -7660,6 +7683,35 @@
         },
         "required": [
           "input"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "set_dialogue_muted",
+      "title": "设置旁白轨静音",
+      "description": "可逆设置整个 Dialogue 轨的静音状态，Preview、Export 和 Web 共用轨道 muted 合同；保留音频素材、Script、字幕、时序和其他音轨。字幕需另行显隐，其他轨原声仍可能可听；恢复后不会自动获得声音来源或用途批准。写入当前 Revision 并使整片声音待复核。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "muted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "muted"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
@@ -7863,7 +7915,7 @@
                         },
                         "reason": {
                           "type": "string",
-                          "minLength": 8,
+                          "minLength": 1,
                           "maxLength": 800
                         }
                       },
@@ -8507,12 +8559,11 @@
                 "semantic_anchor_required",
                 "asset_binding_required",
                 "settled_frame_required",
-                "caption_safe_area",
                 "no_competing_visual",
                 "actor_mask_required"
               ]
             },
-            "maxItems": 6
+            "maxItems": 5
           }
         },
         "required": [
@@ -9249,7 +9300,7 @@
     {
       "name": "run_render_preflight",
       "title": "执行渲染前检查",
-      "description": "固定目标 Revision，检查实际引用素材、本地文件、可解码性、权利、Mask 与当前 Remotion 组件依赖；检查通过不替代正式渲染或完整审片。",
+      "description": "固定目标 Revision，检查实际引用素材、本地文件、可解码性、Mask 与当前 Remotion 组件依赖；检查通过不替代正式渲染或完整审片。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -9309,7 +9360,7 @@
     {
       "name": "read_export_artifact",
       "title": "读取导出产物",
-      "description": "读取不可变 ExportArtifact 的目标 Revision、哈希、技术校验、署名清单、成片复核和批准状态。",
+      "description": "读取不可变 ExportArtifact 的目标 Revision、哈希、技术校验、来源清单、成片复核和批准状态。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -9516,6 +9567,33 @@
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "read_job_diagnostics",
+      "title": "读取任务失败诊断",
+      "description": "只读获取指定Job的阶段、异常链、浏览器事件和错误输出。仅读取该Job独立诊断目录，不接受文件路径，不改项目或任务。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true
       },
       "execution": {
         "taskSupport": "forbidden"

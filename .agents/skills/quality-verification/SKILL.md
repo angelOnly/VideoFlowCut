@@ -6,17 +6,18 @@ description: 读取当前 Revision 的项目结构、真实 Preview、最终 Art
 # 质量验证、根因诊断与交付门禁
 
 <!-- topic-film-v2-quality-verification:begin -->
-## 主题成片：检查实际体验，而不只确认元素出现
+<!-- material-scene-v3 -->
+## 审阅材料与动画的实际结合，不只核对元素齐全
 
-先按正常顺序查看当前媒体，记录实际先看到了什么、何时完成辨认/阅读、哪里等待或迷失；再对照导演采用稿和作者实现位置。分别交付工程正确性、设计兑现、实际观看三类结论。
+先按实际顺序看当前媒体，再读采用稿对照，使用 [材料融合审阅方法](references/material-integration-review.md)。记录工程正确、设计兑现、实际观看三类结论；实际观看包含美术、自然度、节奏、声音和前后关系。
 
-美术检查主体轮廓与比例、关键细节、受光、排印层级、实际投影和共同构图；丰富度检查观看方式是否因内容发展而变化，不统计效果种类；节奏检查第一重点是否仍有任务，不以全画面有像素变化证明没有空等。屏幕UI与制作备注按准确可见文字清单核对。
+关键混合场面从材料进入前看到动画发展后与下一镜：目标是否确实存在；圈、标签、局部和原图是否对应；源时刻是否连续；原创解释身份是否清楚；变化后观众新增了什么观察；材料退出是否丢掉必要参照。实际用了图片、整体同屏或平滑叠化，都不能单独证明融合成立。
 
-可见文字重叠/裁断、主要设计动作遗漏回原作者；材料无过程回素材；设计完整实现仍平淡或重复回导演与视觉作者；声音或语言妨碍观看回原文案/声音负责人。每项给出版本、范围、观察、影响、负责人和所需复核，不只说“更高级”。
+材料只有题材关联但设计完整实现，回导演/视觉作者重写关系；目标/源时钟/变换偏了回原作者；原件没有所需过程回素材或导演换表达；当前稿件把日常改成泛化规则时回原文案；真实工具缺陷走原修复链。反馈写版本、区间、观察事实、影响、负责人和应复核范围。
 
-原作者和审片者需能取得同一实际预览。浏览器不可用时按现有analyze_media/read_media_observations辅助检查，记录采样和范围限制；静帧或低频采样不登记为完整连续动态。已知可修问题合并在一次任务内处理，未验证项准确保留，不要求用户补专业审片工作。
+美术检查材料是否仍提供有用形体与纹理，新增图形有没有清楚主次，源内标注是否让人看到细节而非遮掉它；节奏按第一重点的任务判断，不靠像素变化量或动画种类数打分。
 
-工程允许导出与审美全面通过分别报告。案例里的用户认可只绑定原片和认可方面，不能替新指令或新版本作通过证据。
+不能取得连续媒体时，先确认原作者/审片者能读取同一文件，再通过当前合法分析路径补充。`analyze_media`的review context可发送具体问题，但采样结果按真实覆盖记录，不能登记为完整连续观看或听审。无法验证保留inconclusive；允许导出和审美通过仍然分开。旧案例或旧版本的反馈不替当前结果背书。
 <!-- topic-film-v2-quality-verification:end -->
 
 ## 执行角色与代理交接
@@ -124,7 +125,7 @@ Presenter 检查人物信任、安静区、前后景、Cutaway 和字幕；Expla
 
 ## 严重级别与问题写法
 
-blocking 包括事实/权利错误、严重语义断裂、重复人声、关键内容遮挡、黑帧、缺音轨和错误 Revision；major 显著损害理解、节奏或完成度；minor 是局部问题；suggestion 是可选尝试；inconclusive 表示证据不足。
+blocking 包括事实错误、严重语义断裂、重复人声、关键内容遮挡、黑帧、缺音轨和错误 Revision；major 显著损害理解、节奏或完成度；minor 是局部问题；suggestion 是可选尝试；inconclusive 表示证据不足。
 
 每条问题写可观察证据、观看影响、可能根因、对象/范围、建议修复和复核方法。不要只写“节奏不好、画面不高级”。
 
@@ -165,7 +166,6 @@ blocking 包括事实/权利错误、严重语义断裂、重复人声、关键�
 | Project Graph | Story、Scene、Item、Cue、Caption、Speech、Actor 是否悬空 | Application / project-basics |
 | 时间 | start/end、Scene 边界、局部时间、SpeechTiming 精度 | effect-timing / Application |
 | Asset | 文件、Hash、元数据、可解码、Binding、来源 | asset-import / sourcing |
-| 权利 | rightsStatus、署名、生成/证据区分 | sourcing / evidence / export |
 | 人物 | AudioMode、Mask、Speech/Script 版本 | avatar-performance |
 | 字幕 | 文本一致、时序、越界、画幅 | captions |
 | Remotion | Registry、Props、Asset、字体、Player/Render | remotion-production |
@@ -210,7 +210,7 @@ Quality Skill 应读取这些结果，但不能把可由代码确定的错误全
 
 ## 修复优先级
 
-先修事实、权利、语义和声音；再修 Story/Scene 和主视觉；再修字幕、B-roll、Motion 和混音；最后才是小材质和 suggestion。若上游改变导致下游 stale，应重新生成/复核，而不是只修表面症状。
+先修事实、语义和声音；再修 Story/Scene 和主视觉；再修字幕、B-roll、Motion 和混音；最后才是小材质和 suggestion。若上游改变导致下游 stale，应重新生成/复核，而不是只修表面症状。
 
 ## Review 的版本约束
 
@@ -232,7 +232,7 @@ EditorialReview 只适用于它绑定的 Revision。新 Revision 即使只改一
 
 仅针对字幕卡字面显示的 semantic/typography 问题，可由原负责人明确采用 `resolutions.scope="caption_text"`：Finding 必须是 mute_visual 且 objectId 绑定当前 caption，证据必须为问题发现之后登记、当前 Revision、该卡范围内实际看过的一帧（end=start+1）。这只关闭文字显示问题，不确认发音、换卡时机、可读时长、动画或整轮连续覆盖；涉及这些因素须分别保留问题并用对应证据复核。没有 scope 的旧调用仍遵守完整范围规则。
 
-`complete_production_run` 校验当前版本、制作记录、真实成功预览及必要技术/内部用途条件，不要求 AI 审阅或每个 Cue 的抽帧。导出按技术和用途许可执行；未关闭的 blocking、major、inconclusive 作为辅助提示，不阻挡制作、修订或文件产出。五轮是可按需执行的专业观察方法，缺少感知输入时保留未知，不补造观看证据。最终效果与人工定稿由用户确认具体 Artifact，不由 ProductionRun 或 AI 代替。
+`complete_production_run` 校验当前版本、制作记录、真实成功预览及必要技术/内部用途条件，不要求 AI 审阅或每个 Cue 的抽帧。导出按技术条件执行；未关闭的 blocking、major、inconclusive 作为辅助提示，不阻挡制作、修订或文件产出。五轮是可按需执行的专业观察方法，缺少感知输入时保留未知，不补造观看证据。最终效果与人工定稿由用户确认具体 Artifact，不由 ProductionRun 或 AI 代替。
 
 ## 自动修订的边界
 

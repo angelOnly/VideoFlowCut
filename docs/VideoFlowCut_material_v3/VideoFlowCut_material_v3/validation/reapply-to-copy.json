@@ -1,0 +1,271 @@
+{
+  "mode": "apply",
+  "repository": "/mnt/data/vfc_material_v3_work/applied-test",
+  "files": [
+    {
+      "path": ".agents/skills/production-director/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "e551fe2e1886db541a4890d5de55de0dc6b7c34dd72be149f1d32ed12d26b55a",
+      "after_sha256": "e551fe2e1886db541a4890d5de55de0dc6b7c34dd72be149f1d32ed12d26b55a"
+    },
+    {
+      "path": ".agents/skills/production-coordinator/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "885356acae9187534d82640bc55b09b8a39c3da809c1ebdee0f1e2f1b189a10e",
+      "after_sha256": "885356acae9187534d82640bc55b09b8a39c3da809c1ebdee0f1e2f1b189a10e"
+    },
+    {
+      "path": ".agents/skills/narration-writing/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "c7aeebc081d1e53c07e544ab9166ded5a10077be71daa6a144b10a35738902b6",
+      "after_sha256": "c7aeebc081d1e53c07e544ab9166ded5a10077be71daa6a144b10a35738902b6"
+    },
+    {
+      "path": ".agents/skills/visual-explainer-director/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "1c04ebe18991e97bc8376e4662c4dcc30ca9cbfd4bfcf316e4ac5c5487ae237e",
+      "after_sha256": "1c04ebe18991e97bc8376e4662c4dcc30ca9cbfd4bfcf316e4ac5c5487ae237e"
+    },
+    {
+      "path": ".agents/skills/visual-asset-sourcing/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "3867915d8c824723bce039f212768766ea1dec76cda8606b0b3d00ee0837a63e",
+      "after_sha256": "3867915d8c824723bce039f212768766ea1dec76cda8606b0b3d00ee0837a63e"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "d4798d0e888aab459df465493645076d4cf7693383bea7334cff2ddd89aa992a",
+      "after_sha256": "d4798d0e888aab459df465493645076d4cf7693383bea7334cff2ddd89aa992a"
+    },
+    {
+      "path": ".agents/skills/scene-planning/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "66af1713d9ecbb5b4f8f42c18c7d0ccec394f8086fa0c02efecafe7b5686a065",
+      "after_sha256": "66af1713d9ecbb5b4f8f42c18c7d0ccec394f8086fa0c02efecafe7b5686a065"
+    },
+    {
+      "path": ".agents/skills/remotion-production/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "9bcf18bb3c278dfec611116cd92d2960911f788f668d3b411d1dd91a42379888",
+      "after_sha256": "9bcf18bb3c278dfec611116cd92d2960911f788f668d3b411d1dd91a42379888"
+    },
+    {
+      "path": ".agents/skills/effect-timing/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "5a1610bfc25d37596966c92bc786254d6d381e10324ece9ac688c1f1b4247a2b",
+      "after_sha256": "5a1610bfc25d37596966c92bc786254d6d381e10324ece9ac688c1f1b4247a2b"
+    },
+    {
+      "path": ".agents/skills/evidence-visualization/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "2ba66f430a7fa725b9715e02f819a68641a8a965154026a4642332ad01b61eab",
+      "after_sha256": "2ba66f430a7fa725b9715e02f819a68641a8a965154026a4642332ad01b61eab"
+    },
+    {
+      "path": ".agents/skills/quality-verification/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "0d9829541f9ca0bc5071a59772b1d3ddb55f60e387dcf88e207c178b2e82d2b9",
+      "after_sha256": "0d9829541f9ca0bc5071a59772b1d3ddb55f60e387dcf88e207c178b2e82d2b9"
+    },
+    {
+      "path": ".agents/skills/motion-case-library/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "711dc119320a83250f2aebf10ec1d2ad6a7571993a4cd8bae54a9377ceae6869",
+      "after_sha256": "711dc119320a83250f2aebf10ec1d2ad6a7571993a4cd8bae54a9377ceae6869"
+    },
+    {
+      "path": ".agents/skills/vlog-director/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "b69816d30126126321056971f485da66512d1edabf800d1506c0b6c1e86e7987",
+      "after_sha256": "b69816d30126126321056971f485da66512d1edabf800d1506c0b6c1e86e7987"
+    },
+    {
+      "path": ".agents/skills/cutaway-planning/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "4255ee543d30d0e5ac4a3e705af2bab4b962a19544bc1a9f72ea49e1d6f8bc0a",
+      "after_sha256": "4255ee543d30d0e5ac4a3e705af2bab4b962a19544bc1a9f72ea49e1d6f8bc0a"
+    },
+    {
+      "path": ".agents/skills/depth-composition/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "b0b8415e886dc29c8bd08e69c5bd019a7a05e2c0259780cdbfae298df45c9d56",
+      "after_sha256": "b0b8415e886dc29c8bd08e69c5bd019a7a05e2c0259780cdbfae298df45c9d56"
+    },
+    {
+      "path": ".agents/skills/_shared/SCENE_DESIGN_HANDOFF.md",
+      "action": "already_applied",
+      "before_sha256": "65c9e47395354e3cf0a4f714e08c6e42a4086244c9111f0d65bd3897cd8b0273",
+      "after_sha256": "65c9e47395354e3cf0a4f714e08c6e42a4086244c9111f0d65bd3897cd8b0273"
+    },
+    {
+      "path": ".agents/skills/_shared/TOPIC_TO_FILM.md",
+      "action": "already_applied",
+      "before_sha256": "23193702144e7a5fb1cc12f8281ba1b5195e73c731023d5ba21c82c6e61f2f93",
+      "after_sha256": "23193702144e7a5fb1cc12f8281ba1b5195e73c731023d5ba21c82c6e61f2f93"
+    },
+    {
+      "path": ".agents/skills/_shared/SOURCE_REVIEW_METHOD.md",
+      "action": "already_applied",
+      "before_sha256": "d19bab74bd07920de4a35156dc1d03908c6e631bad72b594b9200a2e49b307a0",
+      "after_sha256": "d19bab74bd07920de4a35156dc1d03908c6e631bad72b594b9200a2e49b307a0"
+    },
+    {
+      "path": ".agents/skills/remotion-production/references/scene-art-and-motion.md",
+      "action": "already_applied",
+      "before_sha256": "913fc52014f5e6e070f4b8ee6cb8b6c79981a10945762da1ac3862f8d42423b9",
+      "after_sha256": "913fc52014f5e6e070f4b8ee6cb8b6c79981a10945762da1ac3862f8d42423b9"
+    },
+    {
+      "path": ".agents/skills/motion-case-active-window-focus/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "2d59b730364911f6485e2e5ac79425dc9da93e3b8ee88552a46075ff64c61144",
+      "after_sha256": "2d59b730364911f6485e2e5ac79425dc9da93e3b8ee88552a46075ff64c61144"
+    },
+    {
+      "path": ".agents/skills/motion-case-occlusion-condition-reveal/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "d678bbecd51e6c1e3da366d02b88aff30c28931a4fc0686b9de9f79f3cb43a42",
+      "after_sha256": "d678bbecd51e6c1e3da366d02b88aff30c28931a4fc0686b9de9f79f3cb43a42"
+    },
+    {
+      "path": ".agents/skills/motion-case-context-detail-observation/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "35537c3a804f1cac30c65ca9095cf2fc21e2280fb15b1c3578a2a9cfee2dc50b",
+      "after_sha256": "35537c3a804f1cac30c65ca9095cf2fc21e2280fb15b1c3578a2a9cfee2dc50b"
+    },
+    {
+      "path": ".agents/skills/motion-case-relation-unfold/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "c23a7b731420e9d0904322a0e6bf9a7394cbc1c53c7c039cfc7069a7a121cb55",
+      "after_sha256": "c23a7b731420e9d0904322a0e6bf9a7394cbc1c53c7c039cfc7069a7a121cb55"
+    },
+    {
+      "path": ".agents/skills/motion-case-object-type-relay/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "dd163605a9c1e556b36da1d8ca6815b9f1c4ba65e2ff54b8c9858ad6b943d44d",
+      "after_sha256": "dd163605a9c1e556b36da1d8ca6815b9f1c4ba65e2ff54b8c9858ad6b943d44d"
+    },
+    {
+      "path": ".agents/skills/motion-case-mixed-scene-relay/SKILL.md",
+      "action": "already_applied",
+      "before_sha256": "1d8b8502b09514c015a4dddb9c4260f46c452b13be3a3af4a7d0dbb641f12bdf",
+      "after_sha256": "1d8b8502b09514c015a4dddb9c4260f46c452b13be3a3af4a7d0dbb641f12bdf"
+    },
+    {
+      "path": ".agents/skills/motion-case-library/references/r92-family-index.md",
+      "action": "already_applied",
+      "before_sha256": "589ae7e738c5903e4b8ff4966ad7c2437058831b3042bf99b1a3a783ffc8ede1",
+      "after_sha256": "589ae7e738c5903e4b8ff4966ad7c2437058831b3042bf99b1a3a783ffc8ede1"
+    },
+    {
+      "path": ".agents/skills/_shared/MATERIAL_TO_SCENE.md",
+      "action": "already_present",
+      "before_sha256": "908e2df179d019f8e2163d5098fb3486a1980a67662444ddef1a44934e629400",
+      "after_sha256": "908e2df179d019f8e2163d5098fb3486a1980a67662444ddef1a44934e629400"
+    },
+    {
+      "path": ".agents/skills/remotion-production/references/material-space-and-time.md",
+      "action": "already_present",
+      "before_sha256": "e448152b4039778f001648ba69b176db3953b4cfff3338d5e1d35ef543fe08f1",
+      "after_sha256": "e448152b4039778f001648ba69b176db3953b4cfff3338d5e1d35ef543fe08f1"
+    },
+    {
+      "path": ".agents/skills/quality-verification/references/material-integration-review.md",
+      "action": "already_present",
+      "before_sha256": "a45d9734add183bc2261d9c2beee61b4b590d5050f695f630f60edb157f91e9b",
+      "after_sha256": "a45d9734add183bc2261d9c2beee61b4b590d5050f695f630f60edb157f91e9b"
+    },
+    {
+      "path": ".agents/skills/motion-case-library/references/material-integration-validation.md",
+      "action": "already_present",
+      "before_sha256": "38892a5f7ce49dfd1726971fadb0111922c85409c334ad7197c17b6c4b3c37d5",
+      "after_sha256": "38892a5f7ce49dfd1726971fadb0111922c85409c334ad7197c17b6c4b3c37d5"
+    },
+    {
+      "path": ".agents/skills/motion-case-active-window-focus/references/material-integration-prompt-v1.md",
+      "action": "already_present",
+      "before_sha256": "7cd6dc846dc4f110ab204deadca4a10f7fa30c2852059d476636f3b213e0a60e",
+      "after_sha256": "7cd6dc846dc4f110ab204deadca4a10f7fa30c2852059d476636f3b213e0a60e"
+    },
+    {
+      "path": ".agents/skills/motion-case-active-window-focus/material-branch-record.json",
+      "action": "already_present",
+      "before_sha256": "4126b8009c2e3cf72392a8896f8e6ee5f8a4cddbcf613e890fe767fbc3cf4885",
+      "after_sha256": "4126b8009c2e3cf72392a8896f8e6ee5f8a4cddbcf613e890fe767fbc3cf4885"
+    },
+    {
+      "path": ".agents/skills/motion-case-occlusion-condition-reveal/references/material-integration-prompt-v1.md",
+      "action": "already_present",
+      "before_sha256": "e16af0addd3a05c35372d87163c5c04b940fac1c066d0c6f5d8b6af73c8e1d57",
+      "after_sha256": "e16af0addd3a05c35372d87163c5c04b940fac1c066d0c6f5d8b6af73c8e1d57"
+    },
+    {
+      "path": ".agents/skills/motion-case-occlusion-condition-reveal/material-branch-record.json",
+      "action": "already_present",
+      "before_sha256": "d0bc277341c1b56bbdc5f62f2d6a9376997afad355b9657d0977781b3dcb42b4",
+      "after_sha256": "d0bc277341c1b56bbdc5f62f2d6a9376997afad355b9657d0977781b3dcb42b4"
+    },
+    {
+      "path": ".agents/skills/motion-case-context-detail-observation/references/material-integration-prompt-v1.md",
+      "action": "already_present",
+      "before_sha256": "3667d40070dd2f9f4e9a734dcd45c03d296be3d0116dd026ff9ff74cee12f728",
+      "after_sha256": "3667d40070dd2f9f4e9a734dcd45c03d296be3d0116dd026ff9ff74cee12f728"
+    },
+    {
+      "path": ".agents/skills/motion-case-context-detail-observation/material-branch-record.json",
+      "action": "already_present",
+      "before_sha256": "0b5fd98ee4317cb76b31f53b7e4da2d01bcbd57b64d94f24b338bfc44846d35d",
+      "after_sha256": "0b5fd98ee4317cb76b31f53b7e4da2d01bcbd57b64d94f24b338bfc44846d35d"
+    },
+    {
+      "path": ".agents/skills/motion-case-relation-unfold/references/material-integration-prompt-v1.md",
+      "action": "already_present",
+      "before_sha256": "ec280223f17f73a5ed4455d63193832ccf75a4e1d946249e1c56cfaf7b7c7ce3",
+      "after_sha256": "ec280223f17f73a5ed4455d63193832ccf75a4e1d946249e1c56cfaf7b7c7ce3"
+    },
+    {
+      "path": ".agents/skills/motion-case-relation-unfold/material-branch-record.json",
+      "action": "already_present",
+      "before_sha256": "9f741fcbea994e35c39a9666661e93b91a98bcad0471617f03c6439220de20da",
+      "after_sha256": "9f741fcbea994e35c39a9666661e93b91a98bcad0471617f03c6439220de20da"
+    },
+    {
+      "path": ".agents/skills/motion-case-object-type-relay/references/material-integration-prompt-v1.md",
+      "action": "already_present",
+      "before_sha256": "3beefd9b81b9b1f67d55db4190209de0a25dea977a36826fc827ae82578156d2",
+      "after_sha256": "3beefd9b81b9b1f67d55db4190209de0a25dea977a36826fc827ae82578156d2"
+    },
+    {
+      "path": ".agents/skills/motion-case-object-type-relay/material-branch-record.json",
+      "action": "already_present",
+      "before_sha256": "c8f25ea4c52b55dd600bdef8fb9448d00ff712c28042b0a30336d14069ba8a6f",
+      "after_sha256": "c8f25ea4c52b55dd600bdef8fb9448d00ff712c28042b0a30336d14069ba8a6f"
+    },
+    {
+      "path": ".agents/skills/motion-case-mixed-scene-relay/references/material-integration-prompt-v1.md",
+      "action": "already_present",
+      "before_sha256": "6da5f7d85c5473455fa6758b36e70b625fd29c7b0c9f73aec24bb00c7b77fcd4",
+      "after_sha256": "6da5f7d85c5473455fa6758b36e70b625fd29c7b0c9f73aec24bb00c7b77fcd4"
+    },
+    {
+      "path": ".agents/skills/motion-case-mixed-scene-relay/material-branch-record.json",
+      "action": "already_present",
+      "before_sha256": "fa2f98b4f4340b22f130751687e98df974413de17cb8da6a9b7582666385387c",
+      "after_sha256": "fa2f98b4f4340b22f130751687e98df974413de17cb8da6a9b7582666385387c"
+    },
+    {
+      "path": ".agents/skills/remotion-production/references/material-math.mjs",
+      "action": "already_present",
+      "before_sha256": "4f9deb9f9ce55df01967d3a76252c04ea390f247e2a36f947a17c62544a9699e",
+      "after_sha256": "4f9deb9f9ce55df01967d3a76252c04ea390f247e2a36f947a17c62544a9699e"
+    },
+    {
+      "path": ".agents/skills/remotion-production/references/material-math.test.mjs",
+      "action": "already_present",
+      "before_sha256": "78f4f37a752ba8ed26805a9a16aa29d15feb256d7bc6e6758e8f8d879ac69046",
+      "after_sha256": "78f4f37a752ba8ed26805a9a16aa29d15feb256d7bc6e6758e8f8d879ac69046"
+    }
+  ],
+  "message": "Already applied; no files changed"
+}

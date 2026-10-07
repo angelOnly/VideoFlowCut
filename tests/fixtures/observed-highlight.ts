@@ -20,5 +20,4 @@ export default function Highlight(props:{text:string;accent:string}) {
     adaptation: "保留底色扩展与文字层级，改成六字中文；背景透明，字号适应候选画布。末尾淡出是本候选自行设计，并非声称复制原站退出。",
     evidence: "2026-09-05 在公开详情页实际点击播放并采集连续样本，观察到窄条、完整文字与停稳；仅据可见关系独立实现。"
   } },
-  rights: { status: "cleared", basis: "独立编写文字与几何图形，仅参考一般动画关系；使用系统字体，没有复制第三方图片、音乐、Logo 或工程。" }
 });

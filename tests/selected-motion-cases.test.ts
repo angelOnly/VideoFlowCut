@@ -25,7 +25,6 @@ test("选定源码通过当前受管校验与编译；按固定模式和图片�
         props: part.props,
         width: part.width, height: part.height, fps: part.fps, durationInFrames: part.durationInFrames,
         creativeBrief: "验证归档案例的固定源码与当前受管编译合同，编译成功不等于动态或成片验收。",
-        rights: fixture.rights
       });
       assert.ok((await compileMotion(work, images)).length > 0, `${name}/${part.source} 未输出编译结果`);
     }

@@ -30,7 +30,8 @@ export async function validateMotionReviewEvidence(snapshot: ProjectSnapshot, re
     const [record] = await validateEditorialObservations(snapshot, revision, jobs, [{ ...input, previewJobId: input.previewJobId,
       pass: input.method === "audio" ? "audio_only" : input.method === "audiovisual" ? "audiovisual" : "mute_visual", observation: "校验此作品版本在合成范围内的真实媒体，具体审阅写入作品说明。" }]);
     evidence = { ...input, relativePath: record!.relativePath, contentHash: record!.contentHash, revision,
-      workStartFrame: Math.max(0, input.startFrame - cue.startFrame), workEndFrame: Math.min(motion.frameCount, input.endFrame - cue.startFrame), recordedAt: now() };
+      workStartFrame: Math.max(0, Math.floor((input.startFrame - cue.startFrame) * motion.fps / snapshot.timeline.fps)),
+      workEndFrame: input.endFrame >= cue.endFrame ? motion.frameCount : Math.min(motion.frameCount, Math.ceil((input.endFrame - cue.startFrame) * motion.fps / snapshot.timeline.fps)), recordedAt: now() };
   } else throw new DomainError("作品证据类型无效", "MOTION_REVIEW_EVIDENCE_INVALID");
   if (outcome === "passed" && (!["continuous_video", "audiovisual"].includes(input.method) || evidence.workStartFrame !== 0 || evidence.workEndFrame !== motion.frameCount)) throw new DomainError("静帧、只听声音或局部范围不能证明完整作品动态通过", "MOTION_REVIEW_INCOMPLETE");
   return evidence;

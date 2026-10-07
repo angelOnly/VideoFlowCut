@@ -35,7 +35,7 @@ test("音频候选经真实 Worker/ffprobe 本地化，不伪造视频流或画�
     assert.equal(request.visualBrief, undefined); assert.equal(request.targetAspectRatio, undefined);
     assert.equal(request.fallbackPlan, "ask_user");
     await writeFile(join(root, "tick.wav"), wave());
-    const provider = new MockAssetProvider([{ originalAssetId: "tick", name: "tick.wav", filePath: join(root, "tick.wav"), rightsStatus: "cleared", sourceUrl: "https://example.test/tick", license: "CC0" }]);
+    const provider = new MockAssetProvider([{ originalAssetId: "tick", name: "tick.wav", filePath: join(root, "tick.wav"), sourceUrl: "https://example.test/tick", }]);
     const result = app.recordAssetSearch({ projectId, baseRevision: rev(), assetRequestId: request.id, provider: "mock", query: "tick", candidates: await provider.search({ request, query: "tick" }) });
     assert.equal(result.candidates[0].kind, "audio"); assert.equal(result.candidates[0].hardFilterPassed, true);
     const acquire = app.acquireAssetCandidate({ projectId, baseRevision: rev(), assetCandidateId: result.candidates[0].id });
@@ -56,12 +56,12 @@ test("音频候选经真实 Worker/ffprobe 本地化，不伪造视频流或画�
   } finally { app.repository.close(); await rm(root, { recursive: true, force: true }); }
 });
 
-test("Mixkit 解析保持许可和原站身份，页面变化不猜链接", () => {
+test("Mixkit 解析只检查原站身份和媒体信息，页面变化不猜链接", () => {
   const html = 'data-license="sfxFree" <div data-test-id="audio-player" data-audio-player-item-id-value="2574" data-audio-player-preview-url-value="https://assets.mixkit.co/active_storage/sfx/2574/2574-preview.mp3"><h2 class="item-grid-card__title">Soft &amp; short</h2><div data-test-id="duration">0:02</div>';
   const rows = parseMixkitSoundPage(html, "https://mixkit.co/free-sound-effects/interface/");
   assert.equal(rows[0].kind, "audio"); assert.equal(rows[0].name, "Soft & short"); assert.equal(rows[0].durationMs, 2000);
   assert.equal(rows[0].mimeType, undefined, "试听 MP3 不能冒充下载 WAV 的 MIME");
-  assert.throws(() => parseMixkitSoundPage(html.replace("sfxFree", "unknown"), "x"), /许可/u);
+  assert.equal(parseMixkitSoundPage(html.replace("sfxFree", "unknown"), "x").length, 1);
   assert.throws(() => parseMixkitSoundPage(html.replace("https://assets.mixkit.co", "http://127.0.0.1"), "x"), /结构/u);
 });
 
@@ -116,8 +116,6 @@ test("Mixkit 分类迁移仅跟随有限同站公开页，音乐不能借用音�
     assert.equal(calls, target.endsWith("/tag/minimalism/") ? 4 : 1);
   }
   const html = '<div data-test-id="audio-player" data-audio-player-item-id-value="12" data-audio-player-preview-url-value="https://assets.mixkit.co/music/12/12.mp3"><h2 class="item-grid-card__title">技术曲目</h2><div data-test-id="duration">0:30</div>';
-  assert.throws(() => parseMixkitMusicPage(html, "https://mixkit.co/free-stock-music/", 'data-license="sfxFree"'), /音乐许可/u);
-  assert.equal(parseMixkitMusicPage(html, "https://mixkit.co/free-stock-music/", 'data-license="musicFree"')[0].license, "Mixkit Stock Music Free License");
 });
 
 async function fixture() {
@@ -186,7 +184,7 @@ test("18帧持续动作显式绑定时长，点事件可保留21帧尾音且两�
       snapshot.timeline.items[0].endFrame = 1500; snapshot.timeline.items[0].sourceEndFrame = 1500;
       snapshot.scenes[0].endFrame = 1500;
     });
-    const job = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), idempotencyKey: "duration-contract", work: { name: "持续事件协议测试", creativeBrief: "隔离验证持续范围与点事件两种参数，不作为实际作品的审美判断。", source: "export default function M(){return null}", props: {}, imageBindings: {}, width: 1080, height: 1920, fps: 24, durationInFrames: 245, rights: { status: "cleared", basis: "独立协议测试组件，不含第三方素材" } } });
+    const job = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), idempotencyKey: "duration-contract", work: { name: "持续事件协议测试", creativeBrief: "隔离验证持续范围与点事件两种参数，不作为实际作品的审美判断。", source: "export default function M(){return null}", props: {}, imageBindings: {}, width: 1080, height: 1920, fps: 24, durationInFrames: 245, } });
     const asset = f.app.completeManagedMotion({ projectId: f.projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 10208, width: 1080, height: 1920, fps: 24, hasAudio: false, videoCodec: "h264" }, eventMap: { version: String(job.payload.version), fps: 24, frameCount: 245, events: [{ id: "relation_change", meaning: "关系改变", startFrame: 106, endFrame: 124 }] } });
     await f.app.reviewManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), assetId: asset.id, outcome: "inconclusive", note: "隔离参数验证，没有获得实际连续声画审阅证据。" });
     const state = f.app.createEffectCue({ projectId: f.projectId, baseRevision: f.rev(), sceneId: f.app.readProject(f.projectId).snapshot.scenes[0].id, type: "ManagedMotion", layer: "fullscreen", startFrame: 1003, endFrame: 1248, assetBindings: [{ slot: "motion", assetId: asset.id }] });
@@ -269,7 +267,7 @@ test("同一个真实事件合同允许起势、落定或贯穿，禁止自行�
   const f = await fixture();
   try {
     f.app.repository.commit(f.projectId, f.rev(), "固定协议测试画布", (snapshot) => { snapshot.timeline.width = 1080; snapshot.timeline.height = 1920; snapshot.timeline.fps = 30; });
-    const job = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), idempotencyKey: "range-event", work: { name: "事件边界协议测试", props: {}, imageBindings: {}, creativeBrief: "只检验事件绑定边界，不冒充真实视觉作品的渲染验收。", source: "export default function M(){return null}", width: 1080, height: 1920, fps: 30, durationInFrames: 60, rights: { status: "cleared", basis: "本测试的空白原创组件，不代替实际渲染验证" } } });
+    const job = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), idempotencyKey: "range-event", work: { name: "事件边界协议测试", props: {}, imageBindings: {}, creativeBrief: "只检验事件绑定边界，不冒充真实视觉作品的渲染验收。", source: "export default function M(){return null}", width: 1080, height: 1920, fps: 30, durationInFrames: 60, } });
     const asset = f.app.completeManagedMotion({ projectId: f.projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 2000, width: 1080, height: 1920, fps: 30, hasAudio: false, videoCodec: "h264" }, eventMap: { version: String(job.payload.version), fps: 30, frameCount: 60, events: [{ id: "fan", meaning: "展开", startFrame: 10, endFrame: 40 }, { id: "end", meaning: "片尾", startFrame: 50, endFrame: 60 }] } });
     await f.app.reviewManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), assetId: asset.id, outcome: "inconclusive", note: "仅测试已生成事件的绑定合同，不冒充视觉或声音审阅。" });
     const state = f.app.createEffectCue({ projectId: f.projectId, baseRevision: f.rev(), sceneId: f.app.readProject(f.projectId).snapshot.scenes[0].id, type: "ManagedMotion", layer: "fullscreen", startFrame: 100, endFrame: 160, assetBindings: [{ slot: "motion", assetId: asset.id }] });

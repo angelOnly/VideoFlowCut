@@ -12,12 +12,13 @@ import type { AssetCandidate, AssetRequest, MediaMetadata } from "@videocut/cont
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { WikimediaCommonsProvider } from "./wikimedia-commons.js";
 import { MixkitSoundProvider, MixkitMusicProvider } from "./mixkit.js";
+import { PexelsProvider } from "./pexels.js";
 import { MIXKIT_SOUND_CATEGORIES, MIXKIT_MUSIC_CATEGORIES } from "./sound-catalog.js";
 
 export function soundSourceCapabilities() {
   return [
-    { id: "mixkit", name: "Mixkit 音效", enabled: true, search: "public_category", preview: true, original: true, categories: MIXKIT_SOUND_CATEGORIES, licenseUrl: "https://mixkit.co/license/#sfxFree", limits: "一次读取一个分类的至多30条；按需获取少量文件" },
-    { id: "mixkit_music", name: "Mixkit 音乐", enabled: true, search: "public_category", preview: true, original: true, categories: MIXKIT_MUSIC_CATEGORIES, licenseUrl: "https://mixkit.co/license/#musicFree", limits: "单独音乐许可，面向符合许可的网络视频用途" },
+    { id: "mixkit", name: "Mixkit 音效", enabled: true, search: "public_category", preview: true, original: true, categories: MIXKIT_SOUND_CATEGORIES, limits: "一次读取一个分类的至多30条；按需获取少量文件" },
+    { id: "mixkit_music", name: "Mixkit 音乐", enabled: true, search: "public_category", preview: true, original: true, categories: MIXKIT_MUSIC_CATEGORIES, limits: "一次读取一个音乐分类的至多30条；按需获取少量文件" },
   ];
 }
 
@@ -39,10 +40,6 @@ export interface ProviderSearchCandidate {
   height?: number;
   durationMs?: number;
   creator?: string;
-  license?: string;
-  licenseUrl?: string;
-  attributionText?: string;
-  rightsStatus: AssetCandidate["rightsStatus"];
   tags?: string[];
 }
 
@@ -324,6 +321,7 @@ export class AssetProviderRegistry {
       { id: "youtube", name: "YouTube", mediaTypes: ["video"], queryMode: "single_video_url", requiresKey: false, unavailableReason: "当前注册表未启用" },
       { id: "mixkit", name: "Mixkit 音效", mediaTypes: ["audio"], queryMode: "category", requiresKey: false, unavailableReason: "当前注册表未启用" },
       { id: "mixkit_music", name: "Mixkit 音乐", mediaTypes: ["audio"], queryMode: "category", requiresKey: false, unavailableReason: "当前注册表未启用" },
+      { id: "pexels", name: "Pexels 视频", mediaTypes: ["video"], queryMode: "single_video_url_or_keywords_with_key", requiresKey: false, unavailableReason: "当前注册表未启用" },
     ];
     return [...known, ...this.names().filter(id => !known.some(entry => entry.id === id)).map(id => ({ id, name: id, mediaTypes: ["image", "video", "audio"], queryMode: "provider_defined", requiresKey: false, unavailableReason: "" }))]
       .map(entry => ({ ...entry, enabled: this.providers.has(entry.id), unavailableReason: this.providers.has(entry.id) ? undefined : entry.unavailableReason }));
@@ -336,12 +334,14 @@ export class AssetProviderRegistry {
 
 /**
  * 仅注册无需 API Key 的公开素材来源；网页研究由宿主浏览器完成。
- * 发现 Provider 不等于素材已获授权或适合进入 Scene，后续仍要走候选审查和本地化。
+ * 发现 Provider 不等于素材适合进入 Scene，后续仍要走候选审查和本地化。
  */
 export function createDefaultAssetProviderRegistry(): AssetProviderRegistry {
   const providers: AssetProvider[] = [new WikimediaCommonsProvider(), new MixkitSoundProvider(), new MixkitMusicProvider(), new YoutubeProvider()];
+  providers.push(new PexelsProvider());
   return new AssetProviderRegistry(providers);
 }
 
-// Commons 的逐文件许可解析在独立模块中实现。
+// Commons 的素材元数据解析在独立模块中实现。
 export { WikimediaCommonsProvider, type WikimediaCommonsProviderOptions, type WikimediaCommonsSearchCandidate } from "./wikimedia-commons.js";
+export { PexelsProvider, type PexelsProviderOptions } from "./pexels.js";

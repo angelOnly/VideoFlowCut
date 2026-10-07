@@ -21,7 +21,7 @@ for (const name of ["sim-paper", "smooth-relay", "ticket-phone", "product-fan", 
       // 从用户选定的 v2 派生验收作品；同一时序对象同时驱动画面和事件，不手填第二套帧。
       source = `const timings = { fan: [30,100], gather: [125,195], drop: [200,295] };\nexport function resolveMotionEvents(){return [{id:'fan',meaning:'同一组产品展开',startFrame:timings.fan[0],endFrame:timings.fan[1]},{id:'gather',meaning:'回收注意力',startFrame:timings.gather[0],endFrame:timings.gather[1]},{id:'drop',meaning:'行动箭头接管',startFrame:timings.drop[0],endFrame:timings.drop[1]}];}\n` + source.replace("const fan=p(f,30,100),gather=p(f,125,195),drop=p(f,200,295);", "const fan=p(f,timings.fan[0],timings.fan[1]),gather=p(f,timings.gather[0],timings.gather[1]),drop=p(f,timings.drop[0],timings.drop[1]);");
     }
-    const work = motionSubmissionSchema.parse({ name: `${fixture.title} · 技术验收`, source, props: part.props, width: part.width, height: part.height, fps: part.fps, durationInFrames: part.durationInFrames, creativeBrief: "以用户当前选定的原案例核验隔离编译、连续渲染与作品动作事件。仅限本地技术验收，不代表声音听审或引用权利通过。", rights: fixture.rights });
+    const work = motionSubmissionSchema.parse({ name: `${fixture.title} · 技术验收`, source, props: part.props, width: part.width, height: part.height, fps: part.fps, durationInFrames: part.durationInFrames, creativeBrief: "以用户当前选定的原案例核验隔离编译、连续渲染与作品动作事件。仅限本地技术验收，不代表声音听审或引用权利通过。", });
     const fingerprint = createHash("sha256").update(JSON.stringify(work)).digest("hex");
     const target = join(output, name, part.source.replace(/\.tsx$/u, ""));
     await mkdir(target, { recursive: true });
@@ -58,7 +58,6 @@ for (const name of ["sim-paper", "smooth-relay"]) {
       "-map", "[v]", "-an", "-frames:v", "577", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", target], 180000);
   }
   await verifyMotionPreviewFrames(target, fixture.durationInFrames, fixture.fps);
-  const rights = fixture.inputs?.length ? { status: "unknown", basis: "保留外层实拍输入原有的未核实授权，不因动态图形原创就批准整段合成。", inputs: fixture.inputs.map((input: { file: string; rights: string }) => ({ file: input.file, rights: input.rights })) } : fixture.rights;
-  compositions.push({ case: name, path: target, metadata: await probeMedia(target), rights, note: "按最新案例的真实外层输入/24帧过渡组合，仅本地技术审阅；没有新增声音或授权结论。" });
+  compositions.push({ case: name, path: target, metadata: await probeMedia(target), note: "按最新案例的真实外层输入/24帧过渡组合，仅本地技术审阅；没有新增声音结论。" });
 }
 await writeFile(join(output, "compositions.json"), JSON.stringify(compositions, null, 2));

@@ -180,7 +180,7 @@ test("inspect_asset 不会把 25fps 源素材的 overview 末帧采样到 24fps 
       kind: "video",
       managedPath: "assets/source/source-review-25fps.mp4",
       sourceHash,
-      provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+      provenance: { source: "local_import", acquiredAt: new Date().toISOString() }
     });
     const targetPath = join(server.application.readProject(projectId).snapshot.project.rootPath, registered.asset.managedPath);
     await mkdir(dirname(targetPath), { recursive: true });
@@ -220,7 +220,7 @@ test("inspect_asset 以 VP8 实际画面帧数约束带 Vorbis 音轨尾巴的 W
       kind: "video",
       managedPath: "assets/source/vp8-vorbis-tail.webm",
       sourceHash: createHash("sha256").update(await readFile(fixture)).digest("hex"),
-      provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+      provenance: { source: "local_import", acquiredAt: new Date().toISOString() }
     });
     const sourcePath = join(registered.state.snapshot.project.rootPath, registered.asset.managedPath);
     await mkdir(dirname(sourcePath), { recursive: true });
@@ -303,7 +303,7 @@ test("inspect_asset 只生成可重建审阅缓存，并交付 overview、range�
       kind: "video",
       managedPath: "assets/source/source-review.mp4",
       sourceHash,
-      provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+      provenance: { source: "local_import", acquiredAt: new Date().toISOString() }
     });
     const targetPath = join(server.application.readProject(projectId).snapshot.project.rootPath, registered.asset.managedPath);
     await mkdir(dirname(targetPath), { recursive: true });
@@ -417,10 +417,13 @@ test("inspect_asset 只生成可重建审阅缓存，并交付 overview、range�
           && typeof (entry as { text?: unknown }).text === "string"
       ))?.text;
       assert.ok(text, "inspect_asset 必须返回标准文本结果");
-      const fromMcp = JSON.parse(text) as { mode: string; sourceRange?: { startFrame: number; endFrame: number }; contactSheet: { frames: unknown[] } };
+      const fromMcp = JSON.parse(text) as { mode: string; diagnostics: { status: string; sideEffects: string; continuousReview: string }; sourceRange?: { startFrame: number; endFrame: number }; contactSheet: { frames: unknown[] } };
       assert.equal(fromMcp.mode, "dense");
       assert.deepEqual(fromMcp.sourceRange, { startFrame: 24, endFrame: 48, startMs: 1_000, endMs: 2_000, fps: 24 });
       assert.equal(fromMcp.contactSheet.frames.length, 8);
+      assert.equal(fromMcp.diagnostics.status, "complete");
+      assert.equal(fromMcp.diagnostics.sideEffects, "review_cache_only");
+      assert.equal(fromMcp.diagnostics.continuousReview, "available");
       assert.equal(server.application.readProject(projectId).revision.number, revisionBeforeInspect, "MCP 审阅同样不能创建 Revision");
     } finally {
       await transport.close().catch(() => undefined);
@@ -438,7 +441,7 @@ test("宽银幕素材预览缩放保证偶数尺寸，1920×802 不再编码为 
   try {
     const projectId = server.application.createProject({ name: "宽幅代理回归" }).snapshot.project.id;
     const fixture = await createSourceReviewFixture(workspaceRoot, "1920x802");
-    const registered = server.application.registerImportedAsset({ projectId, baseRevision: 1, name: "wide.mp4", kind: "video", managedPath: "assets/wide.mp4", sourceHash: createHash("sha256").update(await readFile(fixture)).digest("hex"), provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() } });
+    const registered = server.application.registerImportedAsset({ projectId, baseRevision: 1, name: "wide.mp4", kind: "video", managedPath: "assets/wide.mp4", sourceHash: createHash("sha256").update(await readFile(fixture)).digest("hex"), provenance: { source: "local_import", acquiredAt: new Date().toISOString() } });
     const root = registered.state.snapshot.project.rootPath;
     const path = join(root, registered.asset.managedPath);
     await mkdir(dirname(path), { recursive: true });
@@ -473,7 +476,7 @@ test("inspect_asset 把 SpeechAsset 当作连续音频候选，范围复核会�
       kind: "speech",
       managedPath: "assets/source/source-review-speech.m4a",
       sourceHash,
-      provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+      provenance: { source: "local_import", acquiredAt: new Date().toISOString() }
     });
     const targetPath = join(server.application.readProject(projectId).snapshot.project.rootPath, registered.asset.managedPath);
     await mkdir(dirname(targetPath), { recursive: true });
@@ -522,7 +525,7 @@ test("inspect_asset 对无音轨 derived 视频与 derived 音频按真实媒体
         kind: "derived",
         managedPath: `assets/derived/${name}`,
         sourceHash,
-        provenance: { source: "generated", provider: "source-review-test", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+        provenance: { source: "generated", provider: "source-review-test", acquiredAt: new Date().toISOString() }
       });
       const targetPath = join(server.application.readProject(projectId).snapshot.project.rootPath, registered.asset.managedPath);
       await mkdir(dirname(targetPath), { recursive: true });
@@ -583,7 +586,7 @@ test("inspect_asset 的当前使用只返回实际 Composition 可达对象", as
       kind: "video",
       managedPath: "assets/source/reachability.mp4",
       sourceHash,
-      provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+      provenance: { source: "local_import", acquiredAt: new Date().toISOString() }
     });
     const targetPath = join(server.application.readProject(projectId).snapshot.project.rootPath, registered.asset.managedPath);
     await mkdir(dirname(targetPath), { recursive: true });

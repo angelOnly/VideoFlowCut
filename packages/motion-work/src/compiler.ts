@@ -2,16 +2,24 @@ import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { build } from "esbuild";
 import ts from "typescript";
-import type { BoundMotionImage, BoundMotionVideo, DecodedMotionVideo, MotionSubmission } from "./schema.js";
+import type { BoundMotionFont, BoundMotionImage, BoundMotionVideo, DecodedMotionVideo, MotionSubmission } from "./schema.js";
+import { motionFontProps } from "./fonts.js";
 
-export const MOTION_ENGINE_VERSION = "managed-motion-11";
+export const MOTION_ENGINE_VERSION = "managed-motion-13";
 const forbidden = new Set(["eval", "Function", "globalThis", "window", "document", "navigator", "location", "parent", "top", "opener", "self", "fetch", "XMLHttpRequest", "WebSocket", "Worker", "SharedWorker", "process", "require", "Date", "performance", "setTimeout", "setInterval", "requestAnimationFrame", "localStorage", "sessionStorage", "indexedDB", "constructor", "__proto__", "prototype"]);
 const prototypeProperties = new Set(["constructor", "__proto__", "prototype"]);
 const allowedImports: Record<string, Set<string>> = {
-  "@videoflowcut/motion": new Set(["BoundVideo"]),
+  "@videoflowcut/motion": new Set(["TimelineVideo"]),
   react: new Set(["default", "Fragment", "createElement", "useMemo"]),
   remotion: new Set(["AbsoluteFill", "Img", "Sequence", "Series", "useCurrentFrame", "useVideoConfig", "interpolate", "interpolateColors", "spring", "Easing", "random"])
 };
+
+export const motionAllowedImports = () => Object.fromEntries(Object.entries(allowedImports).map(([module, names]) => [module, [...names]]));
+function rejectedImport(name: string): Error {
+  const hint = ["useEffect", "useState", "delayRender", "continueRender"].includes(name)
+    ? "；加载字体请使用 fontBindings（先查询 read_motion_capabilities）；动画由 useCurrentFrame 驱动" : "";
+  return new Error(`MOTION_IMPORT_REJECTED: ${name}${hint}`);
+}
 
 /** AST 用于依赖与确定性约束；真正的执行安全还依赖 Chromium sandbox、CSP 和网络拒绝。 */
 export function validateMotionSource(source: string): void {
@@ -120,7 +128,7 @@ export function validateMotionSource(source: string): void {
       if (!permitted || !node.importClause || node.importClause.namedBindings && ts.isNamespaceImport(node.importClause.namedBindings)) throw new Error(`MOTION_IMPORT_REJECTED: ${module}`);
       if (node.importClause.name && module !== "react") throw new Error("MOTION_IMPORT_REJECTED: 仅 React 支持 default import");
       if (node.importClause.namedBindings && ts.isNamedImports(node.importClause.namedBindings)) {
-        for (const entry of node.importClause.namedBindings.elements) if (!permitted.has((entry.propertyName ?? entry.name).text)) throw new Error(`MOTION_IMPORT_REJECTED: ${entry.name.text}`);
+        for (const entry of node.importClause.namedBindings.elements) if (!permitted.has((entry.propertyName ?? entry.name).text)) throw rejectedImport((entry.propertyName ?? entry.name).text);
       }
     }
     if (ts.isExportDeclaration(node) || ts.isImportEqualsDeclaration(node) || ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) throw new Error("MOTION_IMPORT_REJECTED: 不允许转导出、require 或动态 import");
@@ -157,29 +165,38 @@ export function validateMotionSource(source: string): void {
   if (/\b(?:transition|animation)\s*:/u.test(source)) throw new Error("MOTION_NONDETERMINISTIC: 动画必须由 useCurrentFrame 驱动，不能使用 CSS transition/animation");
 }
 
-export function motionHash(input: MotionSubmission, images: BoundMotionImage[] = [], engineVersion = MOTION_ENGINE_VERSION, videos: BoundMotionVideo[] = []): string {
+export function motionHash(input: MotionSubmission, images: BoundMotionImage[] = [], engineVersion = MOTION_ENGINE_VERSION, videos: BoundMotionVideo[] = [], fonts: BoundMotionFont[] = []): string {
   const hash = createHash("sha256").update(engineVersion).update(JSON.stringify(input)).update(JSON.stringify(images));
   // 无视频时不追加空数组，历史作品哈希保持原样。
   if (videos.length) hash.update(JSON.stringify(videos));
+  if (fonts.length) hash.update(JSON.stringify(fonts));
   return hash.digest("hex");
 }
 /** 旧 Job 的输入哈希保持可核验；新提交固定新引擎，不能使历史作品版本漂移。 */
-export function motionHashEngine(input: MotionSubmission, images: BoundMotionImage[], version: unknown, declared?: unknown, videos: BoundMotionVideo[] = []): string {
-  const accepted = [MOTION_ENGINE_VERSION, "managed-motion-10", "managed-motion-9", "managed-motion-8", "managed-motion-7", "managed-motion-6", "managed-motion-5", "managed-motion-4", "managed-motion-3"];
-  const engine = accepted.find((candidate) => (declared === undefined || declared === candidate) && motionHash(input, images, candidate, videos) === version);
+export function motionHashEngine(input: MotionSubmission, images: BoundMotionImage[], version: unknown, declared?: unknown, videos: BoundMotionVideo[] = [], fonts: BoundMotionFont[] = []): string {
+  const accepted = [MOTION_ENGINE_VERSION, "managed-motion-12", "managed-motion-11", "managed-motion-10", "managed-motion-9", "managed-motion-8", "managed-motion-7", "managed-motion-6", "managed-motion-5", "managed-motion-4", "managed-motion-3"];
+  const engine = accepted.find((candidate) => (declared === undefined || declared === candidate) && motionHash(input, images, candidate, videos, fonts) === version);
   if (!engine) throw new Error("MOTION_VERSION_MISMATCH");
   return engine;
 }
 
 /** esbuild 只转换用户源码，不在 Node 中求值；只有受信任依赖可由文件系统解析。 */
-export async function compileMotion(input: MotionSubmission, imageData: Record<string, string> = {}, videos: Record<string, DecodedMotionVideo> = {}): Promise<string> {
+export async function compileMotion(input: MotionSubmission, imageData: Record<string, string> = {}, videos: Record<string, DecodedMotionVideo> = {}, fonts: BoundMotionFont[] = []): Promise<string> {
   validateMotionSource(input.source);
   const require = createRequire(typeof __filename === "string" ? __filename : import.meta.url);
-  const entry = `import React from 'react';import {createRoot} from 'react-dom/client';import {flushSync} from 'react-dom';import {Player} from '@remotion/player';import Motion,* as motionModule from 'motion-user';
-window.__readMotionEvents=()=>typeof motionModule.resolveMotionEvents==='function'?motionModule.resolveMotionEvents(${JSON.stringify(input.props)},{fps:${input.fps},durationInFrames:${input.durationInFrames}}):null;
+  const entry = `import React from 'react';import {createRoot} from 'react-dom/client';import {flushSync} from 'react-dom';import {Player} from '@remotion/player';import {MotionRoot} from '@videoflowcut/motion';import Motion,* as motionModule from 'motion-user';
+const inputProps=${JSON.stringify({ ...input.props, assets: imageData, ...(fonts.length ? { fonts: motionFontProps(fonts) } : {}) })};
+window.__readMotionEvents=()=>typeof motionModule.resolveMotionEvents==='function'?motionModule.resolveMotionEvents(inputProps,{fps:${input.fps},durationInFrames:${input.durationInFrames}}):null;
 const ref=React.createRef();const root=createRoot(document.getElementById('root'));
-flushSync(()=>root.render(React.createElement(Player,{ref,component:Motion,errorFallback:({error})=>{window.__motionError=String(error);return null},inputProps:${JSON.stringify({ ...input.props, assets: imageData })},durationInFrames:${input.durationInFrames},fps:${input.fps},compositionWidth:${input.width},compositionHeight:${input.height},controls:false,autoPlay:false,loop:false,style:{width:${input.width},height:${input.height}}})));
-window.__motionReady=true;window.__motionSeek=async(frame)=>{if(window.__motionError)throw new Error(window.__motionError);ref.current.seekTo(frame);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));await document.fonts.ready;if(window.__motionError)throw new Error(window.__motionError);};`;
+const Root=(props)=>React.createElement(MotionRoot,null,React.createElement(Motion,props));
+window.__motionSeek=async(frame)=>{if(window.__motionError)throw new Error(window.__motionError);ref.current.seekTo(frame);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));await document.fonts.ready;if(window.__motionError)throw new Error(window.__motionError);};
+// 字体在组件首次挂载前加载；不能让首帧或初始测量先使用后备字体。
+(async()=>{try{await Promise.all(${JSON.stringify(fonts)}.map(async font=>{
+ const loaded=await document.fonts.load(font.style+' '+font.weight+' 16px "'+font.family+'"');
+ if(!loaded.length||loaded.some(face=>face.status!=='loaded'))throw new Error('MOTION_FONT_LOAD_FAILED: '+font.fontId);
+}));}catch(error){window.__motionError='MOTION_FONT_LOAD_FAILED: '+String(error);return;}
+try{flushSync(()=>root.render(React.createElement(Player,{ref,component:Root,errorFallback:({error})=>{window.__motionError=String(error);return null},inputProps,durationInFrames:${input.durationInFrames},fps:${input.fps},compositionWidth:${input.width},compositionHeight:${input.height},controls:false,autoPlay:false,loop:false,style:{width:${input.width},height:${input.height}}})));
+window.__motionReady=true;}catch(error){window.__motionError=String(error);}})();`;
   const result = await build({
     stdin: { contents: entry, sourcefile: "motion-entry.tsx", loader: "tsx" }, bundle: true, write: false,
     // TSX 自动引入受信任的 JSX runtime，源码无需声明未直接使用的 React 变量。
@@ -189,12 +206,16 @@ window.__motionReady=true;window.__motionSeek=async(frame)=>{if(window.__motionE
     plugins: [{ name: "motion-closed-imports", setup(builder) {
       builder.onResolve({ filter: /^@videoflowcut\/motion$/ }, () => ({ path: "bound-video", namespace: "trusted-video" }));
       builder.onLoad({ filter: /.*/, namespace: "trusted-video" }, () => ({ loader: "tsx", contents: `
-import React from 'react';import {useCurrentFrame,Img} from 'remotion';
-const counts=${JSON.stringify(Object.fromEntries(Object.entries(videos).map(([slot, video]) => [slot, video.framePaths.length])))};
-export function BoundVideo({slot,offsetInFrames=0,style,fit='cover'}) {
- const frame=useCurrentFrame()+offsetInFrames;
- if(!Number.isInteger(frame)||frame<0||!Object.hasOwn(counts,slot)||frame>=counts[slot]) throw new Error('MOTION_VIDEO_RANGE: '+slot+' frame '+frame);
+import React,{createContext,useContext} from 'react';import {useCurrentFrame,Img} from 'remotion';
+const ranges=${JSON.stringify(Object.fromEntries(Object.entries(videos).map(([slot, video]) => [slot, {start:video.startFrame,end:video.endFrame}])))};
+const FrameContext=createContext(null);
+export function MotionRoot({children}){const frame=useCurrentFrame();return <FrameContext.Provider value={frame}>{children}</FrameContext.Provider>;}
+export function TimelineVideo({slot,style,fit='cover',...rest}) {
+ const frame=useContext(FrameContext);
+ if(Object.keys(rest).length) throw new Error('MOTION_VIDEO_PROPS: 不接受视频时间偏移');
+ if(!Number.isInteger(frame)||!Object.hasOwn(ranges,slot)) throw new Error('MOTION_VIDEO_RANGE: '+slot+' frame '+frame);
  if(!['cover','contain','fill'].includes(fit)) throw new Error('MOTION_VIDEO_FIT');
+ if(frame<ranges[slot].start||frame>=ranges[slot].end)return null;
  return <Img src={'https://motion.invalid/video/'+slot+'/'+frame+'.png'} style={{width:'100%',height:'100%',objectFit:fit,...style}}/>;
 }` }));
       builder.onResolve({ filter: /^motion-user$/ }, () => ({ path: "motion-user", namespace: "motion" }));

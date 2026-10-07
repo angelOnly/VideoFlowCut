@@ -61,7 +61,7 @@ export const captionCanvasFont = (input: ResolvedCaptionLayoutInput): string =>
   `normal ${input.fontWeight} ${input.fontSize}px ${input.fontFamily}`;
 
 /**
- * 这个输入归一化在质量系统和 Renderer 之间共享：两边必须用同一安全宽度、字号和底板内边距。
+ * 这个输入归一化在质量系统和 Renderer 之间共享：两边必须用同一字幕框宽度、字号和底板内边距。
  * 不允许因 Renderer 的底板 padding 把 Node 的“通过”变成实际画面的水平溢出。
  */
 export function resolveCaptionLayoutInput(input: CaptionLayoutInput): ResolvedCaptionLayoutInput | undefined {
@@ -70,9 +70,9 @@ export function resolveCaptionLayoutInput(input: CaptionLayoutInput): ResolvedCa
   const fontSize = format.fontSize * emphasisScale;
   const fontWeight = Math.max(format.fontWeight, input.emphasisFontWeight ?? format.fontWeight);
   const hasBackground = Boolean(format.backgroundColor);
-  const safeWidth = input.compositionWidth * captionBoxWidthPercent(format) / 100;
+  const boxWidth = input.compositionWidth * captionBoxWidthPercent(format) / 100;
   const backgroundPadding = hasBackground ? fontSize * CAPTION_BACKGROUND_HORIZONTAL_PADDING_EM : 0;
-  const maxLineWidth = safeWidth - backgroundPadding;
+  const maxLineWidth = boxWidth - backgroundPadding;
   if (!Number.isFinite(input.compositionWidth) || input.compositionWidth <= 0
     || !Number.isFinite(fontSize) || fontSize <= 0
     || !Number.isFinite(fontWeight) || fontWeight <= 0
@@ -203,7 +203,7 @@ function layoutCaptionRowsWithMeasure(
 }
 
 /**
- * 只在 Remotion/浏览器里调用。Canvas 与实际 CSS 使用同一个字体栈、字号、字重和安全宽度；
+ * 只在 Remotion/浏览器里调用。Canvas 与实际 CSS 使用同一个字体栈、字号、字重和字幕框宽度；
  * 这不是在 Node 中猜测字体字宽。Renderer 后续还会读取真实 DOM 的 scrollWidth 作最终保护。
  */
 export function layoutCaptionInBrowser(input: CaptionLayoutInput): CaptionLayoutResult {

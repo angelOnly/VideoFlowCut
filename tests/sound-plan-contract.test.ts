@@ -55,6 +55,18 @@ test("声音计划的真实 MCP Schema 按操作声明必填字段，缺范围�
     assert.equal(revision(), beforeRejected, "范围错误和旧 Revision 均不能落地");
     assert.notEqual((await call({ action: "remove", soundPlanId: saved.id })).isError, true);
     assert.equal(application.readProject(projectId).snapshot.soundPlans!.length, 0);
+    const opening = { ...plan, endFrame: 396, dominantRanges: [
+      { startFrame: 0, endFrame: 8, role: "music", reason: "轻入，不制造原片动作声" },
+      { startFrame: 8, endFrame: 69, role: "narration", reason: "第一段中文讲述" },
+      { startFrame: 69, endFrame: 151, role: "music", reason: "观看连续追近与交手，音乐保持低密度" },
+      { startFrame: 151, endFrame: 197, role: "narration", reason: "第二段提问" },
+      { startFrame: 197, endFrame: 236, role: "music", reason: "切入另一处场馆并先看见递麦" },
+      { startFrame: 236, endFrame: 334, role: "narration", reason: "第三段讲述明确不同场面及结句" },
+      { startFrame: 334, endFrame: 396, role: "music", reason: "只承接人物与下一句话的短收势" }
+    ], intents: [{ id: "bgm_game_to_interview_minimal", function: "music", brief: "无语音、低密度器乐" }] };
+    const openingResult = await call(opening);
+    assert.notEqual(openingResult.isError, true, JSON.stringify(openingResult));
+    assert.equal(application.readProject(projectId).snapshot.soundPlans![0].dominantRanges?.length, 7);
   } finally {
     await client.close(); await server.close(); await app.close(); application.repository.close();
     await rm(root, { recursive: true, force: true });

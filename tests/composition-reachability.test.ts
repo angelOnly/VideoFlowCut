@@ -15,7 +15,7 @@ async function addReadyVideo(application: ReturnType<typeof createApplication>, 
     kind: "video",
     managedPath: `assets/source/${name}`,
     sourceHash: `${name}-hash`,
-    provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+    provenance: { source: "local_import", acquiredAt: new Date().toISOString() }
   });
   application.applyMediaAnalysis({
     projectId,
@@ -34,7 +34,6 @@ function markAsProviderUnknown(application: ReturnType<typeof createApplication>
       source: "provider",
       provider: "可达性测试素材库",
       sourceUrl: `https://example.test/${assetId}`,
-      rightsStatus: "unknown",
       acquiredAt: new Date().toISOString()
     }
   });
@@ -151,12 +150,12 @@ test("质量中的素材门禁只阻断当前 Composition 实际可达的外部�
 
     const report = evaluateQuality(snapshot, activeCue.revision.number);
     const externalBlockingIds = report.issues
-      .filter((issue) => issue.level === "blocking" && ["ASSET_NOT_READY", "EXTERNAL_ASSET_RIGHTS_UNKNOWN"].includes(issue.code))
+      .filter((issue) => issue.level === "blocking" && issue.code === "ASSET_NOT_READY")
       .map((issue) => issue.objectId);
     assert.ok(!externalBlockingIds.includes(hiddenAssetId), "隐藏且不可用的素材不应被当成成片依赖");
     assert.ok(!externalBlockingIds.includes(staleCueAssetId), "stale Cue 的素材不应被当成成片依赖");
     assert.ok(!externalBlockingIds.includes(incompleteCueAssetId), "内容合同未完成的 Cue 素材不应被当成成片依赖");
-    assert.ok(externalBlockingIds.includes(activeCueAssetId), "真正渲染的未授权素材仍必须阻断交付");
+    assert.equal(externalBlockingIds.includes(activeCueAssetId), false, "已就绪素材不因权利信息阻断交付");
   } finally {
     application.close();
     await rm(workspaceRoot, { recursive: true, force: true });

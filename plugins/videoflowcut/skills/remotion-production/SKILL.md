@@ -5,20 +5,45 @@ description: 作为跨视频类型的完整 Motion Graphics 子工作流，负�
 
 # Remotion Motion Graphics 完整生产工作流
 
+## 受管字体与真实接口
+
+### 理想字体缺失：原作者推荐，主任务控制，用户选择
+
+本段文字视觉的原作者负责推荐最多3款已有字体，不与导演重复共同选择、不另派字体代理。先查询真实目录，按本段实际文案、字幅与风格筛选，返回`font_preview`所需的text、expected_font、purpose和candidates（每项font_id、reason），交主任务用`get_editor_url(panel="fonts",font_preview=...)`展示工作台字体库。用户看图并在聊天确认；未回复不采用首选，不报修复工单，不等待平台扩充才继续整片。主任务继续无依赖工作，选择回传后由原作者调整换行、排版、描边与帧驱动动作，再交完整新产物。
+
+复制选择只是便于聊天确认，不自动写入Timeline或改变字体绑定。采用后记录预期字体、用户选择的实际ID和用途，最终说明差异与可选扩充。`MOTION_FONT_UNKNOWN`仅在正式返回明确提交前无副作用和选择纠正信息时进入此流程；已登记原件缺失、损坏或加载故障仍交修复任务，不使用系统字体伪装成功。普通字幕轨的字体合同不随工作台浏览功能扩大。
+
+编写前通过 `read_motion_capabilities` 查询当前引擎、允许导入的接口与实际可用字体。`managed-motion-13` 提供 `work.fontBindings`：槽名映射查询得到的 `fontId`，例如 `{title: "noto-sans-sc-bold", body: "noto-sans-sc-regular"}`。字体是随 Runtime 发布的固定本地文件，不在生成过程中下载；新增字体由平台修复任务更新 Runtime 发行目录并验证部署，剪辑任务不能改目录或读取任意本地字体。
+
+Runtime 0.1.63增加`smiley-sans-oblique`（得意黑，400 italic）与`maoken-yanbo-song-extralight/light/regular/medium/semibold/bold/black`（猫啃网烟波宋原件七个字重）。ID仍须以当前查询为准；烟波宋R原件标注200，不能自行改为400，也不能冒称为字魂同名字款。目录只限制字体身份，配色、描边和新动效由作者按内容生成，没有必须选择的字体模板。完整字体名称或分发许可未核实时，不能把参考简称登记成可用字体。
+
+用户明确确认具体字体已获授权时，按该授权前提处理，不再只筛选免费商用或OFL字款，也不重复要求授权证明。接入仍需对应的真实字体文件、准确身份和实际字重；仅有截图简称不能伪造字体文件或用别的字款冒充。新增原件由平台开发任务登记、验证并发布，剪辑任务只使用实时目录里已发布的ID。
+
+Runtime 0.1.64接入用户提供并确认采用的22份原件，目录共34份文件。包括`aa-jianhao`（Aa剑豪体）、`aa-houdi-hei`（Aa厚底黑）、`leefont-menghei`（Leefont蒙黑体，真实900）、`muyao-softbrush`、`pf-pinfan-hutu`、`sanji-liliang-bold`、`sanji-pomo`、`yunfeng-feiyun`、`wd-xl-huayou-jp-n`、`wd-xl-huayou-jp-s`、`wd-xl-huayou-sc`、`wd-xl-huayou-tc`、`canger-yumo-w01/w02/w03/w04`、`canger-shuyuan-w01/w02/w03/w04/w05`、`canger-feibai-w01`。简体中文优先查看滑油字SC版本；JP_N/JP_S/TC是不同地区字形版本，不把它们合并成同一文件。仓耳W01–W05等原件内部字重均标注400，但粗细已在不同文件轮廓中体现，必须选择对应ID，不另设CSS假粗体。云峰静龙行书只有预览图，未登记。不同文件不是同等数量的字族；制作仍查询实时ID、使用实际文案检查缺字，字体与动效不绑定。
+
+平台校验并固定文件哈希，在组件首次挂载前完成加载，向源码注入 `props.fonts.title` 的 `family`、`weight`、`style`。文字可使用 `style={{fontFamily: props.fonts.title.family, fontWeight: props.fonts.title.weight, fontStyle: props.fonts.title.style}}`，字号、颜色、几何与运动由作者设计；按查询字重使用实际字形，不把浏览器合成粗体称为已登记字重。不要覆盖 `props.fonts`，不要导入 `useEffect`、`useState`、`delayRender`、`continueRender` 来加载字体，不调用 `FontFace`、浏览器全局或网络；动画按 `useCurrentFrame` 计算。
+
+字体缺失、变更、加载失败或超时明确报错，不悄悄替换指定字体，失败没有半件 Asset 或新视频 Revision。生成成功后核对 `fontSources`、完整作品和真实合成，尤其检查中文、标点、实际换行与首帧；加载成功不证明生僻字或所有语种都有字形。首次查询、固定输入、生成回传与专业审阅均沿现有交接，不把仓库或 Skill 更新等同已部署。
+
+0.1.62目录提供中文衬线候选`noto-serif-sc-semibold`（真实600）与`noto-serif-sc-black`（真实900）。需要宋／显示衬线时先检查查询是否包含这些实际文件，再用主字和最长纸条出真实字样；黑体不能替代明确要求的衬线轮廓。中粗或重字重的适用位置由作者观察决定，不给普通400字款加fontWeight:900冒充重字重。未知参考的确切字款不应成为必须同款的额外门禁，接近字款如实记录替代；具体字幅、侧转中途、纸条镜内阅读仍由原作者复核，登记字体不等于专业定稿。
+
 <!-- topic-film-v2-remotion-production:begin -->
-## 场面执行：美术与连续变化同时实现
+<!-- material-scene-v3 -->
+## 实现依据素材发生的动画，而非动画前后插图
 
-先读取导演当前完整采用稿、实际材料、声音与字幕，再执行 [场面美术与运动方法](references/scene-art-and-motion.md) 和 [场面交接](../_shared/SCENE_DESIGN_HANDOFF.md)。主题本身不带完整分镜时，由导演链生成它；同一视觉作者负责深化到源码，不将主要构思留给默认组件。
+先读导演当前完整采用稿、实际文件与观察，按 [场面执行正文](../_shared/SCENE_DESIGN_HANDOFF.md)、[素材到场面](../_shared/MATERIAL_TO_SCENE.md) 和 [源坐标与时间实现](references/material-space-and-time.md) 深化。重要主体、美术、排印与动作仍由同一作者负责，不由默认组件替代设计。
 
-在构思与关键画面之间读取 motion-case-library 索引，按观看任务选择少量相关案例，完整读其教学指令并核对原片验证范围。返回本段自己的对象、美术、空间、准确文字和秒级过程；不是直接把示例片段接进成片，也不是给原源码换标题。
+编写前确定：源内具体目标、真实/原创身份、有效源区间、显示几何、依附标注和下一次关注。源画面、局部观察窗、轮廓、标签、遮挡共用可核对的状态；同源双窗用同一取帧时钟；标签从源坐标经过裁切/缩放/父变换得到。无法可靠定位就换短稳定范围、明确源帧观察或新示意，不虚报跟踪。
 
-对重要主体写清轮廓、比例、部件、关键细节、材质光向、实际投影与遮挡。先看入口、变化中途、阅读、出口的实际构图，再连接运动。第一重点达到有效观看后及时接下一项；背景还在动不等于主角没有等待。
+优先让实际材料提供可用轮廓、材质与空间，新增图形服务指认、比较、发现或表现。进入原创模型时保留当前需要的参照，或清楚建立新的例子；不把没有来源的细节称为源内放大。主读与素材共同构图，不让二者各占一个互不相关角落。
 
-源码中的主要设计必须能定位：前景让位确实解除遮挡；局部观察保持真实源帧或清楚切入原创结构；部件离开仍对应原槽口；文字接管时旧标签按内容退出。容器显式具有尺寸，跨父层替身的投影和内容在接点相同。
+按实际需求选读案例，写出“当前源对象→借鉴的动作→本次裁切/变换/出口”的具体对应。案例独立好看不代表直接插入当前片段成立；完成稿中保留设计兑现位置与应检查的中途状态。
 
-动画、resolveMotionEvents和声音锚点尽量共用一份命名时间常量。单作品时长与像素预算按当前接口处理，作品可按完整场面拆分，整片不受某一教学片或单件预算限定。独立作品可静音渲染，主题整片仍回实际配音、字幕、源声和所选音乐音效合成。
+依据当前受管合同提交：素材从imageBindings/videoBindings进入，TimelineVideo使用作品根时钟与绑定的startFrame/endFrame正常播放；内部Sequence只改变布局，源声音在整片声音链中管理。四时钟、显示方向/SAR、decodeScale和真实画幅读回，不凭原视频帧号猜偏移。解释用的几何示例不得作为实测坐标。
 
-提交前按可见文字清单检查源码/Props；完整执行说明保留在本版创作交接及作品记录，超限由原作者分作品组织，协调者不静默截断。渲染后看实际中途状态与合成，已知缺陷在本任务内处理，未观察范围如实记录。
+图片/源范围/焦点或时序改变时，重写依赖的构图、标注、路径、文字和前后接口，提交新作品并同步采用。动画和resolveMotionEvents尽量用同一命名时间常量。完整执行正文不静默截断；预算需拆件由原作者分作品整理。
+
+渲染检查包含源材料进入前、同场相互作用中、出口及后镜，核对实际目标与时间、共同構图、动态阅读、主体空等和声音接点；只看起终两帧不宣布融合通过。已知可修问题在本任务内处理，真实未知保留，技术问题不靠放宽沙箱或绕过MCP解决。
 <!-- topic-film-v2-remotion-production:end -->
 
 ## 执行角色与代理交接
@@ -174,7 +199,7 @@ description: 作为跨视频类型的完整 Motion Graphics 子工作流，负�
 
 **第五步：提交固定版本作品。**
 
-采用实时 `submit_motion_work` 合同，提交源码、Props、画布、时长、图片及所用视频绑定、权利和创作说明；只有实际使用参考时才附参考观察。所有执行都通过受管 MCP，不修改平台源码、不安装依赖、不绕过隔离。源视频使用已实现的 `videoBindings` 与 `BoundVideo` 合同，正式声音仍由 Timeline/Audio 链安排；当前会话缺少所需字段时返回明确能力缺口。
+采用实时 `submit_motion_work` 合同，提交源码、Props、画布、时长、图片及所用视频绑定、创作说明；只有实际使用参考时才附参考观察。所有执行都通过受管 MCP，不修改平台源码、不安装依赖、不绕过隔离。源视频使用已实现的 `videoBindings` 与 `TimelineVideo` 合同，正式声音仍由 Timeline/Audio 链安排；当前会话缺少所需字段时返回明确能力缺口。
 
 提交只创建 Job。通过 `track_job`、`read_motion_work` 和 `inspect_asset` 取得当前版本源码、产物与实际动态观察；未完成 Job 或无法检视的作品保留未审状态。需要修改时提交新作品并关联 `previousAssetId`，原版本和已使用的 Asset 不覆盖。
 
@@ -212,11 +237,11 @@ description: 作为跨视频类型的完整 Motion Graphics 子工作流，负�
 
 ## 受管作品生成和修改
 
-`submit_motion_work` 的 `work` 包含名称、默认导出的 React/Remotion TSX、可编辑 Props、目标 width/height/fps/durationInFrames、非空 creativeBrief（最多 6000 字符）及权利依据；reference 可选，实际使用时填写 URL 与 layout/motion/rhythm/adaptation/evidence 观察说明。源码只用当前 Schema/校验器支持的 API。文字、CSS、SVG 与图片仍按帧驱动：`imageBindings` 将命名 Slot 对应到已就绪的项目图片 Asset ID，源码以 `<Img src={props.assets.logo} />` 消费对应图片，不能自行覆盖 props.assets。已实现的视频合同使用独立 `videoBindings`，由平台固定源身份、范围、字节哈希与权利后注入 `BoundVideo`；具体用法见下方“媒体 Asset 处理”。不开放外部资源 URL、任意依赖、DOM/网络/文件访问、隐式出声或 CSS 计时动画；字段未在连接 Runtime 的实时 Schema 出现时，不假定可用。
+`submit_motion_work` 的 `work` 包含名称、默认导出的 React/Remotion TSX、可编辑 Props、目标 width/height/fps/durationInFrames、非空 creativeBrief（最多 6000 字符）；reference 可选，实际使用时填写 URL 与 layout/motion/rhythm/adaptation/evidence 观察说明。源码只用当前 Schema/校验器支持的 API。文字、CSS、SVG 与图片仍按帧驱动：`imageBindings` 将命名 Slot 对应到已就绪的项目图片 Asset ID，源码以 `<Img src={props.assets.logo} />` 消费对应图片，不能自行覆盖 props.assets。已实现的视频合同使用独立 `videoBindings`，由平台固定源身份、源范围、作品帧范围、字节哈希后注入 `TimelineVideo`；具体用法见下方“媒体 Asset 处理”。不开放外部资源 URL、任意依赖、DOM/网络/文件访问、隐式出声或 CSS 计时动画；字段未在连接 Runtime 的实时 Schema 出现时，不假定可用。
 
 提交只创建固定输入的 Job，不改变 Timeline。`track_job` 完成后用 `read_motion_work` 读回源码、版本和 Asset，再通过 `inspect_asset` 审阅生成的动态代理。需要改字、调布局或节奏时提交新作品，并以 `previousAssetId` 关联旧版；旧源码、缓存和已使用版本不能覆盖。Job 失败保留诊断，不把安全拒绝改成绕过；同一幂等键不能提交不同输入。
 
-用 `review_motion_work` 的 outcome、note 和 evidence 记录当前版本实际结论。passed 必须提供完整连续动态证据；frames、局部或仅音频不能通过。未审、inconclusive 和 failed 均不影响技术就绪及文件导出；失败观感作为修订建议保留。reference_match 仅兼容历史无创作说明的参考作品，不能与 outcome 混用。通过并不代表合成审片通过。`manage_effect_cues` 使用 `type=ManagedMotion`，只绑定 `slot=motion` 的生成 Asset，明确所属 Scene、叙事目的、语义锚点与 covered_narrative_beat_ids；时长、画幅、fps 必须匹配。作品内部已经包含布局和进出场，Cue 只决定时间、层级及语义归属；省略 Props、Motion、空间锚点、强度和 StylePack 覆盖，修改这些内容必须生成新作品版本。
+用 `review_motion_work` 的 outcome、note 和 evidence 记录当前版本实际结论。passed 必须提供完整连续动态证据；frames、局部或仅音频不能通过。未审、inconclusive 和 failed 均不影响技术就绪及文件导出；失败观感作为修订建议保留。reference_match 仅兼容历史无创作说明的参考作品，不能与 outcome 混用。通过并不代表合成审片通过。`manage_effect_cues` 使用 `type=ManagedMotion`，只绑定 `slot=motion` 的生成 Asset，明确所属 Scene、叙事目的、语义锚点与 covered_narrative_beat_ids；画幅必须匹配；时长按项目fps换算，跨帧率按真实时间采样。作品内部已经包含布局和进出场，Cue 只决定时间、层级及语义归属；省略 Props、Motion、空间锚点、强度和 StylePack 覆盖，修改这些内容必须生成新作品版本。
 
 只修正已放置作品的语义归属、出场范围或换绑技术就绪的新版本时，用 `manage_effect_cues(action=update, cue_id=已有ID, ...)` 就地更新，保留未指定字段和 Cue ID；不能借此更换 Scene、类型、层级或裁短固定作品。放弃这次使用时用 `action=remove`，只提交 Cue ID 与当前版本，不删除作品 Asset，也不回退整片。每次写后读回目标与 Impact，移动后同时复查原位置和新位置。
 
@@ -229,7 +254,7 @@ description: 作为跨视频类型的完整 Motion Graphics 子工作流，负�
 仅在需要研究参考时进入本节；没有参考可以直接原创。
 
 
-用 `browse_motion_sources` 进入 Onda、Jitter、RemotionLab 和 Mixkit。它们是在线视觉参考，不是需要搬到本地的全量模板仓库；AE、Jitter 工程或没有源码不妨碍选型。有合适授权的源码可复用，其他效果根据实际观察的视觉机制独立编写 Remotion，不要求安装 AE。不得把品牌、照片、音乐或会员源码的权利当作随视觉参考一起取得。
+用 `browse_motion_sources` 进入 Onda、Jitter、RemotionLab 和 Mixkit。它们是在线视觉参考，不是需要搬到本地的全量模板仓库；AE、Jitter 工程或没有源码不妨碍选型。实际取得的源码可复用，其他效果根据实际观察的视觉机制独立编写 Remotion，不要求安装 AE。
 
 `inspect_motion_reference(source_url)` 先返回页面、公开链接和 preview 索引，再用该工具的 preview_index 参数查看同一项连续采样。页面截图只能证明页面存在；采样没有变化、资源被阻止或出现登录/验证页时，明确尚未看懂，不根据名称编造运动。采样不包含复听，也不提供精确语音时间。四个站点都可作为候选，不按源码格式排序。没有适合的参考时，不用弱相关特效填满视频。
 
@@ -256,7 +281,7 @@ description: 作为跨视频类型的完整 Motion Graphics 子工作流，负�
 代表段交回实际采用的路径、对象／源码及预览。审阅核对内部过程、默认尺寸与
 当前观看目标，而不只检查读过哪个 Skill；布局不适合时改构图，不补无关装饰。
 
-必须知道：这个 MG 在剪辑中承担什么观众任务；准确文字、数字、媒体和事实；目标画幅、Scene 和放置范围；人物、字幕、证据和安全区；语音/动作/声音时机；Style 来源；需要暴露为 Props 的可编辑值；可用 Asset 和权利；当前 Registry 与 Runtime 能力。
+必须知道：这个 MG 在剪辑中承担什么观众任务；准确文字、数字、媒体和事实；目标画幅、Scene 和放置范围；人物、实际字幕位置、证据与画幅；语音/动作/声音时机；Style 来源；需要暴露为 Props 的可编辑值；可用 Asset；当前 Registry 与 Runtime 能力。
 
 只问会实质改变结果的高杠杆信息。若风格已经由 StylePack、参考视频或已接受组件确定，不要每个 MG 都重新询问。
 
@@ -351,7 +376,7 @@ Props 需要默认值、合法范围、类型和回退。Asset 通过项目 Bind
 
 声音需要绑定作品实际执行产生的事件。受管源码可导出 `resolveMotionEvents(props, {fps, durationInFrames})`，返回包含 id、meaning、startFrame 和可选 endFrame 的数组；画面与事件必须共用同一份时序常量或计算函数。渲染器在隔离浏览器读取并检查确定性、重复 ID 和范围，随作品固定 eventMap 版本。用 `read_motion_work`/Asset 读回实际事件，再交给 effect-timing 和 audio-finishing；不要另写一张与画面无关的手填时间表。持续动作交付起止范围，是否全程发声由 SoundPlan 决定。学习案例以当前 [motion-case-library](../motion-case-library/SKILL.md) 的六个固定案例为准，配声版本另行生成，不改归档样例。
 
-Cue 在整条 Composition 中可能从第 1000 帧开始，但绑定视频、内部动画和计数使用作品局部时钟。外层 `Sequence` 重置 Cue 时间，作品内再嵌套 `Sequence` 时，`useCurrentFrame()` 会再次从该序列零点计数。`BoundVideo` 取这个局部帧加 `offsetInFrames`，跨序列从全屏接到窗口时交付明确偏移，使素材继续同一过程；不能直接继承全局 Composition Frame，也不能因序列重置而意外重播。
+Cue 在整条 Composition 中可能从第 1000 帧开始，但绑定视频、内部动画和计数使用作品局部时钟。外层 `Sequence` 重置 Cue 时间，作品内再嵌套 `Sequence` 时，`useCurrentFrame()` 会再次从该序列零点计数。`TimelineVideo` 读取平台保存的作品局部全局帧，内部 Sequence 重置只影响视觉布局，不重置源片；跨序列仍从同一槽位连续取帧。
 
 Timeline 范围必须容纳本作品实际采用的进入、主要变化、必要阅读与接出。不能用更短 Item 截断组件内部未完成动画；主线时长变化时，重新编译或调整 Cue，而不是依赖偶然裁切。
 
@@ -359,9 +384,9 @@ Timeline 范围必须容纳本作品实际采用的进入、主要变化、必�
 
 Registry Overlay 组件的自然 Asset Box 应紧密包围可见内容，便于定位；真正全屏 Scene 才占满画布。受管作品首版采用目标画布大小的透明缓存，因此内部排版由源码负责，不声称 Inspector 能直接移动可见对象的自然盒。
 
-透明画布的 `full_frame` 只是坐标系，不等于遮挡全屏。Worker 从实际 PNG Alpha 逐帧测量可见像素外包区域；与同时段字幕安全预算不相交才可排除这项遮挡，相交仅表示待审，不等于字形已被挡。旧作品缺少测量时会明确提示未知，可重生成取得证据；无论测量结果如何，都不能代替人物、字幕、进入退出和整片观感的真实连续审片。
+透明画布的 `full_frame` 只是作品坐标系，不等于遮挡全屏。作品内部的标题、说明、图形、封面文字和运动由源码设计，不统一套用标题栏或固定字幕保留带。平台不测量字幕安全区相交，不据此阻断或提示；PNG 透明效果与帧完整性校验继续保留。人物、字幕、进入退出和整片观感仍通过真实连续审片判断。
 
-最终放置要结合目标帧、人物、字幕、证据和画幅。固定 Safe Zone 不是万能答案；同一 Anchor 只有在观众任务和构图关系重复时才应复用。
+最终放置要结合目标帧、人物、字幕、证据和画幅。字幕默认位置不是其他内容的禁入区域；同一 Anchor 只有在观众任务和构图关系重复时才应复用。
 
 ## Motion Grammar
 
@@ -371,7 +396,7 @@ MotionPreset 字段存在不代表 Runtime 已完整实现所有语法。当前�
 
 ## 响应式与多画幅
 
-组件应根据画布和安全区布局，而不是使用只对 1080×1920 有效的绝对坐标。9:16 与 16:9 可能需要不同对象排列、字体、行数和主体位置；不能简单缩放。至少保存代表性竖/横 Golden Frame，若第一版只支持主画幅，应明确降级。
+组件应根据画布、主体和实际文字位置布局，而不是使用只对 1080×1920 有效的绝对坐标。9:16 与 16:9 可能需要不同对象排列、字体、行数和主体位置；不能简单缩放。至少保存代表性竖/横 Golden Frame，若第一版只支持主画幅，应明确降级。
 
 ## 批量生产和一致性
 
@@ -400,7 +425,9 @@ MotionPreset 字段存在不代表 Runtime 已完整实现所有语法。当前�
 {"action":"create","base_revision_id":42,"scene_id":"scene-explain","type":"ManagedMotion","layer":"front","start_frame":360,"end_frame":378,"covered_narrative_beat_ids":["beat-cause","beat-result"],"semantic_anchor":{"type":"narrative_beat","target_id":"beat-cause","relation":"land_on"},"asset_bindings":[{"slot":"motion","asset_id":"asset-work-v2"}],"narrative_purpose":"让原因到结果在同一对象上可追踪","audience_task":"理解两拍之间的关系"}
 ```
 
-覆盖是内容声明，时间锚点负责放置；同 Scene 不自动覆盖全部 Beat。单件不能跨 Scene，长度、画幅和 fps 必须匹配固定作品。省略 Props、Motion 和空间参数；这些不会重写内部像素。
+覆盖是内容声明，时间锚点负责放置；同 Scene 不自动覆盖全部 Beat。单件不能跨 Scene，画幅须匹配，项目放置长度为 round(作品frameCount×项目fps/作品fps)，保留完整作品。省略 Props、Motion 和空间参数；这些不会重写内部像素。
+
+固定透明作品可以跨项目帧率使用：平台以 floor(项目局部帧×作品fps/项目fps) 读取原作品帧，不改作品fps、frameCount、源码或内部事件。正常升采样重复已有帧，降采样减少显示采样，不改变正常播放速度；提高输出fps不增加运动细节，也不默认重生成。新作通常直接使用目标项目fps；修改项目fps后由主任务读回影响报告，把真实时间与边界差异交原作者复核，重新查看合成接点。缺帧、越界和哈希异常仍报错，不冻结末帧隐藏故障。
 
 ### 能完整保留设计时直接复用 Registry
 
@@ -466,13 +493,13 @@ Registry 设计应让生产 Skill先选择层级：
 固定坐标不构成跟踪。没有真实轨迹就只在可靠停稳范围标注，或重新设计。
 原声不在作品源码里播放；需要时沿现有音轨链明确保留范围并实际听审。
 
-已实现的受管视频入口是 `submit_motion_work.work.videoBindings`，可省略，单作品最多四个命名 Slot。每槽写 `{assetId, sourceStartMs, sourceEndMs}`：源毫秒为正长度半开区间，最长 30 秒且不超出真实素材；只绑定 ready、有真实时长与内容哈希的源视频，不能嵌套另一份 managed motion。平台保留源身份、范围和权利，作品改绑或改范围需要新版本。这里说明实现合同，正式剪辑仍先读取当前连接的版本与实时 Schema。
+受管视频入口是 `submit_motion_work.work.videoBindings`，可省略，单作品最多四个命名 Slot。每槽写 `{assetId, sourceStartMs, sourceEndMs, startFrame, endFrame}`，可选decodeScale：源毫秒与作品帧均为正长度半开区间，不超出真实素材与作品；只绑定 ready、有真实时长与内容哈希的源视频，不能嵌套另一份 managed motion。平台保留源身份和范围，作品改绑或改范围需要新版本。新合同随managed-motion-12发布，正式剪辑仍先读取当前连接的版本与实时Schema，不把仓库源码等同已部署能力。
 
-图片和视频必须来自项目受管 Asset。决定 `cover/contain` 前查看需要保护的文字、主体和动作；证据、UI 与海报不能因为填满窗口而裁掉必要内容。源码从 `@videoflowcut/motion` 导入 `BoundVideo`，例如 `<BoundVideo slot="footage" offsetInFrames={0} fit="cover" style={...} />`，用 slot 引用绑定源，不传外部 URL。`fit` 支持 cover、contain、fill，位置、尺度、遮罩与运动由确定性的源码布局实现；形变是否适合内容仍需实际观看。
+图片和视频必须来自项目受管 Asset。决定 `cover/contain` 前查看需要保护的文字、主体和动作；证据、UI 与海报不能因为填满窗口而裁掉必要内容。源码从 `@videoflowcut/motion` 导入 `TimelineVideo`，例如 `<TimelineVideo slot="footage" fit="cover" style={...} />`，用 slot 引用绑定源，不传外部 URL。`fit` 支持 cover、contain、fill，位置、尺度、遮罩与运动由确定性的源码布局实现；形变是否适合内容仍需实际观看。
 
-`BoundVideo` 的视频帧为所在 Sequence 的 `useCurrentFrame()` 加 `offsetInFrames`。源按真实时间戳以作品 fps 正常速度重采样，播放器内始终静音；不把 23.976、25、30 fps 或 VFR 源直接按原帧号套到作品时钟。全屏播放后改由运动窗口接管时，保持源范围，并给后段接续偏移；所需帧不存在、偏移越界、源哈希变化或解码失败会报错，不自动冻结、循环或补帧。源声音如需延续，由 Timeline/Audio 明确归属和范围，避免重播或双重出声。
+`TimelineVideo`的视频帧由作品当前帧减去绑定的startFrame得出，实际输出帧数以endFrame-startFrame为准。源范围须覆盖正常速度播放所需时长，允许1毫秒取整及不足一个作品帧的选段余量，不向上取整多生成一帧。内部Sequence只控制显示和布局，不重置源时间，也不接受offsetInFrames。源按真实PTS以作品fps重采样，VFR按原有时间间隔显示，播放器始终静音；不把源原生帧号套到作品时钟。全屏转窗口沿用同一槽位；源不足、范围越界、哈希变化和解码失败报错，不人为冻结、循环或补帧。原声由Timeline/Audio明确归属，并在同一Preview复核。
 
-四路视频共享原有画布和作品预算：宽高为 64～1920 的偶数，作品 fps 为 15～60 的整数，2～900 帧、最长 30 秒且画布像素帧不超过 650000000。绑定源文件合计最多 512 MB，解码结果合计最多 512 MB 与 650000000 像素帧；这些是共同上限，不能按槽各算一份。根据实际连续动作与目标显示尺寸选择源范围和画布；超限时回导演调整范围或拆分并设计接点，不静默丢掉一路素材。
+画布宽高为64～1920偶数、fps为15～60整数，作品至少2帧；不按30秒、900帧或累计650000000像素帧要求导演拆件。平台按内容身份共享原片，有界取帧与回收解码缓存；原片大小、重复引用和累计解码量不再触发512MiB作品门槛。完整透明输出仍需要实际磁盘空间，Worker在解码前检查输出、代理、工作区和安全余量，渲染中持续检查；空间不足、源损坏和卡死明确报错，不降画质或丢片段。缓存配置属于平台运行配置，创作者按内容选择选段与画布，不通过缩短选段误以为减少原件字节。一个Job完成全部帧后才登记一个完整Asset，技术检查不代替艺术验收。
 
 完整参数、跨 Sequence 时间接续示例与失败边界见[Remotion 组件合同](references/remotion-component-contract.md#受管动态视频)。技术回归只证明该输入能确定性执行；原专项仍需观看实际对象、源时刻、裁切、阅读与前后声画，不能将工程测试当成艺术验收。
 
@@ -529,7 +556,7 @@ Registry 设计应让生产 Skill先选择层级：
 
 EffectCue 或 ExplainerScene 绑定图片、视频、产品、证据或 UI Asset 前，先查看该 Asset 的真实内容、构图、运动路径和可用范围。AssetBinding 缺少必需内容、源文件不可用或 Props 不能完成组件任务时，Cue/Program 应进入 invalid 或 not_ready，并由 Web 与 Quality 显示具体原因；Renderer 不应把调试占位、通用文案或固定品牌渲染进正式画面。
 
-视频 Asset 在 Cue 或 Scene 内要使用局部时间，确保从所选源范围正确播放；同一过程跨内部 Sequence 接管时核对 `offsetInFrames` 与接点源时刻。每个代表性样例检查实际采用的进入、变化、辨认与接出，必要阅读时间可以与窗口内部动作共同存在。源时序正确与实际连续感分别验证。
+视频 Asset 在 Cue 或 Scene 内要使用局部时间，确保从所选源范围正确播放；同一过程跨内部 Sequence 接管时核对声明的作品帧范围与实际接点源时刻。每个代表性样例检查实际采用的进入、变化、辨认与接出，必要阅读时间可以与窗口内部动作共同存在。源时序正确与实际连续感分别验证。
 
 人物、字幕、证据和动效同屏时只设一个第一注意目标。进入全屏 Scene、人物做关键手势或证据正在阅读时，CameraPunch、大字幕、背景运动和 SFX 要相应退让。横版和竖版分别检查主体、动作路径、负空间和信息层级。
 

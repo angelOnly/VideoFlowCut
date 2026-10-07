@@ -13,19 +13,35 @@ import { createApplication } from "../packages/edit-application/src/index.js";
 import type { AssetRequest } from "@videocut/contracts";
 
 const request = { queryHints: [] } as unknown as AssetRequest;
-test("旧环境残留 Key 也不会重新启用已删除的搜索接口", (t) => {
-  for (const key of ["PEXELS_API_KEY", "TAVILY_API_KEY", "FREESOUND_API_KEY", "FREESOUND_OAUTH_TOKEN", "FREESOUND_COMMERCIAL_API_APPROVED"]) {
+test("Pexels 无 Key 时支持单视频页，其他旧接口仍不启用", (t) => {
+  const pexelsKey = process.env.PEXELS_API_KEY;
+  delete process.env.PEXELS_API_KEY;
+  t.after(() => { if (pexelsKey === undefined) delete process.env.PEXELS_API_KEY; else process.env.PEXELS_API_KEY = pexelsKey; });
+  for (const key of ["TAVILY_API_KEY", "FREESOUND_API_KEY", "FREESOUND_OAUTH_TOKEN", "FREESOUND_COMMERCIAL_API_APPROVED"]) {
     const previous = process.env[key];
     process.env[key] = "true";
     t.after(() => { if (previous === undefined) delete process.env[key]; else process.env[key] = previous; });
   }
   const registry = createDefaultAssetProviderRegistry();
-  assert.deepEqual(registry.names(), ["mixkit", "mixkit_music", "wikimedia-commons", "youtube"]);
+  assert.deepEqual(registry.names(), ["mixkit", "mixkit_music", "pexels", "wikimedia-commons", "youtube"]);
   assert.ok(registry.catalog().every(source => !source.requiresKey && source.enabled));
+  assert.equal(registry.catalog().find(source => source.id === "pexels")?.queryMode, "single_video_url_or_keywords_with_key");
   assert.deepEqual(soundSourceCapabilities().map(source => source.id), ["mixkit", "mixkit_music"]);
-  for (const name of ["pexels", "freesound", "tavily"]) {
+  for (const name of ["freesound", "tavily"]) {
     assert.throws(() => registry.get(name), (error: unknown) => error instanceof AssetProviderError && error.code === "ASSET_PROVIDER_UNKNOWN");
   }
+});
+
+test("Pexels 单视频页由浏览器交 Worker 获取，Skill 与路由一致", async () => {
+  const sourcing = await readFile(".agents/skills/visual-asset-sourcing/SKILL.md", "utf8");
+  const importing = await readFile(".agents/skills/asset-import/SKILL.md", "utf8");
+  assert.match(sourcing, /Pexels 单视频页与 Worker 获取/);
+  assert.match(sourcing, /provider="pexels"[\s\S]*query=选定页面URL[\s\S]*search_media_candidates/);
+  assert.match(sourcing, /acquire_media_asset[\s\S]*track_job[\s\S]*媒体 Worker/);
+  assert.equal(sourcing.includes("usage_rights"), false);
+  assert.match(importing, /浏览器无需交回本地路径，也不使用 `import_media` 代替 Provider/);
+  assert.equal(sourcing, await readFile("plugins/videoflowcut/skills/visual-asset-sourcing/SKILL.md", "utf8"));
+  assert.equal(importing, await readFile("plugins/videoflowcut/skills/asset-import/SKILL.md", "utf8"));
 });
 const json = (value: unknown) => new Response(JSON.stringify(value), { headers: { "content-type": "application/json" } });
 const details = (title: string, mime = "video/webm") => json({ query: { pages: [{ title, imageinfo: [{ url: "https://upload.wikimedia.org/fixture.webm", mime, width: 1920, height: 1080, duration: 5, extmetadata: {} }] }] } });
@@ -61,8 +77,8 @@ test("图片搜索保留矢量图，正文超时不能误报为 JSON 格式错�
 test("未知名称给出准确目录；缺凭据与拼写错误分开，不能把写入未知标为可重试", () => {
   const registry = new AssetProviderRegistry([new WikimediaCommonsProvider()]);
   assert.equal(registry.catalog().find(p => p.id === "wikimedia-commons")?.requiresKey, false);
-  assert.equal(registry.catalog().find(p => p.id === "pexels"), undefined);
-  assert.throws(() => registry.get("pexels"), (error: unknown) => error instanceof AssetProviderError && error.code === "ASSET_PROVIDER_UNKNOWN");
+  assert.equal(registry.catalog().find(p => p.id === "pexels")?.enabled, false);
+  assert.throws(() => registry.get("pexels"), (error: unknown) => error instanceof AssetProviderError && error.code === "ASSET_PROVIDER_NOT_CONFIGURED");
   try { registry.get("wikimedia"); assert.fail(); } catch (error) {
     const failure = JSON.parse(assetSearchErrorResult(error, true).content[0].text);
     assert.equal(failure.code, "ASSET_PROVIDER_UNKNOWN");
@@ -149,9 +165,9 @@ test("部分搜索与视频类型存于操作表；恢复后重搜不复用残�
   const root = await mkdtemp(join(tmpdir(), "vfc-search-recovery-")); const app = createApplication(root);
   try {
     const created = app.createProject({ name: "搜索恢复回归", profile: "visual_explainer" });
-    const state = app.manageAssetRequirement({ projectId: created.snapshot.project.id, baseRevision: created.revision.number, action: "create", title: "手机操作", purpose: "测试素材恢复", visualBrief: "手机实拍", role: "b_roll", rightsRequirement: "cleared_or_attribution" });
+    const state = app.manageAssetRequirement({ projectId: created.snapshot.project.id, baseRevision: created.revision.number, action: "create", title: "手机操作", purpose: "测试素材恢复", visualBrief: "手机实拍", role: "b_roll", });
     const input = { projectId: state.snapshot.project.id, baseRevision: state.revision.number, assetRequestId: state.snapshot.assetRequests[0].id, provider: "wikimedia-commons", query: "phone" };
-    const candidate: ProviderSearchCandidate = { originalAssetId: "File:phone.webm", name: "手机", kind: "video", sourceUrl: "https://commons.wikimedia.org/wiki/File:phone.webm", rightsStatus: "cleared" };
+    const candidate: ProviderSearchCandidate = { originalAssetId: "File:phone.webm", name: "手机", kind: "video", sourceUrl: "https://commons.wikimedia.org/wiki/File:phone.webm", };
     const partial = app.recordAssetSearch({ ...input, mediaType: "video", candidates: [candidate], diagnostics: { complete: false, warnings: [{ code: "WIKIMEDIA_RATE_LIMITED", message: "部分详情未读取" }] } });
     assert.equal(app.repository.mediaIntelligence.searches(input.projectId)[0].diagnostics?.complete, false);
     const recovered = app.recordAssetSearch({ ...input, mediaType: "video", candidates: [candidate, { ...candidate, originalAssetId: "File:phone2.webm" }] });

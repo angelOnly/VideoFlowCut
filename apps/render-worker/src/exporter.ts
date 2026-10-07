@@ -14,7 +14,7 @@ import { resolveRenderBrowser } from "../../../packages/remotion-runtime/src/bro
 export { resolveRenderBrowser } from "../../../packages/remotion-runtime/src/browser.js";
 import { withRenderNavigationRecovery } from "./navigation-recovery.js";
 import type { EditingApplication } from "@videocut/application";
-import { EFFECT_TYPES, inspectEffectContentContract, type AttributionManifest, type ExportArtifact, type ExportPurpose, type ExportTechnicalValidation, type JobRecord, type ProjectSnapshot, type RenderPreflight, type RenderPreflightCheck } from "@videocut/contracts";
+import { EFFECT_TYPES, inspectEffectContentContract, type SourceManifest, type ExportArtifact, type ExportPurpose, type ExportTechnicalValidation, type JobRecord, type ProjectSnapshot, type RenderPreflight, type RenderPreflightCheck } from "@videocut/contracts";
 import { createId, DomainError, resolveCompositionReachability } from "@videocut/domain";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { canExport, evaluateQualityWithBrowser, exportBlockingIssues } from "@videocut/quality";
@@ -177,7 +177,7 @@ function closeServer(server: Server): Promise<void> {
 }
 
 function usedAssetIds(snapshot: ProjectSnapshot): Set<string> {
-  // 与 ProjectComposition 共用同一推导，避免 stale Scene/Cue 或隐藏轨道被预检、署名清单误算为成片依赖。
+  // 与 ProjectComposition 共用同一推导，避免 stale Scene/Cue 或隐藏轨道被预检、来源清单误算为成片依赖。
   return new Set(resolveCompositionReachability(snapshot).assetIds);
 }
 
@@ -347,8 +347,6 @@ export async function runRenderPreflight(application: EditingApplication, projec
       addPreflightCheck(checks, "passed", "PREFLIGHT_ASSET_BYTES_AVAILABLE", `素材“${asset.name}”的本地文件可读取。`, asset.id);
     }
 
-    // 权利条件已由上面的共享质量策略按用途核验，避免另一路径把内部许可误拦。
-
   }
 
   for (const cue of snapshot.effectCues.filter((candidate) => candidate.status === "ready")) {
@@ -373,7 +371,7 @@ export async function runRenderPreflight(application: EditingApplication, projec
   };
 }
 
-function buildAttributionManifest(snapshot: ProjectSnapshot, artifactId: string): AttributionManifest {
+function buildSourceManifest(snapshot: ProjectSnapshot, artifactId: string): SourceManifest {
   const assetIds = usedAssetIds(snapshot);
   const entries = snapshot.assets
     .filter((asset) => assetIds.has(asset.id) && asset.provenance && asset.provenance.source !== "local_import")
@@ -386,19 +384,17 @@ function buildAttributionManifest(snapshot: ProjectSnapshot, artifactId: string)
       provider: asset.provenance!.provider,
       sourceUrl: asset.provenance!.sourceUrl,
       creator: asset.provenance!.creator,
-      license: asset.provenance!.license,
-      attributionText: asset.provenance!.attributionText,
-      rightsStatus: asset.provenance!.rightsStatus,
-      usageRights: asset.provenance!.usageRights
+      originalAssetId: asset.provenance!.originalAssetId,
+      acquiredAt: asset.provenance!.acquiredAt,
     }));
   return {
-    relativePath: join("manifests", "attribution", `${artifactId}.json`),
+    relativePath: join("manifests", "sources", `${artifactId}.json`),
     generatedAt: new Date().toISOString(),
     entries
   };
 }
 
-async function writeAttributionManifest(snapshot: ProjectSnapshot, manifest: AttributionManifest): Promise<void> {
+async function writeSourceManifest(snapshot: ProjectSnapshot, manifest: SourceManifest): Promise<void> {
   const targetPath = resolve(snapshot.project.rootPath, manifest.relativePath);
   assertPathWithin(resolve(snapshot.project.rootPath), targetPath);
   await mkdir(dirname(targetPath), { recursive: true });
@@ -541,7 +537,18 @@ export class RevisionRenderer implements RevisionRenderEngine {
 export interface ExportValidation extends ExportTechnicalValidation {}
 
 /** 导出后解码、探测音轨并扫描持续黑帧；任何技术异常会阻止任务被标记成功。 */
-export async function validateExport(targetPath: string, expectedDurationMs: number): Promise<ExportValidation> {
+export async function validateOutputFrameRate(targetPath: string, fps: number, frameCount: number): Promise<{ fps: number; frameCount: number }> {
+  const probe = JSON.parse(await runProcess("ffprobe", ["-v", "error", "-select_streams", "v:0", "-count_frames", "-show_entries", "stream=avg_frame_rate,nb_read_frames", "-of", "json", targetPath]));
+  const stream = probe.streams?.[0];
+  const rate = String(stream?.avg_frame_rate).split("/").map(Number);
+  const actualFps = rate[0] / rate[1], actualFrames = Number(stream?.nb_read_frames);
+  if (!Number.isFinite(actualFps) || Math.abs(actualFps - fps) > 1e-7 || actualFrames !== frameCount) {
+    throw new DomainError(`输出规格异常：期望${fps}fps/${frameCount}帧，实际${stream?.avg_frame_rate ?? "未知"}/${stream?.nb_read_frames ?? "未知"}帧`, "OUTPUT_FRAME_RATE_MISMATCH");
+  }
+  return { fps: actualFps, frameCount: actualFrames };
+}
+
+export async function validateExport(targetPath: string, expectedDurationMs: number, target?: { fps: number; frameCount: number }): Promise<ExportValidation> {
   const metadata = await probeMedia(targetPath);
   if (metadata.durationMs <= 0 || !metadata.videoCodec || !metadata.hasAudio) {
     throw new DomainError("导出文件校验失败：缺少有效视频或音频", "INVALID_EXPORT");
@@ -549,6 +556,7 @@ export async function validateExport(targetPath: string, expectedDurationMs: num
   if (Math.abs(metadata.durationMs - expectedDurationMs) > 1_000) {
     throw new DomainError(`导出时长异常：期望约 ${expectedDurationMs}ms，实际 ${metadata.durationMs}ms`, "EXPORT_DURATION_MISMATCH");
   }
+  const frameRate = target ? await validateOutputFrameRate(targetPath, target.fps, target.frameCount) : undefined;
   await runProcess("ffmpeg", ["-v", "error", "-i", targetPath, "-map", "0:v:0", "-f", "null", "-"], 30 * 60_000);
   const blackDetectOutput = await runProcess("ffmpeg", ["-hide_banner", "-i", targetPath, "-vf", "blackdetect=d=0.25:pix_th=0.10", "-an", "-f", "null", "-"], 30 * 60_000);
   const blackSegments = [...blackDetectOutput.matchAll(/black_start:([^\s]+)\s+black_end:([^\s]+)\s+black_duration:([^\s]+)/gu)].map((match) => ({
@@ -560,7 +568,7 @@ export async function validateExport(targetPath: string, expectedDurationMs: num
     throw new DomainError(`导出包含持续黑帧：${blackSegments.map((segment) => `${segment.startSeconds.toFixed(2)}–${segment.endSeconds.toFixed(2)}s`).join("，")}`, "BLACK_FRAME_DETECTED");
   }
   const audio = await inspectFinalAudio(targetPath);
-  return { durationMs: metadata.durationMs, hasAudio: metadata.hasAudio, blackSegments, audio };
+  return { durationMs: metadata.durationMs, hasAudio: metadata.hasAudio, blackSegments, audio, ...frameRate };
 }
 
 export async function runExportJob(
@@ -593,7 +601,7 @@ export async function runExportJob(
       renderer: "remotion",
       preflight: existingArtifact.preflight,
       validation: existingArtifact.validation,
-      attributionManifest: existingArtifact.attributionManifest,
+      sourceManifest: existingArtifact.sourceManifest,
       warnings: []
     };
   }
@@ -623,16 +631,19 @@ export async function runExportJob(
   }
   try {
     const expectedDurationMs = Math.round((revision.snapshot.timeline.durationInFrames / revision.snapshot.timeline.fps) * 1000);
-    const validation = await validateExport(temporaryPath, expectedDurationMs);
+    const validation = await validateExport(temporaryPath, expectedDurationMs, { fps: revision.snapshot.timeline.fps, frameCount: revision.snapshot.timeline.durationInFrames });
     const target = revision.snapshot.audioOutputTarget;
-    const audiblePlanned = revision.snapshot.audioCues.some((cue) => cue.status === "ready" && revision.snapshot.timeline.items.some((item) => item.id === cue.timelineItemId && !item.disabled && !revision.snapshot.timeline.tracks.find((track) => track.id === item.trackId)?.muted)) || Boolean(revision.snapshot.speechAsset);
+    // 保留的 SpeechAsset 不代表实际启用；静音视觉草稿不能因此被误判缺音。
+    const dialoguePlanned = revision.snapshot.timeline.items.some(item => !item.disabled && item.mediaAudioPolicy !== "mute"
+      && revision.snapshot.timeline.tracks.some(track => track.id === item.trackId && track.name === "Dialogue" && !track.muted));
+    const audiblePlanned = revision.snapshot.audioCues.some((cue) => cue.status === "ready" && revision.snapshot.timeline.items.some((item) => item.id === cue.timelineItemId && !item.disabled && !revision.snapshot.timeline.tracks.find((track) => track.id === item.trackId)?.muted)) || dialoguePlanned;
     if (audiblePlanned && validation.audio?.truePeakDbfs === null) throw new DomainError("成片计划有声音但实际混音无有效信号", "EXPORT_AUDIO_MISSING");
     if (purpose === "delivery" && target && (validation.audio?.integratedLufs == null || validation.audio.truePeakDbfs == null || Math.abs(validation.audio.integratedLufs - target.targetLufs) > target.toleranceLu || validation.audio.truePeakDbfs > target.maxTruePeakDbfs)) throw new DomainError("实际响度或 true peak 未达到当前项目输出目标；请在混音中调整并重新预览", "EXPORT_AUDIO_TARGET_FAILED");
     await rename(temporaryPath, targetPath);
     const file = await stat(targetPath);
-    const manifest = buildAttributionManifest(revision.snapshot, artifactId);
+    const manifest = buildSourceManifest(revision.snapshot, artifactId);
     try {
-      await writeAttributionManifest(revision.snapshot, manifest);
+      await writeSourceManifest(revision.snapshot, manifest);
       const artifact: ExportArtifact = {
         id: artifactId,
         projectId: job.projectId,
@@ -644,7 +655,7 @@ export async function runExportJob(
         fileSizeBytes: file.size,
         preflight,
         validation,
-        attributionManifest: manifest,
+        sourceManifest: manifest,
         createdAt: new Date().toISOString()
       };
       application.registerExportArtifact(artifact);
@@ -657,7 +668,7 @@ export async function runExportJob(
         renderer: "remotion",
         preflight,
         validation,
-        attributionManifest: manifest,
+        sourceManifest: manifest,
         warnings: []
       };
     } catch (error) {
@@ -730,6 +741,7 @@ export async function runPreviewJob(
   if (metadata.durationMs <= 0 || !metadata.videoCodec || Math.abs(metadata.durationMs - expectedDurationMs) > 1_000) {
     throw new DomainError("局部预览文件不可读或时长异常", "INVALID_PREVIEW_OUTPUT");
   }
+  const frameRate = await validateOutputFrameRate(targetPath, revision.snapshot.timeline.fps, toFrame - fromFrame);
   return {
     revision: revisionNumber,
     fromFrame,
@@ -737,6 +749,7 @@ export async function runPreviewJob(
     path: targetPath,
     relativePath,
     durationMs: metadata.durationMs,
+    ...frameRate,
     hasAudio: metadata.hasAudio,
     audio: metadata.hasAudio ? await inspectFinalAudio(targetPath) : undefined,
     sourceHash: await hashMediaFile(targetPath),

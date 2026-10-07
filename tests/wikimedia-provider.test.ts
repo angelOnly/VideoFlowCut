@@ -18,10 +18,7 @@ function fileDetails(input: {
   mime: string;
   url: string;
   thumburl?: string;
-  license?: string;
-  licenseUrl?: string;
   creator?: string;
-  attribution?: string;
   duration?: number;
   size?: number;
 }): unknown {
@@ -40,9 +37,6 @@ function fileDetails(input: {
           size: input.size ?? 100,
           extmetadata: {
             Artist: { value: input.creator ?? "<a href=\"/wiki/User:Author\">Author</a>" },
-            LicenseShortName: input.license ? { value: input.license } : undefined,
-            LicenseUrl: input.licenseUrl ? { value: input.licenseUrl } : undefined,
-            Attribution: input.attribution ? { value: input.attribution } : undefined
           }
         }]
       }]
@@ -50,7 +44,7 @@ function fileDetails(input: {
   };
 }
 
-test("Wikimedia Commons 批量读取独立授权元数据，并区分图片、视频和不完整许可", async () => {
+test("Wikimedia Commons 批量读取媒体元数据，并保留没有许可信息的图片和视频", async () => {
   const detailTitles: string[] = [];
   const fetchImpl: typeof fetch = async (input) => {
     const url = new URL(input.toString());
@@ -70,31 +64,23 @@ test("Wikimedia Commons 批量读取独立授权元数据，并区分图片、�
         title: "File:Sunset.jpg",
         mime: "image/jpeg",
         url: "https://upload.wikimedia.org/sunset.jpg",
-        license: "CC BY-SA 4.0",
-        licenseUrl: "https://creativecommons.org/licenses/by-sa/4.0/",
         creator: "<a href=\"/wiki/User:Alice\">Alice</a>",
-        attribution: "Alice / CC BY-SA 4.0"
       }),
       "File:Street.webm": fileDetails({
         title: "File:Street.webm",
         mime: "video/webm",
         url: "https://upload.wikimedia.org/street.webm",
-        license: "CC0 1.0",
-        licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
         duration: 5.25
       }),
       "File:Incomplete.png": fileDetails({
         title: "File:Incomplete.png",
         mime: "image/png",
         url: "https://upload.wikimedia.org/incomplete.png",
-        license: "CC BY 4.0"
       }),
       "File:Audio.ogg": fileDetails({
         title: "File:Audio.ogg",
         mime: "audio/ogg",
         url: "https://upload.wikimedia.org/audio.ogg",
-        license: "CC0 1.0",
-        licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/"
       })
     };
     return json({ query: { pages: title.split('|').flatMap(name => (details[name] as { query: { pages: unknown[] } }).query.pages) } });
@@ -108,20 +94,14 @@ test("Wikimedia Commons 批量读取独立授权元数据，并区分图片、�
   const image = candidates.find((candidate) => candidate.originalAssetId === "File:Sunset.jpg")!;
   assert.equal(image.kind, "image");
   assert.equal(image.creator, "Alice");
-  assert.equal(image.license, "CC BY-SA 4.0");
-  assert.equal(image.licenseUrl, "https://creativecommons.org/licenses/by-sa/4.0/");
-  assert.equal(image.attribution, "Alice / CC BY-SA 4.0");
-  assert.equal(image.rightsStatus, "attribution_required");
+  assert.equal(Object.hasOwn(image, "attribution"), false);
   assert.match(image.sourceUrl, /commons\.wikimedia\.org/u);
   const video = candidates.find((candidate) => candidate.originalAssetId === "File:Street.webm")!;
   assert.equal(video.kind, "video");
   assert.equal(video.previewUrl, "https://upload.wikimedia.org/street.webm");
   assert.deepEqual(provider.previewHosts, ["upload.wikimedia.org", "thumb.wikimedia.org"]);
   assert.equal(video.durationMs, 5_250);
-  assert.equal(video.rightsStatus, "cleared");
   const incomplete = candidates.find((candidate) => candidate.originalAssetId === "File:Incomplete.png")!;
-  assert.equal(incomplete.rightsStatus, "unknown");
-  assert.equal(incomplete.licenseUrl, undefined);
 });
 
 test("Commons API 的独立缩略图主机可供候选分析，近似域名及非 HTTPS 地址仍被拒绝", async (t) => {
@@ -165,8 +145,6 @@ test("Wikimedia Commons 下载保留扩展名，并校验实时元数据、MIME 
           title: "File:Street scene.webm",
           mime: "video/webm",
           url: "https://upload.wikimedia.test/Street_scene.webm",
-          license: "CC0 1.0",
-          licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
           size: 4
         }));
       }

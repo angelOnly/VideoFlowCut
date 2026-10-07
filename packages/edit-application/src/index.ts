@@ -1,7 +1,7 @@
 import { sourceMaterialSchema, type SourceMaterialInput } from "../../asset-acquisition/src/source-research.js";
-import { assetUsageRightsInputSchema } from "../../contracts/src/editorial-inputs.js";
 import { captionPlacementSchema, captionDisplaySchema, validCaptionDisplay, type CaptionDisplay } from "../../contracts/src/caption-presentation.js";
 import { applyAudioDesign, soundRequirementSchema, type AudioDesignInput } from "./sound-design.js";
+import { prepareProjectFrameRateChange } from "./frame-rate-change.js";
 import { digest as mediaDigest, assetRequestVersion } from "../../media-intelligence/src/index.js";
 import { assertEffectCoverage } from "@videocut/domain";
 import { MediaIntelligenceApplication } from "./media-intelligence.js";
@@ -11,7 +11,8 @@ import { evidenceHash, validateEditorialObservations } from "./editorial-evidenc
 import { validateMotionReviewEvidence } from "./motion-review.js";
 import type { MotionReviewEvidenceInput, MotionReviewOutcome } from "@videocut/contracts";
 import { EDITORIAL_PASSES, evidenceSupportsPass, mergeEditorialReviews, missingReviewRanges, openEditorialFindings, reviewCoverage } from "../../quality-system/src/editorial-review.js";
-import { boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema, type MotionSubmission } from "../../motion-work/src/schema.js";
+import { boundMotionFontSchema, boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema, type MotionSubmission } from "../../motion-work/src/schema.js";
+import { bindMotionFonts } from "../../motion-work/src/fonts.js";
 import { motionHash, motionHashEngine, MOTION_ENGINE_VERSION, validateMotionSource } from "../../motion-work/src/compiler.js";
 import { inspectEffectContentContract } from "@videocut/contracts";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
@@ -24,7 +25,6 @@ import type {
   Asset,
   AssetCandidate,
   AssetRequest,
-  AssetRightsRequirement,
   ActorCapabilityProfile,
   ActorGenerationRange,
   ActorLayout,
@@ -33,7 +33,6 @@ import type {
   ActorPerformanceSource,
   AvatarInputMode,
   AvatarProviderKind,
-  AvatarUsageRightsConfirmation,
   AudioCue,
   AudioCueKind,
   AudioDucking,
@@ -150,7 +149,7 @@ import {
 import { DEFAULT_CAPTION_FORMAT, sourceAudioTimeOrigin } from "@videocut/contracts";
 import { evaluateQualityWithBrowser, exportBlockingIssues } from "@videocut/quality";
 import { sourceCaptionTextReviewSchema, exportApprovalSchema } from "../../contracts/src/editorial-inputs.js";
-import { assetProvenanceAllowsExport, validAssetUsageRights, sourceCaptionDisplayTextIsValid } from "@videocut/domain";
+import { sourceCaptionDisplayTextIsValid } from "@videocut/domain";
 import type { SourceCaptionTextReviewInput, AssetProvenance } from "@videocut/contracts";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { editPresenterSourceInSnapshot, type PresenterSourceEditInput } from "./presenter-source-edit";
@@ -192,11 +191,6 @@ type AvatarGenerationPlacement = {
   endFrame: number;
 };
 
-/** API 可逐项接收依据，但写入 Job 前必须归一成完整的可审计确认。 */
-type AvatarUsageRightsConfirmationInput = Partial<Pick<AvatarUsageRightsConfirmation,
-  "portraitRightsBasis" | "voiceRightsBasis" | "providerUsageRightsBasis"
->>;
-
 type AvatarGenerationJobPayload = {
   requestedRevision: number;
   capabilityProfileId: Id;
@@ -209,8 +203,6 @@ type AvatarGenerationJobPayload = {
   prompt?: string;
   maskMode: "none";
   audioMode: "use_dialogue_track" | "muted";
-  /** 未提供完整确认时保持 undefined，生成资产仍必须以 unknown 进入 Delivery 门禁。 */
-  rightsConfirmation?: AvatarUsageRightsConfirmation;
   layout?: ActorLayout;
   note?: string;
 };
@@ -377,14 +369,13 @@ export interface AppEvent {
 }
 
 function assertAssetProvenanceValid(provenance: NonNullable<Asset["provenance"]>): void {
-  if (provenance.usageRights && (!validAssetUsageRights(provenance.usageRights) || provenance.rightsStatus === "rejected")) {
-    throw new DomainError("素材用途许可必须有明确范围、依据和确认时间，且不能覆盖 rejected 状态", "ASSET_USAGE_RIGHTS_INVALID");
+  if (provenance.derivedFrom && (!provenance.derivedFrom.assetId || !provenance.derivedFrom.sourceHash
+    || !Number.isSafeInteger(provenance.derivedFrom.startMs) || !Number.isSafeInteger(provenance.derivedFrom.endMs)
+    || provenance.derivedFrom.startMs < 0 || provenance.derivedFrom.endMs <= provenance.derivedFrom.startMs)) {
+    throw new DomainError("派生音频缺少有效的源素材身份或源范围", "DERIVED_AUDIO_SOURCE_INVALID");
   }
   if (provenance.source === "provider" && (!provenance.provider?.trim() || !provenance.sourceUrl?.trim())) {
     throw new DomainError("外部素材必须记录来源平台和原始页面", "PROVENANCE_SOURCE_REQUIRED");
-  }
-  if (provenance.rightsStatus === "attribution_required" && !provenance.attributionText?.trim()) {
-    throw new DomainError("需要署名的素材必须记录署名文本", "ATTRIBUTION_TEXT_REQUIRED");
   }
 }
 
@@ -1267,30 +1258,6 @@ function normalizeActorLayout(layout: ActorLayout | undefined): ActorLayout | un
   return { actorHead, actorHands };
 }
 
-/**
- * 生成 Avatar 的权利确认不能靠 Profile 中的泛化说明推断。调用方若提供确认，
- * 必须同时给出肖像、声音与 Provider 使用权依据；否则宁可维持 unknown 并由 Delivery 阻止。
- */
-function normalizeAvatarUsageRightsConfirmation(
-  input: AvatarUsageRightsConfirmationInput | undefined
-): AvatarUsageRightsConfirmation | undefined {
-  if (input === undefined) return undefined;
-  const portraitRightsBasis = input.portraitRightsBasis?.trim() ?? "";
-  const voiceRightsBasis = input.voiceRightsBasis?.trim() ?? "";
-  const providerUsageRightsBasis = input.providerUsageRightsBasis?.trim() ?? "";
-  if (!portraitRightsBasis || !voiceRightsBasis || !providerUsageRightsBasis) {
-    throw new DomainError("Avatar 权利确认必须同时提供肖像、声音和 Provider 使用权依据；缺失时请不要提交确认并保留 unknown。", "AVATAR_RIGHTS_CONFIRMATION_INCOMPLETE");
-  }
-  return { portraitRightsBasis, voiceRightsBasis, providerUsageRightsBasis, confirmedAt: now() };
-}
-
-function isAvatarUsageRightsConfirmation(value: unknown): value is AvatarUsageRightsConfirmation {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const record = value as Record<string, unknown>;
-  return ["portraitRightsBasis", "voiceRightsBasis", "providerUsageRightsBasis", "confirmedAt"]
-    .every((key) => typeof record[key] === "string" && record[key].trim().length > 0);
-}
-
 function normalizeAvatarInputModes(inputModes: AvatarInputMode[]): AvatarInputMode[] {
   const next = [...new Set(inputModes)];
   if (next.length === 0 || next.some((mode) => mode !== "audio" && mode !== "text")) {
@@ -1308,8 +1275,8 @@ function normalizeActorMaskModes(maskModes: ActorMaskMode[]): ActorMaskMode[] {
 }
 
 function candidateFilterReasons(
-  candidate: Pick<AssetCandidate, "originalAssetId" | "sourceUrl" | "durationMs" | "rightsStatus" | "usageRights" | "attributionText"> & { kind?: AssetCandidate["kind"] },
-  request: Pick<AssetRequest, "minDurationMs" | "rightsRequirement" | "mediaKind">
+  candidate: Pick<AssetCandidate, "originalAssetId" | "sourceUrl" | "durationMs"> & { kind?: AssetCandidate["kind"] },
+  request: Pick<AssetRequest, "minDurationMs" | "mediaKind">
 ): string[] {
   const reasons: string[] = [];
   if ((request.mediaKind === "audio") !== (candidate.kind === "audio")) reasons.push("候选媒介类型不符合声音/视觉需求。");
@@ -1319,15 +1286,10 @@ function candidateFilterReasons(
   if (candidate.kind !== "image" && request.minDurationMs !== undefined && (candidate.durationMs === undefined || candidate.durationMs < request.minDurationMs)) {
     reasons.push(`时长不足 ${Math.ceil(request.minDurationMs / 1000)} 秒。`);
   }
-  const allowed = request.rightsRequirement === "cleared_only"
-    ? candidate.rightsStatus === "cleared"
-    : candidate.rightsStatus === "cleared" || candidate.rightsStatus === "attribution_required";
-  const confirmed = candidate.usageRights?.purposes.some(purpose => assetProvenanceAllowsExport({ source: "provider", rightsStatus: candidate.rightsStatus, usageRights: candidate.usageRights, attributionText: candidate.attributionText, acquiredAt: now() }, purpose));
-  if (!allowed && !confirmed) reasons.push("授权状态不满足当前素材需求。");
   return reasons;
 }
 
-function candidateIsAllowed(candidate: Pick<AssetCandidate, "originalAssetId" | "sourceUrl" | "durationMs" | "rightsStatus" | "hardFilterPassed" | "kind" | "usageRights" | "attributionText">, request: Pick<AssetRequest, "minDurationMs" | "rightsRequirement" | "mediaKind">): boolean {
+function candidateIsAllowed(candidate: Pick<AssetCandidate, "originalAssetId" | "sourceUrl" | "durationMs" | "hardFilterPassed" | "kind">, request: Pick<AssetRequest, "minDurationMs" | "mediaKind">): boolean {
   if (!candidate.hardFilterPassed) return false;
   return candidateFilterReasons(candidate, request).length === 0;
 }
@@ -1344,10 +1306,6 @@ export interface AssetSearchCandidateInput {
   height?: number;
   durationMs?: number;
   creator?: string;
-  license?: string;
-  licenseUrl?: string;
-  attributionText?: string;
-  rightsStatus: AssetCandidate["rightsStatus"];
   tags?: string[];
 }
 
@@ -1463,10 +1421,38 @@ export class EditingApplication {
     };
   }
 
-  createProject(input: { name: string; profile?: ProjectSnapshot["project"]["profile"]; brief?: Partial<CreativeBrief> }): ProjectState {
+  createProject(input: { name: string; profile?: ProjectSnapshot["project"]["profile"]; brief?: Partial<CreativeBrief>; fps?: number }): ProjectState {
     const state = this.repository.createProject(input);
     this.publish({ projectId: state.snapshot.project.id, revision: state.revision.number, type: "revision" });
     return state;
+  }
+
+  previewProjectFrameRateChange(input: { projectId: Id; baseRevision: number; fps: number }) {
+    const current = this.readProject(input.projectId);
+    if (current.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, current.revision.number);
+    return prepareProjectFrameRateChange(current.snapshot, input.fps, current.revision.number, this.repository.listJobs(input.projectId)).report;
+  }
+
+  setProjectFrameRate(input: { projectId: Id; baseRevision: number; fps: number }) {
+    const current = this.readProject(input.projectId);
+    if (current.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, current.revision.number);
+    const initial = prepareProjectFrameRateChange(current.snapshot, input.fps, current.revision.number, this.repository.listJobs(input.projectId));
+    if (!initial.report.canApply) throw new DomainError(initial.report.blockers.map(entry => `${entry.objectId ?? "项目"}：${entry.message}`).join("；"), initial.report.blockers[0].code);
+    if (!initial.report.changed) return { ...current, frameRateChange: initial.report };
+    let report = initial.report;
+    const state = this.repository.commit(input.projectId, input.baseRevision, `项目帧率 ${current.snapshot.timeline.fps} → ${input.fps}，保持实际时间`, (snapshot, impact) => {
+      // 在事务中再次检查Worker状态与转换结果，预检查不是绕过并发保护的令牌。
+      const change = prepareProjectFrameRateChange(snapshot, input.fps, input.baseRevision, this.repository.listJobs(input.projectId));
+      if (!change.report.canApply) throw new DomainError(change.report.blockers.map(entry => `${entry.objectId ?? "项目"}：${entry.message}`).join("；"), change.report.blockers[0].code);
+      report = change.report;
+      Object.assign(snapshot, change.snapshot);
+      impact.changed.push(...report.affectedObjectIds);
+      impact.recomputed.push("项目帧坐标、语音毫秒投影与动效事件映射");
+      impact.warnings.push(...report.warnings);
+      if (snapshot.timeline.durationInFrames) impact.dirtyRanges.push({ startFrame: 0, endFrame: snapshot.timeline.durationInFrames, reason: "项目帧率变化，重建合成预览并复核声画" });
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return { ...state, frameRateChange: report };
   }
 
   listProjects(): ProjectSummary[] {
@@ -1871,7 +1857,7 @@ export class EditingApplication {
   }
 
   /** 将可用本地音频显式登记为 VoiceReference，避免把 Asset ID 误称为远端声音档案。 */
-  registerVoiceReference(input: { projectId: Id; baseRevision: number; assetId: Id; label?: string; authorizationNote?: string; usageNote?: string }): ProjectState {
+  registerVoiceReference(input: { projectId: Id; baseRevision: number; assetId: Id; label?: string; usageNote?: string }): ProjectState {
     const state = this.repository.commit(input.projectId, input.baseRevision, "登记 VoiceReference", (snapshot, impact) => {
       const asset = assetById(snapshot, input.assetId);
       if (asset.kind !== "audio" || asset.status !== "ready" || !asset.metadata?.hasAudio) {
@@ -1881,13 +1867,11 @@ export class EditingApplication {
       const durationMs = asset.metadata.durationMs;
       const suitableDuration = durationMs >= 3_000 && durationMs <= 15_000;
       const quality = suitableDuration && (asset.metadata.sampleRate ?? 0) >= 8_000 ? "passed" as const : "warning" as const;
-      const authorizationNote = input.authorizationNote?.trim() || "未填写授权信息；仅在已获得声音使用授权的前提下使用。";
       const usageNote = input.usageNote?.trim() || "仅用于当前项目的本地语音合成。";
       const recommendedRange = { startMs: 0, endMs: Math.min(durationMs, 15_000) };
       const existing = snapshot.voiceReferences.find((reference) => reference.assetId === asset.id);
       if (existing) {
         existing.label = label;
-        existing.authorizationNote = authorizationNote;
         existing.usageNote = usageNote;
         existing.recommendedRange = recommendedRange;
         existing.quality = quality;
@@ -1897,7 +1881,6 @@ export class EditingApplication {
         const reference: VoiceReference = createVoiceReference({
           assetId: asset.id,
           label,
-          authorizationNote,
           usageNote,
           recommendedRange,
           quality,
@@ -2402,24 +2385,23 @@ export class EditingApplication {
       return existing;
     }
     if (!work.creativeBrief) throw new DomainError("新作品必须提供创作说明 creativeBrief；参考可选，不填写占位参考", "MOTION_CREATIVE_BRIEF_REQUIRED");
-    const pixelFrames = work.width * work.height * work.durationInFrames;
-    if (pixelFrames > 650_000_000) throw new DomainError(`作品预计 ${work.durationInFrames} 帧、${pixelFrames} 像素帧，超过 650000000 预算；请按自然段边界调整范围或画布`, "MOTION_BUDGET_EXCEEDED");
     const current = this.readProject(input.projectId);
     if (current.revision.number !== input.baseRevision) throw new DomainError("项目 Revision 已变化，请重新读取", "REVISION_CONFLICT");
     if (work.previousAssetId && !current.snapshot.assets.some((asset) => asset.id === work.previousAssetId && asset.motion)) throw new DomainError("上一版本不是当前项目的受管作品", "MOTION_PREVIOUS_VERSION_MISSING");
     const boundImages = Object.entries(work.imageBindings).map(([slot, assetId]) => {
       const asset = assetById(current.snapshot, assetId);
       if (asset.kind !== "image" || asset.status !== "ready" || !asset.sourceHash) throw new DomainError("作品只绑定已就绪且有内容哈希的项目图片", "MOTION_IMAGE_NOT_READY");
-      return { slot, assetId, managedPath: asset.managedPath, hash: asset.sourceHash, rightsStatus: asset.provenance?.rightsStatus ?? "unknown", attribution: asset.provenance?.attributionText, ...(asset.provenance?.usageRights ? { usageRights: asset.provenance.usageRights } : {}) };
+      return { slot, assetId, managedPath: asset.managedPath, hash: asset.sourceHash };
     });
     const boundVideos = boundMotionVideoSchema.array().parse(Object.entries(work.videoBindings ?? {}).map(([slot, binding]) => {
       const asset = assetById(current.snapshot, binding.assetId);
       if (asset.kind !== "video" || asset.status !== "ready" || !asset.sourceHash || !asset.metadata?.durationMs || asset.motion) throw new DomainError("绑定已就绪且有真实时长和哈希的源视频；受管动效请直接放置", "MOTION_VIDEO_NOT_READY");
       if (binding.sourceEndMs > asset.metadata.durationMs) throw new DomainError("视频源范围超出素材时长", "MOTION_VIDEO_SOURCE_RANGE");
-      return { slot, ...binding, managedPath: asset.managedPath, hash: asset.sourceHash, rightsStatus: asset.provenance?.rightsStatus ?? "unknown", attribution: asset.provenance?.attributionText, ...(asset.provenance?.usageRights ? { usageRights: asset.provenance.usageRights } : {}) };
+      return { slot, ...binding, managedPath: asset.managedPath, hash: asset.sourceHash };
     }));
-    const version = motionHash(work, boundImages, MOTION_ENGINE_VERSION, boundVideos);
-    const job = this.repository.createJob({ projectId: input.projectId, kind: "motion_generation", payload: { work, version, engineVersion: MOTION_ENGINE_VERSION, requestedRevision: input.baseRevision, boundImages, ...(boundVideos.length ? { boundVideos } : {}) }, idempotencyKey: `motion:${input.idempotencyKey}` });
+    const boundFonts = bindMotionFonts(work);
+    const version = motionHash(work, boundImages, MOTION_ENGINE_VERSION, boundVideos, boundFonts);
+    const job = this.repository.createJob({ projectId: input.projectId, kind: "motion_generation", payload: { work, version, engineVersion: MOTION_ENGINE_VERSION, requestedRevision: input.baseRevision, boundImages, ...(boundVideos.length ? { boundVideos } : {}), ...(boundFonts.length ? { boundFonts } : {}) }, idempotencyKey: `motion:${input.idempotencyKey}` });
     this.publish({ projectId: input.projectId, revision: current.revision.number, type: "job" });
     return job;
   }
@@ -2432,38 +2414,29 @@ export class EditingApplication {
   }
 
   /** Worker 可重复完成，但同一任务只登记一个固定版本的作品 Asset。 */
-  completeManagedMotion(input: { projectId: Id; jobId: Id; engineVersion: string; sourceHash: string; metadata: NonNullable<Asset["metadata"]>; visibility?: NonNullable<Asset["motion"]>["visibility"]; eventMap?: NonNullable<Asset["motion"]>["eventMap"] }): Asset {
+  completeManagedMotion(input: { projectId: Id; jobId: Id; engineVersion: string; sourceHash: string; metadata: NonNullable<Asset["metadata"]>; eventMap?: NonNullable<Asset["motion"]>["eventMap"] }): Asset {
     const job = this.repository.getJob(input.jobId);
     if (job.projectId !== input.projectId || job.kind !== "motion_generation") throw new DomainError("作品任务不属于当前项目", "MOTION_JOB_NOT_FOUND");
+    if (job.status === "cancelled") throw new DomainError("作品任务已取消，不能登记素材", "MOTION_CANCELLED");
     const current = this.readProject(input.projectId);
     const existing = current.snapshot.assets.find((asset) => asset.motion?.jobId === job.id);
     if (existing) return existing;
     const work = motionSubmissionSchema.parse(job.payload.work);
     const boundImages = boundMotionImageSchema.array().parse(job.payload.boundImages ?? []);
     const boundVideos = boundMotionVideoSchema.array().parse(job.payload.boundVideos ?? []);
-    const version = motionHash(work, boundImages, motionHashEngine(work, boundImages, job.payload.version, job.payload.engineVersion, boundVideos), boundVideos);
+    const boundFonts = boundMotionFontSchema.array().parse(job.payload.boundFonts ?? []);
+    const version = motionHash(work, boundImages, motionHashEngine(work, boundImages, job.payload.version, job.payload.engineVersion, boundVideos, boundFonts), boundVideos, boundFonts);
     if (version !== job.payload.version) throw new DomainError("作品固定输入已损坏", "MOTION_VERSION_MISMATCH");
     const directory = `assets/derived/motion/${job.id}/${version}`;
     const images = [...boundImages, ...boundVideos];
-    // 派生不创造新许可：保留最严格的已知限制，不能把 restricted / rejected 丢成 unknown。
-    const rightsOrder = ["cleared", "attribution_required", "unknown", "restricted", "rejected"] as const;
-    const imageRights = images.map(image => !rightsOrder.includes(image.rightsStatus as typeof rightsOrder[number])
-      || image.rightsStatus === "attribution_required" && !image.attribution?.trim() ? "unknown" : image.rightsStatus);
-    const derivedRights = rightsOrder[Math.max(...[work.rights.status, ...imageRights].map(status => rightsOrder.indexOf(status as typeof rightsOrder[number])))]!;
-    // 提交时固定的许可与当前来源限制共同约束派生作品；生成不会创造新授权。
-    const ownProvenance: AssetProvenance = { source: "generated", rightsStatus: work.rights.status, attributionText: work.rights.attribution, acquiredAt: now(), usageRights: work.rights.usageRights ? { ...work.rights.usageRights, confirmedAt: now() } : undefined };
-    const permitted = (["draft", "delivery"] as const).filter(purpose => assetProvenanceAllowsExport(ownProvenance, purpose) && images.every(image => assetProvenanceAllowsExport({ source: "provider", rightsStatus: image.rightsStatus as AssetProvenance["rightsStatus"], usageRights: image.usageRights, attributionText: image.attribution, acquiredAt: now() }, purpose)));
-    const usageRights = permitted.length && (work.rights.usageRights || images.some(image => image.usageRights))
-      ? { purposes: permitted, basis: [work.rights.usageRights?.basis ?? work.rights.basis, ...images.map(image => image.usageRights?.basis).filter(Boolean)].join("；").slice(0, 2000), confirmedAt: now() } : undefined;
-    // 两个各有许可的输入也可能没有共同用途；空交集不能回退成 cleared。
-    const effectiveRights = !permitted.length && (work.rights.usageRights || images.some(image => image.usageRights)) && derivedRights !== "rejected" ? "restricted" : derivedRights;
     let asset!: Asset;
     const state = this.repository.commit(input.projectId, current.revision.number, "登记受管 Remotion 作品（待审阅）", (snapshot, impact) => {
+      if (this.repository.getJob(job.id).status === "cancelled") throw new DomainError("作品任务已取消，不能登记素材", "MOTION_CANCELLED");
       asset = {
         id: createId("asset"), name: work.name, kind: "video", status: "ready", managedPath: `${directory}/preview.mp4`, sourceHash: input.sourceHash,
         role: "generated_visual", tags: ["managed_motion", "work_review_required"], createdAt: now(), metadata: input.metadata,
-        provenance: { source: "generated", provider: "managed_remotion", generationJobId: job.id, rightsStatus: effectiveRights, license: work.rights.basis, usageRights, attributionText: [work.rights.attribution, ...images.map((image) => image.attribution)].filter(Boolean).join("\n") || undefined, acquiredAt: now() },
-        motion: { jobId: job.id, version, engineVersion: input.engineVersion, previousAssetId: work.previousAssetId, sourceAssetIds: images.map(image => image.assetId), ...(boundImages.length ? { imageSources: boundImages.map(image => ({ slot: image.slot, assetId: image.assetId, sourceHash: image.hash })) } : {}), ...(boundVideos.length ? { videoSources: boundVideos.map(v => ({ slot: v.slot, assetId: v.assetId, sourceHash: v.hash, sourceStartMs: v.sourceStartMs, sourceEndMs: v.sourceEndMs })) } : {}), sourcePath: `${directory}/source.json`, framesDirectory: `${directory}/frames`, frameCount: work.durationInFrames, fps: work.fps, width: work.width, height: work.height, referenceUrl: work.reference?.url, creativeBrief: work.creativeBrief, visibility: input.visibility, eventMap: input.eventMap }
+        provenance: { source: "generated", provider: "managed_remotion", generationJobId: job.id, acquiredAt: now() },
+        motion: { jobId: job.id, version, engineVersion: input.engineVersion, previousAssetId: work.previousAssetId, sourceAssetIds: [...new Set(images.map(image => image.assetId))], ...(boundImages.length ? { imageSources: boundImages.map(image => ({ slot: image.slot, assetId: image.assetId, sourceHash: image.hash })) } : {}), ...(boundVideos.length ? { videoSources: boundVideos.map(v => ({ slot: v.slot, assetId: v.assetId, sourceHash: v.hash, sourceStartMs: v.sourceStartMs, sourceEndMs: v.sourceEndMs, startFrame: v.startFrame, endFrame: v.endFrame })) } : {}), ...(boundFonts.length ? { fontSources: boundFonts.map(f => ({ slot: f.slot, fontId: f.fontId, sourceHash: f.hash, weight: f.weight, style: f.style })) } : {}), sourcePath: `${directory}/source.json`, framesDirectory: `${directory}/frames`, frameCount: work.durationInFrames, fps: work.fps, width: work.width, height: work.height, referenceUrl: work.reference?.url, creativeBrief: work.creativeBrief, eventMap: input.eventMap }
       };
       snapshot.assets.push(asset);
       impact.changed.push(asset.id);
@@ -2504,7 +2477,7 @@ export class EditingApplication {
     const asset = snapshot.assets.find((item) => item.id === cue.assetBindings.find((binding) => binding.slot === "motion")?.assetId);
     const content = inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline);
     if (!content.ready || !asset?.motion) throw new DomainError(content.missing.join("；"), "MOTION_NOT_READY");
-    if (asset.motion.width !== snapshot.timeline.width || asset.motion.height !== snapshot.timeline.height || asset.motion.fps !== snapshot.timeline.fps) throw new DomainError("作品画幅/帧率不匹配，请按目标画布重新生成", "MOTION_CANVAS_MISMATCH");
+    if (asset.motion.width !== snapshot.timeline.width || asset.motion.height !== snapshot.timeline.height) throw new DomainError("作品画幅不匹配，请按目标画布重新生成", "MOTION_CANVAS_MISMATCH");
     if (Object.keys(cue.props).length) throw new DomainError("修改作品 Props 必须提交新作品版本，不能在 Cue 上设置无效参数", "MOTION_PROPS_REQUIRE_NEW_VERSION");
   }
 
@@ -2561,19 +2534,12 @@ export class EditingApplication {
       if (input.provenance !== undefined) {
         assertAssetProvenanceValid(input.provenance);
         if (asset.motion) {
-          // 历史作品仅在显式修改许可时，从原 Job 补回真实来源；不替旧数据授予新许可。
-          const job = this.repository.getJob(asset.motion.jobId);
-          if (job.projectId !== input.projectId || job.kind !== "motion_generation") throw new DomainError("作品来源任务无效", "MOTION_JOB_NOT_FOUND");
-          asset.motion.sourceAssetIds = [...boundMotionImageSchema.array().parse(job.payload.boundImages ?? []), ...boundMotionVideoSchema.array().parse(job.payload.boundVideos ?? [])].map(image => image.assetId);
           if (input.provenance.source !== "generated") throw new DomainError("受管作品必须保留生成来源", "MOTION_PROVENANCE_INVALID");
         }
         asset.provenance = input.provenance;
       }
       impact.changed.push(asset.id);
-      impact.recomputed.push("素材角色、来源与授权状态");
-      if (asset.provenance?.source === "provider" && asset.provenance.rightsStatus === "unknown") {
-        impact.warnings.push(`外部素材“${asset.name}”尚未确认版权，不能作为正式交付素材。`);
-      }
+      impact.recomputed.push("素材角色与来源");
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     return state;
@@ -2599,7 +2565,6 @@ export class EditingApplication {
     excludedTerms?: string[];
     targetAspectRatio?: AssetRequest["targetAspectRatio"];
     minDurationMs?: number | null;
-    rightsRequirement?: AssetRightsRequirement;
     fallbackPlan?: AssetRequest["fallbackPlan"];
     closeReason?: string;
   }): ProjectState {
@@ -2631,7 +2596,6 @@ export class EditingApplication {
           excludedTerms: normalizedTextList(input.excludedTerms),
           targetAspectRatio: input.mediaKind === "audio" ? undefined : input.targetAspectRatio ?? snapshot.project.brief.aspectRatio,
           minDurationMs: input.minDurationMs ?? undefined,
-          rightsRequirement: input.rightsRequirement ?? "cleared_or_attribution",
           fallbackPlan: input.fallbackPlan ?? (input.mediaKind === "audio" ? "ask_user" : "keep_presenter"),
           status: "open",
           createdAt: updatedAt,
@@ -2675,7 +2639,6 @@ export class EditingApplication {
             if (input.minDurationMs !== null && (!Number.isInteger(input.minDurationMs) || input.minDurationMs <= 0 || input.minDurationMs > 300_000)) throw new DomainError("素材最小时长必须是 1 到 300000 的整数，null 用于清空", "INVALID_ASSET_REQUEST_DURATION");
             request.minDurationMs = input.minDurationMs ?? undefined;
           }
-          if (input.rightsRequirement !== undefined) request.rightsRequirement = input.rightsRequirement;
           if (input.fallbackPlan !== undefined) request.fallbackPlan = input.fallbackPlan;
           request.updatedAt = updatedAt;
           const searchCriteriaChanged = input.sound !== undefined || input.purpose !== undefined
@@ -2685,8 +2648,7 @@ export class EditingApplication {
             || input.queryHints !== undefined
             || input.excludedTerms !== undefined
             || input.targetAspectRatio !== undefined
-            || input.minDurationMs !== undefined
-            || input.rightsRequirement !== undefined;
+            || input.minDurationMs !== undefined;
           if (searchCriteriaChanged) {
             const hasDownloadInFlight = snapshot.assetCandidates.some((candidate) => candidate.assetRequestId === request.id && (candidate.status === "acquisition_queued" || candidate.status === "acquiring"));
             if (hasDownloadInFlight) throw new DomainError("已有候选正在下载，不能同时修改它的搜索条件", "ASSET_REQUEST_ACQUISITION_IN_PROGRESS");
@@ -2720,7 +2682,7 @@ export class EditingApplication {
     return state;
   }
 
-  /** 选定来源使用既有队列；相同键的重试不能悄悄改 URL 或用途。 */
+  /** 选定来源使用既有队列；相同键的重试不能悄悄改 URL 或材料参数。 */
   submitSourceMaterial(projectId: Id, raw: SourceMaterialInput): JobRecord {
     const input = sourceMaterialSchema.parse(raw);
     const current = this.readProject(projectId);
@@ -2746,7 +2708,7 @@ export class EditingApplication {
       const state = this.repository.commit(projectId, current.revision.number, "登记选定来源原文件与页面", (snapshot, impact) => {
         assets = manifest.files.map(file => createMediaAsset({ name: file.page ? `来源第${file.page}页` : new URL(manifest.url).hostname,
           kind: file.kind, managedPath: `assets/derived/source-material/${jobId}/${file.file}`, sourceHash: file.hash, role: "evidence", tags: ["source_material", ...(file.page ? [`pdf_page:${file.page}`] : [])],
-          provenance: { source: "provider", provider: "source_material", generationJobId: jobId, sourceUrl: manifest.url, originalAssetId: file.page ? `${manifest.url}#page=${file.page}` : manifest.url, acquiredAt: manifest.fetchedAt, rightsStatus: "unknown", usageRights: { purposes: input.purposes, basis: input.basis, confirmedAt: now() } } }));
+          provenance: { source: "provider", provider: "source_material", generationJobId: jobId, sourceUrl: manifest.url, originalAssetId: file.page ? `${manifest.url}#page=${file.page}` : manifest.url, acquiredAt: manifest.fetchedAt, } }));
         snapshot.assets.push(...assets); impact.changed.push(...assets.map(a => a.id));
       });
       this.publish({ projectId, revision: state.revision.number, type: "revision" });
@@ -2801,13 +2763,13 @@ export class EditingApplication {
       observations: this.repository.mediaIntelligence.sources(input.projectId).filter((source) => source.target.candidateId === candidate.id).flatMap((source) => this.repository.mediaIntelligence.observations(input.projectId, source.id)) };
   }
 
-  /** Candidate 只有经过硬过滤且授权允许时才能进入下载队列。 */
-  acquireAssetCandidate(input: { projectId: Id; baseRevision: number; assetCandidateId: Id; idempotencyKey?: string; usageRights?: { purposes: ("draft" | "delivery")[]; basis: string } }): { state: ProjectState; candidate: AssetCandidate; job: JobRecord } {
+  /** Candidate 只有经过技术过滤才能进入下载队列。 */
+  acquireAssetCandidate(input: { projectId: Id; baseRevision: number; assetCandidateId: Id; idempotencyKey?: string; }): { state: ProjectState; candidate: AssetCandidate; job: JobRecord } {
     const current = this.readProject(input.projectId);
-    const existing = this.repository.listJobs(input.projectId).find((job) => job.kind === "asset_acquisition" && job.payload.assetCandidateId === input.assetCandidateId && !["failed", "cancelled"].includes(job.status));
+    const jobs = this.repository.listJobs(input.projectId);
+    const existing = jobs.find((job) => job.kind === "asset_acquisition" && job.payload.assetCandidateId === input.assetCandidateId && !["failed", "cancelled"].includes(job.status));
     const currentCandidate = current.snapshot.assetCandidates.find((entry) => entry.id === input.assetCandidateId);
     if (existing && currentCandidate) {
-      if (input.usageRights && (JSON.stringify(input.usageRights.purposes) !== JSON.stringify(currentCandidate.usageRights?.purposes) || input.usageRights.basis !== currentCandidate.usageRights?.basis)) throw new DomainError("获取任务已存在，不能用重试更换许可依据", "ASSET_ACQUISITION_IDEMPOTENCY_CONFLICT");
       return { state: current, candidate: currentCandidate, job: existing };
     }
     let candidateId!: Id;
@@ -2823,19 +2785,16 @@ export class EditingApplication {
       }
       const candidate = assetCandidateById(snapshot, input.assetCandidateId);
       const request = assetRequestById(snapshot, candidate.assetRequestId);
-      if (input.usageRights !== undefined) {
-        const usage = assetUsageRightsInputSchema.parse(input.usageRights);
-        // 只重核因来源许可未知而被过滤的候选；明确拒绝和技术失败不能被用途说明洗掉。
-        const rightsOnly = candidate.status === "rejected" && candidate.filterReasons.length === 1 && candidate.filterReasons[0] === "授权状态不满足当前素材需求。" && candidate.rejectionReason === candidate.filterReasons.join(" ");
-        if (candidate.status !== "available" && !rightsOnly) throw new DomainError("候选不是仅因许可待确认而受阻，不能覆盖技术或人工拒绝", "ASSET_CANDIDATE_NOT_ALLOWED");
-        candidate.usageRights = { ...usage, confirmedAt: now() };
-        candidate.filterReasons = candidateFilterReasons(candidate, request);
-        candidate.hardFilterPassed = candidate.filterReasons.length === 0;
-        if (candidate.hardFilterPassed) { candidate.status = "available"; candidate.rejectionReason = undefined; }
+      // 仅恢复已有明确失败 Job 的获取；不把人工拒绝或未知执行结果变成可重试。
+      const recovering = candidate.status === "failed" && jobs.some(entry => entry.kind === "asset_acquisition" && entry.payload.assetCandidateId === candidate.id && entry.status === "failed");
+      if (recovering) {
+        if (jobs.some(entry => entry.idempotencyKey === (input.idempotencyKey ?? `asset_acquisition:${candidate.id}:${input.baseRevision}`))) throw new DomainError("失败恢复需要新的获取幂等键，旧 Job 保留失败记录", "ASSET_ACQUISITION_IDEMPOTENCY_CONFLICT");
+        if (!candidateIsAllowed(candidate, request)) throw new DomainError("失败候选不满足当前技术过滤，不能恢复获取", "ASSET_CANDIDATE_NOT_ALLOWED");
+        candidate.status = "available";
       }
       if (candidate.status !== "available") throw new DomainError("只有可用候选才能提交本地化任务", "ASSET_CANDIDATE_NOT_AVAILABLE");
       if (!candidateIsAllowed(candidate, request)) {
-        throw new DomainError("候选素材没有通过授权或技术过滤，不能下载", "ASSET_CANDIDATE_NOT_ALLOWED");
+        throw new DomainError("候选素材没有通过技术过滤，不能下载", "ASSET_CANDIDATE_NOT_ALLOWED");
       }
       candidate.status = "acquisition_queued";
       candidate.acquisitionError = undefined;
@@ -2886,7 +2845,7 @@ export class EditingApplication {
         throw new DomainError("素材候选当前不允许完成本地化", "ASSET_CANDIDATE_NOT_ACQUIRING");
       }
       if (!candidateIsAllowed(candidate, request)) {
-        throw new DomainError("候选素材授权状态已不满足需求，不能登记为项目素材", "ASSET_CANDIDATE_NOT_ALLOWED");
+        throw new DomainError("候选素材已不满足当前技术需求，不能登记为项目素材", "ASSET_CANDIDATE_NOT_ALLOWED");
       }
       const acquiredAt = now();
       const existing = snapshot.assets.find((entry) => entry.sourceHash === input.sourceHash && entry.provenance?.provider === candidate.provider && entry.provenance?.originalAssetId === candidate.originalAssetId);
@@ -2900,11 +2859,6 @@ export class EditingApplication {
           sourceUrl: candidate.sourceUrl,
           originalAssetId: candidate.originalAssetId,
           creator: candidate.creator,
-          license: candidate.license,
-          licenseUrl: candidate.licenseUrl,
-          attributionText: candidate.attributionText,
-          rightsStatus: candidate.rightsStatus,
-          usageRights: candidate.usageRights,
           acquiredAt
         };
         assertAssetProvenanceValid(provenance);
@@ -2927,10 +2881,7 @@ export class EditingApplication {
       request.status = "fulfilled";
       request.updatedAt = acquiredAt;
       impact.changed.push(candidate.id, request.id, asset.id);
-      impact.recomputed.push("素材来源、授权状态与本地 Asset");
-      if (asset.provenance?.rightsStatus === "attribution_required") {
-        impact.warnings.push(`素材“${asset.name}”要求署名，正式交付前必须生成署名清单。`);
-      }
+      impact.recomputed.push("素材来源与本地 Asset");
     });
     const mediaAnalysisJob = duplicate ? undefined : this.repository.createJob({
       projectId: input.projectId,
@@ -5385,7 +5336,6 @@ export class EditingApplication {
     supportsGestureControl?: boolean;
     supportsPartialRegeneration?: boolean;
     maxDurationSeconds?: number;
-    rightsNote?: string;
     privacyNote?: string;
   }): ProjectState {
     const state = this.repository.commit(input.projectId, input.baseRevision, input.action === "create" ? "创建人物能力档案" : input.action === "update" ? "更新人物能力档案" : "移除人物能力档案", (snapshot, impact) => {
@@ -5428,7 +5378,6 @@ export class EditingApplication {
           supportsGestureControl: input.supportsGestureControl ?? false,
           supportsPartialRegeneration: input.supportsPartialRegeneration ?? false,
           maxDurationSeconds: ensureDuration(input.maxDurationSeconds),
-          rightsNote: requireText(input.rightsNote, "人物 Provider 权利说明"),
           privacyNote: requireText(input.privacyNote, "人物 Provider 隐私说明"),
           createdAt: now(),
           updatedAt: now()
@@ -5455,7 +5404,6 @@ export class EditingApplication {
       if (input.supportsGestureControl !== undefined) profile.supportsGestureControl = input.supportsGestureControl;
       if (input.supportsPartialRegeneration !== undefined) profile.supportsPartialRegeneration = input.supportsPartialRegeneration;
       if (input.maxDurationSeconds !== undefined) profile.maxDurationSeconds = ensureDuration(input.maxDurationSeconds);
-      if (input.rightsNote !== undefined) profile.rightsNote = requireText(input.rightsNote, "人物 Provider 权利说明");
       if (input.privacyNote !== undefined) profile.privacyNote = requireText(input.privacyNote, "人物 Provider 隐私说明");
       profile.updatedAt = now();
       impact.changed.push(profile.id);
@@ -6018,6 +5966,32 @@ export class EditingApplication {
       snapshot.scenes.push(scene);
       impact.changed.push(scene.id);
       impact.dirtyRanges.push({ startFrame: scene.startFrame, endFrame: scene.endFrame, reason: "新增场景" });
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  trimScene(input: { projectId: Id; baseRevision: number; sceneId: Id; endFrame: number }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "缩短场景终点", (snapshot, impact) => {
+      const scene = snapshot.scenes.find((candidate) => candidate.id === input.sceneId);
+      if (!scene) throw new DomainError("Scene 不存在", "SCENE_NOT_FOUND");
+      if (!Number.isInteger(input.endFrame) || input.endFrame <= scene.startFrame || input.endFrame > scene.endFrame) {
+        throw new DomainError("只能将 Scene 终点缩短到起点之后", "INVALID_SCENE_RANGE");
+      }
+      const outside = (start: number, end: number) => start < scene.startFrame || end > input.endFrame;
+      // 已放置的画面与效果不得被裁成悬空对象；先调整依赖，再缩短场景。
+      if (snapshot.timeline.items.some((item) => item.sceneId === scene.id && outside(item.startFrame, item.endFrame))
+        || snapshot.effectCues.some((cue) => cue.sceneId === scene.id && outside(cue.startFrame, cue.endFrame))
+        || (snapshot.explainerPrograms ?? []).some((program) => program.sceneId === scene.id
+          && program.states.some((phase) => phase.endFrame > input.endFrame - scene.startFrame))
+        || (snapshot.cutaways ?? []).some((cutaway) => (cutaway.hostSceneId === scene.id || cutaway.cutawaySceneId === scene.id)
+          && outside(cutaway.startFrame, cutaway.endFrame))) {
+        throw new DomainError("Scene 终点之后仍有绑定内容，请先调整依赖范围", "SCENE_TRIM_DEPENDENCY_OUT_OF_RANGE");
+      }
+      const oldEnd = scene.endFrame;
+      scene.endFrame = input.endFrame;
+      impact.changed.push(scene.id);
+      impact.dirtyRanges.push({ startFrame: scene.startFrame, endFrame: oldEnd, reason: "缩短场景终点" });
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     return state;
@@ -6681,6 +6655,45 @@ export class EditingApplication {
     return job;
   }
 
+  /** 只复用已就绪的段音频；先验证完整顺序与画幅边界，再交媒体 Worker 生成新的可播放总轨。 */
+  submitSpeechPlacement(input: { projectId: Id; baseRevision: number; placements: Array<{ speechSegmentId: Id; startFrame: number }>; durationFrames?: number; idempotencyKey: string }): JobRecord {
+    const state = this.readProject(input.projectId);
+    if (state.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, state.revision.number);
+    const speech = state.snapshot.speechAsset;
+    if (!speech || speech.status !== "ready" || speech.scriptRevision !== state.snapshot.script.revision) throw new DomainError("当前旁白未就绪或与 Script 不一致", "SPEECH_ASSET_NOT_READY");
+    const ordered = state.snapshot.speechSegments.slice().sort((a, b) => a.order - b.order);
+    if (input.placements.length !== ordered.length || input.placements.some((p, i) => p.speechSegmentId !== ordered[i]?.id)) throw new DomainError("必须按 Script 顺序提供全部 SpeechSegment", "SPEECH_PLACEMENT_INCOMPLETE");
+    const frameLimit = Math.max(...state.snapshot.scenes.map((scene) => scene.endFrame), state.snapshot.timeline.durationInFrames);
+    let previousEnd = 0;
+    for (const placement of input.placements) {
+      const segmentAsset = state.snapshot.speechSegmentAssets.find((a) => a.speechSegmentId === placement.speechSegmentId && speech.segmentAssetIds.includes(a.id));
+      if (!segmentAsset || !state.snapshot.assets.some((a) => a.id === segmentAsset.assetId && a.status === "ready")) throw new DomainError("段音频未就绪", "SPEECH_SEGMENT_ASSET_NOT_READY");
+      const durationFrames = millisecondsToFrames(segmentAsset.durationMs, state.snapshot.timeline.fps);
+      if (!Number.isInteger(placement.startFrame) || placement.startFrame < previousEnd || placement.startFrame + durationFrames > frameLimit) throw new DomainError("段起点重叠或超出场景", "INVALID_SPEECH_PLACEMENT");
+      previousEnd = placement.startFrame + durationFrames;
+    }
+    if (input.durationFrames !== undefined && (!Number.isInteger(input.durationFrames) || input.durationFrames < previousEnd || input.durationFrames > frameLimit)) throw new DomainError("旁白总轨时长小于末段或超出场景", "INVALID_SPEECH_PLACEMENT_DURATION");
+    const job = this.repository.createJob({ projectId: input.projectId, kind: "speech_assembly", payload: { requestedRevision: input.baseRevision, speechAssetId: speech.id, scriptRevision: speech.scriptRevision, placements: input.placements, durationFrames: input.durationFrames }, idempotencyKey: input.idempotencyKey });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
+    return job;
+  }
+
+  /** Worker 的新总轨与精确段时间在同一 Revision 提交，避免声音和字幕分离。 */
+  completeSpeechPlacement(input: { projectId: Id; requestedRevision: number; previousSpeechAssetId: Id; speechFile: Asset; speechAsset: SpeechAsset }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.requestedRevision, "按指定帧重排旁白", (snapshot, impact) => {
+      if (snapshot.speechAsset?.id !== input.previousSpeechAssetId || snapshot.script.revision !== input.speechAsset.scriptRevision) throw new DomainError("旁白或 Script 已变化", "STALE_SPEECH_PLACEMENT");
+      snapshot.assets.push(input.speechFile);
+      if (snapshot.speechAlignment) { markSpeechAlignmentStale(snapshot, impact, "旁白总轨已重排"); snapshot.speechAlignment = undefined; }
+      const synced = this.syncSpeechAssetTimeline(snapshot, input.speechAsset);
+      this.staleAudioCuesForMainline(snapshot, impact, "旁白段级时序已变化");
+      impact.changed.push(input.speechFile.id, input.speechAsset.id, synced.dialogueItem.id, ...synced.replacedItemIds);
+      impact.recomputed.push("SpeechTiming、Dialogue 总轨和稳定字幕");
+      impact.dirtyRanges.push({ startFrame: 0, endFrame: Math.max(snapshot.timeline.durationInFrames, synced.durationFrames), reason: "旁白段级重排" });
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
   /**
    * 提交当前完整 Dialogue 的候选处理。这里不写 Revision、更不自动替换旁白：
    * “参数达标”不是“声音更好”，必须先由操作者真实试听三种版本。
@@ -6832,7 +6845,7 @@ export class EditingApplication {
           sourceHash: variant.contentHash,
           tags: ["dialogue-processing", profile],
           provenance: {
-            ...structuredClone(sourceAsset.provenance ?? { source: "local_import" as const, rightsStatus: "unknown" as const, acquiredAt: now() }),
+            ...structuredClone(sourceAsset.provenance ?? { source: "local_import" as const, acquiredAt: now() }),
             originalAssetId: sourceAsset.id,
             acquiredAt: now()
           }
@@ -6926,7 +6939,7 @@ export class EditingApplication {
 
   /**
    * 音乐生成只固定一个已确认的 Bridge workflow、提示词和精确时长；Worker 会在付费调用前
-   * 动态读取 Schema。生成成功也只登记 unknown 权利素材，是否进入 BGM 仍由后续音频决定和交付门禁判断。
+   * 动态读取 Schema。生成成功只登记素材，是否进入 BGM 仍由后续音频决定判断。
    */
   submitMusicGeneration(input: {
     projectId: Id;
@@ -6965,7 +6978,7 @@ export class EditingApplication {
 
   /**
    * Worker 已完成下载、解码与哈希核验后，才在同一 Revision 中登记生成音乐。这里不自动放到 BGM 轨，
-   * 因为“拿到一首音乐”不等于它适合当前叙事、长度、Duck 或权利交付。
+   * 因为“拿到一首音乐”不等于它适合当前叙事、长度、Duck。
    */
   completeMusicGeneration(input: {
     projectId: Id;
@@ -7028,7 +7041,6 @@ export class EditingApplication {
         provenance: {
           source: "generated",
           provider: `bridge:${payload.workflowId}`,
-          rightsStatus: "unknown",
           acquiredAt: now()
         }
       });
@@ -7036,8 +7048,7 @@ export class EditingApplication {
       asset.metadata = structuredClone(input.musicAudio.metadata);
       snapshot.assets.push(asset);
       impact.changed.push(asset.id);
-      impact.recomputed.push("生成音乐素材与权利状态");
-      impact.warnings.push("生成音乐的使用权状态默认为 unknown；在明确确认 Provider 条款和交付权利前，不能用于 delivery。 ");
+      impact.recomputed.push("生成音乐素材");
     });
     const updatedJob = this.repository.updateJob(job.id, {
       status: job.status,
@@ -7089,9 +7100,6 @@ export class EditingApplication {
     const inputAssets = inputAssetIds.map((assetId) => assetById(state.snapshot, assetId));
     for (const asset of inputAssets) {
       if (asset.status !== "ready") throw new DomainError(`视频生成输入“${asset.name}”尚未就绪`, "VIDEO_GENERATION_INPUT_NOT_READY");
-      if (["restricted", "rejected"].includes(asset.provenance?.rightsStatus ?? "unknown")) {
-        throw new DomainError(`视频生成输入“${asset.name}”的权利状态不允许提交给外部 Provider`, "VIDEO_GENERATION_INPUT_RIGHTS_BLOCKED");
-      }
     }
     const imageInput = (asset: Asset) => asset.kind === "image" || asset.kind === "derived";
     if (input.mode === "text_to_video" && inputAssets.length !== 0) {
@@ -7163,7 +7171,7 @@ export class EditingApplication {
 
   /**
    * 已经由 Worker 本地化且核验通过的生成视频，才可成为当前 Revision 的 Asset。
-   * 生成成功不等于创作采用：这里不创建 Cutaway、Scene 或 Timeline Item，权利也默认 unknown。
+   * 生成成功不等于创作采用：这里不创建 Cutaway、Scene 或 Timeline Item。
    */
   completeVideoGeneration(input: {
     projectId: Id;
@@ -7255,7 +7263,6 @@ export class EditingApplication {
             durationSeconds,
             aspectRatio: payload.aspectRatio ?? snapshot.project.brief.aspectRatio
           },
-          rightsStatus: "unknown",
           acquiredAt: now()
         }
       });
@@ -7263,8 +7270,7 @@ export class EditingApplication {
       asset.metadata = structuredClone(input.generatedVideo.metadata);
       snapshot.assets.push(asset);
       impact.changed.push(asset.id);
-      impact.recomputed.push("生成视频素材、来源参数与权利状态");
-      impact.warnings.push("生成视频默认权利状态为 unknown；请先审查内容、Provider 条款和使用范围，再决定是否进入时间线或 delivery。");
+      impact.recomputed.push("生成视频素材与来源参数");
     });
     const updatedJob = this.repository.updateJob(job.id, {
       status: job.status,
@@ -7430,7 +7436,6 @@ export class EditingApplication {
     prompt?: string;
     maskMode?: "none";
     audioMode?: "use_dialogue_track" | "muted";
-    rightsConfirmation?: AvatarUsageRightsConfirmationInput;
     layout?: ActorLayout;
     note?: string;
     idempotencyKey?: string;
@@ -7461,9 +7466,6 @@ export class EditingApplication {
     const reference = assetById(snapshot, input.referenceImageAssetId);
     if (!reference.status || reference.status !== "ready" || !["image", "derived"].includes(reference.kind)) {
       throw new DomainError("肖像参考必须是已就绪的图片或派生图片素材", "AVATAR_REFERENCE_IMAGE_NOT_READY");
-    }
-    if (["restricted", "rejected"].includes(reference.provenance?.rightsStatus ?? "unknown")) {
-      throw new DomainError("肖像参考的权利状态不允许交给 Avatar Provider", "AVATAR_REFERENCE_RIGHTS_BLOCKED");
     }
 
     const speech = snapshot.speechAsset;
@@ -7514,7 +7516,6 @@ export class EditingApplication {
       throw new DomainError("人物生成位置必须完全落在已有 PresenterScene 内", "ACTOR_PLACEMENT_SCENE_INVALID");
     }
     const layout = input.layout === undefined ? undefined : normalizeActorLayout(input.layout);
-    const rightsConfirmation = normalizeAvatarUsageRightsConfirmation(input.rightsConfirmation);
     const replacement = input.replaceActorPerformanceId
       ? snapshot.actorPerformances.find((candidate) => candidate.id === input.replaceActorPerformanceId)
       : undefined;
@@ -7533,7 +7534,6 @@ export class EditingApplication {
       prompt: input.prompt?.trim() || undefined,
       maskMode: "none",
       audioMode: input.audioMode ?? "use_dialogue_track",
-      rightsConfirmation,
       layout,
       note: input.note?.trim() || undefined
     };
@@ -7551,8 +7551,6 @@ export class EditingApplication {
         requestedSegmentIds.join(","),
         `${placement.sceneId}:${placement.startFrame}-${placement.endFrame}`,
         payload.replaceActorPerformanceId ?? "new",
-        // 依据变更时不得命中旧 Job；仅保存散列，避免把授权文本写入可枚举的幂等键。
-        createHash("sha256").update(stableJson(payload.rightsConfirmation ?? {})).digest("hex").slice(0, 16)
       ].join(":")
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
@@ -7599,7 +7597,6 @@ export class EditingApplication {
     }
 
     const payload = job.payload as Partial<AvatarGenerationJobPayload>;
-    const rightsConfirmation = payload.rightsConfirmation;
     if (
       !Number.isInteger(payload.requestedRevision)
       || typeof payload.capabilityProfileId !== "string"
@@ -7609,7 +7606,6 @@ export class EditingApplication {
       || !payload.placement
       || payload.maskMode !== "none"
       || (payload.audioMode !== "use_dialogue_track" && payload.audioMode !== "muted")
-      || (rightsConfirmation !== undefined && !isAvatarUsageRightsConfirmation(rightsConfirmation))
     ) {
       throw new DomainError("Avatar Job 缺少受管的提交合同，不能将外部结果写入项目", "AVATAR_JOB_PAYLOAD_INVALID");
     }
@@ -7678,8 +7674,6 @@ export class EditingApplication {
           provider: profile.provider,
           sourceUrl: `bridge-run:${input.bridgeAudit.runId}`,
           originalAssetId: payload.referenceImageAssetId,
-          avatarUsageRights: rightsConfirmation,
-          rightsStatus: rightsConfirmation ? "cleared" : "unknown",
           acquiredAt: now()
         },
         tags: ["avatar", "generated", profile.provider]
@@ -8021,7 +8015,7 @@ export class EditingApplication {
     projectId: Id;
     baseRevision: number;
     captionId?: Id;
-    /** bulk_source_format 只接受同一原声 A-roll 的明确 Card 集合。 */
+    /** bulk_source_format 只接受同一来源使用（sourceTimelineItemId）的明确 Card 集合。 */
     captionIds?: Id[];
     action: "update" | "reset" | "bulk_source_format";
     text?: string;
@@ -8551,7 +8545,7 @@ export class EditingApplication {
   }
 
   /**
-   * 预检是独立异步 Job，便于用户在正式渲染前查看目标 Revision 的文件、权利和运行时依赖问题。
+   * 预检是独立异步 Job，便于用户在正式渲染前查看目标 Revision 的文件和运行时依赖问题。
    * Export Worker 仍会在真正渲染前再执行一次，避免预检通过后素材被移动或被修改。
    */
   submitRenderPreflight(input: { projectId: Id; revision?: number; purpose?: ExportPurpose; idempotencyKey?: string }): JobRecord {

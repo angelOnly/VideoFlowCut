@@ -10,7 +10,7 @@ import { createApplication } from "@videocut/application";
 import { registerMotionTools } from "../apps/server/src/motion-tools.js";
 import { motionFixture } from "./fixtures/managed-motion.js";
 
-test("真实MCP公开动效联合预算，边界接受、超限原子拒绝且支持分别提交完整分件", async () => {
+test("真实MCP公开完整作品合同，允许长作品并在非法输入时原子拒绝", async () => {
   const root = await mkdtemp(join(tmpdir(), "videocut-motion-budget-"));
   const application = createApplication(root);
   const server = new McpServer({ name: "动效预算合同测试", version: "1.0.0" });
@@ -24,11 +24,11 @@ test("真实MCP公开动效联合预算，边界接受、超限原子拒绝且�
     await server.connect(serverTransport);
     await client.connect(clientTransport);
     const tool = (await client.listTools()).tools.find(entry => entry.name === "submit_motion_work")!;
-    assert.match(tool.description!, /width×height×durationInFrames≤650000000/u);
-    assert.match(tool.description!, /min\(900,30×fps,floor\(650000000\/\(width×height\)\)\)/u);
-    assert.match(tool.description!, /自然内容节点.*独立幂等键.*局部帧.*不要求拆Scene/u);
+    assert.match(tool.description!, /TimelineVideo/u);
+    assert.match(tool.description!, /真实磁盘需求/u);
+    assert.match(tool.description!, /一个Job产生一个完整Asset/u);
     const workSchema = tool.inputSchema.properties!.work as { properties: Record<string, { description?: string; minimum?: number; maximum?: number }> };
-    for (const key of ["width", "height", "durationInFrames"]) assert.match(workSchema.properties[key].description!, /650000000/u);
+    assert.match(workSchema.properties.durationInFrames.description!, /不按30秒/u);
     assert.deepEqual([workSchema.properties.width.minimum, workSchema.properties.width.maximum], [64, 1920]);
     assert.deepEqual([workSchema.properties.fps.minimum, workSchema.properties.fps.maximum], [15, 60]);
 
@@ -44,17 +44,15 @@ test("真实MCP公开动效联合预算，边界接受、超限原子拒绝且�
       assert.deepEqual(application.readProject(projectId), before, "拒绝不得改变任何视频对象或Revision");
       assert.equal(application.repository.listJobs(projectId).length, 0, "拒绝不得占用Job或幂等键");
     };
-    await expectRejected(await submit("超过总量", 1000, 1000, 651), /预算/u);
-    await expectRejected(await submit("竖屏超限", 768, 1344, 630, 24), /预算/u);
-    await expectRejected(await submit("超过秒数", 320, 320, 451, 15), /30 秒/u);
+    await expectRejected(await submit("安全整数溢出", 1920, 1920, Number.MAX_SAFE_INTEGER), /安全整数/u);
     await expectRejected(await submit("奇数画布", 321, 320, 18), /偶数/u);
 
     // 只排队人工测试输入，不启动Worker，不使用正式项目或专项源码。
     for (const [key, width, height, frames, fps] of [
-      ["正好总量上限", 1000, 1000, 650, 30],
-      ["竖屏最大帧数", 768, 1344, 629, 24],
-      ["连续内容前件", 768, 1344, 319, 24],
-      ["连续内容后件", 768, 1344, 317, 24]
+      ["超过旧像素总量", 1000, 1000, 651, 30],
+      ["完整33秒竖屏", 768, 1344, 792, 24],
+      ["超过旧900帧", 320, 320, 1200, 30],
+      ["完整60秒", 320, 320, 1800, 30]
     ] as const) {
       const result = await submit(key, width, height, frames, fps);
       assert.notEqual(result.isError, true, JSON.stringify(result.content));

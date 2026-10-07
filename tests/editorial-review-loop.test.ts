@@ -54,7 +54,7 @@ async function fixture() {
   const app = createApplication(root);
   const created = app.createProject({ name: "结构化审片测试" });
   const projectId = created.snapshot.project.id;
-  const imported = app.registerImportedAsset({ projectId, baseRevision: created.revision.number, name: "source.mp4", kind: "video", managedPath: "assets/source/source.mp4", sourceHash: "fixture", provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() } });
+  const imported = app.registerImportedAsset({ projectId, baseRevision: created.revision.number, name: "source.mp4", kind: "video", managedPath: "assets/source/source.mp4", sourceHash: "fixture", provenance: { source: "local_import", acquiredAt: new Date().toISOString() } });
   app.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: { durationMs: 2_000, hasAudio: true, width: 64, height: 64, fps: 24, videoCodec: "h264", audioCodec: "aac" } });
   const state = app.buildPresenterTimeline({ projectId, baseRevision: app.readProject(projectId).revision.number, assetIds: [imported.asset.id] });
   const previewRoot = join(created.snapshot.project.rootPath, "previews");

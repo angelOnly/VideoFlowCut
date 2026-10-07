@@ -244,11 +244,11 @@ test("已提交的音乐 Run 丢失时不自动重提，避免在未知额度状
   }
 });
 
-test("音乐 Application 只登记 unknown 权利素材；实际加入 BGM 后会阻断 delivery", async () => {
+test("音乐 Application 登记受管素材；实际加入 BGM 后可导出 delivery", async () => {
   const root = await mkdtemp(join(tmpdir(), "videocut-music-application-"));
   const application = createApplication(root);
   try {
-    const created = application.createProject({ name: "音乐 Application 权利门禁" });
+    const created = application.createProject({ name: "音乐 Application 受管素材" });
     const projectId = created.snapshot.project.id;
     const submitted = application.submitMusicGeneration({
       projectId,
@@ -259,7 +259,7 @@ test("音乐 Application 只登记 unknown 权利素材；实际加入 BGM 后�
       idempotencyKey: "music-application-stage5"
     });
     const projectRoot = application.readProject(projectId).snapshot.project.rootPath;
-    const relativePath = "assets/music/generated-rights-check.mp3";
+    const relativePath = "assets/music/generated-source-check.mp3";
     const outputPath = join(projectRoot, ...relativePath.split("/"));
     await mkdir(join(projectRoot, "assets", "music"), { recursive: true });
     await writeFile(outputPath, "application-layer-music-fixture");
@@ -270,7 +270,7 @@ test("音乐 Application 只登记 unknown 权利素材；实际加入 BGM 后�
       musicAudio: {
         path: outputPath,
         relativePath,
-        name: "generated-rights-check.mp3",
+        name: "generated-source-check.mp3",
         contentHash: "music-application-fixture-hash",
         sourceHash: "music-application-fixture-hash",
         durationMs: 30_000,
@@ -298,7 +298,6 @@ test("音乐 Application 只登记 unknown 权利素材；实际加入 BGM 后�
     assert.equal(completed.asset.status, "ready");
     assert.equal(completed.asset.provenance?.source, "generated");
     assert.equal(completed.asset.provenance?.provider, `bridge:${musicWorkflow.id}`);
-    assert.equal(completed.asset.provenance?.rightsStatus, "unknown");
     assert.ok(completed.asset.provenance?.acquiredAt, "生成素材必须记录取得时间");
     assert.equal(completed.state.snapshot.timeline.items.some((item) => item.assetId === completed.asset.id), false, "生成成功不能自动把音乐放入 Timeline");
     assert.equal(completed.state.snapshot.audioCues.some((cue) => cue.assetId === completed.asset.id), false, "生成成功不能自动创建 BGM 决策");
@@ -310,7 +309,7 @@ test("音乐 Application 只登记 unknown 权利素材；实际加入 BGM 后�
       kind: "video",
       managedPath: "assets/source/presenter.mp4",
       sourceHash: "presenter-stage5-hash",
-      provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+      provenance: { source: "local_import", acquiredAt: new Date().toISOString() }
     });
     application.applyMediaAnalysis({
       projectId,
@@ -335,8 +334,8 @@ test("音乐 Application 只登记 unknown 权利素材；实际加入 BGM 后�
     assert.equal(usedMusic.snapshot.timeline.items.some((item) => item.assetId === completed.asset.id), true, "只有显式 BGM 决策才会把音乐写入 Timeline");
 
     const report = evaluateQuality(usedMusic.snapshot, usedMusic.revision.number);
-    assert.ok(report.issues.some((issue) => issue.code === "EXTERNAL_ASSET_RIGHTS_UNKNOWN" && issue.objectId === completed.asset.id));
-    assert.equal(canExport(report, "delivery"), false, "unknown 权利的已使用音乐必须阻断 delivery");
+    assert.equal(report.issues.some((issue) => issue.code.startsWith("EXTERNAL_ASSET_RIGHTS")), false);
+    assert.equal(canExport(report, "delivery"), true, "已使用的受管音乐不需要权利证明");
   } finally {
     application.close();
     await rm(root, { recursive: true, force: true });

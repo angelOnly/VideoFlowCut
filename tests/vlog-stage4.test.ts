@@ -60,7 +60,7 @@ async function addReadyAsset(input: {
     kind: input.kind,
     managedPath: `assets/source/${input.name}`,
     sourceHash: `${input.name}-${Date.now()}-${Math.random()}`,
-    provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+    provenance: { source: "local_import", acquiredAt: new Date().toISOString() }
   });
   let metadata: MediaMetadata = {
     durationMs: input.durationMs ?? 3_000,

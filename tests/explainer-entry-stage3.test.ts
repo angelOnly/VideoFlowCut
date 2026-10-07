@@ -326,13 +326,13 @@ test("MCP 入口以 snake_case 走完整 Explainer 编译并在错误时保留�
       base_revision_id: story.revision.number,
       file_path: fixtures.documentPath,
       role: "evidence",
-      provenance: { source: "local_import", rights_status: "cleared" }
+      provenance: { source: "local_import", }
     } }));
     const imageImport = readMcpResult<ImportedAsset>(await client.callTool({ name: "import_media", arguments: {
       base_revision_id: documentImport.state.revision.number,
       file_path: fixtures.imagePath,
       role: "evidence",
-      provenance: { source: "local_import", rights_status: "cleared" }
+      provenance: { source: "local_import", }
     } }));
     await finishQueuedMediaAnalysis(workerApplication);
     const analyzedRevision = workerApplication.readProject(projectId).revision.number;

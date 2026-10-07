@@ -228,6 +228,23 @@ export function SourceReviewPanel({ snapshot, asset, onSeekTimeline }: SourceRev
         <span>{result.mode === "overview" ? "低密度候选发现" : result.sourceRange ? `源范围 ${sourceTimecode(result.sourceRange.startFrame, fps)}–${sourceTimecode(result.sourceRange.endFrame, fps)}` : "源范围不可用"}</span>
         <span>R{result.revision}</span>
       </div>
+      {result.diagnostics.status !== "complete" && <div role="status" className="source-review-boundaries" data-testid="source-review-diagnostics">
+        <strong>{result.diagnostics.status === "not_ready" ? "素材正在准备" : result.diagnostics.status === "partial" ? "部分预览可用" : "暂时无法审阅"}</strong>
+        <p>{result.diagnostics.requestedFrames > 0 && `已生成 ${result.diagnostics.generatedFrames}/${result.diagnostics.requestedFrames} 张预览。`}
+          {result.diagnostics.recovery === "report_platform_failure" ? "平台处理异常，需要报修；已有预览仍可查看。"
+            : result.diagnostics.recovery === "select_another_candidate" ? "当前素材暂不采用，可继续查看其他候选。"
+            : result.diagnostics.recovery === "wait_for_media_analysis" ? "请等待媒体分析完成。" : "缺失位置尚未核验。"}
+        </p>
+        {result.diagnostics.continuousReview === "unavailable" && <p>连续预览未生成，不能用截图代替选段观看。</p>}
+        {result.diagnostics.issues.length > 0 && <details><summary>查看缺失位置与原因</summary><ul>
+          {result.diagnostics.issues.map((issue, index) => <li key={index}>
+            {issue.sourceMs !== undefined ? `${(issue.sourceMs / 1000).toFixed(3)} 秒 · ` : ""}
+            {issue.sourceRange ? `${sourceTimecode(issue.sourceRange.startFrame, issue.sourceRange.fps)}–${sourceTimecode(issue.sourceRange.endFrame, issue.sourceRange.fps)} · ` : ""}
+            {{ metadata: "素材探测", contact_sheet: "预览图", proxy: "连续预览", waveform: "声音波形", audio_analysis: "声音分析" }[issue.stage]}：
+            {{ source: "该素材或范围不可用", platform: "平台处理故障", capability: "当前不支持此编码", unknown: "原因尚不确定" }[issue.owner]}
+          </li>)}
+        </ul></details>}
+      </div>}
       {result.evidenceBoundaries.length > 0 && <ul className="source-review-boundaries">{result.evidenceBoundaries.map((boundary) => <li key={boundary}>{boundary}</li>)}</ul>}
 
       {proxyUrl && <div className="source-review-proxy"><strong>连续范围代理</strong>{result?.proxy?.kind === "audio"

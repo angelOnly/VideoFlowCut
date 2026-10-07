@@ -39,10 +39,10 @@ try {
   await mkdir(dirname(voice), { recursive: true });
   await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "color=c=0x253958:s=320x320:r=24:d=3", "-c:v", "libx264", "-pix_fmt", "yuv420p", video]);
   await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=24000:duration=3", voice]);
-  const imported = seed.registerImportedAsset({ projectId, baseRevision: rev(), name: "技术背景", kind: "video", managedPath: "assets/source/video.mp4", sourceHash: createHash("sha256").update(await readFile(video)).digest("hex"), provenance: { source: "generated", rightsStatus: "cleared", license: "程序生成的隔离测试画面", acquiredAt: new Date().toISOString() } });
+  const imported = seed.registerImportedAsset({ projectId, baseRevision: rev(), name: "技术背景", kind: "video", managedPath: "assets/source/video.mp4", sourceHash: createHash("sha256").update(await readFile(video)).digest("hex"), provenance: { source: "generated", acquiredAt: new Date().toISOString() } });
   seed.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: await probeMedia(video) });
   seed.buildPresenterTimeline({ projectId, baseRevision: rev(), assetIds: [imported.asset.id] });
-  const speech = seed.registerImportedAsset({ projectId, baseRevision: rev(), name: "技术正弦音", kind: "speech", managedPath: "assets/speech/voice.wav", sourceHash: createHash("sha256").update(await readFile(voice)).digest("hex"), provenance: { source: "generated", rightsStatus: "cleared", license: "程序生成的隔离测试声音", acquiredAt: new Date().toISOString() } });
+  const speech = seed.registerImportedAsset({ projectId, baseRevision: rev(), name: "技术正弦音", kind: "speech", managedPath: "assets/speech/voice.wav", sourceHash: createHash("sha256").update(await readFile(voice)).digest("hex"), provenance: { source: "generated", acquiredAt: new Date().toISOString() } });
   seed.applyMediaAnalysis({ projectId, assetId: speech.asset.id, metadata: await probeMedia(voice) });
   const segment = authored.snapshot.speechSegments[0]!;
   const segmentAsset = { id: "fixture-segment-asset", speechSegmentId: segment.id, voiceReferenceAssetId: speech.asset.id, assetId: speech.asset.id, durationMs: 3000, bridgeRunId: "fixture-tts", schemaVersion: "fixture", quality: "passed" as const };
@@ -162,38 +162,38 @@ try {
   const nextExport = await waitJob((await call("submit_export", { revision: await revision(), purpose: "delivery", idempotency_key: "edited" })).id);
   assert.equal(nextExport.status, "succeeded", JSON.stringify(nextExport));
   assert.equal((await call("read_export_artifact", { artifact_id: nextExport.result.artifactId })).approval, undefined);
-  // 使用真实生成图片验证 scoped 许可沿受管动效传播，并由相同 Worker 实际导出内部文件。
+  // 使用真实生成图片验证来源沿受管动效传播，并由相同 Worker 实际导出内部文件。
   const imagePath = join(root, "internal-only.png");
   await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "color=c=yellow:s=32x32", "-frames:v", "1", imagePath]);
-  const imported = await call("import_media", { base_revision_id: await revision(), file_path: imagePath, provenance: { source: "generated", rights_status: "restricted", usage_rights: { purposes: ["draft"], basis: "程序生成的合约夹具，测试时明确限定内部审阅用途" } } });
+  const imported = await call("import_media", { base_revision_id: await revision(), file_path: imagePath, provenance: { source: "generated", } });
   assert.equal((await waitJob(imported.job.id)).status, "succeeded");
   const scopedWork = { ...work, previousAssetId: asset.id, imageBindings: { test_image: imported.asset.id }, source: `import React from 'react'; import {AbsoluteFill,Img,useCurrentFrame} from 'remotion'; export default function Motion(props: {assets: {test_image:string}}) {const f=useCurrentFrame();return <AbsoluteFill><Img src={props.assets.test_image} style={{position:'absolute',left:20+f,top:20,width:32,height:32}} /></AbsoluteFill>;}` };
   const scopedJob = await call("submit_motion_work", { base_revision_id: await revision(), idempotency_key: "scoped-work", work: scopedWork });
   assert.equal((await waitJob(scopedJob.id)).status, "succeeded");
   const scopedAsset = (await call("read_motion_work", { job_id: scopedJob.id })).asset;
-  assert.deepEqual(scopedAsset.provenance.usageRights.purposes, ["draft"]);
+  assert.equal(scopedAsset.provenance.source, "generated");
   assert.deepEqual(scopedAsset.motion.sourceAssetIds, [imported.asset.id]);
   await call("manage_effect_cues", { action: "update", cue_id: state.snapshot.effectCues[0].id, base_revision_id: await revision(), asset_bindings: [{ slot: "motion", asset_id: scopedAsset.id }] });
   const scopedQuality = await call("read_quality_report");
   assert.equal(scopedQuality.exportReadiness.draft.allowed, true);
-  assert.equal(scopedQuality.exportReadiness.delivery.allowed, false);
+  assert.equal(scopedQuality.exportReadiness.delivery.allowed, true);
   await checkWorkbench(false, "internal-only-export.png");
   const preflights = [];
   for (const purpose of ["draft", "delivery"]) {
     const result = await waitJob((await call("run_render_preflight", { revision: await revision(), purpose, idempotency_key: "scoped" })).id);
     assert.equal(result.status, "succeeded");
-    assert.equal(result.result.preflight.status, purpose === "draft" ? "passed" : "failed");
+    assert.equal(result.result.preflight.status, "passed");
     preflights.push(result);
   }
   const scopedExport = await waitJob((await call("submit_export", { revision: await revision(), purpose: "draft", idempotency_key: "scoped" })).id);
   assert.equal(scopedExport.status, "succeeded", JSON.stringify(scopedExport));
   assert.equal(scopedExport.kind, "export");
   assert.ok(scopedExport.result.artifactId);
-  const blockedExport = await waitJob((await call("submit_export", { revision: await revision(), purpose: "delivery", idempotency_key: "scoped" })).id);
-  assert.equal(blockedExport.status, "failed");
-  assert.equal(blockedExport.kind, "export");
-  assert.match(JSON.stringify(blockedExport), /许可|用途/);
-  records.candidate = { release, correctedRevision: corrected.revision.number, quality, preview, completed, exported, metadata, artifact, approved, nextExport, scopedAsset, scopedQuality, preflights, scopedExport, blockedExport };
+  const deliveryExport = await waitJob((await call("submit_export", { revision: await revision(), purpose: "delivery", idempotency_key: "scoped" })).id);
+  assert.equal(deliveryExport.status, "succeeded");
+  assert.equal(deliveryExport.kind, "export");
+  assert.ok(deliveryExport.result.artifactId);
+  records.candidate = { release, correctedRevision: corrected.revision.number, quality, preview, completed, exported, metadata, artifact, approved, nextExport, scopedAsset, scopedQuality, preflights, scopedExport, deliveryExport };
   await writeFile(join(root, "report.json"), JSON.stringify({ verified: true, ...records }, null, 2));
   console.log(JSON.stringify({ verified: true, root, port, releaseId: release.mcpReleaseId, reportPath: join(root, "report.json") }));
 } catch (error) {

@@ -10,8 +10,10 @@ import { SourceReviewPanel } from "./SourceReviewPanel";
 import { MotionLibraryPanel } from "./MotionLibraryPanel";
 import { SoundLibraryPanel } from "./SoundLibraryPanel";
 import { TimelineEditor } from "./TimelineEditor";
+import { FrameRateSettings } from "./FrameRateSettings";
+import { FontLibraryPanel } from "./FontLibraryPanel";
 
-type Panel = "assets" | "agent_work_orders" | "script" | "audio" | "actors" | "scenes" | "captions" | "advanced" | "jobs";
+type Panel = "assets" | "agent_work_orders" | "script" | "audio" | "actors" | "scenes" | "captions" | "fonts" | "advanced" | "jobs";
 type Selection = { kind: "asset" | "scene" | "item" | "cue"; id: string } | undefined;
 type EditorFocusQuery = { sceneId?: string; itemId?: string; effectCueId?: string; frame?: number };
 
@@ -23,6 +25,7 @@ const panelMeta: Array<{ id: Panel; label: string; icon: string }> = [
   { id: "actors", label: "人物", icon: "◉" },
   { id: "scenes", label: "场景", icon: "◇" },
   { id: "captions", label: "字幕", icon: "CC" },
+  { id: "fonts", label: "字体", icon: "Aa" },
   { id: "advanced", label: "高级", icon: "◆" },
   { id: "jobs", label: "任务 / QC", icon: "✓" }
 ];
@@ -93,6 +96,8 @@ function useProjectId(): [string | undefined, (projectId: string | undefined) =>
   const update = useCallback((next: string | undefined) => {
     setProjectId(next);
     const url = new URL(window.location.href);
+    // 推荐文案属于原项目；切项目只保留字体库入口，不带走上一项目的候选上下文。
+    if (url.searchParams.get("projectId") !== next) url.searchParams.delete("fontPreview");
     if (next) url.searchParams.set("projectId", next);
     else url.searchParams.delete("projectId");
     window.history.replaceState({}, "", url);
@@ -104,7 +109,7 @@ export function App() {
   const [projectId, setProjectId] = useProjectId();
   const [state, setState] = useState<ProjectState>();
   const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
-  const [panel, setPanel] = useState<Panel>("assets");
+  const [panel, setPanel] = useState<Panel>(() => new URLSearchParams(window.location.search).get("panel") === "fonts" ? "fonts" : "assets");
   const [selection, setSelection] = useState<Selection>();
   const [playhead, setPlayhead] = useState(0);
   const [quality, setQuality] = useState<Awaited<ReturnType<typeof api.quality>>>();
@@ -113,6 +118,7 @@ export function App() {
   const [revisions, setRevisions] = useState<Awaited<ReturnType<typeof api.revisions>>>([]);
   const [newProjectName, setNewProjectName] = useState("数字人口播项目");
   const [newProjectProfile, setNewProjectProfile] = useState<ProductionProfile>("presenter_motion");
+  const [newProjectFps, setNewProjectFps] = useState(24);
   const [localPath, setLocalPath] = useState("");
   const [selectedUnitIds, setSelectedUnitIds] = useState<string[]>([]);
   const [selectedARollIds, setSelectedARollIds] = useState<string[]>([]);
@@ -267,7 +273,7 @@ export function App() {
     try {
       setBusy(true);
       setMessage("创建项目…");
-      const created = await api.createProject(newProjectName.trim() || "未命名项目", newProjectProfile);
+      const created = await api.createProject(newProjectName.trim() || "未命名项目", newProjectProfile, newProjectFps);
       const createdProjectId = created.snapshot.project.id;
       setProjectId(createdProjectId);
       // 新建后直接读回新项目，避免顶部入口仍短暂显示旧项目状态。
@@ -292,6 +298,7 @@ export function App() {
           <select aria-label="项目类型" value={newProjectProfile} onChange={(event) => setNewProjectProfile(event.target.value as ProductionProfile)}>
             {projectProfileOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
+          <input aria-label="新建项目帧率" title="成片帧率：15–60整数" type="number" min={15} max={60} step={1} value={newProjectFps} onChange={event => setNewProjectFps(Number(event.target.value))} />
           <button className="primary" onClick={() => void createProject()} disabled={busy}>创建项目</button>
         </div>
         {message !== "准备就绪" && <p className="message">{message}</p>}
@@ -316,11 +323,19 @@ export function App() {
           {projectProfileOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
         <button data-testid="create-project-button" onClick={() => void createProject()} disabled={busy}>新建</button>
+        <input className="new-project-fps" aria-label="新建项目帧率" title="成片帧率：15–60整数" type="number" min={15} max={60} step={1} value={newProjectFps} onChange={event => setNewProjectFps(Number(event.target.value))} />
         <strong data-testid="project-name" data-object-id={snapshot.project.id} className="project-name">{snapshot.project.name}</strong>
         <span className="save-state">● 已保存</span>
         <div className="top-spacer" />
         <span className="revision-badge" data-testid="revision">R{currentRevision}</span>
         <span className="canvas-summary">{snapshot.timeline.width}×{snapshot.timeline.height} · {snapshot.timeline.fps} fps · {formatDuration(snapshot.timeline.durationInFrames, snapshot.timeline.fps)}</span>
+        <FrameRateSettings key={snapshot.project.id} projectId={snapshot.project.id} revision={currentRevision} fps={snapshot.timeline.fps} onApplied={async (fromFps, toFps, durationInFrames) => {
+          const nextFrame = Math.min(Math.max(0, durationInFrames - 1), Math.round(playhead * toFps / fromFps));
+          await load(snapshot.project.id);
+          setPlayhead(nextFrame);
+          playerRef.current?.seekTo(nextFrame);
+          setMessage("帧率已更新，请重新预览并复核声画");
+        }} />
         <button onClick={() => playerRef.current?.toggle()} disabled={!snapshot.timeline.durationInFrames}>播放</button>
         <button onClick={() => void act("提交局部预览", () => api.preview(snapshot.project.id, {
           revision: currentRevision,
@@ -437,8 +452,6 @@ export function App() {
               acknowledgeRemotionLicense
               style={{ width: "100%", height: "100%" }}
             />
-            <div className="safe-area safe-area-title">标题安全区</div>
-            <div className="safe-area safe-area-caption">字幕安全区</div>
           </div>
           <div className="preview-controls">
             <button onClick={() => seekTo(Math.max(0, playhead - 1))}>‹ 帧</button>
@@ -521,6 +534,7 @@ interface PanelContentProps {
 
 function PanelContent(props: PanelContentProps) {
   const { panel, snapshot } = props;
+  if (panel === "fonts") return <FontLibraryPanel key={snapshot.project.id} />;
   if (panel === "assets") {
     return <>
       <PanelTitle title="素材库" meta={`${snapshot.assets.length} 个素材`} />
@@ -589,7 +603,6 @@ function PanelContent(props: PanelContentProps) {
       {snapshot.voiceReferences.map((reference) => <article className="audio-card" key={reference.id} data-testid={`voice-reference-${reference.id}`} data-object-id={reference.id}>
         <strong>{reference.label}</strong>
         <small>{reference.quality === "passed" ? "技术检查通过" : "需复核：建议使用 3～15 秒、单人且低噪声的参考音频"}</small>
-        <small>{reference.authorizationNote}</small>
         <button className="wide-button primary" data-testid={`submit-voice-${reference.id}`} onClick={() => props.onSubmitVoiceSynthesis(reference.id)} disabled={snapshot.speechSegments.length === 0 || (pendingSegments.length === 0 && !needsAssembly)}>{needsAssembly ? "复用已生成片段并重新组装旁白" : "生成 / 更新待处理旁白"}</button>
       </article>)}
       <PanelTitle title="SpeechAsset" meta={snapshot.speechAsset ? snapshot.speechAsset.timing.precision : "尚未生成"} />
@@ -646,7 +659,7 @@ function PanelContent(props: PanelContentProps) {
     return <>
       <PanelTitle title="字幕 Caption" meta={`${snapshot.timeline.captions.length} 张字幕卡`} />
       {snapshot.timeline.captions.length === 0 && <p className="empty-panel">当前没有可用的段级语音时序。字幕只会在 SpeechAsset 组装成功后生成。</p>}
-      <p className="empty-panel">仅编辑屏幕呈现：双行文案、字号、底部安全区和一个强调短语。不会修改 Script、旁白或段级时序。</p>
+      <p className="empty-panel">仅编辑屏幕呈现：双行文案、字号、字幕位置和一个强调短语。不会修改 Script、旁白或段级时序。</p>
       {snapshot.timeline.captions.map((caption) => <CaptionEditor key={caption.id} caption={caption} disabled={props.busy} onSeek={props.onSeek} onSave={props.onEditCaption} />)}
     </>;
   }
@@ -880,7 +893,7 @@ function CaptionEditor({ caption, disabled, onSeek, onSave }: {
       <label>屏幕文案<textarea aria-label={`字幕文案：${caption.id}`} value={text} maxLength={80} rows={2} onChange={(event) => setText(event.target.value)} /></label>
       <div className="caption-field-row">
         <label>字号<input aria-label={`字幕字号：${caption.id}`} type="number" min="16" max="72" value={fontSize} onChange={(event) => setFontSize(Number(event.target.value))} /></label>
-        <label>底部 %<input aria-label={`字幕底部安全区：${caption.id}`} type="number" min="0" max="95" step="0.5" value={bottomPercent} onChange={(event) => setBottomPercent(Number(event.target.value))} /></label>
+        <label>距底部 %<input aria-label={`字幕距底部百分比：${caption.id}`} type="number" min="0" max="95" step="0.5" value={bottomPercent} onChange={(event) => setBottomPercent(Number(event.target.value))} /></label>
       </div>
       <label>强调短语（可留空）<input aria-label={`字幕强调短语：${caption.id}`} value={emphasisText} maxLength={40} onChange={(event) => setEmphasisText(event.target.value)} /></label>
       <div className="button-row">
@@ -1080,7 +1093,6 @@ function Inspector({ snapshot, selectedAsset, selectedScene, selectedItem, selec
           </div>
           </>}
         </InspectorGroup>
-        <InspectorGroup title="Quality"><p>前景层效果需在真实预览中复核脸部、嘴部与字幕安全区。</p></InspectorGroup>
       </>
     );
   }

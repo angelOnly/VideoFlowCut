@@ -63,7 +63,7 @@ description: 作为人物口播、访谈、课程、教程、数字人主持和 
 
 平台和画幅改变构图与字幕；目标时长改变内容选择而不是只改变播放速度；受众和语气决定解释深度；人物角色决定目光、手势和视觉密度；声音来源决定口型和时间；Style 决定视觉语言但不决定每个 Beat 的效果。“高完成度”既要求真实预览和完整审片，也要求观众实际感知重点、跟随关系、感受节奏并记住结论，不能仅以流程完整代替观看结果。
 
-在开始前应写清：目标平台、画幅、时长、受众、人物角色、主声音来源、是否允许重组、B-roll/Explainer 比例、字幕策略、风格、权利边界和交付目标。只有会实质改变结果的缺失信息才需要询问；其它可以做明确假设并记录。
+在开始前应写清：目标平台、画幅、时长、受众、人物角色、主声音来源、是否允许重组、B-roll/Explainer 比例、字幕策略、风格和交付目标。只有会实质改变结果的缺失信息才需要询问；其它可以做明确假设并记录。
 
 ## 短视频完整制作的专业默认
 
@@ -281,7 +281,7 @@ Punch 是否对应人物表情、包袱或结论；Meme 是否在笑点后增强
 
 - Script 文本变：相关 SpeechSegment、SpeechAsset、Caption、语义 Effect、Cutaway 和人物可能 stale；
 - 只改 Voice 音色：人物口型、Dialogue、Timing 和音频审查受影响，Story不一定变；
-- 只换 B-roll：Cutaway Scene、声音交接、Preview 和 Rights受影响；
+- 只换 B-roll：Cutaway Scene、声音交接、Preview 受影响；
 - 改 Effect Props：目标 Cue、布局和局部 Preview受影响；
 - 改全片 Style：多个 Scene 和 Golden 需要复核；
 - 改 Story 顺序：主线和全部语义绑定包装可能需要重投影。
@@ -330,7 +330,7 @@ create_project(profile=presenter_motion)
 
 ## Gate C：交付
 
-先核对当前 Revision 的 Project Graph、文件与用途许可，按 `export` 生成目标文件，保留已有辅助审阅及未审范围。AI 审阅缺失不阻挡 draft 或 delivery 导出；文件完成后检查解码、时长、音轨和哈希，人工定稿绑定用户确认的具体 Artifact。
+先核对当前 Revision 的 Project Graph、文件技术条件，按 `export` 生成目标文件，保留已有辅助审阅及未审范围。AI 审阅缺失不阻挡 draft 或 delivery 导出；文件完成后检查解码、时长、音轨和哈希，人工定稿绑定用户确认的具体 Artifact。
 
 ## 专项交接总表
 

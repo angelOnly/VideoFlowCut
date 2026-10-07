@@ -20,7 +20,7 @@ test("全屏 Cutaway 接管宿主主视觉、保留明确前景和声音，返�
     const scene = app.createScene({ projectId, baseRevision: revision(), type: "ExplainerScene", title: "主模型", purpose: "验证主视觉与实拍交接", startFrame: 0, endFrame: 18 }).snapshot.scenes.at(-1)!;
     const mediaPath = join(created.snapshot.project.rootPath, "assets", "blue.mp4");
     await runProcess("ffmpeg", ["-y", "-f", "lavfi", "-i", "color=c=blue:s=320x320:r=30:d=0.6", "-f", "lavfi", "-i", "sine=frequency=500:sample_rate=48000:duration=0.6", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", mediaPath]);
-    const media = app.registerImportedAsset({ projectId, baseRevision: revision(), name: "蓝色实拍替身", kind: "video", managedPath: "assets/blue.mp4", sourceHash: "fixture", provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() } }).asset;
+    const media = app.registerImportedAsset({ projectId, baseRevision: revision(), name: "蓝色实拍替身", kind: "video", managedPath: "assets/blue.mp4", sourceHash: "fixture", provenance: { source: "local_import", acquiredAt: new Date().toISOString() } }).asset;
     app.applyMediaAnalysis({ projectId, assetId: media.id, metadata: await probeMedia(mediaPath) });
     for (const layer of ["fullscreen", "front"] as const) {
       const source = layer === "fullscreen"

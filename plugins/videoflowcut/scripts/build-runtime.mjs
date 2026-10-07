@@ -52,7 +52,9 @@ const buildOptions = {
   alias: aliases,
   legalComments: "none",
   minifyWhitespace: true,
-  sourcemap: false,
+  // 发行堆栈映射回源码位置，不把完整源码写入发行映射。
+  sourcemap: "linked",
+  sourcesContent: false,
   logLevel: "warning",
   banner: {
     js: "/* 此文件由 npm run plugin:build 自动生成；请修改源码与 build-runtime.mjs。 */"
@@ -168,6 +170,19 @@ async function main() {
     })
   ]);
   await cp(webSourceRoot, outputPaths.web, { recursive: true, force: true });
+  // 下载器版本约束随发行物固定，部署时在独立环境安装，不在线自更新。
+  await cp(join(pluginRoot, "requirements-youtube.txt"), join(distRoot, "requirements-youtube.txt"));
+  // 字体文件、固定目录和许可证一起发行并参与Release ID；生成时不下载字体。
+  const fontRoot = join(repoRoot, "packages", "motion-work", "fonts");
+  const fonts = JSON.parse(await readFile(join(fontRoot, "catalog.json"), "utf8"));
+  for (const font of fonts.fonts) {
+    if (!/^[A-Za-z0-9_-]+\.(?:otf|ttf)$/u.test(font.file)) throw new Error("字体目录中的文件名无效");
+    if (font.licenseFile && !/^[A-Za-z0-9_-]+\.txt$/u.test(font.licenseFile)) throw new Error("字体许可证文件名无效");
+    if (createHash("sha256").update(await readFile(join(fontRoot, font.file))).digest("hex") !== font.sha256) throw new Error(`发行字体校验失败：${font.id}`);
+  }
+  await mkdir(join(distRoot, "fonts"), { recursive: true });
+  for (const name of new Set(["catalog.json", "OFL.txt", "OFL-Serif.txt", "NOTICE-RequestedFonts.txt",
+    ...fonts.fonts.flatMap(font => [font.file, ...(font.licenseFile ? [font.licenseFile] : [])])])) await cp(join(fontRoot, name), join(distRoot, "fonts", name));
   await trimReleaseTextWhitespace(outputPaths.web);
   // 外部语义节点也纳入发行身份，候选验证和部署使用同一份受管产物。
   const semanticRoot = join(distRoot, "comfyui-semantic");

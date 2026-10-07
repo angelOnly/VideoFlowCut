@@ -85,9 +85,9 @@ description: 为最终可播放语音建立准确、可读、语义分卡、与�
 
 章节标题、证据来源、UI 标签和对白字幕是不同文字角色。不要全部使用同一位置和动画。标题可以在 Scene Entry，来源靠近证据，字幕随声音，注释指向对象。
 
-## 安全区验证
+## 实际画面与阅读验证
 
-至少检查近景、手持物、最大文字、最长行、竖/横画幅和平台 UI。一个代表性帧通过不代表整片，人物和 Cutaway变化会改变背景与碰撞。
+字幕没有指定位置时使用默认底部布局，指定 placement 时使用自定义位置；bottomPercent 和 horizontalInsetPercent 只控制字幕自身的距离与宽度，不约束其他内容。预览不绘制固定安全框，平台不输出安全区相交提示。至少检查近景、手持物、最大文字、最长行、竖/横画幅和平台 UI。一个代表性帧通过不代表整片，人物和 Cutaway变化会改变背景与碰撞。
 
 ## 修改范围
 
@@ -101,7 +101,7 @@ description: 为最终可播放语音建立准确、可读、语义分卡、与�
 
 Provider 能提供严格 token 时间时，Alignment 标记为 `provider_token_timed`，才可在单段实际排版超过两行、Provider 分段明显破坏完整语义、回听确认错分段，或用户明确要求重新分屏时，读取 Alignment 并用 `apply_source_caption_program` 原子覆盖默认 Program。它不能手填时间、按字符均分时间或改写实义词。若 Alignment 标记为 `tokenPrecision: unavailable`，其 Provider segments 仍是可正常使用的 `sentence_exact` 原声字幕；但没有可验证的新切点，`apply_source_caption_program` 必须拒绝，不能为了排版或错字猜测时间。此时应保留默认段、重新取得带严格 token 证据的对齐，或回到源音频完成可追溯的纠错。
 
-单卡 `update` / `reset` 可用于当前 SpeechAsset 或已审计 `source_audio` 的稳定 Card：屏幕文案最多两行、有限字号/颜色/安全区、深色底板及受限透明度、一个连续强调短语，或恢复来源文案；不会改 Script、SpeechSegment 和声音。原声 A-roll 需要统一底板时，读取明确 Card ID 后以 `action=bulk_source_format`、`caption_ids` 与 `format` 原子应用到同一 A-roll，避免逐张提交造成 Revision 冲突。批量版式不接受 display 或显示时间范围，也不会新增、删除、拆分或重定时 Card。历史 `chunk_coarse` 仅供旧 Revision 读取；新的原声字幕不会创建它。若主线原文或时序变化，旧 Card 会被明确 stale 或重建，不能静默沿用。`occurrence` 从 0 开始，仍没有逐词时间或逐词动画能力。
+单卡 `update` / `reset` 可用于当前 SpeechAsset 或已审计 `source_audio` 的稳定 Card：屏幕文案最多两行、有限字号/颜色/字幕位置、深色底板及受限透明度、一个连续强调短语，或恢复来源文案；不会改 Script、SpeechSegment 和声音。原声 A-roll 需要统一底板时，读取明确 Card ID 后以 `action=bulk_source_format`、`caption_ids` 与 `format` 原子应用到同一 A-roll，避免逐张提交造成 Revision 冲突。批量版式不接受 display 或显示时间范围，也不会新增、删除、拆分或重定时 Card。历史 `chunk_coarse` 仅供旧 Revision 读取；新的原声字幕不会创建它。若主线原文或时序变化，旧 Card 会被明确 stale 或重建，不能静默沿用。`occurrence` 从 0 开始，仍没有逐词时间或逐词动画能力。
 
 已实现的单卡 `edit_captions(action=update)` 可提交 `display: {mode: "shown", ranges: [{startFrame, endFrame}]}`，ranges 使用 Timeline 绝对帧的半开区间，位于本卡原始范围内、按先后排列且互不重叠，最多 50 段；shown 省略 ranges 表示显示整卡。`display: {mode: "hidden"}` 隐藏整卡且不能带 ranges，`display: null` 恢复整卡显示。这只改变显示，不删除原文或 token，不改原 Card 边界与语音对齐，也不能把范围延伸到下一句。
 
@@ -129,6 +129,11 @@ Provider 能提供严格 token 时间时，Alignment 标记为 `provider_token_t
 
 需要后置的信息不被字幕提前说完；结果先行的分镜按导演采用的顺序呈现。字幕不能通过删掉“我觉得”“在这个条件下”等限定，把主观意见改成事实。分卡和换行保护否定、条件、数字单位、专名、问题/回答和完整短语；没有真实 word_exact 时，不制作伪精确逐词效果。
 
-源素材审阅尤其用于判断字幕与人物、动作和环境声的关系。例如人物在一句话结束后有重要表情反应，字幕可以先稳定退出，让观众看反应；UI 或证据已经包含关键文字时，协调字幕与原文的作用和阅读顺序，避免实际遮挡或无作用的竞争。横竖屏分别检查人物、产品、UI、证据、平台控件和字幕安全区。
+源素材审阅尤其用于判断字幕与人物、动作和环境声的关系。例如人物在一句话结束后有重要表情反应，字幕可以先稳定退出，让观众看反应；UI 或证据已经包含关键文字时，协调字幕与原文的作用和阅读顺序，避免实际遮挡或无作用的竞争。横竖屏分别检查人物、产品、UI、证据、平台控件与实际字幕位置。字幕位置是排版配置，不划定动效禁入区域。
 
 任何字幕修改若改变语气、对象、事实或上下文，应退回 SemanticUnit/Script；显示层不能用更顺的文案替换原内容。
+
+
+## 静态版式参数与拒绝分类
+
+`bulk_source_format` 要求同一来源使用 `sourceTimelineItemId`，旁白音频生成的有效来源卡也适用，不以素材是否 A-roll 判断。关闭背景传 `background_color:null` 并省略 `background_opacity`；透明度0非法，有背景时允许0.1至1。移除背景不建立白色字幕带，白带仍需原视觉作者的正式可渲染对象和真实合成验证。先检查 `isError` 并保存原始文本，不能直接JSON解析丢失协议校验错误；明确参数拒绝沿共享运行合同纠正，不把输入非法误报平台故障。

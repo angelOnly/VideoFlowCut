@@ -101,6 +101,8 @@ try {
   assert.ok(reviewSchema.properties?.outcome && reviewSchema.properties?.evidence);
   assert.ok(!reviewSchema.required?.includes("reference_match"));
   assert.deepEqual((cueSchema.properties.action as { enum: string[] }).enum, ["create", "update", "remove"]);
+  assert.equal((cueSchema.properties.quality_rules as { items: { enum: string[] } }).items.enum.includes("caption_safe_area"), false);
+  await rejected({ quality_rules: ["caption_safe_area"] });
   const release = await call("read_runtime_release");
   assert.equal(release.aligned, true);
   assert.equal((await call("browse_motion_sources")).sources.length, 4);
@@ -113,8 +115,7 @@ try {
   assert.equal(work.asset.motion.referenceUrl, undefined);
   const missingEvidence = await client.callTool({ name: "review_motion_work", arguments: { project_id: projectId, base_revision_id: await revision(), asset_id: work.asset.id, outcome: "passed", note: "技术测试故意缺少动态证据，必须拒绝，不能让成功渲染冒充实际通过。" } });
   assert.equal(missingEvidence.isError, true);
-  assert.equal(work.asset.motion.visibility?.method, "png_alpha_bbox_v1");
-  assert.equal(work.asset.motion.visibility.frames.length, motionFixture.durationInFrames);
+  assert.equal(Object.hasOwn(work.asset.motion, "visibility"), false, "新作品不采集退役的安全区测量");
   assert.ok((schema.tools.find((item) => item.name === "review_motion_work")!.inputSchema.properties!.outcome as { enum: string[] }).enum.includes("inconclusive"));
   assert.ok(schema.tools.find((item) => item.name === "manage_audio")!.inputSchema.properties!.onset_review);
   await call("review_motion_work", { project_id: projectId, base_revision_id: await revision(), asset_id: work.asset.id, outcome: "inconclusive", note: "固定候选 fixture 仅验证技术闭环，未作连续动态参考对照，不能标记审美通过。" });
@@ -125,7 +126,7 @@ try {
     { title: "稳定阅读", purpose: "技术用覆盖第二拍", scene_ids: [sceneId] }
   ] });
   const coveredBeats = coverageStory.snapshot.story.beats.map((beat: any) => beat.id);
-  const created = await call("manage_effect_cues", { project_id: projectId, base_revision_id: await revision(), scene_id: sceneId, type: "ManagedMotion", layer: "front", start_frame: 20, end_frame: 80, covered_narrative_beat_ids: [...coveredBeats, coveredBeats[0]], asset_bindings: [{ slot: "motion", asset_id: work.asset.id }], semantic_anchor: { type: "absolute", relation: "land_on" }, quality_rules: ["caption_safe_area", "semantic_anchor_required"] });
+  const created = await call("manage_effect_cues", { project_id: projectId, base_revision_id: await revision(), scene_id: sceneId, type: "ManagedMotion", layer: "front", start_frame: 20, end_frame: 80, covered_narrative_beat_ids: [...coveredBeats, coveredBeats[0]], asset_bindings: [{ slot: "motion", asset_id: work.asset.id }], semantic_anchor: { type: "absolute", relation: "land_on" }, quality_rules: ["semantic_anchor_required"] });
   const cueId = created.snapshot.effectCues.at(-1).id;
   assert.deepEqual(created.snapshot.effectCues.at(-1).coveredNarrativeBeatIds, coveredBeats);
   assert.equal(created.snapshot.effectCues.length, 1);
@@ -195,16 +196,15 @@ try {
     reference: { ...motionFixture.reference, observation: {
       layout: "全幅白色矩形，用于检查不同 PNG 颜色类型切换；不是视觉选型。",
       motion: "固定八帧在不透明、半透明、全透明状态间切换，不复制在线作品。",
-      rhythm: "离散技术 fixture，用来逐帧验证测量与合成，不代表专业剪辑节奏。",
+      rhythm: "离散技术 fixture，用来逐帧验证透明效果与合成，不代表专业剪辑节奏。",
       adaptation: "只验证已发布能力，不作为用户视频的创作或参考对照结论。",
       evidence: "结果以候选 Worker 的真实 PNG 和合成视频像素为依据。"
     } }
   } });
   await waitJob(alphaJob.id);
   const alphaWork = await call("read_motion_work", { project_id: projectId, job_id: alphaJob.id });
-  const full = { x: 0, y: 0, width: 320, height: 320 };
-  assert.deepEqual(alphaWork.asset.motion.visibility.frames, [full, full, null, full, full, full, full, null]);
-  await call("review_motion_work", { project_id: projectId, base_revision_id: await revision(), asset_id: alphaWork.asset.id, outcome: "inconclusive", note: "隔离技术 fixture 只验证透明帧测量和真实合成，不代表用户审美或参考匹配通过。" });
+  assert.equal(Object.hasOwn(alphaWork.asset.motion, "visibility"), false);
+  await call("review_motion_work", { project_id: projectId, base_revision_id: await revision(), asset_id: alphaWork.asset.id, outcome: "inconclusive", note: "隔离技术 fixture 只验证透明帧和真实合成，不代表用户审美或参考匹配通过。" });
   await call("manage_effect_cues", { project_id: projectId, base_revision_id: await revision(), scene_id: sceneId, type: "ManagedMotion", layer: "front", start_frame: 20, end_frame: 28, asset_bindings: [{ slot: "motion", asset_id: alphaWork.asset.id }], semantic_anchor: { type: "scene", target_id: sceneId, relation: "land_on" } });
   const alphaPreview = await waitJob((await call("render_preview_range", { project_id: projectId, revision: await revision(), from_frame: 0, to_frame: 40, idempotency_key: "release-alpha-preview" })).id);
   const alphaPixels = { opaque: await centerLuma(alphaPreview, 20), middleClear: await centerLuma(alphaPreview, 22), lastClear: await centerLuma(alphaPreview, 27), after: await centerLuma(alphaPreview, 28) };
@@ -242,7 +242,7 @@ try {
   const audioHash = (previewJob: any) => runProcess("ffmpeg", ["-v", "error", "-i", join(projectRoot, previewJob.result.relativePath), "-map", "0:a:0", "-c:a", "pcm_s16le", "-f", "hash", "-hash", "sha256", "-"]);
   assert.equal(await audioHash(oldPreview), await audioHash(disabledPreview), "停用纯视觉前后实际解码的对白与音效必须不变");
   const programToggle = { programId: program.id, oldPreview, disabledPreview, enabledPreview, programPixels, decodedAudioUnchanged: true };
-  const report = { verified: true, root, projectId, port, release, rendered, movedPreview, removedPreview, pixels, pendingAudioPixels, pendingQuality, rejectedDelivery, artifact, asset: work.asset, alphaPreview, alphaPixels, alphaVisibility: alphaWork.asset.motion.visibility, programToggle, webUrl: `http://127.0.0.1:${port}/?project=${projectId}` };
+  const report = { verified: true, root, projectId, port, release, rendered, movedPreview, removedPreview, pixels, pendingAudioPixels, pendingQuality, rejectedDelivery, artifact, asset: work.asset, alphaPreview, alphaPixels, programToggle, webUrl: `http://127.0.0.1:${port}/?project=${projectId}` };
   await writeFile(join(root, "report.json"), JSON.stringify(report, null, 2));
   console.log(JSON.stringify({ verified: true, root, projectId, port, releaseId: runtime.releaseId, reportPath: join(root, "report.json"), artifact: artifact.result, scope: "技术链路，非真实创作或声画审美验收" }));
 } finally {

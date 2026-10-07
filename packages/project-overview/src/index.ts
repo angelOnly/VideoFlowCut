@@ -26,6 +26,8 @@ export type RuntimeEnvironment = Record<string, string | undefined>;
  * 因此测试或插件启动器在导入模块后修改环境变量仍保持原先的行为。
  */
 export interface RuntimeConfig {
+  /** 动效缓存限额是同时驻留量，不是作品累计处理量。 */
+  motion: { frameCacheBytes: number; scratchBytes: number; diskReserveBytes: number; frameTimeoutMs: number };
   /** 项目文件、数据库、受管素材和导出产物的根目录。 */
   workspace: {
     /** 当前实际使用的工作区绝对路径。 */
@@ -117,7 +119,18 @@ function configuredPathRoots(value: string | undefined): string[] {
 export function readRuntimeConfig(options: ReadRuntimeConfigOptions = {}): RuntimeConfig {
   const environment = options.environment ?? process.env;
   const cwd = options.cwd ?? process.cwd();
+  const motionLimit = (raw: string | undefined, key: string, fallback: number, multiplier = 1) => {
+    const value = Number(raw ?? fallback);
+    if (!Number.isSafeInteger(value) || value <= 0 || !Number.isSafeInteger(value * multiplier)) throw new Error(`动效配置 ${key} 必须为正安全整数`);
+    return value * multiplier;
+  };
   return {
+    motion: {
+      frameCacheBytes: motionLimit(environment.VIDEOFLOWCUT_MOTION_FRAME_CACHE_MIB, "VIDEOFLOWCUT_MOTION_FRAME_CACHE_MIB", 256, 1024 * 1024),
+      scratchBytes: motionLimit(environment.VIDEOFLOWCUT_MOTION_SCRATCH_MIB, "VIDEOFLOWCUT_MOTION_SCRATCH_MIB", 512, 1024 * 1024),
+      diskReserveBytes: motionLimit(environment.VIDEOFLOWCUT_MOTION_DISK_RESERVE_MIB, "VIDEOFLOWCUT_MOTION_DISK_RESERVE_MIB", 1024, 1024 * 1024),
+      frameTimeoutMs: motionLimit(environment.VIDEOFLOWCUT_MOTION_FRAME_TIMEOUT_MS, "VIDEOFLOWCUT_MOTION_FRAME_TIMEOUT_MS", 12000)
+    },
     workspace: {
       root: environment.VIDEOCUT_WORKSPACE ?? join(cwd, RUNTIME_CONFIG_DEFAULTS.workspaceDirectoryName)
     },
@@ -291,20 +304,21 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     description: "创建和定位项目、读取 Revision 与故事、打开工作台、管理 Codex 工作单和平台修复交接。",
     tools: [
       "open_web_workbench", "list_projects", "create_project", "target_project", "read_project", "read_story", "manage_story",
+      "preview_project_frame_rate_change", "set_project_frame_rate",
       "get_editor_url", "focus_editor_object", "read_impact_report", "list_revisions", "read_agent_work_orders",
       "claim_agent_work_order", "complete_agent_work_order", "release_agent_work_order", "report_editing_blocker",
       "list_repair_tickets", "claim_repair_ticket", "release_repair_ticket", "mark_repair_candidate_ready",
       "mark_repair_deployed", "acknowledge_repair_deployment", "rollback_revision"
     ]
   },
-  // 素材文件、候选素材、来源和版权/许可信息。
+  // 素材文件、候选素材和来源信息。
   {
     id: "assets",
     name: "素材与来源",
-    description: "浏览、导入、检验、搜索、获取素材，并保留来源、许可和需求事实。",
+    description: "浏览、导入、检验、搜索、获取素材，并保留来源和需求事实。",
     tools: [
       "browse_assets", "inspect_asset", "manage_asset_requirements", "list_asset_providers", "search_media_candidates", "acquire_source_material", "inspect_media_candidate",
-      "acquire_media_asset", "read_asset_provenance", "import_media", "update_asset_metadata",
+      "acquire_media_asset", "read_asset_provenance", "import_media", "extract_source_audio", "update_asset_metadata",
       "analyze_media", "read_media_observations", "search_media_fragments", "correct_media_observation", "adopt_media_fragment", "bind_media_adoption", "retry_media_job"
     ]
   },
@@ -316,9 +330,9 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     tools: [
       "submit_transcription", "generate_source_audio_captions", "generate_speech_captions", "read_source_audio_alignment", "apply_source_caption_program", "apply_manual_transcript", "read_script", "apply_semantic_units", "apply_authored_script", "apply_script",
       "read_speech_asset", "manage_voice_references", "read_speech_timing", "submit_speech_alignment",
-      "read_speech_alignment", "rebuild_speech_timeline", "submit_voice_synthesis", "submit_dialogue_processing",
+      "read_speech_alignment", "rebuild_speech_timeline", "submit_voice_synthesis", "submit_speech_placement", "submit_dialogue_processing",
       "select_dialogue_processing_variant", "read_captions", "edit_captions", "browse_local_sound_effects",
-      "inspect_local_sound_effect", "import_local_sound_effect", "browse_sound_sources", "manage_audio", "set_audio_mix_gain",
+      "inspect_local_sound_effect", "import_local_sound_effect", "browse_sound_sources", "manage_audio", "set_audio_mix_gain", "set_dialogue_muted",
       "manage_sound_plans", "recommend_sound_candidates", "preview_sound_alternatives", "review_sound_mix", "set_audio_output_target"
     ]
   },
@@ -366,9 +380,9 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     name: "场景、视觉与时间线",
     description: "创建场景、管理视觉处理、Cutaway、效果和时间线位置，并请求轻量预览。",
     tools: [
-      "browse_scene_types", "create_scene", "manage_visual_treatment", "manage_cutaways", "replace_scene_asset",
+      "browse_scene_types", "create_scene", "trim_scene", "manage_visual_treatment", "manage_cutaways", "replace_scene_asset",
       "browse_effect_types", "manage_effect_cues", "move_item", "preview_timeline",
-      "browse_motion_sources", "inspect_motion_reference", "submit_motion_work", "read_motion_work", "review_motion_work"
+      "read_motion_capabilities", "browse_motion_sources", "inspect_motion_reference", "submit_motion_work", "read_motion_work", "review_motion_work"
     ]
   },
   // 生产运行、创作决定、质量报告和连续预览证据。
@@ -417,14 +431,19 @@ export const NODE_RUNTIME_CONFIGURATION_CATALOG = [
   { key: "HTTPS_PROXY", group: "网络", description: "外部素材 HTTPS 代理，可包含凭据", sensitive: true },
   { key: "NO_PROXY", group: "网络", description: "代理排除地址；本地 API 始终直连" },
   { key: "VIDEOCUT_YT_DLP_PATH", group: "Provider", description: "可选 yt-dlp 可执行文件路径；缺省使用 python -m yt_dlp，须安装 yt-dlp[default] 并提供 Node 与 FFmpeg" },
+  { key: "PEXELS_API_KEY", group: "Provider", description: "Pexels 官方视频 API 密钥；配置后启用视频检索与下载", sensitive: true },
   // 下载限制：防止单个外部文件异常占满工作区磁盘。
+  { key: "VIDEOFLOWCUT_MOTION_FRAME_CACHE_MIB", group: "动效资源", description: "视频帧内存缓存目标（MiB），不是进程总内存限额", defaultValue: "256" },
+  { key: "VIDEOFLOWCUT_MOTION_SCRATCH_MIB", group: "动效资源", description: "可回收视频解码缓存驻留限额（MiB）", defaultValue: "512" },
+  { key: "VIDEOFLOWCUT_MOTION_DISK_RESERVE_MIB", group: "动效资源", description: "动效任务磁盘安全余量（MiB）", defaultValue: "1024" },
+  { key: "VIDEOFLOWCUT_MOTION_FRAME_TIMEOUT_MS", group: "动效资源", description: "单帧无完成超时（毫秒），不限制作品总时长", defaultValue: "12000" },
   { key: "VIDEOCUT_MAX_ASSET_DOWNLOAD_BYTES", group: "下载限制", description: "普通 Provider 素材下载上限", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.maxAssetDownloadBytes) },
   { key: "VIDEOCUT_MAX_WIKIMEDIA_DOWNLOAD_BYTES", group: "下载限制", description: "Wikimedia Commons 下载上限", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.maxWikimediaDownloadBytes) },
   { key: "VIDEOCUT_MAX_GENERATED_VIDEO_BYTES", group: "下载限制", description: "Bridge 生成视频下载上限", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.maxGeneratedVideoBytes) },
   // 本地声音资产只接受白名单根目录；MCP 从不接收自由绝对路径来绕过该限制。
   { key: "VIDEOFLOWCUT_SFX_ROOTS", group: "本地音效", description: "本地音效根目录，多个目录用当前系统路径分隔符分开", defaultValue: "（未配置）" },
   // 发行 Runtime：插件打包版本定位 Web、Remotion 与开发回退路径所需的信息。
-  { key: "VIDEOFLOWCUT_RUNTIME_DIST", group: "发行 Runtime", description: "插件发行运行时目录" },
+  { key: "VIDEOFLOWCUT_RUNTIME_DIST", group: "发行 Runtime", description: "插件发行运行时目录；受管字体只从其中fonts目录读取，不读取系统目录或任意字体URL" },
   { key: "VIDEOFLOWCUT_WEB_ROOT", group: "发行 Runtime", description: "静态 Web 产物目录" },
   { key: "VIDEOFLOWCUT_REMOTION_ENTRY", group: "发行 Runtime", description: "发行版 Remotion 入口" },
   { key: "VIDEOFLOWCUT_NODE_MODULES", group: "发行 Runtime", description: "Remotion 打包时额外查找的 node_modules 目录" },
@@ -554,8 +573,9 @@ export function getProjectOverview(options: ReadRuntimeConfigOptions = {}) {
       bridge: config.bridge, // ComfyUI Bridge 的安全地址信息。
       semantic: config.semantic,
       downloads: config.downloads, // 外部素材和生成文件的下载上限。
+      motion: config.motion, // 动效缓存驻留限额与磁盘安全余量。
       localSoundEffects: { roots: config.localSoundEffects.roots }, // 仅受控根目录可用于本地音效浏览和导入。
-      providers: { requiresKey: false, sources: ["wikimedia-commons", "youtube", "mixkit", "mixkit_music"], webResearch: "通过宿主浏览器使用 Google、Pexels 等公开网站搜索和阅读；选定网页、图片或 PDF 通过 acquire_source_material 取得，浏览器不是 MCP 搜索 Provider" },
+      providers: { requiresKey: false, sources: ["wikimedia-commons", "youtube", "mixkit", "mixkit_music", ...(process.env.PEXELS_API_KEY?.trim() ? ["pexels"] : [])], webResearch: "通过宿主浏览器使用公开网站搜索和阅读；选定网页、图片或 PDF 通过 acquire_source_material 取得" },
       runtime: {
         distributionDirectory: config.runtime.distributionDirectory, // 插件发行 Runtime 根目录。
         runtimeId: config.runtime.runtimeId, // 当前 Runtime 实例标识。

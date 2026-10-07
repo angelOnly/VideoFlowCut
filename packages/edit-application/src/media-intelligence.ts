@@ -8,7 +8,7 @@ import { probeMedia } from "@videocut/speech";
 import { assetRequestVersion, intersection, regionContains } from "../../media-intelligence/src/index.js";
 import type { MediaAdoption, MediaFact, MediaObservation, MediaSearchQuery, MediaSource, MediaUsageTarget, SourceRegion, SourceTimeRange } from "@videocut/contracts";
 import { mediaUsageProblem, mediaUsageState } from "../../media-intelligence/src/usage.js";
-import { boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema } from "../../motion-work/src/schema.js";
+import { boundMotionFontSchema, boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema } from "../../motion-work/src/schema.js";
 import { motionHash, motionHashEngine } from "../../motion-work/src/compiler.js";
 import { analysisInputSchema, ANALYSIS_VERSION, cosine, digest, EMBEDDING_VERSION, factSchema, matchObservation, regionSchema, searchQuerySchema, timeRangeSchema, uncoveredRanges, type AnalysisInput } from "../../media-intelligence/src/index.js";
 import type { EditingApplication } from "./index.js";
@@ -68,7 +68,8 @@ export class MediaIntelligenceApplication {
           const work = motionSubmissionSchema.parse(job.payload.work);
           const images = boundMotionImageSchema.array().parse(job.payload.boundImages ?? []);
           const videos = boundMotionVideoSchema.array().parse(job.payload.boundVideos ?? []);
-          const version = motionHash(work, images, motionHashEngine(work, images, job.payload.version, job.payload.engineVersion, videos), videos);
+          const fonts = boundMotionFontSchema.array().parse(job.payload.boundFonts ?? []);
+          const version = motionHash(work, images, motionHashEngine(work, images, job.payload.version, job.payload.engineVersion, videos, fonts), videos, fonts);
           if (version !== workAsset.motion.version || version !== job.payload.version
             || Object.keys(work.imageBindings).length !== images.length || new Set(images.map(image => image.slot)).size !== images.length
             || images.some(image => work.imageBindings[image.slot] !== image.assetId)) throw new DomainError("内部图片固定输入与作品版本不一致", "MOTION_IMAGE_SOURCE_MISMATCH");
@@ -112,7 +113,6 @@ export class MediaIntelligenceApplication {
     } else {
       const { candidate, request } = this.app.readAssetCandidate({ projectId, assetCandidateId: input.candidateId! });
       if (!candidate.previewUrl) throw new DomainError("候选没有可取得的试听/预览文件", "MEDIA_PREVIEW_UNAVAILABLE");
-      if (candidate.rightsStatus === "rejected" || candidate.rightsStatus === "restricted") throw new DomainError("候选使用条件尚不满足分析要求", "MEDIA_RIGHTS_NOT_CLEARED");
       sourceVersion = digest([candidate.previewUrl, assetRequestVersion(request)]);
     }
     const config = readRuntimeConfig();
@@ -214,7 +214,6 @@ export class MediaIntelligenceApplication {
     const range = input.range && timeRangeSchema.parse(input.range), region = input.region && regionSchema.parse(input.region);
     if (["image", "document"].includes(asset.kind) ? !!range : !range || !!region) throw new DomainError("请提供与原文件类型一致的时间或页面范围", "MEDIA_RANGE_KIND_MISMATCH");
     if (asset.kind === "document" && !region?.page) throw new DomainError("文档采用必须明确页码及区域", "MEDIA_ADOPTION_REGION_MISMATCH");
-    if (asset.provenance && !["cleared", "attribution_required"].includes(asset.provenance.rightsStatus)) throw new DomainError("素材许可尚未满足采用条件", "MEDIA_RIGHTS_NOT_CLEARED");
     if (range && range.endMs > (asset.metadata?.durationMs ?? 0)) throw new DomainError("采用范围超出原文件", "MEDIA_ADOPTION_RANGE_INVALID");
     if (asset.kind === "audio" && input.audioPolicy !== "retain" || ["image", "document"].includes(asset.kind) && input.audioPolicy !== "not_applicable") throw new DomainError("原声策略与素材类型不一致", "MEDIA_ADOPTION_AUDIO_POLICY_INVALID");
     const observations = input.observationIds.map((id) => {
@@ -236,7 +235,6 @@ export class MediaIntelligenceApplication {
     if (request?.minDurationMs && range && range.endMs - range.startMs < request.minDurationMs) throw new DomainError("采用的连续范围不足需求时长", "MEDIA_ADOPTION_DURATION_INSUFFICIENT");
     // visual 是需求大类，不能拿它直接与 video/image/document 文件类型比较。
     if (request && (request.mediaKind === "audio" ? !["audio", "speech"].includes(asset.kind) : !["video", "actor_video", "image", "document"].includes(asset.kind))) throw new DomainError("采用素材类型与需求不一致", "MEDIA_RANGE_KIND_MISMATCH");
-    if (request?.rightsRequirement === "cleared_only" && asset.provenance?.rightsStatus !== "cleared") throw new DomainError("当前需求不接受待署名或未核实的素材许可", "MEDIA_RIGHTS_NOT_CLEARED");
     if (request?.sound?.maxDurationMs && range && range.endMs - range.startMs > request.sound.maxDurationMs) throw new DomainError("拟用声音范围超过需求允许长度", "MEDIA_ADOPTION_DURATION_EXCEEDED");
     if (request?.sound && input.audioPolicy === "retain" && range) {
       for (const [exclude, key] of [[request.sound.excludeSpeech, "speechPresence"], [request.sound.excludeMusic, "musicPresence"]] as const) {

@@ -4,12 +4,10 @@ import { AssetProviderError, downloadHttpFile, type AssetProvider, type Provider
 import { MIXKIT_SOUND_CATEGORIES, MIXKIT_MUSIC_CATEGORIES, mixkitCategory } from "./sound-catalog.js";
 
 const origin = "https://mixkit.co";
-const licenseUrl = `${origin}/license/#sfxFree`;
 const plain = (value: string) => value.replace(/<[^>]*>/gu, " ").replace(/&amp;/gu, "&").replace(/&#39;/gu, "'").replace(/&quot;/gu, '"').replace(/\s+/gu, " ").trim();
 
 /** 分类公开页不是搜索 API；明确限制单页，不能递归抓取或批量镜像。 */
 export function parseMixkitSoundPage(html: string, sourceUrl: string): ProviderSearchCandidate[] {
-  if (!html.includes("sfxFree")) throw new AssetProviderError("当前页面未确认 Mixkit 音效许可，停止收录", "MIXKIT_LICENSE_UNCONFIRMED");
   const candidates: ProviderSearchCandidate[] = [];
   for (const block of html.split('data-test-id="audio-player"').slice(1, 31)) {
     const id = block.match(/data-audio-player-item-id-value="(\d+)"/u)?.[1];
@@ -19,7 +17,6 @@ export function parseMixkitSoundPage(html: string, sourceUrl: string): ProviderS
     if (!id || !name || !preview || !new RegExp(`^https://assets\\.mixkit\\.co/active_storage/sfx/${id}/${id}-preview\\.mp3$`, "u").test(preview)) continue;
     candidates.push({ originalAssetId: id, name: plain(name), kind: "audio", sourceUrl,
       previewUrl: preview, durationMs: duration ? (Number(duration[1]) * 60 + Number(duration[2])) * 1000 : undefined,
-      license: "Mixkit Sound Effects Free License", licenseUrl, rightsStatus: "cleared",
       tags: ["mixkit", "sfx", ...Array.from(block.matchAll(/href="\/free-sound-effects\/([a-z-]+)\/"/gu), (match) => match[1])].slice(0, 10) });
   }
   if (!candidates.length) throw new AssetProviderError("Mixkit 页面没有可识别音效，可能结构已变化；不猜测下载链接", "MIXKIT_PAGE_CHANGED");
@@ -33,7 +30,7 @@ export async function mixkitPage(path: string): Promise<string> {
   const signal = AbortSignal.timeout(20_000);
   for (let redirects = 0; redirects <= 3; redirects++) {
     if (page.origin !== origin || page.username || page.password || page.search || page.hash
-      || !/^\/(?:free-sound-effects\/|free-stock-music\/|license\/$)/u.test(page.pathname)) {
+      || !/^\/(?:free-sound-effects\/|free-stock-music\/)/u.test(page.pathname)) {
       throw new AssetProviderError("Mixkit 页面跳转超出已核验的公开目录", "MIXKIT_REDIRECT_REJECTED");
     }
     response = await assetSingleAttemptFetch(page, { redirect: "manual", signal });
@@ -69,7 +66,7 @@ export class MixkitSoundProvider implements AssetProvider {
   readonly previewHosts = ["assets.mixkit.co"];
   async search({ request, query }: { request: AssetRequest; query: string }) {
     if (request.mediaKind !== "audio") throw new AssetProviderError("Mixkit 音效只接受 audio 素材需求", "ASSET_REQUEST_KIND_MISMATCH");
-    if (request.role === "bgm") throw new AssetProviderError("音乐请使用 mixkit_music 来源，单独核验音乐许可", "ASSET_REQUEST_KIND_MISMATCH");
+    if (request.role === "bgm") throw new AssetProviderError("音乐请使用 mixkit_music 来源", "ASSET_REQUEST_KIND_MISMATCH");
     const category = mixkitCategory(query);
     if (!category || !(MIXKIT_SOUND_CATEGORIES as readonly string[]).includes(category)) {
       throw new AssetProviderError(`当前按单个公开分类浏览，query 可选：${MIXKIT_SOUND_CATEGORIES.join("、")}`, "MIXKIT_CATEGORY_REQUIRED");
@@ -89,8 +86,7 @@ export class MixkitSoundProvider implements AssetProvider {
   }
 }
 
-export function parseMixkitMusicPage(html: string, sourceUrl: string, licenseHtml: string): ProviderSearchCandidate[] {
-  if (!licenseHtml.includes('data-license="musicFree"')) throw new AssetProviderError("没有核验到独立的音乐许可", "MIXKIT_MUSIC_LICENSE_UNCONFIRMED");
+export function parseMixkitMusicPage(html: string, sourceUrl: string): ProviderSearchCandidate[] {
   const candidates: ProviderSearchCandidate[] = [];
   for (const block of html.split('data-test-id="audio-player"').slice(1, 31)) {
     const id = block.match(/data-audio-player-item-id-value="(\d+)"/u)?.[1];
@@ -100,8 +96,7 @@ export function parseMixkitMusicPage(html: string, sourceUrl: string, licenseHtm
     if (!id || !preview || !title || preview !== `https://assets.mixkit.co/music/${id}/${id}.mp3`) continue;
     const creator = block.match(/class="item-grid-music-preview__author"[^>]*>([\s\S]*?)<\/p>/u)?.[1];
     candidates.push({ originalAssetId: id, kind: "audio", name: plain(title), creator: creator && plain(creator), sourceUrl, previewUrl: preview,
-      durationMs: duration ? (Number(duration[1]) * 60 + Number(duration[2])) * 1000 : undefined,
-      license: "Mixkit Stock Music Free License", licenseUrl: `${origin}/license/#musicFree`, rightsStatus: "cleared", tags: ["mixkit", "music", "online-video", ...Array.from(block.matchAll(/href="\/free-stock-music\/([a-z/-]+)\/"/gu), (match) => match[1])].slice(0, 15) });
+      durationMs: duration ? (Number(duration[1]) * 60 + Number(duration[2])) * 1000 : undefined, tags: ["mixkit", "music", "online-video", ...Array.from(block.matchAll(/href="\/free-stock-music\/([a-z/-]+)\/"/gu), (match) => match[1])].slice(0, 15) });
   }
   if (!candidates.length) throw new AssetProviderError("音乐页面结构变化或没有可识别曲目", "MIXKIT_PAGE_CHANGED");
   return candidates;
@@ -116,11 +111,11 @@ export class MixkitMusicProvider implements AssetProvider {
     if (!category) throw new AssetProviderError(`请选择音乐分类：${MIXKIT_MUSIC_CATEGORIES.join("、")}`, "MIXKIT_CATEGORY_REQUIRED");
     // 音乐风格位于 tag/，情绪位于 mood/；分类迁移由有限同站跳转处理。
     const path = `/free-stock-music/${category.includes("/") ? category : `tag/${category}`}/`;
-    return parseMixkitMusicPage(await mixkitPage(path), `${origin}${path}`, await mixkitPage("/license/"));
+    return parseMixkitMusicPage(await mixkitPage(path), `${origin}${path}`);
   }
   async download({ candidate, temporaryDirectory }: { candidate: AssetCandidate; temporaryDirectory: string }) {
     const id = candidate.originalAssetId;
-    if (!/^\d+$/u.test(id) || candidate.kind !== "audio" || candidate.license !== "Mixkit Stock Music Free License") throw new AssetProviderError("音乐身份或许可不一致", "MIXKIT_CANDIDATE_INVALID");
+    if (!/^\d+$/u.test(id) || candidate.kind !== "audio") throw new AssetProviderError("音乐身份无效", "MIXKIT_CANDIDATE_INVALID");
     const html = await mixkitPage(`/free-stock-music/download/${id}/`);
     const url = html.match(/data-download--modal-url-value="([^"]+)"/u)?.[1];
     // 原站正式提供的音乐文件就是 MP3；重新读取下载页，不从试听路径推算原文件。

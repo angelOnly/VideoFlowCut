@@ -33,6 +33,8 @@ import {
 } from "@videocut/domain";
 import { normalizeSnapshot } from "./normalize-snapshot";
 import { reconcileEffectAudioEvents } from "../effect-audio-events.js";
+import { projectFrameRateChange } from "../../../edit-domain/src/frame-rate-change.js";
+import { projectFrameRateSchema } from "../../../contracts/src/frame-rate.js";
 import { initializeProjectDatabase } from "./schema";
 import { NotFoundError, RevisionConflictError, type ProjectState } from "./types";
 
@@ -298,13 +300,15 @@ export class ProjectRepository {
     name: string;
     profile?: ProjectSnapshot["project"]["profile"];
     brief?: Partial<CreativeBrief>;
+    fps?: number;
   }): ProjectState {
+    if (!projectFrameRateSchema.safeParse(input.fps ?? 24).success) throw new DomainError("项目帧率必须是15至60的整数", "PROJECT_FPS_INVALID");
     const projectId = createId("project");
     const rootPath = join(this.workspaceRoot, "projects", projectId);
     for (const directory of ["assets/source", "assets/proxy", "assets/voice-reference", "assets/speech", "assets/actor", "assets/derived", "previews", "exports", "cache", "reports"]) {
       mkdirSync(join(rootPath, directory), { recursive: true });
     }
-    const snapshot = createProjectSnapshot({ projectId, rootPath, name: input.name, profile: input.profile, brief: input.brief });
+    const snapshot = createProjectSnapshot({ projectId, rootPath, name: input.name, profile: input.profile, brief: input.brief, fps: input.fps });
     const revision: RevisionRecord = {
       id: createId("revision"),
       projectId,
@@ -397,9 +401,11 @@ export class ProjectRepository {
       const snapshot = cloneSnapshot(current.snapshot);
       const impact = emptyImpact();
       mutate(snapshot, impact);
-      reconcileMotionDependencies(current.snapshot, snapshot, impact);
+      // 只把完整、确定性的时间换算作为比较基准；其它内容变化仍走原失效检查。
+      const timingReference = current.snapshot.timeline.fps === snapshot.timeline.fps ? current.snapshot : projectFrameRateChange(current.snapshot, snapshot.timeline.fps).snapshot;
+      reconcileMotionDependencies(timingReference, snapshot, impact);
       reconcileEffectAudioEvents(snapshot, impact);
-      reconcileSoundDesign(current.snapshot, snapshot, impact);
+      reconcileSoundDesign(timingReference, snapshot, impact);
       reconcileStaleSourceAudioArtifacts(snapshot, impact);
       snapshot.project.updatedAt = now();
       assertTimelineValid(snapshot);

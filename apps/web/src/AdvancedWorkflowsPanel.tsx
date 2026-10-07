@@ -46,14 +46,6 @@ const jobStatusLabel = (status: JobRecord["status"]) => ({
   cancelled: "已取消"
 }[status] ?? status);
 
-const rightsLabel = (asset: Asset) => ({
-  unknown: "权利未知",
-  cleared: "权利已确认",
-  attribution_required: "需要署名",
-  restricted: "使用受限",
-  rejected: "不可使用"
-}[asset.provenance?.rightsStatus ?? "unknown"]);
-
 const rangeEndFrame = (asset: Asset, fps: number) => {
   const durationMs = asset.metadata?.durationMs;
   return durationMs && durationMs > 0 ? Math.floor((durationMs / 1_000) * fps) : 0;
@@ -142,7 +134,7 @@ export function AdvancedWorkflowsPanel({ snapshot, currentRevision, jobs, busy, 
       && status.speechAlignment !== "ready"
   );
 
-  // Revision 刷新后清掉已删除、失败或权利受限的选择，不覆盖用户仍有效的表单输入。
+  // Revision 刷新后清掉已删除或失败的选择，不覆盖用户仍有效的表单输入。
   useEffect(() => {
     const vlogIds = new Set(vlogCandidates.map((asset) => asset.id));
     const multicamIds = new Set(multicamCandidates.map((asset) => asset.id));
@@ -295,8 +287,6 @@ export function AdvancedWorkflowsPanel({ snapshot, currentRevision, jobs, busy, 
     </AdvancedSection>
 
     <AdvancedSection title="受控生成" meta="不会自动进入 Timeline">
-      <GeneratedAssetRights assets={snapshot.assets.filter((asset) => asset.provenance?.source === "generated")} />
-      {status.generated.deliveryBlockedCount > 0 && <WorkflowNotice tone="danger">当前有 {status.generated.deliveryBlockedCount} 个生成资产的权利状态不是可交付状态（其中 {status.generated.unknownRightsCount} 个 unknown）。生成成功不等于可交付，也不会自动进入 Timeline。</WorkflowNotice>}
       <p className="advanced-help">提交前请先从实时 Bridge Schema 取得 workflow ID。Web 不固化 Provider 字段、临时下载 URL 或未经验证的能力；提交可能产生外部生成费用。</p>
       <section className="advanced-generator-form" data-testid="video-generation-form">
         <h4>视频生成</h4>
@@ -308,7 +298,7 @@ export function AdvancedWorkflowsPanel({ snapshot, currentRevision, jobs, busy, 
         <p className="advanced-help">项目比例固定为 {snapshot.project.brief.aspectRatio}；不能在此处绕过 Project Brief。证据类内容必须继续使用原始来源或证据截图。</p>
         {videoMode !== "text_to_video" && <AssetCheckboxList assets={videoCandidates} selectedIds={selectedVideoInputIds} emptyText="没有适合此生成方式的已就绪参考素材。" labelPrefix="选择视频生成参考素材" onToggle={toggleVideoInput} />}
         {videoInputError && <WorkflowNotice tone="warning">{videoInputError}</WorkflowNotice>}
-        <label className="advanced-confirm"><input aria-label="确认提交视频生成" type="checkbox" checked={videoAcknowledged} onChange={(event) => setVideoAcknowledged(event.target.checked)} />我确认这是一次受控外部生成请求，生成结果仍需本地化、核验、权利确认和创作采用。</label>
+        <label className="advanced-confirm"><input aria-label="确认提交视频生成" type="checkbox" checked={videoAcknowledged} onChange={(event) => setVideoAcknowledged(event.target.checked)} />我确认这是一次受控外部生成请求，生成结果仍需本地化、技术核验和创作采用。</label>
         <button className="primary wide-button" type="button" disabled={busy || !videoAcknowledged || !videoWorkflowId.trim() || !videoPrompt.trim() || !validVideoDuration || Boolean(videoInputError)} onClick={() => onRunAction("提交视频生成", () => api.submitVideoGeneration(snapshot.project.id, {
           baseRevision: currentRevision,
           workflowId: videoWorkflowId.trim(),
@@ -323,7 +313,7 @@ export function AdvancedWorkflowsPanel({ snapshot, currentRevision, jobs, busy, 
         <label className="advanced-field">Bridge workflow ID<input aria-label="音乐生成 workflow ID" value={musicWorkflowId} placeholder="从当前 Bridge Schema 读取" maxLength={240} onChange={(event) => setMusicWorkflowId(event.target.value)} /></label>
         <label className="advanced-field">提示词<textarea aria-label="音乐生成提示词" value={musicPrompt} maxLength={4_000} rows={3} onChange={(event) => setMusicPrompt(event.target.value)} /></label>
         <label className="advanced-field">时长（秒）<input aria-label="音乐生成时长" value={musicDurationSeconds} inputMode="numeric" onChange={(event) => setMusicDurationSeconds(event.target.value)} /></label>
-        <label className="advanced-confirm"><input aria-label="确认提交音乐生成" type="checkbox" checked={musicAcknowledged} onChange={(event) => setMusicAcknowledged(event.target.checked)} />我确认这是一次外部音乐生成请求；结果不会自动成为 BGM，也不会自动通过交付权利门禁。</label>
+        <label className="advanced-confirm"><input aria-label="确认提交音乐生成" type="checkbox" checked={musicAcknowledged} onChange={(event) => setMusicAcknowledged(event.target.checked)} />我确认这是一次外部音乐生成请求；结果不会自动成为 BGM，仍需按实际内容选择采用。</label>
         <button className="wide-button" type="button" disabled={busy || !musicAcknowledged || !musicWorkflowId.trim() || !musicPrompt.trim() || !validMusicDuration} onClick={() => onRunAction("提交音乐生成", () => api.submitMusicGeneration(snapshot.project.id, {
           baseRevision: currentRevision,
           workflowId: musicWorkflowId.trim(),
@@ -380,13 +370,5 @@ function AssetCheckboxList({ assets, selectedIds, emptyText, labelPrefix, onTogg
   onToggle: (assetId: string) => void;
 }) {
   if (assets.length === 0) return <p className="empty-panel">{emptyText}</p>;
-  return <div className="advanced-asset-options">{assets.map((asset) => <label key={asset.id} data-object-id={asset.id}><input type="checkbox" aria-label={`${labelPrefix}：${asset.name}`} checked={selectedIds.includes(asset.id)} onChange={() => onToggle(asset.id)} /><span>{titleForAsset(asset)}</span><small>{asset.role ?? "未分类"} · {rightsLabel(asset)}</small></label>)}</div>;
-}
-
-function GeneratedAssetRights({ assets }: { assets: Asset[] }) {
-  if (assets.length === 0) return <p className="empty-panel">尚无已登记的生成资产。即使 Job 成功，也必须先下载、本地化、解码与哈希核验后才会出现在这里。</p>;
-  return <div className="generated-asset-list">{assets.map((asset) => {
-    const rights = asset.provenance?.rightsStatus ?? "unknown";
-    return <article key={asset.id} className={`generated-asset-card rights-${rights}`} data-object-id={asset.id}><div><strong>{asset.name}</strong><small>{asset.kind} · {asset.provenance?.provider ?? "受管生成"}</small></div><span>{rightsLabel(asset)}</span></article>;
-  })}</div>;
+  return <div className="advanced-asset-options">{assets.map((asset) => <label key={asset.id} data-object-id={asset.id}><input type="checkbox" aria-label={`${labelPrefix}：${asset.name}`} checked={selectedIds.includes(asset.id)} onChange={() => onToggle(asset.id)} /><span>{titleForAsset(asset)}</span><small>{asset.role ?? "未分类"}</small></label>)}</div>;
 }

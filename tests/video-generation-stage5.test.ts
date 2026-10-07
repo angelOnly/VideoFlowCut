@@ -39,7 +39,7 @@ function asset(id: string, name: string, kind: Asset["kind"], managedPath: strin
       : kind === "image"
         ? { durationMs: 0, hasAudio: false, videoCodec: "png", width: 64, height: 64 }
         : { durationMs: 1_000, hasAudio: true, videoCodec: "h264", audioCodec: "aac", width: 64, height: 64 },
-    provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() },
+    provenance: { source: "local_import", acquiredAt: new Date().toISOString() },
     createdAt: new Date().toISOString()
   };
 }

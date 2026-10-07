@@ -24,7 +24,7 @@ const projectId=created.snapshot.project.id,projectRoot=created.snapshot.project
 const path=join(projectRoot,"assets/source/pattern.mp4");
 await runProcess("ffmpeg",["-y","-v","error","-f","lavfi","-i","testsrc2=s=320x180:r=30:d=3","-c:v","libx264","-pix_fmt","yuv420p",path]);
 const hash=await hashMotionFile(path);
-const imported=app.registerImportedAsset({projectId,baseRevision:1,name:"逐帧工程标记",kind:"video",managedPath:"assets/source/pattern.mp4",sourceHash:hash,provenance:{source:"local_import",rightsStatus:"cleared",acquiredAt:new Date().toISOString()}});
+const imported=app.registerImportedAsset({projectId,baseRevision:1,name:"逐帧工程标记",kind:"video",managedPath:"assets/source/pattern.mp4",sourceHash:hash,provenance:{source:"local_import",acquiredAt:new Date().toISOString()}});
 app.applyMediaAnalysis({projectId,assetId:imported.asset.id,metadata:await probeMedia(path)});
 app.repository.commit(projectId,app.readProject(projectId).revision.number,"候选画布与字幕",snapshot=>{
   Object.assign(snapshot.timeline,{width:320,height:180,fps:30,durationInFrames:90});

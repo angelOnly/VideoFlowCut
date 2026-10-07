@@ -18,7 +18,13 @@ export function mediaUsageState(snapshot: ProjectSnapshot, target: MediaUsageTar
     const source = work?.motion?.videoSources?.find(v => v.slot === target.motionVideoSlot);
     const asset = snapshot.assets.find(a => a.id === source?.assetId);
     if (!effect || effect.type !== "ManagedMotion" || !work?.motion || !source || !asset || asset.sourceHash !== source.sourceHash) return undefined;
-    return { asset, range: { startMs: source.sourceStartMs, endMs: source.sourceEndMs }, frameRange: { startFrame: effect.startFrame, endFrame: effect.endFrame }, active: effect.status === "ready", audioPolicy: "mute" as const,
+    // 采用依据定位该选段的作品范围，不能把局部视频扩大成整件作品的观察证据。
+    const ratio = snapshot.timeline.fps / work.motion.fps;
+    const frameRange = {
+      startFrame: effect.startFrame + Math.floor((source.startFrame ?? 0) * ratio),
+      endFrame: Math.min(effect.endFrame, effect.startFrame + Math.ceil((source.endFrame ?? work.motion.frameCount) * ratio))
+    };
+    return { asset, range: { startMs: source.sourceStartMs, endMs: source.sourceEndMs }, frameRange, active: effect.status === "ready" && frameRange.endFrame > frameRange.startFrame, audioPolicy: "mute" as const,
       signature: digest({ target, effect, work: [work.id, work.motion.version], source, fps: [snapshot.timeline.fps, work.motion.fps] }) };
   }
   const binding = effect?.assetBindings.find((entry) => entry.slot === target.slot);

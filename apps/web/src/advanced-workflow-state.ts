@@ -32,8 +32,6 @@ export type AdvancedWorkflowStatus = {
   };
   generated: {
     assetCount: number;
-    unknownRightsCount: number;
-    deliveryBlockedCount: number;
   };
   speechAlignment: "missing" | "ready" | "stale";
   jobs: JobRecord[];
@@ -44,7 +42,6 @@ const isReadyVideo = (asset: Asset) => asset.kind === "video" && asset.status ==
 const isRecordedReadyVideo = (asset: Asset) => isReadyVideo(asset) && asset.provenance?.source !== "generated" && asset.role !== "generated_visual";
 const isReadyAudioVideo = (asset: Asset) => isRecordedReadyVideo(asset) && asset.metadata?.hasAudio === true;
 const isImageInput = (asset: Asset) => asset.kind === "image" || asset.kind === "derived";
-const isBlockedInput = (asset: Asset) => ["restricted", "rejected"].includes(asset.provenance?.rightsStatus ?? "unknown");
 
 /** 技术分析只接受已可解码的视频；它不把素材默认解释成 Vlog 事件。 */
 export function vlogAnalysisCandidates(snapshot: ProjectSnapshot): Asset[] {
@@ -56,19 +53,19 @@ export function multicamSyncCandidates(snapshot: ProjectSnapshot): Asset[] {
   return snapshot.assets.filter(isReadyAudioVideo);
 }
 
-/** 不固定 Provider 工作流，只在当前项目素材中筛掉显然不可外发或尚未就绪的对象。 */
+/** 不固定 Provider 工作流，只在当前项目素材中筛掉尚未就绪的对象。 */
 export function videoGenerationCandidates(snapshot: ProjectSnapshot, mode: VideoGenerationMode): Asset[] {
   if (mode === "text_to_video") return [];
   return snapshot.assets.filter((asset) => {
-    if (asset.status !== "ready" || isBlockedInput(asset)) return false;
+    if (asset.status !== "ready") return false;
     if (mode === "image_to_video" || mode === "first_last_frame") return isImageInput(asset);
     return isImageInput(asset) || asset.kind === "video" || asset.kind === "actor_video" || asset.kind === "audio" || asset.kind === "speech";
   });
 }
 
 export function validateVideoGenerationInputs(mode: VideoGenerationMode, assets: Asset[]): string | undefined {
-  if (assets.some((asset) => asset.status !== "ready" || isBlockedInput(asset))) {
-    return "所选参考素材尚未就绪，或其权利状态不允许提交给外部 Provider。";
+  if (assets.some((asset) => asset.status !== "ready")) {
+    return "所选参考素材尚未就绪。";
   }
   if (mode === "text_to_video" && assets.length !== 0) return "文生视频不能提交参考素材。";
   if (mode === "image_to_video" && (assets.length !== 1 || !isImageInput(assets[0]!))) return "图生视频必须且只能选择一张已就绪图片。";
@@ -162,8 +159,6 @@ export function getAdvancedWorkflowStatus(snapshot: ProjectSnapshot, jobs: JobRe
     },
     generated: {
       assetCount: generatedAssets.length,
-      unknownRightsCount: generatedAssets.filter((asset) => (asset.provenance?.rightsStatus ?? "unknown") === "unknown").length,
-      deliveryBlockedCount: generatedAssets.filter((asset) => ["unknown", "restricted", "rejected"].includes(asset.provenance?.rightsStatus ?? "unknown")).length
     },
     speechAlignment: snapshot.speechAlignment?.status ?? "missing",
     jobs: relevantJobs

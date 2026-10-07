@@ -72,7 +72,6 @@ function addReadyAsset(app: EditingApplication, projectId: string, name: string,
     sourceHash: `${name}-hash`,
     provenance: {
       source: "local_import",
-      rightsStatus: "cleared",
       acquiredAt: new Date().toISOString()
     }
   });
@@ -255,7 +254,6 @@ test("SpeechAsset 写入 Dialogue 轨并在 Script 改动后移除旧旁白和�
       projectId: created.snapshot.project.id,
       baseRevision: context.app.readProject(created.snapshot.project.id).revision.number,
       assetId: referenceAssetId,
-      authorizationNote: "测试授权说明"
     });
     const voiceReferenceId = registeredReference.snapshot.voiceReferences[0]!.id;
     context.app.applyTranscript({ projectId: created.snapshot.project.id, assetId: referenceAssetId, text: "第一句。第二句。", source: "manual" });
@@ -1195,30 +1193,32 @@ test("draft 错误只列真实技术阻断，不将待审观感误报为草稿�
   try {
     const created = context.app.createProject({ name: "草稿拒绝原因" });
     const projectId = created.snapshot.project.id;
-    const assetId = addReadyAsset(context.app, projectId, "restricted.mp4", "video", 1000);
+    const assetId = addReadyAsset(context.app, projectId, "missing-source.mp4", "video", 1000);
     const built = context.app.buildPresenterTimeline({ projectId, baseRevision: context.app.readProject(projectId).revision.number, assetIds: [assetId] });
-    const state = context.app.updateAssetEditorialMetadata({ projectId, baseRevision: built.revision.number, assetId, provenance: { ...built.snapshot.assets.find(asset => asset.id === assetId)!.provenance!, source: "generated", rightsStatus: "restricted" } });
+    const state = context.app.updateAssetEditorialMetadata({ projectId, baseRevision: built.revision.number, assetId, provenance: { ...built.snapshot.assets.find(asset => asset.id === assetId)!.provenance!, source: "generated", } });
     const run = await context.app.startProductionRun({ projectId, loadedSkills: ["quality-verification"] });
     await context.app.recordEditorialQualityReview({ projectId, runId: run.id, revision: state.revision.number, passes: ["mute_visual"], previewEvidence: ["测试输入"], findings: [{ pass: "mute_visual", category: "motion", severity: "inconclusive", summary: "观感等待连续复核", impact: "不代表失败", evidence: "合约模拟" }] });
     for (const purpose of ["draft", "delivery"] as const) {
       const job = context.app.submitExport({ projectId, revision: state.revision.number, purpose });
-      await assert.rejects(() => runExportJob(context.app, job, { render: async () => assert.fail("受限素材不应被导出") } as never), (error: unknown) => {
-        assert.ok(error instanceof DomainError && error.code === "QUALITY_GATE_BLOCKED", String(error));
+      await assert.rejects(() => runExportJob(context.app, job, { render: async () => assert.fail("缺少源文件不应进入渲染") } as never), (error: unknown) => {
+        assert.ok(error instanceof DomainError && error.code === "RENDER_PREFLIGHT_FAILED", String(error));
         assert.equal(error.message.includes("观感等待连续复核"), false);
-        assert.match(error.message, /权利|限制|许可|授权/);
+        assert.match(error.message, /素材文件缺失|素材文件不存在|ENOENT/);
         return true;
       });
     }
   } finally { await context.dispose(); }
 });
 
-test("delivery ExportArtifact 固定 Revision、保留署名快照并让批准不受后续编辑影响", async () => {
+test("delivery ExportArtifact 固定 Revision、保留来源快照并让批准不受后续编辑影响", async () => {
   const context = await createTestApplication();
   try {
     const created = context.app.createProject({ name: "ExportArtifact 交付闭环测试" });
     const fixturePath = await createDeterministicVideoFixture(context.root);
     const videoAssetId = addReadyAsset(context.app, created.snapshot.project.id, "presenter.mp4", "video", 1_000);
     await materializeFixtureForAsset(context.app, created.snapshot.project.id, videoAssetId, fixturePath);
+    const provenance = { source: "provider" as const, provider: "测试素材库", sourceUrl: "https://example.test/media/fixture", creator: "测试作者", originalAssetId: "source-001", acquiredAt: "2026-10-05T00:00:00.000Z" };
+    context.app.updateAssetEditorialMetadata({ projectId: created.snapshot.project.id, baseRevision: context.app.readProject(created.snapshot.project.id).revision.number, assetId: videoAssetId, provenance });
     const assembled = context.app.buildPresenterTimeline({
       projectId: created.snapshot.project.id,
       baseRevision: context.app.readProject(created.snapshot.project.id).revision.number,
@@ -1248,10 +1248,11 @@ test("delivery ExportArtifact 固定 Revision、保留署名快照并让批准�
     assert.equal(firstArtifact.preflight.status, "passed");
     assert.match(firstArtifact.fileHash, /^[a-f0-9]{64}$/u);
     assert.ok(firstArtifact.fileSizeBytes > 0);
-    assert.equal(firstArtifact.attributionManifest.entries.length, 0);
+    assert.deepEqual(firstArtifact.sourceManifest.entries, [{ assetId: videoAssetId, name: "presenter.mp4", sourceHash: assembled.snapshot.assets.find(asset => asset.id === videoAssetId)!.sourceHash, ...provenance }]);
+    assert.equal(firstArtifact.sourceManifest.relativePath.startsWith(join("manifests", "sources")), true);
     await access(join(created.snapshot.project.rootPath, firstArtifact.relativePath));
-    const manifest = JSON.parse(await readFile(join(created.snapshot.project.rootPath, firstArtifact.attributionManifest.relativePath), "utf8")) as { entries: unknown[] };
-    assert.deepEqual(manifest.entries, []);
+    const manifest = JSON.parse(await readFile(join(created.snapshot.project.rootPath, firstArtifact.sourceManifest.relativePath), "utf8")) as { entries: unknown[] };
+    assert.deepEqual(manifest.entries, firstArtifact.sourceManifest.entries);
     const replayed = await runExportJob(context.app, firstJob, renderFixture) as { artifactId: string; relativePath: string };
     assert.equal(replayed.artifactId, firstArtifact.id, "结果未知后重领同一 Export Job 必须复用已登记 Artifact");
     assert.equal(replayed.relativePath, firstArtifact.relativePath);
@@ -1349,7 +1350,7 @@ test("目标 Revision 导出只读取自身的审片记录，不被更新版本�
   }
 });
 
-test("已使用的外部素材必须记录明确授权，素材角色和来源可独立更新", async () => {
+test("已使用的外部素材不要求权利证明，素材角色和来源可独立更新", async () => {
   const context = await createTestApplication();
   try {
     const created = context.app.createProject({ name: "外部素材来源测试" });
@@ -1365,7 +1366,6 @@ test("已使用的外部素材必须记录明确授权，素材角色和来源�
         provider: "测试素材库",
         sourceUrl: "https://example.test/assets/provider-broll",
         originalAssetId: "provider-001",
-        rightsStatus: "unknown",
         acquiredAt: new Date().toISOString()
       }
     });
@@ -1374,23 +1374,9 @@ test("已使用的外部素材必须记录明确授权，素材角色和来源�
     assert.deepEqual(asset.tags, ["城市", "呼吸镜头"]);
 
     const assembled = context.app.assemblePresenterTrack({ projectId: created.snapshot.project.id, baseRevision: external.revision.number, assetIds: [assetId] });
-    const blocked = evaluateQuality(assembled.snapshot, assembled.revision.number);
-    assert.ok(blocked.issues.some((entry) => entry.code === "EXTERNAL_ASSET_RIGHTS_UNKNOWN" && entry.level === "blocking"));
+    const quality = evaluateQuality(assembled.snapshot, assembled.revision.number);
+    assert.equal(quality.issues.some((entry) => entry.code.startsWith("EXTERNAL_ASSET_RIGHTS")), false);
 
-    const cleared = context.app.updateAssetEditorialMetadata({
-      projectId: created.snapshot.project.id,
-      baseRevision: assembled.revision.number,
-      assetId,
-      provenance: {
-        source: "provider",
-        provider: "测试素材库",
-        sourceUrl: "https://example.test/assets/provider-broll",
-        originalAssetId: "provider-001",
-        rightsStatus: "cleared",
-        acquiredAt: new Date().toISOString()
-      }
-    });
-    assert.equal(evaluateQuality(cleared.snapshot, cleared.revision.number).issues.some((entry) => entry.code === "EXTERNAL_ASSET_RIGHTS_UNKNOWN"), false);
   } finally {
     await context.dispose();
   }
@@ -1410,7 +1396,6 @@ test("素材需求通过 Mock Provider 候选、本地化、哈希和来源登�
       visualBrief: "傍晚城市中景人物慢步行，画面上方保留天空，适合竖屏字幕。",
       queryHints: ["city", "walking", "dusk"],
       minDurationMs: 800,
-      rightsRequirement: "cleared_only"
     });
     const request = requested.snapshot.assetRequests[0]!;
     const provider = new MockAssetProvider([
@@ -1423,19 +1408,16 @@ test("素材需求通过 Mock Provider 候选、本地化、哈希和来源登�
         height: 64,
         durationMs: 1_000,
         creator: "测试作者",
-        license: "测试许可",
-        rightsStatus: "cleared",
         tags: ["城市", "步行"]
       },
       {
-        originalAssetId: "blocked-rights",
-        name: "unknown-rights.mp4",
+        originalAssetId: "short-video",
+        name: "short-video.mp4",
         filePath: sourcePath,
-        sourceUrl: "https://example.test/stock/unknown-rights",
+        sourceUrl: "https://example.test/stock/short-video",
         width: 64,
         height: 64,
-        durationMs: 1_000,
-        rightsStatus: "unknown"
+        durationMs: 100,
       }
     ]);
     const providerCandidates = await provider.search({ request, query: "city walking dusk" });
@@ -1448,10 +1430,10 @@ test("素材需求通过 Mock Provider 候选、本地化、哈希和来源登�
       candidates: providerCandidates
     });
     const accepted = searched.candidates.find((candidate) => candidate.originalAssetId === "accepted-city-walk")!;
-    const rejected = searched.candidates.find((candidate) => candidate.originalAssetId === "blocked-rights")!;
+    const rejected = searched.candidates.find((candidate) => candidate.originalAssetId === "short-video")!;
     assert.equal(accepted.status, "available");
     assert.equal(rejected.status, "rejected");
-    assert.match(rejected.rejectionReason ?? "", /授权/u);
+    assert.match(rejected.rejectionReason ?? "", /时长/u);
     assert.equal(context.app.readAssetCandidate({ projectId: created.snapshot.project.id, assetCandidateId: accepted.id }).request.id, request.id);
 
     // Candidate 不是 Asset，不能绕过 Acquire 直接塞进 Scene。
@@ -1491,7 +1473,6 @@ test("素材需求通过 Mock Provider 候选、本地化、哈希和来源登�
     assert.ok(acquiredAsset);
     assert.equal(acquiredAsset.role, "b_roll");
     assert.equal(acquiredAsset.provenance?.provider, "mock");
-    assert.equal(acquiredAsset.provenance?.rightsStatus, "cleared");
     assert.match(acquiredAsset.sourceHash ?? "", /^[a-f0-9]{64}$/u);
     assert.equal(acquiredState.snapshot.assetCandidates.find((candidate) => candidate.id === accepted.id)?.acquiredAssetId, acquiredAsset.id);
 
@@ -1522,7 +1503,6 @@ test("素材下载到伪装成视频的 HTML 错误页时保留失败诊断且�
       title: "失败候选",
       purpose: "验证下载错误不会污染素材库。",
       visualBrief: "测试用候选。",
-      rightsRequirement: "cleared_only"
     });
     const request = requested.snapshot.assetRequests[0]!;
     const provider = new MockAssetProvider([{
@@ -1530,8 +1510,7 @@ test("素材下载到伪装成视频的 HTML 错误页时保留失败诊断且�
       name: "expired-link.mp4",
       filePath: errorPagePath,
       sourceUrl: "https://example.test/expired-link",
-      durationMs: 1_000,
-      rightsStatus: "cleared"
+      durationMs: 100,
     }]);
     const searched = context.app.recordAssetSearch({
       projectId: created.snapshot.project.id,
@@ -1992,7 +1971,7 @@ test("EffectCue qualityRules 会进入质量门禁，旧自由文本不会被静
       spatialAnchor: "full_frame",
       semanticAnchor: { type: "absolute", relation: "land_on" },
       motion: { enterFrames: 6, exitFrames: 6 },
-      qualityRules: ["semantic_anchor_required", "settled_frame_required", "caption_safe_area", "no_competing_visual", "旧项目的自由文本规则"]
+      qualityRules: ["semantic_anchor_required", "settled_frame_required", "no_competing_visual", "旧项目的自由文本规则"]
     });
     const second = context.app.createEffectCue({
       projectId: created.snapshot.project.id,
@@ -2028,7 +2007,7 @@ test("EffectCue qualityRules 会进入质量门禁，旧自由文本不会被静
     const codes = new Set(quality.issues.map((entry) => entry.code));
     assert.ok(codes.has("EFFECT_SEMANTIC_ANCHOR_REQUIRED"));
     assert.ok(codes.has("EFFECT_RULE_SETTLED_FRAME_REQUIRED"));
-    assert.ok(codes.has("EFFECT_RULE_CAPTION_SAFE_AREA"));
+    assert.equal(codes.has("EFFECT_RULE_CAPTION_SAFE_AREA"), false);
     assert.ok(codes.has("EFFECT_RULE_COMPETING_VISUAL"));
     assert.ok(codes.has("EFFECT_RULE_ASSET_BINDING_REQUIRED"));
     assert.ok(codes.has("EFFECT_RULE_ACTOR_MASK_REQUIRED"));
@@ -2217,6 +2196,7 @@ test("video-editor-mcp 可通过 stdio 连接并定位新项目", async () => {
       "manage_audio",
       "manage_voice_references",
       "submit_voice_synthesis",
+      "submit_speech_placement",
       "apply_semantic_units",
       "update_asset_metadata",
       "manage_asset_requirements",

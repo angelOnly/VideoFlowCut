@@ -18,6 +18,11 @@ await cp(sourcePluginRoot, pluginRoot, { recursive: true });
 const release = resolveReleaseRuntime(pluginRoot);
 const workspaceRoot = await mkdtemp(join(tmpdir(), "videoflowcut-plugin-e2e-"));
 const runtimePort = await findAvailablePort();
+const candidateBridgePort = await findAvailablePort();
+assert.notEqual(candidateBridgePort, runtimePort);
+// 本轮不调用生成Bridge；仍显式隔离地址，避免候选误连生产队列。
+const bridgeUrl = `http://127.0.0.1:${candidateBridgePort}`;
+const runtimeOptions = { pluginRoot, repoRoot, workspaceRoot, port: runtimePort, bridgeUrl };
 const requireFromRepo = createRequire(join(repoRoot, "package.json"));
 const { Client } = requireFromRepo("@modelcontextprotocol/sdk/client/index.js");
 const { StdioClientTransport } = requireFromRepo("@modelcontextprotocol/sdk/client/stdio.js");
@@ -44,6 +49,19 @@ function processIsAlive(pid) {
   }
 }
 
+async function processTreeRss(pid) {
+  if (process.platform !== "win32") return undefined;
+  const { stdout } = await promisify(execFile)("powershell.exe", ["-NoProfile", "-Command", "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,WorkingSetSize | ConvertTo-Json -Compress"], { windowsHide: true, maxBuffer: 2 * 1024 * 1024 });
+  const records = JSON.parse(stdout); const children = new Set([pid]);
+  for (let pass = 0; pass < records.length; pass++) {
+    const before = children.size;
+    for (const record of records) if (children.has(record.ParentProcessId)) children.add(record.ProcessId);
+    if (children.size === before) break;
+  }
+  // RSS合计可能重复计算共享页；这里只记录观察峰值，不冒充硬内存限额。
+  return records.filter(record => children.has(record.ProcessId)).reduce((sum, record) => sum + Number(record.WorkingSetSize), 0);
+}
+
 try {
   // 陈旧状态即使恰好命中已复用的 PID，也绝不能成为强杀未知进程的授权。
   untrustedProcess = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
@@ -67,13 +85,13 @@ try {
     releaseId: release.releaseId,
     pid: untrustedProcess.pid
   }, null, 2)}\n`, "utf8");
-  const rejectedStop = await stopRuntime({ pluginRoot, repoRoot, workspaceRoot, port: runtimePort }, { force: true });
+  const rejectedStop = await stopRuntime(runtimeOptions, { force: true });
   assert.equal(rejectedStop.stopped, false, "未认证状态不得被当作本插件 Runtime");
   assert.equal(processIsAlive(untrustedProcess.pid), true, "停止器不能终止状态文件指向的未知 PID");
   untrustedProcess.kill();
   await rm(join(runtimeStateDirectory, runtimeStateName), { force: true });
 
-  const runtime = await ensureRuntime({ pluginRoot, repoRoot, workspaceRoot, port: runtimePort });
+  const runtime = await ensureRuntime(runtimeOptions);
   assert.equal(runtime.ready, true, "运行器必须报告 ready");
   assert.equal(runtime.releaseId, release.releaseId, "Runtime 状态必须包含当前构建 Release ID");
   assert.equal(runtime.port, runtimePort, "E2E 必须使用独立 Runtime 端口");
@@ -93,7 +111,7 @@ try {
     ...recordedRuntime,
     releaseId: `release-${"0".repeat(64)}`
   }, null, 2)}\n`, "utf8");
-  const cutoverRuntime = await ensureRuntime({ pluginRoot, repoRoot, workspaceRoot, port: runtimePort });
+  const cutoverRuntime = await ensureRuntime(runtimeOptions);
   assert.equal(cutoverRuntime.ready, true, "旧发行状态必须通过受控切换重新部署 Runtime");
   assert.equal(cutoverRuntime.releaseId, release.releaseId, "受控切换后 Runtime 必须恢复 manifest Release ID");
   const web = await fetchWithTimeout(runtime.webUrl);
@@ -108,7 +126,8 @@ try {
       ...process.env,
       VIDEOFLOWCUT_REPO_ROOT: repoRoot,
       VIDEOCUT_WORKSPACE: workspaceRoot,
-      VIDEOFLOWCUT_PORT: String(runtimePort)
+      VIDEOFLOWCUT_PORT: String(runtimePort),
+      COMFYUI_BRIDGE_URL: bridgeUrl
     },
     stderr: "pipe"
   });
@@ -124,8 +143,8 @@ try {
     try { return JSON.parse(textFromResult(await client.callTool({ name, arguments: args }))); }
     catch (error) { throw new Error(`E2E 调用 ${name} 失败：${error.message}`, { cause: error }); }
   };
-  const waitForJob = async (jobId) => {
-    const deadline = Date.now() + 60_000;
+  const waitForJob = async (jobId, timeoutMs = 60_000) => {
+    const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       const job = await call("track_job", { job_id: jobId });
       if (job.status === "succeeded") return job;
@@ -144,8 +163,8 @@ try {
   assert.match(composedTool.description, /1–12.*分批/u, "压缩工具声明未展示maxItems时，描述仍须明确上限");
   assert.match(tools.tools.find((tool) => tool.name === "inspect_asset")?.description ?? "", /range最长60秒，dense最长12秒/u, "发行工具表须公开素材短范围限制");
   assert.match(tools.tools.find((tool) => tool.name === "render_preview_range")?.description ?? "", /result.audio.*integratedLufs.*truePeakDbfs/u, "发行工具表须明确混合响度的读取位置");
-  assert.match(motionTool?.description ?? "", /width×height×durationInFrames≤650000000/u, "发行工具表必须公开动效联合预算");
-  assert.match(motionTool.inputSchema.properties.work.properties.durationInFrames.description, /floor\(650000000\/\(width×height\)\)/u, "发行字段必须公开可计算的帧数上限");
+  assert.match(motionTool?.description ?? "", /TimelineVideo/u, "发行工具表必须公开作品根时钟视频合同");
+  assert.match(motionTool.inputSchema.properties.work.properties.durationInFrames.description, /不按30秒/u, "发行字段必须公开完整作品资源策略");
   assert.ok(tools.tools.some((tool) => tool.name === "inspect_asset"), "插件 MCP 必须发现 inspect_asset");
   assert.ok(tools.tools.some((tool) => tool.name === "list_projects"), "插件 MCP 必须发现基础只读工具");
   assert.ok(tools.tools.some((tool) => tool.name === "open_web_workbench"), "插件 MCP 必须提供工作台入口");
@@ -226,7 +245,7 @@ try {
     base_revision_id: project.revision.number,
     file_path: sourceVideo,
     role: "a_roll",
-    provenance: { source: "local_import", rights_status: "cleared" }
+    provenance: { source: "local_import" }
   });
   const analyzed = await waitForJob(imported.job.id);
   assert.equal(analyzed.status, "succeeded", "媒体 Worker 必须完成真实素材分析");
@@ -235,6 +254,29 @@ try {
   let projectState = await call("read_project", { project_id: project.snapshot.project.id });
   const importedAsset = projectState.snapshot.assets.find((asset) => asset.status === "ready" && asset.kind === "video");
   assert.ok(importedAsset?.id, "媒体分析完成后必须存在可播放视频 Asset");
+  // 真实发行MCP→API→Worker验证33秒，不只检查字段或直接调用开发源码。
+  const motion = await call("submit_motion_work", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number, idempotency_key: "release-motion-33",
+    work: { name: "发行版33秒完整动效回归", creativeBrief: "独立候选技术回归：检查作品根时钟、源复用和完整帧数，不构成审美验收。", props: {}, imageBindings: {}, width: 768, height: 1344, fps: 24, durationInFrames: 792,
+      videoBindings: { footage: { assetId: importedAsset.id, sourceStartMs: 0, sourceEndMs: 2000, startFrame: 0, endFrame: 48 } },
+      source: "import React from 'react';import {AbsoluteFill,useCurrentFrame,Sequence} from 'remotion';import {TimelineVideo} from '@videoflowcut/motion';export default function Motion(){const f=useCurrentFrame();return <AbsoluteFill style={{background:'#172033'}}><Sequence durationInFrames={24}><TimelineVideo slot='footage'/></Sequence><Sequence from={24} durationInFrames={24}><TimelineVideo slot='footage'/></Sequence><div style={{color:'white',fontSize:48,margin:80}}>发行回归 {f}</div></AbsoluteFill>}"
+    } });
+  let runtimeTreeRssPeak = 0, sampling;
+  const sampleMemory = () => {
+    if (sampling) return;
+    sampling = processTreeRss(cutoverRuntime.pid).then(bytes => { if (bytes !== undefined) runtimeTreeRssPeak = Math.max(runtimeTreeRssPeak, bytes); }).finally(() => { sampling = undefined; });
+  };
+  sampleMemory(); const memoryTimer = setInterval(sampleMemory, 5000);
+  let motionResult;
+  try { motionResult = await waitForJob(motion.id, 180_000); }
+  finally { clearInterval(memoryTimer); await sampling; }
+  const motionRead = await call("read_motion_work", { project_id: project.snapshot.project.id, job_id: motion.id });
+  assert.equal(motionRead.asset.motion.frameCount, 792);
+  assert.equal(motionRead.asset.metadata.durationMs, 33000);
+  assert.equal(motionRead.asset.motion.engineVersion, "managed-motion-12");
+  assert.equal(motionResult.result.assetId, motionRead.asset.id);
+  if (process.platform === "win32") assert.ok(runtimeTreeRssPeak > 0, "候选验证必须记录实际Runtime进程树内存");
+  console.log(JSON.stringify({ releaseId: release.releaseId, frameCount: 792, durationMs: 33000, runtimeTreeRssPeakBytes: runtimeTreeRssPeak }));
+  projectState = await call("read_project", { project_id: project.snapshot.project.id });
   const assembled = await call("assemble_presenter_track", {
     project_id: project.snapshot.project.id,
     base_revision_id: projectState.revision.number,
@@ -266,7 +308,7 @@ try {
   soundBytes.write("data", 36); soundBytes.writeUInt32LE(9600, 40);
   for (let i = 0; i < 4800; i++) soundBytes.writeInt16LE(Math.round(Math.sin(i * 880 * Math.PI * 2 / 48000) * 6000), 44 + i * 2);
   await writeFile(soundPath, soundBytes);
-  const soundImport = await call("import_media", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number, file_path: soundPath, role: "sfx", provenance: { source: "local_import", rights_status: "cleared" } });
+  const soundImport = await call("import_media", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number, file_path: soundPath, role: "sfx", provenance: { source: "local_import" } });
   await waitForJob(soundImport.job.id);
   projectState = await call("read_project", { project_id: project.snapshot.project.id });
   const effectState = await call("manage_effect_cues", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
@@ -319,11 +361,11 @@ try {
   await transport.close();
   transport = undefined;
 
-  const beforeStop = await getRuntimeStatus({ pluginRoot, repoRoot, workspaceRoot, port: runtimePort });
+  const beforeStop = await getRuntimeStatus(runtimeOptions);
   assert.equal(beforeStop.ready, true, "MCP 关闭后 Runtime 必须仍可复用");
-  const stopped = await stopRuntime({ pluginRoot, repoRoot, workspaceRoot, port: runtimePort }, { force: true });
+  const stopped = await stopRuntime(runtimeOptions, { force: true });
   assert.equal(stopped.stopped, true, "运行器必须可停止");
-  const afterStop = await getRuntimeStatus({ pluginRoot, repoRoot, workspaceRoot, port: runtimePort });
+  const afterStop = await getRuntimeStatus(runtimeOptions);
   assert.equal(afterStop.ready, false, "停止后 Runtime 不应继续可用");
   console.log("VideoFlowCut 插件 Runtime、Web 与 MCP E2E 验证通过。");
 } catch (error) {
@@ -334,7 +376,7 @@ try {
   throw error;
 } finally {
   if (transport) await transport.close().catch(() => undefined);
-  await stopRuntime({ pluginRoot, repoRoot, workspaceRoot, port: runtimePort }, { force: true }).catch(() => undefined);
+  await stopRuntime(runtimeOptions, { force: true }).catch(() => undefined);
   if (untrustedProcess?.pid && processIsAlive(untrustedProcess.pid)) untrustedProcess.kill();
   await rm(workspaceRoot, { recursive: true, force: true });
   await rm(installationRoot, { recursive: true, force: true });

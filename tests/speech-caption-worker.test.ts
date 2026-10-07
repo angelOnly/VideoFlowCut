@@ -17,6 +17,48 @@ import type { ProjectSnapshot } from "@videocut/contracts";
 const text = "流量总量并不等于下载速度，网络拥挤时还要看资源怎样分。";
 const phrases = ["流量总量并不等于下载速度，", "网络拥挤时还要看资源怎样分。"];
 
+test("真实MCP拒绝透明度0且不写Revision；旁白同源批量null取消背景，非法Card整批拒绝", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vfc-caption-format-contract-"));
+  const f = await fixture(root);
+  const provider = mockProvider();
+  const transport = new StdioClientTransport({ command: process.execPath, args: ["--import", "tsx", "apps/server/src/mcp.ts"], cwd: process.cwd(), env: { ...process.env as Record<string, string>, VIDEOCUT_WORKSPACE: root }, stderr: "pipe" });
+  const client = new Client({ name: "字幕版式拒绝回归", version: "1.0.0" });
+  try {
+    f.app.generateSpeechCaptions({ projectId: f.projectId, baseRevision: f.app.readProject(f.projectId).revision.number });
+    await runOneJob(f.app, createMediaJobProcessor(f.app, new ComfyUIBridgeClient("http://bridge.test/v1")));
+    const before = f.app.readProject(f.projectId);
+    const ids = before.snapshot.timeline.captions.map(card => card.id);
+    await client.connect(transport);
+    const args = { project_id: f.projectId, base_revision_id: before.revision.number, caption_ids: ids, action: "bulk_source_format" };
+    const rejected = await client.callTool({ name: "edit_captions", arguments: { ...args, format: { background_color: null, background_opacity: 0 } } });
+    assert.equal(rejected.isError, true);
+    assert.match(JSON.stringify(rejected.content), /background_opacity|0\.1/u);
+    assert.equal(f.app.readProject(f.projectId).revision.number, before.revision.number);
+    const accepted = await client.callTool({ name: "edit_captions", arguments: { ...args, format: { background_color: null, color: "#151917" } } });
+    assert.notEqual(accepted.isError, true, JSON.stringify(accepted));
+    const after = f.app.readProject(f.projectId);
+    for (const card of after.snapshot.timeline.captions) { assert.equal(card.format?.backgroundColor, undefined); assert.equal(card.format?.backgroundOpacity, undefined); assert.equal(card.format?.color, "#151917"); }
+    assert.deepEqual(after.snapshot.timeline.items, before.snapshot.timeline.items);
+    assert.throws(() => f.app.editCaptions({ projectId: f.projectId, baseRevision: after.revision.number, captionIds: [...ids, "异源或不存在的Card"], action: "bulk_source_format", format: { color: "#ffffff" } }));
+    // 同时经过真实协议验证业务拒绝，防止统一错误封装只在单测中成立。
+    const businessRejected = await client.callTool({ name: "edit_captions", arguments: { ...args, base_revision_id: after.revision.number, caption_ids: [...ids, "异源或不存在的Card"], format: { color: "#ffffff" } } });
+    assert.equal(businessRejected.isError, true);
+    const businessError = JSON.parse((businessRejected.content as Array<{ type: string; text?: string }>).find(item => item.type === "text")!.text!);
+    assert.equal(businessError.sideEffects, "unknown");
+    assert.equal(businessError.safeToRetry, false);
+    assert.equal(businessError.message, businessError.error);
+    assert.ok(businessError.code);
+    const readRejected = await client.callTool({ name: "read_project", arguments: { project_id: "project_missing_protocol_fixture" } });
+    assert.equal(readRejected.isError, true);
+    const readError = JSON.parse((readRejected.content as Array<{ type: string; text?: string }>).find(item => item.type === "text")!.text!);
+    assert.equal(readError.sideEffects, "unknown");
+    assert.equal(readError.safeToRetry, false);
+    assert.equal(readError.message, readError.error);
+    assert.ok(readError.code);
+    assert.equal(f.app.readProject(f.projectId).revision.number, after.revision.number);
+  } finally { await client.close(); await transport.close(); provider.restore(); f.app.close(); await rm(root, { recursive: true, force: true }); }
+});
+
 test("字幕显隐和静态位置经HTTP原子读回，保留语音原文与对齐，越界不写版本", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-caption-presentation-"));
   const f = await fixture(root);
@@ -92,7 +134,7 @@ async function fixture(root: string) {
   const app = createApplication(root);
   const projectId = app.createProject({ name: "完整旁白独立字幕回归", profile: "visual_explainer" }).snapshot.project.id;
   const authored = app.applyAuthoredScript({ projectId, baseRevision: 1, sourceNote: "合约测试，不代表真实发音", units: [{ text, kind: "statement" }] });
-  const imported = app.registerImportedAsset({ projectId, baseRevision: authored.revision.number, name: "speech.wav", kind: "speech", managedPath: "assets/speech/speech.wav", sourceHash: "speech-caption-fixture", provenance: { source: "generated", rightsStatus: "cleared", acquiredAt: new Date().toISOString() } });
+  const imported = app.registerImportedAsset({ projectId, baseRevision: authored.revision.number, name: "speech.wav", kind: "speech", managedPath: "assets/speech/speech.wav", sourceHash: "speech-caption-fixture", provenance: { source: "generated", acquiredAt: new Date().toISOString() } });
   const file = join(authored.snapshot.project.rootPath, imported.asset.managedPath);
   await mkdir(dirname(file), { recursive: true });
   await runProcess("ffmpeg", ["-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=8:sample_rate=24000", file]);

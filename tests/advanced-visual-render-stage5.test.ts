@@ -49,7 +49,7 @@ async function createSnapshot(root: string): Promise<{ app: EditingApplication; 
     managedPath: assetRelativePath,
     sourceHash: "stage5-pre-rendered-three-d",
     tags: [PRE_RENDERED_3D_TAG],
-    provenance: { source: "generated", rightsStatus: "cleared", acquiredAt: "2026-09-02T00:00:00.000Z" }
+    provenance: { source: "generated", acquiredAt: "2026-09-02T00:00:00.000Z" }
   });
   app.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: await probeMedia(assetPath) });
 

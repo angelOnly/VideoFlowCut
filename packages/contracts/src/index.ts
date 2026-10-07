@@ -2,6 +2,9 @@
  * Web、MCP、Worker 共用的契约。这里仅描述数据，不放业务规则，避免形成第二套状态。
  */
 export type Id = string;
+export type * from "./source-review.js";
+export * from "./frame-rate.js";
+import { motionDurationAtFps } from "./frame-rate.js";
 export type * from "./media-intelligence.js";
 import type { MediaAdoption, SoundPlan, AudioRole, AudioEnvelopePoint, MotionEventMap } from "./media-intelligence.js";
 
@@ -39,8 +42,7 @@ export type AssetRole =
   | "generated_visual";
 
 /**
- * 素材来源记录。二进制去重仍使用 Asset.sourceHash；这里保存人工可读的授权与署名事实，
- * 不把本地文件路径误当成可商用授权。
+ * 素材来源记录。保存实际来源与取得信息；二进制去重使用 Asset.sourceHash。
  */
 export interface AssetProvenance {
   source: "local_import" | "generated" | "provider";
@@ -48,24 +50,14 @@ export interface AssetProvenance {
   sourceUrl?: string;
   originalAssetId?: string;
   creator?: string;
-  license?: string;
-  /** 许可名称不足以证明可用性时，保留逐文件可回溯的许可页。 */
-  licenseUrl?: string;
-  attributionText?: string;
-  /**
-   * 生成型人物在提交任务时由操作者给出的肖像、声音和 Provider 使用权依据。
-   * 未完整确认时不写入此字段，生成结果必须保持 unknown，不能因为技术生成成功而默认可交付。
-   */
-  avatarUsageRights?: AvatarUsageRightsConfirmation;
   /**
    * 生成视频的可追溯提交事实。它只记录已经写入本项目的 Job、工作流和输入，
    * 不保存 Provider 的临时下载地址或任何二进制数据。
    */
   generationJobId?: Id;
   generation?: GeneratedVideoProvenance;
-  rightsStatus: "unknown" | "cleared" | "attribution_required" | "restricted" | "rejected";
-  /** 明确许可的用途及依据；缺省沿用原权限，不能由“内部使用”推断授权。 */
-  usageRights?: { purposes: ExportPurpose[]; basis: string; confirmedAt: string };
+  /** 从本项目已入库视频提取音频时，保留源身份与精确半开源范围。 */
+  derivedFrom?: { assetId: Id; sourceHash: string; startMs: number; endMs: number };
   acquiredAt: string;
 }
 
@@ -89,11 +81,10 @@ export interface GeneratedVideoProvenance {
 
 /**
  * 素材需求、搜索意图和候选都属于同一个 Project Revision。
- * 候选不是 Asset，未完成本地化、校验和授权检查前绝不能被 Scene 或 Timeline 引用。
+ * 候选不是 Asset，未完成本地化、技术校验前绝不能被 Scene 或 Timeline 引用。
  */
 export type AssetRequestStatus = "open" | "candidates_ready" | "acquiring" | "fulfilled" | "closed";
 export type AssetCandidateStatus = "available" | "rejected" | "acquisition_queued" | "acquiring" | "acquired" | "failed";
-export type AssetRightsRequirement = "cleared_only" | "cleared_or_attribution";
 
 export interface AssetRequest {
   id: Id;
@@ -109,7 +100,6 @@ export interface AssetRequest {
   excludedTerms: string[];
   targetAspectRatio?: "9:16" | "16:9" | "1:1";
   minDurationMs?: number;
-  rightsRequirement: AssetRightsRequirement;
   fallbackPlan: "keep_presenter" | "remotion" | "minimax" | "ask_user" | "local_audio" | "omit_audio";
   status: AssetRequestStatus;
   closeReason?: string;
@@ -135,8 +125,6 @@ export interface AssetSearchDiagnostics {
 }
 
 export interface AssetCandidate {
-  /** 采用方确认的具体用途依据，不把来源公开许可改成 cleared。 */
-  usageRights?: AssetProvenance["usageRights"];
   id: Id;
   assetRequestId: Id;
   searchIntentId: Id;
@@ -152,10 +140,6 @@ export interface AssetCandidate {
   height?: number;
   durationMs?: number;
   creator?: string;
-  license?: string;
-  licenseUrl?: string;
-  attributionText?: string;
-  rightsStatus: AssetProvenance["rightsStatus"];
   tags: string[];
   hardFilterPassed: boolean;
   filterReasons: string[];
@@ -266,13 +250,6 @@ export interface MediaMetadata {
   mime?: string;
 }
 
-/** 每一局部帧中非零 Alpha 的保守外包矩形；null 表示整帧透明，不等于审美通过。 */
-export interface MotionVisibility {
-  method: "png_alpha_bbox_v1";
-  alphaThreshold: 1;
-  frames: Array<{ x: number; y: number; width: number; height: number } | null>;
-}
-
 export type MotionReviewOutcome = "passed" | "failed" | "inconclusive";
 export interface MotionReviewEvidenceInput {
   kind: "work_proxy" | "project_preview";
@@ -323,12 +300,14 @@ export interface Asset {
     version: string;
     engineVersion: string;
     previousAssetId?: Id;
-    /** 平台登记的派生来源；修改作品许可不能越过来源限制。 */
+    /** 平台登记的实际派生来源。 */
     sourceAssetIds?: Id[];
     /** 固定图片槽位与原图身份，供具体采用关系核验。 */
     imageSources?: Array<{ slot: string; assetId: Id; sourceHash: string }>;
     /** 至多四个固定视频槽位，仅由完成 Job 生成。 */
-    videoSources?: Array<{ slot: string; assetId: Id; sourceHash: string; sourceStartMs: number; sourceEndMs: number }>;
+    videoSources?: Array<{ slot: string; assetId: Id; sourceHash: string; sourceStartMs: number; sourceEndMs: number; startFrame?: number; endFrame?: number }>;
+    /** 字体随发行固定，不作为视频素材；保存实际文件身份便于追溯。 */
+    fontSources?: Array<{ slot: string; fontId: string; sourceHash: string; weight: number; style: "normal" | "italic" }>;
     sourcePath: string;
     framesDirectory: string;
     frameCount: number;
@@ -337,7 +316,6 @@ export interface Asset {
     height: number;
     referenceUrl?: string;
     creativeBrief?: string;
-    visibility?: MotionVisibility;
     eventMap?: MotionEventMap;
     review?: { referenceMatch?: MotionReviewOutcome; outcome?: MotionReviewOutcome; version?: string; evidence?: MotionReviewEvidence; note: string; reviewedAt: string };
   };
@@ -773,8 +751,6 @@ export interface VoiceReference {
   label: string;
   /** 仅表示项目内的本地来源；绝不对应外部供应商的 Voice ID。 */
   source: "local_asset";
-  /** 未取得明示信息时保留风险提示，而不虚构授权事实。 */
-  authorizationNote: string;
   usageNote: string;
   recommendedRange: { startMs: number; endMs: number };
   quality: "passed" | "warning" | "failed";
@@ -911,17 +887,6 @@ export type ActorMaskMode = "alpha_asset" | "embedded_alpha" | "none";
 export type ActorAudioMode = "use_source_audio" | "use_dialogue_track" | "muted";
 
 /**
- * 明确记录一次 Avatar 提交所依据的三类使用权事实。它不是 Provider 条款的自动推断；
- * 三项必须同时存在，才允许该次生成结果从默认 unknown 标为 cleared。
- */
-export interface AvatarUsageRightsConfirmation {
-  portraitRightsBasis: string;
-  voiceRightsBasis: string;
-  providerUsageRightsBasis: string;
-  confirmedAt: string;
-}
-
-/**
  * 这是 Provider 实际可用能力的项目内记录，不是营销页能力的复制。
  * Worker 在真正提交前仍会读取 Bridge 的最新 workflow schema；Profile 用于让导演知道可规划什么。
  */
@@ -944,7 +909,6 @@ export interface ActorCapabilityProfile {
   /** 仅表示可按范围重新提交生成任务，不暗示 Provider 有逐帧无缝修补能力。 */
   supportsPartialRegeneration: boolean;
   maxDurationSeconds: number;
-  rightsNote: string;
   privacyNote: string;
   createdAt: string;
   updatedAt: string;
@@ -1055,7 +1019,6 @@ export const EFFECT_QUALITY_RULES = [
   "semantic_anchor_required",
   "asset_binding_required",
   "settled_frame_required",
-  "caption_safe_area",
   "no_competing_visual",
   "actor_mask_required"
 ] as const;
@@ -1140,9 +1103,9 @@ export function inspectEffectContentContract(cue: EffectCue, assets: readonly As
       const asset = assets.find((item) => item.id === binding?.assetId && item.status === "ready");
       if (!asset?.motion) missing.push("已渲染的受管 Remotion 作品");
       else {
-        if (asset.motion.frameCount !== cue.endFrame - cue.startFrame) missing.push("作品完整时长（不可隐式裁切或拉伸）");
+        if (motionDurationAtFps(asset.motion.frameCount, asset.motion.fps, canvas?.fps ?? asset.motion.fps) !== cue.endFrame - cue.startFrame) missing.push("作品完整时长（不可隐式裁切或拉伸）");
         // 审阅状态独立于技术就绪；未审或有观感问题的作品仍可放置和修订。
-        if (canvas && (asset.motion.width !== canvas.width || asset.motion.height !== canvas.height || asset.motion.fps !== canvas.fps)) missing.push("与当前画布和帧率匹配的作品版本");
+        if (canvas && (asset.motion.width !== canvas.width || asset.motion.height !== canvas.height)) missing.push("与当前画布匹配的作品版本");
       }
       if (cue.assetBindings.length !== 1) missing.push("唯一的 motion 素材绑定；图片在作品内绑定");
       if (Object.keys(props).length || cue.spatialAnchor !== "full_frame" || cue.stylePackId !== "managed-source" || cue.intensity !== 1
@@ -1507,7 +1470,7 @@ export interface QualityIssue {
   /** 保留人工判断来源，不冒充自动检测。 */
   editorialFindingId?: Id;
   editorialSeverity?: EditorialReviewSeverity;
-  /** 仅用于技术/权利阻挡；缺省同时适用于两种导出用途。 */
+  /** 仅用于技术阻挡；缺省同时适用于两种导出用途。 */
   blockingPurposes?: ExportPurpose[];
 }
 
@@ -1896,7 +1859,7 @@ export interface RenderPreflight {
 }
 
 /** 每次导出都保存实际使用外部/生成素材的来源快照，避免后续 Revision 覆盖历史交付依据。 */
-export interface AttributionManifestEntry {
+export interface SourceManifestEntry {
   assetId: Id;
   name: string;
   sourceHash?: string;
@@ -1904,22 +1867,21 @@ export interface AttributionManifestEntry {
   provider?: string;
   sourceUrl?: string;
   creator?: string;
-  license?: string;
-  licenseUrl?: string;
-  attributionText?: string;
-  rightsStatus: AssetProvenance["rightsStatus"];
-  usageRights?: AssetProvenance["usageRights"];
+  originalAssetId?: string;
+  acquiredAt: string;
 }
 
-export interface AttributionManifest {
+export interface SourceManifest {
   relativePath: string;
   generatedAt: string;
-  entries: AttributionManifestEntry[];
+  entries: SourceManifestEntry[];
 }
 
 /** 最终文件校验只描述可确定的媒体事实，不把审美判断伪装成技术结果。 */
 export interface ExportTechnicalValidation {
   durationMs: number;
+  fps?: number;
+  frameCount?: number;
   hasAudio: boolean;
   blackSegments: Array<{ startSeconds: number; endSeconds: number; durationSeconds: number }>;
   audio?: { decoded: boolean; integratedLufs: number | null; truePeakDbfs: number | null; loudnessRangeLu: number | null; silence: Array<{ startSeconds: number; endSeconds: number }>; trailingSilenceStartSeconds?: number; method: string; rawSummary: string };
@@ -1943,7 +1905,7 @@ export interface ExportArtifactApproval {
 
 /**
  * ExportArtifact 与 Project Revision 分开持久化：后续继续编辑只会产生新 Revision，
- * 不会改写曾经导出的文件、校验、署名或批准记录。
+ * 不会改写曾经导出的文件、校验、来源或批准记录。
  */
 export interface ExportArtifact {
   id: Id;
@@ -1956,7 +1918,7 @@ export interface ExportArtifact {
   fileSizeBytes: number;
   preflight: RenderPreflight;
   validation: ExportTechnicalValidation;
-  attributionManifest: AttributionManifest;
+  sourceManifest: SourceManifest;
   createdAt: string;
   artifactReview?: ExportArtifactReview;
   approval?: ExportArtifactApproval;

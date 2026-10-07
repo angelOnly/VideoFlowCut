@@ -177,10 +177,6 @@ function audioAsset(asset: Asset): boolean {
 
 function assertUsableInputAsset(asset: Asset, usage: string): void {
   if (asset.status !== "ready") throw new DomainError(`${usage}必须是已就绪的本地 Asset`, "VIDEO_GENERATION_INPUT_NOT_READY");
-  const rights = asset.provenance?.rightsStatus;
-  if (rights === "restricted" || rights === "rejected") {
-    throw new DomainError(`${usage}的权利状态为 ${rights}，不能提交给外部视频 Provider`, "VIDEO_GENERATION_INPUT_RIGHTS_BLOCKED");
-  }
 }
 
 function classifyMultiReferenceInputs(inputAssets: Asset[]): { images: Asset[]; videos: Asset[]; audio: Asset[] } {

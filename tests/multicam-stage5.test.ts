@@ -21,7 +21,6 @@ function addReadyCamera(app: EditingApplication, projectId: string, name: string
     sourceHash,
     provenance: {
       source: "local_import",
-      rightsStatus: "cleared",
       acquiredAt: "2026-09-02T00:00:00.000Z"
     }
   });

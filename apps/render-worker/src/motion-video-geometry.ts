@@ -3,6 +3,7 @@ import { runProcess } from "@videocut/speech";
 export interface MotionVideoGeometry {
   streamIndex: number; encodedWidth: number; encodedHeight: number; sar: number;
   rotation: number; displayWidth: number; displayHeight: number; durationMs: number;
+  startTimeSeconds: number;
 }
 /** 只接受能够确定解释的正交显示矩阵；不把剪切、镜像或透视静默当作旋转。 */
 export function parseMotionVideoGeometry(probe: any): MotionVideoGeometry {
@@ -25,7 +26,9 @@ export function parseMotionVideoGeometry(probe: any): MotionVideoGeometry {
   const normalizedWidth = stream.width * sar, normalizedHeight = stream.height;
   const durationMs = Number(stream.duration ?? probe.format?.duration) * 1000;
   if (!Number.isFinite(durationMs) || durationMs <= 0) throw new Error("MOTION_VIDEO_SOURCE_RANGE: 视频时长无效");
-  return { streamIndex: stream.index, encodedWidth: stream.width, encodedHeight: stream.height, sar, rotation, displayWidth: rotation % 180 ? normalizedHeight : normalizedWidth, displayHeight: rotation % 180 ? normalizedWidth : normalizedHeight, durationMs };
+  const startTimeSeconds = Number(stream.start_time ?? probe.format?.start_time ?? 0);
+  if (!Number.isFinite(startTimeSeconds)) throw new Error("MOTION_VIDEO_GEOMETRY: 起始时间戳无效");
+  return { streamIndex: stream.index, encodedWidth: stream.width, encodedHeight: stream.height, sar, rotation, displayWidth: rotation % 180 ? normalizedHeight : normalizedWidth, displayHeight: rotation % 180 ? normalizedWidth : normalizedHeight, durationMs, startTimeSeconds };
 }
 export async function probeMotionVideoGeometry(path: string) {
   return parseMotionVideoGeometry(JSON.parse(await runProcess("ffprobe", ["-v","error","-show_streams","-show_format","-of","json",path])));

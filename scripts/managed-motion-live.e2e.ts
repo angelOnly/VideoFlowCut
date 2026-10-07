@@ -29,7 +29,7 @@ try {
   const logoPath = join(projectRoot, "assets", "logo.png");
   await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "color=c=0xec5a77:s=32x32", "-frames:v", "1", logoPath]);
   const logoHash = createHash("sha256").update(await readFile(logoPath)).digest("hex");
-  const logo = app.registerImportedAsset({ projectId, baseRevision: revision(), name: "图片绑定候选", kind: "image", managedPath: "assets/logo.png", sourceHash: logoHash, provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() } }).asset;
+  const logo = app.registerImportedAsset({ projectId, baseRevision: revision(), name: "图片绑定候选", kind: "image", managedPath: "assets/logo.png", sourceHash: logoHash, provenance: { source: "local_import", acquiredAt: new Date().toISOString() } }).asset;
   app.applyMediaAnalysis({ projectId, assetId: logo.id, metadata: await probeMedia(logoPath) });
   const imageJob = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "live-image", work: { ...motionFixture, imageBindings: { logo: logo.id }, source: `import React from 'react';import {AbsoluteFill,Img,useCurrentFrame} from 'remotion';export default function Motion(props){const f=useCurrentFrame();return <AbsoluteFill style={{justifyContent:'center',alignItems:'center'}}><Img src={props.assets.logo} style={{width:100+f,height:100+f}}/></AbsoluteFill>;}` } });
   const imageResult = await runMotionJob(app, imageJob);

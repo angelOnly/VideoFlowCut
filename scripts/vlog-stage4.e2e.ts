@@ -56,7 +56,6 @@ async function registerReadyVideo(input: {
     sourceHash: "stage4-vlog-fixture-v1",
     provenance: {
       source: "local_import",
-      rightsStatus: "cleared",
       acquiredAt: "2026-09-02T00:00:00.000Z"
     }
   });

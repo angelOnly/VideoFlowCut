@@ -56,5 +56,33 @@ const library=await text('motion-case-library/SKILL.md');
 check(library.includes('references/r92-family-index.md'),'Missing new index route');
 check(!library.includes('本库只推荐用户于 2026-09-08 最终选定的以下六项'),'Closed six-only restriction remains');
 for(const old of ['sim-paper','smooth-relay','ticket-phone','product-fan','cover-flow','comment-focus'])check(await exists(join(root,'motion-case-'+old,'SKILL.md')),'Historical case missing '+old);
+// 素材分支沿原角色和案例入口读取；检查实际文件，不能只验证候选包里的正文。
+const materialRoles=[...roleSkills.filter(role=>!['captions','voice-production','sound-asset-sourcing','audio-finishing'].includes(role)), 'vlog-director','cutaway-planning','depth-composition'];
+for(const role of materialRoles){
+ const rel=role+'/SKILL.md';
+ const body=await text(rel);
+ check(body.includes('material-scene-v3'),`缺少素材工作流接入：${role}`);
+ await checkLinks(rel);
+}
+for(const rel of ['_shared/MATERIAL_TO_SCENE.md','_shared/SOURCE_REVIEW_METHOD.md','remotion-production/references/material-space-and-time.md','quality-verification/references/material-integration-review.md','motion-case-library/references/material-integration-validation.md']){
+ check(await exists(join(root,rel)),`缺少素材参考：${rel}`);
+ if(await exists(join(root,rel)))await checkLinks(rel);
+}
+for(const id of cases){
+ const path=id+'/material-branch-record.json';
+ if(!await exists(join(root,path))){check(false,`缺少材料分支状态：${id}`);continue;}
+ const rec=JSON.parse(await text(path));
+ check(rec.case===id&&rec.branch==='material-dependent',`材料分支身份不匹配：${id}`);
+ check(rec.instruction==='references/material-integration-prompt-v1.md',`材料分支指令路径不匹配：${id}`);
+ const entry=await text(id+'/SKILL.md');
+ check(entry.includes(`](${rec.instruction})`)&&entry.includes('](material-branch-record.json)'),`案例未连接材料指令和独立状态：${id}`);
+ check(rec.instructionStatus==='written_not_rendered'&&rec.generatedMedia===null,`未制作的材料分支不得宣称已生成：${id}`);
+ check(rec.isOriginalInputForObservedMedia===false,`材料新指令不得冒充原片输入：${id}`);
+ check(Array.isArray(rec.sourceAssets)&&rec.sourceAssets.length===0,`未制作的材料分支不得借用历史素材：${id}`);
+ check(rec.evidence?.graphicInternal==='not_tested_for_this_input'&&['sourceInternalObservation','contextIntegration','fullTopicFilm'].every(key=>rec.evidence?.[key]==='not_tested'),`材料分支不得继承历史通过证据：${id}`);
+ const instruction=id+'/'+rec.instruction;
+ check(await exists(join(root,instruction)),`材料分支指令缺失：${id}`);
+ if(await exists(join(root,instruction)))await checkLinks(instruction);
+}
 console.log(JSON.stringify({kind:'static_case_and_skill_contract',skillsRoot:root,checks,passed:checks-failures.length,failures,doesNotProve:'Model behavior, beauty, playback or complete runtime integration'},null,2));
 process.exitCode=failures.length?1:0;

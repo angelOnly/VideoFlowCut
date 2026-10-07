@@ -67,7 +67,6 @@ function addReadyAsset(
     role: options.role,
     provenance: {
       source: "local_import",
-      rightsStatus: "cleared",
       acquiredAt: new Date().toISOString()
     }
   });
@@ -118,7 +117,6 @@ function createCapabilityProfile(app: EditingApplication, projectId: string, opt
     supportsGestureControl: false,
     supportsPartialRegeneration: true,
     maxDurationSeconds: 90,
-    rightsNote: "仅在已获得肖像与声音授权时使用。",
     privacyNote: "提交前应向用户说明 Provider 数据处理范围。"
   });
   const profile = state.snapshot.actorCapabilityProfiles[0];
@@ -281,12 +279,7 @@ async function prepareAvatarJob(context: { root: string; app: EditingApplication
 function submitPreparedAvatarJob(
   app: EditingApplication,
   prepared: Awaited<ReturnType<typeof prepareAvatarJob>>,
-  idempotencyKey: string,
-  rightsConfirmation?: {
-    portraitRightsBasis?: string;
-    voiceRightsBasis?: string;
-    providerUsageRightsBasis?: string;
-  }
+  idempotencyKey: string
 ) {
   return app.submitAvatarGeneration({
     projectId: prepared.projectId,
@@ -298,7 +291,6 @@ function submitPreparedAvatarJob(
     placement: { sceneId: prepared.scene.id, startFrame: 0, endFrame: 24 },
     maskMode: "none",
     audioMode: "use_dialogue_track",
-    rightsConfirmation,
     layout: { actorHead: { x: 0.5, y: 0.28, source: "manual_static" } },
     note: "测试用自然正面主持人",
     idempotencyKey
@@ -522,43 +514,6 @@ test("SpeechAsset 替换会使生成型人物 stale，并只标出它可局部�
   }
 });
 
-test("Avatar 只有完整权利确认才把生成结果标记为可交付，确认依据会写入 Job 审计", async () => {
-  const context = await createTestApplication();
-  try {
-    const prepared = await prepareAvatarJob(context, "Avatar 权利确认测试");
-    const unconfirmed = submitPreparedAvatarJob(context.app, prepared, "avatar-rights-unknown");
-    assert.equal((unconfirmed.payload as { rightsConfirmation?: unknown }).rightsConfirmation, undefined, "未提供确认时必须保持 unknown 路径");
-
-    assert.throws(
-      () => submitPreparedAvatarJob(context.app, prepared, "avatar-rights-incomplete", {
-        portraitRightsBasis: "已获得肖像授权",
-        voiceRightsBasis: "已获得声音授权"
-      }),
-      (error: unknown) => error instanceof DomainError && error.code === "AVATAR_RIGHTS_CONFIRMATION_INCOMPLETE"
-    );
-
-    const confirmed = submitPreparedAvatarJob(context.app, prepared, "avatar-rights-cleared", {
-      portraitRightsBasis: "已获得出镜者对本次项目的肖像使用授权",
-      voiceRightsBasis: "已获得声音参考及合成旁白的使用授权",
-      providerUsageRightsBasis: "已核对当前 Provider 的项目用途与数据处理条款"
-    });
-    const confirmation = (confirmed.payload as {
-      rightsConfirmation?: {
-        portraitRightsBasis?: string;
-        voiceRightsBasis?: string;
-        providerUsageRightsBasis?: string;
-        confirmedAt?: string;
-      };
-    }).rightsConfirmation;
-    assert.equal(confirmation?.portraitRightsBasis, "已获得出镜者对本次项目的肖像使用授权");
-    assert.equal(confirmation?.voiceRightsBasis, "已获得声音参考及合成旁白的使用授权");
-    assert.equal(confirmation?.providerUsageRightsBasis, "已核对当前 Provider 的项目用途与数据处理条款");
-    assert.ok(confirmation?.confirmedAt, "确认时间必须与 Job 一起持久化，不能在完成时凭当前状态补写");
-  } finally {
-    await context.dispose();
-  }
-});
-
 test("多个 Actor / A-roll 人物同时覆盖效果时，质量门禁不能按数组顺序猜锚点", async () => {
   const context = await createTestApplication();
   try {
@@ -628,13 +583,8 @@ test("Avatar Worker 会重读 Bridge Schema、在 409 后重试，并将同一 J
       role: "b_roll",
       sourceHash: matchingBrollHash
     });
-    const rightsConfirmation = {
-      portraitRightsBasis: "测试出镜者已书面授权将肖像用于本项目数字人生成",
-      voiceRightsBasis: "测试声音参考已授权用于本项目合成与口型同步",
-      providerUsageRightsBasis: "测试已核对当前 Provider 的项目用途与数据处理条款"
-    };
-    const job = submitPreparedAvatarJob(context.app, prepared, "avatar-schema-retry", rightsConfirmation);
-    const replayedSubmission = submitPreparedAvatarJob(context.app, prepared, "avatar-schema-retry", rightsConfirmation);
+    const job = submitPreparedAvatarJob(context.app, prepared, "avatar-schema-retry");
+    const replayedSubmission = submitPreparedAvatarJob(context.app, prepared, "avatar-schema-retry");
     assert.equal(replayedSubmission.id, job.id, "相同幂等键不能重复创建 Avatar Job");
     markSeedMediaJobsHandled(context.app, prepared.projectId);
 
@@ -720,10 +670,6 @@ test("Avatar Worker 会重读 Bridge Schema、在 409 后重试，并将同一 J
     assert.equal(actorItem.gainDb, -96, "生成人物视频默认静音，Dialogue 才是唯一声音所有者");
     const actorAsset = completedState.snapshot.assets.find((asset) => asset.id === actorItem.assetId);
     assert.equal(actorAsset?.kind, "actor_video");
-    assert.equal(actorAsset?.provenance?.rightsStatus, "cleared", "完整确认后，最终 Avatar Asset 才可标记为 cleared");
-    assert.equal(actorAsset?.provenance?.avatarUsageRights?.portraitRightsBasis, rightsConfirmation.portraitRightsBasis);
-    assert.equal(actorAsset?.provenance?.avatarUsageRights?.voiceRightsBasis, rightsConfirmation.voiceRightsBasis);
-    assert.equal(actorAsset?.provenance?.avatarUsageRights?.providerUsageRightsBasis, rightsConfirmation.providerUsageRightsBasis);
 
     // 即使 Provider 结果与已有 B-roll 二进制相同，也只能新建 Actor Asset；不能把旧素材改成 A-roll。
     const existingBroll = completedState.snapshot.assets.find((asset) => asset.id === brollAssetId);
@@ -997,11 +943,6 @@ test("MCP 的 submit_avatar_job 只提交可追溯 Job，并可通过通用读�
       placement: { scene_id: prepared.scene.id, start_frame: 0, end_frame: 24 },
       audio_mode: "use_dialogue_track",
       mask_mode: "none",
-      rights_confirmation: {
-        portrait_rights_basis: "已取得本项目出镜者的肖像使用授权",
-        voice_rights_basis: "已取得声音参考和合成旁白的使用授权",
-        provider_usage_rights_basis: "已核对当前 Provider 的项目用途与数据处理条款"
-      },
       layout: { actor_head: { x: 0.5, y: 0.28, source: "manual_static" } },
       idempotency_key: "avatar-mcp-submit"
     } }))) as {
@@ -1013,7 +954,6 @@ test("MCP 的 submit_avatar_job 只提交可追溯 Job，并可通过通用读�
         speechAssetId: string;
         generationRange: { speechSegmentIds: string[] };
         placement: { sceneId: string };
-        rightsConfirmation?: { portraitRightsBasis?: string; voiceRightsBasis?: string; providerUsageRightsBasis?: string; confirmedAt?: string };
       };
     };
     assert.equal(submitted.kind, "avatar_generation");
@@ -1022,10 +962,6 @@ test("MCP 的 submit_avatar_job 只提交可追溯 Job，并可通过通用读�
     assert.equal(submitted.payload.speechAssetId, prepared.speechAsset.id);
     assert.deepEqual(submitted.payload.generationRange.speechSegmentIds, [prepared.segment.id]);
     assert.equal(submitted.payload.placement.sceneId, prepared.scene.id);
-    assert.equal(submitted.payload.rightsConfirmation?.portraitRightsBasis, "已取得本项目出镜者的肖像使用授权");
-    assert.equal(submitted.payload.rightsConfirmation?.voiceRightsBasis, "已取得声音参考和合成旁白的使用授权");
-    assert.equal(submitted.payload.rightsConfirmation?.providerUsageRightsBasis, "已核对当前 Provider 的项目用途与数据处理条款");
-    assert.ok(submitted.payload.rightsConfirmation?.confirmedAt, "MCP 传入的完整确认必须在提交时写入 Job 审计");
 
     const tracked = JSON.parse(textFromToolResult(await client.callTool({ name: "track_job", arguments: { job_id: submitted.id } }))) as { id: string; kind: string; status: string };
     assert.equal(tracked.id, submitted.id);

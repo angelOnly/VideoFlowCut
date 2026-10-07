@@ -1,4 +1,5 @@
 import type { AgentWorkOrder, DialogueProcessingIssue, DialogueProcessingProfile, ExportArtifact, ExportPurpose, JobRecord, ProductionProfile, ProjectSnapshot, ProjectSummary, QualityReport, RevisionRecord, VideoGenerationMode } from "@videocut/contracts";
+import type { FrameRateChangeReport, SourceReviewDiagnostics } from "@videocut/contracts";
 
 /**
  * 开发服务器仍默认访问本地 API；插件 Runtime 则把静态 Web 与 API 放在同一 origin，
@@ -66,6 +67,7 @@ export interface SourceReviewUsageItem {
 }
 
 export interface SourceReviewResult {
+  diagnostics: SourceReviewDiagnostics;
   projectId: string;
   assetId: string;
   revision: number;
@@ -113,8 +115,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  fontCapabilities: (signal?: AbortSignal) => request<{ fonts: import("../../../packages/motion-work/src/font-preview").FontLibraryFace[] }>("/api/motion/capabilities", { signal }),
   listProjects: () => request<ProjectSummary[]>("/api/projects"),
-  createProject: (name: string, profile: ProductionProfile) => request<ProjectState>("/api/projects", { method: "POST", body: JSON.stringify({ name, profile }) }),
+  createProject: (name: string, profile: ProductionProfile, fps = 24) => request<ProjectState>("/api/projects", { method: "POST", body: JSON.stringify({ name, profile, fps }) }),
+  previewFrameRateChange: (id: string, baseRevision: number, fps: number) => request<FrameRateChangeReport>(`/api/projects/${id}/frame-rate/preview`, { method: "POST", body: JSON.stringify({ baseRevision, fps }) }),
+  setFrameRate: (id: string, baseRevision: number, fps: number) => request<ProjectState & { frameRateChange: FrameRateChangeReport }>(`/api/projects/${id}/frame-rate`, { method: "POST", body: JSON.stringify({ baseRevision, fps }) }),
   project: (projectId: string) => request<ProjectState>(`/api/projects/${projectId}`),
   quality: (projectId: string) => request<QualityReport>(`/api/projects/${projectId}/quality`),
   jobs: (projectId: string) => request<JobRecord[]>(`/api/projects/${projectId}/jobs`),

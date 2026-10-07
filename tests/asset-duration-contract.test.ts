@@ -13,7 +13,7 @@ test("混合视觉需求不按源时长拒绝图片；清空限制失效旧候�
     const revision = () => app.readProject(projectId).revision.number;
     const request = app.manageAssetRequirement({ projectId, baseRevision: revision(), action:"create", title:"基站", purpose:"辨认基站", visualBrief:"真实图片或四秒以上视频", minDurationMs:4000 }).snapshot.assetRequests[0];
     const input = { projectId, baseRevision: revision(), assetRequestId:request.id, provider:"wikimedia-commons", query:"cell tower" };
-    const common = { sourceUrl:"https://example.org/source", rightsStatus:"cleared" as const };
+    const common = { sourceUrl:"https://example.org/source", };
     const candidates = [
       {...common, originalAssetId:"image", name:"图片", kind:"image" as const},
       {...common, originalAssetId:"short", name:"短视频", kind:"video" as const, durationMs:3000},

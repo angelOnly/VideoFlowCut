@@ -1,0 +1,436 @@
+{
+  "version": "material-scene-v3",
+  "basis_commit": "177ebef3cbe0677340c00156a971daceaf48fdbd",
+  "changes": [
+    {
+      "id": "M01",
+      "path": ".agents/skills/production-director/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/01_production-director.before.md",
+      "after_file": "patches/01_production-director.after.md",
+      "original_lines": [
+        8,
+        24
+      ],
+      "why": "既有“场面设计”仍可能只是照片引子加独立模型；在采用混合场面时明确材料依据，并修正事实边界与剪法混同。",
+      "baseline_file_sha256": "5787988db5a5ff8d4f428dbb7894ecdc996996f86699c5de73081b7a7a597fd8"
+    },
+    {
+      "id": "M02",
+      "path": ".agents/skills/production-coordinator/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/02_production-coordinator.before.md",
+      "after_file": "patches/02_production-coordinator.after.md",
+      "original_lines": [
+        8,
+        18
+      ],
+      "why": "补齐真实文件与稿件一起交回、review上下文使用方式、内部图像槽采用与上下文预览。",
+      "baseline_file_sha256": "3fde7d52df69ecdd69ef9d6776ff74611a6cc781d347646e6296d4bb68d0db5a"
+    },
+    {
+      "id": "M03",
+      "path": ".agents/skills/narration-writing/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/03_narration-writing.before.md",
+      "after_file": "patches/03_narration-writing.after.md",
+      "original_lines": [
+        8,
+        18
+      ],
+      "why": "把候选发现对正文的影响明确化，避免图书馆日常被自动改成图标式规则课。",
+      "baseline_file_sha256": "d50c8a0c05cc62c71774f00c73cac34f4d41872de8ce554bf7d183d9a114d255"
+    },
+    {
+      "id": "M04",
+      "path": ".agents/skills/visual-explainer-director/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/04_visual-explainer-director.before.md",
+      "after_file": "patches/04_visual-explainer-director.after.md",
+      "original_lines": [
+        8,
+        16
+      ],
+      "why": "把源图/实拍本身作为解释的可用路径，而非必经独立原创模型。",
+      "baseline_file_sha256": "4a61ea9ecc34f14b41ef00200e23b5671a076419a1a02a5f46839272f329d103"
+    },
+    {
+      "id": "M05",
+      "path": ".agents/skills/visual-asset-sourcing/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/05_visual-asset-sourcing.before.md",
+      "after_file": "patches/05_visual-asset-sourcing.after.md",
+      "original_lines": [
+        8,
+        20
+      ],
+      "why": "将文件名与许可层交接深化为源内对象、时间、清晰度与设计机会，同时保留自主搜材。",
+      "baseline_file_sha256": "f8019ac6794b0e7ef177b2e15b096431db3219be913818c0089ab0507d005245"
+    },
+    {
+      "id": "M06",
+      "path": ".agents/skills/visual-treatment-planning/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/06_visual-treatment-planning.before.md",
+      "after_file": "patches/06_visual-treatment-planning.after.md",
+      "original_lines": [
+        8,
+        18
+      ],
+      "why": "将美術從通用模型尺寸推进到原素材决定的形体、方向与投影。",
+      "baseline_file_sha256": "47ab9db9cd2df58b4b241fc38580e975c90c5290b6a88fcdbf743fb38c4168bb"
+    },
+    {
+      "id": "M07",
+      "path": ".agents/skills/scene-planning/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/07_scene-planning.before.md",
+      "after_file": "patches/07_scene-planning.after.md",
+      "original_lines": [
+        8,
+        16
+      ],
+      "why": "技术分段不能把真实素材与延展动画拆成重复建立的两个世界。",
+      "baseline_file_sha256": "e2a88dff62b61af264fb97749b54227587f2b733858de9d9d963094ffd826243"
+    },
+    {
+      "id": "M08",
+      "path": ".agents/skills/remotion-production/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/08_remotion-production.before.md",
+      "after_file": "patches/08_remotion-production.after.md",
+      "original_lines": [
+        8,
+        22
+      ],
+      "why": "补齐源几何和源时钟实施约束，避免调用通用动效组件后把同题照片前后插入。",
+      "baseline_file_sha256": "6d67801c36a7bc3201ea72223ea708bcedc4173e0e0d03bc44735a9056d6633d"
+    },
+    {
+      "id": "M09",
+      "path": ".agents/skills/effect-timing/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/09_effect-timing.before.md",
+      "after_file": "patches/09_effect-timing.after.md",
+      "original_lines": [
+        8,
+        18
+      ],
+      "why": "时间不只跟随动画结束，还受源动作与上下文交接约束。",
+      "baseline_file_sha256": "d7091e794cb733aa3bf387d9933b21161d19aae3ac07e8a417bf108cfeafe499"
+    },
+    {
+      "id": "M10",
+      "path": ".agents/skills/evidence-visualization/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/10_evidence-visualization.before.md",
+      "after_file": "patches/10_evidence-visualization.after.md",
+      "original_lines": [
+        8,
+        18
+      ],
+      "why": "保留事实边界，但不将证据审慎机械变成全屏插段或假界面。",
+      "baseline_file_sha256": "41c8f17ac15095d4954ecf440db903df875ec77166aa171bb3efa7aaecb6f883"
+    },
+    {
+      "id": "M11",
+      "path": ".agents/skills/quality-verification/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/11_quality-verification.before.md",
+      "after_file": "patches/11_quality-verification.after.md",
+      "original_lines": [
+        8,
+        20
+      ],
+      "why": "关键门槛从独立图形静帧美观扩展到素材进入、相互作用、出口及声音的真实上下文。",
+      "baseline_file_sha256": "d7583c1272ff2fb03fba15cce2b1a87eb1188b4483e38958c72d91b0021fe45c"
+    },
+    {
+      "id": "M12",
+      "path": ".agents/skills/motion-case-library/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/12_motion-case-library.before.md",
+      "after_file": "patches/12_motion-case-library.after.md",
+      "original_lines": [
+        8,
+        18
+      ],
+      "why": "保留已有有效动画，改测试覆盖和读取路由，避免案例串烧以及纯图形通过替代素材融合。",
+      "baseline_file_sha256": "3dac1cb000f9ec10bc07815f850956b7ce828dfc802923d2953e1bd64e66e932"
+    },
+    {
+      "id": "M13",
+      "path": ".agents/skills/vlog-director/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/13_vlog-director.before.md",
+      "after_file": "patches/13_vlog-director.after.md",
+      "original_lines": [
+        6,
+        6
+      ],
+      "why": "实际图书馆日常不应因有书本案例而自动变成借还规则讲解。",
+      "baseline_file_sha256": "c137f24eb4264bba742bc07bc4bc67973b854842a96a88fb0980e94b09251d28"
+    },
+    {
+      "id": "M14",
+      "path": ".agents/skills/cutaway-planning/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/14_cutaway-planning.before.md",
+      "after_file": "patches/14_cutaway-planning.after.md",
+      "original_lines": [
+        6,
+        6
+      ],
+      "why": "阻止素材被片段化成机械插图，又保留合理B-roll与切镜。",
+      "baseline_file_sha256": "27218dcdd9e7ae1d586a64c00a13a81d39062065b6a67bcb28a1be49cf87306f"
+    },
+    {
+      "id": "M15",
+      "path": ".agents/skills/depth-composition/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/15_depth-composition.before.md",
+      "after_file": "patches/15_depth-composition.after.md",
+      "original_lines": [
+        6,
+        6
+      ],
+      "why": "补源坐标/合成坐标、真实遮挡与共同构图，不需要所有段落都做自动抠像。",
+      "baseline_file_sha256": "a58de040fd08df19b3fae099d94d9021007c895748e1aef32e786f6a0a4ee872"
+    },
+    {
+      "id": "M16",
+      "path": ".agents/skills/_shared/SCENE_DESIGN_HANDOFF.md",
+      "operation": "replace_exact",
+      "before_file": "patches/16_shared-handoff.before.md",
+      "after_file": "patches/16_shared-handoff.after.md",
+      "original_lines": [
+        13,
+        13
+      ],
+      "why": "在已有场面正文中直接增加具体结合与材料变化影响，不新增用户表单。",
+      "baseline_file_sha256": "0515d794ccb41c4eb56d6418cb8a74c443e6ad15f8d149df33fc8ad21f40d3e6"
+    },
+    {
+      "id": "M17",
+      "path": ".agents/skills/_shared/TOPIC_TO_FILM.md",
+      "operation": "replace_exact",
+      "before_file": "patches/17_topic-material.before.md",
+      "after_file": "patches/17_topic-material.after.md",
+      "original_lines": [
+        27,
+        35
+      ],
+      "why": "保留主题到成片主链，在关键材料进入点补“实见内容改变分镜”，不重新锁稿或固定时长。",
+      "baseline_file_sha256": "962c119ea11c25face582205d9f25e80606d07bad95d7ce97faab7ed7ce3a06f"
+    },
+    {
+      "id": "M18",
+      "path": ".agents/skills/_shared/SOURCE_REVIEW_METHOD.md",
+      "operation": "replace_exact",
+      "before_file": "patches/18_source-review.before.md",
+      "after_file": "patches/18_source-review.after.md",
+      "original_lines": [
+        30,
+        30
+      ],
+      "why": "复用现有源审阅分层，把创作机会与事实独立保存。",
+      "baseline_file_sha256": "f18a7204ac0ace867bb359824b193af9899d222f003782e0cd3b1aea837133c5"
+    },
+    {
+      "id": "M19",
+      "path": ".agents/skills/remotion-production/references/scene-art-and-motion.md",
+      "operation": "replace_exact",
+      "before_file": "patches/19_art-link.before.md",
+      "after_file": "patches/19_art-link.after.md",
+      "original_lines": [
+        52,
+        52
+      ],
+      "why": "让已有美术方法连到源坐标与时钟的可执行细节，避免孤立新文档。",
+      "baseline_file_sha256": "cf13d7c5f5624d2e3ee4cf3333c203f8cd6a527b16262d14d275ea6e32479c72"
+    },
+    {
+      "id": "M20",
+      "path": ".agents/skills/motion-case-active-window-focus/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/20_motion-case-active-window-focus.before.md",
+      "after_file": "patches/20_motion-case-active-window-focus.after.md",
+      "original_lines": [
+        20,
+        20
+      ],
+      "why": "将新材料分支接入已有案例实际读取链，同时保留原文件其余内容。",
+      "baseline_file_sha256": "6daca6de98c70d8f30be62af08734aa47ecd487c3c81e84797d20f5cf46fdfda"
+    },
+    {
+      "id": "M21",
+      "path": ".agents/skills/motion-case-occlusion-condition-reveal/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/21_motion-case-occlusion-condition-reveal.before.md",
+      "after_file": "patches/21_motion-case-occlusion-condition-reveal.after.md",
+      "original_lines": [
+        20,
+        20
+      ],
+      "why": "将新材料分支接入已有案例实际读取链，同时保留原文件其余内容。",
+      "baseline_file_sha256": "4187638ac9a9a57bf148f7f8f4c219000235661266a5d4c62f4c705103e6c6f1"
+    },
+    {
+      "id": "M22",
+      "path": ".agents/skills/motion-case-context-detail-observation/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/22_motion-case-context-detail-observation.before.md",
+      "after_file": "patches/22_motion-case-context-detail-observation.after.md",
+      "original_lines": [
+        20,
+        20
+      ],
+      "why": "将新材料分支接入已有案例实际读取链，同时保留原文件其余内容。",
+      "baseline_file_sha256": "7df458af5bd9e608050d8f7e47e42b66aab82ae19cacee90caee851a2da7d658"
+    },
+    {
+      "id": "M23",
+      "path": ".agents/skills/motion-case-relation-unfold/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/23_motion-case-relation-unfold.before.md",
+      "after_file": "patches/23_motion-case-relation-unfold.after.md",
+      "original_lines": [
+        20,
+        20
+      ],
+      "why": "将新材料分支接入已有案例实际读取链，同时保留原文件其余内容。",
+      "baseline_file_sha256": "7da33e569ce37872f312ed113202ae7e26cf1c14ed6c4162626fee3f79c533f7"
+    },
+    {
+      "id": "M24",
+      "path": ".agents/skills/motion-case-object-type-relay/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/24_motion-case-object-type-relay.before.md",
+      "after_file": "patches/24_motion-case-object-type-relay.after.md",
+      "original_lines": [
+        20,
+        20
+      ],
+      "why": "将新材料分支接入已有案例实际读取链，同时保留原文件其余内容。",
+      "baseline_file_sha256": "a3cae57af44d3c8c885c1956e83e0e0720b8fc484a85f8b3c884648e46a03904"
+    },
+    {
+      "id": "M25",
+      "path": ".agents/skills/motion-case-mixed-scene-relay/SKILL.md",
+      "operation": "replace_exact",
+      "before_file": "patches/25_motion-case-mixed-scene-relay.before.md",
+      "after_file": "patches/25_motion-case-mixed-scene-relay.after.md",
+      "original_lines": [
+        20,
+        20
+      ],
+      "why": "将新材料分支接入已有案例实际读取链，同时保留原文件其余内容。",
+      "baseline_file_sha256": "1e538ba6b970b5959221b8ad4bd491e4a069e5e7648d19d2ceb4d5639241f905"
+    },
+    {
+      "id": "M26",
+      "path": ".agents/skills/motion-case-library/references/r92-family-index.md",
+      "operation": "replace_exact",
+      "before_file": "patches/26_case-index.before.md",
+      "after_file": "patches/26_case-index.after.md",
+      "original_lines": [
+        1,
+        1
+      ],
+      "why": "旧r92索引可到达新分支，不把候选新指令藏在孤立目录。",
+      "baseline_file_sha256": "30d4fad41f41f7613540bd8d3c90f5d5c42086ba282b804c7245912d9fcd81a2"
+    }
+  ],
+  "new_files": [
+    {
+      "path": ".agents/skills/_shared/MATERIAL_TO_SCENE.md",
+      "content_file": "repo-overlay/.agents/skills/_shared/MATERIAL_TO_SCENE.md",
+      "why": "把素材观察、事实边界、设计机会和采用更新连成现有职责中的具体闭环。"
+    },
+    {
+      "path": ".agents/skills/remotion-production/references/material-space-and-time.md",
+      "content_file": "repo-overlay/.agents/skills/remotion-production/references/material-space-and-time.md",
+      "why": "为本片作者提供坐标、源时间、同源观察、页面和切入图解的具体实施方法。"
+    },
+    {
+      "path": ".agents/skills/quality-verification/references/material-integration-review.md",
+      "content_file": "repo-overlay/.agents/skills/quality-verification/references/material-integration-review.md",
+      "why": "给原审片者实际可用的取范围、提问、分类、回派和证据记录正文。"
+    },
+    {
+      "path": ".agents/skills/motion-case-library/references/material-integration-validation.md",
+      "content_file": "repo-overlay/.agents/skills/motion-case-library/references/material-integration-validation.md",
+      "why": "为案例路由、材料分支和原视频证据设独立记录，不把新指令冒充已生成结果。"
+    },
+    {
+      "path": ".agents/skills/motion-case-active-window-focus/references/material-integration-prompt-v1.md",
+      "content_file": "repo-overlay/.agents/skills/motion-case-active-window-focus/references/material-integration-prompt-v1.md",
+      "why": "在现有案例中补实际材料与前后语境的完整制作分支，保留原图形方法。"
+    },
+    {
+      "path": ".agents/skills/motion-case-active-window-focus/material-branch-record.json",
+      "content_file": "repo-overlay/.agents/skills/motion-case-active-window-focus/material-branch-record.json",
+      "why": "单独记录新指令未渲染状态，不修改历史案例证据。"
+    },
+    {
+      "path": ".agents/skills/motion-case-occlusion-condition-reveal/references/material-integration-prompt-v1.md",
+      "content_file": "repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/references/material-integration-prompt-v1.md",
+      "why": "在现有案例中补实际材料与前后语境的完整制作分支，保留原图形方法。"
+    },
+    {
+      "path": ".agents/skills/motion-case-occlusion-condition-reveal/material-branch-record.json",
+      "content_file": "repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/material-branch-record.json",
+      "why": "单独记录新指令未渲染状态，不修改历史案例证据。"
+    },
+    {
+      "path": ".agents/skills/motion-case-context-detail-observation/references/material-integration-prompt-v1.md",
+      "content_file": "repo-overlay/.agents/skills/motion-case-context-detail-observation/references/material-integration-prompt-v1.md",
+      "why": "在现有案例中补实际材料与前后语境的完整制作分支，保留原图形方法。"
+    },
+    {
+      "path": ".agents/skills/motion-case-context-detail-observation/material-branch-record.json",
+      "content_file": "repo-overlay/.agents/skills/motion-case-context-detail-observation/material-branch-record.json",
+      "why": "单独记录新指令未渲染状态，不修改历史案例证据。"
+    },
+    {
+      "path": ".agents/skills/motion-case-relation-unfold/references/material-integration-prompt-v1.md",
+      "content_file": "repo-overlay/.agents/skills/motion-case-relation-unfold/references/material-integration-prompt-v1.md",
+      "why": "在现有案例中补实际材料与前后语境的完整制作分支，保留原图形方法。"
+    },
+    {
+      "path": ".agents/skills/motion-case-relation-unfold/material-branch-record.json",
+      "content_file": "repo-overlay/.agents/skills/motion-case-relation-unfold/material-branch-record.json",
+      "why": "单独记录新指令未渲染状态，不修改历史案例证据。"
+    },
+    {
+      "path": ".agents/skills/motion-case-object-type-relay/references/material-integration-prompt-v1.md",
+      "content_file": "repo-overlay/.agents/skills/motion-case-object-type-relay/references/material-integration-prompt-v1.md",
+      "why": "在现有案例中补实际材料与前后语境的完整制作分支，保留原图形方法。"
+    },
+    {
+      "path": ".agents/skills/motion-case-object-type-relay/material-branch-record.json",
+      "content_file": "repo-overlay/.agents/skills/motion-case-object-type-relay/material-branch-record.json",
+      "why": "单独记录新指令未渲染状态，不修改历史案例证据。"
+    },
+    {
+      "path": ".agents/skills/motion-case-mixed-scene-relay/references/material-integration-prompt-v1.md",
+      "content_file": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/references/material-integration-prompt-v1.md",
+      "why": "在现有案例中补实际材料与前后语境的完整制作分支，保留原图形方法。"
+    },
+    {
+      "path": ".agents/skills/motion-case-mixed-scene-relay/material-branch-record.json",
+      "content_file": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/material-branch-record.json",
+      "why": "单独记录新指令未渲染状态，不修改历史案例证据。"
+    },
+    {
+      "path": ".agents/skills/remotion-production/references/material-math.mjs",
+      "content_file": "repo-overlay/.agents/skills/remotion-production/references/material-math.mjs",
+      "why": "开发侧可执行的坐标和时钟参考；不是受管import或新Runtime API。"
+    },
+    {
+      "path": ".agents/skills/remotion-production/references/material-math.test.mjs",
+      "content_file": "repo-overlay/.agents/skills/remotion-production/references/material-math.test.mjs",
+      "why": "14项合成坐标与时间测试，只证明数学关系，不证明审美或原件定位。"
+    }
+  ]
+}

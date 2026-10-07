@@ -11,9 +11,9 @@ test("升级前 JPEG 会话历史可读，新搜索与页缓存隔离且不改�
   const root=await mkdtemp(join(tmpdir(),"vfc-search-upgrade-"));const app=createApplication(root);
   try{
     const created=app.createProject({name:"旧缓存升级"});
-    const state=app.manageAssetRequirement({projectId:created.snapshot.project.id,baseRevision:1,action:"create",title:"动作",purpose:"看动作",visualBrief:"真实手部动作",role:"b_roll",rightsRequirement:"cleared_or_attribution"});
+    const state=app.manageAssetRequirement({projectId:created.snapshot.project.id,baseRevision:1,action:"create",title:"动作",purpose:"看动作",visualBrief:"真实手部动作",role:"b_roll",});
     const input={projectId:state.snapshot.project.id,baseRevision:state.revision.number,assetRequestId:state.snapshot.assetRequests[0].id,provider:"wikimedia-commons",query:"hand",mediaType:"video" as const};
-    const candidate={originalAssetId:"1",name:"动作",kind:"video" as const,sourceUrl:"https://pexels.com/video/1",previewUrl:"https://images.pexels.com/cover.jpg",mimeType:"video/mp4",rightsStatus:"cleared" as const};
+    const candidate={originalAssetId:"1",name:"动作",kind:"video" as const,sourceUrl:"https://pexels.com/video/1",previewUrl:"https://images.pexels.com/cover.jpg",mimeType:"video/mp4",};
     const original=app.recordAssetSearch({...input,query:"legacy seed",candidates:[candidate]});
     const session=app.repository.mediaIntelligence.searches(input.projectId)[0];delete session.resultFormatVersion;session.id="legacy-session";session.intent.query=input.query;app.repository.mediaIntelligence.saveSearch(session);
     const legacy={...original,sessionId:session.id};

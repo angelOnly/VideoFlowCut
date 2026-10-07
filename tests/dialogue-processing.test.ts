@@ -47,7 +47,7 @@ async function prepareDialogueFixture(application?: EditingApplication, root?: s
     kind: "speech",
     managedPath: "assets/source/dialogue.wav",
     sourceHash: "dialogue-processing-source-hash",
-    provenance: { source: "local_import", rightsStatus: "cleared", acquiredAt: new Date().toISOString() }
+    provenance: { source: "local_import", acquiredAt: new Date().toISOString() }
   });
   const fixture = await createWavFixture(workspaceRoot);
   const target = join(app.readProject(projectId).snapshot.project.rootPath, "assets", "source", "dialogue.wav");

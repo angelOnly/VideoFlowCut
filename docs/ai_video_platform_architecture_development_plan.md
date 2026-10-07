@@ -17,7 +17,7 @@
 4. Codex、`.agents/skills`、`video-editor-mcp` 与 Web 工作台如何协同；
 5. 哪些模块为内容质量、剪辑节奏和视觉效果负责；
 6. FunASR、OmniVoice 如何由服务端直接调用 ComfyUI Bridge HTTP API，以及段级语音时序、数字人和 Remotion 如何协同；
-7. 外部视觉素材如何通过受控检索、候选筛选、许可记录、本地化、缓存和生成降级进入项目；
+7. 外部视觉素材如何通过受控检索、候选筛选、来源记录、本地化、缓存和生成降级进入项目；
 8. Revision、EditTransaction、ImpactReport、局部预览和质量验证怎样闭环；
 9. 如何区分素材可用、项目可编辑、局部可预览、最终文件已生成和完整声画已验收；
 10. 如何由总导演 Skill 选择一个完整视频工作流，并由主工作流按阶段调用专项 Skills；
@@ -43,7 +43,7 @@
 | 原声剪辑、最终旁白字幕、真实对齐与显示纠错 | [Contracts](../packages/contracts/src/index.ts)、[原声剪辑](../packages/edit-application/src/presenter-source-edit.ts)、[Speech Services](../packages/speech-services/src/index.ts) | 6.5、8、12.2、18.3 |
 | 受管 TSX 作品、透明帧、固定版本与参考审阅 | [作品 Schema](../packages/motion-work/src/schema.ts)、[生成 Worker](../apps/render-worker/src/motion-job.ts)、[工具入口](../apps/server/src/motion-tools.ts) | 6.12、9.1、11.5、16.7 |
 | 动效音效事件与失效传播 | [事件对账](../packages/edit-application/src/effect-audio-events.ts) | 13.6 |
-| 素材 Provider、权利状态与证据能力边界 | [素材 Provider](../packages/asset-acquisition/src/index.ts)、[质量系统](../packages/quality-system/src/index.ts) | 12.8、21 |
+| 素材 Provider、来源追踪与证据能力边界 | [素材 Provider](../packages/asset-acquisition/src/index.ts)、[质量系统](../packages/quality-system/src/index.ts) | 12.8、21 |
 | 当前工具、界面、部署及修复隔离 | [MCP](../apps/server/src/mcp.ts)、[Web](../apps/web/src/App.tsx)、[Runtime](../apps/runtime/src/index.ts)、[候选运行器](../plugins/videoflowcut/scripts/candidate-runtime.mjs) | 15、17、19 |
 | 五轮审阅、跨版本问题与交付证据 | [证据校验](../packages/edit-application/src/editorial-evidence.ts)、[审阅与对账](../packages/quality-system/src/editorial-review.ts) | 21、23 |
 
@@ -89,7 +89,7 @@ docs/
 - 接入 FunASR 或 OmniVoice 前，读取 `docs/comfyui模型接入.md`，以运行时工作流详情接口返回的 `schemaVersion`、`fields`、`itemSlots` 和 `outputs` 为准；
 - 接口资料中的示例版本号和字段 ID 只用于说明，不得作为长期硬编码合同；
 - 当前未建立早期草图中的 `docs/asset-sourcing/`。Provider 实现及其限制见第 12.8 节和 `packages/asset-acquisition/src/`；外部接口变化需在对应维护资料中记录，不按不存在的文件猜测能力；
-- 当前素材权利规则由 Contracts、Application 与 Quality/Export 实现，第 12.8.5 节与代码保持一致；许可未知不能因文件可读而变成可交付；
+- 当前素材链路由 Contracts、Application 与 Quality/Export 实现，第 12.8.5 节与代码保持一致；获取、采用和导出只检查技术条件与实际内容；
 - ChatCut 资料用于复用产品方法和交互逻辑，不直接复制其品牌、服务端字段或运行时工具名。
 
 使用 ChatCut 调研结论时，必须保留其证据等级：
@@ -411,7 +411,7 @@ Job 状态、生产审计、成片审阅、Artifact 复核/批准和 RepairTicke
 → 可分析 / 可转写 / 可检视
 → 可被 Timeline 引用
 → 当前渲染链能够读取全部依赖
-→ 来源和权利允许当前交付
+→ 当前渲染链可读取实际引用
 ```
 
 这些状态可以由 Asset 元数据、Job 结果和导出前预检共同计算，不要求建立第二套 Asset 数据库，也不应被压缩成一个永久 `ready=true`。
@@ -725,7 +725,7 @@ Asset 是源素材或生成素材，不等于 Timeline 中的一次使用。
 - 镜头与构图：景别、运动、人物方向、留白、安全区、画幅和持续时间；
 - 情绪、年代、地域和视觉风格；
 - 排除条件：水印、错误 Logo、文字过多、错误人物、错误年代或商业摆拍感；
-- 来源和许可策略；
+- 来源与技术约束；
 - 找不到合适素材时允许的降级路径。
 
 #### 6.4.2 SearchIntent
@@ -741,13 +741,13 @@ Asset 是源素材或生成素材，不等于 Timeline 中的一次使用。
 
 #### 6.4.3 AssetCandidate
 
-远程搜索结果只能先成为 `AssetCandidate`。候选记录预览、媒体参数、来源页面、作者、许可信息、匹配理由、技术检查和当前决策状态。Candidate 未被 Acquire 前不能进入 Scene 或 Timeline。
+远程搜索结果只能先成为 `AssetCandidate`。候选记录预览、媒体参数、来源页面、作者、匹配理由、技术检查和当前决策状态。Candidate 未被 Acquire 前不能进入 Scene 或 Timeline。
 
-#### 6.4.4 AssetProvenance 与 AttributionManifest
+#### 6.4.4 AssetProvenance 与 SourceManifest
 
-所有外部、证据和生成素材必须建立 `AssetProvenance`，至少记录 Provider、原始资产 ID、来源页面、作者、许可名称、许可地址、署名文本、抓取时间、原始下载地址、内容哈希、生成参数和后续变换。
+所有外部、证据和生成素材必须建立 `AssetProvenance`，至少记录 Provider、原始资产 ID、来源页面、作者、抓取时间、原始下载地址、内容哈希、生成参数和后续变换。
 
-每次导出生成 `AttributionManifest`。若来源要求在产品界面、视频描述、片尾或其它位置署名，Export Gate 必须确认相应文本已生成；来源未知不能被当作“免费可用”。
+每次导出生成 `SourceManifest`，保存实际使用素材的来源信息；导出只检查文件、引用、版本、范围和渲染等技术条件。
 
 #### 6.4.5 AssetReadiness
 
@@ -759,7 +759,6 @@ Asset 是源素材或生成素材，不等于 Timeline 中的一次使用。
 - `analysis_ready`：代理、波形、转写或指定分析结果可用；无声音频可处于 `no_audio` 成功终态；
 - `timeline_ready`：可以被当前 Timeline Item 引用；
 - `render_ready`：当前 Remotion / FFmpeg / Browser Worker 能读取该 Asset 及其依赖；
-- `rights_ready`：来源、许可和署名满足当前导出用途。
 
 `render_ready` 可能受当前 Worker、编解码器、字体、Mask、代理文件和路径影响，因此应在预览或正式导出前重新检查，不应作为永远不变的布尔字段。
 
@@ -772,7 +771,7 @@ Agent 不需要一次性把整条视频和全部网页塞入上下文。对会�
 - 实际观察到的内容；
 - 用户提供的业务说明；
 - 仍然存在的未知或替代解释；
-- 当前素材就绪、来源和权利限制；
+- 当前素材就绪、来源和技术限制；
 - 回到源素材和当前 Revision 的复核入口。
 
 `EvidenceSlice` 可以只是 Query 结果或被采用决策的持久化引用，不要求第一版建设完整视频向量库。只有真正被 Story、Scene、证据展示或质量问题使用的片段，才需要进入长期可追溯状态。
@@ -1479,7 +1478,7 @@ StylePack
 - 沙箱运行；
 - 产物注册后再进入 Timeline。
 
-当前主链是 `submit_motion_work → motion_generation Job → runMotionJob → renderManagedMotion → completeManagedMotion → read_motion_work → review_motion_work → manage_effect_cues`。提交固定源码、Props、图片绑定、权利、画布与参考观察，只创建 Job；Worker 登记 Asset 后产生新 Revision，审阅写入也产生 Revision，放置前必须重读。它不安装平台组件，也不自动改 Timeline。
+当前主链是 `submit_motion_work → motion_generation Job → runMotionJob → renderManagedMotion → completeManagedMotion → read_motion_work → review_motion_work → manage_effect_cues`。提交固定源码、Props、图片绑定、画布与参考观察，只创建 Job；Worker 登记 Asset 后产生新 Revision，审阅写入也产生 Revision，放置前必须重读。它不安装平台组件，也不自动改 Timeline。
 
 当前作品仍必须提供四站之一的 `reference` 及布局、运动、节奏、适配和实际观察记录；单件审阅输入为 `reference_match=passed|failed|inconclusive` 与 `note`。未审或 failed 不能作为正常就绪作品放置；明确 inconclusive 的技术就绪作品可合成草稿，阻挡交付。当前单件审阅尚不接收结构化媒体 evidence 或自动绑定审阅 version；这两项与可选参考都属于第 28 章待评审需求。
 
@@ -1693,11 +1692,11 @@ Derived Asset 必须保留素材来源和生成过程，证据类内容不得使
 它是正式产品链路，不是开发时人工打开浏览器临时补素材。核心规则：
 
 1. Codex 决定“需要什么画面”和“候选是否支持当前叙事”；
-2. Application 负责 Provider 调用、缓存、许可策略、下载、校验和状态；
+2. Application 负责 Provider 调用、缓存、下载、校验和状态；
 3. 远程结果先成为 AssetCandidate，不直接进入 Timeline；
 4. Scene、Timeline 和 Remotion 只引用本地受管 Asset；
 5. 证据、现实 B-roll、官方品牌素材和生成画面必须明确区分；
-6. 来源未知、许可未知、下载失败或文件损坏不能静默降级为“可用”；
+6. 下载失败或文件损坏不能静默降级为“可用”；
 7. 单元与固定回归使用隔离素材/Mock；独立候选 E2E 可显式验证真实 Provider，不使用正式项目或正式队列。
 
 完整链路：
@@ -1725,10 +1724,10 @@ NarrativeBeat / Scene 存在视觉缺口
 | 素材用途 | 首选顺序 | 是否允许生成替代 | 关键约束 |
 |---|---|---|---|
 | 现实空镜、环境、人物动作、生活 B-roll | 项目素材 → Creative Library → 可授权 Stock Provider → MiniMax | 可以 | 镜头动作、情绪、构图、画幅、时长、无水印 |
-| 法规、论文、新闻、投诉、报告、产品规则等证据 | 用户资料 → 官方网页/文件 → 开放许可原始资料 | 不允许用 AI 伪造 | 保存来源、标题、抓取时间、证据范围和页面快照 |
+| 法规、论文、新闻、投诉、报告、产品规则等证据 | 用户资料 → 官方网页/文件 → 原始资料 | 不允许用 AI 伪造 | 保存来源、标题、抓取时间、证据范围和页面快照 |
 | 产品、品牌、人物和用户历史内容 | 用户项目库 → 官方素材 → 用户授权内容 | 原则上不替代 | 不使用来源不明的 Logo、人物、产品截图和账号页面 |
 | 抽象概念、机制、流程、比较和层级 | Remotion Scene → Creative Library → MiniMax | 可以 | 优先可编辑视觉解释，不为了“真实感”搜索无关空镜 |
-| 历史照片、地图和公共资料 | Wikimedia Commons 等开放资料 → 官方档案 | 仅在明确标注为说明画面时允许 | 每个文件单独核对许可、作者、署名和相同方式共享要求 |
+| 历史照片、地图和公共资料 | Wikimedia Commons 等开放资料 → 官方档案 | 仅在明确标注为说明画面时允许 | 保存每个文件的来源、作者和原始 ID |
 | 过渡和遮盖跳切 | 项目已有 B-roll → Stock → 简单 Remotion 转场 | 可以 | 先解决镜头连续性，不机械匹配名词 |
 | 独立音效与音乐（第 29 章拟更新策略） | 本期在线来源优先；同项目已采用文件可复用，不以前置本地库检索为条件 | 不自动转视觉生成 | 按声音功能和实际音频分析选材，采用原文件入项目；当前已接 Mixkit 音效分类，扩展能力待开发 |
 
@@ -1736,7 +1735,7 @@ NarrativeBeat / Scene 存在视觉缺口
 
 #### 12.8.2 Provider Registry 与第一版实现范围
 
-当前 Provider Contract 只有以下两个执行方法；来源和许可通过归一化候选保存，不要求实现不存在的统一 refreshRights/health 服务：
+当前 Provider Contract 只有以下两个执行方法；来源通过归一化候选保存，不要求实现不存在的统一 health 服务：
 
 ```text
 search({ request, query })
@@ -1754,16 +1753,16 @@ download({ candidate, temporaryDirectory })
 | `WebEvidenceProvider` | 尚无自动网页抓取 Provider；已有 manage_evidence_capture 登记真实本地来源 | 保留来源、摘录、限制和高亮，不能生成假证据 |
 | `MiniMaxGeneratedProvider` | 由独立 video_generation Job 实现四种生成输入，不是搜索 Provider 类 | 需显式提交，不自动搜索失败后生成或放入 Timeline |
 | `MockAssetProvider` | 测试注入本地 Fixture | 不作为生产真实搜索结果 |
-| `WikimediaCommonsProvider` | 默认注册，逐文件读取来源和许可 | 媒体类型与权利仍须逐项核查 |
+| `WikimediaCommonsProvider` | 默认注册，逐文件读取来源 | 媒体类型与文件参数仍须逐项核查 |
 | `MixkitSoundProvider` | 默认注册，受控公开音效分类查询和下载 | query 为单个分类，不是任意全文搜索 |
 
-2026-09-08 声音核对：现有 Mixkit 适配器仅接六个分类，来源目录的其它网站不等于已有获取 Adapter。第 29 章拟扩展分类、单独接入音乐及 Freesound，并增加实际音频分析和原文件复核；音乐/音效许可、网站 API 使用条件与自动访问边界分别检查。该计划不要求下载整库，也不修改上述当前 Provider Contract 的事实说明。
+2026-09-08 声音核对：现有 Mixkit 适配器仅接六个分类，来源目录的其它网站不等于已有获取 Adapter。第 29 章拟扩展分类、单独接入音乐及 Freesound，并增加实际音频分析和原文件复核；网站 API 使用条件与自动访问边界按接入文档处理。该计划不要求下载整库，也不修改上述当前 Provider Contract 的事实说明。
 
 当前官方接口核对基线：
 
 - 当前 Pexels 实现调用 `https://api.pexels.com/videos/search`，按支持的画幅筛选，保留来源和作者；
 - Pixabay 视频搜索使用 `/api/videos/`；查询响应应缓存，正式使用的文件下载到本地，禁止永久热链，也不能做系统性批量抓取；
-- Wikimedia Commons 不能按“整站统一许可”处理，必须读取每个文件描述页中的具体许可、作者、署名、许可链接和可能的相同方式共享要求；
+- Wikimedia Commons 保存每个文件的来源页面、作者、原始 ID 和媒体参数，不读取或核验许可条件；
 - Provider 条款和接口会变化，接入或发布变更前重新读取官方资料；Pixabay 条目仅是早期接口研究，不代表已配置 Provider。
 
 通用网页搜索只能用于发现官方证据页、公共档案或 Provider 入口，不能把任意网页的视频地址当作可下载剪辑素材。YouTube、抖音、新闻站和社交平台内容默认只可作为参考或证据入口，除非项目拥有明确授权和正式导入策略。
@@ -1794,8 +1793,8 @@ AssetRequest 应围绕叙事任务编写，而不是围绕单个名词。例如�
 排除：
 水印、字幕、明显摆拍、多人聚会、旅游打卡、错误季节
 
-许可策略：
-允许自动导入的 Stock；来源和作者可记录
+来源记录：
+保存来源页面和作者
 
 降级：
 MiniMax 生成安静城市黄昏空镜；仍失败则保留人物口播并使用轻微 CameraPunch
@@ -1821,7 +1820,7 @@ Agent 根据 AssetRequest 组织必要的查询批次，Application 接收明确
 
 **硬性过滤：**
 
-- 来源或许可策略是否允许；
+- 源身份和媒体参数是否符合请求；
 - 媒体是否可访问；
 - 分辨率、时长、画幅和编码是否满足要求；
 - 是否带明显水印、不可接受 Logo、字幕或黑边；
@@ -1842,38 +1841,20 @@ Agent 根据 AssetRequest 组织必要的查询批次，Application 接收明确
 
 技术层先将候选收敛到少量结果，Codex 再通过联系表、缩略图和预览做语义复核。Candidate Ranker 不能替代创作判断，也不能仅凭向量相似度自动选中最终素材。
 
-当前代码执行媒介、尺寸、时长、画幅、权利、下载内容与去重等确定性检查；动作、年代、明显水印、情绪、构图和近似镜头判断需要真实审阅。上述软硬维度不表示已部署统一视觉评分或自动水印识别模型。
+当前代码执行媒介、尺寸、时长、画幅、下载内容与去重等确定性检查；动作、年代、明显水印、情绪、构图和近似镜头判断需要真实审阅。上述软硬维度不表示已部署统一视觉评分或自动水印识别模型。
 
-#### 12.8.5 来源、许可与导出策略
+#### 12.8.5 来源与导出策略
 
-每个 Candidate 和 Asset 都有 `rightsStatus`：
+Candidate 与 Asset 保存实际来源、作者、原始 ID、取得时间、内容哈希和本地化状态。素材检索、下载、导入、分析、采用、生成与导出不验证素材权限、使用权、版权或署名条件，不查询许可页、不要求授权证明。旧权利字段和参数直接删除，不提供兼容或迁移。
 
-```text
-unknown
-cleared
-attribution_required
-restricted
-rejected
-```
-
-规则：
-
-- `unknown`、`restricted`、`rejected` 阻挡适用素材的导出，不能靠选择 draft 绕过权利限制；内部 Preview 与正式导出分别处理；
-- `cleared` 需要真实许可依据，不能从下载成功或用户已要求制作推断第三方授权；
-- `attribution_required` 需保留署名并生成 AttributionManifest；
-- 早期 `reference_only` 不是当前 rightsStatus，参考用途通过 AssetRole（如 style_reference）及来源记录表达；用途和授权是不同事实；
-- 即使来源声称“免费”，仍保存来源页面、作者和当时许可说明；
-- 版权许可之外的商标、肖像、隐私、人格权和地域限制仍需独立考虑；
-- 产品只能执行项目政策，不能向用户承诺法律结论。
-
-Web 的素材候选和 Asset Inspector 必须展示：来源 Provider、作者、来源页面、rightsStatus、署名文本、是否为生成资产、抓取时间和本地文件状态。
+Web 展示来源 Provider、作者、来源页面、是否生成、取得时间和本地文件状态。
 
 #### 12.8.6 Acquire、本地化与媒体处理
 
 选中 Candidate 后创建 `AssetAcquireJob`：
 
 ```text
-读取最新候选元数据与权利状态
+读取最新候选元数据与下载地址
 → 下载到临时目录
 → 校验 HTTP 状态、MIME、文件头和文件大小
 → 防止 HTML 错误页伪装成视频
@@ -1954,10 +1935,10 @@ deterministic_test
 只使用 MockProvider、冻结响应和固定本地素材
 
 staging_live
-允许真实查询；缓存响应；需要人工检查候选和许可
+允许真实查询；缓存响应；需要检查候选内容和媒体参数
 
 production
-真实 Provider + 限流 + 缓存 + 权利 Gate + 本地化
+真实 Provider + 限流 + 缓存 + 文件校验 + 本地化
 
 offline
 仅项目素材、Creative Library 和已有缓存；不静默访问网络
@@ -1977,7 +1958,6 @@ offline
 | 搜索结果相关但构图不合适 | 尝试可接受裁切；否则换候选 |
 | MiniMax 生成失败 | 重试受限次数，再降级为 Remotion 或保持人物画面 |
 | 证据页无法访问 | 保留失败原因，请求用户资料或使用其它原始来源 |
-| 已使用素材许可状态变化 | 标记 Project Warning；不静默删除旧 Revision，阻止新的受影响导出 |
 
 #### 12.8.11 Codex 联网能力边界
 
@@ -1997,7 +1977,6 @@ Codex 识别视觉缺口
 Codex 不得：
 
 - 在聊天中拿到一个 URL 后直接写进 Scene；
-- 绕过 rightsStatus；
 - 批量下载大量候选再决定；
 - 把搜索缩略图当作最终素材；
 - 使用未知授权的社交平台视频作为空镜；
@@ -2318,7 +2297,7 @@ Search Candidates
 由 AssetRequest 产生的外部候选、联系表和短预览
 
 Provenance
-来源、作者、rightsStatus、署名和本地化状态
+来源、作者和本地化状态
 ```
 
 必须支持：
@@ -2327,16 +2306,16 @@ Provenance
 - 上传、导入、项目内搜索、标签和类型筛选；
 - 从当前 NarrativeBeat 或 Scene 创建 AssetRequest；
 - 显示 Provider、查询意图、候选缩略图、预览、时长、分辨率、画幅和匹配理由；
-- 显示来源页面、作者、rightsStatus、署名要求、是否生成、抓取时间和本地文件状态；
+- 显示来源页面、作者要求、是否生成、抓取时间和本地文件状态；
 - 候选的接受、拒绝、重新搜索、下载、本地化和替换；
 - 代理、波形、FunASR、OmniVoice、Avatar、搜索、下载、证据截取和生成素材的 queued/running/failed 状态；
-- 失败原因、限流、许可阻塞和重试入口；
+- 失败原因、限流和重试入口；
 - 只允许正式本地 Asset 拖入 Scene 或 Timeline；
 - 生成或下载完成的素材直接进入 Project Assets，不另建孤立的“生成结果页面”。
 
 在 `Assets` 面板中还必须区分：
 
-- 已登记、字节可用、可分析、可上 Timeline、当前渲染链可读和权利可交付；
+- 已登记、字节可用、可分析、可上 Timeline、当前渲染链可读；
 - render-ready 失败时显示具体依赖、Worker 和失败原因，不只显示一个笼统的 `failed`。
 
 #### `Transcript / Script` 文字稿
@@ -2401,8 +2380,8 @@ SpeechSegment
 
 - 阻塞问题、建议问题和已忽略问题；
 - FunASR、OmniVoice、Speech Assembly、Avatar、外部搜索、候选下载、Evidence Capture、MiniMax、Derived Asset、Preview、Export Job；
-- Provider 限流、来源未知、许可阻塞、候选 URL 过期、下载文件损坏、schemaVersion 冲突、run_id 丢失和输出缺失；
-- AssetRequest 覆盖率、仍缺少素材的 Scene 和待署名项目；
+- Provider 限流、候选 URL 过期、下载文件损坏、schemaVersion 冲突、run_id 丢失和输出缺失；
+- AssetRequest 覆盖率、仍缺少素材的 Scene；
 - Revision 列表、修改摘要、比较、回退和 Marker。
 
 `Jobs / Quality / Revision` 面板还应显示：
@@ -2450,8 +2429,8 @@ Quality
 对象属性示例：
 
 - Asset Item：源范围、裁切、位置、缩放、透明度、音量；
-- 外部 Asset：Provider、来源页面、作者、rightsStatus、署名、内容哈希、导入时间和替换入口；
-- AssetCandidate：预览、匹配理由、技术参数、许可状态、接受/拒绝/下载；
+- 外部 Asset：Provider、来源页面、作者、内容哈希、导入时间和替换入口；
+- AssetCandidate：预览、匹配理由、技术参数、接受/拒绝/下载；
 - Presenter Effect：Effect Type、Rear/Front/Actor 层、空间锚点、强度、进入/稳定/退出；
 - Scene：叙事目的、Scene Type、StylePack、时长和资产绑定；
 - Caption：文案、Card、样式、强调和安全区；
@@ -2831,7 +2810,7 @@ Codex 可以只审查而不修改，也可以在证据不足时停止并请求�
 | `voice-production` | 最终 SpeechSegment、VoiceReference | SegmentAsset、SpeechAsset、真实段级时序 | ActorPerformance、Caption、EffectTiming | 逐段试听、拼接和版本检查 |
 | `avatar-performance` | SpeechAsset、人物素材或 Provider 能力 | ActorPerformance、Mask、版本和降级状态 | 人物空间效果、Preview | 口型、边缘、动作和音频所有权 |
 | `visual-treatment-planning` | StoryBeat、人物/素材证据、Style | 每个 Beat 的视觉处理、安静区和 AttentionCurve | Scene、EffectCue、Cutaway | 方案取舍与整片密度检查 |
-| `visual-asset-sourcing` | AssetRequest、画幅、构图和权利要求 | 本地 Asset、候选取舍、Provenance | Scene 素材绑定 | 来源、文件、构图、相关性和许可 |
+| `visual-asset-sourcing` | AssetRequest、画幅、构图和媒体要求 | 本地 Asset、候选取舍、Provenance | Scene 素材绑定 | 来源、文件、构图、相关性 |
 | `scene-planning` | StoryBeat、Treatment、可用素材 | Scene 边界、内部状态与职责 | EffectCue、Caption、Cutaway | Scene 进入、稳定、退出和连续播放 |
 | `effect-timing` | SpeechTiming、Scene、编辑事件 | EffectCue 时序与稳定点 | Preview、SFX、字幕注意力 | 进入/稳定/退出与语义落点 |
 | `depth-composition` | 人物/主体、Mask、字幕和画幅 | 空间布局、安全区和层级约束 | EffectCue / Scene Layout | 完整运动路径和遮挡 |
@@ -3008,7 +2987,7 @@ Codex 可以只审查而不修改，也可以在证据不足时停止并请求�
 
 #### `visual-asset-sourcing`
 
-负责将明确 AssetRequest 转换为项目素材、Creative Library、受控 Provider、网页证据或 MiniMax 候选，完成预览、筛选、本地化、来源和许可记录；不负责最终 Cutaway 时长与返回策略。
+负责将明确 AssetRequest 转换为项目素材、Creative Library、受控 Provider、网页证据或 MiniMax 候选，完成预览、筛选、本地化、来源和来源记录；不负责最终 Cutaway 时长与返回策略。
 
 #### `transcription`
 
@@ -3209,7 +3188,7 @@ MCP 不负责：
 |---|---|---|---|
 | `browse_assets` | 查询项目素材和处理状态 | V1 | 已注册，参数以实时 Schema 为准 |
 | `inspect_asset` | 读取素材元数据、代理、证据 | V1 | 已注册，参数以实时 Schema 为准 |
-| `read_asset_readiness` | 读取字节、分析、Timeline、当前渲染链和权利就绪状态 | V1 | `inspect_asset` / `read_project` 中的用途就绪状态 |
+| `read_asset_readiness` | 读取字节、分析、Timeline、当前渲染链的就绪状态 | V1 | `inspect_asset` / `read_project` 中的用途就绪状态 |
 | `import_media` | 创建上传/导入任务 | V1 | 已注册，参数以实时 Schema 为准 |
 | `edit_asset` | 修改素材标题、标签、用途 | V1 | `update_asset_metadata`，以实际开放字段为准 |
 | `submit_media_analysis` | 提交代理、波形、镜头等分析 | V1 | 导入后的 `media_analysis` Job；无独立同名 MCP |
@@ -3219,17 +3198,17 @@ MCP 不负责：
 | `browse_library` | 查询项目素材、Creative Library 和已缓存素材 | V1 | `browse_assets` 读取项目素材；无统一跨项目 Creative Library |
 | `manage_asset_requirements` | 创建、修改、读取和关闭 AssetRequest | V1 | 已注册，参数以实时 Schema 为准 |
 | `search_media_candidates` | 根据 AssetRequest 生成 SearchIntent 并查询 Provider | V1 | 已注册，参数以实时 Schema 为准 |
-| `list_asset_candidates` | 读取候选、技术预过滤、语义评分、来源和 rightsStatus | V1 | `read_project` 中的候选集合 |
+| `list_asset_candidates` | 读取候选、技术预过滤、语义评分、来源 | V1 | `read_project` 中的候选集合 |
 | `inspect_media_candidate` | 查看候选联系表、短预览、媒体参数和来源信息 | V1 | 已注册，参数以实时 Schema 为准 |
 | `acquire_media_asset` | 下载、校验、本地化并注册正式 Asset | V1 | 已注册，参数以实时 Schema 为准 |
 | `generate_media_asset` | 通过 Remotion、Creative Library 或 MiniMax H3 生成允许生成的资产 | V1 | `submit_video_generation` / `submit_motion_work`；不是通用生成服务 |
-| `read_asset_provenance` | 读取 Asset 的来源、许可、署名、生成参数和导入记录 | V1 | 已注册，参数以实时 Schema 为准 |
+| `read_asset_provenance` | 读取 Asset 的来源、作者、生成参数和导入记录 | V1 | 已注册，参数以实时 Schema 为准 |
 | `read_asset_coverage` | 检查 NarrativeBeat / Scene 的素材需求覆盖和未解决缺口 | V1 | `read_project` / `read_quality_report` 的相关集合与问题 |
 | `replace_scene_asset` | 在保持 Scene 与 Cue 结构的情况下替换素材 | V1 | 已注册，参数以实时 Schema 为准 |
 | `submit_derived_asset_job` | 生成封面墙、评论云、图表等派生资产 | V1 | 未注册同名工具，保留为设计目标 |
 | `track_job` | 跟踪搜索、下载、生成、Avatar、预览和导出任务 | V1 | 已注册，参数以实时 Schema 为准 |
 
-Provider 专用 API Key、页码、限流、下载 URL 和许可字段不直接暴露给 Codex。MCP 面向的是 AssetRequest、AssetCandidate、Asset 和 Provenance；Provider 差异由 Application Adapter 归一化。
+Provider 专用 API Key、页码、限流、下载 URL不直接暴露给 Codex。MCP 面向的是 AssetRequest、AssetCandidate、Asset 和 Provenance；Provider 差异由 Application Adapter 归一化。
 
 #### Story 与 Script
 
@@ -3295,7 +3274,7 @@ Provider 专用 API Key、页码、限流、下载 URL 和许可字段不直接�
 | `inspect_composed_frames` | 读取进入、稳定、退出等关键帧 | V1 | 已注册，参数以实时 Schema 为准 |
 | `read_quality_report` | 读取技术和创作质量问题 | V1 | 已注册，参数以实时 Schema 为准 |
 | `record_editorial_review` | 记录绑定当前 Timeline / Sequence 与 Revision 的完整声画审片结果 | V1 | `record_editorial_quality_review` |
-| `run_render_preflight` | 检查目标 Revision 引用的素材、字体、Mask、组件、权利和渲染依赖 | V1 | 已注册，参数以实时 Schema 为准 |
+| `run_render_preflight` | 检查目标 Revision 引用的素材、字体、Mask、组件和渲染依赖 | V1 | 已注册，参数以实时 Schema 为准 |
 | `submit_export` | 固定 Timeline / Sequence 与 Revision，按 draft 或 delivery 用途提交导出 | V1 | 已注册，参数以实时 Schema 为准 |
 | `track_export` | 跟踪导出、最终文件技术检查和 Artifact 状态 | V1 | 已注册，参数以实时 Schema 为准 |
 | `read_export_artifact` | 读取最终文件、目标 Revision、技术验证、已知限制和批准状态 | V1 | 已注册，参数以实时 Schema 为准 |
@@ -3431,7 +3410,7 @@ MCP 基于 Revision 12 提交修改
 → 调用 visual-asset-sourcing 生成查询计划
 → search_media_candidates
 → read_project 中的候选集合 / inspect_media_candidate
-→ Codex 比较语义、动作、构图、情绪、来源和 rightsStatus
+→ Codex 比较语义、动作、构图、情绪、来源
 → acquire_media_asset
 → track_job
 → read_asset_provenance
@@ -3534,7 +3513,7 @@ packages/
 ├─ speech-services/               FunASRService、OmniVoiceSegmentService、SpeechAssembler
 ├─ avatar-integrations/           数字人 API 与结果归一化
 ├─ creative-library/              StylePack、模板、Derived Asset
-├─ quality-system/                技术、素材权利和模式专项质量检查
+├─ quality-system/                技术和模式专项质量检查
 └─ mcp-tools/                     MCP Schema 与 Application 适配器
 ```
 
@@ -3542,7 +3521,7 @@ packages/
 
 推荐：
 
-- TypeScript：Web、Server、领域模型、MCP、Remotion、Bridge Client、Provider Adapter、许可策略和任务编排；
+- TypeScript：Web、Server、领域模型、MCP、Remotion、Bridge Client、Provider Adapter 和任务编排；
 - Python：媒体算法、OpenCV、VAD、视觉、姿态、候选镜头分析和可选水印检测；
 - FFmpeg/ffprobe：探测、代理、波形、音频标准化、转码、截取预览和复用；
 - SQLite：本地项目、Revision、Job、外部 run、SearchIntent、Candidate、Provenance 和索引；
@@ -3586,7 +3565,7 @@ workspace/
       │  ├─ actor/
       │  └─ derived/
       ├─ manifests/
-      │  └─ attribution/           来源、许可和署名清单
+      │  └─ sources/               来源追踪清单
       ├─ previews/
       ├─ exports/
       └─ cache/
@@ -3677,8 +3656,6 @@ cancelled
 - 素材是否存在且已本地化；
 - Scene / Timeline 是否仍引用远程临时 URL；
 - AssetProvenance 是否完整；
-- rightsStatus 是否允许当前导出；
-- AttributionManifest 是否满足要求；
 - 下载文件 MIME、文件头、时长和可解码性；
 - Mask 是否可用；
 - 字幕越界；
@@ -3747,7 +3724,7 @@ cancelled
 
 ### 21.4 Quality Gate
 
-`draft` 仍须通过适用技术与权利门禁；感知审阅不足等问题可保留为待审草稿。`delivery` 提交前必须有当前 Revision 的完整预览审阅，并通过全部适用质量门禁。受管作品的 `inconclusive` 可进入放置和技术合格的草稿，但不能据此正式交付。
+`draft` 仍须通过适用技术门禁；感知审阅不足等问题可保留为待审草稿。`delivery` 提交前必须有当前 Revision 的完整预览审阅，并通过全部适用质量门禁。受管作品的 `inconclusive` 可进入放置和技术合格的草稿，但不能据此正式交付。
 
 上述是创作执行顺序；当前 `submit_export` 本身登记 Job，强制质量门禁由 Export Worker 在实际渲染前按目标 Revision 和 purpose 执行。获得 Job ID 不表示门禁已经通过。
 
@@ -3756,8 +3733,6 @@ cancelled
 - 严重语义不完整；
 - 素材缺失；
 - 正式 Scene 仍引用远程临时 URL；
-- 被使用的外部素材 rightsStatus 为 `unknown`、`restricted` 或 `rejected`；`attribution_required` 必须满足署名要求；参考用途不作为权利枚举；
-- 必需的 AttributionManifest 缺失；
 - 证据使用生成或来源无法核对；
 - 主体遮挡；
 - 字幕不可读；
@@ -3791,7 +3766,7 @@ cancelled
 - `docs/` 资料索引；
 - Project / Revision；
 - Asset、AssetReadiness、AssetRequest、AssetCandidate、AssetProvenance；
-- Provider Contract、MockAssetProvider 和许可策略骨架；
+- Provider Contract、MockAssetProvider 和技术校验骨架；
 - Story / Scene / Timeline 基础；
 - SQLite 和项目目录；
 - Web、Server、Worker 基础运行；
@@ -3826,7 +3801,7 @@ cancelled
 - 稳定短句字幕；
 - Asset Acquisition System 第一版；
 - ProjectAssetProvider、CreativeLibraryProvider、PexelsProvider、PixabayProvider、WebEvidenceProvider、MiniMaxGeneratedProvider；
-- Query Planner、Candidate Ranker、rightsStatus、下载本地化和 AttributionManifest；
+- Query Planner、Candidate Ranker、下载本地化和 SourceManifest；
 - 第一批 Effect Registry；
 - EffectCue；
 - Remotion Player；
@@ -3896,7 +3871,7 @@ cancelled
 - 第一版字幕和动效不声称拥有词级精度；
 - Codex 能从口播 NarrativeBeat 自动创建 AssetRequest，并通过 Provider 搜索、预览、下载和替换至少两条现实 B-roll；
 - 搜索无结果时能按策略使用 Remotion 或 MiniMax 生成至少一个降级资产；
-- 外部素材全部本地化，并能读回 Provider、作者、rightsStatus、许可和内容哈希；
+- 外部素材全部本地化，并能读回 Provider、作者和内容哈希；
 - CI 使用 MockProvider，真实 Provider 只在 Staging/Production 开启；
 - 导出后项目仍可继续生成新 Revision。
 
@@ -3930,7 +3905,7 @@ cancelled
 - Narrative Map；
 - Visual Treatment；
 - EvidenceDocument；
-- WikimediaCommonsProvider 与逐文件许可解析；
+- WikimediaCommonsProvider 与逐文件来源解析；
 - Evidence Capture、页面高亮和证据快照；
 - UIWalkthrough；
 - Comparison；
@@ -4008,7 +3983,7 @@ tests/fixtures/
 │  ├─ provider-responses/       Pexels/Pixabay/Commons 的冻结响应
 │  ├─ candidate-previews/       固定缩略图、联系表和短预览
 │  ├─ cached-assets/            通过审核的本地化素材
-│  ├─ provenance/               来源、许可、署名和内容哈希
+│  ├─ provenance/               来源、作者和内容哈希
 │  └─ expected/                 候选排序、拒绝原因和覆盖结果
 └─ golden/
    ├─ frames/
@@ -4016,7 +3991,7 @@ tests/fixtures/
    └─ project-snapshots/
 ```
 
-每个固定素材必须记录：来源、内容哈希、时长、分辨率、帧率、音频参数、许可状态、测试用途和已知问题。测试运行不修改原始文件，只生成代理、缓存和输出目录。
+每个固定素材必须记录：来源、内容哈希、时长、分辨率、帧率、音频参数、测试用途和已知问题。测试运行不修改原始文件，只生成代理、缓存和输出目录。
 
 ### 23.2 当前人物口播素材基线
 
@@ -4072,7 +4047,7 @@ docs/references/<reference-name>/
 └─ frame-samples/               仅用于内部分析的关键帧
 ```
 
-项目根据拆解结果重新实现 Remotion Scene、Effect Registry 和 StylePack。Golden Test 比较的是本项目重建场景的固定帧，不把原参考视频画面复制到最终成片中。仅用于研究的参考素材登记相应用途（如 `style_reference`）及真实权利，不使用不存在的 `reference_only` 权利枚举；参考用途不构成使用授权，也不应因文件可用自动选入正式 Timeline。
+项目根据拆解结果重新实现 Remotion Scene、Effect Registry 和 StylePack。Golden Test 比较的是本项目重建场景的固定帧，不把原参考视频画面复制到最终成片中。仅用于研究的参考素材登记相应用途（如 `style_reference`）及实际来源；不应因文件可用自动选入正式 Timeline。
 
 ### 23.4 视觉解释片固定测试包
 
@@ -4119,9 +4094,9 @@ Vlog 验收重点：故事清楚、镜头不重复、环境声自然、音乐不
 - 使用 MockAssetProvider 和固定 Provider Response；
 - 测试 AssetRequest → SearchIntent → AssetCandidate → Acquire → AssetProvenance → Scene；
 - 验证联系表、短预览、硬过滤、软评分和候选去重；
-- 模拟无结果、限流、来源不明、rightsStatus 阻塞、下载 URL 过期、HTML 错误页伪装、文件损坏、重复文件和时长不足；
-- 验证被使用的外部素材为 unknown / restricted / rejected 时阻止受影响导出，attribution_required 必须有有效署名；参考用途单独验证，不作为权利枚举；
-- 验证 AttributionManifest；
+- 模拟无结果、限流、来源不明 阻塞、下载 URL 过期、HTML 错误页伪装、文件损坏、重复文件和时长不足；
+- 验证旧权利字段和参数被接口拒绝；检索、获取、采用和导出不因许可或署名条件失败；
+- 验证 SourceManifest；
 - 禁止访问真实网络。
 
 #### Staging 联网 E2E
@@ -4131,7 +4106,7 @@ Vlog 验收重点：故事清楚、镜头不重复、环境声自然、音乐不
 - 分别验证 PexelsProvider、PixabayProvider 和 WebEvidenceProvider；
 - 首次成功导入后缓存 SearchIntent、原始响应、候选预览、本地 Asset 和 Provenance；
 - 后续回归优先使用缓存，不要求实时搜索结果顺序完全一致；
-- 人工检查语义相关性、动作、构图、许可、水印、作者和署名；
+- 人工检查语义相关性、动作、构图、水印、作者和来源；
 - Staging 结果不能自动写入 Golden，必须先经过人工批准。
 
 #### 生成降级测试
@@ -4178,8 +4153,7 @@ Vlog 验收重点：故事清楚、镜头不重复、环境声自然、音乐不
 - AssetRequest 校验；
 - SearchIntent 编译、缓存键和查询去重；
 - AssetCandidate 硬过滤、排序和近似去重；
-- rightsStatus 状态机；
-- Provenance 与 AttributionManifest 完整性；
+- Provenance 与 SourceManifest 完整性；
 - Provider 限流、缓存和退避；
 - 搜索、Remotion 和 MiniMax 降级策略；
 - Asset Coverage 计算。
@@ -4196,7 +4170,7 @@ Vlog 验收重点：故事清楚、镜头不重复、环境声自然、音乐不
 - 当前 Wikimedia/Mixkit、按配置启用的 Pexels、Mock Provider Contract；MiniMax 按独立视频生成 Job 验证，尚未实现的 Provider 保留为后续接入测试；
 - Provider 缓存、限流、候选刷新和错误归一化；
 - Asset 下载、MIME、文件头、哈希、ffprobe、本地化和 Provenance；
-- AttributionManifest 与 Export Gate；
+- SourceManifest 与 Export Gate；
 - Media Worker；
 - Remotion Composition Snapshot；
 - Job 状态和对账。
@@ -4241,7 +4215,7 @@ Vlog 验收重点：故事清楚、镜头不重复、环境声自然、音乐不
 8. Cutaway 衔接自然；
 9. 至少两条外部 B-roll 通过受控检索、本地化和 Provenance 进入项目；
 10. 至少一个无结果需求按策略选择 Remotion 或 MiniMax，且生成资产不冒充证据；
-11. 外部素材真实相关，rightsStatus、作者、来源和署名可读回；
+11. 外部素材真实相关，作者和来源可读回；
 12. 风格统一，连续镜头不呈现廉价 Stock 拼盘感；
 13. Codex 可通过 Web 或 MCP 局部替换素材并验证 Dirty Range。
 
@@ -4349,25 +4323,24 @@ Visual Director 读取 Capability 后，只选择兼容效果。不能假设所�
 - 证据和真实素材优先；
 - 禁止每句话套模板。
 
-#### 外部搜索不可复现、Provider 变化和素材权利不清
+#### 外部搜索不可复现、Provider 变化
 
-风险包括：搜索排序变化、Candidate URL 过期、Provider 限流或下线、接口路径变化、许可条款变化、素材被删除、作者信息缺失、同一文件在不同来源出现不同许可，以及版权以外的商标、肖像和隐私限制。
+风险包括：搜索排序变化、Candidate URL 过期、Provider 限流或下线、接口路径变化、素材被删除、作者信息缺失。
 
 处理原则：
 
 - 实时搜索只用于 Staging/Production，不成为 CI 依赖；
 - 所有远程结果先成为 AssetCandidate；
-- 查询响应、候选元数据和许可说明保存快照；
+- 查询响应、候选元数据保存快照；
 - 正式使用素材必须下载到本地并计算哈希；
 - 当前 Provider 规则集中在 Adapter；没有 `docs/asset-sourcing/` 目录，不将假定文档路径作为前置；
-- 被使用外部素材的 unknown、restricted、rejected 状态阻止受影响导出，参考用途和权利状态分别登记；
+- 外部素材获取、采用和导出只受技术条件约束，保存实际来源；
 - 无法确认来源时降级为用户确认、其它开放来源、Remotion 解释场景或带生成标记的 MiniMax 资产；
-- 已使用素材的权利状态变化时保留历史 Revision，但阻止新的受影响导出并提示替换；
-- 定期复核 Provider 官方文档、限流和许可要求。
+- 定期复核 Provider 官方接口文档和限流。
 
 #### 单一 `ready` 状态掩盖真实能力边界
 
-素材已登记、可转写、可上 Timeline、当前渲染链可读和权利允许交付是不同条件。通过 `AssetReadiness` 和导出前 Render Preflight 解决；不能因为某个同名 Asset 在另一个版本可用，就推断当前 Timeline 的实际引用也可渲染。
+素材已登记、可转写、可上 Timeline、当前渲染链可读是不同条件。通过 `AssetReadiness` 和导出前 Render Preflight 解决；不能因为某个同名 Asset 在另一个版本可用，就推断当前 Timeline 的实际引用也可渲染。
 
 #### 项目结构正确被误判为交付完成
 
@@ -4402,7 +4375,7 @@ Remotion、数字人 Provider 和生成模型在正式商业发布前必须完�
 7. Remotion 不得承担创作判断；
 8. Python Worker 不得直接修改 Project；
 9. 任何自动重编译不得覆盖锁定对象、已批准 Scene 或显式 `direct_override`；
-10. 远程 URL、搜索缩略图和许可未知素材不得进入正式 Scene；
+10. 远程 URL 和搜索缩略图不得替代受管原文件进入正式 Scene；
 11. 证据、现实素材、生成素材和参考素材必须使用不同 Asset 类型和 Quality Rule；
 12. 新需求先判断属于 Story、Scene、Timeline、Asset Acquisition、Runtime 还是 Quality，不随意塞进大 Pipeline；
 13. Skill 引用的工具、Registry 和当前能力发生变化时，代码与 Skill 必须在同一个 PR 中更新；
@@ -4457,8 +4430,8 @@ Remotion、数字人 Provider 和生成模型在正式商业发布前必须完�
 - 动效由语义和 SpeechSegment 边界触发；
 - 有安静区和效果密度变化；
 - 用户不需要提供全部空镜，Codex 能通过 Asset Acquisition System 自动搜索、筛选、本地化、替换和生成降级；
-- 外部素材具有 AssetRequest、Candidate、rightsStatus、Provenance 和 AttributionManifest 闭环；
-- Web 具备素材库、候选搜索、来源/许可、文字稿、Scene、预览、Inspector、Timeline、Jobs/QC/Revision 完整工作区；
+- 外部素材具有 AssetRequest、Candidate、Provenance 和 SourceManifest 闭环；
+- Web 具备素材库、候选搜索、来源、文字稿、Scene、预览、Inspector、Timeline、Jobs/QC/Revision 完整工作区；
 - 不是模板贴纸集合，也不是无关 Stock 拼接；
 - 已有可选强制对齐、ExplainerScene 和 VlogMontageScene，按真实能力和证据使用；
 - 后续平行 Timeline 需独立实现，当前不把一条项目 Revision 历史当成长短版同时保留；
@@ -4501,7 +4474,7 @@ TimelineDocument
 Revision
 AssetLibrary
 Asset Acquisition System
-AssetProvenance / AttributionManifest
+AssetProvenance / SourceManifest
 StylePack
 video-editor-mcp
 Browser Operator
@@ -4631,13 +4604,13 @@ Skill 负责专业判断，Provider 提供受控获取，模型提供可追溯�
 
 新增 SoundPlan 保存段落声音意图；MotionEventMap 保存当前作品解析出的时序；原 AudioObservation 设想统一为第 30 章公共 MediaObservation 的音频部分，保留攻击/尾音等专门内容；AudioCue 扩展为最终采用及编排。它们不复制 Script/Scene 状态、不替代动效 creativeBrief，也不新增独立声音事实库、设计数据库或完整音频工作站。
 
-在线元数据、有限试听缓存、项目原文件分别管理。选中的文件及派生版本保留来源、许可和哈希；渲染不直接依赖远程热链。搜索候选正式采纳时验证当前需求和 Revision，沿现有应用层事务进入受管素材链。
+在线元数据、有限试听缓存、项目原文件分别管理。选中的文件及派生版本保留来源和哈希；渲染不直接依赖远程热链。搜索候选正式采纳时验证当前需求和 Revision，沿现有应用层事务进入受管素材链。
 
 历史对象允许缺省，不补造事件或已听审状态。当前平移跟随和失效规则保留为基线；新作品时序、旁白或源文件变化后重新绑定、计算和审阅。预览与导出使用同一份声音编排与处理产物，编码文件哈希不同不能简单认定混音不一致。
 
 ### 29.5 来源条件与失败处理
 
-Mixkit 按实际分类和需要获取少量文件，音乐与音效分别核对许可；不进行批量整库镜像。Freesound 逐条检查 CC0、CC BY、CC BY-NC 等许可，同时落实 API 凭据、原文件 OAuth 和相应 API 使用条件。禁止自动访问或没有支持接口的网站不宣称全自动接入。
+Mixkit 按实际分类和需要获取少量文件，音乐与音效分别校验文件类型和音频参数；不进行批量整库镜像。Freesound 接入落实 API 凭据、原文件 OAuth 和相应 API 使用条件，逐条保存来源和作者，不核验素材许可。禁止自动访问或没有支持接口的网站不宣称全自动接入。
 
 来源未启用、无结果、限流、错误文件、模型失败、未知提交、版本失效与遮字问题分别返回；不自动改用未建设的本地库，不用视觉生成代替声音，不把必要音效悄悄省略。实际输入、原始模型响应和 run ID 可追溯，未知事实不被 JSON 修复或高相似度掩盖。
 
@@ -4695,7 +4668,7 @@ MiniCPM/Qwen 仅通过用户部署的外部 ComfyUI Bridge HTTP 调用，不在 
 
 拟新增公共 `packages/media-intelligence/`，在现有模块化单体内复用 Bridge Client、Speech Services、Job Worker、source-review 和 acquisition。职责是分析、覆盖、检索与用途评估，不接管主导演、不另建推理服务或全网素材库。
 
-分段、窗口、观察、向量、搜索与外部 run 放 SQLite 操作记录，不复制到每份 ProjectSnapshot。正式 AssetRequest、采用、Asset/Scene/Cue/Timeline 仍由 Application 在 Revision 中管理；采用时验证需求版本与源身份，并保存必要候选、许可、观察版本和范围依据。被正式引用的原文件与必要证据不能随临时缓存清理。
+分段、窗口、观察、向量、搜索与外部 run 放 SQLite 操作记录，不复制到每份 ProjectSnapshot。正式 AssetRequest、采用、Asset/Scene/Cue/Timeline 仍由 Application 在 Revision 中管理；采用时验证需求版本与源身份，并保存必要候选、来源、观察版本和范围依据。被正式引用的原文件与必要证据不能随临时缓存清理。
 
 模型升级和索引重建不自动替换已用素材。源变化失效相关观察/定位，文字纠错更新相关索引及受影响使用，需求变化重做用途评估，Timeline 平移保留源事实但重审合成上下文。语义分析失败不把可播放素材改为技术损坏。
 

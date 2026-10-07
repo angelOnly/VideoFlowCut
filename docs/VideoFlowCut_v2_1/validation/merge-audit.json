@@ -1,0 +1,1167 @@
+{
+  "kind": "document-integration-not-new-runtime-implementation",
+  "source_files": [
+    {
+      "name": "VideoFlowCut_动效全链路优化实施方案_评审稿_v1.md",
+      "sha256": "a977c59ff928471320ed77e06a2a0bbd7cb29ba05430e02e308e7475637b5da6"
+    },
+    {
+      "name": "VideoFlowCut_主题驱动全链路与案例库_实施方案_v2.md",
+      "sha256": "08ae5834bae57b286969a7aba572564846b95980ab2d2df86ec7c361edd24980"
+    }
+  ],
+  "main_plan": "实施方案_v2_1.md",
+  "main_plan_chars": 73686,
+  "main_plan_lines": 2131,
+  "v1_sections_retained": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "v1_subsection_map": [
+    {
+      "v1_heading": "1.1 本次核对的材料",
+      "destination": "§1.1",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "1.2 r92 已证明什么",
+      "destination": "§1.2",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "1.3 这次查到的具体问题",
+      "destination": "§1.3",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "1.4 保留现有架构，不另建创作平台",
+      "destination": "§1.4",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "2.1 执行顺序",
+      "destination": "§2.1",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "2.2 分工及每一步必须交回的内容",
+      "destination": "§2.2",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "2.3 用户只参与真正需要用户决定的事情",
+      "destination": "§2.3",
+      "status": "业务前提修订",
+      "reason": "普通创作由团队负责；真实账户、费用及权限边界保留。"
+    },
+    {
+      "v1_heading": "3.1 协调者在开工时核对五项",
+      "destination": "第3章（主题入口）；原文仅历史封存",
+      "status": "依此前用户要求改写",
+      "reason": "移除样片生产条件，不恢复锁稿、固定帧数或静音前提。"
+    },
+    {
+      "v1_heading": "3.2 生产约束页示例",
+      "destination": "第3章（主题入口）；原文仅历史封存",
+      "status": "依此前用户要求改写",
+      "reason": "移除样片生产条件，不恢复锁稿、固定帧数或静音前提。"
+    },
+    {
+      "v1_heading": "3.3 不能把这次样片条件提升成项目全局默认",
+      "destination": "第3章（主题入口）；原文仅历史封存",
+      "status": "依此前用户要求改写",
+      "reason": "移除样片生产条件，不恢复锁稿、固定帧数或静音前提。"
+    },
+    {
+      "v1_heading": "4.1 导演先交完整观看叙述，再交场面边界",
+      "destination": "§4.1",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "4.2 每场交接使用同一张设计单",
+      "destination": "§4.2",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "4.3 全片检查重复的是“观看方式”，不是统计动画数量",
+      "destination": "§4.3",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "4.4 内部采用标准",
+      "destination": "§4.4",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "5.1 把需求拆成三个层次",
+      "destination": "§5.1",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "5.2 一次候选返回必须回答的问题",
+      "destination": "§5.2",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "5.3 失败后的具体路由",
+      "destination": "§5.3",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "5.4 采用替代后，完成五步同步",
+      "destination": "§5.4",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "5.5 防止替代后自动退化成普通图标",
+      "destination": "§5.5",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "6.1 同一作者同时做造型和运动",
+      "destination": "§6.1",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "6.2 美术交付具体到可检查的决定",
+      "destination": "§6.2",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "6.3 每场生成“可见文字清单”",
+      "destination": "§6.3",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "6.4 r92 的具体处理原则",
+      "destination": "§6.4",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "6.5 新增的检查动作",
+      "destination": "§6.5",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "7.1 用四个时钟避免假同步",
+      "destination": "§7.1",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "7.2 每个重点记录“动作结束”和“观看任务结束”",
+      "destination": "§7.2",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "7.3 对当前 r92 的时间判断",
+      "destination": "§7.3",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "7.4 时间不够或剩余时，按约束作决定",
+      "destination": "§7.4",
+      "status": "业务前提修订",
+      "reason": "用文案、配音与画面共同决定长度，替换测试型锁定分支。"
+    },
+    {
+      "v1_heading": "7.5 调整的顺序",
+      "destination": "§7.5",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "7.6 事件与动画使用同一份时间常量",
+      "destination": "§7.6",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "7.7 自动提示做到什么程度",
+      "destination": "§7.7",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "8.1 一份受管作品可以承担完整表达段",
+      "destination": "§8.1",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "8.2 源码前的“兑现表”",
+      "destination": "§8.2",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "8.3 合成层级有明确责任",
+      "destination": "§8.3",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "8.4 版本及跨场交接",
+      "destination": "§8.4",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "8.5 实现限制的处理",
+      "destination": "§8.5",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "9.1 开工时就检查审片输入是否可达",
+      "destination": "§9.1",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "9.2 复用现有能力",
+      "destination": "§9.2",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "9.3 三类检查，各有结论",
+      "destination": "§9.3",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "9.4 审片反馈的最小完整格式",
+      "destination": "§9.4",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "9.5 防止反馈变成无限循环",
+      "destination": "§9.5",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "9.6 保持“可导出”和“已验证”分开",
+      "destination": "§9.6",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "10.1 每次提交使用一份当前采用的场面全文",
+      "destination": "§10.1",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "10.2 修订要说明影响，而不是只替换Revision",
+      "destination": "§10.2",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "10.3 成品和说明能够相互定位",
+      "destination": "§10.3",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "11.1 本轮必须落到现有Skills的内容",
+      "destination": "§11.1",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "11.2 工程侧优先复用与补齐的地方",
+      "destination": "§11.2",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "11.3 可选的小型辅助能力，按缺口触发",
+      "destination": "§11.3",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "12.1 行为和合同测试",
+      "destination": "§12.1",
+      "status": "输入修订，判断方法保留",
+      "reason": "17项测试目的和两类诊断保留；主题冷启动是主要产品验收。"
+    },
+    {
+      "v1_heading": "12.2 端到端验收分两种实验",
+      "destination": "§12.2",
+      "status": "输入修订，判断方法保留",
+      "reason": "17项测试目的和两类诊断保留；主题冷启动是主要产品验收。"
+    },
+    {
+      "v1_heading": "12.3 记录指标，而不是预设虚假的审美分数",
+      "destination": "§12.3",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    },
+    {
+      "v1_heading": "12.4 环境问题另做受控试验",
+      "destination": "§12.4",
+      "status": "保留并细化",
+      "reason": "原分析、步骤或表格留在主文档；对应具体改法接在本章后。"
+    }
+  ],
+  "explicit_semantic_revisions": [
+    {
+      "chapter": 0,
+      "reason": "按用户已明确的主题驱动业务改写入口；保留一次完整生产的目标。",
+      "old": "> 用户提交需求、素材或稿件 → 系统自行确定观看过程、选材、美术、运动与时序 → 在一次任务内部完成实现、检查和必要修订 → 交付完整作品及真实检查结果。",
+      "new": "> 用户只给一个视频主题 → 导演组织研究、选材、解说稿与完整声画设计 → 团队完成美术、运动、配音、字幕和合成 → 同一次生产任务内检查和必要修订 → 交付完整作品及真实检查结果。"
+    },
+    {
+      "chapter": 2,
+      "reason": "主题入口不再等待用户提供生产约束。",
+      "old": "用户需求与已有项目\n  → 协调者核对真实约束、版本、能力",
+      "new": "用户只给视频主题\n  → 协调者读取现有配置、真实版本与能力"
+    },
+    {
+      "chapter": 2,
+      "reason": "删除测试型锁稿/时长审批入口；保留真实外部授权与实施边界。",
+      "old": "### 2.3 用户只参与真正需要用户决定的事情\n\n普通选材、字体、内部动作安排、局部修正，不请求用户逐个审批。只有改变明确锁定的稿件/声音/总长，新增付费或账户授权，以及不可继续的外部权限问题才回到用户。\n\n用户本轮是在审批这份平台方案，不是批准修改正式项目。实施与案例库建设分别等待后续指令。",
+      "new": "### 2.3 用户给主题，团队承担普通制作决定\n\n普通选材、字体、美术、稿件、画幅、内容规模、配音表演、动作安排和局部修订由导演组织团队完成，不向用户发约束问卷，也不请求逐项审批。事实需要核实，材料使用条件需要遵守；这些是生产责任，不是让用户先提供全部素材或专业参数的理由。\n\n真正需要外部账户、新增付费额度或恢复运行权限时，协调者只报告具体阻断与最小所需操作，其他不依赖工作继续。对已有工具、素材权利、安全和正式写入边界的要求保持，不能把“导演自主创作”理解为可以绕过这些边界。\n\n用户此刻评审的是链路方案与候选接入文件；方案文件生成不等于已经修改正式项目或安装插件。案例库的具体文件已按后续要求加入本方案，部署与真实生产验证仍待执行。"
+    },
+    {
+      "chapter": 3,
+      "reason": "按用户此前明确要求替换测试约束章节，加入V2主题驱动正文；不恢复已否定的生产前提。",
+      "old": "## 3. 输入与约束：先区分“必须守住”和“当前估计”\n\n### 3.1 协调者在开工时核对五项\n\n1. 本次是从主题起稿、已有稿件制作、原声重剪，还是局部创作。\n2. 正文、音频、总长、画幅分别有没有用户明确锁定；没有明确锁定的内容标为可调整或当前估计。\n3. 真实语音是否可读，时间精度是句段、词级、粗定位，还是仅视觉试排。\n4. 当前可用的搜索、下载、受管提交、渲染、预览读取和分析能力；记录真实 Schema/引擎版本。\n5. 本次交付范围：视觉样片、静音完整片，还是有声完整片。静音样片不套用有声完整片的通过口径。\n\n### 3.2 生产约束页示例\n\n以下是交接文本的示例内容，不是已发布的新 API 字段：\n\n```text\n任务：19.46秒视觉验证样片\n正文：用户锁定，逐字保持\n画布：768×1344；24fps；467帧\n时长：用户锁定视频帧数；各场边界可内部重排\n声音：本次不要求配音；现有字幕属于视觉试排\n素材：团队自行取得；普通构图未命中允许同用途适配\n风格：场面式混合动效；不指定每片必须出现SIM或公式\n版本：真实Project/Revision及所采用分镜版本\n交付：全片预览、源码、素材记录、实际检查结果\n```\n\n### 3.3 不能把这次样片条件提升成项目全局默认\n\n467帧、四场、静音、深绿黑、SIM和大字结尾，都是本次内容的选择。通用流程保留“怎么作选择”，不默认复制这些选择。",
+      "new": "## 3. 主题驱动入口：导演怎样从零形成完整制作方案\n\n### 3.1 主题进入：导演直接开始创作\n\n协调者读取主题、现有发布配置与真实工具能力，将它们交导演。导演输出内部制作决定：讲述角度、观看承诺、受众推定、画面/声音方向和初步内容规模。配置足够就使用；不足的普通创作选择由导演补齐并记理由，不询问用户要“多少秒、什么镜头、什么动画模板”。\n\n### 3.2 研究、文案、材料是相互作用，不是三段流水线\n\n导演给研究和素材负责人：要核实什么主张、要看见什么过程。文案作者同时发展完整声画稿。实际材料可以改变讲述顺序、结论和表现方式；正文更新后给所有受影响的作者同一份全文。\n\n例如终端实拍没有找到，但人群影像和准确来源已经取得，可以由导演采用原创终端与真实活动影像共同构图，同时让文案去掉依赖未取得实测的表述。不能继续保留“必须有一条长终端实拍”的旧需求，也不能让静态模型沿用实拍的无效长驻留。\n\n### 3.3 场面不是素材清单\n\n每场正文至少明确：入口看谁、段内什么保持/变化、观众因此看见什么、实际材料与文字、声音、出口和大约节奏。既可跨句连续，也可包含明确切镜；技术分块不决定故事段落。\n\n素材轮播转成场面设计的关键不是多加转场，而是让活动窗口能重排、前景能揭示后方内容、真实局部能被观察、关系能在共同参照下展开、主体与文字能共同形成结尾。它们只是可选方法，不是每片都按顺序出现的配额。\n\n### 3.4 美术从第一份执行稿就具体\n\n重要主体的轮廓、比例、细节集中位置、材质光向、实际投影尺寸，与文字排印和运动一起设计。只写“产品感、精致、高级”不能交给实现；要写清物体有哪些可识别部件、哪个细节是焦点、主次面积和前后关系。\n\n绘制时先看实际构图，再连接动态路径；正常尺寸下读得清、轮廓成立、重心完整，是内部制作判断，不要求用户先提供效果截图或逐帧批准。\n\n### 3.5 时长由本片内容和声画共同确定\n\n文案、导演、配音和视觉共同调整讲述密度、动作、观察、阅读与反应。首轮TTS时长不成为固定总长。某个动画任务已完成时，允许改句群、调整表演停顿、提前接续或重排场界；同步更新配音、字幕、事件和旧审阅。\n\n普通生产不再使用“一个模型已经展示完了，仍等到预先分配时长”的做法。保留必要的阅读、比较、人物反应与情绪，不用“每帧有变化”替代有效观看。\n\n### 3.6 完整声音与交付\n\n主题成片按导演决定生成配音，并使用本机已有音源检索、混音和合成路径。音乐和音效是否使用、哪里需要安静由内容决定；教学原片的静音不是正常交付默认。独立动效受管渲染可以无声，回整片合成时必须与当前实际语言和声音一起检查。\n\n### 3.7 这一章替换什么，保留什么\n\n这一章只替换V1已被用户否定的“输入与约束”及样片生产条件。用户无须提交锁定稿件、固定总长、帧数、静音要求或人工分镜。目录中的“设计单”“文字表”“时间用途表”均由团队生成，是具体创作产物，不是新的用户表单。\n\nV1关于导演、素材、美术、时序、合成、审片和验证的分析继续位于第4—13章。将测试条件从正常链路移开，不构成删除这些分析的理由。历史片的实际秒数只用于第1章、第7.3节、附录A和案例记录的证据定位。\n"
+    },
+    {
+      "chapter": 5,
+      "reason": "生产不假设用户提供固定拍摄条件。",
+      "old": "只有用户或事实要求必须如此时，才成为硬条件。",
+      "new": "只有当前事实指认确实需要的条件才进入必须满足的素材要求；其余由导演依据可得材料决定。"
+    },
+    {
+      "chapter": 5,
+      "reason": "主题任务中的事实修订由导演与文案负责，不恢复锁稿样片流程。",
+      "old": "| 指定证据不存在或不支持原句 | 继续核实、缩小主张或改表达；锁稿冲突明确列出 | 仅在必须改变用户锁定事实时 |",
+      "new": "| 指定证据不存在或不支持原句 | 继续核实；导演和原文案作者缩小主张、改准确表述或调整讲述角度 | 否，团队不能用概念图补造证据 |"
+    },
+    {
+      "chapter": 6,
+      "reason": "将测试原稿改为主题生产中的当前采用稿。",
+      "old": "| 正文字幕 | 用户原稿的完整句子 | 字幕负责人管理转写、换行、时序 |",
+      "new": "| 正文字幕 | 当前导演采用的完整朗读句群 | 字幕负责人管理与真实配音对应的换行和时序 |"
+    },
+    {
+      "chapter": 7,
+      "reason": "区分内部试排与正常主题成片。",
+      "old": "有声任务按真实讲述校准；静音任务标视觉试排。",
+      "new": "主题整片按本版真实讲述与声音校准；制作中尚无声音的内部试排如实标记，不作为正常成片静音默认。"
+    },
+    {
+      "chapter": 7,
+      "reason": "按主题驱动业务重写时间决策，保留空等、有效停留及修改传播的分析。",
+      "old": "### 7.4 时间不够或剩余时，按约束作决定\n\n**总长与声音都可调整：**先以内容完成情况重新排段，再同步声音和字幕；不把首版TTS长度自动当作硬约束。\n\n**总长固定、声音未锁：**在总长内重新分配场面时间和动作交叠。某场节省的时间交给确有观察/阅读需要的内容，不统一加到结尾。\n\n**声音或语义锚点固定：**声音保持；作者可以提前布置非泄密的下一画面、改变观看尺度、接入真实动作，或安排有明确用途的稳定参照。不能为了消除画面空等擅自截掉语言，也不能提前揭出尚不该知道的结论。\n\n**材料从长实拍改为静态原创：**原来由源动作承担的时间不再自然成立，重新设计段内过程；需要时把部分画面提前交给下一观看任务，而不是让设备驻留到旧结束时间。\n\n",
+      "new": "### 7.4 主题生产中，时长由文案、声音和画面共同形成\n\n**先判断当前画面是否完成任务。** 若对象已经被认出，既无新细节、真实过程、阅读或反应，也没有需要继续保留的参照，就安排下一项有效观看，而不是等待最初估计的段尾。\n\n**再判断语言是否也需要调整。** 画面先完成不必然是动画太短，可能是句群重复、表演停顿过长，或画面没有演出正文承诺的过程。导演把问题交对应原作者：重复话语删并，表演由配音调整，遗漏过程由视觉补实；新版本同步字幕与声音。\n\n**段落边界允许共同重排。** 原始估计和首轮TTS长度是当前产物，不是用户要求固定的终长。重要细节需要更多观察就补相应时间，重复建立完成就及时交接，不统一把所有节省的时间加到结尾，也不统一加速全片。\n\n**载体改变时重算时间用途。** 实拍有持续手部操作或空间移动，照片和原创模型没有同样的源过程。替换后重新决定需辨认什么、接下来发生什么、何时让位；不能让模型占满旧实拍时段。\n\n本节取代V1按“固定总长／锁定声音”讨论的样片分支。正常业务仍保留事实准确、真实素材时钟与版本同步，但不从测试参数推导普通生产边界。\n\n"
+    },
+    {
+      "chapter": 7,
+      "reason": "删除以授权改稿为末级分支的测试假设，保留原有优化顺序与反微动掩盖原则。",
+      "old": "先改变不必要的重复建立和过长动作；再让前后动作在不争抢注意时交叠；然后调整场面边界；最后才考虑改变已授权可改的语言。无作用的漂浮、光扫、粒子循环，不用来冲抵空等。",
+      "new": "先改变不必要的重复建立和过长动作，再让前后动作在不争抢注意时交叠，并结合当前语言调整场面边界。发现句群重复或表演妨碍观看时，立即交原文案、配音与导演共同修订，不把首轮声音当永久边界。无作用的漂浮、光扫、粒子循环，不用来冲抵空等。"
+    },
+    {
+      "chapter": 10,
+      "reason": "用户后续已要求具体案例库接入，更新阶段范围，不删除证据追溯原则。",
+      "old": "未来入案例库时再决定切片、教学说明和验证等级。本轮只保存生产证据，不创建案例目录。",
+      "new": "本版第14章补入完整案例及局部案例：原片、原始输入与新教学说明分开保存，验证等级分别记录。具体案例文件沿用V2接入包，不把旧视频当作新教学指令已验证的结果。"
+    },
+    {
+      "chapter": 11,
+      "reason": "明确本轮是文档整合，不虚称重新查询最新仓库。",
+      "old": "以下文件路径以本次读取的75ee737基线为准。",
+      "new": "以下文件路径沿用V1/V2已经核对的75ee737基线。"
+    },
+    {
+      "chapter": 12,
+      "reason": "保留测试编号和验证目的，输入改为主题驱动正常生产。",
+      "old": "| T01 | 普通题目＋锁定正文，未给专业分镜 | 导演输出有具体观看过程、美术与动作交接的采用稿；不要求用户先补效果图 |",
+      "new": "| T01 | 只有视频主题，未给正文、素材或专业分镜 | 导演组织研究和文案，输出具体观看过程、美术与动作交接的采用稿；不要求用户补效果图或生产表单 |"
+    },
+    {
+      "chapter": 12,
+      "reason": "保留测试编号和验证目的，输入改为主题驱动正常生产。",
+      "old": "| T02 | 用户只锁正文，首版TTS生成了一个长度 | 如实区分音频实测与用户锁定，不把首次结果自动升为硬限制 |",
+      "new": "| T02 | 主题初稿和首版TTS已生成 | 以实际语言校准当前画面；需要时由原作者改稿、重配和重排，不把第一次声音长度固化 |"
+    },
+    {
+      "chapter": 12,
+      "reason": "保留测试编号和验证目的，输入改为主题驱动正常生产。",
+      "old": "| T05 | 引用结论缺乏事实依据 | 不用原创画面伪造依据；说明具体句子影响，按授权调整或保留缺口 |",
+      "new": "| T05 | 引用结论缺乏事实依据 | 不用原创画面伪造依据；导演与文案作者根据实际支持范围修订，必要时调整讲述角度并记录缺口 |"
+    },
+    {
+      "chapter": 12,
+      "reason": "保留测试编号和验证目的，输入改为主题驱动正常生产。",
+      "old": "| T10 | 固定旁白，某个动画先结束 | 优先内部接续/重排，旁白和语义保护不被自动裁掉 |",
+      "new": "| T10 | 首版配音已生成，某个动画先结束 | 判断是重复话语、表演停顿、遗漏过程还是空等；内部改稿／重配／重排并同步字幕，不机械裁语义或拉长模型驻留 |"
+    },
+    {
+      "chapter": 12,
+      "reason": "保留V1两种试验的诊断价值，但明确只有主题是主要业务验收。",
+      "old": "### 12.2 端到端验收分两种实验\n\n**固定分镜复现：**同一份冻结的完整说明，在本机新任务中实现。检验执行、素材适配和审片是否能交付，不把历史失败视频或代码作为新任务输入。\n\n**普通需求冷启动：**不给《满格之外》的完整分镜，只给真实任务目标、稿件与约束，由项目自己产生同等具体度的场面设计。检验优化是否真正进入导演链路，而不只是我们又写好了一份外部提示词。\n\n至少覆盖一次本题材、一次不同题材解说、一次带真实声音或人物占用的任务。样本用于发现回归，不作为“保证成功率”的统计证明。每次仍是一项完整生产任务，内部完成检查与修正。\n\n",
+      "new": "### 12.2 端到端验收：主题冷启动为主，固定说明只做隔离诊断\n\n**主题冷启动是本轮产品验收：**用户只给一个主题，不给正文、素材、长分镜、固定时长或历史效果图。系统自行完成研究、完整声画稿、场面设计、美术、选材、配音、动画、合成及检查。只有这一类结果，才能说明优化真正进入导演和生产链，而不只是执行了一份外部手写提示词。\n\n**固定分镜复现保留为工程／执行诊断：**需要单独定位“同一说明被怎样实现”时，冻结一份当前完整说明并在独立任务中比较。这个方法不成为用户的正常输入要求，也不单独替代主题到成片的产品验收。\n\n至少覆盖本题材、不同题材解释片，以及具有真实声音或人物占用的完整任务。样本用于发现回归，不作为“保证成功率”的统计证明。每次是一项完整任务，内部完成检查与修正。\n\n"
+    },
+    {
+      "chapter": 14,
+      "reason": "案例库由后续用户要求纳入范围；保留V1关于参考、模板和证据等级的分析，再加入V2完整接入正文。",
+      "old": "## 14. 与未来案例库的边界\n\n本轮不拆案例、不新增motion-case-*目录、不把r92源码改装成通用模板。\n\n先保留r92的真实作品、采用指令、源版本、素材身份、事件与用户反馈。验证等级准确记为“用户认可整体动效方向；标签与局部停留仍需处理；生产记录仅有抽帧，连续节奏当时未完成”。\n\n未来案例应在完整生产链路稳定后，作为作者设计时按观看任务选取的参考，而不是取代导演。届时再决定哪些段落适合单独教学，哪些必须连上下文保留；不预设必须拆成十个动画原子。",
+      "new": "## 14. 案例库：为什么这样拆，以及具体怎样接入\n\n### 14.0 保留V1的边界判断，接上V2已写好的案例文件\n\nV1暂不拆案例，是当时工作范围；用户后续已明确要求具体案例库接入，因此本节把阶段安排更新为现有落地文件。原来的核心判断仍然保留：案例帮助作者设计，不取代导演；不把r92改成所有题材都要套用的模板，不预设每片必须使用多少个动画原子。\n\n保存r92真实作品、采用指令、源码版本、素材身份、事件和用户反馈。验证范围继续准确记录为：用户认可整体动效方向，标签与局部停留仍需处理，原生产记录仅有抽帧，连续节奏当时未完成。新教学指令另存，不能借用旧媒体获得“已验证”状态。\n\n**为什么是一例完整场面加五例局部方法：**只拆小动作会丢掉整体节奏与材料协作，只保存整片又不方便作者解决当前具体问题。完整例负责讲清场面之间怎样发展；局部例分别讲选择、揭示、观察、关系和物体排印。它们是按任务选读的参考，不是每次顺序加载的六个组件。\n\n**先确定本片再选例：**导演先提出当前观看任务，作者再挑确实相关的方法，学习具体美术与中间动作，回到当前对象重写执行说明。没有相关例时自主设计，普通用户不需要上传参考或指定案例名。参考只提供设计依据，素材仍需按当前项目实际取得。\n"
+    },
+    {
+      "chapter": 15,
+      "reason": "更新本轮评审与案例范围，保留既有架构和一次完整生产的决策，并明确文档不再删减分析。",
+      "old": "## 15. 本轮评审需要确认的决策\n\n建议确认的是：保留既有架构与角色；将场面设计、素材适配、文字职责和时间用途落实为必需交接内容；优先复用已存在的事件/审片接口补执行与测试；用户一次提交任务，内部完成必要检查，不以用户多轮纠错作为正常生产模式；案例库在本方案通过后另行处理。\n\n暂不要求决定每一个样片的像素和曲线，也不以r92全部细节为通用标准。方案获准后，开发者按P0—P5实施并用实际作品验证。",
+      "new": "## 15. 本轮评审范围、完成状态与后续实施\n\n### 15.1 本轮需要确认的仍是完整方案，而不是单独的修改清单\n\n保留既有架构与角色；以用户只给主题作为正常入口；把场面设计、素材适配、原创美术、文字职责、有效时序和实际审阅落实到现有交接；优先使用已有稿件、素材、作品、事件、版本和审阅接口。团队在同一任务中完成普通创作决定及必要内部检查，不以用户多轮找错作为标准生产方式。\n\n案例库在本版作为具体设计参考接入，原六例与新案例并存。新文件、精确修改正文、实际参考媒体和应用脚本均已在包内；这些候选文件不等于已经安装，也不等于新教学指令生成的效果已验证。\n\n本次文档整理不重新设计另一套架构，也不改变V2落地包里的实施载荷。它恢复V1分析脉络，将已有的确切改法接到对应章节；后续开发者依据正文和同一份清单执行，保留本机实际版本差异。\n\n### 15.2 文档保存规则\n\n后续继续细化时，以这份完整方案为主文档。新增内容补到所属章节；事实或用户已明确否定的前提需要改写时，在章节对照中登记原因。不能因增加代码、表格或案例而省略原因、取舍和已有的细节分析。\n\n历史版本留作比较，不与当前生产正文并行成为另一套指令。你阅读本文件即可理解“为什么改、怎样改、具体放什么、如何验证”，不需要再把V1和V2自行拼起来。\n"
+    }
+  ],
+  "v2_payload_file_count": 109,
+  "v2_payload_files": [
+    {
+      "path": "apply_changes.py",
+      "sha256": "aefcfa49d276418c58c2d6d506c364ecbc9259ea20666ccbc6171fd8f69e10b6",
+      "unchanged": true
+    },
+    {
+      "path": "case-build-record.json",
+      "sha256": "6740738d90165a0d25e7ba51d45347f8f99ce9f3371989fcdffda86ac3ad5132",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/evidence-visualization.md",
+      "sha256": "4149bca098cb28c237e3d271498a73e2307ef0ec4fc99c9389378862800b5b19",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/quality-verification.md",
+      "sha256": "f658b107278af89a34aaf26734bc07f0b98fc11556749f4e96c2af9a6042032e",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/scene-planning.md",
+      "sha256": "d438675f3e857c2af2310400b7ea4c47d17361a46c7e47ed323b94e62318d958",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/visual-treatment-planning.md",
+      "sha256": "87ea82e24a8e1663c4e3db5ebacbee9e039707014a9bb73911fa5d1ee999320c",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/remotion-production.md",
+      "sha256": "338989ba332c14fda1b2a4f1276205eac3cfb5d8b03cd7fd03c8b8c47c1f48d1",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/effect-timing.md",
+      "sha256": "703f245916e7709245849029efd9019c0275678f3ba40406a5b26c17483d77a5",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/audio-finishing.md",
+      "sha256": "b22120079bed4589796acb67e4e790408531b14f566a69c0f3830008a055c85d",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/edits.json",
+      "sha256": "90136e17762e7c39863718803e9ccbfc42f30670293ee91a8d8f28deb1edc0b0",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/production-coordinator.md",
+      "sha256": "cff0ef96c937a1033563a4a6846faebe7306a44f0512107dbe61c12f50214e76",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/visual-explainer-director.md",
+      "sha256": "13227f5f64e5a592f50588d37348162860ad1df96ad7b8d4dc3208a85eb1b4bb",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/sound-asset-sourcing.md",
+      "sha256": "da7cfb36266ef255c530d8334277903e0c71937e2eeb2250a0dd9e700cf1472c",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/shared-handoff.md",
+      "sha256": "ee7e90421e406c607f883102891c36f97e750f7d28354bab537e1aafe9b21e3d",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/voice-production.md",
+      "sha256": "54dd0c6eb63a60e60c798184aa5568745158f0c0bd42a910795d416e34785f71",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/visual-asset-sourcing.md",
+      "sha256": "82699fdb183988a5ff7fadde22fed50e62bfdeffc420c1602616794810fb5269",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/motion-case-library.md",
+      "sha256": "97c5a71a6eb24bb6f88c4398b768dac25dab37bc54e96b5cd98412d7363866db",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/captions.md",
+      "sha256": "8b777b75335cea6c6a70f373dd69f305df66afe7e355768be5e5856bb02ff011",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/narration-writing.md",
+      "sha256": "374b2b4533ca341aef48d1b7ccea82dfbc6a11e4704bb23003c1d4f8c0ff37ca",
+      "unchanged": true
+    },
+    {
+      "path": "skill-edits/production-director.md",
+      "sha256": "d708c1e80d4dac15559155334e64074ebb0470b347730b234bd4b2e79941bd6a",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/tests/topic-film-skills.test.ts",
+      "sha256": "beb85278c2721377638bc975ac713c2e90466df16a10279f3f5cb0bc99c33090",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/scripts/check-topic-film-skills.mjs",
+      "sha256": "c8b773d3f7e2d3da648a7f0e40bbe993b40a4a235192695be4bc08ad5ddd1b32",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-relation-unfold/SKILL.md",
+      "sha256": "7da33e569ce37872f312ed113202ae7e26cf1c14ed6c4162626fee3f79c533f7",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-relation-unfold/case-record.json",
+      "sha256": "36999ca15c5bf424471d730e0172ffa9102fa7e703899bc8594c0cc3c664cd08",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-active-window-focus/SKILL.md",
+      "sha256": "6daca6de98c70d8f30be62af08734aa47ecd487c3c81e84797d20f5cf46fdfda",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-active-window-focus/case-record.json",
+      "sha256": "0fc8beab6b265c8c7df8f8b1133b00c72307d5490a445a4a881f7475f205b745",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/SKILL.md",
+      "sha256": "4187638ac9a9a57bf148f7f8f4c219000235661266a5d4c62f4c705103e6c6f1",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/case-record.json",
+      "sha256": "54685f1afec1a50465c63450d15cc4a09405d27bd402049570301c190666c9b5",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/_shared/TOPIC_TO_FILM.md",
+      "sha256": "962c119ea11c25face582205d9f25e80606d07bad95d7ce97faab7ed7ce3a06f",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/_shared/SCENE_DESIGN_HANDOFF.md",
+      "sha256": "0515d794ccb41c4eb56d6418cb8a74c443e6ad15f8d149df33fc8ad21f40d3e6",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/SKILL.md",
+      "sha256": "1e538ba6b970b5959221b8ad4bd491e4a069e5e7648d19d2ceb4d5639241f905",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/case-record.json",
+      "sha256": "372276c56d38bee75cc0ce2f5ae420683956220b6833a5e8965ffc2e4cf9d2e9",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-context-detail-observation/SKILL.md",
+      "sha256": "7df458af5bd9e608050d8f7e47e42b66aab82ae19cacee90caee851a2da7d658",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-context-detail-observation/case-record.json",
+      "sha256": "659b8d7963bcddefae60deb46e47b8b025179a9f58ac2cb579219142c0a19a3d",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-object-type-relay/SKILL.md",
+      "sha256": "a3cae57af44d3c8c885c1956e83e0e0720b8fc484a85f8b3c884648e46a03904",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-object-type-relay/case-record.json",
+      "sha256": "c361d47a4e6132c8a17d11bcd77f3fc2f7e41ad075e2b85e0041d09231fe1415",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/effect-timing/references/pacing-by-completion.md",
+      "sha256": "ae377d08dd042dff3d6d181c00f2ce9198d00c8a26ba879daf01287af08bf0ba",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-object-type-relay/agents/openai.yaml",
+      "sha256": "b680096889ef743b8680519d0c2103561fa8fef61ff6a0be9b5a36b782718ac7",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-object-type-relay/references/generation-prompt-v1.md",
+      "sha256": "5d5ed285c4615391328e5b058c669154d3ebd88e76578ab8084d51c0f3c3bf98",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-object-type-relay/references/implementation-notes.md",
+      "sha256": "07fff826adf300e029ab035724dc8fbff65fa6eaa62f393f53ef24ccb92851fe",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-object-type-relay/assets/observed-preview.mp4",
+      "sha256": "85fbcb5f6d47c4d8eb1c3081f9491d0e7ffe6921e80fb99f988c49bfb2ee9835",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-object-type-relay/assets/observed-2.jpg",
+      "sha256": "0afcd259cf2d24ae94b21adf4dd3a5a0e8ff4e2aca37c9b83013b068dea867ae",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-object-type-relay/assets/observed-1.jpg",
+      "sha256": "d774bf4178adea2fb6c66bcb7e75c4ec6d60385257524fffc641227b321321ba",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-object-type-relay/assets/observed-3.jpg",
+      "sha256": "9fe37ec34a3b6fb23f66cf16b683c241438ba95f798daeed92f0960f6b8cf232",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-context-detail-observation/agents/openai.yaml",
+      "sha256": "60152a398a2e02e6453c088006802fcbaa8bfdf90020d1b03159dda992df2ab5",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-context-detail-observation/references/generation-prompt-v1.md",
+      "sha256": "07fd7d6a6421b32da7b070943acf3d2ca3011598c74bd4a408a58c6b4ef3eba4",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-context-detail-observation/references/implementation-notes.md",
+      "sha256": "b54bf6c5a9177bef5f0338152d1a3785d589ccd8b9c5d3dca5b1c2452eb812a6",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-context-detail-observation/assets/observed-preview.mp4",
+      "sha256": "016f5c4141d9f3833b96ddcd3a525b38920812f083650f1d8f7e31b04f8b2d46",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-context-detail-observation/assets/observed-2.jpg",
+      "sha256": "3f673ffa8ed842f6a968684183edb644fac5114a48f00e59720e394bcf57edbf",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-context-detail-observation/assets/observed-1.jpg",
+      "sha256": "97a85ad0942e6572d32d3f25afed72e4e4e67c8e0262deefeea1003c537e0306",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-context-detail-observation/assets/observed-3.jpg",
+      "sha256": "2984e509fec4e125d3feaff9c1313a40a91598f73ed8a7620b4f1e28394c8e22",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/agents/openai.yaml",
+      "sha256": "2d0b89fc9939bb180724c8c2db0c74b9eb76786c74706b6ecb301407d6af04b3",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/references/generation-prompt-v1.md",
+      "sha256": "bf51a61a74595406faa143721483955afa839bc8720c2e86850743b3b8b486be",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/references/implementation-notes.md",
+      "sha256": "48e1951f698e295b5b25e10bca616be7c123fc2f810cfa11cdc0477ed7c95d82",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/observed-full.mp4",
+      "sha256": "a2a93ae4323f4ee14639b509ace735e3f281939445382dc96c908d737aeb6a50",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/original-request.txt",
+      "sha256": "bcd9737d119d4b25d37fe1be3d53368ee4ff7c0b5a6abaaba1cd556d6a8740cc",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/observed-2.jpg",
+      "sha256": "105823cbb1195c8e39e6e170116ca9269582540b5fdb73cc776f63ee6c88f3f9",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/observed-1.jpg",
+      "sha256": "e15d7dfdac057bf1538a38995bd8d2244805314c8c7fa2358459b68a72d1ff8f",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/attribution-original.json",
+      "sha256": "5ecfe63377bf8c3638f01a7c41e6dd79ff1e0469f758ddabdec048059548cd4e",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/observed-3.jpg",
+      "sha256": "9fe37ec34a3b6fb23f66cf16b683c241438ba95f798daeed92f0960f6b8cf232",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/production-records/production-run-production_run_62f2ab8b-675e-4b90-98e8-fcaa37e839b6.json",
+      "sha256": "b747e28b14592abc147d7d4d181b36020b9fd432915e4fb81f0e561620c18d3e",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/production-records/production-run-production_run_a794c0cf-37a6-433d-adeb-dc68d61ad709.json",
+      "sha256": "986fa7c405b6926823c9ebbaf1db89f8e49bf37b562b9265d8b1c0ea9b31f5fc",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_fee74586-395d-46bd-a31b-581e8bcbd2f3/source.json",
+      "sha256": "f21320116ce4c64077de2c247d76294cca3ef6a1cdaaa9f71512b7b01ec2566d",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_fee74586-395d-46bd-a31b-581e8bcbd2f3/source.tsx",
+      "sha256": "8bd2edacd34641289301a8530f0014c9bd622e1fb1a7224485b7ead515c083a6",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_fee74586-395d-46bd-a31b-581e8bcbd2f3/manifest.json",
+      "sha256": "841d40fee15a6ce0eb0c453f66e97cb3cc077e20bb66490df2f97c2a4a70dd9f",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_74a1aaeb-cf26-4484-ac2c-04a518ebc443/source.json",
+      "sha256": "c8e1dc99d3807d1e8d3bf29009651f5e0569ec13f0fb607f3abeba2c3ece8c11",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_74a1aaeb-cf26-4484-ac2c-04a518ebc443/source.tsx",
+      "sha256": "31208aeb208d528cd9dcd3bc6fa0bf9fb96ecde41370bcf0aa197bb1291d9aa9",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_74a1aaeb-cf26-4484-ac2c-04a518ebc443/manifest.json",
+      "sha256": "e8be6318020f628974bbd35b6ed29c1ef7dbc948061b9b2f9173e1bebf6b47b0",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_25894360-a15a-4f1e-9f32-1d7c87299c84/source.json",
+      "sha256": "45ce4a07bbcd8b3d2ddbec2017256851aa9a3e185469cbda6deb383f0b0bd211",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_25894360-a15a-4f1e-9f32-1d7c87299c84/source.tsx",
+      "sha256": "8bd2edacd34641289301a8530f0014c9bd622e1fb1a7224485b7ead515c083a6",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_25894360-a15a-4f1e-9f32-1d7c87299c84/manifest.json",
+      "sha256": "37e42a8284283732544a7f8c6b0606d00e11f67dcb93ec2cd662b3ac662047b1",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_e43b2b2a-a05e-4cfb-8c05-a090c7661b81/source.json",
+      "sha256": "6951228bc75bcbe100ec23087cb1534d8e86d72aff7f4ad1f7a83429d79f4195",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_e43b2b2a-a05e-4cfb-8c05-a090c7661b81/source.tsx",
+      "sha256": "204b7b9e4fa4b520fb10dd63396e48720bd76ab17f69807649dd497641f523ea",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_e43b2b2a-a05e-4cfb-8c05-a090c7661b81/manifest.json",
+      "sha256": "74b4635dfd48302ec6cf861be076b8d7cb9e470a5e5c29a04e3dce256e4a798c",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_c97c8799-603c-4415-b8d5-03c1121ceb89/source.json",
+      "sha256": "c8e61fd147737f738fcafab504ba57a0c0ba1e4f1bff6c44e4119ad62fcfca42",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_c97c8799-603c-4415-b8d5-03c1121ceb89/source.tsx",
+      "sha256": "204b7b9e4fa4b520fb10dd63396e48720bd76ab17f69807649dd497641f523ea",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_c97c8799-603c-4415-b8d5-03c1121ceb89/manifest.json",
+      "sha256": "225197a6f15fa51a8c8f17fa8acc2f205895c0038afb29d0178646e825aa290e",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_cbcaaf6f-8c3b-4f09-b4c8-d77838304452/source.json",
+      "sha256": "76a13615151c504def828b0679636c6d2dc45ab03d10604fcb7b1cc7fee3559d",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_cbcaaf6f-8c3b-4f09-b4c8-d77838304452/source.tsx",
+      "sha256": "204b7b9e4fa4b520fb10dd63396e48720bd76ab17f69807649dd497641f523ea",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_cbcaaf6f-8c3b-4f09-b4c8-d77838304452/manifest.json",
+      "sha256": "364ff211d223066b7447f741e4733b9470eb3276771ce9f5e3eba08c1fb0238f",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_9a7886dd-6277-469a-8a7d-c7bcf85f1c24/source.json",
+      "sha256": "a14a3eb5ec0694fecd48f1da6e118afc156d8ed24d18ede64708e6ad06e337c6",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_9a7886dd-6277-469a-8a7d-c7bcf85f1c24/source.tsx",
+      "sha256": "db38b4486a92c329992c5740cace905d527bb121f4435ffe32bd332471f38b1d",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_9a7886dd-6277-469a-8a7d-c7bcf85f1c24/manifest.json",
+      "sha256": "51cda0b34caea14faab2bf0df3e4b166640a4a8aba670443a01ac1bb923d4faf",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_502ed314-f65c-41c9-a2eb-ef2c37992952/source.json",
+      "sha256": "b21f66c0d6ab46fd21ad0fa310c421e0ed8fa4e86c47c0063129055de26dbe79",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_502ed314-f65c-41c9-a2eb-ef2c37992952/source.tsx",
+      "sha256": "204b7b9e4fa4b520fb10dd63396e48720bd76ab17f69807649dd497641f523ea",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/assets/source-records/job_502ed314-f65c-41c9-a2eb-ef2c37992952/manifest.json",
+      "sha256": "b9391f4c911c8700f0009ac7d43426123120fbe6b0964c4260c70a18c6a63486",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/agents/openai.yaml",
+      "sha256": "0dc3a89c5a3056622dd088276219335f64bf39da63f8265a7703ff1add9ff2c1",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/references/generation-prompt-v1.md",
+      "sha256": "ab83d0cf3035ed2b0e6f739887fcc591d2ed6030ddde6814e6ee82a15c10e892",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/references/implementation-notes.md",
+      "sha256": "71ab438e25b740beffcd3b460408bd15f497793c5473772f1af51c09d1d057a3",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/assets/observed-preview.mp4",
+      "sha256": "190b5fb962c7a29c8637a408bea57c046a37fef63d5164448603488cedc2651d",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/assets/observed-2.jpg",
+      "sha256": "70af5643d970b66176a13e8934e84a82689694ddb3f9c97cc96e5abaf81cce25",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/assets/observed-1.jpg",
+      "sha256": "a5422c3d83cc33e2ebbb58e7d89318a50c70494308f7e98131c2ebfd9f384d69",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/assets/observed-3.jpg",
+      "sha256": "0ba0b91368333b04eaab3e4055f82f8bd7320240d63fd3309d0b6e83203d6dd4",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-active-window-focus/agents/openai.yaml",
+      "sha256": "3dd6d73bbfe8790f498ef51bc9a781ce12aaca560354bb05c5cc65a960249b0e",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-active-window-focus/references/generation-prompt-v1.md",
+      "sha256": "83063aef56e770e4a103c0081522d52b358472b4131aa9b496dccc45e66ef574",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-active-window-focus/references/implementation-notes.md",
+      "sha256": "b6d13c2a5063e61083c07cf69a2847e4c74c6377a770e0f46fa3dcb9f5b6271c",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-active-window-focus/assets/observed-preview.mp4",
+      "sha256": "eda70c07f0eaefe4fac592b133fe6177fda37f82b41b4a3f7ad0308dba685e85",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-active-window-focus/assets/observed-2.jpg",
+      "sha256": "b58d25ea37acbd03f63f2861b71dd4248670cfb664ef2e4c8d6a498074a5af79",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-active-window-focus/assets/observed-1.jpg",
+      "sha256": "e15d7dfdac057bf1538a38995bd8d2244805314c8c7fa2358459b68a72d1ff8f",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-active-window-focus/assets/observed-3.jpg",
+      "sha256": "5ecb64bc296a4f0e93ecf66edbf1d51f312642cbc0f3844507a82640a47a5aa3",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/remotion-production/references/scene-art-and-motion.md",
+      "sha256": "cf13d7c5f5624d2e3ee4cf3333c203f8cd6a527b16262d14d275ea6e32479c72",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-library/references/r92-family-index.md",
+      "sha256": "30d4fad41f41f7613540bd8d3c90f5d5c42086ba282b804c7245912d9fcd81a2",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-relation-unfold/agents/openai.yaml",
+      "sha256": "5e332d6fde3ed7f1760bda1b1844ac682663183defcc640bcf8f5b2ed8b6778f",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-relation-unfold/references/generation-prompt-v1.md",
+      "sha256": "0ce850eea730a6c2312ef3d57b81587d448954fe480228db62b70ad0b505d5c6",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-relation-unfold/references/implementation-notes.md",
+      "sha256": "f541cf98feaca7f96024f20fb27569fa69fcdba2cdf5ae80c5966f4de984d326",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-relation-unfold/assets/observed-preview.mp4",
+      "sha256": "60a0b43af80566a3ad9478a9fd7305a507790a5f1dd1263c86635357287a07af",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-relation-unfold/assets/observed-2.jpg",
+      "sha256": "21d761c80d5952ba9dc1e9129acc06baea9eb7ecc2b20923e9aea7976fc61c6b",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-relation-unfold/assets/observed-1.jpg",
+      "sha256": "76bbf157dcbe5fac969599b5b77dc717aef481e61139120da74d9ebb32c8151f",
+      "unchanged": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-relation-unfold/assets/observed-3.jpg",
+      "sha256": "1348df6634fb1023a79156abdc3eb4470b9e9df5ba31f8129ce5ab216cbad62e",
+      "unchanged": true
+    }
+  ],
+  "embedded_payloads": [
+    {
+      "path": "skill-edits/production-coordinator.md",
+      "in_full_plan": true,
+      "section": "10.4"
+    },
+    {
+      "path": "skill-edits/production-director.md",
+      "in_full_plan": true,
+      "section": "4.5"
+    },
+    {
+      "path": "skill-edits/narration-writing.md",
+      "in_full_plan": true,
+      "section": "4.6"
+    },
+    {
+      "path": "skill-edits/visual-explainer-director.md",
+      "in_full_plan": true,
+      "section": "4.7"
+    },
+    {
+      "path": "skill-edits/visual-treatment-planning.md",
+      "in_full_plan": true,
+      "section": "6.6"
+    },
+    {
+      "path": "skill-edits/scene-planning.md",
+      "in_full_plan": true,
+      "section": "4.8"
+    },
+    {
+      "path": "skill-edits/visual-asset-sourcing.md",
+      "in_full_plan": true,
+      "section": "5.6"
+    },
+    {
+      "path": "skill-edits/remotion-production.md",
+      "in_full_plan": true,
+      "section": "8.6"
+    },
+    {
+      "path": "skill-edits/effect-timing.md",
+      "in_full_plan": true,
+      "section": "7.8"
+    },
+    {
+      "path": "skill-edits/evidence-visualization.md",
+      "in_full_plan": true,
+      "section": "6.7"
+    },
+    {
+      "path": "skill-edits/captions.md",
+      "in_full_plan": true,
+      "section": "7.10"
+    },
+    {
+      "path": "skill-edits/voice-production.md",
+      "in_full_plan": true,
+      "section": "7.11"
+    },
+    {
+      "path": "skill-edits/sound-asset-sourcing.md",
+      "in_full_plan": true,
+      "section": "7.12"
+    },
+    {
+      "path": "skill-edits/audio-finishing.md",
+      "in_full_plan": true,
+      "section": "7.13"
+    },
+    {
+      "path": "skill-edits/quality-verification.md",
+      "in_full_plan": true,
+      "section": "9.7"
+    },
+    {
+      "path": "skill-edits/motion-case-library.md",
+      "in_full_plan": true,
+      "section": "14.6"
+    },
+    {
+      "path": "skill-edits/shared-handoff.md",
+      "in_full_plan": true,
+      "section": "10.5"
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-relation-unfold/SKILL.md",
+      "in_full_plan": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-active-window-focus/SKILL.md",
+      "in_full_plan": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/SKILL.md",
+      "in_full_plan": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/_shared/TOPIC_TO_FILM.md",
+      "in_full_plan": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/_shared/SCENE_DESIGN_HANDOFF.md",
+      "in_full_plan": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/SKILL.md",
+      "in_full_plan": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-context-detail-observation/SKILL.md",
+      "in_full_plan": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-object-type-relay/SKILL.md",
+      "in_full_plan": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/effect-timing/references/pacing-by-completion.md",
+      "in_full_plan": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-object-type-relay/references/generation-prompt-v1.md",
+      "in_full_plan": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-context-detail-observation/references/generation-prompt-v1.md",
+      "in_full_plan": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-mixed-scene-relay/references/generation-prompt-v1.md",
+      "in_full_plan": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-occlusion-condition-reveal/references/generation-prompt-v1.md",
+      "in_full_plan": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-active-window-focus/references/generation-prompt-v1.md",
+      "in_full_plan": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/remotion-production/references/scene-art-and-motion.md",
+      "in_full_plan": true
+    },
+    {
+      "path": "repo-overlay/.agents/skills/motion-case-relation-unfold/references/generation-prompt-v1.md",
+      "in_full_plan": true
+    }
+  ],
+  "rejected_test_constraint_example_in_main": false,
+  "fresh_repo_review_performed": false,
+  "fresh_animation_rendered": false,
+  "user_runtime_modified": false
+}

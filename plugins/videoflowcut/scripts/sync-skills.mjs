@@ -1,4 +1,5 @@
-import { cp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
+import { syncTree } from "./sync-tree.mjs";
 import { join } from "node:path";
 import { pluginRootFromModule, resolveRepoRoot } from "./repo-root.mjs";
 
@@ -7,9 +8,7 @@ const repoRoot = resolveRepoRoot({ pluginRoot });
 const sourceRoot = join(repoRoot, ".agents", "skills");
 const targetRoot = join(pluginRoot, "skills");
 
-await rm(targetRoot, { recursive: true, force: true });
-await mkdir(targetRoot, { recursive: true });
-await cp(sourceRoot, targetRoot, { recursive: true, force: true });
+await syncTree(sourceRoot, targetRoot);
 
 /**
  * Codex 插件校验会把 skills/ 下的一级目录都当作 Skill。

@@ -40,7 +40,11 @@ export const runYoutubeDownloader: YoutubeRunner = async (args, options) => {
     if (checking) return;
     checking = true;
     void readdir(options.directory!).then(async files => {
-      const sizes = await Promise.all(files.map(name => stat(join(options.directory!, name))));
+      // HLS 分段合并后会立即删除；目录枚举与 stat 之间消失的文件不代表下载失败。
+      const sizes = await Promise.all(files.map(name => stat(join(options.directory!, name)).catch(error => {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") return { size: 0 };
+        throw error;
+      })));
       if (sizes.reduce((total, info) => total + info.size, 0) > options.maxBytes!) fail("YouTube 原文件超过下载上限", "ASSET_DOWNLOAD_TOO_LARGE");
     }).catch(() => fail("无法核对下载缓存大小", "YOUTUBE_OUTPUT_INVALID")).finally(() => { checking = false; });
   }, 250) : undefined;
@@ -67,10 +71,8 @@ export class YoutubeProvider implements AssetProvider {
     let data: Record<string, unknown>;
     try { data = JSON.parse(raw); } catch { throw new AssetProviderError("下载器没有返回有效单视频元数据", "YOUTUBE_METADATA_INVALID"); }
     if (!data || typeof data !== "object" || data.id !== selected.id || data._type === "playlist" || data.is_live === true || data.live_status === "is_upcoming" || typeof data.duration !== "number" || !Number.isFinite(data.duration) || data.duration <= 0) throw new AssetProviderError("视频身份、时长或直播状态不可用于当前获取", "YOUTUBE_METADATA_INVALID");
-    // YouTube 标准许可不等于外部再利用许可；默认保持 unknown，由采用方提交真实用途依据。
-    const cc = typeof data.license === "string" && /Creative Commons Attribution/iu.test(data.license);
     const creator = typeof data.uploader === "string" ? data.uploader : undefined;
-    return [{ originalAssetId: selected.id, sourceUrl: selected.url, name: typeof data.title === "string" ? data.title.slice(0, 240) : selected.id, kind: "video", durationMs: Math.round(data.duration * 1000), creator, license: typeof data.license === "string" ? data.license : "YouTube 标准许可（再利用条件需确认）", rightsStatus: cc ? "attribution_required" : "unknown", ...(cc ? { licenseUrl: "https://creativecommons.org/licenses/by/3.0/", attributionText: `${creator ?? selected.id} · ${selected.url} · CC BY 3.0` } : {}), tags: ["youtube", "selected_page"] }];
+    return [{ originalAssetId: selected.id, sourceUrl: selected.url, name: typeof data.title === "string" ? data.title.slice(0, 240) : selected.id, kind: "video", durationMs: Math.round(data.duration * 1000), creator, tags: ["youtube", "selected_page"] }];
   }
   async download({ candidate, temporaryDirectory }: Parameters<AssetProvider["download"]>[0]) {
     const selected = youtubeVideoUrl(candidate.sourceUrl);
@@ -78,8 +80,10 @@ export class YoutubeProvider implements AssetProvider {
     await mkdir(temporaryDirectory, { recursive: true });
     const maxBytes = readRuntimeConfig().downloads.maxAssetBytes;
     if (!Number.isFinite(maxBytes) || maxBytes <= 0) throw new AssetProviderError("下载大小配置无效", "ASSET_DOWNLOAD_LIMIT_INVALID");
-    // 单条视频的分离音视频流无重编码封装为一个文件；不截取、不拼接多条视频。
-    await this.run(["--no-progress", "--no-part", "--restrict-filenames", "--max-filesize", String(maxBytes), "-f", "bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[height<=1080][ext=mp4]", "--merge-output-format", "mp4", "-o", join(temporaryDirectory, "source.%(ext)s"), "--", selected.url], { directory: temporaryDirectory, maxBytes: maxBytes * 2, timeoutMs: 180_000 });
+    // 优先完整 HLS，避开直连媒体流的分段 Range 403；仅无 HLS 格式时选择普通流。
+    // 缺一段即失败，不能让 yt-dlp 默认跳段后把残缺原片登记为成功。
+    const format = "bv*[height<=720][ext=mp4][protocol^=m3u8]+ba[ext=mp4][protocol^=m3u8]/b[height<=720][ext=mp4][protocol^=m3u8]/bv*[height<=720][ext=mp4]+ba[ext=m4a]/b[height<=720][ext=mp4]";
+    await this.run(["--no-progress", "--no-part", "--restrict-filenames", "--abort-on-unavailable-fragments", "--concurrent-fragments", "4", "--max-filesize", String(maxBytes), "-f", format, "--merge-output-format", "mp4", "-o", join(temporaryDirectory, "source.%(ext)s"), "--", selected.url], { directory: temporaryDirectory, maxBytes: maxBytes * 2, timeoutMs: 600_000 });
     const files = (await readdir(temporaryDirectory)).filter(name => /^source\.(mp4|webm)$/u.test(name));
     if (files.length !== 1) throw new AssetProviderError("未取得单个完整视频；可能超限、不可访问或无可用整文件格式", "YOUTUBE_OUTPUT_INVALID");
     const fileName = files[0]!, filePath = join(temporaryDirectory, fileName), info = await stat(filePath);

@@ -9,6 +9,7 @@ import { audioDesignSchema, manageSoundPlan, soundPlanInputSchema, soundRequirem
 import { assetRequestVersion, digest } from "../../../packages/media-intelligence/src/index.js";
 import { soundComparisonSchema, reviewSoundMix, soundDependencySignature } from "../../../packages/edit-application/src/sound-review.js";
 import { audioMixGainSchema, setAudioMixGain } from "../../../packages/edit-application/src/audio-mix-gain.js";
+import { setDialogueMuted } from "../../../packages/edit-application/src/dialogue-muted.js";
 
 const rankSchema = z.object({ assetRequestId: z.string().min(1), candidateIds: z.array(z.string().min(1)).min(1).max(30), analyzeTop: z.number().int().min(0).max(5).default(3) }).strict();
 function rank(app: EditingApplication, projectId: string, input: z.infer<typeof rankSchema>) {
@@ -41,6 +42,7 @@ function outputTarget(app: EditingApplication, projectId: string, baseRevision: 
 export function registerSoundTools(server: McpServer, app: EditingApplication, projectIdFrom: (value?: string) => string) {
   const result = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value) }] });
   const safely = async (work: () => unknown) => { try { return result(await work()); } catch (error) { return { ...result({ error: error instanceof Error ? error.message : String(error), code: error instanceof DomainError ? error.code : undefined }), isError: true }; } };
+  server.registerTool("set_dialogue_muted", { title: "设置旁白轨静音", description: "可逆设置整个 Dialogue 轨的静音状态，Preview、Export 和 Web 共用轨道 muted 合同；保留音频素材、Script、字幕、时序和其他音轨。字幕需另行显隐，其他轨原声仍可能可听；恢复后不会自动获得声音来源或用途批准。写入当前 Revision 并使整片声音待复核。", inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), muted: z.boolean() } }, async (args) => safely(() => setDialogueMuted(app, projectIdFrom(args.project_id), args.base_revision_id, args.muted)));
   server.registerTool("set_audio_output_target", { title: "设置最终音频指标", description: "保存项目响度与 true peak 目标，正式输出按实际文件测量。此操作不改变音量，不把规范化当成素材选择或混合听审。", inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), target: audioOutputTargetSchema } }, async (args) => safely(() => outputTarget(app, projectIdFrom(args.project_id), args.base_revision_id, args.target)));
   server.registerTool("set_audio_mix_gain", { title: "设置整体混合增益", description: "将最终混合增益设为绝对 dB 值（-48 到 24，0 为恢复原混合），不会累加或修改各轨比例、时间、Duck 与包络。写入新 Revision 并使全片混合待复核；正式 Preview 与 Export 在最终混合后应用一次。不会自动限制峰值或归一化，需重新读取全片实际响度和 true peak。", inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), gain_db: audioMixGainSchema } }, async (args) => safely(() => setAudioMixGain(app, projectIdFrom(args.project_id), args.base_revision_id, args.gain_db)));
   server.registerTool("manage_sound_plans", { title: "管理段落声音计划", description: "在真实旁白和作品制作前确定段落主声音、表演意图、动作功能、音乐与留白。create 必须提供完整 startFrame/endFrame、narrationDirection、dominantRole、musicDirection 和 intents；配音前按项目 fps 提交预估帧范围，配音后用 update 按实测时长修订。update/remove 必须提供 soundPlanId，update 可只传待改字段。无 input 只读；写入必须提供当前 base_revision_id。", inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive().optional(), input: soundPlanInputSchema.optional() } }, async (args) => safely(() => {
@@ -56,6 +58,7 @@ export function registerSoundTools(server: McpServer, app: EditingApplication, p
 
 export function registerSoundRoutes(server: FastifyInstance, app: EditingApplication) {
   const id = (params: unknown) => z.object({ projectId: z.string().min(1) }).parse(params).projectId;
+  server.post("/api/projects/:projectId/dialogue-muted", async (request) => { const input = z.object({ baseRevision: z.number().int().positive(), muted: z.boolean() }).strict().parse(request.body); return setDialogueMuted(app, id(request.params), input.baseRevision, input.muted); });
   server.get("/api/sound-sources", async () => soundSourceCapabilities());
   server.get("/api/projects/:projectId/sound-library", async (request) => {
     const projectId = id(request.params), state = app.readProject(projectId);
@@ -75,7 +78,7 @@ export function registerSoundRoutes(server: FastifyInstance, app: EditingApplica
   server.post("/api/projects/:projectId/sound-acquire", async (request, reply) => { const input = z.object({ baseRevision: z.number().int().positive(), assetCandidateId: z.string().min(1) }).strict().parse(request.body); return reply.code(202).send(app.acquireAssetCandidate({ projectId: id(request.params), ...input })); });
   server.post("/api/projects/:projectId/sound-requirement", async (request) => {
     const input = z.object({ baseRevision: z.number().int().positive(), title: z.string().min(1).max(160), audioBrief: z.string().min(1).max(1600), role: z.enum(["sfx", "bgm"]), sound: soundRequirementSchema.optional() }).strict().parse(request.body);
-    return app.manageAssetRequirement({ projectId: id(request.params), ...input, action: "create", mediaKind: "audio", purpose: input.audioBrief, queryHints: [], excludedTerms: [], rightsRequirement: "cleared_or_attribution", fallbackPlan: "ask_user" });
+    return app.manageAssetRequirement({ projectId: id(request.params), ...input, action: "create", mediaKind: "audio", purpose: input.audioBrief, queryHints: [], excludedTerms: [], fallbackPlan: "ask_user" });
   });
   server.post("/api/projects/:projectId/audio-output-target", async (request) => { const input = z.object({ baseRevision: z.number().int().positive(), target: audioOutputTargetSchema }).strict().parse(request.body); return outputTarget(app, id(request.params), input.baseRevision, input.target); });
   server.post("/api/projects/:projectId/audio-mix-gain", async (request) => { const input = z.object({ baseRevision: z.number().int().positive(), gainDb: audioMixGainSchema }).strict().parse(request.body); return setAudioMixGain(app, id(request.params), input.baseRevision, input.gainDb); });
