@@ -1529,7 +1529,7 @@ export class EditingApplication {
   readRepairTickets(input: { projectId: Id; statuses?: RepairTicketStatus[] }): { revision: number; repairTickets: RepairTicket[] } {
     const state = this.readProject(input.projectId);
     const statuses = input.statuses ? [...new Set(input.statuses)] : undefined;
-    if (statuses && statuses.some((status) => !(["open", "claimed", "ready_for_cutover", "deployed", "acknowledged"] as const).includes(status))) {
+    if (statuses && statuses.some((status) => !(["open", "claimed", "ready_for_cutover", "deployed", "acknowledged", "resolved_without_deployment"] as const).includes(status))) {
       throw new DomainError("修复工单状态筛选无效", "REPAIR_TICKET_STATUS_INVALID");
     }
     return { revision: state.revision.number, repairTickets: this.repository.listRepairTickets({ projectId: input.projectId, statuses }) };
@@ -1551,6 +1551,19 @@ export class EditingApplication {
       throw new DomainError("修复工单释放字段超过允许长度", "REPAIR_TICKET_TEXT_TOO_LONG");
     }
     const ticket = this.repository.releaseRepairTicket({ ticketId: input.ticketId, repairerId, reason });
+    this.publish({ projectId: ticket.projectId, revision: this.readProject(ticket.projectId).revision.number, type: "repair_ticket" });
+    return ticket;
+  }
+
+  /** 输入错误、重复报告或宿主外部恢复走有证据的非部署收口，不伪造 Release 切换。 */
+  resolveRepairTicketWithoutDeployment(input: { ticketId: Id; repairerId: string; kind: "invalid_input" | "duplicate" | "external_recovery"; evidence: string }): RepairTicket {
+    const repairerId = requireText(input.repairerId, "修复 Agent 标识");
+    const evidence = requireText(input.evidence, "非部署收口证据");
+    if (repairerId.length > 160 || evidence.length < 16 || evidence.length > 8_000
+      || !(["invalid_input", "duplicate", "external_recovery"] as const).includes(input.kind)) {
+      throw new DomainError("非部署收口分类或证据无效", "REPAIR_TICKET_RESOLUTION_INVALID");
+    }
+    const ticket = this.repository.resolveRepairTicketWithoutDeployment({ ticketId: input.ticketId, repairerId, kind: input.kind, evidence });
     this.publish({ projectId: ticket.projectId, revision: this.readProject(ticket.projectId).revision.number, type: "repair_ticket" });
     return ticket;
   }

@@ -283,14 +283,18 @@ export class ProjectRepository {
       status: row.status,
       repairerId: row.repairer_id ?? undefined,
       releasedBy: row.released_by ?? undefined,
-      releaseReason: row.release_reason ?? undefined,
+      releaseReason: row.status === "resolved_without_deployment" ? undefined : row.release_reason ?? undefined,
       candidateReleaseId: row.candidate_release_id ?? undefined,
-      validationSummary: row.validation_summary ?? undefined,
+      validationSummary: row.status === "resolved_without_deployment" ? undefined : row.validation_summary ?? undefined,
       deployedReleaseId: row.deployed_release_id ?? undefined,
       deploymentEvidence: row.deployment_evidence ?? undefined,
       acknowledgedBy: row.acknowledged_by ?? undefined,
       acknowledgedReleaseId: row.acknowledged_release_id ?? undefined,
       acknowledgedRevision: row.acknowledged_revision ?? undefined,
+      ...(row.status === "resolved_without_deployment" ? {
+        resolutionKind: row.release_reason as RepairTicket["resolutionKind"],
+        resolutionEvidence: row.validation_summary ?? undefined
+      } : {}),
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };
@@ -621,6 +625,19 @@ export class ProjectRepository {
       this.db.prepare(`UPDATE repair_tickets
         SET status = 'open', repairer_id = NULL, released_by = ?, release_reason = ?, updated_at = ?
         WHERE id = ?`).run(input.repairerId, input.reason, now(), input.ticketId);
+      return this.getRepairTicket(input.ticketId);
+    });
+  }
+
+  /** 复用工单已有的原因和证据列，避免为了非部署收口改动生产表结构。 */
+  resolveRepairTicketWithoutDeployment(input: { ticketId: Id; repairerId: string; kind: NonNullable<RepairTicket["resolutionKind"]>; evidence: string }): RepairTicket {
+    return this.transaction(() => {
+      const ticket = this.getRepairTicket(input.ticketId);
+      if (ticket.status !== "claimed") throw new DomainError("只有已接手工单可按非部署原因收口", "REPAIR_TICKET_NOT_CLAIMED");
+      if (ticket.repairerId !== input.repairerId) throw new DomainError("只有原接手修复 Agent 可以收口", "REPAIR_TICKET_CLAIMER_MISMATCH");
+      this.db.prepare(`UPDATE repair_tickets SET status = 'resolved_without_deployment',
+        release_reason = ?, validation_summary = ?, updated_at = ? WHERE id = ?`)
+        .run(input.kind, input.evidence, now(), input.ticketId);
       return this.getRepairTicket(input.ticketId);
     });
   }

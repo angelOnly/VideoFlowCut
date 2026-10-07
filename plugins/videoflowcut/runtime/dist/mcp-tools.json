@@ -715,10 +715,11 @@
                 "claimed",
                 "ready_for_cutover",
                 "deployed",
-                "acknowledged"
+                "acknowledged",
+                "resolved_without_deployment"
               ]
             },
-            "maxItems": 5
+            "maxItems": 6
           }
         },
         "additionalProperties": false,
@@ -785,6 +786,49 @@
           "ticket_id",
           "repairer_id",
           "reason"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "resolve_repair_ticket_without_deployment",
+      "title": "按非部署原因收口修复工单",
+      "description": "仅原接手修复 Agent 可在核实输入错误、重复报告或宿主外部恢复后，用具体证据收口；不会宣称平台代码已部署，也不会因 Job 后来成功自动关闭。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ticket_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "repairer_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "invalid_input",
+              "duplicate",
+              "external_recovery"
+            ]
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "ticket_id",
+          "repairer_id",
+          "kind",
+          "evidence"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"

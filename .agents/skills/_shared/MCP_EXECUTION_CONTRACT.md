@@ -146,7 +146,7 @@ YouTube 获取合同取得选定视频的整条单文件，最高 1080p；同一
 | 读取发行健康 | `read_runtime_release()` | 比较 `mcpReleaseId` 与 `runtime.releaseId`，并确认 API、媒体 Worker、渲染 Worker 均健康；不一致时不能确认部署或恢复。 |
 | 剪辑阻断 | `report_editing_blocker(reported_revision, category, summary, reporter_id, idempotency_key, detail?, tool_name?, job_id?)` | 剪辑任务停在当前步骤；Ticket 保存 MCP 的 Release ID 和报告 Revision，不进入视频 Revision。Runtime 不可达时也可报告，不能因报障失败而伪造恢复。 |
 | 修复接手与候选验证 | `list_repair_tickets(statuses?)`；`claim_repair_ticket(ticket_id, repairer_id)`；`mark_repair_candidate_ready(ticket_id, repairer_id, candidate_release_id, validation_summary)` | Repairer 只在隔离 Runtime/工作区验证根因修复与回归；候选 ID 必须是构建 Manifest 的 `release-<sha256>`，不能使用 latest 或口头版本。 |
-| 非部署收口 | `resolve_repair_ticket_without_deployment(ticket_id, repairer_id, kind, evidence)` | 仅原接手 Repairer 在核实 `invalid_input`、`duplicate` 或 `external_recovery` 并留下可复核证据后使用；不声称代码已部署，Job 后来成功也不自动收口。 |
+| 非部署收口 | `resolve_repair_ticket_without_deployment(ticket_id, repairer_id, kind, evidence)` | 仅处于 claimed 的工单可由原接手 Repairer 收口；分类为 `invalid_input`、`duplicate` 或 `external_recovery`，证据为16至8000字符。拒绝不改变工单或视频 Revision；成功不声称代码已部署，Job 后来成功也不自动收口。 |
 | 正式切换 | `mark_repair_deployed(ticket_id, repairer_id, deployment_evidence)` | 该命令自行读取当前 MCP/Runtime Release ID；只有两者一致且等于已验证候选版才会写入 deployed。旧 MCP 或旧 Runtime 必须先重新部署/重连。 |
 | 剪辑恢复 | `acknowledge_repair_deployment(ticket_id, editor_id, observed_revision)` | 原报告者重新连接新版 MCP、读回当前 Project 后确认。`observed_revision` 必须仍是当前 Revision；成功后才继续剪辑。 |
 

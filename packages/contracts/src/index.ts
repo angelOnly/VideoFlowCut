@@ -1703,7 +1703,8 @@ export interface AgentWorkOrder {
  * 不能因为报告一个 MCP 故障而改写 Timeline、素材或 Story。
  */
 export type RepairTicketCategory = "tool_missing" | "tool_error" | "runtime_failure" | "workflow_blocker";
-export type RepairTicketStatus = "open" | "claimed" | "ready_for_cutover" | "deployed" | "acknowledged";
+export type RepairTicketStatus = "open" | "claimed" | "ready_for_cutover" | "deployed" | "acknowledged" | "resolved_without_deployment";
+export type RepairTicketResolutionKind = "invalid_input" | "duplicate" | "external_recovery";
 
 export interface RepairTicket {
   id: Id;
@@ -1731,6 +1732,9 @@ export interface RepairTicket {
   acknowledgedReleaseId?: string;
   /** 剪辑 Agent 重新连接新 MCP 后读到的当前视频 Revision。 */
   acknowledgedRevision?: number;
+  /** 非部署收口必须记录可复核原因；不会冒充平台代码已修复。 */
+  resolutionKind?: RepairTicketResolutionKind;
+  resolutionEvidence?: string;
   createdAt: string;
   updatedAt: string;
 }
