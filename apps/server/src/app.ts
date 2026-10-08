@@ -1,4 +1,6 @@
 import { captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
+import { MotionSubmissionValidationError } from "../../../packages/edit-application/src/motion-submission-validation.js";
+import { toolError } from "./tool-error.js";
 import { explainerPlanWithContent } from "../../../packages/contracts/src/explainer-inputs.js";
 import { sourceCaptionTextReviewSchema, exportApprovalSchema } from "../../../packages/contracts/src/editorial-inputs.js";
 import { audioDesignSchema } from "../../../packages/edit-application/src/sound-design.js";
@@ -271,6 +273,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   await app.register(multipart, { limits: { files: 18, fileSize: 512 * 1024 * 1024 } });
 
   app.setErrorHandler((error, _request, reply) => {
+    if (error instanceof MotionSubmissionValidationError) return reply.status(400).send(toolError(error));
     if (error instanceof RevisionConflictError) {
       return reply.status(409).send({ error: "REVISION_CONFLICT", message: error.message, expectedRevision: error.expected, currentRevision: error.actual });
     }

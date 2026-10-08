@@ -4,6 +4,7 @@ import { build } from "esbuild";
 import ts from "typescript";
 import type { BoundMotionFont, BoundMotionImage, BoundMotionVideo, DecodedMotionVideo, MotionSubmission } from "./schema.js";
 import { motionFontProps } from "./fonts.js";
+import { MotionSourceValidationError } from "./source-validation-error.js";
 
 export const MOTION_ENGINE_VERSION = "managed-motion-13";
 const forbidden = new Set(["eval", "Function", "globalThis", "window", "document", "navigator", "location", "parent", "top", "opener", "self", "fetch", "XMLHttpRequest", "WebSocket", "Worker", "SharedWorker", "process", "require", "Date", "performance", "setTimeout", "setInterval", "requestAnimationFrame", "localStorage", "sessionStorage", "indexedDB", "constructor", "__proto__", "prototype"]);
@@ -15,17 +16,22 @@ const allowedImports: Record<string, Set<string>> = {
 };
 
 export const motionAllowedImports = () => Object.fromEntries(Object.entries(allowedImports).map(([module, names]) => [module, [...names]]));
-function rejectedImport(name: string): Error {
+function importSuggestion(name: string): string {
   const hint = ["useEffect", "useState", "delayRender", "continueRender"].includes(name)
     ? "；加载字体请使用 fontBindings（先查询 read_motion_capabilities）；动画由 useCurrentFrame 驱动" : "";
-  return new Error(`MOTION_IMPORT_REJECTED: ${name}${hint}`);
+  return `仅使用 read_motion_capabilities 公布的导入${hint}`;
 }
 
 /** AST 用于依赖与确定性约束；真正的执行安全还依赖 Chromium sandbox、CSP 和网络拒绝。 */
 export function validateMotionSource(source: string): void {
   const file = ts.createSourceFile("motion.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const reject = (code: string, node: ts.Node, message: string, suggestion: string, position = node.getStart(file)): never => {
+    const location = file.getLineAndCharacterOfPosition(position);
+    throw new MotionSourceValidationError(code, message, { line: location.line + 1, column: location.character + 1 },
+      ts.SyntaxKind[node.kind], node.getText(file).slice(0, 160), suggestion);
+  };
   const diagnostics = (file as ts.SourceFile & { parseDiagnostics: readonly ts.Diagnostic[] }).parseDiagnostics;
-  if (diagnostics.length) throw new Error(`MOTION_SOURCE_INVALID: ${ts.flattenDiagnosticMessageText(diagnostics[0].messageText, " ")}`);
+  if (diagnostics.length) reject("MOTION_SOURCE_INVALID", file, ts.flattenDiagnosticMessageText(diagnostics[0].messageText, " "), "修正指定位置的 TSX 语法", diagnostics[0].start ?? 0);
   // 只绑定当前源码中的词法作用域，不读取宿主文件或解析外部依赖。
   // 同名局部变量可以用于几何计算；未绑定的浏览器全局仍须拒绝。
   const checker = ts.createProgram([file.fileName], { noLib: true, noResolve: true }, {
@@ -125,22 +131,23 @@ export function validateMotionSource(source: string): void {
     if (ts.isImportDeclaration(node)) {
       const module = ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : "";
       const permitted = allowedImports[module];
-      if (!permitted || !node.importClause || node.importClause.namedBindings && ts.isNamespaceImport(node.importClause.namedBindings)) throw new Error(`MOTION_IMPORT_REJECTED: ${module}`);
-      if (node.importClause.name && module !== "react") throw new Error("MOTION_IMPORT_REJECTED: 仅 React 支持 default import");
-      if (node.importClause.namedBindings && ts.isNamedImports(node.importClause.namedBindings)) {
-        for (const entry of node.importClause.namedBindings.elements) if (!permitted.has((entry.propertyName ?? entry.name).text)) throw rejectedImport((entry.propertyName ?? entry.name).text);
+      if (!permitted || !node.importClause || node.importClause.namedBindings && ts.isNamespaceImport(node.importClause.namedBindings)) reject("MOTION_IMPORT_REJECTED", node, `不允许此导入：${module}`, importSuggestion(module));
+      if (node.importClause!.name && module !== "react") reject("MOTION_IMPORT_REJECTED", node, "仅 React 支持 default import", "其它允许模块使用已登记的具名导入");
+      if (node.importClause!.namedBindings && ts.isNamedImports(node.importClause!.namedBindings)) {
+        for (const entry of node.importClause!.namedBindings.elements) if (!permitted.has((entry.propertyName ?? entry.name).text)) reject("MOTION_IMPORT_REJECTED", entry, `不允许导入：${(entry.propertyName ?? entry.name).text}；${importSuggestion((entry.propertyName ?? entry.name).text)}`, importSuggestion((entry.propertyName ?? entry.name).text));
       }
     }
-    if (ts.isExportDeclaration(node) || ts.isImportEqualsDeclaration(node) || ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) throw new Error("MOTION_IMPORT_REJECTED: 不允许转导出、require 或动态 import");
+    if (ts.isExportDeclaration(node) || ts.isImportEqualsDeclaration(node) || ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) reject("MOTION_IMPORT_REJECTED", node, "不允许转导出、require 或动态 import", "使用允许模块的静态导入并直接默认导出组件");
     if (ts.isExportAssignment(node) && !node.isExportEquals || ts.canHaveModifiers(node) && ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.DefaultKeyword)) hasDefault = true;
-    const literalPropertyName = node.parent && (ts.isPropertyAssignment(node.parent) || ts.isPropertySignature(node.parent)) && node.parent.name === node;
+    // 名称不等于变量读取；只豁免名称节点，属性值仍继续遍历并执行 DOM 专项检查。
+    const literalPropertyName = node.parent && (ts.isPropertyAssignment(node.parent) || ts.isPropertySignature(node.parent) || ts.isJsxAttribute(node.parent)) && node.parent.name === node;
     const forbiddenIdentifier = ts.isIdentifier(node) && !literalPropertyName && forbidden.has(node.text)
       && (ts.isPropertyAccessExpression(node.parent) && node.parent.name === node
         ? !isDataProperty(node.parent, node.text) : !isLocalValue(node));
     const forbiddenElement = ts.isStringLiteralLike(node) && ts.isElementAccessExpression(node.parent)
       && node.parent.argumentExpression === node && forbidden.has(node.text) && !isDataProperty(node.parent, node.text);
-    if (forbiddenIdentifier || forbiddenElement) throw new Error(`MOTION_API_REJECTED: ${node.getText(file)}`);
-    if (ts.isPropertyAccessExpression(node) && node.expression.getText(file) === "Math" && node.name.text === "random") throw new Error("MOTION_NONDETERMINISTIC: 使用 Remotion random(seed)，不要 Math.random()");
+    if (forbiddenIdentifier || forbiddenElement) reject("MOTION_API_REJECTED", node, `不允许未绑定的全局名称或无法确认为数据的成员访问：${node.getText(file)}`, "使用显式局部值或可追溯的数据 Props；浏览器全局、原型及外部 API 不可用");
+    if (ts.isPropertyAccessExpression(node) && node.expression.getText(file) === "Math" && node.name.text === "random") reject("MOTION_NONDETERMINISTIC", node, "Math.random() 不确定", "使用 Remotion random(seed)");
     if (ts.isJsxAttribute(node)) {
       const name = node.name.getText(file);
       const owner = node.parent.parent;
@@ -153,16 +160,17 @@ export function validateMotionSource(source: string): void {
           && Boolean(declaration.parent.flags & ts.NodeFlags.Const) && declaration.initializer
           && (ts.isArrowFunction(declaration.initializer) || ts.isFunctionExpression(declaration.initializer)));
       const managedImage = name === "src" && (tag?.getText(file) === "Img" || localComponent) && node.initializer && ts.isJsxExpression(node.initializer);
-      if (/^on[A-Z]/u.test(name) || ["dangerouslySetInnerHTML", "href", "srcDoc"].includes(name) || name === "src" && !managedImage) throw new Error("MOTION_DOM_REJECTED: 图片用 Img 和 props.assets 的受管数据，其余事件、HTML 或外部链接不可用");
+      if (/^on[A-Z]/u.test(name) || ["dangerouslySetInnerHTML", "href", "srcDoc"].includes(name) || name === "src" && !managedImage) reject("MOTION_DOM_REJECTED", node, "事件、HTML 或外部资源入口不可用", "图片用 Img 和 props.assets 的受管数据；移除事件、HTML 注入及外部链接");
     }
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
-      if (["script", "iframe", "object", "embed", "link", "meta", "style", "audio", "video", "img", "canvas", "foreignObject"].includes(node.tagName.getText(file))) throw new Error("MOTION_DOM_REJECTED: 当前作品只允许文字、CSS 和 SVG 图形");
+      if (["script", "iframe", "object", "embed", "link", "meta", "style", "audio", "video", "img", "canvas", "foreignObject"].includes(node.tagName.getText(file))) reject("MOTION_DOM_REJECTED", node.tagName, "原生媒体或外部嵌入标签不可用", "使用文字、CSS、SVG 或平台登记的 Img、TimelineVideo");
     }
     ts.forEachChild(node, visit);
   };
   visit(file);
-  if (!hasDefault) throw new Error("MOTION_DEFAULT_EXPORT_REQUIRED: 导出默认 React 组件");
-  if (/\b(?:transition|animation)\s*:/u.test(source)) throw new Error("MOTION_NONDETERMINISTIC: 动画必须由 useCurrentFrame 驱动，不能使用 CSS transition/animation");
+  if (!hasDefault) reject("MOTION_DEFAULT_EXPORT_REQUIRED", file, "缺少默认 React 组件", "添加 export default 组件");
+  const cssAnimation = /\b(?:transition|animation)\s*:/u.exec(source);
+  if (cssAnimation) reject("MOTION_NONDETERMINISTIC", file, "不能使用 CSS transition/animation", "动画由 useCurrentFrame 驱动", cssAnimation.index);
 }
 
 export function motionHash(input: MotionSubmission, images: BoundMotionImage[] = [], engineVersion = MOTION_ENGINE_VERSION, videos: BoundMotionVideo[] = [], fonts: BoundMotionFont[] = []): string {

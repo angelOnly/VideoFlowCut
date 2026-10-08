@@ -24,6 +24,18 @@ test("自动 JSX 运行时可实际渲染无 React 导入的组件，旧身份�
 });
 
 const component = `const Caption=({cue}:{cue:{top:number}})=><div style={{top:cue.top}}/>;`;
+test("组件 top 属性实际渲染到指定坐标，名称放行不影响局部参数", { timeout: 60_000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "vfc-jsx-top-"));
+  try {
+    const source = `function RuleLine({top}:{top:number}){return <div style={{position:'absolute',left:0,top,width:320,height:100,background:'#00ff00'}}/>;}export default ()=> <RuleLine top={148}/>;`;
+    const result = await renderManagedMotion({ ...motionFixture, source, durationInFrames: 2 }, root);
+    const png = PNG.sync.read(await readFile(join(root, "frames/frame-00000.png")));
+    assert.equal(png.data[(147 * png.width + 10) * 4 + 3], 0);
+    const pixel = (148 * png.width + 10) * 4;
+    assert.deepEqual([...png.data.subarray(pixel, pixel + 4)], [0, 255, 0, 255]);
+    assert.equal(result.frameHashes.length, 2);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
 test("字幕配置通过子组件解构传参后仍识别为数据", () => {
   for (const source of [
     `${component}export default function Motion(props){return <Caption cue={props.captionCue}/>;}`,

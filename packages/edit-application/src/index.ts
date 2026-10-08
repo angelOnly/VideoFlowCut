@@ -14,6 +14,8 @@ import { EDITORIAL_PASSES, evidenceSupportsPass, mergeEditorialReviews, missingR
 import { boundMotionFontSchema, boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema, type MotionSubmission } from "../../motion-work/src/schema.js";
 import { bindMotionFonts } from "../../motion-work/src/fonts.js";
 import { motionHash, motionHashEngine, MOTION_ENGINE_VERSION, validateMotionSource } from "../../motion-work/src/compiler.js";
+import { MotionSourceValidationError } from "../../motion-work/src/source-validation-error.js";
+import { MotionSubmissionValidationError } from "./motion-submission-validation.js";
 import { inspectEffectContentContract } from "@videocut/contracts";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
@@ -2391,7 +2393,11 @@ export class EditingApplication {
   /** 提交只创建固定输入的 Job；不改变 Timeline，也不把代码装进平台 Registry。 */
   submitManagedMotion(input: { projectId: Id; baseRevision: number; idempotencyKey: string; work: MotionSubmission }): JobRecord {
     const work = motionSubmissionSchema.parse(input.work);
-    validateMotionSource(work.source);
+    try { validateMotionSource(work.source); } catch (error) {
+      // 这里只包住纯源码校验；数据库、素材、字体和 Worker 异常不能取得重试许可。
+      if (error instanceof MotionSourceValidationError) throw new MotionSubmissionValidationError(error);
+      throw error;
+    }
     const existing = this.repository.listJobs(input.projectId).find((job) => job.idempotencyKey === `motion:${input.idempotencyKey}`);
     if (existing) {
       if (existing.kind !== "motion_generation" || motionHash(motionSubmissionSchema.parse(existing.payload.work)) !== motionHash(work)) throw new DomainError("幂等键已用于不同作品输入", "MOTION_IDEMPOTENCY_CONFLICT");

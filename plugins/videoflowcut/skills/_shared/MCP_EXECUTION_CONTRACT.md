@@ -177,4 +177,6 @@ Revision 冲突、超时、连接中断或 Bridge 重启时，先读 Project、I
 
 ## 参数拒绝与原始错误证据
 
+`submit_motion_work` 的已知源码拒绝由提交层确认发生在创建 Job 之前，返回 `code`、`stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=correct_input`，并在 `fields` 中提供 `field=work.source`、从1开始的行列、节点类型、相关片段、原因和纠正依据。保存原始结果后交原作者修订，最多纠正提交一次，不原样重放，不换幂等键绕过。合法 JSX 属性名不等于全局访问；发现平台误判仍报 Repair Ticket。底层源码异常不自行携带重试许可，Worker 失败和结果未知不走这个分支；字体选择保持独立合同。
+
 调用结果先检查 `isError`，保存完整文本后再按实际内容解析 JSON；协议层 Schema 拒绝可能只有文本，解析失败不得覆盖原始错误。参数拒绝、业务冲突、运行故障和写入结果未知分别记录。仅明确 `stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=correct_input` 并指出字段纠正依据的参数拒绝，允许按实时 Schema 纠正后提交一次；不重放原请求，同因再次拒绝报障。协议层文本拒绝必须核对实时 Schema 和当前 Revision，确认未进入业务执行后才能纠正。此例外不允许重试已创建的下载、生成 Job、运行失败或结果未知，不更换幂等键绕过。字体选择继续遵守人工选择合同。
