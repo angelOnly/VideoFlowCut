@@ -84,6 +84,8 @@ const expectedSkills = [
   "export",
   "known-errors",
   "motion-case-library",
+  "motion-brief-writing",
+  "motion-case-attention-programme",
   "motion-case-sim-paper",
   "motion-case-smooth-relay",
   "motion-case-ticket-phone",
@@ -310,7 +312,7 @@ test("Skills V5 源唯一、插件发行副本完整且可被 Codex 发现", asy
     assert.match(frontMatter![1], new RegExp(`^name:\\s*${name}$`, "mu"), `${name} 的 name 必须与目录一致`);
     assert.match(frontMatter![1], /^description:\s*\S+/mu, `${name} 缺少 description`);
     // 案例以编号章节交回当前任务，仍须保留实际检查与交接正文。
-    assert.match(skill, /^##[ \t]+(?:\d+\.[ \t]+)?(?:退出条件|验证与退出|停止条件|最终检查|完成标准|交接合同|交接|如何根据实际成片检查和调整|返回当前制作任务)/mu, `${name} 缺少可验证的退出或交接条件`);
+    assert.match(skill, /^##[ \t]+(?:\d+\.[ \t]+)?(?:退出条件|验证与退出|停止条件|最终检查|完成标准|交接合同|交接|如何根据实际成片检查和调整|返回当前制作任务|返回产物|学完回当前任务做什么)/mu, `${name} 缺少可验证的退出或交接条件`);
     assert.equal(
       await readFile(join(pluginSkillsRoot, name, "SKILL.md"), "utf8"),
       skill,
