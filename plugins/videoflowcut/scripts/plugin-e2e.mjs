@@ -272,7 +272,8 @@ try {
   const motionRead = await call("read_motion_work", { project_id: project.snapshot.project.id, job_id: motion.id });
   assert.equal(motionRead.asset.motion.frameCount, 792);
   assert.equal(motionRead.asset.metadata.durationMs, 33000);
-  assert.equal(motionRead.asset.motion.engineVersion, "managed-motion-12");
+  // 字体已由managed-motion-13接管；新作必须使用当前引擎，旧版本仅供历史作品读取。
+  assert.equal(motionRead.asset.motion.engineVersion, "managed-motion-13");
   assert.equal(motionResult.result.assetId, motionRead.asset.id);
   if (process.platform === "win32") assert.ok(runtimeTreeRssPeak > 0, "候选验证必须记录实际Runtime进程树内存");
   console.log(JSON.stringify({ releaseId: release.releaseId, frameCount: 792, durationMs: 33000, runtimeTreeRssPeakBytes: runtimeTreeRssPeak }));

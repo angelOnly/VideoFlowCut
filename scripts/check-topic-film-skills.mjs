@@ -84,5 +84,44 @@ for(const id of cases){
  check(await exists(join(root,instruction)),`材料分支指令缺失：${id}`);
  if(await exists(join(root,instruction)))await checkLinks(instruction);
 }
+// 新方法沿原作者调用；案例原件、教学解释与新主题验证不得互相冒充。
+const briefSkill='motion-brief-writing';
+const attentionCase='motion-case-attention-programme';
+for(const id of [briefSkill,attentionCase]){
+ const body=await text(id+'/SKILL.md');
+ check(body.match(/^name:\s*(.+)$/m)?.[1].trim()===id,`新增Skill身份错误：${id}`);
+ check(/^description:\s*\S/m.test(body),`新增Skill缺少说明：${id}`);
+ check((await text(id+'/agents/openai.yaml')).includes('allow_implicit_invocation: false'),`新增方法必须按阶段读取：${id}`);
+}
+async function checkDirectoryLinks(rel){
+ for(const item of await readdir(join(root,rel),{withFileTypes:true})){
+  const path=rel+'/'+item.name;
+  if(item.isDirectory())await checkDirectoryLinks(path);
+  else if(item.name.endsWith('.md'))await checkLinks(path);
+ }
+}
+await checkDirectoryLinks(briefSkill);
+await checkDirectoryLinks(attentionCase);
+for(const rel of ['_shared/TOPIC_TO_FILM.md','_shared/SCENE_DESIGN_HANDOFF.md','remotion-production/SKILL.md']){
+ check((await text(rel)).includes('motion-brief-writing/SKILL.md'),`演出方法未接入：${rel}`);
+}
+check(library.includes('motion-case-attention-programme/SKILL.md'),'案例库没有新案例入口');
+const motion=await text('remotion-production/SKILL.md');
+check(!motion.includes('材料不齐可以先设计美术、状态和动作'),'未看实际材料先定案的旧许可仍在');
+check(!motion.includes('必须完整读取其 references/generation-prompt-v1.md'),'仍假定每个案例使用相同指令文件名');
+const attention=JSON.parse(await text(attentionCase+'/case-record.json'));
+check(attention.status.newTopicTransfer==='not_tested','历史片认可不得继承为新主题通过');
+check(attention.status.machineContinuousReview==='not_newly_completed','不得编造本轮连续审阅');
+check(attention.adoptedDesign.originalCompleteDirectorBriefIncluded===false,'整理稿不得冒充原完整对话');
+check(attention.productionReport.historicalRecordUnmodified===true,'历史报告必须保留原件');
+check(attention.missingDependencies.length>0&&attention.status.standaloneRerender==='not_available_from_this_package_alone','须保留独立重渲染缺口');
+const provenance=JSON.parse(await text(attentionCase+'/'+attention.provenance));
+for(const entry of provenance.entries){
+ const bytes=await readFile(join(root,attentionCase,entry.file));
+ check(bytes.length===entry.bytes&&createHash('sha256').update(bytes).digest('hex')===entry.sha256,`案例来源不匹配：${entry.file}`);
+}
+const savedSource=JSON.parse(await text(attentionCase+'/source/source.json'));
+check((await text(attentionCase+'/source/Motion.tsx'))===savedSource.source,'提取源码与固定输入不一致');
+check((await text(attentionCase+'/references/submitted-brief.md'))===savedSource.creativeBrief,'原提交摘要与固定输入不一致');
 console.log(JSON.stringify({kind:'static_case_and_skill_contract',skillsRoot:root,checks,passed:checks-failures.length,failures,doesNotProve:'Model behavior, beauty, playback or complete runtime integration'},null,2));
 process.exitCode=failures.length?1:0;
