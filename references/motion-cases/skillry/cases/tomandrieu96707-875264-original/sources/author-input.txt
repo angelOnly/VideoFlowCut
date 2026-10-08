@@ -1,0 +1,1 @@
+Create a pure javascript animation. 30s-60s whimsical hand drawn collage style with appropriate audio that will explain the same story as our “about-us” page. Use assets from our repo when possible.

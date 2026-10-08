@@ -1,0 +1,18 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>skills/session-story/assets/engine/NOTICE.md</title><style>body{max-width:1100px;margin:30px auto;padding:0 24px;background:#12151a;color:#e8edf4;font:16px/1.8 system-ui,"Microsoft YaHei"}a{color:#9ec5f8}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#202630;padding:20px;border-radius:8px;font:14px/1.7 monospace}code{overflow-wrap:anywhere}li{margin:8px 0}</style><body><nav><a href="../../../../../../公开相关源码.html">公开相关源码目录</a></nav><h1>skills/session-story/assets/engine/NOTICE.md</h1><p>jake11moran-825416作者公开的生成Skill，不是原片固定工程</p><p>固定Commit：ba7a0bb6d3567d124c51f6074625043bfe0b32eb；仅显示文本，未执行。</p><p><a href="https://raw.githubusercontent.com/heygen-com/hyperframes-community-skills/ba7a0bb6d3567d124c51f6074625043bfe0b32eb/skills/session-story/assets/engine/NOTICE.md" target="_blank">公开原文件</a></p><pre># Third-party code
+
+`kit/core.js`, `kit/clawd.js` and `kit/timeline.js` are adapted from
+[ClaudeAnimationBase](https://github.com/JohnHeibel/ClaudeAnimationBase) by John Heibel, commit `b1d7e89`, under the
+MIT license in `LICENSE-ClaudeAnimationBase`. Readable source, modified as follows:
+
+- `core.js`: letters take an optional 2×2 matrix (`mat`) and axis scales (`sx`, `sy`) so text can lie on a 3D face;
+  `setup()` hands control to the HyperFrames bridge when it is present; `window.paintAt(t)` paints a frame for it; a
+  comment that pointed at the upstream guide is shortened.
+- `clawd.js`: a mood change hands its colour cross-fade to the character as tint parameters (`tintFrom`, `tintMixK`),
+  so the mood timeline works on any character&#x27;s palette; per-leg `legLift` / `legSwing` and a stride weight `walkK`;
+  one more mood, `ouch`.
+- `timeline.js`: unchanged.
+
+`kit/hf-bridge.js` and everything in `scenes/` are original to this skill.
+Browser libraries are not copied here: `scripts/setup.sh` installs p5 2.3.3 (LGPL-2.1), p5.brush 2.2.3 (MIT) and the
+Permanent Marker font (Apache-2.0, via @fontsource/permanent-marker 5.3.0) from npm, pinned by `scripts/package-lock.json`.
+</pre></body></html>

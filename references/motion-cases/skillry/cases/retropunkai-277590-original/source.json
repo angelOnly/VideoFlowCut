@@ -1,0 +1,66 @@
+{
+  "case_number": 59,
+  "case_id": "R226",
+  "slug": "retropunkai-277590",
+  "title": "Sphere场馆建设与活动时间线",
+  "group": "插画与过程解释",
+  "author": "RetropunkAI",
+  "page_url": "https://skillry.dev/ai-videos/opus-5-5/retropunkai-277590",
+  "original_post": "https://x.com/RetropunkAI/status/2103237989065277590",
+  "version": "Original",
+  "media_url": "https://media.skillry.dev/opus-5-5/retropunkai-277590/original.mp4",
+  "index_commit": "756290289742535eb0ac3817548f152e9759cc70",
+  "index_sha256": "6a7a5664e693e7741567c9092af127fb5906bbf3a194f4c6475292c15f540776",
+  "prompt_partial": false,
+  "prompt_text": "Render a fun motion graphic animation using the GSAP animation platform (see below) to show a brief history of The Sphere in Las Vegas from start to today (start with a minimal architecture to completed venue) - Explainer video style - Talk about how bands now play there, The Wizard of Oz film and next how on Oct 1 2026 Metallica will make their debut - and guess who is attending? We are! Should be a 30-60s video depending on the info. Use the images in the folder.\n\nSphere History:\nhttps://en.wikipedia.org/wiki/Sphere_(venue)\n\nAnimation Platforms:\nhttps://gsap.com/\n\nAsk me any questions if you need, but if you feel confident please have fun and make something awesome that will go super viral!",
+  "prompt_status": "公开索引的作者输入或说明；仍需核对是否为完整生成指令",
+  "code_status": "本轮未找到原片固定源码",
+  "acquisition_status": "原作已下载且全程音视频解码通过",
+  "analysis_status": "整片概览与所列关键过程已专业拆解；原速与声音未核验",
+  "published_prompt_url": "https://raw.githubusercontent.com/yihui-dev/awesome-opus5-5-videos/756290289742535eb0ac3817548f152e9759cc70/prompts/retropunkai-277590.md",
+  "response_type": "video/mp4",
+  "etag": "\"0de1159531920413d27ffe83d6f48a38\"",
+  "local_media": "media/original.mp4",
+  "bytes": 8128337,
+  "sha256": "68724892beccec2b481a8daef9220831009d1923a72465942e1a3a3cff5081a1",
+  "media_metadata": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "profile": "High",
+        "codec_type": "video",
+        "width": 720,
+        "height": 1280,
+        "pix_fmt": "yuv420p",
+        "avg_frame_rate": "30/1"
+      },
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "profile": "LC",
+        "codec_type": "audio",
+        "avg_frame_rate": "0/0"
+      }
+    ],
+    "format": {
+      "duration": "60.032000",
+      "size": "8128337"
+    }
+  },
+  "downloaded_at": "2026-10-08T15:28:46.837971+08:00",
+  "decode_status": "全程通过",
+  "technical_evidence": [
+    "evidence/check-start.jpg",
+    "evidence/check-middle.jpg",
+    "evidence/check-end.jpg"
+  ],
+  "source_check_file": "sources/source-check.json",
+  "analysis_owner": "study_explainer",
+  "observation_record": "observation-record.json",
+  "analysis_file": "analysis.md",
+  "replication_brief": "replication-brief.md",
+  "candidate_title": "插画海报与音乐活动"
+}

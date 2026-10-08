@@ -183,7 +183,7 @@
       "origin": "assets/preview.mp4",
       "detail": {
         "frame": 30,
-        "seconds": 1.0,
+        "seconds": 1,
         "method": "ffmpeg select by decoded frame index; JPEG review copy"
       },
       "sha256": "68d26513d414f040f3866e1c8fb9aa1df02f95de43259360703e68cd5ef052cf",
@@ -207,7 +207,7 @@
       "origin": "assets/preview.mp4",
       "detail": {
         "frame": 180,
-        "seconds": 6.0,
+        "seconds": 6,
         "method": "ffmpeg select by decoded frame index; JPEG review copy"
       },
       "sha256": "e1b7f7fb9b0291add82ac0afe2d86e25e3ab02d21def0b080ff7fdcaf702b6af",
@@ -365,17 +365,17 @@
       "file": "SKILL.md",
       "kind": "authored_this_turn",
       "origin": "本轮基于原输入、最终v3固定源码、生产报告、用户后续反馈整理",
-      "detail": "教学/资料整理，不是历史原件或新的生成验证",
-      "sha256": "bdc5d877f7be18d5dccfc16148f251579fab79f7f03f993fa65ff9d9e6d21d25",
-      "bytes": 7810
+      "detail": "按完整实施方案v4更新入口或教学；历史原件及其校验值保持。",
+      "sha256": "7303d879015399ee462dbac5330459eb54ccd93f0d809a698cb706ebbab61d03",
+      "bytes": 8109
     },
     {
       "file": "agents/openai.yaml",
       "kind": "authored_this_turn",
       "origin": "本轮基于原输入、最终v3固定源码、生产报告、用户后续反馈整理",
-      "detail": "教学/资料整理，不是历史原件或新的生成验证",
-      "sha256": "3b67e0030bbdebec2452bd34dd1f0086bf682d705fc5b05dadb0754a7ab8b556",
-      "bytes": 193
+      "detail": "按完整实施方案v4更新入口或教学；历史原件及其校验值保持。",
+      "sha256": "3cd6979433bec8b9236820bf5e8effe34a3eafa1462abda1a68620a4844f78ba",
+      "bytes": 205
     },
     {
       "file": "references/adopted-design.md",
@@ -389,9 +389,9 @@
       "file": "references/design-decisions.md",
       "kind": "authored_this_turn",
       "origin": "本轮基于原输入、最终v3固定源码、生产报告、用户后续反馈整理",
-      "detail": "教学/资料整理，不是历史原件或新的生成验证",
-      "sha256": "f950ed11558815e6c3a88585d96a4f33328e5e5908af95a82bb1242cbaff0f6c",
-      "bytes": 3606
+      "detail": "按完整实施方案v4更新入口或教学；历史原件及其校验值保持。",
+      "sha256": "837eb372498dc6777554acd98e1b5ab902924d31ba20dfdd360a3a36599b87a6",
+      "bytes": 4194
     },
     {
       "file": "references/materials-and-replay.md",
@@ -413,9 +413,9 @@
       "file": "references/transfer-guide.md",
       "kind": "authored_this_turn",
       "origin": "本轮基于原输入、最终v3固定源码、生产报告、用户后续反馈整理",
-      "detail": "教学/资料整理，不是历史原件或新的生成验证",
-      "sha256": "118ac91bf1baec32227bc0d15c0029727dc3d1b4b934616cade4724fd64e6071",
-      "bytes": 3065
+      "detail": "按完整实施方案v4更新入口或教学；历史原件及其校验值保持。",
+      "sha256": "a634288e7cb8bff5f3cf854166ec4fca5b5d3a1e8586704e8927bba8b9d9dd6b",
+      "bytes": 3786
     },
     {
       "file": "references/user-feedback.md",

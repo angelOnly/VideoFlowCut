@@ -1,0 +1,13 @@
+{
+  "case_id": "R174",
+  "slug": "charliie-334026",
+  "page": "https://skillry.dev/ai-videos/opus-5-5/charliie-334026",
+  "index_commit": "756290289742535eb0ac3817548f152e9759cc70",
+  "prompt_partial": true,
+  "scope": "固定公开索引、作者输入和Skillry详情页的链接；不是全网穷尽证明",
+  "source_status": "本轮未找到原片固定源码",
+  "code_links": [],
+  "input_kind": "索引标为节选或不完整",
+  "page_sha256": "787ec554394630c374f02d686f4cb4135a72984c1af11434a085e539a1cd929e",
+  "page_status": "公开页面已核查"
+}

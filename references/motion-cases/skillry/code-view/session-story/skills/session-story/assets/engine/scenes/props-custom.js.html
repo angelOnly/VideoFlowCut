@@ -1,0 +1,9 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>skills/session-story/assets/engine/scenes/props-custom.js</title><style>body{max-width:1100px;margin:30px auto;padding:0 24px;background:#12151a;color:#e8edf4;font:16px/1.8 system-ui,"Microsoft YaHei"}a{color:#9ec5f8}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#202630;padding:20px;border-radius:8px;font:14px/1.7 monospace}code{overflow-wrap:anywhere}li{margin:8px 0}</style><body><nav><a href="../../../../../../../公开相关源码.html">公开相关源码目录</a></nav><h1>skills/session-story/assets/engine/scenes/props-custom.js</h1><p>jake11moran-825416作者公开的生成Skill，不是原片固定工程</p><p>固定Commit：ba7a0bb6d3567d124c51f6074625043bfe0b32eb；仅显示文本，未执行。</p><p><a href="https://raw.githubusercontent.com/heygen-com/hyperframes-community-skills/ba7a0bb6d3567d124c51f6074625043bfe0b32eb/skills/session-story/assets/engine/scenes/props-custom.js" target="_blank">公开原文件</a></p><pre>// props-custom.js: props you draw for your own user, when the library (props.js) has nothing true to them.
+// Register each one for a slot, then name it in story.json&#x27;s &quot;room&quot;. Recipe and brush vocabulary: references/room.md.
+//
+// PROPS[&#x27;bonsai&#x27;] = { slot: &#x27;sill&#x27;, draw(b, env, o) {
+//   const { x, y } = b;                                   // the sill anchor: the pot&#x27;s base centre
+//   paint([[x - 30, y - 40], [x + 30, y - 40], [x + 24, y], [x - 24, y]], { wash: PAL.clay, ink: PAL.ink, sw: .7 });
+//   paint(ellPts(x, y - 90, 44, 30, 16, 1), { wash: PAL.sap, ink: PAL.ink, sw: .6 });
+// } };
+</pre></body></html>

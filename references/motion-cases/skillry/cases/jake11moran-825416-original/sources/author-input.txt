@@ -1,0 +1,5 @@
+/session-story
+
+created a skill for opus 5.5 using @HyperFrames_ - claude reads your local claude code history, finds what an average session with you looks like and animates it start to finish with your messages
+
+try here: https://github.com/heygen-com/hyperframes-community-skills/tree/master/skills/session-story

@@ -1,0 +1,35 @@
+{
+  "case_number": 120,
+  "slug": "mtvneo-148436",
+  "owner": "study_spatial",
+  "source_sha256": "15b45d69009483517009dd3028d52a5d81bae8534fc0bf6e46818f3bb5fa4c6b",
+  "source_media": "media/original.mp4",
+  "decode_status": "全程通过",
+  "observation_method": "实际调用view_image查看源帧图组；未原速播放、未试听",
+  "viewed_contact_sheets": [
+    "overview/sheet-001.jpg",
+    "dense/sheet-001.jpg",
+    "dense/sheet-002.jpg",
+    "dense/sheet-003.jpg",
+    "dense/sheet-004.jpg"
+  ],
+  "overview_source_range_seconds": [
+    0.0,
+    14.0
+  ],
+  "overview_frame_count": 15,
+  "dense_source_range_seconds": [
+    5.0,
+    10.0
+  ],
+  "dense_frame_count": 61,
+  "dense_sampling": "按实际视频帧率每约12fps选择真实源帧；本次实际约12—15fps，时间来自showinfo源PTS",
+  "timestamps": [
+    "overview/timestamps.json",
+    "dense/timestamps.json"
+  ],
+  "unreviewed_scope": "密集区间以外只有整片概览；任何采样帧间、原速观感和声音同步尚未核验",
+  "published_prompt_assessment": "公开页提供完整高层15秒动效需求：将自己人格化并介绍Opus 5.5，未标节选；没有逐场编排、固定源码或实际参数。",
+  "source_code_assessment": "本子任务未取得原作源码，不将公开Remake技术说明冒充原实现",
+  "replication_status": "研究者后写，未制作验证"
+}

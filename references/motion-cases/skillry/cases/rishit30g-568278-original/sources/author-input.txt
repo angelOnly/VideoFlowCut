@@ -1,0 +1,10 @@
+@claudeai Opus 5.5 is sick.
+
+claude code's mascot >>
+
+【作者补充制作说明】
+@claudeai - Used Opus 5.5 with extra efforts 
+- Heygen and Remotion as skill 
+- Used Node, ffmpeg, python 
+- Highly detailed prompt
+- 40 mins and some ☕️

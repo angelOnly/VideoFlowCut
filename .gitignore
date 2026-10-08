@@ -22,3 +22,11 @@ cache/
 plugins/videoflowcut/runtime/repo-root.json
 
 .candidate/
+
+# 参考库正文、分类与工具随项目管理；原视频及采样图需另行复制。
+references/motion-cases/skillry/**/*.mp4
+references/motion-cases/skillry/**/*.jpg
+references/motion-cases/skillry/**/*.png
+references/motion-cases/skillry/*.zip
+references/motion-cases/skillry/staging/
+references/motion-cases/skillry/**/__pycache__/

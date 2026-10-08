@@ -1,0 +1,45 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>获取与源码核查报告</title><style>body{margin:0;background:#12151a;color:#e8edf4;font-family:system-ui,"Microsoft YaHei",sans-serif;line-height:1.8}main{max-width:1060px;margin:auto;padding:28px 24px 60px}h1{font-size:28px;line-height:1.4}h2{font-size:21px;margin-top:32px}h3{font-size:17px}p{margin:14px 0}a{color:#9ec5f8}video{width:100%;max-height:560px;background:#080a0c}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#202630;padding:18px;border-radius:8px;line-height:1.6}code{overflow-wrap:anywhere}table{border-collapse:collapse;width:100%;font-size:14px}td,th{border-bottom:1px solid #39414d;padding:10px;text-align:left;vertical-align:top}img{max-width:100%;height:auto}summary{cursor:pointer;padding:12px 0}nav{display:flex;gap:16px;flex-wrap:wrap}.muted{color:#aeb9c8}.status{background:#202630;padding:14px;border-radius:8px}label{display:block;margin-bottom:6px}select,input,button{font:inherit;background:#252e3a;color:#e8edf4;border:1px solid #485365;border-radius:7px;padding:9px}input{max-width:100%}.filters{display:flex;gap:16px;flex-wrap:wrap;margin:24px 0}.filters>div{flex:1;min-width:220px}@media(max-width:600px){main{padding:20px 14px}h1{font-size:23px}table{font-size:12px}td,th{padding:7px}}</style></head><body><main><nav><a href="index.html">参考库总索引</a></nav><h1>原作获取与公开资料核查</h1>
+<h2>原视频已真实取得</h2>
+<p>预览中最终采用的120条Original均已下载，原始MP4保持下载字节不变。总字节数为564,720,025，约565MB（十进制）。每条通过全程视频与音轨解码检查，记录真实时长、分辨率、帧率、音轨、文件SHA-256及取得时间，另保存首、中、尾技术检查画面。技术通过不代替专业动效和美术观察。</p>
+<p>实际媒体地址来自先前核查的详情页播放器，不由封面改后缀猜测。均为公开普通MP4，本轮未遇登录、付费、验证码或加密媒体阻挡，没有绕过这些控制。公开可获取与可公开再分发、可商用改编是不同判断；视频及第三方素材保留原作者来源，不将索引仓库许可证扩张为全部原片授权。</p>
+<p>每条原作位于<code>cases/&lt;slug&gt;-original/media/original.mp4</code>，对应来源与哈希在<code>source.json</code>。第一条另存<code>media/browser-compatible.mp4</code>供浏览器兼容播放，原预览目录也保留该版本；原作仍在研究库。专业研究以原作和原时间轴为依据，不用兼容版作为源帧证据。</p>
+<h2>提示词真实范围</h2>
+<p>固定索引仓库为<a href="https://github.com/yihui-dev/awesome-opus5-5-videos">yihui-dev/awesome-opus5-5-videos</a>，Commit为<code>756290289742535eb0ac3817548f152e9759cc70</code>。保存了仓库树、索引JSON、README、LICENSE，以及120条逐条公开prompt文件和输入原文。</p>
+<p>50条在索引中明确标为<code>prompt_partial=true</code>。其余70条未标节选，但内容仍可能是简短需求、公开模板或作者制作说明；不能直接称为原片完整生产指令。专业报告会按实际内容写明用途。英文作者原文原样保存，研究说明和后写复现输入采用中文。</p>
+<h2>原片源码与相关工程</h2>
+<p>索引仓库实际只含README、LICENSE、data与prompts，没有动画JS/TS/HTML工程。已检查120条详情页公开链接和作者输入，有三条指向相关GitHub工程，其中一条由公开原文的断行URL核对恢复；这是明确的本轮核查范围，不证明作者在其他地方从未公开源码。</p>
+<table>
+<thead>
+<tr>
+<th>公开资料</th>
+<th>与本批案例的关系</th>
+<th>已取得范围</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/heygen-com/hyperframes-community-skills/tree/master/skills/session-story">session-story</a></td>
+<td><code>jake11moran-825416</code>作者公开的生成Skill</td>
+<td>33个公开文本文件，含Skill、脚本、模板、参考和仓库许可证</td>
+<td>Apache-2.0；不是原片固定生成工程，不包含该作者全部输入素材</td>
+</tr>
+<tr>
+<td><a href="https://github.com/JohnHeibel/PDoomVideo">PDoomVideo</a></td>
+<td><code>doubleunplussed-181894</code>及<code>anabology-491441</code>输入引用的另一作品</td>
+<td>25个公开文本文件，含章节代码、时间线、分镜和生成指南</td>
+<td>仓库未标许可证；不是所选案例的原源码</td>
+</tr>
+<tr>
+<td><a href="https://github.com/JohnHeibel/ClaudeAnimationBase">ClaudeAnimationBase</a></td>
+<td>PDoomVideo作者公开的通用基础工程</td>
+<td>15个公开文本文件，含基础代码、生成指南及许可证</td>
+<td>MIT；与本批120条没有逐条固定原片对应</td>
+</tr>
+</tbody>
+</table>
+<p>相关资料位于<code>related-sources/</code>，逐文件保存下载URL、Commit和SHA-256。未安装依赖，未执行外部Skill或源码，未下载其大音频、字体及其他二进制素材，也未重渲染验证。它们提供代码与制作方法参考，但不是120条原片的可一键重建包。</p>
+<p>可从<a href="公开相关源码.html">公开相关源码与制作资料</a>浏览这73个文本文件。代码只显示为文字，HTML也经过转义，不会在资料页执行。</p>
+<h2>拆解与复现输入的身份</h2>
+<p>原片、作者公开输入、原片源码、相关参考源码和研究者后写复现设计输入分别登记。没有对应源码时，不从视频猜测作者DOM结构、具体曲线、弹簧参数或API。后写输入可以具体说明对象、构图、配色、状态和动作交叠，但须标为“基于观察、未制作验证”，不能用已经认可的原片为新输入背书。</p>
+<p>120条已完成整片源帧概览及各条所列关键过程的专业拆解，分别保存analysis.md、replication-brief.md和observation-record.json。每条还提供已观察密集区间首、中、尾的原尺寸源帧，新增全尺寸图未再次专业审阅。原速体验、声音与音画同步未专业核验；局部密集观察不代表全片逐帧认证。</p></main></body></html>

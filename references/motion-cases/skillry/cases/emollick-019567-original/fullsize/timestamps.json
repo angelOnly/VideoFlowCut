@@ -1,0 +1,28 @@
+{
+  "source_sha256": "3e5dcfb94c528ef3a8dde5fe5d3483c7bc07d921d0194bf7b350889898abed1c",
+  "source_media": "../media/original.mp4",
+  "selection": "已专业查看的密集区间首、中、尾，机械提取",
+  "review_status": "新增全尺寸图未再次专业审阅；原密集图组已观察",
+  "requested_source_times": [
+    65.0,
+    67.533333,
+    70.0
+  ],
+  "frames": [
+    {
+      "file": "frame-01.jpg",
+      "source_time_seconds": 65.0,
+      "sha256": "090c0da117f43f38f8866e268fd93ec5eebb284b3c376c05fc8f2b4acb923df6"
+    },
+    {
+      "file": "frame-02.jpg",
+      "source_time_seconds": 67.533333,
+      "sha256": "adcef370a6152e5cfb609562f6132dec892f22b28d4de9edaa92f8294939d8c6"
+    },
+    {
+      "file": "frame-03.jpg",
+      "source_time_seconds": 70.0,
+      "sha256": "ccea39331f7400068d410f63e2c5bf49c8c12911f26da99dcdbab90021eddb62"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "case_number": 105,
+  "case_id": "R307",
+  "slug": "techartist-786274",
+  "title": "小船穿过运河石桥进入三维山湖",
+  "group": "空间与产品",
+  "author": "techartist_",
+  "page_url": "https://skillry.dev/ai-videos/opus-5-5/techartist-786274",
+  "original_post": "https://x.com/techartist_/status/2103933640392786274",
+  "version": "Original",
+  "media_url": "https://media.skillry.dev/opus-5-5/techartist-786274/original.mp4",
+  "index_commit": "756290289742535eb0ac3817548f152e9759cc70",
+  "index_sha256": "6a7a5664e693e7741567c9092af127fb5906bbf3a194f4c6475292c15f540776",
+  "prompt_partial": true,
+  "prompt_text": "I wanted to see if beautiful destinations could become playable 3D experiences. Annecy, France became the prototype: a boat journey through canals, bridges, waterfront, and the mountain lake, built with Claude Opus 5.5 using Three.js + TSL.\n\nI trimmed the navigation footage for the sake of keeping the video short and the post below below has a slightly longer version. The whole workflow behind this is simple:-\n- Explained the concept to Opus and asked it to list some ideas.\n- Shortlisted one and asked it to generate a prompt, with tech stack directions.\n- Thats it, needed few iterations and is still a work in progress with few issues needing ironing. \n- The audio effects were added by Opus itself.",
+  "prompt_status": "公开索引的作者输入或说明；仍需核对是否为完整生成指令",
+  "code_status": "本轮未找到原片固定源码",
+  "acquisition_status": "原作已下载且全程音视频解码通过",
+  "analysis_status": "整片概览与所列关键过程已专业拆解；原速与声音未核验",
+  "published_prompt_url": "https://raw.githubusercontent.com/yihui-dev/awesome-opus5-5-videos/756290289742535eb0ac3817548f152e9759cc70/prompts/techartist-786274.md",
+  "response_type": "video/mp4",
+  "etag": "\"6bf98cbb4341d5dca0adcccf7a8be129\"",
+  "local_media": "media/original.mp4",
+  "bytes": 3506909,
+  "sha256": "1f93ae25f854cf0735b785483c6abe4522aec042d94b96fd0600cded4d549313",
+  "media_metadata": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "profile": "High",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 886,
+        "pix_fmt": "yuv420p",
+        "avg_frame_rate": "60/1"
+      },
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "profile": "LC",
+        "codec_type": "audio",
+        "avg_frame_rate": "0/0"
+      }
+    ],
+    "format": {
+      "duration": "20.074000",
+      "size": "3506909"
+    }
+  },
+  "downloaded_at": "2026-10-08T15:29:40.697069+08:00",
+  "decode_status": "全程通过",
+  "technical_evidence": [
+    "evidence/check-start.jpg",
+    "evidence/check-middle.jpg",
+    "evidence/check-end.jpg"
+  ],
+  "source_check_file": "sources/source-check.json",
+  "analysis_owner": "study_spatial",
+  "observation_record": "observation-record.json",
+  "analysis_file": "analysis.md",
+  "replication_brief": "replication-brief.md",
+  "candidate_title": "湖面、城市与连续视角"
+}

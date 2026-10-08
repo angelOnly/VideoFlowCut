@@ -1,0 +1,81 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>skills/session-story/references/room.md</title><style>body{max-width:1100px;margin:30px auto;padding:0 24px;background:#12151a;color:#e8edf4;font:16px/1.8 system-ui,"Microsoft YaHei"}a{color:#9ec5f8}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#202630;padding:20px;border-radius:8px;font:14px/1.7 monospace}code{overflow-wrap:anywhere}li{margin:8px 0}</style><body><nav><a href="../../../../../公开相关源码.html">公开相关源码目录</a></nav><h1>skills/session-story/references/room.md</h1><p>jake11moran-825416作者公开的生成Skill，不是原片固定工程</p><p>固定Commit：ba7a0bb6d3567d124c51f6074625043bfe0b32eb；仅显示文本，未执行。</p><p><a href="https://raw.githubusercontent.com/heygen-com/hyperframes-community-skills/ba7a0bb6d3567d124c51f6074625043bfe0b32eb/skills/session-story/references/room.md" target="_blank">公开原文件</a></p><pre># Room: decorate it from what you know about your user
+
+The room is your portrait of your user. Every prop should be something true about them that you learned from your
+history: what they make, what they play, what&#x27;s on their desk, the things you built together. Write the
+reason for each prop in `room.why`. It goes in the privacy table.
+
+Good sources: your memory files, their instruction files (`CLAUDE.md`, `AGENTS.md`), the projects in their history,
+and things they told you. If you know nothing, ask: &quot;what&#x27;s on your desk, and what would be on the wall?&quot;
+
+## Slots
+
+```
+   window         wallA           wallB (above the monitor)      shelf: 3 items
+  ┌──────┐     ┌─────────┐        ┌──────┐                  ═══════════════
+  │      │     │ 250×170 │        │200×150│                  hook (hangs under it)
+  │ sill │     └─────────┘        └──────┘                     wallC 170×170
+  └──────┘
+ floor (tall, left of the desk)     desk (left of the keyboard, behind you)
+```
+
+`story.json`:
+
+```json
+&quot;room&quot;: {
+  &quot;palette&quot;: { &quot;wall&quot;: &quot;#E9E2F2&quot;, &quot;wainscot&quot;: &quot;#9FB7C9&quot;, &quot;floor&quot;: &quot;clayDk&quot; },
+  &quot;sill&quot;: &quot;roses&quot;,
+  &quot;wallA&quot;: { &quot;prop&quot;: &quot;corkboard&quot;, &quot;cards&quot;: [{ &quot;kind&quot;: &quot;gradient&quot;, &quot;a&quot;: &quot;#F2A283&quot;, &quot;b&quot;: &quot;#7B5CA8&quot; }, { &quot;kind&quot;: &quot;word&quot;, &quot;word&quot;: &quot;v2&quot; }] },
+  &quot;wallB&quot;: { &quot;prop&quot;: &quot;painting&quot;, &quot;scene&quot;: &quot;sea&quot; },
+  &quot;wallC&quot;: &quot;clock&quot;,
+  &quot;shelf&quot;: [&quot;clapperboard&quot;, &quot;books&quot;, &quot;cat&quot;],
+  &quot;hook&quot;: &quot;headphones&quot;,
+  &quot;floor&quot;: &quot;guitar&quot;,
+  &quot;desk&quot;: &quot;mic&quot;,
+  &quot;why&quot;: { &quot;guitar&quot;: &quot;plays in a band on weekends&quot; }
+}
+```
+
+A slot takes a prop name, or `{ &quot;prop&quot;: name, ...options }`. Leave a slot `null` to keep it bare. Colours are hex or
+a palette name (`paper ink clay clayDk clayLt night indigo rose ochre sap teal violet cream sky`).
+
+## The library
+
+| slot | props (options) |
+|---|---|
+| sill | `roses`, `succulent`, `cat-sill` |
+| wallA | `corkboard` (`cards`: up to 3 of `landscape` / `blob` / `gradient` with `a`, `b` colours, or `word` with `word`, up to 8 chars), `poster` (`word` up to 10 chars, `a` ground, `b` ink) |
+| wallB | `curve-print`, `painting` (`scene`: `mountains`, `sea`, `city`) |
+| wallC | `record`, `clock` (shows the session&#x27;s real time when the beats have times) |
+| shelf | `clapperboard`, `books` (`colors`), `dachshund`, `cat` (`color`), `trophy`, `camera`, `plant-small` |
+| hook | `headphones`, `tote` (`color`). Both swing when you get bonked |
+| floor | `guitar` (`color`), `floor-plant` |
+| desk | `mic`, `pencil-cup`, `rubber-duck` |
+
+The monitor, keyboard, mug, lamp, notepad, paper tray and nameplate are always there.
+
+## Draw your own prop
+
+When nothing in the library is true to your user, draw it in `scenes/props-custom.js` and name it in `story.json`:
+
+```js
+PROPS[&#x27;bonsai&#x27;] = { slot: &#x27;sill&#x27;, draw(b, env, o) {
+  const { x, y } = b;                                      // sill: the pot&#x27;s base centre
+  inkLine([[x, y - 36], [x - 8, y - 70], [x + 6, y - 96]], 3, mixCol(PAL.clayDk, PAL.ink, .3), &#x27;ink&#x27;, .5);
+  for (const [dx, dy, r] of [[-24, -92, 22], [12, -112, 26], [22, -80, 18]])
+    paint(ellPts(x + dx, y + dy, r, r * .7, 16, 1), { wash: PAL.sap, ink: PAL.ink, sw: .5 });
+  paint([[x - 34, y - 36], [x + 34, y - 36], [x + 28, y], [x - 28, y]], { wash: PAL.indigo, ink: PAL.ink, sw: .7 });
+} };
+```
+
+- `b` is the slot: `{ x, y }` for sill, shelf spots (bottom-left), hook, floor and desk; `{ x, y, w, h }` for the
+  wall boxes. `env` is `{ tod, night, t, fx, hour }`: time of day 0 to 1, night 0 to 1, `fx.phones` (the swing
+  after a hit), and the session&#x27;s clock hour when the beats have times (else null). `o` is the slot&#x27;s options from `story.json`.
+- Brush vocabulary (from `kit/core.js`): `paint(points, { wash, ink, sw, fill, fillOp })` fills a watercolour
+  shape; `inkLine(points, weight, colour, &#x27;ink&#x27; | &#x27;inkfine&#x27; | &#x27;dry&#x27;, curve)` draws a stroke. Shapes come from
+  `rectPts(x, y, w, h)`, `rrPts(x, y, w, h, r)`, `ellPts(cx, cy, rx, ry, n, jitter, rot)`, `ribbon(points, w0, w1)`
+  and `through(points, n)`. `mixCol(a, b, k)` mixes colours. `push() / translate() / rotate() / pop()` work as in
+  p5. Text: `letter(txt, x, y, size, colour, { font: \`${size}px ${HAND}\`, ink: false })`.
+- Keep inside the slot&#x27;s box. Keep x 1000 to 1600, y 360 to 460 clear: the mallet&#x27;s handle swings through it.
+- A prop is static. Only the hook slot moves, and only when it&#x27;s hit.
+- Check it in a design-pass frame before you move on.
+</pre></body></html>

@@ -1,0 +1,48 @@
+{
+  "owner": "study_mixed",
+  "case_number": 18,
+  "slug": "ercankeskinx-897906",
+  "source_file": "media/original.mp4",
+  "source_sha256": "bcbab9cb6378207f1d18e5c9d622b8f7d657be79f466d370b1d25f1292c4af03",
+  "decode_status": "全程通过",
+  "overview": {
+    "first_source_pts": 0.0,
+    "last_source_pts": 29.0,
+    "frames": 30,
+    "sampling": "约1fps真实源帧"
+  },
+  "dense_ranges": [
+    {
+      "requested": [
+        18,
+        23
+      ],
+      "first_source_pts": 18.0,
+      "last_source_pts": 23.0,
+      "frames": 76,
+      "actual_sampling_fps": 15.0,
+      "source_pts_file": "dense/timestamps.json"
+    }
+  ],
+  "actually_viewed_image_groups": [
+    "overview/sheet-001.jpg",
+    "overview/sheet-002.jpg",
+    "dense/sheet-001.jpg",
+    "dense/sheet-002.jpg",
+    "dense/sheet-003.jpg",
+    "dense/sheet-004.jpg"
+  ],
+  "observation_method": "view_image实际查看每个列出的概览与密集组",
+  "raw_speed_viewed": false,
+  "audio_listened": false,
+  "limitations": [
+    "本报告实际查看整片约每秒一帧概览，以及关键区间的密集真实源帧；时间来自源PTS。基于带源时间图片序列，未核验原速观感，未试听，因此不认证整体流畅度、音乐拍点、对白连续或声音同步。概览不足以证明其他快速接续；300像素证据单帧中的小字、边缘精度仍需全尺寸核验。"
+  ],
+  "published_input_assessment": "公开输入是五个滚动网页分区的需求，实际作品是页面/交互展示，不应强写成完整叙事影片。没有当前原作固定源码。",
+  "published_input_sha256": "13bdd91e5b49f3c7dfd81f45666baa98124a80f3b01f9c2863a5b466d93a476a",
+  "source_check_record": "sources/source-check.json",
+  "replication_brief_status": "研究者后写、未制作验证",
+  "source_code_status": "本轮未找到直接对应固定源码",
+  "analysis_status": "全片概览与所列关键区间完成；原速和声音待审",
+  "observed_title": "滚动网页中的建筑、路线与色样展示"
+}

@@ -1,0 +1,101 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>skills/session-story/SKILL.md</title><style>body{max-width:1100px;margin:30px auto;padding:0 24px;background:#12151a;color:#e8edf4;font:16px/1.8 system-ui,"Microsoft YaHei"}a{color:#9ec5f8}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#202630;padding:20px;border-radius:8px;font:14px/1.7 monospace}code{overflow-wrap:anywhere}li{margin:8px 0}</style><body><nav><a href="../../../../公开相关源码.html">公开相关源码目录</a></nav><h1>skills/session-story/SKILL.md</h1><p>jake11moran-825416作者公开的生成Skill，不是原片固定工程</p><p>固定Commit：ba7a0bb6d3567d124c51f6074625043bfe0b32eb；仅显示文本，未执行。</p><p><a href="https://raw.githubusercontent.com/heygen-com/hyperframes-community-skills/ba7a0bb6d3567d124c51f6074625043bfe0b32eb/skills/session-story/SKILL.md" target="_blank">公开原文件</a></p><pre>---
+name: session-story
+description: &gt;
+  An agent makes an animated film of an average session with its own user, beginning to end, told with that user&#x27;s
+  real messages: whatever their routine is (code, writing, data, design, video). The agent sits at a desk in a room
+  decorated from what it knows about the user, and the monitor shows their kind of work. Requests glide in as paper
+  planes and unfold. Corrections are a 3D cartoon mallet that bonks, then turns to show the words on its face. Praise is a butterfly
+  towing the words on a ribbon. The agent types each reply onto a sheet, folds it and throws it back. The film opens
+  with the agent asleep until the monitor boots: &quot;Initiating session with &lt;name&gt;&quot;. The agent composes its own
+  orchestral score, cued to every action. p5.brush watercolour, rendered in HyperFrames. Trigger on: &quot;a video of our
+  session&quot;, &quot;animate a session with me&quot;, &quot;session story&quot;, &quot;show what working with me is like&quot;, &quot;make a film about
+  me and my agent&quot;.
+---
+
+# Session story
+
+The agent reads its own history with its user, finds their routine, and turns one typical session into a 40 to 70 s
+film, in the order it happened:
+- **Story:** the user&#x27;s verbatim words arriving as objects, and the agent&#x27;s own replies going back. The window and
+  the wall clock follow the session&#x27;s real time.
+- **Room:** decorated from what the agent knows about its user.
+- **Score:** composed by the agent against the film&#x27;s own timeline.
+
+Write `story.json` and the engine does the choreography. Nothing on screen is invented: every line is a quote, and
+the user approves every line before a frame is rendered.
+
+## When to use / when not
+
+- **Use** when a user asks their agent for a film of their work together, and the agent has real history with that
+  user: local transcripts, or messages the user pastes in.
+- **Do not use** for someone else&#x27;s history, a team&#x27;s shared logs, marketing with made-up quotes, or anything the
+  user won&#x27;t review. With no history at all, ask the user for a session&#x27;s messages. Never invent quotes.
+
+## Requirements and side effects (complete list)
+
+- **Tools:** Node 22+, Python 3.9+ (standard library only), `ffmpeg` on PATH, and the HyperFrames CLI pinned to
+  `npx --yes hyperframes@0.8.71` (downloaded from the npm registry on first use).
+- **Setup (once, manually):** `sh scripts/setup.sh` runs `npm ci` from the committed lockfile: p5 2.3.3 (LGPL-2.1),
+  p5.brush 2.2.3 (MIT), @fontsource/permanent-marker 5.3.0 (Apache-2.0). Read-only downloads from npm.
+- **Score renderer:** on macOS, `swift` (Xcode Command Line Tools) plays the score through Apple&#x27;s built-in General
+  MIDI bank. Elsewhere, `fluidsynth` with a General MIDI soundfont you set as `SOUNDFONT`. Neither downloads anything.
+- **Reads (local only, after the user says yes):** the agent&#x27;s own transcripts, `~/.claude/projects/&lt;project&gt;/*.jsonl`
+  (Claude Code) and `~/.codex/sessions` (Codex), for the current project unless the user allows `--all-projects`.
+  Also the agent&#x27;s memory and instruction files for the room. Nothing is uploaded.
+- **Writes:** `session-story-candidates.json` (harvest) and everything inside the project folder you create. Both hold
+  the user&#x27;s words: never commit or share them.
+- **Network at build time:** none. Pass `--describe false` to every `snapshot`, as shown below: with
+  `GEMINI_API_KEY` set, `snapshot` otherwise sends frames (the user&#x27;s words) to Gemini. Render locally: the page paints
+  with WebGL.
+- **No credentials, no paid calls.**
+
+## Workflow
+
+1. **Setup:** `sh scripts/setup.sh` (once).
+2. **Ask first.** Tell the user you&#x27;ll read your local history with them to find the session, and wait for a yes.
+3. **Harvest:** `python3 scripts/harvest.py --project &lt;their project folder&gt; --out &lt;scratch&gt;/candidates.json` prints
+   the routine and lists sessions, most typical first. `--session &lt;id&gt;` (with the same `--project`) prints one in
+   order, with local times and your replies. Per [references/sources.md](references/sources.md).
+4. **Scaffold:** `node scripts/new-project.mjs &lt;dir&gt;`. Everything you write from here lives in `&lt;dir&gt;`.
+5. **Story:** take a typical session and write `&lt;dir&gt;/story.json` beat by beat, in the order it happened, with each
+   beat&#x27;s real time, per [references/story.md](references/story.md). The user&#x27;s lines are verbatim spans; your replies
+   are your own words from that session. Set `screen` to what their work looks like, and pick the ending their
+   sessions have. `node scripts/schedule.mjs &lt;dir&gt;` checks it: run it after every edit.
+6. **Room:** fill the slots from what you know about the user, per [references/room.md](references/room.md). Draw a
+   custom prop in `&lt;dir&gt;/scenes/props-custom.js` when the library has nothing true to them. If you are not Claude,
+   draw yourself: [references/cast.md](references/cast.md).
+7. **Privacy gate:** show the user one table of every on-screen line (hook, nameplate, each quote, each reply, each
+   prop and why), each with its source. Take their edits, get an explicit yes, then set `&quot;approved&quot;: true`. Until
+   then every frame carries a DRAFT stamp.
+8. **Design pass:** run the `snapshot` command `schedule.mjs` prints. Look at every frame: quotes legible, props where
+   they belong, nothing covering a message. Show the user the contact sheet.
+9. **Score:** write `&lt;dir&gt;/score/score.py` with your own theme, key and palette, per
+   [references/score.md](references/score.md). Then `sh &lt;dir&gt;/score/build.sh`. It fails on dead air.
+10. **Render:** from `&lt;dir&gt;`: `npx --yes hyperframes@0.8.71 check`, then
+    `npx --yes hyperframes@0.8.71 render --fps 24 --crf 12 -o renders/session-story.mp4`.
+11. **Check the render:** its length must match `schedule.mjs`. Pull a frame at each key moment
+    (`ffmpeg -ss &lt;t&gt; -i renders/session-story.mp4 -frames:v 1 renders/check-&lt;t&gt;.png`) and look at them. Then hand
+    it to the user to watch with sound.
+
+The example (`node scripts/new-project.mjs &lt;dir&gt; --example`, then `schedule.mjs &lt;dir&gt; --example`) is the reference
+film: a real session between Claude and the skill&#x27;s author, who makes videos. It shows the format, not the shape of
+your film. `schedule.mjs` refuses it without `--example`, so it can&#x27;t stand in for your user&#x27;s story.
+
+## Verify success
+
+- `schedule.mjs` exits 0 and prints no warnings. `hyperframes check` passes. p5.brush logs WebGL `uniform`
+  warnings, which are harmless.
+- The design-pass frames show every quote legible, and match the beat table.
+- `score/build.sh` ends with `ok: no dead air`, and the score&#x27;s length matches the film&#x27;s.
+- The render is the length `schedule.mjs` printed, has an audio track, and its frames at the key moments match the
+  design pass.
+- Failure path to test: a story that opens on a reply, or has a quote over the limit, makes `schedule.mjs` exit 1
+  and name the beat.
+
+## What the engine owns
+
+The motion is physical and already tuned: glide paths, the fold, the throw, the swing, the bonk and the wingbeats.
+Change the story, the room, the cast and the score. Leave the choreography in `scenes/director.js` and
+`scenes/compile.js` alone unless you are fixing a bug. The motion rules are in
+[references/motion.md](references/motion.md).
+</pre></body></html>

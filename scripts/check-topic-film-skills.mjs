@@ -116,10 +116,54 @@ check(attention.adoptedDesign.originalCompleteDirectorBriefIncluded===false,'整
 check(attention.productionReport.historicalRecordUnmodified===true,'历史报告必须保留原件');
 check(attention.missingDependencies.length>0&&attention.status.standaloneRerender==='not_available_from_this_package_alone','须保留独立重渲染缺口');
 const provenance=JSON.parse(await text(attentionCase+'/'+attention.provenance));
+// 固定历史身份，避免连同来源账本一起重写后把新内容误认作旧案例。
+const historicalIdentity={
+ 'assets/preview.mp4':'2e739a14560cf193d91cf9a02527210a10092f6e74c63c11306b9ada7db1ca72',
+ 'references/original-input.md':'8b004163c39a5f14676c7d26301d65058b7e73ebbd3c48d4e840134ec8e18965',
+ 'source/source.json':'45e9531c22df8fc3bb9f4607115621bd3a50f8f264e2257a1366ffeb7960de6d',
+ 'source/production-run.json':'b70117aec7b607627839ad1dd2873e7f49a5f546d42f309dd98b785c8ac2cb86'
+};
+for(const [path,hash] of Object.entries(historicalIdentity)){
+ check(createHash('sha256').update(await readFile(join(root,attentionCase,path))).digest('hex')===hash,`历史原件身份改变：${path}`);
+}
 for(const entry of provenance.entries){
  const bytes=await readFile(join(root,attentionCase,entry.file));
  check(bytes.length===entry.bytes&&createHash('sha256').update(bytes).digest('hex')===entry.sha256,`案例来源不匹配：${entry.file}`);
 }
+// 沿角色的真实引用图核验共同参考送达路径，不能用一句“已阅读”替代入口。
+const sharedReferenceRoles=[...roleSkills,'presenter-motion-director','vlog-director','cutaway-planning','depth-composition','motion-brief-writing'];
+async function reachable(entry){
+ const visited=new Set();const pending=[resolve(root,entry)];
+ while(pending.length){
+  const path=pending.pop();if(visited.has(path))continue;visited.add(path);
+  const body=(await readFile(path,'utf8')).replace(/```[\s\S]*?```/g,'');
+  for(const match of body.matchAll(/\]\(([^)]+\.md)(?:#[^)]*)?\)/g)){
+   if(/^[a-z]+:/i.test(match[1]))continue;
+   const target=resolve(dirname(path),decodeURIComponent(match[1]));
+   if(await exists(target))pending.push(target);
+   else check(false,`引用缺失：${path} → ${match[1]}`);
+  }
+ }
+ return visited;
+}
+for(const role of sharedReferenceRoles){
+ const references=await reachable(role+'/SKILL.md');
+ for(const target of ['motion-case-attention-programme/SKILL.md','motion-case-attention-programme/references/original-input.md','_shared/PROJECT_REVISION_AND_HANDOFF.md']){
+  check(references.has(resolve(root,target)),`角色无法取得共同参考或交接合同：${role} → ${target}`);
+ }
+}
+// 唯一源及发行镜像逐字节比较；生成的 _shared 适配入口由 plugin:verify 单独核验。
+const mirror=join(repoRoot,'plugins','videoflowcut','skills');
+async function checkMirror(directory=''){
+ for(const item of await readdir(join(root,directory),{withFileTypes:true})){
+  const path=join(directory,item.name);
+  if(item.isDirectory()){await checkMirror(path);continue;}
+  const released=join(mirror,path);
+  check(await exists(released),`发行镜像缺失：${path}`);
+  if(await exists(released))check((await readFile(join(root,path))).equals(await readFile(released)),`发行镜像漂移：${path}`);
+ }
+}
+await checkMirror();
 const savedSource=JSON.parse(await text(attentionCase+'/source/source.json'));
 check((await text(attentionCase+'/source/Motion.tsx'))===savedSource.source,'提取源码与固定输入不一致');
 check((await text(attentionCase+'/references/submitted-brief.md'))===savedSource.creativeBrief,'原提交摘要与固定输入不一致');

@@ -1,0 +1,66 @@
+{
+  "case_number": 68,
+  "case_id": "R110",
+  "slug": "doubleunplussed-181894",
+  "title": "AI与线性代数文化音乐动画",
+  "group": "插画与过程解释",
+  "author": "doubleunplussed",
+  "page_url": "https://skillry.dev/ai-videos/opus-5-5/doubleunplussed-181894",
+  "original_post": "https://x.com/doubleunplussed/status/2103697580421181894",
+  "version": "Original",
+  "media_url": "https://media.skillry.dev/opus-5-5/doubleunplussed-181894/original.mp4",
+  "index_commit": "756290289742535eb0ac3817548f152e9759cc70",
+  "index_sha256": "6a7a5664e693e7741567c9092af127fb5906bbf3a194f4c6475292c15f540776",
+  "prompt_partial": false,
+  "prompt_text": "I'd like you to make a music video in a similar style to this one:\n\nhttps://github.com/JohnHeibel/PDoomVideo\n\nTo this song:\n\nhttps://youtu.be/cobZuBii0Z0?si=ada6wxomeJbo-LRl\n\nDon't feel the need to represent everything in the lyrics literally - feel free to include relevant references to concepts, events, and lore in the video, even if obscure (especially if obscure). E.g. when the lyrics say \"when they say they're just predicting tokens...\", you might depict a \"stochastic parrot\". That one's not particularly obscure but is the kind of thing I mean. Instead of depicting like, literally predicting tokens (though you might do that too. Use your judgement! The video should be fun to watch for someone well steeped in AI and AI safety lore and discourse, and who Wille wcognise relevant pop culture and literary or historical references)\n\nI don't know how this ultimately results in a video file - I know the linked repo animates a video with JavaScript or something - but I ultimately want a rendered video file.\n\nFeel free to choose your tools, be creative, and exercise your own taste.\n\nThis repo \"fdsgdg\" appears to be have been accidentally created, but it's empty and we can use it for this, I can rename it afterwards.\n\nAlso, clip the final two beats from the audio.rught at the end, after \"then why does it talk back\" they are after the song has finished and sound bad.\n\nCredit the song to Suno and whatever Claude Opus model was the latest at the time of the YouTube upload, as prompted by Andy Masely (Andy printed Claude to write the lyrics, and Suno for the music), and credit the video to yourself.\n\nAnd have fun!\n\n----\n\nA style change - don't make Dr. Null's mouth wobble with the lyrics as if he's singing, it doesn't\n  actually look like he's singing, just that the curcle of his mouth is jittery. Best to just not\n  make him be singing. Make him just have appropriate expressions for the scenes, and not be singing\n  the song.\n\n----\n\nDr. Null's arms look a bit unnatural in many scenes - I think he's supposed to be holding\n  his hand on his face in shock or something, but it looks like it is a mistake. Can you make it look\n  more natural? If you do so and like the result, re-render.",
+  "prompt_status": "公开索引的作者输入或说明；仍需核对是否为完整生成指令",
+  "code_status": "作者输入链接了另一作品的参考源码；不是本片源码",
+  "acquisition_status": "原作已下载且全程音视频解码通过",
+  "analysis_status": "整片概览与所列关键过程已专业拆解；原速与声音未核验",
+  "published_prompt_url": "https://raw.githubusercontent.com/yihui-dev/awesome-opus5-5-videos/756290289742535eb0ac3817548f152e9759cc70/prompts/doubleunplussed-181894.md",
+  "response_type": "video/mp4",
+  "etag": "\"692668b495455817b6d85a7d046abdee\"",
+  "local_media": "media/original.mp4",
+  "bytes": 43844458,
+  "sha256": "043a7014f924e7b05cdbdbf5678e6fd8a3ba02450e55faf43b1d6a01f0b75f59",
+  "media_metadata": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "profile": "High",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720,
+        "pix_fmt": "yuv420p",
+        "avg_frame_rate": "24/1"
+      },
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "profile": "LC",
+        "codec_type": "audio",
+        "avg_frame_rate": "0/0"
+      }
+    ],
+    "format": {
+      "duration": "262.060000",
+      "size": "43844458"
+    }
+  },
+  "downloaded_at": "2026-10-08T15:29:00.274937+08:00",
+  "decode_status": "全程通过",
+  "technical_evidence": [
+    "evidence/check-start.jpg",
+    "evidence/check-middle.jpg",
+    "evidence/check-end.jpg"
+  ],
+  "source_check_file": "sources/source-check.json",
+  "analysis_owner": "study_explainer",
+  "observation_record": "observation-record.json",
+  "analysis_file": "analysis.md",
+  "replication_brief": "replication-brief.md",
+  "candidate_title": "复古教材、角色与机制"
+}

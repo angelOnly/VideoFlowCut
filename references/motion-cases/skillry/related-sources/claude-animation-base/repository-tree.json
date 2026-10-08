@@ -1,0 +1,172 @@
+{
+  "sha": "0ac8bf2b31942376cb6b8c4074715595d512acd2",
+  "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/trees/0ac8bf2b31942376cb6b8c4074715595d512acd2",
+  "tree": [
+    {
+      "path": ".gitignore",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f4bc71e82a7827c326a6aacb6a47692bf3e23cf7",
+      "size": 18,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/f4bc71e82a7827c326a6aacb6a47692bf3e23cf7"
+    },
+    {
+      "path": "ANIMATION_GUIDE.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "055bf10bb1d1e86963e4429665130ddbd1026b3e",
+      "size": 36029,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/055bf10bb1d1e86963e4429665130ddbd1026b3e"
+    },
+    {
+      "path": "LICENSE",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1215a850be1ff927938e0cbd7d633cc68c9a397d",
+      "size": 1068,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/1215a850be1ff927938e0cbd7d633cc68c9a397d"
+    },
+    {
+      "path": "README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "53816fa825aad75212c43f6145abdd77d55c2064",
+      "size": 3786,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/53816fa825aad75212c43f6145abdd77d55c2064"
+    },
+    {
+      "path": "docs",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "0e589d5535cf3d9ed1ad52ac8429675c7498a431",
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/trees/0e589d5535cf3d9ed1ad52ac8429675c7498a431"
+    },
+    {
+      "path": "docs/emotions.jpg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e2de20208f90c119c7681cf6a64670a2d336b822",
+      "size": 557572,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/e2de20208f90c119c7681cf6a64670a2d336b822"
+    },
+    {
+      "path": "docs/emotions.webp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e640ab4a233cfc3976632de65867f7e470b9bbd4",
+      "size": 6678428,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/e640ab4a233cfc3976632de65867f7e470b9bbd4"
+    },
+    {
+      "path": "docs/views.jpg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3304f3ff2eb29e08c9e815bbcabfc8ba98f18c5d",
+      "size": 491103,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/3304f3ff2eb29e08c9e815bbcabfc8ba98f18c5d"
+    },
+    {
+      "path": "gpu_probe.mjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ebffd767226e8abfd642730a82edf75fffe9052e",
+      "size": 1299,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/ebffd767226e8abfd642730a82edf75fffe9052e"
+    },
+    {
+      "path": "package-lock.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e5e5f2fc492ed321d474f1ce05d0895aa52c376c",
+      "size": 19940,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/e5e5f2fc492ed321d474f1ce05d0895aa52c376c"
+    },
+    {
+      "path": "package.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c64bfd2c0e99b25528733643b4e731d351c53d67",
+      "size": 468,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/c64bfd2c0e99b25528733643b4e731d351c53d67"
+    },
+    {
+      "path": "render.mjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e675a87f91ce72bf61cb8f93a998fb97e76a25c0",
+      "size": 11754,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/e675a87f91ce72bf61cb8f93a998fb97e76a25c0"
+    },
+    {
+      "path": "src",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "4ae772379a6d1cf56ca8b7724cc605d7a95b37fe",
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/trees/4ae772379a6d1cf56ca8b7724cc605d7a95b37fe"
+    },
+    {
+      "path": "src/clawd.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "138e16a125187ac617d83f5449514e152098a235",
+      "size": 50584,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/138e16a125187ac617d83f5449514e152098a235"
+    },
+    {
+      "path": "src/config.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "276c3689725426ac99deebbf659c9e99d03433e5",
+      "size": 363,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/276c3689725426ac99deebbf659c9e99d03433e5"
+    },
+    {
+      "path": "src/core.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f6d43a21879f279002986e110b902ed0abab3f68",
+      "size": 21863,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/f6d43a21879f279002986e110b902ed0abab3f68"
+    },
+    {
+      "path": "src/scenes",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "d2836c4a65c069b063a54819c243ad9c04fa5ce7",
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/trees/d2836c4a65c069b063a54819c243ad9c04fa5ce7"
+    },
+    {
+      "path": "src/scenes/demo.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c494bb0e4fe1c3dfebed1109d222c51afa4be0bf",
+      "size": 11982,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/c494bb0e4fe1c3dfebed1109d222c51afa4be0bf"
+    },
+    {
+      "path": "src/sheets.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "86897a9eb8329914c51614b96ff3247fcee60c23",
+      "size": 2651,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/86897a9eb8329914c51614b96ff3247fcee60c23"
+    },
+    {
+      "path": "src/timeline.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fd93bbce57fc313d80eb8b7c9b0d459d417b3453",
+      "size": 2994,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/fd93bbce57fc313d80eb8b7c9b0d459d417b3453"
+    },
+    {
+      "path": "studio.html",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b330d73e395a43bd12f69f38b17e1db4db8409b6",
+      "size": 1567,
+      "url": "https://api.github.com/repos/JohnHeibel/ClaudeAnimationBase/git/blobs/b330d73e395a43bd12f69f38b17e1db4db8409b6"
+    }
+  ],
+  "truncated": false
+}

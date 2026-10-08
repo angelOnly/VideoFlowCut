@@ -1,0 +1,83 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>skills/session-story/references/sources.md</title><style>body{max-width:1100px;margin:30px auto;padding:0 24px;background:#12151a;color:#e8edf4;font:16px/1.8 system-ui,"Microsoft YaHei"}a{color:#9ec5f8}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#202630;padding:20px;border-radius:8px;font:14px/1.7 monospace}code{overflow-wrap:anywhere}li{margin:8px 0}</style><body><nav><a href="../../../../../公开相关源码.html">公开相关源码目录</a></nav><h1>skills/session-story/references/sources.md</h1><p>jake11moran-825416作者公开的生成Skill，不是原片固定工程</p><p>固定Commit：ba7a0bb6d3567d124c51f6074625043bfe0b32eb；仅显示文本，未执行。</p><p><a href="https://raw.githubusercontent.com/heygen-com/hyperframes-community-skills/ba7a0bb6d3567d124c51f6074625043bfe0b32eb/skills/session-story/references/sources.md" target="_blank">公开原文件</a></p><pre># Sources: finding your session with your user
+
+The film is one real session, start to finish, told with your user&#x27;s words. Find it in your own history. Never write
+a quote from memory, and never make one up.
+
+## Where your history is
+
+Ask your user before you read any of it.
+
+| Agent | Transcripts | Also useful for the room |
+|---|---|---|
+| Claude Code | `~/.claude/projects/&lt;project-slug&gt;/*.jsonl` (slug: the project path with every non-alphanumeric character as `-`) | `~/.claude/projects/&lt;slug&gt;/memory/*.md`, `CLAUDE.md` files |
+| Codex CLI | `~/.codex/sessions/**/rollout-*.jsonl`, `~/.codex/archived_sessions/` | `AGENTS.md`, `~/.codex/memories` |
+| Anything else | however your tool keeps history: an export, a log folder, the conversation you are in | your memory, instructions, the conversation |
+| No history | ask the user to paste the messages of one recent session, in order | ask them three things about their space and work |
+
+`scripts/harvest.py` reads the first two. For any other agent, build the same shape by hand: a list of the user&#x27;s
+messages in order, each with a timestamp, and your reply&#x27;s first line after each.
+
+## Harvest
+
+```bash
+python3 scripts/harvest.py --out &lt;scratch&gt;/candidates.json      # the routine, then sessions, most typical first
+python3 scripts/harvest.py --session &lt;id&gt;                       # one session, in order, with your replies
+python3 scripts/harvest.py --project &lt;folder&gt;                   # another project
+python3 scripts/harvest.py --all-projects                       # everything (only if the user says so)
+python3 scripts/harvest.py --sort arc                           # sessions with the most requests, corrections and praise first
+```
+
+It prints the routine first: messages and minutes in a median session, the usual start time, the mix of kinds, and
+the words that come up most. Each message comes back with its local time (`local`, and `reply_local` for your reply),
+a guess at its kind (`request`, `correction`, `praise`, `other`) and flags (`secret`,
+`email`, `path`, `url`, `number`, `name?`, `person?`, `file`). The kind is a keyword guess: read the message and decide
+yourself. A flagged line needs a closer look before it goes anywhere near the screen. The flags miss what they can&#x27;t
+see: a name typed in lowercase (&quot;like peter said&quot;) has no flag. Read every line you put on screen for people,
+companies and files yourself.
+
+`--session` shows each of your replies as the last message you sent before they spoke again, cut to its first line.
+`--full` prints every message and reply in full.
+
+Messages typed while you were busy are stored as queue entries. The harvester reads those too, so a session reads the
+way the user sent it.
+
+## Pick the session
+
+- Take a typical one: the harvest ranks sessions by how close they are to the routine (length, duration, the mix of
+  kinds). The film shows an ordinary session from start to finish, not the most dramatic one.
+- It doesn&#x27;t need every kind of beat. A session with no correction makes a film with no mallet. Don&#x27;t borrow one.
+- A composite is allowed when no single session is enough: real quotes from several typical sessions, in the order
+  things happen between you. Say so in the privacy table.
+- Skip sessions about private or client work, or anything the user wouldn&#x27;t show a friend. When unsure, leave it out.
+
+## Quote rules
+
+- **Verbatim.** A user&#x27;s line on screen is a contiguous span of what they typed: typos, lowercase and all. You may cut
+  to a span (&quot;so cool can we add…&quot; becomes &quot;so cool&quot;). You may not reword, merge, or fix spelling.
+- Drop trailing periods on screen.
+- **Replies are yours.** Take your last message of that turn, the one they read before answering, cut to its first
+  clause (&quot;Here&#x27;s design pass v2&quot;). They
+  go on peach paper in your ink.
+- Record where every user line came from: `&quot;source&quot;: &quot;claude-code &lt;session&gt; &lt;timestamp&gt;&quot;`.
+
+## The privacy gate
+
+Before any design pass, show the user one table:
+
+| # | On screen | Kind | Source |
+|---|---|---|---|
+| hook | Initiating session / with &lt;name&gt; | monitor | |
+| plate | &lt;name&gt;&#x27;s favorite agent | nameplate | |
+| 1 | can you contact sheet a mock story for me | request (paper plane) | session, time |
+| … | | | |
+| room | guitar | floor prop | &quot;he plays&quot; (from memory) |
+
+Then:
+- Ask which name goes on screen: first name, a nickname, or none.
+- Strip anything that names a person other than the user, a client, a company, a product under NDA, a file path, a
+  URL, an email, a number that identifies something, or a secret. Cut to a different span or drop the beat.
+- Take their edits as given, then get an explicit yes.
+- Set `&quot;approved&quot;: true` in `story.json`. Without it every frame carries a DRAFT stamp.
+
+The finished film contains the user&#x27;s words. It is theirs to share: never post, upload or send it yourself.
+</pre></body></html>

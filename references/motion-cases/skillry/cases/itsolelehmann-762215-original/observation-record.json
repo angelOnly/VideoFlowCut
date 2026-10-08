@@ -1,0 +1,46 @@
+{
+  "case_number": 62,
+  "slug": "itsolelehmann-762215",
+  "owner": "study_explainer",
+  "source_sha256": "287d476527089c56b09a3eae91320009837e0946e2fb2b897f0f92dacb35f347",
+  "source_decode_status": "全程通过",
+  "view_method": "通过view_image实际查看全部列出的源帧图组",
+  "viewed_image_groups": [
+    "evidence/dense/sheet-001.jpg",
+    "evidence/dense/sheet-002.jpg",
+    "evidence/dense/sheet-003.jpg",
+    "evidence/dense/sheet-004.jpg",
+    "evidence/overview/sheet-001.jpg",
+    "evidence/overview/sheet-002.jpg"
+  ],
+  "overview": {
+    "first_source_pts": 0.0,
+    "last_source_pts": 29.0,
+    "frames": 30,
+    "sampling": "约1fps实际源帧，包含整段状态概览"
+  },
+  "dense_ranges": [
+    {
+      "start": 13.0,
+      "end": 18.0,
+      "frames": 76,
+      "effective_sample_fps": 15.0,
+      "timestamps": "evidence/dense/timestamps.json"
+    }
+  ],
+  "original_speed_playback": false,
+  "audio_listened": false,
+  "limitations": [
+    "未核验原速观感",
+    "未试听，不评声音同步",
+    "概览不证明快速运动，密集观察只覆盖登记范围",
+    "图组缩略图不保证细小界面文字可读",
+    "没有作者源码，不推断其具体实现参数"
+  ],
+  "published_prompt_review": "公开输入仅描述四季、车窗、温暖车厢、咖啡及电影风格参照，没有时长分配或源码。本轮未找到本片固定源码，本文只提取观看结构，不将风格名称当实际作者工程。",
+  "published_prompt_file_read": "sources/published-prompt.md",
+  "replication_brief_identity": "研究者后写，非作者原指令，未制作验证",
+  "status": "观察和初步专业拆解完成，待主任务采用",
+  "observed_title": "固定列车车厢与窗外四季旅行",
+  "title_note": "候选名含有错误或过窄的题材指向；此名根据本轮实际观看作中性检索描述，候选原名仍由主索引保留。"
+}

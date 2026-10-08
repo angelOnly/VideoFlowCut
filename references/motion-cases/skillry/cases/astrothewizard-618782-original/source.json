@@ -1,0 +1,65 @@
+{
+  "case_number": 71,
+  "case_id": "R125",
+  "slug": "astrothewizard-618782",
+  "title": "光子角色与科学解释",
+  "group": "插画与过程解释",
+  "author": "AstroTheWizard",
+  "page_url": "https://skillry.dev/ai-videos/opus-5-5/astrothewizard-618782",
+  "original_post": "https://x.com/AstroTheWizard/status/2103629247751618782",
+  "version": "Original",
+  "media_url": "https://media.skillry.dev/opus-5-5/astrothewizard-618782/original.mp4",
+  "index_commit": "756290289742535eb0ac3817548f152e9759cc70",
+  "index_sha256": "6a7a5664e693e7741567c9092af127fb5906bbf3a194f4c6475292c15f540776",
+  "prompt_partial": false,
+  "prompt_text": "I want you to make a 60-second, fully animated explainer video, end to end, completely on your own. I'm stepping away from my computer, so work autonomously until it's done. Don't stop to ask me questions; make the calls yourself and tell me what you decided at the end.\n\nTopic: the journey of photons \n\nStyle: whimsical, charming, storybook. Give the photon a personality. It should feel like a professional motion-design studio made it, not \"AI video\". The whole thing should be a pure JavaScript animation, rendered from code frame by frame. Don't use AI video generators for the visuals. I've seen the videos people are posting from Opus 5.5 (kinetic typography reels, continuous infinite zooms, data-driven explainers like The Pudding or 3Blue1Brown), and what makes them great is that they're code-rendered: crisp, precise, with a coherent design system and one strong formal idea per scene. Aim for that bar or above.\n\nMake it genuinely educational and accurate. Where you can, simulate the real thing: the random walk should be an actual random walk, not a drawing of one. Include real numbers (core temperature, distance, travel time, years inside the Sun) and be honest about uncertainty in the estimates. Use humor and visual gags to keep attention: onomatopoeia, little characters, callbacks. Put what was happening on Earth during those 100,000 years alongside the photon's timeline.\n\nDeliverable: 1920x1080 at 60fps, exactly 60 seconds, with:\n- A voiceover script you write yourself, voiced with the highest-quality text-to-speech model you can access\n- Burned-in captions, since most people watch on X with the sound off\n- An original music score that fits the whimsical tone and changes with each scene\n- Sound design synced exactly to the on-screen action (every bounce, pop, whoosh and ding)\n- A professional mix: music ducks under the voice, mastered to streaming loudness\n\nYou write the script, design the characters, pick the typography and palette, compose the music, and build the animation engine. Use any tools and resources you can find access to: open fonts, sample libraries, open-source models. Use whatever works.\n\nQuality is paramount. Build verification loops: render stills of every scene and review them critically, check transitions frame by frame, measure the audio mix numerically, fix what's weak and re-render. Don't hand me a first draft. Hand me something you'd put your name on. Also give me the source code so it's reproducible",
+  "prompt_status": "公开索引的作者输入或说明；仍需核对是否为完整生成指令",
+  "code_status": "本轮未找到原片固定源码",
+  "acquisition_status": "原作已下载且全程音视频解码通过",
+  "analysis_status": "整片概览与所列关键过程已专业拆解；原速与声音未核验",
+  "published_prompt_url": "https://raw.githubusercontent.com/yihui-dev/awesome-opus5-5-videos/756290289742535eb0ac3817548f152e9759cc70/prompts/astrothewizard-618782.md",
+  "response_type": "video/mp4",
+  "etag": "\"1a142215def8121d1170354493e554fc\"",
+  "local_media": "media/original.mp4",
+  "bytes": 8160157,
+  "sha256": "997f3acf842c583f1001d0f7fe5fcc80f7c2ff8bb16a5de00d8e2b2a02bb8d4c",
+  "media_metadata": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "profile": "High",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720,
+        "pix_fmt": "yuv420p",
+        "avg_frame_rate": "60/1"
+      },
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "profile": "LC",
+        "codec_type": "audio",
+        "avg_frame_rate": "0/0"
+      }
+    ],
+    "format": {
+      "duration": "60.053000",
+      "size": "8160157"
+    }
+  },
+  "downloaded_at": "2026-10-08T15:29:02.439292+08:00",
+  "decode_status": "全程通过",
+  "technical_evidence": [
+    "evidence/check-start.jpg",
+    "evidence/check-middle.jpg",
+    "evidence/check-end.jpg"
+  ],
+  "source_check_file": "sources/source-check.json",
+  "analysis_owner": "study_explainer",
+  "observation_record": "observation-record.json",
+  "analysis_file": "analysis.md",
+  "replication_brief": "replication-brief.md"
+}

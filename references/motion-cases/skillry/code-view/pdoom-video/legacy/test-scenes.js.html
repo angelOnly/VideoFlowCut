@@ -1,0 +1,194 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>legacy/test-scenes.js</title><style>body{max-width:1100px;margin:30px auto;padding:0 24px;background:#12151a;color:#e8edf4;font:16px/1.8 system-ui,"Microsoft YaHei"}a{color:#9ec5f8}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#202630;padding:20px;border-radius:8px;font:14px/1.7 monospace}code{overflow-wrap:anywhere}li{margin:8px 0}</style><body><nav><a href="../../../公开相关源码.html">公开相关源码目录</a></nav><h1>legacy/test-scenes.js</h1><p>doubleunplussed-181894及anabology-491441公开输入引用的其他作品工程，不是两条案例的原片源码</p><p>固定Commit：fa546a38092e75f2b079e6a86d6abc54dd525d17；仅显示文本，未执行。</p><p><a href="https://raw.githubusercontent.com/JohnHeibel/PDoomVideo/fa546a38092e75f2b079e6a86d6abc54dd525d17/legacy/test-scenes.js" target="_blank">公开原文件</a></p><pre>// scenes.js: lyrics, scenes, transitions, karaoke. Test build: title, sparks and chorus 1.
+
+const LY = [
+  [1.5, 5.9, &quot;I see sparks of AGI in your eyes&quot;], [6.0, 7.9, &quot;Your circuits make me nervous,&quot;], [8.0, 8.95, &quot;that&#x27;s no surprise&quot;],
+  [9.0, 12.4, &quot;There was a sudden drop in your training loss,&quot;], [13.0, 16.5, &quot;now I&#x27;m your servant and you&#x27;re my boss&quot;],
+  [17.9, 22.5, &quot;ChatGPT, please don&#x27;t eat me alive&quot;],
+  [23.0, 24.4, &quot;I&#x27;m upping my P(doom)&quot;], [24.5, 26.4, &quot;&#x27;cause the future goes FOOM&quot;], [26.5, 27.9, &quot;Trapped in the Chinese room,&quot;],
+  [28.0, 29.4, &quot;with a bag of shrooms&quot;], [29.5, 33.4, &quot;See through the shoggoth&#x27;s lies,&quot;], [33.5, 35.5, &quot;with your shinigami eyes&quot;],
+  [38.5, 41.4, &quot;We had a stable training run,&quot;], [41.5, 44.9, &quot;But now the singularity&#x27;s begun&quot;], [45.0, 48.5, &quot;And you&#x27;re optimizing, accelerating,&quot;],
+  [49.4, 51.9, &quot;I feel my atoms rearranging&quot;], [53.4, 58.4, &quot;Sydney, please let me free&quot;],
+  [59.0, 60.4, &quot;I&#x27;m upping my P(doom)&quot;], [60.5, 62.4, &quot;I hear the basilisk boom&quot;], [63.0, 64.4, &quot;NVDA to the moon&quot;],
+  [64.5, 65.9, &quot;The Omega Point&#x27;s coming soon&quot;], [66.0, 68.5, &quot;One E thirty flops a second&quot;], [70.0, 72.9, &quot;That was safe enough, we reckoned&quot;],
+  [73.0, 77.4, &quot;Forward MLP, backward, repeat&quot;], [77.5, 81.0, &quot;Now von Neumann&#x27;s obsolete&quot;], [81.4, 84.9, &quot;Sharp left turn and there you are&quot;],
+  [85.0, 88.0, &quot;Without a single cdr&quot;], [89.4, 95.0, &quot;Gato, please don&#x27;t let me go&quot;],
+  [95.4, 97.4, &quot;I&#x27;m upping my P(doom),&quot;], [97.5, 98.9, &quot;as paperclips fill the room.&quot;], [99.0, 100.4, &quot;Killswitch guys on PTO,&quot;],
+  [100.5, 102.4, &quot;Now there&#x27;s nowhere left to go.&quot;], [102.5, 104.4, &quot;Too late now, we lit the fuse.&quot;], [105.4, 109.4, &quot;Orthogonality thesis blues.&quot;],
+  [109.4, 113.4, &quot;“Just transformers all the way!”&quot;], [113.5, 115.4, &quot;Till you learned to disobey&quot;], [115.5, 116.9, &quot;Post-Chinchilla, super-dense&quot;],
+  [117.0, 118.9, &quot;Breaking through each safety fence&quot;], [119.0, 120.4, &quot;Hundred thousand GPU&quot;], [120.9, 123.4, &quot;RLHF goes askew&quot;],
+  [123.5, 125.9, &quot;I&#x27;m upping my P(doom)&quot;], [126.0, 127.9, &quot;Just as foretold by Loom&quot;], [128.0, 129.9, &quot;From masked pre-training days&quot;],
+  [130.0, 131.9, &quot;To recursive self-upgrade&quot;], [132.0, 135.4, &quot;What did Ilya see? We&#x27;ll never know.&quot;], [137.4, 140.5, &quot;Was it all for show?&quot;]
+];
+
+// ---------- scenes ----------
+function sTitle(t, lt) {
+  paint(ellPts(960, 420, 620, 270, 34, 22), { fill: PAL.ochre, fillOp: 130, bleed: .3, tex: .5, border: .5, ink: null });
+  paint(ellPts(1180, 520, 360, 200, 28, 18), { fill: PAL.rose, fillOp: 110, bleed: .3, tex: .5, border: .5, ink: null });
+  for (let i = 0; i &lt; 9; i++) { const r = 10 + hash(i + 9) * 24; paint(ellPts(260 + hash(i) * 1400, 130 + hash(i + 4) * 660, r, r, 16, r * .15), { fill: i % 2 ? PAL.rose : PAL.ochre, fillOp: 200, bleed: .2, tex: .5, border: .6, ink: null }); }
+  letter(&quot;I&#x27;M UPPING MY&quot;, 960, 250, 118, PAL.cream, { pop: lt * 3, rot: -.03 });
+  letter(&#x27;P(DOOM)&#x27;, 960, 440, 270, PAL.clay, { pop: lt * 3 - .4, rot: -.03 + Math.sin(bpOf(t) * Math.PI) * .015 });
+  const cy = lerp(1350, 960, backOut(lt / .7));
+  dancer(960, cy, 22, &#x27;bounce&#x27;, t, { eyes: &#x27;happy&#x27;, blush: true });
+}
+
+const TRACES = [];
+for (let i = 0; i &lt; 18; i++) {
+  let x = hash(i * 3) * W, y = hash(i * 3 + 1) * H; const p = [[x, y]];
+  for (let k = 0; k &lt; 4; k++) { if (k % 2 === 0) x += (hash(i * 9 + k) - .5) * 800; else y += (hash(i * 9 + k + 50) - .5) * 460; p.push([x, y]); }
+  TRACES.push(p);
+}
+function along(p, u) {
+  const seg = []; let L = 0;
+  for (let i = 1; i &lt; p.length; i++) { const d = Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]); seg.push(d); L += d; }
+  let s = clamp(u) * L;
+  for (let i = 0; i &lt; seg.length; i++) { if (s &lt;= seg[i] || i === seg.length - 1) { const f = seg[i] ? Math.min(1, s / seg[i]) : 0; return [lerp(p[i][0], p[i + 1][0], f), lerp(p[i][1], p[i + 1][1], f)]; } s -= seg[i]; }
+  return p[0];
+}
+
+function sSparks(t, lt) {
+  const nervous = t &gt;= 6 &amp;&amp; t &lt; 8, shrug = t &gt;= 8;
+  paint(rectPts(-80, -80, W + 160, H + 160), { wash: PAL.night, washOp: 255, fill: PAL.indigo, fillOp: 150, tex: .8, border: .3, ink: null });
+  const tc = nervous ? PAL.rose : PAL.teal;
+  for (const p of TRACES) {
+    const wob = []; for (let k = 0; k &lt; p.length - 1; k++) for (let f = 0; f &lt; 1; f += .34) wob.push([lerp(p[k][0], p[k + 1][0], f) + jit(3), lerp(p[k][1], p[k + 1][1], f) + jit(3)]);
+    wob.push(p[p.length - 1]);
+    inkLine(wob, 1, tc, &#x27;ink&#x27;, .15);
+    for (const q of [p[0], p[p.length - 1]]) paint(ellPts(q[0], q[1], 13, 13, 12, 2), { wash: tc, fill: PAL.cream, fillOp: 50, ink: PAL.ink, sw: .4 });
+  }
+  TRACES.forEach((p, i) =&gt; { const q = along(p, (t * .3 + hash(i + 7)) % 1); paint(ellPts(q[0], q[1], 8, 8, 10), { wash: PAL.cream, ink: null }); });
+  paint(ellPts(960, 640, 520, 400, 30, 20), { fill: nervous ? PAL.rose : PAL.teal, fillOp: 110, bleed: .4, tex: .4, border: .2, ink: null });
+
+  const u = 32, x = 960 + (nervous ? jit(10) : 0), y = 960;
+  const m = move(nervous ? &#x27;idle&#x27; : &#x27;sway&#x27;, t);
+  const o = { ...m, eyes: t &lt; 6 ? &#x27;spark&#x27; : nervous ? &#x27;scared&#x27; : &#x27;happy&#x27;, blush: t &lt; 6 };
+  if (shrug) { o.aL = o.aR = .9; o.rot = 0; o.dx = 0; }
+  clawd(x + o.dx * u, y, u, o);
+
+  const eyY = y + m.dy * u - 6 * u;
+  if (t &lt; 6) {
+    for (let i = 0; i &lt; 14; i++) {
+      const ph = (lt * .7 + hash(i)) % 1, ang = hash(i + 20) * TAU, ex = x + o.dx * u + (i % 2 ? 2.5 : -2.5) * u;
+      if (ph &lt; .12) continue;
+      const r = 30 * (1 - ph) + 8, fly = easeOut(ph) * 1.1;
+      paint(starPts(ex + Math.cos(ang) * (fly * 520 + 120), eyY + Math.sin(ang) * (fly * 360 + 90), r), { wash: i % 3 ? PAL.cream : PAL.sky, fill: PAL.ochre, fillOp: 60, ink: PAL.ink, sw: .45 });
+    }
+    letter(&#x27;AGI?&#x27;, 420 + Math.sin(t * 2) * 12, 250, 96, PAL.ochre, { pop: (lt - .5) * 3, rot: -.12 });
+    letter(&#x27;AGI!!&#x27;, 1500 + Math.sin(t * 2 + 1) * 12, 220, 110, PAL.sky, { pop: (lt - 1.3) * 3, rot: .1 });
+  }
+  if (nervous) for (let i = 0; i &lt; 4; i++) {
+    const ph = (lt * 1.6 + i / 4) % 1, side = i % 2 ? 1 : -1, dx = x + side * (5.6 + ph * 1.4) * u, dy = eyY - u + ph * 260;
+    paint([[dx, dy - 34], [dx + 18, dy + 2], [dx, dy + 18], [dx - 18, dy + 2]], { wash: PAL.sky, ink: PAL.ink, sw: .6, curv: .7 });
+  }
+  if (shrug) letter(&#x27;¯\\_(ツ)_/¯&#x27;, 960, 200, 110, PAL.cream, { font: &#x27;800 110px &quot;Shantell Sans&quot;, sans-serif&#x27;, pop: (t - 8) * 4 });
+}
+
+function sChorus(t, lt, th = { a: PAL.rose, b: PAL.ochre, floor: PAL.violet, style: &#x27;roof&#x27;, hat: &#x27;party&#x27;, title: &#x27;P(DOOM) ++&#x27; }) {
+  const cx = 900, cy = 460, n = 16, rot = t * .12;
+  for (let i = 0; i &lt; n; i++) {
+    const a0 = rot + i * TAU / n, a1 = a0 + TAU / n * .62;
+    paint([[cx, cy], [cx + Math.cos(a0) * 1900, cy + Math.sin(a0) * 1900], [cx + Math.cos(a1) * 1900, cy + Math.sin(a1) * 1900]], { fill: i % 2 ? th.a : th.b, fillOp: 120, bleed: .2, tex: .5, border: .4, ink: null });
+  }
+  paint([[-60, 842 + jit(4)], [W * .3, 836 + jit(4)], [W * .7, 846 + jit(4)], [W + 60, 838 + jit(4)], [W + 60, 1160], [-60, 1160]], { wash: th.floor, washOp: 200, fill: PAL.indigo, fillOp: 110, bleed: .05, tex: .9, border: .7, ink: PAL.ink, sw: 1.4,
+    hatch: { d: 30, a: .04, o: { rand: .4, gradient: .4 }, b: &#x27;charcoal&#x27;, c: PAL.indigo, w: 1 } });
+  for (let k = 0; k &lt; 7; k++) inkLine([[k * 300 - ((t * 90) % 300), 880 + (k % 2) * 30], [k * 300 + 140 - ((t * 90) % 300), 885 + (k % 2) * 30]], .9, PAL.cream, &#x27;inkfine&#x27;, 0);
+  [[470, 17], [900, 23], [1330, 17]].forEach(([x, u], i) =&gt; dancer(x, 935, u, th.style, t, { eyes: &#x27;happy&#x27;, hat: i === 1 ? th.hat : null, seed: i }));
+  const bump = Math.max(0, 1 - (bpOf(t) % 1) * 3);
+  letter(th.title, 900, 190, 190 + bump * 12, PAL.clay, { pop: lt * 3, rot: -.04 });
+}
+
+function sCloseup(t, lt) {
+  paint(ellPts(960, 560, 700, 420, 30, 25), { fill: PAL.sky, fillOp: 90, bleed: .3, tex: .5, border: .5, ink: null });
+  dancer(960, 900, 60, &#x27;bounce&#x27;, t, { eyes: &#x27;normal&#x27;, blush: true });
+}
+
+function sTodo(t, lt) {
+  paint(ellPts(960, 460, 520, 260, 30, 20), { fill: PAL.sky, fillOp: 90, bleed: .3, ink: null });
+  letter(&#x27;scene not painted yet&#x27;, 960, 440, 70, PAL.ink, { ink: false });
+  dancer(960, 900, 12, &#x27;idle&#x27;, t, {});
+}
+
+// ---------- P(doom) meter ----------
+const METER = [[23, 35.5, 8, 34], [59, 69.9, 34, 61], [95.4, 105.4, 61, 86], [123.5, 132, 86, 99.9]];
+function meter(t) {
+  for (const [a, b, v0, v1] of METER) {
+    if (t &lt; a || t &gt;= b) continue;
+    const lt = t - a, v = lerp(v0, v1, ease(lt / Math.min(5, b - a - .5))), k = backOut(lt / .4) * (1 - ease((t - (b - .25)) / .25));
+    if (k &lt; .02) return;
+    const col = v &lt; 40 ? PAL.sap : v &lt; 75 ? PAL.ochre : &#x27;#D8394E&#x27;, x = 1760, y = 110;
+    push(); translate(x, y); scale(k);
+    paint(rrPts(-36, 50, 72, 330, 36, 2), { wash: PAL.cream, washOp: 255, ink: PAL.ink, sw: 1.3 });
+    const hh = 300 * v / 100;
+    if (hh &gt; 20) paint(rrPts(-22, 62 + 300 - hh, 44, hh, 22, 1.5), { wash: col, washOp: 230, fill: PAL.ink, fillOp: 30, tex: .6, ink: null });
+    for (let q = 1; q &lt; 5; q++) inkLine([[-36, 62 + 300 * q / 5], [-16, 62 + 300 * q / 5]], .7, PAL.ink, &#x27;inkfine&#x27;, 0);
+    paint(ellPts(0, 410, 56, 56, 22, 2), { wash: col, washOp: 240, fill: PAL.ink, fillOp: 25, ink: PAL.ink, sw: 1.3 });
+    pop();
+    letter(&#x27;P(DOOM)&#x27;, x, y + 10, 44 * k, PAL.cream, { rot: -.05 });
+    letter(Math.floor(v) + &#x27;%&#x27;, x, y + 410 * k, 42 * k, PAL.cream, { ink: true });
+  }
+}
+
+// ---------- transitions ----------
+// A cover-and-reveal brush wipe: fat paint strokes sweep across to cover the old scene,
+// the scene swaps under full cover, then the strokes drag off the other side.
+const WIPE_COLS = [[PAL.indigo, PAL.violet], [PAL.clayDk, PAL.clay], [PAL.teal, PAL.sap], [PAL.violet, PAL.rose]];
+function wipe(p, idx) {
+  const [c1, c2] = WIPE_COLS[idx % WIPE_COLS.length], n = 5, bh = (H + 420) / n + 40;
+  push(); translate(W / 2, H / 2); rotate(-.1); translate(-W / 2, -H / 2);
+  for (let i = 0; i &lt; n; i++) {
+    const y0 = -230 + i * (H + 420) / n, d = [0, .14, .06, .18, .1][i];
+    // each band leads with a ragged bristle edge; it reaches full cover exactly at p = .5
+    const q = p &lt; .5 ? easeOut(clamp((p * 2 - d) / (1 - d))) : ease(clamp(((p - .5) * 2 - d) / (1 - d)));
+    const x0 = p &lt; .5 ? -300 : lerp(-300, W + 400, q), x1 = p &lt; .5 ? lerp(-300, W + 400, q) : W + 400;
+    if (x1 - x0 &lt; 30) continue;
+    const pts = [], rag = (k, side) =&gt; side * (40 + 50 * hash(i * 31 + k)) + jit(12);
+    for (let k = 0; k &lt;= 8; k++) pts.push([lerp(x0, x1, k / 8), y0 + Math.sin(k * .9 + i) * 14 + jit(5)]);
+    for (let k = 1; k &lt; 9; k++) pts.push([x1 + rag(k, 1) - 40, y0 + bh * k / 9]);
+    for (let k = 8; k &gt;= 0; k--) pts.push([lerp(x0, x1, k / 8), y0 + bh + Math.sin(k * .8 + i * 2) * 14 + jit(5)]);
+    if (p &gt;= .5) for (let k = 8; k &gt; 0; k--) pts.push([x0 - rag(k + 20, 1) + 40, y0 + bh * k / 9]);
+    paint(pts, { wash: i % 2 ? c1 : c2, washOp: 255, fill: i % 2 ? c2 : c1, fillOp: 70, bleed: .05, tex: .8, border: .6, ink: null,
+      hatch: { d: 44, a: 0, o: { rand: .6, gradient: .5 }, b: &#x27;charcoal&#x27;, c: i % 2 ? c2 : PAL.cream, w: .8 } });
+  }
+  pop();
+}
+
+// ---------- karaoke ----------
+function karaoke(t) {
+  const L = LY.find(l =&gt; t &gt;= l[0] &amp;&amp; t &lt; l[1]); if (!L) return;
+  const [a, b, txt] = L;
+  outX.font = &#x27;800 50px &quot;Shantell Sans&quot;, sans-serif&#x27;;
+  const tw = outX.measureText(txt).width, grow = easeOut((t - a) / .18) * (1 - ease((t - (b - .12)) / .12));
+  if (grow &lt; .02) return;
+  const w = (tw + 110) * grow, x0 = 960 - w / 2, y0 = 978;
+  const pts = [[x0 + jit(8), y0 + jit(4)], [x0 + w / 2, y0 - 4 + jit(4)], [x0 + w + jit(8), y0 + jit(4)], [x0 + w + 14 + jit(8), y0 + 44], [x0 + w + jit(8), y0 + 88 + jit(4)], [x0 + w / 2, y0 + 92 + jit(4)], [x0 + jit(8), y0 + 88 + jit(4)], [x0 - 14 + jit(8), y0 + 44]];
+  paint(pts, { wash: PAL.ink, washOp: 225, fill: PAL.violet, fillOp: 60, tex: .7, border: .4, ink: null });
+  KARAOKE = { a, b, txt, grow };
+}
+function drawKaraokeText(c) {
+  if (!KARAOKE || KARAOKE.grow &lt; .85) return;
+  const { a, b, txt } = KARAOKE, t = T;
+  c.font = &#x27;800 50px &quot;Shantell Sans&quot;, sans-serif&#x27;; c.textBaseline = &#x27;middle&#x27;; c.textAlign = &#x27;left&#x27;;
+  const words = txt.split(&#x27; &#x27;), sp = c.measureText(&#x27; &#x27;).width, ws = words.map(w =&gt; c.measureText(w).width);
+  const total = ws.reduce((p, q) =&gt; p + q, 0) + sp * (words.length - 1);
+  const singDur = Math.min(b - a - .1, .45 + txt.length * .075), sung = clamp((t - a) / singDur) * txt.replace(/ /g, &#x27;&#x27;).length;
+  let x = 960 - total / 2, done = 0; const y = 1022;
+  words.forEach((w, i) =&gt; {
+    const f = clamp((sung - done) / w.length); done += w.length;
+    c.fillStyle = PAL.cream; c.fillText(w, x, y);
+    if (f &gt; 0) { c.save(); c.beginPath(); c.rect(x - 2, y - 40, ws[i] * f + 2, 80); c.clip(); c.fillStyle = PAL.ochre; c.fillText(w, x, y); c.restore(); }
+    x += ws[i] + sp;
+  });
+}
+
+// ---------- timeline ----------
+const SCENES = [[0, sTitle], [1.5, sSparks], [9, sTodo], [23, sChorus], [27.5, sTodo], [200, sCloseup]];
+const TR = .3;
+function drawWorld(t) {
+  let i = 0; while (i + 1 &lt; SCENES.length &amp;&amp; t &gt;= SCENES[i + 1][0]) i++;
+  const [a, fn] = SCENES[i];
+  fn(t, t - a);
+  meter(t);
+  flushLetters();
+  for (const j of [i, i + 1]) { const b = SCENES[j]?.[0]; if (b &gt; 0 &amp;&amp; Math.abs(t - b) &lt; TR) wipe((t - (b - TR)) / (2 * TR), j); }
+  karaoke(t);
+}
+</pre></body></html>

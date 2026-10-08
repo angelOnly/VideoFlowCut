@@ -1,0 +1,13 @@
+{
+  "case_id": "R362",
+  "slug": "chapi13-131449",
+  "page": "https://skillry.dev/ai-videos/opus-5-5/chapi13-131449",
+  "index_commit": "756290289742535eb0ac3817548f152e9759cc70",
+  "prompt_partial": true,
+  "scope": "固定公开索引、作者输入和Skillry详情页的链接；不是全网穷尽证明",
+  "source_status": "本轮未找到原片固定源码",
+  "code_links": [],
+  "input_kind": "索引标为节选或不完整",
+  "page_sha256": "90900d2db376f3365fc22df4aa684a2409d913d671cd2da2d1b274726d7e482a",
+  "page_status": "公开页面已核查"
+}

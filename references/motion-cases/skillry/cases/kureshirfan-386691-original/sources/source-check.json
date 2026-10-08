@@ -1,0 +1,13 @@
+{
+  "case_id": "R275",
+  "slug": "kureshirfan-386691",
+  "page": "https://skillry.dev/ai-videos/opus-5-5/kureshirfan-386691",
+  "index_commit": "756290289742535eb0ac3817548f152e9759cc70",
+  "prompt_partial": true,
+  "scope": "固定公开索引、作者输入和Skillry详情页的链接；不是全网穷尽证明",
+  "source_status": "本轮未找到原片固定源码",
+  "code_links": [],
+  "input_kind": "索引标为节选或不完整",
+  "page_sha256": "28d07df53d25fff37fd23e0c219b81cf60533cba1af606f138766edaae26c99a",
+  "page_status": "公开页面已核查"
+}

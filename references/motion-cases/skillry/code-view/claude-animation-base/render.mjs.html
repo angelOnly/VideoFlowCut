@@ -1,0 +1,158 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>render.mjs</title><style>body{max-width:1100px;margin:30px auto;padding:0 24px;background:#12151a;color:#e8edf4;font:16px/1.8 system-ui,"Microsoft YaHei"}a{color:#9ec5f8}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#202630;padding:20px;border-radius:8px;font:14px/1.7 monospace}code{overflow-wrap:anywhere}li{margin:8px 0}</style><body><nav><a href="../../公开相关源码.html">公开相关源码目录</a></nav><h1>render.mjs</h1><p>PDoomVideo作者公开的可复用基础工程，与所选120条无逐条原片对应</p><p>固定Commit：0ac8bf2b31942376cb6b8c4074715595d512acd2；仅显示文本，未执行。</p><p><a href="https://raw.githubusercontent.com/JohnHeibel/ClaudeAnimationBase/0ac8bf2b31942376cb6b8c4074715595d512acd2/render.mjs" target="_blank">公开原文件</a></p><pre>// render.mjs: renders studio.html in headless Chrome. Length and fps come from the page (PROJECT in src/config.js).
+//
+//   Look at it (open the images with your image viewer / Read tool):
+//     node render.mjs --sheet=0.5,1,1.5,2 [--cols=4] [--w=480] --out=out/check/a.jpg        contact sheet of chosen times
+//     node render.mjs --strip=2.0:2.5 [--cols=6] [--w=320] --out=out/check/strip.jpg        EVERY frame in a stretch (motion)
+//     node render.mjs --sheet=2.1,2.2 --crop=760,300,400,400 --w=600 --out=out/check/face.jpg full-res crops (details)
+//     node render.mjs --strip=2.0:2.5 --crop-at=960,780,500,400 --out=out/check/feet.jpg       crops that follow a WORLD point
+//         (x,y in world px, may be page expressions like PLK.MX(1.38); w,h in screen px) through each frame&#x27;s camera
+//     node render.mjs --stills=1.2,3.4 --out=out/stills                                     full-res PNGs
+//   Make the video:
+//     node render.mjs --clip [--range=0:4] --out=out/video.mp4                               straight to MP4 (one worker)
+//     node render.mjs --frames [--range=0:8] --workers=4                                     JPEG frames → out/frames (parallel, resumable)
+//     node render.mjs --encode --out=out/video.mp4                                           out/frames → MP4
+//   Standalone loops (LOOPS in the page): add --loop=&lt;name&gt; to any of the above (times are then loop times), or
+//     node render.mjs --loop=emotions --png --out=out/loop_emotions                          one cycle as PNGs (for GIFs)
+//   Music: --audio=assets/song.mp3 (or PROJECT.audio) is muxed into --clip and --encode. Other flags: --fps=24,
+//   --chrome=&lt;path to Chrome/Chromium&gt;.
+import puppeteer from &#x27;puppeteer-core&#x27;;
+import { spawn } from &#x27;node:child_process&#x27;;
+import { mkdirSync, writeFileSync, existsSync, statSync, renameSync, readdirSync } from &#x27;node:fs&#x27;;
+import { dirname, resolve } from &#x27;node:path&#x27;;
+import { pathToFileURL } from &#x27;node:url&#x27;;
+import { homedir } from &#x27;node:os&#x27;;
+
+const args = Object.fromEntries(process.argv.slice(2).map(a =&gt; { const [k, v] = a.replace(/^--/, &#x27;&#x27;).split(&#x27;=&#x27;); return [k, v ?? true]; }));
+const CHROMES = [args.chrome, process.env.CHROME_PATH, &#x27;C:/Program Files/Google/Chrome/Application/chrome.exe&#x27;, &#x27;C:/Program Files (x86)/Google/Chrome/Application/chrome.exe&#x27;,
+  &#x27;/Applications/Google Chrome.app/Contents/MacOS/Google Chrome&#x27;, &#x27;/usr/bin/google-chrome&#x27;, &#x27;/usr/bin/chromium&#x27;, &#x27;/usr/bin/chromium-browser&#x27;,
+  ...playwrightChromes()];
+// Chromium builds Playwright downloaded (~/.cache/ms-playwright/chromium-NNNN), newest first
+function playwrightChromes() {
+  const dir = `${homedir()}/.cache/ms-playwright`;
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).filter(n =&gt; /^chromium-\d+$/.test(n)).sort((a, b) =&gt; b.split(&#x27;-&#x27;)[1] - a.split(&#x27;-&#x27;)[1])
+    .map(n =&gt; `${dir}/${n}/chrome-linux64/chrome`);
+}
+const CHROME = CHROMES.find(p =&gt; p &amp;&amp; existsSync(p));
+if (!CHROME) { console.error(&#x27;Chrome not found: pass --chrome=&lt;path&gt; or set CHROME_PATH&#x27;); process.exit(1); }
+const fps = +(args.fps || 24), FRAMES_DIR = &#x27;out/frames&#x27;;
+const run = (cmd, a) =&gt; new Promise((ok, bad) =&gt; { const p = spawn(cmd, a, { stdio: &#x27;inherit&#x27; }); p.on(&#x27;close&#x27;, c =&gt; c ? bad(new Error(cmd + &#x27; exited &#x27; + c)) : ok()); });
+const times = s =&gt; String(s).split(&#x27;,&#x27;).map(Number);
+const span = s =&gt; String(s).split(&#x27;:&#x27;).map(Number);
+// comma-separated fields, keeping commas inside parentheses (&#x27;PLK.MX(1.38),PLK.WL,500,300&#x27;); numbers stay numbers
+const fields = s =&gt; { const out = []; let d = 0, cur = &#x27;&#x27;; for (const ch of String(s)) { if (ch === &#x27;,&#x27; &amp;&amp; !d) { out.push(cur); cur = &#x27;&#x27;; continue; } d += ch === &#x27;(&#x27; ? 1 : ch === &#x27;)&#x27; ? -1 : 0; cur += ch; } out.push(cur); return out.map(v =&gt; isNaN(+v) ? v : +v); };
+
+if (args.encode) {
+  const out = args.out || &#x27;out/video.mp4&#x27;, n = readdirSync(FRAMES_DIR).filter(f =&gt; f.endsWith(&#x27;.jpg&#x27;)).length, audio = args.audio;
+  console.log(`encoding ${n} frames → ${out}${audio ? &#x27; with &#x27; + audio : &#x27;&#x27;}`);
+  await run(&#x27;ffmpeg&#x27;, [&#x27;-y&#x27;, &#x27;-loglevel&#x27;, &#x27;error&#x27;, &#x27;-stats&#x27;, &#x27;-framerate&#x27;, String(fps), &#x27;-i&#x27;, `${FRAMES_DIR}/f%05d.jpg`,
+    ...(audio ? [&#x27;-i&#x27;, audio, &#x27;-map&#x27;, &#x27;0:v&#x27;, &#x27;-map&#x27;, &#x27;1:a&#x27;, &#x27;-c:a&#x27;, &#x27;aac&#x27;, &#x27;-b:a&#x27;, &#x27;192k&#x27;, &#x27;-shortest&#x27;] : []),
+    &#x27;-c:v&#x27;, &#x27;libx264&#x27;, &#x27;-preset&#x27;, &#x27;slow&#x27;, &#x27;-crf&#x27;, &#x27;17&#x27;, &#x27;-pix_fmt&#x27;, &#x27;yuv420p&#x27;, &#x27;-movflags&#x27;, &#x27;+faststart&#x27;, out]);
+  console.log(&#x27;wrote &#x27; + out);
+  process.exit(0);
+}
+
+// --soft-gl: no GPU on this machine; render WebGL in software (SwiftShader), which Chrome only allows when asked.
+// --gpu-angle=vulkan|gl-egl: headless Linux on an NVIDIA GPU (e.g. a cloud or cluster node); plain --use-gl=angle gets
+// no WebGL context there. Check which GPU Chrome actually lands on with gpu_probe.mjs.
+const ANGLE = { vulkan: [&#x27;--use-angle=vulkan&#x27;, &#x27;--enable-features=Vulkan&#x27;], &#x27;gl-egl&#x27;: [&#x27;--use-angle=gl-egl&#x27;] };
+if (args[&#x27;gpu-angle&#x27;] &amp;&amp; !ANGLE[args[&#x27;gpu-angle&#x27;]]) { console.error(`--gpu-angle must be one of ${Object.keys(ANGLE)}`); process.exit(1); }
+const gpu = args[&#x27;soft-gl&#x27;] ? [&#x27;--use-angle=swiftshader&#x27;, &#x27;--enable-unsafe-swiftshader&#x27;]
+  : args[&#x27;gpu-angle&#x27;] ? ANGLE[args[&#x27;gpu-angle&#x27;]]
+  : process.platform === &#x27;win32&#x27; ? [&#x27;--use-angle=d3d11&#x27;] : process.platform === &#x27;darwin&#x27; ? [&#x27;--use-angle=metal&#x27;] : [&#x27;--use-gl=angle&#x27;];
+// Ubuntu 23.10+ blocks Chrome&#x27;s user-namespace sandbox; headless rendering of local files doesn&#x27;t need it.
+const sandbox = process.platform === &#x27;linux&#x27; ? [&#x27;--no-sandbox&#x27;] : [];
+const browser = await puppeteer.launch({
+  executablePath: CHROME, headless: true, protocolTimeout: 0,
+  args: [...sandbox, &#x27;--allow-file-access-from-files&#x27;, &#x27;--ignore-gpu-blocklist&#x27;, ...gpu, &#x27;--enable-gpu-rasterization&#x27;, &#x27;--window-size=1920,1080&#x27;, &#x27;--disable-renderer-backgrounding&#x27;, &#x27;--disable-background-timer-throttling&#x27;]
+});
+async function openPage(tag = &#x27;&#x27;) {
+  const page = await browser.newPage();
+  page.on(&#x27;console&#x27;, m =&gt; { if ([&#x27;error&#x27;, &#x27;warn&#x27;].includes(m.type())) console.log(`[page${tag}]`, m.text()); });
+  page.on(&#x27;pageerror&#x27;, e =&gt; console.log(`[page error${tag}]`, e.message));
+  await page.goto(pathToFileURL(resolve(&#x27;studio.html&#x27;)).href + &#x27;?render&#x27;, { waitUntil: &#x27;networkidle0&#x27; });
+  await page.waitForFunction(&#x27;window.ready === true&#x27;, { timeout: 60000 });
+  if (args.loop) {
+    const ok = await page.evaluate(name =&gt; { if (!LOOPS[name]) return false; window.LOOP = LOOPS[name]; return true; }, args.loop);
+    if (!ok) { console.error(`no loop named &quot;${args.loop}&quot;`); process.exit(1); }
+  }
+  return page;
+}
+const frameOf = async (page, t, type, q) =&gt; {
+  const url = await page.evaluate((t, type, q) =&gt; window.renderAt(t, type, q), t, type, q);
+  return Buffer.from(url.slice(url.indexOf(&#x27;,&#x27;) + 1), &#x27;base64&#x27;);
+};
+// the length of whatever is being rendered: a loop&#x27;s .len, or the video&#x27;s duration
+const lengthOf = page =&gt; page.evaluate(() =&gt; window.LOOP ? window.LOOP.len : DUR);
+
+if (args.sheet || args.strip) {
+  const page = await openPage(), out = args.out || &#x27;out/sheet.jpg&#x27;; mkdirSync(dirname(out), { recursive: true });
+  let ts;
+  if (args.strip) { const [a, b] = span(args.strip); ts = []; for (let i = Math.round(a * fps); i &lt;= Math.round(b * fps); i++) ts.push(i / fps); }
+  else ts = times(args.sheet);
+  const crop = args.crop ? times(args.crop) : null, at = args[&#x27;crop-at&#x27;] ? fields(args[&#x27;crop-at&#x27;]) : null;
+  const { url, ms } = await page.evaluate((ts, c, w, crop, at) =&gt; window.renderSheet(ts, c, w, crop, at), ts, +(args.cols || (args.strip ? 6 : 3)), +(args.w || (args.strip ? 320 : 640)), crop, at);
+  writeFileSync(out, Buffer.from(url.slice(url.indexOf(&#x27;,&#x27;) + 1), &#x27;base64&#x27;));
+  console.log(`${out}  (${ts.length} frames)  ms/frame: ${ms.join(&#x27; &#x27;)}`);
+} else if (args.stills) {
+  const page = await openPage(), out = args.out || &#x27;out/stills&#x27;; mkdirSync(out, { recursive: true });
+  console.log(&#x27;GPU:&#x27;, await page.evaluate(() =&gt; window.gpuInfo()));
+  for (const s of times(args.stills)) {
+    const t0 = Date.now(), buf = await frameOf(page, s, &#x27;image/png&#x27;);
+    const f = `${out}/t${s.toFixed(2).replace(&#x27;.&#x27;, &#x27;_&#x27;)}.png`; writeFileSync(f, buf);
+    console.log(`${f}  ${Date.now() - t0} ms`);
+  }
+} else if (args.png) {
+  // PNG sequence (for GIFs): a loop&#x27;s full cycle (frame n equals frame 0, so it isn&#x27;t rendered), or --range=a:b.
+  const probe = await openPage(), len = await lengthOf(probe); await probe.close();
+  const [a, b] = args.range ? span(args.range) : [0, len], n = Math.round((b - a) * fps);
+  const out = args.out || `out/${args.loop ? &#x27;loop_&#x27; + args.loop : &#x27;png&#x27;}`, workers = +(args.workers || 3); mkdirSync(out, { recursive: true });
+  let next = 0; const start = Date.now();
+  await Promise.all(Array.from({ length: workers }, async (_, w) =&gt; {
+    const page = await openPage(&#x27;#&#x27; + w);
+    while (next &lt; n) { const i = next++; writeFileSync(`${out}/f${String(i).padStart(4, &#x27;0&#x27;)}.png`, await frameOf(page, a + i / fps, &#x27;image/png&#x27;)); }
+  }));
+  console.log(`${n} frames → ${out}  (${((Date.now() - start) / n).toFixed(0)} ms/frame)`);
+} else if (args.frames) {
+  // Parallel and resumable: each worker pulls the next missing frame; files are written atomically.
+  const probe = await openPage(), len = await lengthOf(probe); await probe.close();
+  const [a, b] = args.range ? span(args.range) : [0, len], workers = +(args.workers || 4);
+  mkdirSync(FRAMES_DIR, { recursive: true });
+  const first = Math.round(a * fps), last = Math.min(Math.ceil(len * fps) - 1, Math.round(b * fps) - 1);
+  const todo = []; for (let i = first; i &lt;= last; i++) { const f = `${FRAMES_DIR}/f${String(i).padStart(5, &#x27;0&#x27;)}.jpg`; if (!existsSync(f) || statSync(f).size &lt; 1000) todo.push(i); }
+  console.log(`${todo.length} frames to render (${last - first + 1 - todo.length} already done), ${workers} workers`);
+  let next = 0, done = 0; const start = Date.now();
+  await Promise.all(Array.from({ length: workers }, async (_, w) =&gt; {
+    const page = await openPage(&#x27;#&#x27; + w);
+    while (next &lt; todo.length) {
+      const i = todo[next++], f = `${FRAMES_DIR}/f${String(i).padStart(5, &#x27;0&#x27;)}.jpg`;
+      const buf = await frameOf(page, i / fps, &#x27;image/jpeg&#x27;, .94);
+      writeFileSync(f + &#x27;.tmp&#x27;, buf); renameSync(f + &#x27;.tmp&#x27;, f);
+      if (++done % 24 === 0 || done === todo.length) {
+        const el = (Date.now() - start) / 1000;
+        console.log(`frame ${done}/${todo.length}  ${(el / done * 1000).toFixed(0)} ms/frame effective  eta ${((todo.length - done) * el / done / 60).toFixed(1)} min`);
+      }
+    }
+  }));
+} else if (args.clip) {
+  const page = await openPage(), len = await lengthOf(page);
+  const [a, b] = args.range ? span(args.range) : typeof args.clip === &#x27;string&#x27; ? span(args.clip) : [0, len];
+  const audio = args.audio || await page.evaluate(() =&gt; PROJECT.audio || &#x27;&#x27;);
+  const out = args.out || &#x27;out/clip.mp4&#x27;; mkdirSync(dirname(out), { recursive: true });
+  const ff = spawn(&#x27;ffmpeg&#x27;, [&#x27;-y&#x27;, &#x27;-loglevel&#x27;, &#x27;error&#x27;, &#x27;-f&#x27;, &#x27;image2pipe&#x27;, &#x27;-framerate&#x27;, String(fps), &#x27;-c:v&#x27;, &#x27;mjpeg&#x27;, &#x27;-i&#x27;, &#x27;-&#x27;,
+    ...(audio ? [&#x27;-ss&#x27;, String(a), &#x27;-t&#x27;, String(b - a), &#x27;-i&#x27;, audio, &#x27;-map&#x27;, &#x27;0:v&#x27;, &#x27;-map&#x27;, &#x27;1:a&#x27;, &#x27;-c:a&#x27;, &#x27;aac&#x27;, &#x27;-b:a&#x27;, &#x27;192k&#x27;, &#x27;-shortest&#x27;] : []),
+    &#x27;-c:v&#x27;, &#x27;libx264&#x27;, &#x27;-preset&#x27;, &#x27;medium&#x27;, &#x27;-crf&#x27;, &#x27;18&#x27;, &#x27;-pix_fmt&#x27;, &#x27;yuv420p&#x27;, &#x27;-movflags&#x27;, &#x27;+faststart&#x27;, out],
+    { stdio: [&#x27;pipe&#x27;, &#x27;inherit&#x27;, &#x27;inherit&#x27;] });
+  const n = Math.round((b - a) * fps), start = Date.now();
+  for (let i = 0; i &lt; n; i++) {
+    const buf = await frameOf(page, a + i / fps, &#x27;image/jpeg&#x27;, .93);
+    if (!ff.stdin.write(buf)) await new Promise(r =&gt; ff.stdin.once(&#x27;drain&#x27;, r));
+    if (i % 24 === 0 || i === n - 1) console.log(`frame ${i + 1}/${n}  ${((Date.now() - start) / (i + 1)).toFixed(0)} ms/frame`);
+  }
+  ff.stdin.end(); await new Promise(r =&gt; ff.on(&#x27;close&#x27;, r));
+  console.log(`wrote ${out}`);
+} else {
+  console.log(&#x27;nothing to do: see the usage notes at the top of render.mjs&#x27;);
+}
+await browser.close();
+</pre></body></html>

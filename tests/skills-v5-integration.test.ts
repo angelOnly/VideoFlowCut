@@ -280,6 +280,27 @@ test("人物剪辑专业资料从导演与相关专项可达，发行内容保�
   );
 });
 
+test("共同参考从各职责入口可达，完整演出模板与专业教学保持一条来源", async () => {
+  const reference = "motion-case-attention-programme/";
+  for (const role of ["production-coordinator", "production-director", ...primaryWorkflows, ...creativeSpecialists, "quality-verification"]) {
+    const reached = await reachableMarkdown(join(skillsRoot, role, "SKILL.md"));
+    for (const file of [reference + "SKILL.md", reference + "references/original-input.md", "_shared/PROJECT_REVISION_AND_HANDOFF.md"]) {
+      assert.ok(reached.has(resolve(skillsRoot, file)), `${role} 无法接回 ${file}`);
+    }
+  }
+  for (const role of ["motion-brief-writing", "remotion-production", "visual-treatment-planning", "effect-timing"]) {
+    const reached = await reachableMarkdown(join(skillsRoot, role, "SKILL.md"));
+    for (const file of ["motion-brief-writing/references/execution-brief-template.md", "remotion-production/references/scene-art-and-motion.md", "remotion-production/references/material-space-and-time.md", "_shared/MCP_EXECUTION_CONTRACT.md"]) {
+      assert.ok(reached.has(resolve(skillsRoot, file)), `${role} 的深化路径遗漏 ${file}`);
+    }
+  }
+  const template = await readFile(join(skillsRoot, "motion-brief-writing/references/execution-brief-template.md"), "utf8");
+  // 这里只约束交接所需内容，不能根据模板栏目宣称模型行为或美学通过。
+  for (const section of ["当前准确讲述与材料", "美术与主要构图", "关键中途与连续演出", "当前声音与时间", "实现与返修", "当前版本和未知"]) {
+    assert.ok(template.includes(`## ${section}`), `模板缺少交接范围：${section}`);
+  }
+});
+
 test("Skills V5 源唯一、插件发行副本完整且可被 Codex 发现", async () => {
   const onDiskNames = (await readdir(skillsRoot, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory() && entry.name !== "_shared")

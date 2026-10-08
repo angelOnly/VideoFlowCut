@@ -1,0 +1,26 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>参考库使用说明</title><style>body{margin:0;background:#12151a;color:#e8edf4;font-family:system-ui,"Microsoft YaHei",sans-serif;line-height:1.8}main{max-width:1060px;margin:auto;padding:28px 24px 60px}h1{font-size:28px;line-height:1.4}h2{font-size:21px;margin-top:32px}h3{font-size:17px}p{margin:14px 0}a{color:#9ec5f8}video{width:100%;max-height:560px;background:#080a0c}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#202630;padding:18px;border-radius:8px;line-height:1.6}code{overflow-wrap:anywhere}table{border-collapse:collapse;width:100%;font-size:14px}td,th{border-bottom:1px solid #39414d;padding:10px;text-align:left;vertical-align:top}img{max-width:100%;height:auto}summary{cursor:pointer;padding:12px 0}nav{display:flex;gap:16px;flex-wrap:wrap}.muted{color:#aeb9c8}.status{background:#202630;padding:14px;border-radius:8px}label{display:block;margin-bottom:6px}select,input,button{font:inherit;background:#252e3a;color:#e8edf4;border:1px solid #485365;border-radius:7px;padding:9px}input{max-width:100%}.filters{display:flex;gap:16px;flex-wrap:wrap;margin:24px 0}.filters>div{flex:1;min-width:220px}@media(max-width:600px){main{padding:20px 14px}h1{font-size:23px}table{font-size:12px}td,th{padding:7px}}</style></head><body><main><nav><a href="index.html">参考库总索引</a></nav><h1>使用这个参考库</h1>
+<p>浏览入口为<a href="http://127.0.0.1:8874/library/index.html">本地预览入口</a>。视频和研究资料已迁入项目根目录下的 <code>references/motion-cases/skillry/</code>。筛选首页使用本地服务加载共用索引；直接双击HTML文件不能保证检索可用，但各例正文和媒体仍可直接打开。网站原作、作者帖子及相关GitHub链接需要联网。</p>
+<p>在项目根目录启动独立预览服务：</p>
+<pre><code class="language-powershell">python references/motion-cases/skillry/tools/preview_server.py
+</code></pre>
+<p>仅监听本机8874端口，不属于视频生产Runtime；端口已占用时先打开现有入口，不要重复启动或停止其他服务。</p>
+<h2>按用途寻找案例</h2>
+<p>先选“适用视频类型”和“段落场景”，再用“原片实见素材”收窄范围。还可按原片形态、动效方法和美术特点筛选，或输入用空格分隔的关键词，例如“手机 照片”“新闻 对照”。形态是原作的呈现方式，视频类型是可迁移的用途；它们并不等价。适合新闻解读的案例可能只有文章页面，并没有新闻现场人物片段。</p>
+<p>卡片提供具体使用场景、实际材料、推荐秒段；点击秒段从该处播放并在段尾暂停。展开卡片可看方法、美术、材料要求和迁移代价，进入详情可读完整拆解。筛选条件保存在网址中，复制网址即可复用。原收藏使用同一浏览器存储键和同一端口保留；清空筛选不会清空收藏，换浏览器或清除站点数据不会保留收藏。</p>
+<h2>在项目里调用</h2>
+<p>项目 <code>.agents/skills/motion-case-library/</code> 是统一检索入口。可以直接对助手说：“用动效案例库，为我的新闻解释片找3—5个文章对照、真实素材结合图表的参考，列推荐秒段和迁移代价。”助手先查 <code>case-catalogue.json</code>，再读入围案例，不需要通读120篇。</p>
+<p>参考文件按同一编号组织：<code>cases/&lt;案例标识&gt;-original/media/original.mp4</code> 是原片；同目录的 <code>analysis.md</code> 是拆解，<code>replication-brief.md</code> 是后写设计输入，<code>observation-record.json</code> 标明实看范围。每条的 <code>index.html</code> 把这些资料合在一起。</p>
+<h2>维护与备份</h2>
+<p>分类原稿在 <code>catalogue-parts/</code>，三位研究作者分别负责40条。修改后依次执行：</p>
+<pre><code class="language-powershell">python references/motion-cases/skillry/tools/build_catalogue.py
+python references/motion-cases/skillry/tools/assemble.py
+node --test references/motion-cases/skillry/tools/search.test.mjs
+python references/motion-cases/skillry/tools/verify_library.py
+</code></pre>
+<p>网页和Skill都从同一个 <code>case-catalogue.json</code> 检索，不另存第二份标签。<code>assemble.py</code> 日常只读正式案例；采用新的研究稿才明确传 <code>--adopt-staging</code>，暂存区不参与默认构建。维护工具中的源码下载与证据提取脚本是研究工具，不需要为了打开或搜索本库重跑。</p>
+<p>文本索引、拆解、网页与工具按项目文件管理。大视频、采样图片和原研究暂存区被Git忽略；换电脑或交接时，需额外复制本目录中的媒体与证据图片，并保留目录结构。只拉代码能阅读文字索引，不能恢复被忽略的视频。媒体不存在时播放器会提示恢复资料备份，不会伪装播放成功。</p>
+<p>每条案例有相同的编号与独立页面。先播放原片，再根据拆解中的源时间回看动作；阅读中文后写复现输入时，可同时展开作者公开输入原文核对。密集图组用于追踪连续变化，原尺寸首、中、尾图用于放大看布局，不能仅凭三个关键帧判断动作好坏。原片可在独立页面保存，文件也在对应案例的media目录。</p>
+<p>以后为项目设计一个段落时，可指定案例编号、希望借用的过程及原片时间，例如“参考011的20—25秒，学习图片从界面转为实体物件的衔接”。把原片、analysis.md和replication-brief.md一并作为输入，结合项目自己的内容、素材、画幅与阅读量重新设计。后写复现输入是设计起点，仍须制作并查看新成片；本库没有给它们做生成或渲染验证。</p>
+<p>公开资料分开保存：sources/published-prompt.md是固定版本作者输入，sources/source-check.json是本轮源码核查。related-sources目录中的生成Skill、其他作品和基础工程有各自来源与范围；它们没有被登记为这120条原片的固定源码，也未安装或运行。视频来源、SHA-256与解码记录可在source.json中查询。</p>
+<p>本库的专业观察来自整片源帧概览和报告列明的密集区间。原速感受、声音与音画同步未专业核验；不要把这些文字当作已经完成的原速审片结论。声音设计需要另外试听原片与新制作结果。</p>
+<p>全库研究不等于替你修改偏好选择。本次只接入参考库及检索Skill；应用到具体成片时，仍需按照当前项目内容和实际素材完成创作、生成和审阅。</p></main></body></html>

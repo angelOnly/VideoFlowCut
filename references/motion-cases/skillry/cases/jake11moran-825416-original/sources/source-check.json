@@ -1,0 +1,15 @@
+{
+  "case_id": "R341",
+  "slug": "jake11moran-825416",
+  "page": "https://skillry.dev/ai-videos/opus-5-5/jake11moran-825416",
+  "index_commit": "756290289742535eb0ac3817548f152e9759cc70",
+  "prompt_partial": true,
+  "scope": "固定公开索引、作者输入和Skillry详情页的链接；不是全网穷尽证明",
+  "source_status": "找到作者公开的生成Skill；不是原片固定工程",
+  "code_links": [
+    "https://github.com/heygen-com/hyperframes-community-skills/tree/master/skills/session-story"
+  ],
+  "input_kind": "索引标为节选或不完整",
+  "page_sha256": "3724bb1f52916bca8a1526b2509e24563c85bc0234f18fc355a28ba2a38ed16c",
+  "page_status": "公开页面已核查"
+}

@@ -1,0 +1,49 @@
+{
+  "owner": "study_mixed",
+  "case_number": 10,
+  "slug": "hsanat-012699",
+  "source_file": "media/original.mp4",
+  "source_sha256": "e04846abbb6e2ad648a94e5beff04142117c326df7d804885ea6d60ee3a95b00",
+  "decode_status": "全程通过",
+  "overview": {
+    "first_source_pts": 0.0,
+    "last_source_pts": 70.0,
+    "frames": 71,
+    "sampling": "约1fps真实源帧"
+  },
+  "dense_ranges": [
+    {
+      "requested": [
+        30,
+        35
+      ],
+      "first_source_pts": 30.0,
+      "last_source_pts": 35.0,
+      "frames": 76,
+      "actual_sampling_fps": 15.0,
+      "source_pts_file": "dense/timestamps.json"
+    }
+  ],
+  "actually_viewed_image_groups": [
+    "overview/sheet-001.jpg",
+    "overview/sheet-002.jpg",
+    "overview/sheet-003.jpg",
+    "overview/sheet-004.jpg",
+    "dense/sheet-001.jpg",
+    "dense/sheet-002.jpg",
+    "dense/sheet-003.jpg",
+    "dense/sheet-004.jpg"
+  ],
+  "observation_method": "view_image实际查看每个列出的概览与密集组",
+  "raw_speed_viewed": false,
+  "audio_listened": false,
+  "limitations": [
+    "本报告实际查看整片约每秒一帧概览，以及关键区间的密集真实源帧；时间来自源PTS。基于带源时间图片序列，未核验原速观感，未试听，因此不认证整体流畅度、音乐拍点、对白连续或声音同步。概览不足以证明其他快速接续；300像素证据单帧中的小字、边缘精度仍需全尺寸核验。"
+  ],
+  "published_input_assessment": "公开输入是一般SaaS发布片要求，没有当前招聘素材、完整分镜或源码。",
+  "published_input_sha256": "f3b6a3a50949f26ad89be4c1dea64cd3f1f931a2d0cba57f9cbe825c2301494c",
+  "source_check_record": "sources/source-check.json",
+  "replication_brief_status": "研究者后写、未制作验证",
+  "source_code_status": "本轮未找到直接对应固定源码",
+  "analysis_status": "全片概览与所列关键区间完成；原速和声音待审"
+}

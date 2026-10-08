@@ -1,0 +1,13 @@
+{
+  "case_id": "R281",
+  "slug": "hunzai-842605",
+  "page": "https://skillry.dev/ai-videos/opus-5-5/hunzai-842605",
+  "index_commit": "756290289742535eb0ac3817548f152e9759cc70",
+  "prompt_partial": true,
+  "scope": "固定公开索引、作者输入和Skillry详情页的链接；不是全网穷尽证明",
+  "source_status": "本轮未找到原片固定源码",
+  "code_links": [],
+  "input_kind": "索引标为节选或不完整",
+  "page_sha256": "90fc4a2121e4a3021142d5fec6710297b20ba684aeeb47aa3014da400544fdf0",
+  "page_status": "公开页面已核查"
+}

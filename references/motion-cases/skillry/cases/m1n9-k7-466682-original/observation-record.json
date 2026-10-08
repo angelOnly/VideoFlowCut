@@ -1,0 +1,48 @@
+{
+  "owner": "study_mixed",
+  "case_number": 23,
+  "slug": "m1n9-k7-466682",
+  "source_file": "media/original.mp4",
+  "source_sha256": "4378b7150cca7ca9e77919e174ca0d4f2406499ce1784ec99514c144065cb155",
+  "decode_status": "全程通过",
+  "overview": {
+    "first_source_pts": 0.0,
+    "last_source_pts": 16.016,
+    "frames": 17,
+    "sampling": "约1fps真实源帧"
+  },
+  "dense_ranges": [
+    {
+      "requested": [
+        5,
+        10
+      ],
+      "first_source_pts": 5.005,
+      "last_source_pts": 9.968292,
+      "frames": 120,
+      "actual_sampling_fps": 23.976,
+      "source_pts_file": "dense/timestamps.json"
+    }
+  ],
+  "actually_viewed_image_groups": [
+    "overview/sheet-001.jpg",
+    "dense/sheet-001.jpg",
+    "dense/sheet-002.jpg",
+    "dense/sheet-003.jpg",
+    "dense/sheet-004.jpg",
+    "dense/sheet-005.jpg",
+    "dense/sheet-006.jpg"
+  ],
+  "observation_method": "view_image实际查看每个列出的概览与密集组",
+  "raw_speed_viewed": false,
+  "audio_listened": false,
+  "limitations": [
+    "本报告实际查看整片约每秒一帧概览，以及关键区间的密集真实源帧；时间来自源PTS。基于带源时间图片序列，未核验原速观感，未试听，因此不认证整体流畅度、音乐拍点、对白连续或声音同步。概览不足以证明其他快速接续；300像素证据单帧中的小字、边缘精度仍需全尺寸核验。"
+  ],
+  "published_input_assessment": "公开输入为一般15秒动效作品集要求；当前文件是用摄像机拍显示器的竖版记录，没有原始屏幕动画工程。",
+  "published_input_sha256": "25cf1e6dfedf61f2d04f544421fd5d1585f3748d39dffbad4fa43e3c21dd8a8b",
+  "source_check_record": "sources/source-check.json",
+  "replication_brief_status": "研究者后写、未制作验证",
+  "source_code_status": "本轮未找到直接对应固定源码",
+  "analysis_status": "全片概览与所列关键区间完成；原速和声音待审"
+}

@@ -1,0 +1,66 @@
+{
+  "case_number": 17,
+  "case_id": "R245",
+  "slug": "abderrahmen-g-899031",
+  "title": "手绘剪纸角色与纸面世界",
+  "group": "照片与实景风格",
+  "author": "abderrahmen_g",
+  "page_url": "https://skillry.dev/ai-videos/opus-5-5/abderrahmen-g-899031",
+  "original_post": "https://x.com/abderrahmen_g/status/2103103836541899031",
+  "version": "Original",
+  "media_url": "https://media.skillry.dev/opus-5-5/abderrahmen-g-899031/original.mp4",
+  "index_commit": "756290289742535eb0ac3817548f152e9759cc70",
+  "index_sha256": "6a7a5664e693e7741567c9092af127fb5906bbf3a194f4c6475292c15f540776",
+  "prompt_partial": false,
+  "prompt_text": "You are a professional videographer. Create me a high-definition, creative, playful, and joyful video that you enjoy watching, that has sounds matching the frames using JavaScript. Use as much as possible of the input images—hand-drawn—to make it more creative and more authentic from input-pictures. You can also be inspired by, but not copy, the videos created by you in video-examples/, especially this: video-examples/twitter_claude.mp4. You're really creative, so produce the best of what you can.",
+  "prompt_status": "公开索引的作者输入或说明；仍需核对是否为完整生成指令",
+  "code_status": "本轮未找到原片固定源码",
+  "acquisition_status": "原作已下载且全程音视频解码通过",
+  "analysis_status": "整片概览与所列关键过程已专业拆解；原速与声音未核验",
+  "published_prompt_url": "https://raw.githubusercontent.com/yihui-dev/awesome-opus5-5-videos/756290289742535eb0ac3817548f152e9759cc70/prompts/abderrahmen-g-899031.md",
+  "response_type": "video/mp4",
+  "etag": "\"3f11892eac39f6944d422b35f9f84286\"",
+  "local_media": "media/original.mp4",
+  "bytes": 11986240,
+  "sha256": "f30a4a8e7dc51204ec8ce8e1ccc05f559dbb4ecf84adc21b5dd053b12353bbf5",
+  "media_metadata": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "profile": "High",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720,
+        "pix_fmt": "yuv420p",
+        "avg_frame_rate": "30/1"
+      },
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "profile": "LC",
+        "codec_type": "audio",
+        "avg_frame_rate": "0/0"
+      }
+    ],
+    "format": {
+      "duration": "78.058000",
+      "size": "11986240"
+    }
+  },
+  "downloaded_at": "2026-10-08T15:27:59.959404+08:00",
+  "decode_status": "全程通过",
+  "technical_evidence": [
+    "evidence/check-start.jpg",
+    "evidence/check-middle.jpg",
+    "evidence/check-end.jpg"
+  ],
+  "source_check_file": "sources/source-check.json",
+  "analysis_owner": "study_mixed",
+  "observation_record": "observation-record.json",
+  "analysis_file": "analysis.md",
+  "replication_brief": "replication-brief.md",
+  "candidate_title": "手绘贴纸与花朵影像"
+}

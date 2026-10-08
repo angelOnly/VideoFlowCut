@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
@@ -119,5 +120,52 @@ test("实时 MCP Schema 接收可选 delegation，并原样关联输入版本与
     assert.equal(readBack.creativeDecisions.length, 2);
     assert.deepEqual(readBack.creativeDecisions[0].delegation, f.delegation);
     assert.equal(f.app.readRevisions(f.projectId).length, 1);
+  } finally { await client.close(); await f.dispose(); }
+});
+
+test("完整声画稿走现有附件引用，MCP读回保留中途、末段与变更前后身份", async () => {
+  const f = await fixture();
+  const transport = new StdioClientTransport({ command: process.execPath, args: ["--import", "tsx", "apps/server/src/mcp.ts"], cwd: process.cwd(), env: { ...getDefaultEnvironment(), VIDEOCUT_WORKSPACE: f.root }, stderr: "pipe" });
+  const client = new Client({ name: "full-script-handoff-regression", version: "1.0.0" });
+  const parse = (result: unknown): SkillExecutionReport => {
+    const raw = result as { isError?: boolean; content: Array<{ type: string; text?: string }> };
+    // 先保留原始文本并检查错误；协议层拒绝不一定是 JSON。
+    const original = raw.content.filter(item => item.type === "text").map(item => item.text ?? "").join("\n");
+    assert.notEqual(raw.isError, true, original);
+    return JSON.parse(original);
+  };
+  try {
+    await client.connect(transport);
+    const schema = (await client.listTools()).tools.find(tool => tool.name === "record_creative_decision")!.inputSchema;
+    assert.ok(schema.properties?.evidence);
+    assert.equal(schema.properties?.fullCreativeScript, undefined, "完整稿不扩为未经采用的新接口字段");
+    const script = "# 当前整片声画稿 v1\n" + "本段为开发夹具，事实与源范围尚未核验。\n".repeat(1_000)
+      + "## 关键中途\n旧主体仍在场时新内容开始可读；源时钟继续。\n## 末段\n结尾只完成材料支持的认识，保留未核实条件。\n";
+    const path = join(f.created.snapshot.project.rootPath, "reports", "声画稿-v1.md");
+    await writeFile(path, script, "utf8");
+    const checksum = createHash("sha256").update(script).digest("hex");
+    // 附件和素材引用由宿主提供，平台只存已有 evidence；不冒充媒体或宿主可读性认证。
+    const evidence = [path, `sha256:${checksum}`, "fixture-only:source-range-v1", "fixture-only:preview-R1-v1", "fixture-only:speech-v1:sentence-level"];
+    const input = { project_id: f.projectId, run_id: f.run.id, category: "visual", decision: "采用当前全文引用，设计与动态仍待实际验证", rationale: "长稿不挤入摘要，不用历史预览为新版背书" };
+    for (const role of ["director", "specialist", "reviewer"]) {
+      const result = parse(await client.callTool({ name: "record_creative_decision", arguments: { ...input, evidence, delegation: { agent_id: `/fixture/${role}`, assignment_id: `handoff-${role}`, role, input_revision: 1 } } }));
+      const entry = result.creativeDecisions.at(-1)!;
+      assert.deepEqual(entry.evidence, evidence);
+      assert.equal(await readFile(entry.evidence[0], "utf8"), script, "接收引用后全文含中途与末段，不得截断");
+    }
+    f.app.updateStory({ projectId: f.projectId, baseRevision: 1, title: "夹具后续版本；并未生成新媒体" });
+    const updated = script.replace("声画稿 v1", "声画稿 v2").replace("源时钟继续。", "源时钟继续；新配音句群起点后移，动作与字幕重新校准。");
+    const nextPath = join(f.created.snapshot.project.rootPath, "reports", "声画稿-v2.md");
+    await writeFile(nextPath, updated, "utf8");
+    const nextEvidence = [nextPath, "fixture-only:source-range-v1", "fixture-only:speech-v2:sentence-level", "fixture-only:preview-v2-pending"];
+    await client.callTool({ name: "record_creative_decision", arguments: { ...input, evidence: nextEvidence, delegation: { agent_id: "/fixture/specialist", assignment_id: "handoff-specialist", role: "specialist", input_revision: 2 } } }).then(parse);
+    const readBack = parse(await client.callTool({ name: "read_skill_execution_report", arguments: { project_id: f.projectId, run_id: f.run.id } }));
+    assert.equal(readBack.creativeDecisions.length, 4);
+    assert.deepEqual(readBack.creativeDecisions.slice(0, 3).map(entry => entry.evidence), [evidence, evidence, evidence]);
+    assert.deepEqual(readBack.creativeDecisions[3].evidence, nextEvidence);
+    assert.deepEqual(readBack.creativeDecisions.map(entry => entry.delegation?.inputRevision), [1, 1, 1, 2]);
+    assert.equal(await readFile(path, "utf8"), script);
+    assert.equal(await readFile(nextPath, "utf8"), updated);
+    assert.equal(f.app.readRevisions(f.projectId).length, 2, "交接审计不创建视频 Revision");
   } finally { await client.close(); await f.dispose(); }
 });

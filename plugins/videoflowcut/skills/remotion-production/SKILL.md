@@ -1,6 +1,6 @@
 ---
 name: remotion-production
-description: 作为跨视频类型的完整 Motion Graphics 子工作流，负责完整内容段的构思、关键画面、美术、运动、原创受管版本和合成验证；参考可选，在设计阶段按需学习连续动效案例。
+description: 作为跨视频类型的完整 Motion Graphics 子工作流，负责完整内容段的构思、关键画面、美术、运动、原创受管版本和合成验证；已采用的共同参考贯穿构思与制作，其他局部技法按需学习。
 ---
 
 # Remotion Motion Graphics 完整生产工作流
@@ -28,22 +28,24 @@ Runtime 0.1.64接入用户提供并确认采用的22份原件，目录共34份�
 0.1.62目录提供中文衬线候选`noto-serif-sc-semibold`（真实600）与`noto-serif-sc-black`（真实900）。需要宋／显示衬线时先检查查询是否包含这些实际文件，再用主字和最长纸条出真实字样；黑体不能替代明确要求的衬线轮廓。中粗或重字重的适用位置由作者观察决定，不给普通400字款加fontWeight:900冒充重字重。未知参考的确切字款不应成为必须同款的额外门禁，接近字款如实记录替代；具体字幅、侧转中途、纸条镜内阅读仍由原作者复核，登记字体不等于专业定稿。
 
 <!-- topic-film-v2-remotion-production:begin -->
-<!-- material-scene-v3 -->
-## 实现依据素材发生的动画，而非动画前后插图
 
+## 原作者把已选美术与中途完整实现
+
+本次已采用共同参考贯穿当前工作；其他局部案例按需选读。同一作者负责当前美术、运动、源码和修订，不把完整演出压成一句交给默认模板猜。
+
+使用实际素材、准确文字与已登记字体预排。关键中途先有具体决定，再实现轴心、路径、遮罩、层级和时间；附着元素共享正确变换。动画由当前作品帧驱动，源时钟不随对象移动重置。坐标与时钟方法继续使用[素材坐标与时间](references/material-space-and-time.md)。
+
+同一命名时序用于动作与事件描述，不能事件表写了交叠、源码却串行等待。跨作品按既有预算拆分并交清投影、姿态、源时间、文字与声音，技术边界不自动重建画面。
+
+实际作品与合成回原作者观察。设计忠实实现仍不好看，就改设计；源错帧、漏层、字体回退则修实现。工具成功不替代美术与动态判断。
+
+<!-- material-scene-v3 -->
 先读导演当前完整采用稿、实际文件与观察，按 [场面执行正文](../_shared/SCENE_DESIGN_HANDOFF.md)、[素材到场面](../_shared/MATERIAL_TO_SCENE.md) 和 [源坐标与时间实现](references/material-space-and-time.md) 深化。重要主体、美术、排印与动作仍由同一作者负责，不由默认组件替代设计。
 
-编写前确定：源内具体目标、真实/原创身份、有效源区间、显示几何、依附标注和下一次关注。源画面、局部观察窗、轮廓、标签、遮挡共用可核对的状态；同源双窗用同一取帧时钟；标签从源坐标经过裁切/缩放/父变换得到。无法可靠定位就换短稳定范围、明确源帧观察或新示意，不虚报跟踪。
+当前完整稿沿 [完整演出写法](../motion-brief-writing/SKILL.md) 深化。先确定源内目标、真实或原创身份、有效源区间与显示几何；源、局部窗、附着标签共用状态与根时钟，不能把教学坐标当实测。素材继续通过 imageBindings/videoBindings、TimelineVideo 和现有来源关联绑定，源声由整片声音链管理。
 
-优先让实际材料提供可用轮廓、材质与空间，新增图形服务指认、比较、发现或表现。进入原创模型时保留当前需要的参照，或清楚建立新的例子；不把没有来源的细节称为源内放大。主读与素材共同构图，不让二者各占一个互不相关角落。
+参见 [共同创作方法](../_shared/TOPIC_TO_FILM.md) 与本次已采用的 [共同案例入口](../motion-case-attention-programme/SKILL.md)；未采用本例的其他任务按自己的参考与路由继续。
 
-按实际需求选读案例，写出“当前源对象→借鉴的动作→本次裁切/变换/出口”的具体对应。案例独立好看不代表直接插入当前片段成立；完成稿中保留设计兑现位置与应检查的中途状态。
-
-依据当前受管合同提交：素材从imageBindings/videoBindings进入，TimelineVideo使用作品根时钟与绑定的startFrame/endFrame正常播放；内部Sequence只改变布局，源声音在整片声音链中管理。四时钟、显示方向/SAR、decodeScale和真实画幅读回，不凭原视频帧号猜偏移。解释用的几何示例不得作为实测坐标。
-
-图片/源范围/焦点或时序改变时，重写依赖的构图、标注、路径、文字和前后接口，提交新作品并同步采用。动画和resolveMotionEvents尽量用同一命名时间常量。完整执行正文不静默截断；预算需拆件由原作者分作品整理。
-
-渲染检查包含源材料进入前、同场相互作用中、出口及后镜，核对实际目标与时间、共同構图、动态阅读、主体空等和声音接点；只看起终两帧不宣布融合通过。已知可修问题在本任务内处理，真实未知保留，技术问题不靠放宽沙箱或绕过MCP解决。
 <!-- topic-film-v2-remotion-production:end -->
 
 ## 执行角色与代理交接
@@ -84,7 +86,7 @@ Runtime 0.1.64接入用户提供并确认采用的22份原件，目录共34份�
 
 按当前材料和观看任务读取 [案例学习与选型](../motion-case-library/SKILL.md)。进入选定案例后，依据该例的资料入口完整读取真实生成输入与采用说明；历史例可使用 `generation-prompt-v1.md`，新例区分 `original-input.md`、原样提交摘要与本轮教学整理。不要假设每例都具有同名文件，也不用案例名称代替正文。
 
-具体美术与运动由同一作者按 [完整演出写法](../motion-brief-writing/SKILL.md) 深化。本次 [完整声画案例](../motion-case-attention-programme/SKILL.md) 只按需学习当前相关关系，真实原输入、源码和视频已有明确来源；后写的迁移方法不冒称旧视频原始指令。
+具体美术与运动由同一作者按 [完整演出写法](../motion-brief-writing/SKILL.md) 深化。本次若已采用 [完整声画案例](../motion-case-attention-programme/SKILL.md) 为共同参考，先理解整条作品与完整原指令，再按职责深入当前关系，真实原输入、源码和视频已有明确来源；后写的迁移方法不冒称旧视频原始指令。
 
 沿案例实际接点理解一组选择：前一构图怎样引出下一构图，新主体的轮廓、方向和尺度怎样改变画面，旧重点怎样降低对比并保留参照，必读内容怎样到达阅读位置，文字、细节和阴影怎样持续属于载体。把这些关系落实到本段自己的对象、美术与路径，不能只摘“对象延续、动作接力”。
 
@@ -374,7 +376,7 @@ Props 需要默认值、合法范围、类型和回退。Asset 通过项目 Bind
 
 ## 局部时间与 Remotion Sequence
 
-声音需要绑定作品实际执行产生的事件。受管源码可导出 `resolveMotionEvents(props, {fps, durationInFrames})`，返回包含 id、meaning、startFrame 和可选 endFrame 的数组；画面与事件必须共用同一份时序常量或计算函数。渲染器在隔离浏览器读取并检查确定性、重复 ID 和范围，随作品固定 eventMap 版本。用 `read_motion_work`/Asset 读回实际事件，再交给 effect-timing 和 audio-finishing；不要另写一张与画面无关的手填时间表。持续动作交付起止范围，是否全程发声由 SoundPlan 决定。学习案例以当前 [motion-case-library](../motion-case-library/SKILL.md) 的六个固定案例为准，配声版本另行生成，不改归档样例。
+声音需要绑定作品实际执行产生的事件。受管源码可导出 `resolveMotionEvents(props, {fps, durationInFrames})`，返回包含 id、meaning、startFrame 和可选 endFrame 的数组；画面与事件必须共用同一份时序常量或计算函数。渲染器在隔离浏览器读取并检查确定性、重复 ID 和范围，随作品固定 eventMap 版本。用 `read_motion_work`/Asset 读回实际事件，再交给 effect-timing 和 audio-finishing；不要另写一张与画面无关的手填时间表。持续动作交付起止范围，是否全程发声由 SoundPlan 决定。学习案例沿当前 [motion-case-library](../motion-case-library/SKILL.md) 的共同参考与局部技法入口，配声版本另行生成，不改归档样例。
 
 Cue 在整条 Composition 中可能从第 1000 帧开始，但绑定视频、内部动画和计数使用作品局部时钟。外层 `Sequence` 重置 Cue 时间，作品内再嵌套 `Sequence` 时，`useCurrentFrame()` 会再次从该序列零点计数。`TimelineVideo` 读取平台保存的作品局部全局帧，内部 Sequence 重置只影响视觉布局，不重置源片；跨序列仍从同一槽位连续取帧。
 
@@ -519,7 +521,7 @@ Registry 设计应让生产 Skill先选择层级：
 
 ## 项目写入流程
 
-读取 Project/Revision、Beat、真实素材与时序 → 接收导演完整分镜和前后场面 → 主体美术、关键构图与连续过程共同深化，按需完整学习案例 → 首次完整深化稿经主任务回原导演协调 → 原作者接统一采用稿及差异，继续设计、试作或写完整指令与秒级初稿 → 换算帧数、实现源码并交完整参数 → 主任务 `submit_motion_work` → `track_job` / `read_motion_work` / `inspect_asset` → 原作者核对实际作品 → `review_motion_work` → `manage_effect_cues` 放置固定版本并声明覆盖 → `read_project` / `read_impact_report` → `render_preview_range` / `track_job` → 原专项与原导演看实际合成，修订并明确剩余制作 → `quality-verification` 按范围复核 → 回到主工作流完成整片。
+读取 Project/Revision、Beat、真实素材与时序 → 接收导演完整分镜和前后场面 → 延续首次构思已采用的共同参考，主体美术、关键构图与连续过程共同深化，局部技法按需选读 → 首次完整深化稿经主任务回原导演协调 → 原作者接统一采用稿及差异，继续设计、试作或写完整指令与秒级初稿 → 换算帧数、实现源码并交完整参数 → 主任务 `submit_motion_work` → `track_job` / `read_motion_work` / `inspect_asset` → 原作者核对实际作品 → `review_motion_work` → `manage_effect_cues` 放置固定版本并声明覆盖 → `read_project` / `read_impact_report` → `render_preview_range` / `track_job` → 原专项与原导演看实际合成，修订并明确剩余制作 → `quality-verification` 按范围复核 → 回到主工作流完成整片。
 
 `manage_effect_cues` 支持 create、update、remove；后两者指定 cue_id。每次写后读取新 Revision。结果未知先查原 Job/对象，幂等冲突不能换键盲重试。主线或覆盖内容变化后作品保持固定帧数并 stale；普通平移不能恢复旧失效。明确复核合法覆盖、或换绑新版本后才恢复，并检查相关 AudioCue。
 

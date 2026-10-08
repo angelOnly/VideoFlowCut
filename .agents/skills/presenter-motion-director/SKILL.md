@@ -5,6 +5,11 @@ description: 作为人物口播、访谈、课程、教程、数字人主持和 
 
 # 人物口播与 Presenter 完整生产工作流
 
+
+## 本次共同参考的使用边界
+
+本任务已采用的共同参考贯穿相关创作阶段，按 [共同案例入口](../motion-case-attention-programme/SKILL.md) 的职责导航取得原指令与可观察作品，再按当前材料深化。本规则不把无旁白观察片改为解说稿生产，不让局部机械修改重跑整片；当前主工作流与原声、人物、事件路由保持。
+
 ## 执行角色与代理交接
 
 本主要视频工作流运行在导演子代理中，由 [production-coordinator](../production-coordinator/SKILL.md) 分派，并经 [production-director](../production-director/SKILL.md) 选定。导演负责整片创意判断、主线、阶段安排和跨段协调；“主工作流”不表示主任务在主线程创作。

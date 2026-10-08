@@ -1,0 +1,65 @@
+{
+  "case_number": 20,
+  "case_id": "R406",
+  "slug": "bridgemindai-286423",
+  "title": "服装影像与产品文字",
+  "group": "照片与实景风格",
+  "author": "bridgemindai",
+  "page_url": "https://skillry.dev/ai-videos/opus-5-5/bridgemindai-286423",
+  "original_post": "https://x.com/bridgemindai/status/2102462889160286423",
+  "version": "Original",
+  "media_url": "https://media.skillry.dev/opus-5-5/bridgemindai-286423/original.mp4",
+  "index_commit": "756290289742535eb0ac3817548f152e9759cc70",
+  "index_sha256": "6a7a5664e693e7741567c9092af127fb5906bbf3a194f4c6475292c15f540776",
+  "prompt_partial": true,
+  "prompt_text": "Claude Opus 5.5 just created this merch launch video for BridgeMind using Remotion.\n\nThe taste on this model is insane. The transitions, the timing, the branding. Better than anything I have gotten from Fable 5.1 or GPT 6 Astra.\n\nGo cop your BridgeMind hoodie. Link below.",
+  "prompt_status": "公开索引的作者输入或说明；仍需核对是否为完整生成指令",
+  "code_status": "本轮未找到原片固定源码",
+  "acquisition_status": "原作已下载且全程音视频解码通过",
+  "analysis_status": "整片概览与所列关键过程已专业拆解；原速与声音未核验",
+  "published_prompt_url": "https://raw.githubusercontent.com/yihui-dev/awesome-opus5-5-videos/756290289742535eb0ac3817548f152e9759cc70/prompts/bridgemindai-286423.md",
+  "response_type": "video/mp4",
+  "etag": "\"4f4cc62a43f96e0e1b7080c7b107cd5a\"",
+  "local_media": "media/original.mp4",
+  "bytes": 2966048,
+  "sha256": "a10c114c1eda9cc7b9c3bfda76d083ecbacf7822271fdf9e87f8ecfc2512082f",
+  "media_metadata": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "profile": "High",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720,
+        "pix_fmt": "yuv420p",
+        "avg_frame_rate": "60/1"
+      },
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "profile": "LC",
+        "codec_type": "audio",
+        "avg_frame_rate": "0/0"
+      }
+    ],
+    "format": {
+      "duration": "30.101000",
+      "size": "2966048"
+    }
+  },
+  "downloaded_at": "2026-10-08T15:28:03.028679+08:00",
+  "decode_status": "全程通过",
+  "technical_evidence": [
+    "evidence/check-start.jpg",
+    "evidence/check-middle.jpg",
+    "evidence/check-end.jpg"
+  ],
+  "source_check_file": "sources/source-check.json",
+  "analysis_owner": "study_mixed",
+  "observation_record": "observation-record.json",
+  "analysis_file": "analysis.md",
+  "replication_brief": "replication-brief.md"
+}

@@ -1,0 +1,243 @@
+{
+  "sha": "fa546a38092e75f2b079e6a86d6abc54dd525d17",
+  "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/trees/fa546a38092e75f2b079e6a86d6abc54dd525d17",
+  "tree": [
+    {
+      "path": ".gitignore",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cbbee50961e4b020cad432b060681ca09c8c7831",
+      "size": 37,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/cbbee50961e4b020cad432b060681ca09c8c7831"
+    },
+    {
+      "path": "ANIMATION_GUIDE.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c6bbc1232de519bf1f988a45e98848f6b6d080e2",
+      "size": 11560,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/c6bbc1232de519bf1f988a45e98848f6b6d080e2"
+    },
+    {
+      "path": "README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6218e6b7265c54e17a73bd2dee96412e2d422ef3",
+      "size": 2777,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/6218e6b7265c54e17a73bd2dee96412e2d422ef3"
+    },
+    {
+      "path": "STORYBOARD.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2574e1c0108c48cd209ee4aef547f62dbf8081b6",
+      "size": 15933,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/2574e1c0108c48cd209ee4aef547f62dbf8081b6"
+    },
+    {
+      "path": "assets",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "9bf2a81426e220455fc80d607dac9c03dcf9fca6",
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/trees/9bf2a81426e220455fc80d607dac9c03dcf9fca6"
+    },
+    {
+      "path": "assets/pdoom.mp3",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3ef01c1a2b8fab9f871cac6f17e0ebe527109cb0",
+      "size": 3437188,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/3ef01c1a2b8fab9f871cac6f17e0ebe527109cb0"
+    },
+    {
+      "path": "legacy",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "b41f8b114422c7509208dbb2846878ce9ae2803d",
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/trees/b41f8b114422c7509208dbb2846878ce9ae2803d"
+    },
+    {
+      "path": "legacy/flash-version.html",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1e442b57c3ba31b1d259f9a90867b105e735d91f",
+      "size": 92459,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/1e442b57c3ba31b1d259f9a90867b105e735d91f"
+    },
+    {
+      "path": "legacy/test-scenes.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4ec0b42ac54e65ff070df32c895a3a3da0888e20",
+      "size": 13132,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/4ec0b42ac54e65ff070df32c895a3a3da0888e20"
+    },
+    {
+      "path": "package-lock.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ac31fb5148d4806219cc09cd1a2e1580ffd90896",
+      "size": 19942,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/ac31fb5148d4806219cc09cd1a2e1580ffd90896"
+    },
+    {
+      "path": "package.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "16706d3a39fec3707488fee1a272ef0a38cfc350",
+      "size": 328,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/16706d3a39fec3707488fee1a272ef0a38cfc350"
+    },
+    {
+      "path": "render.mjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5f8b2f17802a2a0f2996708a2e61e5cc07b81529",
+      "size": 7442,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/5f8b2f17802a2a0f2996708a2e61e5cc07b81529"
+    },
+    {
+      "path": "src",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "b434a1d6c696fccd9cf8f5b28b25d8cb75d30f53",
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/trees/b434a1d6c696fccd9cf8f5b28b25d8cb75d30f53"
+    },
+    {
+      "path": "src/cast.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0d237409889e37230259e70bfa35e2ae1eb48e40",
+      "size": 9595,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/0d237409889e37230259e70bfa35e2ae1eb48e40"
+    },
+    {
+      "path": "src/ch",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "d2584b086ff2046144ce069165fb425e4e7bd4be",
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/trees/d2584b086ff2046144ce069165fb425e4e7bd4be"
+    },
+    {
+      "path": "src/ch/c01_lab.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6f7f04b566ab3cfb8c2af694c07f972ef3c7c8fe",
+      "size": 39855,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/6f7f04b566ab3cfb8c2af694c07f972ef3c7c8fe"
+    },
+    {
+      "path": "src/ch/c02_chorus1.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c31d523a4b447c8dcbbe0bb1fe4a12eff4a26fc0",
+      "size": 54898,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/c31d523a4b447c8dcbbe0bb1fe4a12eff4a26fc0"
+    },
+    {
+      "path": "src/ch/c03_takeoff.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b067b780201d5bfe8b6a6f6f97f5bd334cb5dfc2",
+      "size": 64952,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/b067b780201d5bfe8b6a6f6f97f5bd334cb5dfc2"
+    },
+    {
+      "path": "src/ch/c04_chorus2.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "69a53acefc2bd78423ead568fbada4f55617fcea",
+      "size": 67341,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/69a53acefc2bd78423ead568fbada4f55617fcea"
+    },
+    {
+      "path": "src/ch/c05_obsolete.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e3688dc5827bb8b5747742eb5910a464bb05d1ae",
+      "size": 70755,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/e3688dc5827bb8b5747742eb5910a464bb05d1ae"
+    },
+    {
+      "path": "src/ch/c06_chorus3.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cd752328a56b170ab6c19eeb349dd601b6b3bdd1",
+      "size": 56191,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/cd752328a56b170ab6c19eeb349dd601b6b3bdd1"
+    },
+    {
+      "path": "src/ch/c07_scale.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e7f6b0e6c82c6c42bca86d9dff90ac81881f0eba",
+      "size": 54039,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/e7f6b0e6c82c6c42bca86d9dff90ac81881f0eba"
+    },
+    {
+      "path": "src/ch/c08_chorus4.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d1158298f53929a87c0b5061bb1915436e69b6f3",
+      "size": 63582,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/d1158298f53929a87c0b5061bb1915436e69b6f3"
+    },
+    {
+      "path": "src/ch/c09_finale.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d32cbc5691247be1d0e1a00d2ddf6acb769c9d50",
+      "size": 27875,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/d32cbc5691247be1d0e1a00d2ddf6acb769c9d50"
+    },
+    {
+      "path": "src/clawd.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "09047e8cfe87159bd545584ffb922a3fbc30b148",
+      "size": 18718,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/09047e8cfe87159bd545584ffb922a3fbc30b148"
+    },
+    {
+      "path": "src/core.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "613943dbf04747e674599e68650c670639f0a970",
+      "size": 14615,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/613943dbf04747e674599e68650c670639f0a970"
+    },
+    {
+      "path": "src/lyrics.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4c4d485199c3b5878aa83efdaa074d0b93ed66df",
+      "size": 2254,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/4c4d485199c3b5878aa83efdaa074d0b93ed66df"
+    },
+    {
+      "path": "src/props.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "59329c9aca5b85320f47fa17834544a1ff5f8b51",
+      "size": 7484,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/59329c9aca5b85320f47fa17834544a1ff5f8b51"
+    },
+    {
+      "path": "src/timeline.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "88dbb6dd467ba5627261a1112ddf00ae580a4915",
+      "size": 6631,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/88dbb6dd467ba5627261a1112ddf00ae580a4915"
+    },
+    {
+      "path": "studio.html",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "786d057f57b841d5e6dbd8b3faefb44aba54dcc0",
+      "size": 1769,
+      "url": "https://api.github.com/repos/JohnHeibel/PDoomVideo/git/blobs/786d057f57b841d5e6dbd8b3faefb44aba54dcc0"
+    }
+  ],
+  "truncated": false
+}

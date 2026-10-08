@@ -1,0 +1,50 @@
+{
+  "source_sha256": "ecc593a766fd582cb1ab1cd15c5d0ab215ebd27f25c04db52c24e24dca073d51",
+  "source_media": "../media/original.mp4",
+  "scope": "实际源帧，无插帧，时间来自源PTS",
+  "start": null,
+  "end": null,
+  "step": 1,
+  "frames": [
+    {
+      "file": "frame-00001.jpg",
+      "source_time_seconds": 0.0
+    },
+    {
+      "file": "frame-00002.jpg",
+      "source_time_seconds": 1.0
+    },
+    {
+      "file": "frame-00003.jpg",
+      "source_time_seconds": 2.0
+    },
+    {
+      "file": "frame-00004.jpg",
+      "source_time_seconds": 3.0
+    },
+    {
+      "file": "frame-00005.jpg",
+      "source_time_seconds": 4.0
+    },
+    {
+      "file": "frame-00006.jpg",
+      "source_time_seconds": 5.0
+    },
+    {
+      "file": "frame-00007.jpg",
+      "source_time_seconds": 6.0
+    },
+    {
+      "file": "frame-00008.jpg",
+      "source_time_seconds": 7.0
+    },
+    {
+      "file": "frame-00009.jpg",
+      "source_time_seconds": 8.0
+    },
+    {
+      "file": "frame-00010.jpg",
+      "source_time_seconds": 9.0
+    }
+  ]
+}

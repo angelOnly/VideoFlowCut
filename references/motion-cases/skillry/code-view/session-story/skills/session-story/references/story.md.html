@@ -1,0 +1,114 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>skills/session-story/references/story.md</title><style>body{max-width:1100px;margin:30px auto;padding:0 24px;background:#12151a;color:#e8edf4;font:16px/1.8 system-ui,"Microsoft YaHei"}a{color:#9ec5f8}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#202630;padding:20px;border-radius:8px;font:14px/1.7 monospace}code{overflow-wrap:anywhere}li{margin:8px 0}</style><body><nav><a href="../../../../../公开相关源码.html">公开相关源码目录</a></nav><h1>skills/session-story/references/story.md</h1><p>jake11moran-825416作者公开的生成Skill，不是原片固定工程</p><p>固定Commit：ba7a0bb6d3567d124c51f6074625043bfe0b32eb；仅显示文本，未执行。</p><p><a href="https://raw.githubusercontent.com/heygen-com/hyperframes-community-skills/ba7a0bb6d3567d124c51f6074625043bfe0b32eb/skills/session-story/references/story.md" target="_blank">公开原文件</a></p><pre># Story: an average session, beginning to end
+
+The film is what a normal session with your user looks like: their routine, in the order it happens, from their first
+message to their last. It is not the most dramatic session, and not the example&#x27;s shape. A developer&#x27;s film is red
+builds, tests and deploys. A writer&#x27;s is drafts and edits, an analyst&#x27;s is queries and charts. Tell yours.
+
+## Find the routine
+
+`harvest.py` prints it before the session list: how many messages a session runs, how long, when it usually starts,
+how often they correct or praise, and the words that come up most (what you do together).
+
+- Take the most typical session. The harvest lists those first. Read it in order with `--session &lt;id&gt;`.
+- Keep its beats in the order they happened, with their real times.
+- Put in what happens every time. A rare blow-up stays out unless it&#x27;s typical.
+- Leave out what their sessions don&#x27;t have. If they rarely correct you, there&#x27;s no mallet. If they never praise you,
+  there&#x27;s no butterfly.
+- A composite of several typical sessions is fine when one alone is too thin. Keep it in time order, and say so in
+  the privacy table.
+
+## Building blocks
+
+| what happened | beat | on screen |
+|---|---|---|
+| an ask, a follow-up, a pasted error, &quot;yes go ahead&quot;, &quot;how&#x27;s it going?&quot; | `request` | a paper plane glides in and unfolds into their words |
+| &quot;that&#x27;s wrong&quot;, &quot;why did you…&quot;, &quot;no, not that&quot; | `correction` | a mallet bonks you, then turns to show the words on its face |
+| &quot;thanks&quot;, &quot;nice&quot;, &quot;perfect&quot; | `praise` | a butterfly tows the words on a ribbon and lands on your head |
+| you working | `work` | you type; the monitor shows the work (see &quot;The screen&quot;) |
+| your answer, or a question you asked | `reply` | you type it on a sheet, fold a plane and throw it back |
+
+- A correction is friction: the moment they told you that you got it wrong. A bug report is a request.
+- A question you asked goes out as a reply (&quot;Which branch?&quot;). Their answer is the next request.
+- A break or a long gap: a `long` work between the two timed beats, so the sky moves while you work.
+- Any order the session really had works. The first beat is a message from the user, and `schedule.mjs` adds a work
+  before any reply that lacks one.
+- Up to two butterflies sit on your head. The next correction scares them off, and so does a third praise.
+
+## Beats
+
+| type | text | limit | options |
+|---|---|---|---|
+| `request` | their words, verbatim | 3 lines, 16 chars a line, 48 total | `&quot;flight&quot;: &quot;loop&quot;` for a joyful one. `&quot;react&quot;: &quot;excited&quot;` instead of the lightbulb |
+| `work` | none | none | `&quot;size&quot;`: `short` (1.25 s), `normal` (1.9 s, a result lands), `long` (4 s, a long run). `&quot;shows&quot;`: see below |
+| `reply` | your words | 3 lines, 16 chars a line, 44 total | none |
+| `correction` | their words, verbatim | 3 lines, 13 chars a line, 40 total | none |
+| `praise` | their words, verbatim | one line, 26 chars | none |
+
+Every beat can take `&quot;time&quot;: &quot;HH:MM&quot;` (local, 24-hour). Every user line takes a `&quot;source&quot;`; replies don&#x27;t need one.
+`text` is a string (wrapped for you) or an array of lines (your breaks).
+
+## The screen
+
+`&quot;screen&quot;` is what their work looks like on your monitor: `code` (the default), `tests`, `terminal`, `page` (a web
+page), `doc`, `chart` or `image`. A work beat can show something else for itself with `&quot;shows&quot;`. A long run fills in
+the same kind of screen, with its progress along the bottom (`image` shows a plain progress bar).
+
+## Time
+
+Put each beat&#x27;s real local time on it: the harvest gives `local` for their messages and `reply_local` for your
+replies. With times, the window and the wall clock follow the session: morning light, the afternoon, dusk, and the
+desk lamp at night. A beat without a time sits between its neighbours: work right after what it answers, a reply just
+before their next message. With no times at all, the day wears on and the last long work runs into night.
+
+## Ending
+
+`&quot;ending&quot;: &quot;next&quot;` (the default): the next request is already on its way in, a wink, the iris closes.
+`&quot;ending&quot;: &quot;sleep&quot;`: the session&#x27;s over. You yawn and put your head down, and the monitor goes dark, which bookends the
+open. Pick what their sessions do: `next` if they always come back with more, `sleep` if a session wraps up.
+
+## story.json
+
+```json
+{
+  &quot;user&quot;: &quot;Ana&quot;,
+  &quot;nameplate&quot;: &quot;Ana’s favorite agent&quot;,
+  &quot;hook&quot;: [&quot;Initiating session&quot;, &quot;with Ana&quot;],
+  &quot;screen&quot;: &quot;tests&quot;,
+  &quot;ending&quot;: &quot;sleep&quot;,
+  &quot;cast&quot;: &quot;clawd&quot;,
+  &quot;approved&quot;: false,
+  &quot;room&quot;: { &quot;sill&quot;: &quot;succulent&quot;, &quot;wallC&quot;: &quot;clock&quot;, &quot;shelf&quot;: [&quot;books&quot;, &quot;camera&quot;], &quot;desk&quot;: &quot;rubber-duck&quot;, &quot;why&quot;: { &quot;rubber-duck&quot;: &quot;...&quot; } },
+  &quot;beats&quot;: [
+    { &quot;type&quot;: &quot;request&quot;, &quot;text&quot;: &quot;morning! the build is red again&quot;, &quot;time&quot;: &quot;09:12&quot;, &quot;source&quot;: &quot;claude-code 1a2b3c4d 09:12&quot; },
+    { &quot;type&quot;: &quot;request&quot;, &quot;text&quot;: &quot;also the flaky login test&quot;, &quot;time&quot;: &quot;09:14&quot;, &quot;source&quot;: &quot;…&quot; },
+    { &quot;type&quot;: &quot;work&quot;, &quot;size&quot;: &quot;long&quot;, &quot;shows&quot;: &quot;terminal&quot; },
+    { &quot;type&quot;: &quot;reply&quot;, &quot;text&quot;: &quot;Both green now&quot;, &quot;time&quot;: &quot;11:00&quot; },
+    { &quot;type&quot;: &quot;praise&quot;, &quot;text&quot;: &quot;nice&quot;, &quot;time&quot;: &quot;11:02&quot;, &quot;source&quot;: &quot;…&quot; }
+  ]
+}
+```
+
+- `hook`: up to 3 lines of 19 characters. The default is &quot;Initiating session / with &lt;user&gt;&quot;.
+- `nameplate`: up to 30 characters. The default is &quot;&lt;user&gt;&#x27;s favorite agent&quot;.
+- `room`: see [room.md](room.md). `cast`: see [cast.md](cast.md). `approved`: see [sources.md](sources.md).
+
+## Three routines
+
+Shapes only, to show how far apart two films can be. The quotes are made up. Yours come from your user.
+
+- **A developer:** &quot;morning! the build is red again&quot; (09:12). &quot;also the flaky login test&quot;. A long terminal run.
+  &quot;Both green now&quot;. &quot;nice&quot;. &quot;can you add the export button&quot;, with the page on screen. &quot;wait that broke staging&quot; (the
+  mallet). &quot;Reverted&quot;. &quot;ok ship it&quot; at 19:55. &quot;Shipped&quot;. Back to sleep.
+- **A writer:** &quot;can you tighten the intro&quot;, with the doc on screen. &quot;Cut 40 words&quot;. &quot;now the conclusion&quot;. &quot;too
+  short, bring back the example&quot; (the mallet). &quot;Example&#x27;s back&quot;. &quot;perfect&quot;. The next request on its way.
+- **An analyst:** &quot;pull last month&#x27;s signups&quot;. A long run, with a chart. &quot;Up 12% on August&quot;. &quot;split by country&quot;.
+  &quot;Done, 14 countries&quot;. &quot;exactly what I needed&quot;.
+
+## Choosing the spans
+
+- The first request is the session&#x27;s real first message.
+- A correction reads best as the part that stings, not the paragraph around it.
+- Praise is short by nature: &quot;so cool&quot;, &quot;perfect&quot;. The ribbon holds one line.
+- Keep their spelling. The marker hand is all capitals, so case doesn&#x27;t show; spelling does. If they want a typo
+  fixed, they&#x27;ll say so at the privacy gate.
+</pre></body></html>

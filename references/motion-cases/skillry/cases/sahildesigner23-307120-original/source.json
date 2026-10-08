@@ -1,0 +1,65 @@
+{
+  "case_number": 36,
+  "case_id": "R168",
+  "slug": "sahildesigner23-307120",
+  "title": "金属物体与手机画面",
+  "group": "手机与屏幕展示",
+  "author": "sahildesigner23",
+  "page_url": "https://skillry.dev/ai-videos/opus-5-5/sahildesigner23-307120",
+  "original_post": "https://x.com/sahildesigner23/status/2103536115563307120",
+  "version": "Original",
+  "media_url": "https://media.skillry.dev/opus-5-5/sahildesigner23-307120/original.mp4",
+  "index_commit": "756290289742535eb0ac3817548f152e9759cc70",
+  "index_sha256": "6a7a5664e693e7741567c9092af127fb5906bbf3a194f4c6475292c15f540776",
+  "prompt_partial": false,
+  "prompt_text": "make a dynamic 15-second motion graphics video that shows what an incredible motion designer you are, like it's your showreel for a résumé. go all out.",
+  "prompt_status": "公开索引的作者输入或说明；仍需核对是否为完整生成指令",
+  "code_status": "本轮未找到原片固定源码",
+  "acquisition_status": "原作已下载且全程音视频解码通过",
+  "analysis_status": "整片概览与所列关键过程已专业拆解；原速与声音未核验",
+  "published_prompt_url": "https://raw.githubusercontent.com/yihui-dev/awesome-opus5-5-videos/756290289742535eb0ac3817548f152e9759cc70/prompts/sahildesigner23-307120.md",
+  "response_type": "video/mp4",
+  "etag": "\"484133cefefdc1291aed291e9b417e26\"",
+  "local_media": "media/original.mp4",
+  "bytes": 2151937,
+  "sha256": "755a9c8bff380e9ed9b01b286de0289f05bb159f2296c636c7f73a83580133a6",
+  "media_metadata": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "profile": "High",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720,
+        "pix_fmt": "yuv420p",
+        "avg_frame_rate": "60/1"
+      },
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "profile": "LC",
+        "codec_type": "audio",
+        "avg_frame_rate": "0/0"
+      }
+    ],
+    "format": {
+      "duration": "14.930000",
+      "size": "2151937"
+    }
+  },
+  "downloaded_at": "2026-10-08T15:28:19.637005+08:00",
+  "decode_status": "全程通过",
+  "technical_evidence": [
+    "evidence/check-start.jpg",
+    "evidence/check-middle.jpg",
+    "evidence/check-end.jpg"
+  ],
+  "source_check_file": "sources/source-check.json",
+  "analysis_owner": "study_mixed",
+  "observation_record": "observation-record.json",
+  "analysis_file": "analysis.md",
+  "replication_brief": "replication-brief.md"
+}

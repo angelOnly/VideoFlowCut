@@ -1,0 +1,38 @@
+{
+  "case_number": 113,
+  "slug": "mounnna-497266",
+  "owner": "study_spatial",
+  "source_sha256": "312f8b83782168a6ab745446cbcf3ce67b38935cd1e389d738cf4c914ec2324a",
+  "source_media": "media/original.mp4",
+  "decode_status": "全程通过",
+  "observation_method": "实际调用view_image查看源帧图组；未原速播放、未试听",
+  "viewed_contact_sheets": [
+    "overview/sheet-001.jpg",
+    "dense/sheet-001.jpg",
+    "dense/sheet-002.jpg",
+    "dense/sheet-003.jpg",
+    "dense/sheet-004.jpg"
+  ],
+  "overview_source_range_seconds": [
+    0.0,
+    15.0
+  ],
+  "overview_frame_count": 16,
+  "dense_source_range_seconds": [
+    4.0,
+    9.0
+  ],
+  "dense_frame_count": 61,
+  "dense_sampling": "按实际视频帧率每约12fps选择真实源帧；本次实际约12—15fps，时间来自showinfo源PTS",
+  "timestamps": [
+    "overview/timestamps.json",
+    "dense/timestamps.json"
+  ],
+  "unreviewed_scope": "密集区间以外只有整片概览；任何采样帧间、原速观感和声音同步尚未核验",
+  "published_prompt_assessment": "公开页提供线框、低多边形碎片、图标背景和品牌打字的完整高层需求；原画面粒子聚合较明显，不能把输入要求当已实现全部技术。",
+  "source_code_assessment": "本子任务未取得原作源码，不将公开Remake技术说明冒充原实现",
+  "replication_status": "研究者后写，未制作验证",
+  "observed_title": "粒子聚合图标与品牌揭示",
+  "candidate_title": "粒子、线框与标志揭示",
+  "title_correction_reason": "依据实际源帧观察描述对象和作品类型，原候选标题保留以供主任务关联。"
+}

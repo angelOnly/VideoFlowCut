@@ -1,0 +1,42 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>studio.html</title><style>body{max-width:1100px;margin:30px auto;padding:0 24px;background:#12151a;color:#e8edf4;font:16px/1.8 system-ui,"Microsoft YaHei"}a{color:#9ec5f8}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#202630;padding:20px;border-radius:8px;font:14px/1.7 monospace}code{overflow-wrap:anywhere}li{margin:8px 0}</style><body><nav><a href="../../公开相关源码.html">公开相关源码目录</a></nav><h1>studio.html</h1><p>doubleunplussed-181894及anabology-491441公开输入引用的其他作品工程，不是两条案例的原片源码</p><p>固定Commit：fa546a38092e75f2b079e6a86d6abc54dd525d17；仅显示文本，未执行。</p><p><a href="https://raw.githubusercontent.com/JohnHeibel/PDoomVideo/fa546a38092e75f2b079e6a86d6abc54dd525d17/studio.html" target="_blank">公开原文件</a></p><pre>&lt;!doctype html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;title&gt;P(doom) studio&lt;/title&gt;
+&lt;link rel=&quot;stylesheet&quot; href=&quot;https://fonts.googleapis.com/css2?family=Permanent+Marker&amp;family=Shantell+Sans:wght@800&amp;display=block&quot;&gt;
+&lt;style&gt;
+  html, body { margin: 0; background: #1b1820; color: #eee; font: 13px system-ui, sans-serif; }
+  main { padding: 12px; display: grid; gap: 8px; }
+  #out { width: min(100%, 1280px); aspect-ratio: 16 / 9; height: auto; background: #F3EBDC; }
+  .p5Canvas { display: none !important; }
+  .bar { display: flex; gap: 10px; align-items: center; max-width: 1280px; }
+  #scrub { flex: 1; }
+  #tt { font-variant-numeric: tabular-nums; min-width: 190px; }
+&lt;/style&gt;
+&lt;script src=&quot;node_modules/p5/lib/p5.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;node_modules/p5.brush/dist/p5.brush.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;main&gt;
+  &lt;canvas id=&quot;out&quot; width=&quot;1920&quot; height=&quot;1080&quot;&gt;&lt;/canvas&gt;
+  &lt;div class=&quot;bar&quot;&gt;&lt;input id=&quot;scrub&quot; type=&quot;range&quot; min=&quot;0&quot; max=&quot;156.6&quot; step=&quot;0.0417&quot; value=&quot;0&quot;&gt;&lt;span id=&quot;tt&quot;&gt;loading…&lt;/span&gt;&lt;/div&gt;
+&lt;/main&gt;
+&lt;script src=&quot;src/core.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;src/clawd.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;src/cast.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;src/props.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;src/lyrics.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;src/timeline.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;const CAST = {};  // guest characters shared between chapters (e.g. for the curtain call)&lt;/script&gt;
+&lt;script src=&quot;src/ch/c01_lab.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;src/ch/c02_chorus1.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;src/ch/c03_takeoff.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;src/ch/c04_chorus2.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;src/ch/c05_obsolete.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;src/ch/c06_chorus3.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;src/ch/c07_scale.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;src/ch/c08_chorus4.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;src/ch/c09_finale.js&quot;&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre></body></html>
