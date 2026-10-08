@@ -2,6 +2,14 @@ import functools,http.server,pathlib,re,shutil,urllib.parse
 ROOT=pathlib.Path(__file__).resolve().parent.parent
 STUDY=ROOT
 class PreviewHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        route=urllib.parse.unquote(urllib.parse.urlsplit(self.path).path)
+        legacy=re.fullmatch(r'/library/cases/([a-zA-Z0-9-]+)-original/index.html',route)
+        # 兼容历史详情链接，共用一个详情页，不再保存逐例重复网页。
+        if legacy or route=='/library/使用说明.html':
+            location='/library/detail.html'+('?case='+legacy.group(1) if legacy else '')
+            self.send_response(302);self.send_header('Location',location);self.send_header('Content-Length','0');self.end_headers();return
+        super().do_GET()
     def translate_path(self,path):
         route=urllib.parse.unquote(urllib.parse.urlsplit(path).path)
         if route.startswith('/library/'):

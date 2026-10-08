@@ -17,8 +17,8 @@ function render(){
   if(!matches.length)$('results').append(el('div','没有直接匹配。试着减少一个筛选条件，或将问题写成“素材 + 动作”，例如“手机 照片”。','empty'));
   for(const c of matches.slice(page*pageSize,(page+1)*pageSize)){
     const card=el('article');card.classList.toggle('chosen',selected.has(c.slug));
-    const video=el('video');video.controls=true;video.playsInline=true;video.preload='none';video.poster=c.poster;video.src=c.media;video.setAttribute('aria-label',`${c.case_number} ${c.title}`);
-    const failure=el('p','本地媒体未找到或浏览器无法播放。请查看拆解页的原作链接，或从资料备份恢复本例 media 文件夹。','play-error');failure.hidden=true;
+    const video=el('video');video.controls=true;video.playsInline=true;video.preload='metadata';video.src=c.media+'#t=0.1';video.setAttribute('aria-label',`${c.case_number} ${c.title}`);
+    const failure=el('p','视频无法播放，请确认仓库已完整拉取；也可查看拆解中的原作链接。','play-error');failure.hidden=true;
     video.addEventListener('error',()=>failure.hidden=false);
     video.addEventListener('play',()=>document.querySelectorAll('video').forEach(v=>{if(v!==video)v.pause();}));
     const info=el('div',null,'info'),title=el('h2',c.title);title.prepend(el('span',String(c.case_number).padStart(3,'0'),'num'));

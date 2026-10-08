@@ -1,6 +1,30 @@
 # 097 曲面空间与学习过程
 
-[原作](../../cases/anirockshady-032809-original/media/original.mp4) · [作者公开资料](../../cases/anirockshady-032809-original/sources/published-prompt.md) · [后写复现设计](replication-brief.md)
+## 适用场景
+
+在同一可比模型中解释迭代、参数或学习过程的逐步变化。
+
+- 原片形态：固定视频
+
+- 适用视频类型（迁移建议）：科普解释、操作教程
+
+- 段落场景：步骤累积、条件解释、前后变化
+
+- 原片实见素材：三维、图表、文字、抽象图形
+
+- 动效方法：持续模型解释多问题、轨迹与计数共同推进、读字时模型降低对比
+
+- 美术特点：暖峰冷谷编码、固定竖向读图层级、小亮球与细路径
+
+- 材料要求：需准确原理、公式、参数与图例，保持比较起点和观察视角一致。
+
+- 迁移代价：低维地形只是类比，轨迹不自动证明高维算法正确；正文密度需调整；原速与声音未认证。
+
+## 推荐观看片段
+
+- 19.00—24.00 秒：曲面不改形，白球逐步下坡并留路径，步数与损失读数出现，动作和数值指向同一过程。
+
+## 动效与美术拆解
 
 这条竖幅知识解释始终使用一张起伏曲面，把梯度下降说成从高处沿坡度接近谷底。先辨别它属于优化方法，再解释损失地形、更新公式、下降步骤、学习率对比、用途和总结。观众在同一空间里反复看不同问题，曲面在解释文字时压暗，在演示时恢复亮度；这是一种持续模型配合章节文本的结构，未必要换大量场景才能解释清楚。三维地形属于低维类比，不等于真实高维优化轨迹。
 
@@ -14,4 +38,30 @@
 
 作者资料核对：公开页给出一段需求，包含球沿曲面下降、算法类型、用途、淡入淡出和橙青灰配色；属完整高层需求，非详细制作工程。 平台列出的“Remake built with”描述复刻版本，不能证明原作技术栈；本案例不声称已有原作者源码。
 
-实际查看证据：[overview/sheet-001.jpg](overview/sheet-001.jpg) · [overview/sheet-002.jpg](overview/sheet-002.jpg) · [overview/sheet-003.jpg](overview/sheet-003.jpg) · [dense/sheet-001.jpg](dense/sheet-001.jpg) · [dense/sheet-002.jpg](dense/sheet-002.jpg) · [dense/sheet-003.jpg](dense/sheet-003.jpg) · [dense/sheet-004.jpg](dense/sheet-004.jpg)
+## 实现建议（研究后写，未制作验证）
+
+研究者依据原作观察后写，非作者原始输入，未制作、未渲染验证。用于重新设计相同关系，不承诺复刻原片。
+
+围绕一个固定低维模型制作解释，深底、灰曲面、暖色高区与冷色目标区，提供颜色含义。先短标题，再一个高亮当前点，点沿明确坡向分步移动，保留细轨迹和逐步计数。每次步骤对应一个参数更新，数值与轨迹来自同一计算。介绍公式时模型减亮，演示时正文退让；学习率比较使用同地形同起点同视角。保留类比限制，不声称它完全代表真实高维训练。
+
+实施时先完成关键构图，再制作接续，按真实输出核对阅读、遮挡、对象身份和空间方向。使用绝对时间控制并保存可编辑源码；这些是新制作要求，不能当成已取得的原工程。涉及事实、品牌、人物、数字和素材时需使用本片已核实输入。无声首版先看画面，再依据实际音轨安排声音。
+
+## 作者公开输入与来源
+
+作者：@anirockshady。
+
+[网站原作页](https://skillry.dev/ai-videos/opus-5-5/anirockshady-032809) · [作者原帖](https://x.com/anirockshady/status/2103195903012032809)
+
+公开输入的完整性仍以作者发布范围为准；本库未确认对应原片的固定源码。
+
+```text
+
+Create a 3D animation of a Path Points in this case  ball reaching approximation from crest to trough. Discuss the type of ML algorithm gradient descent is. Also list major use cases.And trasition can be fade in fade out. Colour theory Volcanic Orange, Cyan and gradient of grey
+
+```
+
+## 观看与文件说明
+
+网站原片，未重新编码。
+
+本文依据整片源帧概览与列出的关键区间观察。原速观感、声音和后写实现建议未专业验证。研究过程文件另行本地归档。

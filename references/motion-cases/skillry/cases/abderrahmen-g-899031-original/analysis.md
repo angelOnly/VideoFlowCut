@@ -1,6 +1,30 @@
-# 17. 手绘贴纸与花朵影像：动效与美术拆解
+# 017 手绘剪纸角色与纸面世界
 
-[原作](../../cases/abderrahmen-g-899031-original/media/original.mp4) · [来源](https://skillry.dev/ai-videos/opus-5-5/abderrahmen-g-899031) · [作者公开输入](../../cases/abderrahmen-g-899031-original/sources/published-prompt.md)
+## 适用场景
+
+展示手绘作品时，从向日葵局部揭示整幅纸面世界，再补周围角色。
+
+- 原片形态：固定视频
+
+- 适用视频类型（迁移建议）：影像展示、科普解释、品牌展示
+
+- 段落场景：整体到局部、空间关系、步骤累积
+
+- 原片实见素材：插画、文字、抽象图形
+
+- 动效方法：弧窗看细节、推至局部再拉远全貌、配角按远近补入
+
+- 美术特点：纸纹和黑手绘线、黄花蓝天绿地、保留剪纸边
+
+- 材料要求：需要含清楚局部与全貌的高分辨率作品及可分离配角。
+
+- 迁移代价：不是手机或实拍跟踪案例，源图限制放大，单图滑动不能冒充内部动作；原速观感与声音同步未认证。
+
+## 推荐观看片段
+
+- 30.00—35.00 秒：向日葵细节占满后拉远揭全貌，再加入植物与蝴蝶
+
+## 动效与美术拆解
 
 把原手绘图像编排为一本有早晨、花园、海底和夜晚的活页世界。整片不以重物理变形为目标，而是让同一纸面、剪纸边与小角色重复出现，观众能把细节归到整体画作中。
 
@@ -10,8 +34,34 @@
 
 迁移思考：适合艺术作品、手工活动、插画解释；不属于新闻实拍合成验证。换题材可改为照片局部到全景，但必须重新看照片中的信息和真实边界。原图分辨率与裁切会限制放大，复杂画作不能只用整体滑动假装内部动作。
 
-资料身份与实现边界：公开输入引用手绘照片目录和历史例片，但原图包和完整制作工程未附；视频主要是手绘素材，不是手机屏幕案例。本轮公开仓库、详情页与输入核查中，未找到直接对应当前原作的固定源码；不能把Remake技术标签或需求中提及的工具当原作实现证据。本报告只解释可见关系，具体遮罩、曲线、图层及渲染方案若实施，属于新制作选择。核查范围见[来源核查记录](../../cases/abderrahmen-g-899031-original/sources/source-check.json)。
+资料身份与实现边界：公开输入引用手绘照片目录和历史例片，但原图包和完整制作工程未附；视频主要是手绘素材，不是手机屏幕案例。本轮公开仓库、详情页与输入核查中，未找到直接对应当前原作的固定源码；不能把Remake技术标签或需求中提及的工具当原作实现证据。本报告只解释可见关系，具体遮罩、曲线、图层及渲染方案若实施，属于新制作选择。核查范围见来源核查记录。
 
 本报告实际查看整片约每秒一帧概览，以及关键区间的密集真实源帧；时间来自源PTS。基于带源时间图片序列，未核验原速观感，未试听，因此不认证整体流畅度、音乐拍点、对白连续或声音同步。概览不足以证明其他快速接续；300像素证据单帧中的小字、边缘精度仍需全尺寸核验。
 
-实际查看证据：[overview组001](overview/sheet-001.jpg) · [overview组002](overview/sheet-002.jpg) · [overview组003](overview/sheet-003.jpg) · [overview组004](overview/sheet-004.jpg) · [dense组001](dense/sheet-001.jpg) · [dense组002](dense/sheet-002.jpg) · [dense组003](dense/sheet-003.jpg) · [dense组004](dense/sheet-004.jpg)。源时间清单：[概览](overview/timestamps.json)、[密集区间](dense/timestamps.json)。
+## 实现建议（研究后写，未制作验证）
+
+状态：研究者后写、未制作验证；不是作者原输入，不是原作源码，也未证明能够逐帧复刻。依据为拆解报告及其中列明的源帧证据。
+
+挑一张包含明确局部和全貌的原作品，先用弧形窗口展示细节，简短手写词在窗口外稳定。确定一个关键局部后推进至其占满画面，以短遮挡重建清晰近景，再拉远显出作品主体、纸面和空间边界。主体稳定后按远近依次加入周边图形或其他原图，让配角避免遮住主细节。保持原材料纹理和边缘，不假装为真实视频追踪。
+
+首版实施时先用本片真实内容、素材和画幅重新确认对象关系与阅读量，再拟时间；原片关键区间30—35秒只作观察参照，不强制套用其总时长或品牌。图层、遮罩和曲线可按新工程实现，参数不得标为作者原参数。完成后需原速查看、检查中间帧和全尺寸文字；有声音时另做试听及同步核对。
+
+## 作者公开输入与来源
+
+作者：@abderrahmen_g。
+
+[网站原作页](https://skillry.dev/ai-videos/opus-5-5/abderrahmen-g-899031) · [作者原帖](https://x.com/abderrahmen_g/status/2103103836541899031)
+
+公开输入的完整性仍以作者发布范围为准；本库未确认对应原片的固定源码。
+
+```text
+
+You are a professional videographer. Create me a high-definition, creative, playful, and joyful video that you enjoy watching, that has sounds matching the frames using JavaScript. Use as much as possible of the input images—hand-drawn—to make it more creative and more authentic from input-pictures. You can also be inspired by, but not copy, the videos created by you in video-examples/, especially this: video-examples/twitter_claude.mp4. You're really creative, so produce the best of what you can.
+
+```
+
+## 观看与文件说明
+
+网站原片，未重新编码。
+
+本文依据整片源帧概览与列出的关键区间观察。原速观感、声音和后写实现建议未专业验证。研究过程文件另行本地归档。

@@ -1,5 +1,0 @@
-Dentro da pasta do flora tem uma outra pasta chamada "ads" com videos e prints do Flora(Caso queira usar como referencia).
-
-Use apenas: JavaScript, Playwright e FFmpeg. Faça um vídeo moderno, elegante e impactante para meu produto.
-
-https://apps.apple.com/pt/app/flora-calend%C3%A1rio-menstrual/id6789702093

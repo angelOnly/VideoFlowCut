@@ -1,6 +1,30 @@
-# 107 深色字体与功能关系
+# 107 品牌能力巡览与港湾影像标注
 
-[原作](../../cases/dheepanratnam-706454-original/media/original.mp4) · [作者公开资料](../../cases/dheepanratnam-706454-original/sources/published-prompt.md) · [后写复现设计](replication-brief.md)
+## 适用场景
+
+先让观众识别一幅真实影像，再按解读顺序标出关键区域并给出总结。
+
+- 原片形态：固定视频
+
+- 适用视频类型（迁移建议）：产品介绍、新闻解读、口播混合
+
+- 段落场景：重点强调、步骤累积、成果展示
+
+- 原片实见素材：桌面界面、图表、文字
+
+- 动效方法：影像先建立再标注、短主张绑定一项演示、多个标签分阶段进入
+
+- 美术特点：暖黑米白编辑排版、粉橙细线品牌重音、素材暗区保护标题
+
+- 材料要求：需来源明确的影像、准确标签与总结，按其真实主体运动决定固定或跟随标注。
+
+- 迁移代价：原片港湾影像的照片或视频属性未确认，故未作对应素材类型标记；不证明对象跟踪或能力事实；原速与声音未认证。
+
+## 推荐观看片段
+
+- 19.00—24.00 秒：港湾影像接管全幅后标题稳住，三个标签依次进入，最后补总结卡，材料和解释按序建立。
+
+## 动效与美术拆解
 
 整片是一个AI品牌的能力巡览。输入句引出品牌，随后按思考、写作、编程、视觉、分析、检索、代理行动、创作、多语言及价值观分段。并非始终纯字：视觉段使用港湾建筑影像并叠标注，创作段使用三个作品画面；其余主要是示意界面和关系图。观看任务是认识能力范围，每段先有短主张，再用一个图例演出。左或右标题与另一侧功能窗口交替，但暖黑底和编辑排印始终统一。
 
@@ -14,4 +38,37 @@
 
 作者资料核对：公开页明确缺完整提示词；原帖介绍HyperFrames + GSAP、Python音乐及调色作品，属制作说明，不是完整输入。 平台列出的“Remake built with”描述复刻版本，不能证明原作技术栈；本案例不声称已有原作者源码。
 
-实际查看证据：[overview/sheet-001.jpg](overview/sheet-001.jpg) · [overview/sheet-002.jpg](overview/sheet-002.jpg) · [overview/sheet-003.jpg](overview/sheet-003.jpg) · [dense/sheet-001.jpg](dense/sheet-001.jpg) · [dense/sheet-002.jpg](dense/sheet-002.jpg) · [dense/sheet-003.jpg](dense/sheet-003.jpg) · [dense/sheet-004.jpg](dense/sheet-004.jpg)
+## 实现建议（研究后写，未制作验证）
+
+研究者依据原作观察后写，非作者原始输入，未制作、未渲染验证。用于重新设计相同关系，不承诺复刻原片。
+
+为多能力主题先确定少量主张，每项配一个有来源的演示。用暖暗舞台、米白衬线短标题、粉橙小重音和功能型细字形成统一语气。影像段先全幅建立，再在暗区放标题，标注按观看顺序逐个出现，最后才给总结。数据与图片说明必须真实绑定来源，静态图片不得称已做运动跟踪。不同演示可以换结构，不要每项都套同一卡片；减少无信息空场，为关键阅读保留时间。
+
+实施时先完成关键构图，再制作接续，按真实输出核对阅读、遮挡、对象身份和空间方向。使用绝对时间控制并保存可编辑源码；这些是新制作要求，不能当成已取得的原工程。涉及事实、品牌、人物、数字和素材时需使用本片已核实输入。无声首版先看画面，再依据实际音轨安排声音。
+
+## 作者公开输入与来源
+
+作者：@Dheepanratnam。
+
+[网站原作页](https://skillry.dev/ai-videos/opus-5-5/dheepanratnam-706454) · [作者原帖](https://x.com/Dheepanratnam/status/2107568904075706454)
+
+公开输入标记为不完整；本库未确认对应原片的固定源码。
+
+```text
+
+Claude opus 5.5  made this whole motion graphic, score included
+
+It coded every frame (HyperFrames + GSAP), wrote the music in Python and synced the sound effects itself.
+
+The art in the "Creating" scene is real too: 
+Claude graded those pieces in DaVinci Resolve earlier the same day.
+
+Details ⤵️
+
+```
+
+## 观看与文件说明
+
+网站原片，未重新编码。
+
+本文依据整片源帧概览与列出的关键区间观察。原速观感、声音和后写实现建议未专业验证。研究过程文件另行本地归档。

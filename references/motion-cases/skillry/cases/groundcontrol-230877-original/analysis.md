@@ -1,6 +1,30 @@
-# 052｜地图、历史时间与统计
+# 052 地图、历史时间与统计
 
-[原作视频](../../cases/groundcontrol-230877-original/media/original.mp4) · [作者公开输入](../../cases/groundcontrol-230877-original/sources/published-prompt.md) · [来源页](https://skillry.dev/ai-videos/opus-5-5/groundcontrol-230877)
+## 适用场景
+
+用于天气事件或地理机制解读，保留位置地图同时补一个解释成因的局部剖面。
+
+- 原片形态：固定视频
+
+- 适用视频类型（迁移建议）：科普解释、新闻解读
+
+- 段落场景：条件解释、空间关系、重点强调
+
+- 原片实见素材：图表、插画、文字
+
+- 动效方法：地图留场补剖面、双色身份跨视图、章节共用纸面文法
+
+- 美术特点：米黄纸面与淡墨、热雨采用语义色、标题主图注释分层
+
+- 材料要求：需要地图、气象数据、机制资料及清楚的日期和来源限定。
+
+- 迁移代价：示意不是精确模拟，历史与年度数据须核查，薄线注释需提高对比；原速观感与声音未核验。
+
+## 推荐观看片段
+
+- 63.00—68.00 秒：日本地图和气流保留，局部圈强调后在右侧建立双色高压剖面与下降指向。
+
+## 动效与美术拆解
 
 三分钟作品按章节解释日本2026年炎热天气：从新气温词语、春季及降雨、高压叠加、连续极端高温、地区差别、年度数量对照，再进入长期历史和结论。每章先短标题后主图后注释，以纸面研究笔记串联。它的连续性主要是同一图面逐步增补、语义章节接续，不是无剪切的一镜到底。全片概览呈现充足停留，适合知识阅读而非高速广告。
 
@@ -10,8 +34,34 @@
 
 迁移到新闻、历史或机制解释时，可以保留“主视图不动，补一个局部剖面”的方法，以及短标题—主数据—限定解释的先后。每章有不同图形任务，但共享纸色、线宽和强调规则，避免统一卡片模板。图表数值、年份和归因必须另做事实核对，本轮研究是视觉设计，不认证数据正确；本片在记录日期呈现2026年度叙事，也不能由画面推断其数据完整性。长片中大量小字与每章快动作均未逐帧审，密集结论只限登记区间。
 
-关键过程证据：63—68 秒，[图组1](evidence/dense/sheet-001.jpg)、[图组2](evidence/dense/sheet-002.jpg)、[图组3](evidence/dense/sheet-003.jpg)、[图组4](evidence/dense/sheet-004.jpg)。整片低密度概览：[概览1](evidence/overview/sheet-001.jpg)、[概览2](evidence/overview/sheet-002.jpg)、[概览3](evidence/overview/sheet-003.jpg)、[概览4](evidence/overview/sheet-004.jpg)、[概览5](evidence/overview/sheet-005.jpg)、[概览6](evidence/overview/sheet-006.jpg)、[概览7](evidence/overview/sheet-007.jpg)、[概览8](evidence/overview/sheet-008.jpg)、[概览9](evidence/overview/sheet-009.jpg)；图下时间来自原作 PTS，[完整时间记录](evidence/dense/timestamps.json)可定位中间帧。
-
 作者公开输入是一段明确的三分钟创作需求，包含日本炎热主题、在线取数、手绘铅笔美术和合成旋律要求；它是需求级输入，不含完整分镜、获取到的数据、图形源码或最终改稿过程。本轮未找到本片固定源码。
 
 本拆解基于实际查看的源帧图片序列，整片约每秒一帧、关键段约每秒12—15帧。未核验原速观感，未实际试听，因此不认证原速流畅、音效落点或音乐同步。直接观察的是画面与时间关系；本文对注意力和设计目的的解释是研究判断。未从画面反推作者源码、对象身份或具体缓动参数。复现稿为研究者后写，未制作验证。
+
+## 实现建议（研究后写，未制作验证）
+
+身份：研究者基于原作观察后写，**不是作者原指令或原源码，尚未制作、渲染和验证**。
+
+为一个空间机制设计纸面解释：保留实际地理或主体主图，让位置先可辨；用两种稳定语义色标出关系来源，随后在已预留右侧空区从基线到轮廓建立剖面，逐步加方向箭头。地图与剖面共同在场且同色对应，不把新图浮在主图上遮住标注。每章节先建立问题，再释放数据与限定条件；纸面纹理保持低对比，关键线条较清楚。使用可靠数字与来源，示意空间不承担精确模拟。
+
+先提供新主题的实际文字、图片、界面或数据，核对其来源和使用范围；保留的是对象关系与信息释放方法，重新设计具体颜色、尺寸、时长和文案。以原作关键段 63—68 秒为研究参考，不能直接替换标题就称为迁移完成。实现后须检查进场、中间过程、阅读和退出，至少以连续预览复核主体识别、交叠及停稳，不以静态封面代替动态验证。
+
+## 作者公开输入与来源
+
+作者：@GroundControl。
+
+[网站原作页](https://skillry.dev/ai-videos/opus-5-5/groundcontrol-230877) · [作者原帖](https://x.com/GroundControl/status/2103678647777230877)
+
+公开输入的完整性仍以作者发布范围为准；本库未确认对应原片的固定源码。
+
+```text
+
+All right, this is an empty repo. Make me a 3-minute animated visualization using JavaScript, or you can do it in TypeScript if you want, about Japan's hot weather in 2026. Pull some online data to see why it was hot and how it compares to other years. I really want the animation to be visually appealing. I wanted to use a hand-drawn pencil style with a little bit of tasteful chromatic aberration. And maybe a bit of a pastiche look but it's supposed to look really, really cool. Also, use a JavaScript synthesizer to make a melody for this visualization that goes along with the theme.
+
+```
+
+## 观看与文件说明
+
+网站原片，未重新编码。
+
+本文依据整片源帧概览与列出的关键区间观察。原速观感、声音和后写实现建议未专业验证。研究过程文件另行本地归档。

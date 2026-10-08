@@ -1,6 +1,30 @@
-# 102 发动机、磁场与标注
+# 102 活塞与磁体对照及磁性液体交互演示
 
-[原作](../../cases/stefanostraus-971191-original/media/original.mp4) · [作者公开资料](../../cases/stefanostraus-971191-original/sources/published-prompt.md) · [后写复现设计](replication-brief.md)
+## 适用场景
+
+在同一参照空间比较两种装置的结构或对参数变化的响应。
+
+- 原片形态：网页交互演示
+
+- 适用视频类型（迁移建议）：科普解释、操作教程
+
+- 段落场景：多来源对照、前后变化、空间关系
+
+- 原片实见素材：三维、桌面界面、图表、文字
+
+- 动效方法：两对象固定左右关系、共同轴上展开复合、一次改变一个比较条件
+
+- 美术特点：暗台金属亮边、左右功能颜色分工、角落参数中央模型
+
+- 材料要求：需可比条件、准确模型与数据，说明共同基准、变化项和不变项。
+
+- 迁移代价：自由滑杆演示不证明性能比较严谨，外围参数需减量；磁性液体应另建上下文；原速与声音未认证。
+
+## 推荐观看片段
+
+- 8.00—13.00 秒：两套装置在固定左右基座上展开再复合，轴和相对位置持续，便于对应展开前后的零件。
+
+## 动效与美术拆解
 
 这条录屏围绕两套动力装置做可交互比较：左侧活塞结构、右侧较小的电磁式部件共享一个基座，画面可改变转速、拆开部件、切换观察点；后段转到磁性液体样式的容器。开头近看活塞，随后退到两装置全貌，反复改变参数和展开程度，再重新靠近活塞。它主要展示模拟器能力，观众任务是同时比较原理与操作效果，未必具有广告式单一故事终点。
 
@@ -14,4 +38,38 @@
 
 作者资料核对：公开页明确缺完整提示词；作者说明浏览器录屏、活塞与磁体同轴速度、RPM和慢放功能，属设计节选与制作说明。 平台列出的“Remake built with”描述复刻版本，不能证明原作技术栈；本案例不声称已有原作者源码。
 
-实际查看证据：[overview/sheet-001.jpg](overview/sheet-001.jpg) · [overview/sheet-002.jpg](overview/sheet-002.jpg) · [dense/sheet-001.jpg](dense/sheet-001.jpg) · [dense/sheet-002.jpg](dense/sheet-002.jpg) · [dense/sheet-003.jpg](dense/sheet-003.jpg) · [dense/sheet-004.jpg](dense/sheet-004.jpg)
+## 实现建议（研究后写，未制作验证）
+
+研究者依据原作观察后写，非作者原始输入，未制作、未渲染验证。用于重新设计相同关系，不承诺复刻原片。
+
+做一组设备原理对照，将两装置放在共同基座并明确同一输入条件，标题与参数少量稳定在上方。先整体对比，再沿真实装配轴展开一组部件，保持它在另一装置旁的原位置；展开到位后读结构，随后沿原路径复合。一次只改转速或载荷之一，图表与运动来自同一数据源。视频版缩减控件并补短解释，避免把交互录屏当实验结论。
+
+实施时先完成关键构图，再制作接续，按真实输出核对阅读、遮挡、对象身份和空间方向。使用绝对时间控制并保存可编辑源码；这些是新制作要求，不能当成已取得的原工程。涉及事实、品牌、人物、数字和素材时需使用本片已核实输入。无声首版先看画面，再依据实际音轨安排声音。
+
+## 作者公开输入与来源
+
+作者：@StefanoStraus。
+
+[网站原作页](https://skillry.dev/ai-videos/opus-5-5/stefanostraus-971191) · [作者原帖](https://x.com/StefanoStraus/status/2104236916316971191)
+
+公开输入标记为不完整；本库未确认对应原片的固定源码。
+
+```text
+
+I asked Opus 5.5 again for an engine you can take apart in the browser
+
+Pistons against magnets at the same shaft speed. Push the RPM, open the cylinders, slow time down to 1/10
+
+Under 15 minutes, and it did not even move the usage meter on my Max plan. The first experiment took half an hour, this one reused the framework the earlier ones built
+
+This is a screen recording, the real thing runs live in your browser
+
+Next I want to find where it breaks, so a game is coming
+
+```
+
+## 观看与文件说明
+
+网站原片，未重新编码。
+
+本文依据整片源帧概览与列出的关键区间观察。原速观感、声音和后写实现建议未专业验证。研究过程文件另行本地归档。

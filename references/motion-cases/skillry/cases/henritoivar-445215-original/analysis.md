@@ -1,6 +1,30 @@
 # 083 像素角色与手绘知识说明
 
-[原作](../../cases/henritoivar-445215-original/media/original.mp4) · [作者公开资料](../../cases/henritoivar-445215-original/sources/published-prompt.md) · [后写复现设计](replication-brief.md)
+## 适用场景
+
+解释错误捷径如何造成风险，再把可执行改进步骤逐项落实到同一角色。
+
+- 原片形态：固定视频
+
+- 适用视频类型（迁移建议）：科普解释、操作教程
+
+- 段落场景：步骤累积、跨场景接力、前后变化
+
+- 原片实见素材：插画、文字、桌面界面、抽象图形
+
+- 动效方法：稳定角色贯穿风险故事、操作结果累积、方法变为角色装备
+
+- 美术特点：像素角色配手绘纸面、分职责状态色、草图线与游戏标记
+
+- 材料要求：需核实错误行为、后果与改进方法，准备一个身份稳定的角色及对应道具。
+
+- 迁移代价：游戏金币与怪物是比喻，不能证明真实软件质量；并行状态栏与说明需要减量；原速与声音未认证。
+
+## 推荐观看片段
+
+- 7.00—12.00 秒：点击ACCEPT ALL引出纸张与计数，再经速度线接火箭发布和脆弱积木，角色与后果关系延续。
+
+## 动效与美术拆解
 
 作品用红衣像素角色和手绘纸面讲述从随意生成代码到有计划的工程工作的变化。前半段是接受全部、快速发布、缺陷爆发和失败；后半段通过蓝图、上下文、测试盾牌和逐行审查给角色配装备，最后完成修复。角色外形、纸面底色和地平线跨段保留，把多个解释场面连成同一小故事。画面不是实拍材料，人物、图标、怪物与代码块承担类比，不能把图形表现当成真实软件质量证据。
 
@@ -14,4 +38,43 @@
 
 作者资料核对：公开页明确缺完整提示词；原帖及作者补充是效果评价和CSS/HTML/JS、HyperFrames、TTS制作说明。 平台列出的“Remake built with”描述复刻版本，不能证明原作技术栈；本案例不声称已有原作者源码。
 
-实际查看证据：[overview/sheet-001.jpg](overview/sheet-001.jpg) · [overview/sheet-002.jpg](overview/sheet-002.jpg) · [overview/sheet-003.jpg](overview/sheet-003.jpg) · [dense/sheet-001.jpg](dense/sheet-001.jpg) · [dense/sheet-002.jpg](dense/sheet-002.jpg) · [dense/sheet-003.jpg](dense/sheet-003.jpg) · [dense/sheet-004.jpg](dense/sheet-004.jpg)
+## 实现建议（研究后写，未制作验证）
+
+研究者依据原作观察后写，非作者原始输入，未制作、未渲染验证。用于重新设计相同关系，不承诺复刻原片。
+
+写一个从错误捷径到正确方法的短故事，用一个辨识稳定的角色贯穿。纸面底、像素角色和手绘线条各司其职；快捷操作先出现可读按钮，再明确点击，结果对象累计；用角色位置和地面延续到下一风险场面。风险后将四个具体正确步骤转为装备栏，逐项完成、逐项保留，最后回到原问题修复。切换可以用速度线或横移，但不能假称不相关对象形变；每个教学步骤需能独立读懂，颜色只编码已解释状态。
+
+实施时先完成关键构图，再制作接续，按真实输出核对阅读、遮挡、对象身份和空间方向。使用绝对时间控制并保存可编辑源码；这些是新制作要求，不能当成已取得的原工程。涉及事实、品牌、人物、数字和素材时需使用本片已核实输入。无声首版先看画面，再依据实际音轨安排声音。
+
+## 作者公开输入与来源
+
+作者：@HenriToivar。
+
+[网站原作页](https://skillry.dev/ai-videos/opus-5-5/henritoivar-445215) · [作者原帖](https://x.com/HenriToivar/status/2102832525798445215)
+
+公开输入标记为不完整；本库未确认对应原片的固定源码。
+
+```text
+
+Opus 5.5 is an absolute BEAST in creating videos.
+
+I am extremely shocked because my previous attempts with GPT-6 Astra and Grok 4.6 were quite underwhelming, far from production ready video.
+
+The leap here is gigantic.
+
+This is a ZERO shot video.
+
+【作者补充制作说明】
+Why Opus 5.5 is so impressive is because it's is not a video generation model. It uses pure code to generate the sound effects, the music. All of the animations are done with CSS/HTML/JS, it doesn't use any video or image assets.
+
+This is extremely useful for creating detailed explainer videos where you need very fine control over the infographics and consistent deterministic output.
+
+The framework I used was hyperframes and narration is done by OpenAI text-to-speech.
+
+```
+
+## 观看与文件说明
+
+网站原片，未重新编码。
+
+本文依据整片源帧概览与列出的关键区间观察。原速观感、声音和后写实现建议未专业验证。研究过程文件另行本地归档。

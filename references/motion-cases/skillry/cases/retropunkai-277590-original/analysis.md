@@ -1,6 +1,30 @@
-# 059｜Sphere场馆建设与活动时间线
+# 059 Sphere场馆建设与活动时间线
 
-[原作视频](../../cases/retropunkai-277590-original/media/original.mp4) · [作者公开输入](../../cases/retropunkai-277590-original/sources/published-prompt.md) · [来源页](https://skillry.dev/ai-videos/opus-5-5/retropunkai-277590)
+## 适用场景
+
+用于建筑变迁或事件进程解读，在固定地点展示建设、暂停与恢复。
+
+- 原片形态：固定视频
+
+- 适用视频类型（迁移建议）：新闻解读
+
+- 段落场景：前后变化、跨场景接力、重点强调
+
+- 原片实见素材：插画、文字
+
+- 动效方法：地点与时间坐标固定、暂停保留未完结构、去色与撤章表达状态
+
+- 美术特点：米黄纸与细黑建筑、日期色标和漫画标题、事件类别改变局部调色
+
+- 材料要求：需要可靠阶段日期、结构资料、活动海报或阶段照片及来源。
+
+- 迁移代价：原片是场馆历史而非音乐海报集，手绘不能虚构事实，精细数值需核验；原速观感与声音未核验。
+
+## 推荐观看片段
+
+- 11.00—16.00 秒：球形钢骨在原底座长高，整体去色并压暂停章，恢复时复色撤章而结构保留。
+
+## 动效与美术拆解
 
 这条场馆历史片以建设时间线串起建筑、开灯、乐队演出与个人赴会预告。它并未依赖新闻现场录像，主要是手绘建筑、海报、时间标签和说明纸签。前半始终把球体放在下半部，顶部细时间轴给年月，观众看同一地点从坑到钢骨再到发光外壳；后半改用海报和名单承接使用历史，最后把公共信息落到个人期待。事实内容要另查资料，画面完整不等于历史已验证。
 
@@ -10,8 +34,42 @@
 
 适用于建筑变迁、产品迭代、公司历史和新闻事件进程：给稳定地点和时间坐标，让新状态留在旧状态上，不用每个年份都换一张完全无关画面。暂停或异常可改变全场色彩并叠标记，恢复时撤标记而保留工作成果。代价是必须有可靠阶段证据，手绘简化也不能虚构结构、日期或规模；用真实素材时可在同一场馆轮廓或照片框中换阶段照片，再用外部说明标示事件。本轮未核验图中精细数值及赴会信息。
 
-关键过程证据：11—16 秒，[图组1](evidence/dense/sheet-001.jpg)、[图组2](evidence/dense/sheet-002.jpg)、[图组3](evidence/dense/sheet-003.jpg)、[图组4](evidence/dense/sheet-004.jpg)。整片低密度概览：[概览1](evidence/overview/sheet-001.jpg)、[概览2](evidence/overview/sheet-002.jpg)、[概览3](evidence/overview/sheet-003.jpg)；图下时间来自原作 PTS，[完整时间记录](evidence/dense/timestamps.json)可定位中间帧。
-
 公开需求较具体，给出场馆历史、活动、指定平台和使用文件夹图片，但本轮没有该图片文件夹、工程或完整改稿过程；不把需求描述称为可一键还原指令。本轮未找到本片固定源码。
 
 本拆解基于实际查看的源帧图片序列，整片约每秒一帧、关键段约每秒12—15帧。未核验原速观感，未实际试听，因此不认证原速流畅、音效落点或音乐同步。直接观察的是画面与时间关系；本文对注意力和设计目的的解释是研究判断。未从画面反推作者源码、对象身份或具体缓动参数。复现稿为研究者后写，未制作验证。
+
+## 实现建议（研究后写，未制作验证）
+
+身份：研究者基于原作观察后写，**不是作者原指令或原源码，尚未制作、渲染和验证**。
+
+先核对事件时间线并选定固定主地点。上方时间轴保持，下方建筑或产品逐阶段累积部件。异常阶段保留已完成状态，降低色彩并加入状态章；恢复时撤章和恢复局部色彩，再接续建设。完成后把同一主体转成活动海报或真实画面容器，用不同章节底色区分阶段。纸米黄、细黑轮廓、少量漫画标题和事实纸签，事实必须引用真实来源。
+
+先提供新主题的实际文字、图片、界面或数据，核对其来源和使用范围；保留的是对象关系与信息释放方法，重新设计具体颜色、尺寸、时长和文案。以原作关键段 11—16 秒为研究参考，不能直接替换标题就称为迁移完成。实现后须检查进场、中间过程、阅读和退出，至少以连续预览复核主体识别、交叠及停稳，不以静态封面代替动态验证。
+
+## 作者公开输入与来源
+
+作者：@RetropunkAI。
+
+[网站原作页](https://skillry.dev/ai-videos/opus-5-5/retropunkai-277590) · [作者原帖](https://x.com/RetropunkAI/status/2103237989065277590)
+
+公开输入的完整性仍以作者发布范围为准；本库未确认对应原片的固定源码。
+
+```text
+
+Render a fun motion graphic animation using the GSAP animation platform (see below) to show a brief history of The Sphere in Las Vegas from start to today (start with a minimal architecture to completed venue) - Explainer video style - Talk about how bands now play there, The Wizard of Oz film and next how on Oct 1 2026 Metallica will make their debut - and guess who is attending? We are! Should be a 30-60s video depending on the info. Use the images in the folder.
+
+Sphere History:
+https://en.wikipedia.org/wiki/Sphere_(venue)
+
+Animation Platforms:
+https://gsap.com/
+
+Ask me any questions if you need, but if you feel confident please have fun and make something awesome that will go super viral!
+
+```
+
+## 观看与文件说明
+
+网站原片，未重新编码。
+
+本文依据整片源帧概览与列出的关键区间观察。原速观感、声音和后写实现建议未专业验证。研究过程文件另行本地归档。

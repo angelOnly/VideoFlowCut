@@ -1,6 +1,30 @@
-# 095 奇幻角色与版面组合
+# 095 奇幻角色背景视频与编辑式网页排版
 
-[原作](../../cases/iamtanzil-675031-original/media/original.mp4) · [作者公开资料](../../cases/iamtanzil-675031-original/sources/published-prompt.md) · [后写复现设计](replication-brief.md)
+## 适用场景
+
+保留产品或人物视频的主体表演，让标题与说明随可用空白区交替出现。
+
+- 原片形态：网页交互演示
+
+- 适用视频类型（迁移建议）：产品介绍、影像展示
+
+- 段落场景：重点强调、成果展示、前后变化
+
+- 原片实见素材：背景视频、桌面界面、文字
+
+- 动效方法：视频主体持续表演、文字使用边缘空白、图文按阶段交换主次
+
+- 美术特点：白底奢侈编辑排版、金蓝复杂主体配稀疏字、衬线标题与功能正文
+
+- 材料要求：需有可识别主体和边缘空白的视频，逐段确认朝向、遮挡与可读标题位置。
+
+- 迁移代价：滚动控制需改为固定时长阅读，透明卡不保证复杂材质上可读；资源许可和交互未验证；原速与声音未认证。
+
+## 推荐观看片段
+
+- 1.00—6.00 秒：角色从正面转背面再侧转，左标题退去、功能卡短现、右标题建立，视频身份一直保留。
+
+## 动效与美术拆解
 
 实际作品是白色编辑式网页头部的录屏或演示：细金蓝色奇幻铠甲角色居中转动，左侧分行大标题、右下短说明先建立主题，中间两张半透明功能卡短暂出现，最后标题移到右侧与左边说明对换。它把已有背景视频与排版动效整合，而不是所有复杂铠甲都由文字动画现场生成。公开需求明确背景视频来自指定URL，并要求滚动控制时间；画面里正反重复显示各阶段，与这种交互语境相符，但本轮没有操作该网页验证滚动实现。
 
@@ -14,4 +38,125 @@
 
 作者资料核对：公开资料含详细网页组件需求、字体、素材URL、时间窗口、动作与响应式规则，属于较完整页面制作指令；含局部代码示例但非原片固定完整源码。 平台列出的“Remake built with”描述复刻版本，不能证明原作技术栈；本案例不声称已有原作者源码。
 
-实际查看证据：[overview/sheet-001.jpg](overview/sheet-001.jpg) · [dense/sheet-001.jpg](dense/sheet-001.jpg) · [dense/sheet-002.jpg](dense/sheet-002.jpg) · [dense/sheet-003.jpg](dense/sheet-003.jpg) · [dense/sheet-004.jpg](dense/sheet-004.jpg)
+## 实现建议（研究后写，未制作验证）
+
+研究者依据原作观察后写，非作者原始输入，未制作、未渲染验证。用于重新设计相同关系，不承诺复刻原片。
+
+先选择一段有稳定浅底与主体转向的授权视频，保持主体持续，顶部小品牌导航固定。根据素材空白先在左放细衬线短主标题、右放极短正文；人物转到背面时旧标题退去，只建立两张少信息功能卡，卡内字需要充足停稳且背景不穿透复杂纹理。卡退出后在右侧建立新标题、左侧辅助说明。视频版不依赖滚动控制，单独定阅读时长；源码按新工程写，公开页面局部示例不能冒充原作者完整HTML。
+
+实施时先完成关键构图，再制作接续，按真实输出核对阅读、遮挡、对象身份和空间方向。使用绝对时间控制并保存可编辑源码；这些是新制作要求，不能当成已取得的原工程。涉及事实、品牌、人物、数字和素材时需使用本片已核实输入。无声首版先看画面，再依据实际音轨安排声音。
+
+## 作者公开输入与来源
+
+作者：@iamtanzil_。
+
+[网站原作页](https://skillry.dev/ai-videos/opus-5-5/iamtanzil-675031) · [作者原帖](https://x.com/iamtanzil_/status/2103820321673675031)
+
+公开输入的完整性仍以作者发布范围为准；本库未确认对应原片的固定源码。
+
+```text
+
+# Auren Header
+
+A cinematic, scroll-scrubbed 3D hero header for the luxury/fantasy brand "AUREN" where a full-screen background video plays frame-by-frame as the user scrolls through a 500vh section, with sequential timed overlays (title, description, feature cards, final title) revealing themselves at specific video timestamps.
+
+## Tech stack
+- React 18+ with "use client" directive (Next.js App Router compatible)
+- framer-motion (all overlay entrance/exit animations, AnimatePresence, staggered per-character reveals)
+- gsap + gsap/ScrollTrigger (scroll-driven scrubbing that maps scroll progress to video.currentTime)
+- No icon library used; the arrow is a literal → character and the card overlay button is a literal + character
+
+## Fonts & global styles
+- Import via: `https://fonts.googleapis.com/css2?family=Italiana&family=Inter+Tight:wght@400;500&display=swap`
+- Display / serif font: 'Italiana', serif — used for the AUREN logo, hero titles, card numbers, and card titles.
+- Body / sans font: 'Inter Tight', sans-serif — weights 400 and 500 — used for nav text, descriptions, menu items, card subtitles/descriptions/buttons.
+- box-sizing: border-box applied to the whole section and all descendants.
+- Scope all styles to the section; do NOT set global body/html rules.
+
+## Section container
+- Root: `.auren-header-section` — position: relative; width: 100%; height: 500vh; background: #FEFFFE. The 500vh height is what creates the scroll runway for scrubbing.
+- Inner sticky wrapper: `.auren-sticky-content` — position: sticky; top: 0; width: 100%; height: 100vh; overflow: hidden. Everything visible lives inside this sticky viewport.
+
+## Structure, section by section
+1. **Background video** `.auren-video-bg`: position absolute; inset 0; width/height 100%; object-fit: cover; object-position: center; z-index: 1. Element is `<video muted playsInline>` (NOT autoplay — playback is driven by scroll). Source: `https://cdn.jiro.build/Header%20Section/Auren3d/output.mp4` (type video/mp4). On ≤768px, object-position becomes 70% center.
+2. **Navigation** `.auren-nav`: position absolute; top 0; left 0; width 100%; padding 40px 60px; display flex; justify-content space-between; align-items flex-start; z-index 2.
+   - Logo `.auren-logo`: text "AUREN", Italiana 400, 26px, line-height 1, color #000000, letter-spacing 0.05em.
+   - Center nav `.auren-nav-center`: absolutely centered (left 50%, translateX(-50%)); display flex; gap 15vw. Two `.auren-nav-text` blocks (Inter Tight 500, 16px, line-height 1.2, uppercase, color #000000, centered): first reads "COSMIC ARMORION" / "FORGED IN LIGHT" (two lines via <br/>); second reads "CHAPTER 07" / "CELESTIAL ARCHIVE".
+   - Hamburger `.auren-menu-btn`: flex column; align-items flex-end; gap 5px; transparent, no border. Three `.auren-menu-line` bars, height 2px, background #161414; widths 22px / 15px / 22px. On hover the middle bar animates to 22px width (transition width 0.3s ease).
+   - Dropdown `.auren-menu-dropdown` (toggled by hamburger): position absolute; top 60px; right 60px; width 150px; background rgba(255,255,255,0.8); backdrop-filter blur(10px); border-radius 8px; padding 10px; flex column gap 10px; border 1px solid rgba(0,0,0,0.1); z-index 20. Items `.auren-menu-item` (Inter Tight 500, 16px, #000, padding 8px, border-radius 4px, right-aligned, hover background rgba(0,0,0,0.05)): "Home", "About", "Contact".
+3. **Timed hero title (initial, shown while videoTime < 2.5s)** `.auren-hero-title`: position absolute; left 60px; bottom 80px; max-width 400px; Italiana 400; 90px; line-height 1.13; color #000000; z-index 2. Words: "RISE", "OF THE", "ASTRAL", "GUARD", "MAN" — each on its own line (via <br/>), rendered per-character for the reveal animation.
+4. **Timed hero description (initial, videoTime < 2.5s)** `.auren-hero-desc`: position absolute; right 60px; bottom 80px; max-width 320px; Inter Tight 400; 20px; line-height 1.4; color #2E2A2A; z-index 2. Text verbatim: "Enter a realm where ancient artistry meets futuristic armor. Discover legendary warriors, cosmic relics".
+5. **Feature cards overlay (shown while 3s ≤ videoTime ≤ 4s)** `.auren-cards-container`: position absolute; bottom 100px; left 0; width 100%; flex; justify-content center; gap 60px; z-index 10. Two `.auren-card`s (each 560px × 320px; background linear-gradient(135deg, rgba(250,246,240,0.95), rgba(240,235,225,0.95)); border-radius 24px; padding 32px; flex; gap 30px; border 1px solid rgba(200,180,150,0.3); box-shadow 0 12px 40px rgba(0,0,0,0.15)):
+     - Card content column: header row with number (Italiana 24px, #000) + a 30px × 1px line rgba(0,0,0,0.2); subtitle (Inter Tight 10px, letter-spacing 0.1em, uppercase, #666); title (Italiana 32px, line-height 1, #000, each word forced onto its own line via `.auren-br`); description (Inter Tight 12px, line-height 1.5, #444, margin-bottom auto); button row (`.auren-card-btn`, cursor pointer, color #000) with `.auren-card-btn-text` (Inter Tight 11px, weight 500, letter-spacing 0.05em) followed by a 14px →.
+     - Card image `.auren-card-image`: 240px wide, full height, border-radius 16px, background-image from URL center/cover, with a `.auren-card-plus` badge bottom-right (32px circle, background #111, color #FFF, contains "+").
+     - Card 1: number "01", subtitle "THE WARRIOR", title "ASTRAL GUARDIAN", desc "Forged in celestial alloy, the Guardian represents a balance of precision, power, and ancient craft.", button "EXPLORE GUARDIAN", image `https://cdn.jiro.build/Header%20Section/Auren3d/auren1.png`.
+     - Card 2: number "02", subtitle "THE ARMOR", title "FORGED IN LIGHT", desc "Layered armor, luminous cores, and hand-forged celestial details built for the unknown.", button "DISCOVER THE ARMOR", image `https://cdn.jiro.build/Header%20Section/Auren3d/auren2.png`.
+6. **Final hero title (shown while videoTime ≥ 5s)** — same `.auren-hero-title` styling but overridden inline to right: 60px; left: auto; text-align: right. Words: "THE FINAL", "CHAPTER", "UNFOLDS" (each on its own line).
+7. **Final hero description (videoTime ≥ 5s)** — same `.auren-hero-desc` styling overridden inline to left: 60px; right: auto. Text verbatim: "Witness the culmination of celestial engineering and ancient magic. The archive awaits your discovery."
+
+## Assets
+- Video: `https://cdn.jiro.build/Header%20Section/Auren3d/output.mp4`
+- Card 1 image: `https://cdn.jiro.build/Header%20Section/Auren3d/auren1.png`
+- Card 2 image: `https://cdn.jiro.build/Header%20Section/Auren3d/auren2.png`
+
+## Animations
+- **Scroll-scrub video** (signature effect): register ScrollTrigger and map scroll progress across the 500vh section to the video's currentTime, also storing it in state so overlays can appear/disappear at timestamps.
+`` `tsx
+st = ScrollTrigger.create({
+  trigger: ".auren-header-section",
+  start: "top top",
+  end: "bottom bottom",
+  scrub: 1.5,
+  onUpdate: (self) => {
+    if (video.duration) {
+      const time = self.progress * video.duration;
+      video.currentTime = time;
+      setVideoTime(time);
+    }
+  },
+});
+`` `
+Initialise only after the video's metadata is available (readyState >= 1 or on the "loadedmetadata" event) and kill the trigger on unmount.
+- **Nav entrance**: fade + slide down, initial { opacity: 0, y: -20 } → { opacity: 1, y: 0 }, duration 0.8, ease "easeOut".
+- **Menu dropdown**: AnimatePresence, initial/exit { opacity: 0, y: -10, scale: 0.95 } → animate { opacity: 1, y: 0, scale: 1 }, duration 0.2.
+- **Per-character title reveal** (both titles): parent variant staggers children by 0.05 (initial title also delays children by 0.3); each character starts { opacity: 0, y: 50 } and animates to { opacity: 1, y: 0 } with duration 0.6 ease "easeOut". Each word is wrapped in an inline-block, overflow:hidden span so letters wipe up from below. Titles exit via AnimatePresence (initial title exits { opacity: 0, y: -50 } over 0.5s).
+- **Description clip reveal**: initial { opacity: 0, clipPath: 'inset(100% 0 0 0)' } → animate { opacity: 1, clipPath: 'inset(0% 0 0 0)' }, duration 1, initial one delayed 0.8s, both ease "easeOut"; matching clip-path exit.
+- **Cards overlay**: container initial { opacity: 0, y: 100 } → { opacity: 1, y: 0 }, exit { opacity: 0, y: -150 }, duration 0.6 ease "easeInOut"; each card additionally slides { y: 50, opacity: 0 } → { y: 0, opacity: 1 } with staggered delays 0.1 and 0.2, exit { y: -100, opacity: 0 }.
+- All overlays are gated by videoTime windows: titles/desc #1 for time < 2.5, cards for 3 ≤ time ≤ 4, titles/desc #2 for time ≥ 5.
+
+## Responsive behavior
+- **≤1200px**: center nav gap shrinks to 5vw; cards gap 20px with 20px side padding; cards 450px wide, padding 24px, gap 20px; card image 180px.
+- **≤1024px**: nav padding 30px 40px; hero title left 40px / font-size 70px; hero desc right 40px / bottom 60px / 18px; center nav hidden; dropdown right 40px top 50px; cards stack vertically centered, gap 20px, bottom 40px; cards full width (max 560px) height 280px; card image 240px.
+- **≈768px**: nav padding 20px with center-aligned items; hero title and desc hidden (display none); video object-position 70% center; dropdown right 20px top 50px; cards become position relative with margin-top 100px, gap 16px, 16px side padding; each card full width, height auto, flex-direction column-reverse, padding 20px, gap 16px; card image full width height 180px; card title 28px; `.auren-br` forced-line-break spans hidden.
+
+## Key design principles
+- Editorial luxury aesthetic: serif Italiana display type against clean white, minimal chrome, generous negative space.
+- Cinematic scroll-scrubbing is the hero interaction — the video is a timeline, not autoplay.
+- Content is choreographed to video timestamps, not scroll position directly.
+- High-contrast black text on light video for legibility; frosted-glass dropdown for depth.
+- Per-character mask reveals give the type a premium, deliberate entrance.
+
+## Common mistakes to avoid
+- Do NOT autoplay the video — keep it muted + playsInline and drive currentTime from ScrollTrigger.
+- Do NOT register ScrollTrigger at module top level without a window guard in an SSR/Next.js environment.
+- Do NOT forget the 500vh root height + sticky inner wrapper; without both, there is no scroll runway and the video won't scrub.
+- Keep every AnimatePresence child keyed so exit animations fire correctly.
+- Initialise the ScrollTrigger only after video metadata loads, and kill it on unmount to avoid leaks.
+
+## Page title
+AUREN — Rise of the Astral Guardman
+
+## Integration (build-safety — do not skip)
+- Add this section as a **new** component file with a unique name. Don't edit or overwrite any existing file except to add its import and render it.
+- Render it **after** all existing sections; keep every previously built section exactly as-is — never replace or remove them.
+- If no project exists, create a minimal React + Tailwind app; if one exists, use it as-is — don't re-scaffold or change the Tailwind/build config or version.
+- Keep it self-contained: scope its fonts and any resets to this section; never set global `body`/`html`/`*` styles or a global font.
+- Install only the libraries this section names.
+
+```
+
+## 观看与文件说明
+
+网站原片，未重新编码。
+
+本文依据整片源帧概览与列出的关键区间观察。原速观感、声音和后写实现建议未专业验证。研究过程文件另行本地归档。

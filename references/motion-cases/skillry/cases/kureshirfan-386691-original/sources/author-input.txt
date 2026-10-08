@@ -1,2 +1,0 @@
-I asked Claude Opus 5.5 to explain the earthquake physics as an animation. This is what it built, physically accurate strain profile included. 
-#opus5 @AnthropicAI @claudeai

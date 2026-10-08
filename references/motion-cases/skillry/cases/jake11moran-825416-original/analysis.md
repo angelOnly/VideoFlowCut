@@ -1,6 +1,30 @@
 # 082 桌面插画与角色叙事
 
-[原作](../../cases/jake11moran-825416-original/media/original.mp4) · [作者公开资料](../../cases/jake11moran-825416-original/sources/published-prompt.md) · [后写复现设计](replication-brief.md)
+## 适用场景
+
+用一个固定工作场景讲请求、成果、纠正和再完成的服务或协作过程。
+
+- 原片形态：固定视频
+
+- 适用视频类型（迁移建议）：科普解释、产品介绍
+
+- 段落场景：步骤累积、条件解释、前后变化
+
+- 原片实见素材：插画、文字、桌面界面
+
+- 动效方法：固定舞台任务往返、角色回应具体事件、道具转面承接文案
+
+- 美术特点：暖色手绘室内、粗轮廓与纸纹、深蓝成果窗口
+
+- 材料要求：需真实或明确虚构的任务与反馈文案、稳定角色和有语义用途的道具；引用真实消息需来源确认。
+
+- 迁移代价：木槌喜剧不适合所有严肃主题；公开生成Skill是相关代码，未核验为原片固定工程；原速与声音未认证。
+
+## 推荐观看片段
+
+- 20.00—25.00 秒：木槌先打击并使角色压扁，再转出纠正文案，屏幕同时换为红色状态，动作与信息有因果接力。
+
+## 动效与美术拆解
 
 整片将一次代码协作戏剧化为温暖室内的桌面故事。橙褐色矩形角色在桌后，电脑位于右侧，窗、吉他、花瓶、唱片和图画构成稳定环境。消息用纸飞机及纸张进入，角色以脸部表情、倾斜和起伏回应，屏幕内容从代码到成果再到绿色确认。观众主要跟随‘提出需求—给出结果—被纠正—再次完成’的情绪过程；空间一直相同，使较多往返仍然容易理解，不必每条消息重建一套版面。
 
@@ -12,6 +36,36 @@
 
 本轮依据整片约每秒一帧概览，以及20.000—25.000秒的真实源帧密集序列。未原速播放核验流畅度，未试听核验声音同步；其余区间未密集审阅，源帧之间的运动不作逐帧认证。关于绘制对象、缓动曲线和代码组织的说法仅为复现建议，不能据画面证明原实现。
 
-作者资料核对：公开页明确缺完整提示词；/session-story是作者公开生成Skill。主任务已固定保存仓库heygen-com/hyperframes-community-skills的Commit ba7a0bb6d3567d124c51f6074625043bfe0b32eb及33份文本文件，含引擎与示例故事，属于相关生成代码，不是已核验的原片固定工程。其说明描述纸张折叠、木槌转面和消息编排；本轮未执行，未核验示例、源码版本与原片的一一对应，也未获取字体与大音频。可从[相关资料](../../related-sources/session-story/files/skills/session-story/SKILL.md)学习实现思路。 平台列出的“Remake built with”描述复刻版本，不能证明原作技术栈；本案例不声称已有原作者源码。
+作者资料核对：公开页明确缺完整提示词；/session-story是作者公开生成Skill。主任务已固定保存仓库heygen-com/hyperframes-community-skills的Commit ba7a0bb6d3567d124c51f6074625043bfe0b32eb及33份文本文件，含引擎与示例故事，属于相关生成代码，不是已核验的原片固定工程。其说明描述纸张折叠、木槌转面和消息编排；本轮未执行，未核验示例、源码版本与原片的一一对应，也未获取字体与大音频。可从相关资料学习实现思路。 平台列出的“Remake built with”描述复刻版本，不能证明原作技术栈；本案例不声称已有原作者源码。
 
-实际查看证据：[overview/sheet-001.jpg](overview/sheet-001.jpg) · [overview/sheet-002.jpg](overview/sheet-002.jpg) · [overview/sheet-003.jpg](overview/sheet-003.jpg) · [dense/sheet-001.jpg](dense/sheet-001.jpg) · [dense/sheet-002.jpg](dense/sheet-002.jpg) · [dense/sheet-003.jpg](dense/sheet-003.jpg) · [dense/sheet-004.jpg](dense/sheet-004.jpg)
+## 实现建议（研究后写，未制作验证）
+
+研究者依据原作观察后写，非作者原始输入，未制作、未渲染验证。用于重新设计相同关系，不承诺复刻原片。
+
+构造一处固定插画工作场景，主角色、成果窗口和请求入口位置稳定。统一纸纹、粗轮廓和暖冷配色；请求以纸张或本片真实道具进入，角色先看见再行动，窗口同步改变成果状态。挑一个失败反馈段：先建立上一成果，再用大尺度道具预告纠正，角色受压或后退，最后该道具转为可阅读消息；复原动作后才启动下一请求。所有道具要有语义用途，读消息时停止周边抢眼动作，结尾用空间内已有确认元素收束。
+
+实施时先完成关键构图，再制作接续，按真实输出核对阅读、遮挡、对象身份和空间方向。使用绝对时间控制并保存可编辑源码；这些是新制作要求，不能当成已取得的原工程。涉及事实、品牌、人物、数字和素材时需使用本片已核实输入。无声首版先看画面，再依据实际音轨安排声音。
+
+## 作者公开输入与来源
+
+作者：@jake11moran。
+
+[网站原作页](https://skillry.dev/ai-videos/opus-5-5/jake11moran-825416) · [作者原帖](https://x.com/jake11moran/status/2103247490237825416)
+
+公开输入标记为不完整；本库未确认对应原片的固定源码。
+
+```text
+
+/session-story
+
+created a skill for opus 5.5 using @HyperFrames_ - claude reads your local claude code history, finds what an average session with you looks like and animates it start to finish with your messages
+
+try here: https://github.com/heygen-com/hyperframes-community-skills/tree/master/skills/session-story
+
+```
+
+## 观看与文件说明
+
+网站原片，未重新编码。
+
+本文依据整片源帧概览与列出的关键区间观察。原速观感、声音和后写实现建议未专业验证。研究过程文件另行本地归档。

@@ -1,6 +1,30 @@
 # 100 手机到芯片与原子尺度
 
-[原作](../../cases/irinatoxi-962937-original/media/original.mp4) · [作者公开资料](../../cases/irinatoxi-962937-original/sources/published-prompt.md) · [后写复现设计](replication-brief.md)
+## 适用场景
+
+用熟悉设备内部的连续推进引出一个微观结构问题或科普片头。
+
+- 原片形态：固定视频
+
+- 适用视频类型（迁移建议）：科普解释、品牌展示
+
+- 段落场景：整体到局部、跨场景接力、空间关系
+
+- 原片实见素材：三维、抽象图形
+
+- 动效方法：中央目标持续推进、重复结构改变尺度、高光遮蔽模型交接
+
+- 美术特点：灰银与棕铜材料分层、彩色小中心导视、密阵列建立微观感
+
+- 材料要求：需准确层级与空间关系，补层名、尺度和过渡理由，宏观实拍与微观示意分清。
+
+- 迁移代价：原片缺连续层名，易只感到越来越小；高光是编辑接点而非真实物理进入；原速与声音未认证。
+
+## 推荐观看片段
+
+- 12.00—17.00 秒：晶体管式结构放大后高光覆盖接材料球格，红白中心保持观察目标，显示尺度接续及其解释缺口。
+
+## 动效与美术拆解
 
 这条约22秒的三维旅程从桌面拆开的手机开始，进入主板中的芯片、彩色模块、规则单元、布线、晶体管，再到球状晶格和中央原子核示意。几乎没有承担解释的标题，观看任务主要是体验熟悉物体内隐藏的尺度层次。开头手机后盖和工具建立现实入口，后段模型密度从矩形阵列到球阵列提高，以相近透视和中心目标维持方向。它不是真实拆机或显微拍摄，物理准确性需要另外核查。
 
@@ -14,4 +38,38 @@
 
 作者资料核对：公开页明确缺完整提示词；作者讲述手机到半导体原子尺度的旅程，是概念及制作感想。 平台列出的“Remake built with”描述复刻版本，不能证明原作技术栈；本案例不声称已有原作者源码。
 
-实际查看证据：[overview/sheet-001.jpg](overview/sheet-001.jpg) · [overview/sheet-002.jpg](overview/sheet-002.jpg) · [dense/sheet-001.jpg](dense/sheet-001.jpg) · [dense/sheet-002.jpg](dense/sheet-002.jpg) · [dense/sheet-003.jpg](dense/sheet-003.jpg) · [dense/sheet-004.jpg](dense/sheet-004.jpg)
+## 实现建议（研究后写，未制作验证）
+
+研究者依据原作观察后写，非作者原始输入，未制作、未渲染验证。用于重新设计相同关系，不承诺复刻原片。
+
+设计一段多尺度设备旅程，从真实或准确示意的拆开设备开始，锁定一个芯片作为持续目标。每级保留上一级边缘参照，沿一个方向推进，几何密度逐层增加；从布线到材料、从材料到原子时提供短层名和尺度，明确模型类比。用中性材质和唯一中心强调色控制注意，高光仅作短接点，不能持续盖住结构。关键边界需要稳定可读，不追求全程同速。制作后另核验技术结构与跨尺度方向。
+
+实施时先完成关键构图，再制作接续，按真实输出核对阅读、遮挡、对象身份和空间方向。使用绝对时间控制并保存可编辑源码；这些是新制作要求，不能当成已取得的原工程。涉及事实、品牌、人物、数字和素材时需使用本片已核实输入。无声首版先看画面，再依据实际音轨安排声音。
+
+## 作者公开输入与来源
+
+作者：@irinatoxi。
+
+[网站原作页](https://skillry.dev/ai-videos/opus-5-5/irinatoxi-962937) · [作者原帖](https://x.com/irinatoxi/status/2104212841657962937)
+
+公开输入标记为不完整；本库未确认对应原片的固定源码。
+
+```text
+
+Opus 5.5 just turned a smartphone into a 20-second trip from glass to atoms.
+
+It starts on the phone, dives through the motherboard and chip, then keeps going through the semiconductor structure until you’re basically staring at the atomic scale.
+
+This is the kind of 3D shot that normally looks like a whole studio touched it.
+
+Instead, Opus 5.5 built the sequence.
+
+That’s fucking ridiculous.
+
+```
+
+## 观看与文件说明
+
+网站原片，未重新编码。
+
+本文依据整片源帧概览与列出的关键区间观察。原速观感、声音和后写实现建议未专业验证。研究过程文件另行本地归档。
