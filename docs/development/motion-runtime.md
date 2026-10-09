@@ -88,18 +88,74 @@ Runtime 0.1.64另接入用户提供的22份原件，目录共34份文件：Aa剑
 ## 修复工单与候选部署合同
 
 仅确认平台或服务自身 Bug 阻断任务才报修，服务未启动或原因未知不构成该条件。以下为修复任务维护合同，执行仍核对实时 Schema。
-
-
-这些命令管理平台能力缺口，不是视频编辑命令。调用前仍以实时 Tool Schema 为准；它们不会创建或修改 Project Revision。
-
-| 阶段 | MCP 命令与关键输入 | 允许的下一步 |
-|---|---|---|
-| 读取发行健康 | `read_runtime_release()` | 比较 `mcpReleaseId` 与 `runtime.releaseId`，并确认 API、媒体 Worker、渲染 Worker 均健康；不一致时不能确认部署或恢复。 |
-| 剪辑阻断 | `report_editing_blocker(reported_revision, category, summary, reporter_id, idempotency_key, detail?, tool_name?, job_id?)` | 剪辑任务停在当前步骤；Ticket 保存 MCP 的 Release ID 和报告 Revision，不进入视频 Revision。Runtime 不可达时也可报告，不能因报障失败而伪造恢复。 |
-| 修复接手与候选验证 | `list_repair_tickets(statuses?)`；`claim_repair_ticket(ticket_id, repairer_id)`；`mark_repair_candidate_ready(ticket_id, repairer_id, candidate_release_id, validation_summary)` | Repairer 只在隔离 Runtime/工作区验证根因修复与回归；候选 ID 必须是构建 Manifest 的 `release-<sha256>`，不能使用 latest 或口头版本。 |
-| 非部署收口 | `resolve_repair_ticket_without_deployment(ticket_id, repairer_id, kind, evidence)` | 仅处于 claimed 的工单可由原接手 Repairer 收口；分类为 `invalid_input`、`duplicate` 或 `external_recovery`，证据为16至8000字符。拒绝不改变工单或视频 Revision；成功不声称代码已部署，Job 后来成功也不自动收口。 |
-| 正式切换 | `mark_repair_deployed(ticket_id, repairer_id, deployment_evidence)` | 该命令自行读取当前 MCP/Runtime Release ID；只有两者一致且等于已验证候选版才会写入 deployed。旧 MCP 或旧 Runtime 必须先重新部署/重连。 |
-| 剪辑恢复 | `acknowledge_repair_deployment(ticket_id, editor_id, observed_revision)` | 原报告者重新连接新版 MCP、读回当前 Project 后确认。`observed_revision` 必须仍是当前 Revision；成功后才继续剪辑。 |
-
-修复任务不得把修改正式视频、修改插件缓存、临时跳过失败、在生产工作区跑候选 Worker，作为完成 Ticket 的方式。需要放弃接手时使用 `release_repair_ticket(ticket_id, repairer_id, reason)`，保留复现事实给下一位修复者。
-
+
+
+
+
+这些命令管理平台能力缺口，不是视频编辑命令。调用前仍以实时 Tool Schema 为准；它们不会创建或修改 Project Revision。
+
+
+
+| 阶段 | MCP 命令与关键输入 | 允许的下一步 |
+
+|---|---|---|
+
+| 读取发行健康 | `read_runtime_release()` | 比较 `mcpReleaseId` 与 `runtime.releaseId`，并确认 API、媒体 Worker、渲染 Worker 均健康；不一致时不能确认部署或恢复。 |
+
+| 剪辑阻断 | `report_editing_blocker(reported_revision, category, summary, reporter_id, idempotency_key, detail?, tool_name?, job_id?)` | 剪辑任务停在当前步骤；Ticket 保存 MCP 的 Release ID 和报告 Revision，不进入视频 Revision。Runtime 不可达时也可报告，不能因报障失败而伪造恢复。 |
+
+| 修复接手与候选验证 | `list_repair_tickets(statuses?)`；`claim_repair_ticket(ticket_id, repairer_id)`；`mark_repair_candidate_ready(ticket_id, repairer_id, candidate_release_id, validation_summary)` | Repairer 只在隔离 Runtime/工作区验证根因修复与回归；候选 ID 必须是构建 Manifest 的 `release-<sha256>`，不能使用 latest 或口头版本。 |
+
+| 非部署收口 | `resolve_repair_ticket_without_deployment(ticket_id, repairer_id, kind, evidence)` | 仅处于 claimed 的工单可由原接手 Repairer 收口；分类为 `invalid_input`、`duplicate` 或 `external_recovery`，证据为16至8000字符。拒绝不改变工单或视频 Revision；成功不声称代码已部署，Job 后来成功也不自动收口。 |
+
+| 正式切换 | `mark_repair_deployed(ticket_id, repairer_id, deployment_evidence)` | 该命令自行读取当前 MCP/Runtime Release ID；只有两者一致且等于已验证候选版才会写入 deployed。旧 MCP 或旧 Runtime 必须先重新部署/重连。 |
+
+| 剪辑恢复 | `acknowledge_repair_deployment(ticket_id, editor_id, observed_revision)` | 原报告者重新连接新版 MCP、读回当前 Project 后确认。`observed_revision` 必须仍是当前 Revision；成功后才继续剪辑。 |
+
+
+
+修复任务不得把修改正式视频、修改插件缓存、临时跳过失败、在生产工作区跑候选 Worker，作为完成 Ticket 的方式。需要放弃接手时使用 `release_repair_ticket(ticket_id, repairer_id, reason)`，保留复现事实给下一位修复者。
+
+
+
+
+
+## Skills 去冗余归入的开发资料
+
+以下来自本轮优化前组件参考，是平台维护背景，不是每次创作要加载的步骤；当前配置值与接口以代码为准。
+
+### Registry 结构与兼容
+```ts
+interface EffectDefinition {
+  type: string;
+  version: string;
+  component: React.ComponentType<EffectProps>;
+  propsSchema: ZodSchema;
+  assetSlots: AssetSlotDefinition[];
+  supportedLayers: Array<'rear'|'actor'|'front'|'fullscreen'>;
+  supportedAspectRatios: string[];
+  defaultMotion: MotionPreset;
+  qualityRules: EffectQualityRule[];
+  previewFixture: string;
+}
+```
+
+具体代码结构可以调整，但职责必须清楚。
+
+## 更新与兼容
+
+组件版本变化可能改变旧 Revision 的渲染。Snapshot 应保存 Registry/Runtime 版本，或通过迁移保持旧 Props 可解释。破坏性更新需要 Golden 回归和旧项目兼容策略。
+
+### 解码缓存与工作区配置
+
+画布宽高64～1920偶数、fps15～60整数、作品至少2帧；不设30秒、900帧或累计像素帧门槛。原片按内容身份共享，不按槽复制。平台按需取帧，分块缓存按驻留量回收；原片与累计解码量不受512MiB作品门槛限制。完整输出按无损体积提前检查真实磁盘空间，失败不发布半件。运行配置VIDEOFLOWCUT_MOTION_FRAME_CACHE_MIB默认256、VIDEOFLOWCUT_MOTION_SCRATCH_MIB默认512、VIDEOFLOWCUT_MOTION_DISK_RESERVE_MIB默认1024、VIDEOFLOWCUT_MOTION_FRAME_TIMEOUT_MS默认12000；缓存限额不是整个进程内存上限，不用于静默降画质。
+
+### 隔离和性能
+
+受管作品由 AST/Import allowlist、确定性约束、独立 Chromium OS sandbox、响应级 CSP sandbox、网络拒绝、执行超时和输出限额共同隔离。AST 静态检查不代替安全沙箱，主工作台读取已验证的帧。缓存键应涵盖实际输入、资源与运行版本；修改一项参数应只影响其真实依赖。
+
+### 历史提交合同的维护位置
+
+受管视频合同曾随 managed-motion-12 发布，fontBindings 随 managed-motion-13 发布；这些是历史定位信息，生产作者以连接 Runtime 的能力查询和实时 Schema 为准。旧 source.json/Job 不注入新字段，缓存哈希与旧序列兼容；绑定或资源身份改变生成新版本，旧产物保持可读。
+
+退役的 caption_safe_area 不接受新的 MCP 提交，历史快照中的标识在质量评估时忽略，不回写 Revision。平台不再采集 motion.visibility，也不输出固定字幕安全区的相交或缺测量提示；透明效果、帧完整性与语义锚点校验仍保留。实际构图和字幕竞争继续由合成观察判断。

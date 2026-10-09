@@ -12,10 +12,12 @@ test("指定案例从首次取材进入真实角色交接，材料回来更新�
   assert.match(example, /首次写声画草稿和取材请求/);
   for (const title of ["读完整意思", "候选里能看见", "用方式倒推", "材料成组", "相近内容", "搜索起点"]) assert.ok(guide.includes(title) && director.includes(title), title);
   assert.match(read(".agents/skills/production-director/SKILL.md"), /直接进入对应 CASE/);
-  assert.match(writer, /完整当前正文、对应的观看过程/);
-  assert.match(visual, /由导演将建议合成一个明确的取材请求/);
-  assert.match(motion, /材料会影响裁切、字位、遮挡、路径或声音时一起更新/);
-  assert.match(sourcing, /此前未看清的部分在本地完成首次选段/);
+  assert.match(writer, /当前全文及对应句群声画说明/);
+  assert.match(visual, /取材请求按\[素材到场面\]/, "取材方法归导演参考，视觉正文不再复制同一流程");
+  assert.match(director, /先与文案、原视觉作者把当前这段需要的画面说清/);
+  assert.match(motion, /材料变动影响字位、路径、遮挡或声音时一起修改/);
+  assert.match(sourcing, /已有有效观察与选段直接承接/);
+  assert.match(sourcing, /没有观察时先了解全貌，再看可能采用的连续范围与必要前后文/);
   assert.match(handoff, /材料角色｜搜索起点｜实际需要什么｜在本片里做什么/);
   assert.match(coordinator, /得到明确获取决定后，主任务继续取得实际文件/);
   assert.match(review, /不因下载成本地文件而重新要求整套概览和审批/);

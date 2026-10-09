@@ -32,14 +32,10 @@ Provider 能提供严格 token 时间时，Alignment 标记为 `provider_token_t
 
 `bulk_source_format` 要求同一来源使用 `sourceTimelineItemId`，旁白音频生成的有效来源卡也适用，不以素材是否 A-roll 判断。关闭背景传 `background_color:null` 并省略 `background_opacity`；透明度0非法，有背景时允许0.1至1。移除背景不建立白色字幕带，白带仍需原视觉作者的正式可渲染对象和真实合成验证。先检查 `isError` 并保存原始文本，不能直接JSON解析丢失协议校验错误；明确参数拒绝沿共享运行合同纠正，不把输入非法误报平台故障。
 
-### 最终旁白字幕与显示纠错
-
-`generate_speech_captions(base_revision_id, idempotency_key?)` 接受当前已组装的完整唯一 Dialogue / SpeechAsset，复用 `source_caption_alignment` Job。成功时原子生成 Alignment、默认 Provider Program 和稳定字幕，替换未人工改写且版式一致的旧整段字幕，不修改原稿、配音或画面。Job 期间暂缓其他项目写入；`track_job` 后读回 Revision、`read_source_audio_alignment` 和 `read_captions`。`speechSource` 记录旁白和原稿身份，`source_audio` 表示实际音频派生；token 只用于有证据的重分屏，不表示逐词动画。溢出仍由 `apply_source_caption_program` 使用真实 token 边界处理，无 token 时不猜时间。
-
-`edit_captions(action=update, text, source_text_review)` 接受三种显示纠错依据：listening（兼容仅 note 的实际回听）；confirmed_script（note、scriptRevision、speechSegmentIds，服务端核验当前配音、脚本、实际字幕片段及新文案）；user_instruction（note、instruction、source，记录明确用户修改指令及来源）。原文、新文、依据和时间可追溯，音频、Alignment、Card 时间不变。只改标点和换行无需实义纠错记录；原稿纠错不代表已经听过。`reset` 撤销显示纠错；重分屏不能静默覆盖已有纠错。
-
-`edit_captions(action=update, display?, format?)` 可只改稳定 Card 的显示与静态位置。display 为 `{mode:"shown", ranges?:[{startFrame,endFrame}]}` 或 `{mode:"hidden"}`：shown 不带 ranges 显示整卡；ranges 为本卡原范围内的 Timeline 绝对帧半开区间，按先后排列、互不重叠，最多 50 段；hidden 隐藏整卡且不能带 ranges。display 为 null 恢复整卡显示，省略则保留当前设置。原文、token、Alignment、语音与 Card 边界不变，不能靠显示字段把声音时间挪到别处。
-
-静态百分比框使用 `format.placement={leftPercent,topPercent,widthPercent}`，左上角相对画布定位；leftPercent、topPercent 为 0～95，widthPercent 为 5～100，leftPercent + widthPercent ≤ 100。设置后替代该卡旧底部布局；placement 为 null 恢复旧布局，省略则保留。批量原声版式可带 format.placement，但不能带 display；动态短语、对象标签与逐帧空间变化继续用受管作品，不假定自动避让。修改后读回显示、位置、Revision 和 Impact，并在同版本 Preview 复核。
+## 来源链与显示核对
 
 `read_quality_report` 复用同一来源、真实时间和完整覆盖校验认定当前旁白字幕；有效的 `speechSource` Program 不需要伪造 `speechSegmentId` 或补“一段一卡”。缺卡、过期、错误旁白/原稿和破损覆盖仍阻挡，静音间隙不要求字幕填满。
+
+字幕未指定 placement 时使用默认底部布局；bottomPercent 和 horizontalInsetPercent 控制字幕自身距离与宽度，不划定动效禁入区域，也不会约束其他对象。预览不绘制固定安全框，不输出安全区相交提示。受管字体绑定不自动控制原生 Caption 轨，maxLines 不是当前显示参数；需要的能力以连接会话 Schema 为准。
+
+质量报告仍提示缺失时，先查当前 SpeechAsset、Program 完整性、真实时间和双向来源引用，不能给每个 SpeechSegment 人为补一张卡。修改读回的显示设置与实际渲染分别核对。

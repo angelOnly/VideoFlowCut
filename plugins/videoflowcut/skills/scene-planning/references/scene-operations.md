@@ -42,6 +42,8 @@
 
 ## 当前项目写入
 
+主任务用 `manage_visual_treatment` 保存当前 Beat/Scene 已明确的主视觉、第一注意目标、强度及必要的安静理由或替代方案；字段从同一份采用稿映射，缺少设计再回原作者。它保存计划，不自动生成素材或效果，也不替代 Scene/Timeline 的实际放置。跨对象的关键取舍沿[项目审计](../../production-coordinator/references/project-writes.md#保存审计时才读)记录，不要求美术作者重新填写同义说明。需要 Cutaway 时按[辅助镜头操作](../../cutaway-planning/SKILL.md)建立对象，读取主线变化后的 Impact 并复核相关性、进入和返回。
+
 内部状态不依赖新增通用编译器：设计写入 creativeBrief，受管帧代码落实变化，Scene/Cue 负责合法放置。按主线变化读回 stale，不能用 fit 裁短作品后恢复 ready。
 
 当前 MCP 可以 `browse_scene_types`、`create_scene`，Presenter 正式链路还可使用 `compile_presenter_scenes`。创建 Scene 时必须有真实 start/end frame、purpose、类型和相关 Asset。架构中的完整 Scene Compiler、内部 State 和可编辑 Scene Props 尚未全部实现时，可以先形成计划并使用当前能表达的范围，不声称复杂渐进状态已经自动编译。

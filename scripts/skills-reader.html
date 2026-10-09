@@ -54,6 +54,8 @@ function wireLinks(path){
     const attr=element.hasAttribute('href')?'href':'src',raw=element.getAttribute(attr);
     if(/^https?:/i.test(raw)){if(attr==='href'){element.target='_blank';element.rel='noopener'}continue}
     if(/^[a-z][a-z\d+.-]*:/i.test(raw)){element.removeAttribute(attr);continue}
+    // 首页导读的对照入口是阅读器视图，不是技能目录内的文件锚点。
+    if(!path&&attr==='href'&&raw.startsWith('#view='))continue;
     const u=new URL(raw,path?sourceURL(path):sourceRoot);element.setAttribute(attr,u.href);
     if(attr==='href'&&u.href.startsWith(sourceRoot.href)){
       const target=decodeURIComponent(u.pathname.slice(sourceRoot.pathname.length));

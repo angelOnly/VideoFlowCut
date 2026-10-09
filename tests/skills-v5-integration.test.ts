@@ -33,8 +33,8 @@ test("字幕位置配置与无固定安全区合同一致，发布指引不要�
   assert.match(captions, /默认底部布局/u);
   assert.match(captions, /placement/u);
   assert.match(captions, /不划定动效禁入区域/u);
-  assert.match(motion, /不统一套用标题栏或固定字幕保留带/u);
-  assert.match(contract, /不执行固定字幕安全区检查/u);
+  assert.match(motion, /不强加统一标题栏或固定字幕保留带/u);
+  assert.match(contract, /不测量字幕安全区相交来阻断/u);
   assert.doesNotMatch(motion + contract, /返回待审 warning|可重生成取得证据|Worker 保存真实透明帧的 `motion.visibility`/u);
 });
 
@@ -44,10 +44,14 @@ test("视频Skill与MCP统一根时钟、选段字段和资源回收合同", asy
   const component = await readFile(join(skillsRoot, "remotion-production/references/remotion-component-contract.md"), "utf8");
   for (const text of [skill, contract, component]) {
     for (const field of ["sourceStartMs", "sourceEndMs", "startFrame", "endFrame", "TimelineVideo"]) assert.ok(text.includes(field));
-    assert.match(text, /managed-motion-12/u);
     assert.match(text, /不足一.*帧/u);
     assert.doesNotMatch(text, /源文件合计最多 512|解码结果合计最多 512|最长 30 秒/u);
   }
+  // 验证当前播放语义；历史引擎名只属于迁移诊断，不是每份使用说明的必读内容。
+  assert.match(component, /TimelineVideo 读取平台保存的作品根帧，不随内部 Sequence 重置/u);
+  assert.match(component, /源毫秒和作品帧均为半开区间/u);
+  assert.match(component, /正常速度重采样并静音/u);
+  assert.match(component, /<Sequence from=\{60\} durationInFrames=\{60\}>[\s\S]*<TimelineVideo slot="footage"/u);
   const source = await readFile(join(repositoryRoot, "packages/motion-work/src/compiler.ts"), "utf8");
   assert.match(source, /createContext\(null\)/u);
   assert.match(source, /const frame=useContext\(FrameContext\)/u);
@@ -362,7 +366,7 @@ test("正式提交与专业判断分工在唯一交接中维护",async()=>{
   const handoff=await readFile(join(skillsRoot,"_shared/PROJECT_REVISION_AND_HANDOFF.md"),"utf8");
   const writes=await readFile(join(skillsRoot,"production-coordinator/references/project-writes.md"),"utf8");
   assert.match(handoff,/不递归分派/);
-  assert.match(handoff,/不能只换 `base_revision_id` 重发旧产物/);
+  assert.match(handoff,/不能只换 `?base_revision_id`? 重发旧产物/);
   assert.match(handoff,/技术核验归主任务[\s\S]*审美归子代理/);
   assert.match(writes,/不能认证真实宿主调用/);
   assert.match(writes,/异步 Job[\s\S]*终态[\s\S]*Revision/);
@@ -373,32 +377,39 @@ test("宿主满额恢复有现有负责人接替路径，不依赖虚构名额�
   const coordinator = await readSkill("production-coordinator");
   const handoffPath = resolve(skillsRoot, "_shared/PROJECT_REVISION_AND_HANDOFF.md");
   const handoff = await readFile(handoffPath, "utf8");
+  const routingPath = resolve(skillsRoot, "production-coordinator/references/task-routing.md");
+  const routing = await readFile(routingPath, "utf8");
   assert.match(coordinator, /list_agents[\s\S]*上限是否包含主任务/u, "分派前须使用实际宿主范围核对名额");
   assert.match(coordinator, /completed[^\n]*不证明[^\n]*释放/u, "完成一轮不能冒充关闭线程");
   assert.match(coordinator, /interrupt_agent[^\n]*不[用把][^\n]*名额/u, "中断不能当作释放名额");
   assert.match(coordinator, /原负责人仍在列表且空闲[\s\S]*followup_task/u);
   assert.match(coordinator, /名额已满[\s\S]*现有、职责合适[\s\S]*只等待这一项依赖/u, "满额须复用现有负责人或等相关工作，不能再创建");
   assert.match(coordinator, /列表未满仍被拒绝[\s\S]*调用前后列表[\s\S]*原始错误/u, "不能把宿主异常误判为正常满额");
-  assert.match(handoff, /接任者先确认输入版本与范围[\s\S]*交接未确认不算/u);
-  assert.match(handoff, /旧负责人迟到回复[\s\S]*历史材料[\s\S]*当前负责人重新判断/u, "接替后不得直接采用迟到结果");
+  assert.match(handoff, /task-routing\.md#负责人接替与结果接收/u);
+  assert.ok((await reachableMarkdown(handoffPath)).has(routingPath));
+  assert.match(routing, /接任者先确认输入版本与范围[\s\S]*交接未确认不算/u);
+  assert.match(routing, /旧负责人迟到回复[\s\S]*历史材料[\s\S]*当前负责人重新判断/u, "接替后不得直接采用迟到结果");
   assert.ok((await reachableMarkdown(join(skillsRoot, "production-coordinator/SKILL.md"))).has(handoffPath));
 });
 
 test("子代理工具缺失使用可追溯事实交接，实际访问和交接结果分别验收", async () => {
   const coordinator = await readSkill("production-coordinator");
   const handoff = await readFile(join(skillsRoot, "_shared/PROJECT_REVISION_AND_HANDOFF.md"), "utf8");
+  const routing = await readFile(join(skillsRoot, "production-coordinator/references/task-routing.md"), "utf8");
   const mcp = await operationKnowledge();
   assert.match(coordinator, /首次分派和续接后[\s\S]*本轮实际工具表/u);
-  assert.match(handoff, /工具不可见、Schema 不匹配、调用失败、结果已返回但材料不足/u, "故障阶段必须可区分");
-  assert.match(handoff, /读取工具、读取时的 Project\/Revision 及原始结果引用/u);
-  for (const required of ["完整源码/Props/参数", "可访问路径", "实时 MCP Schema", "Impact", "具体对象、版本、范围"]) {
+  assert.match(handoff, /task-routing\.md#事实交接与能力核验/u);
+  assert.match(routing, /工具不可见、Schema 不匹配、调用失败、结果已返回但材料不足/u, "故障阶段必须可区分");
+  assert.match(routing, /读取工具、读取时的 Project\/Revision 及原始结果引用/u);
+  for (const required of ["完整源码/Props/参数", "可访问路径", "实时 MCP Schema", "Impact"]) {
     assert.ok((handoff + coordinator).includes(required), `事实交接缺少 ${required}`);
   }
+  assert.match(coordinator, /请求应说明对象、版本、范围和缺失项/u);
   assert.match(coordinator, /主任务记录实际工具缺口[\s\S]*正式只读 MCP[\s\S]*专业判断仍由原代理/u, "补事实不能回退为主任务创作");
   assert.match(coordinator, /需要观看的预览、帧或音频必须由接收者实际打开/u);
   assert.match(mcp, /主任务转交 Schema 不等于子代理工具可调用/u);
   assert.match(mcp, /主任务成功交接、子代理直接 MCP 访问恢复是两个结论/u);
-  assert.match(handoff, /新读取发现版本变化[\s\S]*接收者确认[\s\S]*不只替换包内版本号/u);
+  assert.match(routing, /新读取发现版本变化[\s\S]*接收者确认[\s\S]*不只替换包内版本号/u);
 });
 
 test("Presenter Skill 的概要、Gate A 与示范路线都先编译 Scene 再登记人物", async () => {

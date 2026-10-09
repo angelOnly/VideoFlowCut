@@ -119,3 +119,17 @@ YouTube 的已实现路径由平台执行 yt-dlp。专项先在浏览器调研�
 `acquire_media_asset(base_revision_id, asset_candidate_id, idempotency_key?)` 不接受权利或用途证明参数。Worker 下载验证后登记 Asset，继续媒体分析；读回 ready、来源和具体源范围后，沿现有采用链保存内容判断。
 
 YouTube 获取范围、画质选择、合并与缓存边界沿本页“当前能力与计划能力”中的现行合同执行，不重复维护旧的固定分辨率与整条下载限制。文件取得只证明获取结果，不证明镜头适合分镜或艺术验收完成。
+
+## 审阅与诊断分流
+
+按实时 Schema 使用 inspect_asset 的 overview、range 或 dense。overview 用于全貌定位；range 用于待采用的连续范围；dense 只补会改变精确切口、微动作或位置判断的最小范围。source_start_frame/source_end_frame 按项目 Timeline FPS 的半开区间计。同帧率固定作品完整范围用 [0, motion.frameCount)，避免整数毫秒换算丢末帧；其他素材依返回的可请求范围。联系表整数毫秒只用于显示，不改变实际精确抽帧时间。
+
+先读 diagnostics.status、components、continuousReview、issues 和 diagnostics.recovery。inspect_available_evidence 时把有效预览和缺失位置回原作者，由其判断补哪一范围、改选段或换候选；select_another_candidate 暂不采用当前候选并继续正常搜索；wait_for_media_analysis 等待分析。只有 diagnostics.recovery=report_platform_failure 停止受影响步骤并报修，其他无依赖工作继续。素材损坏、能力限制、空输出、超时与原因未知分开，不能从部分证据断言整段正常或损坏。
+
+range/dense 没有连续代理时，截图不能证明正式选段审阅通过；缺声音也不能声明听审。返回代理仍需实际观看。工具只写可重建缓存，不改 Asset 状态、采用、视频 Revision 或 Job，不重放旧下载/生成，不删除失败记录。
+
+定向模型复核用 analyze_media 的 depth=review，input.context 才作为实际专项问题发送；index/discovery 仅保存用途备注。通过 track_job、read_media_observations 读取真实覆盖、各模态事实和未知；不把处理成功扩大为完整观察。坐标与源内动作仍按真实精度，估计不保存为 measurement。
+
+采用记录保存实际原件、用途、范围和事实条件；全屏、分窗或固定时长等设计写在当前场面稿，不充当永久证据限制。需要修改旧用途时重新 adopt_media_fragment 并关联当前使用，不原地伪改证据。未经裁切整图不能直接沿用局部观察；正式派生并复核实际载体。同一 Asset 的其他用法不会自动继承采用结论。
+
+浏览器需要跨回合续看或入口失效时，按[浏览器交接](../../web-editor-operator/SKILL.md#浏览器审阅跨回合交接)操作，不在本页复制宿主接口规则。

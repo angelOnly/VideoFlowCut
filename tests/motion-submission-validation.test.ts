@@ -27,7 +27,7 @@ test("源码纠正合同在Skills保留原作者交接和已入队失败边界",
     const text = await readFile(path, "utf8");
     for (const keyword of ["work.source", "correct_input", "原作者", "Worker", "纠正", "平台误判"]) assert.ok(text.includes(keyword), `${path} 缺少 ${keyword}`);
   }
-  const contract = await readFile(".agents/skills/remotion-production/references/remotion-component-contract.md", "utf8");
+  const contract = await readFile(".agents/skills/remotion-production/references/submission-and-recovery.md", "utf8");
   assert.ok(contract.includes("<RuleLine top={148}/>"));
   assert.ok(contract.includes("top={window.top}"));
 });

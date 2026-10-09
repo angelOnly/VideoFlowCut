@@ -2,6 +2,17 @@
 
 第一次阅读，建议先看本页的**角色分工**与**制作链路**，再从左侧进入自己关心的职责。技术参数、错误处理与历史案例，可以遇到具体问题时再查。
 
+## 本轮去冗余，从这几份看起
+
+目录与角色分工保持原样。本轮合并正文中的重复方法，局部任务按需要读取。点击下方对照，左栏是本轮去冗余前，右栏是最新正文；上方也能切回最初目录优化前的原文。
+
+1. **导演：从内容到观看主线** · [阅读正文](production-director/references/story-and-shot-design.md) · [双栏对照](#view=compare&baseline=dedup&before=production-director%2Freferences%2Fstory-and-shot-design.md)
+2. **美术：主体、字形与共同构图** · [阅读正文](visual-treatment-planning/references/art-direction.md) · [双栏对照](#view=compare&baseline=dedup&before=visual-treatment-planning%2Freferences%2Fart-direction.md)
+3. **演出：关键中途、动作关系与返修** · [阅读正文](motion-brief-writing/references/performance-design.md) · [双栏对照](#view=compare&baseline=dedup&before=motion-brief-writing%2Freferences%2Fperformance-design.md)
+4. **素材：实际观察与可用范围** · [阅读正文](visual-asset-sourcing/references/source-review.md) · [双栏对照](#view=compare&baseline=dedup&before=visual-asset-sourcing%2Freferences%2Fsource-review.md)
+
+[时机](effect-timing/SKILL.md)、[文案](narration-writing/SKILL.md)、[字幕](captions/SKILL.md)和[受管实现](remotion-production/SKILL.md)可按当前问题继续阅读。
+
 ## 角色怎样划分
 
 执行上有 **4 类分工：制作统筹、总导演、专项作者、审片作者**。为方便阅读，这里将具体职责展开为下方 **11 组**，覆盖项目的 **29 项工作能力**；案例检索包含在29项能力中，单列为公共资料入口。

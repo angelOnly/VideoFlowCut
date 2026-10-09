@@ -13,4 +13,4 @@ description: 将已看过的实际素材和导演声画稿深化为当前作品�
 
 复杂场面用 [执行稿结构](references/execution-brief-template.md)，返回完整演出正文、准确文字、真实材料、声音锚点、关键几何、中途检查与前后接口。简单直剪可短写，不填无关栏目。确需参考再用 [案例库](../motion-case-library/SKILL.md)，已采用的参考继续沿用。
 
-主任务将完整深化稿回导演协调，再回同一作者沿 [受管实现](../remotion-production/SKILL.md) 完成。实际预览暴露构图、运动、声音或时钟问题时按根因修订；采用不代表已验证。交接沿 [共享约定](../_shared/PROJECT_REVISION_AND_HANDOFF.md)。
+首次主要表达或主要对象、事实、讲述顺序及跨段关系改变时，主任务将完整深化稿回导演协调；已采用方向内的比例、路径、曲线与切口修订由原作者继续，再沿 [受管实现](../remotion-production/SKILL.md) 完成。实际预览暴露构图、运动、声音或时钟问题时按根因修订；采用不代表已验证。交接沿 [共享约定](../_shared/PROJECT_REVISION_AND_HANDOFF.md)。

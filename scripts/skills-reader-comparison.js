@@ -1,16 +1,18 @@
 // 双栏原文来自固定快照；现文来自同一次页面生成读取的唯一源。
-const comparison=JSON.parse(document.querySelector('#comparison-data').textContent);
-const beforeByPath=new Map(comparison.originals.map(f=>[f.path,f]));
+const snapshots=JSON.parse(document.querySelector('#comparison-data').textContent).snapshots;
+let comparison=snapshots[0],beforeByPath=new Map(comparison.originals.map(f=>[f.path,f]));
+function selectBaseline(id){comparison=snapshots.find(s=>s.id===id)||snapshots[0];beforeByPath=new Map(comparison.originals.map(f=>[f.path,f]))}
 let plainComparison=false,syncComparison=false;
 function compareFile(path){
   const match=beforeByPath.get(path)||comparison.originals.find(f=>f.targets.includes(path));
-  const args={view:'compare'};
+  const args={view:'compare',baseline:comparison.id};
   if(match)args.before=match.path;
   if(path&&byPath.has(path)&&byPath.get(path).source!==undefined)args.after=path;
   location.hash=new URLSearchParams(args).toString();
 }
-function compareNavigate(before,after){location.hash=new URLSearchParams({view:'compare',...(before?{before}:{}),...(after?{after}:{})}).toString()}
+function compareNavigate(before,after){location.hash=new URLSearchParams({view:'compare',baseline:comparison.id,...(before?{before}:{}),...(after?{after}:{})}).toString()}
 function showComparison(params){
+  selectBaseline(params.get('baseline'));
   const afterArg=params.get('after');
   const old=beforeByPath.get(params.get('before'))||(!afterArg?beforeByPath.get('production-coordinator/SKILL.md'):null);
   const targets=old?.targets||[];
@@ -20,6 +22,7 @@ function showComparison(params){
   document.querySelector('#path').textContent='修改前原文 / 当前内容 · 双栏对照';document.querySelector('#original').hidden=true;document.querySelector('#compare-current').hidden=true;
   const controls=document.createElement('div');controls.className='compare-controls';
   const makeSelect=(label,options,value,change,id)=>{const wrap=document.createElement('label');wrap.textContent=label;const select=document.createElement('select');select.id=id;for(const [v,t] of options){const o=document.createElement('option');o.value=v;o.textContent=t;select.append(o)}select.value=value;select.onchange=()=>change(select.value);wrap.append(select);controls.append(wrap)};
+  makeSelect('对照哪个版本',snapshots.map(s=>[s.id,s.label]),comparison.id,value=>{selectBaseline(value);compareFile(current||old?.path)},'compare-baseline');
   makeSelect('修改前文件',[[ '', '无对应旧文件（新增内容）'],...comparison.originals.map(f=>[f.path,`${f.label} · ${f.path}`])],old?.path||'',value=>compareNavigate(value,''),'compare-before');
   const options=targets.map(p=>[p,`${byPath.get(p).label} · ${p}`]);
   if(targets.length>1)options.unshift(['all',`合并阅读 ${targets.length} 份关联新文件`]);

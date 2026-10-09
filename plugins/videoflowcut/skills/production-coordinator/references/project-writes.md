@@ -42,6 +42,7 @@
 | 搜索、下载、采用与源范围观察 | [素材取得](../../visual-asset-sourcing/references/acquisition-operations.md)、[源素材审阅](../../visual-asset-sourcing/references/source-review.md) |
 | 原创文稿、原话剪辑与配音 | [文稿操作](../../semantic-continuity/references/script-operations.md)、[配音放置](../../voice-production/references/synthesis-and-placement.md) |
 | 字幕生成与显示修改 | [字幕操作](../../captions/references/caption-operations.md) |
+| 视觉计划、场面与辅助镜头 | [场面写入](../../scene-planning/references/scene-operations.md#当前项目写入)、[辅助镜头](../../cutaway-planning/SKILL.md)；从已明确设计映射字段，计划保存不代替实际放置 |
 | 声音候选、轨道与混音 | [声音取得](../../sound-asset-sourcing/references/acquisition-and-analysis.md)、[声音操作](../../audio-finishing/references/audio-operations.md) |
 | 人物主线与人物生成 | [人物时间线](../../presenter-motion-director/references/timeline-operations.md)、[人物操作](../../avatar-performance/references/actor-operations.md) |
 | 项目帧率 | [项目模型的帧率变更](../../project-basics/references/project-model.md#改帧率时才读) |
