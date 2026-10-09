@@ -1,4 +1,6 @@
 import { sourceMaterialSchema, type SourceMaterialInput } from "../../asset-acquisition/src/source-research.js";
+import { assetAcquisitionOptionsSchema } from "../../asset-acquisition/src/options.js";
+import type { AssetAcquisitionOptions } from "@videocut/contracts";
 import { captionPlacementSchema, captionDisplaySchema, validCaptionDisplay, type CaptionDisplay } from "../../contracts/src/caption-presentation.js";
 import { applyAudioDesign, soundRequirementSchema, type AudioDesignInput } from "./sound-design.js";
 import { prepareProjectFrameRateChange } from "./frame-rate-change.js";
@@ -16,6 +18,7 @@ import { bindMotionFonts } from "../../motion-work/src/fonts.js";
 import { motionHash, motionHashEngine, MOTION_ENGINE_VERSION, validateMotionSource } from "../../motion-work/src/compiler.js";
 import { MotionSourceValidationError } from "../../motion-work/src/source-validation-error.js";
 import { MotionSubmissionValidationError } from "./motion-submission-validation.js";
+import { assertEffectCueRange } from "./effect-cue-validation.js";
 import { inspectEffectContentContract } from "@videocut/contracts";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
@@ -1284,16 +1287,28 @@ function candidateFilterReasons(
   if ((request.mediaKind === "audio") !== (candidate.kind === "audio")) reasons.push("候选媒介类型不符合声音/视觉需求。");
   if (!candidate.originalAssetId.trim()) reasons.push("Provider 未返回原始素材 ID。");
   if (!candidate.sourceUrl.trim()) reasons.push("Provider 未返回可追溯的来源页面。");
-  // 静态图片没有源时长；它在成片中的显示时长由分镜决定。
-  if (candidate.kind !== "image" && request.minDurationMs !== undefined && (candidate.durationMs === undefined || candidate.durationMs < request.minDurationMs)) {
-    reasons.push(`时长不足 ${Math.ceil(request.minDurationMs / 1000)} 秒。`);
-  }
+  // 连续长度留到实际选段判断；缺省或短文件仍可取得并探测。
   return reasons;
 }
 
 function candidateIsAllowed(candidate: Pick<AssetCandidate, "originalAssetId" | "sourceUrl" | "durationMs" | "hardFilterPassed" | "kind">, request: Pick<AssetRequest, "minDurationMs" | "mediaKind">): boolean {
   if (!candidate.hardFilterPassed) return false;
   return candidateFilterReasons(candidate, request).length === 0;
+}
+
+/** 只移除已废弃的自动时长拒绝，不解除人工拒绝或需求变化。 */
+function refreshCandidateDurationFilter(candidate: AssetCandidate, request: AssetRequest): AssetCandidate {
+  const oldReasons = candidate.filterReasons;
+  const remaining = oldReasons.filter(reason => !/^时长不足 \d+ 秒。$/u.test(reason));
+  if (remaining.length === oldReasons.length) return candidate;
+  const automaticallyRejected = candidate.rejectionReason === oldReasons.join(" ");
+  candidate.filterReasons = [...new Set([...remaining, ...candidateFilterReasons(candidate, request)])];
+  candidate.hardFilterPassed = candidate.filterReasons.length === 0;
+  if (automaticallyRejected) {
+    candidate.rejectionReason = candidate.filterReasons.join(" ") || undefined;
+    if (candidate.status === "rejected" && candidate.hardFilterPassed) candidate.status = "available";
+  }
+  return candidate;
 }
 
 /** Provider 已完成字段归一化后的候选；私有下载地址和 API Key 不进入 Revision。 */
@@ -2751,8 +2766,8 @@ export class EditingApplication {
     const query = input.query.trim();
     if (!query) throw new DomainError("搜索查询不能为空", "EMPTY_ASSET_SEARCH_QUERY");
     const diagnostics = input.diagnostics ?? { complete: true, warnings: [] };
-    // 部分结果不能挡住再次搜索；第 3 版过滤不复用旧版误按源时长拒绝的图片。
-    const existing = diagnostics.complete && this.repository.mediaIntelligence.searches(input.projectId).find((entry) => entry.resultFormatVersion === 3 && entry.intent.cursor === input.cursor && entry.diagnostics?.complete !== false && entry.intent.mediaType === input.mediaType && entry.requestId === request.id && entry.requestVersion === version && entry.intent.provider === input.provider && entry.intent.query === query && Date.now() - Date.parse(entry.createdAt) < 30 * 60_000);
+    // 第 4 版不再按时长限制搜索或下载；旧缓存仍可按候选 ID 重新核对。
+    const existing = diagnostics.complete && this.repository.mediaIntelligence.searches(input.projectId).find((entry) => entry.resultFormatVersion === 4 && entry.intent.cursor === input.cursor && entry.diagnostics?.complete !== false && entry.intent.mediaType === input.mediaType && entry.requestId === request.id && entry.requestVersion === version && entry.intent.provider === input.provider && entry.intent.query === query && Date.now() - Date.parse(entry.createdAt) < 30 * 60_000);
     if (existing) return { nextCursor: existing.nextCursor, state, intent: existing.intent, candidates: existing.candidates, reused: true, sessionId: existing.id, requestVersion: version, diagnostics: existing.diagnostics ?? { complete: true, warnings: [] } };
     const createdAt = now();
     const intent: SearchIntent = { id: createId("search_intent"), assetRequestId: request.id, provider: input.provider, query, mediaType: input.mediaType, ...(input.cursor ? { cursor: input.cursor } : {}), createdAt };
@@ -2764,7 +2779,7 @@ export class EditingApplication {
         sourceUrl: source.sourceUrl.trim(), tags: normalizedTextList(source.tags), hardFilterPassed: !filterReasons.length, filterReasons,
         status: filterReasons.length ? "rejected" : "available", rejectionReason: filterReasons.length ? filterReasons.join(" ") : undefined, createdAt, updatedAt: createdAt };
     });
-    const session = { id: createId("search_session"), projectId: input.projectId, requestId: request.id, requestVersion: version, intent, candidates, diagnostics, resultFormatVersion: 3, nextCursor: input.nextCursor, createdAt };
+    const session = { id: createId("search_session"), projectId: input.projectId, requestId: request.id, requestVersion: version, intent, candidates, diagnostics, resultFormatVersion: 4, nextCursor: input.nextCursor, createdAt };
     this.repository.mediaIntelligence.saveSearch(session);
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
     return { nextCursor: input.nextCursor, state, intent, candidates, reused: false, sessionId: session.id, requestVersion: version, diagnostics };
@@ -2776,6 +2791,7 @@ export class EditingApplication {
     const candidate = state.snapshot.assetCandidates.find((entry) => entry.id === input.assetCandidateId) ?? cached?.candidate;
     if (!candidate) throw new NotFoundError("素材候选不存在");
     const request = assetRequestById(state.snapshot, candidate.assetRequestId);
+    refreshCandidateDurationFilter(candidate, request);
     const intent = state.snapshot.searchIntents.find((entry) => entry.id === candidate.searchIntentId) ?? cached?.session.intent;
     if (!intent) throw new DomainError("素材候选缺少搜索意图", "ASSET_CANDIDATE_INTENT_MISSING");
     return { revision: state.revision.number, request, intent, candidate, requestVersion: cached?.session.requestVersion ?? assetRequestVersion(request),
@@ -2783,10 +2799,21 @@ export class EditingApplication {
   }
 
   /** Candidate 只有经过技术过滤才能进入下载队列。 */
-  acquireAssetCandidate(input: { projectId: Id; baseRevision: number; assetCandidateId: Id; idempotencyKey?: string; }): { state: ProjectState; candidate: AssetCandidate; job: JobRecord } {
+  acquireAssetCandidate(input: { projectId: Id; baseRevision: number; assetCandidateId: Id; idempotencyKey?: string; options?: AssetAcquisitionOptions }): { state: ProjectState; candidate: AssetCandidate; job: JobRecord } {
     const current = this.readProject(input.projectId);
+    const selected = this.readAssetCandidate(input).candidate;
+    const options = assetAcquisitionOptionsSchema.parse({ ...input.options,
+      qualityHeight: selected.kind === "video" && ["youtube", "pexels"].includes(selected.provider) ? input.options?.qualityHeight ?? current.snapshot.timeline.height : input.options?.qualityHeight });
+    if (options.sourceRange && (selected.provider !== "youtube" || selected.kind !== "video")) throw new DomainError("当前仅 YouTube 视频支持按原片范围取得", "ASSET_RANGE_UNSUPPORTED");
+    if (options.qualityHeight && (selected.kind !== "video" || !["youtube", "pexels"].includes(selected.provider))) throw new DomainError("当前来源不支持画质选择", "ASSET_QUALITY_UNSUPPORTED");
+    if (options.sourceRange && selected.durationMs && options.sourceRange.endMs > selected.durationMs) throw new DomainError("取得范围超出已知原片时长", "ASSET_SOURCE_RANGE_INVALID");
     const jobs = this.repository.listJobs(input.projectId);
-    const existing = jobs.find((job) => job.kind === "asset_acquisition" && job.payload.assetCandidateId === input.assetCandidateId && !["failed", "cancelled"].includes(job.status));
+    const sameOptions = (job: JobRecord) => job.payload.acquisition === undefined
+      ? !options.sourceRange && input.options?.qualityHeight === undefined
+      : JSON.stringify(job.payload.acquisition) === JSON.stringify(options);
+    const active = jobs.find(job => job.kind === "asset_acquisition" && job.payload.assetCandidateId === input.assetCandidateId && ["queued", "running", "unknown"].includes(job.status));
+    if (active && !sameOptions(active)) throw new DomainError("该候选已有未结束的获取任务，请先查询原任务", "ASSET_ACQUISITION_IN_PROGRESS");
+    const existing = jobs.find((job) => job.kind === "asset_acquisition" && job.payload.assetCandidateId === input.assetCandidateId && sameOptions(job) && !["failed", "cancelled"].includes(job.status));
     const currentCandidate = current.snapshot.assetCandidates.find((entry) => entry.id === input.assetCandidateId);
     if (existing && currentCandidate) {
       return { state: current, candidate: currentCandidate, job: existing };
@@ -2804,6 +2831,8 @@ export class EditingApplication {
       }
       const candidate = assetCandidateById(snapshot, input.assetCandidateId);
       const request = assetRequestById(snapshot, candidate.assetRequestId);
+      refreshCandidateDurationFilter(candidate, request);
+      if (candidate.status === "acquired") candidate.status = "available";
       // 仅恢复已有明确失败 Job 的获取；不把人工拒绝或未知执行结果变成可重试。
       const recovering = candidate.status === "failed" && jobs.some(entry => entry.kind === "asset_acquisition" && entry.payload.assetCandidateId === candidate.id && entry.status === "failed");
       if (recovering) {
@@ -2816,6 +2845,7 @@ export class EditingApplication {
         throw new DomainError("候选素材没有通过技术过滤，不能下载", "ASSET_CANDIDATE_NOT_ALLOWED");
       }
       candidate.status = "acquisition_queued";
+      candidate.acquisition = options;
       candidate.acquisitionError = undefined;
       candidate.updatedAt = now();
       request.status = "acquiring";
@@ -2824,7 +2854,7 @@ export class EditingApplication {
       impact.changed.push(candidate.id, request.id);
       impact.recomputed.push("素材本地化任务");
       // 入队与候选提升在同一事务中；崩溃不能留下没有 Job 的 acquisition_queued。
-      job = this.repository.createJob({ projectId: input.projectId, kind: "asset_acquisition", payload: { assetCandidateId: candidateId }, idempotencyKey: input.idempotencyKey ?? `asset_acquisition:${candidateId}:${input.baseRevision}` });
+      job = this.repository.createJob({ projectId: input.projectId, kind: "asset_acquisition", payload: { assetCandidateId: candidateId, acquisition: options }, idempotencyKey: input.idempotencyKey ?? `asset_acquisition:${candidateId}:${input.baseRevision}` });
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
@@ -2853,6 +2883,7 @@ export class EditingApplication {
     name: string;
     managedPath: string;
     sourceHash: string;
+    metadata?: MediaMetadata;
   }): { state: ProjectState; candidate: AssetCandidate; asset: Asset; duplicate: boolean; mediaAnalysisJob?: JobRecord } {
     const current = this.readProject(input.projectId);
     let asset!: Asset;
@@ -2860,6 +2891,7 @@ export class EditingApplication {
     const state = this.repository.commit(input.projectId, current.revision.number, "完成素材本地化并登记来源", (snapshot, impact) => {
       const candidate = assetCandidateById(snapshot, input.assetCandidateId);
       const request = assetRequestById(snapshot, candidate.assetRequestId);
+      refreshCandidateDurationFilter(candidate, request);
       if (candidate.status !== "acquiring" && candidate.status !== "acquisition_queued") {
         throw new DomainError("素材候选当前不允许完成本地化", "ASSET_CANDIDATE_NOT_ACQUIRING");
       }
@@ -2867,10 +2899,12 @@ export class EditingApplication {
         throw new DomainError("候选素材已不满足当前技术需求，不能登记为项目素材", "ASSET_CANDIDATE_NOT_ALLOWED");
       }
       const acquiredAt = now();
-      const existing = snapshot.assets.find((entry) => entry.sourceHash === input.sourceHash && entry.provenance?.provider === candidate.provider && entry.provenance?.originalAssetId === candidate.originalAssetId);
+      const existing = snapshot.assets.find((entry) => entry.sourceHash === input.sourceHash && entry.provenance?.provider === candidate.provider && entry.provenance?.originalAssetId === candidate.originalAssetId && JSON.stringify(entry.provenance.acquisition?.sourceRange) === JSON.stringify(candidate.acquisition?.sourceRange));
       if (existing) {
         asset = existing;
         duplicate = true;
+        const acquisition = asset.provenance!.acquisition ??= { ...candidate.acquisition, candidateId: candidate.id };
+        acquisition.candidateIds = [...new Set([acquisition.candidateId, ...(acquisition.candidateIds ?? []), candidate.id])];
       } else {
         const provenance: Asset["provenance"] = {
           source: "provider",
@@ -2878,6 +2912,7 @@ export class EditingApplication {
           sourceUrl: candidate.sourceUrl,
           originalAssetId: candidate.originalAssetId,
           creator: candidate.creator,
+          acquisition: { ...candidate.acquisition, candidateId: candidate.id },
           acquiredAt
         };
         assertAssetProvenanceValid(provenance);
@@ -2892,6 +2927,14 @@ export class EditingApplication {
         });
         snapshot.assets.push(asset);
         impact.recomputed.push("素材分析");
+      }
+      if (input.metadata) {
+        asset.metadata = input.metadata;
+        asset.status = "ready";
+        // 片段实测时长属于 Asset；候选仍描述原片，不能被截取长度覆盖。
+        candidate.width = input.metadata.width;
+        candidate.height = input.metadata.height;
+        if (!candidate.acquisition?.sourceRange) candidate.durationMs = input.metadata.durationMs;
       }
       candidate.status = "acquired";
       candidate.acquiredAssetId = asset.id;
@@ -6352,9 +6395,7 @@ export class EditingApplication {
     const state = this.repository.commit(input.projectId, input.baseRevision, `添加视觉效果：${input.type}`, (snapshot, impact) => {
       const scene = snapshot.scenes.find((candidate) => candidate.id === input.sceneId);
       if (!scene) throw new DomainError("效果所属场景不存在", "SCENE_NOT_FOUND");
-      if (input.startFrame < scene.startFrame || input.endFrame > scene.endFrame) {
-        throw new DomainError("效果必须位于所属场景内", "CUE_OUT_OF_SCENE");
-      }
+      assertEffectCueRange(scene, { startFrame: input.startFrame, endFrame: input.endFrame }, "create");
       // 有结构化语义锚点时，旧字段不再参与校验或持久化。否则一个遗留值会把
       // NarrativeBeat / Scene 锚点误判为不存在的 SpeechSegment。
       const legacyAnchorTargetId = input.semanticAnchor ? undefined : input.anchorTargetId;
@@ -6410,6 +6451,8 @@ export class EditingApplication {
       if (!cue) throw new DomainError("效果不存在", "CUE_NOT_FOUND");
       const scene = snapshot.scenes.find((candidate) => candidate.id === cue.sceneId);
       if (!scene) throw new DomainError("效果所属场景不存在", "SCENE_NOT_FOUND");
+      // 先核对合并后的范围，再修改副本；冲突和保存异常不获得参数纠正许可。
+      assertEffectCueRange(scene, { startFrame: input.startFrame ?? cue.startFrame, endFrame: input.endFrame ?? cue.endFrame }, "update");
       const previousRange = { startFrame: cue.startFrame, endFrame: cue.endFrame, reason: "清理效果原位置" };
       cue.startFrame = input.startFrame ?? cue.startFrame;
       cue.endFrame = input.endFrame ?? cue.endFrame;
@@ -6454,9 +6497,6 @@ export class EditingApplication {
           holdFrames: Math.max(0, input.motion.holdFrames ?? cue.motion.holdFrames),
           exitFrames: Math.max(cue.type === "ManagedMotion" ? 0 : 1, input.motion.exitFrames ?? cue.motion.exitFrames)
         };
-      }
-      if (cue.startFrame < scene.startFrame || cue.endFrame > scene.endFrame || cue.endFrame <= cue.startFrame) {
-        throw new DomainError("调整后的效果范围无效", "INVALID_CUE_RANGE");
       }
       assertEffectCoverage(snapshot, cue);
       this.assertManagedMotionCue(snapshot, cue);

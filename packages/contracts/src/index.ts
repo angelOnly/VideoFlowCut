@@ -6,7 +6,7 @@ export type * from "./source-review.js";
 export * from "./frame-rate.js";
 import { motionDurationAtFps } from "./frame-rate.js";
 export type * from "./media-intelligence.js";
-import type { MediaAdoption, SoundPlan, AudioRole, AudioEnvelopePoint, MotionEventMap } from "./media-intelligence.js";
+import type { MediaAdoption, SoundPlan, AudioRole, AudioEnvelopePoint, MotionEventMap, SourceTimeRange } from "./media-intelligence.js";
 
 export type ProductionProfile =
   | "presenter_motion"
@@ -58,6 +58,8 @@ export interface AssetProvenance {
   generation?: GeneratedVideoProvenance;
   /** 从本项目已入库视频提取音频时，保留源身份与精确半开源范围。 */
   derivedFrom?: { assetId: Id; sourceHash: string; startMs: number; endMs: number };
+  /** 本地零点对应原片 sourceRange.startMs；省略范围表示整文件。 */
+  acquisition?: AssetAcquisitionOptions & { candidateId: Id; candidateIds?: Id[] };
   acquiredAt: string;
 }
 
@@ -86,6 +88,11 @@ export interface GeneratedVideoProvenance {
 export type AssetRequestStatus = "open" | "candidates_ready" | "acquiring" | "fulfilled" | "closed";
 export type AssetCandidateStatus = "available" | "rejected" | "acquisition_queued" | "acquiring" | "acquired" | "failed";
 
+export interface AssetAcquisitionOptions {
+  qualityHeight?: number;
+  sourceRange?: SourceTimeRange;
+}
+
 export interface AssetRequest {
   id: Id;
   title: string;
@@ -99,6 +106,7 @@ export interface AssetRequest {
   queryHints: string[];
   excludedTerms: string[];
   targetAspectRatio?: "9:16" | "16:9" | "1:1";
+  /** 选段时的连续长度要求，不作为搜索或下载准入条件。 */
   minDurationMs?: number;
   fallbackPlan: "keep_presenter" | "remotion" | "minimax" | "ask_user" | "local_audio" | "omit_audio";
   status: AssetRequestStatus;
@@ -147,6 +155,7 @@ export interface AssetCandidate {
   rejectionReason?: string;
   acquisitionError?: string;
   acquiredAssetId?: Id;
+  acquisition?: AssetAcquisitionOptions;
   createdAt: string;
   updatedAt: string;
 }

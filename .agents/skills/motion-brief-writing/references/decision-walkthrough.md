@@ -17,7 +17,7 @@
 
 这不是四项机械顺序：手机尚在退，新组已经建立，声音的同一层意思串住过程。前景词组完成重音后让位，图像无需等前一个物体彻底消失。新作者应该为自己的语义点写出同样清楚的交叠，而不是复制502/505/512。
 
-见[交叠截帧](../../motion-case-attention-programme/assets/keyframes/f0520.jpg)与[事件提取](../../motion-case-attention-programme/source/timing.json)。静帧只证明该状态，动态须看实际视频。
+见[交叠截帧](../../motion-case-attention-programme/assets/keyframes/f0520.jpg)与[完整输入的 props.events 与 props.lensNodes](../../motion-case-attention-programme/source/source.json)。静帧只证明该状态，动态须看实际视频。
 
 ## 四、镜片为什么不是一个独立大字框
 `Observer` 内部用同一时刻重新绘制 `Programme`，不包含镜片自己。底层与镜内共享纸面、字体、图像和事件状态；中心变化用连续曲线。这样方法上能保住归属，但是不是好看还要看实际结果。

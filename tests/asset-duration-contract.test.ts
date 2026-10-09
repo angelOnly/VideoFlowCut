@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createApplication } from "@videocut/application";
 
-test("混合视觉需求不按源时长拒绝图片；清空限制失效旧候选，非法值原子拒绝", async () => {
+test("短文件与缺省时长仍可获取；明确选段长度的变更与非法值维持版本合同", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-duration-contract-"));
   const app = createApplication(root);
   try {
@@ -21,7 +21,7 @@ test("混合视觉需求不按源时长拒绝图片；清空限制失效旧候�
       {...common, originalAssetId:"unknown", name:"未知时长", kind:"video" as const}
     ];
     const searched = app.recordAssetSearch({...input,candidates});
-    assert.deepEqual(searched.candidates.map(c => c.hardFilterPassed), [true,false,true,false]);
+    assert.deepEqual(searched.candidates.map(c => c.hardFilterPassed), [true,true,true,true]);
     assert.equal(revision(),input.baseRevision);
     // 模拟升级前的第 2 版搜索缓存，修复后相同查询必须重新过滤。
     const oldSession = app.repository.mediaIntelligence.searches(projectId)[0];

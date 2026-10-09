@@ -284,7 +284,7 @@ test("共同参考从各职责入口可达，完整演出模板与专业教学�
   const reference = "motion-case-attention-programme/";
   for (const role of ["production-coordinator", "production-director", ...primaryWorkflows, ...creativeSpecialists, "quality-verification"]) {
     const reached = await reachableMarkdown(join(skillsRoot, role, "SKILL.md"));
-    for (const file of [reference + "SKILL.md", reference + "references/original-input.md", "_shared/PROJECT_REVISION_AND_HANDOFF.md"]) {
+    for (const file of [reference + "SKILL.md", reference + "references/original-input.md", "_shared/PROJECT_REVISION_AND_HANDOFF.md", "motion-case-library/references/skillry-retrieval.md"]) {
       assert.ok(reached.has(resolve(skillsRoot, file)), `${role} 无法接回 ${file}`);
     }
   }
@@ -296,8 +296,11 @@ test("共同参考从各职责入口可达，完整演出模板与专业教学�
   }
   const template = await readFile(join(skillsRoot, "motion-brief-writing/references/execution-brief-template.md"), "utf8");
   // 这里只约束交接所需内容，不能根据模板栏目宣称模型行为或美学通过。
-  for (const section of ["当前准确讲述与材料", "美术与主要构图", "关键中途与连续演出", "当前声音与时间", "实现与返修", "当前版本和未知"]) {
+  for (const section of ["一、本场发生什么", "二、实际材料及依据", "三、当前完整声音与文字", "四、本片美术和关键构图", "五、连续演出正文", "六、语义时间与源时间", "七、实现接口和检查点", "八、版本与修订", "参考范围：有采用项才写，不是必填门槛", "九、填写示范：同款座位，条件进入前景"]) {
     assert.ok(template.includes(`## ${section}`), `模板缺少交接范围：${section}`);
+  }
+  for (const detail of ["最危险的中途", "对象依赖", "相对时序初排", "当前未完成", "没有连续预览不宣称流畅"]) {
+    assert.ok(template.includes(detail), `填写示范缺少专业决定或证据边界：${detail}`);
   }
 });
 

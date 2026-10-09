@@ -29,22 +29,25 @@ Runtime 0.1.64接入用户提供并确认采用的22份原件，目录共34份�
 
 <!-- topic-film-v2-remotion-production:begin -->
 
-## 原作者把已选美术与中途完整实现
-
-本次已采用共同参考贯穿当前工作；其他局部案例按需选读。同一作者负责当前美术、运动、源码和修订，不把完整演出压成一句交给默认模板猜。
-
-使用实际素材、准确文字与已登记字体预排。关键中途先有具体决定，再实现轴心、路径、遮罩、层级和时间；附着元素共享正确变换。动画由当前作品帧驱动，源时钟不随对象移动重置。坐标与时钟方法继续使用[素材坐标与时间](references/material-space-and-time.md)。
-
-同一命名时序用于动作与事件描述，不能事件表写了交叠、源码却串行等待。跨作品按既有预算拆分并交清投影、姿态、源时间、文字与声音，技术边界不自动重建画面。
-
-实际作品与合成回原作者观察。设计忠实实现仍不好看，就改设计；源错帧、漏层、字体回退则修实现。工具成功不替代美术与动态判断。
 
 <!-- material-scene-v3 -->
-先读导演当前完整采用稿、实际文件与观察，按 [场面执行正文](../_shared/SCENE_DESIGN_HANDOFF.md)、[素材到场面](../_shared/MATERIAL_TO_SCENE.md) 和 [源坐标与时间实现](references/material-space-and-time.md) 深化。重要主体、美术、排印与动作仍由同一作者负责，不由默认组件替代设计。
+## 实现依据素材发生的动画，而非动画前后插图
 
-当前完整稿沿 [完整演出写法](../motion-brief-writing/SKILL.md) 深化。先确定源内目标、真实或原创身份、有效源区间与显示几何；源、局部窗、附着标签共用状态与根时钟，不能把教学坐标当实测。素材继续通过 imageBindings/videoBindings、TimelineVideo 和现有来源关联绑定，源声由整片声音链管理。
+先读导演当前完整采用稿、真实材料和观察，按 [场面执行正文](../_shared/SCENE_DESIGN_HANDOFF.md)、[素材到场面](../_shared/MATERIAL_TO_SCENE.md) 与 [源坐标和时间](references/material-space-and-time.md) 核对实际输入。美术、运动、源码和局部修订由同一原作者负责，不让组件默认值替代已经选好的表达。
 
-参见 [共同创作方法](../_shared/TOPIC_TO_FILM.md) 与本次已采用的 [共同案例入口](../motion-case-attention-programme/SKILL.md)；未采用本例的其他任务按自己的参考与路由继续。
+原创段先用 [场面美术与运动](references/scene-art-and-motion.md) 确定主体造型、准确字样、入口、风险中途与阅读状态，再沿 [完整演出写法](../motion-brief-writing/SKILL.md) 深化。同一内容需要局部试作时，按当前受管能力请求实际预排；主要表达要改回导演采用，局部坐标和曲线不逐项审批。
+
+编写前明确源内目标、真实/原创身份、源范围、显示几何、依附内容与出口。原件、局部窗、轮廓、文字、边缘和阴影共享正确归属与变换；同源多窗共用取帧时钟。不能用没有可靠跟踪或抠像的画面假称取得了可分离对象，改稳定范围、诚实取景或当前示意。
+
+把关联变化按本场行为求值：谁发起，什么到达或显露后结果才开始，哪些旧状态保留，新重点何时读清。不强制所有属性共用曲线或所有对象错相。保留准确定义的比较、数量与身份，不用物理形变暗示不存在的真实因果。风险中途在当前源码里实际渲染，不能只看起终两帧。
+
+专业方法无案例也可用；合适参考可从构思及相关阶段借鉴，写明本片采用的关系与不继承内容，不让演员、物体、色板或时长形成默认模板。旧参考里现成动画不作为本次原创；比较好看与否须回到当前真实产物。
+
+正式提交保留当前受管合同：素材从imageBindings/videoBindings进入，TimelineVideo按作品根时钟和绑定的startFrame/endFrame正常播放，内部Sequence只改变布局；源声在整片声音链中管理。四时钟、方向/SAR、decodeScale与实际画幅读回，不凭原视频帧号猜偏移。字体仍用实时登记身份与原有选择合同，不引入任意浏览器字体加载或额外全局状态。
+
+源范围、焦点、文字或声音变了，原作者重做受影响构图、路径、标签与前后接口，再提交新作品。动画与resolveMotionEvents尽量共用命名时机，预算拆件保留出口状态和源时间，全文不静默截断。检查当前材料进入前、中途相互作用、阅读、出口和相邻声画；真实未知保留，技术问题不靠放宽沙箱或绕过MCP解决。
+
+需要借鉴时用 [语义参考库](../motion-case-library/SKILL.md) 理解当前问题、阅读候选资料，再写本片具体决定；不只依赖关键词命中，也不将检索变成制作前置门槛。
 
 <!-- topic-film-v2-remotion-production:end -->
 
@@ -524,6 +527,8 @@ Registry 设计应让生产 Skill先选择层级：
 读取 Project/Revision、Beat、真实素材与时序 → 接收导演完整分镜和前后场面 → 延续首次构思已采用的共同参考，主体美术、关键构图与连续过程共同深化，局部技法按需选读 → 首次完整深化稿经主任务回原导演协调 → 原作者接统一采用稿及差异，继续设计、试作或写完整指令与秒级初稿 → 换算帧数、实现源码并交完整参数 → 主任务 `submit_motion_work` → `track_job` / `read_motion_work` / `inspect_asset` → 原作者核对实际作品 → `review_motion_work` → `manage_effect_cues` 放置固定版本并声明覆盖 → `read_project` / `read_impact_report` → `render_preview_range` / `track_job` → 原专项与原导演看实际合成，修订并明确剩余制作 → `quality-verification` 按范围复核 → 回到主工作流完成整片。
 
 `manage_effect_cues` 支持 create、update、remove；后两者指定 cue_id。每次写后读取新 Revision。结果未知先查原 Job/对象，幂等冲突不能换键盲重试。主线或覆盖内容变化后作品保持固定帧数并 stale；普通平移不能恢复旧失效。明确复核合法覆盖、或换绑新版本后才恢复，并检查相关 AudioCue。
+
+交接完整放置参数前核对所属 Scene 的真实范围：一个完整作品可以覆盖多个 Beat，但 `covered_narrative_beat_ids` 只声明内容覆盖，不赋予跨 Scene 边界播放的能力。Cue 必须全部落在同一个承载 Scene 内，且保持 ManagedMotion 的完整时长。例如作品 `[0,1784)` 不能放入 `[0,130)` 的首场景；由原导演与原作者根据当前结构重新安排承载 Scene 和 Beat 关联，不能只把七个 Beat ID 填进首场景的 Cue。主任务收到明确的 `CUE_OUT_OF_SCENE` / `INVALID_CUE_RANGE` 参数拒绝后，按 known-errors 的 `validation/none/correct_input` 合同回传修订，不擅自截短、复制分段或改写创意结构。
 
 ## 验证
 

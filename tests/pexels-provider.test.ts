@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { AssetProviderError } from "../packages/asset-acquisition/src/index.js";
-import { PexelsProvider, pexelsVideoPage } from "../packages/asset-acquisition/src/pexels.js";
+import { PexelsProvider, pexelsVideoPage, selectPexelsVideoFile } from "../packages/asset-acquisition/src/pexels.js";
 import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -10,7 +10,7 @@ import type { AssetRequest, AssetCandidate } from "@videocut/contracts";
 const video = { id: 7914832, url: "https://www.pexels.com/video/a-woman-live-streaming-using-her-cellphone-7914832/", duration: 10, width: 1920, height: 1080, user: { name: "RDNE Stock project" }, video_files: [{ link: "https://videos.pexels.com/video-files/7914832/test.mp4", file_type: "video/mp4", width: 1280, height: 720 }] };
 const request = { mediaKind: "visual" } as unknown as AssetRequest;
 
-test("Pexels API 关键词候选保留来源、许可与可核验时长", async () => {
+test("Pexels API 关键词候选保留来源与可核验时长", async () => {
   const provider = new PexelsProvider({ apiKey: "test-key", fetchImpl: async (url, init) => {
     assert.match(String(url), /\/videos\/search\?query=phone/u);
     assert.equal((init?.headers as Record<string, string>).Authorization, "test-key");
@@ -20,6 +20,18 @@ test("Pexels API 关键词候选保留来源、许可与可核验时长", async 
   assert.equal(candidates.length, 1);
   assert.equal(candidates[0].durationMs, 10_000);
   assert.equal(candidates[0].creator, "RDNE Stock project");
+});
+
+test("Pexels 缺少时长和尺寸仍保留候选；规格按用途选择而非默认最小", async () => {
+  const provider = new PexelsProvider({ apiKey: "test-key", fetchImpl: async () => new Response(JSON.stringify({ videos: [{ ...video, duration: undefined, width: undefined, height: undefined }] })) });
+  const candidates = await provider.search({ request, query: "phone" });
+  assert.equal(candidates.length, 1);
+  assert.equal(candidates[0].durationMs, undefined);
+  const files = [{ height: 720, width: 1280 }, { height: 2160, width: 3840 }, { height: 1080, width: 1920 }];
+  assert.equal(selectPexelsVideoFile(files)?.height, 2160);
+  assert.equal(selectPexelsVideoFile(files, 1080)?.height, 1080);
+  assert.equal(selectPexelsVideoFile(files, 1440)?.height, 2160);
+  assert.equal(selectPexelsVideoFile(files, 4320)?.height, 2160);
 });
 
 test("Pexels 无凭据只接受单视频页，拒绝跨视频或外站地址", async () => {

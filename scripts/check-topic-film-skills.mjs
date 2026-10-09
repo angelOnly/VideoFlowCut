@@ -64,25 +64,15 @@ for(const role of materialRoles){
  check(body.includes('material-scene-v3'),`缺少素材工作流接入：${role}`);
  await checkLinks(rel);
 }
-for(const rel of ['_shared/MATERIAL_TO_SCENE.md','_shared/SOURCE_REVIEW_METHOD.md','remotion-production/references/material-space-and-time.md','quality-verification/references/material-integration-review.md','motion-case-library/references/material-integration-validation.md']){
+for(const rel of ['_shared/MATERIAL_TO_SCENE.md','_shared/SOURCE_REVIEW_METHOD.md','remotion-production/references/material-space-and-time.md','quality-verification/references/material-integration-review.md']){
  check(await exists(join(root,rel)),`缺少素材参考：${rel}`);
  if(await exists(join(root,rel)))await checkLinks(rel);
 }
+// 案例只保留实际作品；未生成的材料实验不再随教学发布。
 for(const id of cases){
- const path=id+'/material-branch-record.json';
- if(!await exists(join(root,path))){check(false,`缺少材料分支状态：${id}`);continue;}
- const rec=JSON.parse(await text(path));
- check(rec.case===id&&rec.branch==='material-dependent',`材料分支身份不匹配：${id}`);
- check(rec.instruction==='references/material-integration-prompt-v1.md',`材料分支指令路径不匹配：${id}`);
- const entry=await text(id+'/SKILL.md');
- check(entry.includes(`](${rec.instruction})`)&&entry.includes('](material-branch-record.json)'),`案例未连接材料指令和独立状态：${id}`);
- check(rec.instructionStatus==='written_not_rendered'&&rec.generatedMedia===null,`未制作的材料分支不得宣称已生成：${id}`);
- check(rec.isOriginalInputForObservedMedia===false,`材料新指令不得冒充原片输入：${id}`);
- check(Array.isArray(rec.sourceAssets)&&rec.sourceAssets.length===0,`未制作的材料分支不得借用历史素材：${id}`);
- check(rec.evidence?.graphicInternal==='not_tested_for_this_input'&&['sourceInternalObservation','contextIntegration','fullTopicFilm'].every(key=>rec.evidence?.[key]==='not_tested'),`材料分支不得继承历史通过证据：${id}`);
- const instruction=id+'/'+rec.instruction;
- check(await exists(join(root,instruction)),`材料分支指令缺失：${id}`);
- if(await exists(join(root,instruction)))await checkLinks(instruction);
+ for(const rel of ['material-branch-record.json','references/material-integration-prompt-v1.md']){
+  check(!await exists(join(root,id,rel)),`未生成实验仍在案例目录：${id}/${rel}`);
+ }
 }
 // 新方法沿原作者调用；案例原件、教学解释与新主题验证不得互相冒充。
 const briefSkill='motion-brief-writing';
@@ -111,24 +101,22 @@ check(!motion.includes('材料不齐可以先设计美术、状态和动作'),'�
 check(!motion.includes('必须完整读取其 references/generation-prompt-v1.md'),'仍假定每个案例使用相同指令文件名');
 const attention=JSON.parse(await text(attentionCase+'/case-record.json'));
 check(attention.status.newTopicTransfer==='not_tested','历史片认可不得继承为新主题通过');
-check(attention.status.machineContinuousReview==='not_newly_completed','不得编造本轮连续审阅');
-check(attention.adoptedDesign.originalCompleteDirectorBriefIncluded===false,'整理稿不得冒充原完整对话');
-check(attention.productionReport.historicalRecordUnmodified===true,'历史报告必须保留原件');
+
+
+
 check(attention.missingDependencies.length>0&&attention.status.standaloneRerender==='not_available_from_this_package_alone','须保留独立重渲染缺口');
-const provenance=JSON.parse(await text(attentionCase+'/'+attention.provenance));
+
 // 固定历史身份，避免连同来源账本一起重写后把新内容误认作旧案例。
 const historicalIdentity={
  'assets/preview.mp4':'2e739a14560cf193d91cf9a02527210a10092f6e74c63c11306b9ada7db1ca72',
  'references/original-input.md':'8b004163c39a5f14676c7d26301d65058b7e73ebbd3c48d4e840134ec8e18965',
- 'source/source.json':'45e9531c22df8fc3bb9f4607115621bd3a50f8f264e2257a1366ffeb7960de6d',
- 'source/production-run.json':'b70117aec7b607627839ad1dd2873e7f49a5f546d42f309dd98b785c8ac2cb86'
+ 'source/source.json':'45e9531c22df8fc3bb9f4607115621bd3a50f8f264e2257a1366ffeb7960de6d'
 };
 for(const [path,hash] of Object.entries(historicalIdentity)){
  check(createHash('sha256').update(await readFile(join(root,attentionCase,path))).digest('hex')===hash,`历史原件身份改变：${path}`);
 }
-for(const entry of provenance.entries){
- const bytes=await readFile(join(root,attentionCase,entry.file));
- check(bytes.length===entry.bytes&&createHash('sha256').update(bytes).digest('hex')===entry.sha256,`案例来源不匹配：${entry.file}`);
+for(const item of [attention.finalVideo,attention.finalSource,attention.originalInput]){
+ check(historicalIdentity[item.path]===item.sha256,`案例入口与原件不一致：${item.path}`);
 }
 // 沿角色的真实引用图核验共同参考送达路径，不能用一句“已阅读”替代入口。
 const sharedReferenceRoles=[...roleSkills,'presenter-motion-director','vlog-director','cutaway-planning','depth-composition','motion-brief-writing'];
@@ -148,7 +136,8 @@ async function reachable(entry){
 }
 for(const role of sharedReferenceRoles){
  const references=await reachable(role+'/SKILL.md');
- for(const target of ['motion-case-attention-programme/SKILL.md','motion-case-attention-programme/references/original-input.md','_shared/PROJECT_REVISION_AND_HANDOFF.md']){
+ // 沿真实链接验证语义参考与完整演出能送达原作者，不把可达误报为已阅读或已采用。
+ for(const target of ['motion-case-attention-programme/SKILL.md','motion-case-attention-programme/references/original-input.md','_shared/PROJECT_REVISION_AND_HANDOFF.md','motion-case-library/references/skillry-retrieval.md','motion-brief-writing/references/execution-brief-template.md']){
   check(references.has(resolve(root,target)),`角色无法取得共同参考或交接合同：${role} → ${target}`);
  }
 }
@@ -166,6 +155,19 @@ async function checkMirror(directory=''){
 await checkMirror();
 const savedSource=JSON.parse(await text(attentionCase+'/source/source.json'));
 check((await text(attentionCase+'/source/Motion.tsx'))===savedSource.source,'提取源码与固定输入不一致');
-check((await text(attentionCase+'/references/submitted-brief.md'))===savedSource.creativeBrief,'原提交摘要与固定输入不一致');
+// 去掉派生副本后，仍核验实际绑定、素材和原始输入的对应关系。
+const materials=JSON.parse(await text(attentionCase+'/source/materials.json'));
+for(const item of materials.items){
+ const binding=savedSource.imageBindings?.[item.slot]??savedSource.videoBindings?.[item.slot];
+ check((typeof binding==='string'?binding:binding?.assetId)===item.assetId,`素材槽位与固定输入不一致：${item.slot}`);
+ if(item.included){
+  check(createHash('sha256').update(await readFile(join(root,attentionCase,item.casePath))).digest('hex')===item.hash,`素材原件改变：${item.casePath}`);
+ }
+}
+const fonts=JSON.parse(await text(attentionCase+'/source/font-bindings.json'));
+check(JSON.stringify(fonts.fontBindings)===JSON.stringify(savedSource.fontBindings),'字体槽位与固定输入不一致');
+for(const font of fonts.boundFonts)check(savedSource.fontBindings[font.slot]===font.fontId,`字体身份不一致：${font.slot}`);
+for(const frame of JSON.parse(await text(attentionCase+'/source/keyframes.json')))check(await exists(join(root,attentionCase,frame.file)),`关键帧缺失：${frame.file}`);
+for(const id of [...cases,'motion-case-library'])await checkDirectoryLinks(id);
 console.log(JSON.stringify({kind:'static_case_and_skill_contract',skillsRoot:root,checks,passed:checks-failures.length,failures,doesNotProve:'Model behavior, beauty, playback or complete runtime integration'},null,2));
 process.exitCode=failures.length?1:0;

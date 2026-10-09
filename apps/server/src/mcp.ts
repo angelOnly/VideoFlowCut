@@ -721,7 +721,7 @@ server.registerTool("manage_asset_requirements", {
     query_hints: z.array(z.string().min(1).max(160)).max(12).optional(),
     excluded_terms: z.array(z.string().min(1).max(160)).max(20).optional(),
     target_aspect_ratio: z.enum(["9:16", "16:9", "1:1"]).optional(),
-    min_duration_ms: z.number().int().positive().max(300_000).nullable().optional().describe("视频或音频最短源时长，单位毫秒；图片不应用该条件。null 清空限制，省略保持原值，0 无效。"),
+    min_duration_ms: z.number().int().positive().max(300_000).nullable().optional().describe("最终采用的视频或音频连续范围要求，单位毫秒；不拦截搜索或下载，图片不应用该条件。null 清空，省略保持原值，0 无效。"),
     fallback_plan: z.enum(["keep_presenter", "remotion", "minimax", "ask_user", "local_audio", "omit_audio"]).optional(),
     close_reason: z.string().max(800).optional()
   }).strict()
@@ -800,16 +800,20 @@ server.registerTool("inspect_media_candidate", {
 
 server.registerTool("acquire_media_asset", {
   title: "下载并本地化素材候选",
-  description: "通过技术过滤的候选可以进入异步下载任务。Worker 会校验 MIME、文件头、内容哈希和 ffprobe 后才登记正式 Asset。故障修复并确认部署后，可对已有明确 failed Job 的失败候选使用新的幂等键恢复；仍重核当前技术条件，旧失败记录保留。未知结果或执行中的任务不能重放。",
+  description: "取得候选并自动探测真实媒体信息，缺省时长或短文件不阻止下载。quality_height 按目标画幅和裁切选择画质，省略使用项目高度；source_range_ms 仅用于 YouTube 已定位原片范围，省略取得整文件。返回 Job，完成后带原片范围、本地时间与已有候选观察。Worker 保留 MIME、文件头、哈希与媒体验证。未知或执行中任务只查原 Job；不同范围不冒充同一次获取。故障修复确认部署后才恢复明确失败的任务。",
   inputSchema: z.object({
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
     asset_candidate_id: z.string().min(1),
+    quality_height: z.number().int().min(144).max(8640).optional(),
+    source_range_ms: z.object({ startMs: z.number().int().nonnegative(), endMs: z.number().int().positive() }).strict()
+      .refine(range => range.endMs > range.startMs, "原片结束时间必须大于开始时间").optional(),
     idempotency_key: z.string().min(1).max(240).optional()
   }).strict()
-}, async ({ project_id, base_revision_id, asset_candidate_id, idempotency_key, }) => {
+}, async ({ project_id, base_revision_id, asset_candidate_id, idempotency_key, quality_height, source_range_ms }) => {
   try {
-    return asText(application.acquireAssetCandidate({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, assetCandidateId: asset_candidate_id, idempotencyKey: idempotency_key, }));
+    return asText(application.acquireAssetCandidate({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, assetCandidateId: asset_candidate_id, idempotencyKey: idempotency_key,
+      options: { qualityHeight: quality_height, sourceRange: source_range_ms } }));
   } catch (error) { return asError(error); }
 });
 
@@ -1701,7 +1705,7 @@ server.registerTool("set_explainer_program_enabled", {
 
 server.registerTool("compile_explainer_scenes", {
   title: "编译视觉解释场景",
-  description: "将 NarrativeMap Beat 原子编译为带内置主视觉的 ExplainerScene、Program 与 VisualTreatment。按 kind 提供该分支必需的 props 与真实素材，每个场景需四阶段连续局部状态。原创 ManagedMotion 独立承担主视觉时，可用 create_scene 建立基础 ExplainerScene 再放置作品，无需先编译随后停用内置 Program。失败先检查 isError 并保留完整 text；业务错误返回 JSON code/message，协议参数错误可能是文本。",
+  description: "将 NarrativeMap Beat 原子编译为带内置主视觉的 ExplainerScene、Program 与 VisualTreatment。按 kind 提供该分支必需的 props 与真实素材，每个场景需四阶段连续局部状态。原创 ManagedMotion 独立承担主视觉时，可用 create_scene 建立基础 ExplainerScene 再放置作品，无需先编译随后停用内置 Program；承载 Scene 必须包含完整作品范围，多 Beat 覆盖声明不允许 Cue 跨 Scene 边界。失败先检查 isError 并保留完整 text；业务错误返回 JSON code/message，协议参数错误可能是文本。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -2464,7 +2468,7 @@ registerSoundTools(server, application, projectIdFrom);
 
 server.registerTool("manage_effect_cues", {
   title: "管理视觉效果",
-  description: "创建、按 cue_id 就地更新或移除单个 EffectCue，均须当前 Revision。action 默认 create；update 保留 Cue ID 和未指定字段，不能更换 Scene/类型/层级；remove 只移除该 Cue，不删除作品或回退整片。ManagedMotion 的源码、Props、画幅和完整时长仍固定，改作品需提交新版本。",
+  description: "创建、按 cue_id 就地更新或移除单个 EffectCue，均须当前 Revision。范围必须满足 Scene.startFrame ≤ start_frame < end_frame ≤ Scene.endFrame；covered_narrative_beat_ids 只声明内容覆盖，不允许跨 Scene 边界。action 默认 create；update 保留 Cue ID 和未指定字段，不能更换 Scene/类型/层级；remove 只移除该 Cue，不删除作品或回退整片。ManagedMotion 的源码、Props、画幅和完整时长仍固定，所属 Scene 必须完整承载作品；改作品需提交新版本。范围拒绝若返回 validation/none/correct_input，按实际 Scene 范围交回原作者修订后纠正一次，不原样重放。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),

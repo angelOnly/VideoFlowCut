@@ -32,8 +32,8 @@ test("选定页面沿获取Worker登记真实视频，保留来源；下载失�
       assert.ok(args.includes("--abort-on-unavailable-fragments"), "HLS 缺段必须失败，不能跳过后登记原片");
       assert.equal(args[args.indexOf("--concurrent-fragments") + 1], "4");
       const format = args[args.indexOf("-f") + 1]!;
-      assert.ok(format.split("/")[0]!.includes("protocol^=m3u8"), "优先 HLS 而非会触发 Range 403 的普通流");
-      assert.ok(format.split("/").every(branch => branch.includes("height<=720")));
+      assert.ok(!format.includes("height<="), "不能用720p硬上限排除高质量源");
+      assert.equal(args[args.indexOf("-S") + 1], `res:${app.readProject(projectId).snapshot.timeline.height},proto:m3u8`);
       assert.equal(options.timeoutMs, 600_000);
       if (fail) { await writeFile(join(options.directory, "source.mp4"), "<html>failed</html>"); return ""; }
       await copyFile(source, join(options.directory, "source.mp4")); return "";
@@ -44,14 +44,12 @@ test("选定页面沿获取Worker登记真实视频，保留来源；下载失�
       const request = state.snapshot.assetRequests.at(-1)!;
       return app.recordAssetSearch({ projectId, baseRevision: revision(), assetRequestId: request.id, provider: "youtube", query: request.id, candidates: await provider.search({ request, query: "https://youtu.be/abcdefghijk" }) }).candidates[0]!;
     };
-    const short = await makeCandidate(3000);
-    assert.throws(() => app.acquireAssetCandidate({ projectId, baseRevision: revision(), assetCandidateId: short.id, }), /可用|技术|过滤/);
-    const candidate = await makeCandidate();
+    const candidate = await makeCandidate(3000);
     const acquisition = app.acquireAssetCandidate({ projectId, baseRevision: revision(), assetCandidateId: candidate.id, });
     assert.equal(app.acquireAssetCandidate({ projectId, baseRevision: 1, assetCandidateId: candidate.id, }).job.id, acquisition.job.id);
     const processor = createMediaJobProcessor(app, undefined, new AssetProviderRegistry([provider]));
     await runOneJob(app, processor); await runOneJob(app, processor);
-    assert.equal(app.trackJob(acquisition.job.id).status, "succeeded");
+    assert.equal(app.trackJob(acquisition.job.id).status, "succeeded", app.trackJob(acquisition.job.id).error);
     const asset = app.readProject(projectId).snapshot.assets[0]!;
     assert.equal(asset.status, "ready"); assert.equal(asset.metadata?.durationMs, 2000);
     assert.equal(asset.provenance?.sourceUrl, "https://www.youtube.com/watch?v=abcdefghijk");

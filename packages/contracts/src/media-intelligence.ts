@@ -138,6 +138,8 @@ export interface MediaAdoption {
   assetId: string;
   sourceHash: string;
   observationIds: string[];
+  /** 候选观察零点在原片中的位置；原观察保留原身份，不伪造成本地复核。 */
+  candidateSourceStartMs?: number;
   requestId?: string;
   requestVersion?: string;
   range?: SourceTimeRange;

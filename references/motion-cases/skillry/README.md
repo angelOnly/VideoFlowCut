@@ -17,7 +17,16 @@
 
 ## 在项目中使用
 
-调用项目的motion-case-library Skill，例如：“为新闻解释片找3—5个文章对照的参考，给出视频、推荐秒段和迁移代价。”Skill与网页共用case-catalogue.json和search.mjs，选出候选后只读对应analysis.md。
+调用项目的 [motion-case-library Skill](../../../.agents/skills/motion-case-library/SKILL.md)，例如：“希望一笔总额的组成逐步出现，但始终保留同一个总额参照。”当前模型先读取完整案例卡片集合，按观看关系和实际条件比较，再深入候选analysis.md与必要视频范围，返回本片怎样借鉴、缺口及真实观察范围。资料与网页共用case-catalogue.json；网页与旧CLI仍按关键词检索，不自动调用模型。
+
+允许执行只读资料脚本的宿主可从项目根目录分页读取卡片：
+
+```powershell
+node references/motion-cases/skillry/tools/read-case-cards.mjs --offset 0 --limit 20
+node references/motion-cases/skillry/tools/read-case-cards.mjs --ids 12,60,71
+```
+
+全库读取按返回的next_offset续读，直到exhausted为true，并核对各批catalogue_sha256一致；输出截断须缩小批次重读，不能据此宣称已覆盖。按编号读取只用于准确定位，不代表全库覆盖。加载器只投影原字段，不排名、不读视频、不写文件，不维护第二套索引。未知编号、损坏索引和越界路径会失败退出，不静默省略条目。缺库或无合适参考时保留缺口，继续独立创作。
 
 命令行也可从项目根目录运行：
 
@@ -31,4 +40,4 @@ node references/motion-cases/skillry/tools/search-cases.mjs --query "手机 照�
 
 研究过程原件已移到项目内被Git忽略的.local-archives/skillry-research-20261008，本库运行不依赖它。它不上传；历史Git提交仍保留此前已提交的研究文件，本次整理只清理最新版本。
 
-从项目根目录执行 `node --test tests/motion-reference-library.test.mjs` 可核对数量、视频哈希、文件链接、检索和Skill入口。视频约578MB，当前使用普通Git保存，完整拉取需要下载这部分内容。
+从项目根目录执行 `npm run test:motion-reference` 可核对加载器、真实库分页、数量、视频哈希、文件链接、关键词检索和Skill入口。这些检查不证明模型语义准确率、连续动作观感或声音质量。视频约578MB，当前使用普通Git保存，完整拉取需要下载这部分内容。

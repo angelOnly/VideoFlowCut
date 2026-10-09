@@ -1,4 +1,5 @@
 import { runSourceMaterialAcquisition } from "./source-material-acquisition.js";
+import { assetAcquisitionOptionsSchema } from "../../../packages/asset-acquisition/src/options.js";
 import { runSoundRanking } from "./sound-ranking.js";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
@@ -120,7 +121,8 @@ async function runAssetAcquisition(
     const inspected = application.readAssetCandidate({ projectId: job.projectId, assetCandidateId });
     const provider = providers.get(inspected.candidate.provider);
     temporaryDirectory = join(application.readProject(job.projectId).snapshot.project.rootPath, "cache", "asset-acquisition", job.id);
-    const downloaded = await provider.download({ candidate: inspected.candidate, temporaryDirectory });
+    const acquisition = assetAcquisitionOptionsSchema.parse(job.payload.acquisition ?? {});
+    const downloaded = await provider.download({ candidate: inspected.candidate, temporaryDirectory, options: acquisition });
     await assertDownloadedProviderMedia({
       filePath: downloaded.filePath,
       contentType: downloaded.contentType,
@@ -129,6 +131,10 @@ async function runAssetAcquisition(
     });
     const metadata = await probeMedia(downloaded.filePath);
     assertProviderMediaAnalysis({ candidate: inspected.candidate, metadata });
+    if (JSON.stringify(downloaded.sourceRange) !== JSON.stringify(acquisition.sourceRange)) throw new DomainError("获取结果缺少一致的原片范围，不能猜测本地时间", "ASSET_SOURCE_RANGE_MISMATCH");
+    if (acquisition.sourceRange && Math.abs(metadata.durationMs - (acquisition.sourceRange.endMs - acquisition.sourceRange.startMs)) > Math.max(150, 2000 / (metadata.fps || 24))) {
+      throw new DomainError("取得片段的实测时长与原片范围不一致", "ASSET_SOURCE_RANGE_MISMATCH");
+    }
     const sourceHash = await hashFile(downloaded.filePath);
     const current = application.readProject(job.projectId);
     const duplicate = current.snapshot.assets.find((asset) => asset.sourceHash === sourceHash);
@@ -147,8 +153,9 @@ async function runAssetAcquisition(
       projectId: job.projectId,
       assetCandidateId,
       name: downloaded.fileName,
-      managedPath: relativePath,
-      sourceHash
+      managedPath: duplicate?.managedPath ?? relativePath,
+      sourceHash,
+      metadata
     });
     // 并发下载同一内容时，Application 会保留先入库的 Asset；清理这次多余移动的临时副本。
     if (completed.duplicate && storedPath) await rm(storedPath, { force: true });
@@ -158,7 +165,10 @@ async function runAssetAcquisition(
       duplicate: completed.duplicate,
       sourceHash,
       mediaAnalysisJobId: completed.mediaAnalysisJob?.id,
-      durationMs: metadata.durationMs
+      durationMs: metadata.durationMs,
+      sourceRange: downloaded.sourceRange,
+      localRange: downloaded.sourceRange ? { startMs: 0, endMs: metadata.durationMs } : undefined,
+      observations: application.readAssetCandidate({ projectId: job.projectId, assetCandidateId }).observations
     };
   } catch (error) {
     if (storedPath) await rm(storedPath, { force: true }).catch(() => undefined);

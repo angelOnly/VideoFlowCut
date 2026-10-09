@@ -8,7 +8,8 @@ import { copyFile, mkdir, open, rm, stat } from "node:fs/promises";
 import { basename, extname, join } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import type { AssetCandidate, AssetRequest, MediaMetadata } from "@videocut/contracts";
+import type { AssetCandidate, AssetRequest, MediaMetadata, AssetAcquisitionOptions } from "@videocut/contracts";
+export { assetAcquisitionOptionsSchema } from "./options.js";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { WikimediaCommonsProvider } from "./wikimedia-commons.js";
 import { MixkitSoundProvider, MixkitMusicProvider } from "./mixkit.js";
@@ -47,6 +48,7 @@ export interface ProviderDownload {
   filePath: string;
   fileName: string;
   contentType?: string;
+  sourceRange?: AssetAcquisitionOptions["sourceRange"];
 }
 
 export interface AssetProvider {
@@ -54,7 +56,7 @@ export interface AssetProvider {
   readonly previewHosts?: string[];
   search(input: ProviderSearchInput): Promise<ProviderSearchCandidate[]>;
   searchDetailed?(input: ProviderSearchInput): Promise<ProviderSearchResult>;
-  download(input: { candidate: AssetCandidate; temporaryDirectory: string }): Promise<ProviderDownload>;
+  download(input: { candidate: AssetCandidate; temporaryDirectory: string; options?: AssetAcquisitionOptions }): Promise<ProviderDownload>;
 }
 
 // 默认名不带视频扩展名，避免缺失文件名的图片被路径后缀误导成 MP4。

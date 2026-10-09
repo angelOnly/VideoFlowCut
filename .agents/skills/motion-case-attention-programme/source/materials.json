@@ -10,8 +10,10 @@
       "included": true,
       "casePath": "assets/materials/chair.jpg",
       "sourceUrl": "https://commons.wikimedia.org/wiki/File:Aorus_gaming_chair_on_the_stage_20230205.jpg",
-      "sourceUrlEvidence": "original-package-note.txt",
-      "rightsStatus": "原包注明Solomon203 / CC BY-SA 4.0"
+      "rightsStatus": "原包注明Solomon203 / CC BY-SA 4.0",
+      "author": "Solomon203",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
     },
     {
       "slot": "art",
@@ -21,7 +23,6 @@
       "included": true,
       "casePath": "assets/materials/art.jpg",
       "sourceUrl": "https://wstatic-prod-boc.krafton.com/PUBG_OFFICIAL/20230328/8H8LqNty/Season15_Free_to_Play_Key_Art_B.jpg",
-      "sourceUrlEvidence": "source/material-manifests/art.json",
       "rightsStatus": "来源地址可核；原包未附可独立再分发的完整许可结论"
     },
     {
@@ -32,7 +33,6 @@
       "included": true,
       "casePath": "assets/materials/identity.jpg",
       "sourceUrl": "https://yt3.googleusercontent.com/sJECZLPvhh4Ie-2Ge3cZ7asjJ5A6h1qmeQWwOBUsr2Gr918Zn8tdnzJ8leCxiqNmaZLpTxXJ=s160-c-k-c0x00ffffff-no-rj",
-      "sourceUrlEvidence": "source/material-manifests/identity.json",
       "rightsStatus": "来源地址可核；原包未附可独立再分发的完整许可结论"
     },
     {
@@ -48,7 +48,6 @@
       "included": false,
       "casePath": null,
       "sourceUrl": null,
-      "sourceUrlEvidence": null,
       "recovery": "到原项目Asset记录读取来源与原件；旧Asset ID不能直接迁移到新Project"
     },
     {
@@ -64,7 +63,6 @@
       "included": false,
       "casePath": null,
       "sourceUrl": null,
-      "sourceUrlEvidence": null,
       "recovery": "到原项目Asset记录读取来源与原件；旧Asset ID不能直接迁移到新Project"
     },
     {
@@ -80,7 +78,6 @@
       "included": false,
       "casePath": null,
       "sourceUrl": null,
-      "sourceUrlEvidence": null,
       "recovery": "到原项目Asset记录读取来源与原件；旧Asset ID不能直接迁移到新Project"
     },
     {
@@ -96,7 +93,6 @@
       "included": false,
       "casePath": null,
       "sourceUrl": null,
-      "sourceUrlEvidence": null,
       "recovery": "到原项目Asset记录读取来源与原件；旧Asset ID不能直接迁移到新Project"
     }
   ]

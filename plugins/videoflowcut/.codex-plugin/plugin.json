@@ -1,6 +1,6 @@
 {
   "name": "videoflowcut",
-  "version": "0.1.74",
+  "version": "0.1.76",
   "description": "在本机 VideoFlowCut 仓库中启动可编辑视频工作台、MCP 与专业工作流。",
   "author": {
     "name": "VideoFlowCut"

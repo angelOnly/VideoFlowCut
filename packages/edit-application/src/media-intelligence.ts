@@ -129,9 +129,15 @@ export class MediaIntelligenceApplication {
     const currentSources = sources.filter((source) => !source.target.assetId || snapshot.assets.some((asset) => asset.id === source.target.assetId && (!asset.sourceHash || asset.sourceHash === source.hash)));
     const observations = currentSources.flatMap((source) => this.store.observations(projectId, source.id)).filter((observation) => (!target.range || observation.range && intersection(target.range, observation.range)) && (!target.region || observation.region?.page === target.region.page));
     const analyses = currentSources.flatMap((source) => this.store.analyses(projectId, source.id));
+    const acquisition = target.assetId ? assetById(snapshot, target.assetId).provenance?.acquisition : undefined;
+    const candidateEvidence = acquisition ? this.store.sources(projectId)
+      .filter(source => !!source.target.candidateId && [acquisition.candidateId, ...(acquisition.candidateIds ?? [])].includes(source.target.candidateId))
+      .map(source => ({ source, observations: this.store.observations(projectId, source.id), originalSourceRange: acquisition.sourceRange,
+        mappingRequired: "采用已有观察时确认 candidateSourceStartMs；range 使用本地时间。" })) : [];
     return {
       requests: snapshot.assetRequests.filter((entry) => entry.status !== "closed").map((entry) => ({ id: entry.id, title: entry.title, version: assetRequestVersion(entry) })),
       sources: currentSources, total: observations.length,
+      candidateEvidence,
       evidenceAvailability: observations.slice(offset, offset + limit).map((observation) => ({ observationId: observation.id, inputAvailable: observation.inputEvidence ? existsSync(observation.inputEvidence.path) : undefined, sourceAvailable: existsSync(currentSources.find((source) => source.id === observation.sourceId)!.path) })),
       modalityCoverage: analyses.map((record) => ({ analysisId: record.id, windows: record.windows.map((window) => ({ range: window.range, region: window.region, modalities: window.modalityStatus ?? {}, error: window.error })), facts: record.modalities.map((modality) => {
         const facts = observations.filter((observation) => observation.sourceId === record.sourceId).flatMap((observation) => observation.facts).filter((fact) => fact.modality === modality);
@@ -204,7 +210,7 @@ export class MediaIntelligenceApplication {
     return { observation, affectedAdoptionIds: affected.map((entry) => entry.id), revision: state.revision.number };
   }
 
-  async adopt(projectId: string, input: { baseRevision: number; assetId: string; observationIds: string[]; range?: SourceTimeRange; region?: SourceRegion; requestId?: string; requestVersion?: string; purpose: string; audioPolicy: MediaAdoption["audioPolicy"]; conditions: string[] }) {
+  async adopt(projectId: string, input: { baseRevision: number; assetId: string; observationIds: string[]; candidateSourceStartMs?: number; range?: SourceTimeRange; region?: SourceRegion; requestId?: string; requestVersion?: string; purpose: string; audioPolicy: MediaAdoption["audioPolicy"]; conditions: string[] }) {
     const current = this.app.readProject(projectId);
     const asset = assetById(current.snapshot, input.assetId);
     const path = await managedSourcePath(current.snapshot.project.rootPath, asset.managedPath);
@@ -216,11 +222,27 @@ export class MediaIntelligenceApplication {
     if (asset.kind === "document" && !region?.page) throw new DomainError("文档采用必须明确页码及区域", "MEDIA_ADOPTION_REGION_MISMATCH");
     if (range && range.endMs > (asset.metadata?.durationMs ?? 0)) throw new DomainError("采用范围超出原文件", "MEDIA_ADOPTION_RANGE_INVALID");
     if (asset.kind === "audio" && input.audioPolicy !== "retain" || ["image", "document"].includes(asset.kind) && input.audioPolicy !== "not_applicable") throw new DomainError("原声策略与素材类型不一致", "MEDIA_ADOPTION_AUDIO_POLICY_INVALID");
+    if (input.candidateSourceStartMs !== undefined && (!Number.isSafeInteger(input.candidateSourceStartMs) || input.candidateSourceStartMs < 0)) throw new DomainError("候选观察的原片零点必须为非负整数毫秒", "MEDIA_SOURCE_MAPPING_INVALID");
     const observations = input.observationIds.map((id) => {
       const observation = this.store.observation(projectId, id);
       const source = observation && this.store.source(projectId, observation.sourceId);
-      if (!observation || !source || source.identity === "preview" || source.target.assetId !== asset.id || source.hash !== hash || this.store.isSuperseded(projectId, id)) throw new DomainError("采用必须使用此原文件的有效观察，不能继承预览", "MEDIA_ADOPTION_EVIDENCE_STALE");
+      if (!observation || !source || observation.sourceHash !== source.hash || this.store.isSuperseded(projectId, id)) throw new DomainError("采用需要有效观察；当前观察已失效或源身份不一致", "MEDIA_ADOPTION_EVIDENCE_STALE");
+      const localEvidence = source.target.assetId === asset.id && source.hash === hash && source.identity !== "preview";
+      const acquisition = asset.provenance?.acquisition;
+      const candidateEvidence = acquisition && !!source.target.candidateId && [acquisition.candidateId, ...(acquisition.candidateIds ?? [])].includes(source.target.candidateId) && source.kind === asset.kind
+        && (source.hash === hash || input.candidateSourceStartMs !== undefined);
+      if (!localEvidence && !candidateEvidence) throw new DomainError("采用需此文件观察，或已确认时间对应的同一候选观察", "MEDIA_ADOPTION_EVIDENCE_STALE");
       if (observation.depth !== "review" || !observation.facts.length) throw new DomainError("拟采用范围需要原文件复核观察", "MEDIA_ADOPTION_REVIEW_REQUIRED");
+      if (!localEvidence && candidateEvidence && range) {
+        // 仅映射本次覆盖判断；原始观察、未知项和实际证据身份不改写。
+        const offset = source.hash === hash ? 0 : input.candidateSourceStartMs! - (acquisition.sourceRange?.startMs ?? 0);
+        const mapRange = (value: SourceTimeRange) => intersection({ startMs: value.startMs + offset, endMs: value.endMs + offset }, { startMs: 0, endMs: asset.metadata!.durationMs });
+        return { ...observation, facts: observation.facts.flatMap(fact => {
+          if (!fact.range) return [];
+          const mapped = mapRange(fact.range);
+          return mapped ? [{ ...fact, range: mapped }] : [];
+        }) };
+      }
       return observation;
     });
     const facts = observations.flatMap((observation) => observation.facts);
@@ -243,7 +265,7 @@ export class MediaIntelligenceApplication {
         if (audio.some((fact) => fact[key] === "present") || uncoveredRanges(range, audio.filter((fact) => fact[key] === "absent").map((fact) => fact.range!)).length) throw new DomainError("当前原声没有满足需求排除条件的完整证据，请复核或重新选择", "MEDIA_ADOPTION_CONDITION_UNMET");
       }
     }
-    const adoption: MediaAdoption = { id: createId("media_adoption"), assetId: asset.id, sourceHash: hash, observationIds: input.observationIds, requestId: request?.id, requestVersion: request && assetRequestVersion(request), range, region, purpose: input.purpose.trim(), audioPolicy: input.audioPolicy, conditions: input.conditions, status: "current", createdAt: now() };
+    const adoption: MediaAdoption = { id: createId("media_adoption"), assetId: asset.id, sourceHash: hash, observationIds: input.observationIds, candidateSourceStartMs: input.candidateSourceStartMs, requestId: request?.id, requestVersion: request && assetRequestVersion(request), range, region, purpose: input.purpose.trim(), audioPolicy: input.audioPolicy, conditions: input.conditions, status: "current", createdAt: now() };
     const state = this.app.repository.commit(projectId, input.baseRevision, "确认素材范围及使用依据", (snapshot, impact) => {
       const duplicate = snapshot.mediaAdoptions?.find((entry) => digest({ ...entry, id: undefined, createdAt: undefined }) === digest({ ...adoption, id: undefined, createdAt: undefined }));
       if (duplicate) return;

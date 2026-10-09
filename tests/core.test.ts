@@ -1430,10 +1430,10 @@ test("素材需求通过 Mock Provider 候选、本地化、哈希和来源登�
       candidates: providerCandidates
     });
     const accepted = searched.candidates.find((candidate) => candidate.originalAssetId === "accepted-city-walk")!;
-    const rejected = searched.candidates.find((candidate) => candidate.originalAssetId === "short-video")!;
+    const short = searched.candidates.find((candidate) => candidate.originalAssetId === "short-video")!;
     assert.equal(accepted.status, "available");
-    assert.equal(rejected.status, "rejected");
-    assert.match(rejected.rejectionReason ?? "", /时长/u);
+    assert.equal(short.status, "available");
+    assert.equal(short.rejectionReason, undefined);
     assert.equal(context.app.readAssetCandidate({ projectId: created.snapshot.project.id, assetCandidateId: accepted.id }).request.id, request.id);
 
     // Candidate 不是 Asset，不能绕过 Acquire 直接塞进 Scene。
@@ -1450,15 +1450,6 @@ test("素材需求通过 Mock Provider 候选、本地化、哈希和来源登�
       }),
       (error: unknown) => error instanceof DomainError && error.code === "ASSET_NOT_FOUND"
     );
-    assert.throws(
-      () => context.app.acquireAssetCandidate({
-        projectId: created.snapshot.project.id,
-        baseRevision: searched.state.revision.number,
-        assetCandidateId: rejected.id
-      }),
-      (error: unknown) => error instanceof DomainError && error.code === "ASSET_CANDIDATE_NOT_AVAILABLE"
-    );
-
     const acquisition = context.app.acquireAssetCandidate({
       projectId: created.snapshot.project.id,
       baseRevision: searched.state.revision.number,
@@ -1476,8 +1467,8 @@ test("素材需求通过 Mock Provider 候选、本地化、哈希和来源登�
     assert.match(acquiredAsset.sourceHash ?? "", /^[a-f0-9]{64}$/u);
     assert.equal(acquiredState.snapshot.assetCandidates.find((candidate) => candidate.id === accepted.id)?.acquiredAssetId, acquiredAsset.id);
 
-    // Acquire 只登记媒体分析任务；ready 必须由第二个 Worker Job 的 ffprobe 结果决定。
-    assert.equal(acquiredAsset.status, "queued");
+    // 获取 Worker 已探测原件，登记时直接回填；后续分析仍补缩略图。
+    assert.equal(acquiredAsset.status, "ready");
     assert.equal(await runOneJob(context.app, createMediaJobProcessor(context.app, undefined, registry)), true);
     const readyAsset = context.app.readProject(created.snapshot.project.id).snapshot.assets.find((asset) => asset.id === acquiredAsset.id)!;
     assert.equal(readyAsset.status, "ready", readyAsset.failureReason);

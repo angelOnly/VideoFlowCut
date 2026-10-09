@@ -6,6 +6,12 @@ const API = "https://api.pexels.com";
 type VideoFile = { link?: string; file_type?: string; width?: number; height?: number };
 type Video = { id?: number; url?: string; width?: number; height?: number; duration?: number; image?: string; user?: { name?: string }; video_files?: VideoFile[] };
 
+/** 目标尺寸选能满足画面的最接近规格；没有足够大的源时取现有最高规格。 */
+export function selectPexelsVideoFile(files: VideoFile[], targetHeight?: number): VideoFile | undefined {
+  const ranked = [...files].sort((a, b) => (b.height ?? 0) - (a.height ?? 0) || (b.width ?? 0) - (a.width ?? 0));
+  return (targetHeight ? ranked.filter(file => (file.height ?? 0) >= targetHeight).at(-1) : undefined) ?? ranked[0];
+}
+
 export interface PexelsProviderOptions { apiKey?: string; fetchImpl?: typeof fetch; downloadFetchImpl?: typeof fetch; apiEndpoint?: string }
 
 /** 只接受 Pexels 的单个视频页；页面标题不参与下载地址推断。 */
@@ -56,9 +62,9 @@ export class PexelsProvider implements AssetProvider {
   }
 
   private candidate(video: Video): ProviderSearchCandidate | undefined {
-    if (!Number.isSafeInteger(video.id) || !video.url || !/^https:\/\/www\.pexels\.com\/video\//u.test(video.url) || !video.duration || !video.video_files?.some(file => file.file_type === "video/mp4")) return undefined;
+    if (!Number.isSafeInteger(video.id) || !video.url || !/^https:\/\/www\.pexels\.com\/video\//u.test(video.url) || !video.video_files?.some(file => file.file_type === "video/mp4")) return undefined;
     return { originalAssetId: String(video.id), name: `Pexels video ${video.id}`, kind: "video", sourceUrl: video.url,
-      previewUrl: video.image, mimeType: "video/mp4", width: video.width, height: video.height, durationMs: video.duration * 1000,
+      previewUrl: video.image, mimeType: "video/mp4", width: video.width, height: video.height, durationMs: typeof video.duration === "number" && Number.isFinite(video.duration) && video.duration > 0 ? Math.round(video.duration * 1000) : undefined,
       creator: video.user?.name, tags: ["pexels"] };
   }
 
@@ -88,7 +94,7 @@ export class PexelsProvider implements AssetProvider {
     return (result.videos ?? []).flatMap(video => { const candidate = this.candidate(video); return candidate ? [candidate] : []; });
   }
 
-  async download({ candidate, temporaryDirectory }: { candidate: AssetCandidate; temporaryDirectory: string }) {
+  async download({ candidate, temporaryDirectory, options }: Parameters<AssetProvider["download"]>[0]) {
     if (candidate.kind !== "video" || !/^\d+$/u.test(candidate.originalAssetId)) throw new AssetProviderError("Pexels 候选身份无效", "PEXELS_CANDIDATE_INVALID");
     const page = pexelsVideoPage(candidate.sourceUrl);
     if (page.id !== candidate.originalAssetId) throw new AssetProviderError("Pexels 候选页面与视频 ID 不一致", "PEXELS_CANDIDATE_CHANGED");
@@ -101,7 +107,7 @@ export class PexelsProvider implements AssetProvider {
     const video = await this.request(`/videos/videos/${candidate.originalAssetId}`);
     if (String(video.id) !== candidate.originalAssetId || video.url !== candidate.sourceUrl) throw new AssetProviderError("Pexels 候选来源已变化", "PEXELS_CANDIDATE_CHANGED");
     const files = (video.video_files ?? []).filter(file => file.file_type === "video/mp4" && file.link && (() => { try { const url = new URL(file.link); return url.protocol === "https:" && url.hostname === "videos.pexels.com" && !url.username && !url.password; } catch { return false; } })());
-    const file = files.sort((a, b) => (a.width ?? Infinity) * (a.height ?? Infinity) - (b.width ?? Infinity) * (b.height ?? Infinity))[0];
+    const file = selectPexelsVideoFile(files, options?.qualityHeight);
     if (!file?.link) throw new AssetProviderError("Pexels API 没有提供可信 MP4 原文件", "PEXELS_DOWNLOAD_UNAVAILABLE");
     return downloadHttpFile(file.link, temporaryDirectory, `pexels-${candidate.originalAssetId}.mp4`, "video", "video/mp4", {}, { allowedHosts: ["videos.pexels.com"] });
   }
