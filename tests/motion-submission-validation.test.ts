@@ -23,7 +23,7 @@ const body = (source: string, revision: number, key: string) => ({ baseRevision:
 const parsed = (result: any) => JSON.parse(result.content.find((entry: any) => entry.type === "text").text);
 
 test("源码纠正合同在Skills保留原作者交接和已入队失败边界", async () => {
-  for (const path of [".agents/skills/known-errors/SKILL.md", ".agents/skills/_shared/MCP_EXECUTION_CONTRACT.md"]) {
+  for (const path of [".agents/skills/known-errors/references/submission-errors.md"]) {
     const text = await readFile(path, "utf8");
     for (const keyword of ["work.source", "correct_input", "原作者", "Worker", "纠正", "平台误判"]) assert.ok(text.includes(keyword), `${path} 缺少 ${keyword}`);
   }

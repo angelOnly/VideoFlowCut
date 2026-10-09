@@ -98,13 +98,29 @@
       "duration": 37.248,
       "directory": "cases/sab8a-475686-original",
       "detail": "detail.html?case=sab8a-475686",
-      "analysis": "cases/sab8a-475686-original/analysis.md",
+      "analysis": "cases/sab8a-475686-original/overview.md",
       "source_sha256": "1285a50435e1e8f2c2be6788693f759dd07008d0c400008371e9b1b214942d49",
       "media": "cases/sab8a-475686-original/video.mp4",
       "media_sha256": "da577a87be8612a3098f0c07b6a6d071a7dd8fbf6af1b399f172dc5b810bffe8",
       "media_bytes": 21495488,
       "media_note": "为解决浏览器黑屏而转换的播放版；内容相同，编码与原片不同。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/sab8a-475686"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/sab8a-475686",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "001-m01",
+        "001-m02",
+        "001-m03",
+        "001-m04",
+        "001-m05",
+        "001-m06",
+        "001-m07",
+        "001-m08",
+        "001-m09",
+        "001-m10",
+        "001-m11",
+        "001-m12"
+      ],
+      "storyboard": "cases/sab8a-475686-original/storyboard.jpg"
     },
     {
       "case_number": 2,
@@ -128,15 +144,11 @@
         "文字"
       ],
       "methods": [
-        "纸面遮挡换年份",
-        "地图逐段绘制",
-        "点位与数量分批建立"
+        "矩形缩放落位与线点分次出现",
+        "折线闭合、点阵增加与窗口接入",
+        "双条横向相遇后矩形与圈线接力"
       ],
-      "art": [
-        "剪贴册纸质",
-        "灰蓝地图与黄便签",
-        "固定年份和解释栏"
-      ],
+      "art": [],
       "scenario": "讲团队、社区或城市历程时，把年份、人物与地点资料组织成时间轴。",
       "material_requirements": "需要真实年份、人物照片、地点轮廓及可核对数量。",
       "transfer_cost": "须重做地图与统计关联，长时间轴要删去已读信息，点位动画不证明数量真实性；原速观感与声音同步未认证。",
@@ -151,23 +163,52 @@
       "slug": "tomandrieu96707-875264",
       "recommended_segments": [
         {
-          "start": 9.0,
-          "end": 14.0,
-          "reason": "人物和记录页经横向纸面换到新年份，再绘地图并增加点位"
+          "start": 0.4,
+          "end": 3.933333,
+          "reason": "矩形缩放落位与线点分次出现"
+        },
+        {
+          "start": 9.8,
+          "end": 14.2,
+          "reason": "折线闭合、点阵增加与窗口接入"
+        },
+        {
+          "start": 22.466667,
+          "end": 24.333333,
+          "reason": "双条横向相遇后矩形与圈线接力"
         }
       ],
-      "title": "人物、地图与时间线拼贴",
+      "title": "分批进入与横向遮挡接续",
       "author": "TomAndrieu96707",
       "duration": 51.626,
       "directory": "cases/tomandrieu96707-875264-original",
       "detail": "detail.html?case=tomandrieu96707-875264",
-      "analysis": "cases/tomandrieu96707-875264-original/analysis.md",
+      "analysis": "cases/tomandrieu96707-875264-original/overview.md",
       "source_sha256": "c6208e81c275688c09c6103a03c4b9bd55aee558353f214c765076c3845edec3",
       "media": "cases/tomandrieu96707-875264-original/video.mp4",
       "media_sha256": "c6208e81c275688c09c6103a03c4b9bd55aee558353f214c765076c3845edec3",
       "media_bytes": 2751321,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/tomandrieu96707-875264"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/tomandrieu96707-875264",
+      "analysis_kind": "mechanisms-v1",
+      "storyboard": "cases/tomandrieu96707-875264-original/storyboard.jpg",
+      "mechanism_ids": [
+        "002-m01",
+        "002-m02",
+        "002-m03",
+        "002-m04",
+        "002-m05",
+        "002-m06",
+        "002-m07",
+        "002-m08",
+        "002-m09",
+        "002-m10",
+        "002-m11",
+        "002-m12",
+        "002-m13",
+        "002-m14",
+        "002-m15"
+      ]
     },
     {
       "case_number": 3,
@@ -222,13 +263,24 @@
       "duration": 20.061995,
       "directory": "cases/twoclipping-000267-original",
       "detail": "detail.html?case=twoclipping-000267",
-      "analysis": "cases/twoclipping-000267-original/analysis.md",
+      "analysis": "cases/twoclipping-000267-original/overview.md",
       "source_sha256": "9e23af174735ebd4ff1a9c4551fe6a01c8bc82bf013e662e1f29f67b72eba764",
       "media": "cases/twoclipping-000267-original/video.mp4",
       "media_sha256": "9e23af174735ebd4ff1a9c4551fe6a01c8bc82bf013e662e1f29f67b72eba764",
       "media_bytes": 1891538,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/twoclipping-000267"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/twoclipping-000267",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "003-m01",
+        "003-m02",
+        "003-m03",
+        "003-m04",
+        "003-m05",
+        "003-m06",
+        "003-m07"
+      ],
+      "storyboard": "cases/twoclipping-000267-original/storyboard.jpg"
     },
     {
       "case_number": 4,
@@ -343,13 +395,24 @@
       "duration": 60.053,
       "directory": "cases/drrickio-009558-original",
       "detail": "detail.html?case=drrickio-009558",
-      "analysis": "cases/drrickio-009558-original/analysis.md",
+      "analysis": "cases/drrickio-009558-original/overview.md",
       "source_sha256": "61cf6bd985d5b540d24e7e01285fe7e1dabae38c7fbbebbf4fa12a1ff646fa6a",
       "media": "cases/drrickio-009558-original/video.mp4",
       "media_sha256": "61cf6bd985d5b540d24e7e01285fe7e1dabae38c7fbbebbf4fa12a1ff646fa6a",
       "media_bytes": 4686788,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/drrickio-009558"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/drrickio-009558",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "005-m01",
+        "005-m02",
+        "005-m03",
+        "005-m04",
+        "005-m05",
+        "005-m06",
+        "005-m07"
+      ],
+      "storyboard": "cases/drrickio-009558-original/storyboard.jpg"
     },
     {
       "case_number": 6,
@@ -403,13 +466,24 @@
       "duration": 30.07,
       "directory": "cases/gautam-mer1-530003-original",
       "detail": "detail.html?case=gautam-mer1-530003",
-      "analysis": "cases/gautam-mer1-530003-original/analysis.md",
+      "analysis": "cases/gautam-mer1-530003-original/overview.md",
       "source_sha256": "97ff59026114713b24865f9bd66d58050a48c44970d7e25aa2a929f56ec7eb4d",
       "media": "cases/gautam-mer1-530003-original/video.mp4",
       "media_sha256": "97ff59026114713b24865f9bd66d58050a48c44970d7e25aa2a929f56ec7eb4d",
       "media_bytes": 2073352,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/gautam-mer1-530003"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/gautam-mer1-530003",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "006-m01",
+        "006-m02",
+        "006-m03",
+        "006-m04",
+        "006-m05",
+        "006-m06",
+        "006-m07"
+      ],
+      "storyboard": "cases/gautam-mer1-530003-original/storyboard.jpg"
     },
     {
       "case_number": 7,
@@ -431,15 +505,11 @@
         "抽象图形"
       ],
       "methods": [
-        "自拍围绕中心成环",
-        "外围向内集中",
-        "退集合提亮结果"
+        "裁切图块交叠下落，缩小后依次填入小槽",
+        "中心卡保留，外围图块绕行并向内收缩",
+        "图块让位接力，窗口缩小倾斜接入满幅集合"
       ],
-      "art": [
-        "近黑舞台",
-        "中心大外围小",
-        "金色细轮廓"
-      ],
+      "art": [],
       "scenario": "把多份与同一人物有关的输入资料汇聚成一个身份或结果展示。",
       "material_requirements": "需要身份关系明确的输入照片和独立核验的结果素材。",
       "transfer_cost": "环形动画不证明训练或推导质量，小照片易丢细节，应控数量；原速观感与声音同步未认证。",
@@ -454,23 +524,51 @@
       "slug": "l3d1c-752011",
       "recommended_segments": [
         {
-          "start": 9.0,
-          "end": 14.0,
-          "reason": "外围自拍依次形成环并聚拢，最后只保留中央人像"
+          "start": 5.866667,
+          "end": 7.533333,
+          "reason": "裁切图块交叠下落，缩小后依次填入小槽"
+        },
+        {
+          "start": 9.6,
+          "end": 13.666667,
+          "reason": "中心卡保留，外围图块绕行并向内收缩"
+        },
+        {
+          "start": 19.533333,
+          "end": 22.466667,
+          "reason": "图块让位接力，窗口缩小倾斜接入满幅集合"
         }
       ],
-      "title": "人像照片墙与手机界面",
+      "title": "竖框、图块与指示符的分批接力",
       "author": "l3d1c",
       "duration": 30.0,
       "directory": "cases/l3d1c-752011-original",
       "detail": "detail.html?case=l3d1c-752011",
-      "analysis": "cases/l3d1c-752011-original/analysis.md",
+      "analysis": "cases/l3d1c-752011-original/overview.md",
       "source_sha256": "f4847c8ea444a39a9c79da152a0e9d71bdea5b485e545c812fdb024ce7eead82",
       "media": "cases/l3d1c-752011-original/video.mp4",
       "media_sha256": "f4847c8ea444a39a9c79da152a0e9d71bdea5b485e545c812fdb024ce7eead82",
       "media_bytes": 1880244,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/l3d1c-752011"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/l3d1c-752011",
+      "analysis_kind": "mechanisms-v1",
+      "storyboard": "cases/l3d1c-752011-original/storyboard.jpg",
+      "mechanism_ids": [
+        "007-m01",
+        "007-m02",
+        "007-m03",
+        "007-m04",
+        "007-m05",
+        "007-m06",
+        "007-m07",
+        "007-m08",
+        "007-m09",
+        "007-m10",
+        "007-m11",
+        "007-m12",
+        "007-m13",
+        "007-m14"
+      ]
     },
     {
       "case_number": 8,
@@ -523,13 +621,24 @@
       "duration": 60.053,
       "directory": "cases/davidshulmanfl-842921-original",
       "detail": "detail.html?case=davidshulmanfl-842921",
-      "analysis": "cases/davidshulmanfl-842921-original/analysis.md",
+      "analysis": "cases/davidshulmanfl-842921-original/overview.md",
       "source_sha256": "b72471c35a16fe38ec082298a66d241a7b17b911473db61d232b84c6dde2ffc1",
       "media": "cases/davidshulmanfl-842921-original/video.mp4",
       "media_sha256": "b72471c35a16fe38ec082298a66d241a7b17b911473db61d232b84c6dde2ffc1",
       "media_bytes": 6759597,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/davidshulmanfl-842921"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/davidshulmanfl-842921",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "008-m01",
+        "008-m02",
+        "008-m03",
+        "008-m04",
+        "008-m05",
+        "008-m06",
+        "008-m07"
+      ],
+      "storyboard": "cases/davidshulmanfl-842921-original/storyboard.jpg"
     },
     {
       "case_number": 9,
@@ -586,13 +695,24 @@
       "duration": 55.424,
       "directory": "cases/gouthamjay8-910269-original",
       "detail": "detail.html?case=gouthamjay8-910269",
-      "analysis": "cases/gouthamjay8-910269-original/analysis.md",
+      "analysis": "cases/gouthamjay8-910269-original/overview.md",
       "source_sha256": "b31fac7ebc726ca532cf10776636757cd27496db633fc8272c699c1a7dadbb5d",
       "media": "cases/gouthamjay8-910269-original/video.mp4",
       "media_sha256": "b31fac7ebc726ca532cf10776636757cd27496db633fc8272c699c1a7dadbb5d",
       "media_bytes": 7124612,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/gouthamjay8-910269"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/gouthamjay8-910269",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "009-m01",
+        "009-m02",
+        "009-m03",
+        "009-m04",
+        "009-m05",
+        "009-m06",
+        "009-m07"
+      ],
+      "storyboard": "cases/gouthamjay8-910269-original/storyboard.jpg"
     },
     {
       "case_number": 10,
@@ -649,13 +769,24 @@
       "duration": 70.8,
       "directory": "cases/hsanat-012699-original",
       "detail": "detail.html?case=hsanat-012699",
-      "analysis": "cases/hsanat-012699-original/analysis.md",
+      "analysis": "cases/hsanat-012699-original/overview.md",
       "source_sha256": "e04846abbb6e2ad648a94e5beff04142117c326df7d804885ea6d60ee3a95b00",
       "media": "cases/hsanat-012699-original/video.mp4",
       "media_sha256": "e04846abbb6e2ad648a94e5beff04142117c326df7d804885ea6d60ee3a95b00",
       "media_bytes": 4666282,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/hsanat-012699"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/hsanat-012699",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "010-m01",
+        "010-m02",
+        "010-m03",
+        "010-m04",
+        "010-m05",
+        "010-m06",
+        "010-m07"
+      ],
+      "storyboard": "cases/hsanat-012699-original/storyboard.jpg"
     },
     {
       "case_number": 11,
@@ -712,13 +843,25 @@
       "duration": 29.077,
       "directory": "cases/twoclipping-496100-original",
       "detail": "detail.html?case=twoclipping-496100",
-      "analysis": "cases/twoclipping-496100-original/analysis.md",
+      "analysis": "cases/twoclipping-496100-original/overview.md",
       "source_sha256": "aecbc38bcf192b60069ca61194dcac335f7bbcc82ac6ae4a93e0e7dcb105915c",
       "media": "cases/twoclipping-496100-original/video.mp4",
       "media_sha256": "aecbc38bcf192b60069ca61194dcac335f7bbcc82ac6ae4a93e0e7dcb105915c",
       "media_bytes": 4893212,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/twoclipping-496100"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/twoclipping-496100",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "011-m01",
+        "011-m02",
+        "011-m03",
+        "011-m04",
+        "011-m05",
+        "011-m06",
+        "011-m07",
+        "011-m08"
+      ],
+      "storyboard": "cases/twoclipping-496100-original/storyboard.jpg"
     },
     {
       "case_number": 12,
@@ -773,13 +916,19 @@
       "duration": 20.061995,
       "directory": "cases/koldo2k-778767-original",
       "detail": "detail.html?case=koldo2k-778767",
-      "analysis": "cases/koldo2k-778767-original/analysis.md",
+      "analysis": "cases/koldo2k-778767-original/overview.md",
       "source_sha256": "c8527deb0faa8f58801e801f8d5da610f333d6e983dddb0247adf7bc36106a2f",
       "media": "cases/koldo2k-778767-original/video.mp4",
       "media_sha256": "c8527deb0faa8f58801e801f8d5da610f333d6e983dddb0247adf7bc36106a2f",
       "media_bytes": 4872941,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/koldo2k-778767"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/koldo2k-778767",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "012-m01",
+        "012-m02"
+      ],
+      "storyboard": "cases/koldo2k-778767-original/storyboard.jpg"
     },
     {
       "case_number": 13,
@@ -895,13 +1044,21 @@
       "duration": 54.0,
       "directory": "cases/amitsingha89-780553-original",
       "detail": "detail.html?case=amitsingha89-780553",
-      "analysis": "cases/amitsingha89-780553-original/analysis.md",
+      "analysis": "cases/amitsingha89-780553-original/overview.md",
       "source_sha256": "415d9df551acaf67fbc33a14d98d77154e55be86ae26ff949a1fe49716c6603b",
       "media": "cases/amitsingha89-780553-original/video.mp4",
       "media_sha256": "415d9df551acaf67fbc33a14d98d77154e55be86ae26ff949a1fe49716c6603b",
       "media_bytes": 2198624,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/amitsingha89-780553"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/amitsingha89-780553",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "014-m01",
+        "014-m02",
+        "014-m03",
+        "014-m04"
+      ],
+      "storyboard": "cases/amitsingha89-780553-original/storyboard.jpg"
     },
     {
       "case_number": 15,
@@ -956,13 +1113,22 @@
       "duration": 15.061,
       "directory": "cases/thismacapital-375808-original",
       "detail": "detail.html?case=thismacapital-375808",
-      "analysis": "cases/thismacapital-375808-original/analysis.md",
+      "analysis": "cases/thismacapital-375808-original/overview.md",
       "source_sha256": "0c01f0e8745891818f39dc91027c48abf6a81785426cbd6fc557e89261c77f0e",
       "media": "cases/thismacapital-375808-original/video.mp4",
       "media_sha256": "0c01f0e8745891818f39dc91027c48abf6a81785426cbd6fc557e89261c77f0e",
       "media_bytes": 1812002,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/thismacapital-375808"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/thismacapital-375808",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "015-m01",
+        "015-m02",
+        "015-m03",
+        "015-m04",
+        "015-m05"
+      ],
+      "storyboard": "cases/thismacapital-375808-original/storyboard.jpg"
     },
     {
       "case_number": 16,
@@ -1018,13 +1184,23 @@
       "duration": 15.061,
       "directory": "cases/monokern-613142-original",
       "detail": "detail.html?case=monokern-613142",
-      "analysis": "cases/monokern-613142-original/analysis.md",
+      "analysis": "cases/monokern-613142-original/overview.md",
       "source_sha256": "dcb04019807fb6cbc68ab735127901d70bfb3fbed67d9a2ffc8a9cbb67dff8db",
       "media": "cases/monokern-613142-original/video.mp4",
       "media_sha256": "dcb04019807fb6cbc68ab735127901d70bfb3fbed67d9a2ffc8a9cbb67dff8db",
       "media_bytes": 2068206,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/monokern-613142"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/monokern-613142",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "016-m01",
+        "016-m02",
+        "016-m03",
+        "016-m04",
+        "016-m05",
+        "016-m06"
+      ],
+      "storyboard": "cases/monokern-613142-original/storyboard.jpg"
     },
     {
       "case_number": 17,
@@ -1078,13 +1254,23 @@
       "duration": 78.058,
       "directory": "cases/abderrahmen-g-899031-original",
       "detail": "detail.html?case=abderrahmen-g-899031",
-      "analysis": "cases/abderrahmen-g-899031-original/analysis.md",
+      "analysis": "cases/abderrahmen-g-899031-original/overview.md",
       "source_sha256": "f30a4a8e7dc51204ec8ce8e1ccc05f559dbb4ecf84adc21b5dd053b12353bbf5",
       "media": "cases/abderrahmen-g-899031-original/video.mp4",
       "media_sha256": "f30a4a8e7dc51204ec8ce8e1ccc05f559dbb4ecf84adc21b5dd053b12353bbf5",
       "media_bytes": 11986240,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/abderrahmen-g-899031"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/abderrahmen-g-899031",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "017-m01",
+        "017-m02",
+        "017-m03",
+        "017-m04",
+        "017-m05",
+        "017-m06"
+      ],
+      "storyboard": "cases/abderrahmen-g-899031-original/storyboard.jpg"
     },
     {
       "case_number": 18,
@@ -1140,13 +1326,21 @@
       "duration": 29.9,
       "directory": "cases/ercankeskinx-897906-original",
       "detail": "detail.html?case=ercankeskinx-897906",
-      "analysis": "cases/ercankeskinx-897906-original/analysis.md",
+      "analysis": "cases/ercankeskinx-897906-original/overview.md",
       "source_sha256": "bcbab9cb6378207f1d18e5c9d622b8f7d657be79f466d370b1d25f1292c4af03",
       "media": "cases/ercankeskinx-897906-original/video.mp4",
       "media_sha256": "bcbab9cb6378207f1d18e5c9d622b8f7d657be79f466d370b1d25f1292c4af03",
       "media_bytes": 1218740,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/ercankeskinx-897906"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/ercankeskinx-897906",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "018-m01",
+        "018-m02",
+        "018-m03",
+        "018-m04"
+      ],
+      "storyboard": "cases/ercankeskinx-897906-original/storyboard.jpg"
     },
     {
       "case_number": 19,
@@ -1202,13 +1396,22 @@
       "duration": 56.042,
       "directory": "cases/vince-builds-355650-original",
       "detail": "detail.html?case=vince-builds-355650",
-      "analysis": "cases/vince-builds-355650-original/analysis.md",
+      "analysis": "cases/vince-builds-355650-original/overview.md",
       "source_sha256": "475e8775d66be8ec5ad4bc74f715ead6a893b7df2a0065275e82cc597c814744",
       "media": "cases/vince-builds-355650-original/video.mp4",
       "media_sha256": "475e8775d66be8ec5ad4bc74f715ead6a893b7df2a0065275e82cc597c814744",
       "media_bytes": 2510297,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/vince-builds-355650"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/vince-builds-355650",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "019-m01",
+        "019-m02",
+        "019-m03",
+        "019-m04",
+        "019-m05"
+      ],
+      "storyboard": "cases/vince-builds-355650-original/storyboard.jpg"
     },
     {
       "case_number": 20,
@@ -1262,13 +1465,22 @@
       "duration": 30.101,
       "directory": "cases/bridgemindai-286423-original",
       "detail": "detail.html?case=bridgemindai-286423",
-      "analysis": "cases/bridgemindai-286423-original/analysis.md",
+      "analysis": "cases/bridgemindai-286423-original/overview.md",
       "source_sha256": "a10c114c1eda9cc7b9c3bfda76d083ecbacf7822271fdf9e87f8ecfc2512082f",
       "media": "cases/bridgemindai-286423-original/video.mp4",
       "media_sha256": "a10c114c1eda9cc7b9c3bfda76d083ecbacf7822271fdf9e87f8ecfc2512082f",
       "media_bytes": 2966048,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/bridgemindai-286423"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/bridgemindai-286423",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "020-m01",
+        "020-m02",
+        "020-m03",
+        "020-m04",
+        "020-m05"
+      ],
+      "storyboard": "cases/bridgemindai-286423-original/storyboard.jpg"
     },
     {
       "case_number": 21,
@@ -1323,13 +1535,22 @@
       "duration": 30.058,
       "directory": "cases/priyansh0327-206409-original",
       "detail": "detail.html?case=priyansh0327-206409",
-      "analysis": "cases/priyansh0327-206409-original/analysis.md",
+      "analysis": "cases/priyansh0327-206409-original/overview.md",
       "source_sha256": "a652f8861cbf6147fb1402147c331e5339b7ece0e0827b0693c69a7179e5954a",
       "media": "cases/priyansh0327-206409-original/video.mp4",
       "media_sha256": "a652f8861cbf6147fb1402147c331e5339b7ece0e0827b0693c69a7179e5954a",
       "media_bytes": 2472657,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/priyansh0327-206409"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/priyansh0327-206409",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "021-m01",
+        "021-m02",
+        "021-m03",
+        "021-m04",
+        "021-m05"
+      ],
+      "storyboard": "cases/priyansh0327-206409-original/storyboard.jpg"
     },
     {
       "case_number": 22,
@@ -1384,13 +1605,22 @@
       "duration": 54.3,
       "directory": "cases/viktoroddy-402509-original",
       "detail": "detail.html?case=viktoroddy-402509",
-      "analysis": "cases/viktoroddy-402509-original/analysis.md",
+      "analysis": "cases/viktoroddy-402509-original/overview.md",
       "source_sha256": "4323a359fbe79f42795548657d520639fe8632e62ef1663e00bd3410b7c7746f",
       "media": "cases/viktoroddy-402509-original/video.mp4",
       "media_sha256": "4323a359fbe79f42795548657d520639fe8632e62ef1663e00bd3410b7c7746f",
       "media_bytes": 4372449,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/viktoroddy-402509"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/viktoroddy-402509",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "022-m01",
+        "022-m02",
+        "022-m03",
+        "022-m04",
+        "022-m05"
+      ],
+      "storyboard": "cases/viktoroddy-402509-original/storyboard.jpg"
     },
     {
       "case_number": 23,
@@ -1444,13 +1674,22 @@
       "duration": 16.833991,
       "directory": "cases/m1n9-k7-466682-original",
       "detail": "detail.html?case=m1n9-k7-466682",
-      "analysis": "cases/m1n9-k7-466682-original/analysis.md",
+      "analysis": "cases/m1n9-k7-466682-original/overview.md",
       "source_sha256": "4378b7150cca7ca9e77919e174ca0d4f2406499ce1784ec99514c144065cb155",
       "media": "cases/m1n9-k7-466682-original/video.mp4",
       "media_sha256": "4378b7150cca7ca9e77919e174ca0d4f2406499ce1784ec99514c144065cb155",
       "media_bytes": 1642066,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/m1n9-k7-466682"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/m1n9-k7-466682",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "023-m01",
+        "023-m02",
+        "023-m03",
+        "023-m04",
+        "023-m05"
+      ],
+      "storyboard": "cases/m1n9-k7-466682-original/storyboard.jpg"
     },
     {
       "case_number": 24,
@@ -1506,13 +1745,21 @@
       "duration": 15.061,
       "directory": "cases/miskinho-956105-original",
       "detail": "detail.html?case=miskinho-956105",
-      "analysis": "cases/miskinho-956105-original/analysis.md",
+      "analysis": "cases/miskinho-956105-original/overview.md",
       "source_sha256": "6de61d062838e3146efea7b9abdb4dede602c34fa79a00c101029bacd1790921",
       "media": "cases/miskinho-956105-original/video.mp4",
       "media_sha256": "6de61d062838e3146efea7b9abdb4dede602c34fa79a00c101029bacd1790921",
       "media_bytes": 951885,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/miskinho-956105"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/miskinho-956105",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "024-m01",
+        "024-m02",
+        "024-m03",
+        "024-m04"
+      ],
+      "storyboard": "cases/miskinho-956105-original/storyboard.jpg"
     },
     {
       "case_number": 25,
@@ -1565,13 +1812,21 @@
       "duration": 30.058,
       "directory": "cases/justincooperman-188876-original",
       "detail": "detail.html?case=justincooperman-188876",
-      "analysis": "cases/justincooperman-188876-original/analysis.md",
+      "analysis": "cases/justincooperman-188876-original/overview.md",
       "source_sha256": "ceef97f2930df3c6e979f303348776d05262395eb4a95b73cabcf6e2bb786b75",
       "media": "cases/justincooperman-188876-original/video.mp4",
       "media_sha256": "ceef97f2930df3c6e979f303348776d05262395eb4a95b73cabcf6e2bb786b75",
       "media_bytes": 2010076,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/justincooperman-188876"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/justincooperman-188876",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "025-m01",
+        "025-m02",
+        "025-m03",
+        "025-m04"
+      ],
+      "storyboard": "cases/justincooperman-188876-original/storyboard.jpg"
     },
     {
       "case_number": 26,
@@ -1629,13 +1884,23 @@
       "duration": 59.562,
       "directory": "cases/jesscaroline7-955094-original",
       "detail": "detail.html?case=jesscaroline7-955094",
-      "analysis": "cases/jesscaroline7-955094-original/analysis.md",
+      "analysis": "cases/jesscaroline7-955094-original/overview.md",
       "source_sha256": "fce81e5570f02aab2d8bc49fb84c9ff5b19af6b8f4ecd35a0a2bd5d4f0e7233f",
       "media": "cases/jesscaroline7-955094-original/video.mp4",
       "media_sha256": "fce81e5570f02aab2d8bc49fb84c9ff5b19af6b8f4ecd35a0a2bd5d4f0e7233f",
       "media_bytes": 6010646,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/jesscaroline7-955094"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/jesscaroline7-955094",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "026-m01",
+        "026-m02",
+        "026-m03",
+        "026-m04",
+        "026-m05",
+        "026-m06"
+      ],
+      "storyboard": "cases/jesscaroline7-955094-original/storyboard.jpg"
     },
     {
       "case_number": 27,
@@ -1691,13 +1956,22 @@
       "duration": 30.058,
       "directory": "cases/georgejimenez98-431559-original",
       "detail": "detail.html?case=georgejimenez98-431559",
-      "analysis": "cases/georgejimenez98-431559-original/analysis.md",
+      "analysis": "cases/georgejimenez98-431559-original/overview.md",
       "source_sha256": "cb8ea3971cd39f57d607a348c4403992c84e50466561024b2e84508576d9ad99",
       "media": "cases/georgejimenez98-431559-original/video.mp4",
       "media_sha256": "cb8ea3971cd39f57d607a348c4403992c84e50466561024b2e84508576d9ad99",
       "media_bytes": 2387040,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/georgejimenez98-431559"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/georgejimenez98-431559",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "027-m01",
+        "027-m02",
+        "027-m03",
+        "027-m04",
+        "027-m05"
+      ],
+      "storyboard": "cases/georgejimenez98-431559-original/storyboard.jpg"
     },
     {
       "case_number": 28,
@@ -1751,13 +2025,21 @@
       "duration": 25.45,
       "directory": "cases/pwntastickev-664257-original",
       "detail": "detail.html?case=pwntastickev-664257",
-      "analysis": "cases/pwntastickev-664257-original/analysis.md",
+      "analysis": "cases/pwntastickev-664257-original/overview.md",
       "source_sha256": "dcae3915833500e2b090a636ac70a5eafe896f34077e0524d01eae76df278b55",
       "media": "cases/pwntastickev-664257-original/video.mp4",
       "media_sha256": "dcae3915833500e2b090a636ac70a5eafe896f34077e0524d01eae76df278b55",
       "media_bytes": 1440783,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/pwntastickev-664257"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/pwntastickev-664257",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "028-m01",
+        "028-m02",
+        "028-m03",
+        "028-m04"
+      ],
+      "storyboard": "cases/pwntastickev-664257-original/storyboard.jpg"
     },
     {
       "case_number": 29,
@@ -1812,13 +2094,22 @@
       "duration": 30.101,
       "directory": "cases/helloshiva0801-438284-original",
       "detail": "detail.html?case=helloshiva0801-438284",
-      "analysis": "cases/helloshiva0801-438284-original/analysis.md",
+      "analysis": "cases/helloshiva0801-438284-original/overview.md",
       "source_sha256": "98206de1478e285ab7ab54847ccf8bea39c56191cb18cd050f41b315be771b31",
       "media": "cases/helloshiva0801-438284-original/video.mp4",
       "media_sha256": "98206de1478e285ab7ab54847ccf8bea39c56191cb18cd050f41b315be771b31",
       "media_bytes": 2328020,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/helloshiva0801-438284"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/helloshiva0801-438284",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "029-m01",
+        "029-m02",
+        "029-m03",
+        "029-m04",
+        "029-m05"
+      ],
+      "storyboard": "cases/helloshiva0801-438284-original/storyboard.jpg"
     },
     {
       "case_number": 30,
@@ -1872,13 +2163,22 @@
       "duration": 28.096,
       "directory": "cases/francoxavier33-341663-original",
       "detail": "detail.html?case=francoxavier33-341663",
-      "analysis": "cases/francoxavier33-341663-original/analysis.md",
+      "analysis": "cases/francoxavier33-341663-original/overview.md",
       "source_sha256": "52bc15aa60f7aa9dd0165ef47d3bcad8cb1a1bc77d519508ab4bb6c357571ebf",
       "media": "cases/francoxavier33-341663-original/video.mp4",
       "media_sha256": "52bc15aa60f7aa9dd0165ef47d3bcad8cb1a1bc77d519508ab4bb6c357571ebf",
       "media_bytes": 1350378,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/francoxavier33-341663"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/francoxavier33-341663",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "030-m01",
+        "030-m02",
+        "030-m03",
+        "030-m04",
+        "030-m05"
+      ],
+      "storyboard": "cases/francoxavier33-341663-original/storyboard.jpg"
     },
     {
       "case_number": 31,
@@ -1933,13 +2233,24 @@
       "duration": 50.666,
       "directory": "cases/tycenjm-098014-original",
       "detail": "detail.html?case=tycenjm-098014",
-      "analysis": "cases/tycenjm-098014-original/analysis.md",
+      "analysis": "cases/tycenjm-098014-original/overview.md",
       "source_sha256": "2987c5125ccaf9344ef8b7490c6b379aa830c20df2a3223ece4ccdfc13f2087d",
       "media": "cases/tycenjm-098014-original/video.mp4",
       "media_sha256": "2987c5125ccaf9344ef8b7490c6b379aa830c20df2a3223ece4ccdfc13f2087d",
       "media_bytes": 2706853,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/tycenjm-098014"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/tycenjm-098014",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "031-m01",
+        "031-m02",
+        "031-m03",
+        "031-m04",
+        "031-m05",
+        "031-m06",
+        "031-m07"
+      ],
+      "storyboard": "cases/tycenjm-098014-original/storyboard.jpg"
     },
     {
       "case_number": 32,
@@ -1995,13 +2306,25 @@
       "duration": 15.061,
       "directory": "cases/zakisbuilding-495680-original",
       "detail": "detail.html?case=zakisbuilding-495680",
-      "analysis": "cases/zakisbuilding-495680-original/analysis.md",
+      "analysis": "cases/zakisbuilding-495680-original/overview.md",
       "source_sha256": "789e7fd9f7fef23d1b3c365b1f6127aecda24eeec4b5a8c8bf7962476a5c5315",
       "media": "cases/zakisbuilding-495680-original/video.mp4",
       "media_sha256": "789e7fd9f7fef23d1b3c365b1f6127aecda24eeec4b5a8c8bf7962476a5c5315",
       "media_bytes": 1801653,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/zakisbuilding-495680"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/zakisbuilding-495680",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "032-m01",
+        "032-m02",
+        "032-m03",
+        "032-m04",
+        "032-m05",
+        "032-m06",
+        "032-m07",
+        "032-m08"
+      ],
+      "storyboard": "cases/zakisbuilding-495680-original/storyboard.jpg"
     },
     {
       "case_number": 33,
@@ -2058,13 +2381,22 @@
       "duration": 15.061,
       "directory": "cases/gabrielbuzziv-057430-original",
       "detail": "detail.html?case=gabrielbuzziv-057430",
-      "analysis": "cases/gabrielbuzziv-057430-original/analysis.md",
+      "analysis": "cases/gabrielbuzziv-057430-original/overview.md",
       "source_sha256": "4a4c2cc6ad2a6dee70ad2d4697da7d469c82086be94c69d1fb7442b2f33caf37",
       "media": "cases/gabrielbuzziv-057430-original/video.mp4",
       "media_sha256": "4a4c2cc6ad2a6dee70ad2d4697da7d469c82086be94c69d1fb7442b2f33caf37",
       "media_bytes": 1782818,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/gabrielbuzziv-057430"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/gabrielbuzziv-057430",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "033-m01",
+        "033-m02",
+        "033-m03",
+        "033-m04",
+        "033-m05"
+      ],
+      "storyboard": "cases/gabrielbuzziv-057430-original/storyboard.jpg"
     },
     {
       "case_number": 34,
@@ -2121,13 +2453,24 @@
       "duration": 102.101,
       "directory": "cases/wani-shola-459278-original",
       "detail": "detail.html?case=wani-shola-459278",
-      "analysis": "cases/wani-shola-459278-original/analysis.md",
+      "analysis": "cases/wani-shola-459278-original/overview.md",
       "source_sha256": "9a96c85f4562f438327a2a01e9a3fcb6112bc7a9756f28939a8b03a64daeb884",
       "media": "cases/wani-shola-459278-original/video.mp4",
       "media_sha256": "9a96c85f4562f438327a2a01e9a3fcb6112bc7a9756f28939a8b03a64daeb884",
       "media_bytes": 4959282,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/wani-shola-459278"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/wani-shola-459278",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "034-m01",
+        "034-m02",
+        "034-m03",
+        "034-m04",
+        "034-m05",
+        "034-m06",
+        "034-m07"
+      ],
+      "storyboard": "cases/wani-shola-459278-original/storyboard.jpg"
     },
     {
       "case_number": 35,
@@ -2181,13 +2524,21 @@
       "duration": 15.104,
       "directory": "cases/mustaphafenzar-973906-original",
       "detail": "detail.html?case=mustaphafenzar-973906",
-      "analysis": "cases/mustaphafenzar-973906-original/analysis.md",
+      "analysis": "cases/mustaphafenzar-973906-original/overview.md",
       "source_sha256": "ed5079ed022672f78b057687de3ea3cb730e9e332204a733481edd5e211979d4",
       "media": "cases/mustaphafenzar-973906-original/video.mp4",
       "media_sha256": "ed5079ed022672f78b057687de3ea3cb730e9e332204a733481edd5e211979d4",
       "media_bytes": 1241096,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/mustaphafenzar-973906"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/mustaphafenzar-973906",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "035-m01",
+        "035-m02",
+        "035-m03",
+        "035-m04"
+      ],
+      "storyboard": "cases/mustaphafenzar-973906-original/storyboard.jpg"
     },
     {
       "case_number": 36,
@@ -2243,13 +2594,23 @@
       "duration": 14.93,
       "directory": "cases/sahildesigner23-307120-original",
       "detail": "detail.html?case=sahildesigner23-307120",
-      "analysis": "cases/sahildesigner23-307120-original/analysis.md",
+      "analysis": "cases/sahildesigner23-307120-original/overview.md",
       "source_sha256": "755a9c8bff380e9ed9b01b286de0289f05bb159f2296c636c7f73a83580133a6",
       "media": "cases/sahildesigner23-307120-original/video.mp4",
       "media_sha256": "755a9c8bff380e9ed9b01b286de0289f05bb159f2296c636c7f73a83580133a6",
       "media_bytes": 2151937,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/sahildesigner23-307120"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/sahildesigner23-307120",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "036-m01",
+        "036-m02",
+        "036-m03",
+        "036-m04",
+        "036-m05",
+        "036-m06"
+      ],
+      "storyboard": "cases/sahildesigner23-307120-original/storyboard.jpg"
     },
     {
       "case_number": 37,
@@ -2304,13 +2665,21 @@
       "duration": 17.266667,
       "directory": "cases/charliie-334026-original",
       "detail": "detail.html?case=charliie-334026",
-      "analysis": "cases/charliie-334026-original/analysis.md",
+      "analysis": "cases/charliie-334026-original/overview.md",
       "source_sha256": "e30f66faa616b68136331cc464c4c5761dd0e55123ea3cbb02acd4d867a153e9",
       "media": "cases/charliie-334026-original/video.mp4",
       "media_sha256": "e30f66faa616b68136331cc464c4c5761dd0e55123ea3cbb02acd4d867a153e9",
       "media_bytes": 443217,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/charliie-334026"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/charliie-334026",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "037-m01",
+        "037-m02",
+        "037-m03",
+        "037-m04"
+      ],
+      "storyboard": "cases/charliie-334026-original/storyboard.jpg"
     },
     {
       "case_number": 38,
@@ -2367,13 +2736,23 @@
       "duration": 26.453,
       "directory": "cases/andre-lucaxxs-846347-original",
       "detail": "detail.html?case=andre-lucaxxs-846347",
-      "analysis": "cases/andre-lucaxxs-846347-original/analysis.md",
+      "analysis": "cases/andre-lucaxxs-846347-original/overview.md",
       "source_sha256": "015f8f2875329544fc9ad00f3b95e6ea78d1018fef9b851eca8552267c46ef0b",
       "media": "cases/andre-lucaxxs-846347-original/video.mp4",
       "media_sha256": "015f8f2875329544fc9ad00f3b95e6ea78d1018fef9b851eca8552267c46ef0b",
       "media_bytes": 2037112,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/andre-lucaxxs-846347"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/andre-lucaxxs-846347",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "038-m01",
+        "038-m02",
+        "038-m03",
+        "038-m04",
+        "038-m05",
+        "038-m06"
+      ],
+      "storyboard": "cases/andre-lucaxxs-846347-original/storyboard.jpg"
     },
     {
       "case_number": 39,
@@ -2428,13 +2807,22 @@
       "duration": 60.053,
       "directory": "cases/1stnoel-603851-original",
       "detail": "detail.html?case=1stnoel-603851",
-      "analysis": "cases/1stnoel-603851-original/analysis.md",
+      "analysis": "cases/1stnoel-603851-original/overview.md",
       "source_sha256": "49a60ff4f7809618d43408dd300ffae92be0949875c6f35ed88e98f33ef06f0f",
       "media": "cases/1stnoel-603851-original/video.mp4",
       "media_sha256": "49a60ff4f7809618d43408dd300ffae92be0949875c6f35ed88e98f33ef06f0f",
       "media_bytes": 2253833,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/1stnoel-603851"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/1stnoel-603851",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "039-m01",
+        "039-m02",
+        "039-m03",
+        "039-m04",
+        "039-m05"
+      ],
+      "storyboard": "cases/1stnoel-603851-original/storyboard.jpg"
     },
     {
       "case_number": 40,
@@ -2490,13 +2878,21 @@
       "duration": 52.633333,
       "directory": "cases/brainwavepub-812667-original",
       "detail": "detail.html?case=brainwavepub-812667",
-      "analysis": "cases/brainwavepub-812667-original/analysis.md",
+      "analysis": "cases/brainwavepub-812667-original/overview.md",
       "source_sha256": "213f6551b9afdf2fe56b4994d9fc3a31b8a2a5e9628f8cc11eeb1f96de850641",
       "media": "cases/brainwavepub-812667-original/video.mp4",
       "media_sha256": "213f6551b9afdf2fe56b4994d9fc3a31b8a2a5e9628f8cc11eeb1f96de850641",
       "media_bytes": 3249560,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/brainwavepub-812667"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/brainwavepub-812667",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "040-m01",
+        "040-m02",
+        "040-m03",
+        "040-m04"
+      ],
+      "storyboard": "cases/brainwavepub-812667-original/storyboard.jpg"
     },
     {
       "case_number": 41,
@@ -2548,13 +2944,23 @@
       "duration": 24.042,
       "directory": "cases/petert-350098-original",
       "detail": "detail.html?case=petert-350098",
-      "analysis": "cases/petert-350098-original/analysis.md",
+      "analysis": "cases/petert-350098-original/overview.md",
       "source_sha256": "45948e9d53e753a1fad3381cbab319e363b00eec9779cc1bc1d88689de4405c7",
       "media": "cases/petert-350098-original/video.mp4",
       "media_sha256": "45948e9d53e753a1fad3381cbab319e363b00eec9779cc1bc1d88689de4405c7",
       "media_bytes": 1884973,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/petert-350098"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/petert-350098",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "041-m01",
+        "041-m02",
+        "041-m03",
+        "041-m04",
+        "041-m05",
+        "041-m06"
+      ],
+      "storyboard": "cases/petert-350098-original/storyboard.jpg"
     },
     {
       "case_number": 42,
@@ -2663,13 +3069,27 @@
       "duration": 46.133333,
       "directory": "cases/dannyverkissen-101463-original",
       "detail": "detail.html?case=dannyverkissen-101463",
-      "analysis": "cases/dannyverkissen-101463-original/analysis.md",
+      "analysis": "cases/dannyverkissen-101463-original/overview.md",
       "source_sha256": "50d8b3cac7f97a7d2752c62ffa26b9bcf6d80620bc7fbe3917f88ca65ef9d4da",
       "media": "cases/dannyverkissen-101463-original/video.mp4",
       "media_sha256": "50d8b3cac7f97a7d2752c62ffa26b9bcf6d80620bc7fbe3917f88ca65ef9d4da",
       "media_bytes": 3806026,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/dannyverkissen-101463"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/dannyverkissen-101463",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "043-m01",
+        "043-m02",
+        "043-m03",
+        "043-m04",
+        "043-m05",
+        "043-m06",
+        "043-m07",
+        "043-m08",
+        "043-m09",
+        "043-m10"
+      ],
+      "storyboard": "cases/dannyverkissen-101463-original/storyboard.jpg"
     },
     {
       "case_number": 44,
@@ -3129,13 +3549,28 @@
       "duration": 34.087007,
       "directory": "cases/l3d1c-632524-original",
       "detail": "detail.html?case=l3d1c-632524",
-      "analysis": "cases/l3d1c-632524-original/analysis.md",
+      "analysis": "cases/l3d1c-632524-original/overview.md",
       "source_sha256": "4a881e28a9bb5f3f83fe5f1b5bc9b0b7ef40823d8c198216352d5c9e2fc0567d",
       "media": "cases/l3d1c-632524-original/video.mp4",
       "media_sha256": "4a881e28a9bb5f3f83fe5f1b5bc9b0b7ef40823d8c198216352d5c9e2fc0567d",
       "media_bytes": 1880905,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/l3d1c-632524"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/l3d1c-632524",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "051-m01",
+        "051-m02",
+        "051-m03",
+        "051-m04",
+        "051-m05",
+        "051-m06",
+        "051-m07",
+        "051-m08",
+        "051-m09",
+        "051-m10",
+        "051-m11"
+      ],
+      "storyboard": "cases/l3d1c-632524-original/storyboard.jpg"
     },
     {
       "case_number": 52,
@@ -3643,13 +4078,24 @@
       "duration": 30.0,
       "directory": "cases/ror-fly-880547-original",
       "detail": "detail.html?case=ror-fly-880547",
-      "analysis": "cases/ror-fly-880547-original/analysis.md",
+      "analysis": "cases/ror-fly-880547-original/overview.md",
       "source_sha256": "ccaed62515000b49f9ba080c1180c67ae19d588ef0c566f293d44e2bafe14769",
       "media": "cases/ror-fly-880547-original/video.mp4",
       "media_sha256": "ccaed62515000b49f9ba080c1180c67ae19d588ef0c566f293d44e2bafe14769",
       "media_bytes": 2278766,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/ror-fly-880547"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/ror-fly-880547",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "060-m01",
+        "060-m02",
+        "060-m03",
+        "060-m04",
+        "060-m05",
+        "060-m06",
+        "060-m07"
+      ],
+      "storyboard": "cases/ror-fly-880547-original/storyboard.jpg"
     },
     {
       "case_number": 61,
@@ -4281,13 +4727,27 @@
       "duration": 60.053,
       "directory": "cases/astrothewizard-618782-original",
       "detail": "detail.html?case=astrothewizard-618782",
-      "analysis": "cases/astrothewizard-618782-original/analysis.md",
+      "analysis": "cases/astrothewizard-618782-original/overview.md",
       "source_sha256": "997f3acf842c583f1001d0f7fe5fcc80f7c2ff8bb16a5de00d8e2b2a02bb8d4c",
       "media": "cases/astrothewizard-618782-original/video.mp4",
       "media_sha256": "997f3acf842c583f1001d0f7fe5fcc80f7c2ff8bb16a5de00d8e2b2a02bb8d4c",
       "media_bytes": 8160157,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/astrothewizard-618782"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/astrothewizard-618782",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "071-m01",
+        "071-m02",
+        "071-m03",
+        "071-m04",
+        "071-m05",
+        "071-m06",
+        "071-m07",
+        "071-m08",
+        "071-m09",
+        "071-m10"
+      ],
+      "storyboard": "cases/astrothewizard-618782-original/storyboard.jpg"
     },
     {
       "case_number": 72,
@@ -6332,13 +6792,22 @@
       "duration": 10.0,
       "directory": "cases/vectorcrossprod-436573-original",
       "detail": "detail.html?case=vectorcrossprod-436573",
-      "analysis": "cases/vectorcrossprod-436573-original/analysis.md",
+      "analysis": "cases/vectorcrossprod-436573-original/overview.md",
       "source_sha256": "572f0b1ea079da438526f50292232fddfc0b864c57f56dab794242a046bbb899",
       "media": "cases/vectorcrossprod-436573-original/video.mp4",
       "media_sha256": "572f0b1ea079da438526f50292232fddfc0b864c57f56dab794242a046bbb899",
       "media_bytes": 654348,
       "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/vectorcrossprod-436573"
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/vectorcrossprod-436573",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "106-m01",
+        "106-m02",
+        "106-m03",
+        "106-m04",
+        "106-m05"
+      ],
+      "storyboard": "cases/vectorcrossprod-436573-original/storyboard.jpg"
     },
     {
       "case_number": 107,

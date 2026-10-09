@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 // 测试直接执行发行教学代码，避免另存一份实现漂移；仅验证给定参数的数学性质。
-const guide = await readFile(new URL('../.agents/skills/remotion-production/references/scene-art-and-motion.md', import.meta.url), 'utf8');
-const source = guide.match(/```javascript\n([\s\S]*?)\n```/)![1];
+const guide = await readFile(new URL('../.agents/skills/motion-case-library/references/cases/motion-case-attention-programme/references/art-and-motion-teaching.md', import.meta.url), 'utf8');
+const source = guide.replace(/\r\n/g, '\n').match(/```javascript\n([\s\S]*?)\n```/)![1];
 const {letterStates,handoffState,lensState,hermite,progress,sampleInLens,sourceTimeAt} = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
 const near=(a: number,b: number,eps=1e-7)=>assert.ok(Math.abs(a-b)<eps,`${a} != ${b}`);
 test('参数与时域边界',()=>{

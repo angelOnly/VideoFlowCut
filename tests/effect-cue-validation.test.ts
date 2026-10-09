@@ -119,7 +119,7 @@ test("同码异常和提交后失败不能伪装成保存前范围拒绝", async
 });
 
 test("范围纠正的交接合同保留原作者判断及旧unknown边界", async () => {
-  for (const path of [".agents/skills/known-errors/SKILL.md", ".agents/skills/_shared/MCP_EXECUTION_CONTRACT.md", ".agents/skills/remotion-production/SKILL.md"]) {
+  for (const path of [".agents/skills/known-errors/references/submission-errors.md", ".agents/skills/remotion-production/references/submission-and-recovery.md"]) {
     const text = await readFile(path, "utf8");
     for (const keyword of ["CUE_OUT_OF_SCENE", "INVALID_CUE_RANGE", "covered_narrative_beat_ids", "原作者", "validation/none/correct_input"]) {
       // known-errors 使用完整命名字段，仍须明确三项恢复条件。

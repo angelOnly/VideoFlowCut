@@ -33,21 +33,21 @@ test("Pexels 无 Key 时支持单视频页，其他旧接口仍不启用", (t) =
 });
 
 test("Pexels 单视频页由浏览器交 Worker 获取，Skill 与路由一致", async () => {
-  const sourcing = await readFile(".agents/skills/visual-asset-sourcing/SKILL.md", "utf8");
+  const sourcing = await readFile(".agents/skills/visual-asset-sourcing/references/acquisition-operations.md", "utf8");
   const importing = await readFile(".agents/skills/asset-import/SKILL.md", "utf8");
   assert.match(sourcing, /Pexels 单视频页与 Worker 获取/);
   assert.match(sourcing, /provider="pexels"[\s\S]*query=选定页面URL[\s\S]*search_media_candidates/);
   assert.match(sourcing, /acquire_media_asset[\s\S]*track_job[\s\S]*媒体 Worker/);
   assert.equal(sourcing.includes("usage_rights"), false);
   assert.match(importing, /浏览器无需交回本地路径，也不使用 `import_media` 代替 Provider/);
-  assert.equal(sourcing, await readFile("plugins/videoflowcut/skills/visual-asset-sourcing/SKILL.md", "utf8"));
+  assert.equal(sourcing, await readFile("plugins/videoflowcut/skills/visual-asset-sourcing/references/acquisition-operations.md", "utf8"));
   assert.equal(importing, await readFile("plugins/videoflowcut/skills/asset-import/SKILL.md", "utf8"));
 });
 const json = (value: unknown) => new Response(JSON.stringify(value), { headers: { "content-type": "application/json" } });
 const details = (title: string, mime = "video/webm") => json({ query: { pages: [{ title, imageinfo: [{ url: "https://upload.wikimedia.org/fixture.webm", mime, width: 1920, height: 1080, duration: 5, extmetadata: {} }] }] } });
 
 test("素材搜索恢复交接规则只授权无副作用的一次纠正", async () => {
-  for (const file of ["AGENTS.md", ".agents/skills/visual-asset-sourcing/SKILL.md", ".agents/skills/production-coordinator/SKILL.md", ".agents/skills/known-errors/SKILL.md", ".agents/skills/_shared/MCP_EXECUTION_CONTRACT.md"]) {
+  for (const file of ["AGENTS.md", ".agents/skills/visual-asset-sourcing/references/acquisition-operations.md", ".agents/skills/production-coordinator/references/project-writes.md", ".agents/skills/known-errors/references/runtime-errors.md", ".agents/skills/production-coordinator/references/project-writes.md"]) {
     const content = await readFile(file, "utf8");
     assert.match(content, /sideEffects/);
     assert.match(content, /safeToRetry/);

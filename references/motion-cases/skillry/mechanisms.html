@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>按运动机制查找</title><link rel="stylesheet" href="catalogue.css"><style>
+.mechanism-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.mechanism-grid article{padding:0;min-width:0;display:flex;flex-direction:column}.mechanism-heading{padding:18px 20px 12px}.mechanism-heading h2{margin:4px 0 0;min-height:3em}
+.mechanism-preview{display:block;margin:0 12px;overflow:hidden;border-radius:6px;background:#11171a;text-decoration:none}.mechanism-preview img{display:block;width:100%;height:auto}.mechanism-preview span{display:block;padding:36px 18px;text-align:center}.mechanism-preview:hover{outline:2px solid #91b877;outline-offset:2px}
+.mechanism-info{padding:12px 20px 18px;flex:1;display:flex;flex-direction:column}.mechanism-summary{font-size:14px;color:#b8c6c7;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.mechanism-info .tags{margin:12px 0}.mechanism-info .actions{border-top:1px solid #344144;padding-top:12px;margin-top:auto}
+.mechanism-filters{display:flex;gap:16px;flex-wrap:wrap;margin-top:16px}.mechanism-filters label{display:grid;gap:6px;flex:1}#count{margin:24px 0}@media(max-width:660px){.mechanism-grid{grid-template-columns:1fr}.mechanism-heading h2{min-height:0}}
+</style></head>
+<body><main><nav><a href="index.html">全部参考视频</a><a href="detail.html">使用说明</a></nav><header><h1>按运动机制查找</h1><p>先看分镜挑选动作，点击图片查看完整运动指令与组合方法。</p><p id="scope">正在读取整理范围…</p></header>
+<section class="toolbar"><label for="query" class="search-label">想让画面发生什么变化？</label><input id="query" type="search" placeholder="如：填充 / 多到一 / 保留容器 / 交叠" autocomplete="off"><p class="hint">网页按文字筛选；导演通过 Skill 阅读同一份索引，理解关系后按需加载文档。</p><div class="mechanism-filters"><label>变化目的<select id="purpose"><option value="">全部</option></select></label><label>来源案例<select id="case"><option value="">全部</option></select></label><button id="reset">清空筛选</button></div></section>
+<p id="count" role="status">正在加载…</p><section id="results" class="mechanism-grid"></section><p id="error" role="alert"></p></main><script type="module" src="mechanisms-ui.mjs"></script></body></html>

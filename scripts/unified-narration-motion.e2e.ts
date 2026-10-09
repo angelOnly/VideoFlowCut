@@ -69,8 +69,7 @@ try{
     assert.equal(acquired.result.assetIds.length, sourceInput.kind === "pdf" ? 2 : 1);
     acquiredSources.push(acquired.result);
   }
-  const casebook=await readFile(join(repoRoot,".agents/skills/remotion-production/references/motion-graphics-casebook.md"),"utf8");
-  const source=casebook.split("## 完整案例：实拍物品逐步改变构图")[1].match(/```tsx\r?\n([\s\S]*?)\r?\n```/)![1];
+  const source=await readFile(join(repoRoot,"tests/fixtures/material-space-motion.tsx.txt"),"utf8");
   const props={sourceWidth:320,sourceHeight:180,viewBefore:{x:20,y:20,width:240,height:135},viewAfter:{x:0,y:0,width:320,height:180},cameraStartSec:0.1,cameraEndSec:1,scopeBefore:{x:30,y:40,width:60,height:60},scopeAfter:{x:20,y:20,width:280,height:130},scopeStartSec:1,scopeExpandedSec:1.6,scopeEndSec:2.5,marks:[{id:"marker",text:"测试",x:60,y:60,labelX:120,labelY:70,startSec:0.3,endSec:1.2}],background:"#111111",ink:"#ffffff",accent:"#ffcc00",labelFill:"#333333"};
   const work={...motionFixture,source,props,width:320,height:180,fps:30,durationInFrames:90,reference:undefined,videoBindings:{footage:{assetId:imported.asset.id,sourceStartMs:0,sourceEndMs:3000,decodeScale:1}}};
   const job=await call("submit_motion_work",{project_id:projectId,base_revision_id:await revision(),idempotency_key:"technical-v1",work});await wait(job.id);

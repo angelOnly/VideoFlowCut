@@ -25,7 +25,7 @@ description: VideoFlowCut 内部共享参考资料。仅供其它 VideoFlowCut S
 
 # VideoFlowCut 共享参考资料
 
-此目录保存项目对象、质量、证据与素材审阅的共享约束。应由具体 VideoFlowCut 工作流引用，不应单独替代项目分析、创作判断或实际预览验证。
+此目录保存跨角色的创作依据、当前稿、版本与交接约定。应由具体 VideoFlowCut 工作流引用，不应单独替代项目分析、创作判断或实际预览验证。
 `, "utf8"),
   writeFile(join(generatedSharedRoot, "agents", "openai.yaml"), `interface:
   display_name: "VideoFlowCut 共享参考资料"

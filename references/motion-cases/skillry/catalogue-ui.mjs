@@ -27,12 +27,12 @@ function render(){
     info.append(tags,el('p',c.scenario,'scenario'),el('p','原片实见：'+c.materials.join(' · '),'meta'));
     let segmentEnd=null;
     video.addEventListener('timeupdate',()=>{if(segmentEnd!==null && video.currentTime>=segmentEnd){video.pause();segmentEnd=null;}});
-    for(const seg of c.recommended_segments){const b=el('button',`▶ ${Number(seg.start.toFixed(2))}–${Number(seg.end.toFixed(2))} 秒 · ${seg.reason}`,'segment');b.addEventListener('click',async()=>{video.currentTime=seg.start;segmentEnd=seg.end;try{await video.play();}catch{failure.hidden=false;}});info.append(b);}
+    for(const seg of (c.analysis_kind==='mechanisms-v1'?[]:c.recommended_segments)){const b=el('button',`▶ ${Number(seg.start.toFixed(2))}–${Number(seg.end.toFixed(2))} 秒 · ${seg.reason}`,'segment');b.addEventListener('click',async()=>{video.currentTime=seg.start;segmentEnd=seg.end;try{await video.play();}catch{failure.hidden=false;}});info.append(b);}
     const detail=el('details'),summary=el('summary','方法、美术与迁移要求');detail.append(summary);
     for(const [label,value] of [['动效方法',c.methods.join('、')],['美术特点',c.art.join('、')],['需要的材料',c.material_requirements],['迁移代价',c.transfer_cost]])detail.append(el('p',label+'：'+value));
     const actions=el('div',null,'actions'),label=el('label'),box=el('input');box.type='checkbox';box.checked=selected.has(c.slug);box.setAttribute('aria-label',`收藏 ${c.case_number}`);label.append(box,document.createTextNode(' 收藏'));
     box.addEventListener('change',()=>{if(box.checked)selected.add(c.slug);else selected.delete(c.slug);try{localStorage.setItem(key,JSON.stringify([...selected]));}catch{$('error').textContent='浏览器存储不可用，本次收藏无法跨会话保存。';}card.classList.toggle('chosen',box.checked);selectionCount();if($('selected-only').checked)filter();});
-    const link=el('a','查看完整拆解 ↗');link.href=c.detail;link.target='_blank';link.rel='noopener';actions.append(label,link);info.append(detail,actions);card.append(video,failure,info);$('results').append(card);
+    const link=el('a',c.analysis_kind==='mechanisms-v1'?'总览与子机制 ↗':'查看完整拆解 ↗');link.href=c.detail;link.target='_blank';link.rel='noopener';actions.append(label,link);info.append(detail,actions);card.append(video,failure,info);$('results').append(card);
   }
   selectionCount();
 }

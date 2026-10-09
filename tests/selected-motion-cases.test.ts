@@ -7,12 +7,12 @@ import { motionSubmissionSchema } from "../packages/motion-work/src/schema.js";
 
 const root = resolve(".agents/skills");
 const cases = ["sim-paper", "smooth-relay", "ticket-phone", "product-fan", "cover-flow", "comment-focus"];
-const readFixture = async (name: string) => JSON.parse(await readFile(join(root, `motion-case-${name}/assets/fixture.json`), "utf8"));
+const readFixture = async (name: string) => JSON.parse(await readFile(join(root, `motion-case-library/references/cases/motion-case-${name}/assets/fixture.json`), "utf8"));
 
 test("选定源码通过当前受管校验与编译；按固定模式和图片绑定编译，不运行正式项目", async () => {
   for (const name of cases) {
     const fixture = await readFixture(name);
-    const directory = join(root, `motion-case-${name}/assets`);
+    const directory = join(root, `motion-case-library/references/cases/motion-case-${name}/assets`);
     const parts = fixture.parts ?? [{ source: fixture.sourceFiles[0], props: fixture.props, ...fixture }];
     const images: Record<string, string> = {};
     for (const [slot, file] of Object.entries(fixture.imageSlots)) {
@@ -53,6 +53,6 @@ test("合集时长扣除实际交叠，24秒合成明确保留外部素材和本
   for (const input of composed.inputs) {
     assert.equal(input.sourceEndFrame - input.sourceStartFrame, input.timelineEndFrame - input.timelineStartFrame);
     assert.equal(input.audio, "mute");
-    assert.ok((await readFile(join(root, "motion-case-sim-paper/assets", input.file))).length > 0);
+    assert.ok((await readFile(join(root, "motion-case-library/references/cases/motion-case-sim-paper/assets", input.file))).length > 0);
   }
 });

@@ -5,23 +5,17 @@ description: 为最终可播放语音建立准确、可读、语义分卡、与�
 
 # 字幕、语义分卡与屏幕文字
 
-<!-- topic-film-v2-captions:begin -->
-
 ## 字幕、主读与句群分别组织
 
 参照当前共同作品理解正文字幕、画内主读与标签分工，再按本片字款和画幅作设计。字幕卡、自然句群与视觉场面不同粒度，不因换卡重建画面。单行或双行来自本片采用，不照搬旧例；不缩字、挤字或切碎TTS来机械通过。切点依据实际声音精度，改稿后全文与字幕同步。
 
 主读、标签、UI、出处与制作备注按 [场面正文](../_shared/SCENE_DESIGN_HANDOFF.md) 分开。受管字体不自动控制原生 Caption 轨；背景、字级、字族和位置按当前能力核对，maxLines 不是已发布参数。主视觉预排即放入字幕，拆件不能重播或漏句；新版语音同步失效范围。
 
-参见 [共同创作方法](../_shared/TOPIC_TO_FILM.md) 与本次已采用的 [共同案例入口](../motion-case-attention-programme/SKILL.md)；未采用本例的其他任务按自己的参考与路由继续。
-
-<!-- topic-film-v2-captions:end -->
+当前声画协作沿 [主题到成片](../_shared/TOPIC_TO_FILM.md)；参考仅按当前稿已采用的范围使用。
 
 ## 执行角色与代理交接
 
-本 Skill 的创意工作在专项子代理中执行，负责语义分卡、版式、强调、阅读节奏与同屏主次。主任务通过 [production-coordinator](../production-coordinator/SKILL.md) 真实分派；同一授权子代理可按需读取相关 Skills 并直接创作，不递归分派。涉及整片主线或跨段风格的决定交导演子代理。
-
-执行前读取 [代理角色与交接](../_shared/PROJECT_REVISION_AND_HANDOFF.md#代理角色与交接)：输入带 Project、输入 Revision、对象、事实证据、硬约束和前后接口；返回完整产物与参数、选择理由、影响/失效范围和证据请求。下文的项目写入、生成提交及审阅保存由主任务统一执行，子代理不直接写正式项目。收到实际对象和真实 Preview 后由原子代理审阅修订，不能以摘要、工具成功或等待证据代替完成；输入变化先重新确认，不能只换版本重发。
+当前授权作者完成专业判断，主任务统一正式提交；输入、完整产物、依赖变化与原作者续接沿 [角色交接](../_shared/PROJECT_REVISION_AND_HANDOFF.md)。
 
 ## 字幕首先是信息层
 
@@ -30,10 +24,6 @@ description: 为最终可播放语音建立准确、可读、语义分卡、与�
 文字不共享同一个结束时刻。普通字幕更新当句，题目和问题可以跨句保留，标签随对象保持，来源原文按必要上下文显示；各自完成作用才退出或让位。相同措辞在字幕与画内分别承担作用时可以共存，不能因重复自动删除。稳定字幕和固定外框可以支持复杂画面，不把频繁变样式当作丰富度。
 
 是否全程显示普通字幕由用户目标、交付要求和本片构图决定；需要完整字幕时不能把关键词花字冒称完整转写。安全边距区分平台实际裁切或 UI 遮挡与本镜为阅读、人物或证据安排的空间：前者按交付条件保留，后者随构图选择，各画幅分别复核。不要先为全片永久空出一大块字幕带，也不强制每镜移动。
-
-## 文本事实来源
-
-字幕来自最终观众会听到的 Script/Speech，而不是原始 ASR、旧文稿或模型改写。数字、专名、否定、条件和单位必须与实际声音一致。若用户要求字幕做摘要或标题，应明确它不是逐字字幕，并避免改变事实。
 
 ## Caption Card 是阅读单位
 
@@ -75,7 +65,7 @@ description: 为最终可播放语音建立准确、可读、语义分卡、与�
 
 ## 阅读速度与时长
 
-新增重点排印的动作与阅读先以秒给出大约范围，按 [秒级初始节奏与预览修订](../_shared/EDITORIAL_FOUNDATIONS.md#秒级初始节奏与预览修订) 在完整声画预览中调整；基础字幕仍依实际语音和已确认卡边界。动画初稿不能改写真实对齐或用户锁定范围；可读性冲突在完整场面内比较画面、文字与可修改讲述，再依采用版本重新对齐。
+新增重点排印的动作与阅读先以秒给出大约范围，按 [秒级初始节奏与预览修订](../effect-timing/SKILL.md#秒级初始节奏与预览修订) 在完整声画预览中调整；基础字幕仍依实际语音和已确认卡边界。动画初稿不能改写真实对齐或用户锁定范围；可读性冲突在完整场面内比较画面、文字与可修改讲述，再依采用版本重新对齐。
 
 不能只用字符数公式，但可以作为风险提示。判断观众是否能在自然播放中读完，尤其在复杂画面、陌生专名和数字时。若读不完，优先简化 Card 或减少同步视觉；只有当前字幕合同和真实语音边界允许时才延长对应阅读范围，不用缩小到难读或伪造时间掩盖问题；可修改旁白由导演决定，字幕专项不自行裁声或改写原意。
 
@@ -90,30 +80,6 @@ description: 为最终可播放语音建立准确、可读、语义分卡、与�
 ## 实际画面与阅读验证
 
 字幕没有指定位置时使用默认底部布局，指定 placement 时使用自定义位置；bottomPercent 和 horizontalInsetPercent 只控制字幕自身的距离与宽度，不约束其他内容。预览不绘制固定安全框，平台不输出安全区相交提示。至少检查近景、手持物、最大文字、最长行、竖/横画幅和平台 UI。一个代表性帧通过不代表整片，人物和 Cutaway变化会改变背景与碰撞。
-
-## 修改范围
-
-仅改文字错字通常不改变主线时长；改分卡和 Timing 会影响 Preview；改 Style 可能影响全片布局；主声音变化使 Caption stale。Impact 应与修改类型一致。
-
-## 当前工具与能力
-
-当前 MCP 可 `generate_source_audio_captions`、`generate_speech_captions`、`read_source_audio_alignment`、`apply_source_caption_program`、`read_captions` 与 `edit_captions`。原声 A-roll 默认调用 `generate_source_audio_captions`；当前完整 SpeechAsset 已组装到唯一 Dialogue 时，用 `generate_speech_captions(base_revision_id, idempotency_key?)` 从最终可听音频生成字幕。两条入口复用 FunASR 的真实 `startMs/endMs`：每个 Provider 字幕 segment 自动对应一屏，不重生 TTS。一个 segment 可以自然排成一至两行，但同一时刻不合并多个 segment。
-
-自然 SpeechSegment 是配音生产单位，不是强制一屏的阅读单位。不要因一段自然旁白的默认字幕溢出，就拆碎配音、按字符均分时间、缩小字或删成摘要。旁白入口保留 Script、SpeechSegment、SpeechAsset、Dialogue 和画面，只在成功后原子替换未人工改写的默认字幕；统一版式沿用，已有不同局部版式或人工改写会拒绝静默覆盖。Job 期间暂缓其他项目写入，结束后读回当前 Revision；冲突先对账，不自动重放。`source_audio` 表示从实际音频派生，Alignment 的 `speechSource` 明确记录最终旁白来源，不是假 A-roll，也不会把字幕 token 升级成 SpeechTiming 的 word_exact。
-
-Provider 能提供严格 token 时间时，Alignment 标记为 `provider_token_timed`，才可在单段实际排版超过两行、Provider 分段明显破坏完整语义、回听确认错分段，或用户明确要求重新分屏时，读取 Alignment 并用 `apply_source_caption_program` 原子覆盖默认 Program。它不能手填时间、按字符均分时间或改写实义词。若 Alignment 标记为 `tokenPrecision: unavailable`，其 Provider segments 仍是可正常使用的 `sentence_exact` 原声字幕；但没有可验证的新切点，`apply_source_caption_program` 必须拒绝，不能为了排版或错字猜测时间。此时应保留默认段、重新取得带严格 token 证据的对齐，或回到源音频完成可追溯的纠错。
-
-单卡 `update` / `reset` 可用于当前 SpeechAsset 或已审计 `source_audio` 的稳定 Card：屏幕文案最多两行、有限字号/颜色/字幕位置、深色底板及受限透明度、一个连续强调短语，或恢复来源文案；不会改 Script、SpeechSegment 和声音。原声 A-roll 需要统一底板时，读取明确 Card ID 后以 `action=bulk_source_format`、`caption_ids` 与 `format` 原子应用到同一 A-roll，避免逐张提交造成 Revision 冲突。批量版式不接受 display 或显示时间范围，也不会新增、删除、拆分或重定时 Card。历史 `chunk_coarse` 仅供旧 Revision 读取；新的原声字幕不会创建它。若主线原文或时序变化，旧 Card 会被明确 stale 或重建，不能静默沿用。`occurrence` 从 0 开始，仍没有逐词时间或逐词动画能力。
-
-已实现的单卡 `edit_captions(action=update)` 可提交 `display: {mode: "shown", ranges: [{startFrame, endFrame}]}`，ranges 使用 Timeline 绝对帧的半开区间，位于本卡原始范围内、按先后排列且互不重叠，最多 50 段；shown 省略 ranges 表示显示整卡。`display: {mode: "hidden"}` 隐藏整卡且不能带 ranges，`display: null` 恢复整卡显示。这只改变显示，不删除原文或 token，不改原 Card 边界与语音对齐，也不能把范围延伸到下一句。
-
-静态位置使用 `format.placement: {leftPercent, topPercent, widthPercent}`，以左上角百分比定位字幕框，替代该卡旧的底部定位。leftPercent、topPercent 为 0～95，widthPercent 为 5～100，leftPercent + widthPercent 不超过 100；`placement: null` 恢复旧布局。框的位置与宽度不代表任意逐帧动画或自动避让；多画幅与长行仍需真实合成检查。动态短语、跟随对象的标签及跨句变化继续交受管作品。
-
-主任务只在当前会话 Schema 提供这些字段时提交，读回 Caption、显示与位置、Revision 和 Impact，再把实际合成交原专项复核。范围无效、内容 stale 或字段缺失时按当前错误与报障合同处理，不删除对齐信息来取得显示效果。
-
-识别错词、数字和英文显示可依据实际回听、与当前配音对应的已确认原稿，或用户明确修改指令。对已有对齐 Card 调用 `edit_captions(action=update, text, source_text_review)`：实际回听用 `{note}` 或 `{basis:"listening",note}`；已确认原稿用 `{basis:"confirmed_script",note,scriptRevision,speechSegmentIds}`，服务端核验当前 SpeechAsset、脚本版本、字幕所在片段及新文字属于该原稿；用户指令用 `{basis:"user_instruction",note,instruction,source}` 保存明确要求及来源。服务端保留原 sourceText、Alignment、时间、原文与新文审计，不改声音或 Script。原稿/用户指令依据不能声明实际听过，声音本身读错交回配音。标点、空格和换行不需要实义纠错记录；纠错后重分屏需先明确 reset，再重新复核。
-
-任何修改后要读回 Caption、Revision、Impact，渲染真实 Preview。只看文本 JSON 不能发现遮挡、行宽、画幅和阅读时间问题。
 
 ## 验证
 
@@ -135,7 +101,6 @@ Provider 能提供严格 token 时间时，Alignment 标记为 `provider_token_t
 
 任何字幕修改若改变语气、对象、事实或上下文，应退回 SemanticUnit/Script；显示层不能用更顺的文案替换原内容。
 
+## 按当前操作读取
 
-## 静态版式参数与拒绝分类
-
-`bulk_source_format` 要求同一来源使用 `sourceTimelineItemId`，旁白音频生成的有效来源卡也适用，不以素材是否 A-roll 判断。关闭背景传 `background_color:null` 并省略 `background_opacity`；透明度0非法，有背景时允许0.1至1。移除背景不建立白色字幕带，白带仍需原视觉作者的正式可渲染对象和真实合成验证。先检查 `isError` 并保存原始文本，不能直接JSON解析丢失协议校验错误；明确参数拒绝沿共享运行合同纠正，不把输入非法误报平台故障。
+需要生成、写入或核对当前captions对象时，读取 [执行操作](references/caption-operations.md) 对应章节，返回准确参数和受影响范围；只讨论本段表达时不预读全部字段。

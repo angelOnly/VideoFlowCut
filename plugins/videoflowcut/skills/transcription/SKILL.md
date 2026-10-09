@@ -67,10 +67,12 @@ FunASR 内部使用自动语言和 ITN，数字可能被规范为阿拉伯数字
 - 音频不可解码：先标准化或修 Asset；
 - ComfyUI 重启后 run 丢失：对账本地 Job和已有 Transcript，避免重复提交。
 
-## 示例：否定词
-
-ASR 把“不是说钱不重要”识别为“是说钱不重要”，一个字会反转结论。高风险句必须回听，人工校正 Transcript 后再进行 SemanticUnit。不能等字幕或质量阶段才发现。
-
 ## 交接合同
 
 输入是已就绪音频 Asset 和当前 Project。输出是 TranscriptText、候选句、原始调用信息和高风险核对结果。它会使旧语义判断可能失效。验证是读回文本、检查失败原因、回听关键范围，并明确时间精度。完成后把全部结果交给 `semantic-continuity`，不能直接开始逐句动效。
+
+## 当前调用与读回：转写
+
+| 阶段 | 当前 MCP 命令与关键输入 | 写后读回 / 下一步 |
+|---|---|---|
+| 转写 | `submit_transcription(asset_id, idempotency_key?)`；人工文本用 `apply_manual_transcript(base_revision_id, asset_id, text)` | Job 完成后 `read_script`；候选句不等于 SemanticUnit。 |

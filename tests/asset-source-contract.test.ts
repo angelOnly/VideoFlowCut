@@ -63,9 +63,9 @@ test("真实 MCP Schema 删除权利参数，旧参数在执行前被拒绝且�
 test("运行代码与共享 Skill 不再保留权利门禁和旧参数说明", async () => {
   const contracts = await readFile("packages/contracts/src/index.ts", "utf8");
   for (const field of ["AssetRightsRequirement", "AvatarUsageRightsConfirmation", "rightsStatus", "usageRights", "AttributionManifest"]) assert.equal(contracts.includes(field), false, field);
-  const shared = await readFile(".agents/skills/_shared/EVIDENCE_AND_READINESS.md", "utf8");
+  const shared = await readFile(".agents/skills/quality-verification/references/evidence-status.md", "utf8");
   assert.match(shared, /不验证素材权限、使用权、版权/);
-  const execution = await readFile(".agents/skills/_shared/MCP_EXECUTION_CONTRACT.md", "utf8");
+  const execution = await readFile(".agents/skills/visual-asset-sourcing/references/acquisition-operations.md", "utf8");
   assert.equal(execution.includes("usage_rights"), false);
   assert.match(execution, /不接受权利或用途证明参数/);
 });

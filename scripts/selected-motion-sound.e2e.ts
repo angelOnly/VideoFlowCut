@@ -9,7 +9,7 @@ const output = resolve(".candidate/media-intelligence-20260908/selected-cases");
 await mkdir(output, { recursive: true });
 const results: Array<Record<string, unknown>> = [];
 for (const name of ["sim-paper", "smooth-relay", "ticket-phone", "product-fan", "cover-flow", "comment-focus"]) {
-  const directory = resolve(`.agents/skills/motion-case-${name}/assets`);
+  const directory = resolve(`.agents/skills/motion-case-library/references/cases/motion-case-${name}/assets`);
   const fixture = JSON.parse(await readFile(join(directory, "fixture.json"), "utf8"));
   const parts = fixture.parts ?? [{ source: fixture.sourceFiles[0], ...fixture }];
   const images: Record<string, string> = {};
@@ -43,7 +43,7 @@ for (const name of ["sim-paper", "smooth-relay", "ticket-phone", "product-fan", 
 // 外层实拍与跨段过渡属于组合合同，复用已渲染帧，不改动冻结案例。
 const compositions: Array<Record<string, unknown>> = [];
 for (const name of ["sim-paper", "smooth-relay"]) {
-  const directory = resolve(`.agents/skills/motion-case-${name}/assets`);
+  const directory = resolve(`.agents/skills/motion-case-library/references/cases/motion-case-${name}/assets`);
   const fixture = JSON.parse(await readFile(join(directory, "fixture.json"), "utf8"));
   const target = join(output, name, "composed.mp4");
   if (name === "sim-paper") {

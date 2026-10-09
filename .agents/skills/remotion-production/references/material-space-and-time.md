@@ -112,3 +112,24 @@ sourceMs = sourceStartMs + 1000*(f-A)/fps
 - https://www.remotion.dev/docs/use-current-frame
 - https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit
 - https://developer.mozilla.org/en-US/docs/Web/CSS/object-position
+
+## 11. 源码实施与交接
+
+混合场面先落实 [素材到场面](../../production-director/references/asset-briefing.md) 的具体结合，再按 [素材坐标与时间](material-space-and-time.md) 实现。后者给出cover/contain映射、聚焦点、局部窗、Sequence和跨作品源时钟的具体计算；它是作者教学，不新增运行时模块。实际位置必须来自原件观察，不能拿数学例子的坐标当实测。
+
+源媒体、作品局部、整片和声音使用独立、可核对的时间映射。跨作品接管时核对投影、姿态、文字、材质、源帧；容器显式拥有所需宽高，子层共享父变换。
+
+尽量用同一份命名时序常量驱动动画与 resolveMotionEvents。事件描述对象和阶段须与实际实现相符；事件值本身不证明美术和阅读通过。
+
+每个关键设计写出实现位置与中途检查：例如“让位揭字—ForegroundWindow / conditionText—检查遮挡解除中点”。若技术资源需要分作品，按正常预算拆分并继承出口，不把技术上限当整片时长。
+
+### 连续路径公式怎样理解
+
+Hermite插值除了两端位置，还接收两端速度。设一段持续时间为Δt，归一化进度为u，位置p、速度v使用同一坐标与秒单位，则：
+
+```text
+p(u) = (2u³−3u²+1)p0 + (u³−2u²+u)Δt·v0
+     + (−2u³+3u²)p1 + (u³−u²)Δt·v1
+```
+
+相邻段在公共节点使用相同位置和速度，位置与一阶速度就连续。它不自动保证任意输入下没有过冲、不自动保证高阶加速度连续，更不自动保证好看；实际参数仍要检查路径、阅读和语义。使用本片参数后应检查过冲、路径边界和阅读条件；数学回归不代替实际预览。

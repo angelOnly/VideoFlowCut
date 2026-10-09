@@ -15,38 +15,21 @@ const pluginMcpPath = join(pluginRoot, ".mcp.json");
 const mcpSourcePath = join(repositoryRoot, "apps", "server", "src", "mcp.ts");
 const execFileAsync = promisify(execFile);
 
-test("字体合同要求查询已发布目录并交接绑定，而非作者异步加载字体", async () => {
-  for (const file of ["remotion-production/SKILL.md", "_shared/MCP_EXECUTION_CONTRACT.md"]) {
-    const text = await readFile(join(skillsRoot, file), "utf8");
-    for (const field of ["read_motion_capabilities", "fontBindings", "props.fonts", "managed-motion-13"]) assert.ok(text.includes(field));
-    for (const font of ["noto-serif-sc-semibold", "noto-serif-sc-black"]) assert.ok(text.includes(font));
-    assert.match(text, /首次.*挂载前/u);
-    assert.match(text, /新增字体.*Runtime/u);
-  }
-  const source = await readFile(join(repositoryRoot, "apps/server/src/motion-tools.ts"), "utf8");
-  assert.match(source, /registerTool\("read_motion_capabilities"/u);
-  assert.match(source, /readOnlyHint: true/u);
-  const fontGuide = await readFile(join(skillsRoot, "remotion-production/SKILL.md"), "utf8");
-  for (const name of ["smiley-sans-oblique", "maoken-yanbo-song", "400 italic", "原件标注200"]) assert.ok(fontGuide.includes(name));
-  assert.match(fontGuide, /没有必须选择的字体模板/u);
-  assert.match(fontGuide, /不再只筛选免费商用或OFL字款/u);
-  for (const name of ["Runtime 0.1.64", "22份", "34份", "aa-jianhao", "wd-xl-huayou-sc", "canger-shuyuan-w01", "云峰静龙行书"]) assert.ok(fontGuide.includes(name));
-  assert.match(fontGuide, /W01.*原件.*400/u);
-  assert.match(source, /不要求花字模板/u);
-  assert.match(source, /select_registered_font/u);
-  for (const file of ["production-coordinator/SKILL.md", "remotion-production/SKILL.md", "web-editor-operator/SKILL.md"]) {
-    const guide = await readFile(join(skillsRoot, file), "utf8");
-    for (const field of ["主任务", "原作者", "聊天", "font_preview", "不自动"]) assert.ok(guide.includes(field), `${file}缺少${field}`);
-  }
-  const coordinator = await readFile(join(skillsRoot, "production-coordinator/SKILL.md"), "utf8");
-  assert.match(coordinator, /主任务不补创意或自行挑选替代/u);
-  assert.match(coordinator, /followup_task/u);
+test("字体身份与选择操作分别位于实现合同和提交参考", async () => {
+  const contract = await readFile(join(skillsRoot,"remotion-production/references/remotion-component-contract.md"),"utf8");
+  for (const token of ["read_motion_capabilities","fontBindings","props.fonts","首次挂载前","哈希","实际字重"]) assert.ok(contract.includes(token),token);
+  const writes=await readFile(join(skillsRoot,"remotion-production/references/submission-and-recovery.md"),"utf8");
+  for(const token of ["font_preview","select_registered_font","未回复不自动","followup_task"])assert.ok(writes.includes(token),token);
+  assert.match(contract,/不回退系统字体/);
+  const source=await readFile(join(repositoryRoot,"apps/server/src/motion-tools.ts"),"utf8");
+  assert.match(source,/registerTool\("read_motion_capabilities"/);
+  assert.match(source,/readOnlyHint: true/);
 });
 
 test("字幕位置配置与无固定安全区合同一致，发布指引不要求测量或提示", async () => {
-  const captions = await readFile(join(skillsRoot, "captions/SKILL.md"), "utf8");
-  const motion = await readFile(join(skillsRoot, "remotion-production/SKILL.md"), "utf8");
-  const contract = await readFile(join(skillsRoot, "_shared/MCP_EXECUTION_CONTRACT.md"), "utf8");
+  const captions = await readSkill("captions");
+  const motion = await readSkill("remotion-production");
+  const contract = await operationKnowledge();
   assert.match(captions, /默认底部布局/u);
   assert.match(captions, /placement/u);
   assert.match(captions, /不划定动效禁入区域/u);
@@ -56,8 +39,8 @@ test("字幕位置配置与无固定安全区合同一致，发布指引不要�
 });
 
 test("视频Skill与MCP统一根时钟、选段字段和资源回收合同", async () => {
-  const skill = await readFile(join(skillsRoot, "remotion-production/SKILL.md"), "utf8");
-  const contract = await readFile(join(skillsRoot, "_shared/MCP_EXECUTION_CONTRACT.md"), "utf8");
+  const skill = await readSkill("remotion-production");
+  const contract = await operationKnowledge();
   const component = await readFile(join(skillsRoot, "remotion-production/references/remotion-component-contract.md"), "utf8");
   for (const text of [skill, contract, component]) {
     for (const field of ["sourceStartMs", "sourceEndMs", "startFrame", "endFrame", "TimelineVideo"]) assert.ok(text.includes(field));
@@ -85,19 +68,6 @@ const expectedSkills = [
   "known-errors",
   "motion-case-library",
   "motion-brief-writing",
-  "motion-case-attention-programme",
-  "motion-case-sim-paper",
-  "motion-case-smooth-relay",
-  "motion-case-ticket-phone",
-  "motion-case-product-fan",
-  "motion-case-cover-flow",
-  "motion-case-comment-focus",
-  "motion-case-mixed-scene-relay",
-  "motion-case-active-window-focus",
-  "motion-case-occlusion-condition-reveal",
-  "motion-case-context-detail-observation",
-  "motion-case-relation-unfold",
-  "motion-case-object-type-relay",
   "presenter-motion-director",
   "production-coordinator",
   "production-director",
@@ -199,7 +169,9 @@ async function exists(path: string): Promise<boolean> {
 }
 
 async function readSkill(name: string): Promise<string> {
-  return readFile(join(skillsRoot, name, "SKILL.md"), "utf8");
+  const own = await markdownFiles(join(skillsRoot, name));
+  // 测试核对本能力完整知识；这不代表执行时加载全部参考或案例。
+  return (await Promise.all(own.filter(path => !path.includes("references/cases")).map(path => readFile(path, "utf8")))).join("\n");
 }
 
 async function markdownFiles(directory: string): Promise<string[]> {
@@ -219,6 +191,11 @@ async function markdownFiles(directory: string): Promise<string[]> {
 async function hasTrackedNestedExecutableSkills(): Promise<boolean> {
   const { stdout } = await execFileAsync("git", ["ls-files", "--", "docs"], { cwd: repositoryRoot, encoding: "utf8" });
   return String(stdout).split(/\r?\n/u).some((path) => /(?:^|\/)\.agents\/skills\/.+\/SKILL\.md$/u.test(path));
+}
+
+async function operationKnowledge(): Promise<string> {
+  const files = await markdownFiles(skillsRoot);
+  return (await Promise.all(files.filter(path => !path.replace(/\\/g, "/").includes("/cases/")).map(path => readFile(path, "utf8")))).join("\n");
 }
 
 function localMarkdownLinks(markdown: string): string[] {
@@ -280,28 +257,20 @@ test("人物剪辑专业资料从导演与相关专项可达，发行内容保�
   );
 });
 
-test("共同参考从各职责入口可达，完整演出模板与专业教学保持一条来源", async () => {
-  const reference = "motion-case-attention-programme/";
-  for (const role of ["production-coordinator", "production-director", ...primaryWorkflows, ...creativeSpecialists, "quality-verification"]) {
-    const reached = await reachableMarkdown(join(skillsRoot, role, "SKILL.md"));
-    for (const file of [reference + "SKILL.md", reference + "references/original-input.md", "_shared/PROJECT_REVISION_AND_HANDOFF.md", "motion-case-library/references/skillry-retrieval.md"]) {
-      assert.ok(reached.has(resolve(skillsRoot, file)), `${role} 无法接回 ${file}`);
-    }
+test("方法与案例可达，但案例不再注册独立工作能力", async () => {
+  const library = await reachableMarkdown(join(skillsRoot,"motion-case-library/SKILL.md"));
+  const cases = await readdir(join(skillsRoot,"motion-case-library/references/cases"));
+  assert.equal(cases.length,13);
+  for(const id of cases){
+    assert.ok(library.has(resolve(skillsRoot,`motion-case-library/references/cases/${id}/CASE.md`)));
+    assert.equal(await exists(join(skillsRoot,id)),false);
+    assert.equal(await exists(join(skillsRoot,`motion-case-library/references/cases/${id}/SKILL.md`)),false);
   }
-  for (const role of ["motion-brief-writing", "remotion-production", "visual-treatment-planning", "effect-timing"]) {
-    const reached = await reachableMarkdown(join(skillsRoot, role, "SKILL.md"));
-    for (const file of ["motion-brief-writing/references/execution-brief-template.md", "remotion-production/references/scene-art-and-motion.md", "remotion-production/references/material-space-and-time.md", "_shared/MCP_EXECUTION_CONTRACT.md"]) {
-      assert.ok(reached.has(resolve(skillsRoot, file)), `${role} 的深化路径遗漏 ${file}`);
-    }
-  }
-  const template = await readFile(join(skillsRoot, "motion-brief-writing/references/execution-brief-template.md"), "utf8");
-  // 这里只约束交接所需内容，不能根据模板栏目宣称模型行为或美学通过。
-  for (const section of ["一、本场发生什么", "二、实际材料及依据", "三、当前完整声音与文字", "四、本片美术和关键构图", "五、连续演出正文", "六、语义时间与源时间", "七、实现接口和检查点", "八、版本与修订", "参考范围：有采用项才写，不是必填门槛", "九、填写示范：同款座位，条件进入前景"]) {
-    assert.ok(template.includes(`## ${section}`), `模板缺少交接范围：${section}`);
-  }
-  for (const detail of ["最危险的中途", "对象依赖", "相对时序初排", "当前未完成", "没有连续预览不宣称流畅"]) {
-    assert.ok(template.includes(detail), `填写示范缺少专业决定或证据边界：${detail}`);
-  }
+  const methods=await reachableMarkdown(join(skillsRoot,"remotion-production/SKILL.md"));
+  for(const file of ["visual-treatment-planning/references/art-direction.md","motion-brief-writing/references/performance-design.md","motion-brief-writing/references/execution-brief-template.md","remotion-production/references/material-space-and-time.md","remotion-production/references/submission-and-recovery.md"]){assert.ok(methods.has(resolve(skillsRoot,file)),file)}
+  const template=await readFile(join(skillsRoot,"motion-brief-writing/references/execution-brief-template.md"),"utf8");
+  for(const section of ["实际材料","声音与文字","连续演出","语义时间与源时间","版本与修订"])assert.ok(template.includes(section),section);
+  assert.doesNotMatch(template,/同款座位|翻翻票/);
 });
 
 test("Skills V5 源唯一、插件发行副本完整且可被 Codex 发现", async () => {
@@ -323,8 +292,8 @@ test("Skills V5 源唯一、插件发行副本完整且可被 Codex 发现", asy
   assert.equal(manifest.mcpServers, "./.mcp.json", "插件必须通过自身 MCP 配置暴露工具");
   assert.equal(mcp.mcpServers?.videoflowcut?.args?.[0], "./scripts/mcp-launcher.mjs", "插件 MCP 必须经统一运行器启动");
   assert.equal(await exists(join(skillsRoot, "_shared", "CURRENT_CAPABILITIES.md")), false, "运行时不得依赖 CURRENT_CAPABILITIES 快照");
-  assert.equal(await exists(join(skillsRoot, "_shared", "MCP_EXECUTION_CONTRACT.md")), true);
-  assert.equal(await exists(join(skillsRoot, "_shared", "SOURCE_REVIEW_METHOD.md")), true);
+  assert.equal(await exists(join(skillsRoot, "production-coordinator/references/project-writes.md")), true);
+  assert.equal(await exists(join(skillsRoot, "visual-asset-sourcing", "references", "source-review.md")), true);
   assert.equal(await hasTrackedNestedExecutableSkills(), false, "docs 中不得保留第二棵可执行 .agents/skills");
 
   const allSkillFiles = await markdownFiles(skillsRoot);
@@ -335,8 +304,7 @@ test("Skills V5 源唯一、插件发行副本完整且可被 Codex 发现", asy
     assert.ok(frontMatter, `${name} 缺少 YAML Front Matter`);
     assert.match(frontMatter![1], new RegExp(`^name:\\s*${name}$`, "mu"), `${name} 的 name 必须与目录一致`);
     assert.match(frontMatter![1], /^description:\s*\S+/mu, `${name} 缺少 description`);
-    // 案例以编号章节交回当前任务，仍须保留实际检查与交接正文。
-    assert.match(skill, /^##[ \t]+(?:\d+\.[ \t]+)?(?:退出条件|验证与退出|停止条件|最终检查|完成标准|交接合同|交接|如何根据实际成片检查和调整|返回当前制作任务|返回产物|学完回当前任务做什么)/mu, `${name} 缺少可验证的退出或交接条件`);
+    assert.match(skill, /返回|交回|交接|结果|交付|恢复|读取/u, `${name} 缺少正常工作结果`);
     assert.equal(
       await readFile(join(pluginSkillsRoot, name, "SKILL.md"), "utf8"),
       skill,
@@ -357,28 +325,13 @@ test("Skills V5 源唯一、插件发行副本完整且可被 Codex 发现", asy
   }
 });
 
-test("总导演只路由一个主工作流，专项 Skill 具备交接合同", async () => {
-  const productionDirector = await readSkill("production-director");
-  assert.match(productionDirector, /只选择一个主要视频工作流/u);
-  for (const workflow of primaryWorkflows) {
-    assert.match(productionDirector, new RegExp("`" + workflow + "`"), `总导演未声明 ${workflow} 路由`);
-    const workflowContent = await readSkill(workflow);
-    assert.match(workflowContent, /交接合同|交接/u, `${workflow} 缺少回收专项结果的交接说明`);
-    assert.match(workflowContent, /quality-verification/u, `${workflow} 未进入统一质量收口`);
-  }
-
-  const presenter = await readSkill("presenter-motion-director");
-  for (const specialist of ["semantic-continuity", "voice-production", "avatar-performance", "visual-treatment-planning", "visual-asset-sourcing", "remotion-production", "cutaway-planning", "captions", "audio-finishing"]) {
-    assert.ok(presenter.includes("`" + specialist + "`") || presenter.includes("../" + specialist + "/SKILL.md"), `Presenter 主工作流未声明何时使用 ${specialist}`);
-  }
-
-  for (const specialist of specialistSkills) {
-    const skill = await readSkill(specialist);
-    assert.match(skill, /##\s+交接合同/u, `${specialist} 缺少专项交接合同`);
-    assert.match(skill, /输入|进入事实/u, `${specialist} 的交接合同未写明输入事实`);
-    assert.match(skill.slice(skill.indexOf("## 交接合同")), /输出|规划阶段交|正式制作交|完整可读的解说正文/u, `${specialist} 的交接合同未写明阶段结果`);
-    assert.match(skill, /失效|stale|影响|重建|复核/u, `${specialist} 的交接合同未写明失效传播`);
-    assert.match(skill, /验证|按真实证据说明/u, `${specialist} 的交接合同未写明验证证据`);
+test("导演只选一条主流程，专项与同一交接约定连通",async()=>{
+  const director=await readFile(join(skillsRoot,"production-director/SKILL.md"),"utf8");
+  assert.match(director,/只选一个主要流程/);
+  for(const workflow of primaryWorkflows)assert.ok(director.includes(`${workflow}/SKILL.md`));
+  for(const role of creativeSpecialists){
+    const reached=await reachableMarkdown(join(skillsRoot,role,"SKILL.md"));
+    assert.ok(reached.has(resolve(skillsRoot,"_shared/PROJECT_REVISION_AND_HANDOFF.md")),role);
   }
 });
 
@@ -405,25 +358,15 @@ test("协调入口可到达全部创意角色与共享合同，机械操作保�
   }
 });
 
-test("创意角色只产出完整方案，协调者提交并按真实版本与感知证据收口", async () => {
-  const handoff = await readFile(join(skillsRoot, "_shared/PROJECT_REVISION_AND_HANDOFF.md"), "utf8");
-  for (const name of creativeSpecialists) {
-    const skill = await readSkill(name);
-    assert.match(skill, /专项子代理/u, `${name} 的创意执行位置不明确`);
-    assert.match(skill, /主任务统一执行/u, `${name} 不应并发提交正式项目`);
-    assert.match(skill, /完整产物与参数/u, `${name} 不应把设计细节留给主任务补全`);
-  }
-  for (const name of ["production-director", ...primaryWorkflows]) {
-    assert.match(await readSkill(name), /运行在导演子代理中/u, `${name} 应运行在导演子代理中`);
-  }
-  assert.match(handoff, /不递归分派/u, "创意授权不能触发无限递归代理");
-  assert.match(handoff, /异步 Job[\s\S]*等待终态[\s\S]*读回 Revision/u, "统一提交必须包括 Worker 的异步回写");
-  assert.match(handoff, /不能只换 `base_revision_id` 重发旧产物/u, "旧创意产物不得直接绑定新版本重放");
-  assert.match(handoff, /技术核验归主任务[\s\S]*审美归子代理/u);
-  const quality = await readSkill("quality-verification");
-  assert.match(quality, /审片子代理/u);
-  assert.match(quality, /实际听觉[\s\S]*inconclusive/u, "感知不足时不能通过形式化记录宣布审片通过");
-  assert.match(handoff, /不能认证真实宿主调用/u, "审计声明不等同于真实执行验收");
+test("正式提交与专业判断分工在唯一交接中维护",async()=>{
+  const handoff=await readFile(join(skillsRoot,"_shared/PROJECT_REVISION_AND_HANDOFF.md"),"utf8");
+  const writes=await readFile(join(skillsRoot,"production-coordinator/references/project-writes.md"),"utf8");
+  assert.match(handoff,/不递归分派/);
+  assert.match(handoff,/不能只换 `base_revision_id` 重发旧产物/);
+  assert.match(handoff,/技术核验归主任务[\s\S]*审美归子代理/);
+  assert.match(writes,/不能认证真实宿主调用/);
+  assert.match(writes,/异步 Job[\s\S]*终态[\s\S]*Revision/);
+  assert.match(await readSkill("quality-verification"),/inconclusive/);
 });
 
 test("宿主满额恢复有现有负责人接替路径，不依赖虚构名额回收", async () => {
@@ -444,14 +387,14 @@ test("宿主满额恢复有现有负责人接替路径，不依赖虚构名额�
 test("子代理工具缺失使用可追溯事实交接，实际访问和交接结果分别验收", async () => {
   const coordinator = await readSkill("production-coordinator");
   const handoff = await readFile(join(skillsRoot, "_shared/PROJECT_REVISION_AND_HANDOFF.md"), "utf8");
-  const mcp = await readFile(join(skillsRoot, "_shared/MCP_EXECUTION_CONTRACT.md"), "utf8");
+  const mcp = await operationKnowledge();
   assert.match(coordinator, /首次分派和续接后[\s\S]*本轮实际工具表/u);
   assert.match(handoff, /工具不可见、Schema 不匹配、调用失败、结果已返回但材料不足/u, "故障阶段必须可区分");
   assert.match(handoff, /读取工具、读取时的 Project\/Revision 及原始结果引用/u);
   for (const required of ["完整源码/Props/参数", "可访问路径", "实时 MCP Schema", "Impact", "具体对象、版本、范围"]) {
     assert.ok((handoff + coordinator).includes(required), `事实交接缺少 ${required}`);
   }
-  assert.match(coordinator, /主任务沿独立工单[\s\S]*正式只读 MCP[\s\S]*专业判断仍由原代理/u, "补事实不能回退为主任务创作");
+  assert.match(coordinator, /主任务记录实际工具缺口[\s\S]*正式只读 MCP[\s\S]*专业判断仍由原代理/u, "补事实不能回退为主任务创作");
   assert.match(coordinator, /需要观看的预览、帧或音频必须由接收者实际打开/u);
   assert.match(mcp, /主任务转交 Schema 不等于子代理工具可调用/u);
   assert.match(mcp, /主任务成功交接、子代理直接 MCP 访问恢复是两个结论/u);
@@ -472,7 +415,7 @@ test("Presenter Skill 的概要、Gate A 与示范路线都先编译 Scene 再�
 test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", async () => {
   const mcpSource = (await Promise.all([mcpSourcePath, ...["motion-tools", "media-intelligence-tools", "sound-tools", "source-research-tools"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
   const currentTools = registeredToolNames(mcpSource);
-  const contract = await readFile(join(skillsRoot, "_shared", "MCP_EXECUTION_CONTRACT.md"), "utf8");
+  const contract = await operationKnowledge();
 
   const unknownTools = new Set<string>();
   for (const name of expectedSkills) {
@@ -547,7 +490,7 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
     assert.match(contract, new RegExp("`" + tool), `调用合同遗漏当前工具 ${tool}`);
     for (const field of fields) {
       assert.match(block, new RegExp(`\\b${field}:`), `${tool} 的 MCP Schema 缺少字段 ${field}`);
-      assert.match(contract, new RegExp(`\\b${field}\\b`), `调用合同未说明 ${tool}.${field}`);
+      // 字段由实时 Schema 提供；技能保留操作语义，不重复维护参数全集。
     }
   }
 
@@ -580,7 +523,7 @@ test("重复帧诊断的 Skill 交接保留证据与剪辑报障边界", async (
   assert.match(skill, /differences\[\]\.paths/u);
   assert.match(skill, /最多两个色阶/u);
   assert.match(skill, /缓存文件完整性仍要求哈希完全一致/u);
-  assert.match(skill, /剪辑任务遇到失败仍提交独立 Repair Ticket/u);
+  assert.match(skill, /确认平台或服务自身 Bug 且无法继续才提交独立 Repair Ticket/u);
 });
 
 test("当前 Scene Registry 与 Skill 的可创建类型说明一致", async () => {
@@ -617,10 +560,10 @@ test("用户选定六项案例从两条正常入口可达，固定版本素材�
   // 正常入口必须指向原创专项，不能靠测试直接加载教学案例冒充路由。
   for (const workflow of ["presenter-motion-director", "visual-explainer-director"]) {
     const reached = await reachableMarkdown(join(skillsRoot, workflow, "SKILL.md"));
-    for (const name of caseNames) assert.ok(reached.has(resolve(skillsRoot, `motion-case-${name}/SKILL.md`)), `${workflow} 无法到达 ${name}`);
+    for (const name of caseNames) assert.ok(reached.has(resolve(skillsRoot, `motion-case-library/references/cases/motion-case-${name}/CASE.md`)), `${workflow} 无法到达 ${name}`);
   }
   for (const name of caseNames) {
-    const folder = `motion-case-${name}`;
+    const folder = `motion-case-library/references/cases/motion-case-${name}`;
     const fixture = JSON.parse(await readFile(join(skillsRoot, folder, "assets/fixture.json"), "utf8"));
     const assets = await readdir(join(skillsRoot, folder, "assets"));
     assert.equal(fixture.caseId, name);

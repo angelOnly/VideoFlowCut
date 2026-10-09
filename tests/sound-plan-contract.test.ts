@@ -97,8 +97,8 @@ test("声音计划 HTTP 入口沿用相同创建合同和局部更新校验", as
 });
 
 test("配音前声音计划交接明确预估范围与实测更新", async () => {
-  const contract = await readFile(".agents/skills/_shared/MCP_EXECUTION_CONTRACT.md", "utf8");
-  const director = await readFile(".agents/skills/visual-explainer-director/SKILL.md", "utf8");
+  const contract = await readFile(".agents/skills/audio-finishing/references/audio-operations.md", "utf8");
+  const director = await readFile(".agents/skills/visual-explainer-director/references/explanation-design.md", "utf8");
   assert.match(contract, /input.action=create.*必须提供 startFrame、endFrame/u);
   assert.match(contract, /预估秒数.*update.*实测时长/u);
   assert.match(director, /预估秒数.*startFrame\/endFrame.*soundPlanId.*实测范围/u);

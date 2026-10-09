@@ -8,6 +8,6 @@ test('素材坐标、源时钟和预览偏移的数学回归', () => {
   delete environment.NODE_TEST_CONTEXT;
   execFileSync(process.execPath, [
     '--test',
-    join(process.cwd(), '.agents/skills/remotion-production/references/material-math.test.mjs'),
+    join(process.cwd(), '.agents/skills/remotion-production/scripts/material-math.test.mjs'),
   ], {encoding: 'utf8', timeout: 30_000, env: environment});
 });

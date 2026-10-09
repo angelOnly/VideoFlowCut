@@ -1,0 +1,5586 @@
+{
+  "schema_version": 1,
+  "scope": "已整理 44 / 120 个案例（001、002、003、005、006、007、008、009、010、011、012、014、015、016、017、018、019、020、021、022、023、024、025、026、027、028、029、030、031、032、033、034、035、036、037、038、039、040、041、043、051、060、071、106）；其余 76 个尚未转换",
+  "source_sha256": "f0a9b9c8666e7f83a657daa2855ba66c282781a05b9b695e2b288e4ee3e53e98",
+  "count": 281,
+  "mechanisms": [
+    {
+      "id": "001-m01",
+      "title": "外围小片错开进入，中心活动层持续保留",
+      "case_number": 1,
+      "summary": "让小片错开进入中心周围的空位，形成逐项累积。",
+      "purpose": "分批建立多项",
+      "relation": "小片依次补入不同空位，已到位的小片与中心前景不随下一片重置。",
+      "start_state": "中心已有持续活动的前景，周围留有空位。",
+      "end_state": "多个小片分布在中心周围，后层大字接入。",
+      "tags": [
+        "错峰入场",
+        "外围累积",
+        "前景保持"
+      ],
+      "document": "cases/sab8a-475686-original/mechanisms/m01.md",
+      "storyboard": "cases/sab8a-475686-original/mechanisms/m01.jpg",
+      "case_slug": "sab8a-475686",
+      "overview": "cases/sab8a-475686-original/overview.md",
+      "detail": "detail.html?case=sab8a-475686&mechanism=001-m01"
+    },
+    {
+      "id": "001-m02",
+      "title": "长条内逐字累积，再向下展开多行",
+      "case_number": 1,
+      "summary": "先建立长条，再使字符从左向右逐步增加。",
+      "purpose": "逐层展开内容",
+      "relation": "输入先建立焦点，再展开下方层级；前景及已有字符保持。",
+      "start_state": "前景持续活动，旁边只有一条空的长形区域。",
+      "end_state": "长条中内容完整，下方多行依次建立。",
+      "tags": [
+        "逐字显现",
+        "下拉展开",
+        "累积"
+      ],
+      "document": "cases/sab8a-475686-original/mechanisms/m02.md",
+      "storyboard": "cases/sab8a-475686-original/mechanisms/m02.jpg",
+      "case_slug": "sab8a-475686",
+      "overview": "cases/sab8a-475686-original/overview.md",
+      "detail": "detail.html?case=sab8a-475686&mechanism=001-m02"
+    },
+    {
+      "id": "001-m03",
+      "title": "活动前景留场，后层替换后再补外围元素",
+      "case_number": 1,
+      "summary": "保留中部活动轮廓，让后层逐渐被新的画面替换。",
+      "purpose": "保留参照换场",
+      "relation": "前景的位置与动作提供持续参照，变化主要在后层及外围发生。",
+      "start_state": "活动轮廓占据画面中部，后方已有完整底层。",
+      "end_state": "新的后层接管，外围小片和字组围绕原活动位置建立。",
+      "tags": [
+        "前景保持",
+        "后层替换",
+        "动作接续"
+      ],
+      "document": "cases/sab8a-475686-original/mechanisms/m03.md",
+      "storyboard": "cases/sab8a-475686-original/mechanisms/m03.jpg",
+      "case_slug": "sab8a-475686",
+      "overview": "cases/sab8a-475686-original/overview.md",
+      "detail": "detail.html?case=sab8a-475686&mechanism=001-m03"
+    },
+    {
+      "id": "001-m04",
+      "title": "前景动作让出空位，小片随后落入",
+      "case_number": 1,
+      "summary": "先让活动前景向一侧展开，形成一块可承接内容的空位。",
+      "purpose": "动作引导入场",
+      "relation": "前景先形成指向或承托关系，小片随后接入对应空位。",
+      "start_state": "前景正在改变姿态，尚未建立旁侧小片。",
+      "end_state": "前景形成承托方向，小片占据其让出的空位。",
+      "tags": [
+        "动作触发",
+        "空位承接",
+        "新增图块"
+      ],
+      "document": "cases/sab8a-475686-original/mechanisms/m04.md",
+      "storyboard": "cases/sab8a-475686-original/mechanisms/m04.jpg",
+      "case_slug": "sab8a-475686",
+      "overview": "cases/sab8a-475686-original/overview.md",
+      "detail": "detail.html?case=sab8a-475686&mechanism=001-m04"
+    },
+    {
+      "id": "001-m05",
+      "title": "中心圆形开口扩大，内部画面接管全屏",
+      "case_number": 1,
+      "summary": "在旧画面中央打开圆形区域，让新层先从圆内露出。",
+      "purpose": "由局部接管全屏",
+      "relation": "新内容先在圆内可见，再随开口扩大接管原画面。",
+      "start_state": "旧画面仍在，中央出现可见新内容的圆形开口。",
+      "end_state": "圆边扩大到画外，新画面完整留场。",
+      "tags": [
+        "圆形揭示",
+        "局部到全屏",
+        "遮罩扩张"
+      ],
+      "document": "cases/sab8a-475686-original/mechanisms/m05.md",
+      "storyboard": "cases/sab8a-475686-original/mechanisms/m05.jpg",
+      "case_slug": "sab8a-475686",
+      "overview": "cases/sab8a-475686-original/overview.md",
+      "detail": "detail.html?case=sab8a-475686&mechanism=001-m05"
+    },
+    {
+      "id": "001-m06",
+      "title": "固定气泡内文字逐项增多，退场后让出后层",
+      "case_number": 1,
+      "summary": "先在前景旁建立气泡外形，然后分组增加内部文字，让已出现的部分保持。",
+      "purpose": "在固定区域内累积",
+      "relation": "外形先稳定，内部逐项填充；退出后把同一注意区域交给后层。",
+      "start_state": "活动前景旁有空位，后层已建立。",
+      "end_state": "气泡内容完成并退出，后层的大字接续出现。",
+      "tags": [
+        "气泡",
+        "逐项填充",
+        "前后接力"
+      ],
+      "document": "cases/sab8a-475686-original/mechanisms/m06.md",
+      "storyboard": "cases/sab8a-475686-original/mechanisms/m06.jpg",
+      "case_slug": "sab8a-475686",
+      "overview": "cases/sab8a-475686-original/overview.md",
+      "detail": "detail.html?case=sab8a-475686&mechanism=001-m06"
+    },
+    {
+      "id": "001-m07",
+      "title": "原活动层继续，角落另开局部放大窗",
+      "case_number": 1,
+      "summary": "保持原活动层的范围和位置，在角落建立一个独立放大窗，展示同一活动中的局部。",
+      "purpose": "保留全局展示局部",
+      "relation": "新增放大窗与原层并存，局部并未从原层挖走。",
+      "start_state": "完整活动层居中，角落尚无附加窗口。",
+      "end_state": "角落出现局部放大窗，原层与局部都继续活动。",
+      "tags": [
+        "局部放大",
+        "画中画",
+        "双层持续"
+      ],
+      "document": "cases/sab8a-475686-original/mechanisms/m07.md",
+      "storyboard": "cases/sab8a-475686-original/mechanisms/m07.jpg",
+      "case_slug": "sab8a-475686",
+      "overview": "cases/sab8a-475686-original/overview.md",
+      "detail": "detail.html?case=sab8a-475686&mechanism=001-m07"
+    },
+    {
+      "id": "001-m08",
+      "title": "侧立片层翻开，前景轮廓越出框边",
+      "case_number": 1,
+      "summary": "让新片层以近乎侧立的窄面进入，随后转向正面并铺开。",
+      "purpose": "翻面建立内外层",
+      "relation": "新片从侧面展开接管，边框限制后层而不裁掉全部前景。",
+      "start_state": "旧底层与活动前景共同留场。",
+      "end_state": "新片层正面展开，内框在后，活动轮廓部分越出框边。",
+      "tags": [
+        "翻面",
+        "前后遮挡",
+        "越框"
+      ],
+      "document": "cases/sab8a-475686-original/mechanisms/m08.md",
+      "storyboard": "cases/sab8a-475686-original/mechanisms/m08.jpg",
+      "case_slug": "sab8a-475686",
+      "overview": "cases/sab8a-475686-original/overview.md",
+      "detail": "detail.html?case=sab8a-475686&mechanism=001-m08"
+    },
+    {
+      "id": "001-m09",
+      "title": "并列短线从固定起点逐步延长",
+      "case_number": 1,
+      "summary": "保持主框位置，让下方并列短线从各自的固定起点逐步延长，终点停在不同位置。",
+      "purpose": "并列进度逐步建立",
+      "relation": "线条从固定起点增长，先完成的保持，主框不随终点移动。",
+      "start_state": "主框稳定，下方有数条短线起点。",
+      "end_state": "短线延伸到各自长度，主框继续保留。",
+      "tags": [
+        "线条增长",
+        "固定起点",
+        "并列累积"
+      ],
+      "document": "cases/sab8a-475686-original/mechanisms/m09.md",
+      "storyboard": "cases/sab8a-475686-original/mechanisms/m09.jpg",
+      "case_slug": "sab8a-475686",
+      "overview": "cases/sab8a-475686-original/overview.md",
+      "detail": "detail.html?case=sab8a-475686&mechanism=001-m09"
+    },
+    {
+      "id": "001-m10",
+      "title": "倾斜标记先后叠到已有画面，前一个继续保留",
+      "case_number": 1,
+      "summary": "在稳定主组上先叠入一个倾斜标记，使它落在局部空位。",
+      "purpose": "追加多个局部强调",
+      "relation": "每次只追加新的强调层，前面的标记与主组不重置。",
+      "start_state": "主框与附属行已经稳定。",
+      "end_state": "多个倾斜标记叠在原组上，主结构仍在。",
+      "tags": [
+        "错峰叠加",
+        "倾斜入场",
+        "状态保留"
+      ],
+      "document": "cases/sab8a-475686-original/mechanisms/m10.md",
+      "storyboard": "cases/sab8a-475686-original/mechanisms/m10.jpg",
+      "case_slug": "sab8a-475686",
+      "overview": "cases/sab8a-475686-original/overview.md",
+      "detail": "detail.html?case=sab8a-475686&mechanism=001-m10"
+    },
+    {
+      "id": "001-m11",
+      "title": "旧画面方块化遮蔽，换底后恢复清楚",
+      "case_number": 1,
+      "summary": "让旧画面的细节粗化为较大的方块状区域，借内容难以辨认的阶段更换底层，再恢复到清楚的新画面。",
+      "purpose": "遮蔽细节完成换场",
+      "relation": "先减少可辨认细节，在遮蔽阶段换底，再恢复新层。",
+      "start_state": "旧画面可辨认，旁侧已有气泡。",
+      "end_state": "新画面恢复清楚，准备接入新的内容组。",
+      "tags": [
+        "方块化",
+        "遮蔽转场",
+        "细节恢复"
+      ],
+      "document": "cases/sab8a-475686-original/mechanisms/m11.md",
+      "storyboard": "cases/sab8a-475686-original/mechanisms/m11.jpg",
+      "case_slug": "sab8a-475686",
+      "overview": "cases/sab8a-475686-original/overview.md",
+      "detail": "detail.html?case=sab8a-475686&mechanism=001-m11"
+    },
+    {
+      "id": "001-m12",
+      "title": "小片从下方逐项升入转正，按行填满网格",
+      "case_number": 1,
+      "summary": "让多个小片依次进入网格空位，部分从下方升起并转正，在各自位置落稳。",
+      "purpose": "逐行填充集合",
+      "relation": "各片分别补入空位，先到者保持，后到者继续填下一位置。",
+      "start_state": "新底层清楚，网格位置尚未填满。",
+      "end_state": "多行小片累积成完整网格，下方短句与角标接入。",
+      "tags": [
+        "网格填充",
+        "逐项升入",
+        "旋转归位"
+      ],
+      "document": "cases/sab8a-475686-original/mechanisms/m12.md",
+      "storyboard": "cases/sab8a-475686-original/mechanisms/m12.jpg",
+      "case_slug": "sab8a-475686",
+      "overview": "cases/sab8a-475686-original/overview.md",
+      "detail": "detail.html?case=sab8a-475686&mechanism=001-m12"
+    },
+    {
+      "id": "002-m01",
+      "title": "矩形扩张越过停留尺寸，再回调落稳",
+      "case_number": 2,
+      "summary": "让新矩形先扩大到略超过停留尺寸，再缩回；附件错开接入。",
+      "purpose": "建立新块并把动作交给附属小块。",
+      "relation": "主块扩张与附件进入错开，已在移动的小物保持原方向。",
+      "start_state": "背景已存在，主矩形尚未建立或较小。",
+      "end_state": "主矩形与附件落到停留尺寸，其他持续动作仍可继续。",
+      "tags": [
+        "缩放",
+        "回调",
+        "错开接力"
+      ],
+      "document": "cases/tomandrieu96707-875264-original/mechanisms/m01.md",
+      "storyboard": "cases/tomandrieu96707-875264-original/mechanisms/m01.jpg",
+      "case_slug": "tomandrieu96707-875264",
+      "overview": "cases/tomandrieu96707-875264-original/overview.md",
+      "detail": "detail.html?case=tomandrieu96707-875264&mechanism=002-m01"
+    },
+    {
+      "id": "002-m02",
+      "title": "横线延长，固定文字随后显出",
+      "case_number": 2,
+      "summary": "横线从一端增长，文字保持位置并在其后显出。",
+      "purpose": "在同一矩形内部完成线与字的动作接力。",
+      "relation": "线条长度先变化，字组随后改变可见程度。",
+      "start_state": "矩形已经建立，线与字尚未完整显示。",
+      "end_state": "线与字在原位置保持。",
+      "tags": [
+        "描画",
+        "长度变化",
+        "局部接力"
+      ],
+      "document": "cases/tomandrieu96707-875264-original/mechanisms/m02.md",
+      "storyboard": "cases/tomandrieu96707-875264-original/mechanisms/m02.jpg",
+      "case_slug": "tomandrieu96707-875264",
+      "overview": "cases/tomandrieu96707-875264-original/overview.md",
+      "detail": "detail.html?case=tomandrieu96707-875264&mechanism=002-m02"
+    },
+    {
+      "id": "002-m03",
+      "title": "小点依路径逐项建立，已出现的点保持",
+      "case_number": 2,
+      "summary": "让小点按空间次序加入，各点放大回调后留在路径上。",
+      "purpose": "把一个点组连续补齐。",
+      "relation": "新点接续加入，旧点保持，不让整组一起绕行。",
+      "start_state": "承载图块已建立，点组尚未补齐。",
+      "end_state": "所有点在各自停留位置形成完整集合。",
+      "tags": [
+        "逐项增加",
+        "路径",
+        "保持"
+      ],
+      "document": "cases/tomandrieu96707-875264-original/mechanisms/m03.md",
+      "storyboard": "cases/tomandrieu96707-875264-original/mechanisms/m03.jpg",
+      "case_slug": "tomandrieu96707-875264",
+      "overview": "cases/tomandrieu96707-875264-original/overview.md",
+      "detail": "detail.html?case=tomandrieu96707-875264&mechanism=002-m03"
+    },
+    {
+      "id": "002-m04",
+      "title": "宽片横向通过，在全遮挡时更换底层",
+      "case_number": 2,
+      "summary": "宽片前缘遮住旧组，后缘离开后露出下一组。",
+      "purpose": "连接两组独立画面。",
+      "relation": "旧组遮住、底层替换、新组露出由同一方向的宽片完成。",
+      "start_state": "旧组清楚，宽片位于画外。",
+      "end_state": "宽片离开，新组已露出并可继续自身动作。",
+      "tags": [
+        "遮挡",
+        "横向通过",
+        "换场"
+      ],
+      "document": "cases/tomandrieu96707-875264-original/mechanisms/m04.md",
+      "storyboard": "cases/tomandrieu96707-875264-original/mechanisms/m04.jpg",
+      "case_slug": "tomandrieu96707-875264",
+      "overview": "cases/tomandrieu96707-875264-original/overview.md",
+      "detail": "detail.html?case=tomandrieu96707-875264&mechanism=002-m04"
+    },
+    {
+      "id": "002-m05",
+      "title": "先画网格，再逐行补入内部短线与末端符号",
+      "case_number": 2,
+      "summary": "框内线条分段建立，行内元素随后从上到下累积。",
+      "purpose": "把空矩形持续填成网格集合。",
+      "relation": "骨架先建立，内部逐行补齐，承载块保持。",
+      "start_state": "空矩形已入位，内部网格与行内元素未完成。",
+      "end_state": "网格与各行元素完整，矩形保持。",
+      "tags": [
+        "网格",
+        "逐行填入",
+        "描画"
+      ],
+      "document": "cases/tomandrieu96707-875264-original/mechanisms/m05.md",
+      "storyboard": "cases/tomandrieu96707-875264-original/mechanisms/m05.jpg",
+      "case_slug": "tomandrieu96707-875264",
+      "overview": "cases/tomandrieu96707-875264-original/overview.md",
+      "detail": "detail.html?case=tomandrieu96707-875264&mechanism=002-m05"
+    },
+    {
+      "id": "002-m06",
+      "title": "轮廓沿边延长闭合，内部填充接入",
+      "case_number": 2,
+      "summary": "让线沿预定轮廓连续走完，闭合处接入内部块面。",
+      "purpose": "从未完成边界建立封闭图形。",
+      "relation": "边线延长到闭合，内部块面随后建立；外围条可提前进入。",
+      "start_state": "承载片已存在，轮廓未完整。",
+      "end_state": "封闭边界与内部块面稳定。",
+      "tags": [
+        "轮廓",
+        "闭合",
+        "填充"
+      ],
+      "document": "cases/tomandrieu96707-875264-original/mechanisms/m06.md",
+      "storyboard": "cases/tomandrieu96707-875264-original/mechanisms/m06.jpg",
+      "case_slug": "tomandrieu96707-875264",
+      "overview": "cases/tomandrieu96707-875264-original/overview.md",
+      "detail": "detail.html?case=tomandrieu96707-875264&mechanism=002-m06"
+    },
+    {
+      "id": "002-m07",
+      "title": "侧面图块快速靠近，减速后与旧块并置",
+      "case_number": 2,
+      "summary": "让新裁切块从侧边进入，靠近已存在图块后落稳。",
+      "purpose": "把单块扩成并置的一组。",
+      "relation": "旧块保持，新块靠近并减速，底部横条同时上移。",
+      "start_state": "一张裁切块已经在左侧，新块在侧边画外。",
+      "end_state": "两块并置，底部横条落位。",
+      "tags": [
+        "侧入",
+        "减速",
+        "并置"
+      ],
+      "document": "cases/tomandrieu96707-875264-original/mechanisms/m07.md",
+      "storyboard": "cases/tomandrieu96707-875264-original/mechanisms/m07.jpg",
+      "case_slug": "tomandrieu96707-875264",
+      "overview": "cases/tomandrieu96707-875264-original/overview.md",
+      "detail": "detail.html?case=tomandrieu96707-875264&mechanism=002-m07"
+    },
+    {
+      "id": "002-m08",
+      "title": "小椭圆逐个下降，在容器底部累积",
+      "case_number": 2,
+      "summary": "让连续新项下降，已落到容器底部的项保留。",
+      "purpose": "通过交叠下落逐步填充容器。",
+      "relation": "空中下降、底部落稳和下一项进入同时存在。",
+      "start_state": "容器已建立，底部集合尚未填满。",
+      "end_state": "底部形成集合，空中最后一项落稳。",
+      "tags": [
+        "下落",
+        "交叠",
+        "累积"
+      ],
+      "document": "cases/tomandrieu96707-875264-original/mechanisms/m08.md",
+      "storyboard": "cases/tomandrieu96707-875264-original/mechanisms/m08.jpg",
+      "case_slug": "tomandrieu96707-875264",
+      "overview": "cases/tomandrieu96707-875264-original/overview.md",
+      "detail": "detail.html?case=tomandrieu96707-875264&mechanism=002-m08"
+    },
+    {
+      "id": "002-m09",
+      "title": "两条相向经过与收拢，交给新矩形扩张",
+      "case_number": 2,
+      "summary": "两条长片相向重叠后再次靠拢退去，新矩形接力展开。",
+      "purpose": "从两侧运动交接到中央新块。",
+      "relation": "双条运动先完成交接，再由独立新块接续。",
+      "start_state": "底层图块保持，两条长片在相反侧边之外。",
+      "end_state": "中央新矩形与右下圈线落稳。",
+      "tags": [
+        "相向",
+        "重叠",
+        "接力"
+      ],
+      "document": "cases/tomandrieu96707-875264-original/mechanisms/m09.md",
+      "storyboard": "cases/tomandrieu96707-875264-original/mechanisms/m09.jpg",
+      "case_slug": "tomandrieu96707-875264",
+      "overview": "cases/tomandrieu96707-875264-original/overview.md",
+      "detail": "detail.html?case=tomandrieu96707-875264&mechanism=002-m09"
+    },
+    {
+      "id": "002-m10",
+      "title": "圆形外边界保持，内部块面持续横向迁移",
+      "case_number": 2,
+      "summary": "让变化集中在圆形内部，外轮廓保留尺度。",
+      "purpose": "使封闭图形内部持续运动。",
+      "relation": "边界保持，内部曲线与块面改变横向位置。",
+      "start_state": "圆形边界与内部块面已建立。",
+      "end_state": "外形仍稳定，内部运动可继续或释放。",
+      "tags": [
+        "内部运动",
+        "横向迁移",
+        "边界保持"
+      ],
+      "document": "cases/tomandrieu96707-875264-original/mechanisms/m10.md",
+      "storyboard": "cases/tomandrieu96707-875264-original/mechanisms/m10.jpg",
+      "case_slug": "tomandrieu96707-875264",
+      "overview": "cases/tomandrieu96707-875264-original/overview.md",
+      "detail": "detail.html?case=tomandrieu96707-875264&mechanism=002-m10"
+    },
+    {
+      "id": "002-m11",
+      "title": "碎片从局部散出，再向下分散退出",
+      "case_number": 2,
+      "summary": "让碎片在局部出现、向外散开，再下落并离开。",
+      "purpose": "以一次散出动作连接局部变化与保持段。",
+      "relation": "局部散出先启动，后续下降与横向分散交叠。",
+      "start_state": "圆形与旁边矩形已建立，局部尚无碎片。",
+      "end_state": "碎片大多退去，原有块继续保持。",
+      "tags": [
+        "散出",
+        "下落",
+        "退出"
+      ],
+      "document": "cases/tomandrieu96707-875264-original/mechanisms/m11.md",
+      "storyboard": "cases/tomandrieu96707-875264-original/mechanisms/m11.jpg",
+      "case_slug": "tomandrieu96707-875264",
+      "overview": "cases/tomandrieu96707-875264-original/overview.md",
+      "detail": "detail.html?case=tomandrieu96707-875264&mechanism=002-m11"
+    },
+    {
+      "id": "002-m12",
+      "title": "旧矩形旋转抛出，新窗口从下方接入",
+      "case_number": 2,
+      "summary": "整块旋转与位移同时退出，短暂空位后接新块上移。",
+      "purpose": "在保留底层的条件下替换前景窗口。",
+      "relation": "旧块旋转离开，独立新块上移回调接续。",
+      "start_state": "旧矩形在中央，周边条片已存在。",
+      "end_state": "新窗口落稳，内部点与小项可继续建立。",
+      "tags": [
+        "旋转",
+        "抛出",
+        "窗口接替"
+      ],
+      "document": "cases/tomandrieu96707-875264-original/mechanisms/m12.md",
+      "storyboard": "cases/tomandrieu96707-875264-original/mechanisms/m12.jpg",
+      "case_slug": "tomandrieu96707-875264",
+      "overview": "cases/tomandrieu96707-875264-original/overview.md",
+      "detail": "detail.html?case=tomandrieu96707-875264&mechanism=002-m12"
+    },
+    {
+      "id": "002-m13",
+      "title": "裁切图块从左到右累积，短条错开接入",
+      "case_number": 2,
+      "summary": "新块扩大回调，配套短条随后加入，整排逐项补齐。",
+      "purpose": "持续建立横向集合。",
+      "relation": "每块与短条组成局部接力，各组之间继续交叠。",
+      "start_state": "上方长条已存在，横向图块集合未完成。",
+      "end_state": "整排图块及各短条落稳，保持原次序。",
+      "tags": [
+        "逐项入场",
+        "横排",
+        "附件接力"
+      ],
+      "document": "cases/tomandrieu96707-875264-original/mechanisms/m13.md",
+      "storyboard": "cases/tomandrieu96707-875264-original/mechanisms/m13.jpg",
+      "case_slug": "tomandrieu96707-875264",
+      "overview": "cases/tomandrieu96707-875264-original/overview.md",
+      "detail": "detail.html?case=tomandrieu96707-875264&mechanism=002-m13"
+    },
+    {
+      "id": "002-m14",
+      "title": "前景片下降越过停留位置，再向上回调",
+      "case_number": 2,
+      "summary": "大矩形从上边进入，下降过位后回升并盖住中部。",
+      "purpose": "在已有集合前建立新的前景承载片。",
+      "relation": "前景独立垂直运动，底层与外围裁切边保留。",
+      "start_state": "底层集合已完整，前景大矩形位于上方画外。",
+      "end_state": "前景盖住中部并落稳，外围底层仍可见。",
+      "tags": [
+        "下移",
+        "过位回调",
+        "前景覆盖"
+      ],
+      "document": "cases/tomandrieu96707-875264-original/mechanisms/m14.md",
+      "storyboard": "cases/tomandrieu96707-875264-original/mechanisms/m14.jpg",
+      "case_slug": "tomandrieu96707-875264",
+      "overview": "cases/tomandrieu96707-875264-original/overview.md",
+      "detail": "detail.html?case=tomandrieu96707-875264&mechanism=002-m14"
+    },
+    {
+      "id": "002-m15",
+      "title": "小条扩张落稳，小点随后下降停在端点",
+      "case_number": 2,
+      "summary": "先建立胶囊短条，再让上方小点下降落向短条左端。",
+      "purpose": "把垂直运动交给已稳定的小形状。",
+      "relation": "小条扩大缩回在前，小点下降落位在后。",
+      "start_state": "前景片已落稳，胶囊和落点尚未建立。",
+      "end_state": "胶囊稳定，小点停在一端。",
+      "tags": [
+        "端点落位",
+        "下落",
+        "局部接力"
+      ],
+      "document": "cases/tomandrieu96707-875264-original/mechanisms/m15.md",
+      "storyboard": "cases/tomandrieu96707-875264-original/mechanisms/m15.jpg",
+      "case_slug": "tomandrieu96707-875264",
+      "overview": "cases/tomandrieu96707-875264-original/overview.md",
+      "detail": "detail.html?case=tomandrieu96707-875264&mechanism=002-m15"
+    },
+    {
+      "id": "003-m01",
+      "title": "文字逐词补入，完成后保持整组",
+      "case_number": 3,
+      "summary": "从中部首词开始逐词补入，已出现的词留在原行。",
+      "purpose": "按顺序建立字组",
+      "relation": "已出现的词保持，后一词在其后补入",
+      "start_state": "中部只出现首词",
+      "end_state": "两行文字完整留场",
+      "tags": [
+        "逐词显现",
+        "文字累积"
+      ],
+      "document": "cases/twoclipping-000267-original/mechanisms/m01.md",
+      "storyboard": "cases/twoclipping-000267-original/mechanisms/m01.jpg",
+      "case_slug": "twoclipping-000267",
+      "overview": "cases/twoclipping-000267-original/overview.md",
+      "detail": "detail.html?case=twoclipping-000267&mechanism=003-m01"
+    },
+    {
+      "id": "003-m02",
+      "title": "窗口推近退出，图块集合接管",
+      "case_number": 3,
+      "summary": "保持窗口边界，先在内部逐字输入。",
+      "purpose": "从窗口进入集合",
+      "relation": "旧窗先推近越边，新集合随后接管",
+      "start_state": "窗口及输入行已稳定",
+      "end_state": "多列竖片构成新集合",
+      "tags": [
+        "推近",
+        "集合接管"
+      ],
+      "document": "cases/twoclipping-000267-original/mechanisms/m02.md",
+      "storyboard": "cases/twoclipping-000267-original/mechanisms/m02.jpg",
+      "case_slug": "twoclipping-000267",
+      "overview": "cases/twoclipping-000267-original/overview.md",
+      "detail": "detail.html?case=twoclipping-000267&mechanism=003-m02"
+    },
+    {
+      "id": "003-m03",
+      "title": "集合中少量片突出，其余退淡后共同离场",
+      "case_number": 3,
+      "summary": "从已存在阵列里突出少量竖片，使它们更清楚并略向前，其余片退淡。",
+      "purpose": "从集合强调少量",
+      "relation": "前片从原阵列突出，其余留作暗后层",
+      "start_state": "竖片阵列已完整",
+      "end_state": "突出片与旧集合退出，空位交给下一组",
+      "tags": [
+        "集合选中",
+        "前景突出",
+        "退场"
+      ],
+      "document": "cases/twoclipping-000267-original/mechanisms/m03.md",
+      "storyboard": "cases/twoclipping-000267-original/mechanisms/m03.jpg",
+      "case_slug": "twoclipping-000267",
+      "overview": "cases/twoclipping-000267-original/overview.md",
+      "detail": "detail.html?case=twoclipping-000267&mechanism=003-m03"
+    },
+    {
+      "id": "003-m04",
+      "title": "弧形竖片逐项补齐，加速横移后停清",
+      "case_number": 3,
+      "summary": "沿弧形位置逐项显出竖片，先到者保留，直到整排补齐。",
+      "purpose": "建立流动集合",
+      "relation": "各片逐项入位，整体轮换时仍保持弧形排列",
+      "start_state": "弧形位置尚未填满",
+      "end_state": "一排竖片轮换后稳定",
+      "tags": [
+        "弧形排列",
+        "逐项填充",
+        "加速停稳"
+      ],
+      "document": "cases/twoclipping-000267-original/mechanisms/m04.md",
+      "storyboard": "cases/twoclipping-000267-original/mechanisms/m04.jpg",
+      "case_slug": "twoclipping-000267",
+      "overview": "cases/twoclipping-000267-original/overview.md",
+      "detail": "detail.html?case=twoclipping-000267&mechanism=003-m04"
+    },
+    {
+      "id": "003-m05",
+      "title": "选中竖片向前接管，旁侧面板补入",
+      "case_number": 3,
+      "summary": "从停清的集合中提起一片向前，周围片减淡退出。",
+      "purpose": "从集合转到单项",
+      "relation": "选中片突出时背景集合退淡，侧板稍后接入",
+      "start_state": "弧形集合刚停清",
+      "end_state": "独立竖框与旁侧面板并置",
+      "tags": [
+        "单项接管",
+        "外围退让",
+        "侧板入场"
+      ],
+      "document": "cases/twoclipping-000267-original/mechanisms/m05.md",
+      "storyboard": "cases/twoclipping-000267-original/mechanisms/m05.jpg",
+      "case_slug": "twoclipping-000267",
+      "overview": "cases/twoclipping-000267-original/overview.md",
+      "detail": "detail.html?case=twoclipping-000267&mechanism=003-m05"
+    },
+    {
+      "id": "003-m06",
+      "title": "数字与折线在固定面板内逐步增长",
+      "case_number": 3,
+      "summary": "保持两侧外框，让旁侧数值逐步更换，折线从左端向右延长，已走过的线保留，下方填充跟进。",
+      "purpose": "累计并保留结果",
+      "relation": "数值与路径并行增长，外框不随内部变化移动",
+      "start_state": "竖框与旁侧空面板已建立",
+      "end_state": "数字停止更换，折线与填充完整",
+      "tags": [
+        "数字累加",
+        "路径增长",
+        "区域填充"
+      ],
+      "document": "cases/twoclipping-000267-original/mechanisms/m06.md",
+      "storyboard": "cases/twoclipping-000267-original/mechanisms/m06.jpg",
+      "case_slug": "twoclipping-000267",
+      "overview": "cases/twoclipping-000267-original/overview.md",
+      "detail": "detail.html?case=twoclipping-000267&mechanism=003-m06"
+    },
+    {
+      "id": "003-m07",
+      "title": "大字沿竖向轮换，末组收成短行",
+      "case_number": 3,
+      "summary": "在同一中央位置接续轮换大数字和短词，旧组向上退去，新组从下方接上，过渡带轻微模糊。",
+      "purpose": "同一位置轮换重点",
+      "relation": "旧字上退新字接上，尾部再转入固定短行",
+      "start_state": "中央已有大字",
+      "end_state": "小标记与短行留场",
+      "tags": [
+        "竖向轮换",
+        "字组接力",
+        "收尾"
+      ],
+      "document": "cases/twoclipping-000267-original/mechanisms/m07.md",
+      "storyboard": "cases/twoclipping-000267-original/mechanisms/m07.jpg",
+      "case_slug": "twoclipping-000267",
+      "overview": "cases/twoclipping-000267-original/overview.md",
+      "detail": "detail.html?case=twoclipping-000267&mechanism=003-m07"
+    },
+    {
+      "id": "005-m01",
+      "title": "字组逐层显出，旧行上移并被划线保留",
+      "case_number": 5,
+      "summary": "先在中部建立短行，再补下行。",
+      "purpose": "转移文字重点",
+      "relation": "新行加入时旧行留住并降低重点",
+      "start_state": "中部只有首行",
+      "end_state": "多行旧词退为陪衬，末行清楚",
+      "tags": [
+        "逐行建立",
+        "上移",
+        "划线"
+      ],
+      "document": "cases/drrickio-009558-original/mechanisms/m01.md",
+      "storyboard": "cases/drrickio-009558-original/mechanisms/m01.jpg",
+      "case_slug": "drrickio-009558",
+      "overview": "cases/drrickio-009558-original/overview.md",
+      "detail": "detail.html?case=drrickio-009558&mechanism=005-m01"
+    },
+    {
+      "id": "005-m02",
+      "title": "外围圆片围绕中心竖片建立，中心内容原位轮换",
+      "case_number": 5,
+      "summary": "从周围不同方位补入小圆片，同时在中部建立更大的竖片。",
+      "purpose": "外围建立中心聚焦",
+      "relation": "周边项从不同方位接入，中心始终更大",
+      "start_state": "中部留有空位",
+      "end_state": "中心竖片清楚，外围圆片围绕",
+      "tags": [
+        "外围入场",
+        "中心保持",
+        "内容轮换"
+      ],
+      "document": "cases/drrickio-009558-original/mechanisms/m02.md",
+      "storyboard": "cases/drrickio-009558-original/mechanisms/m02.jpg",
+      "case_slug": "drrickio-009558",
+      "overview": "cases/drrickio-009558-original/overview.md",
+      "detail": "detail.html?case=drrickio-009558&mechanism=005-m02"
+    },
+    {
+      "id": "005-m03",
+      "title": "活动横框稳定，角落标签错开补入",
+      "case_number": 5,
+      "summary": "先保留横框内持续活动，再在上角、侧边、下角错开补入短标签。",
+      "purpose": "固定画面追加说明",
+      "relation": "活动内容持续，附属标记按位置错开建立",
+      "start_state": "横向活动框已建立",
+      "end_state": "角落与侧边标签齐全",
+      "tags": [
+        "活动保持",
+        "角标",
+        "错峰补入"
+      ],
+      "document": "cases/drrickio-009558-original/mechanisms/m03.md",
+      "storyboard": "cases/drrickio-009558-original/mechanisms/m03.jpg",
+      "case_slug": "drrickio-009558",
+      "overview": "cases/drrickio-009558-original/overview.md",
+      "detail": "detail.html?case=drrickio-009558&mechanism=005-m03"
+    },
+    {
+      "id": "005-m04",
+      "title": "指示符到点后展开列表，选中后回到固定面板",
+      "case_number": 5,
+      "summary": "保持外框，先在输入行逐字增加内容，再让指示符移到对应点，展开局部列表。",
+      "purpose": "定位后局部更新",
+      "relation": "指示符先定位，展开与选择发生在对应局部",
+      "start_state": "外框内已有固定行列",
+      "end_state": "选中项在原位置留下，列表收回",
+      "tags": [
+        "指示符",
+        "下拉",
+        "选择保留"
+      ],
+      "document": "cases/drrickio-009558-original/mechanisms/m04.md",
+      "storyboard": "cases/drrickio-009558-original/mechanisms/m04.jpg",
+      "case_slug": "drrickio-009558",
+      "overview": "cases/drrickio-009558-original/overview.md",
+      "detail": "detail.html?case=drrickio-009558&mechanism=005-m04"
+    },
+    {
+      "id": "005-m05",
+      "title": "集合中选中项突出，其余退淡并交给独立框",
+      "case_number": 5,
+      "summary": "从完整图块集合中突出少量项，使其清楚，其余图块逐渐退淡。",
+      "purpose": "从多项到单项",
+      "relation": "少量项先获得重点，旧集合之后退出",
+      "start_state": "多列图块排列完整",
+      "end_state": "一个新独立框与旁字留场",
+      "tags": [
+        "集合选中",
+        "外围退淡",
+        "框体接替"
+      ],
+      "document": "cases/drrickio-009558-original/mechanisms/m05.md",
+      "storyboard": "cases/drrickio-009558-original/mechanisms/m05.jpg",
+      "case_slug": "drrickio-009558",
+      "overview": "cases/drrickio-009558-original/overview.md",
+      "detail": "detail.html?case=drrickio-009558&mechanism=005-m05"
+    },
+    {
+      "id": "005-m06",
+      "title": "多个窗口错开接入，局部活动画面扩大接管",
+      "case_number": 5,
+      "summary": "先建立一处窗口，再向旁侧依次补入其他框和下方短条。",
+      "purpose": "从并置转为全幅",
+      "relation": "后项补齐并置集合，再以一个活动内容作接点扩大",
+      "start_state": "首个窗口已可见",
+      "end_state": "局部画面接管全幅，附属字组留在其上",
+      "tags": [
+        "错峰窗口",
+        "并置",
+        "全屏接管"
+      ],
+      "document": "cases/drrickio-009558-original/mechanisms/m06.md",
+      "storyboard": "cases/drrickio-009558-original/mechanisms/m06.jpg",
+      "case_slug": "drrickio-009558",
+      "overview": "cases/drrickio-009558-original/overview.md",
+      "detail": "detail.html?case=drrickio-009558&mechanism=005-m06"
+    },
+    {
+      "id": "005-m07",
+      "title": "多格面板分批填齐，内部条形与数字持续更新",
+      "case_number": 5,
+      "summary": "先在固定位置逐项补齐上下两排面板，先到的保持。",
+      "purpose": "集合内逐项累计",
+      "relation": "先补承载层，再分别更新各格内部",
+      "start_state": "上排面板已部分建立",
+      "end_state": "下排补齐，内条与计数达到结果",
+      "tags": [
+        "网格累积",
+        "进度条",
+        "数字增长"
+      ],
+      "document": "cases/drrickio-009558-original/mechanisms/m07.md",
+      "storyboard": "cases/drrickio-009558-original/mechanisms/m07.jpg",
+      "case_slug": "drrickio-009558",
+      "overview": "cases/drrickio-009558-original/overview.md",
+      "detail": "detail.html?case=drrickio-009558&mechanism=005-m07"
+    },
+    {
+      "id": "006-m01",
+      "title": "竖框从下方升入，顶部文字逐行接上",
+      "case_number": 6,
+      "summary": "让竖框从下方升入，逐渐露出完整范围。",
+      "purpose": "建立框与标题",
+      "relation": "框先入位，字组随后沿上方空位累积",
+      "start_state": "标记组已退出",
+      "end_state": "竖框与顶部两行字稳定",
+      "tags": [
+        "上升入场",
+        "标题接力"
+      ],
+      "document": "cases/gautam-mer1-530003-original/mechanisms/m01.md",
+      "storyboard": "cases/gautam-mer1-530003-original/mechanisms/m01.jpg",
+      "case_slug": "gautam-mer1-530003",
+      "overview": "cases/gautam-mer1-530003-original/overview.md",
+      "detail": "detail.html?case=gautam-mer1-530003&mechanism=006-m01"
+    },
+    {
+      "id": "006-m02",
+      "title": "推近竖框内部，活动画面接管全幅",
+      "case_number": 6,
+      "summary": "向竖框内部靠近，外边缘越出，活动图像逐渐成为全幅。",
+      "purpose": "从局部转到全屏",
+      "relation": "内容接续而外框越边退去",
+      "start_state": "竖框内图像正在活动",
+      "end_state": "活动图像满幅，旧边界退出",
+      "tags": [
+        "推近",
+        "全屏接管",
+        "活动持续"
+      ],
+      "document": "cases/gautam-mer1-530003-original/mechanisms/m02.md",
+      "storyboard": "cases/gautam-mer1-530003-original/mechanisms/m02.jpg",
+      "case_slug": "gautam-mer1-530003",
+      "overview": "cases/gautam-mer1-530003-original/overview.md",
+      "detail": "detail.html?case=gautam-mer1-530003&mechanism=006-m02"
+    },
+    {
+      "id": "006-m03",
+      "title": "固定字组内强调块逐项迁移",
+      "case_number": 6,
+      "summary": "保持字组的整体位置，让小强调块逐项转移到不同词位，前一词恢复普通状态。",
+      "purpose": "依次转移局部重点",
+      "relation": "文字位置不动，仅局部强调块和内容组更新",
+      "start_state": "两行字组已在活动画面上",
+      "end_state": "强调移到后面的词，旧词恢复",
+      "tags": [
+        "逐词强调",
+        "局部替换",
+        "文字保持"
+      ],
+      "document": "cases/gautam-mer1-530003-original/mechanisms/m03.md",
+      "storyboard": "cases/gautam-mer1-530003-original/mechanisms/m03.jpg",
+      "case_slug": "gautam-mer1-530003",
+      "overview": "cases/gautam-mer1-530003-original/overview.md",
+      "detail": "detail.html?case=gautam-mer1-530003&mechanism=006-m03"
+    },
+    {
+      "id": "006-m04",
+      "title": "轨道横向经过固定竖线，局部条依次亮起",
+      "case_number": 6,
+      "summary": "建立固定的中部竖线，让横向图块带和下方短条持续经过它。",
+      "purpose": "固定参照下持续轮换",
+      "relation": "竖线保持，图块和条形向它经过",
+      "start_state": "中部竖线与横向轨道已建立",
+      "end_state": "轨道继续，当前条清楚强调",
+      "tags": [
+        "固定指针",
+        "横向轨道",
+        "逐项点亮"
+      ],
+      "document": "cases/gautam-mer1-530003-original/mechanisms/m04.md",
+      "storyboard": "cases/gautam-mer1-530003-original/mechanisms/m04.jpg",
+      "case_slug": "gautam-mer1-530003",
+      "overview": "cases/gautam-mer1-530003-original/overview.md",
+      "detail": "detail.html?case=gautam-mer1-530003&mechanism=006-m04"
+    },
+    {
+      "id": "006-m05",
+      "title": "多列竖片逐格补入，先到者保持",
+      "case_number": 6,
+      "summary": "先在标题下建立首个竖片，随后依次填入同排空位，再补下一排。",
+      "purpose": "逐项填成集合",
+      "relation": "按空位连续补入，已有片不重排",
+      "start_state": "新底层下方留空",
+      "end_state": "两排多列竖片齐全",
+      "tags": [
+        "网格填充",
+        "错峰入场"
+      ],
+      "document": "cases/gautam-mer1-530003-original/mechanisms/m05.md",
+      "storyboard": "cases/gautam-mer1-530003-original/mechanisms/m05.jpg",
+      "case_slug": "gautam-mer1-530003",
+      "overview": "cases/gautam-mer1-530003-original/overview.md",
+      "detail": "detail.html?case=gautam-mer1-530003&mechanism=006-m05"
+    },
+    {
+      "id": "006-m06",
+      "title": "大小面板按层级错开接入",
+      "case_number": 6,
+      "summary": "保持上方标题，先建立较宽面板，再在下方不同位置补入小片。",
+      "purpose": "建立复合布局",
+      "relation": "先建立上层宽片，再向下补入分区",
+      "start_state": "上方标题稳定，下方只少量片面",
+      "end_state": "宽面板与多处小面板齐全",
+      "tags": [
+        "面板接力",
+        "分区累积"
+      ],
+      "document": "cases/gautam-mer1-530003-original/mechanisms/m06.md",
+      "storyboard": "cases/gautam-mer1-530003-original/mechanisms/m06.jpg",
+      "case_slug": "gautam-mer1-530003",
+      "overview": "cases/gautam-mer1-530003-original/overview.md",
+      "detail": "detail.html?case=gautam-mer1-530003&mechanism=006-m06"
+    },
+    {
+      "id": "006-m07",
+      "title": "内部片收小，进度环增长后接入完成标记",
+      "case_number": 6,
+      "summary": "保持竖框，将内部图像收成较小竖片，周围进度环逐步增长，数值持续更换。",
+      "purpose": "从处理中交出结果",
+      "relation": "内部内容缩小让出进度区，外框保持",
+      "start_state": "竖框内大图与下方行文可见",
+      "end_state": "内部小片完成，环与勾形留场",
+      "tags": [
+        "缩小",
+        "环形进度",
+        "结果接管"
+      ],
+      "document": "cases/gautam-mer1-530003-original/mechanisms/m07.md",
+      "storyboard": "cases/gautam-mer1-530003-original/mechanisms/m07.jpg",
+      "case_slug": "gautam-mer1-530003",
+      "overview": "cases/gautam-mer1-530003-original/overview.md",
+      "detail": "detail.html?case=gautam-mer1-530003&mechanism=006-m07"
+    },
+    {
+      "id": "007-m01",
+      "title": "竖框先建立，下方字组错开上移显出",
+      "case_number": 7,
+      "summary": "先把竖框扩大落稳，再让下方文字分行接入。",
+      "purpose": "建立一个稳定承载框与下方字组。",
+      "relation": "框的尺度变化先启动，文字分次跟进。",
+      "start_state": "底图存在，竖框与字组尚未建立。",
+      "end_state": "竖框及下方字组稳定，可进入框内动作。",
+      "tags": [
+        "竖框",
+        "分次进入",
+        "上移"
+      ],
+      "document": "cases/l3d1c-752011-original/mechanisms/m01.md",
+      "storyboard": "cases/l3d1c-752011-original/mechanisms/m01.jpg",
+      "case_slug": "l3d1c-752011",
+      "overview": "cases/l3d1c-752011-original/overview.md",
+      "detail": "detail.html?case=l3d1c-752011&mechanism=007-m01"
+    },
+    {
+      "id": "007-m02",
+      "title": "角标按行逐项加入，完成的角标留住",
+      "case_number": 7,
+      "summary": "小角标从左到右、从上到下累积，承载图块不重排。",
+      "purpose": "在固定网格内连续增加局部状态形状。",
+      "relation": "新角标建立与较早角标保持同时进行。",
+      "start_state": "三列多行图块已固定，角标集合尚未完整。",
+      "end_state": "目标图块角标完成，网格保持。",
+      "tags": [
+        "角标",
+        "逐项增加",
+        "固定网格"
+      ],
+      "document": "cases/l3d1c-752011-original/mechanisms/m02.md",
+      "storyboard": "cases/l3d1c-752011-original/mechanisms/m02.jpg",
+      "case_slug": "l3d1c-752011",
+      "overview": "cases/l3d1c-752011-original/overview.md",
+      "detail": "detail.html?case=l3d1c-752011&mechanism=007-m02"
+    },
+    {
+      "id": "007-m03",
+      "title": "图块按排放大前移，交叠越过框与画面边界",
+      "case_number": 7,
+      "summary": "先让上排脱离网格，再让中下排接续扩大退出。",
+      "purpose": "从固定网格持续释放图块。",
+      "relation": "前排仍在离开时，后排已经启动。",
+      "start_state": "竖框内有完整图块网格，下方字组保留。",
+      "end_state": "前后各排退去，新窗口可从底图接入。",
+      "tags": [
+        "分排退出",
+        "放大",
+        "交叠"
+      ],
+      "document": "cases/l3d1c-752011-original/mechanisms/m03.md",
+      "storyboard": "cases/l3d1c-752011-original/mechanisms/m03.jpg",
+      "case_slug": "l3d1c-752011",
+      "overview": "cases/l3d1c-752011-original/overview.md",
+      "detail": "detail.html?case=l3d1c-752011&mechanism=007-m03"
+    },
+    {
+      "id": "007-m04",
+      "title": "指示符走位，圆环与局部面板依次承接",
+      "case_number": 7,
+      "summary": "指示符先到定位点，圆环与局部内容随后变化，再转向下一位置。",
+      "purpose": "在保留大窗口的条件下连续切换局部动作。",
+      "relation": "路径到达、局部形状变化、下一路径构成接力。",
+      "start_state": "大窗口已建立，指示符位于动作点之外。",
+      "end_state": "下一局部面板或输入内容完成，外框仍保持。",
+      "tags": [
+        "指示符",
+        "圆环",
+        "局部更新"
+      ],
+      "document": "cases/l3d1c-752011-original/mechanisms/m04.md",
+      "storyboard": "cases/l3d1c-752011-original/mechanisms/m04.jpg",
+      "case_slug": "l3d1c-752011",
+      "overview": "cases/l3d1c-752011-original/overview.md",
+      "detail": "detail.html?case=l3d1c-752011&mechanism=007-m04"
+    },
+    {
+      "id": "007-m05",
+      "title": "图块下降、缩小、转正，交叠填入一排小槽",
+      "case_number": 7,
+      "summary": "让图块从不同上方位置进入，边下降边缩小转正，按次序累积落槽。",
+      "purpose": "把多张较大图块连续收成一排小图块。",
+      "relation": "新块进入、中部下降与旧块落稳三层交叠。",
+      "start_state": "窗口内有承载区域及下方空小槽，图块还在画外。",
+      "end_state": "一排小槽完整，各图块落稳保持。",
+      "tags": [
+        "下落",
+        "缩小",
+        "转正",
+        "交叠填充"
+      ],
+      "document": "cases/l3d1c-752011-original/mechanisms/m05.md",
+      "storyboard": "cases/l3d1c-752011-original/mechanisms/m05.jpg",
+      "case_slug": "l3d1c-752011",
+      "overview": "cases/l3d1c-752011-original/overview.md",
+      "detail": "detail.html?case=l3d1c-752011&mechanism=007-m05"
+    },
+    {
+      "id": "007-m06",
+      "title": "通知从侧边滑入，前景面板偏移退去露出底层",
+      "case_number": 7,
+      "summary": "侧边新小块进入尚未结束，前景面板已侧移减淡。",
+      "purpose": "让局部通知与旧面板退出衔接。",
+      "relation": "通知进入、面板侧退和底层露出分层交叠。",
+      "start_state": "前景面板及后方旧内容存在，通知在侧边画外。",
+      "end_state": "面板退去，底层短暂露出后整组清空。",
+      "tags": [
+        "侧入",
+        "分层退出",
+        "底层露出"
+      ],
+      "document": "cases/l3d1c-752011-original/mechanisms/m06.md",
+      "storyboard": "cases/l3d1c-752011-original/mechanisms/m06.jpg",
+      "case_slug": "l3d1c-752011",
+      "overview": "cases/l3d1c-752011-original/overview.md",
+      "detail": "detail.html?case=l3d1c-752011&mechanism=007-m06"
+    },
+    {
+      "id": "007-m07",
+      "title": "中心卡保持，外围绕行加快并缩小半径",
+      "case_number": 7,
+      "summary": "外围小块形成环后绕行，移动幅度增加且逐渐靠近中心。",
+      "purpose": "围绕固定中心收拢一个运动集合。",
+      "relation": "绕行与向内收缩并行，中心卡不随集合旋转缩小。",
+      "start_state": "中心卡已建立，外围小块尚未形成完整环。",
+      "end_state": "外围块退去，中心卡保留。",
+      "tags": [
+        "绕行",
+        "加快",
+        "收缩",
+        "中心保持"
+      ],
+      "document": "cases/l3d1c-752011-original/mechanisms/m07.md",
+      "storyboard": "cases/l3d1c-752011-original/mechanisms/m07.jpg",
+      "case_slug": "l3d1c-752011",
+      "overview": "cases/l3d1c-752011-original/overview.md",
+      "detail": "detail.html?case=l3d1c-752011&mechanism=007-m07"
+    },
+    {
+      "id": "007-m08",
+      "title": "横线向下推进，多个图块错开揭示内部内容",
+      "case_number": 7,
+      "summary": "让横线上方逐步清楚，下方保持模糊，后续图块错开启动。",
+      "purpose": "在固定边界内连续显出图像内容。",
+      "relation": "各块内部揭示错开，早块接近完成时后块仍在变化。",
+      "start_state": "多个竖图块已定位，内部仍模糊或尚未完整。",
+      "end_state": "各块内部清楚，边界与网格位置保持。",
+      "tags": [
+        "扫描揭示",
+        "局部变化",
+        "错开"
+      ],
+      "document": "cases/l3d1c-752011-original/mechanisms/m08.md",
+      "storyboard": "cases/l3d1c-752011-original/mechanisms/m08.jpg",
+      "case_slug": "l3d1c-752011",
+      "overview": "cases/l3d1c-752011-original/overview.md",
+      "detail": "detail.html?case=l3d1c-752011&mechanism=007-m08"
+    },
+    {
+      "id": "007-m09",
+      "title": "词组逐项变清楚，先出现的词留在原行",
+      "case_number": 7,
+      "summary": "让字组按词接续建立，每一词从模糊到清楚。",
+      "purpose": "持续补齐一个固定多行字组。",
+      "relation": "后词加入，前词保持，不推动整行重新布局。",
+      "start_state": "中心卡保持，下方字组尚未完整。",
+      "end_state": "多行字组清楚并保持。",
+      "tags": [
+        "逐词进入",
+        "清晰变化",
+        "多行"
+      ],
+      "document": "cases/l3d1c-752011-original/mechanisms/m09.md",
+      "storyboard": "cases/l3d1c-752011-original/mechanisms/m09.jpg",
+      "case_slug": "l3d1c-752011",
+      "overview": "cases/l3d1c-752011-original/overview.md",
+      "detail": "detail.html?case=l3d1c-752011&mechanism=007-m09"
+    },
+    {
+      "id": "007-m10",
+      "title": "新块在左上接入，旧网格让位并向后累积",
+      "case_number": 7,
+      "summary": "新图块插入时，旧块向右、向下移动，最早项被底边裁去。",
+      "purpose": "在固定窗口里持续更新一组图块。",
+      "relation": "新块内部揭示与旧块位置让位同时进行。",
+      "start_state": "窗口内已有稳定网格，底部输入条保持。",
+      "end_state": "新块进入前部，旧块在后续槽位落稳，过量旧块从底部离开。",
+      "tags": [
+        "让位",
+        "网格累积",
+        "交叠"
+      ],
+      "document": "cases/l3d1c-752011-original/mechanisms/m10.md",
+      "storyboard": "cases/l3d1c-752011-original/mechanisms/m10.jpg",
+      "case_slug": "l3d1c-752011",
+      "overview": "cases/l3d1c-752011-original/overview.md",
+      "detail": "detail.html?case=l3d1c-752011&mechanism=007-m10"
+    },
+    {
+      "id": "007-m11",
+      "title": "窗口缩小并倾斜，底层满幅集合接入",
+      "case_number": 7,
+      "summary": "保留前景窗口内部内容，缩小倾斜后叠在多排集合前。",
+      "purpose": "从单窗口接到前后两层集合。",
+      "relation": "前景缩小倾斜与底层出现交叠，各自保留内容。",
+      "start_state": "大窗口占主要画幅，外部字组存在。",
+      "end_state": "较小窗口位于中上部，底层集合延伸到四周，随后可整体退出。",
+      "tags": [
+        "缩小",
+        "倾斜",
+        "前后层接力"
+      ],
+      "document": "cases/l3d1c-752011-original/mechanisms/m11.md",
+      "storyboard": "cases/l3d1c-752011-original/mechanisms/m11.jpg",
+      "case_slug": "l3d1c-752011",
+      "overview": "cases/l3d1c-752011-original/overview.md",
+      "detail": "detail.html?case=l3d1c-752011&mechanism=007-m11"
+    },
+    {
+      "id": "007-m12",
+      "title": "竖线横向经过，逐步替换图块内部内容",
+      "case_number": 7,
+      "summary": "竖线与小圆柄向右走，左侧新内容逐步取代右侧旧内容。",
+      "purpose": "在固定图块边界内完成局部替换。",
+      "relation": "移动分界线控制内部可见范围，承载框与底部条保持。",
+      "start_state": "旧图像在固定竖图块内，底部长条已经存在。",
+      "end_state": "新图像完整，分界线退出。",
+      "tags": [
+        "横向揭示",
+        "局部替换",
+        "分界线"
+      ],
+      "document": "cases/l3d1c-752011-original/mechanisms/m12.md",
+      "storyboard": "cases/l3d1c-752011-original/mechanisms/m12.jpg",
+      "case_slug": "l3d1c-752011",
+      "overview": "cases/l3d1c-752011-original/overview.md",
+      "detail": "detail.html?case=l3d1c-752011&mechanism=007-m12"
+    },
+    {
+      "id": "007-m13",
+      "title": "底边短线扩张，局部形状退出后接内部微动",
+      "case_number": 7,
+      "summary": "底边线从左向右延长，完成后退出并把动作交给图块内部。",
+      "purpose": "把局部长度变化接续到承载图块内部动作。",
+      "relation": "外框保持，底边线、中央形状与内部微动依次承接。",
+      "start_state": "竖图块与右下短条保持，底边短线尚未完整。",
+      "end_state": "图块内部产生小幅变化，整组可减淡退出。",
+      "tags": [
+        "长度变化",
+        "局部接力",
+        "内部微动"
+      ],
+      "document": "cases/l3d1c-752011-original/mechanisms/m13.md",
+      "storyboard": "cases/l3d1c-752011-original/mechanisms/m13.jpg",
+      "case_slug": "l3d1c-752011",
+      "overview": "cases/l3d1c-752011-original/overview.md",
+      "detail": "detail.html?case=l3d1c-752011&mechanism=007-m13"
+    },
+    {
+      "id": "007-m14",
+      "title": "字符逐项上移落到同一行，下方小组错开补齐",
+      "case_number": 7,
+      "summary": "新字符略偏下进入并上移落齐，主行稳定后接小字与胶囊。",
+      "purpose": "连续建立前景字组并转入保持段。",
+      "relation": "字符建立、下方组加入与底层慢移彼此接续。",
+      "start_state": "倾斜图块集合在底层，前景字组尚未建立。",
+      "end_state": "主行、小字、胶囊与细字保持，底层继续慢移。",
+      "tags": [
+        "字符进入",
+        "分组接力",
+        "保持",
+        "底层慢移"
+      ],
+      "document": "cases/l3d1c-752011-original/mechanisms/m14.md",
+      "storyboard": "cases/l3d1c-752011-original/mechanisms/m14.jpg",
+      "case_slug": "l3d1c-752011",
+      "overview": "cases/l3d1c-752011-original/overview.md",
+      "detail": "detail.html?case=l3d1c-752011&mechanism=007-m14"
+    },
+    {
+      "id": "008-m01",
+      "title": "中心活动保持，前方字与外围小片错开进入",
+      "case_number": 8,
+      "summary": "保留中心活动轮廓，在其前方建立主字和下方短行，再向周围错开补入小片。",
+      "purpose": "在持续活动上追加层",
+      "relation": "附加层先后建立，中心不停止",
+      "start_state": "中心轮廓正在活动",
+      "end_state": "前方字与外围小片完整",
+      "tags": [
+        "前景保持",
+        "文字叠入",
+        "外围累积"
+      ],
+      "document": "cases/davidshulmanfl-842921-original/mechanisms/m01.md",
+      "storyboard": "cases/davidshulmanfl-842921-original/mechanisms/m01.jpg",
+      "case_slug": "davidshulmanfl-842921",
+      "overview": "cases/davidshulmanfl-842921-original/overview.md",
+      "detail": "detail.html?case=davidshulmanfl-842921&mechanism=008-m01"
+    },
+    {
+      "id": "008-m02",
+      "title": "拉远露出外围层，中心保持而周边横向经过",
+      "case_number": 8,
+      "summary": "从近处退到更宽的范围，让中心活动轮廓继续，周边独立层横向经过。",
+      "purpose": "从近处建立共同空间",
+      "relation": "中心继续，外围移动体现空间变化",
+      "start_state": "中心轮廓占较大范围",
+      "end_state": "外围层与上方短形共同活动",
+      "tags": [
+        "拉远",
+        "外围经过",
+        "层间运动"
+      ],
+      "document": "cases/davidshulmanfl-842921-original/mechanisms/m02.md",
+      "storyboard": "cases/davidshulmanfl-842921-original/mechanisms/m02.jpg",
+      "case_slug": "davidshulmanfl-842921",
+      "overview": "cases/davidshulmanfl-842921-original/overview.md",
+      "detail": "detail.html?case=davidshulmanfl-842921&mechanism=008-m02"
+    },
+    {
+      "id": "008-m03",
+      "title": "圆框内局部放大，圆边越出后新底层铺满",
+      "case_number": 8,
+      "summary": "先在圆框中保持中心活动，逐渐推近内部，使圆边扩大到画外。",
+      "purpose": "从圆内接管全幅",
+      "relation": "圆内范围放大，内容先可见再接管",
+      "start_state": "圆框中已有中心轮廓",
+      "end_state": "圆边离场，活动轮廓留在新底层",
+      "tags": [
+        "圆形框",
+        "推近",
+        "边界越出"
+      ],
+      "document": "cases/davidshulmanfl-842921-original/mechanisms/m03.md",
+      "storyboard": "cases/davidshulmanfl-842921-original/mechanisms/m03.jpg",
+      "case_slug": "davidshulmanfl-842921",
+      "overview": "cases/davidshulmanfl-842921-original/overview.md",
+      "detail": "detail.html?case=davidshulmanfl-842921&mechanism=008-m03"
+    },
+    {
+      "id": "008-m04",
+      "title": "多格活动片留场，中央环形持续自转",
+      "case_number": 8,
+      "summary": "让多格活动片共同留场，在中央建立较大的环形并持续自转。",
+      "purpose": "在稳定集合上突出循环",
+      "relation": "背景网格稳定，环的运动独立于各格",
+      "start_state": "满幅多格集合已建立",
+      "end_state": "集合继续活动，中央环形仍转动",
+      "tags": [
+        "网格保持",
+        "自转",
+        "前后分层"
+      ],
+      "document": "cases/davidshulmanfl-842921-original/mechanisms/m04.md",
+      "storyboard": "cases/davidshulmanfl-842921-original/mechanisms/m04.jpg",
+      "case_slug": "davidshulmanfl-842921",
+      "overview": "cases/davidshulmanfl-842921-original/overview.md",
+      "detail": "detail.html?case=davidshulmanfl-842921&mechanism=008-m04"
+    },
+    {
+      "id": "008-m05",
+      "title": "小片从上方分批落下，在底部散开保留",
+      "case_number": 8,
+      "summary": "保留中心与两侧排布，从上方分批落下小片，途中转动并分散。",
+      "purpose": "持续散落形成累积",
+      "relation": "先到的落地留住，后批继续下降",
+      "start_state": "中心活动体与两侧小形已建立",
+      "end_state": "上方仍有新片落下，底部形成散片集合",
+      "tags": [
+        "散落",
+        "下落",
+        "底部累积"
+      ],
+      "document": "cases/davidshulmanfl-842921-original/mechanisms/m05.md",
+      "storyboard": "cases/davidshulmanfl-842921-original/mechanisms/m05.jpg",
+      "case_slug": "davidshulmanfl-842921",
+      "overview": "cases/davidshulmanfl-842921-original/overview.md",
+      "detail": "detail.html?case=davidshulmanfl-842921&mechanism=008-m05"
+    },
+    {
+      "id": "008-m06",
+      "title": "活动体沿波形通道上行下行，范围拉远露更多弯段",
+      "case_number": 8,
+      "summary": "让活动体沿波形通道上行，到高处后沿下一坡向下，姿态随路径坡度倾转。",
+      "purpose": "沿曲线持续前行",
+      "relation": "路径高度改变带动活动体，拉远保留同一通道",
+      "start_state": "活动体位于波形通道局部",
+      "end_state": "更多曲线弯段进入视野，活动体继续",
+      "tags": [
+        "曲线行进",
+        "坡度倾转",
+        "拉远"
+      ],
+      "document": "cases/davidshulmanfl-842921-original/mechanisms/m06.md",
+      "storyboard": "cases/davidshulmanfl-842921-original/mechanisms/m06.jpg",
+      "case_slug": "davidshulmanfl-842921",
+      "overview": "cases/davidshulmanfl-842921-original/overview.md",
+      "detail": "detail.html?case=davidshulmanfl-842921&mechanism=008-m06"
+    },
+    {
+      "id": "008-m07",
+      "title": "框内活动局部向上越出边框，外围层保持",
+      "case_number": 8,
+      "summary": "保持竖框与旁层，让活动轮廓的一部分向上接近边缘，再越出框外，其余部分仍在内部。",
+      "purpose": "框内外共享空间",
+      "relation": "局部运动越框，外框和旁层不跟随",
+      "start_state": "活动轮廓完整位于竖框内",
+      "end_state": "局部上移到框边上方，框内仍留其余部分",
+      "tags": [
+        "越框",
+        "局部上移",
+        "遮挡变化"
+      ],
+      "document": "cases/davidshulmanfl-842921-original/mechanisms/m07.md",
+      "storyboard": "cases/davidshulmanfl-842921-original/mechanisms/m07.jpg",
+      "case_slug": "davidshulmanfl-842921",
+      "overview": "cases/davidshulmanfl-842921-original/overview.md",
+      "detail": "detail.html?case=davidshulmanfl-842921&mechanism=008-m07"
+    },
+    {
+      "id": "009-m01",
+      "title": "外围卡片错开补齐，中心文字保留后集合散开",
+      "case_number": 9,
+      "summary": "从外围空位逐项补入卡片，中心文字分行建立。",
+      "purpose": "集合建立与散开",
+      "relation": "卡片累计时文字保持，散开后主次改变",
+      "start_state": "中心文字已部分建立",
+      "end_state": "外围片移散，中心短句接续",
+      "tags": [
+        "卡片累积",
+        "散开",
+        "中心保持"
+      ],
+      "document": "cases/gouthamjay8-910269-original/mechanisms/m01.md",
+      "storyboard": "cases/gouthamjay8-910269-original/mechanisms/m01.jpg",
+      "case_slug": "gouthamjay8-910269",
+      "overview": "cases/gouthamjay8-910269-original/overview.md",
+      "detail": "detail.html?case=gouthamjay8-910269&mechanism=009-m01"
+    },
+    {
+      "id": "009-m02",
+      "title": "小块分别落入固定槽，组合成中心结构",
+      "case_number": 9,
+      "summary": "以固定空位为参照，小块分别移动到对应位置，先到者保持。",
+      "purpose": "从分散补成整体",
+      "relation": "已有块固定，后块补入剩余空位",
+      "start_state": "中心有少量块和空槽",
+      "end_state": "块组完整，附属形接上",
+      "tags": [
+        "槽位填充",
+        "组合",
+        "累计"
+      ],
+      "document": "cases/gouthamjay8-910269-original/mechanisms/m02.md",
+      "storyboard": "cases/gouthamjay8-910269-original/mechanisms/m02.jpg",
+      "case_slug": "gouthamjay8-910269",
+      "overview": "cases/gouthamjay8-910269-original/overview.md",
+      "detail": "detail.html?case=gouthamjay8-910269&mechanism=009-m02"
+    },
+    {
+      "id": "009-m03",
+      "title": "重复块铺满画面，借覆盖揭出新布局",
+      "case_number": 9,
+      "summary": "把重复小块扩成铺满画面的层，遮住旧结构后换入新布局。",
+      "purpose": "以满幅覆盖换场",
+      "relation": "重复块接近铺满时旧层被遮住，下一层再露出",
+      "start_state": "中心结构已经完整",
+      "end_state": "新框与旁字接管",
+      "tags": [
+        "铺满",
+        "重复",
+        "遮挡换场"
+      ],
+      "document": "cases/gouthamjay8-910269-original/mechanisms/m03.md",
+      "storyboard": "cases/gouthamjay8-910269-original/mechanisms/m03.jpg",
+      "case_slug": "gouthamjay8-910269",
+      "overview": "cases/gouthamjay8-910269-original/overview.md",
+      "detail": "detail.html?case=gouthamjay8-910269&mechanism=009-m03"
+    },
+    {
+      "id": "009-m04",
+      "title": "主框保持，旁侧内容片依次接入",
+      "case_number": 9,
+      "summary": "保持主框位置，先在旁侧建立一张小片，再补竖片和下方短条。",
+      "purpose": "稳定框旁增加层级",
+      "relation": "从主框旁逐项增加，旧层不移动",
+      "start_state": "主框与字组已经在场",
+      "end_state": "旁侧多张片面完整",
+      "tags": [
+        "并置",
+        "逐项补入",
+        "主框保持"
+      ],
+      "document": "cases/gouthamjay8-910269-original/mechanisms/m04.md",
+      "storyboard": "cases/gouthamjay8-910269-original/mechanisms/m04.jpg",
+      "case_slug": "gouthamjay8-910269",
+      "overview": "cases/gouthamjay8-910269-original/overview.md",
+      "detail": "detail.html?case=gouthamjay8-910269&mechanism=009-m04"
+    },
+    {
+      "id": "009-m05",
+      "title": "外围标记绕中心进入，再收拢退去",
+      "case_number": 9,
+      "summary": "让外围小标记沿中心附近的路径逐项进入，形成围绕关系。",
+      "purpose": "围绕固定中心流转",
+      "relation": "外围路径独立，中心作为不动参照",
+      "start_state": "中心小形已在场",
+      "end_state": "外围退去，中心保持",
+      "tags": [
+        "绕行",
+        "外围聚拢",
+        "中心保持"
+      ],
+      "document": "cases/gouthamjay8-910269-original/mechanisms/m05.md",
+      "storyboard": "cases/gouthamjay8-910269-original/mechanisms/m05.jpg",
+      "case_slug": "gouthamjay8-910269",
+      "overview": "cases/gouthamjay8-910269-original/overview.md",
+      "detail": "detail.html?case=gouthamjay8-910269&mechanism=009-m05"
+    },
+    {
+      "id": "009-m06",
+      "title": "固定外框内轮换排布，拉远后展示集合",
+      "case_number": 9,
+      "summary": "保持外框与旁字，在框内接续替换多种排布。",
+      "purpose": "局部轮换进入整体",
+      "relation": "换内容保持边界，再改变观察范围",
+      "start_state": "大框与侧字稳定",
+      "end_state": "多框集合铺在后层，前字保留",
+      "tags": [
+        "内部替换",
+        "尺度拉远",
+        "集合"
+      ],
+      "document": "cases/gouthamjay8-910269-original/mechanisms/m06.md",
+      "storyboard": "cases/gouthamjay8-910269-original/mechanisms/m06.jpg",
+      "case_slug": "gouthamjay8-910269",
+      "overview": "cases/gouthamjay8-910269-original/overview.md",
+      "detail": "detail.html?case=gouthamjay8-910269&mechanism=009-m06"
+    },
+    {
+      "id": "009-m07",
+      "title": "外围圆点逐项亮起，中央数字增长后引用卡接入",
+      "case_number": 9,
+      "summary": "在固定圆阵中逐项点亮小圆，中央数字同步增长并趋停。",
+      "purpose": "累计到前景重点",
+      "relation": "点阵与数值推进，前卡在结果后接管",
+      "start_state": "外围圆阵与初值已经建立",
+      "end_state": "数字停稳，引用卡清楚，外围退虚",
+      "tags": [
+        "点阵点亮",
+        "数字增长",
+        "前景卡"
+      ],
+      "document": "cases/gouthamjay8-910269-original/mechanisms/m07.md",
+      "storyboard": "cases/gouthamjay8-910269-original/mechanisms/m07.jpg",
+      "case_slug": "gouthamjay8-910269",
+      "overview": "cases/gouthamjay8-910269-original/overview.md",
+      "detail": "detail.html?case=gouthamjay8-910269&mechanism=009-m07"
+    },
+    {
+      "id": "010-m01",
+      "title": "点阵中多数项退淡，少量点与数字保留",
+      "case_number": 10,
+      "summary": "保持规则点阵位置，让数字逐步更换，少量点先获得强调。",
+      "purpose": "从多项收束少量",
+      "relation": "多数点退弱，选中点保留位置",
+      "start_state": "规则点阵与大数字在场",
+      "end_state": "少量亮点分散留在原阵列",
+      "tags": [
+        "点阵",
+        "少量选中",
+        "数值替换"
+      ],
+      "document": "cases/hsanat-012699-original/mechanisms/m01.md",
+      "storyboard": "cases/hsanat-012699-original/mechanisms/m01.jpg",
+      "case_slug": "hsanat-012699",
+      "overview": "cases/hsanat-012699-original/overview.md",
+      "detail": "detail.html?case=hsanat-012699&mechanism=010-m01"
+    },
+    {
+      "id": "010-m02",
+      "title": "片面错开扇出，再突出其中一片",
+      "case_number": 10,
+      "summary": "从一张片开始错开补入多张，形成角度不同的扇形。",
+      "purpose": "展示集合后聚焦",
+      "relation": "同组错开角度与位置，突出项不离开来源",
+      "start_state": "首片已在侧方",
+      "end_state": "多片扇开，一片清楚突出",
+      "tags": [
+        "扇形",
+        "集合选中",
+        "外围退淡"
+      ],
+      "document": "cases/hsanat-012699-original/mechanisms/m02.md",
+      "storyboard": "cases/hsanat-012699-original/mechanisms/m02.jpg",
+      "case_slug": "hsanat-012699",
+      "overview": "cases/hsanat-012699-original/overview.md",
+      "detail": "detail.html?case=hsanat-012699&mechanism=010-m02"
+    },
+    {
+      "id": "010-m03",
+      "title": "固定框内列表展开选择，旧区域保持",
+      "case_number": 10,
+      "summary": "保留外框与已出现行文，指示符到达局部后展开列表。",
+      "purpose": "局部选项更新",
+      "relation": "指示符先到点，反馈局限在对应区域",
+      "start_state": "外框内已有行列",
+      "end_state": "列表收回，新项留下",
+      "tags": [
+        "指示符",
+        "局部展开",
+        "选择"
+      ],
+      "document": "cases/hsanat-012699-original/mechanisms/m03.md",
+      "storyboard": "cases/hsanat-012699-original/mechanisms/m03.jpg",
+      "case_slug": "hsanat-012699",
+      "overview": "cases/hsanat-012699-original/overview.md",
+      "detail": "detail.html?case=hsanat-012699&mechanism=010-m03"
+    },
+    {
+      "id": "010-m04",
+      "title": "竖框与旁片建立，旁片内容接续更新",
+      "case_number": 10,
+      "summary": "保持竖框，在其旁边接入小片。",
+      "purpose": "保持主框补充局部",
+      "relation": "主框留作参照，旁片负责新增变化",
+      "start_state": "竖框已经完整",
+      "end_state": "旁片多轮更新，主框位置不变",
+      "tags": [
+        "并置",
+        "内容更新",
+        "主框保持"
+      ],
+      "document": "cases/hsanat-012699-original/mechanisms/m04.md",
+      "storyboard": "cases/hsanat-012699-original/mechanisms/m04.jpg",
+      "case_slug": "hsanat-012699",
+      "overview": "cases/hsanat-012699-original/overview.md",
+      "detail": "detail.html?case=hsanat-012699&mechanism=010-m04"
+    },
+    {
+      "id": "010-m05",
+      "title": "窗口内多条横线依次增长，末端结果留住",
+      "case_number": 10,
+      "summary": "保持窗口内图块，让旁侧多条横线从固定起点依次延长。",
+      "purpose": "逐项呈现内部进度",
+      "relation": "固定起点与窗口不动，长度逐项增加",
+      "start_state": "完整窗口和活动图块已建立",
+      "end_state": "多条横线各自达到终点",
+      "tags": [
+        "横条增长",
+        "内部累计"
+      ],
+      "document": "cases/hsanat-012699-original/mechanisms/m05.md",
+      "storyboard": "cases/hsanat-012699-original/mechanisms/m05.jpg",
+      "case_slug": "hsanat-012699",
+      "overview": "cases/hsanat-012699-original/overview.md",
+      "detail": "detail.html?case=hsanat-012699&mechanism=010-m05"
+    },
+    {
+      "id": "010-m06",
+      "title": "纵向句列上下经过，中央行清楚其余退淡",
+      "case_number": 10,
+      "summary": "让句列沿纵向经过中央区域，进入中部的句子清楚，离开中部的退淡。",
+      "purpose": "连续轮换文字重点",
+      "relation": "整列位移，中央区域控制观看重点",
+      "start_state": "中央句列已经建立",
+      "end_state": "下一句到中部清楚，前后句退淡",
+      "tags": [
+        "纵向轮换",
+        "中央聚焦"
+      ],
+      "document": "cases/hsanat-012699-original/mechanisms/m06.md",
+      "storyboard": "cases/hsanat-012699-original/mechanisms/m06.jpg",
+      "case_slug": "hsanat-012699",
+      "overview": "cases/hsanat-012699-original/overview.md",
+      "detail": "detail.html?case=hsanat-012699&mechanism=010-m06"
+    },
+    {
+      "id": "010-m07",
+      "title": "并列片面逐项接入，底部附属行随后出现",
+      "case_number": 10,
+      "summary": "在上方短句下建立首张片，随后按左右位置逐项补齐同一排。",
+      "purpose": "逐项建立并列集合",
+      "relation": "先建首片，再补相邻片，先到者保持",
+      "start_state": "上方短句稳定，下方留空",
+      "end_state": "多张并列片面与底部小字完整",
+      "tags": [
+        "并列入场",
+        "集合累积"
+      ],
+      "document": "cases/hsanat-012699-original/mechanisms/m07.md",
+      "storyboard": "cases/hsanat-012699-original/mechanisms/m07.jpg",
+      "case_slug": "hsanat-012699",
+      "overview": "cases/hsanat-012699-original/overview.md",
+      "detail": "detail.html?case=hsanat-012699&mechanism=010-m07"
+    },
+    {
+      "id": "011-m01",
+      "title": "小点伸成长条，圆口显图后扩大成片",
+      "case_number": 11,
+      "summary": "先将中心小点横向伸成短长条，文字在条内建立。",
+      "purpose": "由小形建立内容范围",
+      "relation": "长条先建立，圆内新图成为下一承载范围",
+      "start_state": "中央只有小点",
+      "end_state": "竖向矩形片内图像清楚",
+      "tags": [
+        "形状扩张",
+        "圆口",
+        "矩形接管"
+      ],
+      "document": "cases/twoclipping-496100-original/mechanisms/m01.md",
+      "storyboard": "cases/twoclipping-496100-original/mechanisms/m01.jpg",
+      "case_slug": "twoclipping-496100",
+      "overview": "cases/twoclipping-496100-original/overview.md",
+      "detail": "detail.html?case=twoclipping-496100&mechanism=011-m01"
+    },
+    {
+      "id": "011-m02",
+      "title": "网格围绕原片补齐，选中格扩大接管全幅",
+      "case_number": 11,
+      "summary": "围绕原片补入其他图块形成网格，已有片仍留在其中。",
+      "purpose": "从集合进入一项",
+      "relation": "原片成为集合一项，其他项补入后为选中格让位",
+      "start_state": "独立片已落位",
+      "end_state": "选中内容成为全幅",
+      "tags": [
+        "网格补齐",
+        "选中扩大"
+      ],
+      "document": "cases/twoclipping-496100-original/mechanisms/m02.md",
+      "storyboard": "cases/twoclipping-496100-original/mechanisms/m02.jpg",
+      "case_slug": "twoclipping-496100",
+      "overview": "cases/twoclipping-496100-original/overview.md",
+      "detail": "detail.html?case=twoclipping-496100&mechanism=011-m02"
+    },
+    {
+      "id": "011-m03",
+      "title": "指示形沿底部长条推进，内部状态连续改变",
+      "case_number": 11,
+      "summary": "在全幅底部建立固定长条，指示形沿条向右移动，数值连续增长，内部图像状态随之逐步改变。",
+      "purpose": "用固定参照呈现变化",
+      "relation": "位置推进与内部变化同步，主构图保持",
+      "start_state": "全幅图像与下部长条已建立",
+      "end_state": "指示形到终点，图像进入新状态",
+      "tags": [
+        "滑动推进",
+        "固定参照",
+        "连续状态"
+      ],
+      "document": "cases/twoclipping-496100-original/mechanisms/m03.md",
+      "storyboard": "cases/twoclipping-496100-original/mechanisms/m03.jpg",
+      "case_slug": "twoclipping-496100",
+      "overview": "cases/twoclipping-496100-original/overview.md",
+      "detail": "detail.html?case=twoclipping-496100&mechanism=011-m03"
+    },
+    {
+      "id": "011-m04",
+      "title": "局部圆口露出新层，放大后接管原场",
+      "case_number": 11,
+      "summary": "在原画面的局部打开圆形可见区域，先露出新的内容。",
+      "purpose": "局部换场接全幅",
+      "relation": "新层先在圆内可见，再扩大覆盖旧层",
+      "start_state": "原画面中心局部明确",
+      "end_state": "新层占满画面",
+      "tags": [
+        "圆形揭示",
+        "扩大接管"
+      ],
+      "document": "cases/twoclipping-496100-original/mechanisms/m04.md",
+      "storyboard": "cases/twoclipping-496100-original/mechanisms/m04.jpg",
+      "case_slug": "twoclipping-496100",
+      "overview": "cases/twoclipping-496100-original/overview.md",
+      "detail": "detail.html?case=twoclipping-496100&mechanism=011-m04"
+    },
+    {
+      "id": "011-m05",
+      "title": "全幅收成竖片，旁侧大框接力建立",
+      "case_number": 11,
+      "summary": "将全幅内容收成竖片，外框接入并保留内部画面。",
+      "purpose": "从全幅转为并置",
+      "relation": "内容缩回保留，旁框在空位建立",
+      "start_state": "活动图像占满画面",
+      "end_state": "竖片与旁侧大框并置",
+      "tags": [
+        "全屏缩回",
+        "框体并置"
+      ],
+      "document": "cases/twoclipping-496100-original/mechanisms/m05.md",
+      "storyboard": "cases/twoclipping-496100-original/mechanisms/m05.jpg",
+      "case_slug": "twoclipping-496100",
+      "overview": "cases/twoclipping-496100-original/overview.md",
+      "detail": "detail.html?case=twoclipping-496100&mechanism=011-m05"
+    },
+    {
+      "id": "011-m06",
+      "title": "小片从竖框附近提起，跨到旁框目标空位",
+      "case_number": 11,
+      "summary": "从竖框附近提起独立小片，向旁侧大框移动，途中保留倾角，到目标空位后转正落入，目标边界给出确认。",
+      "purpose": "跨框转移内容",
+      "relation": "小片跨越两框，原框留场",
+      "start_state": "两框已并置，小片来源可见",
+      "end_state": "小片落入旁框，目标边界确认",
+      "tags": [
+        "跨框转移",
+        "目标落位"
+      ],
+      "document": "cases/twoclipping-496100-original/mechanisms/m06.md",
+      "storyboard": "cases/twoclipping-496100-original/mechanisms/m06.jpg",
+      "case_slug": "twoclipping-496100",
+      "overview": "cases/twoclipping-496100-original/overview.md",
+      "detail": "detail.html?case=twoclipping-496100&mechanism=011-m06"
+    },
+    {
+      "id": "011-m07",
+      "title": "长条内部更新进度，最后收成圆形完成标记",
+      "case_number": 11,
+      "summary": "保持长条范围，内部文字先更换为处理状态，再随进度增长更新。",
+      "purpose": "处理状态交给结果",
+      "relation": "外条保持时内部更新，完成后整体收小",
+      "start_state": "窗口内长条已建立",
+      "end_state": "圆形完成标记留场",
+      "tags": [
+        "进度条",
+        "状态替换",
+        "圆形收束"
+      ],
+      "document": "cases/twoclipping-496100-original/mechanisms/m07.md",
+      "storyboard": "cases/twoclipping-496100-original/mechanisms/m07.jpg",
+      "case_slug": "twoclipping-496100",
+      "overview": "cases/twoclipping-496100-original/overview.md",
+      "detail": "detail.html?case=twoclipping-496100&mechanism=011-m07"
+    },
+    {
+      "id": "011-m08",
+      "title": "同形框匹配到新底层，侧边前景接住后推近",
+      "case_number": 11,
+      "summary": "在换入新底层时保留同形竖框的锚点，让框内内容清楚。",
+      "purpose": "形状匹配接现实空间",
+      "relation": "换底保留框形锚点，前景从两侧接近边缘",
+      "start_state": "前段框形位置已明确",
+      "end_state": "同形框在新底层被侧边前景接住，随后推近",
+      "tags": [
+        "同形匹配",
+        "前景接近",
+        "推近"
+      ],
+      "document": "cases/twoclipping-496100-original/mechanisms/m08.md",
+      "storyboard": "cases/twoclipping-496100-original/mechanisms/m08.jpg",
+      "case_slug": "twoclipping-496100",
+      "overview": "cases/twoclipping-496100-original/overview.md",
+      "detail": "detail.html?case=twoclipping-496100&mechanism=011-m08"
+    },
+    {
+      "id": "012-m01",
+      "title": "向中心开口持续推进，内层扩大成为下一场",
+      "case_number": 12,
+      "summary": "将推进方向持续对准中心开口，让开口连同边界逐渐变大，内部的新层同步变得清楚。",
+      "purpose": "穿过局部进入下一层",
+      "relation": "先看见内层再靠近，外缘退出时下一中心仍可追踪。",
+      "start_state": "中心有带边界的开口，内部已可看见另一层。",
+      "end_state": "原开口边界越出画外，内层占满并留下下一个中心目标。",
+      "tags": [
+        "中心穿越",
+        "尺度推进",
+        "嵌套场景"
+      ],
+      "document": "cases/koldo2k-778767-original/mechanisms/m01.md",
+      "storyboard": "cases/koldo2k-778767-original/mechanisms/m01.jpg",
+      "case_slug": "koldo2k-778767",
+      "overview": "cases/koldo2k-778767-original/overview.md",
+      "detail": "detail.html?case=koldo2k-778767&mechanism=012-m01"
+    },
+    {
+      "id": "012-m02",
+      "title": "外围片层自转并向边缘越出，让出中心通道",
+      "case_number": 12,
+      "summary": "在向中心推进的同时，让外围片层各自转动、变大，并逐渐越出最近的画边。",
+      "purpose": "外围退让中心推进",
+      "relation": "外围层保留各自转动与位移，中心推进不被旁侧层接管。",
+      "start_state": "中心目标已明确，外围有多个独立片层。",
+      "end_state": "外围片层放大、转动并越出画边，中心路径继续。",
+      "tags": [
+        "层间运动",
+        "旋转越边",
+        "中心保持"
+      ],
+      "document": "cases/koldo2k-778767-original/mechanisms/m02.md",
+      "storyboard": "cases/koldo2k-778767-original/mechanisms/m02.jpg",
+      "case_slug": "koldo2k-778767",
+      "overview": "cases/koldo2k-778767-original/overview.md",
+      "detail": "detail.html?case=koldo2k-778767&mechanism=012-m02"
+    },
+    {
+      "id": "014-m01",
+      "title": "后层缓慢移动，前方字组逐行显出",
+      "case_number": 14,
+      "summary": "保留后层缓慢移动，先显出主行，再补下一行与附属小字。",
+      "purpose": "在持续底层建立文字",
+      "relation": "文字固定建立，后层继续小幅运动",
+      "start_state": "底层已经在场",
+      "end_state": "主副行及附属字完整",
+      "tags": [
+        "逐行显现",
+        "前后分层"
+      ],
+      "document": "cases/amitsingha89-780553-original/mechanisms/m01.md",
+      "storyboard": "cases/amitsingha89-780553-original/mechanisms/m01.jpg",
+      "case_slug": "amitsingha89-780553",
+      "overview": "cases/amitsingha89-780553-original/overview.md",
+      "detail": "detail.html?case=amitsingha89-780553&mechanism=014-m01"
+    },
+    {
+      "id": "014-m02",
+      "title": "图块按左右空位逐项建立，配套字随后接入",
+      "case_number": 14,
+      "summary": "从左端首块开始，在旁侧空位逐项接入图块，随后补该块下面的主字与小行。",
+      "purpose": "逐项建立并列集合",
+      "relation": "一项先完整，下一项再补入，先到者保持",
+      "start_state": "首个图块已经显出",
+      "end_state": "多个并列图块及下字齐全",
+      "tags": [
+        "横排累积",
+        "配套文字"
+      ],
+      "document": "cases/amitsingha89-780553-original/mechanisms/m02.md",
+      "storyboard": "cases/amitsingha89-780553-original/mechanisms/m02.jpg",
+      "case_slug": "amitsingha89-780553",
+      "overview": "cases/amitsingha89-780553-original/overview.md",
+      "detail": "detail.html?case=amitsingha89-780553&mechanism=014-m02"
+    },
+    {
+      "id": "014-m03",
+      "title": "新布局从侧边推进，旧组沿边退去",
+      "case_number": 14,
+      "summary": "让新布局从侧边推进，旧横排同时沿边离开，新旧短暂并置。",
+      "purpose": "侧向接管换场",
+      "relation": "新旧在侧边交叠，推进边界控制接替",
+      "start_state": "旧横排占据画面",
+      "end_state": "新并置布局接管",
+      "tags": [
+        "横移",
+        "侧向换场"
+      ],
+      "document": "cases/amitsingha89-780553-original/mechanisms/m03.md",
+      "storyboard": "cases/amitsingha89-780553-original/mechanisms/m03.jpg",
+      "case_slug": "amitsingha89-780553",
+      "overview": "cases/amitsingha89-780553-original/overview.md",
+      "detail": "detail.html?case=amitsingha89-780553&mechanism=014-m03"
+    },
+    {
+      "id": "014-m04",
+      "title": "两片前后错开建立，旁侧文字与标签累积",
+      "case_number": 14,
+      "summary": "先建立后片，再在其前侧较低位置补入前片，让后片部分仍可见。",
+      "purpose": "建立交叠与旁侧说明",
+      "relation": "前片覆盖后片局部，其余仍可见",
+      "start_state": "后片已落位",
+      "end_state": "前片、旁字和标签完整",
+      "tags": [
+        "交叠",
+        "错峰入场",
+        "标签累积"
+      ],
+      "document": "cases/amitsingha89-780553-original/mechanisms/m04.md",
+      "storyboard": "cases/amitsingha89-780553-original/mechanisms/m04.jpg",
+      "case_slug": "amitsingha89-780553",
+      "overview": "cases/amitsingha89-780553-original/overview.md",
+      "detail": "detail.html?case=amitsingha89-780553&mechanism=014-m04"
+    },
+    {
+      "id": "015-m01",
+      "title": "侧方片面倾斜入位，内部轮换后标记叠入",
+      "case_number": 15,
+      "summary": "让片面从侧方带倾角入位，主字保持。",
+      "purpose": "建立局部并确认",
+      "relation": "外片保持，内部更新与标记追加错开",
+      "start_state": "主字已在一侧",
+      "end_state": "片内内容停止轮换，倾斜标记保留",
+      "tags": [
+        "倾斜入场",
+        "内容轮换",
+        "叠加"
+      ],
+      "document": "cases/thismacapital-375808-original/mechanisms/m01.md",
+      "storyboard": "cases/thismacapital-375808-original/mechanisms/m01.jpg",
+      "case_slug": "thismacapital-375808",
+      "overview": "cases/thismacapital-375808-original/overview.md",
+      "detail": "detail.html?case=thismacapital-375808&mechanism=015-m01"
+    },
+    {
+      "id": "015-m02",
+      "title": "字沿弧线接续入位，小形绕行后退出",
+      "case_number": 15,
+      "summary": "使短字沿弧线接续进入中央位置，逐渐组成稳定字组。",
+      "purpose": "沿路径建立短句",
+      "relation": "字组归到中部，小形沿周边弧线独立行进",
+      "start_state": "新底层已经接管",
+      "end_state": "主句稳定，小形离开路径",
+      "tags": [
+        "弧线路径",
+        "文字归位",
+        "绕行"
+      ],
+      "document": "cases/thismacapital-375808-original/mechanisms/m02.md",
+      "storyboard": "cases/thismacapital-375808-original/mechanisms/m02.jpg",
+      "case_slug": "thismacapital-375808",
+      "overview": "cases/thismacapital-375808-original/overview.md",
+      "detail": "detail.html?case=thismacapital-375808&mechanism=015-m02"
+    },
+    {
+      "id": "015-m03",
+      "title": "中心体落入，下方点列累计而上卡接续更换",
+      "case_number": 15,
+      "summary": "让中心体从上方落到稳定位置，底部环短暂展开。",
+      "purpose": "保留中心逐步处理",
+      "relation": "中心固定，上方卡轮换，已完成点保留",
+      "start_state": "中心体从上方接近",
+      "end_state": "上卡完成，下方点列补齐",
+      "tags": [
+        "落位",
+        "短卡轮换",
+        "点列累积"
+      ],
+      "document": "cases/thismacapital-375808-original/mechanisms/m03.md",
+      "storyboard": "cases/thismacapital-375808-original/mechanisms/m03.jpg",
+      "case_slug": "thismacapital-375808",
+      "overview": "cases/thismacapital-375808-original/overview.md",
+      "detail": "detail.html?case=thismacapital-375808&mechanism=015-m03"
+    },
+    {
+      "id": "015-m04",
+      "title": "斜向带经过，后缘揭出下一全幅与字组",
+      "case_number": 15,
+      "summary": "让斜向宽带从边缘经过，先遮住旧层，再由后缘揭出新全幅。",
+      "purpose": "斜向覆盖换场",
+      "relation": "斜带负责遮蔽，后缘露出下一层",
+      "start_state": "当前全幅已经清楚",
+      "end_state": "新全幅接管，下字接入",
+      "tags": [
+        "斜向擦过",
+        "全屏替换"
+      ],
+      "document": "cases/thismacapital-375808-original/mechanisms/m04.md",
+      "storyboard": "cases/thismacapital-375808-original/mechanisms/m04.jpg",
+      "case_slug": "thismacapital-375808",
+      "overview": "cases/thismacapital-375808-original/overview.md",
+      "detail": "detail.html?case=thismacapital-375808&mechanism=015-m04"
+    },
+    {
+      "id": "015-m05",
+      "title": "全幅收成并列竖片，圆层接管后缩为锚点",
+      "case_number": 15,
+      "summary": "将多个全幅各自收成并列竖片，集合建立后保持。",
+      "purpose": "集合收束到小形",
+      "relation": "先收全幅为集合，再以圆层集中观看",
+      "start_state": "末层占满画面",
+      "end_state": "小圆点成为标记起点",
+      "tags": [
+        "缩回",
+        "并列集合",
+        "圆形收束"
+      ],
+      "document": "cases/thismacapital-375808-original/mechanisms/m05.md",
+      "storyboard": "cases/thismacapital-375808-original/mechanisms/m05.jpg",
+      "case_slug": "thismacapital-375808",
+      "overview": "cases/thismacapital-375808-original/overview.md",
+      "detail": "detail.html?case=thismacapital-375808&mechanism=015-m05"
+    },
+    {
+      "id": "016-m01",
+      "title": "大字从遮挡边界升出，新图自下方揭示",
+      "case_number": 16,
+      "summary": "让大字从水平遮挡边界向上升出，落稳后新图像从下方揭出占满画面。",
+      "purpose": "由字组接全幅",
+      "relation": "字组先落稳，图像揭出时保留底部文字",
+      "start_state": "主字只露出部分",
+      "end_state": "图像清楚，底部大字保留",
+      "tags": [
+        "遮挡揭示",
+        "上升",
+        "底字保持"
+      ],
+      "document": "cases/monokern-613142-original/mechanisms/m01.md",
+      "storyboard": "cases/monokern-613142-original/mechanisms/m01.jpg",
+      "case_slug": "monokern-613142",
+      "overview": "cases/monokern-613142-original/overview.md",
+      "detail": "detail.html?case=monokern-613142&mechanism=016-m01"
+    },
+    {
+      "id": "016-m02",
+      "title": "满幅退为小框，内部换图后旁字补齐",
+      "case_number": 16,
+      "summary": "让满幅退为独立小框，内部画面接续更换。",
+      "purpose": "收回并置展示",
+      "relation": "边界收小后留场，内容更新与侧字建立错开",
+      "start_state": "图像占据全幅",
+      "end_state": "独立框与旁侧字稳定",
+      "tags": [
+        "全屏缩回",
+        "局部换图",
+        "并置"
+      ],
+      "document": "cases/monokern-613142-original/mechanisms/m02.md",
+      "storyboard": "cases/monokern-613142-original/mechanisms/m02.jpg",
+      "case_slug": "monokern-613142",
+      "overview": "cases/monokern-613142-original/overview.md",
+      "detail": "detail.html?case=monokern-613142&mechanism=016-m02"
+    },
+    {
+      "id": "016-m03",
+      "title": "翻卷状覆盖从侧边通过，揭出下一布局",
+      "case_number": 16,
+      "summary": "让带翻卷状边缘的覆盖层从侧方穿过，旧组被它遮住，后缘离开时露出新布局。",
+      "purpose": "侧向覆盖转场",
+      "relation": "覆盖层带弯曲边缘，经过时遮住旧组",
+      "start_state": "旧框与旁字已完整",
+      "end_state": "下一布局铺满并清楚",
+      "tags": [
+        "翻卷状覆盖",
+        "横向通过"
+      ],
+      "document": "cases/monokern-613142-original/mechanisms/m03.md",
+      "storyboard": "cases/monokern-613142-original/mechanisms/m03.jpg",
+      "case_slug": "monokern-613142",
+      "overview": "cases/monokern-613142-original/overview.md",
+      "detail": "detail.html?case=monokern-613142&mechanism=016-m03"
+    },
+    {
+      "id": "016-m04",
+      "title": "细线在对象前后逐段延长，曲线持续波动",
+      "case_number": 16,
+      "summary": "在稳定对象前后延长细线，让线依次穿过空位，已画过部分保留。",
+      "purpose": "以线连接共同空间",
+      "relation": "线负责连续关系，对象位置保持",
+      "start_state": "并置对象与大字已经建立",
+      "end_state": "线组贯穿画面，局部仍可见",
+      "tags": [
+        "描线",
+        "曲线波动",
+        "前后层"
+      ],
+      "document": "cases/monokern-613142-original/mechanisms/m04.md",
+      "storyboard": "cases/monokern-613142-original/mechanisms/m04.jpg",
+      "case_slug": "monokern-613142",
+      "overview": "cases/monokern-613142-original/overview.md",
+      "detail": "detail.html?case=monokern-613142&mechanism=016-m04"
+    },
+    {
+      "id": "016-m05",
+      "title": "多片缩排成集合，交叉长带从两侧经过",
+      "case_number": 16,
+      "summary": "将多个片面缩排成集合，先保持它们的各自内容。",
+      "purpose": "集合上叠加方向接力",
+      "relation": "集合稳定，带独立横移且不带动底层",
+      "start_state": "单框处于活动状态",
+      "end_state": "多框集合留场，交叉带经过",
+      "tags": [
+        "缩排集合",
+        "交叉长带",
+        "横向经过"
+      ],
+      "document": "cases/monokern-613142-original/mechanisms/m05.md",
+      "storyboard": "cases/monokern-613142-original/mechanisms/m05.jpg",
+      "case_slug": "monokern-613142",
+      "overview": "cases/monokern-613142-original/overview.md",
+      "detail": "detail.html?case=monokern-613142&mechanism=016-m05"
+    },
+    {
+      "id": "016-m06",
+      "title": "中央大词接续轮换，侧面片层铺满后留下收尾组",
+      "case_number": 16,
+      "summary": "在同一中央位置接续轮换大词，词间用短促退出接入。",
+      "purpose": "用同一观看点收束",
+      "relation": "大词复用中部位置，侧层最后接管",
+      "start_state": "中央已有大词",
+      "end_state": "新片层铺满，上下字组稳定",
+      "tags": [
+        "大字轮换",
+        "侧向接管",
+        "收尾"
+      ],
+      "document": "cases/monokern-613142-original/mechanisms/m06.md",
+      "storyboard": "cases/monokern-613142-original/mechanisms/m06.jpg",
+      "case_slug": "monokern-613142",
+      "overview": "cases/monokern-613142-original/overview.md",
+      "detail": "detail.html?case=monokern-613142&mechanism=016-m06"
+    },
+    {
+      "id": "017-m01",
+      "title": "弧形线从一端延长，块面从下方接入",
+      "case_number": 17,
+      "summary": "从一端延长弧形线，使它逐渐跨过画面。",
+      "purpose": "描出边界并建立范围",
+      "relation": "轮廓先定义范围，填充随后承接",
+      "start_state": "空底上只有短线起点",
+      "end_state": "弧形边界及下方块面完整",
+      "tags": [
+        "弧线描出",
+        "填充",
+        "字组接力"
+      ],
+      "document": "cases/abderrahmen-g-899031-original/mechanisms/m01.md",
+      "storyboard": "cases/abderrahmen-g-899031-original/mechanisms/m01.jpg",
+      "case_slug": "abderrahmen-g-899031",
+      "overview": "cases/abderrahmen-g-899031-original/overview.md",
+      "detail": "detail.html?case=abderrahmen-g-899031&mechanism=017-m01"
+    },
+    {
+      "id": "017-m02",
+      "title": "小形沿共同弧线逐项建立，已有项保持",
+      "case_number": 17,
+      "summary": "在弧形边界上逐项接入小形，各自停在不同落点，已出现的保持并小幅活动。",
+      "purpose": "沿路径累计集合",
+      "relation": "按不同落点接入，前项不随后项出现退出",
+      "start_state": "弧形边界已完整",
+      "end_state": "多个小形沿边界排开",
+      "tags": [
+        "路径排布",
+        "逐项增加"
+      ],
+      "document": "cases/abderrahmen-g-899031-original/mechanisms/m02.md",
+      "storyboard": "cases/abderrahmen-g-899031-original/mechanisms/m02.jpg",
+      "case_slug": "abderrahmen-g-899031",
+      "overview": "cases/abderrahmen-g-899031-original/overview.md",
+      "detail": "detail.html?case=abderrahmen-g-899031&mechanism=017-m02"
+    },
+    {
+      "id": "017-m03",
+      "title": "弧线下内容连续更换，末项放大接管",
+      "case_number": 17,
+      "summary": "保持上部空区与弧形边界，连续替换边界下的图像；每次更换时前景小形在边缘附近短暂接力。",
+      "purpose": "用共同边界轮换画面",
+      "relation": "边界保持，内部替换，前景小形短暂接力",
+      "start_state": "弧线下已有图像",
+      "end_state": "末项扩大至全幅",
+      "tags": [
+        "固定窗口",
+        "内容轮换",
+        "推近"
+      ],
+      "document": "cases/abderrahmen-g-899031-original/mechanisms/m03.md",
+      "storyboard": "cases/abderrahmen-g-899031-original/mechanisms/m03.jpg",
+      "case_slug": "abderrahmen-g-899031",
+      "overview": "cases/abderrahmen-g-899031-original/overview.md",
+      "detail": "detail.html?case=abderrahmen-g-899031&mechanism=017-m03"
+    },
+    {
+      "id": "017-m04",
+      "title": "细长轮廓分批建立，外围小片持续经过",
+      "case_number": 17,
+      "summary": "沿稳定底边分批建立细长轮廓，先中心后周边，已出现的保持。",
+      "purpose": "从少到多填充空间",
+      "relation": "已有细形保持，后项补空位，外围独立移动",
+      "start_state": "底边和首个细长形在场",
+      "end_state": "更多竖向细形与外围片并存",
+      "tags": [
+        "轮廓累积",
+        "空间填充",
+        "外围经过"
+      ],
+      "document": "cases/abderrahmen-g-899031-original/mechanisms/m04.md",
+      "storyboard": "cases/abderrahmen-g-899031-original/mechanisms/m04.jpg",
+      "case_slug": "abderrahmen-g-899031",
+      "overview": "cases/abderrahmen-g-899031-original/overview.md",
+      "detail": "detail.html?case=abderrahmen-g-899031&mechanism=017-m04"
+    },
+    {
+      "id": "017-m05",
+      "title": "活动体沿不同曲线向上穿行，底边保持",
+      "case_number": 17,
+      "summary": "保持底部边界，让活动体沿不同曲线缓慢向上穿行，外围圆点也上移但速度不同。",
+      "purpose": "共同范围内持续漂移",
+      "relation": "个体路径不同，边界不跟随",
+      "start_state": "底部边界与少量活动体在场",
+      "end_state": "多体分散上行，局部前后交会",
+      "tags": [
+        "上行",
+        "曲线路径",
+        "层间交会"
+      ],
+      "document": "cases/abderrahmen-g-899031-original/mechanisms/m05.md",
+      "storyboard": "cases/abderrahmen-g-899031-original/mechanisms/m05.jpg",
+      "case_slug": "abderrahmen-g-899031",
+      "overview": "cases/abderrahmen-g-899031-original/overview.md",
+      "detail": "detail.html?case=abderrahmen-g-899031&mechanism=017-m05"
+    },
+    {
+      "id": "017-m06",
+      "title": "外围散形围绕中央，字组建立后局部集中增多",
+      "case_number": 17,
+      "summary": "让外围散形围绕中央空位运动，在空位先补主字再补下行。",
+      "purpose": "流动集合聚焦中央",
+      "relation": "中央稳定，外围绕行与新增错开",
+      "start_state": "外围散形已经分布",
+      "end_state": "中央两行文字完整，周围小形增多",
+      "tags": [
+        "外围绕行",
+        "中央字组",
+        "集合增加"
+      ],
+      "document": "cases/abderrahmen-g-899031-original/mechanisms/m06.md",
+      "storyboard": "cases/abderrahmen-g-899031-original/mechanisms/m06.jpg",
+      "case_slug": "abderrahmen-g-899031",
+      "overview": "cases/abderrahmen-g-899031-original/overview.md",
+      "detail": "detail.html?case=abderrahmen-g-899031&mechanism=017-m06"
+    },
+    {
+      "id": "018-m01",
+      "title": "侧列重点依次下移，固定竖框内画面更换",
+      "case_number": 18,
+      "summary": "保留左侧纵列和右侧竖框，当前行逐次向下变化，框内同时接续换入对应图像。",
+      "purpose": "内部替换",
+      "relation": "重点沿行移动，外框不跟随",
+      "start_state": "文字列和竖框已完整",
+      "end_state": "后行成为重点，框内新图留场",
+      "tags": [
+        "侧列选择",
+        "固定窗口"
+      ],
+      "document": "cases/ercankeskinx-897906-original/mechanisms/m01.md",
+      "storyboard": "cases/ercankeskinx-897906-original/mechanisms/m01.jpg",
+      "case_slug": "ercankeskinx-897906",
+      "overview": "cases/ercankeskinx-897906-original/overview.md",
+      "detail": "detail.html?case=ercankeskinx-897906&mechanism=018-m01"
+    },
+    {
+      "id": "018-m02",
+      "title": "面板内数字增减，波形与短条同步更新",
+      "case_number": 18,
+      "summary": "保持主图和侧面板，让数字与细条从初值逐步增加，波形显出并变化；达到一轮终点后回落，下一轮从内部重启，外部布局保持。",
+      "purpose": "内部往复",
+      "relation": "框边固定，变化局限在内部",
+      "start_state": "主图与空面板已建立",
+      "end_state": "一轮数值变化完成后可再次启动",
+      "tags": [
+        "计数",
+        "波形",
+        "条形变化"
+      ],
+      "document": "cases/ercankeskinx-897906-original/mechanisms/m02.md",
+      "storyboard": "cases/ercankeskinx-897906-original/mechanisms/m02.jpg",
+      "case_slug": "ercankeskinx-897906",
+      "overview": "cases/ercankeskinx-897906-original/overview.md",
+      "detail": "detail.html?case=ercankeskinx-897906&mechanism=018-m02"
+    },
+    {
+      "id": "018-m03",
+      "title": "点沿曲线路径前进，旁侧图块逐站更新",
+      "case_number": 18,
+      "summary": "沿曲线向前推进亮点，已走过路径留住。",
+      "purpose": "路径接力",
+      "relation": "旧路径保留，移动点引导局部换图",
+      "start_state": "曲线起点与首图在场",
+      "end_state": "路径推进到远端，旁图显示后站",
+      "tags": [
+        "路径增长",
+        "逐站更新"
+      ],
+      "document": "cases/ercankeskinx-897906-original/mechanisms/m03.md",
+      "storyboard": "cases/ercankeskinx-897906-original/mechanisms/m03.jpg",
+      "case_slug": "ercankeskinx-897906",
+      "overview": "cases/ercankeskinx-897906-original/overview.md",
+      "detail": "detail.html?case=ercankeskinx-897906&mechanism=018-m03"
+    },
+    {
+      "id": "018-m04",
+      "title": "同轴片层扇开，各片先后向前突出",
+      "case_number": 18,
+      "summary": "将同轴片层分别转开形成扇形，再让其中一片向前突出；其他片保持展开位置。",
+      "purpose": "集合展开与选中",
+      "relation": "共同轴固定，选中片从原角度前移",
+      "start_state": "片层合在共同轴附近",
+      "end_state": "扇形集合保留，当前片突出",
+      "tags": [
+        "扇形展开",
+        "单项突出"
+      ],
+      "document": "cases/ercankeskinx-897906-original/mechanisms/m04.md",
+      "storyboard": "cases/ercankeskinx-897906-original/mechanisms/m04.jpg",
+      "case_slug": "ercankeskinx-897906",
+      "overview": "cases/ercankeskinx-897906-original/overview.md",
+      "detail": "detail.html?case=ercankeskinx-897906&mechanism=018-m04"
+    },
+    {
+      "id": "019-m01",
+      "title": "后层退弱，前方浮窗建立后收回",
+      "case_number": 19,
+      "summary": "保留完整底层，前方浮窗出现时底层减淡。",
+      "purpose": "前后层接力",
+      "relation": "底层留场，浮窗负责短暂重点",
+      "start_state": "完整底层框在场",
+      "end_state": "浮窗退出，底层重新清楚",
+      "tags": [
+        "浮窗",
+        "底层退让"
+      ],
+      "document": "cases/vince-builds-355650-original/mechanisms/m01.md",
+      "storyboard": "cases/vince-builds-355650-original/mechanisms/m01.jpg",
+      "case_slug": "vince-builds-355650",
+      "overview": "cases/vince-builds-355650-original/overview.md",
+      "detail": "detail.html?case=vince-builds-355650&mechanism=019-m01"
+    },
+    {
+      "id": "019-m02",
+      "title": "局部字组被框住，侧片推出后逐字补入",
+      "case_number": 19,
+      "summary": "先在局部字组周围建立强调范围，再从侧方推出较小片面。",
+      "purpose": "局部展开",
+      "relation": "先定位范围，再在旁侧展开输入层",
+      "start_state": "图文主框已完整",
+      "end_state": "侧片内文字补齐，原字组仍在",
+      "tags": [
+        "范围强调",
+        "侧滑",
+        "逐字输入"
+      ],
+      "document": "cases/vince-builds-355650-original/mechanisms/m02.md",
+      "storyboard": "cases/vince-builds-355650-original/mechanisms/m02.jpg",
+      "case_slug": "vince-builds-355650",
+      "overview": "cases/vince-builds-355650-original/overview.md",
+      "detail": "detail.html?case=vince-builds-355650&mechanism=019-m02"
+    },
+    {
+      "id": "019-m03",
+      "title": "定位点留在原处，旁卡分层增长",
+      "case_number": 19,
+      "summary": "在原局部留住定位点，旁侧先建立空卡，再补主字、图块、正文和下方短标。",
+      "purpose": "局部说明累积",
+      "relation": "点提供锚点，旁卡内容按层补入",
+      "start_state": "主框局部已有定位点",
+      "end_state": "旁卡图文齐全，原局部保持",
+      "tags": [
+        "定位",
+        "浮卡增长"
+      ],
+      "document": "cases/vince-builds-355650-original/mechanisms/m03.md",
+      "storyboard": "cases/vince-builds-355650-original/mechanisms/m03.jpg",
+      "case_slug": "vince-builds-355650",
+      "overview": "cases/vince-builds-355650-original/overview.md",
+      "detail": "detail.html?case=vince-builds-355650&mechanism=019-m03"
+    },
+    {
+      "id": "019-m04",
+      "title": "小卡分列填入，部分项在列间移动",
+      "case_number": 19,
+      "summary": "先在固定多列中逐项补入小卡，已有卡保持。",
+      "purpose": "集合内重排",
+      "relation": "列作为固定容器，卡片独立变化",
+      "start_state": "多列框已建立",
+      "end_state": "卡片移入新列，其他项保留",
+      "tags": [
+        "分列填充",
+        "跨列移动"
+      ],
+      "document": "cases/vince-builds-355650-original/mechanisms/m04.md",
+      "storyboard": "cases/vince-builds-355650-original/mechanisms/m04.jpg",
+      "case_slug": "vince-builds-355650",
+      "overview": "cases/vince-builds-355650-original/overview.md",
+      "detail": "detail.html?case=vince-builds-355650&mechanism=019-m04"
+    },
+    {
+      "id": "019-m05",
+      "title": "主框收为并置小片，前后状态分别留住",
+      "case_number": 19,
+      "summary": "让主框收成小片，旁侧建立另一片，分别保留前后不同内容。",
+      "purpose": "对照建立",
+      "relation": "收小保留内容，相邻片承载另一状态",
+      "start_state": "主框新状态已清楚",
+      "end_state": "两片并置，确认形接上",
+      "tags": [
+        "缩排",
+        "并置",
+        "确认"
+      ],
+      "document": "cases/vince-builds-355650-original/mechanisms/m05.md",
+      "storyboard": "cases/vince-builds-355650-original/mechanisms/m05.jpg",
+      "case_slug": "vince-builds-355650",
+      "overview": "cases/vince-builds-355650-original/overview.md",
+      "detail": "detail.html?case=vince-builds-355650&mechanism=019-m05"
+    },
+    {
+      "id": "020-m01",
+      "title": "线段闭合，两侧块向中央汇合",
+      "case_number": 20,
+      "summary": "让细线逐段延长形成闭合轮廓，两侧独立块向中央靠拢，汇成完整中心形。",
+      "purpose": "组合成中心形",
+      "relation": "轮廓先建立，两侧块在内汇合",
+      "start_state": "少量细线已出现",
+      "end_state": "中心块形完整，字组接上",
+      "tags": [
+        "描线",
+        "闭合",
+        "相向汇聚"
+      ],
+      "document": "cases/bridgemindai-286423-original/mechanisms/m01.md",
+      "storyboard": "cases/bridgemindai-286423-original/mechanisms/m01.jpg",
+      "case_slug": "bridgemindai-286423",
+      "overview": "cases/bridgemindai-286423-original/overview.md",
+      "detail": "detail.html?case=bridgemindai-286423&mechanism=020-m01"
+    },
+    {
+      "id": "020-m02",
+      "title": "中心标记推近占满局部，字组在其前方接入",
+      "case_number": 20,
+      "summary": "推近中心标记，使局部放大占据主要画面。",
+      "purpose": "从整体到局部",
+      "relation": "推近改变尺度，文字独立叠入",
+      "start_state": "小标记位于中部",
+      "end_state": "标记局部放大，前方两行字完整",
+      "tags": [
+        "推近",
+        "局部放大",
+        "前景字"
+      ],
+      "document": "cases/bridgemindai-286423-original/mechanisms/m02.md",
+      "storyboard": "cases/bridgemindai-286423-original/mechanisms/m02.jpg",
+      "case_slug": "bridgemindai-286423",
+      "overview": "cases/bridgemindai-286423-original/overview.md",
+      "detail": "detail.html?case=bridgemindai-286423&mechanism=020-m02"
+    },
+    {
+      "id": "020-m03",
+      "title": "主形固定，旁侧文字逐行累积",
+      "case_number": 20,
+      "summary": "保持主形在一侧，旁侧文字从上往下逐行建立，已出现行保留，底部小行最后补入。",
+      "purpose": "侧方说明建立",
+      "relation": "主形留场，行文从上向下补入",
+      "start_state": "主形已在一侧",
+      "end_state": "旁侧多行说明完整",
+      "tags": [
+        "逐行累积",
+        "主形保持"
+      ],
+      "document": "cases/bridgemindai-286423-original/mechanisms/m03.md",
+      "storyboard": "cases/bridgemindai-286423-original/mechanisms/m03.jpg",
+      "case_slug": "bridgemindai-286423",
+      "overview": "cases/bridgemindai-286423-original/overview.md",
+      "detail": "detail.html?case=bridgemindai-286423&mechanism=020-m03"
+    },
+    {
+      "id": "020-m04",
+      "title": "主形收进片面，旁字数值与长条错开建立",
+      "case_number": 20,
+      "summary": "将中央主形收进独立竖片，旁侧标题和大数字随后接入，再补短标签与下方长条。",
+      "purpose": "收回并置展示",
+      "relation": "收小形成来源明确的片面，旁层逐项补入",
+      "start_state": "中央主形与后层大字完整",
+      "end_state": "独立片和旁侧信息齐全",
+      "tags": [
+        "缩回",
+        "并置",
+        "信息接力"
+      ],
+      "document": "cases/bridgemindai-286423-original/mechanisms/m04.md",
+      "storyboard": "cases/bridgemindai-286423-original/mechanisms/m04.jpg",
+      "case_slug": "bridgemindai-286423",
+      "overview": "cases/bridgemindai-286423-original/overview.md",
+      "detail": "detail.html?case=bridgemindai-286423&mechanism=020-m04"
+    },
+    {
+      "id": "020-m05",
+      "title": "竖片按空位错开补入，形成完整一排",
+      "case_number": 20,
+      "summary": "先立一张竖片，再向旁侧空位错开補入后片，各片尺度一致，内部内容分别保持。",
+      "purpose": "多项集合建立",
+      "relation": "先到项保持，后项补入剩余位置",
+      "start_state": "首片已经可见",
+      "end_state": "多片并列，底部短字补齐",
+      "tags": [
+        "并列",
+        "错峰入场"
+      ],
+      "document": "cases/bridgemindai-286423-original/mechanisms/m05.md",
+      "storyboard": "cases/bridgemindai-286423-original/mechanisms/m05.jpg",
+      "case_slug": "bridgemindai-286423",
+      "overview": "cases/bridgemindai-286423-original/overview.md",
+      "detail": "detail.html?case=bridgemindai-286423&mechanism=020-m05"
+    },
+    {
+      "id": "021-m01",
+      "title": "固定长条填字，下方短卡逐行补入",
+      "case_number": 21,
+      "summary": "保持上方长条，先补齐内部短字，再从其下方逐行接入横向短卡。",
+      "purpose": "从输入展开列表",
+      "relation": "上条保持，下方各行错开累积",
+      "start_state": "单条框已建立",
+      "end_state": "多行横卡完整",
+      "tags": [
+        "输入",
+        "逐行接入"
+      ],
+      "document": "cases/priyansh0327-206409-original/mechanisms/m01.md",
+      "storyboard": "cases/priyansh0327-206409-original/mechanisms/m01.jpg",
+      "case_slug": "priyansh0327-206409",
+      "overview": "cases/priyansh0327-206409-original/overview.md",
+      "detail": "detail.html?case=priyansh0327-206409&mechanism=021-m01"
+    },
+    {
+      "id": "021-m02",
+      "title": "竖卡并置后内部逐行累计，单卡边界突出",
+      "case_number": 21,
+      "summary": "先稳定并置竖卡，在每张卡内逐行补入小标记与短文，已完成行不复原。",
+      "purpose": "集合内聚焦",
+      "relation": "各卡固定，内部增长，末段强调一项",
+      "start_state": "竖卡已并列",
+      "end_state": "内部齐全，一卡获得重点",
+      "tags": [
+        "并置",
+        "逐行累计",
+        "边界强调"
+      ],
+      "document": "cases/priyansh0327-206409-original/mechanisms/m02.md",
+      "storyboard": "cases/priyansh0327-206409-original/mechanisms/m02.jpg",
+      "case_slug": "priyansh0327-206409",
+      "overview": "cases/priyansh0327-206409-original/overview.md",
+      "detail": "detail.html?case=priyansh0327-206409&mechanism=021-m02"
+    },
+    {
+      "id": "021-m03",
+      "title": "面板内完成点逐行出现，结果长条最后接入",
+      "case_number": 21,
+      "summary": "在固定面板里按由上至下顺序补入完成点和短文，前行保持，新行接续建立。",
+      "purpose": "按项处理后交结果",
+      "relation": "顺序由上向下，已处理行保持",
+      "start_state": "完整面板仅少量内容",
+      "end_state": "各行完成，底部结果条建立",
+      "tags": [
+        "逐行点亮",
+        "结果接力"
+      ],
+      "document": "cases/priyansh0327-206409-original/mechanisms/m03.md",
+      "storyboard": "cases/priyansh0327-206409-original/mechanisms/m03.jpg",
+      "case_slug": "priyansh0327-206409",
+      "overview": "cases/priyansh0327-206409-original/overview.md",
+      "detail": "detail.html?case=priyansh0327-206409&mechanism=021-m03"
+    },
+    {
+      "id": "021-m04",
+      "title": "满幅图像模糊接替，底部标题与短标错开建立",
+      "case_number": 21,
+      "summary": "让当前全幅短暂模糊退去，下一层接上并恢复清楚；底部主字按词建立，短标随后补入。",
+      "purpose": "连续素材换场",
+      "relation": "底层先接替，标题后显清，标记最后补入",
+      "start_state": "当前满幅已清楚",
+      "end_state": "下一满幅与下字留场",
+      "tags": [
+        "模糊转场",
+        "素材接替",
+        "文字接力"
+      ],
+      "document": "cases/priyansh0327-206409-original/mechanisms/m04.md",
+      "storyboard": "cases/priyansh0327-206409-original/mechanisms/m04.jpg",
+      "case_slug": "priyansh0327-206409",
+      "overview": "cases/priyansh0327-206409-original/overview.md",
+      "detail": "detail.html?case=priyansh0327-206409&mechanism=021-m04"
+    },
+    {
+      "id": "021-m05",
+      "title": "全框推近局部行，突出一项后缩回",
+      "case_number": 21,
+      "summary": "先显示完整窗口，再向其中一行靠近，强调范围在原行周围建立。",
+      "purpose": "全局与局部往返",
+      "relation": "外框提供参照，推近后重点范围局部更新",
+      "start_state": "完整窗口已经建立",
+      "end_state": "完整框返回，重点行仍可辨认",
+      "tags": [
+        "推近",
+        "局部强调",
+        "缩回"
+      ],
+      "document": "cases/priyansh0327-206409-original/mechanisms/m05.md",
+      "storyboard": "cases/priyansh0327-206409-original/mechanisms/m05.jpg",
+      "case_slug": "priyansh0327-206409",
+      "overview": "cases/priyansh0327-206409-original/overview.md",
+      "detail": "detail.html?case=priyansh0327-206409&mechanism=021-m05"
+    },
+    {
+      "id": "022-m01",
+      "title": "倾斜多排集合流动后向下退让，中心字接上",
+      "case_number": 22,
+      "summary": "让多排倾斜图块持续横向经过，保持排间关系。",
+      "purpose": "集合退让文字",
+      "relation": "底层保持集合身份，退让后留中央空位",
+      "start_state": "图块集合占满",
+      "end_state": "集合退到下沿，主字清楚",
+      "tags": [
+        "多排流动",
+        "下移退让"
+      ],
+      "document": "cases/viktoroddy-402509-original/mechanisms/m01.md",
+      "storyboard": "cases/viktoroddy-402509-original/mechanisms/m01.jpg",
+      "case_slug": "viktoroddy-402509",
+      "overview": "cases/viktoroddy-402509-original/overview.md",
+      "detail": "detail.html?case=viktoroddy-402509&mechanism=022-m01"
+    },
+    {
+      "id": "022-m02",
+      "title": "固定框内逐字输入，后行接续补齐",
+      "case_number": 22,
+      "summary": "在固定框内从首行逐字输入，已有字符留住，完成一行再接后行。",
+      "purpose": "内部文字累积",
+      "relation": "旧字符和边界留住，后行继续加入",
+      "start_state": "空框与旁字已建立",
+      "end_state": "多行输入结果完整",
+      "tags": [
+        "逐字输入",
+        "多行累积"
+      ],
+      "document": "cases/viktoroddy-402509-original/mechanisms/m02.md",
+      "storyboard": "cases/viktoroddy-402509-original/mechanisms/m02.jpg",
+      "case_slug": "viktoroddy-402509",
+      "overview": "cases/viktoroddy-402509-original/overview.md",
+      "detail": "detail.html?case=viktoroddy-402509&mechanism=022-m02"
+    },
+    {
+      "id": "022-m03",
+      "title": "数字逐位滚动到结果，折线增长后小片扩散",
+      "case_number": 22,
+      "summary": "让数字逐位滚动增长，下方折线从左向右延长。",
+      "purpose": "增长后反馈",
+      "relation": "数字和路径并行，反馈只在终点出现",
+      "start_state": "数字与折线刚开始",
+      "end_state": "结果停稳，反馈片散去",
+      "tags": [
+        "数字滚动",
+        "路径增长",
+        "终点扩散"
+      ],
+      "document": "cases/viktoroddy-402509-original/mechanisms/m03.md",
+      "storyboard": "cases/viktoroddy-402509-original/mechanisms/m03.jpg",
+      "case_slug": "viktoroddy-402509",
+      "overview": "cases/viktoroddy-402509-original/overview.md",
+      "detail": "detail.html?case=viktoroddy-402509&mechanism=022-m03"
+    },
+    {
+      "id": "022-m04",
+      "title": "流动集合退弱，前景文字与少量片轮换",
+      "case_number": 22,
+      "summary": "保留图块集合的横向运动，将它退弱，让前景字组逐行建立。",
+      "purpose": "多层观看接力",
+      "relation": "集合运动继续，前字独立稳定，后段缩减外围",
+      "start_state": "完整集合在场",
+      "end_state": "前景字清楚，少量外围片留场",
+      "tags": [
+        "背景退让",
+        "前景字",
+        "外围轮换"
+      ],
+      "document": "cases/viktoroddy-402509-original/mechanisms/m04.md",
+      "storyboard": "cases/viktoroddy-402509-original/mechanisms/m04.jpg",
+      "case_slug": "viktoroddy-402509",
+      "overview": "cases/viktoroddy-402509-original/overview.md",
+      "detail": "detail.html?case=viktoroddy-402509&mechanism=022-m04"
+    },
+    {
+      "id": "022-m05",
+      "title": "中心字稳定，周围散片向外扩出再下落",
+      "case_number": 22,
+      "summary": "稳定中心标记与短行，从附近扩出小片，向不同方向分散，再向下离开。",
+      "purpose": "收尾反馈",
+      "relation": "反馈独立散开，中心组不漂移",
+      "start_state": "中心标记与字组已建立",
+      "end_state": "散片大多离场，主组留住",
+      "tags": [
+        "散出",
+        "下落",
+        "中心保持"
+      ],
+      "document": "cases/viktoroddy-402509-original/mechanisms/m05.md",
+      "storyboard": "cases/viktoroddy-402509-original/mechanisms/m05.jpg",
+      "case_slug": "viktoroddy-402509",
+      "overview": "cases/viktoroddy-402509-original/overview.md",
+      "detail": "detail.html?case=viktoroddy-402509&mechanism=022-m05"
+    },
+    {
+      "id": "023-m01",
+      "title": "中央词组快速接替，局部线形随后强调",
+      "case_number": 23,
+      "summary": "在同一中央位置快速接替短词，不同段使用直接换底或模糊过渡。",
+      "purpose": "文字轮换",
+      "relation": "沿同一观看位置接力，重点字与附属线错开",
+      "start_state": "中央已有短词",
+      "end_state": "后词清楚，局部框线接入",
+      "tags": [
+        "词组接替",
+        "局部描线"
+      ],
+      "document": "cases/m1n9-k7-466682-original/mechanisms/m01.md",
+      "storyboard": "cases/m1n9-k7-466682-original/mechanisms/m01.jpg",
+      "case_slug": "m1n9-k7-466682",
+      "overview": "cases/m1n9-k7-466682-original/overview.md",
+      "detail": "detail.html?case=m1n9-k7-466682&mechanism=023-m01"
+    },
+    {
+      "id": "023-m02",
+      "title": "网格小格逐项变化，中央区域获得重点",
+      "case_number": 23,
+      "summary": "保持规则网格位置，小格按空间次序更换内部状态，中央区域渐显，外围继续可见。",
+      "purpose": "固定网格内重组",
+      "relation": "位置固定，变化集中在各格内部",
+      "start_state": "规则小格已完整",
+      "end_state": "外围与中央形成不同状态",
+      "tags": [
+        "网格状态",
+        "逐项变化"
+      ],
+      "document": "cases/m1n9-k7-466682-original/mechanisms/m02.md",
+      "storyboard": "cases/m1n9-k7-466682-original/mechanisms/m02.jpg",
+      "case_slug": "m1n9-k7-466682",
+      "overview": "cases/m1n9-k7-466682-original/overview.md",
+      "detail": "detail.html?case=m1n9-k7-466682&mechanism=023-m02"
+    },
+    {
+      "id": "023-m03",
+      "title": "圆形线组压扁拉伸并扭转，中心位置保持",
+      "case_number": 23,
+      "summary": "围绕同一中心连续压扁、拉伸并扭转线组，线条内部分布跟着形态变化。",
+      "purpose": "连续形态变化",
+      "relation": "外形变化但中心不随之乱移",
+      "start_state": "中央圆线组已建立",
+      "end_state": "线组变成后续扭转形",
+      "tags": [
+        "压扁",
+        "拉伸",
+        "扭转"
+      ],
+      "document": "cases/m1n9-k7-466682-original/mechanisms/m03.md",
+      "storyboard": "cases/m1n9-k7-466682-original/mechanisms/m03.jpg",
+      "case_slug": "m1n9-k7-466682",
+      "overview": "cases/m1n9-k7-466682-original/overview.md",
+      "detail": "detail.html?case=m1n9-k7-466682&mechanism=023-m03"
+    },
+    {
+      "id": "023-m04",
+      "title": "圆团分离又重叠，收成暗圆后点群扩散",
+      "case_number": 23,
+      "summary": "让圆团在中央交叠，向两侧短暂分离后又靠拢，末段收成较暗的圆。",
+      "purpose": "从融合到散开",
+      "relation": "圆团先分合，再用同处范围接替为点群",
+      "start_state": "多个圆团在中央交叠",
+      "end_state": "暗圆退出，点群占据原范围",
+      "tags": [
+        "圆团分合",
+        "覆盖",
+        "点群散开"
+      ],
+      "document": "cases/m1n9-k7-466682-original/mechanisms/m04.md",
+      "storyboard": "cases/m1n9-k7-466682-original/mechanisms/m04.jpg",
+      "case_slug": "m1n9-k7-466682",
+      "overview": "cases/m1n9-k7-466682-original/overview.md",
+      "detail": "detail.html?case=m1n9-k7-466682&mechanism=023-m04"
+    },
+    {
+      "id": "023-m05",
+      "title": "嵌套矩形向中心推进，网格斜向接替后横条经过",
+      "case_number": 23,
+      "summary": "让嵌套矩形沿中心连续推进，再接入数个短促全幅组；规则网格沿斜向改变局部状态，随后横向条组经过，最后退去露出大字。",
+      "purpose": "连续几何转场",
+      "relation": "层层边界提供推进方向，再用规则集合接上",
+      "start_state": "中央轮廓已建立",
+      "end_state": "网格与横条接替，给大字让位",
+      "tags": [
+        "嵌套推进",
+        "斜向网格",
+        "横条"
+      ],
+      "document": "cases/m1n9-k7-466682-original/mechanisms/m05.md",
+      "storyboard": "cases/m1n9-k7-466682-original/mechanisms/m05.jpg",
+      "case_slug": "m1n9-k7-466682",
+      "overview": "cases/m1n9-k7-466682-original/overview.md",
+      "detail": "detail.html?case=m1n9-k7-466682&mechanism=023-m05"
+    },
+    {
+      "id": "024-m01",
+      "title": "主字上移缩小，输入条逐字补齐后交给竖片",
+      "case_number": 24,
+      "summary": "让中央大字上移缩小，在下方建立长条，字符从左向右累积。",
+      "purpose": "输入到结果",
+      "relation": "标题让出下方空间，输入与结果接力",
+      "start_state": "中央大字已完整",
+      "end_state": "独立竖片建立，输入条退出",
+      "tags": [
+        "上移缩小",
+        "逐字输入"
+      ],
+      "document": "cases/miskinho-956105-original/mechanisms/m01.md",
+      "storyboard": "cases/miskinho-956105-original/mechanisms/m01.jpg",
+      "case_slug": "miskinho-956105",
+      "overview": "cases/miskinho-956105-original/overview.md",
+      "detail": "detail.html?case=miskinho-956105&mechanism=024-m01"
+    },
+    {
+      "id": "024-m02",
+      "title": "保留中心片，左右错开补入后片",
+      "case_number": 24,
+      "summary": "保留中心片，在左右两侧错开补入大小不同的片面，形成横向集合。",
+      "purpose": "从单项到集合",
+      "relation": "原片保持，新增片从两侧补入",
+      "start_state": "中心竖片已落稳",
+      "end_state": "多个大小不同的片面组成一排",
+      "tags": [
+        "两侧补入",
+        "横排集合"
+      ],
+      "document": "cases/miskinho-956105-original/mechanisms/m02.md",
+      "storyboard": "cases/miskinho-956105-original/mechanisms/m02.jpg",
+      "case_slug": "miskinho-956105",
+      "overview": "cases/miskinho-956105-original/overview.md",
+      "detail": "detail.html?case=miskinho-956105&mechanism=024-m02"
+    },
+    {
+      "id": "024-m03",
+      "title": "横排收小并分配到网格空位，局部状态逐项更新",
+      "case_number": 24,
+      "summary": "把横排各片缩小并分别移向网格的空位，边界建立后各片落稳。",
+      "purpose": "集合重排到固定槽",
+      "relation": "对象缩小与位移同时进行，网格保持",
+      "start_state": "横向片面集合完整",
+      "end_state": "图块落入不同格位，内部标记依次改变",
+      "tags": [
+        "缩小",
+        "分配落位",
+        "状态累积"
+      ],
+      "document": "cases/miskinho-956105-original/mechanisms/m03.md",
+      "storyboard": "cases/miskinho-956105-original/mechanisms/m03.jpg",
+      "case_slug": "miskinho-956105",
+      "overview": "cases/miskinho-956105-original/overview.md",
+      "detail": "detail.html?case=miskinho-956105&mechanism=024-m03"
+    },
+    {
+      "id": "024-m04",
+      "title": "网格退出，图块重排到递增位置，曲线随之长出",
+      "case_number": 24,
+      "summary": "先退去网格边界，把同组图块移到由低到高的位置。",
+      "purpose": "从排列到路径分布",
+      "relation": "保留图块身份，撤掉容器后重新落位",
+      "start_state": "图块仍处于固定网格",
+      "end_state": "图块沿递增位置分布，曲线填充完整",
+      "tags": [
+        "重排",
+        "曲线增长",
+        "填充"
+      ],
+      "document": "cases/miskinho-956105-original/mechanisms/m04.md",
+      "storyboard": "cases/miskinho-956105-original/mechanisms/m04.jpg",
+      "case_slug": "miskinho-956105",
+      "overview": "cases/miskinho-956105-original/overview.md",
+      "detail": "detail.html?case=miskinho-956105&mechanism=024-m04"
+    },
+    {
+      "id": "025-m01",
+      "title": "并置长框接入，内部文字逐字增加",
+      "case_number": 25,
+      "summary": "从两侧空位接入长框，主字退出后框体落稳。",
+      "purpose": "建立并置输入",
+      "relation": "框先落位，字符在固定内部累积",
+      "start_state": "上方字组已建立",
+      "end_state": "两侧长框稳定，内部输入完整",
+      "tags": [
+        "并置",
+        "逐字输入"
+      ],
+      "document": "cases/justincooperman-188876-original/mechanisms/m01.md",
+      "storyboard": "cases/justincooperman-188876-original/mechanisms/m01.jpg",
+      "case_slug": "justincooperman-188876",
+      "overview": "cases/justincooperman-188876-original/overview.md",
+      "detail": "detail.html?case=justincooperman-188876&mechanism=025-m01"
+    },
+    {
+      "id": "025-m02",
+      "title": "图像从零散块面逐步显出，补齐固定范围",
+      "case_number": 25,
+      "summary": "保持图像区域边界，先显出少量零散片面，随后让可见区域增多、连接，最终补齐完整图像。",
+      "purpose": "局部渐进揭示",
+      "relation": "零散可见片逐渐增多，边界不动",
+      "start_state": "固定图像区为空或模糊",
+      "end_state": "整幅图像在原区域清楚",
+      "tags": [
+        "碎块揭示",
+        "局部填充"
+      ],
+      "document": "cases/justincooperman-188876-original/mechanisms/m02.md",
+      "storyboard": "cases/justincooperman-188876-original/mechanisms/m02.jpg",
+      "case_slug": "justincooperman-188876",
+      "overview": "cases/justincooperman-188876-original/overview.md",
+      "detail": "detail.html?case=justincooperman-188876&mechanism=025-m02"
+    },
+    {
+      "id": "025-m03",
+      "title": "内部图像提为前景片，跨到旁框后归入内部",
+      "case_number": 25,
+      "summary": "从来源框的图像附近提起独立前景片，跨向旁侧目标框并短暂放大。",
+      "purpose": "跨框承接",
+      "relation": "提起副本跨位，原来源仍可见",
+      "start_state": "来源框内图像完整",
+      "end_state": "旁框内部显示图像，前景片收回",
+      "tags": [
+        "局部提取",
+        "跨框",
+        "归位"
+      ],
+      "document": "cases/justincooperman-188876-original/mechanisms/m03.md",
+      "storyboard": "cases/justincooperman-188876-original/mechanisms/m03.jpg",
+      "case_slug": "justincooperman-188876",
+      "overview": "cases/justincooperman-188876-original/overview.md",
+      "detail": "detail.html?case=justincooperman-188876&mechanism=025-m03"
+    },
+    {
+      "id": "025-m04",
+      "title": "并置框共同靠近，旁片接续后缩回整体",
+      "case_number": 25,
+      "summary": "将并置框共同向近处推进，主图获得更大范围，旁侧短片接续补入。",
+      "purpose": "观察尺度往返",
+      "relation": "主体框共同变尺度，旁片独立补入",
+      "start_state": "并置框完整",
+      "end_state": "较近展示结束后完整布局返回",
+      "tags": [
+        "推近",
+        "旁片接入",
+        "缩回"
+      ],
+      "document": "cases/justincooperman-188876-original/mechanisms/m04.md",
+      "storyboard": "cases/justincooperman-188876-original/mechanisms/m04.jpg",
+      "case_slug": "justincooperman-188876",
+      "overview": "cases/justincooperman-188876-original/overview.md",
+      "detail": "detail.html?case=justincooperman-188876&mechanism=025-m04"
+    },
+    {
+      "id": "026-m01",
+      "title": "小点延成折角线，斜段加入后圆层扩张换底",
+      "case_number": 26,
+      "summary": "从小点延长折角线，再补入斜段，组成完整形。",
+      "purpose": "从线到组合形",
+      "relation": "线段共享端点，圆层从该处扩张",
+      "start_state": "只有小点",
+      "end_state": "组合形与字组建立，圆层接管",
+      "tags": [
+        "描线",
+        "组合",
+        "圆形转场"
+      ],
+      "document": "cases/jesscaroline7-955094-original/mechanisms/m01.md",
+      "storyboard": "cases/jesscaroline7-955094-original/mechanisms/m01.jpg",
+      "case_slug": "jesscaroline7-955094",
+      "overview": "cases/jesscaroline7-955094-original/overview.md",
+      "detail": "detail.html?case=jesscaroline7-955094&mechanism=026-m01"
+    },
+    {
+      "id": "026-m02",
+      "title": "圆形点阵重排为方阵，扫描带经过后底部散出",
+      "case_number": 26,
+      "summary": "将圆形点阵整理成规则方阵，竖向扫描带横向经过，扫描完成的格位保留。",
+      "purpose": "规则集合变换",
+      "relation": "同一群点改变排列，扫描局部状态不带动整阵",
+      "start_state": "圆形点群已可见",
+      "end_state": "方阵稳定，部分点向下散开",
+      "tags": [
+        "点阵重排",
+        "扫描",
+        "底部散出"
+      ],
+      "document": "cases/jesscaroline7-955094-original/mechanisms/m02.md",
+      "storyboard": "cases/jesscaroline7-955094-original/mechanisms/m02.jpg",
+      "case_slug": "jesscaroline7-955094",
+      "overview": "cases/jesscaroline7-955094-original/overview.md",
+      "detail": "detail.html?case=jesscaroline7-955094&mechanism=026-m02"
+    },
+    {
+      "id": "026-m03",
+      "title": "点群散开，带竖线重排后聚合成大字或圆环",
+      "case_number": 26,
+      "summary": "保留点群，从散乱位置重排成不同高度的分布，局部带竖向短线。",
+      "purpose": "点群连续重组",
+      "relation": "散开与聚拢共享点群，目标形先由稀到密形成",
+      "start_state": "点群已从阵列释放",
+      "end_state": "点重新聚合成稳定结构",
+      "tags": [
+        "点群",
+        "重排",
+        "聚合"
+      ],
+      "document": "cases/jesscaroline7-955094-original/mechanisms/m03.md",
+      "storyboard": "cases/jesscaroline7-955094-original/mechanisms/m03.jpg",
+      "case_slug": "jesscaroline7-955094",
+      "overview": "cases/jesscaroline7-955094-original/overview.md",
+      "detail": "detail.html?case=jesscaroline7-955094&mechanism=026-m03"
+    },
+    {
+      "id": "026-m04",
+      "title": "立体片横向轮换，内部部件散开后归位",
+      "case_number": 26,
+      "summary": "让并置立体片横向轮换，当前项停到中部。",
+      "purpose": "集合内轮换",
+      "relation": "整片沿横向接替，部件只在当前片内散出",
+      "start_state": "首片在中部",
+      "end_state": "后片成为当前项，内部恢复完整",
+      "tags": [
+        "横向轮换",
+        "部件分散",
+        "归位"
+      ],
+      "document": "cases/jesscaroline7-955094-original/mechanisms/m04.md",
+      "storyboard": "cases/jesscaroline7-955094-original/mechanisms/m04.jpg",
+      "case_slug": "jesscaroline7-955094",
+      "overview": "cases/jesscaroline7-955094-original/overview.md",
+      "detail": "detail.html?case=jesscaroline7-955094&mechanism=026-m04"
+    },
+    {
+      "id": "026-m05",
+      "title": "竖框倾转靠近，侧边标注接力建立后缩排",
+      "case_number": 26,
+      "summary": "让竖框倾转并靠近，旁侧折线与短字按位置逐项建立。",
+      "purpose": "局部展示转集合",
+      "relation": "同一框转动与尺度变化，标注保持局部对应",
+      "start_state": "完整竖框已在场",
+      "end_state": "多框并置，各自内容可见",
+      "tags": [
+        "倾转",
+        "推近",
+        "标注",
+        "缩排"
+      ],
+      "document": "cases/jesscaroline7-955094-original/mechanisms/m05.md",
+      "storyboard": "cases/jesscaroline7-955094-original/mechanisms/m05.jpg",
+      "case_slug": "jesscaroline7-955094",
+      "overview": "cases/jesscaroline7-955094-original/overview.md",
+      "detail": "detail.html?case=jesscaroline7-955094&mechanism=026-m05"
+    },
+    {
+      "id": "026-m06",
+      "title": "柱形高度增长，数值随过程累加停稳",
+      "case_number": 26,
+      "summary": "以共同底边为参照，让各柱高度增长，柱上数字同步累加，最后停在不同高度。",
+      "purpose": "并列累计",
+      "relation": "共同底边固定，柱与数字对应增长",
+      "start_state": "并列柱形只少量高度",
+      "end_state": "各柱达到不同高度，数字停稳",
+      "tags": [
+        "柱形增长",
+        "数字累计"
+      ],
+      "document": "cases/jesscaroline7-955094-original/mechanisms/m06.md",
+      "storyboard": "cases/jesscaroline7-955094-original/mechanisms/m06.jpg",
+      "case_slug": "jesscaroline7-955094",
+      "overview": "cases/jesscaroline7-955094-original/overview.md",
+      "detail": "detail.html?case=jesscaroline7-955094&mechanism=026-m06"
+    },
+    {
+      "id": "027-m01",
+      "title": "活动竖片保持，旁侧虚线范围与短字接入",
+      "case_number": 27,
+      "summary": "保持活动竖片，在旁侧建立虚线空范围，再补内部短字与附属小行。",
+      "purpose": "单片扩为并置",
+      "relation": "原片继续，旁侧只增加新承载范围",
+      "start_state": "活动竖片已经完整",
+      "end_state": "旁侧范围和短字建立",
+      "tags": [
+        "活动保持",
+        "并置",
+        "虚线范围"
+      ],
+      "document": "cases/georgejimenez98-431559-original/mechanisms/m01.md",
+      "storyboard": "cases/georgejimenez98-431559-original/mechanisms/m01.jpg",
+      "case_slug": "georgejimenez98-431559",
+      "overview": "cases/georgejimenez98-431559-original/overview.md",
+      "detail": "detail.html?case=georgejimenez98-431559&mechanism=027-m01"
+    },
+    {
+      "id": "027-m02",
+      "title": "圆形可见范围扩大，新面板从内部接管",
+      "case_number": 27,
+      "summary": "从中部扩大圆形可见范围，露出新的底层与面板，圆边继续越出。",
+      "purpose": "圆形揭示换场",
+      "relation": "新层在圆内先可见，再向外接管",
+      "start_state": "中心字组与后层已建立",
+      "end_state": "新底层和固定面板清楚",
+      "tags": [
+        "圆形揭示",
+        "扩大接管"
+      ],
+      "document": "cases/georgejimenez98-431559-original/mechanisms/m02.md",
+      "storyboard": "cases/georgejimenez98-431559-original/mechanisms/m02.jpg",
+      "case_slug": "georgejimenez98-431559",
+      "overview": "cases/georgejimenez98-431559-original/overview.md",
+      "detail": "detail.html?case=georgejimenez98-431559&mechanism=027-m02"
+    },
+    {
+      "id": "027-m03",
+      "title": "上方标签顺序切换，下方面板局部换内容",
+      "case_number": 27,
+      "summary": "保持上方标签排列，当前标签沿顺序更换。",
+      "purpose": "顺序驱动内部替换",
+      "relation": "承载范围固定，当前标签与内部状态对应",
+      "start_state": "标签列和面板稳定",
+      "end_state": "后标签突出，面板更新到新内容",
+      "tags": [
+        "标签轮换",
+        "内部替换"
+      ],
+      "document": "cases/georgejimenez98-431559-original/mechanisms/m03.md",
+      "storyboard": "cases/georgejimenez98-431559-original/mechanisms/m03.jpg",
+      "case_slug": "georgejimenez98-431559",
+      "overview": "cases/georgejimenez98-431559-original/overview.md",
+      "detail": "detail.html?case=georgejimenez98-431559&mechanism=027-m03"
+    },
+    {
+      "id": "027-m04",
+      "title": "同一竖片逐层填入，再让内部活动图接管",
+      "case_number": 27,
+      "summary": "先在空竖片中建立标题与附属字，再补文本片和下方小条。",
+      "purpose": "空框到完整内容",
+      "relation": "标题和文本先建立，活动图后接入",
+      "start_state": "空竖片已经入位",
+      "end_state": "框内活动图完整，外围保持",
+      "tags": [
+        "逐层填充",
+        "框内接管"
+      ],
+      "document": "cases/georgejimenez98-431559-original/mechanisms/m04.md",
+      "storyboard": "cases/georgejimenez98-431559-original/mechanisms/m04.jpg",
+      "case_slug": "georgejimenez98-431559",
+      "overview": "cases/georgejimenez98-431559-original/overview.md",
+      "detail": "detail.html?case=georgejimenez98-431559&mechanism=027-m04"
+    },
+    {
+      "id": "027-m05",
+      "title": "单片缩入横排，后片逐项填满并整体横移",
+      "case_number": 27,
+      "summary": "把单片缩回横排的一个位置，后片依次填入空槽。",
+      "purpose": "从单项到连续集合",
+      "relation": "原片缩回成集合一员，后项占据空槽",
+      "start_state": "活动竖片占主要位置",
+      "end_state": "横排完整，整体向侧方经过",
+      "tags": [
+        "缩回",
+        "横排填充",
+        "横移"
+      ],
+      "document": "cases/georgejimenez98-431559-original/mechanisms/m05.md",
+      "storyboard": "cases/georgejimenez98-431559-original/mechanisms/m05.jpg",
+      "case_slug": "georgejimenez98-431559",
+      "overview": "cases/georgejimenez98-431559-original/overview.md",
+      "detail": "detail.html?case=georgejimenez98-431559&mechanism=027-m05"
+    },
+    {
+      "id": "028-m01",
+      "title": "线段由少到多补成空间轮廓",
+      "case_number": 28,
+      "summary": "在固定窗口内逐段延长短线，组成较完整的空间边界，已有线保持。",
+      "purpose": "轮廓建立",
+      "relation": "已画线留住，新边继续延长",
+      "start_state": "内部只有少量短线",
+      "end_state": "完整空间轮廓可辨认",
+      "tags": [
+        "描线",
+        "空间建立"
+      ],
+      "document": "cases/pwntastickev-664257-original/mechanisms/m01.md",
+      "storyboard": "cases/pwntastickev-664257-original/mechanisms/m01.jpg",
+      "case_slug": "pwntastickev-664257",
+      "overview": "cases/pwntastickev-664257-original/overview.md",
+      "detail": "detail.html?case=pwntastickev-664257&mechanism=028-m01"
+    },
+    {
+      "id": "028-m02",
+      "title": "内部视角转向并沿纵深靠近，旁层固定",
+      "case_number": 28,
+      "summary": "保持窗口边界，内部观察方向转向较斜角度，再沿纵深靠近，原边界从两侧经过，新的近处范围显出。",
+      "purpose": "沿空间路径推进",
+      "relation": "空间变化集中在内部，窗口与旁片保持",
+      "start_state": "空间轮廓已建立",
+      "end_state": "内部较近区域进入视野",
+      "tags": [
+        "视角转向",
+        "纵深推进"
+      ],
+      "document": "cases/pwntastickev-664257-original/mechanisms/m02.md",
+      "storyboard": "cases/pwntastickev-664257-original/mechanisms/m02.jpg",
+      "case_slug": "pwntastickev-664257",
+      "overview": "cases/pwntastickev-664257-original/overview.md",
+      "detail": "detail.html?case=pwntastickev-664257&mechanism=028-m02"
+    },
+    {
+      "id": "028-m03",
+      "title": "旁侧局部提成大窗，强调后收回",
+      "case_number": 28,
+      "summary": "从旁侧局部所在范围提起独立大窗，向中部放大，原轮廓仍在后层。",
+      "purpose": "局部放大",
+      "relation": "原空间仍在，独立前窗负责局部重点",
+      "start_state": "小片与轮廓共存",
+      "end_state": "放大窗退出，原布局恢复",
+      "tags": [
+        "局部提取",
+        "前窗",
+        "回收"
+      ],
+      "document": "cases/pwntastickev-664257-original/mechanisms/m03.md",
+      "storyboard": "cases/pwntastickev-664257-original/mechanisms/m03.jpg",
+      "case_slug": "pwntastickev-664257",
+      "overview": "cases/pwntastickev-664257-original/overview.md",
+      "detail": "detail.html?case=pwntastickev-664257&mechanism=028-m03"
+    },
+    {
+      "id": "028-m04",
+      "title": "近处范围拉远，更多重复模块显出",
+      "case_number": 28,
+      "summary": "从近处沿观察方向退远，让更多重复模块依次进入视野，已有局部标签仍靠近原位置。",
+      "purpose": "由局部看整体",
+      "relation": "拉远扩大参照，各模块不独立飞入",
+      "start_state": "窗口内处于近处范围",
+      "end_state": "更多模块完整可见，局部标签保留",
+      "tags": [
+        "尺度拉远",
+        "整体显出"
+      ],
+      "document": "cases/pwntastickev-664257-original/mechanisms/m04.md",
+      "storyboard": "cases/pwntastickev-664257-original/mechanisms/m04.jpg",
+      "case_slug": "pwntastickev-664257",
+      "overview": "cases/pwntastickev-664257-original/overview.md",
+      "detail": "detail.html?case=pwntastickev-664257&mechanism=028-m04"
+    },
+    {
+      "id": "029-m01",
+      "title": "短字片错开叠入，组成中央完整句组",
+      "case_number": 29,
+      "summary": "让短字片从不同位置错开叠入中央，各自保留少量倾角，依次形成多行组。",
+      "purpose": "字片组合",
+      "relation": "字片按层进入，已有项留住",
+      "start_state": "只有少量外围小片",
+      "end_state": "中央多行字片完整",
+      "tags": [
+        "字片叠加",
+        "错峰入场"
+      ],
+      "document": "cases/helloshiva0801-438284-original/mechanisms/m01.md",
+      "storyboard": "cases/helloshiva0801-438284-original/mechanisms/m01.jpg",
+      "case_slug": "helloshiva0801-438284",
+      "overview": "cases/helloshiva0801-438284-original/overview.md",
+      "detail": "detail.html?case=helloshiva0801-438284&mechanism=029-m01"
+    },
+    {
+      "id": "029-m02",
+      "title": "竖向分界换内图，侧方不齐边缘覆盖接替下一组",
+      "case_number": 29,
+      "summary": "让竖向分界横向经过框内，左侧新内容逐步替换右侧旧内容。",
+      "purpose": "边界控制换场",
+      "relation": "分界线先局部替换，侧覆盖后负责全组交接",
+      "start_state": "框内旧图完整",
+      "end_state": "新图建立，随后新布局接管",
+      "tags": [
+        "竖向替换",
+        "侧向覆盖"
+      ],
+      "document": "cases/helloshiva0801-438284-original/mechanisms/m02.md",
+      "storyboard": "cases/helloshiva0801-438284-original/mechanisms/m02.jpg",
+      "case_slug": "helloshiva0801-438284",
+      "overview": "cases/helloshiva0801-438284-original/overview.md",
+      "detail": "detail.html?case=helloshiva0801-438284&mechanism=029-m02"
+    },
+    {
+      "id": "029-m03",
+      "title": "虚线槽逐项建立，内部图文随后补齐",
+      "case_number": 29,
+      "summary": "先在空框内建立虚线槽，从少到多补齐。",
+      "purpose": "空框填成完整组",
+      "relation": "先立槽位，再按区填充",
+      "start_state": "主框为空",
+      "end_state": "图文完整，虚线范围成为承载区",
+      "tags": [
+        "网格描出",
+        "区域填充"
+      ],
+      "document": "cases/helloshiva0801-438284-original/mechanisms/m03.md",
+      "storyboard": "cases/helloshiva0801-438284-original/mechanisms/m03.jpg",
+      "case_slug": "helloshiva0801-438284",
+      "overview": "cases/helloshiva0801-438284-original/overview.md",
+      "detail": "detail.html?case=helloshiva0801-438284&mechanism=029-m03"
+    },
+    {
+      "id": "029-m04",
+      "title": "横块从上到下分批落位，固定长片逐段填满",
+      "case_number": 29,
+      "summary": "在固定长片上先放上部横块，再从上到下补入各层。",
+      "purpose": "分段填充",
+      "relation": "长片固定，每块在自己的空位落稳",
+      "start_state": "长片只有上部内容",
+      "end_state": "多层横块和底部条齐全",
+      "tags": [
+        "纵向累积",
+        "分批落位"
+      ],
+      "document": "cases/helloshiva0801-438284-original/mechanisms/m04.md",
+      "storyboard": "cases/helloshiva0801-438284-original/mechanisms/m04.jpg",
+      "case_slug": "helloshiva0801-438284",
+      "overview": "cases/helloshiva0801-438284-original/overview.md",
+      "detail": "detail.html?case=helloshiva0801-438284&mechanism=029-m04"
+    },
+    {
+      "id": "029-m05",
+      "title": "短线先延长，长条与小标签错开补齐",
+      "case_number": 29,
+      "summary": "在主字下方延长短线，线完成后接入长条，再按左右位置补齐小标签。",
+      "purpose": "由描线到收尾组",
+      "relation": "线给出稳定起点，附属项随后建立",
+      "start_state": "主标记与短字已建立",
+      "end_state": "下划线、长条和小标签完整",
+      "tags": [
+        "描线",
+        "长条",
+        "标签累积"
+      ],
+      "document": "cases/helloshiva0801-438284-original/mechanisms/m05.md",
+      "storyboard": "cases/helloshiva0801-438284-original/mechanisms/m05.jpg",
+      "case_slug": "helloshiva0801-438284",
+      "overview": "cases/helloshiva0801-438284-original/overview.md",
+      "detail": "detail.html?case=helloshiva0801-438284&mechanism=029-m05"
+    },
+    {
+      "id": "030-m01",
+      "title": "逐字建立字组，缩小上移为后续内容让位",
+      "case_number": 30,
+      "summary": "让中央字组沿阅读方向逐字增加，已有字保持，不让整行每次重来。",
+      "purpose": "建立后让位",
+      "relation": "输入先完成，再整体缩移",
+      "start_state": "中央字组未完整",
+      "end_state": "字组落在上方，下方有承载空间",
+      "tags": [
+        "逐字增加",
+        "缩小上移",
+        "让位"
+      ],
+      "document": "cases/francoxavier33-341663-original/mechanisms/m01.md",
+      "storyboard": "cases/francoxavier33-341663-original/mechanisms/m01.jpg",
+      "case_slug": "francoxavier33-341663",
+      "overview": "cases/francoxavier33-341663-original/overview.md",
+      "detail": "detail.html?case=francoxavier33-341663&mechanism=030-m01"
+    },
+    {
+      "id": "030-m02",
+      "title": "框内横片提到前景，底层退虚后附属斜条接入",
+      "case_number": 30,
+      "summary": "保留竖框的位置，从内部选出一块横片，将它提到框前并放大到可独立阅读的程度。",
+      "purpose": "局部前提",
+      "relation": "局部先外提，底层随后降低清晰度",
+      "start_state": "竖框及内部内容建立",
+      "end_state": "前层横片突出，下层斜条接上",
+      "tags": [
+        "局部外提",
+        "底层退虚",
+        "附属接入"
+      ],
+      "document": "cases/francoxavier33-341663-original/mechanisms/m02.md",
+      "storyboard": "cases/francoxavier33-341663-original/mechanisms/m02.jpg",
+      "case_slug": "francoxavier33-341663",
+      "overview": "cases/francoxavier33-341663-original/overview.md",
+      "detail": "detail.html?case=francoxavier33-341663&mechanism=030-m02"
+    },
+    {
+      "id": "030-m03",
+      "title": "横片依次侧入，在竖向空位累计成列",
+      "case_number": 30,
+      "summary": "在下部预留一列空位，先从侧方送入上方横片，再依次送入后续横片。",
+      "purpose": "集合累积",
+      "relation": "后片入场时前片位置保持",
+      "start_state": "上方字组建立，下部空",
+      "end_state": "多个横片形成完整竖列",
+      "tags": [
+        "侧向入场",
+        "纵向累积",
+        "错峰"
+      ],
+      "document": "cases/francoxavier33-341663-original/mechanisms/m03.md",
+      "storyboard": "cases/francoxavier33-341663-original/mechanisms/m03.jpg",
+      "case_slug": "francoxavier33-341663",
+      "overview": "cases/francoxavier33-341663-original/overview.md",
+      "detail": "detail.html?case=francoxavier33-341663&mechanism=030-m03"
+    },
+    {
+      "id": "030-m04",
+      "title": "上下承载区先建立，小标记与附属条逐项增加",
+      "case_number": 30,
+      "summary": "先建立上方横框，再在其下接入气泡。",
+      "purpose": "多区域持续填充",
+      "relation": "容器先稳，区内元素交错补入",
+      "start_state": "上框和下气泡尚未完整",
+      "end_state": "两区内容齐全，已出现项保持",
+      "tags": [
+        "容器建立",
+        "逐项增加",
+        "上下接力"
+      ],
+      "document": "cases/francoxavier33-341663-original/mechanisms/m04.md",
+      "storyboard": "cases/francoxavier33-341663-original/mechanisms/m04.jpg",
+      "case_slug": "francoxavier33-341663",
+      "overview": "cases/francoxavier33-341663-original/overview.md",
+      "detail": "detail.html?case=francoxavier33-341663&mechanism=030-m04"
+    },
+    {
+      "id": "030-m05",
+      "title": "倾斜图片叠入，下方列表按项完成并接上结果条",
+      "case_number": 30,
+      "summary": "将数张图片错开位置并带倾角叠入标题下方，叠片落稳后在下面建立大卡。",
+      "purpose": "集合建立到逐项反馈",
+      "relation": "前层集合落稳后下部逐项推进",
+      "start_state": "标题下方为空",
+      "end_state": "叠片与列表完整，底条接收最后反馈",
+      "tags": [
+        "倾斜叠片",
+        "逐项反馈",
+        "结果接力"
+      ],
+      "document": "cases/francoxavier33-341663-original/mechanisms/m05.md",
+      "storyboard": "cases/francoxavier33-341663-original/mechanisms/m05.jpg",
+      "case_slug": "francoxavier33-341663",
+      "overview": "cases/francoxavier33-341663-original/overview.md",
+      "detail": "detail.html?case=francoxavier33-341663&mechanism=030-m05"
+    },
+    {
+      "id": "031-m01",
+      "title": "活动框错峰叠入，内部变化与外部稳定并存",
+      "case_number": 31,
+      "summary": "先接入首个活动框，再错开加入左右及下方框。",
+      "purpose": "建立多框活动组",
+      "relation": "框错峰进入，外部位置落稳",
+      "start_state": "标题已在上方",
+      "end_state": "多个框齐全，框内活动继续",
+      "tags": [
+        "多框叠加",
+        "内部保持活动",
+        "错峰"
+      ],
+      "document": "cases/tycenjm-098014-original/mechanisms/m01.md",
+      "storyboard": "cases/tycenjm-098014-original/mechanisms/m01.jpg",
+      "case_slug": "tycenjm-098014",
+      "overview": "cases/tycenjm-098014-original/overview.md",
+      "detail": "detail.html?case=tycenjm-098014&mechanism=031-m01"
+    },
+    {
+      "id": "031-m02",
+      "title": "固定大框内逐字补齐多行，局部强调随后出现",
+      "case_number": 31,
+      "summary": "先建立空大框，文字在框内沿行逐字增加，一行之后接下一行；前行完整保留。",
+      "purpose": "内容输入",
+      "relation": "边界保持，输入沿行推进",
+      "start_state": "大框为空",
+      "end_state": "多行内容完整，一处局部强调",
+      "tags": [
+        "固定边界",
+        "逐字输入",
+        "多行累积"
+      ],
+      "document": "cases/tycenjm-098014-original/mechanisms/m02.md",
+      "storyboard": "cases/tycenjm-098014-original/mechanisms/m02.jpg",
+      "case_slug": "tycenjm-098014",
+      "overview": "cases/tycenjm-098014-original/overview.md",
+      "detail": "detail.html?case=tycenjm-098014&mechanism=031-m02"
+    },
+    {
+      "id": "031-m03",
+      "title": "后层放射展开，前景字组分行建立并放大接力",
+      "case_number": 31,
+      "summary": "让放射形先在后层展开，再分行建立前景字组。",
+      "purpose": "由背景运动到前景集中",
+      "relation": "后层先展开，字组分行接上",
+      "start_state": "旧组即将退出",
+      "end_state": "前景大字与下部小形建立",
+      "tags": [
+        "放射展开",
+        "分行增加",
+        "尺度接力"
+      ],
+      "document": "cases/tycenjm-098014-original/mechanisms/m03.md",
+      "storyboard": "cases/tycenjm-098014-original/mechanisms/m03.jpg",
+      "case_slug": "tycenjm-098014",
+      "overview": "cases/tycenjm-098014-original/overview.md",
+      "detail": "detail.html?case=tycenjm-098014&mechanism=031-m03"
+    },
+    {
+      "id": "031-m04",
+      "title": "竖框内小块落入弧形区，逐步累积",
+      "case_number": 31,
+      "summary": "保留上方大框，在下方竖框中建立局部活动区。",
+      "purpose": "框内聚集",
+      "relation": "局部落入，边界与上层保持",
+      "start_state": "上方大框保留，下方竖框刚建立",
+      "end_state": "竖框下部积累小块",
+      "tags": [
+        "下落累积",
+        "弧形承载",
+        "框内运动"
+      ],
+      "document": "cases/tycenjm-098014-original/mechanisms/m04.md",
+      "storyboard": "cases/tycenjm-098014-original/mechanisms/m04.jpg",
+      "case_slug": "tycenjm-098014",
+      "overview": "cases/tycenjm-098014-original/overview.md",
+      "detail": "detail.html?case=tycenjm-098014&mechanism=031-m04"
+    },
+    {
+      "id": "031-m05",
+      "title": "大倾斜片侧下入场，转正缩回后散片退落",
+      "case_number": 31,
+      "summary": "让大片从侧下方带倾角进入，逐步转正并缩回目标位置。",
+      "purpose": "大面接管",
+      "relation": "大面先进入，散片随后继续",
+      "start_state": "画面中暂无完整大面",
+      "end_state": "大面转正落稳，周边散片退去",
+      "tags": [
+        "斜向入场",
+        "转正缩回",
+        "散片退落"
+      ],
+      "document": "cases/tycenjm-098014-original/mechanisms/m05.md",
+      "storyboard": "cases/tycenjm-098014-original/mechanisms/m05.jpg",
+      "case_slug": "tycenjm-098014",
+      "overview": "cases/tycenjm-098014-original/overview.md",
+      "detail": "detail.html?case=tycenjm-098014&mechanism=031-m05"
+    },
+    {
+      "id": "031-m06",
+      "title": "小框逐排填满，满幅后保持边界并持续轮换内部",
+      "case_number": 31,
+      "summary": "先建立一排小框，再依次补入下方各排，已建立的排保留。",
+      "purpose": "集合铺满",
+      "relation": "逐排增加，整体位置随后保持",
+      "start_state": "仅少量小框",
+      "end_state": "多排框满幅，内部持续变化",
+      "tags": [
+        "逐排填充",
+        "满幅网格",
+        "内部轮换"
+      ],
+      "document": "cases/tycenjm-098014-original/mechanisms/m06.md",
+      "storyboard": "cases/tycenjm-098014-original/mechanisms/m06.jpg",
+      "case_slug": "tycenjm-098014",
+      "overview": "cases/tycenjm-098014-original/overview.md",
+      "detail": "detail.html?case=tycenjm-098014&mechanism=031-m06"
+    },
+    {
+      "id": "031-m07",
+      "title": "下部竖框接入，局部块补齐后指示箭头到位",
+      "case_number": 31,
+      "summary": "等上部输入完成，再从下方接入竖框。",
+      "purpose": "输入后的附属反馈",
+      "relation": "下框先进入，内容随后补齐",
+      "start_state": "上部内容已完整",
+      "end_state": "下框及内部图块齐全，箭头指向局部",
+      "tags": [
+        "下部接入",
+        "图块累积",
+        "箭头指示"
+      ],
+      "document": "cases/tycenjm-098014-original/mechanisms/m07.md",
+      "storyboard": "cases/tycenjm-098014-original/mechanisms/m07.jpg",
+      "case_slug": "tycenjm-098014",
+      "overview": "cases/tycenjm-098014-original/overview.md",
+      "detail": "detail.html?case=tycenjm-098014&mechanism=031-m07"
+    },
+    {
+      "id": "032-m01",
+      "title": "数字与横向点位接力，短闪后交给字组",
+      "case_number": 32,
+      "summary": "先让中心小点收小，再建立数字与下方短线。",
+      "purpose": "短促建立开场",
+      "relation": "小点收小后数字建立，底部点位横移伴随数字更换，短闪遮住交接。",
+      "start_state": "中心只有一个小点。",
+      "end_state": "点和数字退出，新的字组接管中部。",
+      "tags": [
+        "数字切换",
+        "点位横移",
+        "闪切"
+      ],
+      "document": "cases/zakisbuilding-495680-original/mechanisms/m01.md",
+      "storyboard": "cases/zakisbuilding-495680-original/mechanisms/m01.jpg",
+      "case_slug": "zakisbuilding-495680",
+      "overview": "cases/zakisbuilding-495680-original/overview.md",
+      "detail": "detail.html?case=zakisbuilding-495680&mechanism=032-m01"
+    },
+    {
+      "id": "032-m02",
+      "title": "文字逐组建立，旧行上移退去，新重点放大接上",
+      "case_number": 32,
+      "summary": "让字组按阅读顺序逐项出现，末行用更大的尺度建立重点。",
+      "purpose": "逐层转移文字重点",
+      "relation": "已有文字先累积再退让，下方新重点在原组退出后接管。",
+      "start_state": "中部已有一小组文字，下方留空。",
+      "end_state": "新的大字落稳，后层圆环向外展开。",
+      "tags": [
+        "逐组显现",
+        "上移退出",
+        "尺度强调"
+      ],
+      "document": "cases/zakisbuilding-495680-original/mechanisms/m02.md",
+      "storyboard": "cases/zakisbuilding-495680-original/mechanisms/m02.jpg",
+      "case_slug": "zakisbuilding-495680",
+      "overview": "cases/zakisbuilding-495680-original/overview.md",
+      "detail": "detail.html?case=zakisbuilding-495680&mechanism=032-m02"
+    },
+    {
+      "id": "032-m03",
+      "title": "竖框上升转正，推近内部轮换后缩回",
+      "case_number": 32,
+      "summary": "让竖框从下方带倾角上升，逐渐转正落位。",
+      "purpose": "从整体到局部再返回",
+      "relation": "同一外框保持身份，入场后推近局部，局部轮换完成再退回。",
+      "start_state": "画面下方尚未出现完整竖框。",
+      "end_state": "竖框回到完整可见的尺度，内部新图形清楚。",
+      "tags": [
+        "斜向入场",
+        "局部推进",
+        "轮换停稳"
+      ],
+      "document": "cases/zakisbuilding-495680-original/mechanisms/m03.md",
+      "storyboard": "cases/zakisbuilding-495680-original/mechanisms/m03.jpg",
+      "case_slug": "zakisbuilding-495680",
+      "overview": "cases/zakisbuilding-495680-original/overview.md",
+      "detail": "detail.html?case=zakisbuilding-495680&mechanism=032-m03"
+    },
+    {
+      "id": "032-m04",
+      "title": "框内画面向外扩张，越过边界成为全幅",
+      "case_number": 32,
+      "summary": "先在完整竖框中显示新图像，然后让同一图像的可见范围扩大，越过原框四边接管全幅。",
+      "purpose": "由局部接管全屏",
+      "relation": "以框内原图为接点扩大可见范围，外框退出后内容继续。",
+      "start_state": "竖框内已经出现图像，框外仍有底层。",
+      "end_state": "图像占满画面，少量上下附属形仍留场。",
+      "tags": [
+        "框内到全屏",
+        "边界越出",
+        "内容接管"
+      ],
+      "document": "cases/zakisbuilding-495680-original/mechanisms/m04.md",
+      "storyboard": "cases/zakisbuilding-495680-original/mechanisms/m04.jpg",
+      "case_slug": "zakisbuilding-495680",
+      "overview": "cases/zakisbuilding-495680-original/overview.md",
+      "detail": "detail.html?case=zakisbuilding-495680&mechanism=032-m04"
+    },
+    {
+      "id": "032-m05",
+      "title": "全幅内容缩回中央竖片，外围底层退虚",
+      "case_number": 32,
+      "summary": "在全幅内容上用短闪衔接，然后将同一内容收拢为中央竖片。",
+      "purpose": "从全局收回局部",
+      "relation": "同一内容由全幅收成片面，外围保留退后的背景关系。",
+      "start_state": "图像已全幅显示，局部定位形留在画面上。",
+      "end_state": "中央竖片清楚，周边退成模糊后层。",
+      "tags": [
+        "全屏缩回",
+        "中央聚焦",
+        "后层退让"
+      ],
+      "document": "cases/zakisbuilding-495680-original/mechanisms/m05.md",
+      "storyboard": "cases/zakisbuilding-495680-original/mechanisms/m05.jpg",
+      "case_slug": "zakisbuilding-495680",
+      "overview": "cases/zakisbuilding-495680-original/overview.md",
+      "detail": "detail.html?case=zakisbuilding-495680&mechanism=032-m05"
+    },
+    {
+      "id": "032-m06",
+      "title": "横带向下扫描，结果圆标放大接管再上移",
+      "case_number": 32,
+      "summary": "让横带从竖片上方向下经过，已扫过区域留在片内，末端叠入局部边框。",
+      "purpose": "扫描后交出结果",
+      "relation": "扫描沿固定范围推进，结果形随后接管并迁到下一布局。",
+      "start_state": "中央竖片稳定，内部内容清楚。",
+      "end_state": "竖片退出，结果圆标留在新底层上方。",
+      "tags": [
+        "纵向扫描",
+        "结果接管",
+        "标记上移"
+      ],
+      "document": "cases/zakisbuilding-495680-original/mechanisms/m06.md",
+      "storyboard": "cases/zakisbuilding-495680-original/mechanisms/m06.jpg",
+      "case_slug": "zakisbuilding-495680",
+      "overview": "cases/zakisbuilding-495680-original/overview.md",
+      "detail": "detail.html?case=zakisbuilding-495680&mechanism=032-m06"
+    },
+    {
+      "id": "032-m07",
+      "title": "数字累加与点列点亮并行，落稳后补入长条",
+      "case_number": 32,
+      "summary": "在上方标记保持的同时，让下方数值连续增加，点列逐项点亮。",
+      "purpose": "累计并收束结果",
+      "relation": "数字和点列一起推进，周围散落小片伴随，最后建立稳定下层。",
+      "start_state": "上方圆标已落位，下方准备建立数值和点列。",
+      "end_state": "数字停止变化，点列亮起，底部胶囊长条保留。",
+      "tags": [
+        "数字累加",
+        "点列累积",
+        "伴随散落"
+      ],
+      "document": "cases/zakisbuilding-495680-original/mechanisms/m07.md",
+      "storyboard": "cases/zakisbuilding-495680-original/mechanisms/m07.jpg",
+      "case_slug": "zakisbuilding-495680",
+      "overview": "cases/zakisbuilding-495680-original/overview.md",
+      "detail": "detail.html?case=zakisbuilding-495680&mechanism=032-m07"
+    },
+    {
+      "id": "032-m08",
+      "title": "中心图形展开后缩成小块，附属文字逐层接入",
+      "case_number": 32,
+      "summary": "让中间细长形拉开，露出较大的圆形结构；随后整组缩成一个小方块，留在新布局的锚点位置。",
+      "purpose": "大形收成锚点",
+      "relation": "先建立大形再缩成锚点，附属文字围绕已落位的小块出现。",
+      "start_state": "旧组退出，中间出现细长竖形。",
+      "end_state": "中心大形缩成小块，旁侧标题与下方逐字长条形成新布局。",
+      "tags": [
+        "展开收拢",
+        "缩放落位",
+        "文字接续"
+      ],
+      "document": "cases/zakisbuilding-495680-original/mechanisms/m08.md",
+      "storyboard": "cases/zakisbuilding-495680-original/mechanisms/m08.jpg",
+      "case_slug": "zakisbuilding-495680",
+      "overview": "cases/zakisbuilding-495680-original/overview.md",
+      "detail": "detail.html?case=zakisbuilding-495680&mechanism=032-m08"
+    },
+    {
+      "id": "033-m01",
+      "title": "小格铺成倾斜集合，选出一排前移后换底",
+      "case_number": 33,
+      "summary": "从首个小格开始补入周边小格，逐渐形成倾斜的满幅集合。",
+      "purpose": "从集合选排",
+      "relation": "集合先铺满，选排再前提",
+      "start_state": "少量小格出现在中部",
+      "end_state": "一排小格独立，外围退出",
+      "tags": [
+        "集合铺开",
+        "选排前移",
+        "外围退淡"
+      ],
+      "document": "cases/gabrielbuzziv-057430-original/mechanisms/m01.md",
+      "storyboard": "cases/gabrielbuzziv-057430-original/mechanisms/m01.jpg",
+      "case_slug": "gabrielbuzziv-057430",
+      "overview": "cases/gabrielbuzziv-057430-original/overview.md",
+      "detail": "detail.html?case=gabrielbuzziv-057430&mechanism=033-m01"
+    },
+    {
+      "id": "033-m02",
+      "title": "一排小格向竖框靠拢，由新框接手内部内容",
+      "case_number": 33,
+      "summary": "保留独立小格排，先在旁侧接入竖框。",
+      "purpose": "集合交给单框",
+      "relation": "新框先接入，原排随后汇向它",
+      "start_state": "一排小格独立存在",
+      "end_state": "竖框完整，内部内容建立",
+      "tags": [
+        "集合汇入",
+        "竖框接管",
+        "内容接续"
+      ],
+      "document": "cases/gabrielbuzziv-057430-original/mechanisms/m02.md",
+      "storyboard": "cases/gabrielbuzziv-057430-original/mechanisms/m02.jpg",
+      "case_slug": "gabrielbuzziv-057430",
+      "overview": "cases/gabrielbuzziv-057430-original/overview.md",
+      "detail": "detail.html?case=gabrielbuzziv-057430&mechanism=033-m02"
+    },
+    {
+      "id": "033-m03",
+      "title": "侧方短条逐项增加，虚线连接到固定框内局部",
+      "case_number": 33,
+      "summary": "让固定主框保持，在侧边逐项接入短条。",
+      "purpose": "逐项建立关联",
+      "relation": "先条后线，已有连接保持",
+      "start_state": "主框完整，侧边空",
+      "end_state": "侧条与局部连接齐全",
+      "tags": [
+        "侧条增加",
+        "虚线连接",
+        "局部指向"
+      ],
+      "document": "cases/gabrielbuzziv-057430-original/mechanisms/m03.md",
+      "storyboard": "cases/gabrielbuzziv-057430-original/mechanisms/m03.jpg",
+      "case_slug": "gabrielbuzziv-057430",
+      "overview": "cases/gabrielbuzziv-057430-original/overview.md",
+      "detail": "detail.html?case=gabrielbuzziv-057430&mechanism=033-m03"
+    },
+    {
+      "id": "033-m04",
+      "title": "原图局部标框，副本逐项提入旁侧空槽",
+      "case_number": 33,
+      "summary": "先在原片内逐项标出局部范围，再在旁侧建立有空槽的面板。",
+      "purpose": "局部提取成集合",
+      "relation": "标出来源，再提副本填槽",
+      "start_state": "大竖片完整",
+      "end_state": "原片保留，旁面板多个槽填满",
+      "tags": [
+        "局部标框",
+        "副本提取",
+        "逐槽填充"
+      ],
+      "document": "cases/gabrielbuzziv-057430-original/mechanisms/m04.md",
+      "storyboard": "cases/gabrielbuzziv-057430-original/mechanisms/m04.jpg",
+      "case_slug": "gabrielbuzziv-057430",
+      "overview": "cases/gabrielbuzziv-057430-original/overview.md",
+      "detail": "detail.html?case=gabrielbuzziv-057430&mechanism=033-m04"
+    },
+    {
+      "id": "033-m05",
+      "title": "空空间分批补齐部件，数值接续后完成反馈",
+      "case_number": 33,
+      "summary": "在空空间中按位置分批补入部件，先建立的保持，后部件补进剩余空位。",
+      "purpose": "空区到完整结构",
+      "relation": "部件分批增加，反馈最后出现",
+      "start_state": "新空间基本为空",
+      "end_state": "各部件完整，完成标记出现",
+      "tags": [
+        "分批建立",
+        "数值累积",
+        "完成反馈"
+      ],
+      "document": "cases/gabrielbuzziv-057430-original/mechanisms/m05.md",
+      "storyboard": "cases/gabrielbuzziv-057430-original/mechanisms/m05.jpg",
+      "case_slug": "gabrielbuzziv-057430",
+      "overview": "cases/gabrielbuzziv-057430-original/overview.md",
+      "detail": "detail.html?case=gabrielbuzziv-057430&mechanism=033-m05"
+    },
+    {
+      "id": "034-m01",
+      "title": "中央短句原位轮换，局部由模糊变清楚",
+      "case_number": 34,
+      "summary": "保留上方小行，让中央短句在同一位置逐次更换。",
+      "purpose": "连续更换短句",
+      "relation": "短句更新，外部小行不动",
+      "start_state": "中央已有短句，上小行稳定",
+      "end_state": "新短句清楚，位置保持",
+      "tags": [
+        "原位轮换",
+        "由虚到清",
+        "字组保持"
+      ],
+      "document": "cases/wani-shola-459278-original/mechanisms/m01.md",
+      "storyboard": "cases/wani-shola-459278-original/mechanisms/m01.jpg",
+      "case_slug": "wani-shola-459278",
+      "overview": "cases/wani-shola-459278-original/overview.md",
+      "detail": "detail.html?case=wani-shola-459278&mechanism=034-m01"
+    },
+    {
+      "id": "034-m02",
+      "title": "固定框内轮换内容，外框与标题保持",
+      "case_number": 34,
+      "summary": "先让大框渐显并完整建立，再显示内部内容。",
+      "purpose": "同容器多状态",
+      "relation": "边界先建立，内部随后接替",
+      "start_state": "大框尚未完整",
+      "end_state": "新内部布局完整，外部稳定",
+      "tags": [
+        "框内替换",
+        "边界保持",
+        "多状态"
+      ],
+      "document": "cases/wani-shola-459278-original/mechanisms/m02.md",
+      "storyboard": "cases/wani-shola-459278-original/mechanisms/m02.jpg",
+      "case_slug": "wani-shola-459278",
+      "overview": "cases/wani-shola-459278-original/overview.md",
+      "detail": "detail.html?case=wani-shola-459278&mechanism=034-m02"
+    },
+    {
+      "id": "034-m03",
+      "title": "两竖框错峰并置，一框内侧边列表展开",
+      "case_number": 34,
+      "summary": "先建立一侧竖框，再接入另一侧竖框，构成并置关系。",
+      "purpose": "并置到局部展开",
+      "relation": "第二框先落稳，局部再展开",
+      "start_state": "只有首竖框",
+      "end_state": "两框齐全，一框展开列表",
+      "tags": [
+        "并置建立",
+        "错峰入场",
+        "侧栏展开"
+      ],
+      "document": "cases/wani-shola-459278-original/mechanisms/m03.md",
+      "storyboard": "cases/wani-shola-459278-original/mechanisms/m03.jpg",
+      "case_slug": "wani-shola-459278",
+      "overview": "cases/wani-shola-459278-original/overview.md",
+      "detail": "detail.html?case=wani-shola-459278&mechanism=034-m03"
+    },
+    {
+      "id": "034-m04",
+      "title": "上方气泡接到逐行正文，框内上滚继续补行",
+      "case_number": 34,
+      "summary": "在固定大框上方接入气泡和局部小点，随后让正文从上到下逐行补齐。",
+      "purpose": "由触发到连续正文",
+      "relation": "气泡先提示，正文后累积再滚动",
+      "start_state": "大框有空输入条",
+      "end_state": "多行正文建立，后行持续接入",
+      "tags": [
+        "逐行增加",
+        "框内上滚",
+        "上层保持"
+      ],
+      "document": "cases/wani-shola-459278-original/mechanisms/m04.md",
+      "storyboard": "cases/wani-shola-459278-original/mechanisms/m04.jpg",
+      "case_slug": "wani-shola-459278",
+      "overview": "cases/wani-shola-459278-original/overview.md",
+      "detail": "detail.html?case=wani-shola-459278&mechanism=034-m04"
+    },
+    {
+      "id": "034-m05",
+      "title": "图框保持，旁侧数值逐行建立并更新",
+      "case_number": 34,
+      "summary": "保留一侧图框与旁侧字组，先接入一行数值，再逐行补入后续数值。",
+      "purpose": "图旁多项结果",
+      "relation": "数值分行补入，图框不随之重排",
+      "start_state": "一侧字组与图框建立",
+      "end_state": "多行数值齐全",
+      "tags": [
+        "数值累积",
+        "逐行增加",
+        "旁侧保持"
+      ],
+      "document": "cases/wani-shola-459278-original/mechanisms/m05.md",
+      "storyboard": "cases/wani-shola-459278-original/mechanisms/m05.jpg",
+      "case_slug": "wani-shola-459278",
+      "overview": "cases/wani-shola-459278-original/overview.md",
+      "detail": "detail.html?case=wani-shola-459278&mechanism=034-m05"
+    },
+    {
+      "id": "034-m06",
+      "title": "倾斜前片先进入，后片从侧下补入叠层",
+      "case_number": 34,
+      "summary": "在已有底层上接入倾斜片，落稳后保留。",
+      "purpose": "叠层建立",
+      "relation": "先片保持，后片接入",
+      "start_state": "底层与旁字已建立",
+      "end_state": "两片形成前后层",
+      "tags": [
+        "倾斜入场",
+        "前后叠层",
+        "错峰"
+      ],
+      "document": "cases/wani-shola-459278-original/mechanisms/m06.md",
+      "storyboard": "cases/wani-shola-459278-original/mechanisms/m06.jpg",
+      "case_slug": "wani-shola-459278",
+      "overview": "cases/wani-shola-459278-original/overview.md",
+      "detail": "detail.html?case=wani-shola-459278&mechanism=034-m06"
+    },
+    {
+      "id": "034-m07",
+      "title": "多列数值错开建立，依次增加后共同落稳",
+      "case_number": 34,
+      "summary": "先让首列数值增加，再错开启动后续各列；早启动的列可先稳定，后列继续变化。",
+      "purpose": "多项累积收尾",
+      "relation": "前列先开始，后列延迟加入",
+      "start_state": "整组刚换入，首列未完整",
+      "end_state": "多列结果齐全，下部说明接上",
+      "tags": [
+        "数值增加",
+        "列间错峰",
+        "最终保持"
+      ],
+      "document": "cases/wani-shola-459278-original/mechanisms/m07.md",
+      "storyboard": "cases/wani-shola-459278-original/mechanisms/m07.jpg",
+      "case_slug": "wani-shola-459278",
+      "overview": "cases/wani-shola-459278-original/overview.md",
+      "detail": "detail.html?case=wani-shola-459278&mechanism=034-m07"
+    },
+    {
+      "id": "035-m01",
+      "title": "中央点扩成分段圆环，圈内文字逐行补入",
+      "case_number": 35,
+      "summary": "从中央小点向外展开一圈小形，让小形沿圆周构成分段圆环。",
+      "purpose": "点到环形承载",
+      "relation": "点扩开，文字随后建立",
+      "start_state": "中央只有小点",
+      "end_state": "分段圆环完整，内字齐全",
+      "tags": [
+        "点扩环",
+        "环形展开",
+        "圈内增加"
+      ],
+      "document": "cases/mustaphafenzar-973906-original/mechanisms/m01.md",
+      "storyboard": "cases/mustaphafenzar-973906-original/mechanisms/m01.jpg",
+      "case_slug": "mustaphafenzar-973906",
+      "overview": "cases/mustaphafenzar-973906-original/overview.md",
+      "detail": "detail.html?case=mustaphafenzar-973906&mechanism=035-m01"
+    },
+    {
+      "id": "035-m02",
+      "title": "圆环放大越界，竖框从中心接管并换底",
+      "case_number": 35,
+      "summary": "先让圈内字退出，再放大圆环，分段小形向画面外缘越出。",
+      "purpose": "环形交给竖框",
+      "relation": "圆环先扩开，新框在内接上",
+      "start_state": "圆环完整居中",
+      "end_state": "新竖框落稳，圆环离开边缘",
+      "tags": [
+        "圆环扩张",
+        "越界退出",
+        "中心接管"
+      ],
+      "document": "cases/mustaphafenzar-973906-original/mechanisms/m02.md",
+      "storyboard": "cases/mustaphafenzar-973906-original/mechanisms/m02.jpg",
+      "case_slug": "mustaphafenzar-973906",
+      "overview": "cases/mustaphafenzar-973906-original/overview.md",
+      "detail": "detail.html?case=mustaphafenzar-973906&mechanism=035-m02"
+    },
+    {
+      "id": "035-m03",
+      "title": "固定竖框内轮换，旁侧字组逐行累积",
+      "case_number": 35,
+      "summary": "保留竖框的整体位置与尺度，内部内容逐段接替。",
+      "purpose": "同框连续展示",
+      "relation": "内部更新，外框与已出现字保持",
+      "start_state": "竖框与首行字已建立",
+      "end_state": "多行旁字完整，框内到最后状态",
+      "tags": [
+        "固定框",
+        "内部轮换",
+        "旁字累积"
+      ],
+      "document": "cases/mustaphafenzar-973906-original/mechanisms/m03.md",
+      "storyboard": "cases/mustaphafenzar-973906-original/mechanisms/m03.jpg",
+      "case_slug": "mustaphafenzar-973906",
+      "overview": "cases/mustaphafenzar-973906-original/overview.md",
+      "detail": "detail.html?case=mustaphafenzar-973906&mechanism=035-m03"
+    },
+    {
+      "id": "035-m04",
+      "title": "大圆环缩回中央点，点接入短字组后补齐附属项",
+      "case_number": 35,
+      "summary": "竖框退虚后让大圆环接手，再向中央缩回。",
+      "purpose": "环形收束到结尾",
+      "relation": "环先缩回，点与字接力",
+      "start_state": "大圆环占据中央",
+      "end_state": "短字组及附属行齐全",
+      "tags": [
+        "圆环收束",
+        "点接字",
+        "附属增加"
+      ],
+      "document": "cases/mustaphafenzar-973906-original/mechanisms/m04.md",
+      "storyboard": "cases/mustaphafenzar-973906-original/mechanisms/m04.jpg",
+      "case_slug": "mustaphafenzar-973906",
+      "overview": "cases/mustaphafenzar-973906-original/overview.md",
+      "detail": "detail.html?case=mustaphafenzar-973906&mechanism=035-m04"
+    },
+    {
+      "id": "036-m01",
+      "title": "横线拉开上下边界，字组揭出后逐步扩粗",
+      "case_number": 36,
+      "summary": "让中央横线转成上下两条边界线，字组在两线之间揭出。",
+      "purpose": "线到字组",
+      "relation": "先边界，后文字，最后字形变化",
+      "start_state": "中央只有横线",
+      "end_state": "完整粗字位于两线之间",
+      "tags": [
+        "横线展开",
+        "文字揭示",
+        "字形扩粗"
+      ],
+      "document": "cases/sahildesigner23-307120-original/mechanisms/m01.md",
+      "storyboard": "cases/sahildesigner23-307120-original/mechanisms/m01.jpg",
+      "case_slug": "sahildesigner23-307120",
+      "overview": "cases/sahildesigner23-307120-original/overview.md",
+      "detail": "detail.html?case=sahildesigner23-307120&mechanism=036-m01"
+    },
+    {
+      "id": "036-m02",
+      "title": "中央实字保持，后层轮廓字铺满后退净",
+      "case_number": 36,
+      "summary": "保留中央实字，在后层加入重复轮廓字，逐排铺开到画面边缘。",
+      "purpose": "稳定前层与运动后层",
+      "relation": "前字不动，后字增多并退出",
+      "start_state": "中央实字完整",
+      "end_state": "外围重复字退去，主字仍在",
+      "tags": [
+        "重复铺满",
+        "前层保持",
+        "后层退出"
+      ],
+      "document": "cases/sahildesigner23-307120-original/mechanisms/m02.md",
+      "storyboard": "cases/sahildesigner23-307120-original/mechanisms/m02.jpg",
+      "case_slug": "sahildesigner23-307120",
+      "overview": "cases/sahildesigner23-307120-original/overview.md",
+      "detail": "detail.html?case=sahildesigner23-307120&mechanism=036-m02"
+    },
+    {
+      "id": "036-m03",
+      "title": "单字错开翻转带出厚度，整组前移放大越界",
+      "case_number": 36,
+      "summary": "先让字组显出可见厚度，各单字错开翻转，前后字姿态不完全同步。",
+      "purpose": "平面字到立体活动",
+      "relation": "单字局部旋转后整组接力",
+      "start_state": "平面字组完整",
+      "end_state": "字组放大越过边缘",
+      "tags": [
+        "错峰翻转",
+        "厚度显露",
+        "放大越界"
+      ],
+      "document": "cases/sahildesigner23-307120-original/mechanisms/m03.md",
+      "storyboard": "cases/sahildesigner23-307120-original/mechanisms/m03.jpg",
+      "case_slug": "sahildesigner23-307120",
+      "overview": "cases/sahildesigner23-307120-original/overview.md",
+      "detail": "detail.html?case=sahildesigner23-307120&mechanism=036-m03"
+    },
+    {
+      "id": "036-m04",
+      "title": "圆块群反复分合，收成竖形后拉长",
+      "case_number": 36,
+      "summary": "让中央圆块群从集中状态分成多个小块，再并回较大主形，继续一次分合变化。",
+      "purpose": "群体形态连续接替",
+      "relation": "分开并拢交替，最后纵向延展",
+      "start_state": "单一圆块群在中央",
+      "end_state": "竖向长形完整",
+      "tags": [
+        "分合",
+        "群体收束",
+        "纵向拉长"
+      ],
+      "document": "cases/sahildesigner23-307120-original/mechanisms/m04.md",
+      "storyboard": "cases/sahildesigner23-307120-original/mechanisms/m04.jpg",
+      "case_slug": "sahildesigner23-307120",
+      "overview": "cases/sahildesigner23-307120-original/overview.md",
+      "detail": "detail.html?case=sahildesigner23-307120&mechanism=036-m04"
+    },
+    {
+      "id": "036-m05",
+      "title": "固定竖框中格子分批填入，数值同步增加后局部放大",
+      "case_number": 36,
+      "summary": "在固定竖框内分批增加小格，已有格保留，旁侧数值随填充增加。",
+      "purpose": "进度累积到局部聚焦",
+      "relation": "格与数值增长，边界保持",
+      "start_state": "竖框内部仅少量格子",
+      "end_state": "格组完整，局部被放大",
+      "tags": [
+        "逐格填充",
+        "数值增加",
+        "局部推近"
+      ],
+      "document": "cases/sahildesigner23-307120-original/mechanisms/m05.md",
+      "storyboard": "cases/sahildesigner23-307120-original/mechanisms/m05.jpg",
+      "case_slug": "sahildesigner23-307120",
+      "overview": "cases/sahildesigner23-307120-original/overview.md",
+      "detail": "detail.html?case=sahildesigner23-307120&mechanism=036-m05"
+    },
+    {
+      "id": "036-m06",
+      "title": "平面网格逐格抬起，退镜中外围接成圆环",
+      "case_number": 36,
+      "summary": "让平面网格中选定小格逐步抬高，形成高低变化；同时后退并改变观察角度，揭出外围小格组成的圆环。",
+      "purpose": "网格到起伏空间",
+      "relation": "内格抬高，镜头后退揭出外围",
+      "start_state": "小格网格满幅",
+      "end_state": "起伏小格与外围环齐全",
+      "tags": [
+        "逐格抬高",
+        "退镜",
+        "外围成环"
+      ],
+      "document": "cases/sahildesigner23-307120-original/mechanisms/m06.md",
+      "storyboard": "cases/sahildesigner23-307120-original/mechanisms/m06.jpg",
+      "case_slug": "sahildesigner23-307120",
+      "overview": "cases/sahildesigner23-307120-original/overview.md",
+      "detail": "detail.html?case=sahildesigner23-307120&mechanism=036-m06"
+    },
+    {
+      "id": "037-m01",
+      "title": "内竖片从下接入，上方字组分行建立",
+      "case_number": 37,
+      "summary": "保持外部竖框，从底部接入一张较小内竖片。",
+      "purpose": "同框上下建立",
+      "relation": "下片先进入，上字随后补齐",
+      "start_state": "外框完整，内部空",
+      "end_state": "上字与内竖片齐全",
+      "tags": [
+        "底部入场",
+        "分行增加",
+        "边界保持"
+      ],
+      "document": "cases/charliie-334026-original/mechanisms/m01.md",
+      "storyboard": "cases/charliie-334026-original/mechanisms/m01.jpg",
+      "case_slug": "charliie-334026",
+      "overview": "cases/charliie-334026-original/overview.md",
+      "detail": "detail.html?case=charliie-334026&mechanism=037-m01"
+    },
+    {
+      "id": "037-m02",
+      "title": "斜向亮带扫过内片，旧内容由新状态接替",
+      "case_number": 37,
+      "summary": "让斜向亮带经过内片的可见范围，在遮蔽经过时替换内部材料。",
+      "purpose": "遮蔽后换内态",
+      "relation": "亮带经过，外框与布局保持",
+      "start_state": "内片旧状态完整",
+      "end_state": "新内部状态建立",
+      "tags": [
+        "斜向扫过",
+        "遮蔽替换",
+        "内部换态"
+      ],
+      "document": "cases/charliie-334026-original/mechanisms/m02.md",
+      "storyboard": "cases/charliie-334026-original/mechanisms/m02.jpg",
+      "case_slug": "charliie-334026",
+      "overview": "cases/charliie-334026-original/overview.md",
+      "detail": "detail.html?case=charliie-334026&mechanism=037-m02"
+    },
+    {
+      "id": "037-m03",
+      "title": "框内长内容上滚，外部字组原位接替",
+      "case_number": 37,
+      "summary": "保持外框及内片边界，让长内容在内片中向上滚动，下部材料依次进入可见区。",
+      "purpose": "持续内容展示",
+      "relation": "内部上滚，外框与上方位置保持",
+      "start_state": "内片显示上部内容",
+      "end_state": "下部内容进入视野",
+      "tags": [
+        "框内上滚",
+        "原位换字",
+        "强调补入"
+      ],
+      "document": "cases/charliie-334026-original/mechanisms/m03.md",
+      "storyboard": "cases/charliie-334026-original/mechanisms/m03.jpg",
+      "case_slug": "charliie-334026",
+      "overview": "cases/charliie-334026-original/overview.md",
+      "detail": "detail.html?case=charliie-334026&mechanism=037-m03"
+    },
+    {
+      "id": "037-m04",
+      "title": "新竖片侧向接入，把旧片推至边缘后继续承载",
+      "case_number": 37,
+      "summary": "从侧边接入新的竖片，让旧片同向移动到边缘，新片在中央接管。",
+      "purpose": "横向交接",
+      "relation": "新片从侧入，旧片同向让位",
+      "start_state": "旧内片完整",
+      "end_state": "新内片接管中央",
+      "tags": [
+        "侧向替换",
+        "并行让位",
+        "同框接管"
+      ],
+      "document": "cases/charliie-334026-original/mechanisms/m04.md",
+      "storyboard": "cases/charliie-334026-original/mechanisms/m04.jpg",
+      "case_slug": "charliie-334026",
+      "overview": "cases/charliie-334026-original/overview.md",
+      "detail": "detail.html?case=charliie-334026&mechanism=037-m04"
+    },
+    {
+      "id": "038-m01",
+      "title": "字组分行由虚到清，后层小片持续经过",
+      "case_number": 38,
+      "summary": "让主字分行出现，各行由模糊到清楚，前行到位后保持，附属短行稍后补入。",
+      "purpose": "稳定字组建立",
+      "relation": "前字分行建立，后片继续活动",
+      "start_state": "字组未完整",
+      "end_state": "主字与附属行清楚",
+      "tags": [
+        "由虚到清",
+        "分行建立",
+        "后层持续"
+      ],
+      "document": "cases/andre-lucaxxs-846347-original/mechanisms/m01.md",
+      "storyboard": "cases/andre-lucaxxs-846347-original/mechanisms/m01.jpg",
+      "case_slug": "andre-lucaxxs-846347",
+      "overview": "cases/andre-lucaxxs-846347-original/overview.md",
+      "detail": "detail.html?case=andre-lucaxxs-846347&mechanism=038-m01"
+    },
+    {
+      "id": "038-m02",
+      "title": "竖框下片向上展开，内容上滚后换成完成反馈",
+      "case_number": 38,
+      "summary": "先从下方接入竖框，再让框内下片向上展开，原底层同时变暗。",
+      "purpose": "下层接管到完成",
+      "relation": "下片先展开，内容更新，完成最后接上",
+      "start_state": "竖框内底层完整",
+      "end_state": "下片内出现完成标记",
+      "tags": [
+        "底部展开",
+        "底层变暗",
+        "完成反馈"
+      ],
+      "document": "cases/andre-lucaxxs-846347-original/mechanisms/m02.md",
+      "storyboard": "cases/andre-lucaxxs-846347-original/mechanisms/m02.jpg",
+      "case_slug": "andre-lucaxxs-846347",
+      "overview": "cases/andre-lucaxxs-846347-original/overview.md",
+      "detail": "detail.html?case=andre-lucaxxs-846347&mechanism=038-m02"
+    },
+    {
+      "id": "038-m03",
+      "title": "固定竖框局部短标签逐项提出到前层",
+      "case_number": 38,
+      "summary": "保留竖框与内部布局，从其中几个局部位置逐项提出短标签。",
+      "purpose": "局部信息外提",
+      "relation": "来源保留，标签错峰提出",
+      "start_state": "竖框完整",
+      "end_state": "多个短标签浮在框前",
+      "tags": [
+        "局部外提",
+        "标签累积",
+        "前层建立"
+      ],
+      "document": "cases/andre-lucaxxs-846347-original/mechanisms/m03.md",
+      "storyboard": "cases/andre-lucaxxs-846347-original/mechanisms/m03.jpg",
+      "case_slug": "andre-lucaxxs-846347",
+      "overview": "cases/andre-lucaxxs-846347-original/overview.md",
+      "detail": "detail.html?case=andre-lucaxxs-846347&mechanism=038-m03"
+    },
+    {
+      "id": "038-m04",
+      "title": "侧边短柱交替伸缩，内部内容更换时局部活动延续",
+      "case_number": 38,
+      "summary": "在稳定竖框旁接入一组短柱，让各柱交替伸长缩短，保持共同底部附近的位置。",
+      "purpose": "持续局部节奏",
+      "relation": "框内更新，侧柱不中断",
+      "start_state": "主竖框稳定",
+      "end_state": "侧柱持续活动，新内态建立",
+      "tags": [
+        "短柱伸缩",
+        "局部循环",
+        "内容接替"
+      ],
+      "document": "cases/andre-lucaxxs-846347-original/mechanisms/m04.md",
+      "storyboard": "cases/andre-lucaxxs-846347-original/mechanisms/m04.jpg",
+      "case_slug": "andre-lucaxxs-846347",
+      "overview": "cases/andre-lucaxxs-846347-original/overview.md",
+      "detail": "detail.html?case=andre-lucaxxs-846347&mechanism=038-m04"
+    },
+    {
+      "id": "038-m05",
+      "title": "主框保持，侧后方竖片错开接入再补前条",
+      "case_number": 38,
+      "summary": "保留主框，让侧后方竖片从两边错开接入，形成主框在前、旁片在后的组形。",
+      "purpose": "单框扩成群组",
+      "relation": "后片先接入，前条随后建立",
+      "start_state": "主框居中",
+      "end_state": "多片形成前后层，前条突出",
+      "tags": [
+        "侧后叠片",
+        "群组建立",
+        "前条补入"
+      ],
+      "document": "cases/andre-lucaxxs-846347-original/mechanisms/m05.md",
+      "storyboard": "cases/andre-lucaxxs-846347-original/mechanisms/m05.jpg",
+      "case_slug": "andre-lucaxxs-846347",
+      "overview": "cases/andre-lucaxxs-846347-original/overview.md",
+      "detail": "detail.html?case=andre-lucaxxs-846347&mechanism=038-m05"
+    },
+    {
+      "id": "038-m06",
+      "title": "原组退虚，中央小形接到字组并逐项补齐结尾",
+      "case_number": 38,
+      "summary": "先让多框组与上字一起退虚，再在中央接入小形。",
+      "purpose": "运动组交给收尾",
+      "relation": "退虚先发生，结尾项分层接上",
+      "start_state": "多框组完整",
+      "end_state": "小形、主字、附属行与底条齐全",
+      "tags": [
+        "整组退虚",
+        "中心接管",
+        "结尾累积"
+      ],
+      "document": "cases/andre-lucaxxs-846347-original/mechanisms/m06.md",
+      "storyboard": "cases/andre-lucaxxs-846347-original/mechanisms/m06.jpg",
+      "case_slug": "andre-lucaxxs-846347",
+      "overview": "cases/andre-lucaxxs-846347-original/overview.md",
+      "detail": "detail.html?case=andre-lucaxxs-846347&mechanism=038-m06"
+    },
+    {
+      "id": "039-m01",
+      "title": "固定片面小横块逐行累积，旁侧数值后接",
+      "case_number": 39,
+      "summary": "保留片面和小块位置，从上向下逐行改变小横块的可见状态，已完成块保持。",
+      "purpose": "局部填充到结果",
+      "relation": "小块分行填充，结果在后",
+      "start_state": "片面只有浅小块",
+      "end_state": "多数小块完成，数值与说明建立",
+      "tags": [
+        "逐行填充",
+        "数值接续",
+        "固定片面"
+      ],
+      "document": "cases/1stnoel-603851-original/mechanisms/m01.md",
+      "storyboard": "cases/1stnoel-603851-original/mechanisms/m01.jpg",
+      "case_slug": "1stnoel-603851",
+      "overview": "cases/1stnoel-603851-original/overview.md",
+      "detail": "detail.html?case=1stnoel-603851&mechanism=039-m01"
+    },
+    {
+      "id": "039-m02",
+      "title": "单片逐项建立强调，第二片随后并置",
+      "case_number": 39,
+      "summary": "在单片内逐项建立局部强调，已有强调保持。",
+      "purpose": "单片到对照布局",
+      "relation": "先强调旧片，再接第二片",
+      "start_state": "只有一个内容片",
+      "end_state": "两片并置，局部强调保留",
+      "tags": [
+        "局部强调",
+        "并置建立",
+        "错峰"
+      ],
+      "document": "cases/1stnoel-603851-original/mechanisms/m02.md",
+      "storyboard": "cases/1stnoel-603851-original/mechanisms/m02.jpg",
+      "case_slug": "1stnoel-603851",
+      "overview": "cases/1stnoel-603851-original/overview.md",
+      "detail": "detail.html?case=1stnoel-603851&mechanism=039-m02"
+    },
+    {
+      "id": "039-m03",
+      "title": "固定竖框内换态，旁侧短行与标记逐项补齐",
+      "case_number": 39,
+      "summary": "保留竖框位置与边界，内部内容逐段接替。",
+      "purpose": "同框连续说明",
+      "relation": "框内接替与旁侧累积相配合",
+      "start_state": "竖框完整，旁侧字组少",
+      "end_state": "内态更新，旁字齐全",
+      "tags": [
+        "框内更新",
+        "逐项补齐",
+        "旁侧说明"
+      ],
+      "document": "cases/1stnoel-603851-original/mechanisms/m03.md",
+      "storyboard": "cases/1stnoel-603851-original/mechanisms/m03.jpg",
+      "case_slug": "1stnoel-603851",
+      "overview": "cases/1stnoel-603851-original/overview.md",
+      "detail": "detail.html?case=1stnoel-603851&mechanism=039-m03"
+    },
+    {
+      "id": "039-m04",
+      "title": "框内局部副本外提，附属反馈在旁片下方追加",
+      "case_number": 39,
+      "summary": "保留竖框，将其中局部的副本提到旁侧，形成独立小片。",
+      "purpose": "局部来源到独立说明",
+      "relation": "先提副本，再补反馈",
+      "start_state": "竖框内局部已可见",
+      "end_state": "旁片与下反馈齐全，原框保留",
+      "tags": [
+        "局部副本",
+        "旁侧外提",
+        "下反馈"
+      ],
+      "document": "cases/1stnoel-603851-original/mechanisms/m04.md",
+      "storyboard": "cases/1stnoel-603851-original/mechanisms/m04.jpg",
+      "case_slug": "1stnoel-603851",
+      "overview": "cases/1stnoel-603851-original/overview.md",
+      "detail": "detail.html?case=1stnoel-603851&mechanism=039-m04"
+    },
+    {
+      "id": "039-m05",
+      "title": "固定正文中局部强调顺序推进，其余内容退弱",
+      "case_number": 39,
+      "summary": "保持正文排布，让局部强调沿阅读顺序推进；当前重点清楚，其余内容退弱但不移动。",
+      "purpose": "沿阅读顺序聚焦",
+      "relation": "强调移动，非重点退弱",
+      "start_state": "正文完整",
+      "end_state": "重点区逐步推进，正文位置未变",
+      "tags": [
+        "局部强调",
+        "阅读推进",
+        "位置保持"
+      ],
+      "document": "cases/1stnoel-603851-original/mechanisms/m05.md",
+      "storyboard": "cases/1stnoel-603851-original/mechanisms/m05.jpg",
+      "case_slug": "1stnoel-603851",
+      "overview": "cases/1stnoel-603851-original/overview.md",
+      "detail": "detail.html?case=1stnoel-603851&mechanism=039-m05"
+    },
+    {
+      "id": "040-m01",
+      "title": "持续活动框保持，前层短条错开接入",
+      "case_number": 40,
+      "summary": "保留大框中的连续活动，在前层接入短说明条。",
+      "purpose": "活动材料上的说明接续",
+      "relation": "后层不停，前条落稳",
+      "start_state": "大框持续显示内部运动",
+      "end_state": "短条出现，活动仍延续",
+      "tags": [
+        "前条增加",
+        "底层持续",
+        "说明接续"
+      ],
+      "document": "cases/brainwavepub-812667-original/mechanisms/m01.md",
+      "storyboard": "cases/brainwavepub-812667-original/mechanisms/m01.jpg",
+      "case_slug": "brainwavepub-812667",
+      "overview": "cases/brainwavepub-812667-original/overview.md",
+      "detail": "detail.html?case=brainwavepub-812667&mechanism=040-m01"
+    },
+    {
+      "id": "040-m02",
+      "title": "推近一个局部，横移到另一端后拉回整体",
+      "case_number": 40,
+      "summary": "从完整框推近一个局部，再沿横向移动到另一端，接着聚焦其下部区域；观察结束后拉回全框。",
+      "purpose": "局部观察到全貌",
+      "relation": "推近与横移衔接，底层活动保持",
+      "start_state": "完整大框可见",
+      "end_state": "重新回到全框",
+      "tags": [
+        "局部推近",
+        "横向运镜",
+        "拉回"
+      ],
+      "document": "cases/brainwavepub-812667-original/mechanisms/m02.md",
+      "storyboard": "cases/brainwavepub-812667-original/mechanisms/m02.jpg",
+      "case_slug": "brainwavepub-812667",
+      "overview": "cases/brainwavepub-812667-original/overview.md",
+      "detail": "detail.html?case=brainwavepub-812667&mechanism=040-m02"
+    },
+    {
+      "id": "040-m03",
+      "title": "局部转动接到弧向穿越，落点环扩开后块群散落",
+      "case_number": 40,
+      "summary": "让局部杆形绕一端转动，接续一个小形沿弧向穿越固定空间。",
+      "purpose": "动作到落点反馈",
+      "relation": "转动先触发，轨迹与反馈随后接上",
+      "start_state": "局部杆形立起，块群堆积",
+      "end_state": "落点圈扩散，块群散开",
+      "tags": [
+        "局部转动",
+        "弧向穿越",
+        "环形反馈",
+        "块群散落"
+      ],
+      "document": "cases/brainwavepub-812667-original/mechanisms/m03.md",
+      "storyboard": "cases/brainwavepub-812667-original/mechanisms/m03.jpg",
+      "case_slug": "brainwavepub-812667",
+      "overview": "cases/brainwavepub-812667-original/overview.md",
+      "detail": "detail.html?case=brainwavepub-812667&mechanism=040-m03"
+    },
+    {
+      "id": "040-m04",
+      "title": "底层活动退虚，短片逐项叠成纵列后退暗",
+      "case_number": 40,
+      "summary": "让完整活动框退虚，保留为后层。",
+      "purpose": "材料画面到结尾",
+      "relation": "先退虚底层，再累积前片",
+      "start_state": "完整活动框保持",
+      "end_state": "中央短片纵列齐全",
+      "tags": [
+        "底层退虚",
+        "短片堆叠",
+        "结尾退出"
+      ],
+      "document": "cases/brainwavepub-812667-original/mechanisms/m04.md",
+      "storyboard": "cases/brainwavepub-812667-original/mechanisms/m04.jpg",
+      "case_slug": "brainwavepub-812667",
+      "overview": "cases/brainwavepub-812667-original/overview.md",
+      "detail": "detail.html?case=brainwavepub-812667&mechanism=040-m04"
+    },
+    {
+      "id": "041-m01",
+      "title": "翻转小片持续穿行，短卡错峰加入后中心标记出现",
+      "case_number": 41,
+      "summary": "让多枚小片以不同姿态持续经过画面，翻转时显出不同宽度。",
+      "purpose": "活动集合到中央集中",
+      "relation": "小片持续，短卡累积，标记后到",
+      "start_state": "大量小片已经经过画面",
+      "end_state": "多短卡齐全，中心标记突出",
+      "tags": [
+        "翻转穿行",
+        "短卡累积",
+        "中心接入"
+      ],
+      "document": "cases/petert-350098-original/mechanisms/m01.md",
+      "storyboard": "cases/petert-350098-original/mechanisms/m01.jpg",
+      "case_slug": "petert-350098",
+      "overview": "cases/petert-350098-original/overview.md",
+      "detail": "detail.html?case=petert-350098&mechanism=041-m01"
+    },
+    {
+      "id": "041-m02",
+      "title": "角框限定内片，横带下扫后完成标记接管",
+      "case_number": 41,
+      "summary": "在竖框内保留独立片面，先用角框标出范围。",
+      "purpose": "局部检查到反馈",
+      "relation": "边界先建立，扫带经过，反馈最后接入",
+      "start_state": "竖框内有独立片面",
+      "end_state": "完成标记位于原片前",
+      "tags": [
+        "角框限定",
+        "横带下扫",
+        "完成反馈"
+      ],
+      "document": "cases/petert-350098-original/mechanisms/m02.md",
+      "storyboard": "cases/petert-350098-original/mechanisms/m02.jpg",
+      "case_slug": "petert-350098",
+      "overview": "cases/petert-350098-original/overview.md",
+      "detail": "detail.html?case=petert-350098&mechanism=041-m02"
+    },
+    {
+      "id": "041-m03",
+      "title": "环形分段填入，列表逐行补齐且数值增加",
+      "case_number": 41,
+      "summary": "保留固定框，让环形按段增加，先段到位后保持。",
+      "purpose": "局部图形与列表共同累积",
+      "relation": "分段图形与各行按先后接上",
+      "start_state": "固定框内环形未完整",
+      "end_state": "环形与多行列表齐全",
+      "tags": [
+        "分段填环",
+        "列表累积",
+        "数值增加"
+      ],
+      "document": "cases/petert-350098-original/mechanisms/m03.md",
+      "storyboard": "cases/petert-350098-original/mechanisms/m03.jpg",
+      "case_slug": "petert-350098",
+      "overview": "cases/petert-350098-original/overview.md",
+      "detail": "detail.html?case=petert-350098&mechanism=041-m03"
+    },
+    {
+      "id": "041-m04",
+      "title": "上方短提示片接入，列表中的一行边界随后描出",
+      "case_number": 41,
+      "summary": "在完整结果上方接入短提示片，片落稳后为列表中的一行补出局部边界。",
+      "purpose": "结果到局部提示",
+      "relation": "先提示，后局部边界",
+      "start_state": "环形与列表完整",
+      "end_state": "提示片突出，一行被限定",
+      "tags": [
+        "上方接入",
+        "局部描框",
+        "状态保持"
+      ],
+      "document": "cases/petert-350098-original/mechanisms/m04.md",
+      "storyboard": "cases/petert-350098-original/mechanisms/m04.jpg",
+      "case_slug": "petert-350098",
+      "overview": "cases/petert-350098-original/overview.md",
+      "detail": "detail.html?case=petert-350098&mechanism=041-m04"
+    },
+    {
+      "id": "041-m05",
+      "title": "数值持续增加，折线分段延长并补齐下方填充",
+      "case_number": 41,
+      "summary": "让顶部数值持续增加，下面折线从起点逐段向后延长，末端点跟随线的增长移动。",
+      "purpose": "数值到轨迹增长",
+      "relation": "线与数值推进，框保持",
+      "start_state": "固定框换入短线起始态",
+      "end_state": "折线延到后端，数值稳定",
+      "tags": [
+        "折线延长",
+        "数值增加",
+        "区域填充"
+      ],
+      "document": "cases/petert-350098-original/mechanisms/m05.md",
+      "storyboard": "cases/petert-350098-original/mechanisms/m05.jpg",
+      "case_slug": "petert-350098",
+      "overview": "cases/petert-350098-original/overview.md",
+      "detail": "detail.html?case=petert-350098&mechanism=041-m05"
+    },
+    {
+      "id": "041-m06",
+      "title": "竖框缩小上移，下方字组和底条依次建立",
+      "case_number": 41,
+      "summary": "先让竖框内部接替成简洁状态，再把竖框缩小上移，为下方留出空间。",
+      "purpose": "大框让位收尾",
+      "relation": "内态先简化，缩移后补字",
+      "start_state": "竖框占主要空间",
+      "end_state": "框在上方，收尾字组完整",
+      "tags": [
+        "缩小上移",
+        "分行建立",
+        "底条接续"
+      ],
+      "document": "cases/petert-350098-original/mechanisms/m06.md",
+      "storyboard": "cases/petert-350098-original/mechanisms/m06.jpg",
+      "case_slug": "petert-350098",
+      "overview": "cases/petert-350098-original/overview.md",
+      "detail": "detail.html?case=petert-350098&mechanism=041-m06"
+    },
+    {
+      "id": "043-m01",
+      "title": "倾斜竖框从下方升入，转正后推近",
+      "case_number": 43,
+      "summary": "先保留侧方短字，让竖框从画面下方倾斜升入，逐渐转正；内部图像显出后停成完整外框。",
+      "purpose": "建立对象并靠近",
+      "relation": "先让外框可辨认，再推近内部，侧字随阶段更换。",
+      "start_state": "侧方短字已建立，竖框尚在画外。",
+      "end_state": "竖框转正落位后扩大，内部区域成为焦点。",
+      "tags": [
+        "倾斜入场",
+        "转正",
+        "推近"
+      ],
+      "document": "cases/dannyverkissen-101463-original/mechanisms/m01.md",
+      "storyboard": "cases/dannyverkissen-101463-original/mechanisms/m01.jpg",
+      "case_slug": "dannyverkissen-101463",
+      "overview": "cases/dannyverkissen-101463-original/overview.md",
+      "detail": "detail.html?case=dannyverkissen-101463&mechanism=043-m01"
+    },
+    {
+      "id": "043-m02",
+      "title": "底部面板上推覆盖，整框缩回后内条向外伸出",
+      "case_number": 43,
+      "summary": "从框底向上推出面板，覆盖原内部的下部，上方图像保留。",
+      "purpose": "从内部展开到外部",
+      "relation": "面板先覆盖内部下部，缩回建立全框，再从内条原位置向外扩展。",
+      "start_state": "竖框处于放大状态，内部上方图像可见。",
+      "end_state": "完整框缩回，横条突出框外，旁侧数字停止变化。",
+      "tags": [
+        "底部上推",
+        "全框缩回",
+        "越框展开"
+      ],
+      "document": "cases/dannyverkissen-101463-original/mechanisms/m02.md",
+      "storyboard": "cases/dannyverkissen-101463-original/mechanisms/m02.jpg",
+      "case_slug": "dannyverkissen-101463",
+      "overview": "cases/dannyverkissen-101463-original/overview.md",
+      "detail": "detail.html?case=dannyverkissen-101463&mechanism=043-m02"
+    },
+    {
+      "id": "043-m03",
+      "title": "同一竖框横移转向，左右文字交替让位",
+      "case_number": 43,
+      "summary": "让同一竖框边转动边移向一侧，旧文字退出，另一侧新文字在腾出的空位建立。",
+      "purpose": "在两侧转移重点",
+      "relation": "竖框持续留场，横移和转动腾出文字区，旧字先退新字后接。",
+      "start_state": "竖框与一侧文字已经完整建立。",
+      "end_state": "竖框移动到另一侧并回正，新文字占据腾出的空位。",
+      "tags": [
+        "横移转向",
+        "交替布局",
+        "持续对象"
+      ],
+      "document": "cases/dannyverkissen-101463-original/mechanisms/m03.md",
+      "storyboard": "cases/dannyverkissen-101463-original/mechanisms/m03.jpg",
+      "case_slug": "dannyverkissen-101463",
+      "overview": "cases/dannyverkissen-101463-original/overview.md",
+      "detail": "detail.html?case=dannyverkissen-101463&mechanism=043-m03"
+    },
+    {
+      "id": "043-m04",
+      "title": "边界固定，内部列表滚动后被侧入面板接替",
+      "case_number": 43,
+      "summary": "保持外框位置，让内部列表沿纵向连续滚动；新项从边缘进入，旧项从另一边裁出，外边界始终稳定。",
+      "purpose": "固定窗口内换内容",
+      "relation": "外框不随内部滚动，侧入面板覆盖旧列表并成为新承载层。",
+      "start_state": "完整竖框稳定，内部已有纵向多行。",
+      "end_state": "内部列表退去，新面板占据同一窗口。",
+      "tags": [
+        "内部滚动",
+        "固定裁切",
+        "侧滑覆盖"
+      ],
+      "document": "cases/dannyverkissen-101463-original/mechanisms/m04.md",
+      "storyboard": "cases/dannyverkissen-101463-original/mechanisms/m04.jpg",
+      "case_slug": "dannyverkissen-101463",
+      "overview": "cases/dannyverkissen-101463-original/overview.md",
+      "detail": "detail.html?case=dannyverkissen-101463&mechanism=043-m04"
+    },
+    {
+      "id": "043-m05",
+      "title": "框内局部提成外侧浮片，强调后回收",
+      "case_number": 43,
+      "summary": "从框内局部所在位置建立独立片层，先将上方片移向右上，再将下方横条移向右下，外框里的原内容仍保留。",
+      "purpose": "保留来源展示局部",
+      "relation": "独立副本从来源附近离开，原内容保留，外框随后退为陪衬。",
+      "start_state": "外框内已有图像与横条，框外留空。",
+      "end_state": "独立浮片在框外强调后退出或收回，原内部内容仍可辨认。",
+      "tags": [
+        "局部提取",
+        "浮片",
+        "来源保持"
+      ],
+      "document": "cases/dannyverkissen-101463-original/mechanisms/m05.md",
+      "storyboard": "cases/dannyverkissen-101463-original/mechanisms/m05.jpg",
+      "case_slug": "dannyverkissen-101463",
+      "overview": "cases/dannyverkissen-101463-original/overview.md",
+      "detail": "detail.html?case=dannyverkissen-101463&mechanism=043-m05"
+    },
+    {
+      "id": "043-m06",
+      "title": "局部圆环接连扩散，数字与内部填充同步增加",
+      "case_number": 43,
+      "summary": "围绕框内一个局部位置接连产生圆环，圆环向外扩大并逐渐减淡。",
+      "purpose": "局部动作反馈累积",
+      "relation": "重复反馈围绕同一局部发生，外框不动，结果留在内部。",
+      "start_state": "竖框固定，框内局部位置已经明确。",
+      "end_state": "扩散圈退出，内数值与填充增加到新状态。",
+      "tags": [
+        "圆环扩散",
+        "重复反馈",
+        "累计保持"
+      ],
+      "document": "cases/dannyverkissen-101463-original/mechanisms/m06.md",
+      "storyboard": "cases/dannyverkissen-101463-original/mechanisms/m06.jpg",
+      "case_slug": "dannyverkissen-101463",
+      "overview": "cases/dannyverkissen-101463-original/overview.md",
+      "detail": "detail.html?case=dannyverkissen-101463&mechanism=043-m06"
+    },
+    {
+      "id": "043-m07",
+      "title": "旧框上移离场，新框从上方落入再局部靠近",
+      "case_number": 43,
+      "summary": "让旧竖框向上离开，新框从画面上方进入并落到一侧。",
+      "purpose": "同向退出接入",
+      "relation": "旧组先让出位置，新组沿同一竖向通道接上，保持可辨认的接力。",
+      "start_state": "旧竖框仍完整留场。",
+      "end_state": "新竖框从上方接入，短暂推近局部后缩回完整尺度。",
+      "tags": [
+        "纵向交接",
+        "框体替换",
+        "局部往返"
+      ],
+      "document": "cases/dannyverkissen-101463-original/mechanisms/m07.md",
+      "storyboard": "cases/dannyverkissen-101463-original/mechanisms/m07.jpg",
+      "case_slug": "dannyverkissen-101463",
+      "overview": "cases/dannyverkissen-101463-original/overview.md",
+      "detail": "detail.html?case=dannyverkissen-101463&mechanism=043-m07"
+    },
+    {
+      "id": "043-m08",
+      "title": "外侧文字逐字建立，再缩移为框内短条",
+      "case_number": 43,
+      "summary": "保持竖框和底部小格阵列，在框外一侧连续增加文字，已出现的字符不退出。",
+      "purpose": "从展开输入收成记录",
+      "relation": "先在外侧完整建立，再用缩移与框内承接保持内容对应。",
+      "start_state": "竖框内部已有底部阵列，外侧留出输入位置。",
+      "end_state": "外侧文字缩小上移，框内出现承接同一内容的短条。",
+      "tags": [
+        "逐字输入",
+        "缩移归位",
+        "内外接力"
+      ],
+      "document": "cases/dannyverkissen-101463-original/mechanisms/m08.md",
+      "storyboard": "cases/dannyverkissen-101463-original/mechanisms/m08.jpg",
+      "case_slug": "dannyverkissen-101463",
+      "overview": "cases/dannyverkissen-101463-original/overview.md",
+      "detail": "detail.html?case=dannyverkissen-101463&mechanism=043-m08"
+    },
+    {
+      "id": "043-m09",
+      "title": "多个竖框错峰升入并缩排成列，再整列退出",
+      "case_number": 43,
+      "summary": "让多个竖框从下方高低错开地升入，进入过程中逐渐缩小，最后排成横向一列，中间主框略大。",
+      "purpose": "建立并收回集合",
+      "relation": "各框从不同高度进入并缩到共同尺度，中间主框略大，退出时作为整组。",
+      "start_state": "上一处局部强调结束，中部仍有主框。",
+      "end_state": "多个完整框排成横列，整体随后向下离场。",
+      "tags": [
+        "错峰升入",
+        "缩排集合",
+        "整组退出"
+      ],
+      "document": "cases/dannyverkissen-101463-original/mechanisms/m09.md",
+      "storyboard": "cases/dannyverkissen-101463-original/mechanisms/m09.jpg",
+      "case_slug": "dannyverkissen-101463",
+      "overview": "cases/dannyverkissen-101463-original/overview.md",
+      "detail": "detail.html?case=dannyverkissen-101463&mechanism=043-m09"
+    },
+    {
+      "id": "043-m10",
+      "title": "字形从底部遮挡线分段升出，副行随后接入",
+      "case_number": 43,
+      "summary": "在前组退出后，让主字形的不同部分从底部遮挡线逐段向上升出。",
+      "purpose": "从边界揭示收尾",
+      "relation": "下沿限制可见范围，各段向上越过同一边界，再建立附属行。",
+      "start_state": "前一集合已下退，中部空出。",
+      "end_state": "主字形完整，副行逐层建立后整体减淡。",
+      "tags": [
+        "遮挡揭示",
+        "分段升出",
+        "逐层收尾"
+      ],
+      "document": "cases/dannyverkissen-101463-original/mechanisms/m10.md",
+      "storyboard": "cases/dannyverkissen-101463-original/mechanisms/m10.jpg",
+      "case_slug": "dannyverkissen-101463",
+      "overview": "cases/dannyverkissen-101463-original/overview.md",
+      "detail": "detail.html?case=dannyverkissen-101463&mechanism=043-m10"
+    },
+    {
+      "id": "051-m01",
+      "title": "大字横向轮换，退去后散条与中央文字分层建立",
+      "case_number": 51,
+      "summary": "让大字一组接一组横向滑过，前组退出后下一组接上。",
+      "purpose": "从轮换转为分层",
+      "relation": "大字轮换退出后分层建立，中央保持清楚，外围仍移动。",
+      "start_state": "一组大字横向占据中部。",
+      "end_state": "多条倾斜小片在后层移动，中央字组清楚留场。",
+      "tags": [
+        "横向轮换",
+        "退后分层",
+        "模糊显清"
+      ],
+      "document": "cases/l3d1c-632524-original/mechanisms/m01.md",
+      "storyboard": "cases/l3d1c-632524-original/mechanisms/m01.jpg",
+      "case_slug": "l3d1c-632524",
+      "overview": "cases/l3d1c-632524-original/overview.md",
+      "detail": "detail.html?case=l3d1c-632524&mechanism=051-m01"
+    },
+    {
+      "id": "051-m02",
+      "title": "从流动散条中突出一条，其余退淡",
+      "case_number": 51,
+      "summary": "在散条继续移动时，突出其中一条，让它靠近中央下方并显出清楚边界。",
+      "purpose": "从集合聚焦一项",
+      "relation": "选中项从原集合中获得边界和位置重点，标题留场。",
+      "start_state": "多条倾斜片层分散移动，上方已有字组。",
+      "end_state": "一条在中央下方清楚突出，其他片退为陪衬。",
+      "tags": [
+        "集合选中",
+        "局部突出",
+        "外围退让"
+      ],
+      "document": "cases/l3d1c-632524-original/mechanisms/m02.md",
+      "storyboard": "cases/l3d1c-632524-original/mechanisms/m02.jpg",
+      "case_slug": "l3d1c-632524",
+      "overview": "cases/l3d1c-632524-original/overview.md",
+      "detail": "detail.html?case=l3d1c-632524&mechanism=051-m02"
+    },
+    {
+      "id": "051-m03",
+      "title": "倾斜散条转正归队，再沿侧边连成纵列",
+      "case_number": 51,
+      "summary": "让分散且倾斜的条片各自移动到纵列位置，边移动边转正，使左右边逐步对齐；未归队的外围条片退去。",
+      "purpose": "散乱重排为秩序",
+      "relation": "条片各自位移转正，先完成排列，再逐行补连线。",
+      "start_state": "条片角度不同，分散在画面中。",
+      "end_state": "多行同宽条片纵向对齐，侧边竖线及短支线依次连接。",
+      "tags": [
+        "散开归队",
+        "转正对齐",
+        "连线增长"
+      ],
+      "document": "cases/l3d1c-632524-original/mechanisms/m03.md",
+      "storyboard": "cases/l3d1c-632524-original/mechanisms/m03.jpg",
+      "case_slug": "l3d1c-632524",
+      "overview": "cases/l3d1c-632524-original/overview.md",
+      "detail": "detail.html?case=l3d1c-632524&mechanism=051-m03"
+    },
+    {
+      "id": "051-m04",
+      "title": "亮带逐行下扫，经过处保留新增标记",
+      "case_number": 51,
+      "summary": "从纵列上方开始，让一条较亮的横带向下移动。",
+      "purpose": "逐项处理并保留结果",
+      "relation": "移动带控制处理顺序，已完成行不随带离开而复原。",
+      "start_state": "纵向条列及侧边连接已稳定。",
+      "end_state": "亮带扫完，多行保留各自新增的短词和末端标记。",
+      "tags": [
+        "逐行扫描",
+        "结果累积",
+        "固定列表"
+      ],
+      "document": "cases/l3d1c-632524-original/mechanisms/m04.md",
+      "storyboard": "cases/l3d1c-632524-original/mechanisms/m04.jpg",
+      "case_slug": "l3d1c-632524",
+      "overview": "cases/l3d1c-632524-original/overview.md",
+      "detail": "detail.html?case=l3d1c-632524&mechanism=051-m04"
+    },
+    {
+      "id": "051-m05",
+      "title": "行端圆点脱离旧列表，散开后落到新坐标",
+      "case_number": 51,
+      "summary": "先在各行端部建立圆节点，再淡去行框和文字，保留节点。",
+      "purpose": "保留标记重组空间",
+      "relation": "留下节点作为持续对象，旧容器先退，节点再移动到新布局。",
+      "start_state": "每行左端已有圆节点，文字与行框仍在。",
+      "end_state": "圆点分散在新线框中，原纵列结构退出。",
+      "tags": [
+        "节点散开",
+        "容器退场",
+        "坐标重排"
+      ],
+      "document": "cases/l3d1c-632524-original/mechanisms/m05.md",
+      "storyboard": "cases/l3d1c-632524-original/mechanisms/m05.jpg",
+      "case_slug": "l3d1c-632524",
+      "overview": "cases/l3d1c-632524-original/overview.md",
+      "detail": "detail.html?case=l3d1c-632524&mechanism=051-m05"
+    },
+    {
+      "id": "051-m06",
+      "title": "节点外圈扩散，旁侧浮卡按点接力出现",
+      "case_number": 51,
+      "summary": "保持节点分布，先让一处节点的外圈向外扩散，随后在它旁边建立浮卡。",
+      "purpose": "从多点逐项展开",
+      "relation": "局部扩散提示先点名节点，再建立对应浮卡，各组错开累积。",
+      "start_state": "多个圆点已分布在固定范围内。",
+      "end_state": "不同节点旁各有浮卡，先出现的卡仍保留。",
+      "tags": [
+        "节点强调",
+        "圆环扩散",
+        "浮卡累积"
+      ],
+      "document": "cases/l3d1c-632524-original/mechanisms/m06.md",
+      "storyboard": "cases/l3d1c-632524-original/mechanisms/m06.jpg",
+      "case_slug": "l3d1c-632524",
+      "overview": "cases/l3d1c-632524-original/overview.md",
+      "detail": "detail.html?case=l3d1c-632524&mechanism=051-m06"
+    },
+    {
+      "id": "051-m07",
+      "title": "亮点沿纵线下行，各行依次显清并更新计数",
+      "case_number": 51,
+      "summary": "在新纵列旁建立竖线，让亮点沿竖向向下推进。",
+      "purpose": "沿路径逐项激活",
+      "relation": "纵向推进负责顺序，文字显清与计数响应同一进展。",
+      "start_state": "上一组退出，新竖线与多行内容建立。",
+      "end_state": "沿线各行依次激活，上方数字更新，首行标记保留。",
+      "tags": [
+        "沿线推进",
+        "逐行激活",
+        "计数更换"
+      ],
+      "document": "cases/l3d1c-632524-original/mechanisms/m07.md",
+      "storyboard": "cases/l3d1c-632524-original/mechanisms/m07.jpg",
+      "case_slug": "l3d1c-632524",
+      "overview": "cases/l3d1c-632524-original/overview.md",
+      "detail": "detail.html?case=l3d1c-632524&mechanism=051-m07"
+    },
+    {
+      "id": "051-m08",
+      "title": "折线端点向右推进，填充与下方文字接续增长",
+      "case_number": 51,
+      "summary": "先让矩形区域带轻微倾角进入并稳定，然后将折线端点向右推进，已走过的路径留下，下方填充随路径展开。",
+      "purpose": "在固定区域内逐步生成",
+      "relation": "折线端点带出旧路径，填充跟随；文字独立累积而不擦掉图形。",
+      "start_state": "新矩形区域轻倾斜入位，内部尚未完整建立。",
+      "end_state": "折线与下方填充完成，文字逐行增加，末端保留游标。",
+      "tags": [
+        "路径增长",
+        "区域填充",
+        "逐字输入"
+      ],
+      "document": "cases/l3d1c-632524-original/mechanisms/m08.md",
+      "storyboard": "cases/l3d1c-632524-original/mechanisms/m08.jpg",
+      "case_slug": "l3d1c-632524",
+      "overview": "cases/l3d1c-632524-original/overview.md",
+      "detail": "detail.html?case=l3d1c-632524&mechanism=051-m08"
+    },
+    {
+      "id": "051-m09",
+      "title": "多排图块横向流动，前景小框接管而底层继续",
+      "case_number": 51,
+      "summary": "让多排图块各自横向流动，整体带倾斜关系，上下排不必同步同向。",
+      "purpose": "流动集合前景聚焦",
+      "relation": "集合运动不断，清楚的前景层随后建立，形成不同运动层级。",
+      "start_state": "倾斜的多排图块占据画面并分别横向移动。",
+      "end_state": "后层集合退虚但仍移动，前方小框与逐行列表清楚留场。",
+      "tags": [
+        "多排流动",
+        "前景接管",
+        "后层持续"
+      ],
+      "document": "cases/l3d1c-632524-original/mechanisms/m09.md",
+      "storyboard": "cases/l3d1c-632524-original/mechanisms/m09.jpg",
+      "case_slug": "l3d1c-632524",
+      "overview": "cases/l3d1c-632524-original/overview.md",
+      "detail": "detail.html?case=l3d1c-632524&mechanism=051-m09"
+    },
+    {
+      "id": "051-m10",
+      "title": "中心组由上至下逐层建立，最后保持整体",
+      "case_number": 51,
+      "summary": "先换入固定底层，在上部建立小标记，再依次接入主行、副行、长条与下方小字。",
+      "purpose": "按层级完成收尾",
+      "relation": "各层按纵向次序进入，已建立层留场，不随下一层重新入场。",
+      "start_state": "流动旧层退出，新的固定底层建立。",
+      "end_state": "上标、主行、副行、长条和小字构成完整中心组。",
+      "tags": [
+        "纵向接力",
+        "逐层入场",
+        "整体保持"
+      ],
+      "document": "cases/l3d1c-632524-original/mechanisms/m10.md",
+      "storyboard": "cases/l3d1c-632524-original/mechanisms/m10.jpg",
+      "case_slug": "l3d1c-632524",
+      "overview": "cases/l3d1c-632524-original/overview.md",
+      "detail": "detail.html?case=l3d1c-632524&mechanism=051-m10"
+    },
+    {
+      "id": "051-m11",
+      "title": "竖线先立，字符向右展开形成短行",
+      "case_number": 51,
+      "summary": "在空底中先建立竖线，再从竖线旁展开字符，使短行向右逐渐变完整。",
+      "purpose": "从线锚点展开文字",
+      "relation": "竖线先提供起始锚点，字符随后向右建立。",
+      "start_state": "旧组已经退成空底。",
+      "end_state": "短行字符沿竖线右侧展开并停稳。",
+      "tags": [
+        "竖线起始",
+        "横向展开",
+        "短行收势"
+      ],
+      "document": "cases/l3d1c-632524-original/mechanisms/m11.md",
+      "storyboard": "cases/l3d1c-632524-original/mechanisms/m11.jpg",
+      "case_slug": "l3d1c-632524",
+      "overview": "cases/l3d1c-632524-original/overview.md",
+      "detail": "detail.html?case=l3d1c-632524&mechanism=051-m11"
+    },
+    {
+      "id": "060-m01",
+      "title": "主字逐个放大落位，再上移让出下方轮廓",
+      "case_number": 60,
+      "summary": "让主字逐个放大出现并落到同一行，副行随后显出。",
+      "purpose": "标题让位建立下层",
+      "relation": "先建立主字，再整体让位；新的下层从让出的空间建立。",
+      "start_state": "画面中尚无稳定的大组。",
+      "end_state": "字组缩小上移，下方轮廓分段描出，侧卡与节点线补入。",
+      "tags": [
+        "逐字放大",
+        "上移缩小",
+        "轮廓描出"
+      ],
+      "document": "cases/ror-fly-880547-original/mechanisms/m01.md",
+      "storyboard": "cases/ror-fly-880547-original/mechanisms/m01.jpg",
+      "case_slug": "ror-fly-880547",
+      "overview": "cases/ror-fly-880547-original/overview.md",
+      "detail": "detail.html?case=ror-fly-880547&mechanism=060-m01"
+    },
+    {
+      "id": "060-m02",
+      "title": "小块分批下降旋转，先到的在下方累积",
+      "case_number": 60,
+      "summary": "从上方分批放入小块，小块下落时带不同旋转，进入下方区域后保留。",
+      "purpose": "分批落入并累积",
+      "relation": "后批进入时前批已停在内部，承接区域始终保持。",
+      "start_state": "下方有稳定的开口区域，内部尚未填满。",
+      "end_state": "多块落入后保留，旁侧进度增长到完成节点。",
+      "tags": [
+        "分批下落",
+        "旋转",
+        "累计填入"
+      ],
+      "document": "cases/ror-fly-880547-original/mechanisms/m02.md",
+      "storyboard": "cases/ror-fly-880547-original/mechanisms/m02.jpg",
+      "case_slug": "ror-fly-880547",
+      "overview": "cases/ror-fly-880547-original/overview.md",
+      "detail": "detail.html?case=ror-fly-880547&mechanism=060-m02"
+    },
+    {
+      "id": "060-m03",
+      "title": "说明区域换内容，连接线向下一节点延长",
+      "case_number": 60,
+      "summary": "保留主区域及已经累积的内容，退去侧方旧内文，先建立新的主字，再补框和小字。",
+      "purpose": "保留结果进入下一步",
+      "relation": "操作说明更换与节点前进同步，已经完成的主状态不清空。",
+      "start_state": "主区域保留上一步结果，侧方说明与底部完成节点可见。",
+      "end_state": "侧方换成新说明，底部连接到下一节点，主区域结果继续保留。",
+      "tags": [
+        "步骤接力",
+        "连线延伸",
+        "状态保留"
+      ],
+      "document": "cases/ror-fly-880547-original/mechanisms/m03.md",
+      "storyboard": "cases/ror-fly-880547-original/mechanisms/m03.jpg",
+      "case_slug": "ror-fly-880547",
+      "overview": "cases/ror-fly-880547-original/overview.md",
+      "detail": "detail.html?case=ror-fly-880547&mechanism=060-m03"
+    },
+    {
+      "id": "060-m04",
+      "title": "上方长形倾转，细流连接后内部填充升高",
+      "case_number": 60,
+      "summary": "让长形从上方进入，转动到端部朝向下方承接区，再建立连接两者的细流。",
+      "purpose": "持续输入到累计结果",
+      "relation": "上方倾转与细流相连，填充升高发生在输入持续期间，停止后不回落。",
+      "start_state": "下方承接区保留已有内容，上方新长形准备进入。",
+      "end_state": "细流停止，长形转正退出，内部填充保持增加后的高度。",
+      "tags": [
+        "倾转输入",
+        "连续流",
+        "填充上升"
+      ],
+      "document": "cases/ror-fly-880547-original/mechanisms/m04.md",
+      "storyboard": "cases/ror-fly-880547-original/mechanisms/m04.jpg",
+      "case_slug": "ror-fly-880547",
+      "overview": "cases/ror-fly-880547-original/overview.md",
+      "detail": "detail.html?case=ror-fly-880547&mechanism=060-m04"
+    },
+    {
+      "id": "060-m05",
+      "title": "细杆向下插入，围绕下端摆动后抽出",
+      "case_number": 60,
+      "summary": "把细杆从上方插入已建立的区域，末端到位后围绕下部支点左右摆动，上端摆幅更明显。",
+      "purpose": "插入后局部往复",
+      "relation": "先插到工作位置，再围绕下部支点摆动，内部小块伴随小幅变位。",
+      "start_state": "下方区域已有填充与小块，顶部通道留空。",
+      "end_state": "杆向上退出，内部结果留下。",
+      "tags": [
+        "插入抽出",
+        "支点摆动",
+        "局部往复"
+      ],
+      "document": "cases/ror-fly-880547-original/mechanisms/m05.md",
+      "storyboard": "cases/ror-fly-880547-original/mechanisms/m05.jpg",
+      "case_slug": "ror-fly-880547",
+      "overview": "cases/ror-fly-880547-original/overview.md",
+      "detail": "detail.html?case=ror-fly-880547&mechanism=060-m05"
+    },
+    {
+      "id": "060-m06",
+      "title": "上方短形先摆动，再横移到边缘落位",
+      "case_number": 60,
+      "summary": "让短形先在主区域上方小幅摆动和转动，下方有小点落下。",
+      "purpose": "从操作区归到边缘",
+      "relation": "短形先在上方做局部动作，随后横移归位，主区域不跟随。",
+      "start_state": "主区域保持，上方出现短形，边缘还有空位。",
+      "end_state": "短形停到右上边缘，整体进入保持。",
+      "tags": [
+        "局部摆动",
+        "横移落位",
+        "边缘承接"
+      ],
+      "document": "cases/ror-fly-880547-original/mechanisms/m06.md",
+      "storyboard": "cases/ror-fly-880547-original/mechanisms/m06.jpg",
+      "case_slug": "ror-fly-880547",
+      "overview": "cases/ror-fly-880547-original/overview.md",
+      "detail": "detail.html?case=ror-fly-880547&mechanism=060-m06"
+    },
+    {
+      "id": "060-m07",
+      "title": "外围短线闪现，侧卡换成完成状态",
+      "case_number": 60,
+      "summary": "在主要结构稳定后，使外围短线短暂出现并退去，同时将侧卡更换为新的大字内容。",
+      "purpose": "稳定结果的末次强调",
+      "relation": "短促外围反馈与侧卡更新发生在结果稳定之后。",
+      "start_state": "主要结构已经完成并保持。",
+      "end_state": "外围短线退去，侧卡新大字完整，主结构继续留场。",
+      "tags": [
+        "外围闪现",
+        "完成反馈",
+        "主层保持"
+      ],
+      "document": "cases/ror-fly-880547-original/mechanisms/m07.md",
+      "storyboard": "cases/ror-fly-880547-original/mechanisms/m07.jpg",
+      "case_slug": "ror-fly-880547",
+      "overview": "cases/ror-fly-880547-original/overview.md",
+      "detail": "detail.html?case=ror-fly-880547&mechanism=060-m07"
+    },
+    {
+      "id": "071-m01",
+      "title": "中心圆形放大落稳，引线与文字接续建立",
+      "case_number": 71,
+      "summary": "让中心小圆形放大到稳定尺寸，再从旁侧接入弯曲引线和文字。",
+      "purpose": "先立焦点再补标注",
+      "relation": "先稳定中心锚点，再向外围补线与文字，中心不随标注移动。",
+      "start_state": "中部只出现小圆形，外围尚无说明。",
+      "end_state": "圆形稳定，引线、旁侧字与下方主行建立。",
+      "tags": [
+        "中心放大",
+        "引线",
+        "文字接力"
+      ],
+      "document": "cases/astrothewizard-618782-original/mechanisms/m01.md",
+      "storyboard": "cases/astrothewizard-618782-original/mechanisms/m01.jpg",
+      "case_slug": "astrothewizard-618782",
+      "overview": "cases/astrothewizard-618782-original/overview.md",
+      "detail": "detail.html?case=astrothewizard-618782&mechanism=071-m01"
+    },
+    {
+      "id": "071-m02",
+      "title": "中心锚点保留，后层更换后颗粒向其聚拢",
+      "case_number": 71,
+      "summary": "保持中心圆形的位置，让后层叠化为新的范围，周围小粒由少到多接入。",
+      "purpose": "保留中心重组周边",
+      "relation": "背景与外围变化，中心位置保持；聚拢后仍留中心活动空间。",
+      "start_state": "中心圆形已经落稳，旧底层仍在。",
+      "end_state": "新底层接管，更多小粒围绕中心分布并向其聚拢。",
+      "tags": [
+        "中心保持",
+        "后层叠化",
+        "群体聚拢"
+      ],
+      "document": "cases/astrothewizard-618782-original/mechanisms/m02.md",
+      "storyboard": "cases/astrothewizard-618782-original/mechanisms/m02.jpg",
+      "case_slug": "astrothewizard-618782",
+      "overview": "cases/astrothewizard-618782-original/overview.md",
+      "detail": "detail.html?case=astrothewizard-618782&mechanism=071-m02"
+    },
+    {
+      "id": "071-m03",
+      "title": "侧槽由下向上填满，数字随填充推进",
+      "case_number": 71,
+      "summary": "在中心组旁建立竖向槽，让内部填充从底部向上增加，旁边数值随过程不断增长。",
+      "purpose": "填充与计数并行",
+      "relation": "填充沿固定边界上升，旁侧数字对应推进阶段，中心组不移位。",
+      "start_state": "中心组保持，一侧建立空的竖向槽。",
+      "end_state": "槽内填充达到顶部，数字停止增长。",
+      "tags": [
+        "纵向填充",
+        "数字增长",
+        "固定边界"
+      ],
+      "document": "cases/astrothewizard-618782-original/mechanisms/m03.md",
+      "storyboard": "cases/astrothewizard-618782-original/mechanisms/m03.jpg",
+      "case_slug": "astrothewizard-618782",
+      "overview": "cases/astrothewizard-618782-original/overview.md",
+      "detail": "detail.html?case=astrothewizard-618782&mechanism=071-m03"
+    },
+    {
+      "id": "071-m04",
+      "title": "小圆改向行进，旧轨迹保留形成连续折线",
+      "case_number": 71,
+      "summary": "让小圆沿一个方向行进并拖出线段，接触一处小粒后改变方向，新线段从旧线末端继续延长。",
+      "purpose": "持续行动留下路径",
+      "relation": "新线段从上一段末端继续生长，转向不清除已经走过的线。",
+      "start_state": "小圆位于颗粒分布之间，尚无长轨迹。",
+      "end_state": "小圆持续转向，后方累积折线路径，旁侧计数加快。",
+      "tags": [
+        "折线增长",
+        "碰点改向",
+        "轨迹累积"
+      ],
+      "document": "cases/astrothewizard-618782-original/mechanisms/m04.md",
+      "storyboard": "cases/astrothewizard-618782-original/mechanisms/m04.jpg",
+      "case_slug": "astrothewizard-618782",
+      "overview": "cases/astrothewizard-618782-original/overview.md",
+      "detail": "detail.html?case=astrothewizard-618782&mechanism=071-m04"
+    },
+    {
+      "id": "071-m05",
+      "title": "局部整体缩进圆区，外环显出而内部动作继续",
+      "case_number": 71,
+      "summary": "将正在活动的局部整体缩小，使它落入中央圆形内区，外侧多层环逐渐进入视野。",
+      "purpose": "拉远建立外部参照",
+      "relation": "缩小揭示外部范围，内部动画不停止，形成全局与局部同时存在。",
+      "start_state": "折线路径与活动小圆占据主要画面。",
+      "end_state": "原局部缩进圆形内区，外部环层完整，内部路径继续变化。",
+      "tags": [
+        "尺度拉远",
+        "外环显出",
+        "内部持续"
+      ],
+      "document": "cases/astrothewizard-618782-original/mechanisms/m05.md",
+      "storyboard": "cases/astrothewizard-618782-original/mechanisms/m05.jpg",
+      "case_slug": "astrothewizard-618782",
+      "overview": "cases/astrothewizard-618782-original/overview.md",
+      "detail": "detail.html?case=astrothewizard-618782&mechanism=071-m05"
+    },
+    {
+      "id": "071-m06",
+      "title": "下方小块由低到高逐组垒起，前组保留",
+      "case_number": 71,
+      "summary": "在上方过程持续的同时建立下方长条，先在一端出现小形，再在中间把多个块从下向上垒成一组。",
+      "purpose": "逐组增加空间参照",
+      "relation": "每组从底部逐层建立，后组出现时前组仍在。",
+      "start_state": "上方圆区已稳定，下方长条区域留空。",
+      "end_state": "下方不同位置形成由小到大的多组堆叠。",
+      "tags": [
+        "堆叠增长",
+        "逐组累积",
+        "底边固定"
+      ],
+      "document": "cases/astrothewizard-618782-original/mechanisms/m06.md",
+      "storyboard": "cases/astrothewizard-618782-original/mechanisms/m06.jpg",
+      "case_slug": "astrothewizard-618782",
+      "overview": "cases/astrothewizard-618782-original/overview.md",
+      "detail": "detail.html?case=astrothewizard-618782&mechanism=071-m06"
+    },
+    {
+      "id": "071-m07",
+      "title": "小圆沿弧线越过边界，扩散与亮闪接管换场",
+      "case_number": 71,
+      "summary": "在新的横向分层里，让下方小圆先出现外环提示，周边箭头形成环流。",
+      "purpose": "越界触发新场",
+      "relation": "运动体先到边界，反馈从接触处展开，再借覆盖换底。",
+      "start_state": "横向分层边界已建立，小圆位于下方。",
+      "end_state": "小圆抵达边界，扩散形与亮闪覆盖后进入新的横向段落。",
+      "tags": [
+        "弧线行进",
+        "越界反馈",
+        "扩散转场"
+      ],
+      "document": "cases/astrothewizard-618782-original/mechanisms/m07.md",
+      "storyboard": "cases/astrothewizard-618782-original/mechanisms/m07.jpg",
+      "case_slug": "astrothewizard-618782",
+      "overview": "cases/astrothewizard-618782-original/overview.md",
+      "detail": "detail.html?case=astrothewizard-618782&mechanism=071-m07"
+    },
+    {
+      "id": "071-m08",
+      "title": "主形位置近乎固定，周边反向经过形成跟随感",
+      "case_number": 71,
+      "summary": "让主圆大致保持在画面中部，尾迹朝后方拉出，背景短线向相反方向移动。",
+      "purpose": "保持主形穿过环境",
+      "relation": "主形保持观看位置，尾迹和背景反向移动提供持续前行感。",
+      "start_state": "新横向空间建立，主圆位于画面中部。",
+      "end_state": "主圆仍在主要位置，不同外围形从右向左先后经过。",
+      "tags": [
+        "跟随视角",
+        "反向背景",
+        "外围掠过"
+      ],
+      "document": "cases/astrothewizard-618782-original/mechanisms/m08.md",
+      "storyboard": "cases/astrothewizard-618782-original/mechanisms/m08.jpg",
+      "case_slug": "astrothewizard-618782",
+      "overview": "cases/astrothewizard-618782-original/overview.md",
+      "detail": "detail.html?case=astrothewizard-618782&mechanism=071-m08"
+    },
+    {
+      "id": "071-m09",
+      "title": "前方圆形靠近放大，同形叠化后亮点沿弧线汇入",
+      "case_number": 71,
+      "summary": "让前方圆形逐渐靠近并变大，占据主要视野，再以圆形位置相近的叠化切换到新的内部目标。",
+      "purpose": "形状匹配进入局部",
+      "relation": "以圆形占位相似性接续换景，再把运动方向收向新中心。",
+      "start_state": "主圆仍沿横向路线持续，前方有较远的圆形目标。",
+      "end_state": "圆形内部成为新场，亮点缩小汇入中央孔，外圈提示退去。",
+      "tags": [
+        "匹配叠化",
+        "靠近放大",
+        "弧线汇入"
+      ],
+      "document": "cases/astrothewizard-618782-original/mechanisms/m09.md",
+      "storyboard": "cases/astrothewizard-618782-original/mechanisms/m09.jpg",
+      "case_slug": "astrothewizard-618782",
+      "overview": "cases/astrothewizard-618782-original/overview.md",
+      "detail": "detail.html?case=astrothewizard-618782&mechanism=071-m09"
+    },
+    {
+      "id": "071-m10",
+      "title": "上下合拢遮住旧层，新层从中缝向两侧展开",
+      "case_number": 71,
+      "summary": "先让旧开口的上下边缘相向合拢，内部可见范围越来越窄，直到旧画面被遮住。",
+      "purpose": "合拢遮蔽后展开换场",
+      "relation": "闭合先完成遮蔽，短暂遮住后换底，新层再以相反方向展开。",
+      "start_state": "旧画面中央有一块上下有边缘的开口。",
+      "end_state": "旧层退净，新画面由中央横缝向上下铺开。",
+      "tags": [
+        "上下合拢",
+        "中缝揭示",
+        "遮挡换场"
+      ],
+      "document": "cases/astrothewizard-618782-original/mechanisms/m10.md",
+      "storyboard": "cases/astrothewizard-618782-original/mechanisms/m10.jpg",
+      "case_slug": "astrothewizard-618782",
+      "overview": "cases/astrothewizard-618782-original/overview.md",
+      "detail": "detail.html?case=astrothewizard-618782&mechanism=071-m10"
+    },
+    {
+      "id": "106-m01",
+      "title": "同轴分层依次合拢，末端小杆反向补入",
+      "case_number": 106,
+      "summary": "先沿同一竖轴保留分开的层次，底层作为固定参照。",
+      "purpose": "从分层到整体",
+      "relation": "底层提供固定参照，较近中层先归位，上层后跟，底部最后补齐。",
+      "start_state": "多层沿竖向同轴分开，上下均有间隙。",
+      "end_state": "中层与上层向下合拢，底部小杆向上补入，形成完整组。",
+      "tags": [
+        "分层合拢",
+        "同轴接力",
+        "反向补入"
+      ],
+      "document": "cases/vectorcrossprod-436573-original/mechanisms/m01.md",
+      "storyboard": "cases/vectorcrossprod-436573-original/mechanisms/m01.jpg",
+      "case_slug": "vectorcrossprod-436573",
+      "overview": "cases/vectorcrossprod-436573-original/overview.md",
+      "detail": "detail.html?case=vectorcrossprod-436573&mechanism=106-m01"
+    },
+    {
+      "id": "106-m02",
+      "title": "左右端块先后靠近插入，尾部线形跟随",
+      "case_number": 106,
+      "summary": "保持中央完整组，让左侧端块先从画外靠近对应边缘，逐渐插入并停住，尾部线形随端块向内移动。",
+      "purpose": "从两侧连接到中心",
+      "relation": "端块引导接近路径，尾线随端块改变位置，中央组提供不动参照。",
+      "start_state": "中央完整组稳定，两侧尚未连接。",
+      "end_state": "左右端块先后贴合，尾部线形留在两侧。",
+      "tags": [
+        "两侧接入",
+        "端点引导",
+        "线形跟随"
+      ],
+      "document": "cases/vectorcrossprod-436573-original/mechanisms/m02.md",
+      "storyboard": "cases/vectorcrossprod-436573-original/mechanisms/m02.jpg",
+      "case_slug": "vectorcrossprod-436573",
+      "overview": "cases/vectorcrossprod-436573-original/overview.md",
+      "detail": "detail.html?case=vectorcrossprod-436573&mechanism=106-m02"
+    },
+    {
+      "id": "106-m03",
+      "title": "折线标注围绕稳定对象逐个展开",
+      "case_number": 106,
+      "summary": "在稳定组周围逐项建立折线标注：先侧边，再下部，再顶部。",
+      "purpose": "分散标注逐项建立",
+      "relation": "局部端点固定，折线向外建立，再接字组；标注按位置错开出现。",
+      "start_state": "完整组已连接，周边留有说明空位。",
+      "end_state": "多条折线分别连接不同局部，先出现的线与文字保持。",
+      "tags": [
+        "折线标注",
+        "逐项建立",
+        "端点固定"
+      ],
+      "document": "cases/vectorcrossprod-436573-original/mechanisms/m03.md",
+      "storyboard": "cases/vectorcrossprod-436573-original/mechanisms/m03.jpg",
+      "case_slug": "vectorcrossprod-436573",
+      "overview": "cases/vectorcrossprod-436573-original/overview.md",
+      "detail": "detail.html?case=vectorcrossprod-436573&mechanism=106-m03"
+    },
+    {
+      "id": "106-m04",
+      "title": "下方新片接入，整组抬起倾转后下压贴合长轨",
+      "case_number": 106,
+      "summary": "先退去上一组标注，让下方新片进入，中央整组抬起并倾转，为底片和斜向长轨让出空间。",
+      "purpose": "抬起让位再对齐落下",
+      "relation": "抬起与倾转先让出下方空间，底片与长轨进入后，整组回转靠近贴合。",
+      "start_state": "中央整组已完成，两侧线形仍连接。",
+      "end_state": "底片贴合整组，整组与斜入长轨对齐并下压落位。",
+      "tags": [
+        "抬起让位",
+        "倾转对齐",
+        "下压贴合"
+      ],
+      "document": "cases/vectorcrossprod-436573-original/mechanisms/m04.md",
+      "storyboard": "cases/vectorcrossprod-436573-original/mechanisms/m04.jpg",
+      "case_slug": "vectorcrossprod-436573",
+      "overview": "cases/vectorcrossprod-436573-original/overview.md",
+      "detail": "detail.html?case=vectorcrossprod-436573&mechanism=106-m04"
+    },
+    {
+      "id": "106-m05",
+      "title": "完整组向侧边让位，旁侧文字接入后减淡",
+      "case_number": 106,
+      "summary": "贴合完成后退出局部说明，让整组向一侧让位，新标题在另一侧建立，再补下方附属行。",
+      "purpose": "结束状态交给收尾文字",
+      "relation": "保留最终结构，让出侧方文字区，标题与附属行接力出现。",
+      "start_state": "整组与长轨已贴合，局部说明仍可见。",
+      "end_state": "完整组靠一侧，另一侧字组建立，随后整体减淡。",
+      "tags": [
+        "横向让位",
+        "逐层文字",
+        "整体减淡"
+      ],
+      "document": "cases/vectorcrossprod-436573-original/mechanisms/m05.md",
+      "storyboard": "cases/vectorcrossprod-436573-original/mechanisms/m05.jpg",
+      "case_slug": "vectorcrossprod-436573",
+      "overview": "cases/vectorcrossprod-436573-original/overview.md",
+      "detail": "detail.html?case=vectorcrossprod-436573&mechanism=106-m05"
+    }
+  ]
+}

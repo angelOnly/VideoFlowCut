@@ -4,12 +4,12 @@
 
 | 案例 | 使用任务 | 入口 |
 |---|---|---|
-| 混合场面的整片接力 | 完整解释段需要组合现实材料、原创物体、证据、关系与结论，且当前结构有素材轮播感 | [读取](../../motion-case-mixed-scene-relay/SKILL.md) |
-| 活动视窗展开与主体聚焦 | 需要在多个现实观察之间建立范围，再让其中一个具体对象成为第一重点 | [读取](../../motion-case-active-window-focus/SKILL.md) |
-| 前景让位、遮挡揭字与挂边依据 | 现象、产品或画面背后还有需要补充的条件，希望材料和说明保持在同一场面而非另开网页页 | [读取](../../motion-case-occlusion-condition-reveal/SKILL.md) |
-| 整体定位与局部观察 | 材料内有值得指认的部位，需要进入局部，同时让观众保留它属于哪个整体的参照 | [读取](../../motion-case-context-detail-observation/SKILL.md) |
-| 保持参照与关系拆层 | 解释一个有依据的组成、对比或相对关系，需要先建立共同部分再揭示被忽略的部分 | [读取](../../motion-case-relation-unfold/SKILL.md) |
-| 物体微距、部件离开与大字接管 | 内容相关物体具备可分离部件或清楚局部，希望以物体表现和排印形成一个有记忆点的完整画面 | [读取](../../motion-case-object-type-relay/SKILL.md) |
+| 混合场面的整片接力 | 完整解释段需要组合现实材料、原创物体、证据、关系与结论，且当前结构有素材轮播感 | [读取](cases/motion-case-mixed-scene-relay/CASE.md) |
+| 活动视窗展开与主体聚焦 | 需要在多个现实观察之间建立范围，再让其中一个具体对象成为第一重点 | [读取](cases/motion-case-active-window-focus/CASE.md) |
+| 前景让位、遮挡揭字与挂边依据 | 现象、产品或画面背后还有需要补充的条件，希望材料和说明保持在同一场面而非另开网页页 | [读取](cases/motion-case-occlusion-condition-reveal/CASE.md) |
+| 整体定位与局部观察 | 材料内有值得指认的部位，需要进入局部，同时让观众保留它属于哪个整体的参照 | [读取](cases/motion-case-context-detail-observation/CASE.md) |
+| 保持参照与关系拆层 | 解释一个有依据的组成、对比或相对关系，需要先建立共同部分再揭示被忽略的部分 | [读取](cases/motion-case-relation-unfold/CASE.md) |
+| 物体微距、部件离开与大字接管 | 内容相关物体具备可分离部件或清楚局部，希望以物体表现和排印形成一个有记忆点的完整画面 | [读取](cases/motion-case-object-type-relay/CASE.md) |
 
 ## 读取与接入
 

@@ -103,3 +103,9 @@ Derived Asset 例如封面墙、评论云、产品组合、图表、手机 Mocku
 进入事实包括文件、Project/Revision、用途和来源。输出是受管 Asset、Role、Provenance、Job 和可读的 Readiness。可能失效的是旧路径引用和基于旧媒体元数据的计划。验证包括文件存在、哈希、ffprobe、状态、重复检查。
 
 导入完成后将结果交回调用它的主工作流或 `visual-asset-sourcing`，不要自行放入 Scene。
+
+## 当前调用与读回：导入本地素材
+
+| 阶段 | 当前 MCP 命令与关键输入 | 写后读回 / 下一步 |
+|---|---|---|
+| 导入本地素材 | `import_media(base_revision_id, file_path, role?, tags?, provenance?)` | `track_job(job_id)` 后用 `browse_assets` 或 `read_project` 确认 Asset、Hash、状态和来源。 |

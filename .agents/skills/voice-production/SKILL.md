@@ -5,37 +5,23 @@ description: 将最终 SpeechSegment 交给 OmniVoice，默认使用服务端已
 
 # OmniVoice 旁白生产、组装与听感
 
-<!-- topic-film-v2-voice-production:begin -->
-
 ## 积极表演与当前声画共同校准
 
-本次共同参考的讲述与动作关系从声音方向开始使用。返回积极的表演安排：哪里进入处境、发现、解释、质疑、落读或完成，而不只有禁止情绪的指令。先保持自然句群，字幕短卡不要求拆成独立短音频。实际回听后再判断语气，改稿与重配允许改变原估时。
+已采用参考时延续其适用的讲述与动作关系。返回积极的表演安排：哪里进入处境、发现、解释、质疑、落读或完成，而不只有禁止情绪的指令。先保持自然句群，字幕短卡不要求拆成独立短音频。实际回听后再判断语气，改稿与重配允许改变原估时。
 
 从导演与文案取得当前完整朗读稿、重音与必要读音，使用本机已配置语音链。返回真实时长、句段范围、对齐精度、音色/模型与未知；新声音同步回原文案、视觉和字幕作者。
 
-参见 [共同创作方法](../_shared/TOPIC_TO_FILM.md) 与本次已采用的 [共同案例入口](../motion-case-attention-programme/SKILL.md)；未采用本例的其他任务按自己的参考与路由继续。
-
-<!-- topic-film-v2-voice-production:end -->
+当前声画协作沿 [主题到成片](../_shared/TOPIC_TO_FILM.md)；参考仅按当前稿已采用的范围使用。
 
 ## 执行角色与代理交接
 
-本 Skill 的创意工作在专项子代理中执行，负责音色适配、语气重音、分段、生成参数、版本选择及真实声音修订。主任务通过 [production-coordinator](../production-coordinator/SKILL.md) 真实分派；同一授权子代理可按需读取相关 Skills 并直接创作，不递归分派。涉及整片主线或跨段风格的决定交导演子代理。
-
-执行前读取 [代理角色与交接](../_shared/PROJECT_REVISION_AND_HANDOFF.md#代理角色与交接)：输入带 Project、输入 Revision、对象、事实证据、硬约束和前后接口；返回完整产物与参数、选择理由、影响/失效范围和证据请求。下文的项目写入、生成提交及审阅保存由主任务统一执行，子代理不直接写正式项目。收到实际对象和真实 Preview 后由原子代理审阅修订，不能以摘要、工具成功或等待证据代替完成；输入变化先重新确认，不能只换版本重发。
+当前授权作者完成专业判断，主任务统一正式提交；输入、完整产物、依赖变化与原作者续接沿 [角色交接](../_shared/PROJECT_REVISION_AND_HANDOFF.md)。
 
 ## 为什么按语义段生产
 
 整条旁白一次生成看似简单，但 Script 只改一句就要全部重做，也难以把段首、段尾和视觉事件绑定到真实时间。把文本机械切成很短的句子又会让语气每段重置，听起来像拼接。`voice-production` 的核心是在“完整自然表达”和“可局部重生成”之间选择合理 SpeechSegment。
 
 SpeechSegment 应优先沿完整句、转折、列表项、问题/回答、笑点、CTA 和重要视觉边界切分。不能拆开主谓、否定与对象、数字与单位、专名和一次自然呼吸内的短语。长句可在真实语义和停顿处拆，不按固定字数。
-
-## VoiceReference
-
-未指定参考参数时，`submit_voice_synthesis` 使用服务端默认音色入口，由服务端读取已配置的本地参考音频；剪辑任务不需要导入参考素材或向用户索要音频路径。这仍是音色克隆，不是不依赖音频的 TTS。默认工作流或文件缺失属于服务配置阻塞，提交 Repair Ticket，不私自换音色。
-
-参考音频通常选择 3～15 秒、单人、清晰、低噪、音色稳定且与目标角色接近的范围。强背景音乐、多人说话、严重混响和情绪极端的片段会降低一致性。当前 VoiceReference 是本项目本地对象，不存在远端 Voice ID。
-
-只有显式覆盖默认音色时，使用 `manage_voice_references` 登记已就绪本地音频，并保存实际用途说明。不能因为同一音频以前生成成功，就忽略新的目标语气和语言差异。
 
 ## 表演计划
 
@@ -49,28 +35,6 @@ TTS 不只是把文字念出来。每段至少考虑语速、重音、句尾、�
 
 声音改动沿现有 Script 与声音链提交，主任务读回实际时长、Impact 及依赖，回传原负责人确认字幕、人物、动效、音效和接点。`apply_authored_script` 可能通过 reconcile 重建多项依赖，不承诺“改一句其余自动有效”；也不发明任意旁白空档或未发布的停顿参数。
 
-## 当前调用链
-
-```text
-read_script / read_speech_asset
-→ 确认最终 SpeechSegment 与 Script Revision
-→ 选择 VoiceReference
-→ submit_voice_synthesis（只提交 stale/changed 段）
-→ track_job
-→ 下载每个 SegmentAsset
-→ ffprobe 检查真实时长、采样率、声道和文件
-→ 组装 SpeechAsset
-→ read_speech_timing 得到 segment_exact
-```
-
-若已就绪的完整配音需要与 Scene 留白对齐，先读取每段真实时长及当前帧率，再用 `submit_speech_placement(base_revision_id, placements, duration_frames?, idempotency_key)` 按 Script 顺序提交全部 `speech_segment_id` 与 `start_frame`。相邻段不得重叠，也不得越过当前场景末帧。需要完整片尾时，用 `duration_frames` 明确总轨结束帧，末句后的静音不会延长字幕。Job 复用现有段音频生成带静音的新 Dialogue 总轨，并原子更新 SpeechTiming 和稳定字幕；跟踪终态后读回 Revision、试听并复核画面。此入口不重新调用 OmniVoice，不按文字估算发音时长；项目在 Job 期间变化时会拒绝旧提交，须重新读取后再判断。
-
-每次 OmniVoice 调用前重新读取 Workflow Detail。默认音色 HTTP 入口只传待合成文本，参考音频来自服务端已有配置；显式 VoiceReference 入口上传参考音频和文本。两条入口内部都会自动转写参考音频，不提交不存在的 reference_text。默认音色产物保留真实 Bridge 审计，不伪造本地 VoiceReference 或素材 ID。
-
-## 组装和停顿
-
-SpeechAssembler 按 Script 顺序拼接真实段级文件，并应用明确的前置/后置停顿。极短交叉淡化只用于消除爆点，不能吞掉辅音或掩盖错误切口。每段真实时长加上停顿形成最终 `segment_exact`，它能支持段级字幕、Scene 和段首/段尾效果，但不能被描述为逐词时间。
-
 ## 四轮回听
 
 自然 SpeechSegment 不等于一屏字幕。声音组装稳定后交给 `captions`，用当前 `generate_speech_captions` 从最终 SpeechAsset 的真实音频取得分屏时间；不要为排版溢出重新拆碎或重生已经自然的配音。
@@ -80,10 +44,6 @@ SpeechAssembler 按 Script 顺序拼接真实段级文件，并应用明确的�
 ### 常见问题
 
 每段同一语调通常来自过度短分段或文本没有承接；句尾总是下落可能因为每段都被当成独立结束；相邻音色变化可能来自不同参考范围或生成不稳定；错读专名应修该段文本并局部重生，不需要重做整条。音乐和 EQ 不能修复错误的表演逻辑。
-
-## 音频所有权
-
-人物视频原声、OmniVoice Dialogue 和静音必须明确三选一。使用 Dialogue 时 Actor 视频应静音；数字人视频若已包含最终声音，不再叠加 SpeechAsset；纯视觉人物可以 muted。当前质量系统会检查重复 Dialogue，但主工作流仍要主动选择。
 
 ## SpeechSegment 的长度与自然性
 
@@ -95,24 +55,6 @@ SpeechAssembler 按 Script 顺序拼接真实段级文件，并应用明确的�
 
 标点会影响停顿和句尾，但不能用大量省略号、感叹号和特殊符号强迫模型表演。先写自然可读文本，再通过 Segment、pauseBefore/After 和必要的文本微调控制。数字、英文和专名可用适合模型的读法，但最终 Script/字幕需要保持观众理解和事实。
 
-## 参考声音的一致使用
-
-同一 SpeechAsset 的 Segment 应尽量使用同一个 VoiceReference 和可比参数。更换参考范围会改变音色和空间。若某段需要明显不同情绪，先判断能否通过文本和表演实现；频繁更换参考会让人物身份不稳定。
-
-## 局部重生决策
-
-按问题与采用改动选择需要重生的 Segment，原因可以包括错读、漏读、音色或句尾异常、情绪不符，以及经导演采用的文案和声画节奏修订。优先复用仍有效的段音频；脚本变化后按实际 Impact 重新组装 SpeechAsset，并复核字幕、人物、动效与声音包装，不宣称未改段一定完全不受影响。
-
-## Speech 与人物时长不一致
-
-声音与人物画面时长不一致时，先区分明确锁定的声音、可调整声音版本、可用人物范围与既有编排。声音长于人物不等于必须拉伸人物、冻结说话口型或裁句尾。由总导演同时比较调整讲述、表演和画面：讲述已有作用就由人物外的有效镜头、Cutaway、图解或明确回看承接；静态或循环人物不能被当作自然说话表演。
-
-需要修改声音时，先遵守现有授权与锁定约束。可修改旁白由导演为表达、观看顺序、阅读或节奏决定改稿与重生，不限于修正语义、表演错误。声音短于人物时，也先判断剩余画面是否承担动作结果、反应、环境与欣赏，不自动裁掉。声音改动后按实际时长重新组装，并复核字幕、Cue 和锁定编排。
-
-## 技术质量
-
-每个 SegmentAsset 检查非零文件、MIME、可解码、采样率、声道、真实时长、头尾静音和峰值。最终 Assembly 检查无重复段、顺序、空白、爆点和目标时长。技术通过后仍要四轮听感。
-
 ## 示例：列表
 
 “第一，先确认目标；第二，再选择素材；最后，完成审片。”可以三个 Segment，但每段的语调应保持列表承接，前两项不要像完整结论，最后一项才收束。若模型每段都下落，需要合并或调整文本，而不是只缩短停顿。
@@ -120,3 +62,7 @@ SpeechAssembler 按 Script 顺序拼接真实段级文件，并应用明确的�
 ## 交接合同
 
 输入是最终 SpeechSegment、Script Revision、VoiceReference 和表演意图。输出是 SegmentAsset、SpeechAsset、真实 `segment_exact`、质量结论和失败段。它会使 ActorPerformance、Caption 和 EffectTiming 需要重建或复核。验证是逐段、拼接、只听声音和声画检查。完成后结果回到 Presenter/Explainer 主工作流。
+
+## 按当前操作读取
+
+需要生成、写入或核对当前voice-production对象时，读取 [执行操作](references/synthesis-and-placement.md) 对应章节，返回准确参数和受影响范围；只讨论本段表达时不预读全部字段。

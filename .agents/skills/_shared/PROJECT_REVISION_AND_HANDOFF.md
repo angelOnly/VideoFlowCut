@@ -1,12 +1,10 @@
 # Project、Revision、Skill 交接与执行安全
 
-<!-- topic-film-v2-shared-handoff:begin -->
 ## 主题驱动整片的交接正文
 
 用户只给主题的原创生产，按 [主题到成片](TOPIC_TO_FILM.md) 与 [场面执行正文](SCENE_DESIGN_HANDOFF.md) 组织。导演给完整当前稿和观看过程；作者给美术、准确文字、路径、时间用途和实现参数；协调者只装配真实对象并回传完整版本。
 
 这些文档是现有交接内容的写法，不新增Project对象、API参数或用户表单。完整深化稿正常回导演形成统一采用稿，再交原作者实现。案例是按任务选读的内部参考，不要求用户提供视频或截图。
-<!-- topic-film-v2-shared-handoff:end -->
 
 ## 一个事实源
 
@@ -42,7 +40,7 @@ Project Revision 是视频工程的唯一事实。Codex 对话、已加载 Skill
 
 ### 负责人接替与结果接收
 
-原负责人是否可续接，先以宿主 `list_agents` 和实际 `followup_task` 结果判断；`completed` 和 `interrupt_agent` 均不证明释放名额。满额时优先复用现有职责合适的空闲代理；没有合适负责人则等待该项依赖，不能用创建更多代理处理名额不足。具体分支见[协调入口](../production-coordinator/SKILL.md#名额不足时续接与接替)。
+原负责人是否可续接，先以宿主 `list_agents` 和实际 `followup_task` 结果判断；`completed` 和 `interrupt_agent` 均不证明释放名额。满额时优先复用现有职责合适的空闲代理；没有合适负责人则等待该项依赖，不能用创建更多代理处理名额不足。具体分支见[协调入口](../production-coordinator/references/task-routing.md#名额不足时续接与接替)。
 
 每个工作范围在主任务交接记录中只保留一个当前负责人，复用现有 assignmentId、agentId、inputRevision，不新增项目调度对象或视频 Revision。接替时记录旧分派与接替原因，为接任者分配新的 assignmentId 并使用宿主返回的真实 agentId；将用户约束、原稿/源码/参数、已提交对象与版本、最新预览及范围、未完成事项一起传递。接任者先确认输入版本与范围，明确接受或列出缺失请求；交接未确认不算该范围已经恢复。
 
@@ -64,48 +62,7 @@ Project Revision 是视频工程的唯一事实。Codex 对话、已加载 Skill
 
 所有正式写入、生成与渲染提交、审计保存由主任务排序。会在完成时回写项目的异步 Job 纳入写入安排：依赖它的写入必须等待终态，再读回 Revision、目标对象和 Impact。输入对象或上下文变化时，把差异交原负责人重新确认，不能只换 `base_revision_id` 重发旧产物。独立设计和资料审阅可并行，正式项目不能让多个代理同时写入。
 
-主任务将实际版本与可访问的真实声画证据交回原代理，通过“产物 → 提交 → 读回 → 预览 → 修订”闭环收口。技术核验归主任务，表达、节奏、自然度与审美归子代理。跨段分歧交导演，最终专业审片由审片子代理承担；代理的文字描述、播放器已启动和工具成功不证明真实观看。缺能力或工具阻断由主任务沿 Repair Ticket 流程处理，不默默退回主线程创作。
-
-## 读—判断—写—读回
-
-所有确定性写入都遵循同一循环：
-
-```text
-确认 Project 和当前 Revision
-→ 读取目标对象、上下文和依赖
-→ 创意子代理专业判断并交付完整方案（明确参数的机械修改可直接执行）
-→ 主任务核对输入与依赖，使用 base_revision_id 原子写入
-→ 读取新 Revision 和目标对象
-→ 读取 ImpactReport / stale / Dirty Range
-→ 主任务回传实际视觉或声音证据，原子代理审阅修订
-→ 将结果交回导演子代理中的主工作流
-```
-
-MCP 返回 success 只证明命令执行，不证明对象关系、画面和听感正确。Web 和 MCP 不得同时提交同一个修改；Browser Operator 可通过可见 UI 观察并回传证据，正式剪辑写入由主任务使用已发布 MCP 完成，不用浏览器脚本或临时代码绕过。
-
-## 实时 MCP 输入合同
-
-工具名、字段名和枚举以当前会话的 MCP Tool Schema 为准；本项目已验证的阶段一调用链和关键字段见 [MCP 执行合同](MCP_EXECUTION_CONTRACT.md)。该合同会被静态测试对照 `apps/server/src/mcp.ts`，不是需要人工维护的能力快照。
-
-会创建或修改 Project Revision 的确定性命令必须携带刚读回的 `base_revision_id`。提交转写、语音、预览和导出等异步 Job 则使用其自身的 `asset_id`、`revision` 或 `idempotency_key`，不能为了形式统一伪造 `base_revision_id`。每次写入返回新 Revision 后，下一次写入必须以新 Revision 为起点。
-
-## 剪辑阻断与平台修复交接
-
-理想字体未收录不属于本节平台阻断。主任务控制，原作者推荐库内候选并经工作台预览、聊天选择后修订；未回复不自动采用，等待只影响依赖该字体的画面。只有正式工具明确返回提交前无副作用的`MOTION_FONT_UNKNOWN`选择纠正分支才可据此修订提交；已登记原件故障及结果未知仍遵守本节报障与对账，不能用字体替代掩盖损坏。
-
-视频创作与平台修复有两个不同事实源：Project/Revision 记录成片事实；SQLite `repair_tickets` 记录剪辑任务无法继续时的能力缺口、修复、发行切换和恢复确认。Repair Ticket 不进入 `ProjectSnapshot`，因此报告、接手或部署工单绝不能制造视频 Revision 或改变 Timeline。
-
-剪辑 Agent 只用已发布 MCP 能力。遇到阻断时读取当前 Project 和 Revision，使用 `report_editing_blocker(reported_revision, category, summary, reporter_id, idempotency_key, ...)` 记录可复现事实并暂停；不能改源码、重启服务、切换插件缓存或以临时绕过继续写入项目。`reported_revision` 是当时所见的历史事实，不因其他任务后来产生新 Revision 而失真。
-
-修复 Agent 接手 `open` Ticket 后只改平台源码和隔离候选环境；它不能编辑正式视频项目。候选版必须在独立端口、独立工作区验证，不能让 A/B 两个 Runtime 同时消费生产 `app.sqlite` 的 Job。通过复现和回归后，以构建 Manifest 的 `releaseId` 调用 `mark_repair_candidate_ready`。只有重部署后新版 MCP 与 Runtime 的 `read_runtime_release` 都返回相同、健康的 `releaseId`，原接手者才能调用 `mark_repair_deployed`。
-
-最后由**原报告阻断的剪辑 Agent**重新连接 MCP，读取当前 Project，确认仍能看到当前 Revision，再调用 `acknowledge_repair_deployment(observed_revision, ...)`。这个确认不产生 Revision，但防止旧 MCP 会话或其它 Agent 把部署写成已恢复。Release ID 不一致、Worker 未健康、候选版与部署版不一致、Reporter/Repairer 角色不匹配时一律停下并读取工单状态，不猜测成功。
-
-## 对象选择
-
-用户意图应落到最接近的对象：删一句改 SemanticUnit/Script；修改叙事顺序改 Story；改变一段怎样被看见改 Scene/Visual Treatment；微调某个动画改 EffectCue；替换 Effect 绑定改 AssetBinding；替换单条 Cutaway 源素材改 `replace_scene_asset`；移动物理播放范围改 TimelineItem；重新导出不修改创作状态。
-
-把所有问题都塞进 Timeline 会丢失语义；把所有微调都写回 Story 又会让上层对象承载物理细节。选择错误层级会导致 Impact 传播不可靠。
+主任务将实际版本与可访问的真实声画证据交回原代理，通过“产物 → 提交 → 读回 → 预览 → 修订”闭环收口。技术核验归主任务，表达、节奏、自然度与审美归子代理。跨段分歧交导演，最终专业审片由审片子代理承担；代理的文字描述、播放器已启动和工具成功不证明真实观看。缺能力或工具阻断由主任务先诊断与执行已授权恢复；确认平台或服务自身 Bug 阻断当前步骤才沿 Repair Ticket 流程处理，不默默退回主线程创作。
 
 ## 专项 Skill 的交接合同
 
@@ -120,17 +77,6 @@ MCP 返回 success 只证明命令执行，不证明对象关系、画面和听�
 
 专项子代理完成后必须把这四项经主任务交回导演的主要工作流；局部任务直接交回协调者按原范围收口。只记录 `loadedSkills`、只写一句“字幕已处理”或只产生一个 Job ID，都不算完成交接。
 
-## Revision 冲突和结果未知
-
-发生 Revision 冲突时不覆盖。主任务重新读取最新 Project，确认其它修改改变了什么，把受影响输入交原子代理重新判断，不能自动替换版本重发。超时、断连或 Bridge 重启时，停止该步并报告阻断，先检查 Job、Revision、Asset 和已下载输出；未确认结果前不重试写入。幂等键用于防止重复任务，不用于掩盖状态不清。
-
-## ProductionRun
-
-ProductionRun 和 SkillExecutionReport 用于审计：选择了哪个主工作流、实际读了哪些 Skill、做了什么决定、拒绝了什么方案、调用了什么 MCP、查看了哪些 Preview。它们不参与 Remotion 编译，删除报告不能改变成片。
-
-CreativeDecision 可带 delegation 记录真实分派对应的 agentId、assignmentId、role 和 inputRevision，产物与证据沿用 objectIds/evidence。平台核验输入 Revision 属于该 Project，不要求历史输入版本等于写入后的当前版本；主任务仍负责提交前的依赖确认。来源字段只作追溯，不能认证真实宿主调用。旧报告没有 delegation 时继续可读，不能倒填虚构代理或把旧报告当成已完成创意子代理验收。
-
-
 ## 浏览器审阅跨回合交接
 
 宿主浏览器的实时文档和能力表优先。临时标签在回合结束会关闭；后续还需使用时，在本回合对实际标签调用宿主支持的 `markHandoff()`，每个继续使用的回合重新保留。交接浏览器身份、标签ID、来源URL、素材ID、源范围、实际最后观察位置和保留结果，不交接旧页面对象作为恢复凭据。下一回合重新绑定实际标签并核对来源、播放位置；标签已消失时按当前合同取得新标签，不操作失效对象。
@@ -142,3 +88,5 @@ CreativeDecision 可带 delegation 记录真实分派对应的 agentId、assignm
 当前采用全文与共同参考随实际角色交接。接任者得到本次需求、参考入口、当前稿、采用材料、已选美术与声音、最新媒体及未解决项，再确认接手范围。主任务摘要不能替代专业正文和接收者实际观察。
 
 正文版本、Project Revision、作品固定输入与Preview身份分别对应。素材或声音变更要回原作者确认影响，不能改一个版本号继续旧设计。creativeBrief按当前合同摘要，完整正文由已有消息、附件与CreativeDecision引用保存；容量或可读性问题先复现，不静默截断或擅造API字段。
+
+实际提交、版本、Job 或结果未知时，由主任务读取 [项目写入与恢复](../production-coordinator/references/project-writes.md)；作者只需接收当前事实和与自己有关的差异。
