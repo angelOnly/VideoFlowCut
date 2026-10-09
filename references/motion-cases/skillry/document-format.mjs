@@ -1,3 +1,4 @@
+import {validateRetrieval} from './taxonomy.mjs';
 // 机制元数据使用 YAML 的单行 JSON 值子集，网页与索引构建共用同一解析规则。
 export function splitDocument(text){
   const match=text.match(/^\uFEFF?---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
@@ -21,6 +22,7 @@ export function parseMechanism(text){
   if(!Number.isSafeInteger(m.case_number)||m.case_number<1)throw new Error('原片编号无效');
   if(!new RegExp(`^${String(m.case_number).padStart(3,'0')}-m\\d{2}$`).test(m.id))throw new Error('机制编号与原片不符');
   if(!Array.isArray(m.tags)||!m.tags.length||m.tags.some(t=>typeof t!=='string'||!t.trim()))throw new Error('机制标签无效');
+  validateRetrieval(m.retrieval,m.id);
   return result;
 }
 

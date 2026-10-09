@@ -382,7 +382,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     tools: [
       "browse_scene_types", "create_scene", "trim_scene", "manage_visual_treatment", "manage_cutaways", "replace_scene_asset",
       "browse_effect_types", "manage_effect_cues", "move_item", "preview_timeline",
-      "read_motion_capabilities", "browse_motion_sources", "inspect_motion_reference", "submit_motion_work", "read_motion_work", "review_motion_work"
+      "read_motion_capabilities", "browse_motion_sources", "inspect_motion_reference", "search_motion_mechanisms", "read_motion_mechanism", "submit_motion_work", "read_motion_work", "review_motion_work"
     ]
   },
   // 生产运行、创作决定、质量报告和连续预览证据。

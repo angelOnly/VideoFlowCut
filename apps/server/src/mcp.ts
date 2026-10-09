@@ -27,6 +27,7 @@ import { EFFECT_QUALITY_RULES, EFFECT_TYPES, type Asset, type AssetProvenance } 
 import { inspectComposedFrames } from "./preview-inspection.js";
 import { inspectAsset } from "./source-review.js";
 import { registerMotionTools } from "./motion-tools.js";
+import { registerMotionLibraryTools } from "./motion-library-tools.js";
 import { registerMediaIntelligenceTools } from "./media-intelligence-tools.js";
 import { sha256File } from "./media-hash.js";
 import { extractSourceAudio } from "./extract-source-audio.js";
@@ -2462,6 +2463,7 @@ server.registerTool("browse_effect_types", {
 }, async () => asText(EFFECT_TYPES));
 
 registerMotionTools(server, application, projectIdFrom);
+registerMotionLibraryTools(server);
 registerMediaIntelligenceTools(server, application, projectIdFrom);
 registerSourceResearchTools(server, projectIdFrom);
 registerSoundTools(server, application, projectIdFrom);

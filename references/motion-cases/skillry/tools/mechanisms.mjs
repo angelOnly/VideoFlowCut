@@ -1,20 +1,23 @@
-/** 从机制 Markdown 生成轻量索引；默认只读分页，不做语义排序。 */
+/** 从机制 Markdown 派生索引，查询与 MCP 共用本地排序。 */
 import {readFileSync,writeFileSync,readdirSync,existsSync,realpathSync} from 'node:fs';
 import {resolve,relative,isAbsolute,sep} from 'node:path';
-import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {parseMechanism,resolveLibraryLink} from '../document-format.mjs';
-const defaultRoot=fileURLToPath(new URL('../',import.meta.url));
+import {taxonomy} from '../taxonomy.mjs';
+import {queryMechanisms} from '../mechanism-search.mjs';
+// CLI 与正式启动器都从仓库根运行，避免 CJS 发行包依赖 import.meta。
+const defaultRoot=resolve(process.cwd(),'references/motion-cases/skillry');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
-function localFile(root,path){
+export function localFile(root,path){
   if(typeof path!=='string'||!path||path.includes(':')||path.includes('\\')||isAbsolute(path)||path.split('/').some(p=>p==='..'||p==='.'||!p))throw new Error('资料路径无效');
   const file=resolve(root,path),rel=relative(realpathSync(root),realpathSync(file));
   if(rel==='..'||rel.startsWith('..'+sep)||isAbsolute(rel))throw new Error('资料路径越界');
   return file;
 }
 export function buildIndex(root=defaultRoot){
-  const catalogue=JSON.parse(readFileSync(resolve(root,'case-catalogue.json'),'utf8'));
-  const mechanisms=[],sources=[];
+  const catalogueBytes=readFileSync(localFile(root,'case-catalogue.json'));
+  const catalogue=JSON.parse(catalogueBytes.toString('utf8'));
+  const mechanisms=[],sources=[['catalogue',hash(catalogueBytes)],['taxonomy',hash(JSON.stringify(taxonomy))]];
   for(const c of catalogue.cases.filter(c=>c.analysis_kind==='mechanisms-v1')){
     const dir=localFile(root,c.directory+'/mechanisms');
     const files=readdirSync(dir).filter(f=>f.endsWith('.md')).sort();
@@ -35,8 +38,16 @@ export function buildIndex(root=defaultRoot){
   if(new Set(mechanisms.map(m=>m.id)).size!==mechanisms.length)throw new Error('机制编号重复');
   // 覆盖范围随目录声明计算，后续扩充案例不再维护一份手写数量。
   const converted=catalogue.cases.filter(c=>c.analysis_kind==='mechanisms-v1');
-  const scope=`已整理 ${converted.length} / ${catalogue.cases.length} 个案例（${converted.map(c=>String(c.case_number).padStart(3,'0')).join('、')}）；其余 ${catalogue.cases.length-converted.length} 个尚未转换`;
-  return {schema_version:1,scope,source_sha256:hash(JSON.stringify(sources)),count:mechanisms.length,mechanisms};
+  const scope=converted.length===catalogue.cases.length
+    ? `已整理 ${converted.length} / ${catalogue.cases.length} 个案例；全部案例均已转换，共 ${mechanisms.length} 条独立机制`
+    : `已整理 ${converted.length} / ${catalogue.cases.length} 个案例（${converted.map(c=>String(c.case_number).padStart(3,'0')).join('、')}）；其余 ${catalogue.cases.length-converted.length} 个尚未转换`;
+  return {schema_version:2,scope,source_sha256:hash(JSON.stringify(sources)),count:mechanisms.length,mechanisms};
+}
+export function loadIndex(root=defaultRoot){
+  const index=JSON.parse(readFileSync(localFile(root,'mechanism-index.json'),'utf8'));
+  const actual=buildIndex(root);
+  if(JSON.stringify(index)!==JSON.stringify(actual))throw new Error('机制索引过期或损坏，请维护者重新生成；本次未返回旧结果');
+  return index;
 }
 export function selectMechanisms(index,{offset=0,limit=20,ids=null}={}){
   if(ids){
@@ -58,6 +69,9 @@ export function main(args){
     else process.stdout.write('机制索引与文档一致\n');
     return;
   }
+  if(args[0]==='--request'&&args.length===2){
+    process.stdout.write(JSON.stringify(queryMechanisms(loadIndex(),JSON.parse(args[1])),null,2)+'\n');return;
+  }
   const options={},seen=new Set();
   for(let i=0;i<args.length;i+=2){
     const key=args[i],v=args[i+1];
@@ -67,9 +81,9 @@ export function main(args){
     else {if(!/^\d+$/.test(v))throw new Error('分页必须为非负整数');options[key.slice(2)]=Number(v);}
   }
   if(options.ids&&(seen.has('--offset')||seen.has('--limit')))throw new Error('编号定位不能混用分页');
-  const index=JSON.parse(readFileSync(path,'utf8'));
+  const index=loadIndex();
   process.stdout.write(JSON.stringify(selectMechanisms(index,options),null,2)+'\n');
 }
-if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+if(process.argv[1]?.replaceAll('\\','/').endsWith('/tools/mechanisms.mjs')){
   try{main(process.argv.slice(2));}catch(e){process.stderr.write(e.message+'\n');process.exitCode=1;}
 }
