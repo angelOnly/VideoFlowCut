@@ -7,13 +7,62 @@ import { createApplication } from "@videocut/application";
 import { ComfyUIBridgeClient, type BridgeWorkflow } from "@videocut/bridge";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { DomainError } from "@videocut/domain";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { createMediaJobProcessor, runOneJob } from "../apps/job-worker/src/index.js";
 import { loadLibraryIndex, searchLibraryIndex, libraryVideo } from "../references/motion-cases/skillry/tools/library-store.mjs";
 import { runMotionLibrarySearch } from "../apps/job-worker/src/motion-library.js";
 import { registerMotionLibraryTools } from "../apps/server/src/motion-library-tools.js";
 import { MOTION_QUERY_INSTRUCTION, motionCacheKey, mechanismChunks } from "../packages/media-intelligence/src/motion-library.js";
 
 const root=resolve("references/motion-cases/skillry");
+
+test("正式 MCP 协议从当前项目提交语义 Job，经 Worker 编码后以原输入读回混合结果", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "motion-protocol-worker-")), app = createApplication(directory);
+  const server = new McpServer({ name: "机制接线回归", version: "1" });
+  const client = new Client({ name: "机制查询作者", version: "1" });
+  const projectId = app.createProject({ name: "隔离机制调用" }).snapshot.project.id;
+  const config = readRuntimeConfig(), bridge = new ComfyUIBridgeClient(config.bridge.apiBaseUrl);
+  const workflow: BridgeWorkflow = { id: config.semantic.embeddingWorkflowId, schemaVersion: "test-v1", name: "隔离测试编码", available: true,
+    fields: ["texts_json", "mode", "instruction"].map(id => ({ id, label: id, kind: "text", required: false })), itemSlots: [], outputs: [] };
+  const runs = new Map<string, number[][]>();
+  bridge.getWorkflow = async () => workflow;
+  bridge.createRunWithSchemaRetry = async (_id, build) => {
+    const request = await build(workflow), texts = JSON.parse(String(request.fieldValues.texts_json)) as string[];
+    if (request.fieldValues.mode === "query") assert.equal(request.fieldValues.instruction, MOTION_QUERY_INSTRUCTION);
+    const id = `protocol-${runs.size}`;
+    runs.set(id, texts.map(text => { const vector = Array<number>(1024).fill(0); vector[text.length % 1024] = 1; return vector; }));
+    return { workflow, request, schemaRetryCount: 0, run: { id, status: "queued", outputs: [] } };
+  };
+  bridge.waitForRun = async id => ({ id, status: "succeeded", outputs: [{ outputSlotId: "result", kind: "text", displayName: "向量", text: JSON.stringify({ embeddings: runs.get(id) }) }] });
+  registerMotionLibraryTools(server, root, app, id => id ?? projectId);
+  const [local, remote] = InMemoryTransport.createLinkedPair();
+  await server.connect(remote); await client.connect(local);
+  const query = { project_id: projectId, query: "前一个内容还留着，新的关注从里面接进来", limit: 3 };
+  const call = async () => {
+    const result = await client.callTool({ name: "search_motion_mechanisms", arguments: query });
+    assert.notEqual(result.isError, true, JSON.stringify(result.content));
+    return JSON.parse((result.content as Array<{ text: string }>)[0].text);
+  };
+  try {
+    assert.ok((await client.listTools()).tools.find(tool => tool.name === "search_motion_mechanisms")!.inputSchema.properties?.project_id);
+    const first = await call();
+    assert.equal(first.diagnostics.semantic_used, false);
+    assert.ok(first.diagnostics.job_id);
+    await runOneJob(app, createMediaJobProcessor(app, bridge));
+    const completed = app.trackJob(first.diagnostics.job_id);
+    assert.equal(completed.status, "succeeded", completed.error);
+    const result = await call();
+    assert.equal(result.diagnostics.semantic_used, true);
+    assert.equal(result.source_sha256, first.source_sha256);
+    assert.equal(result.cards.length, 3);
+    const evidence = await client.callTool({ name: "read_motion_mechanism", arguments: { id: result.cards[0].id, source_sha256: result.source_sha256, include_storyboard: false } });
+    assert.notEqual(evidence.isError, true);
+    assert.equal(app.listJobs(projectId).length, 1);
+    assert.equal(app.readProject(projectId).revision.number, 1);
+  } finally { await client.close(); await server.close(); app.close(); await rm(directory, { recursive: true, force: true }); }
+});
 test("全文、独立向量召回、粗状态软排序与稳定分页",()=>{
   const index=loadLibraryIndex(root);
   assert.ok(index.mechanisms.every(entry=>entry.search_text&&entry.text_sha256));

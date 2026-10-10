@@ -17,7 +17,7 @@ import { assetById, DomainError } from "@videocut/domain";
 import { runOneQueuedJob, type JobProcessor } from "@videocut/job-runtime";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { FunASRService, OmniVoiceSegmentService, SourceCaptionAlignmentService, assemblePlacedSpeech, probeMedia, runProcess } from "@videocut/speech";
-import type { Asset, BridgeRunAudit, JobKind, JobRecord, ProjectSnapshot } from "@videocut/contracts";
+import type { Asset, AssetCandidate, BridgeRunAudit, JobKind, JobRecord, ProjectSnapshot } from "@videocut/contracts";
 import { runAvatarGeneration } from "./avatar-generation.js";
 import { runDialogueProcessing } from "./dialogue-processing.js";
 import { runMulticamSync } from "./multicam-sync.js";
@@ -119,19 +119,20 @@ async function runAssetAcquisition(
   let temporaryDirectory: string | undefined;
   try {
     application.markAssetCandidateAcquiring({ projectId: job.projectId, assetCandidateId });
-    const inspected = application.readAssetCandidate({ projectId: job.projectId, assetCandidateId });
-    const provider = providers.get(inspected.candidate.provider);
+    // 新任务执行提交时的来源快照；旧任务沿其既有候选与固定获取选项继续。
+    const candidate = (job.payload.candidate ?? application.readAssetCandidate({ projectId: job.projectId, assetCandidateId }).candidate) as AssetCandidate;
+    const provider = providers.get(candidate.provider);
     temporaryDirectory = join(application.readProject(job.projectId).snapshot.project.rootPath, "cache", "asset-acquisition", job.id);
     const acquisition = assetAcquisitionOptionsSchema.parse(job.payload.acquisition ?? {});
-    const downloaded = await provider.download({ candidate: inspected.candidate, temporaryDirectory, options: acquisition });
+    const downloaded = await provider.download({ candidate, temporaryDirectory, options: acquisition });
     await assertDownloadedProviderMedia({
       filePath: downloaded.filePath,
       contentType: downloaded.contentType,
-      expectedKind: inspected.candidate.kind,
-      expectedMimeType: inspected.candidate.mimeType
+      expectedKind: candidate.kind,
+      expectedMimeType: candidate.mimeType
     });
     const metadata = await probeMedia(downloaded.filePath);
-    assertProviderMediaAnalysis({ candidate: inspected.candidate, metadata });
+    assertProviderMediaAnalysis({ candidate, metadata });
     if (JSON.stringify(downloaded.sourceRange) !== JSON.stringify(acquisition.sourceRange)) throw new DomainError("获取结果缺少一致的原片范围，不能猜测本地时间", "ASSET_SOURCE_RANGE_MISMATCH");
     if (acquisition.sourceRange && Math.abs(metadata.durationMs - (acquisition.sourceRange.endMs - acquisition.sourceRange.startMs)) > Math.max(150, 2000 / (metadata.fps || 24))) {
       throw new DomainError("取得片段的实测时长与原片范围不一致", "ASSET_SOURCE_RANGE_MISMATCH");
@@ -153,6 +154,7 @@ async function runAssetAcquisition(
     const completed = application.completeAssetAcquisition({
       projectId: job.projectId,
       assetCandidateId,
+      jobId: job.id,
       name: downloaded.fileName,
       managedPath: duplicate?.managedPath ?? relativePath,
       sourceHash,
@@ -175,7 +177,7 @@ async function runAssetAcquisition(
     if (storedPath) await rm(storedPath, { force: true }).catch(() => undefined);
     const reason = error instanceof Error ? error.message : String(error);
     try {
-      application.failAssetCandidateAcquisition({ projectId: job.projectId, assetCandidateId, reason });
+      application.failAssetCandidateAcquisition({ projectId: job.projectId, assetCandidateId, jobId: job.id, reason });
     } catch {
       // Job 可能在失败前被取消或候选已被其它 Worker 完成；原始错误仍由 Job Runtime 记录。
     }

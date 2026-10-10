@@ -1079,7 +1079,7 @@
     {
       "name": "manage_asset_requirements",
       "title": "管理素材需求",
-      "description": "在当前 Revision 创建、更新或关闭视觉/声音需求。音频用 media_kind=audio、audio_brief、role=sfx/bgm，不填画幅；候选不会自动进入 Timeline。",
+      "description": "在当前 Revision 创建、更新或关闭视觉/声音需求。更新用途与找法保留候选及在途获取。close_outcome=completed 表示作者确认用途完成，需有实际可用材料；cancelled 表示取消。单文件取得不自动完成需求。音频用 media_kind=audio、audio_brief、role=sfx/bgm，不填画幅；候选不会自动进入 Timeline。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1211,7 +1211,8 @@
               "9:16",
               "16:9",
               "1:1"
-            ]
+            ],
+            "description": "画幅语境，不自动筛掉不同比例的源素材；省略不填默认值。"
           },
           "min_duration_ms": {
             "anyOf": [
@@ -1240,6 +1241,14 @@
           "close_reason": {
             "type": "string",
             "maxLength": 800
+          },
+          "close_outcome": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "cancelled"
+            ],
+            "description": "关闭用途的原因类别；省略按取消处理，完成需有实际可用材料。"
           }
         },
         "required": [
@@ -1272,7 +1281,7 @@
     {
       "name": "search_media_candidates",
       "title": "搜索素材候选",
-      "description": "先从 list_asset_providers 选择准确 provider id。media_type 明确筛选图片/视频/音频；youtube 的 query 是选中的单条 HTTPS 视频页面；pexels 无 API Key 时也只接受选定的单视频页 URL，关键词需要 Key。返回 diagnostics.complete 和 warnings，部分结果不能视为完整搜索。仅保存独立搜索会话，不改变创作 Revision，不下载或自动采用素材。",
+      "description": "先从 list_asset_providers 选择准确 provider id。media_type 仅选择本轮图片/视频/音频入口；旧会话与迟到结果保留原查询输入，改稿不使候选失效；youtube 的 query 是选中的单条 HTTPS 视频页面；pexels 无 API Key 时也只接受选定的单视频页 URL，关键词需要 Key。返回 diagnostics.complete 和 warnings，部分结果不能视为完整搜索。仅保存独立搜索会话，不改变创作 Revision，不下载或自动采用素材。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1356,7 +1365,7 @@
     {
       "name": "acquire_media_asset",
       "title": "下载并本地化素材候选",
-      "description": "取得候选并自动探测真实媒体信息，缺省时长或短文件不阻止下载。quality_height 按目标画幅和裁切选择画质，省略使用项目高度；source_range_ms 仅用于 YouTube 已定位原片范围，省略取得整文件。返回 Job，完成后带原片范围、本地时间与已有候选观察。Worker 保留 MIME、文件头、哈希与媒体验证。未知或执行中任务只查原 Job；不同范围不冒充同一次获取。故障修复确认部署后才恢复明确失败的任务。",
+      "description": "按提交时固定的来源和选项取得候选，旧会话同源刷新地址，不因改稿重新搜索。自动探测真实媒体信息，缺省时长或短文件不阻止下载；成功文件不自动完成整项需求。quality_height 按目标画幅和裁切选择画质，省略使用项目高度；source_range_ms 仅用于 YouTube 已定位原片范围，省略取得整文件。返回 Job，完成后带原片范围、本地时间与已有候选观察。Worker 保留 MIME、文件头、哈希与媒体验证。未知或执行中任务只查原 Job；不同范围不冒充同一次获取。故障修复确认部署后才恢复明确失败的任务。",
       "inputSchema": {
         "type": "object",
         "properties": {

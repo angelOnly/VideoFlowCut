@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { AssetCandidate, AssetSearchDiagnostics, MediaAnalysisRecord, MediaObservation, MediaSource, SearchIntent } from "@videocut/contracts";
+import type { AssetCandidate, AssetRequest, AssetSearchDiagnostics, MediaAnalysisRecord, MediaObservation, MediaSource, SearchIntent } from "@videocut/contracts";
+import { normalizeCandidateFilters } from "./candidate-lifecycle.js";
 import { randomUUID } from "node:crypto";
 
 export interface MediaSearchSession {
@@ -8,6 +9,7 @@ export interface MediaSearchSession {
   id: string; projectId: string; requestId: string; requestVersion: string;
   intent: SearchIntent; candidates: AssetCandidate[]; createdAt: string;
   diagnostics?: AssetSearchDiagnostics;
+  requestSnapshot?: AssetRequest;
 }
 type JsonRow = { data: string };
 /** 同一个 SQLite 内的操作表；不会随每个创作 Revision 重复复制。 */
@@ -83,7 +85,11 @@ export class MediaIntelligenceStore {
     this.db.prepare("INSERT OR REPLACE INTO motion_library_cache(key,data) VALUES(?,?)").run(key, JSON.stringify(value));
   }
   searches(projectId: string): MediaSearchSession[] {
-    return (this.db.prepare("SELECT data FROM media_search_sessions WHERE project_id=? ORDER BY rowid DESC").all(projectId) as JsonRow[]).map((row) => JSON.parse(row.data));
+    return (this.db.prepare("SELECT data FROM media_search_sessions WHERE project_id=? ORDER BY rowid DESC").all(projectId) as JsonRow[]).map((row) => {
+      const session = JSON.parse(row.data) as MediaSearchSession;
+      session.candidates.forEach(candidate => normalizeCandidateFilters(candidate, session.requestSnapshot));
+      return session;
+    });
   }
   candidate(projectId: string, id: string): { session: MediaSearchSession; candidate: AssetCandidate } | undefined {
     for (const session of this.searches(projectId)) {

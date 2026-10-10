@@ -111,6 +111,8 @@ export interface AssetRequest {
   fallbackPlan: "keep_presenter" | "remotion" | "minimax" | "ask_user" | "local_audio" | "omit_audio";
   status: AssetRequestStatus;
   closeReason?: string;
+  /** 明确结束用途；历史未标注记录不推断为内容完成。 */
+  closeOutcome?: "completed" | "cancelled";
   createdAt: string;
   updatedAt: string;
 }
@@ -153,6 +155,8 @@ export interface AssetCandidate {
   filterReasons: string[];
   status: AssetCandidateStatus;
   rejectionReason?: string;
+  /** 旧策略自动拒绝的兼容结果，保留原始理由；混合原因不自动恢复。 */
+  strategyMigration?: { outcome: "restored" | "retained_mixed"; rejectionReason?: string; filterReasons: string[] };
   acquisitionError?: string;
   acquiredAssetId?: Id;
   acquisition?: AssetAcquisitionOptions;

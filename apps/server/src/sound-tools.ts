@@ -69,8 +69,9 @@ export function registerSoundRoutes(server: FastifyInstance, app: EditingApplica
     const input = z.object({ assetRequestId: z.string().min(1), provider: z.string().min(1), query: z.string().min(1).max(400) }).strict().parse(request.body);
     const projectId = id(request.params), state = app.readProject(projectId), requirement = state.snapshot.assetRequests.find((entry) => entry.id === input.assetRequestId);
     if (!requirement || requirement.mediaKind !== "audio") throw new DomainError("需要已有声音需求", "ASSET_REQUEST_NOT_FOUND");
+    if (requirement.status === "closed") throw new DomainError("素材需求已关闭，不能发起新搜索", "ASSET_REQUEST_CLOSED");
     const candidates = await createDefaultAssetProviderRegistry().get(input.provider).search({ request: requirement, query: input.query });
-    return app.recordAssetSearch({ projectId, baseRevision: state.revision.number, ...input, candidates, requestVersion: assetRequestVersion(requirement) });
+    return app.recordAssetSearch({ projectId, baseRevision: state.revision.number, ...input, candidates, requestVersion: assetRequestVersion(requirement), requestSnapshot: requirement });
   });
   server.post("/api/projects/:projectId/sound-rank", async (request, reply) => reply.code(202).send(rank(app, id(request.params), rankSchema.parse(request.body))));
   server.post("/api/projects/:projectId/sound-comparison", async (request, reply) => reply.code(202).send(compare(app, id(request.params), soundComparisonSchema.parse(request.body))));

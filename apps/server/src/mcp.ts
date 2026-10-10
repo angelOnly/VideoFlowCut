@@ -706,7 +706,7 @@ server.registerTool("browse_sound_sources", {
 
 server.registerTool("manage_asset_requirements", {
   title: "管理素材需求",
-  description: "在当前 Revision 创建、更新或关闭视觉/声音需求。音频用 media_kind=audio、audio_brief、role=sfx/bgm，不填画幅；候选不会自动进入 Timeline。",
+  description: "在当前 Revision 创建、更新或关闭视觉/声音需求。更新用途与找法保留候选及在途获取。close_outcome=completed 表示作者确认用途完成，需有实际可用材料；cancelled 表示取消。单文件取得不自动完成需求。音频用 media_kind=audio、audio_brief、role=sfx/bgm，不填画幅；候选不会自动进入 Timeline。",
   inputSchema: z.object({
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -721,12 +721,13 @@ server.registerTool("manage_asset_requirements", {
     role: assetRoleSchema.optional(),
     query_hints: z.array(z.string().min(1).max(160)).max(12).optional(),
     excluded_terms: z.array(z.string().min(1).max(160)).max(20).optional(),
-    target_aspect_ratio: z.enum(["9:16", "16:9", "1:1"]).optional(),
+    target_aspect_ratio: z.enum(["9:16", "16:9", "1:1"]).optional().describe("画幅语境，不自动筛掉不同比例的源素材；省略不填默认值。"),
     min_duration_ms: z.number().int().positive().max(300_000).nullable().optional().describe("最终采用的视频或音频连续范围要求，单位毫秒；不拦截搜索或下载，图片不应用该条件。null 清空，省略保持原值，0 无效。"),
     fallback_plan: z.enum(["keep_presenter", "remotion", "minimax", "ask_user", "local_audio", "omit_audio"]).optional(),
-    close_reason: z.string().max(800).optional()
+    close_reason: z.string().max(800).optional(),
+    close_outcome: z.enum(["completed", "cancelled"]).optional().describe("关闭用途的原因类别；省略按取消处理，完成需有实际可用材料。")
   }).strict()
-}, async ({ project_id, base_revision_id, action, asset_request_id, title, purpose, visual_brief, media_kind, audio_brief, sound, role, query_hints, excluded_terms, target_aspect_ratio, min_duration_ms, fallback_plan, close_reason }) => {
+}, async ({ project_id, base_revision_id, action, asset_request_id, title, purpose, visual_brief, media_kind, audio_brief, sound, role, query_hints, excluded_terms, target_aspect_ratio, min_duration_ms, fallback_plan, close_reason, close_outcome }) => {
   try {
     return asText(application.manageAssetRequirement({
       projectId: projectIdFrom(project_id),
@@ -745,7 +746,8 @@ server.registerTool("manage_asset_requirements", {
       targetAspectRatio: target_aspect_ratio,
       minDurationMs: min_duration_ms,
       fallbackPlan: fallback_plan,
-      closeReason: close_reason
+      closeReason: close_reason,
+      closeOutcome: close_outcome
     }));
   } catch (error) { return asError(error); }
 });
@@ -759,7 +761,7 @@ server.registerTool("list_asset_providers", {
 
 server.registerTool("search_media_candidates", {
   title: "搜索素材候选",
-  description: "先从 list_asset_providers 选择准确 provider id。media_type 明确筛选图片/视频/音频；youtube 的 query 是选中的单条 HTTPS 视频页面；pexels 无 API Key 时也只接受选定的单视频页 URL，关键词需要 Key。返回 diagnostics.complete 和 warnings，部分结果不能视为完整搜索。仅保存独立搜索会话，不改变创作 Revision，不下载或自动采用素材。",
+  description: "先从 list_asset_providers 选择准确 provider id。media_type 仅选择本轮图片/视频/音频入口；旧会话与迟到结果保留原查询输入，改稿不使候选失效；youtube 的 query 是选中的单条 HTTPS 视频页面；pexels 无 API Key 时也只接受选定的单视频页 URL，关键词需要 Key。返回 diagnostics.complete 和 warnings，部分结果不能视为完整搜索。仅保存独立搜索会话，不改变创作 Revision，不下载或自动采用素材。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -779,6 +781,7 @@ server.registerTool("search_media_candidates", {
     }
     const request = state.snapshot.assetRequests.find((entry) => entry.id === asset_request_id);
     if (!request) throw new DomainError(`素材需求不存在：${asset_request_id}`, "ASSET_REQUEST_NOT_FOUND");
+    if (request.status === "closed") throw new DomainError("素材需求已关闭，不能发起新搜索", "ASSET_REQUEST_CLOSED");
     const source = assetProviders.get(provider);
     if (media_type && !assetProviders.catalog().find(entry => entry.id === provider)?.mediaTypes.includes(media_type)) throw new AssetProviderError("该素材服务不支持所选媒体类型，请查看服务目录", "ASSET_MEDIA_TYPE_UNSUPPORTED", { provider, stage: "provider", recovery: "change_media_type" });
     const input = { request, query, mediaType: media_type, cursor };
@@ -786,7 +789,7 @@ server.registerTool("search_media_candidates", {
     const result = source.searchDetailed ? await source.searchDetailed(input) : { candidates: await source.search(input), complete: true, warnings: [] };
     const candidates = result.candidates.filter(candidate => !media_type || (candidate.kind ?? "video") === media_type);
     beforePersistence = false;
-    return asText(application.recordAssetSearch({ projectId, baseRevision: base_revision_id, assetRequestId: asset_request_id, provider, query, candidates, cursor, nextCursor: "nextCursor" in result ? result.nextCursor as string | undefined : undefined, mediaType: media_type, diagnostics: { complete: result.complete, warnings: result.warnings }, requestVersion: assetRequestVersion(request) }));
+    return asText(application.recordAssetSearch({ projectId, baseRevision: base_revision_id, assetRequestId: asset_request_id, provider, query, candidates, cursor, nextCursor: "nextCursor" in result ? result.nextCursor as string | undefined : undefined, mediaType: media_type, diagnostics: { complete: result.complete, warnings: result.warnings }, requestVersion: assetRequestVersion(request), requestSnapshot: request }));
   } catch (error) { return assetSearchErrorResult(error, beforePersistence); }
 });
 
@@ -801,7 +804,7 @@ server.registerTool("inspect_media_candidate", {
 
 server.registerTool("acquire_media_asset", {
   title: "下载并本地化素材候选",
-  description: "取得候选并自动探测真实媒体信息，缺省时长或短文件不阻止下载。quality_height 按目标画幅和裁切选择画质，省略使用项目高度；source_range_ms 仅用于 YouTube 已定位原片范围，省略取得整文件。返回 Job，完成后带原片范围、本地时间与已有候选观察。Worker 保留 MIME、文件头、哈希与媒体验证。未知或执行中任务只查原 Job；不同范围不冒充同一次获取。故障修复确认部署后才恢复明确失败的任务。",
+  description: "按提交时固定的来源和选项取得候选，旧会话同源刷新地址，不因改稿重新搜索。自动探测真实媒体信息，缺省时长或短文件不阻止下载；成功文件不自动完成整项需求。quality_height 按目标画幅和裁切选择画质，省略使用项目高度；source_range_ms 仅用于 YouTube 已定位原片范围，省略取得整文件。返回 Job，完成后带原片范围、本地时间与已有候选观察。Worker 保留 MIME、文件头、哈希与媒体验证。未知或执行中任务只查原 Job；不同范围不冒充同一次获取。故障修复确认部署后才恢复明确失败的任务。",
   inputSchema: z.object({
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),

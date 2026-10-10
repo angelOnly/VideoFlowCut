@@ -12,7 +12,8 @@ export async function runSoundRanking(app: EditingApplication, job: JobRecord, b
   const request = app.readProject(job.projectId).snapshot.assetRequests.find((entry) => entry.id === job.payload.assetRequestId);
   if (!request || assetRequestVersion(request) !== job.payload.requestVersion) throw new DomainError("声音需求已变化，不能采用旧排序", "MEDIA_REQUEST_STALE");
   const inspected = (job.payload.candidateIds as string[]).map((candidateId) => app.readAssetCandidate({ projectId: job.projectId, assetCandidateId: candidateId }));
-  if (inspected.some((entry) => entry.request.id !== request.id || entry.requestVersion !== job.payload.requestVersion)) throw new DomainError("候选来自不同需求或旧版本", "MEDIA_REQUEST_STALE");
+  // 当前排序仍跟随当前需求，但旧查询发现的同需求候选可以重新参与比较。
+  if (inspected.some((entry) => entry.request.id !== request.id)) throw new DomainError("候选来自不同需求", "MEDIA_REQUEST_STALE");
   const candidates = inspected.map((entry) => entry.candidate).filter((candidate) => candidate.hardFilterPassed && candidate.status === "available");
   const texts = candidates.map((candidate) => `${candidate.name} ${candidate.tags.join(" ")} ${candidate.durationMs ? `全文件时长 ${candidate.durationMs}ms，仅为元数据` : "时长未知"}`);
   if (!texts.length) return { ranked: [], analysisJobIds: [], reason: "没有满足来源与技术条件的候选" };

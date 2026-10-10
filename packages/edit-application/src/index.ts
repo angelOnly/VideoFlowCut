@@ -1,3 +1,4 @@
+import { candidateTechnicalReasons, normalizeCandidateFilters } from "../../media-intelligence/src/candidate-lifecycle.js";
 import { sourceMaterialSchema, type SourceMaterialInput } from "../../asset-acquisition/src/source-research.js";
 import { assetAcquisitionOptionsSchema } from "../../asset-acquisition/src/options.js";
 import type { AssetAcquisitionOptions } from "@videocut/contracts";
@@ -1280,36 +1281,8 @@ function normalizeActorMaskModes(maskModes: ActorMaskMode[]): ActorMaskMode[] {
   return next;
 }
 
-function candidateFilterReasons(
-  candidate: Pick<AssetCandidate, "originalAssetId" | "sourceUrl" | "durationMs"> & { kind?: AssetCandidate["kind"] },
-  request: Pick<AssetRequest, "minDurationMs" | "mediaKind">
-): string[] {
-  const reasons: string[] = [];
-  if ((request.mediaKind === "audio") !== (candidate.kind === "audio")) reasons.push("候选媒介类型不符合声音/视觉需求。");
-  if (!candidate.originalAssetId.trim()) reasons.push("Provider 未返回原始素材 ID。");
-  if (!candidate.sourceUrl.trim()) reasons.push("Provider 未返回可追溯的来源页面。");
-  // 连续长度留到实际选段判断；缺省或短文件仍可取得并探测。
-  return reasons;
-}
-
-function candidateIsAllowed(candidate: Pick<AssetCandidate, "originalAssetId" | "sourceUrl" | "durationMs" | "hardFilterPassed" | "kind">, request: Pick<AssetRequest, "minDurationMs" | "mediaKind">): boolean {
-  if (!candidate.hardFilterPassed) return false;
-  return candidateFilterReasons(candidate, request).length === 0;
-}
-
-/** 只移除已废弃的自动时长拒绝，不解除人工拒绝或需求变化。 */
-function refreshCandidateDurationFilter(candidate: AssetCandidate, request: AssetRequest): AssetCandidate {
-  const oldReasons = candidate.filterReasons;
-  const remaining = oldReasons.filter(reason => !/^时长不足 \d+ 秒。$/u.test(reason));
-  if (remaining.length === oldReasons.length) return candidate;
-  const automaticallyRejected = candidate.rejectionReason === oldReasons.join(" ");
-  candidate.filterReasons = [...new Set([...remaining, ...candidateFilterReasons(candidate, request)])];
-  candidate.hardFilterPassed = candidate.filterReasons.length === 0;
-  if (automaticallyRejected) {
-    candidate.rejectionReason = candidate.filterReasons.join(" ") || undefined;
-    if (candidate.status === "rejected" && candidate.hardFilterPassed) candidate.status = "available";
-  }
-  return candidate;
+function candidateIsAllowed(candidate: AssetCandidate, request: AssetRequest): boolean {
+  return candidate.hardFilterPassed && candidateTechnicalReasons(candidate, request).length === 0;
 }
 
 /** Provider 已完成字段归一化后的候选；私有下载地址和 API Key 不进入 Revision。 */
@@ -1478,7 +1451,26 @@ export class EditingApplication {
   }
 
   readProject(projectId: Id): ProjectState {
-    return this.repository.getCurrent(projectId);
+    const state = this.repository.getCurrent(projectId);
+    this.refreshAssetRequestProgress(state.snapshot);
+    return state;
+  }
+
+  /** 会话候选与已提升候选合并统计，快照内的真实取得结果优先；旧 fulfilled 不批量重开。 */
+  private refreshAssetRequestProgress(snapshot: ProjectSnapshot, requestId?: Id): void {
+    if (!snapshot.assetRequests.length) return;
+    const candidates = new Map(this.repository.mediaIntelligence.searches(snapshot.project.id)
+      .flatMap(session => session.candidates).map(candidate => [candidate.id, candidate]));
+    snapshot.assetCandidates.forEach(candidate => candidates.set(candidate.id, candidate));
+    const generatedRequests = new Set(this.repository.listJobs(snapshot.project.id)
+      .filter(job => job.kind === "video_generation" && snapshot.assets.some(asset => asset.provenance?.generationJobId === job.id))
+      .map(job => job.payload.assetRequestId));
+    for (const request of snapshot.assetRequests) {
+      if ((requestId && request.id !== requestId) || request.status === "closed" || request.status === "fulfilled") continue;
+      const related = [...candidates.values()].filter(candidate => candidate.assetRequestId === request.id);
+      request.status = related.some(candidate => ["acquisition_queued", "acquiring"].includes(candidate.status)) ? "acquiring"
+        : related.some(candidate => ["available", "acquired"].includes(candidate.status)) || generatedRequests.has(request.id) ? "candidates_ready" : "open";
+    }
   }
 
   readRevisions(projectId: Id) {
@@ -2602,6 +2594,7 @@ export class EditingApplication {
     minDurationMs?: number | null;
     fallbackPlan?: AssetRequest["fallbackPlan"];
     closeReason?: string;
+    closeOutcome?: AssetRequest["closeOutcome"];
   }): ProjectState {
     if (input.action !== "create" && !input.assetRequestId) {
       throw new DomainError("更新或关闭素材需求时必须提供 assetRequestId", "ASSET_REQUEST_ID_REQUIRED");
@@ -2629,7 +2622,7 @@ export class EditingApplication {
           role: input.role ?? (input.mediaKind === "audio" ? "sfx" : "b_roll"),
           queryHints: normalizedTextList(input.queryHints),
           excludedTerms: normalizedTextList(input.excludedTerms),
-          targetAspectRatio: input.mediaKind === "audio" ? undefined : input.targetAspectRatio ?? snapshot.project.brief.aspectRatio,
+          targetAspectRatio: input.mediaKind === "audio" ? undefined : input.targetAspectRatio,
           minDurationMs: input.minDurationMs ?? undefined,
           fallbackPlan: input.fallbackPlan ?? (input.mediaKind === "audio" ? "ask_user" : "keep_presenter"),
           status: "open",
@@ -2640,8 +2633,15 @@ export class EditingApplication {
       } else {
         request = assetRequestById(snapshot, input.assetRequestId!);
         if (input.action === "close") {
+          const materialIds = new Set(snapshot.assetCandidates.filter(candidate => candidate.assetRequestId === request.id).map(candidate => candidate.acquiredAssetId));
+          const generationIds = new Set(this.repository.listJobs(input.projectId).filter(job => job.kind === "video_generation" && job.payload.assetRequestId === request.id).map(job => job.id));
+          if (input.closeOutcome === "completed" && !snapshot.assets.some(asset => asset.status === "ready"
+              && (materialIds.has(asset.id) || (asset.provenance?.generationJobId && generationIds.has(asset.provenance.generationJobId))))) {
+            throw new DomainError("按完成关闭前需有实际取得且可用的材料；取消用途可直接关闭", "ASSET_REQUEST_MATERIAL_REQUIRED");
+          }
           request.status = "closed";
-          request.closeReason = input.closeReason?.trim() || "当前需求不再需要外部素材。";
+          request.closeOutcome = input.closeOutcome ?? "cancelled";
+          request.closeReason = input.closeReason?.trim() || (input.closeOutcome === "completed" ? "作者确认当前用途已完成。" : "当前需求不再需要外部素材。");
           request.updatedAt = updatedAt;
         } else {
           if (request.status === "closed") throw new DomainError("已关闭的素材需求不能直接更新，请新建需求", "ASSET_REQUEST_CLOSED");
@@ -2676,26 +2676,8 @@ export class EditingApplication {
           }
           if (input.fallbackPlan !== undefined) request.fallbackPlan = input.fallbackPlan;
           request.updatedAt = updatedAt;
-          const searchCriteriaChanged = input.sound !== undefined || input.purpose !== undefined
-            || input.audioBrief !== undefined
-            || input.role !== undefined
-            || input.visualBrief !== undefined
-            || input.queryHints !== undefined
-            || input.excludedTerms !== undefined
-            || input.targetAspectRatio !== undefined
-            || input.minDurationMs !== undefined;
-          if (searchCriteriaChanged) {
-            const hasDownloadInFlight = snapshot.assetCandidates.some((candidate) => candidate.assetRequestId === request.id && (candidate.status === "acquisition_queued" || candidate.status === "acquiring"));
-            if (hasDownloadInFlight) throw new DomainError("已有候选正在下载，不能同时修改它的搜索条件", "ASSET_REQUEST_ACQUISITION_IN_PROGRESS");
-            // 保留历史记录，但旧候选必须经新的 SearchIntent 再次检查，不能继续自动入库。
-            for (const candidate of snapshot.assetCandidates.filter((entry) => entry.assetRequestId === request.id && entry.status === "available")) {
-              candidate.status = "rejected";
-              candidate.rejectionReason = "素材需求已更新，必须重新搜索并复核候选。";
-              candidate.filterReasons = [...candidate.filterReasons, candidate.rejectionReason];
-              candidate.updatedAt = updatedAt;
-            }
-            request.status = "open";
-          }
+          // 内容与找法可以继续发展，不撤销已有发现，也不改动在途获取输入。
+          this.refreshAssetRequestProgress(snapshot, request.id);
         }
       }
       // 关闭保留历史关联；取消意图或删除计划后仍须能结束旧需求。
@@ -2752,36 +2734,40 @@ export class EditingApplication {
     return { assetIds: assets.map(a => a.id), sourceAssetId: assets[0].id, pages: manifest.files.flatMap((f,i) => f.page ? [{ page: f.page, snapshotAssetId: assets[i].id, sourceAssetId: assets[0].id }] : []), sourceUrl: manifest.url, acquiredAt: manifest.fetchedAt, capture: manifest.capture, mediaAnalysisJobIds: mediaAnalysisJobs.map(j => j.id) };
   }
 
-  /** 搜索是操作数据；正式采用才把必要候选提升到创作快照。 */
+  /** 搜索是操作数据；明确获取时才把必要候选提升到创作快照。 */
   recordAssetSearch(input: {
     projectId: Id; baseRevision: number; assetRequestId: Id; provider: string; query: string;
-    candidates: AssetSearchCandidateInput[]; requestVersion?: string; cursor?: string; nextCursor?: string;
+    candidates: AssetSearchCandidateInput[]; requestVersion?: string; requestSnapshot?: AssetRequest; cursor?: string; nextCursor?: string;
     mediaType?: "image" | "video" | "audio";
     diagnostics?: import("@videocut/contracts").AssetSearchDiagnostics;
   }): { nextCursor?: string; state: ProjectState; intent: SearchIntent; candidates: AssetCandidate[]; reused: boolean; sessionId: string; requestVersion: string; diagnostics: import("@videocut/contracts").AssetSearchDiagnostics } {
     const state = this.readProject(input.projectId);
-    const request = assetRequestById(state.snapshot, input.assetRequestId);
+    const currentRequest = assetRequestById(state.snapshot, input.assetRequestId);
+    // 异步调用方传发出时的快照；旧同步调用按指定 Revision 读取，不能拿当前稿冒充旧输入。
+    const request = input.requestSnapshot ?? assetRequestById(this.repository.getRevision(input.projectId, input.baseRevision).snapshot, input.assetRequestId);
     const version = assetRequestVersion(request);
-    if (input.requestVersion && input.requestVersion !== version) throw new DomainError("搜索期间需求已变化，请重新检索", "MEDIA_REQUEST_STALE");
-    if (request.status === "closed") throw new DomainError("素材需求已关闭", "ASSET_REQUEST_CLOSED");
+    if (request.id !== currentRequest.id || (input.requestVersion && input.requestVersion !== version)) {
+      throw new DomainError("搜索输入快照与需求版本不一致", "ASSET_SEARCH_INPUT_MISMATCH");
+    }
     const query = input.query.trim();
     if (!query) throw new DomainError("搜索查询不能为空", "EMPTY_ASSET_SEARCH_QUERY");
     const diagnostics = input.diagnostics ?? { complete: true, warnings: [] };
-    // 第 4 版不再按时长限制搜索或下载；旧缓存仍可按候选 ID 重新核对。
-    const existing = diagnostics.complete && this.repository.mediaIntelligence.searches(input.projectId).find((entry) => entry.resultFormatVersion === 4 && entry.intent.cursor === input.cursor && entry.diagnostics?.complete !== false && entry.intent.mediaType === input.mediaType && entry.requestId === request.id && entry.requestVersion === version && entry.intent.provider === input.provider && entry.intent.query === query && Date.now() - Date.parse(entry.createdAt) < 30 * 60_000);
+    // 新会话保存当轮需求快照；历史发现始终可按候选 ID 读取。
+    const existing = diagnostics.complete && this.repository.mediaIntelligence.searches(input.projectId).find((entry) => entry.resultFormatVersion === 5 && entry.intent.cursor === input.cursor && entry.diagnostics?.complete !== false && entry.intent.mediaType === input.mediaType && entry.requestId === request.id && entry.requestVersion === version && entry.intent.provider === input.provider && entry.intent.query === query && Date.now() - Date.parse(entry.createdAt) < 30 * 60_000);
     if (existing) return { nextCursor: existing.nextCursor, state, intent: existing.intent, candidates: existing.candidates, reused: true, sessionId: existing.id, requestVersion: version, diagnostics: existing.diagnostics ?? { complete: true, warnings: [] } };
     const createdAt = now();
     const intent: SearchIntent = { id: createId("search_intent"), assetRequestId: request.id, provider: input.provider, query, mediaType: input.mediaType, ...(input.cursor ? { cursor: input.cursor } : {}), createdAt };
     if (input.candidates.length > 30) throw new DomainError("Provider 单页超过30条保存预算", "ASSET_SEARCH_PAGE_BUDGET");
     const candidates: AssetCandidate[] = [...new Map(input.candidates.map(c => [c.originalAssetId, c])).values()].map((source) => {
-      const filterReasons = candidateFilterReasons(source, request);
+      const filterReasons = candidateTechnicalReasons(source, request);
       return { ...source, id: createId("asset_candidate"), assetRequestId: request.id, searchIntentId: intent.id, provider: input.provider,
         originalAssetId: source.originalAssetId.trim(), name: source.name.trim() || "未命名候选", kind: source.kind ?? "video",
         sourceUrl: source.sourceUrl.trim(), tags: normalizedTextList(source.tags), hardFilterPassed: !filterReasons.length, filterReasons,
         status: filterReasons.length ? "rejected" : "available", rejectionReason: filterReasons.length ? filterReasons.join(" ") : undefined, createdAt, updatedAt: createdAt };
     });
-    const session = { id: createId("search_session"), projectId: input.projectId, requestId: request.id, requestVersion: version, intent, candidates, diagnostics, resultFormatVersion: 4, nextCursor: input.nextCursor, createdAt };
+    const session = { id: createId("search_session"), projectId: input.projectId, requestId: request.id, requestVersion: version, intent, candidates, diagnostics, requestSnapshot: structuredClone(request), resultFormatVersion: 5, nextCursor: input.nextCursor, createdAt };
     this.repository.mediaIntelligence.saveSearch(session);
+    this.refreshAssetRequestProgress(state.snapshot);
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
     return { nextCursor: input.nextCursor, state, intent, candidates, reused: false, sessionId: session.id, requestVersion: version, diagnostics };
   }
@@ -2792,7 +2778,7 @@ export class EditingApplication {
     const candidate = state.snapshot.assetCandidates.find((entry) => entry.id === input.assetCandidateId) ?? cached?.candidate;
     if (!candidate) throw new NotFoundError("素材候选不存在");
     const request = assetRequestById(state.snapshot, candidate.assetRequestId);
-    refreshCandidateDurationFilter(candidate, request);
+    normalizeCandidateFilters(candidate, request);
     const intent = state.snapshot.searchIntents.find((entry) => entry.id === candidate.searchIntentId) ?? cached?.session.intent;
     if (!intent) throw new DomainError("素材候选缺少搜索意图", "ASSET_CANDIDATE_INTENT_MISSING");
     return { revision: state.revision.number, request, intent, candidate, requestVersion: cached?.session.requestVersion ?? assetRequestVersion(request),
@@ -2812,6 +2798,10 @@ export class EditingApplication {
     const sameOptions = (job: JobRecord) => job.payload.acquisition === undefined
       ? !options.sourceRange && input.options?.qualityHeight === undefined
       : JSON.stringify(job.payload.acquisition) === JSON.stringify(options);
+    const keyed = jobs.find(job => job.idempotencyKey === (input.idempotencyKey ?? `asset_acquisition:${input.assetCandidateId}:${input.baseRevision}`));
+    if (keyed && (keyed.kind !== "asset_acquisition" || keyed.payload.assetCandidateId !== input.assetCandidateId || !sameOptions(keyed))) {
+      throw new DomainError("获取幂等键已对应其他来源或参数", "ASSET_ACQUISITION_IDEMPOTENCY_CONFLICT");
+    }
     const active = jobs.find(job => job.kind === "asset_acquisition" && job.payload.assetCandidateId === input.assetCandidateId && ["queued", "running", "unknown"].includes(job.status));
     if (active && !sameOptions(active)) throw new DomainError("该候选已有未结束的获取任务，请先查询原任务", "ASSET_ACQUISITION_IN_PROGRESS");
     const existing = jobs.find((job) => job.kind === "asset_acquisition" && job.payload.assetCandidateId === input.assetCandidateId && sameOptions(job) && !["failed", "cancelled"].includes(job.status));
@@ -2825,14 +2815,13 @@ export class EditingApplication {
       if (!snapshot.assetCandidates.some((entry) => entry.id === input.assetCandidateId)) {
         const cached = this.repository.mediaIntelligence.candidate(input.projectId, input.assetCandidateId);
         if (!cached) throw new NotFoundError("素材候选不存在");
-        const request = assetRequestById(snapshot, cached.candidate.assetRequestId);
-        if (cached.session.requestVersion !== assetRequestVersion(request) || Date.now() - Date.parse(cached.session.createdAt) > 24 * 3600_000) throw new DomainError("候选需求已变化或搜索已过期，需要重新检索", "MEDIA_REQUEST_STALE");
         snapshot.assetCandidates.push(structuredClone(cached.candidate));
         if (!snapshot.searchIntents.some((entry) => entry.id === cached.session.intent.id)) snapshot.searchIntents.push(structuredClone(cached.session.intent));
       }
       const candidate = assetCandidateById(snapshot, input.assetCandidateId);
       const request = assetRequestById(snapshot, candidate.assetRequestId);
-      refreshCandidateDurationFilter(candidate, request);
+      normalizeCandidateFilters(candidate, request);
+      if (request.status === "closed") throw new DomainError("用途已关闭，不能发起新的获取；在途任务仍会保存结果", "ASSET_REQUEST_CLOSED");
       if (candidate.status === "acquired") candidate.status = "available";
       // 仅恢复已有明确失败 Job 的获取；不把人工拒绝或未知执行结果变成可重试。
       const recovering = candidate.status === "failed" && jobs.some(entry => entry.kind === "asset_acquisition" && entry.payload.assetCandidateId === candidate.id && entry.status === "failed");
@@ -2855,7 +2844,7 @@ export class EditingApplication {
       impact.changed.push(candidate.id, request.id);
       impact.recomputed.push("素材本地化任务");
       // 入队与候选提升在同一事务中；崩溃不能留下没有 Job 的 acquisition_queued。
-      job = this.repository.createJob({ projectId: input.projectId, kind: "asset_acquisition", payload: { assetCandidateId: candidateId, acquisition: options }, idempotencyKey: input.idempotencyKey ?? `asset_acquisition:${candidateId}:${input.baseRevision}` });
+      job = this.repository.createJob({ projectId: input.projectId, kind: "asset_acquisition", payload: { assetCandidateId: candidateId, acquisition: options, candidate: structuredClone(candidate), request: structuredClone(request) }, idempotencyKey: input.idempotencyKey ?? `asset_acquisition:${candidateId}:${input.baseRevision}` });
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
@@ -2885,6 +2874,7 @@ export class EditingApplication {
     managedPath: string;
     sourceHash: string;
     metadata?: MediaMetadata;
+    jobId?: Id;
   }): { state: ProjectState; candidate: AssetCandidate; asset: Asset; duplicate: boolean; mediaAnalysisJob?: JobRecord } {
     const current = this.readProject(input.projectId);
     let asset!: Asset;
@@ -2892,12 +2882,18 @@ export class EditingApplication {
     const state = this.repository.commit(input.projectId, current.revision.number, "完成素材本地化并登记来源", (snapshot, impact) => {
       const candidate = assetCandidateById(snapshot, input.assetCandidateId);
       const request = assetRequestById(snapshot, candidate.assetRequestId);
-      refreshCandidateDurationFilter(candidate, request);
+      const job = input.jobId ? this.repository.getJob(input.jobId) : this.repository.listJobs(input.projectId)
+        .find(entry => entry.kind === "asset_acquisition" && entry.payload.assetCandidateId === candidate.id && ["queued", "running"].includes(entry.status));
+      if (!job || job.projectId !== input.projectId || job.kind !== "asset_acquisition" || job.payload.assetCandidateId !== candidate.id
+          || !["queued", "running"].includes(job.status)) throw new DomainError("获取回调与当前任务不一致", "ASSET_ACQUISITION_JOB_MISMATCH");
+      const submitted = (job.payload.candidate ?? candidate) as AssetCandidate;
+      const submittedRequest = (job.payload.request ?? request) as AssetRequest;
+      if (submitted.provider !== candidate.provider || submitted.originalAssetId !== candidate.originalAssetId || submitted.sourceUrl !== candidate.sourceUrl
+          || submitted.kind !== candidate.kind || JSON.stringify(job.payload.acquisition ?? {}) !== JSON.stringify(candidate.acquisition ?? {})) {
+        throw new DomainError("候选来源或取得范围与提交输入不一致", "ASSET_ACQUISITION_INPUT_MISMATCH");
+      }
       if (candidate.status !== "acquiring" && candidate.status !== "acquisition_queued") {
         throw new DomainError("素材候选当前不允许完成本地化", "ASSET_CANDIDATE_NOT_ACQUIRING");
-      }
-      if (!candidateIsAllowed(candidate, request)) {
-        throw new DomainError("候选素材已不满足当前技术需求，不能登记为项目素材", "ASSET_CANDIDATE_NOT_ALLOWED");
       }
       const acquiredAt = now();
       const existing = snapshot.assets.find((entry) => entry.sourceHash === input.sourceHash && entry.provenance?.provider === candidate.provider && entry.provenance?.originalAssetId === candidate.originalAssetId && JSON.stringify(entry.provenance.acquisition?.sourceRange) === JSON.stringify(candidate.acquisition?.sourceRange));
@@ -2922,8 +2918,8 @@ export class EditingApplication {
           kind: candidate.kind,
           managedPath: input.managedPath,
           sourceHash: input.sourceHash,
-          role: request.role,
-          tags: [...candidate.tags, ...request.queryHints],
+          role: submittedRequest.role,
+          tags: [...submitted.tags, ...submittedRequest.queryHints],
           provenance
         });
         snapshot.assets.push(asset);
@@ -2941,7 +2937,7 @@ export class EditingApplication {
       candidate.acquiredAssetId = asset.id;
       candidate.acquisitionError = undefined;
       candidate.updatedAt = acquiredAt;
-      request.status = "fulfilled";
+      this.refreshAssetRequestProgress(snapshot, request.id);
       request.updatedAt = acquiredAt;
       impact.changed.push(candidate.id, request.id, asset.id);
       impact.recomputed.push("素材来源与本地 Asset");
@@ -2957,17 +2953,22 @@ export class EditingApplication {
     return { state, candidate: assetCandidateById(state.snapshot, input.assetCandidateId), asset, duplicate, mediaAnalysisJob };
   }
 
-  failAssetCandidateAcquisition(input: { projectId: Id; assetCandidateId: Id; reason: string }): ProjectState {
+  failAssetCandidateAcquisition(input: { projectId: Id; assetCandidateId: Id; jobId?: Id; reason: string }): ProjectState {
     const current = this.readProject(input.projectId);
+    if (!["acquisition_queued", "acquiring"].includes(assetCandidateById(current.snapshot, input.assetCandidateId).status)) return current;
+    if (input.jobId) {
+      const job = this.repository.getJob(input.jobId);
+      if (job.projectId !== input.projectId || job.kind !== "asset_acquisition" || job.payload.assetCandidateId !== input.assetCandidateId
+          || !["queued", "running"].includes(job.status)) return current;
+    }
     const state = this.repository.commit(input.projectId, current.revision.number, "素材本地化失败", (snapshot, impact) => {
       const candidate = assetCandidateById(snapshot, input.assetCandidateId);
       const request = assetRequestById(snapshot, candidate.assetRequestId);
+      if (!["acquisition_queued", "acquiring"].includes(candidate.status)) return;
       candidate.status = "failed";
       candidate.acquisitionError = input.reason;
       candidate.updatedAt = now();
-      const hasPending = snapshot.assetCandidates.some((entry) => entry.assetRequestId === request.id && (entry.status === "acquisition_queued" || entry.status === "acquiring"));
-      const hasAlternative = snapshot.assetCandidates.some((entry) => entry.assetRequestId === request.id && entry.status === "available");
-      request.status = hasPending ? "acquiring" : hasAlternative ? "candidates_ready" : "open";
+      this.refreshAssetRequestProgress(snapshot, request.id);
       request.updatedAt = candidate.updatedAt;
       impact.changed.push(candidate.id, request.id);
       impact.warnings.push(`素材候选“${candidate.name}”本地化失败：${input.reason}`);
@@ -7298,7 +7299,7 @@ export class EditingApplication {
         if (request.status === "closed" || request.role === "evidence") {
           throw new DomainError("关联的素材需求已关闭或不允许生成替代", "STALE_VIDEO_GENERATION_REQUEST");
         }
-        request.status = "fulfilled";
+        if (request.status !== "fulfilled") request.status = "candidates_ready";
         request.updatedAt = now();
         impact.changed.push(request.id);
       }

@@ -1,5 +1,6 @@
 import { DEFAULT_CAPTION_FORMAT, DEFAULT_TRACKS, type ProjectSnapshot } from "@videocut/contracts";
 import { createId, createStoryDocument } from "@videocut/domain";
+import { normalizeCandidateFilters } from "../../../media-intelligence/src/candidate-lifecycle.js";
 
 /**
  * 为已有项目补齐新增的快照字段；旧 Revision 在下一次提交时自然升级，不改写历史记录。
@@ -11,7 +12,7 @@ export function normalizeSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
   snapshot.assetRequests ??= [];
   snapshot.searchIntents ??= [];
   snapshot.assetCandidates ??= [];
-  for (const candidate of snapshot.assetCandidates) candidate.kind ??= "video";
+  for (const candidate of snapshot.assetCandidates) normalizeCandidateFilters(candidate, snapshot.assetRequests.find(request => request.id === candidate.assetRequestId));
   snapshot.evidenceCaptures ??= [];
   snapshot.explainerPrograms ??= [];
   snapshot.vlogShotAnalyses ??= [];

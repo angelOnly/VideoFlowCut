@@ -81,7 +81,7 @@ test("视频生成只登记受管 Asset、生成参数和来源，不自动写�
       aspectRatio: "9:16"
     });
     assert.equal(completed.state.snapshot.timeline.items.some((item) => item.assetId === asset.id), false, "生成完成不应替导演自动插入 Timeline");
-    assert.equal(completed.state.snapshot.assetRequests.find((request) => request.id === assetRequest.id)?.status, "fulfilled");
+    assert.equal(completed.state.snapshot.assetRequests.find((request) => request.id === assetRequest.id)?.status, "candidates_ready");
     assert.equal(application.trackJob(submitted.id).result?.generatedVideoAssetId, asset.id);
 
     const recovered = application.completeVideoGeneration({

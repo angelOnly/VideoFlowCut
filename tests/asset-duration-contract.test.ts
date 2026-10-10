@@ -44,7 +44,7 @@ test("短文件与缺省时长仍可获取；明确选段长度的变更与非�
     assert.equal(app.readProject(projectId).snapshot.assetRequests[0].minDurationMs,4000);
     app.manageAssetRequirement({projectId,baseRevision:revision(),action:"update",assetRequestId:request.id,minDurationMs:null});
     assert.equal(app.readProject(projectId).snapshot.assetRequests[0].minDurationMs,undefined);
-    assert.throws(() => app.acquireAssetCandidate({projectId,baseRevision:revision(),assetCandidateId:fresh.candidates[2].id}), /需求已变化/);
+    assert.equal(app.acquireAssetCandidate({projectId,baseRevision:revision(),assetCandidateId:fresh.candidates[2].id}).job.status, "queued");
     const cleared=app.recordAssetSearch({...input,baseRevision:revision(),candidates});
     assert.equal(cleared.reused,false);
     assert.notEqual(cleared.requestVersion,fresh.requestVersion);
