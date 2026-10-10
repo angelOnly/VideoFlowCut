@@ -2465,7 +2465,7 @@ server.registerTool("browse_effect_types", {
 }, async () => asText(EFFECT_TYPES));
 
 registerMotionTools(server, application, projectIdFrom);
-registerMotionLibraryTools(server);
+registerMotionLibraryTools(server, undefined, application, projectIdFrom);
 registerMediaIntelligenceTools(server, application, projectIdFrom);
 registerSourceResearchTools(server, projectIdFrom);
 registerSoundTools(server, application, projectIdFrom);

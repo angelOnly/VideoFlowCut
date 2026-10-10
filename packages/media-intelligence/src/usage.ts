@@ -1,5 +1,6 @@
-import type { MediaAdoption, MediaUsageTarget, ProjectSnapshot } from "@videocut/contracts";
-import { digest, regionContains } from "./index.js";
+import type { MediaUsageTarget, ProjectSnapshot } from "@videocut/contracts";
+import { resolveCompositionReachability } from "@videocut/domain";
+import { digest } from "./index.js";
 
 /** 同一素材的多次使用独立定位，避免一次纠错污染所有未关联使用。 */
 export function mediaUsageState(snapshot: ProjectSnapshot, target: MediaUsageTarget) {
@@ -18,7 +19,7 @@ export function mediaUsageState(snapshot: ProjectSnapshot, target: MediaUsageTar
     const source = work?.motion?.videoSources?.find(v => v.slot === target.motionVideoSlot);
     const asset = snapshot.assets.find(a => a.id === source?.assetId);
     if (!effect || effect.type !== "ManagedMotion" || !work?.motion || !source || !asset || asset.sourceHash !== source.sourceHash) return undefined;
-    // 采用依据定位该选段的作品范围，不能把局部视频扩大成整件作品的观察证据。
+    // 内部视频只检查实际在作品中出现的源范围。
     const ratio = snapshot.timeline.fps / work.motion.fps;
     const frameRange = {
       startFrame: effect.startFrame + Math.floor((source.startFrame ?? 0) * ratio),
@@ -37,24 +38,28 @@ export function mediaUsageState(snapshot: ProjectSnapshot, target: MediaUsageTar
     signature: digest({ target, asset: [asset.id, asset.sourceHash], fps: snapshot.timeline.fps, item, cutaway, effect }) };
 }
 
-export function mediaUsageProblem(snapshot: ProjectSnapshot, adoption: MediaAdoption, target: MediaUsageTarget): string | undefined {
+export function mediaUsageProblem(snapshot: ProjectSnapshot, target: MediaUsageTarget): string | undefined {
   const usage = mediaUsageState(snapshot, target);
-  if (!usage) return target.motionImageSlot ? "缺少可核验的内部图片摘要，或作品、槽位、原图哈希已变化" : target.motionVideoSlot ? "缺少可核验的内部视频摘要，或作品、槽位、原片哈希已变化" : "实际使用对象已不存在";
-  if (adoption.status !== "current" || usage.asset.id !== adoption.assetId || usage.asset.sourceHash !== adoption.sourceHash) return "采用依据或原文件已变化";
-  if (usage.range && (!adoption.range || usage.range.startMs < adoption.range.startMs - 1 || usage.range.endMs > adoption.range.endMs + 1)) return "实际源范围超出采用依据";
-  if (target.motionVideoSlot && adoption.audioPolicy === "retain") return "内部视频槽位静音；保留原声须关联真实 Timeline 声音用途";
-  if (target.effectCueId && !target.motionVideoSlot && !["image", "document"].includes(usage.asset.kind)) return "时间素材请关联实际 Timeline Item，以核验裁切和原声策略";
-  if (!usage.range && adoption.region && !regionContains(adoption.region, undefined)) return "局部页面/裁切观察不足以批准未经裁切的整图使用，请先生成并分析实际派生图";
-  if (target.timelineItemId && adoption.audioPolicy === "mute" && usage.audioPolicy !== "mute") return "本次画面采用必须保持静音";
+  if (!usage) return "实际绑定的素材、槽位或源哈希不一致";
+  if (usage.asset.status !== "ready") return "实际绑定素材尚未技术就绪";
+  if (target.motionVideoSlot && !["video", "actor_video"].includes(usage.asset.kind)) return "内部视频槽位绑定了非视频素材";
+  if (usage.range && (!Number.isFinite(usage.range.startMs) || !Number.isFinite(usage.range.endMs) || usage.range.startMs < 0 || usage.range.endMs <= usage.range.startMs || usage.range.endMs > (usage.asset.metadata?.durationMs ?? 0) + 1000 / snapshot.timeline.fps)) return "实际源范围越界或无效";
   return undefined;
 }
 
+/** 只检查实际引用，不读取旧采用状态、观察覆盖或审核签名。 */
 export function mediaUsageFindings(snapshot: ProjectSnapshot) {
-  return (snapshot.mediaAdoptions ?? []).flatMap((adoption) => (adoption.uses ?? []).flatMap((use) => {
-    const state = mediaUsageState(snapshot, use.target);
-    if (!state?.active && !((use.target.motionVideoSlot || use.target.motionImageSlot) && snapshot.effectCues.some(c => c.id === use.target.effectCueId && c.status === "ready"))) return [];
-    const reason = mediaUsageProblem(snapshot, adoption, use.target) ?? (state?.signature !== use.signature ? "实际使用范围或上下文已变化，需重新确认采用关系" : undefined);
-    const cue = snapshot.effectCues.find(c => c.id === use.target.effectCueId);
-    return reason ? [{ adoptionId: adoption.id, objectId: use.target.timelineItemId ?? use.target.effectCueId!, frameRange: state?.frameRange ?? { startFrame: cue!.startFrame, endFrame: cue!.endFrame }, reason }] : [];
-  }));
+  const reachable = resolveCompositionReachability(snapshot);
+  const targets: MediaUsageTarget[] = snapshot.timeline.items.filter(item => reachable.videoItemIds.has(item.id) || reachable.audioItemIds.has(item.id)).map(item => ({ timelineItemId: item.id }));
+  for (const cue of snapshot.effectCues.filter(cue => cue.status === "ready")) {
+    targets.push(...cue.assetBindings.map(binding => ({ effectCueId: cue.id, slot: binding.slot })));
+    const work = snapshot.assets.find(asset => asset.id === cue.assetBindings.find(binding => binding.slot === "motion")?.assetId)?.motion;
+    targets.push(...(work?.imageSources ?? []).map(source => ({ effectCueId: cue.id, motionImageSlot: source.slot })));
+    targets.push(...(work?.videoSources ?? []).map(source => ({ effectCueId: cue.id, motionVideoSlot: source.slot })));
+  }
+  return targets.flatMap(target => {
+    const reason = mediaUsageProblem(snapshot, target);
+    const object = target.timelineItemId ? snapshot.timeline.items.find(item => item.id === target.timelineItemId)! : snapshot.effectCues.find(cue => cue.id === target.effectCueId)!;
+    return reason ? [{ objectId: object.id, frameRange: { startFrame: object.startFrame, endFrame: object.endFrame }, reason }] : [];
+  });
 }

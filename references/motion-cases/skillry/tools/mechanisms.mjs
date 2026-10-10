@@ -8,6 +8,15 @@ import {queryMechanisms} from '../mechanism-search.mjs';
 // CLI 与正式启动器都从仓库根运行，避免 CJS 发行包依赖 import.meta。
 const defaultRoot=resolve(process.cwd(),'references/motion-cases/skillry');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
+export const SEARCH_TEXT_VERSION='motion-relations-v1';
+/** 仅派生动作正文；链接、图片和网页外壳不参与语义相似性。 */
+export function mechanismSearchText(metadata,body){
+  body=body.replace(/\r\n?/g,'\n');
+  const sections=[...body.matchAll(/^## (运动指令|组合与调整)[ \t]*\n([\s\S]*?)(?=^## |(?![\s\S]))/gm)].map(match=>match[2]);
+  const lines=[metadata.purpose,metadata.relation,metadata.start_state,...sections,metadata.end_state]
+    .join('\n').replace(/!\[[^\]]*\]\([^)]*\)/g,'').replace(/\[([^\]]+)\]\([^)]*\)/g,'$1').split(/\n+/).map(line=>line.trim()).filter(Boolean);
+  return [...new Set(lines)].join('\n');
+}
 export function localFile(root,path){
   if(typeof path!=='string'||!path||path.includes(':')||path.includes('\\')||isAbsolute(path)||path.split('/').some(p=>p==='..'||p==='.'||!p))throw new Error('资料路径无效');
   const file=resolve(root,path),rel=relative(realpathSync(root),realpathSync(file));
@@ -31,7 +40,8 @@ export function buildIndex(root=defaultRoot){
       const imageLinks=[...body.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map(x=>resolveLibraryLink(x[1],document));
       if(!imageLinks.some(x=>x?.kind==='local'&&x.path===storyboard))throw new Error(`${document} 未嵌入自身分镜`);
       sources.push([document,hash(bytes)]);
-      mechanisms.push({...m,document,storyboard,case_slug:c.slug,overview:c.analysis,
+      const search_text=mechanismSearchText(m,body);
+      mechanisms.push({...m,search_text,search_text_version:SEARCH_TEXT_VERSION,text_sha256:hash(search_text),document,storyboard,case_slug:c.slug,overview:c.analysis,
         detail:`detail.html?case=${encodeURIComponent(c.slug)}&mechanism=${encodeURIComponent(m.id)}`});
     }
   }

@@ -181,6 +181,19 @@ function usedAssetIds(snapshot: ProjectSnapshot): Set<string> {
   return new Set(resolveCompositionReachability(snapshot).assetIds);
 }
 
+/** 文件身份直接由实际渲染引用核验，不依赖已删除的素材采用资格。 */
+export async function verifySourceFiles(snapshot: ProjectSnapshot): Promise<void> {
+  const used = usedAssetIds(snapshot);
+  for (const asset of snapshot.assets.filter(entry => used.has(entry.id))) {
+    const path = resolveManagedAssetPath(snapshot, asset.managedPath);
+    let file;
+    try { file = await stat(path); }
+    catch { throw new DomainError(`素材“${asset.name}”文件缺失`, "MEDIA_SOURCE_MISSING"); }
+    if (!file.isFile() || file.size <= 0) throw new DomainError(`素材“${asset.name}”文件为空或类型无效`, "MEDIA_SOURCE_INVALID");
+    if (asset.sourceHash && await hashMediaFile(path) !== asset.sourceHash) throw new DomainError(`素材“${asset.name}”文件哈希与当前绑定不符`, "MEDIA_SOURCE_CHANGED");
+  }
+}
+
 /** 透明帧也是正式依赖，不能只验证审阅 MP4 存在就放行导出。 */
 export async function verifyMotionFrameCaches(snapshot: ProjectSnapshot): Promise<void> {
   const used = usedAssetIds(snapshot);
@@ -299,6 +312,8 @@ export async function runRenderPreflight(application: EditingApplication, projec
   const revision = application.repository.getRevision(projectId, revisionNumber);
   const snapshot = revision.snapshot;
   const checks: RenderPreflightCheck[] = [];
+  try { await verifySourceFiles(snapshot); }
+  catch (error) { addPreflightCheck(checks, "failed", error instanceof DomainError ? error.code : "MEDIA_SOURCE_INVALID", error instanceof Error ? error.message : String(error)); }
   try { await verifyMotionFrameCaches(snapshot); }
   catch (error) { addPreflightCheck(checks, "failed", "MOTION_CACHE_CORRUPT", error instanceof Error ? error.message : String(error)); }
   const review = await application.readEditorialQualityReview({ projectId, revision: revisionNumber });
@@ -465,6 +480,7 @@ export class RevisionRenderer implements RevisionRenderEngine {
   }
 
   private async renderOnce(snapshot: ProjectSnapshot, targetPath: string): Promise<void> {
+    await verifySourceFiles(snapshot);
     await verifyMotionFrameCaches(snapshot);
     const mediaServer = await startProjectMediaServer(snapshot);
     try {
@@ -500,6 +516,7 @@ export class RevisionRenderer implements RevisionRenderEngine {
   }
 
   private async renderRangeOnce(snapshot: ProjectSnapshot, fromFrame: number, toFrame: number, targetPath: string): Promise<void> {
+    await verifySourceFiles(snapshot);
     await verifyMotionFrameCaches(snapshot);
     if (fromFrame < 0 || toFrame <= fromFrame || toFrame > snapshot.timeline.durationInFrames) {
       throw new DomainError("局部预览范围无效", "INVALID_PREVIEW_RANGE");

@@ -15,12 +15,12 @@ test("指定案例从首次取材进入真实角色交接，材料回来更新�
   assert.match(writer, /当前全文及对应句群声画说明/);
   assert.match(visual, /\]\(\.\.\/\.\.\/production-director\/references\/asset-briefing\.md\)/, "取材方法仍沿唯一导演参考");
   assert.match(director, /先与文案、原视觉作者把当前这段需要的画面说清/);
-  assert.match(motion, /材料变动影响字位、路径、遮挡或声音时一起修改/);
-  assert.match(sourcing, /已有有效观察与选段直接承接/);
+  assert.match(motion, /材料或范围改变时同步更新裁切、字位、路径、遮挡和声音/);
+  assert.match(sourcing, /已有有效选段继续承接/);
   assert.match(sourcing, /没有观察时先了解全貌，再看可能采用的连续范围与必要前后文/);
-  assert.match(handoff, /材料角色｜搜索起点｜实际需要什么｜在本片里做什么/);
-  assert.match(coordinator, /得到明确获取决定后，主任务继续取得实际文件/);
-  assert.match(review, /不因下载成本地文件而重新要求整套概览和审批/);
+  assert.match(handoff, /材料作者只推荐，最终采用由导演决定/);
+  assert.match(coordinator, /导演已明确选择的材料继续取得和使用/);
+  assert.match(review, /不借成片返修恢复素材资格审核/);
   assert.doesNotMatch(sourcing, /最高 720p|需求至少包含：|抽象机制通常优先 Remotion|不按拟用范围截取/);
   assert.match(read(".agents/skills/production-coordinator/SKILL.md"), /真实分派/); assert.match(coordinator, /followup_task/);
 });

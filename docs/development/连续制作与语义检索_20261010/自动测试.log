@@ -1,0 +1,1017 @@
+(node:49324) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 阶段 5 高级视觉经真实 Composition 渲染，未启用能力会明确失败 (13234.965ms)
+✔ 复杂三维降级只接受已就绪且受管本地的预渲染项目素材 (0.5618ms)
+✔ Shader 只接受已审查模板，任意源码不会进入 Renderer (0.2001ms)
+✔ 高级 Web 入口不把候选同步或 unknown 生成资产误说成可交付状态 (1.1654ms)
+✔ 高级 Web 视频生成表单在提交前保持模式对应的输入约束 (0.2077ms)
+(node:42080) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 升级后只解除旧时长自动拒绝，人工与类型拒绝保持 (67.9453ms)
+✔ 范围获取保留时间对应和既有观察，分析纠错不影响原文件使用 (161.3897ms)
+{"event":"job_failed","jobId":"job_7cccee0b-6a55-4b18-9f2b-e1fe9d32a32a","kind":"asset_acquisition","code":"ASSET_SOURCE_RANGE_MISMATCH","error":{"name":"Error","message":"取得片段的实测时长与原片范围不一致","stack":"Error: 取得片段的实测时长与原片范围不一致\n    at runAssetAcquisition (E:\\ai\\VideoCut\\apps\\job-worker\\src\\index.ts:137:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async processClaimedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:40:20)\n    at async runOneQueuedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:72:3)\n    at async TestContext.<anonymous> (E:\\ai\\VideoCut\\tests\\asset-acquisition-continuity.test.ts:98:5)\n    at async Test.run (node:internal/test_runner/test:1125:7)\n    at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)","code":"ASSET_SOURCE_RANGE_MISMATCH"}}
+✔ 范围返回整文件或残片时获取失败，不登记错误的源时间 (144.2579ms)
+(node:46744) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 短文件与缺省时长仍可获取；明确选段长度的变更与非法值维持版本合同 (79.9411ms)
+(node:45252) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Mock Provider 能把图片 fixture 作为 image 候选和真实 image MIME 返回 (13.2224ms)
+✔ 素材类型、响应 MIME 和分析结果不一致时明确失败，不把图片伪装为视频 (0.4005ms)
+✔ 默认 Registry 始终发现无需密钥的 Wikimedia Commons Provider (0.2563ms)
+✔ 图片候选经 Worker 本地化和 ffprobe 后保持 image Asset、来源和尺寸 (133.8124ms)
+✔ 原始 PDF 证据通过受管 Worker 登记为 document，而不会被当成视频分析 (49.5961ms)
+(node:52188) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Pexels 无 Key 时支持单视频页，其他旧接口仍不启用 (1.9605ms)
+✔ Pexels 单视频页由浏览器交 Worker 获取，Skill 与路由一致 (4.203ms)
+✔ 素材搜索恢复交接规则只授权无副作用的一次纠正 (1.8052ms)
+✔ 图片搜索保留矢量图，正文超时不能误报为 JSON 格式错误 (2.866ms)
+✔ 未知名称给出准确目录；缺凭据与拼写错误分开，不能把写入未知标为可重试 (0.2681ms)
+✔ 批量详情遇到限流在持久化前失败，提供一次安全重查合同 (0.6213ms)
+✔ 批量详情失败不能伪装为无搜索结果 (0.4983ms)
+✔ 遵守 Retry-After 且有限重试；长等待不提前请求，超时保留错误码 (19.3382ms)
+✔ 实际 HTTP 代理承接外网地址，本地 API 自动直连，不依赖 Node 启动参数 (20.927ms)
+✔ 部分搜索与视频类型存于操作表；恢复后重搜不复用残缺结果且不产生 Revision (48.6484ms)
+(node:51620) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 升级前 JPEG 会话历史可读，新搜索与页缓存隔离且不改创作 Revision (59.3956ms)
+✔ Commons continue 按原查询继续且末页不捏造游标 (3.6822ms)
+✔ Commons 空候选页仍保留服务端继续位置 (0.3408ms)
+✔ 来源与动效请求只接受新合同，不接收旧权利字段 (1.2749ms)
+✔ 真实 MCP Schema 删除权利参数，旧参数在执行前被拒绝且不改变 Revision (1173.6627ms)
+✔ 运行代码与共享 Skill 不再保留权利门禁和旧参数说明 (3.0264ms)
+(node:10920) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":30,"time":1791641271217,"pid":10920,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects/project_fac490b4-2a49-40ea-ba62-e7dff3b346a8/audio-mix-gain","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641271221,"pid":10920,"hostname":"jzb","reqId":"req-1","res":{"statusCode":400},"responseTime":2.94620000000009,"msg":"request completed"}
+{"level":30,"time":1791641271221,"pid":10920,"hostname":"jzb","reqId":"req-2","req":{"method":"POST","url":"/api/projects/project_fac490b4-2a49-40ea-ba62-e7dff3b346a8/audio-mix-gain","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641271223,"pid":10920,"hostname":"jzb","reqId":"req-2","res":{"statusCode":400},"responseTime":1.4954000000000178,"msg":"request completed"}
+{"level":30,"time":1791641271223,"pid":10920,"hostname":"jzb","reqId":"req-3","req":{"method":"POST","url":"/api/projects/project_fac490b4-2a49-40ea-ba62-e7dff3b346a8/audio-mix-gain","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641271225,"pid":10920,"hostname":"jzb","reqId":"req-3","res":{"statusCode":200},"responseTime":2.6041000000000167,"msg":"request completed"}
+✔ 整体增益 MCP/HTTP 设置绝对值、保护版本并使全片混合待审，不改音轨参数 (166.2397ms)
+✔ 最终混合只提升音轨一次、复制视频并保留旧版零增益；失败不能伪装成功 (405.6302ms)
+(node:52480) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 原稿无素材直接入稿，持久化不生成假候选，仍保留 Revision 与转写约束 (64.7262ms)
+✔ 原稿接入既有旁白组装，改稿后旧 Dialogue 和字幕失效且历史可读 (50.3071ms)
+{"level":30,"time":1791641273238,"pid":52480,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects/project_4041b09e-d0a6-45b0-8bbb-4d3f01c44f93/script/authored","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641273242,"pid":52480,"hostname":"jzb","reqId":"req-1","res":{"statusCode":400},"responseTime":3.544200000000046,"msg":"request completed"}
+{"level":30,"time":1791641273242,"pid":52480,"hostname":"jzb","reqId":"req-2","req":{"method":"POST","url":"/api/projects/project_4041b09e-d0a6-45b0-8bbb-4d3f01c44f93/script/authored","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641273243,"pid":52480,"hostname":"jzb","reqId":"req-2","res":{"statusCode":400},"responseTime":0.7761000000000422,"msg":"request completed"}
+{"level":30,"time":1791641273243,"pid":52480,"hostname":"jzb","reqId":"req-3","req":{"method":"POST","url":"/api/projects/project_4041b09e-d0a6-45b0-8bbb-4d3f01c44f93/script/authored","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641273244,"pid":52480,"hostname":"jzb","reqId":"req-3","res":{"statusCode":400},"responseTime":0.4413999999999305,"msg":"request completed"}
+{"level":30,"time":1791641273244,"pid":52480,"hostname":"jzb","reqId":"req-4","req":{"method":"POST","url":"/api/projects/project_4041b09e-d0a6-45b0-8bbb-4d3f01c44f93/script/authored","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641273246,"pid":52480,"hostname":"jzb","reqId":"req-4","res":{"statusCode":200},"responseTime":2.205199999999877,"msg":"request completed"}
+✔ HTTP 原稿入口拒绝假来源与空稿，有效新稿沿同一应用链路写入 (123.2472ms)
+✔ 实时 MCP 原稿 Schema 和调用可用，原声候选限制没有放宽 (1136.3903ms)
+(node:50144) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ ActorCapabilityProfile 只记录已确认能力，且被人物表演引用时不可删除 (66.6189ms)
+✔ 人工静态人物锚点可以驱动布局，但无 Mask 的后景效果必须阻塞并显式降级 (74.6432ms)
+✔ SpeechAsset 替换会使生成型人物 stale，并只标出它可局部重生成的范围 (91.8459ms)
+✔ 多个 Actor / A-roll 人物同时覆盖效果时，质量门禁不能按数组顺序猜锚点 (60.0304ms)
+✔ Avatar Worker 会重读 Bridge Schema、在 409 后重试，并将同一 Job 的结果幂等回收 (286.1669ms)
+✔ Avatar Worker 拒绝不唯一或未明确覆盖的媒体 Slot，不向 Provider 猜测性发起付费调用 (429.5907ms)
+✔ 未验证音频驱动口型的能力档案不能提交 Avatar 任务 (141.7275ms)
+{"event":"job_failed","jobId":"job_3f121cf1-705a-41ac-a5aa-876353ffe6b4","kind":"avatar_generation","code":"MISSING_AVATAR_OUTPUT","error":{"name":"Error","message":"数字人 Bridge 任务已完成，但没有可下载的视频输出","stack":"Error: 数字人 Bridge 任务已完成，但没有可下载的视频输出\n    at videoOutput (E:\\ai\\VideoCut\\apps\\job-worker\\src\\avatar-generation.ts:375:22)\n    at runAvatarGeneration (E:\\ai\\VideoCut\\apps\\job-worker\\src\\avatar-generation.ts:616:80)\n    at async processClaimedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:40:20)\n    at async runOneQueuedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:72:3)\n    at async TestContext.<anonymous> (E:\\ai\\VideoCut\\tests\\avatar-stage2.test.ts:842:18)\n    at async Test.run (node:internal/test_runner/test:1125:7)\n    at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)","code":"MISSING_AVATAR_OUTPUT"}}
+✔ Avatar Bridge 成功但没有视频输出时保留审计并把 Job 标记为失败 (206.5889ms)
+{"event":"job_failed","jobId":"job_3de789ee-bfc0-4fd3-a1d4-f5786d0fbdd5","kind":"avatar_generation","code":"AVATAR_OUTPUT_CODEC_UNSUPPORTED","error":{"name":"Error","message":"Avatar 输出不是当前 Remotion 可播放的 MP4/H.264（音轨存在时为 AAC）","stack":"Error: Avatar 输出不是当前 Remotion 可播放的 MP4/H.264（音轨存在时为 AAC）\n    at assertRemotionPlayableAvatar (E:\\ai\\VideoCut\\apps\\job-worker\\src\\avatar-generation.ts:417:11)\n    at localizeAvatarOutput (E:\\ai\\VideoCut\\apps\\job-worker\\src\\avatar-generation.ts:471:5)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async runAvatarGeneration (E:\\ai\\VideoCut\\apps\\job-worker\\src\\avatar-generation.ts:616:22)\n    at async processClaimedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:40:20)\n    at async runOneQueuedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:72:3)\n    at async TestContext.<anonymous> (E:\\ai\\VideoCut\\tests\\avatar-stage2.test.ts:899:18)\n    at async Test.run (node:internal/test_runner/test:1125:7)\n    at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)","code":"AVATAR_OUTPUT_CODEC_UNSUPPORTED"}}
+✔ Avatar Worker 拒绝非 H.264 的 Provider 输出，不隐式转码改变口型时长 (288.0138ms)
+✔ MCP 的 submit_avatar_job 只提交可追溯 Job，并可通过通用读取入口复核 (1436.1223ms)
+✔ 候选发行线程能静默渲染视频，不访问项目数据库 (2813.52ms)
+✔ 后台策略覆盖两种启动签名，保留参数且同步 ESM 导出 (44.6377ms)
+✔ 静默进程保留标准输出、错误、退出码与取消能力 (106.6374ms)
+✔ 真实 Remotion 合成与 FFprobe 启动使用静默策略 (107.577ms)
+✔ 超过 260 字符的受管文件正常 multipart 上传，上传前错误不算未知提交 (35.1094ms)
+✔ 真实 Bridge 离线后恢复：诊断拒绝连接，恢复后只提交一次 Run (6.4681ms)
+✔ Bridge 已接收 Run 后断连不会自动重放未知结果 (3.6333ms)
+✔ Bridge 传输诊断只提取错误码，不泄露 cause 中的凭据 (0.2061ms)
+✔ 候选 Runtime 必须显式隔离工作区、端口和 ComfyUI Bridge，且不会读取生产环境回退 (45.5987ms)
+✔ 候选 Runtime 对缺失或生产边界一律 fail closed (164.3692ms)
+✔ 候选 Runtime 将当前环境的自定义生产边界仅作为 denylist (124.9616ms)
+(node:55028) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 字幕布局只产生显式一到两行，不能装下时返回 CAPTION_LAYOUT_OVERFLOW (8.1448ms)
+✔ 统一字幕轨按半开区间选择唯一 Card，质量门禁阻止空段、无效时间、重叠和溢出 (520.7037ms)
+✔ 真实字宽统一质量与预检：保守预算误报的两行通过，真正溢出仍阻断 (1293.7311ms)
+✔ Remotion 真实字体排版只渲染一到两行，溢出会失败而不是自动折三行 (6500.8988ms)
+(node:42724) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":30,"time":1791641283080,"pid":42724,"hostname":"jzb","msg":"Server listening at http://127.0.0.1:59345"}
+{"level":30,"time":1791641283090,"pid":42724,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/captions/measure-text","host":"127.0.0.1:59345","remoteAddress":"127.0.0.1","remotePort":59346},"msg":"incoming request"}
+{"level":30,"time":1791641283517,"pid":42724,"hostname":"jzb","reqId":"req-1","res":{"statusCode":200},"responseTime":427.2868000000001,"msg":"request completed"}
+{"level":30,"time":1791641283526,"pid":42724,"hostname":"jzb","reqId":"req-2","req":{"method":"POST","url":"/api/captions/measure-text","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641283528,"pid":42724,"hostname":"jzb","reqId":"req-2","res":{"statusCode":400},"responseTime":1.2053000000000793,"msg":"request completed"}
+{"level":30,"time":1791641283528,"pid":42724,"hostname":"jzb","reqId":"req-3","req":{"method":"POST","url":"/api/captions/measure-text","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641283529,"pid":42724,"hostname":"jzb","reqId":"req-3","res":{"statusCode":400},"responseTime":0.6779999999998836,"msg":"request completed"}
+✔ 无浏览器环境的MCP使用同版Runtime实测，只读且拒绝额外配置 (627.4839ms)
+✔ 测量失败、错版或不完整字宽不能作为通过，且不重试 (10.3241ms)
+✔ 显示时序遵守半开范围且不修改原卡；静态框宽度和垂直边界使用同一测量 (1.7464ms)
+(node:18672) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 真实预览与全片导出兑现相同阴影选择，显式关闭消除阴影像素 (4751.4158ms)
+✔ 宿主注册核验与真实桌面连接核验保持分离 (1.1988ms)
+✔ 新版已安装仍不能接受宿主指向已清理旧安装目录 (0.3794ms)
+✔ 拒绝相对入口或不稳定安装槽工作目录 (0.1272ms)
+✔ 拒绝关闭、命令改写和运行环境漂移 (0.1543ms)
+✔ 拒绝额外入口参数、超时漂移或残缺工具表 (0.1341ms)
+(node:50604) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Composition Reachability 只收集当前真正渲染的素材 (59.2159ms)
+✔ 质量中的素材门禁只阻断当前 Composition 实际可达的外部素材 (66.986ms)
+✔ 同一状态函数在交叠中拆件，所有帧及真实视频源时钟保持一致 (7199.559ms)
+✔ 无需审核对象仍检查实际文件、哈希和范围，隐藏轨道不构成输出依赖 (5.2414ms)
+(node:52176) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 过期 Revision 和失败写入不会污染项目快照 (58.4364ms)
+✔ 同轨重叠会原子回滚，保留原有 Presenter 主线 (48.5263ms)
+✔ 局部 Script 修改只保留未受影响的 SpeechSegment (45.8175ms)
+✔ 人工校正转写遵守明确 baseRevision，不会覆盖并发编辑 (41.9479ms)
+✔ SpeechAsset 写入 Dialogue 轨并在 Script 改动后移除旧旁白和字幕 (60.3821ms)
+{"level":30,"time":1791641292785,"pid":52176,"hostname":"jzb","reqId":"req-1","req":{"method":"PATCH","url":"/api/projects/project_16033cc7-55f5-4fd4-8798-5d816871bff3/captions/caption_ebc621cd-7e04-4442-9362-7013f0c52798","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641292791,"pid":52176,"hostname":"jzb","reqId":"req-1","res":{"statusCode":200},"responseTime":5.152599999999893,"msg":"request completed"}
+{"level":30,"time":1791641292791,"pid":52176,"hostname":"jzb","reqId":"req-2","req":{"method":"PATCH","url":"/api/projects/project_16033cc7-55f5-4fd4-8798-5d816871bff3/captions/caption_ebc621cd-7e04-4442-9362-7013f0c52798","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641292792,"pid":52176,"hostname":"jzb","reqId":"req-2","res":{"statusCode":400},"responseTime":1.0971999999999298,"msg":"request completed"}
+✔ HTTP 字幕编辑只修改 Caption Card，并校验有限样式输入 (129.0985ms)
+✔ BGM 与 SFX 通过 AudioCue 绑定专用轨，主线变化会停止旧声音包装 (58.5392ms)
+{"level":30,"time":1791641292908,"pid":52176,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects/project_f278c86a-e67e-459e-8287-9a7fdcfe278f/audio","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641292911,"pid":52176,"hostname":"jzb","reqId":"req-1","res":{"statusCode":200},"responseTime":2.4545000000000528,"msg":"request completed"}
+{"level":30,"time":1791641292911,"pid":52176,"hostname":"jzb","reqId":"req-2","req":{"method":"POST","url":"/api/projects/project_f278c86a-e67e-459e-8287-9a7fdcfe278f/audio","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641292912,"pid":52176,"hostname":"jzb","reqId":"req-2","res":{"statusCode":400},"responseTime":0.529700000000048,"msg":"request completed"}
+✔ HTTP 声音包装建立 AudioCue，并拒绝缺少 SFX 事件的请求 (60.4164ms)
+✔ Presenter 有语义段但没有语音与稳定字幕时不能交付 (48.2043ms)
+✔ Bridge 在 schemaVersion 409 后读取最新工作流并重试 (2.3007ms)
+✔ Bridge 在读取 Workflow 时等待短暂的网络未就绪，但不会重放 Run 创建 (11.092ms)
+✔ Bridge 网络不可达会保留安全且可行动的诊断 (0.2162ms)
+✔ Bridge run_id 丢失会保留明确的可诊断错误 (0.2797ms)
+{"event":"job_failed","jobId":"job_e0f1d1b0-e383-4667-83b0-e53d5766769f","kind":"transcription","code":"MISSING_TRANSCRIPT_OUTPUT","error":{"name":"Error","message":"FunASR 已完成，但没有返回文本输出","stack":"Error: FunASR 已完成，但没有返回文本输出\n    at <anonymous> (E:\\ai\\VideoCut\\tests\\core.test.ts:769:13)\n    at processClaimedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:40:26)\n    at runOneQueuedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:72:9)\n    at runOneJob (E:\\ai\\VideoCut\\apps\\job-worker\\src\\index.ts:308:10)\n    at TestContext.<anonymous> (E:\\ai\\VideoCut\\tests\\core.test.ts:760:11)\n    at async Test.run (node:internal/test_runner/test:1125:7)\n    at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)","code":"MISSING_TRANSCRIPT_OUTPUT"}}
+✔ 失败 Job 保留 Bridge run、请求摘要与输出缺失诊断 (43.3536ms)
+✔ 媒体 Worker 与 Render Worker 只领取各自的任务 (40.0177ms)
+✔ 质量门禁会在渲染前拒绝空时间线导出 (38.7174ms)
+✔ 质量门禁会阻止旁白只覆盖首段、主画面却继续播放 (60.2927ms)
+✔ 人物音频所有权阻止原声与 Dialogue 重复播放 (56.1239ms)
+✔ 转写重试恢复既有 FunASR Run，成功写回 Transcript 且不创建第二个 Run (51.9424ms)
+{"event":"job_failed","jobId":"job_a3a2e9ca-56a0-4fca-95fe-ab2ff7d05bad","kind":"transcription","code":"TRANSCRIPTION_RUN_LOST_REQUIRES_RESUBMISSION","error":{"name":"Error","message":"FunASR Run funasr-lost-run 已不可查询，无法确认原转写结果；系统未自动创建新 Run，请确认后重新提交转写。","stack":"Error: FunASR Run funasr-lost-run 已不可查询，无法确认原转写结果；系统未自动创建新 Run，请确认后重新提交转写。\n    at FunASRService.resumeTranscription (E:\\ai\\VideoCut\\packages\\speech-services\\src\\index.ts:234:13)\n    at async processClaimedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:40:20)\n    at async runOneQueuedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:72:3)\n    at async TestContext.<anonymous> (E:\\ai\\VideoCut\\tests\\core.test.ts:1014:18)\n    at async Test.run (node:internal/test_runner/test:1125:7)\n    at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)","code":"TRANSCRIPTION_RUN_LOST_REQUIRES_RESUBMISSION"}}
+✔ 转写重试遇到已丢失的 FunASR Run 时明确失败且不自动重提 (53.017ms)
+✔ Render Preflight 会把目标 Revision 的缺失受管文件报告为失败结果 (45.4558ms)
+✔ Remotion 正式导出失败不会降级为仅 A-roll 成片 (129.9273ms)
+✔ ProductionRun 缺少真实创作证据时保持 incomplete，且不复制 Project Snapshot (43.3759ms)
+✔ ProductionRun 有当前版本的制作记录和真实预览即可完成，未审状态继续保留 (98.4951ms)
+✔ ProductionRun 不要求每个效果抽帧，已有证据仍按真实范围保存 (141.6269ms)
+✔ 未审阅的 delivery 与 draft 都能进入渲染，渲染失败不伪装成功 (153.943ms)
+✔ draft 错误只列真实技术阻断，不将待审观感误报为草稿拒绝原因 (56.2018ms)
+✔ delivery ExportArtifact 固定 Revision、保留来源快照并让批准不受后续编辑影响 (576.2003ms)
+✔ 真实审片记录会按 Revision 合并到 QualityReport，过期记录不会冒充当前结论 (46.9534ms)
+✔ 目标 Revision 导出只读取自身的审片记录，不被更新版本覆盖 (49.7982ms)
+✔ 已使用的外部素材不要求权利证明，素材角色和来源可独立更新 (44.6317ms)
+✔ 素材需求通过 Mock Provider 候选、本地化、哈希和来源登记后才成为可用 Asset (220.549ms)
+{"event":"job_failed","jobId":"job_3edf2ea1-65d5-442e-abca-ea3b0a14a9d9","kind":"asset_acquisition","code":"ASSET_DOWNLOAD_HTML","error":{"name":"AssetProviderError","message":"下载内容是网页错误页，不是媒体素材","stack":"AssetProviderError: 下载内容是网页错误页，不是媒体素材\n    at assertDownloadedProviderMedia (E:\\ai\\VideoCut\\packages\\asset-acquisition\\src\\index.ts:149:13)\n    at async runAssetAcquisition (E:\\ai\\VideoCut\\apps\\job-worker\\src\\index.ts:127:5)\n    at async processClaimedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:40:20)\n    at async runOneQueuedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:72:3)\n    at async TestContext.<anonymous> (E:\\ai\\VideoCut\\tests\\core.test.ts:1525:18)\n    at async Test.run (node:internal/test_runner/test:1125:7)\n    at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)","code":"ASSET_DOWNLOAD_HTML"}}
+✔ 素材下载到伪装成视频的 HTML 错误页时保留失败诊断且不创建 Asset (66.1765ms)
+✔ Cutaway 只接受已就绪本地视频，并把 VisualTreatment、CutawayScene 与顶层 Item 原子写入 (56.5104ms)
+✔ 替换 Cutaway 素材保留主场景与 Cue，主线移动后会停用并标记 stale (57.1835ms)
+✔ Cutaway Runtime 对 Fullscreen/PiP 和声音策略使用同一项目事实 (53.8441ms)
+✔ Presenter 先编译 Scene 再登记人物，前置拒绝不产生 Revision 或改变原声 (45.4607ms)
+✔ StoryBeat 保持稳定 ID，移动 Item 会重算关联 Scene 与 Cue (54.3204ms)
+✔ 结构化 NarrativeBeat 锚点会覆盖遗留 SpeechSegment 锚点 (48.5054ms)
+✔ MotionLayoutCompiler 将空间锚点、运动预设、风格包和强度落为可渲染参数 (42.3521ms)
+✔ CameraPunch 由 MotionLayoutCompiler 消费进入、退出预设和安全取景重心 (42.0778ms)
+✔ EffectCue qualityRules 会进入质量门禁，旧自由文本不会被静默当作已执行 (46.4429ms)
+{"level":30,"time":1791641295479,"pid":52176,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641295483,"pid":52176,"hostname":"jzb","reqId":"req-1","res":{"statusCode":201},"responseTime":3.8505999999997584,"msg":"request completed"}
+{"level":30,"time":1791641295525,"pid":52176,"hostname":"jzb","reqId":"req-2","req":{"method":"POST","url":"/api/projects/project_71db77d0-ad81-4f57-922a-1d5369dd35bc/assets/import-path","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641295530,"pid":52176,"hostname":"jzb","reqId":"req-2","res":{"statusCode":200},"responseTime":4.491300000000592,"msg":"request completed"}
+{"level":30,"time":1791641295610,"pid":52176,"hostname":"jzb","reqId":"req-3","req":{"method":"GET","url":"/api/projects/project_71db77d0-ad81-4f57-922a-1d5369dd35bc/editor-url?sceneId=scene_0616f12c-48f7-4a43-9774-1fbb57f85462&itemId=item_86d9bc8b-520d-4b52-bad1-de7991ebd98c&frame=0","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641295610,"pid":52176,"hostname":"jzb","reqId":"req-3","res":{"statusCode":200},"responseTime":0.5200000000004366,"msg":"request completed"}
+✔ 阶段0 HTTP 导入、Scene、Revision 回退与定位链接保持同一状态 (172.8028ms)
+{"level":30,"time":1791641296973,"pid":52176,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641296980,"pid":52176,"hostname":"jzb","reqId":"req-1","res":{"statusCode":201},"responseTime":6.585100000000239,"msg":"request completed"}
+{"level":30,"time":1791641296989,"pid":52176,"hostname":"jzb","reqId":"req-2","req":{"method":"GET","url":"/api/projects/project_31104af1-3086-461b-ac88-9be545068bf6","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641296990,"pid":52176,"hostname":"jzb","reqId":"req-2","res":{"statusCode":200},"responseTime":0.46749999999974534,"msg":"request completed"}
+{"level":30,"time":1791641296990,"pid":52176,"hostname":"jzb","reqId":"req-3","req":{"method":"POST","url":"/api/projects/project_31104af1-3086-461b-ac88-9be545068bf6/revisions/1/rollback","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641296992,"pid":52176,"hostname":"jzb","reqId":"req-3","res":{"statusCode":200},"responseTime":2.369499999999789,"msg":"request completed"}
+✔ 阶段0 Web 服务与独立 MCP 进程读写同一 Project Revision (1420.9721ms)
+✔ VideoFlowCut 插件配置校验真实 Skill 合同，而不是旧 Markdown 标题 (12.9675ms)
+✔ video-editor-mcp 可通过 stdio 连接并定位新项目 (1360.1856ms)
+✔ video-editor-mcp 的 edit_captions 接受稀疏样式更新且保留其它默认值 (1367.6366ms)
+✔ video-editor-mcp 的 manage_audio 接受稀疏 Duck 更新 (1377.7052ms)
+(node:40836) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 委派来源保存真实输入历史，不重定基、不写入视频 Revision (55.262ms)
+✔ 无效委派来源和不存在的本项目版本在落盘前拒绝 (53.9845ms)
+✔ 旧报告和无委派来源的明确操作保持兼容，来源不足不升级交付状态 (48.8849ms)
+✔ 不同职责并发追加来源不丢失，允许同一次分派产生多个决定 (45.8776ms)
+✔ 实时 MCP Schema 接收可选 delegation，并原样关联输入版本与现有证据 (1077.7847ms)
+✔ 完整声画稿走现有附件引用，MCP读回保留中途、末段与变更前后身份 (1079.9897ms)
+✔ 动作接管的中途与边界都保留，超过工具上限分批而不截断 (0.7568ms)
+✔ 旧输入继续概览取样，极短作品不产生重复或越界帧 (0.0961ms)
+✔ 作者帧去重排序，保留全部显式请求 (0.1192ms)
+✔ 范围外、非整数与错误形状输入在调用工具前拒绝，不悄悄修正 (0.2783ms)
+(node:36044) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 全屏 Cutaway 接管宿主主视觉、保留明确前景和声音，返回时不重启动效 (8183.4108ms)
+(node:49056) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 无参考素材的新稿可提交默认音色，显式无效参考仍拒绝且不产生新 Revision (52.1789ms)
+✔ 默认 HTTP 配置沿用已有文件，不公开上传槽，缺文件时部署失败 (7.7288ms)
+(node:51932) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":30,"time":1791641303963,"pid":51932,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects/project_837aee95-2c89-4249-b182-7a984993aa6b/dialogue-muted","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641303967,"pid":51932,"hostname":"jzb","reqId":"req-1","res":{"statusCode":200},"responseTime":3.692800000000034,"msg":"request completed"}
+✔ Dialogue 静音经 MCP/HTTP 可逆，拒绝过期和非布尔输入，不改变素材、片段或其他音轨 (134.9814ms)
+(node:50912) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Dialogue Processing 只登记原声 / 最小 / 强处理候选，显式选择后才替换 Dialogue (358.4697ms)
+{"level":30,"time":1791641305798,"pid":50912,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects/project_fa9aa6cb-5a38-45f8-b958-cb3ddd85230d/dialogue-processing","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641305803,"pid":50912,"hostname":"jzb","reqId":"req-1","res":{"statusCode":202},"responseTime":4.552300000000059,"msg":"request completed"}
+{"level":30,"time":1791641305803,"pid":50912,"hostname":"jzb","reqId":"req-2","req":{"method":"POST","url":"/api/projects/project_fa9aa6cb-5a38-45f8-b958-cb3ddd85230d/dialogue-processing","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641305804,"pid":50912,"hostname":"jzb","reqId":"req-2","res":{"statusCode":400},"responseTime":1.081899999999905,"msg":"request completed"}
+{"level":30,"time":1791641305805,"pid":50912,"hostname":"jzb","reqId":"req-3","req":{"method":"POST","url":"/api/projects/project_fa9aa6cb-5a38-45f8-b958-cb3ddd85230d/dialogue-processing/select","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641305805,"pid":50912,"hostname":"jzb","reqId":"req-3","res":{"statusCode":400},"responseTime":0.5050999999998567,"msg":"request completed"}
+{"level":30,"time":1791641305808,"pid":50912,"hostname":"jzb","reqId":"req-4","req":{"method":"POST","url":"/api/jobs/job_db16f512-8539-4020-a2d1-9ace0899d992/retry","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641305809,"pid":50912,"hostname":"jzb","reqId":"req-4","res":{"statusCode":400},"responseTime":0.33750000000009095,"msg":"request completed"}
+✔ Dialogue Processing 的 HTTP 合同只创建 Job，选择接口必须显式携带 Revision (204.2455ms)
+✔ 不同处理强度使用可审计的不同滤镜，空问题不会被静默转换 (0.1919ms)
+✔ MCP 公开对白处理的提交与显式选择入口 (1350.3421ms)
+✔ 指定案例从首次取材进入真实角色交接，材料回来更新全文且获取继续执行 (2.2811ms)
+✔ 根 Skills 与发行副本保持同一份协作正文 (3.7705ms)
+✔ 默认前期资料不直连历史案例，动画交接仍可到达机制方法与受管实现 (0.7019ms)
+(node:52992) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":30,"time":1791641309471,"pid":52992,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects/project_1c895830-2c30-483b-a11e-2afa17a00948/export-artifacts/export_artifact_0b7cc944-0a0f-4626-8f5b-4f6cd9a1c854/approve","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641309474,"pid":52992,"hostname":"jzb","reqId":"req-1","res":{"statusCode":400},"responseTime":3.0597999999999956,"msg":"request completed"}
+{"level":30,"time":1791641309474,"pid":52992,"hostname":"jzb","reqId":"req-2","req":{"method":"POST","url":"/api/projects/project_1c895830-2c30-483b-a11e-2afa17a00948/export-artifacts/export_artifact_0b7cc944-0a0f-4626-8f5b-4f6cd9a1c854/approve","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641309476,"pid":52992,"hostname":"jzb","reqId":"req-2","res":{"statusCode":400},"responseTime":1.304700000000139,"msg":"request completed"}
+{"level":30,"time":1791641309476,"pid":52992,"hostname":"jzb","reqId":"req-3","req":{"method":"POST","url":"/api/projects/project_1c895830-2c30-483b-a11e-2afa17a00948/export-artifacts/export_artifact_0b7cc944-0a0f-4626-8f5b-4f6cd9a1c854/review","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641309478,"pid":52992,"hostname":"jzb","reqId":"req-3","res":{"statusCode":200},"responseTime":2.308599999999842,"msg":"request completed"}
+{"level":30,"time":1791641309478,"pid":52992,"hostname":"jzb","reqId":"req-4","req":{"method":"POST","url":"/api/projects/project_1c895830-2c30-483b-a11e-2afa17a00948/export-artifacts/export_artifact_0b7cc944-0a0f-4626-8f5b-4f6cd9a1c854/approve","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641309480,"pid":52992,"hostname":"jzb","reqId":"req-4","res":{"statusCode":200},"responseTime":2.0585000000000946,"msg":"request completed"}
+✔ 质量、预检、Worker 用途一致；无 AI 审阅可导出，人工定稿验证具体文件 (1323.9173ms)
+(node:44528) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 并发追加不会丢失问题，损坏审计不得静默放行 (136.1724ms)
+✔ 真实 MCP Schema 支持阶段审片并把结构化证据和对账返回主流程 (1188.5606ms)
+✔ 字幕文字单帧复核只关闭对应文字问题，不关闭动态也不补全连续覆盖 (177.6608ms)
+✔ 局部和抽帧证据不等于全片，逐阶段累积并保留真实哈希 (380.5743ms)
+✔ 拒绝旧 Revision、范围越界、伪造媒体、无音轨和错误观察方式 (281.9418ms)
+✔ 问题跨 Run、Revision 保留，只有当前范围复核才能关闭且文件失效会重新待审 (211.9606ms)
+✔ 共用长 Scene 不会把一个效果误算为每拍都实现，stale 计划不会算成主动留白 (106.3022ms)
+✔ 严重观感问题不得被质量门禁丢弃，空报告和新 Run 不得清除待修问题 (53.2766ms)
+✔ Effect 内容合同阻止默认占位，并只放行有真实项目内容的 Cue (0.9283ms)
+(node:1020) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 真实MCP拒绝跨Scene整件作品且不写入，原作者改为完整承载后可正常放置 (1126.9584ms)
+✔ 同码异常和提交后失败不能伪装成保存前范围拒绝 (54.5676ms)
+✔ 范围纠正的交接合同保留原作者判断及旧unknown边界 (1.6701ms)
+(node:43548) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":30,"time":1791641313976,"pid":43548,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641313984,"pid":43548,"hostname":"jzb","reqId":"req-1","res":{"statusCode":201},"responseTime":7.273299999999836,"msg":"request completed"}
+{"level":30,"time":1791641313984,"pid":43548,"hostname":"jzb","reqId":"req-2","req":{"method":"PATCH","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/story","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641313989,"pid":43548,"hostname":"jzb","reqId":"req-2","res":{"statusCode":200},"responseTime":5.530999999999949,"msg":"request completed"}
+{"level":30,"time":1791641313990,"pid":43548,"hostname":"jzb","reqId":"req-3","req":{"method":"POST","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/assets/import-path","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641313999,"pid":43548,"hostname":"jzb","reqId":"req-3","res":{"statusCode":200},"responseTime":9.649200000000064,"msg":"request completed"}
+{"level":30,"time":1791641314000,"pid":43548,"hostname":"jzb","reqId":"req-4","req":{"method":"POST","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/assets/import-path","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641314005,"pid":43548,"hostname":"jzb","reqId":"req-4","res":{"statusCode":200},"responseTime":5.437099999999873,"msg":"request completed"}
+{"level":30,"time":1791641314060,"pid":43548,"hostname":"jzb","reqId":"req-5","req":{"method":"POST","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/evidence-captures","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641314064,"pid":43548,"hostname":"jzb","reqId":"req-5","res":{"statusCode":200},"responseTime":4.597700000000032,"msg":"request completed"}
+{"level":30,"time":1791641314065,"pid":43548,"hostname":"jzb","reqId":"req-6","req":{"method":"GET","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/evidence-captures?evidenceCaptureId=evidence_capture_5f51530b-b94c-4f06-936d-2b7737529908","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641314065,"pid":43548,"hostname":"jzb","reqId":"req-6","res":{"statusCode":200},"responseTime":0.34639999999990323,"msg":"request completed"}
+{"level":30,"time":1791641314065,"pid":43548,"hostname":"jzb","reqId":"req-7","req":{"method":"POST","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/narrative-map","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641314068,"pid":43548,"hostname":"jzb","reqId":"req-7","res":{"statusCode":200},"responseTime":3.069300000000112,"msg":"request completed"}
+{"level":30,"time":1791641314069,"pid":43548,"hostname":"jzb","reqId":"req-8","req":{"method":"GET","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/narrative-map","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641314069,"pid":43548,"hostname":"jzb","reqId":"req-8","res":{"statusCode":200},"responseTime":0.2800999999999476,"msg":"request completed"}
+{"level":30,"time":1791641314069,"pid":43548,"hostname":"jzb","reqId":"req-9","req":{"method":"POST","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/explainer-scenes/compile","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641314070,"pid":43548,"hostname":"jzb","reqId":"req-9","res":{"statusCode":400},"responseTime":1.3916999999999007,"msg":"request completed"}
+{"level":30,"time":1791641314071,"pid":43548,"hostname":"jzb","reqId":"req-a","req":{"method":"POST","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/explainer-scenes/compile","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641314071,"pid":43548,"hostname":"jzb","reqId":"req-a","res":{"statusCode":400},"responseTime":0.5387000000000626,"msg":"request completed"}
+{"level":30,"time":1791641314071,"pid":43548,"hostname":"jzb","reqId":"req-b","req":{"method":"POST","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/explainer-scenes/compile","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641314072,"pid":43548,"hostname":"jzb","reqId":"req-b","res":{"statusCode":400},"responseTime":0.4579000000001088,"msg":"request completed"}
+{"level":30,"time":1791641314073,"pid":43548,"hostname":"jzb","reqId":"req-c","req":{"method":"POST","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/explainer-scenes/compile","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641314083,"pid":43548,"hostname":"jzb","reqId":"req-c","res":{"statusCode":200},"responseTime":9.89149999999995,"msg":"request completed"}
+{"level":30,"time":1791641314084,"pid":43548,"hostname":"jzb","reqId":"req-d","req":{"method":"GET","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/explainer-scenes","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641314084,"pid":43548,"hostname":"jzb","reqId":"req-d","res":{"statusCode":200},"responseTime":0.29189999999994143,"msg":"request completed"}
+{"level":30,"time":1791641314084,"pid":43548,"hostname":"jzb","reqId":"req-e","req":{"method":"GET","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/quality","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641314087,"pid":43548,"hostname":"jzb","reqId":"req-e","res":{"statusCode":200},"responseTime":3.151499999999942,"msg":"request completed"}
+{"level":30,"time":1791641314088,"pid":43548,"hostname":"jzb","reqId":"req-f","req":{"method":"POST","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/explainer-scenes/compile","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641314088,"pid":43548,"hostname":"jzb","reqId":"req-f","res":{"statusCode":400},"responseTime":0.671500000000151,"msg":"request completed"}
+{"level":30,"time":1791641314088,"pid":43548,"hostname":"jzb","reqId":"req-g","req":{"method":"POST","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/explainer-programs/explainer_program_7ca1a939-f55e-4fd1-819e-de6965ac6aae/enabled","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641314091,"pid":43548,"hostname":"jzb","reqId":"req-g","res":{"statusCode":200},"responseTime":2.34030000000007,"msg":"request completed"}
+{"level":30,"time":1791641314091,"pid":43548,"hostname":"jzb","reqId":"req-h","req":{"method":"POST","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/explainer-programs/explainer_program_7ca1a939-f55e-4fd1-819e-de6965ac6aae/enabled","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641314091,"pid":43548,"hostname":"jzb","reqId":"req-h","res":{"statusCode":409},"responseTime":0.3832999999999629,"msg":"request completed"}
+{"level":30,"time":1791641314092,"pid":43548,"hostname":"jzb","reqId":"req-i","req":{"method":"POST","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/explainer-programs/explainer_program_7ca1a939-f55e-4fd1-819e-de6965ac6aae/enabled","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641314092,"pid":43548,"hostname":"jzb","reqId":"req-i","res":{"statusCode":400},"responseTime":0.22299999999995634,"msg":"request completed"}
+{"level":30,"time":1791641314092,"pid":43548,"hostname":"jzb","reqId":"req-j","req":{"method":"POST","url":"/api/projects/project_ce1cd790-1edd-4d05-bc7e-036e8c49ff3c/explainer-programs/explainer_program_7ca1a939-f55e-4fd1-819e-de6965ac6aae/enabled","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641314094,"pid":43548,"hostname":"jzb","reqId":"req-j","res":{"statusCode":200},"responseTime":1.5879999999999654,"msg":"request completed"}
+✔ HTTP 入口完整建立 Explainer 证据、Program 与质量读取，错误编译不污染 Revision (282.8757ms)
+✔ MCP 入口以 snake_case 走完整 Explainer 编译并在错误时保留当前 Revision (1567.961ms)
+(node:45420) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 独占 Explainer Scene 的局部预览会写入并复用受管缓存，缓存键包含可视主任务 (359.5722ms)
+✔ 停用 Program 后不能复用仍存在的旧场景视频缓存，恢复时可复用同一输入 (501.4023ms)
+(node:53756) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ EvidenceCapture 必须绑定真实来源与归一化高亮，并拒绝生成素材伪装成证据 (69.1451ms)
+✔ NarrativeMap 可编译十二种 Explainer Program，局部状态连续且纯解释片仍有实际时长 (103.3597ms)
+✔ 新增解释 Scene 类型拒绝伪造事实，并在质量报告中持续阻塞失真的 Revision (65.274ms)
+✔ Data、Comparison、Classification 和有空档的状态范围必须在编译前被拒绝 (40.7202ms)
+✔ 局部启停 Program 保留其它对象、可恢复并持久化，失败不产生 Revision (56.7772ms)
+✔ 停用最后 Program 不撑出空尾，不把纯解释片伪装为已具备主视觉 (47.5248ms)
+✔ PresenterScene 与 ExplainerScene 可以保留在同一 Hybrid 项目和同一 Revision (48.6293ms)
+(node:54240) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 视频指定源范围提取独立音频并继承来源与权利 (327.9999ms)
+✔ 字体文件只接受目录ID与固定哈希，真实OTF/TTF及缓存身份正确 (349.2451ms)
+✔ 预览链接限制候选数量、去重及文本长度，损坏链接明确提示而不自动采用 (1.2033ms)
+✔ 发行 FunASR 保留长音频 token 边界，拒绝缺词补标点，并校验供应链哈希 (150.9699ms)
+(node:42336) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":30,"time":1791641318174,"pid":42336,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/jobs/job_c49eaa41-6d36-4989-b390-00cc8ebaa262/retry","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641318178,"pid":42336,"hostname":"jzb","reqId":"req-1","res":{"statusCode":202},"responseTime":3.2175000000002,"msg":"request completed"}
+{"level":30,"time":1791641318181,"pid":42336,"hostname":"jzb","reqId":"req-2","req":{"method":"POST","url":"/api/jobs/job_af70a5bb-c408-4d85-b706-308750d54038/retry","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641318183,"pid":42336,"hostname":"jzb","reqId":"req-2","res":{"statusCode":202},"responseTime":1.6419000000000779,"msg":"request completed"}
+{"level":30,"time":1791641318185,"pid":42336,"hostname":"jzb","reqId":"req-3","req":{"method":"POST","url":"/api/jobs/job_16066ad8-a0b0-4f75-b947-7236c3d0e89c/retry","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641318187,"pid":42336,"hostname":"jzb","reqId":"req-3","res":{"statusCode":202},"responseTime":1.5755999999998949,"msg":"request completed"}
+{"level":30,"time":1791641318188,"pid":42336,"hostname":"jzb","reqId":"req-4","req":{"method":"POST","url":"/api/jobs/job_5f31b342-f19a-471d-97d9-7af837c065c1/retry","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641318189,"pid":42336,"hostname":"jzb","reqId":"req-4","res":{"statusCode":400},"responseTime":0.45839999999998327,"msg":"request completed"}
+{"level":30,"time":1791641318191,"pid":42336,"hostname":"jzb","reqId":"req-5","req":{"method":"POST","url":"/api/jobs/job_ed85acd6-ed40-47e6-828a-46591b0f3db3/retry","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641318192,"pid":42336,"hostname":"jzb","reqId":"req-5","res":{"statusCode":400},"responseTime":0.23390000000017608,"msg":"request completed"}
+{"level":30,"time":1791641318194,"pid":42336,"hostname":"jzb","reqId":"req-6","req":{"method":"POST","url":"/api/jobs/job_ea9e9a07-ec31-4b08-a9fb-607eef5bc016/retry","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641318194,"pid":42336,"hostname":"jzb","reqId":"req-6","res":{"statusCode":400},"responseTime":0.1976999999999407,"msg":"request completed"}
+{"level":30,"time":1791641318197,"pid":42336,"hostname":"jzb","reqId":"req-7","req":{"method":"POST","url":"/api/jobs/job_975f36d2-93bd-4a60-8157-7768798164b8/retry","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641318197,"pid":42336,"hostname":"jzb","reqId":"req-7","res":{"statusCode":400},"responseTime":0.2013000000001739,"msg":"request completed"}
+✔ Job Retry 只重试已明确失败或取消的任务，未知结果必须先对账 (214.0026ms)
+✔ MCP 只能浏览、检测并导入配置根目录内的本地音效 (1663.4655ms)
+✔ 内部视频直接按源身份与范围校验，历史资格与作品改版不产生阻塞 (1.3975ms)
+(node:7072) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 真实MCP公开完整作品合同，允许长作品并在非法输入时原子拒绝 (90.2973ms)
+(node:37072) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 初始化不就绪时明确超时，普通浏览器故障保留原错误 (0.8499ms)
+✔ 目录只返回已登记本地字体，绑定固定实际字重和哈希，禁止路径与Props覆盖 (251.1286ms)
+✔ 用户提供的22份原件分别登记并正确准备，地区版本与仓耳粗细不合并或合成 (535.3831ms)
+✔ 字体缺失、内容变更及目录逃逸明确失败，Worker不换绑定；新哈希包含字体内容 (211.9615ms)
+✔ TTF按真实格式准备；伪装扩展名、类型不匹配和超过32MiB的字体明确拒绝 (316.4906ms)
+✔ 已登记的用户授权字体不按OFL标签拦截，仍必须匹配实际文件哈希 (15.7832ms)
+✔ 新增得意黑与烟波宋TTF共同首帧加载；字形不同、字体副本格式正确、损坏缓存拒绝 (2415.0441ms)
+✔ 非法字体提交不创建Job或Revision，原输入幂等返回同一固定字体任务 (127.4032ms)
+✔ 中文常规与粗体首帧可见且重复定位稳定，字体副本可核验，缓存损坏不覆盖 (2146.0874ms)
+✔ 浏览器拒绝损坏字体时明确加载失败，不产生代理视频或成功Asset (900.0792ms)
+✔ 黑体与宋体四个实际字重可共同加载，宋体600与900输出不同真实字形 (2017.9273ms)
+(node:53828) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 图片无任何观察与审核即可绑定，MCP及HTTP不再发布资格写入口 (205.5677ms)
+(node:52608) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 新作品不保存安全区测量，带旧测量字段的缓存仍校验实际帧并复用 (1408.103ms)
+✔ PNG 归一化保持彩色与半透明像素，拒绝损坏文件和错误画幅 (1.4408ms)
+✔ 深色渐变帧无损压缩后满足缓存预算，颜色与透明度不降级 (3472.2942ms)
+✔ 真实 Chromium 中的外部资源、动态求值被第二层隔离拒绝 (1572.1252ms)
+✔ 多层组件传递受管图片实际出图，传入远程地址仍由沙箱拒绝 (1829.42ms)
+✔ 透明帧与同帧重复寻址是真实渲染事实，源码文字仍可修改 (2410.255ms)
+✔ 帧计算失控会被终止，不阻断下一个合法作品 (13946.4622ms)
+✔ 真实 PNG 保留透明、移动和极淡像素，不依赖安全区测量 (1353.0416ms)
+✔ 全屏作品从不透明淡出到透明再显现，实际 Alpha 保持连续 (1351.2541ms)
+✔ RGB/RGBA 多次切换的审阅代理逐帧保留，不丢帧、不复制尾帧 (1825.0863ms)
+✔ 透明进入彩色全屏再退出时，代理保留每帧颜色、横向位置和 Alpha (1770.8686ms)
+(node:21112) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 视频合同固定作品帧范围，允许毫秒取整，拒绝旧入口及错误范围 (1.3123ms)
+✔ 23.976/25/30/VFR按PTS采样；跨Sequence保持作品时钟及精确帧数 (3840.7833ms)
+✔ 多路Job共享原片且不保存副本，完整作品独立于解码缓存，损坏结果不得复用 (2447.6224ms)
+(node:51912) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 无损压缩升级隔离新作品身份，旧版 Job 哈希仍可恢复 (0.8059ms)
+✔ 创作说明的工具合同明确新作品必填并兼容旧输入 (0.3415ms)
+✔ 布局重建隔离第十代引擎缓存，仍能核验第九代完整冻结输入 (0.1447ms)
+✔ 受管图片可经本地函数组件逐层传递，原生标签及别名不能借 src 放行 (166.8625ms)
+✔ 原创提交要求创作说明、参考可选，历史幂等重试保持原输入和哈希 (62.963ms)
+✔ 新作品审阅验证真实代理、完整范围和版本，旧别名及伪造声画不能绕过 (258.5212ms)
+✔ 四个来源按视觉选型；不包含用户排除的官方 Elements (0.6642ms)
+✔ 源码可表达独立的 Remotion 作品，非法依赖和计时在构建前拒绝 (125.1047ms)
+✔ 提交不改视频 Revision；同幂等键不同源码拒绝，断线重读不重复排队 (45.0275ms)
+✔ 技术生成成功不等于审美通过；更新作品不会覆盖旧版或自动重绑 Cue (65.829ms)
+✔ 解释片受管主视觉要求全场景连续覆盖，短装饰、缺失、过期和画幅不匹配不算通过 (53.3698ms)
+✔ 空项目的待审独立动效按实际合成范围计时，失效和移除后不留空尾 (55.7824ms)
+✔ 图片绑定固定哈希与来源，跨项目及提交后字节改变不会被后台偷偷接受 (61.7138ms)
+✔ 历史输入保持可读，重新生成明确要求新合同而非偷偷改变行为 (43.6659ms)
+✔ 素材坐标、源时钟和预览偏移的数学回归 (96.2913ms)
+✔ MCP 保持同一连接切换版本，并在新版恢复原项目定位 (1.2782ms)
+✔ 发布必须等待在途调用完成，未知写入结果不自动重放 (0.4015ms)
+✔ Schema 变化会通知刷新，旧参数不执行，刷新工具表后才能使用 (0.2217ms)
+✔ 工具说明和字段说明更新不阻断相同合同，仍发送目录变更通知 (0.2075ms)
+✔ 命名为说明的字段、默认值和行为提示仍属于受保护合同 (0.4501ms)
+✔ 新 Runtime 不健康时不回退到旧 MCP 执行写入 (0.2044ms)
+✔ 首次 Runtime 故障仍提供完整发行工具，恢复无需宿主重新拉表 (0.1895ms)
+✔ 工具发现不等待 Runtime 或部署锁，关闭后不得继续提供目录 (0.2965ms)
+✔ 拒绝没有实际发行目录的 MCP 启动，不能把空表当成成功 (0.1169ms)
+✔ 排队期间已取消的调用不能在发布后继续写入 (0.167ms)
+✔ 抢锁超时明确未执行，取消信号传至操作锁，连接恢复后仍可正常调用 (0.3024ms)
+✔ 后台探活只短暂等待争锁，失败不堵住后续工具队列 (0.1779ms)
+(node:20764) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 长素材分窗覆盖后半段且重叠不重复计算；发现阶段间隙保持未覆盖 (1.521ms)
+✔ 八秒连续条件不能用不相连片段或整条时长拼凑 (0.5829ms)
+✔ 画外旁白提到海浪不会被召回成海边画面 (0.1138ms)
+✔ 高相似度不能抵消真实人声；未分析原声不能判无人声 (0.1927ms)
+✔ 无人声证据需覆盖同一个拟用范围；低密度视觉仍需连续性复核 (0.1613ms)
+✔ 模型不合法格式和越界时间不能补成事实，精度由调用方限定 (1.0308ms)
+✔ 模型完整 JSON 后的单个多余右括号只作结构恢复，不补范围、排除条件或审阅结论 (0.9788ms)
+✔ 分析/观察不产生 Revision，纠错保留原文且不改变已用素材和视频版本 (63.2403ms)
+✔ 纠错保留明确的证据来源与精度，模型抽帧不升级成人工连续复核且历史可追溯 (46.3546ms)
+✔ visual 需求与辅助观察不生成采用资格 (47.6592ms)
+✔ 真实模型混合标点只修结构；未知模态单独剔除且未定位事实不扩成全窗 (0.6913ms)
+✔ 声音排除条件按交集切片，不跨越未知区间拼出连续长度 (0.1985ms)
+✔ 缓存预算保留历史/活动引用，仅清除模块内过期派生文件 (6.7402ms)
+✔ 本地媒体 SHA-256 按流读取，长文件哈希仍与标准结果一致 (21.4535ms)
+✔ Bridge multipart 上传使用文件背载 Blob，保持原有表单合同而不预读完整媒体 (14.707ms)
+✔ Bridge 只在服务明确声明后允许原声字幕使用前置队列 (0.7664ms)
+✔ Bridge 未声明前置队列时拒绝新字幕 Run (0.5948ms)
+✔ Bridge 文件输出的相对下载地址始终从 ComfyUI 服务根地址解析 (3.2293ms)
+✔ Bridge 文件输出拒绝非单斜杠同源 downloadUrl (0.2719ms)
+(node:47284) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":30,"time":1791641340532,"pid":47284,"hostname":"jzb","reqId":"req-1","req":{"method":"GET","url":"/media/project_efd2c750-72aa-4f23-9180-66b85e980355/assets/source/range.bin","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641340536,"pid":47284,"hostname":"jzb","reqId":"req-1","res":{"statusCode":200},"responseTime":3.2955000000001746,"msg":"request completed"}
+{"level":30,"time":1791641340536,"pid":47284,"hostname":"jzb","reqId":"req-2","req":{"method":"GET","url":"/media/project_efd2c750-72aa-4f23-9180-66b85e980355/assets/source/range.bin","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641340538,"pid":47284,"hostname":"jzb","reqId":"req-2","res":{"statusCode":206},"responseTime":1.1858999999999469,"msg":"request completed"}
+{"level":30,"time":1791641340538,"pid":47284,"hostname":"jzb","reqId":"req-3","req":{"method":"GET","url":"/media/project_efd2c750-72aa-4f23-9180-66b85e980355/assets/source/range.bin","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641340539,"pid":47284,"hostname":"jzb","reqId":"req-3","res":{"statusCode":206},"responseTime":0.975400000000036,"msg":"request completed"}
+{"level":30,"time":1791641340539,"pid":47284,"hostname":"jzb","reqId":"req-4","req":{"method":"GET","url":"/media/project_efd2c750-72aa-4f23-9180-66b85e980355/assets/source/range.bin","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641340539,"pid":47284,"hostname":"jzb","reqId":"req-4","res":{"statusCode":416},"responseTime":0.40010000000006585,"msg":"request completed"}
+{"level":30,"time":1791641340540,"pid":47284,"hostname":"jzb","reqId":"req-5","req":{"method":"GET","url":"/media/project_efd2c750-72aa-4f23-9180-66b85e980355/assets/source/range.bin","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641340540,"pid":47284,"hostname":"jzb","reqId":"req-5","res":{"statusCode":416},"responseTime":0.5951999999999771,"msg":"request completed"}
+{"level":30,"time":1791641340540,"pid":47284,"hostname":"jzb","reqId":"req-6","req":{"method":"GET","url":"/media/project_efd2c750-72aa-4f23-9180-66b85e980355/assets/source/range.bin","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641340541,"pid":47284,"hostname":"jzb","reqId":"req-6","res":{"statusCode":416},"responseTime":0.44489999999996144,"msg":"request completed"}
+✔ 受管媒体支持单范围读取，长素材拖动不需要整文件下载 (191.0976ms)
+(node:20904) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":30,"time":1791641341861,"pid":20904,"hostname":"jzb","reqId":"req-1","req":{"method":"GET","url":"/review/project_fef6069a-2115-4cb5-9c27-51dcd46a93f1/previews/a%20%26%20b.mp4","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641341863,"pid":20904,"hostname":"jzb","reqId":"req-1","res":{"statusCode":200},"responseTime":2.3745000000001255,"msg":"request completed"}
+{"level":30,"time":1791641341864,"pid":20904,"hostname":"jzb","reqId":"req-2","req":{"method":"GET","url":"/media/project_fef6069a-2115-4cb5-9c27-51dcd46a93f1/previews/a%20%26%20b.mp4","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641341866,"pid":20904,"hostname":"jzb","reqId":"req-2","res":{"statusCode":206},"responseTime":1.761600000000044,"msg":"request completed"}
+{"level":30,"time":1791641341866,"pid":20904,"hostname":"jzb","reqId":"req-3","req":{"method":"GET","url":"/review/project_fef6069a-2115-4cb5-9c27-51dcd46a93f1/previews/missing.mp4","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641341866,"pid":20904,"hostname":"jzb","reqId":"req-3","res":{"statusCode":404},"responseTime":0.4382999999997992,"msg":"request completed"}
+{"level":30,"time":1791641341866,"pid":20904,"hostname":"jzb","reqId":"req-4","req":{"method":"GET","url":"/review/project_fef6069a-2115-4cb5-9c27-51dcd46a93f1/previews/plain.txt","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641341867,"pid":20904,"hostname":"jzb","reqId":"req-4","res":{"statusCode":400},"responseTime":0.435799999999972,"msg":"request completed"}
+{"level":30,"time":1791641341867,"pid":20904,"hostname":"jzb","reqId":"req-5","req":{"method":"GET","url":"/review/%2e%2e%5coutside.mp4","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641341867,"pid":20904,"hostname":"jzb","reqId":"req-5","res":{"statusCode":400},"responseTime":0.13959999999997308,"msg":"request completed"}
+✔ 只读审阅路由保留媒体 Range 服务并拒绝越界、缺失和非媒体路径 (183.4515ms)
+✔ 审阅控件处理播放、暂停、重播、进度和真实解码失败，不依赖原生控件 (1.0073ms)
+(node:19448) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 外部分析等待时第二条媒体消费循环仍领取后续配音 (56.6102ms)
+✔ MiniCPM 在首次导入 torch 前隔离新旧 allocator 设置，父环境不变 (174.822ms)
+(node:31808) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 模型等待超时后显式恢复只续读原运行，连续超时也不重复提交 (56.279ms)
+✔ 自动 JSX 运行时可实际渲染无 React 导入的组件，旧身份仍可核验 (1140.7305ms)
+✔ 组件 top 属性实际渲染到指定坐标，名称放行不影响局部参数 (1097.0078ms)
+✔ 字幕配置通过子组件解构传参后仍识别为数据 (5.1731ms)
+✔ 未知调用、扩展属性与浏览器访问不能借子组件数据证明放行 (8.0126ms)
+(node:54696) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 一个 Cue 显式覆盖多个 Beat，旧数据仍仅按单锚点，不自动覆盖同场景 (87.5555ms)
+✔ 固定作品纯平移保留局部偏移；缩短 Scene 或删除覆盖 Beat 保持帧数并失效 (79.3703ms)
+✔ 合成审阅必须来自当前项目、版本和实际完整 Cue，单件通过不继承整片证据 (383.1975ms)
+✔ 旧 Scene 锚点作品追踪宿主内容变化，但不会扩大质量对账覆盖 (55.8555ms)
+✔ 真实语音映射限制覆盖范围，非主锚点内部时序与语义重排传播失效 (67.401ms)
+✔ 普通 Cue 的显式覆盖也保留删除后的失效声明，不阻止主线提交 (54.9558ms)
+(node:19444) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 退役安全区规则与旧测量数据不产生阻断或提醒，也不回写快照 (89.8967ms)
+✔ 按 ID 修改锚点与位置不复制片段，移除只动一个 Cue 且保留作品及历史 (62.4231ms)
+✔ 受管作品把通用 default-clean 规范为源码样式，仍拒绝实际外层样式覆写 (51.1931ms)
+(node:41140) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 图片差异区分微小色阶和明显变化，记录真实范围而非只给哈希 (3.5818ms)
+✔ SVG 默认输出使用几何精度文字，缩放与 textLength 不退回依赖字体优化的 auto 模式 (3934.8571ms)
+✔ 字体渲染引擎升级隔离新缓存，已冻结的第四代引擎任务仍可验证 (0.5708ms)
+✔ 完整栅格重绘使用新引擎缓存，仍可核验已冻结的第五代引擎任务 (0.1514ms)
+✔ SVG曲线和虚线不受局部脏区历史影响，顺序渲染与跳帧复查逐像素一致 (45213.9112ms)
+✔ 透明帧比较不把隐藏 RGB 当故障，同时检出黑色物体的 Alpha 丢失 (1.6354ms)
+✔ 半透明变换图层切换后，字幕阴影不复用顺序渲染的旧绘制状态 (10812.4688ms)
+✔ 轻微色阶差异保留警告并通过，局部明显差异失败，缓存损坏仍精确拒绝 (13.5493ms)
+{"event":"job_failed","jobId":"job_dc09d2e0-4362-4b9b-b742-fa1535fe1959","kind":"motion_generation","code":"MOTION_NONDETERMINISTIC","error":{"name":"Error","message":"MOTION_NONDETERMINISTIC: 重复定位帧 0 的可见差异超出 2 色阶；已保存原图、复截图和差异报告","stack":"Error: MOTION_NONDETERMINISTIC: 重复定位帧 0 的可见差异超出 2 色阶；已保存原图、复截图和差异报告\n    at verifyMotionDeterminism (E:\\ai\\VideoCut\\apps\\render-worker\\src\\motion-determinism.ts:94:41)\n    at async renderManagedMotion (E:\\ai\\VideoCut\\apps\\render-worker\\src\\motion-renderer.ts:207:25)\n    at async executeMotionJob (E:\\ai\\VideoCut\\apps\\render-worker\\src\\motion-job.ts:91:20)\n    at async runMotionJob (E:\\ai\\VideoCut\\apps\\render-worker\\src\\motion-job.ts:20:16)\n    at async processClaimedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:40:20)\n    at async TestContext.<anonymous> (E:\\ai\\VideoCut\\tests\\motion-determinism.test.ts:143:5)\n    at async Test.run (node:internal/test_runner/test:1125:7)\n    at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)","code":"MOTION_NONDETERMINISTIC"},"motionFailure":{"jobId":"job_dc09d2e0-4362-4b9b-b742-fa1535fe1959","version":"5d634b02bd30a5833e48644eda753e6bc59b6b6b7611a0d4761971e39a59c6d5","releaseId":"manual","stage":"determinism_verification","currentFrame":3,"lastCompletedFrame":3,"stageStartedAt":"2026-10-10T14:10:14.323Z","browserPid":52192,"browserVersion":"HeadlessChrome/149.0.7790.0","documentBytes":614853,"operation":"png_normalization","lastProgressAt":"2026-10-10T14:10:14.323Z","terminationRequestedBy":"failure_cleanup","browserDisconnected":true,"browserExitCode":0,"browserExitSignal":null,"error":{"name":"Error","message":"MOTION_NONDETERMINISTIC: 重复定位帧 0 的可见差异超出 2 色阶；已保存原图、复截图和差异报告","stack":"Error: MOTION_NONDETERMINISTIC: 重复定位帧 0 的可见差异超出 2 色阶；已保存原图、复截图和差异报告\n    at verifyMotionDeterminism (E:\\ai\\VideoCut\\apps\\render-worker\\src\\motion-determinism.ts:94:41)\n    at async renderManagedMotion (E:\\ai\\VideoCut\\apps\\render-worker\\src\\motion-renderer.ts:207:25)\n    at async executeMotionJob (E:\\ai\\VideoCut\\apps\\render-worker\\src\\motion-job.ts:91:20)\n    at async runMotionJob (E:\\ai\\VideoCut\\apps\\render-worker\\src\\motion-job.ts:20:16)\n    at async processClaimedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:40:20)\n    at async TestContext.<anonymous> (E:\\ai\\VideoCut\\tests\\motion-determinism.test.ts:143:5)\n    at async Test.run (node:internal/test_runner/test:1125:7)\n    at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)","code":"MOTION_NONDETERMINISTIC"},"reportPath":".videoflowcut-runtime/diagnostics/jobs/job_dc09d2e0-4362-4b9b-b742-fa1535fe1959/5d901507-abfc-444a-b96e-e263d075533c/report.json"}}
+✔ 真实有状态动画失败后，Job 返回持久化差异证据，不创建作品或视频 Revision (1290.7068ms)
+✔ 异常链保留原始堆栈，循环引用有界 (0.7784ms)
+✔ 诊断事件内容、stderr与进度写入均有限额，首次主动关闭原因不被覆盖 (51.4166ms)
+✔ 关闭失去响应的浏览器有限时且记录主动终止 (23.7589ms)
+✔ 真实页面初始化异常保留首条堆栈，失败不产生代理 (748.5659ms)
+✔ 参数拒绝返回字段与无副作用，未知异常不宣称可重试 (0.9153ms)
+✔ 三份大字体原件不再进入HTML，CDP响应低于管道上限，未知hash和外网拒绝 (2244.2194ms)
+✔ 受管 Img 通过 HTML 容器裁切和平移，与 SVG 同层叠加；foreignObject 仍拒绝 (1299.6666ms)
+✔ 真实MCP协议可发现两入口，查询后按指纹读取图文，拒绝越界及无效条件 (2457.9076ms)
+✔ 动画交接可经真实协议分阶段选型、核读、比较接点并恢复采用，不接受混合模式或过期资料 (6412.6959ms)
+(node:48740) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 768×1344完整33秒四选段经真实渲染形成一个792帧作品 (113309.4281ms)
+✔ 取消Job向实际媒体进程传信号且不登记作品、不创建Revision (344.225ms)
+✔ 120个案例的全部744条具备统一分类，正文是唯一来源 (2.9251ms)
+✔ 自然语言分阶段、同义词召回；否定不当正向词，同义词不重复加分 (29.1129ms)
+✔ 当前状态、保持和排除是硬筛选，不静默放宽 (7.1306ms)
+✔ 网页选项数量按其他组计算，有数量的替换选项一定有结果 (82.9245ms)
+✔ 旧链接五项冲突提供最少解除方案，单项取消无效时不误导 (5.8377ms)
+✔ 关键词参与联动和恢复，计数覆盖全部分页，缓存不串查询 (31.0215ms)
+✔ 相似演法带差异，前后段带条件并区分方向 (12.6335ms)
+✔ 分页可遍历全部召回，读取指纹改变明确拒绝 (25.9846ms)
+✔ 候选增删、排序、采用、链接恢复与过期未知项均可追踪 (2.2212ms)
+✔ MCP资料支撑返回实际正文与JPEG，不接受任意文件路径 (1191.9185ms)
+✔ 过期索引与指向库外的目录链接被拒绝 (14.6126ms)
+✔ 视频采用依据只定位绑定选段，不把80帧扩大成完整33秒作品 (0.8836ms)
+✔ 高纹理输出超过旧512MiB及像素总量仍按无损磁盘体积计算 (285.7918ms)
+✔ 磁盘不足在渲染前拒绝，并预留预览空间 (0.4048ms)
+✔ 分页完整覆盖原始记录，既不重复也不遗漏 (119.5557ms)
+✔ 没有题材关键词的案例仍出现在完整卡片中 (113.029ms)
+✔ 按编号读取保留请求顺序与原文 (119.5031ms)
+✔ 未知和重复编号明确失败 (110.3798ms)
+✔ 末页数量与结束游标明确 (23.8777ms)
+✔ 空索引返回明确结束状态 (1.8572ms)
+✔ 拒绝无效分页参数 (114.3352ms)
+✔ 拒绝重复身份与数量不一致 (4.5819ms)
+✔ 拒绝损坏 JSON 与不安全路径 (7.5725ms)
+✔ 拒绝超出时长的源范围 (2.906ms)
+✔ 读取不改变索引，哈希随索引内容变化 (220.6646ms)
+✔ 命令行返回 JSON，拒绝不存在的语义参数 (279.1944ms)
+✔ 真实库完整分页逐字段保真，读取不修改唯一索引 (49.8787ms)
+✔ 默认索引从脚本位置定位，不依赖当前工作目录 (94.9017ms)
+✔ 损坏记录给出可定位错误，UTF-8 BOM 可读但非法字节拒绝 (9.5305ms)
+✔ 目录链接不能把媒体入口指向索引根目录外 (7.6262ms)
+✔ 函数与命令行都拒绝混合查找方式和不完整参数，失败不输出半份 JSON (732.9033ms)
+✔ 正式库恰有120个案例，已转换案例的总览与机制成对完整 (1396.1924ms)
+✔ 120个实际交付视频哈希正确，第001条明确转码身份 (429.5454ms)
+✔ 材料与用途检索保留代表例，并且无结果不擅自放宽 (4.0937ms)
+✔ 共用入口有效，Skill按需读取机制且不再依赖研究日志 (1.9927ms)
+✔ 机制派生索引与正文一致，分页不漏项，未知编号不静默丢弃 (656.2137ms)
+✔ 机制资料允许库内相对图文引用，拒绝脚本和越界链接 (0.1806ms)
+(node:43820) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 无浏览器环境的 MCP 将原始审阅参数交给同版 Runtime，保留采样证据 (20.9224ms)
+✔ Runtime 审阅失败只返回真实故障，不在 MCP 下载浏览器或自动重试 (10.2596ms)
+✔ 旧版 Runtime 和空采样不能被包装成审阅成功 (11.8686ms)
+{"level":30,"time":1791641423471,"pid":43820,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/motion/inspect-reference","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641423474,"pid":43820,"hostname":"jzb","reqId":"req-1","res":{"statusCode":400},"responseTime":2.2595000000001164,"msg":"request completed"}
+{"level":30,"time":1791641423474,"pid":43820,"hostname":"jzb","reqId":"req-2","req":{"method":"POST","url":"/api/motion/inspect-reference","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641423476,"pid":43820,"hostname":"jzb","reqId":"req-2","res":{"statusCode":400},"responseTime":1.3958000000000084,"msg":"request completed"}
+{"level":30,"time":1791641423476,"pid":43820,"hostname":"jzb","reqId":"req-3","req":{"method":"POST","url":"/api/motion/inspect-reference","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641423476,"pid":43820,"hostname":"jzb","reqId":"req-3","res":{"statusCode":400},"responseTime":0.3292999999998756,"msg":"request completed"}
+{"level":30,"time":1791641423476,"pid":43820,"hostname":"jzb","reqId":"req-4","req":{"method":"POST","url":"/api/motion/inspect-reference","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641423477,"pid":43820,"hostname":"jzb","reqId":"req-4","res":{"statusCode":400},"responseTime":0.3612000000000535,"msg":"request completed"}
+✔ Runtime 审阅入口先检查版本和参数，不创建视频项目或 Job (184.1645ms)
+(node:52432) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 全文、独立向量召回、粗状态软排序与稳定分页 (1312.0973ms)
+✔ 现有模型运输接入任务指令，744条缓存复用且不写素材和Revision (9699.3082ms)
+✔ MCP首次返回真实词法降级与Job，失败或未知不自动重放，完成后读回 (2509.9731ms)
+✔ 无目标项目保留词法结果，提交结果未知不声明无副作用 (1825.0987ms)
+✔ 动效几何变量按实际作用域解析，允许局部 top 和闭包引用 (187.7743ms)
+✔ 局部同名绑定不能放行其它作用域中的全局或非数据对象属性访问 (8.375ms)
+✔ 普通数据字段与平台 Props 可使用同名键，点访问和方括号一致 (138.4931ms)
+✔ 数据字段不能掩盖全局、未知接收者、函数、getter 和原型访问 (7.2385ms)
+✔ 类型和环境声明不能伪装成实际局部值 (4.561ms)
+(node:45456) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 源码纠正合同在Skills保留原作者交接和已入队失败边界 (4.5889ms)
+✔ JSX属性只豁免名称，属性值、展开、简写与DOM限制继续检查 (33.2289ms)
+✔ 已知源码拒绝全部提供结构化诊断，编译入口不携带提交重试许可 (6.0342ms)
+✔ 真实MCP源码拒绝无写入，纠正后同键入队且保留幂等保护 (70.8445ms)
+{"level":30,"time":1791641442015,"pid":45456,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects/project_53b65493-82c0-42f0-918b-2641c51ce2b8/motion-works","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641442020,"pid":45456,"hostname":"jzb","reqId":"req-1","res":{"statusCode":400},"responseTime":4.279399999999896,"msg":"request completed"}
+{"level":30,"time":1791641442020,"pid":45456,"hostname":"jzb","reqId":"req-2","req":{"method":"POST","url":"/api/projects/project_53b65493-82c0-42f0-918b-2641c51ce2b8/motion-works","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":50,"time":1791641442021,"pid":45456,"hostname":"jzb","err":{"type":"Error","message":"模拟平台异常","stack":"Error: 模拟平台异常\n    at EditingApplication.application.submitManagedMotion (E:\\ai\\VideoCut\\tests\\motion-submission-validation.test.ts:118:53)\n    at Object.<anonymous> (E:\\ai\\VideoCut\\apps\\server\\src\\app.ts:1049:24)\n    at preHandlerCallbackInner (E:\\ai\\VideoCut\\node_modules\\fastify\\lib\\handle-request.js:203:24)\n    at preHandlerCallback (E:\\ai\\VideoCut\\node_modules\\fastify\\lib\\handle-request.js:168:5)\n    at validationCompleted (E:\\ai\\VideoCut\\node_modules\\fastify\\lib\\handle-request.js:158:5)\n    at preValidationCallback (E:\\ai\\VideoCut\\node_modules\\fastify\\lib\\handle-request.js:135:5)\n    at handler (E:\\ai\\VideoCut\\node_modules\\fastify\\lib\\handle-request.js:105:7)\n    at onDone (E:\\ai\\VideoCut\\node_modules\\fastify\\lib\\content-type-parser.js:235:5)\n    at AsyncResource.runInAsyncScope (node:async_hooks:228:14)\n    at bound (node:async_hooks:259:16)"},"msg":"模拟平台异常"}
+{"level":30,"time":1791641442023,"pid":45456,"hostname":"jzb","reqId":"req-2","res":{"statusCode":500},"responseTime":3.068599999999833,"msg":"request completed"}
+✔ HTTP提交前源码拒绝返回400，意外异常返回500 (122.5106ms)
+✔ 高纹理选段真实累计解码超过512MiB，有界缓存回收后仍完整完成 (21268.2164ms)
+✔ 小工作区频繁分块回收仍与完整PTS采样一致，跨槽/跨作品复用且坏缓存可重建 (4937.9538ms)
+✔ 大于512MiB原片使用短选段不被拒绝；源变化与极小工作区明确失败 (1045.722ms)
+✔ 第628秒选段定位关键帧后精确采样，不从片头重建时间轴 (475.1908ms)
+✔ 非零容器PTS和长VFR间隔仍使用归一化源时钟，不跳到下一幅画面 (458.887ms)
+✔ 固定Job绑定和公开比例不一致，解码前拒绝 (2.0464ms)
+✔ 比例严格校验，几何尺寸不静默夹到边界 (1.2723ms)
+✔ 四种旋转和SAR实际解码与显示方向一致；旧引擎不进入新生成 (1296.2314ms)
+(node:49264) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 阶段 5 多机位只能在确认同步后切换，并以静音画面和单一主声音编译 (82.2052ms)
+✔ 多机位 sourceRanges 只允许在指定原片区间内同步、切换和编译 (61.4719ms)
+✔ 没有共同音轨时，人工同一事件标记仍可直接形成 ready Group (47.2015ms)
+(node:3412) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 滑动 NCC 找到固定偏移，并把周期性声轨保留为低峰值差证据 (10.5264ms)
+✔ 锚点扫描会跳过前一低相关窗口，选择后一条仍满足唯一峰值的共同音轨 (0.1584ms)
+✔ 大搜索半径不能把有限锚点扫描退化为只检查会话片尾 (0.4127ms)
+✔ 多窗口共识要求严格主锚点，允许较低但唯一且同偏移的独立复核 (0.3414ms)
+✔ 多机位 Worker 从受管 PCM 中写入 candidate，并在 finally 清理 Job 缓存 (1947.7729ms)
+(node:12468) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 音乐 Bridge 请求只映射唯一的正向提示词和精确时长 (6.5175ms)
+✔ 音乐 Worker 动态读取 Schema、保存审计并只接收可解码的本地音频 (112.5476ms)
+✔ 多路音频输出或网页错误页不会被误当成可用音乐 (3.1715ms)
+✔ 已提交的音乐 Run 丢失时不自动重提，避免在未知额度状态下重复消费 (1.6236ms)
+✔ 音乐 Application 登记受管素材；实际加入 BGM 后可导出 delivery (81.8474ms)
+(node:31188) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 数据库表结构元数据与实际 DDL 的表、字段和类型保持同步 (1.7779ms)
+✔ Pexels API 关键词候选保留来源与可核验时长 (2.4527ms)
+✔ Pexels 缺少时长和尺寸仍保留候选；规格按用途选择而非默认最小 (0.4835ms)
+✔ Pexels 无凭据只接受单视频页，拒绝跨视频或外站地址 (1.2378ms)
+✔ Pexels 公开入口只获取同 ID 的 MP4 并交给媒体校验 (13.0082ms)
+✔ Pexels API 模式拒绝不可信文件链接 (0.4321ms)
+✔ 登记字体与许可证完整发行，字体字节及MCP真实Schema同步 (269.2346ms)
+✔ 插件发行副本只由根目录 Skills 源同步，并声明唯一 MCP 入口 (315.0553ms)
+✔ 插件安装时只启动已构建的 CommonJS Runtime (1.6839ms)
+(node:48888) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 禁用人物审计记录不阻断成片，重新启用与有效人物过期仍严格校验 (97.3076ms)
+✔ 禁用人物的 Mask 和生成版本检查也只在重新参与合成时生效 (54.0419ms)
+✔ token真实毫秒边界按同一帧映射裁剪，不把帧反算毫秒后误拒绝 (115.4058ms)
+✔ 纯段级真实毫秒边界按同一帧映射裁剪，不把帧反算毫秒后误拒绝 (100.2857ms)
+✔ 删除使跨切口效果和包装失效、后续效果平移，纯拆分保留包装 (133.2263ms)
+✔ 裁剪保护锁定包装和后续生成型人物绑定 (78.6864ms)
+✔ 删除整条非最后主画面后不留黑尾，后续场景编译与字幕编辑仍可用 (61.566ms)
+{"level":30,"time":1791641482222,"pid":48888,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects/project_a17931b9-91cf-48d0-ac24-98c3bc2429d6/timeline/edit-presenter-source","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641482229,"pid":48888,"hostname":"jzb","reqId":"req-1","res":{"statusCode":200},"responseTime":6.53020000000015,"msg":"request completed"}
+✔ HTTP 与实时 MCP Schema 使用同一原子裁剪合同 (1224.4928ms)
+✔ token字幕裁剪后保留原证据与样式，非整数毫秒切口不累计漂移 (74.1977ms)
+✔ 纯段级字幕裁剪后保留原证据与样式，非整数毫秒切口不累计漂移 (65.5618ms)
+✔ 穿过字幕的切口、无序范围、在途 Job 与过期 Revision 均原子拒绝 (48.6678ms)
+✔ 裁剪派生字幕不能改写父 Provider token 或伪造来源 (52.2485ms)
+✔ 原声人物视频可在同一 Revision 中删除中间重复段并保留声画源坐标 (44.5593ms)
+(node:11284) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 生产流程门面保持五个可读阶段，并只引用现有 Application 公开命令 (0.7938ms)
+✔ 项目总览与生产门面使用同一组五阶段名称和顺序 (0.1594ms)
+✔ 阶段目录与对应门面类的公开方法必须完全同步 (0.1247ms)
+✔ 生产流程门面将各阶段命令原样委托给同一个 EditingApplication (0.3023ms)
+(node:33484) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 创建可选fps、变更预检查只读、相同值幂等、历史快照保留 (65.5572ms)
+✔ 降采样零帧与未終态回写任务拒绝，固定历史预览不阻挡 (47.8335ms)
+✔ 跨fps受管作品完整放置、帧映射与声音事件保持，内容变更仍失效 (78.4243ms)
+✔ 毫秒证据、作品内部帧与源元数据保留，字幕、显示范围和负偏移明确投影 (40.501ms)
+{"level":30,"time":1791641484259,"pid":33484,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641484265,"pid":33484,"hostname":"jzb","reqId":"req-1","res":{"statusCode":201},"responseTime":5.867399999999861,"msg":"request completed"}
+{"level":30,"time":1791641484265,"pid":33484,"hostname":"jzb","reqId":"req-2","req":{"method":"POST","url":"/api/projects/project_5a50a037-d9d8-4dfd-84d8-7c9cc333cb49/frame-rate/preview","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641484266,"pid":33484,"hostname":"jzb","reqId":"req-2","res":{"statusCode":200},"responseTime":0.8509000000001379,"msg":"request completed"}
+{"level":30,"time":1791641484266,"pid":33484,"hostname":"jzb","reqId":"req-3","req":{"method":"POST","url":"/api/projects/project_5a50a037-d9d8-4dfd-84d8-7c9cc333cb49/frame-rate","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641484268,"pid":33484,"hostname":"jzb","reqId":"req-3","res":{"statusCode":200},"responseTime":1.9465999999999894,"msg":"request completed"}
+{"level":30,"time":1791641484268,"pid":33484,"hostname":"jzb","reqId":"req-4","req":{"method":"POST","url":"/api/projects/project_5a50a037-d9d8-4dfd-84d8-7c9cc333cb49/frame-rate","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641484269,"pid":33484,"hostname":"jzb","reqId":"req-4","res":{"statusCode":409},"responseTime":0.5157000000001517,"msg":"request completed"}
+{"level":30,"time":1791641484269,"pid":33484,"hostname":"jzb","reqId":"req-5","req":{"method":"POST","url":"/api/projects/project_5a50a037-d9d8-4dfd-84d8-7c9cc333cb49/frame-rate","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641484269,"pid":33484,"hostname":"jzb","reqId":"req-5","res":{"statusCode":400},"responseTime":0.3567000000000462,"msg":"request completed"}
+✔ HTTP新建与修改沿用同一fps合同，预检查后版本变化拒绝 (118.3469ms)
+video-editor-mcp 已通过 stdio 启动
+(node:34284) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 真实MCP表提供fps参数与只读预检查，新客户端沿正式工具完成变更 (1149.2223ms)
+✔ 非零会话起点的多机位换算保留主声音与负同步偏移 (54.8941ms)
+✔ 原声字幕从真实Provider毫秒重新投影，转写证据与字幕Program保留 (50.5156ms)
+✔ MCP 注册工具全部归入项目总览能力目录 (4.4464ms)
+✔ 项目总览集中读取 Node 配置且不泄漏敏感值 (0.6186ms)
+✔ Web 与插件启动器配置也在项目总览中可见 (0.8567ms)
+✔ 环境变量目录扫描不截断混合大小写系统变量 (0.1832ms)
+✔ 显式环境变量与总览配置目录严格一致 (65.8978ms)
+✔ 项目总览 MCP 可发现并返回创作与素材操作表结构，且不泄漏密钥 (1416.6577ms)
+✔ 公开来源使用代理的已核验IP隧道、保留Host；重定向内网不发第二次请求 (45.5839ms)
+✔ NO_PROXY保持直连，未支持固定IP的代理协议明确拒绝 (3.123ms)
+(node:50008) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 同一 Revision 的质量问题 ID 稳定，Revision 变化后不会与旧问题混淆 (53.1262ms)
+✔ 浏览器准备使用宿主依赖根，真实启动关闭后才返回绝对路径 (58.7436ms)
+✔ 下载或启动无进展时有总截止时间，准备进程退出而非遗留后台下载 (368.6542ms)
+✔ 浏览器存在但不能启动时准备失败，不能宣告部署就绪 (54.0723ms)
+✔ 发行 Runtime 未准备或路径失效时直接失败，不进入业务 Job 自动下载 (0.6164ms)
+✔ 渲染媒体Range反复取消后关闭文件句柄，服务仍可正常读取 (270.8384ms)
+✔ 渲染媒体读取异步失败不会杀死服务，关闭会回收暂停的流 (8.8052ms)
+Remotion 内部页面响应事件未齐，重新渲染（恢复 1/2）：Visited "http://localhost:3000/index.html" but got no response.
+Remotion 内部页面响应事件未齐，重新渲染（恢复 2/2）：Visited "http://localhost:3000/index.html" but got no response.
+Remotion 内部页面响应事件未齐，重新渲染（恢复 1/2）：Visited "http://127.0.0.1:3001/index.html" but got no response.
+Remotion 内部页面响应事件未齐，重新渲染（恢复 2/2）：Visited "http://127.0.0.1:3001/index.html" but got no response.
+✔ 仅内部导航响应竞态可恢复，必须取得真实渲染结果后才返回 (1.0475ms)
+✔ 持续导航故障保留原错误，资源与外部请求失败绝不自动重放 (0.3897ms)
+(node:33264) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 成片复核绑定真实导出哈希，不导入素材或产生Revision，替换/跨项目/越界均拒绝 (244.0519ms)
+✔ 局部预览明确返回成片偏移，失败或旧范围不能冒充成功预览 (49.2195ms)
+(node:47348) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Repair Ticket 独立于视频 Revision，并用角色、版本和当前 Revision 收口 (59.9468ms)
+✔ 输入错误和重复报告可凭证据非部署收口，不能冒充已部署 (43.2115ms)
+(node:49872) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 发行 MCP 非部署收口验证角色、分类、持久化及视频 Revision 隔离 (628.616ms)
+✔ 受限代码型 Remotion Scene 只接受已注册模板和有限 JSON Props (1.1017ms)
+✔ 受限 Scene 明确拒绝 JSX、样式、URL 和未知字段，不能借 props 执行任意代码 (0.2767ms)
+✔ 受限模板会检查自身数据边界，而不是将错误数据降级成看似成功的卡片 (0.491ms)
+✔ Shader 只允许受审查的内置 WebGL 模板，复杂三维仍降级为项目内预渲染素材 (0.2532ms)
+✔ Runtime 不复用缺少当前下载器配置的旧进程 (1534.5921ms)
+✔ MCP 操作与部署共用工作区互斥锁，前一个操作完成才能进入 (270.9292ms)
+✔ 遗留启动锁的 PID 被新进程复用后可恢复，不误杀同号进程或抢占活跃锁 (545.9222ms)
+✔ 等待超时和取消均不执行回调，活跃持锁者不被抢占且后续操作可恢复 (51.6359ms)
+✔ 业务内部 EEXIST 只执行一次，不能被误认成抢锁冲突而重放 (4.6814ms)
+✔ 锁删除短暂失败会重试，持续失败明确报错且同进程可恢复 (3283.8492ms)
+(node:3604) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 缩短旧解释场景只改变终点，并拒绝越界依赖和过期 Revision (51.4261ms)
+✔ 选定源码通过当前受管校验与编译；按固定模式和图片绑定编译，不运行正式项目 (1200.0152ms)
+✔ 合集时长扣除实际交叠，24秒合成明确保留外部素材和本地时间 (5.1618ms)
+✔ 差异同步更新内容与删除旧对象，未修改媒体不触碰文件身份 (15.2863ms)
+✔ 字体身份与选择操作分别位于实现合同和提交参考 (4.2374ms)
+✔ 字幕位置配置与无固定安全区合同一致，发布指引不要求测量或提示 (14.1481ms)
+✔ 视频Skill与MCP统一根时钟、选段字段和资源回收合同 (16.0258ms)
+✔ 人物剪辑专业资料从导演与相关专项可达，发行内容保持一致 (125.192ms)
+✔ 方法与案例可达，但案例不再注册独立工作能力 (78.9403ms)
+✔ Skills V5 源唯一、插件发行副本完整且可被 Codex 发现 (145.4642ms)
+✔ 导演只选一条主流程，专项与同一交接约定连通 (546.5579ms)
+✔ 协调入口可到达全部创意角色与共享合同，机械操作保留主任务短路径 (812.5034ms)
+✔ 正式提交与专业判断分工在唯一交接中维护 (2.0251ms)
+✔ 宿主满额恢复有现有负责人接替路径，不依赖虚构名额回收 (75.3603ms)
+✔ 子代理工具缺失使用可追溯事实交接，实际访问和交接结果分别验收 (14.6429ms)
+✔ Presenter Skill 的概要、Gate A 与示范路线都先编译 Scene 再登记人物 (1.1975ms)
+✔ Skill 中的 MCP 名称、输入字段和工具状态与代码一致 (36.6534ms)
+✔ 声音待审与合成帧批量上限在剪辑工具和 Skill 中可发现 (2.7275ms)
+✔ 重复帧诊断的 Skill 交接保留证据与剪辑报障边界 (1.0515ms)
+✔ 当前 Scene Registry 与 Skill 的可创建类型说明一致 (1.8149ms)
+✔ 活动脚本与测试不再引用已删除的旧共享合同 (1.1626ms)
+✔ 用户选定六项案例从两条正常入口可达，固定版本素材与源码完整发布 (167.4112ms)
+(node:52604) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 专项声音复核确实透传问题并隔离不同问题缓存，初看仍保持盲观察 (582.9445ms)
+✔ 持续声必须有足够源范围或明确循环接缝，源变更使循环与起音复核失效 (46.7764ms)
+✔ 计划不允许重复意图、旧版本采用或删除后继续发声 (48.0727ms)
+✔ 声音计划保留采用待复核提示但可导出，错误依据仍原子拒绝 (9503.0608ms)
+✔ 历史声音采用状态与范围不再阻塞当前正常放置 (46.8748ms)
+✔ 声音意图或计划取消后仍可关闭历史需求，创建和更新继续校验有效关联 (120.2261ms)
+✔ 外部提交结果未知不重放 POST，有 run ID 的读取中断可恢复 (54.0568ms)
+✔ ASR 多输出按槽读取，部分失败恢复补回独立观察且不重复 POST (395.0676ms)
+✔ 原声观察不接收用途答案，语义无效的成功 Run 在显式重试中重新分析且保留原始证据 (464.9ms)
+✔ 恢复旧版模型检查点不会把旧提示响应标成新版，已知运行必须先等结束 (69.7764ms)
+✔ 角色音效的 Duck 实际参与混音，显式携带 design 可以关闭且保留计划关联 (64.8506ms)
+✔ 演示主导同时保护演示声并降低真实旁白，静音原声不触发音乐 Duck (49.1539ms)
+✔ 三种声画比较只渲染副本，正式预览固定文件哈希，旁白时序变化使审阅失效 (11608.4518ms)
+✔ 真实迟入音轨派生保留 0.7 秒偏移，原声候选测量不自动确认 (293.608ms)
+✔ 新版动作引擎隔离版本哈希，同时识别旧已冻结任务 (0.596ms)
+✔ 旧采用资格不影响源范围编辑，静音仍从实际时间线读取 (45.8988ms)
+(node:43276) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 音频候选经真实 Worker/ffprobe 本地化，不伪造视频流或画幅；HTML 与无音轨被拒绝 (148.3663ms)
+✔ Mixkit 解析只检查原站身份和媒体信息，页面变化不猜链接 (0.5221ms)
+✔ Mixkit 下载核实原文件身份、域名及类型；限流不重试，错误页不留半成品 (12.2804ms)
+✔ Mixkit 分类迁移仅跟随有限同站公开页，音乐不能借用音效许可 (0.7036ms)
+✔ 音效候选可放置但不伪称复听；确认仅限当前源范围，变更后重新待审 (63.7153ms)
+✔ 18帧持续动作显式绑定时长，点事件可保留21帧尾音且两者保持待审 (67.8714ms)
+✔ 动效整体平移同步移动 SFX，作品内部改变/移除停用旧声音，重绑须显式确认 (47.6913ms)
+✔ draft 不误拦，场景失效、内容无效与帧率变化仍停用关联声音 (127.3816ms)
+✔ 不匹配事件、越界平移、源起点改动均不保留虚假同步 (47.1356ms)
+✔ 同一个真实事件合同允许起势、落定或贯穿，禁止自行编造内部时间 (54.7724ms)
+(node:49928) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 声音计划的真实 MCP Schema 按操作声明必填字段，缺范围不产生 Revision (169.7393ms)
+{"level":30,"time":1791641497502,"pid":49928,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects/project_d64ba9b7-a87a-4918-8334-842bcbf2041b/sound-plans","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641497506,"pid":49928,"hostname":"jzb","reqId":"req-1","res":{"statusCode":400},"responseTime":3.3158999999998287,"msg":"request completed"}
+{"level":30,"time":1791641497506,"pid":49928,"hostname":"jzb","reqId":"req-2","req":{"method":"POST","url":"/api/projects/project_d64ba9b7-a87a-4918-8334-842bcbf2041b/sound-plans","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641497508,"pid":49928,"hostname":"jzb","reqId":"req-2","res":{"statusCode":200},"responseTime":2.1604999999999563,"msg":"request completed"}
+{"level":30,"time":1791641497508,"pid":49928,"hostname":"jzb","reqId":"req-3","req":{"method":"POST","url":"/api/projects/project_d64ba9b7-a87a-4918-8334-842bcbf2041b/sound-plans","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641497509,"pid":49928,"hostname":"jzb","reqId":"req-3","res":{"statusCode":400},"responseTime":0.43410000000017135,"msg":"request completed"}
+{"level":30,"time":1791641497509,"pid":49928,"hostname":"jzb","reqId":"req-4","req":{"method":"POST","url":"/api/projects/project_d64ba9b7-a87a-4918-8334-842bcbf2041b/sound-plans","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641497510,"pid":49928,"hostname":"jzb","reqId":"req-4","res":{"statusCode":400},"responseTime":0.3242000000000189,"msg":"request completed"}
+{"level":30,"time":1791641497510,"pid":49928,"hostname":"jzb","reqId":"req-5","req":{"method":"POST","url":"/api/projects/project_d64ba9b7-a87a-4918-8334-842bcbf2041b/sound-plans","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641497512,"pid":49928,"hostname":"jzb","reqId":"req-5","res":{"statusCode":200},"responseTime":2.1394000000000233,"msg":"request completed"}
+✔ 声音计划 HTTP 入口沿用相同创建合同和局部更新校验 (69.221ms)
+✔ 配音前声音计划交接明确预估范围与实测更新 (1.5327ms)
+(node:24432) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Provider 两个带自然标点的 v4 字幕段在同一 Worker 提交中自动生成 derived 默认 Program 与两张字幕卡 (251.129ms)
+✔ Provider 无 token 证据的 v4 段仍自动生成 sentence_exact 默认字幕，但拒绝猜测重分段 (293.0157ms)
+{"event":"job_failed","jobId":"job_e6b500aa-d44e-4e3a-8b97-31a10e01d410","kind":"source_caption_alignment","code":"SOURCE_CAPTION_SEGMENT_OUTPUT_INVALID","error":{"name":"Error","message":"FunASR 字幕段的文字、顺序或时间无效","stack":"Error: FunASR 字幕段的文字、顺序或时间无效\n    at <anonymous> (E:\\ai\\VideoCut\\packages\\edit-application\\src\\index.ts:854:13)\n    at Array.map (<anonymous>)\n    at validateSourceAudioCaptionAlignmentEvidence (E:\\ai\\VideoCut\\packages\\edit-application\\src\\index.ts:849:45)\n    at EditingApplication.completeSourceAudioCaptionAlignment (E:\\ai\\VideoCut\\packages\\edit-application\\src\\index.ts:4322:22)\n    at SourceCaptionAlignmentService.align (E:\\ai\\VideoCut\\packages\\speech-services\\src\\index.ts:1164:38)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async processClaimedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:40:20)\n    at async runOneQueuedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:72:3)\n    at async executeProviderCaptionAlignment (E:\\ai\\VideoCut\\tests\\source-caption-worker.test.ts:182:18)\n    at async TestContext.<anonymous> (E:\\ai\\VideoCut\\tests\\source-caption-worker.test.ts:374:25)","code":"SOURCE_CAPTION_SEGMENT_OUTPUT_INVALID"}}
+{"event":"job_failed","jobId":"job_c4b60496-318a-4a79-8eb0-3e166ddfc67b","kind":"source_caption_alignment","code":"SOURCE_CAPTION_SEGMENT_OUTPUT_INVALID","error":{"name":"Error","message":"FunASR 字幕段的文字、顺序或时间无效","stack":"Error: FunASR 字幕段的文字、顺序或时间无效\n    at <anonymous> (E:\\ai\\VideoCut\\packages\\edit-application\\src\\index.ts:854:13)\n    at Array.map (<anonymous>)\n    at validateSourceAudioCaptionAlignmentEvidence (E:\\ai\\VideoCut\\packages\\edit-application\\src\\index.ts:849:45)\n    at EditingApplication.completeSourceAudioCaptionAlignment (E:\\ai\\VideoCut\\packages\\edit-application\\src\\index.ts:4322:22)\n    at SourceCaptionAlignmentService.align (E:\\ai\\VideoCut\\packages\\speech-services\\src\\index.ts:1164:38)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async processClaimedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:40:20)\n    at async runOneQueuedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:72:3)\n    at async executeProviderCaptionAlignment (E:\\ai\\VideoCut\\tests\\source-caption-worker.test.ts:182:18)\n    at async TestContext.<anonymous> (E:\\ai\\VideoCut\\tests\\source-caption-worker.test.ts:374:25)","code":"SOURCE_CAPTION_SEGMENT_OUTPUT_INVALID"}}
+{"event":"job_failed","jobId":"job_79ca557d-1cdb-4941-b1c3-89b53189fb1a","kind":"source_caption_alignment","code":"SOURCE_CAPTION_SEGMENT_OUTPUT_INVALID","error":{"name":"Error","message":"FunASR 字幕段的 token 范围不连续或无效","stack":"Error: FunASR 字幕段的 token 范围不连续或无效\n    at <anonymous> (E:\\ai\\VideoCut\\packages\\edit-application\\src\\index.ts:897:13)\n    at Array.map (<anonymous>)\n    at validateSourceAudioCaptionAlignmentEvidence (E:\\ai\\VideoCut\\packages\\edit-application\\src\\index.ts:890:39)\n    at EditingApplication.completeSourceAudioCaptionAlignment (E:\\ai\\VideoCut\\packages\\edit-application\\src\\index.ts:4322:22)\n    at SourceCaptionAlignmentService.align (E:\\ai\\VideoCut\\packages\\speech-services\\src\\index.ts:1164:38)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async processClaimedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:40:20)\n    at async runOneQueuedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:72:3)\n    at async executeProviderCaptionAlignment (E:\\ai\\VideoCut\\tests\\source-caption-worker.test.ts:182:18)\n    at async TestContext.<anonymous> (E:\\ai\\VideoCut\\tests\\source-caption-worker.test.ts:374:25)","code":"SOURCE_CAPTION_SEGMENT_OUTPUT_INVALID"}}
+{"event":"job_failed","jobId":"job_08c62f2e-3f80-409d-b7bf-953ccd666bfe","kind":"source_caption_alignment","code":"SOURCE_CAPTION_SEGMENT_OUTPUT_INVALID","error":{"name":"Error","message":"FunASR 第 3 个字幕段结果结构无效","stack":"Error: FunASR 第 3 个字幕段结果结构无效\n    at <anonymous> (E:\\ai\\VideoCut\\packages\\speech-services\\src\\index.ts:947:13)\n    at Array.map (<anonymous>)\n    at parseSourceCaptionAlignmentOutput (E:\\ai\\VideoCut\\packages\\speech-services\\src\\index.ts:941:36)\n    at SourceCaptionAlignmentService.align (E:\\ai\\VideoCut\\packages\\speech-services\\src\\index.ts:1160:25)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async processClaimedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:40:20)\n    at async runOneQueuedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:72:3)\n    at async executeProviderCaptionAlignment (E:\\ai\\VideoCut\\tests\\source-caption-worker.test.ts:182:18)\n    at async TestContext.<anonymous> (E:\\ai\\VideoCut\\tests\\source-caption-worker.test.ts:374:25)\n    at async Test.run (node:internal/test_runner/test:1125:7)","code":"SOURCE_CAPTION_SEGMENT_OUTPUT_INVALID"}}
+✔ Provider 段重叠、倒序或越界时失败且不写入半成品字幕 Revision (845.2437ms)
+✔ 剪辑任务的 editorial override 原子替换 Provider 默认 Program，不混留两套字幕 (209.1354ms)
+✔ A-roll 映射改变会使 Provider 默认 Program 与字幕卡一起失效 (203.9927ms)
+(node:48716) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 网页和图片合同不暴露 PDF 参数，错误提交不创建 Job 或 Revision (57.4557ms)
+{"level":30,"time":1791641501846,"pid":48716,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects/project_f71678b6-0105-4b50-b1df-43436442e4eb/research/acquire","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641501849,"pid":48716,"hostname":"jzb","reqId":"req-1","res":{"statusCode":400},"responseTime":2.8460999999999785,"msg":"request completed"}
+{"level":30,"time":1791641501849,"pid":48716,"hostname":"jzb","reqId":"req-2","req":{"method":"POST","url":"/api/projects/project_f71678b6-0105-4b50-b1df-43436442e4eb/research/acquire","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641501850,"pid":48716,"hostname":"jzb","reqId":"req-2","res":{"statusCode":400},"responseTime":0.7636999999999716,"msg":"request completed"}
+{"level":30,"time":1791641501850,"pid":48716,"hostname":"jzb","reqId":"req-3","req":{"method":"POST","url":"/api/projects/project_f71678b6-0105-4b50-b1df-43436442e4eb/research/search","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641501850,"pid":48716,"hostname":"jzb","reqId":"req-3","msg":"Route POST:/api/projects/project_f71678b6-0105-4b50-b1df-43436442e4eb/research/search not found"}
+{"level":30,"time":1791641501851,"pid":48716,"hostname":"jzb","reqId":"req-3","res":{"statusCode":404},"responseTime":0.3007999999999811,"msg":"request completed"}
+{"level":30,"time":1791641501851,"pid":48716,"hostname":"jzb","reqId":"req-4","req":{"method":"POST","url":"/api/projects/project_f71678b6-0105-4b50-b1df-43436442e4eb/research/read","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641501851,"pid":48716,"hostname":"jzb","reqId":"req-4","msg":"Route POST:/api/projects/project_f71678b6-0105-4b50-b1df-43436442e4eb/research/read not found"}
+{"level":30,"time":1791641501851,"pid":48716,"hostname":"jzb","reqId":"req-4","res":{"statusCode":404},"responseTime":0.20319999999992433,"msg":"request completed"}
+✔ 来源 HTTP 路由保留版本错误与参数错误的结构化响应 (191.6857ms)
+✔ 公开来源拒绝内网、特殊地址、凭据及非法协议 (2.9018ms)
+✔ 截图导航保留地址拒绝根因，不被Chromium ERR_FAILED覆盖或写入素材 (486.4136ms)
+✔ 真实浏览器保留Referer，子资源失败保存待核验截图，主页面失败仍拒绝 (3679.3863ms)
+✔ 统计POST仅记缺口且不发送，验证码与子资源安全错误仍原子拒绝 (3080.395ms)
+✔ 受管取得真实 PNG、幂等完成、媒体分析与错误页拒绝 (138.9872ms)
+✔ PDF 原文件及选页登记、证据绑定并真实渲染，越界页原子拒绝 (3484.0682ms)
+(node:52560) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 第2张预览为空时保留其他真实图片，失败缓存不复用 (646.8797ms)
+✔ 第4张预览为空时保留其他真实图片，失败缓存不复用 (418.0507ms)
+✔ 所有图片为空但连续代理成功时仍可观看，声音分析失败不丢波形 (476.2529ms)
+✔ 波形为空不妨碍连续代理与其他声音证据，代理失败不能以截图审阅通过 (433.1181ms)
+✔ 磁盘故障终止后续处理但保留已成功图片，工具无法启动仍报平台故障 (571.0256ms)
+✔ 全部为空或超时时原因保留未知，转向其他候选而不制造平台工单 (200.6984ms)
+{"level":30,"time":1791641516919,"pid":52560,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects/project_958fb695-bbd8-4f0e-8fae-9fa7c9cdab07/assets/asset_bad9715a-8420-420f-9639-af34d16f0b03/inspect","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641517106,"pid":52560,"hostname":"jzb","reqId":"req-1","res":{"statusCode":200},"responseTime":186.23220000000038,"msg":"request completed"}
+✔ 真实坏文件通过HTTP返回候选不可用，原件丢失则返回平台故障 (354.5788ms)
+✔ 编码能力不足与程序异常不冒称素材损坏 (0.2281ms)
+✔ 代理虽有有效画面但缺少后半段时不能标为连续审阅成功 (598.0025ms)
+✔ 主任务、原素材作者与故障技能共享审阅分流规则，不把素材缺口当平台故障 (4.7605ms)
+(node:51648) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 纯音频审阅接受旁白统一尾帧并保留真实毫秒尾音，仍拒绝多一帧 (1388.026ms)
+✔ 素材审阅60秒与12秒边界明确，短范围dBFS不得冒充全片LUFS (1307.0894ms)
+✔ inspect_asset 不会把 25fps 源素材的 overview 末帧采样到 24fps 项目边界之外 (843.0418ms)
+✔ inspect_asset 以 VP8 实际画面帧数约束带 Vorbis 音轨尾巴的 WebM 联系表 (1600.7947ms)
+✔ inspect_asset 完整审阅 245 帧受管作品并准确解码末帧，不把毫秒取整误差变成越界 (1599.8806ms)
+{"level":30,"time":1791641527579,"pid":51648,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects/project_146f46fb-51e5-4705-885c-4acd7f9a0dcd/assets/asset_0e22a733-edae-4963-9dde-0d8c5965abf1/inspect","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641528062,"pid":51648,"hostname":"jzb","reqId":"req-1","res":{"statusCode":200},"responseTime":482.2461999999996,"msg":"request completed"}
+✔ inspect_asset 只生成可重建审阅缓存，并交付 overview、range、dense 的真实声画证据 (3778.8121ms)
+✔ 宽银幕素材预览缩放保证偶数尺寸，1920×802 不再编码为 960×401 (954.6741ms)
+✔ inspect_asset 把 SpeechAsset 当作连续音频候选，范围复核会生成音频代理与波形 (282.3253ms)
+✔ inspect_asset 对无音轨 derived 视频与 derived 音频按真实媒体流选择审阅路径 (795.2592ms)
+✔ inspect_asset 的当前使用只返回实际 Composition 可达对象 (1202.5264ms)
+(node:33964) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Application 仅在真实 token、审计与当前 SpeechAsset 一致时升级为 word_exact (81.6892ms)
+✔ Application 拒绝伪造文本、越界分段、帧换算和错误 Script 的词级输出 (50.8ms)
+✔ Worker 动态读取 Schema、上传本地音频和当前 Script，并只接受明确 JSON 时间戳 (55.3602ms)
+✔ 裸时间单位和丢失的 Bridge Run 都不会被猜测或自动重提 (51.3702ms)
+{"level":30,"time":1791641519566,"pid":33964,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects/project_927c791a-ac54-4572-8948-8b233f044296/speech-alignment","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641519571,"pid":33964,"hostname":"jzb","reqId":"req-1","res":{"statusCode":202},"responseTime":4.148099999999886,"msg":"request completed"}
+{"level":30,"time":1791641519571,"pid":33964,"hostname":"jzb","reqId":"req-2","req":{"method":"GET","url":"/api/projects/project_927c791a-ac54-4572-8948-8b233f044296/speech-alignment","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641519572,"pid":33964,"hostname":"jzb","reqId":"req-2","res":{"statusCode":200},"responseTime":0.41030000000000655,"msg":"request completed"}
+✔ HTTP 提交和读取词级对齐只暴露当前 Revision 的受管 Job / 对齐对象 (192.2523ms)
+(node:51992) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 真实MCP拒绝透明度0且不写Revision；旁白同源批量null取消背景，非法Card整批拒绝 (1276.1582ms)
+{"level":30,"time":1791641522372,"pid":51992,"hostname":"jzb","reqId":"req-1","req":{"method":"PATCH","url":"/api/projects/project_d2f2fc6f-ed07-491a-9c0c-5b63c5b71648/captions/caption_e2745526-7ab9-4fc4-9d8f-3006e44af058","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522376,"pid":51992,"hostname":"jzb","reqId":"req-1","res":{"statusCode":400},"responseTime":3.5609000000004016,"msg":"request completed"}
+{"level":30,"time":1791641522376,"pid":51992,"hostname":"jzb","reqId":"req-2","req":{"method":"PATCH","url":"/api/projects/project_d2f2fc6f-ed07-491a-9c0c-5b63c5b71648/captions/caption_e2745526-7ab9-4fc4-9d8f-3006e44af058","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522377,"pid":51992,"hostname":"jzb","reqId":"req-2","res":{"statusCode":400},"responseTime":1.1105999999999767,"msg":"request completed"}
+{"level":30,"time":1791641522377,"pid":51992,"hostname":"jzb","reqId":"req-3","req":{"method":"PATCH","url":"/api/projects/project_d2f2fc6f-ed07-491a-9c0c-5b63c5b71648/captions/caption_e2745526-7ab9-4fc4-9d8f-3006e44af058","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522378,"pid":51992,"hostname":"jzb","reqId":"req-3","res":{"statusCode":400},"responseTime":0.5187000000000808,"msg":"request completed"}
+{"level":30,"time":1791641522378,"pid":51992,"hostname":"jzb","reqId":"req-4","req":{"method":"PATCH","url":"/api/projects/project_d2f2fc6f-ed07-491a-9c0c-5b63c5b71648/captions/caption_e2745526-7ab9-4fc4-9d8f-3006e44af058","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522379,"pid":51992,"hostname":"jzb","reqId":"req-4","res":{"statusCode":400},"responseTime":0.4281999999998334,"msg":"request completed"}
+{"level":30,"time":1791641522379,"pid":51992,"hostname":"jzb","reqId":"req-5","req":{"method":"PATCH","url":"/api/projects/project_d2f2fc6f-ed07-491a-9c0c-5b63c5b71648/captions/caption_e2745526-7ab9-4fc4-9d8f-3006e44af058","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522379,"pid":51992,"hostname":"jzb","reqId":"req-5","res":{"statusCode":400},"responseTime":0.38779999999997017,"msg":"request completed"}
+{"level":30,"time":1791641522380,"pid":51992,"hostname":"jzb","reqId":"req-6","req":{"method":"PATCH","url":"/api/projects/project_d2f2fc6f-ed07-491a-9c0c-5b63c5b71648/captions/caption_e2745526-7ab9-4fc4-9d8f-3006e44af058","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522380,"pid":51992,"hostname":"jzb","reqId":"req-6","res":{"statusCode":400},"responseTime":0.3870999999999185,"msg":"request completed"}
+{"level":30,"time":1791641522380,"pid":51992,"hostname":"jzb","reqId":"req-7","req":{"method":"PATCH","url":"/api/projects/project_d2f2fc6f-ed07-491a-9c0c-5b63c5b71648/captions/caption_e2745526-7ab9-4fc4-9d8f-3006e44af058","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522383,"pid":51992,"hostname":"jzb","reqId":"req-7","res":{"statusCode":200},"responseTime":2.302599999999984,"msg":"request completed"}
+{"level":30,"time":1791641522383,"pid":51992,"hostname":"jzb","reqId":"req-8","req":{"method":"PATCH","url":"/api/projects/project_d2f2fc6f-ed07-491a-9c0c-5b63c5b71648/captions/caption_e2745526-7ab9-4fc4-9d8f-3006e44af058","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522385,"pid":51992,"hostname":"jzb","reqId":"req-8","res":{"statusCode":200},"responseTime":1.9025000000001455,"msg":"request completed"}
+{"level":30,"time":1791641522385,"pid":51992,"hostname":"jzb","reqId":"req-9","req":{"method":"PATCH","url":"/api/projects/project_d2f2fc6f-ed07-491a-9c0c-5b63c5b71648/captions/caption_e2745526-7ab9-4fc4-9d8f-3006e44af058","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522387,"pid":51992,"hostname":"jzb","reqId":"req-9","res":{"statusCode":200},"responseTime":1.8922999999999774,"msg":"request completed"}
+{"level":30,"time":1791641522387,"pid":51992,"hostname":"jzb","reqId":"req-a","req":{"method":"PATCH","url":"/api/projects/project_d2f2fc6f-ed07-491a-9c0c-5b63c5b71648/captions/caption_e2745526-7ab9-4fc4-9d8f-3006e44af058","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522389,"pid":51992,"hostname":"jzb","reqId":"req-a","res":{"statusCode":200},"responseTime":1.9160999999999149,"msg":"request completed"}
+✔ 字幕美术阴影经HTTP编辑读回；局部更新保留选择，非法值不写版本 (225.4752ms)
+{"level":30,"time":1791641522522,"pid":51992,"hostname":"jzb","reqId":"req-1","req":{"method":"PATCH","url":"/api/projects/project_a0c10600-b6b1-4017-a6f0-34aab2e75469/captions/caption_d0836cd4-7d72-49fe-a7c2-4df343b0399a","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522523,"pid":51992,"hostname":"jzb","reqId":"req-1","res":{"statusCode":400},"responseTime":0.7691999999997279,"msg":"request completed"}
+{"level":30,"time":1791641522523,"pid":51992,"hostname":"jzb","reqId":"req-2","req":{"method":"PATCH","url":"/api/projects/project_a0c10600-b6b1-4017-a6f0-34aab2e75469/captions/caption_d0836cd4-7d72-49fe-a7c2-4df343b0399a","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522523,"pid":51992,"hostname":"jzb","reqId":"req-2","res":{"statusCode":400},"responseTime":0.7034000000003289,"msg":"request completed"}
+{"level":30,"time":1791641522524,"pid":51992,"hostname":"jzb","reqId":"req-3","req":{"method":"PATCH","url":"/api/projects/project_a0c10600-b6b1-4017-a6f0-34aab2e75469/captions/caption_d0836cd4-7d72-49fe-a7c2-4df343b0399a","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522524,"pid":51992,"hostname":"jzb","reqId":"req-3","res":{"statusCode":400},"responseTime":0.48309999999992215,"msg":"request completed"}
+{"level":30,"time":1791641522524,"pid":51992,"hostname":"jzb","reqId":"req-4","req":{"method":"PATCH","url":"/api/projects/project_a0c10600-b6b1-4017-a6f0-34aab2e75469/captions/caption_d0836cd4-7d72-49fe-a7c2-4df343b0399a","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522525,"pid":51992,"hostname":"jzb","reqId":"req-4","res":{"statusCode":400},"responseTime":0.4515000000001237,"msg":"request completed"}
+{"level":30,"time":1791641522525,"pid":51992,"hostname":"jzb","reqId":"req-5","req":{"method":"PATCH","url":"/api/projects/project_a0c10600-b6b1-4017-a6f0-34aab2e75469/captions/caption_d0836cd4-7d72-49fe-a7c2-4df343b0399a","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522527,"pid":51992,"hostname":"jzb","reqId":"req-5","res":{"statusCode":200},"responseTime":1.8074000000001433,"msg":"request completed"}
+{"level":30,"time":1791641522527,"pid":51992,"hostname":"jzb","reqId":"req-6","req":{"method":"PATCH","url":"/api/projects/project_a0c10600-b6b1-4017-a6f0-34aab2e75469/captions/caption_d0836cd4-7d72-49fe-a7c2-4df343b0399a","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522528,"pid":51992,"hostname":"jzb","reqId":"req-6","res":{"statusCode":400},"responseTime":0.3872000000001208,"msg":"request completed"}
+{"level":30,"time":1791641522528,"pid":51992,"hostname":"jzb","reqId":"req-7","req":{"method":"PATCH","url":"/api/projects/project_a0c10600-b6b1-4017-a6f0-34aab2e75469/captions/caption_d0836cd4-7d72-49fe-a7c2-4df343b0399a","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522530,"pid":51992,"hostname":"jzb","reqId":"req-7","res":{"statusCode":200},"responseTime":2.046100000000024,"msg":"request completed"}
+{"level":30,"time":1791641522530,"pid":51992,"hostname":"jzb","reqId":"req-8","req":{"method":"PATCH","url":"/api/projects/project_a0c10600-b6b1-4017-a6f0-34aab2e75469/captions/caption_d0836cd4-7d72-49fe-a7c2-4df343b0399a","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522532,"pid":51992,"hostname":"jzb","reqId":"req-8","res":{"statusCode":200},"responseTime":2.0146999999997206,"msg":"request completed"}
+✔ 字幕显隐和静态位置经HTTP原子读回，保留语音原文与对齐，越界不写版本 (142.3009ms)
+{"level":30,"time":1791641522720,"pid":51992,"hostname":"jzb","reqId":"req-1","req":{"method":"PATCH","url":"/api/projects/project_eed53b94-f25f-4596-95e9-f24252cf1abd/captions/caption_b109d6ba-81d2-42b5-987d-e5e92d27cb5b","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522722,"pid":51992,"hostname":"jzb","reqId":"req-1","res":{"statusCode":400},"responseTime":1.4553999999998268,"msg":"request completed"}
+{"level":30,"time":1791641522722,"pid":51992,"hostname":"jzb","reqId":"req-2","req":{"method":"PATCH","url":"/api/projects/project_eed53b94-f25f-4596-95e9-f24252cf1abd/captions/caption_b109d6ba-81d2-42b5-987d-e5e92d27cb5b","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522723,"pid":51992,"hostname":"jzb","reqId":"req-2","res":{"statusCode":400},"responseTime":1.1347999999998137,"msg":"request completed"}
+{"level":30,"time":1791641522723,"pid":51992,"hostname":"jzb","reqId":"req-3","req":{"method":"PATCH","url":"/api/projects/project_eed53b94-f25f-4596-95e9-f24252cf1abd/captions/caption_b109d6ba-81d2-42b5-987d-e5e92d27cb5b","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522724,"pid":51992,"hostname":"jzb","reqId":"req-3","res":{"statusCode":400},"responseTime":0.7803000000003522,"msg":"request completed"}
+{"level":30,"time":1791641522724,"pid":51992,"hostname":"jzb","reqId":"req-4","req":{"method":"PATCH","url":"/api/projects/project_eed53b94-f25f-4596-95e9-f24252cf1abd/captions/caption_b109d6ba-81d2-42b5-987d-e5e92d27cb5b","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522725,"pid":51992,"hostname":"jzb","reqId":"req-4","res":{"statusCode":400},"responseTime":0.6892000000002554,"msg":"request completed"}
+{"level":30,"time":1791641522725,"pid":51992,"hostname":"jzb","reqId":"req-5","req":{"method":"PATCH","url":"/api/projects/project_eed53b94-f25f-4596-95e9-f24252cf1abd/captions/caption_b109d6ba-81d2-42b5-987d-e5e92d27cb5b","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522726,"pid":51992,"hostname":"jzb","reqId":"req-5","res":{"statusCode":400},"responseTime":0.4473000000002685,"msg":"request completed"}
+{"level":30,"time":1791641522726,"pid":51992,"hostname":"jzb","reqId":"req-6","req":{"method":"PATCH","url":"/api/projects/project_eed53b94-f25f-4596-95e9-f24252cf1abd/captions/caption_b109d6ba-81d2-42b5-987d-e5e92d27cb5b","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522726,"pid":51992,"hostname":"jzb","reqId":"req-6","res":{"statusCode":400},"responseTime":0.6213999999999942,"msg":"request completed"}
+{"level":30,"time":1791641522727,"pid":51992,"hostname":"jzb","reqId":"req-7","req":{"method":"PATCH","url":"/api/projects/project_eed53b94-f25f-4596-95e9-f24252cf1abd/captions/caption_b109d6ba-81d2-42b5-987d-e5e92d27cb5b","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522729,"pid":51992,"hostname":"jzb","reqId":"req-7","res":{"statusCode":200},"responseTime":2.394999999999982,"msg":"request completed"}
+{"level":30,"time":1791641522729,"pid":51992,"hostname":"jzb","reqId":"req-8","req":{"method":"PATCH","url":"/api/projects/project_eed53b94-f25f-4596-95e9-f24252cf1abd/captions/caption_b109d6ba-81d2-42b5-987d-e5e92d27cb5b","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522732,"pid":51992,"hostname":"jzb","reqId":"req-8","res":{"statusCode":200},"responseTime":2.897399999999834,"msg":"request completed"}
+{"level":30,"time":1791641522732,"pid":51992,"hostname":"jzb","reqId":"req-9","req":{"method":"PATCH","url":"/api/projects/project_eed53b94-f25f-4596-95e9-f24252cf1abd/captions/caption_b109d6ba-81d2-42b5-987d-e5e92d27cb5b","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522733,"pid":51992,"hostname":"jzb","reqId":"req-9","res":{"statusCode":400},"responseTime":0.7067999999999302,"msg":"request completed"}
+{"level":30,"time":1791641522733,"pid":51992,"hostname":"jzb","reqId":"req-a","req":{"method":"PATCH","url":"/api/projects/project_eed53b94-f25f-4596-95e9-f24252cf1abd/captions/caption_b109d6ba-81d2-42b5-987d-e5e92d27cb5b","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641522736,"pid":51992,"hostname":"jzb","reqId":"req-a","res":{"statusCode":200},"responseTime":2.3781999999996515,"msg":"request completed"}
+✔ HTTP 按当前原稿或明确用户指令纠正显示，错误版本/片段/依据拒绝且不改声音和时间 (205.4112ms)
+✔ 旁白字幕回听纠错保留 Provider 原文与时间，未确认和篡改均拒绝 (382.1398ms)
+{"event":"job_failed","jobId":"job_bcc6bd5d-0857-4f1c-a35a-a06d56bdfc9e","kind":"source_caption_alignment","code":"JOB_FAILED","error":{"name":"Error","message":"Revision 已过期：请求基于 5，当前为 6","stack":"Error: Revision 已过期：请求基于 5，当前为 6\n    at <anonymous> (E:\\ai\\VideoCut\\packages\\edit-application\\src\\persistence\\sqlite-project-repository.ts:403:15)\n    at ProjectRepository.transaction (E:\\ai\\VideoCut\\packages\\edit-application\\src\\persistence\\sqlite-project-repository.ts:222:22)\n    at ProjectRepository.commit (E:\\ai\\VideoCut\\packages\\edit-application\\src\\persistence\\sqlite-project-repository.ts:400:17)\n    at EditingApplication.completeSourceAudioCaptionAlignment (E:\\ai\\VideoCut\\packages\\edit-application\\src\\index.ts:4345:35)\n    at SourceCaptionAlignmentService.align (E:\\ai\\VideoCut\\packages\\speech-services\\src\\index.ts:1164:38)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async processClaimedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:40:20)\n    at async runOneQueuedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:72:3)\n    at async TestContext.<anonymous> (E:\\ai\\VideoCut\\tests\\speech-caption-worker.test.ts:227:5)\n    at async Test.run (node:internal/test_runner/test:1125:7)"}}
+✔ 异步字幕期间修改 Revision 不覆盖新状态，同一次回执只能恢复同一旁白 (255.2957ms)
+{"level":30,"time":1791641523512,"pid":51992,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects/project_562658f3-1581-4999-99d1-3ab897f579fd/speech-captions","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641523514,"pid":51992,"hostname":"jzb","reqId":"req-1","res":{"statusCode":202},"responseTime":1.8447000000001026,"msg":"request completed"}
+✔ HTTP 与实时 MCP 均通过正式入口提交旁白字幕和显示纠错 (1306.0771ms)
+✔ 完整旁白复用 Provider 分屏且不修改语义、音频和画面，严格 token 可重分屏 (197.0759ms)
+✔ 只有句级时间也能生成旁白字幕，但不能伪造新的切点；新稿使旧字幕完整失效 (190.7856ms)
+✔ 完整旁白 Program 满足字幕门禁，缺卡、过期、错来源和破损证据仍阻挡 (421.6086ms)
+{"event":"job_failed","jobId":"job_35042604-13ba-4a86-9d0c-396f20285359","kind":"source_caption_alignment","code":"SOURCE_CAPTION_SEGMENT_OUTPUT_INVALID","error":{"name":"Error","message":"FunASR 字幕段与同次全文输出不一致，不能静默省略或补写文字","stack":"Error: FunASR 字幕段与同次全文输出不一致，不能静默省略或补写文字\n    at validateSourceAudioCaptionAlignmentEvidence (E:\\ai\\VideoCut\\packages\\edit-application\\src\\index.ts:867:11)\n    at EditingApplication.completeSourceAudioCaptionAlignment (E:\\ai\\VideoCut\\packages\\edit-application\\src\\index.ts:4322:22)\n    at SourceCaptionAlignmentService.align (E:\\ai\\VideoCut\\packages\\speech-services\\src\\index.ts:1164:38)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async processClaimedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:40:20)\n    at async runOneQueuedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:72:3)\n    at async TestContext.<anonymous> (E:\\ai\\VideoCut\\tests\\speech-caption-worker.test.ts:409:5)\n    at async Test.run (node:internal/test_runner/test:1125:7)\n    at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)","code":"SOURCE_CAPTION_SEGMENT_OUTPUT_INVALID"}}
+✔ 旁白字幕拒绝过期任务与人工覆盖，不用空字幕掩盖 Provider 文本错误 (185.9904ms)
+(node:9660) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 已生成的两段旁白按指定帧重排，同步总轨和字幕；重叠与旧版本拒绝 (372.8273ms)
+✔ 接入完整美术正文，插件副本与唯一来源一致且方法链接有效 (1.8896ms)
+✔ 字幕阴影显式关闭优先，旧作品兼容，结构拒绝任意CSS (0.9827ms)
+✔ 源码入口能在独立线程预热真实渲染依赖并正常关闭 (1965.1442ms)
+✔ 渲染线程同步阻塞时 API 仍能在原健康检查截止时间内响应 (2239.5958ms)
+✔ 渲染失败保留错误码；独立后续请求可继续，原请求不会重放 (24.3808ms)
+✔ 线程异常退出拒绝在途与后续请求，只报告一次致命故障且不重新执行 (24.4197ms)
+✔ 受控关闭不会伪报线程崩溃，也不会遗留等待中的请求 (4.9061ms)
+✔ 轨道定位扣除固定名称列，并在缩放、横向滚动后仍命中同一帧 (0.505ms)
+✔ 缩放保持可见指针的屏幕位置；离屏时保持视野中心；适合窗口归零 (0.1111ms)
+✔ 长片与逐帧缩放的刻度都保持可读间距 (0.1505ms)
+✔ 边缘滚动按距离加速并限制速度，中间区域保持静止 (0.0695ms)
+✔ 参数与时域边界 (0.6219ms)
+✔ 字位不因显现次序改变，末态归正 (0.2471ms)
+✔ 交接中途新旧同时存在；卸载前手机已出画 (1.5048ms)
+✔ Hermite在端点满足位置和指定速度 (0.1377ms)
+✔ 镜片内部节点速度连续且非零 (0.167ms)
+✔ 本演示路径不倒退，稳定阅读时镜圆在舞台内 (1.9116ms)
+✔ 倍率1且p=q时原点不偏移；源时钟不因转场重置 (0.5581ms)
+✔ 秒驱动在24、30、60fps的同一可表示时刻一致 (0.1208ms)
+✔ topic-driven skills and case references are connected without test-default leakage (494.5978ms)
+✔ T12：同一时间常量驱动画面与事件，改时序产生新版本并保留有效阅读 (3615.0814ms)
+✔ 安装快照与源码发行物完全一致时通过只读发布校验 (1697.7176ms)
+✔ 发布校验拒绝把源码目录伪装成已安装快照 (47.5895ms)
+✔ 发布校验拒绝 MCP 启动器与源码不一致的安装快照 (1689.2371ms)
+✔ 发布校验拒绝关键 Runtime 启动脚本与源码不一致的安装快照 (6670.3446ms)
+✔ 发布校验拒绝插件声明身份与源码不一致的安装快照 (1681.4877ms)
+✔ 发布校验拒绝 captions Skill 回退到旧字幕入口的安装快照 (1622.4533ms)
+✔ 发布校验拒绝缺少关键 project-basics Skill 的安装快照 (1571.2583ms)
+✔ 发布校验拒绝运行时内容与 manifest 摘要不一致的安装快照 (1349.584ms)
+(node:54980) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 视频生成只登记受管 Asset、生成参数和来源，不自动写入时间线 (68.6822ms)
+{"level":30,"time":1791641538068,"pid":54980,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects/project_b9e8c68a-e7c2-4837-91e5-8869d782d7ad/video-generation","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641538073,"pid":54980,"hostname":"jzb","reqId":"req-1","res":{"statusCode":202},"responseTime":4.973700000000008,"msg":"request completed"}
+✔ 视频生成拒绝用生成画面替代证据，HTTP 端点只排队受管 Job (183.8775ms)
+✔ 四类 MiniMax 视频工作流按本次 Schema 的字段、标签与槽顺序映射 (10.6613ms)
+✔ 生成视频先在 Job 缓存校验后才进入 assets/generated，并拒绝 HTML 伪文件 (90.3139ms)
+✔ 已提交视频 Run 丢失时不自动重提，避免未知 Provider 额度下重复生成 (11.7893ms)
+(node:36616) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Vlog 画面源声始终静音，现场声仅通过已确认的 Ambient 独立轨播放 (46.8114ms)
+(node:11544) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Vlog Worker 从 FFmpeg 场景边界到 Event、Select、Montage、Ambient 和质量规则形成最小闭环 (229.6303ms)
+✔ Hybrid 的 Explainer + Vlog 主线认可已就绪 Montage，且不放宽纯模式门禁 (52.7499ms)
+✔ Vlog 缩短 Shot Select 后重编，不保留已停用旧 Montage 的黑尾时长 (61.2872ms)
+{"level":30,"time":1791641540863,"pid":11544,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641540870,"pid":11544,"hostname":"jzb","reqId":"req-1","res":{"statusCode":201},"responseTime":6.530799999999999,"msg":"request completed"}
+{"level":30,"time":1791641540876,"pid":11544,"hostname":"jzb","reqId":"req-2","req":{"method":"POST","url":"/api/projects/project_1746c317-778b-49a7-b783-3ccce20190c0/vlog-analysis","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641540878,"pid":11544,"hostname":"jzb","reqId":"req-2","res":{"statusCode":202},"responseTime":2.376500000000078,"msg":"request completed"}
+{"level":30,"time":1791641540880,"pid":11544,"hostname":"jzb","reqId":"req-3","req":{"method":"GET","url":"/api/projects/project_1746c317-778b-49a7-b783-3ccce20190c0/vlog-plan","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641540881,"pid":11544,"hostname":"jzb","reqId":"req-3","res":{"statusCode":200},"responseTime":0.3079999999999927,"msg":"request completed"}
+{"level":30,"time":1791641540881,"pid":11544,"hostname":"jzb","reqId":"req-4","req":{"method":"POST","url":"/api/projects/project_1746c317-778b-49a7-b783-3ccce20190c0/vlog-events","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641540883,"pid":11544,"hostname":"jzb","reqId":"req-4","res":{"statusCode":200},"responseTime":1.7076999999999316,"msg":"request completed"}
+{"level":30,"time":1791641540883,"pid":11544,"hostname":"jzb","reqId":"req-5","req":{"method":"POST","url":"/api/projects/project_1746c317-778b-49a7-b783-3ccce20190c0/vlog-shot-selects","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641540885,"pid":11544,"hostname":"jzb","reqId":"req-5","res":{"statusCode":200},"responseTime":2.077299999999923,"msg":"request completed"}
+{"level":30,"time":1791641540885,"pid":11544,"hostname":"jzb","reqId":"req-6","req":{"method":"POST","url":"/api/projects/project_1746c317-778b-49a7-b783-3ccce20190c0/timeline/compile-vlog-montage","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641540887,"pid":11544,"hostname":"jzb","reqId":"req-6","res":{"statusCode":200},"responseTime":2.1963000000000648,"msg":"request completed"}
+✔ HTTP 暴露 Vlog 分析、计划、Event、Select、Montage 与人工拍点的受控入口 (186.3998ms)
+(node:49792) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Agent 工作单只保存对象引用，并经 Revision 接手和完成回写 (75.0745ms)
+{"level":30,"time":1791641543714,"pid":49792,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641543722,"pid":49792,"hostname":"jzb","reqId":"req-1","res":{"statusCode":201},"responseTime":8.032999999999902,"msg":"request completed"}
+{"level":30,"time":1791641543723,"pid":49792,"hostname":"jzb","reqId":"req-2","req":{"method":"POST","url":"/api/projects/project_1fe48d14-50f3-4be8-9901-94a0183c4382/agent-work-orders","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641543725,"pid":49792,"hostname":"jzb","reqId":"req-2","res":{"statusCode":201},"responseTime":2.1337000000003172,"msg":"request completed"}
+{"level":30,"time":1791641543725,"pid":49792,"hostname":"jzb","reqId":"req-3","req":{"method":"POST","url":"/api/projects/project_1fe48d14-50f3-4be8-9901-94a0183c4382/agent-work-orders","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641543727,"pid":49792,"hostname":"jzb","reqId":"req-3","res":{"statusCode":201},"responseTime":1.9645000000000437,"msg":"request completed"}
+{"level":30,"time":1791641543727,"pid":49792,"hostname":"jzb","reqId":"req-4","req":{"method":"POST","url":"/api/projects/project_1fe48d14-50f3-4be8-9901-94a0183c4382/agent-work-orders/agent_work_order_aba378e9-f42f-4ef3-80b1-d4d58fb95828/cancel","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641543729,"pid":49792,"hostname":"jzb","reqId":"req-4","res":{"statusCode":200},"responseTime":1.9928999999997359,"msg":"request completed"}
+{"level":30,"time":1791641543754,"pid":49792,"hostname":"jzb","reqId":"req-5","req":{"method":"GET","url":"/api/projects/project_1fe48d14-50f3-4be8-9901-94a0183c4382/agent-work-orders","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791641543754,"pid":49792,"hostname":"jzb","reqId":"req-5","res":{"statusCode":200},"responseTime":0.4709000000002561,"msg":"request completed"}
+✔ Web 创建的 Agent 工作单可由 MCP 读取、接手、编辑后完成 (1536.3616ms)
+✔ Wikimedia Commons 批量读取媒体元数据，并保留没有许可信息的图片和视频 (3.7853ms)
+✔ Commons API 的独立缩略图主机可供候选分析，近似域名及非 HTTPS 地址仍被拒绝 (11.034ms)
+✔ Wikimedia Commons 下载保留扩展名，并校验实时元数据、MIME 与字节上限 (5.0096ms)
+(node:48048) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ YouTube 定向页面拒绝任意站点和列表；候选只返回来源与媒体信息 (1.0294ms)
+{"event":"job_failed","jobId":"job_5eb1bc58-df5e-4b07-bfd8-58ef03d2e5d9","kind":"asset_acquisition","code":"ASSET_DOWNLOAD_HTML","error":{"name":"AssetProviderError","message":"下载内容是网页错误页，不是媒体素材","stack":"AssetProviderError: 下载内容是网页错误页，不是媒体素材\n    at assertDownloadedProviderMedia (E:\\ai\\VideoCut\\packages\\asset-acquisition\\src\\index.ts:149:13)\n    at async runAssetAcquisition (E:\\ai\\VideoCut\\apps\\job-worker\\src\\index.ts:127:5)\n    at async processClaimedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:40:20)\n    at async runOneQueuedJob (E:\\ai\\VideoCut\\packages\\job-runtime\\src\\index.ts:72:3)\n    at async TestContext.<anonymous> (E:\\ai\\VideoCut\\tests\\youtube-acquisition.test.ts:59:5)\n    at async Test.run (node:internal/test_runner/test:1125:7)\n    at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)","code":"ASSET_DOWNLOAD_HTML"}}
+✔ 选定页面沿获取Worker登记真实视频，保留来源；下载失败不登记素材 (316.1562ms)
+✔ HLS 已写部分媒体但下载器报缺段时不得返回可用文件 (2.302ms)
+ℹ tests 576
+ℹ suites 0
+ℹ pass 576
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 286372.7264

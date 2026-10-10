@@ -319,7 +319,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     tools: [
       "browse_assets", "inspect_asset", "manage_asset_requirements", "list_asset_providers", "search_media_candidates", "acquire_source_material", "inspect_media_candidate",
       "acquire_media_asset", "read_asset_provenance", "import_media", "extract_source_audio", "update_asset_metadata",
-      "analyze_media", "read_media_observations", "search_media_fragments", "correct_media_observation", "adopt_media_fragment", "bind_media_adoption", "retry_media_job"
+      "analyze_media", "read_media_observations", "search_media_fragments", "correct_media_observation", "retry_media_job"
     ]
   },
   // 音频主线：转写、脚本、语音、字幕与音乐音效。
@@ -382,7 +382,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     tools: [
       "browse_scene_types", "create_scene", "trim_scene", "manage_visual_treatment", "manage_cutaways", "replace_scene_asset",
       "browse_effect_types", "manage_effect_cues", "move_item", "preview_timeline",
-      "read_motion_capabilities", "browse_motion_sources", "inspect_motion_reference", "search_motion_mechanisms", "read_motion_mechanism", "submit_motion_work", "read_motion_work", "review_motion_work"
+      "read_motion_capabilities", "browse_motion_sources", "inspect_motion_reference", "search_motion_mechanisms", "read_motion_mechanism", "analyze_motion_reference", "submit_motion_work", "read_motion_work", "review_motion_work"
     ]
   },
   // 生产运行、创作决定、质量报告和连续预览证据。
@@ -403,13 +403,15 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     description: "提交导出、执行渲染预检、读取和审核 Artifact、批准交付并跟踪任务。",
     tools: [
       "submit_export", "run_render_preflight", "track_export", "read_export_artifact", "record_export_artifact_review",
-      "approve_export_artifact", "track_job"
+      "approve_export_artifact", "track_job", "read_job_diagnostics"
     ]
   }
 ];
 
 /** Node 服务、Worker 与发行 Runtime 的环境变量目录；敏感值只展示“是否已配置”。 */
 export const NODE_RUNTIME_CONFIGURATION_CATALOG = [
+  { key: "ATTENTION_INSTALLED_PLUGIN", group: "开发验收", description: "部署验收脚本显式指定的已安装插件目录" },
+  { key: "ATTENTION_VERIFY_EXISTING", group: "开发验收", description: "候选诊断脚本仅核验已有结果，不创建验收样本", defaultValue: "0" },
   // 工作区：所有项目级持久化数据的落盘位置。
   { key: "VIDEOCUT_WORKSPACE", group: "工作区", description: "项目数据库、素材与导出目录", defaultValue: "<cwd>/workspace" },
   // HTTP：本地 Server、Web 工作台与日志的连接配置。

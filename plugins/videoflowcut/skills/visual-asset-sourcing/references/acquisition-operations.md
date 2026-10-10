@@ -36,9 +36,9 @@ MiniMax 已有独立的 `submit_video_generation`，支持文生、图生、首�
 
 生成提示词写本镜主体与环境、动作怎样发展、取景与运镜、构图留白、进入和结束状态、连续性及需避免的内容错误。生成是首版分镜可主动选择的方式，适合示意、氛围或允许虚构的画面；事实内容可以由原创示意解释，但生成结果不能替代真实证据或冒充拍到的事件。`duration_seconds` 是待生成镜头的源长度，不自动等于整段叙事时长。
 
-提交后通过 `track_job` 跟踪结果；只有 Worker 下载验证完成并读回真实 Asset，才进入正式内容复核。技术 ready 或需求 fulfilled 只表示文件已交付，不表示镜头表达与采用已经通过。失败或状态不确定时先读取现状和诊断，遵循幂等与报障合同，不换键猜测重试。生成依赖当前项目版本，执行期间按 Revision 合同协调写入，不能无条件并发改项目。
+提交后通过 `track_job` 跟踪真实结果。Worker 取得文件并完成媒体技术检查后，沿已有导演选择进入选段或当前试排；ready 和 fulfilled 说明取得进展，不替导演作内容选择，也不要求随后通过素材资格审核。失败或结果不确定时读取现状与诊断，按幂等合同恢复，不猜测重放写入。项目写入仍按实际 Revision 协调。
 
-本地化或生成完成后，通过 `inspect_asset` 及媒体观察核对原文件实际动作、画质、声音和可用范围；模型摘要不替代必要实际观看。用 `adopt_media_fragment` 保存当前用途、范围、观察与原声策略，具体放置后用 `bind_media_adoption` 关联使用对象。候选、文件、内容合适和正式采用分别判断。
+本地化或生成完成后，承接已有来源、选择和范围；需要补看片时使用实际播放器、代理或 `inspect_asset` 的媒体读取能力。导演已明确采用的素材，由主任务通过现有时间线或作品素材绑定保存真实文件、源范围和原声策略，不先创建独立采用资格或资格绑定。分析摘要辅助查找，不替代实际内容，也不是使用前置。
 
 浏览器用于发现候选、阅读图片和文字所在页面、核实来源与查看可用预览，保存来源链接和实际观察。网页上的图像、视频预览与项目正式素材是不同状态；使用原图或页面证据时保留相应区域与上下文，经已发布的获取或导入路径进入项目，不能把浏览器缓存地址直接填入作品。
 
@@ -72,7 +72,7 @@ YouTube 的已实现路径由平台执行 yt-dlp。专项先在浏览器调研�
 
 被接受的 Candidate 必须先下载到临时目录，验证 HTTP、MIME、文件头、大小、哈希和 ffprobe，再移到项目受管目录并注册 Asset。HTML 错误页不能因扩展名 mp4 被接受。Timeline 和 Remotion 只能引用本地 Asset ID，不长期依赖 Provider URL。
 
-获取结果与 `read_media_observations` 的 `candidateEvidence` 保留已有候选观察、原始范围和上下文。作者确认同一来源及时间对应后，`adopt_media_fragment.input.candidateSourceStartMs` 填候选观察零点在原片中的位置，`range` 填本地文件范围。平台按取得片段的原片起点换算覆盖，原观察与未知项保留原身份；不需要重复分析，也不能把缩略图或未观看范围当连续证据。图片若沿用同一候选图像观察，零点填0，当前裁切改变时补核对受影响部分。
+获取结果继续携带已有候选来源、观察和选段。使用原文件或取得片段时，按真实源起点换算本地时间；这些对应关系保存在当前稿和实际素材绑定，不再经由采用资格接口提交。未知项保持未知，文件取得不清空已知动作；只有内容、范围或裁切发生变化时补查受影响部分。
 
 ## 根据实际缺口选择继续搜索、生成与原创
 
@@ -86,17 +86,13 @@ YouTube 的已实现路径由平台执行 yt-dlp。专项先在浏览器调研�
 
 ## 工具状态必须明确区分
 
-### 公共素材理解与声音链
+### 可选素材理解与声音工具
 
-`retry_media_job(project_id?, job_id)` 只恢复已失败/取消的素材理解、片段检索或声音排序，保存原检查点；有 run ID 继续读，提交结果未知时不重放 POST。Web 任务中心遵循相同恢复原则。
+需要辅助理解或检索已取得内容时，使用当前实际发布的 `analyze_media`、`read_media_observations`、`search_media_fragments`。模型结果帮助定位内容；请求成功、分析精度和当前用法分别如实说明，不从它们生成素材使用资格。
 
-`bind_media_adoption(project_id?, input)` 输入 baseRevision、adoptionId 和 target：timelineItemId、外层 effectCueId+slot、内部 effectCueId+motionImageSlot 或 effectCueId+motionVideoSlot，按实时 Schema 选择一种，不混用。内部图片槽对应固定 imageBindings，旧图片摘要只从同版成功 Job 核验恢复；不是外层 slot=motion，也不猜历史视频范围。核验实际原文件、范围并关联具体使用；静音策略落实到实际播放。放置后绑定，改范围、换作品版本、原文件或上下文后重新确认。音效通过 manage_audio 的 design.adoptionId 关联，不必重复此步。
+`retry_media_job` 只恢复明确失败或取消的分析、检索和声音排序；有运行 ID 则继续读回，结果未知时不重放提交。`correct_media_observation` 只纠正分析记录和索引依据，不把正常已用素材自动改为等待复审。接口字段以本轮实际发布 Schema 为准。
 
-`analyze_media(project_id?, input)` 的 input 使用 assetId 或 candidateId、depth、modalities，以及源毫秒 range 或图片/PDF region；HTTP 模型任务返回 Job，不改 Revision。`read_media_observations(project_id?, input)` 按 offset/limit 分页；`search_media_fragments(project_id?, query, mode)` 的 hybrid 返回 Job、lexical 返回已有事实匹配。处理成功、事实覆盖、使用可行性分别读取。
-
-`correct_media_observation(project_id?, input)` 保存 observationId、facts、unknowns、reason、author；影响采用时提供 baseRevision。`adopt_media_fragment(project_id?, input)` 提供 baseRevision、assetId、observationIds、range/region、当前 requestId/requestVersion、purpose、audioPolicy、conditions；实际原文件哈希与范围必须成立。
-
-声音计划、候选比较和混音操作按需读取[声音操作](../../audio-finishing/references/audio-operations.md)。
+素材范围和使用方式直接保存在现有时间线或作品绑定，不调用独立的采用资格与资格关联工具。声音功能、取材和混音沿[声音操作](../../audio-finishing/references/audio-operations.md)继续；删除素材审核不删除声音设计或技术时序检查。
 
 ## 当前调用与读回：素材需求与候选
 
@@ -116,7 +112,7 @@ YouTube 的已实现路径由平台执行 yt-dlp。专项先在浏览器调研�
 
 素材搜索返回结构化错误时，仅 `sideEffects="none"`、`safeToRetry=true` 且具备明确恢复依据的情况，允许依目录纠正或等待 `retryAfterMs` 后再搜索一次；同因再次失败即报障。不得把此规则套到 `acquire_media_asset`、生成、创作写入和未知结果。`diagnostics.complete=false` 的部分搜索可检查已有候选，但不能当成全量检索；后续完整查询不会复用残缺搜索缓存。
 
-`acquire_media_asset(base_revision_id, asset_candidate_id, idempotency_key?)` 不接受权利或用途证明参数。Worker 下载验证后登记 Asset，继续媒体分析；读回 ready、来源和具体源范围后，沿现有采用链保存内容判断。
+`acquire_media_asset(base_revision_id, asset_candidate_id, idempotency_key?)` 不接受权利或用途证明参数。Worker 下载验证后登记 Asset，继续媒体分析；读回 ready、来源和具体源范围后，将内容判断交回当前声画稿，按实际用途直接绑定。
 
 YouTube 获取范围、画质选择、合并与缓存边界沿本页“当前能力与计划能力”中的现行合同执行，不重复维护旧的固定分辨率与整条下载限制。文件取得只证明获取结果，不证明镜头适合分镜或艺术验收完成。
 
@@ -126,10 +122,10 @@ YouTube 获取范围、画质选择、合并与缓存边界沿本页“当前能
 
 先读 diagnostics.status、components、continuousReview、issues 和 diagnostics.recovery。inspect_available_evidence 时把有效预览和缺失位置回原作者，由其判断补哪一范围、改选段或换候选；select_another_candidate 暂不采用当前候选并继续正常搜索；wait_for_media_analysis 等待分析。只有 diagnostics.recovery=report_platform_failure 停止受影响步骤并报修，其他无依赖工作继续。素材损坏、能力限制、空输出、超时与原因未知分开，不能从部分证据断言整段正常或损坏。
 
-range/dense 没有连续代理时，截图不能证明正式选段审阅通过；缺声音也不能声明听审。返回代理仍需实际观看。工具只写可重建缓存，不改 Asset 状态、采用、视频 Revision 或 Job，不重放旧下载/生成，不删除失败记录。
+range/dense 没有连续代理时，截图不能代表实际连续观看；缺声音也不能声明听审。返回代理仍需实际观看。工具只写可重建缓存，不改 Asset 状态、采用、视频 Revision 或 Job，不重放旧下载/生成，不删除失败记录。
 
 定向模型复核用 analyze_media 的 depth=review，input.context 才作为实际专项问题发送；index/discovery 仅保存用途备注。通过 track_job、read_media_observations 读取真实覆盖、各模态事实和未知；不把处理成功扩大为完整观察。坐标与源内动作仍按真实精度，估计不保存为 measurement。
 
-采用记录保存实际原件、用途、范围和事实条件；全屏、分窗或固定时长等设计写在当前场面稿，不充当永久证据限制。需要修改旧用途时重新 adopt_media_fragment 并关联当前使用，不原地伪改证据。未经裁切整图不能直接沿用局部观察；正式派生并复核实际载体。同一 Asset 的其他用法不会自动继承采用结论。
+当前稿和实际绑定保存原件、用途、源范围及原声策略。全屏、分窗和时长是当前设计，不充当永久资格条件。改变用法时更新受影响的范围、取景和绑定，必要时查看相应内容；不重新取得采用资格。实际裁切与派生文件保持来源映射，局部观察不能冒充看过整图或整段。
 
 浏览器需要跨回合续看或入口失效时，按[浏览器交接](../../web-editor-operator/SKILL.md#浏览器审阅跨回合交接)操作，不在本页复制宿主接口规则。

@@ -12,6 +12,7 @@ import { DomainError } from "@videocut/domain";
 import { createMediaJobProcessor, runOneJob } from "../apps/job-worker/src/index.js";
 import { runOneRenderJob } from "../apps/render-worker/src/index.js";
 import { runExportJob } from "../apps/render-worker/src/exporter.js";
+import { hashMediaFile } from "../packages/edit-application/src/media-intelligence.js";
 import { createServer } from "../apps/server/src/app.js";
 import { evaluateQuality } from "@videocut/quality";
 import { runProcess } from "@videocut/speech";
@@ -109,6 +110,10 @@ async function materializeFixtureForAsset(app: EditingApplication, projectId: st
   const targetPath = join(state.snapshot.project.rootPath, asset.managedPath);
   await mkdir(dirname(targetPath), { recursive: true });
   await copyFile(fixturePath, targetPath);
+  const sourceHash = await hashMediaFile(targetPath);
+  app.repository.commit(projectId, state.revision.number, "测试文件身份", snapshot => {
+    snapshot.assets.find(candidate => candidate.id === assetId)!.sourceHash = sourceHash;
+  });
 }
 
 /** 测试显式模拟 semantic-continuity：标点候选本身不会自动变成 SemanticUnit。 */

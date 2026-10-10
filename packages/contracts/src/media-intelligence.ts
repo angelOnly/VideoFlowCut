@@ -133,6 +133,7 @@ export type MediaUsageTarget =
   | { effectCueId: string; motionVideoSlot: string; timelineItemId?: never; slot?: never; motionImageSlot?: never }
   | { effectCueId: string; motionImageSlot: string; timelineItemId?: never; slot?: never; motionVideoSlot?: never };
 
+/** @deprecated 仅保留旧快照的历史资料；不参与生产资格与失效判定。 */
 export interface MediaAdoption {
   id: string;
   assetId: string;

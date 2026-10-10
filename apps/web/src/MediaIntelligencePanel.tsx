@@ -6,7 +6,7 @@ type Observations = { observations: MediaObservation[]; requests: Array<{ id: st
 const label: Record<MediaModality, string> = { visual: "画面", audio: "实际声音", speech: "说话内容", text: "可见文字" };
 const statusLabel = { usable: "符合当前条件", conditional: "按条件使用", insufficient: "需要补查", rejected: "不符合" };
 
-/** 只操作公共接口；分析、检索与正式采用不在浏览器内重写。 */
+/** 只操作公共接口；分析与检索不在浏览器内重写。 */
 export function MediaIntelligencePanel({ snapshot, asset, onLocate, defaultRequestId = "" }: { snapshot: ProjectSnapshot; asset: Asset; onLocate: (seconds: number) => void; defaultRequestId?: string }) {
   const [data, setData] = useState<Observations>();
   const [query, setQuery] = useState("");
@@ -18,10 +18,8 @@ export function MediaIntelligencePanel({ snapshot, asset, onLocate, defaultReque
   const [excludeMusic, setExcludeMusic] = useState(false), [allowMute, setAllowMute] = useState(false), [allAssets, setAllAssets] = useState(true);
   const [minSeconds, setMinSeconds] = useState(0), [page, setPage] = useState(1), [context, setContext] = useState("");
   const [region, setRegion] = useState({ x: 0, y: 0, width: 1, height: 1 });
-  const [purpose, setPurpose] = useState(""), [requestId, setRequestId] = useState(""), [adoptMessage, setAdoptMessage] = useState("");
   const [offset, setOffset] = useState(0), [matchOffset, setMatchOffset] = useState<number>();
   const [searchMode, setSearchMode] = useState<"hybrid" | "lexical">("hybrid");
-  const [usageTarget, setUsageTarget] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<MediaObservation>();
@@ -49,11 +47,10 @@ export function MediaIntelligencePanel({ snapshot, asset, onLocate, defaultReque
     setData(undefined); setMatches([]); setError(""); setBusy(""); setEditing(undefined);
     setStart("0"); setEnd(String((asset.metadata?.durationMs ?? 0) / 1000));
     setModality(asset.kind === "audio" || asset.kind === "speech" ? "audio" : "visual");
-    setOffset(0); setPage(1); setRequestId(defaultRequestId); setAdoptMessage(""); setMatchOffset(undefined); setUsageTarget("");
+    setOffset(0); setPage(1); setMatchOffset(undefined);
     void refresh().catch((error: Error) => { if (error.name !== "AbortError") setError(error.message); });
     return () => { epoch.current++; controller.current.abort(); };
   }, [snapshot.project.id, asset.id]);
-  useEffect(() => { setRequestId(defaultRequestId); }, [defaultRequestId]);
   async function action(title: string, work: () => Promise<void>) {
     const current = epoch.current; setBusy(title); setError("");
     try { await work(); } catch (error) { if (current === epoch.current && !(error instanceof Error && error.name === "AbortError")) setError(error instanceof Error ? error.message : String(error)); }
@@ -109,9 +106,9 @@ export function MediaIntelligencePanel({ snapshot, asset, onLocate, defaultReque
     {matches.map((match, index) => <article key={`${match.observationId}:${index}`}>
       <strong>{statusLabel[match.status]}</strong><p>{match.text}</p>
       <p>{[...match.reasons, ...match.conditions].join("；")}</p>
-      <small>{snapshot.assets.find((a) => a.id === match.source.target.assetId)?.name ?? "在线候选"} · {match.source.identity === "preview" ? "试听版本，原文件需复核" : "原文件"}</small>
+      <small>{snapshot.assets.find((a) => a.id === match.source.target.assetId)?.name ?? "在线候选"} · {match.source.identity === "preview" ? "候选试听版本" : "原文件"}</small>
       {match.range && match.source.target.assetId === asset.id && <button onClick={() => { onLocate(match.range!.startMs / 1000); setStart(String(match.range!.startMs / 1000)); setEnd(String(match.range!.endMs / 1000)); }}>定位 {(match.range.startMs / 1000).toFixed(2)}–{(match.range.endMs / 1000).toFixed(2)} 秒</button>}
-      {match.source.target.assetId !== asset.id && match.source.target.assetId && <p>在素材列表选择该原文件，复核拟用范围后采用。</p>}
+      {match.source.target.assetId !== asset.id && match.source.target.assetId && <p>在素材列表选择该原文件，定位所需范围。</p>}
     </article>)}
     {matchOffset !== undefined && <button disabled={Boolean(busy)} onClick={() => void action("检索下一页", () => search(searchMode, matchOffset))}>下一页匹配</button>}
     {data?.observations.map((observation) => <article key={observation.id}>
@@ -124,24 +121,6 @@ export function MediaIntelligencePanel({ snapshot, asset, onLocate, defaultReque
     </article>)}
     {offset > 0 && <button onClick={() => void action("读取上一页", async () => { const next = Math.max(0, offset - 20); await refresh(next); setOffset(next); })}>上一页观察</button>}
     {data?.nextOffset !== undefined && <button onClick={() => void action("读取下一页", async () => { await refresh(data.nextOffset); setOffset(data.nextOffset!); })}>下一页观察</button>}
-    <label>关联已放置的用途<select value={usageTarget} onChange={(e) => setUsageTarget(e.target.value)}><option value="">先保存依据，稍后放置</option>{snapshot.timeline.items.filter((item) => item.assetId === asset.id && !item.disabled).map((item) => <option key={item.id} value={JSON.stringify({ timelineItemId: item.id })}>时间线 {(item.startFrame / snapshot.timeline.fps).toFixed(2)}–{(item.endFrame / snapshot.timeline.fps).toFixed(2)} 秒</option>)}{snapshot.effectCues.flatMap((cue) => cue.assetBindings.filter((binding) => binding.assetId === asset.id).map((binding) => <option key={`${cue.id}:${binding.slot}`} value={JSON.stringify({ effectCueId: cue.id, slot: binding.slot })}>动效 {cue.id} · {binding.slot}</option>))}</select></label>
-    <fieldset disabled={Boolean(busy)}><legend>保存当前原文件范围的采用依据</legend><label>用途<textarea value={purpose} onChange={(e) => setPurpose(e.target.value)} /></label><label>关联需求<select value={requestId} onChange={(e) => setRequestId(e.target.value)}><option value="">本次独立用途</option>{data?.requests?.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}</select></label><p>音频保留原声；画面采用是否静音由上面的选择决定。选择具体用途后，静音策略会作用于实际播放。</p><button disabled={!purpose.trim()} onClick={() => void action("保存采用依据", async () => {
-      let all = await request<Observations>(`${base}/media-observations/read`, { assetId: asset.id, range, region: sourceRegion, limit: 100 });
-      const observations = all.observations.filter((o) => o.depth === "review");
-      while (all.nextOffset !== undefined) {
-        all = await request<Observations>(`${base}/media-observations/read`, { assetId: asset.id, range, region: sourceRegion, limit: 100, offset: all.nextOffset });
-        observations.push(...all.observations.filter((o) => o.depth === "review"));
-      }
-      if (observations.length > 100) throw new Error("拟用范围包含过多观察，请按实际使用段落分别保存依据");
-      const state = await request<{ revision: { number: number } }>(base);
-      const adopted = await request<{ snapshot: ProjectSnapshot; revision: { number: number } }>(`${base}/media-fragments/adopt`, { baseRevision: state.revision.number, assetId: asset.id, observationIds: observations.map((o) => o.id), range, region: sourceRegion, requestId: requestId || undefined, requestVersion: all.requests?.find((r) => r.id === requestId)?.version, purpose, audioPolicy: !range ? "not_applicable" : asset.kind === "audio" || asset.kind === "speech" || !allowMute ? "retain" : "mute", conditions: allowMute && asset.kind === "video" ? ["静音使用画面"] : [] });
-      if (usageTarget) {
-        const adoption = [...(adopted.snapshot.mediaAdoptions ?? [])].reverse().find((entry) => entry.assetId === asset.id && entry.status === "current" && entry.purpose === purpose.trim() && entry.requestId === (requestId || undefined));
-        if (!adoption) throw new Error("采用已保存，请重新读取后关联用途");
-        await request(`${base}/media-fragments/bind`, { baseRevision: adopted.revision.number, adoptionId: adoption.id, target: JSON.parse(usageTarget) });
-      }
-      setAdoptMessage(usageTarget ? "已保存依据并关联实际用途；改范围或上下文后需重新确认。" : "已保存采用依据，具体放置仍由场景或声音工具完成。"); await refresh(offset);
-    })}>保存采用依据</button>{adoptMessage && <p role="status">{adoptMessage}</p>}</fieldset>
     {editing && <fieldset><legend>纠正实际观察（每行对应原有一条事实）</legend>
       <textarea value={correction} onChange={(event) => setCorrection(event.target.value)} />
       {editing.range && editing.facts.map((fact, index) => <fieldset key={`range-${index}`}><legend>第 {index + 1} 条事实的实际确认范围（源秒；留空保持未定位）</legend>{(["startMs", "endMs"] as const).map((key) => <label key={key}>{key === "startMs" ? "确认开始" : "确认结束"}<input type="number" min="0" step="0.001" value={fact.range ? fact.range[key] / 1000 : ""} onChange={(e) => setEditing({ ...editing, facts: editing.facts.map((entry, i) => i === index ? { ...entry, range: e.target.value === "" ? undefined : { ...(entry.range ?? { startMs: 0, endMs: 0 }), [key]: Number(e.target.value) * 1000 } } : entry) })} /></label>)}</fieldset>)}

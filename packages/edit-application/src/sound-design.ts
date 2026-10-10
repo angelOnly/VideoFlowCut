@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { AudioCue, ProjectSnapshot, SoundPlan, ImpactReport } from "@videocut/contracts";
 import { createId, DomainError, now } from "@videocut/domain";
 import type { EditingApplication } from "./index.js";
-import { assetRequestVersion, digest } from "../../media-intelligence/src/index.js";
+import { digest } from "../../media-intelligence/src/index.js";
 import { soundDependencySignature } from "../../media-intelligence/src/sound-signature.js";
 
 export const audioRoleSchema = z.enum(["narration", "source_speech", "demonstration", "sfx", "ambience", "music"]);
@@ -27,7 +27,7 @@ export const soundPlanInputSchema = z.discriminatedUnion("action", [
 ]);
 export const audioDesignSchema = z.object({
   soundPlanId: z.string().min(1).optional(), soundIntentId: z.string().min(1).optional(), planVersion: z.number().int().positive().optional(),
-  role: audioRoleSchema.optional(), adoptionId: z.string().min(1).optional(),
+  role: audioRoleSchema.optional(),
   durationFrames: z.number().int().positive().max(108000).optional(),
   envelope: z.array(z.object({ frame: z.number().int().nonnegative(), gainDb: z.number().min(-80).max(12) }).strict()).max(100).optional(),
   loopCrossfadeFrames: z.number().int().min(0).max(300).optional(),
@@ -63,17 +63,6 @@ export function applyAudioDesign(snapshot: ProjectSnapshot, cue: AudioCue, input
   if (cue.loop && crossfade && Math.ceil(duration / (item.sourceEndFrame - item.sourceStartFrame - crossfade)) > 512) throw new DomainError("循环次数过多，请选择更长的原声音段", "SOUND_LOOP_BUDGET_EXCEEDED");
   cue.loopCrossfadeFrames = crossfade;
   cue.loopReview = parsed.loopReview ?? cue.loopReview;
-  const adoptionId = parsed.adoptionId ?? cue.adoptionId;
-  const requirement = planId && intentId ? snapshot.assetRequests.find((entry) => entry.status !== "closed" && entry.sound?.soundPlanId === planId && entry.sound?.soundIntentId === intentId) : undefined;
-  // 缺少采用依据可以先试听；交付由质量门禁拦住，显式传入的错误依据仍拒绝。
-  if (requirement && adoptionId && snapshot.mediaAdoptions?.find((entry) => entry.id === adoptionId)?.requestId !== requirement.id) throw new DomainError("该声音意图需要与当前需求一致的原文件采用依据", "SOUND_ADOPTION_REQUIRED");
-  if (adoptionId) {
-    const adoption = snapshot.mediaAdoptions?.find((entry) => entry.id === adoptionId);
-    const asset = snapshot.assets.find((entry) => entry.id === cue.assetId)!;
-    const range = { startMs: item.sourceStartFrame * 1000 / snapshot.timeline.fps, endMs: item.sourceEndFrame * 1000 / snapshot.timeline.fps };
-    if (!adoption || adoption.status !== "current" || adoption.assetId !== cue.assetId || adoption.sourceHash !== asset.sourceHash || !adoption.range || adoption.audioPolicy !== "retain" || range.startMs < adoption.range.startMs - 1 || range.endMs > adoption.range.endMs + 1) throw new DomainError("声音采用依据未覆盖当前原文件源范围", "SOUND_ADOPTION_STALE");
-    cue.adoptionId = adoptionId;
-  }
   cue.mixReview = "needs_review";
 }
 
@@ -96,16 +85,10 @@ export function manageSoundPlan(app: EditingApplication, projectId: string, base
 
 /** 只传播有实际依赖的失效，普通音量修改不能恢复已过期选择。 */
 export function reconcileSoundDesign(previous: ProjectSnapshot, snapshot: ProjectSnapshot, impact: ImpactReport) {
-  for (const adoption of snapshot.mediaAdoptions ?? []) {
-    const asset = snapshot.assets.find((entry) => entry.id === adoption.assetId);
-    const request = snapshot.assetRequests.find((entry) => entry.id === adoption.requestId);
-    if (!asset || asset.sourceHash !== adoption.sourceHash || adoption.requestId && (!request || assetRequestVersion(request) !== adoption.requestVersion)) { adoption.status = "needs_review"; adoption.reviewReason = "原文件或需求版本已变化"; impact.stale.push(adoption.id); }
-  }
   const contextChanged = soundDependencySignature(previous) !== soundDependencySignature(snapshot);
   for (const cue of snapshot.audioCues) {
     const plan = snapshot.soundPlans?.find((entry) => entry.id === cue.soundPlanId);
-    const adoption = snapshot.mediaAdoptions?.find((entry) => entry.id === cue.adoptionId);
-    if (cue.soundPlanId && (!plan || plan.version !== cue.planVersion || !plan.intents.some((entry) => entry.id === cue.soundIntentId)) || cue.adoptionId && adoption?.status !== "current") {
+    if (cue.soundPlanId && (!plan || plan.version !== cue.planVersion || !plan.intents.some((entry) => entry.id === cue.soundIntentId))) {
       cue.mixReview = "needs_review"; impact.stale.push(cue.id);
       if (cue.soundPlanId && (!plan || !plan.intents.some((entry) => entry.id === cue.soundIntentId))) { cue.status = "stale"; const item = snapshot.timeline.items.find((entry) => entry.id === cue.timelineItemId); if (item) item.disabled = true; }
     }

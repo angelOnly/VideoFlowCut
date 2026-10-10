@@ -520,9 +520,9 @@ test("声音待审与合成帧批量上限在剪辑工具和 Skill 中可发现"
   assert.match(audioTool, /允许草稿混合但阻挡交付/u);
   for (const name of ["audio-finishing", "sound-asset-sourcing"]) {
     const skill = await readSkill(name);
-    assert.match(skill, /SOUND_ADOPTION_REQUIRED/u);
+    assert.doesNotMatch(skill, /adopt_media_fragment|bind_media_adoption|SOUND_ADOPTION_REQUIRED/u);
     assert.match(skill, /soundPlanId、soundIntentId、planVersion/u);
-    assert.match(skill, /原文件采用、起音和混合分别核查|起音 confirmed 或混合 reviewed 不能替代采用/u);
+    assert.match(skill, /不建立素材资格|不先创建采用资格/u);
   }
   const frameTool = toolSourceBlock(mcpSource, "inspect_composed_frames");
   assert.match(frameTool, /\.max\(12\)/u);

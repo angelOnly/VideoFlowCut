@@ -168,6 +168,8 @@ export type JobKind =
   | "media_analysis"
   | "media_understanding"
   | "media_search"
+  | "motion_library_search"
+  | "motion_reference_analysis"
   | "sound_comparison" | "sound_ranking"
   /** 对已就绪实拍素材做基础镜头边界和现场声可用性分析。 */
   | "vlog_analysis"
@@ -1227,6 +1229,7 @@ export interface AudioCue {
   planVersion?: number;
   role?: AudioRole;
   envelope?: AudioEnvelopePoint[];
+  /** @deprecated 旧快照历史关联，正常声音使用不读取。 */
   adoptionId?: Id;
   loopCrossfadeFrames?: number;
   sustained?: boolean;
@@ -1786,6 +1789,7 @@ export interface ProjectSnapshot {
   /** 最终混合的绝对增益；旧版本缺省为 0 dB，不改各轨音量。 */
   audioMixGainDb?: number;
   soundReviews?: Array<{ baseRevision: number; previewJobId: string; previewHash?: string; outcome: "passed" | "failed" | "inconclusive"; method: "audio" | "audiovisual"; note: string; signature: string; fromFrame: number; toFrame: number; recordedAt: string }>;
+  /** 只读历史采用资料，不作为制作或导出的前置。 */
   mediaAdoptions?: MediaAdoption[];
   voiceReferences: VoiceReference[];
   /** 原声时间证据与最终视觉字幕 Program 分离保存，避免自动标点直接成为成片字幕。 */

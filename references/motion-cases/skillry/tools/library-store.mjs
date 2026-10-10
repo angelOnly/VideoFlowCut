@@ -4,6 +4,12 @@ import {loadIndex,localFile} from './mechanisms.mjs';
 import {queryMechanisms} from '../mechanism-search.mjs';
 import {taxonomy} from '../taxonomy.mjs';
 export function searchLibrary(root,request={}){return {...queryMechanisms(loadIndex(root),request),taxonomy};}
+export {loadIndex as loadLibraryIndex};
+export function searchLibraryIndex(index,request={},semantic={}){return {...queryMechanisms(index,request,semantic),taxonomy};}
+export function libraryVideo(root,id,source_sha256){
+  const index=loadIndex(root),card=queryMechanisms(index,{ids:[id],source_sha256}).cards[0];
+  return localFile(root,card.document.split('/mechanisms/')[0]+'/video.mp4');
+}
 export function readLibraryMechanism(root,{id,part='mechanism',source_sha256,include_storyboard=true}){
   if(!/^\d{3}-m\d{2}$/.test(id)||!['mechanism','overview'].includes(part))throw new Error('资料编号或范围无效');
   const index=loadIndex(root);

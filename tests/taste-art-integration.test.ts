@@ -6,10 +6,10 @@ import { dirname, resolve } from "node:path";
 import { captionTextShadowCss, captionTextShadowSchema } from "../packages/contracts/src/caption-presentation.js";
 
 test("接入完整美术正文，插件副本与唯一来源一致且方法链接有效", () => {
-  // 对交付包正文统一换行后取指纹，防止同步将完整方法意外缩成摘要。
+  // 对已接入连续制作方法的正文统一换行后取指纹，防止同步将完整方法意外缩成摘要。
   for (const [name, hash] of [
     ["SKILL.md", "a79408d0d4f09b8ed0a2fd9994dd00ae8ebd57a49c795aee22a978b31dc30712"],
-    ["references/art-direction.md", "4a29f42aa690b2ed35d22263fc29618b5f98f5ea89ec26cc2a5ef1b64bbe6ab2"]
+    ["references/art-direction.md", "0d6302ec3e9025545054ee7cd718a603bf11171682900080daad8ff39de33cae"]
   ]) {
     const source = resolve(`.agents/skills/visual-treatment-planning/${name}`);
     const text = readFileSync(source, "utf8").replace(/\r\n/g, "\n");

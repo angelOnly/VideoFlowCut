@@ -154,10 +154,12 @@ try {
     throw new Error(`Worker 未在时限内消费任务：${jobId}`);
   };
   const tools = await client.listTools();
-  const usageTargets = tools.tools.find((tool) => tool.name === "bind_media_adoption")?.inputSchema.properties.input.properties.target.anyOf;
-  assert.ok(usageTargets?.some((target) => target.required?.includes("motionImageSlot")), "发行 MCP 必须公开受管内部图片采用入口");
-  assert.ok(usageTargets?.some((target) => target.required?.includes("motionVideoSlot")), "新增图片入口不能覆盖已有内部视频合同");
+  assert.equal(tools.tools.some(tool => ["adopt_media_source", "bind_media_adoption"].includes(tool.name)), false, "发行 MCP 不再公开素材采用资格入口");
+  assert.ok(tools.tools.some(tool => tool.name === "search_motion_mechanisms"), "发行 MCP 必须公开混合机制检索");
+  assert.ok(tools.tools.some(tool => tool.name === "analyze_motion_reference"), "发行 MCP 必须公开按需原片理解");
   const motionTool = tools.tools.find((tool) => tool.name === "submit_motion_work");
+  assert.ok(motionTool.inputSchema.properties.work.properties.imageBindings, "内部图片直接使用真实素材绑定");
+  assert.ok(motionTool.inputSchema.properties.work.properties.videoBindings, "内部视频直接使用真实源时钟绑定");
   const composedTool = tools.tools.find((tool) => tool.name === "inspect_composed_frames");
   assert.equal(composedTool.inputSchema.properties.frames.maxItems, 12, "实时MCP Schema必须保留抽帧数量上限");
   assert.match(composedTool.description, /1–12.*分批/u, "压缩工具声明未展示maxItems时，描述仍须明确上限");

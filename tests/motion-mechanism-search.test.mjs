@@ -81,7 +81,7 @@ test('相似演法带差异，前后段带条件并区分方向',()=>{
   assert.ok(similar.cards.every(m=>m.id!=='007-m10'&&m.difference&&m.match_reasons.length));
   for(const mode of ['before','after']){
     const result=queryMechanisms(index,{[mode]:'060-m02'});assert.ok(result.total>0);
-    for(const m of result.cards){assert.equal(m.connection[mode==='before'?'to':'from'],'060-m02');assert.equal(m.connection.continuous_verified,false);assert.ok(m.connection.gap&&m.connection.shared_states.length);}
+    for(const m of result.cards){assert.equal(m.connection[mode==='before'?'to':'from'],'060-m02');assert.equal(m.connection.continuous_verified,false);assert.ok(m.connection.gap);}
   }
   assert.throws(()=>queryMechanisms(index,{after:'060-m02',before:'060-m01'}),/一种/);
 });

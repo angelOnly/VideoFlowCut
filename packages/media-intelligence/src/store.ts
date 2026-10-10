@@ -75,6 +75,13 @@ export class MediaIntelligenceStore {
   saveSearch(session: MediaSearchSession): void {
     this.db.prepare("INSERT INTO media_search_sessions(id,project_id,request_id,data) VALUES(?,?,?,?)").run(session.id, session.projectId, session.requestId, JSON.stringify(session));
   }
+  libraryCache<T>(key: string): T | undefined {
+    const row = this.db.prepare("SELECT data FROM motion_library_cache WHERE key=?").get(key) as JsonRow | undefined;
+    return row ? JSON.parse(row.data) as T : undefined;
+  }
+  saveLibraryCache(key: string, value: unknown): void {
+    this.db.prepare("INSERT OR REPLACE INTO motion_library_cache(key,data) VALUES(?,?)").run(key, JSON.stringify(value));
+  }
   searches(projectId: string): MediaSearchSession[] {
     return (this.db.prepare("SELECT data FROM media_search_sessions WHERE project_id=? ORDER BY rowid DESC").all(projectId) as JsonRow[]).map((row) => JSON.parse(row.data));
   }

@@ -73,8 +73,8 @@ test('共用入口有效，Skill按需读取机制且不再依赖研究日志',(
   // Skill 可将机制方法移到按需资料中，核验真实入口和对应正文。
   const route='references/mechanism-retrieval.md';
   const mechanismGuide=skill.includes(route)?readFileSync(new URL('../.agents/skills/motion-case-library/'+route,import.meta.url),'utf8'):skill;
-  assert.ok(mechanismGuide.includes('README.md')&&mechanismGuide.includes('case-catalogue.json'));
-  assert.ok(mechanismGuide.includes('mechanism-index.json')&&mechanismGuide.includes('起始条件')&&mechanismGuide.includes('按需'));
+  assert.ok(skill.includes('search_motion_mechanisms')&&skill.includes('read_motion_mechanism'));
+  assert.ok(mechanismGuide.includes('起止关系')&&mechanismGuide.includes('按需')&&mechanismGuide.includes('向量'));
   assert.ok(!guide.includes('sources/published-prompt.md')&&!guide.includes('不随Git传递'));
   const names=readdirSync(root);for(const forbidden of ['staging','sources','screenshots','related-sources','code-view','catalogue-parts','manifest.json'])assert.ok(!names.includes(forbidden));
   assert.ok(!names.some(n=>/\.(zip|png|jpg)$/.test(n)));

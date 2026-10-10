@@ -38,6 +38,7 @@ async function fixture(real = false) {
     await runProcess("ffmpeg", ["-hide_banner", "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=1", "-ar", "48000", join(directory, "tone.wav")]);
     await runProcess("ffmpeg", ["-hide_banner", "-y", "-f", "lavfi", "-i", "color=c=red:s=320x180:r=30:d=3", "-c:v", "libx264", join(directory, "visual.mp4")]);
     sound.sourceHash = await hashMediaFile(join(directory, "tone.wav"));
+    visual.sourceHash = await hashMediaFile(join(directory, "visual.mp4"));
   }
   Object.assign(sound, { status: "ready", metadata: { durationMs: 1000, hasAudio: true, audioCodec: "pcm_s16le", sampleRate: 48000, channels: 1 } });
   Object.assign(visual, { status: "ready", metadata: { durationMs: 3000, hasAudio: false, videoCodec: "h264", width: 320, height: 180, fps: 30 } });
@@ -124,7 +125,7 @@ test("声音计划保留采用待复核提示但可导出，错误依据仍原�
     const cue = state.snapshot.audioCues[0];
     assert.equal(cue.soundPlanId, plan.id); assert.equal(cue.soundIntentId, "paper"); assert.equal(cue.adoptionId, undefined); assert.equal(cue.status, "ready");
     const report = evaluateQuality(state.snapshot, state.revision.number);
-    assert.ok(report.editorial.audio.some((entry) => entry.code === "SOUND_ADOPTION_REQUIRED" && entry.level === "blocking" && entry.objectId === cue.id));
+    assert.ok(!report.editorial.audio.some((entry) => entry.code === "SOUND_ADOPTION_REQUIRED"));
     assert.ok(!report.technical.some((entry) => entry.code === "SOUND_ADOPTION_REQUIRED"));
     const draft = f.app.submitExport({ projectId: f.id, revision: f.rev(), purpose: "draft" });
     assert.equal(draft.kind, "export");
@@ -136,18 +137,15 @@ test("声音计划保留采用待复核提示但可导出，错误依据仍原�
     simulated.audioCues[0].mixReview = "reviewed";
     simulated.soundReviews = [{ baseRevision: state.revision.number, previewJobId: "模拟混合复核", previewHash: "模拟文件哈希", outcome: "passed", method: "audio", note: "只验证采用门禁独立性，不代表真实听审", signature: soundDependencySignature(simulated), fromFrame: 0, toFrame: 90, recordedAt: "test" }];
     const simulatedReport = evaluateQuality(simulated, state.revision.number);
-    assert.ok(simulatedReport.editorial.audio.some((entry) => entry.code === "SOUND_ADOPTION_REQUIRED"));
+    assert.ok(!simulatedReport.editorial.audio.some((entry) => entry.code === "SOUND_ADOPTION_REQUIRED"));
     assert.ok(!simulatedReport.editorial.audio.some((entry) => ["SFX_ONSET_REVIEW_REQUIRED", "SOUND_MIX_REVIEW_REQUIRED"].includes(entry.code)));
-    const beforeBad = f.rev();
-    assert.throws(() => f.app.manageAudio({ projectId: f.id, baseRevision: beforeBad, action: "update", audioCueId: cue.id, design: { ...design, adoptionId: "不存在的采用" } }), /采用依据/u);
-    assert.equal(f.rev(), beforeBad);
     const delivery = await runExportJob(f.app, f.app.submitExport({ projectId: f.id, revision: f.rev(), purpose: "delivery" }));
     assert.equal(f.app.readExportArtifact({ projectId: f.id, artifactId: String(delivery.artifactId) }).approval, undefined);
     assert.equal(f.app.readProject(f.id).snapshot.mediaAdoptions?.length ?? 0, 0, "试听和草稿不能自动制造采用记录");
   } finally { await f.close(); }
 });
 
-test("待审声音补齐有效采用后解除采用门禁，错误需求、过期依据和源范围仍原子拒绝", async () => {
+test("历史声音采用状态与范围不再阻塞当前正常放置", async () => {
   const f = await fixture();
   try {
     let state = manageSoundPlan(f.app, f.id, f.rev(), { action: "create", startFrame: 0, endFrame: 90, narrationDirection: "协议验证", musicDirection: "保持主声音", dominantRole: "narration", intents: [{ id: "paper", function: "connection", brief: "待审声音" }] });
@@ -162,19 +160,14 @@ test("待审声音补齐有效采用后解除采用门禁，错误需求、过�
       const valid = { id: "valid", assetId: f.sound.id, sourceHash: f.sound.sourceHash!, observationIds: ["模拟原文件范围观察"], requestId: requirement.id, requestVersion: assetRequestVersion(requirement), range: { startMs: 0, endMs: 1000 }, purpose: "隔离协议测试", audioPolicy: "retain" as const, conditions: [], status: "current" as const, createdAt: "test" };
       snapshot.mediaAdoptions = [valid, { ...valid, id: "other-request", requestId: "另一个需求" }, { ...valid, id: "stale", status: "needs_review" }, { ...valid, id: "short-range", range: { startMs: 0, endMs: 100 } }];
     });
-    for (const adoptionId of ["other-request", "stale", "short-range"]) {
-      const before = f.rev();
-      assert.throws(() => f.app.manageAudio({ projectId: f.id, baseRevision: before, action: "update", audioCueId: cue.id, design: { ...design, adoptionId } }), /采用依据/u);
-      assert.equal(f.rev(), before);
-      assert.equal(f.app.readProject(f.id).snapshot.audioCues[0].adoptionId, undefined);
-    }
-    const invalidSnapshot = structuredClone(state.snapshot);
-    invalidSnapshot.audioCues[0].adoptionId = "other-request";
-    invalidSnapshot.mediaAdoptions!.find((entry) => entry.id === "other-request")!.status = "current";
-    assert.ok(evaluateQuality(invalidSnapshot, state.revision.number).technical.some((entry) => entry.code === "SOUND_SELECTION_STALE"));
-    state = f.app.manageAudio({ projectId: f.id, baseRevision: f.rev(), action: "update", audioCueId: cue.id, design: { ...design, adoptionId: "valid" } });
+    // 历史字段原样保留；过期或范围不足的旧资格不影响正常声音编辑。
+    state = f.app.repository.commit(f.id, f.rev(), "读取历史声音关联", snapshot => { snapshot.audioCues[0].adoptionId = "stale"; });
+    const history = structuredClone(state.snapshot.mediaAdoptions);
+    state = f.app.manageAudio({ projectId: f.id, baseRevision: f.rev(), action: "update", audioCueId: cue.id, design });
+    assert.deepEqual(state.snapshot.mediaAdoptions, history);
+    assert.ok(!evaluateQuality(state.snapshot, state.revision.number).technical.some(entry => entry.code === "SOUND_SELECTION_STALE"));
     const report = evaluateQuality(state.snapshot, state.revision.number);
-    assert.equal(state.snapshot.audioCues[0].adoptionId, "valid");
+    assert.equal(state.snapshot.audioCues[0].adoptionId, "stale");
     assert.ok(!report.issues.some((entry) => entry.code === "SOUND_ADOPTION_REQUIRED"));
     assert.ok(report.editorial.audio.some((entry) => entry.code === "SFX_ONSET_REVIEW_REQUIRED"));
     assert.ok(report.editorial.audio.some((entry) => entry.code === "SOUND_MIX_REVIEW_REQUIRED"));
@@ -429,22 +422,18 @@ test("新版动作引擎隔离版本哈希，同时识别旧已冻结任务", ()
   assert.throws(() => motionHashEngine(work, [], legacy, "managed-motion-4"), /MISMATCH/u);
 });
 
-test("素材采用关联具体使用并实际静音，移动或换源范围后待复核", async () => {
+test("旧采用资格不影响源范围编辑，静音仍从实际时间线读取", async () => {
   const f = await fixture();
   try {
-    let state = f.app.repository.commit(f.id, f.rev(), "测试已复核采用协议", (snapshot) => {
-      snapshot.mediaAdoptions = [{ id: "adoption", assetId: f.visual.id, sourceHash: f.visual.sourceHash!, observationIds: ["模拟已验证观察"], range: { startMs: 0, endMs: 3000 }, purpose: "仅用于绑定规则回归", audioPolicy: "mute", conditions: [], status: "current", createdAt: "test" }];
+    const state = f.app.repository.commit(f.id, f.rev(), "历史资格与实际静音分离", snapshot => {
+      snapshot.mediaAdoptions = [{ id: "old", assetId: f.visual.id, sourceHash: "old", observationIds: [], range: { startMs: 0, endMs: 10 }, purpose: "历史资料", audioPolicy: "mute", conditions: [], status: "needs_review", createdAt: "test" }];
+      snapshot.timeline.items[0].mediaAudioPolicy = "mute";
     });
-    const itemId = state.snapshot.timeline.items.find((entry) => entry.assetId === f.visual.id)!.id;
-    state = f.app.intelligence.bind(f.id, { baseRevision: f.rev(), adoptionId: "adoption", target: { timelineItemId: itemId } });
-    const item = state.snapshot.timeline.items.find((entry) => entry.id === itemId)!;
-    assert.equal(resolveVideoSourceVolume(state.snapshot, item, state.snapshot.timeline.tracks.find((track) => track.id === item.trackId)!), 0);
-    assert.ok(!evaluateQuality(state.snapshot, state.revision.number).issues.some((entry) => entry.code === "MEDIA_USAGE_REVIEW_REQUIRED"));
-    state = f.app.repository.commit(f.id, f.rev(), "改源范围", (snapshot) => { snapshot.timeline.items.find((entry) => entry.id === itemId)!.sourceStartFrame = 1; });
-    assert.ok(evaluateQuality(state.snapshot, state.revision.number).issues.some((entry) => entry.code === "MEDIA_USAGE_REVIEW_REQUIRED" && entry.objectId === itemId));
-    state = f.app.intelligence.bind(f.id, { baseRevision: f.rev(), adoptionId: "adoption", target: { timelineItemId: itemId } });
-    assert.ok(!evaluateQuality(state.snapshot, state.revision.number).issues.some((entry) => entry.code === "MEDIA_USAGE_REVIEW_REQUIRED"));
-    f.app.repository.commit(f.id, f.rev(), "采用失效", (snapshot) => { snapshot.mediaAdoptions![0].status = "needs_review"; });
-    assert.throws(() => f.app.intelligence.bind(f.id, { baseRevision: f.rev(), adoptionId: "adoption", target: { timelineItemId: itemId } }), /依据或原文件/u);
+    const item = state.snapshot.timeline.items[0];
+    assert.equal(resolveVideoSourceVolume(state.snapshot, item, state.snapshot.timeline.tracks.find(track => track.id === item.trackId)!), 0);
+    assert.ok(!evaluateQuality(state.snapshot, state.revision.number).issues.some(entry => entry.code === "MEDIA_USAGE_REVIEW_REQUIRED"));
+    const changed = f.app.repository.commit(f.id, f.rev(), "修改实际范围", snapshot => { snapshot.timeline.items[0].sourceStartFrame = 1; });
+    assert.equal(changed.snapshot.mediaAdoptions![0].status, "needs_review");
+    assert.ok(!evaluateQuality(changed.snapshot, changed.revision.number).issues.some(entry => entry.code === "MEDIA_USAGE_REVIEW_REQUIRED"));
   } finally { await f.close(); }
 });

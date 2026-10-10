@@ -11,13 +11,16 @@ import { motionSubmissionSchema, boundMotionVideoSchema } from "../packages/moti
 import { motionFixture } from "./fixtures/managed-motion.js";
 import { motionHash, MOTION_ENGINE_VERSION } from "../packages/motion-work/src/compiler.js";
 import { runMotionJob } from "../apps/render-worker/src/motion-job.js";
+import { MotionDiagnostics } from "../apps/render-worker/src/motion-diagnostics.js";
 
 const timing = { sourceStartMs: 0, sourceEndMs: 1000, startFrame: 0, endFrame: 30 };
-test("固定Job绑定和公开比例不一致，解码前拒绝", async () => {
+test("固定Job绑定和公开比例不一致，解码前拒绝", async (t) => {
   const work = motionSubmissionSchema.parse({ ...motionFixture, durationInFrames: 30, videoBindings: { footage: { assetId: "a", ...timing, decodeScale: 0.5 } } });
   const boundVideos = [{ slot: "footage", assetId: "a", managedPath: "source.mp4", hash: "a".repeat(64), ...timing, decodeScale: 0.75 }];
   const version = motionHash(work, [], MOTION_ENGINE_VERSION, boundVideos);
-  const app = { readProject: () => { throw new Error("不应读取项目或生成产物"); } } as any;
+  // 仅隔离诊断落盘，保留真实输入校验；测试不得写运行中的工作区。
+  t.mock.method(MotionDiagnostics.prototype, "save", async () => ({ reportPath: "test-only" }));
+  const app = { trackJob: () => ({ status: "running" }), updateJob: () => {}, readProject: () => { throw new Error("不应读取项目或生成产物"); } } as any;
   await assert.rejects(runMotionJob(app, { kind: "motion_generation", payload: { work, boundVideos, boundImages: [], version, engineVersion: MOTION_ENGINE_VERSION } } as any), /MOTION_VIDEO_BINDING_MISMATCH/);
 });
 

@@ -31,9 +31,9 @@ description: 从段落声音意图出发，默认在线检索有限候选，分�
 
 ## 同一上下文比较并交接
 
-用 `preview_sound_alternatives` 固定旁白、音乐、动作和段落范围，比较少量候选/不同强度以及无该音效版本。候选原文件已就绪但采用未完成时，design 保留当前 soundPlanId、soundIntentId、planVersion，暂不提供 adoptionId；不必先确认采用才能取得上下文试听。对比片不写 Timeline、不自动采用，也不能作为正式混合已通过的依据。选择时说明攻击怎样强化动作、尾音是否侵入下一句、同类音色是否疲劳、无音效是否更清楚。
+用 `preview_sound_alternatives` 固定旁白、音乐、动作和段落范围，比较少量候选、不同强度及无该音效版本。design 保留当前 soundPlanId、soundIntentId、planVersion；就绪原文件可直接试听或放置。对比片不写 Timeline、不自动采用，也不代表正式混合已通过。选择时说明攻击怎样强化动作、尾音是否侵入下一句、同类音色是否疲劳、无音效是否更清楚。
 
-将候选 Asset、已有的 adoptionId、requestId、plan/intent 版本、源范围、onset、持续/循环限制和试听证据交给 [audio-finishing](../audio-finishing/SKILL.md)。采用未完成可保留关联继续制作，关联需求产生 `SOUND_ADOPTION_REQUIRED` 辅助提示，不阻挡导出；提供了错误或过期采用依据则仍拒绝。该专项经 `manage_audio` 写入，再生成正式 Preview，通过 `review_sound_mix` 记录实际复核。原文件采用、起音和混合分别核查。没有可用听觉输入时登记 inconclusive；模型和波形可以帮助选择，不能冒充亲自听过。
+将候选 Asset、requestId、plan/intent 版本、源范围、onset、持续或循环限制和试听发现交给 [audio-finishing](../audio-finishing/SKILL.md)。该专项经 `manage_audio` 保存实际放置，再生成正式 Preview，通过 `review_sound_mix` 记录混合观察。原文件和源范围作技术检查，不建立素材资格。没有可用听觉输入时登记 inconclusive；模型和波形可以帮助选择，不能冒充亲自听过。
 
 ## 交接合同
 

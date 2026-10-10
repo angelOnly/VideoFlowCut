@@ -77,16 +77,11 @@ try{
   const scene=await call("create_scene",{project_id:projectId,base_revision_id:await revision(),type:"PresenterScene",title:"混合场面技术试作",purpose:"验证素材时钟与字幕合成",start_frame:0,end_frame:90});
   const cues=await call("manage_effect_cues",{project_id:projectId,base_revision_id:await revision(),scene_id:scene.snapshot.scenes.at(-1).id,type:"ManagedMotion",layer:"front",start_frame:0,end_frame:90,asset_bindings:[{slot:"motion",asset_id:first.asset.id}],semantic_anchor:{type:"absolute",relation:"land_on"},quality_rules:["semantic_anchor_required"]});
   const cueId=cues.snapshot.effectCues.at(-1).id;
-  const adoption=await call("adopt_media_fragment",{project_id:projectId,input:{baseRevision:await revision(),assetId:imported.asset.id,observationIds:["engineering-observation"],range:{startMs:0,endMs:3000},purpose:"工程协议验证",audioPolicy:"mute"}});
-  const adoptionId=adoption.snapshot.mediaAdoptions.at(-1).id;
-  const bound=await call("bind_media_adoption",{project_id:projectId,input:{baseRevision:await revision(),adoptionId,target:{effectCueId:cueId,motionVideoSlot:"footage"}}});
-  const signature=bound.snapshot.mediaAdoptions.at(-1).uses[0].signature;
   const preview=await wait((await call("render_preview_range",{project_id:projectId,revision:await revision(),from_frame:0,to_frame:90,idempotency_key:"preview-v1"})).id);
   const updated=await call("submit_motion_work",{project_id:projectId,base_revision_id:await revision(),idempotency_key:"technical-v2",work:{...work,previousAssetId:first.asset.id,props:{...props,cameraEndSec:1.2}}});await wait(updated.id);
   const second=await call("read_motion_work",{project_id:projectId,job_id:updated.id});assert.notEqual(second.asset.motion.version,first.asset.motion.version);
   await call("manage_effect_cues",{project_id:projectId,base_revision_id:await revision(),action:"update",cue_id:cueId,asset_bindings:[{slot:"motion",asset_id:second.asset.id}]});
-  const rebound=await call("bind_media_adoption",{project_id:projectId,input:{baseRevision:await revision(),adoptionId,target:{effectCueId:cueId,motionVideoSlot:"footage"}}});assert.notEqual(rebound.snapshot.mediaAdoptions.at(-1).uses[0].signature,signature);
   const revisedPreview=await wait((await call("render_preview_range",{project_id:projectId,revision:await revision(),from_frame:0,to_frame:90,idempotency_key:"preview-v2"})).id);
-  const report={root,projectId,releaseId:runtime.releaseId,revision:await revision(),firstVersion:first.asset.motion.version,secondVersion:second.asset.motion.version,preview:preview.result,revisedPreview:revisedPreview.result,acquiredSources,scope:"真实 MCP、Worker、公开网页与 PDF 获取、固定源码、内部采用、改版、字幕合成工程验证；标记素材不证明实拍质量，未配音和审美验收"};
+  const report={root,projectId,releaseId:runtime.releaseId,revision:await revision(),firstVersion:first.asset.motion.version,secondVersion:second.asset.motion.version,preview:preview.result,revisedPreview:revisedPreview.result,acquiredSources,scope:"真实 MCP、Worker、公开网页与 PDF 获取、固定源码、内部素材绑定、改版、字幕合成工程验证；标记素材不证明实拍质量，未配音和审美验收"};
   await writeFile(join(root,"unified-acceptance.json"),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
 }finally{await client.close();await transport.close();await runCandidateRuntime("stop",args);}

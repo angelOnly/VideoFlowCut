@@ -7,6 +7,7 @@ import { createApplication, type EditingApplication } from "@videocut/applicatio
 import type { ExplainerSceneState, Id, ProjectSnapshot } from "@videocut/contracts";
 import { probeMedia, runProcess } from "@videocut/speech";
 import { RevisionRenderer } from "../apps/render-worker/src/exporter.js";
+import { hashMediaFile } from "../packages/edit-application/src/media-intelligence.js";
 import { PRE_RENDERED_3D_TAG } from "../packages/remotion-runtime/src/explainer-registry.js";
 
 function sceneStates(): Array<Omit<ExplainerSceneState, "id">> {
@@ -47,7 +48,7 @@ async function createSnapshot(root: string): Promise<{ app: EditingApplication; 
     name: "受管预渲染三维关系图.mp4",
     kind: "video",
     managedPath: assetRelativePath,
-    sourceHash: "stage5-pre-rendered-three-d",
+    sourceHash: await hashMediaFile(assetPath),
     tags: [PRE_RENDERED_3D_TAG],
     provenance: { source: "generated", acquiredAt: "2026-09-02T00:00:00.000Z" }
   });

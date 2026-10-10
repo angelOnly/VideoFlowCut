@@ -216,8 +216,6 @@ export function matchObservation(source: MediaSource, observation: MediaObservat
         if (!range || range.endMs - range.startMs < query.minDurationMs) rejected.push("同一连续可用范围不足所需时长");
         else if (fact.precision === "sampled") unknown.push("低密度画面观察尚未确认整个连续范围，需复核");
       }
-      if (source.identity === "preview") conditions.push("预览仅用于筛选，采用前须取得并复核原文件");
-      if (observation.depth !== "review" || fact.basis === "model") conditions.push("采用前核对原文件及本次声画上下文");
       const status = rejected.length ? "rejected" : unknown.length ? "insufficient" : conditions.length ? "conditional" : "usable";
       return { source, observationId: observation.id, range, region: fact.region ?? observation.region, text: fact.text, score: scoreForFact === undefined ? lexicalScore : 0.45 * lexicalScore + 0.55 * Math.max(0, scoreForFact), lexicalScore, semanticScore: scoreForFact, status, reasons: [...rejected, ...unknown], conditions } satisfies MediaMatch;
     });

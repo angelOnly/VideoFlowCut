@@ -3064,10 +3064,6 @@
                   "music"
                 ]
               },
-              "adoptionId": {
-                "type": "string",
-                "minLength": 1
-              },
               "durationFrames": {
                 "type": "integer",
                 "exclusiveMinimum": 0,
@@ -6870,10 +6866,13 @@
     {
       "name": "search_motion_mechanisms",
       "title": "查找运动机制",
-      "description": "用于本场动画制作：在主要源码之前，依据实际材料与演出目标只读检索120库运动机制；普通研究、写稿、取材与初步分镜不主动调用。按自然语言、当前状态/保持条件、相似机制或前后接续召回，stages 分阶段查找。selection 恢复网页清单的顺序与采用项。互斥方式：stages/similar_to/before/after/ids/selection。返回词表、来源指纹、比较页和原文入口；入围后读取指令与分镜再适配对象和连接，命中不证明连贯或观感。",
+      "description": "用于本场动画制作：在主要源码之前，依据实际材料与演出目标只读检索120库运动机制；普通研究、写稿、取材与初步分镜不主动调用。按自然语言、当前状态/保持条件、相似机制或前后接续召回，stages 分阶段查找。selection 恢复网页清单的顺序与采用项。互斥方式：stages/similar_to/before/after/ids/selection。全文词法与任务级向量经现有 Job 混合召回，首次查询返回词法结果与语义 Job，track_job 完成后以相同输入读回；失败如实降级，不自动重放。返回词表、来源指纹、比较页和原文入口；入围后读取指令与分镜再适配对象和连接，命中不证明连贯或观感。",
       "inputSchema": {
         "type": "object",
         "properties": {
+          "project_id": {
+            "type": "string"
+          },
           "query": {
             "type": "string",
             "maxLength": 1000
@@ -7071,7 +7070,7 @@
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "openWorldHint": false
+        "openWorldHint": true
       },
       "execution": {
         "taskSupport": "forbidden"
@@ -7113,6 +7112,60 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "analyze_motion_reference",
+      "title": "读取原片运动范围",
+      "description": "仅在速度、交叠或观察位置影响机制选择时，按库编号和原片毫秒范围提交异步理解，最多15秒。track_job 读取真实描述、来源与采样边界；不修改机制原文或项目 Revision，不创建素材审核。失败任务沿 retry_media_job 显式恢复。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^\\d{3}-m\\d{2}$"
+          },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "range": {
+            "type": "object",
+            "properties": {
+              "startMs": {
+                "type": "number",
+                "minimum": 0
+              },
+              "endMs": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "startMs",
+              "endMs"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "source_sha256",
+          "range"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       },
       "execution": {
         "taskSupport": "forbidden"
@@ -7471,7 +7524,7 @@
     {
       "name": "correct_media_observation",
       "title": "纠正实际素材观察",
-      "description": "基于真实复核修订观察，保留模型原文和旧版本。影响已采用依据时必须携带当前 Revision，并标记相关采用待复核；索引不会继续使用旧观察。",
+      "description": "基于真实复核修订观察，保留模型原文和旧版本。仅更新分析索引，不修改视频 Revision 或素材使用；索引不会继续使用旧观察。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7643,259 +7696,6 @@
               "unknowns",
               "reason",
               "author"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "required": [
-          "input"
-        ],
-        "additionalProperties": false,
-        "$schema": "http://json-schema.org/draft-07/schema#"
-      },
-      "execution": {
-        "taskSupport": "forbidden"
-      }
-    },
-    {
-      "name": "adopt_media_fragment",
-      "title": "保存素材范围采用依据",
-      "description": "核对受管原文件真实哈希、观察覆盖和当前 Revision，保存本次用途、原声策略及条件。只确认采用依据，具体全屏/PiP或声音放置仍由相应创作工具决定。",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "project_id": {
-            "type": "string"
-          },
-          "input": {
-            "type": "object",
-            "properties": {
-              "baseRevision": {
-                "type": "integer",
-                "exclusiveMinimum": 0
-              },
-              "assetId": {
-                "type": "string",
-                "minLength": 1
-              },
-              "observationIds": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "minItems": 1,
-                "maxItems": 100
-              },
-              "candidateSourceStartMs": {
-                "type": "integer",
-                "minimum": 0,
-                "description": "已有候选观察的零点在原片中的毫秒位置；仅确认同一来源与时间对应后填写，采用 range 仍为本地时间。"
-              },
-              "range": {
-                "type": "object",
-                "properties": {
-                  "startMs": {
-                    "type": "number",
-                    "minimum": 0
-                  },
-                  "endMs": {
-                    "type": "number",
-                    "exclusiveMinimum": 0
-                  }
-                },
-                "required": [
-                  "startMs",
-                  "endMs"
-                ],
-                "additionalProperties": false
-              },
-              "region": {
-                "type": "object",
-                "properties": {
-                  "page": {
-                    "type": "integer",
-                    "exclusiveMinimum": 0
-                  },
-                  "x": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  "y": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  "width": {
-                    "type": "number",
-                    "exclusiveMinimum": 0,
-                    "maximum": 1
-                  },
-                  "height": {
-                    "type": "number",
-                    "exclusiveMinimum": 0,
-                    "maximum": 1
-                  }
-                },
-                "required": [
-                  "x",
-                  "y",
-                  "width",
-                  "height"
-                ],
-                "additionalProperties": false
-              },
-              "requestId": {
-                "type": "string",
-                "minLength": 1
-              },
-              "requestVersion": {
-                "type": "string",
-                "minLength": 1
-              },
-              "purpose": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 2000
-              },
-              "audioPolicy": {
-                "type": "string",
-                "enum": [
-                  "mute",
-                  "retain",
-                  "not_applicable"
-                ]
-              },
-              "conditions": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "maxLength": 1000
-                },
-                "maxItems": 30,
-                "default": []
-              }
-            },
-            "required": [
-              "baseRevision",
-              "assetId",
-              "observationIds",
-              "purpose",
-              "audioPolicy"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "required": [
-          "input"
-        ],
-        "additionalProperties": false,
-        "$schema": "http://json-schema.org/draft-07/schema#"
-      },
-      "execution": {
-        "taskSupport": "forbidden"
-      }
-    },
-    {
-      "name": "bind_media_adoption",
-      "title": "关联素材实际用途",
-      "description": "把已复核采用依据关联到具体 Timeline Item、外层图片slot、内部motionImageSlot或motionVideoSlot，校验原文件、范围和原声策略。内部图片缺摘要的旧作品仅从同版成功Job恢复身份，不重新生成。静音策略实际作用于播放；后续范围/上下文变化需重新关联，不能按整条素材推定已审阅。",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "project_id": {
-            "type": "string"
-          },
-          "input": {
-            "type": "object",
-            "properties": {
-              "baseRevision": {
-                "type": "integer",
-                "exclusiveMinimum": 0
-              },
-              "adoptionId": {
-                "type": "string",
-                "minLength": 1
-              },
-              "target": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "timelineItemId": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "required": [
-                      "timelineItemId"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "effectCueId": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "slot": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "required": [
-                      "effectCueId",
-                      "slot"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "effectCueId": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "motionVideoSlot": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 40
-                      }
-                    },
-                    "required": [
-                      "effectCueId",
-                      "motionVideoSlot"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "effectCueId": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "motionImageSlot": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 40
-                      }
-                    },
-                    "required": [
-                      "effectCueId",
-                      "motionImageSlot"
-                    ],
-                    "additionalProperties": false
-                  }
-                ]
-              }
-            },
-            "required": [
-              "baseRevision",
-              "adoptionId",
-              "target"
             ],
             "additionalProperties": false
           }
@@ -8561,10 +8361,6 @@
                             "ambience",
                             "music"
                           ]
-                        },
-                        "adoptionId": {
-                          "type": "string",
-                          "minLength": 1
                         },
                         "durationFrames": {
                           "type": "integer",

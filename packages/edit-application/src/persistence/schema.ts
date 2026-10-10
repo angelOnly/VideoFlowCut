@@ -211,6 +211,10 @@ export const PROJECT_DATABASE_TABLES: PersistenceTable[] = [
     { name: "text_hash", sqlType: "TEXT", nullable: false, description: "实际索引文字哈希。" },
     { name: "data", sqlType: "TEXT", nullable: false, description: "版本化结构化记录。" }
   ], relations: [], indexes: [] },
+  { name: "motion_library_cache", description: "独立机制向量、查询与原片理解派生缓存，不属于项目观察。", columns: [
+    { name: "key", sqlType: "TEXT", nullable: false, description: "来源、文本、模型、模板、模式的版本键。" },
+    { name: "data", sqlType: "TEXT", nullable: false, description: "可重建的派生结果。" }
+  ], relations: [], indexes: [] },
   { name: "media_analysis_records", description: "分析窗口覆盖与恢复检查点。", columns: [
     { name: "id", sqlType: "TEXT", nullable: false, description: "记录 ID。" },
     { name: "project_id", sqlType: "TEXT", nullable: false, description: "所属项目。" },
@@ -329,6 +333,8 @@ export const PROJECT_DATABASE_SCHEMA_SQL = `
       CREATE TABLE IF NOT EXISTS media_observations (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, source_id TEXT NOT NULL REFERENCES media_sources(id), superseded_by TEXT, data TEXT NOT NULL);
       CREATE INDEX IF NOT EXISTS media_observations_source ON media_observations(project_id,source_id,superseded_by);
       CREATE TABLE IF NOT EXISTS media_vectors (observation_id TEXT NOT NULL REFERENCES media_observations(id), modality TEXT NOT NULL, model TEXT NOT NULL, text_hash TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(observation_id,modality,model));
+      -- 机制派生缓存无观察外键，不制造素材或采用记录。
+      CREATE TABLE IF NOT EXISTS motion_library_cache (key TEXT PRIMARY KEY, data TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS media_analysis_records (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, analysis_key TEXT NOT NULL, data TEXT NOT NULL);
       CREATE INDEX IF NOT EXISTS media_analysis_key ON media_analysis_records(project_id,analysis_key);
       CREATE TABLE IF NOT EXISTS media_search_sessions (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, request_id TEXT NOT NULL, data TEXT NOT NULL);

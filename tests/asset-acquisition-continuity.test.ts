@@ -34,7 +34,7 @@ test("升级后只解除旧时长自动拒绝，人工与类型拒绝保持", as
   } finally { app.close(); await rm(root, { recursive: true, force: true }); }
 });
 
-test("范围获取保留时间对应和既有观察，原范围直接采用且纠错继续失效旧用途", async () => {
+test("范围获取保留时间对应和既有观察，分析纠错不影响原文件使用", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-range-evidence-"));
   const app = createApplication(root);
   try {
@@ -76,14 +76,11 @@ test("范围获取保留时间对应和既有观察，原范围直接采用且�
     const read = app.intelligence.inspect(projectId, { assetId: asset.id });
     assert.equal(read.candidateEvidence[0].observations[0].context, observation.context);
     assert.equal(app.readAssetCandidate({ projectId, assetCandidateId: candidate.id }).candidate.durationMs, undefined, "不能用片段长度覆盖原片未知长度");
-    const adoption = { baseRevision: rev(), assetId: asset.id, observationIds: [observation.id], range: { startMs: 0, endMs: 2000 }, purpose: "延续已选动作", audioPolicy: "mute" as const, conditions: ["原声静音"] };
-    await assert.rejects(app.intelligence.adopt(projectId, adoption), /时间对应/);
-    await assert.rejects(app.intelligence.adopt(projectId, { ...adoption, candidateSourceStartMs: 0 }), /覆盖/);
-    const adopted = await app.intelligence.adopt(projectId, { ...adoption, candidateSourceStartMs: 10000 });
-    assert.deepEqual(adopted.snapshot.mediaAdoptions?.[0].observationIds, [observation.id]);
+    const beforeCorrection = rev();
     assert.deepEqual(app.repository.mediaIntelligence.observation(projectId, observation.id), observation, "不得伪造本地观察替换原证据");
     app.intelligence.correct(projectId, { observationId: observation.id, facts: observation.facts, unknowns: ["原声未知"], reason: "测试纠错后需要重新确认当前用途", author: "测试", baseRevision: rev() });
-    assert.equal(app.readProject(projectId).snapshot.mediaAdoptions?.[0].status, "needs_review");
+    assert.equal(rev(), beforeCorrection);
+    assert.equal(app.readProject(projectId).snapshot.mediaAdoptions?.length ?? 0, 0);
   } finally { app.close(); await rm(root, { recursive: true, force: true }); }
 });
 

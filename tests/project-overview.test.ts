@@ -53,7 +53,7 @@ function textFromToolResult(result: unknown): string {
 }
 
 test("MCP 注册工具全部归入项目总览能力目录", async () => {
-  const source = (await Promise.all([mcpSourcePath, ...["motion-tools", "media-intelligence-tools", "sound-tools", "source-research-tools"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
+  const source = (await Promise.all([mcpSourcePath, ...["motion-tools", "motion-library-tools", "media-intelligence-tools", "sound-tools", "source-research-tools"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
   const registered = registeredToolNames(source);
   const catalogued = MCP_CAPABILITY_GROUPS.flatMap((group) => group.tools);
   const missing = registered.filter((name) => !catalogued.includes(name));
@@ -162,7 +162,7 @@ test("项目总览 MCP 可发现并返回创作与素材操作表结构，且不
       database: { engine: string; tables: Array<{ name: string }> };
     };
     assert.equal(overview.database.engine, "SQLite");
-    assert.deepEqual(overview.database.tables.map((table) => table.name).sort(), ["projects", "revisions", "jobs", "export_artifacts", "repair_tickets", "media_sources", "media_analysis_records", "media_observations", "media_vectors", "media_search_sessions"].sort());
+    assert.deepEqual(overview.database.tables.map((table) => table.name).sort(), ["projects", "revisions", "jobs", "export_artifacts", "repair_tickets", "media_sources", "media_analysis_records", "media_observations", "media_vectors", "media_search_sessions", "motion_library_cache"].sort());
     assert.doesNotMatch(JSON.stringify(overview), /overview-test-pexels-secret|overview-test-runtime-secret/u);
   } finally {
     await transport.close().catch(() => undefined);

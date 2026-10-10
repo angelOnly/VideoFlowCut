@@ -62,14 +62,22 @@ async function resolveSource(app: EditingApplication, job: JobRecord, providers:
   return source;
 }
 
-async function embedBatch(app: EditingApplication, job: JobRecord, bridge: ComfyUIBridgeClient, texts: string[], mode: "document" | "query", key: string): Promise<number[][]> {
+export const MEDIA_QUERY_INSTRUCTION = "根据中文检索需求，查找描述实际画面、声音或原文的相关素材片段。";
+export async function embedBatch(app: EditingApplication, job: JobRecord, bridge: ComfyUIBridgeClient, texts: string[], mode: "document" | "query", key: string, instruction = MEDIA_QUERY_INSTRUCTION): Promise<number[][]> {
   const result = await modelText(app, job, bridge, key, semanticConfig(job).embeddingWorkflowId, async (schema) => {
     for (const id of ["texts_json", "mode"]) if (!schema.fields.some((field) => field.id === id)) throw new DomainError(`向量接口缺少 ${id}`, "MEDIA_MODEL_SCHEMA_UNSUPPORTED");
-    return { fieldValues: { texts_json: JSON.stringify(texts), mode, ...(mode === "query" && schema.fields.some((field) => field.id === "instruction") ? { instruction: "根据中文检索需求，查找描述实际画面、声音或原文的相关素材片段。" } : {}) } };
-  });
-  const vectors = JSON.parse(result.text!).embeddings as unknown;
-  if (!Array.isArray(vectors) || vectors.length !== texts.length || vectors.some((vector) => !Array.isArray(vector) || vector.length !== 1024 || vector.some((value) => typeof value !== "number" || !Number.isFinite(value)) || Math.abs(Math.hypot(...vector) - 1) > 0.02)) throw new DomainError("向量服务没有返回对应数量的归一化 1024 维向量", "MEDIA_EMBEDDING_INVALID");
-  return vectors;
+    const supportsInstruction = schema.fields.some((field) => field.id === "instruction");
+    if (mode === "query" && instruction !== MEDIA_QUERY_INSTRUCTION && !supportsInstruction) throw new DomainError("向量工作流未提供任务指令字段，保留全文词法结果", "MOTION_INSTRUCTION_UNSUPPORTED");
+    return { fieldValues: { texts_json: JSON.stringify(texts), mode, ...(mode === "query" && supportsInstruction ? { instruction } : {}) } };
+  }, undefined, digest([texts, mode, instruction, semanticConfig(job)]));
+  try {
+    const vectors = JSON.parse(result.text!).embeddings as unknown;
+    if (!Array.isArray(vectors) || vectors.length !== texts.length || vectors.some((vector) => !Array.isArray(vector) || vector.length !== 1024 || vector.some((value) => typeof value !== "number" || !Number.isFinite(value)) || Math.abs(Math.hypot(...vector) - 1) > 0.02)) throw new DomainError("向量服务没有返回对应数量的归一化 1024 维向量", "MEDIA_EMBEDDING_INVALID");
+    return vectors;
+  } catch(error) {
+    rejectModelOutput(app, job, key, error instanceof Error ? error.message : String(error));
+    throw error;
+  }
 }
 
 /** 长文字按全部分块编码，再归一化聚合；不截掉否定词或后半段。 */
@@ -159,7 +167,7 @@ export async function runMediaUnderstanding(app: EditingApplication, job: JobRec
       const parsed = parseObservation(response.text!, window.range, modalities.filter((modality) => modality !== "speech"));
       if (!parsed.facts.length && modalities.some((modality) => modality !== "speech")) rejectModelOutput(app, job, `window:${window.id}`, parsed.unknowns.join("；") || "没有可校验的观察事实");
       const observation: MediaObservation = { id: `observation_${digest([window.id, response.runId])}`, projectId: job.projectId, sourceId: source.id, sourceHash: source.hash, range: window.range, region: window.region, depth: input.depth, modalities, ...parsed,
-        context: record.context, promptText: prompt, rawText: response.text!, version: { workflowId, schemaVersion: response.schemaVersion, model: config.modelRevision, prompt: ANALYSIS_VERSION, preprocessing: PREPROCESSING_VERSION, samplingFps: kind === "video" ? 1 : undefined }, jobId: job.id, runId: response.runId, inputEvidence: { path: derived.path, hash: await hashMediaFile(derived.path), mapping: derived.mapping }, createdAt: now() };
+        context: record.context, promptText: prompt, rawText: response.text!, version: { workflowId, schemaVersion: response.schemaVersion, model: config.modelRevision, prompt: ANALYSIS_VERSION, preprocessing: PREPROCESSING_VERSION }, jobId: job.id, runId: response.runId, inputEvidence: { path: derived.path, hash: await hashMediaFile(derived.path), mapping: derived.mapping }, createdAt: now() };
       observation.reusedFromObservationId = reusable?.id;
       if (window.region) observation.facts.forEach((fact) => { fact.region = window.region; });
       for (const fact of observation.facts) window.modalityStatus![fact.modality] = "observed";

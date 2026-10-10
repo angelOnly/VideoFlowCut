@@ -1,0 +1,6 @@
+
+> video-cut@0.1.0 plugin:e2e
+> node plugins/videoflowcut/scripts/plugin-e2e.mjs
+
+{"releaseId":"release-97a7814c8208b776da9344d5aab77e4058ee52b29d62bce5244c512393630ab9","frameCount":792,"durationMs":33000,"runtimeTreeRssPeakBytes":1304854528}
+VideoFlowCut 插件 Runtime、Web 与 MCP E2E 验证通过。

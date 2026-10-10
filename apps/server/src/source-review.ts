@@ -477,7 +477,7 @@ async function createRangeProxy(input: {
     const decoded = JSON.parse(await input.process("ffprobe", ["-v", "error", "-select_streams", "v:0", "-count_frames",
       "-show_entries", "stream=nb_read_frames", "-of", "json", temporaryPath], 120_000)) as { streams?: Array<{ nb_read_frames?: string }> };
     if (Number(decoded.streams?.[0]?.nb_read_frames) !== input.range.endFrame - input.range.startFrame) {
-      throw new DomainError("连续代理未覆盖请求的全部源范围；不能凭截图宣布选段审阅通过", "SOURCE_REVIEW_PROXY_INCOMPLETE");
+      throw new DomainError("连续代理未覆盖请求的全部源范围；不能凭截图宣称已连续观看", "SOURCE_REVIEW_PROXY_INCOMPLETE");
     }
   });
   const relativePath = toRelativePath(input.snapshot, path);
@@ -922,7 +922,7 @@ export async function inspectAsset(application: EditingApplication, input: Inspe
       ...initialBoundaries,
       ...(input.mode === "overview" ? [] : ["当前使用位置仅列出与请求源范围可证明相交的 Timeline、Cutaway 和关联对象；未带源范围的独立证据对象不会被误判为当前范围使用。"]),
       ...(diagnostics.issues.length ? ["审阅存在缺失证据；成功图片不证明失败位置或整段视频可播放，失败也不自动证明原素材损坏。"] : []),
-      ...(input.mode !== "overview" && diagnostics.continuousReview !== "available" ? ["请求范围没有可用连续代理，不能以截图替代连续观看或宣称选段审阅通过。"] : [])
+      ...(input.mode !== "overview" && diagnostics.continuousReview !== "available" ? ["请求范围没有可用连续代理，不能以截图替代连续观看。"] : [])
     ]
   };
 }

@@ -6,10 +6,7 @@ import { assetById, createId, DomainError, now } from "@videocut/domain";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { probeMedia } from "@videocut/speech";
 import { assetRequestVersion, intersection, regionContains } from "../../media-intelligence/src/index.js";
-import type { MediaAdoption, MediaFact, MediaObservation, MediaSearchQuery, MediaSource, MediaUsageTarget, SourceRegion, SourceTimeRange } from "@videocut/contracts";
-import { mediaUsageProblem, mediaUsageState } from "../../media-intelligence/src/usage.js";
-import { boundMotionFontSchema, boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema } from "../../motion-work/src/schema.js";
-import { motionHash, motionHashEngine } from "../../motion-work/src/compiler.js";
+import type { MediaFact, MediaObservation, MediaSearchQuery, MediaSource, SourceRegion, SourceTimeRange } from "@videocut/contracts";
 import { analysisInputSchema, ANALYSIS_VERSION, cosine, digest, EMBEDDING_VERSION, factSchema, matchObservation, regionSchema, searchQuerySchema, timeRangeSchema, uncoveredRanges, type AnalysisInput } from "../../media-intelligence/src/index.js";
 import type { EditingApplication } from "./index.js";
 
@@ -41,54 +38,17 @@ export async function renderedAnalysisSource(app: EditingApplication, projectId:
   return { path, hash, composition: { revision, fromFrame, toFrame, fps: snapshot.timeline.fps } };
 }
 
-/** Web、MCP 和 Worker 使用同一分析/采用规则，不建立第二份项目快照。 */
+/** Web、MCP 和 Worker 使用同一可选分析规则，不建立第二份项目快照。 */
 export class MediaIntelligenceApplication {
   constructor(private readonly app: EditingApplication) {}
   get store() { return this.app.repository.mediaIntelligence; }
 
   retry(projectId: string, jobId: string) {
     const previous = this.app.trackJob(jobId);
-    if (previous.projectId !== projectId || !["media_understanding", "media_search", "sound_ranking"].includes(previous.kind) || !["failed", "cancelled"].includes(previous.status)) throw new DomainError("只能恢复此项目明确失败或已取消的素材任务", "MEDIA_RETRY_INVALID");
+    if (previous.projectId !== projectId || !["media_understanding", "media_search", "motion_library_search", "motion_reference_analysis", "sound_ranking"].includes(previous.kind) || !["failed", "cancelled"].includes(previous.status)) throw new DomainError("只能恢复此项目明确失败或已取消的素材任务", "MEDIA_RETRY_INVALID");
     const retry = this.app.repository.createJob({ projectId, kind: previous.kind, payload: { ...previous.payload, retryOfJobId: previous.id }, idempotencyKey: `media-retry:${previous.id}` });
     this.app.publish({ projectId, revision: this.app.readProject(projectId).revision.number, type: "job" });
     return retry;
-  }
-
-  bind(projectId: string, input: { baseRevision: number; adoptionId: string; target: MediaUsageTarget }) {
-    const state = this.app.repository.commit(projectId, input.baseRevision, "关联素材采用依据与实际使用", (snapshot, impact) => {
-      const adoption = snapshot.mediaAdoptions?.find((entry) => entry.id === input.adoptionId);
-      if (!adoption) throw new DomainError("采用依据不存在", "MEDIA_ADOPTION_NOT_FOUND");
-      if (input.target.motionImageSlot) {
-        const cue = snapshot.effectCues.find(entry => entry.id === input.target.effectCueId);
-        const workAsset = snapshot.assets.find(entry => entry.id === cue?.assetBindings.find(binding => binding.slot === "motion")?.assetId);
-        if (cue?.type === "ManagedMotion" && workAsset?.motion && !workAsset.motion.imageSources) {
-          // 旧作品只在显式关联时从同版成功任务恢复摘要，不猜槽位、不重写固定输入。
-          const job = this.app.trackJob(workAsset.motion.jobId);
-          if (job.projectId !== projectId || job.kind !== "motion_generation" || job.status !== "succeeded") throw new DomainError("内部图片摘要需要本项目的原始成功作品任务", "MOTION_IMAGE_SOURCE_UNAVAILABLE");
-          const work = motionSubmissionSchema.parse(job.payload.work);
-          const images = boundMotionImageSchema.array().parse(job.payload.boundImages ?? []);
-          const videos = boundMotionVideoSchema.array().parse(job.payload.boundVideos ?? []);
-          const fonts = boundMotionFontSchema.array().parse(job.payload.boundFonts ?? []);
-          const version = motionHash(work, images, motionHashEngine(work, images, job.payload.version, job.payload.engineVersion, videos, fonts), videos, fonts);
-          if (version !== workAsset.motion.version || version !== job.payload.version
-            || Object.keys(work.imageBindings).length !== images.length || new Set(images.map(image => image.slot)).size !== images.length
-            || images.some(image => work.imageBindings[image.slot] !== image.assetId)) throw new DomainError("内部图片固定输入与作品版本不一致", "MOTION_IMAGE_SOURCE_MISMATCH");
-          workAsset.motion.imageSources = images.map(image => ({ slot: image.slot, assetId: image.assetId, sourceHash: image.hash }));
-          impact.changed.push(workAsset.id);
-        }
-      }
-      const item = input.target.timelineItemId && snapshot.timeline.items.find((entry) => entry.id === input.target.timelineItemId);
-      if (item && adoption.audioPolicy !== "not_applicable") item.mediaAudioPolicy = adoption.audioPolicy;
-      const problem = mediaUsageProblem(snapshot, adoption, input.target);
-      if (problem) throw new DomainError(problem, "MEDIA_USAGE_INVALID");
-      const usage = mediaUsageState(snapshot, input.target)!;
-      for (const entry of snapshot.mediaAdoptions ?? []) entry.uses = entry.uses?.filter((use) => digest(use.target) !== digest(input.target));
-      (adoption.uses ??= []).push({ target: input.target, signature: usage.signature });
-      impact.changed.push(adoption.id, input.target.timelineItemId ?? input.target.effectCueId!);
-      impact.dirtyRanges.push({ ...usage.frameRange, reason: "素材采用依据与声音策略已关联到实际使用" });
-    });
-    this.app.publish({ projectId, revision: state.revision.number, type: "revision" });
-    return state;
   }
 
   async submitAnalysis(projectId: string, value: AnalysisInput) {
@@ -133,7 +93,7 @@ export class MediaIntelligenceApplication {
     const candidateEvidence = acquisition ? this.store.sources(projectId)
       .filter(source => !!source.target.candidateId && [acquisition.candidateId, ...(acquisition.candidateIds ?? [])].includes(source.target.candidateId))
       .map(source => ({ source, observations: this.store.observations(projectId, source.id), originalSourceRange: acquisition.sourceRange,
-        mappingRequired: "采用已有观察时确认 candidateSourceStartMs；range 使用本地时间。" })) : [];
+        mappingRequired: "依据取得片段的原片起点换算本地源时间；观察保留原始来源。" })) : [];
     return {
       requests: snapshot.assetRequests.filter((entry) => entry.status !== "closed").map((entry) => ({ id: entry.id, title: entry.title, version: assetRequestVersion(entry) })),
       sources: currentSources, total: observations.length,
@@ -193,86 +153,12 @@ export class MediaIntelligenceApplication {
       if (previous.region && !fact.region) fact.region = previous.region;
       // 纠错也可能来自模型、测量或转写，保留显式来源和精度，不能自动升级证据。
     }
-    const affected = (current.snapshot.mediaAdoptions ?? []).filter((adoption) => adoption.observationIds.includes(previous.id));
-    if (affected.length && input.baseRevision !== current.revision.number) throw new DomainError("此纠错影响已采用素材，需要当前 Revision", "REVISION_CONFLICT");
     const observation: MediaObservation = { ...previous, id: createId("observation"), facts, unknowns: input.unknowns, supersedes: previous.id, correction: { reason: input.reason.trim(), author: input.author.trim() }, createdAt: now() };
-    const state = affected.length ? this.app.repository.commit(projectId, current.revision.number, "纠正已采用素材的观察依据", (snapshot, impact) => {
-      // 观察替换与创作失效处于同一 SQLite 事务；冲突时一起回滚。
-      this.store.saveObservation(observation);
-      for (const adoption of snapshot.mediaAdoptions ?? []) if (affected.some((entry) => entry.id === adoption.id)) { adoption.status = "needs_review"; adoption.reviewReason = input.reason; impact.stale.push(adoption.id); }
-      for (const item of snapshot.timeline.items) if (affected.some((entry) => entry.uses?.some((use) => use.target.timelineItemId === item.id) || snapshot.audioCues.some((cue) => cue.adoptionId === entry.id && cue.timelineItemId === item.id))) {
-        impact.dirtyRanges.push({ startFrame: item.startFrame, endFrame: item.endFrame, reason: "所用素材观察已纠正，需复核原有选择" });
-      }
-      impact.warnings.push("素材观察已纠正，受影响采用需重新复核。");
-    }) : current;
-    if (!affected.length) this.store.saveObservation(observation);
-    this.app.publish({ projectId, revision: state.revision.number, type: affected.length ? "revision" : "job" });
-    return { observation, affectedAdoptionIds: affected.map((entry) => entry.id), revision: state.revision.number };
+    // 分析笔记与剪辑绑定解耦；纠错不创建视频版本，也不改变历史采用记录。
+    this.store.saveObservation(observation);
+    this.app.publish({ projectId, revision: current.revision.number, type: "job" });
+    return { observation, revision: current.revision.number };
+
   }
 
-  async adopt(projectId: string, input: { baseRevision: number; assetId: string; observationIds: string[]; candidateSourceStartMs?: number; range?: SourceTimeRange; region?: SourceRegion; requestId?: string; requestVersion?: string; purpose: string; audioPolicy: MediaAdoption["audioPolicy"]; conditions: string[] }) {
-    const current = this.app.readProject(projectId);
-    const asset = assetById(current.snapshot, input.assetId);
-    const path = await managedSourcePath(current.snapshot.project.rootPath, asset.managedPath);
-    const hash = await hashMediaFile(path);
-    if (!input.observationIds.length || !input.purpose.trim()) throw new DomainError("采用必须保留观察和用途", "MEDIA_ADOPTION_EVIDENCE_REQUIRED");
-    if (asset.status !== "ready" || (asset.sourceHash && hash !== asset.sourceHash)) throw new DomainError("原文件已变化或尚未就绪", "MEDIA_SOURCE_CHANGED");
-    const range = input.range && timeRangeSchema.parse(input.range), region = input.region && regionSchema.parse(input.region);
-    if (["image", "document"].includes(asset.kind) ? !!range : !range || !!region) throw new DomainError("请提供与原文件类型一致的时间或页面范围", "MEDIA_RANGE_KIND_MISMATCH");
-    if (asset.kind === "document" && !region?.page) throw new DomainError("文档采用必须明确页码及区域", "MEDIA_ADOPTION_REGION_MISMATCH");
-    if (range && range.endMs > (asset.metadata?.durationMs ?? 0)) throw new DomainError("采用范围超出原文件", "MEDIA_ADOPTION_RANGE_INVALID");
-    if (asset.kind === "audio" && input.audioPolicy !== "retain" || ["image", "document"].includes(asset.kind) && input.audioPolicy !== "not_applicable") throw new DomainError("原声策略与素材类型不一致", "MEDIA_ADOPTION_AUDIO_POLICY_INVALID");
-    if (input.candidateSourceStartMs !== undefined && (!Number.isSafeInteger(input.candidateSourceStartMs) || input.candidateSourceStartMs < 0)) throw new DomainError("候选观察的原片零点必须为非负整数毫秒", "MEDIA_SOURCE_MAPPING_INVALID");
-    const observations = input.observationIds.map((id) => {
-      const observation = this.store.observation(projectId, id);
-      const source = observation && this.store.source(projectId, observation.sourceId);
-      if (!observation || !source || observation.sourceHash !== source.hash || this.store.isSuperseded(projectId, id)) throw new DomainError("采用需要有效观察；当前观察已失效或源身份不一致", "MEDIA_ADOPTION_EVIDENCE_STALE");
-      const localEvidence = source.target.assetId === asset.id && source.hash === hash && source.identity !== "preview";
-      const acquisition = asset.provenance?.acquisition;
-      const candidateEvidence = acquisition && !!source.target.candidateId && [acquisition.candidateId, ...(acquisition.candidateIds ?? [])].includes(source.target.candidateId) && source.kind === asset.kind
-        && (source.hash === hash || input.candidateSourceStartMs !== undefined);
-      if (!localEvidence && !candidateEvidence) throw new DomainError("采用需此文件观察，或已确认时间对应的同一候选观察", "MEDIA_ADOPTION_EVIDENCE_STALE");
-      if (observation.depth !== "review" || !observation.facts.length) throw new DomainError("拟采用范围需要原文件复核观察", "MEDIA_ADOPTION_REVIEW_REQUIRED");
-      if (!localEvidence && candidateEvidence && range) {
-        // 仅映射本次覆盖判断；原始观察、未知项和实际证据身份不改写。
-        const offset = source.hash === hash ? 0 : input.candidateSourceStartMs! - (acquisition.sourceRange?.startMs ?? 0);
-        const mapRange = (value: SourceTimeRange) => intersection({ startMs: value.startMs + offset, endMs: value.endMs + offset }, { startMs: 0, endMs: asset.metadata!.durationMs });
-        return { ...observation, facts: observation.facts.flatMap(fact => {
-          if (!fact.range) return [];
-          const mapped = mapRange(fact.range);
-          return mapped ? [{ ...fact, range: mapped }] : [];
-        }) };
-      }
-      return observation;
-    });
-    const facts = observations.flatMap((observation) => observation.facts);
-    const requestedModality = ["audio", "speech"].includes(asset.kind) ? "audio" : "visual";
-    const relevant = facts.filter((fact) => fact.modality === requestedModality || requestedModality === "visual" && fact.modality === "text");
-    if (range && uncoveredRanges(range, relevant.flatMap((fact) => fact.range ? [fact.range] : [])).length) throw new DomainError("实际事实未覆盖完整采用范围", "MEDIA_ADOPTION_COVERAGE_INCOMPLETE");
-    if (range && ["video", "actor_video"].includes(asset.kind) && uncoveredRanges(range, relevant.filter((fact) => fact.precision === "reviewed").flatMap((fact) => fact.range ? [fact.range] : [])).length) throw new DomainError("抽帧观察不能确认连续画面；请实际复核并记录所用连续范围", "MEDIA_ADOPTION_CONTINUITY_REVIEW_REQUIRED");
-    if (!range && !observations.some((observation) => regionContains(observation.region, region))) throw new DomainError("采用区域超出实际观察的页面或裁切范围", "MEDIA_ADOPTION_REGION_MISMATCH");
-    const request = input.requestId ? current.snapshot.assetRequests.find((entry) => entry.id === input.requestId) : undefined;
-    if (input.requestId && (!request || request.status === "closed")) throw new DomainError("素材需求已关闭或不存在", "ASSET_REQUEST_NOT_FOUND");
-    if (request && input.requestVersion !== assetRequestVersion(request)) throw new DomainError("采用需要当前需求版本，旧推荐需重新检查", "MEDIA_REQUEST_STALE");
-    if (request?.minDurationMs && range && range.endMs - range.startMs < request.minDurationMs) throw new DomainError("采用的连续范围不足需求时长", "MEDIA_ADOPTION_DURATION_INSUFFICIENT");
-    // visual 是需求大类，不能拿它直接与 video/image/document 文件类型比较。
-    if (request && (request.mediaKind === "audio" ? !["audio", "speech"].includes(asset.kind) : !["video", "actor_video", "image", "document"].includes(asset.kind))) throw new DomainError("采用素材类型与需求不一致", "MEDIA_RANGE_KIND_MISMATCH");
-    if (request?.sound?.maxDurationMs && range && range.endMs - range.startMs > request.sound.maxDurationMs) throw new DomainError("拟用声音范围超过需求允许长度", "MEDIA_ADOPTION_DURATION_EXCEEDED");
-    if (request?.sound && input.audioPolicy === "retain" && range) {
-      for (const [exclude, key] of [[request.sound.excludeSpeech, "speechPresence"], [request.sound.excludeMusic, "musicPresence"]] as const) {
-        if (!exclude) continue;
-        const audio = facts.filter((fact) => fact.modality === "audio" && fact.range && intersection(fact.range, range));
-        if (audio.some((fact) => fact[key] === "present") || uncoveredRanges(range, audio.filter((fact) => fact[key] === "absent").map((fact) => fact.range!)).length) throw new DomainError("当前原声没有满足需求排除条件的完整证据，请复核或重新选择", "MEDIA_ADOPTION_CONDITION_UNMET");
-      }
-    }
-    const adoption: MediaAdoption = { id: createId("media_adoption"), assetId: asset.id, sourceHash: hash, observationIds: input.observationIds, candidateSourceStartMs: input.candidateSourceStartMs, requestId: request?.id, requestVersion: request && assetRequestVersion(request), range, region, purpose: input.purpose.trim(), audioPolicy: input.audioPolicy, conditions: input.conditions, status: "current", createdAt: now() };
-    const state = this.app.repository.commit(projectId, input.baseRevision, "确认素材范围及使用依据", (snapshot, impact) => {
-      const duplicate = snapshot.mediaAdoptions?.find((entry) => digest({ ...entry, id: undefined, createdAt: undefined }) === digest({ ...adoption, id: undefined, createdAt: undefined }));
-      if (duplicate) return;
-      (snapshot.mediaAdoptions ??= []).push(adoption);
-      impact.changed.push(adoption.id);
-    });
-    this.app.publish({ projectId, revision: state.revision.number, type: "revision" });
-    return state;
-  }
 }

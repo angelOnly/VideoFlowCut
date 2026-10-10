@@ -79,7 +79,7 @@ test("模型完整 JSON 后的单个多余右括号只作结构恢复，不补�
   }
 });
 
-test("分析/观察不产生 Revision，纠错保留原文并只使已采用依据失效", async () => {
+test("分析/观察不产生 Revision，纠错保留原文且不改变已用素材和视频版本", async () => {
   const root = await mkdtemp(join(tmpdir(), "videocut-media-test-"));
   const app = createApplication(root);
   try {
@@ -102,14 +102,12 @@ test("分析/观察不产生 Revision，纠错保留原文并只使已采用依�
     const duplicate = await app.intelligence.submitAnalysis(projectId, { assetId, depth: "index", modalities: ["audio"], context: "" });
     assert.equal(job.id, duplicate.id);
     assert.equal(app.readProject(projectId).revision.number, state.revision.number);
-    state = await app.intelligence.adopt(projectId, { baseRevision: state.revision.number, assetId, observationIds: [observed.id], range: { startMs: 0, endMs: 1000 }, purpose: "机械动作完成", audioPolicy: "retain", conditions: [] });
     const corrected = app.intelligence.correct(projectId, { observationId: observed.id, facts: [{ ...observed.facts[0], text: "机械声后有微弱人声", speechPresence: "present" }], unknowns: [], reason: "实际复核发现尾音中含人声", author: "测试审阅", baseRevision: state.revision.number });
-    assert.equal(corrected.affectedAdoptionIds.length, 1);
-    assert.equal(app.readProject(projectId).snapshot.mediaAdoptions?.[0].status, "needs_review");
+    assert.equal(corrected.revision, state.revision.number);
+    assert.equal(app.readProject(projectId).snapshot.mediaAdoptions?.length ?? 0, 0);
     assert.equal(app.intelligence.store.observation(projectId, observed.id)?.rawText, "原始响应");
     assert.deepEqual(app.intelligence.store.observations(projectId).map((entry) => entry.id), [corrected.observation.id]);
     assert.equal(app.readProject(projectId).snapshot.assets[0].status, "ready");
-    await assert.rejects(app.intelligence.adopt(projectId, { baseRevision: corrected.revision, assetId, observationIds: [observed.id], range: { startMs: 0, endMs: 1000 }, purpose: "采用旧观察", audioPolicy: "retain", conditions: [] }), /有效观察/u);
   } finally { app.repository.close(); await rm(root, { recursive: true, force: true }); }
 });
 
@@ -135,7 +133,7 @@ test("纠错保留明确的证据来源与精度，模型抽帧不升级成人�
       assert.equal(corrected.revision, state.revision.number, "无采用依赖的纠错不创建视频Revision");
       if (basis === "model") {
         const match = matchObservation(source, saved, { query: "车站", modality: "visual", minDurationMs: 6000 })[0];
-        assert.equal(match.status, precision === "sampled" ? "insufficient" : "conditional");
+        assert.equal(match.status, precision === "sampled" ? "insufficient" : "usable");
       }
       previous = saved;
     }
@@ -143,7 +141,7 @@ test("纠错保留明确的证据来源与精度，模型抽帧不升级成人�
   } finally { app.repository.close(); await rm(root, { recursive: true, force: true }); }
 });
 
-test("visual 需求可采用对应视频范围，需求改版不能沿用旧采用", async () => {
+test("visual 需求与辅助观察不生成采用资格", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-visual-adopt-")), app = createApplication(root);
   try {
     let state = app.createProject({ name: "视觉采用协议回归" });
@@ -159,11 +157,9 @@ test("visual 需求可采用对应视频范围，需求改版不能沿用旧采�
     const observed = { ...observation(fact("visual", "协议确认的连续接口操作", { startMs: 0, endMs: 10000 })), projectId, sourceHash: hash, range: { startMs: 0, endMs: 10000 } };
     app.intelligence.store.saveObservation(observed);
     app.intelligence.store.saveObservation({ ...observed, id: "sampled", facts: observed.facts.map((fact) => ({ ...fact, precision: "sampled" })) });
-    await assert.rejects(app.intelligence.adopt(projectId, { baseRevision: state.revision.number, assetId: "video", observationIds: ["sampled"], range: { startMs: 0, endMs: 6000 }, purpose: "抽帧不能证明连续画面可用", audioPolicy: "mute", conditions: [] }), /抽帧观察/u);
-    state = await app.intelligence.adopt(projectId, { baseRevision: state.revision.number, assetId: "video", observationIds: [observed.id], range: { startMs: 0, endMs: 6000 }, requestId: request.id, requestVersion: assetRequestVersion(request), purpose: "连续接口画面，保持自己的旁白", audioPolicy: "mute", conditions: ["旁白继续"] });
-    assert.equal(state.snapshot.mediaAdoptions![0].assetId, "video");
+    assert.equal(state.snapshot.assets[0].status, "ready");
     state = app.manageAssetRequirement({ projectId, baseRevision: state.revision.number, action: "update", assetRequestId: request.id, minDurationMs: 8000 });
-    assert.equal(state.snapshot.mediaAdoptions![0].status, "needs_review");
+    assert.equal(state.snapshot.mediaAdoptions?.length ?? 0, 0);
   } finally { app.repository.close(); await rm(root, { recursive: true, force: true }); }
 });
 

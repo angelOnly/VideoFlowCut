@@ -26,7 +26,7 @@ SFX 应绑定明确的叙事或视觉事件：预示变化、对象落定、数�
 
 默认在线选音，由 [sound-asset-sourcing](../../sound-asset-sourcing/SKILL.md) 完成按功能检索、有限候选原声分析、取得原文件与采用依据。用 `browse_sound_sources` 读取当前无需 Key 的 Provider、分类和访问能力，Mixkit 音效与 Mixkit 音乐分开处理。来源名称不证明适配，本地用户音效包也按同一范围和试听标准选择。
 
-`manage_asset_requirements` 使用 media_kind=audio、audio_brief、role=sfx/bgm 和结构化 sound 条件，不填画幅。`recommend_sound_candidates` 先对描述排序，再为有限候选建立音频分析子 Job；继续读取子任务结果，不能把父任务成功当成听过。`acquire_media_asset` 后等待下载和媒体分析，原文件经范围复核与 `adopt_media_fragment` 保存依据。预览版和原文件分别定位，不把预览下载伪装成原文件；不要求搜索 API Key 或下载 OAuth。
+`manage_asset_requirements` 使用 media_kind=audio、audio_brief、role=sfx/bgm 和结构化 sound 条件，不填画幅。`recommend_sound_candidates` 可对候选排序并建立分析子 Job；父任务成功不代表听过。`acquire_media_asset` 后等待文件取得与技术检查，再按已有选择直接试听或经 `manage_audio` 写入源范围。候选预览与原文件分别定位；分析不生成使用资格，不要求搜索 API Key 或下载 OAuth。
 
 ### 绑定一个实际动作，而非只绑定“这段有动画”
 
@@ -54,7 +54,7 @@ SFX 应绑定明确的叙事或视觉事件：预示变化、对象落定、数�
 
 ## 当前能力边界
 
-当前 `manage_audio` 接受已就绪原文件，原子写入 AudioCue 与声音 Item；design 可引用 SoundPlan、意图版本和 adoptionId。候选尚无采用依据时，保留当前 soundPlanId、soundIntentId、planVersion，不填 adoptionId，可以先生成比较片或写入待审草稿。关联需求的原文件采用缺失会形成独立的 `SOUND_ADOPTION_REQUIRED` 交付阻断；起音 confirmed 或混合 reviewed 不能替代采用。显式传入的错误需求、过期文件或不覆盖源范围的采用依据仍拒绝，不能删除计划关联、伪造采用或把候选试听当成正式通过。
+当前 `manage_audio` 接受已就绪原文件，原子写入 AudioCue 与声音 Item；design 可引用 SoundPlan 与意图版本。保留当前 soundPlanId、soundIntentId、planVersion，直接生成比较片或写入当前设计，不先创建采用资格。声音计划、文件、类型与源范围由技术路径检查；起音和最终混合按实际试听说明，分析记录和历史采用状态不影响正常使用。
 
 角色 Duck 依据当前主声音范围、可听视频原声和 attack/hold/release 退让，演示声音主导时音乐同样让位。SFX 的 event_frame、onset_offset_frames 仍须明确；作品事件优先使用实际 eventMap 的 ID、版本和范围。上下文变化会使混合复核失效；源范围/循环参数变化还需重查起音和接缝。`preview_sound_alternatives` 用正式声音计算生成比较片，正式 Preview 后再 `review_sound_mix`。`set_audio_output_target` 仅设置最终完整文件测量目标，不自动调音量或取得听审通过。`smooth_audio`、Room Tone 生成、EQ、降噪、自动 J/L Cut 和通用 DAW 仍是架构目标。
 
@@ -62,6 +62,6 @@ SFX 应绑定明确的叙事或视觉事件：预示变化、对象落定、数�
 
 ## 声音计划、候选比较与混音复核
 
-`manage_sound_plans(project_id?, base_revision_id?, input?)` 无 input 只读，有 input 写计划并要求当前 base_revision_id。`input.action=create` 必须提供 startFrame、endFrame、narrationDirection、dominantRole、musicDirection 和 intents；配音前按项目 fps 将段落预估秒数换成完整整数帧范围，语音生成后再用 update 按实测时长修订，预估范围不等于锁定成片时长。update/remove 必须提供 soundPlanId，update 可省略未改字段。`recommend_sound_candidates(project_id?, input)` 输入 assetRequestId、candidateIds、analyzeTop，需追踪返回的音频子 Job。`preview_sound_alternatives(project_id?, input)` 固定 revision、fromFrame/toFrame 与 alternatives，每种方案沿用正式音频编辑规则。`manage_audio` 的 design 支持 role、soundPlanId、soundIntentId、planVersion、adoptionId、durationFrames、envelope、loopCrossfadeFrames、loopReview；具体字段和范围读取实际 Schema。
+`manage_sound_plans(project_id?, base_revision_id?, input?)` 无 input 只读，有 input 写计划并要求当前 base_revision_id。`input.action=create` 必须提供 startFrame、endFrame、narrationDirection、dominantRole、musicDirection 和 intents；配音前按项目 fps 将段落预估秒数换成完整整数帧范围，语音生成后再用 update 按实测时长修订，预估范围不等于锁定成片时长。update/remove 必须提供 soundPlanId，update 可省略未改字段。`recommend_sound_candidates(project_id?, input)` 输入 assetRequestId、candidateIds、analyzeTop，需追踪返回的音频子 Job。`preview_sound_alternatives(project_id?, input)` 固定 revision、fromFrame/toFrame 与 alternatives，每种方案沿用正式音频编辑规则。`manage_audio` 的 design 支持 role、soundPlanId、soundIntentId、planVersion、durationFrames、envelope、loopCrossfadeFrames、loopReview；具体字段和范围读取实际 Schema。
 
 `review_sound_mix(project_id?, input)` 提交 baseRevision、previewJobId、outcome、method、note，只接受可追溯正式 Preview；候选比较不替代正式复核。`set_audio_output_target(project_id?, base_revision_id, target)` 设置 targetLufs、toleranceLu、maxTruePeakDbfs，最终文件测量不替代听感。

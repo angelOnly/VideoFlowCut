@@ -13,7 +13,7 @@ export async function documentPageCount(path: string): Promise<number> {
 }
 
 /** 派生始终保存真实源偏移；先按 PTS 裁切，再归零，保留音轨迟入的静音。 */
-export async function deriveMediaInput(source: MediaSource, directory: string, range?: SourceTimeRange, region?: SourceRegion, audioOnly = false): Promise<{ path: string; kind: "video" | "audio" | "image"; mapping: Record<string, unknown> }> {
+export async function deriveMediaInput(source: Pick<MediaSource, "id" | "hash" | "kind" | "path" | "startSeconds" | "hasAudio" | "pageCount">, directory: string, range?: SourceTimeRange, region?: SourceRegion, audioOnly = false): Promise<{ path: string; kind: "video" | "audio" | "image"; mapping: Record<string, unknown> }> {
   await mkdir(directory, { recursive: true });
   const kind = source.kind === "document" || source.kind === "image" ? "image" : source.kind === "audio" || audioOnly ? "audio" : "video";
   const path = join(directory, `input.${kind === "image" ? "png" : kind === "audio" ? "wav" : "mp4"}`);

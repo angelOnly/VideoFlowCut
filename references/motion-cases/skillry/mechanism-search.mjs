@@ -3,7 +3,7 @@ import {restoreSelection,encodeSelection} from './selection.mjs';
 const fields=['categories','actions','entry','exit','holds'];
 const intersect=(a,b)=>a.filter(x=>b.includes(x));
 const unique=a=>[...new Set(a)];
-const textOf=m=>[m.title,m.summary,m.purpose,m.relation,m.start_state,m.end_state,...m.tags].join(' ').toLowerCase();
+const textOf=m=>[m.search_text??[m.summary,m.purpose,m.relation,m.start_state,m.end_state].join(' '),m.title,...m.tags].join(' ').toLowerCase();
 const segments=text=>{
   const parts=[...new Intl.Segmenter('zh',{granularity:'word'}).segment(text)],result=[];
   for(let i=0;i<parts.length;i++){
@@ -50,7 +50,7 @@ function validateOptions(o){
   if(o.stages!==undefined&&(!Array.isArray(o.stages)||!o.stages.length||o.stages.length>8||o.stages.some(v=>typeof v!=='string'||!v.trim()||v.length>1000)))throw new Error('阶段应为 1—8 段独立的运动描述');
   for(const [f,min,max] of [['offset',0,100000],['limit',1,50]])if(o[f]!==undefined&&(!Number.isSafeInteger(o[f])||o[f]<min||o[f]>max))throw new Error('分页范围无效');
 }
-export function queryMechanisms(index,options={}){
+export function queryMechanisms(index,options={},semantic={}){
   validateOptions(options);
   if(index.schema_version!==2)throw new Error('索引版本不支持检索，请重新生成');
   if(options.source_sha256&&options.source_sha256!==index.source_sha256)throw new Error('资料已经变化，请重新查询并核读采用项');
@@ -58,10 +58,10 @@ export function queryMechanisms(index,options={}){
   const byId=new Map(index.mechanisms.map(m=>[m.id,m]));
   const get=id=>{const m=byId.get(id);if(!m)throw new Error(`未知机制：${id}`);return m;};
   const base={scope:index.scope,source_sha256:index.source_sha256,library_count:index.count,
-    notice:'本地词表与文本召回；匹配分数不代表观感或直接可衔接。先读候选指令与分镜，再由当前作者决定。'};
+    notice:'动作全文召回；匹配分数不代表观感或直接可衔接。先读候选指令与分镜，再由当前作者决定。'};
   if(options.stages){
     const {stages,...rest}=options;
-    return {...base,groups:stages.map(stage=>({stage,...queryMechanisms(index,{...rest,query:stage})}))};
+    return {...base,groups:stages.map(stage=>({stage,...queryMechanisms(index,{...rest,query:stage},semantic[stage]?{candidates:semantic[stage]}:{})}))};
   }
   if(options.selection){
     const selection=restoreSelection(options.selection,index);
@@ -77,6 +77,7 @@ export function queryMechanisms(index,options={}){
   // 稀少的具体关系比“内部、保持”等通用词更有区分力，不要求所有词同时命中。
   const weights=new Map(intent.tokens.map(t=>[t,Math.log(1+(index.mechanisms.length+1)/(1+[...texts.values()].filter(text=>text.includes(t)).length))]));
   const scored=[];
+  const semanticById=new Map((semantic.candidates??[]).map(row=>[row.id,row.score]));
   for(const m of index.mechanisms){
     if(m.id===sourceId)continue;
     const r=m.retrieval;
@@ -91,7 +92,7 @@ export function queryMechanisms(index,options={}){
     const stateHits=intersect(unique([...r.entry,...r.exit]),intent.concepts.states);queryScore+=stateHits.length;
     const hits=intent.tokens.filter(t=>text.includes(t));queryScore+=hits.reduce((sum,t)=>sum+weights.get(t),0);
     if(hits.length)reasons.push(`描述对应：${hits.slice(0,8).join('、')}`);
-    if(hasQuery&&!queryScore)continue;
+    if(hasQuery&&!queryScore&&!semanticById.has(m.id))continue;
     score+=queryScore;
     let difference,join;
     if(options.similar_to){
@@ -101,19 +102,34 @@ export function queryMechanisms(index,options={}){
         similarity+=union.length?w*common.length/union.length:0;
       }
       // 同样“会移动”不足以成为相似方案，需有同类变化关系。
-      if(!intersect(r.categories,source.retrieval.categories).length)continue;
       score+=similarity;reasons.push(`相同变化类：${intersect(r.categories,source.retrieval.categories).join('、')}`);
       difference={source_relation:source.relation,candidate_relation:m.relation,added_actions:r.actions.filter(v=>!source.retrieval.actions.includes(v)),absent_actions:source.retrieval.actions.filter(v=>!r.actions.includes(v))};
     }
     if(options.after||options.before){
       join=options.after?connection(source,m):connection(m,source);
-      if(!join.shared_states.length)continue;
       score+=join.shared_states.length*3+join.shared_anchors.length;
-      reasons.push(`起止状态可比较：${join.shared_states.join('、')}`);
+      reasons.push(join.shared_states.length?`起止状态可比较：${join.shared_states.join('、')}`:join.gap);
     }
     scored.push({...m,score,match_reasons:unique(reasons),...(difference?{difference}:{}),...(join?{connection:join}:{})});
   }
   scored.sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
+  if(semanticById.size){
+    // 两路各自在全库召回，再按排名融合；余弦与词法分数不直接相加。
+    // 固定召回池后分页；翻页扩大召回池会改变前页排序，造成重复或漏项。
+    const budget=50;
+    const lexical=scored.filter(card=>card.score>0).slice(0,budget);
+    const vectors=scored.filter(card=>semanticById.has(card.id)).sort((a,b)=>semanticById.get(b.id)-semanticById.get(a.id)||a.id.localeCompare(b.id)).slice(0,budget);
+    const lr=new Map(lexical.map((card,i)=>[card.id,i+1])),vr=new Map(vectors.map((card,i)=>[card.id,i+1]));
+    for(let i=scored.length-1;i>=0;i--){
+      const card=scored[i],l=lr.get(card.id),v=vr.get(card.id);
+      if(!l&&!v){scored.splice(i,1);continue;}
+      card.retrieval={...card.retrieval};
+      card.retrieval_evidence={lexical_rank:l,semantic_rank:v,lexical_score:card.score,semantic_score:semanticById.get(card.id)};
+      card.score=(l?1/(60+l):0)+(v?1/(60+v):0);
+      if(v)card.match_reasons.push(`动作关系向量召回：第${v}位`);
+    }
+    scored.sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
+  }
   const offset=options.offset??0,limit=options.limit??12;
   if(offset>scored.length)throw new Error('分页超出结果范围，请重新查询');
   const cards=scored.slice(offset,offset+limit),next=offset+cards.length;
