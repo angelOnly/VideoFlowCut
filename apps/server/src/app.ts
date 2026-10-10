@@ -1,4 +1,4 @@
-import { captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
+import { captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
 import { MotionSubmissionValidationError } from "../../../packages/edit-application/src/motion-submission-validation.js";
 import { toolError } from "./tool-error.js";
 import { explainerPlanWithContent } from "../../../packages/contracts/src/explainer-inputs.js";
@@ -1133,6 +1133,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       sourceTextReview: sourceCaptionTextReviewSchema.optional(),
       display: captionDisplaySchema.nullable().optional(),
       format: z.object({
+        textShadow: captionTextShadowSchema.nullable().optional(),
         placement: captionPlacementSchema.nullable().optional(),
         fontSize: z.number().int().min(16).max(72).optional(),
         fontWeight: z.number().int().min(400).max(900).optional(),
@@ -1162,6 +1163,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       baseRevision: baseRevisionSchema,
       captionIds: z.array(idSchema).min(1).max(200),
       format: z.object({
+        textShadow: captionTextShadowSchema.nullable().optional(),
         placement: captionPlacementSchema.nullable().optional(),
         fontSize: z.number().int().min(16).max(72).optional(),
         fontWeight: z.number().int().min(400).max(900).optional(),

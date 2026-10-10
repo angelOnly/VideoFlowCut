@@ -30,6 +30,8 @@ Provider 能提供严格 token 时间时，Alignment 标记为 `provider_token_t
 
 ## 静态版式参数与拒绝分类
 
+字幕阴影沿美术选择：当前开发合同 `format.text_shadow:null` 明确关闭；对象 `{offsetX,offsetY,blur,color,opacity}` 指定单层阴影（偏移 -20～20 像素、模糊 0～40 像素、颜色 #RRGGBB、透明度 0～1）。省略保留已有选择，历史未设置的卡沿用旧黑影；HTTP 与读回字段为 `textShadow`。单卡与同源批量格式都支持，预览与导出共用解释。提交前核对当前会话 Schema 是否已发布该字段，旧会话缺字段不能假称已可控制。
+
 `bulk_source_format` 要求同一来源使用 `sourceTimelineItemId`，旁白音频生成的有效来源卡也适用，不以素材是否 A-roll 判断。关闭背景传 `background_color:null` 并省略 `background_opacity`；透明度0非法，有背景时允许0.1至1。移除背景不建立白色字幕带，白带仍需原视觉作者的正式可渲染对象和真实合成验证。先检查 `isError` 并保存原始文本，不能直接JSON解析丢失协议校验错误；明确参数拒绝沿共享运行合同纠正，不把输入非法误报平台故障。
 
 ## 来源链与显示核对

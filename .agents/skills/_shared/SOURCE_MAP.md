@@ -13,6 +13,6 @@
 | 源内观察与精度 | [素材审阅](../visual-asset-sourcing/references/source-review.md)，补真实缺口 |
 | 写入、Job、未知结果 | [主任务操作](../production-coordinator/references/project-writes.md)，核对并排序 |
 | 证据与交付状态 | [状态说明](../quality-verification/references/evidence-status.md)，不混淆技术与专业结论 |
-| 已认可案例 | [案例库](../motion-case-library/SKILL.md)，指定时直达，确需参考才检索 |
+| 本场动画机制选型 | [机制库](../motion-case-library/SKILL.md)，动画制作前检索与适配；历史研究仅在用户明确请求时进入 |
 
 实现字段最终以当前连接的实时 Schema、项目对象和已发布能力为准。架构、开发与历史发行资料在仓库 docs 中，不作为创作默认输入。

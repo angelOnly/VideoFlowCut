@@ -79,7 +79,7 @@ test("发布校验拒绝插件声明身份与源码不一致的安装快照", as
 
 test("发布校验拒绝 captions Skill 回退到旧字幕入口的安装快照", async () => {
   await withInstalledSnapshot(async (installedPluginRoot) => {
-    const captionsPath = join(installedPluginRoot, "skills", "captions", "SKILL.md");
+    const captionsPath = join(installedPluginRoot, "skills", "captions", "references", "caption-operations.md");
     const captions = await readFile(captionsPath, "utf8");
     assert.match(captions, /generate_source_audio_captions/u, "测试前提：源码 Skill 必须指向当前原声字幕入口");
     await writeFile(captionsPath, captions.replace("generate_source_audio_captions", "submit_source_audio_captions"), "utf8");

@@ -14,6 +14,7 @@
 
 ## Skills 工作流规则
 
+- 默认生产路线见 `.agents/skills/_shared/TOPIC_TO_FILM.md`：前期独立进行内容、实际素材与美术共创；进入本场动效制作后，先使用120库机制选型、适配和组合，再写主要动画源码。
 - 视频创作主任务先读取 `project-basics` 与 `production-coordinator`，负责沟通、项目事实、调度、确定性提交、技术检查和交付；凡需判断“怎样表达才合适”的主线、风格、选材、文稿、节奏、视觉、声音和专业审片，必须真实调用宿主子代理执行，不能在主线程补做。
 - 完整视频由主任务启动导演子代理读取 `production-director`，只选择一个主要视频工作流。人物口播、视觉解释片和 Vlog 分别在导演子代理中运行 `presenter-motion-director`、`visual-explainer-director`、`vlog-director`，从输入负责到专业收口。
 - 导演到达具体阶段后提出专项范围与依赖，由主任务通过宿主 `spawn_agent` 分派、`followup_task` 续接原负责人；已授权创意子代理可直接创作并按需读取多个相关 Skills，不递归分派，不为案例资料创建代理。
@@ -35,7 +36,8 @@
 - 本文件其余条款及 Skills 中的“报障”“报修”均受上述 Bug 报障条件约束；错误码或恢复提示只作诊断依据，不自动证明存在 Bug。原因未知时继续只读诊断并保留受影响步骤的待处理状态，其他无依赖工作继续。
 - `inspect_asset` 的结构化部分/不可用审阅结果不是调用故障。主任务按 `diagnostics.recovery` 控制：`diagnostics.recovery=inspect_available_evidence` 回传原素材作者查看有效证据与缺失位置；`diagnostics.recovery=select_another_candidate` 暂不采用当前候选并继续正常搜索/获取；只有 `diagnostics.recovery=report_platform_failure` 停止受影响步骤并报修，其他无依赖工作继续。空输出、超时或原因未知不证明素材损坏；没有连续代理的 range/dense 不能凭截图宣称采用通过。只写审阅缓存，不修改 Asset 状态或视频 Revision，不重放旧下载/生成。
 - 素材搜索的窄例外：只有正式工具明确返回 `sideEffects="none"`、`safeToRetry=true` 和纠正依据时，才可按服务目录纠正参数，或按 `retryAfterMs` 等待后再搜索一次；同因再次失败即报障。该例外不适用于下载、生成、项目写入或未知结果，不允许改配置、换幂等键或用外部方式绕过。
-- 理想字体未收录属于选择问题，不报修复工单。主任务控制流程，原视觉作者推荐最多三款已登记字体，通过工作台让用户预览并在聊天确认；未回复不自动采用，等待期间继续无依赖工作。仅当`submit_motion_work`明确返回`code=MOTION_FONT_UNKNOWN`、`stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=select_registered_font`时，可收到用户选择后续接原作者修订并正常提交，不重放原输入。已登记原件损坏、加载失败和结果未知仍走平台报障与对账。
+- 字体默认从当前 Runtime 已登记的字体库中选择，并核对所需字重与字符覆盖。理想字体或参考稿字体未收录时，由原视觉作者自主选择库中风格接近、适合当前画面且可读性良好的字体，完成替换及必要的排版调整；不要求用户预览、确认或等待回复，主任务继续推进制作、检查与交付。字体未收录属于正常选择问题，不报修复工单。任务完成后简要告知实际采用的字体及替换情况。
+- 当 `submit_motion_work` 明确返回 `code=MOTION_FONT_UNKNOWN`，且满足 `stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=select_registered_font` 时，由原视觉作者依据当前字体库修订，主任务核验后提交修订输入，无需用户确认，不重放原输入。已登记字体文件损坏、加载失败或写入结果未知，仍按故障诊断与对账规则处理。
 - **修复任务**只处理平台源码、测试、构建、候选 Runtime 与部署；不得创建、导入、删除或修改正式视频 Project、素材、Story、Scene、Timeline、Revision、Job 和 ExportArtifact。它可以读取 Repair Ticket 和必要的只读运行证据，但不能代替剪辑任务继续创作。
 - 两个任务可共享同一源码目录，且不要求 Git 分支或 worktree；但生产 Runtime A 必须持续服务剪辑任务，候选版 B 只能用独立端口和独立工作区验证，绝不能与 A 共用生产 `app.sqlite` 的 Worker 队列。
 - 修复必须找根因、补回归测试、构建 Release ID 并验证候选版。不得为了让当前任务通过而写临时补丁、硬编码、跳过校验、直接改插件缓存或把未验证构建称为已部署。
@@ -67,4 +69,4 @@
 
 ## 参数拒绝与原始错误证据
 
-调用结果先检查 `isError`，保存完整文本后再按实际内容解析 JSON；协议层 Schema 拒绝可能只有文本，解析失败不得覆盖原始错误。参数拒绝、业务冲突、运行故障和写入结果未知分别记录。仅明确 `stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=correct_input` 并指出字段纠正依据的参数拒绝，允许按实时 Schema 纠正后提交一次；不重放原请求，同因再次拒绝报障。协议层文本拒绝必须核对实时 Schema 和当前 Revision，确认未进入业务执行后才能纠正。此例外不允许重试已创建的下载、生成 Job、运行失败或结果未知，不更换幂等键绕过。字体选择继续遵守人工选择合同。
+调用结果先检查 `isError`，保存完整文本后再按实际内容解析 JSON；协议层 Schema 拒绝可能只有文本，解析失败不得覆盖原始错误。参数拒绝、业务冲突、运行故障和写入结果未知分别记录。仅明确 `stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=correct_input` 并指出字段纠正依据的参数拒绝，允许按实时 Schema 纠正后提交一次；不重放原请求，同因再次拒绝报障。协议层文本拒绝必须核对实时 Schema 和当前 Revision，确认未进入业务执行后才能纠正。此例外不允许重试已创建的下载、生成 Job、运行失败或结果未知，不更换幂等键绕过。字体选择与未收录字体替换遵守上述自主选择规则，无需用户确认。

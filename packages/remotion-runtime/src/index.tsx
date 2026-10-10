@@ -1,4 +1,4 @@
-import { captionIsDisplayed, captionBoxWidthPercent } from "../../contracts/src/caption-presentation.js";
+import { captionTextShadowCss, captionIsDisplayed, captionBoxWidthPercent } from "../../contracts/src/caption-presentation.js";
 import React from "react";
 import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, useCurrentFrame, getRemotionEnvironment } from "remotion";
 import { sourceAudioTimeOrigin, inspectEffectContentContract, type ActorPerformance, type AudioCue, type CaptionCard, type CaptionEmphasis, type CaptionFormat, type Cutaway, type EffectCue, type ProjectSnapshot, type TimelineItem, type TimelineTrack } from "@videocut/contracts";
@@ -271,7 +271,7 @@ const CaptionLayer: React.FC<{ snapshot: ProjectSnapshot; caption: CaptionCard }
     fontWeight: format.fontWeight,
     lineHeight: CAPTION_LINE_HEIGHT,
     textAlign: format.textAlign,
-    textShadow: "0 3px 14px #000",
+    textShadow: captionTextShadowCss(format.textShadow),
     fontFamily: CAPTION_FONT_FAMILY
   }}><span
       ref={contentRef}

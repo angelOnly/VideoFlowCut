@@ -13,7 +13,7 @@ test("指定案例从首次取材进入真实角色交接，材料回来更新�
   for (const title of ["读完整意思", "候选里能看见", "用方式倒推", "材料成组", "相近内容", "搜索起点"]) assert.ok(guide.includes(title) && director.includes(title), title);
   assert.match(read(".agents/skills/production-director/SKILL.md"), /直接进入对应 CASE/);
   assert.match(writer, /当前全文及对应句群声画说明/);
-  assert.match(visual, /取材请求按\[素材到场面\]/, "取材方法归导演参考，视觉正文不再复制同一流程");
+  assert.match(visual, /\]\(\.\.\/\.\.\/production-director\/references\/asset-briefing\.md\)/, "取材方法仍沿唯一导演参考");
   assert.match(director, /先与文案、原视觉作者把当前这段需要的画面说清/);
   assert.match(motion, /材料变动影响字位、路径、遮挡或声音时一起修改/);
   assert.match(sourcing, /已有有效观察与选段直接承接/);
@@ -27,4 +27,18 @@ test("指定案例从首次取材进入真实角色交接，材料回来更新�
 
 test("根 Skills 与发行副本保持同一份协作正文", () => {
   for (const path of roles) assert.equal(read(`plugins/videoflowcut/skills/${path}`), read(`.agents/skills/${path}`), path);
+});
+
+test("默认前期资料不直连历史案例，动画交接仍可到达机制方法与受管实现", () => {
+  // 这里只核对资料路由，不把链接可达当成模型已按阶段执行。
+  const links=(path:string)=>[...read(`.agents/skills/${path}`).matchAll(/\]\(([^)#]+)(?:#[^)]*)?\)/g)].map(match=>match[1]!);
+  for(const path of ["_shared/TOPIC_TO_FILM.md","production-director/references/asset-briefing.md",
+    "production-director/references/story-and-shot-design.md","narration-writing/SKILL.md",
+    "visual-treatment-planning/SKILL.md","production-coordinator/references/task-routing.md"]){
+    assert.ok(!links(path).some(link=>link.includes('/references/cases/')||link.includes('validated-index.md')),path);
+  }
+  const motion=links('motion-brief-writing/SKILL.md');
+  assert.ok(motion.includes('../motion-case-library/references/mechanism-retrieval.md'));
+  assert.ok(motion.includes('../remotion-production/SKILL.md'));
+  assert.ok(links('motion-case-library/SKILL.md').includes('references/validated-index.md'),'用户明确请求的历史分支仍保留');
 });

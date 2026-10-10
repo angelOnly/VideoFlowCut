@@ -9,13 +9,15 @@ description: 根据已采用的美术和演出实现受管 Remotion 作品，处
 
 ## 按修改范围进入
 
-新建或实质重构场面，确认当前美术与完整演出；尚未形成则由原作者使用 [视觉美术](../visual-treatment-planning/SKILL.md) 和 [演出设计](../motion-brief-writing/SKILL.md) 继续深化。只改已有文字、颜色、位置或切口时直接查看当前源码与受影响参数，不重新启动整片主线和案例检索。
+新建或实质重构场面，先读已经适配本片材料与美术的机制组合稿，包括真实对象、连接、共同坐标、源时钟与命名事件，不是几个编号。尚未形成则由原作者使用 [视觉美术](../visual-treatment-planning/SKILL.md) 和 [演出设计](../motion-brief-writing/SKILL.md) 继续深化，再写主要源码。优先在同一受管作品保持场面连续，不把参考指令贴进 Props，也不把机制描述当作已有源码。只改已有文字、颜色、位置或切口时直接查看当前源码与受影响参数，沿用原组合，不重新启动整片主线和案例检索。
 
 写图片、真实视频、字体、Props 或命名事件前，读取 [受管组件合同](references/remotion-component-contract.md) 对应章节并核对实时 `read_motion_capabilities`。素材必须通过真实绑定，字体使用登记身份；不凭历史版本说明推断当前会话能力。
 
 裁切、局部观察、附着标注或跨段视频接续，读取 [素材坐标与时间](references/material-space-and-time.md)，使用完整 cover/contain/fill、点映射和源时钟公式。修漂移或重播直接进入这里，不重新搜全库或重写故事。辅助数学函数在 [scripts/material-math.mjs](scripts/material-math.mjs)，不能假定受管 TSX 可导入本地模块。
 
 提交、查询、Review、Cue 放置或异常时，主任务读取 [提交与恢复](references/submission-and-recovery.md)，固定当前输入和版本，获取真实 Job 与输出再读回影响。已结束失败、结果未知和无副作用参数拒绝分开处理，不重放不确定写入。
+
+按本场已可见的设计落实字体、材料、颜色用途、构图、字幕与连续变化。公共代码共享数学、字体和确有用途的对象样式，不自动添加栏目名、页码、统一背景和固定标题位置。预览与设计不一致先查具体默认值或实现遗漏；设计忠实实现仍不好看，回原美术重做对应选择。
 
 ## 验证与返回
 

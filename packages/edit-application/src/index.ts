@@ -1,7 +1,7 @@
 import { sourceMaterialSchema, type SourceMaterialInput } from "../../asset-acquisition/src/source-research.js";
 import { assetAcquisitionOptionsSchema } from "../../asset-acquisition/src/options.js";
 import type { AssetAcquisitionOptions } from "@videocut/contracts";
-import { captionPlacementSchema, captionDisplaySchema, validCaptionDisplay, type CaptionDisplay } from "../../contracts/src/caption-presentation.js";
+import { captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema, validCaptionDisplay, type CaptionDisplay } from "../../contracts/src/caption-presentation.js";
 import { applyAudioDesign, soundRequirementSchema, type AudioDesignInput } from "./sound-design.js";
 import { prepareProjectFrameRateChange } from "./frame-rate-change.js";
 import { digest as mediaDigest, assetRequestVersion } from "../../media-intelligence/src/index.js";
@@ -653,6 +653,7 @@ function applyCaptionFormat(current: CaptionFormat | undefined, patch: CaptionFo
   // MCP 解构会携带未传字段的 undefined；它们不能覆盖既有安全排版值。
   const formatPatch = Object.fromEntries(Object.entries(rawFormatPatch).filter(([, value]) => value !== undefined)) as Partial<Omit<CaptionFormat, "backgroundColor" | "backgroundOpacity" | "placement">>;
   const next: CaptionFormat = { ...DEFAULT_CAPTION_FORMAT, ...current, ...formatPatch };
+  if (next.textShadow !== undefined && next.textShadow !== null) next.textShadow = captionTextShadowSchema.parse(next.textShadow);
   if (placement === null) delete next.placement;
   else if (placement !== undefined) next.placement = captionPlacementSchema.parse(placement);
   if (backgroundColor === null) {

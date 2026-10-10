@@ -1,6 +1,6 @@
 import { readJobDiagnostics } from "./job-diagnostics.js";
 import { toolErrorResult } from "./tool-error.js";
-import { captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
+import { captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
 import { projectFrameRateSchema } from "../../../packages/contracts/src/frame-rate.js";
 import { explainerPlanWithContent } from "../../../packages/contracts/src/explainer-inputs.js";
 import { sourceCaptionTextReviewSchema, } from "../../../packages/contracts/src/editorial-inputs.js";
@@ -1364,6 +1364,7 @@ server.registerTool("edit_captions", {
     display: captionDisplaySchema.nullable().optional().describe("仅改变显示。shown 可指定本卡内的时间线绝对帧半开 ranges；hidden 隐藏整卡；null 恢复整卡显示。"),
     source_text_review: sourceCaptionTextReviewSchema.optional().describe("显示纠错依据：listening 实际回听（兼容仅 note）；confirmed_script 须提供 scriptRevision 和 speechSegmentIds 并核验当前配音关系；user_instruction 须提供 instruction 与 source。只改显示，不改变原音频或时间"),
     format: z.object({
+      text_shadow: captionTextShadowSchema.nullable().optional().describe("null 关闭字幕阴影；对象指定偏移、模糊、颜色与透明度；省略保留当前外观，旧卡缺省沿用黑影"),
       placement: captionPlacementSchema.nullable().optional(),
       font_size: z.number().int().min(16).max(72).optional(),
       font_weight: z.number().int().min(400).max(900).optional(),
@@ -1395,6 +1396,7 @@ server.registerTool("edit_captions", {
       action,
       text,
       format: format === undefined ? undefined : {
+        textShadow: format.text_shadow,
         placement: format.placement,
         fontSize: format.font_size,
         fontWeight: format.font_weight,

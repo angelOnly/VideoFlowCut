@@ -2147,9 +2147,10 @@ test("VideoFlowCut 插件配置校验真实 Skill 合同，而不是旧 Markdown
     assert.ok(frontMatter, `${skillName} 缺少 YAML Front Matter`);
     assert.match(frontMatter![1], new RegExp(`^name:\\s*${skillName.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}\\s*$`, "mu"), `${skillName} 的 name 必须与目录一致`);
     assert.match(frontMatter![1], /^description:\s*\S+/mu, `${skillName} 缺少 description`);
-    assert.match(skill, /##\s+(退出条件|验证与退出|停止条件|最终检查|完成标准|交接合同|交接)/u, `${skillName} 缺少退出或交接条件`);
-    assert.ok(skill.length >= 1_000, `${skillName} 应保留足够的专业方法与案例，而不是退回短标题索引`);
-    const references = [...skill.matchAll(/\]\(([^)]+\.md)\)/gu)].map((match) => match[1]!);
+    // 交接可以按需链接到共享方法，不要求每个入口复制同名章节。
+    // 角色路由与交接可达性由 skills-v5-integration / director-material-skills 验证。
+    const references = [...skill.matchAll(/\]\(([^)#]+\.md)(?:#[^)]*)?\)/gu)].map((match) => match[1]!);
+    assert.ok(references.length > 0, `${skillName} 应可到达实际方法或操作参考，不用入口字数代表完整性`);
     for (const reference of references) {
       if (/^[a-z]+:\/\//iu.test(reference)) continue;
       await access(resolve(dirname(skillPath), reference));

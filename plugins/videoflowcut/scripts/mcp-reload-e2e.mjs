@@ -64,7 +64,17 @@ try {
   const restored = await call("read_project");
   assert.equal(restored.snapshot.project.id, projectId, "创建项目产生的默认定位也必须恢复");
   assert.equal(restored.revision.number, created.revision.number, "切换不能产生视频 Revision");
+  // 握手已切到候选版，再刷新目录后使用本次调整过说明的工具。
   const afterTools = await client.listTools();
+  // 在候选发行链核验机制图文可读；只读研究不能改动视频项目。
+  const mechanisms = await call("search_motion_mechanisms", { stages: ["依次填满网格", "从圆形开口推近内部"], limit: 2 });
+  assert.ok(mechanisms.groups.every(group => group.cards.length > 0));
+  const mechanism = await client.callTool({ name: "read_motion_mechanism", arguments: {
+    id: mechanisms.groups[0].cards[0].id, source_sha256: mechanisms.source_sha256
+  } });
+  assert.notEqual(mechanism.isError, true, JSON.stringify(mechanism.content));
+  assert.deepEqual(mechanism.content.map(item => item.type), ["text", "image"]);
+  assert.equal((await call("read_project")).revision.number, created.revision.number);
   if (JSON.stringify(beforeTools.tools) !== JSON.stringify(afterTools.tools)) {
     assert.ok(notifications > 0, "Schema 变化必须真实发送标准 MCP 通知");
   }
@@ -100,7 +110,7 @@ try {
   assert.equal(restarted.revision.number, created.revision.number);
   assert.equal(disconnected, false);
   console.log(JSON.stringify({ verified: true, baseline: baseline.releaseId, candidate: candidate.releaseId,
-    sameHostConnection: true, preservedProject: projectId, revision: restarted.revision.number,
+    sameHostConnection: true, mechanismReadVerified: true, preservedProject: projectId, revision: restarted.revision.number,
     toolListChangeNotifications: notifications, runtimeRestartRecovered: true, motionReferenceEvidence }, null, 2));
 } finally {
   await transport?.close().catch(() => {});

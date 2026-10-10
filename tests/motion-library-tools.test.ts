@@ -22,3 +22,47 @@ test('真实MCP协议可发现两入口，查询后按指纹读取图文，拒�
     assert.equal((await client.callTool({name:'search_motion_mechanisms',arguments:{before:'001-m01',after:'002-m01'}})).isError,true);
   }finally{await client.close();await server.close();}
 });
+
+test('动画交接可经真实协议分阶段选型、核读、比较接点并恢复采用，不接受混合模式或过期资料',async()=>{
+  const server=new McpServer({name:'mechanism-handoff',version:'1'});
+  registerMotionLibraryTools(server,resolve('references/motion-cases/skillry'));
+  const client=new Client({name:'motion-author',version:'1'});
+  const [local,remote]=InMemoryTransport.createLinkedPair();
+  await server.connect(remote);await client.connect(local);
+  const query=async(args:Record<string,unknown>)=>{
+    const result=await client.callTool({name:'search_motion_mechanisms',arguments:args});
+    assert.notEqual(result.isError,true,JSON.stringify(result.content));
+    const block=(result.content as Array<{type:string;text?:string}>).find(item=>item.type==='text');
+    return JSON.parse(block!.text!);
+  };
+  try{
+    const schema=await client.listTools();
+    assert.ok(schema.tools.every(tool=>tool.annotations?.readOnlyHint===true));
+    const stages=await query({stages:['依次填满网格','从圆形开口推近内部'],limit:3});
+    assert.equal(stages.groups.length,2);
+    const ids:string[]=stages.groups.map((group:{cards:Array<{id:string}>})=>group.cards[0]!.id);
+    for(const id of ids){
+      const read=await client.callTool({name:'read_motion_mechanism',arguments:{id,source_sha256:stages.source_sha256}});
+      assert.notEqual(read.isError,true);
+      assert.deepEqual((read.content as Array<{type:string}>).map(item=>item.type),['text','image']);
+    }
+    const similar=await query({similar_to:ids[0],limit:3});
+    assert.ok(similar.cards.every((card:{id:string})=>card.id!==ids[0]));
+    for(const direction of ['before','after']){
+      const result=await query({[direction]:'060-m02',limit:3});
+      assert.ok(result.cards.length>0);
+      assert.ok(result.cards.every((card:{connection:{continuous_verified:boolean;gap:unknown}})=>
+        card.connection.continuous_verified===false&&card.connection.gap));
+    }
+    const selection={v:1,source_sha256:stages.source_sha256,ids:[...ids].reverse(),adopted:[ids[0]]};
+    const restored=await query({selection:'http://127.0.0.1/library/compare.html?'+new URLSearchParams({selection:JSON.stringify(selection)})});
+    assert.deepEqual(restored.cards.map((card:{id:string})=>card.id),selection.ids);
+    assert.deepEqual(restored.selection.adopted,selection.adopted);
+    assert.deepEqual((await query({ids})).cards.map((card:{id:string})=>card.id),ids);
+    for(const args of [{stages:['填充'],similar_to:ids[0]},{ids,source_sha256:'0'.repeat(64)}]){
+      const refused=await client.callTool({name:'search_motion_mechanisms',arguments:args});
+      assert.equal(refused.isError,true);
+    }
+    assert.equal((await query({query:'zxqv_unfindable_902384'})).total,0);
+  }finally{await client.close();await server.close();}
+});

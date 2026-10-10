@@ -34,9 +34,13 @@ test("真实MCP拒绝透明度0且不写Revision；旁白同源批量null取消�
     assert.equal(rejected.isError, true);
     assert.match(JSON.stringify(rejected.content), /background_opacity|0\.1/u);
     assert.equal(f.app.readProject(f.projectId).revision.number, before.revision.number);
-    const accepted = await client.callTool({ name: "edit_captions", arguments: { ...args, format: { background_color: null, color: "#151917" } } });
+    const shadowRejected = await client.callTool({ name: "edit_captions", arguments: { ...args, format: { text_shadow: "none" } } });
+    assert.equal(shadowRejected.isError, true);
+    assert.equal(f.app.readProject(f.projectId).revision.number, before.revision.number);
+    const accepted = await client.callTool({ name: "edit_captions", arguments: { ...args, format: { background_color: null, color: "#151917", text_shadow: null } } });
     assert.notEqual(accepted.isError, true, JSON.stringify(accepted));
     const after = f.app.readProject(f.projectId);
+    for (const card of after.snapshot.timeline.captions) assert.equal(card.format?.textShadow, null, "MCP批量关闭阴影必须真实保存");
     for (const card of after.snapshot.timeline.captions) { assert.equal(card.format?.backgroundColor, undefined); assert.equal(card.format?.backgroundOpacity, undefined); assert.equal(card.format?.color, "#151917"); }
     assert.deepEqual(after.snapshot.timeline.items, before.snapshot.timeline.items);
     assert.throws(() => f.app.editCaptions({ projectId: f.projectId, baseRevision: after.revision.number, captionIds: [...ids, "异源或不存在的Card"], action: "bulk_source_format", format: { color: "#ffffff" } }));
@@ -57,6 +61,35 @@ test("真实MCP拒绝透明度0且不写Revision；旁白同源批量null取消�
     assert.ok(readError.code);
     assert.equal(f.app.readProject(f.projectId).revision.number, after.revision.number);
   } finally { await client.close(); await transport.close(); provider.restore(); f.app.close(); await rm(root, { recursive: true, force: true }); }
+});
+
+test("字幕美术阴影经HTTP编辑读回；局部更新保留选择，非法值不写版本", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vfc-caption-shadow-"));
+  const f = await fixture(root);
+  const server = await createServer({ workspaceRoot: root });
+  try {
+    const before = f.app.readProject(f.projectId);
+    const card = before.snapshot.timeline.captions[0]!;
+    const patch = (format: unknown) => server.app.inject({ method: "PATCH", url: `/api/projects/${f.projectId}/captions/${card.id}`, payload: { baseRevision: f.app.readProject(f.projectId).revision.number, action: "update", format } });
+    const shadow = { offsetX: -2, offsetY: 3, blur: 6, color: "#123456", opacity: 0.4 };
+    for (const value of ["none", { ...shadow, blur: 41 }, { ...shadow, offsetX: -21 }, { ...shadow, color: "red" }, { ...shadow, opacity: 2 }, { ...shadow, extra: true }]) {
+      assert.equal((await patch({ textShadow: value })).statusCode, 400);
+    }
+    assert.equal(f.app.readProject(f.projectId).revision.number, before.revision.number);
+    assert.equal((await patch({ textShadow: shadow })).statusCode, 200);
+    assert.deepEqual(f.app.readProject(f.projectId).snapshot.timeline.captions[0]!.format?.textShadow, shadow);
+    assert.equal((await patch({ color: "#151917" })).statusCode, 200);
+    assert.deepEqual(f.app.readProject(f.projectId).snapshot.timeline.captions[0]!.format?.textShadow, shadow);
+    assert.equal((await patch({ textShadow: null })).statusCode, 200);
+    assert.equal((await patch({ fontSize: 36 })).statusCode, 200);
+    const after = f.app.readProject(f.projectId);
+    assert.equal(after.snapshot.timeline.captions[0]!.format?.textShadow, null);
+    assert.deepEqual(after.snapshot.speechAsset, before.snapshot.speechAsset);
+    assert.deepEqual(after.snapshot.script, before.snapshot.script);
+    assert.deepEqual([after.snapshot.timeline.captions[0]!.startFrame, after.snapshot.timeline.captions[0]!.endFrame, after.snapshot.timeline.captions[0]!.sourceText], [card.startFrame, card.endFrame, card.sourceText]);
+    assert.throws(() => f.app.editCaptions({ projectId: f.projectId, baseRevision: after.revision.number, captionId: card.id, action: "update", format: { textShadow: { ...shadow, blur: -1 } } }));
+    assert.equal(f.app.readProject(f.projectId).revision.number, after.revision.number);
+  } finally { await server.app.close(); server.application.close(); f.app.close(); await rm(root, { recursive: true, force: true }); }
 });
 
 test("字幕显隐和静态位置经HTTP原子读回，保留语音原文与对齐，越界不写版本", async () => {

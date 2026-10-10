@@ -1414,6 +1414,8 @@ export interface CaptionCard {
 }
 
 export interface CaptionFormat {
+  /** 未设置沿用旧黑影，null 明确无阴影；对象为本卡美术选择。 */
+  textShadow?: import("./caption-presentation.js").CaptionTextShadow | null;
   /** 百分比静态框，锚定左上角；存在时优先于旧底部布局。 */
   placement?: import("./caption-presentation.js").CaptionPlacement;
   fontSize: number;

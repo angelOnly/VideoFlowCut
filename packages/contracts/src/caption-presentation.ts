@@ -1,6 +1,25 @@
 import { z } from "zod";
 import type { CaptionCard, CaptionFormat } from "./index.js";
 
+/** 只接收有限阴影参数，不允许任意 CSS 字符串。 */
+export const captionTextShadowSchema = z.object({
+  offsetX: z.number().min(-20).max(20),
+  offsetY: z.number().min(-20).max(20),
+  blur: z.number().min(0).max(40),
+  color: z.string().regex(/^#[0-9a-f]{6}$/iu, "颜色必须是 #RRGGBB"),
+  opacity: z.number().min(0).max(1)
+}).strict();
+export type CaptionTextShadow = z.infer<typeof captionTextShadowSchema>;
+
+/** Player 与导出共用同一解释；旧字幕缺省不改变，显式关闭不能被默认值覆盖。 */
+export function captionTextShadowCss(shadow: CaptionFormat["textShadow"]): string {
+  if (shadow === undefined) return "0 3px 14px #000";
+  if (shadow === null) return "none";
+  const value = captionTextShadowSchema.parse(shadow);
+  const alpha = Math.round(value.opacity * 255).toString(16).padStart(2, "0");
+  return `${value.offsetX}px ${value.offsetY}px ${value.blur}px ${value.color}${alpha}`;
+}
+
 export const captionPlacementSchema = z.object({ leftPercent: z.number().min(0).max(95), topPercent: z.number().min(0).max(95), widthPercent: z.number().min(5).max(100) }).strict().refine(p => p.leftPercent + p.widthPercent <= 100, "字幕布局超出画布宽度");
 export const captionDisplaySchema = z.object({ mode: z.enum(["shown", "hidden"]), ranges: z.array(z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() }).strict()).min(1).max(50).optional() }).strict();
 export type CaptionPlacement = z.infer<typeof captionPlacementSchema>;
