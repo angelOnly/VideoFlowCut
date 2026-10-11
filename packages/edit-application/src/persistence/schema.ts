@@ -55,6 +55,16 @@ export type PersistenceTable = {
  * 下方 SQL 是唯一会被执行的建表来源，不能在其他位置复制 DDL。
  */
 export const PROJECT_DATABASE_TABLES: PersistenceTable[] = [
+  {
+    name: "workspace_settings",
+    description: "用户主动保存的工作台设置，独立于项目历史。",
+    columns: [
+      { name: "key", sqlType: "TEXT", constraints: ["PRIMARY KEY"], description: "设置名称。" },
+      { name: "value_json", sqlType: "TEXT", constraints: ["NOT NULL"], description: "设置内容。" }
+    ],
+    relations: [],
+    indexes: [{ name: "workspace_settings_pkey", columns: ["key"], kind: "primary_key", description: "设置主键。" }]
+  },
   // 项目表：只保存项目当前状态的快速入口，完整历史放在 revisions 表。
   {
     name: "projects",
@@ -241,6 +251,7 @@ export const PROJECT_DATABASE_PRAGMAS_SQL = `
  */
 export const PROJECT_DATABASE_SCHEMA_SQL = `
   -- projects：每个项目一行，记录当前 Revision 指针和项目级摘要。
+  CREATE TABLE IF NOT EXISTS workspace_settings (key TEXT PRIMARY KEY, value_json TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS projects (
     id TEXT PRIMARY KEY, -- 项目唯一 ID。
     name TEXT NOT NULL, -- 当前项目名称。

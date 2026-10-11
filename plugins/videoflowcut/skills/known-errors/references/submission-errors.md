@@ -4,7 +4,7 @@
 
 `inspect_asset` 返回 `diagnostics.status=partial|unavailable` 是带有效证据与缺口的正常审阅结果，不按通用工具报错停工。依据 `diagnostics.recovery` 分流：`diagnostics.recovery=inspect_available_evidence` 把实际图片、代理与失败位置交原素材作者决定下一步；`diagnostics.recovery=select_another_candidate` 暂不采用当前候选，继续正常搜索与获取；`diagnostics.recovery=report_platform_failure` 才停止受影响步骤并报修，其他无依赖工作继续。`issues[].owner=source|capability|unknown` 分别表示该素材/范围不可用、解码能力限制、原因尚不确定；空输出与超时不能证明原视频损坏。未生成连续代理的 range/dense 不得凭截图宣称正式选段审阅通过。`sideEffects=review_cache_only` 如实表示缓存写入，不是下载/生成重试许可，不改 Asset 状态或视频 Revision。`not_ready` 等待媒体分析；真正的工具调用错误、非法输入和未知写入结果仍沿原合同处理。
 
-理想字体未收录是用户选择问题，不报告平台工单。主任务控制，原视觉作者推荐最多3款库内字体，通过`get_editor_url(panel="fonts",font_preview=...)`提供实际文案预览，等待用户在聊天选择后续接原作者修订。未回复不自动替代，其他无依赖工作继续。`submit_motion_work`仅在返回`code=MOTION_FONT_UNKNOWN`、`stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=select_registered_font`时允许按选择纠正，这是createJob之前的拒绝，不重放原输入；不能扩大到生成失败或未知结果。已登记字体原件损坏、读取/加载失败仍报平台故障。
+字体未收录与替代统一沿[字体可用性与替代](../../remotion-production/references/submission-and-recovery.md#字体可用性与替代)，不在错误方法中另立用户确认流程。输入拒绝与已经执行的任务按原始诊断区分；已登记文件损坏先定位，仅确认平台 Bug 阻断时才报修。
 
 素材获取故障修复并确认部署后，先读回候选和旧 Job；仅明确 `failed` 且未登记素材时，可通过 `acquire_media_asset` 使用新幂等键恢复原候选。平台重新核验当前技术条件，旧失败 Job 不改写；执行中或结果未知时不得恢复提交，人工拒绝也不能用此路径覆盖。
 
@@ -77,6 +77,6 @@
 
 `manage_effect_cues` 的 `CUE_OUT_OF_SCENE` / `INVALID_CUE_RANGE` 若同时返回 `stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=correct_input`，表示范围检查发生在 Revision 保存前。读取返回的 `sceneId`、`sceneRange`、`requestedRange` 和字段依据，并核对当前 Revision；交回原作者修订完整放置参数后纠正一次，不原样重放。`covered_narrative_beat_ids` 只声明内容覆盖，不扩大所属 Scene。完整 ManagedMotion 要有能容纳完整时长的 Scene，不能由主任务擅自截短作品、拆件或扩大原场景。旧版 unknown、版本冲突、保存失败和未知异常不获得此许可，仍走报障与对账。
 
-受管作品的源码诊断区分名称与读取：`<RuleLine top={148}/>` 是合法属性传参，`top={window.top}` 的值仍是禁用全局访问。不要为了消除平台误判要求作者把合法属性改名。`work.source` 拒绝只有同时提供 `stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=correct_input` 以及行列、原因和纠正依据，才可回交原作者修订并提交一次；这些字段表示提交层确认尚未创建 Job，不表示原样自动重试。诊断与合法语法矛盾时报告平台工单，同因再次拒绝也报障。Worker 编译复用同一校验器，但任务已经入队，其源码错误没有提交前重试许可；读取失败 Job 与诊断后走修复和对账。字体仍按人工选择合同处理。
+受管作品的源码诊断区分名称与读取：`<RuleLine top={148}/>` 是合法属性传参，`top={window.top}` 的值仍是禁用全局访问。不要为了消除平台误判要求作者把合法属性改名。`work.source` 拒绝只有同时提供 `stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=correct_input` 以及行列、原因和纠正依据，才可回交原作者修订并提交一次；这些字段表示提交层确认尚未创建 Job，不表示原样自动重试。诊断与合法语法矛盾时报告平台工单，重复拒绝先诊断，确认平台 Bug 阻断后才报障。Worker 编译复用同一校验器，但任务已经入队，其源码错误没有提交前重试许可；读取失败 Job 与诊断后走修复和对账。字体沿上述单一字体方法处理。
 
-调用结果先检查 `isError`，保存完整文本后再按实际内容解析 JSON；协议层 Schema 拒绝可能只有文本，解析失败不得覆盖原始错误。参数拒绝、业务冲突、运行故障和写入结果未知分别记录。仅明确 `stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=correct_input` 并指出字段纠正依据的参数拒绝，允许按实时 Schema 纠正后提交一次；不重放原请求，同因再次拒绝报障。协议层文本拒绝必须核对实时 Schema 和当前 Revision，确认未进入业务执行后才能纠正。此例外不允许重试已创建的下载、生成 Job、运行失败或结果未知，不更换幂等键绕过。字体选择继续遵守人工选择合同。
+调用结果先检查 `isError`，保存完整文本后再按实际内容解析 JSON；协议层 Schema 拒绝可能只有文本，解析失败不得覆盖原始错误。参数拒绝、业务冲突、运行故障和写入结果未知分别记录。仅明确 `stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=correct_input` 并指出字段纠正依据的参数拒绝，允许按实时 Schema 纠正后提交一次；不重放原请求，重复拒绝先诊断，确认平台 Bug 阻断后才报障。协议层文本拒绝必须核对实时 Schema 和当前 Revision，确认未进入业务执行后才能纠正。此例外不允许重试已创建的下载、生成 Job、运行失败或结果未知，不更换幂等键绕过。字体选择沿上述单一字体方法。

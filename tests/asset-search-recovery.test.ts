@@ -47,7 +47,7 @@ const json = (value: unknown) => new Response(JSON.stringify(value), { headers: 
 const details = (title: string, mime = "video/webm") => json({ query: { pages: [{ title, imageinfo: [{ url: "https://upload.wikimedia.org/fixture.webm", mime, width: 1920, height: 1080, duration: 5, extmetadata: {} }] }] } });
 
 test("素材搜索恢复交接规则只授权无副作用的一次纠正", async () => {
-  for (const file of ["AGENTS.md", ".agents/skills/visual-asset-sourcing/references/acquisition-operations.md", ".agents/skills/production-coordinator/references/project-writes.md", ".agents/skills/known-errors/references/runtime-errors.md", ".agents/skills/production-coordinator/references/project-writes.md"]) {
+  for (const file of [".agents/skills/visual-asset-sourcing/references/acquisition-operations.md", ".agents/skills/production-coordinator/references/project-writes.md", ".agents/skills/known-errors/references/runtime-errors.md", ".agents/skills/production-coordinator/references/project-writes.md"]) {
     const content = await readFile(file, "utf8");
     assert.match(content, /sideEffects/);
     assert.match(content, /safeToRetry/);

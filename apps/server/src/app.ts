@@ -1,3 +1,4 @@
+import { creativeBriefSchema, creativeBriefUpdateSchema, explicitCreativePreferencesSchema } from "../../../packages/contracts/src/creative-preferences.js";
 import { captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
 import { MotionSubmissionValidationError } from "../../../packages/edit-application/src/motion-submission-validation.js";
 import { toolError } from "./tool-error.js";
@@ -299,6 +300,16 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return { status: "ready", bridge: bridgeStatus };
   });
 
+  app.get("/api/settings/creative-defaults", async () => application.readCreativeDefaults());
+  app.put("/api/settings/creative-defaults", async request => application.saveCreativeDefaults(explicitCreativePreferencesSchema.parse(request.body)));
+  app.delete("/api/settings/creative-defaults", async () => application.saveCreativeDefaults({}));
+
+  app.patch("/api/projects/:projectId/brief", async request => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, brief: creativeBriefUpdateSchema }).strict().parse(request.body);
+    return application.updateCreativeBrief({ projectId, ...body });
+  });
+
   app.get("/api/projects", async () => application.listProjects());
 
   app.post("/api/projects", async (request, reply) => {
@@ -306,15 +317,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       name: z.string().trim().min(1).max(100),
       fps: projectFrameRateSchema.optional(),
       profile: z.enum(["presenter_motion", "visual_explainer", "vlog", "hybrid"]).optional(),
-      brief: z.object({
-        platform: z.string().optional(),
-        aspectRatio: z.enum(["9:16", "16:9", "1:1"]).optional(),
-        targetDurationSeconds: z.number().positive().optional(),
-        audience: z.string().optional(),
-        tone: z.string().optional(),
-        captionMode: z.enum(["stable", "none"]).optional(),
-        allowHighDensityMotion: z.boolean().optional()
-      }).optional()
+      brief: creativeBriefSchema.optional()
     }).parse(request.body);
     const state = application.createProject(body);
     return reply.status(201).send(state);

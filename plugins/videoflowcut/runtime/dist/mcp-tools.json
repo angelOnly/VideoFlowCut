@@ -65,7 +65,7 @@
     {
       "name": "create_project",
       "title": "创建视频项目",
-      "description": "创建含 Revision 1 的项目与受管媒体目录。",
+      "description": "创建含 Revision 1 的项目与受管媒体目录。只在建项时继承用户保存的工作台默认，brief 中明确项优先；未指定方向由导演判断，不需要风格问卷。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -81,12 +81,70 @@
           "brief": {
             "type": "object",
             "properties": {
+              "platform": {
+                "type": "string"
+              },
+              "aspectRatio": {
+                "type": "string",
+                "enum": [
+                  "9:16",
+                  "16:9",
+                  "1:1"
+                ]
+              },
+              "targetDurationSeconds": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "audience": {
+                "type": "string"
+              },
+              "tone": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1600
+              },
               "captionMode": {
                 "type": "string",
                 "enum": [
                   "stable",
                   "none"
                 ]
+              },
+              "allowHighDensityMotion": {
+                "type": "boolean"
+              },
+              "explicitCreativePreferences": {
+                "type": "object",
+                "properties": {
+                  "dimensions": {
+                    "type": "object",
+                    "properties": {
+                      "narration": {
+                        "$ref": "#/properties/brief/properties/tone"
+                      },
+                      "visual": {
+                        "$ref": "#/properties/brief/properties/tone"
+                      },
+                      "motion": {
+                        "$ref": "#/properties/brief/properties/tone"
+                      },
+                      "background": {
+                        "$ref": "#/properties/brief/properties/tone"
+                      },
+                      "sound": {
+                        "$ref": "#/properties/brief/properties/tone"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "notes": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "additionalProperties": false
@@ -103,6 +161,82 @@
         },
         "required": [
           "name"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "update_creative_brief",
+      "title": "更新本任务明确创作偏好",
+      "description": "保存用户对本任务明确提出的偏好并返回 Revision；不改工作台默认，不自动重生成已有作品或在途 Job。只指定一维时保留其他明确项；explicitCreativePreferences=null 清空本任务偏好。导演当次判断沿 record_creative_decision 保存。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "brief": {
+            "type": "object",
+            "properties": {
+              "tone": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1600
+              },
+              "explicitCreativePreferences": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "dimensions": {
+                        "type": "object",
+                        "properties": {
+                          "narration": {
+                            "$ref": "#/properties/brief/properties/tone"
+                          },
+                          "visual": {
+                            "$ref": "#/properties/brief/properties/tone"
+                          },
+                          "motion": {
+                            "$ref": "#/properties/brief/properties/tone"
+                          },
+                          "background": {
+                            "$ref": "#/properties/brief/properties/tone"
+                          },
+                          "sound": {
+                            "$ref": "#/properties/brief/properties/tone"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "notes": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4000
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "brief"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
@@ -1290,7 +1424,8 @@
           },
           "base_revision_id": {
             "type": "integer",
-            "exclusiveMinimum": 0
+            "exclusiveMinimum": 0,
+            "description": "兼容上下文；搜索不要求全局 Revision 一致"
           },
           "asset_request_id": {
             "type": "string",
@@ -1322,7 +1457,6 @@
           }
         },
         "required": [
-          "base_revision_id",
           "asset_request_id",
           "provider",
           "query"
@@ -4023,6 +4157,17 @@
                     "props": {
                       "type": "object",
                       "properties": {
+                        "sourceCaption": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1600,
+                          "description": "作者明确选择的上屏来源或署名；不自动展示内部 source 元数据"
+                        },
+                        "eyebrow": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        },
                         "metric": {
                           "type": "string",
                           "minLength": 1,
@@ -4091,6 +4236,12 @@
                     "props": {
                       "type": "object",
                       "properties": {
+                        "sourceCaption": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/sourceCaption"
+                        },
+                        "eyebrow": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/eyebrow"
+                        },
                         "leftLabel": {
                           "type": "string",
                           "minLength": 1
@@ -4166,6 +4317,12 @@
                     "props": {
                       "type": "object",
                       "properties": {
+                        "sourceCaption": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/sourceCaption"
+                        },
+                        "eyebrow": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/eyebrow"
+                        },
                         "items": {
                           "type": "array",
                           "items": {
@@ -4236,6 +4393,12 @@
                     "props": {
                       "type": "object",
                       "properties": {
+                        "sourceCaption": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/sourceCaption"
+                        },
+                        "eyebrow": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/eyebrow"
+                        },
                         "nodes": {
                           "$ref": "#/properties/plans/items/anyOf/2/properties/props/properties/items"
                         }
@@ -4302,7 +4465,15 @@
                     },
                     "props": {
                       "type": "object",
-                      "additionalProperties": {}
+                      "properties": {
+                        "sourceCaption": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/sourceCaption"
+                        },
+                        "eyebrow": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/eyebrow"
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -4360,7 +4531,15 @@
                     },
                     "props": {
                       "type": "object",
-                      "additionalProperties": {}
+                      "properties": {
+                        "sourceCaption": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/sourceCaption"
+                        },
+                        "eyebrow": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/eyebrow"
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -4418,6 +4597,12 @@
                     "props": {
                       "type": "object",
                       "properties": {
+                        "sourceCaption": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/sourceCaption"
+                        },
+                        "eyebrow": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/eyebrow"
+                        },
                         "values": {
                           "type": "array",
                           "items": {
@@ -4509,6 +4694,12 @@
                     "props": {
                       "type": "object",
                       "properties": {
+                        "sourceCaption": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/sourceCaption"
+                        },
+                        "eyebrow": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/eyebrow"
+                        },
                         "groups": {
                           "$ref": "#/properties/plans/items/anyOf/2/properties/props/properties/items"
                         },
@@ -4579,6 +4770,12 @@
                     "props": {
                       "type": "object",
                       "properties": {
+                        "sourceCaption": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/sourceCaption"
+                        },
+                        "eyebrow": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/eyebrow"
+                        },
                         "layers": {
                           "$ref": "#/properties/plans/items/anyOf/2/properties/props/properties/items"
                         },
@@ -4649,11 +4846,23 @@
                     "props": {
                       "type": "object",
                       "properties": {
+                        "sourceCaption": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/sourceCaption"
+                        },
+                        "eyebrow": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/eyebrow"
+                        },
                         "events": {
                           "type": "array",
                           "items": {
                             "type": "object",
                             "properties": {
+                              "sourceCaption": {
+                                "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/sourceCaption"
+                              },
+                              "eyebrow": {
+                                "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/eyebrow"
+                              },
                               "date": {
                                 "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
                               },
@@ -4740,6 +4949,12 @@
                     "props": {
                       "type": "object",
                       "properties": {
+                        "sourceCaption": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/sourceCaption"
+                        },
+                        "eyebrow": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/eyebrow"
+                        },
                         "quote": {
                           "$ref": "#/properties/plans/items/anyOf/1/properties/props/properties/leftLabel"
                         },
@@ -4814,7 +5029,15 @@
                     },
                     "props": {
                       "type": "object",
-                      "additionalProperties": {}
+                      "properties": {
+                        "sourceCaption": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/sourceCaption"
+                        },
+                        "eyebrow": {
+                          "$ref": "#/properties/plans/items/anyOf/0/properties/props/properties/eyebrow"
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [

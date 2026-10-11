@@ -42,3 +42,9 @@ Job 成功只表示相应处理完成：转写成功不等于原话取舍已完�
 - 素材是否可用、源范围如何观察：查[源素材审阅](../../visual-asset-sourcing/references/source-review.md)。审阅缓存不是素材采用，也不改变视频 Revision。
 - 改动怎样提交、冲突如何处理：查[项目写入](../../production-coordinator/references/project-writes.md)。
 - 版本和事实如何交给作者：查[角色交接](../../_shared/PROJECT_REVISION_AND_HANDOFF.md#代理角色与交接)。
+
+## 明确创作偏好与工作台默认
+
+工作台“创作默认偏好”只保存用户主动设置的讲述、视觉、运动、背景和声音要求，可全部清空。`create_project` 的 `brief.explicitCreativePreferences` 接收 `dimensions`（narration、visual、motion、background、sound）及 notes；只在新项目初始化时继承工作台默认，本次明确项优先。未指定项由导演判断，不要求用户选择风格。兼容 tone 与 narration 使用同一讲述口吻，allowHighDensityMotion 不作为机制协作或惯性的开关。
+
+当前任务收到新明确要求时，主任务使用 `update_creative_brief(base_revision_id, brief)` 保存差异；explicitCreativePreferences=null 清空本任务偏好。保存不回写默认，不静默改已有作品、候选或在途 Job；将受影响内容续接原作者。导演自己的方向与依据使用当前完整稿和现有 `record_creative_decision`，不冒充用户偏好。实际执行前核对实时 Schema。

@@ -1,3 +1,5 @@
+import { creativeBriefSchema, creativeBriefUpdateSchema } from "../../../packages/contracts/src/creative-preferences.js";
+import { registerMediaSearchTool } from "./media-search-tool.js";
 import { readJobDiagnostics } from "./job-diagnostics.js";
 import { toolErrorResult } from "./tool-error.js";
 import { captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
@@ -7,7 +9,6 @@ import { sourceCaptionTextReviewSchema, } from "../../../packages/contracts/src/
 import { registerSourceResearchTools } from "./source-research-tools.js";
 import { registerSoundTools } from "./sound-tools.js";
 import { audioDesignSchema, soundRequirementSchema } from "../../../packages/edit-application/src/sound-design.js";
-import { assetRequestVersion } from "../../../packages/media-intelligence/src/index.js";
 import { soundSourceCapabilities } from "@videocut/acquisition";
 import { copyFile, mkdir } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
@@ -16,9 +17,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { fontPreviewSchema } from "../../../packages/motion-work/src/font-preview.js";
 import { listMotionFonts } from "../../../packages/motion-work/src/fonts.js";
-import { decodeSearchCursor } from "../../../packages/asset-acquisition/src/cursor.js";
-import { AssetProviderError, createDefaultAssetProviderRegistry } from "@videocut/acquisition";
-import { assetSearchErrorResult } from "./asset-search-errors.js";
+import { createDefaultAssetProviderRegistry } from "@videocut/acquisition";
 import { createApplication, PROJECT_DATABASE_TABLES } from "@videocut/application";
 import { DomainError } from "@videocut/domain";
 import { getProjectOverview, readRuntimeConfig } from "@videocut/project-overview";
@@ -268,11 +267,11 @@ server.registerTool("list_projects", {
 
 server.registerTool("create_project", {
   title: "创建视频项目",
-  description: "创建含 Revision 1 的项目与受管媒体目录。",
+  description: "创建含 Revision 1 的项目与受管媒体目录。只在建项时继承用户保存的工作台默认，brief 中明确项优先；未指定方向由导演判断，不需要风格问卷。",
   inputSchema: {
     name: z.string().min(1),
     fps: projectFrameRateSchema.optional(),
-    brief: z.object({ captionMode: z.enum(["stable", "none"]).optional() }).strict().optional(),
+    brief: creativeBriefSchema.optional(),
     profile: z.enum(["presenter_motion", "visual_explainer", "vlog", "hybrid"]).optional()
   }
 }, async (input) => {
@@ -281,6 +280,15 @@ server.registerTool("create_project", {
     targetProjectId = state.snapshot.project.id;
     return asText(state);
   } catch (error) { return asError(error); }
+});
+
+server.registerTool("update_creative_brief", {
+  title: "更新本任务明确创作偏好",
+  description: "保存用户对本任务明确提出的偏好并返回 Revision；不改工作台默认，不自动重生成已有作品或在途 Job。只指定一维时保留其他明确项；explicitCreativePreferences=null 清空本任务偏好。导演当次判断沿 record_creative_decision 保存。",
+  inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), brief: creativeBriefUpdateSchema }
+}, async ({ project_id, base_revision_id, brief }) => {
+  try { return asText(application.updateCreativeBrief({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, brief })); }
+  catch (error) { return asError(error); }
 });
 
 server.registerTool("preview_project_frame_rate_change", {
@@ -759,39 +767,7 @@ server.registerTool("list_asset_providers", {
   annotations: { readOnlyHint: true }
 }, async () => asText({ providers: assetProviders.catalog(), network: { proxyConfigured: Boolean(process.env.https_proxy || process.env.HTTPS_PROXY || process.env.http_proxy || process.env.HTTP_PROXY), scope: "素材外网请求；本地地址直连" } }));
 
-server.registerTool("search_media_candidates", {
-  title: "搜索素材候选",
-  description: "先从 list_asset_providers 选择准确 provider id。media_type 仅选择本轮图片/视频/音频入口；旧会话与迟到结果保留原查询输入，改稿不使候选失效；youtube 的 query 是选中的单条 HTTPS 视频页面；pexels 无 API Key 时也只接受选定的单视频页 URL，关键词需要 Key。返回 diagnostics.complete 和 warnings，部分结果不能视为完整搜索。仅保存独立搜索会话，不改变创作 Revision，不下载或自动采用素材。",
-  inputSchema: {
-    project_id: z.string().optional(),
-    base_revision_id: z.number().int().positive(),
-    asset_request_id: z.string().min(1),
-    provider: z.string().trim().min(1).max(80).describe("使用 list_asset_providers 返回的 id，例如 wikimedia-commons"),
-    media_type: z.enum(["image", "video", "audio"]).optional(),
-    cursor: z.string().min(1).max(500).optional(),
-    query: z.string().trim().min(1).max(400)
-  }
-}, async ({ project_id, base_revision_id, asset_request_id, provider, query, media_type, cursor }) => {
-  let beforePersistence = true;
-  try {
-    const projectId = projectIdFrom(project_id);
-    const state = application.readProject(projectId);
-    if (state.revision.number !== base_revision_id) {
-      throw new DomainError(`Revision 已过期：请求基于 ${base_revision_id}，当前为 ${state.revision.number}`, "REVISION_CONFLICT");
-    }
-    const request = state.snapshot.assetRequests.find((entry) => entry.id === asset_request_id);
-    if (!request) throw new DomainError(`素材需求不存在：${asset_request_id}`, "ASSET_REQUEST_NOT_FOUND");
-    if (request.status === "closed") throw new DomainError("素材需求已关闭，不能发起新搜索", "ASSET_REQUEST_CLOSED");
-    const source = assetProviders.get(provider);
-    if (media_type && !assetProviders.catalog().find(entry => entry.id === provider)?.mediaTypes.includes(media_type)) throw new AssetProviderError("该素材服务不支持所选媒体类型，请查看服务目录", "ASSET_MEDIA_TYPE_UNSUPPORTED", { provider, stage: "provider", recovery: "change_media_type" });
-    const input = { request, query, mediaType: media_type, cursor };
-    decodeSearchCursor(provider, input);
-    const result = source.searchDetailed ? await source.searchDetailed(input) : { candidates: await source.search(input), complete: true, warnings: [] };
-    const candidates = result.candidates.filter(candidate => !media_type || (candidate.kind ?? "video") === media_type);
-    beforePersistence = false;
-    return asText(application.recordAssetSearch({ projectId, baseRevision: base_revision_id, assetRequestId: asset_request_id, provider, query, candidates, cursor, nextCursor: "nextCursor" in result ? result.nextCursor as string | undefined : undefined, mediaType: media_type, diagnostics: { complete: result.complete, warnings: result.warnings }, requestVersion: assetRequestVersion(request), requestSnapshot: request }));
-  } catch (error) { return assetSearchErrorResult(error, beforePersistence); }
-});
+registerMediaSearchTool(server, application, assetProviders, projectIdFrom);
 
 server.registerTool("inspect_media_candidate", {
   title: "检查素材候选",

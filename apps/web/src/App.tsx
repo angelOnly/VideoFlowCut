@@ -1,3 +1,4 @@
+import { CreativeDefaultsSettings } from "./CreativeDefaultsSettings";
 import { exportBlockingIssues } from "../../../packages/quality-system/src/export-policy.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
@@ -301,6 +302,7 @@ export function App() {
           <input aria-label="新建项目帧率" title="成片帧率：15–60整数" type="number" min={15} max={60} step={1} value={newProjectFps} onChange={event => setNewProjectFps(Number(event.target.value))} />
           <button className="primary" onClick={() => void createProject()} disabled={busy}>创建项目</button>
         </div>
+        <CreativeDefaultsSettings />
         {message !== "准备就绪" && <p className="message">{message}</p>}
       </main>
     );
@@ -329,6 +331,7 @@ export function App() {
         <div className="top-spacer" />
         <span className="revision-badge" data-testid="revision">R{currentRevision}</span>
         <span className="canvas-summary">{snapshot.timeline.width}×{snapshot.timeline.height} · {snapshot.timeline.fps} fps · {formatDuration(snapshot.timeline.durationInFrames, snapshot.timeline.fps)}</span>
+        <CreativeDefaultsSettings />
         <FrameRateSettings key={snapshot.project.id} projectId={snapshot.project.id} revision={currentRevision} fps={snapshot.timeline.fps} onApplied={async (fromFps, toFps, durationInFrames) => {
           const nextFrame = Math.min(Math.max(0, durationInFrames - 1), Math.round(playhead * toFps / fromFps));
           await load(snapshot.project.id);

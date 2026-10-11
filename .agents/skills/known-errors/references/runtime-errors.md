@@ -4,7 +4,7 @@
 
 主任务按[协调入口](../../production-coordinator/SKILL.md)只读核对当前 Project、Revision、Job 和副作用。创意方案是否仍成立交回原子代理判断；本 Skill 中的“重新判断”不授权主任务补做创意。剪辑任务遇到工具或 Runtime 故障时暂停该步并诊断，只有确认平台或服务自身 Bug 且无法继续才提交独立 Repair Ticket，环境和源码修复交独立修复任务。本 Skill 后文的重提、修复和恢复方法均受[运行合同](../../production-coordinator/references/project-writes.md)约束：需要部署修复时，原剪辑任务重新连接并确认部署后，才由主任务基于重新读取的事实提交；没有副作用本身不构成重试许可，结果未知不得重放。
 
-素材搜索错误以结构化 `code`、`stage`、`recovery` 和副作用信息定位。`ASSET_PROVIDER_UNKNOWN` 是名称无效，先读 `list_asset_providers`；`ASSET_PROVIDER_NOT_CONFIGURED` 才是已知服务未启用。只有 `sideEffects="none"` 与 `safeToRetry=true` 同时成立且有具体纠正依据时，主任务可纠正参数或等待限流时间后再搜索一次，同因再次失败即报障；这项搜索纠正不适用于下载、生成、项目写入或结果未知。`ASSET_NETWORK_TIMEOUT` 等环境故障先按已有授权恢复与只读诊断，不能单凭超时认定服务 Bug，不能在剪辑中改代理配置。部分候选的 `diagnostics.complete=false` 不等于空结果；保留已得候选和警告，不复用其作为完整搜索结论。
+素材搜索错误以结构化 `code`、`stage`、`recovery` 和副作用信息定位。`ASSET_PROVIDER_UNKNOWN` 是名称无效，先读 `list_asset_providers`；`ASSET_PROVIDER_NOT_CONFIGURED` 才是已知服务未启用。只有 `sideEffects="none"` 与 `safeToRetry=true` 同时成立且有具体纠正依据时，主任务可纠正参数或等待限流时间后再搜索一次，重复失败先诊断原因，确认平台 Bug 阻断后才报障；这项搜索纠正不适用于下载、生成、项目写入或结果未知。`ASSET_NETWORK_TIMEOUT` 等环境故障先按已有授权恢复与只读诊断，不能单凭超时认定服务 Bug，不能在剪辑中改代理配置。部分候选的 `diagnostics.complete=false` 不等于空结果；保留已得候选和警告，不复用其作为完整搜索结论。
 
 ## 浏览器和 Render Worker 不一致
 

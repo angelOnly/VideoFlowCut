@@ -236,6 +236,14 @@ export type EffectType =
  */
 export type TimingPrecision = "segment_exact" | "sentence_exact" | "chunk_coarse" | "source_token_anchored" | "word_exact" | "unavailable";
 
+export type ExpressionDimension = "narration" | "visual" | "motion" | "background" | "sound";
+
+/** 只保存用户明确表达的偏好；导演当次判断保存在现有 CreativeDecision。 */
+export interface ExplicitCreativePreferences {
+  dimensions?: Partial<Record<ExpressionDimension, string>>;
+  notes?: string;
+}
+
 export interface CreativeBrief {
   platform: string;
   aspectRatio: "9:16" | "16:9" | "1:1";
@@ -244,6 +252,7 @@ export interface CreativeBrief {
   tone: string;
   captionMode: "stable" | "none";
   allowHighDensityMotion: boolean;
+  explicitCreativePreferences?: ExplicitCreativePreferences;
 }
 
 export interface MediaMetadata {

@@ -1,3 +1,5 @@
+import { creativeBriefSchema, creativeBriefUpdateSchema, initializeCreativeBrief, mergeCreativePreferences } from "../../contracts/src/creative-preferences.js";
+import { DEFAULT_BRIEF } from "@videocut/domain";
 import { candidateTechnicalReasons, normalizeCandidateFilters } from "../../media-intelligence/src/candidate-lifecycle.js";
 import { sourceMaterialSchema, type SourceMaterialInput } from "../../asset-acquisition/src/source-research.js";
 import { assetAcquisitionOptionsSchema } from "../../asset-acquisition/src/options.js";
@@ -47,6 +49,7 @@ import type {
   CaptionEmphasis,
   CaptionFormat,
   CreativeBrief,
+  ExplicitCreativePreferences,
   CreativeDelegation,
   Cutaway,
   CutawayAudioMode,
@@ -1413,8 +1416,36 @@ export class EditingApplication {
   }
 
   createProject(input: { name: string; profile?: ProjectSnapshot["project"]["profile"]; brief?: Partial<CreativeBrief>; fps?: number }): ProjectState {
-    const state = this.repository.createProject(input);
+    const brief = initializeCreativeBrief(this.readCreativeDefaults(), creativeBriefSchema.parse(input.brief ?? {}));
+    const state = this.repository.createProject({ ...input, brief });
     this.publish({ projectId: state.snapshot.project.id, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  readCreativeDefaults(): ExplicitCreativePreferences {
+    return this.repository.readCreativeDefaults();
+  }
+
+  saveCreativeDefaults(preferences: ExplicitCreativePreferences): ExplicitCreativePreferences {
+    return this.repository.saveCreativeDefaults(preferences);
+  }
+
+  updateCreativeBrief(input: { projectId: Id; baseRevision: number; brief: { tone?: string; explicitCreativePreferences?: ExplicitCreativePreferences | null } }): ProjectState {
+    const change = creativeBriefUpdateSchema.parse(input.brief);
+    const state = this.repository.commit(input.projectId, input.baseRevision, "更新本任务明确创作偏好", (snapshot, impact) => {
+      const brief = snapshot.project.brief;
+      let preferences = change.explicitCreativePreferences === null ? {} : mergeCreativePreferences(brief.explicitCreativePreferences ?? {}, change.explicitCreativePreferences);
+      // 明确的 narration 与兼容 tone 共享同一口吻；导演判断不进入这里。
+      if (change.tone && !change.explicitCreativePreferences?.dimensions?.narration) {
+        preferences = mergeCreativePreferences(preferences, { dimensions: { narration: change.tone } });
+      }
+      if (Object.keys(preferences).length) brief.explicitCreativePreferences = preferences;
+      else delete brief.explicitCreativePreferences;
+      brief.tone = preferences.dimensions?.narration ?? (change.explicitCreativePreferences === null ? DEFAULT_BRIEF.tone : brief.tone);
+      impact.changed.push(snapshot.project.id);
+      impact.warnings.push("偏好已记录；由原负责人处理受影响内容，已有作品与在途任务保持原输入");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     return state;
   }
 

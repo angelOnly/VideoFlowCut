@@ -1,3 +1,4 @@
+import { explicitCreativePreferencesSchema } from "../../../contracts/src/creative-preferences.js";
 import { reconcileSoundDesign } from "../sound-design.js";
 import { mkdirSync } from "node:fs";
 import { reconcileMotionDependencies } from "../motion-dependencies.js";
@@ -7,6 +8,7 @@ import { MediaIntelligenceStore } from "../../../media-intelligence/src/store.js
 import type {
   CaptionCard,
   CreativeBrief,
+  ExplicitCreativePreferences,
   ExportArtifact,
   Id,
   ImpactReport,
@@ -298,6 +300,19 @@ export class ProjectRepository {
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };
+  }
+
+  readCreativeDefaults(): ExplicitCreativePreferences {
+    const row = this.db.prepare("SELECT value_json FROM workspace_settings WHERE key = ?").get("creative_defaults") as { value_json: string } | undefined;
+    return row ? explicitCreativePreferencesSchema.parse(JSON.parse(row.value_json)) : {};
+  }
+
+  saveCreativeDefaults(value: ExplicitCreativePreferences): ExplicitCreativePreferences {
+    const preferences = explicitCreativePreferencesSchema.parse(value);
+    // 单次原子替换只改变工作台设置，绝不扫描或回写已有项目与 Job。
+    this.db.prepare("INSERT INTO workspace_settings (key, value_json) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json")
+      .run("creative_defaults", JSON.stringify(preferences));
+    return preferences;
   }
 
   createProject(input: {

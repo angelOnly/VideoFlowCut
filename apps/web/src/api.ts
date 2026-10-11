@@ -1,3 +1,4 @@
+import type { ExplicitCreativePreferences } from "@videocut/contracts";
 import type { AgentWorkOrder, DialogueProcessingIssue, DialogueProcessingProfile, ExportArtifact, ExportPurpose, JobRecord, ProductionProfile, ProjectSnapshot, ProjectSummary, QualityReport, RevisionRecord, VideoGenerationMode } from "@videocut/contracts";
 import type { FrameRateChangeReport, SourceReviewDiagnostics } from "@videocut/contracts";
 
@@ -115,6 +116,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  creativeDefaults: () => request<ExplicitCreativePreferences>("/api/settings/creative-defaults"),
+  saveCreativeDefaults: (preferences: ExplicitCreativePreferences) => request<ExplicitCreativePreferences>("/api/settings/creative-defaults", { method: "PUT", body: JSON.stringify(preferences) }),
+  clearCreativeDefaults: () => request<ExplicitCreativePreferences>("/api/settings/creative-defaults", { method: "DELETE", body: "{}" }),
   fontCapabilities: (signal?: AbortSignal) => request<{ fonts: import("../../../packages/motion-work/src/font-preview").FontLibraryFace[] }>("/api/motion/capabilities", { signal }),
   listProjects: () => request<ProjectSummary[]>("/api/projects"),
   createProject: (name: string, profile: ProductionProfile, fps = 24) => request<ProjectState>("/api/projects", { method: "POST", body: JSON.stringify({ name, profile, fps }) }),

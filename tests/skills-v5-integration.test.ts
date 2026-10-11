@@ -19,7 +19,7 @@ test("字体身份与选择操作分别位于实现合同和提交参考", async
   const contract = await readFile(join(skillsRoot,"remotion-production/references/remotion-component-contract.md"),"utf8");
   for (const token of ["read_motion_capabilities","fontBindings","props.fonts","首次挂载前","哈希","实际字重"]) assert.ok(contract.includes(token),token);
   const writes=await readFile(join(skillsRoot,"remotion-production/references/submission-and-recovery.md"),"utf8");
-  for(const token of ["font_preview","select_registered_font","未回复不自动","followup_task"])assert.ok(writes.includes(token),token);
+  for(const token of ["fontSources","字体可用性与替代","用户明确指定且不接受替代","原作者可自主选择"])assert.ok(writes.includes(token),token);
   assert.match(contract,/不回退系统字体/);
   const source=await readFile(join(repositoryRoot,"apps/server/src/motion-tools.ts"),"utf8");
   assert.match(source,/registerTool\("read_motion_capabilities"/);
@@ -333,7 +333,7 @@ test("Skills V5 源唯一、插件发行副本完整且可被 Codex 发现", asy
 
 test("导演只选一条主流程，专项与同一交接约定连通",async()=>{
   const director=await readFile(join(skillsRoot,"production-director/SKILL.md"),"utf8");
-  assert.match(director,/只选一个主要流程/);
+  assert.match(director,/只按实际任务选择一个主要业务入口/);
   for(const workflow of primaryWorkflows)assert.ok(director.includes(`${workflow}/SKILL.md`));
   for(const role of creativeSpecialists){
     const reached=await reachableMarkdown(join(skillsRoot,role,"SKILL.md"));
@@ -355,7 +355,7 @@ test("协调入口可到达全部创意角色与共享合同，机械操作保�
   const coordinator = await readSkill("production-coordinator");
   assert.match(coordinator, /spawn_agent/u, "协调入口必须真实分派宿主子代理");
   assert.match(coordinator, /followup_task/u, "实际预览必须能够回到原负责人继续修订");
-  assert.match(coordinator, /20 像素/u, "明确参数修改应有无需创意分派的短路径");
+  assert.match(coordinator, /完整参数的机械修改可直接执行/u, "明确参数修改应有无需创意分派的短路径");
   assert.match(coordinator, /尚无 Project\/Revision/u, "空项目不能为了分派构造版本");
   for (const name of ["asset-import", "transcription", "export", "web-editor-operator"]) {
     const skill = await readSkill(name);
@@ -426,7 +426,7 @@ test("Presenter Skill 的概要、Gate A 与示范路线都先编译 Scene 再�
 });
 
 test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", async () => {
-  const mcpSource = (await Promise.all([mcpSourcePath, ...["motion-tools", "motion-library-tools", "media-intelligence-tools", "sound-tools", "source-research-tools"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
+  const mcpSource = (await Promise.all([mcpSourcePath, ...["motion-tools", "motion-library-tools", "media-intelligence-tools", "sound-tools", "source-research-tools", "media-search-tool"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
   const currentTools = registeredToolNames(mcpSource);
   const contract = await operationKnowledge();
 

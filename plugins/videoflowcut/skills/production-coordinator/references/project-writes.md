@@ -20,13 +20,13 @@
 |---|---|
 | Revision 冲突 | 重读项目、对象与 Impact，把实际差异交原作者确认；不自动替换版本重发 |
 | 超时、断连、提交结果未知 | 查询原 Job、Revision、Asset与已有输出对账；不换幂等键重放，也不把未收到响应当成未执行 |
-| 明确参数拒绝 | 只有 `stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=correct_input` 且有字段纠正依据，才按实时 Schema修订后提交一次；不原样重放，同因再次拒绝报障 |
+| 明确参数拒绝 | 只有 `stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=correct_input` 且有字段纠正依据，才按实时 Schema修订后提交一次；不原样重放，重复失败先核对原因，确认平台 Bug 阻断后才报障 |
 | 协议层文本拒绝 | 核对实时 Schema和当前 Revision，确认未进入业务执行后才纠正；未知结果不获得重试许可 |
 | 已创建或已失败的下载、生成 Job | 读取原任务及诊断，只走当前 MCP明确支持的恢复分支；不套用提交前参数纠正规则 |
 | 服务未启动、连接失败或原因未知 | 先只读诊断并执行已有授权的恢复；没有证据不能认定平台 Bug |
 | 普通素材不合适、搜索无结果、创意不成立 | 回原作者调整策略，不报平台故障；只暂停受影响依赖 |
 
-素材搜索的窄例外：正式错误同时提供 `sideEffects="none"`、`safeToRetry=true` 和恢复依据，才按服务目录纠正参数或等待 `retryAfterMs` 后再搜索一次；同因再次失败报障，不扩展到下载、生成和未知写入。详细诊断查[参数拒绝与未知结果](../../known-errors/references/submission-errors.md)。
+素材搜索的窄例外：正式错误同时提供 `sideEffects="none"`、`safeToRetry=true` 和恢复依据，才按服务目录纠正参数或等待 `retryAfterMs` 后再搜索一次；重复失败先核对原因，确认平台 Bug 阻断后才报障，不扩展到下载、生成和未知写入。详细诊断查[参数拒绝与未知结果](../../known-errors/references/submission-errors.md)。
 
 只有确认平台或服务自身 Bug 导致无法继续，才调用 `report_editing_blocker`，沿已有同根因工单补充证据。不能为报障新建视频 Revision，不能改源码、配置、插件缓存或用脚本绕过 MCP。ComfyUI 的状态检查和指定启动方式沿根 AGENTS.md 的授权例外执行，不因单纯启动既有服务要求新版部署确认。
 
@@ -38,7 +38,7 @@
 
 | 本次操作 | 详细方法与合同 |
 |---|---|
-| 字体未收录、受管作品提交与完整范围放置 | [作品提交与恢复](../../remotion-production/references/submission-and-recovery.md)：主任务控制预览与聊天确认，原作者推荐和修订，未回复不自动替代；范围或源码拒绝回原作者 |
+| 字体未收录、受管作品提交与完整范围放置 | [作品提交与恢复](../../remotion-production/references/submission-and-recovery.md)：原视觉作者按该文件的字体可用性方法修订，主任务核验并提交；范围或源码拒绝回原作者 |
 | 搜索、下载、采用与源范围观察 | [素材取得](../../visual-asset-sourcing/references/acquisition-operations.md)、[源素材审阅](../../visual-asset-sourcing/references/source-review.md) |
 | 原创文稿、原话剪辑与配音 | [文稿操作](../../semantic-continuity/references/script-operations.md)、[配音放置](../../voice-production/references/synthesis-and-placement.md) |
 | 字幕生成与显示修改 | [字幕操作](../../captions/references/caption-operations.md) |

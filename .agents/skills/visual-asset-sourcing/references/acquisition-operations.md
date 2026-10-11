@@ -22,11 +22,11 @@
 
 在线动效不是 Stock 下载任务。Onda、Jitter、RemotionLab、Mixkit 由 `browse_motion_sources` 提供入口，`inspect_motion_reference` 支持公开页面与动态采样。把选中链接和观察依据交给 `remotion-production`；无源码或 AE 格式不妨碍独立实现。只有确实要使用第三方图片、视频或音频时才进入本 Skill 的素材获取流程，不把参考预览登记成正式素材。
 
-当前获取链包括 `manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset` 和 `read_asset_provenance`。需求创建、修改与关闭使用创作 Revision；搜索意图、候选、来源和过滤结果保存于独立搜索会话，搜索本身不改变创作 Revision，也不下载或采用素材。
+当前获取链包括 `manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset` 和 `read_asset_provenance`。需求创建、修改与关闭使用创作 Revision；搜索意图、候选、来源和过滤结果保存于独立搜索会话，搜索本身不改变创作 Revision，也不下载或采用素材。base_revision_id 仅为可选兼容上下文，不因无关写入拒绝查询；发出请求时固定当前需求快照，迟到结果保留原输入。
 
 首次搜索先调用 `list_asset_providers`，直接使用返回的准确 `id`，核对 `enabled`、`mediaTypes`、`queryMode` 和缺失配置。品牌名不能代替服务标识，例如 Commons 的 id 是 `wikimedia-commons`。已注册不代表网络和下载器已经验证；当前自动搜索来源只保留无需 Key 的服务；无需 Key 不代表网络一定可达。公开材料获取使用运行环境已有的 HTTP(S) 代理和 NO_PROXY，每次跳转仍核验公网地址，并保留浏览器实际来源请求头。网页子资源失败可以保存当前截图；主任务读取 Job.result.capture 的 complete、warnings 与 reviewStatus，交回原文案或证据专项逐项核验正文、限定条件和缺失资源。reviewStatus=pending 表示待核验，complete 只表示请求是否有已知缺口，均不代表证据可用。统计等非 GET 请求不会发送，作为缺口记录；主页面失败、登录/验证码、安全限制和预算超限仍拒绝。某页失败不等于全部来源不可用，也不能把失败页面标记为已读取。本轮选择视频搜索入口时，给 `search_media_candidates` 显式传 `media_type="video"`；选择图片入口时用 `image`。这是这次查询的媒体类型，不限制拍摄身份，也不将整项需求永久限定为一种媒介；仅在关键词里写 video 不保证进入视频搜索。
 
-返回候选后先看 `diagnostics.complete` 和 `diagnostics.warnings`。部分详情失败时已有候选仍可检查，但未读取部分保留缺口，不能写成没有合适素材或全部检索完成。主任务只在错误明确携带 `sideEffects="none"`、`safeToRetry=true` 和具体恢复依据时，按目录纠正参数或等待 `retryAfterMs` 后再搜索一次；同因再次失败按 Repair Ticket 报障。下载、生成和写入的未知结果不适用该例外，不能由专项改代理、密钥或执行 shell。
+返回候选后先看 `diagnostics.complete` 和 `diagnostics.warnings`。部分详情失败时已有候选仍可检查，但未读取部分保留缺口，不能写成没有合适素材或全部检索完成。主任务只在错误明确携带 `sideEffects="none"`、`safeToRetry=true` 和具体恢复依据时，按目录纠正参数或等待 `retryAfterMs` 后再搜索一次；重复失败先诊断原因，确认平台 Bug 阻断后才报障。下载、生成和写入的未知结果不适用该例外，不能由专项改代理、密钥或执行 shell。
 
 视觉 Provider 保留无需 Key 的 Wikimedia Commons，以及选定单个视频页面的 YouTube、Pexels 获取合同；Pexels 的网页搜索与画面判断仍由宿主浏览器完成，选定页的原件由媒体 Worker 正式获取。配置 API Key 时也可用 Pexels 关键词搜索；实际可用性仍以当前 Runtime、正式工具返回和实时 Schema 为准，不把源码实现当成当前会话已发布能力。Creative Library、其他站点和通用网页证据获取不能只因出现在方案中就被视为已接入。网页调研、来源核实和将媒体正式取得为 Project Asset 是不同步骤；需要当前会话未提供的获取能力时按平台合同反馈。
 
@@ -98,7 +98,7 @@ YouTube 的已实现路径由平台执行 yt-dlp。专项先在浏览器调研�
 
 | 阶段 | 当前 MCP 命令与关键输入 | 写后读回 / 下一步 |
 |---|---|---|
-| 素材需求与候选 | `list_asset_providers()`；`manage_asset_requirements(base_revision_id, action, ...)`；`search_media_candidates(base_revision_id, asset_request_id, provider, query, media_type?)`；`inspect_media_candidate(asset_candidate_id)` | 先用目录的准确 id 与支持类型；搜索只保存独立会话与候选，不增加创作 Revision。检查 diagnostics 是否完整，候选不能直接进入 Scene 或 Timeline。 |
+| 素材需求与候选 | `list_asset_providers()`；`manage_asset_requirements(base_revision_id, action, ...)`；`search_media_candidates(base_revision_id?, asset_request_id, provider, query, media_type?)`；`inspect_media_candidate(asset_candidate_id)` | 先用目录的准确 id 与支持类型；搜索只保存独立会话与候选，不增加创作 Revision。检查 diagnostics 是否完整，候选不能直接进入 Scene 或 Timeline。 |
 
 ## 当前调用与读回：下载与本地化
 
@@ -108,9 +108,9 @@ YouTube 的已实现路径由平台执行 yt-dlp。专项先在浏览器调研�
 
 ### YouTube 单视频获取与用途依据
 
-`search_media_candidates(base_revision_id, asset_request_id, provider="youtube", query=选定单个HTTPS视频URL)` 读取所选视频页面的元数据，query 不是关键词、频道或播放列表。它沿独立搜索会话保存候选、来源和过滤结果，不下载、不自动采用，也不改变创作 Revision。使用前仍须确认当前 Runtime 已提供对应 Provider。
+`search_media_candidates(base_revision_id?, asset_request_id, provider="youtube", query=选定单个HTTPS视频URL)` 读取所选视频页面的元数据，query 不是关键词、频道或播放列表。它沿独立搜索会话保存候选、来源和过滤结果，不下载、不自动采用，也不改变创作 Revision。使用前仍须确认当前 Runtime 已提供对应 Provider。
 
-素材搜索返回结构化错误时，仅 `sideEffects="none"`、`safeToRetry=true` 且具备明确恢复依据的情况，允许依目录纠正或等待 `retryAfterMs` 后再搜索一次；同因再次失败即报障。不得把此规则套到 `acquire_media_asset`、生成、创作写入和未知结果。`diagnostics.complete=false` 的部分搜索可检查已有候选，但不能当成全量检索；后续完整查询不会复用残缺搜索缓存。
+素材搜索返回结构化错误时，仅 `sideEffects="none"`、`safeToRetry=true` 且具备明确恢复依据的情况，允许依目录纠正或等待 `retryAfterMs` 后再搜索一次；重复失败先诊断原因，确认平台 Bug 阻断后才报障。不得把此规则套到 `acquire_media_asset`、生成、创作写入和未知结果。`diagnostics.complete=false` 的部分搜索可检查已有候选，但不能当成全量检索；后续完整查询不会复用残缺搜索缓存。
 
 `acquire_media_asset(base_revision_id, asset_candidate_id, idempotency_key?)` 不接受权利或用途证明参数。Worker 下载验证后登记 Asset，继续媒体分析；读回 ready、来源和具体源范围后，将内容判断交回当前声画稿，按实际用途直接绑定。
 
@@ -120,7 +120,7 @@ YouTube 获取范围、画质选择、合并与缓存边界沿本页“当前能
 
 按实时 Schema 使用 inspect_asset 的 overview、range 或 dense。overview 用于全貌定位；range 用于待采用的连续范围；dense 只补会改变精确切口、微动作或位置判断的最小范围。source_start_frame/source_end_frame 按项目 Timeline FPS 的半开区间计。同帧率固定作品完整范围用 [0, motion.frameCount)，避免整数毫秒换算丢末帧；其他素材依返回的可请求范围。联系表整数毫秒只用于显示，不改变实际精确抽帧时间。
 
-先读 diagnostics.status、components、continuousReview、issues 和 diagnostics.recovery。inspect_available_evidence 时把有效预览和缺失位置回原作者，由其判断补哪一范围、改选段或换候选；select_another_candidate 暂不采用当前候选并继续正常搜索；wait_for_media_analysis 等待分析。只有 diagnostics.recovery=report_platform_failure 停止受影响步骤并报修，其他无依赖工作继续。素材损坏、能力限制、空输出、超时与原因未知分开，不能从部分证据断言整段正常或损坏。
+先读 diagnostics.status、components、continuousReview、issues 和 diagnostics.recovery。inspect_available_evidence 时把有效预览和缺失位置回原作者，由其判断补哪一范围、改选段或换候选；select_another_candidate 是辅助读取的诊断建议，交原作者结合实际内容决定选段或继续搜索，不自动改变素材与用途状态；wait_for_media_analysis 等待分析。diagnostics.recovery=report_platform_failure 时停止受影响读取并核对根因，确认平台 Bug 阻断后才报修，其他无依赖工作继续。素材损坏、能力限制、空输出、超时与原因未知分开，不能从部分证据断言整段正常或损坏。
 
 range/dense 没有连续代理时，截图不能代表实际连续观看；缺声音也不能声明听审。返回代理仍需实际观看。工具只写可重建缓存，不改 Asset 状态、采用、视频 Revision 或 Job，不重放旧下载/生成，不删除失败记录。
 
