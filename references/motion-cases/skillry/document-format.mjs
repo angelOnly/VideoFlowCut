@@ -23,6 +23,12 @@ export function parseMechanism(text){
   if(!new RegExp(`^${String(m.case_number).padStart(3,'0')}-m\\d{2}$`).test(m.id))throw new Error('机制编号与原片不符');
   if(!Array.isArray(m.tags)||!m.tags.length||m.tags.some(t=>typeof t!=='string'||!t.trim()))throw new Error('机制标签无效');
   validateRetrieval(m.retrieval,m.id);
+  if(m.clip){
+    const c=m.clip;
+    if(typeof c!=='object'||Array.isArray(c)||!Number.isSafeInteger(c.start_ms)||c.start_ms<0||!Number.isSafeInteger(c.end_ms)||c.end_ms<=c.start_ms
+      ||!Number.isSafeInteger(c.bytes)||c.bytes<=0||typeof c.path!=='string'||!/^cases\/[a-zA-Z0-9-]+\/mechanisms\/m\d{2}\.mp4$/.test(c.path)
+      ||![c.sha256,c.source_sha256].every(v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v))||typeof c.boundary_note!=='string'||!c.boundary_note.trim())throw new Error(`${m.id} 切片元数据无效`);
+  }
   return result;
 }
 

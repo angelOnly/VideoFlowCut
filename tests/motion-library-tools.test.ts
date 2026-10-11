@@ -17,9 +17,14 @@ test('真实MCP协议可发现两入口，查询后按指纹读取图文，拒�
     const result=JSON.parse(content[0].text);assert.equal(result.cards.length,3);assert.ok(result.taxonomy);
     const read=await client.callTool({name:'read_motion_mechanism',arguments:{id:result.cards[0].id,source_sha256:result.source_sha256}});
     assert.ok(!read.isError);assert.deepEqual((read.content as Array<{type:string}>).map(c=>c.type),['text','image']);
+    const clipRead=await client.callTool({name:'read_motion_mechanism',arguments:{id:'002-m17',include_storyboard:false}});
+    assert.notEqual(clipRead.isError,true);
+    const clipData=JSON.parse((clipRead.content as Array<{text:string}>)[0]!.text);
+    assert.match(clipData.card.clip.path,/\/mechanisms\/m17\.mp4$/);
+    assert.match(clipData.video_path,/video\.mp4$/);assert.ok(clipData.card.clip.end_ms>clipData.card.clip.start_ms);
     for(const args of [{id:'../secret'},{id:result.cards[0].id,source_sha256:'0'.repeat(64)}])assert.equal((await client.callTool({name:'read_motion_mechanism',arguments:args})).isError,true);
     assert.equal((await client.callTool({name:'search_motion_mechanisms',arguments:{holds:['未知值']}})).isError,true);
-    assert.equal((await client.callTool({name:'search_motion_mechanisms',arguments:{before:'001-m01',after:'002-m01'}})).isError,true);
+    assert.equal((await client.callTool({name:'search_motion_mechanisms',arguments:{before:'001-m01',after:'002-m16'}})).isError,true);
   }finally{await client.close();await server.close();}
 });
 

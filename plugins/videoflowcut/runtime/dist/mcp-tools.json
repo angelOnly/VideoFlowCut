@@ -6937,7 +6937,7 @@
                 "propertyNames": {
                   "pattern": "^[a-z][A-Za-z0-9_]{0,39}$"
                 },
-                "description": "最多4个视频选段；声明源毫秒范围和作品帧范围。TimelineVideo读取作品根时钟，Sequence只改变布局；正常速度且静音，不接受offsetInFrames。"
+                "description": "命名视频选段，不设作品选段总数上限；声明源毫秒范围和作品帧范围，实际负载受资源校验约束。TimelineVideo读取作品根时钟，Sequence只改变布局；正常速度且静音，不接受offsetInFrames。"
               },
               "fontBindings": {
                 "type": "object",

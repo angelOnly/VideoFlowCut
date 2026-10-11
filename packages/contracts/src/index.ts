@@ -328,7 +328,7 @@ export interface Asset {
     sourceAssetIds?: Id[];
     /** 固定图片槽位与原图身份，供具体采用关系核验。 */
     imageSources?: Array<{ slot: string; assetId: Id; sourceHash: string }>;
-    /** 至多四个固定视频槽位，仅由完成 Job 生成。 */
+    /** 固定视频槽位，不设选段总数上限，仅由完成 Job 生成。 */
     videoSources?: Array<{ slot: string; assetId: Id; sourceHash: string; sourceStartMs: number; sourceEndMs: number; startFrame?: number; endFrame?: number }>;
     /** 字体随发行固定，不作为视频素材；保存实际文件身份便于追溯。 */
     fontSources?: Array<{ slot: string; fontId: string; sourceHash: string; weight: number; style: "normal" | "italic" }>;

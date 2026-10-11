@@ -1,4 +1,5 @@
 import {splitDocument,resolveLibraryLink} from './document-format.mjs';
+import {appendMechanismClip} from './mechanism-media.mjs';
 const $=id=>document.getElementById(id);
 const element=(tag,text)=>{const e=document.createElement(tag);e.textContent=text;return e;};
 let catalogue=[],mechanisms=[],documentPath='README.md';
@@ -64,6 +65,8 @@ try{
     $('download').href=c.media;$('source').href=c.source_url;$('source').target='_blank';$('source').rel='noopener';
     $('media-note').textContent=mechanism?mechanism.summary:c.media_note;
     if(mechanism){
+      if(appendMechanismClip($('segments'),mechanism))$('media-note').textContent=mechanism.summary+' 切片保留原速与原画幅，默认静音，可用播放器开启声音。';
+      else $('segments').append(element('p','本机制尚未提供独立切片，可通过上方“打开视频”查看完整原片。'));
       $('overview').href=c.detail;$('overview').hidden=false;
       const info=$('mechanism-info');info.hidden=false;
       for(const [label,value] of [['变化目的',mechanism.purpose],['起始状态',mechanism.start_state],['结束状态',mechanism.end_state]])info.append(element('p',`${label}：${value}`));

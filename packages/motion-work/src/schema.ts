@@ -31,7 +31,7 @@ export const motionSubmissionSchema = z.object({
     assetId: z.string().min(1).max(150), sourceStartMs: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), sourceEndMs: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
     startFrame: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), endFrame: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
     decodeScale: z.number().finite().gt(0).max(1).optional()
-  }).strict()).optional().describe("最多4个视频选段；声明源毫秒范围和作品帧范围。TimelineVideo读取作品根时钟，Sequence只改变布局；正常速度且静音，不接受offsetInFrames。"),
+  }).strict()).optional().describe("命名视频选段，不设作品选段总数上限；声明源毫秒范围和作品帧范围，实际负载受资源校验约束。TimelineVideo读取作品根时钟，Sequence只改变布局；正常速度且静音，不接受offsetInFrames。"),
   fontBindings: z.record(videoSlotSchema, z.string().regex(/^[a-z][a-z0-9-]{0,79}$/u)).optional()
     .describe("字体槽位到已登记 fontId 的映射，最多8槽。先查询 read_motion_capabilities；平台加载后注入 props.fonts[槽位] 的 family、weight、style，不接受路径或URL。")
 }).strict().superRefine((value, ctx) => {
@@ -42,7 +42,7 @@ export const motionSubmissionSchema = z.object({
   if ("fonts" in value.props) ctx.addIssue({ code: "custom", message: "Props.fonts 由平台按 fontBindings 注入，不能覆盖" });
   if (Object.keys(value.fontBindings ?? {}).length > 8) ctx.addIssue({ code: "custom", message: "单个作品最多绑定8个字体槽位" });
   if (value.width % 2 || value.height % 2) ctx.addIssue({ code: "custom", message: "画布宽高必须是偶数" });
-  if (Object.keys(value.videoBindings ?? {}).length > 4) ctx.addIssue({ code: "custom", message: "单个作品最多绑定4路视频" });
+  // 选段数量不代表同时解码负载；保留逐槽范围校验，资源由有界视频 Provider 检查。
   for (const binding of Object.values(value.videoBindings ?? {})) {
     const frames = binding.endFrame - binding.startFrame;
     const duration = binding.sourceEndMs - binding.sourceStartMs;

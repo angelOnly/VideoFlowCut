@@ -11,8 +11,9 @@ import {readLibraryMechanism} from '../references/motion-cases/skillry/tools/lib
 import {createMechanismBrowser,filterFields} from '../references/motion-cases/skillry/mechanism-filters.mjs';
 const root=resolve('references/motion-cases/skillry'),index=loadIndex(root);
 
-test('120个案例的全部744条具备统一分类，正文是唯一来源',()=>{
-  assert.equal(index.count,744);assert.equal(new Set(index.mechanisms.map(m=>m.case_number)).size,120);
+test('120个案例的全部资料具备统一分类，数量随正式目录变化',()=>{
+  const catalogue=JSON.parse(readFileSync(join(root,'case-catalogue.json'),'utf8'));
+  assert.equal(index.count,catalogue.cases.reduce((n,c)=>n+c.mechanism_ids.length,0));assert.equal(new Set(index.mechanisms.map(m=>m.case_number)).size,120);
   const categories=new Set();for(const m of index.mechanisms){validateRetrieval(m.retrieval,m.id);m.retrieval.categories.forEach(c=>categories.add(c));}
   assert.equal(categories.size,taxonomy.categories.length);
   assert.throws(()=>validateRetrieval({...index.mechanisms[0].retrieval,holds:['不知道']}),/词表/);
@@ -39,7 +40,8 @@ test('当前状态、保持和排除是硬筛选，不静默放宽',()=>{
 
 test('网页选项数量按其他组计算，有数量的替换选项一定有结果',()=>{
   const browse=createMechanismBrowser(index),state={categories:'建立与累积',actions:'回弹'};
-  const result=browse(state);assert.equal(result.total,8);assert.equal(result.facets.entry.counts['网格']??0,0);
+  const expected=index.mechanisms.filter(m=>m.retrieval.categories.includes(state.categories)&&m.retrieval.actions.includes(state.actions));
+  const result=browse(state);assert.equal(result.total,expected.length);assert.equal(result.facets.entry.counts['网格']??0,0);
   assert.ok(result.facets.actions.counts['描画']>0,'本组其他动作不能被当前回弹条件锁死');
   for(const selected of [state,{case:'5'},{entry:'外框',holds:'外框保持'}]){
     const view=browse(selected);
@@ -87,10 +89,18 @@ test('相似演法带差异，前后段带条件并区分方向',()=>{
 });
 test('分页可遍历全部召回，读取指纹改变明确拒绝',()=>{
   const ids=[];let offset=0;do{const r=queryMechanisms(index,{offset,limit:50,source_sha256:index.source_sha256});ids.push(...r.cards.map(m=>m.id));offset=r.next_offset;}while(offset!==null);
-  assert.equal(ids.length,744);assert.equal(new Set(ids).size,744);
+  assert.deepEqual([...ids].sort(),index.mechanisms.map(m=>m.id).sort());assert.equal(new Set(ids).size,index.count);
   assert.throws(()=>queryMechanisms(index,{source_sha256:'0'.repeat(64)}),/变化/);
   assert.throws(()=>queryMechanisms(index,{ids:['999-m01']}),/未知/);
   assert.throws(()=>queryMechanisms(index,{ids:['001-m01'],query:'填充'}),/混用/);
+});
+test('完整段落能从内部动作找到，旧碎片编号不会指向新含义',()=>{
+  for(const [query,id] of [['主矩形扩张回调后内部划线文字显出外围补点','002-m16'],['网格逐行填满','002-m17'],['横排累积前景下降内部补齐','002-m24']]){
+    assert.ok(queryMechanisms(index,{query,limit:8}).cards.some(m=>m.id===id),query);
+  }
+  assert.throws(()=>readLibraryMechanism(root,{id:'002-m01',include_storyboard:false}),/未知|不存在/);
+  const old=restoreSelection({v:1,source_sha256:'48eae58c4ed74896d27d54ee7b09613f8c415a06d23b9770021724e4f3d76c30',ids:['002-m01','002-m02','002-m03'],adopted:[]},index);
+  assert.equal(old.stale,true);assert.deepEqual(old.unknown_ids,old.ids);
 });
 test('候选增删、排序、采用、链接恢复与过期未知项均可追踪',()=>{
   let selection={v:1,source_sha256:index.source_sha256,ids:['060-m02','060-m04'],adopted:[]};

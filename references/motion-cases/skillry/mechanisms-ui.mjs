@@ -1,12 +1,19 @@
 import {termsFor} from './taxonomy.mjs';
 import {createMechanismBrowser,filterFields} from './mechanism-filters.mjs';
 import {restoreSelection,encodeSelection,editSelection} from './selection.mjs';
+import {appendMechanismClip} from './mechanism-media.mjs';
 const $=id=>document.getElementById(id),el=(tag,text)=>{const node=document.createElement(tag);node.textContent=text;return node;};
 const labels={query:'运动词',categories:'变化类别',actions:'动作特征',entry:'已有画面',holds:'保持条件',case:'来源案例'};
 const displayValue=(field,value)=>field==='case'?value.padStart(3,'0'):value;
 try{
   const response=await fetch('mechanism-index.json');if(!response.ok)throw new Error('机制索引读取失败');
   const index=await response.json();$('scope').textContent=index.scope;
+  const samples=index.mechanisms.filter(m=>m.clip);
+  if(samples.length){
+    const complete=samples.length===index.count;
+    const note=el('p',`已提供 ${samples.length} / ${index.count} 条机制切片；`+(complete?'全部可直接播放、慢放与循环。':'其余仍可查看分镜与完整原片。'));
+    $('scope').after(note);
+  }
   const browse=createMechanismBrowser(index);
   let page=0,selected={v:1,source_sha256:index.source_sha256,ids:[],adopted:[]};
   const params=new URLSearchParams(location.search);
@@ -60,7 +67,8 @@ try{
     for(const m of result.cards){
       const card=el('article',''),heading=el('div',''),num=el('span',m.id);heading.className='mechanism-heading';num.className='num';heading.append(num,el('h2',m.title));card.append(heading);
       const preview=el('a',''),picture=document.createElement('img');preview.className='mechanism-preview';preview.href=m.detail;picture.src=m.storyboard;picture.alt=m.title+'的分镜预览';picture.loading='lazy';picture.decoding='async';
-      picture.addEventListener('error',()=>{picture.remove();preview.append(el('span','分镜未加载，点击查看指令'));},{once:true});preview.append(picture);card.append(preview);
+      picture.addEventListener('error',()=>{picture.remove();preview.append(el('span','分镜未加载，点击查看指令'));},{once:true});preview.append(picture);
+      if(appendMechanismClip(card,m)){const frames=el('details','');frames.append(el('summary','展开分镜过程'),preview);card.append(frames);}else card.append(preview);
       const info=el('div','');info.className='mechanism-info';info.append(el('p',m.summary),el('p',m.retrieval.categories.join(' · ')));
       const actions=el('div','');actions.className='actions';const read=el('a','查看运动指令');read.href=m.detail;const overview=el('a',String(m.case_number).padStart(3,'0')+' 原片总览');overview.href='detail.html?case='+encodeURIComponent(m.case_slug);
       const add=el('button',selected.ids.includes(m.id)?'移出候选':'保留候选');add.addEventListener('click',()=>{try{selected=editSelection(selected,selected.ids.includes(m.id)?'remove':'add',m.id);render();}catch(error){$('error').textContent=error.message;}});

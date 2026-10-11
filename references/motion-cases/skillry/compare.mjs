@@ -1,5 +1,6 @@
 import {restoreSelection,encodeSelection,editSelection} from './selection.mjs';
 import {connection} from './mechanism-search.mjs';
+import {appendMechanismClip} from './mechanism-media.mjs';
 const $=id=>document.getElementById(id),el=(tag,text)=>{const node=document.createElement(tag);node.textContent=text;return node;};
 try{
   const response=await fetch('mechanism-index.json');if(!response.ok)throw new Error('无法读取机制索引');
@@ -15,7 +16,9 @@ try{
       const m=byId.get(id),card=el('article','');card.className=selected.adopted.includes(id)?'adopted':'';
       card.append(el('span',id),el('h2',m?.title??'未知机制'));
       if(m){
-        const img=document.createElement('img');img.src=m.storyboard;img.alt=m.title+'的分镜';img.loading='lazy';card.append(img,el('p',m.summary));
+        const img=document.createElement('img');img.src=m.storyboard;img.alt=m.title+'的分镜';img.loading='lazy';
+        if(appendMechanismClip(card,m)){const frames=el('details','');frames.append(el('summary','展开分镜过程'),img);card.append(frames);}else card.append(img);
+        card.append(el('p',m.summary));
         const conditions=el('dl','');for(const [label,value] of [['开始',m.start_state],['关系',m.relation],['结束',m.end_state],['保持',m.retrieval.holds.join('、')||'未明确标注']])conditions.append(el('dt',label),el('dd',value));card.append(conditions);
       }
       const actions=el('div','');actions.className='actions';
