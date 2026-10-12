@@ -230,7 +230,8 @@ test("删除整条非最后主画面后不留黑尾，后续场景编译与字�
     const compiled = app.compilePresenterScenes({ projectId, baseRevision: after.revision.number,
       scenes: [{ title: "保留段", purpose: "后续主工作流", startFrame: 0, endFrame: 72 }] });
     const edited = app.editCaptions({ projectId, baseRevision: compiled.revision.number,
-      captionId: compiled.snapshot.timeline.captions[0]!.id, action: "update", format: { fontSize: 36 } });
+      action: "set_global_format", format: { fontSize: 36 } });
+    assert.equal(edited.snapshot.timeline.captionFormat!.fontSize, 36);
     assertProjectGraphValid(edited.snapshot);
     const rebuilt = app.assemblePresenterTrack({ projectId, baseRevision: edited.revision.number, assetIds: [items[0]!.assetId] });
     assertProjectGraphValid(rebuilt.snapshot);
@@ -266,11 +267,14 @@ test("HTTP 与实时 MCP Schema 使用同一原子裁剪合同", async () => {
 });
 
 for (const tokenTimed of [true, false]) {
-  test(`${tokenTimed ? "token" : "纯段级"}字幕裁剪后保留原证据与样式，非整数毫秒切口不累计漂移`, async () => {
+  test(`${tokenTimed ? "token" : "纯段级"}历史逐卡字幕裁剪后保留原证据与样式，非整数毫秒切口不累计漂移`, async () => {
     const fixture = await captionFixture(tokenTimed, true);
     const { app, projectId, items } = fixture;
     try {
-      const beforeFormat = app.readProject(projectId);
+      // 这个兼容夹具专门验证历史逐卡样式；新项目的全片格式不能接受 bulk_source_format。
+      const beforeFormat = app.repository.commit(projectId, app.readProject(projectId).revision.number, "隔离历史逐卡字幕夹具", snapshot => {
+        delete snapshot.timeline.captionFormat;
+      });
       const cards = beforeFormat.snapshot.timeline.captions.filter((card) => card.sourceTimelineItemId === items[0]!.id);
       const before = app.editCaptions({ projectId, baseRevision: beforeFormat.revision.number, action: "bulk_source_format",
         captionIds: cards.map((card) => card.id), format: { fontSize: 34, bottomPercent: 10 } });

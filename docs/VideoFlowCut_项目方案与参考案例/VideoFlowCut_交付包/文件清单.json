@@ -1,0 +1,183 @@
+{
+  "package": "VideoFlowCut 项目实施与整场画面参考包",
+  "path_base": "本清单所在的交付包根目录",
+  "entry": "README.md",
+  "main_document": "docs/VideoFlowCut_项目优化主方案.md",
+  "reference_entry": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/REFERENCE.md",
+  "hashed_file_count": 28,
+  "total_file_count_including_this_manifest": 29,
+  "integrity_note": "本清单不对自身计算哈希；校验文件.py只读核验，不实施项目或重渲染。",
+  "files": [
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/REFERENCE.md",
+      "purpose": "整场视觉协作的按需方法参考",
+      "bytes": 11655,
+      "sha256": "8a1d8669a065eab4b1fdeff4994ea833d0aa2eb1664489cf66369972710dfe1a"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/evidence/verification.json",
+      "purpose": "本轮打包技术核验",
+      "bytes": 8674,
+      "sha256": "e34e8cf1e0e2b304ea07a0eace76b2f5e4c837d0f1f3e237477fc5a28c9a5435"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/evidence/制作记录.md",
+      "purpose": "原始制作事实与未完成范围",
+      "bytes": 7366,
+      "sha256": "bc23c5027f1e96db50bfd7f572efd007c5729b32d49b33d30f45802abb9e67a1"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/frames/frame-01.png",
+      "purpose": "原始视频关键帧",
+      "bytes": 411358,
+      "sha256": "58d578a2895ac485b44a9e9d023c4f13cbc737e22036e7f50217e531fd13ad43"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/frames/frame-02.png",
+      "purpose": "原始视频关键帧",
+      "bytes": 523374,
+      "sha256": "091aa7e2bcf8b1ef2876c08f3d30bba7b7df4f622c05bae941321e8921d9d0e8"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/frames/frame-03.png",
+      "purpose": "原始视频关键帧",
+      "bytes": 513100,
+      "sha256": "d2a951a425b8d0809872191823a1d93a549c795fc614f8e31a58f3ee7cc48420"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/frames/frame-04.png",
+      "purpose": "原始视频关键帧",
+      "bytes": 757544,
+      "sha256": "f8bacbb7db901532a05359ff9768d21dd9b138c1d669b4c16fb38be22a77d7f6"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/frames/frame-05.png",
+      "purpose": "原始视频关键帧",
+      "bytes": 625617,
+      "sha256": "51c5dd575672702127ef6d48a1e5fff5b9258915b1bcf20a1832cdef5dcee3f9"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/frames/frame-06.png",
+      "purpose": "原始视频关键帧",
+      "bytes": 673630,
+      "sha256": "a72f0bf401e318c8251aaa45f00c6b967c9df3f3fa1d65d43772c51390b161d5"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/frames/frame-07.png",
+      "purpose": "原始视频关键帧",
+      "bytes": 179509,
+      "sha256": "4211a68a5b1f986bdc74e7dfd92733d59525ac55b9b45fb02ca3c40e313048a3"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/frames/frame-08.png",
+      "purpose": "原始视频关键帧",
+      "bytes": 368546,
+      "sha256": "9db5f7a1151112603b09a706ae3a0fe385dc23e367be8dc9a5f132028535b503"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/frames/frame-09.png",
+      "purpose": "原始视频关键帧",
+      "bytes": 347953,
+      "sha256": "4dcaf39e2513b3ee50594f0ac33111d8fdae35c847872e5fc1b9ba411e167af1"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/input/inputs/国航规则原文摘录.png",
+      "purpose": "原始内容输入及媒体依赖",
+      "bytes": 184866,
+      "sha256": "7b620ffa0bc1b4bdb55b6ef7dcc7b692dd5aab1e32883c6954fef3e0d7066ee7"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/input/inputs/字幕时间.srt",
+      "purpose": "原始内容输入及媒体依赖",
+      "bytes": 1090,
+      "sha256": "068ea650df63a6c8824633a51ca7c40be0b78bc193a41ec1e9262951a6ad1821"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/input/inputs/客舱源视频.mp4",
+      "purpose": "原始内容输入及媒体依赖",
+      "bytes": 8403352,
+      "sha256": "3e6de34dbc5ee09f246dfd7aeb905972bed17ed50b10530e119aea2a6575d27b"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/input/inputs/旁白正文.txt",
+      "purpose": "原始内容输入及媒体依赖",
+      "bytes": 650,
+      "sha256": "23408a4ed9d8f5b89d3d9b6bda856a0f2d91e9257c642a5918a4bba8a936bd4b"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/input/inputs/旁白音轨.wav",
+      "purpose": "原始内容输入及媒体依赖",
+      "bytes": 1452078,
+      "sha256": "e2dc0c8e6b4c3215c6e6e2fc75ae2d98272e21e316df77ea4393fcd28c305f7d"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/input/inputs/规则字段.json",
+      "purpose": "原始内容输入及媒体依赖",
+      "bytes": 2362,
+      "sha256": "0a573c93f6a85f010f23c022efe5e738e38671a4aa112fd5a4ccf7b1cb808cbd"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/input/开始制作.md",
+      "purpose": "原始执行指令，仅作该次制作记录",
+      "bytes": 11509,
+      "sha256": "ed10ef512cc4029450ecd40f7b9b69e32b4dbd508aa455771eb469006cd0acf7"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/input/文件清单.json",
+      "purpose": "原始输入子包哈希清单",
+      "bytes": 3418,
+      "sha256": "ed70fff3130911677e0482d9ffe7cee05f2b558aabcd5735b4b7cc873b095ade"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/keyframes.jpg",
+      "purpose": "原始关键帧总览",
+      "bytes": 117406,
+      "sha256": "6e4e256db5510acc5f3cda817d4cf9d88be3ea55d14fbd9e2697409d87cdee60"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/preview.mp4",
+      "purpose": "原始已认可动效视觉样片",
+      "bytes": 7181815,
+      "sha256": "8b55aa9a91af4cf65a392459a3239cccf5ec0eb438c73bd4c38350995751094c"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/source/AirfareIndependent.tsx",
+      "purpose": "原始完整动画源码",
+      "bytes": 11798,
+      "sha256": "4d893ffa8b9eddc20ee47100323c71683d7db968cf0d7c5729017078e749834f"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/source/bindings.json",
+      "purpose": "素材与字体依赖、重新绑定说明",
+      "bytes": 3942,
+      "sha256": "a15a451c8240d1e8980e482c35e3457dba951b5b673c62b1b5b301a2c3923a73"
+    },
+    {
+      "path": ".agents/skills/visual-treatment-planning/references/whole-scene-collaboration/source/work.original.json",
+      "purpose": "原始提交快照，仅追溯",
+      "bytes": 13190,
+      "sha256": "b94be58dda229deee3ca166733babf9ae9879443ab929a2c70373223d4c936f7"
+    },
+    {
+      "path": "README.md",
+      "purpose": "交付与接入入口",
+      "bytes": 6077,
+      "sha256": "41377917c0381e485ea30e9201d6eb65e51c7537f7a2ce712a9a025f9c631142"
+    },
+    {
+      "path": "docs/VideoFlowCut_项目优化主方案.md",
+      "purpose": "最终项目实施主方案",
+      "bytes": 56295,
+      "sha256": "af74398dcb577586139a830cab1ea6aa2d336a35a6193f356c04954dff66ad04"
+    },
+    {
+      "path": "校验文件.py",
+      "purpose": "只读文件完整性校验",
+      "bytes": 3611,
+      "sha256": "038d96e96c49006815238d05272e8abcb8298a9a4a427b376d314742739c8572"
+    }
+  ],
+  "font_binaries_included": false,
+  "existing_skill_files_replaced_by_this_package": false,
+  "runtime_dependencies_bundled": false
+}

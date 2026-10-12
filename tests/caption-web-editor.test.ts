@@ -39,6 +39,8 @@ test("工作台正文保存不提交局部外观，全片样式单独保存，�
     assert.deepEqual(saved, { action: "update", text: "纠正后的文字", display: { mode: "shown" } });
 
     await page.click("details summary");
+    assert.deepEqual(await page.$$eval('[aria-label="全片字幕行数"] option', options => options.map(option => option.textContent)), ["最多一行", "最多两行"]);
+    assert.match(await page.$eval('[aria-label="全片字幕样式"] p', element => element.textContent!), /最多 2 行，背景随实际行数调整/u);
     await page.select('[aria-label="全片字幕行数"]', "1");
     await page.$$eval("button", buttons => buttons.find(button => button.textContent === "保存全片样式")!.click());
     const formatSaved = await page.evaluate(() => (window as any).formatSaves[0]);

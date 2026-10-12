@@ -17,6 +17,33 @@ import type { ProjectSnapshot } from "@videocut/contracts";
 const text = "流量总量并不等于下载速度，网络拥挤时还要看资源怎样分。";
 const phrases = ["流量总量并不等于下载速度，", "网络拥挤时还要看资源怎样分。"];
 
+test("用户原 SRT 原子接替整份旁白 Program，拒绝半组替换并保留音频及 Provider 证据", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vfc-srt-program-replacement-"));
+  const f = await fixture(root);
+  const provider = mockProvider();
+  try {
+    f.app.generateSpeechCaptions({ projectId: f.projectId, baseRevision: f.app.readProject(f.projectId).revision.number });
+    await runOneJob(f.app, createMediaJobProcessor(f.app, new ComfyUIBridgeClient("http://bridge.test/v1")));
+    const before = f.app.readProject(f.projectId);
+    const input = { projectId: f.projectId, baseRevision: before.revision.number, sourceName: "用户字幕.srt", writePolicy: "replace_range" as const, idempotencyKey: "user-srt" };
+    assert.throws(() => f.app.importSrtCaptions({ ...input, srtText: "1\n00:00:00,100 --> 00:00:03,900\n第一段", targetRange: { startFrame: 0, endFrame: 96 } }), { code: "CAPTION_SRT_CONFLICT" });
+    assert.deepEqual(f.app.readProject(f.projectId), before);
+    const after = f.app.importSrtCaptions({ ...input, srtText: `1\n00:00:00,100 --> 00:00:03,900\n${phrases[0]}\n\n2\n00:00:04,100 --> 00:00:07,900\n${phrases[1]}`, targetRange: { startFrame: 0, endFrame: 192 } });
+    assert.equal(after.snapshot.sourceCaptionPrograms.length, 0);
+    assert.deepEqual(after.snapshot.sourceAudioAlignments, before.snapshot.sourceAudioAlignments);
+    assert.deepEqual(after.snapshot.speechAsset, before.snapshot.speechAsset);
+    assert.deepEqual(after.snapshot.timeline.items, before.snapshot.timeline.items);
+    assert.ok(after.snapshot.timeline.captions.every(card => card.sourceKind === "user_srt" && card.precision === "subtitle_exact"));
+    assert.ok(!evaluateQuality(after.snapshot, after.revision.number).issues.some(issue => ["SOURCE_CAPTION_PROGRAM_REQUIRED", "PRESENTER_CAPTION_MISSING", "CAPTION_SPEECH_MISMATCH"].includes(issue.code)));
+    const broken = structuredClone(after.snapshot);
+    broken.timeline.captions.pop();
+    assert.ok(evaluateQuality(broken, after.revision.number).issues.some(issue => issue.code === "PRESENTER_CAPTION_MISSING"));
+    assert.throws(() => f.app.generateSpeechCaptions({ projectId: f.projectId, baseRevision: after.revision.number }), { code: "SPEECH_CAPTION_EDIT_CONFLICT" });
+    const rebuilt = f.app.rebuildSpeechAssetTimeline({ projectId: f.projectId, baseRevision: after.revision.number });
+    assert.deepEqual(rebuilt.snapshot.timeline.captions, after.snapshot.timeline.captions, "重建原声音不覆盖用户原 SRT");
+  } finally { provider.restore(); f.app.close(); await rm(root, { recursive: true, force: true }); }
+});
+
 test("旧项目真实MCP拒绝透明度0且不写Revision；旁白同源批量null取消背景，非法Card整批拒绝", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-caption-format-contract-"));
   const f = await fixture(root);

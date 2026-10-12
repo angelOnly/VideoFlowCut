@@ -6,6 +6,7 @@ import { compileCutawayLayout, cutawaySourceVolume } from "./cutaway-layout";
 import {
   CaptionLayoutError,
   CaptionTimelineOverlapError,
+  captionContentHeight,
   layoutCaptionInBrowser,
   resolveCaptionLayoutInput
 } from "./caption-layout";
@@ -212,29 +213,28 @@ export function resolveWordExactCaptionHighlight(
 const CaptionLayer: React.FC<{ snapshot: ProjectSnapshot; caption: CaptionCard }> = ({ snapshot, caption }) => {
   const frame = useCurrentFrame();
   const format = resolveCaptionFormat(snapshot.timeline, caption);
-  const fixedLineCount = Boolean(snapshot.timeline.captionFormat);
+  // 全片统一样式独立禁用强调；实际背景高度只由本卡排版结果决定。
+  const emphasisEnabled = !snapshot.timeline.captionFormat;
   const backgroundColor = captionBackgroundColor(format);
-  const emphasis = fixedLineCount ? undefined : resolveWordExactCaptionHighlight(snapshot, caption, frame) ?? caption.emphasis;
+  const emphasis = emphasisEnabled ? resolveWordExactCaptionHighlight(snapshot, caption, frame) ?? caption.emphasis : undefined;
   // emphasis 的 transform 不参与普通 CSS 流式布局；先按最大字号/字重预留空间，避免视觉上越出安全区。
   const layout = React.useMemo(() => layoutCaptionInBrowser({
     text: caption.text,
     compositionWidth: snapshot.timeline.width,
     compositionHeight: snapshot.timeline.height,
     format,
-    fixedLineCount,
     emphasisScale: emphasis?.scale,
     emphasisFontWeight: emphasis?.fontWeight
-  }), [caption.text, emphasis?.fontWeight, emphasis?.scale, format, fixedLineCount, snapshot.timeline.width, snapshot.timeline.height]);
-  const resolved = resolveCaptionLayoutInput({ text: caption.text, compositionWidth: snapshot.timeline.width, format })!;
-  const reservedLines = fixedLineCount ? resolved.maxLines : layout.ready ? layout.lines.length : 1;
-  const allowedHeight = format.fontSize * resolved.lineHeight * reservedLines + resolved.paddingVertical * 2;
+  }), [caption.text, emphasis?.fontWeight, emphasis?.scale, format, snapshot.timeline.width, snapshot.timeline.height]);
+  const resolved = resolveCaptionLayoutInput({ text: caption.text, compositionWidth: snapshot.timeline.width, format, emphasisScale: emphasis?.scale, emphasisFontWeight: emphasis?.fontWeight })!;
+  const allowedHeight = layout.ready ? captionContentHeight(resolved, layout.lines.length) : 0;
   const displayText = layout.ready ? layout.lines.join("\n") : "";
   const emphasisIndex = emphasis ? captionEmphasisIndex(displayText, emphasis.text, emphasis.occurrence) : -1;
   const before = emphasisIndex >= 0 && emphasis ? displayText.slice(0, emphasisIndex) : displayText;
   const focused = emphasisIndex >= 0 && emphasis ? displayText.slice(emphasisIndex, emphasisIndex + emphasis.text.length) : "";
   const after = emphasisIndex >= 0 && emphasis ? displayText.slice(emphasisIndex + emphasis.text.length) : "";
   const contentRef = React.useRef<HTMLSpanElement>(null);
-  const layoutCheckKey = `${displayText}\u0000${JSON.stringify(format)}\u0000${fixedLineCount}`;
+  const layoutCheckKey = `${displayText}\u0000${JSON.stringify(format)}\u0000${JSON.stringify(emphasis)}`;
   const [domCheck, setDomCheck] = React.useState<{ key: string; overflowReason?: string }>({ key: layoutCheckKey });
 
   React.useLayoutEffect(() => {
@@ -279,13 +279,13 @@ const CaptionLayer: React.FC<{ snapshot: ProjectSnapshot; caption: CaptionCard }
     pointerEvents: "none"
   }}><span
       ref={contentRef}
-      data-caption-layout={fixedLineCount ? `fixed-${resolved.maxLines}-lines` : "two-lines-max"}
+      data-caption-layout={`actual-${layout.lines.length}-lines`}
       style={{
         display: "inline-block",
         maxWidth: "100%",
         width: format.boxWidth === "full" ? "100%" : undefined,
-        height: fixedLineCount ? allowedHeight : undefined,
-        verticalAlign: fixedLineCount ? "top" : undefined,
+        height: allowedHeight,
+        verticalAlign: "top",
         boxSizing: "border-box",
         // 只显示 layoutCaptionInBrowser 产出的 \n；pre 禁止浏览器进行额外自动折行。
         whiteSpace: "pre",

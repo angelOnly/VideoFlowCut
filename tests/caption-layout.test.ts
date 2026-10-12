@@ -7,11 +7,25 @@ import { createApplication } from "@videocut/application";
 import type { CaptionCard, ProjectSnapshot } from "@videocut/contracts";
 import { evaluateQuality, evaluateQualityWithBrowser } from "@videocut/quality";
 import { activeCaptionsAtFrame } from "@videocut/remotion";
-import { layoutCaptionWithMeasure, layoutCaptionConservatively } from "../packages/remotion-runtime/src/caption-layout.js";
+import { captionContentHeight, layoutCaptionWithMeasure, layoutCaptionConservatively, resolveCaptionLayoutInput } from "../packages/remotion-runtime/src/caption-layout.js";
 import { measureCaptionLayouts } from "../packages/quality-system/src/caption-measurement.js";
 import { RevisionRenderer, runRenderPreflight } from "../apps/render-worker/src/exporter.js";
 
 const measuredWidth = (text: string) => Array.from(text).length * 10;
+
+test("字幕真实行高参与边界检查，保留显式顶部定位语义", () => {
+  const format = { fontSize: 20, lineHeight: 1.5, maxLines: 2 as const, paddingVertical: 5, bottomPercent: 10 };
+  const input = { text: "单行字幕", compositionWidth: 200, compositionHeight: 60, format };
+  const short = layoutCaptionWithMeasure(input, measuredWidth, "browser");
+  assert.equal(short.ready, true, "一行 40 像素可以容纳，无需预留两行 70 像素");
+  if (short.ready) assert.equal(captionContentHeight(resolveCaptionLayoutInput(input)!, short.lines.length), 40);
+  assert.deepEqual(layoutCaptionWithMeasure({ ...input, text: "第一行\n第二行" }, measuredWidth, "browser"), {
+    ready: false, code: "CAPTION_LAYOUT_OVERFLOW", reason: "CANVAS_VERTICAL_OVERFLOW", measurement: "browser"
+  });
+  const topInput = { ...input, compositionHeight: 100, format: { ...format, placement: { topPercent: 65, leftPercent: 10, widthPercent: 80 } } };
+  assert.equal(layoutCaptionWithMeasure(topInput, measuredWidth, "browser").ready, false, "顶部 65 加单行 40 越界，不能改成底部定位后放行");
+  assert.equal(layoutCaptionWithMeasure({ ...topInput, format: { ...topInput.format, placement: { ...topInput.format.placement, topPercent: 60 } } }, measuredWidth, "browser").ready, true);
+});
 
 function caption(id: string, text: string, startFrame: number, endFrame: number): CaptionCard {
   return {

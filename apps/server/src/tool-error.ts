@@ -1,9 +1,14 @@
 import { ZodError } from "zod";
+import { DomainError } from "@videocut/domain";
 import { MotionSubmissionValidationError } from "../../../packages/edit-application/src/motion-submission-validation.js";
 import { EffectCueRangeValidationError } from "../../../packages/edit-application/src/effect-cue-validation.js";
 
 /** 未知异常不能宣称没有写入；只有明确的输入校验拒绝可纠正参数。 */
 export function toolError(error: unknown, validationBeforeExecution = false) {
+  // 这些拒绝发生于整批校验或事务回滚，尚未插入任何字幕与导入审计。
+  if (error instanceof DomainError && ["CAPTION_SRT_INPUT_INVALID", "CAPTION_SRT_INVALID", "CAPTION_SRT_RANGE_INVALID", "CAPTION_SRT_CONFLICT", "CAPTION_SRT_IDEMPOTENCY_CONFLICT"].includes(error.code)) {
+    return { error: error.message, message: error.message, code: error.code, stage: "validation", sideEffects: "none", safeToRetry: true, recovery: "correct_input" };
+  }
   if (error instanceof EffectCueRangeValidationError) {
     const { sceneId, sceneRange, requestedRange } = error;
     const message = `效果范围 [${requestedRange.startFrame}, ${requestedRange.endFrame}) 必须完整位于所属场景 [${sceneRange.startFrame}, ${sceneRange.endFrame}) 内，且结束帧大于开始帧。`;

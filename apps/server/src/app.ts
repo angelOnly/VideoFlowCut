@@ -1,5 +1,6 @@
 import { creativeBriefSchema, creativeBriefUpdateSchema, explicitCreativePreferencesSchema } from "../../../packages/contracts/src/creative-preferences.js";
 import { captionTypographySchema, captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
+import { captionSrtImportSchema } from "../../../packages/contracts/src/caption-srt.js";
 import { MotionSubmissionValidationError } from "../../../packages/edit-application/src/motion-submission-validation.js";
 import { toolError } from "./tool-error.js";
 import { explainerPlanWithContent } from "../../../packages/contracts/src/explainer-inputs.js";
@@ -279,6 +280,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       return reply.status(409).send({ error: "REVISION_CONFLICT", message: error.message, expectedRevision: error.expected, currentRevision: error.actual });
     }
     if (error instanceof NotFoundError) return reply.status(404).send({ error: "NOT_FOUND", message: error.message });
+    if (error instanceof DomainError && error.code.startsWith("CAPTION_SRT_")) return reply.status(400).send(toolError(error));
     if (error instanceof DomainError || error instanceof z.ZodError) {
       return reply.status(400).send({ error: error instanceof DomainError ? error.code : "VALIDATION_ERROR", message: error.message });
     }
@@ -1130,6 +1132,12 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return application.rebuildSpeechAssetTimeline({ projectId, ...body });
   });
 
+  app.post("/api/projects/:projectId/captions/import-srt", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = captionSrtImportSchema.extend({ baseRevision: baseRevisionSchema }).parse(request.body);
+    return application.importSrtCaptions({ projectId, ...body });
+  });
+
   /** 全片规范允许在首张字幕生成前设置；后续卡片只引用它。 */
   app.patch("/api/projects/:projectId/captions/global-format", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
@@ -1212,6 +1220,15 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       action: "bulk_source_format",
       format: body.format
     });
+  });
+
+  app.post("/api/projects/:projectId/narration", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, assetId: idSchema,
+      startFrame: z.number().int().nonnegative(), sourceStartFrame: z.number().int().nonnegative().optional(),
+      sourceEndFrame: z.number().int().positive().optional(), timelineItemId: idSchema.optional(),
+      gainDb: z.number().min(-48).max(12).optional() }).strict().parse(request.body);
+    return application.placeNarration({ projectId, ...body });
   });
 
   app.post("/api/projects/:projectId/audio", async (request) => {

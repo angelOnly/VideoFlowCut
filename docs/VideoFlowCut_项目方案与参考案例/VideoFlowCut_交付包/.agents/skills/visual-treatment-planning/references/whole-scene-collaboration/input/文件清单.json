@@ -1,0 +1,105 @@
+{
+  "输入类型": "只有当前任务说明、准确内容与素材的独立创作包",
+  "入口": "开始制作.md",
+  "文件总数_含本清单": 8,
+  "本包输出视频目标": {
+    "width": 768,
+    "height": 1344,
+    "fps": 24,
+    "audio_seconds": 30.25
+  },
+  "内容范围": "规则比较、空座与时间、取消改签与费用；不预选画面或机制",
+  "files": [
+    {
+      "path": "开始制作.md",
+      "purpose": "本次任务与读取白名单",
+      "bytes": 11509,
+      "sha256": "ed10ef512cc4029450ecd40f7b9b69e32b4dbd508aa455771eb469006cd0acf7"
+    },
+    {
+      "path": "inputs/旁白正文.txt",
+      "purpose": "准确正文，不含场面指令或工程身份",
+      "bytes": 650,
+      "sha256": "23408a4ed9d8f5b89d3d9b6bda856a0f2d91e9257c642a5918a4bba8a936bd4b"
+    },
+    {
+      "path": "inputs/旁白音轨.wav",
+      "purpose": "用户提供的本片声音内容，局部时钟从0秒开始",
+      "bytes": 1452078,
+      "sha256": "e2dc0c8e6b4c3215c6e6e2fc75ae2d98272e21e316df77ea4393fcd28c305f7d",
+      "media": {
+        "duration_seconds": 30.25,
+        "sample_rate": 24000,
+        "channels": 1,
+        "sample_width_bytes": 2
+      }
+    },
+    {
+      "path": "inputs/字幕时间.srt",
+      "purpose": "准确字幕内容与局部时间",
+      "bytes": 1090,
+      "sha256": "068ea650df63a6c8824633a51ca7c40be0b78bc193a41ec1e9262951a6ad1821",
+      "cue_count": 13
+    },
+    {
+      "path": "inputs/国航规则原文摘录.png",
+      "purpose": "事实资料图，不是画面设计模板",
+      "bytes": 184866,
+      "sha256": "7b620ffa0bc1b4bdb55b6ef7dcc7b692dd5aab1e32883c6954fef3e0d7066ee7",
+      "media": {
+        "width": 1300,
+        "height": 1229
+      }
+    },
+    {
+      "path": "inputs/规则字段.json",
+      "purpose": "全部原表字段与必要含义，不含图形坐标或选型",
+      "bytes": 2362,
+      "sha256": "0a573c93f6a85f010f23c022efe5e738e38671a4aa112fd5a4ccf7b1cb808cbd"
+    },
+    {
+      "path": "inputs/客舱源视频.mp4",
+      "purpose": "客舱实拍素材，非成片或参考视频",
+      "bytes": 8403352,
+      "sha256": "3e6de34dbc5ee09f246dfd7aeb905972bed17ed50b10530e119aea2a6575d27b",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1920,
+            "height": 1080,
+            "r_frame_rate": "25/1",
+            "duration": "12.880000"
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2,
+            "r_frame_rate": "0/0",
+            "duration": "12.885000"
+          }
+        ],
+        "format": {
+          "duration": "12.885000",
+          "size": "8403352"
+        }
+      }
+    }
+  ],
+  "not_included": [
+    "任何动画源码、布局或配色配置",
+    "既有成片、截图或联系表",
+    "历史制作指令、分镜与审核记录",
+    "已选机制列表或机制视频",
+    "历史Project、Asset、Job、Revision和运行记录",
+    "字体二进制文件",
+    "其他ZIP或隐藏文件"
+  ],
+  "边界": "只读内容白名单见开始制作.md；通用Skills与内置机制工具不属于外部内容输入。未改变本机权限，也未启动制作。"
+}

@@ -5,6 +5,7 @@ import { sourceMaterialSchema, type SourceMaterialInput } from "../../asset-acqu
 import { assetAcquisitionOptionsSchema } from "../../asset-acquisition/src/options.js";
 import type { AssetAcquisitionOptions } from "@videocut/contracts";
 import { captionTypographySchema, captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema, validCaptionDisplay, type CaptionDisplay } from "../../contracts/src/caption-presentation.js";
+import { captionSrtImportSchema, parseSrt, type CaptionSrtImportInput } from "../../contracts/src/caption-srt.js";
 import { applyAudioDesign, soundRequirementSchema, type AudioDesignInput } from "./sound-design.js";
 import { prepareProjectFrameRateChange } from "./frame-rate-change.js";
 import { digest as mediaDigest, assetRequestVersion } from "../../media-intelligence/src/index.js";
@@ -12,6 +13,7 @@ import { assertEffectCoverage } from "@videocut/domain";
 import { MediaIntelligenceApplication } from "./media-intelligence.js";
 import { createHash } from "node:crypto";
 import { bindEffectAudioEvent, type EffectAudioEventInput } from "./effect-audio-events.js";
+import { resolveAudioProgramEndFrame } from "../../edit-domain/src/audio-program-range.js";
 import { evidenceHash, validateEditorialObservations } from "./editorial-evidence.js";
 import { validateMotionReviewEvidence } from "./motion-review.js";
 import type { MotionReviewEvidenceInput, MotionReviewOutcome } from "@videocut/contracts";
@@ -576,11 +578,11 @@ function readySpeechFile(snapshot: ProjectSnapshot, speechAsset: SpeechAsset): A
   return asset;
 }
 
-/** BGM / SFX 只接收已本地化的独立音频，不能把任意带声视频悄悄当作音乐或音效。 */
+/** 独立声音只接收已本地化的音频，不能把任意带声视频悄悄当作旁白、音乐或音效。 */
 function requireReadyAudioAsset(snapshot: ProjectSnapshot, assetId: Id): Asset {
   const asset = assetById(snapshot, assetId);
   if (asset.kind !== "audio" || asset.status !== "ready" || !asset.metadata?.hasAudio || !asset.managedPath.trim()) {
-    throw new DomainError("BGM / SFX 必须使用已就绪、已本地化的独立音频素材", "AUDIO_ASSET_NOT_READY");
+    throw new DomainError("必须使用已就绪、已本地化的独立音频素材", "AUDIO_ASSET_NOT_READY");
   }
   return asset;
 }
@@ -957,7 +959,8 @@ function sourceCaptionAlignmentTarget(snapshot: ProjectSnapshot, timelineItemId:
       || item.sourceEndFrame !== millisecondsToFrames(assetById(snapshot, item.assetId).metadata?.durationMs ?? 0, snapshot.timeline.fps)) {
       throw new DomainError("旁白字幕只能绑定当前完整、唯一可播放的 SpeechAsset，不能伪装成原声 A-roll", "SPEECH_CAPTION_SOURCE_STALE");
     }
-    const derivedCaptions = snapshot.timeline.captions.filter(caption => caption.sourceKind !== "source_audio");
+    if (snapshot.timeline.captions.some(caption => caption.sourceKind === "user_srt")) throw new DomainError("已有用户原 SRT 字幕，不允许自动识别覆盖", "SPEECH_CAPTION_EDIT_CONFLICT");
+    const derivedCaptions = snapshot.timeline.captions.filter(caption => caption.sourceKind !== "source_audio" && caption.sourceKind !== "user_srt");
     if (derivedCaptions.some(caption => caption.textMode === "manual" || caption.emphasis !== undefined
       || caption.text !== snapshot.speechSegments.find(segment => segment.id === caption.speechSegmentId)?.text)) {
       throw new DomainError("旁白已有人工改写或强调的字幕，不能静默覆盖；请先确认要重做的字幕", "SPEECH_CAPTION_EDIT_CONFLICT");
@@ -4424,13 +4427,13 @@ export class EditingApplication {
       };
       const compiled = compileProviderSourceCaptionProgram({ snapshot, item, asset, alignment });
       // 同一事务替换旧的整段默认卡，避免旁白段字幕与 ASR 分屏同时出现。
-      const replacedSpeechCaptions = input.speechSource ? snapshot.timeline.captions.filter(caption => caption.sourceKind !== "source_audio") : [];
+      const replacedSpeechCaptions = input.speechSource ? snapshot.timeline.captions.filter(caption => caption.sourceKind !== "source_audio" && caption.sourceKind !== "user_srt") : [];
       if (replacedSpeechCaptions.length > 0) {
         const sharedFormat = replacedSpeechCaptions[0]!.format;
         if (replacedSpeechCaptions.every(caption => JSON.stringify(caption.format) === JSON.stringify(sharedFormat))) {
           for (const caption of compiled.captions) caption.format = structuredClone(sharedFormat ?? DEFAULT_CAPTION_FORMAT);
         }
-        snapshot.timeline.captions = snapshot.timeline.captions.filter(caption => caption.sourceKind === "source_audio");
+        snapshot.timeline.captions = snapshot.timeline.captions.filter(caption => caption.sourceKind === "source_audio" || caption.sourceKind === "user_srt");
       }
       const replaceableCoarseCaptions = snapshot.timeline.captions
         .filter((caption) => caption.sourceKind === "source_audio" && caption.sourceTimelineItemId === item.id)
@@ -4687,14 +4690,14 @@ export class EditingApplication {
     markSpeechAlignmentStale(snapshot, impact, "Script 已重新编译");
     snapshot.speechAlignment = undefined;
     snapshot.speechAsset = undefined;
-    const speechAssetCaptions = snapshot.timeline.captions.filter((caption) => caption.sourceKind !== "source_audio");
+    const speechAssetCaptions = snapshot.timeline.captions.filter((caption) => caption.sourceKind !== "source_audio" && caption.sourceKind !== "user_srt");
     if (speechAssetCaptions.length > 0) {
       // 不能静默沿用旧语音的 Card；下一次 SpeechAsset 组装会以最新段级时序重建字幕。
       // 原声字幕由 A-roll 的真实源范围驱动，不能因 Script 文字重排被误删。
       impact.stale.push(...speechAssetCaptions.map((caption) => caption.id));
       impact.recomputed.push("失效 Caption Program");
     }
-    snapshot.timeline.captions = snapshot.timeline.captions.filter((caption) => caption.sourceKind === "source_audio");
+    snapshot.timeline.captions = snapshot.timeline.captions.filter((caption) => caption.sourceKind === "source_audio" || caption.sourceKind === "user_srt");
     for (const performance of snapshot.actorPerformances) {
       if (performance.source === "generated" && performance.scriptRevision !== snapshot.script.revision) {
         performance.status = "stale";
@@ -7507,7 +7510,7 @@ export class EditingApplication {
         source: `真实词级强制对齐：${source}（${input.bridgeAudit.workflowId}/${input.bridgeAudit.runId}）`
       };
       // 音频派生 Card 的边界仍来自自己的 Alignment，不能因 SpeechTiming 升级而篡改其精度。
-      for (const caption of snapshot.timeline.captions) if (caption.sourceKind !== "source_audio") caption.precision = "word_exact";
+      for (const caption of snapshot.timeline.captions) if (caption.sourceKind !== "source_audio" && caption.sourceKind !== "user_srt") caption.precision = "word_exact";
       impact.changed.push(alignment.id, speechAsset.id, ...snapshot.timeline.captions.map((caption) => caption.id));
       impact.recomputed.push("真实词级时间戳、SpeechTiming、Caption Program 精度");
       impact.dirtyRanges.push({ startFrame: 0, endFrame: Math.max(1, snapshot.timeline.durationInFrames), reason: "词级对齐已写入，需在真实预览中复核逐词高亮或节奏效果" });
@@ -7993,11 +7996,11 @@ export class EditingApplication {
     });
     snapshot.timeline.items.push(dialogueItem);
     snapshot.speechAsset = speechAsset;
-    const sourceAudioCaptions = snapshot.timeline.captions.filter((caption) => caption.sourceKind === "source_audio");
+    const sourceAudioCaptions = snapshot.timeline.captions.filter((caption) => caption.sourceKind === "source_audio" || caption.sourceKind === "user_srt");
     const previousCaptions = new Map(snapshot.timeline.captions
       .filter((caption) => caption.sourceKind !== "source_audio" && caption.speechSegmentId)
       .map((caption) => [caption.speechSegmentId!, caption]));
-    snapshot.timeline.captions = [...sourceAudioCaptions, ...speechAsset.timing.segments.map((timing) => {
+    snapshot.timeline.captions = [...sourceAudioCaptions, ...speechAsset.timing.segments.filter(timing => !sourceAudioCaptions.some(card => card.sourceKind === "user_srt" && card.startFrame < timing.endFrame && timing.startFrame < card.endFrame)).map((timing) => {
       const segment = snapshot.speechSegments.find((candidate) => candidate.id === timing.speechSegmentId);
       if (!segment) throw new DomainError("SpeechTiming 引用了不存在的 SpeechSegment", "SPEECH_TIMING_SEGMENT_MISSING");
       const previous = previousCaptions.get(segment.id);
@@ -8108,6 +8111,67 @@ export class EditingApplication {
     return state;
   }
 
+  /** 原文件时间只加显式偏移；完整解析、范围和冲突检查均在一次 Revision 提交前完成。 */
+  importSrtCaptions(input: CaptionSrtImportInput & { projectId: Id; baseRevision: number }): ProjectState {
+    const { projectId, baseRevision, ...payload } = input;
+    const parsed = captionSrtImportSchema.safeParse(payload);
+    if (!parsed.success) throw new DomainError("SRT 导入参数无效：" + parsed.error.message, "CAPTION_SRT_INPUT_INVALID");
+    const request = parsed.data;
+    const requestHash = createHash("sha256").update(JSON.stringify(request)).digest("hex");
+    const current = this.readProject(projectId);
+    const previous = current.snapshot.timeline.captionImports?.find(entry => entry.idempotencyKey === request.idempotencyKey);
+    // 重放只读回当前状态，不能把已经编辑或替换的卡恢复成旧卡。
+    if (previous) {
+      if (previous.requestHash !== requestHash) throw new DomainError("同一 SRT 幂等键已用于不同输入", "CAPTION_SRT_IDEMPOTENCY_CONFLICT");
+      return current;
+    }
+    let cues: ReturnType<typeof parseSrt>;
+    try { cues = parseSrt(request.srtText); }
+    catch (error) { throw new DomainError(error instanceof Error ? error.message : String(error), "CAPTION_SRT_INVALID"); }
+    const state = this.repository.commit(projectId, baseRevision, "导入用户原 SRT 字幕", (snapshot, impact) => {
+      const { targetRange } = request;
+      if (targetRange.endFrame <= targetRange.startFrame || targetRange.endFrame > snapshot.timeline.durationInFrames) {
+        throw new DomainError("字幕目标范围必须是当前时间线内的非空半开范围", "CAPTION_SRT_RANGE_INVALID");
+      }
+      const importId = createId("caption_import");
+      const cards: CaptionCard[] = cues.map(cue => {
+        const startMs = cue.startMs + request.offsetMs;
+        const endMs = cue.endMs + request.offsetMs;
+        if (!Number.isSafeInteger(startMs) || !Number.isSafeInteger(endMs) || startMs < 0) throw new DomainError("SRT 偏移后时间无效", "CAPTION_SRT_RANGE_INVALID");
+        // 项目统一最近帧量化，单边误差至多半帧；量化成空范围时拒绝，绝不偷偷延长。
+        const startFrame = millisecondsToFrames(startMs, snapshot.timeline.fps);
+        const endFrame = millisecondsToFrames(endMs, snapshot.timeline.fps);
+        if (startFrame < targetRange.startFrame || endFrame > targetRange.endFrame || endFrame <= startFrame) {
+          throw new DomainError(`SRT 第 ${cue.index} 块越界或量化后为空`, "CAPTION_SRT_RANGE_INVALID");
+        }
+        return { id: createId("caption"), sourceKind: "user_srt", srtSource: { importId, cueIndex: cue.index, startMs: cue.startMs, endMs: cue.endMs },
+          sourceText: cue.text, text: cue.text, textMode: "derived", startFrame, endFrame, style: "stable", precision: "subtitle_exact" };
+      });
+      const overlaps = (a: { startFrame: number; endFrame: number }, b: { startFrame: number; endFrame: number }) => a.startFrame < b.endFrame && b.startFrame < a.endFrame;
+      const replaced = request.writePolicy === "replace_range" ? snapshot.timeline.captions.filter(card => overlaps(card, targetRange)) : [];
+      if (request.writePolicy === "reject_conflicts" && snapshot.timeline.captions.some(card => cards.some(next => overlaps(card, next)))) {
+        throw new DomainError("SRT 与既有字幕重叠；请选择明确替换范围或修正输入", "CAPTION_SRT_CONFLICT");
+      }
+      // 禁止切掉范围外字幕，也不拆散现有 Provider Program；整组覆盖才可移除该 Program。
+      if (replaced.some(card => card.startFrame < targetRange.startFrame || card.endFrame > targetRange.endFrame)) {
+        throw new DomainError("替换范围切穿了既有字幕，请扩大到整卡范围", "CAPTION_SRT_CONFLICT");
+      }
+      const replacedIds = new Set(replaced.map(card => card.id));
+      const affectedPrograms = snapshot.sourceCaptionPrograms.filter(program => program.captionIds.some(id => replacedIds.has(id)));
+      if (affectedPrograms.some(program => program.captionIds.some(id => !replacedIds.has(id)))) {
+        throw new DomainError("替换范围必须完整包含受影响的原声字幕 Program", "CAPTION_SRT_CONFLICT");
+      }
+      snapshot.sourceCaptionPrograms = snapshot.sourceCaptionPrograms.filter(program => !affectedPrograms.includes(program));
+      snapshot.timeline.captions = [...snapshot.timeline.captions.filter(card => !replacedIds.has(card.id)), ...cards].sort((a, b) => a.startFrame - b.startFrame);
+      (snapshot.timeline.captionImports ??= []).push({ ...request, id: importId, requestHash, fps: snapshot.timeline.fps, captionIds: cards.map(card => card.id), createdAt: now() });
+      impact.changed.push(importId, ...cards.map(card => card.id), ...replacedIds, ...affectedPrograms.map(program => program.id));
+      impact.recomputed.push("用户 SRT 原毫秒时间量化为半开字幕范围；无 ASR 或词级时间");
+      impact.dirtyRanges.push({ ...targetRange, reason: "用户 SRT 字幕导入" });
+    });
+    this.publish({ projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
   /**
    * 字幕是对可播放声音的独立屏幕呈现：可微调单卡文案，或原子统一原声 Card 的版式；
    * 不允许在这里修改 Script、语音文件、新增/拆分 Card 或猜测段级时间范围。
@@ -8141,7 +8205,7 @@ export class EditingApplication {
           impact.dirtyRanges.push({ startFrame: card.startFrame, endFrame: card.endFrame, reason: "全片字幕样式更新" });
         }
         impact.changed.push("timeline.captionFormat");
-        impact.recomputed.push("普通字幕统一样式与固定行数占位");
+        impact.recomputed.push("普通字幕统一样式与实际行数背景");
       });
       this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
       return state;
@@ -8197,6 +8261,17 @@ export class EditingApplication {
       if (input.sourceTextReview !== undefined && (input.action !== "update" || input.text === undefined
         || caption.sourceKind !== "source_audio" || !caption.sourceAlignmentId)) {
         throw new DomainError("显示纠错依据只能与同源对齐字幕的新文案一起提交", "CAPTION_SOURCE_TEXT_REVIEW_INVALID");
+      }
+      if (caption.sourceKind === "user_srt") {
+        const sourceText = caption.sourceText!;
+        caption.text = input.action === "reset" ? sourceText : input.text === undefined ? caption.text : normalizeCaptionText(input.text);
+        caption.textMode = caption.text === sourceText ? "derived" : "manual";
+        if (input.format !== undefined) caption.format = applyCaptionFormat(caption.format, input.format);
+        if (input.action === "reset" || input.emphasis === null) caption.emphasis = undefined;
+        else if (input.emphasis !== undefined) caption.emphasis = normalizeCaptionEmphasis(input.emphasis, caption.text);
+        impact.changed.push(caption.id);
+        impact.dirtyRanges.push({ startFrame: caption.startFrame, endFrame: caption.endFrame, reason: "用户原 SRT 显示编辑，原时间和原文保留" });
+        return;
       }
       if (caption.sourceKind === "source_audio") {
         assertCurrentSourceAudioCaption(snapshot, caption);
@@ -8284,6 +8359,58 @@ export class EditingApplication {
     return state;
   }
 
+  /** 已有旁白沿 Dialogue/narration 播放，不重合成、不伪造 SpeechAsset 或对齐结果。 */
+  placeNarration(input: {
+    projectId: Id;
+    baseRevision: number;
+    assetId: Id;
+    startFrame: number;
+    sourceStartFrame?: number;
+    sourceEndFrame?: number;
+    timelineItemId?: Id;
+    gainDb?: number;
+  }): ProjectState {
+    const state = this.repository.commit(input.projectId, input.baseRevision, "放置已有旁白", (snapshot, impact) => {
+      const asset = requireReadyAudioAsset(snapshot, input.assetId);
+      const track = trackByName(snapshot, "Dialogue");
+      if (track.locked) throw new DomainError("Dialogue 轨已锁定", "TRACK_LOCKED");
+      const existing = input.timelineItemId ? snapshot.timeline.items.find(item => item.id === input.timelineItemId) : undefined;
+      if (input.timelineItemId && (!existing || existing.trackId !== track.id)) throw new DomainError("待更新对象必须是已有 Dialogue 片段", "NARRATION_ITEM_NOT_FOUND");
+      if (existing && snapshot.speechAsset && (existing.assetId === snapshot.speechAsset.assetId
+        || snapshot.speechAsset.dialogueProcessing?.variants.some(variant => variant.assetId === existing.assetId))) {
+        throw new DomainError("合成旁白请沿 SpeechAsset 管线更新，不能改写其源范围", "NARRATION_SYNTHESIZED_ITEM");
+      }
+      const duration = millisecondsToFrames(asset.metadata!.durationMs, snapshot.timeline.fps);
+      if (!Number.isSafeInteger(duration) || duration <= 0) throw new DomainError("旁白源时长无效", "INVALID_AUDIO_SOURCE_RANGE");
+      const sameAsset = existing?.assetId === asset.id;
+      const sourceStartFrame = input.sourceStartFrame ?? (sameAsset ? existing!.sourceStartFrame : 0);
+      const sourceEndFrame = input.sourceEndFrame ?? (sameAsset ? existing!.sourceEndFrame : duration);
+      requireAudioFrame(sourceStartFrame, "旁白源起点", 0, duration - 1);
+      requireAudioFrame(sourceEndFrame, "旁白源终点", 1, duration);
+      if (sourceEndFrame <= sourceStartFrame) throw new DomainError("旁白源范围必须至少包含一帧", "INVALID_AUDIO_SOURCE_RANGE");
+      const programEndFrame = resolveAudioProgramEndFrame(snapshot);
+      if (programEndFrame <= 0) throw new DomainError("必须先建立可播放画面，才能放置已有旁白", "AUDIO_PROGRAM_NOT_READY");
+      requireAudioFrame(input.startFrame, "旁白目标起点", 0, programEndFrame - 1);
+      // 源与目标始终等长，避免为了塞进画面而隐式裁切、循环或变速。
+      const endFrame = input.startFrame + sourceEndFrame - sourceStartFrame;
+      if (endFrame > programEndFrame) throw new DomainError("旁白超出可播放主线，请明确裁剪源范围或补充画面", "NARRATION_OUT_OF_PROGRAM");
+      if (snapshot.timeline.items.some(item => item.id !== existing?.id && item.trackId === track.id && !item.disabled
+        && item.startFrame < endFrame && item.endFrame > input.startFrame)) throw new DomainError("旁白与现有 Dialogue 片段重叠，请更新原片段或选择空闲范围", "TRACK_OVERLAP");
+      const gainDb = input.gainDb ?? existing?.gainDb ?? 0;
+      if (!Number.isFinite(gainDb) || gainDb < -48 || gainDb > 12) throw new DomainError("声音增益必须在 -48 到 12 dB 之间", "INVALID_AUDIO_GAIN");
+      const previousRange = existing ? { startFrame: existing.startFrame, endFrame: existing.endFrame, reason: "清理旁白原范围" } : undefined;
+      const item = existing ?? createTimelineItem({ trackId: track.id, assetId: asset.id, startFrame: input.startFrame, endFrame, sourceStartFrame, sourceEndFrame, gainDb });
+      Object.assign(item, { assetId: asset.id, startFrame: input.startFrame, endFrame, sourceStartFrame, sourceEndFrame, gainDb, disabled: false });
+      if (!existing) snapshot.timeline.items.push(item);
+      impact.changed.push(item.id, asset.id);
+      if (previousRange) impact.dirtyRanges.push(previousRange);
+      impact.dirtyRanges.push({ startFrame: item.startFrame, endFrame: item.endFrame, reason: "已有旁白放置" });
+      impact.recomputed.push("Dialogue 原速源范围与 narration 混音");
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
   /**
    * BGM / SFX 的最小包装入口：用 AudioCue 记录编辑意图，再同步写入专用声音轨。
    * 不在这里生成音乐、猜测 onset 或实现通用 DAW；所有精确事件均由调用方显式给出。
@@ -8329,11 +8456,8 @@ export class EditingApplication {
         // 缺省或源范围改变后只保存待审事实，不把检测候选自动升级为听觉确认。
         return previous ?? { status: "inconclusive", note: "尚未记录当前所选源范围起音的实际复听依据，仅供待审草稿。", recordedAt: now() };
       };
-      const managedAudioItemIds = new Set((snapshot.audioCues ?? []).map((cue) => cue.timelineItemId));
-      // 声音包装不能悄悄拉长成片；目标范围始终以当前非 AudioCue 主线为准。
-      const programEndFrame = snapshot.timeline.items
-        .filter((item) => !item.disabled && !managedAudioItemIds.has(item.id))
-        .reduce((maximum, item) => Math.max(maximum, item.endFrame), 0);
+      // 复用渲染可达性，独立 ManagedMotion 与普通画面使用同一范围依据。
+      const programEndFrame = resolveAudioProgramEndFrame(snapshot);
 
       const validateGain = (value: number): number => {
         if (!Number.isFinite(value) || value < -48 || value > 12) {

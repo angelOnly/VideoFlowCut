@@ -64,7 +64,7 @@ const normalizeSourceCaptionComparisonText = (value: string) => value.normalize(
  */
 function captionLayoutInput(snapshot: ProjectSnapshot, caption: ProjectSnapshot["timeline"]["captions"][number]): CaptionLayoutInput {
   const unified = Boolean(snapshot.timeline.captionFormat);
-  return { text: caption.text, compositionWidth: snapshot.timeline.width, compositionHeight: snapshot.timeline.height, format: resolveCaptionFormat(snapshot.timeline, caption), fixedLineCount: unified,
+  return { text: caption.text, compositionWidth: snapshot.timeline.width, compositionHeight: snapshot.timeline.height, format: resolveCaptionFormat(snapshot.timeline, caption),
     emphasisScale: unified ? undefined : caption.emphasis?.scale, emphasisFontWeight: unified ? undefined : caption.emphasis?.fontWeight };
 }
 
@@ -244,6 +244,17 @@ function evaluateSpeechAlignmentQuality(snapshot: ProjectSnapshot, issues: Quali
  * Provider 的正式 `segments` 是默认视觉字幕：一个 segment 对应一张 CaptionCard/一屏，
  * token 只保留用于验证同源文字和时间。编辑覆盖仍可重新分屏，但不能绕开这层事实证据。
  */
+function currentSrtCoversRange(snapshot: ProjectSnapshot, range: { startFrame: number; endFrame: number }): boolean {
+  const { timeline } = snapshot;
+  return (timeline.captionImports ?? []).some(record => {
+    const cards = timeline.captions.filter(card => card.sourceKind === "user_srt" && card.srtSource?.importId === record.id);
+    // 必须仍是完整原文件批次，不能用已被局部替换的一张残卡证明整段字幕就绪。
+    return cards.length > 0 && record.captionIds.every(id => cards.some(card => card.id === id))
+      && Math.round(record.targetRange.startFrame * timeline.fps / record.fps) <= range.startFrame
+      && Math.round(record.targetRange.endFrame * timeline.fps / record.fps) >= range.endFrame;
+  });
+}
+
 function evaluateSourceCaptionProgramQuality(snapshot: ProjectSnapshot, issues: QualityIssue[]): Set<string> {
   const sourceIssueStart = issues.length;
   const verifiedAlignmentIds = new Set<string>();
@@ -396,7 +407,8 @@ function evaluateSourceCaptionProgramQuality(snapshot: ProjectSnapshot, issues: 
     if (mappingValid && evidenceValid && segmentsValid) verifiedAlignmentIds.add(alignment.id);
 
     const matchingPrograms = programsByAlignmentId.get(alignment.id) ?? [];
-    if (alignment.status === "ready" && matchingPrograms.length === 0) {
+    if (alignment.status === "ready" && matchingPrograms.length === 0
+      && !currentSrtCoversRange(snapshot, { startFrame: alignment.timelineStartFrame, endFrame: alignment.timelineEndFrame })) {
       issues.push(issue({ level: "blocking", code: "SOURCE_CAPTION_PROGRAM_REQUIRED", message: "原声对齐已完成，但没有唯一的自动 Provider Program 或编辑覆盖 Program；不能把旧粗字幕当作最终字幕。", objectId: alignment.id }));
     } else if (matchingPrograms.length > 1) {
       issues.push(issue({ level: "blocking", code: "SOURCE_CAPTION_PROGRAM_AMBIGUOUS", message: "同一份原声对齐绑定了多个字幕 Program；系统不会猜测当前分屏。", objectId: alignment.id }));
@@ -1694,7 +1706,8 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     })
     .map((item) => item.id);
   const sourceAudioCaptionReady = sourceAudioActorItemIds.length > 0
-    && sourceAudioActorItemIds.every((itemId) => sourceCaptionItemIds.has(itemId));
+    && sourceAudioActorItemIds.every((itemId) => sourceCaptionItemIds.has(itemId)
+      || currentSrtCoversRange(snapshot, timeline.items.find(item => item.id === itemId)!));
 
   if (!snapshot.speechAsset && snapshot.speechSegments.length > 0) {
     issues.push(issue({ level: "warning", code: "SPEECH_PENDING", message: "已有 SpeechSegment，但尚未组装 SpeechAsset；不可将文字稿当作已生成旁白。" }));
@@ -1747,11 +1760,16 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     if (dialogueItems.length !== 1) {
       issues.push(issue({ level: "blocking", code: "SPEECH_DIALOGUE_ITEM_MISSING", message: "SpeechAsset 没有以唯一 Item 写入 Dialogue 轨，最终导出不会可靠包含旁白。", objectId: snapshot.speechAsset.id }));
     }
-    if (!isVlogProfile && timeline.captions.some((caption) => caption.sourceKind !== "source_audio" && caption.precision !== snapshot.speechAsset?.timing.precision)) {
+    if (!isVlogProfile && timeline.captions.some((caption) => caption.sourceKind !== "source_audio" && caption.sourceKind !== "user_srt" && caption.precision !== snapshot.speechAsset?.timing.precision)) {
       issues.push(issue({ level: "warning", code: "CAPTION_SPEECH_MISMATCH", message: "字幕时序精度与当前 SpeechAsset 不一致，需要重新检查字幕。", objectId: snapshot.speechAsset.id }));
     }
     const captionedSegmentIds = new Set(timeline.captions.map((caption) => caption.speechSegmentId));
-    const missingCaptionSegment = snapshot.speechSegments.find((segment) => !captionedSegmentIds.has(segment.id));
+    const missingCaptionSegment = snapshot.speechSegments.find((segment) => {
+      if (captionedSegmentIds.has(segment.id)) return false;
+      const timing = snapshot.speechAsset?.timing.segments.find(entry => entry.speechSegmentId === segment.id);
+      // 用户 SRT 按自身段落分卡，不制造 SpeechSegment 外键；目标范围只声明本次字幕负责的区间。
+      return !timing || !currentSrtCoversRange(snapshot, timing);
+    });
     // 自然配音段不是强制一屏；当前完整 Dialogue 的有效 Program 可独立承担字幕。
     const speechCaptionReady = dialogueItems.length === 1 && sourceCaptionItemIds.has(dialogueItems[0]!.id);
     if (!isVlogProfile && missingCaptionSegment && !speechCaptionReady) {

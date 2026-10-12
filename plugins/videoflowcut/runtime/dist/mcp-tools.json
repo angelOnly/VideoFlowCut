@@ -2779,9 +2779,89 @@
       }
     },
     {
+      "name": "manage_captions",
+      "title": "导入用户原 SRT 字幕",
+      "description": "import_srt 沿原生字幕管线原子导入用户 SRT 正文。必须提供真实来源名称、时间线半开目标范围、写入策略和幂等键。局部 SRT 默认 offset_ms=0，不根据目标起点二次平移；只使用显式偏移。保留原文和毫秒，以项目帧率最近帧量化，单边误差最多半帧；空范围、越界、重叠或损坏块全部拒绝，不部分写入。replace_range 替换范围内整卡，涉及原声 Program 须覆盖整组。subtitle_exact 只表示原文件段时间，不冒称 ASR 或词级对齐；统一样式仍由 edit_captions 管理。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "action": {
+            "type": "string",
+            "const": "import_srt"
+          },
+          "srt_text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000000
+          },
+          "source_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "offset_ms": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "target_range": {
+            "type": "object",
+            "properties": {
+              "start_frame": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "end_frame": {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "start_frame",
+              "end_frame"
+            ],
+            "additionalProperties": false
+          },
+          "write_policy": {
+            "type": "string",
+            "enum": [
+              "reject_conflicts",
+              "replace_range"
+            ]
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "action",
+          "srt_text",
+          "source_name",
+          "target_range",
+          "write_policy",
+          "idempotency_key"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "edit_captions",
       "title": "编辑普通字幕与全片样式",
-      "description": "set_global_format 只传 format，统一全片普通字幕并由后续新卡继承。font_id 使用 read_motion_capabilities 的登记字体，max_lines 为固定行数占位。统一后 update/reset 只改正文、纠错和显示范围，禁止单卡样式和强调。未切换的旧项目保留历史局部编辑与 bulk_source_format；不改声音和真实时间。",
+      "description": "set_global_format 只传 format，统一全片普通字幕并由后续新卡继承。font_id 使用 read_motion_capabilities 的登记字体，max_lines 为行数上限，底板随实际行数向上增高、底部固定。统一后 update/reset 只改正文、纠错和显示范围，禁止单卡样式和强调。未切换的旧项目保留历史局部编辑与 bulk_source_format；不改声音和真实时间。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -3188,9 +3268,61 @@
       }
     },
     {
+      "name": "place_narration",
+      "title": "放置已有旁白原音",
+      "description": "把已登记的原音频放到 Dialogue 轨，按真实源帧范围原速播放，不重新合成、循环或拉伸。目标终点由源长度计算且不能超出可播放视觉主线；有效已放置 ManagedMotion 可作为主线，空 Scene、失效 Cue 和声音自身不能。返回新 Revision；结果未知先读回原项目与 Item，不能重复创建。修改已有原音时传 timeline_item_id，不覆盖合成语音 Item。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "asset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "start_frame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "source_start_frame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "source_end_frame": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "timeline_item_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "gain_db": {
+            "type": "number",
+            "minimum": -48,
+            "maximum": 12
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "asset_id",
+          "start_frame"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "manage_audio",
       "title": "管理 BGM 与 SFX",
-      "description": "将已就绪的本地音频作为 BGM 或 SFX 写入专用轨。BGM 支持有限淡入淡出、循环和 Dialogue Duck。SFX 的 event_frame 是计划同步的事件，onset_offset_frames 是所选源范围内的偏移；检测候选或尚未复听时用 onset_review.status=inconclusive（缺省也是待审）并说明依据，允许草稿混合但阻挡交付。只有实际复听所选原文件范围后才能写 confirmed，仍不代表成片混合声画通过。",
+      "description": "将已就绪的本地音频作为 BGM 或 SFX 写入专用轨。BGM 用 start_frame/end_frame 指定主线内范围，支持有限淡入淡出、循环和 Dialogue Duck；SFX 用 event_frame/onset_offset_frames 定位，不能用 BGM 范围参数代替。空 Scene、未放置或失效作品不构成主线，声音不能延长视觉；已有旁白用 place_narration。SFX 的 event_frame 是计划同步的事件，onset_offset_frames 是所选源范围内的偏移；检测候选或尚未复听时用 onset_review.status=inconclusive（缺省也是待审）并说明依据，允许草稿混合但阻挡交付。只有实际复听所选原文件范围后才能写 confirmed，仍不代表成片混合声画通过。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7137,7 +7269,7 @@
     {
       "name": "search_motion_mechanisms",
       "title": "查找运动机制",
-      "description": "用于本场动画制作：在主要源码之前，依据实际材料与演出目标只读检索120库运动机制；普通研究、写稿、取材与初步分镜不主动调用。按自然语言、当前状态/保持条件、相似机制或前后接续召回，stages 分阶段查找。selection 恢复网页清单的顺序与采用项。互斥方式：stages/similar_to/before/after/ids/selection。全文词法与任务级向量经现有 Job 混合召回，首次查询返回词法结果与语义 Job，track_job 完成后以相同输入读回；失败如实降级，不自动重放。返回词表、来源指纹、比较页和原文入口；入围后读取指令与分镜再适配对象和连接，命中不证明连贯或观感。",
+      "description": "用于本场视觉与动画共同设计：依据实际材料与场面目标检索120库运动机制，共用已有候选、正文、分镜与必要原片；缺资料继续读取，真实作用不足才补查。普通事实研究和取材不必调用。按自然语言、当前状态/保持条件、相似机制或前后接续召回，stages 分阶段查找。selection 恢复网页清单的顺序与采用项。互斥方式：stages/similar_to/before/after/ids/selection。全文词法与任务级向量经现有 Job 混合召回，首次查询返回词法结果与语义 Job，track_job 完成后以相同输入读回；失败如实降级，不自动重放。返回词表、来源指纹、比较页和原文入口；入围后读取指令与分镜再适配对象和连接，命中不证明连贯或观感。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7350,7 +7482,7 @@
     {
       "name": "read_motion_mechanism",
       "title": "读取运动指令和分镜",
-      "description": "动画制作选型后、主要源码编写前，核读入围机制的完整 Markdown 与 JPEG 分镜，供当前作者适配真实对象和连接；局部修订可沿用未变资料。必要时 part=overview 读取原片总览与64宫格。传查询的 source_sha256 拒绝过期采用。资料是运动描述，不是现成源码；不会播放、生成或修改视频。",
+      "description": "视觉与动画共同设计时，已知编号直接核读完整 Markdown 与 JPEG 分镜，不要求先重搜，供当前作者适配真实对象和连接；局部修订可沿用未变资料。必要时 part=overview 读取原片总览与64宫格。传查询的 source_sha256 拒绝过期采用。资料是运动描述，不是现成源码；不会播放、生成或修改视频。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7391,7 +7523,7 @@
     {
       "name": "analyze_motion_reference",
       "title": "读取原片运动范围",
-      "description": "仅在速度、交叠或观察位置影响机制选择时，按库编号和原片毫秒范围提交异步理解，最多15秒。track_job 读取真实描述、来源与采样边界；不修改机制原文或项目 Revision，不创建素材审核。失败任务沿 retry_media_job 显式恢复。",
+      "description": "需要补充实际构图、美术与运动过程的观察时，按库编号和原片毫秒范围提交异步理解，最多15秒。track_job 读取真实描述、来源与采样边界；不修改机制原文或项目 Revision，不创建素材审核。失败任务沿 retry_media_job 显式恢复。",
       "inputSchema": {
         "type": "object",
         "properties": {

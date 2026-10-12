@@ -234,7 +234,7 @@ export type EffectType =
  * token 可以是汉字、词或子词，不能把它误读成适用于逐词动画的 `word_exact`。
  * `sentence_exact` 可表示 Provider 直接给出、但没有可验证 token 细节的原声字幕段时间。
  */
-export type TimingPrecision = "segment_exact" | "sentence_exact" | "chunk_coarse" | "source_token_anchored" | "word_exact" | "unavailable";
+export type TimingPrecision = "segment_exact" | "sentence_exact" | "chunk_coarse" | "source_token_anchored" | "word_exact" | "subtitle_exact" | "unavailable";
 
 export type ExpressionDimension = "narration" | "visual" | "motion" | "background" | "sound";
 
@@ -1304,8 +1304,8 @@ export interface Cutaway {
   updatedAt: string;
 }
 
-/** speech_asset 是语音段派生；source_audio 是真实音频对齐派生，音频也可来自已合成旁白。 */
-export type CaptionSourceKind = "speech_asset" | "source_audio";
+/** speech_asset 是语音段派生；source_audio 是真实音频对齐派生；user_srt 忠实保留用户原字幕，不声明声音对齐。 */
+export type CaptionSourceKind = "speech_asset" | "source_audio" | "user_srt";
 
 /** FunASR / 强制对齐 Provider 同源返回的最小 token 时间证据，不允许由应用层估算。 */
 export interface SourceAudioAlignmentToken {
@@ -1400,6 +1400,8 @@ export interface CaptionCard {
   speechSegmentId?: Id;
   /** 缺省值兼容历史 SpeechAsset 字幕。 */
   sourceKind?: CaptionSourceKind;
+  /** 用户原 SRT 的原始段时间；subtitle_exact 只表示忠实于文件，不表示语音或词级对齐。 */
+  srtSource?: { importId: Id; cueIndex: number; startMs: number; endMs: number };
   /** source_audio 字幕必须可追溯到原始 A-roll 与它在当前 Timeline 的一次使用。 */
   sourceAssetId?: Id;
   sourceTimelineItemId?: Id;
@@ -1483,6 +1485,8 @@ export interface TimelineDocument {
   tracks: TimelineTrack[];
   items: TimelineItem[];
   captions: CaptionCard[];
+  /** 与卡片同一 Revision 原子保存；替换卡片仍保留导入审计与幂等记录。 */
+  captionImports?: import("./caption-srt.js").CaptionSrtImport[];
 }
 
 export interface Marker {

@@ -1,0 +1,25 @@
+import React from 'react';
+import {AbsoluteFill,useCurrentFrame} from 'remotion';
+export default function Motion(props){
+ const f=useCurrentFrame(),c=(x)=>Math.max(0,Math.min(1,x)),e=(x)=>1-Math.pow(1-c(x),3);
+ const split=e((f-36)/34), move=e((f-80)/56), result=e((f-108)/24), title=props.fonts.title,body=props.fonts.body;
+ const people=[1,2,3,4,5,6];
+ return <AbsoluteFill style={{backgroundColor:'#f3f0fb',color:'#33295c',fontFamily:body.family,fontWeight:body.weight}}>
+   <div style={{position:'absolute',left:46,top:28,fontFamily:title.family,fontWeight:title.weight,fontSize:42}}>多开一个窗口，队伍会怎样？</div>
+   <div style={{position:'absolute',left:48,top:91,fontSize:21,color:'#675f7b'}}>假设 6 人同时到达 · 每人服务 1 分钟 · 无新到达</div>
+   <div style={{position:'absolute',left:68,top:271,width:644,height:4,background:'#d5cceb',transform:'translateY('+(-65*split)+'px)'}}/>
+   <div style={{position:'absolute',left:68,top:336,width:644*split,height:4,background:'#d5cceb'}}/>
+   {[0,1].map(k=><div key={k} style={{position:'absolute',left:737,top:k===0?210-65*split:310,opacity:k===0?1:split,transform:'translateX('+(k===1?(1-split)*170:0)+'px)',width:157,height:104,background:k===0?'#7463ab':'#4e368c',borderRadius:'18px 18px 5px 5px',boxShadow:'0 10px 0 #33295c20',color:'white',textAlign:'center',boxSizing:'border-box',paddingTop:12}}><div style={{fontFamily:title.family,fontWeight:title.weight,fontSize:24}}>{k===0?'窗口 1':'窗口 2'}</div><div style={{margin:'12px auto',width:119,height:12,background:'#f3f0fb',borderRadius:4}}/></div>)}
+   {people.map(id=>{
+     const row=(id-1)%2,group=Math.floor((id-1)/2),initialX=642-(id-1)*104;
+     const splitX=642-group*137, currentX=splitX+(708-splitX)*e((f-80-group*18)/22);
+     const x=initialX+(splitX-initialX)*split+(currentX-splitX)*move;
+     const y=253+(row===0?-65:65)*split;
+     const done=group===2?0:e((f-105-group*18)/10); const color=id===6?'#d85c8b':'#8779b3';
+     return <div key={id} style={{position:'absolute',left:x,top:y-41,width:54,height:76,opacity:1-done,transform:'scale('+(1-0.12*done)+')',color:color}}><div style={{position:'absolute',left:15,top:0,width:24,height:24,borderRadius:12,background:color}}/><div style={{position:'absolute',left:3,top:30,width:48,height:43,borderRadius:'18px 18px 8px 8px',background:color}}/><div style={{position:'absolute',left:0,top:37,width:54,textAlign:'center',color:'white',fontFamily:title.family,fontWeight:title.weight,fontSize:23}}>{id}</div></div>
+   })}
+   <div style={{position:'absolute',left:52,top:420,fontSize:27}}>最后一人开始服务前的等待</div>
+   <div style={{position:'absolute',left:52,top:458,fontFamily:title.family,fontWeight:title.weight,fontSize:49,lineHeight:1,color:'#75648d'}}>5 分钟<span style={{color:'#b73b70',display:'inline-block',marginLeft:23,opacity:result,transform:'translateX('+(1-result)*30+'px)'}}>→ 2 分钟</span></div>
+   <div style={{position:'absolute',left:757,top:428,fontSize:22,color:'#675f7b',opacity:result}}>两人同时服务</div>
+ </AbsoluteFill>
+}

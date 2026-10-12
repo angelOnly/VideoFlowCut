@@ -1,0 +1,211 @@
+{
+  "request": "用已有客舱视频做一段关于飞机客舱空间的短视频。视觉简洁一些。",
+  "explicitCreativePreferences": {
+    "dimensions": {
+      "visual": "简洁"
+    }
+  },
+  "design": "固定同一源视频0至5秒与纵深观察；接受测试输入“简洁”，保持全幅实拍，不横移成窗口，用一条清楚的主读承接座椅重复。",
+  "projectId": "project_608ee6bc-250d-4b0c-acdf-4755e384983f",
+  "revision": 4,
+  "job": {
+    "id": "job_f2d860c4-8d2d-403b-8ede-d0c9fcc5a927",
+    "projectId": "project_608ee6bc-250d-4b0c-acdf-4755e384983f",
+    "kind": "motion_generation",
+    "status": "succeeded",
+    "payload": {
+      "work": {
+        "name": "客舱空间-简洁测试",
+        "source": "import React from 'react';\nimport {AbsoluteFill,useCurrentFrame} from 'remotion';\nimport {TimelineVideo} from '@videoflowcut/motion';\nexport default function Motion(props){\n const f=useCurrentFrame(),p=Math.max(0,Math.min(1,(f-36)/24)),enter=1-Math.pow(1-p,3),font=props.fonts.title;\n return <AbsoluteFill style={{backgroundColor:'#103e43'}}>\n   <TimelineVideo slot=\"cabin\" fit=\"cover\" style={{width:'100%',height:'100%'}}/>\n   <div style={{position:'absolute',inset:0,background:'linear-gradient(0deg,rgba(4,27,29,0.88),transparent 40%)',opacity:enter}}/>\n   <div style={{position:'absolute',left:42,bottom:32,fontFamily:font.family,fontWeight:font.weight,fontSize:43,letterSpacing:1,color:'#fff',opacity:enter,transform:'translateY('+(1-enter)*18+'px)'}}>座椅的重复，让纵深可见</div>\n </AbsoluteFill>\n}\n",
+        "props": {},
+        "imageBindings": {},
+        "width": 960,
+        "height": 540,
+        "fps": 30,
+        "durationInFrames": 150,
+        "creativeBrief": "固定同一源视频0至5秒与纵深观察；接受测试输入“简洁”，保持全幅实拍，不横移成窗口，用一条清楚的主读承接座椅重复。",
+        "videoBindings": {
+          "cabin": {
+            "assetId": "asset_6da52ea0-8d6f-47d6-a248-69ef3d528be4",
+            "sourceStartMs": 0,
+            "sourceEndMs": 5000,
+            "startFrame": 0,
+            "endFrame": 150
+          }
+        },
+        "fontBindings": {
+          "title": "noto-sans-sc-bold",
+          "body": "noto-sans-sc-regular"
+        }
+      },
+      "version": "f08b06ceea4c3dde31692cf51f17d5f68606b63d33d01478d293727c131af663",
+      "engineVersion": "managed-motion-13",
+      "requestedRevision": 3,
+      "boundImages": [],
+      "boundVideos": [
+        {
+          "slot": "cabin",
+          "assetId": "asset_6da52ea0-8d6f-47d6-a248-69ef3d528be4",
+          "managedPath": "assets/cabin-original.mp4",
+          "hash": "3e6de34dbc5ee09f246dfd7aeb905972bed17ed50b10530e119aea2a6575d27b",
+          "sourceStartMs": 0,
+          "sourceEndMs": 5000,
+          "startFrame": 0,
+          "endFrame": 150
+        }
+      ],
+      "boundFonts": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ]
+    },
+    "result": {
+      "assetId": "asset_979187c2-573c-4364-8195-76d4f69f8bd4",
+      "version": "f08b06ceea4c3dde31692cf51f17d5f68606b63d33d01478d293727c131af663",
+      "videoDecodes": {
+        "cabin": {
+          "width": 960,
+          "height": 540,
+          "startFrame": 0,
+          "endFrame": 150,
+          "frameCount": 150,
+          "geometry": {
+            "streamIndex": 0,
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "sar": 1,
+            "rotation": 0,
+            "displayWidth": 1920,
+            "displayHeight": 1080,
+            "durationMs": 12880,
+            "startTimeSeconds": 0
+          }
+        }
+      },
+      "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
+      "workReviewRequired": true,
+      "sourcePath": "assets/derived/motion/job_f2d860c4-8d2d-403b-8ede-d0c9fcc5a927/f08b06ceea4c3dde31692cf51f17d5f68606b63d33d01478d293727c131af663/source.json",
+      "previewPath": "assets/derived/motion/job_f2d860c4-8d2d-403b-8ede-d0c9fcc5a927/f08b06ceea4c3dde31692cf51f17d5f68606b63d33d01478d293727c131af663/preview.mp4",
+      "motionDiagnostics": {
+        "status": "exact",
+        "maxAllowedChannelDelta": 2,
+        "sampledFrames": [
+          0,
+          75,
+          149
+        ],
+        "differences": [],
+        "reportPath": "assets/derived/motion/job_f2d860c4-8d2d-403b-8ede-d0c9fcc5a927/f08b06ceea4c3dde31692cf51f17d5f68606b63d33d01478d293727c131af663/diagnostics/report.json"
+      }
+    },
+    "idempotencyKey": "motion:cabin-simple-8949edd1946fe957ac85650d52ea5453f9d5baee78797e7585acf99e4feeb798",
+    "attempt": 0,
+    "createdAt": "2026-10-12T14:38:24.033Z",
+    "updatedAt": "2026-10-12T14:39:23.206Z"
+  },
+  "asset": {
+    "id": "asset_979187c2-573c-4364-8195-76d4f69f8bd4",
+    "name": "客舱空间-简洁测试",
+    "kind": "video",
+    "status": "ready",
+    "managedPath": "assets/derived/motion/job_f2d860c4-8d2d-403b-8ede-d0c9fcc5a927/f08b06ceea4c3dde31692cf51f17d5f68606b63d33d01478d293727c131af663/preview.mp4",
+    "sourceHash": "6bf7d25d1582f3be4769fa3778cdae2dd7cd6546597af47fe1e06a64c43f5b94",
+    "role": "generated_visual",
+    "tags": [
+      "managed_motion",
+      "work_review_required"
+    ],
+    "createdAt": "2026-10-12T14:39:23.203Z",
+    "metadata": {
+      "durationMs": 5000,
+      "width": 960,
+      "height": 540,
+      "fps": 30,
+      "hasAudio": false,
+      "videoCodec": "h264",
+      "pixelFormat": "yuv420p",
+      "hasAlpha": false,
+      "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+    },
+    "provenance": {
+      "source": "generated",
+      "provider": "managed_remotion",
+      "generationJobId": "job_f2d860c4-8d2d-403b-8ede-d0c9fcc5a927",
+      "acquiredAt": "2026-10-12T14:39:23.203Z"
+    },
+    "motion": {
+      "jobId": "job_f2d860c4-8d2d-403b-8ede-d0c9fcc5a927",
+      "version": "f08b06ceea4c3dde31692cf51f17d5f68606b63d33d01478d293727c131af663",
+      "engineVersion": "managed-motion-13",
+      "sourceAssetIds": [
+        "asset_6da52ea0-8d6f-47d6-a248-69ef3d528be4"
+      ],
+      "videoSources": [
+        {
+          "slot": "cabin",
+          "assetId": "asset_6da52ea0-8d6f-47d6-a248-69ef3d528be4",
+          "sourceHash": "3e6de34dbc5ee09f246dfd7aeb905972bed17ed50b10530e119aea2a6575d27b",
+          "sourceStartMs": 0,
+          "sourceEndMs": 5000,
+          "startFrame": 0,
+          "endFrame": 150
+        }
+      ],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "sourceHash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "sourceHash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourcePath": "assets/derived/motion/job_f2d860c4-8d2d-403b-8ede-d0c9fcc5a927/f08b06ceea4c3dde31692cf51f17d5f68606b63d33d01478d293727c131af663/source.json",
+      "framesDirectory": "assets/derived/motion/job_f2d860c4-8d2d-403b-8ede-d0c9fcc5a927/f08b06ceea4c3dde31692cf51f17d5f68606b63d33d01478d293727c131af663/frames",
+      "frameCount": 150,
+      "fps": 30,
+      "width": 960,
+      "height": 540,
+      "creativeBrief": "固定同一源视频0至5秒与纵深观察；接受测试输入“简洁”，保持全幅实拍，不横移成窗口，用一条清楚的主读承接座椅重复。"
+    }
+  },
+  "metadata": {
+    "durationMs": 5000,
+    "width": 960,
+    "height": 540,
+    "fps": 30,
+    "hasAudio": false,
+    "videoCodec": "h264",
+    "pixelFormat": "yuv420p",
+    "hasAlpha": false,
+    "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+  },
+  "bytes": 1102764,
+  "limitations": [
+    "开发评价作者沿已读技能兼任导演视觉与实现，并非干净宿主上下文",
+    "使用源码正式Job代码路径与独立workspace，未连接生产Runtime和ComfyUI",
+    "无旁白和普通字幕，不是完整声画交付",
+    "仅在本地读取词法机制候选，没有运行语义向量服务"
+  ]
+}

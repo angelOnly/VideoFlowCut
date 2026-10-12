@@ -1,6 +1,7 @@
 import type { FrameRateChangeReport, ProjectSnapshot } from "@videocut/contracts";
 import { createHash } from "node:crypto";
 import { convertFrameRate, motionDurationAtFps, projectFrameRateSchema, sourceAudioTimeOrigin } from "@videocut/contracts";
+import { validCaptionDisplay } from "../../contracts/src/caption-presentation.js";
 
 /** 显式区分项目帧、源毫秒和固定作品帧，不按属性名递归改写快照。 */
 export function projectFrameRateChange(previous: ProjectSnapshot, fps: number, revision = 0): { snapshot: ProjectSnapshot; report: FrameRateChangeReport } {
@@ -113,9 +114,17 @@ export function projectFrameRateChange(previous: ProjectSnapshot, fps: number, r
     if (item && alignment.status === "ready") Object.assign(alignment, { sourceStartFrame: item.sourceStartFrame, sourceEndFrame: item.sourceEndFrame, timelineStartFrame: item.startFrame, timelineEndFrame: item.endFrame });
   }
   for (const caption of snapshot.timeline.captions) {
-    range(caption, caption.id);
+    const before = previous.timeline.captions.find(entry => entry.id === caption.id)!;
+    const srtRecord = caption.sourceKind === "user_srt" && caption.srtSource
+      ? snapshot.timeline.captionImports?.find(entry => entry.id === caption.srtSource!.importId) : undefined;
+    if (!srtRecord) range(caption, caption.id);
+    else affected.add(caption.id);
     fields(caption, ["sourceStartFrame", "sourceEndFrame"]);
-    for (const display of caption.display?.ranges ?? []) range(display, caption.id);
+    if (srtRecord && caption.srtSource) {
+      // 从不可变的原毫秒重新量化，避免旧帧数二次取整导致时间漂移。
+      caption.startFrame = Math.round((caption.srtSource.startMs + srtRecord.offsetMs) * fps / 1000);
+      caption.endFrame = Math.round((caption.srtSource.endMs + srtRecord.offsetMs) * fps / 1000);
+    }
     const alignment = snapshot.sourceAudioAlignments.find(entry => entry.id === caption.sourceAlignmentId);
     const item = snapshot.timeline.items.find(entry => entry.id === caption.sourceTimelineItemId);
     if (alignment && item) {
@@ -135,6 +144,17 @@ export function projectFrameRateChange(previous: ProjectSnapshot, fps: number, r
     if (item && caption.sourceStartFrame !== undefined && caption.sourceEndFrame !== undefined) {
       caption.startFrame = item.startFrame + caption.sourceStartFrame - item.sourceStartFrame;
       caption.endFrame = item.startFrame + caption.sourceEndFrame - item.sourceStartFrame;
+    }
+    rememberError(before.startFrame, caption.startFrame); rememberError(before.endFrame, caption.endFrame);
+    for (const [index, display] of (caption.display?.ranges ?? []).entries()) {
+      const old = before.display!.ranges![index]!;
+      // 跟随整卡端点的显隐必须锚定最终毫秒投影；内部人为切点仍按原时间换算。
+      display.startFrame = old.startFrame === before.startFrame ? caption.startFrame : convertFrameRate(old.startFrame, fromFps, fps);
+      display.endFrame = old.endFrame === before.endFrame ? caption.endFrame : convertFrameRate(old.endFrame, fromFps, fps);
+      rememberError(old.startFrame, display.startFrame); rememberError(old.endFrame, display.endFrame);
+    }
+    if (caption.endFrame <= caption.startFrame || !validCaptionDisplay(caption)) {
+      report.blockers.push({ code: "PROJECT_FPS_CAPTION_DISPLAY_INVALID", objectId: caption.id, message: "帧率转换后字幕或显示范围为空、重叠或越界，请先调整该卡" });
     }
   }
   for (const cutaway of snapshot.cutaways) {

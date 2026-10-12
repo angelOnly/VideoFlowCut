@@ -1,0 +1,206 @@
+{
+  "kind": "reference_package_integrity",
+  "scope": "本轮打包核对文件、源码对应、完整解码与音轨；没有重新渲染、修改动画或执行用户Worker。",
+  "video": {
+    "file": "preview.mp4",
+    "bytes": 7181815,
+    "sha256": "8b55aa9a91af4cf65a392459a3239cccf5ec0eb438c73bd4c38350995751094c",
+    "width": 768,
+    "height": 1344,
+    "fps": "24/1",
+    "frames": 726,
+    "video_duration_seconds": 30.25,
+    "container_duration_seconds": 30.293333,
+    "full_decode_exit_code": 0,
+    "audio_stream_present": true,
+    "decoded_float_audio_peak": 0.0,
+    "audio_is_silent": true
+  },
+  "source": {
+    "file": "source/AirfareIndependent.tsx",
+    "snapshot": "source/work.original.json",
+    "matches_snapshot_source": true,
+    "sha256": "4d893ffa8b9eddc20ee47100323c71683d7db968cf0d7c5729017078e749834f"
+  },
+  "inputs_match_clean_package_and_creator_delivery": true,
+  "original_input_manifest_checks": [
+    {
+      "path": "开始制作.md",
+      "matches_original_manifest": true
+    },
+    {
+      "path": "inputs/旁白正文.txt",
+      "matches_original_manifest": true
+    },
+    {
+      "path": "inputs/旁白音轨.wav",
+      "matches_original_manifest": true
+    },
+    {
+      "path": "inputs/字幕时间.srt",
+      "matches_original_manifest": true
+    },
+    {
+      "path": "inputs/国航规则原文摘录.png",
+      "matches_original_manifest": true
+    },
+    {
+      "path": "inputs/规则字段.json",
+      "matches_original_manifest": true
+    },
+    {
+      "path": "inputs/客舱源视频.mp4",
+      "matches_original_manifest": true
+    }
+  ],
+  "user_acceptance": {
+    "recorded_feedback": "这次跑的视频动效我是满意的",
+    "motion": "用户明确认可该具体结果",
+    "art_direction": "未单独明确作整体认可，不宣称通过",
+    "sound_and_captions": "未合成验证",
+    "cross_topic_autonomy": "尚未据此证明"
+  },
+  "keyframes": {
+    "provenance": "原交付包中的真实输出抽帧；本轮保留原件，不重画概念图",
+    "frame_numbers_reported_by_creator": [
+      66,
+      156,
+      198,
+      330,
+      380,
+      461,
+      527,
+      659,
+      725
+    ],
+    "files": [
+      "frames/frame-01.png",
+      "frames/frame-02.png",
+      "frames/frame-03.png",
+      "frames/frame-04.png",
+      "frames/frame-05.png",
+      "frames/frame-06.png",
+      "frames/frame-07.png",
+      "frames/frame-08.png",
+      "frames/frame-09.png"
+    ],
+    "contact_sheet": "keyframes.jpg"
+  },
+  "original_files": {
+    "preview.mp4": {
+      "archive": "airfare-independent-20261012-01.zip",
+      "member": "airfare-independent-20261012-01/机票退改_视觉样片_无声.mp4",
+      "sha256": "8b55aa9a91af4cf65a392459a3239cccf5ec0eb438c73bd4c38350995751094c"
+    },
+    "keyframes.jpg": {
+      "archive": "airfare-independent-20261012-01.zip",
+      "member": "airfare-independent-20261012-01/关键帧总览.jpg",
+      "sha256": "6e4e256db5510acc5f3cda817d4cf9d88be3ea55d14fbd9e2697409d87cdee60"
+    },
+    "source/AirfareIndependent.tsx": {
+      "archive": "airfare-independent-20261012-01.zip",
+      "member": "airfare-independent-20261012-01/visual/AirfareIndependent.tsx",
+      "sha256": "4d893ffa8b9eddc20ee47100323c71683d7db968cf0d7c5729017078e749834f"
+    },
+    "source/work.original.json": {
+      "archive": "airfare-independent-20261012-01.zip",
+      "member": "airfare-independent-20261012-01/visual/work.json",
+      "sha256": "b94be58dda229deee3ca166733babf9ae9879443ab929a2c70373223d4c936f7"
+    },
+    "evidence/制作记录.md": {
+      "archive": "airfare-independent-20261012-01.zip",
+      "member": "airfare-independent-20261012-01/制作记录.md",
+      "sha256": "bc23c5027f1e96db50bfd7f572efd007c5729b32d49b33d30f45802abb9e67a1"
+    },
+    "frames/frame-01.png": {
+      "archive": "airfare-independent-20261012-01.zip",
+      "member": "airfare-independent-20261012-01/关键帧/frame-01.png",
+      "sha256": "58d578a2895ac485b44a9e9d023c4f13cbc737e22036e7f50217e531fd13ad43"
+    },
+    "frames/frame-02.png": {
+      "archive": "airfare-independent-20261012-01.zip",
+      "member": "airfare-independent-20261012-01/关键帧/frame-02.png",
+      "sha256": "091aa7e2bcf8b1ef2876c08f3d30bba7b7df4f622c05bae941321e8921d9d0e8"
+    },
+    "frames/frame-03.png": {
+      "archive": "airfare-independent-20261012-01.zip",
+      "member": "airfare-independent-20261012-01/关键帧/frame-03.png",
+      "sha256": "d2a951a425b8d0809872191823a1d93a549c795fc614f8e31a58f3ee7cc48420"
+    },
+    "frames/frame-04.png": {
+      "archive": "airfare-independent-20261012-01.zip",
+      "member": "airfare-independent-20261012-01/关键帧/frame-04.png",
+      "sha256": "f8bacbb7db901532a05359ff9768d21dd9b138c1d669b4c16fb38be22a77d7f6"
+    },
+    "frames/frame-05.png": {
+      "archive": "airfare-independent-20261012-01.zip",
+      "member": "airfare-independent-20261012-01/关键帧/frame-05.png",
+      "sha256": "51c5dd575672702127ef6d48a1e5fff5b9258915b1bcf20a1832cdef5dcee3f9"
+    },
+    "frames/frame-06.png": {
+      "archive": "airfare-independent-20261012-01.zip",
+      "member": "airfare-independent-20261012-01/关键帧/frame-06.png",
+      "sha256": "a72f0bf401e318c8251aaa45f00c6b967c9df3f3fa1d65d43772c51390b161d5"
+    },
+    "frames/frame-07.png": {
+      "archive": "airfare-independent-20261012-01.zip",
+      "member": "airfare-independent-20261012-01/关键帧/frame-07.png",
+      "sha256": "4211a68a5b1f986bdc74e7dfd92733d59525ac55b9b45fb02ca3c40e313048a3"
+    },
+    "frames/frame-08.png": {
+      "archive": "airfare-independent-20261012-01.zip",
+      "member": "airfare-independent-20261012-01/关键帧/frame-08.png",
+      "sha256": "9db5f7a1151112603b09a706ae3a0fe385dc23e367be8dc9a5f132028535b503"
+    },
+    "frames/frame-09.png": {
+      "archive": "airfare-independent-20261012-01.zip",
+      "member": "airfare-independent-20261012-01/关键帧/frame-09.png",
+      "sha256": "4dcaf39e2513b3ee50594f0ac33111d8fdae35c847872e5fc1b9ba411e167af1"
+    },
+    "input/inputs/国航规则原文摘录.png": {
+      "archive": "机票退改_干净素材与制作指令(1).zip",
+      "member": "机票退改_干净素材与制作指令/airfare_clean_input/inputs/国航规则原文摘录.png",
+      "sha256": "7b620ffa0bc1b4bdb55b6ef7dcc7b692dd5aab1e32883c6954fef3e0d7066ee7"
+    },
+    "input/inputs/字幕时间.srt": {
+      "archive": "机票退改_干净素材与制作指令(1).zip",
+      "member": "机票退改_干净素材与制作指令/airfare_clean_input/inputs/字幕时间.srt",
+      "sha256": "068ea650df63a6c8824633a51ca7c40be0b78bc193a41ec1e9262951a6ad1821"
+    },
+    "input/inputs/客舱源视频.mp4": {
+      "archive": "机票退改_干净素材与制作指令(1).zip",
+      "member": "机票退改_干净素材与制作指令/airfare_clean_input/inputs/客舱源视频.mp4",
+      "sha256": "3e6de34dbc5ee09f246dfd7aeb905972bed17ed50b10530e119aea2a6575d27b"
+    },
+    "input/inputs/旁白正文.txt": {
+      "archive": "机票退改_干净素材与制作指令(1).zip",
+      "member": "机票退改_干净素材与制作指令/airfare_clean_input/inputs/旁白正文.txt",
+      "sha256": "23408a4ed9d8f5b89d3d9b6bda856a0f2d91e9257c642a5918a4bba8a936bd4b"
+    },
+    "input/inputs/旁白音轨.wav": {
+      "archive": "机票退改_干净素材与制作指令(1).zip",
+      "member": "机票退改_干净素材与制作指令/airfare_clean_input/inputs/旁白音轨.wav",
+      "sha256": "e2dc0c8e6b4c3215c6e6e2fc75ae2d98272e21e316df77ea4393fcd28c305f7d"
+    },
+    "input/inputs/规则字段.json": {
+      "archive": "机票退改_干净素材与制作指令(1).zip",
+      "member": "机票退改_干净素材与制作指令/airfare_clean_input/inputs/规则字段.json",
+      "sha256": "0a573c93f6a85f010f23c022efe5e738e38671a4aa112fd5a4ccf7b1cb808cbd"
+    },
+    "input/开始制作.md": {
+      "archive": "机票退改_干净素材与制作指令(1).zip",
+      "member": "机票退改_干净素材与制作指令/airfare_clean_input/开始制作.md",
+      "sha256": "ed10ef512cc4029450ecd40f7b9b69e32b4dbd508aa455771eb469006cd0acf7"
+    },
+    "input/文件清单.json": {
+      "archive": "机票退改_干净素材与制作指令(1).zip",
+      "member": "机票退改_干净素材与制作指令/airfare_clean_input/文件清单.json",
+      "sha256": "ed70fff3130911677e0482d9ffe7cee05f2b558aabcd5735b4b7cc873b095ade"
+    }
+  },
+  "runtime_dependencies_not_bundled": [
+    "用户本机当前VideoFlowCut正式运行环境及工具",
+    "原Runtime登记的字体文件",
+    "项目已有通用机制库；仅研究机制来源时按需读取"
+  ]
+}

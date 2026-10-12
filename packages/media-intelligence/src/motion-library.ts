@@ -3,7 +3,9 @@ import { digest } from "./index.js";
 export const MOTION_TEXT_VERSION = "motion-relations-v1";
 export const MOTION_INSTRUCTION_VERSION = "motion-query-v1";
 export const MOTION_QUERY_INSTRUCTION = "根据给定的视觉变化需求，检索能够实现相应对象关系、保持关系、观察变化、文字组织和接管过程的运动机制。优先动作与时序关系相符，不以题材名称、配色或无关业务数字相同为主要依据。";
-export const MOTION_VIDEO_PROMPT = "描述所给范围中真实出现的运动。区分背景、主对象、附属层、文字与观察位置；按可见顺序说明哪些保持、哪些变化、哪些同时发生，以及新旧重点怎样接管。每个判断定位到实际时间范围或输入帧；文字无法辨清、速度或重叠未被采样覆盖时明确未知。不要根据导演预期补出原片没有的动作，不推测原作者代码或精确缓动参数。";
+// 旧 Job 没有冻结提示，恢复时必须保持原缓存与外部运行身份，不能换提示重复提交。
+export const LEGACY_MOTION_VIDEO_PROMPT = "描述所给范围中真实出现的运动。区分背景、主对象、附属层、文字与观察位置；按可见顺序说明哪些保持、哪些变化、哪些同时发生，以及新旧重点怎样接管。每个判断定位到实际时间范围或输入帧；文字无法辨清、速度或重叠未被采样覆盖时明确未知。不要根据导演预期补出原片没有的动作，不推测原作者代码或精确缓动参数。";
+export const MOTION_VIDEO_PROMPT = "只描述所给范围中实际可见的内容。说明主要对象、文字、背景与边界怎样组成画面；按可定位的时间范围或输入帧，说明主体面积、位置、遮挡、明暗和颜色重点怎样改变，其他内容如何配合保持、退让或进入。将具体运动与构图变化放在同一过程里，包括建立、内部变化、完成与下一内容接管。字体身份、精确色号、不可读文字，以及采样无法确认的速度或交叠保持未知。不根据下游期待补造动作，不生成本片分镜，不推测原作者源码或精确缓动参数。";
 export const motionCacheKey = (source: string, identity: unknown, config: unknown, mode: string) =>
   `motion:${digest([source, identity, config, 1024, mode, MOTION_TEXT_VERSION, MOTION_INSTRUCTION_VERSION, MOTION_QUERY_INSTRUCTION])}`;
 

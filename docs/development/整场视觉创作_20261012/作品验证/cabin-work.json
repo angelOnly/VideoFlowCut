@@ -1,0 +1,24 @@
+{
+  "name": "客舱空间",
+  "source": "import React from 'react';\nimport {AbsoluteFill,useCurrentFrame,interpolate} from 'remotion';\nimport {TimelineVideo} from '@videoflowcut/motion';\nexport default function Motion(props){\n const f=useCurrentFrame();\n const c=(x)=>Math.max(0,Math.min(1,x)); const ease=(x)=>1-Math.pow(1-c(x),3);\n const p=ease((f-40)/35), title=ease((f-10)/18), next=ease((f-61)/24);\n const font=props.fonts.title;\n return <AbsoluteFill style={{backgroundColor:'#e8eeee',fontFamily:font.family,fontWeight:font.weight,color:'#103e43'}}>\n   <div style={{position:'absolute',left:28*p,top:48*p,width:960-306*p,height:540-96*p,overflow:'hidden',borderRadius:14*p,transform:'rotate('+(-1.1*Math.sin(p*Math.PI))+'deg)'}}>\n    <TimelineVideo slot=\"cabin\" fit=\"cover\" style={{width:'100%',height:'100%'}}/>\n    <div style={{position:'absolute',inset:0,background:'linear-gradient(0deg,rgba(5,25,30,0.7),transparent 38%)',opacity:1-p}}/>\n    <div style={{position:'absolute',left:42,bottom:28,color:'white',fontSize:64,letterSpacing:2,opacity:title*(1-p),transform:'translateY('+(1-title)*20+'px)'}}>往里看</div>\n   </div>\n   <div style={{position:'absolute',left:724,top:102,width:215,overflow:'hidden',opacity:next}}>\n    <div style={{fontSize:76,lineHeight:1.05,letterSpacing:-3,transform:'translateX('+(1-next)*210+'px)'}}>空间</div>\n    <div style={{height:7,width:178*next,background:'#c49340',marginTop:16,borderRadius:4}}/>\n    <div style={{fontSize:28,lineHeight:1.45,marginTop:27,transform:'translateY('+(1-next)*24+'px)'}}>沿着过道<br/>向里展开</div>\n   </div>\n   <div style={{position:'absolute',left:42,top:502,fontSize:21,letterSpacing:2,opacity:next,color:'#29555a'}}>座椅的重复，让纵深变得可见</div>\n </AbsoluteFill>\n}\n",
+  "props": {},
+  "imageBindings": {},
+  "width": 960,
+  "height": 540,
+  "fps": 30,
+  "durationInFrames": 150,
+  "creativeBrief": "实拍从全幅连续播放到左侧让出文字区；保持同一源时钟，客舱纵深由实拍座椅重复承担。",
+  "videoBindings": {
+    "cabin": {
+      "assetId": "asset_7eb73b06-68eb-4112-a292-a757feb3e1de",
+      "sourceStartMs": 0,
+      "sourceEndMs": 5000,
+      "startFrame": 0,
+      "endFrame": 150
+    }
+  },
+  "fontBindings": {
+    "title": "noto-sans-sc-bold",
+    "body": "noto-sans-sc-regular"
+  }
+}

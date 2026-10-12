@@ -1,0 +1,1161 @@
+{
+  "request": "补充开发验收：原旁白与原SRT空座/取消时间/解释边界完整句群，重新设计画面并正式合成",
+  "explicitCreativePreferences": null,
+  "design": "从这一班真实客舱建立空座不可跨日销售，原件淡出后同一销售窗口随取消位置逼近起飞而缩短；后段停止示意运动，原话的解释边界取得主读。全部原字幕在固定底部显示，画内语义不提前透露最后限制。",
+  "projectId": "project_7f28cdd9-71f5-41ee-8eb2-8fedcac0f4bc",
+  "revision": 11,
+  "job": {
+    "id": "job_24e30bdf-a8a6-474f-a870-a0734967d195",
+    "projectId": "project_7f28cdd9-71f5-41ee-8eb2-8fedcac0f4bc",
+    "kind": "preview",
+    "status": "succeeded",
+    "payload": {
+      "revision": 11,
+      "fromFrame": 0,
+      "toFrame": 288
+    },
+    "result": {
+      "revision": 11,
+      "fromFrame": 0,
+      "toFrame": 288,
+      "path": "E:\\ai\\VideoCut\\.cache\\whole-scene-creative-eval\\seat-time\\workspace\\projects\\project_7f28cdd9-71f5-41ee-8eb2-8fedcac0f4bc\\previews\\revision-11-0-288.mp4",
+      "relativePath": "previews\\revision-11-0-288.mp4",
+      "durationMs": 9643,
+      "fps": 30,
+      "frameCount": 288,
+      "hasAudio": true,
+      "audio": {
+        "decoded": true,
+        "integratedLufs": -29.1,
+        "truePeakDbfs": -12.5,
+        "loudnessRangeLu": 2.2,
+        "silence": [],
+        "method": "ffmpeg_ebur128_true_peak_complete_decode",
+        "rawSummary": "Summary:\r\n\r\n  Integrated loudness:\r\n    I:         -29.1 LUFS\r\n    Threshold: -39.1 LUFS\r\n\r\n  Loudness range:\r\n    LRA:         2.2 LU\r\n    Threshold: -49.1 LUFS\r\n    LRA low:   -30.0 LUFS\r\n    LRA high:  -27.9 LUFS\r\n\r\n  True peak:\r\n    Peak:      -12.5 dBFS\r\n[out#0/null @ 000001efd9025e00] video:0KiB audio:1808KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown\r\nsize=N/A time=00:00:09.64 bitrate=N/A speed= 429x elapsed=0:00:00.02    \r\n"
+      },
+      "sourceHash": "1d69779ac97c59edf6011e5f6098678f24e559248fb7b3b7f45f6c6c781f66d3"
+    },
+    "idempotencyKey": "preview:11:0:288",
+    "attempt": 0,
+    "createdAt": "2026-10-12T14:52:09.220Z",
+    "updatedAt": "2026-10-12T14:52:33.965Z"
+  },
+  "motionJob": {
+    "id": "job_ace3277b-3da0-4280-928f-adb7e81d4834",
+    "projectId": "project_7f28cdd9-71f5-41ee-8eb2-8fedcac0f4bc",
+    "kind": "motion_generation",
+    "status": "succeeded",
+    "payload": {
+      "work": {
+        "name": "空座与取消时间-独立声画开发样本",
+        "source": "import React from 'react';\nimport {AbsoluteFill,useCurrentFrame} from 'remotion';\nimport {TimelineVideo} from '@videoflowcut/motion';\nexport default function Motion(props){\n const f=useCurrentFrame(),c=x=>Math.max(0,Math.min(1,x)),ease=x=>1-Math.pow(1-c(x),3);\n const enter=ease((f-60)/25),late=ease((f-99)/42),boundary=ease((f-154)/24),limit=ease((f-204)/18),font=props.fonts.title;\n return <AbsoluteFill style={{backgroundColor:'#e7efef',fontFamily:font.family,fontWeight:font.weight,color:'#143e43',width:960,height:540,transform:'scale(2)',transformOrigin:'0 0'}}>\n  <div style={{position:'absolute',left:0,top:0,width:960,height:430,overflow:'hidden',opacity:1-enter}}><TimelineVideo slot=\"cabin\" fit=\"cover\" style={{width:'100%',height:'100%'}}/><div style={{position:'absolute',inset:0,background:'linear-gradient(0deg,#123236dd,transparent 60%)'}}/><div style={{position:'absolute',left:46,top:36,fontSize:35,color:'white'}}>这一班的座位</div></div>\n  <div style={{position:'absolute',inset:0,opacity:enter*(1-boundary)}}>\n   <div style={{position:'absolute',left:70,top:50,fontSize:24}}>可重新出售的时间</div>\n   <div style={{position:'absolute',left:70,top:150,width:760,height:4,background:'#adc5c7'}}/>\n   <div style={{position:'absolute',left:70+440*late,top:140,width:760-440*late,height:24,background:'#bb8947',borderRadius:6}}/>\n   <div style={{position:'absolute',left:70+440*late,top:105,fontSize:23}}>取消</div>\n   <div style={{position:'absolute',left:814,top:111,width:3,height:98,background:'#143e43'}}/>\n   <div style={{position:'absolute',left:790,top:230,fontSize:23}}>起飞</div>\n   <div style={{position:'absolute',left:70,top:300,fontSize:45,opacity:late}}>越晚取消，窗口越短</div>\n  </div>\n  <div style={{position:'absolute',left:72,top:70,width:816,opacity:boundary}}>\n   <div style={{fontSize:25,color:'#56767a'}}>解释的边界</div>\n   <div style={{fontSize:52,marginTop:26}}>只能解释一部分</div>\n   <div style={{fontSize:44,marginTop:46,opacity:limit,color:'#9b5e33'}}>费用不一定等于航司损失</div>\n  </div>\n </AbsoluteFill>\n}\n",
+        "props": {},
+        "imageBindings": {},
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "durationInFrames": 288,
+        "creativeBrief": "从这一班真实客舱建立空座不可跨日销售，原件淡出后同一销售窗口随取消位置逼近起飞而缩短；后段停止示意运动，原话的解释边界取得主读。全部原字幕在固定底部显示，画内语义不提前透露最后限制。",
+        "videoBindings": {
+          "cabin": {
+            "assetId": "asset_21065035-42ae-41fd-9c3f-cb9fe6bd32d8",
+            "sourceStartMs": 0,
+            "sourceEndMs": 9600,
+            "startFrame": 0,
+            "endFrame": 288
+          }
+        },
+        "fontBindings": {
+          "title": "noto-sans-sc-bold",
+          "body": "noto-sans-sc-regular"
+        }
+      },
+      "version": "20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c",
+      "engineVersion": "managed-motion-13",
+      "requestedRevision": 5,
+      "boundImages": [],
+      "boundVideos": [
+        {
+          "slot": "cabin",
+          "assetId": "asset_21065035-42ae-41fd-9c3f-cb9fe6bd32d8",
+          "managedPath": "assets/cabin.mp4",
+          "hash": "3e6de34dbc5ee09f246dfd7aeb905972bed17ed50b10530e119aea2a6575d27b",
+          "sourceStartMs": 0,
+          "sourceEndMs": 9600,
+          "startFrame": 0,
+          "endFrame": 288
+        }
+      ],
+      "boundFonts": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ]
+    },
+    "result": {
+      "assetId": "asset_e98e4ae0-c00c-4806-8a84-7a11cd67d135",
+      "version": "20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c",
+      "videoDecodes": {
+        "cabin": {
+          "width": 1920,
+          "height": 1080,
+          "startFrame": 0,
+          "endFrame": 288,
+          "frameCount": 288,
+          "geometry": {
+            "streamIndex": 0,
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "sar": 1,
+            "rotation": 0,
+            "displayWidth": 1920,
+            "displayHeight": 1080,
+            "durationMs": 12880,
+            "startTimeSeconds": 0
+          }
+        }
+      },
+      "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
+      "workReviewRequired": true,
+      "sourcePath": "assets/derived/motion/job_ace3277b-3da0-4280-928f-adb7e81d4834/20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c/source.json",
+      "previewPath": "assets/derived/motion/job_ace3277b-3da0-4280-928f-adb7e81d4834/20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c/preview.mp4",
+      "motionDiagnostics": {
+        "status": "exact",
+        "maxAllowedChannelDelta": 2,
+        "sampledFrames": [
+          0,
+          144,
+          287
+        ],
+        "differences": [],
+        "reportPath": "assets/derived/motion/job_ace3277b-3da0-4280-928f-adb7e81d4834/20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c/diagnostics/report.json"
+      }
+    },
+    "idempotencyKey": "motion:seat-time-ff11dfe707d74a5e6acec1492f9212d804db8cb3f0f18df756381f0481c57d22",
+    "attempt": 0,
+    "createdAt": "2026-10-12T14:49:20.893Z",
+    "updatedAt": "2026-10-12T14:52:09.202Z"
+  },
+  "asset": {
+    "id": "asset_e98e4ae0-c00c-4806-8a84-7a11cd67d135",
+    "name": "空座与取消时间-独立声画开发样本",
+    "kind": "video",
+    "status": "ready",
+    "managedPath": "assets/derived/motion/job_ace3277b-3da0-4280-928f-adb7e81d4834/20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c/preview.mp4",
+    "sourceHash": "b05aa4b09842ab2dfaa614a6c7d06e73cfa9653853c83eea6f35575b2561b680",
+    "role": "generated_visual",
+    "tags": [
+      "managed_motion",
+      "work_review_required"
+    ],
+    "createdAt": "2026-10-12T14:52:09.199Z",
+    "metadata": {
+      "durationMs": 9600,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "hasAudio": false,
+      "videoCodec": "h264",
+      "pixelFormat": "yuv420p",
+      "hasAlpha": false,
+      "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+    },
+    "provenance": {
+      "source": "generated",
+      "provider": "managed_remotion",
+      "generationJobId": "job_ace3277b-3da0-4280-928f-adb7e81d4834",
+      "acquiredAt": "2026-10-12T14:52:09.199Z"
+    },
+    "motion": {
+      "jobId": "job_ace3277b-3da0-4280-928f-adb7e81d4834",
+      "version": "20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c",
+      "engineVersion": "managed-motion-13",
+      "sourceAssetIds": [
+        "asset_21065035-42ae-41fd-9c3f-cb9fe6bd32d8"
+      ],
+      "videoSources": [
+        {
+          "slot": "cabin",
+          "assetId": "asset_21065035-42ae-41fd-9c3f-cb9fe6bd32d8",
+          "sourceHash": "3e6de34dbc5ee09f246dfd7aeb905972bed17ed50b10530e119aea2a6575d27b",
+          "sourceStartMs": 0,
+          "sourceEndMs": 9600,
+          "startFrame": 0,
+          "endFrame": 288
+        }
+      ],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "sourceHash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "sourceHash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourcePath": "assets/derived/motion/job_ace3277b-3da0-4280-928f-adb7e81d4834/20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c/source.json",
+      "framesDirectory": "assets/derived/motion/job_ace3277b-3da0-4280-928f-adb7e81d4834/20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c/frames",
+      "frameCount": 288,
+      "fps": 30,
+      "width": 1920,
+      "height": 1080,
+      "creativeBrief": "从这一班真实客舱建立空座不可跨日销售，原件淡出后同一销售窗口随取消位置逼近起飞而缩短；后段停止示意运动，原话的解释边界取得主读。全部原字幕在固定底部显示，画内语义不提前透露最后限制。"
+    }
+  },
+  "audio": {
+    "asset": {
+      "id": "asset_930f1f6a-684c-4dea-a645-9e820157c84b",
+      "name": "旁白音轨.wav",
+      "kind": "audio",
+      "status": "queued",
+      "managedPath": "assets/original.wav",
+      "sourceHash": "e2dc0c8e6b4c3215c6e6e2fc75ae2d98272e21e316df77ea4393fcd28c305f7d",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-10-12T14:49:20.815Z"
+      },
+      "tags": [],
+      "createdAt": "2026-10-12T14:49:20.816Z"
+    },
+    "metadata": {
+      "durationMs": 30250,
+      "hasAudio": true,
+      "audioCodec": "pcm_s16le",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "wav"
+    },
+    "target": "E:\\ai\\VideoCut\\.cache\\whole-scene-creative-eval\\seat-time\\workspace\\projects\\project_7f28cdd9-71f5-41ee-8eb2-8fedcac0f4bc\\assets\\original.wav",
+    "sourceStartFrame": 336,
+    "sourceEndFrame": 624,
+    "sourceStartMs": 11200,
+    "sourceEndMs": 20800,
+    "srtOffsetMs": -11200,
+    "narration": {
+      "revision": {
+        "id": "revision_ed775118-f2a7-449d-a082-7e304f9fc4bb",
+        "projectId": "project_7f28cdd9-71f5-41ee-8eb2-8fedcac0f4bc",
+        "number": 9,
+        "parentId": "revision_a445d76b-4a91-4886-a322-770b3c6629cb",
+        "summary": "放置已有旁白",
+        "snapshot": {
+          "project": {
+            "id": "project_7f28cdd9-71f5-41ee-8eb2-8fedcac0f4bc",
+            "name": "独立开发声画样本-空座与取消时间",
+            "rootPath": "E:\\ai\\VideoCut\\.cache\\whole-scene-creative-eval\\seat-time\\workspace\\projects\\project_7f28cdd9-71f5-41ee-8eb2-8fedcac0f4bc",
+            "profile": "visual_explainer",
+            "brief": {
+              "platform": "短视频",
+              "aspectRatio": "16:9",
+              "targetDurationSeconds": 60,
+              "audience": "泛内容用户",
+              "tone": "清晰、可信、自然",
+              "captionMode": "stable",
+              "allowHighDensityMotion": false
+            },
+            "stylePackId": "default-clean",
+            "createdAt": "2026-10-12T14:49:20.735Z",
+            "updatedAt": "2026-10-12T14:52:09.207Z"
+          },
+          "story": {
+            "id": "story_a3bf21ed-3b34-47eb-b42b-b775b21599fa",
+            "title": "独立开发声画样本-空座与取消时间",
+            "summary": "",
+            "beats": [],
+            "updatedAt": "2026-10-12T14:49:20.735Z"
+          },
+          "assets": [
+            {
+              "id": "asset_21065035-42ae-41fd-9c3f-cb9fe6bd32d8",
+              "name": "客舱源视频.mp4",
+              "kind": "video",
+              "status": "ready",
+              "managedPath": "assets/cabin.mp4",
+              "sourceHash": "3e6de34dbc5ee09f246dfd7aeb905972bed17ed50b10530e119aea2a6575d27b",
+              "provenance": {
+                "source": "local_import",
+                "acquiredAt": "2026-10-12T14:49:20.758Z"
+              },
+              "tags": [],
+              "createdAt": "2026-10-12T14:49:20.758Z",
+              "metadata": {
+                "durationMs": 12885,
+                "width": 1920,
+                "height": 1080,
+                "fps": 25,
+                "hasAudio": true,
+                "audioCodec": "aac",
+                "sampleRate": 48000,
+                "channels": 2,
+                "videoCodec": "h264",
+                "pixelFormat": "yuv420p",
+                "hasAlpha": false,
+                "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+              }
+            },
+            {
+              "id": "asset_930f1f6a-684c-4dea-a645-9e820157c84b",
+              "name": "旁白音轨.wav",
+              "kind": "audio",
+              "status": "ready",
+              "managedPath": "assets/original.wav",
+              "sourceHash": "e2dc0c8e6b4c3215c6e6e2fc75ae2d98272e21e316df77ea4393fcd28c305f7d",
+              "provenance": {
+                "source": "local_import",
+                "acquiredAt": "2026-10-12T14:49:20.815Z"
+              },
+              "tags": [],
+              "createdAt": "2026-10-12T14:49:20.816Z",
+              "metadata": {
+                "durationMs": 30250,
+                "hasAudio": true,
+                "audioCodec": "pcm_s16le",
+                "sampleRate": 24000,
+                "channels": 1,
+                "hasAlpha": false,
+                "mime": "wav"
+              }
+            },
+            {
+              "id": "asset_e98e4ae0-c00c-4806-8a84-7a11cd67d135",
+              "name": "空座与取消时间-独立声画开发样本",
+              "kind": "video",
+              "status": "ready",
+              "managedPath": "assets/derived/motion/job_ace3277b-3da0-4280-928f-adb7e81d4834/20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c/preview.mp4",
+              "sourceHash": "b05aa4b09842ab2dfaa614a6c7d06e73cfa9653853c83eea6f35575b2561b680",
+              "role": "generated_visual",
+              "tags": [
+                "managed_motion",
+                "work_review_required"
+              ],
+              "createdAt": "2026-10-12T14:52:09.199Z",
+              "metadata": {
+                "durationMs": 9600,
+                "width": 1920,
+                "height": 1080,
+                "fps": 30,
+                "hasAudio": false,
+                "videoCodec": "h264",
+                "pixelFormat": "yuv420p",
+                "hasAlpha": false,
+                "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+              },
+              "provenance": {
+                "source": "generated",
+                "provider": "managed_remotion",
+                "generationJobId": "job_ace3277b-3da0-4280-928f-adb7e81d4834",
+                "acquiredAt": "2026-10-12T14:52:09.199Z"
+              },
+              "motion": {
+                "jobId": "job_ace3277b-3da0-4280-928f-adb7e81d4834",
+                "version": "20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c",
+                "engineVersion": "managed-motion-13",
+                "sourceAssetIds": [
+                  "asset_21065035-42ae-41fd-9c3f-cb9fe6bd32d8"
+                ],
+                "videoSources": [
+                  {
+                    "slot": "cabin",
+                    "assetId": "asset_21065035-42ae-41fd-9c3f-cb9fe6bd32d8",
+                    "sourceHash": "3e6de34dbc5ee09f246dfd7aeb905972bed17ed50b10530e119aea2a6575d27b",
+                    "sourceStartMs": 0,
+                    "sourceEndMs": 9600,
+                    "startFrame": 0,
+                    "endFrame": 288
+                  }
+                ],
+                "fontSources": [
+                  {
+                    "slot": "body",
+                    "fontId": "noto-sans-sc-regular",
+                    "sourceHash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+                    "weight": 400,
+                    "style": "normal"
+                  },
+                  {
+                    "slot": "title",
+                    "fontId": "noto-sans-sc-bold",
+                    "sourceHash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+                    "weight": 700,
+                    "style": "normal"
+                  }
+                ],
+                "sourcePath": "assets/derived/motion/job_ace3277b-3da0-4280-928f-adb7e81d4834/20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c/source.json",
+                "framesDirectory": "assets/derived/motion/job_ace3277b-3da0-4280-928f-adb7e81d4834/20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c/frames",
+                "frameCount": 288,
+                "fps": 30,
+                "width": 1920,
+                "height": 1080,
+                "creativeBrief": "从这一班真实客舱建立空座不可跨日销售，原件淡出后同一销售窗口随取消位置逼近起飞而缩短；后段停止示意运动，原话的解释边界取得主读。全部原字幕在固定底部显示，画内语义不提前透露最后限制。"
+              }
+            }
+          ],
+          "assetRequests": [],
+          "searchIntents": [],
+          "assetCandidates": [],
+          "evidenceCaptures": [],
+          "explainerPrograms": [],
+          "vlogShotAnalyses": [],
+          "vlogEvents": [],
+          "vlogShotSelects": [],
+          "vlogAmbientCues": [],
+          "vlogMusicBeats": [],
+          "multicamGroups": [],
+          "multicamCuts": [],
+          "agentWorkOrders": [],
+          "visualTreatments": [],
+          "cutaways": [],
+          "audioCues": [],
+          "voiceReferences": [],
+          "sourceAudioAlignments": [],
+          "sourceCaptionPrograms": [],
+          "transcripts": [],
+          "transcriptSentenceCandidates": [],
+          "semanticUnits": [],
+          "script": {
+            "semanticUnitIds": [],
+            "speechSegmentIds": [],
+            "revision": 0
+          },
+          "speechSegments": [],
+          "speechSegmentAssets": [],
+          "actorCapabilityProfiles": [],
+          "actorPerformances": [],
+          "scenes": [
+            {
+              "id": "scene_593a4fc2-1895-40f1-89e1-9acf531082e8",
+              "type": "ExplainerScene",
+              "title": "空座时间与解释边界",
+              "purpose": "独立声画开发验收",
+              "startFrame": 0,
+              "endFrame": 288,
+              "assetIds": [],
+              "narrativeBeatIds": [],
+              "status": "draft",
+              "stylePackId": "default-clean"
+            }
+          ],
+          "effectCues": [
+            {
+              "id": "cue_0bd96d79-b36f-479e-a10d-f6e38400004e",
+              "sceneId": "scene_593a4fc2-1895-40f1-89e1-9acf531082e8",
+              "type": "ManagedMotion",
+              "layer": "fullscreen",
+              "anchor": "scene",
+              "startFrame": 0,
+              "holdFrame": 144,
+              "endFrame": 288,
+              "intensity": 1,
+              "status": "ready",
+              "note": "",
+              "narrativePurpose": "支持当前叙事重点",
+              "audienceTask": "理解当前表达",
+              "semanticAnchor": {
+                "type": "scene",
+                "targetId": "scene_593a4fc2-1895-40f1-89e1-9acf531082e8",
+                "relation": "land_on"
+              },
+              "spatialAnchor": "full_frame",
+              "assetBindings": [
+                {
+                  "slot": "motion",
+                  "assetId": "asset_e98e4ae0-c00c-4806-8a84-7a11cd67d135"
+                }
+              ],
+              "props": {},
+              "motion": {
+                "enterPreset": "none",
+                "settlePreset": "hold",
+                "exitPreset": "none",
+                "enterFrames": 0,
+                "holdFrames": 288,
+                "exitFrames": 0
+              },
+              "stylePackId": "managed-source",
+              "qualityRules": []
+            }
+          ],
+          "timeline": {
+            "fps": 30,
+            "width": 1920,
+            "height": 1080,
+            "durationInFrames": 288,
+            "tracks": [
+              {
+                "id": "track_898c61ae-ff88-4ad1-b67f-7b66734ec494",
+                "name": "Cutaway / Fullscreen",
+                "kind": "video",
+                "order": 0,
+                "locked": false,
+                "hidden": false,
+                "muted": false
+              },
+              {
+                "id": "track_6ae00f1f-9500-4bb5-8d42-9cb483cb6fe2",
+                "name": "Front FX",
+                "kind": "video",
+                "order": 1,
+                "locked": false,
+                "hidden": false,
+                "muted": false
+              },
+              {
+                "id": "track_fa111d8c-cfef-4a64-a3bf-b5803823730d",
+                "name": "Actor FX",
+                "kind": "video",
+                "order": 2,
+                "locked": false,
+                "hidden": false,
+                "muted": false
+              },
+              {
+                "id": "track_beb14f5d-ff57-459f-8cd4-38242cf08fe0",
+                "name": "Actor / A-roll",
+                "kind": "video",
+                "order": 3,
+                "locked": false,
+                "hidden": false,
+                "muted": false
+              },
+              {
+                "id": "track_8d2d6e45-907e-4152-b2c3-1a6a52836ce1",
+                "name": "Rear FX",
+                "kind": "video",
+                "order": 4,
+                "locked": false,
+                "hidden": false,
+                "muted": false
+              },
+              {
+                "id": "track_6a1957c4-d597-4c96-9c57-82cfbd7f2d08",
+                "name": "Background",
+                "kind": "video",
+                "order": 5,
+                "locked": false,
+                "hidden": false,
+                "muted": false
+              },
+              {
+                "id": "track_97768b62-b3db-4b39-af02-1b77b6ffbbca",
+                "name": "Captions",
+                "kind": "caption",
+                "order": 6,
+                "locked": false,
+                "hidden": false,
+                "muted": false
+              },
+              {
+                "id": "track_217bb5bc-f53e-46eb-bd41-e820a2976393",
+                "name": "Dialogue",
+                "kind": "audio",
+                "order": 7,
+                "locked": false,
+                "hidden": false,
+                "muted": false
+              },
+              {
+                "id": "track_c8655283-08a6-4a97-8f23-fae913847641",
+                "name": "Ambient",
+                "kind": "audio",
+                "order": 8,
+                "locked": false,
+                "hidden": false,
+                "muted": false
+              },
+              {
+                "id": "track_834b8b20-8110-49a2-8b51-3789078d7952",
+                "name": "SFX",
+                "kind": "audio",
+                "order": 9,
+                "locked": false,
+                "hidden": false,
+                "muted": false
+              },
+              {
+                "id": "track_fb7a5a69-c623-4a67-b8c0-8d70c4974f11",
+                "name": "BGM",
+                "kind": "audio",
+                "order": 10,
+                "locked": false,
+                "hidden": false,
+                "muted": false
+              }
+            ],
+            "items": [
+              {
+                "id": "item_edd6d5bb-d715-4142-b2dd-ff903fabe0ee",
+                "trackId": "track_217bb5bc-f53e-46eb-bd41-e820a2976393",
+                "assetId": "asset_930f1f6a-684c-4dea-a645-9e820157c84b",
+                "startFrame": 0,
+                "endFrame": 288,
+                "sourceStartFrame": 336,
+                "sourceEndFrame": 624,
+                "gainDb": 0,
+                "disabled": false
+              }
+            ],
+            "captions": [],
+            "captionFormat": {
+              "fontSize": 32,
+              "fontWeight": 700,
+              "color": "#ffffff",
+              "bottomPercent": 7,
+              "horizontalInsetPercent": 8,
+              "textAlign": "center",
+              "maxLines": 2,
+              "lineHeight": 1.36,
+              "boxWidth": "content",
+              "fontId": "noto-sans-sc-bold",
+              "font": {
+                "fontId": "noto-sans-sc-bold",
+                "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+                "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+                "weight": 700,
+                "style": "normal"
+              }
+            }
+          },
+          "markers": []
+        },
+        "impact": {
+          "changed": [
+            "item_edd6d5bb-d715-4142-b2dd-ff903fabe0ee",
+            "asset_930f1f6a-684c-4dea-a645-9e820157c84b"
+          ],
+          "moved": [],
+          "recomputed": [
+            "Dialogue 原速源范围与 narration 混音"
+          ],
+          "stale": [],
+          "conflicts": [],
+          "dirtyRanges": [
+            {
+              "startFrame": 0,
+              "endFrame": 288,
+              "reason": "已有旁白放置"
+            }
+          ],
+          "warnings": []
+        },
+        "createdAt": "2026-10-12T14:52:09.207Z"
+      },
+      "snapshot": {
+        "project": {
+          "id": "project_7f28cdd9-71f5-41ee-8eb2-8fedcac0f4bc",
+          "name": "独立开发声画样本-空座与取消时间",
+          "rootPath": "E:\\ai\\VideoCut\\.cache\\whole-scene-creative-eval\\seat-time\\workspace\\projects\\project_7f28cdd9-71f5-41ee-8eb2-8fedcac0f4bc",
+          "profile": "visual_explainer",
+          "brief": {
+            "platform": "短视频",
+            "aspectRatio": "16:9",
+            "targetDurationSeconds": 60,
+            "audience": "泛内容用户",
+            "tone": "清晰、可信、自然",
+            "captionMode": "stable",
+            "allowHighDensityMotion": false
+          },
+          "stylePackId": "default-clean",
+          "createdAt": "2026-10-12T14:49:20.735Z",
+          "updatedAt": "2026-10-12T14:52:09.207Z"
+        },
+        "story": {
+          "id": "story_a3bf21ed-3b34-47eb-b42b-b775b21599fa",
+          "title": "独立开发声画样本-空座与取消时间",
+          "summary": "",
+          "beats": [],
+          "updatedAt": "2026-10-12T14:49:20.735Z"
+        },
+        "assets": [
+          {
+            "id": "asset_21065035-42ae-41fd-9c3f-cb9fe6bd32d8",
+            "name": "客舱源视频.mp4",
+            "kind": "video",
+            "status": "ready",
+            "managedPath": "assets/cabin.mp4",
+            "sourceHash": "3e6de34dbc5ee09f246dfd7aeb905972bed17ed50b10530e119aea2a6575d27b",
+            "provenance": {
+              "source": "local_import",
+              "acquiredAt": "2026-10-12T14:49:20.758Z"
+            },
+            "tags": [],
+            "createdAt": "2026-10-12T14:49:20.758Z",
+            "metadata": {
+              "durationMs": 12885,
+              "width": 1920,
+              "height": 1080,
+              "fps": 25,
+              "hasAudio": true,
+              "audioCodec": "aac",
+              "sampleRate": 48000,
+              "channels": 2,
+              "videoCodec": "h264",
+              "pixelFormat": "yuv420p",
+              "hasAlpha": false,
+              "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+            }
+          },
+          {
+            "id": "asset_930f1f6a-684c-4dea-a645-9e820157c84b",
+            "name": "旁白音轨.wav",
+            "kind": "audio",
+            "status": "ready",
+            "managedPath": "assets/original.wav",
+            "sourceHash": "e2dc0c8e6b4c3215c6e6e2fc75ae2d98272e21e316df77ea4393fcd28c305f7d",
+            "provenance": {
+              "source": "local_import",
+              "acquiredAt": "2026-10-12T14:49:20.815Z"
+            },
+            "tags": [],
+            "createdAt": "2026-10-12T14:49:20.816Z",
+            "metadata": {
+              "durationMs": 30250,
+              "hasAudio": true,
+              "audioCodec": "pcm_s16le",
+              "sampleRate": 24000,
+              "channels": 1,
+              "hasAlpha": false,
+              "mime": "wav"
+            }
+          },
+          {
+            "id": "asset_e98e4ae0-c00c-4806-8a84-7a11cd67d135",
+            "name": "空座与取消时间-独立声画开发样本",
+            "kind": "video",
+            "status": "ready",
+            "managedPath": "assets/derived/motion/job_ace3277b-3da0-4280-928f-adb7e81d4834/20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c/preview.mp4",
+            "sourceHash": "b05aa4b09842ab2dfaa614a6c7d06e73cfa9653853c83eea6f35575b2561b680",
+            "role": "generated_visual",
+            "tags": [
+              "managed_motion",
+              "work_review_required"
+            ],
+            "createdAt": "2026-10-12T14:52:09.199Z",
+            "metadata": {
+              "durationMs": 9600,
+              "width": 1920,
+              "height": 1080,
+              "fps": 30,
+              "hasAudio": false,
+              "videoCodec": "h264",
+              "pixelFormat": "yuv420p",
+              "hasAlpha": false,
+              "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+            },
+            "provenance": {
+              "source": "generated",
+              "provider": "managed_remotion",
+              "generationJobId": "job_ace3277b-3da0-4280-928f-adb7e81d4834",
+              "acquiredAt": "2026-10-12T14:52:09.199Z"
+            },
+            "motion": {
+              "jobId": "job_ace3277b-3da0-4280-928f-adb7e81d4834",
+              "version": "20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c",
+              "engineVersion": "managed-motion-13",
+              "sourceAssetIds": [
+                "asset_21065035-42ae-41fd-9c3f-cb9fe6bd32d8"
+              ],
+              "videoSources": [
+                {
+                  "slot": "cabin",
+                  "assetId": "asset_21065035-42ae-41fd-9c3f-cb9fe6bd32d8",
+                  "sourceHash": "3e6de34dbc5ee09f246dfd7aeb905972bed17ed50b10530e119aea2a6575d27b",
+                  "sourceStartMs": 0,
+                  "sourceEndMs": 9600,
+                  "startFrame": 0,
+                  "endFrame": 288
+                }
+              ],
+              "fontSources": [
+                {
+                  "slot": "body",
+                  "fontId": "noto-sans-sc-regular",
+                  "sourceHash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+                  "weight": 400,
+                  "style": "normal"
+                },
+                {
+                  "slot": "title",
+                  "fontId": "noto-sans-sc-bold",
+                  "sourceHash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+                  "weight": 700,
+                  "style": "normal"
+                }
+              ],
+              "sourcePath": "assets/derived/motion/job_ace3277b-3da0-4280-928f-adb7e81d4834/20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c/source.json",
+              "framesDirectory": "assets/derived/motion/job_ace3277b-3da0-4280-928f-adb7e81d4834/20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c/frames",
+              "frameCount": 288,
+              "fps": 30,
+              "width": 1920,
+              "height": 1080,
+              "creativeBrief": "从这一班真实客舱建立空座不可跨日销售，原件淡出后同一销售窗口随取消位置逼近起飞而缩短；后段停止示意运动，原话的解释边界取得主读。全部原字幕在固定底部显示，画内语义不提前透露最后限制。"
+            }
+          }
+        ],
+        "assetRequests": [],
+        "searchIntents": [],
+        "assetCandidates": [],
+        "evidenceCaptures": [],
+        "explainerPrograms": [],
+        "vlogShotAnalyses": [],
+        "vlogEvents": [],
+        "vlogShotSelects": [],
+        "vlogAmbientCues": [],
+        "vlogMusicBeats": [],
+        "multicamGroups": [],
+        "multicamCuts": [],
+        "agentWorkOrders": [],
+        "visualTreatments": [],
+        "cutaways": [],
+        "audioCues": [],
+        "voiceReferences": [],
+        "sourceAudioAlignments": [],
+        "sourceCaptionPrograms": [],
+        "transcripts": [],
+        "transcriptSentenceCandidates": [],
+        "semanticUnits": [],
+        "script": {
+          "semanticUnitIds": [],
+          "speechSegmentIds": [],
+          "revision": 0
+        },
+        "speechSegments": [],
+        "speechSegmentAssets": [],
+        "actorCapabilityProfiles": [],
+        "actorPerformances": [],
+        "scenes": [
+          {
+            "id": "scene_593a4fc2-1895-40f1-89e1-9acf531082e8",
+            "type": "ExplainerScene",
+            "title": "空座时间与解释边界",
+            "purpose": "独立声画开发验收",
+            "startFrame": 0,
+            "endFrame": 288,
+            "assetIds": [],
+            "narrativeBeatIds": [],
+            "status": "draft",
+            "stylePackId": "default-clean"
+          }
+        ],
+        "effectCues": [
+          {
+            "id": "cue_0bd96d79-b36f-479e-a10d-f6e38400004e",
+            "sceneId": "scene_593a4fc2-1895-40f1-89e1-9acf531082e8",
+            "type": "ManagedMotion",
+            "layer": "fullscreen",
+            "anchor": "scene",
+            "startFrame": 0,
+            "holdFrame": 144,
+            "endFrame": 288,
+            "intensity": 1,
+            "status": "ready",
+            "note": "",
+            "narrativePurpose": "支持当前叙事重点",
+            "audienceTask": "理解当前表达",
+            "semanticAnchor": {
+              "type": "scene",
+              "targetId": "scene_593a4fc2-1895-40f1-89e1-9acf531082e8",
+              "relation": "land_on"
+            },
+            "spatialAnchor": "full_frame",
+            "assetBindings": [
+              {
+                "slot": "motion",
+                "assetId": "asset_e98e4ae0-c00c-4806-8a84-7a11cd67d135"
+              }
+            ],
+            "props": {},
+            "motion": {
+              "enterPreset": "none",
+              "settlePreset": "hold",
+              "exitPreset": "none",
+              "enterFrames": 0,
+              "holdFrames": 288,
+              "exitFrames": 0
+            },
+            "stylePackId": "managed-source",
+            "qualityRules": []
+          }
+        ],
+        "timeline": {
+          "fps": 30,
+          "width": 1920,
+          "height": 1080,
+          "durationInFrames": 288,
+          "tracks": [
+            {
+              "id": "track_898c61ae-ff88-4ad1-b67f-7b66734ec494",
+              "name": "Cutaway / Fullscreen",
+              "kind": "video",
+              "order": 0,
+              "locked": false,
+              "hidden": false,
+              "muted": false
+            },
+            {
+              "id": "track_6ae00f1f-9500-4bb5-8d42-9cb483cb6fe2",
+              "name": "Front FX",
+              "kind": "video",
+              "order": 1,
+              "locked": false,
+              "hidden": false,
+              "muted": false
+            },
+            {
+              "id": "track_fa111d8c-cfef-4a64-a3bf-b5803823730d",
+              "name": "Actor FX",
+              "kind": "video",
+              "order": 2,
+              "locked": false,
+              "hidden": false,
+              "muted": false
+            },
+            {
+              "id": "track_beb14f5d-ff57-459f-8cd4-38242cf08fe0",
+              "name": "Actor / A-roll",
+              "kind": "video",
+              "order": 3,
+              "locked": false,
+              "hidden": false,
+              "muted": false
+            },
+            {
+              "id": "track_8d2d6e45-907e-4152-b2c3-1a6a52836ce1",
+              "name": "Rear FX",
+              "kind": "video",
+              "order": 4,
+              "locked": false,
+              "hidden": false,
+              "muted": false
+            },
+            {
+              "id": "track_6a1957c4-d597-4c96-9c57-82cfbd7f2d08",
+              "name": "Background",
+              "kind": "video",
+              "order": 5,
+              "locked": false,
+              "hidden": false,
+              "muted": false
+            },
+            {
+              "id": "track_97768b62-b3db-4b39-af02-1b77b6ffbbca",
+              "name": "Captions",
+              "kind": "caption",
+              "order": 6,
+              "locked": false,
+              "hidden": false,
+              "muted": false
+            },
+            {
+              "id": "track_217bb5bc-f53e-46eb-bd41-e820a2976393",
+              "name": "Dialogue",
+              "kind": "audio",
+              "order": 7,
+              "locked": false,
+              "hidden": false,
+              "muted": false
+            },
+            {
+              "id": "track_c8655283-08a6-4a97-8f23-fae913847641",
+              "name": "Ambient",
+              "kind": "audio",
+              "order": 8,
+              "locked": false,
+              "hidden": false,
+              "muted": false
+            },
+            {
+              "id": "track_834b8b20-8110-49a2-8b51-3789078d7952",
+              "name": "SFX",
+              "kind": "audio",
+              "order": 9,
+              "locked": false,
+              "hidden": false,
+              "muted": false
+            },
+            {
+              "id": "track_fb7a5a69-c623-4a67-b8c0-8d70c4974f11",
+              "name": "BGM",
+              "kind": "audio",
+              "order": 10,
+              "locked": false,
+              "hidden": false,
+              "muted": false
+            }
+          ],
+          "items": [
+            {
+              "id": "item_edd6d5bb-d715-4142-b2dd-ff903fabe0ee",
+              "trackId": "track_217bb5bc-f53e-46eb-bd41-e820a2976393",
+              "assetId": "asset_930f1f6a-684c-4dea-a645-9e820157c84b",
+              "startFrame": 0,
+              "endFrame": 288,
+              "sourceStartFrame": 336,
+              "sourceEndFrame": 624,
+              "gainDb": 0,
+              "disabled": false
+            }
+          ],
+          "captions": [],
+          "captionFormat": {
+            "fontSize": 32,
+            "fontWeight": 700,
+            "color": "#ffffff",
+            "bottomPercent": 7,
+            "horizontalInsetPercent": 8,
+            "textAlign": "center",
+            "maxLines": 2,
+            "lineHeight": 1.36,
+            "boxWidth": "content",
+            "fontId": "noto-sans-sc-bold",
+            "font": {
+              "fontId": "noto-sans-sc-bold",
+              "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+              "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+              "weight": 700,
+              "style": "normal"
+            }
+          }
+        },
+        "markers": []
+      }
+    }
+  },
+  "captions": [
+    {
+      "id": "caption_e4108959-7952-4312-9ae0-89f12ed609cd",
+      "sourceKind": "user_srt",
+      "srtSource": {
+        "importId": "caption_import_dfd3f1a5-7061-4eaa-9dfb-3ad136f7f69d",
+        "cueIndex": 6,
+        "startMs": 11208,
+        "endMs": 13958
+      },
+      "sourceText": "飞机起飞后，这一班的空座不能留到明天再卖。",
+      "text": "飞机起飞后，这一班的空座不能留到明天再卖。",
+      "textMode": "derived",
+      "startFrame": 0,
+      "endFrame": 83,
+      "style": "stable",
+      "precision": "subtitle_exact"
+    },
+    {
+      "id": "caption_0906a6fa-ea14-4fea-954e-e31968a34b92",
+      "sourceKind": "user_srt",
+      "srtSource": {
+        "importId": "caption_import_dfd3f1a5-7061-4eaa-9dfb-3ad136f7f69d",
+        "cueIndex": 7,
+        "startMs": 14167,
+        "endMs": 16333
+      },
+      "sourceText": "越晚取消，重新卖掉它的时间越少。",
+      "text": "越晚取消，重新卖掉它的时间越少。",
+      "textMode": "derived",
+      "startFrame": 89,
+      "endFrame": 154,
+      "style": "stable",
+      "precision": "subtitle_exact"
+    },
+    {
+      "id": "caption_263e6983-3ced-4ef7-9682-c8f06ffd488f",
+      "sourceKind": "user_srt",
+      "srtSource": {
+        "importId": "caption_import_dfd3f1a5-7061-4eaa-9dfb-3ad136f7f69d",
+        "cueIndex": 8,
+        "startMs": 16458,
+        "endMs": 18083
+      },
+      "sourceText": "这能解释收费设计的一部分，",
+      "text": "这能解释收费设计的一部分，",
+      "textMode": "derived",
+      "startFrame": 158,
+      "endFrame": 206,
+      "style": "stable",
+      "precision": "subtitle_exact"
+    },
+    {
+      "id": "caption_fba115f9-7f1f-4efa-9803-13be4aa3edc1",
+      "sourceKind": "user_srt",
+      "srtSource": {
+        "importId": "caption_import_dfd3f1a5-7061-4eaa-9dfb-3ad136f7f69d",
+        "cueIndex": 9,
+        "startMs": 18125,
+        "endMs": 20667
+      },
+      "sourceText": "但不等于每笔费用，都恰好是航司的损失。",
+      "text": "但不等于每笔费用，都恰好是航司的损失。",
+      "textMode": "derived",
+      "startFrame": 208,
+      "endFrame": 284,
+      "style": "stable",
+      "precision": "subtitle_exact"
+    }
+  ],
+  "captionFormat": {
+    "fontSize": 48,
+    "fontWeight": 700,
+    "color": "#ffffff",
+    "bottomPercent": 5,
+    "horizontalInsetPercent": 7,
+    "textAlign": "center",
+    "maxLines": 2,
+    "lineHeight": 1.36,
+    "boxWidth": "content",
+    "fontId": "noto-sans-sc-bold",
+    "font": {
+      "fontId": "noto-sans-sc-bold",
+      "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+      "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+      "weight": 700,
+      "style": "normal"
+    },
+    "textShadow": null,
+    "paddingHorizontal": 20,
+    "paddingVertical": 12,
+    "borderRadius": 12,
+    "backgroundColor": "#143e43",
+    "backgroundOpacity": 0.94
+  },
+  "metadata": {
+    "durationMs": 9643,
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "hasAudio": true,
+    "audioCodec": "aac",
+    "sampleRate": 48000,
+    "channels": 2,
+    "videoCodec": "h264",
+    "pixelFormat": "yuvj420p",
+    "hasAlpha": false,
+    "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+  },
+  "bytes": 2378238,
+  "limitations": [
+    "独立开发声画样本，不是第四项主题输入实验",
+    "非干净宿主上下文，单作者兼任",
+    "不修改或重跑旧认可源码",
+    "原SRT提供字幕精度，不宣称词级听审",
+    "尚无真实听觉输入，听感与完整声画同步待人工复核"
+  ]
+}

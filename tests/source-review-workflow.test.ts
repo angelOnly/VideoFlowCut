@@ -3,7 +3,11 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 test("主任务、原素材作者与故障技能共享审阅分流规则，不把素材缺口当平台故障", async () => {
-  const paths = ["AGENTS.md", ".agents/skills/known-errors/references/submission-errors.md",
+  // 根规则只维护入口与恢复边界；具体诊断由业务 Skills 维护，不能要求复制回根文件。
+  const rootRules = await readFile("AGENTS.md", "utf8");
+  assert.match(rootRules, /视频业务方法由对应 Skills 维护/u);
+  assert.match(rootRules, /只有确认平台或服务自身问题且阻断当前操作时/u);
+  const paths = [".agents/skills/known-errors/references/submission-errors.md",
     ".agents/skills/visual-asset-sourcing/references/acquisition-operations.md"];
   for (const path of paths) {
     const text = await readFile(path, "utf8");

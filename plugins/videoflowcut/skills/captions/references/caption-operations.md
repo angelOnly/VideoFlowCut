@@ -8,6 +8,14 @@
 
 仅改文字错字通常不改变主线时长；改分卡和 Timing 会影响 Preview；改 Style 可能影响全片布局；主声音变化使 Caption stale。Impact 应与修改类型一致。
 
+## 用户已有 SRT
+
+原SRT可信时直接通过 `manage_captions` 的 import_srt 动作导入，不重新ASR、不伪造词级对齐、不烧入动画。参数为 project_id、base_revision_id、srt_text、source_name、target_range（start_frame/end_frame）、write_policy（reject_conflicts 或 replace_range）、idempotency_key，可选 offset_ms 默认0。先读取用户文件并保留真实来源名；srt_text 是原文，不是服务器任意文件路径。
+
+本片局部时间默认不再平移，只有明确时间映射才传 offset_ms。原毫秒和正文保留在导入审计，帧量化使用项目fps；新卡来源 user_srt、精度 subtitle_exact，只代表用户提供的字幕时间，不宣称听审或词级识别。解析、目标范围、冲突和全部卡片检查后一次写入；replace_range 只替换完整落在范围内的卡，跨边界卡拒绝。相同幂等键和相同正文重读不重复插卡，键相同但输入不同拒绝；未知结果保留原键对账，不换键重放。
+
+导入后读回原文、时间、来源与Impact，普通字幕继续采用同一全片规范，并与原旁白复核。
+
 ## 当前工具与能力
 
 当前 MCP 可 `generate_source_audio_captions`、`generate_speech_captions`、`read_source_audio_alignment`、`apply_source_caption_program`、`read_captions` 与 `edit_captions`。原声 A-roll 默认调用 `generate_source_audio_captions`；当前完整 SpeechAsset 已组装到唯一 Dialogue 时，用 `generate_speech_captions(base_revision_id, idempotency_key?)` 从最终可听音频生成字幕。两条入口复用 FunASR 的真实 `startMs/endMs`：每个 Provider 字幕 segment 自动对应一屏，不重生 TTS。按本片既定行数排版，不在同一时刻合并多个 segment。
@@ -36,7 +44,7 @@ Provider 能提供严格 token 时间时，Alignment 标记为 `provider_token_t
 
 本轮开发合同在 `format` 中提供 `font_id`、`line_height`（1～2）、`max_lines`（1 或 2）、`padding_horizontal` / `padding_vertical`（每侧 0～72 像素）、`border_radius`（0～72 像素）和 `box_width`（`content` / `full`），与已有字号、字色、位置、底板和阴影一起使用。HTTP 与读回采用相应 camelCase 字段。字体从 `read_motion_capabilities` 的 Runtime 登记库选择 `fontId`；受管作品的 `fontBindings` 不会自动控制 Caption，应显式设置字幕 `font_id`。不提交任意字体路径或伪造身份。
 
-单行或双行规则在首次设计中确定，`max_lines` 不会自动创造真实语音切点，也不是缩字或裁字许可；溢出时按可靠对齐重分卡。全片框宽、内边距、行高与最大行数一起决定固定占位，连续检查长短句基线与底板高度。新能力只在连接会话 Schema 已提供时提交；仓库实现不代表旧 Runtime 已部署，缺字段时回传具体能力差异。
+单行或双行规则在首次设计中确定，`max_lines` 不会自动创造真实语音切点，也不是缩字或裁字许可；溢出时按可靠对齐重分卡。全片框宽、内边距与行高固定，max_lines 仅为上限；背景使用实际行数，一行只占一行，两行向上增加，无字幕无底板，底部锚点不动。显式 placement 仍按顶部定位，不静默改义；独立禁用强调，不用关闭统一样式来缩背景。新能力只在连接会话 Schema 已提供时提交；仓库实现不代表旧 Runtime 已部署，缺字段时回传具体能力差异。
 
 字幕阴影沿美术选择：当前开发合同 `format.text_shadow:null` 明确关闭；对象 `{offsetX,offsetY,blur,color,opacity}` 指定单层阴影（偏移 -20～20 像素、模糊 0～40 像素、颜色 #RRGGBB、透明度 0～1）。省略保留已有选择，历史未设置的卡沿用旧黑影；HTTP 与读回字段为 `textShadow`。统一项目通过全片入口修改；单卡与同源批量仅用于尚未切换的旧项目。预览与导出共用解释，提交前核对当前会话 Schema，旧会话缺字段不能假称已可控制。
 

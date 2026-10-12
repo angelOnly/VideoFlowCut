@@ -1,0 +1,103 @@
+{
+  "schema": "reference-asset-map-v1",
+  "purpose": "参考资料的文件定位与历史绑定说明，不是可直接提交的MCP参数",
+  "path_base": "本案例目录（REFERENCE.md所在目录）",
+  "historical_work": "source/work.original.json",
+  "source": "source/AirfareIndependent.tsx",
+  "canvas": {
+    "width": 768,
+    "height": 1344,
+    "fps": 24,
+    "durationInFrames": 726
+  },
+  "images": [
+    {
+      "slot": "rule",
+      "file": "input/inputs/国航规则原文摘录.png",
+      "sha256": "7b620ffa0bc1b4bdb55b6ef7dcc7b692dd5aab1e32883c6954fef3e0d7066ee7",
+      "historical_asset_id": "asset_e4388dce-98b1-43fe-ad5a-aaf140a526d1",
+      "usage": "原文编辑摘录；不是官网原始截图，不是新片版式模板"
+    }
+  ],
+  "videos": [
+    {
+      "slot": "cabin",
+      "file": "input/inputs/客舱源视频.mp4",
+      "sha256": "3e6de34dbc5ee09f246dfd7aeb905972bed17ed50b10530e119aea2a6575d27b",
+      "historical_binding": {
+        "endFrame": 506,
+        "sourceStartMs": 1000,
+        "decodeScale": 1,
+        "startFrame": 235,
+        "sourceEndMs": 12292,
+        "assetId": "asset_dd5bb6ec-bd90-495d-90bc-beb6ae7de982"
+      },
+      "usage": "源1000–12292毫秒对应作品235–506帧（半开范围）；以原提交精度与当前合同校验，不二次换算出虚假时长"
+    }
+  ],
+  "fonts": [
+    {
+      "slot": "display",
+      "runtime_font_id": "aa-houdi-hei",
+      "font_binary_included": false
+    },
+    {
+      "slot": "label",
+      "runtime_font_id": "noto-sans-sc-bold",
+      "font_binary_included": false
+    },
+    {
+      "slot": "accent",
+      "runtime_font_id": "smiley-sans-oblique",
+      "font_binary_included": false
+    }
+  ],
+  "audio": {
+    "file": "input/inputs/旁白音轨.wav",
+    "usage": "已有旁白及设计时钟；原样片未合入有效声音，不能宣称该音轨已完成声画验证",
+    "start_seconds": 0,
+    "duration_seconds": 30.25
+  },
+  "captions": {
+    "file": "input/inputs/字幕时间.srt",
+    "cue_count": 13,
+    "usage": "本片局部时间；原样片未合成普通字幕，不再减14.50秒"
+  },
+  "text": "input/inputs/旁白正文.txt",
+  "facts": "input/inputs/规则字段.json",
+  "new_project_rules": [
+    "在本机当前正式VideoFlowCut环境导入相应原件，使用实际返回的新Asset ID重新建立绑定。",
+    "新建项目不得复用历史previousAssetId、Project、Job、Revision或幂等键；source/work.original.json只作原始提交快照。",
+    "原TSX依赖react、remotion与@videoflowcut/motion以及平台注入的props.assets和props.fonts，不是独立npm应用。",
+    "字体仅记录Runtime登记ID；未包含任何字体文件。缺少同款字体时报告差异并使用获准的替代，不能声称严格同款复现。",
+    "不替换或重新生成已经认可的preview.mp4；复跑产物另存并按实际维度重新验证。"
+  ],
+  "mechanism_references": {
+    "source": "evidence/制作记录.md",
+    "library_fingerprint_recorded": "537505ba157d840a06b01100f52f7131b6746c1020cf871d7030aac3223fc9af",
+    "items": [
+      {
+        "id": "051-m07",
+        "recorded_use": "纵向行激活"
+      },
+      {
+        "id": "030-m06",
+        "recorded_use": "从已有框提出横片"
+      },
+      {
+        "id": "032-m09",
+        "recorded_use": "同源实景窗口扩满及缩回",
+        "original_analysis_range_ms": [
+          3875,
+          11750
+        ]
+      },
+      {
+        "id": "005-m05",
+        "recorded_use": "保留一项、其余让位的局部关系"
+      }
+    ],
+    "availability": "原机制由项目现有机制库按真实编号读取。本包不重复复制机制库视频；查看本案例和重渲本案例不需要额外取得这些参考视频。",
+    "boundary": "这里只转录原制作记录，不把这些编号指定为新主题必选项；库版本变化时按当前接口重新核对。"
+  }
+}

@@ -6,7 +6,7 @@ import { DomainError } from "@videocut/domain";
 import { probeMedia, runProcess } from "@videocut/speech";
 import { loadLibraryIndex, searchLibraryIndex, libraryVideo } from "../../../references/motion-cases/skillry/tools/library-store.mjs";
 import { cosine, digest, timeRangeSchema } from "../../../packages/media-intelligence/src/index.js";
-import { mechanismChunks, motionCacheKey, MOTION_QUERY_INSTRUCTION, MOTION_INSTRUCTION_VERSION, MOTION_VIDEO_PROMPT } from "../../../packages/media-intelligence/src/motion-library.js";
+import { mechanismChunks, motionCacheKey, MOTION_QUERY_INSTRUCTION, MOTION_INSTRUCTION_VERSION, LEGACY_MOTION_VIDEO_PROMPT } from "../../../packages/media-intelligence/src/motion-library.js";
 import { deriveMediaInput, PREPROCESSING_VERSION } from "../../../packages/media-intelligence/src/derive.js";
 import { hashMediaFile } from "../../../packages/edit-application/src/media-intelligence.js";
 import { embedBatch } from "./media-understanding.js";
@@ -61,7 +61,8 @@ export async function runMotionReferenceAnalysis(app: EditingApplication, job: J
   const hash = await hashMediaFile(path), config = semanticConfig(job);
   if (bridge.apiBaseUrl !== config.apiBaseUrl) bridge = new ComfyUIBridgeClient(config.apiBaseUrl);
   const schema = await bridge.getWorkflow(config.videoWorkflowId);
-  const key = digest([id, fingerprint, hash, range, config, schema.schemaVersion, MOTION_VIDEO_PROMPT, PREPROCESSING_VERSION]);
+  const prompt = typeof job.payload.videoPrompt === "string" ? job.payload.videoPrompt : LEGACY_MOTION_VIDEO_PROMPT;
+  const key = digest([id, fingerprint, hash, range, config, schema.schemaVersion, prompt, PREPROCESSING_VERSION]);
   const cached = app.intelligence.store.libraryCache<Record<string, unknown>>(`motion-video:${key}`);
   if (cached) return { ...cached, cache_hit: true };
   const probe = JSON.parse(await runProcess("ffprobe", ["-v", "error", "-show_format", "-of", "json", path], 120000));
@@ -70,7 +71,7 @@ export async function runMotionReferenceAnalysis(app: EditingApplication, job: J
   const inputFrames = JSON.parse(await runProcess("ffprobe", ["-v", "error", "-select_streams", "v:0", "-count_frames", "-show_entries", "stream=nb_read_frames,avg_frame_rate", "-of", "json", derived.path], 120000));
   const response = await modelText(app, job, bridge, `motion-video:${key}`, config.videoWorkflowId, async workflow => {
     for (const field of ["prompt", "start_seconds", "duration_seconds"]) if (!workflow.fields.some(entry => entry.id === field)) throw new DomainError(`原片理解接口缺少${field}`, "MEDIA_MODEL_SCHEMA_UNSUPPORTED");
-    return { fieldValues: { prompt: MOTION_VIDEO_PROMPT, start_seconds: 0, duration_seconds: (range.endMs - range.startMs) / 1000 }, files: [{ slot: bridge.findRequiredSlot(workflow, "video"), path: derived.path, mime: "video/mp4" }] };
+    return { fieldValues: { prompt, start_seconds: 0, duration_seconds: (range.endMs - range.startMs) / 1000 }, files: [{ slot: bridge.findRequiredSlot(workflow, "video"), path: derived.path, mime: "video/mp4" }] };
   }, undefined, key);
   const result = { id, source_sha256: fingerprint, source_hash: hash, range, description: response.text, model: config.modelRevision, schema: response.schemaVersion, run_id: response.runId, input: { path: derived.path, mapping: derived.mapping, streams: inputFrames.streams }, sampling: { model_frame_density: "unknown", limitation: "派生片段帧数不等于模型实际抽样；未返回模型采样证据，快速交叠与精确速度保持未知。" }, cache_hit: false };
   app.intelligence.store.saveLibraryCache(`motion-video:${key}`, result);

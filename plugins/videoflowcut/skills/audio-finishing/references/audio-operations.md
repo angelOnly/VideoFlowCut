@@ -1,5 +1,13 @@
 # 声音轨道、混音与失效
 
+## 已有旁白与正式范围
+
+已有原WAV先登记真实资产，使用 `place_narration(project_id, base_revision_id, asset_id, start_frame, source_start_frame?, source_end_frame?, timeline_item_id?, gain_db?)` 放到 Dialogue 轨。源帧使用项目fps；省略源范围使用原文件完整范围，目标终点由源长度确定，不重新TTS、不变速或循环。修改该原音Item传 timeline_item_id；不能覆盖合成语音Item。需要新配音则沿 voice-production，不把两种输入混为同一次生成。
+
+有效已放置的 ManagedMotion 与真实视觉Item可构成声音主线；空Scene、缺资产、禁用或失效Cue不能。旁白、BGM与SFX自身不能扩大视觉范围。BGM 用 start_frame/end_frame；SFX 用 event_frame 与所选源范围内部的 onset_offset_frames，不能把范围参数替代事件参数。
+
+参数拒绝和 AUDIO_PROGRAM_NOT_READY 分开诊断：前者按实际合同纠正，后者读回真实放置与资产状态。版本冲突读回最新项目；结果未知核对原Revision与Item，不能换键重复创建。原声音放置成功还须在正式声画合成中复听。
+
 ## Ducking
 
 Ducking 的目标是保持 Dialogue 可懂，而不是固定降低某个 dB。攻击和释放速度要避免音乐抽吸；旁白停顿很短时不要立刻全量回升；长无语音段可以恢复音乐。不同音乐频谱需要不同处理。

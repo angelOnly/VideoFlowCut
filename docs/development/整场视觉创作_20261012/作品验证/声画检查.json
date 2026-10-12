@@ -1,0 +1,55 @@
+{
+  "file": "E:\\ai\\VideoCut\\.cache\\whole-scene-creative-eval\\seat-time\\preview.mp4",
+  "metadata": {
+    "durationMs": 9643,
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "hasAudio": true,
+    "audioCodec": "aac",
+    "sampleRate": 48000,
+    "channels": 2,
+    "videoCodec": "h264",
+    "pixelFormat": "yuvj420p",
+    "hasAlpha": false,
+    "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+  },
+  "frameCount": 288,
+  "sourceRangeMs": [
+    11200,
+    20800
+  ],
+  "timelineRangeFrames": [
+    0,
+    288
+  ],
+  "srtOffsetMs": -11200,
+  "sourceSamples": 230400,
+  "composedSamples": 231424,
+  "normalizedCorrelationByRange": [
+    {
+      "from": 0.5,
+      "to": 2.5,
+      "correlation": 0.999969020288953,
+      "lagSamples": 1024,
+      "lagMs": 42.666666666666664
+    },
+    {
+      "from": 3.5,
+      "to": 5.5,
+      "correlation": 0.9999613369159882,
+      "lagSamples": 1024,
+      "lagMs": 42.666666666666664
+    },
+    {
+      "from": 6.8,
+      "to": 9.2,
+      "correlation": 0.9999462633567276,
+      "lagSamples": 1024,
+      "lagMs": 42.666666666666664
+    }
+  ],
+  "technicalConclusion": "解码声音与原WAV选段保持高相关，各段延迟一致支持没有隐式变速。AAC编码延迟与填充单独记录，不视为创作听审。",
+  "visualReview": "已查看合成contact（每秒1帧）与0.5、3.5、7.6秒大帧：普通字幕固定底部，未遮挡主读和示意；后段没有普遍不等号，限定词完整。开场画内白字“这一班的座位”跨亮窗导致局部对比偏低，作为遗留视觉问题记录；中段淡化交接仍有短时双层内容，未作连续观看结论。",
+  "listening": "inconclusive：未取得真实听觉输入，不声称已听过、自然或同步满意。"
+}

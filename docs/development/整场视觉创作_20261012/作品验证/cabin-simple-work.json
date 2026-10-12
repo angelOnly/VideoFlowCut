@@ -1,0 +1,24 @@
+{
+  "name": "客舱空间-简洁测试",
+  "source": "import React from 'react';\nimport {AbsoluteFill,useCurrentFrame} from 'remotion';\nimport {TimelineVideo} from '@videoflowcut/motion';\nexport default function Motion(props){\n const f=useCurrentFrame(),p=Math.max(0,Math.min(1,(f-36)/24)),enter=1-Math.pow(1-p,3),font=props.fonts.title;\n return <AbsoluteFill style={{backgroundColor:'#103e43'}}>\n   <TimelineVideo slot=\"cabin\" fit=\"cover\" style={{width:'100%',height:'100%'}}/>\n   <div style={{position:'absolute',inset:0,background:'linear-gradient(0deg,rgba(4,27,29,0.88),transparent 40%)',opacity:enter}}/>\n   <div style={{position:'absolute',left:42,bottom:32,fontFamily:font.family,fontWeight:font.weight,fontSize:43,letterSpacing:1,color:'#fff',opacity:enter,transform:'translateY('+(1-enter)*18+'px)'}}>座椅的重复，让纵深可见</div>\n </AbsoluteFill>\n}\n",
+  "props": {},
+  "imageBindings": {},
+  "width": 960,
+  "height": 540,
+  "fps": 30,
+  "durationInFrames": 150,
+  "creativeBrief": "固定同一源视频0至5秒与纵深观察；接受测试输入“简洁”，保持全幅实拍，不横移成窗口，用一条清楚的主读承接座椅重复。",
+  "videoBindings": {
+    "cabin": {
+      "assetId": "asset_6da52ea0-8d6f-47d6-a248-69ef3d528be4",
+      "sourceStartMs": 0,
+      "sourceEndMs": 5000,
+      "startFrame": 0,
+      "endFrame": 150
+    }
+  },
+  "fontBindings": {
+    "title": "noto-sans-sc-bold",
+    "body": "noto-sans-sc-regular"
+  }
+}

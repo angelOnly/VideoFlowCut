@@ -1,0 +1,207 @@
+{
+  "request": "用已有客舱视频做一段关于飞机客舱空间的短视频",
+  "explicitCreativePreferences": null,
+  "design": "实拍从全幅连续播放到左侧让出文字区；保持同一源时钟，客舱纵深由实拍座椅重复承担。",
+  "projectId": "project_15706068-45eb-4207-949f-652c3bee11e7",
+  "revision": 4,
+  "job": {
+    "id": "job_4ad457c2-629c-4d9f-ba1a-2e623b390a45",
+    "projectId": "project_15706068-45eb-4207-949f-652c3bee11e7",
+    "kind": "motion_generation",
+    "status": "succeeded",
+    "payload": {
+      "work": {
+        "name": "客舱空间",
+        "source": "import React from 'react';\nimport {AbsoluteFill,useCurrentFrame,interpolate} from 'remotion';\nimport {TimelineVideo} from '@videoflowcut/motion';\nexport default function Motion(props){\n const f=useCurrentFrame();\n const c=(x)=>Math.max(0,Math.min(1,x)); const ease=(x)=>1-Math.pow(1-c(x),3);\n const p=ease((f-40)/35), title=ease((f-10)/18), next=ease((f-61)/24);\n const font=props.fonts.title;\n return <AbsoluteFill style={{backgroundColor:'#e8eeee',fontFamily:font.family,fontWeight:font.weight,color:'#103e43'}}>\n   <div style={{position:'absolute',left:28*p,top:48*p,width:960-306*p,height:540-96*p,overflow:'hidden',borderRadius:14*p,transform:'rotate('+(-1.1*Math.sin(p*Math.PI))+'deg)'}}>\n    <TimelineVideo slot=\"cabin\" fit=\"cover\" style={{width:'100%',height:'100%'}}/>\n    <div style={{position:'absolute',inset:0,background:'linear-gradient(0deg,rgba(5,25,30,0.7),transparent 38%)',opacity:1-p}}/>\n    <div style={{position:'absolute',left:42,bottom:28,color:'white',fontSize:64,letterSpacing:2,opacity:title*(1-p),transform:'translateY('+(1-title)*20+'px)'}}>往里看</div>\n   </div>\n   <div style={{position:'absolute',left:724,top:102,width:215,overflow:'hidden',opacity:next}}>\n    <div style={{fontSize:76,lineHeight:1.05,letterSpacing:-3,transform:'translateX('+(1-next)*210+'px)'}}>空间</div>\n    <div style={{height:7,width:178*next,background:'#c49340',marginTop:16,borderRadius:4}}/>\n    <div style={{fontSize:28,lineHeight:1.45,marginTop:27,transform:'translateY('+(1-next)*24+'px)'}}>沿着过道<br/>向里展开</div>\n   </div>\n   <div style={{position:'absolute',left:42,top:502,fontSize:21,letterSpacing:2,opacity:next,color:'#29555a'}}>座椅的重复，让纵深变得可见</div>\n </AbsoluteFill>\n}\n",
+        "props": {},
+        "imageBindings": {},
+        "width": 960,
+        "height": 540,
+        "fps": 30,
+        "durationInFrames": 150,
+        "creativeBrief": "实拍从全幅连续播放到左侧让出文字区；保持同一源时钟，客舱纵深由实拍座椅重复承担。",
+        "videoBindings": {
+          "cabin": {
+            "assetId": "asset_7eb73b06-68eb-4112-a292-a757feb3e1de",
+            "sourceStartMs": 0,
+            "sourceEndMs": 5000,
+            "startFrame": 0,
+            "endFrame": 150
+          }
+        },
+        "fontBindings": {
+          "title": "noto-sans-sc-bold",
+          "body": "noto-sans-sc-regular"
+        }
+      },
+      "version": "aaf82e3317844a0bf1f693930b9724014bda7b1e851908ffc93429407c03e599",
+      "engineVersion": "managed-motion-13",
+      "requestedRevision": 3,
+      "boundImages": [],
+      "boundVideos": [
+        {
+          "slot": "cabin",
+          "assetId": "asset_7eb73b06-68eb-4112-a292-a757feb3e1de",
+          "managedPath": "assets/cabin-original.mp4",
+          "hash": "3e6de34dbc5ee09f246dfd7aeb905972bed17ed50b10530e119aea2a6575d27b",
+          "sourceStartMs": 0,
+          "sourceEndMs": 5000,
+          "startFrame": 0,
+          "endFrame": 150
+        }
+      ],
+      "boundFonts": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ]
+    },
+    "result": {
+      "assetId": "asset_02f9f004-8e77-4899-a4ec-7d2e990ebf21",
+      "version": "aaf82e3317844a0bf1f693930b9724014bda7b1e851908ffc93429407c03e599",
+      "videoDecodes": {
+        "cabin": {
+          "width": 960,
+          "height": 540,
+          "startFrame": 0,
+          "endFrame": 150,
+          "frameCount": 150,
+          "geometry": {
+            "streamIndex": 0,
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "sar": 1,
+            "rotation": 0,
+            "displayWidth": 1920,
+            "displayHeight": 1080,
+            "durationMs": 12880,
+            "startTimeSeconds": 0
+          }
+        }
+      },
+      "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
+      "workReviewRequired": true,
+      "sourcePath": "assets/derived/motion/job_4ad457c2-629c-4d9f-ba1a-2e623b390a45/aaf82e3317844a0bf1f693930b9724014bda7b1e851908ffc93429407c03e599/source.json",
+      "previewPath": "assets/derived/motion/job_4ad457c2-629c-4d9f-ba1a-2e623b390a45/aaf82e3317844a0bf1f693930b9724014bda7b1e851908ffc93429407c03e599/preview.mp4",
+      "motionDiagnostics": {
+        "status": "exact",
+        "maxAllowedChannelDelta": 2,
+        "sampledFrames": [
+          0,
+          75,
+          149
+        ],
+        "differences": [],
+        "reportPath": "assets/derived/motion/job_4ad457c2-629c-4d9f-ba1a-2e623b390a45/aaf82e3317844a0bf1f693930b9724014bda7b1e851908ffc93429407c03e599/diagnostics/report.json"
+      }
+    },
+    "idempotencyKey": "motion:cabin-4663b8c58fb55a5c8a580f2d67cc7b2ab0a12d9c0180a6c245bc318c2e635217",
+    "attempt": 0,
+    "createdAt": "2026-10-12T14:33:40.309Z",
+    "updatedAt": "2026-10-12T14:34:34.491Z"
+  },
+  "asset": {
+    "id": "asset_02f9f004-8e77-4899-a4ec-7d2e990ebf21",
+    "name": "客舱空间",
+    "kind": "video",
+    "status": "ready",
+    "managedPath": "assets/derived/motion/job_4ad457c2-629c-4d9f-ba1a-2e623b390a45/aaf82e3317844a0bf1f693930b9724014bda7b1e851908ffc93429407c03e599/preview.mp4",
+    "sourceHash": "749533f3659207e00f571404659d989d35203874af72dd779deb7e60e72daa1e",
+    "role": "generated_visual",
+    "tags": [
+      "managed_motion",
+      "work_review_required"
+    ],
+    "createdAt": "2026-10-12T14:34:34.488Z",
+    "metadata": {
+      "durationMs": 5000,
+      "width": 960,
+      "height": 540,
+      "fps": 30,
+      "hasAudio": false,
+      "videoCodec": "h264",
+      "pixelFormat": "yuv420p",
+      "hasAlpha": false,
+      "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+    },
+    "provenance": {
+      "source": "generated",
+      "provider": "managed_remotion",
+      "generationJobId": "job_4ad457c2-629c-4d9f-ba1a-2e623b390a45",
+      "acquiredAt": "2026-10-12T14:34:34.488Z"
+    },
+    "motion": {
+      "jobId": "job_4ad457c2-629c-4d9f-ba1a-2e623b390a45",
+      "version": "aaf82e3317844a0bf1f693930b9724014bda7b1e851908ffc93429407c03e599",
+      "engineVersion": "managed-motion-13",
+      "sourceAssetIds": [
+        "asset_7eb73b06-68eb-4112-a292-a757feb3e1de"
+      ],
+      "videoSources": [
+        {
+          "slot": "cabin",
+          "assetId": "asset_7eb73b06-68eb-4112-a292-a757feb3e1de",
+          "sourceHash": "3e6de34dbc5ee09f246dfd7aeb905972bed17ed50b10530e119aea2a6575d27b",
+          "sourceStartMs": 0,
+          "sourceEndMs": 5000,
+          "startFrame": 0,
+          "endFrame": 150
+        }
+      ],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "sourceHash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "sourceHash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourcePath": "assets/derived/motion/job_4ad457c2-629c-4d9f-ba1a-2e623b390a45/aaf82e3317844a0bf1f693930b9724014bda7b1e851908ffc93429407c03e599/source.json",
+      "framesDirectory": "assets/derived/motion/job_4ad457c2-629c-4d9f-ba1a-2e623b390a45/aaf82e3317844a0bf1f693930b9724014bda7b1e851908ffc93429407c03e599/frames",
+      "frameCount": 150,
+      "fps": 30,
+      "width": 960,
+      "height": 540,
+      "creativeBrief": "实拍从全幅连续播放到左侧让出文字区；保持同一源时钟，客舱纵深由实拍座椅重复承担。"
+    }
+  },
+  "metadata": {
+    "durationMs": 5000,
+    "width": 960,
+    "height": 540,
+    "fps": 30,
+    "hasAudio": false,
+    "videoCodec": "h264",
+    "pixelFormat": "yuv420p",
+    "hasAlpha": false,
+    "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+  },
+  "bytes": 911073,
+  "limitations": [
+    "开发评价作者沿已读技能兼任导演视觉与实现，并非干净宿主上下文",
+    "使用源码正式Job代码路径与独立workspace，未连接生产Runtime和ComfyUI",
+    "无旁白和普通字幕，不是完整声画交付",
+    "仅在本地读取词法机制候选，没有运行语义向量服务"
+  ]
+}

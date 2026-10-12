@@ -1,0 +1,92 @@
+[
+  {
+    "id": "cabin",
+    "request": "用已有客舱视频做一段关于飞机客舱空间的短视频",
+    "path": "E:\\ai\\VideoCut\\docs\\development\\整场视觉创作_20261012\\作品验证\\cabin.mp4",
+    "bytes": 911073,
+    "sha256": "749533f3659207e00f571404659d989d35203874af72dd779deb7e60e72daa1e",
+    "fps": 30,
+    "width": 960,
+    "height": 540,
+    "durationMs": 5000,
+    "explicitCreativePreferences": null,
+    "jobId": "job_4ad457c2-629c-4d9f-ba1a-2e623b390a45",
+    "version": "aaf82e3317844a0bf1f693930b9724014bda7b1e851908ffc93429407c03e599",
+    "engineVersion": "managed-motion-13",
+    "sourcePath": "assets/derived/motion/job_4ad457c2-629c-4d9f-ba1a-2e623b390a45/aaf82e3317844a0bf1f693930b9724014bda7b1e851908ffc93429407c03e599/source.json",
+    "decode": "ffmpeg完整解码通过"
+  },
+  {
+    "id": "principles",
+    "request": "把当前项目AGENTS.md的开发原则讲清楚",
+    "path": "E:\\ai\\VideoCut\\docs\\development\\整场视觉创作_20261012\\作品验证\\principles.mp4",
+    "bytes": 416042,
+    "sha256": "7d9b6ec515d74a5e0178631b6e02f44e2387a6307cad6b8fbf6c1e4300ae72b8",
+    "fps": 30,
+    "width": 960,
+    "height": 540,
+    "durationMs": 6000,
+    "explicitCreativePreferences": null,
+    "jobId": "job_2d062fb8-1ac0-420f-8770-7d26a3aed9e7",
+    "version": "f3809361278f05281e85e2aec1734c6ba74f746d93ffb983dd22704a04813412",
+    "engineVersion": "managed-motion-13",
+    "sourcePath": "assets/derived/motion/job_2d062fb8-1ac0-420f-8770-7d26a3aed9e7/f3809361278f05281e85e2aec1734c6ba74f746d93ffb983dd22704a04813412/source.json",
+    "decode": "ffmpeg完整解码通过"
+  },
+  {
+    "id": "queue",
+    "request": "解释排队时增加一个服务窗口会怎样影响等待",
+    "path": "E:\\ai\\VideoCut\\docs\\development\\整场视觉创作_20261012\\作品验证\\queue.mp4",
+    "bytes": 103805,
+    "sha256": "253b5c8fc176d072ece64c284dd685425dc74bc0054aac621bdafa97d74e7cee",
+    "fps": 30,
+    "width": 960,
+    "height": 540,
+    "durationMs": 6000,
+    "explicitCreativePreferences": null,
+    "jobId": "job_7d326d02-bc35-4213-84d2-0e2355dd4c31",
+    "version": "ae03fe3b7607615a49fb5cd286c89ada64d4aae3025274e22e16e56dfbfc8d61",
+    "engineVersion": "managed-motion-13",
+    "sourcePath": "assets/derived/motion/job_7d326d02-bc35-4213-84d2-0e2355dd4c31/ae03fe3b7607615a49fb5cd286c89ada64d4aae3025274e22e16e56dfbfc8d61/source.json",
+    "decode": "ffmpeg完整解码通过"
+  },
+  {
+    "id": "cabin-simple",
+    "request": "用已有客舱视频做一段关于飞机客舱空间的短视频。视觉简洁一些。",
+    "path": "E:\\ai\\VideoCut\\docs\\development\\整场视觉创作_20261012\\作品验证\\cabin-simple.mp4",
+    "bytes": 1102764,
+    "sha256": "6bf7d25d1582f3be4769fa3778cdae2dd7cd6546597af47fe1e06a64c43f5b94",
+    "fps": 30,
+    "width": 960,
+    "height": 540,
+    "durationMs": 5000,
+    "explicitCreativePreferences": {
+      "dimensions": {
+        "visual": "简洁"
+      }
+    },
+    "jobId": "job_f2d860c4-8d2d-403b-8ede-d0c9fcc5a927",
+    "version": "f08b06ceea4c3dde31692cf51f17d5f68606b63d33d01478d293727c131af663",
+    "engineVersion": "managed-motion-13",
+    "sourcePath": "assets/derived/motion/job_f2d860c4-8d2d-403b-8ede-d0c9fcc5a927/f08b06ceea4c3dde31692cf51f17d5f68606b63d33d01478d293727c131af663/source.json",
+    "decode": "ffmpeg完整解码通过"
+  },
+  {
+    "id": "seat-time",
+    "request": "补充开发验收：原旁白与原SRT空座/取消时间/解释边界完整句群，重新设计画面并正式合成",
+    "path": "E:\\ai\\VideoCut\\docs\\development\\整场视觉创作_20261012\\作品验证\\seat-time.mp4",
+    "bytes": 2378238,
+    "sha256": "1d69779ac97c59edf6011e5f6098678f24e559248fb7b3b7f45f6c6c781f66d3",
+    "fps": 30,
+    "width": 1920,
+    "height": 1080,
+    "durationMs": 9643,
+    "explicitCreativePreferences": null,
+    "jobId": "job_24e30bdf-a8a6-474f-a870-a0734967d195",
+    "motionJobId": "job_ace3277b-3da0-4280-928f-adb7e81d4834",
+    "version": "20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c",
+    "engineVersion": "managed-motion-13",
+    "sourcePath": "assets/derived/motion/job_ace3277b-3da0-4280-928f-adb7e81d4834/20a7d016feef6373fcef8247992ec9c36f7b099b756012a3170d4de9216ce18c/source.json",
+    "decode": "ffmpeg完整解码通过"
+  }
+]

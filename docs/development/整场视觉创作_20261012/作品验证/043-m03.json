@@ -1,0 +1,67 @@
+{
+  "card": {
+    "id": "043-m03",
+    "title": "同一竖框横移转向，左右文字交替让位",
+    "case_number": 43,
+    "summary": "让同一竖框边转动边移向一侧，旧文字退出，另一侧新文字在腾出的空位建立。",
+    "purpose": "在两侧转移重点",
+    "relation": "竖框持续留场，横移和转动腾出文字区，旧字先退新字后接。",
+    "start_state": "竖框与一侧文字已经完整建立。",
+    "end_state": "竖框移动到另一侧并回正，新文字占据腾出的空位。",
+    "tags": [
+      "横移转向",
+      "交替布局",
+      "持续对象"
+    ],
+    "retrieval": {
+      "categories": [
+        "排列与重组",
+        "替换与接管"
+      ],
+      "actions": [
+        "位移",
+        "旋转",
+        "显隐",
+        "替换"
+      ],
+      "entry": [
+        "外框",
+        "文字组"
+      ],
+      "exit": [
+        "外框",
+        "文字组"
+      ],
+      "holds": [
+        "主体保持"
+      ],
+      "anchors": [
+        "对象延续"
+      ]
+    },
+    "clip": {
+      "path": "cases/dannyverkissen-101463-original/mechanisms/m03.mp4",
+      "start_ms": 8200,
+      "end_ms": 10950,
+      "source_sha256": "50d8b3cac7f97a7d2752c62ffa26b9bcf6d80620bc7fbe3917f88ca65ef9d4da",
+      "sha256": "8d436ef42021beaf8fa3a241747ab8776518ce54af0d8faca7d40fab9733ba11",
+      "bytes": 374246,
+      "boundary_note": "保留起始准备、连续发展和完成或明确交接；首尾按本段运动范围裁切，不拼接、不变速。尾部只保留理解结果所需的展示。"
+    },
+    "search_text": "在两侧转移重点\n竖框持续留场，横移和转动腾出文字区，旧字先退新字后接。\n竖框与一侧文字已经完整建立。\n让同一竖框边转动边移向一侧，旧文字退出，另一侧新文字在腾出的空位建立。随后竖框再向相反侧移动并回正，新一组文字从空出的一边接上；内部内容随阶段更换，但外框始终是共同参照。\n可只用一次横移，也可往返；文字不要跟着框等距滑动，否则空位没有真正让出。后续可在框保持时滚动内部内容。\n竖框移动到另一侧并回正，新文字占据腾出的空位。",
+    "search_text_version": "motion-relations-v1",
+    "text_sha256": "0496a1cb8f138f4d51d4b2af7ecf22b43a4359a5ff22194aba71ae53234b26a2",
+    "document": "cases/dannyverkissen-101463-original/mechanisms/m03.md",
+    "storyboard": "cases/dannyverkissen-101463-original/mechanisms/m03.jpg",
+    "case_slug": "dannyverkissen-101463",
+    "overview": "cases/dannyverkissen-101463-original/overview.md",
+    "detail": "detail.html?case=dannyverkissen-101463&mechanism=043-m03"
+  },
+  "source_sha256": "537505ba157d840a06b01100f52f7131b6746c1020cf871d7030aac3223fc9af",
+  "part": "mechanism",
+  "document": "cases/dannyverkissen-101463-original/mechanisms/m03.md",
+  "body": "---\r\nid: \"043-m03\"\r\ntitle: \"同一竖框横移转向，左右文字交替让位\"\r\ncase_number: 43\r\nsummary: \"让同一竖框边转动边移向一侧，旧文字退出，另一侧新文字在腾出的空位建立。\"\r\npurpose: \"在两侧转移重点\"\r\nrelation: \"竖框持续留场，横移和转动腾出文字区，旧字先退新字后接。\"\r\nstart_state: \"竖框与一侧文字已经完整建立。\"\r\nend_state: \"竖框移动到另一侧并回正，新文字占据腾出的空位。\"\r\ntags: [\"横移转向\",\"交替布局\",\"持续对象\"]\r\nretrieval: {\"categories\":[\"排列与重组\",\"替换与接管\"],\"actions\":[\"位移\",\"旋转\",\"显隐\",\"替换\"],\"entry\":[\"外框\",\"文字组\"],\"exit\":[\"外框\",\"文字组\"],\"holds\":[\"主体保持\"],\"anchors\":[\"对象延续\"]}\r\nclip: {\"path\":\"cases/dannyverkissen-101463-original/mechanisms/m03.mp4\",\"start_ms\":8200,\"end_ms\":10950,\"source_sha256\":\"50d8b3cac7f97a7d2752c62ffa26b9bcf6d80620bc7fbe3917f88ca65ef9d4da\",\"sha256\":\"8d436ef42021beaf8fa3a241747ab8776518ce54af0d8faca7d40fab9733ba11\",\"bytes\":374246,\"boundary_note\":\"保留起始准备、连续发展和完成或明确交接；首尾按本段运动范围裁切，不拼接、不变速。尾部只保留理解结果所需的展示。\"}\r\n---\r\n\r\n# 同一竖框横移转向，左右文字交替让位\r\n\r\n## 运动指令\r\n\r\n让同一竖框边转动边移向一侧，旧文字退出，另一侧新文字在腾出的空位建立。随后竖框再向相反侧移动并回正，新一组文字从空出的一边接上；内部内容随阶段更换，但外框始终是共同参照。\r\n\r\n## 视频切片\r\n\r\n[播放本机制的原片切片](m03.mp4)\r\n\r\n保留起始准备、连续发展和完成或明确交接；首尾按本段运动范围裁切，不拼接、不变速。尾部只保留理解结果所需的展示。\r\n\r\n## 分镜过程\r\n\r\n![同一竖框横移转向，左右文字交替让位的分镜过程](m03.jpg)\r\n\r\n## 组合与调整\r\n\r\n可只用一次横移，也可往返；文字不要跟着框等距滑动，否则空位没有真正让出。后续可在框保持时滚动内部内容。\r\n",
+  "preview_url": "http://127.0.0.1:8874/library/detail.html?case=dannyverkissen-101463&mechanism=043-m03",
+  "video_path": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\dannyverkissen-101463-original\\video.mp4",
+  "observation": "返回原机制指令与静态分镜；本工具没有播放或听取视频。"
+}

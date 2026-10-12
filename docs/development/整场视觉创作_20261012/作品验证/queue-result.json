@@ -1,0 +1,155 @@
+{
+  "request": "解释排队时增加一个服务窗口会怎样影响等待",
+  "explicitCreativePreferences": null,
+  "design": "六人同一集合保留身份；第二窗口进入后从单队分两路，最后一人的等待由5分钟改为2分钟；条件明确为同时到达、等长服务且无新增。",
+  "projectId": "project_1b1a0027-97e6-4bec-ba06-380bfa47b4a9",
+  "revision": 2,
+  "job": {
+    "id": "job_7d326d02-bc35-4213-84d2-0e2355dd4c31",
+    "projectId": "project_1b1a0027-97e6-4bec-ba06-380bfa47b4a9",
+    "kind": "motion_generation",
+    "status": "succeeded",
+    "payload": {
+      "work": {
+        "name": "增加服务窗口",
+        "source": "import React from 'react';\nimport {AbsoluteFill,useCurrentFrame} from 'remotion';\nexport default function Motion(props){\n const f=useCurrentFrame(),c=(x)=>Math.max(0,Math.min(1,x)),e=(x)=>1-Math.pow(1-c(x),3);\n const split=e((f-36)/34), move=e((f-80)/56), result=e((f-108)/24), title=props.fonts.title,body=props.fonts.body;\n const people=[1,2,3,4,5,6];\n return <AbsoluteFill style={{backgroundColor:'#f3f0fb',color:'#33295c',fontFamily:body.family,fontWeight:body.weight}}>\n   <div style={{position:'absolute',left:46,top:28,fontFamily:title.family,fontWeight:title.weight,fontSize:42}}>多开一个窗口，队伍会怎样？</div>\n   <div style={{position:'absolute',left:48,top:91,fontSize:21,color:'#675f7b'}}>假设 6 人同时到达 · 每人服务 1 分钟 · 无新到达</div>\n   <div style={{position:'absolute',left:68,top:271,width:644,height:4,background:'#d5cceb',transform:'translateY('+(-65*split)+'px)'}}/>\n   <div style={{position:'absolute',left:68,top:336,width:644*split,height:4,background:'#d5cceb'}}/>\n   {[0,1].map(k=><div key={k} style={{position:'absolute',left:737,top:k===0?210-65*split:310,opacity:k===0?1:split,transform:'translateX('+(k===1?(1-split)*170:0)+'px)',width:157,height:104,background:k===0?'#7463ab':'#4e368c',borderRadius:'18px 18px 5px 5px',boxShadow:'0 10px 0 #33295c20',color:'white',textAlign:'center',boxSizing:'border-box',paddingTop:12}}><div style={{fontFamily:title.family,fontWeight:title.weight,fontSize:24}}>{k===0?'窗口 1':'窗口 2'}</div><div style={{margin:'12px auto',width:119,height:12,background:'#f3f0fb',borderRadius:4}}/></div>)}\n   {people.map(id=>{\n     const row=(id-1)%2,group=Math.floor((id-1)/2),initialX=642-(id-1)*104;\n     const splitX=642-group*137, currentX=splitX+(708-splitX)*e((f-80-group*18)/22);\n     const x=initialX+(splitX-initialX)*split+(currentX-splitX)*move;\n     const y=253+(row===0?-65:65)*split;\n     const done=group===2?0:e((f-105-group*18)/10); const color=id===6?'#d85c8b':'#8779b3';\n     return <div key={id} style={{position:'absolute',left:x,top:y-41,width:54,height:76,opacity:1-done,transform:'scale('+(1-0.12*done)+')',color:color}}><div style={{position:'absolute',left:15,top:0,width:24,height:24,borderRadius:12,background:color}}/><div style={{position:'absolute',left:3,top:30,width:48,height:43,borderRadius:'18px 18px 8px 8px',background:color}}/><div style={{position:'absolute',left:0,top:37,width:54,textAlign:'center',color:'white',fontFamily:title.family,fontWeight:title.weight,fontSize:23}}>{id}</div></div>\n   })}\n   <div style={{position:'absolute',left:52,top:420,fontSize:27}}>最后一人开始服务前的等待</div>\n   <div style={{position:'absolute',left:52,top:458,fontFamily:title.family,fontWeight:title.weight,fontSize:49,lineHeight:1,color:'#75648d'}}>5 分钟<span style={{color:'#b73b70',display:'inline-block',marginLeft:23,opacity:result,transform:'translateX('+(1-result)*30+'px)'}}>→ 2 分钟</span></div>\n   <div style={{position:'absolute',left:757,top:428,fontSize:22,color:'#675f7b',opacity:result}}>两人同时服务</div>\n </AbsoluteFill>\n}\n",
+        "props": {},
+        "imageBindings": {},
+        "width": 960,
+        "height": 540,
+        "fps": 30,
+        "durationInFrames": 180,
+        "creativeBrief": "六人同一集合保留身份；第二窗口进入后从单队分两路，最后一人的等待由5分钟改为2分钟；条件明确为同时到达、等长服务且无新增。",
+        "videoBindings": {},
+        "fontBindings": {
+          "title": "noto-sans-sc-bold",
+          "body": "noto-sans-sc-regular"
+        }
+      },
+      "version": "ae03fe3b7607615a49fb5cd286c89ada64d4aae3025274e22e16e56dfbfc8d61",
+      "engineVersion": "managed-motion-13",
+      "requestedRevision": 1,
+      "boundImages": [],
+      "boundFonts": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ]
+    },
+    "result": {
+      "assetId": "asset_56429bfa-e11e-4f28-b020-9a9bda2f68dd",
+      "version": "ae03fe3b7607615a49fb5cd286c89ada64d4aae3025274e22e16e56dfbfc8d61",
+      "videoDecodes": {},
+      "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
+      "workReviewRequired": true,
+      "sourcePath": "assets/derived/motion/job_7d326d02-bc35-4213-84d2-0e2355dd4c31/ae03fe3b7607615a49fb5cd286c89ada64d4aae3025274e22e16e56dfbfc8d61/source.json",
+      "previewPath": "assets/derived/motion/job_7d326d02-bc35-4213-84d2-0e2355dd4c31/ae03fe3b7607615a49fb5cd286c89ada64d4aae3025274e22e16e56dfbfc8d61/preview.mp4",
+      "motionDiagnostics": {
+        "status": "exact",
+        "maxAllowedChannelDelta": 2,
+        "sampledFrames": [
+          0,
+          90,
+          179
+        ],
+        "differences": [],
+        "reportPath": "assets/derived/motion/job_7d326d02-bc35-4213-84d2-0e2355dd4c31/ae03fe3b7607615a49fb5cd286c89ada64d4aae3025274e22e16e56dfbfc8d61/diagnostics/report.json"
+      }
+    },
+    "idempotencyKey": "motion:queue-bf036963ff062939aecdca618e09ad2f826d2eff95aa03b0380ffc20afefd45f",
+    "attempt": 0,
+    "createdAt": "2026-10-12T14:34:42.542Z",
+    "updatedAt": "2026-10-12T14:35:04.050Z"
+  },
+  "asset": {
+    "id": "asset_56429bfa-e11e-4f28-b020-9a9bda2f68dd",
+    "name": "增加服务窗口",
+    "kind": "video",
+    "status": "ready",
+    "managedPath": "assets/derived/motion/job_7d326d02-bc35-4213-84d2-0e2355dd4c31/ae03fe3b7607615a49fb5cd286c89ada64d4aae3025274e22e16e56dfbfc8d61/preview.mp4",
+    "sourceHash": "253b5c8fc176d072ece64c284dd685425dc74bc0054aac621bdafa97d74e7cee",
+    "role": "generated_visual",
+    "tags": [
+      "managed_motion",
+      "work_review_required"
+    ],
+    "createdAt": "2026-10-12T14:35:04.046Z",
+    "metadata": {
+      "durationMs": 6000,
+      "width": 960,
+      "height": 540,
+      "fps": 30,
+      "hasAudio": false,
+      "videoCodec": "h264",
+      "pixelFormat": "yuv420p",
+      "hasAlpha": false,
+      "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+    },
+    "provenance": {
+      "source": "generated",
+      "provider": "managed_remotion",
+      "generationJobId": "job_7d326d02-bc35-4213-84d2-0e2355dd4c31",
+      "acquiredAt": "2026-10-12T14:35:04.046Z"
+    },
+    "motion": {
+      "jobId": "job_7d326d02-bc35-4213-84d2-0e2355dd4c31",
+      "version": "ae03fe3b7607615a49fb5cd286c89ada64d4aae3025274e22e16e56dfbfc8d61",
+      "engineVersion": "managed-motion-13",
+      "sourceAssetIds": [],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "sourceHash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "sourceHash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourcePath": "assets/derived/motion/job_7d326d02-bc35-4213-84d2-0e2355dd4c31/ae03fe3b7607615a49fb5cd286c89ada64d4aae3025274e22e16e56dfbfc8d61/source.json",
+      "framesDirectory": "assets/derived/motion/job_7d326d02-bc35-4213-84d2-0e2355dd4c31/ae03fe3b7607615a49fb5cd286c89ada64d4aae3025274e22e16e56dfbfc8d61/frames",
+      "frameCount": 180,
+      "fps": 30,
+      "width": 960,
+      "height": 540,
+      "creativeBrief": "六人同一集合保留身份；第二窗口进入后从单队分两路，最后一人的等待由5分钟改为2分钟；条件明确为同时到达、等长服务且无新增。"
+    }
+  },
+  "metadata": {
+    "durationMs": 6000,
+    "width": 960,
+    "height": 540,
+    "fps": 30,
+    "hasAudio": false,
+    "videoCodec": "h264",
+    "pixelFormat": "yuv420p",
+    "hasAlpha": false,
+    "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+  },
+  "bytes": 103805,
+  "limitations": [
+    "开发评价作者沿已读技能兼任导演视觉与实现，并非干净宿主上下文",
+    "使用源码正式Job代码路径与独立workspace，未连接生产Runtime和ComfyUI",
+    "无旁白和普通字幕，不是完整声画交付",
+    "仅在本地读取词法机制候选，没有运行语义向量服务"
+  ]
+}

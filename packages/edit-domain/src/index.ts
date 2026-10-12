@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { parseSrt } from "../../contracts/src/caption-srt.js";
 import type {
   AgentWorkOrder,
   Asset,
@@ -1116,7 +1117,39 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
     sourceCaptionProgramByTimelineItemId.set(program.sourceTimelineItemId, program);
   }
 
+  const srtImports = new Map((snapshot.timeline.captionImports ?? []).map(entry => [entry.id, entry]));
+  const srtCues = new Map<string, ReturnType<typeof parseSrt>>();
+  if (srtImports.size !== (snapshot.timeline.captionImports ?? []).length
+    || new Set((snapshot.timeline.captionImports ?? []).map(entry => entry.idempotencyKey)).size !== srtImports.size) {
+    throw new DomainError("SRT 导入身份和幂等键重复", "PROJECT_GRAPH_INVALID");
+  }
   for (const caption of snapshot.timeline.captions) {
+    if (caption.sourceKind === "user_srt") {
+      const source = caption.srtSource;
+      const record = source ? srtImports.get(source.importId) : undefined;
+      if (!source || !record || !record.sourceName.trim() || !record.idempotencyKey.trim()
+        || !Number.isSafeInteger(record.offsetMs) || !Number.isFinite(record.fps) || record.fps <= 0
+        || !/^[a-f0-9]{64}$/u.test(record.requestHash) || !record.captionIds.includes(caption.id) || caption.precision !== "subtitle_exact"
+        || caption.speechSegmentId !== undefined || caption.sourceAssetId !== undefined || caption.sourceTimelineItemId !== undefined
+        || caption.sourceAlignmentId !== undefined || caption.sourceCaptionProgramId !== undefined || caption.sourceBridgeRunId !== undefined
+        || caption.sourceTokenStartIndex !== undefined || caption.sourceTokenEndIndex !== undefined || caption.sourceTextReview !== undefined) {
+        throw new DomainError("用户 SRT 字幕缺少真实来源审计，或混入了语音对齐身份", "PROJECT_GRAPH_INVALID");
+      }
+      if (!srtCues.has(record.id)) {
+        try { srtCues.set(record.id, parseSrt(record.srtText)); }
+        catch { throw new DomainError("SRT 导入原文损坏", "PROJECT_GRAPH_INVALID"); }
+      }
+      const cue = srtCues.get(record.id)!.find(entry => entry.index === source.cueIndex);
+      if (!cue || cue.startMs !== source.startMs || cue.endMs !== source.endMs || caption.sourceText !== cue.text
+        || caption.endFrame <= caption.startFrame
+        || cue.startMs + record.offsetMs < 0
+        || caption.startFrame !== millisecondsToFrames(cue.startMs + record.offsetMs, snapshot.timeline.fps)
+        || caption.endFrame !== millisecondsToFrames(cue.endMs + record.offsetMs, snapshot.timeline.fps)) {
+        throw new DomainError("SRT 字幕原文、毫秒或当前帧率映射与导入记录不一致", "PROJECT_GRAPH_INVALID");
+      }
+      continue;
+    }
+    if (caption.srtSource !== undefined || caption.precision === "subtitle_exact") throw new DomainError("仅用户 SRT 字幕可以声明原 SRT 来源与精度", "PROJECT_GRAPH_INVALID");
     if (caption.sourceKind === "source_audio") {
       if (!caption.sourceAssetId || !caption.sourceTimelineItemId || !caption.sourceBridgeRunId?.trim()
         || caption.sourceStartFrame === undefined || caption.sourceEndFrame === undefined

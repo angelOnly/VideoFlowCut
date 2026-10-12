@@ -304,7 +304,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     description: "创建和定位项目、读取 Revision 与故事、打开工作台、管理 Codex 工作单和平台修复交接。",
     tools: [
       "open_web_workbench", "list_projects", "create_project", "target_project", "read_project", "read_story", "manage_story",
-      "preview_project_frame_rate_change", "set_project_frame_rate",
+      "preview_project_frame_rate_change", "set_project_frame_rate", "update_creative_brief",
       "get_editor_url", "focus_editor_object", "read_impact_report", "list_revisions", "read_agent_work_orders",
       "claim_agent_work_order", "complete_agent_work_order", "release_agent_work_order", "report_editing_blocker",
       "list_repair_tickets", "claim_repair_ticket", "release_repair_ticket", "resolve_repair_ticket_without_deployment", "mark_repair_candidate_ready",
@@ -331,7 +331,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
       "submit_transcription", "generate_source_audio_captions", "generate_speech_captions", "read_source_audio_alignment", "apply_source_caption_program", "apply_manual_transcript", "read_script", "apply_semantic_units", "apply_authored_script", "apply_script",
       "read_speech_asset", "manage_voice_references", "read_speech_timing", "submit_speech_alignment",
       "read_speech_alignment", "rebuild_speech_timeline", "submit_voice_synthesis", "submit_speech_placement", "submit_dialogue_processing",
-      "select_dialogue_processing_variant", "read_captions", "edit_captions", "browse_local_sound_effects",
+      "select_dialogue_processing_variant", "read_captions", "edit_captions", "manage_captions", "place_narration", "browse_local_sound_effects",
       "inspect_local_sound_effect", "import_local_sound_effect", "browse_sound_sources", "manage_audio", "set_audio_mix_gain", "set_dialogue_muted",
       "manage_sound_plans", "recommend_sound_candidates", "preview_sound_alternatives", "review_sound_mix", "set_audio_output_target"
     ]

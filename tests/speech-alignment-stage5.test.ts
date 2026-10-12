@@ -183,8 +183,11 @@ test("Application 仅在真实 token、审计与当前 SpeechAsset 一致时升�
     assert.equal(report.issues.some((entry) => entry.code === "WORD_ALIGNMENT_REQUIRED" || entry.code === "WORD_ALIGNMENT_INVALID"), false);
     const firstWord = completed.alignment.words[0]!;
     const caption = completed.state.snapshot.timeline.captions.find((candidate) => candidate.speechSegmentId === firstWord.speechSegmentId)!;
-    assert.equal(resolveWordExactCaptionHighlight(completed.state.snapshot, caption, firstWord.startFrame)?.text, "你", "真实词级时间戳必须实际驱动当前字幕的高亮");
-    assert.equal(resolveWordExactCaptionHighlight(completed.state.snapshot, { ...caption, textMode: "manual" }, firstWord.startFrame), undefined, "手工改写字幕不能按 normalizedText 猜测逐词位置");
+    assert.equal(resolveWordExactCaptionHighlight(completed.state.snapshot, caption, firstWord.startFrame), undefined, "统一普通字幕保持稳定，真实词级精度也不启用逐词高亮");
+    const legacy = structuredClone(completed.state.snapshot);
+    delete legacy.timeline.captionFormat;
+    assert.equal(resolveWordExactCaptionHighlight(legacy, caption, firstWord.startFrame)?.text, "你", "历史字幕仍以真实词级时间驱动高亮");
+    assert.equal(resolveWordExactCaptionHighlight(legacy, { ...caption, textMode: "manual" }, firstWord.startFrame), undefined, "手工改写字幕不能按 normalizedText 猜测逐词位置");
 
     const invalidated = context.app.applyScript({
       projectId: context.projectId,

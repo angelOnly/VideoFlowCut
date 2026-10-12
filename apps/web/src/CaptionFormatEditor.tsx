@@ -28,7 +28,7 @@ export function CaptionFormatEditor({ format, disabled, onSave }: {
     <label key={key}>{label}<input aria-label={`全片字幕${label}`} type="number" min={min} max={max} step={Number.isInteger(step) ? step : "any"} value={current[key] ?? value} onChange={event => setPatch(previous => ({ ...previous, [key]: Number(event.target.value) }))} /></label>;
   return <section className="caption-card" aria-label="全片字幕样式">
     <h3>全片字幕样式</h3>
-    <p>当前全片使用 {format.fontId ?? "既定字体"} · {format.fontSize} px · 固定 {format.maxLines ?? 2} 行占位。正文与显示时间在下方各卡编辑。</p>
+    <p>当前全片使用 {format.fontId ?? "既定字体"} · {format.fontSize} px · 最多 {format.maxLines ?? 2} 行，背景随实际行数调整。正文与显示时间在下方各卡编辑。</p>
     <details><summary>调整全片样式</summary>
       <form className="caption-editor" onSubmit={event => { event.preventDefault(); if (Object.keys(patch).length) onSave(patch); }}>
         <fieldset disabled={disabled} style={{ border: 0, padding: 0, margin: 0 }}>
@@ -40,7 +40,7 @@ export function CaptionFormatEditor({ format, disabled, onSave }: {
             {fonts.map(face => <option key={face.id} value={face.id}>{face.name}</option>)}
           </select></label>
           {error && <p role="alert">字体列表读取失败：{error}。当前字体保持不变，仍可调整其他样式。</p>}
-          <label>行数规则<select aria-label="全片字幕行数" value={current.maxLines ?? 2} onChange={event => setPatch(previous => ({ ...previous, maxLines: Number(event.target.value) as 1 | 2 }))}><option value={1}>固定单行</option><option value={2}>固定双行占位</option></select></label>
+          <label>行数规则<select aria-label="全片字幕行数" value={current.maxLines ?? 2} onChange={event => setPatch(previous => ({ ...previous, maxLines: Number(event.target.value) as 1 | 2 }))}><option value={1}>最多一行</option><option value={2}>最多两行</option></select></label>
           <div className="caption-field-row">{numberField("fontSize", "字号", 32, 16, 72, 1)}{numberField("fontWeight", "字重", 700, 400, 900, 1)}</div>
           <label>字色<input aria-label="全片字幕字色" type="color" value={current.color} onChange={event => setPatch(previous => ({ ...previous, color: event.target.value }))} /></label>
           <label>对齐<select value={current.textAlign} onChange={event => setPatch(previous => ({ ...previous, textAlign: event.target.value as CaptionFormat["textAlign"] }))}><option value="left">左对齐</option><option value="center">居中</option><option value="right">右对齐</option></select></label>

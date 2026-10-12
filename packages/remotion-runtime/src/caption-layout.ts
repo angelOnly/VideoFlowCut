@@ -28,8 +28,6 @@ export interface CaptionLayoutInput {
   /** 强调的视觉缩放会放大实际字形，布局必须预留这一部分宽度。 */
   emphasisScale?: number;
   emphasisFontWeight?: number;
-  /** 全片规范固定预留行数；历史字幕仍按实际行数占位。 */
-  fixedLineCount?: boolean;
 }
 
 export interface ResolvedCaptionLayoutInput {
@@ -100,13 +98,18 @@ export function resolveCaptionLayoutInput(input: CaptionLayoutInput): ResolvedCa
   };
 }
 
+/** 绘制与边界检查共用实际行数；maxLines 只限制换行，不预留空行。 */
+export function captionContentHeight(resolved: ResolvedCaptionLayoutInput, actualLineCount: number): number {
+  return resolved.fontSize * resolved.lineHeight * actualLineCount + resolved.paddingVertical * 2;
+}
+
 /** 与字宽同次核对画布边缘，不把可自由定位解释成可以越出画面。 */
 export function layoutCaptionWithMeasure(input: CaptionLayoutInput, measure: CaptionTextMeasure, measurement: CaptionLayoutResult["measurement"]): CaptionLayoutResult {
   const layout = layoutCaptionRowsWithMeasure(input, measure, measurement);
   if (!layout.ready || input.compositionHeight === undefined) return layout;
   const format = { ...DEFAULT_RENDER_CAPTION_FORMAT, ...input.format };
   const resolved = resolveCaptionLayoutInput(input)!;
-  const height = resolved.fontSize * resolved.lineHeight * (input.fixedLineCount ? resolved.maxLines : layout.lines.length) + resolved.paddingVertical * 2;
+  const height = captionContentHeight(resolved, layout.lines.length);
   const top = format.placement ? input.compositionHeight * format.placement.topPercent / 100 : input.compositionHeight * (1 - format.bottomPercent / 100) - height;
   return top < 0 || top + height > input.compositionHeight ? { ready: false, code: CAPTION_LAYOUT_OVERFLOW, reason: "CANVAS_VERTICAL_OVERFLOW", measurement } : layout;
 }

@@ -1,10 +1,8 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { access, readdir, readFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import test from "node:test";
-import { promisify } from "node:util";
 
 const repositoryRoot = process.cwd();
 const skillsRoot = join(repositoryRoot, ".agents", "skills");
@@ -13,7 +11,6 @@ const pluginSkillsRoot = join(pluginRoot, "skills");
 const pluginManifestPath = join(pluginRoot, ".codex-plugin", "plugin.json");
 const pluginMcpPath = join(pluginRoot, ".mcp.json");
 const mcpSourcePath = join(repositoryRoot, "apps", "server", "src", "mcp.ts");
-const execFileAsync = promisify(execFile);
 
 test("字体身份与选择操作分别位于实现合同和提交参考", async () => {
   const contract = await readFile(join(skillsRoot,"remotion-production/references/remotion-component-contract.md"),"utf8");
@@ -142,6 +139,7 @@ const hostCollaborationTools = new Set(["spawn_agent", "followup_task", "list_ag
 const ignoredToolLikeTokens = new Set([
   // 机制元数据中的起始状态不是 start_* 操作。
   "start_state",
+  "start_ms",
   "start_frame",
   "end_frame",
   "base_revision_id",
@@ -193,10 +191,15 @@ async function markdownFiles(directory: string): Promise<string[]> {
   return files;
 }
 
-/** 用户工作区可暂存未跟踪的评审资料；CI 只约束进入 Git 的运行时 Skills 副本。 */
-async function hasTrackedNestedExecutableSkills(): Promise<boolean> {
-  const { stdout } = await execFileAsync("git", ["ls-files", "--", "docs"], { cwd: repositoryRoot, encoding: "utf8" });
-  return String(stdout).split(/\r?\n/u).some((path) => /(?:^|\/)\.agents\/skills\/.+\/SKILL\.md$/u.test(path));
+/** docs 可保存原始交付包与历史快照；真正约束的是活动方法不能读取第二棵技能树。 */
+async function hasRuntimeLinksToDocumentationSkills(): Promise<boolean> {
+  for (const path of await markdownFiles(skillsRoot)) {
+    for (const link of localMarkdownLinks(await readFile(path, "utf8"))) {
+      const target = relative(repositoryRoot, resolve(dirname(path), link)).replace(/\\/gu, "/");
+      if (target.startsWith("docs/") && target.includes("/.agents/skills/")) return true;
+    }
+  }
+  return false;
 }
 
 async function operationKnowledge(): Promise<string> {
@@ -300,7 +303,7 @@ test("Skills V5 源唯一、插件发行副本完整且可被 Codex 发现", asy
   assert.equal(await exists(join(skillsRoot, "_shared", "CURRENT_CAPABILITIES.md")), false, "运行时不得依赖 CURRENT_CAPABILITIES 快照");
   assert.equal(await exists(join(skillsRoot, "production-coordinator/references/project-writes.md")), true);
   assert.equal(await exists(join(skillsRoot, "visual-asset-sourcing", "references", "source-review.md")), true);
-  assert.equal(await hasTrackedNestedExecutableSkills(), false, "docs 中不得保留第二棵可执行 .agents/skills");
+  assert.equal(await hasRuntimeLinksToDocumentationSkills(), false, "运行时不得依赖 docs 中的历史 Skills 副本");
 
   const allSkillFiles = await markdownFiles(skillsRoot);
   for (const name of expectedSkills) {

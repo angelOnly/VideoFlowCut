@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { inspectEffectContentContract, type EffectAudioEvent, type EffectCue, type ImpactReport, type ProjectSnapshot } from "@videocut/contracts";
 import { DomainError } from "@videocut/domain";
+import { resolveAudioProgramEndFrame } from "../../edit-domain/src/audio-program-range.js";
 
 export type EffectAudioEventInput = Omit<EffectAudioEvent, "cueSignature" | "syncOffsetFrames" | "meaning"> & { syncOffsetFrames?: number };
 
@@ -56,8 +57,7 @@ export function bindEffectAudioEvent(snapshot: ProjectSnapshot, input: EffectAud
 
 /** 在同一 Revision 事务统一对账，覆盖修改、移除、重编译和作品换绑等入口。 */
 export function reconcileEffectAudioEvents(snapshot: ProjectSnapshot, impact: ImpactReport): void {
-  const audioItems = new Set(snapshot.audioCues.map((audio) => audio.timelineItemId));
-  const programEnd = snapshot.timeline.items.filter((item) => !item.disabled && !audioItems.has(item.id)).reduce((end, item) => Math.max(end, item.endFrame), 0);
+  const programEnd = resolveAudioProgramEndFrame(snapshot);
   for (const audio of snapshot.audioCues) {
     const binding = audio.effectEvent;
     if (!binding || audio.status === "stale") continue;

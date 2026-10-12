@@ -1,0 +1,125 @@
+import React from 'react';
+import {AbsoluteFill, Img, useCurrentFrame, interpolate, spring} from 'remotion';
+import {TimelineVideo} from '@videoflowcut/motion';
+
+type Props={assets:Record<string,string>;fonts:Record<string,{family:string;weight:number;style:string}>};
+const C={ink:'#171b1c',paper:'#fff8e6',red:'#f34b35',yellow:'#ffce61',mint:'#b9e5d9',teal:'#12474b'};
+const clamp=(n:number)=>Math.max(0,Math.min(1,n));
+const p=(f:number,a:number,b:number)=>{const t=clamp((f-a)/(b-a));return t*t*(3-2*t);};
+const mix=(a:number,b:number,t:number)=>a+(b-a)*t;
+const pop=(f:number,a:number)=>spring({frame:f-a,fps:24,config:{damping:15,stiffness:210,mass:0.8}});
+const pos=(left:number,top:number,width?:number,height?:number):React.CSSProperties=>({position:'absolute',left,top,width,height});
+const paper:React.CSSProperties={background:C.paper,border:`4px solid ${C.ink}`,boxShadow:`10px 12px 0 ${C.ink}`};
+const times=[['≥7天','含7天'],['<7天','且≥48小时'],['<48小时','且≥4小时'],['<4小时','及起飞后']];
+const rows=[['Y','免费'],['B / M / U','10%'],['H / Q / V','10%'],['W / S','20%'],['T / L / P / N / K','20%']];
+
+export const resolveMotionEvents=()=>[
+ {id:'column',meaning:'首列沿纵向激活，舱位和费率对应',startFrame:42,endFrame:88},
+ {id:'row',meaning:'H/Q/V行外提，四档时间横向展开',startFrame:91,endFrame:166},
+ {id:'cabin',meaning:'真实客舱同源画面扩满并收回',startFrame:235,endFrame:344},
+ {id:'time',meaning:'起飞端保持，取消位置向右推进，剩余销售时间缩短',startFrame:340,endFrame:392},
+ {id:'cancel',meaning:'原行程纸条沿中缝分离取消',startFrame:508,endFrame:541},
+ {id:'change',meaning:'新安排替换原行程，再展开费用两项',startFrame:544,endFrame:628},
+ {id:'waive',meaning:'手续费免除，差额仍可能存在',startFrame:666,endFrame:712}
+];
+
+export default function AirfareIndependent(props:Props){
+ const f=useCurrentFrame();
+ const font=(slot:string):React.CSSProperties=>({fontFamily:props.fonts[slot].family,fontWeight:props.fonts[slot].weight,fontStyle:props.fonts[slot].style});
+ const bold=font('label');const display=font('display');const slant=font('accent');
+ const Sticker=({text,x,y,size=74,rotate=-5,color=C.paper,scale=1,style={}}:{text:React.ReactNode;x:number;y:number;size?:number;rotate?:number;color?:string;scale?:number;style?:React.CSSProperties})=><div style={{...pos(x,y),...display,fontSize:size,lineHeight:1.08,color,whiteSpace:'pre-line',WebkitTextStroke:`2px ${C.ink}`,paintOrder:'stroke fill',textShadow:`5px 6px 0 ${C.ink}`,transform:`rotate(${rotate}deg) scale(${scale})`,transformOrigin:'left center',...style}}>{text}</div>;
+ const Tag=({text,x,y,rotate=0,bg=C.ink,color=C.paper,size=28,style={}}:{text:string;x:number;y:number;rotate?:number;bg?:string;color?:string;size?:number;style?:React.CSSProperties})=><div style={{...pos(x,y),...bold,fontSize:size,lineHeight:1.3,padding:'10px 18px',background:bg,color,transform:`rotate(${rotate}deg)`,whiteSpace:'pre-line',...style}}>{text}</div>;
+ const Tape=({x,y,w,rot=0}:{x:number;y:number;w:number;rot?:number})=><div style={{...pos(x,y,w,32),background:C.yellow,opacity:.95,transform:`rotate(${rot}deg)`,clipPath:'polygon(3% 0,98% 5%,96% 25%,100% 50%,97% 75%,99% 100%,0 95%,3% 70%,0 45%)'}}/>;
+ const ruleExit=p(f,228,250), col=p(f,32,46), extract=p(f,89,104), rowRead=clamp((f-107)/45);
+ const intro=pop(f,0);
+ // 原件始终保持其实际像素，编辑数据独立于原件，避免伪造官网界面。
+ const ruleX=mix(42,92,col)-ruleExit*850;
+ const ruleY=mix(185,128,col);
+ const ruleW=mix(684,584,col);
+ return <AbsoluteFill style={{background:f<235?C.red:f<506?C.teal:C.mint,color:C.ink,...bold,overflow:'hidden'}}>
+  {f<250&&<>
+   <div style={{...pos(-90,980,1000,300),background:C.yellow,transform:'rotate(-13deg)'}}/>
+   <div style={{...pos(ruleX,ruleY,ruleW),transform:`rotate(${mix(-5,-2,col)}deg) translateY(${(1-intro)*190}px)`,opacity:1-ruleExit,...paper}}>
+    <Img src={props.assets.rule} style={{width:'100%',display:'block'}}/>
+    <Tape x={36} y={-18} w={158} rot={-5}/><Tape x={ruleW-184} y={-15} w={140} rot={8}/>
+   </div>
+   {f<93&&<div style={{...pos(45,375,660,570),opacity:col,transform:`translateX(${(1-col)*-600}px) rotate(-2deg)`}}>
+    <div style={{...pos(0,0,660,565),...paper}}/>
+    <Tag text={'距起飞 ≥7天（含）'} x={22} y={24} size={31}/>
+    <div style={{...pos(35,116,6,385),background:'#d6d6c6'}}/>
+    <div style={{...pos(35,116,6,385*clamp((f-43)/39)),background:C.red}}/>
+    {rows.map((r,i)=>{const q=p(f,43+i*7,48+i*7);return <div key={r[0]} style={{...pos(58,102+i*83,576,77),opacity:mix(.24,1,q),background:i===2?C.yellow:'transparent',borderBottom:`2px solid ${C.ink}22`,transform:`translateX(${mix(35,0,q)}px)`}}><div style={{...pos(-30,25,18,18),borderRadius:'50%',background:q>.5?C.red:C.ink}}/><div style={{...pos(15,18),fontSize:i===4?28:35}}>{r[0]}</div><div style={{...pos(422,8),...display,fontSize:49}}>{r[1]}</div></div>;})}
+   </div>}
+   {f>=89&&f<177&&<>
+    <div style={{...pos(mix(103,36,extract),mix(654,576,extract),mix(576,696,extract),mix(77,312,extract)),...paper,transform:`rotate(${mix(-2,1,extract)}deg)`,overflow:'hidden'}}>
+     <Tag text={'H / Q / V · 自愿退票'} x={18} y={14} size={28} bg={C.yellow} color={C.ink}/>
+     {['10%','20%','35%','45%'].map((n,i)=>{const q=p(f,102+i*12,111+i*12);return <div key={n} style={{...pos(18+i*165,94,158,194),opacity:mix(.22,1,q),transform:`translateY(${(1-q)*22}px)`}}><div style={{...display,fontSize:66,color:i===3?C.red:C.ink}}>{n}</div><div style={{fontSize:25,lineHeight:1.35,marginTop:16}}>{times[i][0]}<br/>{times[i][1]}</div><div style={{...pos(0,-9,147*q,6),background:C.red}}/></div>;})}
+    </div>
+    <Sticker text={'同一行 →'} x={70} y={465} size={66} scale={pop(f,96)}/>
+    <Sticker text={'可能更高'} x={361} y={930} size={62} color={C.yellow} scale={pop(f,142)}/>
+   </>}
+   {f>=172&&<div style={{transform:`translateX(${-850*ruleExit}px)`}}>
+    <div style={{...pos(91,737,604,220),...paper,background:C.yellow,transform:`rotate(-8deg) scale(${pop(f,171)})`}}><div style={{...display,fontSize:99,lineHeight:1.1,padding:'41px 30px',textAlign:'center'}}>按你的票</div></div>
+    <Tag text={'不能用一个百分比套所有航班'} x={57} y={1015} rotate={3} size={30}/>
+   </div>}
+  </>}
+
+  {f>=235&&f<506&&(()=>{
+   const expand=p(f,235,255),shrink=p(f,333,348),lim=p(f,394,411),end=p(f,496,506);
+   const vx=mix(550,0,expand),vy=mix(570,0,expand),vw=mix(180,768,expand),vh=mix(350,1344,expand)-shrink*636;
+   return <>
+    <div style={{...pos(vx,vy,vw,vh),overflow:'hidden',transform:`rotate(${mix(9,0,expand)}deg) translateY(${-end*800}px)`}}>
+     <TimelineVideo slot="cabin" fit="cover" style={{position:'absolute',width:'100%',height:'100%'}}/>
+     <div style={{...pos(0,0,768,1344),background:'linear-gradient(180deg,rgba(0,0,0,.2),transparent 45%,rgba(0,0,0,.55))'}}/>
+    </div>
+    {f<397&&<>
+     <Sticker text={'这一班的'} x={51} y={130-80*shrink} size={64} scale={pop(f,264)}/>
+     <Sticker text={'空座'} x={40} y={219-69*shrink} size={154} color={C.yellow} scale={pop(f,273)} rotate={-7}/>
+     <Tag text={'不能留到明天再卖'} x={245} y={mix(943,588,shrink)} rotate={5} size={36} style={{opacity:p(f,296,305)}}/>
+    </>}
+    {f>=338&&f<411&&<div style={{opacity:shrink*(1-lim)}}>
+     <Tag text={'重新卖掉它的时间'} x={46} y={747} bg={C.yellow} color={C.ink} size={32}/>
+     <svg width="768" height="1344" style={pos(0,0)}><path d="M65 1004 H688" stroke={C.paper} strokeWidth="7"/><path d="M683 911 V1038" stroke={C.paper} strokeWidth="7"/><path d="M683 903 L683 874 L716 888 Z" fill={C.paper}/></svg>
+     <Tag text={'起飞'} x={606} y={1042} size={31}/>
+     {(()=>{const x=mix(107,548,p(f,345,389));return <><div style={{...pos(x,932,683-x,66),background:C.yellow}}/><div style={{...pos(x-4,901,8,123),background:C.red}}/><Tag text={'取消'} x={x-45} y={1041} bg={C.red} size={28}/></>;})()}
+    </div>}
+    {f>=395&&<div style={{opacity:lim,transform:`translateY(${mix(90,0,lim)-end*900}px)`}}>
+     <div style={{...pos(-20,677,810,106),background:C.yellow,transform:'rotate(-4deg)'}}/>
+     <Sticker text={'只能解释一部分'} x={57} y={690} size={65} color={C.ink} style={{...slant,WebkitTextStroke:'0px',textShadow:`3px 4px 0 ${C.paper}`}} rotate={-4}/>
+     <div style={{...pos(65,841,640,222),...paper,transform:`rotate(3deg) scale(${pop(f,432)})`,padding:'29px 24px'}}><div style={{...bold,fontSize:32,color:C.red}}>不能据此认定</div><div style={{...bold,fontSize:43,marginTop:22}}>每笔费用都是实际损失</div></div>
+    </div>}
+   </>;
+  })()}
+
+  {f>=501&&(()=>{
+   const enter=p(f,501,514),tear=p(f,522,539),change=p(f,544,558),fold=p(f,584,608),waive=p(f,666,686);
+   return <div style={{...pos(0,mix(1344,0,enter),768,1344),background:C.mint}}>
+    <div style={{...pos(-85,1070,940,430),background:C.teal,transform:'rotate(-13deg)'}}/>
+    <div style={{...pos(614,-190,280,730),background:C.yellow,transform:'rotate(24deg)'}}/>
+    {f<548&&<>
+     <Sticker text={'退票'} x={68} y={169} size={125} color={C.paper} rotate={-8}/>
+     {[0,1].map(i=><div key={i} style={{...pos(70+(i?305:0)+(i?1:-1)*tear*345,467+tear*80,305,225),...paper,boxShadow:'none',overflow:'hidden',transform:`rotate(${(i?1:-1)*tear*21}deg)`}}><div style={{...pos(i?-305:0,0,610,225),padding:'57px 40px',...display,fontSize:80,textAlign:'center'}}>原来的行程</div><div style={{...pos(i?0:298,0,5,225),borderLeft:`5px dashed ${C.red}`}}/></div>)}
+     <Tag text={'取消'} x={265} y={788} bg={C.red} size={68} rotate={-7} style={{transform:`rotate(-7deg) scale(${pop(f,531)})`}}/>
+    </>}
+    {f>=544&&<>
+     <Sticker text={'改签'} x={mix(70,55,fold)} y={mix(180,86,fold)} size={mix(121,88,fold)} color={C.ink} rotate={-7} scale={pop(f,544)} style={{textShadow:`4px 6px 0 ${C.paper}`}}/>
+     <div style={{...pos(mix(90,65,fold),mix(461,281,fold),610,174),...paper,transform:`rotate(-5deg) translateX(${(1-change)*680}px)`}}>
+      <div style={{...pos(32,27),fontSize:31,color:C.teal}}>原行程</div><div style={{...pos(180,36),fontSize:73}}>→</div><div style={{...pos(282,29),...display,fontSize:73}}>新安排</div>
+      <Tape x={369} y={-15} w={168} rot={5}/>
+     </div>
+     <Tag text={'换一个安排，账又不同'} x={165} y={698} rotate={3} size={37} style={{opacity:1-fold}}/>
+     {f>=584&&<>
+      <Tag text={'可能涉及'} x={60} y={483} bg={C.ink} size={33} rotate={-4} style={{opacity:fold}}/>
+      {[0,1].map(i=>{const x=i?mix(402,157,waive):42-560*waive;const y=598+(1-fold)*-90+i*19-17*waive;const w=i?mix(320,466,waive):320;return <div key={i} style={{...pos(x,y,w,375),...paper,background:i?C.yellow:C.paper,transform:`rotate(${i?mix(6,-4,waive):-5-21*waive}deg)`,clipPath:fold<1?`inset(0 0 ${(1-fold)*100}% 0)`:undefined,transformOrigin:'center top',opacity:i?1:1-waive}}>
+       <div style={{...pos(0,26,w),textAlign:'center',fontSize:27}}>{i?'新旧票价':'变更'}</div>
+       <div style={{...pos(10,82,w-20),...display,textAlign:'center',fontSize:i?mix(86,116,waive):75,lineHeight:1.12}}>{i?'差额':'手续费'}</div>
+       <div style={{...pos(23,254,w-46),borderTop:`3px dashed ${C.ink}`,paddingTop:21,textAlign:'center',fontSize:i?mix(28,38,waive):31}}>{i?(waive>.1?'仍可能补差':'补足票价差额'):'变更手续费'}</div>
+       {!i&&f>=665&&<div style={{...pos(30,90,246,111),background:C.red,color:C.paper,...display,fontSize:83,textAlign:'center',transform:`rotate(-11deg) scale(${pop(f,665)})`}}>免除</div>}
+      </div>;})}
+      {f>=681&&<Sticker text={'不一定全免'} x={62} y={1057} size={61} color={C.paper} rotate={-4} scale={pop(f,682)}/>}
+     </>}
+    </>}
+   </div>;
+  })()}
+ </AbsoluteFill>;
+}

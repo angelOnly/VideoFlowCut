@@ -24,8 +24,11 @@ test("整体增益 MCP/HTTP 设置绝对值、保护版本并使全片混合待�
   const projectId = created.snapshot.project.id;
   const current = () => application.readProject(projectId);
   const source = createMediaAsset({ name: "合同音频", kind: "audio", role: "bgm", managedPath: "assets/tone.wav" });
+  const visual = createMediaAsset({ name: "合同主画面", kind: "video", role: "a_roll", managedPath: "assets/visual.mp4" });
   application.repository.commit(projectId, current().revision.number, "隔离夹具", (snapshot) => {
     snapshot.assets.push({ ...source, status: "ready", metadata: { durationMs: 2000, hasAudio: true } });
+    snapshot.assets.push({ ...visual, status: "ready", metadata: { durationMs: 2000, hasAudio: false } });
+    snapshot.timeline.items.push(createTimelineItem({ trackId: snapshot.timeline.tracks.find((track) => track.name === "Actor / A-roll")!.id, assetId: visual.id, startFrame: 0, endFrame: 48, sourceStartFrame: 0, sourceEndFrame: 48 }));
     snapshot.timeline.items.push(createTimelineItem({ trackId: snapshot.timeline.tracks.find((track) => track.name === "Dialogue")!.id, assetId: source.id, startFrame: 0, endFrame: 48, sourceStartFrame: 0, sourceEndFrame: 48 }));
     snapshot.scenes.push(createScene({ type: "PresenterScene", title: "合同场景", purpose: "隔离混合验证", startFrame: 0, endFrame: 48 }));
   });

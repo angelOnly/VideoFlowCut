@@ -1327,13 +1327,35 @@ server.registerTool("read_captions", {
 }, async ({ project_id }) => {
   try {
     const { snapshot, revision } = application.readProject(projectIdFrom(project_id));
-    return asText({ projectId: snapshot.project.id, revision: revision.number, presentation: snapshot.timeline.captionFormat ? "global" : "legacy_per_card", captionFormat: snapshot.timeline.captionFormat, captions: snapshot.timeline.captions });
+    return asText({ projectId: snapshot.project.id, revision: revision.number, presentation: snapshot.timeline.captionFormat ? "global" : "legacy_per_card", captionFormat: snapshot.timeline.captionFormat, captions: snapshot.timeline.captions, captionImports: snapshot.timeline.captionImports ?? [] });
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("manage_captions", {
+  title: "导入用户原 SRT 字幕",
+  description: "import_srt 沿原生字幕管线原子导入用户 SRT 正文。必须提供真实来源名称、时间线半开目标范围、写入策略和幂等键。局部 SRT 默认 offset_ms=0，不根据目标起点二次平移；只使用显式偏移。保留原文和毫秒，以项目帧率最近帧量化，单边误差最多半帧；空范围、越界、重叠或损坏块全部拒绝，不部分写入。replace_range 替换范围内整卡，涉及原声 Program 须覆盖整组。subtitle_exact 只表示原文件段时间，不冒称 ASR 或词级对齐；统一样式仍由 edit_captions 管理。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    action: z.literal("import_srt"),
+    srt_text: z.string().min(1).max(2_000_000),
+    source_name: z.string().trim().min(1).max(500),
+    offset_ms: z.number().int().safe().optional(),
+    target_range: z.object({ start_frame: z.number().int().nonnegative(), end_frame: z.number().int().positive() }).strict(),
+    write_policy: z.enum(["reject_conflicts", "replace_range"]),
+    idempotency_key: z.string().trim().min(1).max(240)
+  }
+}, async ({ project_id, base_revision_id, srt_text, source_name, offset_ms, target_range, write_policy, idempotency_key }) => {
+  try {
+    return asText(application.importSrtCaptions({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, srtText: srt_text,
+      sourceName: source_name, offsetMs: offset_ms, targetRange: { startFrame: target_range.start_frame, endFrame: target_range.end_frame },
+      writePolicy: write_policy, idempotencyKey: idempotency_key }));
   } catch (error) { return asError(error); }
 });
 
 server.registerTool("edit_captions", {
   title: "编辑普通字幕与全片样式",
-  description: "set_global_format 只传 format，统一全片普通字幕并由后续新卡继承。font_id 使用 read_motion_capabilities 的登记字体，max_lines 为固定行数占位。统一后 update/reset 只改正文、纠错和显示范围，禁止单卡样式和强调。未切换的旧项目保留历史局部编辑与 bulk_source_format；不改声音和真实时间。",
+  description: "set_global_format 只传 format，统一全片普通字幕并由后续新卡继承。font_id 使用 read_motion_capabilities 的登记字体，max_lines 为行数上限，底板随实际行数向上增高、底部固定。统一后 update/reset 只改正文、纠错和显示范围，禁止单卡样式和强调。未切换的旧项目保留历史局部编辑与 bulk_source_format；不改声音和真实时间。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -1413,9 +1435,37 @@ server.registerTool("edit_captions", {
   } catch (error) { return asError(error); }
 });
 
+server.registerTool("place_narration", {
+  title: "放置已有旁白原音",
+  description: "把已登记的原音频放到 Dialogue 轨，按真实源帧范围原速播放，不重新合成、循环或拉伸。目标终点由源长度计算且不能超出可播放视觉主线；有效已放置 ManagedMotion 可作为主线，空 Scene、失效 Cue 和声音自身不能。返回新 Revision；结果未知先读回原项目与 Item，不能重复创建。修改已有原音时传 timeline_item_id，不覆盖合成语音 Item。",
+  inputSchema: {
+    project_id: z.string().optional(),
+    base_revision_id: z.number().int().positive(),
+    asset_id: z.string().min(1),
+    start_frame: z.number().int().nonnegative(),
+    source_start_frame: z.number().int().nonnegative().optional(),
+    source_end_frame: z.number().int().positive().optional(),
+    timeline_item_id: z.string().min(1).optional(),
+    gain_db: z.number().min(-48).max(12).optional()
+  }
+}, async (input) => {
+  try {
+    return asText(application.placeNarration({ projectId: projectIdFrom(input.project_id), baseRevision: input.base_revision_id,
+      assetId: input.asset_id, startFrame: input.start_frame, sourceStartFrame: input.source_start_frame,
+      sourceEndFrame: input.source_end_frame, timelineItemId: input.timeline_item_id, gainDb: input.gain_db }));
+    } catch (error) {
+      // 本入口的这些检查均发生于事务提交前；未知异常和版本冲突保留原恢复合同。
+      if (error instanceof DomainError && ["NARRATION_ITEM_NOT_FOUND", "NARRATION_SYNTHESIZED_ITEM", "NARRATION_OUT_OF_PROGRAM",
+        "INVALID_AUDIO_SOURCE_RANGE", "INVALID_AUDIO_FRAME", "INVALID_AUDIO_GAIN", "AUDIO_PROGRAM_NOT_READY", "AUDIO_ASSET_NOT_READY", "TRACK_OVERLAP", "TRACK_LOCKED", "ASSET_NOT_FOUND"].includes(error.code)) {
+        return { ...asText({ error: error.message, message: error.message, code: error.code, stage: "validation", sideEffects: "none", safeToRetry: true, recovery: "correct_input" }), isError: true };
+      }
+      return asError(error);
+    }
+});
+
 server.registerTool("manage_audio", {
   title: "管理 BGM 与 SFX",
-  description: "将已就绪的本地音频作为 BGM 或 SFX 写入专用轨。BGM 支持有限淡入淡出、循环和 Dialogue Duck。SFX 的 event_frame 是计划同步的事件，onset_offset_frames 是所选源范围内的偏移；检测候选或尚未复听时用 onset_review.status=inconclusive（缺省也是待审）并说明依据，允许草稿混合但阻挡交付。只有实际复听所选原文件范围后才能写 confirmed，仍不代表成片混合声画通过。",
+  description: "将已就绪的本地音频作为 BGM 或 SFX 写入专用轨。BGM 用 start_frame/end_frame 指定主线内范围，支持有限淡入淡出、循环和 Dialogue Duck；SFX 用 event_frame/onset_offset_frames 定位，不能用 BGM 范围参数代替。空 Scene、未放置或失效作品不构成主线，声音不能延长视觉；已有旁白用 place_narration。SFX 的 event_frame 是计划同步的事件，onset_offset_frames 是所选源范围内的偏移；检测候选或尚未复听时用 onset_review.status=inconclusive（缺省也是待审）并说明依据，允许草稿混合但阻挡交付。只有实际复听所选原文件范围后才能写 confirmed，仍不代表成片混合声画通过。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),

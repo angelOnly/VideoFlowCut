@@ -1,0 +1,155 @@
+{
+  "request": "把当前项目AGENTS.md的开发原则讲清楚",
+  "explicitCreativePreferences": null,
+  "design": "原文摘录先承担主读，重点划线后原件退为参照；当前需要取得主读，条件句在后段明确出现。",
+  "projectId": "project_f5ad203d-a0ae-4cc0-aca8-427a72653292",
+  "revision": 2,
+  "job": {
+    "id": "job_2d062fb8-1ac0-420f-8770-7d26a3aed9e7",
+    "projectId": "project_f5ad203d-a0ae-4cc0-aca8-427a72653292",
+    "kind": "motion_generation",
+    "status": "succeeded",
+    "payload": {
+      "work": {
+        "name": "开发原则",
+        "source": "import React from 'react';\nimport {AbsoluteFill,useCurrentFrame} from 'remotion';\nexport default function Motion(props){\n const f=useCurrentFrame(),c=(x)=>Math.max(0,Math.min(1,x)),e=(x)=>{const t=c(x);return t*t*(3-2*t)};\n const focus=e((f-52)/30), ink=e((f-18)/28), headline=e((f-75)/22), condition=e((f-112)/20);\n const font=props.fonts.title, body=props.fonts.body;\n return <AbsoluteFill style={{backgroundColor:'#dfe3e9',fontFamily:body.family,fontWeight:body.weight,color:'#222832'}}>\n   <div style={{position:'absolute',left:52-36*focus,top:46+24*focus,width:856,height:442,background:'#fff',padding:44,boxSizing:'border-box',transform:'scale('+(1-0.45*focus)+') rotate('+(-3*focus)+'deg)',transformOrigin:'left center',boxShadow:'0 16px 35px #22283218'}}>\n    <div style={{fontSize:22,color:'#687381'}}>AGENTS.md · 开发原则摘录</div>\n    <div style={{height:1,background:'#d9dde2',marginTop:18,marginBottom:22}}/>\n    <div style={{fontFamily:font.family,fontWeight:font.weight,fontSize:34,marginBottom:18}}>不要过度设计。</div>\n    <div style={{fontSize:25,lineHeight:1.75}}>优先选择满足当前需求的最简单、可靠、可维护方案，<br/><span style={{position:'relative'}}>只实现明确需要的功能<span style={{position:'absolute',left:0,right:0,bottom:-3,height:6,background:'#c34343',transform:'scaleX('+ink+')',transformOrigin:'left'}}/></span>，<br/>不为假设中的未来需求增加复杂度。</div>\n    <div style={{fontSize:17,lineHeight:1.5,color:'#69727c',marginTop:20}}>当“简单方案有明确代价、复杂方案更完善但明显更臃肿”时，<br/>先简要说明取舍，并在开发前询问我是否接受该代价，<br/>不要默认选择复杂方案。</div>\n   </div>\n   <div style={{position:'absolute',left:517,top:94,width:405,fontFamily:font.family,fontWeight:font.weight,opacity:headline,transform:'translateY('+(1-headline)*36+'px)'}}>\n    <div style={{fontSize:51,lineHeight:1.25}}>先满足<br/><span style={{color:'#b52e35'}}>当前需要</span></div>\n    <div style={{height:4,width:270*headline,background:'#b52e35',marginTop:20}}/>\n   </div>\n   <div style={{position:'absolute',left:521,top:323,fontSize:29,lineHeight:1.55,opacity:condition,transform:'translateY('+(1-condition)*20+'px)'}}>简单方案有明确代价？<br/><span style={{fontFamily:font.family,fontWeight:font.weight}}>先说明，再确认。</span></div>\n </AbsoluteFill>\n}\n",
+        "props": {},
+        "imageBindings": {},
+        "width": 960,
+        "height": 540,
+        "fps": 30,
+        "durationInFrames": 180,
+        "creativeBrief": "原文摘录先承担主读，重点划线后原件退为参照；当前需要取得主读，条件句在后段明确出现。",
+        "videoBindings": {},
+        "fontBindings": {
+          "title": "noto-sans-sc-bold",
+          "body": "noto-sans-sc-regular"
+        }
+      },
+      "version": "f3809361278f05281e85e2aec1734c6ba74f746d93ffb983dd22704a04813412",
+      "engineVersion": "managed-motion-13",
+      "requestedRevision": 1,
+      "boundImages": [],
+      "boundFonts": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ]
+    },
+    "result": {
+      "assetId": "asset_d1241ea7-c2fa-48de-aa24-922163fb1fea",
+      "version": "f3809361278f05281e85e2aec1734c6ba74f746d93ffb983dd22704a04813412",
+      "videoDecodes": {},
+      "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
+      "workReviewRequired": true,
+      "sourcePath": "assets/derived/motion/job_2d062fb8-1ac0-420f-8770-7d26a3aed9e7/f3809361278f05281e85e2aec1734c6ba74f746d93ffb983dd22704a04813412/source.json",
+      "previewPath": "assets/derived/motion/job_2d062fb8-1ac0-420f-8770-7d26a3aed9e7/f3809361278f05281e85e2aec1734c6ba74f746d93ffb983dd22704a04813412/preview.mp4",
+      "motionDiagnostics": {
+        "status": "exact",
+        "maxAllowedChannelDelta": 2,
+        "sampledFrames": [
+          0,
+          90,
+          179
+        ],
+        "differences": [],
+        "reportPath": "assets/derived/motion/job_2d062fb8-1ac0-420f-8770-7d26a3aed9e7/f3809361278f05281e85e2aec1734c6ba74f746d93ffb983dd22704a04813412/diagnostics/report.json"
+      }
+    },
+    "idempotencyKey": "motion:principles-bdc78db72c7be8d9e4f9dd475fff50bfebadb2b7b5bf02381fe1fdc575a6b163",
+    "attempt": 0,
+    "createdAt": "2026-10-12T14:34:32.221Z",
+    "updatedAt": "2026-10-12T14:34:55.307Z"
+  },
+  "asset": {
+    "id": "asset_d1241ea7-c2fa-48de-aa24-922163fb1fea",
+    "name": "开发原则",
+    "kind": "video",
+    "status": "ready",
+    "managedPath": "assets/derived/motion/job_2d062fb8-1ac0-420f-8770-7d26a3aed9e7/f3809361278f05281e85e2aec1734c6ba74f746d93ffb983dd22704a04813412/preview.mp4",
+    "sourceHash": "7d9b6ec515d74a5e0178631b6e02f44e2387a6307cad6b8fbf6c1e4300ae72b8",
+    "role": "generated_visual",
+    "tags": [
+      "managed_motion",
+      "work_review_required"
+    ],
+    "createdAt": "2026-10-12T14:34:55.303Z",
+    "metadata": {
+      "durationMs": 6000,
+      "width": 960,
+      "height": 540,
+      "fps": 30,
+      "hasAudio": false,
+      "videoCodec": "h264",
+      "pixelFormat": "yuv420p",
+      "hasAlpha": false,
+      "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+    },
+    "provenance": {
+      "source": "generated",
+      "provider": "managed_remotion",
+      "generationJobId": "job_2d062fb8-1ac0-420f-8770-7d26a3aed9e7",
+      "acquiredAt": "2026-10-12T14:34:55.303Z"
+    },
+    "motion": {
+      "jobId": "job_2d062fb8-1ac0-420f-8770-7d26a3aed9e7",
+      "version": "f3809361278f05281e85e2aec1734c6ba74f746d93ffb983dd22704a04813412",
+      "engineVersion": "managed-motion-13",
+      "sourceAssetIds": [],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "sourceHash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "sourceHash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourcePath": "assets/derived/motion/job_2d062fb8-1ac0-420f-8770-7d26a3aed9e7/f3809361278f05281e85e2aec1734c6ba74f746d93ffb983dd22704a04813412/source.json",
+      "framesDirectory": "assets/derived/motion/job_2d062fb8-1ac0-420f-8770-7d26a3aed9e7/f3809361278f05281e85e2aec1734c6ba74f746d93ffb983dd22704a04813412/frames",
+      "frameCount": 180,
+      "fps": 30,
+      "width": 960,
+      "height": 540,
+      "creativeBrief": "原文摘录先承担主读，重点划线后原件退为参照；当前需要取得主读，条件句在后段明确出现。"
+    }
+  },
+  "metadata": {
+    "durationMs": 6000,
+    "width": 960,
+    "height": 540,
+    "fps": 30,
+    "hasAudio": false,
+    "videoCodec": "h264",
+    "pixelFormat": "yuv420p",
+    "hasAlpha": false,
+    "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+  },
+  "bytes": 416042,
+  "limitations": [
+    "开发评价作者沿已读技能兼任导演视觉与实现，并非干净宿主上下文",
+    "使用源码正式Job代码路径与独立workspace，未连接生产Runtime和ComfyUI",
+    "无旁白和普通字幕，不是完整声画交付",
+    "仅在本地读取词法机制候选，没有运行语义向量服务"
+  ]
+}
