@@ -1,3 +1,5 @@
+import { frozenSourceDisplaySchema } from "../../../packages/contracts/src/source-display-policy.js";
+import { checkMotionSourceDisplay } from "../../../packages/edit-application/src/source-display-checks.js";
 import { MotionDiagnostics } from "./motion-diagnostics.js";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { createHash } from "node:crypto";
@@ -39,8 +41,10 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
   const boundImages = boundMotionImageSchema.array().parse(job.payload.boundImages ?? []);
   const boundVideos = boundMotionVideoSchema.array().parse(job.payload.boundVideos ?? []);
   const boundFonts = boundMotionFontSchema.array().parse(job.payload.boundFonts ?? []);
-  const hashEngineVersion = motionHashEngine(work, boundImages, job.payload.version, job.payload.engineVersion, boundVideos, boundFonts);
-  const version = motionHash(work, boundImages, hashEngineVersion, boundVideos, boundFonts);
+  const sourceDisplay = job.payload.sourceDisplay === undefined ? undefined : frozenSourceDisplaySchema.parse(job.payload.sourceDisplay);
+  if (sourceDisplay) checkMotionSourceDisplay(work.source, work.props, sourceDisplay);
+  const hashEngineVersion = motionHashEngine(work, boundImages, job.payload.version, job.payload.engineVersion, boundVideos, boundFonts, sourceDisplay);
+  const version = motionHash(work, boundImages, hashEngineVersion, boundVideos, boundFonts, sourceDisplay);
   if (job.kind !== "motion_generation" || version !== job.payload.version) throw new Error("MOTION_VERSION_MISMATCH");
   if (Object.keys(work.imageBindings).length !== boundImages.length || new Set(boundImages.map((image) => image.slot)).size !== boundImages.length || boundImages.some((image) => work.imageBindings[image.slot] !== image.assetId)) throw new Error("MOTION_IMAGE_BINDING_MISMATCH");
   if (Object.keys(work.videoBindings ?? {}).length !== boundVideos.length || new Set(boundVideos.map(v => v.slot)).size !== boundVideos.length || boundVideos.some(v => { const b = work.videoBindings?.[v.slot]; return !b || b.assetId !== v.assetId || b.sourceStartMs !== v.sourceStartMs || b.sourceEndMs !== v.sourceEndMs || b.startFrame !== v.startFrame || b.endFrame !== v.endFrame || b.decodeScale !== v.decodeScale; })) throw new Error("MOTION_VIDEO_BINDING_MISMATCH");
@@ -125,7 +129,7 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
   diagnostics.stage("output_validation");
   const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8")) as MotionRenderResult & { version: string; hashEngineVersion?: string; previewHash: string; videoDecodes?: Record<string, unknown> };
   const storedSource = motionSubmissionSchema.parse(JSON.parse(await readFile(join(directory, "source.json"), "utf8")));
-  if (manifest.version !== version || !Array.isArray(manifest.frameHashes) || manifest.frameHashes.length !== work.durationInFrames || motionHash(storedSource, boundImages, manifest.hashEngineVersion ?? manifest.engineVersion, boundVideos, boundFonts) !== version) throw new Error("MOTION_CACHE_CORRUPT");
+  if (manifest.version !== version || !Array.isArray(manifest.frameHashes) || manifest.frameHashes.length !== work.durationInFrames || motionHash(storedSource, boundImages, manifest.hashEngineVersion ?? manifest.engineVersion, boundVideos, boundFonts, sourceDisplay) !== version) throw new Error("MOTION_CACHE_CORRUPT");
   if (JSON.stringify((manifest as any).boundFonts ?? []) !== JSON.stringify(boundFonts)) throw new Error("MOTION_FONT_CACHE_CORRUPT");
   for (const font of boundFonts) {
     try {

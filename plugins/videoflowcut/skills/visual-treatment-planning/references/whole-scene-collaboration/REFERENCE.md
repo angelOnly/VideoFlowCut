@@ -27,7 +27,7 @@ SHA-256：`8b55aa9a91af4cf65a392459a3239cccf5ec0eb438c73bd4c38350995751094c`。
 | 当前要弄清什么 | 查看什么 |
 |---|---|
 | 整段是否真的在共同组织画面 | `preview.mp4` 与 `keyframes.jpg` |
-| 相关对象怎样共同改变位置、面积和主次 | `source/AirfareIndependent.tsx` |
+| 文字造型与主体一起重排 | 约9.79—21.08秒与 `source/AirfareIndependent.tsx` 的 `Sticker`、`Tag`、`shrink`；对照视频观察字形、承托与素材窗口、解释区域的共同变化 |
 | 当时实际提交了什么 | `source/work.original.json`，只作为历史快照 |
 | 素材与源码插槽怎样对应、复跑要换哪些身份 | `source/bindings.json` |
 | 当时怎样提出任务、给了什么内容 | `input/开始制作.md`、`input/文件清单.json` 与其中列出的六份输入 |

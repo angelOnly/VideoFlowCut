@@ -24,6 +24,7 @@ export const motionSubmissionSchema = z.object({
       evidence: description
     }).strict()
   }).strict().optional(),
+  sourceDisplayScopeId: z.string().trim().min(1).max(150).optional().describe("来源说明例外适用的当前项目、Scene 或 NarrativeMap Beat ID；省略为当前项目。只选择范围，不能自行授权。"),
   previousAssetId: z.string().max(150).optional(),
   // 追加字段不注入默认值，不改变历史输入的字段次序和作品哈希。
   creativeBrief: z.string().trim().min(1).max(6000).optional().describe("新作品必填的创作说明；仅历史作品按原输入进行幂等重放时可省略。"),

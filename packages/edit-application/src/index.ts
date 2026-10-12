@@ -1,3 +1,5 @@
+import { frozenSourceDisplaySchema, resolveSourceDisplayPolicy, type FrozenSourceDisplay, type SourceDisplayPolicy } from "../../contracts/src/source-display-policy.js";
+import { checkMotionSourceDisplay, checkProgramSourceDisplay, validateSourceDisplayScopes, validateSourceDisplayScope } from "./source-display-checks.js";
 import { creativeBriefSchema, creativeBriefUpdateSchema, initializeCreativeBrief, mergeCreativePreferences } from "../../contracts/src/creative-preferences.js";
 import { DEFAULT_BRIEF } from "@videocut/domain";
 import { candidateTechnicalReasons, normalizeCandidateFilters } from "../../media-intelligence/src/candidate-lifecycle.js";
@@ -1200,6 +1202,7 @@ function explainerCacheKey(input: {
   stylePackId: string;
   renderTarget: { fps: number; width: number; height: number };
   runtimeVersion: string;
+  sourceDisplay?: FrozenSourceDisplay;
   narrativeMapBeat: NarrativeMapBeat;
   evidence?: Pick<EvidenceCapture, "id" | "sourceAssetId" | "snapshotAssetId" | "excerpt" | "claim" | "limitation" | "highlights">;
 }): string {
@@ -1429,6 +1432,8 @@ export class EditingApplication {
 
   createProject(input: { name: string; profile?: ProjectSnapshot["project"]["profile"]; brief?: Partial<CreativeBrief>; fps?: number }): ProjectState {
     const brief = initializeCreativeBrief(this.readCreativeDefaults(), creativeBriefSchema.parse(input.brief ?? {}));
+    if (brief.sourceDisplayPolicy?.mode === "specified") throw new DomainError("先创建项目与实际范围，再登记来源展示例外", "SOURCE_DISPLAY_SCOPE_INVALID");
+    brief.sourceDisplayPolicy = resolveSourceDisplayPolicy(brief.sourceDisplayPolicy);
     const state = this.repository.createProject({ ...input, brief });
     this.publish({ projectId: state.snapshot.project.id, revision: state.revision.number, type: "revision" });
     return state;
@@ -1442,10 +1447,12 @@ export class EditingApplication {
     return this.repository.saveCreativeDefaults(preferences);
   }
 
-  updateCreativeBrief(input: { projectId: Id; baseRevision: number; brief: { tone?: string; explicitCreativePreferences?: ExplicitCreativePreferences | null } }): ProjectState {
+  updateCreativeBrief(input: { projectId: Id; baseRevision: number; brief: { tone?: string; explicitCreativePreferences?: ExplicitCreativePreferences | null; sourceDisplayPolicy?: SourceDisplayPolicy } }): ProjectState {
     const change = creativeBriefUpdateSchema.parse(input.brief);
+    if (change.sourceDisplayPolicy) validateSourceDisplayScopes(this.readProject(input.projectId).snapshot, change.sourceDisplayPolicy);
     const state = this.repository.commit(input.projectId, input.baseRevision, "更新本任务明确创作偏好", (snapshot, impact) => {
       const brief = snapshot.project.brief;
+      if (change.sourceDisplayPolicy) brief.sourceDisplayPolicy = change.sourceDisplayPolicy;
       let preferences = change.explicitCreativePreferences === null ? {} : mergeCreativePreferences(brief.explicitCreativePreferences ?? {}, change.explicitCreativePreferences);
       // 明确的 narration 与兼容 tone 共享同一口吻；导演判断不进入这里。
       if (change.tone && !change.explicitCreativePreferences?.dimensions?.narration) {
@@ -2458,6 +2465,10 @@ export class EditingApplication {
     const current = this.readProject(input.projectId);
     if (current.revision.number !== input.baseRevision) throw new DomainError("项目 Revision 已变化，请重新读取", "REVISION_CONFLICT");
     if (work.previousAssetId && !current.snapshot.assets.some((asset) => asset.id === work.previousAssetId && asset.motion)) throw new DomainError("上一版本不是当前项目的受管作品", "MOTION_PREVIOUS_VERSION_MISSING");
+    const sourceDisplay: FrozenSourceDisplay = { policy: resolveSourceDisplayPolicy(current.snapshot.project.brief.sourceDisplayPolicy), scopeId: work.sourceDisplayScopeId ?? current.snapshot.project.id };
+    validateSourceDisplayScope(current.snapshot, sourceDisplay.scopeId);
+    validateSourceDisplayScopes(current.snapshot, sourceDisplay.policy);
+    const sourceDisplayWarnings = checkMotionSourceDisplay(work.source, work.props, sourceDisplay);
     const boundImages = Object.entries(work.imageBindings).map(([slot, assetId]) => {
       const asset = assetById(current.snapshot, assetId);
       if (asset.kind !== "image" || asset.status !== "ready" || !asset.sourceHash) throw new DomainError("作品只绑定已就绪且有内容哈希的项目图片", "MOTION_IMAGE_NOT_READY");
@@ -2470,8 +2481,8 @@ export class EditingApplication {
       return { slot, ...binding, managedPath: asset.managedPath, hash: asset.sourceHash };
     }));
     const boundFonts = bindMotionFonts(work);
-    const version = motionHash(work, boundImages, MOTION_ENGINE_VERSION, boundVideos, boundFonts);
-    const job = this.repository.createJob({ projectId: input.projectId, kind: "motion_generation", payload: { work, version, engineVersion: MOTION_ENGINE_VERSION, requestedRevision: input.baseRevision, boundImages, ...(boundVideos.length ? { boundVideos } : {}), ...(boundFonts.length ? { boundFonts } : {}) }, idempotencyKey: `motion:${input.idempotencyKey}` });
+    const version = motionHash(work, boundImages, MOTION_ENGINE_VERSION, boundVideos, boundFonts, sourceDisplay);
+    const job = this.repository.createJob({ projectId: input.projectId, kind: "motion_generation", payload: { work, version, sourceDisplay, sourceDisplayWarnings, engineVersion: MOTION_ENGINE_VERSION, requestedRevision: input.baseRevision, boundImages, ...(boundVideos.length ? { boundVideos } : {}), ...(boundFonts.length ? { boundFonts } : {}) }, idempotencyKey: `motion:${input.idempotencyKey}` });
     this.publish({ projectId: input.projectId, revision: current.revision.number, type: "job" });
     return job;
   }
@@ -2495,7 +2506,8 @@ export class EditingApplication {
     const boundImages = boundMotionImageSchema.array().parse(job.payload.boundImages ?? []);
     const boundVideos = boundMotionVideoSchema.array().parse(job.payload.boundVideos ?? []);
     const boundFonts = boundMotionFontSchema.array().parse(job.payload.boundFonts ?? []);
-    const version = motionHash(work, boundImages, motionHashEngine(work, boundImages, job.payload.version, job.payload.engineVersion, boundVideos, boundFonts), boundVideos, boundFonts);
+    const sourceDisplay = job.payload.sourceDisplay === undefined ? undefined : frozenSourceDisplaySchema.parse(job.payload.sourceDisplay);
+    const version = motionHash(work, boundImages, motionHashEngine(work, boundImages, job.payload.version, job.payload.engineVersion, boundVideos, boundFonts, sourceDisplay), boundVideos, boundFonts, sourceDisplay);
     if (version !== job.payload.version) throw new DomainError("作品固定输入已损坏", "MOTION_VERSION_MISMATCH");
     const directory = `assets/derived/motion/${job.id}/${version}`;
     const images = [...boundImages, ...boundVideos];
@@ -5878,6 +5890,9 @@ export class EditingApplication {
         const duration = plan.endFrame - plan.startFrame;
         const states = normalizeExplainerStates(plan.states.map((state) => ({ ...state, id: state.id ?? createId("explainer_state") })) as ExplainerSceneState[], duration);
         const props = structuredClone(plan.props ?? {});
+        const sourceDisplay: FrozenSourceDisplay = { policy: resolveSourceDisplayPolicy(snapshot.project.brief.sourceDisplayPolicy), scopeId: mapBeat.id };
+        validateSourceDisplayScopes(snapshot, sourceDisplay.policy);
+        checkProgramSourceDisplay(props, sourceDisplay, `plans.${plan.narrativeMapBeatId}.props`);
         const evidence = plan.evidenceCaptureId ? snapshot.evidenceCaptures.find((capture) => capture.id === plan.evidenceCaptureId) : undefined;
         if (plan.evidenceCaptureId && !evidence) throw new DomainError("Explainer Scene 引用了不存在的 EvidenceCapture", "EXPLAINER_EVIDENCE_NOT_FOUND");
         if (kind === "EvidenceDocument" && !evidence) throw new DomainError("EvidenceDocument 必须绑定真实 EvidenceCapture", "EVIDENCE_DOCUMENT_CAPTURE_REQUIRED");
@@ -5959,6 +5974,7 @@ export class EditingApplication {
         scene.status = "ready";
         scene.stylePackId = stylePackId;
         const cacheKey = explainerCacheKey({
+          sourceDisplay,
           kind,
           primaryTask: requireText(plan.primaryTask, "Explainer 主认知任务"),
           assetHashes: sourceAssetIds.map((assetId) => assetById(snapshot, assetId).sourceHash ?? assetId),
@@ -5984,6 +6000,7 @@ export class EditingApplication {
           } : undefined
         });
         const program: ExplainerSceneProgram = {
+          sourceDisplay,
           id: createId("explainer_program"),
           sceneId: scene.id,
           kind,

@@ -285,7 +285,7 @@ server.registerTool("create_project", {
 
 server.registerTool("update_creative_brief", {
   title: "更新本任务明确创作偏好",
-  description: "保存用户对本任务明确提出的偏好并返回 Revision；不改工作台默认，不自动重生成已有作品或在途 Job。只指定一维时保留其他明确项；explicitCreativePreferences=null 清空本任务偏好。导演当次判断沿 record_creative_decision 保存。",
+  description: "保存用户对本任务明确提出的偏好或来源展示策略并返回 Revision；sourceDisplayPolicy 例外须由主任务依据真实请求或署名要求填写，scopeId 为当前项目、Scene 或 NarrativeMap Beat。basis 是记录而非权限证明；策略只应用于新提交及明确重编，不改历史冻结输入。不改工作台默认，不自动重生成已有作品或在途 Job。只指定一维时保留其他明确项；explicitCreativePreferences=null 清空本任务偏好。导演当次判断沿 record_creative_decision 保存。",
   inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), brief: creativeBriefUpdateSchema }
 }, async ({ project_id, base_revision_id, brief }) => {
   try { return asText(application.updateCreativeBrief({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, brief })); }

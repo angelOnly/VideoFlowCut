@@ -236,7 +236,7 @@ const RealityBroll: React.FC<{ snapshot: ExplainerSnapshot; mediaBaseUrl: string
 
 export const DocumentVisual: React.FC<{ snapshot: ExplainerSnapshot; mediaBaseUrl: string; program: ExplainerProgramView; isUi: boolean }> = ({ snapshot, mediaBaseUrl, program, isUi }) => {
   const capture = snapshot.evidenceCaptures?.find((entry) => entry.id === program.evidenceCaptureId);
-  // 内部来源元数据不自动上屏；署名等展示文字由作者显式填写。
+  // 内部来源不自动上屏；新 Program 的署名已按冻结策略校验，历史输入保留原显示。
   const sourceCaption = asText(program.props.sourceCaption);
   const fallback = assetFor(snapshot, program.assetIds);
   const asset = capture ? snapshot.assets.find((candidate) => candidate.id === (capture.snapshotAssetId ?? capture.sourceAssetId)) : fallback;

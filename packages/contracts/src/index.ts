@@ -245,6 +245,7 @@ export interface ExplicitCreativePreferences {
 }
 
 export interface CreativeBrief {
+  sourceDisplayPolicy?: import("./source-display-policy.js").SourceDisplayPolicy;
   platform: string;
   aspectRatio: "9:16" | "16:9" | "1:1";
   targetDurationSeconds: number;
@@ -884,6 +885,7 @@ export interface ExplainerSceneState {
  * 原始证据、素材、NarrativeMap 和 Scene 均以 ID 显式关联，避免自由文本变成第二份工程状态。
  */
 export interface ExplainerSceneProgram {
+  sourceDisplay?: import("./source-display-policy.js").FrozenSourceDisplay;
   id: Id;
   sceneId: Id;
   kind: ExplainerSceneKind;

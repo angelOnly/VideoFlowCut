@@ -173,17 +173,20 @@ export function validateMotionSource(source: string): void {
   if (cssAnimation) reject("MOTION_NONDETERMINISTIC", file, "不能使用 CSS transition/animation", "动画由 useCurrentFrame 驱动", cssAnimation.index);
 }
 
-export function motionHash(input: MotionSubmission, images: BoundMotionImage[] = [], engineVersion = MOTION_ENGINE_VERSION, videos: BoundMotionVideo[] = [], fonts: BoundMotionFont[] = []): string {
+import type { FrozenSourceDisplay } from "../../contracts/src/source-display-policy.js";
+
+export function motionHash(input: MotionSubmission, images: BoundMotionImage[] = [], engineVersion = MOTION_ENGINE_VERSION, videos: BoundMotionVideo[] = [], fonts: BoundMotionFont[] = [], sourceDisplay?: FrozenSourceDisplay): string {
   const hash = createHash("sha256").update(engineVersion).update(JSON.stringify(input)).update(JSON.stringify(images));
   // 无视频时不追加空数组，历史作品哈希保持原样。
   if (videos.length) hash.update(JSON.stringify(videos));
   if (fonts.length) hash.update(JSON.stringify(fonts));
+  if (sourceDisplay) hash.update(JSON.stringify(sourceDisplay));
   return hash.digest("hex");
 }
 /** 旧 Job 的输入哈希保持可核验；新提交固定新引擎，不能使历史作品版本漂移。 */
-export function motionHashEngine(input: MotionSubmission, images: BoundMotionImage[], version: unknown, declared?: unknown, videos: BoundMotionVideo[] = [], fonts: BoundMotionFont[] = []): string {
+export function motionHashEngine(input: MotionSubmission, images: BoundMotionImage[], version: unknown, declared?: unknown, videos: BoundMotionVideo[] = [], fonts: BoundMotionFont[] = [], sourceDisplay?: FrozenSourceDisplay): string {
   const accepted = [MOTION_ENGINE_VERSION, "managed-motion-12", "managed-motion-11", "managed-motion-10", "managed-motion-9", "managed-motion-8", "managed-motion-7", "managed-motion-6", "managed-motion-5", "managed-motion-4", "managed-motion-3"];
-  const engine = accepted.find((candidate) => (declared === undefined || declared === candidate) && motionHash(input, images, candidate, videos, fonts) === version);
+  const engine = accepted.find((candidate) => (declared === undefined || declared === candidate) && motionHash(input, images, candidate, videos, fonts, sourceDisplay) === version);
   if (!engine) throw new Error("MOTION_VERSION_MISMATCH");
   return engine;
 }

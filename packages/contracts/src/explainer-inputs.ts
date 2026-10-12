@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const text = z.string().trim().min(1);
 const list = z.array(text).min(2);
-const displayText = { sourceCaption: text.max(1600).optional().describe("作者明确选择的上屏来源或署名；不自动展示内部 source 元数据"), eyebrow: text.max(160).optional() };
+const displayText = { sourceCaption: text.max(1600).optional().describe("新增来源或署名；默认拒绝，须匹配任务 sourceDisplayPolicy 的真实范围及指定文本。内部 source 元数据继续保存"), eyebrow: text.max(160).optional() };
 const props = <S extends z.ZodRawShape>(shape: S) => z.object({ ...displayText, ...shape }).passthrough();
 
 /** HTTP 与 MCP 共享各内置主视觉的内容合同；附加美术参数仍原样保留。 */

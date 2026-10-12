@@ -1,3 +1,4 @@
+import { SourceDisplayValidationError } from "../../../packages/edit-application/src/source-display-checks.js";
 import { creativeBriefSchema, creativeBriefUpdateSchema, explicitCreativePreferencesSchema } from "../../../packages/contracts/src/creative-preferences.js";
 import { captionTypographySchema, captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
 import { captionSrtImportSchema } from "../../../packages/contracts/src/caption-srt.js";
@@ -275,7 +276,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   await app.register(multipart, { limits: { files: 18, fileSize: 512 * 1024 * 1024 } });
 
   app.setErrorHandler((error, _request, reply) => {
-    if (error instanceof MotionSubmissionValidationError) return reply.status(400).send(toolError(error));
+    if (error instanceof MotionSubmissionValidationError || error instanceof SourceDisplayValidationError) return reply.status(400).send(toolError(error));
     if (error instanceof RevisionConflictError) {
       return reply.status(409).send({ error: "REVISION_CONFLICT", message: error.message, expectedRevision: error.expected, currentRevision: error.actual });
     }

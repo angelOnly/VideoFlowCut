@@ -114,6 +114,68 @@
               "allowHighDensityMotion": {
                 "type": "boolean"
               },
+              "sourceDisplayPolicy": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "internal_only"
+                      }
+                    },
+                    "required": [
+                      "mode"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "specified"
+                      },
+                      "exceptions": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "scopeId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 150
+                            },
+                            "text": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1600
+                            },
+                            "basis": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 4000
+                            }
+                          },
+                          "required": [
+                            "scopeId",
+                            "text",
+                            "basis"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "minItems": 1,
+                        "maxItems": 100
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "exceptions"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
               "explicitCreativePreferences": {
                 "type": "object",
                 "properties": {
@@ -172,7 +234,7 @@
     {
       "name": "update_creative_brief",
       "title": "更新本任务明确创作偏好",
-      "description": "保存用户对本任务明确提出的偏好并返回 Revision；不改工作台默认，不自动重生成已有作品或在途 Job。只指定一维时保留其他明确项；explicitCreativePreferences=null 清空本任务偏好。导演当次判断沿 record_creative_decision 保存。",
+      "description": "保存用户对本任务明确提出的偏好或来源展示策略并返回 Revision；sourceDisplayPolicy 例外须由主任务依据真实请求或署名要求填写，scopeId 为当前项目、Scene 或 NarrativeMap Beat。basis 是记录而非权限证明；策略只应用于新提交及明确重编，不改历史冻结输入。不改工作台默认，不自动重生成已有作品或在途 Job。只指定一维时保留其他明确项；explicitCreativePreferences=null 清空本任务偏好。导演当次判断沿 record_creative_decision 保存。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -227,6 +289,68 @@
                   },
                   {
                     "type": "null"
+                  }
+                ]
+              },
+              "sourceDisplayPolicy": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "internal_only"
+                      }
+                    },
+                    "required": [
+                      "mode"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "specified"
+                      },
+                      "exceptions": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "scopeId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 150
+                            },
+                            "text": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1600
+                            },
+                            "basis": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 4000
+                            }
+                          },
+                          "required": [
+                            "scopeId",
+                            "text",
+                            "basis"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "minItems": 1,
+                        "maxItems": 100
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "exceptions"
+                    ],
+                    "additionalProperties": false
                   }
                 ]
               }
@@ -4332,7 +4456,7 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 1600,
-                          "description": "作者明确选择的上屏来源或署名；不自动展示内部 source 元数据"
+                          "description": "新增来源或署名；默认拒绝，须匹配任务 sourceDisplayPolicy 的真实范围及指定文本。内部 source 元数据继续保存"
                         },
                         "eyebrow": {
                           "type": "string",
@@ -7049,6 +7173,12 @@
                   "observation"
                 ],
                 "additionalProperties": false
+              },
+              "sourceDisplayScopeId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 150,
+                "description": "来源说明例外适用的当前项目、Scene 或 NarrativeMap Beat ID；省略为当前项目。只选择范围，不能自行授权。"
               },
               "previousAssetId": {
                 "type": "string",

@@ -1,3 +1,4 @@
+import { checkFrozenExplainerSourceDisplay } from "../../../packages/edit-application/src/source-display-checks.js";
 import { inspectFinalAudio } from "../../../packages/media-intelligence/src/acoustics.js";
 import { applyFinalAudioMixGain } from "./audio-mix-gain.js";
 import { hashMediaFile } from "../../../packages/edit-application/src/media-intelligence.js";
@@ -319,6 +320,7 @@ async function sha256File(path: string): Promise<string> {
 export async function runRenderPreflight(application: EditingApplication, projectId: string, revisionNumber: number, purpose: ExportPurpose = "delivery"): Promise<RenderPreflight> {
   const revision = application.repository.getRevision(projectId, revisionNumber);
   const snapshot = revision.snapshot;
+  checkFrozenExplainerSourceDisplay(snapshot);
   const checks: RenderPreflightCheck[] = [];
   try { await verifySourceFiles(snapshot); }
   catch (error) { addPreflightCheck(checks, "failed", error instanceof DomainError ? error.code : "MEDIA_SOURCE_INVALID", error instanceof Error ? error.message : String(error)); }
@@ -738,6 +740,7 @@ export async function runPreviewJob(
   const targetPath = join(revision.snapshot.project.rootPath, relativePath);
   await mkdir(dirname(targetPath), { recursive: true });
   const expectedDurationMs = Math.round(((toFrame - fromFrame) / revision.snapshot.timeline.fps) * 1000);
+  checkFrozenExplainerSourceDisplay(revision.snapshot);
   const sceneCache = isolatedExplainerScenePreviewCache(revision.snapshot, fromFrame, toFrame);
   const cachePath = sceneCache ? join(revision.snapshot.project.rootPath, sceneCache.relativePath) : undefined;
   let cacheHit = false;

@@ -4,6 +4,14 @@
 
 证据优先用户资料、官方页面、论文/报告原文件和开放档案。保存标题、URL、作者/机构、抓取时间和截图范围。页面无法访问时保留失败，不从二手摘要反推原文。证据隐私和人物信息也需要遵守项目政策。
 
+## 新增来源展示策略
+
+先读取实时工具 Schema 与 project.brief.sourceDisplayPolicy。新提交缺省 internal_only：不新增出处说明；specified 只允许 exceptions 中 scopeId、text 精确匹配的文字。basis 保存可回溯的真实用户请求或必要署名依据，不能用“作者决定”冒充授权。由主任务沿 update_creative_brief 登记，范围限当前项目、已有 Scene 或 NarrativeMap Beat；原生 Program 使用其 NarrativeMap Beat，受管作品用 sourceDisplayScopeId，省略为项目。未发布该字段的 Runtime 先报告版本差异，不编造参数。
+
+来源元数据继续保存。sourceCaption 在写入前检查；自由 TSX 中明确的出处层也可能返回 SOURCE_CAPTION_NOT_ALLOWED，按返回定位改正，保留条件。静态预检只覆盖可确定的文字及已知元数据映射，动态拼接、SVG 路径和素材像素仍看实际输出；核对提示不等于违规或已通过。
+
+策略更新仅约束新提交及明确重编；历史 Program、已生成作品和在途 Job 按原冻结输入恢复，不静默改输出。basis 不实现调用者权限隔离，主任务仍须核对真实依据；不得由视觉 Props 自行声明允许。
+
 ## PDF、网页与截图
 
 PDF 证据应保存文件和页码；网页保存 URL、标题、抓取时间和必要页面快照；截图保留来源范围和原始分辨率。只有裁切图而没有完整页面时，观众和后续审计无法确认上下文。

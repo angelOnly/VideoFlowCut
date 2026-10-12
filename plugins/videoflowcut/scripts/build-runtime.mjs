@@ -75,6 +75,17 @@ async function requireNonEmpty(path, label) {
   }
 }
 
+/** Windows 扫描刚复制的文件时可能短暂拒绝覆盖；仅对可重写的构建产物有界重试。 */
+async function writeNormalizedReleaseText(path, contents) {
+  for (let attempt = 0; ; attempt += 1) {
+    try { await writeFile(path, contents, "utf8"); return; }
+    catch (error) {
+      if (process.platform !== "win32" || !["EBUSY", "EPERM", "EACCES", "UNKNOWN"].includes(error?.code) || attempt >= 4) throw error;
+      await new Promise(resolve => setTimeout(resolve, 250 * (attempt + 1)));
+    }
+  }
+}
+
 /** Vite 压缩产物偶尔保留行尾空格；发行文件统一清理，避免提交校验被生成噪声阻断。 */
 async function trimReleaseTextWhitespace(root) {
   const entries = await readdir(root, { withFileTypes: true });
@@ -84,7 +95,7 @@ async function trimReleaseTextWhitespace(root) {
     if (!/\.(?:css|html|js)$/iu.test(entry.name)) return undefined;
     const contents = await readFile(path, "utf8");
     const normalized = contents.replace(/\r+\n|\r/gu, "\n").replace(/[\t ]+(?=\n)/gu, "");
-    if (normalized !== contents) await writeFile(path, normalized, "utf8");
+    if (normalized !== contents) await writeNormalizedReleaseText(path, normalized);
     return undefined;
   }));
 }
@@ -95,7 +106,7 @@ async function normalizeReleaseText(root) {
     if (!/\.(?:cjs|js|css|html|json|py)$/iu.test(path)) continue;
     const contents = await readFile(path, "utf8");
     const normalized = contents.replace(/\r+\n|\r/gu, "\n");
-    if (normalized !== contents) await writeFile(path, normalized, "utf8");
+    if (normalized !== contents) await writeNormalizedReleaseText(path, normalized);
   }
 }
 
