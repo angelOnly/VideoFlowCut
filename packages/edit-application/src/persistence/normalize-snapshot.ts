@@ -70,7 +70,8 @@ export function normalizeSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
     caption.sourceKind ??= "speech_asset";
     caption.sourceText ??= caption.text;
     caption.textMode ??= "derived";
-    caption.format ??= { ...DEFAULT_CAPTION_FORMAT };
+    if (snapshot.timeline.captionFormat) { delete caption.format; delete caption.emphasis; }
+    else caption.format ??= { ...DEFAULT_CAPTION_FORMAT };
   }
   for (const reference of snapshot.voiceReferences) {
     reference.source ??= "local_asset";

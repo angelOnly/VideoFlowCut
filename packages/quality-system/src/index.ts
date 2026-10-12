@@ -1,4 +1,4 @@
-import { captionDisplayRanges, validCaptionDisplay, captionPlacementSchema } from "../../contracts/src/caption-presentation.js";
+import { captionDisplayRanges, validCaptionDisplay, captionPlacementSchema, captionTypographySchema, resolveCaptionFormat } from "../../contracts/src/caption-presentation.js";
 import { createHash } from "node:crypto";
 import { managedMotionReviewOutcome, EFFECT_QUALITY_RULES, inspectEffectContentContract, sourceAudioTimeOrigin, type EditorialQualityReview, type ExportPurpose, type ProjectSnapshot, type QualityIssue, type QualityReport } from "@videocut/contracts";
 import { assertProjectGraphValid, DomainError, millisecondsToFrames, resolveCompositionReachability, sourceAudioTimingWithinRange, sourceAudioAlignmentOwnerMatches, sourceCaptionDisplayTextIsValid } from "@videocut/domain";
@@ -63,8 +63,9 @@ const normalizeSourceCaptionComparisonText = (value: string) => value.normalize(
  * Snapshot 确定的失败；真正字体宽度由 Remotion/Chromium 在渲染时用同一安全宽度复核。
  */
 function captionLayoutInput(snapshot: ProjectSnapshot, caption: ProjectSnapshot["timeline"]["captions"][number]): CaptionLayoutInput {
-  return { text: caption.text, compositionWidth: snapshot.timeline.width, compositionHeight: snapshot.timeline.height, format: caption.format,
-    emphasisScale: caption.emphasis?.scale, emphasisFontWeight: caption.emphasis?.fontWeight };
+  const unified = Boolean(snapshot.timeline.captionFormat);
+  return { text: caption.text, compositionWidth: snapshot.timeline.width, compositionHeight: snapshot.timeline.height, format: resolveCaptionFormat(snapshot.timeline, caption), fixedLineCount: unified,
+    emphasisScale: unified ? undefined : caption.emphasis?.scale, emphasisFontWeight: unified ? undefined : caption.emphasis?.fontWeight };
 }
 
 function evaluateCaptionTrackQuality(snapshot: ProjectSnapshot, issues: QualityIssue[], layouts?: Map<string, CaptionLayoutResult>): void {
@@ -1486,7 +1487,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
         frameRange: { startFrame: caption.startFrame, endFrame: caption.endFrame }
       }));
     }
-    if (caption.emphasis && (!Number.isInteger(caption.emphasis.occurrence)
+    if (!snapshot.timeline.captionFormat && caption.emphasis && (!Number.isInteger(caption.emphasis.occurrence)
       || caption.emphasis.occurrence < 0
       || captionOccurrenceIndex(caption.text, caption.emphasis.text, caption.emphasis.occurrence) < 0)) {
       issues.push(issue({
@@ -1496,8 +1497,13 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
         objectId: caption.id
       }));
     }
-    const format = caption.format;
+    const format = resolveCaptionFormat(snapshot.timeline, caption);
+    const typographyValid = captionTypographySchema.safeParse({ fontId: format.fontId, lineHeight: format.lineHeight, maxLines: format.maxLines,
+      paddingHorizontal: format.paddingHorizontal, paddingVertical: format.paddingVertical, borderRadius: format.borderRadius, boxWidth: format.boxWidth }).success;
     if (format && (!Number.isInteger(format.fontSize) || format.fontSize < 16 || format.fontSize > 72
+      || !typographyValid
+      || format.fontId !== undefined && format.font?.fontId !== format.fontId
+      || format.font !== undefined && format.font.family !== `VFC_${format.font.hash}`
       || !Number.isInteger(format.fontWeight) || format.fontWeight < 400 || format.fontWeight > 900
       || !Number.isFinite(format.bottomPercent) || format.bottomPercent < 0 || format.bottomPercent > 95
       || !Number.isFinite(format.horizontalInsetPercent) || format.horizontalInsetPercent < 0 || format.horizontalInsetPercent > 45

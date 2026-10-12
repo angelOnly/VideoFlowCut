@@ -1,17 +1,15 @@
-import { captionTextShadowCss, captionIsDisplayed, captionBoxWidthPercent } from "../../contracts/src/caption-presentation.js";
+import { captionTextShadowCss, captionIsDisplayed, captionBoxWidthPercent, resolveCaptionFormat } from "../../contracts/src/caption-presentation.js";
 import React from "react";
-import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, useCurrentFrame, getRemotionEnvironment } from "remotion";
+import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, useCurrentFrame, getRemotionEnvironment, delayRender, continueRender, cancelRender } from "remotion";
 import { sourceAudioTimeOrigin, inspectEffectContentContract, type ActorPerformance, type AudioCue, type CaptionCard, type CaptionEmphasis, type CaptionFormat, type Cutaway, type EffectCue, type ProjectSnapshot, type TimelineItem, type TimelineTrack } from "@videocut/contracts";
 import { compileCutawayLayout, cutawaySourceVolume } from "./cutaway-layout";
 import {
-  CAPTION_BACKGROUND_VERTICAL_PADDING_EM,
-  CAPTION_FONT_FAMILY,
-  CAPTION_LINE_HEIGHT,
   CaptionLayoutError,
   CaptionTimelineOverlapError,
-  DEFAULT_RENDER_CAPTION_FORMAT,
-  layoutCaptionInBrowser
+  layoutCaptionInBrowser,
+  resolveCaptionLayoutInput
 } from "./caption-layout";
+import { captionFontIsLoaded, loadCaptionFont } from "./caption-font";
 import { resolveCompositionReachability } from "./composition-reachability";
 import { motionFrameAtProjectFrame } from "../../contracts/src/frame-rate.js";
 import { ExplainerSceneLayer } from "./explainer-registry";
@@ -177,6 +175,7 @@ export function resolveWordExactCaptionHighlight(
   caption: CaptionCard,
   frame: number
 ): CaptionEmphasis | undefined {
+  if (snapshot.timeline.captionFormat) return undefined;
   const alignment = snapshot.speechAlignment;
   const speechAsset = snapshot.speechAsset;
   if (caption.precision !== "word_exact" || caption.textMode === "manual"
@@ -212,32 +211,35 @@ export function resolveWordExactCaptionHighlight(
  */
 const CaptionLayer: React.FC<{ snapshot: ProjectSnapshot; caption: CaptionCard }> = ({ snapshot, caption }) => {
   const frame = useCurrentFrame();
-  const format = { ...DEFAULT_RENDER_CAPTION_FORMAT, ...caption.format };
+  const format = resolveCaptionFormat(snapshot.timeline, caption);
+  const fixedLineCount = Boolean(snapshot.timeline.captionFormat);
   const backgroundColor = captionBackgroundColor(format);
-  const emphasis = resolveWordExactCaptionHighlight(snapshot, caption, frame) ?? caption.emphasis;
+  const emphasis = fixedLineCount ? undefined : resolveWordExactCaptionHighlight(snapshot, caption, frame) ?? caption.emphasis;
   // emphasis 的 transform 不参与普通 CSS 流式布局；先按最大字号/字重预留空间，避免视觉上越出安全区。
   const layout = React.useMemo(() => layoutCaptionInBrowser({
     text: caption.text,
     compositionWidth: snapshot.timeline.width,
     compositionHeight: snapshot.timeline.height,
     format,
+    fixedLineCount,
     emphasisScale: emphasis?.scale,
     emphasisFontWeight: emphasis?.fontWeight
-  }), [caption.text, emphasis?.fontWeight, emphasis?.scale, format, snapshot.timeline.width]);
+  }), [caption.text, emphasis?.fontWeight, emphasis?.scale, format, fixedLineCount, snapshot.timeline.width, snapshot.timeline.height]);
+  const resolved = resolveCaptionLayoutInput({ text: caption.text, compositionWidth: snapshot.timeline.width, format })!;
+  const reservedLines = fixedLineCount ? resolved.maxLines : layout.ready ? layout.lines.length : 1;
+  const allowedHeight = format.fontSize * resolved.lineHeight * reservedLines + resolved.paddingVertical * 2;
   const displayText = layout.ready ? layout.lines.join("\n") : "";
   const emphasisIndex = emphasis ? captionEmphasisIndex(displayText, emphasis.text, emphasis.occurrence) : -1;
   const before = emphasisIndex >= 0 && emphasis ? displayText.slice(0, emphasisIndex) : displayText;
   const focused = emphasisIndex >= 0 && emphasis ? displayText.slice(emphasisIndex, emphasisIndex + emphasis.text.length) : "";
   const after = emphasisIndex >= 0 && emphasis ? displayText.slice(emphasisIndex + emphasis.text.length) : "";
   const contentRef = React.useRef<HTMLSpanElement>(null);
-  const layoutCheckKey = `${displayText}\u0000${format.fontSize}\u0000${format.fontWeight}\u0000${format.horizontalInsetPercent}\u0000${backgroundColor ?? ""}`;
+  const layoutCheckKey = `${displayText}\u0000${JSON.stringify(format)}\u0000${fixedLineCount}`;
   const [domCheck, setDomCheck] = React.useState<{ key: string; overflowReason?: string }>({ key: layoutCheckKey });
 
   React.useLayoutEffect(() => {
     if (!layout.ready || !contentRef.current) return;
     const element = contentRef.current;
-    const verticalPadding = backgroundColor ? format.fontSize * CAPTION_BACKGROUND_VERTICAL_PADDING_EM : 0;
-    const allowedHeight = format.fontSize * CAPTION_LINE_HEIGHT * layout.lines.length + verticalPadding;
     // Canvas 是同一 Chromium / 同一字体栈的分行依据；DOM 再以实际 box 复核，防止字体回退、
     // 字重或浏览器实现差异变成横向溢出或意外第三行。
     // 所有测量使用未变换的 CSS 布局像素；Player 的整体缩放不能与 scrollWidth 混比。
@@ -252,13 +254,13 @@ const CaptionLayer: React.FC<{ snapshot: ProjectSnapshot; caption: CaptionCard }
     setDomCheck((previous) => previous.key === layoutCheckKey && previous.overflowReason === reason
       ? previous
       : { key: layoutCheckKey, overflowReason: reason });
-  }, [backgroundColor, displayText, format.fontSize, layout, layoutCheckKey]);
+  }, [allowedHeight, displayText, layout, layoutCheckKey]);
 
   if (!layout.ready) throw new CaptionLayoutError(layout.reason);
   // 切到下一张 Card 时，前一张的 DOM 复核结果不能污染新布局；新布局会在 layout effect 后写回。
   if (domCheck.key === layoutCheckKey && domCheck.overflowReason) throw new CaptionLayoutError(domCheck.overflowReason);
 
-  return <div style={{
+  return <div data-caption-track="ordinary" style={{
     position: "absolute",
     left: `${format.placement?.leftPercent ?? format.horizontalInsetPercent}%`,
     // selectComposition 元数据阶段的父画布还可能为零宽；字幕安全宽度由同一 Timeline
@@ -269,21 +271,26 @@ const CaptionLayer: React.FC<{ snapshot: ProjectSnapshot; caption: CaptionCard }
     color: format.color,
     fontSize: format.fontSize,
     fontWeight: format.fontWeight,
-    lineHeight: CAPTION_LINE_HEIGHT,
+    lineHeight: resolved.lineHeight,
     textAlign: format.textAlign,
     textShadow: captionTextShadowCss(format.textShadow),
-    fontFamily: CAPTION_FONT_FAMILY
+    fontFamily: resolved.fontFamily,
+    fontStyle: format.font?.style,
+    pointerEvents: "none"
   }}><span
       ref={contentRef}
-      data-caption-layout="two-lines-max"
+      data-caption-layout={fixedLineCount ? `fixed-${resolved.maxLines}-lines` : "two-lines-max"}
       style={{
         display: "inline-block",
         maxWidth: "100%",
+        width: format.boxWidth === "full" ? "100%" : undefined,
+        height: fixedLineCount ? allowedHeight : undefined,
+        verticalAlign: fixedLineCount ? "top" : undefined,
         boxSizing: "border-box",
         // 只显示 layoutCaptionInBrowser 产出的 \n；pre 禁止浏览器进行额外自动折行。
         whiteSpace: "pre",
-        padding: backgroundColor ? "0.13em 0.32em" : undefined,
-        borderRadius: backgroundColor ? "0.22em" : undefined,
+        padding: `${resolved.paddingVertical}px ${resolved.paddingHorizontal}px`,
+        borderRadius: format.borderRadius ?? (backgroundColor ? "0.22em" : undefined),
         backgroundColor
       }}
     >{before}{focused && emphasis && <span style={{ display: "inline-block", color: emphasis.color ?? format.color, backgroundColor: emphasis.backgroundColor, fontWeight: emphasis.fontWeight ?? Math.min(900, format.fontWeight + 100), transform: emphasis.scale === undefined ? undefined : `scale(${emphasis.scale})`, transformOrigin: "center bottom" }}>{focused}</span>}{after}</span></div>;
@@ -295,12 +302,45 @@ export function activeCaptionsAtFrame(captions: CaptionCard[], frame: number): C
 }
 
 /** 统一字幕轨只渲染当前一条 Card；错误数据不会靠 DOM 叠加假装成功。 */
-const CaptionTrackLayer: React.FC<{ snapshot: ProjectSnapshot }> = ({ snapshot }) => {
+const CaptionFontLayer: React.FC<{ snapshot: ProjectSnapshot; caption: CaptionCard; mediaBaseUrl: string }> = ({ snapshot, caption, mediaBaseUrl }) => {
+  const format = resolveCaptionFormat(snapshot.timeline, caption);
+  const font = format.font;
+  if (format.fontId && font?.fontId !== format.fontId || font && font.family !== `VFC_${font.hash}`) throw new Error("CAPTION_FONT_BINDING_INVALID: 字体选择与固定绑定不符");
+  const [handle] = React.useState(() => font && !captionFontIsLoaded(font, mediaBaseUrl) ? delayRender(`载入字幕字体 ${font.fontId}`) : undefined);
+  const [ready, setReady] = React.useState(() => !font || captionFontIsLoaded(font, mediaBaseUrl));
+  const [error, setError] = React.useState<Error>();
+  React.useEffect(() => {
+    if (!font || handle === undefined) return;
+    let disposed = false;
+    loadCaptionFont(font, mediaBaseUrl).then(() => {
+      if (!disposed) setReady(true);
+      continueRender(handle);
+    }, (reason: Error) => {
+      if (!disposed) {
+        setError(reason);
+        if (getRemotionEnvironment().isRendering) cancelRender(reason);
+      }
+      continueRender(handle);
+    });
+    return () => { disposed = true; continueRender(handle); };
+  }, [font, handle, mediaBaseUrl]);
+  if (error) throw error;
+  return ready ? <CaptionLayer snapshot={snapshot} caption={caption} /> : null;
+};
+
+const CaptionTrackLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string }> = ({ snapshot, mediaBaseUrl }) => {
   const frame = useCurrentFrame();
+  const globalFont = snapshot.project.brief.captionMode !== "none" ? snapshot.timeline.captionFormat?.font : undefined;
+  React.useEffect(() => {
+    // 片头无字幕时也提前读取全片字形；失败在真正显示字幕时由正式加载门禁明确报告。
+    if (globalFont) void loadCaptionFont(globalFont, mediaBaseUrl).catch(() => undefined);
+  }, [globalFont, mediaBaseUrl]);
   const active = snapshot.project.brief.captionMode === "none" ? [] : activeCaptionsAtFrame(snapshot.timeline.captions, frame);
   if (active.length === 0) return null;
   if (active.length > 1) throw new CaptionTimelineOverlapError();
-  return <CaptionLayer snapshot={snapshot} caption={active[0]!} />;
+  const caption = active[0]!;
+  const font = resolveCaptionFormat(snapshot.timeline, caption).font;
+  return <CaptionFontLayer key={font?.hash ?? "legacy"} snapshot={snapshot} caption={caption} mediaBaseUrl={mediaBaseUrl} />;
 };
 
 const itemDuration = (item: TimelineItem) => item.endFrame - item.startFrame;
@@ -577,7 +617,7 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
     {rearCues.filter((cue) => !hasMaskedActorFor(cue)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
     {cuesAt("actor", "front").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
     {cuesAt("fullscreen").filter(cue => !explainerSceneIds.has(cue.sceneId)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
-    <CaptionTrackLayer snapshot={snapshot} />
+    <CaptionTrackLayer snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} />
     {audioItems.map((item) => <AudioLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} cue={audioCuesByItem.get(item.id)} />)}
   </AbsoluteFill>;
 };

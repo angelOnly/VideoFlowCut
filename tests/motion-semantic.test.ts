@@ -57,6 +57,9 @@ test("正式 MCP 协议从当前项目提交语义 Job，经 Worker 编码后以
     assert.equal(result.diagnostics.semantic_used, true);
     assert.equal(result.source_sha256, first.source_sha256);
     assert.equal(result.cards.length, 3);
+    assert.ok(completed.result?.externalRuns, "完整向量运行记录保留在后台供恢复使用");
+    assert.equal(result.externalRuns, undefined, "正式搜索出口不透传模型运行正文");
+    assert.ok(result.cards.every((card: Record<string, unknown>) => card.search_text === undefined));
     const evidence = await client.callTool({ name: "read_motion_mechanism", arguments: { id: result.cards[0].id, source_sha256: result.source_sha256, include_storyboard: false } });
     assert.notEqual(evidence.isError, true);
     assert.equal(app.listJobs(projectId).length, 1);
@@ -71,7 +74,12 @@ test("全文、独立向量召回、粗状态软排序与稳定分页",()=>{
   const id=index.mechanisms[0].id;
   const result=searchLibraryIndex(index,{query:"无词法命中的完整关系",limit:5},{candidates:[{id,score:0.9}]}) as any;
   assert.equal(result.cards[0].id,id);assert.equal(result.cards[0].retrieval_evidence.lexical_rank,undefined);
-  const connected=searchLibraryIndex(index,{after:id,limit:50,offset:650}) as any;
+  // 接续检索排除自身，按当前库取末页，仍验证无公共状态的候选不会被硬过滤。
+  const connectionCount=index.count-1,tailOffset=Math.max(0,connectionCount-50);
+  const connected=searchLibraryIndex(index,{after:id,limit:50,offset:tailOffset}) as any;
+  assert.equal(connected.total,connectionCount);
+  assert.equal(connected.cards.length,connectionCount-tailOffset);
+  assert.equal(connected.next_offset,null);
   assert.ok(connected.cards.some((entry:any)=>!entry.connection.shared_states.length&&entry.connection.gap));
   const pool={candidates:index.mechanisms.map((entry,i)=>({id:entry.id,score:i/index.count}))};
   const full=searchLibraryIndex(index,{query:"保持",limit:50},pool) as any;
@@ -85,12 +93,15 @@ test("全文、独立向量召回、粗状态软排序与稳定分页",()=>{
   assert.throws(()=>libraryVideo(root,"../../secret",index.source_sha256));
 });
 
-test("现有模型运输接入任务指令，744条缓存复用且不写素材和Revision",async()=>{
+test("现有模型运输接入任务指令，当前全库缓存复用且不写素材和Revision",async()=>{
   const directory=await mkdtemp(join(tmpdir(),"motion-semantic-")),app=createApplication(directory);
   try{
     const initial=app.createProject({name:"机制缓存隔离测试"}),projectId=initial.snapshot.project.id;
     const index=loadLibraryIndex(root),config=readRuntimeConfig();
     const payload={request:{stages:["外框保持，内部滚动","整体外框向前移动"],limit:5},source_sha256:index.source_sha256,modelConfig:{...config.semantic,apiBaseUrl:config.bridge.apiBaseUrl}};
+    // 每条机制按完整行为分块；缓存期望随当前内容变化，不固定历史库条数。
+    const documentChunks=index.mechanisms.reduce((count,entry)=>count+mechanismChunks(entry.search_text).length,0);
+    const expectedTexts=documentChunks+payload.request.stages.length;
     const bridge=new ComfyUIBridgeClient(config.bridge.apiBaseUrl);
     const workflow:BridgeWorkflow={id:config.semantic.embeddingWorkflowId,schemaVersion:"test-v1",name:"测试编码",available:true,fields:["texts_json","mode","instruction"].map(id=>({id,label:id,kind:"text",required:false})),itemSlots:[],outputs:[]};
     let calls=0;const runs=new Map<string,number[][]>();
@@ -107,10 +118,11 @@ test("现有模型运输接入任务指令，744条缓存复用且不写素材�
     const job=app.repository.createJob({projectId,kind:"motion_library_search",payload,idempotencyKey:"first"});
     const first=await runMotionLibrarySearch(app,job,bridge) as any;
     assert.equal(first.diagnostics.semantic_used,true);assert.equal(first.groups.length,2);
-    assert.equal(first.diagnostics.encoded_texts,746);
+    assert.equal(first.diagnostics.document_chunks,documentChunks);
+    assert.equal(first.diagnostics.encoded_texts,expectedTexts);
     const callsAfter=calls;
     const second=await runMotionLibrarySearch(app,app.repository.createJob({projectId,kind:"motion_library_search",payload,idempotencyKey:"second"}),bridge) as any;
-    assert.equal(calls,callsAfter);assert.equal(second.diagnostics.encoded_texts,0);assert.equal(second.diagnostics.cache_hits,746);
+    assert.equal(calls,callsAfter);assert.equal(second.diagnostics.encoded_texts,0);assert.equal(second.diagnostics.cache_hits,expectedTexts);
     assert.deepEqual(JSON.parse(JSON.stringify(app.readProject(projectId))),JSON.parse(JSON.stringify(initial)));
     assert.deepEqual(app.intelligence.store.sources(projectId),[]);
     const stale=app.repository.createJob({projectId,kind:"motion_library_search",payload:{...payload,source_sha256:"0".repeat(64)},idempotencyKey:"stale"});

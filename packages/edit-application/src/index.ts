@@ -4,7 +4,7 @@ import { candidateTechnicalReasons, normalizeCandidateFilters } from "../../medi
 import { sourceMaterialSchema, type SourceMaterialInput } from "../../asset-acquisition/src/source-research.js";
 import { assetAcquisitionOptionsSchema } from "../../asset-acquisition/src/options.js";
 import type { AssetAcquisitionOptions } from "@videocut/contracts";
-import { captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema, validCaptionDisplay, type CaptionDisplay } from "../../contracts/src/caption-presentation.js";
+import { captionTypographySchema, captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema, validCaptionDisplay, type CaptionDisplay } from "../../contracts/src/caption-presentation.js";
 import { applyAudioDesign, soundRequirementSchema, type AudioDesignInput } from "./sound-design.js";
 import { prepareProjectFrameRateChange } from "./frame-rate-change.js";
 import { digest as mediaDigest, assetRequestVersion } from "../../media-intelligence/src/index.js";
@@ -536,7 +536,7 @@ function markSpeechAlignmentStale(snapshot: ProjectSnapshot, impact: ImpactRepor
   impact.warnings.push(`词级对齐已过期：${reason}`);
 }
 
-type CaptionFormatPatch = Partial<Omit<CaptionFormat, "backgroundColor" | "backgroundOpacity" | "placement">> & {
+type CaptionFormatPatch = Partial<Omit<CaptionFormat, "backgroundColor" | "backgroundOpacity" | "placement" | "font">> & {
   backgroundColor?: string | null;
   backgroundOpacity?: number | null;
   placement?: CaptionFormat["placement"] | null;
@@ -657,6 +657,15 @@ function applyCaptionFormat(current: CaptionFormat | undefined, patch: CaptionFo
   // MCP 解构会携带未传字段的 undefined；它们不能覆盖既有安全排版值。
   const formatPatch = Object.fromEntries(Object.entries(rawFormatPatch).filter(([, value]) => value !== undefined)) as Partial<Omit<CaptionFormat, "backgroundColor" | "backgroundOpacity" | "placement">>;
   const next: CaptionFormat = { ...DEFAULT_CAPTION_FORMAT, ...current, ...formatPatch };
+  const typography = captionTypographySchema.safeParse(Object.fromEntries(
+    ["fontId", "lineHeight", "maxLines", "paddingHorizontal", "paddingVertical", "borderRadius", "boxWidth"]
+      .map(key => [key, next[key as keyof CaptionFormat]])));
+  if (!typography.success || "font" in patch) throw new DomainError("字幕排版或字体参数无效，字体身份由 Runtime 派生", "INVALID_CAPTION_TYPOGRAPHY");
+  if (next.fontId && (patch.fontId !== undefined || !next.font)) {
+    const { slot: _slot, ...binding } = bindMotionFonts({ fontBindings: { caption: next.fontId } })[0]!;
+    next.font = binding;
+    if (patch.fontWeight === undefined) next.fontWeight = binding.weight;
+  }
   if (next.textShadow !== undefined && next.textShadow !== null) next.textShadow = captionTextShadowSchema.parse(next.textShadow);
   if (placement === null) delete next.placement;
   else if (placement !== undefined) next.placement = captionPlacementSchema.parse(placement);
@@ -8109,13 +8118,34 @@ export class EditingApplication {
     captionId?: Id;
     /** bulk_source_format 只接受同一来源使用（sourceTimelineItemId）的明确 Card 集合。 */
     captionIds?: Id[];
-    action: "update" | "reset" | "bulk_source_format";
+    action: "update" | "reset" | "bulk_source_format" | "set_global_format";
     text?: string;
     format?: CaptionFormatPatch;
     emphasis?: CaptionEmphasis | null;
     sourceTextReview?: SourceCaptionTextReviewInput;
     display?: CaptionDisplay | null;
   }): ProjectState {
+    if (input.action === "set_global_format") {
+      if (!input.format || Object.values(input.format).every(value => value === undefined)
+        || input.captionId !== undefined || input.captionIds !== undefined || input.text !== undefined
+        || input.emphasis !== undefined || input.sourceTextReview !== undefined || input.display !== undefined) {
+        throw new DomainError("全片字幕样式只接受 format，不接受单卡、正文或显示范围", "INVALID_GLOBAL_CAPTION_FORMAT");
+      }
+      const state = this.repository.commit(input.projectId, input.baseRevision, "统一全片普通字幕样式", (snapshot, impact) => {
+        snapshot.timeline.captionFormat = applyCaptionFormat(snapshot.timeline.captionFormat ?? { ...DEFAULT_CAPTION_FORMAT, fontId: "noto-sans-sc-bold", fontWeight: 700, maxLines: 2, lineHeight: 1.36, boxWidth: "content" }, input.format!);
+        // 切换时移除活动卡的局部外观；历史 Revision 原样保留。
+        for (const card of snapshot.timeline.captions) {
+          delete card.format;
+          delete card.emphasis;
+          impact.changed.push(card.id);
+          impact.dirtyRanges.push({ startFrame: card.startFrame, endFrame: card.endFrame, reason: "全片字幕样式更新" });
+        }
+        impact.changed.push("timeline.captionFormat");
+        impact.recomputed.push("普通字幕统一样式与固定行数占位");
+      });
+      this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+      return state;
+    }
     const isBulkSourceFormat = input.action === "bulk_source_format";
     if (isBulkSourceFormat) {
       if (input.captionId !== undefined || !input.captionIds?.length || input.captionIds.length > 200 || !input.format
@@ -8134,6 +8164,9 @@ export class EditingApplication {
     const state = this.repository.commit(input.projectId, input.baseRevision,
       input.action === "reset" ? "恢复字幕语音原文" : isBulkSourceFormat ? "批量调整原声字幕版式" : "编辑字幕卡",
       (snapshot, impact) => {
+      if (snapshot.timeline.captionFormat && (input.format !== undefined || input.emphasis !== undefined || isBulkSourceFormat)) {
+        throw new DomainError("普通字幕已使用全片固定规范；请以 set_global_format 修改全片样式，画内强调交主画面", "CAPTION_GLOBAL_FORMAT_REQUIRED");
+      }
       if (isBulkSourceFormat) {
         const captions = input.captionIds!.map((captionId) => {
           const caption = snapshot.timeline.captions.find((candidate) => candidate.id === captionId);

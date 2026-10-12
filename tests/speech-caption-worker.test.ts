@@ -17,9 +17,12 @@ import type { ProjectSnapshot } from "@videocut/contracts";
 const text = "流量总量并不等于下载速度，网络拥挤时还要看资源怎样分。";
 const phrases = ["流量总量并不等于下载速度，", "网络拥挤时还要看资源怎样分。"];
 
-test("真实MCP拒绝透明度0且不写Revision；旁白同源批量null取消背景，非法Card整批拒绝", async () => {
+test("旧项目真实MCP拒绝透明度0且不写Revision；旁白同源批量null取消背景，非法Card整批拒绝", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-caption-format-contract-"));
   const f = await fixture(root);
+  f.app.repository.commit(f.projectId, f.assembled.revision.number, "模拟旧项目同源字幕版式", (snapshot) => {
+    delete snapshot.timeline.captionFormat;
+  });
   const provider = mockProvider();
   const transport = new StdioClientTransport({ command: process.execPath, args: ["--import", "tsx", "apps/server/src/mcp.ts"], cwd: process.cwd(), env: { ...process.env as Record<string, string>, VIDEOCUT_WORKSPACE: root }, stderr: "pipe" });
   const client = new Client({ name: "字幕版式拒绝回归", version: "1.0.0" });
@@ -63,9 +66,12 @@ test("真实MCP拒绝透明度0且不写Revision；旁白同源批量null取消�
   } finally { await client.close(); await transport.close(); provider.restore(); f.app.close(); await rm(root, { recursive: true, force: true }); }
 });
 
-test("字幕美术阴影经HTTP编辑读回；局部更新保留选择，非法值不写版本", async () => {
+test("旧项目字幕美术阴影经HTTP编辑读回；局部更新保留选择，非法值不写版本", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-caption-shadow-"));
   const f = await fixture(root);
+  f.app.repository.commit(f.projectId, f.assembled.revision.number, "模拟旧项目单卡阴影", (snapshot) => {
+    delete snapshot.timeline.captionFormat;
+  });
   const server = await createServer({ workspaceRoot: root });
   try {
     const before = f.app.readProject(f.projectId);
@@ -92,9 +98,12 @@ test("字幕美术阴影经HTTP编辑读回；局部更新保留选择，非法�
   } finally { await server.app.close(); server.application.close(); f.app.close(); await rm(root, { recursive: true, force: true }); }
 });
 
-test("字幕显隐和静态位置经HTTP原子读回，保留语音原文与对齐，越界不写版本", async () => {
+test("旧项目字幕显隐和静态位置经HTTP原子读回，保留语音原文与对齐，越界不写版本", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-caption-presentation-"));
   const f = await fixture(root);
+  f.app.repository.commit(f.projectId, f.assembled.revision.number, "模拟旧项目单卡位置", (snapshot) => {
+    delete snapshot.timeline.captionFormat;
+  });
   const server = await createServer({ workspaceRoot: root });
   try {
     const before = f.app.readProject(f.projectId);

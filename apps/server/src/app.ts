@@ -1,5 +1,5 @@
 import { creativeBriefSchema, creativeBriefUpdateSchema, explicitCreativePreferencesSchema } from "../../../packages/contracts/src/creative-preferences.js";
-import { captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
+import { captionTypographySchema, captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
 import { MotionSubmissionValidationError } from "../../../packages/edit-application/src/motion-submission-validation.js";
 import { toolError } from "./tool-error.js";
 import { explainerPlanWithContent } from "../../../packages/contracts/src/explainer-inputs.js";
@@ -400,7 +400,10 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     if (request.headers["x-videoflowcut-release-id"] !== runtimeConfig.runtime.releaseId) {
       throw new DomainError("字幕测量必须使用同版 Runtime", "RUNTIME_RELEASE_MISMATCH");
     }
-    const inputs = z.array(z.object({ font: z.string().min(1), texts: z.array(z.string()) }).strict()).parse(request.body);
+    const inputs = z.array(z.object({ font: z.string().min(1), texts: z.array(z.string()), registeredFont: z.object({
+      fontId: z.string().regex(/^[a-z][a-z0-9-]{0,79}$/u), hash: z.string().regex(/^[a-f0-9]{64}$/u),
+      family: z.string().regex(/^VFC_[a-f0-9]{64}$/u), weight: z.number().int().min(100).max(900), style: z.enum(["normal", "italic"])
+    }).strict().optional() }).strict()).parse(request.body);
     const widths = await measureCaptionTextInBrowser(inputs);
     return reply.header("x-videoflowcut-release-id", runtimeConfig.runtime.releaseId).send(widths);
   });
@@ -1127,6 +1130,28 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return application.rebuildSpeechAssetTimeline({ projectId, ...body });
   });
 
+  /** 全片规范允许在首张字幕生成前设置；后续卡片只引用它。 */
+  app.patch("/api/projects/:projectId/captions/global-format", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      baseRevision: baseRevisionSchema,
+      format: z.object({
+        ...captionTypographySchema.shape,
+        textShadow: captionTextShadowSchema.nullable().optional(),
+        placement: captionPlacementSchema.nullable().optional(),
+        fontSize: z.number().int().min(16).max(72).optional(),
+        fontWeight: z.number().int().min(400).max(900).optional(),
+        color: z.string().regex(/^#[0-9a-f]{6}$/iu).optional(),
+        backgroundColor: z.string().regex(/^#[0-9a-f]{6}$/iu).nullable().optional(),
+        backgroundOpacity: z.number().min(0.1).max(1).nullable().optional(),
+        bottomPercent: z.number().min(0).max(95).optional(),
+        horizontalInsetPercent: z.number().min(0).max(45).optional(),
+        textAlign: z.enum(["left", "center", "right"]).optional()
+      }).strict()
+    }).strict().parse(request.body);
+    return application.editCaptions({ projectId, ...body, action: "set_global_format" });
+  });
+
   app.patch("/api/projects/:projectId/captions/:captionId", async (request) => {
     const { projectId, captionId } = z.object({ projectId: idSchema, captionId: idSchema }).parse(request.params);
     const body = z.object({
@@ -1136,6 +1161,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       sourceTextReview: sourceCaptionTextReviewSchema.optional(),
       display: captionDisplaySchema.nullable().optional(),
       format: z.object({
+        ...captionTypographySchema.shape,
         textShadow: captionTextShadowSchema.nullable().optional(),
         placement: captionPlacementSchema.nullable().optional(),
         fontSize: z.number().int().min(16).max(72).optional(),
@@ -1166,6 +1192,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       baseRevision: baseRevisionSchema,
       captionIds: z.array(idSchema).min(1).max(200),
       format: z.object({
+        ...captionTypographySchema.shape,
         textShadow: captionTextShadowSchema.nullable().optional(),
         placement: captionPlacementSchema.nullable().optional(),
         fontSize: z.number().int().min(16).max(72).optional(),

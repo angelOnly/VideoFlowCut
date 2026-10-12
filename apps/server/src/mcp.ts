@@ -27,6 +27,7 @@ import { inspectComposedFrames } from "./preview-inspection.js";
 import { inspectAsset } from "./source-review.js";
 import { registerMotionTools } from "./motion-tools.js";
 import { registerMotionLibraryTools } from "./motion-library-tools.js";
+import { projectMotionJob } from "./motion-library-output.js";
 import { registerMediaIntelligenceTools } from "./media-intelligence-tools.js";
 import { sha256File } from "./media-hash.js";
 import { extractSourceAudio } from "./extract-source-audio.js";
@@ -1320,29 +1321,36 @@ server.registerTool("select_dialogue_processing_variant", {
 
 server.registerTool("read_captions", {
   title: "读取字幕卡",
-  description: "读取最终 Caption Program、语音来源文字与其段级时序精度。",
+  description: "读取当前 Revision、普通字幕样式归属、全片 captionFormat 和字幕卡；卡片保留语音来源文字与真实时序精度。",
   inputSchema: { project_id: z.string().optional() },
   annotations: { readOnlyHint: true }
 }, async ({ project_id }) => {
   try {
-    const snapshot = application.readProject(projectIdFrom(project_id)).snapshot;
-    return asText(snapshot.timeline.captions);
+    const { snapshot, revision } = application.readProject(projectIdFrom(project_id));
+    return asText({ projectId: snapshot.project.id, revision: revision.number, presentation: snapshot.timeline.captionFormat ? "global" : "legacy_per_card", captionFormat: snapshot.timeline.captionFormat, captions: snapshot.timeline.captions });
   } catch (error) { return asError(error); }
 });
 
 server.registerTool("edit_captions", {
-  title: "编辑稳定字幕卡",
-  description: "可编辑当前 SpeechAsset 或已审计 source_audio Caption Card 的屏幕文案、显隐范围、静态位置和一个连续短语强调；bulk_source_format 可原子统一同一来源使用（sourceTimelineItemId）的明确 Card 集合。不会改 Script、音频、Card 边界或时间范围；chunk_coarse 原声字幕不能被伪拆分或重定时。occurrence 从 0 开始计数。",
+  title: "编辑普通字幕与全片样式",
+  description: "set_global_format 只传 format，统一全片普通字幕并由后续新卡继承。font_id 使用 read_motion_capabilities 的登记字体，max_lines 为固定行数占位。统一后 update/reset 只改正文、纠错和显示范围，禁止单卡样式和强调。未切换的旧项目保留历史局部编辑与 bulk_source_format；不改声音和真实时间。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
     caption_id: z.string().min(1).optional(),
     caption_ids: z.array(z.string().min(1)).min(1).max(200).optional(),
-    action: z.enum(["update", "reset", "bulk_source_format"]),
+    action: z.enum(["update", "reset", "bulk_source_format", "set_global_format"]),
     text: z.string().max(80).optional(),
     display: captionDisplaySchema.nullable().optional().describe("仅改变显示。shown 可指定本卡内的时间线绝对帧半开 ranges；hidden 隐藏整卡；null 恢复整卡显示。"),
     source_text_review: sourceCaptionTextReviewSchema.optional().describe("显示纠错依据：listening 实际回听（兼容仅 note）；confirmed_script 须提供 scriptRevision 和 speechSegmentIds 并核验当前配音关系；user_instruction 须提供 instruction 与 source。只改显示，不改变原音频或时间"),
     format: z.object({
+      font_id: z.string().regex(/^[a-z][a-z0-9-]{0,79}$/u).optional(),
+      line_height: z.number().min(1).max(2).optional(),
+      max_lines: z.union([z.literal(1), z.literal(2)]).optional(),
+      padding_horizontal: z.number().min(0).max(72).optional(),
+      padding_vertical: z.number().min(0).max(72).optional(),
+      border_radius: z.number().min(0).max(72).optional(),
+      box_width: z.enum(["content", "full"]).optional(),
       text_shadow: captionTextShadowSchema.nullable().optional().describe("null 关闭字幕阴影；对象指定偏移、模糊、颜色与透明度；省略保留当前外观，旧卡缺省沿用黑影"),
       placement: captionPlacementSchema.nullable().optional(),
       font_size: z.number().int().min(16).max(72).optional(),
@@ -1375,6 +1383,13 @@ server.registerTool("edit_captions", {
       action,
       text,
       format: format === undefined ? undefined : {
+        fontId: format.font_id,
+        lineHeight: format.line_height,
+        maxLines: format.max_lines,
+        paddingHorizontal: format.padding_horizontal,
+        paddingVertical: format.padding_vertical,
+        borderRadius: format.border_radius,
+        boxWidth: format.box_width,
         textShadow: format.text_shadow,
         placement: format.placement,
         fontSize: format.font_size,
@@ -2910,7 +2925,7 @@ server.registerTool("track_job", {
   inputSchema: { job_id: z.string().min(1) },
   annotations: { readOnlyHint: true }
 }, async ({ job_id }) => {
-  try { return asText(application.trackJob(job_id)); } catch (error) { return asError(error); }
+  try { return asText(projectMotionJob(application.trackJob(job_id))); } catch (error) { return asError(error); }
 });
 
 const transport = new StdioServerTransport();

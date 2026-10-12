@@ -19,6 +19,7 @@ import { createId, DomainError, resolveCompositionReachability } from "@videocut
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { canExport, evaluateQualityWithBrowser, exportBlockingIssues } from "@videocut/quality";
 import { probeMedia, runProcess } from "@videocut/speech";
+import { readMotionFontFile } from "../../../packages/motion-work/src/fonts.js";
 
 const contentTypeByExtension: Record<string, string> = {
   ".mp4": "video/mp4",
@@ -104,6 +105,13 @@ export async function startProjectMediaServer(snapshot: ProjectSnapshot): Promis
   const server = createServer(async (request, response) => {
     try {
       const requestUrl = new URL(request.url ?? "/", "http://127.0.0.1");
+      const fontMatch = /^\/api\/motion\/fonts\/([a-z][a-z0-9-]{0,79})\/file$/u.exec(requestUrl.pathname);
+      if (fontMatch) {
+        // 离线合成与工作台读取同一登记原件，固定 hash 不允许字体目录更新后偷偷换字形。
+        const font = readMotionFontFile(fontMatch[1]!, requestUrl.searchParams.get("sha256") ?? "");
+        response.writeHead(200, { "Content-Type": font.contentType, "Content-Length": font.bytes.length, "Access-Control-Allow-Origin": "*" }).end(font.bytes);
+        return;
+      }
       if (!requestUrl.pathname.startsWith(expectedPrefix)) {
         response.writeHead(404).end();
         return;

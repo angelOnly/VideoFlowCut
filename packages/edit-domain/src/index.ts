@@ -41,7 +41,7 @@ import type {
   VisualTreatmentMode,
   VoiceReference
 } from "@videocut/contracts";
-import { DEFAULT_TRACKS, sourceAudioTimeOrigin } from "@videocut/contracts";
+import { DEFAULT_TRACKS, DEFAULT_CAPTION_FORMAT, sourceAudioTimeOrigin } from "@videocut/contracts";
 import { projectFrameRateSchema } from "../../contracts/src/frame-rate.js";
 export { projectFrameRateChange } from "./frame-rate-change.js";
 import { resolveCompositionReachability } from "./composition-reachability";
@@ -241,7 +241,7 @@ export function createTimeline(fps = 24, width = 768, height = 1344): TimelineDo
     hidden: false,
     muted: false
   }));
-  return { fps, width, height, durationInFrames: 0, tracks, items: [], captions: [] };
+  return { fps, width, height, durationInFrames: 0, tracks, items: [], captions: [], captionFormat: { ...DEFAULT_CAPTION_FORMAT, maxLines: 2, lineHeight: 1.36, boxWidth: "content" } };
 }
 
 export function createStoryDocument(name: string, createdAt = now()): StoryDocument {

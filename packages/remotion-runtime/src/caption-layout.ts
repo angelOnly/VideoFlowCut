@@ -28,6 +28,8 @@ export interface CaptionLayoutInput {
   /** 强调的视觉缩放会放大实际字形，布局必须预留这一部分宽度。 */
   emphasisScale?: number;
   emphasisFontWeight?: number;
+  /** 全片规范固定预留行数；历史字幕仍按实际行数占位。 */
+  fixedLineCount?: boolean;
 }
 
 export interface ResolvedCaptionLayoutInput {
@@ -36,9 +38,13 @@ export interface ResolvedCaptionLayoutInput {
   fontSize: number;
   fontWeight: number;
   fontFamily: string;
+  fontStyle: string;
   lineHeight: number;
   maxLineWidth: number;
   hasBackground: boolean;
+  maxLines: 1 | 2;
+  paddingHorizontal: number;
+  paddingVertical: number;
 }
 
 export type CaptionLayoutResult = {
@@ -58,7 +64,7 @@ export type CaptionTextMeasure = (text: string) => number;
 
 /** Canvas 字体声明由正式 Renderer 和 Node 发起的浏览器测量共用。 */
 export const captionCanvasFont = (input: ResolvedCaptionLayoutInput): string =>
-  `normal ${input.fontWeight} ${input.fontSize}px ${input.fontFamily}`;
+  `${input.fontStyle} ${input.fontWeight} ${input.fontSize}px ${input.fontFamily}`;
 
 /**
  * 这个输入归一化在质量系统和 Renderer 之间共享：两边必须用同一字幕框宽度、字号和底板内边距。
@@ -71,8 +77,9 @@ export function resolveCaptionLayoutInput(input: CaptionLayoutInput): ResolvedCa
   const fontWeight = Math.max(format.fontWeight, input.emphasisFontWeight ?? format.fontWeight);
   const hasBackground = Boolean(format.backgroundColor);
   const boxWidth = input.compositionWidth * captionBoxWidthPercent(format) / 100;
-  const backgroundPadding = hasBackground ? fontSize * CAPTION_BACKGROUND_HORIZONTAL_PADDING_EM : 0;
-  const maxLineWidth = boxWidth - backgroundPadding;
+  const paddingHorizontal = format.paddingHorizontal ?? (hasBackground ? fontSize * CAPTION_BACKGROUND_HORIZONTAL_PADDING_EM / 2 : 0);
+  const paddingVertical = format.paddingVertical ?? (hasBackground ? fontSize * CAPTION_BACKGROUND_VERTICAL_PADDING_EM / 2 : 0);
+  const maxLineWidth = boxWidth - 2 * paddingHorizontal;
   if (!Number.isFinite(input.compositionWidth) || input.compositionWidth <= 0
     || !Number.isFinite(fontSize) || fontSize <= 0
     || !Number.isFinite(fontWeight) || fontWeight <= 0
@@ -82,10 +89,14 @@ export function resolveCaptionLayoutInput(input: CaptionLayoutInput): ResolvedCa
     compositionWidth: input.compositionWidth,
     fontSize,
     fontWeight,
-    fontFamily: CAPTION_FONT_FAMILY,
-    lineHeight: CAPTION_LINE_HEIGHT,
+    fontFamily: format.font?.family ?? CAPTION_FONT_FAMILY,
+    fontStyle: format.font?.style ?? "normal",
+    lineHeight: format.lineHeight ?? CAPTION_LINE_HEIGHT,
     maxLineWidth,
-    hasBackground
+    hasBackground,
+    maxLines: format.maxLines ?? 2,
+    paddingHorizontal,
+    paddingVertical
   };
 }
 
@@ -94,7 +105,8 @@ export function layoutCaptionWithMeasure(input: CaptionLayoutInput, measure: Cap
   const layout = layoutCaptionRowsWithMeasure(input, measure, measurement);
   if (!layout.ready || input.compositionHeight === undefined) return layout;
   const format = { ...DEFAULT_RENDER_CAPTION_FORMAT, ...input.format };
-  const height = format.fontSize * Math.max(1, input.emphasisScale ?? 1) * (CAPTION_LINE_HEIGHT * layout.lines.length + (format.backgroundColor ? CAPTION_BACKGROUND_VERTICAL_PADDING_EM : 0));
+  const resolved = resolveCaptionLayoutInput(input)!;
+  const height = resolved.fontSize * resolved.lineHeight * (input.fixedLineCount ? resolved.maxLines : layout.lines.length) + resolved.paddingVertical * 2;
   const top = format.placement ? input.compositionHeight * format.placement.topPercent / 100 : input.compositionHeight * (1 - format.bottomPercent / 100) - height;
   return top < 0 || top + height > input.compositionHeight ? { ready: false, code: CAPTION_LAYOUT_OVERFLOW, reason: "CANVAS_VERTICAL_OVERFLOW", measurement } : layout;
 }
@@ -157,7 +169,7 @@ function layoutCaptionRowsWithMeasure(
     return { ready: false, code: CAPTION_LAYOUT_OVERFLOW, reason: "TEXT_EMPTY", measurement };
   }
   const explicitLines = resolved.text.split("\n");
-  if (explicitLines.length > 2) {
+  if (explicitLines.length > resolved.maxLines) {
     return { ready: false, code: CAPTION_LAYOUT_OVERFLOW, reason: "EXPLICIT_LINE_COUNT", measurement };
   }
   if (explicitLines.some((line) => measure(line) > resolved.maxLineWidth)) {
@@ -173,6 +185,8 @@ function layoutCaptionRowsWithMeasure(
   if (measure(text) <= resolved.maxLineWidth) {
     return { ready: true, lines: [text], measurement };
   }
+  // 单行规范不缩字号或挤字；由字幕作者按可靠时间重新分卡。
+  if (resolved.maxLines === 1) return { ready: false, code: CAPTION_LAYOUT_OVERFLOW, reason: "LINE_TOO_WIDE", measurement };
   const graphemes = splitGraphemes(text);
   if (graphemes.length < 2) {
     return { ready: false, code: CAPTION_LAYOUT_OVERFLOW, reason: "LINE_TOO_WIDE", measurement };

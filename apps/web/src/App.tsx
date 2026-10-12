@@ -13,6 +13,8 @@ import { SoundLibraryPanel } from "./SoundLibraryPanel";
 import { TimelineEditor } from "./TimelineEditor";
 import { FrameRateSettings } from "./FrameRateSettings";
 import { FontLibraryPanel } from "./FontLibraryPanel";
+import { CaptionFormatEditor } from "./CaptionFormatEditor";
+import { captionCardUpdate } from "./caption-editor-state";
 
 type Panel = "assets" | "agent_work_orders" | "script" | "audio" | "actors" | "scenes" | "captions" | "fonts" | "advanced" | "jobs";
 type Selection = { kind: "asset" | "scene" | "item" | "cue"; id: string } | undefined;
@@ -378,6 +380,7 @@ export function App() {
             onSelectDialogueProcessingVariant={(profile) => void act("切换当前 Dialogue 候选", () => api.selectDialogueProcessingVariant(snapshot.project.id, { baseRevision: currentRevision, profile }))}
             onRebuildSpeechTimeline={() => void act("修复 SpeechAsset 时间线", () => api.rebuildSpeechTimeline(snapshot.project.id, currentRevision))}
             onEditCaption={(captionId, payload) => void act("更新字幕卡", () => api.editCaption(snapshot.project.id, captionId, { baseRevision: currentRevision, ...payload }))}
+            onEditCaptionFormat={(format) => void act("更新全片字幕样式", () => api.editCaptionGlobalFormat(snapshot.project.id, { baseRevision: currentRevision, format }))}
             onManageAudio={(payload) => void act("更新声音包装", () => api.manageAudio(snapshot.project.id, { baseRevision: currentRevision, ...payload }))}
             onAlignPresenterToSpeech={() => void act("按旁白收齐 Presenter 主线", () => api.alignPresenterToSpeech(snapshot.project.id, currentRevision))}
             playhead={playhead}
@@ -510,6 +513,7 @@ interface PanelContentProps {
   onSelectDialogueProcessingVariant: (profile: DialogueProcessingProfile) => void;
   onRebuildSpeechTimeline: () => void;
   onEditCaption: (captionId: string, payload: Record<string, unknown>) => void;
+  onEditCaptionFormat: (format: Record<string, unknown>) => void;
   onManageAudio: (payload: Record<string, unknown>) => void;
   onAlignPresenterToSpeech: () => void;
   playhead: number;
@@ -662,8 +666,11 @@ function PanelContent(props: PanelContentProps) {
     return <>
       <PanelTitle title="字幕 Caption" meta={`${snapshot.timeline.captions.length} 张字幕卡`} />
       {snapshot.timeline.captions.length === 0 && <p className="empty-panel">当前没有可用的段级语音时序。字幕只会在 SpeechAsset 组装成功后生成。</p>}
-      <p className="empty-panel">仅编辑屏幕呈现：双行文案、字号、字幕位置和一个强调短语。不会修改 Script、旁白或段级时序。</p>
-      {snapshot.timeline.captions.map((caption) => <CaptionEditor key={caption.id} caption={caption} disabled={props.busy} onSeek={props.onSeek} onSave={props.onEditCaption} />)}
+      {snapshot.timeline.captionFormat
+        ? <CaptionFormatEditor format={snapshot.timeline.captionFormat} disabled={props.busy} onSave={props.onEditCaptionFormat} />
+        : <><p className="empty-panel">此历史项目保留逐卡样式。切换后将使用统一默认规范，替换所有逐卡样式和强调，保留正文与时间。</p>
+          <button type="button" disabled={props.busy} onClick={() => props.onEditCaptionFormat({ maxLines: 2 })}>切换为全片统一样式</button></>}
+      {snapshot.timeline.captions.map((caption) => <CaptionEditor key={caption.id} caption={caption} unified={Boolean(snapshot.timeline.captionFormat)} disabled={props.busy} onSeek={props.onSeek} onSave={props.onEditCaption} />)}
     </>;
   }
   return <>
@@ -840,9 +847,10 @@ function AgentWorkOrderCard({ order, disabled, onCancel }: { order: AgentWorkOrd
   </article>;
 }
 
-/** 字幕面板只开放稳定 Card 的最小微调，复杂逐词动画仍由后续能力与真实时序支持。 */
-function CaptionEditor({ caption, disabled, onSeek, onSave }: {
+/** 全片统一项目只编辑正文和显隐；历史项目保留原有局部操作。 */
+export function CaptionEditor({ caption, unified, disabled, onSeek, onSave }: {
   caption: CaptionCard;
+  unified: boolean;
   disabled: boolean;
   onSeek: (frame: number) => void;
   onSave: (captionId: string, payload: Record<string, unknown>) => void;
@@ -867,7 +875,7 @@ function CaptionEditor({ caption, disabled, onSeek, onSave }: {
   const save = () => {
     const phrase = emphasisText.trim();
     const previousEmphasis = caption.emphasis;
-    onSave(caption.id, {
+    onSave(caption.id, captionCardUpdate(unified, {
       action: "update",
       text,
       format: { fontSize, bottomPercent, placement: placement ?? null },
@@ -880,7 +888,7 @@ function CaptionEditor({ caption, disabled, onSeek, onSave }: {
         fontWeight: previousEmphasis?.text === phrase ? previousEmphasis.fontWeight : 850,
         scale: previousEmphasis?.text === phrase ? previousEmphasis.scale : 1.05
       } : null
-    });
+    }));
   };
 
   return <article className="caption-card" data-testid={`caption-${caption.id}`} data-object-id={caption.id}>
@@ -891,14 +899,16 @@ function CaptionEditor({ caption, disabled, onSeek, onSave }: {
     {expanded && <div className="caption-editor">
       <label><input type="checkbox" checked={shown} onChange={event => setShown(event.target.checked)} />显示这张字幕</label>
       {caption.display?.ranges && <p>显示范围：{caption.display.ranges.map(r => `F${r.startFrame}–${r.endFrame}`).join("、")} <button type="button" disabled={disabled} onClick={() => onSave(caption.id, { action: "update", display: null })}>恢复整卡显示</button></p>}
-      <label>布局<select value={placement ? "placed" : "bottom"} onChange={event => setPlacement(event.target.value === "placed" ? { leftPercent: 8, topPercent: 12, widthPercent: 84 } : undefined)}><option value="bottom">底部布局</option><option value="placed">自定位置</option></select></label>
+      {!unified && <><label>布局<select value={placement ? "placed" : "bottom"} onChange={event => setPlacement(event.target.value === "placed" ? { leftPercent: 8, topPercent: 12, widthPercent: 84 } : undefined)}><option value="bottom">底部布局</option><option value="placed">自定位置</option></select></label>
       {placement && <div className="caption-field-row">{([["leftPercent", "左侧 %"], ["topPercent", "顶部 %"], ["widthPercent", "宽度 %"]] as const).map(([key, label]) => <label key={key}>{label}<input type="number" min={key === "widthPercent" ? 5 : 0} max={100} value={placement[key]} onChange={event => setPlacement({ ...placement, [key]: Number(event.target.value) })} /></label>)}</div>}
+      </>}
       <label>屏幕文案<textarea aria-label={`字幕文案：${caption.id}`} value={text} maxLength={80} rows={2} onChange={(event) => setText(event.target.value)} /></label>
-      <div className="caption-field-row">
+      {!unified && <><div className="caption-field-row">
         <label>字号<input aria-label={`字幕字号：${caption.id}`} type="number" min="16" max="72" value={fontSize} onChange={(event) => setFontSize(Number(event.target.value))} /></label>
         <label>距底部 %<input aria-label={`字幕距底部百分比：${caption.id}`} type="number" min="0" max="95" step="0.5" value={bottomPercent} onChange={(event) => setBottomPercent(Number(event.target.value))} /></label>
       </div>
       <label>强调短语（可留空）<input aria-label={`字幕强调短语：${caption.id}`} value={emphasisText} maxLength={40} onChange={(event) => setEmphasisText(event.target.value)} /></label>
+      </>}
       <div className="button-row">
         <button type="button" disabled={disabled} onClick={save}>保存字幕</button>
         <button type="button" disabled={disabled} onClick={() => onSave(caption.id, { action: "reset" })}>恢复语音原文</button>

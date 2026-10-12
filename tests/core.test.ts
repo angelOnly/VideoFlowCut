@@ -304,6 +304,8 @@ test("SpeechAsset 写入 Dialogue 轨并在 Script 改动后移除旧旁白和�
 
     // 模拟旧版本只保存 SpeechAsset、没有实际 Dialogue Item 的历史快照。
     const legacy = context.app.repository.commit(created.snapshot.project.id, assembled.revision.number, "模拟旧旁白快照", (snapshot) => {
+      // 本段继续覆盖旧项目单卡格式，不改变新项目默认统一字幕的测试输入。
+      delete snapshot.timeline.captionFormat;
       snapshot.timeline.items = snapshot.timeline.items.filter((item) => item.trackId !== dialogueTrack.id);
       snapshot.timeline.captions = [];
     });
@@ -373,12 +375,15 @@ test("SpeechAsset 写入 Dialogue 轨并在 Script 改动后移除旧旁白和�
   }
 });
 
-test("HTTP 字幕编辑只修改 Caption Card，并校验有限样式输入", async () => {
+test("旧项目 HTTP 字幕编辑只修改 Caption Card，并校验有限样式输入", async () => {
   const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-caption-http-test-"));
   const { app: server, application } = await createServer({ workspaceRoot });
   try {
     const created = application.createProject({ name: "HTTP 字幕编辑测试" });
     const projectId = created.snapshot.project.id;
+    application.repository.commit(projectId, created.revision.number, "模拟旧项目局部字幕样式", (snapshot) => {
+      delete snapshot.timeline.captionFormat;
+    });
     const referenceAssetId = addReadyAsset(application, projectId, "caption-reference.wav", "audio");
     application.applyTranscript({ projectId, assetId: referenceAssetId, text: "这是一句完整的字幕测试。", source: "manual" });
     applySemanticUnitsFromCandidates(application, projectId);
@@ -2253,7 +2258,7 @@ test("video-editor-mcp 可通过 stdio 连接并定位新项目", async () => {
   }
 });
 
-test("video-editor-mcp 的 edit_captions 接受稀疏样式更新且保留其它默认值", async () => {
+test("旧项目 video-editor-mcp 的 edit_captions 接受稀疏样式更新且保留其它默认值", async () => {
   const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-mcp-caption-test-"));
   const seedApplication = createApplication(workspaceRoot);
   let projectId = "";
@@ -2264,6 +2269,8 @@ test("video-editor-mcp 的 edit_captions 接受稀疏样式更新且保留其它
     projectId = created.snapshot.project.id;
     const speechAssetId = addReadyAsset(seedApplication, projectId, "mcp-caption-speech.wav", "speech");
     const seeded = seedApplication.repository.commit(projectId, seedApplication.readProject(projectId).revision.number, "建立 MCP 字幕测试数据", (snapshot) => {
+      // 仅此夹具保留历史单卡模式，以验证旧项目仍能稀疏更新。
+      delete snapshot.timeline.captionFormat;
       snapshot.speechSegments.push({
         id: "mcp_caption_segment",
         semanticUnitIds: [],

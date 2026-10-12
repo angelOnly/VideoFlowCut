@@ -2,13 +2,34 @@ import puppeteer from "puppeteer-core";
 import { DomainError } from "@videocut/domain";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { resolveRenderBrowser } from "../../remotion-runtime/src/browser.js";
+import type { CaptionFormat } from "@videocut/contracts";
+import { bindMotionFonts, readMotionFontFile } from "../../motion-work/src/fonts.js";
 import { captionCanvasFont, captionMeasurementTexts, layoutCaptionWithMeasure, resolveCaptionLayoutInput, type CaptionLayoutInput, type CaptionLayoutResult } from "../../remotion-runtime/src/caption-layout.js";
 
-export interface CaptionMeasurementRequest { font: string; texts: string[]; }
+export interface CaptionMeasurementRequest { font: string; texts: string[]; registeredFont?: CaptionFormat["font"]; }
 
 /** 浏览器只接收字体声明与纯文本，不接受代码、资源路径或浏览器配置。 */
 export async function measureCaptionTextInBrowser(requests: CaptionMeasurementRequest[]): Promise<number[][]> {
   if (requests.length === 0) return [];
+  // 只从登记库读取身份固定的原件；调用方不能传任意 URL、系统路径或字体字节。
+  const fonts = new Map<string, { dataUrl: string; identity: string; binding: NonNullable<CaptionFormat["font"]> }>();
+  for (const request of requests) {
+    const binding = request.registeredFont;
+    if (!binding) continue;
+    if (binding.family !== `VFC_${binding.hash}`) throw new DomainError("CAPTION_FONT_BINDING_INVALID: 字体 family 与固定身份不符", "CAPTION_FONT_BINDING_INVALID");
+    const identity = JSON.stringify([binding.fontId, binding.hash, binding.family, binding.weight, binding.style]);
+    let preparedFont = fonts.get(binding.hash);
+    if (preparedFont && preparedFont.identity !== identity) throw new DomainError("CAPTION_FONT_BINDING_INVALID: 同一字体字节的绑定身份冲突", "CAPTION_FONT_BINDING_INVALID");
+    if (!preparedFont) {
+      const fixed = bindMotionFonts({ fontBindings: { caption: binding.fontId } })[0]!;
+      if (fixed.hash !== binding.hash || fixed.family !== binding.family || fixed.weight !== binding.weight || fixed.style !== binding.style) {
+        throw new DomainError("CAPTION_FONT_BINDING_INVALID: 字体身份与登记原件不符", "CAPTION_FONT_BINDING_INVALID");
+      }
+      const file = readMotionFontFile(binding.fontId, binding.hash);
+      preparedFont = { dataUrl: `data:${file.contentType};base64,${file.bytes.toString("base64")}`, identity, binding };
+      fonts.set(binding.hash, preparedFont);
+    }
+  }
   const browser = await puppeteer.launch({
     executablePath: await resolveRenderBrowser(), headless: true, pipe: true,
     args: ["--disable-background-networking", "--disable-component-update", "--disable-sync", "--no-first-run"],
@@ -16,7 +37,13 @@ export async function measureCaptionTextInBrowser(requests: CaptionMeasurementRe
   });
   try {
     const page = await browser.newPage();
-    return await page.evaluate(async (batch) => {
+    // 字体原件在跨进程传输前去重；否则整片每卡都会重复序列化数MB字体，引发协议/HTTP超时。
+    return await page.evaluate(async ({ batch, fontFiles }) => {
+      for (const { binding, dataUrl } of fontFiles) {
+        const face = new FontFace(binding.family, `url("${dataUrl}")`, { weight: String(binding.weight), style: binding.style });
+        await face.load();
+        document.fonts.add(face);
+      }
       await document.fonts.ready;
       const context = document.createElement("canvas").getContext("2d");
       if (!context) throw new Error("字幕 Canvas 字宽测量不可用");
@@ -24,7 +51,7 @@ export async function measureCaptionTextInBrowser(requests: CaptionMeasurementRe
         context.font = request.font;
         return request.texts.map((text) => context.measureText(text).width);
       });
-    }, requests);
+    }, { batch: requests, fontFiles: [...fonts.values()].map(({ binding, dataUrl }) => ({ binding, dataUrl })) });
   } finally {
     await browser.close();
   }
@@ -52,8 +79,9 @@ export async function measureCaptionTextViaRuntime(requests: CaptionMeasurementR
 export async function measureCaptionLayouts(inputs: CaptionLayoutInput[]): Promise<CaptionLayoutResult[]> {
   if (inputs.length === 0) return [];
   const requests = inputs.map((input) => {
+    if (input.format?.fontId && input.format.font?.fontId !== input.format.fontId) throw new Error("CAPTION_FONT_BINDING_INVALID: 字体选择缺少固定绑定");
     const resolved = resolveCaptionLayoutInput(input);
-    return { font: resolved ? captionCanvasFont(resolved) : "normal 400 16px sans-serif", texts: captionMeasurementTexts(input) };
+    return { font: resolved ? captionCanvasFont(resolved) : "normal 400 16px sans-serif", texts: captionMeasurementTexts(input), registeredFont: input.format?.font };
   });
   const config = readRuntimeConfig();
   const widths = config.runtime.distributionDirectory && !config.runtime.browserExecutable

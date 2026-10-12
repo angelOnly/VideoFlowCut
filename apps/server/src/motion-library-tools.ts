@@ -8,6 +8,7 @@ import { readRuntimeConfig } from "@videocut/project-overview";
 import { DomainError } from "@videocut/domain";
 import { digest, timeRangeSchema } from "../../../packages/media-intelligence/src/index.js";
 import { MOTION_TEXT_VERSION, MOTION_INSTRUCTION_VERSION } from "../../../packages/media-intelligence/src/motion-library.js";
+import { motionJobRecovery, projectMotionJob, projectMotionMechanismResult, projectMotionSearchResult } from "./motion-library-output.js";
 
 const id = z.string().regex(/^\d{3}-m\d{2}$/u);
 const fingerprint = z.string().regex(/^[a-f0-9]{64}$/u);
@@ -43,7 +44,7 @@ export function registerMotionLibraryTools(server: McpServer, root = resolve(pro
           try { projectId=projectIdFrom(project_id); }
           catch(error) {
             if(project_id || !(error instanceof DomainError) || error.code!=="PROJECT_NOT_TARGETED") throw error;
-            return {content:[{type:"text" as const,text:JSON.stringify({...lexical,diagnostics:{mode:"lexical",semantic_used:false,reason:"未指定项目，返回全文词法结果；指定 project_id 后可使用现有语义 Job"}})}]};
+            return {content:[{type:"text" as const,text:JSON.stringify(projectMotionSearchResult({...lexical,diagnostics:{mode:"lexical",semantic_used:false,reason:"未指定项目，返回全文词法结果；指定 project_id 后可使用现有语义 Job"}}))}]};
           }
           const config=readRuntimeConfig();
           const payload={request,source_sha256:lexical.source_sha256,modelConfig:{...config.semantic,apiBaseUrl:config.bridge.apiBaseUrl},textVersion:MOTION_TEXT_VERSION,instructionVersion:MOTION_INSTRUCTION_VERSION};
@@ -51,11 +52,11 @@ export function registerMotionLibraryTools(server: McpServer, root = resolve(pro
           const submitted=app.repository.createJob({projectId,kind:"motion_library_search",payload,idempotencyKey:`motion-library:${digest(payload)}`});
           // 显式恢复后沿同一请求返回最新尝试，不自动重放失败或未知提交。
           const job=latestAttempt(app,projectId,submitted);
-          if(job.status==="succeeded"&&job.result) result=job.result;
-          else result={...lexical,diagnostics:{mode:"lexical",semantic_used:false,source_sha256:lexical.source_sha256,job_id:job.id,status:job.status,reason:job.error??"语义索引或查询正在准备；可使用全文词法结果，track_job 后以相同输入读回",failure:job.result?.diagnostic}};
+          if(job.status==="succeeded"&&job.result) result={...job.result,diagnostics:{...(job.result.diagnostics as Record<string,unknown>),job_id:job.id,status:job.status}};
+          else result={...lexical,diagnostics:{mode:"lexical",semantic_used:false,source_sha256:lexical.source_sha256,job_id:job.id,status:job.status,reason:job.error??"语义索引或查询正在准备；可使用全文词法结果，track_job 后以相同输入读回",failure:job.result?.diagnostic,recovery:motionJobRecovery(job)}};
         }
       }
-      return {content:[{type:"text" as const,text:JSON.stringify(result)}]};
+      return {content:[{type:"text" as const,text:JSON.stringify(projectMotionSearchResult(result))}]};
     }catch(error){return failure(error,sideEffects);}
   });
   server.registerTool("read_motion_mechanism", {
@@ -66,7 +67,7 @@ export function registerMotionLibraryTools(server: McpServer, root = resolve(pro
   }, async (request) => {
     try {
       const loaded=readLibraryMechanism(root,request);
-      const content: Array<{type:"text";text:string}|{type:"image";data:string;mimeType:string}>=[{type:"text",text:JSON.stringify(loaded.result)}];
+      const content: Array<{type:"text";text:string}|{type:"image";data:string;mimeType:string}>=[{type:"text",text:JSON.stringify(projectMotionMechanismResult(loaded.result))}];
       if(loaded.image)content.push({type:"image",data:loaded.image,mimeType:"image/jpeg"});
       return {content};
     } catch(error) {return failure(error);}
@@ -86,7 +87,7 @@ export function registerMotionLibraryTools(server: McpServer, root = resolve(pro
       sideEffects="unknown";
       const submitted=app.repository.createJob({projectId,kind:"motion_reference_analysis",payload,idempotencyKey:`motion-reference:${digest(payload)}`});
       const job=latestAttempt(app,projectId,submitted);
-      return {content:[{type:"text" as const,text:JSON.stringify(job)}]};
+      return {content:[{type:"text" as const,text:JSON.stringify(projectMotionJob(job))}]};
     }catch(error){return failure(error,sideEffects);}
   });
 }

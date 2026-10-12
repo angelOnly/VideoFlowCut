@@ -107,6 +107,7 @@ test("真实字宽统一质量与预检：保守预算误报的两行通过，�
     assert.equal(mixed!.ready, true, "拉丁字偶距与emoji组合按完整字串测量");
     const created = application.createProject({ name: "字幕测量隔离回归" });
     const state = application.repository.commit(created.snapshot.project.id, created.revision.number, "创建隔离字幕夹具", (snapshot) => {
+      delete snapshot.timeline.captionFormat; // 本夹具复核旧版逐卡格式的浏览器预算问题。
       snapshot.timeline.width = 768;
       snapshot.timeline.height = 1344;
       snapshot.timeline.durationInFrames = 24;
@@ -147,6 +148,7 @@ test("Remotion 真实字体排版只渲染一到两行，溢出会失败而不�
   try {
     const created = application.createProject({ name: "字幕真实渲染" });
     const base = structuredClone(created.snapshot) as ProjectSnapshot;
+    delete base.timeline.captionFormat; // 显式覆盖历史逐卡格式的兼容渲染。
     base.timeline.durationInFrames = 24;
     base.timeline.captions = [caption("valid", "今天我们一起看，如何把视频剪得更精彩。", 0, 24)];
     const validTarget = join(root, "valid-caption.mp4");

@@ -72,7 +72,7 @@ export function readMotionFontFile(id: string, hash: string, root = motionFontsR
   return { bytes: fontBytes(font, root), contentType: font.file.endsWith(".otf") ? "font/otf" : "font/ttf" };
 }
 
-export function bindMotionFonts(work: MotionSubmission, root = motionFontsRoot()): BoundMotionFont[] {
+export function bindMotionFonts(work: Pick<MotionSubmission, "fontBindings">, root = motionFontsRoot()): BoundMotionFont[] {
   const entries = Object.entries(work.fontBindings ?? {}).sort(([a], [b]) => a.localeCompare(b));
   if (!entries.length) return [];
   const available = catalog(root);

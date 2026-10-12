@@ -114,8 +114,7 @@
         "001-m05",
         "001-m06",
         "001-m07",
-        "001-m08",
-        "001-m09",
+        "001-m13",
         "001-m10",
         "001-m11",
         "001-m12"
@@ -267,11 +266,8 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "003-m01",
-        "003-m02",
-        "003-m03",
-        "003-m04",
-        "003-m05",
-        "003-m06",
+        "003-m08",
+        "003-m09",
         "003-m07"
       ],
       "storyboard": "cases/twoclipping-000267-original/storyboard.jpg"
@@ -482,8 +478,7 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "006-m01",
-        "006-m02",
-        "006-m03",
+        "006-m08",
         "006-m04",
         "006-m05",
         "006-m06",
@@ -560,19 +555,12 @@
       "analysis_kind": "mechanisms-v1",
       "storyboard": "cases/l3d1c-752011-original/storyboard.jpg",
       "mechanism_ids": [
-        "007-m01",
-        "007-m02",
-        "007-m03",
-        "007-m04",
-        "007-m05",
-        "007-m06",
-        "007-m07",
-        "007-m08",
-        "007-m09",
-        "007-m10",
+        "007-m15",
+        "007-m16",
+        "007-m17",
+        "007-m18",
         "007-m11",
-        "007-m12",
-        "007-m13",
+        "007-m19",
         "007-m14"
       ]
     },
@@ -858,12 +846,10 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/twoclipping-496100",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "011-m01",
-        "011-m02",
+        "011-m09",
         "011-m03",
         "011-m04",
-        "011-m05",
-        "011-m06",
+        "011-m10",
         "011-m07",
         "011-m08"
       ],
@@ -931,8 +917,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/koldo2k-778767",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "012-m01",
-        "012-m02"
+        "012-m03"
       ],
       "storyboard": "cases/koldo2k-778767-original/storyboard.jpg"
     },
@@ -1000,11 +985,11 @@
       "mechanism_ids": [
         "013-m01",
         "013-m02",
+        "013-m07",
         "013-m03",
         "013-m04",
         "013-m05",
-        "013-m06",
-        "013-m07"
+        "013-m06"
       ],
       "storyboard": "cases/paranoidamerica-686717-original/storyboard.jpg"
     },
@@ -1072,8 +1057,7 @@
       "mechanism_ids": [
         "014-m01",
         "014-m02",
-        "014-m03",
-        "014-m04"
+        "014-m05"
       ],
       "storyboard": "cases/amitsingha89-780553-original/storyboard.jpg"
     },
@@ -1212,8 +1196,7 @@
       "mechanism_ids": [
         "016-m01",
         "016-m02",
-        "016-m03",
-        "016-m04",
+        "016-m07",
         "016-m05",
         "016-m06"
       ],
@@ -1772,8 +1755,7 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "024-m01",
-        "024-m02",
-        "024-m03",
+        "024-m05",
         "024-m04"
       ],
       "storyboard": "cases/miskinho-956105-original/storyboard.jpg"
@@ -1840,8 +1822,7 @@
       "mechanism_ids": [
         "025-m01",
         "025-m02",
-        "025-m03",
-        "025-m04"
+        "025-m05"
       ],
       "storyboard": "cases/justincooperman-188876-original/storyboard.jpg"
     },
@@ -1911,8 +1892,7 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "026-m01",
-        "026-m02",
-        "026-m03",
+        "026-m07",
         "026-m04",
         "026-m05",
         "026-m06"
@@ -1983,8 +1963,7 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "027-m01",
-        "027-m02",
-        "027-m03",
+        "027-m06",
         "027-m04",
         "027-m05"
       ],
@@ -2051,8 +2030,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/pwntastickev-664257",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "028-m01",
-        "028-m02",
+        "028-m05",
         "028-m03",
         "028-m04"
       ],
@@ -2121,8 +2099,7 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "029-m01",
-        "029-m02",
-        "029-m03",
+        "029-m06",
         "029-m04",
         "029-m05"
       ],
@@ -2189,8 +2166,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/francoxavier33-341663",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "030-m01",
-        "030-m02",
+        "030-m06",
         "030-m03",
         "030-m04",
         "030-m05"
@@ -2334,11 +2310,7 @@
       "mechanism_ids": [
         "032-m01",
         "032-m02",
-        "032-m03",
-        "032-m04",
-        "032-m05",
-        "032-m06",
-        "032-m07",
+        "032-m09",
         "032-m08"
       ],
       "storyboard": "cases/zakisbuilding-495680-original/storyboard.jpg"
@@ -2407,9 +2379,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/gabrielbuzziv-057430",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "033-m01",
-        "033-m02",
-        "033-m03",
+        "033-m06",
         "033-m04",
         "033-m05"
       ],
@@ -2551,8 +2521,7 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "035-m01",
-        "035-m02",
-        "035-m03",
+        "035-m05",
         "035-m04"
       ],
       "storyboard": "cases/mustaphafenzar-973906-original/storyboard.jpg"
@@ -2620,12 +2589,9 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/sahildesigner23-307120",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "036-m01",
-        "036-m02",
-        "036-m03",
+        "036-m07",
         "036-m04",
-        "036-m05",
-        "036-m06"
+        "036-m08"
       ],
       "storyboard": "cases/sahildesigner23-307120-original/storyboard.jpg"
     },
@@ -2691,8 +2657,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/charliie-334026",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "037-m01",
-        "037-m02",
+        "037-m05",
         "037-m03",
         "037-m04"
       ],
@@ -2972,8 +2937,7 @@
       "mechanism_ids": [
         "041-m01",
         "041-m02",
-        "041-m03",
-        "041-m04",
+        "041-m07",
         "041-m05",
         "041-m06"
       ],
@@ -3039,11 +3003,9 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "042-m01",
-        "042-m02",
-        "042-m03",
+        "042-m09",
         "042-m04",
-        "042-m05",
-        "042-m06",
+        "042-m10",
         "042-m07",
         "042-m08"
       ],
@@ -3180,8 +3142,7 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "044-m01",
-        "044-m02",
-        "044-m03",
+        "044-m06",
         "044-m04",
         "044-m05"
       ],
@@ -3245,12 +3206,9 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/daniel-haida-636937",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "045-m01",
-        "045-m02",
+        "045-m07",
         "045-m03",
-        "045-m04",
-        "045-m05",
-        "045-m06"
+        "045-m08"
       ],
       "storyboard": "cases/daniel-haida-636937-original/storyboard.jpg"
     },
@@ -3384,8 +3342,7 @@
       "mechanism_ids": [
         "047-m01",
         "047-m02",
-        "047-m03",
-        "047-m04",
+        "047-m08",
         "047-m05",
         "047-m06",
         "047-m07"
@@ -3451,8 +3408,7 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "048-m01",
-        "048-m02",
-        "048-m03",
+        "048-m06",
         "048-m04",
         "048-m05"
       ],
@@ -3521,8 +3477,7 @@
         "049-m01",
         "049-m02",
         "049-m03",
-        "049-m04",
-        "049-m05",
+        "049-m07",
         "049-m06"
       ],
       "storyboard": "cases/apoorvjain25-150112-original/storyboard.jpg"
@@ -3587,8 +3542,7 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "050-m01",
-        "050-m02",
-        "050-m03",
+        "050-m06",
         "050-m04",
         "050-m05"
       ],
@@ -3656,10 +3610,8 @@
       "mechanism_ids": [
         "051-m01",
         "051-m02",
-        "051-m03",
-        "051-m04",
-        "051-m05",
-        "051-m06",
+        "051-m12",
+        "051-m13",
         "051-m07",
         "051-m08",
         "051-m09",
@@ -3935,8 +3887,7 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "055-m01",
-        "055-m02",
-        "055-m03",
+        "055-m07",
         "055-m04",
         "055-m05",
         "055-m06"
@@ -4062,15 +4013,11 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/itisrazak-332386",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "057-m01",
-        "057-m02",
-        "057-m03",
-        "057-m04",
+        "057-m10",
+        "057-m11",
         "057-m05",
         "057-m06",
-        "057-m07",
-        "057-m08",
-        "057-m09"
+        "057-m12"
       ],
       "storyboard": "cases/itisrazak-332386-original/storyboard.jpg"
     },
@@ -4132,10 +4079,8 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/felipemoller-936736",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "058-m01",
-        "058-m02",
-        "058-m03",
-        "058-m04",
+        "058-m07",
+        "058-m08",
         "058-m05",
         "058-m06"
       ],
@@ -4198,9 +4143,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/retropunkai-277590",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "059-m01",
-        "059-m02",
-        "059-m03",
+        "059-m07",
         "059-m04",
         "059-m05",
         "059-m06"
@@ -4263,13 +4206,9 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/ror-fly-880547",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "060-m01",
-        "060-m02",
-        "060-m03",
-        "060-m04",
-        "060-m05",
-        "060-m06",
-        "060-m07"
+        "060-m08",
+        "060-m09",
+        "060-m10"
       ],
       "storyboard": "cases/ror-fly-880547-original/storyboard.jpg"
     },
@@ -4337,8 +4276,7 @@
         "061-m01",
         "061-m02",
         "061-m03",
-        "061-m04",
-        "061-m05",
+        "061-m09",
         "061-m06",
         "061-m07",
         "061-m08"
@@ -4401,8 +4339,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/itsolelehmann-762215",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "062-m01",
-        "062-m02",
+        "062-m05",
         "062-m03",
         "062-m04"
       ],
@@ -4540,8 +4477,7 @@
         "064-m02",
         "064-m03",
         "064-m04",
-        "064-m05",
-        "064-m06"
+        "064-m07"
       ],
       "storyboard": "cases/nolkeeg-635633-original/storyboard.jpg"
     },
@@ -4606,9 +4542,7 @@
       "mechanism_ids": [
         "065-m01",
         "065-m02",
-        "065-m03",
-        "065-m04",
-        "065-m05"
+        "065-m06"
       ],
       "storyboard": "cases/1littlecoder-378066-original/storyboard.jpg"
     },
@@ -4740,10 +4674,8 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "067-m01",
-        "067-m02",
-        "067-m03",
-        "067-m04",
-        "067-m05"
+        "067-m06",
+        "067-m07"
       ],
       "storyboard": "cases/marklaunches-041046-original/storyboard.jpg"
     },
@@ -4878,10 +4810,8 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "069-m01",
-        "069-m02",
-        "069-m03",
-        "069-m04",
-        "069-m05",
+        "069-m07",
+        "069-m08",
         "069-m06"
       ],
       "storyboard": "cases/kentcdodds-858193-original/storyboard.jpg"
@@ -5014,11 +4944,9 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "071-m01",
-        "071-m02",
-        "071-m03",
+        "071-m11",
         "071-m04",
-        "071-m05",
-        "071-m06",
+        "071-m12",
         "071-m07",
         "071-m08",
         "071-m09",
@@ -5085,10 +5013,8 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/gizakdag-239768",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "072-m01",
-        "072-m02",
-        "072-m03",
-        "072-m04",
+        "072-m08",
+        "072-m09",
         "072-m05",
         "072-m06",
         "072-m07"
@@ -5153,10 +5079,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/anas0ra-952637",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "073-m01",
-        "073-m02",
-        "073-m03",
-        "073-m04",
+        "073-m06",
         "073-m05"
       ],
       "storyboard": "cases/anas0ra-952637-original/storyboard.jpg"
@@ -5219,12 +5142,8 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/loicrambo-980558",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "074-m01",
-        "074-m02",
-        "074-m03",
-        "074-m04",
-        "074-m05",
-        "074-m06",
+        "074-m08",
+        "074-m09",
         "074-m07"
       ],
       "storyboard": "cases/loicrambo-980558-original/storyboard.jpg"
@@ -5285,11 +5204,9 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/sarut0bisasuke-069973",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "075-m01",
-        "075-m02",
+        "075-m06",
         "075-m03",
-        "075-m04",
-        "075-m05"
+        "075-m07"
       ],
       "storyboard": "cases/sarut0bisasuke-069973-original/storyboard.jpg"
     },
@@ -5350,8 +5267,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/andriyfernandes-807308",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "076-m01",
-        "076-m02",
+        "076-m05",
         "076-m03",
         "076-m04"
       ],
@@ -5418,10 +5334,8 @@
       "mechanism_ids": [
         "077-m01",
         "077-m02",
-        "077-m03",
-        "077-m04",
-        "077-m05",
-        "077-m06"
+        "077-m07",
+        "077-m08"
       ],
       "storyboard": "cases/mattbean-917572-original/storyboard.jpg"
     },
@@ -5486,8 +5400,7 @@
       "mechanism_ids": [
         "078-m01",
         "078-m02",
-        "078-m03",
-        "078-m04",
+        "078-m08",
         "078-m05",
         "078-m06",
         "078-m07"
@@ -5553,8 +5466,7 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "079-m01",
-        "079-m02",
-        "079-m03",
+        "079-m06",
         "079-m04",
         "079-m05"
       ],
@@ -5619,9 +5531,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/hunzai-842605",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "080-m01",
-        "080-m02",
-        "080-m03",
+        "080-m07",
         "080-m04",
         "080-m05",
         "080-m06"
@@ -5686,11 +5596,8 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/rakhsh-tech-544921",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "081-m01",
-        "081-m02",
-        "081-m03",
-        "081-m04",
-        "081-m05"
+        "081-m06",
+        "081-m07"
       ],
       "storyboard": "cases/rakhsh-tech-544921-original/storyboard.jpg"
     },
@@ -5824,15 +5731,13 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "083-m01",
-        "083-m02",
-        "083-m03",
+        "083-m12",
         "083-m04",
         "083-m05",
         "083-m06",
         "083-m07",
         "083-m08",
-        "083-m09",
-        "083-m10",
+        "083-m13",
         "083-m11"
       ],
       "storyboard": "cases/henritoivar-445215-original/storyboard.jpg"
@@ -5898,11 +5803,9 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "084-m01",
-        "084-m02",
-        "084-m03",
+        "084-m10",
         "084-m04",
-        "084-m05",
-        "084-m06",
+        "084-m11",
         "084-m07",
         "084-m08",
         "084-m09"
@@ -5971,10 +5874,8 @@
       "mechanism_ids": [
         "085-m01",
         "085-m02",
-        "085-m03",
-        "085-m04",
-        "085-m05",
-        "085-m06"
+        "085-m07",
+        "085-m08"
       ],
       "storyboard": "cases/samissudo-927179-original/storyboard.jpg"
     },
@@ -6108,10 +6009,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/rishit30g-568278",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "087-m01",
-        "087-m02",
-        "087-m03",
-        "087-m04"
+        "087-m05"
       ],
       "storyboard": "cases/rishit30g-568278-original/storyboard.jpg"
     },
@@ -6177,12 +6075,10 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "088-m01",
-        "088-m02",
-        "088-m03",
+        "088-m08",
         "088-m04",
         "088-m05",
-        "088-m06",
-        "088-m07"
+        "088-m09"
       ],
       "storyboard": "cases/ceowinkz-683602-original/storyboard.jpg"
     },
@@ -6312,8 +6208,7 @@
       "mechanism_ids": [
         "090-m01",
         "090-m02",
-        "090-m03",
-        "090-m04",
+        "090-m08",
         "090-m05",
         "090-m06",
         "090-m07"
@@ -6381,8 +6276,7 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "091-m01",
-        "091-m02",
-        "091-m03",
+        "091-m06",
         "091-m04",
         "091-m05"
       ],
@@ -6448,11 +6342,8 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/petert-635793",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "092-m01",
-        "092-m02",
-        "092-m03",
-        "092-m04",
-        "092-m05"
+        "092-m06",
+        "092-m07"
       ],
       "storyboard": "cases/petert-635793-original/storyboard.jpg"
     },
@@ -6521,9 +6412,7 @@
         "093-m02",
         "093-m03",
         "093-m04",
-        "093-m05",
-        "093-m06",
-        "093-m07"
+        "093-m08"
       ],
       "storyboard": "cases/dannnnnok-716687-original/storyboard.jpg"
     },
@@ -6658,10 +6547,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/iamtanzil-675031",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "095-m01",
-        "095-m02",
-        "095-m03",
-        "095-m04"
+        "095-m05"
       ],
       "storyboard": "cases/iamtanzil-675031-original/storyboard.jpg"
     },
@@ -6794,8 +6680,7 @@
       "mechanism_ids": [
         "097-m01",
         "097-m02",
-        "097-m03",
-        "097-m04",
+        "097-m06",
         "097-m05"
       ],
       "storyboard": "cases/anirockshady-032809-original/storyboard.jpg"
@@ -6860,10 +6745,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/acoramaa-053577",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "098-m01",
-        "098-m02",
-        "098-m03",
-        "098-m04"
+        "098-m05"
       ],
       "storyboard": "cases/acoramaa-053577-original/storyboard.jpg"
     },
@@ -6928,10 +6810,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/konstantinsaifo-501736",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "099-m01",
-        "099-m02",
-        "099-m03",
-        "099-m04",
+        "099-m06",
         "099-m05"
       ],
       "storyboard": "cases/konstantinsaifo-501736-original/storyboard.jpg"
@@ -6995,9 +6874,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/irinatoxi-962937",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "100-m01",
-        "100-m02",
-        "100-m03",
+        "100-m05",
         "100-m04"
       ],
       "storyboard": "cases/irinatoxi-962937-original/storyboard.jpg"
@@ -7063,10 +6940,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/konstantinsaifo-587629",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "101-m01",
-        "101-m02",
-        "101-m03",
-        "101-m04"
+        "101-m05"
       ],
       "storyboard": "cases/konstantinsaifo-587629-original/storyboard.jpg"
     },
@@ -7131,9 +7005,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/stefanostraus-971191",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "102-m01",
-        "102-m02",
-        "102-m03",
+        "102-m05",
         "102-m04"
       ],
       "storyboard": "cases/stefanostraus-971191-original/storyboard.jpg"
@@ -7199,8 +7071,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/demitiyageekzen-818523",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "103-m01",
-        "103-m02",
+        "103-m04",
         "103-m03"
       ],
       "storyboard": "cases/demitiyageekzen-818523-original/storyboard.jpg"
@@ -7266,10 +7137,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/kewai386772-276947",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "104-m01",
-        "104-m02",
-        "104-m03",
-        "104-m04"
+        "104-m05"
       ],
       "storyboard": "cases/kewai386772-276947-original/storyboard.jpg"
     },
@@ -7332,9 +7200,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/techartist-786274",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "105-m01",
-        "105-m02",
-        "105-m03"
+        "105-m04"
       ],
       "storyboard": "cases/techartist-786274-original/storyboard.jpg"
     },
@@ -7398,11 +7264,8 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/vectorcrossprod-436573",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "106-m01",
-        "106-m02",
-        "106-m03",
-        "106-m04",
-        "106-m05"
+        "106-m06",
+        "106-m07"
       ],
       "storyboard": "cases/vectorcrossprod-436573-original/storyboard.jpg"
     },
@@ -7536,8 +7399,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/ajith-io-890146",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "108-m01",
-        "108-m02",
+        "108-m09",
         "108-m03",
         "108-m04",
         "108-m05",
@@ -7608,11 +7470,8 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/twoclipping-402193",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "109-m01",
-        "109-m02",
-        "109-m03",
-        "109-m04",
-        "109-m05",
+        "109-m07",
+        "109-m08",
         "109-m06"
       ],
       "storyboard": "cases/twoclipping-402193-original/storyboard.jpg"
@@ -7679,12 +7538,10 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/codestackr-328129",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "110-m01",
-        "110-m02",
+        "110-m08",
         "110-m03",
         "110-m04",
-        "110-m05",
-        "110-m06",
+        "110-m09",
         "110-m07"
       ],
       "storyboard": "cases/codestackr-328129-original/storyboard.jpg"
@@ -7750,10 +7607,8 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "111-m01",
-        "111-m02",
-        "111-m03",
-        "111-m04",
-        "111-m05"
+        "111-m06",
+        "111-m07"
       ],
       "storyboard": "cases/brainextends-606193-original/storyboard.jpg"
     },
@@ -7820,8 +7675,7 @@
         "112-m01",
         "112-m02",
         "112-m03",
-        "112-m04",
-        "112-m05",
+        "112-m09",
         "112-m06",
         "112-m07",
         "112-m08"
@@ -7885,10 +7739,7 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/mounnna-497266",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "113-m01",
-        "113-m02",
-        "113-m03",
-        "113-m04"
+        "113-m05"
       ],
       "storyboard": "cases/mounnna-497266-original/storyboard.jpg"
     },
@@ -8027,8 +7878,7 @@
         "115-m03",
         "115-m04",
         "115-m05",
-        "115-m06",
-        "115-m07"
+        "115-m08"
       ],
       "storyboard": "cases/blue-clarity-449603-original/storyboard.jpg"
     },
@@ -8097,8 +7947,7 @@
         "116-m02",
         "116-m03",
         "116-m04",
-        "116-m05",
-        "116-m06"
+        "116-m07"
       ],
       "storyboard": "cases/samuel-spitz-503053-original/storyboard.jpg"
     },
@@ -8164,20 +8013,12 @@
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
         "117-m01",
-        "117-m02",
-        "117-m03",
+        "117-m16",
         "117-m04",
         "117-m05",
         "117-m06",
-        "117-m07",
-        "117-m08",
-        "117-m09",
-        "117-m10",
-        "117-m11",
-        "117-m12",
-        "117-m13",
-        "117-m14",
-        "117-m15"
+        "117-m17",
+        "117-m18"
       ],
       "storyboard": "cases/ghinaiya-nirmal-308943-original/storyboard.jpg"
     },
@@ -8240,12 +8081,8 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/gdgtify-929495",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "118-m01",
-        "118-m02",
-        "118-m03",
-        "118-m04",
-        "118-m05",
-        "118-m06",
+        "118-m08",
+        "118-m09",
         "118-m07"
       ],
       "storyboard": "cases/gdgtify-929495-original/storyboard.jpg"
@@ -8312,9 +8149,7 @@
       "mechanism_ids": [
         "119-m01",
         "119-m02",
-        "119-m03",
-        "119-m04",
-        "119-m05",
+        "119-m08",
         "119-m06",
         "119-m07"
       ],
@@ -8383,20 +8218,14 @@
       "source_url": "https://skillry.dev/ai-videos/opus-5-5/mtvneo-148436",
       "analysis_kind": "mechanisms-v1",
       "mechanism_ids": [
-        "120-m01",
-        "120-m02",
-        "120-m03",
-        "120-m04",
+        "120-m16",
+        "120-m17",
         "120-m05",
         "120-m06",
         "120-m07",
-        "120-m08",
-        "120-m09",
-        "120-m10",
+        "120-m18",
         "120-m11",
-        "120-m12",
-        "120-m13",
-        "120-m14",
+        "120-m19",
         "120-m15"
       ],
       "storyboard": "cases/mtvneo-148436-original/storyboard.jpg"

@@ -79,13 +79,13 @@ test('关键词参与联动和恢复，计数覆盖全部分页，缓存不串�
   assert.equal(browse({case:'5'},20).cards.length,7);
 });
 test('相似演法带差异，前后段带条件并区分方向',()=>{
-  const similar=queryMechanisms(index,{similar_to:'007-m10'});assert.ok(similar.total>0);
-  assert.ok(similar.cards.every(m=>m.id!=='007-m10'&&m.difference&&m.match_reasons.length));
+  const similar=queryMechanisms(index,{similar_to:'007-m18'});assert.ok(similar.total>0);
+  assert.ok(similar.cards.every(m=>m.id!=='007-m18'&&m.difference&&m.match_reasons.length));
   for(const mode of ['before','after']){
-    const result=queryMechanisms(index,{[mode]:'060-m02'});assert.ok(result.total>0);
-    for(const m of result.cards){assert.equal(m.connection[mode==='before'?'to':'from'],'060-m02');assert.equal(m.connection.continuous_verified,false);assert.ok(m.connection.gap);}
+    const result=queryMechanisms(index,{[mode]:'060-m08'});assert.ok(result.total>0);
+    for(const m of result.cards){assert.equal(m.connection[mode==='before'?'to':'from'],'060-m08');assert.equal(m.connection.continuous_verified,false);assert.ok(m.connection.gap);}
   }
-  assert.throws(()=>queryMechanisms(index,{after:'060-m02',before:'060-m01'}),/一种/);
+  assert.throws(()=>queryMechanisms(index,{after:'060-m08',before:'060-m09'}),/一种/);
 });
 test('分页可遍历全部召回，读取指纹改变明确拒绝',()=>{
   const ids=[];let offset=0;do{const r=queryMechanisms(index,{offset,limit:50,source_sha256:index.source_sha256});ids.push(...r.cards.map(m=>m.id));offset=r.next_offset;}while(offset!==null);
@@ -103,7 +103,7 @@ test('完整段落能从内部动作找到，旧碎片编号不会指向新含�
   assert.equal(old.stale,true);assert.deepEqual(old.unknown_ids,old.ids);
 });
 test('候选增删、排序、采用、链接恢复与过期未知项均可追踪',()=>{
-  let selection={v:1,source_sha256:index.source_sha256,ids:['060-m02','060-m04'],adopted:[]};
+  let selection={v:1,source_sha256:index.source_sha256,ids:['060-m08','060-m09'],adopted:[]};
   selection=editSelection(selection,'add','011-m08');selection=editSelection(selection,'up','011-m08');selection=editSelection(selection,'adopt','011-m08');
   const url='http://127.0.0.1:8874/library/compare.html?'+encodeSelection(selection);
   assert.deepEqual(decodeSelection(url),selection);

@@ -7,6 +7,7 @@ import test from "node:test";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { createServer } from "../apps/server/src/app.js";
 import { measureCaptionTextViaRuntime } from "../packages/quality-system/src/caption-measurement.js";
+import { bindMotionFonts } from "../packages/motion-work/src/fonts.js";
 
 const request = [{ font: "normal 700 40px Inter, Noto Sans SC, sans-serif", texts: ["能用多少水，解决的是总量。"] }];
 
@@ -21,6 +22,11 @@ test("无浏览器环境的MCP使用同版Runtime实测，只读且拒绝额外�
     assert.equal(config.runtime.browserExecutable, undefined);
     const measured = await measureCaptionTextViaRuntime(request, config);
     assert.ok(measured[0]![0]! > 400 && measured[0]![0]! < 588.8, "报障文本按真实字体装得下安全宽度");
+    const { slot: _slot, ...registeredFont } = bindMotionFonts({ fontBindings: { caption: "noto-sans-sc-bold" } })[0]!;
+    const registered = [{ font: `normal 700 40px ${registeredFont.family}`, texts: ["普通字幕"], registeredFont }];
+    const fixed = await measureCaptionTextViaRuntime(registered, config);
+    assert.equal(fixed[0]![0], 160, "独立 MCP 能经 Runtime 使用固定登记字体进行真实中文测量");
+    await assert.rejects(measureCaptionTextViaRuntime([{ ...registered[0]!, registeredFont: { ...registeredFont, hash: "0".repeat(64) } }], config), /CAPTION_FONT_BINDING_INVALID/u);
     const wrongVersion = await app.inject({ method: "POST", url: "/api/captions/measure-text", payload: request });
     assert.equal(wrongVersion.json().error, "RUNTIME_RELEASE_MISMATCH");
     const invalid = await app.inject({ method: "POST", url: "/api/captions/measure-text",

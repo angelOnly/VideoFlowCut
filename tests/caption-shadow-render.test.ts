@@ -15,6 +15,7 @@ test("真实预览与全片导出兑现相同阴影选择，显式关闭消除�
   const renderer = new RevisionRenderer(undefined, 1);
   try {
     const snapshot = structuredClone(app.createProject({ name: "字幕阴影隔离渲染" }).snapshot);
+    delete snapshot.timeline.captionFormat; // 历史逐卡阴影仍按原快照解释。
     snapshot.timeline.width = 480;
     snapshot.timeline.height = 480;
     snapshot.timeline.durationInFrames = 2;

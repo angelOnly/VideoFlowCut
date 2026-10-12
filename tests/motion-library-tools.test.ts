@@ -54,7 +54,7 @@ test('动画交接可经真实协议分阶段选型、核读、比较接点并�
     const similar=await query({similar_to:ids[0],limit:3});
     assert.ok(similar.cards.every((card:{id:string})=>card.id!==ids[0]));
     for(const direction of ['before','after']){
-      const result=await query({[direction]:'060-m02',limit:3});
+      const result=await query({[direction]:'060-m08',limit:3});
       assert.ok(result.cards.length>0);
       assert.ok(result.cards.every((card:{connection:{continuous_verified:boolean;gap:unknown}})=>
         card.connection.continuous_verified===false&&card.connection.gap));

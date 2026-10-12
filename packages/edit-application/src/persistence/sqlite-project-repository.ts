@@ -1,4 +1,5 @@
 import { explicitCreativePreferencesSchema } from "../../../contracts/src/creative-preferences.js";
+import { bindMotionFonts } from "../../../motion-work/src/fonts.js";
 import { reconcileSoundDesign } from "../sound-design.js";
 import { mkdirSync } from "node:fs";
 import { reconcileMotionDependencies } from "../motion-dependencies.js";
@@ -328,6 +329,9 @@ export class ProjectRepository {
       mkdirSync(join(rootPath, directory), { recursive: true });
     }
     const snapshot = createProjectSnapshot({ projectId, rootPath, name: input.name, profile: input.profile, brief: input.brief, fps: input.fps });
+    // 新项目使用发行字体原件；文件身份随首个 Revision 固定，预览与导出不依赖系统字体。
+    const { slot: _captionSlot, ...captionFont } = bindMotionFonts({ fontBindings: { caption: "noto-sans-sc-bold" } })[0]!;
+    snapshot.timeline.captionFormat = { ...snapshot.timeline.captionFormat!, fontId: captionFont.fontId, font: captionFont, fontWeight: captionFont.weight };
     const revision: RevisionRecord = {
       id: createId("revision"),
       projectId,
@@ -420,6 +424,10 @@ export class ProjectRepository {
       const snapshot = cloneSnapshot(current.snapshot);
       const impact = emptyImpact();
       mutate(snapshot, impact);
+      if (snapshot.timeline.captionFormat) {
+        // 生成、重建与局部纠错都继承同一规范，不重新保存每卡外观。
+        for (const caption of snapshot.timeline.captions) { delete caption.format; delete caption.emphasis; }
+      }
       // 只把完整、确定性的时间换算作为比较基准；其它内容变化仍走原失效检查。
       const timingReference = current.snapshot.timeline.fps === snapshot.timeline.fps ? current.snapshot : projectFrameRateChange(current.snapshot, snapshot.timeline.fps).snapshot;
       reconcileMotionDependencies(timingReference, snapshot, impact);

@@ -1,5 +1,21 @@
 import { z } from "zod";
-import type { CaptionCard, CaptionFormat } from "./index.js";
+import { DEFAULT_CAPTION_FORMAT, type CaptionCard, type CaptionFormat, type TimelineDocument } from "./index.js";
+
+/** 所有消费方按同一优先级读取；新卡无需复制全片规范。 */
+export function resolveCaptionFormat(timeline: Pick<TimelineDocument, "captionFormat">, card: Pick<CaptionCard, "format">): CaptionFormat {
+  return timeline.captionFormat ?? card.format ?? DEFAULT_CAPTION_FORMAT;
+}
+
+/** 可提交的新增排版字段；字体文件身份由服务端派生，不允许客户端注入。 */
+export const captionTypographySchema = z.object({
+  fontId: z.string().regex(/^[a-z][a-z0-9-]{0,79}$/u).optional(),
+  lineHeight: z.number().min(1).max(2).optional(),
+  maxLines: z.union([z.literal(1), z.literal(2)]).optional(),
+  paddingHorizontal: z.number().min(0).max(72).optional(),
+  paddingVertical: z.number().min(0).max(72).optional(),
+  borderRadius: z.number().min(0).max(72).optional(),
+  boxWidth: z.enum(["content", "full"]).optional()
+}).strict();
 
 /** 只接收有限阴影参数，不允许任意 CSS 字符串。 */
 export const captionTextShadowSchema = z.object({

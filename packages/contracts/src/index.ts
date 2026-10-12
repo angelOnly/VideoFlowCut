@@ -1423,14 +1423,23 @@ export interface CaptionCard {
   startFrame: number;
   endFrame: number;
   style: "stable";
-  /** 稳定字幕允许有限的排版与强调，不开放任意 CSS 或伪造词级时间。 */
+  /** 历史逐卡外观；统一模式由 Timeline.captionFormat 接管，不开放任意 CSS。 */
   format?: CaptionFormat;
   emphasis?: CaptionEmphasis;
   precision: TimingPrecision;
 }
 
 export interface CaptionFormat {
-  /** 未设置沿用旧黑影，null 明确无阴影；对象为本卡美术选择。 */
+  /** 原生字幕复用 Runtime 字体库；font 为服务端固定的文件身份，不接收任意路径。 */
+  fontId?: string;
+  font?: { fontId: string; hash: string; family: string; weight: number; style: "normal" | "italic" };
+  lineHeight?: number;
+  maxLines?: 1 | 2;
+  paddingHorizontal?: number;
+  paddingVertical?: number;
+  borderRadius?: number;
+  boxWidth?: "content" | "full";
+  /** 未设置沿用旧黑影，null 明确无阴影；统一模式为全片美术选择。 */
   textShadow?: import("./caption-presentation.js").CaptionTextShadow | null;
   /** 百分比静态框，锚定左上角；存在时优先于旧底部布局。 */
   placement?: import("./caption-presentation.js").CaptionPlacement;
@@ -1465,6 +1474,8 @@ export const DEFAULT_CAPTION_FORMAT: CaptionFormat = {
 };
 
 export interface TimelineDocument {
+  /** 普通字幕唯一外观来源；缺省只用于保留历史项目的逐卡解释。 */
+  captionFormat?: CaptionFormat;
   fps: number;
   width: number;
   height: number;
