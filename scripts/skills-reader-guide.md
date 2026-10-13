@@ -2,9 +2,9 @@
 
 第一次阅读，建议先看本页的**角色分工**与**制作链路**，再从左侧进入自己关心的职责。技术参数、错误处理与历史案例，可以遇到具体问题时再查。
 
-## 本轮去冗余，从这几份看起
+## 整场视觉改写，从这几份看起
 
-目录与角色分工保持原样。本轮合并正文中的重复方法，局部任务按需要读取。点击下方对照，左栏是本轮去冗余前，右栏是最新正文；上方也能切回最初目录优化前的原文。
+同一视觉作者持续负责美术、演出、实现与实际效果。这几份是其按需往返的方法，先用当前作品的真实材料与文字预排，再依据实际画面选择和精修。下方双栏对照保留历史基线，右栏始终显示最新正文。
 
 1. **导演：从内容到观看主线** · [阅读正文](production-director/references/story-and-shot-design.md) · [双栏对照](#view=compare&baseline=dedup&before=production-director%2Freferences%2Fstory-and-shot-design.md)
 2. **美术：主体、字形与共同构图** · [阅读正文](visual-treatment-planning/references/art-direction.md) · [双栏对照](#view=compare&baseline=dedup&before=visual-treatment-planning%2Freferences%2Fart-direction.md)
@@ -15,9 +15,9 @@
 
 ## 角色怎样划分
 
-执行上有 **4 类分工：制作统筹、总导演、专项作者、审片作者**。为方便阅读，这里将具体职责展开为下方 **11 组**，覆盖项目的 **29 项工作能力**；案例检索包含在29项能力中，单列为公共资料入口。
+执行上有 **4 类分工：制作统筹、总导演、专项作者、审片作者**。为方便阅读，这里将具体职责展开为下方 **9 组**，覆盖项目的 **29 项工作能力**；案例检索包含在29项能力中，单列为公共资料入口。
 
-这不是要求一部片同时启动11位代理。总导演根据片子需要提出专项任务，由统筹安排；同一位作者可以连续承担相关职责，例如从美术、动效编排一直做到实现。人物口播、视觉解释片和实拍记录是**总导演选择的三条路线**，每部片只选一条主要路线，不是固定再派三位导演。
+职责组不等于代理人数。总导演根据片子需要提出专项任务，由统筹安排；同一视觉作者持续承担美术、动效编排、实现和返修。人物口播、视觉解释片和实拍记录是**总导演选择的三条路线**，每部片只选一条主要路线。
 
 __ROLE_CARDS__
 
@@ -31,10 +31,10 @@ __ROLE_CARDS__
    明确主题、用途和已锁定条件；查看当前版本、现有材料与未完成任务。新片交总导演，局部任务直接交对应作者。[阅读制作协调](production-coordinator/SKILL.md)
 2. **观看主线与完整初稿 → 总导演＋文案作者**  
    一起决定开头让观众面对什么、内容怎样发展、结束得到什么，形成完整讲述与主要画面草稿。[阅读主线设计](production-director/references/story-and-shot-design.md)
-3. **研究与取材 → 素材作者，回到导演＋文案**  
-   根据草稿寻找真实材料；发现新的事实、动作或限制后，重新改写同一份稿子与分镜。材料不是等文稿锁死后才填进去。[阅读材料反馈](production-director/references/asset-briefing.md)
-4. **分镜深化与完整演出 → 导演＋视觉、动效、声音作者**  
-   共同确定关键画面、主体关系、动作中途、旁白表演及声音用途。涉及人物再加入表演作者；需要参考才查案例。[阅读演出稿](motion-brief-writing/SKILL.md)
+3. **研究与取材 → 素材作者，回到导演＋文案＋视觉**
+   从主题阶段寻找真实材料，交回实际行为、细节、空间、光色与可用范围；发现新的事实、动作或限制后，共同调整当前稿和观看方式。[阅读材料反馈](production-director/references/asset-briefing.md)
+4. **整场构思与实际预排 → 导演＋同一视觉作者＋声音作者**
+   用真实材料、准确文字、实际字体、字幕占位、主要背景关系和关键动作预排当前作品。构图与演出共同调整，导演看实际画面再协调采用；后续沿同一源码精修。[阅读视觉入口](visual-treatment-planning/SKILL.md)
 5. **制作、提交与声画试排 → 各专项作者＋制作统筹**  
    作者交完整文稿、源码与参数；统筹按依赖提交素材、配音、人物、动画和字幕，读回实际结果，形成可观看的版本。[阅读动画实现](remotion-production/SKILL.md)
 6. **粗剪反馈与精修 → 原导演、文案及相关作者**  
@@ -54,7 +54,7 @@ __ROLE_CARDS__
 
 ## 第一次阅读的推荐顺序
 
-先读[制作协调](production-coordinator/SKILL.md)和[整片导演](production-director/SKILL.md)，理解谁安排、谁作创意决定。再读[文案](narration-writing/SKILL.md)与[画面取材](visual-asset-sourcing/SKILL.md)，看内容怎样受材料推动。接着依次了解[美术](visual-treatment-planning/SKILL.md)、[演出](motion-brief-writing/SKILL.md)、[实现](remotion-production/SKILL.md)和[声音](audio-finishing/SKILL.md)。最后看[审片](quality-verification/SKILL.md)与[交付](export/SKILL.md)。
+先读[制作协调](production-coordinator/SKILL.md)和[整片导演](production-director/SKILL.md)，理解谁安排、谁作创意决定。再读[文案](narration-writing/SKILL.md)与[画面取材](visual-asset-sourcing/SKILL.md)，看内容怎样受材料推动。接着从[整场视觉](visual-treatment-planning/SKILL.md)进入，同一作者按需使用[演出](motion-brief-writing/SKILL.md)与[实现](remotion-production/SKILL.md)方法，并与[声音](audio-finishing/SKILL.md)共同工作。最后看[审片](quality-verification/SKILL.md)与[交付](export/SKILL.md)。
 
 人物表演和字幕在相关制作需求出现时阅读。案例库是帮助解决表达问题的参考，不是必须先通读的教材；共享约定用于核对交接和事实。左侧“实际文件目录”仍保留所有原文件的位置，中文名称只是阅读导航，正文直接来自原文件。
 

@@ -104,7 +104,7 @@ quality_rules 若需要填写，必须读取实时合法枚举。示例的重点
 
 只改已确定文字、颜色、位置、绑定或时钟时，沿当前作品版本直接修订受影响源码/参数，交主任务提交、读回并检查局部预览；不重跑导演、风格与案例检索。下面的完整链仅用于新建或实质重构。
 
-读取 Project/Revision、Beat、真实素材与时序 → 接收导演完整分镜和前后场面 → 延续首次构思已采用的共同参考，主体美术、关键构图与连续过程共同深化，局部技法按需选读 → 首次完整深化稿经主任务回原导演协调 → 原作者接统一采用稿及差异，继续设计、试作或写完整指令与秒级初稿 → 换算帧数、实现源码并交完整参数 → 主任务 `submit_motion_work` → `track_job` / `read_motion_work` / `inspect_asset` → 原作者核对实际作品 → `review_motion_work` → `manage_effect_cues` 放置固定版本并声明覆盖 → `read_project` / `read_impact_report` → `render_preview_range` / `track_job` → 原专项与原导演看实际合成，修订并明确剩余制作 → `quality-verification` 按范围复核 → 回到主工作流完成整片。
+读取 Project/Revision、Beat、真实素材与时序 → 接收导演当前正文和前后场面 → 同一视觉作者共同设计美术与演出，在当前源码中形成真实材料和文字的预排，交完整参数 → 主任务 `submit_motion_work` → `track_job` / `read_motion_work` / `inspect_asset` → 原作者查看实际画面并返修，首次主要表达连同当前稿回导演协调 → 沿同一源码精修，必要时再次生成并读回 → `review_motion_work` 如实记录 → `manage_effect_cues` 放置固定版本并声明覆盖 → `read_project` / `read_impact_report` → `render_preview_range` / `track_job` → 原视觉作者与导演看实际合成，修订并明确剩余制作 → `quality-verification` 按范围复核 → 回到主工作流完成整片。文字方案是候选，实际预排可以参与主要选择，不等待静态美术全部定稿才编码。
 
 `manage_effect_cues` 支持 create、update、remove；后两者指定 cue_id。每次写后读取新 Revision。结果未知先查原 Job/对象，幂等冲突不能换键盲重试。主线或覆盖内容变化后作品保持固定帧数并 stale；普通平移不能恢复旧失效。明确复核合法覆盖、或换绑新版本后才恢复，并检查相关 AudioCue。
 
@@ -112,7 +112,7 @@ quality_rules 若需要填写，必须读取实时合法枚举。示例的重点
 
 ## 交接合同
 
-按[共同交接](../../_shared/PROJECT_REVISION_AND_HANDOFF.md)传当前范围的完整稿、真实对象/版本、必要材料、声音与前后接口。首次主要表达交完整深化稿回导演；已采用方向内的普通局部修订由原作者继续。明确改字只取原作品与修改约束，不重新索取全片主线、全部分镜或无关材料。
+按[共同交接](../../_shared/PROJECT_REVISION_AND_HANDOFF.md)传当前范围的完整稿、真实对象/版本、必要材料、声音与前后接口。首次主要表达交同版实际预排、源码和当前稿回导演；已采用方向内的普通局部修订由原作者继续。明确改字只取原作品与修改约束，不重新索取全片主线、全部分镜或无关材料。
 
 提交仍需这件作品的完整 TSX、Props、绑定、源范围、画布、帧数、creativeBrief 和相关事件/放置参数。完整载荷用于固定版本，不表示每次重新论证设计；保留原稿中有效信息，只更新本次决定与影响。参数上限装不下的完整创作正文保留在已有附件或消息中，不静默截断或擅造字段。
 
