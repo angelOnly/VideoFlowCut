@@ -1,0 +1,82 @@
+[
+  {
+    "path": ".agents/skills/_shared/SCENE_DESIGN_HANDOFF.md",
+    "sha256": "3b160cfdb522786a1749f67ae6100719ebddf273dd6cceee6e32704d9acbb79a"
+  },
+  {
+    "path": ".agents/skills/_shared/TOPIC_TO_FILM.md",
+    "sha256": "be61704dffea61a65177f1bbc05f6af26b3cb34c29a6b4f9444df844ddb8ee6f"
+  },
+  {
+    "path": ".agents/skills/motion-brief-writing/references/execution-brief-template.md",
+    "sha256": "1a6b8e06493a43104ff8b65cf73696036ede55f3e488e61801b1a6350d172735"
+  },
+  {
+    "path": ".agents/skills/motion-brief-writing/references/performance-design.md",
+    "sha256": "3c0e146c4e2f64ec2bcc72d34085356d35a21907364bb36174430e5b8f1a79fa"
+  },
+  {
+    "path": ".agents/skills/motion-case-library/SKILL.md",
+    "sha256": "74829a0c2784baf4446a07ab1023a30fac943333f868d0f4ea3d332fb70a5ce4"
+  },
+  {
+    "path": ".agents/skills/motion-case-library/references/mechanism-retrieval.md",
+    "sha256": "1382603aa992cfcb45a2c4f6bcd6fd29c6971406e5d348e2c006b384c54fa81c"
+  },
+  {
+    "path": ".agents/skills/production-coordinator/references/task-routing.md",
+    "sha256": "1986bac02d7fc99a8c815af05da43eefdf4d245993006613ce1170504690e8d3"
+  },
+  {
+    "path": ".agents/skills/production-director/SKILL.md",
+    "sha256": "d5fc0b6ac9ffc1ea963165242ddb48608b9d116cf876ea6cfef416415517910b"
+  },
+  {
+    "path": ".agents/skills/production-director/references/asset-briefing.md",
+    "sha256": "bf640e4e6586047322e886395b7717589e13a3a10477129fc9610df7ca37935f"
+  },
+  {
+    "path": ".agents/skills/production-director/references/rough-cut-review.md",
+    "sha256": "e383781efeabb70d80b3123e0689a458b3d4f59e2e3c921ae77680e28f470426"
+  },
+  {
+    "path": ".agents/skills/production-director/references/story-and-shot-design.md",
+    "sha256": "2105fb278056093aee703d2fb3caf0c1aa58c0da36290aef9e2179eed8ba0a0b"
+  },
+  {
+    "path": ".agents/skills/quality-verification/references/material-integration-review.md",
+    "sha256": "1227b39be58551be2160ebca397f7409527a17c6d0e9ca4333ca56c3ff248ea7"
+  },
+  {
+    "path": ".agents/skills/quality-verification/references/professional-review.md",
+    "sha256": "b94c15269aca47ccffcff1f1bd4f71874284e69317d739baeb7606bed5e39d2a"
+  },
+  {
+    "path": ".agents/skills/remotion-production/SKILL.md",
+    "sha256": "2f9e298a07cf9f9fc23551362328cb34f5fa7eb3b128a79e207ac4315becf39d"
+  },
+  {
+    "path": ".agents/skills/scene-planning/SKILL.md",
+    "sha256": "dd3ef9cf9dfeaf80b64cfadaa9988c0ba74b2938382797ff565db61049ee67d4"
+  },
+  {
+    "path": ".agents/skills/visual-explainer-director/SKILL.md",
+    "sha256": "6b6b9b050c2bd1013519c12066aadb63a4adf48abbb4b09b9c4973d37f84873b"
+  },
+  {
+    "path": ".agents/skills/visual-explainer-director/references/explanation-design.md",
+    "sha256": "693a17a9fa6338e22f72a2d20002b08574362064df8e70c1be99837156b92996"
+  },
+  {
+    "path": ".agents/skills/visual-treatment-planning/SKILL.md",
+    "sha256": "b228a188beb58edf201684c75c03aa6c19b8c4b66607e91e9e252bd55c96a0c6"
+  },
+  {
+    "path": ".agents/skills/visual-treatment-planning/references/art-direction.md",
+    "sha256": "bf26781bb0dfd9682affc0df7a52978dfb6843157adf4d0e6b6f0fd0ed95ef62"
+  },
+  {
+    "path": ".agents/skills/visual-treatment-planning/references/art-directions.md",
+    "sha256": "051fdcf0d97bd075455c25ac4f5b827d18e25d67ce2ebf24042b07b6b4a1e78a"
+  }
+]
