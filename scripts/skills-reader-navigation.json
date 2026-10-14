@@ -4,7 +4,7 @@
   {"name":"文案与剪辑作者","duty":"与导演共同发展内容，写完整解说和声画稿；依据真实素材改稿，处理原话取舍与语义连续。","result":"完整文稿、语义选段和修改依据","skills":[["narration-writing","解说文案与声画稿"],["semantic-continuity","语义剪辑与内容重组"],["transcription","语音转写与文字核对"]]},
   {"name":"画面素材作者","duty":"研究来源，寻找并观看候选材料，把实际发现和可用范围交回导演、文案及视觉作者。","result":"材料发现、候选比较、源范围和采用建议","skills":[["visual-asset-sourcing","画面搜索、观察与取材"]]},
   {"name":"视觉作者","duty":"持续负责整场画面与实际效果，共同设计主体、背景、排印、美术与演出；用真实材料预排，沿同一源码实现并接回返修。","result":"当前作品预排、完整视觉决定、源码与绑定、实际观察及待完成范围","skills":[["visual-treatment-planning","整场视觉创作入口"],["depth-composition","空间层次与遮挡"],["cutaway-planning","辅助镜头与主画面交接"],["evidence-visualization","证据、页面与数据呈现"],["motion-brief-writing","演出与动作设计方法"],["effect-timing","动效时机与声音落点"],["remotion-production","同源实现、提交与修订"]]},
-  {"name":"声音作者","duty":"早期参与旁白表演与声音构思，制作配音、选择音乐音效，再在实际声画中调整连续性与混音。","result":"配音、声音选材、音轨安排和听感修订","skills":[["voice-production","旁白与配音制作"],["sound-asset-sourcing","音乐与音效取材"],["audio-finishing","声音编排、混音与收尾"]]},
+  {"name":"声音作者","duty":"早期参与旁白表演与声音构思，制作配音、选择音乐与音效、按需定做音效，再在实际声画中调整连续性与混音，接回未完成声音意图。","result":"配音、声音候选与生成指令、音轨安排、听感修订和意图收尾","skills":[["voice-production","旁白与配音制作"],["sound-asset-sourcing","音乐与音效取材"],["sfx-prompt-writing","自定义音效提示词"],["audio-finishing","声音编排、混音与收尾"]]},
   {"name":"人物表演作者","duty":"需要人物或数字人时，处理表演、目光、手势、口型、遮罩以及人物声音的归属。","result":"人物表演方案与连续性修订","skills":[["avatar-performance","人物表演与数字人制作"]]},
   {"name":"字幕作者","duty":"根据最终可播放声音与实际画面安排准确文字、语义分卡、版式及阅读时机。","result":"字幕卡片、时间与版式方案","skills":[["captions","字幕制作与屏幕文字"]]},
   {"name":"审片作者","duty":"查看实际版本的声画，定位表达、画面、动作与声音问题，交回原作者修订并说明未审范围。","result":"具体观察、问题范围、返修建议与待审项","skills":[["quality-verification","专业审片与质量核验"]]}

@@ -1371,7 +1371,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       projectId: oldJob.projectId,
       kind: oldJob.kind,
       // 转写和段级原声字幕重试必须携带来源 Job，Worker 才能恢复其 run_id，避免超时后重复提交外部运行。
-      payload: ["transcription", "source_caption_alignment", "media_understanding", "media_search", "motion_library_search", "motion_reference_analysis", "sound_ranking"].includes(oldJob.kind)
+      payload: ["transcription", "source_caption_alignment", "media_understanding", "media_search", "motion_library_search", "motion_reference_analysis", "sound_ranking", "sfx_generation"].includes(oldJob.kind)
         ? { ...oldJob.payload, retryOfJobId: oldJob.id }
         : oldJob.payload,
       idempotencyKey: `${oldJob.idempotencyKey}:retry:${Date.now()}`

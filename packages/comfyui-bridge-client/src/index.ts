@@ -9,6 +9,9 @@ export interface BridgeWorkflowField {
   kind: string;
   required: boolean;
   defaultValue?: unknown;
+  min?: number;
+  max?: number;
+  step?: number;
   options?: Array<{ label: string; value: string }>;
 }
 

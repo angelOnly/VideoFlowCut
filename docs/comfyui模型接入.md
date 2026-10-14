@@ -314,7 +314,7 @@ const video = finished.outputs.find((item) => item.kind === "video");
 | 媒体输入 | 无 |
 | 输出 | `audio`：44.1 kHz 双声道 FLAC 音频 |
 
-该应用使用后训练的 Medium 推理模型，不使用仅供微调的 `medium-base`。模型文件仅从国内镜像下载，并放入以下目录：
+该应用使用后训练的 Medium 推理模型，本工作流不使用 `medium-base` 基础模型。模型文件仅从国内镜像下载，并放入以下目录：
 
 | 文件 | 本机目录 | 国内镜像地址 |
 | --- | --- | --- |
@@ -348,6 +348,65 @@ const previewUrl = origin + audio.previewUrl;
 服务端固定使用 8 步 LCM 采样与 CFG 1，不对外开放这些参数。接口会自动裁掉末尾连续静音：低于 -45 dB 且持续至少 0.35 秒的尾部静音会被移除，并保留最后有效声音后的 0.15 秒自然尾音。因此 `duration_seconds` 表示最大时长而非强制填充时长；音频中的内部停顿会原样保留。当前时长上限为 120 秒；如需提高，须先完成显存与队列压力测试。
 
 已于 2026-09-21 完成木门关闭、远处雷暴、复古科幻按钮及蒸汽喷发共 4 次真实生成验收，结果均为 44.1 kHz 双声道 FLAC；缺少 `prompt` 返回 `400`，过期 `schemaVersion` 返回 `409`。同日完成尾部静音裁剪验收：请求 8 秒“木门关闭”音效，返回 `stable_audio_3_00006.flac` 为 5.67 秒、44.1 kHz 双声道 FLAC；使用 `silencedetect` 检查，文件末尾不存在持续至少 0.35 秒的静音。
+
+#### 3.9.1 VideoFlowCut 的接入状态与职责
+
+2026-10-14 本次会话只读查询该工作流返回 `available: true`；本次没有重新生成或试听。服务端已有工作流，不等于 VideoFlowCut 已发布完整的音效生成业务。
+
+当前 `submit_music_generation` 要求精确时长，其字段识别排除“最大时长”，不能直接套用此工作流。项目拟新增 `submit_sfx_generation`，通过现有 Bridge 客户端生成并登记候选音频，随后沿现有 `manage_audio.effect_event` 绑定动画。**该工具名是待实施提案，不是当前已发布接口。**
+
+导演交接、提示词专用技能、候选检查、事件同步、失败恢复、改动文件及验收标准见 [音效生成与动效联动实施方案](VideoFlowCut_音效生成与动效联动实施方案.md)。本文继续作为实际 HTTP 协议的维护入口，不在实施方案中另建一套接口合同。
+
+#### 3.9.2 一次音效生成的具体 HTTP 请求
+
+第一步，读取详情，确认可用并取得最新 `schemaVersion`：
+
+```http
+GET /comfyui-bridge/v1/workflows/stable-audio-3-medium-v1 HTTP/1.1
+Host: 127.0.0.1:8188
+```
+
+第二步，提交 JSON。下面的版本占位文字必须替换为上一步实际返回值；prompt 是尚未实测的示例：
+
+```http
+POST /comfyui-bridge/v1/workflows/stable-audio-3-medium-v1/runs HTTP/1.1
+Host: 127.0.0.1:8188
+Content-Type: application/json
+
+{
+  "schemaVersion": "替换为刚读取的schemaVersion",
+  "fieldValues": {
+    "prompt": "TrackType: SFX. One isolated soft wooden tap with a crisp attack, warm compact body and very short decay, close and dry studio recording.",
+    "duration_seconds": 1,
+    "seed": 4101
+  }
+}
+```
+
+创建成功为 HTTP `201`，将响应 `id` 作为原 `runId` 立即保存。当前输入没有 `negative_prompt`、`cfg_scale`、参考音频、动画帧或批量候选数字段，不能自行添加。
+
+第三步，继续查询同一个 Run：
+
+```http
+GET /comfyui-bridge/v1/runs/{实际runId} HTTP/1.1
+Host: 127.0.0.1:8188
+```
+
+`queued/running` 表示继续等待；`failed` 读取原 `error`；`succeeded` 才从 `outputs` 选择 `outputSlotId === "audio"` 且 `kind === "audio"` 的输出。输出实例使用 `outputSlotId`，不要与详情中输出定义的 `id` 混淆。
+
+第四步，使用返回的 `downloadUrl` 下载。路径相对服务根地址 `http://127.0.0.1:8188`，不能重复拼接 `/comfyui-bridge/v1`。试听使用实际返回的 `previewUrl`；若客户端类型尚未保留这个可选字段，正式制作仍可试听已经下载的受管音频，不猜试听 URL。
+
+#### 3.9.3 项目使用时的处理规则
+
+- 使用已有 `ComfyUIBridgeClient` 读取 Schema、创建 Run、轮询和同源下载，不另建 HTTP 栈。
+- 首次 POST 前保存固定提示词、时长、实际 seed 与提交检查点；收到 Run ID 后立即保存。已有 Run 继续原任务，下载失败只恢复下载。
+- 当前默认 seed 固定。比较不同候选时应显式传不同 seed；恢复同一候选必须沿用原 seed，不能重新随机。
+- 一秒是当前接口最小生成窗口，不代表一次点击必须响一秒。可以从实际生成文件中选择更短的完整音效。
+- 请求时长是上限。下载后检查真实音轨、编码、时长和 hash；根据原文件确认可用范围、可听起音、主要攻击与尾音，不能从请求时长推算同步点。
+- POST 网络失败且没有 Run ID 时，外部是否执行属于未知；当前协议没有外部幂等键或按业务请求查 Run 的接口，不能直接重新生成。
+- ComfyUI 进程重启可能丢失 Run 和下载索引；生成成功后应及时保存文件。已经保存的有效文件继续使用，不因旧 URL 失效重复推理。
+
+这里的 HTTP 示例说明实际请求格式；正式生产由 VideoFlowCut 的受管 Job 和 Worker 调用，不让提示词技能绕过项目入口直接修改素材或时间线。
 
 ## 4. 当前不可调用的应用
 

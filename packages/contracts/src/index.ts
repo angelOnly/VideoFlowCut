@@ -2,6 +2,7 @@
  * Web、MCP、Worker 共用的契约。这里仅描述数据，不放业务规则，避免形成第二套状态。
  */
 export type Id = string;
+export type * from "./sfx-generation.js";
 export type * from "./source-review.js";
 export * from "./frame-rate.js";
 import { motionDurationAtFps } from "./frame-rate.js";
@@ -51,7 +52,8 @@ export interface AssetProvenance {
   originalAssetId?: string;
   creator?: string;
   /**
-   * 生成视频的可追溯提交事实。它只记录已经写入本项目的 Job、工作流和输入，
+   * 生成媒体的可追溯任务；generation 是视频专属详情，音效通过 generationJobId 回查任务。
+   * 这里只记录已经写入本项目的 Job、工作流和输入，
    * 不保存 Provider 的临时下载地址或任何二进制数据。
    */
   generationJobId?: Id;
@@ -195,6 +197,8 @@ export type JobKind =
   | "speech_alignment"
   /** 受控音乐 Provider 的异步生成；运行前必须动态读取其最新 Schema。 */
   | "music_generation"
+  /** 定制动作音效只生成候选素材，采用和动画绑定另行完成。 */
+  | "sfx_generation"
   /** 文生、图生、首尾帧和多参考视频均走同一受管的 Bridge 视频生成 Job。 */
   | "video_generation"
   | "motion_generation"

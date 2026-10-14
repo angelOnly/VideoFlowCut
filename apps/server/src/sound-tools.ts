@@ -42,6 +42,16 @@ function outputTarget(app: EditingApplication, projectId: string, baseRevision: 
 export function registerSoundTools(server: McpServer, app: EditingApplication, projectIdFrom: (value?: string) => string) {
   const result = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value) }] });
   const safely = async (work: () => unknown) => { try { return result(await work()); } catch (error) { return { ...result({ error: error instanceof Error ? error.message : String(error), code: error instanceof DomainError ? error.code : undefined }), isError: true }; } };
+  server.registerTool("submit_sfx_generation", {
+    title: "生成定制音效候选",
+    description: "将已有 audio/sfx 需求交给 Stable Audio 3，按英文提示词、最大时长与固定种子异步生成候选。返回 Job 后用 track_job 续查；完成只登记受管音频，不上时间线、不代表已试听。相同幂等键须保持相同输入；失败沿 retry_media_job 恢复，结果未知不重发。",
+    inputSchema: {
+      project_id: z.string().optional(), base_revision_id: z.number().int().positive(), request_id: z.string().min(1),
+      prompt: z.string().trim().min(1).max(4000), max_duration_seconds: z.number().int().min(1).max(120),
+      seed: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional(), idempotency_key: z.string().trim().min(1).max(240)
+    }
+  }, async (input) => safely(() => app.submitSfxGeneration({ projectId: projectIdFrom(input.project_id), baseRevision: input.base_revision_id,
+    requestId: input.request_id, prompt: input.prompt, maxDurationSeconds: input.max_duration_seconds, seed: input.seed, idempotencyKey: input.idempotency_key })));
   server.registerTool("set_dialogue_muted", { title: "设置旁白轨静音", description: "可逆设置整个 Dialogue 轨的静音状态，Preview、Export 和 Web 共用轨道 muted 合同；保留音频素材、Script、字幕、时序和其他音轨。字幕需另行显隐，其他轨原声仍可能可听；恢复后不会自动获得声音来源或用途批准。写入当前 Revision 并使整片声音待复核。", inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), muted: z.boolean() } }, async (args) => safely(() => setDialogueMuted(app, projectIdFrom(args.project_id), args.base_revision_id, args.muted)));
   server.registerTool("set_audio_output_target", { title: "设置最终音频指标", description: "保存项目响度与 true peak 目标，正式输出按实际文件测量。此操作不改变音量，不把规范化当成素材选择或混合听审。", inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), target: audioOutputTargetSchema } }, async (args) => safely(() => outputTarget(app, projectIdFrom(args.project_id), args.base_revision_id, args.target)));
   server.registerTool("set_audio_mix_gain", { title: "设置整体混合增益", description: "将最终混合增益设为绝对 dB 值（-48 到 24，0 为恢复原混合），不会累加或修改各轨比例、时间、Duck 与包络。写入新 Revision 并使全片混合待复核；正式 Preview 与 Export 在最终混合后应用一次。不会自动限制峰值或归一化，需重新读取全片实际响度和 true peak。", inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), gain_db: audioMixGainSchema } }, async (args) => safely(() => setAudioMixGain(app, projectIdFrom(args.project_id), args.base_revision_id, args.gain_db)));

@@ -13,6 +13,7 @@ import { prepareProjectFrameRateChange } from "./frame-rate-change.js";
 import { digest as mediaDigest, assetRequestVersion } from "../../media-intelligence/src/index.js";
 import { assertEffectCoverage } from "@videocut/domain";
 import { MediaIntelligenceApplication } from "./media-intelligence.js";
+import { submitSfxGeneration, completeSfxGeneration } from "./sfx-generation.js";
 import { createHash } from "node:crypto";
 import { bindEffectAudioEvent, type EffectAudioEventInput } from "./effect-audio-events.js";
 import { resolveAudioProgramEndFrame } from "../../edit-domain/src/audio-program-range.js";
@@ -7062,6 +7063,10 @@ export class EditingApplication {
    * 音乐生成只固定一个已确认的 Bridge workflow、提示词和精确时长；Worker 会在付费调用前
    * 动态读取 Schema。生成成功只登记素材，是否进入 BGM 仍由后续音频决定判断。
    */
+  submitSfxGeneration(input: Parameters<typeof submitSfxGeneration>[1]) { return submitSfxGeneration(this, input); }
+
+  completeSfxGeneration(input: Parameters<typeof completeSfxGeneration>[1]) { return completeSfxGeneration(this, input); }
+
   submitMusicGeneration(input: {
     projectId: Id;
     baseRevision: number;

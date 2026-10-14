@@ -370,7 +370,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     name: "生成与人物能力",
     description: "提交音乐、视频与数字人物任务，并管理可验证的人物能力和表演记录。",
     tools: [
-      "submit_music_generation", "submit_video_generation", "read_actor_performances", "read_actor_capabilities",
+      "submit_music_generation", "submit_sfx_generation", "submit_video_generation", "read_actor_performances", "read_actor_capabilities",
       "manage_actor_capabilities", "manage_actor_performance", "submit_avatar_job"
     ]
   },

@@ -18,11 +18,14 @@
 | 整场视觉与场面任务 | 同一视觉作者使用[视觉入口](../../visual-treatment-planning/SKILL.md)、[场面规划](../../scene-planning/SKILL.md)、[空间层次](../../depth-composition/SKILL.md) |
 | 该场面的演出、实现与时机 | 原视觉作者续用[演出方法](../../motion-brief-writing/SKILL.md)、[动画实现](../../remotion-production/SKILL.md)、[落点](../../effect-timing/SKILL.md) |
 | 证据、配音、人物或字幕 | [证据表达](../../evidence-visualization/SKILL.md)、[配音](../../voice-production/SKILL.md)、[人物表演](../../avatar-performance/SKILL.md)、[字幕](../../captions/SKILL.md) |
-| 音乐音效与专业审片 | [声音取材](../../sound-asset-sourcing/SKILL.md)、[混音](../../audio-finishing/SKILL.md)、[审片](../../quality-verification/SKILL.md) |
+| 音乐与音效 | 同一声音作者使用[声音取材](../../sound-asset-sourcing/SKILL.md)、定做声音时使用[音效提示词](../../sfx-prompt-writing/SKILL.md)，再续接[混音](../../audio-finishing/SKILL.md) |
+| 专业审片与声音意图收尾 | [审片](../../quality-verification/SKILL.md)、[声音收尾](../../audio-finishing/SKILL.md#声音意图收尾) |
 
 需要新场面设计或整幅美术重做时，使用本地 `visual-treatment-planning`。传递准确台词、实际素材与源范围、当前观看目的、前后关系、整片美术、同一普通字幕规范和用户明确锁定项；交付以实际设计画面及必要选择为准，不只收色号和形容词。美术负责整片明暗、配色、字形、材质与空间语言，首次确定普通字幕样式，后续场景不重新设计。场次、页码、内部对象名和检索记录不随任务元数据自动上屏。已成立的局部修订沿原设计继续。
 
 责任划分不要求固定人数。可用并发时让素材工作与初稿共同推进；兼任时也先返回影响主画面的发现，再继续依赖材料的后续工作，不等文案、配音和字幕全部结束才交素材。按同一内容范围记录尚未完成产物并续接。子代理不递归分派，同一视觉作者可继续美术、演出、源码和修订；检查作品时另按当前专业方法安排。
+
+导演与视觉开始构思关键动作时，就指定持续负责的声音作者，可由职责相邻的现有作者兼任。交当前声音意图、实际动作与旁白约束；有生成需求时接回完整指令，由主任务提交 `submit_sfx_generation`，再把真实候选交回同一作者检查、选段和混音。不因暂无最终动画帧推迟全部选声，也不在提示词或 Job 成功时结束这项责任。粗剪与交付前接回每项意图的采用、留白或未完成结论。
 
 从零创作只交当前准确内容、真实材料、声音字幕与限制，不附同题旧作品布局、源码或历史项目身份。局部修订则必须交当前作品、源码、已认可部分和实际问题范围。隔离试验的禁止联网等限制不继承到普通生产；已知宿主历史注入如实记录，不宣称自然语言禁令实现了严格隔离。
 

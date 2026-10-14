@@ -1465,7 +1465,7 @@ server.registerTool("place_narration", {
 
 server.registerTool("manage_audio", {
   title: "管理 BGM 与 SFX",
-  description: "将已就绪的本地音频作为 BGM 或 SFX 写入专用轨。BGM 用 start_frame/end_frame 指定主线内范围，支持有限淡入淡出、循环和 Dialogue Duck；SFX 用 event_frame/onset_offset_frames 定位，不能用 BGM 范围参数代替。空 Scene、未放置或失效作品不构成主线，声音不能延长视觉；已有旁白用 place_narration。SFX 的 event_frame 是计划同步的事件，onset_offset_frames 是所选源范围内的偏移；检测候选或尚未复听时用 onset_review.status=inconclusive（缺省也是待审）并说明依据，允许草稿混合但阻挡交付。只有实际复听所选原文件范围后才能写 confirmed，仍不代表成片混合声画通过。",
+  description: "将已就绪的本地音频作为 BGM 或 SFX 写入专用轨。BGM 用 start_frame/end_frame 指定主线内范围，支持有限淡入淡出、循环和 Dialogue Duck；SFX 用 event_frame/onset_offset_frames 定位，不能用 BGM 范围参数代替。空 Scene、未放置或失效作品不构成主线，声音不能延长视觉；已有旁白用 place_narration。SFX 的 event_frame 是计划同步的事件，onset_offset_frames 是所选源范围内的偏移；检测候选或尚未复听时用 onset_review.status=inconclusive（缺省也是待审）并说明依据，允许草稿混合，待听结论作为质量待办记录，不自动阻挡导出。只有实际复听所选原文件范围后才能写 confirmed，仍不代表成片混合声画通过。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),

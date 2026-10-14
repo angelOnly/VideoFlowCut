@@ -277,8 +277,13 @@ test("方法与案例可达，但案例不再注册独立工作能力", async ()
   }
   const methods=await reachableMarkdown(join(skillsRoot,"remotion-production/SKILL.md"));
   for(const file of ["visual-treatment-planning/references/art-direction.md","motion-brief-writing/references/performance-design.md","motion-brief-writing/references/execution-brief-template.md","remotion-production/references/material-space-and-time.md","remotion-production/references/submission-and-recovery.md"]){assert.ok(methods.has(resolve(skillsRoot,file)),file)}
-  const template=await readFile(join(skillsRoot,"motion-brief-writing/references/execution-brief-template.md"),"utf8");
-  for(const section of ["实际材料","声音与文字","连续演出","语义时间与源时间","版本与修订"])assert.ok(template.includes(section),section);
+  const templatePath=join(skillsRoot,"motion-brief-writing/references/execution-brief-template.md");
+  const template=await readFile(templatePath,"utf8");
+  // 执行稿可精简章节；检查真实方法引用，不把旧标题固定成创作合同。
+  const templateMethods=await reachableMarkdown(templatePath);
+  for(const file of ["visual-treatment-planning/references/art-direction.md","motion-case-library/references/mechanism-retrieval.md"]){
+    assert.ok(templateMethods.has(resolve(skillsRoot,file)),`执行稿无法到达专业方法：${file}`);
+  }
   assert.doesNotMatch(template,/同款座位|翻翻票/);
 });
 

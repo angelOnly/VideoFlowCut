@@ -24,7 +24,7 @@
 
 Provider 能提供严格 token 时间时，Alignment 标记为 `provider_token_timed`，才可在单段实际排版超出既定行数、Provider 分段明显破坏完整语义、回听确认错分段，或用户明确要求重新分屏时，读取 Alignment 并用 `apply_source_caption_program` 原子覆盖默认 Program。它不能手填时间、按字符均分时间或改写实义词。若 Alignment 标记为 `tokenPrecision: unavailable`，其 Provider segments 仍是可正常使用的 `sentence_exact` 原声字幕；但没有可验证的新切点，`apply_source_caption_program` 必须拒绝，不能为了排版或错字猜测时间。此时应保留默认段、重新取得带严格 token 证据的对齐，或回到源音频完成可追溯的纠错。
 
-新项目使用 `Timeline.captionFormat` 作为全片普通字幕样式的权威来源。设置或统一修订时使用 `edit_captions(action="set_global_format", format=..., base_revision_id=...)`，不带 `caption_id` 或 `caption_ids`；它统一整条 Timeline，清除旧 Card 的局部 format/emphasis，新生成或重建字幕继承同一规则。旧项目未切换前仍按历史卡片解释，进入当前固定字幕路线时用同一入口明确切换，不修改历史 Revision。
+新项目使用 `Timeline.captionFormat` 作为全片普通字幕样式的权威来源。设置或统一修订时使用 `edit_captions(action="set_global_format", format=..., base_revision_id=...)`，不带 `caption_id` 或 `caption_ids`；它统一整条 Timeline，清除旧 Card 的局部 format/emphasis，新生成或重建字幕继承同一规则。旧项目未切换前仍按历史卡片解释，进入当前全片统一字幕路线时用同一入口明确切换，不修改历史 Revision。
 
 `read_captions` 返回对象中的 `projectId`、`revision`、`presentation`（`global` / `legacy_per_card`）、`captionFormat` 与 `captions`；统一样式在全片字段读取，不再假定每张卡复制一份 format。
 
