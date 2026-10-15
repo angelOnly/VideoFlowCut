@@ -13,6 +13,7 @@ import { prepareProjectFrameRateChange } from "./frame-rate-change.js";
 import { digest as mediaDigest, assetRequestVersion } from "../../media-intelligence/src/index.js";
 import { assertEffectCoverage } from "@videocut/domain";
 import { MediaIntelligenceApplication } from "./media-intelligence.js";
+import { submitSfxGeneration, completeSfxGeneration } from "./sfx-generation.js";
 import { createHash } from "node:crypto";
 import { bindEffectAudioEvent, type EffectAudioEventInput } from "./effect-audio-events.js";
 import { resolveAudioProgramEndFrame } from "../../edit-domain/src/audio-program-range.js";
@@ -2476,7 +2477,8 @@ export class EditingApplication {
     });
     const boundVideos = boundMotionVideoSchema.array().parse(Object.entries(work.videoBindings ?? {}).map(([slot, binding]) => {
       const asset = assetById(current.snapshot, binding.assetId);
-      if (asset.kind !== "video" || asset.status !== "ready" || !asset.sourceHash || !asset.metadata?.durationMs || asset.motion) throw new DomainError("绑定已就绪且有真实时长和哈希的源视频；受管动效请直接放置", "MOTION_VIDEO_NOT_READY");
+      // 人物仍保留 actor_video 身份；绑定只复用其真实画面，作品静音与源时钟合同不变。
+      if (!["video", "actor_video"].includes(asset.kind) || asset.status !== "ready" || !asset.sourceHash || !asset.metadata?.durationMs || asset.motion) throw new DomainError("绑定已就绪且有真实时长和哈希的源视频或人物视频；受管动效请直接放置", "MOTION_VIDEO_NOT_READY");
       if (binding.sourceEndMs > asset.metadata.durationMs) throw new DomainError("视频源范围超出素材时长", "MOTION_VIDEO_SOURCE_RANGE");
       return { slot, ...binding, managedPath: asset.managedPath, hash: asset.sourceHash };
     }));
@@ -5591,12 +5593,17 @@ export class EditingApplication {
         throw new DomainError("人物表演引用的能力档案不存在", "ACTOR_CAPABILITY_NOT_FOUND");
       }
 
+      const existing = snapshot.actorPerformances.find((candidate) => candidate.timelineItemId === item.id);
       let speechAssetId = input.speechAssetId;
       let scriptRevision: number | undefined;
       if (input.source === "generated") {
         const speech = snapshot.speechAsset;
         if (!speech || speech.status !== "ready") throw new DomainError("生成型人物表演必须绑定已就绪 SpeechAsset", "SPEECH_ASSET_REQUIRED");
         if (speechAssetId && speechAssetId !== speech.id) throw new DomainError("人物表演引用的 SpeechAsset 不是当前项目版本", "STALE_ACTOR_SPEECH");
+        // 布局与备注不能把旧 Job 的嘴型重新登记成新声音；需要由生成完成入口替换真实人物源。
+        if (existing?.generationJobId && (existing.status === "stale" || existing.speechAssetId !== speech.id || existing.scriptRevision !== speech.scriptRevision)) {
+          throw new DomainError("该人物生成结果已过期，请重新生成受影响范围；登记布局不能更新口型版本", "STALE_ACTOR_REQUIRES_REGENERATION");
+        }
         speechAssetId = speech.id;
         scriptRevision = speech.scriptRevision;
       }
@@ -5607,7 +5614,6 @@ export class EditingApplication {
         impact.warnings.push("人物表演选择了 Dialogue 声音，但当前尚未组装 SpeechAsset；导出前需要补齐声音或改为原声。");
       }
 
-      const existing = snapshot.actorPerformances.find((candidate) => candidate.timelineItemId === item.id);
       const performance = existing ?? createActorPerformance({
         timelineItemId: item.id,
         source: input.source,
@@ -7057,6 +7063,11 @@ export class EditingApplication {
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     return state;
   }
+
+  /** 音效生成只登记候选；动作绑定与混音继续由现有声音流程处理。 */
+  submitSfxGeneration(input: Parameters<typeof submitSfxGeneration>[1]) { return submitSfxGeneration(this, input); }
+
+  completeSfxGeneration(input: Parameters<typeof completeSfxGeneration>[1]) { return completeSfxGeneration(this, input); }
 
   /**
    * 音乐生成只固定一个已确认的 Bridge workflow、提示词和精确时长；Worker 会在付费调用前

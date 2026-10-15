@@ -1367,6 +1367,8 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
         throw new DomainError("原声字幕绑定的 A-roll Revision 已变化；请读取当前 Timeline 后明确重新提交，不能重试旧字幕任务", "SOURCE_CAPTION_RETRY_STALE");
       }
     }
+    // 音效与 MCP 共用固定恢复身份，重复点击不能创建多个重新生成的子任务。
+    if (oldJob.kind === "sfx_generation") return reply.status(202).send(application.intelligence.retry(oldJob.projectId, oldJob.id));
     const retry = application.repository.createJob({
       projectId: oldJob.projectId,
       kind: oldJob.kind,

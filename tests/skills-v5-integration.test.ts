@@ -59,6 +59,7 @@ const expectedSkills = [
   "asset-import",
   "audio-finishing",
   "sound-asset-sourcing",
+  "sfx-prompt-writing",
   "avatar-performance",
   "captions",
   "cutaway-planning",
@@ -277,8 +278,13 @@ test("方法与案例可达，但案例不再注册独立工作能力", async ()
   }
   const methods=await reachableMarkdown(join(skillsRoot,"remotion-production/SKILL.md"));
   for(const file of ["visual-treatment-planning/references/art-direction.md","motion-brief-writing/references/performance-design.md","motion-brief-writing/references/execution-brief-template.md","remotion-production/references/material-space-and-time.md","remotion-production/references/submission-and-recovery.md"]){assert.ok(methods.has(resolve(skillsRoot,file)),file)}
-  const template=await readFile(join(skillsRoot,"motion-brief-writing/references/execution-brief-template.md"),"utf8");
-  for(const section of ["实际材料","声音与文字","连续演出","语义时间与源时间","版本与修订"])assert.ok(template.includes(section),section);
+  const templatePath=join(skillsRoot,"motion-brief-writing/references/execution-brief-template.md");
+  const template=await readFile(templatePath,"utf8");
+  // 执行稿可精简章节；检查真实方法引用，不把旧标题固定成创作合同。
+  const templateMethods=await reachableMarkdown(templatePath);
+  for(const file of ["visual-treatment-planning/references/art-direction.md","motion-case-library/references/mechanism-retrieval.md"]){
+    assert.ok(templateMethods.has(resolve(skillsRoot,file)),`执行稿无法到达专业方法：${file}`);
+  }
   assert.doesNotMatch(template,/同款座位|翻翻票/);
 });
 
@@ -336,7 +342,8 @@ test("Skills V5 源唯一、插件发行副本完整且可被 Codex 发现", asy
 
 test("导演只选一条主流程，专项与同一交接约定连通",async()=>{
   const director=await readFile(join(skillsRoot,"production-director/SKILL.md"),"utf8");
-  assert.match(director,/只按实际任务选择一个主要业务入口/);
+  const coordinatorReached = await reachableMarkdown(join(skillsRoot,"production-coordinator/SKILL.md"));
+  assert.ok(coordinatorReached.has(resolve(skillsRoot,"production-coordinator/references/video-type-routing.md")), "分派前必须能读取唯一类型路由；实际选择由独立场景验证");
   for(const workflow of primaryWorkflows)assert.ok(director.includes(`${workflow}/SKILL.md`));
   for(const role of creativeSpecialists){
     const reached=await reachableMarkdown(join(skillsRoot,role,"SKILL.md"));
@@ -520,7 +527,8 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
 test("声音待审与合成帧批量上限在剪辑工具和 Skill 中可发现", async () => {
   const mcpSource = await readFile(mcpSourcePath, "utf8");
   const audioTool = toolSourceBlock(mcpSource, "manage_audio");
-  assert.match(audioTool, /允许草稿混合但阻挡交付/u);
+  assert.match(audioTool, /待听结论作为质量待办记录，不自动阻挡导出/u);
+  assert.doesNotMatch(audioTool, /允许草稿混合但阻挡交付/u);
   for (const name of ["audio-finishing", "sound-asset-sourcing"]) {
     const skill = await readSkill(name);
     assert.doesNotMatch(skill, /adopt_media_fragment|bind_media_adoption|SOUND_ADOPTION_REQUIRED/u);

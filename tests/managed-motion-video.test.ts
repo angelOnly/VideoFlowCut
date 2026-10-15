@@ -42,6 +42,14 @@ test("23.976/25/30/VFR按PTS采样；跨Sequence保持作品时钟及精确帧�
           const rendered = await renderManagedMotion({ ...work, source, durationInFrames: 8 }, join(root, "render"), {}, provider);
           assert.equal(rendered.frameHashes.length, 8); assert.notEqual(rendered.frameHashes[0], rendered.frameHashes[7]); assert.ok(rendered.determinism);
           await assert.rejects(renderManagedMotion({ ...work, source: source.replace('slot="footage"', 'slot="missing"'), durationInFrames: 8 }, join(root, "overflow"), {}, provider), /MOTION_VIDEO_RANGE/);
+          // 跨作品接续由真实源范围表达；新作品的第零帧应是原片第24帧，而非重新播放片头。
+          await provider.close(); // 同一项目的渲染队列串行消费，先释放前一作品的缓存租约。
+          const continuation = { ...binding, sourceStartMs: 1000, sourceEndMs: 2000, endFrame: 24 };
+          const nextWork = { ...work, durationInFrames: 24, videoBindings: { footage: { assetId: "test", sourceStartMs: 1000, sourceEndMs: 2000, startFrame: 0, endFrame: 24 } } };
+          const nextProvider = await prepareMotionVideos(root, join(root, "continuation"), nextWork, [continuation]);
+          try {
+            for (const frame of [0, 1, 23]) assert.deepEqual(PNG.sync.read(await nextProvider.getFrame("footage", frame)).data, PNG.sync.read(await readFile(join(reference, `${frame + 25}.png`))).data);
+          } finally { await nextProvider.close(); }
         }
       } finally { await provider.close(); }
       await assert.rejects(prepareMotionVideos(root, join(root, `bad${index}`), work, [{ ...binding, sourceEndMs: 4000 }]), /SOURCE_RANGE/);
@@ -50,13 +58,13 @@ test("23.976/25/30/VFR按PTS采样；跨Sequence保持作品时钟及精确帧�
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
-test("多路Job共享原片且不保存副本，完整作品独立于解码缓存，损坏结果不得复用", async () => {
+for (const kind of ["video", "actor_video"] as const) test(`${kind} 多路Job共享原片且不保存副本，完整作品独立于解码缓存，损坏结果不得复用`, async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-motion-video-job-")); const app = createApplication(root);
   try {
     const created = app.createProject({ name: "多路视频隔离验证" }); const projectId = created.snapshot.project.id;
     const path = join(created.snapshot.project.rootPath, "assets/source/video.mp4");
     await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "testsrc2=s=64x64:r=24:d=1", "-f", "lavfi", "-i", "sine=frequency=440:duration=1", "-c:v", "libx264", "-c:a", "aac", "-shortest", path]);
-    const imported = app.registerImportedAsset({ projectId, baseRevision: 1, name: "video.mp4", kind: "video", managedPath: "assets/source/video.mp4", sourceHash: await hashMotionFile(path), provenance: { source: "local_import", acquiredAt: new Date().toISOString() } });
+    const imported = app.registerImportedAsset({ projectId, baseRevision: 1, name: "video.mp4", kind, managedPath: "assets/source/video.mp4", sourceHash: await hashMotionFile(path), provenance: { source: "local_import", acquiredAt: new Date().toISOString() } });
     app.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: await probeMedia(path) });
     const binding = { assetId: imported.asset.id, sourceStartMs: 0, sourceEndMs: 500, startFrame: 0, endFrame: 12 };
     const work = motionSubmissionSchema.parse({ ...motionFixture, width: 128, height: 64, fps: 24, durationInFrames: 12, videoBindings: { left: binding, right: binding }, source: `import React from 'react';import {TimelineVideo} from '@videoflowcut/motion';export default function Motion(){return <div style={{display:'flex',width:128,height:64}}><TimelineVideo slot="left" style={{width:64,height:64}}/><TimelineVideo slot="right" style={{width:64,height:64}}/></div>}` });

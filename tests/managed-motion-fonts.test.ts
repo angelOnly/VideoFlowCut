@@ -177,7 +177,9 @@ test("非法字体提交不创建Job或Revision，原输入幂等返回同一固
     const job = app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "ok", work: fontWork });
     assert.equal((job.payload.boundFonts as unknown[]).length, 2);
     const fixed = bindMotionFonts(fontWork).map(font => ({ ...font, hash: "0".repeat(64), family: `VFC_${"0".repeat(64)}` }));
-    const changedJob = { ...job, payload: { ...job.payload, boundFonts: fixed, version: motionHash(fontWork, [], undefined, [], fixed) } };
+    // 仅篡改字体，保留提交时冻结的来源显示合同，才能实际到达字体校验。
+    const sourceDisplay = job.payload.sourceDisplay as Parameters<typeof motionHash>[5];
+    const changedJob = { ...job, payload: { ...job.payload, boundFonts: fixed, version: motionHash(fontWork, [], undefined, [], fixed, sourceDisplay) } };
     await assert.rejects(runMotionJob(app, changedJob, async () => { assert.fail("变更字体不能进入渲染"); }), /MOTION_FONT_BINDING_MISMATCH/u);
     assert.equal(app.readProject(projectId).revision.number, 1);
     assert.equal(app.readProject(projectId).snapshot.assets.length, 0);

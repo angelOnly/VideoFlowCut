@@ -22,6 +22,7 @@ import { runAvatarGeneration } from "./avatar-generation.js";
 import { runDialogueProcessing } from "./dialogue-processing.js";
 import { runMulticamSync } from "./multicam-sync.js";
 import { runMusicGeneration } from "./music-generation.js";
+import { runSfxGeneration } from "./sfx-generation.js";
 import { runSpeechAlignment } from "./speech-alignment.js";
 import { runVideoGeneration } from "./video-generation.js";
 import { runVlogAnalysis } from "./vlog-analysis.js";
@@ -36,7 +37,7 @@ const getDefaultApplication = () => (defaultApplication ??= createApplication(wo
  * 历史 source_caption_generation / source_caption_sentence_alignment 仍可从 SQLite 读取，
  * 但绝不能被 Worker claim 或重新执行；唯一正式入口是段级 source_caption_alignment。
  */
-export const MEDIA_JOB_KINDS: JobKind[] = ["media_analysis", "vlog_analysis", "multicam_sync", "asset_acquisition", "transcription", "source_caption_alignment", "voice_synthesis", "speech_assembly", "dialogue_processing", "speech_alignment", "music_generation", "video_generation", "avatar_generation"];
+export const MEDIA_JOB_KINDS: JobKind[] = ["media_analysis", "vlog_analysis", "multicam_sync", "asset_acquisition", "transcription", "source_caption_alignment", "voice_synthesis", "speech_assembly", "dialogue_processing", "speech_alignment", "music_generation", "sfx_generation", "video_generation", "avatar_generation"];
 MEDIA_JOB_KINDS.push("source_material_acquisition", "media_understanding", "media_search", "sound_ranking", "motion_library_search", "motion_reference_analysis");
 
 const resolveAssetPath = (snapshot: ProjectSnapshot, asset: Asset) => isAbsolute(asset.managedPath) ? asset.managedPath : join(snapshot.project.rootPath, asset.managedPath);
@@ -248,7 +249,7 @@ export function createMediaJobProcessor(
   const funAsr = new FunASRService(app, bridge);
   const sourceCaptionAlignment = new SourceCaptionAlignmentService(app, bridge);
   const omniVoice = new OmniVoiceSegmentService(app, bridge);
-  return async (job) => {
+  return async (job, signal) => {
     switch (job.kind) {
       case "source_material_acquisition": return runSourceMaterialAcquisition(app, job);
       case "media_analysis":
@@ -293,6 +294,8 @@ export function createMediaJobProcessor(
         return runSpeechAlignment(app, job, bridge);
       case "music_generation":
         return runMusicGeneration(app, job, bridge);
+      case "sfx_generation":
+        return runSfxGeneration(app, job, undefined, signal);
       case "video_generation":
         return runVideoGeneration(app, job, bridge);
       case "avatar_generation":

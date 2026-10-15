@@ -78,7 +78,7 @@
 
 适用：真人单人口播、双人或多人访谈中的主讲段、播客视频、课程与教程、数字人主持、产品发布、促销口播、个人经历、读书反思，以及人物贯穿、局部插入 Explainer/B-roll 的混合视频。
 
-不适用：旁白只是导航、认知模型和图表承担主要理解的整片，应由 `visual-explainer-director`；故事主要存在于实拍行动、地点、反应和现场声，应由 `vlog-director`。没有人物画面但用户要求从零生成数字人时，可以由本工作流统领，但实际 Provider 能力交给 `avatar-performance`；当前代码尚无完整 Avatar 生成能力时只做计划或使用用户已提供的人物视频。
+整片路线继承协调者已采用结论，不能因材料或图表暂时接管而重新分类。没有人物画面但用户要求从零生成数字人时，仍由人物路线统领；生成依赖沿[当前时间线操作](timeline-operations.md)和[声画交接](presenter-shot-plan.md)，实际 Provider 能力交给 `avatar-performance` 按实时 Schema 核查。缺能力只保留相关缺口，不私自换成无人像解释片。
 
 ## 开始前先判断任务分支
 
@@ -337,6 +337,7 @@ Punch 是否对应人物表情、包袱或结论；Meme 是否在笑点后增强
 下列路线中，原创 Remotion 在写 Cue 前必须完成 creativeBrief、`submit_motion_work`、Job/版本读回和 `review_motion_work`；参考可省略。放置后按实际内部事件协调声音，连续播放前后语句，再扩展其余段落。组件 Cue 分支只用于设计可直接复用时。
 
 ```text
+已有真人原片分支（从零数字人改用 timeline-operations.md 中的正式声音 → 合法 Scene → Avatar Job 路线）：
 create_project(profile=presenter_motion)
 → import_media(人物 A-roll / VoiceReference / 必要素材)
 → track_job 并确认 Asset

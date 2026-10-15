@@ -3446,7 +3446,7 @@
     {
       "name": "manage_audio",
       "title": "管理 BGM 与 SFX",
-      "description": "将已就绪的本地音频作为 BGM 或 SFX 写入专用轨。BGM 用 start_frame/end_frame 指定主线内范围，支持有限淡入淡出、循环和 Dialogue Duck；SFX 用 event_frame/onset_offset_frames 定位，不能用 BGM 范围参数代替。空 Scene、未放置或失效作品不构成主线，声音不能延长视觉；已有旁白用 place_narration。SFX 的 event_frame 是计划同步的事件，onset_offset_frames 是所选源范围内的偏移；检测候选或尚未复听时用 onset_review.status=inconclusive（缺省也是待审）并说明依据，允许草稿混合但阻挡交付。只有实际复听所选原文件范围后才能写 confirmed，仍不代表成片混合声画通过。",
+      "description": "将已就绪的本地音频作为 BGM 或 SFX 写入专用轨。BGM 用 start_frame/end_frame 指定主线内范围，支持有限淡入淡出、循环和 Dialogue Duck；SFX 用 event_frame/onset_offset_frames 定位，不能用 BGM 范围参数代替。空 Scene、未放置或失效作品不构成主线，声音不能延长视觉；已有旁白用 place_narration。SFX 的 event_frame 是计划同步的事件，onset_offset_frames 是所选源范围内的偏移；检测候选或尚未复听时用 onset_review.status=inconclusive（缺省也是待审）并说明依据，允许草稿混合，待听结论作为质量待办记录，不自动阻挡导出。只有实际复听所选原文件范围后才能写 confirmed，仍不代表成片混合声画通过。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7060,7 +7060,7 @@
     {
       "name": "submit_motion_work",
       "title": "生成受管 Remotion 作品",
-      "description": "新作品填写 work.creativeBrief，提交固定源码、Props、图片及视频绑定，排队隔离渲染；不自动放入Timeline。修改作品重新提交并填写previousAssetId。视频最多4个选段，每槽声明assetId、sourceStartMs、sourceEndMs、startFrame、endFrame及可选decodeScale；源码import {TimelineVideo} from '@videoflowcut/motion'，以slot、fit、style显示。平台使用作品根时钟，内部Sequence不重置源时间，不接受offsetInFrames。输出帧数以endFrame-startFrame为准，源范围允许毫秒取整及不足一帧余量；正常速度且静音，原声在声音轨明确编排。源不足、源变化或取帧越界报错，不自动冻结或循环。原片按内容身份共享，不按槽复制；解码缓存按需生成、有界回收，不按原片或累计解码512MB拒绝。完整作品不设30秒、900帧或650000000累计像素帧门槛，由Worker提前检查完整输出及临时工作区真实磁盘需求；失败不登记半件Asset。画布宽高64–1920偶数、fps15–60整数；所有帧连续渲染并验证，一个Job产生一个完整Asset。imageBindings将图片映射到props.assets，使用Remotion Img，不允许任意资源URL。历史作品产物可读；历史引擎重新生成须按新合同提交。技术生成不替代连续审片。",
+      "description": "新作品填写 work.creativeBrief，提交固定源码、Props、图片及视频绑定，排队隔离渲染；不自动放入Timeline。修改作品重新提交并填写previousAssetId。源视频 video 和人物视频 actor_video 均可绑定；选段数量不设固定上限，实际负载受资源校验约束。每槽声明assetId、sourceStartMs、sourceEndMs、startFrame、endFrame及可选decodeScale；源码import {TimelineVideo} from '@videoflowcut/motion'，以slot、fit、style显示。平台使用作品根时钟，内部Sequence不重置源时间，不接受offsetInFrames。输出帧数以endFrame-startFrame为准，源范围允许毫秒取整及不足一帧余量；正常速度且静音，原声在声音轨明确编排。源不足、源变化或取帧越界报错，不自动冻结或循环。原片按内容身份共享，不按槽复制；解码缓存按需生成、有界回收，不按原片或累计解码512MB拒绝。完整作品不设30秒、900帧或650000000累计像素帧门槛，由Worker提前检查完整输出及临时工作区真实磁盘需求；失败不登记半件Asset。画布宽高64–1920偶数、fps15–60整数；所有帧连续渲染并验证，一个Job产生一个完整Asset。imageBindings将图片映射到props.assets，使用Remotion Img，不允许任意资源URL。历史作品产物可读；历史引擎重新生成须按新合同提交。技术生成不替代连续审片。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7238,7 +7238,7 @@
                 "propertyNames": {
                   "pattern": "^[a-z][A-Za-z0-9_]{0,39}$"
                 },
-                "description": "命名视频选段，不设作品选段总数上限；声明源毫秒范围和作品帧范围，实际负载受资源校验约束。TimelineVideo读取作品根时钟，Sequence只改变布局；正常速度且静音，不接受offsetInFrames。"
+                "description": "命名视频选段可绑定已就绪的 video 或 actor_video，不设作品选段总数上限；声明源毫秒范围和作品帧范围，实际负载受资源校验约束。TimelineVideo读取作品根时钟，Sequence只改变布局；正常速度且静音，不接受offsetInFrames。"
               },
               "fontBindings": {
                 "type": "object",
@@ -8384,6 +8384,59 @@
         },
         "required": [
           "input"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "submit_sfx_generation",
+      "title": "生成定制音效候选",
+      "description": "将已有 audio/sfx 需求交给 Stable Audio 3，按英文提示词、最大时长与固定种子异步生成候选。返回 Job 后用 track_job 续查；完成只登记受管音频，不上时间线、不代表已试听。相同幂等键须保持相同输入；失败沿 retry_media_job 恢复，结果未知不重发。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "max_duration_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 120
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "request_id",
+          "prompt",
+          "max_duration_seconds",
+          "idempotency_key"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"

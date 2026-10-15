@@ -867,7 +867,10 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
       if (range.startFrame < 0 || range.endFrame <= range.startFrame) {
         throw new DomainError("人物生成范围无效", "PROJECT_GRAPH_INVALID");
       }
-      for (const segmentId of range.speechSegmentIds) requireId(speechSegmentIds, segmentId, "人物生成范围 SpeechSegment");
+      // 改稿后旧生成范围保留为审计；只有可采用人物才必须引用当前台词，不能让旧 ID 阻断改稿。
+      if (performance.status !== "stale") {
+        for (const segmentId of range.speechSegmentIds) requireId(speechSegmentIds, segmentId, "人物生成范围 SpeechSegment");
+      }
     }
   }
 

@@ -11,9 +11,11 @@ description: 在 Presenter 主工作流中规划和审查数字人物或现有�
 
 ## 人物不是一个普通视频文件
 
+仅接收已采用人物范围的生成／原片采用任务。数字人生成范围来自当前正式声音、准确台词和实际可见需求：全屏、窗口、分屏、进出过渡都算可见；纯配音且无表演用途的范围不默认生成。Provider 生成主要人物表演，不预烧普通字幕、花字、最终分屏和材料转场。先查当前 Capability／Bridge Schema，再区分已发布的 `submit_avatar_job` 能力与未经实测的口型、Mask、精确手势和局部重生成；Job 成功不等于可采用。输出真实 Asset、声画对应、源范围、AudioMode／MaskMode 和表演限制给视觉作者，失败不得将本片悄悄改成纯 AI 解说。
+
 人物视频同时承担身份、信任、情绪、口型、空间和视觉锚点。一个 MP4 能播放，不代表 ActorPerformance 成立。人物声音可能来自源视频、OmniVoice Dialogue 或静音；Mask 可能内嵌、独立或不存在；段落之间可能口型、姿态和情绪不连续；Provider 可能不支持精确手势。
 
-本 Skill 在 `presenter-motion-director` 中作为专项负责人，判断人物版本是否适合当前 Script 和视觉计划。当前代码可以登记 imported/generated、MaskMode、AudioMode、MaskAsset 和 SpeechAsset，但自动 Avatar Provider、姿态和局部重生仍未完整实现。对未实现能力只能规划和审查。
+本 Skill 在 `presenter-motion-director` 中作为专项负责人，判断人物版本是否适合当前 Script 和视觉计划。当前可登记 imported/generated、MaskMode、AudioMode、MaskAsset 和 SpeechAsset，并通过 `submit_avatar_job` 提交受管人物生成。精确姿态、真实 Mask 和局部重生成连续性仍须按当前能力与实际输出验证，不把接口存在当作已实测通过。
 
 ## 角色关系决定表演
 

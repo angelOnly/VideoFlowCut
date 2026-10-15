@@ -5,7 +5,7 @@ description: 根据实际语音、源事件与场面设计安排动效的建立�
 
 # 动效时机、语义落点与媒体事件
 
-读取本次采用的场面、准确声音与时间精度、前后接点，以及同时在场的人物、字幕和其他声音。只改一个切口就核对该范围；新演出尚未决定对象与过程时先由原作者完成[演出设计](../motion-brief-writing/SKILL.md)。专业判断与正式提交沿[角色交接](../_shared/PROJECT_REVISION_AND_HANDOFF.md)。
+读取本次采用的场面、准确声音与时间精度、前后接点，以及同时在场的人物、字幕和其他声音。只改一个切口就核对该范围；新演出尚未决定对象与过程时先由原作者完成[演出设计](../motion-brief-writing/references/performance-design.md)。专业判断与正式提交沿[角色交接](../_shared/PROJECT_REVISION_AND_HANDOFF.md)。
 
 ## 先决定何时要看懂，再反推启动
 

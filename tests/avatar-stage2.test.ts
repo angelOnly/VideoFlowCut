@@ -13,7 +13,9 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { evaluateQuality } from "@videocut/quality";
 import { compileMotionLayout } from "@videocut/remotion";
-import { runProcess } from "@videocut/speech";
+import { runProcess, probeMedia } from "@videocut/speech";
+import { runMotionJob } from "../apps/render-worker/src/motion-job.js";
+import { runPreviewJob, RevisionRenderer } from "../apps/render-worker/src/exporter.js";
 import type { AssetKind, AssetRole } from "@videocut/contracts";
 
 async function createTestApplication(): Promise<{ root: string; app: EditingApplication; dispose: () => Promise<void> }> {
@@ -239,11 +241,15 @@ async function prepareAvatarJob(context: { root: string; app: EditingApplication
   const created = context.app.createProject({ name: label, profile: "presenter_motion" });
   const projectId = created.snapshot.project.id;
   const referenceAudioAssetId = addReadyAsset(context.app, projectId, "avatar-reference.wav", "audio");
-  context.app.applyTranscript({ projectId, assetId: referenceAudioAssetId, text: "这是供数字人物口型同步的一段完整旁白。", source: "manual" });
-  applySemanticUnitsFromCandidates(context.app, projectId);
+  context.app.applyAuthoredScript({ projectId, baseRevision: context.app.readProject(projectId).revision.number,
+    sourceNote: "从零数字人口播的隔离技术稿，不以虚构 A-roll 建场景",
+    units: [{ text: "这是供数字人物口型同步的一段完整旁白。", kind: "statement", confidence: 1, pauseBefore: { durationMs: 0, reason: "sentence" } }]
+  });
 
   const videoFixture = await createDeterministicVideoFixture(context.root);
-  const speechFileAssetId = addReadyAsset(context.app, projectId, "avatar-speech.mp4", "speech");
+  const speechFileAssetId = addReadyAsset(context.app, projectId, "avatar-speech.mp4", "speech", {
+    sourceHash: createHash("sha256").update(await readFile(videoFixture)).digest("hex")
+  });
   await materializeAsset(context.app, projectId, speechFileAssetId, videoFixture);
   const speechState = applySingleSpeechAsset(context.app, projectId, referenceAudioAssetId, speechFileAssetId, "avatar_speech_asset");
   const speechAsset = speechState.snapshot.speechAsset;
@@ -692,6 +698,80 @@ test("Avatar Worker 会重读 Bridge Schema、在 409 后重试，并将同一 J
     assert.equal(afterReplay.snapshot.timeline.items.length, beforeReplay.snapshot.timeline.items.length);
     assert.equal(afterReplay.snapshot.actorPerformances.length, beforeReplay.snapshot.actorPerformances.length);
     assert.equal(runReads, 1, "Project 已有同一 Job 的人物结果时，重领不得再次轮询或重提 Bridge");
+
+    // 使用刚刚完成的 actor_video 原对象，验证生成链能直接进入受管缩窗与最终合成。
+    // Provider 仍是隔离替身；以下解码、逐帧渲染和合成使用真实文件。
+    globalThis.fetch = originalFetch;
+    const projectId = prepared.projectId;
+    const current = () => context.app.readProject(projectId);
+    const revision = () => current().revision.number;
+    context.app.repository.commit(projectId, revision(), "隔离测试画布", snapshot => {
+      Object.assign(snapshot.timeline, { width: 320, height: 320 });
+      Object.assign(snapshot.timeline.captionFormat!, { fontSize: 18, maxLines: 2, bottomOffset: 12 });
+    });
+    const actorSource = `import React from 'react';import {AbsoluteFill,useCurrentFrame,Sequence} from 'remotion';import {TimelineVideo} from '@videoflowcut/motion';
+export default function Motion(){const f=useCurrentFrame();const size=320-Math.min(f,12)*20;
+return <AbsoluteFill style={{backgroundColor:'#172334'}}><Sequence durationInFrames={12}><TimelineVideo slot="actor" style={{width:size,height:size}}/></Sequence><Sequence from={12}><TimelineVideo slot="actor" style={{width:size,height:size}}/></Sequence></AbsoluteFill>;}`;
+    const motionJob = context.app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "avatar-continuous-layout", work: {
+      name: "人物连续缩窗技术验证", creativeBrief: "真实生成人物素材在同一作品内缩窗，源时钟跨 Sequence 连续，最终画布独立显示字幕。仅验证链路，不评价数字人表演。",
+      source: actorSource, props: {}, imageBindings: {}, width: 320, height: 320, fps: 24, durationInFrames: 24,
+      videoBindings: { actor: { assetId: actorItem.assetId, sourceStartMs: 0, sourceEndMs: 1000, startFrame: 0, endFrame: 24 } }
+    } });
+    const result = await runMotionJob(context.app, motionJob);
+    const motionAsset = current().snapshot.assets.find(asset => asset.id === result.assetId)!;
+    assert.deepEqual(motionAsset.motion?.sourceAssetIds, [actorItem.assetId]);
+    assert.equal(motionAsset.metadata?.hasAudio, false);
+    assert.equal(current().snapshot.actorPerformances[0]?.status, "ready", "纯布局作品不得使原人物失效或重新生成");
+    assert.equal(current().snapshot.speechAsset?.id, prepared.speechAsset.id);
+    assert.equal(context.app.repository.listJobs(projectId).filter(entry => entry.kind === "avatar_generation").length, 1);
+    context.app.createEffectCue({ projectId, baseRevision: revision(), sceneId: prepared.scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 0, endFrame: 24, assetBindings: [{ slot: "motion", assetId: motionAsset.id }] });
+    const preview = context.app.submitPreview({ projectId, revision: revision(), fromFrame: 0, toFrame: 24 });
+    const composed = await runPreviewJob(context.app, preview, new RevisionRenderer(undefined, 1));
+    assert.equal(composed.frameCount, 24);
+    assert.equal((await probeMedia(String(composed.path))).hasAudio, true);
+    const pixelsPath = join(context.root, "presenter-composed.rgba");
+    await runProcess("ffmpeg", ["-y", "-v", "error", "-i", String(composed.path), "-f", "rawvideo", "-pix_fmt", "rgba", pixelsPath]);
+    const pixels = await readFile(pixelsPath);
+    const pixel = (frame: number, x: number, y: number) => [...pixels.subarray((frame * 320 * 320 + y * 320 + x) * 4, (frame * 320 * 320 + y * 320 + x) * 4 + 3)];
+    const near = (actual: number[], expected: number[]) => actual.every((value, index) => Math.abs(value - expected[index]!) < 12);
+    assert.ok(near(pixel(0, 200, 100), [38, 70, 83]), "初始真实人物源占满主画面");
+    assert.ok(near(pixel(18, 40, 40), [38, 70, 83]), "缩窗后人物仍在播放");
+    assert.ok(near(pixel(18, 200, 100), [23, 35, 52]), "外层人物被本作品实色舞台接管，不透出第二个人物");
+    const whiteBounds = (frame: number) => {
+      let minX = 320, maxX = -1;
+      for (let y = 220; y < 320; y++) for (let x = 0; x < 320; x++) {
+        if (pixel(frame, x, y).every(value => value > 190)) { minX = Math.min(minX, x); maxX = Math.max(maxX, x); }
+      }
+      return [minX, maxX];
+    };
+    assert.ok(whiteBounds(6)[1]! > 80, "最终画布字幕存在");
+    assert.deepEqual(whiteBounds(6), whiteBounds(18), "字幕不跟随人物窗口缩小");
+    const dialogueId = current().snapshot.timeline.tracks.find(track => track.name === "Dialogue")!.id;
+    assert.equal(current().snapshot.timeline.items.filter(item => item.trackId === dialogueId && !item.disabled).length, 1);
+    assert.equal(current().snapshot.project.profile, "presenter_motion");
+    context.app.registerActorPerformance({ projectId, baseRevision: revision(), timelineItemId: actorItem.id, source: "generated", maskMode: "none", layout: { actorHead: { x: 0.3, y: 0.3, source: "manual_static" } }, note: "仅修布局与制作说明" });
+    assert.equal(current().snapshot.actorPerformances[0]?.generationJobId, job.id, "纯布局说明变化保留人物生成身份");
+    assert.equal(current().snapshot.actorPerformances[0]?.status, "ready");
+    const bakedState = current();
+    const staleBaked = structuredClone(bakedState.snapshot);
+    staleBaked.timeline.items.find(item => item.id === actorItem.id)!.disabled = true;
+    staleBaked.actorPerformances[0]!.status = "stale";
+    assert.ok(evaluateQuality(staleBaked, bakedState.revision.number).issues.some(issue => issue.code === "MOTION_ACTOR_SOURCE_STALE" && issue.level === "blocking"), "人物退出外层后，作品里的旧口型仍必须接受版本检查");
+    const replacedBaked = structuredClone(bakedState.snapshot);
+    replacedBaked.timeline.items.find(item => item.id === actorItem.id)!.assetId = brollAssetId;
+    assert.ok(evaluateQuality(replacedBaked, bakedState.revision.number).issues.some(issue => issue.code === "MOTION_ACTOR_SOURCE_STALE"), "重生并替换外层人物不能替旧作品中的人物源背书");
+    assert.equal(evaluateQuality(bakedState.snapshot, bakedState.revision.number).issues.some(issue => issue.code === "MOTION_ACTOR_SOURCE_STALE"), false);
+    const rewritten = context.app.applyAuthoredScript({ projectId, baseRevision: revision(), sourceNote: "改台词应失效对应口型和字幕，保留真实旧生成范围供追溯",
+      units: [{ text: "这是修改后需要重新配音与口型同步的准确新台词。", kind: "statement", confidence: 1, pauseBefore: { durationMs: 0, reason: "sentence" } }]
+    });
+    assert.equal(rewritten.snapshot.actorPerformances[0]?.status, "stale");
+    assert.deepEqual(rewritten.snapshot.actorPerformances[0]?.generationRange?.speechSegmentIds, [prepared.segment.id], "旧生成身份保留为审计，不伪造新台词已生成");
+    assert.equal(rewritten.snapshot.speechAsset, undefined);
+    assert.equal(rewritten.snapshot.timeline.captions.length, 0);
+    assert.ok(evaluateQuality(rewritten.snapshot, rewritten.revision.number).issues.some(issue => issue.code === "MOTION_ACTOR_SOURCE_STALE"));
+    const revoiced = applySingleSpeechAsset(context.app, projectId, prepared.speechAsset.assetId, prepared.speechAsset.assetId, "new_script_speech");
+    assert.throws(() => context.app.registerActorPerformance({ projectId, baseRevision: revoiced.revision.number, timelineItemId: actorItem.id, source: "generated", maskMode: "none", note: "不能靠更新备注冒充重新同步口型" }), (error: unknown) => error instanceof DomainError && error.code === "STALE_ACTOR_REQUIRES_REGENERATION");
+    assert.equal(revision(), revoiced.revision.number, "版本拒绝不得留下部分写入");
   } finally {
     globalThis.fetch = originalFetch;
     await context.dispose();

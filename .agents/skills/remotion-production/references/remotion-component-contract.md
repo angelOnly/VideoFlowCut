@@ -30,7 +30,7 @@ Cue 应完整容纳采用的变化、阅读与出口，不能用更短 Item 截�
 
 ## 受管动态视频
 
-work.videoBindings 是可选命名记录，不设作品视频选段总数上限，允许顺序、同源多范围与交叠使用；实际负载受资源校验约束。每槽声明 assetId、sourceStartMs、sourceEndMs、startFrame、endFrame，可选 decodeScale。源毫秒和作品帧均为半开区间，作品帧从本作品0开始；源身份、内容哈希与范围随作品固定，改绑或改范围提交新版本。只绑定有真实时长与内容哈希的 ready 源视频，不嵌套受管动效 Asset。Provider 复用分块串行解码、内存帧缓存与磁盘回收；单块预算不等于浏览器总内存预算。真实资源不足须明确诊断，不静默删镜头、降质量或发布半件作品。
+work.videoBindings 是可选命名记录，不设作品视频选段总数上限，允许顺序、同源多范围与交叠使用；实际负载受资源校验约束。每槽声明 assetId、sourceStartMs、sourceEndMs、startFrame、endFrame，可选 decodeScale。源毫秒和作品帧均为半开区间，作品帧从本作品0开始；源身份、内容哈希与范围随作品固定，改绑或改范围提交新版本。只绑定有真实时长与内容哈希的 ready 源视频（video 或 actor_video），保留原素材身份，不嵌套受管动效 Asset。人物源继续依赖当前声音版本，换配音或重生人物后须更新相关作品的绑定。Provider 复用分块串行解码、内存帧缓存与磁盘回收；单块预算不等于浏览器总内存预算。真实资源不足须明确诊断，不静默删镜头、降质量或发布半件作品。
 
 源码通过 '@videoflowcut/motion' 的 TimelineVideo 引用 slot。fit 支持 cover、contain、fill，默认 cover；style 负责画布内静态或帧驱动布局。视频按真实 PTS 以作品 fps 正常速度重采样并静音，VFR 保留原时间间隔；不传任意视频 URL，也不传 offsetInFrames。
 

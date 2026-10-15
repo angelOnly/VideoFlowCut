@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
 
 const read = (path: string) => readFileSync(resolve(path), "utf8").replace(/\r\n/g, "\n");
 const roles = ["motion-case-library/references/cases/motion-case-attention-programme/CASE.md", "motion-case-library/references/cases/motion-case-attention-programme/references/transfer-guide.md", "production-director/references/asset-briefing.md", "narration-writing/SKILL.md", "visual-treatment-planning/references/art-direction.md", "motion-brief-writing/references/performance-design.md", "visual-asset-sourcing/references/source-review.md", "_shared/SCENE_DESIGN_HANDOFF.md", "production-coordinator/references/task-routing.md", "quality-verification/references/professional-review.md"];
@@ -35,7 +35,13 @@ test("默认前期资料不直连历史案例，动画交接仍可到达机制�
     assert.ok(!links(path).some(link=>link.includes('/references/cases/')||link.includes('validated-index.md')),path);
   }
   const motion=links('motion-brief-writing/SKILL.md');
-  assert.ok(motion.includes('../motion-case-library/references/mechanism-retrieval.md'));
+  // 检索先按当前缺口分流；验证真实两跳目标，避免强迫入口重复链接全部专业正文。
+  const library = motion.find(link => resolve('.agents/skills/motion-brief-writing', link) === resolve('.agents/skills/motion-case-library/SKILL.md'));
+  assert.ok(library, '演出入口可进入机制分流');
+  const libraryPath = resolve('.agents/skills/motion-brief-writing', library);
+  assert.ok(links('motion-case-library/SKILL.md').some(link =>
+    resolve(dirname(libraryPath), link) === resolve('.agents/skills/motion-case-library/references/mechanism-retrieval.md')));
+  assert.ok(motion.includes('references/performance-design.md'), '演出核心可直接读取');
   assert.ok(motion.includes('../remotion-production/SKILL.md'));
   assert.ok(links('motion-case-library/SKILL.md').includes('references/validated-index.md'),'用户明确请求的历史分支仍保留');
 });

@@ -2,6 +2,10 @@
 
 ## 主线变化后的返工范围
 
+从零数字人先由 `apply_authored_script` 保存准确台词，完成正式 SpeechAsset 与真实时序，再用 `create_scene(type=PresenterScene)` 建立覆盖生成范围的合法场景，按[声画交接](presenter-shot-plan.md)提交 `submit_avatar_job`。`apply_script` 仅从已有语义单元选择和排序，不承载新写正文。无需为了创建 Scene 编造 A-roll；结果由原视觉作者采用。已有真人原片则沿文末的 assemble／compile 路线，不套用生成输入要求。
+
+人物交给受管作品统一编排时，`videoBindings` 可直接引用真实 `actor_video`。外层人物 Item 与作品的可见职责必须明确：完整舞台可用不透明背景接管外层人物；透明作品先核对实时接口是否支持所需外层隐藏范围，不能假定只缩小内部人物就会同步缩小外层人物。核查前后未覆盖范围，普通字幕保持最终画布层，讲述仍由唯一 Dialogue 或获准原声承担。
+
 - Script 文本变：相关 SpeechSegment、SpeechAsset、Caption、语义 Effect、Cutaway 和人物可能 stale；
 - 只改 Voice 音色：人物口型、Dialogue、Timing 和音频审查受影响，Story不一定变；
 - 只换 B-roll：Cutaway Scene、声音交接、Preview 受影响；

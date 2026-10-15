@@ -9,6 +9,9 @@ export interface BridgeWorkflowField {
   kind: string;
   required: boolean;
   defaultValue?: unknown;
+  min?: number;
+  max?: number;
+  step?: number;
   options?: Array<{ label: string; value: string }>;
 }
 
@@ -277,7 +280,8 @@ export class ComfyUIBridgeClient {
 
   async createRunWithSchemaRetry(
     workflowId: string,
-    buildRequest: (workflow: BridgeWorkflow) => Promise<BridgeRunRequest>
+    buildRequest: (workflow: BridgeWorkflow) => Promise<BridgeRunRequest>,
+    options?: { onSchemaRejected?: (workflow: BridgeWorkflow) => void | Promise<void> }
   ): Promise<BridgeRunSubmission> {
     let workflow = await this.getWorkflow(workflowId);
     for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -286,7 +290,10 @@ export class ComfyUIBridgeClient {
         const run = await this.createRun({ workflow, ...request });
         return { workflow, run, request, schemaRetryCount: attempt };
       } catch (error) {
-        if (!(error instanceof BridgeError) || error.status !== 409 || attempt === 1) throw error;
+        if (!(error instanceof BridgeError) || error.status !== 409) throw error;
+        // 在下一次只读刷新前保存明确拒绝，避免刷新中断被误判为 POST 结果未知。
+        await options?.onSchemaRejected?.(workflow);
+        if (attempt === 1) throw error;
         workflow = await this.getWorkflow(workflowId);
       }
     }

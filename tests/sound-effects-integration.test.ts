@@ -263,6 +263,45 @@ test("不匹配事件、越界平移、源起点改动均不保留虚假同步",
   } finally { await f.close(); }
 });
 
+test("跨帧率事件配合裁剪源范围，起音与主攻击不同仍对准画面且随平移保持", async () => {
+  const f = await fixture();
+  try {
+    f.app.repository.commit(f.projectId, f.rev(), "固定跨帧率测试画布", (snapshot) => {
+      snapshot.timeline.width = 1080; snapshot.timeline.height = 1920; snapshot.timeline.fps = 30;
+    });
+    const job = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), idempotencyKey: "cross-fps", work: {
+      name: "跨帧率同步协议测试", creativeBrief: "只测试源时钟换算和音频裁剪，不代表实际听觉验收。", source: "export default function M(){return null}",
+      props: {}, imageBindings: {}, width: 1080, height: 1920, fps: 24, durationInFrames: 48
+    } });
+    const asset = f.app.completeManagedMotion({ projectId: f.projectId, jobId: job.id, sourceHash: "cross-fps-fixture", engineVersion: "fixture-only",
+      metadata: { durationMs: 2000, width: 1080, height: 1920, fps: 24, hasAudio: false, videoCodec: "h264" },
+      eventMap: { version: String(job.payload.version), fps: 24, frameCount: 48, events: [{ id: "settle", meaning: "落定", startFrame: 12 }] }
+    });
+    await f.app.reviewManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), assetId: asset.id, outcome: "inconclusive", note: "隔离同步合同验证，无实际声画审阅证据。" });
+    const state = f.app.createEffectCue({ projectId: f.projectId, baseRevision: f.rev(), sceneId: f.app.readProject(f.projectId).snapshot.scenes[0].id,
+      type: "ManagedMotion", layer: "fullscreen", startFrame: 100, endFrame: 160, assetBindings: [{ slot: "motion", assetId: asset.id }] });
+    const effectCueId = state.snapshot.effectCues.at(-1)!.id;
+    // 作品12帧=项目15帧。源起音8、主攻击11，裁去前6帧后 O=2、P=5，画面目标V=115。
+    const placed = f.app.manageAudio({ projectId: f.projectId, baseRevision: f.rev(), action: "create", kind: "sfx", assetId: f.soundId,
+      purpose: "裁剪后主攻击对准落定", sourceStartFrame: 6, sourceEndFrame: 24, onsetOffsetFrames: 2, eventFrame: 112,
+      effectEvent: { effectCueId, eventId: "settle", workVersion: asset.motion!.version, eventName: "落定", localFrame: 15, syncOffsetFrames: -3 } });
+    const cue = placed.snapshot.audioCues.at(-1)!;
+    const item = placed.snapshot.timeline.items.find((entry) => entry.id === cue.timelineItemId)!;
+    assert.equal(item.startFrame, 110);
+    assert.equal(item.sourceStartFrame, 6);
+    assert.equal(item.endFrame, 128);
+    assert.equal(item.startFrame + 5, 115, "主攻击与画面一致，可听起音提前3帧");
+    assert.throws(() => bindEffectAudioEvent(placed.snapshot, { ...cue.effectEvent!, localFrame: 12 }, 109), /范围/u);
+    const shifted = f.app.updateEffectCue({ projectId: f.projectId, baseRevision: f.rev(), cueId: effectCueId, startFrame: 130, endFrame: 190 });
+    const shiftedCue = shifted.snapshot.audioCues.find((entry) => entry.id === cue.id)!;
+    const shiftedItem = shifted.snapshot.timeline.items.find((entry) => entry.id === cue.timelineItemId)!;
+    assert.equal(shiftedCue.status, "ready");
+    assert.equal(shiftedItem.startFrame + 5, 145);
+    assert.equal(shiftedCue.eventFrame, 142);
+    assert.equal(shiftedItem.sourceStartFrame, 6);
+  } finally { await f.close(); }
+});
+
 test("同一个真实事件合同允许起势、落定或贯穿，禁止自行编造内部时间", async () => {
   const f = await fixture();
   try {

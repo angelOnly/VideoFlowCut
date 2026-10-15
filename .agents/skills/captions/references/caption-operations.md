@@ -24,7 +24,7 @@
 
 Provider 能提供严格 token 时间时，Alignment 标记为 `provider_token_timed`，才可在单段实际排版超出既定行数、Provider 分段明显破坏完整语义、回听确认错分段，或用户明确要求重新分屏时，读取 Alignment 并用 `apply_source_caption_program` 原子覆盖默认 Program。它不能手填时间、按字符均分时间或改写实义词。若 Alignment 标记为 `tokenPrecision: unavailable`，其 Provider segments 仍是可正常使用的 `sentence_exact` 原声字幕；但没有可验证的新切点，`apply_source_caption_program` 必须拒绝，不能为了排版或错字猜测时间。此时应保留默认段、重新取得带严格 token 证据的对齐，或回到源音频完成可追溯的纠错。
 
-新项目使用 `Timeline.captionFormat` 作为全片普通字幕样式的权威来源。设置或统一修订时使用 `edit_captions(action="set_global_format", format=..., base_revision_id=...)`，不带 `caption_id` 或 `caption_ids`；它统一整条 Timeline，清除旧 Card 的局部 format/emphasis，新生成或重建字幕继承同一规则。旧项目未切换前仍按历史卡片解释，进入当前固定字幕路线时用同一入口明确切换，不修改历史 Revision。
+新项目使用 `Timeline.captionFormat` 作为全片普通字幕样式的权威来源。设置或统一修订时使用 `edit_captions(action="set_global_format", format=..., base_revision_id=...)`，不带 `caption_id` 或 `caption_ids`；它统一整条 Timeline，清除旧 Card 的局部 format/emphasis，新生成或重建字幕继承同一规则。旧项目未切换前仍按历史卡片解释，进入当前全片统一字幕路线时用同一入口明确切换，不修改历史 Revision。
 
 `read_captions` 返回对象中的 `projectId`、`revision`、`presentation`（`global` / `legacy_per_card`）、`captionFormat` 与 `captions`；统一样式在全片字段读取，不再假定每张卡复制一份 format。
 
@@ -39,6 +39,18 @@ Provider 能提供严格 token 时间时，Alignment 标记为 `provider_token_t
 识别错词、数字和英文显示可依据实际回听、与当前配音对应的已确认原稿，或用户明确修改指令。对已有对齐 Card 调用 `edit_captions(action=update, text, source_text_review)`：实际回听用 `{note}` 或 `{basis:"listening",note}`；已确认原稿用 `{basis:"confirmed_script",note,scriptRevision,speechSegmentIds}`，服务端核验当前 SpeechAsset、脚本版本、字幕所在片段及新文字属于该原稿；用户指令用 `{basis:"user_instruction",note,instruction,source}` 保存明确要求及来源。服务端保留原 sourceText、Alignment、时间、原文与新文审计，不改声音或 Script。原稿/用户指令依据不能声明实际听过，声音本身读错交回配音。标点、空格和换行不需要实义纠错记录；纠错后重分屏需先明确 reset，再重新复核。
 
 任何修改后要读回 Caption、Revision、Impact，渲染真实 Preview。只看文本 JSON 不能发现遮挡、行宽、画幅和阅读时间问题。
+
+## 生成后校订
+
+顺序为生成并读回默认字幕 → 必要的可靠时间分屏 → 逐卡校订 → 检查真实预览。不要用技术比较通过或仅有部分纠错记录代替全片逐卡核对。数字检查保留小数点、负号、百分号和单位，不能凭忽略标点后的文字相等认定正确。
+
+例如本片识别为 `deepsick`、用户明确指出应为 `DeepSeek`：通过 `edit_captions(action=update)` 的 `text` 提交该卡纠正后的**完整正文**，使用 `source_text_review: {basis:"user_instruction",note:"按用户明确正字修订专名",instruction:"正确名称为 DeepSeek",source:"本次用户明确反馈"}`。保留原 `sourceText`、Alignment、词元范围、起止时间和声音；不得把两种拼写列为技术判等白名单。此示例仅在确有该用户指令时适用，不代表已经回听。
+
+原稿依据按本卡时间与上下文定位实际使用的 Script Revision，`speechSegmentIds` 精确对应与本卡相交的片段集合，不能填入全片所有片段或仅按第一次字符串匹配定位。没有匹配稿件时使用真实回听或明确用户指令；三类依据按上文现有接口提交，不伪造 listening。声音本身读错、漏读时回配音修订，再重新对齐受影响范围。
+
+主任务按最新 Revision 逐卡顺序提交并读回；版本冲突先核对差异。已有校订后重分屏遇到 `SOURCE_CAPTION_REVIEW_RESEGMENT_CONFLICT`，先保留旧卡纠正对照，明确范围后 reset、重分屏并重新核对，不能按下标复制旧依据。重生成也不得静默覆盖人工校订。
+
+纠错后的字宽可能变化，检查改动卡及前后卡的真实拼写、换行和同步。沿现有制作记录交回已核对卡片范围、改字及依据、未决项、实际回听与预览范围；未改字的卡也必须纳入核对范围。
 
 ## 静态版式参数与拒绝分类
 

@@ -1196,6 +1196,26 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
   const capabilityById = new Map((snapshot.actorCapabilityProfiles ?? []).map((profile) => [profile.id, profile]));
   const assetsById = new Map(snapshot.assets.map((asset) => [asset.id, asset]));
   const tracksById = new Map(timeline.tracks.map((track) => [track.id, track]));
+  // 人物烘焙进受管作品后，即使外层 Item 禁用或已换源，旧口型仍是成片的真实依赖。
+  // 只核对当前合成使用的作品，历史候选不成为其它路线的交付前置。
+  for (const motionAsset of snapshot.assets) {
+    if (!motionAsset.motion || !compositionAssetIds.has(motionAsset.id)) continue;
+    for (const source of motionAsset.motion.videoSources ?? []) {
+      const actor = assetsById.get(source.assetId);
+      if (actor?.kind !== "actor_video" || actor.provenance?.source !== "generated") continue;
+      const currentPerformance = performances.find(performance => {
+        const item = timeline.items.find(candidate => candidate.id === performance.timelineItemId);
+        return item?.assetId === actor.id && performance.source === "generated"
+          && performance.status === "ready" && snapshot.speechAsset?.status === "ready"
+          && performance.speechAssetId === snapshot.speechAsset.id
+          && performance.scriptRevision === snapshot.script.revision
+          && performance.scriptRevision === snapshot.speechAsset.scriptRevision;
+      });
+      if (!currentPerformance || source.sourceHash !== actor.sourceHash) {
+        issues.push(issue({ level: "blocking", code: "MOTION_ACTOR_SOURCE_STALE", message: `作品“${motionAsset.name}”内的人物源已不对应当前声音或人物版本，请更新相关绑定并重新生成该作品。`, objectId: motionAsset.id }));
+      }
+    }
+  }
   const maskAssetFor = (performance: typeof performances[number]) => performance.maskAssetId
     ? assetsById.get(performance.maskAssetId)
     : undefined;

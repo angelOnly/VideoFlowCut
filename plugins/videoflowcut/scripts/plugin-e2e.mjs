@@ -302,6 +302,28 @@ try {
   });
   projectState = await call("read_project", { project_id: project.snapshot.project.id });
   const previewToFrame = Math.min(projectState.snapshot.timeline.durationInFrames, 24);
+  // 人物身份必须经公开接口登记，再由同一发行版完成绑定、缩窗和最终合成。
+  await call("manage_actor_performance", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
+    timeline_item_id: actorItem.id, source: "imported", mask_mode: "none", audio_mode: "use_source_audio" });
+  projectState = await call("read_project", { project_id: project.snapshot.project.id });
+  assert.equal(projectState.snapshot.assets.find(asset => asset.id === importedAsset.id)?.kind, "actor_video");
+  const actorMotion = await call("submit_motion_work", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number, idempotency_key: "release-actor-layout",
+    work: { name: "发行版人物连续缩窗", creativeBrief: "隔离验证人物视频保留 actor_video 身份进入真实受管作品，布局改变时源时间连续，独立声轨承担声音。",
+      props: { width: projectState.snapshot.timeline.width, height: projectState.snapshot.timeline.height }, imageBindings: {}, width: projectState.snapshot.timeline.width, height: projectState.snapshot.timeline.height, fps: 24, durationInFrames: 24,
+      videoBindings: { actor: { assetId: importedAsset.id, sourceStartMs: 0, sourceEndMs: 1000, startFrame: 0, endFrame: 24 } },
+      source: "import React from 'react';import {AbsoluteFill,useCurrentFrame,Sequence} from 'remotion';import {TimelineVideo} from '@videoflowcut/motion';export default function Motion(props){const f=useCurrentFrame();const scale=1-Math.min(f,12)/16;const style={width:props.width*scale,height:props.height*scale};return <AbsoluteFill style={{backgroundColor:'#172033'}}><Sequence durationInFrames={12}><TimelineVideo slot='actor' style={style}/></Sequence><Sequence from={12}><TimelineVideo slot='actor' style={style}/></Sequence></AbsoluteFill>}"
+    } });
+  await waitForJob(actorMotion.id);
+  const actorMotionRead = await call("read_motion_work", { project_id: project.snapshot.project.id, job_id: actorMotion.id });
+  assert.equal(actorMotionRead.asset.metadata.hasAudio, false);
+  assert.deepEqual(actorMotionRead.asset.motion.sourceAssetIds, [importedAsset.id]);
+  projectState = await call("read_project", { project_id: project.snapshot.project.id });
+  await call("manage_effect_cues", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
+    action: "create", scene_id: projectState.snapshot.scenes[0].id, type: "ManagedMotion", layer: "fullscreen", start_frame: 0, end_frame: 24,
+    asset_bindings: [{ slot: "motion", asset_id: actorMotionRead.asset.id }] });
+  projectState = await call("read_project", { project_id: project.snapshot.project.id });
+  assert.equal(projectState.snapshot.project.profile, "presenter_motion");
+  console.log(JSON.stringify({ releaseId: release.releaseId, actorVideoBinding: "passed", actorMotionFrames: actorMotionRead.asset.motion.frameCount }));
   // 音效在真实发行 Worker 中参与合成；不把无声作品或只读 Schema 当声画链已通过。
   const soundPath = join(workspaceRoot, "event-fixture.wav");
   const soundBytes = Buffer.alloc(44 + 4800 * 2);
