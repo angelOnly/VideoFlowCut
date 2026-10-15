@@ -1318,7 +1318,7 @@ export class OmniVoiceSegmentService {
       const parent = this.application.trackJob(String(job.payload.retryOfJobId));
       const identity = (value: JobRecord) => { const { retryOfJobId, ...payload } = value.payload; return JSON.stringify(payload); };
       if (parent.projectId !== projectId || parent.kind !== job.kind || identity(parent) !== identity(job)) throw new DomainError("配音恢复输入不一致", "SPEECH_RETRY_MISMATCH");
-      this.application.recordJobCheckpoint(job.id, { speechSegments: parent.result?.speechSegments ?? {} });
+      this.application.recordJobCheckpoint(job.id, { speechSegments: parent.result?.speechSegments ?? {}, ...(parent.result?.speechAssembly ? { speechAssembly: parent.result.speechAssembly } : {}) });
     }
     const initial = this.application.readProject(projectId);
     if (initial.snapshot.script.revision !== expectedScriptRevision) {
@@ -1433,10 +1433,17 @@ export class OmniVoiceSegmentService {
       });
     }
     if (materials.length !== latest.snapshot.speechSegments.length) {
-      this.application.applySpeechAssembly({ projectId, generatedAssets, segmentAssets: generatedSegmentAssets });
+      this.application.applySpeechAssembly({ projectId, expectedScriptRevision, generatedAssets, segmentAssets: generatedSegmentAssets });
       return { segmentCount: generatedSegmentAssets.length };
     }
     cancelled();
+    const savedAssembly = this.application.trackJob(job.id).result?.speechAssembly as { file: Asset; speech: SpeechAsset } | undefined;
+    if (savedAssembly) {
+      const bytes = await readFile(assetPath(latest.snapshot, savedAssembly.file));
+      if (createHash("sha256").update(bytes).digest("hex") !== savedAssembly.file.sourceHash) throw new DomainError("已组装配音文件已改变", "SPEECH_CHECKPOINT_CHANGED");
+      if (latest.snapshot.speechAsset?.id !== savedAssembly.speech.id) this.application.applySpeechAssembly({ projectId, expectedScriptRevision, generatedAssets: [...generatedAssets, savedAssembly.file], segmentAssets: generatedSegmentAssets, speechAsset: savedAssembly.speech });
+      return { segmentCount: generatedSegmentAssets.length, speechAssetId: savedAssembly.speech.id };
+    }
     const speechRelativePath = join("assets", "speech", `speech-${job.id}.wav`);
     const speechPath = join(latest.snapshot.project.rootPath, speechRelativePath);
     await assembleAudio(materials, speechPath);
@@ -1444,6 +1451,7 @@ export class OmniVoiceSegmentService {
     const speechFileAsset = createMediaAsset({ name: `旁白总轨 Revision ${expectedScriptRevision}`, kind: "speech", managedPath: speechRelativePath });
     speechFileAsset.status = "ready";
     speechFileAsset.metadata = finalMetadata;
+    speechFileAsset.sourceHash = createHash("sha256").update(await readFile(speechPath)).digest("hex");
     generatedAssets.push(speechFileAsset);
     const speechAsset: SpeechAsset = {
       id: createId("speech_asset"),
@@ -1453,7 +1461,8 @@ export class OmniVoiceSegmentService {
       timing: makeSpeechTiming(latest.snapshot, materials),
       status: "ready"
     };
-    this.application.applySpeechAssembly({ projectId, generatedAssets, segmentAssets: generatedSegmentAssets, speechAsset });
+    this.application.recordJobCheckpoint(job.id, { speechAssembly: { file: speechFileAsset, speech: speechAsset } });
+    this.application.applySpeechAssembly({ projectId, expectedScriptRevision, generatedAssets, segmentAssets: generatedSegmentAssets, speechAsset });
     return { segmentCount: generatedSegmentAssets.length, speechAssetId: speechAsset.id };
   }
 }

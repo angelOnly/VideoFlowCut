@@ -10,6 +10,33 @@ import { PNG } from "pngjs";
 import { createApplication } from "@videocut/application";
 import { runMotionJob } from "../apps/render-worker/src/motion-job.js";
 
+test("同源校样使用原作品时钟且不登记素材；校样与完整版本像素一致", { timeout: 60_000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "vfc-motion-proof-"));
+  const app = createApplication(root);
+  try {
+    const state = app.createProject({ name: "同源校样隔离验证" });
+    const projectId = state.snapshot.project.id;
+    const work = { ...motionFixture, width: 64, height: 64, durationInFrames: 8,
+      source: "import React from 'react';import {useCurrentFrame,useVideoConfig} from 'remotion';import {fitSource} from '@videoflowcut/motion';export default function M(){const f=useCurrentFrame();const c=useVideoConfig();const g=fitSource({width:64,height:64},{x:0,y:0,width:64,height:64});return <div style={{position:'absolute',left:g.left,top:g.top,width:g.width,height:g.height,background:`rgb(${f*20},${c.durationInFrames*10},0)`}}/>}" };
+    const proof = app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "proof", work, frameRange: { startFrame: 3, endFrame: 6 } });
+    const result = await runMotionJob(app, proof);
+    assert.equal(result.kind, "motion_proof");
+    assert.equal(result.frameCount, 3);
+    assert.deepEqual(app.readProject(projectId).snapshot, JSON.parse(JSON.stringify(state.snapshot)));
+    assert.equal(app.readProject(projectId).revision.number, 1);
+    assert.throws(() => app.completeManagedMotion({ projectId, jobId: proof.id, sourceHash: "invalid", engineVersion: "fixture", metadata: {} as never }), { code: "MOTION_PROOF_NOT_ASSET" });
+    assert.throws(() => app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "proof", work, frameRange: { startFrame: 2, endFrame: 6 } }), { code: "MOTION_IDEMPOTENCY_CONFLICT" });
+    const full = app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "full", work });
+    const complete = await runMotionJob(app, full);
+    assert.equal(complete.version, result.version);
+    const asset = app.readProject(projectId).snapshot.assets.find(entry => entry.id === complete.assetId)!;
+    for (let frame = 3; frame < 6; frame++) {
+      const name = `frame-${String(frame).padStart(5, "0")}.png`;
+      assert.deepEqual(await readFile(join(state.snapshot.project.rootPath, String(result.sourcePath), "..", "frames", name)), await readFile(join(state.snapshot.project.rootPath, asset.motion!.framesDirectory, name)));
+    }
+  } finally { app.close(); await rm(root, { recursive: true, force: true }); }
+});
+
 test("新作品不保存安全区测量，带旧测量字段的缓存仍校验实际帧并复用", { timeout: 60_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "videocut-retired-safety-cache-"));
   const app = createApplication(root);

@@ -138,6 +138,8 @@ test("声音计划保留采用待复核提示但可导出，错误依据仍原�
     const simulatedReport = evaluateQuality(simulated, state.revision.number, undefined, undefined, { motions: [], soundMixes });
     assert.ok(!simulatedReport.editorial.audio.some((entry) => entry.code === "SOUND_ADOPTION_REQUIRED"));
     assert.ok(!simulatedReport.editorial.audio.some((entry) => ["SFX_ONSET_REVIEW_REQUIRED", "SOUND_MIX_REVIEW_REQUIRED"].includes(entry.code)));
+    soundMixes.push({ ...soundMixes[0]!, fromFrame: 20, toFrame: 21, outcome: "failed" });
+    assert.ok(evaluateQuality(simulated, state.revision.number, undefined, undefined, { motions: [], soundMixes }).issues.some(entry => entry.code === "SOUND_MIX_REVIEW_REQUIRED"), "局部失败不能被旧整段通过掩盖");
     const delivery = await runExportJob(f.app, f.app.submitExport({ projectId: f.id, revision: f.rev(), purpose: "delivery" }));
     assert.equal(f.app.readExportArtifact({ projectId: f.id, artifactId: String(delivery.artifactId) }).approval, undefined);
     assert.equal(f.app.readProject(f.id).snapshot.mediaAdoptions?.length ?? 0, 0, "试听和草稿不能自动制造采用记录");

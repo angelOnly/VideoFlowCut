@@ -1,8 +1,6 @@
 import { z } from "zod";
-import type { ProjectSnapshot } from "@videocut/contracts";
 import type { EditingApplication } from "./index.js";
 import { DomainError, now } from "@videocut/domain";
-import { digest } from "../../media-intelligence/src/index.js";
 import { audioDesignSchema } from "./sound-design.js";
 import { hashMediaFile, managedSourcePath } from "./media-intelligence.js";
 import { soundDependencySignature } from "../../media-intelligence/src/sound-signature.js";

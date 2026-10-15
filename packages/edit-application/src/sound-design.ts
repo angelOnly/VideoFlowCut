@@ -3,7 +3,6 @@ import type { AudioCue, ProjectSnapshot, SoundPlan, ImpactReport } from "@videoc
 import { createId, DomainError, now } from "@videocut/domain";
 import type { EditingApplication } from "./index.js";
 import { digest } from "../../media-intelligence/src/index.js";
-import { soundDependencySignature } from "../../media-intelligence/src/sound-signature.js";
 
 export const audioRoleSchema = z.enum(["narration", "source_speech", "demonstration", "sfx", "ambience", "music"]);
 export const soundRequirementSchema = z.object({
@@ -84,7 +83,6 @@ export function manageSoundPlan(app: EditingApplication, projectId: string, base
 
 /** 只传播有实际依赖的失效，普通音量修改不能恢复已过期选择。 */
 export function reconcileSoundDesign(previous: ProjectSnapshot, snapshot: ProjectSnapshot, impact: ImpactReport) {
-  const contextChanged = soundDependencySignature(previous) !== soundDependencySignature(snapshot);
   for (const cue of snapshot.audioCues) {
     const plan = snapshot.soundPlans?.find((entry) => entry.id === cue.soundPlanId);
     if (cue.soundPlanId && (!plan || plan.version !== cue.planVersion || !plan.intents.some((entry) => entry.id === cue.soundIntentId))) {

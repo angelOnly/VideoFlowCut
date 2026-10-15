@@ -469,7 +469,7 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
     submit_motion_work: ["base_revision_id", "idempotency_key", "work"],
     inspect_motion_reference: ["source_url", "preview_index"],
     read_motion_work: ["job_id"],
-    review_motion_work: ["asset_id", "outcome", "evidence", "reference_match", "note"],
+    review_motion_work: ["asset_id", "outcome", "evidence", "note"],
     import_media: ["base_revision_id", "file_path"],
     inspect_asset: ["asset_id", "mode"],
     manage_asset_requirements: ["base_revision_id", "action"],

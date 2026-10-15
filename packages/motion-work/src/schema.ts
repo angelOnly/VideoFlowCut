@@ -71,8 +71,7 @@ export const motionReviewEvidenceSchema = z.object({
   method: z.enum(["frames", "continuous_video", "audio", "audiovisual"])
 }).strict();
 export const motionReviewFields = {
-  outcome: z.enum(["passed", "failed", "inconclusive"]).optional(),
-  referenceMatch: z.enum(["passed", "failed", "inconclusive"]).optional(),
+  outcome: z.enum(["passed", "failed", "inconclusive"]),
   note: z.string().min(16).max(2400), evidence: motionReviewEvidenceSchema.optional()
 };
 

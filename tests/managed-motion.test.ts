@@ -1,3 +1,4 @@
+import { z } from "zod";
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -5,7 +6,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 import { createApplication } from "@videocut/application";
-import { motionSubmissionSchema } from "../packages/motion-work/src/schema.js";
+import { motionSubmissionSchema, motionReviewFields } from "../packages/motion-work/src/schema.js";
 import { compileMotion, validateMotionSource, motionHash, motionHashEngine, MOTION_ENGINE_VERSION } from "../packages/motion-work/src/compiler.js";
 import { MOTION_SOURCES, motionSourceForUrl } from "../packages/motion-work/src/catalog.js";
 import { motionFixture } from "./fixtures/managed-motion.js";
@@ -78,7 +79,7 @@ test("原创提交要求创作说明、参考可选，历史幂等重试保持�
     assert.throws(() => app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "new", work: { ...original, creativeBrief: "不同的内容关系与设计" } }), /幂等/u);
     assert.equal(app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "budget", work: { ...original, width: 1920, height: 1080, durationInFrames: 900 } }).kind, "motion_generation");
     const oldAsset = app.completeManagedMotion({ projectId, jobId: legacy.id, sourceHash: "legacy", engineVersion: "legacy", metadata: { durationMs: 600, width: 320, height: 320, hasAudio: false } });
-    await assert.rejects(app.reviewManagedMotion({ projectId, baseRevision: app.readProject(projectId).revision.number, assetId: oldAsset.id, referenceMatch: "passed", note: "仅验证历史参考记录兼容，不将它冒充新版原创证据。" }), /outcome/u);
+    await assert.rejects(app.reviewManagedMotion({ projectId, baseRevision: app.readProject(projectId).revision.number, assetId: oldAsset.id, outcome: undefined as never, note: "历史作品也必须走相同证据合同，不继承参考记录。" }), /结论无效/u);
     assert.equal(managedMotionReviewOutcome(app.readProject(projectId).snapshot.assets.find(a => a.id === oldAsset.id)!.motion), undefined);
     assert.equal(app.readManagedMotion(projectId, legacy.id).asset!.motion!.creativeBrief, undefined);
   } finally { app.close(); await rm(root, { recursive: true, force: true }); }
@@ -98,9 +99,9 @@ test("新作品审阅验证真实代理、完整范围和版本，旧别名及�
     const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: createHash("sha256").update(await readFile(path)).digest("hex"), engineVersion: "fixture", metadata: await probeMedia(path) });
     const request = () => ({ projectId, baseRevision: revision(), assetId: asset.id, note: "此媒体只验证证据合同的身份与帧范围，不构成实际剪辑审美验收。" });
     const evidence = { kind: "work_proxy" as const, method: "continuous_video" as const, startFrame: 0, endFrame: 18 };
-    await assert.rejects(app.reviewManagedMotion({ ...request(), referenceMatch: "passed" }), /outcome/u);
+    assert.equal(z.object(motionReviewFields).strict().safeParse({ referenceMatch: "passed", note: request().note }).success, false);
     await assert.rejects(app.reviewManagedMotion({ ...request(), outcome: "passed" }), /连续动态证据/u);
-    await assert.rejects(app.reviewManagedMotion({ ...request(), outcome: "passed", referenceMatch: "passed", evidence }), /同时/u);
+    assert.equal(z.object(motionReviewFields).strict().safeParse({ outcome: "passed", referenceMatch: "passed", note: request().note, evidence }).success, false);
     for (const wrong of [{ ...evidence, method: "audio" as const }, { ...evidence, method: "frames" as const }, { ...evidence, endFrame: 17 }, { ...evidence, endFrame: 19 }]) {
       const before = revision();
       await assert.rejects(app.reviewManagedMotion({ ...request(), outcome: "passed", evidence: wrong }));

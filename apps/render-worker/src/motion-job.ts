@@ -160,6 +160,7 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
   // 缓存命中也从已校验 PNG 重测，不能让损坏的元数据伪装成安全证据；兼容没有测量的旧缓存。
   const eventMap = manifest.events === undefined ? undefined : { version, fps: work.fps, frameCount: work.durationInFrames, events: parseMotionEvents(manifest.events, work.durationInFrames) };
   signal?.throwIfAborted();
+  diagnostics.stage("completed");
   if (frameRange) return { kind: "motion_proof", version, frameRange, frameCount, sourceHash,
     sourcePath: relative(snapshot.project.rootPath, join(directory, "source.json")), previewPath: relative(snapshot.project.rootPath, previewPath),
     fullWorkDurationInFrames: work.durationInFrames, scope: "局部同源校样；未登记完整作品素材", determinism: manifest.determinism };

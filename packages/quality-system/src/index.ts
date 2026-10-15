@@ -1318,6 +1318,8 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
   });
   const overlapsDialogue = (item: { startFrame: number; endFrame: number }) => audibleDialogueItems.some((dialogue) => dialogue.startFrame < item.endFrame && dialogue.endFrame > item.startFrame);
   const managedAudioItemIds = new Set((snapshot.audioCues ?? []).map((cue) => cue.timelineItemId));
+  const soundSignature = reviews?.soundMixes.length ? soundDependencySignature(snapshot) : undefined;
+  const currentMixReviews = [...(reviews?.soundMixes ?? [])].reverse().filter(review => review.previewHash && review.signature === soundSignature);
   for (const cue of snapshot.audioCues ?? []) {
     const item = timeline.items.find((candidate) => candidate.id === cue.timelineItemId);
     const asset = snapshot.assets.find((candidate) => candidate.id === cue.assetId);
@@ -1353,7 +1355,9 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     const duration = item.endFrame - item.startFrame;
     const sourceDuration = item.sourceEndFrame - item.sourceStartFrame;
     // 起音和混合复核保留辅助提示，不作为文件导出的前提。
-    const validMixReview = reviews && [...reviews.soundMixes].reverse().find((review) => review.previewHash && review.signature === soundDependencySignature(snapshot) && review.fromFrame <= item.startFrame && review.toFrame >= item.endFrame)?.outcome === "passed";
+    // 后来的局部失败不能被更早的整段通过掩盖。
+    const latestMixReview = currentMixReviews.find(review => review.fromFrame < item.endFrame && review.toFrame > item.startFrame);
+    const validMixReview = latestMixReview?.outcome === "passed" && latestMixReview.fromFrame <= item.startFrame && latestMixReview.toFrame >= item.endFrame;
     if (cue.role && !validMixReview && !track.muted) pendingPerception.push({ category: "audio", entry: issue({ level: "blocking", code: "SOUND_MIX_REVIEW_REQUIRED", message: "当前段落混合尚未完成真实声音复核；原文件观察、波形和模型排名不能替代最终混合。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame }, editorialSeverity: "inconclusive" }) });
     if (cue.loop && cue.sustained && cue.loopReview?.status !== "confirmed") pendingPerception.push({ category: "audio", entry: issue({ level: "blocking", code: "SOUND_LOOP_REVIEW_REQUIRED", message: "持续音效循环接缝仍需实际复核。", objectId: cue.id, editorialSeverity: "inconclusive" }) });
     if (cue.soundPlanId && snapshot.soundPlans?.find((plan) => plan.id === cue.soundPlanId)?.version !== cue.planVersion) issues.push(issue({ level: "blocking", code: "SOUND_SELECTION_STALE", message: "声音计划已变化，需要更新当前声音设计。", objectId: cue.id }));

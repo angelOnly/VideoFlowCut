@@ -2369,7 +2369,8 @@ export class EditingApplication {
       if (!finding || !resolution.note.trim()) throw new DomainError("复核必须引用仍待修的问题并说明结果", "EDITORIAL_RESOLUTION_INVALID");
       const range = finding.revision === input.revision
         ? finding.frameRange ?? { startFrame: 0, endFrame: target.snapshot.timeline.durationInFrames }
-        : editorialResolutionRange(finding, this.repository.getRevision(input.projectId, finding.revision!).snapshot, target.snapshot);
+        : finding.revision === undefined ? { startFrame: 0, endFrame: target.snapshot.timeline.durationInFrames }
+        : editorialResolutionRange(finding, this.repository.getRevision(input.projectId, finding.revision).snapshot, target.snapshot);
       const evidence = resolution.evidenceIds.map((id) => availableEvidence.find((entry) => entry.id === id));
       if (resolution.scope === "caption_text") {
         const caption = target.snapshot.timeline.captions.find((entry) => entry.id === finding.objectId);
@@ -2401,11 +2402,12 @@ export class EditingApplication {
     report.qualityReview.push(`R${input.revision} 追加 ${passes.join("、")} 审片记录；全片覆盖以结构化证据为准。`);
     report.mcpCommands.push({ name: "record_editorial_quality_review", revision: input.revision, createdAt: now() });
     await this.writeSkillExecutionReport(report);
+    this.publish({ projectId: input.projectId, revision: input.revision, type: "review" });
     return report;
   }
 
   /**
-   * Presenter 正式生产只能在真实结构、预览、合成帧和完整审片都已归属同一 Revision 时收口。
+   * 制作收口检查当前版本的技术与用途条件；观察证据按实际范围保存，不强制重复全片审阅。
    * 未满足时保留 incomplete 状态，调用方可以继续补证据而不会丢失本次导演判断。
    */
   async completeProductionRun(input: { projectId: Id; runId: Id; finalRevision?: number; qualityReview?: string[]; previewEvidence?: string[] }): Promise<SkillExecutionReport> {
@@ -2535,16 +2537,14 @@ export class EditingApplication {
     return asset;
   }
 
-  async reviewManagedMotion(input: { projectId: Id; baseRevision: number; assetId: Id; outcome?: MotionReviewOutcome; referenceMatch?: MotionReviewOutcome; note: string; evidence?: MotionReviewEvidenceInput }): Promise<ProjectState> {
-    const outcome = input.outcome ?? input.referenceMatch;
+  async reviewManagedMotion(input: { projectId: Id; baseRevision: number; assetId: Id; outcome: MotionReviewOutcome; note: string; evidence?: MotionReviewEvidenceInput }): Promise<ProjectState> {
+    const outcome = input.outcome;
     if (!outcome || !["passed", "failed", "inconclusive"].includes(outcome)) throw new DomainError("动效审阅结论无效", "MOTION_REVIEW_INVALID");
     if (input.note.trim().length < 16 || input.note.length > 2400) throw new DomainError("请说明设计兑现和实际效果，或待审原因与复核范围", "MOTION_REVIEW_EVIDENCE_REQUIRED");
-    if (input.outcome && input.referenceMatch) throw new DomainError("不能同时提交新结果与旧参考别名", "MOTION_REVIEW_INPUT_CONFLICT");
     const current = this.readProject(input.projectId);
     if (current.revision.number !== input.baseRevision) throw new DomainError("项目 Revision 已变化，请重新读取", "REVISION_CONFLICT");
     const target = assetById(current.snapshot, input.assetId);
     if (!target.motion) throw new DomainError("不是受管作品", "MOTION_ASSET_REQUIRED");
-    if (input.referenceMatch) throw new DomainError("使用 outcome 和实际 evidence 记录审阅", "MOTION_LEGACY_REVIEW_REJECTED");
     const evidence = await validateMotionReviewEvidence(current.snapshot, input.baseRevision, this.repository.listJobs(input.projectId), target, outcome, input.evidence);
     const state = this.repository.recordReview(input.projectId, input.baseRevision, (reviews) => {
       reviews.motions.push({ assetId: target.id, outcome, version: target.motion!.version, evidence, note: input.note.trim(), reviewedAt: now() });
@@ -6784,7 +6784,7 @@ export class EditingApplication {
     if (old.kind !== "voice_synthesis" || !["failed", "unknown"].includes(old.status)) throw new DomainError("只能恢复失败或结果未知的配音任务", "SPEECH_RETRY_STATUS");
     if (this.readProject(old.projectId).snapshot.script.revision !== old.payload.scriptRevision) throw new DomainError("文稿已改变，请按当前差异提交配音", "STALE_SCRIPT");
     const checkpoints = Object.values(old.result?.speechSegments ?? {}) as Array<{ status: string }>;
-    if (checkpoints.some(entry => entry.status === "submitting")) throw new DomainError("存在结果未知的配音提交，先核对原请求", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
+    if (old.status === "unknown" && !checkpoints.length || checkpoints.some(entry => entry.status === "submitting")) throw new DomainError("存在结果未知的配音提交，先核对原请求", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
     return this.repository.createJob({ projectId: old.projectId, kind: old.kind, payload: { ...old.payload, retryOfJobId: old.id }, idempotencyKey: `voice-recovery:${old.id}` });
   }
 
@@ -7918,7 +7918,7 @@ export class EditingApplication {
       status: job.status,
       result: { ...previous, bridgeRuns: nextRuns }
     });
-    this.publish({ projectId: updated.projectId, revision: this.readProject(updated.projectId).revision.number, type: "job" });
+    this.publish({ projectId: updated.projectId, revision: this.repository.getProjectRow(updated.projectId).current_revision_number, type: "job" });
     return updated;
   }
 
@@ -7932,7 +7932,7 @@ export class EditingApplication {
       status: job.status,
       result: { ...(job.result ?? {}), ...checkpoint }
     });
-    this.publish({ projectId: updated.projectId, revision: this.readProject(updated.projectId).revision.number, type: "job" });
+    this.publish({ projectId: updated.projectId, revision: this.repository.getProjectRow(updated.projectId).current_revision_number, type: "job" });
     return updated;
   }
 
@@ -8073,9 +8073,10 @@ export class EditingApplication {
     return { dialogueItem, replacedItemIds, durationFrames };
   }
 
-  applySpeechAssembly(input: { projectId: Id; generatedAssets: Asset[]; segmentAssets: SpeechSegmentAsset[]; speechAsset?: SpeechAsset }): ProjectState {
+  applySpeechAssembly(input: { projectId: Id; generatedAssets: Asset[]; segmentAssets: SpeechSegmentAsset[]; speechAsset?: SpeechAsset; expectedScriptRevision?: number }): ProjectState {
     const current = this.readProject(input.projectId);
     const state = this.repository.commit(input.projectId, current.revision.number, "组装旁白与段级时序", (snapshot, impact) => {
+      if (input.expectedScriptRevision !== undefined && snapshot.script.revision !== input.expectedScriptRevision) throw new DomainError("配音装配期间文稿已改变", "STALE_SCRIPT");
       const knownSegmentIds = new Set(snapshot.speechSegments.map((segment) => segment.id));
       for (const segmentAsset of input.segmentAssets) {
         if (!knownSegmentIds.has(segmentAsset.speechSegmentId)) throw new DomainError("SpeechSegment 已过期，不能写入旧语音", "STALE_SPEECH_SEGMENT");

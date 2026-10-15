@@ -7060,7 +7060,7 @@
     {
       "name": "submit_motion_work",
       "title": "生成受管 Remotion 作品",
-      "description": "新作品填写 work.creativeBrief，提交固定源码、Props、图片及视频绑定，排队隔离渲染；不自动放入Timeline。修改作品重新提交并填写previousAssetId。源视频 video 和人物视频 actor_video 均可绑定；选段数量不设固定上限，实际负载受资源校验约束。每槽声明assetId、sourceStartMs、sourceEndMs、startFrame、endFrame及可选decodeScale；源码import {TimelineVideo} from '@videoflowcut/motion'，以slot、fit、style显示。平台使用作品根时钟，内部Sequence不重置源时间，不接受offsetInFrames。输出帧数以endFrame-startFrame为准，源范围允许毫秒取整及不足一帧余量；正常速度且静音，原声在声音轨明确编排。源不足、源变化或取帧越界报错，不自动冻结或循环。原片按内容身份共享，不按槽复制；解码缓存按需生成、有界回收，不按原片或累计解码512MB拒绝。完整作品不设30秒、900帧或650000000累计像素帧门槛，由Worker提前检查完整输出及临时工作区真实磁盘需求；失败不登记半件Asset。画布宽高64–1920偶数、fps15–60整数；所有帧连续渲染并验证，一个Job产生一个完整Asset。imageBindings将图片映射到props.assets，使用Remotion Img，不允许任意资源URL。历史作品产物可读；历史引擎重新生成须按新合同提交。技术生成不替代连续审片。",
+      "description": "可选frame_range只生成同源局部校样：完整源码、Props、绑定与根时钟不变，不创建Asset、不修改Revision；确认后省略frame_range提交完整作品。新作品填写 work.creativeBrief，提交固定源码、Props、图片及视频绑定，排队隔离渲染；不自动放入Timeline。修改作品重新提交并填写previousAssetId。源视频 video 和人物视频 actor_video 均可绑定；选段数量不设固定上限，实际负载受资源校验约束。每槽声明assetId、sourceStartMs、sourceEndMs、startFrame、endFrame及可选decodeScale；源码import {TimelineVideo} from '@videoflowcut/motion'，以slot、fit、style显示。平台使用作品根时钟，内部Sequence不重置源时间，不接受offsetInFrames。输出帧数以endFrame-startFrame为准，源范围允许毫秒取整及不足一帧余量；正常速度且静音，原声在声音轨明确编排。源不足、源变化或取帧越界报错，不自动冻结或循环。原片按内容身份共享，不按槽复制；解码缓存按需生成、有界回收，不按原片或累计解码512MB拒绝。完整作品不设30秒、900帧或650000000累计像素帧门槛，由Worker提前检查完整输出及临时工作区真实磁盘需求；失败不登记半件Asset。画布宽高64–1920偶数、fps15–60整数；所有帧连续渲染并验证，一个Job产生一个完整Asset。imageBindings将图片映射到props.assets，使用Remotion Img，不允许任意资源URL。历史作品产物可读；历史引擎重新生成须按新合同提交。技术生成不替代连续审片。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7261,6 +7261,24 @@
               "durationInFrames"
             ],
             "additionalProperties": false
+          },
+          "frame_range": {
+            "type": "object",
+            "properties": {
+              "startFrame": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "endFrame": {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "startFrame",
+              "endFrame"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -7305,7 +7323,7 @@
     {
       "name": "review_motion_work",
       "title": "记录作品动态审阅",
-      "description": "对照 creativeBrief 查看作品，再记录 outcome、note 和 evidence。evidence范围为半开区间[startFrame,endFrame)：work_proxy使用作品局部帧；project_preview使用项目全局帧，并绑定同Revision成功Preview。failed/inconclusive可记录与该版本有效Cue相交的实际局部观察，无需覆盖整件；抽帧点和未确认范围写入note，不把未观看范围扩大成证据。只有passed要求完整覆盖作品及continuous_video/audiovisual连续证据。未审或证据不足如实保留，不阻挡放置、修订、制作完成或导出；只有技术/用途条件参与阻挡。reference_match只兼容历史参考作品，不能与outcome同传。审阅保存产生新Revision，但不因审阅记录标记重渲染范围；作品与时间线不变，旧证据不自动升级为新Revision的合成审阅。合成与最终文件仍须独立审阅。",
+      "description": "对照 creativeBrief 查看作品，再记录 outcome、note 和 evidence。evidence范围为半开区间[startFrame,endFrame)：work_proxy使用作品局部帧；project_preview使用项目全局帧，并绑定同Revision成功Preview。failed/inconclusive可记录与该版本有效Cue相交的实际局部观察，无需覆盖整件；抽帧点和未确认范围写入note，不把未观看范围扩大成证据。只有passed要求完整覆盖作品及continuous_video/audiovisual连续证据。未审或证据不足如实保留，不阻挡放置、修订、制作完成或导出；只有技术/用途条件参与阻挡。审阅独立保存，不产生新Revision；作品与时间线不变，旧证据不自动升级。按实际覆盖与变化补充合成和最终文件观察，避免各层重复整片审阅。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7318,14 +7336,6 @@
           },
           "asset_id": {
             "type": "string"
-          },
-          "reference_match": {
-            "type": "string",
-            "enum": [
-              "passed",
-              "failed",
-              "inconclusive"
-            ]
           },
           "outcome": {
             "type": "string",
@@ -7387,6 +7397,7 @@
         "required": [
           "base_revision_id",
           "asset_id",
+          "outcome",
           "note"
         ],
         "additionalProperties": false,
@@ -10363,6 +10374,58 @@
         },
         "required": [
           "job_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "resume_voice_synthesis",
+      "title": "恢复原配音任务",
+      "description": "按原 Job 的段级检查点恢复；复用已完成音频，有 Run ID 继续读原 Run。只有明确失败段可重新生成；未知提交不重放。重复恢复返回同一个任务。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "track_jobs",
+      "title": "批量读取任务进展",
+      "description": "快速读回原 Job 的状态、尝试计时与最近检查点；不等待、不重提，不用续租时间冒充工作进展。终态产物详情用 track_job 读取。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "job_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "job_ids"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"

@@ -34,7 +34,17 @@ test("真实 MCP Schema 支持阶段审片并把结构化证据和对账返回�
   try {
     const preview = await f.preview();
     await client.connect(transport);
-    const schema = (await client.listTools()).tools.find((tool) => tool.name === "record_editorial_quality_review")!.inputSchema;
+    const tools = (await client.listTools()).tools;
+    const schema = tools.find((tool) => tool.name === "record_editorial_quality_review")!.inputSchema;
+    assert.ok(tools.find(tool => tool.name === "submit_motion_work")!.inputSchema.properties?.frame_range);
+    assert.equal(Object.hasOwn(tools.find(tool => tool.name === "review_motion_work")!.inputSchema.properties!, "reference_match"), false);
+    assert.ok(tools.find(tool => tool.name === "resume_voice_synthesis"));
+    const batch = await client.callTool({ name: "track_jobs", arguments: { job_ids: [preview.id, preview.id, "job_missing"] } });
+    assert.notEqual(batch.isError, true);
+    const statuses = JSON.parse((batch.content as Array<{text: string}>)[0]!.text);
+    assert.equal(statuses.length, 2);
+    assert.equal(statuses[0].status, "succeeded");
+    assert.ok(statuses[1].error);
     assert.ok(schema.properties?.observations && schema.properties?.resolutions);
     const recorded = await client.callTool({ name: "record_editorial_quality_review", arguments: { project_id: f.projectId, run_id: f.run.id, revision: f.base.revision, passes: ["mute_visual"], findings: [], observations: [{ pass: "mute_visual", preview_job_id: preview.id, start_frame: 5, end_frame: 12, method: "continuous_video", observation: "MCP 回归模拟观察声明" }] } });
     assert.ok(!recorded.isError, JSON.stringify(recorded));

@@ -403,7 +403,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     description: "提交导出、执行渲染预检、读取和审核 Artifact、批准交付并跟踪任务。",
     tools: [
       "submit_export", "run_render_preflight", "track_export", "read_export_artifact", "record_export_artifact_review",
-      "approve_export_artifact", "track_job", "read_job_diagnostics"
+      "approve_export_artifact", "track_job", "track_jobs", "resume_voice_synthesis", "read_job_diagnostics"
     ]
   }
 ];

@@ -11,15 +11,16 @@ export function editorialResolutionRange(finding: Pick<EditorialReviewFinding, "
   if (!old || !range || before.timeline.fps !== after.timeline.fps || old.endFrame - old.startFrame !== current.endFrame - current.startFrame
     || range.startFrame < old.startFrame || range.endFrame > old.endFrame) return { startFrame: current.startFrame, endFrame: current.endFrame };
   // 源裁切或播放方式变化不能只按全局平移；内容/布局修订本身不改变时钟。
-  const clock = (entry: typeof current) => {
+  const clock = (entry: typeof current, snapshot: ProjectSnapshot) => {
     if ("sourceStartFrame" in entry) return [entry.sourceStartFrame, entry.sourceEndFrame];
     if ("type" in entry && entry.type === "ManagedMotion") {
       const cue = entry as ProjectSnapshot["effectCues"][number];
-      return [cue.type, cue.motion, cue.props];
+      const asset = snapshot.assets.find(asset => asset.id === cue.assetBindings.find(binding => binding.slot === "motion")?.assetId);
+      return [cue.type, cue.motion, cue.props, asset?.motion?.fps, asset?.motion?.frameCount];
     }
-    return [];
+    return ["type" in entry ? entry.type : undefined];
   };
-  if (JSON.stringify(clock(old)) !== JSON.stringify(clock(current))) return { startFrame: current.startFrame, endFrame: current.endFrame };
+  if (JSON.stringify(clock(old, before)) !== JSON.stringify(clock(current, after))) return { startFrame: current.startFrame, endFrame: current.endFrame };
   const offset = current.startFrame - old.startFrame;
   // 保留两端一帧接点，以实际新版本连续证据检查问题及接管边界。
   return { startFrame: Math.max(0, range.startFrame + offset - 1), endFrame: Math.min(after.timeline.durationInFrames, range.endFrame + offset + 1) };

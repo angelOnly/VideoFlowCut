@@ -10,7 +10,7 @@
 
 用 `review_motion_work` 保存当前固定版本的 outcome、note 和实际 evidence。work_proxy 使用作品局部帧和无声代理，尚未放置 Cue 时也可审阅；project_preview 使用项目全局帧及同 Revision 成功的 Preview，目标版本须实际参与合成。范围均为半开区间。passed 需要覆盖完整作品的 continuous_video，或带音轨的 audiovisual；静帧、局部、仅音频或无证据不能判通过。failed/inconclusive 可记录实际局部观察；采用 project_preview 时，该范围与当前有效 Cue 相交即可。它们也可不附 evidence，此时如实保留失败原因或待审状态；未看范围与采样点写入 note，不扩大观察结论。
 
-文件、版本、哈希与范围由后端核验，不能提交外部文件冒充 Preview。审阅保存产生新 Revision，但仅更新审阅记录不标记重渲染范围，也不修改作品、绑定或时序；证据仍属于观察时版本，不能据此继承整片审阅。未审、failed、inconclusive 不改变技术就绪，不阻挡放置、修订或技术条件满足的导出；问题回原作者。reference_match 只兼容无 creativeBrief 且带 referenceUrl 的历史作品，与 outcome 互斥，新作不能绕过证据。
+文件、版本、哈希与范围由后端核验，不能提交外部文件冒充 Preview。审阅独立保存，不产生新 Revision，不修改作品、绑定或时序；证据仍属于观察时版本，不能据此继承整片审阅。未审、failed、inconclusive 不改变技术就绪，不阻挡放置、修订或技术条件满足的导出；问题回原作者。统一使用 outcome 与实际 evidence，不再使用历史 reference_match 别名。
 
 `manage_effect_cues` 以 type=ManagedMotion、slot=motion 放置生成 Asset，明确真实 Scene、完整范围、叙事目的与语义锚点；需要时声明 covered_narrative_beat_ids。作品内部布局与动作已固定，省略 Props、Motion、空间锚点、强度和 StylePack 覆盖；这些内容需生成新版本。放置语义与最小请求见下节。
 
@@ -141,3 +141,7 @@ quality_rules 若需要填写，必须读取实时合法枚举。示例的重点
 组件属性名称是数据键，不是全局变量读取。例如 `<RuleLine top={148}/>`、局部参数 `top` 和对象键 `{top:148}` 可以正常使用；`top={window.top}`、未绑定的 `{top}` 仍读取禁用全局。属性名称的放行不豁免属性值、对象展开、事件、HTML 注入或外部资源入口。源码校验拒绝包含 `work.source` 的行列与具体依据时，由原作者判断并修订；只有提交层明确给出无副作用和纠正许可才可提交一次。诊断误判不通过改名规避，已入队 Worker 失败不按参数纠正重放。
 
 历史作品产物保持可读；旧 Job 重新生成返回 MOTION_ENGINE_UPGRADE_REQUIRED 时，按当前合同提交新版本，不原样重放旧引擎输入。缓存损坏与正式产物损坏分别对账，不猜源范围。
+
+## 同源局部校样
+
+局部返修使用 `submit_motion_work` 的 `frame_range={startFrame,endFrame}`，保留完整 work/source/Props/绑定与 durationInFrames。窗口采用作品根帧，不能截短源码后重置时间。Worker 只渲染该半开区间并校验输出；Job 返回 motion_proof 和实际范围，不登记完整素材。校样确认后省略 frame_range，提交一次完整作品，随后按真实变化完成合成复核。`read_motion_work` 与 `track_jobs` 接回原任务；参数拒绝按 Schema 修正，已入队继续原 Job。

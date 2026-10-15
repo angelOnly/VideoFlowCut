@@ -24,6 +24,7 @@ export class MotionDiagnostics {
   private stderr = "";
   private lastCheckpoint = 0;
   private firstEvent?: Record<string, unknown>;
+  private stages: Array<{ stage: string; startedAt: string; finishedAt?: string }> = [];
   private state: Record<string, unknown> = { stage: "input_validation", currentFrame: null, lastCompletedFrame: null };
   constructor(private identity: Record<string, unknown>, private checkpoint?: (state: Record<string, unknown>) => void) {}
   event(type: string, detail: Record<string, unknown> = {}) {
@@ -33,7 +34,11 @@ export class MotionDiagnostics {
     if (!this.firstEvent && /error|crash|failed|disconnected/u.test(type) && !(type === "browser_disconnected" && this.state.terminationRequestedBy)) this.firstEvent = event;
   }
   stage(stage: string, detail: Record<string, unknown> = {}) {
-    this.state = { ...this.state, stage, ...detail, stageStartedAt: new Date().toISOString() };
+    const timestamp = new Date().toISOString();
+    const previous = this.stages.at(-1);
+    if (previous) previous.finishedAt = timestamp;
+    this.stages.push({ stage, startedAt: timestamp });
+    this.state = { ...this.state, stage, ...detail, stageStartedAt: timestamp };
     this.event("stage", { stage, ...detail }); this.publish(true);
   }
   frame(frame: number, operation: string) { this.state = { ...this.state, currentFrame: frame, operation }; }
@@ -47,7 +52,7 @@ export class MotionDiagnostics {
     while (start < bytes.length && (bytes[start]! & 0xc0) === 0x80) start++;
     this.stderr = bytes.subarray(start).toString("utf8"); }
   additional(error: unknown, context: string) { this.event("additional_error", { context, error: errorDetail(error) }); }
-  summary(): Record<string, unknown> { return { ...this.identity, ...this.state }; }
+  summary(): Record<string, unknown> { return { ...this.identity, ...this.state, stages: this.stages.map(entry => ({ ...entry })) }; }
   private publish(force: boolean) {
     if (!force && Date.now() - this.lastCheckpoint < 5000) return;
     this.lastCheckpoint = Date.now();

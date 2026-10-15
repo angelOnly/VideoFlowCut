@@ -793,7 +793,7 @@ test("媒体 Worker 与 Render Worker 只领取各自的任务", async () => {
     assert.equal(await runOneJob(context.app, async () => ({ unexpected: true })), false);
     assert.equal(context.app.trackJob(exportJob.id).status, "queued");
     assert.equal(await runOneRenderJob(context.app, async (job) => ({ processedKind: job.kind })), true);
-    assert.deepEqual(context.app.trackJob(exportJob.id).result, { processedKind: "export" });
+    assert.equal(context.app.trackJob(exportJob.id).result?.processedKind, "export");
   } finally {
     await context.dispose();
   }

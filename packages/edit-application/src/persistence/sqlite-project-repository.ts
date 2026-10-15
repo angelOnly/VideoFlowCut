@@ -544,7 +544,7 @@ export class ProjectRepository {
     // 否则进程在该瞬间退出会留下永远无法重新领取的 running Job。
     const leaseUntil = input.leaseUntil ?? (input.status === "running" ? old.leaseUntil : undefined);
     const timestamp = now();
-    const result = { ...old.result, ...input.result };
+    const result = { ...(input.result ?? old.result) };
     const execution = structuredClone(old.result?.execution ?? { attempts: [] }) as { attempts: Array<{ attempt: number; startedAt: string; finishedAt?: string; outcome?: string }>; lastProgressAt?: string };
     if (input.result && Object.entries(input.result).some(([key, value]) => key !== "execution" && JSON.stringify(value) !== JSON.stringify(old.result?.[key]))) execution.lastProgressAt = timestamp;
     const attempt = execution.attempts.at(-1);

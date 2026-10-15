@@ -125,8 +125,22 @@ export function validateMotionSource(source: string): void {
       ts.isFunctionDeclaration(owner) && Boolean(ts.getModifiers(owner)?.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword))
       || ts.isExportAssignment(owner.parent) && !owner.parent.isExportEquals);
   };
+  // 可信几何函数返回的 top 是数值坐标，不是浏览器全局；只沿真实导入和 const 绑定追溯。
+  const isGeometry = (node: ts.Expression, seen = new Set<ts.Node>()): boolean => {
+    if (seen.has(node)) return false;
+    const next = new Set(seen).add(node);
+    if (ts.isIdentifier(node)) {
+      const declaration = checker.getSymbolAtLocation(node)?.valueDeclaration;
+      return Boolean(declaration && ts.isVariableDeclaration(declaration) && ts.isVariableDeclarationList(declaration.parent)
+        && declaration.parent.flags & ts.NodeFlags.Const && declaration.initializer && isGeometry(declaration.initializer, next));
+    }
+    if (!ts.isCallExpression(node) || !ts.isIdentifier(node.expression)) return false;
+    return checker.getSymbolAtLocation(node.expression)?.declarations?.some(declaration => ts.isImportSpecifier(declaration)
+      && !declaration.isTypeOnly && ["fitSource", "focusCover"].includes((declaration.propertyName ?? declaration.name).text)
+      && ts.isImportDeclaration(declaration.parent.parent.parent) && declaration.parent.parent.parent.moduleSpecifier.getText(file).slice(1, -1) === "@videoflowcut/motion") ?? false;
+  };
   const isDataProperty = (node: ts.PropertyAccessExpression | ts.ElementAccessExpression, name: string) =>
-    !prototypeProperties.has(name) && isDataValue(node.expression);
+    !prototypeProperties.has(name) && (isDataValue(node.expression) || name === "top" && isGeometry(node.expression));
   let hasDefault = false;
   const visit = (node: ts.Node) => {
     if (ts.isImportDeclaration(node)) {

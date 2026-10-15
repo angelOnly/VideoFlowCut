@@ -18,7 +18,7 @@ import type { EditingApplication } from "@videocut/application";
 import { EFFECT_TYPES, inspectEffectContentContract, type SourceManifest, type ExportArtifact, type ExportPurpose, type ExportTechnicalValidation, type JobRecord, type ProjectSnapshot, type RenderPreflight, type RenderPreflightCheck } from "@videocut/contracts";
 import { createId, DomainError, resolveCompositionReachability } from "@videocut/domain";
 import { readRuntimeConfig } from "@videocut/project-overview";
-import { canExport, evaluateQualityWithBrowser, exportBlockingIssues } from "@videocut/quality";
+import { evaluateQualityWithBrowser, exportBlockingIssues } from "@videocut/quality";
 import { probeMedia, runProcess } from "@videocut/speech";
 import { readMotionFontFile } from "../../../packages/motion-work/src/fonts.js";
 
@@ -634,6 +634,8 @@ export async function runExportJob(
   }
   const preflight = await runRenderPreflight(application, job.projectId, revisionNumber, purpose);
   if (preflight.status !== "passed") {
+    const qualityFailures = preflight.checks.filter(check => check.status === "failed" && check.code.startsWith("QUALITY_"));
+    if (qualityFailures.length) throw new DomainError(`技术/用途条件阻止导出：${qualityFailures.map(check => check.message).join("；")}`, "QUALITY_GATE_BLOCKED");
     const failures = preflight.checks.filter((check) => check.status === "failed").map((check) => check.message);
     throw new DomainError(`Render Preflight 未通过：${failures.join("；")}`, "RENDER_PREFLIGHT_FAILED");
   }

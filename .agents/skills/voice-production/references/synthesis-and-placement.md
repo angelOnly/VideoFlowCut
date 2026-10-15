@@ -15,16 +15,18 @@ read_script / read_speech_asset
 → 确认最终 SpeechSegment 与 Script Revision
 → 选择 VoiceReference
 → submit_voice_synthesis（只提交 stale/changed 段）
-→ track_job
-→ 下载每个 SegmentAsset
-→ ffprobe 检查真实时长、采样率、声道和文件
-→ 组装 SpeechAsset
+→ track_job / track_jobs
+→ Worker 下载、校验真实时长并组装 SpeechAsset
 → read_speech_timing 得到 segment_exact
 ```
 
 若已就绪的完整配音需要与 Scene 留白对齐，先读取每段真实时长及当前帧率，再用 `submit_speech_placement(base_revision_id, placements, duration_frames?, idempotency_key)` 按 Script 顺序提交全部 `speech_segment_id` 与 `start_frame`。相邻段不得重叠，也不得越过当前场景末帧。需要完整片尾时，用 `duration_frames` 明确总轨结束帧，末句后的静音不会延长字幕。Job 复用现有段音频生成带静音的新 Dialogue 总轨，并原子更新 SpeechTiming 和稳定字幕；跟踪终态后读回 Revision、试听并复核画面。此入口不重新调用 OmniVoice，不按文字估算发音时长；项目在 Job 期间变化时会拒绝旧提交，须重新读取后再判断。
 
 每次 OmniVoice 调用前重新读取 Workflow Detail。默认音色 HTTP 入口只传待合成文本，参考音频来自服务端已有配置；显式 VoiceReference 入口上传参考音频和文本。两条入口内部都会自动转写参考音频，不提交不存在的 reference_text。默认音色产物保留真实 Bridge 审计，不伪造本地 VoiceReference 或素材 ID。
+
+## 中断恢复
+
+使用 `resume_voice_synthesis(job_id)` 恢复原任务。Worker 逐段保存提交意图、Run、下载音频和真实时长；已完成段复用原文件，有 Run ID 继续原 Run。仅明确失败段在显式恢复中重新生成，未知提交不换键重放。文稿变化按真实差异新提交；平台不自动改变台词或音色。
 
 ## 组装和停顿
 
@@ -50,7 +52,7 @@ SpeechAssembler 按 Script 顺序拼接真实段级文件，并应用明确的�
 
 ## 技术质量
 
-每个 SegmentAsset 检查非零文件、MIME、可解码、采样率、声道、真实时长、头尾静音和峰值。最终 Assembly 检查无重复段、顺序、空白、爆点和目标时长。技术通过后仍要四轮听感。
+每个 SegmentAsset 检查非零文件、MIME、可解码、采样率、声道、真实时长、头尾静音和峰值。最终 Assembly 检查无重复段、顺序、空白、爆点和目标时长。这些确定性检查由 Worker 执行；作者按四类回听目标观察实际声音，避免重复下载、探测和组装。
 
 ## 当前调用与读回：Story 与语音
 

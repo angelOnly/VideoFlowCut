@@ -96,7 +96,7 @@ test("正式 MCP 搜索、核读、track_job 与恢复均精简出口，完整�
       externalRuns: { finished: { status: "succeeded", runId: "finished", text: privateData, textOutputs: [{ text: privateData }] } }, futureInternalField: privateData };
     app.updateJob(jobId, { status: "succeeded", result: raw });
     for (const result of [await call("search_motion_mechanisms", request), await call("track_job", { job_id: jobId })]) assertCompact(result);
-    assert.deepEqual(app.trackJob(jobId).result, raw);
+    assert.deepEqual(Object.fromEntries(Object.entries(app.trackJob(jobId).result!).filter(([key]) => key !== "execution")), raw);
     const read = await call("read_motion_mechanism", { id: first.cards[0].id, source_sha256: first.source_sha256, include_storyboard: false });
     assert.ok(read.body.includes("运动指令"));
     assert.ok(read.card.storyboard && read.card.clip.path && read.video_path);
@@ -121,7 +121,7 @@ test("正式 MCP 搜索、核读、track_job 与恢复均精简出口，完整�
     assert.equal(retry.retryOfJobId, jobId);
     assert.equal(retry.payload, undefined);
     assert.equal((await call("search_motion_mechanisms", request)).diagnostics.job_id, retry.id);
-    assert.deepEqual(app.trackJob(jobId).result, failedResult);
+    assert.deepEqual(Object.fromEntries(Object.entries(app.trackJob(jobId).result!).filter(([key]) => key !== "execution")), failedResult);
     const analysisRequest = { id: first.cards[0].id, source_sha256: first.source_sha256, range: { startMs: 0, endMs: 1000 } };
     const config = readRuntimeConfig();
     const oldPayload = { ...analysisRequest, modelConfig: { ...config.semantic, apiBaseUrl: config.bridge.apiBaseUrl } };
