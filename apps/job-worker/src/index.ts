@@ -278,14 +278,7 @@ export function createMediaJobProcessor(
       case "source_caption_alignment":
         return sourceCaptionAlignment.align(job);
       case "voice_synthesis":
-        return omniVoice.synthesize(
-          job.projectId,
-          typeof job.payload.voiceReferenceAssetId === "string" ? job.payload.voiceReferenceAssetId : undefined,
-          Array.isArray(job.payload.speechSegmentIds) ? job.payload.speechSegmentIds.map(String) : [],
-          Number(job.payload.scriptRevision),
-          typeof job.payload.voiceReferenceId === "string" ? job.payload.voiceReferenceId : undefined,
-          (audit) => { app.recordBridgeRun(job.id, audit); }
-        );
+        return omniVoice.synthesize(job, (audit) => { app.recordBridgeRun(job.id, audit); });
       case "speech_assembly":
         return assemblePlacedSpeech(app, job);
       case "dialogue_processing":

@@ -1,3 +1,4 @@
+import { MATERIAL_MATH_SOURCE } from "./material-math-source.js";
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { build } from "esbuild";
@@ -10,7 +11,7 @@ export const MOTION_ENGINE_VERSION = "managed-motion-13";
 const forbidden = new Set(["eval", "Function", "globalThis", "window", "document", "navigator", "location", "parent", "top", "opener", "self", "fetch", "XMLHttpRequest", "WebSocket", "Worker", "SharedWorker", "process", "require", "Date", "performance", "setTimeout", "setInterval", "requestAnimationFrame", "localStorage", "sessionStorage", "indexedDB", "constructor", "__proto__", "prototype"]);
 const prototypeProperties = new Set(["constructor", "__proto__", "prototype"]);
 const allowedImports: Record<string, Set<string>> = {
-  "@videoflowcut/motion": new Set(["TimelineVideo"]),
+  "@videoflowcut/motion": new Set(["TimelineVideo", "fitSource", "focusCover", "sourcePoint", "parentPoint", "frameMapping", "previewRange"]),
   react: new Set(["default", "Fragment", "createElement", "useMemo"]),
   remotion: new Set(["AbsoluteFill", "Img", "Sequence", "Series", "useCurrentFrame", "useVideoConfig", "interpolate", "interpolateColors", "spring", "Easing", "random"])
 };
@@ -216,7 +217,8 @@ window.__motionReady=true;}catch(error){window.__motionError=String(error);}})()
     platform: "browser", format: "iife", minify: true, define: { "process.env": JSON.stringify({ NODE_ENV: "production" }) }, logLevel: "silent",
     plugins: [{ name: "motion-closed-imports", setup(builder) {
       builder.onResolve({ filter: /^@videoflowcut\/motion$/ }, () => ({ path: "bound-video", namespace: "trusted-video" }));
-      builder.onLoad({ filter: /.*/, namespace: "trusted-video" }, () => ({ loader: "tsx", contents: `
+      builder.onLoad({ filter: /.*/, namespace: "trusted-video" }, () => ({ loader: "tsx", contents: `${MATERIAL_MATH_SOURCE}
+
 import React,{createContext,useContext} from 'react';import {useCurrentFrame,Img} from 'remotion';
 const ranges=${JSON.stringify(Object.fromEntries(Object.entries(videos).map(([slot, video]) => [slot, {start:video.startFrame,end:video.endFrame}])))};
 const FrameContext=createContext(null);

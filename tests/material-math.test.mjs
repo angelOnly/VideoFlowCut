@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fitSource,focusCover,sourcePoint,parentPoint,frameMapping,previewRange} from './material-math.mjs';
+import { MATERIAL_MATH_SOURCE } from '../packages/motion-work/src/material-math-source.ts';
+const {fitSource,focusCover,sourcePoint,parentPoint,frameMapping,previewRange} = await import('data:text/javascript;base64,'+Buffer.from(MATERIAL_MATH_SOURCE).toString('base64'));
 const eq=(a,b)=>assert.ok(Math.abs(a-b)<1e-7,`${a} != ${b}`);
 const source={width:1920,height:1080},box={x:30,y:60,width:720,height:900};
 test('cover maps source center to viewport center',()=>{

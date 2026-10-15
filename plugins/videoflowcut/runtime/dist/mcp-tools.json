@@ -7305,7 +7305,7 @@
     {
       "name": "review_motion_work",
       "title": "记录作品动态审阅",
-      "description": "对照 creativeBrief 查看作品，再记录 outcome、note 和 evidence。evidence范围为半开区间[startFrame,endFrame)：work_proxy使用作品局部帧；project_preview使用项目全局帧，并绑定同Revision成功Preview。failed/inconclusive可记录与该版本有效Cue相交的实际局部观察，无需覆盖整件；抽帧点和未确认范围写入note，不把未观看范围扩大成证据。只有passed要求完整覆盖作品及continuous_video/audiovisual连续证据。未审或证据不足如实保留，不阻挡放置、修订、制作完成或导出；只有技术/用途条件参与阻挡。reference_match只兼容历史参考作品，不能与outcome同传。合成与最终文件仍须独立审阅。",
+      "description": "对照 creativeBrief 查看作品，再记录 outcome、note 和 evidence。evidence范围为半开区间[startFrame,endFrame)：work_proxy使用作品局部帧；project_preview使用项目全局帧，并绑定同Revision成功Preview。failed/inconclusive可记录与该版本有效Cue相交的实际局部观察，无需覆盖整件；抽帧点和未确认范围写入note，不把未观看范围扩大成证据。只有passed要求完整覆盖作品及continuous_video/audiovisual连续证据。未审或证据不足如实保留，不阻挡放置、修订、制作完成或导出；只有技术/用途条件参与阻挡。reference_match只兼容历史参考作品，不能与outcome同传。审阅保存产生新Revision，但不因审阅记录标记重渲染范围；作品与时间线不变，旧证据不自动升级为新Revision的合成审阅。合成与最终文件仍须独立审阅。",
       "inputSchema": {
         "type": "object",
         "properties": {

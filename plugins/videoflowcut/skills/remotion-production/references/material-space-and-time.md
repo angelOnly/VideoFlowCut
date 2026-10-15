@@ -102,7 +102,15 @@ sourceMs = sourceStartMs + 1000*(f-A)/fps
 
 ## 9. 从开发到生产的界限
 
-当前版本已有图片/视频绑定、源观察、采用和局部预览。本轮不改这些工具的字段、不扩大沙箱、不加入任意网络或文件读取。提供的material-math.mjs只是无依赖数学习题，可在开发环境执行测试；生产作者需要时将已核对的必要纯函数内联到受管源码并走原验证，不导入这个路径。
+平台通过 `@videoflowcut/motion` 提供以下确定性函数，均不读取文件或网络：
+- `fitSource({width,height}, {x,y,width,height}, mode="cover", position={x:.5,y:.5})`：返回实际源画面的 left/top/width/height/scaleX/scaleY 与 box。
+- `focusCover(source, box, {u,v}, zoom=1, anchor={x:.5,y:.5})`：围绕归一化目标缩放，限制在不露底的范围内。
+- `sourcePoint(geometry, {u,v})`：返回源点在画布上的 x/y 与 visible。
+- `parentPoint({x,y}, {pivot?,scale?,rotateDeg?,translate?})`：按同一父变换投影标注。
+- `frameMapping({globalFrame,workStartFrame,sequenceStartFrame?,slotStartWorkFrame?,bindingStartMs,bindingEndMs,fps})`：返回作品帧、Sequence 帧、槽帧与真实 sourceMs；越界明确报错。
+- `previewRange({fromFrame,toFrame,fps}, startFrame,endFrame)`：把项目窗口转换为文件内 startMs/endMs。
+
+创作决定目标位置、裁切、路径与时机；函数只计算坐标和时间，不规定固定版式。
 
 如果真实工程测试发现SourceRegion、TimelineVideo作品时钟或图片采用摘要没有按合同生效，提交独立复现与Repair Ticket。方案正确、代码错误、原件信息不足和模型估计错误分别处理。数学测试通过不代表作品漂亮或目标框准确。
 

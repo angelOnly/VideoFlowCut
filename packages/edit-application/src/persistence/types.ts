@@ -2,8 +2,9 @@ import type { ProjectSnapshot, RevisionRecord } from "@videocut/contracts";
 
 /** 当前 Revision 与其可编辑快照是仓储对应用层暴露的最小读取合同。 */
 export interface ProjectState {
-  revision: RevisionRecord;
+  revision: Omit<RevisionRecord, "snapshot">;
   snapshot: ProjectSnapshot;
+  reviews: import("@videocut/contracts").ProjectReviews;
 }
 
 /** 调用方基于的 Revision 已经不是项目当前 Revision。 */

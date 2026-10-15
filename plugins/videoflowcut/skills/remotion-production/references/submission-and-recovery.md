@@ -10,7 +10,7 @@
 
 用 `review_motion_work` 保存当前固定版本的 outcome、note 和实际 evidence。work_proxy 使用作品局部帧和无声代理，尚未放置 Cue 时也可审阅；project_preview 使用项目全局帧及同 Revision 成功的 Preview，目标版本须实际参与合成。范围均为半开区间。passed 需要覆盖完整作品的 continuous_video，或带音轨的 audiovisual；静帧、局部、仅音频或无证据不能判通过。failed/inconclusive 可记录实际局部观察；采用 project_preview 时，该范围与当前有效 Cue 相交即可。它们也可不附 evidence，此时如实保留失败原因或待审状态；未看范围与采样点写入 note，不扩大观察结论。
 
-文件、版本、哈希与范围由后端核验，不能提交外部文件冒充 Preview。审阅保存产生新 Revision，证据仍属于观察时版本，不能据此继承整片审阅。未审、failed、inconclusive 不改变技术就绪，不阻挡放置、修订或技术条件满足的导出；问题回原作者。reference_match 只兼容无 creativeBrief 且带 referenceUrl 的历史作品，与 outcome 互斥，新作不能绕过证据。
+文件、版本、哈希与范围由后端核验，不能提交外部文件冒充 Preview。审阅保存产生新 Revision，但仅更新审阅记录不标记重渲染范围，也不修改作品、绑定或时序；证据仍属于观察时版本，不能据此继承整片审阅。未审、failed、inconclusive 不改变技术就绪，不阻挡放置、修订或技术条件满足的导出；问题回原作者。reference_match 只兼容无 creativeBrief 且带 referenceUrl 的历史作品，与 outcome 互斥，新作不能绕过证据。
 
 `manage_effect_cues` 以 type=ManagedMotion、slot=motion 放置生成 Asset，明确真实 Scene、完整范围、叙事目的与语义锚点；需要时声明 covered_narrative_beat_ids。作品内部布局与动作已固定，省略 Props、Motion、空间锚点、强度和 StylePack 覆盖；这些内容需生成新版本。放置语义与最小请求见下节。
 

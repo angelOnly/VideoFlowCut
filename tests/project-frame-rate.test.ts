@@ -99,7 +99,7 @@ test("跨fps受管作品完整放置、帧映射与声音事件保持，内容�
     assert.deepEqual(after.snapshot.assets.find(a => a.id === asset.id), audio.snapshot.assets.find(a => a.id === asset.id));
     assert.deepEqual([after.snapshot.effectCues[0].status, after.snapshot.effectCues[0].endFrame], ["ready", 120]);
     const sound = after.snapshot.audioCues[0];
-    assert.deepEqual([sound.status, sound.eventFrame, sound.effectEvent?.localFrame, sound.mixReview], ["ready", 60, 60, "needs_review"]);
+    assert.deepEqual([sound.status, sound.eventFrame, sound.effectEvent?.localFrame], ["ready", 60, 60]);
     assert.equal(sound.effectEvent!.cueSignature, effectAudioSignature(after.snapshot, after.snapshot.effectCues[0]));
     assert.equal(after.snapshot.timeline.items.find(i => i.id === sound.timelineItemId)!.disabled, false);
     const changed = f.app.repository.commit(f.projectId, f.revision(), "修改覆盖场景时长", snapshot => { snapshot.scenes[0].endFrame -= 20; });

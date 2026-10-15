@@ -1116,7 +1116,7 @@ function evaluateExplainerSpecificQuality(snapshot: ProjectSnapshot, issues: Qua
  * 同步结构检查保留给对象图和纯规则测试；正式质量入口使用 evaluateQualityWithBrowser。
  * 遮挡、节奏与审美仍须由真实预览帧进行人工/视觉复核。
  */
-export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, editorialReview?: EditorialQualityReview, captionLayouts?: Map<string, CaptionLayoutResult>): QualityReport {
+export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, editorialReview?: EditorialQualityReview, captionLayouts?: Map<string, CaptionLayoutResult>, reviews?: import("@videocut/contracts").ProjectReviews): QualityReport {
   const issues: QualityIssue[] = [];
   // 感知审阅只提供提示；制作和导出由技术条件决定。
   const pendingPerception: Array<{ category: "motion" | "audio" | "semantic"; entry: QualityIssue }> = [];
@@ -1353,7 +1353,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     const duration = item.endFrame - item.startFrame;
     const sourceDuration = item.sourceEndFrame - item.sourceStartFrame;
     // 起音和混合复核保留辅助提示，不作为文件导出的前提。
-    const validMixReview = cue.mixReview === "reviewed" && snapshot.soundReviews?.some((review) => review.outcome === "passed" && review.previewHash && review.signature === soundDependencySignature(snapshot) && review.fromFrame <= item.startFrame && review.toFrame >= item.endFrame);
+    const validMixReview = reviews && [...reviews.soundMixes].reverse().find((review) => review.previewHash && review.signature === soundDependencySignature(snapshot) && review.fromFrame <= item.startFrame && review.toFrame >= item.endFrame)?.outcome === "passed";
     if (cue.role && !validMixReview && !track.muted) pendingPerception.push({ category: "audio", entry: issue({ level: "blocking", code: "SOUND_MIX_REVIEW_REQUIRED", message: "当前段落混合尚未完成真实声音复核；原文件观察、波形和模型排名不能替代最终混合。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame }, editorialSeverity: "inconclusive" }) });
     if (cue.loop && cue.sustained && cue.loopReview?.status !== "confirmed") pendingPerception.push({ category: "audio", entry: issue({ level: "blocking", code: "SOUND_LOOP_REVIEW_REQUIRED", message: "持续音效循环接缝仍需实际复核。", objectId: cue.id, editorialSeverity: "inconclusive" }) });
     if (cue.soundPlanId && snapshot.soundPlans?.find((plan) => plan.id === cue.soundPlanId)?.version !== cue.planVersion) issues.push(issue({ level: "blocking", code: "SOUND_SELECTION_STALE", message: "声音计划已变化，需要更新当前声音设计。", objectId: cue.id }));
@@ -1621,7 +1621,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     const contentContract = inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline);
     if (cue.type === "ManagedMotion" && cue.status === "ready") {
       const asset = snapshot.assets.find((entry) => entry.id === cue.assetBindings.find((binding) => binding.slot === "motion")?.assetId);
-      if (asset?.motion && managedMotionReviewOutcome(asset.motion) !== "passed") {
+      if (asset?.motion && managedMotionReviewOutcome(asset.motion, reviews && [...reviews.motions].reverse().find((entry) => entry.assetId === asset.id && entry.version === asset.motion?.version)) !== "passed") {
         pendingPerception.push({ category: "motion", entry: issue({ level: "blocking", code: "MOTION_WORK_REVIEW_REQUIRED", message: "该作品的连续动态审阅尚未通过；可继续放置、制作、修订和导出，效果由用户观看后确认。", objectId: cue.id, frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }, editorialSeverity: "inconclusive" }) });
       }
     }
@@ -1884,7 +1884,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
 }
 
 /** 正式报告、预检、导出与收口统一使用 Renderer 的真实字体宽度；不可回退到估算放行。 */
-export async function evaluateQualityWithBrowser(snapshot: ProjectSnapshot, revision: number, editorialReview?: EditorialQualityReview): Promise<QualityReport> {
+export async function evaluateQualityWithBrowser(snapshot: ProjectSnapshot, revision: number, editorialReview?: EditorialQualityReview, reviews?: import("@videocut/contracts").ProjectReviews): Promise<QualityReport> {
   const captions = snapshot.project.brief.captionMode === "none" ? [] : snapshot.timeline.captions.filter((caption) => typeof caption.text === "string" && caption.text.trim() && validCaptionDisplay(caption) && captionDisplayRanges(caption).length > 0);
   let measured: CaptionLayoutResult[];
   try {
@@ -1892,7 +1892,7 @@ export async function evaluateQualityWithBrowser(snapshot: ProjectSnapshot, revi
   } catch (error) {
     throw new DomainError(`字幕浏览器字宽测量失败，未放行布局检查：${error instanceof Error ? error.message : String(error)}`, "CAPTION_LAYOUT_MEASUREMENT_UNAVAILABLE");
   }
-  return evaluateQuality(snapshot, revision, editorialReview, new Map(captions.map((caption, index) => [caption.id, measured[index]!])));
+  return evaluateQuality(snapshot, revision, editorialReview, new Map(captions.map((caption, index) => [caption.id, measured[index]!])), reviews);
 }
 
 /** 兼容旧调用方：文件导出不再依赖辅助审阅，人工定稿绑定具体 Artifact。 */

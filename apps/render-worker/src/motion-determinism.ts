@@ -73,17 +73,17 @@ export async function saveMotionFrameDifference(directory: string, frame: number
 }
 
 /** 哈希负责快速相等检查；不相等时比较可见像素，保留全部抽查证据后才决定是否中止。 */
-export async function verifyMotionDeterminism(directory: string, frameHashes: string[], capture: (frame: number) => Promise<Buffer>): Promise<MotionDeterminismReport> {
+export async function verifyMotionDeterminism(directory: string, frameHashes: string[], capture: (frame: number) => Promise<Buffer>, startFrame = 0): Promise<MotionDeterminismReport> {
   if (!frameHashes.length) throw new Error("MOTION_OUTPUT_MISMATCH: 缺少待核验帧");
-  const sampledFrames = [...new Set([0, Math.floor(frameHashes.length / 2), frameHashes.length - 1])];
+  const sampledFrames = [...new Set([startFrame, startFrame + Math.floor(frameHashes.length / 2), startFrame + frameHashes.length - 1])];
   const report: MotionDeterminismReport = { status: "exact", maxAllowedChannelDelta: MOTION_MAX_CHANNEL_DELTA, sampledFrames, differences: [] };
   const diagnostics = join(directory, "diagnostics");
   for (const frame of sampledFrames) {
     const repeated = await capture(frame);
-    if (createHash("sha256").update(repeated).digest("hex") === frameHashes[frame]) continue;
+    if (createHash("sha256").update(repeated).digest("hex") === frameHashes[frame - startFrame]) continue;
     const first = await readFile(join(directory, "frames", `frame-${String(frame).padStart(5, "0")}.png`));
     // 容差只适用于重新渲染的结果；磁盘原帧的完整性校验始终精确。
-    if (createHash("sha256").update(first).digest("hex") !== frameHashes[frame]) throw new Error("MOTION_CACHE_CORRUPT");
+    if (createHash("sha256").update(first).digest("hex") !== frameHashes[frame - startFrame]) throw new Error("MOTION_CACHE_CORRUPT");
     const difference = await saveMotionFrameDifference(diagnostics, frame, first, repeated);
     report.differences.push(difference);
     if (difference.maxChannelDelta > MOTION_MAX_CHANNEL_DELTA) report.status = "failed";

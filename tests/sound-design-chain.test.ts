@@ -86,7 +86,7 @@ test("持续声必须有足够源范围或明确循环接缝，源变更使循�
     assert.throws(() => f.add({ loop: true, design: { role: "sfx", durationFrames: 60 } }), /接缝/u);
     const state = f.add({ loop: true, design: { role: "sfx", durationFrames: 60, loopCrossfadeFrames: 3, loopReview: { status: "confirmed", note: "此处为协议测试的模拟听审记录，不代表声音审美已通过。" }, envelope: [{ frame: 0, gainDb: -12 }, { frame: 30, gainDb: 0 }, { frame: 60, gainDb: -18 }] } });
     const cue = state.snapshot.audioCues[0], item = state.snapshot.timeline.items.find((i) => i.id === cue.timelineItemId)!;
-    assert.equal(item.endFrame, 70); assert.equal(cue.mixReview, "needs_review");
+    assert.equal(item.endFrame, 70);
     const volume = (frame: number) => audioCueVolumeAt(state.snapshot, item, state.snapshot.timeline.tracks.find((t) => t.id === item.trackId)!, cue, frame);
     assert.ok(volume(30) > volume(0) * 3);
     const changed = f.app.manageAudio({ projectId: f.id, baseRevision: f.rev(), action: "update", audioCueId: cue.id, sourceStartFrame: 1, onsetOffsetFrames: 1 });
@@ -134,9 +134,8 @@ test("声音计划保留采用待复核提示但可导出，错误依据仍原�
     // 仅在测试快照中模拟其他感知项通过，采用门禁仍必须独立保留。
     const simulated = structuredClone(state.snapshot);
     simulated.audioCues[0].onsetReview = { status: "confirmed", note: "仅测试字段独立性", recordedAt: "test" };
-    simulated.audioCues[0].mixReview = "reviewed";
-    simulated.soundReviews = [{ baseRevision: state.revision.number, previewJobId: "模拟混合复核", previewHash: "模拟文件哈希", outcome: "passed", method: "audio", note: "只验证采用门禁独立性，不代表真实听审", signature: soundDependencySignature(simulated), fromFrame: 0, toFrame: 90, recordedAt: "test" }];
-    const simulatedReport = evaluateQuality(simulated, state.revision.number);
+    const soundMixes: import("@videocut/contracts").SoundMixReview[] = [{ baseRevision: state.revision.number, previewJobId: "模拟混合复核", previewHash: "模拟文件哈希", outcome: "passed", method: "audio", note: "只验证采用门禁独立性，不代表真实听审", signature: soundDependencySignature(simulated), fromFrame: 0, toFrame: 90, recordedAt: "test" }];
+    const simulatedReport = evaluateQuality(simulated, state.revision.number, undefined, undefined, { motions: [], soundMixes });
     assert.ok(!simulatedReport.editorial.audio.some((entry) => entry.code === "SOUND_ADOPTION_REQUIRED"));
     assert.ok(!simulatedReport.editorial.audio.some((entry) => ["SFX_ONSET_REVIEW_REQUIRED", "SOUND_MIX_REVIEW_REQUIRED"].includes(entry.code)));
     const delivery = await runExportJob(f.app, f.app.submitExport({ projectId: f.id, revision: f.rev(), purpose: "delivery" }));
@@ -340,7 +339,7 @@ test("角色音效的 Duck 实际参与混音，显式携带 design 可以关闭
     assert.equal(state.snapshot.audioCues[0].soundPlanId, plan.id);
     assert.equal(state.snapshot.audioCues[0].soundIntentId, "paper");
     assert.equal(state.snapshot.audioCues[0].planVersion, plan.version);
-    assert.equal(state.snapshot.audioCues[0].mixReview, "needs_review");
+    assert.equal(state.reviews.soundMixes.length, 0);
     assert.ok(Math.abs(20 * Math.log10(volume(state)) + 18) < 0.001);
   } finally { await f.close(); }
 });
@@ -390,10 +389,11 @@ test("三种声画比较只渲染副本，正式预览固定文件哈希，旁�
     const artifact = await runExportJob(f.app, exportJob);
     assert.ok(artifact.path); assert.equal((await probeMedia(String(artifact.path))).hasAudio, true);
     const reviewed = await reviewSoundMix(f.app, f.id, { baseRevision: f.rev(), previewJobId: preview.id, outcome: "passed", method: "audiovisual", note: "这是模拟审阅协议的自动回归记录，不能当作人工实际听审或审美结论。" });
-    assert.equal(reviewed.snapshot.audioCues[0].mixReview, "reviewed");
-    assert.equal(evaluateQuality(reviewed.snapshot, reviewed.revision.number).issues.some((i) => i.code === "SOUND_MIX_REVIEW_REQUIRED"), false);
+    assert.equal(reviewed.reviews.soundMixes.at(-1)!.outcome, "passed");
+    assert.equal(reviewed.revision.number, revision);
+    assert.equal(evaluateQuality(reviewed.snapshot, reviewed.revision.number, undefined, undefined, reviewed.reviews).issues.some((i) => i.code === "SOUND_MIX_REVIEW_REQUIRED"), false);
     f.app.repository.commit(f.id, f.rev(), "更改声音上下文", (snapshot) => { snapshot.timeline.items.find((i) => i.assetId === f.visual.id)!.gainDb = -12; });
-    assert.equal(f.app.readProject(f.id).snapshot.audioCues[0].mixReview, "needs_review");
+    assert.notEqual(soundDependencySignature(f.app.readProject(f.id).snapshot), reviewed.reviews.soundMixes.at(-1)!.signature);
     await assert.rejects(reviewSoundMix(f.app, f.id, { baseRevision: f.rev(), previewJobId: preview.id, outcome: "passed", method: "audio", note: "旧预览不能确认新的时间线混合，模拟请求应当被拒绝。" }), /已改变/u);
     await writeFile(String(f.app.trackJob(preview.id).result!.path), "被替换的文件");
     await assert.rejects(reviewSoundMix(f.app, f.id, { baseRevision: f.rev(), previewJobId: preview.id, outcome: "passed", method: "audio", note: "文件已经发生变化，不能继续采用旧的审阅证据。" }), /文件已改变/u);

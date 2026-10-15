@@ -8,7 +8,7 @@ import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import type { EditingApplication } from "@videocut/application";
 import type { JobRecord } from "@videocut/contracts";
 import { probeMedia } from "@videocut/speech";
-import { boundMotionFontSchema, boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema, parseMotionEvents } from "../../../packages/motion-work/src/schema.js";
+import { boundMotionFontSchema, boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema, motionFrameRangeSchema, parseMotionEvents } from "../../../packages/motion-work/src/schema.js";
 import { prepareMotionFonts } from "../../../packages/motion-work/src/fonts.js";
 import { motionHash, motionHashEngine, MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compiler.js";
 import { motionFrameName, renderManagedMotion, verifyMotionPreviewFrames, type MotionRenderResult } from "./motion-renderer.js";
@@ -38,6 +38,10 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
   signal?.throwIfAborted();
   if (job.payload.engineVersion !== MOTION_ENGINE_VERSION) throw new DomainError("历史作品产物保持可读；重新生成须按当前合同提交新版本", "MOTION_ENGINE_UPGRADE_REQUIRED");
   const work = motionSubmissionSchema.parse(job.payload.work);
+  const frameRange = job.payload.frameRange ? motionFrameRangeSchema.parse(job.payload.frameRange) : undefined;
+  const startFrame = frameRange?.startFrame ?? 0, endFrame = frameRange?.endFrame ?? work.durationInFrames;
+  if (endFrame > work.durationInFrames) throw new DomainError("校样窗口超出作品", "MOTION_PROOF_RANGE_INVALID");
+  const frameCount = endFrame - startFrame;
   const boundImages = boundMotionImageSchema.array().parse(job.payload.boundImages ?? []);
   const boundVideos = boundMotionVideoSchema.array().parse(job.payload.boundVideos ?? []);
   const boundFonts = boundMotionFontSchema.array().parse(job.payload.boundFonts ?? []);
@@ -53,15 +57,15 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
   diagnostics.stage("font_preparation");
   const fonts = prepareMotionFonts(work, boundFonts);
   const snapshot = application.readProject(job.projectId).snapshot;
-  const directory = join(snapshot.project.rootPath, "assets", "derived", "motion", job.id, version);
-  const parent = join(snapshot.project.rootPath, "assets", "derived", "motion", job.id);
+  const parent = frameRange ? join(snapshot.project.rootPath, "previews", "motion", job.id) : join(snapshot.project.rootPath, "assets", "derived", "motion", job.id);
+  const directory = join(parent, version);
   await mkdir(parent, { recursive: true });
   if (!await stat(directory).catch(() => undefined)) {
     const temporary = await mkdtemp(join(parent, ".render-"));
     let preserveTemporary = false;
     try {
       diagnostics.stage("image_preparation");
-      const outputBudget = motionOutputBudget(work.width, work.height, work.durationInFrames);
+      const outputBudget = motionOutputBudget(work.width, work.height, frameCount);
       const imageData: Record<string, string> = {};
       if (fonts.length) {
         await mkdir(join(temporary, "resources", "font-files"), { recursive: true });
@@ -92,7 +96,7 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
         await provider.reserveDiskSpace(outputBudget * 2 + provider.workingSetBytes);
         const disk = await statfs(temporary);
         checkMotionDiskSpace(disk.bavail * disk.bsize, outputBudget, outputBudget + provider.workingSetBytes);
-        rendered = await render(work, temporary, imageData, provider, signal, fonts, diagnostics);
+        rendered = await render(work, temporary, imageData, provider, signal, fonts, diagnostics, frameRange);
         await provider.verifySources();
       } catch (error) {
         // 渲染失败也核查源身份，避免途中改变的原片留下可被下一版本命中的缓存。
@@ -101,7 +105,7 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
       } finally { try { await provider.close(); } catch (closeError) { diagnostics.additional(closeError, "provider_close"); } }
       await writeFile(join(temporary, "source.json"), JSON.stringify(work, null, 2));
       const previewHash = createHash("sha256").update(await readFile(rendered.previewPath)).digest("hex");
-      await writeFile(join(temporary, "manifest.json"), JSON.stringify({ version, hashEngineVersion, previewHash, frameHashes: rendered.frameHashes, engineVersion: rendered.engineVersion, sandbox: rendered.sandbox, boundImages, boundVideos, ...(boundFonts.length ? { boundFonts } : {}), videoDecodes: provider.videos, videoResources: provider.stats, events: rendered.events, determinism: rendered.determinism }, null, 2));
+      await writeFile(join(temporary, "manifest.json"), JSON.stringify({ version, frameRange, hashEngineVersion, previewHash, frameHashes: rendered.frameHashes, engineVersion: rendered.engineVersion, sandbox: rendered.sandbox, boundImages, boundVideos, ...(boundFonts.length ? { boundFonts } : {}), videoDecodes: provider.videos, videoResources: provider.stats, events: rendered.events, determinism: rendered.determinism }, null, 2));
       signal?.throwIfAborted();
       if (application.trackJob(job.id).status === "cancelled") throw new DomainError("作品任务已取消", "MOTION_CANCELLED");
       await rename(temporary, directory);
@@ -129,7 +133,7 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
   diagnostics.stage("output_validation");
   const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8")) as MotionRenderResult & { version: string; hashEngineVersion?: string; previewHash: string; videoDecodes?: Record<string, unknown> };
   const storedSource = motionSubmissionSchema.parse(JSON.parse(await readFile(join(directory, "source.json"), "utf8")));
-  if (manifest.version !== version || !Array.isArray(manifest.frameHashes) || manifest.frameHashes.length !== work.durationInFrames || motionHash(storedSource, boundImages, manifest.hashEngineVersion ?? manifest.engineVersion, boundVideos, boundFonts, sourceDisplay) !== version) throw new Error("MOTION_CACHE_CORRUPT");
+  if (manifest.version !== version || !Array.isArray(manifest.frameHashes) || manifest.frameHashes.length !== frameCount || JSON.stringify((manifest as any).frameRange) !== JSON.stringify(frameRange) || motionHash(storedSource, boundImages, manifest.hashEngineVersion ?? manifest.engineVersion, boundVideos, boundFonts, sourceDisplay) !== version) throw new Error("MOTION_CACHE_CORRUPT");
   if (JSON.stringify((manifest as any).boundFonts ?? []) !== JSON.stringify(boundFonts)) throw new Error("MOTION_FONT_CACHE_CORRUPT");
   for (const font of boundFonts) {
     try {
@@ -142,20 +146,23 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
   }
   // 完整作品缓存独立于可回收的解码缓存；重生成时才需要重新检查原片。
   if (JSON.stringify((manifest as any).boundVideos ?? []) !== JSON.stringify(boundVideos)) throw new Error("MOTION_RESOURCE_CACHE_CORRUPT");
-  for (let frame = 0; frame < work.durationInFrames; frame++) {
+  for (let frame = startFrame; frame < endFrame; frame++) {
     signal?.throwIfAborted();
     const bytes = await readFile(join(directory, "frames", motionFrameName(frame)));
-    if (createHash("sha256").update(bytes).digest("hex") !== manifest.frameHashes[frame]) throw new Error("MOTION_CACHE_CORRUPT");
+    if (createHash("sha256").update(bytes).digest("hex") !== manifest.frameHashes[frame - startFrame]) throw new Error("MOTION_CACHE_CORRUPT");
   }
   const previewPath = join(directory, "preview.mp4");
   const metadata = await probeMedia(previewPath);
-  await verifyMotionPreviewFrames(previewPath, work.durationInFrames, work.fps);
-  if (metadata.width !== work.width || metadata.height !== work.height || Math.abs(metadata.durationMs - work.durationInFrames / work.fps * 1000) > 1000 / work.fps + 2) throw new Error("MOTION_OUTPUT_MISMATCH");
+  await verifyMotionPreviewFrames(previewPath, frameCount, work.fps);
+  if (metadata.width !== work.width || metadata.height !== work.height || Math.abs(metadata.durationMs - frameCount / work.fps * 1000) > 1000 / work.fps + 2) throw new Error("MOTION_OUTPUT_MISMATCH");
   const sourceHash = createHash("sha256").update(await readFile(previewPath)).digest("hex");
   if (sourceHash !== manifest.previewHash) throw new Error("MOTION_PREVIEW_CACHE_CORRUPT");
   // 缓存命中也从已校验 PNG 重测，不能让损坏的元数据伪装成安全证据；兼容没有测量的旧缓存。
   const eventMap = manifest.events === undefined ? undefined : { version, fps: work.fps, frameCount: work.durationInFrames, events: parseMotionEvents(manifest.events, work.durationInFrames) };
   signal?.throwIfAborted();
+  if (frameRange) return { kind: "motion_proof", version, frameRange, frameCount, sourceHash,
+    sourcePath: relative(snapshot.project.rootPath, join(directory, "source.json")), previewPath: relative(snapshot.project.rootPath, previewPath),
+    fullWorkDurationInFrames: work.durationInFrames, scope: "局部同源校样；未登记完整作品素材", determinism: manifest.determinism };
   const asset = application.completeManagedMotion({ projectId: job.projectId, jobId: job.id, engineVersion: manifest.engineVersion, sourceHash, metadata, eventMap });
   const motionDiagnostics = manifest.determinism ? { ...manifest.determinism, reportPath: relative(snapshot.project.rootPath, join(directory, "diagnostics", "report.json")).replaceAll("\\", "/") } : undefined;
   return { assetId: asset.id, version, videoDecodes: manifest.videoDecodes, sandbox: manifest.sandbox, workReviewRequired: true, sourcePath: asset.motion!.sourcePath, previewPath: asset.managedPath, ...(motionDiagnostics ? { motionDiagnostics } : {}) };

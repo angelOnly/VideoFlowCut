@@ -78,8 +78,8 @@ test("原创提交要求创作说明、参考可选，历史幂等重试保持�
     assert.throws(() => app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "new", work: { ...original, creativeBrief: "不同的内容关系与设计" } }), /幂等/u);
     assert.equal(app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "budget", work: { ...original, width: 1920, height: 1080, durationInFrames: 900 } }).kind, "motion_generation");
     const oldAsset = app.completeManagedMotion({ projectId, jobId: legacy.id, sourceHash: "legacy", engineVersion: "legacy", metadata: { durationMs: 600, width: 320, height: 320, hasAudio: false } });
-    await app.reviewManagedMotion({ projectId, baseRevision: app.readProject(projectId).revision.number, assetId: oldAsset.id, referenceMatch: "passed", note: "仅验证历史参考记录兼容，不将它冒充新版原创证据。" });
-    assert.equal(managedMotionReviewOutcome(app.readProject(projectId).snapshot.assets.find(a => a.id === oldAsset.id)!.motion), "passed");
+    await assert.rejects(app.reviewManagedMotion({ projectId, baseRevision: app.readProject(projectId).revision.number, assetId: oldAsset.id, referenceMatch: "passed", note: "仅验证历史参考记录兼容，不将它冒充新版原创证据。" }), /outcome/u);
+    assert.equal(managedMotionReviewOutcome(app.readProject(projectId).snapshot.assets.find(a => a.id === oldAsset.id)!.motion), undefined);
     assert.equal(app.readManagedMotion(projectId, legacy.id).asset!.motion!.creativeBrief, undefined);
   } finally { app.close(); await rm(root, { recursive: true, force: true }); }
 });
@@ -98,7 +98,7 @@ test("新作品审阅验证真实代理、完整范围和版本，旧别名及�
     const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: createHash("sha256").update(await readFile(path)).digest("hex"), engineVersion: "fixture", metadata: await probeMedia(path) });
     const request = () => ({ projectId, baseRevision: revision(), assetId: asset.id, note: "此媒体只验证证据合同的身份与帧范围，不构成实际剪辑审美验收。" });
     const evidence = { kind: "work_proxy" as const, method: "continuous_video" as const, startFrame: 0, endFrame: 18 };
-    await assert.rejects(app.reviewManagedMotion({ ...request(), referenceMatch: "passed" }), /旧参考别名/u);
+    await assert.rejects(app.reviewManagedMotion({ ...request(), referenceMatch: "passed" }), /outcome/u);
     await assert.rejects(app.reviewManagedMotion({ ...request(), outcome: "passed" }), /连续动态证据/u);
     await assert.rejects(app.reviewManagedMotion({ ...request(), outcome: "passed", referenceMatch: "passed", evidence }), /同时/u);
     for (const wrong of [{ ...evidence, method: "audio" as const }, { ...evidence, method: "frames" as const }, { ...evidence, endFrame: 17 }, { ...evidence, endFrame: 19 }]) {
@@ -106,12 +106,16 @@ test("新作品审阅验证真实代理、完整范围和版本，旧别名及�
       await assert.rejects(app.reviewManagedMotion({ ...request(), outcome: "passed", evidence: wrong }));
       assert.equal(revision(), before);
     }
+    const beforeReview = app.readProject(projectId);
     const reviewed = await app.reviewManagedMotion({ ...request(), outcome: "passed", evidence });
     const motion = reviewed.snapshot.assets.find(a => a.id === asset.id)!.motion!;
-    assert.equal(motion.review!.version, motion.version);
-    assert.equal(motion.review!.evidence!.contentHash, asset.sourceHash);
-    assert.equal(managedMotionReviewOutcome(motion), "passed");
-    assert.equal(managedMotionReviewOutcome({ ...motion, version: "changed" }), undefined);
+    assert.deepEqual(reviewed.snapshot, beforeReview.snapshot);
+    assert.deepEqual(reviewed.revision, beforeReview.revision);
+    const review = reviewed.reviews.motions.at(-1)!;
+    assert.equal(review.version, motion.version);
+    assert.equal(review.evidence!.contentHash, asset.sourceHash);
+    assert.equal(managedMotionReviewOutcome(motion, review), "passed");
+    assert.equal(managedMotionReviewOutcome({ ...motion, version: "changed" }, review), undefined);
     await assert.rejects(app.reviewManagedMotion({ ...request(), baseRevision: reviewed.revision.number - 1, outcome: "passed", evidence }), /Revision/u);
     await writeFile(path, "changed");
     await assert.rejects(app.reviewManagedMotion({ ...request(), outcome: "passed", evidence }));
@@ -160,7 +164,7 @@ test("技术生成成功不等于审美通过；更新作品不会覆盖旧版�
     const sceneId = sceneState.snapshot.scenes.at(-1)!.id;
     const placement = { projectId, sceneId, type: "ManagedMotion" as const, layer: "front" as const, startFrame: 20, endFrame: 38, assetBindings: [{ slot: "motion", assetId: asset.id }] };
     const unreviewed = app.createEffectCue({ ...placement, baseRevision: revision() });
-    assert.equal(unreviewed.snapshot.assets.find(a => a.id === asset.id)!.motion!.review, undefined);
+    assert.equal(unreviewed.reviews.motions.find(entry => entry.assetId === asset.id), undefined);
     app.removeEffectCue({ projectId, baseRevision: revision(), cueId: unreviewed.snapshot.effectCues.at(-1)!.id });
     const beforeInvalidReview = revision();
     await assert.rejects(() => app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "unknown" as never, note: "非法枚举不能通过应用层入口伪装成待审状态。" }), /结论无效/u);

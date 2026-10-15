@@ -1,3 +1,4 @@
+import { motionFrameRangeSchema } from "../../../packages/motion-work/src/schema.js";
 import { SourceDisplayValidationError } from "../../../packages/edit-application/src/source-display-checks.js";
 import { creativeBriefSchema, creativeBriefUpdateSchema, explicitCreativePreferencesSchema } from "../../../packages/contracts/src/creative-preferences.js";
 import { captionTypographySchema, captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
@@ -415,7 +416,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const state = application.readProject(projectId);
     const editorialReview = await application.readEditorialQualityReview({ projectId, revision: state.revision.number });
-    return evaluateQualityWithBrowser(state.snapshot, state.revision.number, editorialReview);
+    return evaluateQualityWithBrowser(state.snapshot, state.revision.number, editorialReview, state.reviews);
   });
 
   app.get("/api/projects/:projectId/editor-url", async (request) => {
@@ -1054,7 +1055,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   });
   app.post("/api/projects/:projectId/motion-works", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    const body = z.object({ baseRevision: baseRevisionSchema, idempotencyKey: z.string().min(1).max(160), work: motionSubmissionSchema }).strict().parse(request.body);
+    const body = z.object({ baseRevision: baseRevisionSchema, idempotencyKey: z.string().min(1).max(160), work: motionSubmissionSchema, frameRange: motionFrameRangeSchema.optional() }).strict().parse(request.body);
     return application.submitManagedMotion({ projectId, ...body });
   });
   app.get("/api/projects/:projectId/motion-works/:jobId", async (request) => {
@@ -1335,6 +1336,8 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   app.post("/api/jobs/:jobId/retry", async (request, reply) => {
     const { jobId } = z.object({ jobId: idSchema }).parse(request.params);
     const oldJob = application.trackJob(jobId);
+    if (oldJob.kind === "voice_synthesis") return reply.status(202).send(application.resumeVoiceSynthesis(oldJob.id));
+
     // 只有明确未完成的终态可以重新入队。unknown 代表外部调用结果未对账，
     // 直接重试可能重复生成、重复扣费或造成两份不可区分的副作用。
     if (oldJob.status === "unknown") {

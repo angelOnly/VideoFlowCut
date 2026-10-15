@@ -56,6 +56,15 @@ export type PersistenceTable = {
  */
 export const PROJECT_DATABASE_TABLES: PersistenceTable[] = [
   {
+    name: "project_reviews", description: "作品与混音观察记录，不创建创作版本。",
+    columns: [
+      { name: "project_id", sqlType: "TEXT", constraints: ["PRIMARY KEY"], description: "所属项目。" },
+      { name: "data", sqlType: "TEXT", constraints: ["NOT NULL"], description: "绑定作品版本和声音依赖的审阅记录。" }
+    ],
+    relations: [{ column: "project_id", target: "projects.id", enforcement: "foreign_key", description: "所属项目必须存在。" }],
+    indexes: [{ name: "project_reviews_pkey", columns: ["project_id"], kind: "primary_key", description: "每项目一份审阅集合。" }]
+  },
+  {
     name: "workspace_settings",
     description: "用户主动保存的工作台设置，独立于项目历史。",
     columns: [
@@ -306,6 +315,10 @@ export const PROJECT_DATABASE_SCHEMA_SQL = `
   -- 按项目和创建时间倒序查询导出历史时使用的普通索引。
   CREATE INDEX IF NOT EXISTS export_artifacts_project_created_idx
     ON export_artifacts(project_id, created_at DESC); -- 先按项目筛选，再按最新导出排序。
+  CREATE TABLE IF NOT EXISTS project_reviews (
+    project_id TEXT PRIMARY KEY REFERENCES projects(id),
+    data TEXT NOT NULL
+  );
   -- repair_tickets：跨 Agent 的平台修复记录，不进入 Project Revision，避免监测行为制造剪辑冲突。
   CREATE TABLE IF NOT EXISTS repair_tickets (
     id TEXT PRIMARY KEY, -- 修复工单唯一 ID。

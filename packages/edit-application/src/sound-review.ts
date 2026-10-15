@@ -28,13 +28,9 @@ export async function reviewSoundMix(app: EditingApplication, projectId: string,
   const signature = soundDependencySignature(current.snapshot);
   if (signature !== soundDependencySignature(reference.snapshot)) throw new DomainError("试听后声画依赖已改变，需要重新生成预览", "SOUND_REVIEW_STALE");
   const from = Number(job.payload.fromFrame), to = Number(job.payload.toFrame);
-  const state = app.repository.commit(projectId, input.baseRevision, "记录段落混合复核", (snapshot, impact) => {
-    for (const cue of snapshot.audioCues) {
-      const item = snapshot.timeline.items.find((entry) => entry.id === cue.timelineItemId)!;
-      if (item && item.startFrame >= from && item.endFrame <= to && cue.status === "ready") { cue.mixReview = input.outcome === "passed" ? "reviewed" : "needs_review"; impact.changed.push(cue.id); }
-    }
-    (snapshot.soundReviews ??= []).push({ ...input, signature, previewHash, fromFrame: from, toFrame: to, recordedAt: now() });
+  const state = app.repository.recordReview(projectId, input.baseRevision, (reviews) => {
+    reviews.soundMixes.push({ ...input, signature, previewHash, fromFrame: from, toFrame: to, recordedAt: now() });
   });
-  app.publish({ projectId, revision: state.revision.number, type: "revision" });
+  app.publish({ projectId, revision: state.revision.number, type: "review" });
   return state;
 }

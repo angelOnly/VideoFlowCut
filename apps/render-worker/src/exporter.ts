@@ -327,7 +327,7 @@ export async function runRenderPreflight(application: EditingApplication, projec
   try { await verifyMotionFrameCaches(snapshot); }
   catch (error) { addPreflightCheck(checks, "failed", "MOTION_CACHE_CORRUPT", error instanceof Error ? error.message : String(error)); }
   const review = await application.readEditorialQualityReview({ projectId, revision: revisionNumber });
-  const quality = await evaluateQualityWithBrowser(snapshot, revisionNumber, review);
+  const quality = await evaluateQualityWithBrowser(snapshot, revisionNumber, review, application.repository.readReviews(projectId));
   for (const issue of exportBlockingIssues(quality, purpose)) {
     addPreflightCheck(checks, "failed", `QUALITY_${issue.code}`, issue.message, issue.objectId);
   }
@@ -631,12 +631,6 @@ export async function runExportJob(
       sourceManifest: existingArtifact.sourceManifest,
       warnings: []
     };
-  }
-  const editorialReview = await application.readEditorialQualityReview({ projectId: job.projectId, revision: revisionNumber });
-  const report = await evaluateQualityWithBrowser(revision.snapshot, revisionNumber, editorialReview);
-  if (!canExport(report, purpose)) {
-    const blockingMessages = exportBlockingIssues(report, purpose).map(entry => entry.message);
-    throw new DomainError(`技术/用途条件阻止导出：${blockingMessages.join("；")}`, "QUALITY_GATE_BLOCKED");
   }
   const preflight = await runRenderPreflight(application, job.projectId, revisionNumber, purpose);
   if (preflight.status !== "passed") {

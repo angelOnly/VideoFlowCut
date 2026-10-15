@@ -1,3 +1,5 @@
+import { motionFrameRangeSchema, type MotionFrameRange } from "../../motion-work/src/schema.js";
+import { editorialResolutionRange } from "./editorial-range.js";
 import { frozenSourceDisplaySchema, resolveSourceDisplayPolicy, type FrozenSourceDisplay, type SourceDisplayPolicy } from "../../contracts/src/source-display-policy.js";
 import { checkMotionSourceDisplay, checkProgramSourceDisplay, validateSourceDisplayScopes, validateSourceDisplayScope } from "./source-display-checks.js";
 import { creativeBriefSchema, creativeBriefUpdateSchema, initializeCreativeBrief, mergeCreativePreferences } from "../../contracts/src/creative-preferences.js";
@@ -379,7 +381,7 @@ export interface AppEvent {
   projectId: Id;
   revision: number;
   /** 修复工单不写入视频 Revision，但仍要通知同项目的监测方刷新状态。 */
-  type: "revision" | "job" | "repair_ticket";
+  type: "revision" | "job" | "review" | "repair_ticket";
 }
 
 function assertAssetProvenanceValid(provenance: NonNullable<Asset["provenance"]>): void {
@@ -2365,9 +2367,9 @@ export class EditingApplication {
     const resolutions: EditorialFindingResolution[] = (input.resolutions ?? []).map((resolution) => {
       const finding = openEditorialFindings(previous).find((entry) => entry.id === resolution.findingId);
       if (!finding || !resolution.note.trim()) throw new DomainError("复核必须引用仍待修的问题并说明结果", "EDITORIAL_RESOLUTION_INVALID");
-      // 跨版本优先跟随可定位对象；无法证明问题的新位置时要求整片，不接受任意缩小复核窗口。
-      const located = [...target.snapshot.effectCues, ...target.snapshot.cutaways, ...target.snapshot.scenes, ...target.snapshot.timeline.items, ...target.snapshot.timeline.captions].find((entry) => entry.id === finding.objectId);
-      const range = (finding.revision === input.revision ? finding.frameRange : located) ?? { startFrame: 0, endFrame: target.snapshot.timeline.durationInFrames };
+      const range = finding.revision === input.revision
+        ? finding.frameRange ?? { startFrame: 0, endFrame: target.snapshot.timeline.durationInFrames }
+        : editorialResolutionRange(finding, this.repository.getRevision(input.projectId, finding.revision!).snapshot, target.snapshot);
       const evidence = resolution.evidenceIds.map((id) => availableEvidence.find((entry) => entry.id === id));
       if (resolution.scope === "caption_text") {
         const caption = target.snapshot.timeline.captions.find((entry) => entry.id === finding.objectId);
@@ -2431,7 +2433,7 @@ export class EditingApplication {
     report.composedFrameEvidence = composedFramePaths;
     // 制作完成只表明当前版本可产出；抽帧、辅助审阅与人工定稿另行保留事实。
     const projectReview = await this.readEditorialQualityReview({ projectId: input.projectId, revision: finalRevision });
-    const quality = await evaluateQualityWithBrowser(target.snapshot, finalRevision, projectReview);
+    const quality = await evaluateQualityWithBrowser(target.snapshot, finalRevision, projectReview, this.repository.readReviews(input.projectId));
     blockers.push(...exportBlockingIssues(quality, "draft").map(entry => `技术/用途条件：${entry.message}`));
     report.finalRevision = finalRevision;
     report.mcpCommands.push({ name: "complete_production_run", revision: finalRevision, createdAt: now() });
@@ -2450,8 +2452,10 @@ export class EditingApplication {
   }
 
   /** 提交只创建固定输入的 Job；不改变 Timeline，也不把代码装进平台 Registry。 */
-  submitManagedMotion(input: { projectId: Id; baseRevision: number; idempotencyKey: string; work: MotionSubmission }): JobRecord {
+  submitManagedMotion(input: { projectId: Id; baseRevision: number; idempotencyKey: string; work: MotionSubmission; frameRange?: MotionFrameRange }): JobRecord {
     const work = motionSubmissionSchema.parse(input.work);
+    const frameRange = input.frameRange ? motionFrameRangeSchema.parse(input.frameRange) : undefined;
+    if (frameRange && frameRange.endFrame > work.durationInFrames) throw new DomainError("校样窗口超出完整作品范围", "MOTION_PROOF_RANGE_INVALID");
     try { validateMotionSource(work.source); } catch (error) {
       // 这里只包住纯源码校验；数据库、素材、字体和 Worker 异常不能取得重试许可。
       if (error instanceof MotionSourceValidationError) throw new MotionSubmissionValidationError(error);
@@ -2459,7 +2463,7 @@ export class EditingApplication {
     }
     const existing = this.repository.listJobs(input.projectId).find((job) => job.idempotencyKey === `motion:${input.idempotencyKey}`);
     if (existing) {
-      if (existing.kind !== "motion_generation" || motionHash(motionSubmissionSchema.parse(existing.payload.work)) !== motionHash(work)) throw new DomainError("幂等键已用于不同作品输入", "MOTION_IDEMPOTENCY_CONFLICT");
+      if (existing.kind !== "motion_generation" || motionHash(motionSubmissionSchema.parse(existing.payload.work)) !== motionHash(work) || JSON.stringify(existing.payload.frameRange) !== JSON.stringify(frameRange)) throw new DomainError("幂等键已用于不同作品输入", "MOTION_IDEMPOTENCY_CONFLICT");
       return existing;
     }
     if (!work.creativeBrief) throw new DomainError("新作品必须提供创作说明 creativeBrief；参考可选，不填写占位参考", "MOTION_CREATIVE_BRIEF_REQUIRED");
@@ -2484,7 +2488,7 @@ export class EditingApplication {
     }));
     const boundFonts = bindMotionFonts(work);
     const version = motionHash(work, boundImages, MOTION_ENGINE_VERSION, boundVideos, boundFonts, sourceDisplay);
-    const job = this.repository.createJob({ projectId: input.projectId, kind: "motion_generation", payload: { work, version, sourceDisplay, sourceDisplayWarnings, engineVersion: MOTION_ENGINE_VERSION, requestedRevision: input.baseRevision, boundImages, ...(boundVideos.length ? { boundVideos } : {}), ...(boundFonts.length ? { boundFonts } : {}) }, idempotencyKey: `motion:${input.idempotencyKey}` });
+    const job = this.repository.createJob({ projectId: input.projectId, kind: "motion_generation", payload: { work, version, ...(frameRange ? { frameRange } : {}), sourceDisplay, sourceDisplayWarnings, engineVersion: MOTION_ENGINE_VERSION, requestedRevision: input.baseRevision, boundImages, ...(boundVideos.length ? { boundVideos } : {}), ...(boundFonts.length ? { boundFonts } : {}) }, idempotencyKey: `motion:${input.idempotencyKey}` });
     this.publish({ projectId: input.projectId, revision: current.revision.number, type: "job" });
     return job;
   }
@@ -2492,14 +2496,16 @@ export class EditingApplication {
   readManagedMotion(projectId: Id, jobId: Id) {
     const job = this.repository.getJob(jobId);
     if (job.projectId !== projectId || job.kind !== "motion_generation") throw new DomainError("作品任务不属于当前项目", "MOTION_JOB_NOT_FOUND");
-    const asset = this.readProject(projectId).snapshot.assets.find((item) => item.motion?.jobId === jobId);
-    return { job, asset, nextStep: asset ? "连续查看作品并以 outcome、note、evidence 审阅；未审或未看清仍可放置、预览、修改和导出，审阅状态如实保留。写入前重读 Revision，最终效果由用户确认。" : "等待 track_job；失败时读取诊断，不猜测已生成" };
+    const state = this.readProject(projectId);
+    const asset = state.snapshot.assets.find((item) => item.motion?.jobId === jobId);
+    return { job, asset, review: [...state.reviews.motions].reverse().find((entry) => entry.assetId === asset?.id && entry.version === asset?.motion?.version), nextStep: job.payload.frameRange ? "局部校样只用于检查声明窗口；保持源码、Props及绑定不变，确认后提交完整作品。校样不创建Asset，不等同于完整作品或合成审阅。" : asset ? "连续查看作品并以 outcome、note、evidence 审阅；未审或未看清仍可放置、预览、修改和导出，审阅状态如实保留。写入前重读 Revision，最终效果由用户确认。" : "等待 track_job；失败时读取诊断，不猜测已生成" };
   }
 
   /** Worker 可重复完成，但同一任务只登记一个固定版本的作品 Asset。 */
   completeManagedMotion(input: { projectId: Id; jobId: Id; engineVersion: string; sourceHash: string; metadata: NonNullable<Asset["metadata"]>; eventMap?: NonNullable<Asset["motion"]>["eventMap"] }): Asset {
     const job = this.repository.getJob(input.jobId);
     if (job.projectId !== input.projectId || job.kind !== "motion_generation") throw new DomainError("作品任务不属于当前项目", "MOTION_JOB_NOT_FOUND");
+    if (job.payload.frameRange) throw new DomainError("局部校样不能登记为完整作品素材", "MOTION_PROOF_NOT_ASSET");
     if (job.status === "cancelled") throw new DomainError("作品任务已取消，不能登记素材", "MOTION_CANCELLED");
     const current = this.readProject(input.projectId);
     const existing = current.snapshot.assets.find((asset) => asset.motion?.jobId === job.id);
@@ -2538,21 +2544,12 @@ export class EditingApplication {
     if (current.revision.number !== input.baseRevision) throw new DomainError("项目 Revision 已变化，请重新读取", "REVISION_CONFLICT");
     const target = assetById(current.snapshot, input.assetId);
     if (!target.motion) throw new DomainError("不是受管作品", "MOTION_ASSET_REQUIRED");
-    const legacy = input.outcome === undefined;
-    if (legacy && (target.motion.creativeBrief || !target.motion.referenceUrl || input.evidence)) throw new DomainError("旧参考别名只兼容历史参考作品；新作品使用 outcome 和实际 evidence", "MOTION_LEGACY_REVIEW_REJECTED");
-    const evidence = legacy ? undefined : await validateMotionReviewEvidence(current.snapshot, input.baseRevision, this.repository.listJobs(input.projectId), target, outcome, input.evidence);
-    // 媒体验证有异步等待；提交再次检查 Revision，不能用旧证据覆盖并发修改。
-    const state = this.repository.commit(input.projectId, input.baseRevision, "记录受管作品动态审阅", (snapshot, impact) => {
-      const asset = assetById(snapshot, input.assetId);
-      if (!asset.motion) throw new DomainError("不是受管作品", "MOTION_ASSET_REQUIRED");
-      asset.motion.review = legacy ? { referenceMatch: outcome, note: input.note.trim(), reviewedAt: now() }
-        : { outcome, version: asset.motion.version, evidence, note: input.note.trim(), reviewedAt: now() };
-      impact.changed.push(asset.id);
-      for (const cue of snapshot.effectCues.filter((item) => item.assetBindings.some((binding) => binding.assetId === asset.id))) {
-        impact.dirtyRanges.push({ startFrame: cue.startFrame, endFrame: cue.endFrame, reason: "作品审阅结论变化" });
-      }
+    if (input.referenceMatch) throw new DomainError("使用 outcome 和实际 evidence 记录审阅", "MOTION_LEGACY_REVIEW_REJECTED");
+    const evidence = await validateMotionReviewEvidence(current.snapshot, input.baseRevision, this.repository.listJobs(input.projectId), target, outcome, input.evidence);
+    const state = this.repository.recordReview(input.projectId, input.baseRevision, (reviews) => {
+      reviews.motions.push({ assetId: target.id, outcome, version: target.motion!.version, evidence, note: input.note.trim(), reviewedAt: now() });
     });
-    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "review" });
     return state;
   }
 
@@ -6782,6 +6779,15 @@ export class EditingApplication {
     return job;
   }
 
+  resumeVoiceSynthesis(jobId: Id): JobRecord {
+    const old = this.trackJob(jobId);
+    if (old.kind !== "voice_synthesis" || !["failed", "unknown"].includes(old.status)) throw new DomainError("只能恢复失败或结果未知的配音任务", "SPEECH_RETRY_STATUS");
+    if (this.readProject(old.projectId).snapshot.script.revision !== old.payload.scriptRevision) throw new DomainError("文稿已改变，请按当前差异提交配音", "STALE_SCRIPT");
+    const checkpoints = Object.values(old.result?.speechSegments ?? {}) as Array<{ status: string }>;
+    if (checkpoints.some(entry => entry.status === "submitting")) throw new DomainError("存在结果未知的配音提交，先核对原请求", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
+    return this.repository.createJob({ projectId: old.projectId, kind: old.kind, payload: { ...old.payload, retryOfJobId: old.id }, idempotencyKey: `voice-recovery:${old.id}` });
+  }
+
   /** 只复用已就绪的段音频；先验证完整顺序与画幅边界，再交媒体 Worker 生成新的可播放总轨。 */
   submitSpeechPlacement(input: { projectId: Id; baseRevision: number; placements: Array<{ speechSegmentId: Id; startFrame: number }>; durationFrames?: number; idempotencyKey: string }): JobRecord {
     const state = this.readProject(input.projectId);
@@ -8974,8 +8980,8 @@ export class EditingApplication {
 
   updateJob(jobId: Id, input: { status: JobStatus; result?: Record<string, unknown>; error?: string; leaseUntil?: string }): JobRecord {
     const job = this.repository.updateJob(jobId, input);
-    const project = this.readProject(job.projectId);
-    this.publish({ projectId: job.projectId, revision: project.revision.number, type: "job" });
+    const project = this.repository.getProjectRow(job.projectId);
+    this.publish({ projectId: job.projectId, revision: project.current_revision_number, type: "job" });
     return job;
   }
 

@@ -63,7 +63,6 @@ export function applyAudioDesign(snapshot: ProjectSnapshot, cue: AudioCue, input
   if (cue.loop && crossfade && Math.ceil(duration / (item.sourceEndFrame - item.sourceStartFrame - crossfade)) > 512) throw new DomainError("循环次数过多，请选择更长的原声音段", "SOUND_LOOP_BUDGET_EXCEEDED");
   cue.loopCrossfadeFrames = crossfade;
   cue.loopReview = parsed.loopReview ?? cue.loopReview;
-  cue.mixReview = "needs_review";
 }
 
 export function manageSoundPlan(app: EditingApplication, projectId: string, baseRevision: number, value: z.infer<typeof soundPlanInputSchema>) {
@@ -89,7 +88,7 @@ export function reconcileSoundDesign(previous: ProjectSnapshot, snapshot: Projec
   for (const cue of snapshot.audioCues) {
     const plan = snapshot.soundPlans?.find((entry) => entry.id === cue.soundPlanId);
     if (cue.soundPlanId && (!plan || plan.version !== cue.planVersion || !plan.intents.some((entry) => entry.id === cue.soundIntentId))) {
-      cue.mixReview = "needs_review"; impact.stale.push(cue.id);
+      impact.stale.push(cue.id);
       if (cue.soundPlanId && (!plan || !plan.intents.some((entry) => entry.id === cue.soundIntentId))) { cue.status = "stale"; const item = snapshot.timeline.items.find((entry) => entry.id === cue.timelineItemId); if (item) item.disabled = true; }
     }
     const before = previous.audioCues.find((entry) => entry.id === cue.id);
@@ -98,6 +97,5 @@ export function reconcileSoundDesign(previous: ProjectSnapshot, snapshot: Projec
       cue.onsetReview = { status: "inconclusive", note: "源文件内容已变化，原可听起音需要重新复核", recordedAt: now() };
       cue.loopReview = undefined;
     }
-    if (contextChanged && before) cue.mixReview = "needs_review";
   }
 }

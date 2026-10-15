@@ -10,8 +10,9 @@ export const API_BASE = import.meta.env.VITE_API_BASE
   ?? (import.meta.env.DEV ? "http://127.0.0.1:3100" : window.location.origin);
 
 export interface ProjectState {
-  revision: RevisionRecord;
+  revision: Omit<RevisionRecord, "snapshot">;
   snapshot: ProjectSnapshot;
+  reviews: import("@videocut/contracts").ProjectReviews;
 }
 
 /**

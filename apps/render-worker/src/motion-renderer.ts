@@ -5,7 +5,7 @@ import { join } from "node:path";
 import puppeteer, { type Browser, type Page } from "puppeteer-core";
 import { PNG } from "pngjs";
 import { compileMotion, MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compiler.js";
-import type { MotionVideoProvider, MotionSubmission } from "../../../packages/motion-work/src/schema.js";
+import type { MotionVideoProvider, MotionSubmission, MotionFrameRange } from "../../../packages/motion-work/src/schema.js";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { resolveRenderBrowser } from "./exporter.js";
 import { runProcess } from "@videocut/speech";
@@ -73,10 +73,13 @@ export async function verifyMotionPreviewFrames(path: string, frameCount: number
  * 生成代码只在无凭据的独立 Chromium 中运行，不使用 Remotion 默认的 --no-sandbox。
  * 响应级 CSP sandbox 建立 opaque origin；所有网络请求由拦截器拒绝，只有唯一内存文档可加载。
  */
-export async function renderManagedMotion(input: MotionSubmission, directory: string, imageData: Record<string, string> = {}, provider?: MotionVideoProvider, signal?: AbortSignal, fonts: PreparedMotionFont[] = [], diagnostics = new MotionDiagnostics({})): Promise<MotionRenderResult> {
+export async function renderManagedMotion(input: MotionSubmission, directory: string, imageData: Record<string, string> = {}, provider?: MotionVideoProvider, signal?: AbortSignal, fonts: PreparedMotionFont[] = [], diagnostics = new MotionDiagnostics({}), frameRange?: MotionFrameRange): Promise<MotionRenderResult> {
   signal?.throwIfAborted();
   const limits = readRuntimeConfig().motion;
-  const outputBudget = motionOutputBudget(input.width, input.height, input.durationInFrames);
+  const startFrame = frameRange?.startFrame ?? 0, endFrame = frameRange?.endFrame ?? input.durationInFrames;
+  if (!Number.isInteger(startFrame) || !Number.isInteger(endFrame) || startFrame < 0 || endFrame <= startFrame || endFrame > input.durationInFrames) throw new Error("MOTION_PROOF_RANGE_INVALID");
+  const frameCount = endFrame - startFrame;
+  const outputBudget = motionOutputBudget(input.width, input.height, frameCount);
   await mkdir(join(directory, "frames"), { recursive: true });
   await provider?.reserveDiskSpace(outputBudget * 2 + provider.workingSetBytes);
   const disk = await statfs(directory);
@@ -189,7 +192,7 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
       } finally { if (timer) clearTimeout(timer); }
     };
     diagnostics.stage("frame_rendering");
-    for (let frame = 0; frame < input.durationInFrames; frame++) {
+    for (let frame = startFrame; frame < endFrame; frame++) {
       const png = await capture(frame);
       totalBytes += png.length;
       checkMotionOutputBudget(totalBytes, outputBudget);
@@ -204,7 +207,7 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
       }
     }
     diagnostics.stage("determinism_verification");
-    const determinism = await verifyMotionDeterminism(directory, frameHashes, capture);
+    const determinism = await verifyMotionDeterminism(directory, frameHashes, capture, startFrame);
     if (JSON.stringify(await readEvents()) !== JSON.stringify(rawEvents)) throw new Error("MOTION_EVENT_NONDETERMINISTIC: 事件计算依赖渲染副作用");
     diagnostics.terminate("normal_cleanup");
     await closeMotionBrowser(browser, diagnostics);
@@ -212,10 +215,10 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
     // 只有审阅代理使用背景；正式合成始终读取带 Alpha 的 PNG 帧，不烧入棋盘格或安全区。
     // 输入已是同格式 RGBA；不能禁用滤镜重建后假设 format 滤镜会修正 RGB/RGBA 的步长。
     diagnostics.stage("preview_encoding");
-    await runMotionProcess("ffmpeg", ["-y", "-v", "error", "-progress", "pipe:1", "-framerate", String(input.fps), "-i", join(directory, "frames", "frame-%05d.png"), "-f", "lavfi", "-i", `color=c=0x172033:s=${input.width}x${input.height}:r=${input.fps}`, "-filter_complex", "[0:v]format=rgba[fg];[1:v][fg]overlay=shortest=1:format=auto,format=yuv420p", "-frames:v", String(input.durationInFrames), "-an", "-c:v", "libx264", "-crf", "18", previewPath], signal, 120_000, diagnostics);
+    await runMotionProcess("ffmpeg", ["-y", "-v", "error", "-progress", "pipe:1", "-framerate", String(input.fps), "-start_number", String(startFrame), "-i", join(directory, "frames", "frame-%05d.png"), "-f", "lavfi", "-i", `color=c=0x172033:s=${input.width}x${input.height}:r=${input.fps}`, "-filter_complex", "[0:v]format=rgba[fg];[1:v][fg]overlay=shortest=1:format=auto,format=yuv420p", "-frames:v", String(frameCount), "-an", "-c:v", "libx264", "-crf", "18", previewPath], signal, 120_000, diagnostics);
     await readFile(previewPath); // ffmpeg 返回成功还必须有真实输出。
     diagnostics.stage("output_validation");
-    await verifyMotionPreviewFrames(previewPath, input.durationInFrames, input.fps);
+    await verifyMotionPreviewFrames(previewPath, frameCount, input.fps);
     return { frameHashes, previewPath, engineVersion: MOTION_ENGINE_VERSION, sandbox: "chromium-os-sandbox+csp-opaque-origin+deny-network", events, determinism };
   } catch (error) {
     // 清理和页面附加错误不能抹掉第一条异常与原始堆栈。

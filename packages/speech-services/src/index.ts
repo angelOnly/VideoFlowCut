@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { mkdir, rm, stat } from "node:fs/promises";
 import { basename, extname, isAbsolute, join } from "node:path";
@@ -1302,14 +1304,22 @@ function makeSpeechTiming(snapshot: ProjectSnapshot, materials: SegmentMaterial[
 export class OmniVoiceSegmentService {
   constructor(private readonly application: EditingApplication, private readonly bridge: ComfyUIBridgeClient) {}
 
-  async synthesize(
-    projectId: string,
-    voiceReferenceAssetId: string | undefined,
-    segmentIds: string[],
-    expectedScriptRevision: number,
-    voiceReferenceId?: string,
-    onBridgeRun?: BridgeRunReporter
-  ): Promise<{ segmentCount: number; speechAssetId?: string }> {
+  async synthesize(job: JobRecord, onBridgeRun?: BridgeRunReporter): Promise<{ segmentCount: number; speechAssetId?: string }> {
+    const projectId = job.projectId;
+    const voiceReferenceAssetId = job.payload.voiceReferenceAssetId as string | undefined;
+    const voiceReferenceId = job.payload.voiceReferenceId as string | undefined;
+    const segmentIds = job.payload.speechSegmentIds as string[];
+    const expectedScriptRevision = Number(job.payload.scriptRevision);
+    type Checkpoint = { status: "submitting" | "running" | "failed" | "ready"; attemptJobId: string; audit?: BridgeRunAudit; asset?: Asset; segmentAsset?: SpeechSegmentAsset };
+    const checkpoints = () => (this.application.trackJob(job.id).result?.speechSegments ?? {}) as Record<string, Checkpoint>;
+    const save = (id: string, value: Checkpoint) => this.application.recordJobCheckpoint(job.id, { speechSegments: { ...checkpoints(), [id]: value } });
+    const cancelled = () => { if (this.application.trackJob(job.id).status === "cancelled") throw new DomainError("配音已取消，停止后续提交", "JOB_CANCELLED"); };
+    if (!this.application.trackJob(job.id).result?.speechSegments && job.payload.retryOfJobId) {
+      const parent = this.application.trackJob(String(job.payload.retryOfJobId));
+      const identity = (value: JobRecord) => { const { retryOfJobId, ...payload } = value.payload; return JSON.stringify(payload); };
+      if (parent.projectId !== projectId || parent.kind !== job.kind || identity(parent) !== identity(job)) throw new DomainError("配音恢复输入不一致", "SPEECH_RETRY_MISMATCH");
+      this.application.recordJobCheckpoint(job.id, { speechSegments: parent.result?.speechSegments ?? {} });
+    }
     const initial = this.application.readProject(projectId);
     if (initial.snapshot.script.revision !== expectedScriptRevision) {
       throw new DomainError("Script 已变化，拒绝将旧语音写入当前项目", "STALE_SCRIPT");
@@ -1326,25 +1336,54 @@ export class OmniVoiceSegmentService {
     const replacement = new Map<string, SpeechSegmentAsset>();
 
     for (const segment of requested) {
-      const submission = await this.bridge.createRunWithSchemaRetry(referencePath ? OMNIVOICE_WORKFLOW_ID : "omnivoice-default-reference-v1", async (detail) => {
-        const textField = this.bridge.findTextField(detail);
-        if (!referencePath && detail.itemSlots.some((slot) => slot.required)) {
-          throw new DomainError("服务端默认音色工作流仍要求上传文件，请修复默认音色配置", "VOICE_DEFAULT_NOT_CONFIGURED");
+      cancelled();
+      let checkpoint: Checkpoint | undefined = checkpoints()[segment.id];
+      if (checkpoint?.status === "ready" && checkpoint.asset && checkpoint.segmentAsset) {
+        const bytes = await readFile(assetPath(initial.snapshot, checkpoint.asset));
+        if (createHash("sha256").update(bytes).digest("hex") !== checkpoint.asset.sourceHash) throw new DomainError("已完成段音频已改变，不能冒用原检查点", "SPEECH_CHECKPOINT_CHANGED");
+        generatedAssets.push(checkpoint.asset); generatedSegmentAssets.push(checkpoint.segmentAsset); replacement.set(segment.id, checkpoint.segmentAsset);
+        continue;
+      }
+      if (checkpoint?.status === "submitting") throw new DomainError("配音提交结果未知，先核对原请求，不重复生成", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
+      if (checkpoint?.status === "failed") {
+        if (!job.payload.retryOfJobId || checkpoint.attemptJobId === job.id) throw new DomainError("该段已明确失败，需显式恢复", "SPEECH_SEGMENT_FAILED");
+        checkpoint = undefined;
+      }
+      if (!checkpoint?.audit) {
+        try {
+          const submission = await this.bridge.createRunWithSchemaRetry(referencePath ? OMNIVOICE_WORKFLOW_ID : "omnivoice-default-reference-v1", async (detail) => {
+            cancelled();
+            const textField = this.bridge.findTextField(detail);
+            if (!referencePath && detail.itemSlots.some((slot) => slot.required)) throw new DomainError("服务端默认音色工作流仍要求上传文件，请修复默认音色配置", "VOICE_DEFAULT_NOT_CONFIGURED");
+            const request = { fieldValues: { [textField.id]: segment.text }, files: referencePath ? [{ slot: this.bridge.findRequiredSlot(detail, "audio"), path: referencePath, mime: "audio/wav" }] : [] };
+            checkpoint = { status: "submitting", attemptJobId: job.id };
+            save(segment.id, checkpoint);
+            return request;
+          }, { onSchemaRejected: () => { checkpoint = { status: "failed", attemptJobId: job.id }; save(segment.id, checkpoint); } });
+          checkpoint = { status: "running", attemptJobId: job.id, audit: createBridgeRunAudit(submission) };
+          save(segment.id, checkpoint);
+        } catch (error) {
+          if (checkpoint?.status === "submitting") {
+            if (error instanceof BridgeError && (error.code === "BRIDGE_INPUT_UNREADABLE" || error.status && error.status >= 400 && error.status < 500)) save(segment.id, { ...checkpoint, status: "failed" });
+            else throw new DomainError("配音提交结果未知；已保留意图，不重复创建 Run", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
+          }
+          throw error;
         }
-        return {
-          fieldValues: { [textField.id]: segment.text },
-          files: referencePath ? [{ slot: this.bridge.findRequiredSlot(detail, "audio"), path: referencePath, mime: "audio/wav" }] : []
-        };
-      });
-      const submittedAt = now();
-      await onBridgeRun?.(createBridgeRunAudit(submission, undefined, submittedAt));
-      const completed = await this.bridge.waitForRun(submission.run.id);
+      }
+      const audit = checkpoint.audit!;
+      await onBridgeRun?.(audit);
+      let completed: BridgeRun;
+      try { completed = await this.bridge.waitForRun(audit.runId, { onUpdate: cancelled }); }
+      catch (error) {
+        if (error instanceof BridgeError && ["BRIDGE_RUN_FAILED", "BRIDGE_RUN_CANCELLED"].includes(error.code ?? "")) save(segment.id, { ...checkpoint, status: "failed" });
+        throw error;
+      }
       const output = completed.outputs.find((candidate) => candidate.kind === "audio" && candidate.downloadUrl);
       if (!output?.downloadUrl) throw new DomainError("OmniVoice 已完成，但没有音频输出", "MISSING_SPEECH_OUTPUT");
       const extension = extname(output.fileName ?? "") || ".flac";
-      const relativePath = join("assets", "speech", `${segment.id}-${safeOutputName(basename(output.fileName ?? "voice")) || "voice"}${extension === ".flac" && (output.fileName ?? "").endsWith(".flac") ? "" : ""}`);
+      const relativePath = join("assets", "speech", job.id, `${segment.id}-${safeOutputName(basename(output.fileName ?? "voice")) || "voice"}${extension === ".flac" && (output.fileName ?? "").endsWith(".flac") ? "" : ""}`);
       const targetPath = join(initial.snapshot.project.rootPath, relativePath);
-      await mkdir(join(initial.snapshot.project.rootPath, "assets", "speech"), { recursive: true });
+      await mkdir(join(initial.snapshot.project.rootPath, "assets", "speech", job.id), { recursive: true });
       await this.bridge.downloadOutput(output, targetPath);
       await assertFileReadable(targetPath);
       const metadata = await probeMedia(targetPath);
@@ -1352,6 +1391,7 @@ export class OmniVoiceSegmentService {
       const generatedAsset = createMediaAsset({ name: `旁白：${segment.text.slice(0, 18)}`, kind: "speech", managedPath: relativePath });
       generatedAsset.status = "ready";
       generatedAsset.metadata = metadata;
+      generatedAsset.sourceHash = createHash("sha256").update(await readFile(targetPath)).digest("hex");
       generatedAssets.push(generatedAsset);
       const segmentAsset: SpeechSegmentAsset = {
         id: createId("speech_segment_asset"),
@@ -1361,10 +1401,11 @@ export class OmniVoiceSegmentService {
         assetId: generatedAsset.id,
         durationMs: metadata.durationMs,
         bridgeRunId: completed.id,
-        schemaVersion: submission.workflow.schemaVersion,
-        bridgeAudit: createBridgeRunAudit(submission, completed, submittedAt),
+        schemaVersion: audit.schemaVersion,
+        bridgeAudit: completeBridgeRunAudit(audit, completed),
         quality: "passed"
       };
+      save(segment.id, { ...checkpoint, status: "ready", asset: generatedAsset, segmentAsset });
       generatedSegmentAssets.push(segmentAsset);
       replacement.set(segment.id, segmentAsset);
     }
@@ -1395,7 +1436,8 @@ export class OmniVoiceSegmentService {
       this.application.applySpeechAssembly({ projectId, generatedAssets, segmentAssets: generatedSegmentAssets });
       return { segmentCount: generatedSegmentAssets.length };
     }
-    const speechRelativePath = join("assets", "speech", `speech-${expectedScriptRevision}.wav`);
+    cancelled();
+    const speechRelativePath = join("assets", "speech", `speech-${job.id}.wav`);
     const speechPath = join(latest.snapshot.project.rootPath, speechRelativePath);
     await assembleAudio(materials, speechPath);
     const finalMetadata = await probeMedia(speechPath);

@@ -138,14 +138,34 @@ export function App() {
     || jobs.some((job) => job.status === "queued" || job.status === "running")
   );
 
-  const load = useCallback(async (id: string) => {
-    const [nextState, nextQuality, nextJobs, nextArtifacts, nextRevisions] = await Promise.all([api.project(id), api.quality(id), api.jobs(id), api.exportArtifacts(id), api.revisions(id)]);
-    setState(nextState);
-    setQuality(nextQuality);
-    setJobs(nextJobs);
-    setExportArtifacts(nextArtifacts);
-    setRevisions(nextRevisions);
-    setProjects((previous) => previous.some((project) => project.id === id) ? previous : [...previous, { id, name: nextState.snapshot.project.name }]);
+  const activeProject = useRef(projectId);
+  activeProject.current = projectId;
+  const loadedRevision = useRef<{ id: string; number: number } | undefined>(undefined);
+  const pendingLoads = useRef(new Map<string, { promise: Promise<void>; again: boolean; force: boolean }>());
+  const load = useCallback((id: string, force = true): Promise<void> => {
+    const pending = pendingLoads.current.get(id);
+    if (pending) { pending.again = true; pending.force ||= force; return pending.promise; }
+    const request = { promise: Promise.resolve(), again: false, force };
+    request.promise = (async () => {
+      do {
+        const full = request.force; request.again = false; request.force = false;
+        const [nextJobs, nextRevisions] = await Promise.all([api.jobs(id), api.revisions(id)]);
+        if (activeProject.current !== id) return;
+        setJobs(nextJobs); setRevisions(nextRevisions);
+        const revision = Math.max(0, ...nextRevisions.map(entry => entry.number));
+        if (full || loadedRevision.current?.id !== id || loadedRevision.current.number !== revision) {
+          const [nextState, nextQuality] = await Promise.all([api.project(id), api.quality(id)]);
+          if (activeProject.current !== id) return;
+          setState(nextState); setQuality(nextQuality);
+          loadedRevision.current = { id, number: nextState.revision.number };
+          setProjects(previous => previous.some(project => project.id === id) ? previous : [...previous, { id, name: nextState.snapshot.project.name }]);
+        }
+        const artifacts = await api.exportArtifacts(id);
+        if (activeProject.current === id) setExportArtifacts(artifacts);
+      } while (request.again && activeProject.current === id);
+    })().finally(() => { pendingLoads.current.delete(id); });
+    pendingLoads.current.set(id, request);
+    return request.promise;
   }, []);
 
   const refreshProjects = useCallback(async () => {
@@ -161,13 +181,16 @@ export function App() {
     if (!projectId) return;
     const source = new EventSource(`${API_BASE}/api/events?projectId=${encodeURIComponent(projectId)}`);
     let timer: number | undefined;
-    const refresh = () => {
+    let force = false;
+    const refresh = (event: Event) => {
+      force ||= event.type === "review";
       window.clearTimeout(timer);
-      timer = window.setTimeout(() => void load(projectId).catch((error) => setMessage(error.message)), 180);
+      timer = window.setTimeout(() => { const requested = force; force = false; void load(projectId, requested).catch((error) => setMessage(error.message)); }, 180);
     };
     source.addEventListener("revision", refresh);
     source.addEventListener("job", refresh);
-    source.onerror = () => source.close();
+    source.addEventListener("review", refresh);
+    // EventSource 自带断线重连；不要关闭后永久丢失进展通知。
     return () => { window.clearTimeout(timer); source.close(); };
   }, [projectId, load]);
 
@@ -177,7 +200,7 @@ export function App() {
    */
   useEffect(() => {
     if (!projectId || !hasPendingWork) return;
-    const timer = window.setInterval(() => void load(projectId).catch((error) => setMessage(error.message)), 1_500);
+    const timer = window.setInterval(() => void load(projectId, false).catch((error) => setMessage(error.message)), 1_500);
     return () => window.clearInterval(timer);
   }, [projectId, hasPendingWork, load]);
 
@@ -278,6 +301,7 @@ export function App() {
       setMessage("创建项目…");
       const created = await api.createProject(newProjectName.trim() || "未命名项目", newProjectProfile, newProjectFps);
       const createdProjectId = created.snapshot.project.id;
+      activeProject.current = createdProjectId;
       setProjectId(createdProjectId);
       // 新建后直接读回新项目，避免顶部入口仍短暂显示旧项目状态。
       await load(createdProjectId);

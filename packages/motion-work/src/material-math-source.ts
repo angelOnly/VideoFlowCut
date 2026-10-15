@@ -1,20 +1,16 @@
-/**
- * Development-only geometry/time reference. Not a registered effect or runtime API.
- * Source coordinates must be measured on the upright, SAR-corrected source.
- * Production authors inline only required pure helpers into permitted managed code.
- */
-const finite = (name, value) => {
-  if (!Number.isFinite(value)) throw new TypeError(`${name} must be finite`);
+/** 可信纯函数随 Runtime 内嵌；作者和数学回归共用此唯一实现，不再逐片复制。 */
+export const MATERIAL_MATH_SOURCE = `const finite = (name, value) => {
+  if (!Number.isFinite(value)) throw new TypeError(\`\${name} must be finite\`);
   return value;
 };
 const positive = (name, value) => {
   finite(name, value);
-  if (value <= 0) throw new RangeError(`${name} must be > 0`);
+  if (value <= 0) throw new RangeError(\`\${name} must be > 0\`);
   return value;
 };
 const unit = (name, value) => {
   finite(name, value);
-  if (value < 0 || value > 1) throw new RangeError(`${name} must be in [0,1]`);
+  if (value < 0 || value > 1) throw new RangeError(\`\${name} must be in [0,1]\`);
   return value;
 };
 const checkBox = (box) => {
@@ -50,7 +46,7 @@ export function sourcePoint(geometry, point) {
   const b=geometry.box;
   return {x,y,visible:x>=b.x&&x<=b.x+b.width&&y>=b.y&&y<=b.y+b.height};
 }
-/** Apply one shared parent transform: scale, then rotate, then translate. */
+/** 共用父层变换：先缩放，再旋转，最后平移。 */
 export function parentPoint(point, {pivot={x:0,y:0},scale=1,rotateDeg=0,translate={x:0,y:0}}={}) {
   for(const [n,v] of Object.entries({x:point.x,y:point.y,px:pivot.x,py:pivot.y,
     scale,rotateDeg,tx:translate.x,ty:translate.y}))finite(n,v);
@@ -62,7 +58,7 @@ export function parentPoint(point, {pivot={x:0,y:0},scale=1,rotateDeg=0,translat
 export function frameMapping({globalFrame,workStartFrame,sequenceStartFrame=0,
   slotStartWorkFrame=0,bindingStartMs,bindingEndMs,fps}) {
   for(const [n,v] of Object.entries({globalFrame,workStartFrame,sequenceStartFrame,slotStartWorkFrame})){
-    if(!Number.isInteger(v)||v<0)throw new RangeError(`${n} must be a nonnegative integer`);
+    if(!Number.isInteger(v)||v<0)throw new RangeError(\`\${n} must be a nonnegative integer\`);
   }
   positive('fps',fps);finite('bindingStartMs',bindingStartMs);positive('bindingEndMs',bindingEndMs);
   if(bindingStartMs<0||bindingEndMs<=bindingStartMs)throw new RangeError('invalid source range');
@@ -74,12 +70,13 @@ export function frameMapping({globalFrame,workStartFrame,sequenceStartFrame=0,
     throw new RangeError('frame outside mounted sequence or bound source');
   return {workFrame,sequenceFrame,boundFrame,sourceMs};
 }
-/** Preview file time uses file origin, not the global project origin. */
+/** 预览时间从文件起点计算。 */
 export function previewRange({fromFrame,toFrame,fps},startFrame,endFrame){
   positive('fps',fps);
   for(const [n,v] of Object.entries({fromFrame,toFrame,startFrame,endFrame}))
-    if(!Number.isInteger(v)||v<0)throw new RangeError(`${n} must be a nonnegative integer`);
+    if(!Number.isInteger(v)||v<0)throw new RangeError(\`\${n} must be a nonnegative integer\`);
   if(toFrame<=fromFrame||endFrame<=startFrame||startFrame<fromFrame||endFrame>toFrame)
     throw new RangeError('review outside preview');
   return {startMs:(startFrame-fromFrame)*1000/fps,endMs:(endFrame-fromFrame)*1000/fps};
 }
+`;

@@ -19,6 +19,7 @@ import type {
   RepairTicket,
   RepairTicketStatus,
   ProjectSnapshot,
+  ProjectReviews,
   ProjectSummary,
   RevisionRecord,
   SourceAudioAlignment
@@ -347,7 +348,8 @@ export class ProjectRepository {
         .run(projectId, input.name, snapshot.project.profile, rootPath, revision.id, revision.number, revision.createdAt, revision.createdAt);
       this.insertRevision(revision);
     });
-    return { revision, snapshot };
+    const { snapshot: _snapshot, ...revisionInfo } = revision;
+    return { revision: revisionInfo, snapshot, reviews: this.readReviews(snapshot.project.id) };
   }
 
   private insertRevision(revision: RevisionRecord): void {
@@ -376,7 +378,25 @@ export class ProjectRepository {
     const row = this.db.prepare("SELECT * FROM revisions WHERE id = ?").get(project.current_revision_id) as RevisionRow | undefined;
     if (!row) throw new NotFoundError(`项目 ${projectId} 缺少当前 Revision`);
     const revision = this.revisionFromRow(row);
-    return { revision, snapshot: revision.snapshot };
+    const { snapshot, ...summary } = revision;
+    return { revision: summary, snapshot, reviews: this.readReviews(projectId) };
+  }
+
+  readReviews(projectId: Id): ProjectReviews {
+    const row = this.db.prepare("SELECT data FROM project_reviews WHERE project_id = ?").get(projectId) as { data: string } | undefined;
+    return row ? JSON.parse(row.data) : { motions: [], soundMixes: [] };
+  }
+
+  /** 验证异步媒体之后，在同一事务内核对版本并保存观察，不改变作品。 */
+  recordReview(projectId: Id, baseRevision: number, update: (reviews: ProjectReviews) => void): ProjectState {
+    return this.transaction(() => {
+      const project = this.getProjectRow(projectId);
+      if (project.current_revision_number !== baseRevision) throw new RevisionConflictError(baseRevision, project.current_revision_number);
+      const reviews = this.readReviews(projectId);
+      update(reviews);
+      this.db.prepare("INSERT INTO project_reviews (project_id, data) VALUES (?, ?) ON CONFLICT(project_id) DO UPDATE SET data = excluded.data").run(projectId, JSON.stringify(reviews));
+      return this.getCurrent(projectId);
+    });
   }
 
   getRevision(projectId: Id, number: number): RevisionRecord {
@@ -450,7 +470,8 @@ export class ProjectRepository {
       this.insertRevision(revision);
       this.db.prepare(`UPDATE projects SET name = ?, profile = ?, current_revision_id = ?, current_revision_number = ?, updated_at = ? WHERE id = ?`)
         .run(snapshot.project.name, snapshot.project.profile, revision.id, revision.number, revision.createdAt, projectId);
-      return { revision, snapshot };
+      const { snapshot: _snapshot, ...revisionInfo } = revision;
+      return { revision: revisionInfo, snapshot, reviews: this.readReviews(projectId) };
     });
   }
 
@@ -497,8 +518,11 @@ export class ProjectRepository {
       if (!row) return undefined;
       const leaseUntil = new Date(Date.now() + leaseMilliseconds).toISOString();
       const updatedAt = now();
-      this.db.prepare("UPDATE jobs SET status = 'running', attempt = attempt + 1, lease_until = ?, updated_at = ? WHERE id = ?")
-        .run(leaseUntil, updatedAt, row.id);
+      const result = row.result_json ? JSON.parse(row.result_json) : {};
+      const execution = result.execution ?? { attempts: [] };
+      execution.attempts.push({ attempt: row.attempt + 1, startedAt: updatedAt });
+      this.db.prepare("UPDATE jobs SET status = 'running', attempt = attempt + 1, lease_until = ?, updated_at = ?, result_json = ? WHERE id = ?")
+        .run(leaseUntil, updatedAt, JSON.stringify({ ...result, execution }), row.id);
       return this.getJob(row.id);
     });
   }
@@ -519,8 +543,15 @@ export class ProjectRepository {
     // Worker 在运行中写入 Bridge 审计或恢复检查点时，不能意外清空已有租约；
     // 否则进程在该瞬间退出会留下永远无法重新领取的 running Job。
     const leaseUntil = input.leaseUntil ?? (input.status === "running" ? old.leaseUntil : undefined);
+    const timestamp = now();
+    const result = { ...old.result, ...input.result };
+    const execution = structuredClone(old.result?.execution ?? { attempts: [] }) as { attempts: Array<{ attempt: number; startedAt: string; finishedAt?: string; outcome?: string }>; lastProgressAt?: string };
+    if (input.result && Object.entries(input.result).some(([key, value]) => key !== "execution" && JSON.stringify(value) !== JSON.stringify(old.result?.[key]))) execution.lastProgressAt = timestamp;
+    const attempt = execution.attempts.at(-1);
+    if (attempt && !attempt.finishedAt && ["succeeded", "failed", "cancelled", "unknown"].includes(input.status)) { attempt.finishedAt = timestamp; attempt.outcome = input.status; }
+    result.execution = execution;
     this.db.prepare("UPDATE jobs SET status = ?, result_json = ?, error = ?, lease_until = ?, updated_at = ? WHERE id = ?")
-      .run(input.status, input.result ? JSON.stringify(input.result) : old.result ? JSON.stringify(old.result) : null, input.error ?? null, leaseUntil ?? null, now(), jobId);
+      .run(input.status, JSON.stringify(result), input.error ?? null, leaseUntil ?? null, timestamp, jobId);
     return this.getJob(jobId);
   }
 

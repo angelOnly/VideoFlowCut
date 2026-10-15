@@ -173,7 +173,7 @@ test("问题跨 Run、Revision 保留，只有当前范围复核才能关闭且�
     const preview = await f.preview(next.revision.number);
     const tooShort = await f.app.recordEditorialQualityReview({ ...base, observations: f.observe(preview.id, 5, 7, ["mute_visual"]) });
     await assert.rejects(() => f.app.recordEditorialQualityReview({ ...base, resolutions: [{ findingId, evidenceIds: [tooShort.editorialReview!.evidenceRecords![0]!.id], note: "局部不够" }] }), (error: unknown) => error instanceof DomainError && error.code === "EDITORIAL_RESOLUTION_EVIDENCE_REQUIRED");
-    const checked = await f.app.recordEditorialQualityReview({ ...base, observations: f.observe(preview.id, 5, 10, ["mute_visual"]) });
+    const checked = await f.app.recordEditorialQualityReview({ ...base, observations: f.observe(preview.id, 4, 11, ["mute_visual"]) });
     await f.app.recordEditorialQualityReview({ ...base, resolutions: [{ findingId, evidenceIds: [checked.editorialReview!.evidenceRecords!.at(-1)!.id], note: "复核当前对象完整进入退出" }] });
     let review = await f.app.readEditorialQualityReview(base);
     assert.equal(openEditorialFindings(review).length, 0);

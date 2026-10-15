@@ -233,7 +233,6 @@ export function projectFrameRateChange(previous: ProjectSnapshot, fps: number, r
         if (effect) item.endFrame = effect.startFrame + binding.endLocalFrame + binding.syncOffsetFrames;
       }
     }
-    cue.mixReview = "needs_review";
   }
   snapshot.timeline.durationInFrames = Math.max(0, ...snapshot.timeline.items.filter(item => !item.disabled).map(item => item.endFrame), ...snapshot.scenes.map(scene => scene.endFrame));
   report.durationAfterSeconds = snapshot.timeline.durationInFrames / fps;

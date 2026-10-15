@@ -36,6 +36,36 @@ async function fixture() {
   return { app, projectId, revision, sceneId, itemId, placement, close: async () => { app.close(); await rm(root, { recursive: true, force: true }); } };
 }
 
+test("仅更新作品审阅不标记重渲染，真实位置修改仍传播范围且旧版本不能写入", async () => {
+  const f = await fixture();
+  try {
+    f.app.createEffectCue({ ...f.placement, baseRevision: f.revision() });
+    const before = f.app.readProject(f.projectId);
+    const assetId = f.placement.assetBindings[0]!.assetId;
+    const assetBefore = before.snapshot.assets.find(asset => asset.id === assetId)!;
+    const jobsBefore = f.app.repository.listJobs(f.projectId);
+    const request = { projectId: f.projectId, baseRevision: f.revision(), assetId, outcome: "inconclusive" as const,
+      note: "仅补充待观察范围：尚未连续观看中途与出口；不改变已生成画面、绑定或时序。" };
+    await f.app.reviewManagedMotion(request);
+    const reviewed = f.app.readProject(f.projectId);
+    const assetAfter = reviewed.snapshot.assets.find(asset => asset.id === assetId)!;
+    assert.deepEqual(reviewed.revision, before.revision, "观察不创建作品版本");
+    assert.deepEqual(reviewed.snapshot, before.snapshot);
+    assert.deepEqual(reviewed.snapshot.timeline, before.snapshot.timeline);
+    assert.deepEqual(reviewed.snapshot.effectCues, before.snapshot.effectCues);
+    assert.deepEqual({ ...assetAfter, motion: { ...assetAfter.motion, review: undefined } },
+      { ...assetBefore, motion: { ...assetBefore.motion, review: undefined } }, "作品身份与资源不变");
+    assert.equal(reviewed.reviews.motions.at(-1)!.note, request.note);
+    assert.deepEqual(f.app.repository.listJobs(f.projectId), jobsBefore, "保存审阅不排队生成或预览");
+    await assert.rejects(f.app.reviewManagedMotion({ ...request, baseRevision: request.baseRevision - 1 }), /REVISION|Revision/u);
+    assert.deepEqual(f.app.readProject(f.projectId), reviewed, "旧版本拒绝不产生写入");
+    const moved = f.app.updateEffectCue({ projectId: f.projectId, baseRevision: f.revision(),
+      cueId: before.snapshot.effectCues[0]!.id, startFrame: 20, endFrame: 38 });
+    assert.ok(moved.revision.impact.dirtyRanges.some(range => range.startFrame <= 10 && range.endFrame >= 28));
+    assert.ok(moved.revision.impact.dirtyRanges.some(range => range.startFrame <= 20 && range.endFrame >= 38));
+  } finally { await f.close(); }
+});
+
 test("一个 Cue 显式覆盖多个 Beat，旧数据仍仅按单锚点，不自动覆盖同场景", async () => {
   const f = await fixture();
   try {
@@ -113,11 +143,12 @@ test("合成审阅必须来自当前项目、版本和实际完整 Cue，单件�
     const oldRevision = f.revision();
     const passed = await f.app.reviewManagedMotion({ ...request(), evidence });
     const motion = passed.snapshot.assets.find(a => a.id === assetId)!.motion!;
-    assert.equal(motion.review!.evidence!.revision, oldRevision);
-    assert.equal(passed.revision.number, oldRevision + 1);
-    assert.equal(managedMotionReviewOutcome(motion), "passed", "保存审阅不会因自身新增 Revision 失去单件结论");
-    assert.deepEqual([motion.review!.evidence!.workStartFrame, motion.review!.evidence!.workEndFrame], [0, 18]);
-    await assert.rejects(f.app.reviewManagedMotion({ ...request(), evidence }), /目标 Revision/u);
+    const review = passed.reviews.motions.at(-1)!;
+    assert.equal(review.evidence!.revision, oldRevision);
+    assert.equal(passed.revision.number, oldRevision);
+    assert.equal(managedMotionReviewOutcome(motion, review), "passed", "保存审阅不会因自身新增 Revision 失去单件结论");
+    assert.deepEqual([review.evidence!.workStartFrame, review.evidence!.workEndFrame], [0, 18]);
+    await f.app.reviewManagedMotion({ ...request(), evidence });
     f.app.removeEffectCue({ projectId: f.projectId, baseRevision: f.revision(), cueId: state.snapshot.effectCues[0]!.id });
     await assert.rejects(f.app.reviewManagedMotion({ ...request(), evidence }), /完整覆盖/u);
   } finally { await f.close(); }

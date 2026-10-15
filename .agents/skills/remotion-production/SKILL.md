@@ -25,7 +25,7 @@ description: 供持续负责的视觉作者以同一受管 Remotion 源码完成
 
 写图片、真实视频、字体、Props 或命名事件前，读取 [受管组件合同](references/remotion-component-contract.md) 对应章节并核对实时 `read_motion_capabilities`。素材必须通过真实绑定，字体使用登记身份；不凭历史版本说明推断当前会话能力。
 
-裁切、局部观察、附着标注或跨段视频接续，读取 [素材坐标与时间](references/material-space-and-time.md)，使用完整 cover/contain/fill、点映射和源时钟公式。修漂移或重播直接进入这里，不重新搜全库或重写故事。辅助数学函数在 [scripts/material-math.mjs](scripts/material-math.mjs)，不能假定受管 TSX 可导入本地模块。
+裁切、局部观察、附着标注或跨段视频接续，读取 [素材坐标与时间](references/material-space-and-time.md)，使用完整 cover/contain/fill、点映射和源时钟公式。修漂移或重播直接进入这里，不重新搜全库或重写故事。受管源码直接从 `@videoflowcut/motion` 导入 fitSource、focusCover、sourcePoint、parentPoint、frameMapping、previewRange；沿用平台纯函数，不逐片内联重写。
 
 提交、查询、Review、Cue 放置或异常时，主任务读取 [提交与恢复](references/submission-and-recovery.md)，固定当前输入和版本，获取真实 Job 与输出再读回影响。已结束失败、结果未知和无副作用参数拒绝分开处理，不重放不确定写入。
 

@@ -52,6 +52,10 @@ export const motionSubmissionSchema = z.object({
     if (duration <= 0 || duration + 1 < frames * 1000 / value.fps || duration - frames * 1000 / value.fps >= 1000 / value.fps + 1) ctx.addIssue({ code: "custom", message: "视频源范围与作品帧范围不匹配（允许毫秒取整及不足一帧的余量）" });
   }
 });
+/** 局部校样仍使用完整作品的源码、Props 与根时钟。 */
+export const motionFrameRangeSchema = z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() }).strict()
+  .refine(range => range.endFrame > range.startFrame, "校样窗口必须为非空半开区间");
+export type MotionFrameRange = z.infer<typeof motionFrameRangeSchema>;
 export type MotionSubmission = z.infer<typeof motionSubmissionSchema>;
 
 /** 事件必须由受管代码实际计算，平台只校验结果和绑定版本。 */

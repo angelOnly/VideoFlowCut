@@ -388,7 +388,7 @@ Web 和 MCP 修改已有项目的创作状态时必须：
 - 标记 Dirty Range；
 - 支持回退和比较。
 
-Job 状态、生产审计、成片审阅、Artifact 复核/批准和 RepairTicket 使用各自记录，不因登记记录而新建视频 Revision。当前单件 `review_motion_work` 会更新素材审阅并生成 Revision，不能与成片审阅混为一谈。
+Job 状态、生产审计、成片审阅、Artifact 复核/批准和 RepairTicket 使用各自记录，不因登记记录而新建视频 Revision。当前单件 `review_motion_work` 会更新素材审阅并生成 Revision，不能与成片审阅混为一谈。仅保存该审阅记录不标记重渲染范围；保留素材变更记录、版本冲突与媒体证据校验，旧 Preview 不自动获得新 Revision 的审阅资格。
 
 ### 4.8 可编辑、可预览、可导出和已验收必须分开
 

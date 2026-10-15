@@ -2796,7 +2796,7 @@ server.registerTool("validate_project_graph", {
 }, async ({ project_id }) => {
   try {
     const state = application.readProject(projectIdFrom(project_id));
-    const report = evaluateQuality(state.snapshot, state.revision.number);
+    const report = evaluateQuality(state.snapshot, state.revision.number, undefined, undefined, state.reviews);
     return asText({ valid: !report.issues.some((entry) => entry.code === "PROJECT_GRAPH_INVALID"), issues: report.issues.filter((entry) => entry.code === "PROJECT_GRAPH_INVALID") });
   } catch (error) { return asError(error); }
 });
@@ -2811,7 +2811,7 @@ server.registerTool("read_quality_report", {
     const projectId = projectIdFrom(project_id);
     const state = application.readProject(projectId);
     const editorialReview = await application.readEditorialQualityReview({ projectId, revision: state.revision.number });
-    return asText(await evaluateQualityWithBrowser(state.snapshot, state.revision.number, editorialReview));
+    return asText(await evaluateQualityWithBrowser(state.snapshot, state.revision.number, editorialReview, state.reviews));
   } catch (error) { return asError(error); }
 });
 
@@ -2977,6 +2977,22 @@ server.registerTool("track_job", {
 }, async ({ job_id }) => {
   try { return asText(projectMotionJob(application.trackJob(job_id))); } catch (error) { return asError(error); }
 });
+
+server.registerTool("resume_voice_synthesis", {
+  title: "恢复原配音任务", description: "按原 Job 的段级检查点恢复；复用已完成音频，有 Run ID 继续读原 Run。只有明确失败段可重新生成；未知提交不重放。重复恢复返回同一个任务。",
+  inputSchema: { job_id: z.string().min(1) }
+}, async ({ job_id }) => { try { return asText(application.resumeVoiceSynthesis(job_id)); } catch (error) { return asError(error); } });
+
+server.registerTool("track_jobs", {
+  title: "批量读取任务进展", description: "快速读回原 Job 的状态、尝试计时与最近检查点；不等待、不重提，不用续租时间冒充工作进展。终态产物详情用 track_job 读取。",
+  inputSchema: { job_ids: z.array(z.string().min(1)).min(1).max(100) }, annotations: { readOnlyHint: true }
+}, async ({ job_ids }) => asText([...new Set(job_ids)].map(id => {
+  try {
+    const job = application.trackJob(id);
+    return { id, projectId: job.projectId, status: job.status, kind: job.kind, attempt: job.attempt, createdAt: job.createdAt,
+      execution: job.result?.execution, progress: job.result?.motionProgress, error: job.error };
+  } catch (error) { return { id, error: error instanceof Error ? error.message : String(error) }; }
+})));
 
 const transport = new StdioServerTransport();
 /** CommonJS 发行构建不能保留顶层 await；开发与发行都从同一启动函数连接 stdio。 */

@@ -88,7 +88,6 @@ export function reconcileEffectAudioEvents(snapshot: ProjectSnapshot, impact: Im
       item.startFrame += delta;
       item.endFrame += delta;
       audio.eventFrame = event;
-      audio.mixReview = "needs_review";
       audio.updatedAt = new Date().toISOString();
       impact.changed.push(audio.id, item.id);
       impact.dirtyRanges.push(previous, { startFrame: item.startFrame, endFrame: item.endFrame, reason: "音效随同版本动效平移，声画需复审" });

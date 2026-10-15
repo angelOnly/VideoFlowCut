@@ -33,7 +33,6 @@ test("整体增益 MCP/HTTP 设置绝对值、保护版本并使全片混合待�
     snapshot.scenes.push(createScene({ type: "PresenterScene", title: "合同场景", purpose: "隔离混合验证", startFrame: 0, endFrame: 48 }));
   });
   application.manageAudio({ projectId, baseRevision: current().revision.number, action: "create", assetId: source.id, kind: "bgm", purpose: "总增益比例验证", startFrame: 0, endFrame: 48, sourceStartFrame: 0, sourceEndFrame: 48, gainDb: -18 });
-  application.repository.commit(projectId, current().revision.number, "模拟旧混合审阅", (snapshot) => { snapshot.audioCues[0].mixReview = "reviewed"; });
   const before = current();
   registerSoundTools(server, application, () => projectId);
   const [ct, st] = InMemoryTransport.createLinkedPair();
@@ -50,8 +49,7 @@ test("整体增益 MCP/HTTP 设置绝对值、保护版本并使全片混合待�
     assert.equal(after.snapshot.audioMixGainDb, 9.5);
     assert.deepEqual(after.snapshot.timeline, before.snapshot.timeline);
     assert.deepEqual(after.snapshot.assets, before.snapshot.assets);
-    assert.equal(after.snapshot.audioCues[0].mixReview, "needs_review");
-    assert.deepEqual(after.snapshot.audioCues.map(({ mixReview, ...rest }) => rest), before.snapshot.audioCues.map(({ mixReview, ...rest }) => rest));
+    assert.deepEqual(after.snapshot.audioCues, before.snapshot.audioCues);
     assert.notEqual(soundDependencySignature(before.snapshot), soundDependencySignature(after.snapshot));
     assert.ok(after.revision.impact.dirtyRanges.some((range) => range.startFrame === 0 && range.endFrame === 48));
     assert.notEqual((await call(9.5)).isError, true);

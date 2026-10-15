@@ -296,17 +296,27 @@ export interface MotionReviewEvidence extends MotionReviewEvidenceInput {
   recordedAt: string;
 }
 
-/** 统一解释新旧审阅；旧参考记录只适用于没有创作说明的历史作品。 */
-export function managedMotionReviewOutcome(motion: Asset["motion"]): MotionReviewOutcome | undefined {
-  const review = motion?.review;
-  if (!review || !motion) return undefined;
-  if (review.outcome !== undefined) {
-    if (review.version !== motion.version) return undefined;
-    if (review.outcome === "passed" && (!review.evidence || !["continuous_video", "audiovisual"].includes(review.evidence.method)
-      || review.evidence.workStartFrame !== 0 || review.evidence.workEndFrame !== motion.frameCount)) return undefined;
-    return review.outcome;
-  }
-  return !motion.creativeBrief && motion.referenceUrl ? review.referenceMatch : undefined;
+/** 审阅独立于创作快照，按不可变作品版本和真实证据解释。 */
+export interface MotionWorkReview {
+  assetId: Id;
+  version: string;
+  outcome: MotionReviewOutcome;
+  evidence?: MotionReviewEvidence;
+  note: string;
+  reviewedAt: string;
+}
+export interface SoundMixReview {
+  baseRevision: number; previewJobId: string; previewHash: string;
+  outcome: MotionReviewOutcome; method: "audio" | "audiovisual"; note: string;
+  signature: string; fromFrame: number; toFrame: number; recordedAt: string;
+}
+export interface ProjectReviews { motions: MotionWorkReview[]; soundMixes: SoundMixReview[] }
+
+export function managedMotionReviewOutcome(motion: Asset["motion"], review?: MotionWorkReview): MotionReviewOutcome | undefined {
+  if (!review || !motion || review.version !== motion.version) return undefined;
+  if (review.outcome === "passed" && (!review.evidence || !["continuous_video", "audiovisual"].includes(review.evidence.method)
+    || review.evidence.workStartFrame !== 0 || review.evidence.workEndFrame !== motion.frameCount)) return undefined;
+  return review.outcome;
 }
 
 export interface Asset {
@@ -346,7 +356,6 @@ export interface Asset {
     referenceUrl?: string;
     creativeBrief?: string;
     eventMap?: MotionEventMap;
-    review?: { referenceMatch?: MotionReviewOutcome; outcome?: MotionReviewOutcome; version?: string; evidence?: MotionReviewEvidence; note: string; reviewedAt: string };
   };
 }
 
@@ -1253,7 +1262,6 @@ export interface AudioCue {
   loopCrossfadeFrames?: number;
   sustained?: boolean;
   loopReview?: { status: "confirmed" | "inconclusive"; note: string };
-  mixReview?: "needs_review" | "reviewed";
   fadeInFrames: number;
   fadeOutFrames: number;
   /** 持续 SFX 循环另需明确交叉淡化及接缝复核。 */
@@ -1822,7 +1830,6 @@ export interface ProjectSnapshot {
   audioOutputTarget?: { targetLufs: number; toleranceLu: number; maxTruePeakDbfs: number };
   /** 最终混合的绝对增益；旧版本缺省为 0 dB，不改各轨音量。 */
   audioMixGainDb?: number;
-  soundReviews?: Array<{ baseRevision: number; previewJobId: string; previewHash?: string; outcome: "passed" | "failed" | "inconclusive"; method: "audio" | "audiovisual"; note: string; signature: string; fromFrame: number; toFrame: number; recordedAt: string }>;
   /** 只读历史采用资料，不作为制作或导出的前置。 */
   mediaAdoptions?: MediaAdoption[];
   voiceReferences: VoiceReference[];
