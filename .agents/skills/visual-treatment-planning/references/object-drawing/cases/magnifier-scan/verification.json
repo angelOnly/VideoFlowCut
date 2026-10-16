@@ -1,0 +1,39 @@
+{
+  "inputHash": "1176fec869b1e56fb3c1beceb9ceab33cc285e7b3a6fbb018a12c2664fb04473",
+  "engineVersion": "managed-motion-14",
+  "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
+  "width": 960,
+  "height": 540,
+  "fps": 24,
+  "durationInFrames": 120,
+  "resources": [],
+  "events": [
+    {
+      "id": "found",
+      "meaning": "镜片停止在异常数据标记上",
+      "startFrame": 77
+    }
+  ],
+  "determinism": {
+    "status": "exact",
+    "maxAllowedChannelDelta": 2,
+    "sampledFrames": [
+      0,
+      60,
+      119
+    ],
+    "differences": []
+  },
+  "files": {
+    "source.tsx": "51d039af31fa1c7b9e1a65655ab4126839556dc47d3519196107d475f4070cb7",
+    "demo-props.json": "33a7ac450d170c16f5ce44fdfe519b225ac290930c96d8c97b0f6e0525578f1b",
+    "preview.mp4": "4eefe716afbe61f3010620627c284cbad9bc1670d458dd6ae947f77b05377d8f",
+    "keyframes/frame-00000.png": "91a942002da3be9ee6978ebfdc4677167abd6be2130880a337490476fef6051c",
+    "keyframes/frame-00024.png": "79ba8aa545253d80cb795e5dde82e161d3a119a8125fc0d589290bb928505ebe",
+    "keyframes/frame-00048.png": "cd82f85eaf3ea6a925315ed78c5540b48a3d782a9e4642053ebba3e32433ec19",
+    "keyframes/frame-00077.png": "3d0e521ca4a8f240f87a9e029b9e49fc21deef9084584a11b8b15b1433040c0d",
+    "keyframes/frame-00100.png": "f2a4fdae94e7c6f8a2b1c9a2ee193c19f0269950c8887b18c00c0029cfd3e899"
+  },
+  "rendered": true,
+  "review": "已完成受管渲染、帧数与跳帧一致性技术检查；视觉观察另见 case.md，不由哈希推导审美结论。"
+}

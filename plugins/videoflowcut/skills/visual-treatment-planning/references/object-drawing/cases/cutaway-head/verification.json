@@ -1,0 +1,40 @@
+{
+  "inputHash": "2dade8f7679ac6895b97df04b0ab4f8cdacb8b5a6ce9c5bab49f7befa9db9d59",
+  "engineVersion": "managed-motion-14",
+  "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
+  "width": 960,
+  "height": 540,
+  "fps": 24,
+  "durationInFrames": 120,
+  "resources": [],
+  "events": [
+    {
+      "id": "inside",
+      "meaning": "球体落入开口，被前缘遮挡",
+      "startFrame": 60
+    }
+  ],
+  "determinism": {
+    "status": "exact",
+    "maxAllowedChannelDelta": 2,
+    "sampledFrames": [
+      0,
+      60,
+      119
+    ],
+    "differences": []
+  },
+  "files": {
+    "source.tsx": "8b196efb1d4f3057b5153a814455c4c8b3b5d12df902e313e054e1db5efddc15",
+    "demo-props.json": "be468499b1eac37686993ba0e424866c0da52d748c0a8c8b6a68d8205cbcdba3",
+    "preview.mp4": "a72f4b92b29147b195baeb4e6a8e2228b395b4a7fe4a77fab349560877316fb5",
+    "keyframes/frame-00000.png": "ff872020ef004a6185fd0a62cc16794d164291062a32628b6fac2d83a8e58297",
+    "keyframes/frame-00024.png": "fcd2a239768743a31f3aab57000c0b85c49cd334976a9918e7ad71a7d60d7b33",
+    "keyframes/frame-00042.png": "35994497b7e9c632feef3423689ff13b75c813d09a088620d54022d60b5447ce",
+    "keyframes/frame-00060.png": "6a78dabbb83c9a1f0ed4fab5e9999c9ffed1abb8cb8b3fddd39d4c5d6d868ed5",
+    "keyframes/frame-00084.png": "b63768aaf656bbaa23f34108f26e7f56b1f1b6f85f19db061dde6187fadd22d5",
+    "keyframes/frame-00110.png": "47734b841c4dc411338524b7bb09d8bf83c4d54d2d6c8c546c3b1b48f95d244c"
+  },
+  "rendered": true,
+  "review": "已完成受管渲染、帧数与跳帧一致性技术检查；视觉观察另见 case.md，不由哈希推导审美结论。"
+}

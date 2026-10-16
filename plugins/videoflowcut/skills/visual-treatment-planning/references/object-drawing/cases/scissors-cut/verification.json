@@ -1,0 +1,46 @@
+{
+  "inputHash": "f9f07672baab63422af1b45d43b9027bab7909e0a2c422d6fe6ec883ba70d557",
+  "engineVersion": "managed-motion-14",
+  "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
+  "width": 960,
+  "height": 540,
+  "fps": 24,
+  "durationInFrames": 120,
+  "resources": [],
+  "events": [
+    {
+      "id": "cut",
+      "meaning": "刀刃合拢，纸条从同一切口分离",
+      "startFrame": 53
+    },
+    {
+      "id": "land",
+      "meaning": "两片纸落定",
+      "startFrame": 86
+    }
+  ],
+  "determinism": {
+    "status": "exact",
+    "maxAllowedChannelDelta": 2,
+    "sampledFrames": [
+      0,
+      60,
+      119
+    ],
+    "differences": []
+  },
+  "files": {
+    "source.tsx": "28ed7bb6575e109406356b6009acceafb082801f24419e29b4885540adbdd3a8",
+    "demo-props.json": "1cbdb0b51b05437f153ed083348a669346284a3efa31818a657f58fdf08ab5bd",
+    "preview.mp4": "6231365e942a01116337fc37cd0b3e3e541c65962e655f7f3427bc8a58ab5e18",
+    "keyframes/frame-00000.png": "89c545f7420c0962fdc71d91c9d23e8b2f4f95ec32967fb507ceef68f94e2958",
+    "keyframes/frame-00029.png": "a965cfd6d0c79bcaa38a3d916c3a1d20e64be96f724cfd3c757bb715e780b71b",
+    "keyframes/frame-00048.png": "7185d12b65155c7e1fb8e0d184a1bb2ecf5b8f71ccf21a2d36e794fc8ade06fc",
+    "keyframes/frame-00053.png": "3d955c5402394c5c966444848744a258b65b1b3042564ed458e795d506c29e6d",
+    "keyframes/frame-00068.png": "f1bc82e077d8c137f32540600f547817b5eea9d1c606173b6694b7eee984fd50",
+    "keyframes/frame-00087.png": "2e33b6f36ec1ef600047994bef4d6171f25e5f841dd993d8c8f2ad998b957389",
+    "keyframes/frame-00110.png": "16832ecf500112348976b3bcdcd2d635fc83ed44b5387b48922a59f190e356f8"
+  },
+  "rendered": true,
+  "review": "已完成受管渲染、帧数与跳帧一致性技术检查；视觉观察另见 case.md，不由哈希推导审美结论。"
+}

@@ -1,0 +1,12 @@
+{
+  "name": "纸片翻面与骨牌落定",
+  "props": {
+    "instanceId": "domino-flip",
+    "background": "#e9e5d9"
+  },
+  "width": 960,
+  "height": 540,
+  "fps": 24,
+  "durationInFrames": 120,
+  "creativeBrief": "画出薄纸正面与有正面、侧面、顶面的骨牌背面。保留圆环身份；翻面中途保留薄边，不能直接切换两张卡。下落与翻面共用进度，接地后短暂压缩恢复，再保留结果。"
+}

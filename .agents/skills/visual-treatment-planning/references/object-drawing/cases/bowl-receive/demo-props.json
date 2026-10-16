@@ -1,0 +1,12 @@
+{
+  "name": "碗接住果实",
+  "props": {
+    "instanceId": "bowl-receive",
+    "background": "#e9e5d9"
+  },
+  "width": 960,
+  "height": 540,
+  "fps": 24,
+  "durationInFrames": 120,
+  "creativeBrief": "制作具有椭圆碗口、内壁、弧形前壁和圈足的陶碗。将三个有果梗和叶片的果实依次落入碗中，按各自接触时刻小幅回弹；前壁必须真正遮挡果实下部，不能靠淡出或缩小模拟装入。"
+}

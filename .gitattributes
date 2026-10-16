@@ -11,3 +11,7 @@ docs/VFC_topic_quality_v2_complete/** -text
 # 整场教学参考保留原始媒体、输入与提交快照字节，避免破坏来源哈希。
 .agents/skills/visual-treatment-planning/references/whole-scene-collaboration/** -text
 plugins/videoflowcut/skills/visual-treatment-planning/references/whole-scene-collaboration/** -text
+
+# 物件案例源码、参数与预览通过字节哈希关联，检出时不转换换行。
+.agents/skills/visual-treatment-planning/references/object-drawing/** -text
+plugins/videoflowcut/skills/visual-treatment-planning/references/object-drawing/** -text

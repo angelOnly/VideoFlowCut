@@ -1,0 +1,111 @@
+[
+  {
+    "id": "scissors-cut",
+    "title": "剪刀切割",
+    "origin": "adapted",
+    "functions": [
+      "sceneState",
+      "Scissors",
+      "Paper"
+    ],
+    "keyframes": [
+      0,
+      29,
+      48,
+      53,
+      68,
+      87,
+      110
+    ]
+  },
+  {
+    "id": "magnifier-scan",
+    "title": "放大镜扫描",
+    "origin": "adapted",
+    "functions": [
+      "sceneState",
+      "Magnifier"
+    ],
+    "keyframes": [
+      0,
+      24,
+      48,
+      77,
+      100
+    ]
+  },
+  {
+    "id": "domino-flip",
+    "title": "纸片翻面与骨牌落定",
+    "origin": "adapted",
+    "functions": [
+      "sceneState",
+      "Domino"
+    ],
+    "keyframes": [
+      0,
+      30,
+      43,
+      52,
+      67,
+      74,
+      100
+    ]
+  },
+  {
+    "id": "cutaway-head",
+    "title": "开顶石雕与内部承载",
+    "origin": "adapted",
+    "functions": [
+      "sceneState",
+      "StoneHead"
+    ],
+    "keyframes": [
+      0,
+      24,
+      42,
+      60,
+      84,
+      110
+    ]
+  },
+  {
+    "id": "bowl-receive",
+    "title": "碗接住果实",
+    "origin": "original",
+    "functions": [
+      "sceneState",
+      "Fruit",
+      "BowlBack",
+      "BowlFront"
+    ],
+    "keyframes": [
+      0,
+      24,
+      33,
+      48,
+      64,
+      82,
+      110
+    ]
+  },
+  {
+    "id": "book-open",
+    "title": "书籍展开与翻页",
+    "origin": "original",
+    "functions": [
+      "sceneState",
+      "Book",
+      "PageMarks"
+    ],
+    "keyframes": [
+      0,
+      24,
+      45,
+      60,
+      71,
+      89,
+      110
+    ]
+  }
+]

@@ -1,0 +1,46 @@
+{
+  "inputHash": "5c52db4f5c04db82d351c1f8410b91efcd9e655385f8a853b4ee052bf38cbffb",
+  "engineVersion": "managed-motion-14",
+  "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
+  "width": 960,
+  "height": 540,
+  "fps": 24,
+  "durationInFrames": 120,
+  "resources": [],
+  "events": [
+    {
+      "id": "edge",
+      "meaning": "纸片翻至侧面，身份标记保留",
+      "startFrame": 43
+    },
+    {
+      "id": "land",
+      "meaning": "骨牌落定并短暂压缩回弹",
+      "startFrame": 67
+    }
+  ],
+  "determinism": {
+    "status": "exact",
+    "maxAllowedChannelDelta": 2,
+    "sampledFrames": [
+      0,
+      60,
+      119
+    ],
+    "differences": []
+  },
+  "files": {
+    "source.tsx": "70c87bc7978eb76b501fbf04ee95ca5dff85a82eec52914f78ab88fd4a068afd",
+    "demo-props.json": "dc81d1c6aba52270f4804af40b703dbc400cc1f05778b80d3790c68327330148",
+    "preview.mp4": "f56396bc842c5fc3ae8a376d9be2af2e5d8f6003f0a9882b2a6a45a91d88cde9",
+    "keyframes/frame-00000.png": "f92423f49428ca944f30c60da7757a918ee49aae25bfe1e8762a801aaeabac90",
+    "keyframes/frame-00030.png": "9325d21a7d9b619ffebb72dd1240a97bcb3540a9605dcb412336fc8c5852ada7",
+    "keyframes/frame-00043.png": "92612d3fd54e12c16462aeee75cc258ce8ff249af565db31dc047517cc783bd3",
+    "keyframes/frame-00052.png": "24291c5a3292cbc46afdf1cb995d357fa0c03e950fe9e91b1a16a96a8dabeccd",
+    "keyframes/frame-00067.png": "df018f5bec9de5debb1e4aca23635fbb6e1216b590b00153cd42bf6349cae480",
+    "keyframes/frame-00074.png": "cd130d9a892a107c7d267ceb7c49cfdad90bdd775f90bc583dd96b4a3fd08c30",
+    "keyframes/frame-00100.png": "a843031fd08cdf4293c070cbb223f856e32ce9a1dfd34220eb7a464cef458b27"
+  },
+  "rendered": true,
+  "review": "已完成受管渲染、帧数与跳帧一致性技术检查；视觉观察另见 case.md，不由哈希推导审美结论。"
+}
