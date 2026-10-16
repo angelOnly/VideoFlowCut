@@ -1,0 +1,251 @@
+{
+  "来源": "https://github.com/chuspeeism/dashi-animationstyle/tree/aa620f3b859aa5d191b783b2eb0fb59263731c76",
+  "commit": "aa620f3b859aa5d191b783b2eb0fb59263731c76",
+  "状态": "待用户确认完整效果；存在字体差异",
+  "源码核对": {
+    "index.html": {
+      "upstream": "styles/超现实拼贴/示例_Token.html",
+      "identical": true,
+      "sha256": "8e61e06c57c33f132d4fef2becfe3ddf27763b539db1a3f7bb10c5b7d725a566"
+    },
+    "动效部件.js": {
+      "upstream": "pipeline/动效部件.js",
+      "identical": true,
+      "sha256": "f213cf14c6058b45be1f34c5428c3fceda04b2ac2f7ce1758722865d6555d002"
+    },
+    "timeline.js": {
+      "upstream": "examples/token/timeline.js",
+      "identical": false,
+      "sha256": "9a45be0f78bc96bc91108a5928f6409e4b19eca1acc328f10652a3598f4080a8",
+      "normalizedNewlinesIdentical": true,
+      "说明": "作者生成脚本输出 LF，仓库原时间线为 CRLF；仅换行不同，文本逐字一致。"
+    },
+    "口播.wav": {
+      "upstream": "examples/token/口播.wav",
+      "identical": true,
+      "sha256": "e77ae349f352aedcd4e2592d6c15e9fb8ef85f100c87fe855d3af631a683c842"
+    }
+  },
+  "运行环境": {
+    "Node": "24.14.0",
+    "Chrome": "155.0.8059.40",
+    "ffmpeg": "8.1-essentials_build",
+    "OS": "Windows",
+    "npm依赖": "原脚本不依赖 npm 包"
+  },
+  "字体": {
+    "已安装": [
+      "Montserrat"
+    ],
+    "未安装": [
+      "Hoefler Text",
+      "Source Han Serif SC",
+      "Songti SC",
+      "Avenir Next",
+      "PingFang SC",
+      "HanziPen SC",
+      "Hannotate SC"
+    ],
+    "处理": "未改字体栈，浏览器按原源码通用字体回退；不是逐像素复现"
+  },
+  "检查": {
+    "全片解码": "通过，无错误",
+    "源码": "原页面、动效部件、时间线及音频 SHA-256 对照见上",
+    "静帧": "查看 0、7.6、10.5、12.55、20.9 秒；与原仓库 7.6 秒静帧目视对照，字体有差异",
+    "连续效果认可": "未完成，待用户确认"
+  },
+  "文件": {
+    "index.html": {
+      "sha256": "006d9826e91aeac20e98050def8e661ef19e8b01059be2937737f02e2beacd5c",
+      "bytes": 1001
+    },
+    "README.md": {
+      "sha256": "8dc540dec9fdbaa1215246ef0b04786b8866b93a725e2538eb6afbe0ff5f248e",
+      "bytes": 3786
+    },
+    "scene/index.html": {
+      "sha256": "8e61e06c57c33f132d4fef2becfe3ddf27763b539db1a3f7bb10c5b7d725a566",
+      "bytes": 86415
+    },
+    "scene/timeline.js": {
+      "sha256": "9a45be0f78bc96bc91108a5928f6409e4b19eca1acc328f10652a3598f4080a8",
+      "bytes": 20779
+    },
+    "scene/作品.json": {
+      "sha256": "1745a773d47e2bac4efd20e2b02c26f6a2b64ef878771ba908d567fe5c2bc7df",
+      "bytes": 217
+    },
+    "scene/分镜.json": {
+      "sha256": "3133c3b466f31c3777c11e261550976916f16a8600de5e47d4b0f8111d736041",
+      "bytes": 10879
+    },
+    "scene/分镜.md": {
+      "sha256": "313bc7fe07043bbfc3dfaba4af11758d558ecbb0ea224602a0f86622c5406d86",
+      "bytes": 10833
+    },
+    "scene/动效部件.js": {
+      "sha256": "f213cf14c6058b45be1f34c5428c3fceda04b2ac2f7ce1758722865d6555d002",
+      "bytes": 25801
+    },
+    "scene/口播.wav": {
+      "sha256": "e77ae349f352aedcd4e2592d6c15e9fb8ef85f100c87fe855d3af631a683c842",
+      "bytes": 3734466
+    },
+    "scene/字幕.json": {
+      "sha256": "1845c0744246bf8f3293cce1228e4debb229b2e1b7819eb708332ea0a1b6d039",
+      "bytes": 18878
+    },
+    "scene/字幕.srt": {
+      "sha256": "76ba09944020a187b8bb6e4323be15c710d4ee297532af63c9f00a1b9db66d1a",
+      "bytes": 830
+    },
+    "scene/稿子.txt": {
+      "sha256": "cc74587db78a41c79c6cb27eb1aa92fd3458a3d29110b6065778a395f7b3e64c",
+      "bytes": 441
+    },
+    "upstream/examples/token/timeline.js": {
+      "sha256": "af214e1e4eb3e67a1b4f4d927497583cb9527a1d3543f806acfcf66c77d99c71",
+      "bytes": 22020
+    },
+    "upstream/examples/token/作品.json": {
+      "sha256": "72afb91a8c68400929b70af2eeac1cce59bebabe82a8a8d5f6dfde670175ae06",
+      "bytes": 365
+    },
+    "upstream/examples/token/分镜.json": {
+      "sha256": "3133c3b466f31c3777c11e261550976916f16a8600de5e47d4b0f8111d736041",
+      "bytes": 10879
+    },
+    "upstream/examples/token/分镜.md": {
+      "sha256": "313bc7fe07043bbfc3dfaba4af11758d558ecbb0ea224602a0f86622c5406d86",
+      "bytes": 10833
+    },
+    "upstream/examples/token/口播.wav": {
+      "sha256": "e77ae349f352aedcd4e2592d6c15e9fb8ef85f100c87fe855d3af631a683c842",
+      "bytes": 3734466
+    },
+    "upstream/examples/token/字幕.json": {
+      "sha256": "1845c0744246bf8f3293cce1228e4debb229b2e1b7819eb708332ea0a1b6d039",
+      "bytes": 18878
+    },
+    "upstream/examples/token/字幕.srt": {
+      "sha256": "76ba09944020a187b8bb6e4323be15c710d4ee297532af63c9f00a1b9db66d1a",
+      "bytes": 830
+    },
+    "upstream/examples/token/稿子.txt": {
+      "sha256": "cc74587db78a41c79c6cb27eb1aa92fd3458a3d29110b6065778a395f7b3e64c",
+      "bytes": 441
+    },
+    "upstream/LICENSE": {
+      "sha256": "8d3ec07cef8d95927e659eb264afdb334c3cb8e82774899775c2ddaa02442184",
+      "bytes": 1284
+    },
+    "upstream/pipeline/render.mjs": {
+      "sha256": "30f5841f8da0c9f852e0ddb1c7963db8df2f5750a46b83784827ca6ef9256cd7",
+      "bytes": 37695
+    },
+    "upstream/pipeline/丰富度检查.mjs": {
+      "sha256": "56db4ff8e480846baa5c80060e363e4945535560fd514e43a7fd83ec1283d3b4",
+      "bytes": 5168
+    },
+    "upstream/pipeline/动效部件.js": {
+      "sha256": "f213cf14c6058b45be1f34c5428c3fceda04b2ac2f7ce1758722865d6555d002",
+      "bytes": 25801
+    },
+    "upstream/pipeline/取色.mjs": {
+      "sha256": "337c130864bf0f6303e2814e93a52c2cc5fb6ec3714ba70e876a2b167c2ad1f5",
+      "bytes": 2208
+    },
+    "upstream/pipeline/字幕.mjs": {
+      "sha256": "0720e335da87bcea2ddde99f874f1d560312d09f1f426e38dee1dea34c86216b",
+      "bytes": 26022
+    },
+    "upstream/pipeline/新建作品.mjs": {
+      "sha256": "921fe4fb67034a65f48b17e1d9a02577d62073c4a6ebc50dc710ec5fa698c20c",
+      "bytes": 7454
+    },
+    "upstream/pipeline/生成timeline.mjs": {
+      "sha256": "f373075238b0e2134ce15a361467c8493e5979fe3d8de5658a5ae670ccffca8c",
+      "bytes": 9214
+    },
+    "upstream/pipeline/自检.mjs": {
+      "sha256": "1aa3fe03e1a74ca8a31c1af6b98cb1ba8c4bef3965f62c8e06691205966d5926",
+      "bytes": 8626
+    },
+    "upstream/README.md": {
+      "sha256": "f8e2c00d91b966e3b1bf3b0499faae59ee4a0e7133d71c0002c5ac8a42d1fcc9",
+      "bytes": 5969
+    },
+    "upstream/SKILL.md": {
+      "sha256": "a4e9a0c1e7a51a07ab6c126a0012fe0b4036282bbdd5fdbf2e12a4bdd7509ba2",
+      "bytes": 37514
+    },
+    "upstream/styles/超现实拼贴/模板.html": {
+      "sha256": "3c8cb367d45979b3fa3fb81339b03229c809cedf5492e535529e30513cb81fa5",
+      "bytes": 57506
+    },
+    "upstream/styles/超现实拼贴/示例_Token.html": {
+      "sha256": "8e61e06c57c33f132d4fef2becfe3ddf27763b539db1a3f7bb10c5b7d725a566",
+      "bytes": 86415
+    },
+    "upstream/styles/超现实拼贴/静帧/超现实拼贴_12.55s.jpg": {
+      "sha256": "1ef2c576cf8ef44bf44c82a83e5521eed4db9de5d55a15407d423c3f7d3ba4b3",
+      "bytes": 412344
+    },
+    "upstream/styles/超现实拼贴/静帧/超现实拼贴_20.90s.jpg": {
+      "sha256": "0ffee2e8ed1524f5231554eaf6ca3aa7db070a2241100d2f11bd90330d6c122d",
+      "bytes": 465258
+    },
+    "upstream/styles/超现实拼贴/静帧/超现实拼贴_7.60s.jpg": {
+      "sha256": "76745c151b355c45c200ba5d08be5932c70b2cc8803106a3d103035016d5736e",
+      "bytes": 454605
+    },
+    "upstream/styles/超现实拼贴/风格卡.md": {
+      "sha256": "9ed93770a4c0dd9af9fb1ec6bcc0e3e7fb4da4862f85b5e09cc8d4ed1e868c62",
+      "bytes": 23010
+    },
+    "upstream-source.zip": {
+      "sha256": "c89ed90922b4b187f7a87cff2b01bf6bfee1778c14f919e7fb1b688a6ae5e662",
+      "bytes": 4732266
+    },
+    "verification/media.json": {
+      "sha256": "dc50c8b008cf2583ce5349eec20735f8a07e231b732cc5835cd71f219d12e081",
+      "bytes": 4792
+    },
+    "verification/render.log": {
+      "sha256": "acae394df6147e4fda5657840571949308250704f110c5079597f6547b583b5f",
+      "bytes": 1602
+    },
+    "verification/stills.log": {
+      "sha256": "2f96e528a7b39ebaa972a58a7fedb8f3530b3febfa5d13e7ec1777770c462a0f",
+      "bytes": 1179
+    },
+    "verification/原作_480宽检查.png": {
+      "sha256": "8cd6f683eedad8a17ace2839a1c41416f5e154fd29f309781a161786a6add48a",
+      "bytes": 669797
+    },
+    "verification/原作_静帧_0.00s.png": {
+      "sha256": "9a7a11de3bd24e771ce8aab071a5e0387c2fdda48b4b40786fb99dd38c979b28",
+      "bytes": 1057960
+    },
+    "verification/原作_静帧_10.50s.png": {
+      "sha256": "a646f7c5e5592b5bbb87f8e394913a4c9baa84dd8cfe3b5fcc8a347f4b7ff925",
+      "bytes": 1662979
+    },
+    "verification/原作_静帧_12.55s.png": {
+      "sha256": "a808ab181b8d95717089192f81cd7052b06c4f3c526bd7c89b714230bd7485af",
+      "bytes": 1714114
+    },
+    "verification/原作_静帧_20.90s.png": {
+      "sha256": "67edac5570d78aaf5a5b92e77e7e91fe3985261faa688ae9256809e81730c3bc",
+      "bytes": 1914764
+    },
+    "verification/原作_静帧_7.60s.png": {
+      "sha256": "51001dcebbdcec70acf1198892eb78801eebf3a8abace2ac26dc30459cc35d0d",
+      "bytes": 1554189
+    },
+    "完整场面.mp4": {
+      "sha256": "34aa499b2f8a34cdc8842fd55cac6bd31d3c1bcf4cd5b5a403b39ac2521e7bfe",
+      "bytes": 23490819
+    }
+  }
+}

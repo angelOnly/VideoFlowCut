@@ -19,5 +19,12 @@
     "method": "frames",
     "verdict": "inconclusive",
     "note": "第67帧：正面、侧面、顶面和接地阴影可见；翻面与接地节奏待连续核查。"
+  },
+  {
+    "inputHash": "809e33f9513ed7652ba56e79e6bcca9f1136ab5e50e5154342d7ba26baeefe98",
+    "previewHash": "8b966e733d48adb09e81cb0cb71df099f58240bcba78ada24f7000d8d1628d6e",
+    "method": "frames",
+    "verdict": "inconclusive",
+    "note": "2026-10-16 材质返修：第67帧：固有色印刷颗粒、侧面厚度、承载纸与底边接触影可见；与原12.55秒骨牌局部对照，本版颗粒对比更低。 正常速度连续效果未观看，不作推荐认可。"
   }
 ]

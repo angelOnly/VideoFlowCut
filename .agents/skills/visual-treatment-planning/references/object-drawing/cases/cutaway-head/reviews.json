@@ -19,5 +19,12 @@
     "method": "frames",
     "verdict": "inconclusive",
     "note": "第135帧：五个骨牌位于内部石阶上，镜头聚焦开口；整个落入过程待连续核查。"
+  },
+  {
+    "inputHash": "6103a1f0539a3309aa74edd62010627969ed2ba3a98c24ac10df7aca5e7df14e",
+    "previewHash": "b7b334221e1c5d340da264f74f32ce0962fd46d4e73a82d967d6ef6f1863616f",
+    "method": "frames",
+    "verdict": "inconclusive",
+    "note": "2026-10-16 材质返修：第0、135帧：同源石材大尺度柔斑、细颗粒和切口连续，前后图集与内部石阶对齐；原石雕局部对照，未保留原剧情标签和装饰。 正常速度连续效果未观看，不作推荐认可。"
   }
 ]

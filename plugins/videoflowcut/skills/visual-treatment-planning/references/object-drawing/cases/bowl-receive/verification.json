@@ -1,12 +1,26 @@
 {
-  "inputHash": "69b652bfb4a9653003534d763b67d7f2897cb724bc52451be812f456b52ce42a",
+  "inputHash": "991f6475fc1741ba60f2d1650a62a6033c84c8db02a642dcfab9d634a2ec5244",
   "engineVersion": "managed-motion-14",
   "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
   "width": 960,
   "height": 540,
   "fps": 60,
   "durationInFrames": 204,
-  "resources": [],
+  "resources": [
+    {
+      "slot": "paper_base",
+      "resourceId": "paper_base",
+      "sha256": "f490dcfd6147c2f410cbde76b420fe5202b45df879ea7e073e4a5478028bbf97",
+      "mime": "image/png",
+      "width": 1920,
+      "height": 1080
+    }
+  ],
+  "performance": {
+    "elapsedMs": 39039,
+    "nodeMaxRssKiB": 346444,
+    "scope": "当前 Node 进程峰值；不含 Chrome/FFmpeg 子进程"
+  },
   "events": [
     {
       "id": "contact-0",
@@ -35,18 +49,19 @@
     "differences": []
   },
   "files": {
-    "source.tsx": "8c40cf4311cbc71af0dd6f6d3a8f6307956cc8ca96cc52a23680df2eb6f46eac",
+    "source.tsx": "99012189108306a08785186bf9a5bb9371ff21560fd26001fd55a7e50e72f39d",
     "demo-props.json": "015f52c11f45295612815cf806c64540fd78d6f19d36959ebc0cd75fcce51d1f",
-    "preview.mp4": "6ff855be9ad910173b0218232e2a6e9f03760da766f3291fb9cc67be23b97d3f",
-    "keyframes/frame-00000.png": "4c8532fa348833e2cfc6de96bb760fcb13560d16f3f0da5866b68449a7696d1f",
-    "keyframes/frame-00043.png": "d247e87e12a01d7649a53ca71b0c3abd0981f460d8172381b704a14ce57d0609",
-    "keyframes/frame-00065.png": "7eafa168fee1288beead2bb4ffcc8f016a7e3157aa68a7aceac2fbe82a209356",
-    "keyframes/frame-00082.png": "a43307a29dc1455bbc8f378700bb4a6a5d7e10bd8691d0cecbd6da547ddca311",
-    "keyframes/frame-00111.png": "b5bbe13abea9329b6b5ee87d4a1209cc5ff8d2e47a820aeff4d7ff33cb629e8d",
-    "keyframes/frame-00123.png": "1e9954df6aa7572d3802bb5ee53be4820b68f21f36ca6756bec1d7e60f8a9d05",
-    "keyframes/frame-00155.png": "3f0fde5785e5482314b0d801aaed917ee6d4250deb8ae2a1acdf2680af612df3",
-    "keyframes/frame-00190.png": "3f0fde5785e5482314b0d801aaed917ee6d4250deb8ae2a1acdf2680af612df3"
+    "resources.json": "d3201151f214234b13e8c444136dfecb47534c0ac95606dede1bb53914cadc2c",
+    "preview.mp4": "8d7dfbf646df5f81559082f36c42df9966ba41a53810d66fd13587f59c13a48c",
+    "keyframes/frame-00000.png": "d5fc23ce1f8f9eb212ef9b0e6ff321adb606e6523455f5544a630ca19c0f6aca",
+    "keyframes/frame-00043.png": "2abd9e4b4c76fa02ce7c689498d27d297bbe37d58b875739e85794f9878e6fd3",
+    "keyframes/frame-00065.png": "d4e291badc606637f426ccc29f065d292f7b4c8b1300c772d30cee833e021b94",
+    "keyframes/frame-00082.png": "fcf19675abe6912933a3039be7e4272df219513edfa8662bcf9464b362bdd9cf",
+    "keyframes/frame-00111.png": "cf0f16c53f879aeda46c5634e6451de47a5df191b410676b3edd9b8d12120ba6",
+    "keyframes/frame-00123.png": "5e657f65e8c762767a5b1841993ca4d36fdd3a0aa607c2c856382cc338e7f5a4",
+    "keyframes/frame-00155.png": "22a027ca723b8b526e462e7342017f22c88067a87c7dab22bd6be7b245d3d250",
+    "keyframes/frame-00190.png": "22a027ca723b8b526e462e7342017f22c88067a87c7dab22bd6be7b245d3d250"
   },
   "rendered": true,
-  "review": "已完成受管渲染、帧数与跳帧一致性技术检查；视觉观察另见 case.md，不由哈希推导审美结论。"
+  "review": "已完成受管渲染、帧数与跳帧一致性技术检查；视觉观察另见 reviews.json，不由哈希推导审美结论。"
 }

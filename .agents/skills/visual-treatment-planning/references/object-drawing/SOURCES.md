@@ -16,12 +16,12 @@
 - [scissors-cut](cases/scissors-cut/case.md)：scissors、drawScissors、drawStrip。双刀刃沿同一轴心反向旋转，橙色椭圆握柄与金属渐变刀刃独立。挂签附着左握柄，拥有独立衰减摆动；Paper 的四段保留图案身份，三处切口按刃口几何推进。
 - [magnifier-scan](cases/magnifier-scan/case.md)：magnifier。黑框、黄铜内圈、透明青色镜片、高光和斜柄分层；每实例独立渐变 ID。底层点阵保持原位置，镜片不会替换数据。
 - [domino-flip](cases/domino-flip/case.md)：domino、domState、drawStrip。采用原案例 124×218 正面和 15/9 厚度比例，左侧、顶面独立多边形；圆环身份跨两面保留。沿竖轴压缩至边缘再展开背面，属于二维投影示意。
-- [cutaway-head](cases/cutaway-head/case.md)：headPath、HEADTEX、drawInterior、drawHead。HEAD_PATH 保留原侧脸贝塞尔轮廓和椭圆开口，StoneHead 用固定种子斑块与颗粒重做石材；后壁、内部石阶、骨牌、前缘依次绘制。前壁遮挡不是对象淡出。
+- [cutaway-head](cases/cutaway-head/case.md)：headPath、HEADTEX、drawInterior、drawHead。HEAD_PATH 保留原侧脸贝塞尔轮廓和椭圆开口，StoneSurface 使用原 HEADTEX 的离线同源前后图集；后壁、内部石阶、骨牌、前缘依次绘制。前壁遮挡不是对象淡出。
 - [bowl-receive](cases/bowl-receive/case.md)：本项目新设计。BowlBack 给出后缘与内腔；BowlFront 单独绘制弧形前壁、釉色渐变、双线装饰及圈足。Fruit 分离果身、果梗与叶片，独立旋转。
 - [book-open](cases/book-open/case.md)：本项目新设计。书脊是所有开合的局部原点。刚性封面绕固定书脊旋转；两张有身份的页片使用32条等弧长曲面条带，正文与纸面共用投影。
 
-前四项保留轮廓、厚度、结构和局部变换制法，将 Canvas 重绘为 React/SVG，重新设计不依赖题材的演示时序。石材不用原离屏像素缓存，采用固定种子的 SVG 斑块和颗粒；外观与密度仍需实际观察，不声称逐像素等效。
-后两项是依据开口遮挡、铰接与翻面方法制造的新物件。示例均不使用图片、字体、视频和声音，资源清单为空；后续加入真实材料时仍走原绑定合同。
+前四项保留轮廓、厚度、结构和局部变换制法，将 Canvas 重绘为 React/SVG，重新设计不依赖题材的演示时序。本版恢复原 HEADTEX 离线像素材料，不迁入运行时 Canvas；前后两区来自同一份表面。
+后两项是依据开口遮挡、铰接与翻面方法制造的新物件。六例实际引用纸底 PNG，石雕另引用图集 PNG；其余表面用 SVG。没有新增字体、原作者口播或视频资源。
 
 ## 使用状态
 
@@ -35,3 +35,13 @@
 书籍连续参考候选：https://www.pexels.com/video/glancing-over-the-pages-of-a-book-5667416/ 。尚未取得连续观察，不作为本版已完成的制作依据或认可证据。
 
 当前版本的观察与否定记录保存在各例 reviews.json，绑定输入及实际视频哈希。更改输入、视频或重新渲染后须重新核查；技术通过不产生推荐资格。
+
+## 2026-10-16 最终材质方案实施
+
+固定提交 aa620f3b859aa5d191b783b2eb0fb59263731c76：已读取示例与模板的 PAPER/GRAIN/makePiece/HEADTEX/scissors/magnifier/domino、石阶分层与风格卡。只把 PAPER、HEADTEX 及必要纯绘制辅助摘录到仓库 scripts/object-drawing-texture-source.js（保留 MIT 版权）；scripts/build-object-drawing-textures.ts 离线运行该摘录，新增同源前侧裁切及16像素透明隔离边。运行时不执行原页面。
+
+paper-base.png：原1920×1080，种子5，两级斑驳、1100纤维与轻暗角。stone-head-atlas.png：原HB=(96,266)-(762,904)、s=2.4；取整1599×1532，两区合成3214×1532 RGBA。实际像素范围映射回局部坐标，完整/前侧比例与原点一致；动态图层不在图集中。
+
+只参考 makePiece 的固有色与表面叠层方法，没有迁入太阳、胶带或碎纸装饰。书、碗为本项目新设计；书壳为SVG织纹，页面受光和动态投影由本例几何计算，不冒称原仓库已有完整书籍或陶瓷实现。
+
+原页面实际时刻截图及GIF抽帧保存在隔离验证目录，前四例按相近尺度裁切对照。GIF与静帧只支持材料及姿态观察，不作为连续效果认可。六例仍为rework。

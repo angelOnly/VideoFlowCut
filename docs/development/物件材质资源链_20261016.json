@@ -1,0 +1,58 @@
+{
+  "inputHash": "6103a1f0539a3309aa74edd62010627969ed2ba3a98c24ac10df7aca5e7df14e",
+  "workspace": "E:\\ai\\VideoCut\\.repair-validation\\object-drawing\\project-integration\\run-2U9id4",
+  "projectId": "project_c3c4d88c-c0bd-4279-80af-50bcd477af9e",
+  "revision": 11,
+  "bindings": {
+    "paper_base": "asset_78bee634-aec1-452c-8cd5-f7f1ee2b5fc2",
+    "stone_head": "asset_a88c4970-8924-4feb-af07-9150e71dbb1a"
+  },
+  "jobId": "job_01dc7cdc-25ba-448c-a307-7b945f93aaed",
+  "motion": {
+    "assetId": "asset_94cbc19e-b079-43df-b3d6-d23cf6fa6370",
+    "version": "5581b88bf4da92cef01cfe6cbf8cb2a09148d8f075ff985ef7b6674d6db7abad",
+    "videoDecodes": {},
+    "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
+    "workReviewRequired": true,
+    "sourcePath": "assets/derived/motion/job_01dc7cdc-25ba-448c-a307-7b945f93aaed/5581b88bf4da92cef01cfe6cbf8cb2a09148d8f075ff985ef7b6674d6db7abad/source.json",
+    "previewPath": "assets/derived/motion/job_01dc7cdc-25ba-448c-a307-7b945f93aaed/5581b88bf4da92cef01cfe6cbf8cb2a09148d8f075ff985ef7b6674d6db7abad/preview.mp4",
+    "motionDiagnostics": {
+      "status": "exact",
+      "maxAllowedChannelDelta": 2,
+      "sampledFrames": [
+        0,
+        114,
+        227
+      ],
+      "differences": [],
+      "reportPath": "assets/derived/motion/job_01dc7cdc-25ba-448c-a307-7b945f93aaed/5581b88bf4da92cef01cfe6cbf8cb2a09148d8f075ff985ef7b6674d6db7abad/diagnostics/report.json"
+    }
+  },
+  "previewJobId": "job_68dfef4a-aabc-466c-9513-f74921f4808f",
+  "preview": {
+    "revision": 11,
+    "fromFrame": 0,
+    "toFrame": 228,
+    "path": "E:\\ai\\VideoCut\\.repair-validation\\object-drawing\\project-integration\\run-2U9id4\\projects\\project_c3c4d88c-c0bd-4279-80af-50bcd477af9e\\previews\\revision-11-0-228.mp4",
+    "relativePath": "previews\\revision-11-0-228.mp4",
+    "durationMs": 3861,
+    "fps": 60,
+    "frameCount": 228,
+    "hasAudio": true,
+    "audio": {
+      "decoded": true,
+      "integratedLufs": -70,
+      "truePeakDbfs": null,
+      "loudnessRangeLu": 0,
+      "silence": [
+        {
+          "startSeconds": 0,
+          "endSeconds": 3.861333
+        }
+      ],
+      "method": "ffmpeg_ebur128_true_peak_complete_decode",
+      "rawSummary": "Summary:\r\n\r\n  Integrated loudness:\r\n    I:         -70.0 LUFS\r\n    Threshold:   0.0 LUFS\r\n\r\n  Loudness range:\r\n    LRA:         0.0 LU\r\n    Threshold:   0.0 LUFS\r\n    LRA low:     0.0 LUFS\r\n    LRA high:    0.0 LUFS\r\n\r\n  True peak:\r\n    Peak:       -inf dBFS\r\n[out#0/null @ 00000255f76b4f40] video:0KiB audio:724KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown\r\nsize=N/A time=00:00:03.86 bitrate=N/A speed= 324x elapsed=0:00:00.01    \r\n"
+    },
+    "sourceHash": "b3839774c0f13f2a434418aca2bfa90eee11744e147330cdcf2ff2e03cec0aa2"
+  }
+}

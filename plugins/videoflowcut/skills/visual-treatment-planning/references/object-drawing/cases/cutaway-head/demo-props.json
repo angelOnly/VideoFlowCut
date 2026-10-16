@@ -3,7 +3,32 @@
   "props": {
     "instanceId": "cutaway-head",
     "background": "#e9e5d9",
-    "startFrame": 0
+    "startFrame": 0,
+    "stoneAtlas": {
+      "width": 3214,
+      "height": 1532,
+      "regions": {
+        "full": {
+          "x": 0,
+          "y": 0,
+          "width": 1599,
+          "height": 1532
+        },
+        "front": {
+          "x": 1615,
+          "y": 0,
+          "width": 1599,
+          "height": 1532
+        }
+      },
+      "local": {
+        "x": 96,
+        "y": 266,
+        "width": 666.25,
+        "height": 638.3333333333334,
+        "scale": 2.4
+      }
+    }
   },
   "width": 960,
   "height": 540,

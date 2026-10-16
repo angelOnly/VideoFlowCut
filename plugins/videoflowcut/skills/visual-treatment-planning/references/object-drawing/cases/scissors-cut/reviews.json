@@ -19,5 +19,12 @@
     "method": "frames",
     "verdict": "inconclusive",
     "note": "第56帧：纸带内部预先描边已去除，前刀覆盖纸、后刀位于纸后；未据此认可闭合全过程。"
+  },
+  {
+    "inputHash": "21a88df4152d152d4f5c237ca9250d31ddec931fbcd128fb2326e928649ca10b",
+    "previewHash": "72509b9b8ec9b7e2ccba75bc5b91057421af84ad232bcd7abc6d366a1e01b7e8",
+    "method": "frames",
+    "verdict": "inconclusive",
+    "note": "2026-10-16 材质返修：第55、56帧：刀面横向反射带、局部橙柄暗弧、挂签撕边和同纸身份可见；与原页面闭合姿态局部对照，保留三次切剪的结构差异。 正常速度连续效果未观看，不作推荐认可。"
   }
 ]

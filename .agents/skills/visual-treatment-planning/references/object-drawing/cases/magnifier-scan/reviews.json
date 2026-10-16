@@ -19,5 +19,12 @@
     "method": "frames",
     "verdict": "inconclusive",
     "note": "第118帧：镜片定位目标，镜框、镜柄与目标层次可辨；搜索节奏待连续核查。"
+  },
+  {
+    "inputHash": "9615505e6c5594adb0d621cd034f57c722324e19c0a55ba4f17e197a42f91337",
+    "previewHash": "dc6c17f96f1540bc23d08b609122d70ec068baee2d71abee6981ed346db9efa2",
+    "method": "frames",
+    "verdict": "inconclusive",
+    "note": "2026-10-16 材质返修：第118帧：黑框、黄铜圈与短高光可辨，镜框和柄投影落在短行符号纸面；与原页面搜索阶段局部对照，不声称有光学放大。 正常速度连续效果未观看，不作推荐认可。"
   }
 ]

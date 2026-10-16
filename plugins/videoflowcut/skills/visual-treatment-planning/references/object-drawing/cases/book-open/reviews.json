@@ -19,5 +19,12 @@
     "method": "frames",
     "verdict": "inconclusive",
     "note": "第94帧：翻页连接书脊，图案随曲面变形；右页仍有细条纹，连续质感待核查。"
+  },
+  {
+    "inputHash": "b45c29c82fb0cc0e3fb22e9e95328ef86041131a81213c95debbf058a74dc21c",
+    "previewHash": "676f482fc9b31a2601422f5cab16efcee04a0efa24aa33567adbc5a8084c5013",
+    "method": "frames",
+    "verdict": "inconclusive",
+    "note": "2026-10-16 材质返修：第24、94、177帧：封面、曲面页和静止页对应不同受光；第94帧纸面条带缝已修正，阴影分别落在封面和桌面，接收面外无悬空黑块；连续翻页观感仍未知。 正常速度连续效果未观看，不作推荐认可。"
   }
 ]

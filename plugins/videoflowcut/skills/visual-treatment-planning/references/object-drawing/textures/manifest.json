@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "resources": [
+    {
+      "id": "paper_base",
+      "path": "paper-base.png",
+      "mime": "image/png",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "f490dcfd6147c2f410cbde76b420fe5202b45df879ea7e073e4a5478028bbf97",
+      "source": {
+        "commit": "aa620f3b859aa5d191b783b2eb0fb59263731c76",
+        "file": "styles/超现实拼贴/示例_Token.html",
+        "generatorVersion": 1,
+        "generatorHash": "eef2fdcd55a301c942896683d9d157c7d10266b99dc1b02cc5e9e6dd0898f0ee",
+        "parameters": {
+          "paper": {
+            "gridSizes": [
+              90,
+              22
+            ],
+            "fibers": 1100
+          },
+          "stone": {
+            "HB": {
+              "x0": 96,
+              "y0": 266,
+              "x1": 762,
+              "y1": 904
+            },
+            "scale": 2.4,
+            "softBlotches": 140,
+            "grains": 5200,
+            "rimGrains": 1200,
+            "atlasGap": 16
+          }
+        },
+        "seeds": {
+          "paper": 5,
+          "stone": 31
+        },
+        "license": "../LICENSE"
+      }
+    },
+    {
+      "id": "stone_head",
+      "path": "stone-head-atlas.png",
+      "mime": "image/png",
+      "width": 3214,
+      "height": 1532,
+      "sha256": "e47cb4dabf59f546ab788679a4e9e5428e21b553b2b8d125677a1233d3461951",
+      "regions": {
+        "full": {
+          "x": 0,
+          "y": 0,
+          "width": 1599,
+          "height": 1532
+        },
+        "front": {
+          "x": 1615,
+          "y": 0,
+          "width": 1599,
+          "height": 1532
+        }
+      },
+      "local": {
+        "x": 96,
+        "y": 266,
+        "width": 666.25,
+        "height": 638.3333333333334,
+        "scale": 2.4
+      },
+      "lighting": "固定原 HEADTEX 朝向；仅平移和等比缩放，不能转头",
+      "source": {
+        "commit": "aa620f3b859aa5d191b783b2eb0fb59263731c76",
+        "file": "styles/超现实拼贴/示例_Token.html",
+        "generatorVersion": 1,
+        "generatorHash": "eef2fdcd55a301c942896683d9d157c7d10266b99dc1b02cc5e9e6dd0898f0ee",
+        "parameters": {
+          "paper": {
+            "gridSizes": [
+              90,
+              22
+            ],
+            "fibers": 1100
+          },
+          "stone": {
+            "HB": {
+              "x0": 96,
+              "y0": 266,
+              "x1": 762,
+              "y1": 904
+            },
+            "scale": 2.4,
+            "softBlotches": 140,
+            "grains": 5200,
+            "rimGrains": 1200,
+            "atlasGap": 16
+          }
+        },
+        "seeds": {
+          "paper": 5,
+          "stone": 31
+        },
+        "license": "../LICENSE"
+      }
+    }
+  ]
+}
