@@ -14,6 +14,7 @@ import { motionHash, motionHashEngine, MOTION_ENGINE_VERSION } from "../../../pa
 import { motionFrameName, renderManagedMotion, verifyMotionPreviewFrames, type MotionRenderResult } from "./motion-renderer.js";
 import { MotionDeterminismError } from "./motion-determinism.js";
 import { prepareMotionVideos } from "./motion-video.js";
+import { prepareMotionImages, type MotionImageDecode } from "./motion-images.js";
 import { DomainError } from "@videocut/domain";
 import { checkMotionDiskSpace, motionOutputBudget } from "./motion-output-budget.js";
 
@@ -66,7 +67,7 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
     try {
       diagnostics.stage("image_preparation");
       const outputBudget = motionOutputBudget(work.width, work.height, frameCount);
-      const imageData: Record<string, string> = {};
+      const imageBytes: Record<string, Buffer> = {};
       if (fonts.length) {
         await mkdir(join(temporary, "resources", "font-files"), { recursive: true });
         for (const { binding, dataUrl, format } of new Map(fonts.map(font => [font.binding.hash, font])).values()) {
@@ -83,11 +84,10 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
         if (!info.isFile() || info.size > 8 * 1024 * 1024) throw new Error("MOTION_IMAGE_BUDGET");
         const bytes = await readFile(path);
         if (createHash("sha256").update(bytes).digest("hex") !== image.hash) throw new Error("MOTION_IMAGE_CHANGED");
-        const mime = bytes.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])) ? "image/png" : bytes[0] === 255 && bytes[1] === 216 ? "image/jpeg" : bytes.toString("ascii", 0, 4) === "RIFF" && bytes.toString("ascii", 8, 12) === "WEBP" ? "image/webp" : undefined;
-        if (!mime) throw new Error("MOTION_IMAGE_FORMAT: 支持已验证 PNG、JPEG、WebP 图片");
-        imageData[image.slot] = `data:${mime};base64,${bytes.toString("base64")}`;
+        imageBytes[image.slot] = bytes;
         await writeFile(join(temporary, "resources", image.slot), bytes);
       }
+      const { imageData, imageDecodes } = await prepareMotionImages(imageBytes, join(temporary, "resources"), signal, diagnostics);
       diagnostics.stage("video_preparation");
       const provider = await prepareMotionVideos(snapshot.project.rootPath, temporary, work, boundVideos, hashEngineVersion, signal);
       let rendered: MotionRenderResult;
@@ -105,7 +105,7 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
       } finally { try { await provider.close(); } catch (closeError) { diagnostics.additional(closeError, "provider_close"); } }
       await writeFile(join(temporary, "source.json"), JSON.stringify(work, null, 2));
       const previewHash = createHash("sha256").update(await readFile(rendered.previewPath)).digest("hex");
-      await writeFile(join(temporary, "manifest.json"), JSON.stringify({ version, frameRange, hashEngineVersion, previewHash, frameHashes: rendered.frameHashes, engineVersion: rendered.engineVersion, sandbox: rendered.sandbox, boundImages, boundVideos, ...(boundFonts.length ? { boundFonts } : {}), videoDecodes: provider.videos, videoResources: provider.stats, events: rendered.events, determinism: rendered.determinism }, null, 2));
+      await writeFile(join(temporary, "manifest.json"), JSON.stringify({ version, frameRange, hashEngineVersion, previewHash, frameHashes: rendered.frameHashes, engineVersion: rendered.engineVersion, sandbox: rendered.sandbox, boundImages, imageDecodes, boundVideos, ...(boundFonts.length ? { boundFonts } : {}), videoDecodes: provider.videos, videoResources: provider.stats, events: rendered.events, determinism: rendered.determinism }, null, 2));
       signal?.throwIfAborted();
       if (application.trackJob(job.id).status === "cancelled") throw new DomainError("作品任务已取消", "MOTION_CANCELLED");
       await rename(temporary, directory);
@@ -131,7 +131,7 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
     }
   }
   diagnostics.stage("output_validation");
-  const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8")) as MotionRenderResult & { version: string; hashEngineVersion?: string; previewHash: string; videoDecodes?: Record<string, unknown> };
+  const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8")) as MotionRenderResult & { version: string; hashEngineVersion?: string; previewHash: string; imageDecodes: MotionImageDecode[]; videoDecodes?: Record<string, unknown> };
   const storedSource = motionSubmissionSchema.parse(JSON.parse(await readFile(join(directory, "source.json"), "utf8")));
   if (manifest.version !== version || !Array.isArray(manifest.frameHashes) || manifest.frameHashes.length !== frameCount || JSON.stringify((manifest as any).frameRange) !== JSON.stringify(frameRange) || motionHash(storedSource, boundImages, manifest.hashEngineVersion ?? manifest.engineVersion, boundVideos, boundFonts, sourceDisplay) !== version) throw new Error("MOTION_CACHE_CORRUPT");
   if (JSON.stringify((manifest as any).boundFonts ?? []) !== JSON.stringify(boundFonts)) throw new Error("MOTION_FONT_CACHE_CORRUPT");
@@ -143,6 +143,10 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
   }
   for (const image of boundImages) {
     if (createHash("sha256").update(await readFile(join(directory, "resources", image.slot))).digest("hex") !== image.hash) throw new Error("MOTION_RESOURCE_CACHE_CORRUPT");
+  }
+  for (const image of manifest.imageDecodes) {
+    if (boundImages.find(source => source.slot === image.slot)?.hash !== image.sourceHash
+      || createHash("sha256").update(await readFile(join(directory, "resources", image.path))).digest("hex") !== image.decodedHash) throw new Error("MOTION_RESOURCE_CACHE_CORRUPT");
   }
   // 完整作品缓存独立于可回收的解码缓存；重生成时才需要重新检查原片。
   if (JSON.stringify((manifest as any).boundVideos ?? []) !== JSON.stringify(boundVideos)) throw new Error("MOTION_RESOURCE_CACHE_CORRUPT");

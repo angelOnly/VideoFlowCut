@@ -34,7 +34,7 @@ test("创作说明的工具合同明确新作品必填并兼容旧输入", () =>
 
 test("布局重建隔离第十代引擎缓存，仍能核验第九代完整冻结输入", () => {
   const previous = motionHash(motionFixture, [], "managed-motion-9");
-  assert.equal(MOTION_ENGINE_VERSION, "managed-motion-13");
+  assert.equal(MOTION_ENGINE_VERSION, "managed-motion-14");
   assert.notEqual(motionHash(motionFixture), previous);
   assert.equal(motionHashEngine(motionFixture, [], previous), "managed-motion-9");
   assert.equal(motionHashEngine(motionFixture, [], previous, "managed-motion-9"), "managed-motion-9");

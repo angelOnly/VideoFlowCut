@@ -7,7 +7,7 @@ import type { BoundMotionFont, BoundMotionImage, BoundMotionVideo, DecodedMotion
 import { motionFontProps } from "./fonts.js";
 import { MotionSourceValidationError } from "./source-validation-error.js";
 
-export const MOTION_ENGINE_VERSION = "managed-motion-13";
+export const MOTION_ENGINE_VERSION = "managed-motion-14";
 const forbidden = new Set(["eval", "Function", "globalThis", "window", "document", "navigator", "location", "parent", "top", "opener", "self", "fetch", "XMLHttpRequest", "WebSocket", "Worker", "SharedWorker", "process", "require", "Date", "performance", "setTimeout", "setInterval", "requestAnimationFrame", "localStorage", "sessionStorage", "indexedDB", "constructor", "__proto__", "prototype"]);
 const prototypeProperties = new Set(["constructor", "__proto__", "prototype"]);
 const allowedImports: Record<string, Set<string>> = {
@@ -200,7 +200,7 @@ export function motionHash(input: MotionSubmission, images: BoundMotionImage[] =
 }
 /** 旧 Job 的输入哈希保持可核验；新提交固定新引擎，不能使历史作品版本漂移。 */
 export function motionHashEngine(input: MotionSubmission, images: BoundMotionImage[], version: unknown, declared?: unknown, videos: BoundMotionVideo[] = [], fonts: BoundMotionFont[] = [], sourceDisplay?: FrozenSourceDisplay): string {
-  const accepted = [MOTION_ENGINE_VERSION, "managed-motion-12", "managed-motion-11", "managed-motion-10", "managed-motion-9", "managed-motion-8", "managed-motion-7", "managed-motion-6", "managed-motion-5", "managed-motion-4", "managed-motion-3"];
+  const accepted = [MOTION_ENGINE_VERSION, "managed-motion-13", "managed-motion-12", "managed-motion-11", "managed-motion-10", "managed-motion-9", "managed-motion-8", "managed-motion-7", "managed-motion-6", "managed-motion-5", "managed-motion-4", "managed-motion-3"];
   const engine = accepted.find((candidate) => (declared === undefined || declared === candidate) && motionHash(input, images, candidate, videos, fonts, sourceDisplay) === version);
   if (!engine) throw new Error("MOTION_VERSION_MISMATCH");
   return engine;

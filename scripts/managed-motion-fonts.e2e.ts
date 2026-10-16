@@ -51,7 +51,7 @@ try {
   assert.equal(release.runtime.releaseId, runtime.releaseId);
   assert.equal(release.runtime.workers.media && release.runtime.workers.render, true);
   const capabilities = await call("read_motion_capabilities");
-  assert.equal(capabilities.engineVersion, "managed-motion-13");
+  assert.equal(capabilities.engineVersion, "managed-motion-14");
   assert.equal(capabilities.fonts.length, 34);
   const fontCatalog = JSON.parse(await readFile(join(pluginRoot, "runtime/dist/fonts/catalog.json"), "utf8"));
   for (const id of userFontIds) assert.ok(capabilities.fonts.some((font: any) => font.id === id), `候选MCP缺少原件：${id}`);

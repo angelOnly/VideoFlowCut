@@ -83,7 +83,7 @@ test("字体缺失、内容变更及目录逃逸明确失败，Worker不换绑�
     const bound = bindMotionFonts(fontWork, root);
     assert.throws(() => prepareMotionFonts(fontWork, bound.map(f => ({ ...f, weight: 500 })), root), /MOTION_FONT_BINDING_MISMATCH/u);
     const version = motionHash(fontWork, [], undefined, [], bound);
-    assert.equal(motionHashEngine(fontWork, [], version, undefined, [], bound), "managed-motion-13");
+    assert.equal(motionHashEngine(fontWork, [], version, undefined, [], bound), "managed-motion-14");
     assert.notEqual(version, motionHash(fontWork, [], undefined, [], bound.map(f => ({ ...f, hash: "0".repeat(64) }))));
     const legacy = motionHash(motionFixture, [], "managed-motion-12");
     assert.equal(motionHashEngine(motionFixture, [], legacy), "managed-motion-12");

@@ -85,6 +85,16 @@ Runtime 0.1.63的受管字体目录含得意黑原生窄斜与猫啃网烟波宋
 Runtime 0.1.64另接入用户提供的22份原件，目录共34份文件：Aa剑豪体、Aa厚底黑、Leefont蒙黑体、Muyao-Softbrush、PF频凡胡涂体、滑油字JP_N/JP_S/SC/TC、三极力量体简-粗、三极泼墨体、云峰飞云体、仓耳与墨W01–W04、仓耳舒圆体W01–W05、仓耳非白W01。只登记实际文件，云峰静龙行书缺文件暂不登记；来源与授权信息随NOTICE-UserFonts.txt发行。各版本独立固定哈希，仓耳不同粗细虽内部字重都是400仍按对应文件选择；Leefont蒙黑体为900，其余新增原件为400 normal。文件名可为发行改用ASCII，字体字节与内部元数据不变。这里仍只扩充受管动画字体，不加入字幕模板或固定动效。
 
 
+## JPEG 图片的固定解码
+
+从受管动画引擎 `managed-motion-14` 起，图片准备阶段将 JPEG 原件固定解码为全尺寸 sRGB PNG。当前 Chromium 对 JPEG 首次隐藏后显示、首次缩小显示可能产生不同像素；仅等待 `image.decode()` 或重建布局不能保证两条路径一致。
+
+调用链为 `runMotionJob → prepareMotionImages → renderManagedMotion → verifyMotionDeterminism`。已有浏览器在独立页面执行固定解码程序，图片不挂入布局、不提前缩小；原生解码应用 EXIF 方向与 ICC，sRGB 画布输出 PNG。作品仍使用原 `imageBindings` 和 `props.assets`，不需要作者转换图片或修改动作；PNG、WebP 路径保持原字节。
+
+`resources/<slot>` 保留原件，`resources/decoded/<slot>.png` 保存 JPEG 派生图。Manifest 的 `imageDecodes` 记录槽位、原件与派生哈希、相对路径、画幅、色彩空间和浏览器版本，复用缓存时验证原件及派生图。新引擎身份隔离旧缓存，历史已完成动画不重写；历史失败任务重新生成须按当前接口提交新版本。
+
+解码失败、取消、超时均中止当前任务，不回退到原 JPEG、不登记成功素材。首中末帧一致性门槛保持最大 2 色阶。代价是含 JPEG 的生成任务增加一次浏览器准备、全尺寸解码及 PNG 存储；广色域输入转到既定 sRGB 输出，不将该色彩转换称为完全无损。无 JPEG 不启动额外解码浏览器。
+
 ## 修复工单与候选部署合同
 
 仅确认平台或服务自身 Bug 阻断任务才报修，服务未启动或原因未知不构成该条件。以下为修复任务维护合同，执行仍核对实时 Schema。
