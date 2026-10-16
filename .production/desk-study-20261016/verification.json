@@ -1,0 +1,199 @@
+{
+  "projectId": "project_3938c8ef-553f-416b-ba35-7ec9696e4162",
+  "revision": 35,
+  "artifact": {
+    "id": "export_artifact_e1486cec-db9c-4cb5-b31c-ce98452dbce6",
+    "projectId": "project_3938c8ef-553f-416b-ba35-7ec9696e4162",
+    "revision": 35,
+    "jobId": "job_e6c6cbea-62d9-4128-bdfa-36b44717083b",
+    "purpose": "draft",
+    "relativePath": "exports\\revision-35\\draft-export_artifact_e1486cec-db9c-4cb5-b31c-ce98452dbce6.mp4",
+    "fileHash": "7f09a5f5a67a4c2e9b767fe15ec53b245e756a2be7b23ee11df43d75b92ee126",
+    "fileSizeBytes": 2839498,
+    "preflight": {
+      "id": "render_preflight_874ba063-e5fc-47cf-ad2e-ad9cf65aebe2",
+      "projectId": "project_3938c8ef-553f-416b-ba35-7ec9696e4162",
+      "revision": 35,
+      "purpose": "draft",
+      "status": "passed",
+      "checks": [
+        {
+          "status": "passed",
+          "code": "PREFLIGHT_MEDIA_DECODABLE",
+          "message": "素材“编排旁白 job_d2037d84-97b6-4891-88ec-36162c16e36d”已通过当前 Worker 的媒体探测。",
+          "objectId": "asset_6ef321f3-eebb-4844-a39d-2145380d9d3b"
+        },
+        {
+          "status": "passed",
+          "code": "PREFLIGHT_MEDIA_DECODABLE",
+          "message": "素材“audio.flac”已通过当前 Worker 的媒体探测。",
+          "objectId": "asset_aefe63fd-485c-4db6-a8a3-c7656e0ee89a"
+        },
+        {
+          "status": "passed",
+          "code": "PREFLIGHT_MEDIA_DECODABLE",
+          "message": "素材“audio.flac”已通过当前 Worker 的媒体探测。",
+          "objectId": "asset_94cd2043-63a2-4097-9c5d-9039e8674567"
+        },
+        {
+          "status": "passed",
+          "code": "PREFLIGHT_MEDIA_DECODABLE",
+          "message": "素材“桌面整理·给下一次留个顺手的位置”已通过当前 Worker 的媒体探测。",
+          "objectId": "asset_e0a6fc00-f363-46bc-a0af-2e6c3453b9e1"
+        },
+        {
+          "status": "passed",
+          "code": "PREFLIGHT_EFFECT_COMPONENTS_AVAILABLE",
+          "message": "当前 Revision 的已启用效果均可由现有 Remotion Registry 解析。"
+        },
+        {
+          "status": "passed",
+          "code": "PREFLIGHT_FONT_RUNTIME",
+          "message": "当前首版只使用 Remotion 运行时固定字体栈，不存在额外的项目级字体文件依赖。"
+        }
+      ],
+      "checkedAt": "2026-10-16T14:00:02.129Z"
+    },
+    "validation": {
+      "durationMs": 14464,
+      "hasAudio": true,
+      "blackSegments": [],
+      "audio": {
+        "decoded": true,
+        "integratedLufs": -22,
+        "truePeakDbfs": -3.8,
+        "loudnessRangeLu": 3.8,
+        "silence": [
+          {
+            "startSeconds": 2.284521,
+            "endSeconds": 3.246812
+          },
+          {
+            "startSeconds": 6.187917,
+            "endSeconds": 6.909667
+          },
+          {
+            "startSeconds": 8.795979,
+            "endSeconds": 9.309667
+          },
+          {
+            "startSeconds": 9.388958,
+            "endSeconds": 9.895104
+          },
+          {
+            "startSeconds": 13.731063,
+            "endSeconds": 14.464
+          }
+        ],
+        "method": "ffmpeg_ebur128_true_peak_complete_decode",
+        "rawSummary": "Summary:\r\n\r\n  Integrated loudness:\r\n    I:         -22.0 LUFS\r\n    Threshold: -32.3 LUFS\r\n\r\n  Loudness range:\r\n    LRA:         3.8 LU\r\n    Threshold: -42.7 LUFS\r\n    LRA low:   -24.5 LUFS\r\n    LRA high:  -20.7 LUFS\r\n\r\n  True peak:\r\n    Peak:       -3.8 dBFS\r\n[out#0/null @ 00000195252dbf80] video:0KiB audio:2712KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown\r\nsize=N/A time=00:00:14.46 bitrate=N/A speed= 397x elapsed=0:00:00.03    \r\n"
+      },
+      "fps": 30,
+      "frameCount": 432
+    },
+    "sourceManifest": {
+      "relativePath": "manifests\\sources\\export_artifact_e1486cec-db9c-4cb5-b31c-ce98452dbce6.json",
+      "generatedAt": "2026-10-16T14:00:14.706Z",
+      "entries": [
+        {
+          "assetId": "asset_94cd2043-63a2-4097-9c5d-9039e8674567",
+          "name": "audio.flac",
+          "sourceHash": "8d520610bd91a15030a9bcf323bdf1d574e3a351401d7983c6b7832cb7eea84a",
+          "source": "generated",
+          "provider": "bridge:stable-audio-3-medium-v1",
+          "acquiredAt": "2026-10-16T13:44:01.425Z"
+        },
+        {
+          "assetId": "asset_aefe63fd-485c-4db6-a8a3-c7656e0ee89a",
+          "name": "audio.flac",
+          "sourceHash": "7418c4f16bb8b02b8f92b0697e80d219ac2b20c5ad0a481fe66f2d94ef3a4ccd",
+          "source": "generated",
+          "provider": "bridge:stable-audio-3-medium-v1",
+          "acquiredAt": "2026-10-16T13:43:37.462Z"
+        },
+        {
+          "assetId": "asset_e0a6fc00-f363-46bc-a0af-2e6c3453b9e1",
+          "name": "桌面整理·给下一次留个顺手的位置",
+          "sourceHash": "0e5d2848c0d77bb59087a972dc846324390f788300642478ef631e3f9b607a8e",
+          "source": "generated",
+          "provider": "managed_remotion",
+          "acquiredAt": "2026-10-16T13:58:59.108Z"
+        }
+      ]
+    },
+    "createdAt": "2026-10-16T14:00:14.711Z"
+  },
+  "preview": {
+    "jobId": "job_78bd3848-bcec-4958-a670-c0e6bf20ea15",
+    "execution": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-16T13:59:32.131Z",
+          "finishedAt": "2026-10-16T13:59:43.972Z",
+          "outcome": "succeeded"
+        }
+      ],
+      "lastProgressAt": "2026-10-16T13:59:43.972Z"
+    },
+    "revision": 35,
+    "fromFrame": 0,
+    "toFrame": 432,
+    "path": "E:\\ai\\VideoCut\\workspace\\projects\\project_3938c8ef-553f-416b-ba35-7ec9696e4162\\previews\\revision-35-0-432.mp4",
+    "relativePath": "previews\\revision-35-0-432.mp4",
+    "durationMs": 14464,
+    "fps": 30,
+    "frameCount": 432,
+    "hasAudio": true,
+    "audio": {
+      "decoded": true,
+      "integratedLufs": -22,
+      "truePeakDbfs": -3.8,
+      "loudnessRangeLu": 3.8,
+      "silence": [
+        {
+          "startSeconds": 2.284521,
+          "endSeconds": 3.246812
+        },
+        {
+          "startSeconds": 6.187917,
+          "endSeconds": 6.909667
+        },
+        {
+          "startSeconds": 8.795979,
+          "endSeconds": 9.309667
+        },
+        {
+          "startSeconds": 9.388958,
+          "endSeconds": 9.895104
+        },
+        {
+          "startSeconds": 13.731063,
+          "endSeconds": 14.464
+        }
+      ],
+      "method": "ffmpeg_ebur128_true_peak_complete_decode",
+      "rawSummary": "Summary:\r\n\r\n  Integrated loudness:\r\n    I:         -22.0 LUFS\r\n    Threshold: -32.3 LUFS\r\n\r\n  Loudness range:\r\n    LRA:         3.8 LU\r\n    Threshold: -42.7 LUFS\r\n    LRA low:   -24.5 LUFS\r\n    LRA high:  -20.7 LUFS\r\n\r\n  True peak:\r\n    Peak:       -3.8 dBFS\r\n[out#0/null @ 000001f12e152600] video:0KiB audio:2712KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown\r\nsize=N/A time=00:00:14.46 bitrate=N/A speed= 391x elapsed=0:00:00.03    \r\n"
+    },
+    "sourceHash": "7f09a5f5a67a4c2e9b767fe15ec53b245e756a2be7b23ee11df43d75b92ee126"
+  },
+  "motion": {
+    "assetId": "asset_e0a6fc00-f363-46bc-a0af-2e6c3453b9e1",
+    "jobId": "job_1a780527-6cef-4935-9b2e-81c86d5ff6f5",
+    "version": "06584186f81f43274861fba05ac1c4f2207f330c63a5acdd9ff5c88d41bfc80d"
+  },
+  "quality": {
+    "requiredFixes": [],
+    "exportReadiness": {
+      "draft": {
+        "allowed": true,
+        "blockers": []
+      },
+      "delivery": {
+        "allowed": true,
+        "blockers": []
+      }
+    }
+  },
+  "observationStatus": "关键静帧及局部采样已审；正常速度动态、原生听感与声画待确认；未正式推荐"
+}

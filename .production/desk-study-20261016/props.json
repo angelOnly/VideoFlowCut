@@ -1,0 +1,11 @@
+{
+  "timings": {
+    "sort": 3,
+    "store": 4.4,
+    "take": 6.83,
+    "write": 7.53,
+    "home": 8.56,
+    "ending": 9.67,
+    "next": 12.05
+  }
+}

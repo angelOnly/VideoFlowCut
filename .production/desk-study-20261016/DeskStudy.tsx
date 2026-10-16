@@ -1,0 +1,75 @@
+import React from 'react';
+import {Img, useCurrentFrame, useVideoConfig} from 'remotion';
+
+// 所有对象按绝对作品时钟求值；取用和归位沿同一支笔，不重建替身。
+const C = {ink:'#173e3b', teal:'#3a9693', light:'#7cb5aa', deep:'#1c5d5b', orange:'#ec602e', paper:'#f7f1df', ochre:'#cda74d'};
+const clamp=(v:number)=>Math.max(0,Math.min(1,v));
+const p=(t:number,a:number,d:number)=>clamp((t-a)/d);
+const out=(v:number)=>1-(1-v)**3;
+const smooth=(v:number)=>v*v*(3-2*v);
+const back=(v:number)=>1+2.15*(v-1)**3+1.15*(v-1)**2;
+const mix=(a:number,b:number,v:number)=>a+(b-a)*v;
+const arc=(a:number,b:number,v:number,h:number)=>mix(a,b,v)-Math.sin(Math.PI*clamp(v))*h;
+const defaults={sort:4.1,store:7.4,take:11.2,write:12.4,home:14.5,ending:16.2,next:21.4};
+export const timing=(d:any)=>({...defaults,...d.timings});
+export function resolveMotionEvents(d:any,{fps}:any){const a=timing(d);return [
+  {id:'drawer.open',meaning:'抽屉拉出并显露内部',startFrame:Math.round((a.store-.65)*fps),endFrame:Math.round((a.store+.05)*fps)},
+  {id:'drawer.close',meaning:'物品已进入后抽屉开始推回，至完全关闭',startFrame:Math.round((a.store+2.0)*fps),endFrame:Math.round((a.store+2.45)*fps)},
+  {id:'drawer.closed',meaning:'抽屉完全关闭并到位',startFrame:Math.round((a.store+2.45)*fps)},
+  {id:'pen.write',meaning:'笔尖接触纸面并留下笔迹',startFrame:Math.round(a.write*fps),endFrame:Math.round((a.write+1.0)*fps)},
+  {id:'pen.home',meaning:'同一支笔落回浅托盘',startFrame:Math.round((a.home+.72)*fps)},
+  {id:'pen.next',meaning:'下一次从原处顺手取笔',startFrame:Math.round(a.next*fps)}
+];}
+function G({x=0,y=0,r=0,s=1,a=1,children}:any){return <div style={{position:'absolute',left:0,top:0,transformOrigin:'0 0',transform:`translate(${x}px,${y}px) rotate(${r}deg) scale(${s})`,opacity:a}}>{children}</div>}
+function V({children}:any){return <svg width={1920} height={1080} style={{position:'absolute',left:0,top:0,overflow:'visible'}}>{children}</svg>}
+function Grain({d,x,y,w,h,alpha=.28,clip}:any){return <div style={{position:'absolute',left:x,top:y,width:w,height:h,overflow:'hidden',opacity:alpha*.5,clipPath:clip}}>{Array.from({length:Math.ceil(w/128)},(_,i)=>Array.from({length:Math.ceil(h/128)},(_,j)=><Img key={`${i}-${j}`} src={d.assets.grain} style={{position:'absolute',left:i*128,top:j*128,width:128,height:128}}/>))}</div>}
+function Text({d,text,x=0,y=0,size=60,slot='title',fill=C.ink,anchor='start',stroke,strokeWidth=0}:any){const f=d.fonts[slot];return <V><text x={x} y={y} fill={fill} fontFamily={f.family} fontWeight={f.weight} fontStyle={f.style} fontSize={size} textAnchor={anchor} stroke={stroke} strokeWidth={strokeWidth} paintOrder="stroke">{text}</text></V>}
+
+// 窄反射带只在笔杆局部，金属笔尖和夹子独立保持结构。
+function Pen(){return <V><defs><linearGradient id="penBody" x1="0" y1="-15" x2="0" y2="15" gradientUnits="userSpaceOnUse"><stop stopColor="#8e311e"/><stop offset=".25" stopColor="#f49c62"/><stop offset=".42" stopColor="#f56c35"/><stop offset=".75" stopColor="#ce431d"/><stop offset="1" stopColor="#822e1e"/></linearGradient><linearGradient id="brass"><stop stopColor="#694f25"/><stop offset=".42" stopColor="#ffe3a0"/><stop offset=".62" stopColor="#b5934a"/><stop offset="1" stopColor="#805c2d"/></linearGradient></defs><path d="M0 0 L39 -13 L45 0 L39 13Z" fill="url(#brass)" stroke="#483b26" strokeWidth="1.2"/><path d="M0 0 L30 0" stroke="#3c3730" strokeWidth="1.3"/><circle cx="28" cy="0" r="2.7" fill="#493e2f"/><path d="M39 -14 L228 -14 Q250 -13 250 0 Q250 13 228 14 L39 14Z" fill="url(#penBody)" stroke="#82341f" strokeWidth="2"/><path d="M46 -11 L204 -11" stroke="#ffcc92" strokeWidth="2" opacity=".8"/><path d="M178 -14 L178 14 M185 -14 L185 14" stroke="url(#brass)" strokeWidth="4"/><path d="M207 -11 L154 -11 Q147 -10 148 -4" stroke="#534c37" strokeWidth="5" fill="none"/><path d="M207 -13 L154 -13 Q150 -13 150 -6" stroke="#ffe7ae" strokeWidth="2.4" fill="none"/></V>}
+function Eraser({d}:any){return <><V><path d="M-48 -24 L35 -24 L48 -12 L48 23 L-36 23 L-48 10Z" fill="#be7562"/><path d="M-48 -24 L35 -24 L48 -12 L-35 -12Z" fill="#edbba0"/><path d="M-35 -12 L48 -12 L48 23 L-35 23Z" fill="#dfa68d"/><path d="M-18 -24 L20 -24 L33 -12 L33 23 L-6 23 L-18 10Z" fill="#efdfbb"/><path d="M-18 -24 L20 -24 L33 -12 L-6 -12Z" fill="#fff3d3"/><path d="M-6 -10 L31 -10" stroke="#b39d73" strokeWidth="2"/></V><Grain d={d} x={-47} y={-23} w={94} h={46} alpha={.35}/></>}
+function Roll({d}:any){return <><V><ellipse cy="14" rx="57" ry="32" fill="#b08632"/><path d="M-57 0 V15 A57 32 0 0 0 57 15 V0Z" fill="#d4aa4a"/><ellipse rx="57" ry="32" fill="#ead18b" stroke="#a88239" strokeWidth="2"/><ellipse rx="28" ry="16" fill="#a3864f"/><ellipse cy="4" rx="24" ry="12" fill="#ece1bd"/><path d="M43 20 Q70 34 95 17 L100 31 Q75 50 42 35Z" fill="#dbb862"/><path d="M-43 -9 Q-10 -29 37 -10" stroke="#fff1c4" strokeWidth="3" fill="none"/></V><Grain d={d} x={-58} y={-32} w={116} h={65} alpha={.22} clip="ellipse(50% 50% at 50% 50%)"/></>}
+function Tray({d}:any){return <G x={430} y={490} r={-3}><V><path d="M0 0 L330 0 L352 94 L-20 94Z" fill="#174d4a" stroke="#163e3b" strokeWidth="3"/><path d="M13 12 L318 12 L333 76 L-3 76Z" fill="#286d66"/><path d="M13 12 L318 12 L312 22 L17 22Z" fill="#113f3c"/><path d="M-20 94 L352 94 L350 110 L-19 110Z" fill="#154c49"/><path d="M-17 91 L347 91" stroke="#8bb7a5" strokeWidth="4"/><path d="M20 29 L308 29 L317 67 L11 67Z" fill="#569385" opacity=".5"/></V><Grain d={d} x={0} y={10} w={330} h={80} alpha={.18}/></G>}
+const linePts=[[70,108],[91,96],[113,113],[135,88],[153,109],[179,101],[203,110],[228,93],[259,99]];
+function writePoint(q:number){const v=clamp(q)*(linePts.length-1),i=Math.min(linePts.length-2,Math.floor(v)),f=v-i;return {x:mix(linePts[i][0],linePts[i+1][0],f),y:mix(linePts[i][1],linePts[i+1][1],f)}}
+function noteWorld(x:number,y:number){const r=-6*Math.PI/180;return {x:815+x*Math.cos(r)-y*Math.sin(r),y:375+x*Math.sin(r)+y*Math.cos(r)}}
+function Notebook({d,write,next}:any){return <G x={815} y={375} r={-6}><V><path d="M-10 5 L344 5 L344 250 L-10 250Z" fill="#654c36" opacity=".13" transform="translate(12 17)"/><path d="M-9 -3 L339 -3 L341 240 L-7 243Z" fill="#c98953" stroke="#715035" strokeWidth="2"/><path d="M0 0 L330 0 L330 231 L0 234Z" fill="#d8cfaf"/><path d="M0 0 L330 0 L328 222 L0 225Z" fill="#fff9e6" stroke="#cabf9f" strokeWidth="1.5"/><path d="M12 0 L12 222" stroke="#baac8b" strokeWidth="2"/>{[47,77,135,167,197].map((y,i)=><path key={i} d={`M42 ${y} L295 ${y}`} stroke="#9aa99a" strokeWidth="1.5" opacity=".5"/>)}{[22,55,88,121,154,187,220].map((y,i)=><g key={i}><ellipse cx="0" cy={y} rx="8" ry="5" fill="#806f55"/><path d={`M0 ${y} C-24 ${y-14} -24 ${y+11} 0 ${y+7}`} stroke="#374a43" strokeWidth="4" fill="none"/></g>)}</V><Grain d={d} x={15} y={1} w={308} h={220} alpha={.16}/><V><polyline points={linePts.map(v=>v.join(',')).join(' ')} fill="none" stroke="#2d4940" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" pathLength="1" strokeDasharray={`${write} 1`} opacity={write>0?1:0}/><path d="M66 163 L80 176 L104 149" fill="none" stroke="#2d4940" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" pathLength="1" strokeDasharray={`${next} 1`} opacity={next>0?1:0}/></V></G>}
+
+function Desk({d,t,open,children}:any){return <><V><ellipse cx="988" cy="915" rx="750" ry="42" fill="#6e705f" opacity=".10"/><path d="M304 672 L350 674 L331 901 L296 901Z M1568 661 L1609 661 L1640 901 L1605 901Z" fill="#244e48"/><path d="M332 679 L350 674 L331 901 L321 901Z M1582 674 L1609 661 L1640 901 L1626 901Z" fill="#123b37"/><path d="M1136 626 L1660 626 L1650 873 L1128 873Z" fill="#215e58"/><path d="M1128 660 L1647 660 L1630 862 L1134 862Z" fill="#28665e"/><path d="M334 300 L1568 300 L1730 668 L184 668Z" fill="#99b9a1" stroke="#335f54" strokeWidth="3"/><path d="M184 668 L1730 668 L1727 697 L187 697Z" fill="#357f73"/><path d="M184 668 L1730 668" stroke="#e3dfbb" strokeWidth="5"/><path d="M334 300 L1568 300 L1721 656 L194 656Z" fill="#afc5aa"/>{[0,1,2,3,4,5,6].map((i)=><path key={i} d={`M${343-i*20} ${326+i*48} Q${820+i*17} ${310+i*48} ${1580+i*20} ${326+i*48}`} fill="none" stroke="#567f67" strokeWidth="1.4" opacity=".16"/>)}</V><Grain d={d} x={184} y={300} w={1546} h={367} alpha={.22} clip="polygon(9.7% 0%,89.6% 0%,100% 100%,0% 100%)"/>{children}</>}
+// 抽屉底、侧壁和前缘在同一坐标中移动；内容只在穿过敞口后受前缘遮挡。
+function DrawerBack({open}:any){const y=650+open*155;return <G a={clamp(open*8)}><V><path d={`M1150 650 L1604 650 L1622 ${y+16} L1130 ${y+16}Z`} fill="#b28b56" stroke="#254b40" strokeWidth="3"/><path d={`M1162 662 L1592 662 L1605 ${y} L1146 ${y}Z`} fill="#d1b17c"/><path d={`M1150 650 L1162 662 L1146 ${y} L1130 ${y+16}Z`} fill="#806b46"/><path d={`M1604 650 L1592 662 L1605 ${y} L1622 ${y+16}Z`} fill="#705b3d"/><path d={`M1164 671 L1589 671`} stroke="#80683e" strokeWidth="10"/><path d={`M1153 ${y-8} L1600 ${y-8}`} stroke="#b09260" strokeWidth="2"/></V></G>}
+function DrawerFront({open}:any){const y=650+open*155;return <V><path d={`M1130 ${y} L1622 ${y} L1618 ${y+140} L1135 ${y+140}Z`} fill="#2f7d73" stroke="#153f3b" strokeWidth="3"/><path d={`M1130 ${y} L1622 ${y} L1614 ${y+15} L1138 ${y+15}Z`} fill="#86b3a0"/><path d={`M1308 ${y+63} Q1374 ${y+83} 1440 ${y+63}`} stroke="#163f3a" strokeWidth="12" strokeLinecap="round" fill="none"/><path d={`M1308 ${y+60} Q1374 ${y+75} 1440 ${y+60}`} stroke="#d7b56d" strokeWidth="7" strokeLinecap="round" fill="none"/></V>}
+
+function penPose(t:number,a:any){let x=665,y=463,r=14,lift=0;
+  // 误动作在开口之前截停；回身时先变姿态，再短促回到顺手位置。
+  if(t<3.65){const q=out(p(t,.85,.58)),stop=p(t,1.6,.18),ret=back(p(t,2.0,.72));x=mix(665,1025,q);y=arc(463,520,q,90);r=mix(14,-28,q)+Math.sin(stop*Math.PI)*7;x=mix(x,480,ret);y=mix(y,550,ret);r=mix(r,-12,ret);lift=Math.sin(Math.PI*q)*50;
+  }else{x=480;y=550;r=-12;}
+  if(t>=a.take&&t<a.home){const q=out(p(t,a.take,.72));const wp=writePoint(p(t,a.write,1.0));const dest=noteWorld(wp.x,wp.y);x=mix(480,dest.x,q);y=arc(550,dest.y,q,170);r=mix(-12,-58,back(p(t,a.take+.08,.64)));lift=65*Math.sin(Math.PI*q);if(t>=a.write){x=dest.x;y=dest.y;r=-58+3*Math.sin(p(t,a.write,1)*Math.PI*4);lift=0;}}
+  if(t>=a.home&&t<a.next){const start=noteWorld(259,99),q=out(p(t,a.home,.72));x=mix(start.x,480,q);y=arc(start.y,550,q,135);r=mix(-58,-12,back(p(t,a.home,.72)));lift=50*Math.sin(Math.PI*q);const hit=p(t,a.home+.72,.25);y-=5*Math.sin(hit*Math.PI)*(1-hit);}
+  if(t>=a.next){const q=out(p(t,a.next,.62)),w=p(t,a.next+.65,.45);const tx=w<.4?mix(66,80,w/.4):mix(80,104,(w-.4)/.6),ty=w<.4?mix(163,176,w/.4):mix(176,149,(w-.4)/.6);const dest=noteWorld(tx,ty);x=mix(480,dest.x,q);y=arc(550,dest.y,q,145);r=mix(-12,-58,back(p(t,a.next,.62)));lift=55*Math.sin(Math.PI*q);if(t>a.next+1.12){const end=out(p(t,a.next+1.12,.45));x+=end*38;y-=end*42;r-=end*8;lift=end*30;}}
+  if(t>=a.take-.14&&t<a.take){const prep=Math.sin(Math.PI*p(t,a.take-.14,.14));x-=9*prep;r+=3*prep;}
+  return {x,y,r,lift};
+}
+function camera(t:number,a:any){const into=smooth(p(t,a.store-.7,.85))*(1-smooth(p(t,a.take-.4,.85))),writing=smooth(p(t,a.take-.35,.8))*(1-smooth(p(t,a.ending,.95)));return {x:960+into*220+writing*40,y:540+into*135-writing*25,z:1+into*.18+writing*.24};}
+
+export default function DeskStudy(d:any){const f=useCurrentFrame(),{fps}=useVideoConfig(),t=f/fps,a=timing(d),entrance=back(p(t,.08,.7)),cam=camera(t,a),open=Math.max(.4*out(p(t,.82,.5))*(1-out(p(t,2.15,.4))),back(p(t,a.store-.65,.68))*(1-out(p(t,a.store+2.0,.45))));const pen=penPose(t,a),write=p(t,a.write,1),next=p(t,a.next+.65,.45);
+  const rollP=p(t,a.store+.2,.68),eraseP=p(t,a.store+.64,.62),rollQ=smooth(rollP),eraseQ=smooth(eraseP);const rollSet=p(t,a.store+.88,.2),eraseSet=p(t,a.store+1.26,.17);
+  const ry=mix(460,685+open*95,rollP*rollP)-210*Math.sin(Math.PI*rollP)-5*Math.sin(Math.PI*rollSet)*(1-rollSet),ey=mix(435,700+open*90,eraseP*eraseP)-165*Math.sin(Math.PI*eraseP)-3*Math.sin(Math.PI*eraseSet)*(1-eraseSet);
+  const end=smooth(p(t,a.ending,.7)),introOut=1-smooth(p(t,a.sort-.65,.6));
+  return <div style={{position:'absolute',inset:0,overflow:'hidden',background:'#e9e5d9'}}><Img src={d.assets.paper} style={{position:'absolute',inset:0,width:1920,height:1080}}/>
+    <G x={960-cam.x*cam.z} y={540-cam.y*cam.z+mix(85,0,entrance)} s={cam.z} a={p(t,0,.12)}>
+      <Desk d={d} t={t} open={open}>
+        <Tray d={d}/><Notebook d={d} write={write} next={next}/>
+        <DrawerBack open={open}/>
+        <V><ellipse cx={mix(1350,1418,rollQ)} cy={mix(490,715+open*95,rollP*rollP)} rx={56+25*Math.sin(Math.PI*rollP)} ry={13+8*Math.sin(Math.PI*rollP)} fill="#443f27" opacity={.16*(1-.6*Math.sin(Math.PI*rollP))}/></V><G x={mix(1350,1418,rollQ)} y={ry} r={mix(12,-8,rollQ)+3*Math.sin(Math.PI*rollSet)*(1-rollSet)} s={1}><Roll d={d}/></G>
+        <V><ellipse cx={mix(1190,1240,eraseQ)} cy={mix(463,728+open*90,eraseP*eraseP)} rx={47+17*Math.sin(Math.PI*eraseP)} ry={9+5*Math.sin(Math.PI*eraseP)} fill="#443f27" opacity={.14*(1-.6*Math.sin(Math.PI*eraseP))}/></V><G x={mix(1190,1240,eraseQ)} y={ey} r={mix(-22,9,eraseQ)+2*Math.sin(Math.PI*eraseSet)*(1-eraseSet)}><Eraser d={d}/></G>
+        <DrawerFront open={open}/>
+        <G x={pen.x+13} y={pen.y+14+pen.lift*.22} r={pen.r}><V><ellipse cx="123" cy="0" rx={123+pen.lift*.12} ry={10+pen.lift*.08} fill="#273f32" opacity={.2-pen.lift*.0015}/></V></G><G x={pen.x} y={pen.y} r={pen.r}><Pen/></G>
+      </Desk>
+      <G x={345} y={210+mix(45,0,back(p(t,.16,.65)))} r={-4} a={introOut}><Text d={d} text="收纳" size={158} stroke="#f5eed8" strokeWidth={13}/><G x={340} y={-43} r={5} a={p(t,.85,.25)}><Text d={d} text="≠ 全部藏起来" size={48} slot="hand"/><V><path d="M0 16 Q160 30 315 12" fill="none" stroke={C.orange} strokeWidth="9" strokeLinecap="round" pathLength="1" strokeDasharray={`${out(p(t,1.55,.32))} 1`} opacity={t>1.55?1:0}/></V></G></G>
+      <G x={390} y={407} r={-9} a={smooth(p(t,a.sort,.3))*(1-smooth(p(t,a.take-.2,.35)))}><Text d={d} text="顺手的位置" size={46} slot="hand"/><V><path d="M155 21 Q184 47 172 62 M162 55 L172 66 L183 56" stroke={C.ink} strokeWidth="3" fill="none" pathLength="1" strokeDasharray={`${out(p(t,a.sort+.2,.35))} 1`}/></V></G>
+    </G>
+    <G x={218} y={180+mix(60,0,back(p(t,a.ending,.65)))} r={-3} a={end}><Text d={d} text="给下一次" size={62}/><G x={8} y={105}><V><path d="M-13 18 L460 5 L450 38 L-6 48Z" fill={C.orange} opacity=".92"/></V><Text d={d} text="留个顺手的位置" size={72} stroke="#f8f1dc" strokeWidth={4}/></G></G>
+    <G x={1545} y={235} r={8} a={p(t,a.next+.3,.3)}><Text d={d} text="再一次，也顺手" size={38} slot="hand" anchor="middle"/><V><path d="M-10 22 Q-180 160 -550 350 M-527 333 L-550 350 L-522 353" stroke={C.orange} strokeWidth="4" fill="none" pathLength="1" strokeDasharray={`${out(p(t,a.next+.45,.4))} 1`}/></V></G>
+  </div>
+}

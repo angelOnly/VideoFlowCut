@@ -1,0 +1,30 @@
+{
+  "version": "06584186f81f43274861fba05ac1c4f2207f330c63a5acdd9ff5c88d41bfc80d",
+  "jobId": "job_1a780527-6cef-4935-9b2e-81c86d5ff6f5",
+  "sourceSha256": "3f4906fd388456d2ff0bd39e9017b02fa68568afb19c22ea51c797c6319c346b",
+  "reviewType": "实际源帧复核",
+  "frames": [
+    45,
+    384,
+    429
+  ],
+  "closed": [
+    {
+      "issue": "开头橙色线条零进度圆帽点",
+      "evidence": "第45帧未启动划线时无橙点"
+    },
+    {
+      "issue": "末尾箭头指向空桌面",
+      "evidence": "第384/429帧箭头指向实际再次使用的纸本区域及勾选结果"
+    },
+    {
+      "issue": "同一支笔第二次无故改变墨色",
+      "evidence": "第384/429帧第二次笔迹与第一次均为同一深墨色"
+    }
+  ],
+  "remaining": {
+    "continuousMotion": "未执行正常速度连续观看，速度/惯性/整体连贯性保留待审",
+    "audio": "未执行合成连续回听，听感与声画同步保留待审",
+    "formalRecommendation": "未经用户认可，不进入正式案例库"
+  }
+}
