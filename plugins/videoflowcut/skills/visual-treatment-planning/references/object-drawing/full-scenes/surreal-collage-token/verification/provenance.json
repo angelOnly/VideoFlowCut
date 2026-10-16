@@ -1,0 +1,470 @@
+{
+  "source": "https://github.com/chuspeeism/dashi-animationstyle/tree/aa620f3b859aa5d191b783b2eb0fb59263731c76",
+  "canvasSourceUnchanged": true,
+  "status": "原生公开无声参考；受管段落待返修",
+  "publication": "publication.json",
+  "managed": "../managed/verification.json",
+  "reviews": "../managed/reviews.json",
+  "files": {
+    "comparison.html": {
+      "bytes": 2285,
+      "sha256": "3d949632b0328fa8779f05866fbef28ffc1d53344488a2579fd5f968d3577b7a"
+    },
+    "comparison.mp4": {
+      "bytes": 2836201,
+      "sha256": "1b6aeb25988de86f312e17b1ab8373a9e474f4dda666423524338915d457e3bf"
+    },
+    "index.html": {
+      "bytes": 1196,
+      "sha256": "717ca2822d2cb1afb7259d2f44c4369560634d634c20ec787b1c4df6f2f3d3f9"
+    },
+    "LEARNING.md": {
+      "bytes": 9160,
+      "sha256": "a68c231882157855922ecd6672d22ec071efb99a97999b6c598bff8cb320189c"
+    },
+    "managed/demo-props.json": {
+      "bytes": 34884,
+      "sha256": "cd4fe59e06ec6fffba1d02a957778734097014aa549b80a2e3609d1170835d2d"
+    },
+    "managed/keyframes/frame-00000.png": {
+      "bytes": 1314264,
+      "sha256": "4b02f308ad173dc5e92ae7b02c120b319cf7c61db67ee5af944ad9d2c729dd1b"
+    },
+    "managed/keyframes/frame-00015.png": {
+      "bytes": 1356813,
+      "sha256": "3612ed882ac445f36a1832f28b9dc8029528e59345b5942260145cb6752b116e"
+    },
+    "managed/keyframes/frame-00033.png": {
+      "bytes": 1312037,
+      "sha256": "317ea81ce25301079f99524b08e04d0bb9e4134f9b341f18bd2c9a81611438c2"
+    },
+    "managed/keyframes/frame-00045.png": {
+      "bytes": 957478,
+      "sha256": "ecc37861025b2971f9cef8a4dfb733567c88d1985f9421a21a5277fd2d8ff015"
+    },
+    "managed/keyframes/frame-00060.png": {
+      "bytes": 1179270,
+      "sha256": "b7ba8279530616e02395677a06e3eb50492c8125d4eaf2c1d0ffc1a2c1f7016f"
+    },
+    "managed/keyframes/frame-00069.png": {
+      "bytes": 1178996,
+      "sha256": "3da8e2a947335e3df3cde75adeb19f175201b8a20279c2f10a30021013420a6b"
+    },
+    "managed/keyframes/frame-00071.png": {
+      "bytes": 1176706,
+      "sha256": "fd683975178271cb2832481e7a12a7647e8aa0919835862590bd62f78dbb7b42"
+    },
+    "managed/keyframes/frame-00075.png": {
+      "bytes": 1177850,
+      "sha256": "757c325dbf522f674f5b87f3bf8a89b416c72cf0fe08726c78cd11e06a1b93da"
+    },
+    "managed/keyframes/frame-00081.png": {
+      "bytes": 1195926,
+      "sha256": "e54b2f6d34ed6f3098919185f15cd19dcd54214e4ac9a1ed103a8aa39b6a50e4"
+    },
+    "managed/keyframes/frame-00090.png": {
+      "bytes": 1188094,
+      "sha256": "9e89628a7712596f0f679f0f57e095f4afe57339fb8c1764480a54089c1d2d55"
+    },
+    "managed/keyframes/frame-00102.png": {
+      "bytes": 1187333,
+      "sha256": "f0ca989eeb5406637dfecaae64ef73b7f14bb75d725a91b64c0f730614563989"
+    },
+    "managed/keyframes/frame-00114.png": {
+      "bytes": 1174436,
+      "sha256": "c6ad7fda861ad164e6512736c835b6dbba8a6ec11a20feede1483134c481ec9b"
+    },
+    "managed/keyframes/frame-00132.png": {
+      "bytes": 1220504,
+      "sha256": "31cc52364dd281cad8b82a74e2d6d3348fad0149026d647c013645535fcb7b08"
+    },
+    "managed/keyframes/frame-00156.png": {
+      "bytes": 1209618,
+      "sha256": "c51adc83a5fe05670d31e8cd09dd4453fa3601b9395a08a0ad9758545389b4de"
+    },
+    "managed/keyframes/frame-00172.png": {
+      "bytes": 2908419,
+      "sha256": "6f07df4eb5b98184b59f2dad1121e06b44f28355342692643c013450afb12f90"
+    },
+    "managed/keyframes/frame-00176.png": {
+      "bytes": 3319402,
+      "sha256": "997f2c400bc111262a9df250dabfd2d1b4b32777e274b31b13f0a513da7d4c6a"
+    },
+    "managed/original-motion-samples.json": {
+      "bytes": 4483,
+      "sha256": "2ef2357023e114744ced4316fdb2c6fdd8040670bbeaad2e791ae333137807b2"
+    },
+    "managed/preview.mp4": {
+      "bytes": 4503826,
+      "sha256": "ce1e7bbdc868fa40f7774c926bcb0c0ce961e971748e00e8b1e0e1b7b69a4611"
+    },
+    "managed/resources/brush0.png": {
+      "bytes": 49553,
+      "sha256": "bc6d7ecaf54ce7112d98d48275f93f303a1bde716cf403716f92d47618ba084d"
+    },
+    "managed/resources/brush1.png": {
+      "bytes": 50247,
+      "sha256": "4f68c06b187ba98c1a1ec6d466e2da348ae5395ad2e675a21d044a20ef13ce1a"
+    },
+    "managed/resources/brush2.png": {
+      "bytes": 48071,
+      "sha256": "895fc1adac0cc493172223b4e37d3e10ba92cf27f0c4a8fa79f231cbb08fa374"
+    },
+    "managed/resources/card.png": {
+      "bytes": 571152,
+      "sha256": "7ab168322c8fc7a14cb325ee222c6428a2a5382d60052bf155b4952444aca609"
+    },
+    "managed/resources/grain.png": {
+      "bytes": 26487,
+      "sha256": "429079a98f0e67241979deaca64140f728ffa32d744d5a68471762afbbfbb1e8"
+    },
+    "managed/resources/graph.png": {
+      "bytes": 385758,
+      "sha256": "45d3dca813173c983d6f2c5fcf345f2776355ee918734c529efbc954e4e26f45"
+    },
+    "managed/resources/head.png": {
+      "bytes": 2293065,
+      "sha256": "097f03fae058b7930f49eff51861bfcf925cf8bb671d615e1eb002737f162150"
+    },
+    "managed/resources/header.png": {
+      "bytes": 64902,
+      "sha256": "287546639c088deac80f6283970db8fe141b5754edf58344332cc04148a803f7"
+    },
+    "managed/resources/light.png": {
+      "bytes": 97661,
+      "sha256": "1b9d42ab47c3544d1e6327e6633fe9d8e2e5d104c117486d318b61deed87adeb"
+    },
+    "managed/resources/paper.png": {
+      "bytes": 642222,
+      "sha256": "fc8a9a65ee71707a0758bbab1f53513d9773686d434f2d07d668fde6c08af0e5"
+    },
+    "managed/resources/scrap0.png": {
+      "bytes": 2487,
+      "sha256": "94ef385c4f2fa0653e1b6eca9b38eacdc86ba378caad3e7f9489320404152afe"
+    },
+    "managed/resources/scrap1.png": {
+      "bytes": 3744,
+      "sha256": "429f365ec3397a7628e58027473c1982dff0497ecf60d89e0546ac32995735b5"
+    },
+    "managed/resources/scrap10.png": {
+      "bytes": 1456,
+      "sha256": "a5decdf01aff840c28010c6951ca9e11f1e07a76da8be03703fdd6e461fd4ac9"
+    },
+    "managed/resources/scrap11.png": {
+      "bytes": 2732,
+      "sha256": "f533c938b07be505538866eda63e6cb4e675ecdaff7801323f7c134d37d50eed"
+    },
+    "managed/resources/scrap2.png": {
+      "bytes": 2014,
+      "sha256": "99b9dcf44781b21b698d30f92769c1cc95216773381548b19ab83c7c22789a59"
+    },
+    "managed/resources/scrap3.png": {
+      "bytes": 3336,
+      "sha256": "304aa050d6c9e4ec4845fa502fd3b5c37f5b9642729f7872e26a1935fb35b09a"
+    },
+    "managed/resources/scrap4.png": {
+      "bytes": 1147,
+      "sha256": "8855d70d30df58e5a5b6d250407ccec6285987193e2850d28ce57ebb8369d46c"
+    },
+    "managed/resources/scrap5.png": {
+      "bytes": 3814,
+      "sha256": "4eeb22fc2603aed8a4648c0cedd686e210b4ab6065c324e19e6b6ad9dda07df7"
+    },
+    "managed/resources/scrap6.png": {
+      "bytes": 1858,
+      "sha256": "7009edfdd8be60d32e14908e797e9bc4ad2ef087face5d9fe003b817c23c3960"
+    },
+    "managed/resources/scrap7.png": {
+      "bytes": 3090,
+      "sha256": "a2c35e1d8a3e67047546be66cbc70c873cc0b0f62a2e9f70a79a013e20540612"
+    },
+    "managed/resources/scrap8.png": {
+      "bytes": 1827,
+      "sha256": "b2c0b00791ba1ec26f7f70041a44299bf5e6d29643c855a581a5f7b319c7899d"
+    },
+    "managed/resources/scrap9.png": {
+      "bytes": 1316,
+      "sha256": "2cb6ca8e1c0ae6a5d1ebc7920933c30d7a4568fbfcfc6d739e73ee678fbc6f83"
+    },
+    "managed/resources/sun.png": {
+      "bytes": 1695923,
+      "sha256": "97f817cb02e40c3fc381172ecf89445cade2a24d8489fbf9dc0428704863a167"
+    },
+    "managed/resources/sweep0.png": {
+      "bytes": 2625976,
+      "sha256": "ac89fc35b78dcd3f1266612ee4c6da4122998f76814b8e6b0e3277fed0a9dae4"
+    },
+    "managed/resources/sweep1.png": {
+      "bytes": 2382009,
+      "sha256": "af01c7757e21c526b631ea93ce2515dfef84946b76b6017fa4a45b6187c800d6"
+    },
+    "managed/resources/sweep2.png": {
+      "bytes": 2671498,
+      "sha256": "ed442f0a1d13816aa02dbdf2707d3d581a8c95282e7c1a49b8cfaf37b56d683f"
+    },
+    "managed/resources/sweep3.png": {
+      "bytes": 2358447,
+      "sha256": "30a92c3c5f0d53d52e04f453c34fcf8b11f282a4de88e8f73d665e57357380f3"
+    },
+    "managed/resources/teal.png": {
+      "bytes": 880082,
+      "sha256": "4802c79f81854969eb7ea9536c79e01134e7b452ae59822345c4af3f076b8b5d"
+    },
+    "managed/resources.json": {
+      "bytes": 5682,
+      "sha256": "e3dfff9ae1ec5fa0b3b6f0102eccced253934650ce179b5ebb124c095eb2622b"
+    },
+    "managed/reviews.json": {
+      "bytes": 2070,
+      "sha256": "434aff894cfe8e9d465765cb59b2bda457e4ee3dedf80e0a581f6f86a616691b"
+    },
+    "managed/source.tsx": {
+      "bytes": 19480,
+      "sha256": "ead63b5678b08a7b1bda4657f31c156cfdfe687720df437d6cd29fdc65538889"
+    },
+    "managed/verification.json": {
+      "bytes": 2497,
+      "sha256": "ebb84a853daf8d64664e0d312ec841341e7e9926dddb819646e5a2fe2ee8c039"
+    },
+    "native-segment.mp4": {
+      "bytes": 5309179,
+      "sha256": "aeb5aa5d08656810473def2bbad562b985e412f02fada92bdbdfa062ae9c1f48"
+    },
+    "README.md": {
+      "bytes": 5653,
+      "sha256": "3c020847bc2ea73d5ef1c74bb6da81d810230afe87c342b57693b11429e56061"
+    },
+    "scene/index.html": {
+      "bytes": 86415,
+      "sha256": "8e61e06c57c33f132d4fef2becfe3ddf27763b539db1a3f7bb10c5b7d725a566"
+    },
+    "scene/timeline.js": {
+      "bytes": 20779,
+      "sha256": "9a45be0f78bc96bc91108a5928f6409e4b19eca1acc328f10652a3598f4080a8"
+    },
+    "scene/作品.json": {
+      "bytes": 199,
+      "sha256": "241e16b9d7d6cc2418e087acb8460e6e3d4031b3378f9e2c1b4b0aef637a0080"
+    },
+    "scene/分镜.json": {
+      "bytes": 10879,
+      "sha256": "3133c3b466f31c3777c11e261550976916f16a8600de5e47d4b0f8111d736041"
+    },
+    "scene/分镜.md": {
+      "bytes": 10833,
+      "sha256": "313bc7fe07043bbfc3dfaba4af11758d558ecbb0ea224602a0f86622c5406d86"
+    },
+    "scene/动效部件.js": {
+      "bytes": 25801,
+      "sha256": "f213cf14c6058b45be1f34c5428c3fceda04b2ac2f7ce1758722865d6555d002"
+    },
+    "scene/字幕.json": {
+      "bytes": 18878,
+      "sha256": "1845c0744246bf8f3293cce1228e4debb229b2e1b7819eb708332ea0a1b6d039"
+    },
+    "scene/字幕.srt": {
+      "bytes": 830,
+      "sha256": "76ba09944020a187b8bb6e4323be15c710d4ee297532af63c9f00a1b9db66d1a"
+    },
+    "scene/稿子.txt": {
+      "bytes": 441,
+      "sha256": "cc74587db78a41c79c6cb27eb1aa92fd3458a3d29110b6065778a395f7b3e64c"
+    },
+    "upstream/examples/token/timeline.js": {
+      "bytes": 22020,
+      "sha256": "af214e1e4eb3e67a1b4f4d927497583cb9527a1d3543f806acfcf66c77d99c71"
+    },
+    "upstream/examples/token/作品.json": {
+      "bytes": 336,
+      "sha256": "5d22fec8d0c7c0ba6e66bd3caba119603c1d0fb8d466f3cf41c9d965f3df76f7"
+    },
+    "upstream/examples/token/分镜.json": {
+      "bytes": 10879,
+      "sha256": "3133c3b466f31c3777c11e261550976916f16a8600de5e47d4b0f8111d736041"
+    },
+    "upstream/examples/token/分镜.md": {
+      "bytes": 10833,
+      "sha256": "313bc7fe07043bbfc3dfaba4af11758d558ecbb0ea224602a0f86622c5406d86"
+    },
+    "upstream/examples/token/字幕.json": {
+      "bytes": 18878,
+      "sha256": "1845c0744246bf8f3293cce1228e4debb229b2e1b7819eb708332ea0a1b6d039"
+    },
+    "upstream/examples/token/字幕.srt": {
+      "bytes": 830,
+      "sha256": "76ba09944020a187b8bb6e4323be15c710d4ee297532af63c9f00a1b9db66d1a"
+    },
+    "upstream/examples/token/稿子.txt": {
+      "bytes": 441,
+      "sha256": "cc74587db78a41c79c6cb27eb1aa92fd3458a3d29110b6065778a395f7b3e64c"
+    },
+    "upstream/LICENSE": {
+      "bytes": 1284,
+      "sha256": "8d3ec07cef8d95927e659eb264afdb334c3cb8e82774899775c2ddaa02442184"
+    },
+    "upstream/pipeline/render.mjs": {
+      "bytes": 37695,
+      "sha256": "30f5841f8da0c9f852e0ddb1c7963db8df2f5750a46b83784827ca6ef9256cd7"
+    },
+    "upstream/pipeline/丰富度检查.mjs": {
+      "bytes": 5168,
+      "sha256": "56db4ff8e480846baa5c80060e363e4945535560fd514e43a7fd83ec1283d3b4"
+    },
+    "upstream/pipeline/动效部件.js": {
+      "bytes": 25801,
+      "sha256": "f213cf14c6058b45be1f34c5428c3fceda04b2ac2f7ce1758722865d6555d002"
+    },
+    "upstream/pipeline/取色.mjs": {
+      "bytes": 2208,
+      "sha256": "337c130864bf0f6303e2814e93a52c2cc5fb6ec3714ba70e876a2b167c2ad1f5"
+    },
+    "upstream/pipeline/字幕.mjs": {
+      "bytes": 26022,
+      "sha256": "0720e335da87bcea2ddde99f874f1d560312d09f1f426e38dee1dea34c86216b"
+    },
+    "upstream/pipeline/新建作品.mjs": {
+      "bytes": 7454,
+      "sha256": "921fe4fb67034a65f48b17e1d9a02577d62073c4a6ebc50dc710ec5fa698c20c"
+    },
+    "upstream/pipeline/生成timeline.mjs": {
+      "bytes": 9214,
+      "sha256": "f373075238b0e2134ce15a361467c8493e5979fe3d8de5658a5ae670ccffca8c"
+    },
+    "upstream/pipeline/自检.mjs": {
+      "bytes": 8626,
+      "sha256": "1aa3fe03e1a74ca8a31c1af6b98cb1ba8c4bef3965f62c8e06691205966d5926"
+    },
+    "upstream/README.md": {
+      "bytes": 5969,
+      "sha256": "f8e2c00d91b966e3b1bf3b0499faae59ee4a0e7133d71c0002c5ac8a42d1fcc9"
+    },
+    "upstream/SOURCE_SKILL.md": {
+      "bytes": 37514,
+      "sha256": "a4e9a0c1e7a51a07ab6c126a0012fe0b4036282bbdd5fdbf2e12a4bdd7509ba2"
+    },
+    "upstream/styles/超现实拼贴/模板.html": {
+      "bytes": 57506,
+      "sha256": "3c8cb367d45979b3fa3fb81339b03229c809cedf5492e535529e30513cb81fa5"
+    },
+    "upstream/styles/超现实拼贴/示例_Token.html": {
+      "bytes": 86415,
+      "sha256": "8e61e06c57c33f132d4fef2becfe3ddf27763b539db1a3f7bb10c5b7d725a566"
+    },
+    "upstream/styles/超现实拼贴/静帧/超现实拼贴_12.55s.jpg": {
+      "bytes": 412344,
+      "sha256": "1ef2c576cf8ef44bf44c82a83e5521eed4db9de5d55a15407d423c3f7d3ba4b3"
+    },
+    "upstream/styles/超现实拼贴/静帧/超现实拼贴_20.90s.jpg": {
+      "bytes": 465258,
+      "sha256": "0ffee2e8ed1524f5231554eaf6ca3aa7db070a2241100d2f11bd90330d6c122d"
+    },
+    "upstream/styles/超现实拼贴/静帧/超现实拼贴_7.60s.jpg": {
+      "bytes": 454605,
+      "sha256": "76745c151b355c45c200ba5d08be5932c70b2cc8803106a3d103035016d5736e"
+    },
+    "upstream/styles/超现实拼贴/风格卡.md": {
+      "bytes": 23010,
+      "sha256": "9ed93770a4c0dd9af9fb1ec6bcc0e3e7fb4da4862f85b5e09cc8d4ed1e868c62"
+    },
+    "verification/media-comparison.json": {
+      "bytes": 2960,
+      "sha256": "3f4035d2958627e9d018e606062007de88d6c3e9913bdefb1dd3f0bd5ad92f8e"
+    },
+    "verification/media-native-segment.json": {
+      "bytes": 2966,
+      "sha256": "043df213df863e09a681b434cccfbeee20adcc03e370777e411cdab2570a9d2d"
+    },
+    "verification/media-preview.json": {
+      "bytes": 2764,
+      "sha256": "447d130e25303294102b31c30e3b5907ba02bf58080f27417953b64b9a33589c"
+    },
+    "verification/media-完整场面_无声.json": {
+      "bytes": 2975,
+      "sha256": "ff910e22c72a76ad5bf6962274a13698aa1390f210a62857bc1ec2eb6babf168"
+    },
+    "verification/publication.json": {
+      "bytes": 1690,
+      "sha256": "e4c9f357fdba72479a3348996fa9c6654b91447e1f4b9901ce240ed2ded412f4"
+    },
+    "verification/stage-sheet.jpg": {
+      "bytes": 210117,
+      "sha256": "b80ae368cc0e788d7370ccb9e7ad4acc37ac76b96ddb060d4171d351319ddf2c"
+    },
+    "verification/stages/00.jpg": {
+      "bytes": 61672,
+      "sha256": "5252779d3dd137e063db86b198d98fb56d743d771cc46fb18fdde3325306965f"
+    },
+    "verification/stages/01.jpg": {
+      "bytes": 61125,
+      "sha256": "ceeb0bc1b0c796b03420fbc9aeb19115ab5e1cffc1c23a4c403c48901c1c86f7"
+    },
+    "verification/stages/02.jpg": {
+      "bytes": 62177,
+      "sha256": "c3c83674a3f657dd656bfbb8dcd4d4432a32e4b01d44fcac432d169bb7eff16b"
+    },
+    "verification/stages/03.jpg": {
+      "bytes": 67409,
+      "sha256": "25a44ea349f3782aa01be8dea68abfc0ad27c490f2dafa62752292473d10918b"
+    },
+    "verification/stages/04.jpg": {
+      "bytes": 66215,
+      "sha256": "0f175ad53cf25d2180b3d89df46ebbe615860cf4288df7f77b73930222a2f5d2"
+    },
+    "verification/stages/05.jpg": {
+      "bytes": 67871,
+      "sha256": "7dae294273735f5bf127c0d448eb46c71b6774f31e853d34bf04863223970db7"
+    },
+    "verification/stages/06.jpg": {
+      "bytes": 69154,
+      "sha256": "f49fd1f671d38e5506fd21922a2287f4042702ff90f324c4f6aedf9d24a98668"
+    },
+    "verification/stages/07.jpg": {
+      "bytes": 64822,
+      "sha256": "05a95a8bbe3d38f0111ed254915b139d8d08fdc760a0bf4e8fed3ac585a74773"
+    },
+    "verification/stages/08.jpg": {
+      "bytes": 61680,
+      "sha256": "1a6139d9c37820b9a86413bf076b09be08c9763bce4dce1d840ada84e6f51c55"
+    },
+    "verification/stages/09.jpg": {
+      "bytes": 69981,
+      "sha256": "62263242438326da562357387062d13603b35eaa34b947ae97a60ca2a876705f"
+    },
+    "verification/stages/10.jpg": {
+      "bytes": 72665,
+      "sha256": "b07f7bb2dbd72865084decc45cd0cedf1ce8275ba2792056fd3a2dd3f66eb53a"
+    },
+    "verification/stages/11.jpg": {
+      "bytes": 70964,
+      "sha256": "6e87fba8c4dd5235c06e091fed26013b19ac92fcb5cef8cbdfb5416f00028a2f"
+    },
+    "verification/原作_480宽检查.png": {
+      "bytes": 669797,
+      "sha256": "8cd6f683eedad8a17ace2839a1c41416f5e154fd29f309781a161786a6add48a"
+    },
+    "verification/原作_静帧_0.00s.png": {
+      "bytes": 1057960,
+      "sha256": "9a7a11de3bd24e771ce8aab071a5e0387c2fdda48b4b40786fb99dd38c979b28"
+    },
+    "verification/原作_静帧_10.50s.png": {
+      "bytes": 1662979,
+      "sha256": "a646f7c5e5592b5bbb87f8e394913a4c9baa84dd8cfe3b5fcc8a347f4b7ff925"
+    },
+    "verification/原作_静帧_12.55s.png": {
+      "bytes": 1714114,
+      "sha256": "a808ab181b8d95717089192f81cd7052b06c4f3c526bd7c89b714230bd7485af"
+    },
+    "verification/原作_静帧_20.90s.png": {
+      "bytes": 1914764,
+      "sha256": "67edac5570d78aaf5a5b92e77e7e91fe3985261faa688ae9256809e81730c3bc"
+    },
+    "verification/原作_静帧_7.60s.png": {
+      "bytes": 1554189,
+      "sha256": "51001dcebbdcec70acf1198892eb78801eebf3a8abace2ac26dc30459cc35d0d"
+    },
+    "完整场面_无声.mp4": {
+      "bytes": 22960267,
+      "sha256": "0404fa9a5c133641e0b0081a858e8d488d8f2fa7a7fb38cf8de661e781315e40"
+    }
+  }
+}

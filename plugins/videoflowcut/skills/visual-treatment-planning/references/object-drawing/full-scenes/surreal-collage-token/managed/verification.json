@@ -1,0 +1,109 @@
+{
+  "inputHash": "bcb7f9c8c4fcd6b98f89d4e2a476f2d707974216f65c527e9ab91c55a4674a6a",
+  "previewHash": "ce1e7bbdc868fa40f7774c926bcb0c0ce961e971748e00e8b1e0e1b7b69a4611",
+  "sourceHash": "ead63b5678b08a7b1bda4657f31c156cfdfe687720df437d6cd29fdc65538889",
+  "engine": "managed-motion-14",
+  "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
+  "determinism": {
+    "status": "exact",
+    "maxAllowedChannelDelta": 2,
+    "sampledFrames": [
+      0,
+      88,
+      176
+    ],
+    "differences": []
+  },
+  "frames": 177,
+  "sourceRange": [
+    8.1,
+    14
+  ],
+  "events": [
+    {
+      "id": "cut-0",
+      "meaning": "原作第 1 刀接触与裁片分离",
+      "startFrame": 69
+    },
+    {
+      "id": "cut-1",
+      "meaning": "原作第 2 刀接触与裁片分离",
+      "startFrame": 72
+    },
+    {
+      "id": "cut-2",
+      "meaning": "原作第 3 刀接触与裁片分离",
+      "startFrame": 74
+    },
+    {
+      "id": "cut-3",
+      "meaning": "原作第 4 刀接触与裁片分离",
+      "startFrame": 76
+    },
+    {
+      "id": "cut-4",
+      "meaning": "原作第 5 刀接触与裁片分离",
+      "startFrame": 78
+    },
+    {
+      "id": "cut-5",
+      "meaning": "原作第 6 刀接触与裁片分离",
+      "startFrame": 80
+    },
+    {
+      "id": "cut-6",
+      "meaning": "原作第 7 刀接触与裁片分离",
+      "startFrame": 82
+    },
+    {
+      "id": "land-0",
+      "meaning": "第 1 张骨牌落到石阶",
+      "startFrame": 98
+    },
+    {
+      "id": "land-1",
+      "meaning": "第 2 张骨牌落到石阶",
+      "startFrame": 99
+    },
+    {
+      "id": "land-2",
+      "meaning": "第 3 张骨牌落到石阶",
+      "startFrame": 101
+    },
+    {
+      "id": "land-3",
+      "meaning": "第 4 张骨牌落到石阶",
+      "startFrame": 102
+    },
+    {
+      "id": "land-4",
+      "meaning": "第 5 张骨牌落到石阶",
+      "startFrame": 104
+    },
+    {
+      "id": "land-5",
+      "meaning": "第 6 张骨牌落到石阶",
+      "startFrame": 105
+    },
+    {
+      "id": "land-6",
+      "meaning": "第 7 张骨牌落到石阶",
+      "startFrame": 107
+    },
+    {
+      "id": "land-7",
+      "meaning": "第 8 张骨牌落到石阶",
+      "startFrame": 108
+    }
+  ],
+  "status": "rework",
+  "continuousApproval": false,
+  "fonts": [
+    {
+      "slot": "display",
+      "id": "noto-serif-sc-black",
+      "sha256": "91dde57622845beeb663f300813999febdb7fcd5e451bde199d7c954a9740cb4",
+      "license": "OFL-1.1"
+    }
+  ]
+}

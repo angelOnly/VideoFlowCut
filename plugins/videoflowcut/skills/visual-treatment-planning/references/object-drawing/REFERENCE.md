@@ -86,3 +86,9 @@
 ## 本地查看
 
 [打开六个案例播放器](index.html)。每例源码、固定参数、实际关键帧及验证状态见各自 case.md；连续观看未完成的范围不登记为通过。
+
+## 原作者完整场面
+
+[超现实拼贴 · Token 完整场面](full-scenes/surreal-collage-token/index.html)：保留原 Canvas 全场、原脚本与原口播；独立于六个受管物件案例。当前有字体差异，待用户确认，非正式推荐。源码、依赖与用途限制见[制作说明](full-scenes/surreal-collage-token/README.md)。
+
+完整场面的[案例学习说明](full-scenes/surreal-collage-token/LEARNING.md)按场面发展、美术材料和对象关系解释迁移方式；[原生与受管同阶段对照](full-scenes/surreal-collage-token/comparison.html)仅为返修候选，不能作为正式推荐。公开及插件参考均无声，原作者口播只保留在忽略的本地试用归档。

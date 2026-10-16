@@ -1,0 +1,50 @@
+{
+  "status": "rework",
+  "inputHash": "bcb7f9c8c4fcd6b98f89d4e2a476f2d707974216f65c527e9ab91c55a4674a6a",
+  "previewHash": "ce1e7bbdc868fa40f7774c926bcb0c0ce961e971748e00e8b1e0e1b7b69a4611",
+  "technical": {
+    "renderedFrames": 177,
+    "fps": 30,
+    "width": 1920,
+    "height": 1080,
+    "determinism": "exact",
+    "audioStreams": 0,
+    "decode": "通过"
+  },
+  "observations": [
+    {
+      "method": "stage_frames",
+      "sourceTimes": [
+        8.1,
+        8.6,
+        9.2,
+        9.9,
+        10.4,
+        10.7,
+        10.9,
+        11.133333,
+        11.5,
+        12.5,
+        13.466667,
+        13.833333
+      ],
+      "evidence": "../verification/stage-sheet.jpg",
+      "verdict": "rework",
+      "notes": [
+        "已对照纸条飞入、镜头钻入、连剪、翻面侧缘、错峰落地、轻跳、Token 命名及遮挡接出，主要空间和动作阶段对应。",
+        "原生回退字体与受管 Noto Serif SC Black 不同；骨牌和主字幕恢复衬线，但手写批注仍为通用 cursive 回退，字形更规整。",
+        "受管批注当前淡入，原作按横向遮罩逐笔揭示；墨线括号和箭头形状仍有差异。",
+        "受管剪刀手柄缺原作暗色弧线；纸胶带边缘与 AI 标签入场还未逐项复刻。",
+        "段首原作撕海报的左缘残片未迁移，入场聊天卡片和固定页眉是静态贴片；卡片内人物呼吸未迁移。",
+        "原生已带 Windows 字体差异；当前比较不证明与作者 macOS 原视频逐像素一致。"
+      ]
+    },
+    {
+      "method": "normal_speed_continuous_video",
+      "verdict": "not_observed",
+      "reason": "浏览器安全策略拒绝通过 file:// 打开本地对照页；未改用其他通道绕过。已交付 1 倍速同步视频与阶段跳转页，连续视觉判断仍待完成。"
+    }
+  ],
+  "recommendationEligible": false,
+  "verificationNote": "源码排版整理并修正事件帧取整后重新完整渲染；视频字节与已观察版本相同，阶段画面观察继续对应当前输出。"
+}

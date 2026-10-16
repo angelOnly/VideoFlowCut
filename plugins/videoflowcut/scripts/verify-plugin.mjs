@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { checkReferencePublication } from "./check-reference-publication.mjs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -8,6 +9,8 @@ const pluginRoot = pluginRootFromModule(import.meta.url);
 const repoRoot = resolveRepoRoot({ pluginRoot });
 const sourceRoot = join(repoRoot, ".agents", "skills");
 const targetRoot = join(pluginRoot, "skills");
+await checkReferencePublication(sourceRoot);
+await checkReferencePublication(targetRoot);
 const generatedSharedFiles = new Set([
   "_shared/SKILL.md",
   "_shared/agents/openai.yaml"

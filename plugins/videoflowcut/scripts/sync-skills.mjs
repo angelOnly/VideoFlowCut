@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { syncTree } from "./sync-tree.mjs";
+import { checkReferencePublication } from "./check-reference-publication.mjs";
 import { join } from "node:path";
 import { pluginRootFromModule, resolveRepoRoot } from "./repo-root.mjs";
 
@@ -8,7 +9,9 @@ const repoRoot = resolveRepoRoot({ pluginRoot });
 const sourceRoot = join(repoRoot, ".agents", "skills");
 const targetRoot = join(pluginRoot, "skills");
 
+await checkReferencePublication(sourceRoot);
 await syncTree(sourceRoot, targetRoot);
+await checkReferencePublication(targetRoot);
 
 /**
  * Codex 插件校验会把 skills/ 下的一级目录都当作 Skill。

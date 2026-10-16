@@ -1,0 +1,42 @@
+{
+  "checkedAt": "2026-10-16",
+  "upstreamCommit": "aa620f3b859aa5d191b783b2eb0fb59263731c76",
+  "repositoryHistory": {
+    "firstContainingCommit": "531deb39b5cb9f70a6b066b9fe092a4ca3dc8515",
+    "remoteMainAtCheck": "531deb39b5cb9f70a6b066b9fe092a4ca3dc8515",
+    "historyRewritePerformed": false,
+    "pushPerformed": false,
+    "risk": "旧提交、克隆与缓存仍可取得受限原声；当前树修复不能消除历史。"
+  },
+  "localResearchCopy": ".local-archives/surreal-collage-token/original-with-voice-531deb3/case",
+  "nativeVideoStreamSha256BeforeAndAfter": "5d5054e601b494477c0622a2464b4932ea262bbca5ce719397868702e9510abc",
+  "publicMedia": [
+    {
+      "path": "comparison.mp4",
+      "bytes": 2836201,
+      "sha256": "1b6aeb25988de86f312e17b1ab8373a9e474f4dda666423524338915d457e3bf",
+      "audioStreams": 0
+    },
+    {
+      "path": "native-segment.mp4",
+      "bytes": 5309179,
+      "sha256": "aeb5aa5d08656810473def2bbad562b985e412f02fada92bdbdfa062ae9c1f48",
+      "audioStreams": 0
+    },
+    {
+      "path": "完整场面_无声.mp4",
+      "bytes": 22960267,
+      "sha256": "0404fa9a5c133641e0b0081a858e8d488d8f2fa7a7fb38cf8de661e781315e40",
+      "audioStreams": 0
+    },
+    {
+      "path": "managed/preview.mp4",
+      "bytes": 4503826,
+      "sha256": "ce1e7bbdc868fa40f7774c926bcb0c0ce961e971748e00e8b1e0e1b7b69a4611",
+      "audioStreams": 0
+    }
+  ],
+  "policy": "本案例音频和压缩包不得进入公开源或插件；视频逐个 ffprobe 检查无音轨。",
+  "tests": "受限文件、压缩包、视频音轨拒绝；无声同步与旧对象清理通过。",
+  "pluginSync": "已同步并通过插件验证，未部署生产 Runtime"
+}

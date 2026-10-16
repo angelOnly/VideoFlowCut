@@ -1,0 +1,9 @@
+{
+  "style": "超现实拼贴",
+  "subtitles": "字幕.json",
+  "storyboard": "分镜.json",
+  "timeline": "timeline.js",
+  "page": "index.html",
+  "output": "无声参考.mp4",
+  "format": "jpeg"
+}

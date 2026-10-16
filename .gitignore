@@ -25,4 +25,5 @@ plugins/videoflowcut/runtime/repo-root.json
 
 # 正式参考库的视频、拆解和检索入口均提交；研究过程只在本地归档。
 .local-archives/
+.cache/object-drawing-upstream/
 references/motion-cases/skillry/**/__pycache__/

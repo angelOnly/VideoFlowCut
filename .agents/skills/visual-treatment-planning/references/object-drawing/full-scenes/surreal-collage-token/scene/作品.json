@@ -1,10 +1,9 @@
 {
   "style": "超现实拼贴",
-  "audio": "口播.wav",
   "subtitles": "字幕.json",
   "storyboard": "分镜.json",
   "timeline": "timeline.js",
   "page": "index.html",
-  "output": "scene.mp4",
+  "output": "无声参考.mp4",
   "format": "jpeg"
 }
