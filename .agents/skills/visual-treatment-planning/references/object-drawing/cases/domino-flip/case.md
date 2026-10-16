@@ -1,35 +1,27 @@
-# 纸片翻面与骨牌落定
+# 纸片翻面与骨牌落定（返修候选）
 
 ## 用途与来源
 
-本项目移植改编。来源定位：domino、domState、drawStrip。版本、文件、许可与具体改编范围见 [SOURCES.md](../../SOURCES.md)。
-本例演出不继承原题材、台词、固定品牌或原声；不能直接复制成本片的语义比喻。
+改编原参考的物件与动作方法。详细来源与许可见 [SOURCES.md](../../SOURCES.md)。当前不是正式推荐示范。
 
 ## 物件怎样造出来
 
-采用原案例 124×218 正面和 15/9 厚度比例，左侧、顶面独立多边形；圆环身份跨两面保留。沿竖轴压缩至边缘再展开背面，属于二维投影示意。
-对应 [source.tsx](source.tsx) 中的 sceneState、Domino。固定实例前缀来自 Props.instanceId；同一 SVG 中组合多个实例时逐个传入不同且稳定的 ID。
+保留纸片正反面与骨牌厚度；抛物线位移叠加翻面，接地后纵向压缩、横向展开。
+源码：[source.tsx](source.tsx)。组合实例时传入不同且稳定的 instanceId。
 
 ## 动作怎样发生
 
-0.8–2.8 秒翻面与下落；1.8 秒侧面对观众；2.8–3.3 秒压缩收势，之后稳定。
-完整片段：[preview.mp4](preview.mp4)，120 帧 / 24 fps = 5 秒，无声。
-关键帧：[第 0 帧](keyframes/frame-00000.png)、[第 30 帧](keyframes/frame-00030.png)、[第 43 帧](keyframes/frame-00043.png)、[第 52 帧](keyframes/frame-00052.png)、[第 67 帧](keyframes/frame-00067.png)、[第 74 帧](keyframes/frame-00074.png)、[第 100 帧](keyframes/frame-00100.png)。
-根层只读取一次 useCurrentFrame；sceneState 接收秒，子物件不再次减 Sequence 起点。
-resolveMotionEvents 与画面使用同一时序，供需要声音时按本片真实节奏改写。
+0.60 秒开始翻落，0.42 秒后接地，再用 0.14 秒收势。
+[本版预览](preview.mp4)：132 帧 / 60 fps，无声。
+
+根层读取当前局部帧；直接使用时 startFrame 默认为零。外层 Sequence 已提供局部帧时，子组件 startFrame 传零，事件解析器使用外层偏移，避免画面重复减起点。
 
 ## 复现与改写指令
 
-画出薄纸正面与有正面、侧面、顶面的骨牌背面。保留圆环身份；翻面中途保留薄边，不能直接切换两张卡。下落与翻面共用进度，接地后短暂压缩恢复，再保留结果。
-
-读取完整 source.tsx 和 demo-props.json，将 source 文件内容作为 MotionSubmission.source，其余字段保持 demo-props.json；不将文件路径作为源码提交。
-本例不依赖图片、视频、字体或声音，无需资源绑定，不携带项目 ID。沿当前受管作品提交接口传入当前项目与 Revision，按返回原 Job 查询，不另造渲染器。
-开发复现命令：在仓库根运行 `npx tsx scripts/render-object-drawing.ts domino-flip`。它使用现有 validateMotionSource → compileMotion → renderManagedMotion 链路，输出临时帧到隔离目录 .repair-validation/object-drawing，成功后更新本目录预览、关键帧和 verification.json。
-正式改写时复制必要组件、状态函数和依赖到本片受管 TSX，不使用本地模块导入。可改背景、颜色、物件身份与节奏；结构、归属、接触和结果关系必须对应本片内容重新检查。
+读取完整 source.tsx 作为 MotionSubmission.source，其余字段取 demo-props.json。本例无外部图片、音视频、字体依赖。不携带生产项目 ID。
+在仓库根运行 `npx tsx scripts/render-object-drawing.ts domino-flip`，沿现有受管编译与渲染器输出到隔离验证目录；齐套校验后整目录替换，替换失败回滚旧目录。改造型和尺寸时需重新检查接触、遮挡、转轴与承载关系。
 
 ## 验证与边界
 
-当前源码、参数、预览和实际帧的 SHA-256 由 verification.json 关联；渲染器记录跳帧返回抽查结果。
-静帧观察：第 52 帧。翻面背面的顶面和侧面厚度已看；没有据此确认整段落定观感。 连续视觉效果尚未确认；当前会话没有连续视频感知输入，不能把抽帧记录写成整段审阅通过。无音轨，不声称完成声音验证或用户定稿。
-采用 SVG 层和固定细节，不承诺原 Canvas 逐像素一致、真实光学或任意视角三维表现。5 秒是此演示的完整动作时间，不是日常视频的规定时长。
-
+恢复原动作时长；落点、压缩幅度和镜头节奏仍需连续认可。
+技术产物见 verification.json；版本观察见 reviews.json。静帧检查、哈希与编译不代表连续效果认可。新版渲染不能继承旧版认可，当前状态 rework。

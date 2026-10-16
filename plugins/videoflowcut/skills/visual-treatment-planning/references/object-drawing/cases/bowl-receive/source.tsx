@@ -2,11 +2,22 @@
 import React from 'react';
 import {useCurrentFrame,useVideoConfig} from 'remotion';
 const p=(t:number,a:number,d:number)=>Math.max(0,Math.min(1,(t-a)/d));
+// 接触点按碗内壁与已有果实编排，三颗身份与最终承载关系固定。
+export const FRUITS=[
+ {start:.2,hit:.72,from:[245,110],contact:[359,345],rest:[415,350]},
+ {start:.85,hit:1.37,from:[735,80],contact:[589,338],rest:[485,350]},
+ {start:1.55,hit:2.05,from:[552,74],contact:[467,286],rest:[450,289]}
+];
 export function sceneState(t:number) {
- return [0,1,2].map(i=>{const q=p(t,.5+i*.65,.85),b=p(t,1.35+i*.65,.55);return {x:420+i*60,y:115+275*q*q-24*Math.sin(Math.PI*b)*(1-b),angle:95*q+i*35};});
+ return FRUITS.map((f,i)=>{
+  const q=p(t,f.start,f.hit-f.start),r=p(t,f.hit,.45),roll=1-Math.pow(1-r,3);
+  const flightX=f.from[0]+(f.contact[0]-f.from[0])*q;
+  const flightY=f.from[1]+(f.contact[1]-f.from[1])*q*q;
+  return {x:flightX+(f.rest[0]-f.contact[0])*roll,y:flightY+(f.rest[1]-f.contact[1])*roll-26*Math.sin(Math.PI*r)*(1-r),angle:(i===1?-1:1)*(55*q+38*roll)};
+ });
 }
-export function resolveMotionEvents(_:unknown,{fps}:{fps:number}) {
- return [0,1,2].map(i=>({id:`land-${i}`,meaning:`第${i+1}个果实落入碗内`,startFrame:Math.round((1.35+i*.65)*fps)}));
+export function resolveMotionEvents(props:{startFrame?:number},{fps}:{fps:number}) {
+ return FRUITS.map((f,i)=>({id:`contact-${i}`,meaning:i<2?'果实接触碗内壁后向内部滚动':'第三颗果实接触已有两颗果实并落定',startFrame:(props.startFrame??0)+Math.ceil(f.hit*fps)}));
 }
 function Fruit({id,x,y,angle,color}:{id:string;x:number;y:number;angle:number;color:string}) {
  return <g transform={`translate(${x} ${y}) rotate(${angle})`}>
@@ -32,8 +43,8 @@ function BowlFront({id}:{id:string}) {
   <path d="M414 455 Q480 472 546 455 L540 468 Q480 484 420 468Z" fill="#345d63"/>
  </g>;
 }
-export default function Motion(props:{instanceId?:string;background?:string}) {
- const frame=useCurrentFrame(),{fps}=useVideoConfig(),fruits=sceneState(frame/fps),id=props.instanceId??'bowl';
+export default function Motion(props:{instanceId?:string;background?:string;startFrame?:number}) {
+ const frame=useCurrentFrame(),{fps}=useVideoConfig(),fruits=sceneState((frame-(props.startFrame??0))/fps),id=props.instanceId??'bowl';
  return <svg width="100%" height="100%" viewBox="0 0 960 540">
   <rect width="960" height="540" fill={props.background??'#e9e5d9'}/>
   <ellipse cx="480" cy="475" rx="185" ry="15" fill="#3d4b3e" opacity=".17"/>

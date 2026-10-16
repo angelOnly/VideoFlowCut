@@ -1,22 +1,27 @@
 {
-  "inputHash": "f9f07672baab63422af1b45d43b9027bab7909e0a2c422d6fe6ec883ba70d557",
+  "inputHash": "228ff3867413ba6ec602155f0d251ea7f33d0a68cebddbd1df6fdbd6fbb7ff4f",
   "engineVersion": "managed-motion-14",
   "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
   "width": 960,
   "height": 540,
-  "fps": 24,
-  "durationInFrames": 120,
+  "fps": 60,
+  "durationInFrames": 168,
   "resources": [],
   "events": [
     {
-      "id": "cut",
-      "meaning": "刀刃合拢，纸条从同一切口分离",
-      "startFrame": 53
+      "id": "cut-0",
+      "meaning": "第1处刃口越过纸张远缘，切口完成",
+      "startFrame": 56
     },
     {
-      "id": "land",
-      "meaning": "两片纸落定",
-      "startFrame": 86
+      "id": "cut-1",
+      "meaning": "第2处刃口越过纸张远缘，切口完成",
+      "startFrame": 64
+    },
+    {
+      "id": "cut-2",
+      "meaning": "第3处刃口越过纸张远缘，切口完成",
+      "startFrame": 72
     }
   ],
   "determinism": {
@@ -24,23 +29,25 @@
     "maxAllowedChannelDelta": 2,
     "sampledFrames": [
       0,
-      60,
-      119
+      84,
+      167
     ],
     "differences": []
   },
   "files": {
-    "source.tsx": "28ed7bb6575e109406356b6009acceafb082801f24419e29b4885540adbdd3a8",
-    "demo-props.json": "1cbdb0b51b05437f153ed083348a669346284a3efa31818a657f58fdf08ab5bd",
-    "preview.mp4": "6231365e942a01116337fc37cd0b3e3e541c65962e655f7f3427bc8a58ab5e18",
-    "keyframes/frame-00000.png": "89c545f7420c0962fdc71d91c9d23e8b2f4f95ec32967fb507ceef68f94e2958",
-    "keyframes/frame-00029.png": "a965cfd6d0c79bcaa38a3d916c3a1d20e64be96f724cfd3c757bb715e780b71b",
-    "keyframes/frame-00048.png": "7185d12b65155c7e1fb8e0d184a1bb2ecf5b8f71ccf21a2d36e794fc8ade06fc",
-    "keyframes/frame-00053.png": "3d955c5402394c5c966444848744a258b65b1b3042564ed458e795d506c29e6d",
-    "keyframes/frame-00068.png": "f1bc82e077d8c137f32540600f547817b5eea9d1c606173b6694b7eee984fd50",
-    "keyframes/frame-00087.png": "2e33b6f36ec1ef600047994bef4d6171f25e5f841dd993d8c8f2ad998b957389",
-    "keyframes/frame-00110.png": "16832ecf500112348976b3bcdcd2d635fc83ed44b5387b48922a59f190e356f8"
+    "source.tsx": "96913d21cbe295b9ba6c6d13c42de29000e1184a6bdf6a1440db2f4e4d6f3ee5",
+    "demo-props.json": "f2f5434ed7ebb50388ec672edbe37b7cfc03fd7cfe3ccae5f68c9a781f89a499",
+    "preview.mp4": "2fd22e4148a61844d0d9854a90476a4ecea96d7854d8f4399ed667cdb3a58786",
+    "keyframes/frame-00000.png": "8db91418ede18d21b79c66738e9ad440cce3a45edb0d30f03f74ee6c40a8ac94",
+    "keyframes/frame-00030.png": "c6dcd4a25d61d00cd08d2a67c37b2a0407c222b6a6990f74e847f3c06bbe702d",
+    "keyframes/frame-00052.png": "789d2f365cbf0d02f4709e84c615256a58cf68a06666c92151898000887acdd5",
+    "keyframes/frame-00055.png": "13d7667d49b14c2bc69410a53e8a458592d6d80606f6cce51efeff27cde5ed1e",
+    "keyframes/frame-00056.png": "bcd1966f07685adbb228d8b056ec11fc5bcc1901caec21c51d97cfd66da27dc1",
+    "keyframes/frame-00064.png": "2a19a6aa416321502d59b94fab94ea4aef871a23c18bf76694e71496b548aba5",
+    "keyframes/frame-00072.png": "ad67b93c508fdf02257e218dbdb609b381f76d53288eb59cbdd0cf3a30cf0802",
+    "keyframes/frame-00095.png": "54a7a9775036526b49529d46b247402f211844c1054782a7809e3f19196d3e41",
+    "keyframes/frame-00150.png": "331e94220763c14708a5093658b4db24bd93e5557c4f32bfb1a82e5e78394627"
   },
   "rendered": true,
-  "review": "已完成受管渲染、帧数与跳帧一致性技术检查；视觉观察另见 case.md，不由哈希推导审美结论。"
+  "review": "已完成受管渲染、帧数与跳帧一致性技术检查；视觉观察另见 reviews.json，不由哈希推导审美结论。"
 }

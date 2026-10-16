@@ -5,10 +5,10 @@ const p=(t:number,a:number,d:number)=>Math.max(0,Math.min(1,(t-a)/d));
 const smooth=(q:number)=>q*q*(3-2*q);
 const HEAD_PATH='M124 360 A276 88 0 0 1 676 360 C688 392 698 440 696 478 C700 492 708 500 706 512 C703 526 698 538 700 548 C712 575 738 606 744 628 C748 640 728 652 714 652 C708 656 708 664 710 672 C714 676 722 682 720 688 C716 694 706 697 702 700 C710 704 716 710 714 718 C710 728 700 732 700 740 C704 748 716 760 712 772 C704 790 678 800 650 800 C622 800 600 804 590 812 C578 840 570 880 568 900 L300 900 C296 860 286 812 282 780 C230 740 182 700 160 640 C128 560 112 430 124 360Z';
 export function sceneState(t:number) {
-  return {drop:smooth(p(t,.7,1.8)),zoom:1+.12*smooth(p(t,2.7,1.4))};
+ return {cards:[0,1,2,3,4].map(i=>{const q=p(t,.65+i*.05,.42),settle=p(t,1.07+i*.05,.14);return {x:260+i*70,y:155+211*q*q-25*Math.sin(Math.PI*Math.min(1,q*1.6))*(1-q),squash:1-.07*Math.sin(Math.PI*settle)};}),zoom:1+.65*smooth(p(t,1.6,.65))};
 }
-export function resolveMotionEvents(_:unknown,{fps}:{fps:number}) {
-  return [{id:'inside',meaning:'球体落入开口，被前缘遮挡',startFrame:Math.round(2.5*fps)}];
+export function resolveMotionEvents(props:{startFrame?:number},{fps}:{fps:number}) {
+ return [0,1,2,3,4].map(i=>({id:`land-${i}`,meaning:'骨牌落在开口内部石阶上',startFrame:(props.startFrame??0)+Math.ceil((1.07+i*.05)*fps)}));
 }
 function StoneSurface({id}:{id:string}) {
  return <g>
@@ -23,31 +23,43 @@ function StoneSurface({id}:{id:string}) {
    </g>
  </g>;
 }
-function StoneHead({id,drop}:{id:string;drop:number}) {
+function StoneHead({id,cards}:{id:string;cards:ReturnType<typeof sceneState>["cards"]}) {
  return <g>
    <defs>
      <radialGradient id={`${id}-stone`} cx="75%" cy="50%" r="80%"><stop stopColor="#66685e"/><stop offset=".45" stopColor="#393e35"/><stop offset="1" stopColor="#111812"/></radialGradient>
      <linearGradient id={`${id}-rim`} x1="0" y1="0" x2="0" y2="1"><stop stopColor="#77796f"/><stop offset="1" stopColor="#d6d1c2"/></linearGradient>
      <radialGradient id={`${id}-inside`}><stop stopColor="#354a46"/><stop offset="1" stopColor="#101b18"/></radialGradient>
      <radialGradient id={`${id}-ball`} cx="30%" cy="25%"><stop stopColor="#ffe2a0"/><stop offset=".7" stopColor="#e9a22c"/><stop offset="1" stopColor="#9d541e"/></radialGradient>
+     <clipPath id={`${id}-inside-clip`}><ellipse cx="400" cy="360" rx="260" ry="78"/></clipPath>
      <clipPath id={`${id}-shape`}><path d={HEAD_PATH}/></clipPath>
      <clipPath id={`${id}-front`}><path d="M124 360 A276 88 0 0 0 676 360 L800 920 H100Z"/></clipPath>
    </defs>
    <StoneSurface id={id}/>
    <ellipse cx="400" cy="360" rx="276" ry="88" fill={`url(#${id}-rim)`}/>
    <ellipse cx="400" cy="360" rx="260" ry="78" fill={`url(#${id}-inside)`}/>
-   <path d="M160 360 Q400 460 640 360" fill="none" stroke="#68786a" strokeWidth="2" opacity=".6"/>
-   <circle cx="405" cy={170+260*drop} r="41" fill={`url(#${id}-ball)`}/>
+   <g clipPath={`url(#${id}-inside-clip)`}><g transform="translate(0 93.333333) scale(.416666667)">
+    <path d="M1600 664 L1420 716 L1120 750 L800 766 L480 776 L480 806 L800 798 L1120 782 L1420 750 L1610 694Z" fill="#5b564c"/>
+    <path d="M300 662 L1630 668 L1630 694 L300 688Z" fill="#8f8778"/>
+    <path d="M300 636 L1630 642 L1630 668 L300 662Z" fill="#d6ccb8"/>
+   </g></g>
+   {cards.map((c,i)=><g key={i} transform={`translate(${c.x} ${c.y}) scale(1 ${c.squash})`}>
+    <path d="M-24 -78 L-30 -83 L-30 -5 L-24 0Z" fill="#28342c"/>
+    <path d="M-24 -78 L-30 -83 L18 -83 L24 -78Z" fill="#ece0bf"/>
+    <path d="M-24 -78 H24 V0 H-24Z" fill={['#e2a638','#8ca164','#c67441','#346f78','#a34730'][i]}/>
+    <path d="M-16 -39 H16" stroke="#f5ecd4" strokeWidth="2"/>
+    <circle cy="-57" r="9" fill="none" stroke="#f5ecd4" strokeWidth="3"/>
+    <circle cx="-9" cy="-26" r="3.5" fill="#f5ecd4"/><circle cx="9" cy="-12" r="3.5" fill="#f5ecd4"/>
+   </g>)}
    {/* 前半开口独立覆盖内部；球体不以淡出冒充进入。 */}
    <path d="M124 360 A276 88 0 0 0 676 360 L660 360 A260 78 0 0 1 140 360 Z" fill={`url(#${id}-rim)`} stroke="#989a8c"/>
    <g clipPath={`url(#${id}-front)`}><StoneSurface id={id}/></g>
    <path d="M124 360 A276 88 0 0 0 676 360" fill="none" stroke="#d6d1c2" strokeWidth="4"/>
  </g>;
 }
-export default function Motion(props:{instanceId?:string;background?:string}) {
- const frame=useCurrentFrame(),{fps}=useVideoConfig(),s=sceneState(frame/fps);
+export default function Motion(props:{instanceId?:string;background?:string;startFrame?:number}) {
+ const frame=useCurrentFrame(),{fps}=useVideoConfig(),s=sceneState((frame-(props.startFrame??0))/fps);
  return <svg width="100%" height="100%" viewBox="0 0 960 540">
   <rect width="960" height="540" fill={props.background??'#e9e5d9'}/>
-  <g transform={`translate(480 280) scale(${s.zoom}) translate(-480 -280)`}><ellipse cx="464" cy="488" rx="167" ry="12" fill="#1d281f" opacity=".17"/><g transform="translate(223 -53) scale(.6)"><StoneHead id={props.instanceId??'head'} drop={s.drop}/></g></g>
+  <g transform={`translate(480 ${180+60*(s.zoom-1)/.65}) scale(${s.zoom}) translate(-480 -180)`}><ellipse cx="464" cy="488" rx="167" ry="12" fill="#1d281f" opacity=".17"/><g transform="translate(223 -53) scale(.6)"><StoneHead id={props.instanceId??'head'} cards={s.cards}/></g></g>
  </svg>;
 }

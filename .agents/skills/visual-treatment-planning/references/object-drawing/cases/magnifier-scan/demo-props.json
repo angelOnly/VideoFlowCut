@@ -2,11 +2,12 @@
   "name": "放大镜扫描",
   "props": {
     "instanceId": "magnifier-scan",
-    "background": "#e9e5d9"
+    "background": "#e9e5d9",
+    "startFrame": 0
   },
   "width": 960,
   "height": 540,
-  "fps": 24,
-  "durationInFrames": 120,
+  "fps": 60,
+  "durationInFrames": 192,
   "creativeBrief": "用黑框、黄铜内圈、透明镜片、窄高光与黑柄制造放大镜，让它越过保持身份的数据点阵，在异常点停住并指认。保持底层数据坐标和镜片通透，不把它写成真实光学放大。"
 }

@@ -1,0 +1,23 @@
+[
+  {
+    "inputHash": "f9f07672baab63422af1b45d43b9027bab7909e0a2c422d6fe6ec883ba70d557",
+    "previewHash": "6231365e942a01116337fc37cd0b3e3e541c65962e655f7f3427bc8a58ab5e18",
+    "method": "frames",
+    "verdict": "inconclusive",
+    "note": "首版历史静帧记录，不支持当前推荐。\n\n当前源码、参数、预览和实际帧的 SHA-256 由 verification.json 关联；渲染器记录跳帧返回抽查结果。\n静帧观察：第 48 帧。握柄连接、刀刃与纸条切口的实际位置已看；未据单帧确认切割节奏。 连续视觉效果尚未确认；当前会话没有连续视频感知输入，不能把抽帧记录写成整段审阅通过。无音轨，不声称完成声音验证或用户定稿。\n采用 SVG 层和固定细节，不承诺原 Canvas 逐像素一致、真实光学或任意视角三维表现。5 秒是此演示的完整动作时间，不是日常视频的规定时长。\n\n"
+  },
+  {
+    "inputHash": "f9f07672baab63422af1b45d43b9027bab7909e0a2c422d6fe6ec883ba70d557",
+    "previewHash": "6231365e942a01116337fc37cd0b3e3e541c65962e655f7f3427bc8a58ab5e18",
+    "method": "continuous_video",
+    "verdict": "rejected",
+    "note": "用户观看后否定：物理方位、书页结构、节奏与惯性均不合格。六例退出正式推荐。"
+  },
+  {
+    "inputHash": "e422eb4f7416a8e5649f4dcd79ad442f3d72bab12bfb15c88e9a7c8773df0116",
+    "previewHash": "2fd22e4148a61844d0d9854a90476a4ecea96d7854d8f4399ed667cdb3a58786",
+    "method": "frames",
+    "verdict": "inconclusive",
+    "note": "第56帧：纸带内部预先描边已去除，前刀覆盖纸、后刀位于纸后；未据此认可闭合全过程。"
+  }
+]

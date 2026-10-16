@@ -2,11 +2,12 @@
   "name": "剪刀切割",
   "props": {
     "instanceId": "scissors-cut",
-    "background": "#e9e5d9"
+    "background": "#e9e5d9",
+    "startFrame": 0
   },
   "width": 960,
   "height": 540,
-  "fps": 24,
-  "durationInFrames": 120,
+  "fps": 60,
+  "durationInFrames": 168,
   "creativeBrief": "制造双刀刃、双握柄、中央轴心与挂签。保留金属刀面和握柄的区别，两半绕同一轴心反向开合，挂签随握柄运动并收势。将纸条切口放在刀刃实际到达的位置；合拢后才让两段分离、翻摆和落定。不要拆成两段独立入场。"
 }

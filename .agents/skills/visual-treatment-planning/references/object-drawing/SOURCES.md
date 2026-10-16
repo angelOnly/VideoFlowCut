@@ -13,12 +13,12 @@
 
 ## 本地范围
 
-- [scissors-cut](cases/scissors-cut/case.md)：scissors、drawScissors、drawStrip。双刀刃沿同一轴心反向旋转，橙色椭圆握柄与金属渐变刀刃独立。挂签附着左握柄，拥有独立衰减摆动；Paper 的两个半片保留各自颜色与圆点身份。
+- [scissors-cut](cases/scissors-cut/case.md)：scissors、drawScissors、drawStrip。双刀刃沿同一轴心反向旋转，橙色椭圆握柄与金属渐变刀刃独立。挂签附着左握柄，拥有独立衰减摆动；Paper 的四段保留图案身份，三处切口按刃口几何推进。
 - [magnifier-scan](cases/magnifier-scan/case.md)：magnifier。黑框、黄铜内圈、透明青色镜片、高光和斜柄分层；每实例独立渐变 ID。底层点阵保持原位置，镜片不会替换数据。
 - [domino-flip](cases/domino-flip/case.md)：domino、domState、drawStrip。采用原案例 124×218 正面和 15/9 厚度比例，左侧、顶面独立多边形；圆环身份跨两面保留。沿竖轴压缩至边缘再展开背面，属于二维投影示意。
-- [cutaway-head](cases/cutaway-head/case.md)：headPath、HEADTEX、drawInterior、drawHead。HEAD_PATH 保留原侧脸贝塞尔轮廓和椭圆开口，StoneHead 用固定种子斑块与颗粒重做石材；后壁、内腔、球体、前缘依次绘制。前壁遮挡不是对象淡出。
+- [cutaway-head](cases/cutaway-head/case.md)：headPath、HEADTEX、drawInterior、drawHead。HEAD_PATH 保留原侧脸贝塞尔轮廓和椭圆开口，StoneHead 用固定种子斑块与颗粒重做石材；后壁、内部石阶、骨牌、前缘依次绘制。前壁遮挡不是对象淡出。
 - [bowl-receive](cases/bowl-receive/case.md)：本项目新设计。BowlBack 给出后缘与内腔；BowlFront 单独绘制弧形前壁、釉色渐变、双线装饰及圈足。Fruit 分离果身、果梗与叶片，独立旋转。
-- [book-open](cases/book-open/case.md)：本项目新设计。书脊是所有开合的局部原点。封面、右侧页块、左侧页块和单页分开，页块底边三条细线呈现厚度；开合使用二维投影，页片提升和剪切模拟弯曲。
+- [book-open](cases/book-open/case.md)：本项目新设计。书脊是所有开合的局部原点。刚性封面绕固定书脊旋转；两张有身份的页片使用32条等弧长曲面条带，正文与纸面共用投影。
 
 前四项保留轮廓、厚度、结构和局部变换制法，将 Canvas 重绘为 React/SVG，重新设计不依赖题材的演示时序。石材不用原离屏像素缓存，采用固定种子的 SVG 斑块和颗粒；外观与密度仍需实际观察，不声称逐像素等效。
 后两项是依据开口遮挡、铰接与翻面方法制造的新物件。示例均不使用图片、字体、视频和声音，资源清单为空；后续加入真实材料时仍走原绑定合同。
@@ -27,3 +27,11 @@
 
 每例的实际渲染与观察范围见 case.md 和 verification.json。编译、渲染、静帧、连续观看、真实任务采用和宿主加载分别确认，不用代码存在代替后几项。
 
+
+## 2026-10-16 返修范围
+
+六例全部标为 rework，正式推荐为空。已取得固定上游版本的原页面对照帧，隔离证据位于 `.repair-validation/object-drawing/upstream/`。原作剪切时刻为 10.40 至 10.82 秒、间隔 0.07 秒共七次；当前为三次结构返修，并非同条件完整移植。不能据此声称造型或节奏已达到原作。
+
+书籍连续参考候选：https://www.pexels.com/video/glancing-over-the-pages-of-a-book-5667416/ 。尚未取得连续观察，不作为本版已完成的制作依据或认可证据。
+
+当前版本的观察与否定记录保存在各例 reviews.json，绑定输入及实际视频哈希。更改输入、视频或重新渲染后须重新核查；技术通过不产生推荐资格。

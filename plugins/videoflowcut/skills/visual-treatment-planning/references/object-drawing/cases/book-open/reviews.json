@@ -1,0 +1,23 @@
+[
+  {
+    "inputHash": "6c24f8f04ce2ea553995cd03754e68ba237495be51fb7dc5920507f3f8334f10",
+    "previewHash": "0e10e779b6a67a13a225e832420397618fcc2b64c6e30a2d07320edbd442fe76",
+    "method": "frames",
+    "verdict": "inconclusive",
+    "note": "首版历史静帧记录，不支持当前推荐。\n\n当前源码、参数、预览和实际帧的 SHA-256 由 verification.json 关联；渲染器记录跳帧返回抽查结果。\n静帧观察：第 24、71、110 帧。封面展开、单页侧面及结束状态已看；修正了页片整体抬起导致书脊连接偏移。 连续视觉效果尚未确认；当前会话没有连续视频感知输入，不能把抽帧记录写成整段审阅通过。无音轨，不声称完成声音验证或用户定稿。\n采用 SVG 层和固定细节，不承诺原 Canvas 逐像素一致、真实光学或任意视角三维表现。5 秒是此演示的完整动作时间，不是日常视频的规定时长。\n\n"
+  },
+  {
+    "inputHash": "6c24f8f04ce2ea553995cd03754e68ba237495be51fb7dc5920507f3f8334f10",
+    "previewHash": "0e10e779b6a67a13a225e832420397618fcc2b64c6e30a2d07320edbd442fe76",
+    "method": "continuous_video",
+    "verdict": "rejected",
+    "note": "用户观看后否定：物理方位、书页结构、节奏与惯性均不合格。六例退出正式推荐。"
+  },
+  {
+    "inputHash": "6f6a1142295d4f5a73d7500ca99051d160143c7e7b9575ed8811730bd6534e4c",
+    "previewHash": "6e70016a35c875b8656faaf7c7459b74ff22b53b477f446fdc0dcb2620d2f602",
+    "method": "frames",
+    "verdict": "inconclusive",
+    "note": "第94帧：翻页连接书脊，图案随曲面变形；右页仍有细条纹，连续质感待核查。"
+  }
+]

@@ -3,6 +3,8 @@ import {readFile,mkdir,mkdtemp} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
+import {pathToFileURL} from 'node:url';
+import {recommendable} from '../scripts/object-drawing-catalog.js';
 import {compileMotion,validateMotionSource} from '../packages/motion-work/src/compiler.js';
 import {motionSubmissionSchema} from '../packages/motion-work/src/schema.js';
 import {renderManagedMotion} from '../apps/render-worker/src/motion-renderer.js';
@@ -13,7 +15,7 @@ test('六个物件案例可独立通过当前受管合同与编译，来源和�
  const entries=JSON.parse(await readFile(join(root,'cases.json'),'utf8')) as {id:string;origin:string;functions:string[]}[];
  assert.equal(entries.length,6);
  assert.equal(new Set(entries.map(e=>e.id)).size,6);
- const reference=await readFile(join(root,'REFERENCE.md'),'utf8');
+ const reference=await readFile(join(root,'DEVELOPMENT.md'),'utf8');
  const sources=await readFile(join(root,'SOURCES.md'),'utf8');
  assert.match(await readFile(join(root,'LICENSE'),'utf8'),/Copyright \(c\) 2026 Dashi AI Lab/u);
  for(const entry of entries){
@@ -51,7 +53,33 @@ test('实际书页翻转在外层 Sequence 中只偏移一次，保持同一局�
  const plain=await renderManagedMotion(work,join(output,'plain'),{},undefined,undefined,[],undefined,{startFrame:71,endFrame:72});
  const nestedSource=source.replace("{useCurrentFrame,useVideoConfig}","{useCurrentFrame,useVideoConfig,Sequence}")
   .replace('export default function Motion','function ObjectCase')+
-  '\nexport default function Nested(props:{instanceId?:string;background?:string}) {return <Sequence from={24}><ObjectCase {...props}/></Sequence>;}';
- const nested=await renderManagedMotion({...work,source:nestedSource,durationInFrames:144},join(output,'nested'),{},undefined,undefined,[],undefined,{startFrame:95,endFrame:96});
+  '\nexport default function Nested(props:{instanceId?:string;background?:string}) {return <Sequence from={24}><ObjectCase {...props} startFrame={0}/></Sequence>;}';
+ const nested=await renderManagedMotion({...work,source:nestedSource,durationInFrames:264,props:{...work.props,startFrame:24}},join(output,'nested'),{},undefined,undefined,[],undefined,{startFrame:95,endFrame:96});
  assert.deepEqual(nested.frameHashes,plain.frameHashes,'不能在子组件重复减外层起点');
+ assert.deepEqual(nested.events,plain.events!.map(e=>({...e,startFrame:e.startFrame+24})));
+});
+
+const loadCase=async(id:string)=>import(pathToFileURL(join(root,'cases',id,'source.tsx')).href);
+test('剪刃交点推进到纸张远缘后切口不可恢复，书页保持书脊与身份',async()=>{
+ const scissors=await loadCase('scissors-cut');
+ assert.equal(scissors.cutGeometry(22).progress,0);
+ assert.equal(scissors.cutGeometry(0).progress,1);
+ for(const c of scissors.CUTS) assert.equal(scissors.sceneState(c+.03).cutProgress[scissors.CUTS.indexOf(c)],1);
+ const book=await loadCase('book-open');
+ for(const turn of [0,.2,.5,.8,1]) {
+  assert.deepEqual(book.pagePoint(0,40,turn),{x:0,y:40,z:20});
+  let length=0;
+  for(let i=1;i<=100;i++){const a=book.pagePoint((i-1)*2.1,0,turn),b=book.pagePoint(i*2.1,0,turn);length+=Math.hypot(b.x-a.x,b.z-a.z);}
+  assert.ok(Math.abs(length-210)<.1);
+ }
+ assert.deepEqual(book.sceneState(0).sheets.map((s:any)=>s.id),book.sceneState(4).sheets.map((s:any)=>s.id));
+ assert.ok(book.sceneState(4).sheets.every((s:any)=>s.side==='left'));
+});
+test('推荐必须匹配当前输入、视频及连续认可',()=>{
+ const entry:any={status:'recommended'},v={inputHash:'i',files:{'preview.mp4':'p'}};
+ const review:any={inputHash:'i',previewHash:'p',method:'continuous_video',verdict:'approved'};
+ assert.equal(recommendable(entry,v,[review],'i','p'),true);
+ for(const changed of [{method:'frames'},{verdict:'rejected'},{inputHash:'old'},{previewHash:'old'}]) assert.equal(recommendable(entry,v,[{...review,...changed}],'i','p'),false);
+ assert.equal(recommendable(entry,v,[review],'new','p'),false);
+ assert.equal(recommendable({...entry,status:'rework'},v,[review],'i','p'),false);
 });

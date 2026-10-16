@@ -1,22 +1,27 @@
 {
-  "inputHash": "6c24f8f04ce2ea553995cd03754e68ba237495be51fb7dc5920507f3f8334f10",
+  "inputHash": "6f6a1142295d4f5a73d7500ca99051d160143c7e7b9575ed8811730bd6534e4c",
   "engineVersion": "managed-motion-14",
   "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
   "width": 960,
   "height": 540,
-  "fps": 24,
-  "durationInFrames": 120,
+  "fps": 60,
+  "durationInFrames": 240,
   "resources": [],
   "events": [
     {
-      "id": "open",
-      "meaning": "封面展开到左侧",
-      "startFrame": 46
+      "id": "cover-open",
+      "meaning": "封面绕书脊落在左侧",
+      "startFrame": 65
     },
     {
-      "id": "page",
-      "meaning": "独立页片越过书脊落定",
-      "startFrame": 89
+      "id": "leaf-a",
+      "meaning": "同一页从右侧翻过书脊并落定在左侧",
+      "startFrame": 118
+    },
+    {
+      "id": "leaf-b",
+      "meaning": "同一页从右侧翻过书脊并落定在左侧",
+      "startFrame": 177
     }
   ],
   "determinism": {
@@ -24,22 +29,25 @@
     "maxAllowedChannelDelta": 2,
     "sampledFrames": [
       0,
-      60,
-      119
+      120,
+      239
     ],
     "differences": []
   },
   "files": {
-    "source.tsx": "b97945a74df695b878c1280720611e9734610cea24e4c920446d9fcb65a8dfb6",
-    "demo-props.json": "14a9f27749cbf4b6ea7812f6a55097574b7985d3dd9f1814478baad3a621c70d",
-    "preview.mp4": "0e10e779b6a67a13a225e832420397618fcc2b64c6e30a2d07320edbd442fe76",
-    "keyframes/frame-00000.png": "b4009712fbf8d372dda913c4d28a0c223c40d22e45a75ebee8f32d02239c8696",
-    "keyframes/frame-00024.png": "6dec5dfc66f5035ffc5ae320fd9726da708b8e479652599e2bce9f715e348b69",
-    "keyframes/frame-00045.png": "99db86b08d206d7a6ac18f148c0f27c56e2004170d2c2a017eee69f77dcd0386",
-    "keyframes/frame-00060.png": "1b36fef0e8bdca9b075765a21681819640d94ad6a6db5d229bcac9b10796281c",
-    "keyframes/frame-00071.png": "3797234de279a5415beab3e67765be50844a3f217ae5d81cf83d3cc7aca21366",
-    "keyframes/frame-00089.png": "14890059f88cc48cf443926fcabbdde29fb6ec391d7dab52c1c5e7820f385e9b",
-    "keyframes/frame-00110.png": "14890059f88cc48cf443926fcabbdde29fb6ec391d7dab52c1c5e7820f385e9b"
+    "source.tsx": "8536cd5275bae470b85baba697496070cbcfbce04aaf03376e4f421da10cd944",
+    "demo-props.json": "f31ebc67a7ed74a6ae3f9c875ce0caf76b1ff2be78e65008007e77bab82f078b",
+    "preview.mp4": "6e70016a35c875b8656faaf7c7459b74ff22b53b477f446fdc0dcb2620d2f602",
+    "keyframes/frame-00000.png": "9601e18750f5ed869fdd636b1a863bb4b932a09d98f2cc9f8a5cf51f75b0fd04",
+    "keyframes/frame-00024.png": "fc06546c8dc4ff57e0174d2b49bb7d0c1cb76a610afd5806a4f5f2bdf834e777",
+    "keyframes/frame-00043.png": "3cc0d055ac6747fc6631e87f7cf7332693449f1575dc66e42232163f1ca24d40",
+    "keyframes/frame-00068.png": "f421cf59d05460cf4ab90163634851daecf89cc76a6585f728a43da9fb8aa369",
+    "keyframes/frame-00082.png": "4e3657dc25ba5f016ba31853d407448fc353e6b84dd3a869d3ceb59a886306f0",
+    "keyframes/frame-00094.png": "c0ace3a795798f0413f5c7b46e615fcbdf90981c366be5a448063734b3084c4a",
+    "keyframes/frame-00112.png": "d766c7fab4b27affac6e9efff9de698ef18f4d838a8ef99b5b50bd6f2b40d296",
+    "keyframes/frame-00150.png": "9f311d9682d0db780a71137aee2c86886a2473317bec7830d071d293d9e2dd69",
+    "keyframes/frame-00177.png": "2f8c2c0a9e83a037824ad99360f89b92b14d8c1ecbe268354a50adfb45fc8f1f",
+    "keyframes/frame-00220.png": "2f8c2c0a9e83a037824ad99360f89b92b14d8c1ecbe268354a50adfb45fc8f1f"
   },
   "rendered": true,
   "review": "已完成受管渲染、帧数与跳帧一致性技术检查；视觉观察另见 case.md，不由哈希推导审美结论。"

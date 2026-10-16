@@ -1,27 +1,27 @@
 {
-  "inputHash": "d139fa393a2e199ab7e8036e723e3deb971eed8b42fd3308d2cb380a559dc88a",
+  "inputHash": "69b652bfb4a9653003534d763b67d7f2897cb724bc52451be812f456b52ce42a",
   "engineVersion": "managed-motion-14",
   "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
   "width": 960,
   "height": 540,
-  "fps": 24,
-  "durationInFrames": 120,
+  "fps": 60,
+  "durationInFrames": 204,
   "resources": [],
   "events": [
     {
-      "id": "land-0",
-      "meaning": "第1个果实落入碗内",
-      "startFrame": 32
+      "id": "contact-0",
+      "meaning": "果实接触碗内壁后向内部滚动",
+      "startFrame": 44
     },
     {
-      "id": "land-1",
-      "meaning": "第2个果实落入碗内",
-      "startFrame": 48
+      "id": "contact-1",
+      "meaning": "果实接触碗内壁后向内部滚动",
+      "startFrame": 83
     },
     {
-      "id": "land-2",
-      "meaning": "第3个果实落入碗内",
-      "startFrame": 64
+      "id": "contact-2",
+      "meaning": "第三颗果实接触已有两颗果实并落定",
+      "startFrame": 123
     }
   ],
   "determinism": {
@@ -29,22 +29,23 @@
     "maxAllowedChannelDelta": 2,
     "sampledFrames": [
       0,
-      60,
-      119
+      102,
+      203
     ],
     "differences": []
   },
   "files": {
-    "source.tsx": "cc98596275373f059cb0d0fdc0346bf6b35568c66dc46a1cc85d4258e57fc06e",
-    "demo-props.json": "52f014d4ab420fd67e4ab04c0102fd908e6276f8e960b83e37ff8ae7be8e790c",
-    "preview.mp4": "f2d20eb9914ac2a6061fc7a7431469ab469efbb741ec715338913b0ae2e6c415",
-    "keyframes/frame-00000.png": "11d935cfcc66fcba995ad992132182a872c7ac63146833ece8a170a942b5e5ab",
-    "keyframes/frame-00024.png": "077348fa4f6400d1f1b6267a40d26b38a7f9485eb2933fa0408e0a9b55394f0b",
-    "keyframes/frame-00033.png": "f40a85da1032f8bea8fcf7443c59bf2a05b85184a33d3dae222cfa9be3c0b4f6",
-    "keyframes/frame-00048.png": "1552db9be4b2b327513890e630a2fcff0bf4be7fbaf44a164d8a4118e734a6c7",
-    "keyframes/frame-00064.png": "f47d1f495c9e2e3ebf5131f597fb6ded35b48c96349b48d1b69212010be6841f",
-    "keyframes/frame-00082.png": "e9c6a8fd2f0dc053642b28212c381347cae19341c5041e434da200f5107aab68",
-    "keyframes/frame-00110.png": "e9c6a8fd2f0dc053642b28212c381347cae19341c5041e434da200f5107aab68"
+    "source.tsx": "8c40cf4311cbc71af0dd6f6d3a8f6307956cc8ca96cc52a23680df2eb6f46eac",
+    "demo-props.json": "015f52c11f45295612815cf806c64540fd78d6f19d36959ebc0cd75fcce51d1f",
+    "preview.mp4": "6ff855be9ad910173b0218232e2a6e9f03760da766f3291fb9cc67be23b97d3f",
+    "keyframes/frame-00000.png": "4c8532fa348833e2cfc6de96bb760fcb13560d16f3f0da5866b68449a7696d1f",
+    "keyframes/frame-00043.png": "d247e87e12a01d7649a53ca71b0c3abd0981f460d8172381b704a14ce57d0609",
+    "keyframes/frame-00065.png": "7eafa168fee1288beead2bb4ffcc8f016a7e3157aa68a7aceac2fbe82a209356",
+    "keyframes/frame-00082.png": "a43307a29dc1455bbc8f378700bb4a6a5d7e10bd8691d0cecbd6da547ddca311",
+    "keyframes/frame-00111.png": "b5bbe13abea9329b6b5ee87d4a1209cc5ff8d2e47a820aeff4d7ff33cb629e8d",
+    "keyframes/frame-00123.png": "1e9954df6aa7572d3802bb5ee53be4820b68f21f36ca6756bec1d7e60f8a9d05",
+    "keyframes/frame-00155.png": "3f0fde5785e5482314b0d801aaed917ee6d4250deb8ae2a1acdf2680af612df3",
+    "keyframes/frame-00190.png": "3f0fde5785e5482314b0d801aaed917ee6d4250deb8ae2a1acdf2680af612df3"
   },
   "rendered": true,
   "review": "已完成受管渲染、帧数与跳帧一致性技术检查；视觉观察另见 case.md，不由哈希推导审美结论。"

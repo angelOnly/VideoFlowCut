@@ -6,17 +6,21 @@
     "functions": [
       "sceneState",
       "Scissors",
-      "Paper"
+      "Paper",
+      "cutGeometry"
     ],
     "keyframes": [
       0,
-      29,
-      48,
-      53,
-      68,
-      87,
-      110
-    ]
+      30,
+      52,
+      55,
+      56,
+      64,
+      72,
+      95,
+      150
+    ],
+    "status": "rework"
   },
   {
     "id": "magnifier-scan",
@@ -28,11 +32,13 @@
     ],
     "keyframes": [
       0,
-      24,
-      48,
-      77,
-      100
-    ]
+      21,
+      60,
+      100,
+      118,
+      170
+    ],
+    "status": "rework"
   },
   {
     "id": "domino-flip",
@@ -44,13 +50,14 @@
     ],
     "keyframes": [
       0,
-      30,
-      43,
-      52,
+      36,
+      45,
+      49,
+      61,
       67,
-      74,
-      100
-    ]
+      110
+    ],
+    "status": "rework"
   },
   {
     "id": "cutaway-head",
@@ -62,12 +69,14 @@
     ],
     "keyframes": [
       0,
-      24,
-      42,
-      60,
-      84,
-      110
-    ]
+      39,
+      64,
+      76,
+      100,
+      135,
+      200
+    ],
+    "status": "rework"
   },
   {
     "id": "bowl-receive",
@@ -81,13 +90,15 @@
     ],
     "keyframes": [
       0,
-      24,
-      33,
-      48,
-      64,
+      43,
+      65,
       82,
-      110
-    ]
+      111,
+      123,
+      155,
+      190
+    ],
+    "status": "rework"
   },
   {
     "id": "book-open",
@@ -96,16 +107,22 @@
     "functions": [
       "sceneState",
       "Book",
-      "PageMarks"
+      "PageMarks",
+      "pagePoint",
+      "project"
     ],
     "keyframes": [
       0,
       24,
-      45,
-      60,
-      71,
-      89,
-      110
-    ]
+      43,
+      68,
+      82,
+      94,
+      112,
+      150,
+      177,
+      220
+    ],
+    "status": "rework"
   }
 ]

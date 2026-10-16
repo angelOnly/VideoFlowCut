@@ -1,0 +1,23 @@
+[
+  {
+    "inputHash": "1176fec869b1e56fb3c1beceb9ceab33cc285e7b3a6fbb018a12c2664fb04473",
+    "previewHash": "4eefe716afbe61f3010620627c284cbad9bc1670d458dd6ae947f77b05377d8f",
+    "method": "frames",
+    "verdict": "inconclusive",
+    "note": "首版历史静帧记录，不支持当前推荐。\n\n当前源码、参数、预览和实际帧的 SHA-256 由 verification.json 关联；渲染器记录跳帧返回抽查结果。\n静帧观察：第 100 帧。镜框、内圈、透明镜片和异常点指认已看；没有光学放大。 连续视觉效果尚未确认；当前会话没有连续视频感知输入，不能把抽帧记录写成整段审阅通过。无音轨，不声称完成声音验证或用户定稿。\n采用 SVG 层和固定细节，不承诺原 Canvas 逐像素一致、真实光学或任意视角三维表现。5 秒是此演示的完整动作时间，不是日常视频的规定时长。\n\n"
+  },
+  {
+    "inputHash": "1176fec869b1e56fb3c1beceb9ceab33cc285e7b3a6fbb018a12c2664fb04473",
+    "previewHash": "4eefe716afbe61f3010620627c284cbad9bc1670d458dd6ae947f77b05377d8f",
+    "method": "continuous_video",
+    "verdict": "rejected",
+    "note": "用户观看后否定：物理方位、书页结构、节奏与惯性均不合格。六例退出正式推荐。"
+  },
+  {
+    "inputHash": "f755106f67137f48ffba31cd125add533d2cfcae1bfc914aab42f0fa5c07b733",
+    "previewHash": "c7500c2db9c3227d8a40b81763ff92d96eb925c22669258e696c915b0a9fa92e",
+    "method": "frames",
+    "verdict": "inconclusive",
+    "note": "第118帧：镜片定位目标，镜框、镜柄与目标层次可辨；搜索节奏待连续核查。"
+  }
+]

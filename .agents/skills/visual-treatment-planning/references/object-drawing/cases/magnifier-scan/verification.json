@@ -1,17 +1,17 @@
 {
-  "inputHash": "1176fec869b1e56fb3c1beceb9ceab33cc285e7b3a6fbb018a12c2664fb04473",
+  "inputHash": "f755106f67137f48ffba31cd125add533d2cfcae1bfc914aab42f0fa5c07b733",
   "engineVersion": "managed-motion-14",
   "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
   "width": 960,
   "height": 540,
-  "fps": 24,
-  "durationInFrames": 120,
+  "fps": 60,
+  "durationInFrames": 192,
   "resources": [],
   "events": [
     {
       "id": "found",
-      "meaning": "镜片停止在异常数据标记上",
-      "startFrame": 77
+      "meaning": "折回核对后在异常点收住",
+      "startFrame": 118
     }
   ],
   "determinism": {
@@ -19,20 +19,21 @@
     "maxAllowedChannelDelta": 2,
     "sampledFrames": [
       0,
-      60,
-      119
+      96,
+      191
     ],
     "differences": []
   },
   "files": {
-    "source.tsx": "51d039af31fa1c7b9e1a65655ab4126839556dc47d3519196107d475f4070cb7",
-    "demo-props.json": "33a7ac450d170c16f5ce44fdfe519b225ac290930c96d8c97b0f6e0525578f1b",
-    "preview.mp4": "4eefe716afbe61f3010620627c284cbad9bc1670d458dd6ae947f77b05377d8f",
-    "keyframes/frame-00000.png": "91a942002da3be9ee6978ebfdc4677167abd6be2130880a337490476fef6051c",
-    "keyframes/frame-00024.png": "79ba8aa545253d80cb795e5dde82e161d3a119a8125fc0d589290bb928505ebe",
-    "keyframes/frame-00048.png": "cd82f85eaf3ea6a925315ed78c5540b48a3d782a9e4642053ebba3e32433ec19",
-    "keyframes/frame-00077.png": "3d0e521ca4a8f240f87a9e029b9e49fc21deef9084584a11b8b15b1433040c0d",
-    "keyframes/frame-00100.png": "f2a4fdae94e7c6f8a2b1c9a2ee193c19f0269950c8887b18c00c0029cfd3e899"
+    "source.tsx": "68e97bd1070c02b3ac6e695322962a6d192443d51226a379fd889363c3fa02d1",
+    "demo-props.json": "f0dca3f11fb4327ce584d511ab1cc09808952e4c81374f8e4d0b2c85625bc3ac",
+    "preview.mp4": "c7500c2db9c3227d8a40b81763ff92d96eb925c22669258e696c915b0a9fa92e",
+    "keyframes/frame-00000.png": "183f362c0053c58cdd1207c23b47e7011386600099b10912f2537b3ecebce1ee",
+    "keyframes/frame-00021.png": "e87c0db22f664fe146a8c3a8eff5502ee9e35e0337c46ffe7d8e45da2a29f440",
+    "keyframes/frame-00060.png": "067b0eb2f1d6d0686cba30a21b106202cd87c4534292f1d783a9a9926327f3cd",
+    "keyframes/frame-00100.png": "ba19fc94c425f5ef3ca4b0004246cf6fa64ce094724e997df5c95dfa6ffc4925",
+    "keyframes/frame-00118.png": "a6621fd28d8cba4e3acfc5e962596bcc653916d3d0435a3a9df94d7291ec22a6",
+    "keyframes/frame-00170.png": "f2a4fdae94e7c6f8a2b1c9a2ee193c19f0269950c8887b18c00c0029cfd3e899"
   },
   "rendered": true,
   "review": "已完成受管渲染、帧数与跳帧一致性技术检查；视觉观察另见 case.md，不由哈希推导审美结论。"

@@ -3,12 +3,16 @@ import React from 'react';
 import {useCurrentFrame,useVideoConfig} from 'remotion';
 const p=(t:number,a:number,d:number)=>Math.max(0,Math.min(1,(t-a)/d));
 const smooth=(v:number)=>v*v*(3-2*v);
+// 先扫过区域、折回核对，再在异常点收住；不是一条长缓动滑轨。
 export function sceneState(t:number) {
-  const q=smooth(p(t,.6,2.6));
-  return {x:280+360*q,y:235+36*Math.sin(q*Math.PI),found:p(t,3.2,.45)};
+ const scan=p(t,.35,1.35),enter=1-Math.pow(1-p(t,0,.35),3);
+ const rawX=460+180*Math.sin(scan*Math.PI*2*.55-.5),rawY=235+48*Math.sin(scan*Math.PI*2*1.05+.4);
+ const confirm=1-Math.pow(1-p(t,1.70,.26),3);
+ return {x:(780+(rawX-780)*enter)*(1-confirm)+640*confirm,y:(405+(rawY-405)*enter)*(1-confirm)+235*confirm,
+ rotation:(-15*(1-enter)+5*Math.sin(scan*Math.PI*2))*(1-confirm),found:p(t,1.96,.16)};
 }
-export function resolveMotionEvents(_:unknown,{fps}:{fps:number}) {
-  return [{id:'found',meaning:'镜片停止在异常数据标记上',startFrame:Math.round(3.2*fps)}];
+export function resolveMotionEvents(props:{startFrame?:number},{fps}:{fps:number}) {
+ return [{id:'found',meaning:'折回核对后在异常点收住',startFrame:(props.startFrame??0)+Math.ceil(1.96*fps)}];
 }
 function Magnifier({id}:{id:string}) {
   return <g>
@@ -21,8 +25,8 @@ function Magnifier({id}:{id:string}) {
     <path d="M-48 -13 A50 50 0 0 1 -12 -49" fill="none" stroke="#fff" strokeOpacity=".85" strokeWidth="6" strokeLinecap="round"/>
   </g>;
 }
-export default function Motion(props:{instanceId?:string;background?:string}) {
-  const frame=useCurrentFrame(),{fps}=useVideoConfig(),s=sceneState(frame/fps);
+export default function Motion(props:{instanceId?:string;background?:string;startFrame?:number}) {
+  const frame=useCurrentFrame(),{fps}=useVideoConfig(),s=sceneState((frame-(props.startFrame??0))/fps);
   return <svg width="100%" height="100%" viewBox="0 0 960 540">
     <rect width="960" height="540" fill={props.background??'#e9e5d9'}/>
     <path d="M185 130 L742 124 L761 376 L177 384Z" fill="#c3b9a5" opacity=".4" transform="translate(7 8)"/>
@@ -33,6 +37,6 @@ export default function Motion(props:{instanceId?:string;background?:string}) {
     </g>)}
     <circle cx="640" cy="235" r={16+9*(1-s.found)} fill="none" stroke="#c55331" strokeWidth="3" opacity={s.found}/>
     <path d="M660 235 H700 L727 207" fill="none" stroke="#c55331" strokeWidth="3" opacity={s.found}/>
-    <g transform={`translate(${s.x} ${s.y})`}><Magnifier id={props.instanceId??'magnifier'}/></g>
+    <g transform={`translate(${s.x} ${s.y}) rotate(${s.rotation})`}><Magnifier id={props.instanceId??'magnifier'}/></g>
   </svg>;
 }

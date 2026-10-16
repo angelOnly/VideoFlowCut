@@ -1,0 +1,23 @@
+[
+  {
+    "inputHash": "d139fa393a2e199ab7e8036e723e3deb971eed8b42fd3308d2cb380a559dc88a",
+    "previewHash": "f2d20eb9914ac2a6061fc7a7431469ab469efbb741ec715338913b0ae2e6c415",
+    "method": "frames",
+    "verdict": "inconclusive",
+    "note": "首版历史静帧记录，不支持当前推荐。\n\n当前源码、参数、预览和实际帧的 SHA-256 由 verification.json 关联；渲染器记录跳帧返回抽查结果。\n静帧观察：第 48、110 帧。中途及结束帧可见果实下部被前壁遮挡，碗内身份位置保留。 连续视觉效果尚未确认；当前会话没有连续视频感知输入，不能把抽帧记录写成整段审阅通过。无音轨，不声称完成声音验证或用户定稿。\n采用 SVG 层和固定细节，不承诺原 Canvas 逐像素一致、真实光学或任意视角三维表现。5 秒是此演示的完整动作时间，不是日常视频的规定时长。\n\n"
+  },
+  {
+    "inputHash": "d139fa393a2e199ab7e8036e723e3deb971eed8b42fd3308d2cb380a559dc88a",
+    "previewHash": "f2d20eb9914ac2a6061fc7a7431469ab469efbb741ec715338913b0ae2e6c415",
+    "method": "continuous_video",
+    "verdict": "rejected",
+    "note": "用户观看后否定：物理方位、书页结构、节奏与惯性均不合格。六例退出正式推荐。"
+  },
+  {
+    "inputHash": "69b652bfb4a9653003534d763b67d7f2897cb724bc52451be812f456b52ce42a",
+    "previewHash": "6ff855be9ad910173b0218232e2a6e9f03760da766f3291fb9cc67be23b97d3f",
+    "method": "frames",
+    "verdict": "inconclusive",
+    "note": "第155帧：第三颗位于前两颗之上，前壁遮挡下部果实；接触全过程待连续核查。"
+  }
+]

@@ -2,11 +2,12 @@
   "name": "开顶石雕与内部承载",
   "props": {
     "instanceId": "cutaway-head",
-    "background": "#e9e5d9"
+    "background": "#e9e5d9",
+    "startFrame": 0
   },
   "width": 960,
   "height": 540,
-  "fps": 24,
-  "durationInFrames": 120,
+  "fps": 60,
+  "durationInFrames": 228,
   "creativeBrief": "依据已核实侧脸路径制造石雕，保留眉骨、鼻梁、嘴唇、下颌和脖颈比例。以深浅斑块、细颗粒和固定光向呈现石材；开口有内外椭圆和厚度。球体落进开口后由前缘实际遮挡，随后靠近观察仍保留结构。"
 }

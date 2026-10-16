@@ -2,11 +2,12 @@
   "name": "书籍展开与翻页",
   "props": {
     "instanceId": "book-open",
-    "background": "#e9e5d9"
+    "background": "#e9e5d9",
+    "startFrame": 0
   },
   "width": 960,
   "height": 540,
-  "fps": 24,
-  "durationInFrames": 120,
+  "fps": 60,
+  "durationInFrames": 240,
   "creativeBrief": "制造有封面装饰、书脊和页块厚度的书。先绕书脊展开封面，再让独立页片从右翻到左，翻页中途保留连接和纸片弯曲，底部页块不跟着整体旋转；正文为几何示意，不加入未绑定字体。"
 }
