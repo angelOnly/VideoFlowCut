@@ -1,3 +1,4 @@
+export * from "./presenter-library.js";
 /**
  * Web、MCP、Worker 共用的契约。这里仅描述数据，不放业务规则，避免形成第二套状态。
  */
@@ -60,6 +61,8 @@ export interface AssetProvenance {
   generation?: GeneratedVideoProvenance;
   /** 从本项目已入库视频提取音频时，保留源身份与精确半开源范围。 */
   derivedFrom?: { assetId: Id; sourceHash: string; startMs: number; endMs: number };
+  /** 物件加工保留所有实际源与遮罩的身份，布局随派生图集一起发布。 */
+  objectResources?: { inputHash: string; processorVersion: string; layoutPath: string; pageId: string; sources: Array<{ assetId: Id; sourceHash: string }> };
   /** 本地零点对应原片 sourceRange.startMs；省略范围表示整文件。 */
   acquisition?: AssetAcquisitionOptions & { candidateId: Id; candidateIds?: Id[] };
   acquiredAt: string;
@@ -183,6 +186,7 @@ export type JobKind =
   | "multicam_sync"
   | "asset_acquisition"
   | "source_material_acquisition"
+  | "object_resource_preparation"
   | "transcription"
   /** 历史 VAD 分块 Job；只为读取旧记录保留，新的 Worker 绝不能执行或创建。 */
   | "source_caption_generation"
@@ -929,7 +933,7 @@ export type ActorAudioMode = "use_source_audio" | "use_dialogue_track" | "muted"
  * 这是 Provider 实际可用能力的项目内记录，不是营销页能力的复制。
  * Worker 在真正提交前仍会读取 Bridge 的最新 workflow schema；Profile 用于让导演知道可规划什么。
  */
-export type AvatarProviderKind = "minimax_h3_multi_reference";
+export type AvatarProviderKind = "ltx23_audio_to_video";
 export type AvatarInputMode = "audio" | "text";
 
 export interface ActorCapabilityProfile {
@@ -1832,6 +1836,9 @@ export interface ProjectSnapshot {
   audioMixGainDb?: number;
   /** 只读历史采用资料，不作为制作或导出的前置。 */
   mediaAdoptions?: MediaAdoption[];
+  presenter?: import("./presenter-library.js").PresenterSelection;
+  /** 人物音色变更使在途旧配音失效，不伪造 Script 修改。 */
+  speechInputVersion?: number;
   voiceReferences: VoiceReference[];
   /** 原声时间证据与最终视觉字幕 Program 分离保存，避免自动标点直接成为成片字幕。 */
   sourceAudioAlignments: SourceAudioAlignment[];

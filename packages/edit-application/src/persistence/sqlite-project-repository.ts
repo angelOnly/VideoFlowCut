@@ -1,3 +1,4 @@
+import type { PresenterLibrary } from "@videocut/contracts";
 import { explicitCreativePreferencesSchema } from "../../../contracts/src/creative-preferences.js";
 import { bindMotionFonts } from "../../../motion-work/src/fonts.js";
 import { reconcileSoundDesign } from "../sound-design.js";
@@ -302,6 +303,17 @@ export class ProjectRepository {
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };
+  }
+
+  readPresenterLibrary(): PresenterLibrary {
+    const row = this.db.prepare("SELECT value_json FROM workspace_settings WHERE key = ?").get("presenter_library") as { value_json: string } | undefined;
+    return row ? JSON.parse(row.value_json) as PresenterLibrary : { entries: [], defaults: {} };
+  }
+
+  savePresenterLibrary(value: PresenterLibrary): PresenterLibrary {
+    this.db.prepare("INSERT INTO workspace_settings (key, value_json) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json")
+      .run("presenter_library", JSON.stringify(value));
+    return value;
   }
 
   readCreativeDefaults(): ExplicitCreativePreferences {

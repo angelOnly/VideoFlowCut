@@ -1,3 +1,4 @@
+import { PresenterLibrarySettings, ProjectPresenterSelection } from "./PresenterLibraryPanel";
 import { CreativeDefaultsSettings } from "./CreativeDefaultsSettings";
 import { exportBlockingIssues } from "../../../packages/quality-system/src/export-policy.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -329,6 +330,7 @@ export function App() {
           <button className="primary" onClick={() => void createProject()} disabled={busy}>创建项目</button>
         </div>
         <CreativeDefaultsSettings />
+        <PresenterLibrarySettings />
         {message !== "准备就绪" && <p className="message">{message}</p>}
       </main>
     );
@@ -358,6 +360,7 @@ export function App() {
         <span className="revision-badge" data-testid="revision">R{currentRevision}</span>
         <span className="canvas-summary">{snapshot.timeline.width}×{snapshot.timeline.height} · {snapshot.timeline.fps} fps · {formatDuration(snapshot.timeline.durationInFrames, snapshot.timeline.fps)}</span>
         <CreativeDefaultsSettings />
+        <PresenterLibrarySettings />
         <FrameRateSettings key={snapshot.project.id} projectId={snapshot.project.id} revision={currentRevision} fps={snapshot.timeline.fps} onApplied={async (fromFps, toFps, durationInFrames) => {
           const nextFrame = Math.min(Math.max(0, durationInFrames - 1), Math.round(playhead * toFps / fromFps));
           await load(snapshot.project.id);
@@ -681,7 +684,7 @@ function PanelContent(props: PanelContentProps) {
     </>;
   }
   if (panel === "actors") {
-    return <ActorsPanel snapshot={snapshot} onRegisterActor={props.onRegisterActor} />;
+    return <><ProjectPresenterSelection snapshot={snapshot} revision={props.currentRevision} busy={props.busy} run={props.onRunAdvancedAction} /><ActorsPanel snapshot={snapshot} onRegisterActor={props.onRegisterActor} /></>;
   }
   if (panel === "scenes") {
     return <ScenesPanel snapshot={snapshot} onSelect={props.onSelect} onSeek={props.onSeek} onAddEffect={props.onAddEffect} />;

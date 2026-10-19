@@ -318,7 +318,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     description: "浏览、导入、检验、搜索、获取素材，并保留来源和需求事实。",
     tools: [
       "browse_assets", "inspect_asset", "manage_asset_requirements", "list_asset_providers", "search_media_candidates", "acquire_source_material", "inspect_media_candidate",
-      "acquire_media_asset", "read_asset_provenance", "import_media", "extract_source_audio", "update_asset_metadata",
+      "acquire_media_asset", "read_asset_provenance", "import_media", "extract_source_audio", "update_asset_metadata", "read_object_resource_capabilities", "prepare_object_resources",
       "analyze_media", "read_media_observations", "search_media_fragments", "correct_media_observation", "retry_media_job"
     ]
   },

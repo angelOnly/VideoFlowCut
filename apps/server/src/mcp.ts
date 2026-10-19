@@ -1,3 +1,4 @@
+import { registerPresenterTools } from "./presenter-tools.js";
 import { creativeBriefSchema, creativeBriefUpdateSchema } from "../../../packages/contracts/src/creative-preferences.js";
 import { registerMediaSearchTool } from "./media-search-tool.js";
 import { readJobDiagnostics } from "./job-diagnostics.js";
@@ -26,6 +27,7 @@ import { EFFECT_QUALITY_RULES, EFFECT_TYPES, type Asset, type AssetProvenance } 
 import { inspectComposedFrames } from "./preview-inspection.js";
 import { inspectAsset } from "./source-review.js";
 import { registerMotionTools } from "./motion-tools.js";
+import { registerObjectResourceTools } from "./object-resource-tools.js";
 import { registerMotionLibraryTools } from "./motion-library-tools.js";
 import { projectMotionJob } from "./motion-library-output.js";
 import { registerMediaIntelligenceTools } from "./media-intelligence-tools.js";
@@ -2206,6 +2208,8 @@ server.registerTool("read_actor_capabilities", {
   try { return asText(application.listActorCapabilityProfiles(projectIdFrom(project_id))); } catch (error) { return asError(error); }
 });
 
+registerPresenterTools(server, application, projectIdFrom);
+
 server.registerTool("manage_actor_capabilities", {
   title: "管理人物能力档案",
   description: "创建、更新或移除项目内的 ActorCapabilityProfile。档案只记录已确认能力；上传音频不自动代表口型同步，也不会把静态布局或生成结果伪装成姿态追踪。",
@@ -2214,7 +2218,7 @@ server.registerTool("manage_actor_capabilities", {
     base_revision_id: z.number().int().positive(),
     action: z.enum(["create", "update", "remove"]),
     profile_id: z.string().optional(),
-    provider: z.literal("minimax_h3_multi_reference").optional(),
+    provider: z.literal("ltx23_audio_to_video").optional(),
     label: z.string().min(1).max(120).optional(),
     workflow_id: z.string().min(1).max(200).optional(),
     input_modes: z.array(z.enum(["audio", "text"])).min(1).max(2).optional(),
@@ -2291,18 +2295,18 @@ server.registerTool("manage_actor_performance", {
 
 server.registerTool("submit_avatar_job", {
   title: "提交数字人生成人物",
-  description: "使用当前 SpeechAsset 与已登记的能力档案提交 MiniMax H3 多参考人物生成。提交会固定 base_revision_id；Worker 在实际调用前动态读取 Bridge Schema，不接受或承诺逐帧姿态、目光、手势追踪。当前生成结果仅支持无 Mask 的前景降级，人物声音只能由 Dialogue 或静音承担。完成后用 track_job 和 read_actor_performances 读回。",
+  description: "使用当前 SpeechAsset 与已登记的能力档案提交 LTX 2.3 人物生成。提交会固定 base_revision_id；Worker 在实际调用前动态读取 Bridge Schema，不接受或承诺逐帧姿态、目光、手势追踪。当前生成结果仅支持无 Mask 的前景降级，人物声音只能由 Dialogue 或静音承担。完成后用 track_job 和 read_actor_performances 读回。",
   inputSchema: z.object({
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
     capability_profile_id: z.string().min(1),
-    // 当前已验证的 MiniMax 路径只接受一张本地化人物参考图，不把参考视频能力提前暴露为可用。
-    reference_image_asset_id: z.string().min(1),
+    // 当前 LTX 路径只接受一张本地化人物参考图，不把参考视频能力提前暴露为可用。
+    reference_image_asset_id: z.string().min(1).optional(),
     speech_asset_id: z.string().min(1).optional(),
     replace_actor_performance_id: z.string().min(1).optional(),
     generation_range: actorGenerationRangeSchema,
     placement: actorPlacementSchema,
-    prompt: z.string().trim().min(1).max(4_000).optional(),
+    prompt: z.string().trim().min(1).max(4_000).optional().describe("人物专项依据导演意图编写的 LTX 正向提示词；仅在工作流公开唯一正向字段时提交，省略使用工作流默认。"),
     mask_mode: z.literal("none").optional(),
     audio_mode: z.enum(["use_dialogue_track", "muted"]).optional(),
     layout: actorLayoutSchema.optional(),
@@ -2509,6 +2513,7 @@ server.registerTool("browse_effect_types", {
 }, async () => asText(EFFECT_TYPES));
 
 registerMotionTools(server, application, projectIdFrom);
+registerObjectResourceTools(server, application);
 registerMotionLibraryTools(server, undefined, application, projectIdFrom);
 registerMediaIntelligenceTools(server, application, projectIdFrom);
 registerSourceResearchTools(server, projectIdFrom);

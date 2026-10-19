@@ -1,3 +1,5 @@
+import { registerPresenterRoutes } from "./presenter-tools.js";
+import { objectResourceCapabilities } from "../../../packages/media-intelligence/src/object-resources/index.js";
 import { motionFrameRangeSchema } from "../../../packages/motion-work/src/schema.js";
 import { SourceDisplayValidationError } from "../../../packages/edit-application/src/source-display-checks.js";
 import { creativeBriefSchema, creativeBriefUpdateSchema, explicitCreativePreferencesSchema } from "../../../packages/contracts/src/creative-preferences.js";
@@ -98,7 +100,7 @@ const actorPlacementSchema = z.object({
 const avatarGenerationRequestSchema = z.object({
   baseRevision: baseRevisionSchema,
   capabilityProfileId: idSchema,
-  referenceImageAssetId: idSchema,
+  referenceImageAssetId: idSchema.optional(),
   speechAssetId: idSchema.optional(),
   replaceActorPerformanceId: idSchema.optional(),
   generationRange: actorGenerationRangeSchema,
@@ -304,6 +306,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return { status: "ready", bridge: bridgeStatus };
   });
 
+  registerPresenterRoutes(app, application);
   app.get("/api/settings/creative-defaults", async () => application.readCreativeDefaults());
   app.put("/api/settings/creative-defaults", async request => application.saveCreativeDefaults(explicitCreativePreferencesSchema.parse(request.body)));
   app.delete("/api/settings/creative-defaults", async () => application.saveCreativeDefaults({}));
@@ -632,7 +635,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       baseRevision: baseRevisionSchema,
       action: z.enum(["create", "update", "remove"]),
       profileId: idSchema.optional(),
-      provider: z.literal("minimax_h3_multi_reference").optional(),
+      provider: z.literal("ltx23_audio_to_video").optional(),
       label: z.string().min(1).max(120).optional(),
       workflowId: z.string().min(1).max(200).optional(),
       inputModes: z.array(z.enum(["audio", "text"])).min(1).max(2).optional(),
@@ -1038,7 +1041,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   });
 
   app.get("/api/motion/sources", async () => ({ sources: MOTION_SOURCES }));
-  app.get("/api/motion/capabilities", async () => ({ engineVersion: MOTION_ENGINE_VERSION, allowedImports: motionAllowedImports(), fonts: listMotionFonts() }));
+  app.get("/api/motion/capabilities", async () => ({ engineVersion: MOTION_ENGINE_VERSION, allowedImports: motionAllowedImports(), fonts: listMotionFonts(), objectResources: objectResourceCapabilities }));
   registerFontLibraryRoutes(app);
   // 与渲染 Worker 共用部署前验证的浏览器；此只读服务不创建 Project、Revision 或 Job。
   app.post("/api/motion/inspect-reference", async (request, reply) => {
@@ -1349,6 +1352,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     if (oldJob.status === "succeeded") {
       throw new DomainError("任务已成功完成，不能创建重试任务", "JOB_RETRY_SUCCEEDED");
     }
+    if (oldJob.kind === "avatar_generation") return reply.status(202).send(application.resumeAvatarGeneration(oldJob.id));
     if (oldJob.status !== "failed" && oldJob.status !== "cancelled") {
       throw new DomainError(`任务状态 ${oldJob.status} 不支持重试`, "JOB_RETRY_STATUS_UNSUPPORTED");
     }

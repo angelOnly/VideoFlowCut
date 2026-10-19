@@ -26,7 +26,7 @@ Mask 需要检查分辨率、帧率、时长、头发、手指、快速动作、
 
 使用 `read_actor_performances` 检查已有绑定，用 `read_actor_capabilities` 读取项目中登记的 Provider、输入、Mask、音频驱动口型、局部重生成和隐私信息；用 `manage_actor_capabilities` 创建、更新或移除已确认的能力档案；用 `manage_actor_performance` 登记 Timeline Item、来源、MaskMode、AudioMode、MaskAsset 和 SpeechAsset。每次写入后读回 ActorPerformance、Revision、Impact 和 Preview。
 
-当前 MCP 已实现 `submit_avatar_job`：它固定 `base_revision_id`，以已登记 Capability Profile、单张本地化人物参考图、可选 SpeechAsset 和明确范围提交 MiniMax H3 多参考生成人物。实际调用前 Worker 会读取 Bridge 的最新 Schema；当前生成只支持无 Mask 的前景降级，人物声音只能使用 Dialogue 或静音，且不承诺逐帧姿态、目光或手势追踪。提交后用 `track_job` 与 `read_actor_performances` 读回。
+当前 MCP 已实现 `submit_avatar_job`：它固定 `base_revision_id`，以 provider=`ltx23_audio_to_video` 的已登记 Capability Profile、项目固定照片、当前 SpeechAsset 和明确范围提交 LTX 2.3 人物生成。照片参数省略时采用 `presenter.photo.assetId`；台词音频由 Worker 按生成范围从 SpeechAsset 裁出，不能用音色样本代替。实际调用前 Worker 会读取 Bridge 的最新 Schema；当前生成只支持无 Mask 的前景降级，人物声音只能使用 Dialogue 或静音，且不承诺逐帧姿态、目光或手势追踪。提交后用 `track_job` 与 `read_actor_performances` 读回。
 
 上述对象链和 MCP 合同已经有确定性测试，但 Provider 可用性、中文口型、真实 Mask、局部重生成连续性与完整审美仍必须由实际输出和 Preview 验证。Capability Profile 或参考音频存在不等于口型已通过；失败或结果未知时，不伪造生成成功，交回主工作流说明可执行降级和缺口。
 
@@ -37,3 +37,15 @@ Avatar Job 成功只证明 Provider 返回了文件。生成结果在成为正�
 先用 `inspect_asset range` 查看完整生成段；口型、手部或短暂伪影会改变判断时，再用 `dense` 查看最小窗口。Provider 名称、输入中存在参考音频或 Capability Profile 中声明支持口型，都不能替代实际观看。Alpha/Mask 也必须由真实输出和边缘检查确认。
 
 局部重生成完成后，比较新段与前后段的身份、光线、背景、目光、语速和情绪。只有生成 Asset、SpeechAsset、Script Revision、AudioMode、Mask/布局和完整 Preview 一致时，才把该人物段视为当前版本可用。
+
+## 人物与音色、逐镜提示词
+
+先用 `read_presenter_library` 读取照片、音色与默认；`import_presenter_media` 保存文件，`manage_presenter_library` 重命名、移除或设默认。主任务通过 `apply_presenter_selection(projectId?, baseRevision, photoId?, voiceId?)` 固定本片输入：本次明确选择优先，其次项目已选，最后工作台默认。照片、音色独立解析，名称不唯一时只补问缺项。全局修改不会回写旧项目。
+
+导演负责每段表演和观看意图，人物专项把意图写成 LTX 正向提示词，主任务通过 `submit_avatar_job.prompt` 提交。描述身份延续、景别、视线、表情、动作强度、镜头与无预烧字幕，不把台词或音色样本写成动作提示。不能用提示词承诺精确手势、目光或逐帧控制。
+
+正式口播工作流为 `videoflowcut-ltx23-avatar-v1`，公开图片、音频和可选正向提示词；未提供提示词时使用工作流的中性默认。原工作流只有图片和音频时可不传 prompt；作者明确提供 prompt 而 Schema 没有唯一正向字段时明确失败，不静默忽略。负向提示词由工作流配置维护，仅保留字幕、身份变形、画面缺陷等限制，不禁止看镜头、微笑或常见衣物。
+
+换照片使生成型人物失效；换音色还会清空旧配音缓存，使原 Dialogue、字幕、声音接点等待重新校准，并拒绝在途旧音色结果。先重配真实声音，再重生口型。
+
+LTX 失败保留原始原因，绝不切 H3。`resume_avatar_job(job_id)` 对已知 Run 继续查询、下载和回收；只有明确失败或取消的 Run 才创建固定恢复任务。没有 Run ID 的未知提交、丢失且无本地文件的 Run 先对账，不盲目重提。普通素材视频的 H3 生成能力与本条链路无关。

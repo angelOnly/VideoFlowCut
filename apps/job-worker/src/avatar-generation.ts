@@ -5,13 +5,13 @@ import { basename, dirname, extname, isAbsolute, join } from "node:path";
 import type { EditingApplication } from "@videocut/application";
 import {
   BridgeRunLostError,
+  BridgeError,
   ComfyUIBridgeClient,
   type BridgeItemSlot,
   type BridgeOutput,
   type BridgeRun,
   type BridgeRunSubmission,
   type BridgeWorkflow,
-  type BridgeWorkflowField
 } from "@videocut/bridge";
 import type { ActorCapabilityProfile, Asset, BridgeRunAudit, JobRecord, MediaMetadata, ProjectSnapshot } from "@videocut/contracts";
 import { assetById, DomainError, millisecondsToFrames } from "@videocut/domain";
@@ -49,11 +49,9 @@ type AvatarGenerationContext = {
   referenceImage: Asset;
   speechFile: Asset;
   generationRange: { startFrame: number; endFrame: number; speechSegmentIds: string[] };
-  prompt: string;
-  requestedDurationSeconds: number;
+  prompt?: string;
 };
 
-const defaultAvatarPrompt = "参考图片中的人物以稳定、自然的主持人口吻面对镜头说话，表情和动作克制。使用提供的音频作为表演参考；不要添加屏幕文字、无关人物或无关场景。";
 const avatarDirectory = (snapshot: ProjectSnapshot) => join(snapshot.project.rootPath, "assets", "avatar");
 const safeFileName = (value: string) => value.replace(/[^a-zA-Z0-9._-]/g, "_");
 
@@ -100,24 +98,6 @@ async function assertReadableInput(path: string, label: string): Promise<void> {
   if (!info?.isFile() || info.size <= 0) throw new DomainError(`${label}文件不存在或为空`, "AVATAR_INPUT_FILE_INVALID");
 }
 
-function requestedDurationSeconds(
-  snapshot: ProjectSnapshot,
-  profile: ActorCapabilityProfile,
-  payload: Record<string, unknown>,
-  range: { startFrame: number; endFrame: number }
-): number {
-  const derived = Math.max(1, Math.ceil((range.endFrame - range.startFrame) / snapshot.timeline.fps));
-  const provided = payload.durationSeconds;
-  const duration = provided === undefined ? derived : Number(provided);
-  if (!Number.isInteger(duration) || duration < 1) throw new DomainError("数字人生成时长必须是正整数秒", "INVALID_AVATAR_DURATION");
-  if (duration > profile.maxDurationSeconds) {
-    throw new DomainError(`人物生成时长 ${duration} 秒超过能力档案上限 ${profile.maxDurationSeconds} 秒，请先按自然段或 Cutaway 边界拆分`, "AVATAR_DURATION_EXCEEDS_CAPABILITY");
-  }
-  // 明确的生成范围不能被调用方悄悄截断，否则会产生“视频成功但旁白不完整”的假成功。
-  if (duration < derived) throw new DomainError("数字人请求时长不能短于对应 SpeechSegment 的生成范围", "AVATAR_DURATION_SHORTER_THAN_RANGE");
-  return duration;
-}
-
 function resolveAvatarContext(application: EditingApplication, job: JobRecord): AvatarGenerationContext {
   const state = application.readProject(job.projectId);
   const snapshot = state.snapshot;
@@ -134,7 +114,7 @@ function resolveAvatarContext(application: EditingApplication, job: JobRecord): 
   const speechAssetId = nonEmptyPayloadString(job.payload, "speechAssetId", "数字人任务缺少 SpeechAsset ID", "AVATAR_SPEECH_ASSET_REQUIRED");
   const profile = snapshot.actorCapabilityProfiles.find((candidate) => candidate.id === profileId);
   if (!profile) throw new DomainError("数字人任务引用的人物能力档案不存在", "ACTOR_CAPABILITY_NOT_FOUND");
-  if (profile.provider !== "minimax_h3_multi_reference") throw new DomainError("当前 Worker 不支持该数字人 Provider", "AVATAR_PROVIDER_UNSUPPORTED");
+  if (profile.provider !== "ltx23_audio_to_video") throw new DomainError("当前 Worker 不支持该数字人 Provider", "AVATAR_PROVIDER_UNSUPPORTED");
   if (!profile.supportsReferenceImage) throw new DomainError("当前人物能力档案未声明支持肖像图片输入", "AVATAR_REFERENCE_IMAGE_UNSUPPORTED");
   if (!profile.inputModes.includes("audio")) throw new DomainError("当前人物能力档案未声明支持 SpeechAsset 音频输入", "AVATAR_AUDIO_INPUT_UNSUPPORTED");
   if (!profile.supportsAudioDrivenLipSync) {
@@ -152,7 +132,7 @@ function resolveAvatarContext(application: EditingApplication, job: JobRecord): 
   if (speechFile.status !== "ready" || (speechFile.metadata && !speechFile.metadata.hasAudio)) {
     throw new DomainError("当前 SpeechAsset 对应的音频文件不可用", "AVATAR_SPEECH_FILE_INVALID");
   }
-  const prompt = typeof job.payload.prompt === "string" && job.payload.prompt.trim() ? job.payload.prompt.trim() : defaultAvatarPrompt;
+  const prompt = typeof job.payload.prompt === "string" && job.payload.prompt.trim() ? job.payload.prompt.trim() : undefined;
   const generationRange = readGenerationRange(job.payload);
   return {
     snapshot,
@@ -160,61 +140,26 @@ function resolveAvatarContext(application: EditingApplication, job: JobRecord): 
     referenceImage,
     speechFile,
     generationRange,
-    prompt,
-    requestedDurationSeconds: requestedDurationSeconds(snapshot, profile, job.payload, generationRange)
+    prompt
   };
 }
 
-function normalizedFieldLabel(field: BridgeWorkflowField): string {
-  return `${field.label} ${field.kind}`.trim().toLocaleLowerCase();
+/** 仅在作者提供逐镜提示词时使用明确公开的正向输入；不猜测内部节点。 */
+function promptFields(workflow: BridgeWorkflow, prompt?: string): Record<string, unknown> {
+  if (!prompt) return {};
+  const candidates = workflow.fields.filter(field => field.kind === "text" && /^(prompt|positive prompt|正向提示词|提示词)$/i.test(field.label.trim()));
+  if (candidates.length !== 1) throw new DomainError("LTX 工作流尚未公开唯一正向提示词输入，请先配置正式口播工作流", "AVATAR_PROMPT_INPUT_UNAVAILABLE");
+  return { [candidates[0]!.id]: prompt };
 }
 
-/** 反向提示词绝不能承载人物表演指令，否则会在一次付费调用中得到相反结果。 */
-function isNegativePromptField(field: BridgeWorkflowField): boolean {
-  return /(?:negative|neg_prompt|exclude|forbid|反向|负面|排除|不要)/u.test(normalizedFieldLabel(field));
-}
-
-/**
- * Avatar 的 Schema 会随 Bridge 版本变化。这里仅选择唯一、明确的正向提示词字段；
- * 不把“第一个 text”或“第一个 required”当作语义匹配，避免错误提交外部付费任务。
- */
-function selectAvatarPromptField(workflow: BridgeWorkflow): BridgeWorkflowField {
-  const ranked = workflow.fields
-    .filter((field) => !isNegativePromptField(field))
-    .map((field) => {
-      const label = normalizedFieldLabel(field);
-      const score = /^(?:prompt|提示词)(?:\s|$)/u.test(label)
-        ? 100
-        : /(?:avatar|person|character|presenter|人物|数字人|角色|主持).*(?:prompt|提示词|description|描述)|(?:prompt|提示词).*(?:avatar|person|character|presenter|人物|数字人|角色|主持)/u.test(label)
-          ? 95
-          : /(?:prompt|提示词)/u.test(label)
-            ? 90
-            : /(?:description|描述)/u.test(label)
-              ? 70
-              : 0;
-      return { field, score };
-    })
-    .filter((entry) => entry.score > 0)
-    .sort((left, right) => right.score - left.score || left.field.id.localeCompare(right.field.id));
-  if (ranked.length === 0) {
-    throw new DomainError("Bridge 当前 Avatar 工作流没有可确认的正向提示词字段", "AVATAR_PROMPT_FIELD_MISSING");
-  }
-  const top = ranked[0]!;
-  if (ranked.filter((entry) => entry.score === top.score).length !== 1) {
-    throw new DomainError("Bridge 当前 Avatar 工作流存在多个同优先级正向提示词字段，不能猜测应写入哪个字段", "AVATAR_PROMPT_FIELD_AMBIGUOUS");
-  }
-  return top.field;
-}
-
-/** 只接受标签明确且唯一的肖像/旁白槽位；多个候选时宁可停止，也不猜 Provider 的 Slot 顺序。 */
+/** LTX 接口约定一张照片和一段台词音频，按唯一媒体类型绑定，不依赖展示标签。 */
 function selectExplicitAvatarSlot(
   workflow: BridgeWorkflow,
   kind: BridgeItemSlot["kind"],
-  patterns: RegExp[],
   role: "portrait" | "speech"
 ): BridgeItemSlot {
   const candidates = workflow.itemSlots.filter((slot) => (
-    slot.kind === kind && patterns.some((pattern) => pattern.test(slot.label.toLocaleLowerCase()))
+    slot.kind === kind
   ));
   if (candidates.length === 0) {
     throw new DomainError(
@@ -231,32 +176,6 @@ function selectExplicitAvatarSlot(
   return candidates[0]!;
 }
 
-/** 只要还有必填 image/audio Slot 未被明确语义绑定，就不能向 Provider 创建 Run。 */
-function assertRequiredAvatarMediaSlotsCovered(workflow: BridgeWorkflow, files: Array<{ slot: BridgeItemSlot }>): void {
-  const uploaded = new Set(files.map((file) => file.slot.id));
-  const missing = workflow.itemSlots.filter((slot) => slot.required && (slot.kind === "image" || slot.kind === "audio") && !uploaded.has(slot.id));
-  if (missing.length > 0) {
-    throw new DomainError(
-      `Bridge 当前 Avatar 工作流存在未被明确覆盖的必填媒体槽位：${missing.map((slot) => slot.label).join("、")}`,
-      "AVATAR_REQUIRED_MEDIA_SLOT_UNHANDLED"
-    );
-  }
-}
-
-function setAspectRatioFields(fieldValues: Record<string, unknown>, workflow: BridgeWorkflow, aspectRatio: ProjectSnapshot["project"]["brief"]["aspectRatio"]): void {
-  const fields = workflow.fields.filter((field) => [/aspect/, /ratio/, /画面比例/, /比例/, /画幅/].some((pattern) => pattern.test(`${field.label} ${field.kind}`.toLowerCase())));
-  for (const field of fields) {
-    const option = field.options?.find((candidate) => `${candidate.label} ${candidate.value}`.includes(aspectRatio));
-    if (option) {
-      fieldValues[field.id] = option.value;
-      continue;
-    }
-    // Schema 没有列出可选比例时，不猜 Provider 私有值；若默认值已匹配可以安全沿用。
-    if (typeof field.defaultValue === "string" && field.defaultValue.includes(aspectRatio)) continue;
-    if (field.required) throw new DomainError(`Bridge 当前 Schema 没有 ${aspectRatio} 画幅的可用选项`, "AVATAR_ASPECT_RATIO_UNSUPPORTED");
-  }
-}
-
 async function buildAvatarBridgeRequest(
   context: AvatarGenerationContext,
   workflow: BridgeWorkflow,
@@ -265,20 +184,14 @@ async function buildAvatarBridgeRequest(
   const referencePath = assetPath(context.snapshot, context.referenceImage);
   await Promise.all([assertReadableInput(referencePath, "人物肖像"), assertReadableInput(speechSlicePath, "局部 SpeechAsset")]);
 
-  const fieldValues: Record<string, unknown> = {};
-  const promptField = selectAvatarPromptField(workflow);
-  fieldValues[promptField.id] = context.prompt;
-  const durationField = workflow.fields.find((field) => /duration|second|seconds|时长|秒/u.test(normalizedFieldLabel(field)));
-  if (durationField) fieldValues[durationField.id] = context.requestedDurationSeconds;
-  setAspectRatioFields(fieldValues, workflow, context.snapshot.project.brief.aspectRatio);
+  const fieldValues = promptFields(workflow, context.prompt);
 
-  const imageSlot = selectExplicitAvatarSlot(workflow, "image", [/portrait/, /person/, /character/, /reference/, /参考/, /人物/, /image/], "portrait");
-  const audioSlot = selectExplicitAvatarSlot(workflow, "audio", [/speech/, /voice/, /audio/, /声音/, /音频/, /参考/], "speech");
+  const imageSlot = selectExplicitAvatarSlot(workflow, "image", "portrait");
+  const audioSlot = selectExplicitAvatarSlot(workflow, "audio", "speech");
   const files = [
     { slot: imageSlot, path: referencePath, mime: mimeForPath(referencePath, "image/png") },
     { slot: audioSlot, path: speechSlicePath, mime: "audio/wav" }
   ];
-  assertRequiredAvatarMediaSlotsCovered(workflow, files);
   return {
     fieldValues,
     files
@@ -563,7 +476,7 @@ function recoverCompletedProjectWrite(application: EditingApplication, job: JobR
 }
 
 /**
- * H3 多参考工作流的真实执行链：每次提交都重新读 Schema；先持久化 run 审计，
+ * LTX 2.3 人物工作流的真实执行链：每次提交都重新读 Schema；先持久化 run 审计，
  * 再轮询、下载、ffprobe 和哈希，最后把受管文件交给 Application 原子写入。
  */
 export async function runAvatarGeneration(
@@ -575,7 +488,9 @@ export async function runAvatarGeneration(
   const recoveredProjectWrite = recoverCompletedProjectWrite(application, job);
   if (recoveredProjectWrite) return recoveredProjectWrite;
   const context = resolveAvatarContext(application, job);
-  const previousAudit = latestBridgeAudit(job, context.profile.workflowId);
+  const latestJob = application.trackJob(job.id);
+  const previousAudit = latestBridgeAudit(latestJob, context.profile.workflowId);
+  if (!previousAudit && latestJob.result?.avatarSubmission === "submitting") throw new DomainError("LTX 提交结果未知，请先核对原请求", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
 
   if (previousAudit) {
     try {
@@ -593,7 +508,7 @@ export async function runAvatarGeneration(
         await completeAvatarGeneration(application, { projectId: job.projectId, jobId: job.id, actorVideo, bridgeAudit: previousAudit });
         return { jobId: job.id, runId: previousAudit.runId, actorVideo, ...completedAvatarResult(application, job), recoveredLocalOutput: true };
       }
-      // 既没有可查询 Run，也没有本地产物；下面才会重新读取 Schema 并安全重提。
+      throw new DomainError("原 LTX Run 已不可查询且没有已核验文件，先对账原任务，不能自动重提", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
     }
   }
 
@@ -603,13 +518,24 @@ export async function runAvatarGeneration(
   try {
     submission = await bridge.createRunWithSchemaRetry(
       context.profile.workflowId,
-      async (workflow) => buildAvatarBridgeRequest(context, workflow, speechSlicePath)
+      async (workflow) => {
+        const request = await buildAvatarBridgeRequest(context, workflow, speechSlicePath);
+        await application.recordJobCheckpoint(job.id, { avatarSubmission: "submitting" });
+        return request;
+      },
+      { onSchemaRejected: async () => { await application.recordJobCheckpoint(job.id, { avatarSubmission: "rejected" }); } }
     );
+  } catch (error) {
+    const rejected = error instanceof BridgeError && ([400, 409, 422].includes(error.status ?? 0) || error.code === "BRIDGE_INPUT_UNREADABLE");
+    if (rejected) await application.recordJobCheckpoint(job.id, { avatarSubmission: "rejected" });
+    if (application.trackJob(job.id).result?.avatarSubmission === "submitting") throw new DomainError(`LTX 请求可能已经被接收，但没有取得 Run ID；先核对原请求，不能重复提交。原始原因：${error instanceof Error ? error.message : String(error)}`, "EXTERNAL_RUN_OUTCOME_UNKNOWN");
+    throw error;
   } finally {
     // Bridge.createRun 在返回前已读取 multipart 二进制；临时局部音频不应长期占用项目空间。
     await rm(speechSlicePath, { force: true }).catch(() => undefined);
   }
   await application.recordBridgeRun(job.id, createBridgeAudit(submission, undefined, submittedAt));
+  await application.recordJobCheckpoint(job.id, { avatarSubmission: "accepted" });
   const completed = await bridge.waitForRun(submission.run.id);
   const audit = createBridgeAudit(submission, completed, submittedAt);
   await application.recordBridgeRun(job.id, audit);

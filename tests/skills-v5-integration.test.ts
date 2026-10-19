@@ -436,7 +436,7 @@ test("Presenter Skill 的概要、Gate A 与示范路线都先编译 Scene 再�
 });
 
 test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", async () => {
-  const mcpSource = (await Promise.all([mcpSourcePath, ...["motion-tools", "motion-library-tools", "media-intelligence-tools", "sound-tools", "source-research-tools", "media-search-tool"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
+  const mcpSource = (await Promise.all([mcpSourcePath, ...["presenter-tools", "motion-tools", "object-resource-tools", "motion-library-tools", "media-intelligence-tools", "sound-tools", "source-research-tools", "media-search-tool"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
   const currentTools = registeredToolNames(mcpSource);
   const contract = await operationKnowledge();
 

@@ -1,4 +1,5 @@
 import { toolErrorResult } from "./tool-error.js";
+import { objectResourceCapabilities } from "../../../packages/media-intelligence/src/object-resources/index.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { EditingApplication } from "@videocut/application";
@@ -14,7 +15,7 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   server.registerTool("read_motion_capabilities", {
     title: "读取受管动画能力与字体", description: "只读查询当前动画引擎、允许导入的接口及随Runtime发布的字体。fontBindings用槽名映射fontId；平台校验文件并在首次挂载前加载，源码使用props.fonts[槽位]的family、weight、style，不自行加载字体或联网。新增字体需要发布新版Runtime。",
     inputSchema: {}, annotations: { readOnlyHint: true }
-  }, async () => { try { return result({ engineVersion: MOTION_ENGINE_VERSION, allowedImports: motionAllowedImports(), fonts: listMotionFonts(),
+  }, async () => { try { return result({ engineVersion: MOTION_ENGINE_VERSION, allowedImports: motionAllowedImports(), fonts: listMotionFonts(), objectResources: objectResourceCapabilities,
     videoBindings: { maxSlots: null, clock: "work_root", playback: "normal_speed_muted", description: "不设作品视频选段总数上限；每槽固定源身份、哈希、源范围和作品帧范围。分块串行解码并复用缓存，真实资源不足明确失败，不删减选段或静默降质；解码块预算不等于浏览器总内存预算。" },
     fontBindingExample: { title: "noto-sans-sc-bold" }, execution: "仅使用已登记本地字体；通过fontBindings声明，props.fonts由平台注入。配色、描边与帧驱动动效由作者生成，不要求花字模板。理想字体未收录不是平台故障：主任务控制流程，原视觉作者推荐最多3款，使用get_editor_url(panel=fonts,font_preview=...)让用户在工作台预览后通过聊天确认；等待时继续无依赖工作，不报工单、不自动替代。已登记原件缺失、变更或加载失败仍明确报错。" }); } catch (error) { return failure(error); } });
   server.registerTool("inspect_motion_reference", {

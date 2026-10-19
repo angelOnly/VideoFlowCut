@@ -1,6 +1,6 @@
 ---
 name: voice-production
-description: 将最终 SpeechSegment 交给 OmniVoice，默认使用服务端已有本地音色，也可显式指定 VoiceReference；下载并校验段级音频，使用真实时长组装 SpeechAsset 和 segment_exact，同时审查语速、重音、句尾与相邻段连续性。
+description: 将最终 SpeechSegment 交给 OmniVoice，人物口播采用项目固定音色，普通配音可使用服务端默认或显式 VoiceReference；下载并校验段级音频，使用真实时长组装 SpeechAsset 和 segment_exact，同时审查语速、重音、句尾与相邻段连续性。
 ---
 
 # OmniVoice 旁白生产、组装与听感

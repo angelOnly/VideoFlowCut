@@ -53,7 +53,7 @@ function textFromToolResult(result: unknown): string {
 }
 
 test("MCP 注册工具全部归入项目总览能力目录", async () => {
-  const source = (await Promise.all([mcpSourcePath, ...["motion-tools", "motion-library-tools", "media-intelligence-tools", "sound-tools", "source-research-tools", "media-search-tool"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
+  const source = (await Promise.all([mcpSourcePath, ...["motion-tools", "object-resource-tools", "motion-library-tools", "media-intelligence-tools", "sound-tools", "source-research-tools", "media-search-tool"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
   const registered = registeredToolNames(source);
   const catalogued = MCP_CAPABILITY_GROUPS.flatMap((group) => group.tools);
   const missing = registered.filter((name) => !catalogued.includes(name));

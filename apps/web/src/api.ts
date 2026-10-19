@@ -1,3 +1,4 @@
+import type { PresenterLibrary, PresenterMediaKind } from "@videocut/contracts";
 import type { ExplicitCreativePreferences } from "@videocut/contracts";
 import type { AgentWorkOrder, DialogueProcessingIssue, DialogueProcessingProfile, ExportArtifact, ExportPurpose, JobRecord, ProductionProfile, ProjectSnapshot, ProjectSummary, QualityReport, RevisionRecord, VideoGenerationMode } from "@videocut/contracts";
 import type { FrameRateChangeReport, SourceReviewDiagnostics } from "@videocut/contracts";
@@ -117,6 +118,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  presenterLibrary: () => request<PresenterLibrary>("/api/settings/presenter-library"),
+  changePresenterEntry: (input: { action: "rename" | "remove" | "set_default"; id: string; name?: string }) => request<PresenterLibrary>("/api/settings/presenter-library/change", { method: "POST", body: JSON.stringify(input) }),
+  uploadPresenterMedia: (file: File, input: { kind: PresenterMediaKind; name: string; replaceId?: string; setDefault?: boolean }) => {
+    const query = new URLSearchParams({ kind: input.kind, name: input.name, setDefault: String(Boolean(input.setDefault)) });
+    if (input.replaceId) query.set("replaceId", input.replaceId);
+    const body = new FormData(); body.append("file", file);
+    return request<PresenterLibrary>(`/api/settings/presenter-library/upload?${query}`, { method: "POST", body });
+  },
+  applyPresenterSelection: (projectId: string, input: { baseRevision: number; photoId?: string; voiceId?: string }) => request<ProjectState>(`/api/projects/${projectId}/presenter-selection`, { method: "POST", body: JSON.stringify(input) }),
   creativeDefaults: () => request<ExplicitCreativePreferences>("/api/settings/creative-defaults"),
   saveCreativeDefaults: (preferences: ExplicitCreativePreferences) => request<ExplicitCreativePreferences>("/api/settings/creative-defaults", { method: "PUT", body: JSON.stringify(preferences) }),
   clearCreativeDefaults: () => request<ExplicitCreativePreferences>("/api/settings/creative-defaults", { method: "DELETE", body: "{}" }),

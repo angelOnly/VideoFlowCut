@@ -11,7 +11,7 @@ test("配音第二段等待中断后续接原Run，已完成段不重生，重�
   const root = await mkdtemp(join(tmpdir(), "vfc-voice-recovery-"));
   const app = createApplication(root);
   try {
-    const created = app.createProject({ name: "配音恢复隔离测试" });
+    const created = app.createProject({ name: "配音恢复隔离测试", profile: "visual_explainer" });
     const projectId = created.snapshot.project.id;
     app.applyAuthoredScript({ projectId, baseRevision: 1, sourceNote: "恢复夹具", units: ["第一句。", "第二句。", "第三句。"].map(text => ({ text, kind: "statement" as const })) });
     const file = join(root, "tone.wav");

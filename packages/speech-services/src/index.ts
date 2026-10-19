@@ -1310,6 +1310,7 @@ export class OmniVoiceSegmentService {
     const voiceReferenceId = job.payload.voiceReferenceId as string | undefined;
     const segmentIds = job.payload.speechSegmentIds as string[];
     const expectedScriptRevision = Number(job.payload.scriptRevision);
+    const expectedSpeechInputVersion = Number(job.payload.speechInputVersion ?? 0);
     type Checkpoint = { status: "submitting" | "running" | "failed" | "ready"; attemptJobId: string; audit?: BridgeRunAudit; asset?: Asset; segmentAsset?: SpeechSegmentAsset };
     const checkpoints = () => (this.application.trackJob(job.id).result?.speechSegments ?? {}) as Record<string, Checkpoint>;
     const save = (id: string, value: Checkpoint) => this.application.recordJobCheckpoint(job.id, { speechSegments: { ...checkpoints(), [id]: value } });
@@ -1321,6 +1322,7 @@ export class OmniVoiceSegmentService {
       this.application.recordJobCheckpoint(job.id, { speechSegments: parent.result?.speechSegments ?? {}, ...(parent.result?.speechAssembly ? { speechAssembly: parent.result.speechAssembly } : {}) });
     }
     const initial = this.application.readProject(projectId);
+    if ((initial.snapshot.speechInputVersion ?? 0) !== expectedSpeechInputVersion) throw new DomainError("音色已改变，旧配音任务不能继续", "STALE_SPEECH_INPUT");
     if (initial.snapshot.script.revision !== expectedScriptRevision) {
       throw new DomainError("Script 已变化，拒绝将旧语音写入当前项目", "STALE_SCRIPT");
     }
@@ -1411,6 +1413,7 @@ export class OmniVoiceSegmentService {
     }
 
     const latest = this.application.readProject(projectId);
+    if ((latest.snapshot.speechInputVersion ?? 0) !== expectedSpeechInputVersion) throw new DomainError("语音生成期间音色已改变，保留任务产物但不写入项目", "STALE_SPEECH_INPUT");
     if (latest.snapshot.script.revision !== expectedScriptRevision) {
       throw new DomainError("语音生成期间 Script 已变化，结果保留为任务产物但不写入项目", "STALE_SCRIPT");
     }
@@ -1433,7 +1436,7 @@ export class OmniVoiceSegmentService {
       });
     }
     if (materials.length !== latest.snapshot.speechSegments.length) {
-      this.application.applySpeechAssembly({ projectId, expectedScriptRevision, generatedAssets, segmentAssets: generatedSegmentAssets });
+      this.application.applySpeechAssembly({ projectId, expectedScriptRevision, expectedSpeechInputVersion, generatedAssets, segmentAssets: generatedSegmentAssets });
       return { segmentCount: generatedSegmentAssets.length };
     }
     cancelled();
@@ -1441,7 +1444,7 @@ export class OmniVoiceSegmentService {
     if (savedAssembly) {
       const bytes = await readFile(assetPath(latest.snapshot, savedAssembly.file));
       if (createHash("sha256").update(bytes).digest("hex") !== savedAssembly.file.sourceHash) throw new DomainError("已组装配音文件已改变", "SPEECH_CHECKPOINT_CHANGED");
-      if (latest.snapshot.speechAsset?.id !== savedAssembly.speech.id) this.application.applySpeechAssembly({ projectId, expectedScriptRevision, generatedAssets: [...generatedAssets, savedAssembly.file], segmentAssets: generatedSegmentAssets, speechAsset: savedAssembly.speech });
+      if (latest.snapshot.speechAsset?.id !== savedAssembly.speech.id) this.application.applySpeechAssembly({ projectId, expectedScriptRevision, expectedSpeechInputVersion, generatedAssets: [...generatedAssets, savedAssembly.file], segmentAssets: generatedSegmentAssets, speechAsset: savedAssembly.speech });
       return { segmentCount: generatedSegmentAssets.length, speechAssetId: savedAssembly.speech.id };
     }
     const speechRelativePath = join("assets", "speech", `speech-${job.id}.wav`);
@@ -1462,7 +1465,7 @@ export class OmniVoiceSegmentService {
       status: "ready"
     };
     this.application.recordJobCheckpoint(job.id, { speechAssembly: { file: speechFileAsset, speech: speechAsset } });
-    this.application.applySpeechAssembly({ projectId, expectedScriptRevision, generatedAssets, segmentAssets: generatedSegmentAssets, speechAsset });
+    this.application.applySpeechAssembly({ projectId, expectedScriptRevision, expectedSpeechInputVersion, generatedAssets, segmentAssets: generatedSegmentAssets, speechAsset });
     return { segmentCount: generatedSegmentAssets.length, speechAssetId: speechAsset.id };
   }
 }

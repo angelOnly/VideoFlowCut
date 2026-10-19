@@ -1,3 +1,6 @@
+import { PresenterLibraryService } from "./presenter-library.js";
+import { submitObjectResources } from "./object-resources.js";
+import type { PrepareObjectResourcesInput } from "../../media-intelligence/src/object-resources/schema.js";
 import { motionFrameRangeSchema, type MotionFrameRange } from "../../motion-work/src/schema.js";
 import { editorialResolutionRange } from "./editorial-range.js";
 import { frozenSourceDisplaySchema, resolveSourceDisplayPolicy, type FrozenSourceDisplay, type SourceDisplayPolicy } from "../../contracts/src/source-display-policy.js";
@@ -1340,9 +1343,11 @@ export class EditingApplication {
     }
   }
 
+  readonly presenterLibrary: PresenterLibraryService;
   readonly intelligence: MediaIntelligenceApplication;
   constructor(public readonly repository: ProjectRepository) {
     this.intelligence = new MediaIntelligenceApplication(this);
+    this.presenterLibrary = new PresenterLibraryService(this);
   }
 
   close(): void {
@@ -1437,7 +1442,15 @@ export class EditingApplication {
     const brief = initializeCreativeBrief(this.readCreativeDefaults(), creativeBriefSchema.parse(input.brief ?? {}));
     if (brief.sourceDisplayPolicy?.mode === "specified") throw new DomainError("先创建项目与实际范围，再登记来源展示例外", "SOURCE_DISPLAY_SCOPE_INVALID");
     brief.sourceDisplayPolicy = resolveSourceDisplayPolicy(brief.sourceDisplayPolicy);
-    const state = this.repository.createProject({ ...input, brief });
+    const defaults = this.presenterLibrary.read().defaults;
+    // 创建前确认默认文件仍在，避免缺失输入时留下半创建的项目。
+    if ((input.profile ?? "presenter_motion") === "presenter_motion") {
+      for (const id of [defaults.photoId, defaults.voiceId]) if (id) this.presenterLibrary.file(id);
+    }
+    let state = this.repository.createProject({ ...input, brief });
+    if (state.snapshot.project.profile === "presenter_motion" && (defaults.photoId || defaults.voiceId)) {
+      state = this.presenterLibrary.apply({ projectId: state.snapshot.project.id, baseRevision: state.revision.number });
+    }
     this.publish({ projectId: state.snapshot.project.id, revision: state.revision.number, type: "revision" });
     return state;
   }
@@ -2454,6 +2467,10 @@ export class EditingApplication {
   }
 
   /** 提交只创建固定输入的 Job；不改变 Timeline，也不把代码装进平台 Registry。 */
+  prepareObjectResources(input: PrepareObjectResourcesInput): Promise<JobRecord> {
+    return submitObjectResources(this, input);
+  }
+
   submitManagedMotion(input: { projectId: Id; baseRevision: number; idempotencyKey: string; work: MotionSubmission; frameRange?: MotionFrameRange }): JobRecord {
     const work = motionSubmissionSchema.parse(input.work);
     const frameRange = input.frameRange ? motionFrameRangeSchema.parse(input.frameRange) : undefined;
@@ -5458,7 +5475,7 @@ export class EditingApplication {
   }): ProjectState {
     const state = this.repository.commit(input.projectId, input.baseRevision, input.action === "create" ? "创建人物能力档案" : input.action === "update" ? "更新人物能力档案" : "移除人物能力档案", (snapshot, impact) => {
       const ensureProvider = (provider: AvatarProviderKind | undefined): AvatarProviderKind => {
-        if (provider !== "minimax_h3_multi_reference") throw new DomainError("当前只支持 minimax_h3_multi_reference 人物 Provider", "AVATAR_PROVIDER_UNSUPPORTED");
+        if (provider !== "ltx23_audio_to_video") throw new DomainError("当前只支持 ltx23_audio_to_video 人物 Provider", "AVATAR_PROVIDER_UNSUPPORTED");
         return provider;
       };
       const ensureDuration = (value: number | undefined): number => {
@@ -6752,10 +6769,14 @@ export class EditingApplication {
 
   submitVoiceSynthesis(input: { projectId: Id; voiceReferenceId?: Id; voiceReferenceAssetId?: Id; speechSegmentIds?: Id[]; idempotencyKey?: string }): JobRecord {
     const state = this.readProject(input.projectId);
-    const reference = input.voiceReferenceId
-      ? state.snapshot.voiceReferences.find((candidate) => candidate.id === input.voiceReferenceId)
+    const selectedVoiceId = input.voiceReferenceId ?? (input.voiceReferenceAssetId ? undefined : state.snapshot.presenter?.voice?.voiceReferenceId);
+    const reference = selectedVoiceId
+      ? state.snapshot.voiceReferences.find((candidate) => candidate.id === selectedVoiceId)
       : state.snapshot.voiceReferences.find((candidate) => candidate.assetId === input.voiceReferenceAssetId);
+    const fixedVoice = state.snapshot.presenter?.voice;
+    if (fixedVoice && reference?.id !== fixedVoice.voiceReferenceId) throw new DomainError("请先更换本片音色，再重新配音，不能混用旧音色片段", "PRESENTER_VOICE_SELECTION_MISMATCH");
     if ((input.voiceReferenceId || input.voiceReferenceAssetId) && !reference) throw new DomainError("指定的 VoiceReference 未登记", "VOICE_REFERENCE_NOT_FOUND");
+    if ((state.snapshot.project.profile === "presenter_motion" || state.snapshot.presenter?.photo) && !reference) throw new DomainError("请先在本片选择音色或登记明确的 VoiceReference，再生成口播配音", "PRESENTER_VOICE_REQUIRED");
     if (reference && !reference.usable) throw new DomainError("VoiceReference 当前不可用于 OmniVoice，请先更换或重新分析参考音频", "VOICE_REFERENCE_UNUSABLE");
     const voiceReference = reference ? assetById(state.snapshot, reference.assetId) : undefined;
     if (voiceReference && (voiceReference.kind !== "audio" || voiceReference.status !== "ready")) {
@@ -6771,9 +6792,9 @@ export class EditingApplication {
     const job = this.repository.createJob({
       projectId: input.projectId,
       kind: "voice_synthesis",
-      // 省略参考参数时使用服务端配置；不能把默认音色伪造为项目里的 Asset。
-      payload: { voiceReferenceId: reference?.id, voiceReferenceAssetId: reference?.assetId, speechSegmentIds: segments, scriptRevision: state.snapshot.script.revision, workflowId: reference ? "ba6238d0-3ee4-41d5-a1f4-a2aefc3933ce" : "omnivoice-default-reference-v1" },
-      idempotencyKey: input.idempotencyKey ?? `voice:${reference?.id ?? "server-default"}:${state.snapshot.script.revision}:${segments.join(",")}`
+      // 优先使用本片固定音色；未配置人物选择的既有配音路线仍使用服务端默认。
+      payload: { speechInputVersion: state.snapshot.speechInputVersion ?? 0, voiceReferenceId: reference?.id, voiceReferenceAssetId: reference?.assetId, speechSegmentIds: segments, scriptRevision: state.snapshot.script.revision, workflowId: reference ? "ba6238d0-3ee4-41d5-a1f4-a2aefc3933ce" : "omnivoice-default-reference-v1" },
+      idempotencyKey: input.idempotencyKey ?? `voice:${reference?.id ?? "server-default"}:${state.snapshot.speechInputVersion ?? 0}:${state.snapshot.script.revision}:${segments.join(",")}`
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
     return job;
@@ -6783,6 +6804,7 @@ export class EditingApplication {
     const old = this.trackJob(jobId);
     if (old.kind !== "voice_synthesis" || !["failed", "unknown"].includes(old.status)) throw new DomainError("只能恢复失败或结果未知的配音任务", "SPEECH_RETRY_STATUS");
     if (this.readProject(old.projectId).snapshot.script.revision !== old.payload.scriptRevision) throw new DomainError("文稿已改变，请按当前差异提交配音", "STALE_SCRIPT");
+    if ((this.readProject(old.projectId).snapshot.speechInputVersion ?? 0) !== (old.payload.speechInputVersion ?? 0)) throw new DomainError("音色已改变，请按当前选择重新配音", "STALE_SPEECH_INPUT");
     const checkpoints = Object.values(old.result?.speechSegments ?? {}) as Array<{ status: string }>;
     if (old.status === "unknown" && !checkpoints.length || checkpoints.some(entry => entry.status === "submitting")) throw new DomainError("存在结果未知的配音提交，先核对原请求", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
     return this.repository.createJob({ projectId: old.projectId, kind: old.kind, payload: { ...old.payload, retryOfJobId: old.id }, idempotencyKey: `voice-recovery:${old.id}` });
@@ -7566,7 +7588,7 @@ export class EditingApplication {
     projectId: Id;
     baseRevision: number;
     capabilityProfileId: Id;
-    referenceImageAssetId: Id;
+    referenceImageAssetId?: Id;
     speechAssetId?: Id;
     replaceActorPerformanceId?: Id;
     generationRange: ActorGenerationRange;
@@ -7585,6 +7607,7 @@ export class EditingApplication {
     const snapshot = state.snapshot;
     const profile = snapshot.actorCapabilityProfiles.find((candidate) => candidate.id === input.capabilityProfileId);
     if (!profile) throw new DomainError("人物能力档案不存在", "ACTOR_CAPABILITY_NOT_FOUND");
+    if (profile.provider !== "ltx23_audio_to_video") throw new DomainError("人物生成仅使用 LTX 2.3，请登记当前能力档案", "AVATAR_PROVIDER_UNSUPPORTED");
     if (!profile.supportsReferenceImage) {
       throw new DomainError("当前人物 Provider 未声明支持肖像图参考，不能提交该生成任务", "AVATAR_REFERENCE_IMAGE_UNSUPPORTED");
     }
@@ -7601,7 +7624,9 @@ export class EditingApplication {
       throw new DomainError("人物能力档案没有声明无 Mask 降级，当前生成链无法安全执行", "AVATAR_MASK_MODE_UNSUPPORTED");
     }
 
-    const reference = assetById(snapshot, input.referenceImageAssetId);
+    const referenceImageAssetId = input.referenceImageAssetId ?? snapshot.presenter?.photo?.assetId;
+    if (!referenceImageAssetId) throw new DomainError("请先选择本片人物照片", "AVATAR_REFERENCE_IMAGE_REQUIRED");
+    const reference = assetById(snapshot, referenceImageAssetId);
     if (!reference.status || reference.status !== "ready" || !["image", "derived"].includes(reference.kind)) {
       throw new DomainError("肖像参考必须是已就绪的图片或派生图片素材", "AVATAR_REFERENCE_IMAGE_NOT_READY");
     }
@@ -7689,10 +7714,26 @@ export class EditingApplication {
         requestedSegmentIds.join(","),
         `${placement.sceneId}:${placement.startFrame}-${placement.endFrame}`,
         payload.replaceActorPerformanceId ?? "new",
+        createHash("sha256").update(payload.prompt ?? "").digest("hex"),
       ].join(":")
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
     return job;
+  }
+
+  /** 已知 Run 继续读取，明确生成失败才允许显式建立一次重生成任务。 */
+  resumeAvatarGeneration(jobId: Id): JobRecord {
+    const job = this.trackJob(jobId);
+    if (job.kind !== "avatar_generation" || !["failed", "unknown"].includes(job.status)) throw new DomainError("只能恢复失败或结果未知的人物任务", "AVATAR_RETRY_STATUS");
+    if (this.readProject(job.projectId).revision.number !== job.payload.requestedRevision) throw new DomainError("项目已改变，请按当前人物、声音与范围重新提交", "STALE_AVATAR_REQUEST");
+    const audits = job.result?.bridgeRuns as Array<{ runId?: string }> | undefined;
+    if (job.result?.avatarSubmission === "submitting" && !audits?.some(audit => audit.runId)) throw new DomainError("LTX 提交结果未知且缺少 Run ID，先核对原请求", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
+    const code = (job.result?.diagnostic as { code?: string } | undefined)?.code;
+    if (code === "BRIDGE_RUN_FAILED" || code === "BRIDGE_RUN_CANCELLED") {
+      return this.repository.createJob({ projectId: job.projectId, kind: job.kind, payload: { ...job.payload, retryOfJobId: job.id }, idempotencyKey: `avatar-recovery:${job.id}` });
+    }
+    this.updateJob(job.id, { status: "queued" });
+    return this.trackJob(job.id);
   }
 
   /**
@@ -8073,10 +8114,11 @@ export class EditingApplication {
     return { dialogueItem, replacedItemIds, durationFrames };
   }
 
-  applySpeechAssembly(input: { projectId: Id; generatedAssets: Asset[]; segmentAssets: SpeechSegmentAsset[]; speechAsset?: SpeechAsset; expectedScriptRevision?: number }): ProjectState {
+  applySpeechAssembly(input: { projectId: Id; generatedAssets: Asset[]; segmentAssets: SpeechSegmentAsset[]; speechAsset?: SpeechAsset; expectedScriptRevision?: number; expectedSpeechInputVersion?: number }): ProjectState {
     const current = this.readProject(input.projectId);
     const state = this.repository.commit(input.projectId, current.revision.number, "组装旁白与段级时序", (snapshot, impact) => {
       if (input.expectedScriptRevision !== undefined && snapshot.script.revision !== input.expectedScriptRevision) throw new DomainError("配音装配期间文稿已改变", "STALE_SCRIPT");
+      if (input.expectedSpeechInputVersion !== undefined && (snapshot.speechInputVersion ?? 0) !== input.expectedSpeechInputVersion) throw new DomainError("配音期间音色已改变，旧结果不能写回", "STALE_SPEECH_INPUT");
       const knownSegmentIds = new Set(snapshot.speechSegments.map((segment) => segment.id));
       for (const segmentAsset of input.segmentAssets) {
         if (!knownSegmentIds.has(segmentAsset.speechSegmentId)) throw new DomainError("SpeechSegment 已过期，不能写入旧语音", "STALE_SPEECH_SEGMENT");

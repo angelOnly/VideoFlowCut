@@ -84,6 +84,10 @@ Mask 与人物视频的分辨率、帧率、时长和帧序必须一致。导入
 
 Derived Asset 例如封面墙、评论云、产品组合、图表、手机 Mockup 和高亮截图。它们应保存父 Asset 和生成过程。Remotion 可以直接组合，也可以先生成 Derived Asset；选择取决于可编辑性、性能和复用。证据类 Derived Asset 不能丢失来源或修改原文。
 
+物件需要明确裁切、遮罩、透明边缘或图集整理时，读取
+[物件资源准备](references/object-resources.md)，沿现有正式写入处理。
+这是派生素材加工，不注册新的物件角色，不把成功加工等同于创意采用。
+
 ## Import 与 Web 上传
 
 用户在 Codex 提供本地路径时使用 MCP 导入；通过 Web 上传时也必须走同一个 Application Handler，产生相同 Asset、Hash、Job 和 Revision 语义。浏览器临时 Blob URL 不是 Project Asset。导入后通过 Web Inspector 或 `browse_assets` 确认 Role、来源和状态。

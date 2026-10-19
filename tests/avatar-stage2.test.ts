@@ -4,6 +4,7 @@ import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promi
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
+import { PNG } from "pngjs";
 import { ComfyUIBridgeClient } from "@videocut/bridge";
 import { createApplication, type EditingApplication } from "@videocut/application";
 import { DomainError } from "@videocut/domain";
@@ -107,9 +108,9 @@ function createCapabilityProfile(app: EditingApplication, projectId: string, opt
     projectId,
     baseRevision: app.readProject(projectId).revision.number,
     action: "create",
-    provider: "minimax_h3_multi_reference",
-    label: "MiniMax H3 多参考人物",
-    workflowId: "79ae27fd-bd4d-4e67-8dc3-6fcd7e8ce09d",
+    provider: "ltx23_audio_to_video",
+    label: "LTX 2.3 人物",
+    workflowId: "videoflowcut-ltx23-avatar-v1",
     inputModes: ["audio"],
     maskModes: ["none"],
     supportsReferenceImage: true,
@@ -285,7 +286,8 @@ async function prepareAvatarJob(context: { root: string; app: EditingApplication
 function submitPreparedAvatarJob(
   app: EditingApplication,
   prepared: Awaited<ReturnType<typeof prepareAvatarJob>>,
-  idempotencyKey: string
+  idempotencyKey: string,
+  prompt?: string
 ) {
   return app.submitAvatarGeneration({
     projectId: prepared.projectId,
@@ -299,6 +301,7 @@ function submitPreparedAvatarJob(
     audioMode: "use_dialogue_track",
     layout: { actorHead: { x: 0.5, y: 0.28, source: "manual_static" } },
     note: "测试用自然正面主持人",
+    prompt,
     idempotencyKey
   });
 }
@@ -318,7 +321,7 @@ test("ActorCapabilityProfile 只记录已确认能力，且被人物表演引用
       baseRevision: context.app.readProject(created.snapshot.project.id).revision.number,
       action: "update",
       profileId: profile.id,
-      label: "MiniMax H3 多参考人物（已确认音频输入）",
+      label: "LTX 2.3 人物（已确认音频输入）",
       supportsPartialRegeneration: false
     });
     assert.equal(updated.snapshot.actorCapabilityProfiles[0]?.supportsPartialRegeneration, false);
@@ -347,6 +350,70 @@ test("ActorCapabilityProfile 只记录已确认能力，且被人物表演引用
   } finally {
     await context.dispose();
   }
+});
+
+test("LTX 分镜提示词使用公开正向字段；未知提交不可重放，已知 Run 恢复不重提", async () => {
+  const context = await createTestApplication(); const originalFetch = globalThis.fetch;
+  try {
+    const prepared = await prepareAvatarJob(context, "LTX 提示词与恢复");
+    let fields: unknown[] = []; let posts = 0; let mode = "unknown";
+    const prompt = "The person speaks calmly, looking into the camera. No subtitles.";
+    globalThis.fetch = async (input, init) => {
+      const url = String(input);
+      if (url.endsWith(`/workflows/${prepared.profile.workflowId}`)) return new Response(JSON.stringify({
+        id: prepared.profile.workflowId, name: "LTX", available: true, schemaVersion: "ltx-test", fields,
+        itemSlots: [{ id: "photo", kind: "image", label: "照片", required: true }, { id: "speech", kind: "audio", label: "台词音频", required: true }], outputs: [{ id: "video", kind: "video", label: "人物" }]
+      }), { headers: { 'content-type': 'application/json' } });
+      if (url.endsWith(`/workflows/${prepared.profile.workflowId}/runs`)) {
+        posts++;
+        const body = init?.body; assert.ok(body instanceof FormData);
+        assert.deepEqual(JSON.parse(String(body.get("request"))).fieldValues, { positive: prompt });
+        if (mode === "unknown") throw new Error("模拟提交后连接中断");
+        return new Response(JSON.stringify({ id: "known-run", status: "queued", outputs: [] }), { headers: { 'content-type': 'application/json' } });
+      }
+      if (url.endsWith('/runs/known-run')) {
+        if (mode === "read-failure") throw new Error("模拟查询中断");
+        return new Response(JSON.stringify({ id: "known-run", status: "succeeded", outputs: [{ outputSlotId: "video", displayName: "result.mp4", kind: "video", fileName: "result.mp4", mime: "video/mp4", downloadUrl: "/files/result.mp4" }] }), { headers: { 'content-type': 'application/json' } });
+      }
+      if (url.endsWith('/files/result.mp4')) return new Response(await readFile(prepared.videoFixture));
+      throw new Error(`未预期请求 ${url}`);
+    };
+    const bridge = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1");
+    const missing = submitPreparedAvatarJob(context.app, prepared, "missing-prompt-field", prompt);
+    await assert.rejects(runAvatarGeneration(context.app, missing, bridge), /提示词/);
+    assert.equal(posts, 0);
+    fields = [{ id: "negative", kind: "text", label: "Negative Prompt", required: false }, { id: "positive", kind: "text", label: "正向提示词", required: false }];
+    const unknown = submitPreparedAvatarJob(context.app, prepared, "unknown-submit", prompt);
+    await assert.rejects(runAvatarGeneration(context.app, unknown, bridge), /没有取得 Run ID/);
+    await assert.rejects(runAvatarGeneration(context.app, unknown, bridge), /结果未知/);
+    assert.equal(posts, 1);
+    context.app.updateJob(unknown.id, { status: "unknown" });
+    assert.throws(() => context.app.resumeAvatarGeneration(unknown.id), /缺少 Run ID/);
+    mode = "read-failure";
+    const known = submitPreparedAvatarJob(context.app, prepared, "known-submit", prompt);
+    await assert.rejects(runAvatarGeneration(context.app, known, bridge), /查询中断/);
+    assert.equal(posts, 2);
+    context.app.updateJob(known.id, { status: "failed" });
+    const resumed = context.app.resumeAvatarGeneration(known.id);
+    assert.equal(resumed.id, known.id);
+    mode = "success";
+    await runAvatarGeneration(context.app, resumed, bridge);
+    assert.equal(posts, 2, "恢复已知 Run 不允许创建新的外部任务");
+    assert.equal(context.app.readProject(prepared.projectId).snapshot.actorPerformances.length, 1);
+    const image = new PNG({ width: 64, height: 64 }); image.data.fill(255);
+    const photoPath = join(context.root, "library-portrait.png"); await writeFile(photoPath, PNG.sync.write(image));
+    const library = await context.app.presenterLibrary.import({ kind: "photo", name: "本片照片", sourcePath: photoPath });
+    const updated = context.app.presenterLibrary.apply({ projectId: prepared.projectId, baseRevision: context.app.readProject(prepared.projectId).revision.number, photoId: library.entries[0]!.id });
+    assert.equal(updated.snapshot.actorPerformances[0]!.status, "stale");
+    assert.equal(updated.snapshot.speechAsset?.id, prepared.speechAsset.id);
+    const voicePath = join(context.root, "library-voice.wav");
+    await runProcess("ffmpeg", ["-y", "-v", "error", "-i", prepared.videoFixture, "-vn", voicePath]);
+    const voices = await context.app.presenterLibrary.import({ kind: "voice", name: "新音色", sourcePath: voicePath });
+    const voiceChanged = context.app.presenterLibrary.apply({ projectId: prepared.projectId, baseRevision: updated.revision.number, voiceId: voices.entries.find(entry => entry.kind === "voice")!.id });
+    assert.equal(voiceChanged.snapshot.speechAsset, undefined);
+    assert.equal(voiceChanged.snapshot.actorPerformances[0]!.status, "stale");
+    assert.ok(voiceChanged.snapshot.timeline.items.some(item => item.disabled && item.assetId === prepared.speechAsset.assetId));
+  } finally { globalThis.fetch = originalFetch; await context.dispose(); }
 });
 
 test("人工静态人物锚点可以驱动布局，但无 Mask 的后景效果必须阻塞并显式降级", async () => {
@@ -604,15 +671,10 @@ test("Avatar Worker 会重读 Bridge Schema、在 409 后重试，并将同一 J
         const schemaVersion = detailCalls === 1 ? "avatar-v1" : "avatar-v2";
         return new Response(JSON.stringify({
           id: prepared.profile.workflowId,
-          name: "MiniMax H3 多参考",
+          name: "LTX 2.3 人物",
           available: true,
           schemaVersion,
-          fields: [
-            { id: `negative_${schemaVersion}`, label: "Negative Prompt", kind: "text", required: false },
-            { id: `prompt_${schemaVersion}`, label: "Prompt", kind: "text", required: false },
-            { id: `duration_${schemaVersion}`, label: "Duration Seconds", kind: "number", required: false },
-            { id: `aspect_${schemaVersion}`, label: "Aspect Ratio", kind: "select", required: false, options: [{ label: "9:16", value: "vertical" }] }
-          ],
+          fields: [],
           itemSlots: [
             { id: `portrait_${schemaVersion}`, label: "Portrait Reference", kind: "image", required: true },
             { id: `speech_${schemaVersion}`, label: "Speech Audio", kind: "audio", required: true }
@@ -629,10 +691,7 @@ test("Avatar Worker 会重读 Bridge Schema、在 409 后重试，并将同一 J
         assert.ok(body instanceof FormData, "带肖像和旁白的 Avatar 请求必须采用当前 Schema 的 multipart 表单");
         const request = JSON.parse(String(body.get("request"))) as { schemaVersion: string; fieldValues: Record<string, unknown> };
         assert.equal(request.schemaVersion, "avatar-v2");
-        assert.equal(request.fieldValues["prompt_avatar-v2"], "参考图片中的人物以稳定、自然的主持人口吻面对镜头说话，表情和动作克制。使用提供的音频作为表演参考；不要添加屏幕文字、无关人物或无关场景。");
-        assert.equal(request.fieldValues["negative_avatar-v2"], undefined, "反向提示词即使排在最前，也不能承载正向人物表演指令");
-        assert.equal(request.fieldValues["duration_avatar-v2"], 1);
-        assert.equal(request.fieldValues["aspect_avatar-v2"], "vertical");
+        assert.deepEqual(request.fieldValues, {}, "原 LTX Schema 无文字字段时只提交图片和音频");
         assert.ok(body.get("file_portrait_avatar-v2") instanceof Blob, "重读 Schema 后必须使用新的肖像 Slot ID");
         assert.ok(body.get("file_speech_avatar-v2") instanceof Blob, "重读 Schema 后必须使用新的音频 Slot ID");
         return new Response(JSON.stringify({ id: "avatar-run-v2", status: "queued", outputs: [] }), { headers: { "content-type": "application/json" } });
@@ -855,7 +914,7 @@ test("Avatar Worker 拒绝不唯一或未明确覆盖的媒体 Slot，不向 Pro
     const requiredMediaUnhandled = submitPreparedAvatarJob(context.app, prepared, "avatar-required-media-slot-unhandled");
     await assert.rejects(
       () => runAvatarGeneration(context.app, requiredMediaUnhandled, bridge),
-      (error: unknown) => error instanceof DomainError && error.code === "AVATAR_REQUIRED_MEDIA_SLOT_UNHANDLED"
+      (error: unknown) => error instanceof DomainError && error.code === "AVATAR_PORTRAIT_SLOT_AMBIGUOUS"
     );
     assert.equal(runPostCount, 0, "Schema 不明确时不能创建 Avatar Run 或消耗 Provider 额度");
   } finally {
@@ -898,7 +957,7 @@ test("Avatar Bridge 成功但没有视频输出时保留审计并把 Job 标记�
       if (url.endsWith(`/workflows/${prepared.profile.workflowId}`)) {
         return new Response(JSON.stringify({
           id: prepared.profile.workflowId,
-          name: "MiniMax H3 多参考",
+          name: "LTX 2.3 人物",
           available: true,
           schemaVersion: "avatar-output-v1",
           fields: [{ id: "prompt", label: "Prompt", kind: "text", required: false }],
@@ -948,7 +1007,7 @@ test("Avatar Worker 拒绝非 H.264 的 Provider 输出，不隐式转码改变�
       if (url.endsWith(`/workflows/${prepared.profile.workflowId}`)) {
         return new Response(JSON.stringify({
           id: prepared.profile.workflowId,
-          name: "MiniMax H3 多参考",
+          name: "LTX 2.3 人物",
           available: true,
           schemaVersion: "avatar-codec-v1",
           fields: [{ id: "prompt", label: "Prompt", kind: "text", required: false }],
@@ -1005,7 +1064,7 @@ test("MCP 的 submit_avatar_job 只提交可追溯 Job，并可通过通用读�
     const prepared = await prepareAvatarJob(context, "Avatar MCP 提交测试");
     await client.connect(transport);
     const toolNames = new Set((await client.listTools()).tools.map((tool) => tool.name));
-    for (const name of ["read_actor_capabilities", "manage_actor_capabilities", "submit_avatar_job", "read_actor_performances", "track_job"]) {
+    for (const name of ["read_actor_capabilities", "manage_actor_capabilities", "submit_avatar_job", "read_actor_performances", "track_job", "read_presenter_library", "import_presenter_media", "manage_presenter_library", "apply_presenter_selection", "resume_avatar_job"]) {
       assert.ok(toolNames.has(name), `MCP 缺少 Avatar 必要工具：${name}`);
     }
     const targeted = JSON.parse(textFromToolResult(await client.callTool({ name: "target_project", arguments: { project_id: prepared.projectId } }))) as { projectId: string; revision: number };
@@ -1049,6 +1108,17 @@ test("MCP 的 submit_avatar_job 只提交可追溯 Job，并可通过通用读�
     assert.equal(tracked.status, "queued");
     const performances = JSON.parse(textFromToolResult(await client.callTool({ name: "read_actor_performances", arguments: {} }))) as unknown[];
     assert.deepEqual(performances, [], "提交 Job 不能假装已经生成 ActorPerformance");
+    const png = new PNG({ width: 64, height: 64 }); png.data.fill(255);
+    const photoPath = join(context.root, "mcp-library.png"); await writeFile(photoPath, PNG.sync.write(png));
+    const imported = await client.callTool({ name: "import_presenter_media", arguments: { kind: "photo", name: "MCP 保存照片", sourcePath: photoPath, setDefault: true } });
+    assert.equal(imported.isError, undefined);
+    const library = context.app.presenterLibrary.read();
+    assert.equal(library.entries[0]?.name, "MCP 保存照片");
+    const read = JSON.parse(textFromToolResult(await client.callTool({ name: "read_presenter_library", arguments: {} })));
+    assert.equal(read.defaults.photoId, library.defaults.photoId);
+    const applied = await client.callTool({ name: "apply_presenter_selection", arguments: { baseRevision: targeted.revision, photoId: library.defaults.photoId } });
+    assert.equal(applied.isError, undefined);
+    assert.equal(context.app.readProject(prepared.projectId).snapshot.presenter?.photo?.entryId, library.defaults.photoId);
   } finally {
     await transport.close().catch(() => undefined);
     await context.dispose();

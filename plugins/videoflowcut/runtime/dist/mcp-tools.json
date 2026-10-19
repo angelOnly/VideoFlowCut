@@ -6256,6 +6256,154 @@
       }
     },
     {
+      "name": "resume_avatar_job",
+      "title": "恢复 LTX 人物任务",
+      "description": "已知 Run 沿原任务查询和回收；明确生成失败才创建固定恢复任务。缺失 Run ID 的未知提交不重复执行，不切换模型。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "read_presenter_library",
+      "title": "读取人物照片与音色",
+      "description": "读取跨项目保存的照片、音色样本和默认选择。项目内固定输入见 read_project.presenter；修改默认不会回写已有项目。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "import_presenter_media",
+      "title": "保存人物照片或音色",
+      "description": "将本地图片或音色样本复制到工作台受管目录；可替换同类条目或设默认，不启动生成、不修改已有项目。音色样本不是 LTX 的台词音频。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "photo",
+              "voice"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourcePath": {
+            "type": "string",
+            "minLength": 1
+          },
+          "replaceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "setDefault": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "sourcePath"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "manage_presenter_library",
+      "title": "管理人物与音色列表",
+      "description": "重命名、移除或设置默认。移除默认条目会清除该默认，不自动选择其他条目；项目副本不受影响。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "rename",
+              "remove",
+              "set_default"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "action",
+          "id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "apply_presenter_selection",
+      "title": "选用本片人物与音色",
+      "description": "明确 ID 优先，其次项目已选，再使用工作台默认；固定受管副本并返回 Revision/Impact。换照片使生成型人物失效，换音色还使配音与字幕时序失效，须先重配再重生口型。仅提交选择，不自动生成。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "baseRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "photoId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "voiceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "projectId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "baseRevision"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "manage_actor_capabilities",
       "title": "管理人物能力档案",
       "description": "创建、更新或移除项目内的 ActorCapabilityProfile。档案只记录已确认能力；上传音频不自动代表口型同步，也不会把静态布局或生成结果伪装成姿态追踪。",
@@ -6282,7 +6430,7 @@
           },
           "provider": {
             "type": "string",
-            "const": "minimax_h3_multi_reference"
+            "const": "ltx23_audio_to_video"
           },
           "label": {
             "type": "string",
@@ -6464,7 +6612,7 @@
     {
       "name": "submit_avatar_job",
       "title": "提交数字人生成人物",
-      "description": "使用当前 SpeechAsset 与已登记的能力档案提交 MiniMax H3 多参考人物生成。提交会固定 base_revision_id；Worker 在实际调用前动态读取 Bridge Schema，不接受或承诺逐帧姿态、目光、手势追踪。当前生成结果仅支持无 Mask 的前景降级，人物声音只能由 Dialogue 或静音承担。完成后用 track_job 和 read_actor_performances 读回。",
+      "description": "使用当前 SpeechAsset 与已登记的能力档案提交 LTX 2.3 人物生成。提交会固定 base_revision_id；Worker 在实际调用前动态读取 Bridge Schema，不接受或承诺逐帧姿态、目光、手势追踪。当前生成结果仅支持无 Mask 的前景降级，人物声音只能由 Dialogue 或静音承担。完成后用 track_job 和 read_actor_performances 读回。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -6545,7 +6693,8 @@
           "prompt": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 4000
+            "maxLength": 4000,
+            "description": "人物专项依据导演意图编写的 LTX 正向提示词；仅在工作流公开唯一正向字段时提交，省略使用工作流默认。"
           },
           "mask_mode": {
             "type": "string",
@@ -6605,7 +6754,6 @@
         "required": [
           "base_revision_id",
           "capability_profile_id",
-          "reference_image_asset_id",
           "generation_range",
           "placement"
         ],
@@ -7399,6 +7547,195 @@
           "asset_id",
           "outcome",
           "note"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "read_object_resource_capabilities",
+      "title": "读取物件资源加工能力",
+      "description": "读取支持格式、规范化方式、图集与每任务像素预算；加工不提供自动分层、隐藏面生成或创意采用。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "prepare_object_resources",
+      "title": "准备物件部件与图集",
+      "description": "使用当前项目真实图片 Asset，按明确裁切、同尺寸 alpha/luminance 遮罩、透明裁边和局部占位生成 PNG 与布局。异步 Job，track_job 读取结果；返回真实 Asset ID、Revision、inputHash、layoutPath 和完整 layout。图集不旋转、不自动缩图，超页数返回诊断。幂等键重放返回原 Job；并发 Revision 冲突不覆盖旧结果。图片按既有 imageBindings 使用，每页一槽。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$"
+                },
+                "asset_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "id",
+                "asset_id"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 32
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "$ref": "#/properties/sources/items/properties/id"
+                },
+                "source_id": {
+                  "$ref": "#/properties/sources/items/properties/id"
+                },
+                "source_rect": {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "y": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "width": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "height": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y",
+                    "width",
+                    "height"
+                  ],
+                  "additionalProperties": false
+                },
+                "alpha_mask_source_id": {
+                  "$ref": "#/properties/sources/items/properties/id"
+                },
+                "mask_mode": {
+                  "type": "string",
+                  "enum": [
+                    "alpha",
+                    "luminance"
+                  ]
+                },
+                "trim_transparent": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "local_rect": {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "number"
+                    },
+                    "y": {
+                      "type": "number"
+                    },
+                    "width": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "height": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y",
+                    "width",
+                    "height"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "source_id",
+                "local_rect"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 128
+          },
+          "atlas": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "max_side": {
+                "type": "integer",
+                "minimum": 8,
+                "maximum": 4096
+              },
+              "max_pages": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              }
+            },
+            "required": [
+              "enabled",
+              "max_side",
+              "max_pages"
+            ],
+            "additionalProperties": false
+          },
+          "project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "sources",
+          "parts",
+          "atlas",
+          "project_id",
+          "base_revision_id",
+          "idempotency_key"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
