@@ -53,3 +53,11 @@ MG 交回设计依据、固定作品版本、覆盖 Beat、局部事件帧、入
 
 
 `create_presenter_timeline` 是兼容入口，不作为正式主链；它按素材数量临时分组。正式人物主线使用 `assemble_presenter_track` 后接 `compile_presenter_scenes`，再登记人物。`align_presenter_to_speech` 因已有效果、缺画面或直接覆盖拒绝调整时，不绕过保护；交导演决定补画面、重生人物、修声音或保留差异。
+
+## 主场面接管
+
+先核对当前 Runtime Schema 已发布 `visual_composition`。仅人物范围需要接管时，在 fullscreen ManagedMotion Cue 传 `{role:"primary", replaces_actor_item_ids:[实际ItemID]}`，范围复用 Cue 半开区间；无外层人物可传空数组。更新省略保持、null 清除。Cue 仍只有唯一 motion 绑定，人物和资料用作品内真实 imageBindings/videoBindings。
+
+接管只隐藏外层人物像素，保留源裁切、时钟与声音；TimelineVideo 静音，use_source_audio 仍走原 Item，use_dialogue_track 仍走唯一 Dialogue。作品可完全不显示人。主作品在 Cutaway、普通 front 与字幕下方；CameraPunch、头手锚点及人物 Mask 效果冲突时合并进同一作品或调整范围，不能沿旧坐标继续。
+
+用当前对象和实际合成核查源帧、声音与层序。adopted_material_asset_ids 只登记已采用展示资料，[] 取消采用，省略保持；对账绑定不能证明可读性。未发布接口时不得写入拟定字段；先报告版本差异并沿已发布能力处理。

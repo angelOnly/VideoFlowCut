@@ -66,13 +66,9 @@
 
 从完整观看任务进入 [Remotion 原创流程](../../remotion-production/SKILL.md)：内容构思与关键状态、creativeBrief、受管提交、Job/Asset 读回、作品审阅、覆盖 Beat 与 Cue 放置，最后回到真实人物/字幕/声音的连续合成。代表段成立后继续整片，不能只提交单个效果结束。
 
-## 这份 Skill 为什么是主工作流
+## 方法与生命周期的边界
 
-人物口播不是“先把视频拼起来，再每几秒加一个动画”。它的核心优势是人物关系：观众通过脸、目光、声音、停顿、手势和态度判断内容是否可信、是否与自己有关。Remotion、B-roll、字幕、音乐与音效可以帮助理解、证明、具体化，也可以建立注意重音、视觉记忆、情绪和节奏。人物是叙事锚点，不表示每个时刻都必须是唯一视觉重点。
-
-因此 `presenter-motion-director` 不只是人物周围动效的设计师，而是整个人物口播的负责人。它承担 ChatCut `talking-head-guide` 对应角色：识别这次是 Cleanup、Highlight、Restructure、Hook、Target Script、现有数字人组装、声音替换、Motion Finishing 还是从零完整生产；安排 A-roll、声音、人物、Story、视觉、字幕、音频和交付的依赖；调用专项 Skill 后重新收拢结果。
-
-只加载一组平级专项 Skill 不会自动形成工作流。即使尚未打开任何专项 Skill，读完本文件也应知道一条 Presenter 视频从输入到交付怎样完成、每一阶段为何存在、失败后回到哪里。
+完整人物制作以[人物导演入口](../SKILL.md)为唯一业务生命周期。本页仅保留专业剪辑方法、原片与局部任务约束；素材探索与整场视觉从首轮参与，正式提交的依赖顺序不等于串行创作。
 
 ## 适用范围和边界
 
@@ -112,13 +108,13 @@
 
 ### Motion Finishing
 
-主线已经稳定，只需要视觉包装。先读取当前 Revision、Story、SpeechTiming、人物状态和已有效果，禁止顺手改 Script。若发现上游语义问题，退回 Gate A，而不是继续用包装遮盖。
+主线已经稳定，只需要视觉包装。先读取当前 Revision、Story、SpeechTiming、人物状态和已有效果，禁止顺手改 Script。若发现上游语义问题，退回人物导演核对主线，而不是继续用包装遮盖。
 
 ## 影响剪辑的关键变量
 
 平台和画幅改变构图与字幕；目标时长改变内容选择而不是只改变播放速度；受众和语气决定解释深度；人物角色决定目光、手势和视觉密度；声音来源决定口型和时间；Style 决定视觉语言但不决定每个 Beat 的效果。“高完成度”既要求真实预览和完整审片，也要求观众实际感知重点、跟随关系、感受节奏并记住结论，不能仅以流程完整代替观看结果。
 
-在开始前应写清：目标平台、画幅、时长、受众、人物角色、主声音来源、是否允许重组、B-roll/Explainer 比例、字幕策略、风格和交付目标。只有会实质改变结果的缺失信息才需要询问；其它可以做明确假设并记录。
+在开始前应写清：目标平台、画幅、时长、受众、人物角色、主声音来源、是否允许重组、材料用途与主要观看任务、字幕策略、风格和交付目标。只有会实质改变结果的缺失信息才需要询问；其它可以做明确假设并记录。
 
 ## 短视频完整制作的专业默认
 
@@ -126,21 +122,9 @@
 
 先判断这次需要怎样的表达，再检查能否执行。主工作流为高价值 Beat 建立视觉与声音的共同落点，包含观众应发现什么、谁承担重点、人物保留何种作用、音乐/SFX 的动作与释放，以及无效时返回哪一阶段。实现选择交给专项，不要求用户给字号、缓动、音效名或固定频率。
 
-## 总体生产顺序
+## 原片与声音专项约束
 
-总导演先依据任务范围、已有讲述与人物材料构思贯通开头到结尾的观看主线：先让观众关注什么，哪些内容逐步解释、证明或改变理解，各段为什么保留，结尾怎样完成本片。素材和人物画面不必此时全部具备，先标出待核内容与待补画面，再展开分镜。纯 Cleanup、换声音或局部 Motion Finishing 保持用户范围，不自动重写整片。
-
-允许共同创作时，讲稿、主要画面、人物作用和声音意图共同形成初稿；已有文稿或录音也可以按任务范围参与修订。用户明确锁定内容、声音，或仅要求包装时保留相应范围。真实源口播的删留与重组按任务执行并保护原意；声音与画面冲突回导演共同判断，不由专项自行裁短。主线初稿不替代真实 Take 审阅、语义核对或最终声音校验。
-
-总体顺序为：确认需求与内容 → 导演提出初步声画方向和关键未知 → 必要的事实研究与素材探索 → 文案专项依据材料形成完整解说与声画初稿，导演采用并完善整片分镜 → 定向补材和关键声画粗剪 → 稳定采用的语义、主声音和人物版本 → 校正 StoryBeat、Scene 与实际时序 → 完成代表性连续段的视觉与声音 → 导演观看修订 → 扩展剩余段落 → 正式字幕与混音 → 审片子代理复核与用户定稿。正式提交与导出由主任务执行，辅助审阅缺口不改变现有导出规则。
-
-前半程允许素材与分镜循环修订。正式字幕、人物组装和作品放置仍依赖最终采用的内容与时序；变化后按 ImpactReport 重新编译或复核，不用初稿估时冒充最终声音时间。
-
-上述“构思主线”从初步表达方向开始。主题起步且关键声画未确定时，先安排素材探索，实际候选返回后再完善讲稿、人物作用与分镜；不是先完成全篇终稿再配素材。用关键片段和临时或已锁定声音形成声画粗剪，发现问题时区分讲稿、材料与用法，再进入依赖稳定内容的正式配音与组装。
-
-## Gate A：主线成立
-
-### Gate A 前的原素材审阅
+### 已有真人 Take 审阅
 
 人物口播不能只从 Transcript 选内容。转写可以帮助定位观点、问题和重录，但两次文字完全相同的 Take，仍可能在准确性、可信感、语气、眼神、手势、呼吸、环境声、可用余量和前后衔接上明显不同。人物承担信任或情绪时，表情和停顿本身就是内容证据；教程和产品演示中，UI、对象和操作画面则可能比人物更重要。
 
@@ -176,9 +160,8 @@ StoryBeat 不是每两个视频一组。它应对应一个问题、观点、证�
 
 先读回 Project，确认目标 A-roll Item 已归属 PresenterScene，再调用 `avatar-performance` 登记或审查 ActorPerformance。尚未归属 Scene 时先完成 `compile_presenter_scenes`，不能直接重试人物登记。当前实际工具 `manage_actor_performance` 能保存 imported/generated、MaskMode、AudioMode、MaskAsset、SpeechAsset 和 note；自动姿态和手势仍是后续能力。没有 Mask 时，后景穿插不能伪装成立，应降级到左右安全区、前景或 Fullscreen。
 
-Gate A 的检查依据是来源和主线可回溯，Script 与人物/声音版本一致，A-roll、StoryBeat 和 PresenterScene 有真实关系。纯声音检查原意与自然连接，画面承担的过程和关系回到完整声画判断；不以包装掩盖残句、错误素材或语义问题。
 
-## 人物为什么通常是视觉锚点
+## 人物何时具有当前观看价值
 
 人物不仅传递文字。个人坦白时，眼神、呼吸和停顿是真实性证据；专家解释时，人物建立责任和信任；产品主持时，人物提供尺度、指向和行动关系；幽默内容中，反应可能比梗图更重要。因此不能仅因为人物画面持续了五秒，就自动切 B-roll。
 
@@ -186,7 +169,7 @@ Gate A 的检查依据是来源和主线可回溯，Script 与人物/声音版�
 
 教程中的真实操作可以取得主要画面，人物退为旁白或小窗；重要承诺与实际对象也可协同增强。具体语义与源表演共同决定视觉中心。
 
-## Gate B：视觉和声音包装成立
+## 人物视觉与声音的专业方法
 
 ### Visual Treatment 和 AttentionCurve
 
@@ -232,7 +215,6 @@ Rear FX 适合规模、背景状态、评论环境和章节，但需要可靠 Ma
 
 声音意图在 Visual Treatment 阶段就与视觉联合 Spotting，混音在稳定画面后收口。给音频专项交付的是事件及其感知落点、希望的音色与包络、后续阅读/语句空间，而不只是“加点音效”。优先审阅用户提供的音效候选，区分预示型、落定型、反应型与连接型功能；同一声音族形成一致语气，变化由事件承担。检查过弱而无感、攻击压字、尾音拖入下一句和重复使用疲劳，不能把低音量当作声音设计完成。
 
-Gate B 通过的证据：高价值 Beat 的重点与声画落点在正常播放中可感知；保持段有成立的观看理由；人物、字幕、视觉和声音主次清楚；当前 Visual Treatment 已落实到有效 Scene/Cue/Caption/Audio，而非仅有计划或 stale 对象；代表性连续段已检查铺垫、动作、阅读和恢复。样段通过后还须扩展并审阅整片，不能把样段或无声作品当作整片完成。
 
 任务恢复或完成一个样段后，重新读当前 Project、未完成 Job、`read_quality_report` 与原 ProductionRun。沿 `productionReconciliation` 检查每拍的计划和明确绑定的有效对象，再结合 `editorial.openFindings`、逐轮 coverage 决定下一步；不能从聊天里“已经到字幕精修”推断视觉和声音都完成。stale 计划、未放置作品与未复核声音都保留为待办，不改称主动留白。既有原声与已完成去重不属于包装返工范围，除非新的真实证据证明主线仍有问题。
 
@@ -260,39 +242,7 @@ Gate B 通过的证据：高价值 Beat 的重点与声画落点在正常播放�
 
 包袱前保持信息清楚，笑点后短促反应、Punch 或梗图；不要在包袱前用字幕或动效提前泄露。人物表情常是最强反应，FullScreenMeme 只有在真正增强而不是解释笑点时使用。
 
-## 详细工具工作流与读回点
-
-以下描述采用方案后的正式对象写入与读回顺序；之前先按“总体生产顺序”形成整片主线、分镜和素材需求，并完成必要核实与试作，不把这些工具步骤当成构思整片的替代。
-
-### 1. 项目和素材
-
-先执行 `project-basics`。`browse_assets` 检查人物视频、音频、Mask、VoiceReference、证据和 B-roll 的 Role、状态和来源。新文件通过 `asset-import`。不要让“项目里所有 ready 视频”自动成为主线。
-
-需要转写时 `submit_transcription`，跟踪完成后 `read_script`。人工文稿通过 `apply_manual_transcript` 进入，但仍需要语义判断。每一步记录当前 Revision，异步 Job 本身不改变最终 Script。
-
-### 2. 语义和 Story
-
-`semantic-continuity` 通过 `apply_semantic_units` 和 `apply_script` 形成最终听觉内容。随后 `manage_story` 建立稳定 Beat ID、目的和 SemanticUnit 关系。Beat 的名称不应只是“场景一、场景二”，而要能解释当前任务，例如“旧信念”“书中触发”“以后不断后退”“回到当下”。
-
-### 3. 语音
-
-`manage_voice_references` 登记参考音频；`submit_voice_synthesis` 只生成需要的 Segment；`read_speech_asset` 和 `read_speech_timing` 读回真实时长。若旧项目 Timeline 缺 SpeechAsset，可使用 `rebuild_speech_timeline` 修复，不能重新调用 OmniVoice造成声音变化。
-
-### 4. A-roll 与 Scene
-
-`assemble_presenter_track` 只接收明确 Asset ID。主声音比人物画面短时，可在安全条件下 `align_presenter_to_speech`；该工具拒绝自动改写时必须尊重保护。`compile_presenter_scenes` 使用明确 start/end 和 Beat ID，使每个主画面 Item 被 Scene 覆盖。
-
-### 5. 人物
-
-`manage_actor_performance` 为每个主画面 Item 绑定 source、mask_mode、audio_mode、Mask 和 SpeechAsset。写后 `read_actor_performances` 检查音频所有权和版本。没有人物 Provider 工具时不能调用架构目标接口。
-
-### 6. 视觉和 Remotion
-
-读取完整段、人物与字幕预算，先内部构思并选关键画面。原创链为 `submit_motion_work`（creativeBrief、可选 reference）→ `track_job` / `read_motion_work` / `inspect_asset` → `review_motion_work` → `manage_effect_cues` 绑定固定版本与覆盖 Beat。未审可直接放置取合成证据，inconclusive 如实保留但不阻挡制作和导出；不能只改 Cue Props 试图修改作品内部。设计适合现有组件时直接复用 Registry。每次读回 Revision/Impact，在同版本合成中检查前一句、完整变化和返回人物。
-
-### 7. 预览和质量
-
-`preview_timeline` 查看受影响结构，`render_preview_range` 固定 Revision，`track_job` 等待，`inspect_composed_frames` 取帧。帧之外还要通过 Web 连续播放。`record_creative_decision` 保存关键取舍，`record_editorial_quality_review` 保存五轮审查。
+正式写入与版本读回沿[时间线操作](timeline-operations.md)，不在本参考重复完整工具生命周期。
 
 ## Effect 选择的具体问题
 
@@ -332,42 +282,9 @@ Punch 是否对应人物表情、包袱或结论；Meme 是否在笑点后增强
 
 例如参考视频每 2～3 秒变化，但原因可能是信息点密集、人物动作和产品演示；把同样频率应用到哲学口播会错误。复用的是“价值变化触发视觉变化”，不是固定秒数。
 
-## 从空项目到交付的示范路线
+## 实际观察
 
-下列路线中，原创 Remotion 在写 Cue 前必须完成 creativeBrief、`submit_motion_work`、Job/版本读回和 `review_motion_work`；参考可省略。放置后按实际内部事件协调声音，连续播放前后语句，再扩展其余段落。组件 Cue 分支只用于设计可直接复用时。
-
-```text
-已有真人原片分支（从零数字人改用 timeline-operations.md 中的正式声音 → 合法 Scene → Avatar Job 路线）：
-create_project(profile=presenter_motion)
-→ import_media(人物 A-roll / VoiceReference / 必要素材)
-→ track_job 并确认 Asset
-→ submit_transcription 或 apply_manual_transcript
-→ apply_semantic_units / apply_script
-→ manage_story
-→ manage_voice_references / submit_voice_synthesis
-→ read_speech_asset / read_speech_timing
-→ assemble_presenter_track
-→ compile_presenter_scenes
-→ manage_actor_performance
-→ manage_visual_treatment，为关键 Beat 写入 Visual Treatment 和安静区
-→ 获取/导入真实视觉资产
-→ manage_cutaways / replace_scene_asset（仅在 Cutaway 计划成立时）
-→ manage_effect_cues
-→ Caption 与 Audio 收尾
-→ render_preview_range / inspect_composed_frames
-→ 五轮审片和修复
-→ submit_export(purpose=draft)
-→ 最终审片
-→ submit_export(purpose=delivery)
-```
-
-工具缺失时不能跳过后声称成功；应记录当前走到哪一阶段、哪个项目对象已存在、哪一项只能计划。
-
-## 局部 Preview 和五轮审片
-
-每个重要视觉处理先渲染受影响范围，检查进入前、运动中、Settled、退出和人物返回。随后由 `quality-verification` 完成 audio_only、mute_visual、audiovisual、first_viewer 和 Presenter mode_specific。问题返回对应阶段，不从头全部重做。
-
-完整声画审片要看：开头承诺是否清楚；中段信息和视觉是否有变化；安静区是否真实；效果是否重复；人物是否仍是关系中心；结尾是否兑现并给 CTA 足够时间。
+沿[质量核验](../../quality-verification/SKILL.md)按具体风险选择静帧、连续画面与声画，复用当前有效输出；不为每个重要效果另设固定渲染工序。判断人物作用、资料阅读、解释发展与交接，未观察部分保留未知。
 
 ## 常见失败
 

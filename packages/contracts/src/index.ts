@@ -1023,6 +1023,8 @@ export type VisualTreatmentMode = "keep_presenter" | "quiet" | "light_overlay" |
 export type VisualTreatmentIntensity = "quiet" | "low" | "medium" | "high";
 
 export interface VisualTreatment {
+  /** 导演已采用、应进入画面的资料；空数组表示取消采用。 */
+  adoptedMaterialAssetIds?: Id[];
   id: Id;
   narrativeBeatId?: Id;
   sceneId?: Id;
@@ -1089,6 +1091,8 @@ export interface EffectMotion {
 }
 
 export interface EffectCue {
+  /** 仅 fullscreen ManagedMotion 接管主画面；不改变原 Item 的声音和时钟。 */
+  visualComposition?: { role: "primary"; replacesActorItemIds: Id[] };
   /** 本次放置兑现的叙事点，与决定位置的单一时间锚点分开。 */
   coveredNarrativeBeatIds?: Id[];
   id: Id;
@@ -1623,6 +1627,9 @@ export interface QualityReport {
   };
   /** 从当前对象推导的对账，不保存第二份时间线，也不对审美自动打分。 */
   productionReconciliation?: Array<{
+    structuralGaps: Array<{ code: "missing_treatment" | "stale_treatment" | "missing_implementation" | "material_not_connected"; objectIds: Id[]; assetIds: Id[]; message: string }>;
+    connectedMaterialAssetIds: Id[];
+    observationNeeds: string[];
     beatId: Id;
     title: string;
     treatmentIds: Id[];
@@ -1643,6 +1650,11 @@ export interface QualityReport {
 
 /** incomplete 表示已经尝试收口，但缺少阶段 1 的必需证据；仍可继续补充同一 Run。 */
 export type ProductionRunStatus = "active" | "incomplete" | "completed" | "abandoned";
+
+export type ProductionCompletionScope =
+  | { kind: "project" }
+  | { kind: "beats"; beatIds: Id[] }
+  | { kind: "objects"; objectIds: Id[] };
 
 /** 协调者记录的子代理来源，只用于追溯，不认证宿主身份或代替实际调用证据。 */
 export interface CreativeDelegation {
@@ -1671,6 +1683,7 @@ export interface CreativeDecision {
  * 用于回答“这次为什么这样剪”。
  */
 export interface SkillExecutionReport {
+  completionScope?: ProductionCompletionScope;
   id: Id;
   projectId: Id;
   status: ProductionRunStatus;

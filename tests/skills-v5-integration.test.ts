@@ -424,15 +424,12 @@ test("子代理工具缺失使用可追溯事实交接，实际访问和交接�
   assert.match(routing, /新读取发现版本变化[\s\S]*接收者确认[\s\S]*不只替换包内版本号/u);
 });
 
-test("Presenter Skill 的概要、Gate A 与示范路线都先编译 Scene 再登记人物", async () => {
+test("人物专业参考保留 Scene 登记约束，完整生命周期只引用人物导演入口", async () => {
   const skill = await readSkill("presenter-motion-director");
-  // 与 core.test.ts 的实际调用回归配对，防止示范路线再次引导到 ACTOR_SCENE_REQUIRED。
-  assert.match(skill, /先读回 Project，确认目标 A-roll Item 已归属 PresenterScene/u, "人物登记前先确认真实 Scene 归属");
-  const sceneSection = skill.indexOf("### Story 与 PresenterScene");
-  const actorSection = skill.indexOf("### 人物表演");
-  assert.ok(sceneSection >= 0 && actorSection > sceneSection, "Gate A 应先建立 Scene，再登记人物表演");
-  const example = skill.slice(skill.indexOf("## 从空项目到交付的示范路线"));
-  assert.match(example, /→ assemble_presenter_track\s+→ compile_presenter_scenes\s+→ manage_actor_performance/u);
+  assert.match(skill, /先读回 Project，确认目标 A-roll Item 已归属 PresenterScene/u);
+  assert.ok(skill.indexOf("### 人物表演") > skill.indexOf("### Story 与 PresenterScene"));
+  assert.match(skill, /完整人物制作以.*人物导演入口.*唯一业务生命周期/u);
+  assert.doesNotMatch(skill, /## 从空项目到交付的示范路线|## Gate A|## Gate B|B-roll\/Explainer 比例/u);
 });
 
 test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", async () => {

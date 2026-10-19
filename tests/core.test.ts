@@ -857,7 +857,7 @@ test("质量门禁会阻止旁白只覆盖首段、主画面却继续播放", as
     });
     const state = context.app.readProject(created.snapshot.project.id);
     const report = evaluateQuality(state.snapshot, state.revision.number);
-    assert.ok(report.issues.some((entry) => entry.level === "blocking" && entry.code === "PRESENTER_SPEECH_VISUAL_DURATION_MISMATCH"));
+    assert.ok(report.issues.some((entry) => entry.level === "blocking" && entry.code === "PRESENTER_DIALOGUE_COVERAGE_GAP"));
     assert.ok(built.snapshot.timeline.durationInFrames > 0);
 
     const aligned = context.app.alignPresenterToSpeech({ projectId: created.snapshot.project.id, baseRevision: state.revision.number });
@@ -867,7 +867,7 @@ test("质量门禁会阻止旁白只覆盖首段、主画面却继续播放", as
     const dialogueEnd = aligned.snapshot.timeline.items.find((item) => item.trackId === dialogueTrack.id && item.assetId === speechFileAssetId)?.endFrame;
     assert.equal(actorEnd, dialogueEnd);
     const alignedReport = evaluateQuality(aligned.snapshot, aligned.revision.number);
-    assert.equal(alignedReport.issues.some((entry) => entry.code === "PRESENTER_SPEECH_VISUAL_DURATION_MISMATCH"), false);
+    assert.equal(alignedReport.issues.some((entry) => entry.code === "PRESENTER_DIALOGUE_COVERAGE_GAP"), false);
   } finally {
     await context.dispose();
   }
@@ -1086,7 +1086,7 @@ test("ProductionRun 缺少真实创作证据时保持 incomplete，且不复制 
       mcpCommand: "record_creative_decision"
     });
     assert.equal(recorded.creativeDecisions.length, 1);
-    const completed = await context.app.completeProductionRun({ projectId: created.snapshot.project.id, runId: run.id });
+    const completed = await context.app.completeProductionRun({ completionScope: { kind: "project" }, projectId: created.snapshot.project.id, runId: run.id });
     assert.equal(completed.status, "incomplete");
     assert.equal(completed.finalRevision, context.app.readProject(created.snapshot.project.id).revision.number);
     assert.ok(completed.completionBlockers.some((blocker) => blocker.includes("语义决策")));
@@ -1107,7 +1107,7 @@ test("ProductionRun 有当前版本的制作记录和真实预览即可完成，
     const state = context.app.buildPresenterTimeline({ projectId, baseRevision: context.app.readProject(projectId).revision.number, assetIds: [assetId] });
     const run = await context.app.startProductionRun({ projectId, loadedSkills: ["production-director"] });
     for (const category of ["semantic", "story", "visual"] as const) await context.app.recordCreativeDecision({ projectId, runId: run.id, category, decision: "合约测试制作决策", rationale: "不代表真实创意与观看" });
-    const missing = await context.app.completeProductionRun({ projectId, runId: run.id });
+    const missing = await context.app.completeProductionRun({ completionScope: { kind: "project" }, projectId, runId: run.id });
     assert.equal(missing.status, "incomplete");
     assert.ok(missing.completionBlockers.some(message => message.includes("Preview Job")));
     const preview = context.app.submitPreview({ projectId, revision: state.revision.number, fromFrame: 0, toFrame: state.snapshot.timeline.durationInFrames });
@@ -1115,7 +1115,7 @@ test("ProductionRun 有当前版本的制作记录和真实预览即可完成，
     await mkdir(dirname(path), { recursive: true });
     await copyFile(await createDeterministicVideoFixture(context.root), path);
     context.app.updateJob(preview.id, { status: "succeeded", result: { revision: state.revision.number, path, fromFrame: 0, toFrame: state.snapshot.timeline.durationInFrames } });
-    const completed = await context.app.completeProductionRun({ projectId, runId: run.id });
+    const completed = await context.app.completeProductionRun({ completionScope: { kind: "project" }, projectId, runId: run.id });
     assert.equal(completed.status, "completed");
     assert.deepEqual(completed.composedFrameEvidence, []);
     assert.equal(completed.editorialReview, undefined);
@@ -1165,7 +1165,7 @@ test("ProductionRun 不要求每个效果抽帧，已有证据仍按真实范围
       observations: fixtureObservations(preview.id, withCue.snapshot.timeline.durationInFrames),
       findings: []
     });
-    const missingCueFrame = await context.app.completeProductionRun({ projectId: created.snapshot.project.id, runId: run.id, finalRevision: revision });
+    const missingCueFrame = await context.app.completeProductionRun({ completionScope: { kind: "project" }, projectId: created.snapshot.project.id, runId: run.id, finalRevision: revision });
     assert.equal(missingCueFrame.status, "completed");
     assert.deepEqual(missingCueFrame.completionBlockers, []);
     assert.equal(missingCueFrame.composedFrameEvidence.length, outsideFrames.length);

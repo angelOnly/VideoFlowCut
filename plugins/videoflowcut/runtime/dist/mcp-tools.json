@@ -6898,6 +6898,13 @@
               "remove"
             ]
           },
+          "adopted_material_asset_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
           "visual_treatment_id": {
             "type": "string",
             "minLength": 1
@@ -9458,7 +9465,7 @@
     {
       "name": "manage_effect_cues",
       "title": "管理视觉效果",
-      "description": "创建、按 cue_id 就地更新或移除单个 EffectCue，均须当前 Revision。范围必须满足 Scene.startFrame ≤ start_frame < end_frame ≤ Scene.endFrame；covered_narrative_beat_ids 只声明内容覆盖，不允许跨 Scene 边界。action 默认 create；update 保留 Cue ID 和未指定字段，不能更换 Scene/类型/层级；remove 只移除该 Cue，不删除作品或回退整片。ManagedMotion 的源码、Props、画幅和完整时长仍固定，所属 Scene 必须完整承载作品；改作品需提交新版本。范围拒绝若返回 validation/none/correct_input，按实际 Scene 范围交回原作者修订后纠正一次，不原样重放。",
+      "description": "创建、按 cue_id 就地更新或移除单个 EffectCue，均须当前 Revision。范围必须满足 Scene.startFrame ≤ start_frame < end_frame ≤ Scene.endFrame；covered_narrative_beat_ids 只声明内容覆盖，不允许跨 Scene 边界。action 默认 create；update 保留 Cue ID 和未指定字段，不能更换 Scene/类型/层级；remove 只移除该 Cue，不删除作品或回退整片。visual_composition 仅用于 fullscreen ManagedMotion 主画面，显式列出被接管人物 Item；省略保持、null 清除，保留唯一原声与源时钟。ManagedMotion 的源码、Props、画幅和完整时长仍固定，所属 Scene 必须完整承载作品；改作品需提交新版本。范围拒绝若返回 validation/none/correct_input，按实际 Scene 范围交回原作者修订后纠正一次，不原样重放。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -9563,6 +9570,34 @@
               "relation"
             ],
             "additionalProperties": false
+          },
+          "visual_composition": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "const": "primary"
+                  },
+                  "replaces_actor_item_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                "required": [
+                  "role",
+                  "replaces_actor_item_ids"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "covered_narrative_beat_ids": {
             "type": "array",
@@ -10180,12 +10215,73 @@
     {
       "name": "complete_production_run",
       "title": "完成 ProductionRun",
-      "description": "固定本次创作审计对应的最终 Revision，并补充已看过的预览和质量复核证据。",
+      "description": "明确 completion_scope，按本次整片、Beat 或对象范围对账收口；结构缺项返回 incomplete，观察意见独立保存，不新增导出审美门禁。",
       "inputSchema": {
         "type": "object",
         "properties": {
           "project_id": {
             "type": "string"
+          },
+          "completion_scope": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "project"
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "beats"
+                  },
+                  "beat_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "kind",
+                  "beat_ids"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "objects"
+                  },
+                  "object_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "kind",
+                  "object_ids"
+                ],
+                "additionalProperties": false
+              }
+            ]
           },
           "run_id": {
             "type": "string",
@@ -10213,6 +10309,7 @@
           }
         },
         "required": [
+          "completion_scope",
           "run_id"
         ],
         "additionalProperties": false,

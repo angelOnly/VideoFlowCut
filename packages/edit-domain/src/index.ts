@@ -45,9 +45,9 @@ import type {
 import { DEFAULT_TRACKS, DEFAULT_CAPTION_FORMAT, sourceAudioTimeOrigin } from "@videocut/contracts";
 import { projectFrameRateSchema } from "../../contracts/src/frame-rate.js";
 export { projectFrameRateChange } from "./frame-rate-change.js";
-import { resolveCompositionReachability } from "./composition-reachability";
+import { compileVisualComposition, resolveCompositionReachability } from "./composition-reachability";
 
-export { resolveCompositionReachability, type CompositionReachability } from "./composition-reachability";
+export { primaryVisualRanges, compileVisualComposition, uncoveredVisualRanges, rangesOverlap, resolveCompositionReachability, type CompositionReachability } from "./composition-reachability";
 
 export const DEFAULT_BRIEF: CreativeBrief = {
   platform: "短视频",
@@ -1283,6 +1283,8 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
   if (snapshot.speechAsset?.timing.precision === "word_exact" && alignment?.status !== "ready") {
     throw new DomainError("没有当前就绪对齐证据时不能声明 word_exact", "PROJECT_GRAPH_INVALID");
   }
+  const compositionIssue = compileVisualComposition(snapshot).issues[0];
+  if (compositionIssue) throw new DomainError(compositionIssue.message, compositionIssue.code);
   for (const cue of snapshot.effectCues) {
     requireId(new Set(sceneById.keys()), cue.sceneId, "EffectCue");
     if (cue.status !== "stale") assertEffectCoverage(snapshot, cue);
@@ -1454,6 +1456,7 @@ export function createScene(input: {
 
 /** 视觉处理只保存导演层的可追溯选择；真正的物理播放仍写入 Scene、Cutaway 和 Timeline。 */
 export function createVisualTreatment(input: {
+  adoptedMaterialAssetIds?: Id[];
   narrativeBeatId?: Id;
   sceneId?: Id;
   mode: VisualTreatmentMode;
@@ -1466,6 +1469,7 @@ export function createVisualTreatment(input: {
   const createdAt = now();
   return {
     id: createId("visual_treatment"),
+    ...(input.adoptedMaterialAssetIds !== undefined ? { adoptedMaterialAssetIds: [...new Set(input.adoptedMaterialAssetIds)] } : {}),
     narrativeBeatId: input.narrativeBeatId,
     sceneId: input.sceneId,
     mode: input.mode,
@@ -1516,6 +1520,7 @@ export function createAudioCue(input: Omit<AudioCue, "id" | "status" | "createdA
 }
 
 export function createEffectCue(input: {
+  visualComposition?: EffectCue["visualComposition"] | null;
   sceneId: Id;
   type: EffectType;
   layer: EffectCue["layer"];
@@ -1548,6 +1553,7 @@ export function createEffectCue(input: {
   const legacyAnchorTargetId = input.semanticAnchor ? undefined : input.anchorTargetId;
   return {
     id: createId("cue"),
+    ...(input.visualComposition ? { visualComposition: structuredClone(input.visualComposition) } : {}),
     sceneId: input.sceneId,
     ...(input.coveredNarrativeBeatIds !== undefined ? { coveredNarrativeBeatIds: [...new Set(input.coveredNarrativeBeatIds)] } : {}),
     type: input.type,

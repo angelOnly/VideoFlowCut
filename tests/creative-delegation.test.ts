@@ -74,7 +74,7 @@ test("旧报告和无委派来源的明确操作保持兼容，来源不足不�
     const readBack = await f.app.readSkillExecutionReport({ projectId: f.projectId, runId: f.run.id });
     assert.equal("delegation" in readBack.creativeDecisions[0], false);
     await f.app.recordCreativeDecision({ ...f.base, delegation: f.delegation });
-    const completed = await f.app.completeProductionRun({ projectId: f.projectId, runId: f.run.id });
+    const completed = await f.app.completeProductionRun({ completionScope: { kind: "project" }, projectId: f.projectId, runId: f.run.id });
     assert.equal(completed.status, "incomplete", "填写来源不能替代真实声画和审片证据");
     assert.ok(completed.completionBlockers.length > 0);
     assert.equal(f.app.readRevisions(f.projectId).length, 1);

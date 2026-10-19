@@ -25,7 +25,7 @@ import { resolveAudioProgramEndFrame } from "../../edit-domain/src/audio-program
 import { evidenceHash, validateEditorialObservations } from "./editorial-evidence.js";
 import { validateMotionReviewEvidence } from "./motion-review.js";
 import type { MotionReviewEvidenceInput, MotionReviewOutcome } from "@videocut/contracts";
-import { EDITORIAL_PASSES, evidenceSupportsPass, mergeEditorialReviews, missingReviewRanges, openEditorialFindings, reviewCoverage } from "../../quality-system/src/editorial-review.js";
+import { completionReconciliationBlockers, EDITORIAL_PASSES, evidenceSupportsPass, mergeEditorialReviews, missingReviewRanges, openEditorialFindings, reviewCoverage } from "../../quality-system/src/editorial-review.js";
 import { boundMotionFontSchema, boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema, type MotionSubmission } from "../../motion-work/src/schema.js";
 import { bindMotionFonts } from "../../motion-work/src/fonts.js";
 import { motionHash, motionHashEngine, MOTION_ENGINE_VERSION, validateMotionSource } from "../../motion-work/src/compiler.js";
@@ -127,6 +127,7 @@ import type {
   SpeechTiming,
   TimelineItem,
   VideoGenerationMode,
+  ProductionCompletionScope,
   VisualTreatment,
   VisualTreatmentIntensity,
   VisualTreatmentMode,
@@ -2423,7 +2424,7 @@ export class EditingApplication {
    * 制作收口检查当前版本的技术与用途条件；观察证据按实际范围保存，不强制重复全片审阅。
    * 未满足时保留 incomplete 状态，调用方可以继续补证据而不会丢失本次导演判断。
    */
-  async completeProductionRun(input: { projectId: Id; runId: Id; finalRevision?: number; qualityReview?: string[]; previewEvidence?: string[] }): Promise<SkillExecutionReport> {
+  async completeProductionRun(input: { completionScope: ProductionCompletionScope; projectId: Id; runId: Id; finalRevision?: number; qualityReview?: string[]; previewEvidence?: string[] }): Promise<SkillExecutionReport> {
     return this.withProductionAuditLock(input.projectId, () => this.completeProductionRunUnlocked(input));
   }
 
@@ -2436,10 +2437,19 @@ export class EditingApplication {
     if (input.previewEvidence) report.previewEvidence.push(...input.previewEvidence.map((value) => value.trim()).filter(Boolean));
     if (input.qualityReview) report.qualityReview.push(...input.qualityReview.map((value) => value.trim()).filter(Boolean));
 
-    const blockers: string[] = [];
+    const scope = input.completionScope;
+    if (!scope || !["project", "beats", "objects"].includes(scope.kind)) throw new DomainError("收口必须明确 completionScope", "COMPLETION_SCOPE_REQUIRED");
+    if (scope.kind === "beats" && (!scope.beatIds.length || scope.beatIds.some(id => !target.snapshot.story.beats.some(beat => beat.id === id)))) throw new DomainError("收口 Beat 不存在或范围为空", "COMPLETION_SCOPE_INVALID");
+    if (scope.kind === "objects") {
+      if (!scope.objectIds.length) throw new DomainError("收口对象范围不得为空", "COMPLETION_SCOPE_INVALID");
+      this.inspectAgentWorkOrderObjects(target.snapshot, scope.objectIds);
+    }
+    report.completionScope = structuredClone(scope);
+    const blockers: string[] = completionReconciliationBlockers(target.snapshot, scope);
+    if (scope.kind === "objects") blockers.push(...this.inspectAgentWorkOrderObjects(target.snapshot, scope.objectIds).map(entry => `${entry.objectId}：${entry.message}`));
     if (finalRevision !== current.revision.number) blockers.push(`正式 ProductionRun 必须收口当前 Revision（当前 R${current.revision.number}，请求 R${finalRevision}）。`);
     const decisionCategories = new Set(report.creativeDecisions.map((decision) => decision.category));
-    for (const category of ["semantic", "story", "visual"] as const) {
+    for (const category of (scope.kind === "objects" ? [] : ["semantic", "story", "visual"] as const)) {
       if (!decisionCategories.has(category)) blockers.push(`缺少 ${category === "semantic" ? "语义" : category === "story" ? "故事" : "视觉处理"}决策记录。`);
     }
     if (!(await this.hasSucceededPreviewForRevision(input.projectId, finalRevision))) blockers.push(`R${finalRevision} 没有成功且文件仍可读的局部 Preview Job。`);
@@ -6145,6 +6155,7 @@ export class EditingApplication {
    * 保存主线稳定后做出的视觉选择。它不直接生成卡片或 B-roll，避免导演意图和物理播放重复存储。
    */
   manageVisualTreatment(input: {
+    adoptedMaterialAssetIds?: Id[];
     projectId: Id;
     baseRevision: number;
     action: "upsert" | "remove";
@@ -6184,10 +6195,15 @@ export class EditingApplication {
         throw new DomainError("VisualTreatment 引用的 Scene 不存在", "VISUAL_TREATMENT_SCENE_NOT_FOUND");
       }
 
+      for (const id of input.adoptedMaterialAssetIds ?? []) {
+        const asset = assetById(snapshot, id);
+        if (!["image", "video", "derived"].includes(asset.kind) || asset.motion) throw new DomainError("采用展示资料必须是图片或真实视频", "ADOPTED_MATERIAL_INVALID");
+      }
       const existing = input.visualTreatmentId ? visualTreatmentById(snapshot, input.visualTreatmentId) : undefined;
       const primaryAttention = requireText(input.primaryAttention, "第一注意目标");
       const narrativePurpose = requireText(input.narrativePurpose, "视觉叙事目的");
       if (existing) {
+        if (input.adoptedMaterialAssetIds !== undefined) existing.adoptedMaterialAssetIds = [...new Set(input.adoptedMaterialAssetIds)];
         existing.narrativeBeatId = input.narrativeBeatId;
         existing.sceneId = input.sceneId;
         existing.mode = mode;
@@ -6201,6 +6217,7 @@ export class EditingApplication {
         impact.changed.push(existing.id);
       } else {
         const treatment = createVisualTreatment({
+          adoptedMaterialAssetIds: input.adoptedMaterialAssetIds,
           narrativeBeatId: input.narrativeBeatId,
           sceneId: input.sceneId,
           mode,
@@ -6454,6 +6471,7 @@ export class EditingApplication {
   }
 
   createEffectCue(input: {
+    visualComposition?: EffectCue["visualComposition"] | null;
     projectId: Id;
     baseRevision: number;
     sceneId: Id;
@@ -6510,6 +6528,7 @@ export class EditingApplication {
   }
 
   updateEffectCue(input: {
+    visualComposition?: EffectCue["visualComposition"] | null;
     projectId: Id;
     baseRevision: number;
     cueId: Id;
@@ -6547,6 +6566,9 @@ export class EditingApplication {
       cue.props = input.props ?? cue.props;
       cue.stylePackId = input.stylePackId?.trim() || cue.stylePackId;
       cue.qualityRules = input.qualityRules ?? cue.qualityRules;
+      // 省略保持、null 清除，接管变更不重生作品或人物。
+      if (input.visualComposition === null) delete cue.visualComposition;
+      else if (input.visualComposition !== undefined) cue.visualComposition = structuredClone(input.visualComposition);
       if (input.coveredNarrativeBeatIds !== undefined) cue.coveredNarrativeBeatIds = [...new Set(input.coveredNarrativeBeatIds)];
       if (input.semanticAnchor) {
         const anchor = input.semanticAnchor;

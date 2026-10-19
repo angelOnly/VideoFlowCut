@@ -1,0 +1,17 @@
+
+> video-cut@0.1.0 test:stage4-vlog
+> tsx scripts/vlog-stage4.e2e.ts
+
+(node:59696) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "profile": "hybrid",
+  "revision": 12,
+  "durationSeconds": 4,
+  "explainerScenes": 1,
+  "vlogMontageScenes": 1,
+  "sourceAnalysisCount": 3,
+  "selectedShotCount": 3,
+  "ambientCueCount": 3,
+  "preview": "已完成技术验证，临时 Preview 将清理"
+}

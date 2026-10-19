@@ -14,7 +14,12 @@ function dependency(snapshot: ProjectSnapshot, cue: EffectCue) {
   const relativeRange = (range: { startFrame: number; endFrame: number }) => [range.startFrame - origin, range.endFrame - origin];
   const speechItems = snapshot.timeline.items.filter(item => item.assetId === snapshot.speechAsset?.assetId && !item.disabled);
   const main = snapshot.timeline.items.filter(item => item.sceneId === cue.sceneId && !snapshot.audioCues.some(audio => audio.timelineItemId === item.id));
+  const motion = snapshot.assets.find(asset => cue.assetBindings.some(binding => binding.slot === "motion" && binding.assetId === asset.id))?.motion;
+  const materialIds = [...(motion?.imageSources ?? []), ...(motion?.videoSources ?? [])].map(source => source.assetId);
+  const replaced = (cue.visualComposition?.replacesActorItemIds ?? []).map(id => snapshot.timeline.items.find(item => item.id === id));
   return JSON.stringify({
+    materials: materialIds.map(id => { const asset = snapshot.assets.find(entry => entry.id === id); return [id, asset?.sourceHash, asset?.status]; }),
+    replaced: replaced.map(item => item ? [item.id, item.assetId, item.sourceStartFrame, item.sourceEndFrame, ...relativeRange(item)] : null),
     scene: scene ? [scene.id, scene.endFrame - origin, scene.status] : null,
     canvas: [snapshot.timeline.width, snapshot.timeline.height, snapshot.timeline.fps],
     beats, units: snapshot.semanticUnits.filter(unit => unitIds.has(unit.id)),

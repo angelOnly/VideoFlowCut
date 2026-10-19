@@ -139,7 +139,7 @@ try {
   assert.equal(preview.status, "succeeded", JSON.stringify(preview));
   const run = await call("start_production_run", { loaded_skills: ["production-director"], base_revision_id: state.revision.number });
   for (const category of ["semantic", "story", "visual"]) await call("record_creative_decision", { run_id: run.id, category, decision: "技术夹具制作记录", rationale: "只验证记录与制作完成链路，不伪造创意子代理或观看" });
-  const completed = await call("complete_production_run", { run_id: run.id, final_revision: state.revision.number });
+  const completed = await call("complete_production_run", { completion_scope: { kind: "project" }, run_id: run.id, final_revision: state.revision.number });
   assert.equal(completed.status, "completed", JSON.stringify(completed));
   assert.equal(completed.editorialReview, undefined);
   const exported = await waitJob((await call("submit_export", { revision: state.revision.number, purpose: "delivery", idempotency_key: "candidate" })).id);

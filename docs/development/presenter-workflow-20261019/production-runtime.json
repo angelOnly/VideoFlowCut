@@ -1,0 +1,8 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"mcpReleaseId\":\"release-3afe9d3789c0bf9090828d5b230debb6ac4bc8583e75a9805eb70d280d0c8b65\",\"runtime\":{\"status\":\"ready\",\"runtimeId\":\"acf34e83-81d9-4424-8c62-effb6c63831a\",\"releaseId\":\"release-3afe9d3789c0bf9090828d5b230debb6ac4bc8583e75a9805eb70d280d0c8b65\",\"workers\":{\"media\":true,\"render\":true}},\"aligned\":true,\"launcherReleaseId\":\"release-3afe9d3789c0bf9090828d5b230debb6ac4bc8583e75a9805eb70d280d0c8b65\",\"launcherCodeHash\":\"97d28fd3f81f84c43e2c33559eea5d8ffe1c7d9362d0a501360f1874cfbc6f91\",\"launcherPid\":980}"
+    }
+  ]
+}

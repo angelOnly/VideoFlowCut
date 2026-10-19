@@ -6,13 +6,15 @@ import { createApplication, type EditingApplication } from "@videocut/applicatio
 import { assertProjectGraphValid } from "@videocut/domain";
 import type { ExplainerSceneState, ProjectSnapshot } from "@videocut/contracts";
 import { resolveVideoSourceVolume, resolveVlogAmbientVolume } from "@videocut/remotion";
+import { hashMediaFile } from "../packages/edit-application/src/media-intelligence.js";
 import { probeMedia, runProcess } from "@videocut/speech";
 import { createMediaJobProcessor, runOneJob } from "../apps/job-worker/src/index.js";
 import { inspectComposedFrames } from "../apps/server/src/preview-inspection.js";
 import { RevisionRenderer, runPreviewJob } from "../apps/render-worker/src/exporter.js";
 
 const fps = 24;
-const introFrames = fps;
+const pureVlog = process.argv.includes("--vlog-only");
+const introFrames = pureVlog ? 0 : fps;
 const keepWorkspace = process.argv.includes("--keep");
 
 /**
@@ -53,7 +55,7 @@ async function registerReadyVideo(input: {
     name: "vlog-montage-fixture.mp4",
     kind: "video",
     managedPath: "assets/source/vlog-montage-fixture.mp4",
-    sourceHash: "stage4-vlog-fixture-v1",
+    sourceHash: await hashMediaFile(input.sourcePath),
     provenance: {
       source: "local_import",
       acquiredAt: "2026-09-02T00:00:00.000Z"
@@ -142,9 +144,10 @@ async function main(): Promise<void> {
   const root = await mkdtemp(join(tmpdir(), "videocut-vlog-stage4-"));
   const application = createApplication(root);
   try {
-    const created = application.createProject({ name: "阶段 4 Vlog 真实 Montage 验收", profile: "hybrid" });
+    const created = application.createProject({ name: "阶段 4 Vlog 真实 Montage 验收", profile: pureVlog ? "vlog" : "hybrid" });
     const projectId = created.snapshot.project.id;
 
+    if (!pureVlog) {
     // 这一秒的 Explainer 只建立“下面进入现场记录”的视觉边界；事件解释仍完全来自随后显式写入的 Vlog Event / Select。
     const story = application.updateStory({
       projectId,
@@ -189,6 +192,8 @@ async function main(): Promise<void> {
         }
       }]
     });
+
+    }
 
     const fixturePath = await createVlogFixture(root);
     const assetId = await registerReadyVideo({ application, projectId, sourcePath: fixturePath });
@@ -249,7 +254,7 @@ async function main(): Promise<void> {
       titlePrefix: "现场验收"
     });
     const snapshot = montage.snapshot;
-    assert.ok(snapshot.scenes.some((scene) => scene.type === "ExplainerScene" && scene.startFrame === 0 && scene.endFrame === introFrames), "Hybrid 项目必须保留 Explainer 边界 Scene");
+    assert.equal(snapshot.scenes.some((scene) => scene.type === "ExplainerScene"), !pureVlog, "纯 Vlog 没有解释片前置，Hybrid 保留显式子范围");
     assert.ok(snapshot.scenes.some((scene) => scene.type === "VlogMontageScene" && scene.startFrame === introFrames), "Vlog Montage 必须从 Explainer 边界后开始");
     assert.equal(snapshot.vlogAmbientCues.length, selectedSourceShots.length, "每个明确 keep 的 Vlog Select 只能建立一条独立 Ambient Cue");
     const tracksById = new Map(snapshot.timeline.tracks.map((track) => [track.id, track]));

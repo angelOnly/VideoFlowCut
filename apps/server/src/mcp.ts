@@ -2402,6 +2402,7 @@ server.registerTool("manage_visual_treatment", {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
     action: z.enum(["upsert", "remove"]),
+    adopted_material_asset_ids: z.array(z.string().min(1)).optional(),
     visual_treatment_id: z.string().min(1).optional(),
     narrative_beat_id: z.string().min(1).optional(),
     scene_id: z.string().min(1).optional(),
@@ -2418,6 +2419,7 @@ server.registerTool("manage_visual_treatment", {
       projectId: projectIdFrom(input.project_id),
       baseRevision: input.base_revision_id,
       action: input.action,
+      adoptedMaterialAssetIds: input.adopted_material_asset_ids,
       visualTreatmentId: input.visual_treatment_id,
       narrativeBeatId: input.narrative_beat_id,
       sceneId: input.scene_id,
@@ -2521,7 +2523,7 @@ registerSoundTools(server, application, projectIdFrom);
 
 server.registerTool("manage_effect_cues", {
   title: "管理视觉效果",
-  description: "创建、按 cue_id 就地更新或移除单个 EffectCue，均须当前 Revision。范围必须满足 Scene.startFrame ≤ start_frame < end_frame ≤ Scene.endFrame；covered_narrative_beat_ids 只声明内容覆盖，不允许跨 Scene 边界。action 默认 create；update 保留 Cue ID 和未指定字段，不能更换 Scene/类型/层级；remove 只移除该 Cue，不删除作品或回退整片。ManagedMotion 的源码、Props、画幅和完整时长仍固定，所属 Scene 必须完整承载作品；改作品需提交新版本。范围拒绝若返回 validation/none/correct_input，按实际 Scene 范围交回原作者修订后纠正一次，不原样重放。",
+  description: "创建、按 cue_id 就地更新或移除单个 EffectCue，均须当前 Revision。范围必须满足 Scene.startFrame ≤ start_frame < end_frame ≤ Scene.endFrame；covered_narrative_beat_ids 只声明内容覆盖，不允许跨 Scene 边界。action 默认 create；update 保留 Cue ID 和未指定字段，不能更换 Scene/类型/层级；remove 只移除该 Cue，不删除作品或回退整片。visual_composition 仅用于 fullscreen ManagedMotion 主画面，显式列出被接管人物 Item；省略保持、null 清除，保留唯一原声与源时钟。ManagedMotion 的源码、Props、画幅和完整时长仍固定，所属 Scene 必须完整承载作品；改作品需提交新版本。范围拒绝若返回 validation/none/correct_input，按实际 Scene 范围交回原作者修订后纠正一次，不原样重放。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -2537,6 +2539,7 @@ server.registerTool("manage_effect_cues", {
     narrative_purpose: z.string().max(800).optional(),
     audience_task: z.string().max(800).optional(),
     semantic_anchor: z.object({ type: z.enum(["speech_segment", "narrative_beat", "scene", "absolute"]), target_id: z.string().optional(), relation: z.enum(["anticipate", "land_on", "react_after", "hold_through"]) }).optional(),
+    visual_composition: z.object({ role: z.literal("primary"), replaces_actor_item_ids: z.array(z.string().min(1)) }).nullable().optional(),
     covered_narrative_beat_ids: z.array(z.string().min(1)).max(64).optional(),
     spatial_anchor: z.enum(["top_left", "top_right", "middle_left", "middle_right", "bottom_left", "bottom_right", "center", "full_frame"]).optional(),
     asset_bindings: z.array(z.object({ slot: z.string().min(1).max(80), asset_id: z.string().min(1) })).max(12).optional(),
@@ -2559,6 +2562,7 @@ server.registerTool("manage_effect_cues", {
       narrativePurpose: input.narrative_purpose,
       audienceTask: input.audience_task,
       semanticAnchor: input.semantic_anchor ? { type: input.semantic_anchor.type, targetId: input.semantic_anchor.target_id, relation: input.semantic_anchor.relation } : undefined,
+      visualComposition: input.visual_composition === null ? null : input.visual_composition ? { role: input.visual_composition.role, replacesActorItemIds: input.visual_composition.replaces_actor_item_ids } : undefined,
       coveredNarrativeBeatIds: input.covered_narrative_beat_ids,
       spatialAnchor: input.spatial_anchor,
       assetBindings: input.asset_bindings?.map((binding) => ({ slot: binding.slot, assetId: binding.asset_id })),
@@ -2764,18 +2768,20 @@ server.registerTool("record_editorial_quality_review", {
 
 server.registerTool("complete_production_run", {
   title: "完成 ProductionRun",
-  description: "固定本次创作审计对应的最终 Revision，并补充已看过的预览和质量复核证据。",
+  description: "明确 completion_scope，按本次整片、Beat 或对象范围对账收口；结构缺项返回 incomplete，观察意见独立保存，不新增导出审美门禁。",
   inputSchema: {
     project_id: z.string().optional(),
+    completion_scope: z.discriminatedUnion("kind", [z.object({ kind: z.literal("project") }), z.object({ kind: z.literal("beats"), beat_ids: z.array(z.string().min(1)).min(1) }), z.object({ kind: z.literal("objects"), object_ids: z.array(z.string().min(1)).min(1) })]),
     run_id: z.string().min(1),
     final_revision: z.number().int().positive().optional(),
     quality_review: z.array(z.string().max(2_000)).max(40).optional(),
     preview_evidence: z.array(z.string().max(2_000)).max(40).optional()
   }
-}, async ({ project_id, run_id, final_revision, quality_review, preview_evidence }) => {
+}, async ({ project_id, run_id, completion_scope, final_revision, quality_review, preview_evidence }) => {
   try {
     return asText(await application.completeProductionRun({
       projectId: projectIdFrom(project_id),
+      completionScope: completion_scope.kind === "beats" ? { kind: "beats", beatIds: completion_scope.beat_ids } : completion_scope.kind === "objects" ? { kind: "objects", objectIds: completion_scope.object_ids } : { kind: "project" },
       runId: run_id,
       finalRevision: final_revision,
       qualityReview: quality_review,

@@ -352,6 +352,7 @@ async function main(): Promise<void> {
       frames: keyFrames
     });
     const incomplete = await call<{ status: string; completionBlockers: string[] }>("complete_production_run", {
+      completion_scope: { kind: "project" },
       project_id: projectId,
       run_id: run.id,
       final_revision: state.revision.number

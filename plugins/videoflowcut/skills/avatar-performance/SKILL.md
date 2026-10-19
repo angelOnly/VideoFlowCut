@@ -71,3 +71,5 @@ VoiceReference、人物图片、视频和生成结果记录实际来源与用途
 ## 按当前操作读取
 
 需要生成、写入或核对当前avatar-performance对象时，读取 [执行操作](references/actor-operations.md) 对应章节，返回准确参数和受影响范围；只讨论本段表达时不预读全部字段。
+
+generationRange 与 placement 仍按正式接口完整覆盖所选 SpeechSegment，表示自然表演源的生成和登记范围，允许包含暂时不露脸的中段与连续性余量；不按每次显隐拆任务。全段无表演用途时不默认生成。回传真实资产、声音版本、源范围、AudioMode、MaskMode 与构图/表演限制，交原视觉作者继续整场实现，不自行扩大最终出镜。

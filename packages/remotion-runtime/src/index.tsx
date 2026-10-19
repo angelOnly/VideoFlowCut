@@ -11,7 +11,7 @@ import {
   resolveCaptionLayoutInput
 } from "./caption-layout";
 import { captionFontIsLoaded, loadCaptionFont } from "./caption-font";
-import { resolveCompositionReachability } from "./composition-reachability";
+import { compileVisualComposition, resolveCompositionReachability } from "./composition-reachability";
 import { motionFrameAtProjectFrame } from "../../contracts/src/frame-rate.js";
 import { ExplainerSceneLayer } from "./explainer-registry";
 import { compileCameraPunchLayout, compileMotionLayout, resolveEffectStylePack, type EffectStylePack } from "./motion-layout";
@@ -520,14 +520,17 @@ const VideoLayer: React.FC<{
   performance?: ActorPerformance;
   cutaway?: Cutaway;
   compositionFrame: number;
-}> = ({ snapshot, mediaBaseUrl, item, track, performance, cutaway, compositionFrame }) => {
+  pixelsHidden?: boolean;
+}> = ({ snapshot, mediaBaseUrl, item, track, performance, cutaway, compositionFrame, pixelsHidden }) => {
   const asset = snapshot.assets.find((candidate) => candidate.id === item.assetId);
   if (!asset) return null;
-  const maskAsset = usableAlphaMaskAsset(snapshot, item, performance);
+  const maskAsset = pixelsHidden ? undefined : usableAlphaMaskAsset(snapshot, item, performance);
   const cameraPunch = !cutaway && (snapshot.effectCues ?? []).find((cue) => cue.type === "CameraPunch" && cue.status === "ready" && cue.sceneId === item.sceneId && cue.startFrame <= compositionFrame && compositionFrame < cue.endFrame);
   // 推近和回位由与普通 Cue 共用的编译器决定，避免 Presenter 主画面另有一套隐藏的线性运动逻辑。
   const cameraLayout = cameraPunch ? compileCameraPunchLayout(cameraPunch, compositionFrame, performance?.layout) : undefined;
   const videoStyle: React.CSSProperties = {
+    // 保持挂载与声音，不能用条件卸载或 disabled 代替像素接管。
+    opacity: pixelsHidden ? 0 : 1,
     width: "100%",
     height: "100%",
     objectFit: "cover",
@@ -580,6 +583,9 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
   const frame = useCurrentFrame();
   const tracksById = new Map(snapshot.timeline.tracks.map((track) => [track.id, track]));
   const reachability = resolveCompositionReachability(snapshot);
+  const visual = compileVisualComposition(snapshot, reachability);
+  const primaryCueIds = new Set(visual.primaryCues.map(cue => cue.id));
+  const pixelsHidden = (id: string) => (visual.replacedActorRanges.get(id) ?? []).some(range => range.startFrame <= frame && frame < range.endFrame);
   // 旧 Revision 可能还没有人物表演字段，预览应以“没有登记人物”降级而不是崩溃。
   const performancesByItem = new Map((snapshot.actorPerformances ?? []).filter((performance) => performance.status === "ready").map((performance) => [performance.timelineItemId, performance]));
   const cutawaysByItem = new Map((snapshot.cutaways ?? []).filter((cutaway) => cutaway.status === "ready").map((cutaway) => [cutaway.timelineItemId, cutaway]));
@@ -596,11 +602,11 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
   // 解释片的全屏 Cue 与原生 Program 都是主视觉，不能在 Cutaway 之上再次盖回模型。
   // 明确 front 包装仍在 Cutaway 上方；主视觉一直使用原局部时间，返回不重启动画。
   const explainerSceneIds = new Set(snapshot.scenes.filter(scene => scene.type === "ExplainerScene").map(scene => scene.id));
-  const primaryExplainerCues = cuesAt("fullscreen").filter(cue => explainerSceneIds.has(cue.sceneId));
-  const renderVideoItem = (item: TimelineItem) => <VideoLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} performance={performancesByItem.get(item.id)} cutaway={cutawaysByItem.get(item.id)} compositionFrame={frame} />;
+  const primaryExplainerCues = cuesAt("fullscreen").filter(cue => explainerSceneIds.has(cue.sceneId) && !primaryCueIds.has(cue.id));
+  const renderVideoItem = (item: TimelineItem) => <VideoLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} performance={performancesByItem.get(item.id)} cutaway={cutawaysByItem.get(item.id)} pixelsHidden={pixelsHidden(item.id)} compositionFrame={frame} />;
   // 后景 Cue 只有被同一个 Actor / A-roll 人物在完整范围内覆盖时才能置于人物后方。
   const hasMaskedActorFor = (cue: EffectCue) => videoItems.some((item) => {
-    if (item.sceneId !== cue.sceneId || item.startFrame > cue.startFrame || item.endFrame < cue.endFrame
+    if (pixelsHidden(item.id) || item.sceneId !== cue.sceneId || item.startFrame > cue.startFrame || item.endFrame < cue.endFrame
       || tracksById.get(item.trackId)?.name !== "Actor / A-roll") return false;
     const performance = performancesByItem.get(item.id);
     return hasUsableActorMask(snapshot, item, performance);
@@ -613,10 +619,11 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
     {/* ExplainerProgram 是主视觉，不借用 Presenter Cue；没有对应 Program 的普通 Scene 不会凭空渲染。 */}
     <ExplainerSceneLayer snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} />
     {primaryExplainerCues.map(cue => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
+    {visual.primaryCues.map(cue => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
     {videoItems.filter(item => cutawaysByItem.has(item.id)).map(renderVideoItem)}
     {rearCues.filter((cue) => !hasMaskedActorFor(cue)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
     {cuesAt("actor", "front").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
-    {cuesAt("fullscreen").filter(cue => !explainerSceneIds.has(cue.sceneId)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
+    {cuesAt("fullscreen").filter(cue => !explainerSceneIds.has(cue.sceneId) && !primaryCueIds.has(cue.id)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
     <CaptionTrackLayer snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} />
     {audioItems.map((item) => <AudioLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} cue={audioCuesByItem.get(item.id)} />)}
   </AbsoluteFill>;

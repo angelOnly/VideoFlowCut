@@ -1,0 +1,5 @@
+
+> video-cut@0.1.0 plugin:verify
+> node plugins/videoflowcut/scripts/verify-plugin.mjs
+
+插件 Skills、发行 Runtime、manifest 与 MCP 入口验证通过：E:\ai\VideoCut\plugins\videoflowcut

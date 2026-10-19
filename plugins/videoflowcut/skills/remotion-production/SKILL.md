@@ -48,3 +48,5 @@ description: 供持续负责的视觉作者以同一受管 Remotion 源码完成
 关键状态必须来自当前源码、素材和字体；动态与声音检查实际连续范围。构图与字形、关键中途与注意交接由同一视觉作者分别使用美术、演出方法处理，漂移、重播、范围和绑定错误沿本方法修复。缺连续感知时保留对应未知，已能从实际帧确认的主次和布局问题仍须修订。保留成立的选择，不因局部问题重新加载全部资料。
 
 返回同版实际预排或预览、完整 TSX、Props、绑定、命名事件、放置参数及失效范围，简述本次实际改变的画面关系和仍未看未听的部分。按 [角色交接](../_shared/PROJECT_REVISION_AND_HANDOFF.md) 续接原负责人直至交付；参数齐全只表示可以提交，不表示视觉设计已完成。
+
+人物主场面接管操作沿[时间线操作](../presenter-motion-director/references/timeline-operations.md#主场面接管)，先查实时 Schema。外层像素接管不重置 TimelineVideo 源时钟，也不改变唯一声音。纯解释片既有 ExplainerScene / fullscreen ManagedMotion 与 Vlog 原片路线不要求人物声明。

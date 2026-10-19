@@ -974,6 +974,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const body = z.object({
       baseRevision: baseRevisionSchema,
       action: z.enum(["upsert", "remove"]),
+      adoptedMaterialAssetIds: z.array(idSchema).optional(),
       visualTreatmentId: idSchema.optional(),
       narrativeBeatId: idSchema.optional(),
       sceneId: idSchema.optional(),
@@ -1027,6 +1028,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({
       baseRevision: baseRevisionSchema,
+      visualComposition: z.object({ role: z.literal("primary"), replacesActorItemIds: z.array(idSchema) }).nullable().optional(),
       coveredNarrativeBeatIds: z.array(idSchema).max(64).optional(),
       sceneId: idSchema,
       type: z.enum(["MetricBackdrop", "ProductFan", "GlowCTA", "PortfolioWall", "CommentCloud", "EvidenceCard", "CameraPunch", "FullScreenMeme", "DeviceShowcase", "ContentCarousel", "EndCard", "ManagedMotion"]),
@@ -1073,7 +1075,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.patch("/api/projects/:projectId/effects/:cueId", async (request) => {
     const { projectId, cueId } = z.object({ projectId: idSchema, cueId: idSchema }).parse(request.params);
-    const body = z.object({ baseRevision: baseRevisionSchema, coveredNarrativeBeatIds: z.array(idSchema).max(64).optional(), startFrame: z.number().int().min(0).optional(), endFrame: z.number().int().positive().optional(), intensity: z.number().min(0).max(1).optional(), note: z.string().optional() }).parse(request.body);
+    const body = z.object({ baseRevision: baseRevisionSchema, visualComposition: z.object({ role: z.literal("primary"), replacesActorItemIds: z.array(idSchema) }).nullable().optional(), coveredNarrativeBeatIds: z.array(idSchema).max(64).optional(), startFrame: z.number().int().min(0).optional(), endFrame: z.number().int().positive().optional(), intensity: z.number().min(0).max(1).optional(), note: z.string().optional() }).parse(request.body);
     return application.updateEffectCue({ projectId, cueId, ...body });
   });
 

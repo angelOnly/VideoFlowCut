@@ -1,7 +1,7 @@
 import { captionDisplayRanges, validCaptionDisplay, captionPlacementSchema, captionTypographySchema, resolveCaptionFormat } from "../../contracts/src/caption-presentation.js";
 import { createHash } from "node:crypto";
 import { managedMotionReviewOutcome, EFFECT_QUALITY_RULES, inspectEffectContentContract, sourceAudioTimeOrigin, type EditorialQualityReview, type ExportPurpose, type ProjectSnapshot, type QualityIssue, type QualityReport } from "@videocut/contracts";
-import { assertProjectGraphValid, DomainError, millisecondsToFrames, resolveCompositionReachability, sourceAudioTimingWithinRange, sourceAudioAlignmentOwnerMatches, sourceCaptionDisplayTextIsValid } from "@videocut/domain";
+import { compileVisualComposition, primaryVisualRanges, uncoveredVisualRanges, assertProjectGraphValid, DomainError, millisecondsToFrames, resolveCompositionReachability, sourceAudioTimingWithinRange, sourceAudioAlignmentOwnerMatches, sourceCaptionDisplayTextIsValid } from "@videocut/domain";
 import { exportBlockingIssues } from "./export-policy.js";
 export { exportBlockingIssues } from "./export-policy.js";
 import { layoutCaptionConservatively, type CaptionLayoutInput, type CaptionLayoutResult } from "../../remotion-runtime/src/caption-layout.js";
@@ -1161,6 +1161,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     }
   // Hybrid 的实拍主线可以由 VlogMontageScene 承担；Presenter / Explainer 仍各自保留原有门禁。
   } else if ((!actorTrack || !timeline.items.some((item) => item.trackId === actorTrack.id && !item.disabled))
+    && !primaryVisualRanges(snapshot).length
     && !hasMulticamPrimaryVideo
     && !(snapshot.project.profile === "hybrid" && hasVlogPrimaryVideo)) {
     issues.push(issue({ level: "blocking", code: "MISSING_PRIMARY_VIDEO", message: "主画面轨道没有可播放素材。" }));
@@ -1185,6 +1186,8 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     }
   }
   // 结构性规则仍按完整 Revision 检查；只有素材文件检查跟 Composition 对齐。
+  const visualComposition = compileVisualComposition(snapshot);
+  for (const entry of visualComposition.issues) issues.push(issue({ level: "blocking", ...entry }));
   const compositionAssetIds = resolveCompositionReachability(snapshot).assetIds;
   for (const asset of snapshot.assets) {
     if (compositionAssetIds.has(asset.id) && (asset.status === "failed" || asset.status === "missing")) {
@@ -1236,14 +1239,15 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
    */
   const readyActorPerformancesForRange = (sceneId: string, startFrame: number, endFrame: number) => timeline.items
     .filter((item) => item.sceneId === sceneId && !item.disabled && item.startFrame < endFrame && item.endFrame > startFrame
-      && tracksById.get(item.trackId)?.name === "Actor / A-roll")
+      && tracksById.get(item.trackId)?.name === "Actor / A-roll"
+      && (visualComposition.nativeVisibleRanges.get(item.id) ?? []).some(range => range.startFrame < endFrame && range.endFrame > startFrame))
     .flatMap((item) => {
       const performance = performanceByItem.get(item.id);
       return performance?.status === "ready" ? [{ item, performance }] : [];
     });
   // 未登记、尺寸不匹配或无 Alpha 的人物不能被推断为“已经有 Mask”。
   const hasUsableActorMask = (sceneId: string, startFrame: number, endFrame: number) => readyActorPerformancesForRange(sceneId, startFrame, endFrame)
-    .some(({ item, performance }) => item.startFrame <= startFrame && item.endFrame >= endFrame && isUsableActorMask(performance, item));
+    .some(({ item, performance }) => (visualComposition.nativeVisibleRanges.get(item.id) ?? []).some(range => range.startFrame <= startFrame && range.endFrame >= endFrame) && isUsableActorMask(performance, item));
   for (const performance of performances) {
     const item = timeline.items.find((candidate) => candidate.id === performance.timelineItemId);
     if (!item) {
@@ -1256,10 +1260,14 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     if (!actorAsset || actorAsset.status !== "ready" || !actorAsset.metadata?.videoCodec) {
       issues.push(issue({ level: "blocking", code: "ACTOR_ASSET_INVALID", message: "人物表演视频不可用或未完成媒体分析。", objectId: performance.id }));
     }
+    const nativeVisible = Boolean(visualComposition.nativeVisibleRanges.get(item.id)?.length);
+    const sourceAudible = performance.audioMode === "use_source_audio" && actorAsset?.metadata?.hasAudio && !tracksById.get(item.trackId)?.muted && item.mediaAudioPolicy !== "mute" && (item.gainDb ?? 0) > -80;
+    // 作品内部人物源另有口型依赖核验，外层不再使用时不要求其 Mask/表演复核。
+    if (!nativeVisible && !sourceAudible) continue;
     if (performance.status === "stale") {
       issues.push(issue({ level: "blocking", code: "ACTOR_PERFORMANCE_STALE", message: "人物表演与当前 Script 或素材版本不一致，需要重新生成或重新绑定。", objectId: performance.id }));
     }
-    if (performance.maskMode === "alpha_asset") {
+    if (nativeVisible && performance.maskMode === "alpha_asset") {
       const mask = maskAssetFor(performance);
       if (!mask || mask.status !== "ready") {
         issues.push(issue({ level: "blocking", code: "ACTOR_MASK_MISSING", message: "人物表演声明使用独立 Mask，但 Mask 素材不可用。", objectId: performance.id }));
@@ -1281,10 +1289,10 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
         issues.push(issue({ level: "blocking", code: "ACTOR_MASK_CONTINUOUS_PREVIEW_REQUIRED", message: "静态人物 Mask 需要当前 Revision 的静音画面与声画连续预览证据，确认头发、手部和动作过程中没有错位。", objectId: performance.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame } }));
       }
     }
-    if (performance.maskMode === "embedded_alpha" && !actorAsset?.metadata?.hasAlpha) {
+    if (nativeVisible && performance.maskMode === "embedded_alpha" && !actorAsset?.metadata?.hasAlpha) {
       issues.push(issue({ level: "blocking", code: "ACTOR_EMBEDDED_ALPHA_INVALID", message: "人物表演声明 embedded_alpha，但视频媒体分析没有确认 Alpha 通道。", objectId: performance.id }));
     }
-    if (performance.maskMode === "none") {
+    if (nativeVisible && performance.maskMode === "none") {
       issues.push(issue({ level: "warning", code: "ACTOR_MASK_FALLBACK", message: "人物表演没有 Mask，后景效果会以可见前景降级；请在预览中确认遮挡关系。", objectId: performance.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame } }));
     }
     if (performance.source === "generated") {
@@ -1805,27 +1813,32 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
       }));
     }
 
-    /**
-     * 人物口播的主画面和旁白相差太大时，通常意味着只合成了首段旁白，
-     * 却保留了整条视频主线。这个问题不能靠导出成功掩盖，必须先补齐 Script/语音或重剪主画面。
-     */
-    if (!isVlogProfile) {
-      const primaryVideoEnd = timeline.items
-        .filter((item) => item.trackId === actorTrack?.id && !item.disabled)
-        .reduce((latest, item) => Math.max(latest, item.endFrame), 0);
-      const speechEnd = dialogueItems[0]?.endFrame ?? 0;
-      const permittedGap = timeline.fps * 4;
-      if (primaryVideoEnd > 0 && speechEnd > 0 && Math.abs(primaryVideoEnd - speechEnd) > permittedGap) {
-        issues.push(issue({
-          level: "blocking",
-          code: "PRESENTER_SPEECH_VISUAL_DURATION_MISMATCH",
-          message: `人物主画面与旁白总轨相差超过 4 秒（主画面 F${primaryVideoEnd}，旁白 F${speechEnd}）；请补齐旁白或调整 Presenter 主线。`,
-          objectId: snapshot.speechAsset.id,
-          frameRange: { startFrame: Math.min(primaryVideoEnd, speechEnd), endFrame: Math.max(primaryVideoEnd, speechEnd) }
-        }));
+  }
+  // 需要 Dialogue 的原生人物仍不能只配首段声音；资料结尾不反向要求补人。
+  if (snapshot.project.profile === "presenter_motion" || snapshot.project.profile === "hybrid") {
+    const voices = timeline.items.filter(item => {
+      const track = tracksById.get(item.trackId);
+      return track?.kind === "audio" && !track.muted && !item.disabled && item.mediaAudioPolicy !== "mute" && (item.gainDb ?? 0) > -80
+        && (track.name === "Dialogue" || snapshot.audioCues.some(cue => cue.timelineItemId === item.id && cue.status === "ready" && cue.role === "narration"));
+    });
+    for (const item of timeline.items.filter(item => item.trackId === actorTrack?.id && !item.disabled)) {
+      const mode = performanceByItem.get(item.id)?.audioMode ?? (snapshot.speechAsset ? "use_dialogue_track" : "use_source_audio");
+      if (mode !== "use_dialogue_track") continue;
+      for (const visible of visualComposition.nativeVisibleRanges.get(item.id) ?? []) for (const gap of uncoveredVisualRanges(visible, voices)) {
+        // 沿用自然停顿容差，只检测实际人物消费范围中的长段漏声。
+        if (gap.endFrame - gap.startFrame > timeline.fps * 4) issues.push(issue({ level: "blocking", code: "PRESENTER_DIALOGUE_COVERAGE_GAP", message: "人物仍在使用 Dialogue，但此可见范围没有有效讲述声音，请核对漏配范围。", objectId: item.id, frameRange: gap }));
       }
     }
   }
+  // 人物可早退，由真实材料或作品接续；混合片只检查明确人物场景。
+  const presenterRanges = snapshot.project.profile === "presenter_motion"
+    ? [{ startFrame: 0, endFrame: timeline.durationInFrames }]
+    : snapshot.project.profile === "hybrid" ? snapshot.scenes.filter(scene => scene.type === "PresenterScene" && scene.status === "ready") : [];
+  const visualRanges = primaryVisualRanges(snapshot);
+  for (const range of presenterRanges) for (const gap of uncoveredVisualRanges(range, visualRanges)) {
+    issues.push(issue({ level: "blocking", code: "PRIMARY_VISUAL_GAP", message: `主画面在 F${gap.startFrame}–F${gap.endFrame} 缺少有效人物、材料或主场面作品。`, frameRange: gap }));
+  }
+
   if (timeline.durationInFrames === 0) {
     issues.push(issue({ level: "blocking", code: "EMPTY_TIMELINE", message: "时间线为空，无法预览或导出。" }));
   }

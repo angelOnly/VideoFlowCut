@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "format": "commonjs",
-  "releaseId": "release-3afe9d3789c0bf9090828d5b230debb6ac4bc8583e75a9805eb70d280d0c8b65",
+  "releaseId": "release-1d826fc8fee4ff1a785f76ba26705f066304a01337993d86e95837736ad2c720",
   "pluginVersion": "0.1.96",
   "runtimeEntry": "runtime.cjs",
   "mcpEntry": "mcp.cjs",

@@ -221,7 +221,7 @@ blocking 包括事实错误、严重语义断裂、重复人声、关键内容�
 
 仅针对字幕卡字面显示的 semantic/typography 问题，可由原负责人明确采用 `resolutions.scope="caption_text"`：Finding 必须是 mute_visual 且 objectId 绑定当前 caption，证据必须为问题发现之后登记、当前 Revision、该卡范围内实际看过的一帧（end=start+1）。这只关闭文字显示问题，不确认发音、换卡时机、可读时长、动画或整轮连续覆盖；涉及这些因素须分别保留问题并用对应证据复核。没有 scope 的旧调用仍遵守完整范围规则。
 
-`complete_production_run` 校验当前版本、制作记录、真实成功预览及必要技术/内部用途条件，不要求 AI 审阅或每个 Cue 的抽帧。导出按技术条件执行；未关闭的 blocking、major、inconclusive 作为辅助提示，不阻挡制作、修订或文件产出。五轮是可按需执行的专业观察方法，缺少感知输入时保留未知，不补造观看证据。最终效果与人工定稿由用户确认具体 Artifact，不由 ProductionRun 或 AI 代替。
+`complete_production_run` 按明确 completion_scope 消费当前根类型的结构对账，并校验当前版本、制作记录、真实成功预览及必要技术/内部用途条件；结构缺项返回 incomplete，不要求 AI 审阅或每个 Cue 的抽帧。导出按技术条件执行；未关闭的 blocking、major、inconclusive 作为辅助提示，不阻挡制作、修订或文件产出。五轮是可按需执行的专业观察方法，缺少感知输入时保留未知，不补造观看证据。最终效果与人工定稿由用户确认具体 Artifact，不由 ProductionRun 或 AI 代替。
 
 ## 自动修订的边界
 
