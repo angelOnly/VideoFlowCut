@@ -58,7 +58,7 @@ export function queryMechanisms(index,options={},semantic={}){
   const byId=new Map(index.mechanisms.map(m=>[m.id,m]));
   const get=id=>{const m=byId.get(id);if(!m)throw new Error(`未知机制：${id}`);return m;};
   const base={scope:index.scope,source_sha256:index.source_sha256,library_count:index.count,
-    notice:'动作全文召回；匹配分数不代表观感或直接可衔接。先读候选指令与分镜，再由当前作者决定。'};
+    notice:'动作全文召回；case_context 是父案例事实与迁移提示，不证明本片具备相同材料或能力，也不作为人物片硬筛选。匹配分数不代表观感或直接可衔接。先读候选指令与分镜，再由当前作者决定。'};
   if(options.stages){
     const {stages,...rest}=options;
     return {...base,groups:stages.map(stage=>({stage,...queryMechanisms(index,{...rest,query:stage},semantic[stage]?{candidates:semantic[stage]}:{})}))};

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 2,
+  "format": "commonjs",
+  "releaseId": "release-84e45c8507102c3cc5c8c1b2a9f8121bc2239780c4e7afddb94decaafcf2685a",
+  "pluginVersion": "0.1.97",
+  "runtimeEntry": "runtime.cjs",
+  "mcpEntry": "mcp.cjs",
+  "remotionEntry": "remotion/render-entry.cjs",
+  "webRoot": "web",
+  "nodeRuntime": ">=22.5.0",
+  "dependencies": "由启动器通过宿主仓库 node_modules 的 NODE_PATH 提供；发行入口不使用 tsx 或 apps 源码。"
+}

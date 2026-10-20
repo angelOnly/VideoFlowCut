@@ -4,7 +4,7 @@
 
 从零数字人先由 `apply_authored_script` 保存准确台词，完成正式 SpeechAsset 与真实时序，再用 `create_scene(type=PresenterScene)` 建立覆盖生成范围的合法场景，按[声画交接](presenter-shot-plan.md)提交 `submit_avatar_job`。`apply_script` 仅从已有语义单元选择和排序，不承载新写正文。无需为了创建 Scene 编造 A-roll；结果由原视觉作者采用。已有真人原片则沿文末的 assemble／compile 路线，不套用生成输入要求。
 
-人物交给受管作品统一编排时，`videoBindings` 可直接引用真实 `actor_video`。外层人物 Item 与作品的可见职责必须明确：完整舞台可用不透明背景接管外层人物；透明作品先核对实时接口是否支持所需外层隐藏范围，不能假定只缩小内部人物就会同步缩小外层人物。核查前后未覆盖范围，普通字幕保持最终画布层，讲述仍由唯一 Dialogue 或获准原声承担。
+人物进入受管作品时，`videoBindings` 直接引用真实 `actor_video`。需要接管外层人物像素时沿本页[主场面接管](#主场面接管)使用已发布 `visual_composition`，透明与不透明作品都明确可见责任，不靠背景盖住外层人物。核查前后未覆盖范围及真实 Item ID，保留源裁切、时钟与声音；不能禁用整个原 Item 而误删获准原声。普通字幕保持最终画布层。安装版本不支持时记录实际差异，不写入拟定字段。
 
 - Script 文本变：相关 SpeechSegment、SpeechAsset、Caption、语义 Effect、Cutaway 和人物可能 stale；
 - 只改 Voice 音色：人物口型、Dialogue、Timing 和音频审查受影响，Story不一定变；
@@ -53,6 +53,10 @@ MG 交回设计依据、固定作品版本、覆盖 Beat、局部事件帧、入
 
 
 `create_presenter_timeline` 是兼容入口，不作为正式主链；它按素材数量临时分组。正式人物主线使用 `assemble_presenter_track` 后接 `compile_presenter_scenes`，再登记人物。`align_presenter_to_speech` 因已有效果、缺画面或直接覆盖拒绝调整时，不绕过保护；交导演决定补画面、重生人物、修声音或保留差异。
+
+## 人物绑定与源时钟
+
+`videoBindings` 使用 `assetId`、`sourceStartMs`、`sourceEndMs`、`startFrame`、`endFrame` 及可选 `decodeScale`，范围为作品坐标，正常速度且静音。作品与项目 fps 相同时，作品局部帧为项目当前帧减 Cue 起点；源毫秒为 sourceStartMs 加 (作品局部帧减 startFrame) × 1000 / 作品 fps。fps 不同时先按秒换算，不直接相减帧号。仅在绑定有效半开范围读取；移动、缩放、裁切和暂时不可见不重置源时间，真实新 Take 使用自己的绑定。不得补造 offsetInFrames 或变速对齐台词。
 
 ## 主场面接管
 

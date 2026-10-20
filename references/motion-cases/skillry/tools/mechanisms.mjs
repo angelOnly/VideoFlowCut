@@ -26,7 +26,8 @@ export function localFile(root,path){
 export function buildIndex(root=defaultRoot){
   const catalogueBytes=readFileSync(localFile(root,'case-catalogue.json'));
   const catalogue=JSON.parse(catalogueBytes.toString('utf8'));
-  const mechanisms=[],sources=[['catalogue',hash(catalogueBytes)],['taxonomy',hash(JSON.stringify(taxonomy))]];
+  // 返回合同变化也更新指纹，避免同一请求复用没有上下文的旧语义 Job。
+  const mechanisms=[],sources=[['index-format','case-context-v1'],['catalogue',hash(catalogueBytes)],['taxonomy',hash(JSON.stringify(taxonomy))]];
   for(const c of catalogue.cases.filter(c=>c.analysis_kind==='mechanisms-v1')){
     const dir=localFile(root,c.directory+'/mechanisms');
     const files=readdirSync(dir).filter(f=>f.endsWith('.md')).sort();
@@ -46,7 +47,10 @@ export function buildIndex(root=defaultRoot){
       if(!imageLinks.some(x=>x?.kind==='local'&&x.path===storyboard))throw new Error(`${document} 未嵌入自身分镜`);
       sources.push([document,hash(bytes)]);
       const search_text=mechanismSearchText(m,body);
-      mechanisms.push({...m,search_text,search_text_version:SEARCH_TEXT_VERSION,text_sha256:hash(search_text),document,storyboard,case_slug:c.slug,overview:c.analysis,
+      // 父案例事实帮助作者判断迁移条件，不混入动作向量或作为人物片硬筛选。
+      const case_context={video_types:c.video_types,materials:c.materials,scenario:c.scenario,
+        material_requirements:c.material_requirements,transfer_cost:c.transfer_cost};
+      mechanisms.push({...m,search_text,search_text_version:SEARCH_TEXT_VERSION,text_sha256:hash(search_text),document,storyboard,case_slug:c.slug,case_context,overview:c.analysis,
         detail:`detail.html?case=${encodeURIComponent(c.slug)}&mechanism=${encodeURIComponent(m.id)}`});
     }
   }

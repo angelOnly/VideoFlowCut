@@ -1,0 +1,125 @@
+[
+  {
+    "内容": "语义重音排印",
+    "完整正文未变": true,
+    "sha256": "0afcc89d624a8305af8e68d75d36e3d209ab64081945c97768bfea6401010edc"
+  },
+  {
+    "内容": "对比式视觉组织",
+    "完整正文未变": true,
+    "sha256": "18e87bdcf2028a0deb441202cfe1ff2b2812f3dafb0c5f12b0c934d38a16ddb6"
+  },
+  {
+    "内容": "动机性重构图",
+    "完整正文未变": true,
+    "sha256": "fac8a51f14f391c6de30f4faa26c1273e3be7e8e3809a29e1d816553e8730459"
+  },
+  {
+    "内容": "视觉标点",
+    "完整正文未变": true,
+    "sha256": "9d2281cbb24b03004fcdc2badcfbae3812ebf4207d3b67959d47fb1c04c72dc6"
+  },
+  {
+    "内容": "声画重音协同",
+    "完整正文未变": true,
+    "sha256": "56433cd0ccdadd2c97ef5f5665bbdfb398a357b5dfbc2c5e76bbe28ebace8369"
+  },
+  {
+    "内容": "密度对比",
+    "完整正文未变": true,
+    "sha256": "99b720bc9fabd9ba01e928c8a0d1d53f978a5a4e196c5f4306259ee153dbcdc8"
+  },
+  {
+    "内容": "1. 场内连续变化",
+    "完整正文未变": true,
+    "sha256": "cf4a074215213301a0728a614161b04a182694daa2d43ad669ace9e84215621f"
+  },
+  {
+    "内容": "2. 场间连接",
+    "完整正文未变": true,
+    "sha256": "7da230b5e96a7360c36824e47d6cf55b470af1866272c7a0523171da3a072318"
+  },
+  {
+    "内容": "3. 有目的运镜",
+    "完整正文未变": true,
+    "sha256": "e2238257f35e097a71352381371dd9b36c27c958b7bdd04972e5cbc3d6bcb29d"
+  },
+  {
+    "内容": "4. 重点花字",
+    "完整正文未变": true,
+    "sha256": "dcdfb97e88f4ca8e4a988fbfb2a1d3ef93f5c24244c4a1baf69f9e324cc1a51e"
+  },
+  {
+    "内容": "5. 局部动效协作",
+    "完整正文未变": true,
+    "sha256": "6075ac69752d5f62295bbecec7fcd1f89886fd2ff568d59e806b7aaa00b1c8da"
+  },
+  {
+    "内容": "6. 统一美术语言",
+    "完整正文未变": true,
+    "sha256": "15c300d723b112e528101cf57b511934330b9c7630098ac54daf87610bcd5480"
+  },
+  {
+    "内容": "共同主干全部原方法章节",
+    "完整正文未变": true,
+    "sha256": "4413bd895395326fd1b5264faf7d8704d03d0e8da2e71b82500d4ce3e51cf74f"
+  },
+  {
+    "内容": "全部机制动作文本、文本指纹及版本",
+    "完整正文未变": true,
+    "count": 567,
+    "原索引指纹": "537505ba157d840a06b01100f52f7131b6746c1020cf871d7030aac3223fc9af",
+    "新索引指纹": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2"
+  },
+  {
+    "内容": "既有参考包7张GIF缺失",
+    "基线同样缺失": [
+      ".agents/skills/visual-treatment-planning/references/object-drawing/full-scenes/surreal-collage-token/upstream/docs/1_立体卡通.gif",
+      ".agents/skills/visual-treatment-planning/references/object-drawing/full-scenes/surreal-collage-token/upstream/docs/2_黑底科技.gif",
+      ".agents/skills/visual-treatment-planning/references/object-drawing/full-scenes/surreal-collage-token/upstream/docs/3_超现实拼贴.gif",
+      ".agents/skills/visual-treatment-planning/references/object-drawing/full-scenes/surreal-collage-token/upstream/docs/4_复古剪纸.gif",
+      ".agents/skills/visual-treatment-planning/references/object-drawing/full-scenes/surreal-collage-token/upstream/docs/5_复古报刊.gif",
+      ".agents/skills/visual-treatment-planning/references/object-drawing/full-scenes/surreal-collage-token/upstream/docs/6_扁平流程图.gif",
+      ".agents/skills/visual-treatment-planning/references/object-drawing/full-scenes/surreal-collage-token/upstream/docs/7_手绘笔记.gif"
+    ]
+  },
+  {
+    "内容": "已知0.1.97安装缓存只读比较",
+    "安装目录": "C:\\Users\\13222\\.codex\\plugins\\cache\\videoflowcut\\videoflowcut\\0.1.97\\skills",
+    "源修改数": 31,
+    "差异文件": [
+      "_shared/SCENE_DESIGN_HANDOFF.md",
+      "_shared/TOPIC_TO_FILM.md",
+      "avatar-performance/SKILL.md",
+      "captions/SKILL.md",
+      "motion-brief-writing/references/execution-brief-template.md",
+      "motion-brief-writing/references/performance-design.md",
+      "motion-case-library/SKILL.md",
+      "motion-case-library/references/mechanism-retrieval.md",
+      "motion-case-library/references/skillry-retrieval.md",
+      "narration-writing/SKILL.md",
+      "narration-writing/references/writing-methods.md",
+      "presenter-motion-director/SKILL.md",
+      "presenter-motion-director/references/presenter-editing-grammar.md",
+      "presenter-motion-director/references/presenter-material-choreography.md",
+      "presenter-motion-director/references/presenter-shot-plan.md",
+      "presenter-motion-director/references/timeline-operations.md",
+      "production-coordinator/SKILL.md",
+      "production-coordinator/references/task-routing.md",
+      "production-coordinator/references/video-type-routing.md",
+      "production-director/SKILL.md",
+      "production-director/references/rough-cut-review.md",
+      "production-director/references/story-and-shot-design.md",
+      "quality-verification/SKILL.md",
+      "quality-verification/references/mode-specific-rubrics.md",
+      "quality-verification/references/professional-review.md",
+      "remotion-production/SKILL.md",
+      "scene-planning/SKILL.md",
+      "visual-asset-sourcing/references/source-review.md",
+      "visual-treatment-planning/SKILL.md",
+      "visual-treatment-planning/references/art-direction.md",
+      "visual-treatment-planning/references/whole-scene-collaboration/REFERENCE.md"
+    ],
+    "已安装本次改动": false
+  }
+]

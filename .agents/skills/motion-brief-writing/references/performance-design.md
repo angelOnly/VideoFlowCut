@@ -1,6 +1,6 @@
 # 连续演出：关键中途、动作关系与返修
 
-本页供同一视觉作者处理首次呈现、关键中途、接点、速度与返修；主要视觉选择沿[视觉美术](../../visual-treatment-planning/references/art-direction.md)，机制适配沿[机制检索与组合](../../motion-case-library/references/mechanism-retrieval.md)。读取当前选择、实际源范围、准确文字、前后画面及锁定条件，按问题进入相关章节。动作暴露新的空间或美术需要时，直接修订同一当前稿与源码，不等待另一个角色重新批准局部构图；主要含义改变仍回导演。机械改字、固定偏移或用户明确要求的直剪按局部范围完成。全元素动效和无硬切要求适用于[默认整场设计](../../visual-treatment-planning/references/art-direction.md#默认设计与整场发展)规定的完整新制或主要视觉重做的视觉解说片；用户明确锁定的原片与其他局部任务保持其实际范围。
+本页供同一视觉作者处理首次呈现、关键中途、接点、速度与返修；主要视觉选择沿[视觉美术](../../visual-treatment-planning/references/art-direction.md)，机制适配沿[机制检索与组合](../../motion-case-library/references/mechanism-retrieval.md)。读取当前选择、实际源范围、准确文字、前后画面及锁定条件，按问题进入相关章节。动作暴露新的空间或美术需要时，直接修订同一当前稿与源码，不等待另一个角色重新批准局部构图；主要含义改变仍回导演。机械改字、固定偏移或用户明确要求的直剪按局部范围完成。全元素动效和无硬切要求适用于[默认整场设计](../../visual-treatment-planning/references/art-direction.md#默认设计与整场发展)规定的完整新制或主要视觉重做的视觉解说与完整人物混合解释；用户明确锁定的原片与其他局部任务保持其实际范围。
 
 ## 1. 变化表达什么，什么继续存在
 

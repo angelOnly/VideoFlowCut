@@ -95,7 +95,11 @@ test("正式 MCP 搜索、核读、track_job 与恢复均精简出口，完整�
       diagnostics: { mode: "hybrid", semantic_used: true, source_sha256: first.source_sha256, privateData },
       externalRuns: { finished: { status: "succeeded", runId: "finished", text: privateData, textOutputs: [{ text: privateData }] } }, futureInternalField: privateData };
     app.updateJob(jobId, { status: "succeeded", result: raw });
-    for (const result of [await call("search_motion_mechanisms", request), await call("track_job", { job_id: jobId })]) assertCompact(result);
+    for (const result of [await call("search_motion_mechanisms", request), await call("track_job", { job_id: jobId })]) {
+      assertCompact(result);
+      assert.deepEqual((result.cards ?? result.result.cards)[0].case_context, first.cards[0].case_context);
+      assert.ok(first.cards[0].case_context.materials.length, "异步结果保留父案例材料与迁移条件");
+    }
     assert.deepEqual(Object.fromEntries(Object.entries(app.trackJob(jobId).result!).filter(([key]) => key !== "execution")), raw);
     const read = await call("read_motion_mechanism", { id: first.cards[0].id, source_sha256: first.source_sha256, include_storyboard: false });
     assert.ok(read.body.includes("运动指令"));

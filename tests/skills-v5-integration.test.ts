@@ -424,11 +424,12 @@ test("子代理工具缺失使用可追溯事实交接，实际访问和交接�
   assert.match(routing, /新读取发现版本变化[\s\S]*接收者确认[\s\S]*不只替换包内版本号/u);
 });
 
-test("人物专业参考保留 Scene 登记约束，完整生命周期只引用人物导演入口", async () => {
+test("人物专业参考保留 Scene 登记约束，完整制作引用共同主干", async () => {
   const skill = await readSkill("presenter-motion-director");
   assert.match(skill, /先读回 Project，确认目标 A-roll Item 已归属 PresenterScene/u);
   assert.ok(skill.indexOf("### 人物表演") > skill.indexOf("### Story 与 PresenterScene"));
-  assert.match(skill, /完整人物制作以.*人物导演入口.*唯一业务生命周期/u);
+  assert.match(skill, /共同主干.*TOPIC_TO_FILM\.md/u);
+  assert.doesNotMatch(skill, /完整人物制作以.*唯一业务生命周期/u);
   assert.doesNotMatch(skill, /## 从空项目到交付的示范路线|## Gate A|## Gate B|B-roll\/Explainer 比例/u);
 });
 

@@ -15,8 +15,16 @@ test('真实MCP协议可发现两入口，查询后按指纹读取图文，拒�
     const response=await client.callTool({name:'search_motion_mechanisms',arguments:{query:'依次填充',entry:['外框'],holds:['外框保持'],limit:3}});
     assert.ok(!response.isError);const content=response.content as Array<{type:string;text:string}>;
     const result=JSON.parse(content[0].text);assert.equal(result.cards.length,3);assert.ok(result.taxonomy);
+    for(const card of result.cards){
+      assert.ok(Array.isArray(card.case_context.video_types));
+      assert.ok(Array.isArray(card.case_context.materials));
+      assert.equal(typeof card.case_context.material_requirements,'string');
+      assert.equal(typeof card.case_context.transfer_cost,'string');
+    }
     const read=await client.callTool({name:'read_motion_mechanism',arguments:{id:result.cards[0].id,source_sha256:result.source_sha256}});
     assert.ok(!read.isError);assert.deepEqual((read.content as Array<{type:string}>).map(c=>c.type),['text','image']);
+    const readData=JSON.parse((read.content as Array<{text:string}>)[0]!.text);
+    assert.deepEqual(readData.card.case_context,result.cards[0].case_context);
     const clipRead=await client.callTool({name:'read_motion_mechanism',arguments:{id:'002-m17',include_storyboard:false}});
     assert.notEqual(clipRead.isError,true);
     const clipData=JSON.parse((clipRead.content as Array<{text:string}>)[0]!.text);

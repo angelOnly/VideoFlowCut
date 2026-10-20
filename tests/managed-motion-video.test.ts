@@ -82,3 +82,52 @@ for (const kind of ["video", "actor_video"] as const) test(`${kind} 多路Job共
     await assert.rejects(runMotionJob(app, job), /MOTION_CACHE_CORRUPT/);
   } finally { app.close(); await rm(root, { recursive: true, force: true }); }
 });
+
+test("竖向真实视频在头像、纸片、分屏、容器和退出后返回时保持源时钟", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vfc-presenter-forms-"));
+  try {
+    const source = join(root, "source.mp4");
+    // 用随源帧变化的颜色检测重播；这是技术夹具，不冒充真实人物或审美样片。
+    await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "color=black:s=64x96:r=30:d=2",
+      "-vf", "geq=r='N*3':g=40:b=80", "-c:v", "libx264", "-pix_fmt", "yuv420p", source]);
+    const timing = { assetId: "actor", sourceStartMs: 1000, sourceEndMs: 2000, startFrame: 0, endFrame: 24 };
+    const work = motionSubmissionSchema.parse({
+      ...motionFixture, width: 128, height: 96, fps: 24, durationInFrames: 24, imageBindings: {},
+      videoBindings: { actor: timing },
+      source: `import React from 'react';import {useCurrentFrame} from 'remotion';import {TimelineVideo} from '@videoflowcut/motion';
+export default function Motion(){
+ const f=useCurrentFrame();
+ const phase=Math.floor(f/4);
+ const left=phase===0?4:phase===1?8:phase===2?0:phase===3?76:60;
+ const top=phase===2?0:phase===3?20:4;
+ const width=phase===1?40:phase===2?48:32;
+ const height=phase===1?60:phase===2?96:phase===3?48:32;
+ return <><div style={{position:'absolute',left:120,top:88,width:8,height:8,background:'#00ff00'}}/>
+ {phase===3?<div style={{position:'absolute',left:72,top:16,width:40,height:56,background:'#ffffff'}}/>:null}
+ {phase===4?null:<div style={{position:'absolute',left,top,width,height,overflow:'hidden',borderRadius:phase===0||phase===5?'50%':0}}>
+ <TimelineVideo slot="actor" style={{width:'100%',height:'100%',objectFit:'cover'}}/></div>}</>;
+}`
+    });
+    const provider = await prepareMotionVideos(root, join(root, "decode"), work, [{
+      slot: "actor", ...timing, managedPath: "source.mp4", hash: await hashMotionFile(source)
+    }]);
+    try {
+      const directory = join(root, "render");
+      await renderManagedMotion(work, directory, {}, provider);
+      const pixels = async (frame: number) => PNG.sync.read(await readFile(join(directory, `frames/frame-${String(frame).padStart(5, "0")}.png`)));
+      const at = (png: PNG, x: number, y: number) => [...png.data.subarray((y * png.width + x) * 4, (y * png.width + x) * 4 + 4)];
+      for (const [frame, x, y] of [[2, 20, 20], [6, 28, 30], [10, 24, 48], [14, 92, 40], [22, 76, 20]]) {
+        const actual = at(await pixels(frame!), x!, y!);
+        const expected = at(PNG.sync.read(await provider.getFrame("actor", frame!)), 32, 48);
+        assert.ok(actual.slice(0, 3).every((value, i) => Math.abs(value - expected[i]!) <= 3), `F${frame} 保持真实源时间`);
+        assert.equal(actual[3], 255);
+      }
+      assert.equal(at(await pixels(2), 4, 4)[3], 0, "圆形窗口裁掉角部");
+      assert.equal(at(await pixels(6), 8, 4)[3], 255, "纸片保留矩形背景，无需伪造轮廓 Mask");
+      assert.equal(at(await pixels(10), 60, 40)[3], 0, "分屏释放材料区域");
+      assert.deepEqual(at(await pixels(14), 73, 17), [255, 255, 255, 255], "内部视频在设计容器内");
+      assert.equal(at(await pixels(18), 76, 20)[3], 0, "退出时人物像素不可见");
+      assert.notDeepEqual(at(await pixels(22), 76, 20), at(await pixels(2), 20, 20), "重新挂载没有重播片头");
+    } finally { await provider.close(); }
+  } finally { await rm(root, { recursive: true, force: true }); }
+});

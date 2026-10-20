@@ -1,0 +1,60 @@
+{
+  "runtime": "python -X utf8",
+  "checks": [
+    {
+      "skill": ".agents\\skills\\avatar-performance",
+      "exitCode": 0,
+      "output": "Skill is valid!\n"
+    },
+    {
+      "skill": ".agents\\skills\\captions",
+      "exitCode": 0,
+      "output": "Skill is valid!\n"
+    },
+    {
+      "skill": ".agents\\skills\\motion-case-library",
+      "exitCode": 0,
+      "output": "Skill is valid!\n"
+    },
+    {
+      "skill": ".agents\\skills\\narration-writing",
+      "exitCode": 0,
+      "output": "Skill is valid!\n"
+    },
+    {
+      "skill": ".agents\\skills\\presenter-motion-director",
+      "exitCode": 0,
+      "output": "Skill is valid!\n"
+    },
+    {
+      "skill": ".agents\\skills\\production-coordinator",
+      "exitCode": 0,
+      "output": "Skill is valid!\n"
+    },
+    {
+      "skill": ".agents\\skills\\production-director",
+      "exitCode": 0,
+      "output": "Skill is valid!\n"
+    },
+    {
+      "skill": ".agents\\skills\\quality-verification",
+      "exitCode": 0,
+      "output": "Skill is valid!\n"
+    },
+    {
+      "skill": ".agents\\skills\\remotion-production",
+      "exitCode": 0,
+      "output": "Skill is valid!\n"
+    },
+    {
+      "skill": ".agents\\skills\\scene-planning",
+      "exitCode": 0,
+      "output": "Skill is valid!\n"
+    },
+    {
+      "skill": ".agents\\skills\\visual-treatment-planning",
+      "exitCode": 0,
+      "output": "Skill is valid!\n"
+    }
+  ]
+}

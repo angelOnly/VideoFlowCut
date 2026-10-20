@@ -15,6 +15,8 @@ function mechanismCard(value: unknown): Data {
   const source = object(value);
   return {
     ...pick(source, ["id", "title", "case_number", "summary", "purpose", "relation", "start_state", "end_state", "tags", "document", "storyboard", "case_slug", "overview", "detail", "score", "match_reasons"]),
+    // 搜索、精确读取和异步 Job 共用投影，保留来源条件而不泄露完整向量输入。
+    ...(source.case_context ? { case_context: pick(source.case_context, ["video_types", "materials", "scenario", "material_requirements", "transfer_cost"]) } : {}),
     ...(source.retrieval ? { retrieval: pick(source.retrieval, relationFields) } : {}),
     ...(source.clip ? { clip: pick(source.clip, ["path", "start_ms", "end_ms", "source_sha256", "sha256", "bytes", "boundary_note"]) } : {}),
     ...(source.difference ? { difference: pick(source.difference, ["source_relation", "candidate_relation", "added_actions", "absent_actions"]) } : {}),

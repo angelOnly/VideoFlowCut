@@ -43,7 +43,7 @@
 
 ## 工作入口与协作
 
-视频任务先读 `.agents/skills/project-basics/SKILL.md` 和 `.agents/skills/production-coordinator/SKILL.md`。完整视频先由 `production-coordinator` 按 `.agents/skills/production-coordinator/references/video-type-routing.md` 确认整片主类型、当前范围的有效路线、人物与声音来源及编辑权限，再进入相应主导演。`visual_explainer` 保持既有 `TOPIC_TO_FILM.md` 的主题解说制作路线；人物主导任务进入 `presenter-motion-director`，只复用其中适用的并行取材方法，不继承纯解释片的主线默认。局部修改继承当前已采用路线，不重新分类整片。
+视频任务先读 `.agents/skills/project-basics/SKILL.md` 和 `.agents/skills/production-coordinator/SKILL.md`。完整视频先由 `production-coordinator` 按 `.agents/skills/production-coordinator/references/video-type-routing.md` 确认整片主类型、当前范围的有效路线、人物与声音来源及编辑权限，再进入相应主导演。`visual_explainer` 与 `presenter_motion` 的完整解释制作共用 `TOPIC_TO_FILM.md`；人物范围进入 `presenter-motion-director` 增加讲述、真实源与共同编排方法，不加载第二套根导演规则。制作范围与正文／原声权限独立，完整锁稿仍做完整视觉；Vlog、原片清理和局部任务保持实际范围。局部修改继承当前已采用路线，不重新分类整片。
 
 主任务负责沟通、项目事实、真实分派、正式提交与结果接回。完整制作建立持续负责的导演，并按业务入口的初始依赖同时启动或续接所需作者，不等导演完成全部规划才逐项分派。局部任务交原负责人处理。宿主代理能力可用时使用真实 `spawn_agent`、`followup_task` 与状态读取，不把审计字段当成真实委派。
 

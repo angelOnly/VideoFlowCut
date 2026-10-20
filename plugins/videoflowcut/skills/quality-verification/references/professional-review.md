@@ -127,7 +127,7 @@ AI 审阅是辅助判断，未审、failed、inconclusive 或未关闭问题不�
 
 ### mode_specific
 
-Presenter 检查人物信任、安静区、前后景、Cutaway 和字幕；Explainer 检查认知任务、渐进、证据和数据；Vlog 检查事件、动作、空间、反应和现场声。详细规则见 `references/mode-specific-rubrics.md`。
+完整人物混合解释先按共同整场标准检查主要材料、主体发展、阅读、语义重音与交接，再检查人物真实性、源时钟、口型与唯一声音；原片局部任务按实际范围检查人物信任、原话与接点；Explainer 检查认知任务、渐进、证据和数据；Vlog 检查事件、动作、空间、反应和现场声。详细规则见 `references/mode-specific-rubrics.md`。
 
 审片结论绑定具体 Revision 和实际 Preview Evidence；没有看过或听过的范围写 `inconclusive`，不能自动写通过。
 

@@ -11,6 +11,36 @@ import {readLibraryMechanism} from '../references/motion-cases/skillry/tools/lib
 import {createMechanismBrowser,filterFields} from '../references/motion-cases/skillry/mechanism-filters.mjs';
 const root=resolve('references/motion-cases/skillry'),index=loadIndex(root);
 
+test('父案例上下文随候选与精确恢复返回，不改变动作召回和融合排序',()=>{
+  const catalogue=JSON.parse(readFileSync(join(root,'case-catalogue.json'),'utf8'));
+  const parents=new Map(catalogue.cases.map(c=>[c.case_number,c]));
+  for(const card of index.mechanisms){
+    const parent=parents.get(card.case_number);
+    assert.deepEqual(card.case_context,Object.fromEntries(
+      ['video_types','materials','scenario','material_requirements','transfer_cost'].map(key=>[key,parent[key]])
+    ));
+  }
+  // 上下文仅供选用：关系查询仍可召回没有人物的原案例。
+  const withoutContext={...index,mechanisms:index.mechanisms.map(({case_context,...card})=>card)};
+  const options={stages:['活动视频在容器中持续播放，旁侧字组形成重音','材料扩大接管，前景退让'],limit:20};
+  const semantic=Object.fromEntries(options.stages.map(stage=>[stage,[{id:'001-m01',score:0.9},{id:'002-m16',score:0.8}]]));
+  for(const fusion of [{},semantic]){
+    const actual=queryMechanisms(index,options,fusion);
+    const baseline=queryMechanisms(withoutContext,options,fusion);
+    assert.deepEqual(actual.groups.map(g=>g.cards.map(c=>[c.id,c.score])),
+      baseline.groups.map(g=>g.cards.map(c=>[c.id,c.score])));
+    assert.ok(actual.groups.every(g=>g.cards.length>0));
+    assert.ok(actual.groups.flatMap(g=>g.cards).some(c=>!c.case_context.materials.includes('人物视频')));
+    for(const group of actual.groups){
+      const ids=group.cards.map(c=>c.id);
+      const recovered=queryMechanisms(index,{ids,source_sha256:actual.source_sha256});
+      assert.deepEqual(recovered.cards.map(c=>c.case_context),group.cards.map(c=>c.case_context));
+    }
+  }
+  const read=readLibraryMechanism(root,{id:'001-m01',include_storyboard:false,source_sha256:index.source_sha256});
+  assert.deepEqual(read.result.card.case_context,queryMechanisms(index,{ids:['001-m01']}).cards[0].case_context);
+});
+
 test('120个案例的全部资料具备统一分类，数量随正式目录变化',()=>{
   const catalogue=JSON.parse(readFileSync(join(root,'case-catalogue.json'),'utf8'));
   assert.equal(index.count,catalogue.cases.reduce((n,c)=>n+c.mechanism_ids.length,0));assert.equal(new Set(index.mechanisms.map(m=>m.case_number)).size,120);

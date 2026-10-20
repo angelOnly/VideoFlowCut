@@ -1,0 +1,9 @@
+{
+  "result": "候选发行 MCP 实际返回通过",
+  "releaseId": "release-ced8feb9b5697515fb50b5088adb89a5ec9b4f6c25900d3e1bf1a0576650462f",
+  "pluginVersion": "0.1.97",
+  "tools": 159,
+  "source_sha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+  "workspace": "E:\\ai\\VideoCut\\docs\\development\\presenter-shared-pipeline-20261020\\isolated-H4quIG",
+  "scope": "隔离 stdio MCP 搜索及核读；未安装、未部署、未运行创作任务或判断成片效果"
+}
