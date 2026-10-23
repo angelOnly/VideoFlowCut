@@ -1,7 +1,7 @@
 import { captionDisplayRanges, validCaptionDisplay, captionPlacementSchema, captionTypographySchema, resolveCaptionFormat } from "../../contracts/src/caption-presentation.js";
 import { createHash } from "node:crypto";
 import { managedMotionReviewOutcome, EFFECT_QUALITY_RULES, inspectEffectContentContract, sourceAudioTimeOrigin, type EditorialQualityReview, type ExportPurpose, type ProjectSnapshot, type QualityIssue, type QualityReport } from "@videocut/contracts";
-import { compileVisualComposition, primaryVisualRanges, uncoveredVisualRanges, assertProjectGraphValid, DomainError, millisecondsToFrames, resolveCompositionReachability, sourceAudioTimingWithinRange, sourceAudioAlignmentOwnerMatches, sourceCaptionDisplayTextIsValid } from "@videocut/domain";
+import { avatarBindingMatches, compileVisualComposition, primaryVisualRanges, uncoveredVisualRanges, assertProjectGraphValid, DomainError, millisecondsToFrames, resolveCompositionReachability, sourceAudioTimingWithinRange, sourceAudioAlignmentOwnerMatches, sourceCaptionDisplayTextIsValid } from "@videocut/domain";
 import { exportBlockingIssues } from "./export-policy.js";
 export { exportBlockingIssues } from "./export-policy.js";
 import { layoutCaptionConservatively, type CaptionLayoutInput, type CaptionLayoutResult } from "../../remotion-runtime/src/caption-layout.js";
@@ -1188,7 +1188,8 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
   // 结构性规则仍按完整 Revision 检查；只有素材文件检查跟 Composition 对齐。
   const visualComposition = compileVisualComposition(snapshot);
   for (const entry of visualComposition.issues) issues.push(issue({ level: "blocking", ...entry }));
-  const compositionAssetIds = resolveCompositionReachability(snapshot).assetIds;
+  const compositionReachability = resolveCompositionReachability(snapshot);
+  const compositionAssetIds = compositionReachability.assetIds;
   for (const asset of snapshot.assets) {
     if (compositionAssetIds.has(asset.id) && (asset.status === "failed" || asset.status === "missing")) {
       issues.push(issue({ level: "blocking", code: "ASSET_NOT_READY", message: `素材“${asset.name}”不可用：${asset.failureReason ?? asset.status}。`, objectId: asset.id }));
@@ -1206,14 +1207,26 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     for (const source of motionAsset.motion.videoSources ?? []) {
       const actor = assetsById.get(source.assetId);
       if (actor?.kind !== "actor_video" || actor.provenance?.source !== "generated") continue;
-      const currentPerformance = performances.find(performance => {
-        const item = timeline.items.find(candidate => candidate.id === performance.timelineItemId);
-        return item?.assetId === actor.id && performance.source === "generated"
+      const cues = snapshot.effectCues.filter(cue => compositionReachability.effectCueIds.has(cue.id) && cue.assetBindings.some(binding => binding.assetId === motionAsset.id));
+      const currentPerformance = actor.avatarSourceReceipt
+        ? cues.length > 0 && cues.every(cue => performances.some(performance => {
+          const item = timeline.items.find(candidate => candidate.id === performance.timelineItemId);
+          if (!performance.sourceBinding || item?.assetId !== actor.id || performance.status !== "ready") return false;
+          const startFrame = cue.startFrame + Math.ceil((source.startFrame ?? 0) * timeline.fps / motionAsset.motion!.fps);
+          const endFrame = Math.min(cue.endFrame, cue.startFrame + Math.ceil((source.endFrame ?? motionAsset.motion!.frameCount) * timeline.fps / motionAsset.motion!.fps));
+          const sourceStartFrame = Math.round(source.sourceStartMs * timeline.fps / 1000);
+          const sourceEndFrame = sourceStartFrame + endFrame - startFrame;
+          return sourceEndFrame <= Math.round(source.sourceEndMs * timeline.fps / 1000)
+            && avatarBindingMatches(snapshot, performance, { ...item, startFrame, endFrame, sourceStartFrame, sourceEndFrame });
+        }))
+        : performances.some(performance => {
+          const item = timeline.items.find(candidate => candidate.id === performance.timelineItemId);
+          return !performance.sourceBinding && item?.assetId === actor.id && performance.source === "generated"
           && performance.status === "ready" && snapshot.speechAsset?.status === "ready"
           && performance.speechAssetId === snapshot.speechAsset.id
           && performance.scriptRevision === snapshot.script.revision
           && performance.scriptRevision === snapshot.speechAsset.scriptRevision;
-      });
+        });
       if (!currentPerformance || source.sourceHash !== actor.sourceHash) {
         issues.push(issue({ level: "blocking", code: "MOTION_ACTOR_SOURCE_STALE", message: `作品“${motionAsset.name}”内的人物源已不对应当前声音或人物版本，请更新相关绑定并重新生成该作品。`, objectId: motionAsset.id }));
       }
@@ -1296,7 +1309,8 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
       issues.push(issue({ level: "warning", code: "ACTOR_MASK_FALLBACK", message: "人物表演没有 Mask，后景效果会以可见前景降级；请在预览中确认遮挡关系。", objectId: performance.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame } }));
     }
     if (performance.source === "generated") {
-      if (!snapshot.speechAsset || performance.speechAssetId !== snapshot.speechAsset.id || performance.scriptRevision !== snapshot.speechAsset.scriptRevision) {
+      if (performance.sourceBinding ? !avatarBindingMatches(snapshot, performance, item)
+        : !snapshot.speechAsset || performance.speechAssetId !== snapshot.speechAsset.id || performance.scriptRevision !== snapshot.speechAsset.scriptRevision) {
         issues.push(issue({ level: "blocking", code: "ACTOR_SPEECH_VERSION_MISMATCH", message: "生成型人物表演没有绑定当前 SpeechAsset 与 Script Revision。", objectId: performance.id }));
       }
       if (!performance.capabilityProfileId || !capabilityById.has(performance.capabilityProfileId)) {
@@ -1307,7 +1321,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
       }
       if (!performance.generationJobId || !performance.generationRange) {
         issues.push(issue({ level: "blocking", code: "ACTOR_GENERATION_TRACE_MISSING", message: "生成型人物表演缺少生成 Job 或可局部重生成的 SpeechSegment 范围。", objectId: performance.id }));
-      } else if (performance.generationRange.startFrame < item.startFrame || performance.generationRange.endFrame > item.endFrame) {
+      } else if (!performance.sourceBinding && (performance.generationRange.startFrame < item.startFrame || performance.generationRange.endFrame > item.endFrame)) {
         issues.push(issue({ level: "blocking", code: "ACTOR_GENERATION_RANGE_INVALID", message: "人物生成范围没有被对应 Timeline Item 完整覆盖。", objectId: performance.id }));
       }
     }
@@ -1789,8 +1803,8 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
       issues.push(issue({ level: "blocking", code: "SPEECH_SCRIPT_STALE", message: "SpeechAsset 与当前 Script Revision 不一致，需要重新生成受影响的语音段。", objectId: snapshot.speechAsset.id }));
     }
     const dialogueItems = timeline.items.filter((item) => item.trackId === dialogueTrack?.id && item.assetId === snapshot.speechAsset?.assetId && !item.disabled);
-    if (dialogueItems.length !== 1) {
-      issues.push(issue({ level: "blocking", code: "SPEECH_DIALOGUE_ITEM_MISSING", message: "SpeechAsset 没有以唯一 Item 写入 Dialogue 轨，最终导出不会可靠包含旁白。", objectId: snapshot.speechAsset.id }));
+    if (dialogueItems.length === 0) {
+      issues.push(issue({ level: "blocking", code: "SPEECH_DIALOGUE_ITEM_MISSING", message: "SpeechAsset 没有写入有效 Dialogue 片段，最终导出不会可靠包含旁白。", objectId: snapshot.speechAsset.id }));
     }
     if (!isVlogProfile && timeline.captions.some((caption) => caption.sourceKind !== "source_audio" && caption.sourceKind !== "user_srt" && caption.precision !== snapshot.speechAsset?.timing.precision)) {
       issues.push(issue({ level: "warning", code: "CAPTION_SPEECH_MISMATCH", message: "字幕时序精度与当前 SpeechAsset 不一致，需要重新检查字幕。", objectId: snapshot.speechAsset.id }));
@@ -1803,7 +1817,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
       return !timing || !currentSrtCoversRange(snapshot, timing);
     });
     // 自然配音段不是强制一屏；当前完整 Dialogue 的有效 Program 可独立承担字幕。
-    const speechCaptionReady = dialogueItems.length === 1 && sourceCaptionItemIds.has(dialogueItems[0]!.id);
+    const speechCaptionReady = dialogueItems.length > 0 && dialogueItems.every(item => sourceCaptionItemIds.has(item.id));
     if (!isVlogProfile && missingCaptionSegment && !speechCaptionReady) {
       issues.push(issue({
         level: "blocking",

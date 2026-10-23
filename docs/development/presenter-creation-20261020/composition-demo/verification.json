@@ -1,0 +1,69 @@
+{
+  "description": "六类制法隔离技术验证；测试视频并非真人或 LTX 输出",
+  "workspace": "C:\\Users\\13222\\AppData\\Local\\Temp\\vfc-presenter-method-demo-kaxZkB",
+  "projectId": "project_4b1fc6ef-b91e-4bbf-b6e3-4928268c4ef4",
+  "jobId": "job_3608245b-16d0-415b-93f8-777b86215af4",
+  "sourcePath": "source-clock.mp4",
+  "outputPath": "six-methods.mp4",
+  "metadata": {
+    "durationMs": 18000,
+    "width": 480,
+    "height": 270,
+    "fps": 15,
+    "hasAudio": true,
+    "audioCodec": "aac",
+    "sampleRate": 48000,
+    "channels": 1,
+    "videoCodec": "h264",
+    "pixelFormat": "yuv420p",
+    "hasAlpha": false,
+    "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+  },
+  "outputBytes": 904242,
+  "sourceOffsetMs": 1000,
+  "keyframes": [
+    0,
+    20,
+    40,
+    50,
+    70,
+    88,
+    95,
+    115,
+    133,
+    140,
+    160,
+    178,
+    185,
+    200,
+    223,
+    225,
+    237,
+    269
+  ],
+  "returnClockChecks": [
+    {
+      "frame": 225,
+      "expectedSourceFrame": 240,
+      "meanPixelError": 1.8858691616544145
+    },
+    {
+      "frame": 237,
+      "expectedSourceFrame": 252,
+      "meanPixelError": 2.153337788668597
+    }
+  ],
+  "methods": [
+    "0–3 秒：裁圆头像缩小",
+    "3–6 秒：视频纸片与附着标记共同变换",
+    "6–9 秒：分屏空间重排",
+    "9–12 秒：设备与内部视频共同变换",
+    "12–15 秒：人物退出、材料接管",
+    "15–18 秒：当前源时钟返回、主画面转小窗"
+  ],
+  "limits": [
+    "测试图案不证明人脸取景、自然表演、真实口型或审美认可",
+    "审阅音轨为 FFmpeg 附加测试音；动效产物原本静音",
+    "没有调用 LTX、生产项目或运行队列"
+  ]
+}

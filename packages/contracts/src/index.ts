@@ -323,7 +323,11 @@ export function managedMotionReviewOutcome(motion: Asset["motion"], review?: Mot
   return review.outcome;
 }
 
+export type { PresenterUse, AvatarAudioSlice, AvatarSourceInput, AvatarSourceReceipt, AvatarSourceBinding, AvatarSourceJobPayload } from "./avatar-source.js";
+import type { PresenterUse, AvatarSourceReceipt, AvatarSourceBinding } from "./avatar-source.js";
+
 export interface Asset {
+  avatarSourceReceipt?: AvatarSourceReceipt;
   id: Id;
   name: string;
   kind: AssetKind;
@@ -979,6 +983,7 @@ export interface ActorGenerationRange {
 }
 
 export interface ActorPerformance {
+  sourceBinding?: AvatarSourceBinding;
   id: Id;
   timelineItemId: Id;
   source: ActorPerformanceSource;
@@ -1023,6 +1028,8 @@ export type VisualTreatmentMode = "keep_presenter" | "quiet" | "light_overlay" |
 export type VisualTreatmentIntensity = "quiet" | "low" | "medium" | "high";
 
 export interface VisualTreatment {
+  /** undefined 为尚未记录；空数组明确表示本范围不需要人物。 */
+  presenterUses?: PresenterUse[];
   /** 导演已采用、应进入画面的资料；空数组表示取消采用。 */
   adoptedMaterialAssetIds?: Id[];
   id: Id;

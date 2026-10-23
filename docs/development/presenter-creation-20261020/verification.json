@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-20",
+  "baselineCommit": "df39ce2eaf5ef851a4d0b85faf28c264e2799d52",
+  "scope": "代码、Skills、隔离确定性与渲染验证；未切换生产插件",
+  "candidateRelease": {
+    "schemaVersion": 2,
+    "format": "commonjs",
+    "releaseId": "release-b4d6cebe0da8233d3b60ef50f89f1f919d35ef06345cc84b62d49583182c7f00",
+    "pluginVersion": "0.1.98",
+    "runtimeEntry": "runtime.cjs",
+    "mcpEntry": "mcp.cjs",
+    "remotionEntry": "remotion/render-entry.cjs",
+    "webRoot": "web",
+    "nodeRuntime": ">=22.5.0",
+    "dependencies": "由启动器通过宿主仓库 node_modules 的 NODE_PATH 提供；发行入口不使用 tsx 或 apps 源码。"
+  },
+  "checks": [
+    {
+      "command": "npm run build",
+      "status": "passed"
+    },
+    {
+      "command": "npm run typecheck",
+      "status": "passed"
+    },
+    {
+      "command": "npm run plugin:build-runtime",
+      "status": "passed"
+    },
+    {
+      "command": "npm run plugin:verify",
+      "status": "passed"
+    },
+    {
+      "command": "git diff --check -- apps packages tests .agents/skills plugins/videoflowcut/skills",
+      "status": "passed"
+    },
+    {
+      "suite": "核心Avatar、人物接管与帧率回归",
+      "passed": 46,
+      "note": "随后额外添加旧长源复用与对齐精度2项，规划套件最终8/8通过"
+    },
+    {
+      "suite": "原解说与Vlog回归",
+      "passed": 16
+    },
+    {
+      "suite": "受管视频、素材数学、原片编辑额外回归（去掉重复规划/domain用例）",
+      "passed": 32
+    },
+    {
+      "suite": "Skills维护源/发行副本、引用与结构",
+      "status": "passed",
+      "sourceFiles": 23,
+      "localLinks": 125,
+      "skillChecks": 8
+    }
+  ],
+  "uniqueTestsPassed": 96,
+  "notPerformed": [
+    "真实LTX模型生成",
+    "真人口型与自然表演审查",
+    "不同主题完整新作品与创作质量对照",
+    "生产部署与安装端版本对齐"
+  ],
+  "warnings": [
+    "Vite现有大分块提示",
+    "esbuild现有CommonJS import.meta提示"
+  ],
+  "demo": {
+    "path": "composition-demo/six-methods.mp4",
+    "bytes": 904242,
+    "seconds": 18,
+    "source": "有时间标记和运动的隔离测试视频"
+  }
+}

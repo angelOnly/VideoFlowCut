@@ -78,41 +78,12 @@ const actorLayoutSchema = z.object({
 }).strict().refine((layout) => Boolean(layout.actorHead || layout.actorHands), {
   message: "人物布局至少需要一个头部或手部锚点"
 });
-const actorGenerationRangeSchema = z.object({
-  startFrame: z.number().int().min(0),
-  endFrame: z.number().int().positive(),
-  speechSegmentIds: z.array(idSchema).min(1).max(200)
-}).strict().refine((range) => range.endFrame > range.startFrame, {
-  message: "人物生成范围的结束帧必须大于开始帧"
-});
-const actorPlacementSchema = z.object({
-  sceneId: idSchema,
-  startFrame: z.number().int().min(0),
-  endFrame: z.number().int().positive()
-}).strict().refine((placement) => placement.endFrame > placement.startFrame, {
-  message: "人物放置范围的结束帧必须大于开始帧"
-});
-
-/**
- * Avatar 请求只表达项目内已确认的意图。Worker 会在真正调用前动态读取 Bridge Schema，
- * 因而这里不接受或承诺未验证的姿态、目光、手势与 Provider 字段。
- */
+/** 新任务采用 v2 源合同，历史任务由 Job 恢复入口继续处理。 */
 const avatarGenerationRequestSchema = z.object({
-  baseRevision: baseRevisionSchema,
-  capabilityProfileId: idSchema,
-  referenceImageAssetId: idSchema.optional(),
-  speechAssetId: idSchema.optional(),
-  replaceActorPerformanceId: idSchema.optional(),
-  generationRange: actorGenerationRangeSchema,
-  placement: actorPlacementSchema,
-  prompt: z.string().trim().min(1).max(4_000).optional(),
-  // 当前 Bridge 尚未验证 Alpha / Mask 输出，生成型人物只能明确走无 Mask 前景降级。
-  maskMode: z.literal("none").optional(),
-  // 生成画面默认由当前 Dialogue 承担声音，避免与人物视频原声重复播放。
-  audioMode: z.enum(["use_dialogue_track", "muted"]).optional(),
-  layout: actorLayoutSchema.optional(),
-  note: z.string().trim().max(1_000).optional(),
-  idempotencyKey: z.string().trim().min(1).max(240).optional()
+  contractVersion: z.literal(2), baseRevision: baseRevisionSchema, capabilityProfileId: idSchema,
+  presenterUseIds: z.array(idSchema).min(1), sourceGroupKey: z.string().min(1).optional(),
+  planFingerprint: z.string().min(1).optional(), prompt: z.string().trim().min(1).max(4000).optional(),
+  attempt: z.string().trim().min(1).max(120).optional(), idempotencyKey: z.string().min(1).max(240).optional()
 }).strict();
 
 /**
@@ -673,7 +644,22 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   app.post("/api/projects/:projectId/avatar-jobs", async (request, reply) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = avatarGenerationRequestSchema.parse(request.body);
-    return reply.status(202).send(application.submitAvatarGeneration({ projectId, ...body }));
+    return reply.status(202).send(application.submitAvatarSourceGeneration({ projectId, ...body }));
+  });
+
+  app.post("/api/projects/:projectId/avatar-sources/prepare", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ capabilityProfileId: idSchema, presenterUseIds: z.array(idSchema).optional(),
+      prompt: z.string().trim().min(1).max(4000).optional(), attempt: z.string().min(1).max(120).optional() }).strict().parse(request.body);
+    return application.prepareAvatarSources({ projectId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/avatar-sources/adopt", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, presenterUseId: idSchema, assetId: idSchema,
+      startFrame: z.number().int().nonnegative().optional(), endFrame: z.number().int().positive().optional(),
+      layout: actorLayoutSchema.optional() }).strict().parse(request.body);
+    return application.adoptAvatarSource({ projectId, ...body });
   });
 
   app.post("/api/projects/:projectId/video-generation", async (request, reply) => {
@@ -975,6 +961,12 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       baseRevision: baseRevisionSchema,
       action: z.enum(["upsert", "remove"]),
       adoptedMaterialAssetIds: z.array(idSchema).optional(),
+      presenterUses: z.array(z.object({
+        id: idSchema, speechAssetId: idSchema, referenceImageAssetId: idSchema,
+        startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(),
+        performanceNote: z.string().max(2000),
+        timingEvidence: z.object({ kind: z.enum(["aligned", "audio_review"]), note: z.string().trim().min(1) })
+      }).strict()).optional(),
       visualTreatmentId: idSchema.optional(),
       narrativeBeatId: idSchema.optional(),
       sceneId: idSchema.optional(),

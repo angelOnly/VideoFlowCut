@@ -2,6 +2,7 @@ import type { FrameRateChangeReport, ProjectSnapshot } from "@videocut/contracts
 import { createHash } from "node:crypto";
 import { convertFrameRate, motionDurationAtFps, projectFrameRateSchema, sourceAudioTimeOrigin } from "@videocut/contracts";
 import { validCaptionDisplay } from "../../contracts/src/caption-presentation.js";
+import { avatarBindingMatches, resolvePresenterUseAudio } from "./avatar-source.js";
 
 /** 显式区分项目帧、源毫秒和固定作品帧，不按属性名递归改写快照。 */
 export function projectFrameRateChange(previous: ProjectSnapshot, fps: number, revision = 0): { snapshot: ProjectSnapshot; report: FrameRateChangeReport } {
@@ -163,7 +164,27 @@ export function projectFrameRateChange(previous: ProjectSnapshot, fps: number, r
     if (item) Object.assign(cutaway, { startFrame: item.startFrame, endFrame: item.endFrame, sourceStartFrame: item.sourceStartFrame, sourceEndFrame: item.sourceEndFrame });
   }
   for (const marker of snapshot.markers) fields(marker, ["frame"], marker.id);
-  for (const actor of snapshot.actorPerformances) if (actor.generationRange) range(actor.generationRange, actor.id);
+  for (const treatment of snapshot.visualTreatments) for (const use of treatment.presenterUses ?? []) range(use, treatment.id);
+  // v2 回执记录生成时的事实，改项目帧率不得改写历史范围或原音频采样。
+  for (const actor of snapshot.actorPerformances) if (actor.generationRange && !actor.sourceBinding) range(actor.generationRange, actor.id);
+  for (const actor of snapshot.actorPerformances) {
+    const binding = actor.sourceBinding;
+    const item = snapshot.timeline.items.find(entry => entry.id === actor.timelineItemId);
+    const oldActor = previous.actorPerformances.find(entry => entry.id === actor.id);
+    const oldItem = previous.timeline.items.find(entry => entry.id === actor.timelineItemId);
+    if (!binding || !item || actor.status !== "ready" || !oldActor || !oldItem || !avatarBindingMatches(previous, oldActor, oldItem)) continue;
+    const use = snapshot.visualTreatments.flatMap(treatment => treatment.presenterUses ?? []).find(entry => entry.id === binding.presenterUseId)!;
+    try {
+      // 当前帧边界会量化；重新定位当前使用，不能把历史裁音频范围也一起取整。
+      binding.audio = resolvePresenterUseAudio(snapshot, use);
+      const consumed = resolvePresenterUseAudio(snapshot, item);
+      item.sourceStartFrame = Math.round(((consumed.startSample - binding.receipt.input.audio.startSample) / consumed.sampleRate + binding.receipt.outputOffsetSeconds) * fps);
+      item.sourceEndFrame = item.sourceStartFrame + item.endFrame - item.startFrame;
+      if (!avatarBindingMatches(snapshot, actor, item)) throw new Error("人物源范围不足");
+    } catch {
+      report.blockers.push({ code: "PROJECT_FPS_AVATAR_SOURCE_RANGE", objectId: actor.id, message: "新帧率量化后的出镜范围无法由原人物源与声音完整对应，请先调整切口" });
+    }
+  }
   for (const shot of snapshot.vlogShotAnalyses) fields(shot, ["sourceStartFrame", "sourceEndFrame"], shot.id);
   for (const select of snapshot.vlogShotSelects) {
     fields(select, ["sourceStartFrame", "sourceEndFrame"], select.id);

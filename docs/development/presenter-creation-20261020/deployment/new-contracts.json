@@ -1,0 +1,484 @@
+{
+  "manage_effect_cues": {
+    "type": "object",
+    "properties": {
+      "project_id": {
+        "type": "string"
+      },
+      "base_revision_id": {
+        "type": "integer",
+        "exclusiveMinimum": 0
+      },
+      "action": {
+        "type": "string",
+        "enum": [
+          "create",
+          "update",
+          "remove"
+        ],
+        "default": "create"
+      },
+      "cue_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "scene_id": {
+        "type": "string"
+      },
+      "type": {
+        "type": "string",
+        "enum": [
+          "MetricBackdrop",
+          "ProductFan",
+          "GlowCTA",
+          "PortfolioWall",
+          "CommentCloud",
+          "EvidenceCard",
+          "CameraPunch",
+          "FullScreenMeme",
+          "DeviceShowcase",
+          "ContentCarousel",
+          "EndCard",
+          "ManagedMotion"
+        ]
+      },
+      "layer": {
+        "type": "string",
+        "enum": [
+          "rear",
+          "actor",
+          "front",
+          "fullscreen"
+        ]
+      },
+      "start_frame": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "end_frame": {
+        "type": "integer",
+        "exclusiveMinimum": 0
+      },
+      "anchor_target_id": {
+        "type": "string"
+      },
+      "note": {
+        "type": "string"
+      },
+      "narrative_purpose": {
+        "type": "string",
+        "maxLength": 800
+      },
+      "audience_task": {
+        "type": "string",
+        "maxLength": 800
+      },
+      "semantic_anchor": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "speech_segment",
+              "narrative_beat",
+              "scene",
+              "absolute"
+            ]
+          },
+          "target_id": {
+            "type": "string"
+          },
+          "relation": {
+            "type": "string",
+            "enum": [
+              "anticipate",
+              "land_on",
+              "react_after",
+              "hold_through"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "relation"
+        ],
+        "additionalProperties": false
+      },
+      "visual_composition": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "const": "primary"
+              },
+              "replaces_actor_item_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "required": [
+              "role",
+              "replaces_actor_item_ids"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "covered_narrative_beat_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maxItems": 64
+      },
+      "spatial_anchor": {
+        "type": "string",
+        "enum": [
+          "top_left",
+          "top_right",
+          "middle_left",
+          "middle_right",
+          "bottom_left",
+          "bottom_right",
+          "center",
+          "full_frame"
+        ]
+      },
+      "asset_bindings": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "slot": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "asset_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "slot",
+            "asset_id"
+          ],
+          "additionalProperties": false
+        },
+        "maxItems": 12
+      },
+      "props": {
+        "type": "object",
+        "additionalProperties": {}
+      },
+      "motion": {
+        "type": "object",
+        "properties": {
+          "enter_preset": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "settle_preset": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "exit_preset": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "enter_frames": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 240
+          },
+          "hold_frames": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "exit_frames": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 240
+          }
+        },
+        "additionalProperties": false
+      },
+      "style_pack_id": {
+        "type": "string",
+        "maxLength": 160
+      },
+      "quality_rules": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "semantic_anchor_required",
+            "asset_binding_required",
+            "settled_frame_required",
+            "no_competing_visual",
+            "actor_mask_required"
+          ]
+        },
+        "maxItems": 5
+      }
+    },
+    "required": [
+      "base_revision_id"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "manage_visual_treatment": {
+    "type": "object",
+    "properties": {
+      "project_id": {
+        "type": "string"
+      },
+      "base_revision_id": {
+        "type": "integer",
+        "exclusiveMinimum": 0
+      },
+      "action": {
+        "type": "string",
+        "enum": [
+          "upsert",
+          "remove"
+        ]
+      },
+      "presenter_uses": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "speech_asset_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reference_image_asset_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "start_frame": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "end_frame": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "performance_note": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "timing_evidence": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "aligned",
+                    "audio_review"
+                  ]
+                },
+                "note": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "kind",
+                "note"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "id",
+            "speech_asset_id",
+            "reference_image_asset_id",
+            "start_frame",
+            "end_frame",
+            "performance_note",
+            "timing_evidence"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "adopted_material_asset_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "visual_treatment_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "narrative_beat_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "scene_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "mode": {
+        "type": "string",
+        "enum": [
+          "keep_presenter",
+          "quiet",
+          "light_overlay",
+          "remotion",
+          "b_roll",
+          "cutaway",
+          "evidence"
+        ]
+      },
+      "primary_attention": {
+        "type": "string",
+        "maxLength": 500
+      },
+      "narrative_purpose": {
+        "type": "string",
+        "maxLength": 800
+      },
+      "intensity": {
+        "type": "string",
+        "enum": [
+          "quiet",
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "quiet_reason": {
+        "type": "string",
+        "maxLength": 800
+      },
+      "fallback_plan": {
+        "type": "string",
+        "maxLength": 800
+      }
+    },
+    "required": [
+      "base_revision_id",
+      "action"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "complete_production_run": {
+    "type": "object",
+    "properties": {
+      "project_id": {
+        "type": "string"
+      },
+      "completion_scope": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "project"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "beats"
+              },
+              "beat_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "kind",
+              "beat_ids"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "objects"
+              },
+              "object_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "kind",
+              "object_ids"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "run_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "final_revision": {
+        "type": "integer",
+        "exclusiveMinimum": 0
+      },
+      "quality_review": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "maxItems": 40
+      },
+      "preview_evidence": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "maxItems": 40
+      }
+    },
+    "required": [
+      "completion_scope",
+      "run_id"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

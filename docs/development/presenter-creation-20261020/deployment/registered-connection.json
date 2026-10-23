@@ -1,0 +1,18 @@
+{
+  "pluginVersion": "0.1.99",
+  "mcpReleaseId": "release-12293e4b8c7b84a76904a92bc4c2cd6219013f1b59c9779a0a9ccf6d6ec344e7",
+  "runtime": {
+    "status": "ready",
+    "runtimeId": "596195a0-8779-4cda-8188-70c1924800dd",
+    "releaseId": "release-12293e4b8c7b84a76904a92bc4c2cd6219013f1b59c9779a0a9ccf6d6ec344e7",
+    "workers": {
+      "media": true,
+      "render": true
+    }
+  },
+  "aligned": true,
+  "launcherReleaseId": "release-12293e4b8c7b84a76904a92bc4c2cd6219013f1b59c9779a0a9ccf6d6ec344e7",
+  "launcherCodeHash": "97d28fd3f81f84c43e2c33559eea5d8ffe1c7d9362d0a501360f1874cfbc6f91",
+  "launcherPid": 47484,
+  "toolCount": 161
+}

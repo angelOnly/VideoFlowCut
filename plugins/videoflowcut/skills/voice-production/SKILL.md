@@ -63,6 +63,10 @@ TTS 不只是把文字念出来。每段至少考虑语速、重音、句尾、�
 
 ## 交接合同
 
+口播按自然句群与相邻语气生成，交回真实声音和可用时间精度。人物只出现一部分
+不要求声音拆成同样的小段；正式声音可裁片驱动需要的人物源。仅改变头像、分屏、
+容器或显隐不重配声音。实际改词或表达确需重配时，处理真实影响并回传相邻接点。
+
 输入是最终 SpeechSegment、Script Revision、VoiceReference 和表演意图。输出是 SegmentAsset、SpeechAsset、真实 `segment_exact`、质量结论和失败段。它会使 ActorPerformance、Caption 和 EffectTiming 需要重建或复核。验证是逐段、拼接、只听声音和声画检查。完成后结果回到 Presenter/Explainer 主工作流。
 
 ## 按当前操作读取

@@ -1,0 +1,14 @@
+{
+  "version": "0.1.99",
+  "releaseId": "release-12293e4b8c7b84a76904a92bc4c2cd6219013f1b59c9779a0a9ccf6d6ec344e7",
+  "buildPassed": true,
+  "pluginVerifyPassed": true,
+  "crossVersionReloadPassed": true,
+  "installedVerifyPassed": true,
+  "productionCutover": true,
+  "projectCount": 105,
+  "persistentSnapshotsUnchanged": true,
+  "historicalJobProtectionWaivedByUser": true,
+  "freshConnectionVerified": true,
+  "historicalJobStatusPreserved": true
+}

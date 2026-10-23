@@ -1,0 +1,10 @@
+{
+  "pluginVersion": "0.1.99",
+  "previousReleaseId": "release-1629252f382b896d22b782a2ba99fe7e85c376e5b4fa35b621d542f582500b57",
+  "releaseId": "release-12293e4b8c7b84a76904a92bc4c2cd6219013f1b59c9779a0a9ccf6d6ec344e7",
+  "ready": true,
+  "stopped": {
+    "stopped": true,
+    "graceful": true
+  }
+}

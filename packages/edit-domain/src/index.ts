@@ -45,6 +45,8 @@ import type {
 import { DEFAULT_TRACKS, DEFAULT_CAPTION_FORMAT, sourceAudioTimeOrigin } from "@videocut/contracts";
 import { projectFrameRateSchema } from "../../contracts/src/frame-rate.js";
 export { projectFrameRateChange } from "./frame-rate-change.js";
+export { resolvePresenterUseAudio, avatarBindingMatches, reconcileAvatarSourceBindings } from "./avatar-source.js";
+import { avatarBindingMatches } from "./avatar-source.js";
 import { compileVisualComposition, resolveCompositionReachability } from "./composition-reachability";
 
 export { primaryVisualRanges, compileVisualComposition, uncoveredVisualRanges, rangesOverlap, resolveCompositionReachability, type CompositionReachability } from "./composition-reachability";
@@ -782,6 +784,7 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
       if (!beat.sceneIds.includes(scene.id)) throw new DomainError("Scene 与 Story Beat 缺少双向关联", "PROJECT_GRAPH_INVALID");
     }
   }
+  const presenterUseIds = new Set<Id>();
   for (const treatment of snapshot.visualTreatments ?? []) {
     if (!treatment.narrativeBeatId && !treatment.sceneId) {
       throw new DomainError("VisualTreatment 必须关联 Story Beat 或 Scene", "PROJECT_GRAPH_INVALID");
@@ -791,6 +794,15 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
     }
     if (treatment.sceneId && !sceneById.has(treatment.sceneId)) {
       throw new DomainError("VisualTreatment 指向不存在 Scene", "PROJECT_GRAPH_INVALID");
+    }
+    for (const use of treatment.presenterUses ?? []) {
+      if (!use.id?.trim() || presenterUseIds.has(use.id) || !use.speechAssetId?.trim()
+        || !Number.isInteger(use.startFrame) || !Number.isInteger(use.endFrame) || use.startFrame < 0 || use.endFrame <= use.startFrame
+        || !use.performanceNote?.trim() || !["aligned", "audio_review"].includes(use.timingEvidence?.kind) || !use.timingEvidence.note?.trim()) {
+        throw new DomainError("人物出镜需要唯一 ID、有效范围与真实时间说明", "PROJECT_GRAPH_INVALID");
+      }
+      presenterUseIds.add(use.id);
+      requireId(assetIds, use.referenceImageAssetId, "人物出镜参考图");
     }
   }
   for (const item of snapshot.timeline.items) {
@@ -868,9 +880,13 @@ export function assertProjectGraphValid(snapshot: ProjectSnapshot): void {
         throw new DomainError("人物生成范围无效", "PROJECT_GRAPH_INVALID");
       }
       // 改稿后旧生成范围保留为审计；只有可采用人物才必须引用当前台词，不能让旧 ID 阻断改稿。
-      if (performance.status !== "stale") {
+      if (performance.status !== "stale" && !performance.sourceBinding) {
         for (const segmentId of range.speechSegmentIds) requireId(speechSegmentIds, segmentId, "人物生成范围 SpeechSegment");
       }
+    }
+    const item = snapshot.timeline.items.find(candidate => candidate.id === performance.timelineItemId)!;
+    if (performance.sourceBinding && performance.status === "ready" && !item.disabled && !avatarBindingMatches(snapshot, performance, item)) {
+      throw new DomainError("人物源的当前使用与真实 Dialogue、参考照片或视频源范围不一致", "PROJECT_GRAPH_INVALID");
     }
   }
 
@@ -1456,6 +1472,7 @@ export function createScene(input: {
 
 /** 视觉处理只保存导演层的可追溯选择；真正的物理播放仍写入 Scene、Cutaway 和 Timeline。 */
 export function createVisualTreatment(input: {
+  presenterUses?: VisualTreatment["presenterUses"];
   adoptedMaterialAssetIds?: Id[];
   narrativeBeatId?: Id;
   sceneId?: Id;
@@ -1469,6 +1486,7 @@ export function createVisualTreatment(input: {
   const createdAt = now();
   return {
     id: createId("visual_treatment"),
+    ...(input.presenterUses !== undefined ? { presenterUses: structuredClone(input.presenterUses) } : {}),
     ...(input.adoptedMaterialAssetIds !== undefined ? { adoptedMaterialAssetIds: [...new Set(input.adoptedMaterialAssetIds)] } : {}),
     narrativeBeatId: input.narrativeBeatId,
     sceneId: input.sceneId,
@@ -1600,6 +1618,7 @@ export function createActorPerformance(input: {
   capabilityProfileId?: Id;
   generationJobId?: Id;
   generationRange?: ActorGenerationRange;
+  sourceBinding?: ActorPerformance["sourceBinding"];
   layout?: ActorLayout;
   bridgeAudit?: ActorPerformance["bridgeAudit"];
   note?: string;
@@ -1616,6 +1635,7 @@ export function createActorPerformance(input: {
     capabilityProfileId: input.capabilityProfileId,
     generationJobId: input.generationJobId,
     generationRange: input.generationRange,
+    sourceBinding: input.sourceBinding,
     layout: input.layout,
     bridgeAudit: input.bridgeAudit,
     status: "ready",

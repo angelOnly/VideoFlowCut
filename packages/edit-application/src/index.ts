@@ -1,4 +1,8 @@
 import { PresenterLibraryService } from "./presenter-library.js";
+import { readAvatarSourceSnapshot } from "./avatar-legacy-source.js";
+import { prepareAvatarSources, type AvatarSourcePlanInput } from "./avatar-source-planning.js";
+import { submitAvatarSource, completeAvatarSource, adoptAvatarSource, type SubmitAvatarSourceInput, type CompleteAvatarSourceInput, type AdoptAvatarSourceInput } from "./avatar-sources.js";
+import { avatarBindingMatches, resolvePresenterUseAudio } from "../../edit-domain/src/avatar-source.js";
 import { submitObjectResources } from "./object-resources.js";
 import type { PrepareObjectResourcesInput } from "../../media-intelligence/src/object-resources/schema.js";
 import { motionFrameRangeSchema, type MotionFrameRange } from "../../motion-work/src/schema.js";
@@ -4738,6 +4742,10 @@ export class EditingApplication {
     snapshot.timeline.captions = snapshot.timeline.captions.filter((caption) => caption.sourceKind === "source_audio" || caption.sourceKind === "user_srt");
     for (const performance of snapshot.actorPerformances) {
       if (performance.source === "generated" && performance.scriptRevision !== snapshot.script.revision) {
+        if (performance.sourceBinding) {
+          const item = snapshot.timeline.items.find(i => i.id === performance.timelineItemId);
+          if (item && avatarBindingMatches(snapshot, performance, item)) continue;
+        }
         performance.status = "stale";
         impact.stale.push(performance.id);
       }
@@ -5620,7 +5628,13 @@ export class EditingApplication {
       const existing = snapshot.actorPerformances.find((candidate) => candidate.timelineItemId === item.id);
       let speechAssetId = input.speechAssetId;
       let scriptRevision: number | undefined;
-      if (input.source === "generated") {
+      if (input.source === "generated" && existing?.sourceBinding) {
+        if (!avatarBindingMatches(snapshot, existing, item)) {
+          throw new DomainError("人物源不匹配当前声音，请重新采用合用源；布局修改不能更新口型", "STALE_ACTOR_REQUIRES_REGENERATION");
+        }
+        speechAssetId = snapshot.speechAsset?.id ?? existing.speechAssetId;
+        scriptRevision = snapshot.speechAsset?.scriptRevision ?? existing.scriptRevision;
+      } else if (input.source === "generated") {
         const speech = snapshot.speechAsset;
         if (!speech || speech.status !== "ready") throw new DomainError("生成型人物表演必须绑定已就绪 SpeechAsset", "SPEECH_ASSET_REQUIRED");
         if (speechAssetId && speechAssetId !== speech.id) throw new DomainError("人物表演引用的 SpeechAsset 不是当前项目版本", "STALE_ACTOR_SPEECH");
@@ -6155,6 +6169,7 @@ export class EditingApplication {
    * 保存主线稳定后做出的视觉选择。它不直接生成卡片或 B-roll，避免导演意图和物理播放重复存储。
    */
   manageVisualTreatment(input: {
+    presenterUses?: import("@videocut/contracts").PresenterUse[];
     adoptedMaterialAssetIds?: Id[];
     projectId: Id;
     baseRevision: number;
@@ -6200,9 +6215,18 @@ export class EditingApplication {
         if (!["image", "video", "derived"].includes(asset.kind) || asset.motion) throw new DomainError("采用展示资料必须是图片或真实视频", "ADOPTED_MATERIAL_INVALID");
       }
       const existing = input.visualTreatmentId ? visualTreatmentById(snapshot, input.visualTreatmentId) : undefined;
+      if (input.presenterUses !== undefined) {
+        const ids = new Set(snapshot.visualTreatments.filter(t => t.id !== existing?.id).flatMap(t => t.presenterUses?.map(u => u.id) ?? []));
+        for (const use of input.presenterUses) {
+          if (!use.id.trim() || ids.has(use.id)) throw new DomainError("人物使用 ID 必须稳定且在项目中唯一", "PRESENTER_USE_DUPLICATE");
+          ids.add(use.id);
+          resolvePresenterUseAudio(snapshot, use);
+        }
+      }
       const primaryAttention = requireText(input.primaryAttention, "第一注意目标");
       const narrativePurpose = requireText(input.narrativePurpose, "视觉叙事目的");
       if (existing) {
+        if (input.presenterUses !== undefined) existing.presenterUses = structuredClone(input.presenterUses);
         if (input.adoptedMaterialAssetIds !== undefined) existing.adoptedMaterialAssetIds = [...new Set(input.adoptedMaterialAssetIds)];
         existing.narrativeBeatId = input.narrativeBeatId;
         existing.sceneId = input.sceneId;
@@ -6227,6 +6251,7 @@ export class EditingApplication {
           quietReason: input.quietReason?.trim() || undefined,
           fallbackPlan: input.fallbackPlan?.trim() || undefined
         });
+        treatment.presenterUses = input.presenterUses === undefined ? undefined : structuredClone(input.presenterUses);
         snapshot.visualTreatments.push(treatment);
         impact.changed.push(treatment.id);
       }
@@ -7102,6 +7127,10 @@ export class EditingApplication {
         };
         for (const performance of snapshot.actorPerformances) {
           if (performance.source !== "generated" || performance.speechAssetId !== speechAsset.id || performance.status === "stale") continue;
+          if (performance.sourceBinding) {
+            const item = snapshot.timeline.items.find(i => i.id === performance.timelineItemId);
+            if (item && avatarBindingMatches(snapshot, performance, item)) continue;
+          }
           performance.status = "stale";
           impact.stale.push(performance.id);
         }
@@ -7606,148 +7635,45 @@ export class EditingApplication {
    * 提交 Avatar 不直接改写 Timeline。先把当时已确认的 Speech、Scene、人物参考和范围
    * 固定进 Job，避免长时间生成完成后错误套用到新的 Script 或新的 PresenterScene。
    */
-  submitAvatarGeneration(input: {
-    projectId: Id;
-    baseRevision: number;
-    capabilityProfileId: Id;
-    referenceImageAssetId?: Id;
-    speechAssetId?: Id;
-    replaceActorPerformanceId?: Id;
-    generationRange: ActorGenerationRange;
-    placement: AvatarGenerationPlacement;
-    prompt?: string;
-    maskMode?: "none";
-    audioMode?: "use_dialogue_track" | "muted";
-    layout?: ActorLayout;
-    note?: string;
-    idempotencyKey?: string;
-  }): JobRecord {
-    const state = this.readProject(input.projectId);
-    if (state.revision.number !== input.baseRevision) {
-      throw new DomainError("项目版本已变化；请重新读取人物、SpeechAsset 与 Scene 后再提交生成", "REVISION_CONFLICT");
-    }
-    const snapshot = state.snapshot;
-    const profile = snapshot.actorCapabilityProfiles.find((candidate) => candidate.id === input.capabilityProfileId);
-    if (!profile) throw new DomainError("人物能力档案不存在", "ACTOR_CAPABILITY_NOT_FOUND");
-    if (profile.provider !== "ltx23_audio_to_video") throw new DomainError("人物生成仅使用 LTX 2.3，请登记当前能力档案", "AVATAR_PROVIDER_UNSUPPORTED");
-    if (!profile.supportsReferenceImage) {
-      throw new DomainError("当前人物 Provider 未声明支持肖像图参考，不能提交该生成任务", "AVATAR_REFERENCE_IMAGE_UNSUPPORTED");
-    }
-    if (!profile.inputModes.includes("audio")) {
-      throw new DomainError("当前人物 Provider 未声明接受最终旁白音频，不能生成与 SpeechAsset 对齐的人物", "AVATAR_AUDIO_INPUT_UNSUPPORTED");
-    }
-    if (!profile.supportsAudioDrivenLipSync) {
-      throw new DomainError("当前人物 Provider 尚未明确声明音频驱动口型同步能力，不能将其作为 SpeechAsset 对齐的数字人口播提交", "AVATAR_LIP_SYNC_CAPABILITY_UNSUPPORTED");
-    }
-    if (input.maskMode !== undefined && input.maskMode !== "none") {
-      throw new DomainError("当前 Avatar Bridge 尚未验证可输出人物 Mask；生成任务只能使用 none，独立 Mask 请在结果后单独登记", "AVATAR_MASK_GENERATION_UNSUPPORTED");
-    }
-    if (!profile.maskModes.includes("none")) {
-      throw new DomainError("人物能力档案没有声明无 Mask 降级，当前生成链无法安全执行", "AVATAR_MASK_MODE_UNSUPPORTED");
-    }
+  prepareAvatarSources(input: AvatarSourcePlanInput & { projectId: Id }) {
+    return prepareAvatarSources(readAvatarSourceSnapshot(this, this.readProject(input.projectId).snapshot), input);
+  }
 
-    const referenceImageAssetId = input.referenceImageAssetId ?? snapshot.presenter?.photo?.assetId;
-    if (!referenceImageAssetId) throw new DomainError("请先选择本片人物照片", "AVATAR_REFERENCE_IMAGE_REQUIRED");
-    const reference = assetById(snapshot, referenceImageAssetId);
-    if (!reference.status || reference.status !== "ready" || !["image", "derived"].includes(reference.kind)) {
-      throw new DomainError("肖像参考必须是已就绪的图片或派生图片素材", "AVATAR_REFERENCE_IMAGE_NOT_READY");
-    }
-
-    const speech = snapshot.speechAsset;
-    if (!speech || speech.status !== "ready" || (input.speechAssetId && input.speechAssetId !== speech.id)) {
-      throw new DomainError("Avatar 只能使用当前已就绪的 SpeechAsset，不能将旧旁白交给 Provider", "STALE_AVATAR_SPEECH");
-    }
-    const speechFile = assetById(snapshot, speech.assetId);
-    if (speechFile.status !== "ready" || speechFile.kind !== "speech" || !speechFile.metadata?.hasAudio) {
-      throw new DomainError("当前 SpeechAsset 的本地音频尚未就绪", "SPEECH_ASSET_NOT_READY");
-    }
-
-    const range = input.generationRange;
-    if (!Number.isInteger(range.startFrame) || !Number.isInteger(range.endFrame) || range.startFrame < 0 || range.endFrame <= range.startFrame || range.endFrame > snapshot.timeline.durationInFrames) {
-      throw new DomainError("人物局部生成范围无效", "INVALID_ACTOR_GENERATION_RANGE");
-    }
-    const requestedSegmentIds = [...new Set(range.speechSegmentIds)];
-    if (requestedSegmentIds.length === 0 || requestedSegmentIds.length !== range.speechSegmentIds.length) {
-      throw new DomainError("人物生成范围必须包含不重复的 SpeechSegment", "INVALID_ACTOR_GENERATION_SEGMENTS");
-    }
-    const currentSegmentIds = new Set(speech.timing.segments.map((segment) => segment.speechSegmentId));
-    if (requestedSegmentIds.some((segmentId) => !currentSegmentIds.has(segmentId))) {
-      throw new DomainError("人物生成范围引用了不属于当前 SpeechAsset 的 SpeechSegment", "STALE_ACTOR_GENERATION_SEGMENT");
-    }
-    const selectedTiming = speech.timing.segments.filter((segment) => requestedSegmentIds.includes(segment.speechSegmentId));
-    const selectedStartFrame = Math.min(...selectedTiming.map((segment) => segment.startFrame));
-    const selectedEndFrame = Math.max(...selectedTiming.map((segment) => segment.endFrame));
-    if (range.startFrame > selectedStartFrame || range.endFrame < selectedEndFrame) {
-      throw new DomainError("人物生成范围必须完整覆盖所选 SpeechSegment 的真实时序", "ACTOR_GENERATION_TIMING_MISMATCH");
-    }
-    if (!profile.supportsPartialRegeneration && (
-      requestedSegmentIds.length !== currentSegmentIds.size
-      || range.startFrame !== selectedStartFrame
-      || range.endFrame !== selectedEndFrame
-    )) {
-      throw new DomainError("当前 Provider 未声明支持局部重生成；必须选择当前 SpeechAsset 的全部 SpeechSegment", "AVATAR_PARTIAL_REGEN_UNSUPPORTED");
-    }
-    const requestedSeconds = (range.endFrame - range.startFrame) / snapshot.timeline.fps;
-    if (requestedSeconds > profile.maxDurationSeconds) {
-      throw new DomainError(`人物生成范围为 ${requestedSeconds.toFixed(2)} 秒，超过 Provider 声明的 ${profile.maxDurationSeconds} 秒上限`, "AVATAR_DURATION_EXCEEDED");
-    }
-
-    const placement = input.placement;
-    if (!Number.isInteger(placement.startFrame) || !Number.isInteger(placement.endFrame) || placement.startFrame !== range.startFrame || placement.endFrame !== range.endFrame) {
-      throw new DomainError("人物播放位置必须与对应的 SpeechSegment 生成范围完全对齐", "ACTOR_PLACEMENT_RANGE_MISMATCH");
-    }
-    const scene = snapshot.scenes.find((candidate) => candidate.id === placement.sceneId);
-    if (!scene || scene.type !== "PresenterScene" || placement.startFrame < scene.startFrame || placement.endFrame > scene.endFrame) {
-      throw new DomainError("人物生成位置必须完全落在已有 PresenterScene 内", "ACTOR_PLACEMENT_SCENE_INVALID");
-    }
-    const layout = input.layout === undefined ? undefined : normalizeActorLayout(input.layout);
-    const replacement = input.replaceActorPerformanceId
-      ? snapshot.actorPerformances.find((candidate) => candidate.id === input.replaceActorPerformanceId)
-      : undefined;
-    if (input.replaceActorPerformanceId && !replacement) throw new DomainError("待局部重生的人物表演不存在", "ACTOR_PERFORMANCE_NOT_FOUND");
-    if (replacement && replacement.source !== "generated") throw new DomainError("只能替换既有的生成型人物表演，导入人物请通过 registerActorPerformance 更新", "ACTOR_REPLACEMENT_SOURCE_INVALID");
-
-    const payload: AvatarGenerationJobPayload = {
-      requestedRevision: state.revision.number,
-      capabilityProfileId: profile.id,
-      workflowId: profile.workflowId,
-      referenceImageAssetId: reference.id,
-      speechAssetId: speech.id,
-      generationRange: { startFrame: range.startFrame, endFrame: range.endFrame, speechSegmentIds: requestedSegmentIds },
-      placement: { sceneId: placement.sceneId, startFrame: placement.startFrame, endFrame: placement.endFrame },
-      replaceActorPerformanceId: replacement?.id,
-      prompt: input.prompt?.trim() || undefined,
-      maskMode: "none",
-      audioMode: input.audioMode ?? "use_dialogue_track",
-      layout,
-      note: input.note?.trim() || undefined
-    };
-    const job = this.repository.createJob({
-      projectId: input.projectId,
-      kind: "avatar_generation",
-      payload,
-      idempotencyKey: input.idempotencyKey ?? [
-        "avatar",
-        payload.requestedRevision,
-        payload.capabilityProfileId,
-        payload.referenceImageAssetId,
-        payload.speechAssetId,
-        `${range.startFrame}-${range.endFrame}`,
-        requestedSegmentIds.join(","),
-        `${placement.sceneId}:${placement.startFrame}-${placement.endFrame}`,
-        payload.replaceActorPerformanceId ?? "new",
-        createHash("sha256").update(payload.prompt ?? "").digest("hex"),
-      ].join(":")
-    });
-    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
+  submitAvatarSourceGeneration(input: SubmitAvatarSourceInput) {
+    const job = submitAvatarSource(this, input);
+    this.publish({ projectId: input.projectId, revision: input.baseRevision, type: "job" });
     return job;
+  }
+
+  completeAvatarSourceGeneration(input: CompleteAvatarSourceInput) {
+    // 仅重试已明确未提交的 CAS 冲突；不重调 Provider，也不重放未知外部结果。
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const result = completeAvatarSource(this, input);
+        this.publish({ projectId: input.projectId, revision: result.state.revision.number, type: "revision" });
+        return result;
+      } catch (error) {
+        if (!(error instanceof RevisionConflictError) || attempt >= 2) throw error;
+      }
+    }
+  }
+
+  adoptAvatarSource(input: AdoptAvatarSourceInput) {
+    const state = adoptAvatarSource(this, input);
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
+  }
+
+  /** 所有新请求走源合同；旧 Job 的完成与恢复保留其固定输入。 */
+  submitAvatarGeneration(input: SubmitAvatarSourceInput): JobRecord {
+    return this.submitAvatarSourceGeneration(input);
   }
 
   /** 已知 Run 继续读取，明确生成失败才允许显式建立一次重生成任务。 */
   resumeAvatarGeneration(jobId: Id): JobRecord {
     const job = this.trackJob(jobId);
     if (job.kind !== "avatar_generation" || !["failed", "unknown"].includes(job.status)) throw new DomainError("只能恢复失败或结果未知的人物任务", "AVATAR_RETRY_STATUS");
-    if (this.readProject(job.projectId).revision.number !== job.payload.requestedRevision) throw new DomainError("项目已改变，请按当前人物、声音与范围重新提交", "STALE_AVATAR_REQUEST");
+    if (job.payload.contractVersion !== 2 && this.readProject(job.projectId).revision.number !== job.payload.requestedRevision) throw new DomainError("项目已改变，请按当前人物、声音与范围重新提交", "STALE_AVATAR_REQUEST");
     const audits = job.result?.bridgeRuns as Array<{ runId?: string }> | undefined;
     if (job.result?.avatarSubmission === "submitting" && !audits?.some(audit => audit.runId)) throw new DomainError("LTX 提交结果未知且缺少 Run ID，先核对原请求", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
     const code = (job.result?.diagnostic as { code?: string } | undefined)?.code;
@@ -8178,6 +8104,14 @@ export class EditingApplication {
       // 即使文字没变，重新合成后的发音与时长也可能变化，因此先明确标记可局部重生成的范围。
       for (const performance of snapshot.actorPerformances) {
         if (performance.source !== "generated" || performance.speechAssetId === speechAsset.id) continue;
+        if (performance.sourceBinding) {
+          const item = snapshot.timeline.items.find(i => i.id === performance.timelineItemId);
+          if (item && avatarBindingMatches(snapshot, performance, item)) {
+            performance.speechAssetId = speechAsset.id;
+            performance.scriptRevision = speechAsset.scriptRevision;
+            continue;
+          }
+        }
         performance.status = "stale";
         impact.stale.push(performance.id);
         const range = performance.generationRange;

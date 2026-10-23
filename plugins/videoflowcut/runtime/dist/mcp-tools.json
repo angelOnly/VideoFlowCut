@@ -6610,9 +6610,54 @@
       }
     },
     {
+      "name": "prepare_avatar_sources",
+      "title": "准备人物视频源",
+      "description": "只读计算当前 presenter_uses 可复用的真实源、必要连续生成组和校准缺口；不创建计划或修改 Revision。sourceGroupKey 与 planFingerprint 由系统生成。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "capability_profile_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "presenter_use_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "attempt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "capability_profile_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "submit_avatar_job",
-      "title": "提交数字人生成人物",
-      "description": "使用当前 SpeechAsset 与已登记的能力档案提交 LTX 2.3 人物生成。提交会固定 base_revision_id；Worker 在实际调用前动态读取 Bridge Schema，不接受或承诺逐帧姿态、目光、手势追踪。当前生成结果仅支持无 Mask 的前景降级，人物声音只能由 Dialogue 或静音承担。完成后用 track_job 和 read_actor_performances 读回。",
+      "title": "提交按需人物源生成",
+      "description": "新任务只接受 contract_version=2：从当前 presenter_uses 重新计算并固定真实声音裁片、照片和表演输入。多个不连续缺口按 prepare_avatar_sources 返回的 sourceGroupKey 分别提交。完成只登记源，用 adopt_avatar_source 按当前分镜采用；旧 Job 沿原 Job/Run 恢复，旧 generation_range/placement 参数需升级。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -6623,89 +6668,88 @@
             "type": "integer",
             "exclusiveMinimum": 0
           },
+          "contract_version": {
+            "type": "number",
+            "const": 2
+          },
           "capability_profile_id": {
             "type": "string",
             "minLength": 1
           },
-          "reference_image_asset_id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "speech_asset_id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "replace_actor_performance_id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "generation_range": {
-            "type": "object",
-            "properties": {
-              "start_frame": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "end_frame": {
-                "type": "integer",
-                "exclusiveMinimum": 0
-              },
-              "speech_segment_ids": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "minItems": 1,
-                "maxItems": 200
-              }
+          "presenter_use_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
             },
-            "required": [
-              "start_frame",
-              "end_frame",
-              "speech_segment_ids"
-            ],
-            "additionalProperties": false
+            "minItems": 1
           },
-          "placement": {
-            "type": "object",
-            "properties": {
-              "scene_id": {
-                "type": "string",
-                "minLength": 1
-              },
-              "start_frame": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "end_frame": {
-                "type": "integer",
-                "exclusiveMinimum": 0
-              }
-            },
-            "required": [
-              "scene_id",
-              "start_frame",
-              "end_frame"
-            ],
-            "additionalProperties": false
+          "source_group_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "plan_fingerprint": {
+            "type": "string",
+            "minLength": 1
           },
           "prompt": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 4000,
-            "description": "人物专项依据导演意图编写的 LTX 正向提示词；仅在工作流公开唯一正向字段时提交，省略使用工作流默认。"
+            "maxLength": 4000
           },
-          "mask_mode": {
+          "attempt": {
             "type": "string",
-            "const": "none"
+            "minLength": 1,
+            "maxLength": 120
           },
-          "audio_mode": {
+          "idempotency_key": {
             "type": "string",
-            "enum": [
-              "use_dialogue_track",
-              "muted"
-            ]
+            "minLength": 1,
+            "maxLength": 240
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "contract_version",
+          "capability_profile_id",
+          "presenter_use_ids"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "adopt_avatar_source",
+      "title": "采用当前人物源",
+      "description": "核对当前出镜需求与真实声音映射，将已登记人物源的合法子范围写入现有 Timeline/ActorPerformance。源音轨静音，源码布局由视觉作者处理。修改 presenter_uses 撤回范围会停用旧使用，源文件保留。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "presenter_use_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "start_frame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end_frame": {
+            "type": "integer",
+            "exclusiveMinimum": 0
           },
           "layout": {
             "type": "object",
@@ -6740,22 +6784,12 @@
               }
             },
             "additionalProperties": false
-          },
-          "note": {
-            "type": "string",
-            "maxLength": 1000
-          },
-          "idempotency_key": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 240
           }
         },
         "required": [
           "base_revision_id",
-          "capability_profile_id",
-          "generation_range",
-          "placement"
+          "presenter_use_id",
+          "asset_id"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
@@ -6897,6 +6931,69 @@
               "upsert",
               "remove"
             ]
+          },
+          "presenter_uses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "speech_asset_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "reference_image_asset_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "start_frame": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "end_frame": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                "performance_note": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "timing_evidence": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "aligned",
+                        "audio_review"
+                      ]
+                    },
+                    "note": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "note"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "speech_asset_id",
+                "reference_image_asset_id",
+                "start_frame",
+                "end_frame",
+                "performance_note",
+                "timing_evidence"
+              ],
+              "additionalProperties": false
+            }
           },
           "adopted_material_asset_ids": {
             "type": "array",

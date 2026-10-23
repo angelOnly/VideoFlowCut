@@ -1,5 +1,5 @@
 import type { ProductionCompletionScope, EditorialQualityReview, EditorialReviewEvidence, EditorialReviewFinding, EditorialReviewPass, ProjectSnapshot, QualityReport } from "@videocut/contracts";
-import { compileVisualComposition, effectBeatRanges, rangesOverlap, resolveCompositionReachability } from "@videocut/domain";
+import { avatarBindingMatches, compileVisualComposition, effectBeatRanges, rangesOverlap, resolveCompositionReachability } from "@videocut/domain";
 
 export const EDITORIAL_PASSES: EditorialReviewPass[] = ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"];
 
@@ -55,7 +55,8 @@ export function mergeEditorialReviews(reviews: EditorialQualityReview[], revisio
 
 export function productionReconciliation(snapshot: ProjectSnapshot): NonNullable<QualityReport["productionReconciliation"]> {
   const active = resolveCompositionReachability(snapshot);
-  const primaryIds = new Set(compileVisualComposition(snapshot, active).primaryCues.map(cue => cue.id));
+  const composition = compileVisualComposition(snapshot, active);
+  const primaryIds = new Set(composition.primaryCues.map(cue => cue.id));
   return [...snapshot.story.beats].sort((a, b) => a.order - b.order).map((beat) => {
     // 同属一个长 Scene 不代表某个 Cue 实现了这个 Scene 内的每一拍。
     const treatments = snapshot.visualTreatments.filter((entry) => entry.narrativeBeatId === beat.id || (!entry.narrativeBeatId && Boolean(entry.sceneId && beat.sceneIds.includes(entry.sceneId))));
@@ -101,6 +102,33 @@ export function productionReconciliation(snapshot: ProjectSnapshot): NonNullable
       const missing = (treatment.adoptedMaterialAssetIds ?? []).filter(id => !connected.has(id));
       if (missing.length) gap("material_not_connected", [treatment.id], `${treatment.id} 已采用展示资料尚未连接：${missing.join("、")}。`, missing);
       if (treatment.adoptedMaterialAssetIds?.some(id => connected.has(id))) observationNeeds.push(`${treatment.id} 资料绑定已存在；仍需实际观察出现、可读性、遮挡及摘读准确性。`);
+      // 只检查当前明确需要的人物范围；闲置生成源和空数组不制造全文人物缺项。
+      for (const use of treatment.presenterUses ?? []) {
+        const ranges: Array<{ startFrame: number; endFrame: number }> = [];
+        for (const performance of snapshot.actorPerformances) {
+          const item = snapshot.timeline.items.find(entry => entry.id === performance.timelineItemId);
+          if (!item || performance.status !== "ready" || performance.sourceBinding?.presenterUseId !== use.id
+            || !avatarBindingMatches(snapshot, performance, item)) continue;
+          if (!item.disabled) ranges.push(...(composition.nativeVisibleRanges.get(item.id) ?? []));
+          for (const cue of snapshot.effectCues.filter(entry => active.effectCueIds.has(entry.id))) {
+            for (const binding of cue.assetBindings) {
+              const motion = snapshot.assets.find(asset => asset.id === binding.assetId)?.motion;
+              for (const source of motion?.videoSources ?? []) {
+                if (source.assetId !== item.assetId) continue;
+                const startFrame = cue.startFrame + Math.ceil((source.startFrame ?? 0) * snapshot.timeline.fps / motion!.fps);
+                const endFrame = Math.min(cue.endFrame, cue.startFrame + Math.ceil((source.endFrame ?? motion!.frameCount) * snapshot.timeline.fps / motion!.fps));
+                const sourceStartFrame = Math.round(source.sourceStartMs * snapshot.timeline.fps / 1000);
+                const sourceEndFrame = sourceStartFrame + endFrame - startFrame;
+                if (sourceEndFrame <= Math.round(source.sourceEndMs * snapshot.timeline.fps / 1000)
+                  && avatarBindingMatches(snapshot, performance, { ...item, startFrame, endFrame, sourceStartFrame, sourceEndFrame })) ranges.push({ startFrame, endFrame });
+              }
+            }
+          }
+        }
+        if (missingReviewRanges(ranges, use.startFrame, use.endFrame).length) {
+          gap("missing_implementation", [treatment.id, use.id], `${use.id} 的当前出镜范围尚未由声画匹配的人物源完整实现。`);
+        }
+      }
     }
     const hasTimedBeat = snapshot.speechSegments.some(segment => segment.semanticUnitIds.some(id => beat.semanticUnitIds.includes(id)) && snapshot.speechAsset?.timing.segments.some(timing => timing.speechSegmentId === segment.id));
     if (!hasTimedBeat && treatments.length) observationNeeds.push("当前仅能按 Scene 粗范围关联，不能证明资料在正确语句出现。");

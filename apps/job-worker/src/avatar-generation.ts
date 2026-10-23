@@ -3,6 +3,7 @@ import { createReadStream } from "node:fs";
 import { mkdir, open, readdir, rename, rm, stat } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join } from "node:path";
 import type { EditingApplication } from "@videocut/application";
+import { resolvePresenterUseAudio } from "../../../packages/edit-domain/src/avatar-source.js";
 import {
   BridgeRunLostError,
   BridgeError,
@@ -13,7 +14,7 @@ import {
   type BridgeRunSubmission,
   type BridgeWorkflow,
 } from "@videocut/bridge";
-import type { ActorCapabilityProfile, Asset, BridgeRunAudit, JobRecord, MediaMetadata, ProjectSnapshot } from "@videocut/contracts";
+import type { ActorCapabilityProfile, Asset, AvatarSourceJobPayload, BridgeRunAudit, JobRecord, MediaMetadata, ProjectSnapshot } from "@videocut/contracts";
 import { assetById, DomainError, millisecondsToFrames } from "@videocut/domain";
 import { probeMedia, runProcess } from "@videocut/speech";
 
@@ -50,6 +51,7 @@ type AvatarGenerationContext = {
   speechFile: Asset;
   generationRange: { startFrame: number; endFrame: number; speechSegmentIds: string[] };
   prompt?: string;
+  sourcePayload?: AvatarSourceJobPayload;
 };
 
 const avatarDirectory = (snapshot: ProjectSnapshot) => join(snapshot.project.rootPath, "assets", "avatar");
@@ -101,6 +103,19 @@ async function assertReadableInput(path: string, label: string): Promise<void> {
 function resolveAvatarContext(application: EditingApplication, job: JobRecord): AvatarGenerationContext {
   const state = application.readProject(job.projectId);
   const snapshot = state.snapshot;
+  // v2 的输入在提交时固定；恢复旧 Run 不重新解释当前声音或分镜。
+  if (job.payload.contractVersion === 2) {
+    const payload = job.payload as AvatarSourceJobPayload;
+    return {
+      snapshot,
+      profile: payload.input.profile,
+      referenceImage: payload.referenceImage,
+      speechFile: payload.speechFile,
+      generationRange: payload.generationRange,
+      prompt: payload.input.prompt,
+      sourcePayload: payload
+    };
+  }
   const requestedRevision = Number(job.payload.requestedRevision);
   // 外部 Provider 调用昂贵且不可回滚；在创建 run 前先拒绝已经落后的 Job。
   if (!Number.isInteger(requestedRevision)) {
@@ -142,6 +157,44 @@ function resolveAvatarContext(application: EditingApplication, job: JobRecord): 
     generationRange,
     prompt
   };
+}
+
+/** 只在创建新 Run 前核对真实依赖；取消一个使用者不影响同源其他用途。 */
+async function assertSourceStillRequired(application: EditingApplication, context: AvatarGenerationContext): Promise<void> {
+  const payload = context.sourcePayload;
+  if (!payload) return;
+  const snapshot = application.readProject(context.snapshot.project.id).snapshot;
+  const input = payload.input;
+  const currentProfile = snapshot.actorCapabilityProfiles.find(profile => profile.id === input.profile.id);
+  if (!currentProfile || currentProfile.provider !== input.profile.provider
+    || currentProfile.workflowId !== input.profile.workflowId
+    || !currentProfile.supportsAudioDrivenLipSync || !currentProfile.supportsReferenceImage
+    || !currentProfile.inputModes.includes("audio")) {
+    throw new DomainError("人物生成所依赖的工作流能力已改变", "STALE_AVATAR_SOURCE_INPUT");
+  }
+  const stillRequired = snapshot.visualTreatments.filter(treatment => treatment.status === "ready").flatMap(treatment => treatment.presenterUses ?? []).some(use => {
+    // 源去重可能让后来新增的使用者复用此 Job，不把历史请求者 ID 当成依赖。
+    if (use.performanceNote !== input.performanceNote) return false;
+    try {
+      const audio = resolvePresenterUseAudio(snapshot, use);
+      const photo = snapshot.assets.find(asset => asset.id === use.referenceImageAssetId);
+      return photo?.status === "ready" && photo.sourceHash === input.referenceImageHash
+        && audio.sourceHash === input.audio.sourceHash && audio.sampleRate === input.audio.sampleRate
+        // 本次可能只补已有源中间的缺口，完整 use 不必被缺口包含。
+        && audio.startSample < input.audio.endSample && audio.endSample > input.audio.startSample;
+    } catch (error) {
+      if (error instanceof DomainError) return false;
+      throw error;
+    }
+  });
+  if (!stillRequired) throw new DomainError("本次人物源已没有仍然有效的出镜需要", "AVATAR_SOURCE_NO_LONGER_REQUIRED");
+  const [speechHash, photoHash] = await Promise.all([
+    hashFile(assetPath(context.snapshot, context.speechFile)),
+    hashFile(assetPath(context.snapshot, context.referenceImage))
+  ]);
+  if (speechHash !== input.audio.sourceHash || photoHash !== input.referenceImageHash) {
+    throw new DomainError("人物源的实际音频或照片内容与固定输入不一致", "AVATAR_SOURCE_INPUT_HASH_MISMATCH");
+  }
 }
 
 /** 仅在作者提供逐镜提示词时使用明确公开的正向输入；不猜测内部节点。 */
@@ -213,23 +266,42 @@ async function prepareAvatarSpeechSlice(context: AvatarGenerationContext, job: J
   await assertReadableInput(sourcePath, "SpeechAsset");
   await mkdir(dirname(targetPath), { recursive: true });
   await rm(targetPath, { force: true }).catch(() => undefined);
+  const audio = context.sourcePayload?.input.audio;
+  if (audio) {
+    const sourceMetadata = await probeMedia(sourcePath);
+    if (sourceMetadata.sampleRate !== audio.sampleRate) {
+      throw new DomainError("人物源音频的实际采样率与固定输入不一致", "AVATAR_SOURCE_SAMPLE_RATE_MISMATCH");
+    }
+  }
   const startSeconds = context.generationRange.startFrame / context.snapshot.timeline.fps;
   const durationSeconds = (context.generationRange.endFrame - context.generationRange.startFrame) / context.snapshot.timeline.fps;
   await runProcess("ffmpeg", [
     "-y",
     "-i", sourcePath,
     // 放在输入之后使用精确裁切；局部重生成不能因为快速 seek 多带入前后段旁白。
-    "-ss", startSeconds.toFixed(3),
-    "-t", durationSeconds.toFixed(3),
+    ...(audio
+      ? ["-af", `atrim=start_sample=${audio.startSample}:end_sample=${audio.endSample},asetpts=PTS-STARTPTS`]
+      : ["-ss", startSeconds.toFixed(3), "-t", durationSeconds.toFixed(3)]),
     "-vn",
     "-ac", "1",
-    "-ar", "24000",
+    "-ar", String(audio?.sampleRate ?? 24000),
     "-c:a", "pcm_s16le",
     targetPath
   ], 5 * 60_000);
   const metadata = await probeMedia(targetPath);
   if (!metadata.hasAudio || metadata.durationMs <= 0) {
     throw new DomainError("按人物生成范围裁出的 SpeechAsset 为空或无音频", "AVATAR_SPEECH_SLICE_INVALID");
+  }
+  if (audio) {
+    // PCM WAV 的 duration_ts 以采样计数，拒绝源文件不足造成的静默短裁片。
+    const output = JSON.parse(await runProcess("ffprobe", [
+      "-v", "error", "-select_streams", "a:0", "-show_entries", "stream=duration_ts,time_base",
+      "-of", "json", targetPath
+    ])) as { streams?: Array<{ duration_ts?: number; time_base?: string }> };
+    const stream = output.streams?.[0];
+    if (stream?.duration_ts !== audio.endSample - audio.startSample || stream.time_base !== `1/${audio.sampleRate}`) {
+      throw new DomainError("人物源裁片未覆盖完整采样范围", "AVATAR_SPEECH_SLICE_INVALID");
+    }
   }
   return targetPath;
 }
@@ -331,6 +403,23 @@ function assertRemotionPlayableAvatar(metadata: MediaMetadata): void {
   }
 }
 
+/** 容器时长可能被更长的音轨撑大；人物可用范围只取实际视频流时长。 */
+async function probeAvatarMedia(path: string): Promise<MediaMetadata> {
+  const metadata = await probeMedia(path);
+  assertRemotionPlayableAvatar(metadata);
+  const probed = JSON.parse(await runProcess("ffprobe", [
+    "-v", "error", "-select_streams", "v:0",
+    "-show_entries", "stream=duration_ts,time_base", "-of", "json", path
+  ], 60_000)) as { streams?: Array<{ duration_ts?: number; time_base?: string }> };
+  const video = probed.streams?.[0];
+  const [numerator, denominator] = video?.time_base?.split("/").map(Number) ?? [];
+  const durationMs = Number(video?.duration_ts) * Number(numerator) / Number(denominator) * 1000;
+  if (!Number.isFinite(durationMs) || durationMs <= 0) {
+    throw new DomainError("人物输出缺少可核验的视频流时长", "INVALID_AVATAR_OUTPUT");
+  }
+  return { ...metadata, durationMs };
+}
+
 function avatarRelativePath(job: JobRecord, outputName: string): string {
   const extension = extname(outputName).toLowerCase();
   const safeName = safeFileName(basename(outputName, extension || undefined)) || "avatar";
@@ -341,9 +430,7 @@ async function inspectAvatarFile(snapshot: ProjectSnapshot, relativePath: string
   const path = join(snapshot.project.rootPath, relativePath);
   try {
     await assertAvatarVideo(path);
-    const metadata = await probeMedia(path);
-    if (!metadata.videoCodec || metadata.durationMs <= 0) return undefined;
-    assertRemotionPlayableAvatar(metadata);
+    const metadata = await probeAvatarMedia(path);
     const contentHash = await hashFile(path);
     return {
       path,
@@ -377,11 +464,7 @@ async function localizeAvatarOutput(
   try {
     await bridge.downloadOutput(output, partialPath);
     await assertAvatarVideo(partialPath, output.mime);
-    const metadata = await probeMedia(partialPath);
-    if (!metadata.videoCodec || metadata.durationMs <= 0) {
-      throw new DomainError("数字人输出无法被 ffprobe 识别为有效视频", "INVALID_AVATAR_OUTPUT");
-    }
-    assertRemotionPlayableAvatar(metadata);
+    const metadata = await probeAvatarMedia(partialPath);
     const contentHash = await hashFile(partialPath);
     await rename(partialPath, targetPath);
     return {
@@ -417,6 +500,9 @@ async function completeAvatarGeneration(
   application: EditingApplication,
   input: AvatarCompletionInput
 ): Promise<unknown> {
+  if (application.trackJob(input.jobId).payload.contractVersion === 2) {
+    return application.completeAvatarSourceGeneration(input);
+  }
   const candidate = application as AvatarCompletionApplication;
   if (typeof candidate.completeAvatarGeneration !== "function") {
     throw new DomainError("当前 EditingApplication 尚未实现数字人结果写入", "AVATAR_COMPLETION_NOT_IMPLEMENTED");
@@ -427,6 +513,15 @@ async function completeAvatarGeneration(
 /** Job 只保存可定位的完成对象，不能把 Application 返回的完整 Revision Snapshot 再复制一份。 */
 function completedAvatarResult(application: EditingApplication, job: JobRecord): Record<string, unknown> {
   const result = application.trackJob(job.id).result;
+  if (job.payload.contractVersion === 2) {
+    const receipt = result?.avatarSourceReceipt;
+    if (!receipt || typeof receipt !== "object" || Array.isArray(receipt)
+      || (receipt as Record<string, unknown>).jobId !== job.id
+      || (receipt as Record<string, unknown>).contractVersion !== 2) {
+      throw new DomainError("人物源已写入项目，但 Job 缺少生成回执", "AVATAR_COMPLETION_RESULT_MISSING");
+    }
+    return { actorAssetId: result?.actorAssetId, avatarSourceReceipt: receipt, revision: result?.revision };
+  }
   const actorAssetId = result?.actorAssetId;
   const timelineItemId = result?.timelineItemId;
   const actorPerformanceId = result?.actorPerformanceId;
@@ -443,6 +538,18 @@ function completedAvatarResult(application: EditingApplication, job: JobRecord):
  */
 function recoverCompletedProjectWrite(application: EditingApplication, job: JobRecord): Record<string, unknown> | undefined {
   const state = application.readProject(job.projectId);
+  if (job.payload.contractVersion === 2) {
+    const asset = state.snapshot.assets.find(candidate => candidate.avatarSourceReceipt?.jobId === job.id);
+    if (!asset?.avatarSourceReceipt || asset.id !== asset.avatarSourceReceipt.assetId
+      || asset.sourceHash !== asset.avatarSourceReceipt.outputHash) return undefined;
+    return {
+      jobId: job.id,
+      actorAssetId: asset.id,
+      avatarSourceReceipt: asset.avatarSourceReceipt,
+      revision: state.revision.number,
+      recoveredProjectWrite: true
+    };
+  }
   const performance = state.snapshot.actorPerformances.find((candidate) => candidate.generationJobId === job.id);
   if (!performance) return undefined;
   const timelineItem = state.snapshot.timeline.items.find((candidate) => candidate.id === performance.timelineItemId);
@@ -513,12 +620,23 @@ export async function runAvatarGeneration(
   }
 
   const submittedAt = new Date().toISOString();
+  await assertSourceStillRequired(application, context);
   const speechSlicePath = await prepareAvatarSpeechSlice(context, job);
   let submission: BridgeRunSubmission;
   try {
+    if (context.sourcePayload) {
+      await application.recordJobCheckpoint(job.id, {
+        avatarSpeechSlice: {
+          ...context.sourcePayload.input.audio,
+          contentHash: await hashFile(speechSlicePath)
+        }
+      });
+    }
     submission = await bridge.createRunWithSchemaRetry(
       context.profile.workflowId,
       async (workflow) => {
+        // Schema 重试前也核对当前需求，避免准备裁片期间已取消的任务进入 GPU。
+        await assertSourceStillRequired(application, context);
         const request = await buildAvatarBridgeRequest(context, workflow, speechSlicePath);
         await application.recordJobCheckpoint(job.id, { avatarSubmission: "submitting" });
         return request;

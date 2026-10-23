@@ -31,6 +31,7 @@ import {
   cloneSnapshot,
   createId,
   createProjectSnapshot,
+  reconcileAvatarSourceBindings,
   DomainError,
   emptyImpact,
   sourceAudioAlignmentOwnerMatches,
@@ -462,6 +463,7 @@ export class ProjectRepository {
       }
       // 只把完整、确定性的时间换算作为比较基准；其它内容变化仍走原失效检查。
       const timingReference = current.snapshot.timeline.fps === snapshot.timeline.fps ? current.snapshot : projectFrameRateChange(current.snapshot, snapshot.timeline.fps).snapshot;
+      reconcileAvatarSourceBindings(timingReference, snapshot, impact);
       reconcileMotionDependencies(timingReference, snapshot, impact);
       reconcileEffectAudioEvents(snapshot, impact);
       reconcileSoundDesign(timingReference, snapshot, impact);

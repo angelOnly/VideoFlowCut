@@ -2,7 +2,13 @@
 
 ## 主线变化后的返工范围
 
-从零数字人先由 `apply_authored_script` 保存准确台词，完成正式 SpeechAsset 与真实时序，再用 `create_scene(type=PresenterScene)` 建立覆盖生成范围的合法场景，按[声画交接](presenter-shot-plan.md)提交 `submit_avatar_job`。`apply_script` 仅从已有语义单元选择和排序，不承载新写正文。无需为了创建 Scene 编造 A-roll；结果由原视觉作者采用。已有真人原片则沿文末的 assemble／compile 路线，不套用生成输入要求。
+沿当前口播和分镜派发人物源缺口，不遍历全文语音段生成人物。范围已明确的部分
+可以先做，后续增加或改分镜仍走原流程。调用实际发布的 v2 源生成和使用合同，
+读回真实素材及当前引用；不重新组织整片主线，也不把旧 Job 的位置覆盖回新画面。
+
+从零数字人先由 `apply_authored_script` 保存准确台词，完成正式 SpeechAsset 与真实时序，再按[声画交接](presenter-shot-plan.md)准备当前出镜需要、查询可复用源并只提交缺口。当前出镜范围保存在原 VisualTreatment 的 `presenter_uses`，使用 `prepare_avatar_sources` 查询复用与缺口、`submit_avatar_job` 的 `contract_version:2` 提交缺口，再用 `adopt_avatar_source` 按最新范围采用；具体字段沿[人物执行操作](../../avatar-performance/references/actor-operations.md#当前执行)。源生成不预设成片位置；源返回后再安排 Scene、人物与作品绑定。`apply_script` 仅从已有语义单元选择和排序，不承载新写正文。无需为生成源编造 A-roll 或先锁定整片 Scene；结果交原视觉作者继续制作。已有真人原片则沿文末的 assemble／compile 路线，不套用生成输入要求。
+
+撤回或修改范围时更新同一 VisualTreatment 的 `presenter_uses`；空数组清除该 Treatment 的人物使用，原源文件保留。已有 Item 停用不自动修改 TSX，原视觉作者继续调整作品绑定、显隐与场面接管。
 
 人物进入受管作品时，`videoBindings` 直接引用真实 `actor_video`。需要接管外层人物像素时沿本页[主场面接管](#主场面接管)使用已发布 `visual_composition`，透明与不透明作品都明确可见责任，不靠背景盖住外层人物。核查前后未覆盖范围及真实 Item ID，保留源裁切、时钟与声音；不能禁用整个原 Item 而误删获准原声。普通字幕保持最终画布层。安装版本不支持时记录实际差异，不写入拟定字段。
 

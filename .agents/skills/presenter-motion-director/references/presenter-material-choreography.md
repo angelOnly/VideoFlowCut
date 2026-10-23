@@ -1,49 +1,167 @@
 # 人物与素材的连续编排
 
-仅供已采用 presenter_motion 或明确 hybrid 人物范围读取。人物视频是带表演和源时钟约束的场景材料，不是默认底板或默认主视觉。
-人物讲述身份、讲述声音和当前视觉主体分别判断。先确定主要观看任务，
-再与真实材料、图形、文字共同选择人物形态、面积、层级和可见范围。
+仅供已采用 presenter_motion 或明确 hybrid 人物范围读取。人物视频是带表演和源时钟约束的场景材料，不是默认底板或默认主视觉。先确定主要观看任务，再与真实材料、图形、文字共同选择人物形态、面积、层级和可见范围。
 
-导演说明讲述者为何有用、原话和表演哪些必须保留；人物显隐与形态先为候选，由视觉与材料共同设计后协调采用，不提前固定面积。准确台词、声音与当前视觉主体分别判断；不按句号、字幕卡、文件结束或定时配额切镜。
+导演说明人物为何有用、真实原话与表演哪些必须保留；同一视觉作者负责整场构图与连续过程。准确台词、声音与当前视觉主体分别判断，不按句号、字幕卡、文件结束或定时配额切镜。效果判断见[人物效果特点](presenter-effect-targets.md)。
 
-| 观众当前需要什么 | 优先考虑的观看对象（非固定对应） | 人物承担什么 |
+## 选择与组合
+
+| 方法文件 | 主要用途 | 常见连接 |
 |---|---|---|
-| 听到直接解释、提问或回应 | 人物与材料共场、材料主读或独立人物画面 | 建立对话、表演态度与解释责任 |
-| 看清真实对象、操作、变化 | 实拍、录屏、原件资料，必要时全屏 | 同一声音引导，人物可以窗口陪同或退出 |
-| 理解机制、数量或抽象关系 | 图形／动画与必要证据 | 讲清条件与意义，不必全程露脸 |
-| 理解轻量标签或简单比较 | 人物与可读的材料／图形共场 | 二者确实互相补充，复杂时人物让位 |
-| 修正直觉、限定结论或作判断 | 人物返回或与必要证据共场 | 接回解释、反应或判断，但不提前撤掉未看完的证据 |
-| 停留在情绪、环境和现场声音里 | 人物、环境或现场原声 | 暂停新的阅读任务，让观众有感受空间 |
+| [avatar-window.md](presenter-compositions/avatar-window.md) | 圆形动态头像／简洁小窗陪读 | 人物主画面缩小、材料展开、随整组换场 |
+| [paper-cutout.md](presenter-compositions/paper-cutout.md) | 视频纸片／轮廓剪贴参与同一美术场面 | 图形拼贴、标签接力、前后错层、整体切镜 |
+| [split-screen.md](presenter-compositions/split-screen.md) | 人物和材料并置、比较与带读 | 分区重排、某区扩大接管、缩成头像 |
+| [embedded-container.md](presenter-compositions/embedded-container.md) | 人物嵌入手机、屏幕或设计容器 | 整体移动、进入屏幕细节、退回设备整体 |
+| [material-takeover.md](presenter-compositions/material-takeover.md) | 人物退出，素材与动态图形接管 | 同源放大、直接切镜、结果后接回人物 |
+| [presenter-main.md](presenter-compositions/presenter-main.md) | 人物独立承担直接交流或表演 | 与花字形成重音、缩窗、分屏、切入材料 |
 
-**每次重要切换都要回答：当前主要观看对象是什么，人物以何种方式参与才有价值？重新看到人物时，他带来什么新的解释、态度或情绪？** 只有内容理由成立才切换；不是问句一定露脸，也不是结尾一定回人。
+**使用方式：**看当前内容和材料，从集中索引直接选需要的方式，读取对应制法，结合原通用机制组合到当前场面。不存在固定轮换、随机分配或“每片用齐”的要求。表格不是互斥枚举；视频纸片可在分屏中使用，手机中的人物也可以整体缩成辅助窗口。
 
-## 呈现形态与空间关系
+人物方式解决人物怎样进入画面；原机制库继续解决材料、图形、文字、背景和镜头怎样丰富地发展。两者共同使用，不因有人物就只搜头像、缩窗与口播花字，也不重做已经纳入当前代码的机制来源上下文。
 
-| 方法 | 人物与场面的关系 | 必须设计的共同过程 | 条件与边界 |
-|---|---|---|---|
-| **角落动态头像／小窗** | 材料或图形主读，人物辅助带读、回应 | 主材料如何展开，重点短语何时读清，头像何时让位、移位或退出；安静保持可以成立 | 使用真实说话视频；先取脸部与必要肩部，再裁圆／圆角；不固定某个角落 |
-| **视频纸片／轮廓剪贴** | 人物作为图形、照片与文字之间的一个对象 | 一起建立、错层、重排、回应与接管，而非抠出后仍巨大居中 | 带背景视频纸片不需要抠像；人物轮廓及前后穿插需要真实 Alpha／Mask，动作配合需要真实源证据 |
-| **人物与材料分屏** | 两区域互补，可有明显主次 | 分区随阅读重排；材料扩大、人物收窄或退出；重点能跨区呼应 | 不默认五五开，不把复杂资料塞进小区来迁就人物 |
-| **嵌入手机／屏幕／设计容器** | 人物是某个物件内部的视频内容 | 容器、内部视频与外围材料共同发展；可从整体进入局部，或由内部内容接管 | 容器服务当前表达，不凭套壳完成设计；缩放、移动不重置内部视频时间 |
-| **人物不可见，声音继续** | 完整空间交给素材、图形与花字 | 材料阅读、关系发展、运镜与交接继续按原完整能力制作 | 不保留无作用小窗；是否回来取决于下一讲述用途，不由文件边界决定 |
-| **人物独立主画面** | 当前直接交流、真实反应或表演本身值得看 | 可保持干净，也可与排印、景别和材料介入共同形成重音 | 不是默认起点或终点；不能用人物在动嘴替代本应发生的解释过程 |
+## 共用制法
 
-这些方法可交叉组合，不是互斥镜头枚举、轮换顺序或使用配额。先读实际人物视频，确认头肩、动作、背景、源画幅及可裁区域，再按目标画幅和材料阅读共同取景。横屏使用竖向或近方形源，不自动放大为满高居中竖框，也不自动裁圆塞入固定角落。缺少真实分层时改用视频纸片、窗口或分屏，主要解释过程继续完成。
+将所需函数内联到本片受管 TSX，不增加未允许的本地模块 import。以下为方法参考代码，不是新增平台组件；语法与几何验证不代表已经完成项目运行和画面验收。
 
-## 发展与接管
+源尺寸使用正向显示后的实际宽高；`crop` 为作者观察后确定的归一化取景，不是模型自动识别或跟踪结果。以下几何先选取景，再按比例填满窗口，避免把人脸拉宽。`TimelineVideo` 的正式 slot、静音与根时钟仍由现有绑定管理。
 
-人物独立画面的语义重音由短语、必要景别与声音共同形成，再落稳；不挡脸，不与普通字幕抢读，表演足够时可保持干净。多层场面让人物、环境、背景材料、花字与图形按语义改变主次；真实 Alpha／Mask 才支持轮廓前后穿插。以下接管关系与上述形态共同选择，不默认从全屏人物起步。
+```tsx
+import React from 'react';
+import {TimelineVideo} from '@videoflowcut/motion';
 
-| 连续关系 | 画面怎样发展 | 用途与约束 |
-|---|---|---|
-| **全屏人物→连续缩窗＋材料接管** | 人物持续播放并缩放／移位；材料在释放的空间建立，停稳后人物窗口仍在说话，材料成为主角 | 陪同看资料、演示、图解；**只变布局、不重播人物嘴型**，材料可读，不能出现双人物或双声 |
-| **人物旁的材料窗口→放大接管** | 先认出同一材料，随后材料窗口扩大为主画面，人物同步退让，原材料视频继续播放 | 从指出对象转向观察细节；保留材料身份与原源时间，不能突然换另一份片源冒充接续 |
-| **人物退出→全屏材料／图形＋声音连续** | 人物让出空间，真实过程、资料或图解完整展开；原讲述声音继续 | 复杂证据、机制、过程；不因人物退出就重新出现无关标题页，保持事实与可读性 |
-| **材料收束→人物返回接结论** | 证据先达到能理解的状态；人物在确需回应、限定或推进时回来，材料可退为参照 | 判断、反应、下一问；口型与当前声音对应，不能材料没读完就撤掉，也不能机械到点回人 |
-| **材料细节→解释图形→接回人物** | 从材料中真实对象发展出标注、对照、拆解或状态变化，需要人物承接时再回来 | 将展示变为解释；区分原件事实与编辑示意，不伪造数据、跟踪或因果 |
+type Box = {x: number; y: number; width: number; height: number};
+type Crop = Box; // 归一化到 0..1 的真实源画面，不是像素坐标。
+type SourceSize = {width: number; height: number};
 
-同一场面同时设计呈现、协作与交接：谁保持、谁改变、谁让位、谁取得主读。缩窗或套壳只解决形态，材料、字组、背景仍须完成主要过程。人物返回带来新的讲述作用，不由文件结束触发。整场由同一视觉作者持续实现，生成表演源后继续原任务。
+function sourcePlane(source: SourceSize, box: Box, crop: Crop): Box {
+  const values = [source.width, source.height, box.x, box.y, box.width,
+    box.height, crop.x, crop.y, crop.width, crop.height];
+  if (values.some(v => !Number.isFinite(v)) || source.width <= 0 ||
+      source.height <= 0 || box.width <= 0 || box.height <= 0 ||
+      crop.width <= 0 || crop.height <= 0 || crop.x < 0 || crop.y < 0 ||
+      crop.x + crop.width > 1 + 1e-9 || crop.y + crop.height > 1 + 1e-9) {
+    throw new Error('人物源尺寸、窗口或取景范围无效');
+  }
+  const cw = crop.width * source.width;
+  const ch = crop.height * source.height;
+  const s = Math.max(box.width / cw, box.height / ch);
+  return {
+    x: (box.width - cw * s) / 2 - crop.x * source.width * s,
+    y: (box.height - ch * s) / 2 - crop.y * source.height * s,
+    width: source.width * s,
+    height: source.height * s,
+  };
+}
 
-**前期交付的同一份声画稿**必须能从准确台词／说话人追踪到：观众任务、人物是否可见及在哪些语义范围可见、主画面与素材用途、进入／变化／落稳／出口、何时由同一声音延续、为什么回来。初稿用语义和秒级大致时序，正式声音及素材回来后再映射到真实帧；不增加第二份分镜数据库和逐句强制表单。
+function PresenterWindow({slot, source, crop, box, radius = 0,
+  opacity = 1, rotateDeg = 0}: {
+  slot: string; source: SourceSize; crop: Crop; box: Box;
+  radius?: number | string; opacity?: number; rotateDeg?: number;
+}) {
+  const p = sourcePlane(source, box, crop);
+  return (
+    <div style={{position: 'absolute', left: box.x, top: box.y,
+      width: box.width, height: box.height, overflow: 'hidden',
+      borderRadius: radius, opacity,
+      transform: `rotate(${rotateDeg}deg)`, transformOrigin: '50% 50%'}}>
+      <div style={{position: 'absolute', left: p.x, top: p.y,
+        width: p.width, height: p.height}}>
+        <TimelineVideo slot={slot} fit="fill"
+          style={{width: '100%', height: '100%'}} />
+      </div>
+    </div>
+  );
+}
 
-**技术不变量**：人物全屏、缩窗、分屏及过渡期间若可见，就必须有对应真实人物视频；只听声音可不生成。生成范围按自然表演、Provider 能力和剪辑余量组织，不等于一条字幕一个 Job，也不默认全片生成。当前 TTS／SpeechAsset 与人物口型绑定；一段台词仅一条有效讲述音轨，素材原声按目的单独控制。布局变化不能把人物或材料源视频时间重置；普通字幕位于最终画布独立层，不随人物缩放。素材不足应继续完成原取材任务，**不靠长时间人物讲话掩盖缺材**；人物接口缺能力亦不能悄悄退化为纯 AI 解说。
+function blendBox(a: Box, b: Box, progress: number): Box {
+  const p = Math.max(0, Math.min(1, progress));
+  const mix = (x: number, y: number) => x + (y - x) * p;
+  return {x: mix(a.x, b.x), y: mix(a.y, b.y),
+    width: mix(a.width, b.width), height: mix(a.height, b.height)};
+}
+```
+
+`fit="fill"` 只用于上面已经按源宽高同比例计算的内部视频平面，不用于把人物直接拉伸到任意窗口。圆形取景应检查圆周裁切，不能只看矩形框是否包含头部。外框、阴影、背景与花字从本片美术取值，不在共用组件中强制一种外观。
+
+具体组合可以直接这样落实，所有 `layout` 坐标和进度均为本场内部变量，不是新 MCP 字段：
+
+| 方法 | 最小实现对应 |
+|---|---|
+| 动态头像 | `PresenterWindow` 使用方形 `box`、实际 `crop` 和 `radius="50%"`；外层可随所属画面组移动 |
+| 视频纸片 | 共同父层包含纸边、`PresenterWindow`、附着标签；旋转和平移施加给父层，而不是各层单独猜位置 |
+| 分屏 | 用同一进度分别计算 `blendBox(actorA, actorB, p)` 与 `blendBox(materialA, materialB, p)`；两区内部重新取景，不横向压缩源 |
+| 容器嵌入 | 外框与屏幕在共同父层；屏幕用局部 `box` 放置 `PresenterWindow`，共同变换不改变内部视频时间 |
+| 材料接管 | 人物层按本片实际出镜区间绘制或退出，材料层完成接管；Dialogue 不随人物层卸载 |
+| 人物主画面 | 使用本场主构图 `box/crop`；需要缩窗时只改变几何，使用原 slot 和当前时间 |
+
+以下三个组合函数可与上面的共用代码放在同一份作品源码中，分别作为纸片、分屏和容器方法的最小实现。窗口、边缘与人物源是参数，具体外观和动作由本片设计提供；这不是三个固定成片模板。`renderMaterial` 返回本片真实材料的绘制结果，不是新的平台回调接口。
+
+```tsx
+type PresenterSource = {slot: string; source: SourceSize; crop: Crop};
+
+function PaperPresenter({actor, box, inset, paperStyle, transform, marks}: {
+  actor: PresenterSource; box: Box; inset: number;
+  paperStyle: React.CSSProperties; transform: string; marks?: React.ReactNode;
+}) {
+  return <div style={{...paperStyle, position: 'absolute', left: box.x,
+    top: box.y, width: box.width, height: box.height, transform}}>
+    <PresenterWindow {...actor} box={{x: inset, y: inset,
+      width: box.width - 2 * inset, height: box.height - 2 * inset}} />
+    {marks}
+  </div>;
+}
+
+function SplitPresenter({actor, actorFrom, actorTo, materialFrom, materialTo,
+  progress, renderMaterial}: {
+  actor: PresenterSource; actorFrom: Box; actorTo: Box;
+  materialFrom: Box; materialTo: Box; progress: number;
+  renderMaterial: (box: Box) => React.ReactNode;
+}) {
+  return <>
+    {renderMaterial(blendBox(materialFrom, materialTo, progress))}
+    <PresenterWindow {...actor}
+      box={blendBox(actorFrom, actorTo, progress)} />
+  </>;
+}
+
+function EmbeddedPresenter({actor, outer, screen, radius, transform, shell}: {
+  actor: PresenterSource; outer: Box; screen: Box; radius: number;
+  transform: string; shell: React.ReactNode;
+}) {
+  return <div style={{position: 'absolute', left: outer.x, top: outer.y,
+    width: outer.width, height: outer.height, transform}}>
+    <PresenterWindow {...actor} box={screen} radius={radius} />
+    {shell}
+  </div>;
+}
+```
+
+`marks` 是依附纸片的标签，`shell` 是屏幕有开口的外框与装饰，两者使用共同父层的局部坐标。不要传入实心外框遮住整个屏幕。分屏过程中材料可以据新窗口重新取景和排布，不能只把原内容压扁。动态头像用 `PresenterWindow` 的圆形窗口直接实现；主画面使用其较大取景；材料接管时收回人物层即可，主声音不放在这些组件里。
+
+运动的轻重、路径、交叠和收势继续使用原动效机制，不把 `blendBox` 当作唯一动画曲线。不要为方便维护，把所有方法重新封装成只接受 `x/y/w/h`、固定圆角与海边背景的万能人物框。
+
+## 与丰富动效组合
+
+常见组合包括“人物主画面与花字形成重音后缩成头像，资料展开”“视频纸片与照片、标签共同重排”“分屏比较后由材料区放大接管”“手机中的人物随整组物件进入，随后转向屏幕细节”“材料完成后切回人物解释刚才的结果”。它们是组合方法，不是固定故事结构。
+
+视觉作者先用原有方法考虑整场的主体、资料、图形、文字和观察，再把人物方式组合进去。某些场面也可以从人物形式出发启发整场构思，两者往返调整。没有人物的通用机制仍然可以用于人物片；不用按案例是否有人像做硬过滤。
+
+人在说话时，重点文字不只是孤立弹出。可直接利用现有机制中的文字累积、短语接力、标记追加、空间让位与对象响应：先建立当前对象，在相应语言重点让字组形成可读形状，保留必要参照，再与下一个材料或画面共同处理。正式调用继续使用当前项目与检索结果，核读实际机制，不固定查询次数或机制编号。
+
+## 文案与画面配合
+
+**带观众看。** 台词引出一个对象时，让对象及时出现并达到可看状态；需要先说明条件时先说条件。不能只有“看这里”，画面却没有提供对象。
+
+**接住看到的结果。** 台词评论、惊讶或澄清之前，结果已让观众辨认；人物可以稳定陪读，也可以在这个位置取得更多注意。不是在动画开始前把所有发现念完。
+
+**一起形成重点。** 话语重音、花字和相关对象在同一段过程中加强当前含义。重点要在该看见时真正可见，不能在人物遮挡后动完，也不能与整段字幕同时抢读。
+
+**共同离开和继续。** 人物、容器、文字和材料可以随同一组画面切镜，也可以分别让位。已经建立的对象和结果有用途时继续保留，不因进入下一条语音段就全部清空。
+
+这些做法进入原声画稿与当前源码，制作时使用原有时序能力。创作者用秒描述自然时机，正式声音就绪后换算真实时间；不新增联动事件数据库，不要求逐词打点，不把普通切镜变成必须无缝变形的工程问题。
+
+## 交接与真实源
+
+当前声画稿交清准确台词、观看任务、人物可见的语义范围、主画面与材料用途、进入／变化／落稳／出口及声音如何延续。初稿可用语义和秒级时序，正式声音及素材回来后再映射真实帧，不增加第二份分镜数据库或逐句表单。
+
+人物在全屏、缩窗、分屏及进退过渡中可见时，必须有对应真实视频。源范围按当前需要、自然起止和 Provider 能力组织；完整配音不自动触发全文人物生成。人物返回使用当前嘴型，一段台词只保留一个有效讲述声源；普通字幕位于最终画布独立层，不随人物缩放。素材不足继续取材，不用长时间讲话掩盖缺材。源复用与补生成见[人物源交接](presenter-shot-plan.md)，源时钟和接管见[时间线操作](timeline-operations.md#人物绑定与源时钟)。

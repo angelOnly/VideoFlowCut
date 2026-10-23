@@ -283,25 +283,30 @@ async function prepareAvatarJob(context: { root: string; app: EditingApplication
   };
 }
 
-function submitPreparedAvatarJob(
+/** 直接恢复发行前已持久化的旧合同，不保留旧的新任务提交入口。 */
+function seedLegacyAvatarJob(
   app: EditingApplication,
   prepared: Awaited<ReturnType<typeof prepareAvatarJob>>,
   idempotencyKey: string,
   prompt?: string
 ) {
-  return app.submitAvatarGeneration({
+  return app.repository.createJob({
     projectId: prepared.projectId,
-    baseRevision: app.readProject(prepared.projectId).revision.number,
-    capabilityProfileId: prepared.profile.id,
-    referenceImageAssetId: prepared.portraitAssetId,
-    speechAssetId: prepared.speechAsset.id,
-    generationRange: { startFrame: 0, endFrame: 24, speechSegmentIds: [prepared.segment.id] },
-    placement: { sceneId: prepared.scene.id, startFrame: 0, endFrame: 24 },
-    maskMode: "none",
-    audioMode: "use_dialogue_track",
-    layout: { actorHead: { x: 0.5, y: 0.28, source: "manual_static" } },
-    note: "测试用自然正面主持人",
-    prompt,
+    kind: "avatar_generation",
+    payload: {
+      requestedRevision: app.readProject(prepared.projectId).revision.number,
+      capabilityProfileId: prepared.profile.id,
+      workflowId: prepared.profile.workflowId,
+      referenceImageAssetId: prepared.portraitAssetId,
+      speechAssetId: prepared.speechAsset.id,
+      generationRange: { startFrame: 0, endFrame: 24, speechSegmentIds: [prepared.segment.id] },
+      placement: { sceneId: prepared.scene.id, startFrame: 0, endFrame: 24 },
+      maskMode: "none",
+      audioMode: "use_dialogue_track",
+      layout: { actorHead: { x: 0.5, y: 0.28, source: "manual_static" } },
+      note: "测试用自然正面主持人",
+      prompt
+    },
     idempotencyKey
   });
 }
@@ -379,18 +384,18 @@ test("LTX 分镜提示词使用公开正向字段；未知提交不可重放，�
       throw new Error(`未预期请求 ${url}`);
     };
     const bridge = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1");
-    const missing = submitPreparedAvatarJob(context.app, prepared, "missing-prompt-field", prompt);
+    const missing = seedLegacyAvatarJob(context.app, prepared, "missing-prompt-field", prompt);
     await assert.rejects(runAvatarGeneration(context.app, missing, bridge), /提示词/);
     assert.equal(posts, 0);
     fields = [{ id: "negative", kind: "text", label: "Negative Prompt", required: false }, { id: "positive", kind: "text", label: "正向提示词", required: false }];
-    const unknown = submitPreparedAvatarJob(context.app, prepared, "unknown-submit", prompt);
+    const unknown = seedLegacyAvatarJob(context.app, prepared, "unknown-submit", prompt);
     await assert.rejects(runAvatarGeneration(context.app, unknown, bridge), /没有取得 Run ID/);
     await assert.rejects(runAvatarGeneration(context.app, unknown, bridge), /结果未知/);
     assert.equal(posts, 1);
     context.app.updateJob(unknown.id, { status: "unknown" });
     assert.throws(() => context.app.resumeAvatarGeneration(unknown.id), /缺少 Run ID/);
     mode = "read-failure";
-    const known = submitPreparedAvatarJob(context.app, prepared, "known-submit", prompt);
+    const known = seedLegacyAvatarJob(context.app, prepared, "known-submit", prompt);
     await assert.rejects(runAvatarGeneration(context.app, known, bridge), /查询中断/);
     assert.equal(posts, 2);
     context.app.updateJob(known.id, { status: "failed" });
@@ -656,8 +661,8 @@ test("Avatar Worker 会重读 Bridge Schema、在 409 后重试，并将同一 J
       role: "b_roll",
       sourceHash: matchingBrollHash
     });
-    const job = submitPreparedAvatarJob(context.app, prepared, "avatar-schema-retry");
-    const replayedSubmission = submitPreparedAvatarJob(context.app, prepared, "avatar-schema-retry");
+    const job = seedLegacyAvatarJob(context.app, prepared, "avatar-schema-retry");
+    const replayedSubmission = seedLegacyAvatarJob(context.app, prepared, "avatar-schema-retry");
     assert.equal(replayedSubmission.id, job.id, "相同幂等键不能重复创建 Avatar Job");
     markSeedMediaJobsHandled(context.app, prepared.projectId);
 
@@ -899,19 +904,19 @@ test("Avatar Worker 拒绝不唯一或未明确覆盖的媒体 Slot，不向 Pro
     };
     const bridge = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1");
 
-    const portraitAmbiguous = submitPreparedAvatarJob(context.app, prepared, "avatar-portrait-slot-ambiguous");
+    const portraitAmbiguous = seedLegacyAvatarJob(context.app, prepared, "avatar-portrait-slot-ambiguous");
     await assert.rejects(
       () => runAvatarGeneration(context.app, portraitAmbiguous, bridge),
       (error: unknown) => error instanceof DomainError && error.code === "AVATAR_PORTRAIT_SLOT_AMBIGUOUS"
     );
 
-    const speechAmbiguous = submitPreparedAvatarJob(context.app, prepared, "avatar-speech-slot-ambiguous");
+    const speechAmbiguous = seedLegacyAvatarJob(context.app, prepared, "avatar-speech-slot-ambiguous");
     await assert.rejects(
       () => runAvatarGeneration(context.app, speechAmbiguous, bridge),
       (error: unknown) => error instanceof DomainError && error.code === "AVATAR_SPEECH_SLOT_AMBIGUOUS"
     );
 
-    const requiredMediaUnhandled = submitPreparedAvatarJob(context.app, prepared, "avatar-required-media-slot-unhandled");
+    const requiredMediaUnhandled = seedLegacyAvatarJob(context.app, prepared, "avatar-required-media-slot-unhandled");
     await assert.rejects(
       () => runAvatarGeneration(context.app, requiredMediaUnhandled, bridge),
       (error: unknown) => error instanceof DomainError && error.code === "AVATAR_PORTRAIT_SLOT_AMBIGUOUS"
@@ -927,6 +932,20 @@ test("未验证音频驱动口型的能力档案不能提交 Avatar 任务", asy
   const context = await createTestApplication();
   try {
     const prepared = await prepareAvatarJob(context, "Avatar 口型能力提交门禁测试");
+    context.app.applyMediaAnalysis({
+      projectId: prepared.projectId, assetId: prepared.speechAsset.assetId,
+      metadata: await probeMedia(prepared.videoFixture)
+    });
+    context.app.manageVisualTreatment({
+      projectId: prepared.projectId, baseRevision: context.app.readProject(prepared.projectId).revision.number,
+      action: "upsert", sceneId: prepared.scene.id, mode: "keep_presenter",
+      primaryAttention: "人物", narrativePurpose: "口播解释", intensity: "quiet",
+      presenterUses: [{
+        id: "lipsync-use", speechAssetId: prepared.speechAsset.id, referenceImageAssetId: prepared.portraitAssetId,
+        startFrame: 0, endFrame: 24, performanceNote: "自然讲述",
+        timingEvidence: { kind: "audio_review", note: "已核对隔离完整声音范围" }
+      }]
+    });
     const downgraded = context.app.manageActorCapabilityProfile({
       projectId: prepared.projectId,
       baseRevision: context.app.readProject(prepared.projectId).revision.number,
@@ -935,8 +954,12 @@ test("未验证音频驱动口型的能力档案不能提交 Avatar 任务", asy
       supportsAudioDrivenLipSync: false
     });
     assert.throws(
-      () => submitPreparedAvatarJob(context.app, prepared, "avatar-lipsync-unverified"),
-      (error: unknown) => error instanceof DomainError && error.code === "AVATAR_LIP_SYNC_CAPABILITY_UNSUPPORTED"
+      () => context.app.submitAvatarGeneration({
+        projectId: prepared.projectId, baseRevision: downgraded.revision.number,
+        contractVersion: 2, capabilityProfileId: prepared.profile.id,
+        presenterUseIds: ["lipsync-use"], idempotencyKey: "avatar-lipsync-unverified"
+      }),
+      (error: unknown) => error instanceof DomainError && error.code === "AVATAR_CAPABILITY_UNSUPPORTED"
     );
     assert.equal(context.app.readProject(prepared.projectId).revision.number, downgraded.revision.number, "被拒绝的提交不能创建 Job 或写入新的 Revision");
     assert.equal(context.app.repository.listJobs(prepared.projectId).some((job) => job.kind === "avatar_generation"), false);
@@ -950,7 +973,7 @@ test("Avatar Bridge 成功但没有视频输出时保留审计并把 Job 标记�
   const originalFetch = globalThis.fetch;
   try {
     const prepared = await prepareAvatarJob(context, "Avatar 输出缺失测试");
-    const job = submitPreparedAvatarJob(context.app, prepared, "avatar-output-missing");
+    const job = seedLegacyAvatarJob(context.app, prepared, "avatar-output-missing");
     markSeedMediaJobsHandled(context.app, prepared.projectId);
     globalThis.fetch = async (input) => {
       const url = String(input);
@@ -1000,7 +1023,7 @@ test("Avatar Worker 拒绝非 H.264 的 Provider 输出，不隐式转码改变�
   try {
     const prepared = await prepareAvatarJob(context, "Avatar 输出编码门禁测试");
     const incompatibleFixture = await createIncompatibleAvatarVideoFixture(context.root);
-    const job = submitPreparedAvatarJob(context.app, prepared, "avatar-output-incompatible-codec");
+    const job = seedLegacyAvatarJob(context.app, prepared, "avatar-output-incompatible-codec");
     markSeedMediaJobsHandled(context.app, prepared.projectId);
     globalThis.fetch = async (input) => {
       const url = String(input);
@@ -1047,7 +1070,7 @@ test("Avatar Worker 拒绝非 H.264 的 Provider 输出，不隐式转码改变�
   }
 });
 
-test("MCP 的 submit_avatar_job 只提交可追溯 Job，并可通过通用读取入口复核", async () => {
+test("MCP 的 submit_avatar_job 使用 v2 需求提交可追溯源 Job，拒绝旧放置参数并保留通用读取", async () => {
   const context = await createTestApplication();
   const environment = Object.fromEntries(
     Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === "string")
@@ -1062,9 +1085,13 @@ test("MCP 的 submit_avatar_job 只提交可追溯 Job，并可通过通用读�
   const client = new Client({ name: "videocut-avatar-mcp-contract-test", version: "1.0.0" });
   try {
     const prepared = await prepareAvatarJob(context, "Avatar MCP 提交测试");
+    context.app.applyMediaAnalysis({
+      projectId: prepared.projectId, assetId: prepared.speechAsset.assetId,
+      metadata: await probeMedia(prepared.videoFixture)
+    });
     await client.connect(transport);
     const toolNames = new Set((await client.listTools()).tools.map((tool) => tool.name));
-    for (const name of ["read_actor_capabilities", "manage_actor_capabilities", "submit_avatar_job", "read_actor_performances", "track_job", "read_presenter_library", "import_presenter_media", "manage_presenter_library", "apply_presenter_selection", "resume_avatar_job"]) {
+    for (const name of ["read_actor_capabilities", "manage_actor_capabilities", "submit_avatar_job", "prepare_avatar_sources", "adopt_avatar_source", "manage_visual_treatment", "read_actor_performances", "track_job", "read_presenter_library", "import_presenter_media", "manage_presenter_library", "apply_presenter_selection", "resume_avatar_job"]) {
       assert.ok(toolNames.has(name), `MCP 缺少 Avatar 必要工具：${name}`);
     }
     const targeted = JSON.parse(textFromToolResult(await client.callTool({ name: "target_project", arguments: { project_id: prepared.projectId } }))) as { projectId: string; revision: number };
@@ -1073,7 +1100,7 @@ test("MCP 的 submit_avatar_job 只提交可追溯 Job，并可通过通用读�
     assert.equal(capabilities[0]?.id, prepared.profile.id);
     assert.equal(capabilities[0]?.supportsAudioDrivenLipSync, true);
 
-    const submitted = JSON.parse(textFromToolResult(await client.callTool({ name: "submit_avatar_job", arguments: {
+    const legacy = await client.callTool({ name: "submit_avatar_job", arguments: {
       base_revision_id: targeted.revision,
       capability_profile_id: prepared.profile.id,
       reference_image_asset_id: prepared.portraitAssetId,
@@ -1083,16 +1110,45 @@ test("MCP 的 submit_avatar_job 只提交可追溯 Job，并可通过通用读�
       audio_mode: "use_dialogue_track",
       mask_mode: "none",
       layout: { actor_head: { x: 0.5, y: 0.28, source: "manual_static" } },
-      idempotency_key: "avatar-mcp-submit"
-    } }))) as {
+      idempotency_key: "avatar-mcp-legacy-rejected"
+    } });
+    assert.equal(legacy.isError, true, "旧放置参数必须明确拒绝，不能静默转成新版源生成");
+    assert.equal(context.app.repository.listJobs(prepared.projectId).some(job => job.kind === "avatar_generation"), false);
+    const treatment = await client.callTool({ name: "manage_visual_treatment", arguments: {
+      base_revision_id: targeted.revision, action: "upsert", scene_id: prepared.scene.id,
+      mode: "keep_presenter", primary_attention: "人物", narrative_purpose: "口播解释", intensity: "quiet",
+      presenter_uses: [{
+        id: "mcp-presenter-use", speech_asset_id: prepared.speechAsset.id, reference_image_asset_id: prepared.portraitAssetId,
+        start_frame: 0, end_frame: 24, performance_note: "自然正面讲述",
+        timing_evidence: { kind: "audio_review", note: "隔离测试已核对完整声音范围" }
+      }]
+    } });
+    assert.equal(treatment.isError, undefined);
+    const currentRevision = context.app.readProject(prepared.projectId).revision.number;
+    const planResult = await client.callTool({ name: "prepare_avatar_sources", arguments: {
+      capability_profile_id: prepared.profile.id, presenter_use_ids: ["mcp-presenter-use"]
+    } });
+    assert.equal(planResult.isError, undefined);
+    const plan = JSON.parse(textFromToolResult(planResult)) as { planFingerprint: string; groups: Array<{ sourceGroupKey: string }> };
+    assert.equal(plan.groups.length, 1);
+    const submittedResult = await client.callTool({ name: "submit_avatar_job", arguments: {
+      base_revision_id: currentRevision, contract_version: 2, capability_profile_id: prepared.profile.id,
+      presenter_use_ids: ["mcp-presenter-use"], source_group_key: plan.groups[0]!.sourceGroupKey,
+      plan_fingerprint: plan.planFingerprint, idempotency_key: "avatar-mcp-submit"
+    } });
+    assert.equal(submittedResult.isError, undefined, textFromToolResult(submittedResult));
+    const submitted = JSON.parse(textFromToolResult(submittedResult)) as {
       id: string;
       kind: string;
       status: string;
       payload: {
         capabilityProfileId: string;
         speechAssetId: string;
+        contractVersion: number;
+        presenterUseIds: string[];
+        input: { audio: { sampleRate: number; startSample: number; endSample: number } };
         generationRange: { speechSegmentIds: string[] };
-        placement: { sceneId: string };
+        placement?: unknown;
       };
     };
     assert.equal(submitted.kind, "avatar_generation");
@@ -1100,7 +1156,12 @@ test("MCP 的 submit_avatar_job 只提交可追溯 Job，并可通过通用读�
     assert.equal(submitted.payload.capabilityProfileId, prepared.profile.id);
     assert.equal(submitted.payload.speechAssetId, prepared.speechAsset.id);
     assert.deepEqual(submitted.payload.generationRange.speechSegmentIds, [prepared.segment.id]);
-    assert.equal(submitted.payload.placement.sceneId, prepared.scene.id);
+    assert.equal(submitted.payload.contractVersion, 2);
+    assert.deepEqual(submitted.payload.presenterUseIds, ["mcp-presenter-use"]);
+    assert.equal(submitted.payload.input.audio.sampleRate, 48000);
+    assert.equal(submitted.payload.input.audio.startSample, 0);
+    assert.equal(submitted.payload.input.audio.endSample, 48000);
+    assert.equal(submitted.payload.placement, undefined, "源生成不携带提交时的旧上屏位置");
 
     const tracked = JSON.parse(textFromToolResult(await client.callTool({ name: "track_job", arguments: { job_id: submitted.id } }))) as { id: string; kind: string; status: string };
     assert.equal(tracked.id, submitted.id);
@@ -1116,7 +1177,7 @@ test("MCP 的 submit_avatar_job 只提交可追溯 Job，并可通过通用读�
     assert.equal(library.entries[0]?.name, "MCP 保存照片");
     const read = JSON.parse(textFromToolResult(await client.callTool({ name: "read_presenter_library", arguments: {} })));
     assert.equal(read.defaults.photoId, library.defaults.photoId);
-    const applied = await client.callTool({ name: "apply_presenter_selection", arguments: { baseRevision: targeted.revision, photoId: library.defaults.photoId } });
+    const applied = await client.callTool({ name: "apply_presenter_selection", arguments: { baseRevision: currentRevision, photoId: library.defaults.photoId } });
     assert.equal(applied.isError, undefined);
     assert.equal(context.app.readProject(prepared.projectId).snapshot.presenter?.photo?.entryId, library.defaults.photoId);
   } finally {

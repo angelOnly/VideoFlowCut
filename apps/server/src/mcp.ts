@@ -2293,56 +2293,49 @@ server.registerTool("manage_actor_performance", {
   } catch (error) { return asError(error); }
 });
 
+server.registerTool("prepare_avatar_sources", {
+  title: "准备人物视频源",
+  description: "只读计算当前 presenter_uses 可复用的真实源、必要连续生成组和校准缺口；不创建计划或修改 Revision。sourceGroupKey 与 planFingerprint 由系统生成。",
+  inputSchema: { project_id: z.string().optional(), capability_profile_id: z.string().min(1),
+    presenter_use_ids: z.array(z.string().min(1)).optional(), prompt: z.string().trim().min(1).max(4000).optional(),
+    attempt: z.string().trim().min(1).max(120).optional() },
+  annotations: { readOnlyHint: true }
+}, async (input) => {
+  try { return asText(application.prepareAvatarSources({ projectId: projectIdFrom(input.project_id),
+    capabilityProfileId: input.capability_profile_id, presenterUseIds: input.presenter_use_ids, prompt: input.prompt, attempt: input.attempt })); }
+  catch (error) { return asError(error); }
+});
+
 server.registerTool("submit_avatar_job", {
-  title: "提交数字人生成人物",
-  description: "使用当前 SpeechAsset 与已登记的能力档案提交 LTX 2.3 人物生成。提交会固定 base_revision_id；Worker 在实际调用前动态读取 Bridge Schema，不接受或承诺逐帧姿态、目光、手势追踪。当前生成结果仅支持无 Mask 的前景降级，人物声音只能由 Dialogue 或静音承担。完成后用 track_job 和 read_actor_performances 读回。",
+  title: "提交按需人物源生成",
+  description: "新任务只接受 contract_version=2：从当前 presenter_uses 重新计算并固定真实声音裁片、照片和表演输入。多个不连续缺口按 prepare_avatar_sources 返回的 sourceGroupKey 分别提交。完成只登记源，用 adopt_avatar_source 按当前分镜采用；旧 Job 沿原 Job/Run 恢复，旧 generation_range/placement 参数需升级。",
   inputSchema: z.object({
-    project_id: z.string().optional(),
-    base_revision_id: z.number().int().positive(),
-    capability_profile_id: z.string().min(1),
-    // 当前 LTX 路径只接受一张本地化人物参考图，不把参考视频能力提前暴露为可用。
-    reference_image_asset_id: z.string().min(1).optional(),
-    speech_asset_id: z.string().min(1).optional(),
-    replace_actor_performance_id: z.string().min(1).optional(),
-    generation_range: actorGenerationRangeSchema,
-    placement: actorPlacementSchema,
-    prompt: z.string().trim().min(1).max(4_000).optional().describe("人物专项依据导演意图编写的 LTX 正向提示词；仅在工作流公开唯一正向字段时提交，省略使用工作流默认。"),
-    mask_mode: z.literal("none").optional(),
-    audio_mode: z.enum(["use_dialogue_track", "muted"]).optional(),
-    layout: actorLayoutSchema.optional(),
-    note: z.string().trim().max(1_000).optional(),
+    project_id: z.string().optional(), base_revision_id: z.number().int().positive(), contract_version: z.literal(2),
+    capability_profile_id: z.string().min(1), presenter_use_ids: z.array(z.string().min(1)).min(1),
+    source_group_key: z.string().min(1).optional(), plan_fingerprint: z.string().min(1).optional(),
+    prompt: z.string().trim().min(1).max(4000).optional(), attempt: z.string().trim().min(1).max(120).optional(),
     idempotency_key: z.string().trim().min(1).max(240).optional()
   }).strict()
 }, async (input) => {
-  try {
-    return asText(application.submitAvatarGeneration({
-      projectId: projectIdFrom(input.project_id),
-      baseRevision: input.base_revision_id,
-      capabilityProfileId: input.capability_profile_id,
-      referenceImageAssetId: input.reference_image_asset_id,
-      speechAssetId: input.speech_asset_id,
-      replaceActorPerformanceId: input.replace_actor_performance_id,
-      generationRange: {
-        startFrame: input.generation_range.start_frame,
-        endFrame: input.generation_range.end_frame,
-        speechSegmentIds: input.generation_range.speech_segment_ids
-      },
-      placement: {
-        sceneId: input.placement.scene_id,
-        startFrame: input.placement.start_frame,
-        endFrame: input.placement.end_frame
-      },
-      prompt: input.prompt,
-      maskMode: input.mask_mode,
-      audioMode: input.audio_mode,
-      layout: input.layout ? {
-        actorHead: input.layout.actor_head,
-        actorHands: input.layout.actor_hands
-      } : undefined,
-      note: input.note,
-      idempotencyKey: input.idempotency_key
-    }));
-  } catch (error) { return asError(error); }
+  try { return asText(application.submitAvatarSourceGeneration({ projectId: projectIdFrom(input.project_id),
+    baseRevision: input.base_revision_id, contractVersion: input.contract_version, capabilityProfileId: input.capability_profile_id,
+    presenterUseIds: input.presenter_use_ids, sourceGroupKey: input.source_group_key, planFingerprint: input.plan_fingerprint,
+    prompt: input.prompt, attempt: input.attempt, idempotencyKey: input.idempotency_key })); }
+  catch (error) { return asError(error); }
+});
+
+server.registerTool("adopt_avatar_source", {
+  title: "采用当前人物源",
+  description: "核对当前出镜需求与真实声音映射，将已登记人物源的合法子范围写入现有 Timeline/ActorPerformance。源音轨静音，源码布局由视觉作者处理。修改 presenter_uses 撤回范围会停用旧使用，源文件保留。",
+  inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(),
+    presenter_use_id: z.string().min(1), asset_id: z.string().min(1),
+    start_frame: z.number().int().nonnegative().optional(), end_frame: z.number().int().positive().optional(),
+    layout: actorLayoutSchema.optional() }
+}, async (input) => {
+  try { return asText(application.adoptAvatarSource({ projectId: projectIdFrom(input.project_id), baseRevision: input.base_revision_id,
+    presenterUseId: input.presenter_use_id, assetId: input.asset_id, startFrame: input.start_frame, endFrame: input.end_frame,
+    layout: input.layout ? { actorHead: input.layout.actor_head, actorHands: input.layout.actor_hands } : undefined })); }
+  catch (error) { return asError(error); }
 });
 
 server.registerTool("browse_scene_types", {
@@ -2402,6 +2395,11 @@ server.registerTool("manage_visual_treatment", {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
     action: z.enum(["upsert", "remove"]),
+    presenter_uses: z.array(z.object({
+      id: z.string().min(1), speech_asset_id: z.string().min(1), reference_image_asset_id: z.string().min(1),
+      start_frame: z.number().int().nonnegative(), end_frame: z.number().int().positive(), performance_note: z.string().max(2000),
+      timing_evidence: z.object({ kind: z.enum(["aligned", "audio_review"]), note: z.string().trim().min(1) })
+    }).strict()).optional(),
     adopted_material_asset_ids: z.array(z.string().min(1)).optional(),
     visual_treatment_id: z.string().min(1).optional(),
     narrative_beat_id: z.string().min(1).optional(),
@@ -2419,6 +2417,9 @@ server.registerTool("manage_visual_treatment", {
       projectId: projectIdFrom(input.project_id),
       baseRevision: input.base_revision_id,
       action: input.action,
+      presenterUses: input.presenter_uses?.map(u => ({ id: u.id, speechAssetId: u.speech_asset_id,
+        referenceImageAssetId: u.reference_image_asset_id, startFrame: u.start_frame, endFrame: u.end_frame,
+        performanceNote: u.performance_note, timingEvidence: u.timing_evidence })),
       adoptedMaterialAssetIds: input.adopted_material_asset_ids,
       visualTreatmentId: input.visual_treatment_id,
       narrativeBeatId: input.narrative_beat_id,
