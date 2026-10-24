@@ -1,10 +1,12 @@
+import { checkMotionDisplayTexts } from "../../../packages/edit-application/src/source-display-checks.js";
+import type { FrozenSourceDisplay } from "../../../packages/contracts/src/source-display-policy.js";
 import { MotionDiagnostics } from "./motion-diagnostics.js";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, statfs, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import puppeteer, { type Browser, type Page } from "puppeteer-core";
 import { PNG } from "pngjs";
-import { compileMotion, MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compiler.js";
+import { compileMotion, motionContentSecurityPolicy, MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compiler.js";
 import type { MotionVideoProvider, MotionSubmission, MotionFrameRange } from "../../../packages/motion-work/src/schema.js";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { resolveRenderBrowser } from "./exporter.js";
@@ -14,9 +16,10 @@ import type { MotionEvent } from "@videocut/contracts";
 import { verifyMotionDeterminism, type MotionDeterminismReport } from "./motion-determinism.js";
 import { checkMotionDiskSpace, checkMotionOutputBudget, motionOutputBudget } from "./motion-output-budget.js";
 import { runMotionProcess } from "./motion-process.js";
+import { HYPERFRAMES_DEPENDENCIES } from "../../../packages/motion-work/src/hyperframes-contract.js";
 import type { PreparedMotionFont } from "../../../packages/motion-work/src/fonts.js";
 
-export interface MotionRenderResult { frameHashes: string[]; previewPath: string; engineVersion: string; sandbox: string; events?: MotionEvent[]; determinism?: MotionDeterminismReport; }
+export interface MotionRenderResult { frameHashes: string[]; runtimeDependencies?: typeof HYPERFRAMES_DEPENDENCIES; previewPath: string; engineVersion: string; sandbox: string; events?: MotionEvent[]; determinism?: MotionDeterminismReport; }
 
 /** 失败关闭也有限时；否则导航已超时却被finally的关闭等待拖住。 */
 export async function closeMotionBrowser(browser: Pick<Browser, "close" | "process">, diagnostics: MotionDiagnostics, timeoutMs = 3000) {
@@ -73,7 +76,7 @@ export async function verifyMotionPreviewFrames(path: string, frameCount: number
  * 生成代码只在无凭据的独立 Chromium 中运行，不使用 Remotion 默认的 --no-sandbox。
  * 响应级 CSP sandbox 建立 opaque origin；所有网络请求由拦截器拒绝，只有唯一内存文档可加载。
  */
-export async function renderManagedMotion(input: MotionSubmission, directory: string, imageData: Record<string, string> = {}, provider?: MotionVideoProvider, signal?: AbortSignal, fonts: PreparedMotionFont[] = [], diagnostics = new MotionDiagnostics({}), frameRange?: MotionFrameRange): Promise<MotionRenderResult> {
+export async function renderManagedMotion(input: MotionSubmission, directory: string, imageData: Record<string, string> = {}, provider?: MotionVideoProvider, signal?: AbortSignal, fonts: PreparedMotionFont[] = [], diagnostics = new MotionDiagnostics({}), frameRange?: MotionFrameRange, sourceDisplay?: FrozenSourceDisplay): Promise<MotionRenderResult> {
   signal?.throwIfAborted();
   const limits = readRuntimeConfig().motion;
   const startFrame = frameRange?.startFrame ?? 0, endFrame = frameRange?.endFrame ?? input.durationInFrames;
@@ -94,13 +97,9 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
     return `@font-face{font-family:'${binding.family}';src:url('https://motion.invalid/fonts/${binding.hash}.${format}');font-weight:${binding.weight};font-style:${binding.style};font-display:block}`;
   }).join("");
   diagnostics.stage("source_compilation");
-  const javascript = `window.addEventListener('securitypolicyviolation',e=>console.error('MOTION_CSP_VIOLATION:'+e.violatedDirective));\n${await compileMotion(input, imageData, provider?.videos, fonts.map(font => font.binding))}`.replace(/<\/script/giu, "<\\/script");
-  const scriptHash = createHash("sha256").update(javascript).digest("base64");
-  // Player 内部有 data: 静音音频探测；允许内嵌数据并不开放外部媒体或网络。
-  const csp = `default-src 'none'; script-src 'sha256-${scriptHash}'; style-src 'unsafe-inline'; img-src data: https://motion.invalid/video/; font-src https://motion.invalid/fonts/; media-src data:; connect-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; sandbox allow-scripts`;
+  const html = await compileMotion(input, imageData, provider?.videos, fonts.map(font => font.binding), fontCss);
+  const csp = motionContentSecurityPolicy(html, input.source);
   let allowedFrame = 0;
-  // SVG 的 auto 字体模式会按缩放历史复用字形栅格；几何精度模式使文字按当前帧的变换绘制。
-  const html = `<!doctype html><html><head><meta charset="utf-8"><style>${fontCss}html,body,#root{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;font-family:'Microsoft YaHei','Noto Sans SC',sans-serif}svg{text-rendering:geometricPrecision}</style></head><body><div id="root"></div><script>${javascript}</script></body></html>`;
   diagnostics.stage("browser_startup");
   const browser = await puppeteer.launch({
     executablePath: await resolveRenderBrowser(), headless: true, pipe: true,
@@ -174,13 +173,20 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
           (async () => {
             await page.evaluate(async (value) => {
               await (window as unknown as { __motionSeek: (frame: number) => Promise<void> }).__motionSeek(value);
-              // 半透明变换图层的增删会复用不同的文字阴影绘制状态；每帧重建布局，保留 React 状态以继续检出真实副作用。
+              // 半透明变换图层的增删会复用不同的文字阴影绘制状态；每帧重建布局，保留作品状态以继续检出真实副作用。
               document.body.style.display = "none";
               void document.body.offsetHeight;
               document.body.style.removeProperty("display");
               void document.body.offsetHeight;
               await Promise.all(Array.from(document.images).map((image) => image.decode()));
             }, frame);
+            if (sourceDisplay) {
+              const texts = await page.evaluate(() => [...document.body.querySelectorAll("*")]
+                .filter(el => !el.closest("script,style,template") && !el.querySelector("div,p,section,article,text")
+                  && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden")
+                .map(el => el.textContent ?? ""));
+              checkMotionDisplayTexts(texts, input.props, sourceDisplay);
+            }
             if (errors.length) throw new Error(errors.slice(0, 3).join("; "));
             diagnostics.frame(frame, "screenshot");
             const png = Buffer.from(await page.screenshot({ type: "png", omitBackground: true, captureBeyondViewport: false }));
@@ -219,7 +225,7 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
     await readFile(previewPath); // ffmpeg 返回成功还必须有真实输出。
     diagnostics.stage("output_validation");
     await verifyMotionPreviewFrames(previewPath, frameCount, input.fps);
-    return { frameHashes, previewPath, engineVersion: MOTION_ENGINE_VERSION, sandbox: "chromium-os-sandbox+csp-opaque-origin+deny-network", events, determinism };
+    return { frameHashes, previewPath, runtimeDependencies: HYPERFRAMES_DEPENDENCIES, engineVersion: MOTION_ENGINE_VERSION, sandbox: "chromium-os-sandbox+csp-opaque-origin+deny-network", events, determinism };
   } catch (error) {
     // 清理和页面附加错误不能抹掉第一条异常与原始堆栈。
     diagnostics.additional(error, "render_first_failure");

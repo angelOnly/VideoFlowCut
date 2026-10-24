@@ -43,7 +43,7 @@ Scene是技术组织单位，不预先规定素材、图形或文字的主次。
 
 ## 内部状态：Entry、Progressive、Settled、Exit
 
-新场面的状态需要大约的秒级起止范围、动作交叠与阅读安排，不能只列进入或结束条件。按 [秒级初始节奏与预览修订](../effect-timing/SKILL.md#秒级初始节奏与预览修订) 实现完整首版，再根据前后画面和声画预览调整；已有场面只修受影响范围。用户明确锁定的内容、声音和总长保留；可修改旁白由导演结合实际场面共同修订，仍有作用或受约束的讲述由后续实际画面承接。
+新场面的状态需要大约的秒级起止范围、动作交叠与阅读安排，不能只列进入或结束条件。按 [秒级初始节奏与预览修订](../effect-timing/SKILL.md#初始节奏与预览修订) 实现完整首版，再根据前后画面和声画预览调整；已有场面只修受影响范围。用户明确锁定的内容、声音和总长保留；可修改旁白由导演结合实际场面共同修订，仍有作用或受约束的讲述由后续实际画面承接。
 
 ### Entry
 
@@ -105,7 +105,7 @@ Scene 太短可能是信息过多、旁白太快或边界错误；Scene 太长�
 
 ## 交接合同
 
-输入是 StoryBeat、Visual Treatment、可用 Asset、声音/人物状态和当前 Timeline。输出是 Scene 类型、目的、边界、内部状态、持续对象和声音交接。它会影响 EffectCue、Caption、Cutaway 和 Preview。验证是 Entry、Progressive、Settled、Exit 与连续播放。结果回到主工作流或 `remotion-production`。
+输入是 StoryBeat、Visual Treatment、可用 Asset、声音/人物状态和当前 Timeline。输出是 Scene 类型、目的、边界、内部状态、持续对象和声音交接。它会影响 EffectCue、Caption、Cutaway 和 Preview。验证是 Entry、Progressive、Settled、Exit 与连续播放。结果回到主工作流或 `opendesign-video-production`。
 
 ## 按当前操作读取
 

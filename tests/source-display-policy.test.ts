@@ -1,3 +1,5 @@
+import {motionHtml} from "./fixtures/hyperframes.js";
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -11,10 +13,10 @@ import { motionFixture } from "./fixtures/managed-motion.js";
 import { motionHash, motionHashEngine, MOTION_ENGINE_VERSION } from "../packages/motion-work/src/compiler.js";
 
 const frozen: FrozenSourceDisplay = { scopeId: "project", policy: { mode: "internal_only" } };
-const source = (body: string) => `import React from 'react'; export default function Motion(props){return <div>${body}</div>;}`;
+const source = (body: string) => motionHtml(`<div>${body}</div>`);
 
 test("自由源码只检查可见出处，保留正文、后台资料及核对提示", () => {
-  for (const body of ["来源：某机构", "第 3 页", '{"来源：" + "某报告"}', '{props.sourceTitle}', '{props["sourceTitle"]}', '{`来源：${props.sourceTitle}`}', '<div text="出处：某报告"/>']) {
+  for (const body of ["来源：某机构", "第 3 页", "报告标题", "出处：某报告"]) {
     assert.throws(() => checkMotionSourceDisplay(source(body), { sourceTitle: "报告标题" }, frozen), error => {
       assert.ok(error instanceof SourceDisplayValidationError);
       assert.ok(error.fields[0]!.line && error.fields[0]!.column); return true;
@@ -22,7 +24,7 @@ test("自由源码只检查可见出处，保留正文、后台资料及核对�
   }
   assert.equal(checkMotionSourceDisplay(source("数据来源是什么？"), {}, frozen).length, 1);
   assert.equal(checkMotionSourceDisplay(source("截至2026年，单位元，不含税"), { sourceTitle: "后台报告，第3页" }, frozen).length, 0);
-  assert.doesNotThrow(() => checkMotionSourceDisplay("const note='来源：报告';" + source("能量来自哪里"), {}, frozen));
+  assert.doesNotThrow(() => checkMotionSourceDisplay(motionHtml("<div>能量来自哪里</div>","const note='来源：报告';"), {}, frozen));
   const specified: FrozenSourceDisplay = { scopeId: "project", policy: { mode: "specified", exceptions: [{ scopeId: "project", text: "来源：某机构", basis: "用户请求：保留该署名" }] } };
   assert.doesNotThrow(() => checkMotionSourceDisplay(source("来源：某机构"), {}, specified));
   assert.throws(() => checkMotionSourceDisplay(source("来源：某机构"), {}, { ...specified, scopeId: "other" }));
@@ -39,7 +41,7 @@ test("HTTP策略与源码拒绝原子性、冻结输入、幂等恢复和历史�
     assert.equal(created.snapshot.project.brief.explicitCreativePreferences, undefined);
     assert.deepEqual(created.snapshot.project.brief.sourceDisplayPolicy, { mode: "internal_only" });
     const submit = (work: typeof motionFixture, key = "同一提交") => app.inject({ method: "POST", url: `/api/projects/${projectId}/motion-works`, payload: { baseRevision: application.readProject(projectId).revision.number, idempotencyKey: key, work } });
-    const work = { ...motionFixture, source: source("来源：研究报告") };
+    const work = sizeMotionFixture({ ...motionFixture, source: source("来源：研究报告") });
     const rejected = await submit(work);
     assert.equal(rejected.statusCode, 400);
     assert.equal(rejected.json().code, "SOURCE_CAPTION_NOT_ALLOWED");

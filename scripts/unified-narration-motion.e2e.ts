@@ -1,3 +1,4 @@
+import {sizeMotionFixture} from "../tests/fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -71,7 +72,7 @@ try{
   }
   const source=await readFile(join(repoRoot,"tests/fixtures/material-space-motion.tsx.txt"),"utf8");
   const props={sourceWidth:320,sourceHeight:180,viewBefore:{x:20,y:20,width:240,height:135},viewAfter:{x:0,y:0,width:320,height:180},cameraStartSec:0.1,cameraEndSec:1,scopeBefore:{x:30,y:40,width:60,height:60},scopeAfter:{x:20,y:20,width:280,height:130},scopeStartSec:1,scopeExpandedSec:1.6,scopeEndSec:2.5,marks:[{id:"marker",text:"测试",x:60,y:60,labelX:120,labelY:70,startSec:0.3,endSec:1.2}],background:"#111111",ink:"#ffffff",accent:"#ffcc00",labelFill:"#333333"};
-  const work={...motionFixture,source,props,width:320,height:180,fps:30,durationInFrames:90,reference:undefined,videoBindings:{footage:{assetId:imported.asset.id,sourceStartMs:0,sourceEndMs:3000,decodeScale:1}}};
+  const work=sizeMotionFixture({...motionFixture,source,props,width:320,height:180,fps:30,durationInFrames:90,reference:undefined,videoBindings:{footage:{assetId:imported.asset.id,sourceStartMs:0,sourceEndMs:3000,decodeScale:1}}});
   const job=await call("submit_motion_work",{project_id:projectId,base_revision_id:await revision(),idempotency_key:"technical-v1",work});await wait(job.id);
   const first=await call("read_motion_work",{project_id:projectId,job_id:job.id});assert.equal(first.job.result.videoDecodes.footage.width,320);assert.equal(first.asset.motion.videoSources[0].sourceHash,hash);
   const scene=await call("create_scene",{project_id:projectId,base_revision_id:await revision(),type:"PresenterScene",title:"混合场面技术试作",purpose:"验证素材时钟与字幕合成",start_frame:0,end_frame:90});

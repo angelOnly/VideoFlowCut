@@ -1,3 +1,5 @@
+import {sizeMotionFixture} from "../tests/fixtures/hyperframes.js";
+import {motionHtml,frameHtml} from "../tests/fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
@@ -64,12 +66,9 @@ try {
   assert.deepEqual((httpCaps as any).fonts, capabilities.fonts);
   const created = await call("create_project", { name: "受管字体发行隔离回归", profile: "visual_explainer" });
   const projectId = created.snapshot.project.id, projectRoot = created.snapshot.project.rootPath;
-  const work = { ...motionFixture, reference: undefined, durationInFrames: 12,
+  const work = sizeMotionFixture({ ...motionFixture, reference: undefined, durationInFrames: 12,
     fontBindings: { title: "noto-sans-sc-bold", body: "noto-sans-sc-regular" },
-    source: `import React from 'react';import {useCurrentFrame} from 'remotion';
-export default p=><div style={{position:'absolute',inset:0,background:'#142735',color:'white',padding:12}}>
-<div style={{fontFamily:p.fonts.title.family,fontWeight:p.fonts.title.weight,fontSize:32,transform:'translateX('+useCurrentFrame()+'px)'}}>直播观看方式</div>
-<div style={{fontFamily:p.fonts.body.family,fontWeight:p.fonts.body.weight,fontSize:25}}>首帧字体就绪，中文标点：！</div></div>` };
+    source: frameHtml('<div style="position:absolute;inset:0;background:#142735;color:white;padding:12px"><div id="title" style="font-family:var(--vfc-font-title);font-weight:700;font-size:32px">直播观看方式</div><div style="font-family:var(--vfc-font-body);font-size:25px">首帧字体就绪，中文标点：！</div></div>',"document.querySelector('#title').style.transform='translateX('+f+'px)';") });
   const submitted = await call("submit_motion_work", { project_id: projectId, base_revision_id: created.revision.number, idempotency_key: "fonts", work });
   const completed = await waitJob(submitted.id);
   assert.equal(completed.status, "succeeded", JSON.stringify(completed));
@@ -87,11 +86,11 @@ export default p=><div style={{position:'absolute',inset:0,background:'#142735',
   assert.match(unknown.error, /MOTION_FONT_UNKNOWN/u);
   const rejectedHook = await call("submit_motion_work", { project_id: projectId, base_revision_id: beforeFailure.revision.number,
     idempotency_key: "hook", work: { ...work, source: "import {useEffect} from 'react';export default ()=>null" } }, true);
-  assert.match(rejectedHook.error, /fontBindings/u);
+  assert.match(rejectedHook.error, /MOTION_SOURCE_INVALID/u);
   assert.deepEqual(await call("read_project", { project_id: projectId }), beforeFailure);
   // 无字体绑定的现有生成路径也经同一发行Runtime验证。
   const legacy = await call("submit_motion_work", { project_id: projectId, base_revision_id: beforeFailure.revision.number,
-    idempotency_key: "without-fonts", work: { ...motionFixture, reference: undefined, durationInFrames: 4 } });
+    idempotency_key: "without-fonts", work: sizeMotionFixture({ ...motionFixture, reference: undefined, durationInFrames: 4 }) });
   const legacyCompleted = await waitJob(legacy.id);
   assert.equal(legacyCompleted.status, "succeeded", JSON.stringify(legacyCompleted));
   const serifState = await call("read_project", { project_id: projectId });
@@ -110,9 +109,9 @@ export default p=><div style={{position:'absolute',inset:0,background:'#142735',
   for (const font of capabilities.fonts.slice(4)) {
     const state = await call("read_project", { project_id: projectId });
     const job = await call("submit_motion_work", { project_id: projectId, base_revision_id: state.revision.number,
-      idempotency_key: `expanded-${font.id}`, work: { ...motionFixture, reference: undefined, width: 960, height: 192, durationInFrames: 2,
+      idempotency_key: `expanded-${font.id}`, work: sizeMotionFixture({ ...motionFixture, reference: undefined, width: 960, height: 192, durationInFrames: 2,
         fontBindings: { face: font.id }, props: { label: font.name },
-        source: `import React from 'react';import {useCurrentFrame} from 'remotion';export default p=><div style={{position:'absolute',inset:0,color:'white',padding:12}}><div style={{fontSize:20}}>{p.label}</div><div style={{fontSize:64,lineHeight:'96px',fontFamily:p.fonts.face.family,fontWeight:p.fonts.face.weight,fontStyle:p.fonts.face.style,fontSynthesis:'none',transform:'translateX('+useCurrentFrame()*2+'px)'}}>时代不同不能冷场</div></div>` } });
+        source: frameHtml('<div style="position:absolute;inset:0;color:white;padding:12px"><div id="label" style="font-size:20px"></div><div id="text" style="font-size:64px;line-height:96px;font-family:var(--vfc-font-face);font-synthesis:none">时代不同不能冷场</div></div>',"document.querySelector('#text').style.transform='translateX('+f*2+'px)';","document.querySelector('#label').textContent=props.label;Object.assign(document.querySelector('#text').style,{fontWeight:vfc.fonts.face.weight,fontStyle:vfc.fonts.face.style});") }) });
     const completed = await waitJob(job.id);
     assert.equal(completed.status, "succeeded", JSON.stringify(completed));
     const asset = (await call("read_motion_work", { project_id: projectId, job_id: job.id })).asset;

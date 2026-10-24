@@ -1,3 +1,5 @@
+import {motionHtml, frameHtml} from "./fixtures/hyperframes.js";
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -12,19 +14,9 @@ test("T12：同一时间常量驱动画面与事件，改时序产生新版本�
   const root = await mkdtemp(join(tmpdir(), "vfc-topic-timing-"));
   try {
     // 夹具只验证实际像素与事件边界，不把技术渲染视为审美通过。
-    const source = `import React from 'react';
-import {useCurrentFrame} from 'remotion';
-const timing = {reveal: [2, 5]};
-export function resolveMotionEvents() {
-  return [{id:'reveal',meaning:'色块揭示后稳定阅读',startFrame:timing.reveal[0],endFrame:timing.reveal[1]}];
-}
-export default function Motion() {
-  const frame=useCurrentFrame();
-  const progress=Math.max(0,Math.min(1,(frame-timing.reveal[0])/(timing.reveal[1]-timing.reveal[0])));
-  return <div style={{position:'absolute',left:0,top:0,width:64*progress,height:64,background:'#ff0000'}}/>;
-}`;
-    const work = { ...motionFixture, reference: undefined, source, width: 64, height: 64, durationInFrames: 10 };
-    const revised = { ...work, source: source.replace("reveal: [2, 5]", "reveal: [4, 7]") };
+    const source = frameHtml('<div id="reveal" style="position:absolute;left:0;top:0;height:64px;background:#ff0000"></div>',`const progress=Math.max(0,Math.min(1,(f-timing.reveal[0])/(timing.reveal[1]-timing.reveal[0])));document.querySelector('#reveal').style.width=64*progress+'px';`,`const timing = {reveal: [2, 5]};window.getVfcMotionEvents=()=>[{id:'reveal',meaning:'色块揭示后稳定阅读',startFrame:timing.reveal[0],endFrame:timing.reveal[1]}];`);
+    const work = sizeMotionFixture({ ...motionFixture, reference: undefined, source, width: 64, height: 64, durationInFrames: 10 });
+    const revised = { ...work, source: work.source.replace("reveal: [2, 5]", "reveal: [4, 7]") };
     assert.notEqual(motionHash(work), motionHash(revised), "旧版本的审阅不能替改时序后的作品背书");
     const frame = async (directory: string, index: number) => PNG.sync.read(await readFile(join(directory, "frames", `frame-${String(index).padStart(5, "0")}.png`)));
     for (const [id, input, start, end] of [["first", work, 2, 5], ["revised", revised, 4, 7]] as const) {

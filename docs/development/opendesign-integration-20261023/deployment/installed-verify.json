@@ -1,0 +1,89 @@
+{
+  "verified": true,
+  "source": {
+    "pluginRoot": "E:\\ai\\VideoCut\\plugins\\videoflowcut",
+    "pluginVersion": "0.1.100",
+    "plugin": {
+      "name": "videoflowcut",
+      "version": "0.1.100",
+      "skills": "./skills/",
+      "mcpServers": "./.mcp.json",
+      "manifestDigest": "615e5df8a9252175d5d2240c83be65e9e1abcfdfeaaae81c1a3d7ed7cbffa19d"
+    },
+    "runtimeContentHash": "release-6a32eda663f54f1f80d6eb13027b36191093b0cc90c3889c082cfc8ab2a7f058",
+    "releaseId": "release-6a32eda663f54f1f80d6eb13027b36191093b0cc90c3889c082cfc8ab2a7f058",
+    "runtimeManifest": {
+      "schemaVersion": 2,
+      "format": "commonjs",
+      "pluginVersion": "0.1.100",
+      "runtimeEntry": "runtime.cjs",
+      "mcpEntry": "mcp.cjs",
+      "remotionEntry": "remotion/render-entry.cjs",
+      "webRoot": "web",
+      "nodeRuntime": ">=22.5.0"
+    },
+    "mcp": {
+      "command": "node",
+      "args": [
+        "./scripts/mcp-launcher.mjs"
+      ],
+      "launcher": "./scripts/mcp-launcher.mjs",
+      "configDigest": "8a317edd1ef6d859c7a40210a3311373facbc1d7f621fcf3326da530662e7406",
+      "startupChain": {
+        "mcpLauncher": "5b5a36b9c8c1dfe1341e104f0b25b3899f781e231786ae6b249893464f317cf1",
+        "mcpSession": "d4054dff4d2e5a8cc3ef89d146a2bd5ae0a152273a0d80f54a8ee78d7e2fc53b",
+        "renderBrowser": "13434d7614ec516a7562aa79910a743b7f8ba36dc28f62c73f21283e57dd3219",
+        "repoRoot": "779fd26652ad905e744189961b6b472ad782d1ec6e88f05d9728f855763985dd",
+        "runtimeLauncher": "ae4a8f5b149563630c78f4d59e3246bc8f335b50cfa3b553569fcd13a8392934"
+      },
+      "runtimeRepoPointerDigest": "3970248bb200747f39812004d5d93727db700cb2284c21b02d43cbcdc8424f1c"
+    },
+    "skills": {
+      "fileCount": 444,
+      "treeDigest": "24929cc163588ae7b22ea300eef9b5f7201adf8b7890558cb0d94e4a1b1f5afb"
+    }
+  },
+  "installed": {
+    "pluginRoot": "C:\\Users\\13222\\.codex\\plugins\\cache\\videoflowcut\\videoflowcut\\0.1.100",
+    "pluginVersion": "0.1.100",
+    "plugin": {
+      "name": "videoflowcut",
+      "version": "0.1.100",
+      "skills": "./skills/",
+      "mcpServers": "./.mcp.json",
+      "manifestDigest": "615e5df8a9252175d5d2240c83be65e9e1abcfdfeaaae81c1a3d7ed7cbffa19d"
+    },
+    "runtimeContentHash": "release-6a32eda663f54f1f80d6eb13027b36191093b0cc90c3889c082cfc8ab2a7f058",
+    "releaseId": "release-6a32eda663f54f1f80d6eb13027b36191093b0cc90c3889c082cfc8ab2a7f058",
+    "runtimeManifest": {
+      "schemaVersion": 2,
+      "format": "commonjs",
+      "pluginVersion": "0.1.100",
+      "runtimeEntry": "runtime.cjs",
+      "mcpEntry": "mcp.cjs",
+      "remotionEntry": "remotion/render-entry.cjs",
+      "webRoot": "web",
+      "nodeRuntime": ">=22.5.0"
+    },
+    "mcp": {
+      "command": "node",
+      "args": [
+        "./scripts/mcp-launcher.mjs"
+      ],
+      "launcher": "./scripts/mcp-launcher.mjs",
+      "configDigest": "8a317edd1ef6d859c7a40210a3311373facbc1d7f621fcf3326da530662e7406",
+      "startupChain": {
+        "mcpLauncher": "5b5a36b9c8c1dfe1341e104f0b25b3899f781e231786ae6b249893464f317cf1",
+        "mcpSession": "d4054dff4d2e5a8cc3ef89d146a2bd5ae0a152273a0d80f54a8ee78d7e2fc53b",
+        "renderBrowser": "13434d7614ec516a7562aa79910a743b7f8ba36dc28f62c73f21283e57dd3219",
+        "repoRoot": "779fd26652ad905e744189961b6b472ad782d1ec6e88f05d9728f855763985dd",
+        "runtimeLauncher": "ae4a8f5b149563630c78f4d59e3246bc8f335b50cfa3b553569fcd13a8392934"
+      },
+      "runtimeRepoPointerDigest": "3970248bb200747f39812004d5d93727db700cb2284c21b02d43cbcdc8424f1c"
+    },
+    "skills": {
+      "fileCount": 444,
+      "treeDigest": "24929cc163588ae7b22ea300eef9b5f7201adf8b7890558cb0d94e4a1b1f5afb"
+    }
+  }
+}

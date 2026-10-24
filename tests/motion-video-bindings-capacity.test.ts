@@ -1,3 +1,5 @@
+import {motionHtml, frameHtml} from "./fixtures/hyperframes.js";
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, readdir } from "node:fs/promises";
@@ -18,7 +20,7 @@ import { registerMotionTools } from "../apps/server/src/motion-tools.js";
 const binding = { assetId: "source", sourceStartMs: 0, sourceEndMs: 500, startFrame: 0, endFrame: 12 };
 
 test("视频选段取消总数上限，非法槽名、范围与旧时钟输入仍拒绝", () => {
-  const work = { ...motionFixture, fps: 24, durationInFrames: 12, videoBindings: Object.fromEntries(Array.from({ length: 64 }, (_, i) => [`clip${i}`, { ...binding }])) };
+  const work = sizeMotionFixture({ ...motionFixture, fps: 24, durationInFrames: 12, videoBindings: Object.fromEntries(Array.from({ length: 64 }, (_, i) => [`clip${i}`, { ...binding }])) });
   assert.equal(Object.keys(motionSubmissionSchema.parse(work).videoBindings!).length, 64);
   for (const change of [{ sourceStartMs: -1 }, { sourceEndMs: 0 }, { sourceEndMs: 1000 }, { startFrame: 12 }, { endFrame: 13 }, { decodeScale: 2 }, { offsetInFrames: 0 }]) {
     assert.equal(motionSubmissionSchema.safeParse({ ...work, videoBindings: { ...work.videoBindings, clip63: { ...binding, ...change } } }).success, false);
@@ -31,7 +33,7 @@ test("省略视频绑定的历史输入不注入新默认值，作品身份保�
   assert.deepEqual(parsed, motionFixture);
   assert.equal(Object.hasOwn(parsed, "videoBindings"), false);
   assert.equal(motionHash(parsed, []), motionHash(motionFixture, []));
-  const oldVideo = { ...motionFixture, fps: 24, durationInFrames: 12, videoBindings: { clip: binding } };
+  const oldVideo = sizeMotionFixture({ ...motionFixture, fps: 24, durationInFrames: 12, videoBindings: { clip: binding } });
   assert.equal(motionHash(motionSubmissionSchema.parse(oldVideo), []), motionHash(oldVideo, []));
 });
 
@@ -61,8 +63,8 @@ for (const overlap of [false, true]) test(`六个${overlap ? "交叠" : "顺序"
     const imported = app.registerImportedAsset({ projectId, baseRevision: 1, name: "source.mp4", kind: "video", managedPath: "assets/source/source.mp4", sourceHash: hash, provenance: { source: "local_import", acquiredAt: new Date().toISOString() } });
     app.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: await probeMedia(file) });
     const entries = Array.from({ length: 6 }, (_, i) => [`clip${i}`, { ...binding, assetId: imported.asset.id, sourceStartMs: (i % 3) * 250, sourceEndMs: (i % 3) * 250 + 500, startFrame: overlap ? 0 : i * 12, endFrame: overlap ? 12 : (i + 1) * 12 }] as const);
-    const source = `import React from 'react'; import {Sequence} from 'remotion'; import {TimelineVideo} from '@videoflowcut/motion'; export default function Motion(){return <>${entries.map(([slot, b], i) => `<Sequence from={${b.startFrame}} durationInFrames={12}><TimelineVideo slot="${slot}" style={{position:'absolute',left:${overlap ? i * 64 : 0},top:0,width:64,height:64}}/></Sequence>`).join("")}</>;}`;
-    const work = motionSubmissionSchema.parse({ ...motionFixture, source, width: overlap ? 384 : 64, height: 64, fps: 24, durationInFrames: overlap ? 12 : 72, videoBindings: Object.fromEntries(entries) });
+    const source = motionHtml(entries.map(([slot,b],i)=>'<img id="video-'+i+'" data-vfc-video-slot="'+slot+'" style="position:absolute;left:'+(overlap?i*64:0)+'px;top:0;width:64px;height:64px">').join(''));
+    const work = motionSubmissionSchema.parse(sizeMotionFixture({ ...motionFixture, source, width: overlap ? 384 : 64, height: 64, fps: 24, durationInFrames: overlap ? 12 : 72, videoBindings: Object.fromEntries(entries) }));
     const job = app.submitManagedMotion({ projectId, baseRevision: app.readProject(projectId).revision.number, idempotencyKey: "six-clips", work });
     // 相同提交只接回原 Job，测试不伪造未知任务完成或换键重放。
     assert.equal(app.submitManagedMotion({ projectId, baseRevision: app.readProject(projectId).revision.number, idempotencyKey: "six-clips", work }).id, job.id);

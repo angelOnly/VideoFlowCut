@@ -1,3 +1,5 @@
+import {motionHtml,frameHtml} from "./fixtures/hyperframes.js";
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -16,8 +18,8 @@ test("同源校样使用原作品时钟且不登记素材；校样与完整版�
   try {
     const state = app.createProject({ name: "同源校样隔离验证" });
     const projectId = state.snapshot.project.id;
-    const work = { ...motionFixture, width: 64, height: 64, durationInFrames: 8,
-      source: "import React from 'react';import {useCurrentFrame,useVideoConfig} from 'remotion';import {fitSource} from '@videoflowcut/motion';export default function M(){const f=useCurrentFrame();const c=useVideoConfig();const g=fitSource({width:64,height:64},{x:0,y:0,width:64,height:64});return <div style={{position:'absolute',left:g.left,top:g.top,width:g.width,height:g.height,background:`rgb(${f*20},${c.durationInFrames*10},0)`}}/>}" };
+    const work = sizeMotionFixture({ ...motionFixture, width: 64, height: 64, durationInFrames: 8,
+      source: frameHtml('<div id="a"></div>',`const c=config,g=vfc.geometry.fitSource({width:64,height:64},{x:0,y:0,width:64,height:64});Object.assign(document.querySelector('#a').style,{position:'absolute',left:g.left+'px',top:g.top+'px',width:g.width+'px',height:g.height+'px',background:'rgb('+(f*20)+','+(c.durationInFrames*10)+',0)'});`) });
     const proof = app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "proof", work, frameRange: { startFrame: 3, endFrame: 6 } });
     const result = await runMotionJob(app, proof);
     assert.equal(result.kind, "motion_proof");
@@ -43,10 +45,10 @@ test("新作品不保存安全区测量，带旧测量字段的缓存仍校验�
   try {
     const created = app.createProject({ name: "退役测量缓存回归" });
     const projectId = created.snapshot.project.id;
-    const job = app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "retired-safety-cache", work: {
+    const job = app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "retired-safety-cache", work: sizeMotionFixture({
       ...motionFixture, durationInFrames: 2,
-      source: "import React from 'react';export default function M(){return <div style={{position:'absolute',inset:0,background:'rgba(255,255,255,0.5)'}}/>}"
-    } });
+      source: motionHtml('<div style="position:absolute;inset:0;background:rgba(255,255,255,0.5)"></div>')
+    }) });
     const result = await runMotionJob(app, job);
     const state = app.readProject(projectId);
     const asset = state.snapshot.assets.find(entry => entry.id === result.assetId)!;
@@ -79,8 +81,8 @@ test("PNG 归一化保持彩色与半透明像素，拒绝损坏文件和错误�
 test("深色渐变帧无损压缩后满足缓存预算，颜色与透明度不降级", { timeout: 60_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "videocut-motion-gradient-"));
   try {
-    const source = `import React from 'react';import {useCurrentFrame} from 'remotion';export default function Motion(){return <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse at 48% 40%,#182127,#0b1014 52%,#050709)',opacity:useCurrentFrame()===0?1:0.5}}/>;}`;
-    await renderManagedMotion({ ...motionFixture, source, width: 768, height: 1344, fps: 24, durationInFrames: 2 }, root);
+    const source = frameHtml('<div id="a" style="position:absolute;inset:0;background:radial-gradient(ellipse at 48% 40%,#182127,#0b1014 52%,#050709)"></div>',`document.querySelector('#a').style.opacity=f===0?'1':'.5';`);
+    await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, width: 768, height: 1344, fps: 24, durationInFrames: 2 }), root);
     for (let frame = 0; frame < 2; frame++) {
       const bytes = await readFile(join(root, "frames", `frame-0000${frame}.png`));
       const decoded = PNG.sync.read(bytes);
@@ -105,23 +107,23 @@ test("真实 Chromium 中的外部资源、动态求值被第二层隔离拒绝"
   const root = await mkdtemp(join(tmpdir(), "videocut-motion-security-"));
   try {
     // 刻意绕开 JSX 标签扫描，证明不是只靠关键词过滤才保护宿主。
-    await assert.rejects(renderManagedMotion({ ...motionFixture, source: `import React from 'react';export default ()=>React.createElement('img',{src:'https://example.com/leak'});` }, join(root, "network")), /MOTION_(?:CSP_VIOLATION|NETWORK_BLOCKED)/u);
-    await assert.rejects(renderManagedMotion({ ...motionFixture, source: `import React from 'react';export default function Motion(){const f=({})['con'+'structor']['con'+'structor'];return React.createElement('div',null,f('return 1')());}` }, join(root, "eval")), /(?:MOTION_CSP_VIOLATION|unsafe-eval|EvalError)/u);
+    await assert.rejects(renderManagedMotion(sizeMotionFixture({ ...motionFixture, source: motionHtml('',`const el=document.createElement('img');el.src='https://example.com/leak';document.body.append(el);`) }), join(root, "network")), /MOTION_(?:CSP_VIOLATION|NETWORK_BLOCKED)/u);
+    await assert.rejects(renderManagedMotion(sizeMotionFixture({ ...motionFixture, source: motionHtml('',`const fn=({})['con'+'structor']['con'+'structor'];fn('return 1')();`) }), join(root, "eval")), /(?:MOTION_CSP_VIOLATION|unsafe-eval|EvalError)/u);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test("多层组件传递受管图片实际出图，传入远程地址仍由沙箱拒绝", { timeout: 60_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "videocut-motion-image-props-"));
   try {
-    const source = `import React from 'react';import {Img} from 'remotion';function Crop({src}){return <Img src={src} style={{width:320,height:320}}/>;}const Paper=({src})=><Crop src={src}/>;export default p=><Paper src={p.assets.page}/>;`;
+    const source = motionHtml('<img id="a" style="width:320px;height:320px">',`document.querySelector('#a').src=props.assets.page;`);
     const png = new PNG({ width: 1, height: 1 });
     png.data = Buffer.from([24, 160, 72, 255]);
     const data = `data:image/png;base64,${PNG.sync.write(png).toString("base64")}`;
-    const result = await renderManagedMotion({ ...motionFixture, source, durationInFrames: 2 }, join(root, "managed"), { page: data });
+    const result = await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, durationInFrames: 2 }), join(root, "managed"), { page: data });
     const frame = PNG.sync.read(await readFile(join(root, "managed/frames/frame-00000.png")));
     assert.deepEqual([...frame.data.subarray((160 * 320 + 160) * 4, (160 * 320 + 160) * 4 + 4)], [24, 160, 72, 255]);
     assert.equal(result.determinism!.status, "exact");
-    await assert.rejects(renderManagedMotion({ ...motionFixture, source, durationInFrames: 2 }, join(root, "remote"), { page: "https://example.com/image.png" }), /MOTION_(?:CSP_VIOLATION|NETWORK_BLOCKED)/u);
+    await assert.rejects(renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, durationInFrames: 2 }), join(root, "remote"), { page: "https://example.com/image.png" }), /MOTION_(?:CSP_VIOLATION|NETWORK_BLOCKED)/u);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
@@ -140,17 +142,17 @@ test("透明帧与同帧重复寻址是真实渲染事实，源码文字仍可�
 test("帧计算失控会被终止，不阻断下一个合法作品", { timeout: 60_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "videocut-motion-timeout-"));
   try {
-    const source = `import React from 'react';import {useCurrentFrame} from 'remotion';export default function Motion(){const f=useCurrentFrame();if(f>0){while(true){}}return <div>限时测试</div>;}`;
-    await assert.rejects(renderManagedMotion({ ...motionFixture, durationInFrames: 2, source }, join(root, "timeout")), /MOTION_FRAME_TIMEOUT/u);
-    assert.equal((await renderManagedMotion({ ...motionFixture, durationInFrames: 2 }, join(root, "recovery"))).frameHashes.length, 2);
+    const source = frameHtml('<div>限时测试</div>',`if(f>0){while(true){}}`);
+    await assert.rejects(renderManagedMotion(sizeMotionFixture({ ...motionFixture, durationInFrames: 2, source }), join(root, "timeout")), /MOTION_FRAME_TIMEOUT/u);
+    assert.equal((await renderManagedMotion(sizeMotionFixture({ ...motionFixture, durationInFrames: 2 }), join(root, "recovery"))).frameHashes.length, 2);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test("真实 PNG 保留透明、移动和极淡像素，不依赖安全区测量", { timeout: 60_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "videocut-motion-alpha-"));
   try {
-    const source = `import React from 'react';import {useCurrentFrame} from 'remotion';export default function Motion(){const f=useCurrentFrame();if(f===0)return null;if(f===3)return <div style={{position:'absolute',inset:0,background:'rgba(255,255,255,0.004)'}}/>;return <div style={{position:'absolute',left:20+f*10,top:40,width:30,height:20,background:'#ffffff'}}/>;}`;
-    await renderManagedMotion({ ...motionFixture, source, durationInFrames: 4 }, root);
+    const source = frameHtml('<div id="a" style="position:absolute;background:white"></div>',`Object.assign(document.querySelector('#a').style,{display:f===0?'none':'block',left:(f===3?0:20+f*10)+'px',top:(f===3?0:40)+'px',width:(f===3?320:30)+'px',height:(f===3?320:20)+'px',opacity:f===3?'0.004':'1'});`);
+    await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, durationInFrames: 4 }), root);
     const pngs = await Promise.all(Array.from({ length: 4 }, async (_, frame) => PNG.sync.read(await readFile(join(root, "frames", `frame-${String(frame).padStart(5, "0")}.png`)))));
     const alpha = (frame: number, x: number, y: number) => pngs[frame]!.data[(y * 320 + x) * 4 + 3];
     assert.equal(alpha(0, 50, 50), 0);
@@ -164,8 +166,8 @@ test("真实 PNG 保留透明、移动和极淡像素，不依赖安全区测量
 test("全屏作品从不透明淡出到透明再显现，实际 Alpha 保持连续", { timeout: 60_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "videocut-motion-alpha-transition-"));
   try {
-    const source = `import React from 'react';import {useCurrentFrame} from 'remotion';export default function Motion(){const f=useCurrentFrame();return <div style={{position:'absolute',inset:0,background:'#ffffff',opacity:[1,0.5,0,1][f]}}/>;}`;
-    await renderManagedMotion({ ...motionFixture, source, durationInFrames: 4 }, root);
+    const source = frameHtml('<div id="a" style="position:absolute;inset:0;background:white"></div>',`document.querySelector('#a').style.opacity=String([1,.5,0,1][f]);`);
+    await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, durationInFrames: 4 }), root);
     const alphas = await Promise.all(Array.from({ length: 4 }, async (_, frame) => {
       const png = PNG.sync.read(await readFile(join(root, "frames", `frame-${String(frame).padStart(5, "0")}.png`)));
       return png.data[(160 * 320 + 160) * 4 + 3]!;
@@ -180,8 +182,8 @@ test("全屏作品从不透明淡出到透明再显现，实际 Alpha 保持连�
 test("RGB/RGBA 多次切换的审阅代理逐帧保留，不丢帧、不复制尾帧", { timeout: 60_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "videocut-motion-proxy-frames-"));
   try {
-    const source = `import React from 'react';import {useCurrentFrame} from 'remotion';export default function Motion(){return <div style={{position:'absolute',inset:0,background:'#ffffff',opacity:[1,0.5,0,1,1,0.5,0.01,0][useCurrentFrame()]}}/>;}`;
-    const result = await renderManagedMotion({ ...motionFixture, source, durationInFrames: 8 }, root);
+    const source = frameHtml('<div id="a" style="position:absolute;inset:0;background:white"></div>',`document.querySelector('#a').style.opacity=String([1,.5,0,1,1,.5,.01,0][f]);`);
+    const result = await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, durationInFrames: 8 }), root);
     await verifyMotionPreviewFrames(result.previewPath, 8, 30);
     await assert.rejects(verifyMotionPreviewFrames(result.previewPath, 7, 30), /MOTION_OUTPUT_MISMATCH/u);
     await assert.rejects(verifyMotionPreviewFrames(result.previewPath, 8, 24), /MOTION_OUTPUT_MISMATCH/u);
@@ -197,8 +199,8 @@ test("透明进入彩色全屏再退出时，代理保留每帧颜色、横向�
   const root = await mkdtemp(join(tmpdir(), "videocut-motion-proxy-color-"));
   try {
     // 先透明后不透明触发 RGBA→RGB；非灰度、非对称色块暴露像素步长误读。
-    const source = `import React from 'react';import {useCurrentFrame} from 'remotion';export default function Motion(){return <div style={{position:'absolute',inset:0,background:'#efe9d4',opacity:[0,0.5,1,1,0.5,0,1,0][useCurrentFrame()]}}><div style={{position:'absolute',left:20,top:40,width:60,height:80,background:'#bc832f'}}/><div style={{position:'absolute',left:160,top:140,width:100,height:60,background:'#1b5348'}}/></div>;}`;
-    const result = await renderManagedMotion({ ...motionFixture, source, durationInFrames: 8 }, root);
+    const source = frameHtml('<div id="a" style="position:absolute;inset:0;background:#efe9d4"><div style="position:absolute;left:20px;top:40px;width:60px;height:80px;background:#bc832f"></div><div style="position:absolute;left:160px;top:140px;width:100px;height:60px;background:#1b5348"></div></div>',`document.querySelector('#a').style.opacity=String([0,.5,1,1,.5,0,1,0][f]);`);
+    const result = await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, durationInFrames: 8 }), root);
     await verifyMotionPreviewFrames(result.previewPath, 8, 30);
     const rawPath = join(root, "decoded.rgb");
     await runProcess("ffmpeg", ["-v", "error", "-i", result.previewPath, "-f", "rawvideo", "-pix_fmt", "rgb24", rawPath]);

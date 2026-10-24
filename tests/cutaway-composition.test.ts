@@ -1,3 +1,5 @@
+import {motionHtml,frameHtml} from "./fixtures/hyperframes.js";
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -25,9 +27,9 @@ test("全屏 Cutaway 接管宿主主视觉、保留明确前景和声音，返�
     app.applyMediaAnalysis({ projectId, assetId: media.id, metadata: await probeMedia(mediaPath) });
     for (const layer of ["fullscreen", "front"] as const) {
       const source = layer === "fullscreen"
-        ? `import React from 'react';import {useCurrentFrame} from 'remotion';export default function Motion(){return <div style={{position:'absolute',inset:0,background:useCurrentFrame()<10?'#ff0000':'#00ff00'}}/>;}`
-        : `import React from 'react';export default function Motion(){return <div style={{position:'absolute',left:20,top:20,width:40,height:40,background:'#ffff00'}}/>;}`;
-      const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: layer, work: { ...motionFixture, source } });
+        ? frameHtml('<div id="a" style="position:absolute;inset:0"></div>',`document.querySelector('#a').style.background=f<10?'#ff0000':'#00ff00';`)
+        : motionHtml('<div style="position:absolute;left:20px;top:20px;width:40px;height:40px;background:#ffff00"></div>');
+      const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: layer, work: sizeMotionFixture({ ...motionFixture, source }) });
       await runMotionJob(app, job);
       const asset = app.readManagedMotion(projectId, job.id).asset!;
       await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "隔离像素夹具，只测试合成，不冒称艺术审片通过。" });

@@ -1,3 +1,4 @@
+import {motionHtml, frameHtml} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -773,9 +774,7 @@ test("Avatar Worker 会重读 Bridge Schema、在 409 后重试，并将同一 J
       Object.assign(snapshot.timeline, { width: 320, height: 320 });
       Object.assign(snapshot.timeline.captionFormat!, { fontSize: 18, maxLines: 2, bottomOffset: 12 });
     });
-    const actorSource = `import React from 'react';import {AbsoluteFill,useCurrentFrame,Sequence} from 'remotion';import {TimelineVideo} from '@videoflowcut/motion';
-export default function Motion(){const f=useCurrentFrame();const size=320-Math.min(f,12)*20;
-return <AbsoluteFill style={{backgroundColor:'#172334'}}><Sequence durationInFrames={12}><TimelineVideo slot="actor" style={{width:size,height:size}}/></Sequence><Sequence from={12}><TimelineVideo slot="actor" style={{width:size,height:size}}/></Sequence></AbsoluteFill>;}`;
+    const actorSource = motionHtml('<div style="position:absolute;inset:0;background:#172334"><img id="actor" data-vfc-video-slot="actor"></div>',`const state={frame:0};function render(){const size=320-Math.min(Math.round(state.frame),12)*20;Object.assign(document.querySelector('#actor').style,{width:size+'px',height:size+'px'});}render();tl.to(state,{frame:24,duration:1,ease:'none',onUpdate:render},0);`,{width:320,height:320,fps:24,durationInFrames:24});
     const motionJob = context.app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "avatar-continuous-layout", work: {
       name: "人物连续缩窗技术验证", creativeBrief: "真实生成人物素材在同一作品内缩窗，源时钟跨 Sequence 连续，最终画布独立显示字幕。仅验证链路，不评价数字人表演。",
       source: actorSource, props: {}, imageBindings: {}, width: 320, height: 320, fps: 24, durationInFrames: 24,

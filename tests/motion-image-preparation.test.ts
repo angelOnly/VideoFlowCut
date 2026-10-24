@@ -1,3 +1,5 @@
+import {motionHtml, frameHtml} from "./fixtures/hyperframes.js";
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createHash } from "node:crypto";
@@ -56,8 +58,8 @@ test("真实动画任务保留JPEG原件及固定PNG缓存，派生图损坏必�
       provenance: { source: "local_import", acquiredAt: new Date().toISOString() } });
     app.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: { width: 96, height: 64, durationMs: 0, hasAudio: false } });
     const job = app.submitManagedMotion({ projectId, baseRevision: app.readProject(projectId).revision.number, idempotencyKey: "jpeg-decode",
-      work: { ...motionFixture, width: 96, height: 64, durationInFrames: 3, props: {}, imageBindings: { photo: imported.asset.id },
-        source: "import React from 'react';import {Img} from 'remotion';export default function M(p){return <Img src={p.assets.photo} style={{width:96,height:64}}/>}" } });
+      work: sizeMotionFixture({ ...motionFixture, width: 96, height: 64, durationInFrames: 3, props: {}, imageBindings: { photo: imported.asset.id },
+        source: motionHtml('<img data-vfc-image-slot="photo" style="width:96px;height:64px">') }) });
     const result = await runMotionJob(app, job);
     const asset = app.readProject(projectId).snapshot.assets.find(item => item.id === result.assetId)!;
     const directory = join(projectRoot, asset.motion!.framesDirectory, "..");
@@ -89,11 +91,11 @@ test("固定PNG在首次缩小可见、隐藏解码及原尺寸历史后得到�
   const root = await mkdtemp(join(tmpdir(), "vfc-image-seek-"));
   try {
     const prepared = await prepareMotionImages({ photo: await fixture("scaled-texture.jpg") }, root);
-    const source = `import React from 'react';import {Img,useCurrentFrame} from 'remotion';export default function M(p){const f=useCurrentFrame(),natural=p.mode==='natural'&&f<2;return <div style={{position:'absolute',inset:0,background:'#eee9df'}}>{f<6&&<Img src={p.assets.photo} style={{position:'absolute',left:13,top:11,width:natural?960:237,height:natural?1280:316,opacity:p.mode==='hidden'&&f<2?0:1}}/>}</div>}`;
+    const source = frameHtml('<div style="position:absolute;inset:0;background:#eee9df"><img id="photo" data-vfc-image-slot="photo" style="position:absolute;left:13px;top:11px"></div>',`const natural=p.mode==='natural'&&f<2;Object.assign(document.querySelector('#photo').style,{width:(natural?960:237)+'px',height:(natural?1280:316)+'px',opacity:p.mode==='hidden'&&f<2?'0':'1',display:f<6?'block':'none'});`);
     const regions: Buffer[] = [];
     for (const mode of ["visible", "hidden", "natural"]) {
       const directory = join(root, mode);
-      const rendered = await renderManagedMotion({ ...motionFixture, source, props: { mode }, width: 320, height: 360, durationInFrames: 9 }, directory, prepared.imageData);
+      const rendered = await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, props: { mode }, imageBindings: {photo:"fixture-photo"}, width: 320, height: 360, durationInFrames: 9 }), directory, prepared.imageData);
       assert.equal(rendered.determinism!.status, "exact", `${mode}顺播与回跳必须完全一致`);
       assert.deepEqual(rendered.determinism!.sampledFrames, [0, 4, 8]);
       assert.deepEqual(rendered.determinism!.differences, []);

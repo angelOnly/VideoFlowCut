@@ -23,6 +23,9 @@ const releaseFiles = [
   ["MCP 入口", join(runtimeRoot, "mcp.cjs")],
   ["MCP 工具目录", join(runtimeRoot, "mcp-tools.json")],
   ["Remotion 入口", join(runtimeRoot, "remotion", "render-entry.cjs")],
+  ["HyperFrames 运行库", join(runtimeRoot, "hyperframes", "hyperframe.runtime.iife.js")],
+  ["GSAP 运行库", join(runtimeRoot, "hyperframes", "gsap.min.js")],
+  ["受管 HTML 依赖版本", join(runtimeRoot, "hyperframes", "versions.json")],
   ["Web 入口", join(runtimeRoot, "web", "index.html")],
   ["发行 manifest", join(runtimeRoot, "manifest.json")]
 ];
@@ -89,6 +92,11 @@ if (generatedSharedMetadata?.replace(/\r\n/g, "\n") !== expectedGeneratedSharedM
 
 await Promise.all(releaseFiles.map(([label, path]) => requireNonEmptyFile(label, path)));
 const releaseManifest = JSON.parse(await readFile(join(runtimeRoot, "manifest.json"), "utf8"));
+const motionDependencies = JSON.parse(await readFile(join(runtimeRoot, "hyperframes", "versions.json"), "utf8"));
+const projectDependencies = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8")).dependencies;
+if (motionDependencies.hyperframes !== projectDependencies["@hyperframes/core"] || motionDependencies.gsap !== projectDependencies.gsap) {
+  throw new Error("受管 HTML 浏览器运行库与固定依赖版本不一致。");
+}
 const manifest = JSON.parse(await readFile(join(pluginRoot, ".codex-plugin", "plugin.json"), "utf8"));
 if (manifest.name !== "videoflowcut" || manifest.mcpServers !== "./.mcp.json" || manifest.skills !== "./skills/") {
   throw new Error("插件 manifest 未声明预期的 Skills 或 MCP 入口。");

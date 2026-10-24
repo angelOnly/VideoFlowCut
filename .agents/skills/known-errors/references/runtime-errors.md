@@ -10,11 +10,11 @@
 
 检查是否使用同一 Revision Snapshot、资源路径、字体、编解码器、画幅和 Runtime 版本。浏览器正常而导出失败时，不用浏览器截图冒充最终 Artifact；修复环境或资源。
 
-## Remotion 组件失败
+## 受管 HTML 或合成组件失败
 
-受管字体先查询 `read_motion_capabilities`，使用 `fontBindings` 与平台注入的 `props.fonts`。`MOTION_IMPORT_REJECTED: useEffect/useState/delayRender/continueRender` 若来自字体加载代码，由原作者按已发布合同改写；不能只删第一个导入后继续使用浏览器全局。`MOTION_FONT_UNKNOWN` 先核对实际目录；已登记文件缺失、变化、加载失败或超时属于平台修复范围，失败不替换绑定字体、不生成半件 Asset。`MOTION_FONT_CACHE_CORRUPT` 表示完整作品字体副本或绑定损坏，不静默重生覆盖。没有字体文件加载错误，不应把字形覆盖或排版问题扩大成Runtime崩溃。
+受管字体先查询 `read_motion_capabilities`，使用 `fontBindings` 与平台注入的 `vfc.fonts`。`MOTION_IMPORT_REJECTED` 表示携带外部脚本或模块；由原作者按固定运行库与 HTML 合同改写。`MOTION_FONT_UNKNOWN` 先核对实际目录；已登记文件缺失、变化、加载失败或超时属于平台修复范围，失败不替换绑定字体、不生成半件 Asset。`MOTION_FONT_CACHE_CORRUPT` 表示完整作品字体副本或绑定损坏，不静默重生覆盖。没有字体文件加载错误，不应把字形覆盖或排版问题扩大成Runtime崩溃。
 
-新受管视频按videoBindings源毫秒半开范围、作品startFrame/endFrame及fps检查，帧数以endFrame-startFrame为准，允许1毫秒取整与不足一帧余量；不匹配时Schema拒绝创建Job。调整选段或作品范围后提交经确认的新版本，不加源码偏移掩盖差值。MOTION_VIDEO_SOURCE_SHORT保留实际源证据，由修复任务核查PTS与边界，不冻结末帧。TimelineVideo读取作品根时钟，Sequence只改变显示与布局。历史产物可读，旧引擎重新生成返回MOTION_ENGINE_UPGRADE_REQUIRED，须按新合同提交。MOTION_DISK_SPACE检查真实空间与安全余量；MOTION_VIDEO_WORKING_SET检查单块工作区配置，不以累计解码512MiB要求导演拆件。MOTION_VIDEO_CHANGED会使解码缓存失效，防止恢复原片后误用错误帧；剪辑任务仍沿Repair Ticket报障，不自行修改平台。
+新受管视频按videoBindings源毫秒半开范围、作品startFrame/endFrame及fps检查，帧数以endFrame-startFrame为准，允许1毫秒取整与不足一帧余量；不匹配时Schema拒绝创建Job。调整选段或作品范围后提交经确认的新版本，不加源码偏移掩盖差值。MOTION_VIDEO_SOURCE_SHORT保留实际源证据，由修复任务核查PTS与边界，不冻结末帧。受管视频槽读取作品根时钟，DOM 分层与 GSAP 动画只改变显示与布局。历史产物可读，旧引擎重新生成返回MOTION_ENGINE_UPGRADE_REQUIRED，须按新合同提交。MOTION_DISK_SPACE检查真实空间与安全余量；MOTION_VIDEO_WORKING_SET检查单块工作区配置，不以累计解码512MiB要求导演拆件。MOTION_VIDEO_CHANGED会使解码缓存失效，防止恢复原片后误用错误帧；剪辑任务仍沿Repair Ticket报障，不自行修改平台。
 
 动画Job失败时读取track_job.error与result.diagnostic的实际错误码和信息；成功后读取Asset、固定版本及videoDecodes，不把缓存统计或临时帧当成可交付作品。候选实现新增track_job.result.motionProgress的stage、currentFrame、lastCompletedFrame和lastProgressAt；必须核对实际部署后读取，不能从updatedAt续租心跳推断进展。失败报告在result.motionFailure中保留首次异常栈、附加错误、浏览器事件、退出状态和reportPath，运行诊断独立于素材和Revision。
 

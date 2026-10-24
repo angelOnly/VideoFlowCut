@@ -1,3 +1,5 @@
+import {sizeMotionFixture} from "../tests/fixtures/hyperframes.js";
+import {motionHtml,frameHtml} from "../tests/fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -62,8 +64,8 @@ try {
   const preview = join(projectRoot, rendered.asset.managedPath);
   await verifyMotionPreviewFrames(preview, work.durationInFrames, work.fps);
   const stable = await call("read_project", { project_id: projectId });
-  const badSource = `import React from 'react';import {useCurrentFrame} from 'remotion';let visited=false;export default function Motion(){if(useCurrentFrame()>0)visited=true;return <div style={{position:'absolute',inset:0,background:visited?'white':'black'}}/>;}`;
-  const bad = await call("submit_motion_work", { project_id: projectId, base_revision_id: stable.revision.number, idempotency_key: "determinism-negative", work: { ...motionFixture, source: badSource, durationInFrames: 4 } });
+  const badSource = frameHtml('<div id="bg" style="position:absolute;inset:0"></div>',"if(f>0)visited=true;document.querySelector('#bg').style.background=visited?'white':'black';","let visited=false;");
+  const bad = await call("submit_motion_work", { project_id: projectId, base_revision_id: stable.revision.number, idempotency_key: "determinism-negative", work: sizeMotionFixture({ ...motionFixture, source: badSource, durationInFrames: 4 }) });
   const failed = await waitJob(bad.id);
   assert.equal(failed.status, "failed");
   assert.equal(failed.result.diagnostic.code, "MOTION_NONDETERMINISTIC");

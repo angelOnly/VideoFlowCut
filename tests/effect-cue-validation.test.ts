@@ -1,3 +1,4 @@
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -31,7 +32,7 @@ test("真实MCP拒绝跨Scene整件作品且不写入，原作者改为完整承
     sceneIds.forEach((id, i) => { snapshot.scenes.find(scene => scene.id === id)!.narrativeBeatIds = [beatIds[i]!]; });
     snapshot.scenes.find(scene => scene.id === hostId)!.narrativeBeatIds = beatIds;
   });
-  const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "fixture", work: { ...motionFixture, durationInFrames: 1784 } });
+  const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "fixture", work: sizeMotionFixture({ ...motionFixture, durationInFrames: 1784 }) });
   const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: "fixture-only", engineVersion: "fixture-only",
     metadata: { durationMs: 59467, width: 320, height: 320, fps: 30, hasAudio: false } });
   const transport = new StdioClientTransport({ command: process.execPath,
@@ -119,7 +120,7 @@ test("同码异常和提交后失败不能伪装成保存前范围拒绝", async
 });
 
 test("范围纠正的交接合同保留原作者判断及旧unknown边界", async () => {
-  for (const path of [".agents/skills/known-errors/references/submission-errors.md", ".agents/skills/remotion-production/references/submission-and-recovery.md"]) {
+  for (const path of [".agents/skills/known-errors/references/submission-errors.md", ".agents/skills/opendesign-video-production/references/submission-and-recovery.md"]) {
     const text = await readFile(path, "utf8");
     for (const keyword of ["CUE_OUT_OF_SCENE", "INVALID_CUE_RANGE", "covered_narrative_beat_ids", "原作者", "validation/none/correct_input"]) {
       // known-errors 使用完整命名字段，仍须明确三项恢复条件。

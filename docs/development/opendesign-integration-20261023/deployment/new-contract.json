@@ -1,0 +1,237 @@
+{
+  "name": "submit_motion_work",
+  "title": "生成受管 HyperFrames 作品",
+  "description": "可选frame_range只生成同源局部校样：完整源码、Props、绑定与根时钟不变，不创建Asset、不修改Revision；确认后省略frame_range提交完整作品。新作品填写 work.creativeBrief，提交固定源码、Props、图片及视频绑定，排队隔离渲染；不自动放入Timeline。修改作品重新提交并填写previousAssetId。源视频 video 和人物视频 actor_video 均可绑定；选段数量不设固定上限，实际负载受资源校验约束。每槽声明assetId、sourceStartMs、sourceEndMs、startFrame、endFrame及可选decodeScale；源码用带稳定id的img和data-vfc-video-slot显示，object-fit负责取景。平台使用作品根时钟，容器布局与显隐不重置源时间。输出帧数以endFrame-startFrame为准，源范围允许毫秒取整及不足一帧余量；正常速度且静音，原声在声音轨明确编排。源不足、源变化或取帧越界报错，不自动冻结或循环。原片按内容身份共享，不按槽复制；解码缓存按需生成、有界回收，不按原片或累计解码512MB拒绝。完整作品不设30秒、900帧或650000000累计像素帧门槛，由Worker提前检查完整输出及临时工作区真实磁盘需求；失败不登记半件Asset。画布宽高64–1920偶数、fps15–60整数；所有帧连续渲染并验证，一个Job产生一个完整Asset。imageBindings将图片映射到props.assets，使用data-vfc-image-slot或CSS资源变量，不允许任意资源URL。历史作品产物可读；历史引擎重新生成须按新合同提交。技术生成不替代连续审片。",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "project_id": {
+        "type": "string"
+      },
+      "base_revision_id": {
+        "type": "integer",
+        "exclusiveMinimum": 0
+      },
+      "idempotency_key": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+      },
+      "work": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "source": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 2000000,
+            "description": "完整 HyperFrames 单页 HTML，CSS/JS 内联；固定运行库由平台提供。"
+          },
+          "props": {
+            "type": "object",
+            "additionalProperties": {},
+            "default": {}
+          },
+          "imageBindings": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 150
+            },
+            "propertyNames": {
+              "pattern": "^[a-z][a-z0-9_]{0,39}$"
+            },
+            "default": {}
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 64,
+            "maximum": 1920,
+            "description": "画布宽度（像素），64–1920 的偶数；完整输出按真实磁盘需求预检。"
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 64,
+            "maximum": 1920,
+            "description": "画布高度（像素），64–1920 的偶数；完整输出按真实磁盘需求预检。"
+          },
+          "fps": {
+            "type": "integer",
+            "minimum": 15,
+            "maximum": 60,
+            "description": "帧率，15–60 的整数；视频按真实时间戳重采样。"
+          },
+          "durationInFrames": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 9007199254740991,
+            "description": "作品完整帧数；平台有界取帧并连续渲染，不按30秒、900帧或累计像素帧要求作者拆件。"
+          },
+          "reference": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "observation": {
+                "type": "object",
+                "properties": {
+                  "layout": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 1800
+                  },
+                  "motion": {
+                    "$ref": "#/properties/work/properties/reference/properties/observation/properties/layout"
+                  },
+                  "rhythm": {
+                    "$ref": "#/properties/work/properties/reference/properties/observation/properties/layout"
+                  },
+                  "adaptation": {
+                    "$ref": "#/properties/work/properties/reference/properties/observation/properties/layout"
+                  },
+                  "evidence": {
+                    "$ref": "#/properties/work/properties/reference/properties/observation/properties/layout"
+                  }
+                },
+                "required": [
+                  "layout",
+                  "motion",
+                  "rhythm",
+                  "adaptation",
+                  "evidence"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "url",
+              "observation"
+            ],
+            "additionalProperties": false
+          },
+          "sourceDisplayScopeId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150,
+            "description": "来源说明例外适用的当前项目、Scene 或 NarrativeMap Beat ID；省略为当前项目。只选择范围，不能自行授权。"
+          },
+          "previousAssetId": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "creativeBrief": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 6000,
+            "description": "新作品必填的创作说明；仅历史作品按原输入进行幂等重放时可省略。"
+          },
+          "videoBindings": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "assetId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 150
+                },
+                "sourceStartMs": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "sourceEndMs": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "startFrame": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "endFrame": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "decodeScale": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 1
+                }
+              },
+              "required": [
+                "assetId",
+                "sourceStartMs",
+                "sourceEndMs",
+                "startFrame",
+                "endFrame"
+              ],
+              "additionalProperties": false
+            },
+            "propertyNames": {
+              "pattern": "^[a-z][A-Za-z0-9_]{0,39}$"
+            },
+            "description": "命名视频选段可绑定已就绪的 video 或 actor_video，不设作品选段总数上限；声明源毫秒范围和作品帧范围，实际负载受资源校验约束。data-vfc-video-slot读取作品根时钟，容器变换只改变布局；正常速度且静音。"
+          },
+          "fontBindings": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,79}$"
+            },
+            "propertyNames": {
+              "pattern": "^[a-z][A-Za-z0-9_]{0,39}$"
+            },
+            "description": "字体槽位到已登记 fontId 的映射，最多8槽。先查询 read_motion_capabilities；平台加载后注入 vfc.fonts[槽位] 的 family、weight、style 与 CSS 字体变量，不接受路径或URL。"
+          }
+        },
+        "required": [
+          "name",
+          "source",
+          "width",
+          "height",
+          "fps",
+          "durationInFrames"
+        ],
+        "additionalProperties": false
+      },
+      "frame_range": {
+        "type": "object",
+        "properties": {
+          "startFrame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "endFrame": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "startFrame",
+          "endFrame"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "base_revision_id",
+      "idempotency_key",
+      "work"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "execution": {
+    "taskSupport": "forbidden"
+  }
+}

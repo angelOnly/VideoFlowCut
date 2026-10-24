@@ -1,3 +1,4 @@
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createHash } from "node:crypto";
@@ -23,7 +24,7 @@ async function fixture() {
   const image = app.registerImportedAsset({ projectId, baseRevision: rev(), name: "测试图片身份", kind: "image", managedPath: "assets/photo.png", sourceHash: createHash("sha256").update(bytes).digest("hex") }).asset;
   app.applyMediaAnalysis({ projectId, assetId: image.id, metadata: { durationMs: 0, width: 10, height: 10, hasAudio: false } });
   app.repository.commit(projectId, rev(), "隔离测试画布", snapshot => { Object.assign(snapshot.timeline, { width: 320, height: 320, fps: 30 }); });
-  const job = app.submitManagedMotion({ projectId, baseRevision: rev(), idempotencyKey: "image", work: { ...motionFixture, imageBindings: { photo: image.id } } });
+  const job = app.submitManagedMotion({ projectId, baseRevision: rev(), idempotencyKey: "image", work: sizeMotionFixture({ ...motionFixture, imageBindings: { photo: image.id } }) });
   // 本夹具只验证登记与采用合同，不把模拟完成当作真实渲染或审美证据。
   const work = app.completeManagedMotion({ projectId, jobId: job.id, engineVersion: "fixture", sourceHash: "fixture-preview", metadata: { durationMs: 600, width: 320, height: 320, fps: 30, hasAudio: false } });
   app.updateJob(job.id, { status: "succeeded", result: { assetId: work.id } });

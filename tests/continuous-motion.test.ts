@@ -1,3 +1,5 @@
+import {motionHtml, frameHtml} from "./fixtures/hyperframes.js";
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -18,11 +20,10 @@ test("同一状态函数在交叠中拆件，所有帧及真实视频源时钟�
     await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "testsrc2=s=64x64:r=24:d=1", "-c:v", "libx264", path]);
     const hash = await hashMotionFile(path);
     // 同一源素材、运动与观察逻辑，仅调整分块的绝对时钟和源起点。
-    const source = `import React from 'react';import {useCurrentFrame} from 'remotion';import {TimelineVideo} from '@videoflowcut/motion';
-export default function Motion(props:{offset:number}){const frame=useCurrentFrame()+props.offset;return <div style={{width:128,height:64,background:'#111'}}><div style={{position:'absolute',left:frame*2,top:0,width:64,height:64}}><TimelineVideo slot="footage" style={{width:64,height:64}}/></div><div style={{position:'absolute',left:100-frame*2,top:12,width:40,height:40,background:'#ffdd33',opacity:0.65}}/></div>;}`;
+    const source = frameHtml('<div style="position:absolute;inset:0;background:#111"><img id="footage" data-vfc-video-slot="footage" style="position:absolute;top:0;width:64px;height:64px"><div id="square" style="position:absolute;top:12px;width:40px;height:40px;background:#ffdd33;opacity:.65"></div></div>',`const frame=f+p.offset;document.querySelector('#footage').style.left=frame*2+'px';document.querySelector('#square').style.left=100-frame*2+'px';`);
     const render = async (name: string, offset: number, count: number) => {
       const timing = { assetId: "source", sourceStartMs: offset * 1000 / 24, sourceEndMs: (offset + count) * 1000 / 24, startFrame: 0, endFrame: count };
-      const work = { ...motionFixture, source, props: { offset }, width: 128, height: 64, fps: 24, durationInFrames: count, videoBindings: { footage: timing } };
+      const work = sizeMotionFixture({ ...motionFixture, source, props: { offset }, width: 128, height: 64, fps: 24, durationInFrames: count, videoBindings: { footage: timing } });
       const provider = await prepareMotionVideos(root, join(root, `decode-${name}`), work, [{ ...timing, slot: "footage", managedPath: "source.mp4", hash }]);
       try { return await renderManagedMotion(work, join(root, name), {}, provider); }
       finally { await provider.close(); }

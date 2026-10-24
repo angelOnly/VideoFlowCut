@@ -49,7 +49,7 @@ SpeechSegment 用于来源追溯，不要求生成完整语音段。仅合并同
 3. 只为缺口提交 `submit_avatar_job`：必填 `base_revision_id`、`contract_version:2`、`capability_profile_id`、`presenter_use_ids`，多组按返回的 `source_group_key` 分别提交，可带返回的 `plan_fingerprint` 和相同 `prompt`；`attempt`、`idempotency_key` 按当前恢复合同使用。新接口不接受旧 `generation_range`／`placement`。Worker 从固定真实声音文件按精确样本裁片，不能用音色样本代替；Bridge 参数仍以工作流实际 Schema 为准。
 4. 用 `track_job` 读取原 Job。完成只登记真实人物源，不按提交时的位置自动上屏。先检查结果与当前需求，再用 `adopt_avatar_source` 传当前 `base_revision_id`、`presenter_use_id`、`asset_id`；可按实际需要传 `start_frame`、`end_frame` 与现有 `layout`。读回 Timeline、ActorPerformance、Revision 与影响；源视频静音，主声音继续使用 Dialogue。
 
-`adopt_avatar_source` 只写合法源子区间和当前使用，不替视觉作者修改 TSX。圆形、纸片、分屏和容器仍由受管作品实现；源时钟与绑定使用真实采用结果。移动、缩短或撤回出镜通过原 VisualTreatment 的 `presenter_uses` 修改，旧使用会停用，源文件保留；重新使用时再按新范围采用并更新作品绑定。计划变化重新查询当前缺口，不篡改在途 Job 的固定声音、照片和参数。当前生成输出无 Mask 的人物视频，不承诺逐帧姿态、目光或手势追踪。
+`adopt_avatar_source` 只写合法源子区间和当前使用，不替视觉作者修改 HTML 源码。圆形、纸片、分屏和容器仍由受管作品实现；源时钟与绑定使用真实采用结果。移动、缩短或撤回出镜通过原 VisualTreatment 的 `presenter_uses` 修改，旧使用会停用，源文件保留；重新使用时再按新范围采用并更新作品绑定。计划变化重新查询当前缺口，不篡改在途 Job 的固定声音、照片和参数。当前生成输出无 Mask 的人物视频，不承诺逐帧姿态、目光或手势追踪。
 
 确定性合同测试只验证对象与范围关系；Provider 可用性、中文口型、真实 Mask、局部重生成连续性与完整审美必须由实际输出和 Preview 验证。Capability Profile 或参考音频存在不等于口型已通过；失败或结果未知时，不伪造生成成功，交回主工作流说明可执行降级和缺口。
 

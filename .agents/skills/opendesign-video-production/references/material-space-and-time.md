@@ -2,7 +2,7 @@
 
 素材窗口、原件局部、准确编辑图形与画内文字按本片承担的工作映射，不能因都是矩形就机械替换。窗口扩大时的标签归属、辅助内容退让与后续空间在同一稿中决定；下面的坐标和源时钟计算用于兑现这些关系，不冻结初始页面。
 
-本文件是当前受管原创作品的实现教学，不是新平台接口或通用动画引擎。正式作品仍沿现有submit_motion_work、绑定、版本和沙箱；下列辅助函数属于作者可参考的数学实现，不得在受管TSX中新增未许可的外部import。
+本文件是当前受管原创作品的实现教学，不是新平台接口或通用动画引擎。正式作品仍沿现有submit_motion_work、绑定、版本和沙箱；下列辅助函数属于作者可参考的数学实现，受管 HTML 使用平台提供的 vfc.geometry，不新增外部模块。
 
 ## 1. 把事实、设计和代码分成三层
 
@@ -59,7 +59,7 @@ oy = ay*Hv - v*Hr
 ```text
 SceneRoot：显式全画布尺寸；统一作品局部时钟
   SourceWindow：明确窗口几何、源slot、当前源偏移
-    SourcePlane：源图/TimelineVideo，实际渲染尺寸与裁切偏移
+    SourcePlane：源图/视频槽画面，实际渲染尺寸与裁切偏移
     AttachedMarks：源点/轮廓，与SourcePlane共用变换
   DetailWindow：同源同帧的第二视窗；局部倍率和目标点
   ExplanationLayer：屏幕正向的主读、必要示意身份
@@ -71,7 +71,7 @@ SceneRoot：显式全画布尺寸；统一作品局部时钟
 
 ## 6. 四个时间必须分别保存
 
-设作品在全片从G开始，作品根帧为f；视频绑定从作品第A帧开始，取帧n=f-A。内部Sequence的局部帧只用于布局，不改变TimelineVideo的源时间：
+设作品在全片从G开始，作品根帧为f；视频绑定从作品第A帧开始，取帧n=f-A。内部场面层的局部帧只用于布局，不改变视频槽画面的源时间：
 
 ```text
 globalFrame = G + f
@@ -80,9 +80,9 @@ sourceMs = sourceStartMs + 1000*(f-A)/fps
 
 这个式子说明映射意图；具体源解码由平台按真实时间戳重采样，不能把它当原视频原生帧号。sourceStartMs与startFrame由绑定固定，不再传offsetInFrames。
 
-全屏转窗口或全貌与局部同时显示时，沿用同一槽位；平台提供同一个n。Sequence重置局部帧不重置视频，裁切与放大可以不同。
+全屏转窗口或全貌与局部同时显示时，沿用同一槽位；平台提供同一个n。场面层重置局部时钟不重置视频，裁切与放大可以不同。
 
-跨作品时每件声明真实源起点及作品帧范围，核对前后源时间；不通过重复加偏移接续。取帧n须在绑定范围内，TimelineVideo在范围外不显示。平台内部分块取帧保持同一采样网格，不要求为旧资源预算拆作品。
+跨作品时每件声明真实源起点及作品帧范围，核对前后源时间；不通过重复加偏移接续。取帧n须在绑定范围内，视频槽画面在范围外不显示。平台内部分块取帧保持同一采样网格，不要求为旧资源预算拆作品。
 
 源绑定毫秒为整数，作品帧可能对应非整数毫秒。输出帧数以endFrame-startFrame为准，源范围允许1毫秒取整及不足一帧余量；分绑定时核对前后实际帧，不仅看四舍五入数字。VFR、旋转和SAR由Worker处理并读回结果。
 
@@ -107,7 +107,7 @@ sourceMs = sourceStartMs + 1000*(f-A)/fps
 
 ## 9. 从开发到生产的界限
 
-平台通过 `@videoflowcut/motion` 提供以下确定性函数，均不读取文件或网络：
+平台通过 `window.vfc.geometry` 提供以下确定性函数，均不读取文件或网络：
 - `fitSource({width,height}, {x,y,width,height}, mode="cover", position={x:.5,y:.5})`：返回实际源画面的 left/top/width/height/scaleX/scaleY 与 box。
 - `focusCover(source, box, {u,v}, zoom=1, anchor={x:.5,y:.5})`：围绕归一化目标缩放，限制在不露底的范围内。
 - `sourcePoint(geometry, {u,v})`：返回源点在画布上的 x/y 与 visible。
@@ -117,14 +117,13 @@ sourceMs = sourceStartMs + 1000*(f-A)/fps
 
 创作决定目标位置、裁切、路径与时机；函数只计算坐标和时间，不规定固定版式。
 
-如果真实工程测试发现SourceRegion、TimelineVideo作品时钟或图片采用摘要没有按合同生效，提交独立复现与Repair Ticket。方案正确、代码错误、原件信息不足和模型估计错误分别处理。数学测试通过不代表作品漂亮或目标框准确。
+如果真实工程测试发现SourceRegion、视频槽画面作品时钟或图片采用摘要没有按合同生效，提交独立复现与Repair Ticket。方案正确、代码错误、原件信息不足和模型估计错误分别处理。数学测试通过不代表作品漂亮或目标框准确。
 
 ## 10. 实际预览检查
 
 先看源对象，再看带标注的同一时刻，确认目标真实可见；再看一段完整交接，确认没有局部源时钟重置、突然换源、引线漂移、过度裁切或阅读过早退场。最后带当前旁白/源声检查；图形独立静音通过不是声画通过。
 
 官方参考仅用于理解基础行为，项目按安装版本与受管合同执行：
-- https://www.remotion.dev/docs/use-current-frame
 - https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit
 - https://developer.mozilla.org/en-US/docs/Web/CSS/object-position
 
@@ -134,7 +133,7 @@ sourceMs = sourceStartMs + 1000*(f-A)/fps
 
 源媒体、作品局部、整片和声音使用独立、可核对的时间映射。跨作品接管时核对投影、姿态、文字、材质、源帧；容器显式拥有所需宽高，子层共享父变换。
 
-尽量用同一份命名时序常量驱动动画与 resolveMotionEvents。事件描述对象和阶段须与实际实现相符；事件值本身不证明美术和阅读通过。
+尽量用同一份命名时序常量驱动动画与 window.getVfcMotionEvents。事件描述对象和阶段须与实际实现相符；事件值本身不证明美术和阅读通过。
 
 每个关键设计写出实现位置与中途检查：例如“让位揭字—ForegroundWindow / conditionText—检查遮挡解除中点”。若技术资源需要分作品，按正常预算拆分并继承出口，不把技术上限当整片时长。
 

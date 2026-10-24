@@ -1,3 +1,4 @@
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -15,7 +16,7 @@ import { MotionDiagnostics } from "../apps/render-worker/src/motion-diagnostics.
 
 const timing = { sourceStartMs: 0, sourceEndMs: 1000, startFrame: 0, endFrame: 30 };
 test("固定Job绑定和公开比例不一致，解码前拒绝", async (t) => {
-  const work = motionSubmissionSchema.parse({ ...motionFixture, durationInFrames: 30, videoBindings: { footage: { assetId: "a", ...timing, decodeScale: 0.5 } } });
+  const work = motionSubmissionSchema.parse(sizeMotionFixture({ ...motionFixture, durationInFrames: 30, videoBindings: { footage: { assetId: "a", ...timing, decodeScale: 0.5 } } }));
   const boundVideos = [{ slot: "footage", assetId: "a", managedPath: "source.mp4", hash: "a".repeat(64), ...timing, decodeScale: 0.75 }];
   const version = motionHash(work, [], MOTION_ENGINE_VERSION, boundVideos);
   // 仅隔离诊断落盘，保留真实输入校验；测试不得写运行中的工作区。
@@ -26,7 +27,7 @@ test("固定Job绑定和公开比例不一致，解码前拒绝", async (t) => {
 
 test("比例严格校验，几何尺寸不静默夹到边界", () => {
   for (const decodeScale of [0, -1, 1.01, NaN, Infinity]) {
-    assert.equal(motionSubmissionSchema.safeParse({ ...motionFixture, durationInFrames: 30, videoBindings: { v: { assetId: "a", ...timing, decodeScale } } }).success, false);
+    assert.equal(motionSubmissionSchema.safeParse(sizeMotionFixture({ ...motionFixture, durationInFrames: 30, videoBindings: { v: { assetId: "a", ...timing, decodeScale } } })).success, false);
     assert.equal(boundMotionVideoSchema.safeParse({ slot: "v", assetId: "a", managedPath: "a", hash: "a".repeat(64), ...timing, decodeScale }).success, false);
   }
   assert.deepEqual(motionDecodeDimensions({ displayWidth: 1920, displayHeight: 1080 }, { width: 768, height: 1344 }), { width: 768, height: 432 });
@@ -45,7 +46,7 @@ test("四种旋转和SAR实际解码与显示方向一致；旧引擎不进入�
       const file = join(root, `r${rotation}.mp4`);
       await runProcess("ffmpeg", ["-y", "-v", "error", "-display_rotation", String(rotation), "-i", source, "-c", "copy", file]);
       const binding = { slot: "footage", assetId: "a", managedPath: `r${rotation}.mp4`, hash: await hashMotionFile(file), ...timing };
-      const work = { ...motionFixture, durationInFrames: 30, width: rotation % 180 ? 180 : 320, height: rotation % 180 ? 320 : 180 };
+      const work = sizeMotionFixture({ ...motionFixture, durationInFrames: 30, width: rotation % 180 ? 180 : 320, height: rotation % 180 ? 320 : 180 });
       const provider = await prepareMotionVideos(root, join(root, `new${rotation}`), work, [binding]);
       try {
         const frame = PNG.sync.read(await provider.getFrame("footage", 0)); assert.equal(frame.width, work.width); assert.equal(frame.height, work.height);
@@ -57,7 +58,7 @@ test("四种旋转和SAR实际解码与显示方向一致；旧引擎不进入�
     }
     const sar = join(root, "sar.mp4"); await runProcess("ffmpeg", ["-y", "-v", "error", "-i", source, "-vf", "setsar=2", "-c:v", "libx264", sar]);
     const binding = { slot: "footage", assetId: "a", managedPath: "sar.mp4", hash: await hashMotionFile(sar), ...timing };
-    const provider = await prepareMotionVideos(root, join(root, "sar-new"), { ...motionFixture, durationInFrames: 30, width: 640, height: 180 }, [binding]);
+    const provider = await prepareMotionVideos(root, join(root, "sar-new"), sizeMotionFixture({ ...motionFixture, durationInFrames: 30, width: 640, height: 180 }), [binding]);
     try { assert.equal(provider.videos.footage.width, 640); assert.equal(provider.videos.footage.height, 180); assert.equal(provider.videos.footage.geometry?.sar, 2); } finally { await provider.close(); }
   } finally { await rm(root, { recursive: true, force: true }); }
 });

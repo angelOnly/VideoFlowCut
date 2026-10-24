@@ -1,0 +1,894 @@
+{
+  "release": {
+    "mcpReleaseId": "release-50329aef318319c804eb77caec67f6dc8def4637afd8ea8d4cf7a2cba910dcdb",
+    "runtime": {
+      "status": "ready",
+      "runtimeId": "6233ab46-8a24-4f92-b01e-d912abff894a",
+      "releaseId": "release-50329aef318319c804eb77caec67f6dc8def4637afd8ea8d4cf7a2cba910dcdb",
+      "workers": {
+        "media": true,
+        "render": true
+      }
+    },
+    "aligned": true,
+    "launcherReleaseId": "release-50329aef318319c804eb77caec67f6dc8def4637afd8ea8d4cf7a2cba910dcdb",
+    "launcherCodeHash": "97d28fd3f81f84c43e2c33559eea5d8ffe1c7d9362d0a501360f1874cfbc6f91",
+    "launcherPid": 71360
+  },
+  "cap": {
+    "engineVersion": "managed-hyperframes-1",
+    "html": {
+      "sourceFormat": "html",
+      "maxSourceLength": 2000000,
+      "dependencies": {
+        "hyperframes": "0.8.1",
+        "gsap": "3.14.2"
+      },
+      "entry": "完整单页 HTML；CSS/JS 内联；不得携带外部脚本、样式或原生音视频。平台先加载绑定资源与字体，再执行普通内联脚本，最后启动 HyperFrames。不要依赖 DOMContentLoaded 回调。",
+      "composition": "一个根 data-composition-id，data-width/data-height/data-duration 与 work 一致（duration 单位秒），data-start=0；将暂停的 GSAP 主时间线按该 ID 注册到 window.__timelines，实际总时长与 work 一致。",
+      "startup": "window.vfc={props,config:{width,height,fps,durationInFrames},assets,fonts,geometry}；props.assets/props.fonts 保留平台字段；geometry 提供 fitSource/focusCover/sourcePoint/parentPoint/frameMapping/previewRange。",
+      "images": {
+        "attribute": "data-vfc-image-slot",
+        "css": "--vfc-image-<slot>",
+        "usage": "img 或 SVG image 用槽属性；背景与遮罩使用 CSS var(--vfc-image-<slot>)；脚本可读 vfc.assets[slot]。"
+      },
+      "videos": {
+        "attribute": "data-vfc-video-slot",
+        "clock": "work_root",
+        "usage": "稳定 id 的 img 使用视频槽；平台注入 data-start/data-duration 与根帧图像，正常速度静音，显隐和变换不重置源时间；不得自改 src 或绑定范围。"
+      },
+      "fonts": {
+        "css": "--vfc-font-<slot>",
+        "usage": "font-family:var(--vfc-font-title)；实际 family/weight/style 也见 vfc.fonts[slot]。所有字形测量在作者脚本执行时进行。"
+      },
+      "events": "可选 window.getVfcMotionEvents() 返回原事件条目 {id,meaning,startFrame,endFrame?}；从动画共用时序计算，帧坐标以作品根时钟为准。",
+      "rendering": "HyperFrames renderSeek 按根秒求值，再注入视频帧、检查实际 DOM、等待绘制并保存透明 RGBA PNG。局部校样保留完整时钟；声音与普通字幕沿外层正式链路。"
+    },
+    "fonts": [
+      {
+        "id": "noto-sans-sc-regular",
+        "name": "Noto Sans SC 常规",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+        "license": "OFL-1.1",
+        "sourceUrl": "https://github.com/notofonts/noto-cjk/blob/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/SubsetOTF/SC/NotoSansSC-Regular.otf"
+      },
+      {
+        "id": "noto-sans-sc-bold",
+        "name": "Noto Sans SC 粗体",
+        "weight": 700,
+        "style": "normal",
+        "sha256": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+        "license": "OFL-1.1",
+        "sourceUrl": "https://github.com/notofonts/noto-cjk/blob/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/SubsetOTF/SC/NotoSansSC-Bold.otf"
+      },
+      {
+        "id": "noto-serif-sc-semibold",
+        "name": "Noto Serif SC 中粗宋体／衬线",
+        "weight": 600,
+        "style": "normal",
+        "sha256": "517d9736136b3b4e9aea742a7e1acda1922aea91a4425bd8db79281934055bf5",
+        "license": "OFL-1.1",
+        "sourceUrl": "https://github.com/notofonts/noto-cjk/blob/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Serif/SubsetOTF/SC/NotoSerifSC-SemiBold.otf"
+      },
+      {
+        "id": "noto-serif-sc-black",
+        "name": "Noto Serif SC 重宋体／显示衬线",
+        "weight": 900,
+        "style": "normal",
+        "sha256": "91dde57622845beeb663f300813999febdb7fcd5e451bde199d7c954a9740cb4",
+        "license": "OFL-1.1",
+        "sourceUrl": "https://github.com/notofonts/noto-cjk/blob/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Serif/SubsetOTF/SC/NotoSerifSC-Black.otf"
+      },
+      {
+        "id": "maoken-yanbo-song-extralight",
+        "name": "猫啃网烟波宋 细字重 E",
+        "weight": 200,
+        "style": "normal",
+        "sha256": "3126e74fc6b510ffb4cadf555206c31854870456c0afa212880258c7bf6261be",
+        "license": "OFL-1.1",
+        "licenseFile": "OFL-YanBoSong.txt",
+        "sourceUrl": "https://oss.maoken.com/%E7%8C%AB%E5%95%83%E5%AD%97%E4%BD%93/%E4%B8%AD%E5%9B%BD%E5%A4%A7%E9%99%86/%E7%8C%AB%E5%95%83%E7%BD%91%E7%83%9F%E6%B3%A2%E5%AE%8B1.10_%E7%8C%AB%E5%95%83%E7%BD%91.zip"
+      },
+      {
+        "id": "maoken-yanbo-song-regular",
+        "name": "猫啃网烟波宋 常规 R",
+        "weight": 200,
+        "style": "normal",
+        "sha256": "5de0180795279c5bc97a61856d9c5fc777ae467fd87788aec4875878aa4bdea3",
+        "license": "OFL-1.1",
+        "licenseFile": "OFL-YanBoSong.txt",
+        "sourceUrl": "https://oss.maoken.com/%E7%8C%AB%E5%95%83%E5%AD%97%E4%BD%93/%E4%B8%AD%E5%9B%BD%E5%A4%A7%E9%99%86/%E7%8C%AB%E5%95%83%E7%BD%91%E7%83%9F%E6%B3%A2%E5%AE%8B1.10_%E7%8C%AB%E5%95%83%E7%BD%91.zip"
+      },
+      {
+        "id": "maoken-yanbo-song-light",
+        "name": "猫啃网烟波宋 轻字重 L",
+        "weight": 300,
+        "style": "normal",
+        "sha256": "5f6a41604d8d81135d6133298de9eb4ac960276a2e843f9e6bbfef665739d893",
+        "license": "OFL-1.1",
+        "licenseFile": "OFL-YanBoSong.txt",
+        "sourceUrl": "https://oss.maoken.com/%E7%8C%AB%E5%95%83%E5%AD%97%E4%BD%93/%E4%B8%AD%E5%9B%BD%E5%A4%A7%E9%99%86/%E7%8C%AB%E5%95%83%E7%BD%91%E7%83%9F%E6%B3%A2%E5%AE%8B1.10_%E7%8C%AB%E5%95%83%E7%BD%91.zip"
+      },
+      {
+        "id": "maoken-yanbo-song-medium",
+        "name": "猫啃网烟波宋 中等 M",
+        "weight": 500,
+        "style": "normal",
+        "sha256": "49ffcfa241a8dad0c0ff065f9486892af535ebfb38459f4fc0660fba44999376",
+        "license": "OFL-1.1",
+        "licenseFile": "OFL-YanBoSong.txt",
+        "sourceUrl": "https://oss.maoken.com/%E7%8C%AB%E5%95%83%E5%AD%97%E4%BD%93/%E4%B8%AD%E5%9B%BD%E5%A4%A7%E9%99%86/%E7%8C%AB%E5%95%83%E7%BD%91%E7%83%9F%E6%B3%A2%E5%AE%8B1.10_%E7%8C%AB%E5%95%83%E7%BD%91.zip"
+      },
+      {
+        "id": "maoken-yanbo-song-semibold",
+        "name": "猫啃网烟波宋 中粗 S",
+        "weight": 600,
+        "style": "normal",
+        "sha256": "4892dc88fe81c7e2cdf8d3dab2563793af4754f3f1746e08eb1b7bdf2347f662",
+        "license": "OFL-1.1",
+        "licenseFile": "OFL-YanBoSong.txt",
+        "sourceUrl": "https://oss.maoken.com/%E7%8C%AB%E5%95%83%E5%AD%97%E4%BD%93/%E4%B8%AD%E5%9B%BD%E5%A4%A7%E9%99%86/%E7%8C%AB%E5%95%83%E7%BD%91%E7%83%9F%E6%B3%A2%E5%AE%8B1.10_%E7%8C%AB%E5%95%83%E7%BD%91.zip"
+      },
+      {
+        "id": "maoken-yanbo-song-bold",
+        "name": "猫啃网烟波宋 粗字重 B",
+        "weight": 700,
+        "style": "normal",
+        "sha256": "b6dbff53a4895cab46e4d83d96dafe59a9e840a0b4f93e627567ec197e8a5372",
+        "license": "OFL-1.1",
+        "licenseFile": "OFL-YanBoSong.txt",
+        "sourceUrl": "https://oss.maoken.com/%E7%8C%AB%E5%95%83%E5%AD%97%E4%BD%93/%E4%B8%AD%E5%9B%BD%E5%A4%A7%E9%99%86/%E7%8C%AB%E5%95%83%E7%BD%91%E7%83%9F%E6%B3%A2%E5%AE%8B1.10_%E7%8C%AB%E5%95%83%E7%BD%91.zip"
+      },
+      {
+        "id": "maoken-yanbo-song-black",
+        "name": "猫啃网烟波宋 重字重 H",
+        "weight": 900,
+        "style": "normal",
+        "sha256": "24abcd2219a0dd0e17acb0aae1f8bb6c7b1117cdfe9f886bdfb7170df4ee12f3",
+        "license": "OFL-1.1",
+        "licenseFile": "OFL-YanBoSong.txt",
+        "sourceUrl": "https://oss.maoken.com/%E7%8C%AB%E5%95%83%E5%AD%97%E4%BD%93/%E4%B8%AD%E5%9B%BD%E5%A4%A7%E9%99%86/%E7%8C%AB%E5%95%83%E7%BD%91%E7%83%9F%E6%B3%A2%E5%AE%8B1.10_%E7%8C%AB%E5%95%83%E7%BD%91.zip"
+      },
+      {
+        "id": "smiley-sans-oblique",
+        "name": "得意黑 原生斜体",
+        "weight": 400,
+        "style": "italic",
+        "sha256": "139b5dcbe70d6d52de85a62d148784c6af4bd161e38fdb62ba0c1e7e5065fca6",
+        "license": "OFL-1.1",
+        "licenseFile": "OFL-SmileySans.txt",
+        "sourceUrl": "https://github.com/atelier-anchor/smiley-sans/releases/download/v2.0.1/smiley-sans-v2.0.1.zip"
+      },
+      {
+        "id": "aa-jianhao",
+        "name": "Aa剑豪体",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "8b90b8ab796e000caac38a92eb65aa079a93618030421a8305769e0b4e3ceba3",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/Aa%E5%89%91%E8%B1%AA%E4%BD%93%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "aa-houdi-hei",
+        "name": "Aa厚底黑",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "6c42bffb6f773537050c5c2e1dd55f6839c7621f6327833cddf5b054f9c718ad",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/Aa%E5%8E%9A%E5%BA%95%E9%BB%91%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "leefont-menghei",
+        "name": "Leefont蒙黑体",
+        "weight": 900,
+        "style": "normal",
+        "sha256": "655e659f296f90aa814f968a735688b11f8c1709a2bbadd102f80f81bae3a51d",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/Leefont%E8%92%99%E9%BB%91%E4%BD%93%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "muyao-softbrush",
+        "name": "Muyao-Softbrush",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "2344dc2802aca9e176775ff7bbd793aecf4ab4a049947e61238664488fb7956d",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/Muyao-Softbrush%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "pf-pinfan-hutu",
+        "name": "PF频凡胡涂体",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "e7308921a7ee4c01fd0f20e9aafb00b22f0530261dbdf2f70072ae45e5513e90",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/PF%E9%A2%91%E5%87%A1%E8%83%A1%E6%B6%82%E4%BD%93%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "wd-xl-huayou-jp-n",
+        "name": "WD-XL_滑油字_JP_N",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "4a97350d9cf507c9eb57d8ad4e4d31543e236aa9e083f3c0d49811447b6b4aa4",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/WD-XL_%E6%BB%91%E6%B2%B9%E5%AD%97_JP_N%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.otf"
+      },
+      {
+        "id": "wd-xl-huayou-jp-s",
+        "name": "WD-XL_滑油字_JP_S",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "f4b557f2a5d5dd800791526de7c9cebcef3b6ac39ec2bf303f90b875f9f180da",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/WD-XL_%E6%BB%91%E6%B2%B9%E5%AD%97_JP_S%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.otf"
+      },
+      {
+        "id": "wd-xl-huayou-sc",
+        "name": "WD-XL_滑油字_SC",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "45095369dda9a99fe7c705d57c37c0b251706db09be823e0d758664030a57d7f",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/WD-XL_%E6%BB%91%E6%B2%B9%E5%AD%97_SC%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.otf"
+      },
+      {
+        "id": "wd-xl-huayou-tc",
+        "name": "WD-XL_滑油字_TC",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "d5171fa122a7d59f4d3eb498da19c82f8dfb9cf783a8617ebf25cc01d8b54eab",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/WD-XL_%E6%BB%91%E6%B2%B9%E5%AD%97_TC%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.otf"
+      },
+      {
+        "id": "sanji-liliang-bold",
+        "name": "三极力量体简-粗",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "09cb11784d6a614116133dc4cad52f6a745fcd765ee610f22a7491c4d4fd77e2",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/%E4%B8%89%E6%9E%81%E5%8A%9B%E9%87%8F%E4%BD%93%E7%AE%80-%E7%B2%97%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "sanji-pomo",
+        "name": "三极泼墨体",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "e8ad4300c070cda1b8cf11aaeb2a2b89d688f1b149084d67e756d169995b43e9",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/%E4%B8%89%E6%9E%81%E6%B3%BC%E5%A2%A8%E4%BD%93%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "yunfeng-feiyun",
+        "name": "云峰飞云体",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "26118f4c0af4ebe5aa71ee2d68284983031f0798693ba3829285685e641a1a5f",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/%E4%BA%91%E5%B3%B0%E9%A3%9E%E4%BA%91%E4%BD%93%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "canger-yumo-w01",
+        "name": "仓耳与墨W01",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "1c8a05d5de7097651b61415cee280d3f2ce09ec9b7a17300ab61220ef08dbd89",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/%E4%BB%93%E8%80%B3%E4%B8%8E%E5%A2%A8W01%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "canger-yumo-w02",
+        "name": "仓耳与墨W02",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "ccfb5e2de5a86689c401c3d70b724ce686c6b14fc2e0436841973cea54b546a2",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/%E4%BB%93%E8%80%B3%E4%B8%8E%E5%A2%A8W02%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "canger-yumo-w03",
+        "name": "仓耳与墨W03",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "32819ebacbfac1f75f860239fd148419c93a333fd3da97e220bea2577c2bd744",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/%E4%BB%93%E8%80%B3%E4%B8%8E%E5%A2%A8W03%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "canger-yumo-w04",
+        "name": "仓耳与墨W04",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "8ba4fc19c0316c5bcdcdf9c75984f9b3aa0bae6275c73eb655fb78034f1d8164",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/%E4%BB%93%E8%80%B3%E4%B8%8E%E5%A2%A8W04%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "canger-shuyuan-w01",
+        "name": "仓耳舒圆体W01",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "b3df1ac6ac60337c68172ae399d3bd7faa965ec768eb8c6b2cf43bda929cd27a",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/%E4%BB%93%E8%80%B3%E8%88%92%E5%9C%86%E4%BD%93W01%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "canger-shuyuan-w02",
+        "name": "仓耳舒圆体W02",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "ca6d0f4ff8c4b1c6f8c723edcd1c38d83361a80310432d9ac5e4cfc12a7a1b7c",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/%E4%BB%93%E8%80%B3%E8%88%92%E5%9C%86%E4%BD%93W02%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "canger-shuyuan-w03",
+        "name": "仓耳舒圆体W03",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "f14661097e363eee4dbbf9007ef695a8ca1e2489cc2c4b4c0bda2f6dfa09e0d8",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/%E4%BB%93%E8%80%B3%E8%88%92%E5%9C%86%E4%BD%93W03%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "canger-shuyuan-w04",
+        "name": "仓耳舒圆体W04",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "127ac00c22fe844dd8eeb12dfd7437007a4c69b0e43a106f62eebcc676e8c419",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/%E4%BB%93%E8%80%B3%E8%88%92%E5%9C%86%E4%BD%93W04%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "canger-shuyuan-w05",
+        "name": "仓耳舒圆体W05",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "ba341c81b5d6d58edd73a0d8bcb616c0c3d149f299d47d03c6a6f53b58443fe9",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/%E4%BB%93%E8%80%B3%E8%88%92%E5%9C%86%E4%BD%93W05%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      },
+      {
+        "id": "canger-feibai-w01",
+        "name": "仓耳非白W01",
+        "weight": 400,
+        "style": "normal",
+        "sha256": "2e7d003f8a65b7a8408a44b22d791636aed36a5d3cf0a6d4e094f27566c88de7",
+        "license": "用户已授权（用户提供原件）",
+        "licenseFile": "NOTICE-UserFonts.txt",
+        "sourceUrl": "file:///E:/%E5%AD%97%E4%BD%93/%E4%BB%93%E8%80%B3%E9%9D%9E%E7%99%BDW01%E2%80%94%E2%80%94%E2%80%94%5B%E6%B7%98%E5%AE%9D%E5%BA%97-%E5%B0%8F%E7%8C%AA%E7%8C%AA%E8%B5%84%E6%BA%90%E5%BA%93%5D.ttf"
+      }
+    ],
+    "objectResources": {
+      "available": true,
+      "processorVersion": "object-resources-1",
+      "formats": [
+        "png",
+        "jpeg",
+        "webp"
+      ],
+      "normalization": "browser-exif-srgb-full-resolution-v1",
+      "limits": {
+        "maxSources": 32,
+        "maxParts": 128,
+        "maxSide": 4096,
+        "maxPages": 8,
+        "maxSourceBytes": 67108864,
+        "maxInputBytes": 134217728,
+        "maxSourcePixels": 16777216,
+        "maxTotalSourcePixels": 33554432,
+        "maxWorkingPixelBytes": 536870912,
+        "padding": 2
+      },
+      "limitsScope": "每任务输入、规范化像素、部件和图集的工作预算；不包含浏览器进程自身开销，不是全片素材配额。",
+      "imageBindings": {
+        "maxSlots": 8
+      },
+      "staticImagesOnly": true,
+      "rotation": false,
+      "automaticScaling": false
+    },
+    "videoBindings": {
+      "maxSlots": null,
+      "clock": "work_root",
+      "playback": "normal_speed_muted",
+      "description": "不设作品视频选段总数上限；每槽固定源身份、哈希、源范围和作品帧范围。分块串行解码并复用缓存，真实资源不足明确失败，不删减选段或静默降质；解码块预算不等于浏览器总内存预算。"
+    },
+    "fontBindingExample": {
+      "title": "noto-sans-sc-bold"
+    },
+    "execution": "仅使用已登记本地字体；通过fontBindings声明，props.fonts由平台注入。配色、描边与帧驱动动效由作者生成，不要求花字模板。理想字体未收录不是平台故障：主任务控制流程，原视觉作者推荐最多3款，使用get_editor_url(panel=fonts,font_preview=...)让用户在工作台预览后通过聊天确认；等待时继续无依赖工作，不报工单、不自动替代。已登记原件缺失、变更或加载失败仍明确报错。"
+  },
+  "job": {
+    "id": "job_524976df-869a-4f61-a49d-e482c8af9c6e",
+    "projectId": "project_265de3f7-ed6c-4784-bd3a-cb88f2820aa3",
+    "kind": "motion_generation",
+    "status": "succeeded",
+    "payload": {
+      "work": {
+        "name": "候选隔离验证：重点揭示",
+        "source": "<!doctype html><html><head><meta charset=\"utf-8\"></head><body><main data-composition-id=\"main\" data-start=\"0\" data-duration=\"0.6\" data-width=\"320\" data-height=\"320\" style=\"position:relative;width:320px;height:320px\"><div id=\"title\" style=\"position:absolute;left:30px;top:130px;color:#fff4da;font-size:38px\">重点</div><div id=\"line\" style=\"position:absolute;left:45px;top:205px;height:5px;background:#e8b654\"></div></main><script>\nconst {props,config}=window.vfc;\nconst tl=gsap.timeline({paused:true});\ntl.to({}, {duration:config.durationInFrames/config.fps});\n\ndocument.querySelector('#title').textContent=props.text;\ntl.fromTo('#title',{clipPath:'inset(0 100% 0 0)'},{clipPath:'inset(0 0% 0 0)',duration:Math.min(8,config.durationInFrames)/config.fps},0);\ntl.fromTo('#line',{width:0},{width:230,duration:Math.min(8,config.durationInFrames)/config.fps},0);\nwindow.__timelines.main=tl;\n</script></body></html>",
+        "props": {
+          "text": "让重点更清楚"
+        },
+        "imageBindings": {},
+        "width": 320,
+        "height": 320,
+        "fps": 30,
+        "durationInFrames": 18,
+        "reference": {
+          "url": "https://jitter.video/templates/text/",
+          "observation": {
+            "layout": "这是隔离测试的排版说明，不是已观看外站的证据。",
+            "motion": "文字通过遮罩逐步揭示，线条随后建立强调。",
+            "rhythm": "测试片段包含进入和稳定，不作为正式审美验收。",
+            "adaptation": "候选测试使用中文短句，保护上下留白。",
+            "evidence": "固定测试 fixture，不能冒称已经与外站逐帧对照。"
+          }
+        },
+        "creativeBrief": "候选技术验证：以真实中文重点揭示与稳定阅读检查固定版本、透明合成和局部时间，不将测试输入当作审美通过。",
+        "fontBindings": {
+          "title": "noto-sans-sc-bold"
+        }
+      },
+      "version": "d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07",
+      "sourceDisplay": {
+        "policy": {
+          "mode": "internal_only"
+        },
+        "scopeId": "project_265de3f7-ed6c-4784-bd3a-cb88f2820aa3"
+      },
+      "sourceDisplayWarnings": [],
+      "engineVersion": "managed-hyperframes-1",
+      "requestedRevision": 1,
+      "boundImages": [],
+      "boundFonts": [
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ]
+    },
+    "result": {
+      "execution": {
+        "attempts": [
+          {
+            "attempt": 1,
+            "startedAt": "2026-10-23T10:38:00.079Z",
+            "finishedAt": "2026-10-23T10:38:03.057Z",
+            "outcome": "succeeded"
+          }
+        ],
+        "lastProgressAt": "2026-10-23T10:38:03.057Z"
+      },
+      "motionProgress": {
+        "jobId": "job_524976df-869a-4f61-a49d-e482c8af9c6e",
+        "version": "d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07",
+        "releaseId": "release-50329aef318319c804eb77caec67f6dc8def4637afd8ea8d4cf7a2cba910dcdb",
+        "stage": "completed",
+        "currentFrame": 17,
+        "lastCompletedFrame": 17,
+        "stageStartedAt": "2026-10-23T10:38:03.050Z",
+        "browserPid": 70500,
+        "browserVersion": "HeadlessChrome/149.0.7790.0",
+        "documentBytes": 481822,
+        "operation": "png_normalization",
+        "lastProgressAt": "2026-10-23T10:38:02.267Z",
+        "terminationRequestedBy": "normal_cleanup",
+        "browserDisconnected": true,
+        "browserExitCode": 0,
+        "browserExitSignal": null,
+        "stages": [
+          {
+            "stage": "font_preparation",
+            "startedAt": "2026-10-23T10:38:00.087Z",
+            "finishedAt": "2026-10-23T10:38:00.108Z"
+          },
+          {
+            "stage": "image_preparation",
+            "startedAt": "2026-10-23T10:38:00.108Z",
+            "finishedAt": "2026-10-23T10:38:00.123Z"
+          },
+          {
+            "stage": "video_preparation",
+            "startedAt": "2026-10-23T10:38:00.123Z",
+            "finishedAt": "2026-10-23T10:38:00.134Z"
+          },
+          {
+            "stage": "source_compilation",
+            "startedAt": "2026-10-23T10:38:00.134Z",
+            "finishedAt": "2026-10-23T10:38:00.148Z"
+          },
+          {
+            "stage": "browser_startup",
+            "startedAt": "2026-10-23T10:38:00.148Z",
+            "finishedAt": "2026-10-23T10:38:00.415Z"
+          },
+          {
+            "stage": "page_navigation",
+            "startedAt": "2026-10-23T10:38:00.415Z",
+            "finishedAt": "2026-10-23T10:38:00.694Z"
+          },
+          {
+            "stage": "animation_initialization",
+            "startedAt": "2026-10-23T10:38:00.694Z",
+            "finishedAt": "2026-10-23T10:38:00.792Z"
+          },
+          {
+            "stage": "frame_rendering",
+            "startedAt": "2026-10-23T10:38:00.792Z",
+            "finishedAt": "2026-10-23T10:38:02.267Z"
+          },
+          {
+            "stage": "determinism_verification",
+            "startedAt": "2026-10-23T10:38:02.267Z",
+            "finishedAt": "2026-10-23T10:38:02.717Z"
+          },
+          {
+            "stage": "preview_encoding",
+            "startedAt": "2026-10-23T10:38:02.717Z",
+            "finishedAt": "2026-10-23T10:38:02.896Z"
+          },
+          {
+            "stage": "output_validation",
+            "startedAt": "2026-10-23T10:38:02.896Z",
+            "finishedAt": "2026-10-23T10:38:02.955Z"
+          },
+          {
+            "stage": "output_validation",
+            "startedAt": "2026-10-23T10:38:02.955Z",
+            "finishedAt": "2026-10-23T10:38:03.050Z"
+          },
+          {
+            "stage": "completed",
+            "startedAt": "2026-10-23T10:38:03.050Z"
+          }
+        ]
+      },
+      "assetId": "asset_cd6e5d02-14d4-4054-a9da-c346e2b997a3",
+      "version": "d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07",
+      "videoDecodes": {},
+      "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
+      "workReviewRequired": true,
+      "sourcePath": "assets/derived/motion/job_524976df-869a-4f61-a49d-e482c8af9c6e/d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07/source.json",
+      "previewPath": "assets/derived/motion/job_524976df-869a-4f61-a49d-e482c8af9c6e/d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07/preview.mp4",
+      "motionDiagnostics": {
+        "status": "exact",
+        "maxAllowedChannelDelta": 2,
+        "sampledFrames": [
+          0,
+          9,
+          17
+        ],
+        "differences": [],
+        "reportPath": "assets/derived/motion/job_524976df-869a-4f61-a49d-e482c8af9c6e/d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07/diagnostics/report.json"
+      }
+    },
+    "idempotencyKey": "motion:html-release",
+    "attempt": 1,
+    "createdAt": "2026-10-23T10:37:59.334Z",
+    "updatedAt": "2026-10-23T10:38:03.057Z"
+  },
+  "manifest": {
+    "version": "d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07",
+    "hashEngineVersion": "managed-hyperframes-1",
+    "previewHash": "8049af4cbafd5faf642ded842e8424e0293de3bbd6e81f5ec7ab880908356523",
+    "frameHashes": [
+      "f40ff8b8d556b2eb1f0f218eff058b7d511b2012505cf02af5e664ea398c870a",
+      "4d7786289d681aaa5b7d7c5022f1e0e3cfc6d892e8799ec622e22b114a5ad80e",
+      "d84337c2a711311ed10641343b935b883cf68c8df200b86f1d28958227016525",
+      "b802ec688e084ac095c14465d6881167d4058df86d0f28b79eb5ecf04cdec40e",
+      "82a3b781809eb8651f7963cf8a8db35cede7d50a601b52113031552c252afb42",
+      "d9a8bf458639a3a268d18e473b80d4dc9562adc6003ea3445b6e3d8149c3752f",
+      "aee5d9d299a1808aaf05f81b4237a55c849fde5579c7bae79990e5a3b43f8ca2",
+      "af2c671cec8e734b44301ab9bce4ed1b41502b49a05aa304ab7d51fc7b55aaf7",
+      "9330c73ba58bf17f1a15c826becbb9522602b527e2929fd63f65700e591eb2a7",
+      "9330c73ba58bf17f1a15c826becbb9522602b527e2929fd63f65700e591eb2a7",
+      "9330c73ba58bf17f1a15c826becbb9522602b527e2929fd63f65700e591eb2a7",
+      "9330c73ba58bf17f1a15c826becbb9522602b527e2929fd63f65700e591eb2a7",
+      "9330c73ba58bf17f1a15c826becbb9522602b527e2929fd63f65700e591eb2a7",
+      "9330c73ba58bf17f1a15c826becbb9522602b527e2929fd63f65700e591eb2a7",
+      "9330c73ba58bf17f1a15c826becbb9522602b527e2929fd63f65700e591eb2a7",
+      "9330c73ba58bf17f1a15c826becbb9522602b527e2929fd63f65700e591eb2a7",
+      "9330c73ba58bf17f1a15c826becbb9522602b527e2929fd63f65700e591eb2a7",
+      "9330c73ba58bf17f1a15c826becbb9522602b527e2929fd63f65700e591eb2a7"
+    ],
+    "engineVersion": "managed-hyperframes-1",
+    "runtimeDependencies": {
+      "hyperframes": "0.8.1",
+      "gsap": "3.14.2"
+    },
+    "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
+    "boundImages": [],
+    "imageDecodes": [],
+    "boundVideos": [],
+    "boundFonts": [
+      {
+        "slot": "title",
+        "fontId": "noto-sans-sc-bold",
+        "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+        "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+        "weight": 700,
+        "style": "normal"
+      }
+    ],
+    "videoDecodes": {},
+    "videoResources": {
+      "uniqueSources": 0,
+      "sourceBytes": 0,
+      "decodedChunks": 0,
+      "cacheHits": 0,
+      "memoryPeakBytes": 0,
+      "diskPeakBytes": 0,
+      "decodedBytes": 0
+    },
+    "determinism": {
+      "status": "exact",
+      "maxAllowedChannelDelta": 2,
+      "sampledFrames": [
+        0,
+        9,
+        17
+      ],
+      "differences": []
+    }
+  },
+  "work": {
+    "job": {
+      "id": "job_524976df-869a-4f61-a49d-e482c8af9c6e",
+      "projectId": "project_265de3f7-ed6c-4784-bd3a-cb88f2820aa3",
+      "kind": "motion_generation",
+      "status": "succeeded",
+      "payload": {
+        "work": {
+          "name": "候选隔离验证：重点揭示",
+          "source": "<!doctype html><html><head><meta charset=\"utf-8\"></head><body><main data-composition-id=\"main\" data-start=\"0\" data-duration=\"0.6\" data-width=\"320\" data-height=\"320\" style=\"position:relative;width:320px;height:320px\"><div id=\"title\" style=\"position:absolute;left:30px;top:130px;color:#fff4da;font-size:38px\">重点</div><div id=\"line\" style=\"position:absolute;left:45px;top:205px;height:5px;background:#e8b654\"></div></main><script>\nconst {props,config}=window.vfc;\nconst tl=gsap.timeline({paused:true});\ntl.to({}, {duration:config.durationInFrames/config.fps});\n\ndocument.querySelector('#title').textContent=props.text;\ntl.fromTo('#title',{clipPath:'inset(0 100% 0 0)'},{clipPath:'inset(0 0% 0 0)',duration:Math.min(8,config.durationInFrames)/config.fps},0);\ntl.fromTo('#line',{width:0},{width:230,duration:Math.min(8,config.durationInFrames)/config.fps},0);\nwindow.__timelines.main=tl;\n</script></body></html>",
+          "props": {
+            "text": "让重点更清楚"
+          },
+          "imageBindings": {},
+          "width": 320,
+          "height": 320,
+          "fps": 30,
+          "durationInFrames": 18,
+          "reference": {
+            "url": "https://jitter.video/templates/text/",
+            "observation": {
+              "layout": "这是隔离测试的排版说明，不是已观看外站的证据。",
+              "motion": "文字通过遮罩逐步揭示，线条随后建立强调。",
+              "rhythm": "测试片段包含进入和稳定，不作为正式审美验收。",
+              "adaptation": "候选测试使用中文短句，保护上下留白。",
+              "evidence": "固定测试 fixture，不能冒称已经与外站逐帧对照。"
+            }
+          },
+          "creativeBrief": "候选技术验证：以真实中文重点揭示与稳定阅读检查固定版本、透明合成和局部时间，不将测试输入当作审美通过。",
+          "fontBindings": {
+            "title": "noto-sans-sc-bold"
+          }
+        },
+        "version": "d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07",
+        "sourceDisplay": {
+          "policy": {
+            "mode": "internal_only"
+          },
+          "scopeId": "project_265de3f7-ed6c-4784-bd3a-cb88f2820aa3"
+        },
+        "sourceDisplayWarnings": [],
+        "engineVersion": "managed-hyperframes-1",
+        "requestedRevision": 1,
+        "boundImages": [],
+        "boundFonts": [
+          {
+            "slot": "title",
+            "fontId": "noto-sans-sc-bold",
+            "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+            "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+            "weight": 700,
+            "style": "normal"
+          }
+        ]
+      },
+      "result": {
+        "execution": {
+          "attempts": [
+            {
+              "attempt": 1,
+              "startedAt": "2026-10-23T10:38:00.079Z",
+              "finishedAt": "2026-10-23T10:38:03.057Z",
+              "outcome": "succeeded"
+            }
+          ],
+          "lastProgressAt": "2026-10-23T10:38:03.057Z"
+        },
+        "motionProgress": {
+          "jobId": "job_524976df-869a-4f61-a49d-e482c8af9c6e",
+          "version": "d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07",
+          "releaseId": "release-50329aef318319c804eb77caec67f6dc8def4637afd8ea8d4cf7a2cba910dcdb",
+          "stage": "completed",
+          "currentFrame": 17,
+          "lastCompletedFrame": 17,
+          "stageStartedAt": "2026-10-23T10:38:03.050Z",
+          "browserPid": 70500,
+          "browserVersion": "HeadlessChrome/149.0.7790.0",
+          "documentBytes": 481822,
+          "operation": "png_normalization",
+          "lastProgressAt": "2026-10-23T10:38:02.267Z",
+          "terminationRequestedBy": "normal_cleanup",
+          "browserDisconnected": true,
+          "browserExitCode": 0,
+          "browserExitSignal": null,
+          "stages": [
+            {
+              "stage": "font_preparation",
+              "startedAt": "2026-10-23T10:38:00.087Z",
+              "finishedAt": "2026-10-23T10:38:00.108Z"
+            },
+            {
+              "stage": "image_preparation",
+              "startedAt": "2026-10-23T10:38:00.108Z",
+              "finishedAt": "2026-10-23T10:38:00.123Z"
+            },
+            {
+              "stage": "video_preparation",
+              "startedAt": "2026-10-23T10:38:00.123Z",
+              "finishedAt": "2026-10-23T10:38:00.134Z"
+            },
+            {
+              "stage": "source_compilation",
+              "startedAt": "2026-10-23T10:38:00.134Z",
+              "finishedAt": "2026-10-23T10:38:00.148Z"
+            },
+            {
+              "stage": "browser_startup",
+              "startedAt": "2026-10-23T10:38:00.148Z",
+              "finishedAt": "2026-10-23T10:38:00.415Z"
+            },
+            {
+              "stage": "page_navigation",
+              "startedAt": "2026-10-23T10:38:00.415Z",
+              "finishedAt": "2026-10-23T10:38:00.694Z"
+            },
+            {
+              "stage": "animation_initialization",
+              "startedAt": "2026-10-23T10:38:00.694Z",
+              "finishedAt": "2026-10-23T10:38:00.792Z"
+            },
+            {
+              "stage": "frame_rendering",
+              "startedAt": "2026-10-23T10:38:00.792Z",
+              "finishedAt": "2026-10-23T10:38:02.267Z"
+            },
+            {
+              "stage": "determinism_verification",
+              "startedAt": "2026-10-23T10:38:02.267Z",
+              "finishedAt": "2026-10-23T10:38:02.717Z"
+            },
+            {
+              "stage": "preview_encoding",
+              "startedAt": "2026-10-23T10:38:02.717Z",
+              "finishedAt": "2026-10-23T10:38:02.896Z"
+            },
+            {
+              "stage": "output_validation",
+              "startedAt": "2026-10-23T10:38:02.896Z",
+              "finishedAt": "2026-10-23T10:38:02.955Z"
+            },
+            {
+              "stage": "output_validation",
+              "startedAt": "2026-10-23T10:38:02.955Z",
+              "finishedAt": "2026-10-23T10:38:03.050Z"
+            },
+            {
+              "stage": "completed",
+              "startedAt": "2026-10-23T10:38:03.050Z"
+            }
+          ]
+        },
+        "assetId": "asset_cd6e5d02-14d4-4054-a9da-c346e2b997a3",
+        "version": "d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07",
+        "videoDecodes": {},
+        "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
+        "workReviewRequired": true,
+        "sourcePath": "assets/derived/motion/job_524976df-869a-4f61-a49d-e482c8af9c6e/d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07/source.json",
+        "previewPath": "assets/derived/motion/job_524976df-869a-4f61-a49d-e482c8af9c6e/d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07/preview.mp4",
+        "motionDiagnostics": {
+          "status": "exact",
+          "maxAllowedChannelDelta": 2,
+          "sampledFrames": [
+            0,
+            9,
+            17
+          ],
+          "differences": [],
+          "reportPath": "assets/derived/motion/job_524976df-869a-4f61-a49d-e482c8af9c6e/d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07/diagnostics/report.json"
+        }
+      },
+      "idempotencyKey": "motion:html-release",
+      "attempt": 1,
+      "createdAt": "2026-10-23T10:37:59.334Z",
+      "updatedAt": "2026-10-23T10:38:03.057Z"
+    },
+    "asset": {
+      "id": "asset_cd6e5d02-14d4-4054-a9da-c346e2b997a3",
+      "name": "候选隔离验证：重点揭示",
+      "kind": "video",
+      "status": "ready",
+      "managedPath": "assets/derived/motion/job_524976df-869a-4f61-a49d-e482c8af9c6e/d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07/preview.mp4",
+      "sourceHash": "8049af4cbafd5faf642ded842e8424e0293de3bbd6e81f5ec7ab880908356523",
+      "role": "generated_visual",
+      "tags": [
+        "managed_motion",
+        "work_review_required"
+      ],
+      "createdAt": "2026-10-23T10:38:03.054Z",
+      "metadata": {
+        "durationMs": 600,
+        "width": 320,
+        "height": 320,
+        "fps": 30,
+        "hasAudio": false,
+        "videoCodec": "h264",
+        "pixelFormat": "yuv420p",
+        "hasAlpha": false,
+        "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+      },
+      "provenance": {
+        "source": "generated",
+        "provider": "managed_hyperframes",
+        "generationJobId": "job_524976df-869a-4f61-a49d-e482c8af9c6e",
+        "acquiredAt": "2026-10-23T10:38:03.054Z"
+      },
+      "motion": {
+        "jobId": "job_524976df-869a-4f61-a49d-e482c8af9c6e",
+        "version": "d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07",
+        "engineVersion": "managed-hyperframes-1",
+        "sourceAssetIds": [],
+        "fontSources": [
+          {
+            "slot": "title",
+            "fontId": "noto-sans-sc-bold",
+            "sourceHash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+            "weight": 700,
+            "style": "normal"
+          }
+        ],
+        "sourcePath": "assets/derived/motion/job_524976df-869a-4f61-a49d-e482c8af9c6e/d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07/source.json",
+        "framesDirectory": "assets/derived/motion/job_524976df-869a-4f61-a49d-e482c8af9c6e/d85133623b3435a9299a585200f7604f5741b42d21473ca0fe39565ff3989a07/frames",
+        "frameCount": 18,
+        "fps": 30,
+        "width": 320,
+        "height": 320,
+        "referenceUrl": "https://jitter.video/templates/text/",
+        "creativeBrief": "候选技术验证：以真实中文重点揭示与稳定阅读检查固定版本、透明合成和局部时间，不将测试输入当作审美通过。"
+      }
+    },
+    "nextStep": "连续查看作品并以 outcome、note、evidence 审阅；未审或未看清仍可放置、预览、修改和导出，审阅状态如实保留。写入前重读 Revision，最终效果由用户确认。"
+  }
+}

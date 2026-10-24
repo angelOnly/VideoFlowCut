@@ -1,3 +1,4 @@
+import {sizeMotionFixture} from "../tests/fixtures/hyperframes.js";
 /** 作者提供设计；本脚本只负责隔离渲染与整段/分块技术对照。 */
 import assert from "node:assert/strict";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
@@ -22,7 +23,7 @@ for (const [name, sourceFile, offset, count] of [
 ] as Array<[string,string,number,number]>) {
   if (name === "before" && process.argv.includes("--after-only")) continue;
   const binding = { assetId: parameters.videoBinding.assetId, sourceStartMs: offset*1000/parameters.fps, sourceEndMs: (offset+count)*1000/parameters.fps, startFrame:0, endFrame:count };
-  const work = motionSubmissionSchema.parse({ ...motionFixture, source: await readFile(join(fixture,sourceFile),"utf8"), props:{offset}, width:parameters.width, height:parameters.height, fps:parameters.fps, durationInFrames:count, fontBindings:parameters.fontBindings, videoBindings:{footage:binding} });
+  const work = motionSubmissionSchema.parse(sizeMotionFixture({ ...motionFixture, source: await readFile(join(fixture,sourceFile),"utf8"), props:{offset}, width:parameters.width, height:parameters.height, fps:parameters.fps, durationInFrames:count, fontBindings:parameters.fontBindings, videoBindings:{footage:binding} }));
   const fonts = prepareMotionFonts(work, bindMotionFonts(work));
   const provider = await prepareMotionVideos(root, join(output, `decode-${name}`), work, [{...binding,slot:"footage",hash,managedPath:parameters.managedPath}]);
   try { results[name] = await renderManagedMotion(work, join(output,name), {}, provider, undefined, fonts); }

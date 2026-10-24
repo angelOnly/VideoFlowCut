@@ -1,3 +1,4 @@
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile, open, stat } from "node:fs/promises";
@@ -25,7 +26,7 @@ test("高纹理选段真实累计解码超过512MiB，有界缓存回收后仍�
     const file = join(root, "texture.mp4");
     await runProcess("ffmpeg", ["-v", "error", "-loop", "1", "-framerate", "24", "-i", still, "-frames:v", "360", "-c:v", "libx264", "-crf", "0", "-pix_fmt", "yuv444p", file]);
     const binding = { slot: "a", assetId: "a", managedPath: "texture.mp4", hash: await hashMotionFile(file), sourceStartMs: 0, sourceEndMs: 15000, startFrame: 0, endFrame: 360 };
-    const work = { ...motionFixture, width: 768, height: 768, fps: 24, durationInFrames: 360 };
+    const work = sizeMotionFixture({ ...motionFixture, width: 768, height: 768, fps: 24, durationInFrames: 360 });
     const budget = { ...limits, frameCacheBytes: 4 * 1024 ** 2, scratchBytes: 32 * 1024 ** 2 };
     const provider = await createMotionVideoProvider(root, root, work, await planMotionVideos(root, work, [binding]), undefined, budget);
     try {
@@ -42,7 +43,7 @@ test("小工作区频繁分块回收仍与完整PTS采样一致，跨槽/跨作�
       const file = join(root, `${rate === "24000/1001" ? "fractional" : rate}.mp4`);
       await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", `testsrc2=s=64x64:r=${rate === "vfr" ? "30" : rate}:d=5`, ...(rate === "vfr" ? ["-vf", "select='not(mod(n,2))+not(mod(n,5))'", "-fps_mode", "vfr"] : []), "-c:v", "libx264", "-g", "90", file]);
       const binding = { assetId: "source", managedPath: file, hash: await hashMotionFile(file), sourceStartMs: 333, sourceEndMs: 4333, startFrame: 10, endFrame: 106 };
-      const work = motionSubmissionSchema.parse({ ...motionFixture, width: 64, height: 64, fps: 24, durationInFrames: 106 });
+      const work = motionSubmissionSchema.parse(sizeMotionFixture({ ...motionFixture, width: 64, height: 64, fps: 24, durationInFrames: 106 }));
       const plan = await planMotionVideos(root, work, [{ ...binding, slot: "a" }, { ...binding, slot: "b" }]);
       assert.equal(plan.sources.length, 1);
       const reference = join(root, `ref-${rate === "24000/1001" ? "fractional" : rate}`); await mkdir(reference);
@@ -92,7 +93,7 @@ test("大于512MiB原片使用短选段不被拒绝；源变化与极小工作�
     try { const size = (await handle.stat()).size; const box = Buffer.alloc(8); box.writeUInt32BE(513 * 1024 * 1024, 0); box.write("free", 4); await handle.write(box, 0, 8, size); await handle.truncate(size + 513 * 1024 * 1024); }
     finally { await handle.close(); }
     const binding = { slot: "a", assetId: "a", managedPath: "large.mp4", hash: await hashMotionFile(file), sourceStartMs: 0, sourceEndMs: 500, startFrame: 0, endFrame: 12 };
-    const work = { ...motionFixture, width: 64, height: 64, fps: 24, durationInFrames: 12 };
+    const work = sizeMotionFixture({ ...motionFixture, width: 64, height: 64, fps: 24, durationInFrames: 12 });
     const plan = await planMotionVideos(root, work, [binding, { ...binding, slot: "b" }]);
     assert.ok(plan.sourceBytes > 512 * 1024 ** 2); assert.equal(plan.sourceBytes, (await stat(file)).size);
     const provider = await createMotionVideoProvider(root, root, work, plan, undefined, limits);
@@ -117,7 +118,7 @@ test("第628秒选段定位关键帧后精确采样，不从片头重建时间�
     const file = join(root, "late.mp4");
     await runProcess("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "testsrc2=s=64x64:r=2:d=635", "-g", "20", "-c:v", "libx264", file]);
     const binding = { slot: "a", assetId: "a", managedPath: "late.mp4", hash: await hashMotionFile(file), sourceStartMs: 628000, sourceEndMs: 631334, startFrame: 90, endFrame: 170 };
-    const work = { ...motionFixture, width: 64, height: 64, fps: 24, durationInFrames: 792 };
+    const work = sizeMotionFixture({ ...motionFixture, width: 64, height: 64, fps: 24, durationInFrames: 792 });
     const provider = await createMotionVideoProvider(root, root, work, await planMotionVideos(root, work, [binding]), undefined, limits);
     try {
       const reference = join(root, "reference.png");
@@ -135,7 +136,7 @@ test("非零容器PTS和长VFR间隔仍使用归一化源时钟，不跳到下�
       const file = join(root, gap ? "gap.mp4" : "offset.mp4");
       await runProcess("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "testsrc2=s=64x64:r=24:d=7", "-vf", gap ? "select='eq(n,0)+eq(n,120)+eq(n,144)'" : "setpts=PTS+10/TB", "-fps_mode", "passthrough", "-c:v", "libx264", file]);
       const binding = { slot: "a", assetId: "a", managedPath: file, hash: await hashMotionFile(file), sourceStartMs: 2500, sourceEndMs: 4500, startFrame: 0, endFrame: 48 };
-      const work = { ...motionFixture, width: 64, height: 64, fps: 24, durationInFrames: 48 };
+      const work = sizeMotionFixture({ ...motionFixture, width: 64, height: 64, fps: 24, durationInFrames: 48 });
       const plan = await planMotionVideos(root, work, [binding]);
       if (!gap) assert.equal(plan.sources[0].geometry.startTimeSeconds, 10);
       const provider = await createMotionVideoProvider(root, root, work, plan, undefined, limits);

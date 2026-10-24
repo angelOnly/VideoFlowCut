@@ -38,7 +38,7 @@
 
 | 本次操作 | 详细方法与合同 |
 |---|---|
-| 字体未收录、受管作品提交与完整范围放置 | [作品提交与恢复](../../remotion-production/references/submission-and-recovery.md)：原视觉作者按该文件的字体可用性方法修订，主任务核验并提交；范围或源码拒绝回原作者 |
+| 字体未收录、受管作品提交与完整范围放置 | [作品提交与恢复](../../opendesign-video-production/references/submission-and-recovery.md)：原视觉作者按该文件的字体可用性方法修订，主任务核验并提交；范围或源码拒绝回原作者 |
 | 搜索、下载、采用与源范围观察 | [素材取得](../../visual-asset-sourcing/references/acquisition-operations.md)、[源素材审阅](../../visual-asset-sourcing/references/source-review.md) |
 | 原创文稿、原话剪辑与配音 | [文稿操作](../../semantic-continuity/references/script-operations.md)、[配音放置](../../voice-production/references/synthesis-and-placement.md) |
 | 字幕生成与显示修改 | [字幕操作](../../captions/references/caption-operations.md) |

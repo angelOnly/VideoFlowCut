@@ -2489,7 +2489,7 @@ export class EditingApplication {
     const work = motionSubmissionSchema.parse(input.work);
     const frameRange = input.frameRange ? motionFrameRangeSchema.parse(input.frameRange) : undefined;
     if (frameRange && frameRange.endFrame > work.durationInFrames) throw new DomainError("校样窗口超出完整作品范围", "MOTION_PROOF_RANGE_INVALID");
-    try { validateMotionSource(work.source); } catch (error) {
+    try { validateMotionSource(work.source, work); } catch (error) {
       // 这里只包住纯源码校验；数据库、素材、字体和 Worker 异常不能取得重试许可。
       if (error instanceof MotionSourceValidationError) throw new MotionSubmissionValidationError(error);
       throw error;
@@ -2553,12 +2553,12 @@ export class EditingApplication {
     const directory = `assets/derived/motion/${job.id}/${version}`;
     const images = [...boundImages, ...boundVideos];
     let asset!: Asset;
-    const state = this.repository.commit(input.projectId, current.revision.number, "登记受管 Remotion 作品（待审阅）", (snapshot, impact) => {
+    const state = this.repository.commit(input.projectId, current.revision.number, "登记受管 HyperFrames 作品（待审阅）", (snapshot, impact) => {
       if (this.repository.getJob(job.id).status === "cancelled") throw new DomainError("作品任务已取消，不能登记素材", "MOTION_CANCELLED");
       asset = {
         id: createId("asset"), name: work.name, kind: "video", status: "ready", managedPath: `${directory}/preview.mp4`, sourceHash: input.sourceHash,
         role: "generated_visual", tags: ["managed_motion", "work_review_required"], createdAt: now(), metadata: input.metadata,
-        provenance: { source: "generated", provider: "managed_remotion", generationJobId: job.id, acquiredAt: now() },
+        provenance: { source: "generated", provider: "managed_hyperframes", generationJobId: job.id, acquiredAt: now() },
         motion: { jobId: job.id, version, engineVersion: input.engineVersion, previousAssetId: work.previousAssetId, sourceAssetIds: [...new Set(images.map(image => image.assetId))], ...(boundImages.length ? { imageSources: boundImages.map(image => ({ slot: image.slot, assetId: image.assetId, sourceHash: image.hash })) } : {}), ...(boundVideos.length ? { videoSources: boundVideos.map(v => ({ slot: v.slot, assetId: v.assetId, sourceHash: v.hash, sourceStartMs: v.sourceStartMs, sourceEndMs: v.sourceEndMs, startFrame: v.startFrame, endFrame: v.endFrame })) } : {}), ...(boundFonts.length ? { fontSources: boundFonts.map(f => ({ slot: f.slot, fontId: f.fontId, sourceHash: f.hash, weight: f.weight, style: f.style })) } : {}), sourcePath: `${directory}/source.json`, framesDirectory: `${directory}/frames`, frameCount: work.durationInFrames, fps: work.fps, width: work.width, height: work.height, referenceUrl: work.reference?.url, creativeBrief: work.creativeBrief, eventMap: input.eventMap }
       };
       snapshot.assets.push(asset);

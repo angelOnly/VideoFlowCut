@@ -1,3 +1,4 @@
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -16,7 +17,7 @@ test("来源与动效请求只接受新合同，不接收旧权利字段", () =>
   assert.deepEqual(sourceMaterialSchema.parse(source), source);
   for (const field of ["basis", "purposes", "usageRights"]) assert.equal(sourceMaterialSchema.safeParse({ ...source, [field]: "旧输入" }).success, false);
   assert.equal(motionSubmissionSchema.safeParse(motionFixture).success, true);
-  assert.equal(motionSubmissionSchema.safeParse({ ...motionFixture, rights: { status: "cleared", basis: "旧声明" } }).success, false);
+  assert.equal(motionSubmissionSchema.safeParse(sizeMotionFixture({ ...motionFixture, rights: { status: "cleared", basis: "旧声明" } })).success, false);
   const binding = { slot: "image", assetId: "asset", managedPath: "assets/image.png", hash: "a".repeat(64) };
   assert.deepEqual(boundMotionImageSchema.parse(binding), binding);
   assert.equal(boundMotionImageSchema.safeParse({ ...binding, rightsStatus: "unknown" }).success, false);

@@ -1,17 +1,11 @@
+import {frameHtml,sizeMotionFixture} from "./hyperframes.js";
 import { motionSubmissionSchema } from "../../packages/motion-work/src/schema.js";
 
 /** 根据 Onda Highlight 公开动态观察独立编写；不是复制其工程或字体资源。 */
 export const observedHighlight = motionSubmissionSchema.parse({
   creativeBrief: "候选技术验证：以真实中文重点揭示与稳定阅读检查固定版本、透明合成和局部时间，不将测试输入当作审美通过。",
   name: "在线观察复现候选 · 中文重点揭示",
-  source: `import React from 'react';import {AbsoluteFill,useCurrentFrame,interpolate,Easing} from 'remotion';
-export default function Highlight(props:{text:string;accent:string}) {
-  const frame=useCurrentFrame();
-  const reveal=interpolate(frame,[0,18],[0,1],{extrapolateLeft:'clamp',extrapolateRight:'clamp',easing:Easing.out(Easing.cubic)});
-  const textOpacity=interpolate(frame,[8,18],[0,1],{extrapolateLeft:'clamp',extrapolateRight:'clamp'});
-  const exit=interpolate(frame,[48,59],[1,0],{extrapolateLeft:'clamp',extrapolateRight:'clamp'});
-  return <AbsoluteFill style={{alignItems:'center',justifyContent:'center',opacity:exit}}><div style={{position:'relative',display:'inline-block'}}><div style={{position:'absolute',inset:'-5px -8px',width:'calc('+reveal*100+'% + 16px)',background:props.accent}}/><span style={{position:'relative',fontSize:34,lineHeight:1.45,fontWeight:600,color:'#f2f2f4',opacity:textOpacity}}>{props.text}</span></div></AbsoluteFill>;
-}`,
+  source: sizeMotionFixture({source:frameHtml('<div id="stage" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><div style="position:relative;display:inline-block"><div id="highlight" style="position:absolute;inset:-5px -8px"></div><span id="text" style="position:relative;font-size:34px;line-height:1.45;font-weight:600;color:#f2f2f4"></span></div></div>',`const clamp=x=>Math.max(0,Math.min(1,x)),reveal=1-Math.pow(1-clamp(f/18),3);document.querySelector('#stage').style.opacity=1-clamp((f-48)/11);Object.assign(document.querySelector('#highlight').style,{width:'calc('+reveal*100+'% + 16px)',background:p.accent});document.querySelector('#text').style.opacity=clamp((f-8)/10);`,`document.querySelector('#text').textContent=props.text;`),width:320,height:320,fps:30,durationInFrames:60}).source,
   props: { text: "把重点讲清楚", accent: "#D96B82" }, width: 320, height: 320, fps: 30, durationInFrames: 60,
   reference: { url: "https://remotion.onda.video/components/highlight", observation: {
     layout: "实际预览是黑色场地上居中的一条短句，粉色矩形贴合文字，不是通用圆角卡片。",

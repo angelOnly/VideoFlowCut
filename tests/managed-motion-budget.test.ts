@@ -1,3 +1,4 @@
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -24,7 +25,7 @@ test("真实MCP公开完整作品合同，允许长作品并在非法输入时�
     await server.connect(serverTransport);
     await client.connect(clientTransport);
     const tool = (await client.listTools()).tools.find(entry => entry.name === "submit_motion_work")!;
-    assert.match(tool.description!, /TimelineVideo/u);
+    assert.match(tool.description!, /data-vfc-video-slot/u);
     assert.match(tool.description!, /真实磁盘需求/u);
     assert.match(tool.description!, /一个Job产生一个完整Asset/u);
     const workSchema = tool.inputSchema.properties!.work as { properties: Record<string, { description?: string; minimum?: number; maximum?: number }> };
@@ -35,7 +36,7 @@ test("真实MCP公开完整作品合同，允许长作品并在非法输入时�
     const submit = (key: string, width: number, height: number, frames: number, fps = 30) => client.callTool({
       name: "submit_motion_work", arguments: {
         project_id: projectId, base_revision_id: before.revision.number, idempotency_key: key,
-        work: { ...motionFixture, width, height, durationInFrames: frames, fps }
+        work: sizeMotionFixture({ ...motionFixture, width, height, durationInFrames: frames, fps })
       }
     });
     const expectRejected = async (result: Awaited<ReturnType<typeof submit>>, message: RegExp) => {

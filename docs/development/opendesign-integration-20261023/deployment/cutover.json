@@ -1,0 +1,23 @@
+{
+  "pluginVersion": "0.1.100",
+  "previousReleaseId": "release-12293e4b8c7b84a76904a92bc4c2cd6219013f1b59c9779a0a9ccf6d6ec344e7",
+  "configured": true,
+  "ready": true,
+  "processAlive": true,
+  "apiUrl": "http://127.0.0.1:3100",
+  "webUrl": "http://127.0.0.1:3100/",
+  "port": 3100,
+  "pid": 28344,
+  "startedAt": "2026-10-23T13:07:10.559Z",
+  "releaseId": "release-6a32eda663f54f1f80d6eb13027b36191093b0cc90c3889c082cfc8ab2a7f058",
+  "bridge": "可选服务；不可用不会阻断基础剪辑",
+  "reused": false,
+  "historicalUnknownPreserved": [
+    {
+      "id": "job_44c272be-deab-4a22-8fb2-67852676b013",
+      "projectId": "project_f7fe3ce4-ba22-472c-b226-0016378980a9",
+      "status": "unknown",
+      "kind": "avatar_generation"
+    }
+  ]
+}

@@ -1,3 +1,5 @@
+import {motionHtml, frameHtml} from "./fixtures/hyperframes.js";
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { cp, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -14,12 +16,9 @@ import { PNG } from "pngjs";
 import { createHash } from "node:crypto";
 import { userFontIds } from "./fixtures/managed-user-fonts.js";
 
-const fontWork = motionSubmissionSchema.parse({ ...motionFixture, durationInFrames: 4,
+const fontWork = motionSubmissionSchema.parse(sizeMotionFixture({ ...motionFixture, durationInFrames: 4,
   fontBindings: { title: "noto-sans-sc-bold", body: "noto-sans-sc-regular" },
-  source: `import React from 'react';import {useCurrentFrame} from 'remotion';
-export default function M(p){const f=useCurrentFrame();return <div style={{position:'absolute',inset:0,color:'white',padding:10,transform:'translateX('+f+'px)'}}>
-<div style={{fontFamily:p.fonts.title.family,fontWeight:p.fonts.title.weight,fontSize:32}}>直播观看方式</div>
-<div style={{fontFamily:p.fonts.body.family,fontWeight:p.fonts.body.weight,fontSize:32}}>直播观看方式</div></div>}` });
+  source: frameHtml('<div id="a" style="position:absolute;inset:0;color:white;padding:10px"><div style="font-family:var(--vfc-font-title);font-weight:700;font-size:32px">直播观看方式</div><div style="font-family:var(--vfc-font-body);font-size:32px">直播观看方式</div></div>',`document.querySelector('#a').style.transform='translateX('+f+'px)';`) }));
 
 test("初始化不就绪时明确超时，普通浏览器故障保留原错误", async () => {
   const timedOut = Object.assign(new Error("模拟浏览器等待超时"), { name: "TimeoutError" });
@@ -48,8 +47,8 @@ test("目录只返回已登记本地字体，绑定固定实际字重和哈希�
   }
   assert.throws(() => motionSubmissionSchema.parse({ ...fontWork, props: { fonts: {} } }), /Props.fonts/u);
   assert.equal(motionSubmissionSchema.parse(motionFixture).fontBindings, undefined);
-  for (const hook of ["useEffect", "useState"]) assert.throws(() => validateMotionSource(`import {${hook} as hook} from 'react';export default ()=>null`), /fontBindings/u);
-  assert.throws(() => validateMotionSource("import {delayRender} from 'remotion';export default ()=>null"), /fontBindings/u);
+  for (const hook of ["useEffect", "useState"]) assert.throws(() => validateMotionSource(`import {${hook} as hook} from 'react';export default ()=>null`), /MOTION_SOURCE_INVALID/u);
+  assert.throws(() => validateMotionSource("import {delayRender} from 'remotion';export default ()=>null"), /MOTION_SOURCE_INVALID/u);
 });
 
 test("用户提供的22份原件分别登记并正确准备，地区版本与仓耳粗细不合并或合成", async () => {
@@ -83,10 +82,10 @@ test("字体缺失、内容变更及目录逃逸明确失败，Worker不换绑�
     const bound = bindMotionFonts(fontWork, root);
     assert.throws(() => prepareMotionFonts(fontWork, bound.map(f => ({ ...f, weight: 500 })), root), /MOTION_FONT_BINDING_MISMATCH/u);
     const version = motionHash(fontWork, [], undefined, [], bound);
-    assert.equal(motionHashEngine(fontWork, [], version, undefined, [], bound), "managed-motion-14");
+    assert.equal(motionHashEngine(fontWork, [], version, undefined, [], bound), "managed-hyperframes-1");
     assert.notEqual(version, motionHash(fontWork, [], undefined, [], bound.map(f => ({ ...f, hash: "0".repeat(64) }))));
     const legacy = motionHash(motionFixture, [], "managed-motion-12");
-    assert.equal(motionHashEngine(motionFixture, [], legacy), "managed-motion-12");
+    assert.throws(() => motionHashEngine(motionFixture, [], legacy, "managed-motion-12"), /MOTION_ENGINE_UPGRADE_REQUIRED/);
     await writeFile(join(root, "NotoSansSC-Bold.otf"), "OTTOchanged");
     assert.throws(() => bindMotionFonts(fontWork, root), /MOTION_FONT_CHANGED/u);
     await unlink(join(root, "NotoSansSC-Bold.otf"));
@@ -139,9 +138,9 @@ test("新增得意黑与烟波宋TTF共同首帧加载；字形不同、字体�
   const app = createApplication(root);
   try {
     const state = app.createProject({ name: "新增字体隔离回归" }), projectId = state.snapshot.project.id;
-    const work = motionSubmissionSchema.parse({ ...motionFixture, width: 640, height: 192, durationInFrames: 2,
+    const work = motionSubmissionSchema.parse(sizeMotionFixture({ ...motionFixture, width: 640, height: 192, durationInFrames: 2,
       fontBindings: { a: "smiley-sans-oblique", b: "maoken-yanbo-song-bold" },
-      source: `import React from 'react';export default p=><div style={{color:'white'}}>{['a','b'].map(slot=><div key={slot} style={{height:96,lineHeight:'96px',fontSize:48,fontFamily:p.fonts[slot].family,fontWeight:p.fonts[slot].weight,fontStyle:p.fonts[slot].style,fontSynthesis:'none'}}>时代不同不能冷场</div>)}</div>` });
+      source: motionHtml('<div id="fonts" style="color:white"></div>',`for(const slot of ['a','b']){const font=vfc.fonts[slot],el=document.createElement('div');Object.assign(el.style,{height:'96px',lineHeight:'96px',fontSize:'48px',fontFamily:font.family,fontWeight:font.weight,fontStyle:font.style,fontSynthesis:'none'});el.textContent='时代不同不能冷场';document.querySelector('#fonts').append(el);}`) }));
     const job = app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "request-fonts", work });
     const result = await runMotionJob(app, job);
     const asset = app.readProject(projectId).snapshot.assets.find(a => a.id === result.assetId)!;
@@ -241,9 +240,9 @@ test("浏览器拒绝损坏字体时明确加载失败，不产生代理视频�
 test("黑体与宋体四个实际字重可共同加载，宋体600与900输出不同真实字形", { timeout: 60_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-serif-four-faces-"));
   try {
-    const work = motionSubmissionSchema.parse({ ...motionFixture, durationInFrames: 2,
+    const work = motionSubmissionSchema.parse(sizeMotionFixture({ ...motionFixture, durationInFrames: 2,
       fontBindings: { sans: "noto-sans-sc-regular", sansBold: "noto-sans-sc-bold", serif: "noto-serif-sc-semibold", serifHeavy: "noto-serif-sc-black" },
-      source: `import React from 'react';export default p=><div style={{color:'white'}}>{['sans','sansBold','serif','serifHeavy'].map(slot=><div key={slot} style={{height:48,lineHeight:'48px',fontSize:32,fontFamily:p.fonts[slot].family,fontWeight:p.fonts[slot].weight,fontSynthesis:'none'}}>时代不同不能冷场</div>)}</div>` });
+      source: motionHtml('<div id="fonts" style="color:white"></div>',`for(const slot of ['sans','sansBold','serif','serifHeavy']){const font=vfc.fonts[slot],el=document.createElement('div');Object.assign(el.style,{height:'48px',lineHeight:'48px',fontSize:'32px',fontFamily:font.family,fontWeight:font.weight,fontSynthesis:'none'});el.textContent='时代不同不能冷场';document.querySelector('#fonts').append(el);}`) }));
     const bound = bindMotionFonts(work);
     assert.equal(new Set(bound.map(font => font.hash)).size, 4);
     const result = await renderManagedMotion(work, root, {}, undefined, undefined, prepareMotionFonts(work, bound));

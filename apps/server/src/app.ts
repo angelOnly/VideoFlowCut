@@ -1,3 +1,4 @@
+import { hyperframesContract } from "../../../packages/motion-work/src/hyperframes-contract.js";
 import { registerPresenterRoutes } from "./presenter-tools.js";
 import { objectResourceCapabilities } from "../../../packages/media-intelligence/src/object-resources/index.js";
 import { motionFrameRangeSchema } from "../../../packages/motion-work/src/schema.js";
@@ -14,7 +15,7 @@ import { registerSourceResearchRoutes } from "./source-research-tools.js";
 import { registerSoundRoutes } from "./sound-tools.js";
 import { listMotionFonts } from "../../../packages/motion-work/src/fonts.js";
 import { registerFontLibraryRoutes } from "./font-library.js";
-import { motionAllowedImports, MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compiler.js";
+import { MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compiler.js";
 import { createHash, randomUUID } from "node:crypto";
 import { createReadStream, createWriteStream, existsSync } from "node:fs";
 import { copyFile, mkdir, rm, stat } from "node:fs/promises";
@@ -1035,7 +1036,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   });
 
   app.get("/api/motion/sources", async () => ({ sources: MOTION_SOURCES }));
-  app.get("/api/motion/capabilities", async () => ({ engineVersion: MOTION_ENGINE_VERSION, allowedImports: motionAllowedImports(), fonts: listMotionFonts(), objectResources: objectResourceCapabilities }));
+  app.get("/api/motion/capabilities", async () => ({ engineVersion: MOTION_ENGINE_VERSION, html: hyperframesContract, fonts: listMotionFonts(), objectResources: objectResourceCapabilities }));
   registerFontLibraryRoutes(app);
   // 与渲染 Worker 共用部署前验证的浏览器；此只读服务不创建 Project、Revision 或 Job。
   app.post("/api/motion/inspect-reference", async (request, reply) => {
@@ -1050,7 +1051,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const evidence = await inspectMotionReference(body.sourceUrl, body.previewIndex, body.sampleDurationMs);
     return reply.header("x-videoflowcut-release-id", runtimeConfig.runtime.releaseId).send(evidence);
   });
-  app.post("/api/projects/:projectId/motion-works", async (request) => {
+  app.post("/api/projects/:projectId/motion-works", { bodyLimit: 12 * 1024 * 1024 }, async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({ baseRevision: baseRevisionSchema, idempotencyKey: z.string().min(1).max(160), work: motionSubmissionSchema, frameRange: motionFrameRangeSchema.optional() }).strict().parse(request.body);
     return application.submitManagedMotion({ projectId, ...body });

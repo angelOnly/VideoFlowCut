@@ -1,0 +1,25 @@
+{
+  "name": "videoflowcut",
+  "enabled": true,
+  "disabled_reason": null,
+  "transport": {
+    "type": "stdio",
+    "command": "node",
+    "args": [
+      "C:/Users/13222/.codex/plugins/cache/videoflowcut/videoflowcut/0.1.100/scripts/mcp-launcher.mjs"
+    ],
+    "env": {
+      "NO_PROXY": "localhost,.localhost,127.0.0.1,::1",
+      "HTTP_PROXY": "http://127.0.0.1:10808",
+      "HTTPS_PROXY": "http://127.0.0.1:10808",
+      "VIDEOFLOWCUT_SFX_ROOTS": "E:\\ai\\音效",
+      "VIDEOCUT_YT_DLP_PATH": "C:\\Users\\13222\\.codex\\providers\\videoflowcut-youtube-2026.08.19\\Scripts\\yt-dlp.exe"
+    },
+    "env_vars": [],
+    "cwd": "E:/ai/VideoCut"
+  },
+  "enabled_tools": null,
+  "disabled_tools": null,
+  "startup_timeout_sec": 45,
+  "tool_timeout_sec": 180
+}

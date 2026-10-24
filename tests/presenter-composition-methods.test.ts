@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import React from "react";
-import { transformSync } from "esbuild";
-import { readPresenterReference } from "../docs/development/presenter-creation-20261020/composition-demo/reference-source.js";
+import {parseHTML} from "linkedom";
+import {readFileSync} from "node:fs";
+import {motionHtml} from "./fixtures/hyperframes.js";
 import { mkdtemp, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -12,10 +12,10 @@ import { runProcess, probeMedia } from "@videocut/speech";
 import { hashMotionFile } from "../apps/render-worker/src/motion-video.js";
 import { runMotionJob } from "../apps/render-worker/src/motion-job.js";
 
-// 运行参考原文的函数，避免在测试中抄一套几何实现再测试自己。
-const source = readPresenterReference().replace(/^import .*;$/gmu, "");
-const javascript = transformSync(source, { loader: "tsx", jsx: "transform" }).code;
-const methods = new Function("React", "TimelineVideo", `${javascript};return {sourcePlane,blendBox,PresenterWindow,PaperPresenter,SplitPresenter,EmbeddedPresenter};`)(React, "test-video");
+// 直接运行当前技能中的 HTML 方法，避免测试历史 React 副本。
+const source = readFileSync(new URL("../.agents/skills/presenter-motion-director/references/presenter-material-choreography.md", import.meta.url),"utf8").match(/```javascript\r?\n([\s\S]*?)```/)![1]!;
+const {document} = parseHTML("<html><body></body></html>");
+const methods = new Function("document", `${source};return {sourcePlane,blendBox,placeBox,PresenterWindow};`)(document);
 const actor = { slot: "actor", source: { width: 1920, height: 1080 }, crop: { x: .25, y: .1, width: .5, height: .8 } };
 const near = (actual: number, expected: number) => assert.ok(Math.abs(actual - expected) < 1e-7);
 
@@ -27,38 +27,26 @@ test("参考制法先取景再 cover：裁点居中、源等比缩放且不露�
   near(plane.y + (.1 + .8 / 2) * plane.height, 75);
   assert.ok(.5 * plane.width >= 150 && .8 * plane.height >= 150);
   assert.throws(() => methods.sourcePlane(actor.source, box, { ...actor.crop, x: .8 }), /取景范围无效/u);
-  const window = methods.PresenterWindow({ ...actor, box, radius: "50%" });
-  assert.equal(window.props.style.borderRadius, "50%");
-  assert.equal(window.props.children.props.children.props.slot, "actor");
+  const window = methods.PresenterWindow({ ...actor, id:"actor", box, radius: "50%" });
+  assert.equal(window.element.style.borderRadius, "50%");
+  assert.equal(window.element.querySelector("img").getAttribute("data-vfc-video-slot"), "actor");
 });
 
-test("纸片和设备的外框、视频、附着标记共用父变换；屏幕仍在局部坐标", () => {
-  const box = { x: 80, y: 40, width: 180, height: 220 };
-  const mark = React.createElement("b");
-  const paper = methods.PaperPresenter({ actor, box, inset: 8, paperStyle: { background: "white" }, transform: "rotate(12deg)", marks: mark });
-  assert.equal(paper.props.style.transform, "rotate(12deg)");
-  assert.deepEqual(paper.props.children[0].props.box, { x: 8, y: 8, width: 164, height: 204 });
-  assert.equal(paper.props.children[1], mark);
-  const screen = { x: 10, y: 20, width: 160, height: 180 };
-  const device = methods.EmbeddedPresenter({ actor, outer: box, screen, radius: 10, transform: "scale(1.2)", shell: mark });
-  assert.equal(device.props.style.transform, "scale(1.2)");
-  assert.deepEqual(device.props.children[0].props.box, screen);
-  assert.equal(device.props.children[1], mark);
-});
-
-test("分屏中途两区用同一进度保持接缝，素材取得空间而源取景保持独立", () => {
-  const actorFrom = { x: 0, y: 0, width: 240, height: 270 };
-  const actorTo = { x: 0, y: 0, width: 120, height: 270 };
-  const materialFrom = { x: 240, y: 0, width: 240, height: 270 };
-  const materialTo = { x: 120, y: 0, width: 360, height: 270 };
-  for (const progress of [0, .25, .5, .75, 1]) {
-    let materialBox: typeof materialFrom | undefined;
-    const split = methods.SplitPresenter({ actor, actorFrom, actorTo, materialFrom, materialTo, progress, renderMaterial: (box: typeof materialFrom) => { materialBox = box; return null; } });
-    const window = split.props.children[1];
-    near(window.props.box.x + window.props.box.width, materialBox!.x);
-    near(window.props.box.width + materialBox!.width, 480);
-    assert.deepEqual(window.props.crop, actor.crop);
-    assert.equal(window.props.slot, "actor");
+test("窗口与附着物使用共同父层，分屏同一进度保持接缝与源比例", () => {
+  const parent=document.createElement('div'), mark=document.createElement('b');
+  parent.style.transform='rotate(12deg)';
+  const window=methods.PresenterWindow({...actor,id:'screen',box:{x:10,y:20,width:160,height:180}});
+  parent.append(window.element,mark);
+  assert.equal(window.element.parentElement,parent);
+  assert.equal(mark.parentElement,parent);
+  const from={x:0,y:0,width:240,height:270},to={x:0,y:0,width:120,height:270};
+  for(const progress of [0,.25,.5,.75,1]) {
+    const box=methods.blendBox(from,to,progress),material=methods.blendBox({x:240,y:0,width:240,height:270},{x:120,y:0,width:360,height:270},progress);
+    window.layout(box);
+    near(box.x+box.width,material.x);near(box.width+material.width,480);
+    const image=window.element.querySelector('img');
+    near(parseFloat(image.style.width)/1920,parseFloat(image.style.height)/1080);
+    assert.equal(image.id,'screen');
   }
 });
 
@@ -79,11 +67,11 @@ test("实际人物窗口退出后换位置返回，仍读取当前源帧而不�
       name: "参考窗口隐藏与返回", creativeBrief: "只验证原文制法在退出和新位置返回时保留源时钟，不验证真人美感。",
       width: 96, height: 64, fps: 15, durationInFrames: 6, props: {}, imageBindings: {},
       videoBindings: { actor: { assetId: asset.id, sourceStartMs: 1000, sourceEndMs: 1400, startFrame: 0, endFrame: 6 } },
-      source: readPresenterReference() + `
-import {useCurrentFrame} from 'remotion';
-export default function Motion(){const f=useCurrentFrame();return <div style={{width:96,height:64,background:'black'}}>
-{f<2||f>=4?<PresenterWindow slot="actor" source={{width:64,height:64}} crop={{x:0,y:0,width:1,height:1}}
-box={{x:f>=4?32:0,y:0,width:64,height:64}}/>:null}</div>;}`
+      source: motionHtml('<div id="stage" style="position:absolute;inset:0;background:black"></div>',source+`
+const actor=PresenterWindow({id:'actor',slot:'actor',source:{width:64,height:64},crop:{x:0,y:0,width:1,height:1},box:{x:0,y:0,width:64,height:64}});
+document.querySelector('#stage').append(actor.element);
+const state={frame:0};function render(){const f=Math.round(state.frame);actor.layout({x:f>=4?32:0,y:0,width:64,height:64});actor.element.style.display=f<2||f>=4?'block':'none';}
+render();tl.to(state,{frame:6,duration:6/15,ease:'none',onUpdate:render},0);`,{width:96,height:64,fps:15,durationInFrames:6})
     } });
     const result = await runMotionJob(app, job);
     const output = join(project.snapshot.project.rootPath, String(result.previewPath));

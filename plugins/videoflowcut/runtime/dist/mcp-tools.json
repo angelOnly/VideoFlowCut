@@ -7244,7 +7244,7 @@
     {
       "name": "read_motion_capabilities",
       "title": "读取受管动画能力与字体",
-      "description": "只读查询当前动画引擎、允许导入的接口及随Runtime发布的字体。fontBindings用槽名映射fontId；平台校验文件并在首次挂载前加载，源码使用props.fonts[槽位]的family、weight、style，不自行加载字体或联网。新增字体需要发布新版Runtime。",
+      "description": "只读查询当前动画引擎、HTML 合同与固定运行库及随Runtime发布的字体。fontBindings用槽名映射fontId；平台校验文件并在作者初始化前加载，源码使用vfc.fonts[槽位]的family、weight、style，不自行加载字体或联网。新增字体需要发布新版Runtime。",
       "inputSchema": {
         "type": "object",
         "properties": {},
@@ -7296,7 +7296,7 @@
     {
       "name": "browse_motion_sources",
       "title": "在线动效来源",
-      "description": "返回已选的四个在线视觉参考库与访问入口，不下载整库，不表示已经观看预览。AE/Jitter 与开源组件均可作为 Remotion 实现参考。",
+      "description": "返回已选的四个在线视觉参考库与访问入口，不下载整库，不表示已经观看预览。AE/Jitter 与开源组件均可作为视觉制作参考。",
       "inputSchema": {
         "type": "object",
         "properties": {},
@@ -7311,8 +7311,8 @@
     },
     {
       "name": "submit_motion_work",
-      "title": "生成受管 Remotion 作品",
-      "description": "可选frame_range只生成同源局部校样：完整源码、Props、绑定与根时钟不变，不创建Asset、不修改Revision；确认后省略frame_range提交完整作品。新作品填写 work.creativeBrief，提交固定源码、Props、图片及视频绑定，排队隔离渲染；不自动放入Timeline。修改作品重新提交并填写previousAssetId。源视频 video 和人物视频 actor_video 均可绑定；选段数量不设固定上限，实际负载受资源校验约束。每槽声明assetId、sourceStartMs、sourceEndMs、startFrame、endFrame及可选decodeScale；源码import {TimelineVideo} from '@videoflowcut/motion'，以slot、fit、style显示。平台使用作品根时钟，内部Sequence不重置源时间，不接受offsetInFrames。输出帧数以endFrame-startFrame为准，源范围允许毫秒取整及不足一帧余量；正常速度且静音，原声在声音轨明确编排。源不足、源变化或取帧越界报错，不自动冻结或循环。原片按内容身份共享，不按槽复制；解码缓存按需生成、有界回收，不按原片或累计解码512MB拒绝。完整作品不设30秒、900帧或650000000累计像素帧门槛，由Worker提前检查完整输出及临时工作区真实磁盘需求；失败不登记半件Asset。画布宽高64–1920偶数、fps15–60整数；所有帧连续渲染并验证，一个Job产生一个完整Asset。imageBindings将图片映射到props.assets，使用Remotion Img，不允许任意资源URL。历史作品产物可读；历史引擎重新生成须按新合同提交。技术生成不替代连续审片。",
+      "title": "生成受管 HyperFrames 作品",
+      "description": "可选frame_range只生成同源局部校样：完整源码、Props、绑定与根时钟不变，不创建Asset、不修改Revision；确认后省略frame_range提交完整作品。新作品填写 work.creativeBrief，提交固定源码、Props、图片及视频绑定，排队隔离渲染；不自动放入Timeline。修改作品重新提交并填写previousAssetId。源视频 video 和人物视频 actor_video 均可绑定；选段数量不设固定上限，实际负载受资源校验约束。每槽声明assetId、sourceStartMs、sourceEndMs、startFrame、endFrame及可选decodeScale；源码用带稳定id的img和data-vfc-video-slot显示，object-fit负责取景。平台使用作品根时钟，容器布局与显隐不重置源时间。输出帧数以endFrame-startFrame为准，源范围允许毫秒取整及不足一帧余量；正常速度且静音，原声在声音轨明确编排。源不足、源变化或取帧越界报错，不自动冻结或循环。原片按内容身份共享，不按槽复制；解码缓存按需生成、有界回收，不按原片或累计解码512MB拒绝。完整作品不设30秒、900帧或650000000累计像素帧门槛，由Worker提前检查完整输出及临时工作区真实磁盘需求；失败不登记半件Asset。画布宽高64–1920偶数、fps15–60整数；所有帧连续渲染并验证，一个Job产生一个完整Asset。imageBindings将图片映射到props.assets，使用data-vfc-image-slot或CSS资源变量，不允许任意资源URL。历史作品产物可读；历史引擎重新生成须按新合同提交。技术生成不替代连续审片。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7339,7 +7339,8 @@
               "source": {
                 "type": "string",
                 "minLength": 20,
-                "maxLength": 60000
+                "maxLength": 2000000,
+                "description": "完整 HyperFrames 单页 HTML，CSS/JS 内联；固定运行库由平台提供。"
               },
               "props": {
                 "type": "object",
@@ -7490,7 +7491,7 @@
                 "propertyNames": {
                   "pattern": "^[a-z][A-Za-z0-9_]{0,39}$"
                 },
-                "description": "命名视频选段可绑定已就绪的 video 或 actor_video，不设作品选段总数上限；声明源毫秒范围和作品帧范围，实际负载受资源校验约束。TimelineVideo读取作品根时钟，Sequence只改变布局；正常速度且静音，不接受offsetInFrames。"
+                "description": "命名视频选段可绑定已就绪的 video 或 actor_video，不设作品选段总数上限；声明源毫秒范围和作品帧范围，实际负载受资源校验约束。data-vfc-video-slot读取作品根时钟，容器变换只改变布局；正常速度且静音。"
               },
               "fontBindings": {
                 "type": "object",
@@ -7501,7 +7502,7 @@
                 "propertyNames": {
                   "pattern": "^[a-z][A-Za-z0-9_]{0,39}$"
                 },
-                "description": "字体槽位到已登记 fontId 的映射，最多8槽。先查询 read_motion_capabilities；平台加载后注入 props.fonts[槽位] 的 family、weight、style，不接受路径或URL。"
+                "description": "字体槽位到已登记 fontId 的映射，最多8槽。先查询 read_motion_capabilities；平台加载后注入 vfc.fonts[槽位] 的 family、weight、style 与 CSS 字体变量，不接受路径或URL。"
               }
             },
             "required": [

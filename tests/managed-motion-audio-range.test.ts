@@ -1,3 +1,4 @@
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -20,7 +21,7 @@ async function fixture() {
   const current = () => app.readProject(projectId);
   const revision = () => current().revision.number;
   app.repository.commit(projectId, revision(), "隔离画布", snapshot => { Object.assign(snapshot.timeline, { width: 320, height: 320, fps: 30 }); });
-  const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "fixture", work: { ...motionFixture, durationInFrames: 90 } });
+  const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "fixture", work: sizeMotionFixture({ ...motionFixture, durationInFrames: 90 }) });
   // 仅提供技术夹具结果验证写入与范围，不声称做过真实渲染或声音审阅。
   const motion = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture", metadata: { durationMs: 3000, width: 320, height: 320, fps: 30, hasAudio: false } });
   const scene = app.createScene({ projectId, baseRevision: revision(), type: "PresenterScene", title: "原旁白", purpose: "测试正式音频放置", startFrame: 0, endFrame: 180 }).snapshot.scenes.at(-1)!;

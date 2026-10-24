@@ -1,3 +1,5 @@
+import {motionHtml, frameHtml} from "./fixtures/hyperframes.js";
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -51,8 +53,8 @@ test("正式工具 → 媒体队列 → 派生图片与清单 → 真实绑定 �
     const before = app.readProject(projectId).revision.number;
     await runObjectResources(app, completed);
     assert.equal(app.readProject(projectId).revision.number, before);
-    const motion = app.submitManagedMotion({ projectId, baseRevision: before, idempotencyKey: "bound-atlas", work: { ...motionFixture, width: 64, height: 64, durationInFrames: 3, props: { layout }, imageBindings: { atlas: derived.id },
-      source: `import React from 'react';import {Img} from 'remotion';export default function M(p){const a=p.layout.parts[0],pg=p.layout.pages[0];return <div style={{position:'absolute',left:a.trimOffset.x,top:a.trimOffset.y,width:a.atlasRect.width,height:a.atlasRect.height,overflow:'hidden'}}><Img src={p.assets.atlas} style={{position:'absolute',maxWidth:'none',width:pg.width,height:pg.height,left:-a.atlasRect.x,top:-a.atlasRect.y}}/></div>}` } });
+    const motion = app.submitManagedMotion({ projectId, baseRevision: before, idempotencyKey: "bound-atlas", work: sizeMotionFixture({ ...motionFixture, width: 64, height: 64, durationInFrames: 3, props: { layout }, imageBindings: { atlas: derived.id },
+      source: motionHtml('<div id="part" style="position:absolute;overflow:hidden"><img id="atlas" data-vfc-image-slot="atlas" style="position:absolute;max-width:none"></div>',`const a=props.layout.parts[0],pg=props.layout.pages[0];Object.assign(document.querySelector('#part').style,{left:a.trimOffset.x+'px',top:a.trimOffset.y+'px',width:a.atlasRect.width+'px',height:a.atlasRect.height+'px'});Object.assign(document.querySelector('#atlas').style,{width:pg.width+'px',height:pg.height+'px',left:-a.atlasRect.x+'px',top:-a.atlasRect.y+'px'});`) }) });
     const rendered = await runMotionJob(app, motion);
     const motionAsset = app.readProject(projectId).snapshot.assets.find(a => a.id === rendered.assetId)!;
     const frame = PNG.sync.read(await readFile(join(projectRoot, motionAsset.motion!.framesDirectory, "frame-00001.png")));

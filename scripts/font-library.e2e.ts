@@ -1,3 +1,5 @@
+import {sizeMotionFixture} from "../tests/fixtures/hyperframes.js";
+import {motionHtml,frameHtml} from "../tests/fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
@@ -57,9 +59,9 @@ try {
   const projectId = created.snapshot.project.id;
   const other = await call("create_project", { name: "字体推荐跨项目隔离夹具", profile: "visual_explainer" });
   const before = await call("read_project", { project_id: projectId });
-  const work = { ...motionFixture, reference: undefined, width: 640, height: 192, durationInFrames: 2,
+  const work = sizeMotionFixture({ ...motionFixture, reference: undefined, width: 640, height: 192, durationInFrames: 2,
     fontBindings: { title: "not-registered" },
-    source: `import React from 'react';export default p=><div style={{color:'white',fontSize:48,fontFamily:p.fonts.title.family,fontWeight:p.fonts.title.weight,fontStyle:p.fonts.title.style,fontSynthesis:'none'}}>把生活拍成电影</div>` };
+    source: motionHtml('<div style="color:white;font-size:48px;font-family:var(--vfc-font-title);font-synthesis:none" id="text">把生活拍成电影</div>',"Object.assign(document.querySelector('#text').style,{fontWeight:vfc.fonts.title.weight,fontStyle:vfc.fonts.title.style});") });
   const unknown = await call("submit_motion_work", { project_id: projectId, base_revision_id: before.revision.number, idempotency_key: "font-selection", work }, true);
   assert.deepEqual([unknown.code, unknown.stage, unknown.sideEffects, unknown.safeToRetry, unknown.recovery, unknown.selectionRequired],
     ["MOTION_FONT_UNKNOWN", "validation", "none", true, "select_registered_font", true]);

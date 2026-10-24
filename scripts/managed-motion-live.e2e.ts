@@ -1,3 +1,5 @@
+import {sizeMotionFixture} from "../tests/fixtures/hyperframes.js";
+import {motionHtml,frameHtml} from "../tests/fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -31,7 +33,7 @@ try {
   const logoHash = createHash("sha256").update(await readFile(logoPath)).digest("hex");
   const logo = app.registerImportedAsset({ projectId, baseRevision: revision(), name: "图片绑定候选", kind: "image", managedPath: "assets/logo.png", sourceHash: logoHash, provenance: { source: "local_import", acquiredAt: new Date().toISOString() } }).asset;
   app.applyMediaAnalysis({ projectId, assetId: logo.id, metadata: await probeMedia(logoPath) });
-  const imageJob = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "live-image", work: { ...motionFixture, imageBindings: { logo: logo.id }, source: `import React from 'react';import {AbsoluteFill,Img,useCurrentFrame} from 'remotion';export default function Motion(props){const f=useCurrentFrame();return <AbsoluteFill style={{justifyContent:'center',alignItems:'center'}}><Img src={props.assets.logo} style={{width:100+f,height:100+f}}/></AbsoluteFill>;}` } });
+  const imageJob = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "live-image", work: sizeMotionFixture({ ...motionFixture, imageBindings: { logo: logo.id }, source: frameHtml('<div style="position:absolute;inset:0;display:flex;justify-content:center;align-items:center"><img id="logo" data-vfc-image-slot="logo"></div>',"Object.assign(document.querySelector('#logo').style,{width:100+f+'px',height:100+f+'px'});") }) });
   const imageResult = await runMotionJob(app, imageJob);
   assert.ok(imageResult.assetId);
   assert.equal((await runMotionJob(app, imageJob)).assetId, imageResult.assetId);

@@ -1,3 +1,5 @@
+import {sizeMotionFixture} from "../tests/fixtures/hyperframes.js";
+import {motionHtml,frameHtml} from "../tests/fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -107,7 +109,7 @@ try {
   assert.equal(release.aligned, true);
   assert.equal((await call("browse_motion_sources")).sources.length, 4);
   const baseRevision = await revision();
-  const job = await call("submit_motion_work", { project_id: projectId, base_revision_id: baseRevision, idempotency_key: "release-motion", work: { ...motionFixture, reference: undefined } });
+  const job = await call("submit_motion_work", { project_id: projectId, base_revision_id: baseRevision, idempotency_key: "release-motion", work: sizeMotionFixture({ ...motionFixture, reference: undefined }) });
   await waitJob(job.id);
   const work = await call("read_motion_work", { project_id: projectId, job_id: job.id });
   assert.ok(work.asset?.motion?.version);
@@ -190,9 +192,9 @@ try {
   const removedPreview = await waitJob((await call("render_preview_range", { project_id: projectId, revision: await revision(), from_frame: 0, to_frame: 120, idempotency_key: "release-preview-removed" })).id);
   assert.ok(Math.abs(await centerLuma(removedPreview, 100) - pixels.before100) < 2, "移除后真实合成恢复主画面，资产仍保留");
   // 全屏 RGB → RGBA → 透明 → RGB 的真实发行链，不能要求创作者保留残影才能通过测量。
-  const alphaJob = await call("submit_motion_work", { project_id: projectId, base_revision_id: await revision(), idempotency_key: "release-alpha-transition", work: {
+  const alphaJob = await call("submit_motion_work", { project_id: projectId, base_revision_id: await revision(), idempotency_key: "release-alpha-transition", work: sizeMotionFixture({
     ...motionFixture, name: "透明退出技术回归（非创作样片）", durationInFrames: 8,
-    source: `import React from 'react';import {useCurrentFrame} from 'remotion';export default function Motion(){return <div style={{position:'absolute',inset:0,background:'#ffffff',opacity:[1,0.5,0,1,1,0.5,0.01,0][useCurrentFrame()]}}/>;}`,
+    source: frameHtml('<div id="layer" style="position:absolute;inset:0;background:white"></div>',"document.querySelector('#layer').style.opacity=[1,0.5,0,1,1,0.5,0.01,0][f];"),
     reference: { ...motionFixture.reference, observation: {
       layout: "全幅白色矩形，用于检查不同 PNG 颜色类型切换；不是视觉选型。",
       motion: "固定八帧在不透明、半透明、全透明状态间切换，不复制在线作品。",
@@ -200,7 +202,7 @@ try {
       adaptation: "只验证已发布能力，不作为用户视频的创作或参考对照结论。",
       evidence: "结果以候选 Worker 的真实 PNG 和合成视频像素为依据。"
     } }
-  } });
+  }) });
   await waitJob(alphaJob.id);
   const alphaWork = await call("read_motion_work", { project_id: projectId, job_id: alphaJob.id });
   assert.equal(Object.hasOwn(alphaWork.asset.motion, "visibility"), false);

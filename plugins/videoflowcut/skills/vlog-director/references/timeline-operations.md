@@ -20,7 +20,7 @@
 - `cutaway-planning`：补镜怎样进入和返回；
 - `audio-finishing`：现场声、音乐、声音桥；
 - `captions`：必要对话和坐标；
-- `remotion-production`：地点、路线、时间、简单图形，不接管主线。
+- `opendesign-video-production`：地点、路线、时间、简单图形，不接管主线。
 
 主工作流完成每次交接后重新看事件链，而不是让各工种独立优化造成整体失真。
 

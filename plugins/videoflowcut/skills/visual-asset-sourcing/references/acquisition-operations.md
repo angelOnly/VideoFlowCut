@@ -20,7 +20,7 @@
 
 可选参考研究用于理解运动机制，不是原创二维对象的前置模板搜索。灵感、作品绑定图片、真实证据与实拍分别记录用途；只有实际使用的素材进入获取链。无原始文件时不能把预览当素材。
 
-在线动效不是 Stock 下载任务。Onda、Jitter、RemotionLab、Mixkit 由 `browse_motion_sources` 提供入口，`inspect_motion_reference` 支持公开页面与动态采样。把选中链接和观察依据交给 `remotion-production`；无源码或 AE 格式不妨碍独立实现。只有确实要使用第三方图片、视频或音频时才进入本 Skill 的素材获取流程，不把参考预览登记成正式素材。
+在线动效不是 Stock 下载任务。Onda、Jitter、RemotionLab、Mixkit 由 `browse_motion_sources` 提供入口，`inspect_motion_reference` 支持公开页面与动态采样。把选中链接和观察依据交给 `opendesign-video-production`；无源码或 AE 格式不妨碍独立实现。只有确实要使用第三方图片、视频或音频时才进入本 Skill 的素材获取流程，不把参考预览登记成正式素材。
 
 当前获取链包括 `manage_asset_requirements`、`search_media_candidates`、`inspect_media_candidate`、`acquire_media_asset` 和 `read_asset_provenance`。需求创建、修改与关闭使用创作 Revision；搜索意图、候选、来源和过滤结果保存于独立搜索会话，搜索本身不改变创作 Revision，也不下载或采用素材。base_revision_id 仅为可选兼容上下文，不因无关写入拒绝查询；发出请求时固定当前需求快照，迟到结果保留原输入。
 

@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -193,6 +194,17 @@ async function main() {
   await cp(webSourceRoot, outputPaths.web, { recursive: true, force: true });
   // 下载器版本约束随发行物固定，部署时在独立环境安装，不在线自更新。
   await cp(join(pluginRoot, "requirements-youtube.txt"), join(distRoot, "requirements-youtube.txt"));
+  // 受管 HTML 的固定浏览器运行库随发行物保存，纳入 Release ID；不依赖网络 CDN。
+  const require = createRequire(join(repoRoot, "package.json"));
+  const dependencies = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8")).dependencies;
+  const browserLibraries = join(distRoot, "hyperframes");
+  await mkdir(browserLibraries, { recursive: true });
+  for (const [pkg, entry, output] of [["@hyperframes/core", "@hyperframes/core/runtime", "hyperframe.runtime.iife.js"], ["gsap", "gsap/dist/gsap.min.js", "gsap.min.js"]]) {
+    const actual = JSON.parse(await readFile(require.resolve(`${pkg}/package.json`), "utf8")).version;
+    if (dependencies[pkg] !== actual) throw new Error(`运行库必须固定到实际安装版本：${pkg}`);
+    await cp(require.resolve(entry), join(browserLibraries, output));
+  }
+  await writeFile(join(browserLibraries, "versions.json"), JSON.stringify({ hyperframes: dependencies["@hyperframes/core"], gsap: dependencies.gsap }, null, 2));
   // 字体文件、固定目录和许可证一起发行并参与Release ID；生成时不下载字体。
   const fontRoot = join(repoRoot, "packages", "motion-work", "fonts");
   const fonts = JSON.parse(await readFile(join(fontRoot, "catalog.json"), "utf8"));

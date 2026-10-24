@@ -1,3 +1,4 @@
+import { hyperframesContract } from "../../../packages/motion-work/src/hyperframes-contract.js";
 import { toolErrorResult } from "./tool-error.js";
 import { objectResourceCapabilities } from "../../../packages/media-intelligence/src/object-resources/index.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -7,15 +8,15 @@ import { MOTION_SOURCES } from "../../../packages/motion-work/src/catalog.js";
 import { motionSubmissionSchema, motionFrameRangeSchema, motionReviewFields } from "../../../packages/motion-work/src/schema.js";
 import { inspectMotionReferenceViaRuntime } from "./motion-reference-client.js";
 import { listMotionFonts, MotionFontUnknownError } from "../../../packages/motion-work/src/fonts.js";
-import { motionAllowedImports, MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compiler.js";
+import { MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compiler.js";
 
 export function registerMotionTools(server: McpServer, application: EditingApplication, projectIdFrom: (value?: string) => string) {
   const result = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] });
   const failure = toolErrorResult;
   server.registerTool("read_motion_capabilities", {
-    title: "读取受管动画能力与字体", description: "只读查询当前动画引擎、允许导入的接口及随Runtime发布的字体。fontBindings用槽名映射fontId；平台校验文件并在首次挂载前加载，源码使用props.fonts[槽位]的family、weight、style，不自行加载字体或联网。新增字体需要发布新版Runtime。",
+    title: "读取受管动画能力与字体", description: "只读查询当前动画引擎、HTML 合同与固定运行库及随Runtime发布的字体。fontBindings用槽名映射fontId；平台校验文件并在作者初始化前加载，源码使用vfc.fonts[槽位]的family、weight、style，不自行加载字体或联网。新增字体需要发布新版Runtime。",
     inputSchema: {}, annotations: { readOnlyHint: true }
-  }, async () => { try { return result({ engineVersion: MOTION_ENGINE_VERSION, allowedImports: motionAllowedImports(), fonts: listMotionFonts(), objectResources: objectResourceCapabilities,
+  }, async () => { try { return result({ engineVersion: MOTION_ENGINE_VERSION, html: hyperframesContract, fonts: listMotionFonts(), objectResources: objectResourceCapabilities,
     videoBindings: { maxSlots: null, clock: "work_root", playback: "normal_speed_muted", description: "不设作品视频选段总数上限；每槽固定源身份、哈希、源范围和作品帧范围。分块串行解码并复用缓存，真实资源不足明确失败，不删减选段或静默降质；解码块预算不等于浏览器总内存预算。" },
     fontBindingExample: { title: "noto-sans-sc-bold" }, execution: "仅使用已登记本地字体；通过fontBindings声明，props.fonts由平台注入。配色、描边与帧驱动动效由作者生成，不要求花字模板。理想字体未收录不是平台故障：主任务控制流程，原视觉作者推荐最多3款，使用get_editor_url(panel=fonts,font_preview=...)让用户在工作台预览后通过聊天确认；等待时继续无依赖工作，不报工单、不自动替代。已登记原件缺失、变更或加载失败仍明确报错。" }); } catch (error) { return failure(error); } });
   server.registerTool("inspect_motion_reference", {
@@ -25,9 +26,9 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
     const { images, ...evidence } = await inspectMotionReferenceViaRuntime(source_url, preview_index, sample_duration_ms);
     return { content: [...result({ ...evidence, samples: images.map(({ elapsedMs }) => ({ elapsedMs })) }).content, ...images.map((item) => ({ type: "image" as const, mimeType: "image/png", data: item.data }))] };
   } catch (error) { return failure(error); } });
-  server.registerTool("browse_motion_sources", { title: "在线动效来源", description: "返回已选的四个在线视觉参考库与访问入口，不下载整库，不表示已经观看预览。AE/Jitter 与开源组件均可作为 Remotion 实现参考。", inputSchema: {}, annotations: { readOnlyHint: true } }, async () => result({ sources: MOTION_SOURCES, execution: "通过 submit_motion_work 提交默认导出的 React + Remotion TSX；原创作品按内容设计并填写 creativeBrief；仅在需要参考时观看并记录布局、运动、节奏和适配依据。" }));
+  server.registerTool("browse_motion_sources", { title: "在线动效来源", description: "返回已选的四个在线视觉参考库与访问入口，不下载整库，不表示已经观看预览。AE/Jitter 与开源组件均可作为视觉制作参考。", inputSchema: {}, annotations: { readOnlyHint: true } }, async () => result({ sources: MOTION_SOURCES, execution: "通过 submit_motion_work 提交完整 HyperFrames HTML；原创作品按内容设计并填写 creativeBrief；仅在需要参考时观看并记录布局、运动、节奏和适配依据。" }));
   server.registerTool("submit_motion_work", {
-    title: "生成受管 Remotion 作品", description: "可选frame_range只生成同源局部校样：完整源码、Props、绑定与根时钟不变，不创建Asset、不修改Revision；确认后省略frame_range提交完整作品。新作品填写 work.creativeBrief，提交固定源码、Props、图片及视频绑定，排队隔离渲染；不自动放入Timeline。修改作品重新提交并填写previousAssetId。源视频 video 和人物视频 actor_video 均可绑定；选段数量不设固定上限，实际负载受资源校验约束。每槽声明assetId、sourceStartMs、sourceEndMs、startFrame、endFrame及可选decodeScale；源码import {TimelineVideo} from '@videoflowcut/motion'，以slot、fit、style显示。平台使用作品根时钟，内部Sequence不重置源时间，不接受offsetInFrames。输出帧数以endFrame-startFrame为准，源范围允许毫秒取整及不足一帧余量；正常速度且静音，原声在声音轨明确编排。源不足、源变化或取帧越界报错，不自动冻结或循环。原片按内容身份共享，不按槽复制；解码缓存按需生成、有界回收，不按原片或累计解码512MB拒绝。完整作品不设30秒、900帧或650000000累计像素帧门槛，由Worker提前检查完整输出及临时工作区真实磁盘需求；失败不登记半件Asset。画布宽高64–1920偶数、fps15–60整数；所有帧连续渲染并验证，一个Job产生一个完整Asset。imageBindings将图片映射到props.assets，使用Remotion Img，不允许任意资源URL。历史作品产物可读；历史引擎重新生成须按新合同提交。技术生成不替代连续审片。",
+    title: "生成受管 HyperFrames 作品", description: "可选frame_range只生成同源局部校样：完整源码、Props、绑定与根时钟不变，不创建Asset、不修改Revision；确认后省略frame_range提交完整作品。新作品填写 work.creativeBrief，提交固定源码、Props、图片及视频绑定，排队隔离渲染；不自动放入Timeline。修改作品重新提交并填写previousAssetId。源视频 video 和人物视频 actor_video 均可绑定；选段数量不设固定上限，实际负载受资源校验约束。每槽声明assetId、sourceStartMs、sourceEndMs、startFrame、endFrame及可选decodeScale；源码用带稳定id的img和data-vfc-video-slot显示，object-fit负责取景。平台使用作品根时钟，容器布局与显隐不重置源时间。输出帧数以endFrame-startFrame为准，源范围允许毫秒取整及不足一帧余量；正常速度且静音，原声在声音轨明确编排。源不足、源变化或取帧越界报错，不自动冻结或循环。原片按内容身份共享，不按槽复制；解码缓存按需生成、有界回收，不按原片或累计解码512MB拒绝。完整作品不设30秒、900帧或650000000累计像素帧门槛，由Worker提前检查完整输出及临时工作区真实磁盘需求；失败不登记半件Asset。画布宽高64–1920偶数、fps15–60整数；所有帧连续渲染并验证，一个Job产生一个完整Asset。imageBindings将图片映射到props.assets，使用data-vfc-image-slot或CSS资源变量，不允许任意资源URL。历史作品产物可读；历史引擎重新生成须按新合同提交。技术生成不替代连续审片。",
     // 源码拒绝经应用层确认未入队后，由统一错误映射返回定位与纠正依据；不自动重试。
     inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), idempotency_key: z.string().min(1).max(160), work: motionSubmissionSchema, frame_range: motionFrameRangeSchema.optional() }
   }, async ({ project_id, base_revision_id, idempotency_key, work, frame_range }) => { try { return result(application.submitManagedMotion({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, idempotencyKey: idempotency_key, work, frameRange: frame_range })); } catch (error) {

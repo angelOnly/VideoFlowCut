@@ -13,9 +13,9 @@ const pluginMcpPath = join(pluginRoot, ".mcp.json");
 const mcpSourcePath = join(repositoryRoot, "apps", "server", "src", "mcp.ts");
 
 test("字体身份与选择操作分别位于实现合同和提交参考", async () => {
-  const contract = await readFile(join(skillsRoot,"remotion-production/references/remotion-component-contract.md"),"utf8");
-  for (const token of ["read_motion_capabilities","fontBindings","props.fonts","首次挂载前","哈希","实际字重"]) assert.ok(contract.includes(token),token);
-  const writes=await readFile(join(skillsRoot,"remotion-production/references/submission-and-recovery.md"),"utf8");
+  const contract = await readFile(join(skillsRoot,"opendesign-video-production/references/hyperframes-contract.md"),"utf8");
+  for (const token of ["read_motion_capabilities","fontBindings","props.fonts","作者初始化前","哈希","实际字重"]) assert.ok(contract.includes(token),token);
+  const writes=await readFile(join(skillsRoot,"opendesign-video-production/references/submission-and-recovery.md"),"utf8");
   for(const token of ["fontSources","字体可用性与替代","用户明确指定且不接受替代","原作者可自主选择"])assert.ok(writes.includes(token),token);
   assert.match(contract,/不回退系统字体/);
   const source=await readFile(join(repositoryRoot,"apps/server/src/motion-tools.ts"),"utf8");
@@ -25,7 +25,7 @@ test("字体身份与选择操作分别位于实现合同和提交参考", async
 
 test("字幕位置配置与无固定安全区合同一致，发布指引不要求测量或提示", async () => {
   const captions = await readSkill("captions");
-  const motion = await readSkill("remotion-production");
+  const motion = await readFile(join(skillsRoot,"opendesign-video-production/references/hyperframes-contract.md"),"utf8");
   const contract = await operationKnowledge();
   assert.match(captions, /默认底部布局/u);
   assert.match(captions, /placement/u);
@@ -35,24 +35,15 @@ test("字幕位置配置与无固定安全区合同一致，发布指引不要�
   assert.doesNotMatch(motion + contract, /返回待审 warning|可重生成取得证据|Worker 保存真实透明帧的 `motion.visibility`/u);
 });
 
-test("视频Skill与MCP统一根时钟、选段字段和资源回收合同", async () => {
-  const skill = await readSkill("remotion-production");
-  const contract = await operationKnowledge();
-  const component = await readFile(join(skillsRoot, "remotion-production/references/remotion-component-contract.md"), "utf8");
-  for (const text of [skill, contract, component]) {
-    for (const field of ["sourceStartMs", "sourceEndMs", "startFrame", "endFrame", "TimelineVideo"]) assert.ok(text.includes(field));
-    assert.match(text, /不足一.*帧/u);
-    assert.doesNotMatch(text, /源文件合计最多 512|解码结果合计最多 512|最长 30 秒/u);
-  }
-  // 验证当前播放语义；历史引擎名只属于迁移诊断，不是每份使用说明的必读内容。
-  assert.match(component, /TimelineVideo 读取平台保存的作品根帧，不随内部 Sequence 重置/u);
-  assert.match(component, /源毫秒和作品帧均为半开区间/u);
-  assert.match(component, /正常速度重采样并静音/u);
-  assert.match(component, /<Sequence from=\{60\} durationInFrames=\{60\}>[\s\S]*<TimelineVideo slot="footage"/u);
-  const source = await readFile(join(repositoryRoot, "packages/motion-work/src/compiler.ts"), "utf8");
-  assert.match(source, /createContext\(null\)/u);
-  assert.match(source, /const frame=useContext\(FrameContext\)/u);
-  assert.doesNotMatch(source, /export function BoundVideo/u);
+test("HTML 生产入口可达当前根时钟与绑定合同，旧 TSX 入口停用", async () => {
+  const reachable=await reachableMarkdown(join(skillsRoot,"opendesign-video-production/SKILL.md"));
+  const path=join(skillsRoot,"opendesign-video-production/references/hyperframes-contract.md");
+  assert.ok(reachable.has(resolve(path)));
+  const contract=await readFile(path,"utf8");
+  for(const token of ["sourceStartMs","sourceEndMs","startFrame","endFrame","data-vfc-video-slot","window.getVfcMotionEvents","window.__timelines"])
+    assert.ok(contract.includes(token),token);
+  assert.match(contract,/半开区间/);assert.match(contract,/正常速度重采样并静音/);
+  assert.equal(await exists(join(skillsRoot,"remotion-production/SKILL.md")),false);
 });
 
 const expectedSkills = [
@@ -75,7 +66,8 @@ const expectedSkills = [
   "production-director",
   "project-basics",
   "quality-verification",
-  "remotion-production",
+  "opendesign-video-production",
+  "opendesign-shot-brief",
   "scene-planning",
   "narration-writing",
   "semantic-continuity",
@@ -94,7 +86,7 @@ const primaryWorkflows = ["presenter-motion-director", "visual-explainer-directo
 const creativeSpecialists = [
   "narration-writing",
   "semantic-continuity", "voice-production", "avatar-performance", "visual-treatment-planning",
-  "scene-planning", "visual-asset-sourcing", "cutaway-planning", "remotion-production",
+  "scene-planning", "visual-asset-sourcing", "cutaway-planning", "opendesign-video-production",
   "depth-composition", "effect-timing", "evidence-visualization", "captions",
   "sound-asset-sourcing", "audio-finishing"
 ] as const;
@@ -117,7 +109,7 @@ const specialistSkills = [
   "captions",
   "audio-finishing",
   "sound-asset-sourcing",
-  "remotion-production"
+  "opendesign-video-production"
 ] as const;
 
 const architectureTargets = new Set(["smooth_audio"]);
@@ -256,7 +248,7 @@ async function reachableMarkdown(entry: string): Promise<Set<string>> {
 
 test("人物剪辑专业资料从导演与相关专项可达，发行内容保持一致", async () => {
   const grammar = resolve(skillsRoot, "presenter-motion-director/references/presenter-editing-grammar.md");
-  for (const entry of ["presenter-motion-director", "visual-treatment-planning", "remotion-production"]) {
+  for (const entry of ["presenter-motion-director", "visual-treatment-planning", "opendesign-video-production"]) {
     const reachable = await reachableMarkdown(join(skillsRoot, entry, "SKILL.md"));
     assert.ok(reachable.has(grammar), `${entry} 无法沿正式引用读取人物剪辑语法`);
   }
@@ -276,8 +268,8 @@ test("方法与案例可达，但案例不再注册独立工作能力", async ()
     assert.equal(await exists(join(skillsRoot,id)),false);
     assert.equal(await exists(join(skillsRoot,`motion-case-library/references/cases/${id}/SKILL.md`)),false);
   }
-  const methods=await reachableMarkdown(join(skillsRoot,"remotion-production/SKILL.md"));
-  for(const file of ["visual-treatment-planning/references/art-direction.md","motion-brief-writing/references/performance-design.md","motion-brief-writing/references/execution-brief-template.md","remotion-production/references/material-space-and-time.md","remotion-production/references/submission-and-recovery.md"]){assert.ok(methods.has(resolve(skillsRoot,file)),file)}
+  const methods=await reachableMarkdown(join(skillsRoot,"opendesign-video-production/SKILL.md"));
+  for(const file of ["visual-treatment-planning/references/art-direction.md","motion-brief-writing/references/performance-design.md","motion-brief-writing/references/execution-brief-template.md","opendesign-video-production/references/material-space-and-time.md","opendesign-video-production/references/submission-and-recovery.md"]){assert.ok(methods.has(resolve(skillsRoot,file)),file)}
   const templatePath=join(skillsRoot,"motion-brief-writing/references/execution-brief-template.md");
   const template=await readFile(templatePath,"utf8");
   // 执行稿可精简章节；检查真实方法引用，不把旧标题固定成创作合同。

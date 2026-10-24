@@ -15,7 +15,7 @@ async function fixture() {
   const app = createApplication(root);
   const created = app.createProject({ name: "子代理来源回归测试（隔离项目）" });
   const projectId = created.snapshot.project.id;
-  const run = await app.startProductionRun({ projectId, loadedSkills: ["production-coordinator", "remotion-production"] });
+  const run = await app.startProductionRun({ projectId, loadedSkills: ["production-coordinator", "opendesign-video-production"] });
   const reportPath = join(created.snapshot.project.rootPath, "reports", `production-run-${run.id}.json`);
   const base = { projectId, runId: run.id, category: "visual" as const, decision: "保留完整关系变化", rationale: "测试审计读回，不代表实际子代理创作或审美通过" };
   const delegation: CreativeDelegation = { agentId: "/fixture/motion", assignmentId: "motion-01", role: "specialist", inputRevision: 1 };

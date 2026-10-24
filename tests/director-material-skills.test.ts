@@ -76,6 +76,6 @@ test("默认前期资料不直连历史案例，动画交接仍可到达机制�
   assert.ok(links('motion-case-library/SKILL.md').some(link =>
     resolve(dirname(libraryPath), link) === resolve('.agents/skills/motion-case-library/references/mechanism-retrieval.md')));
   assert.ok(motion.includes('references/performance-design.md'), '演出核心可直接读取');
-  assert.ok(motion.includes('../remotion-production/SKILL.md'));
+  assert.ok(motion.includes('../opendesign-video-production/SKILL.md'));
   assert.ok(links('motion-case-library/SKILL.md').includes('references/validated-index.md'),'用户明确请求的历史分支仍保留');
 });

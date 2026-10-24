@@ -1,3 +1,4 @@
+import {sizeMotionFixture} from "../tests/fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { cp, mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
@@ -99,7 +100,7 @@ try {
   const baselineRelease = await call("read_runtime_release");
   const oldQuality = await call("read_quality_report");
   assert.deepEqual(oldQuality.technical.filter((i: any) => i.level === "blocking"), [], JSON.stringify(oldQuality));
-  const work = { ...motionFixture, reference: undefined, fps: 24, durationInFrames: 72, props: { text: "技术链路验证" } };
+  const work = sizeMotionFixture({ ...motionFixture, reference: undefined, fps: 24, durationInFrames: 72, props: { text: "技术链路验证" } });
   const job = await call("submit_motion_work", { base_revision_id: before.revision.number, idempotency_key: "unreviewed-work", work });
   assert.equal((await waitJob(job.id)).status, "succeeded");
   const asset = (await call("read_motion_work", { job_id: job.id })).asset;

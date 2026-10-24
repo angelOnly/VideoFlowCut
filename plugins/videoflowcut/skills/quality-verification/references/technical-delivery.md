@@ -9,7 +9,7 @@
 | Asset | 文件、Hash、元数据、可解码、Binding、来源 | asset-import / sourcing |
 | 人物 | AudioMode、Mask、Speech/Script 版本 | avatar-performance |
 | 字幕 | 文本一致、时序、越界、画幅 | captions |
-| Remotion | Registry、Props、Asset、字体、Player/Render | remotion-production |
+| 受管画面与最终合成 | HTML、Props、Asset、字体、HyperFrames / Remotion Render | opendesign-video-production / export |
 | 音频 | Dialogue 唯一、音轨、缺音、头尾 | audio-finishing / export |
 | Artifact | Revision、时长、画幅、音轨、黑帧、哈希 | export |
 

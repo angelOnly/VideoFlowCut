@@ -1,4 +1,4 @@
-import ts from "typescript";
+import { parseMotionHtml } from "../../motion-work/src/compiler.js";
 import { DomainError } from "@videocut/domain";
 import type { ProjectSnapshot } from "@videocut/contracts";
 import { sourceCaptionAllowed, type FrozenSourceDisplay, type SourceDisplayPolicy } from "../../contracts/src/source-display-policy.js";
@@ -38,73 +38,40 @@ export function checkProgramSourceDisplay(props: unknown, frozen: FrozenSourceDi
   }
 }
 
-/** 只检查可定位的 JSX 可见文本及已知元数据映射；不执行源码，也不冒称覆盖像素与路径绘字。 */
-export function checkMotionSourceDisplay(source: string, props: Record<string, unknown>, frozen: FrozenSourceDisplay): SourceDisplayFinding[] {
-  const file = ts.createSourceFile("motion.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  const warnings: SourceDisplayFinding[] = [];
-  const rejected: SourceDisplayFinding[] = [];
-  const metadataNames = new Set(["sourceCaption", "sourceTitle", "sourceUrl", "publisher", "fileName", "pageNumber"]);
-  const constants = new Map<string, ts.Expression[]>();
-  const collect = (node: ts.Node): void => {
-    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) constants.set(node.name.text, [...constants.get(node.name.text) ?? [], node.initializer]);
-    // 有同名参数时不猜测标识符绑定，避免把另一个作用域的常量误判为可见文字。
-    if (ts.isParameter(node) && ts.isIdentifier(node.name)) constants.set(node.name.text, [...constants.get(node.name.text) ?? [], node.name]);
-    ts.forEachChild(node, collect);
-  };
-  collect(file);
-  const resolve = (node: ts.Expression, seen = new Set<string>()): { text?: string; metadata?: boolean } => {
-    if (ts.isStringLiteralLike(node) || ts.isNumericLiteral(node)) return { text: node.text };
-    if (ts.isParenthesizedExpression(node)) return resolve(node.expression, seen);
-    if (ts.isIdentifier(node) && !seen.has(node.text)) {
-      const values = constants.get(node.text);
-      if (values?.length === 1) return resolve(values[0]!, new Set([...seen, node.text]));
-    }
-    if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "props") {
-      const value = props[node.name.text];
-      return { text: typeof value === "string" || typeof value === "number" ? String(value) : undefined, metadata: metadataNames.has(node.name.text) };
-    }
-    if (ts.isElementAccessExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "props" && ts.isStringLiteral(node.argumentExpression)) {
-      const key = node.argumentExpression.text, value = props[key];
-      return { text: typeof value === "string" || typeof value === "number" ? String(value) : undefined, metadata: metadataNames.has(key) };
-    }
-    if (ts.isTemplateExpression(node)) {
-      let text: string | undefined = node.head.text;
-      let metadata = false;
-      for (const span of node.templateSpans) {
-        const value = resolve(span.expression, seen);
-        text = text !== undefined && value.text !== undefined ? text + value.text + span.literal.text : undefined;
-        metadata ||= Boolean(value.metadata);
-      }
-      return { text, metadata };
-    }
-    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
-      const left = resolve(node.left, seen), right = resolve(node.right, seen);
-      return { text: left.text !== undefined && right.text !== undefined ? left.text + right.text : undefined, metadata: left.metadata || right.metadata };
-    }
-    return {};
-  };
-  const inspect = (node: ts.Node, value: { text?: string; metadata?: boolean }) => {
-    const text = value.text?.replace(/\s+/gu, " ").trim();
-    const location = file.getLineAndCharacterOfPosition(node.getStart(file));
-    const finding = { field: "work.source", text, line: location.line + 1, column: location.character + 1, message: "核对可见文字是否为新增出处或原件页码", suggestion };
-    // 只认独立说明格式；“数据来源是什么”等正文不因包含来源二字被拦截。
-    const explicit = text && /^(?:(?:资料|图片|视频|数据|素材)?来源\s*[:：]|出处\s*[:：]|原件(?:页码)?\s*[:：]?\s*(?:第?\s*\d+\s*页|[pP]\.?\s*\d+)|第\s*\d+\s*页$|[pP]\.?\s*\d+$|source\s*:|credit(?:s)?\s*:)/iu.test(text);
-    if (text && (explicit || value.metadata)) {
+/** 静态 HTML 和真实 DOM 共用文字判断；不把脚本字符串或素材路径误当成可见文字。 */
+export function checkMotionDisplayTexts(texts: string[], props: Record<string, unknown>, frozen: FrozenSourceDisplay): SourceDisplayFinding[] {
+  const warnings: SourceDisplayFinding[] = [], rejected: SourceDisplayFinding[] = [];
+  const metadata = new Set(["sourceCaption", "sourceTitle", "sourceUrl", "publisher", "fileName", "pageNumber"]
+    .map(key => props[key]).filter((value): value is string => typeof value === "string"));
+  for (const raw of new Set(texts)) {
+    const text = raw.replace(/\s+/gu, " ").trim();
+    if (!text) continue;
+    const finding = { field: "work.source", text, message: "核对可见文字是否为新增出处或原件页码", suggestion };
+    const explicit = /^(?:(?:资料|图片|视频|数据|素材)?来源\s*[:：]|出处\s*[:：]|原件(?:页码)?\s*[:：]?\s*(?:第?\s*\d+\s*页|[pP]\.?\s*\d+)|第\s*\d+\s*页$|[pP]\.?\s*\d+$|source\s*:|credit(?:s)?\s*:)/iu.test(text);
+    if (explicit || metadata.has(text)) {
       if (!sourceCaptionAllowed(frozen.policy, frozen.scopeId, text)) rejected.push({ ...finding, message: "检测到当前范围未允许的独立出处文字或来源元数据展示" });
-    } else if (value.metadata || text && /来源|出处|页码|研究备注/u.test(text)) warnings.push(finding);
-  };
-  const visit = (node: ts.Node): void => {
-    if (ts.isJsxText(node)) inspect(node, { text: node.text });
-    if (ts.isJsxExpression(node) && node.expression && !ts.isJsxAttribute(node.parent)) inspect(node, resolve(node.expression));
-    if (ts.isJsxAttribute(node) && ["children", "text", "sourceCaption"].includes(node.name.getText(file)) && node.initializer) {
-      const expression = ts.isJsxExpression(node.initializer) ? node.initializer.expression : node.initializer;
-      if (expression) inspect(node, { ...resolve(expression), ...(node.name.getText(file) === "sourceCaption" ? { metadata: true } : {}) });
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(file);
+    } else if (/来源|出处|页码|研究备注/u.test(text)) warnings.push(finding);
+  }
   if (rejected.length) throw new SourceDisplayValidationError(rejected);
   return warnings;
+}
+
+export function checkMotionSourceDisplay(source: string, props: Record<string, unknown>, frozen: FrozenSourceDisplay): SourceDisplayFinding[] {
+  const doc = parseMotionHtml(source);
+  for (const el of doc.querySelectorAll("script,style,head,template")) el.remove();
+  // 保留一个文本容器内的分段 span，检查完整说明而非单独关键词。
+  const texts = [...doc.querySelectorAll("body *")].filter(el => !el.querySelector("div,p,section,article,text"))
+    .map(el => el.textContent ?? "");
+  const locate = (finding: SourceDisplayFinding) => {
+    const offset = source.indexOf(finding.text ?? "");
+    if (offset >= 0) {
+      const lines = source.slice(0, offset).split("\n");
+      Object.assign(finding, { line: lines.length, column: lines.at(-1)!.length + 1 });
+    }
+    return finding;
+  };
+  try { return checkMotionDisplayTexts(texts, props, frozen).map(locate); }
+  catch (error) { if (error instanceof SourceDisplayValidationError) error.fields.forEach(locate); throw error; }
 }
 
 export function checkFrozenExplainerSourceDisplay(snapshot: ProjectSnapshot): void {

@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import test from "node:test";
-import { compileMotion } from "../packages/motion-work/src/compiler.js";
+import { validateMotionSource } from "../packages/motion-work/src/compiler.js";
 import { motionSubmissionSchema } from "../packages/motion-work/src/schema.js";
 
 const root = resolve(".agents/skills");
 const cases = ["sim-paper", "smooth-relay", "ticket-phone", "product-fan", "cover-flow", "comment-focus"];
 const readFixture = async (name: string) => JSON.parse(await readFile(join(root, `motion-case-library/references/cases/motion-case-${name}/assets/fixture.json`), "utf8"));
 
-test("选定源码通过当前受管校验与编译；按固定模式和图片绑定编译，不运行正式项目", async () => {
+test("历史案例保留完整源码与素材；不再作为新 HTML 生产入口编译", async () => {
   for (const name of cases) {
     const fixture = await readFixture(name);
     const directory = join(root, `motion-case-library/references/cases/motion-case-${name}/assets`);
@@ -26,7 +26,8 @@ test("选定源码通过当前受管校验与编译；按固定模式和图片�
         width: part.width, height: part.height, fps: part.fps, durationInFrames: part.durationInFrames,
         creativeBrief: "验证归档案例的固定源码与当前受管编译合同，编译成功不等于动态或成片验收。",
       });
-      assert.ok((await compileMotion(work, images)).length > 0, `${name}/${part.source} 未输出编译结果`);
+      assert.ok(work.source.length > 100);
+      assert.throws(() => validateMotionSource(work.source), /MOTION_SOURCE_INVALID/);
     }
   }
 });

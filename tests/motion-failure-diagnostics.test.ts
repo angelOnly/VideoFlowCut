@@ -1,3 +1,5 @@
+import {motionHtml, frameHtml} from "./fixtures/hyperframes.js";
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -52,7 +54,7 @@ test("真实页面初始化异常保留首条堆栈，失败不产生代理", { 
   const root = await mkdtemp(join(tmpdir(), "vfc-page-error-"));
   const diagnostics = new MotionDiagnostics({ jobId: "job_test" });
   try {
-    await assert.rejects(renderManagedMotion({ ...motionFixture, source: `import React from 'react';export default function Motion(){throw new Error('故障注入');}` }, root, {}, undefined, undefined, [], diagnostics), /故障注入/u);
+    await assert.rejects(renderManagedMotion(sizeMotionFixture({ ...motionFixture, source: motionHtml('',"throw new Error('故障注入');") }), root, {}, undefined, undefined, [], diagnostics), /故障注入/u);
     assert.equal(diagnostics.summary().stage, "animation_initialization");
     await assert.rejects(readFile(join(root, "preview.mp4")));
   } finally { await rm(root, { recursive: true, force: true }); }
@@ -70,7 +72,7 @@ test("参数拒绝返回字段与无副作用，未知异常不宣称可重试",
 test("三份大字体原件不再进入HTML，CDP响应低于管道上限，未知hash和外网拒绝", { timeout: 60000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-cdp-fonts-"));
   try {
-    const work = motionSubmissionSchema.parse({ ...motionFixture, durationInFrames: 2, fontBindings: { a: "maoken-yanbo-song-black", b: "maoken-yanbo-song-semibold", c: "noto-sans-sc-bold" }, source: `import React from 'react';export default p=><div>{['a','b','c'].map(slot=><div key={slot} style={{fontFamily:p.fonts[slot].family,fontWeight:p.fonts[slot].weight,color:'white',fontSize:32}}>不能冷场</div>)}</div>` });
+    const work = motionSubmissionSchema.parse(sizeMotionFixture({ ...motionFixture, durationInFrames: 2, fontBindings: { a: "maoken-yanbo-song-black", b: "maoken-yanbo-song-semibold", c: "noto-sans-sc-bold" }, source: motionHtml('<div id="fonts"></div>',`for(const slot of ['a','b','c']){const font=vfc.fonts[slot],el=document.createElement('div');Object.assign(el.style,{fontFamily:font.family,fontWeight:font.weight,color:'white',fontSize:'32px'});el.textContent='不能冷场';document.querySelector('#fonts').append(el);}`) }));
     const fonts = prepareMotionFonts(work, bindMotionFonts(work));
     const oldHtmlBytes = fonts.reduce((sum, font) => sum + Buffer.byteLength(font.dataUrl), 0);
     assert.ok(Math.ceil(oldHtmlBytes / 3) * 4 > 100 * 1024 * 1024, "旧字体内嵌响应会越过Chrome pipe容量");

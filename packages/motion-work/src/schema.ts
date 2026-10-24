@@ -1,13 +1,14 @@
 import { z } from "zod";
+import { MOTION_SOURCE_MAX_LENGTH } from "./hyperframes-contract.js";
 import { motionSourceForUrl } from "./catalog.js";
 
 const description = z.string().trim().min(8).max(1800);
-// 视频槽名与 JSX 的 slot 原样对应，允许驼峰写法。
+// 视频槽名与 HTML 的 slot 原样对应，允许驼峰写法。
 const videoSlotSchema = z.string().regex(/^[a-z][A-Za-z0-9_]{0,39}$/u);
 /** 观察记录是创作判断，不等于平台已自动观看、技术校验通过或成片审片通过。 */
 export const motionSubmissionSchema = z.object({
   name: z.string().trim().min(1).max(120),
-  source: z.string().min(20).max(60_000),
+  source: z.string().min(20).max(MOTION_SOURCE_MAX_LENGTH).describe("完整 HyperFrames 单页 HTML，CSS/JS 内联；固定运行库由平台提供。"),
   props: z.record(z.unknown()).default({}),
   imageBindings: z.record(z.string().regex(/^[a-z][a-z0-9_]{0,39}$/u), z.string().min(1).max(150)).default({}),
   width: z.number().int().min(64).max(1920).describe("画布宽度（像素），64–1920 的偶数；完整输出按真实磁盘需求预检。"),
@@ -32,9 +33,9 @@ export const motionSubmissionSchema = z.object({
     assetId: z.string().min(1).max(150), sourceStartMs: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), sourceEndMs: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
     startFrame: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), endFrame: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
     decodeScale: z.number().finite().gt(0).max(1).optional()
-  }).strict()).optional().describe("命名视频选段可绑定已就绪的 video 或 actor_video，不设作品选段总数上限；声明源毫秒范围和作品帧范围，实际负载受资源校验约束。TimelineVideo读取作品根时钟，Sequence只改变布局；正常速度且静音，不接受offsetInFrames。"),
+  }).strict()).optional().describe("命名视频选段可绑定已就绪的 video 或 actor_video，不设作品选段总数上限；声明源毫秒范围和作品帧范围，实际负载受资源校验约束。data-vfc-video-slot读取作品根时钟，容器变换只改变布局；正常速度且静音。"),
   fontBindings: z.record(videoSlotSchema, z.string().regex(/^[a-z][a-z0-9-]{0,79}$/u)).optional()
-    .describe("字体槽位到已登记 fontId 的映射，最多8槽。先查询 read_motion_capabilities；平台加载后注入 props.fonts[槽位] 的 family、weight、style，不接受路径或URL。")
+    .describe("字体槽位到已登记 fontId 的映射，最多8槽。先查询 read_motion_capabilities；平台加载后注入 vfc.fonts[槽位] 的 family、weight、style 与 CSS 字体变量，不接受路径或URL。")
 }).strict().superRefine((value, ctx) => {
   if (!Number.isSafeInteger(value.width * value.height * value.durationInFrames * 8)) ctx.addIssue({ code: "custom", message: "作品输出体积超过安全整数范围" });
   if (JSON.stringify(value.props).length > 24_000) ctx.addIssue({ code: "custom", message: "Props 超过大小上限" });

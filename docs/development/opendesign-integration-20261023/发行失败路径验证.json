@@ -1,0 +1,70 @@
+{
+  "verified": true,
+  "scope": "独立发行技术回归，不是正式项目成片或审美验收",
+  "root": "C:\\Users\\13222\\AppData\\Local\\Temp\\videocut-determinism-release-glRgpT",
+  "port": 58337,
+  "release": {
+    "mcpReleaseId": "release-50329aef318319c804eb77caec67f6dc8def4637afd8ea8d4cf7a2cba910dcdb",
+    "runtime": {
+      "status": "ready",
+      "runtimeId": "963a2600-a00a-404c-a00a-ae32c747aa25",
+      "releaseId": "release-50329aef318319c804eb77caec67f6dc8def4637afd8ea8d4cf7a2cba910dcdb",
+      "workers": {
+        "media": true,
+        "render": true
+      }
+    },
+    "aligned": true,
+    "launcherReleaseId": "release-50329aef318319c804eb77caec67f6dc8def4637afd8ea8d4cf7a2cba910dcdb",
+    "launcherCodeHash": "97d28fd3f81f84c43e2c33559eea5d8ffe1c7d9362d0a501360f1874cfbc6f91",
+    "launcherPid": 68500
+  },
+  "inputFrameCount": 18,
+  "engineVersion": "managed-hyperframes-1",
+  "completedJob": "job_b920df47-b48e-4be7-b530-05defee494ef",
+  "motionDiagnostics": {
+    "status": "exact",
+    "maxAllowedChannelDelta": 2,
+    "sampledFrames": [
+      0,
+      9,
+      17
+    ],
+    "differences": [],
+    "reportPath": "assets/derived/motion/job_b920df47-b48e-4be7-b530-05defee494ef/3b0d69391130a053792d665ac0e7b8971dddd4dfded3a4bd3557a0c1bacc5f24/diagnostics/report.json"
+  },
+  "preview": "C:\\Users\\13222\\AppData\\Local\\Temp\\videocut-determinism-release-glRgpT\\projects\\project_4c8e2308-2a84-460e-a3c0-2a84590080ad\\assets\\derived\\motion\\job_b920df47-b48e-4be7-b530-05defee494ef\\3b0d69391130a053792d665ac0e7b8971dddd4dfded3a4bd3557a0c1bacc5f24\\preview.mp4",
+  "failedJob": "job_e938eed9-c744-4406-9fab-c28ac7badf0f",
+  "failure": {
+    "status": "failed",
+    "maxAllowedChannelDelta": 2,
+    "sampledFrames": [
+      0,
+      2,
+      3
+    ],
+    "differences": [
+      {
+        "frame": 0,
+        "changedPixels": 102400,
+        "maxChannelDelta": 255,
+        "meanChannelDelta": 255,
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 320
+        },
+        "firstHash": "2b933ebf9276b2b7aa41dbc8199ccdba6e0532b80939c082c8d4926a7cc88e8a",
+        "repeatedHash": "af64d228dcacd1ad9411b91d43b3d71b8f56d9e726a5463840bc682e5fd664c5",
+        "paths": {
+          "first": "frame-00000-first.png",
+          "repeated": "frame-00000-repeated.png",
+          "diff": "frame-00000-diff.png"
+        }
+      }
+    ]
+  },
+  "failureReportPath": "C:\\Users\\13222\\AppData\\Local\\Temp\\videocut-determinism-release-glRgpT\\projects\\project_4c8e2308-2a84-460e-a3c0-2a84590080ad\\assets\\derived\\motion\\job_e938eed9-c744-4406-9fab-c28ac7badf0f\\diagnostics-SZWTVg\\report.json",
+  "reportPath": "C:\\Users\\13222\\AppData\\Local\\Temp\\videocut-determinism-release-glRgpT\\report.json"
+}

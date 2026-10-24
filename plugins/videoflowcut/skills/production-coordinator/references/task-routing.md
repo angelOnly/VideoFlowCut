@@ -36,7 +36,7 @@
 | 将当前设计形成连续动作 | [演出核心](../../motion-brief-writing/references/performance-design.md)，不新增独立动作设计代理 |
 | 将采用的连续范围映射为平台 Scene 等对象 | [场面规划](../../scene-planning/SKILL.md)与实际操作参考 |
 | 处理人物遮挡、空间层、Mask 或多画幅 | [空间构图](../../depth-composition/SKILL.md)及发生问题的专项章节 |
-| 编写、绑定或修订受管作品 | [Remotion 入口](../../remotion-production/SKILL.md)和实际使用的技术合同 |
+| 新制、绑定或修订 OpenDesign 作品 | 原视觉作者使用[镜头指令](../../opendesign-shot-brief/SKILL.md)与[生产入口](../../opendesign-video-production/SKILL.md)，承接当前有效稿；VFC 正式提交仍由主任务完成 |
 | 确定或调整真实语言、事件与动作时机 | [时机方法](../../effect-timing/SKILL.md)，需要时结合演出方法第 4 节 |
 | 证据、配音、人物或字幕 | [证据表达](../../evidence-visualization/SKILL.md)、[配音](../../voice-production/SKILL.md)、[人物表演](../../avatar-performance/SKILL.md)、[字幕](../../captions/SKILL.md) |
 | 音乐与音效 | 同一声音作者使用[声音取材](../../sound-asset-sourcing/SKILL.md)、定做声音时使用[音效提示词](../../sfx-prompt-writing/SKILL.md)，再续接[混音](../../audio-finishing/SKILL.md) |
@@ -122,7 +122,7 @@
 
 缺版本时补对象与源/成片范围；缺执行事实时补原方案、完整源码/Props/参数及 Job 状态；缺媒体时给实际可访问路径、版本与范围；缺接口时提供相关实时 MCP Schema。输入不存在就明确未知，不补造。
 
-子代理仅对实际存在的工具做必要只读调用。主任务可用正式 MCP 补事实，但这不证明子代理工具已恢复；专业判断和实际观察仍由原作者或确认接任者完成。新读取发现版本变化，交实际差异并由接收者确认，不只替换包内版本号。主任务也缺能力时保留该项待处理，继续无依赖工作。
+除获委派视觉作者的 OpenDesign 制作外，子代理仅对实际存在的工具做必要只读调用。主任务可用正式 MCP 补事实，但这不证明子代理工具已恢复；专业判断和实际观察仍由原作者或确认接任者完成。新读取发现版本变化，交实际差异并由接收者确认，不只替换包内版本号。主任务也缺能力时保留该项待处理，继续无依赖工作。
 
 ## 等待与无进展恢复
 
@@ -133,3 +133,9 @@
 ## 按本次范围收口
 
 `complete_production_run` 必填 `completion_scope`，从授权任务明确 project、beats（beat_ids）或 objects（object_ids），不从加载清单猜测。读取 productionReconciliation 的 structuralGaps：缺计划回导演，缺材料回素材作者，缺有效实现或绑定回原视觉作者；返回 incomplete 时续接同一 Run。connectedMaterialAssetIds 只是结构连接，observationNeeds 保留未看清之处；对象字幕修订不承担整片旧计划，Vlog 不因缺外部论证资料失败。
+
+获委派的原视觉作者可在当前作品范围内使用已连接的 OpenDesign MCP，
+准备制作资料、创建或复用 OD 项目、发起制作和返修，并读取结果。
+这属于作品制作过程。VFC 的正式项目写入、素材登记、生成或渲染 Job、
+时间线、版本与审计仍由主任务排序提交；其余只读与操作约束保持原适用范围。
+实际工具不可见时由主任务处理能力缺口，不假定转交 Schema 就已恢复调用。

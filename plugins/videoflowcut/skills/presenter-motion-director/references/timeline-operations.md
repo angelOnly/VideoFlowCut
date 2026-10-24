@@ -8,7 +8,7 @@
 
 从零数字人先由 `apply_authored_script` 保存准确台词，完成正式 SpeechAsset 与真实时序，再按[声画交接](presenter-shot-plan.md)准备当前出镜需要、查询可复用源并只提交缺口。当前出镜范围保存在原 VisualTreatment 的 `presenter_uses`，使用 `prepare_avatar_sources` 查询复用与缺口、`submit_avatar_job` 的 `contract_version:2` 提交缺口，再用 `adopt_avatar_source` 按最新范围采用；具体字段沿[人物执行操作](../../avatar-performance/references/actor-operations.md#当前执行)。源生成不预设成片位置；源返回后再安排 Scene、人物与作品绑定。`apply_script` 仅从已有语义单元选择和排序，不承载新写正文。无需为生成源编造 A-roll 或先锁定整片 Scene；结果交原视觉作者继续制作。已有真人原片则沿文末的 assemble／compile 路线，不套用生成输入要求。
 
-撤回或修改范围时更新同一 VisualTreatment 的 `presenter_uses`；空数组清除该 Treatment 的人物使用，原源文件保留。已有 Item 停用不自动修改 TSX，原视觉作者继续调整作品绑定、显隐与场面接管。
+撤回或修改范围时更新同一 VisualTreatment 的 `presenter_uses`；空数组清除该 Treatment 的人物使用，原源文件保留。已有 Item 停用不自动修改 HTML，原视觉作者继续调整作品绑定、显隐与场面接管。
 
 人物进入受管作品时，`videoBindings` 直接引用真实 `actor_video`。需要接管外层人物像素时沿本页[主场面接管](#主场面接管)使用已发布 `visual_composition`，透明与不透明作品都明确可见责任，不靠背景盖住外层人物。核查前后未覆盖范围及真实 Item ID，保留源裁切、时钟与声音；不能禁用整个原 Item 而误删获准原声。普通字幕保持最终画布层。安装版本不支持时记录实际差异，不写入拟定字段。
 
@@ -47,7 +47,7 @@ MG 交回设计依据、固定作品版本、覆盖 Beat、局部事件帧、入
 | 人物 | avatar-performance | ActorPerformance、AudioMode、Mask 与降级 |
 | 视觉计划 | visual-treatment-planning | 每 Beat Treatment、AttentionCurve、安静区 |
 | 素材缺口 | visual-asset-sourcing | 本地 Asset、来源、候选取舍 |
-| MG | remotion-production | Scene/EffectCue、Props、Preview Evidence |
+| MG | opendesign-video-production | Scene/EffectCue、Props、Preview Evidence |
 | Cutaway | cutaway-planning | 使用范围、模式、声音、返回策略 |
 | 字幕 | captions | Caption Program、布局和精度 |
 | 声音收尾 | audio-finishing | Dialogue/BGM/SFX 关系和试听结论 |
@@ -68,6 +68,6 @@ MG 交回设计依据、固定作品版本、覆盖 Beat、局部事件帧、入
 
 先核对当前 Runtime Schema 已发布 `visual_composition`。仅人物范围需要接管时，在 fullscreen ManagedMotion Cue 传 `{role:"primary", replaces_actor_item_ids:[实际ItemID]}`，范围复用 Cue 半开区间；无外层人物可传空数组。更新省略保持、null 清除。Cue 仍只有唯一 motion 绑定，人物和资料用作品内真实 imageBindings/videoBindings。
 
-接管只隐藏外层人物像素，保留源裁切、时钟与声音；TimelineVideo 静音，use_source_audio 仍走原 Item，use_dialogue_track 仍走唯一 Dialogue。作品可完全不显示人。主作品在 Cutaway、普通 front 与字幕下方；CameraPunch、头手锚点及人物 Mask 效果冲突时合并进同一作品或调整范围，不能沿旧坐标继续。
+接管只隐藏外层人物像素，保留源裁切、时钟与声音；受管视频槽 静音，use_source_audio 仍走原 Item，use_dialogue_track 仍走唯一 Dialogue。作品可完全不显示人。主作品在 Cutaway、普通 front 与字幕下方；CameraPunch、头手锚点及人物 Mask 效果冲突时合并进同一作品或调整范围，不能沿旧坐标继续。
 
 用当前对象和实际合成核查源帧、声音与层序。adopted_material_asset_ids 只登记已采用展示资料，[] 取消采用，省略保持；对账绑定不能证明可读性。未发布接口时不得写入拟定字段；先报告版本差异并沿已发布能力处理。

@@ -1,3 +1,5 @@
+import {motionHtml, frameHtml} from "./fixtures/hyperframes.js";
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createHash } from "node:crypto";
@@ -35,38 +37,28 @@ test("图片差异区分微小色阶和明显变化，记录真实范围而非�
 test("SVG 默认输出使用几何精度文字，缩放与 textLength 不退回依赖字体优化的 auto 模式", { timeout: 60_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "motion-text-precision-"));
   try {
-    const source = `import React from 'react';import {useCurrentFrame} from 'remotion';export default function Motion(p){const f=useCurrentFrame();return <svg width="320" height="320" style={{textRendering:p.mode}}><rect width="320" height="320" fill="white"/><g transform={'translate(25 50) rotate(-5) scale('+(1.10+f*.002)+')'}><text x="0" y="40" fontFamily="Arial" fontSize="7.4" textLength="240" lengthAdjust="spacingAndGlyphs">Quality of Service parameters and control functions</text></g></svg>;}`;
-    const normal = await renderManagedMotion({ ...motionFixture, source, props: {}, durationInFrames: 3 }, join(root, "default"));
-    const precise = await renderManagedMotion({ ...motionFixture, source, props: { mode: "geometricPrecision" }, durationInFrames: 3 }, join(root, "precise"));
-    const automatic = await renderManagedMotion({ ...motionFixture, source, props: { mode: "auto" }, durationInFrames: 3 }, join(root, "automatic"));
+    const source = frameHtml('<svg id="svg" width="320" height="320"><rect width="320" height="320" fill="white"/><g id="g"><text x="0" y="40" font-family="Arial" font-size="7.4" textLength="240" lengthAdjust="spacingAndGlyphs">Quality of Service parameters and control functions</text></g></svg>',`document.querySelector('#g').setAttribute('transform','translate(25 50) rotate(-5) scale('+(1.10+f*.002)+')');`,`if(props.mode)document.querySelector('#svg').style.textRendering=props.mode;`);
+    const normal = await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, props: {}, durationInFrames: 3 }), join(root, "default"));
+    const precise = await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, props: { mode: "geometricPrecision" }, durationInFrames: 3 }), join(root, "precise"));
+    const automatic = await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, props: { mode: "auto" }, durationInFrames: 3 }), join(root, "automatic"));
     assert.deepEqual(normal.frameHashes, precise.frameHashes, "默认输出必须与独立几何精度渲染一致");
     assert.notDeepEqual(normal.frameHashes, automatic.frameHashes, "此 fixture 必须能实际识别旧 auto 字体输出");
     assert.equal(normal.determinism!.status, "exact");
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
-test("字体渲染引擎升级隔离新缓存，已冻结的第四代引擎任务仍可验证", () => {
-  const legacy = motionHash(motionFixture, [], "managed-motion-4");
+test("HTML 引擎隔离旧编译缓存，历史任务重新生成明确要求新源码", () => {
+  const legacy = motionHash(motionFixture, [], "managed-motion-12");
   assert.notEqual(motionHash(motionFixture), legacy);
-  assert.equal(motionHashEngine(motionFixture, [], legacy), "managed-motion-4");
-  assert.equal(motionHashEngine(motionFixture, [], legacy, "managed-motion-4"), "managed-motion-4");
-  assert.throws(() => motionHashEngine(motionFixture, [], legacy, "managed-motion-5"), /MISMATCH/u);
-});
-
-test("完整栅格重绘使用新引擎缓存，仍可核验已冻结的第五代引擎任务", () => {
-  const legacy = motionHash(motionFixture, [], "managed-motion-5");
-  assert.notEqual(motionHash(motionFixture), legacy);
-  assert.equal(motionHashEngine(motionFixture, [], legacy), "managed-motion-5");
-  assert.equal(motionHashEngine(motionFixture, [], legacy, "managed-motion-5"), "managed-motion-5");
-  assert.throws(() => motionHashEngine(motionFixture, [], legacy, "managed-motion-6"), /MISMATCH/u);
+  assert.throws(() => motionHashEngine(motionFixture, [], legacy, "managed-motion-12"), /MOTION_ENGINE_UPGRADE_REQUIRED/u);
 });
 
 test("SVG曲线和虚线不受局部脏区历史影响，顺序渲染与跳帧复查逐像素一致", { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "motion-partial-raster-"));
   try {
     // 保留完整渲染历史：只抽末帧或固定几何不能复现局部重绘遗留的边缘像素。
-    const source = await readFile(new URL("./fixtures/partial-raster-motion.tsx", import.meta.url), "utf8");
-    const rendered = await renderManagedMotion({ ...motionFixture, source, props: {}, width: 768, height: 1344, fps: 24, durationInFrames: 317 }, root);
+    const source = await readFile(new URL("./fixtures/partial-raster-motion.html", import.meta.url), "utf8");
+    const rendered = await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, props: {}, width: 768, height: 1344, fps: 24, durationInFrames: 317 }), root);
     assert.equal(rendered.frameHashes.length, 317);
     assert.equal(rendered.determinism!.status, "exact", "必须消除脏区引起的像素差异，不能用提高容差通过");
     assert.deepEqual(rendered.determinism!.sampledFrames, [0, 158, 316]);
@@ -90,17 +82,8 @@ test("半透明变换图层切换后，字幕阴影不复用顺序渲染的旧�
   const root = await mkdtemp(join(tmpdir(), "motion-opacity-shadow-"));
   try {
     // 压缩复现历史：中帧顺序到达时背景图层已经存在，跳帧复核则重新出现。
-    const source = `import React from 'react';import {AbsoluteFill,useCurrentFrame} from 'remotion';
-const p=(f,a,b)=>Math.max(0,Math.min(1,(f-a)/(b-a)));const o=x=>1-Math.pow(1-x,3);
-export default function Motion(){const frame=useCurrentFrame(),f=frame===0?0:frame===66?466:200+frame;
-const text=f>=221&&f<268?'再贴近手机和基站这一段。\\n除了强度，还要看质量。':'人多不等于必然拥堵，\\n但满格也不保证一路畅通。';
-return <AbsoluteFill style={{background:'#070a0d'}}>
-{f>=216&&f<467&&<div style={{position:'absolute',inset:0,zIndex:18,opacity:o(p(f,221,248)),transform:'scale(1)'}}>
-<div style={{position:'absolute',left:-92,bottom:-128,width:330,height:610,borderRadius:48,transform:'rotate(22deg)',background:'#7d8588'}}/></div>}
-<div style={{position:'absolute',zIndex:80,left:0,right:0,bottom:0,height:260,background:'linear-gradient(transparent,#070a0d 64%)'}}/>
-<div style={{position:'absolute',zIndex:90,left:46,right:46,top:1178,minHeight:114,display:'flex',justifyContent:'center',alignItems:'center',whiteSpace:'pre-line',textAlign:'center',fontFamily:'"Noto Sans SC","Microsoft YaHei",sans-serif',fontSize:36,lineHeight:1.38,color:'#F8F2E8',fontWeight:600,textShadow:'0 3px 20px #000',opacity:f>=221&&f<268?o(p(f,221,228)):f===0?0:1}}>{text}</div>
-</AbsoluteFill>;}`;
-    const result = await renderManagedMotion({ ...motionFixture, source, props: {}, width: 768, height: 1344, fps: 24, durationInFrames: 67 }, root);
+    const source = frameHtml('<div style="position:absolute;inset:0;background:#070a0d"><div id="layer" style="position:absolute;inset:0;z-index:18;transform:scale(1)"><div style="position:absolute;left:-92px;bottom:-128px;width:330px;height:610px;border-radius:48px;transform:rotate(22deg);background:#7d8588"></div></div><div style="position:absolute;z-index:80;left:0;right:0;bottom:0;height:260px;background:linear-gradient(transparent,#070a0d 64%)"></div><div id="text" style="position:absolute;z-index:90;left:46px;right:46px;top:1178px;min-height:114px;display:flex;justify-content:center;align-items:center;white-space:pre-line;text-align:center;font-family:Noto Sans SC,Microsoft YaHei,sans-serif;font-size:36px;line-height:1.38;color:#F8F2E8;font-weight:600;text-shadow:0 3px 20px #000"></div></div>',`const clock=f===0?0:f===66?466:200+f,progress=(a,b)=>Math.max(0,Math.min(1,(clock-a)/(b-a))),out=x=>1-Math.pow(1-x,3);const layer=document.querySelector('#layer');layer.style.display=clock>=216&&clock<467?'block':'none';layer.style.opacity=out(progress(221,248));const text=document.querySelector('#text');text.textContent=clock>=221&&clock<268?'再贴近手机和基站这一段。\\n除了强度，还要看质量。':'人多不等于必然拥堵，\\n但满格也不保证一路畅通。';text.style.opacity=clock>=221&&clock<268?out(progress(221,228)):clock===0?0:1;`);
+    const result = await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, props: {}, width: 768, height: 1344, fps: 24, durationInFrames: 67 }), root);
     assert.equal(result.determinism!.status, "exact");
     assert.deepEqual(result.determinism!.sampledFrames, [0, 33, 66]);
     assert.deepEqual(result.determinism!.differences, []);
@@ -136,8 +119,8 @@ test("真实有状态动画失败后，Job 返回持久化差异证据，不创�
     const state = app.createProject({ name: "确定性故障隔离回归" });
     const projectId = state.snapshot.project.id;
     // 故意保留跨帧副作用；关闭字体舍入不得掩盖真正的内容变化。
-    const source = `import React from 'react';import {useCurrentFrame} from 'remotion';let visited=false;export default function Motion(){const f=useCurrentFrame();if(f>0)visited=true;return <div style={{position:'absolute',inset:0,background:visited?'#ffffff':'#000000'}}/>;}`;
-    const submitted = app.submitManagedMotion({ projectId, baseRevision: state.revision.number, idempotencyKey: "stateful", work: { ...motionFixture, source, durationInFrames: 4 } });
+    const source = frameHtml('<div id="bg" style="position:absolute;inset:0"></div>',`if(f>0)visited=true;document.querySelector('#bg').style.background=visited?'white':'black';`,'let visited=false;');
+    const submitted = app.submitManagedMotion({ projectId, baseRevision: state.revision.number, idempotencyKey: "stateful", work: sizeMotionFixture({ ...motionFixture, source, durationInFrames: 4 }) });
     const job = app.claimNextJob(["motion_generation"], 60_000)!;
     assert.equal(job.id, submitted.id);
     await processClaimedJob(app, job, (claimed) => runMotionJob(app, claimed));

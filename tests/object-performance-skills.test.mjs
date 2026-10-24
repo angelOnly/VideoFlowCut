@@ -51,7 +51,7 @@ test("视觉、动效、案例、交接与审阅共用唯一执行稿且不复�
 test("详细设计仍连通既有片型、美术、字幕、时机与受管制作方法", async () => {
   const required = {
     [visual]: ["../presenter-motion-director/references/presenter-material-choreography.md", "references/art-direction.md#默认设计与整场发展", "references/art-direction.md#字幕外观归美术统筹准确时间归字幕作者", "references/editorial-visual-tone.md"],
-    [motion]: ["../remotion-production/SKILL.md", "../visual-treatment-planning/SKILL.md", "../_shared/PROJECT_REVISION_AND_HANDOFF.md"],
+    [motion]: ["../opendesign-video-production/SKILL.md", "../visual-treatment-planning/SKILL.md", "../_shared/PROJECT_REVISION_AND_HANDOFF.md"],
     [method]: ["../../../asset-import/references/object-resources.md", "object-effect-targets.md"],
     [handoff]: ["../captions/SKILL.md", "PROJECT_REVISION_AND_HANDOFF.md"],
     [routing]: ["../../_shared/TOPIC_TO_FILM.md", "../../quality-verification/references/professional-review.md#根因而不是症状"],

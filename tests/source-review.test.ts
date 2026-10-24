@@ -1,3 +1,4 @@
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { copyFile, mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
@@ -260,7 +261,7 @@ test("inspect_asset 完整审阅 245 帧受管作品并准确解码末帧，不�
   try {
     const created = app.createProject({ name: "受管作品末帧回归", profile: "presenter_motion" });
     const projectId = created.snapshot.project.id;
-    const job = app.submitManagedMotion({ projectId, baseRevision: created.revision.number, idempotencyKey: "245-frames", work: { ...motionFixture, fps: 24, durationInFrames: 245 } });
+    const job = app.submitManagedMotion({ projectId, baseRevision: created.revision.number, idempotencyKey: "245-frames", work: sizeMotionFixture({ ...motionFixture, fps: 24, durationInFrames: 245 }) });
     const path = join(created.snapshot.project.rootPath, `assets/derived/motion/${job.id}/${job.payload.version}/preview.mp4`);
     await mkdir(dirname(path), { recursive: true });
     await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=320x320:rate=24", "-frames:v", "245", "-vf", "drawbox=color=red:t=fill:enable='eq(n,244)'", "-c:v", "libx264", "-pix_fmt", "yuv420p", path]);

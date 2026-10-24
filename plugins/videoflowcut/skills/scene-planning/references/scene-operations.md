@@ -8,7 +8,7 @@
 
 短素材可以参与较长段落：真实动作建立事实，局部解析、阅读、比较或感受继续发展表达。定格不代表事件继续发生，重放不代表发生第二次；原声是否保留、何时退出或由讲述接管需明确。源时间与观看时间分别记录，不能因扩展段落改写事实。
 
-真实视频可以通过Timeline/Cutaway参与，也可以在提供`videoBindings`与`TimelineVideo`的Runtime中进入受管作品，最多四个正常速度静音选段。源毫秒与作品startFrame/endFrame固定，内部Sequence只改变布局、不重置视频时间；资源按有界缓存和真实磁盘需求管理，不为旧累计预算拆件。具体合同见[Remotion组件合同](../../remotion-production/references/remotion-component-contract.md#受管动态视频)，实际剪辑以连接Runtime与实时Schema为准。全屏转窗口时交清同一源时刻、对象位置和原声归属。抽帧定格需要可追溯、画质适用且正式登记的源静帧；低清联系表不直接承担主画面。原创图形可以保持状态，源视频不因结束而人为冻结或循环；超出实际能力时返回具体缺口。
+真实视频可以通过Timeline/Cutaway参与，也可以在提供`videoBindings`与`受管视频槽`的Runtime中进入受管作品，正常速度静音选段不设固定数量上限。源毫秒与作品startFrame/endFrame固定，内部场面层只改变布局、不重置视频时间；资源按有界缓存和真实磁盘需求管理，不为旧累计预算拆件。具体合同见[HyperFrames 源码合同](../../opendesign-video-production/references/hyperframes-contract.md#受管动态视频)，实际剪辑以连接Runtime与实时Schema为准。全屏转窗口时交清同一源时刻、对象位置和原声归属。抽帧定格需要可追溯、画质适用且正式登记的源静帧；低清联系表不直接承担主画面。原创图形可以保持状态，源视频不因结束而人为冻结或循环；超出实际能力时返回具体缺口。
 
 定向选材采用后，接收真实源范围、动作余量、原声策略、画幅裁切与组合限制，再细化状态和镜头接点。不能只接一个 Asset 名称而丢失此前的采用依据；素材变化影响内部状态或前后接续时，把差异交导演和原负责人确认后再执行。
 
@@ -52,7 +52,7 @@
 
 读取工具结果先检查 isError 并保留完整 text；成功结果才按 JSON 解码。编译业务错误返回 code/message，宿主或协议参数错误仍可能是纯文本；不能让二次解析错误遮住原始诊断，也不能据此重试写入。
 
-Scene 创建后读回 Project、Scene、Timeline、Impact，并渲染必要范围。若 Scene 内部需要 Remotion 组件，再调用 `remotion-production`；时机交给 `effect-timing`，空间交给 `depth-composition`。
+Scene 创建后读回 Project、Scene、Timeline、Impact，并渲染必要范围。若 Scene 内部需要原创视觉作品，再调用 `opendesign-video-production`；时机交给 `effect-timing`，空间交给 `depth-composition`。
 
 ## 当前调用与读回：Scene 与 Effect
 

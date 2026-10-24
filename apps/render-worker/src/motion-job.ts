@@ -96,16 +96,17 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
         await provider.reserveDiskSpace(outputBudget * 2 + provider.workingSetBytes);
         const disk = await statfs(temporary);
         checkMotionDiskSpace(disk.bavail * disk.bsize, outputBudget, outputBudget + provider.workingSetBytes);
-        rendered = await render(work, temporary, imageData, provider, signal, fonts, diagnostics, frameRange);
+        rendered = await render(work, temporary, imageData, provider, signal, fonts, diagnostics, frameRange, sourceDisplay);
         await provider.verifySources();
       } catch (error) {
         // 渲染失败也核查源身份，避免途中改变的原片留下可被下一版本命中的缓存。
         if (!signal?.aborted) { try { await provider.verifySources(); } catch (sourceError) { diagnostics.additional(sourceError, "verify_sources"); } }
         throw error;
       } finally { try { await provider.close(); } catch (closeError) { diagnostics.additional(closeError, "provider_close"); } }
+      await writeFile(join(temporary, "source.html"), work.source);
       await writeFile(join(temporary, "source.json"), JSON.stringify(work, null, 2));
       const previewHash = createHash("sha256").update(await readFile(rendered.previewPath)).digest("hex");
-      await writeFile(join(temporary, "manifest.json"), JSON.stringify({ version, frameRange, hashEngineVersion, previewHash, frameHashes: rendered.frameHashes, engineVersion: rendered.engineVersion, sandbox: rendered.sandbox, boundImages, imageDecodes, boundVideos, ...(boundFonts.length ? { boundFonts } : {}), videoDecodes: provider.videos, videoResources: provider.stats, events: rendered.events, determinism: rendered.determinism }, null, 2));
+      await writeFile(join(temporary, "manifest.json"), JSON.stringify({ version, frameRange, hashEngineVersion, previewHash, frameHashes: rendered.frameHashes, engineVersion: rendered.engineVersion, runtimeDependencies: rendered.runtimeDependencies, sandbox: rendered.sandbox, boundImages, imageDecodes, boundVideos, ...(boundFonts.length ? { boundFonts } : {}), videoDecodes: provider.videos, videoResources: provider.stats, events: rendered.events, determinism: rendered.determinism }, null, 2));
       signal?.throwIfAborted();
       if (application.trackJob(job.id).status === "cancelled") throw new DomainError("作品任务已取消", "MOTION_CANCELLED");
       await rename(temporary, directory);

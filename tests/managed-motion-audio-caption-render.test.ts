@@ -1,3 +1,4 @@
+import {sizeMotionFixture,frameHtml} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createHash } from "node:crypto";
@@ -27,7 +28,7 @@ test("真实纯动效接原WAV和原SRT后可合成，音频起止与频率保�
       name: "移动方块技术测试", creativeBrief: "独立技术测试，用实际移动方块验证原声和SRT的正式合成，不作为创作或审美样片。",
       width: 480, height: 320, fps: 30, durationInFrames: 60,
       props: {}, imageBindings: {},
-      source: "import React from 'react';import {AbsoluteFill,useCurrentFrame} from 'remotion';export default function Motion(){const frame=useCurrentFrame();return <AbsoluteFill style={{backgroundColor:'#14283d'}}><div style={{position:'absolute',left:30+frame*3,top:50,width:60,height:60,backgroundColor:'#ea9944'}}/></AbsoluteFill>}"
+      source: sizeMotionFixture({source:frameHtml('<div style="position:absolute;inset:0;background:#14283d"><div id="a" style="position:absolute;top:50px;width:60px;height:60px;background:#ea9944"></div></div>',`document.querySelector('#a').style.left=(30+f*3)+'px';`),width:480,height:320,fps:30,durationInFrames:60}).source
     } });
     const motionResult = await runMotionJob(app, job);
     app.updateJob(job.id, { status: "succeeded", result: motionResult });

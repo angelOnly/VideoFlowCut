@@ -9,7 +9,7 @@
 | 场面怎样完整交给作者 | [同一场面正文](SCENE_DESIGN_HANDOFF.md)，保留准确声画与前后接口 |
 | 主线、取材与粗剪 | [导演](../production-director/SKILL.md)，按实际阶段选方法 |
 | 字形、构图与运动 | [美术](../visual-treatment-planning/SKILL.md)、[演出](../motion-brief-writing/SKILL.md)，由同一作者继续 |
-| 坐标、裁切与源时钟 | [实现方法](../remotion-production/references/material-space-and-time.md)，修当前映射 |
+| 坐标、裁切与源时钟 | [实现方法](../opendesign-video-production/references/material-space-and-time.md)，修当前映射 |
 | 源内观察与精度 | [素材审阅](../visual-asset-sourcing/references/source-review.md)，补真实缺口 |
 | 写入、Job、未知结果 | [主任务操作](../production-coordinator/references/project-writes.md)，核对并排序 |
 | 证据与交付状态 | [状态说明](../quality-verification/references/evidence-status.md)，不混淆技术与专业结论 |

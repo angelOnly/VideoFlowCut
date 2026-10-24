@@ -1,3 +1,5 @@
+import {motionHtml, frameHtml} from "./fixtures/hyperframes.js";
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -23,15 +25,15 @@ test("768×1344完整33秒四选段经真实渲染形成一个792帧作品", { t
       const imported = app.registerImportedAsset({ projectId, baseRevision: app.readProject(projectId).revision.number, name: `${index}.mp4`, kind: "video", managedPath, sourceHash: await hashMotionFile(path), provenance: { source: "local_import", acquiredAt: new Date().toISOString() } });
       app.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: await probeMedia(path) }); sources.push(imported.asset.id);
     }
-    const work = { ...motionFixture, reference: undefined, width: 768, height: 1344, fps: 24, durationInFrames: 792,
+    const work = sizeMotionFixture({ ...motionFixture, reference: undefined, width: 768, height: 1344, fps: 24, durationInFrames: 792,
       videoBindings: {
         a: { assetId: sources[0], sourceStartMs: 0, sourceEndMs: 3750, startFrame: 0, endFrame: 90 },
         b: { assetId: sources[0], sourceStartMs: 4000, sourceEndMs: 7334, startFrame: 90, endFrame: 170 },
         c: { assetId: sources[0], sourceStartMs: 8000, sourceEndMs: 11550, startFrame: 150, endFrame: 235 },
         d: { assetId: sources[1], sourceStartMs: 0, sourceEndMs: 10000, startFrame: 222, endFrame: 462 }
       },
-      source: `import React from 'react';import {AbsoluteFill,useCurrentFrame} from 'remotion';import {TimelineVideo} from '@videoflowcut/motion';export default function Motion(){const f=useCurrentFrame();return <AbsoluteFill style={{background:'#172033'}}><TimelineVideo slot="a"/><TimelineVideo slot="b"/><TimelineVideo slot="c"/><TimelineVideo slot="d"/><div style={{position:'absolute',left:80,top:80,color:'white',fontSize:48}}>候选技术回归 {f}</div></AbsoluteFill>;}`
-    };
+      source: frameHtml('<div style="position:absolute;inset:0;background:#172033">'+['a','b','c','d'].map(slot=>'<img id="video-'+slot+'" data-vfc-video-slot="'+slot+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">').join('')+'<div id="label" style="position:absolute;left:80px;top:80px;color:white;font-size:48px"></div></div>',`document.querySelector('#label').textContent='候选技术回归 '+f;`)
+    });
     const job = app.submitManagedMotion({ projectId, baseRevision: app.readProject(projectId).revision.number, idempotencyKey: "complete-33", work });
     const before = app.readProject(projectId).revision.number;
     const result = await runMotionJob(app, job);

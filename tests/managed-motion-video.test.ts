@@ -1,3 +1,5 @@
+import {motionHtml, frameHtml} from "./fixtures/hyperframes.js";
+import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, rm, writeFile, readdir } from "node:fs/promises";
@@ -14,7 +16,7 @@ import { renderManagedMotion } from "../apps/render-worker/src/motion-renderer.j
 
 test("视频合同固定作品帧范围，允许毫秒取整，拒绝旧入口及错误范围", () => {
   const binding = { assetId: "asset-node", sourceStartMs: 628000, sourceEndMs: 631334, startFrame: 90, endFrame: 170 };
-  const input = { ...motionFixture, fps: 24, durationInFrames: 792, videoBindings: { nodePre: binding } };
+  const input = sizeMotionFixture({ ...motionFixture, fps: 24, durationInFrames: 792, videoBindings: { nodePre: binding } });
   assert.equal(motionSubmissionSchema.safeParse(input).success, true);
   assert.equal(boundMotionVideoSchema.safeParse({ slot: "nodePre", ...binding, managedPath: "source.mp4", hash: "a".repeat(64) }).success, true);
   for (const change of [{ startFrame: 171 }, { endFrame: 793 }, { sourceEndMs: 631000 }, { sourceEndMs: 640000 }]) assert.equal(motionSubmissionSchema.safeParse({ ...input, videoBindings: { nodePre: { ...binding, ...change } } }).success, false);
@@ -23,14 +25,14 @@ test("视频合同固定作品帧范围，允许毫秒取整，拒绝旧入口�
   assert.equal(motionSubmissionSchema.safeParse({ ...input, videoBindings: { nodePre: oldBinding } }).success, false);
 });
 
-test("23.976/25/30/VFR按PTS采样；跨Sequence保持作品时钟及精确帧数", async () => {
+test("23.976/25/30/VFR按PTS采样；跨显示区间保持作品时钟及精确帧数", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-motion-video-"));
   try {
     for (const [index, rate] of ["24000/1001", "25", "30", "vfr"].entries()) {
       const source = join(root, `source${index}.mp4`);
       await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", `testsrc2=s=64x64:r=${rate === "vfr" ? "30" : rate}:d=3`, ...(rate === "vfr" ? ["-vf", "select='not(mod(n,2))+not(mod(n,3))'", "-fps_mode", "vfr"] : []), "-c:v", "libx264", "-pix_fmt", "yuv420p", source]);
       const binding = { slot: "footage", assetId: "test", managedPath: `source${index}.mp4`, hash: await hashMotionFile(source), sourceStartMs: 0, sourceEndMs: 2000, startFrame: 0, endFrame: 48 };
-      const work = motionSubmissionSchema.parse({ ...motionFixture, width: 64, height: 64, fps: 24, durationInFrames: 48, videoBindings: { footage: { assetId: "test", sourceStartMs: 0, sourceEndMs: 2000, startFrame: 0, endFrame: 48 } } });
+      const work = motionSubmissionSchema.parse(sizeMotionFixture({ ...motionFixture, width: 64, height: 64, fps: 24, durationInFrames: 48, videoBindings: { footage: { assetId: "test", sourceStartMs: 0, sourceEndMs: 2000, startFrame: 0, endFrame: 48 } } }));
       const provider = await prepareMotionVideos(root, join(root, `decode${index}`), work, [binding]);
       try {
         assert.equal(provider.videos.footage.frameCount, 48);
@@ -38,10 +40,10 @@ test("23.976/25/30/VFR按PTS采样；跨Sequence保持作品时钟及精确帧�
         await runProcess("ffmpeg", ["-v", "error", "-i", source, "-vf", "setpts=PTS-STARTPTS,fps=24:start_time=0:round=up:eof_action=pass", "-frames:v", "48", "-pix_fmt", "rgba", join(reference, "%d.png")]);
         for (const frame of [0, 1, 20, 46, 47]) assert.deepEqual(PNG.sync.read(await provider.getFrame("footage", frame)).data, PNG.sync.read(await readFile(join(reference, `${frame + 1}.png`))).data);
         if (index === 0) {
-          const source = `import React from 'react';import {Sequence} from 'remotion';import {TimelineVideo} from '@videoflowcut/motion';export default function Motion(){return <><Sequence durationInFrames={4}><TimelineVideo slot="footage"/></Sequence><Sequence from={4}><TimelineVideo slot="footage"/></Sequence></>;}`;
-          const rendered = await renderManagedMotion({ ...work, source, durationInFrames: 8 }, join(root, "render"), {}, provider);
+          const source = frameHtml('<img id="first" data-vfc-video-slot="footage" style="position:absolute;width:64px;height:64px"><img id="second" data-vfc-video-slot="footage" style="position:absolute;width:64px;height:64px">',`document.querySelector('#first').style.display=f<4?'block':'none';document.querySelector('#second').style.display=f>=4?'block':'none';`);
+          const rendered = await renderManagedMotion(sizeMotionFixture({ ...work, source, durationInFrames: 8 }), join(root, "render"), {}, provider);
           assert.equal(rendered.frameHashes.length, 8); assert.notEqual(rendered.frameHashes[0], rendered.frameHashes[7]); assert.ok(rendered.determinism);
-          await assert.rejects(renderManagedMotion({ ...work, source: source.replace('slot="footage"', 'slot="missing"'), durationInFrames: 8 }, join(root, "overflow"), {}, provider), /MOTION_VIDEO_RANGE/);
+          await assert.rejects(renderManagedMotion(sizeMotionFixture({ ...work, source: source.replace('slot="footage"', 'slot="missing"'), durationInFrames: 8 }), join(root, "overflow"), {}, provider), /MOTION_RESOURCE_INVALID/);
           // 跨作品接续由真实源范围表达；新作品的第零帧应是原片第24帧，而非重新播放片头。
           await provider.close(); // 同一项目的渲染队列串行消费，先释放前一作品的缓存租约。
           const continuation = { ...binding, sourceStartMs: 1000, sourceEndMs: 2000, endFrame: 24 };
@@ -67,7 +69,7 @@ for (const kind of ["video", "actor_video"] as const) test(`${kind} 多路Job共
     const imported = app.registerImportedAsset({ projectId, baseRevision: 1, name: "video.mp4", kind, managedPath: "assets/source/video.mp4", sourceHash: await hashMotionFile(path), provenance: { source: "local_import", acquiredAt: new Date().toISOString() } });
     app.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: await probeMedia(path) });
     const binding = { assetId: imported.asset.id, sourceStartMs: 0, sourceEndMs: 500, startFrame: 0, endFrame: 12 };
-    const work = motionSubmissionSchema.parse({ ...motionFixture, width: 128, height: 64, fps: 24, durationInFrames: 12, videoBindings: { left: binding, right: binding }, source: `import React from 'react';import {TimelineVideo} from '@videoflowcut/motion';export default function Motion(){return <div style={{display:'flex',width:128,height:64}}><TimelineVideo slot="left" style={{width:64,height:64}}/><TimelineVideo slot="right" style={{width:64,height:64}}/></div>}` });
+    const work = motionSubmissionSchema.parse(sizeMotionFixture({ ...motionFixture, width: 128, height: 64, fps: 24, durationInFrames: 12, videoBindings: { left: binding, right: binding }, source: motionHtml('<div style="display:flex;width:128px;height:64px"><img id="left" data-vfc-video-slot="left" style="width:64px;height:64px"><img id="right" data-vfc-video-slot="right" style="width:64px;height:64px"></div>') }));
     const job = app.submitManagedMotion({ projectId, baseRevision: app.readProject(projectId).revision.number, idempotencyKey: "two", work });
     const result = await runMotionJob(app, job); const asset = app.readProject(projectId).snapshot.assets.find(a => a.id === result.assetId)!;
     assert.equal(asset.metadata?.hasAudio, false); assert.deepEqual(asset.motion?.sourceAssetIds, [imported.asset.id]);
@@ -91,23 +93,11 @@ test("竖向真实视频在头像、纸片、分屏、容器和退出后返回�
     await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "color=black:s=64x96:r=30:d=2",
       "-vf", "geq=r='N*3':g=40:b=80", "-c:v", "libx264", "-pix_fmt", "yuv420p", source]);
     const timing = { assetId: "actor", sourceStartMs: 1000, sourceEndMs: 2000, startFrame: 0, endFrame: 24 };
-    const work = motionSubmissionSchema.parse({
+    const work = motionSubmissionSchema.parse(sizeMotionFixture({
       ...motionFixture, width: 128, height: 96, fps: 24, durationInFrames: 24, imageBindings: {},
       videoBindings: { actor: timing },
-      source: `import React from 'react';import {useCurrentFrame} from 'remotion';import {TimelineVideo} from '@videoflowcut/motion';
-export default function Motion(){
- const f=useCurrentFrame();
- const phase=Math.floor(f/4);
- const left=phase===0?4:phase===1?8:phase===2?0:phase===3?76:60;
- const top=phase===2?0:phase===3?20:4;
- const width=phase===1?40:phase===2?48:32;
- const height=phase===1?60:phase===2?96:phase===3?48:32;
- return <><div style={{position:'absolute',left:120,top:88,width:8,height:8,background:'#00ff00'}}/>
- {phase===3?<div style={{position:'absolute',left:72,top:16,width:40,height:56,background:'#ffffff'}}/>:null}
- {phase===4?null:<div style={{position:'absolute',left,top,width,height,overflow:'hidden',borderRadius:phase===0||phase===5?'50%':0}}>
- <TimelineVideo slot="actor" style={{width:'100%',height:'100%',objectFit:'cover'}}/></div>}</>;
-}`
-    });
+      source: frameHtml('<div style="position:absolute;left:120px;top:88px;width:8px;height:8px;background:#00ff00"></div><div id="paper" style="position:absolute;left:72px;top:16px;width:40px;height:56px;background:white"></div><div id="window" style="position:absolute;overflow:hidden"><img id="actor" data-vfc-video-slot="actor" style="width:100%;height:100%;object-fit:cover"></div>',`const phase=Math.floor(f/4),left=phase===0?4:phase===1?8:phase===2?0:phase===3?76:60,top=phase===2?0:phase===3?20:4,width=phase===1?40:phase===2?48:32,height=phase===1?60:phase===2?96:phase===3?48:32;Object.assign(document.querySelector('#window').style,{left:left+'px',top:top+'px',width:width+'px',height:height+'px',display:phase===4?'none':'block',borderRadius:phase===0||phase===5?'50%':'0'});document.querySelector('#paper').style.display=phase===3?'block':'none';`)
+    }));
     const provider = await prepareMotionVideos(root, join(root, "decode"), work, [{
       slot: "actor", ...timing, managedPath: "source.mp4", hash: await hashMotionFile(source)
     }]);

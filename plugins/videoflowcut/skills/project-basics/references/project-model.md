@@ -19,7 +19,7 @@
 
 例如删一句口播，应先确认完整思想与 Script，再按影响修订声音、字幕和效果；只把已确定的对象向右移，不重建 Story。Story、Scene 与 Timeline 属于同一 Revision，不能各自维护互不一致的版本。
 
-Asset 和它的一次使用必须分开：同一视频可在多处使用，替换源文件与替换一条 Cutaway 的影响不同。用真实 ID、哈希、状态和来源确认目标，不用文件名猜身份。源素材观察使用 Asset 的源时间；时间线放置使用成片时间，换算见[素材坐标与时间](../../remotion-production/references/material-space-and-time.md)。
+Asset 和它的一次使用必须分开：同一视频可在多处使用，替换源文件与替换一条 Cutaway 的影响不同。用真实 ID、哈希、状态和来源确认目标，不用文件名猜身份。源素材观察使用 Asset 的源时间；时间线放置使用成片时间，换算见[素材坐标与时间](../../opendesign-video-production/references/material-space-and-time.md)。
 
 ## 依赖变化与证据范围
 

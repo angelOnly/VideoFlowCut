@@ -21,124 +21,47 @@
 
 ## 共用制法
 
-将所需函数内联到本片受管 TSX，不增加未允许的本地模块 import。以下为方法参考代码，不是新增平台组件；语法与几何验证不代表已经完成项目运行和画面验收。
+将所需几何与建层方法适配到本片 HTML/CSS/GSAP 源码。以下是制法参考，不是新增平台组件或固定成片模板。取景使用正向显示后的真实源尺寸；crop 是观察后的归一化范围，不是自动识别结果。
 
-源尺寸使用正向显示后的实际宽高；`crop` 为作者观察后确定的归一化取景，不是模型自动识别或跟踪结果。以下几何先选取景，再按比例填满窗口，避免把人脸拉宽。`TimelineVideo` 的正式 slot、静音与根时钟仍由现有绑定管理。
-
-```tsx
-import React from 'react';
-import {TimelineVideo} from '@videoflowcut/motion';
-
-type Box = {x: number; y: number; width: number; height: number};
-type Crop = Box; // 归一化到 0..1 的真实源画面，不是像素坐标。
-type SourceSize = {width: number; height: number};
-
-function sourcePlane(source: SourceSize, box: Box, crop: Crop): Box {
-  const values = [source.width, source.height, box.x, box.y, box.width,
-    box.height, crop.x, crop.y, crop.width, crop.height];
-  if (values.some(v => !Number.isFinite(v)) || source.width <= 0 ||
-      source.height <= 0 || box.width <= 0 || box.height <= 0 ||
-      crop.width <= 0 || crop.height <= 0 || crop.x < 0 || crop.y < 0 ||
-      crop.x + crop.width > 1 + 1e-9 || crop.y + crop.height > 1 + 1e-9) {
-    throw new Error('人物源尺寸、窗口或取景范围无效');
-  }
-  const cw = crop.width * source.width;
-  const ch = crop.height * source.height;
-  const s = Math.max(box.width / cw, box.height / ch);
-  return {
-    x: (box.width - cw * s) / 2 - crop.x * source.width * s,
-    y: (box.height - ch * s) / 2 - crop.y * source.height * s,
-    width: source.width * s,
-    height: source.height * s,
-  };
+```javascript
+// 先按实际取景同比例填满窗口，保留源画面比例。
+function sourcePlane(source, box, crop) {
+  if (crop.width<=0 || crop.height<=0 || crop.x<0 || crop.y<0 || crop.x+crop.width>1 || crop.y+crop.height>1) throw Error('取景范围无效');
+  const cw = crop.width * source.width, ch = crop.height * source.height;
+  const scale = Math.max(box.width / cw, box.height / ch);
+  return {x:(box.width-cw*scale)/2-crop.x*source.width*scale,
+    y:(box.height-ch*scale)/2-crop.y*source.height*scale,
+    width:source.width*scale, height:source.height*scale};
 }
-
-function PresenterWindow({slot, source, crop, box, radius = 0,
-  opacity = 1, rotateDeg = 0}: {
-  slot: string; source: SourceSize; crop: Crop; box: Box;
-  radius?: number | string; opacity?: number; rotateDeg?: number;
-}) {
-  const p = sourcePlane(source, box, crop);
-  return (
-    <div style={{position: 'absolute', left: box.x, top: box.y,
-      width: box.width, height: box.height, overflow: 'hidden',
-      borderRadius: radius, opacity,
-      transform: `rotate(${rotateDeg}deg)`, transformOrigin: '50% 50%'}}>
-      <div style={{position: 'absolute', left: p.x, top: p.y,
-        width: p.width, height: p.height}}>
-        <TimelineVideo slot={slot} fit="fill"
-          style={{width: '100%', height: '100%'}} />
-      </div>
-    </div>
-  );
+function blendBox(a,b,progress) {
+  const p=Math.max(0,Math.min(1,progress)), mix=(x,y)=>x+(y-x)*p;
+  return {x:mix(a.x,b.x),y:mix(a.y,b.y),width:mix(a.width,b.width),height:mix(a.height,b.height)};
 }
-
-function blendBox(a: Box, b: Box, progress: number): Box {
-  const p = Math.max(0, Math.min(1, progress));
-  const mix = (x: number, y: number) => x + (y - x) * p;
-  return {x: mix(a.x, b.x), y: mix(a.y, b.y),
-    width: mix(a.width, b.width), height: mix(a.height, b.height)};
+function placeBox(el,box) {
+  Object.assign(el.style,{position:'absolute',left:box.x+'px',top:box.y+'px',width:box.width+'px',height:box.height+'px'});
+}
+function PresenterWindow({id,slot,source,crop,box,radius=0}) {
+  const window=document.createElement('div'), image=document.createElement('img');
+  image.id=id;image.setAttribute('data-vfc-video-slot',slot);
+  image.style.objectFit='fill';
+  Object.assign(window.style,{overflow:'hidden',borderRadius:typeof radius==='number'?radius+'px':radius});
+  const layout=next=>{placeBox(window,next);placeBox(image,sourcePlane(source,next,crop));};
+  layout(box);window.append(image);return {element:window,layout};
 }
 ```
 
-`fit="fill"` 只用于上面已经按源宽高同比例计算的内部视频平面，不用于把人物直接拉伸到任意窗口。圆形取景应检查圆周裁切，不能只看矩形框是否包含头部。外框、阴影、背景与花字从本片美术取值，不在共用组件中强制一种外观。
+在作者初始化中建立并加入 DOM，之后稳定保留视频元素 ID。运行时接管槽位、静音与根时钟。`object-fit:fill` 只用于已按源比例计算的内部平面，不把人物直接拉到任意窗口。动画可用共同状态驱动 layout，GSAP onUpdate 依据当前状态重新求值，不能累计上一帧。视频范围与 src 由平台负责，显隐不重播。
 
-具体组合可以直接这样落实，所有 `layout` 坐标和进度均为本场内部变量，不是新 MCP 字段：
-
-| 方法 | 最小实现对应 |
+| 方法 | 本片实现与检查 |
 |---|---|
-| 动态头像 | `PresenterWindow` 使用方形 `box`、实际 `crop` 和 `radius="50%"`；外层可随所属画面组移动 |
-| 视频纸片 | 共同父层包含纸边、`PresenterWindow`、附着标签；旋转和平移施加给父层，而不是各层单独猜位置 |
-| 分屏 | 用同一进度分别计算 `blendBox(actorA, actorB, p)` 与 `blendBox(materialA, materialB, p)`；两区内部重新取景，不横向压缩源 |
-| 容器嵌入 | 外框与屏幕在共同父层；屏幕用局部 `box` 放置 `PresenterWindow`，共同变换不改变内部视频时间 |
-| 材料接管 | 人物层按本片实际出镜区间绘制或退出，材料层完成接管；Dialogue 不随人物层卸载 |
-| 人物主画面 | 使用本场主构图 `box/crop`；需要缩窗时只改变几何，使用原 slot 和当前时间 |
+| 动态头像 | PresenterWindow 的 box 等宽高、radius 为 50%，按真实脸部和肩部取景；检查圆周而非仅矩形范围 |
+| 视频纸片 | 纸边、人物窗口、附着标签在共同父层，整体旋转和平移作用于父层；纸边尺寸与本片材料一致 |
+| 分屏 | 同一进度分别计算人物与材料 blendBox，两区按新窗口重新取景；禁止直接压扁原画面 |
+| 容器嵌入 | 设备外框和屏幕窗口共享父层局部坐标，外框有真实开口；整体移动不改变视频源时间 |
+| 材料接管 | 人物按实际范围退出，材料在对应过程接管；主声音继续原 Dialogue/源声轨 |
+| 人物主画面 | 使用当前主要构图与真实取景；缩窗只改几何并保留原 slot 与源时刻 |
 
-以下三个组合函数可与上面的共用代码放在同一份作品源码中，分别作为纸片、分屏和容器方法的最小实现。窗口、边缘与人物源是参数，具体外观和动作由本片设计提供；这不是三个固定成片模板。`renderMaterial` 返回本片真实材料的绘制结果，不是新的平台回调接口。
-
-```tsx
-type PresenterSource = {slot: string; source: SourceSize; crop: Crop};
-
-function PaperPresenter({actor, box, inset, paperStyle, transform, marks}: {
-  actor: PresenterSource; box: Box; inset: number;
-  paperStyle: React.CSSProperties; transform: string; marks?: React.ReactNode;
-}) {
-  return <div style={{...paperStyle, position: 'absolute', left: box.x,
-    top: box.y, width: box.width, height: box.height, transform}}>
-    <PresenterWindow {...actor} box={{x: inset, y: inset,
-      width: box.width - 2 * inset, height: box.height - 2 * inset}} />
-    {marks}
-  </div>;
-}
-
-function SplitPresenter({actor, actorFrom, actorTo, materialFrom, materialTo,
-  progress, renderMaterial}: {
-  actor: PresenterSource; actorFrom: Box; actorTo: Box;
-  materialFrom: Box; materialTo: Box; progress: number;
-  renderMaterial: (box: Box) => React.ReactNode;
-}) {
-  return <>
-    {renderMaterial(blendBox(materialFrom, materialTo, progress))}
-    <PresenterWindow {...actor}
-      box={blendBox(actorFrom, actorTo, progress)} />
-  </>;
-}
-
-function EmbeddedPresenter({actor, outer, screen, radius, transform, shell}: {
-  actor: PresenterSource; outer: Box; screen: Box; radius: number;
-  transform: string; shell: React.ReactNode;
-}) {
-  return <div style={{position: 'absolute', left: outer.x, top: outer.y,
-    width: outer.width, height: outer.height, transform}}>
-    <PresenterWindow {...actor} box={screen} radius={radius} />
-    {shell}
-  </div>;
-}
-```
-
-`marks` 是依附纸片的标签，`shell` 是屏幕有开口的外框与装饰，两者使用共同父层的局部坐标。不要传入实心外框遮住整个屏幕。分屏过程中材料可以据新窗口重新取景和排布，不能只把原内容压扁。动态头像用 `PresenterWindow` 的圆形窗口直接实现；主画面使用其较大取景；材料接管时收回人物层即可，主声音不放在这些组件里。
-
-运动的轻重、路径、交叠和收势继续使用原动效机制，不把 `blendBox` 当作唯一动画曲线。不要为方便维护，把所有方法重新封装成只接受 `x/y/w/h`、固定圆角与海边背景的万能人物框。
+需要组合时，纸片把窗口与 marks 附着到同一 DOM 父层；设备把屏幕和有开口的 shell 放在共同父层；分屏的状态函数同时布局人物与真实材料。背景、边缘、光影和动作均由本片美术决定，不在共用方法里固定。运动路径、轻重与收势继续采用原机制，blendBox 只是几何插值，不是唯一动画曲线。
 
 ## 与丰富动效组合
 
@@ -158,10 +81,10 @@ function EmbeddedPresenter({actor, outer, screen, radius, transform, shell}: {
 
 **共同离开和继续。** 人物、容器、文字和材料可以随同一组画面切镜，也可以分别让位。已经建立的对象和结果有用途时继续保留，不因进入下一条语音段就全部清空。
 
-这些做法进入原声画稿与当前源码，制作时使用原有时序能力。创作者用秒描述自然时机，正式声音就绪后换算真实时间；不新增联动事件数据库，不要求逐词打点，不把普通切镜变成必须无缝变形的工程问题。
+这些做法进入原声画稿与当前源码，制作时使用原有时序能力。创作者描述语义先后、可读条件与交叠，必要时给弹性时间尺度，正式声音就绪后换算真实时间；不新增联动事件数据库，不要求逐词打点，不把普通切镜变成必须无缝变形的工程问题。
 
 ## 交接与真实源
 
-当前声画稿交清准确台词、观看任务、人物可见的语义范围、主画面与材料用途、进入／变化／落稳／出口及声音如何延续。初稿可用语义和秒级时序，正式声音及素材回来后再映射真实帧，不增加第二份分镜数据库或逐句表单。
+当前声画稿交清准确台词、观看任务、人物可见的语义范围、主画面与材料用途、进入／变化／落稳／出口及声音如何延续。初稿使用语义先后与必要的弹性时间尺度，正式声音及素材回来后再映射真实帧，不增加第二份分镜数据库或逐句表单。
 
 人物在全屏、缩窗、分屏及进退过渡中可见时，必须有对应真实视频。源范围按当前需要、自然起止和 Provider 能力组织；完整配音不自动触发全文人物生成。人物返回使用当前嘴型，一段台词只保留一个有效讲述声源；普通字幕位于最终画布独立层，不随人物缩放。素材不足继续取材，不用长时间讲话掩盖缺材。源复用与补生成见[人物源交接](presenter-shot-plan.md)，源时钟和接管见[时间线操作](timeline-operations.md#人物绑定与源时钟)。

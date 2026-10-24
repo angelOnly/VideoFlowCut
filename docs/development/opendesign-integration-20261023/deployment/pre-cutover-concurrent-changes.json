@@ -1,0 +1,23 @@
+{
+  "projectsChangedBeforeCutover": [
+    {
+      "projectId": "project_e3660c19-2e63-40ad-b70e-65a974c922c8",
+      "revision": 328,
+      "sha256": "7b577239a5a86164962deb2c6aa9a154e6c66e7e781992d8fb090d132816c340"
+    }
+  ],
+  "jobsChangedBeforeCutover": [
+    {
+      "id": "job_034ca3e8-63e6-4008-9c0c-6ef66b46b786",
+      "projectId": "project_e3660c19-2e63-40ad-b70e-65a974c922c8",
+      "status": "succeeded",
+      "sha256": "6b14c7a4377b576027743dfb2bf0ad2489587eb91a7488c0b95b84095d74664c"
+    },
+    {
+      "id": "job_2c383911-5d51-46a2-acd3-be6a453b6e70",
+      "projectId": "project_e3660c19-2e63-40ad-b70e-65a974c922c8",
+      "status": "failed",
+      "sha256": "d56f7998ad9425675d1a1f5296c947ac7bbbc910c7ed974d8b4589154f4c5e2d"
+    }
+  ]
+}

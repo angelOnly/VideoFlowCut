@@ -1,0 +1,22 @@
+[
+  {
+    "id": "job_2c383911-5d51-46a2-acd3-be6a453b6e70",
+    "projectId": "project_e3660c19-2e63-40ad-b70e-65a974c922c8",
+    "kind": "motion_generation",
+    "status": "failed",
+    "error": "MOTION_FONT_CATALOG_INVALID: Error: ENOENT: no such file or directory, open 'C:\\Users\\13222\\.codex\\plugins\\cache\\videoflowcut\\videoflowcut\\0.1.99\\runtime\\dist\\fonts\\catalog.json'",
+    "createdAt": "2026-10-23T12:52:39.992Z",
+    "updatedAt": "2026-10-23T13:05:31.897Z",
+    "completedAt": null
+  },
+  {
+    "id": "job_034ca3e8-63e6-4008-9c0c-6ef66b46b786",
+    "projectId": "project_e3660c19-2e63-40ad-b70e-65a974c922c8",
+    "kind": "motion_generation",
+    "status": "succeeded",
+    "error": null,
+    "createdAt": "2026-10-23T12:49:24.542Z",
+    "updatedAt": "2026-10-23T13:05:31.872Z",
+    "completedAt": null
+  }
+]

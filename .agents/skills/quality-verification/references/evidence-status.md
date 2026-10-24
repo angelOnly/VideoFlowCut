@@ -36,7 +36,7 @@ Motion/Sound 审阅独立于创作快照，保存后不产生新 Revision。作�
 
 问题按 blocking、major、minor、suggestion 记录；inconclusive 表示证据不足。技术/用途条件与专业意见分别处理，AI 记录不等于用户批准具体 Artifact。独立完整观看可在最终 Artifact 一次完成，同时观察整体体验和交付文件，不再额外要求同版全片 Preview 重复观看。作者自查、导演采用与独立审阅仍分别归属真实负责人。
 
-字体选择与替代沿[单一操作方法](../../remotion-production/references/submission-and-recovery.md#字体可用性与替代)，原视觉作者交回实际采用与排印变化，主任务提交。交付时从实际creativeBrief和创意决策记录汇总原计划字体、采用字体ID、用途与替代原因，按原计划字体去重提示是否希望后续扩充；只有发生替代时提示，不把扩充设为本次交付前置条件。字体库浏览、复制和静态字样不证明视频已采用或动态审片通过。
+字体选择与替代沿[单一操作方法](../../opendesign-video-production/references/submission-and-recovery.md#字体可用性与替代)，原视觉作者交回实际采用与排印变化，主任务提交。交付时从实际creativeBrief和创意决策记录汇总原计划字体、采用字体ID、用途与替代原因，按原计划字体去重提示是否希望后续扩充；只有发生替代时提示，不把扩充设为本次交付前置条件。字体库浏览、复制和静态字样不证明视频已采用或动态审片通过。
 
 # 素材证据、来源与就绪状态
 
