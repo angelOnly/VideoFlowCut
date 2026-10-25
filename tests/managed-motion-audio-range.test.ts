@@ -1,3 +1,4 @@
+import { completeMotionFixture } from "./fixtures/motion-output.js";
 import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -23,7 +24,7 @@ async function fixture() {
   app.repository.commit(projectId, revision(), "隔离画布", snapshot => { Object.assign(snapshot.timeline, { width: 320, height: 320, fps: 30 }); });
   const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "fixture", work: sizeMotionFixture({ ...motionFixture, durationInFrames: 90 }) });
   // 仅提供技术夹具结果验证写入与范围，不声称做过真实渲染或声音审阅。
-  const motion = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture", metadata: { durationMs: 3000, width: 320, height: 320, fps: 30, hasAudio: false } });
+  const motion = completeMotionFixture(app, { projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture", metadata: { durationMs: 3000, width: 320, height: 320, fps: 30, hasAudio: false } });
   const scene = app.createScene({ projectId, baseRevision: revision(), type: "PresenterScene", title: "原旁白", purpose: "测试正式音频放置", startFrame: 0, endFrame: 180 }).snapshot.scenes.at(-1)!;
   const imported = app.registerImportedAsset({ projectId, baseRevision: revision(), name: "原WAV.wav", kind: "audio", managedPath: "assets/source/narration.wav", sourceHash: "original-wav", provenance: { source: "local_import", acquiredAt: new Date().toISOString() } });
   app.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: { durationMs: 2000, hasAudio: true, audioCodec: "pcm_s16le", sampleRate: 48000 } });

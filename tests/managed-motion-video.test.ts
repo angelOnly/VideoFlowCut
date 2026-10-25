@@ -1,3 +1,4 @@
+import { readOutputFrame } from "./fixtures/motion-output.js";
 import {motionHtml, frameHtml} from "./fixtures/hyperframes.js";
 import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import test from "node:test";
@@ -80,8 +81,8 @@ for (const kind of ["video", "actor_video"] as const) test(`${kind} 多路Job共
     await rm(join(created.snapshot.project.rootPath, ".cache"), { recursive: true, force: true });
     const revision = app.readProject(projectId).revision.number;
     assert.equal((await runMotionJob(app, job)).assetId, asset.id); assert.equal(app.readProject(projectId).revision.number, revision);
-    await writeFile(join(directory, "frames/frame-00000.png"), "damaged");
-    await assert.rejects(runMotionJob(app, job), /MOTION_CACHE_CORRUPT/);
+    await writeFile(join(directory, "output.mkv"), "damaged");
+    await assert.rejects(runMotionJob(app, job), /MOTION_OUTPUT_CHANGED/);
   } finally { app.close(); await rm(root, { recursive: true, force: true }); }
 });
 
@@ -104,7 +105,7 @@ test("竖向真实视频在头像、纸片、分屏、容器和退出后返回�
     try {
       const directory = join(root, "render");
       await renderManagedMotion(work, directory, {}, provider);
-      const pixels = async (frame: number) => PNG.sync.read(await readFile(join(directory, `frames/frame-${String(frame).padStart(5, "0")}.png`)));
+      const pixels = async (frame: number) => PNG.sync.read(await readOutputFrame(join(directory, "output.mkv"), frame));
       const at = (png: PNG, x: number, y: number) => [...png.data.subarray((y * png.width + x) * 4, (y * png.width + x) * 4 + 4)];
       for (const [frame, x, y] of [[2, 20, 20], [6, 28, 30], [10, 24, 48], [14, 92, 40], [22, 76, 20]]) {
         const actual = at(await pixels(frame!), x!, y!);

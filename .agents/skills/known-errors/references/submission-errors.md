@@ -54,7 +54,7 @@
 | `COMPOSED_FRAME_EXTRACTION_FAILED` | Preview 文件、帧范围、ffmpeg | preview runtime |
 | `PROJECT_GRAPH_INVALID` | 悬空 Story/Scene/Item/Cue | Application + 原负责人 |
 | 旧版 `EDITORIAL_REVIEW_REQUIRED` | 当前发行已取消 AI 审阅导出依赖；核对 Runtime/MCP 版本 | 平台修复 |
-| `REMOTION_EXPORT_FAILED` | Runtime、Asset、字体、组件 | remotion/export |
+| `TIMELINE_EXPORT_FAILED` | Runtime、Asset、字体、组件 | remotion/export |
 | B-roll 无关 | 不是技术重试问题 | visual-treatment/cutaway |
 
 具体错误名称以当前代码为准，表格用于分类思路。

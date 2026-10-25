@@ -65,6 +65,17 @@ export function validateMotionSource(source: string, work?: Pick<MotionSubmissio
 export function motionHash(input: MotionSubmission, images: BoundMotionImage[] = [], engineVersion = MOTION_ENGINE_VERSION, videos: BoundMotionVideo[] = [], fonts: BoundMotionFont[] = [], sourceDisplay?: FrozenSourceDisplay): string {
   return createHash("sha256").update(JSON.stringify({ engineVersion, dependencies: HYPERFRAMES_DEPENDENCIES, input, images, videos, fonts, sourceDisplay })).digest("hex");
 }
+/** 完整请求继续用于幂等；像素键不含名称、说明、参考观察和上一版本。 */
+export function motionPixelKey(input: MotionSubmission, images: BoundMotionImage[] = [], videos: BoundMotionVideo[] = [], fonts: BoundMotionFont[] = []): string {
+  const sort = (entries: Array<Record<string, unknown>>) => [...entries].sort((a, b) => String(a.slot).localeCompare(String(b.slot)));
+  const canonical = (value: unknown): unknown => Array.isArray(value) ? value.map(canonical) : value && typeof value === "object"
+    ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, entry]) => [key, canonical(entry)])) : value;
+  return createHash("sha256").update(JSON.stringify(canonical({ engine: MOTION_ENGINE_VERSION, dependencies: HYPERFRAMES_DEPENDENCIES,
+    source: input.source, props: input.props, width: input.width, height: input.height, fps: input.fps, frames: input.durationInFrames,
+    compositing: input.compositing ?? "alpha", encoding: input.compositing === "opaque" ? "h264-crf18-bt709-v1" : "ffv1-bgra-v1",
+    images: sort(images.map(({ slot, hash }) => ({ slot, hash }))), videos: sort(videos.map(({ assetId, managedPath, ...v }) => v)), fonts: sort(fonts)
+  }))).digest("hex");
+}
 export function motionHashEngine(input: MotionSubmission, images: BoundMotionImage[], version: unknown, declared?: unknown, videos: BoundMotionVideo[] = [], fonts: BoundMotionFont[] = [], sourceDisplay?: FrozenSourceDisplay): string {
   if (declared !== undefined && declared !== MOTION_ENGINE_VERSION) throw new Error("MOTION_ENGINE_UPGRADE_REQUIRED: 历史资产可读取，重新生成须提交 HTML 新版本");
   if (motionHash(input, images, MOTION_ENGINE_VERSION, videos, fonts, sourceDisplay) !== version) throw new Error("MOTION_VERSION_MISMATCH");

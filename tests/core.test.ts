@@ -1050,7 +1050,7 @@ test("Render Preflight 会把目标 Revision 的缺失受管文件报告为失�
   }
 });
 
-test("Remotion 正式导出失败不会降级为仅 A-roll 成片", async () => {
+test("时间线正式导出失败不会降级为仅 A-roll 成片", async () => {
   const context = await createTestApplication();
   try {
     const created = context.app.createProject({ name: "导出降级保护测试" });
@@ -1060,7 +1060,7 @@ test("Remotion 正式导出失败不会降级为仅 A-roll 成片", async () => 
     const exportJob = context.app.submitExport({ projectId: created.snapshot.project.id, revision: built.revision.number, purpose: "draft", idempotencyKey: "remotion-must-fail" });
     await assert.rejects(
       () => runExportJob(context.app, exportJob, { render: async () => { throw new Error("渲染器不可用"); } } as never),
-      (error: unknown) => error instanceof DomainError && error.code === "REMOTION_EXPORT_FAILED"
+      (error: unknown) => error instanceof DomainError && error.code === "TIMELINE_EXPORT_FAILED"
     );
   } finally {
     await context.dispose();
@@ -1185,13 +1185,13 @@ test("未审阅的 delivery 与 draft 都能进入渲染，渲染失败不伪装
     assert.equal(delivery.payload.purpose, "delivery");
     await assert.rejects(
       () => runExportJob(context.app, delivery, { render: async () => { throw new Error("已进入交付渲染链路"); } } as never),
-      (error: unknown) => error instanceof DomainError && error.code === "REMOTION_EXPORT_FAILED"
+      (error: unknown) => error instanceof DomainError && error.code === "TIMELINE_EXPORT_FAILED"
     );
     const draft = context.app.submitExport({ projectId: created.snapshot.project.id, revision: assembled.revision.number, purpose: "draft" });
     assert.equal(draft.payload.purpose, "draft");
     await assert.rejects(
       () => runExportJob(context.app, draft, { render: async () => { throw new Error("已进入草稿渲染链路"); } } as never),
-      (error: unknown) => error instanceof DomainError && error.code === "REMOTION_EXPORT_FAILED"
+      (error: unknown) => error instanceof DomainError && error.code === "TIMELINE_EXPORT_FAILED"
     );
   } finally {
     await context.dispose();

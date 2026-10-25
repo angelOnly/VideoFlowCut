@@ -1,3 +1,4 @@
+import { readOutputFrame, completeMotionFixture } from "./fixtures/motion-output.js";
 import {motionHtml,frameHtml} from "./fixtures/hyperframes.js";
 import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
@@ -26,7 +27,7 @@ test("同源校样使用原作品时钟且不登记素材；校样与完整版�
     assert.equal(result.frameCount, 3);
     assert.deepEqual(app.readProject(projectId).snapshot, JSON.parse(JSON.stringify(state.snapshot)));
     assert.equal(app.readProject(projectId).revision.number, 1);
-    assert.throws(() => app.completeManagedMotion({ projectId, jobId: proof.id, sourceHash: "invalid", engineVersion: "fixture", metadata: {} as never }), { code: "MOTION_PROOF_NOT_ASSET" });
+    assert.throws(() => completeMotionFixture(app, { projectId, jobId: proof.id, sourceHash: "invalid", engineVersion: "fixture", metadata: {} as never }), { code: "MOTION_PROOF_NOT_ASSET" });
     assert.throws(() => app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "proof", work, frameRange: { startFrame: 2, endFrame: 6 } }), { code: "MOTION_IDEMPOTENCY_CONFLICT" });
     const full = app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "full", work });
     const complete = await runMotionJob(app, full);
@@ -34,7 +35,7 @@ test("同源校样使用原作品时钟且不登记素材；校样与完整版�
     const asset = app.readProject(projectId).snapshot.assets.find(entry => entry.id === complete.assetId)!;
     for (let frame = 3; frame < 6; frame++) {
       const name = `frame-${String(frame).padStart(5, "0")}.png`;
-      assert.deepEqual(await readFile(join(state.snapshot.project.rootPath, String(result.sourcePath), "..", "frames", name)), await readFile(join(state.snapshot.project.rootPath, asset.motion!.framesDirectory, name)));
+      assert.deepEqual(PNG.sync.read(await readOutputFrame(join(state.snapshot.project.rootPath, String(result.sourcePath), "..", "output.mkv"), frame - 3)).data, PNG.sync.read(await readOutputFrame(join(state.snapshot.project.rootPath, asset.managedPath), frame)).data);
     }
   } finally { app.close(); await rm(root, { recursive: true, force: true }); }
 });
@@ -53,7 +54,7 @@ test("新作品不保存安全区测量，带旧测量字段的缓存仍校验�
     const state = app.readProject(projectId);
     const asset = state.snapshot.assets.find(entry => entry.id === result.assetId)!;
     assert.equal(Object.hasOwn(asset.motion!, "visibility"), false);
-    const manifestPath = join(state.snapshot.project.rootPath, asset.motion!.framesDirectory, "..", "manifest.json");
+    const manifestPath = join(state.snapshot.project.rootPath, asset.motion!.sourcePath, "..", "manifest.json");
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
     assert.equal(Object.hasOwn(manifest, "visibility"), false);
     // 旧附加字段已经失去运行语义，不应引发补测或破坏合法作品缓存。
@@ -62,7 +63,7 @@ test("新作品不保存安全区测量，带旧测量字段的缓存仍校验�
     const replay = await runMotionJob(app, job, async () => { assert.fail("已有完整缓存不能再次渲染"); });
     assert.equal(replay.assetId, result.assetId);
     assert.equal(app.readProject(projectId).revision.number, state.revision.number);
-    const framePath = join(state.snapshot.project.rootPath, asset.motion!.framesDirectory, "frame-00000.png");
+    const framePath = join(state.snapshot.project.rootPath, asset.managedPath);
     await writeFile(framePath, "损坏帧");
     await assert.rejects(runMotionJob(app, job, async () => { assert.fail("损坏缓存不能静默重生"); }));
   } finally { app.close(); await rm(root, { recursive: true, force: true }); }
@@ -133,7 +134,7 @@ test("透明帧与同帧重复寻址是真实渲染事实，源码文字仍可�
     const result = await renderManagedMotion(motionFixture, root);
     assert.equal(result.frameHashes.length, 18);
     assert.notEqual(result.frameHashes[0], result.frameHashes[10]);
-    const png = await readFile(join(root, "frames/frame-00010.png"));
+    const png = await readOutputFrame(join(root, "output.mkv"), 10);
     assert.equal(png[25], 6);
     assert.ok((await readFile(result.previewPath)).length > 100);
   } finally { await rm(root, { recursive: true, force: true }); }
@@ -153,7 +154,7 @@ test("真实 PNG 保留透明、移动和极淡像素，不依赖安全区测量
   try {
     const source = frameHtml('<div id="a" style="position:absolute;background:white"></div>',`Object.assign(document.querySelector('#a').style,{display:f===0?'none':'block',left:(f===3?0:20+f*10)+'px',top:(f===3?0:40)+'px',width:(f===3?320:30)+'px',height:(f===3?320:20)+'px',opacity:f===3?'0.004':'1'});`);
     await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, durationInFrames: 4 }), root);
-    const pngs = await Promise.all(Array.from({ length: 4 }, async (_, frame) => PNG.sync.read(await readFile(join(root, "frames", `frame-${String(frame).padStart(5, "0")}.png`)))));
+    const pngs = await Promise.all(Array.from({ length: 4 }, async (_, frame) => PNG.sync.read(await readOutputFrame(join(root, "output.mkv"), frame))));
     const alpha = (frame: number, x: number, y: number) => pngs[frame]!.data[(y * 320 + x) * 4 + 3];
     assert.equal(alpha(0, 50, 50), 0);
     assert.equal(alpha(1, 35, 45), 255);
@@ -169,7 +170,7 @@ test("全屏作品从不透明淡出到透明再显现，实际 Alpha 保持连�
     const source = frameHtml('<div id="a" style="position:absolute;inset:0;background:white"></div>',`document.querySelector('#a').style.opacity=String([1,.5,0,1][f]);`);
     await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, durationInFrames: 4 }), root);
     const alphas = await Promise.all(Array.from({ length: 4 }, async (_, frame) => {
-      const png = PNG.sync.read(await readFile(join(root, "frames", `frame-${String(frame).padStart(5, "0")}.png`)));
+      const png = PNG.sync.read(await readOutputFrame(join(root, "output.mkv"), frame));
       return png.data[(160 * 320 + 160) * 4 + 3]!;
     }));
     assert.equal(alphas[0], 255);
@@ -207,7 +208,7 @@ test("透明进入彩色全屏再退出时，代理保留每帧颜色、横向�
     const raw = await readFile(rawPath);
     assert.equal(raw.length, 8 * 320 * 320 * 3);
     for (let frame = 0; frame < 8; frame++) {
-      const bytes = await readFile(join(root, "frames", `frame-${String(frame).padStart(5, "0")}.png`));
+      const bytes = await readOutputFrame(join(root, "output.mkv"), frame);
       const png = PNG.sync.read(bytes);
       for (const [x, y] of [[40, 70], [190, 165], [280, 70], [40, 240]]) {
         const pixel = (y! * 320 + x!) * 4;

@@ -1,3 +1,4 @@
+import { completeMotionFixture } from "./fixtures/motion-output.js";
 import {motionHtml, frameHtml} from "./fixtures/hyperframes.js";
 import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import test from "node:test";
@@ -62,6 +63,6 @@ test("取消Job向实际媒体进程传信号且不登记作品、不创建Revis
       assert.fail("取消后不能继续");
     });
     assert.equal(aborted, true); assert.equal(app.trackJob(job.id).status, "cancelled"); assert.deepEqual(app.readProject(projectId), before);
-    assert.throws(() => app.completeManagedMotion({ projectId, jobId: job.id, engineVersion: String(job.payload.engineVersion), sourceHash: "a", metadata: { durationMs: 600, width: 320, height: 320, hasAudio: false } }), /取消/u);
+    assert.throws(() => completeMotionFixture(app, { projectId, jobId: job.id, engineVersion: String(job.payload.engineVersion), sourceHash: "a", metadata: { durationMs: 600, width: 320, height: 320, hasAudio: false } }), /取消/u);
   } finally { app.close(); await rm(root, { recursive: true, force: true }); }
 });

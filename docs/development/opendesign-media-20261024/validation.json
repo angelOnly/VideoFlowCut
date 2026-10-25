@@ -1,0 +1,234 @@
+{
+  "date": "2026-10-24T11:41:01.467Z",
+  "scope": "320×180、30fps、60帧隔离技术夹具；未调用 OD，未人工连续审片；不是309秒生产作品的提速保证",
+  "formalCaptureRuns": 2,
+  "descriptionReuseRuns": 1,
+  "runs": [
+    {
+      "label": "首次生成",
+      "elapsedMs": 7756,
+      "reused": false,
+      "capturedFrames": 60,
+      "metrics": {
+        "captureMs": 5987,
+        "pipeWriteMs": 1,
+        "encoderFinishMs": 37,
+        "previewEncodeMs": 83,
+        "peakWorkerRssBytes": 353931264,
+        "outputBytes": 2063196,
+        "capturedFrames": 60
+      },
+      "outputBytes": 2063196,
+      "samplePngCount": 3
+    },
+    {
+      "label": "纯说明变更",
+      "elapsedMs": 288,
+      "reused": true,
+      "capturedFrames": 0,
+      "outputBytes": 2063196,
+      "samplePngCount": 3
+    },
+    {
+      "label": "局部视觉变更",
+      "elapsedMs": 7662,
+      "reused": false,
+      "capturedFrames": 60,
+      "metrics": {
+        "captureMs": 5986,
+        "pipeWriteMs": 7,
+        "encoderFinishMs": 40,
+        "previewEncodeMs": 83,
+        "peakWorkerRssBytes": 341782528,
+        "outputBytes": 2063900,
+        "capturedFrames": 60
+      },
+      "outputBytes": 2063900,
+      "samplePngCount": 3
+    },
+    {
+      "label": "首次导出",
+      "renderMs": 756,
+      "validationMs": 43,
+      "outputBytes": 19122,
+      "report": {
+        "plan": {
+          "startFrame": 0,
+          "endFrame": 60,
+          "spans": [
+            {
+              "startFrame": 0,
+              "endFrame": 60,
+              "kind": "media",
+              "layers": [
+                {
+                  "assetId": "asset_87e0486a-cadf-45f8-957d-2ba917a9608c",
+                  "origin": 0,
+                  "sourceStart": 0,
+                  "fit": "contain"
+                }
+              ],
+              "captionIds": [],
+              "reasons": [],
+              "cacheKey": "377d5fe907b44358cf2d9eacea63c26129acb6ae95a0e782e4157af78060222e"
+            }
+          ],
+          "renderer": "ffmpeg"
+        },
+        "encoder": "h264_nvenc",
+        "timings": [
+          {
+            "kind": "media",
+            "cacheHit": false,
+            "startFrame": 0,
+            "endFrame": 60,
+            "elapsedMs": 75,
+            "reasons": []
+          },
+          {
+            "kind": "audio",
+            "elapsedMs": 43
+          }
+        ],
+        "peakWorkerRssBytes": 257839104,
+        "peakWorkingDirectoryBytes": 2831404,
+        "measurementScope": "Worker RSS 与阶段结束时临时目录占用；不含浏览器或 FFmpeg 子进程 RSS",
+        "elapsedMs": 625
+      }
+    },
+    {
+      "label": "同版再次导出",
+      "renderMs": 537,
+      "validationMs": 43,
+      "outputBytes": 19122,
+      "report": {
+        "plan": {
+          "startFrame": 0,
+          "endFrame": 60,
+          "spans": [
+            {
+              "startFrame": 0,
+              "endFrame": 60,
+              "kind": "media",
+              "layers": [
+                {
+                  "assetId": "asset_9538cdc2-8f04-4094-9a83-25911a31b211",
+                  "origin": 0,
+                  "sourceStart": 0,
+                  "fit": "contain"
+                }
+              ],
+              "captionIds": [],
+              "reasons": [],
+              "cacheKey": "e1bd4eb779ab98d0077b6a54fd6b92f4e6d859001d8f20094abd68411852269e"
+            }
+          ],
+          "renderer": "ffmpeg"
+        },
+        "encoder": "h264_nvenc",
+        "timings": [
+          {
+            "kind": "media",
+            "cacheHit": false,
+            "startFrame": 0,
+            "endFrame": 60,
+            "elapsedMs": 80,
+            "reasons": []
+          },
+          {
+            "kind": "audio",
+            "elapsedMs": 43
+          }
+        ],
+        "peakWorkerRssBytes": 260055040,
+        "peakWorkingDirectoryBytes": 2831404,
+        "measurementScope": "Worker RSS 与阶段结束时临时目录占用；不含浏览器或 FFmpeg 子进程 RSS",
+        "elapsedMs": 403
+      }
+    },
+    {
+      "label": "局部修改后导出",
+      "renderMs": 571,
+      "validationMs": 41,
+      "outputBytes": 18636,
+      "report": {
+        "plan": {
+          "startFrame": 0,
+          "endFrame": 60,
+          "spans": [
+            {
+              "startFrame": 0,
+              "endFrame": 60,
+              "kind": "media",
+              "layers": [
+                {
+                  "assetId": "asset_c05c4092-4a8c-4148-a97c-9688db7827bc",
+                  "origin": 0,
+                  "sourceStart": 0,
+                  "fit": "contain"
+                }
+              ],
+              "captionIds": [],
+              "reasons": [],
+              "cacheKey": "d6ebb4286b33bd45950808674035fda36baa1a464b188be2e4adcfccea89f7a3"
+            }
+          ],
+          "renderer": "ffmpeg"
+        },
+        "encoder": "h264_nvenc",
+        "timings": [
+          {
+            "kind": "media",
+            "cacheHit": false,
+            "startFrame": 0,
+            "endFrame": 60,
+            "elapsedMs": 87,
+            "reasons": []
+          },
+          {
+            "kind": "audio",
+            "elapsedMs": 77
+          }
+        ],
+        "peakWorkerRssBytes": 262098944,
+        "peakWorkingDirectoryBytes": 2832108,
+        "measurementScope": "Worker RSS 与阶段结束时临时目录占用；不含浏览器或 FFmpeg 子进程 RSS",
+        "elapsedMs": 435
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "encoder": "libx264",
+      "encodeMs": 76,
+      "bytes": 11406,
+      "ssim": "SSIM Y:0.996857 (25.026105) U:0.997571 (26.146500) V:0.996541 (24.610561) All:0.996923 (25.119003)",
+      "psnr": "PSNR y:50.781553 u:52.893520 v:52.311947 average:51.305659 min:50.711577 max:51.433848"
+    },
+    {
+      "encoder": "h264_nvenc",
+      "encodeMs": 301,
+      "bytes": 16502,
+      "ssim": "SSIM Y:0.996906 (25.095238) U:0.999276 (31.401371) V:0.998817 (29.271471) All:0.997620 (26.233747)",
+      "psnr": "PSNR y:54.274684 u:59.285066 v:57.776599 average:55.278340 min:55.231231 max:55.359967"
+    }
+  ],
+  "encoder": {
+    "name": "h264_nvenc",
+    "args": [
+      "-c:v",
+      "h264_nvenc",
+      "-preset",
+      "p7",
+      "-tune",
+      "hq",
+      "-rc",
+      "vbr",
+      "-cq",
+      "18",
+      "-b:v",
+      "0"
+    ]
+  },
+  "resourceScope": "RSS 仅 Worker；临时磁盘为阶段结束采样，不含子进程峰值；正式媒体已复制到报告目录"
+}

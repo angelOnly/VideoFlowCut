@@ -1,0 +1,6 @@
+<!doctype html><html><head><meta charset="utf-8"></head><body>
+<main data-composition-id="main" data-start="0" data-duration="2" data-width="320" data-height="180" style="position:relative;width:320px;height:180px;background:linear-gradient(110deg,#172033,#647c8b);overflow:hidden">
+<div style="position:absolute;left:20px;top:34px;font-family:var(--vfc-font-title);font-size:28px;color:white">中文细线与渐变</div>
+<div id="line" style="position:absolute;left:20px;top:95px;width:260px;height:1px;background:#ffffff"></div>
+<div id="dot" style="position:absolute;left:20px;top:120px;width:24px;height:24px;border-radius:50%;background:#ffc455"></div>
+</main><script>const {props,config}=window.vfc;const tl=gsap.timeline({paused:true});document.querySelector('#dot').style.background=props.accent;tl.to('#dot',{x:240,duration:2,ease:'none'},0);window.__timelines.main=tl;</script></body></html>

@@ -1,3 +1,4 @@
+import { completeMotionFixture } from "./fixtures/motion-output.js";
 import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -80,7 +81,7 @@ test("跨fps受管作品完整放置、帧映射与声音事件保持，内容�
   const f = await fixture();
   try {
     const job = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.revision(), idempotencyKey: "motion", work: sizeMotionFixture({ ...motionFixture, fps: 30, durationInFrames: 60 }) });
-    const asset = f.app.completeManagedMotion({ projectId: f.projectId, jobId: job.id, sourceHash: "work", engineVersion: "fixture-only", metadata: { durationMs: 2000, width: 320, height: 320, fps: 30, hasAudio: false }, eventMap: { version: String(job.payload.version), fps: 30, frameCount: 60, events: [{ id: "settled", meaning: "落定", startFrame: 30 }] } });
+    const asset = completeMotionFixture(f.app, { projectId: f.projectId, jobId: job.id, sourceHash: "work", engineVersion: "fixture-only", metadata: { durationMs: 2000, width: 320, height: 320, fps: 30, hasAudio: false }, eventMap: { version: String(job.payload.version), fps: 30, frameCount: 60, events: [{ id: "settled", meaning: "落定", startFrame: 30 }] } });
     f.app.updateJob(job.id, { status: "succeeded" });
     const placed = f.app.createEffectCue({ projectId: f.projectId, baseRevision: f.revision(), sceneId: f.seed.snapshot.scenes[0].id, type: "ManagedMotion", layer: "front", startFrame: 0, endFrame: 48, assetBindings: [{ slot: "motion", assetId: asset.id }] });
     const cue = placed.snapshot.effectCues[0];

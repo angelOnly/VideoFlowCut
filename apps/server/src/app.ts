@@ -1,3 +1,4 @@
+import { MotionFrameCache } from "../../../packages/media-intelligence/src/motion-frames.js";
 import { hyperframesContract } from "../../../packages/motion-work/src/hyperframes-contract.js";
 import { registerPresenterRoutes } from "./presenter-tools.js";
 import { objectResourceCapabilities } from "../../../packages/media-intelligence/src/object-resources/index.js";
@@ -1413,6 +1414,15 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       .header("content-security-policy", `default-src 'none'; media-src 'self'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}'; base-uri 'none'; frame-ancestors 'self'`)
       .header("cache-control", "no-store")
       .send(mediaReviewPage(mediaPath, basename(filePath), mime.startsWith("audio/") ? "audio" : "video", nonce));
+  });
+
+  const motionFrames = new MotionFrameCache();
+  app.get("/motion-frame/:projectId/:assetId/:hash/:frame", async (request, reply) => {
+    const params = request.params as { projectId: string; assetId: string; hash: string; frame: string };
+    const snapshot = application.readProject(params.projectId).snapshot;
+    const asset = snapshot.assets.find(entry => entry.id === params.assetId);
+    if (!asset || !/^\d+\.png$/u.test(params.frame)) throw new NotFoundError("作品帧不存在");
+    return reply.type("image/png").send(await motionFrames.get(snapshot.project.rootPath, asset, params.hash, Number(params.frame.slice(0, -4))));
   });
 
   app.get("/media/*", async (request, reply) => {

@@ -1,3 +1,6 @@
+import { hashMediaFile } from "../../../packages/edit-application/src/media-intelligence.js";
+import { cp } from "node:fs/promises";
+import type { Asset } from "@videocut/contracts";
 import { frozenSourceDisplaySchema } from "../../../packages/contracts/src/source-display-policy.js";
 import { checkMotionSourceDisplay } from "../../../packages/edit-application/src/source-display-checks.js";
 import { MotionDiagnostics } from "./motion-diagnostics.js";
@@ -10,7 +13,7 @@ import type { JobRecord } from "@videocut/contracts";
 import { probeMedia } from "@videocut/speech";
 import { boundMotionFontSchema, boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema, motionFrameRangeSchema, parseMotionEvents } from "../../../packages/motion-work/src/schema.js";
 import { prepareMotionFonts } from "../../../packages/motion-work/src/fonts.js";
-import { motionHash, motionHashEngine, MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compiler.js";
+import { motionPixelKey, motionHash, motionHashEngine, MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compiler.js";
 import { motionFrameName, renderManagedMotion, verifyMotionPreviewFrames, type MotionRenderResult } from "./motion-renderer.js";
 import { MotionDeterminismError } from "./motion-determinism.js";
 import { prepareMotionVideos } from "./motion-video.js";
@@ -61,12 +64,28 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
   const parent = frameRange ? join(snapshot.project.rootPath, "previews", "motion", job.id) : join(snapshot.project.rootPath, "assets", "derived", "motion", job.id);
   const directory = join(parent, version);
   await mkdir(parent, { recursive: true });
+  const pixelKey = motionPixelKey(work, boundImages, boundVideos, boundFonts);
+  const reusable = job.payload.reusableAsset as Asset | undefined;
+  if (!frameRange && reusable?.motion?.output && !await stat(directory).catch(() => undefined)) {
+    const previous = reusable.motion;
+    if (previous.pixelKey !== pixelKey || await hashMediaFile(resolve(snapshot.project.rootPath, previous.output!.path)) !== previous.output!.hash) throw new Error("MOTION_REUSE_CHANGED");
+    const temporary = await mkdtemp(join(parent, ".reuse-"));
+    try {
+      // 只复制固定产物和少量诊断；不重新启动捕获，也不依赖可回收的解码缓存。
+      await cp(resolve(snapshot.project.rootPath, previous.sourcePath, ".."), temporary, { recursive: true });
+      const manifest = JSON.parse(await readFile(join(temporary, "manifest.json"), "utf8"));
+      await writeFile(join(temporary, "source.json"), JSON.stringify(work, null, 2));
+      await writeFile(join(temporary, "manifest.json"), JSON.stringify({ ...manifest, version, pixelKey, boundImages, boundVideos, boundFonts, reusedFrom: reusable.id }, null, 2));
+      signal?.throwIfAborted();
+      await rename(temporary, directory);
+    } finally { await rm(temporary, { recursive: true, force: true }); }
+  }
   if (!await stat(directory).catch(() => undefined)) {
     const temporary = await mkdtemp(join(parent, ".render-"));
     let preserveTemporary = false;
     try {
       diagnostics.stage("image_preparation");
-      const outputBudget = motionOutputBudget(work.width, work.height, frameCount);
+      const outputBudget = motionOutputBudget(work.width, work.height, frameCount, work.compositing, work.fps);
       const imageBytes: Record<string, Buffer> = {};
       if (fonts.length) {
         await mkdir(join(temporary, "resources", "font-files"), { recursive: true });
@@ -93,9 +112,9 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
       let rendered: MotionRenderResult;
       try {
         // 源检查后、实际解码前预检；先回收旧缓存，不把缓存限额再次当成必需空间。
-        await provider.reserveDiskSpace(outputBudget * 2 + provider.workingSetBytes);
+        await provider.reserveDiskSpace(outputBudget + provider.workingSetBytes);
         const disk = await statfs(temporary);
-        checkMotionDiskSpace(disk.bavail * disk.bsize, outputBudget, outputBudget + provider.workingSetBytes);
+        checkMotionDiskSpace(disk.bavail * disk.bsize, outputBudget, provider.workingSetBytes);
         rendered = await render(work, temporary, imageData, provider, signal, fonts, diagnostics, frameRange, sourceDisplay);
         await provider.verifySources();
       } catch (error) {
@@ -105,8 +124,8 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
       } finally { try { await provider.close(); } catch (closeError) { diagnostics.additional(closeError, "provider_close"); } }
       await writeFile(join(temporary, "source.html"), work.source);
       await writeFile(join(temporary, "source.json"), JSON.stringify(work, null, 2));
-      const previewHash = createHash("sha256").update(await readFile(rendered.previewPath)).digest("hex");
-      await writeFile(join(temporary, "manifest.json"), JSON.stringify({ version, frameRange, hashEngineVersion, previewHash, frameHashes: rendered.frameHashes, engineVersion: rendered.engineVersion, runtimeDependencies: rendered.runtimeDependencies, sandbox: rendered.sandbox, boundImages, imageDecodes, boundVideos, ...(boundFonts.length ? { boundFonts } : {}), videoDecodes: provider.videos, videoResources: provider.stats, events: rendered.events, determinism: rendered.determinism }, null, 2));
+      const previewHash = await hashMediaFile(rendered.previewPath);
+      await writeFile(join(temporary, "manifest.json"), JSON.stringify({ version, pixelKey, frameRange, hashEngineVersion, output: { ...rendered.output, path: basename(rendered.output.path) }, preview: { path: basename(rendered.previewPath), hash: previewHash }, previewHash, frameHashes: rendered.frameHashes, engineVersion: rendered.engineVersion, runtimeDependencies: rendered.runtimeDependencies, sandbox: rendered.sandbox, metrics: rendered.metrics, boundImages, imageDecodes, boundVideos, ...(boundFonts.length ? { boundFonts } : {}), videoDecodes: provider.videos, videoResources: provider.stats, events: rendered.events, determinism: rendered.determinism }, null, 2));
       signal?.throwIfAborted();
       if (application.trackJob(job.id).status === "cancelled") throw new DomainError("作品任务已取消", "MOTION_CANCELLED");
       await rename(temporary, directory);
@@ -134,7 +153,7 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
   diagnostics.stage("output_validation");
   const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8")) as MotionRenderResult & { version: string; hashEngineVersion?: string; previewHash: string; imageDecodes: MotionImageDecode[]; videoDecodes?: Record<string, unknown> };
   const storedSource = motionSubmissionSchema.parse(JSON.parse(await readFile(join(directory, "source.json"), "utf8")));
-  if (manifest.version !== version || !Array.isArray(manifest.frameHashes) || manifest.frameHashes.length !== frameCount || JSON.stringify((manifest as any).frameRange) !== JSON.stringify(frameRange) || motionHash(storedSource, boundImages, manifest.hashEngineVersion ?? manifest.engineVersion, boundVideos, boundFonts, sourceDisplay) !== version) throw new Error("MOTION_CACHE_CORRUPT");
+  if (manifest.version !== version || (manifest as any).pixelKey !== pixelKey || !Array.isArray(manifest.frameHashes) || manifest.frameHashes.length !== frameCount || JSON.stringify((manifest as any).frameRange) !== JSON.stringify(frameRange) || motionHash(storedSource, boundImages, manifest.hashEngineVersion ?? manifest.engineVersion, boundVideos, boundFonts, sourceDisplay) !== version) throw new Error("MOTION_CACHE_CORRUPT");
   if (JSON.stringify((manifest as any).boundFonts ?? []) !== JSON.stringify(boundFonts)) throw new Error("MOTION_FONT_CACHE_CORRUPT");
   for (const font of boundFonts) {
     try {
@@ -151,25 +170,28 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
   }
   // 完整作品缓存独立于可回收的解码缓存；重生成时才需要重新检查原片。
   if (JSON.stringify((manifest as any).boundVideos ?? []) !== JSON.stringify(boundVideos)) throw new Error("MOTION_RESOURCE_CACHE_CORRUPT");
-  for (let frame = startFrame; frame < endFrame; frame++) {
-    signal?.throwIfAborted();
-    const bytes = await readFile(join(directory, "frames", motionFrameName(frame)));
-    if (createHash("sha256").update(bytes).digest("hex") !== manifest.frameHashes[frame - startFrame]) throw new Error("MOTION_CACHE_CORRUPT");
-  }
-  const previewPath = join(directory, "preview.mp4");
-  const metadata = await probeMedia(previewPath);
+  const outputPath = join(directory, manifest.output.path);
+  const sourceHash = await hashMediaFile(outputPath);
+  if (sourceHash !== manifest.output.hash) throw new Error("MOTION_OUTPUT_CHANGED");
+  const metadata = await probeMedia(outputPath);
+  await verifyMotionPreviewFrames(outputPath, frameCount, work.fps);
+  if (metadata.hasAudio || metadata.pixelFormat !== (work.compositing === "opaque" ? "yuv420p" : "bgra")
+    || manifest.output.kind !== (work.compositing === "opaque" ? "opaque_video" : "alpha_video")
+    || manifest.output.codec !== metadata.videoCodec || manifest.output.pixelFormat !== metadata.pixelFormat
+    || metadata.width !== work.width || metadata.height !== work.height || metadata.videoCodec !== (work.compositing === "opaque" ? "h264" : "ffv1")
+    || Math.abs(metadata.durationMs - frameCount / work.fps * 1000) > 1000 / work.fps + 2) throw new Error("MOTION_OUTPUT_MISMATCH");
+  const previewPath = join(directory, (manifest as any).preview.path);
+  if (await hashMediaFile(previewPath) !== manifest.previewHash) throw new Error("MOTION_PREVIEW_CACHE_CORRUPT");
   await verifyMotionPreviewFrames(previewPath, frameCount, work.fps);
-  if (metadata.width !== work.width || metadata.height !== work.height || Math.abs(metadata.durationMs - frameCount / work.fps * 1000) > 1000 / work.fps + 2) throw new Error("MOTION_OUTPUT_MISMATCH");
-  const sourceHash = createHash("sha256").update(await readFile(previewPath)).digest("hex");
-  if (sourceHash !== manifest.previewHash) throw new Error("MOTION_PREVIEW_CACHE_CORRUPT");
-  // 缓存命中也从已校验 PNG 重测，不能让损坏的元数据伪装成安全证据；兼容没有测量的旧缓存。
   const eventMap = manifest.events === undefined ? undefined : { version, fps: work.fps, frameCount: work.durationInFrames, events: parseMotionEvents(manifest.events, work.durationInFrames) };
   signal?.throwIfAborted();
   diagnostics.stage("completed");
   if (frameRange) return { kind: "motion_proof", version, frameRange, frameCount, sourceHash,
     sourcePath: relative(snapshot.project.rootPath, join(directory, "source.json")), previewPath: relative(snapshot.project.rootPath, previewPath),
     fullWorkDurationInFrames: work.durationInFrames, scope: "局部同源校样；未登记完整作品素材", determinism: manifest.determinism };
-  const asset = application.completeManagedMotion({ projectId: job.projectId, jobId: job.id, engineVersion: manifest.engineVersion, sourceHash, metadata, eventMap });
+  const asset = application.completeManagedMotion({ projectId: job.projectId, jobId: job.id, engineVersion: manifest.engineVersion, sourceHash, metadata: { ...metadata, hasAlpha: work.compositing !== "opaque" }, eventMap,
+    output: { ...manifest.output, path: relative(snapshot.project.rootPath, outputPath).replaceAll("\\", "/") },
+    ...(previewPath !== outputPath ? { preview: { path: relative(snapshot.project.rootPath, previewPath).replaceAll("\\", "/"), hash: manifest.previewHash } } : {}) });
   const motionDiagnostics = manifest.determinism ? { ...manifest.determinism, reportPath: relative(snapshot.project.rootPath, join(directory, "diagnostics", "report.json")).replaceAll("\\", "/") } : undefined;
-  return { assetId: asset.id, version, videoDecodes: manifest.videoDecodes, sandbox: manifest.sandbox, workReviewRequired: true, sourcePath: asset.motion!.sourcePath, previewPath: asset.managedPath, ...(motionDiagnostics ? { motionDiagnostics } : {}) };
+  return { assetId: asset.id, version, videoDecodes: manifest.videoDecodes, sandbox: manifest.sandbox, workReviewRequired: true, sourcePath: asset.motion!.sourcePath, previewPath: asset.motion!.preview?.path ?? asset.managedPath, output: asset.motion!.output, reused: Boolean(reusable), metrics: manifest.metrics, ...(motionDiagnostics ? { motionDiagnostics } : {}) };
 }

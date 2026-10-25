@@ -1,3 +1,4 @@
+import { readOutputFrame } from "./fixtures/motion-output.js";
 import {motionHtml, frameHtml} from "./fixtures/hyperframes.js";
 import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
@@ -57,7 +58,7 @@ test("正式工具 → 媒体队列 → 派生图片与清单 → 真实绑定 �
       source: motionHtml('<div id="part" style="position:absolute;overflow:hidden"><img id="atlas" data-vfc-image-slot="atlas" style="position:absolute;max-width:none"></div>',`const a=props.layout.parts[0],pg=props.layout.pages[0];Object.assign(document.querySelector('#part').style,{left:a.trimOffset.x+'px',top:a.trimOffset.y+'px',width:a.atlasRect.width+'px',height:a.atlasRect.height+'px'});Object.assign(document.querySelector('#atlas').style,{width:pg.width+'px',height:pg.height+'px',left:-a.atlasRect.x+'px',top:-a.atlasRect.y+'px'});`) }) });
     const rendered = await runMotionJob(app, motion);
     const motionAsset = app.readProject(projectId).snapshot.assets.find(a => a.id === rendered.assetId)!;
-    const frame = PNG.sync.read(await readFile(join(projectRoot, motionAsset.motion!.framesDirectory, "frame-00001.png")));
+    const frame = PNG.sync.read(await readOutputFrame(join(projectRoot, motionAsset.managedPath), 1));
     assert.deepEqual([...frame.data.subarray((32 * 64 + 32) * 4, (32 * 64 + 32) * 4 + 4)], [210, 70, 30, 255]);
     assert.equal(frame.data[(4 * 64 + 4) * 4 + 3], 0);
     await assert.rejects(app.prepareObjectResources({ ...input, idempotency_key: "stale" }), /Revision/);

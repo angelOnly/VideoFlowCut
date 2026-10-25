@@ -1,3 +1,4 @@
+import { completeMotionFixture } from "./fixtures/motion-output.js";
 import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -267,7 +268,7 @@ test("inspect_asset 完整审阅 245 帧受管作品并准确解码末帧，不�
     await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=320x320:rate=24", "-frames:v", "245", "-vf", "drawbox=color=red:t=fill:enable='eq(n,244)'", "-c:v", "libx264", "-pix_fmt", "yuv420p", path]);
     const metadata = await probeMedia(path);
     assert.equal(metadata.durationMs, 10208, "容器毫秒不足以无损表达 245/24 秒");
-    const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: createHash("sha256").update(await readFile(path)).digest("hex"), engineVersion: "fixture", metadata });
+    const asset = completeMotionFixture(app, { projectId, jobId: job.id, sourceHash: createHash("sha256").update(await readFile(path)).digest("hex"), engineVersion: "fixture", metadata });
     const revision = app.readProject(projectId).revision.number;
     const range = await inspectAsset(app, { projectId, assetId: asset.id, mode: "range", sourceStartFrame: 0, sourceEndFrame: 245, contactSheetFrames: 8 });
     const overview = await inspectAsset(app, { projectId, assetId: asset.id, mode: "overview", contactSheetFrames: 3 });

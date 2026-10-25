@@ -1,3 +1,6 @@
+import { createMotionStreamEncoder } from "./motion-stream-encoder.js";
+import type { Asset } from "@videocut/contracts";
+import { stat } from "node:fs/promises";
 import { checkMotionDisplayTexts } from "../../../packages/edit-application/src/source-display-checks.js";
 import type { FrozenSourceDisplay } from "../../../packages/contracts/src/source-display-policy.js";
 import { MotionDiagnostics } from "./motion-diagnostics.js";
@@ -19,7 +22,7 @@ import { runMotionProcess } from "./motion-process.js";
 import { HYPERFRAMES_DEPENDENCIES } from "../../../packages/motion-work/src/hyperframes-contract.js";
 import type { PreparedMotionFont } from "../../../packages/motion-work/src/fonts.js";
 
-export interface MotionRenderResult { frameHashes: string[]; runtimeDependencies?: typeof HYPERFRAMES_DEPENDENCIES; previewPath: string; engineVersion: string; sandbox: string; events?: MotionEvent[]; determinism?: MotionDeterminismReport; }
+export interface MotionRenderResult { metrics?: { captureMs: number; pipeWriteMs: number; encoderFinishMs: number; previewEncodeMs: number; peakWorkerRssBytes: number; outputBytes: number; capturedFrames: number }; frameHashes: string[]; runtimeDependencies?: typeof HYPERFRAMES_DEPENDENCIES; output: NonNullable<NonNullable<Asset["motion"]>["output"]>; previewPath: string; engineVersion: string; sandbox: string; events?: MotionEvent[]; determinism?: MotionDeterminismReport; }
 
 /** 失败关闭也有限时；否则导航已超时却被finally的关闭等待拖住。 */
 export async function closeMotionBrowser(browser: Pick<Browser, "close" | "process">, diagnostics: MotionDiagnostics, timeoutMs = 3000) {
@@ -78,15 +81,16 @@ export async function verifyMotionPreviewFrames(path: string, frameCount: number
  */
 export async function renderManagedMotion(input: MotionSubmission, directory: string, imageData: Record<string, string> = {}, provider?: MotionVideoProvider, signal?: AbortSignal, fonts: PreparedMotionFont[] = [], diagnostics = new MotionDiagnostics({}), frameRange?: MotionFrameRange, sourceDisplay?: FrozenSourceDisplay): Promise<MotionRenderResult> {
   signal?.throwIfAborted();
+  const metrics = { captureMs: 0, pipeWriteMs: 0, encoderFinishMs: 0, previewEncodeMs: 0, peakWorkerRssBytes: process.memoryUsage().rss, outputBytes: 0, capturedFrames: 0 };
   const limits = readRuntimeConfig().motion;
   const startFrame = frameRange?.startFrame ?? 0, endFrame = frameRange?.endFrame ?? input.durationInFrames;
   if (!Number.isInteger(startFrame) || !Number.isInteger(endFrame) || startFrame < 0 || endFrame <= startFrame || endFrame > input.durationInFrames) throw new Error("MOTION_PROOF_RANGE_INVALID");
   const frameCount = endFrame - startFrame;
-  const outputBudget = motionOutputBudget(input.width, input.height, frameCount);
+  const outputBudget = motionOutputBudget(input.width, input.height, frameCount, input.compositing, input.fps);
   await mkdir(join(directory, "frames"), { recursive: true });
-  await provider?.reserveDiskSpace(outputBudget * 2 + provider.workingSetBytes);
+  await provider?.reserveDiskSpace(outputBudget + provider.workingSetBytes);
   const disk = await statfs(directory);
-  checkMotionDiskSpace(disk.bavail * disk.bsize, outputBudget, outputBudget + (provider?.workingSetBytes ?? 0));
+  checkMotionDiskSpace(disk.bavail * disk.bsize, outputBudget, (provider?.workingSetBytes ?? 0));
   const declarations = Object.entries(input.fontBindings ?? {});
   if (declarations.length !== fonts.length || fonts.some(font => input.fontBindings?.[font.binding.slot] !== font.binding.fontId)
     || new Set(fonts.map(font => font.binding.slot)).size !== fonts.length) throw new Error("MOTION_FONT_BINDING_MISMATCH");
@@ -110,16 +114,19 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
   });
   diagnostics.browser({ browserPid: browser.process()?.pid });
   browser.on("disconnected", () => { diagnostics.browser({ browserDisconnected: true }); diagnostics.event("browser_disconnected"); });
-  const process = browser.process();
-  process?.stderr?.on("data", chunk => diagnostics.browserStderr(String(chunk)));
-  process?.on("error", error => diagnostics.additional(error, "browser_process"));
-  process?.on("exit", (code, signal) => { diagnostics.browser({ browserExitCode: code, browserExitSignal: signal }); diagnostics.event("browser_exit", { code, signal }); });
+  const browserProcess = browser.process();
+  browserProcess?.stderr?.on("data", chunk => diagnostics.browserStderr(String(chunk)));
+  browserProcess?.on("error", error => diagnostics.additional(error, "browser_process"));
+  browserProcess?.on("exit", (code, signal) => { diagnostics.browser({ browserExitCode: code, browserExitSignal: signal }); diagnostics.event("browser_exit", { code, signal }); });
   const forbiddenFlags = browser.process()?.spawnargs.filter((arg) => /--(?:no-sandbox|disable-setuid-sandbox|disable-web-security|single-process)/u.test(arg)) ?? [];
 
   const abort = () => { diagnostics.terminate("cancelled"); browser.process()?.kill(); };
   signal?.addEventListener("abort", abort, { once: true });
   if (signal?.aborted) abort();
   const errors: string[] = [];
+  const outputPath = join(directory, input.compositing === "opaque" ? "output.mp4" : "output.mkv");
+  let encoder: ReturnType<typeof createMotionStreamEncoder> | undefined;
+  let complete = false;
   try {
     diagnostics.browser({ browserVersion: await browser.version() });
     if (forbiddenFlags.length) throw new Error("MOTION_SANDBOX_DISABLED: 拒绝在降级的浏览器安全模式下执行代码");
@@ -162,7 +169,7 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
     const rawEvents = await readEvents();
     const events = rawEvents === null ? undefined : parseMotionEvents(rawEvents, input.durationInFrames);
     const frameHashes: string[] = [];
-    let totalBytes = 0;
+    const samples = new Set([startFrame, startFrame + Math.floor(frameCount / 2), endFrame - 1]);
     const capture = async (frame: number) => {
       signal?.throwIfAborted();
       allowedFrame = frame;
@@ -197,35 +204,55 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
         ]);
       } finally { if (timer) clearTimeout(timer); }
     };
+    encoder = createMotionStreamEncoder(input, outputPath, signal);
     diagnostics.stage("frame_rendering");
     for (let frame = startFrame; frame < endFrame; frame++) {
+      const captureAt = Date.now();
       const png = await capture(frame);
-      totalBytes += png.length;
-      checkMotionOutputBudget(totalBytes, outputBudget);
+      metrics.captureMs += Date.now() - captureAt; metrics.capturedFrames++;
+      metrics.peakWorkerRssBytes = Math.max(metrics.peakWorkerRssBytes, process.memoryUsage().rss);
+      if (input.compositing === "opaque") {
+        const pixels = PNG.sync.read(png).data;
+        for (let i = 3; i < pixels.length; i += 4) if (pixels[i] !== 255) throw new Error(`MOTION_OPACITY_MISMATCH: 第 ${frame} 帧含透明像素，请按实际用途提交 alpha`);
+      }
+      const pipeAt = Date.now();
+      await encoder.write(png);
+      metrics.pipeWriteMs += Date.now() - pipeAt;
       frameHashes.push(createHash("sha256").update(png).digest("hex"));
       diagnostics.frame(frame, "frame_write");
-      await writeFile(join(directory, "frames", motionFrameName(frame)), png, { flag: "wx" });
+      if (samples.has(frame)) await writeFile(join(directory, "frames", motionFrameName(frame)), png, { flag: "wx" });
       diagnostics.progress(frame);
       await provider?.releaseBefore(frame + 1);
       if (frame % input.fps === 0) {
+        checkMotionOutputBudget((await stat(outputPath).catch(() => ({ size: 0 }))).size, outputBudget);
         const available = await statfs(directory);
         if (available.bavail * available.bsize < limits.diskReserveBytes) throw new Error("MOTION_DISK_SPACE: 渲染中磁盘安全余量不足");
       }
     }
+    const finishAt = Date.now();
+    await encoder.finish();
+    metrics.encoderFinishMs = Date.now() - finishAt;
+    metrics.outputBytes = (await stat(outputPath)).size;
     diagnostics.stage("determinism_verification");
     const determinism = await verifyMotionDeterminism(directory, frameHashes, capture, startFrame);
     if (JSON.stringify(await readEvents()) !== JSON.stringify(rawEvents)) throw new Error("MOTION_EVENT_NONDETERMINISTIC: 事件计算依赖渲染副作用");
     diagnostics.terminate("normal_cleanup");
     await closeMotionBrowser(browser, diagnostics);
-    const previewPath = join(directory, "preview.mp4");
-    // 只有审阅代理使用背景；正式合成始终读取带 Alpha 的 PNG 帧，不烧入棋盘格或安全区。
-    // 输入已是同格式 RGBA；不能禁用滤镜重建后假设 format 滤镜会修正 RGB/RGBA 的步长。
-    diagnostics.stage("preview_encoding");
-    await runMotionProcess("ffmpeg", ["-y", "-v", "error", "-progress", "pipe:1", "-framerate", String(input.fps), "-start_number", String(startFrame), "-i", join(directory, "frames", "frame-%05d.png"), "-f", "lavfi", "-i", `color=c=0x172033:s=${input.width}x${input.height}:r=${input.fps}`, "-filter_complex", "[0:v]format=rgba[fg];[1:v][fg]overlay=shortest=1:format=auto,format=yuv420p", "-frames:v", String(frameCount), "-an", "-c:v", "libx264", "-crf", "18", previewPath], signal, 120_000, diagnostics);
-    await readFile(previewPath); // ffmpeg 返回成功还必须有真实输出。
+    const previewPath = input.compositing === "opaque" ? outputPath : join(directory, "preview.mp4");
+    const previewAt = Date.now();
+    if (input.compositing !== "opaque") {
+      diagnostics.stage("preview_encoding");
+      await runMotionProcess("ffmpeg", ["-y", "-v", "error", "-progress", "pipe:1", "-i", outputPath, "-f", "lavfi", "-i", `color=c=0x172033:s=${input.width}x${input.height}:r=${input.fps}`, "-filter_complex", `[0:v]fps=${input.fps}:round=near[fg];[1:v][fg]overlay=shortest=1:format=auto,format=yuv420p`, "-frames:v", String(frameCount), "-an", "-c:v", "libx264", "-crf", "18", previewPath], signal, 30 * 60_000, diagnostics);
+    }
+    metrics.previewEncodeMs = Date.now() - previewAt;
+    checkMotionOutputBudget(metrics.outputBytes + (previewPath === outputPath ? 0 : (await stat(previewPath)).size), outputBudget);
     diagnostics.stage("output_validation");
-    await verifyMotionPreviewFrames(previewPath, frameCount, input.fps);
-    return { frameHashes, previewPath, runtimeDependencies: HYPERFRAMES_DEPENDENCIES, engineVersion: MOTION_ENGINE_VERSION, sandbox: "chromium-os-sandbox+csp-opaque-origin+deny-network", events, determinism };
+    await verifyMotionPreviewFrames(outputPath, frameCount, input.fps);
+    if (previewPath !== outputPath) await verifyMotionPreviewFrames(previewPath, frameCount, input.fps);
+    const output = { kind: input.compositing === "opaque" ? "opaque_video" as const : "alpha_video" as const, path: outputPath,
+      hash: await import("../../../packages/edit-application/src/media-intelligence.js").then(m => m.hashMediaFile(outputPath)), codec: input.compositing === "opaque" ? "h264" : "ffv1", pixelFormat: input.compositing === "opaque" ? "yuv420p" : "bgra" };
+    complete = true;
+    return { metrics, frameHashes, output, previewPath, runtimeDependencies: HYPERFRAMES_DEPENDENCIES, engineVersion: MOTION_ENGINE_VERSION, sandbox: "chromium-os-sandbox+csp-opaque-origin+deny-network", events, determinism };
   } catch (error) {
     // 清理和页面附加错误不能抹掉第一条异常与原始堆栈。
     diagnostics.additional(error, "render_first_failure");
@@ -233,6 +260,7 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
     if (errors.length) throw new Error([...errors.slice(0, 3), error instanceof Error ? error.message : String(error)].join("; "), { cause: error });
     throw error;
   } finally {
+    if (encoder && !complete) await encoder.cancel();
     signal?.removeEventListener("abort", abort);
     if (!diagnostics.summary().terminationRequestedBy) diagnostics.terminate("failure_cleanup");
     await closeMotionBrowser(browser, diagnostics);

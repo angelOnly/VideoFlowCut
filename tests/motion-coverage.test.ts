@@ -1,3 +1,4 @@
+import { completeMotionFixture } from "./fixtures/motion-output.js";
 import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { mkdtemp, rm, mkdir } from "node:fs/promises";
@@ -30,7 +31,7 @@ async function fixture() {
     snapshot.timeline.items.push(item);
   });
   const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "work", work: sizeMotionFixture({ ...motionFixture, reference: undefined }) });
-  const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture", metadata: { durationMs: 600, width: 320, height: 320, fps: 30, hasAudio: false } });
+  const asset = completeMotionFixture(app, { projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture", metadata: { durationMs: 600, width: 320, height: 320, fps: 30, hasAudio: false } });
   await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "仅测试版本传播与覆盖，不将结构断言作为真实作品审美通过。" });
   const placement = { projectId, sceneId, type: "ManagedMotion" as const, layer: "front" as const, startFrame: 10, endFrame: 28,
     semanticAnchor: { type: "narrative_beat" as const, targetId: "a", relation: "land_on" as const }, assetBindings: [{ slot: "motion", assetId: asset.id }] };

@@ -1,6 +1,8 @@
+import { compositeTimeline } from "./ffmpeg-compositor.js";
+import { buildRenderPlan } from "./render-plan.js";
+import { MotionFrameCache } from "../../../packages/media-intelligence/src/motion-frames.js";
 import { checkFrozenExplainerSourceDisplay } from "../../../packages/edit-application/src/source-display-checks.js";
 import { inspectFinalAudio } from "../../../packages/media-intelligence/src/acoustics.js";
-import { applyFinalAudioMixGain } from "./audio-mix-gain.js";
 import { hashMediaFile } from "../../../packages/edit-application/src/media-intelligence.js";
 import "../../../plugins/videoflowcut/scripts/background-processes.mjs";
 import { createHash } from "node:crypto";
@@ -10,7 +12,7 @@ import { createServer, type Server } from "node:http";
 import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { bundle } from "@remotion/bundler";
-import { openBrowser, renderMedia, selectComposition } from "@remotion/renderer";
+import { openBrowser, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { resolveRenderBrowser } from "../../../packages/remotion-runtime/src/browser.js";
 export { resolveRenderBrowser } from "../../../packages/remotion-runtime/src/browser.js";
 import { withRenderNavigationRecovery } from "./navigation-recovery.js";
@@ -102,10 +104,18 @@ export async function startProjectMediaServer(snapshot: ProjectSnapshot): Promis
   const projectRoot = resolve(snapshot.project.rootPath);
   const expectedPrefix = `/media/${encodeURIComponent(snapshot.project.id)}/`;
   const activeStreams = new Set<ReadStream>();
+  const motionFrames = new MotionFrameCache();
   let closing = false;
   const server = createServer(async (request, response) => {
     try {
       const requestUrl = new URL(request.url ?? "/", "http://127.0.0.1");
+      const frameMatch = /^\/motion-frame\/([^/]+)\/([^/]+)\/([a-f0-9]{64})\/(\d+)\.png$/u.exec(requestUrl.pathname);
+      if (frameMatch) {
+        const asset = snapshot.assets.find(entry => entry.id === decodeURIComponent(frameMatch[2]!));
+        if (decodeURIComponent(frameMatch[1]!) !== snapshot.project.id || !asset) { response.writeHead(404).end(); return; }
+        const bytes = await motionFrames.get(projectRoot, asset, frameMatch[3]!, Number(frameMatch[4]));
+        response.writeHead(200, { "Content-Type": "image/png", "Content-Length": bytes.length }).end(bytes); return;
+      }
       const fontMatch = /^\/api\/motion\/fonts\/([a-z][a-z0-9-]{0,79})\/file$/u.exec(requestUrl.pathname);
       if (fontMatch) {
         // 离线合成与工作台读取同一登记原件，固定 hash 不允许字体目录更新后偷偷换字形。
@@ -170,6 +180,7 @@ export async function startProjectMediaServer(snapshot: ProjectSnapshot): Promis
     mediaBaseUrl: `http://127.0.0.1:${address.port}`,
     close: async () => {
       closing = true;
+      motionFrames.clear();
       // 不等待已暂停的 Range 消费者；Render 生命周期结束须收回全部连接和句柄。
       const closed = closeServer(server);
       const streams = [...activeStreams];
@@ -214,6 +225,12 @@ export async function verifyMotionFrameCaches(snapshot: ProjectSnapshot): Promis
   if (proxyItem) throw new DomainError("受管作品的审阅代理不能作为普通视频放入时间线，请使用 ManagedMotion EffectCue", "MOTION_PROXY_NOT_RENDERABLE");
   for (const asset of snapshot.assets.filter((entry) => entry.motion && used.has(entry.id))) {
     const motion = asset.motion!;
+    if (motion.output) {
+      if (motion.output.path !== asset.managedPath || motion.output.hash !== asset.sourceHash) throw new DomainError("正式媒体绑定不一致", "MOTION_CACHE_CORRUPT");
+      await validateOutputFrameRate(resolveManagedAssetPath(snapshot, motion.output.path), motion.fps, motion.frameCount);
+      continue;
+    }
+    if (!motion.framesDirectory) throw new DomainError("作品没有正式媒体或历史帧目录", "MOTION_CACHE_CORRUPT");
     const manifestPath = resolveManagedAssetPath(snapshot, `${motion.framesDirectory}/../manifest.json`);
     const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as { version: string; engineVersion: string; frameHashes: string[] };
     if (manifest.version !== motion.version || manifest.engineVersion !== motion.engineVersion || !Array.isArray(manifest.frameHashes) || manifest.frameHashes.length !== motion.frameCount) throw new DomainError("作品帧缓存版本不一致", "MOTION_CACHE_CORRUPT");
@@ -285,7 +302,7 @@ function isolatedExplainerScenePreviewCache(
     sceneId: scene.id,
     localFromFrame,
     localToFrame,
-    relativePath: join("cache", "explainer-scenes", program.cacheKey, `range-${localFromFrame}-${localToFrame}-gain-${snapshot.audioMixGainDb ?? 0}.mp4`)
+    relativePath: join("cache", "explainer-scenes", program.cacheKey, `range-${localFromFrame}-${localToFrame}-${buildRenderPlan(snapshot, fromFrame, toFrame).spans.map(s=>s.cacheKey).join("-")}-gain-${snapshot.audioMixGainDb ?? 0}.mp4`)
   };
 }
 
@@ -455,10 +472,9 @@ export class RevisionRenderer implements RevisionRenderEngine {
     this.concurrency = concurrency;
   }
 
-  /** 冷启动打包会占用 Node 事件循环，必须在接收正式 Job、宣告 API 就绪之前完成。 */
+  /** 线程就绪不等于需要浏览器；具体依赖在首次使用时准备。 */
   async prepare(): Promise<void> {
-    await verifyRenderBrowserReady();
-    await this.getBundle();
+    // 浏览器仅在特殊局部或字幕字形栅格化时初始化；纯媒体任务不预热。
   }
 
   private getBundle(): Promise<string> {
@@ -486,43 +502,26 @@ export class RevisionRenderer implements RevisionRenderEngine {
   }
 
   async render(snapshot: ProjectSnapshot, targetPath: string): Promise<void> {
-    return withRenderNavigationRecovery(() => this.renderOnce(snapshot, targetPath));
+    return this.renderRange(snapshot, 0, snapshot.timeline.durationInFrames, targetPath);
   }
 
-  private async renderOnce(snapshot: ProjectSnapshot, targetPath: string): Promise<void> {
+  async renderRange(snapshot: ProjectSnapshot, fromFrame: number, toFrame: number, targetPath: string): Promise<void> {
     await verifySourceFiles(snapshot);
     await verifyMotionFrameCaches(snapshot);
-    const mediaServer = await startProjectMediaServer(snapshot);
-    try {
-      const browserExecutable = await resolveRenderBrowser();
-      const serveUrl = await this.getBundle();
-      const inputProps = { snapshot, mediaBaseUrl: mediaServer.mediaBaseUrl };
-      const composition = await selectComposition({ serveUrl, id: "videocut-project", inputProps, browserExecutable, logLevel: "error" });
-      await renderMedia({
-        browserExecutable,
-        composition,
-        serveUrl,
-        codec: "h264",
-        inputProps,
-        outputLocation: targetPath,
-        overwrite: true,
-        crf: 20,
-        x264Preset: "veryfast",
-        audioCodec: "aac",
-        enforceAudioTrack: true,
-        concurrency: this.concurrency,
-        timeoutInMilliseconds: 30 * 60_000,
-        logLevel: "error"
-      });
-      await applyFinalAudioMixGain(snapshot, targetPath);
-    } finally {
-      await mediaServer.close();
-    }
+    await compositeTimeline(snapshot, targetPath, {
+      browserRange: (state, from, to, path) => withRenderNavigationRecovery(() => this.renderRangeOnce(state, from, to, path)),
+      caption: (state, frame, path) => this.renderCaption(state, frame, path)
+    }, fromFrame, toFrame);
   }
 
-  /** 局部预览仍从完整 Composition 的全局帧坐标渲染，避免把 Cue 和字幕错误地从第 0 帧重算。 */
-  async renderRange(snapshot: ProjectSnapshot, fromFrame: number, toFrame: number, targetPath: string): Promise<void> {
-    return withRenderNavigationRecovery(() => this.renderRangeOnce(snapshot, fromFrame, toFrame, targetPath));
+  private async renderCaption(snapshot: ProjectSnapshot, frame: number, path: string): Promise<void> {
+    const mediaServer = await startProjectMediaServer(snapshot);
+    try {
+      const browserExecutable = await resolveRenderBrowser(), serveUrl = await this.getBundle();
+      const inputProps = { snapshot, mediaBaseUrl: mediaServer.mediaBaseUrl, captionsOnly: true };
+      const composition = await selectComposition({ serveUrl, id: "videocut-project", inputProps, browserExecutable, logLevel: "error" });
+      await renderStill({ composition, serveUrl, browserExecutable, inputProps, frame, imageFormat: "png", output: path, logLevel: "error" });
+    } finally { await mediaServer.close(); }
   }
 
   private async renderRangeOnce(snapshot: ProjectSnapshot, fromFrame: number, toFrame: number, targetPath: string): Promise<void> {
@@ -546,15 +545,18 @@ export class RevisionRenderer implements RevisionRenderEngine {
         outputLocation: targetPath,
         overwrite: true,
         frameRange: [fromFrame, toFrame - 1],
-        crf: 20,
+        // 局部完整视觉段还会参加最终编码，使用 PNG 捕获与近无损 4:4:4 中间片。
+        imageFormat: "png",
+        crf: 1,
+        pixelFormat: "yuv444p",
         x264Preset: "veryfast",
         audioCodec: "aac",
-        enforceAudioTrack: true,
+        muted: true,
         concurrency: this.concurrency,
         timeoutInMilliseconds: 30 * 60_000,
         logLevel: "error"
       });
-      await applyFinalAudioMixGain(snapshot, targetPath);
+
     } finally {
       await mediaServer.close();
     }
@@ -625,7 +627,8 @@ export async function runExportJob(
       purpose: existingArtifact.purpose,
       path: existingPath,
       relativePath: existingArtifact.relativePath,
-      renderer: "remotion",
+      renderer: existingArtifact.renderer,
+      renderReportPath: existingArtifact.renderReportPath,
       preflight: existingArtifact.preflight,
       validation: existingArtifact.validation,
       sourceManifest: existingArtifact.sourceManifest,
@@ -649,8 +652,9 @@ export async function runExportJob(
   } catch (renderError) {
     const reason = renderError instanceof Error ? renderError.message : String(renderError);
     await rm(temporaryPath, { force: true }).catch(() => undefined);
-    // 正式交付只能来自完整 Remotion Composition；不能把缺少字幕、动效与 Dialogue 的 A-roll 当成功。
-    throw new DomainError(`Remotion 正式导出失败，未生成可交付文件：${reason}`, "REMOTION_EXPORT_FAILED");
+    await rm(`${temporaryPath}.render-plan.json`, { force: true }).catch(() => undefined);
+    // 正式交付必须完成整个执行计划；失败不能只交底层视频。
+    throw new DomainError(`时间线正式导出失败，未生成可交付文件：${reason}`, "TIMELINE_EXPORT_FAILED");
   }
   try {
     const expectedDurationMs = Math.round((revision.snapshot.timeline.durationInFrames / revision.snapshot.timeline.fps) * 1000);
@@ -663,6 +667,9 @@ export async function runExportJob(
     if (audiblePlanned && validation.audio?.truePeakDbfs === null) throw new DomainError("成片计划有声音但实际混音无有效信号", "EXPORT_AUDIO_MISSING");
     if (purpose === "delivery" && target && (validation.audio?.integratedLufs == null || validation.audio.truePeakDbfs == null || Math.abs(validation.audio.integratedLufs - target.targetLufs) > target.toleranceLu || validation.audio.truePeakDbfs > target.maxTruePeakDbfs)) throw new DomainError("实际响度或 true peak 未达到当前项目输出目标；请在混音中调整并重新预览", "EXPORT_AUDIO_TARGET_FAILED");
     await rename(temporaryPath, targetPath);
+    const reportPath = `${targetPath}.render-plan.json`;
+    const hasReport = existsSync(`${temporaryPath}.render-plan.json`);
+    if (hasReport) await rename(`${temporaryPath}.render-plan.json`, reportPath);
     const file = await stat(targetPath);
     const manifest = buildSourceManifest(revision.snapshot, artifactId);
     try {
@@ -674,6 +681,7 @@ export async function runExportJob(
         jobId: job.id,
         purpose,
         relativePath,
+        ...(hasReport ? { renderer: buildRenderPlan(revision.snapshot).renderer, renderReportPath: relative(revision.snapshot.project.rootPath, reportPath) } : {}),
         fileHash: await sha256File(targetPath),
         fileSizeBytes: file.size,
         preflight,
@@ -688,7 +696,8 @@ export async function runExportJob(
         purpose,
         path: targetPath,
         relativePath,
-        renderer: "remotion",
+        renderer: artifact.renderer,
+        renderReportPath: artifact.renderReportPath,
         preflight,
         validation,
         sourceManifest: manifest,
@@ -697,11 +706,15 @@ export async function runExportJob(
     } catch (error) {
       // 路径带有新的 Artifact ID，清理失败提交的候选不会影响任何历史交付文件。
       await rm(targetPath, { force: true }).catch(() => undefined);
+      await rm(`${targetPath}.render-plan.json`, { force: true }).catch(() => undefined);
       await rm(join(revision.snapshot.project.rootPath, manifest.relativePath), { force: true }).catch(() => undefined);
       throw error;
     }
   } catch (error) {
     await rm(temporaryPath, { force: true }).catch(() => undefined);
+    await rm(`${temporaryPath}.render-plan.json`, { force: true }).catch(() => undefined);
+    await rm(targetPath, { force: true }).catch(() => undefined);
+    await rm(`${targetPath}.render-plan.json`, { force: true }).catch(() => undefined);
     throw error;
   }
 }
@@ -744,6 +757,7 @@ export async function runPreviewJob(
   if (cachePath && await isValidScenePreviewCache(cachePath, expectedDurationMs)) {
     // 缓存永远只是可重建的优化：复制到当前 Revision 的 Preview 位置，保留 Revision 级证据边界。
     await copyFile(cachePath, targetPath);
+    if (existsSync(`${cachePath}.render-plan.json`)) await copyFile(`${cachePath}.render-plan.json`, `${targetPath}.render-plan.json`);
     cacheHit = true;
   } else {
     if (cachePath) await rm(cachePath, { force: true }).catch(() => undefined);
@@ -754,10 +768,17 @@ export async function runPreviewJob(
       if (cachePath) {
         // 同一 Key 的并发渲染只会产生相同输入的可替换优化文件；正式证据仍是 targetPath。
         await rename(renderTarget, cachePath);
+        if (existsSync(`${renderTarget}.render-plan.json`)) {
+          await rename(`${renderTarget}.render-plan.json`, `${cachePath}.render-plan.json`);
+          await copyFile(`${cachePath}.render-plan.json`, `${targetPath}.render-plan.json`);
+        }
         await copyFile(cachePath, targetPath);
       }
     } catch (error) {
-      if (cachePath) await rm(renderTarget, { force: true }).catch(() => undefined);
+      if (cachePath) {
+        await rm(renderTarget, { force: true }).catch(() => undefined);
+        await rm(`${renderTarget}.render-plan.json`, { force: true }).catch(() => undefined);
+      }
       throw error;
     }
   }
@@ -773,6 +794,8 @@ export async function runPreviewJob(
     path: targetPath,
     relativePath,
     durationMs: metadata.durationMs,
+    ...(existsSync(`${targetPath}.render-plan.json`) ? { renderer: buildRenderPlan(revision.snapshot, fromFrame, toFrame).renderer } : {}),
+    ...(existsSync(`${targetPath}.render-plan.json`) ? { renderReportPath: `${relativePath}.render-plan.json` } : {}),
     ...frameRate,
     hasAudio: metadata.hasAudio,
     audio: metadata.hasAudio ? await inspectFinalAudio(targetPath) : undefined,

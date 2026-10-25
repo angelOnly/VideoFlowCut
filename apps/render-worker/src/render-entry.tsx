@@ -4,7 +4,7 @@ import { z } from "zod";
 import { ProjectComposition, type CompositionProps } from "../../../packages/remotion-runtime/src/index";
 
 const compositionId = "videocut-project";
-const renderPropsSchema = z.object({ snapshot: z.any(), mediaBaseUrl: z.string() });
+const renderPropsSchema = z.object({ snapshot: z.any(), mediaBaseUrl: z.string(), captionsOnly: z.boolean().optional() });
 type RenderCompositionProps = CompositionProps & Record<string, unknown>;
 
 const RenderRoot: React.FC = () => (

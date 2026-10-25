@@ -13,11 +13,11 @@ export function MotionLibraryPanel({ snapshot, onSelectAsset }: { snapshot: Proj
     </div>
     {works.map((asset) => <article key={asset.id} style={{ marginTop: 16 }}>
       <strong>{asset.name}</strong> <small>{asset.motion!.version.slice(0, 8)} · {managedMotionReviewOutcome(asset.motion) === "passed" ? "作品通过，合成待审" : managedMotionReviewOutcome(asset.motion) === "failed" ? "作品未通过，需修改" : "待动态审阅"}</small>
-      <video aria-label={`${asset.name}审阅预览`} controls preload="metadata" style={{ width: "100%", maxHeight: 230, marginTop: 8 }} src={`${API_BASE}/media/${encodeURIComponent(snapshot.project.id)}/${asset.managedPath.split(/[\\/]/u).map(encodeURIComponent).join("/")}`} />
+      <video aria-label={`${asset.name}审阅预览`} controls preload="metadata" style={{ width: "100%", maxHeight: 230, marginTop: 8 }} src={`${API_BASE}/media/${encodeURIComponent(snapshot.project.id)}/${(asset.motion?.preview?.path ?? asset.managedPath).split(/[\\/]/u).map(encodeURIComponent).join("/")}`} />
       <button onClick={() => onSelectAsset(asset.id)}>查看作品素材</button>
       {asset.motion!.creativeBrief && <p>{asset.motion!.creativeBrief}</p>}
       {asset.motion!.referenceUrl && <a href={asset.motion!.referenceUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#c2b7ff" }}>查看选中的在线参考 ↗</a>}
-      <small style={{ display: "block" }}>此处为带背景的审阅代理；正式叠加使用透明帧。修改文案由 Codex 提交新版本，不覆盖旧版。</small>
+      <small style={{ display: "block" }}>此处播放作品审阅版本；透明叠加在时间线中查看。修改文案由 Codex 提交新版本，不覆盖旧版。</small>
     </article>)}
   </section>;
 }

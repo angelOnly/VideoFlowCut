@@ -1,6 +1,6 @@
 /** 作者、提交校验与 Worker 共用的 HTML 合同；变更运行依赖必须升级作品身份。 */
 export const HYPERFRAMES_DEPENDENCIES = { hyperframes: "0.8.1", gsap: "3.14.2" } as const;
-export const MOTION_ENGINE_VERSION = "managed-hyperframes-1";
+export const MOTION_ENGINE_VERSION = "managed-hyperframes-2";
 export const MOTION_SOURCE_MAX_LENGTH = 2_000_000;
 export const IMAGE_SLOT_ATTRIBUTE = "data-vfc-image-slot";
 export const VIDEO_SLOT_ATTRIBUTE = "data-vfc-video-slot";
@@ -14,5 +14,6 @@ export const hyperframesContract = {
   videos: { attribute: VIDEO_SLOT_ATTRIBUTE, clock: "work_root", usage: "稳定 id 的 img 使用视频槽；平台注入 data-start/data-duration 与根帧图像，正常速度静音，显隐和变换不重置源时间；不得自改 src 或绑定范围。" },
   fonts: { css: "--vfc-font-<slot>", usage: "font-family:var(--vfc-font-title)；实际 family/weight/style 也见 vfc.fonts[slot]。所有字形测量在作者脚本执行时进行。" },
   events: "可选 window.getVfcMotionEvents() 返回原事件条目 {id,meaning,startFrame,endFrame?}；从动画共用时序计算，帧坐标以作品根时钟为准。",
-  rendering: "HyperFrames renderSeek 按根秒求值，再注入视频帧、检查实际 DOM、等待绘制并保存透明 RGBA PNG。局部校样保留完整时钟；声音与普通字幕沿外层正式链路。",
+  outputs: { compositing: ["opaque", "alpha"], opaque: "H.264/MP4", alpha: "FFV1/BGRA/Matroska", renderedAssetId: "仅采用已登记且 pixelKey 相同的正式作品；说明变化复用画面。" },
+  rendering: "HyperFrames renderSeek 按根秒求值，再注入视频帧、检查实际 DOM、等待绘制并将 PNG Buffer 流式编码到正式媒体。局部校样保留完整时钟；声音与普通字幕沿外层正式链路。",
 } as const;

@@ -62,7 +62,7 @@ test("真实动画任务保留JPEG原件及固定PNG缓存，派生图损坏必�
         source: motionHtml('<img data-vfc-image-slot="photo" style="width:96px;height:64px">') }) });
     const result = await runMotionJob(app, job);
     const asset = app.readProject(projectId).snapshot.assets.find(item => item.id === result.assetId)!;
-    const directory = join(projectRoot, asset.motion!.framesDirectory, "..");
+    const directory = join(projectRoot, asset.motion!.sourcePath, "..");
     const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8"));
     assert.equal(manifest.imageDecodes.length, 1);
     const decoded = manifest.imageDecodes[0];

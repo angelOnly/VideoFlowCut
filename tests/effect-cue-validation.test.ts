@@ -1,3 +1,4 @@
+import { completeMotionFixture } from "./fixtures/motion-output.js";
 import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -33,7 +34,7 @@ test("真实MCP拒绝跨Scene整件作品且不写入，原作者改为完整承
     snapshot.scenes.find(scene => scene.id === hostId)!.narrativeBeatIds = beatIds;
   });
   const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "fixture", work: sizeMotionFixture({ ...motionFixture, durationInFrames: 1784 }) });
-  const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: "fixture-only", engineVersion: "fixture-only",
+  const asset = completeMotionFixture(app, { projectId, jobId: job.id, sourceHash: "fixture-only", engineVersion: "fixture-only",
     metadata: { durationMs: 59467, width: 320, height: 320, fps: 30, hasAudio: false } });
   const transport = new StdioClientTransport({ command: process.execPath,
     args: process.env.VFC_CUE_MCP_ENTRY ? [process.env.VFC_CUE_MCP_ENTRY] : ["--import", "tsx", "apps/server/src/mcp.ts"],

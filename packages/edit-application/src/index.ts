@@ -32,7 +32,7 @@ import type { MotionReviewEvidenceInput, MotionReviewOutcome } from "@videocut/c
 import { completionReconciliationBlockers, EDITORIAL_PASSES, evidenceSupportsPass, mergeEditorialReviews, missingReviewRanges, openEditorialFindings, reviewCoverage } from "../../quality-system/src/editorial-review.js";
 import { boundMotionFontSchema, boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema, type MotionSubmission } from "../../motion-work/src/schema.js";
 import { bindMotionFonts } from "../../motion-work/src/fonts.js";
-import { motionHash, motionHashEngine, MOTION_ENGINE_VERSION, validateMotionSource } from "../../motion-work/src/compiler.js";
+import { motionPixelKey, motionHash, motionHashEngine, MOTION_ENGINE_VERSION, validateMotionSource } from "../../motion-work/src/compiler.js";
 import { MotionSourceValidationError } from "../../motion-work/src/source-validation-error.js";
 import { MotionSubmissionValidationError } from "./motion-submission-validation.js";
 import { assertEffectCueRange } from "./effect-cue-validation.js";
@@ -2521,7 +2521,11 @@ export class EditingApplication {
     }));
     const boundFonts = bindMotionFonts(work);
     const version = motionHash(work, boundImages, MOTION_ENGINE_VERSION, boundVideos, boundFonts, sourceDisplay);
-    const job = this.repository.createJob({ projectId: input.projectId, kind: "motion_generation", payload: { work, version, ...(frameRange ? { frameRange } : {}), sourceDisplay, sourceDisplayWarnings, engineVersion: MOTION_ENGINE_VERSION, requestedRevision: input.baseRevision, boundImages, ...(boundVideos.length ? { boundVideos } : {}), ...(boundFonts.length ? { boundFonts } : {}) }, idempotencyKey: `motion:${input.idempotencyKey}` });
+    const pixelKey = motionPixelKey(work, boundImages, boundVideos, boundFonts);
+    const reusable = current.snapshot.assets.find(asset => asset.status === "ready" && asset.motion?.output && asset.motion.pixelKey === pixelKey
+      && (!work.renderedAssetId || asset.id === work.renderedAssetId));
+    if (work.renderedAssetId && (!reusable || frameRange)) throw new DomainError("所引用媒体没有相同源码、绑定、字体、时钟和编码身份，或当前提交为局部校样", "MOTION_RENDERED_ASSET_MISMATCH");
+    const job = this.repository.createJob({ projectId: input.projectId, kind: "motion_generation", payload: { work, version, pixelKey, ...(reusable && !frameRange ? { reusableAsset: reusable } : {}), ...(frameRange ? { frameRange } : {}), sourceDisplay, sourceDisplayWarnings, engineVersion: MOTION_ENGINE_VERSION, requestedRevision: input.baseRevision, boundImages, ...(boundVideos.length ? { boundVideos } : {}), ...(boundFonts.length ? { boundFonts } : {}) }, idempotencyKey: `motion:${input.idempotencyKey}` });
     this.publish({ projectId: input.projectId, revision: current.revision.number, type: "job" });
     return job;
   }
@@ -2535,7 +2539,7 @@ export class EditingApplication {
   }
 
   /** Worker 可重复完成，但同一任务只登记一个固定版本的作品 Asset。 */
-  completeManagedMotion(input: { projectId: Id; jobId: Id; engineVersion: string; sourceHash: string; metadata: NonNullable<Asset["metadata"]>; eventMap?: NonNullable<Asset["motion"]>["eventMap"] }): Asset {
+  completeManagedMotion(input: { projectId: Id; jobId: Id; engineVersion: string; sourceHash: string; metadata: NonNullable<Asset["metadata"]>; output: NonNullable<NonNullable<Asset["motion"]>["output"]>; preview?: { path: string; hash: string }; eventMap?: NonNullable<Asset["motion"]>["eventMap"] }): Asset {
     const job = this.repository.getJob(input.jobId);
     if (job.projectId !== input.projectId || job.kind !== "motion_generation") throw new DomainError("作品任务不属于当前项目", "MOTION_JOB_NOT_FOUND");
     if (job.payload.frameRange) throw new DomainError("局部校样不能登记为完整作品素材", "MOTION_PROOF_NOT_ASSET");
@@ -2551,15 +2555,18 @@ export class EditingApplication {
     const version = motionHash(work, boundImages, motionHashEngine(work, boundImages, job.payload.version, job.payload.engineVersion, boundVideos, boundFonts, sourceDisplay), boundVideos, boundFonts, sourceDisplay);
     if (version !== job.payload.version) throw new DomainError("作品固定输入已损坏", "MOTION_VERSION_MISMATCH");
     const directory = `assets/derived/motion/${job.id}/${version}`;
+    if (input.output.hash !== input.sourceHash || input.output.kind !== (work.compositing === "opaque" ? "opaque_video" : "alpha_video")
+      || input.output.path !== `${directory}/${work.compositing === "opaque" ? "output.mp4" : "output.mkv"}`
+      || input.metadata.width !== work.width || input.metadata.height !== work.height) throw new DomainError("正式媒体身份、模式或画幅不匹配", "MOTION_OUTPUT_MISMATCH");
     const images = [...boundImages, ...boundVideos];
     let asset!: Asset;
     const state = this.repository.commit(input.projectId, current.revision.number, "登记受管 HyperFrames 作品（待审阅）", (snapshot, impact) => {
       if (this.repository.getJob(job.id).status === "cancelled") throw new DomainError("作品任务已取消，不能登记素材", "MOTION_CANCELLED");
       asset = {
-        id: createId("asset"), name: work.name, kind: "video", status: "ready", managedPath: `${directory}/preview.mp4`, sourceHash: input.sourceHash,
+        id: createId("asset"), name: work.name, kind: "video", status: "ready", managedPath: input.output.path, sourceHash: input.sourceHash,
         role: "generated_visual", tags: ["managed_motion", "work_review_required"], createdAt: now(), metadata: input.metadata,
         provenance: { source: "generated", provider: "managed_hyperframes", generationJobId: job.id, acquiredAt: now() },
-        motion: { jobId: job.id, version, engineVersion: input.engineVersion, previousAssetId: work.previousAssetId, sourceAssetIds: [...new Set(images.map(image => image.assetId))], ...(boundImages.length ? { imageSources: boundImages.map(image => ({ slot: image.slot, assetId: image.assetId, sourceHash: image.hash })) } : {}), ...(boundVideos.length ? { videoSources: boundVideos.map(v => ({ slot: v.slot, assetId: v.assetId, sourceHash: v.hash, sourceStartMs: v.sourceStartMs, sourceEndMs: v.sourceEndMs, startFrame: v.startFrame, endFrame: v.endFrame })) } : {}), ...(boundFonts.length ? { fontSources: boundFonts.map(f => ({ slot: f.slot, fontId: f.fontId, sourceHash: f.hash, weight: f.weight, style: f.style })) } : {}), sourcePath: `${directory}/source.json`, framesDirectory: `${directory}/frames`, frameCount: work.durationInFrames, fps: work.fps, width: work.width, height: work.height, referenceUrl: work.reference?.url, creativeBrief: work.creativeBrief, eventMap: input.eventMap }
+        motion: { jobId: job.id, version, engineVersion: input.engineVersion, previousAssetId: work.previousAssetId, sourceAssetIds: [...new Set(images.map(image => image.assetId))], ...(boundImages.length ? { imageSources: boundImages.map(image => ({ slot: image.slot, assetId: image.assetId, sourceHash: image.hash })) } : {}), ...(boundVideos.length ? { videoSources: boundVideos.map(v => ({ slot: v.slot, assetId: v.assetId, sourceHash: v.hash, sourceStartMs: v.sourceStartMs, sourceEndMs: v.sourceEndMs, startFrame: v.startFrame, endFrame: v.endFrame })) } : {}), ...(boundFonts.length ? { fontSources: boundFonts.map(f => ({ slot: f.slot, fontId: f.fontId, sourceHash: f.hash, weight: f.weight, style: f.style })) } : {}), sourcePath: `${directory}/source.json`, output: input.output, preview: input.preview, pixelKey: String(job.payload.pixelKey), frameCount: work.durationInFrames, fps: work.fps, width: work.width, height: work.height, referenceUrl: work.reference?.url, creativeBrief: work.creativeBrief, eventMap: input.eventMap }
       };
       snapshot.assets.push(asset);
       impact.changed.push(asset.id);

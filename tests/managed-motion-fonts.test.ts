@@ -82,7 +82,7 @@ test("字体缺失、内容变更及目录逃逸明确失败，Worker不换绑�
     const bound = bindMotionFonts(fontWork, root);
     assert.throws(() => prepareMotionFonts(fontWork, bound.map(f => ({ ...f, weight: 500 })), root), /MOTION_FONT_BINDING_MISMATCH/u);
     const version = motionHash(fontWork, [], undefined, [], bound);
-    assert.equal(motionHashEngine(fontWork, [], version, undefined, [], bound), "managed-hyperframes-1");
+    assert.equal(motionHashEngine(fontWork, [], version, undefined, [], bound), "managed-hyperframes-2");
     assert.notEqual(version, motionHash(fontWork, [], undefined, [], bound.map(f => ({ ...f, hash: "0".repeat(64) }))));
     const legacy = motionHash(motionFixture, [], "managed-motion-12");
     assert.throws(() => motionHashEngine(motionFixture, [], legacy, "managed-motion-12"), /MOTION_ENGINE_UPGRADE_REQUIRED/);
@@ -144,7 +144,7 @@ test("新增得意黑与烟波宋TTF共同首帧加载；字形不同、字体�
     const job = app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "request-fonts", work });
     const result = await runMotionJob(app, job);
     const asset = app.readProject(projectId).snapshot.assets.find(a => a.id === result.assetId)!;
-    const directory = join(state.snapshot.project.rootPath, asset.motion!.framesDirectory, "..");
+    const directory = join(state.snapshot.project.rootPath, asset.motion!.sourcePath, "..");
     const bound = bindMotionFonts(work);
     const png = PNG.sync.read(await readFile(join(directory, "frames/frame-00000.png")));
     const rows = [0, 96].map(top => {
@@ -202,7 +202,7 @@ test("中文常规与粗体首帧可见且重复定位稳定，字体副本可�
     const result = await runMotionJob(app, job);
     const asset = app.readProject(projectId).snapshot.assets.find(a => a.id === result.assetId)!;
     assert.equal(asset.motion!.fontSources!.length, 2);
-    const directory = join(state.snapshot.project.rootPath, asset.motion!.framesDirectory, "..");
+    const directory = join(state.snapshot.project.rootPath, asset.motion!.sourcePath, "..");
     const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8"));
     assert.ok(["exact", "tolerated"].includes(manifest.determinism.status));
     assert.deepEqual(manifest.boundFonts, job.payload.boundFonts);

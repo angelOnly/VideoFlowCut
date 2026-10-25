@@ -7312,7 +7312,7 @@
     {
       "name": "submit_motion_work",
       "title": "生成受管 HyperFrames 作品",
-      "description": "可选frame_range只生成同源局部校样：完整源码、Props、绑定与根时钟不变，不创建Asset、不修改Revision；确认后省略frame_range提交完整作品。新作品填写 work.creativeBrief，提交固定源码、Props、图片及视频绑定，排队隔离渲染；不自动放入Timeline。修改作品重新提交并填写previousAssetId。源视频 video 和人物视频 actor_video 均可绑定；选段数量不设固定上限，实际负载受资源校验约束。每槽声明assetId、sourceStartMs、sourceEndMs、startFrame、endFrame及可选decodeScale；源码用带稳定id的img和data-vfc-video-slot显示，object-fit负责取景。平台使用作品根时钟，容器布局与显隐不重置源时间。输出帧数以endFrame-startFrame为准，源范围允许毫秒取整及不足一帧余量；正常速度且静音，原声在声音轨明确编排。源不足、源变化或取帧越界报错，不自动冻结或循环。原片按内容身份共享，不按槽复制；解码缓存按需生成、有界回收，不按原片或累计解码512MB拒绝。完整作品不设30秒、900帧或650000000累计像素帧门槛，由Worker提前检查完整输出及临时工作区真实磁盘需求；失败不登记半件Asset。画布宽高64–1920偶数、fps15–60整数；所有帧连续渲染并验证，一个Job产生一个完整Asset。imageBindings将图片映射到props.assets，使用data-vfc-image-slot或CSS资源变量，不允许任意资源URL。历史作品产物可读；历史引擎重新生成须按新合同提交。技术生成不替代连续审片。",
+      "description": "可选frame_range只生成同源局部校样：完整源码、Props、绑定与根时钟不变，不创建Asset、不修改Revision；确认后省略frame_range提交完整作品。work.compositing 选择 opaque 或 alpha（省略保留透明），正式输出分别为 H.264/MP4 与 FFV1/BGRA/Matroska；renderedAssetId 仅引用同像素身份的已登记正式作品。名称和说明改变不重捕获。新作品填写 work.creativeBrief，提交固定源码、Props、图片及视频绑定，排队隔离渲染；不自动放入Timeline。修改作品重新提交并填写previousAssetId。源视频 video 和人物视频 actor_video 均可绑定；选段数量不设固定上限，实际负载受资源校验约束。每槽声明assetId、sourceStartMs、sourceEndMs、startFrame、endFrame及可选decodeScale；源码用带稳定id的img和data-vfc-video-slot显示，object-fit负责取景。平台使用作品根时钟，容器布局与显隐不重置源时间。输出帧数以endFrame-startFrame为准，源范围允许毫秒取整及不足一帧余量；正常速度且静音，原声在声音轨明确编排。源不足、源变化或取帧越界报错，不自动冻结或循环。原片按内容身份共享，不按槽复制；解码缓存按需生成、有界回收，不按原片或累计解码512MB拒绝。完整作品不设30秒、900帧或650000000累计像素帧门槛，由Worker提前检查完整输出及临时工作区真实磁盘需求；失败不登记半件Asset。画布宽高64–1920偶数、fps15–60整数；所有帧连续渲染并验证，一个Job产生一个完整Asset。imageBindings将图片映射到props.assets，使用data-vfc-image-slot或CSS资源变量，不允许任意资源URL。历史作品产物可读；历史引擎重新生成须按新合同提交。技术生成不替代连续审片。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7331,6 +7331,20 @@
           "work": {
             "type": "object",
             "properties": {
+              "compositing": {
+                "type": "string",
+                "enum": [
+                  "opaque",
+                  "alpha"
+                ],
+                "description": "正式画面用途；省略为保留透明。opaque 会逐帧核查不透明，透明退出须使用 alpha。"
+              },
+              "renderedAssetId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 150,
+                "description": "采用已登记且像素身份完全一致的正式作品媒体；不接受临时路径或未验证的视频。"
+              },
               "name": {
                 "type": "string",
                 "minLength": 1,

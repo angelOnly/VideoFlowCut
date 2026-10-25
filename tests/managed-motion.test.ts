@@ -1,3 +1,4 @@
+import { completeMotionFixture } from "./fixtures/motion-output.js";
 import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import {motionHtml} from "./fixtures/hyperframes.js";
 import { z } from "zod";
@@ -35,7 +36,7 @@ test("原创提交要求创作说明、参考可选，历史幂等重试保持�
     assert.equal((job.payload.work as typeof original).reference, undefined);
     assert.throws(() => app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "new", work: { ...original, creativeBrief: "不同的内容关系与设计" } }), /幂等/u);
     assert.equal(app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "budget", work: { ...original, width: 1920, height: 1080, durationInFrames: 900, source:motionHtml("", "", {width:1920,height:1080,durationInFrames:900}) } }).kind, "motion_generation");
-    const oldAsset = app.completeManagedMotion({ projectId, jobId: legacy.id, sourceHash: "legacy", engineVersion: "legacy", metadata: { durationMs: 600, width: 320, height: 320, hasAudio: false } });
+    const oldAsset = completeMotionFixture(app, { projectId, jobId: legacy.id, sourceHash: "legacy", engineVersion: "legacy", metadata: { durationMs: 600, width: 320, height: 320, hasAudio: false } });
     await assert.rejects(app.reviewManagedMotion({ projectId, baseRevision: app.readProject(projectId).revision.number, assetId: oldAsset.id, outcome: undefined as never, note: "历史作品也必须走相同证据合同，不继承参考记录。" }), /结论无效/u);
     assert.equal(managedMotionReviewOutcome(app.readProject(projectId).snapshot.assets.find(a => a.id === oldAsset.id)!.motion), undefined);
     assert.equal(app.readManagedMotion(projectId, legacy.id).asset!.motion!.creativeBrief, undefined);
@@ -53,7 +54,7 @@ test("新作品审阅验证真实代理、完整范围和版本，旧别名及�
     const path = join(project.snapshot.project.rootPath, `assets/derived/motion/${job.id}/${job.payload.version}/preview.mp4`);
     await mkdir(dirname(path), { recursive: true });
     await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=320x320:r=30", "-frames:v", "18", "-c:v", "libx264", "-pix_fmt", "yuv420p", path]);
-    const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: createHash("sha256").update(await readFile(path)).digest("hex"), engineVersion: "fixture", metadata: await probeMedia(path) });
+    const asset = completeMotionFixture(app, { projectId, jobId: job.id, sourceHash: createHash("sha256").update(await readFile(path)).digest("hex"), engineVersion: "fixture", metadata: await probeMedia(path) });
     const request = () => ({ projectId, baseRevision: revision(), assetId: asset.id, note: "此媒体只验证证据合同的身份与帧范围，不构成实际剪辑审美验收。" });
     const evidence = { kind: "work_proxy" as const, method: "continuous_video" as const, startFrame: 0, endFrame: 18 };
     assert.equal(z.object(motionReviewFields).strict().safeParse({ referenceMatch: "passed", note: request().note }).success, false);
@@ -116,7 +117,7 @@ test("技术生成成功不等于审美通过；更新作品不会覆盖旧版�
     app.repository.commit(projectId, created.revision.number, "设置测试画布", (snapshot) => { Object.assign(snapshot.timeline, { width: 320, height: 320, fps: 30, durationInFrames: 60 }); });
     const revision = () => app.readProject(projectId).revision.number;
     const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "v1", work: motionFixture });
-    const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 600, width: 320, height: 320, fps: 30, videoCodec: "h264", hasAudio: false } });
+    const asset = completeMotionFixture(app, { projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 600, width: 320, height: 320, fps: 30, videoCodec: "h264", hasAudio: false } });
     assert.throws(() => app.assemblePresenterTrack({ projectId, baseRevision: revision(), assetIds: [asset.id] }), /审阅代理/u);
     const sceneState = app.createScene({ projectId, baseRevision: revision(), type: "PresenterScene", title: "隔离测试", purpose: "验证受管作品", startFrame: 0, endFrame: 60 });
     const sceneId = sceneState.snapshot.scenes.at(-1)!.id;
@@ -147,11 +148,11 @@ test("技术生成成功不等于审美通过；更新作品不会覆盖旧版�
     }
     assert.throws(() => app.updateEffectCue({ projectId, baseRevision: revision(), cueId: placed.snapshot.effectCues.at(-1)!.id, endFrame: 39 }), /完整时长/u);
     const v2 = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "v2", work: sizeMotionFixture({ ...motionFixture, previousAssetId: asset.id, props: { text: "重新编辑的内容" } }) });
-    const next = app.completeManagedMotion({ projectId, jobId: v2.id, sourceHash: "fixture-v2", engineVersion: "fixture-only", metadata: asset.metadata! });
+    const next = completeMotionFixture(app, { projectId, jobId: v2.id, sourceHash: "fixture-v2", engineVersion: "fixture-only", metadata: asset.metadata! });
     assert.notEqual(next.id, asset.id);
     assert.equal(next.motion!.previousAssetId, asset.id);
     assert.equal(app.readProject(projectId).snapshot.effectCues.at(-1)!.assetBindings[0].assetId, asset.id);
-    assert.equal(app.completeManagedMotion({ projectId, jobId: v2.id, sourceHash: "fixture-v2", engineVersion: "fixture-only", metadata: asset.metadata! }).id, next.id);
+    assert.equal(completeMotionFixture(app, { projectId, jobId: v2.id, sourceHash: "fixture-v2", engineVersion: "fixture-only", metadata: asset.metadata! }).id, next.id);
   } finally { app.repository.close(); await rm(root, { recursive: true, force: true }); }
 });
 
@@ -164,7 +165,7 @@ test("解释片受管主视觉要求全场景连续覆盖，短装饰、缺失�
     app.repository.commit(projectId, 1, "测试画布", snapshot => { Object.assign(snapshot.timeline, { width: 320, height: 320, fps: 30, durationInFrames: 36 }); });
     const revision = () => app.readProject(projectId).revision.number;
     const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "primary", work: motionFixture });
-    const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 600, width: 320, height: 320, fps: 30, hasAudio: false } });
+    const asset = completeMotionFixture(app, { projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 600, width: 320, height: 320, fps: 30, hasAudio: false } });
     await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "仅测试结构门禁，不代表实际观感通过" });
     const sceneState = app.createScene({ projectId, baseRevision: revision(), type: "ExplainerScene", title: "连续机制", purpose: "受管作品承担主视觉", startFrame: 0, endFrame: 36 });
     const sceneId = sceneState.snapshot.scenes.at(-1)!.id;
@@ -203,7 +204,7 @@ test("空项目的待审独立动效按实际合成范围计时，失效和移�
     const work = sizeMotionFixture({ ...motionFixture, width: 768, height: 1344, fps: 24, durationInFrames: 144 });
     const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "duration", work });
     // 只模拟 Worker 元数据以验证项目合同；真实渲染由隔离候选验收另行覆盖。
-    const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 6000, width: 768, height: 1344, fps: 24, hasAudio: false } });
+    const asset = completeMotionFixture(app, { projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 6000, width: 768, height: 1344, fps: 24, hasAudio: false } });
     await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "这是计时回归的待审记录，不代表实际连续观看或审美通过。" });
     const scene = app.createScene({ projectId, baseRevision: revision(), type: "ExplainerScene", title: "独立段落", purpose: "仅验证空时间线中的动效计时", startFrame: 0, endFrame: 180 }).snapshot.scenes.at(-1)!;
     assert.equal(app.readProject(projectId).snapshot.timeline.durationInFrames, 0, "草稿 Scene 自身不产生可播放内容");
@@ -246,7 +247,7 @@ test("图片绑定固定哈希与来源，跨项目及提交后字节改变不�
     assert.throws(() => app.readManagedMotion(other.snapshot.project.id, job.id), /不属于/u);
     await writeFile(path, "changed");
     await assert.rejects(runMotionJob(app, job, async () => { assert.fail("字节变化不能进入渲染"); }), /MOTION_IMAGE_CHANGED/u);
-    const asset = app.completeManagedMotion({ projectId, jobId: job.id, engineVersion: "fixture-only", sourceHash: "fixture", metadata: { width: 320, height: 320, fps: 30, durationMs: 600, hasAudio: false } });
+    const asset = completeMotionFixture(app, { projectId, jobId: job.id, engineVersion: "fixture-only", sourceHash: "fixture", metadata: { width: 320, height: 320, fps: 30, durationMs: 600, hasAudio: false } });
     assert.throws(() => motionSubmissionSchema.parse({ ...work, props: { assets: { logo: "https://example.com/logo" } } }));
   } finally { app.repository.close(); await rm(root, { recursive: true, force: true }); }
 });

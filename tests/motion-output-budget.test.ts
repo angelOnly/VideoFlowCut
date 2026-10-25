@@ -30,5 +30,6 @@ test("磁盘不足在渲染前拒绝，并预留预览空间", () => {
   const budget = motionOutputBudget(1080, 1920, 264);
   assert.doesNotThrow(() => checkMotionDiskSpace(budget + MOTION_DISK_RESERVE_BYTES, budget));
   assert.throws(() => checkMotionDiskSpace(budget + MOTION_DISK_RESERVE_BYTES - 1, budget), /MOTION_DISK_SPACE.*可用.*需要/u);
-  assert.ok(motionOutputBudget(320, 320, 18) < 8 * 1024 * 1024, "小作品不能被固定512MiB最低预留误挡");
+  assert.ok(motionOutputBudget(1920, 1080, 9287, "opaque") < motionOutputBudget(1920, 1080, 9287, "alpha") / 10, "不透明输出不再预算双份全量 PNG");
+  assert.ok(motionOutputBudget(320, 320, 18) < 16 * 1024 * 1024, "小作品不能被固定512MiB最低预留误挡");
 });

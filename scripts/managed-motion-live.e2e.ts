@@ -25,7 +25,7 @@ try {
   const repeated = await runMotionJob(app, job);
   assert.equal(repeated.assetId, result.assetId);
   const asset = app.readManagedMotion(projectId, job.id).asset!;
-  const png = await readFile(join(app.readProject(projectId).snapshot.project.rootPath, asset.motion!.framesDirectory, "frame-00009.png"));
+  const png = await readFile(join(app.readProject(projectId).snapshot.project.rootPath, asset.motion!.sourcePath, "..", "frames", "frame-00009.png"));
   assert.equal(png[25], 6, "PNG 必须保留 RGBA 而非烧入背景");
   const projectRoot = app.readProject(projectId).snapshot.project.rootPath;
   const logoPath = join(projectRoot, "assets", "logo.png");
@@ -55,7 +55,7 @@ try {
   const report = { root, asset, result, imageResult, compositionPath, compositionFrames: join(root, "composition-frames.png") };
   await assert.rejects(verifyMotionFrameCaches({ ...finalSnapshot, timeline: { ...finalSnapshot.timeline, fps: 25 } }), /画布|帧率/u);
   // 真正破坏一个已使用的缓存帧，确认不能偷偷回退到 MP4；测试后恢复原始字节。
-  const framePath = join(projectRoot, asset.motion!.framesDirectory, "frame-00009.png");
+  const framePath = join(projectRoot, asset.managedPath);
   await writeFile(framePath, Buffer.from("corrupt"));
   try { await assert.rejects(verifyMotionFrameCaches(finalSnapshot), /缓存|透明帧/u); }
   finally { await writeFile(framePath, png); }

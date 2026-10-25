@@ -1,3 +1,5 @@
+import { motionHtml } from "./fixtures/hyperframes.js";
+import { completeMotionFixture } from "./fixtures/motion-output.js";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -184,8 +186,8 @@ test("18帧持续动作显式绑定时长，点事件可保留21帧尾音且两�
       snapshot.timeline.items[0].endFrame = 1500; snapshot.timeline.items[0].sourceEndFrame = 1500;
       snapshot.scenes[0].endFrame = 1500;
     });
-    const job = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), idempotencyKey: "duration-contract", work: { name: "持续事件协议测试", creativeBrief: "隔离验证持续范围与点事件两种参数，不作为实际作品的审美判断。", source: "export default function M(){return null}", props: {}, imageBindings: {}, width: 1080, height: 1920, fps: 24, durationInFrames: 245, } });
-    const asset = f.app.completeManagedMotion({ projectId: f.projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 10208, width: 1080, height: 1920, fps: 24, hasAudio: false, videoCodec: "h264" }, eventMap: { version: String(job.payload.version), fps: 24, frameCount: 245, events: [{ id: "relation_change", meaning: "关系改变", startFrame: 106, endFrame: 124 }] } });
+    const job = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), idempotencyKey: "duration-contract", work: { name: "持续事件协议测试", creativeBrief: "隔离验证持续范围与点事件两种参数，不作为实际作品的审美判断。", source: motionHtml("", "", { width: 1080, height: 1920, fps: 24, durationInFrames: 245 }), props: {}, imageBindings: {}, width: 1080, height: 1920, fps: 24, durationInFrames: 245, } });
+    const asset = completeMotionFixture(f.app, { projectId: f.projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 10208, width: 1080, height: 1920, fps: 24, hasAudio: false, videoCodec: "h264" }, eventMap: { version: String(job.payload.version), fps: 24, frameCount: 245, events: [{ id: "relation_change", meaning: "关系改变", startFrame: 106, endFrame: 124 }] } });
     await f.app.reviewManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), assetId: asset.id, outcome: "inconclusive", note: "隔离参数验证，没有获得实际连续声画审阅证据。" });
     const state = f.app.createEffectCue({ projectId: f.projectId, baseRevision: f.rev(), sceneId: f.app.readProject(f.projectId).snapshot.scenes[0].id, type: "ManagedMotion", layer: "fullscreen", startFrame: 1003, endFrame: 1248, assetBindings: [{ slot: "motion", assetId: asset.id }] });
     const effectCueId = state.snapshot.effectCues.at(-1)!.id;
@@ -270,10 +272,10 @@ test("跨帧率事件配合裁剪源范围，起音与主攻击不同仍对准�
       snapshot.timeline.width = 1080; snapshot.timeline.height = 1920; snapshot.timeline.fps = 30;
     });
     const job = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), idempotencyKey: "cross-fps", work: {
-      name: "跨帧率同步协议测试", creativeBrief: "只测试源时钟换算和音频裁剪，不代表实际听觉验收。", source: "export default function M(){return null}",
+      name: "跨帧率同步协议测试", creativeBrief: "只测试源时钟换算和音频裁剪，不代表实际听觉验收。", source: motionHtml("", "", { width: 1080, height: 1920, fps: 24, durationInFrames: 48 }),
       props: {}, imageBindings: {}, width: 1080, height: 1920, fps: 24, durationInFrames: 48
     } });
-    const asset = f.app.completeManagedMotion({ projectId: f.projectId, jobId: job.id, sourceHash: "cross-fps-fixture", engineVersion: "fixture-only",
+    const asset = completeMotionFixture(f.app, { projectId: f.projectId, jobId: job.id, sourceHash: "cross-fps-fixture", engineVersion: "fixture-only",
       metadata: { durationMs: 2000, width: 1080, height: 1920, fps: 24, hasAudio: false, videoCodec: "h264" },
       eventMap: { version: String(job.payload.version), fps: 24, frameCount: 48, events: [{ id: "settle", meaning: "落定", startFrame: 12 }] }
     });
@@ -306,8 +308,8 @@ test("同一个真实事件合同允许起势、落定或贯穿，禁止自行�
   const f = await fixture();
   try {
     f.app.repository.commit(f.projectId, f.rev(), "固定协议测试画布", (snapshot) => { snapshot.timeline.width = 1080; snapshot.timeline.height = 1920; snapshot.timeline.fps = 30; });
-    const job = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), idempotencyKey: "range-event", work: { name: "事件边界协议测试", props: {}, imageBindings: {}, creativeBrief: "只检验事件绑定边界，不冒充真实视觉作品的渲染验收。", source: "export default function M(){return null}", width: 1080, height: 1920, fps: 30, durationInFrames: 60, } });
-    const asset = f.app.completeManagedMotion({ projectId: f.projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 2000, width: 1080, height: 1920, fps: 30, hasAudio: false, videoCodec: "h264" }, eventMap: { version: String(job.payload.version), fps: 30, frameCount: 60, events: [{ id: "fan", meaning: "展开", startFrame: 10, endFrame: 40 }, { id: "end", meaning: "片尾", startFrame: 50, endFrame: 60 }] } });
+    const job = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), idempotencyKey: "range-event", work: { name: "事件边界协议测试", props: {}, imageBindings: {}, creativeBrief: "只检验事件绑定边界，不冒充真实视觉作品的渲染验收。", source: motionHtml("", "", { width: 1080, height: 1920, fps: 30, durationInFrames: 60 }), width: 1080, height: 1920, fps: 30, durationInFrames: 60, } });
+    const asset = completeMotionFixture(f.app, { projectId: f.projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 2000, width: 1080, height: 1920, fps: 30, hasAudio: false, videoCodec: "h264" }, eventMap: { version: String(job.payload.version), fps: 30, frameCount: 60, events: [{ id: "fan", meaning: "展开", startFrame: 10, endFrame: 40 }, { id: "end", meaning: "片尾", startFrame: 50, endFrame: 60 }] } });
     await f.app.reviewManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), assetId: asset.id, outcome: "inconclusive", note: "仅测试已生成事件的绑定合同，不冒充视觉或声音审阅。" });
     const state = f.app.createEffectCue({ projectId: f.projectId, baseRevision: f.rev(), sceneId: f.app.readProject(f.projectId).snapshot.scenes[0].id, type: "ManagedMotion", layer: "fullscreen", startFrame: 100, endFrame: 160, assetBindings: [{ slot: "motion", assetId: asset.id }] });
     const cue = state.snapshot.effectCues.at(-1)!;

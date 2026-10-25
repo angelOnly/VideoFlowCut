@@ -1,3 +1,4 @@
+import { completeMotionFixture } from "./fixtures/motion-output.js";
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -18,7 +19,7 @@ async function fixture() {
     Object.assign(snapshot.timeline, { width: 320, height: 320, fps: 30, durationInFrames: 120 });
   });
   const job = app.submitManagedMotion({ projectId, baseRevision: revision(), idempotencyKey: "fixture", work: motionFixture });
-  const asset = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 600, width: 320, height: 320, fps: 30, hasAudio: false } });
+  const asset = completeMotionFixture(app, { projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 600, width: 320, height: 320, fps: 30, hasAudio: false } });
   await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "单元测试固定状态，不代表真实用户视频审片。" });
   const sceneState = app.createScene({ projectId, baseRevision: revision(), type: "PresenterScene", title: "测试", purpose: "局部编辑回归", startFrame: 0, endFrame: 120 });
   const sceneId = sceneState.snapshot.scenes.at(-1)!.id;

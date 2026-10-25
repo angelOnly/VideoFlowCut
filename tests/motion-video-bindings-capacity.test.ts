@@ -1,3 +1,4 @@
+import { readOutputFrame } from "./fixtures/motion-output.js";
 import {motionHtml, frameHtml} from "./fixtures/hyperframes.js";
 import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import test from "node:test";
@@ -76,14 +77,14 @@ for (const overlap of [false, true]) test(`六个${overlap ? "交叠" : "顺序"
     const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8"));
     assert.equal(manifest.videoResources.uniqueSources, 1);
     assert.equal(manifest.videoResources.decodedChunks, 1);
-    assert.equal((await readdir(join(directory, "frames"))).length, work.durationInFrames);
+    assert.equal((await readdir(join(directory, "frames"))).length, 3);
     // 用独立 FFmpeg 源采样逐槽对照输出，包含切口前后和嵌套 Sequence 内的根时钟。
     for (const [i, [, b]] of entries.entries()) {
       for (const local of [0, 11]) {
         const expectedFile = join(root, `expected-${i}-${local}.png`);
         await runProcess("ffmpeg", ["-v", "error", "-i", file, "-vf", `select=eq(n\\,${b.sourceStartMs * 24 / 1000 + local})`, "-frames:v", "1", "-pix_fmt", "rgba", expectedFile]);
         const expected = PNG.sync.read(await readFile(expectedFile));
-        const actual = PNG.sync.read(await readFile(join(directory, "frames", `frame-${String(b.startFrame + local).padStart(5, "0")}.png`)));
+        const actual = PNG.sync.read(await readOutputFrame(join(directory, "output.mkv"), b.startFrame + local));
         for (let y = 0; y < 64; y++) {
           const start = (y * actual.width + (overlap ? i * 64 : 0)) * 4;
           assert.deepEqual(actual.data.subarray(start, start + 64 * 4), expected.data.subarray(y * 64 * 4, (y + 1) * 64 * 4), `${i}/${local}/${y}`);
@@ -109,7 +110,7 @@ for (const overlap of [false, true]) test(`六个${overlap ? "交叠" : "顺序"
     assert.equal(app.readProject(projectId).revision.number, revision);
     assert.equal(app.readProject(projectId).snapshot.assets.filter(a => a.motion).length, 1);
     if (overlap) {
-      const failedWork = { ...work, name: "资源不足隔离验证" };
+      const failedWork = { ...work, name: "资源不足隔离验证", props: { ...work.props, resourceFailure: true } };
       const failedJob = app.submitManagedMotion({ projectId, baseRevision: revision, idempotencyKey: "resource-failure", work: failedWork });
       const beforeFailure = app.readProject(projectId).revision.number;
       await assert.rejects(runMotionJob(app, failedJob, async (_work, _directory, _images, videoProvider) => {

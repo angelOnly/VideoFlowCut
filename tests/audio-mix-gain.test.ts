@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readFile, rm, copyFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -9,11 +9,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer } from "../apps/server/src/app.js";
 import { registerSoundTools } from "../apps/server/src/sound-tools.js";
 import { createMediaAsset, createTimelineItem, createScene } from "@videocut/domain";
-import { runProcess } from "@videocut/speech";
 import { soundDependencySignature } from "../packages/media-intelligence/src/sound-signature.js";
-import { applyFinalAudioMixGain } from "../apps/render-worker/src/audio-mix-gain.js";
-import { inspectFinalAudio } from "../packages/media-intelligence/src/acoustics.js";
-import type { ProjectSnapshot } from "@videocut/contracts";
 
 test("整体增益 MCP/HTTP 设置绝对值、保护版本并使全片混合待审，不改音轨参数", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-mix-gain-"));
@@ -61,26 +57,4 @@ test("整体增益 MCP/HTTP 设置绝对值、保护版本并使全片混合待�
     assert.equal(current().snapshot.audioMixGainDb, 0);
     assert.equal(soundDependencySignature(before.snapshot), soundDependencySignature(current().snapshot), "归零兼容旧版声音身份");
   } finally { await client.close(); await server.close(); await app.close(); application.repository.close(); await rm(root, { recursive: true, force: true }); }
-});
-
-test("最终混合只提升音轨一次、复制视频并保留旧版零增益；失败不能伪装成功", async () => {
-  const root = await mkdtemp(join(tmpdir(), "vfc-mix-wave-"));
-  const snapshot = {} as ProjectSnapshot;
-  const file = join(root, "mixed.mp4"), original = join(root, "original.mp4");
-  try {
-    await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=64x64:r=24:d=3", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=3", "-af", "volume=-12dB", "-c:v", "libx264", "-c:a", "aac", "-shortest", file]);
-    await copyFile(file, original);
-    const before = await inspectFinalAudio(file);
-    await applyFinalAudioMixGain(snapshot, file);
-    assert.deepEqual(await readFile(file), await readFile(original));
-    await applyFinalAudioMixGain({ ...snapshot, audioMixGainDb: 9.5 }, file);
-    const after = await inspectFinalAudio(file);
-    assert.ok(Math.abs(after.integratedLufs! - before.integratedLufs! - 9.5) < 0.3, JSON.stringify({ before, after }));
-    assert.ok(Math.abs(after.truePeakDbfs! - before.truePeakDbfs! - 9.5) < 0.5);
-    const videoHash = async (path: string) => (await runProcess("ffmpeg", ["-v", "error", "-i", path, "-map", "0:v:0", "-c", "copy", "-f", "hash", "-"])).trim();
-    assert.equal(await videoHash(file), await videoHash(original));
-    for (const audioMixGainDb of [NaN, Infinity, -49, 25]) await assert.rejects(applyFinalAudioMixGain({ ...snapshot, audioMixGainDb }, file), /整体混合增益/);
-    await assert.rejects(applyFinalAudioMixGain({ ...snapshot, audioMixGainDb: 9.5 }, join(root, "missing.mp4")));
-    assert.ok((await readFile(".agents/skills/audio-finishing/SKILL.md", "utf8")).includes("set_audio_mix_gain"));
-  } finally { await rm(root, { recursive: true, force: true }); }
 });

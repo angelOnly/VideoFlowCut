@@ -1,3 +1,4 @@
+import { readOutputFrame } from "./fixtures/motion-output.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
@@ -52,11 +53,11 @@ tl.addLabel('show',2/config.fps);window.getVfcMotionEvents=()=>[{id:'show',meani
     assert.equal(app.readProject(projectId).revision.number,revision);
     const result=await runMotionJob(app,job);const current=app.readProject(projectId),asset=current.snapshot.assets.find(a=>a.id===result.assetId)!;
     assert.equal(asset.motion!.eventMap!.events[0].startFrame,2);
-    const dir=join(projectRoot,asset.motion!.framesDirectory,"..");
+    const dir=join(projectRoot,asset.motion!.sourcePath,"..");
     const manifest=JSON.parse(await readFile(join(dir,"manifest.json"),"utf8"));
     assert.deepEqual(manifest.runtimeDependencies,HYPERFRAMES_DEPENDENCIES);assert.equal(manifest.determinism.status,"exact");
     assert.equal(await readFile(join(dir,"source.html"),"utf8"),work.source);
-    const frame=PNG.sync.read(await readFile(join(dir,"frames/frame-00007.png")));
+    const frame=PNG.sync.read(await readOutputFrame(join(projectRoot,asset.managedPath),7));
     const pixel=(x:number,y:number)=>[...frame.data.subarray((y*320+x)*4,(y*320+x)*4+4)];
     assert.equal(pixel(319,319)[3],0);assert.deepEqual(pixel(12,12),[...PNG.sync.read(await readFile(imagePath)).data.subarray(0,4)]);
     assert.deepEqual(pixel(32,12),pixel(12,12),"作者初始化创建的图片槽也完成绑定与解码");

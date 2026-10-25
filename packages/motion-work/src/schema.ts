@@ -7,6 +7,8 @@ const description = z.string().trim().min(8).max(1800);
 const videoSlotSchema = z.string().regex(/^[a-z][A-Za-z0-9_]{0,39}$/u);
 /** 观察记录是创作判断，不等于平台已自动观看、技术校验通过或成片审片通过。 */
 export const motionSubmissionSchema = z.object({
+  compositing: z.enum(["opaque", "alpha"]).optional().describe("正式画面用途；省略为保留透明。opaque 会逐帧核查不透明，透明退出须使用 alpha。"),
+  renderedAssetId: z.string().min(1).max(150).optional().describe("采用已登记且像素身份完全一致的正式作品媒体；不接受临时路径或未验证的视频。"),
   name: z.string().trim().min(1).max(120),
   source: z.string().min(20).max(MOTION_SOURCE_MAX_LENGTH).describe("完整 HyperFrames 单页 HTML，CSS/JS 内联；固定运行库由平台提供。"),
   props: z.record(z.unknown()).default({}),

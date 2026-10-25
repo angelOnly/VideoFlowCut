@@ -1,3 +1,4 @@
+import { completeMotionFixture } from "./fixtures/motion-output.js";
 import {sizeMotionFixture} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -29,7 +30,7 @@ async function fixture() {
   app.applyMediaAnalysis({ projectId, assetId: image.id, metadata: { width: 32, height: 32, durationMs: 0, hasAudio: false } });
   const job = app.submitManagedMotion({ projectId, baseRevision: rev(), idempotencyKey: "contract", work: sizeMotionFixture({ ...motionFixture, durationInFrames: 30, imageBindings: { material: image.id } }) });
   // 此处只验证正式登记合同；真实像素与声音由独立渲染测试验证。
-  const motion = app.completeManagedMotion({ projectId, jobId: job.id, sourceHash: "test-output", engineVersion: "fixture", metadata: { width: 320, height: 320, durationMs: 1000, fps: 30, hasAudio: false } });
+  const motion = completeMotionFixture(app, { projectId, jobId: job.id, sourceHash: "test-output", engineVersion: "fixture", metadata: { width: 320, height: 320, durationMs: 1000, fps: 30, hasAudio: false } });
   const create = (startFrame = 30, endFrame = 60, ids = [item.id]) => app.createEffectCue({ projectId, baseRevision: rev(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame, endFrame, visualComposition: { role: "primary", replacesActorItemIds: ids }, assetBindings: [{ slot: "motion", assetId: motion.id }] });
   return { root, app, projectId, current, rev, actor, item, scene, image, motion, create, close: async () => { app.close(); await rm(root, { recursive: true, force: true }); } };
 }

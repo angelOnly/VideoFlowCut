@@ -14,8 +14,8 @@ export async function validateMotionReviewEvidence(snapshot: ProjectSnapshot, re
   if (input.kind === "work_proxy") {
     if (input.previewJobId || !["frames", "continuous_video"].includes(input.method)) throw new DomainError("无声作品代理只支持画面观察，不是 Preview 或声音证据", "MOTION_REVIEW_METHOD_INVALID");
     if (input.endFrame > motion.frameCount) throw new DomainError("观察超出作品局部帧范围", "MOTION_REVIEW_RANGE_INVALID");
-    const media = await inspectEvidenceMedia(snapshot.project.rootPath, asset.managedPath, motion.frameCount / motion.fps, motion.fps);
-    if (media.hash !== asset.sourceHash) throw new DomainError("作品代理已被替换，不能审阅旧版本", "MOTION_REVIEW_MEDIA_CHANGED");
+    const media = await inspectEvidenceMedia(snapshot.project.rootPath, motion.preview?.path ?? asset.managedPath, motion.frameCount / motion.fps, motion.fps);
+    if (media.hash !== (motion.preview?.hash ?? asset.sourceHash)) throw new DomainError("作品代理已被替换，不能审阅旧版本", "MOTION_REVIEW_MEDIA_CHANGED");
     evidence = { ...input, relativePath: media.path, contentHash: media.hash, revision, workStartFrame: input.startFrame, workEndFrame: input.endFrame, recordedAt: now() };
   } else if (input.kind === "project_preview") {
     if (!input.previewJobId) throw new DomainError("合成证据需要 Preview Job", "MOTION_REVIEW_PREVIEW_REQUIRED");

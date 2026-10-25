@@ -356,7 +356,11 @@ export interface Asset {
     /** 字体随发行固定，不作为视频素材；保存实际文件身份便于追溯。 */
     fontSources?: Array<{ slot: string; fontId: string; sourceHash: string; weight: number; style: "normal" | "italic" }>;
     sourcePath: string;
-    framesDirectory: string;
+    /** 仅历史 PNG 资产拥有；新作品使用正式 output。 */
+    framesDirectory?: string;
+    output?: { kind: "opaque_video" | "alpha_video"; path: string; hash: string; codec: string; pixelFormat: string };
+    preview?: { path: string; hash: string };
+    pixelKey?: string;
     frameCount: number;
     fps: number;
     width: number;
@@ -2001,6 +2005,9 @@ export interface ExportArtifact {
   jobId: Id;
   purpose: ExportPurpose;
   relativePath: string;
+  /** 保存实际执行路径；历史未记录的产物不推测补写。 */
+  renderer?: "ffmpeg" | "hybrid";
+  renderReportPath?: string;
   fileHash: string;
   fileSizeBytes: number;
   preflight: RenderPreflight;

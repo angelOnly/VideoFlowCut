@@ -130,9 +130,9 @@ const inFlightCacheWrites = new Map<string, Promise<void>>();
 
 function sourcePath(snapshot: ProjectSnapshot, asset: Asset): string {
   const projectRoot = resolve(snapshot.project.rootPath);
-  const target = isAbsolute(asset.managedPath)
-    ? resolve(asset.managedPath)
-    : resolve(projectRoot, asset.managedPath);
+  const target = isAbsolute(asset.motion?.preview?.path ?? asset.managedPath)
+    ? resolve(asset.motion?.preview?.path ?? asset.managedPath)
+    : resolve(projectRoot, asset.motion?.preview?.path ?? asset.managedPath);
   // Source Review 只能读取项目已受管文件；绝不把快照里意外出现的外部绝对路径暴露为 /media URL。
   assertPathWithin(projectRoot, target);
   return target;
@@ -831,6 +831,10 @@ export async function inspectAsset(application: EditingApplication, input: Inspe
       evidenceBoundaries: [...initialBoundaries, "受管原文件缺失属于平台故障；停止该步骤并报修，其他无依赖工作继续。"]
     };
   }
+  if (asset.motion) {
+    const expectedHash = asset.motion.preview?.hash ?? asset.sourceHash;
+    if (!expectedHash || await hashFile(managedSourcePath) !== expectedHash) throw new DomainError("作品审阅表示已改变，不能复用旧版本证据", "MOTION_REVIEW_MEDIA_CHANGED");
+  }
   let reviewDuration = durationFrames(snapshot, asset);
   if (reviewDuration && isReviewableVideo(asset) && existsSync(managedSourcePath)) {
     const visualDuration = await visualDurationFrames(snapshot, asset, managedSourcePath, process, diagnostics);
@@ -861,7 +865,7 @@ export async function inspectAsset(application: EditingApplication, input: Inspe
   }
 
   const path = managedSourcePath;
-  let contentHash = asset.sourceHash;
+  let contentHash = asset.motion?.preview?.hash ?? asset.sourceHash;
   if (!contentHash) try { contentHash = await hashFile(path); }
   catch (error) { diagnostics.issues.push(classifySourceReviewFailure(error, "metadata")); }
   const contactSheetFrames = frameCountFor(input, range);

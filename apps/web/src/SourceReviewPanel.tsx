@@ -104,9 +104,9 @@ export function SourceReviewPanel({ snapshot, asset, onSeekTimeline }: SourceRev
   const fps = snapshot.timeline.fps;
   const frameLimit = sourceFrameLimit(asset, fps);
   const sourceUrl = useMemo(() => {
-    const managedPath = asset.managedPath.replace(/\\/g, "/").split("/").map(encodeURIComponent).join("/");
+    const managedPath = (asset.motion?.preview?.path ?? asset.managedPath).replace(/\\/g, "/").split("/").map(encodeURIComponent).join("/");
     return `${API_BASE.replace(/\/$/u, "")}/media/${encodeURIComponent(snapshot.project.id)}/${managedPath}`;
-  }, [asset.managedPath, snapshot.project.id]);
+  }, [asset.managedPath, asset.motion?.preview?.path, snapshot.project.id]);
   // 源范围的结束帧是开区间；起始帧最多只能落在最后一帧之前。
   const startFrame = asSafeFrame(startDraft, 0, Math.max(0, frameLimit - 1));
   const endFrame = asSafeFrame(endDraft, frameLimit, frameLimit);

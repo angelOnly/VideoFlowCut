@@ -165,7 +165,7 @@ try {
   assert.match(composedTool.description, /1–12.*分批/u, "压缩工具声明未展示maxItems时，描述仍须明确上限");
   assert.match(tools.tools.find((tool) => tool.name === "inspect_asset")?.description ?? "", /range最长60秒，dense最长12秒/u, "发行工具表须公开素材短范围限制");
   assert.match(tools.tools.find((tool) => tool.name === "render_preview_range")?.description ?? "", /result.audio.*integratedLufs.*truePeakDbfs/u, "发行工具表须明确混合响度的读取位置");
-  assert.match(motionTool?.description ?? "", /TimelineVideo/u, "发行工具表必须公开作品根时钟视频合同");
+  assert.match(motionTool?.description ?? "", /data-vfc-video-slot.*作品根时钟/u, "发行工具表必须公开作品根时钟视频合同");
   assert.match(motionTool.inputSchema.properties.work.properties.durationInFrames.description, /不按30秒/u, "发行字段必须公开完整作品资源策略");
   assert.ok(tools.tools.some((tool) => tool.name === "inspect_asset"), "插件 MCP 必须发现 inspect_asset");
   assert.ok(tools.tools.some((tool) => tool.name === "list_projects"), "插件 MCP 必须发现基础只读工具");
@@ -260,7 +260,7 @@ try {
   const motion = await call("submit_motion_work", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number, idempotency_key: "release-motion-33",
     work: { name: "发行版33秒完整动效回归", creativeBrief: "独立候选技术回归：检查作品根时钟、源复用和完整帧数，不构成审美验收。", props: {}, imageBindings: {}, width: 768, height: 1344, fps: 24, durationInFrames: 792,
       videoBindings: { footage: { assetId: importedAsset.id, sourceStartMs: 0, sourceEndMs: 2000, startFrame: 0, endFrame: 48 } },
-      source: "import React from 'react';import {AbsoluteFill,useCurrentFrame,Sequence} from 'remotion';import {TimelineVideo} from '@videoflowcut/motion';export default function Motion(){const f=useCurrentFrame();return <AbsoluteFill style={{background:'#172033'}}><Sequence durationInFrames={24}><TimelineVideo slot='footage'/></Sequence><Sequence from={24} durationInFrames={24}><TimelineVideo slot='footage'/></Sequence><div style={{color:'white',fontSize:48,margin:80}}>发行回归 {f}</div></AbsoluteFill>}"
+      source: `<!doctype html><html><head><meta charset="utf-8"></head><body><main data-composition-id="main" data-start="0" data-duration="33" data-width="768" data-height="1344" style="position:relative;width:768px;height:1344px;background:#172033"><img id="footage" data-vfc-video-slot="footage" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><div id="label" style="position:absolute;left:80px;top:80px;color:white;font-size:48px"></div></main><script>const tl=gsap.timeline({paused:true}),state={frame:0};function update(){document.querySelector('#label').textContent='发行回归 '+Math.round(state.frame);}tl.to(state,{frame:792,duration:33,ease:'none',onUpdate:update});update();window.__timelines.main=tl;</script></body></html>`
     } });
   let runtimeTreeRssPeak = 0, sampling;
   const sampleMemory = () => {
@@ -274,8 +274,10 @@ try {
   const motionRead = await call("read_motion_work", { project_id: project.snapshot.project.id, job_id: motion.id });
   assert.equal(motionRead.asset.motion.frameCount, 792);
   assert.equal(motionRead.asset.metadata.durationMs, 33000);
-  // JPEG固定解码使用新引擎身份；旧版本仅供历史作品读取。
-  assert.equal(motionRead.asset.motion.engineVersion, "managed-motion-14");
+  // 发行验证消费当前 HTML 与正式媒体合同，不再使用已停用的 TSX 夹具。
+  assert.equal(motionRead.asset.motion.engineVersion, "managed-hyperframes-2");
+  assert.equal(motionRead.asset.motion.output.kind, "alpha_video");
+  assert.equal(motionRead.asset.motion.framesDirectory, undefined);
   assert.equal(motionResult.result.assetId, motionRead.asset.id);
   if (process.platform === "win32") assert.ok(runtimeTreeRssPeak > 0, "候选验证必须记录实际Runtime进程树内存");
   console.log(JSON.stringify({ releaseId: release.releaseId, frameCount: 792, durationMs: 33000, runtimeTreeRssPeakBytes: runtimeTreeRssPeak }));
@@ -311,7 +313,7 @@ try {
     work: { name: "发行版人物连续缩窗", creativeBrief: "隔离验证人物视频保留 actor_video 身份进入真实受管作品，布局改变时源时间连续，独立声轨承担声音。",
       props: { width: projectState.snapshot.timeline.width, height: projectState.snapshot.timeline.height }, imageBindings: {}, width: projectState.snapshot.timeline.width, height: projectState.snapshot.timeline.height, fps: 24, durationInFrames: 24,
       videoBindings: { actor: { assetId: importedAsset.id, sourceStartMs: 0, sourceEndMs: 1000, startFrame: 0, endFrame: 24 } },
-      source: "import React from 'react';import {AbsoluteFill,useCurrentFrame,Sequence} from 'remotion';import {TimelineVideo} from '@videoflowcut/motion';export default function Motion(props){const f=useCurrentFrame();const scale=1-Math.min(f,12)/16;const style={width:props.width*scale,height:props.height*scale};return <AbsoluteFill style={{backgroundColor:'#172033'}}><Sequence durationInFrames={12}><TimelineVideo slot='actor' style={style}/></Sequence><Sequence from={12}><TimelineVideo slot='actor' style={style}/></Sequence></AbsoluteFill>}"
+      source: `<!doctype html><html><head><meta charset="utf-8"></head><body><main data-composition-id="main" data-start="0" data-duration="1" data-width="${projectState.snapshot.timeline.width}" data-height="${projectState.snapshot.timeline.height}" style="position:relative;width:${projectState.snapshot.timeline.width}px;height:${projectState.snapshot.timeline.height}px;background:#172033"><img id="actor" data-vfc-video-slot="actor" style="position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover"></main><script>const tl=gsap.timeline({paused:true});tl.to('#actor',{width:'25%',height:'25%',duration:.5,ease:'none'},0);tl.to({},{duration:1},0);window.__timelines.main=tl;</script></body></html>`
     } });
   await waitForJob(actorMotion.id);
   const actorMotionRead = await call("read_motion_work", { project_id: project.snapshot.project.id, job_id: actorMotion.id });
