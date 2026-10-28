@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>创意卡参考库</title>
+  <link rel="stylesheet" href="catalogue.css">
+  <link rel="stylesheet" href="creative.css">
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">VIDEOCUT / CREATIVE STUDIES</div>
+    <h1>创意卡参考库</h1>
+    <p>先看完整场景，再了解原片怎样设计、为什么有效，以及如何适配到新内容。片段默认静音，可在播放器中开启声音。</p>
+    <p id="scope" class="scope" role="status">正在读取创意卡…</p>
+    <nav><a href="index.html">全部参考视频</a><a href="mechanisms.html">运动机制库</a><a href="creative-extraction-report.md" target="_blank" rel="noopener">拆解与核验记录</a></nav>
+  </header>
+  <section class="toolbar" aria-label="检索条件">
+    <label class="search-label" for="query">找一个适合当前内容的表达</label>
+    <input type="search" id="query" placeholder="如：人物 对照、地图、照片、008-c03" autocomplete="off">
+    <p class="hint">按空格组合关键词，搜索卡片标题、摘要、适用条件和来源名称。</p>
+    <div class="creative-filters">
+      <label>来源视频<select id="case"><option value="">全部已拆解视频</option></select></label>
+      <label class="selection-toggle"><input type="checkbox" id="selected-only"> 只看已保留的候选 <span id="selection-count">（0）</span></label>
+      <button id="reset" type="button">清空筛选</button>
+      <button id="copy-link" type="button">复制当前浏览链接</button>
+    </div>
+    <p id="notice" class="hint" role="status">保留的候选和筛选条件会写入页面链接，可复制链接回来继续查看。</p>
+  </section>
+  <div class="row result-bar">
+    <p id="count" role="status">正在加载…</p>
+    <div><button id="previous" type="button">上一页</button><span id="page"></span><button id="next" type="button">下一页</button></div>
+  </div>
+  <section id="results" class="creative-grid" aria-label="创意卡列表"></section>
+  <p id="error" role="alert"></p>
+  <footer>创意卡基于原片抽帧拆解，未代替连续原速声画审阅；新题材中的迁移效果尚未测试。原片时间用于定位来源，切片从零开始播放。</footer>
+</main>
+<script type="module" src="creative-ui.mjs"></script>
+</body>
+</html>

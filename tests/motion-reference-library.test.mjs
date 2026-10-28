@@ -7,17 +7,21 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {searchCases} from '../references/motion-cases/skillry/search.mjs';
-import {parseMechanism,resolveLibraryLink} from '../references/motion-cases/skillry/document-format.mjs';
+import {parseMechanism,resolveLibraryLink,splitDocument} from '../references/motion-cases/skillry/document-format.mjs';
 import {buildIndex,selectMechanisms} from '../references/motion-cases/skillry/tools/mechanisms.mjs';
 const root=new URL('../references/motion-cases/skillry/',import.meta.url);
 const catalogue=JSON.parse(readFileSync(new URL('case-catalogue.json',root),'utf8'));
 const cases=catalogue.cases;
+const creativeIndex=JSON.parse(readFileSync(new URL('creative-index.json',root),'utf8'));
+const creativeCases=new Set(creativeIndex.processed_cases);
 test('正式库恰有120个案例，已转换案例的总览与机制成对完整',()=>{
   assert.equal(cases.length,120);assert.equal(new Set(cases.map(c=>c.slug)).size,120);
   assert.equal(readdirSync(new URL('cases/',root)).length,120);
   for(const c of cases){
     const mechanism=c.analysis_kind==='mechanisms-v1';
-    assert.deepEqual(readdirSync(new URL(c.directory+'/',root)).sort(),mechanism?['mechanisms','overview.md','storyboard.jpg','video.mp4']:['analysis.md','video.mp4']);
+    const expectedFiles=mechanism?['mechanisms','overview.md','storyboard.jpg','video.mp4']:['analysis.md','video.mp4'];
+    if(creativeCases.has(c.case_number))expectedFiles.push('creative','storyboards');
+    assert.deepEqual(readdirSync(new URL(c.directory+'/',root)).sort(),expectedFiles.sort());
     if(mechanism){
       assert.equal(c.storyboard,c.directory+'/storyboard.jpg');
       const picture=readFileSync(new URL(c.storyboard,root));
@@ -68,6 +72,26 @@ test('正式库恰有120个案例，已转换案例的总览与机制成对完�
   assert.ok(index.scope.includes(`${converted.length} / ${cases.length}`));
 });
 
+test('创意索引与卡片正文、原片及预览媒体一致',()=>{
+  assert.equal(creativeIndex.count,creativeIndex.cards.length);
+  assert.equal(new Set(creativeIndex.cards.map(c=>c.id)).size,creativeIndex.count);
+  assert.deepEqual([...new Set(creativeIndex.cards.map(c=>c.case_number))].sort((a,b)=>a-b),[...creativeCases].sort((a,b)=>a-b));
+  for(const card of creativeIndex.cards){
+    const source=cases.find(c=>c.case_number===card.case_number);
+    assert.ok(source);assert.equal(card.video,source.media);
+    const documentUrl=new URL(card.card,root);
+    const {metadata,body}=splitDocument(readFileSync(documentUrl,'utf8'));
+    for(const field of ['id','case_number','title','summary','use_when','start_ms','end_ms','frame_times_ms'])assert.deepEqual(metadata[field],card[field],card.id+' '+field);
+    for(const field of ['video','clip','storyboard']){
+      assert.equal(new URL(metadata[field],documentUrl).href,new URL(card[field],root).href,card.id+' '+field);
+      assert.ok(existsSync(new URL(card[field],root)),card.id+' '+field);
+    }
+    assert.ok(card.start_ms>=0&&card.end_ms>card.start_ms&&card.end_ms<=Math.ceil(source.duration*1000));
+    assert.ok(card.frame_times_ms.length>0&&card.frame_times_ms.every(t=>t>=card.start_ms&&t<card.end_ms));
+    for(const heading of ['原画面具体怎样设计','为什么这样设计，好在哪里','可直接使用的创意指令'])assert.ok(body.includes('## '+heading),card.id+' '+heading);
+  }
+});
+
 test('切片范围和路径拒绝无效值，正文没有强制新片秒数',()=>{
   const index=buildIndex(),sample=index.mechanisms.find(m=>m.clip);
   assert.ok(sample,'有实际切片样例');
@@ -108,7 +132,7 @@ test('材料与用途检索保留代表例，并且无结果不擅自放宽',()=
   assert.deepEqual(searchCases(cases,{query:'绝不存在的观看任务'}),[]);
 });
 test('共用入口有效，Skill按需读取机制且不再依赖研究日志',()=>{
-  for(const f of ['index.html','detail.html','detail.mjs','catalogue-ui.mjs','catalogue.css','search.mjs','README.md','tools/preview_server.py','tools/search-cases.mjs','mechanisms.html','mechanisms-ui.mjs','mechanism-index.json','tools/mechanisms.mjs'])assert.ok(existsSync(new URL(f,root)));
+  for(const f of ['index.html','detail.html','detail.mjs','catalogue-ui.mjs','catalogue.css','search.mjs','README.md','tools/preview_server.py','tools/search-cases.mjs','mechanisms.html','mechanisms-ui.mjs','mechanism-index.json','tools/mechanisms.mjs','creative.html','creative.css','creative-ui.mjs','creative-index.json'])assert.ok(existsSync(new URL(f,root)));
   const skill=readFileSync(new URL('../.agents/skills/motion-case-library/SKILL.md',import.meta.url),'utf8')+readFileSync(new URL('../.agents/skills/motion-case-library/references/mechanism-retrieval.md',import.meta.url),'utf8');
   const guide=readFileSync(new URL('../.agents/skills/motion-case-library/references/skillry-retrieval.md',import.meta.url),'utf8');
   // Skill 可将机制方法移到按需资料中，核验真实入口和对应正文。
