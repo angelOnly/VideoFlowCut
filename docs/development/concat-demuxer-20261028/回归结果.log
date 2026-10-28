@@ -1,0 +1,21 @@
+(node:29832) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"platform":"win32","spans":300,"frames":600,"fps":30,"width":128,"height":128,"outputPathLength":182,"elapsedMs":19883,"everyFrameVerified":true,"audioFramesVerified":598,"partialRange":[19,26]}
+✔ Windows 长目录的 300 段异构画面逐帧拼接，声音及非零起点范围保持一致 (20121.9653ms)
+✔ 混合分段失败与已取消合成清除半成品和暂存 (92.1851ms)
+(node:66464) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 正式透明媒体无损往返、缓存淘汰重建、说明修改复用且混合合成不重复声音 (2906.6473ms)
+✔ 统一声音按全局时钟处理循环交叠、淡入、总增益与局部范围 (680.7683ms)
+✔ 编码器提前退出或取消会释放写入并清除半成品 (68.3218ms)
+✔ 不透明声明拒绝透明帧，编码失败不登记素材且可取消 (1793.9318ms)
+✔ 24→30帧局部接点保持全局时钟、单卡字幕、统一静音与局部缓存失效 (3904.4529ms)
+✔ 局部视觉缓存损坏和淘汰只重建该段，失败不发布缓存 (24.8772ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 21416.1065

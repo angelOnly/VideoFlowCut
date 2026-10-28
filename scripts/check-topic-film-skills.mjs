@@ -16,7 +16,7 @@ const caseBody=bytes=>bytes.toString('utf8').replace(/\r\n/g,'\n').replace(/^---
 async function walk(directory){const out=[];for(const e of await readdir(directory,{withFileTypes:true})){const p=join(directory,e.name);if(e.isDirectory())out.push(...await walk(p));else out.push(p);}return out;}
 const all=await walk(root);
 const entries=(await readdir(root,{withFileTypes:true})).filter(e=>e.isDirectory()&&e.name!=='_shared');
-check(entries.length===30,'工作 Skill 应为30个（含已加入的音效提示词专项）');
+check(entries.length===34,'工作 Skill 应为34个（含三项创意专项）');
 for(const e of entries){const body=await text(e.name+'/SKILL.md');check(body.match(/^name:\s*(.+)$/m)?.[1].trim()===e.name,'工作入口身份错误 '+e.name);check(/^description:\s*\S/m.test(body),'工作入口缺少说明 '+e.name);}
 const caseRoot='motion-case-library/references/cases';
 const caseDirs=await readdir(join(root,caseRoot));

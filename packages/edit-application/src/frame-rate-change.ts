@@ -8,7 +8,7 @@ export function prepareProjectFrameRateChange(previous: ProjectSnapshot, fps: nu
   const change = projectFrameRateChange(previous, fps, revision);
   const { snapshot, report } = change;
   if (!report.changed || !report.canApply) return change;
-  const readOnlyKinds = new Set(["preview", "render_preflight", "export", "media_understanding", "media_search", "motion_library_search", "motion_reference_analysis", "sound_ranking", "sound_comparison"]);
+  const readOnlyKinds = new Set(["preview", "render_preflight", "export", "media_understanding", "media_search", "creative_library_search", "motion_library_search", "motion_reference_analysis", "sound_ranking", "sound_comparison"]);
   for (const job of jobs) if (["queued", "running", "unknown"].includes(job.status) && !readOnlyKinds.has(job.kind)) {
     report.blockers.push({ code: "PROJECT_FPS_PENDING_JOB", objectId: job.id, message: `${job.kind}任务尚未终态或结果未知，需先对账再变更项目帧率` });
   }

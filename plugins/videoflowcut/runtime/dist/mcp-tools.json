@@ -8208,6 +8208,89 @@
       }
     },
     {
+      "name": "search_creative_cases",
+      "title": "检索完整创意案例",
+      "description": "用自然语言向量召回完整视觉表达方案；不需要标签或标题，不先做词法过滤。首次返回现有语义 Job，track_job 完成后同输入读回；offset/limit 只切同一排名。ids 精确定位，无 query/ids 时分页浏览，两者不调用模型。采用前用 read_creative_case 核读完整卡和真实媒体。排名不证明创意迁移成立。语义查询需要当前项目；浏览和精确读卡不需要。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^\\d{3}-c\\d{2}$"
+            },
+            "minItems": 1,
+            "maxItems": 50
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "read_creative_case",
+      "title": "读取完整创意卡与媒体",
+      "description": "按真实 ID 读取完整 Markdown、原片、完整创意切片、实际分镜与源时间；传 source_sha256 拒绝过期引用。按真实格式返回分镜图片，媒体缺失逐项说明。本工具不播放或听审，不创建 Job、素材或 Revision。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^\\d{3}-c\\d{2}$"
+          },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "include_storyboard": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "analyze_media",
       "title": "分析素材声画",
       "description": "对素材、候选、不可变 exportArtifactId 或成功 previewJobId 提交异步多模态分析。review 时 context 是实际发给模型的专项问题；index/discovery 的 context 仅作用途备注，初看保持盲观察。导出/预览只允许 review，range 以该文件起点为零的毫秒计，返回 composition 映射到对应 Revision 和时间线。不重新导入素材、不修改视频 Revision。保存实际指令、源哈希、模型版本、覆盖和未知；模型复核有效但不冒充人工或原生听觉，抽样不能证明精确同步。通过 track_job 和 read_media_observations 读取结果。",

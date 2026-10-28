@@ -1,0 +1,22 @@
+(node:45012) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+VideoFlowCut 稳定 MCP 连接已启动；业务进程按已验证部署切换。
+(node:74208) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+video-editor-mcp 已通过 stdio 启动
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: {"content":[{"type":"text","text":"MCP_TOOL_SCHEMA_CHANGED：工具定义已更新；请刷新工具表并重新判断参数。本次未执行。"}],"isError":true}
+    at call (file:///E:/ai/VideoCut/scripts/verify-composite-concat.mjs:72:12)
+    at async file:///E:/ai/VideoCut/scripts/verify-composite-concat.mjs:75:18 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: true,
+  expected: true,
+  operator: 'notStrictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.14.0

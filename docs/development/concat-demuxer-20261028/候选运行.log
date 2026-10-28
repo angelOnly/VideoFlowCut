@@ -1,0 +1,7 @@
+(node:83160) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+VideoFlowCut 稳定 MCP 连接已启动；业务进程按已验证部署切换。
+(node:61224) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+video-editor-mcp 已通过 stdio 启动
+{"passed":true,"releaseId":"release-98a0255644f2038c7829448650d9888435d158cb3c12fffd0b437fda9d14ab01","jobId":"job_5ea7d578-7e58-47a3-938b-58f06b251989","spans":300,"elapsedMs":42616}

@@ -1,0 +1,29 @@
+(node:6664) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":30,"time":1793174439443,"pid":6664,"hostname":"jzb","reqId":"req-1","req":{"method":"POST","url":"/api/projects/project_525ed0f1-5da2-4746-8a99-3bebbcd89e57/export-artifacts/export_artifact_c21dd5a0-ca68-4608-a8c4-cdc270ef10be/approve","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1793174439447,"pid":6664,"hostname":"jzb","reqId":"req-1","res":{"statusCode":400},"responseTime":3.0027000000000044,"msg":"request completed"}
+{"level":30,"time":1793174439447,"pid":6664,"hostname":"jzb","reqId":"req-2","req":{"method":"POST","url":"/api/projects/project_525ed0f1-5da2-4746-8a99-3bebbcd89e57/export-artifacts/export_artifact_c21dd5a0-ca68-4608-a8c4-cdc270ef10be/approve","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1793174439448,"pid":6664,"hostname":"jzb","reqId":"req-2","res":{"statusCode":400},"responseTime":1.4611000000004424,"msg":"request completed"}
+{"level":30,"time":1793174439448,"pid":6664,"hostname":"jzb","reqId":"req-3","req":{"method":"POST","url":"/api/projects/project_525ed0f1-5da2-4746-8a99-3bebbcd89e57/export-artifacts/export_artifact_c21dd5a0-ca68-4608-a8c4-cdc270ef10be/review","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1793174439451,"pid":6664,"hostname":"jzb","reqId":"req-3","res":{"statusCode":200},"responseTime":2.953399999999874,"msg":"request completed"}
+{"level":30,"time":1793174439452,"pid":6664,"hostname":"jzb","reqId":"req-4","req":{"method":"POST","url":"/api/projects/project_525ed0f1-5da2-4746-8a99-3bebbcd89e57/export-artifacts/export_artifact_c21dd5a0-ca68-4608-a8c4-cdc270ef10be/approve","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1793174439454,"pid":6664,"hostname":"jzb","reqId":"req-4","res":{"statusCode":200},"responseTime":2.0281999999997424,"msg":"request completed"}
+✔ 质量、预检、Worker 用途一致；无 AI 审阅可导出，人工定稿验证具体文件 (1752.749ms)
+(node:22748) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 真实人物源缩窗与返回：透明接管无双人物，front/字幕在上，原声和 Dialogue 各自连续且静音生效 (21739.0041ms)
+(node:84876) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Repair Ticket 独立于视频 Revision，并用角色、版本和当前 Revision 收口 (75.0587ms)
+✔ 输入错误和重复报告可凭证据非部署收口，不能冒充已部署 (55.8142ms)
+(node:736) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 发行 MCP 非部署收口验证角色、分类、持久化及视频 Revision 隔离 (817.8332ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 23058.6668

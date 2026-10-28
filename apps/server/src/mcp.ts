@@ -30,6 +30,7 @@ import { inspectAsset } from "./source-review.js";
 import { registerMotionTools } from "./motion-tools.js";
 import { registerObjectResourceTools } from "./object-resource-tools.js";
 import { registerMotionLibraryTools } from "./motion-library-tools.js";
+import { registerCreativeLibraryTools } from "./creative-library-tools.js";
 import { projectMotionJob } from "./motion-library-output.js";
 import { registerMediaIntelligenceTools } from "./media-intelligence-tools.js";
 import { sha256File } from "./media-hash.js";
@@ -2528,6 +2529,7 @@ server.registerTool("browse_effect_types", {
 registerMotionTools(server, application, projectIdFrom);
 registerObjectResourceTools(server, application);
 registerMotionLibraryTools(server, undefined, application, projectIdFrom);
+registerCreativeLibraryTools(server, undefined, application, projectIdFrom);
 registerMediaIntelligenceTools(server, application, projectIdFrom);
 registerSourceResearchTools(server, projectIdFrom);
 registerSoundTools(server, application, projectIdFrom);

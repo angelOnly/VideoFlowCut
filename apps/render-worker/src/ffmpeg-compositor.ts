@@ -7,6 +7,10 @@ import { runMotionProcess } from "./motion-process.js";
 import { renderTimelineAudio } from "./timeline-audio.js";
 
 const encoders = new Map<string, Promise<{ args: string[]; name: string; reason?: string }>>();
+// 清单拼接要求各段流完全一致；NUT 保留精确帧时基，避免 MKV 毫秒时钟的接点误差。
+function intermediateVideoArgs(fps: number) {
+  return ["-an","-c:v","ffv1","-level","3","-pix_fmt","bgra","-r",String(fps),"-enc_time_base",`1:${fps}`,"-f","nut"];
+}
 /** 实际试编码后选择硬编；不可用的原因记录到执行报告。 */
 export function selectTimelineEncoder(width = 1920, height = 1080, fps = 30) {
   const key = `${width}:${height}:${fps}`;
@@ -45,7 +49,7 @@ async function renderMediaSpan(snapshot: ProjectSnapshot, span: RenderSpan, path
     args.push("-loop","1","-framerate",String(fps),"-i",captions.get(id)!);
     filters.push(`[base${base}][${index}:v]overlay=shortest=1:format=auto[base${base+1}]`);index++;base++;
   }
-  args.push("-filter_complex",filters.join(";"),"-map",`[base${base}]`,"-frames:v",String(count),"-an","-c:v","ffv1","-level","3","-pix_fmt","bgra",path);
+  args.push("-filter_complex",filters.join(";"),"-map",`[base${base}]`,"-frames:v",String(count),...intermediateVideoArgs(fps),path);
   await runMotionProcess("ffmpeg",args,signal,30*60_000);
 }
 
@@ -71,22 +75,27 @@ export async function compositeTimeline(snapshot:ProjectSnapshot,targetPath:stri
       const path=join(directory,`caption-${captions.size}.png`);
       await callbacks.caption({ ...snapshot, timeline: { ...snapshot.timeline, captions: snapshot.timeline.captions.filter(c=>c.id===id) } },span.startFrame,path); captions.set(id,path);
     }
-    const paths:string[]=[];
-    for(const span of plan.spans){
-      signal?.throwIfAborted();const at=Date.now(),path=join(directory,`visual-${paths.length}.${span.kind==="media"?"mkv":"mp4"}`);
+    for(const [i,span] of plan.spans.entries()){
+      signal?.throwIfAborted();const at=Date.now(),path=join(directory,`visual-${i}.nut`);
       let cacheHit = false;
       if(span.kind==="media") await renderMediaSpan(snapshot,span,path,captions,signal);
-      else cacheHit = await reuseVisualRange(snapshot.project.rootPath,span.cacheKey,path,()=>callbacks.browserRange(snapshot,span.startFrame,span.endFrame,path));
+      else {
+        const browserPath=join(directory,"browser.mp4");
+        cacheHit = await reuseVisualRange(snapshot.project.rootPath,span.cacheKey,browserPath,()=>callbacks.browserRange(snapshot,span.startFrame,span.endFrame,browserPath));
+        await runMotionProcess("ffmpeg",["-y","-v","error","-i",browserPath,"-map","0:v:0","-vf",`settb=1/${snapshot.timeline.fps},setpts=N,setsar=1`,"-frames:v",String(span.endFrame-span.startFrame),...intermediateVideoArgs(snapshot.timeline.fps),path],signal,30*60_000);
+        await rm(browserPath,{force:true});
+      }
       await measure();
-      paths.push(path);timings.push({kind:span.kind,cacheHit,startFrame:span.startFrame,endFrame:span.endFrame,elapsedMs:Date.now()-at,reasons:span.reasons});
+      timings.push({kind:span.kind,cacheHit,startFrame:span.startFrame,endFrame:span.endFrame,elapsedMs:Date.now()-at,reasons:span.reasons});
     }
     const audioAt=Date.now(),audio=await renderTimelineAudio(snapshot,from,to,directory,signal);
     timings.push({kind:"audio",elapsedMs:Date.now()-audioAt});
     await measure();
     const selected=await selectTimelineEncoder(snapshot.timeline.width,snapshot.timeline.height,snapshot.timeline.fps),fps=snapshot.timeline.fps;
-    const filters=paths.map((_,i)=>`[${i}:v]setpts=N/(${fps}*TB),setsar=1,format=yuv420p[v${i}]`);
-    filters.push(`${paths.map((_,i)=>`[v${i}]`).join("")}concat=n=${paths.length}:v=1:a=0[out]`);
-    await runMotionProcess("ffmpeg",["-y","-v","error","-progress","pipe:1","-filter_complex_threads","1",...paths.flatMap(p=>["-i",p]),"-i",audio,"-filter_complex",filters.join(";"),"-map","[out]","-map",`${paths.length}:a:0`,...selected.args,"-pix_fmt","yuv420p","-r",String(fps),"-frames:v",String(to-from),"-c:a","aac","-b:a","320k","-movflags","+faststart",targetPath],signal,30*60_000);
+    // 仅清单随分段数增长；文件名相对清单且由本模块生成，不展开 Windows 长路径。
+    const list=join(directory,"visual.ffconcat");
+    await writeFile(list,"ffconcat version 1.0\n"+plan.spans.map((span,i)=>`file visual-${i}.nut\nduration ${(span.endFrame-span.startFrame)/fps}\n`).join(""));
+    await runMotionProcess("ffmpeg",["-y","-v","error","-progress","pipe:1","-f","concat","-i",list,"-i",audio,"-map","0:v:0","-map","1:a:0","-vf",`setpts=N/(${fps}*TB),setsar=1`,...selected.args,"-pix_fmt","yuv420p","-r",String(fps),"-frames:v",String(to-from),"-c:a","aac","-b:a","320k","-movflags","+faststart",targetPath],signal,30*60_000);
     await writeFile(`${targetPath}.render-plan.json`,JSON.stringify({plan,encoder:selected.name,encoderFallbackReason:selected.reason,timings,peakWorkerRssBytes,peakWorkingDirectoryBytes,measurementScope:"Worker RSS 与阶段结束时临时目录占用；不含浏览器或 FFmpeg 子进程 RSS",elapsedMs:Date.now()-started},null,2));
     return plan;
   } catch(error) { await rm(targetPath,{force:true});await rm(`${targetPath}.render-plan.json`,{force:true});throw error; }

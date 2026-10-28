@@ -47,6 +47,9 @@ test("HTML 生产入口可达当前根时钟与绑定合同，旧 TSX 入口停�
 });
 
 const expectedSkills = [
+  "creative-sequence-design",
+  "creative-case-library",
+  "creative-reference-to-sequence",
   "asset-import",
   "audio-finishing",
   "sound-asset-sourcing",
@@ -426,7 +429,7 @@ test("人物专业参考保留 Scene 登记约束，完整制作引用共同主�
 });
 
 test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", async () => {
-  const mcpSource = (await Promise.all([mcpSourcePath, ...["presenter-tools", "motion-tools", "object-resource-tools", "motion-library-tools", "media-intelligence-tools", "sound-tools", "source-research-tools", "media-search-tool"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
+  const mcpSource = (await Promise.all([mcpSourcePath, ...["presenter-tools", "motion-tools", "object-resource-tools", "motion-library-tools", "creative-library-tools", "media-intelligence-tools", "sound-tools", "source-research-tools", "media-search-tool"].map((name) => join(repositoryRoot, `apps/server/src/${name}.ts`))].map((path) => readFile(path, "utf8")))).join("\n");
   const currentTools = registeredToolNames(mcpSource);
   const contract = await operationKnowledge();
 

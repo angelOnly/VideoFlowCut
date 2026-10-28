@@ -9,18 +9,12 @@ import { DomainError } from "@videocut/domain";
 import { digest, timeRangeSchema } from "../../../packages/media-intelligence/src/index.js";
 import { MOTION_TEXT_VERSION, MOTION_INSTRUCTION_VERSION, MOTION_VIDEO_PROMPT } from "../../../packages/media-intelligence/src/motion-library.js";
 import { motionJobRecovery, projectMotionJob, projectMotionMechanismResult, projectMotionSearchResult } from "./motion-library-output.js";
+import { latestLibraryAttempt as latestAttempt } from "./library-job.js";
 
 const id = z.string().regex(/^\d{3}-m\d{2}$/u);
 const fingerprint = z.string().regex(/^[a-f0-9]{64}$/u);
 const choices = (field: string) => z.array(z.enum(termsFor(field) as [string, ...string[]])).max(20).optional();
 const failure = (error: unknown, sideEffects: "none" | "unknown" = "none") => ({ isError: true, content: [{ type: "text" as const, text: JSON.stringify({code:error instanceof DomainError?error.code:"MOTION_LIBRARY_UNAVAILABLE",message:error instanceof Error?error.message:"参考资料读取失败",sideEffects}) }] });
-
-function latestAttempt(app: EditingApplication, projectId: string, submitted: ReturnType<EditingApplication["trackJob"]>) {
-  let job = submitted;
-  const jobs = app.listJobs(projectId);
-  for (let i=0;i<100;i++) { const next=jobs.find(entry=>entry.payload.retryOfJobId===job.id); if(!next)break; job=next; }
-  return job;
-}
 
 export function registerMotionLibraryTools(server: McpServer, root = resolve(process.cwd(), "references/motion-cases/skillry"), app?: EditingApplication, projectIdFrom?: (id?: string) => string) {
   // 启动器将 cwd 固定到源码仓库；只接收编号，调用方不能指定磁盘路径。

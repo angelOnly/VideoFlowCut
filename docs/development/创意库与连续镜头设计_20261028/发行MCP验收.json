@@ -1,0 +1,38 @@
+{
+  "pluginVersion": "0.1.103",
+  "releaseId": "release-6fe92b8cc5f432104fa39c4d303839173a6ef5ed01095cc58a5be5d27652d2eb",
+  "tool_count": 164,
+  "tools": [
+    "search_creative_cases",
+    "read_creative_case"
+  ],
+  "source_sha256": "9f72c2f33f31d705c99d13f6245701c8e428a0993327c0fc0685dc55bd3e332f",
+  "library_count": 87,
+  "processed_cases": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    118,
+    119,
+    120
+  ],
+  "full_card": "002-c01",
+  "storyboard_mime": "image/jpeg",
+  "missing_project_code": "PROJECT_NOT_TARGETED",
+  "workspace": "E:\\ai\\VideoCut\\.candidate\\creative-library-mcp-20261028",
+  "limits": "隔离发行MCP的真实协议查读；没有提交生产队列、运行OpenDesign或切换已安装插件"
+}

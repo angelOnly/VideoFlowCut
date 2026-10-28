@@ -28,6 +28,7 @@ import { runSpeechAlignment } from "./speech-alignment.js";
 import { runVideoGeneration } from "./video-generation.js";
 import { runVlogAnalysis } from "./vlog-analysis.js";
 import { runMediaUnderstanding, runMediaSearch } from "./media-understanding.js";
+import { searchCreativeLibrary } from "./creative-library.js";
 import { runMotionLibrarySearch, runMotionReferenceAnalysis } from "./motion-library.js";
 
 const workspaceRoot = readRuntimeConfig().workspace.root;
@@ -39,7 +40,7 @@ const getDefaultApplication = () => (defaultApplication ??= createApplication(wo
  * 但绝不能被 Worker claim 或重新执行；唯一正式入口是段级 source_caption_alignment。
  */
 export const MEDIA_JOB_KINDS: JobKind[] = ["media_analysis", "vlog_analysis", "multicam_sync", "asset_acquisition", "transcription", "source_caption_alignment", "voice_synthesis", "speech_assembly", "dialogue_processing", "speech_alignment", "music_generation", "sfx_generation", "video_generation", "avatar_generation"];
-MEDIA_JOB_KINDS.push("object_resource_preparation", "source_material_acquisition", "media_understanding", "media_search", "sound_ranking", "motion_library_search", "motion_reference_analysis");
+MEDIA_JOB_KINDS.push("object_resource_preparation", "source_material_acquisition", "media_understanding", "media_search", "sound_ranking", "creative_library_search", "motion_library_search", "motion_reference_analysis");
 
 const resolveAssetPath = (snapshot: ProjectSnapshot, asset: Asset) => isAbsolute(asset.managedPath) ? asset.managedPath : join(snapshot.project.rootPath, asset.managedPath);
 
@@ -261,6 +262,7 @@ export function createMediaJobProcessor(
       case "sound_ranking": return runSoundRanking(app, job, bridge);
       case "media_search":
         return runMediaSearch(app, job, bridge);
+      case "creative_library_search": return searchCreativeLibrary(app, job, bridge);
       case "motion_library_search": return runMotionLibrarySearch(app, job, bridge);
       case "motion_reference_analysis": return runMotionReferenceAnalysis(app, job, bridge);
       case "vlog_analysis":

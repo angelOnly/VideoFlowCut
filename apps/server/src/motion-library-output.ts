@@ -1,4 +1,5 @@
 import type { JobRecord } from "@videocut/contracts";
+import { projectCreativeSearchResult } from "./creative-library-output.js";
 
 type Data = Record<string, unknown>;
 const object = (value: unknown): Data => value && typeof value === "object" && !Array.isArray(value) ? value as Data : {};
@@ -81,9 +82,9 @@ export function motionJobRecovery(job: JobRecord): Data | undefined {
     action: "reconcile", job_id: job.id, project_id: job.projectId, runs,
     message: "外部提交结果未知，先核对原 Job 与已知 Run；不能换幂等键或重新提交。"
   };
-  if (code === "MOTION_LIBRARY_STALE") return {
-    action: "refresh_search", tool: "search_motion_mechanisms", job_id: job.id, project_id: job.projectId,
-    message: "机制来源已变化，重新查询当前来源并核读采用项，不重试过期请求。"
+  if (code === "MOTION_LIBRARY_STALE" || code === "CREATIVE_LIBRARY_STALE") return {
+    action: "refresh_search", tool: code === "CREATIVE_LIBRARY_STALE" ? "search_creative_cases" : "search_motion_mechanisms", job_id: job.id, project_id: job.projectId,
+    message: "资料来源已变化，重新查询当前来源并核读采用项，不重试过期请求。"
   };
   return {
     action: "retry", tool: "retry_media_job", job_id: job.id, project_id: job.projectId, runs,
@@ -93,7 +94,7 @@ export function motionJobRecovery(job: JobRecord): Data | undefined {
 
 /** 只收窄已确认的机制任务链；其余工具继续使用现有合同，后台记录不变。 */
 export function projectMotionJob(job: JobRecord): JobRecord | Data {
-  if (!["motion_library_search", "motion_reference_analysis"].includes(job.kind)) return job;
+  if (!["creative_library_search", "motion_library_search", "motion_reference_analysis"].includes(job.kind)) return job;
   const result = object(job.result), next = motionJobRecovery(job);
   return {
     ...pick(job, ["id", "projectId", "kind", "status", "error", "attempt", "createdAt", "updatedAt"]),
@@ -101,7 +102,8 @@ export function projectMotionJob(job: JobRecord): JobRecord | Data {
     ...(job.payload.retryOfJobId ? { retryOfJobId: job.payload.retryOfJobId } : {}),
     ...(job.kind === "motion_reference_analysis" ? { mechanism_id: job.payload.id, range: pick(job.payload.range, ["startMs", "endMs"]) } : {}),
     ...(job.result ? { result: {
-      ...(job.kind === "motion_library_search" ? projectMotionSearchResult(result) : projectMotionAnalysisResult(result)),
+      ...(job.kind === "creative_library_search" ? projectCreativeSearchResult(result) : job.kind === "motion_library_search" ? projectMotionSearchResult(result) : projectMotionAnalysisResult(result)),
+      ...(result.creativeIndex ? { creativeIndex: pick(result.creativeIndex, ["completed", "total", "source_sha256"]) } : {}),
       ...(result.motionIndex ? { motionIndex: pick(result.motionIndex, ["completed", "total", "source_sha256"]) } : {}),
       ...(result.diagnostic ? { diagnostic: diagnostic(result.diagnostic) } : {})
     } } : {}),

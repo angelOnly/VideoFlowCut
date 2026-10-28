@@ -45,7 +45,7 @@ export class MediaIntelligenceApplication {
 
   retry(projectId: string, jobId: string) {
     const previous = this.app.trackJob(jobId);
-    if (previous.projectId !== projectId || !["media_understanding", "media_search", "motion_library_search", "motion_reference_analysis", "sound_ranking", "sfx_generation"].includes(previous.kind) || !["failed", "cancelled"].includes(previous.status)) throw new DomainError("只能恢复此项目明确失败或已取消的素材任务", "MEDIA_RETRY_INVALID");
+    if (previous.projectId !== projectId || !["media_understanding", "media_search", "creative_library_search", "motion_library_search", "motion_reference_analysis", "sound_ranking", "sfx_generation"].includes(previous.kind) || !["failed", "cancelled"].includes(previous.status)) throw new DomainError("只能恢复此项目明确失败或已取消的素材任务", "MEDIA_RETRY_INVALID");
     const retry = this.app.repository.createJob({ projectId, kind: previous.kind, payload: { ...previous.payload, retryOfJobId: previous.id }, idempotencyKey: `media-retry:${previous.id}` });
     this.app.publish({ projectId, revision: this.app.readProject(projectId).revision.number, type: "job" });
     return retry;

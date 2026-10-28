@@ -177,6 +177,7 @@ export type JobKind =
   | "media_analysis"
   | "media_understanding"
   | "media_search"
+  | "creative_library_search"
   | "motion_library_search"
   | "motion_reference_analysis"
   | "sound_comparison" | "sound_ranking"

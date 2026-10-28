@@ -1,0 +1,39 @@
+{
+  "pluginVersion": "0.1.104",
+  "releaseId": "release-98a0255644f2038c7829448650d9888435d158cb3c12fffd0b437fda9d14ab01",
+  "release": {
+    "mcpReleaseId": "release-98a0255644f2038c7829448650d9888435d158cb3c12fffd0b437fda9d14ab01",
+    "runtime": {
+      "status": "ready",
+      "runtimeId": "b3e869fd-e32f-4bcf-b171-b4ed896f3d80",
+      "releaseId": "release-98a0255644f2038c7829448650d9888435d158cb3c12fffd0b437fda9d14ab01",
+      "workers": {
+        "media": true,
+        "render": true
+      }
+    },
+    "aligned": true,
+    "launcherReleaseId": "release-98a0255644f2038c7829448650d9888435d158cb3c12fffd0b437fda9d14ab01",
+    "launcherCodeHash": "97d28fd3f81f84c43e2c33559eea5d8ffe1c7d9362d0a501360f1874cfbc6f91",
+    "launcherPid": 556
+  },
+  "projectCount": 117,
+  "jobCount": 3125,
+  "stableSnapshotsVerified": 115,
+  "existingUnstableReads": [
+    {
+      "projectId": "project_a300d006-d01f-477a-842d-e5a64390411a",
+      "firstHash": "c127574f3f93371ccf1b82adc9941429d154798455615ed955daf29c9d1cb3aa",
+      "secondHash": "04c44939ac97d6d234451576a4a0164a08ac895890d2e54933795c742963b251"
+    },
+    {
+      "projectId": "project_bc72e0f1-9910-4244-b02d-313be464be52",
+      "firstHash": "a4af44ca62584f92c6b2bfd1ab3efd9a5088dc559bce3f065a238815db97c1b1",
+      "secondHash": "fa333a3c261662d486685baf24d7cd026aff1c5bbfdeb31acca53da225ca6da5"
+    }
+  ],
+  "allRevisionsUnchanged": true,
+  "allJobsUnchanged": true,
+  "productionR261Unchanged": true,
+  "ticketStatus": "deployed"
+}
