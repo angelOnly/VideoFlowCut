@@ -44,6 +44,7 @@ import type {
 } from "@videocut/contracts";
 import { DEFAULT_TRACKS, DEFAULT_CAPTION_FORMAT, sourceAudioTimeOrigin } from "@videocut/contracts";
 import { projectFrameRateSchema } from "../../contracts/src/frame-rate.js";
+import { PROJECT_CANVAS_SIZES } from "../../contracts/src/canvas-size.js";
 export { projectFrameRateChange } from "./frame-rate-change.js";
 export { resolvePresenterUseAudio, avatarBindingMatches, reconcileAvatarSourceBindings } from "./avatar-source.js";
 import { avatarBindingMatches } from "./avatar-source.js";
@@ -234,7 +235,7 @@ function assertProviderSegmentCaptionCardGraph(
   }
 }
 
-export function createTimeline(fps = 24, width = 768, height = 1344): TimelineDocument {
+export function createTimeline(fps = 24, width = 1080, height = 1920): TimelineDocument {
   if (!projectFrameRateSchema.safeParse(fps).success) throw new DomainError("项目帧率必须是15至60的整数", "PROJECT_FPS_INVALID");
   const tracks: TimelineTrack[] = DEFAULT_TRACKS.map((track, index) => ({
     id: createId("track"),
@@ -281,7 +282,7 @@ export function createProjectSnapshot(input: {
 }): ProjectSnapshot {
   const createdAt = now();
   const brief = { ...DEFAULT_BRIEF, ...input.brief };
-  const isPortrait = brief.aspectRatio === "9:16";
+  const canvas = PROJECT_CANVAS_SIZES[brief.aspectRatio];
   return {
     project: {
       id: input.projectId,
@@ -325,7 +326,7 @@ export function createProjectSnapshot(input: {
     actorPerformances: [],
     scenes: [],
     effectCues: [],
-    timeline: createTimeline(input.fps ?? 24, isPortrait ? 768 : 1920, isPortrait ? 1344 : 1080),
+    timeline: createTimeline(input.fps ?? 24, canvas.width, canvas.height),
     markers: []
   };
 }

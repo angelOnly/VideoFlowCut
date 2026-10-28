@@ -5,6 +5,7 @@ import { readJobDiagnostics } from "./job-diagnostics.js";
 import { toolErrorResult } from "./tool-error.js";
 import { captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
 import { projectFrameRateSchema } from "../../../packages/contracts/src/frame-rate.js";
+import { canvasDimensionSchema } from "../../../packages/contracts/src/canvas-size.js";
 import { explainerPlanWithContent } from "../../../packages/contracts/src/explainer-inputs.js";
 import { sourceCaptionTextReviewSchema, } from "../../../packages/contracts/src/editorial-inputs.js";
 import { registerSourceResearchTools } from "./source-research-tools.js";
@@ -310,6 +311,15 @@ server.registerTool("set_project_frame_rate", {
   inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), fps: projectFrameRateSchema }
 }, async ({ project_id, base_revision_id, fps }) => {
   try { return asText(application.setProjectFrameRate({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, fps })); }
+  catch (error) { return asError(error); }
+});
+
+server.registerTool("set_project_canvas_size", {
+  title: "设置项目画布尺寸",
+  description: "按当前Revision修改合成画布，支持9:16、16:9、1:1，宽高为64至1920的偶数。同步项目比例，不拉伸源作品或修改时钟；受影响固定作品按既有依赖置为stale，需匹配新画布并重新预览审片。相同尺寸不创建Revision。",
+  inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), width: canvasDimensionSchema, height: canvasDimensionSchema }
+}, async ({ project_id, base_revision_id, width, height }) => {
+  try { return asText(application.setProjectCanvasSize({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, width, height })); }
   catch (error) { return asError(error); }
 });
 

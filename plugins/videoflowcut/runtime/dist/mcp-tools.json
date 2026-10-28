@@ -435,6 +435,42 @@
       }
     },
     {
+      "name": "set_project_canvas_size",
+      "title": "设置项目画布尺寸",
+      "description": "按当前Revision修改合成画布，支持9:16、16:9、1:1，宽高为64至1920的偶数。同步项目比例，不拉伸源作品或修改时钟；受影响固定作品按既有依赖置为stale，需匹配新画布并重新预览审片。相同尺寸不创建Revision。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 64,
+            "maximum": 1920,
+            "multipleOf": 2
+          },
+          "height": {
+            "$ref": "#/properties/width"
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "width",
+          "height"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "target_project",
       "title": "设定当前项目",
       "description": "将 MCP 会话绑定到已存在的项目；不会修改项目内容。",

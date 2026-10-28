@@ -40,6 +40,7 @@ import { registerMediaIntelligenceRoutes } from "./media-intelligence-tools.js";
 import { MOTION_SOURCES } from "../../../packages/motion-work/src/catalog.js";
 import { motionSubmissionSchema, motionReviewFields } from "../../../packages/motion-work/src/schema.js";
 import { projectFrameRateSchema } from "../../../packages/contracts/src/frame-rate.js";
+import { projectCanvasSizeSchema } from "../../../packages/contracts/src/canvas-size.js";
 import { inspectMotionReference } from "./motion-reference.js";
 
 const idSchema = z.string().min(1);
@@ -318,6 +319,13 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const input = z.object({ baseRevision: baseRevisionSchema, fps: projectFrameRateSchema }).strict().parse(request.body);
     return application.setProjectFrameRate({ projectId, ...input });
+  });
+
+  app.post("/api/projects/:projectId/canvas-size", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const input = z.object({ baseRevision: baseRevisionSchema, width: z.number(), height: z.number() }).strict().parse(request.body);
+    projectCanvasSizeSchema.parse({ width: input.width, height: input.height });
+    return application.setProjectCanvasSize({ projectId, ...input });
   });
 
   app.get("/api/projects/:projectId/story", async (request) => {

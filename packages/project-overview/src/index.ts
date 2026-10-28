@@ -304,7 +304,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     description: "创建和定位项目、读取 Revision 与故事、打开工作台、管理 Codex 工作单和平台修复交接。",
     tools: [
       "open_web_workbench", "list_projects", "create_project", "target_project", "read_project", "read_story", "manage_story",
-      "preview_project_frame_rate_change", "set_project_frame_rate", "update_creative_brief",
+      "preview_project_frame_rate_change", "set_project_frame_rate", "set_project_canvas_size", "update_creative_brief",
       "get_editor_url", "focus_editor_object", "read_impact_report", "list_revisions", "read_agent_work_orders",
       "claim_agent_work_order", "complete_agent_work_order", "release_agent_work_order", "report_editing_blocker",
       "list_repair_tickets", "claim_repair_ticket", "release_repair_ticket", "resolve_repair_ticket_without_deployment", "mark_repair_candidate_ready",

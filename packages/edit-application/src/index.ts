@@ -19,6 +19,7 @@ import { captionTypographySchema, captionTextShadowSchema, captionPlacementSchem
 import { captionSrtImportSchema, parseSrt, type CaptionSrtImportInput } from "../../contracts/src/caption-srt.js";
 import { applyAudioDesign, soundRequirementSchema, type AudioDesignInput } from "./sound-design.js";
 import { prepareProjectFrameRateChange } from "./frame-rate-change.js";
+import { canvasAspectRatio, projectCanvasSizeSchema } from "../../contracts/src/canvas-size.js";
 import { digest as mediaDigest, assetRequestVersion } from "../../media-intelligence/src/index.js";
 import { assertEffectCoverage } from "@videocut/domain";
 import { MediaIntelligenceApplication } from "./media-intelligence.js";
@@ -1515,6 +1516,23 @@ export class EditingApplication {
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
     return { ...state, frameRateChange: report };
+  }
+
+  setProjectCanvasSize(input: { projectId: Id; baseRevision: number; width: number; height: number }): ProjectState {
+    const size = projectCanvasSizeSchema.parse({ width: input.width, height: input.height });
+    const current = this.readProject(input.projectId);
+    if (current.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, current.revision.number);
+    if (current.snapshot.timeline.width === size.width && current.snapshot.timeline.height === size.height) return current;
+    const state = this.repository.commit(input.projectId, input.baseRevision, `项目画布 ${size.width}×${size.height}`, (snapshot, impact) => {
+      // 只改合成画布；固定作品、源文件和时间不拉伸，既有依赖对账会将受影响作品置为 stale。
+      Object.assign(snapshot.timeline, size);
+      snapshot.project.brief.aspectRatio = canvasAspectRatio(size.width, size.height);
+      impact.changed.push(snapshot.project.id);
+      impact.warnings.push("画布已修改；固定作品保持原尺寸，需匹配新画布并重新预览、检查构图与字幕");
+      if (snapshot.timeline.durationInFrames) impact.dirtyRanges.push({ startFrame: 0, endFrame: snapshot.timeline.durationInFrames, reason: "项目画布变化，重建合成预览并复核构图" });
+    });
+    this.publish({ projectId: input.projectId, revision: state.revision.number, type: "revision" });
+    return state;
   }
 
   listProjects(): ProjectSummary[] {
