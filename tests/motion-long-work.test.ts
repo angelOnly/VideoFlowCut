@@ -40,8 +40,10 @@ test("768×1344完整33秒四选段经真实渲染形成一个792帧作品", { t
     const result = await runMotionJob(app, job);
     const current = app.readProject(projectId); const asset = current.snapshot.assets.find(asset => asset.id === result.assetId)!;
     assert.equal(current.revision.number, before + 1); assert.equal(current.snapshot.assets.filter(asset => asset.motion).length, 1);
-    assert.equal(asset.motion!.frameCount, 792); assert.equal(asset.metadata!.durationMs, 33000);
-    const manifest = JSON.parse(await readFile(join(current.snapshot.project.rootPath, asset.motion!.sourcePath, "../manifest.json"), "utf8"));
+    assert.equal(asset.motion!.frameCount, 792);
+    // Matroska 毫秒时基允许拼接末端相差1ms；实际792帧已由Worker逐帧核验。
+    assert.ok(Math.abs(asset.metadata!.durationMs - 33000) <= 1);
+    const manifest = JSON.parse(await readFile(join(current.snapshot.project.rootPath, asset.managedPath, "../manifest.json"), "utf8"));
     assert.equal(manifest.frameHashes.length, 792); assert.equal(manifest.videoResources.uniqueSources, 2);
     assert.equal(manifest.videoDecodes.b.frameCount, 80); assert.equal(manifest.videoDecodes.c.frameCount, 85);
     assert.equal((await runMotionJob(app, job)).assetId, asset.id);

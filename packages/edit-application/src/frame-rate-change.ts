@@ -23,8 +23,8 @@ export function prepareProjectFrameRateChange(previous: ProjectSnapshot, fps: nu
   }
   for (const cue of snapshot.effectCues) if (cue.status === "ready") {
     const before = previous.effectCues.find(entry => entry.id === cue.id);
-    if (before && inspectEffectContentContract(before, previous.assets, previous.timeline).ready) {
-      const content = inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline);
+    if (before && inspectEffectContentContract(before, previous.assets, previous.timeline, previous.motionWorks).ready) {
+      const content = inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline, snapshot.motionWorks);
       if (!content.ready) report.blockers.push({ code: "PROJECT_FPS_CONTENT_INVALID", objectId: cue.id, message: content.missing.join("；") });
     }
   }

@@ -6,20 +6,20 @@ import { checkMotionSourceDisplay } from "../../../packages/edit-application/src
 import { MotionDiagnostics } from "./motion-diagnostics.js";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, realpath, rename, rm, stat, statfs, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
 import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import type { EditingApplication } from "@videocut/application";
-import type { JobRecord } from "@videocut/contracts";
+import type { FrozenMotionContinuation, JobRecord } from "@videocut/contracts";
+import { checkMotionRangeCompatibility, motionRangeExpectation } from "../../../packages/edit-application/src/motion-range-replacement.js";
 import { probeMedia } from "@videocut/speech";
 import { boundMotionFontSchema, boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema, motionFrameRangeSchema, parseMotionEvents } from "../../../packages/motion-work/src/schema.js";
 import { prepareMotionFonts } from "../../../packages/motion-work/src/fonts.js";
 import { motionPixelKey, motionHash, motionHashEngine, MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compiler.js";
-import { motionFrameName, renderManagedMotion, verifyMotionPreviewFrames, type MotionRenderResult } from "./motion-renderer.js";
+import { initializeManagedMotion, motionFrameName, renderManagedMotion, verifyMotionPreviewFrames, type MotionRenderResult } from "./motion-renderer.js";
 import { MotionDeterminismError } from "./motion-determinism.js";
 import { prepareMotionVideos } from "./motion-video.js";
 import { prepareMotionImages, type MotionImageDecode } from "./motion-images.js";
 import { DomainError } from "@videocut/domain";
-import { checkMotionDiskSpace, motionOutputBudget } from "./motion-output-budget.js";
 
 export async function runMotionJob(application: EditingApplication, job: JobRecord, render = renderManagedMotion, signal?: AbortSignal): Promise<Record<string, unknown>> {
   const diagnostics = new MotionDiagnostics({ jobId: job.id, version: job.payload.version, releaseId: readRuntimeConfig().runtime.releaseId }, state => application.recordJobCheckpoint(job.id, { motionProgress: state }));
@@ -39,13 +39,25 @@ export async function runMotionJob(application: EditingApplication, job: JobReco
 }
 
 async function executeMotionJob(application: EditingApplication, job: JobRecord, render: typeof renderManagedMotion, signal: AbortSignal | undefined, diagnostics: MotionDiagnostics): Promise<Record<string, unknown>> {
+  const startedAt = Date.now();
   signal?.throwIfAborted();
+  const saved = application.trackJob(job.id).result?.continuation;
+  if (saved) return { assetId: (saved as { assetId: string }).assetId, continuation: saved };
   if (job.payload.engineVersion !== MOTION_ENGINE_VERSION) throw new DomainError("历史作品产物保持可读；重新生成须按当前合同提交新版本", "MOTION_ENGINE_UPGRADE_REQUIRED");
   const work = motionSubmissionSchema.parse(job.payload.work);
   const frameRange = job.payload.frameRange ? motionFrameRangeSchema.parse(job.payload.frameRange) : undefined;
+  const proof = job.payload.outputIntent === "proof" || Boolean(frameRange && job.payload.outputIntent !== "asset");
   const startFrame = frameRange?.startFrame ?? 0, endFrame = frameRange?.endFrame ?? work.durationInFrames;
   if (endFrame > work.durationInFrames) throw new DomainError("校样窗口超出作品", "MOTION_PROOF_RANGE_INVALID");
   const frameCount = endFrame - startFrame;
+  const continuation = job.payload.continuation as FrozenMotionContinuation | undefined;
+  const rangeExpectation = continuation?.request.action === "replace_range"
+    ? motionRangeExpectation(application.repository.getRevision(job.projectId, Number(job.payload.requestedRevision)).snapshot, { cueId: continuation.request.cueId, ...continuation.request.targetRange })
+    : undefined;
+  if (rangeExpectation && !frameRange && job.payload.outputIntent !== "prepare") throw new DomainError("局部自动采用需要明确作品根范围", "MOTION_RANGE_INVALID");
+  const rangeCandidate = rangeExpectation && frameRange ? { width: work.width, height: work.height, fps: work.fps, frameCount,
+    rootRange: { ...frameRange, fullDurationInFrames: work.durationInFrames } } : undefined;
+  if (rangeExpectation && rangeCandidate) checkMotionRangeCompatibility(rangeExpectation, rangeCandidate, false);
   const boundImages = boundMotionImageSchema.array().parse(job.payload.boundImages ?? []);
   const boundVideos = boundMotionVideoSchema.array().parse(job.payload.boundVideos ?? []);
   const boundFonts = boundMotionFontSchema.array().parse(job.payload.boundFonts ?? []);
@@ -61,21 +73,54 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
   diagnostics.stage("font_preparation");
   const fonts = prepareMotionFonts(work, boundFonts);
   const snapshot = application.readProject(job.projectId).snapshot;
-  const parent = frameRange ? join(snapshot.project.rootPath, "previews", "motion", job.id) : join(snapshot.project.rootPath, "assets", "derived", "motion", job.id);
+  if (job.payload.outputIntent === "prepare") {
+    const prepareRoot = join(snapshot.project.rootPath, "cache", "motion-prepare");
+    await mkdir(prepareRoot, { recursive: true });
+    const temporary = await mkdtemp(join(prepareRoot, ".prepare-"));
+    let provider: Awaited<ReturnType<typeof prepareMotionVideos>> | undefined;
+    try {
+      const bytes = Object.fromEntries(await Promise.all(boundImages.map(async image => {
+        const path = await realpath(resolve(snapshot.project.rootPath, image.managedPath));
+        const content = await readFile(path);
+        if (createHash("sha256").update(content).digest("hex") !== image.hash) throw new Error("MOTION_IMAGE_CHANGED");
+        return [image.slot, content];
+      })));
+      const { imageData } = await prepareMotionImages(bytes, join(temporary, "resources"), signal, diagnostics);
+      provider = await prepareMotionVideos(snapshot.project.rootPath, temporary, work, boundVideos, hashEngineVersion, signal);
+      const initialized = await initializeManagedMotion(work, temporary, imageData, provider, signal ?? new AbortController().signal, fonts, diagnostics, sourceDisplay);
+      await provider.verifySources();
+      const eventMap = initialized.events === undefined ? undefined : { version, fps: work.fps, frameCount: work.durationInFrames, events: initialized.events };
+      const registered = application.completeSourceMotionWork(job.projectId, job.id, eventMap);
+      return { kind: "motion_work", workId: registered.id, version, revision: application.readProject(job.projectId).revision.number, capturedFrames: 0 };
+    } finally { await provider?.close(); await rm(temporary, { recursive: true, force: true }); }
+  }
+  const parent = proof ? join(snapshot.project.rootPath, "previews", "motion", job.id) : join(snapshot.project.rootPath, "assets", "derived", "motion", job.id);
   const directory = join(parent, version);
   await mkdir(parent, { recursive: true });
-  const pixelKey = motionPixelKey(work, boundImages, boundVideos, boundFonts);
+  const pixelKey = motionPixelKey(work, boundImages, boundVideos, boundFonts, frameRange);
   const reusable = job.payload.reusableAsset as Asset | undefined;
-  if (!frameRange && reusable?.motion?.output && !await stat(directory).catch(() => undefined)) {
+  const reusableProof = job.payload.reusableProof as { jobId: string; version: string } | undefined;
+  if (reusableProof && !await stat(directory).catch(() => undefined)) {
+    const proofDirectory = join(snapshot.project.rootPath, "previews", "motion", reusableProof.jobId, reusableProof.version);
+    const original = JSON.parse(await readFile(join(proofDirectory, "manifest.json"), "utf8"));
+    if (proof || original.version !== version || original.pixelKey !== pixelKey || JSON.stringify(original.frameRange) !== JSON.stringify(frameRange)) throw new Error("MOTION_PROOF_REUSE_MISMATCH");
+    const temporary = await mkdtemp(join(parent, ".adopt-"));
+    try {
+      // 正式登记保留独立产物，校样 Job 与原证据保持不变；随后走同一完整性检查。
+      await cp(proofDirectory, temporary, { recursive: true });
+      signal?.throwIfAborted(); await rename(temporary, directory);
+    } finally { await rm(temporary, { recursive: true, force: true }); }
+  }
+  if (!proof && reusable?.motion?.output && !await stat(directory).catch(() => undefined)) {
     const previous = reusable.motion;
     if (previous.pixelKey !== pixelKey || await hashMediaFile(resolve(snapshot.project.rootPath, previous.output!.path)) !== previous.output!.hash) throw new Error("MOTION_REUSE_CHANGED");
     const temporary = await mkdtemp(join(parent, ".reuse-"));
     try {
       // 只复制固定产物和少量诊断；不重新启动捕获，也不依赖可回收的解码缓存。
-      await cp(resolve(snapshot.project.rootPath, previous.sourcePath, ".."), temporary, { recursive: true });
+      await cp(resolve(snapshot.project.rootPath, previous.output!.path, ".."), temporary, { recursive: true });
       const manifest = JSON.parse(await readFile(join(temporary, "manifest.json"), "utf8"));
       await writeFile(join(temporary, "source.json"), JSON.stringify(work, null, 2));
-      await writeFile(join(temporary, "manifest.json"), JSON.stringify({ ...manifest, version, pixelKey, boundImages, boundVideos, boundFonts, reusedFrom: reusable.id }, null, 2));
+      await writeFile(join(temporary, "manifest.json"), JSON.stringify({ ...manifest, version, pixelKey, frameRange, boundImages, boundVideos, boundFonts, reusedFrom: reusable.id }, null, 2));
       signal?.throwIfAborted();
       await rename(temporary, directory);
     } finally { await rm(temporary, { recursive: true, force: true }); }
@@ -85,7 +130,6 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
     let preserveTemporary = false;
     try {
       diagnostics.stage("image_preparation");
-      const outputBudget = motionOutputBudget(work.width, work.height, frameCount, work.compositing, work.fps);
       const imageBytes: Record<string, Buffer> = {};
       if (fonts.length) {
         await mkdir(join(temporary, "resources", "font-files"), { recursive: true });
@@ -111,11 +155,8 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
       const provider = await prepareMotionVideos(snapshot.project.rootPath, temporary, work, boundVideos, hashEngineVersion, signal);
       let rendered: MotionRenderResult;
       try {
-        // 源检查后、实际解码前预检；先回收旧缓存，不把缓存限额再次当成必需空间。
-        await provider.reserveDiskSpace(outputBudget + provider.workingSetBytes);
-        const disk = await statfs(temporary);
-        checkMotionDiskSpace(disk.bavail * disk.bsize, outputBudget, provider.workingSetBytes);
-        rendered = await render(work, temporary, imageData, provider, signal, fonts, diagnostics, frameRange, sourceDisplay);
+        // 统一范围执行器预检整个 Job（含并发临时媒体），分路不再分别领取磁盘预算。
+        rendered = await render(work, temporary, imageData, provider, signal, fonts, diagnostics, frameRange, sourceDisplay, { rangeExpectation });
         await provider.verifySources();
       } catch (error) {
         // 渲染失败也核查源身份，避免途中改变的原片留下可被下一版本命中的缓存。
@@ -125,7 +166,7 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
       await writeFile(join(temporary, "source.html"), work.source);
       await writeFile(join(temporary, "source.json"), JSON.stringify(work, null, 2));
       const previewHash = await hashMediaFile(rendered.previewPath);
-      await writeFile(join(temporary, "manifest.json"), JSON.stringify({ version, pixelKey, frameRange, hashEngineVersion, output: { ...rendered.output, path: basename(rendered.output.path) }, preview: { path: basename(rendered.previewPath), hash: previewHash }, previewHash, frameHashes: rendered.frameHashes, engineVersion: rendered.engineVersion, runtimeDependencies: rendered.runtimeDependencies, sandbox: rendered.sandbox, metrics: rendered.metrics, boundImages, imageDecodes, boundVideos, ...(boundFonts.length ? { boundFonts } : {}), videoDecodes: provider.videos, videoResources: provider.stats, events: rendered.events, determinism: rendered.determinism }, null, 2));
+      await writeFile(join(temporary, "manifest.json"), JSON.stringify({ version, pixelKey, frameRange, hashEngineVersion, output: { ...rendered.output, path: basename(rendered.output.path) }, preview: { path: basename(rendered.previewPath), hash: previewHash }, previewHash, frameHashKind: "rgba-sha256", frameHashes: rendered.frameHashes, engineVersion: rendered.engineVersion, runtimeDependencies: rendered.runtimeDependencies, sandbox: rendered.sandbox, metrics: rendered.metrics, boundImages, imageDecodes, boundVideos, ...(boundFonts.length ? { boundFonts } : {}), videoDecodes: provider.videos, videoResources: provider.stats, events: rendered.events, determinism: rendered.determinism }, null, 2));
       signal?.throwIfAborted();
       if (application.trackJob(job.id).status === "cancelled") throw new DomainError("作品任务已取消", "MOTION_CANCELLED");
       await rename(temporary, directory);
@@ -152,6 +193,7 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
   }
   diagnostics.stage("output_validation");
   const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8")) as MotionRenderResult & { version: string; hashEngineVersion?: string; previewHash: string; imageDecodes: MotionImageDecode[]; videoDecodes?: Record<string, unknown> };
+  if (rangeExpectation && rangeCandidate) checkMotionRangeCompatibility(rangeExpectation, { ...rangeCandidate, events: manifest.events === undefined ? undefined : parseMotionEvents(manifest.events, work.durationInFrames) });
   const storedSource = motionSubmissionSchema.parse(JSON.parse(await readFile(join(directory, "source.json"), "utf8")));
   if (manifest.version !== version || (manifest as any).pixelKey !== pixelKey || !Array.isArray(manifest.frameHashes) || manifest.frameHashes.length !== frameCount || JSON.stringify((manifest as any).frameRange) !== JSON.stringify(frameRange) || motionHash(storedSource, boundImages, manifest.hashEngineVersion ?? manifest.engineVersion, boundVideos, boundFonts, sourceDisplay) !== version) throw new Error("MOTION_CACHE_CORRUPT");
   if (JSON.stringify((manifest as any).boundFonts ?? []) !== JSON.stringify(boundFonts)) throw new Error("MOTION_FONT_CACHE_CORRUPT");
@@ -186,12 +228,17 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
   const eventMap = manifest.events === undefined ? undefined : { version, fps: work.fps, frameCount: work.durationInFrames, events: parseMotionEvents(manifest.events, work.durationInFrames) };
   signal?.throwIfAborted();
   diagnostics.stage("completed");
-  if (frameRange) return { kind: "motion_proof", version, frameRange, frameCount, sourceHash,
+  if (proof) return { kind: "motion_proof", version, frameRange, frameCount, sourceHash,
     sourcePath: relative(snapshot.project.rootPath, join(directory, "source.json")), previewPath: relative(snapshot.project.rootPath, previewPath),
     fullWorkDurationInFrames: work.durationInFrames, scope: "局部同源校样；未登记完整作品素材", determinism: manifest.determinism };
   const asset = application.completeManagedMotion({ projectId: job.projectId, jobId: job.id, engineVersion: manifest.engineVersion, sourceHash, metadata: { ...metadata, hasAlpha: work.compositing !== "opaque" }, eventMap,
     output: { ...manifest.output, path: relative(snapshot.project.rootPath, outputPath).replaceAll("\\", "/") },
     ...(previewPath !== outputPath ? { preview: { path: relative(snapshot.project.rootPath, previewPath).replaceAll("\\", "/"), hash: manifest.previewHash } } : {}) });
   const motionDiagnostics = manifest.determinism ? { ...manifest.determinism, reportPath: relative(snapshot.project.rootPath, join(directory, "diagnostics", "report.json")).replaceAll("\\", "/") } : undefined;
-  return { assetId: asset.id, version, videoDecodes: manifest.videoDecodes, sandbox: manifest.sandbox, workReviewRequired: true, sourcePath: asset.motion!.sourcePath, previewPath: asset.motion!.preview?.path ?? asset.managedPath, output: asset.motion!.output, reused: Boolean(reusable), metrics: manifest.metrics, ...(motionDiagnostics ? { motionDiagnostics } : {}) };
+  const reused = Boolean(reusable || reusableProof);
+  // 采用旧媒体时，新 Job 的工作量不能沿用原捕获次数；历史渲染指标单独保留来源。
+  const metrics = reused ? { capturedFrames: 0, captureMs: 0, seekMs: 0, screenshotMs: 0, pixelDecodeMs: 0, pipeWriteMs: 0, encoderFinishMs: 0, previewEncodeMs: 0,
+    outputBytes: (await stat(outputPath)).size, peakWorkerRssBytes: process.memoryUsage().rss, wallMs: Date.now() - startedAt } : manifest.metrics;
+  return { assetId: asset.id, continuation: application.trackJob(job.id).result?.continuation, version, frameRange, fullWorkDurationInFrames: work.durationInFrames, videoDecodes: manifest.videoDecodes, sandbox: manifest.sandbox, workReviewRequired: true, workId: asset.motion!.workId, previewPath: asset.motion!.preview?.path ?? asset.managedPath, output: asset.motion!.output, reused, metrics,
+    ...(reused ? { reusedSourceMetrics: manifest.metrics } : {}), ...(motionDiagnostics ? { motionDiagnostics } : {}) };
 }

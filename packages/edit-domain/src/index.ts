@@ -258,6 +258,7 @@ export function createAgentWorkOrder(input: {
   intent: string;
   relatedObjectIds: Id[];
   createdRevision: number;
+  reviewContext?: AgentWorkOrder["reviewContext"];
 }): AgentWorkOrder {
   const createdAt = now();
   return {
@@ -265,6 +266,7 @@ export function createAgentWorkOrder(input: {
     title: input.title,
     intent: input.intent,
     relatedObjectIds: [...input.relatedObjectIds],
+    ...(input.reviewContext ? { reviewContext: structuredClone(input.reviewContext) } : {}),
     status: "open",
     createdRevision: input.createdRevision,
     createdAt,
@@ -1539,6 +1541,9 @@ export function createAudioCue(input: Omit<AudioCue, "id" | "status" | "createdA
 }
 
 export function createEffectCue(input: {
+  workId?: Id;
+  sourceStartFrame?: number;
+  sourceEndFrame?: number;
   visualComposition?: EffectCue["visualComposition"] | null;
   sceneId: Id;
   type: EffectType;
@@ -1574,12 +1579,15 @@ export function createEffectCue(input: {
     id: createId("cue"),
     ...(input.visualComposition ? { visualComposition: structuredClone(input.visualComposition) } : {}),
     sceneId: input.sceneId,
+    ...(input.workId ? { workId: input.workId } : {}),
     ...(input.coveredNarrativeBeatIds !== undefined ? { coveredNarrativeBeatIds: [...new Set(input.coveredNarrativeBeatIds)] } : {}),
     type: input.type,
     layer: input.layer,
     anchor: legacyAnchorTargetId ? "segment_start" : "scene",
     anchorTargetId: legacyAnchorTargetId,
     startFrame: input.startFrame,
+    ...(input.sourceStartFrame !== undefined ? { sourceStartFrame: input.sourceStartFrame } : {}),
+    ...(input.sourceEndFrame !== undefined ? { sourceEndFrame: input.sourceEndFrame } : {}),
     holdFrame: Math.max(input.startFrame + 1, Math.floor((input.startFrame + input.endFrame) / 2)),
     endFrame: input.endFrame,
     intensity: input.type === "ManagedMotion" ? 1 : 0.6,

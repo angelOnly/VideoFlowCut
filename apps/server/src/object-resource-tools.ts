@@ -1,10 +1,11 @@
+import { projectCommandResult } from "./command-receipt.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { EditingApplication } from "@videocut/application";
 import { prepareObjectResourcesSchema, objectResourceCapabilities, ObjectResourceError } from "../../../packages/media-intelligence/src/object-resources/index.js";
 import { toolErrorResult } from "./tool-error.js";
 
 export function registerObjectResourceTools(server: McpServer, app: EditingApplication) {
-  const result = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] });
+  const result = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(projectCommandResult(value), null, 2) }] });
   server.registerTool("read_object_resource_capabilities", {
     title: "读取物件资源加工能力", description: "读取支持格式、规范化方式、图集与每任务像素预算；加工不提供自动分层、隐藏面生成或创意采用。", inputSchema: {}, annotations: { readOnlyHint: true }
   }, async () => result(objectResourceCapabilities));

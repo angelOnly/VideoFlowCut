@@ -7,9 +7,10 @@ import { readRuntimeConfig } from "@videocut/project-overview";
 import { z } from "zod";
 import { audioDesignSchema, manageSoundPlan, soundPlanInputSchema, soundRequirementSchema } from "../../../packages/edit-application/src/sound-design.js";
 import { assetRequestVersion, digest } from "../../../packages/media-intelligence/src/index.js";
-import { soundComparisonSchema, reviewSoundMix, soundDependencySignature } from "../../../packages/edit-application/src/sound-review.js";
+import { soundComparisonSchema, reviewSoundMix, soundComparisonSignature } from "../../../packages/edit-application/src/sound-review.js";
 import { audioMixGainSchema, setAudioMixGain } from "../../../packages/edit-application/src/audio-mix-gain.js";
 import { setDialogueMuted } from "../../../packages/edit-application/src/dialogue-muted.js";
+import { commandReceipt } from "./command-receipt.js";
 
 const rankSchema = z.object({ assetRequestId: z.string().min(1), candidateIds: z.array(z.string().min(1)).min(1).max(30), analyzeTop: z.number().int().min(0).max(5).default(3) }).strict();
 function rank(app: EditingApplication, projectId: string, input: z.infer<typeof rankSchema>) {
@@ -27,11 +28,17 @@ function compare(app: EditingApplication, projectId: string, value: z.infer<type
   const state = app.readProject(projectId);
   if (input.revision !== state.revision.number) throw new DomainError("试听请求版本已过期", "REVISION_CONFLICT");
   if (input.toFrame > state.snapshot.timeline.durationInFrames) throw new DomainError("试听范围超出成片", "INVALID_PREVIEW_RANGE");
-  const job = app.repository.createJob({ projectId, kind: "sound_comparison", payload: { ...input, dependencySignature: soundDependencySignature(state.snapshot) }, idempotencyKey: `sound_comparison:${digest(input)}` });
+  const renderIdentity = process.env.VIDEOFLOWCUT_RELEASE_ID ?? "manual";
+  const dependencySignature = soundComparisonSignature(state.snapshot, input, renderIdentity);
+  const job = app.repository.createJob({ projectId, kind: "sound_comparison", payload: { ...input, dependencySignature, renderIdentity }, idempotencyKey: `sound_comparison:${digest({ input, dependencySignature })}` });
   app.publish({ projectId, revision: state.revision.number, type: "job" });
   return job;
 }
-const mixReviewSchema = z.object({ baseRevision: z.number().int().positive(), previewJobId: z.string().min(1), outcome: z.enum(["passed", "failed", "inconclusive"]), method: z.enum(["audio", "audiovisual"]), note: z.string().trim().min(16).max(4000) }).strict();
+const mixReviewCommon = { baseRevision: z.number().int().positive(), outcome: z.enum(["passed", "failed", "inconclusive"]), method: z.enum(["audio", "audiovisual"]), note: z.string().trim().min(16).max(4000) };
+const mixReviewSchema = z.union([
+  z.object({ ...mixReviewCommon, source: z.literal("preview").optional(), previewJobId: z.string().min(1) }).strict(),
+  z.object({ ...mixReviewCommon, source: z.literal("workbench"), observer: z.string().trim().min(1), fromFrame: z.number().int().nonnegative(), toFrame: z.number().int().positive() }).strict()
+]);
 const audioOutputTargetSchema = z.object({ targetLufs: z.number().min(-32).max(-8), toleranceLu: z.number().min(0.1).max(10), maxTruePeakDbfs: z.number().min(-12).max(0) }).strict();
 function outputTarget(app: EditingApplication, projectId: string, baseRevision: number, target: z.infer<typeof audioOutputTargetSchema>) {
   const state = app.repository.commit(projectId, baseRevision, "设置音频输出测量目标", (snapshot, impact) => { snapshot.audioOutputTarget = audioOutputTargetSchema.parse(target); impact.changed.push("audioOutputTarget"); });
@@ -52,18 +59,19 @@ export function registerSoundTools(server: McpServer, app: EditingApplication, p
     }
   }, async (input) => safely(() => app.submitSfxGeneration({ projectId: projectIdFrom(input.project_id), baseRevision: input.base_revision_id,
     requestId: input.request_id, prompt: input.prompt, maxDurationSeconds: input.max_duration_seconds, seed: input.seed, idempotencyKey: input.idempotency_key })));
-  server.registerTool("set_dialogue_muted", { title: "设置旁白轨静音", description: "可逆设置整个 Dialogue 轨的静音状态，Preview、Export 和 Web 共用轨道 muted 合同；保留音频素材、Script、字幕、时序和其他音轨。字幕需另行显隐，其他轨原声仍可能可听；恢复后不会自动获得声音来源或用途批准。写入当前 Revision 并使整片声音待复核。", inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), muted: z.boolean() } }, async (args) => safely(() => setDialogueMuted(app, projectIdFrom(args.project_id), args.base_revision_id, args.muted)));
-  server.registerTool("set_audio_output_target", { title: "设置最终音频指标", description: "保存项目响度与 true peak 目标，正式输出按实际文件测量。此操作不改变音量，不把规范化当成素材选择或混合听审。", inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), target: audioOutputTargetSchema } }, async (args) => safely(() => outputTarget(app, projectIdFrom(args.project_id), args.base_revision_id, args.target)));
-  server.registerTool("set_audio_mix_gain", { title: "设置整体混合增益", description: "将最终混合增益设为绝对 dB 值（-48 到 24，0 为恢复原混合），不会累加或修改各轨比例、时间、Duck 与包络。写入新 Revision 并使全片混合待复核；正式 Preview 与 Export 在最终混合后应用一次。不会自动限制峰值或归一化，需重新读取全片实际响度和 true peak。", inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), gain_db: audioMixGainSchema } }, async (args) => safely(() => setAudioMixGain(app, projectIdFrom(args.project_id), args.base_revision_id, args.gain_db)));
+  server.registerTool("set_dialogue_muted", { title: "设置旁白轨静音", description: "可逆设置整个 Dialogue 轨的静音状态，Preview、Export 和 Web 共用轨道 muted 合同；保留音频素材、Script、字幕、时序和其他音轨。字幕需另行显隐，其他轨原声仍可能可听；恢复后不会自动获得声音来源或用途批准。写入当前 Revision 并使整片声音待复核。", inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), muted: z.boolean() } }, async (args) => safely(() => { const state = setDialogueMuted(app, projectIdFrom(args.project_id), args.base_revision_id, args.muted); return commandReceipt(state, { muted: state.snapshot.timeline.tracks.find(track => track.name === "Dialogue")?.muted }); }));
+  server.registerTool("set_audio_output_target", { title: "设置最终音频指标", description: "保存项目响度与 true peak 目标，正式输出按实际文件测量。此操作不改变音量，不把规范化当成素材选择或混合听审。", inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), target: audioOutputTargetSchema } }, async (args) => safely(() => { const state = outputTarget(app, projectIdFrom(args.project_id), args.base_revision_id, args.target); return commandReceipt(state, { target: state.snapshot.audioOutputTarget }); }));
+  server.registerTool("set_audio_mix_gain", { title: "设置整体混合增益", description: "将最终混合增益设为绝对 dB 值（-48 到 24，0 为恢复原混合），不会累加或修改各轨比例、时间、Duck 与包络。写入新 Revision 并使全片混合待复核；正式 Preview 与 Export 在最终混合后应用一次。不会自动限制峰值或归一化，需重新读取全片实际响度和 true peak。", inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), gain_db: audioMixGainSchema } }, async (args) => safely(() => { const state = setAudioMixGain(app, projectIdFrom(args.project_id), args.base_revision_id, args.gain_db); return commandReceipt(state, { gainDb: state.snapshot.audioMixGainDb }); }));
   server.registerTool("manage_sound_plans", { title: "管理段落声音计划", description: "在真实旁白和作品制作前确定段落主声音、表演意图、动作功能、音乐与留白。create 必须提供完整 startFrame/endFrame、narrationDirection、dominantRole、musicDirection 和 intents；配音前按项目 fps 提交预估帧范围，配音后用 update 按实测时长修订。update/remove 必须提供 soundPlanId，update 可只传待改字段。无 input 只读；写入必须提供当前 base_revision_id。", inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive().optional(), input: soundPlanInputSchema.optional() } }, async (args) => safely(() => {
     const id = projectIdFrom(args.project_id);
     if (!args.input) return { revision: app.readProject(id).revision.number, plans: app.readProject(id).snapshot.soundPlans ?? [] };
     if (!args.base_revision_id) throw new DomainError("写计划需要当前 Revision", "REVISION_REQUIRED");
-    return manageSoundPlan(app, id, args.base_revision_id, args.input);
+    const state = manageSoundPlan(app, id, args.base_revision_id, args.input);
+    return commandReceipt(state, { plans: state.snapshot.soundPlans?.filter(plan => state.revision.impact.changed.includes(plan.id)) ?? [] });
   }));
   server.registerTool("recommend_sound_candidates", { title: "比较有限声音候选", description: "对同一需求的至多30条在线元数据用 Qwen 排序，最多为前5条创建原音频分析 Job。排名不是听感成绩；完成子任务后用 read_media_observations/search_media_fragments 检查实际声音、范围和排除条件，再获取及复核原文件。", inputSchema: { project_id: z.string().optional(), input: rankSchema } }, async (args) => safely(() => rank(app, projectIdFrom(args.project_id), args.input)));
   server.registerTool("preview_sound_alternatives", { title: "同段声画比较", description: "固定 Revision、旁白、音乐和上下文范围，对已入库原文件生成A/B及不使用该音效的试听。使用正式 manage_audio 的计算和同一渲染器，不改变 Timeline。", inputSchema: { project_id: z.string().optional(), input: soundComparisonSchema } }, async (args) => safely(() => compare(app, projectIdFrom(args.project_id), args.input)));
-  server.registerTool("review_sound_mix", { title: "记录实际混合复核", description: "根据已经实际听过或看听过的正式 Preview 记录结论，校验文件版本和覆盖。模型推测或候选试听不能自动使正式混合通过。", inputSchema: { project_id: z.string().optional(), input: mixReviewSchema } }, async (args) => safely(() => reviewSoundMix(app, projectIdFrom(args.project_id), args.input)));
+  server.registerTool("review_sound_mix", { title: "记录实际混合复核", description: "根据实际工作台或正式文件观察记录结论。source=workbench 保存版本、观察者与范围，不伪造 Preview 文件；文件来源继续校验真实产物。模型推测或候选试听不能自动使正式混合通过。", inputSchema: { project_id: z.string().optional(), input: mixReviewSchema } }, async (args) => safely(async () => { const state = await reviewSoundMix(app, projectIdFrom(args.project_id), args.input); return commandReceipt(state, { review: state.reviews.soundMixes.at(-1) }, true); }));
 }
 
 export function registerSoundRoutes(server: FastifyInstance, app: EditingApplication) {

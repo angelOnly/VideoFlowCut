@@ -9,6 +9,32 @@ import { createApplication } from "@videocut/application";
 import { DomainError } from "@videocut/domain";
 import { createServer } from "../apps/server/src/app.js";
 
+test("工作台可固定读取历史版本并生成对应定位链接", async () => {
+  const workspaceRoot = await mkdtemp(join(tmpdir(), "videocut-review-version-"));
+  const { app: server, application } = await createServer({ workspaceRoot });
+  try {
+    const created = application.createProject({ name: "固定版本审阅" });
+    const projectId = created.snapshot.project.id;
+    const edited = application.updateStory({ projectId, baseRevision: created.revision.number, title: "新版故事" });
+    const historical = await server.inject({ method: "GET", url: `/api/projects/${projectId}?revision=${created.revision.number}` });
+    assert.equal(historical.statusCode, 200, historical.body);
+    assert.equal(historical.json().revision.number, created.revision.number);
+    assert.equal(historical.json().snapshot.story.title, created.snapshot.story.title);
+    const current = await server.inject({ method: "GET", url: `/api/projects/${projectId}` });
+    assert.equal(current.json().revision.number, edited.revision.number);
+    const focus = await server.inject({ method: "GET", url: `/api/projects/${projectId}/editor-url?revision=${created.revision.number}&frame=0` });
+    assert.equal(focus.statusCode, 200, focus.body);
+    const link = new URL(focus.json().editorUrl);
+    assert.equal(link.searchParams.get("revision"), String(created.revision.number));
+    assert.equal(link.searchParams.get("frame"), "0");
+    assert.equal(application.readProject(projectId).revision.number, edited.revision.number, "读取历史版本不能回退工程");
+  } finally {
+    await server.close();
+    application.close();
+    await rm(workspaceRoot, { recursive: true, force: true });
+  }
+});
+
 function textFromToolResult(result: unknown): string {
   if (!result || typeof result !== "object" || !("content" in result) || !Array.isArray(result.content)) {
     assert.fail("MCP 应返回标准 content 结果");
@@ -34,7 +60,7 @@ test("Agent 工作单只保存对象引用，并经 Revision 接手和完成回�
       managedPath: "assets/source/source.mp4",
       sourceHash: "agent-work-order-source"
     });
-    const createdOrder = application.createAgentWorkOrder({
+    const createdOrder = await application.createAgentWorkOrder({
       projectId,
       baseRevision: imported.state.revision.number,
       title: "收紧开场",
@@ -49,7 +75,7 @@ test("Agent 工作单只保存对象引用，并经 Revision 接手和完成回�
     assert.equal(createdOrder.state.snapshot.timeline.items.length, 0, "创建交接单不得改动 Timeline");
 
     const beforeInvalid = application.readProject(projectId);
-    assert.throws(
+    await assert.rejects(
       () => application.createAgentWorkOrder({
         projectId,
         baseRevision: beforeInvalid.revision.number,
@@ -61,7 +87,7 @@ test("Agent 工作单只保存对象引用，并经 Revision 接手和完成回�
     );
     assert.equal(application.readProject(projectId).revision.number, beforeInvalid.revision.number, "失败创建不能污染 Revision");
 
-    const cancelledOrder = application.createAgentWorkOrder({
+    const cancelledOrder = await application.createAgentWorkOrder({
       projectId,
       baseRevision: beforeInvalid.revision.number,
       title: "不再需要的检查",
@@ -144,7 +170,7 @@ test("Agent 工作单只保存对象引用，并经 Revision 接手和完成回�
     assert.equal(completed.state.snapshot.story.summary, "已根据工作单收紧开场，等待完成回写。");
     assert.equal(completed.state.snapshot.timeline.items.length, 0, "完成回写不得复制或改写 Timeline");
 
-    const reviewOrder = application.createAgentWorkOrder({
+    const reviewOrder = await application.createAgentWorkOrder({
       projectId,
       baseRevision: completed.state.revision.number,
       title: "审查后无需修改",
@@ -167,7 +193,7 @@ test("Agent 工作单只保存对象引用，并经 Revision 接手和完成回�
     assert.equal(reviewed.workOrder.completionKind, "reviewed_no_change");
     assert.equal(reviewed.workOrder.resultChangedObjectIds, undefined);
 
-    const staleOrder = application.createAgentWorkOrder({
+    const staleOrder = await application.createAgentWorkOrder({
       projectId,
       baseRevision: reviewed.state.revision.number,
       title: "关联对象消失",
@@ -257,44 +283,47 @@ test("Web 创建的 Agent 工作单可由 MCP 读取、接手、编辑后完成"
       base_revision_id: readable.revision,
       work_order_id: webCreated.workOrder.id,
       agent_id: "codex-mcp-test"
-    } }))) as { state: { revision: { number: number } }; workOrder: { status: string } };
+    } }))) as { state: { revision: number }; workOrder: { status: string } };
     assert.equal(claimed.workOrder.status, "claimed");
 
     const released = JSON.parse(textFromToolResult(await client.callTool({ name: "release_agent_work_order", arguments: {
-      base_revision_id: claimed.state.revision.number,
+      base_revision_id: claimed.state.revision,
       work_order_id: webCreated.workOrder.id,
       agent_id: "codex-mcp-test",
       reason: "需要让另一轮 Codex 重新接手。"
-    } }))) as { state: { revision: { number: number } }; workOrder: { status: string; releaseReason: string } };
+    } }))) as { state: { revision: number }; workOrder: { status: string; releaseReason: string } };
     assert.equal(released.workOrder.status, "open");
     assert.match(released.workOrder.releaseReason, /重新接手/u);
     const reclaimed = JSON.parse(textFromToolResult(await client.callTool({ name: "claim_agent_work_order", arguments: {
-      base_revision_id: released.state.revision.number,
+      base_revision_id: released.state.revision,
       work_order_id: webCreated.workOrder.id,
       agent_id: "codex-mcp-test"
-    } }))) as { state: { revision: { number: number } }; workOrder: { status: string } };
+    } }))) as { state: { revision: number }; workOrder: { status: string } };
     assert.equal(reclaimed.workOrder.status, "claimed");
 
     const edited = JSON.parse(textFromToolResult(await client.callTool({ name: "manage_story", arguments: {
-      base_revision_id: reclaimed.state.revision.number,
+      base_revision_id: reclaimed.state.revision,
       summary: "Codex 已完成工作单要求的开场承诺复核。"
-    } }))) as { revision: { number: number } };
+    } }))) as { revision: number };
 
     const completed = JSON.parse(textFromToolResult(await client.callTool({ name: "complete_agent_work_order", arguments: {
-      base_revision_id: edited.revision.number,
+      base_revision_id: edited.revision,
       work_order_id: webCreated.workOrder.id,
       agent_id: "codex-mcp-test",
       completion_summary: "已在实际 Revision 更新 Story 开场承诺；完成状态另存为新的审计 Revision。",
       completion_kind: "edited"
-    } }))) as { state: { revision: { number: number } }; workOrder: { status: string; resultRevision: number; completedRevision: number } };
+    } }))) as { state: { revision: number }; workOrder: { status: string; resultRevision: number; completedRevision: number } };
     assert.equal(completed.workOrder.status, "completed");
-    assert.equal(completed.workOrder.resultRevision, edited.revision.number);
-    assert.equal(completed.workOrder.completedRevision, completed.state.revision.number);
+    assert.equal(completed.workOrder.resultRevision, edited.revision);
+    assert.equal(completed.workOrder.completedRevision, completed.state.revision);
+    const current = JSON.parse(textFromToolResult(await client.callTool({ name: "read_project", arguments: {} })));
+    assert.equal(current.revision.number, completed.state.revision);
+    assert.equal(current.snapshot.story.summary, "Codex 已完成工作单要求的开场承诺复核。");
 
     const webReadResponse = await server.inject({ method: "GET", url: `/api/projects/${projectId}/agent-work-orders` });
     assert.equal(webReadResponse.statusCode, 200);
     const webRead = webReadResponse.json() as { revision: number; agentWorkOrders: Array<{ status: string; completionSummary?: string }> };
-    assert.equal(webRead.revision, completed.state.revision.number);
+    assert.equal(webRead.revision, completed.state.revision);
     assert.equal(webRead.agentWorkOrders[0]?.status, "completed");
     assert.match(webRead.agentWorkOrders[0]?.completionSummary ?? "", /实际 Revision/u);
   } finally {

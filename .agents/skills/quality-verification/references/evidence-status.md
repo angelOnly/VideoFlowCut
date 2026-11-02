@@ -12,9 +12,9 @@
 
 ### 局部真实合成
 
-`render_preview_range` 固定 Revision 与项目全局范围，`inspect_composed_frames` 只证明实际抽取帧；每次最多 12 帧。`submit_motion_work(frame_range)` 固定完整作品输入与根时钟，只产生局部校样，不创建完整 Asset，也不证明全片或声音。
+工作台可直接观察固定 Revision 上已有的真实媒体；明确记录观察者、实际方式和半开帧范围。它不自动创建预览文件，播放不等于已观看或通过；已登记源码通过同源执行内核直接预览，等待实际显示帧就绪。需要文件时，`render_preview_range` 固定 Revision 与项目全局范围，`inspect_composed_frames` 只证明实际抽取帧；每次最多 12 帧。`submit_motion_work(frame_range)` 固定完整作品输入与根时钟，只产生局部校样，不创建完整 Asset，也不证明全片或声音。
 
-Motion/Sound 审阅独立于创作快照，保存后不产生新 Revision。作品审阅绑定 asset/version 与真实文件；混音审阅绑定声音依赖签名与 Preview 哈希。旧观察保留原始身份，不因修订升级为新版观看。局部问题按可验证的对象时钟映射和必要接点复查；无法定位时扩大范围。
+Motion/Sound 审阅独立于创作快照，保存后不产生新 Revision。作品审阅绑定 workId/version 和实际证据来源；混音审阅支持固定版工作台范围或真实 Preview 哈希，二者都不能冒称新导出文件已经听审。旧观察保留原始身份，不因修订升级为新版观看。局部问题按可验证的对象时钟映射和必要接点复查；无法定位时扩大范围。
 
 ### 最终 Artifact
 
@@ -24,7 +24,7 @@ Motion/Sound 审阅独立于创作快照，保存后不产生新 Revision。作�
 
 整片的语义、节奏、注意力、声音、视觉、模式切换、开头承诺和结尾兑现需要完整播放。用户批准绑定具体 Artifact。
 
-浏览器播放或宿主原生听觉不可用时，仍可通过已接入的 MiniCPM HTTP 分析真实声画，不能据此声称项目没有音频理解能力。主任务使用 `analyze_media` 的 `exportArtifactId` 或 `previewJobId`，`depth="review"`，把原审片负责人的具体问题放进 `context`；此时问题会实际送入模型，`promptText` 保存真正指令。素材初看使用 index/discovery，其 context 仍只作备注以免预设答案诱导。只听声音时请求 audio，逐字转写另加 speech（由 FunASR 执行）；Qwen3-Embedding 只编码文字用于检索。
+浏览器播放或宿主原生听觉不可用时，仍可通过已接入的 MiniCPM HTTP 分析真实声画，不能据此声称项目没有音频理解能力。主任务使用 `analyze_media` 的 `exportArtifactId` 或 `previewJobId` 和 `depth="review"`，把不含期待答案的观察问题放进 `observationQuestions`；实际模型指令保存在 `promptText`。预期台词、时间和制作意图放入 `comparisonReference`，只由作者与观察结果比对，不送观察模型。素材初看使用 index/discovery，保持盲观察。只听声音时请求 audio，逐字转写另加 speech；纯 speech 只执行 FunASR。Qwen3-Embedding 只编码文字用于检索。
 
 读取 `read_media_observations`，将固定文件哈希、composition 版本与偏移、实际窗口、模型及指令原文交原负责人判断。range 从所选文件起点计毫秒，局部 Preview 映射回成片时加 composition.fromFrame；不重新导入导出文件、不为分析创建视频 Revision。问题要指出实际需要辨别的现象，不能只请求笼统好坏。模型观察是有效的辅助复核，但概述、未覆盖或约 1fps 抽样不证明精确同步和快速动画已通过；不冒充人工听审或首次观众连续体验。观察及其限制可以通过 `record_export_artifact_review` 保存至对应导出，不能填成不存在的连续观看证据。
 

@@ -1,3 +1,6 @@
+import { motionJobReceipt } from "./command-receipt.js";
+import { registerMotionWorkbenchRoutes } from "./motion-workbench.js";
+import { motionOnSuccessSchema } from "../../../packages/contracts/src/motion-continuation.js";
 import { MotionFrameCache } from "../../../packages/media-intelligence/src/motion-frames.js";
 import { hyperframesContract } from "../../../packages/motion-work/src/hyperframes-contract.js";
 import { registerPresenterRoutes } from "./presenter-tools.js";
@@ -30,6 +33,7 @@ import { z } from "zod";
 import { ComfyUIBridgeClient } from "@videocut/bridge";
 import { createApplication, NotFoundError, RevisionConflictError } from "@videocut/application";
 import { DomainError } from "@videocut/domain";
+import { editorialResolutionRange } from "../../../packages/edit-application/src/editorial-range.js";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { evaluateQualityWithBrowser } from "@videocut/quality";
 import { measureCaptionTextInBrowser } from "../../../packages/quality-system/src/caption-measurement.js";
@@ -124,7 +128,8 @@ const agentWorkOrderCreateSchema = z.object({
   baseRevision: baseRevisionSchema,
   title: z.string().trim().min(1).max(160),
   intent: z.string().trim().min(1).max(4_000),
-  relatedObjectIds: z.array(idSchema).max(80).optional()
+  relatedObjectIds: z.array(idSchema).max(80).optional(),
+  reviewContext: z.object({ revision: z.number().int().positive(), frameRange: z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() }).strict().optional(), findingIds: z.array(idSchema).max(40).optional() }).strict().optional()
 }).strict();
 const agentWorkOrderCancelSchema = z.object({
   baseRevision: baseRevisionSchema,
@@ -306,7 +311,8 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.get("/api/projects/:projectId", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    return application.readProject(projectId);
+    const { revision } = z.object({ revision: z.coerce.number().int().positive().optional() }).parse(request.query);
+    return application.readProject(projectId, revision);
   });
 
   app.post("/api/projects/:projectId/frame-rate/preview", async (request) => {
@@ -364,7 +370,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   app.post("/api/projects/:projectId/agent-work-orders", async (request, reply) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = agentWorkOrderCreateSchema.parse(request.body);
-    const result = application.createAgentWorkOrder({ projectId, ...body });
+    const result = await application.createAgentWorkOrder({ projectId, ...body });
     return reply.status(201).send(result);
   });
 
@@ -376,12 +382,13 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.get("/api/projects/:projectId/jobs", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    return application.listJobs(projectId);
+    return application.listJobs(projectId).map(job => ["motion_generation", "motion_adoption"].includes(job.kind) ? motionJobReceipt(job) : job);
   });
 
   app.get("/api/jobs/:jobId", async (request) => {
     const { jobId } = z.object({ jobId: idSchema }).parse(request.params);
-    return application.trackJob(jobId);
+    const job = application.trackJob(jobId);
+    return ["motion_generation", "motion_adoption"].includes(job.kind) ? motionJobReceipt(job) : job;
   });
 
   app.post("/api/captions/measure-text", async (request, reply) => {
@@ -398,18 +405,71 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.get("/api/projects/:projectId/quality", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    const state = application.readProject(projectId);
+    const { revision } = z.object({ revision: z.coerce.number().int().positive().optional() }).parse(request.query);
+    const state = application.readProject(projectId, revision);
     const editorialReview = await application.readEditorialQualityReview({ projectId, revision: state.revision.number });
     return evaluateQualityWithBrowser(state.snapshot, state.revision.number, editorialReview, state.reviews);
   });
 
+  app.get("/api/projects/:projectId/editorial-review", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const { revision } = z.object({ revision: z.coerce.number().int().positive() }).parse(request.query);
+    return (await application.readEditorialQualityReview({ projectId, revision })) ?? null;
+  });
+
+  app.get("/api/projects/:projectId/editorial-findings/:findingId/resolution-range", async (request) => {
+    const { projectId, findingId } = z.object({ projectId: idSchema, findingId: idSchema }).parse(request.params);
+    const { revision } = z.object({ revision: z.coerce.number().int().positive() }).parse(request.query);
+    const target = application.readProject(projectId, revision).snapshot;
+    const review = await application.readEditorialQualityReview({ projectId, revision });
+    const finding = review?.findings.find(entry => entry.id === findingId);
+    if (!finding) throw new DomainError("当前版本没有该审阅问题", "EDITORIAL_FINDING_NOT_FOUND");
+    if (finding.revision === undefined) return { startFrame: 0, endFrame: target.timeline.durationInFrames };
+    if (finding.revision === revision) return finding.frameRange ?? { startFrame: 0, endFrame: target.timeline.durationInFrames };
+    const before = application.readProject(projectId, finding.revision).snapshot;
+    return editorialResolutionRange(finding, before, target);
+  });
+
+  app.post("/api/projects/:projectId/workbench-observations", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({
+      runId: idSchema.optional(), revision: z.number().int().positive(),
+      pass: z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"]),
+      method: z.enum(["frames", "continuous_video", "audio", "audiovisual"]),
+      observer: z.string().trim().min(1).max(160), observation: z.string().trim().min(1).max(2000),
+      startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(),
+      finding: z.object({ category: z.enum(["semantic", "pacing", "attention", "motion", "typography", "audio", "mode_specific"]), severity: z.enum(["blocking", "warning", "major", "minor", "suggestion", "inconclusive"]), summary: z.string().trim().min(1).max(2000), impact: z.string().trim().min(1).max(2000), objectId: idSchema.optional() }).strict().optional()
+    }).strict().parse(request.body);
+    const snapshot = application.readProject(projectId, body.revision).snapshot;
+    if (body.endFrame <= body.startFrame || body.endFrame > snapshot.timeline.durationInFrames) throw new DomainError("观察范围超出目标版本", "EDITORIAL_EVIDENCE_RANGE_INVALID");
+    const runId = body.runId ?? (await application.startProductionRun({ projectId, baseRevision: body.revision, loadedSkills: [] })).id;
+    const report = await application.recordEditorialQualityReview({
+      projectId, runId, revision: body.revision, passes: [body.pass], previewEvidence: [],
+      observations: [{ source: "workbench", observer: body.observer, clientEnvironment: request.headers["user-agent"], pass: body.pass, method: body.method, startFrame: body.startFrame, endFrame: body.endFrame, observation: body.observation }],
+      findings: body.finding ? [{ ...body.finding, pass: body.pass, evidence: body.observation, frameRange: { startFrame: body.startFrame, endFrame: body.endFrame } }] : []
+    });
+    return { runId, review: report.editorialReview };
+  });
+
+  app.post("/api/projects/:projectId/editorial-resolutions", async (request) => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ runId: idSchema, revision: z.number().int().positive(), pass: z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"]), findingId: idSchema, evidenceIds: z.array(idSchema).min(1).max(40), note: z.string().trim().min(1).max(2000), scope: z.literal("caption_text").optional() }).strict().parse(request.body);
+    const report = await application.recordEditorialQualityReview({ projectId, runId: body.runId, revision: body.revision, passes: [body.pass], previewEvidence: [], observations: [], findings: [], resolutions: [{ findingId: body.findingId, evidenceIds: body.evidenceIds, note: body.note, scope: body.scope }] });
+    return { runId: body.runId, review: report.editorialReview };
+  });
+
   app.get("/api/projects/:projectId/editor-url", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    const query = z.object({ sceneId: z.string().optional(), itemId: z.string().optional(), effectCueId: z.string().optional(), frame: z.coerce.number().int().min(0).optional() }).parse(request.query);
-    const state = application.readProject(projectId);
-    const focus: EditorFocus = { projectId, revision: state.revision.number, ...query };
+    const query = z.object({ revision: z.coerce.number().int().positive().optional(), sceneId: z.string().optional(), itemId: z.string().optional(), effectCueId: z.string().optional(), frame: z.coerce.number().int().min(0).optional(), fromFrame: z.coerce.number().int().nonnegative().optional(), toFrame: z.coerce.number().int().positive().optional() }).parse(request.query);
+    const state = application.readProject(projectId, query.revision);
+    if ((query.fromFrame === undefined) !== (query.toFrame === undefined) || (query.fromFrame !== undefined && query.toFrame !== undefined && (query.toFrame <= query.fromFrame || query.toFrame > state.snapshot.timeline.durationInFrames))) throw new DomainError("工作台范围必须是该版本内的非空区间", "INVALID_PREVIEW_RANGE");
+    const { revision: _revision, ...selection } = query;
+    const focus: EditorFocus = { projectId, revision: state.revision.number, ...selection };
     const url = new URL(webOrigin);
     url.searchParams.set("projectId", projectId);
+    if (query.revision !== undefined) url.searchParams.set("revision", String(query.revision));
+    if (query.fromFrame !== undefined) url.searchParams.set("fromFrame", String(query.fromFrame));
+    if (query.toFrame !== undefined) url.searchParams.set("toFrame", String(query.toFrame));
     if (query.sceneId) url.searchParams.set("sceneId", query.sceneId);
     if (query.itemId) url.searchParams.set("itemId", query.itemId);
     if (query.effectCueId) url.searchParams.set("effectCueId", query.effectCueId);
@@ -1037,6 +1097,9 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       layer: z.enum(["rear", "actor", "front", "fullscreen"]),
       startFrame: z.number().int().min(0),
       endFrame: z.number().int().positive(),
+      workId: idSchema.optional(),
+      sourceStartFrame: z.number().int().nonnegative().optional(),
+      sourceEndFrame: z.number().int().positive().optional(),
       anchorTargetId: z.string().optional(),
       note: z.string().optional(),
       assetBindings: z.array(z.object({ slot: z.string(), assetId: idSchema })).optional()
@@ -1047,6 +1110,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   app.get("/api/motion/sources", async () => ({ sources: MOTION_SOURCES }));
   app.get("/api/motion/capabilities", async () => ({ engineVersion: MOTION_ENGINE_VERSION, html: hyperframesContract, fonts: listMotionFonts(), objectResources: objectResourceCapabilities }));
   registerFontLibraryRoutes(app);
+  registerMotionWorkbenchRoutes(app, application);
   // 与渲染 Worker 共用部署前验证的浏览器；此只读服务不创建 Project、Revision 或 Job。
   app.post("/api/motion/inspect-reference", async (request, reply) => {
     if (request.headers["x-videoflowcut-release-id"] !== runtimeConfig.runtime.releaseId) {
@@ -1060,25 +1124,42 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const evidence = await inspectMotionReference(body.sourceUrl, body.previewIndex, body.sampleDurationMs);
     return reply.header("x-videoflowcut-release-id", runtimeConfig.runtime.releaseId).send(evidence);
   });
+  app.post("/api/projects/:projectId/motion-adoptions", async request => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, idempotencyKey: z.string().min(1), workId: idSchema, target: motionOnSuccessSchema }).strict().parse(request.body);
+    return application.submitMotionAdoption({ projectId, ...body });
+  });
   app.post("/api/projects/:projectId/motion-works", { bodyLimit: 12 * 1024 * 1024 }, async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    const body = z.object({ baseRevision: baseRevisionSchema, idempotencyKey: z.string().min(1).max(160), work: motionSubmissionSchema, frameRange: motionFrameRangeSchema.optional() }).strict().parse(request.body);
-    return application.submitManagedMotion({ projectId, ...body });
+    const body = z.object({ baseRevision: baseRevisionSchema, idempotencyKey: z.string().min(1).max(160), work: motionSubmissionSchema, onSuccess: motionOnSuccessSchema.optional() }).strict().parse(request.body);
+    return application.registerMotionWork({ projectId, ...body });
   });
-  app.get("/api/projects/:projectId/motion-works/:jobId", async (request) => {
-    const { projectId, jobId } = z.object({ projectId: idSchema, jobId: idSchema }).parse(request.params);
-    return application.readManagedMotion(projectId, jobId);
+  app.post("/api/projects/:projectId/motion-media", async request => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, idempotencyKey: z.string().min(1), workId: idSchema, frameRange: motionFrameRangeSchema.optional(), outputIntent: z.enum(["proof", "asset"]).optional(), proofJobId: idSchema.optional() }).strict().parse(request.body);
+    return application.submitMotionBake({ projectId, ...body });
   });
-  app.post("/api/projects/:projectId/motion-works/:assetId/review", async (request) => {
-    const { projectId, assetId } = z.object({ projectId: idSchema, assetId: idSchema }).parse(request.params);
-    const body = z.object({ baseRevision: baseRevisionSchema, ...motionReviewFields }).strict().parse(request.body);
-    return application.reviewManagedMotion({ projectId, assetId, ...body });
+  app.get("/api/projects/:projectId/motion-works/:workId", async request => {
+    const { projectId, workId } = z.object({ projectId: idSchema, workId: idSchema }).parse(request.params);
+    const { revision } = z.object({ revision: z.coerce.number().int().positive().optional() }).parse(request.query);
+    return application.readSourceMotionWork(projectId, workId, revision);
+  });
+  app.post("/api/projects/:projectId/motion-works/:workId/review", async (request) => {
+    const { projectId, workId } = z.object({ projectId: idSchema, workId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, assetId: idSchema.optional(), ...motionReviewFields }).strict().parse(request.body);
+    return application.reviewSourceMotionWork({ projectId, workId, ...body });
   });
 
   app.patch("/api/projects/:projectId/effects/:cueId", async (request) => {
     const { projectId, cueId } = z.object({ projectId: idSchema, cueId: idSchema }).parse(request.params);
-    const body = z.object({ baseRevision: baseRevisionSchema, visualComposition: z.object({ role: z.literal("primary"), replacesActorItemIds: z.array(idSchema) }).nullable().optional(), coveredNarrativeBeatIds: z.array(idSchema).max(64).optional(), startFrame: z.number().int().min(0).optional(), endFrame: z.number().int().positive().optional(), intensity: z.number().min(0).max(1).optional(), note: z.string().optional() }).parse(request.body);
+    const body = z.object({ baseRevision: baseRevisionSchema, workId: idSchema.optional(), visualComposition: z.object({ role: z.literal("primary"), replacesActorItemIds: z.array(idSchema) }).nullable().optional(), coveredNarrativeBeatIds: z.array(idSchema).max(64).optional(), sourceStartFrame: z.number().int().nonnegative().optional(), sourceEndFrame: z.number().int().positive().optional(), startFrame: z.number().int().min(0).optional(), endFrame: z.number().int().positive().optional(), intensity: z.number().min(0).max(1).optional(), note: z.string().optional() }).parse(request.body);
     return application.updateEffectCue({ projectId, cueId, ...body });
+  });
+
+  app.post("/api/projects/:projectId/effects/:cueId/replace-range", async (request) => {
+    const { projectId, cueId } = z.object({ projectId: idSchema, cueId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, workId: idSchema, startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() }).strict().parse(request.body);
+    return application.replaceManagedMotionRange({ projectId, cueId, ...body });
   });
 
   app.post("/api/projects/:projectId/items/:itemId/move", async (request) => {
@@ -1285,7 +1366,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.post("/api/projects/:projectId/export", async (request, reply) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    const body = z.object({ revision: z.number().int().positive().optional(), purpose: z.enum(["draft", "delivery"]).optional(), idempotencyKey: z.string().optional() }).parse(request.body);
+    const body = z.object({ revision: z.number().int().positive().optional(), purpose: z.enum(["draft", "delivery"]).optional(), idempotencyKey: z.string().optional(), preflightJobId: z.string().optional() }).parse(request.body);
     return reply.status(202).send(application.submitExport({ projectId, ...body }));
   });
 
@@ -1340,56 +1421,15 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     return application.rollbackToRevision({ projectId, targetRevision: revision, ...body });
   });
 
+  app.get("/api/projects/:projectId/production-status", async request => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    return application.readProductionStatus(projectId);
+  });
+
   app.post("/api/jobs/:jobId/retry", async (request, reply) => {
     const { jobId } = z.object({ jobId: idSchema }).parse(request.params);
-    const oldJob = application.trackJob(jobId);
-    if (oldJob.kind === "voice_synthesis") return reply.status(202).send(application.resumeVoiceSynthesis(oldJob.id));
-
-    // 只有明确未完成的终态可以重新入队。unknown 代表外部调用结果未对账，
-    // 直接重试可能重复生成、重复扣费或造成两份不可区分的副作用。
-    if (oldJob.status === "unknown") {
-      throw new DomainError("任务结果未知；请先对账外部 Provider 或人工确认后再决定是否重试", "JOB_RETRY_REQUIRES_RECONCILIATION");
-    }
-    if (oldJob.status === "running" || oldJob.status === "queued") {
-      throw new DomainError("任务仍在执行或等待执行，不能创建重复重试任务", "JOB_RETRY_NOT_TERMINAL");
-    }
-    if (oldJob.status === "succeeded") {
-      throw new DomainError("任务已成功完成，不能创建重试任务", "JOB_RETRY_SUCCEEDED");
-    }
-    if (oldJob.kind === "avatar_generation") return reply.status(202).send(application.resumeAvatarGeneration(oldJob.id));
-    if (oldJob.status !== "failed" && oldJob.status !== "cancelled") {
-      throw new DomainError(`任务状态 ${oldJob.status} 不支持重试`, "JOB_RETRY_STATUS_UNSUPPORTED");
-    }
-    if (oldJob.kind === "dialogue_processing") {
-      const requestedRevision = (oldJob.payload as { requestedRevision?: unknown }).requestedRevision;
-      const currentRevision = application.readProject(oldJob.projectId).revision.number;
-      if (!Number.isInteger(requestedRevision) || requestedRevision !== currentRevision) {
-        throw new DomainError("对白处理绑定的 SpeechAsset / Script Revision 已变化；请基于当前 Revision 重新试听并提交，而不是重试旧任务", "DIALOGUE_PROCESSING_RETRY_STALE");
-      }
-    }
-    // 旧 VAD / token-only Job 只允许历史读取，不能通过通用重试重新创建。
-    if (oldJob.kind === "source_caption_generation" || oldJob.kind === "source_caption_sentence_alignment") {
-      throw new DomainError("旧原声字幕 Job 已停用；请读取当前 A-roll 后使用 generate_source_audio_captions", "SOURCE_CAPTION_LEGACY_JOB_DISABLED");
-    }
-    if (oldJob.kind === "source_caption_alignment") {
-      const requestedRevision = oldJob.payload.requestedRevision;
-      const currentRevision = application.readProject(oldJob.projectId).revision.number;
-      if (!Number.isInteger(requestedRevision) || requestedRevision !== currentRevision) {
-        throw new DomainError("原声字幕绑定的 A-roll Revision 已变化；请读取当前 Timeline 后明确重新提交，不能重试旧字幕任务", "SOURCE_CAPTION_RETRY_STALE");
-      }
-    }
-    // 音效与 MCP 共用固定恢复身份，重复点击不能创建多个重新生成的子任务。
-    if (oldJob.kind === "sfx_generation") return reply.status(202).send(application.intelligence.retry(oldJob.projectId, oldJob.id));
-    const retry = application.repository.createJob({
-      projectId: oldJob.projectId,
-      kind: oldJob.kind,
-      // 转写和段级原声字幕重试必须携带来源 Job，Worker 才能恢复其 run_id，避免超时后重复提交外部运行。
-      payload: ["transcription", "source_caption_alignment", "media_understanding", "media_search", "creative_library_search", "motion_library_search", "motion_reference_analysis", "sound_ranking"].includes(oldJob.kind)
-        ? { ...oldJob.payload, retryOfJobId: oldJob.id }
-        : oldJob.payload,
-      idempotencyKey: `${oldJob.idempotencyKey}:retry:${Date.now()}`
-    });
-    return reply.status(202).send(retry);
+    const source = application.trackJob(jobId);
+    return reply.status(202).send(application.retryJob(source.projectId, source.id));
   });
 
   app.get("/api/events", async (request, reply) => {
@@ -1427,7 +1467,8 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   const motionFrames = new MotionFrameCache();
   app.get("/motion-frame/:projectId/:assetId/:hash/:frame", async (request, reply) => {
     const params = request.params as { projectId: string; assetId: string; hash: string; frame: string };
-    const snapshot = application.readProject(params.projectId).snapshot;
+    const { revision } = z.object({ revision: z.coerce.number().int().positive().optional() }).parse(request.query);
+    const snapshot = application.readProject(params.projectId, revision).snapshot;
     const asset = snapshot.assets.find(entry => entry.id === params.assetId);
     if (!asset || !/^\d+\.png$/u.test(params.frame)) throw new NotFoundError("作品帧不存在");
     return reply.type("image/png").send(await motionFrames.get(snapshot.project.rootPath, asset, params.hash, Number(params.frame.slice(0, -4))));

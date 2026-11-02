@@ -43,6 +43,9 @@ import { projectFrameRateChange } from "../../../edit-domain/src/frame-rate-chan
 import { projectFrameRateSchema } from "../../../contracts/src/frame-rate.js";
 import { initializeProjectDatabase } from "./schema";
 import { NotFoundError, RevisionConflictError, type ProjectState } from "./types";
+import type { AdoptionMutation } from "../motion-adoption.js";
+import type { MotionContinuationResult } from "@videocut/contracts";
+import { isDeepStrictEqual } from "node:util";
 
 type ProjectRow = {
   id: string;
@@ -449,7 +452,11 @@ export class ProjectRepository {
   }
 
   commit(projectId: Id, baseRevision: number, summary: string, mutate: (snapshot: ProjectSnapshot, impact: ImpactReport) => void): ProjectState {
-    return this.transaction(() => {
+    return this.transaction(() => this.commitRevision(projectId, baseRevision, summary, mutate));
+  }
+
+  /** 仅供已持有数据库事务的业务提交使用，避免嵌套 BEGIN。 */
+  private commitRevision(projectId: Id, baseRevision: number, summary: string, mutate: (snapshot: ProjectSnapshot, impact: ImpactReport) => void): ProjectState {
       const current = this.getCurrent(projectId);
       if (current.revision.number !== baseRevision) {
         throw new RevisionConflictError(baseRevision, current.revision.number);
@@ -457,6 +464,11 @@ export class ProjectRepository {
       const snapshot = cloneSnapshot(current.snapshot);
       const impact = emptyImpact();
       mutate(snapshot, impact);
+      // 固定作品只能追加新版本；任何普通编辑都不能原地改源码身份、事件或资源。
+      for (const work of current.snapshot.motionWorks ?? []) {
+        const next = snapshot.motionWorks?.find(entry => entry.id === work.id);
+        if (!next || !isDeepStrictEqual(work, next)) throw new DomainError("固定源码作品不可原地修改；请登记新版本", "MOTION_WORK_IMMUTABLE");
+      }
       if (snapshot.timeline.captionFormat) {
         // 生成、重建与局部纠错都继承同一规范，不重新保存每卡外观。
         for (const caption of snapshot.timeline.captions) { delete caption.format; delete caption.emphasis; }
@@ -486,13 +498,44 @@ export class ProjectRepository {
         .run(snapshot.project.name, snapshot.project.profile, revision.id, revision.number, revision.createdAt, projectId);
       const { snapshot: _snapshot, ...revisionInfo } = revision;
       return { revision: revisionInfo, snapshot, reviews: this.readReviews(projectId) };
+  }
+
+  /** 登记、采用与采用结果共同提交；是否生成文件预览由后续明确决定。 */
+  commitMotionResult(input: {
+    projectId: Id; jobId: Id;
+    mutate: (snapshot: ProjectSnapshot, impact: ImpactReport) => AdoptionMutation;
+  }): { state: ProjectState; continuation: MotionContinuationResult } {
+    return this.transaction(() => {
+      const job = this.getJob(input.jobId);
+      if (job.projectId !== input.projectId || !["motion_generation", "motion_adoption"].includes(job.kind)) throw new DomainError("采用任务不属于当前项目", "MOTION_JOB_NOT_FOUND");
+      if (job.status === "cancelled") throw new DomainError("作品采用已取消", "MOTION_CANCELLED");
+      const current = this.getCurrent(input.projectId);
+      const saved = job.result?.continuation as MotionContinuationResult | undefined;
+      if (saved) return { state: current, continuation: saved };
+      const candidate = cloneSnapshot(current.snapshot), impact = emptyImpact();
+      const mutation = input.mutate(candidate, impact);
+      const state = impact.changed.length ? this.commitRevision(input.projectId, current.revision.number, "登记并采用受管作品", (snapshot, targetImpact) => {
+        Object.assign(snapshot, candidate);
+        Object.assign(targetImpact, impact);
+      }) : current;
+      let continuation: MotionContinuationResult;
+      if (mutation.status === "applied") {
+        continuation = { ...mutation, appliedRevision: state.revision.number };
+      } else continuation = mutation;
+      this.updateJob(job.id, { status: job.status, result: { ...this.getJob(job.id).result, continuation } });
+      return { state, continuation };
     });
   }
 
   createJob(input: { projectId: Id; kind: JobKind; payload: Record<string, unknown>; idempotencyKey: string }): JobRecord {
     this.getProjectRow(input.projectId);
     const existing = this.db.prepare("SELECT * FROM jobs WHERE project_id = ? AND idempotency_key = ?").get(input.projectId, input.idempotencyKey) as JobRow | undefined;
-    if (existing) return this.jobFromRow(existing);
+    if (existing) {
+      const job = this.jobFromRow(existing);
+      // 比较JSON持久化后的完整输入，不因对象键顺序或undefined制造不同请求。
+      if (job.kind !== input.kind || !isDeepStrictEqual(job.payload, JSON.parse(JSON.stringify(input.payload)))) throw new DomainError("幂等键已用于不同任务输入", "JOB_IDEMPOTENCY_CONFLICT");
+      return job;
+    }
     const createdAt = now();
     const job: JobRecord = {
       id: createId("job"),
@@ -509,6 +552,21 @@ export class ProjectRepository {
       VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, NULL, ?, ?)`)
       .run(job.id, job.projectId, job.kind, job.status, JSON.stringify(job.payload), job.idempotencyKey, job.attempt, job.createdAt, job.updatedAt);
     return job;
+  }
+
+  /** 原失败任务只有一个恢复子任务；检查与创建在同一短事务中完成。 */
+  createRetryJob(projectId: Id, sourceJobId: Id): JobRecord {
+    return this.transaction(() => {
+      const source = this.getJob(sourceJobId);
+      if (source.projectId !== projectId) throw new DomainError("恢复任务不属于当前项目", "JOB_PROJECT_MISMATCH");
+      const key = "retry:" + source.id;
+      const child = this.listJobs(projectId).find(job => job.idempotencyKey === key);
+      if (child) return child;
+      if (source.status === "unknown") throw new DomainError("结果未知，先对账原外部运行", "JOB_RETRY_REQUIRES_RECONCILIATION");
+      if (["queued", "running", "succeeded"].includes(source.status) || source.result?.continuation) return source;
+      if (!["failed", "cancelled"].includes(source.status)) throw new DomainError("任务状态不支持恢复", "JOB_RETRY_STATUS_UNSUPPORTED");
+      return this.createJob({ projectId, kind: source.kind, payload: { ...source.payload, retryOfJobId: source.id }, idempotencyKey: key });
+    });
   }
 
   listJobs(projectId: Id): JobRecord[] {

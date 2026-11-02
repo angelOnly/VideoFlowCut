@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { appendFileSync } from "node:fs";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -249,7 +250,7 @@ test("旁白字幕回听纠错保留 Provider 原文与时间，未确认和篡�
   }
 });
 
-test("异步字幕期间修改 Revision 不覆盖新状态，同一次回执只能恢复同一旁白", async () => {
+test("异步字幕期间无关画面修改可继续，同一次回执只能恢复同一旁白", async () => {
   const root = await mkdtemp(join(tmpdir(), "videocut-caption-concurrent-"));
   const f = await fixture(root);
   let altered = false;
@@ -261,11 +262,9 @@ test("异步字幕期间修改 Revision 不覆盖新状态，同一次回执只�
   try {
     const job = f.app.generateSpeechCaptions({ projectId: f.projectId, baseRevision: f.app.readProject(f.projectId).revision.number });
     await runOneJob(f.app, createMediaJobProcessor(f.app, new ComfyUIBridgeClient("http://bridge.test/v1")));
-    assert.equal(f.app.trackJob(job.id).status, "failed");
-    assert.equal(f.app.readProject(f.projectId).snapshot.sourceAudioAlignments.length, 0);
-    const nextJob = f.app.generateSpeechCaptions({ projectId: f.projectId, baseRevision: f.app.readProject(f.projectId).revision.number });
-    await runOneJob(f.app, createMediaJobProcessor(f.app, new ComfyUIBridgeClient("http://bridge.test/v1")));
-    assert.equal(f.app.trackJob(nextJob.id).status, "succeeded");
+    assert.equal(f.app.trackJob(job.id).status, "succeeded");
+    assert.equal(f.app.readProject(f.projectId).snapshot.sourceAudioAlignments.length, 1);
+    assert.equal(f.app.readProject(f.projectId).snapshot.scenes.some(scene => scene.title === "并发画面"), true);
     const state = f.app.readProject(f.projectId);
     const a = state.snapshot.sourceAudioAlignments[0]!;
     const receipt = { projectId: f.projectId, requestedRevision: a.requestedRevision, assetId: a.sourceAssetId, timelineItemId: a.sourceTimelineItemId, sourceStartFrame: a.sourceStartFrame, sourceEndFrame: a.sourceEndFrame, timelineStartFrame: a.timelineStartFrame, timelineEndFrame: a.timelineEndFrame, transcriptText: a.transcriptText, bridgeAudit: a.bridgeAudit, speechSource: a.speechSource, tokenPrecision: a.tokenPrecision, tokens: a.tokens, segments: a.segments };
@@ -280,6 +279,56 @@ test("异步字幕期间修改 Revision 不覆盖新状态，同一次回执只�
     assert.equal(aligned.state.snapshot.speechAsset!.timing.precision, "word_exact");
     assert.deepEqual(aligned.state.snapshot.timeline.captions, state.snapshot.timeline.captions, "独立字幕时间不被词级 SpeechTiming 偷换");
     assertProjectGraphValid(aligned.state.snapshot);
+  } finally { provider.restore(); f.app.close(); await rm(root, { recursive: true, force: true }); }
+});
+
+test("识别期间人工修改字幕保留原结果，确认恢复后复用而不重新识别", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vfc-caption-conflict-"));
+  const f = await fixture(root);
+  const original = structuredClone(f.app.readProject(f.projectId).snapshot.timeline.captions);
+  let changed = false;
+  const provider = mockProvider({ onRead: () => {
+    if (changed) return;
+    changed = true;
+    const state = f.app.readProject(f.projectId);
+    f.app.editCaptions({ projectId: f.projectId, baseRevision: state.revision.number, captionId: state.snapshot.timeline.captions[0]!.id, action: "update", text: "用户正在修改的字幕" });
+  } });
+  try {
+    const job = f.app.generateSpeechCaptions({ projectId: f.projectId, baseRevision: f.app.readProject(f.projectId).revision.number });
+    await runOneJob(f.app, createMediaJobProcessor(f.app, new ComfyUIBridgeClient("http://bridge.test/v1")));
+    const failed = f.app.trackJob(job.id);
+    assert.equal(failed.status, "failed");
+    assert.equal(f.app.readProject(f.projectId).snapshot.timeline.captions[0]!.text, "用户正在修改的字幕");
+    const saved = failed.result?.sourceCaptionAlignmentResult as { relativePath: string; sha256: string };
+    assert.ok(saved?.sha256);
+    const persisted = JSON.parse(await readFile(join(f.app.readProject(f.projectId).snapshot.project.rootPath, saved.relativePath), "utf8"));
+    assert.equal(persisted.transcriptText, text);
+    assert.equal(JSON.parse(persisted.alignmentJson).segments.length, 2);
+    f.app.repository.commit(f.projectId, f.app.readProject(f.projectId).revision.number, "用户明确恢复原字幕", snapshot => { snapshot.timeline.captions = original; });
+    const retry = f.app.repository.createJob({ projectId: f.projectId, kind: "source_caption_alignment", payload: { ...job.payload, retryOfJobId: job.id }, idempotencyKey: "retry-after-confirmation" });
+    globalThis.fetch = async () => { throw new Error("已保存的识别结果不能再次请求 Bridge"); };
+    await runOneJob(f.app, createMediaJobProcessor(f.app, new ComfyUIBridgeClient("http://bridge.test/v1")));
+    assert.equal(f.app.trackJob(retry.id).status, "succeeded", JSON.stringify(f.app.trackJob(retry.id).error));
+    assert.equal(provider.submissions(), 1);
+    assert.equal(f.app.readProject(f.projectId).snapshot.sourceCaptionPrograms.length, 1);
+  } finally { provider.restore(); f.app.close(); await rm(root, { recursive: true, force: true }); }
+});
+
+test("识别期间源音频字节改变时保留原结果并禁止覆盖字幕", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vfc-caption-source-changed-"));
+  const f = await fixture(root);
+  let changed = false;
+  const provider = mockProvider({ onRead: () => { if (!changed) { changed = true; appendFileSync(f.file, Buffer.from("changed")); } } });
+  try {
+    const before = f.app.readProject(f.projectId);
+    const job = f.app.generateSpeechCaptions({ projectId: f.projectId, baseRevision: before.revision.number });
+    await runOneJob(f.app, createMediaJobProcessor(f.app, new ComfyUIBridgeClient("http://bridge.test/v1")));
+    const failed = f.app.trackJob(job.id);
+    assert.equal(failed.status, "failed");
+    assert.match(failed.error ?? "", /源文件已改变/);
+    assert.ok(failed.result?.sourceCaptionAlignmentResult);
+    assert.equal(f.app.readProject(f.projectId).revision.number, before.revision.number);
+    assert.deepEqual(f.app.readProject(f.projectId).snapshot.timeline.captions, before.snapshot.timeline.captions);
   } finally { provider.restore(); f.app.close(); await rm(root, { recursive: true, force: true }); }
 });
 

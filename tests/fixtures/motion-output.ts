@@ -4,6 +4,13 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { runProcess } from "@videocut/speech";
+import type { MotionWork } from "@videocut/contracts";
+
+/** 纯领域测试的固定定义；不冒称通过浏览器登记，也不用于生产写入。 */
+export function motionWorkFixture(input: Partial<MotionWork> & Pick<MotionWork, "id" | "width" | "height" | "fps" | "frameCount">): MotionWork {
+  return { version: input.id, name: "隔离领域作品", jobId: "fixture", engineVersion: "fixture", definitionPath: "inputs/fixture.json", definitionHash: "fixture",
+    compositing: "alpha", imageSources: [], videoSources: [], fontSources: [], readyRanges: [{ startFrame: 0, endFrame: input.frameCount }], ...input };
+}
 
 /** 非渲染单测显式声明正式输出；真实渲染测试仍由 Worker 探测登记。 */
 export function completeMotionFixture(app: EditingApplication, input: Omit<Parameters<EditingApplication["completeManagedMotion"]>[0], "output">) {

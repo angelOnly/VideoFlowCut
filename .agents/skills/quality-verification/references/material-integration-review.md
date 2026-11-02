@@ -10,7 +10,7 @@
 
 ## 2. 可以直接使用的定向分析提问
 
-当前analyze_media对成片仅支持depth=review和时间范围，不给成片传region。把以下问题放入input.context，按实际可观察范围记录答案。
+当前 analyze_media 对成片仅支持 depth=review 和时间范围，不给成片传 region。把不含期待答案的观察问题放入 input.observationQuestions；预期台词、时间和制作意图单独放入 input.comparisonReference，不送观察模型。按实际可观察范围记录答案。
 
 ```text
 请审阅本片段中真实材料与动画的关系，不按制作意图补全答案。

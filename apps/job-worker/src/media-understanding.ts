@@ -126,7 +126,8 @@ export async function runMediaUnderstanding(app: EditingApplication, job: JobRec
     const targetRange = source.durationMs ? input.range ?? { startMs: 0, endMs: source.durationMs } : undefined;
     const boundaries = source.kind === "video" ? await detectSceneBoundaries(source.path) : [];
     const cuts = [...new Set([0, ...boundaries.map((boundary) => boundary.seconds * 1000).filter((time) => time > 0 && time < source.durationMs), source.durationMs])].sort((a, b) => a - b);
-    record = { id: job.id, projectId: job.projectId, sourceId: source.id, key: String(job.payload.analysisKey), depth: input.depth, modalities, targetRange, context: input.context,
+    record = { id: job.id, projectId: job.projectId, sourceId: source.id, key: String(job.payload.analysisKey), depth: input.depth, modalities, targetRange,
+      observationQuestions: input.observationQuestions, comparisonReference: input.comparisonReference,
       windows: ranges.length ? ranges.map((range, index) => ({ id: `${job.id}:${index}`, range, status: "pending" })) : [{ id: `${job.id}:0`, region: input.region, status: "pending" }],
       shotRanges: source.kind === "video" ? cuts.slice(0, -1).map((startMs, index) => ({ startMs, endMs: cuts[index + 1] })) : [], status: "running", updatedAt: now() };
     store.saveAnalysis(record);
@@ -145,12 +146,13 @@ export async function runMediaUnderstanding(app: EditingApplication, job: JobRec
       const directory = join(app.readProject(job.projectId).snapshot.project.rootPath, "cache", "mi", digest([job.id, window.id]).slice(0, 24));
       const derived = await deriveMediaInput(source, directory, window.range, window.region, modalities.every((entry) => entry === "audio" || entry === "speech"));
       const kind = derived.kind;
+      const observationModalities = modalities.filter((modality) => modality !== "speech");
       const workflowId = kind === "audio" ? config.audioWorkflowId : kind === "image" ? config.imageWorkflowId : config.videoWorkflowId;
-      const currentSchema = await bridge.getWorkflow(workflowId);
-      const reusable = store.observations(job.projectId).find((entry) => !entry.correction && entry.facts.length > 0 && entry.sourceHash === source.hash && digest(entry.range) === digest(window.range) && digest(entry.region) === digest(window.region) && entry.depth === input.depth && entry.context === record!.context && entry.version.model === config.modelRevision && entry.version.prompt === ANALYSIS_VERSION && entry.version.preprocessing === PREPROCESSING_VERSION && entry.version.workflowId === workflowId && entry.version.schemaVersion === currentSchema.schemaVersion && digest(entry.modalities) === digest(modalities));
-      const prompt = analysisPrompt(modalities.filter((modality) => modality !== "speech"), window.range, input.depth === "review" ? record.context : undefined);
+      const currentSchema = observationModalities.length ? await bridge.getWorkflow(workflowId) : undefined;
+      const reusable = currentSchema && store.observations(job.projectId).find((entry) => !entry.correction && entry.facts.length > 0 && entry.sourceHash === source.hash && digest(entry.range) === digest(window.range) && digest(entry.region) === digest(window.region) && entry.depth === input.depth && entry.observationQuestions === record!.observationQuestions && entry.version.model === config.modelRevision && entry.version.prompt === ANALYSIS_VERSION && entry.version.preprocessing === PREPROCESSING_VERSION && entry.version.workflowId === workflowId && entry.version.schemaVersion === currentSchema.schemaVersion && digest(entry.modalities) === digest(modalities));
+      const prompt = observationModalities.length ? analysisPrompt(observationModalities, window.range, input.depth === "review" ? record.observationQuestions : undefined) : undefined;
       const requestIdentity = digest([source.hash, window.range, window.region, modalities, config.modelRevision, ANALYSIS_VERSION, PREPROCESSING_VERSION, prompt]);
-      const response = reusable ? { text: reusable.rawText, schemaVersion: reusable.version.schemaVersion, runId: reusable.runId } : await modelText(app, job, bridge, `window:${window.id}`, workflowId, async (schema) => {
+      const response = !observationModalities.length ? undefined : reusable ? { text: reusable.rawText, schemaVersion: reusable.version.schemaVersion, runId: reusable.runId } : await modelText(app, job, bridge, `window:${window.id}`, workflowId, async (schema) => {
         const slot = bridge.findRequiredSlot(schema, kind);
         const fields: Record<string, unknown> = {};
         const available = new Set(schema.fields.map((field) => field.id));
@@ -164,10 +166,10 @@ export async function runMediaUnderstanding(app: EditingApplication, job: JobRec
         }
         return { fieldValues: fields, files: [{ slot, path: derived.path, mime: kind === "audio" ? "audio/wav" : kind === "image" ? "image/png" : "video/mp4" }] };
       }, undefined, requestIdentity);
-      const parsed = parseObservation(response.text!, window.range, modalities.filter((modality) => modality !== "speech"));
-      if (!parsed.facts.length && modalities.some((modality) => modality !== "speech")) rejectModelOutput(app, job, `window:${window.id}`, parsed.unknowns.join("；") || "没有可校验的观察事实");
-      const observation: MediaObservation = { id: `observation_${digest([window.id, response.runId])}`, projectId: job.projectId, sourceId: source.id, sourceHash: source.hash, range: window.range, region: window.region, depth: input.depth, modalities, ...parsed,
-        context: record.context, promptText: prompt, rawText: response.text!, version: { workflowId, schemaVersion: response.schemaVersion, model: config.modelRevision, prompt: ANALYSIS_VERSION, preprocessing: PREPROCESSING_VERSION }, jobId: job.id, runId: response.runId, inputEvidence: { path: derived.path, hash: await hashMediaFile(derived.path), mapping: derived.mapping }, createdAt: now() };
+      const parsed = response ? parseObservation(response.text!, window.range, observationModalities) : { facts: [], unknowns: [] };
+      if (!parsed.facts.length && observationModalities.length) rejectModelOutput(app, job, `window:${window.id}`, parsed.unknowns.join("；") || "没有可校验的观察事实");
+      const observation: MediaObservation = { id: `observation_${digest([window.id, response?.runId])}`, projectId: job.projectId, sourceId: source.id, sourceHash: source.hash, range: window.range, region: window.region, depth: input.depth, modalities, ...parsed,
+        observationQuestions: record.observationQuestions, comparisonReference: record.comparisonReference, promptText: prompt, rawText: response?.text ?? "", version: { workflowId: response ? workflowId : FUNASR_SOURCE_CAPTION_WORKFLOW_ID, schemaVersion: response?.schemaVersion ?? "unknown", model: response ? config.modelRevision : "unknown", prompt: response ? ANALYSIS_VERSION : "none", preprocessing: PREPROCESSING_VERSION }, jobId: job.id, runId: response?.runId, inputEvidence: { path: derived.path, hash: await hashMediaFile(derived.path), mapping: derived.mapping }, createdAt: now() };
       observation.reusedFromObservationId = reusable?.id;
       if (window.region) observation.facts.forEach((fact) => { fact.region = window.region; });
       for (const fact of observation.facts) window.modalityStatus![fact.modality] = "observed";
@@ -182,7 +184,13 @@ export async function runMediaUnderstanding(app: EditingApplication, job: JobRec
               if (segment.startMs < 0 || segment.endMs > window.range.endMs - window.range.startMs + 50 || segment.endMs <= segment.startMs) throw new DomainError("转写时间超出真实输入窗口", "MEDIA_TRANSCRIPT_RANGE_INVALID");
               observation.facts.push({ modality: "speech", text: segment.displayText, range: { startMs: window.range.startMs + segment.startMs, endMs: Math.min(window.range.endMs, window.range.startMs + segment.endMs) }, basis: "transcript", precision: "provider_timed", keywords: [] });
             }
-            observation.speechEvidence = { rawText: transcript.text!, runId: transcript.runId!, schemaVersion: transcript.schemaVersion, tokenPrecision: result.tokenPrecision };
+            observation.speechEvidence = { rawText: transcript.text!, runId: transcript.runId!, schemaVersion: transcript.schemaVersion, tokenPrecision: result.tokenPrecision,
+              workflowId: FUNASR_SOURCE_CAPTION_WORKFLOW_ID, inputEvidence: { path: audio.path, hash: await hashMediaFile(audio.path), mapping: audio.mapping } };
+            if (!response) {
+              observation.rawText = transcript.text!;
+              observation.runId = transcript.runId;
+              observation.version.schemaVersion = transcript.schemaVersion;
+            }
             window.modalityStatus!.speech = "observed";
           } catch (error) {
             if (error instanceof DomainError && ["EXTERNAL_RUN_OUTCOME_UNKNOWN", "MEDIA_ANALYSIS_CANCELLED"].includes(error.code)) throw error;
@@ -193,12 +201,12 @@ export async function runMediaUnderstanding(app: EditingApplication, job: JobRec
         }
       }
       // 恢复可能补回 ASR 等模态；内容改变必须产生新观察，不能被旧不可变 ID 吞掉。
-      observation.id = `observation_${digest([window.id, source.id, response.runId, observation.version, observation.facts, observation.unknowns, observation.speechEvidence])}`;
+      observation.id = `observation_${digest([window.id, source.id, observation.runId, observation.version, observation.facts, observation.unknowns, observation.speechEvidence])}`;
       store.saveObservation(observation);
       window.observationId = observation.id;
-      window.runId = response.runId; window.workflowId = workflowId; window.schemaVersion = response.schemaVersion;
+      window.runId = observation.runId; window.workflowId = observation.version.workflowId; window.schemaVersion = observation.version.schemaVersion;
+      if (Object.values(window.modalityStatus!).includes("failed")) throw new DomainError(`声画观察已保存，但所请求语音转写失败；该模态覆盖未完成：${observation.unknowns.join("；")}`, "MEDIA_MODALITY_INCOMPLETE");
       if (!observation.facts.length) throw new DomainError("本窗口没有通过校验的事实，原文可读，覆盖仍未完成", "MEDIA_OBSERVATION_INVALID");
-      if (Object.values(window.modalityStatus!).includes("failed")) throw new DomainError("声画观察已保存，但所请求语音转写失败；该模态覆盖未完成", "MEDIA_MODALITY_INCOMPLETE");
       window.status = "succeeded"; window.error = undefined;
     } catch (error) {
       failed = true;

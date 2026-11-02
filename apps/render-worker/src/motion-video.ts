@@ -12,7 +12,7 @@ export async function hashMotionFile(path: string, signal?: AbortSignal): Promis
 }
 
 /** 新作品只建立固定引用和有界帧服务，不复制原片，也不展开全部选段。 */
-export async function prepareMotionVideos(root: string, directory: string, work: MotionSubmission, bindings: BoundMotionVideo[], engineVersion = MOTION_ENGINE_VERSION, signal?: AbortSignal) {
+export async function prepareMotionVideos(root: string, directory: string, work: MotionSubmission, bindings: BoundMotionVideo[], engineVersion = MOTION_ENGINE_VERSION, signal?: AbortSignal, cacheDirectory?: string) {
   if (engineVersion !== MOTION_ENGINE_VERSION) throw new Error("MOTION_ENGINE_UPGRADE_REQUIRED: 历史产物可读取；重新生成须按当前视频时间合同提交新版本");
-  return createMotionVideoProvider(root, directory, work, await planMotionVideos(root, work, bindings, signal), signal);
+  return createMotionVideoProvider(root, directory, work, await planMotionVideos(root, work, bindings, signal), signal, undefined, cacheDirectory);
 }

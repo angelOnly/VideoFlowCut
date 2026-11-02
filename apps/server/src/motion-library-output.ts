@@ -1,5 +1,6 @@
 import type { JobRecord } from "@videocut/contracts";
 import { projectCreativeSearchResult } from "./creative-library-output.js";
+import { motionJobReceipt } from "./command-receipt.js";
 
 type Data = Record<string, unknown>;
 const object = (value: unknown): Data => value && typeof value === "object" && !Array.isArray(value) ? value as Data : {};
@@ -94,6 +95,7 @@ export function motionJobRecovery(job: JobRecord): Data | undefined {
 
 /** 只收窄已确认的机制任务链；其余工具继续使用现有合同，后台记录不变。 */
 export function projectMotionJob(job: JobRecord): JobRecord | Data {
+  if (job.kind === "motion_generation" || job.kind === "motion_adoption") return motionJobReceipt(job);
   if (!["creative_library_search", "motion_library_search", "motion_reference_analysis"].includes(job.kind)) return job;
   const result = object(job.result), next = motionJobRecovery(job);
   return {

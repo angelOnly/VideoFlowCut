@@ -162,7 +162,7 @@ test("项目总览 MCP 可发现并返回创作与素材操作表结构，且不
       database: { engine: string; tables: Array<{ name: string }> };
     };
     assert.equal(overview.database.engine, "SQLite");
-    assert.deepEqual(overview.database.tables.map((table) => table.name).sort(), ["projects", "revisions", "jobs", "export_artifacts", "repair_tickets", "media_sources", "media_analysis_records", "media_observations", "media_vectors", "media_search_sessions", "motion_library_cache", "workspace_settings"].sort());
+    assert.deepEqual(overview.database.tables.map((table) => table.name).sort(), ["projects", "revisions", "jobs", "export_artifacts", "repair_tickets", "media_sources", "media_analysis_records", "media_observations", "media_vectors", "media_search_sessions", "motion_library_cache", "project_reviews", "workspace_settings"].sort());
     assert.doesNotMatch(JSON.stringify(overview), /overview-test-pexels-secret|overview-test-runtime-secret/u);
   } finally {
     await transport.close().catch(() => undefined);

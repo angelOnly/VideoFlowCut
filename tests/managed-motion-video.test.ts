@@ -73,8 +73,8 @@ for (const kind of ["video", "actor_video"] as const) test(`${kind} 多路Job共
     const work = motionSubmissionSchema.parse(sizeMotionFixture({ ...motionFixture, width: 128, height: 64, fps: 24, durationInFrames: 12, videoBindings: { left: binding, right: binding }, source: motionHtml('<div style="display:flex;width:128px;height:64px"><img id="left" data-vfc-video-slot="left" style="width:64px;height:64px"><img id="right" data-vfc-video-slot="right" style="width:64px;height:64px"></div>') }));
     const job = app.submitManagedMotion({ projectId, baseRevision: app.readProject(projectId).revision.number, idempotencyKey: "two", work });
     const result = await runMotionJob(app, job); const asset = app.readProject(projectId).snapshot.assets.find(a => a.id === result.assetId)!;
-    assert.equal(asset.metadata?.hasAudio, false); assert.deepEqual(asset.motion?.sourceAssetIds, [imported.asset.id]);
-    const directory = join(created.snapshot.project.rootPath, asset.motion!.sourcePath, "..");
+    assert.equal(asset.metadata?.hasAudio, false); assert.deepEqual([...new Set(app.readSourceMotionWork(projectId, asset.motion!.workId!).work.videoSources.map(source => source.assetId))], [imported.asset.id]);
+    const directory = join(created.snapshot.project.rootPath, asset.managedPath, "..");
     const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8"));
     assert.equal(manifest.videoResources.uniqueSources, 1); assert.equal(manifest.videoResources.decodedChunks, 1);
     assert.equal((await readdir(directory)).includes("resources"), false);

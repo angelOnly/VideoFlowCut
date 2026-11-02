@@ -18,7 +18,7 @@ description: 在已连接的本机 OpenDesign MCP 上制作、修订视觉作品
 先确认本作品的 OD 项目：新作品先用 create_project 取得 project ID，
 返修复用现有项目与源码，再准备并传送以下资料。
 
-将创意与视觉共同采用的场面构思及场景创作简报直接作为 start_run.prompt 主体，实际发送观众体验、具体主意、材料角色、主要事件与必要接点。没有外层全套逐镜执行稿不阻止开工；创意不另开并行项目或 Run。
+将创意与视觉共同采用的完整场面构思和场景简报放在当前项目可读取的权威文件中，调用时提供文件身份、表达目的、关键锁定项和本次真实差异；作者必须实际读取完整文件及必要材料。没有外层全套逐镜执行稿不阻止开工；创意不另开并行项目或 Run。
 准确正文、素材、声音、必要参考和运行规范实际放到 OD 可读取位置，
 并在 prompt 中点名文件及其用途；私有路径和缺失文件不能当作已交付。
 文本可用 write_file，大文件沿现有授权文件交接，保留与 VFC 资产的对应。
@@ -31,7 +31,7 @@ description: 在已连接的本机 OpenDesign MCP 上制作、修订视觉作品
 
 读[项目源码规范](references/hyperframes-contract.md)及 read_motion_capabilities，
 附本轮已经发布的输出约定。规范尚未发布时，可在 OD 制作观察，但不声称已接回 VFC。
-明确交回项目中可读取的完整源码入口，不假定默认 artifact 就是 HTML 源文件。
+明确交回项目中可读取的完整源码入口及作者清单，不假定默认 artifact 就是 HTML 源文件。已发布冻结能力时由作者明确交件、固定源码与清单，主任务按同一冻结身份接回；能力缺失不得声称已经冻结。
 
 ## 调用与续接
 
@@ -42,9 +42,16 @@ description: 在已连接的本机 OpenDesign MCP 上制作、修订视觉作品
 不添加未发布的 sourceOnly、render:false 或 profile 参数。
 按返回状态读取结果；只有解释或计划而无作品文件时继续原任务，不能报告制作完成。
 
+需要滚动检查时，要求同一 Local Codex 作者在本 Run 内明确完成某连续范围，使用
+`od motion-work stage --source <项目内HTML> --manifest <项目内作者清单>` 发布阶段冻结版，
+回传得到的 `frozen_version` 与实际可检查范围，再继续修改工作件。该命令由作者当前 Run
+授权，外层不能凭文件变化假装作者交件。以实时能力为准；没有阶段入口时只能等正式 Run
+结束后按完整交件冻结，不能宣称边写边看已实现。
+
 核对实际运行采用的 Skill、任务路由、加载规则和产物。
-默认由 OD 交源码、VFC 生成正式媒体；沿 OD 正式技能与任务配置入口消除
-motion-design 的 HTML+MP4 双交付冲突，保留适用的美术与动效指南。
+默认由 OD 交源码、VFC 生成正式媒体；通过 OD 正式路由选择 HyperFrames 源码交付，
+motion-design 仅提供适用的美术与动效方法，不再额外创建 MP4、播放器或声音。
+独立视频任务仍沿其自己的视频交付规则。必须从实际 Run 核对所选路线和交付身份。
 HyperFrames 源码交付 profile 不等于已注册 Skill ID；存在配置文件不证明路由激活。
 记录实际采用路线和交付结果；仅一句“不渲染”或 video-hyperframes 名称不能证明生效，
 不修改 OD 私有工作副本伪装永久配置。明确按本片美术与连续演出制作，
@@ -61,18 +68,21 @@ HyperFrames 源码交付 profile 不等于已注册 Skill ID；存在配置文�
 
 ## 交回原项目
 
-一件作品只确定一个正式渲染责任方，默认交回 HyperFrames HTML/CSS/GSAP 源码，由 VFC 生成正式媒体。
-仅收到源码时先交主任务生成，再观察同版产物；不为补“预览”要求 OD 额外完整导出。
+一件作品交回固定 HyperFrames HTML/CSS/GSAP 源码，由主任务登记 MotionWork 并正式采用；先在工作台观察同版源码，文件按实际用途由 VFC 生成。
 已有 OD 视频只在来源、源码、Props、实际绑定与源区间、字体、画幅、帧率、帧数和输出用途
 均有可验证的同版身份时采用；无播放器、重复字幕或声音。登记路径按实时 Schema 核对，
-当前 renderedAssetId 只接受已有同 pixelKey 的正式受管作品，不把普通导入视频宣称为已验证缓存。
+派生媒体必须关联真实 workId、根范围和字节身份，不把普通导入视频宣称为已验证作品缓存。
 按已发布规范整理依赖、真实图片/视频/字体对应、作品职责、实际时长与帧率、
-同源动作事件及已观察范围。必要时适配资源与入口，保留原美术和动作。
+同源动作事件及已观察范围。作者清单只保存这些真实决定，不手工复制完整源码；正式提交由平台按固定源码及清单组包并重新核验。必要时适配资源与入口，保留原美术和动作。
 透明叠加保留 alpha，完整主画面明确外层哪些内容由它接管。
 
 普通字幕、旁白、原声、音乐和音效继续原流程；预览参考声音不重复烧入正式画面。
 由主任务完成正式提交与时间线放置，再把真实合成反馈交回你继续修订。
 时序或材料变化时更新受影响的事件与声音，设计变化写回当前稿；
-只修改说明不触发重渲，源码和真正影响画面的输入改变才更新相应资产。
+只改普通字幕、声音或制作说明不提交新 motion Job；源码和真正影响作品像素的输入改变才更新相应资产。
+
+局部画面返修保留完整源码与作品根时钟，由原作者明确真实影响范围；
+沿[局部校样与正式范围](references/submission-and-recovery.md#同源局部校样与正式范围)登记新 workId，由主任务原子采用既有 Cue 的目标范围，工作台复查；需要文件时另生成局部或完整媒体。
+首版保持画幅、作品总时长、作品 fps 和事件时序；缓存命中与校样采用不代替实际审阅。
 
 需要补设计时沿原[整场美术](../visual-treatment-planning/references/art-direction.md)、[演出方法](../motion-brief-writing/references/performance-design.md)与[执行稿](../motion-brief-writing/references/execution-brief-template.md)继续；人物范围按[人物剪辑语法](../presenter-motion-director/references/presenter-editing-grammar.md)处理。素材取景读[空间与源时钟](references/material-space-and-time.md)，正式写入读[提交与恢复](references/submission-and-recovery.md)，责任边界读[共用交接](../_shared/PROJECT_REVISION_AND_HANDOFF.md)。

@@ -69,13 +69,42 @@ export function manageSoundPlan(app: EditingApplication, projectId: string, base
   const state = app.repository.commit(projectId, baseRevision, "更新段落声音设计", (snapshot, impact) => {
     const existing = snapshot.soundPlans?.find((plan) => plan.id === input.soundPlanId);
     if (input.action !== "create" && !existing) throw new DomainError("声音计划不存在", "SOUND_PLAN_NOT_FOUND");
-    if (input.action === "remove") { snapshot.soundPlans = snapshot.soundPlans!.filter((plan) => plan.id !== existing!.id); impact.changed.push(existing!.id); return; }
+    if (input.action === "remove") {
+      snapshot.soundPlans = snapshot.soundPlans!.filter((plan) => plan.id !== existing!.id);
+      impact.changed.push(existing!.id);
+      impact.dirtyRanges.push({ startFrame: existing!.startFrame, endFrame: existing!.endFrame, reason: "移除声音计划后需要检查原混合范围" });
+      return;
+    }
     const plan = { ...existing, ...Object.fromEntries(Object.entries(input).filter(([key, value]) => value !== undefined && !["action", "soundPlanId"].includes(key))), id: existing?.id ?? createId("sound_plan"), version: (existing?.version ?? 0) + 1, status: "current", updatedAt: now() } as SoundPlan;
     if (!Number.isInteger(plan.startFrame) || !Number.isInteger(plan.endFrame) || plan.endFrame <= plan.startFrame || !plan.narrationDirection || !plan.musicDirection || !plan.dominantRole || !Array.isArray(plan.intents)) throw new DomainError("计划需要完整范围、旁白意图、主声音、音乐设计和声音意图", "SOUND_PLAN_INCOMPLETE");
     if (new Set(plan.intents.map((entry) => entry.id)).size !== plan.intents.length || plan.dominantRanges?.some((range) => range.startFrame < plan.startFrame || range.endFrame > plan.endFrame || range.startFrame >= range.endFrame)) throw new DomainError("声音意图重复或主导范围越界", "SOUND_PLAN_RANGE_INVALID");
     snapshot.soundPlans ??= [];
     if (existing) snapshot.soundPlans[snapshot.soundPlans.indexOf(existing)] = plan; else snapshot.soundPlans.push(plan);
-    impact.changed.push(plan.id); impact.dirtyRanges.push({ startFrame: plan.startFrame, endFrame: plan.endFrame, reason: "段落声音设计已更新" });
+    if (existing?.status === "current") {
+      for (const cue of snapshot.audioCues.filter(entry => entry.soundPlanId === existing.id && entry.status === "ready" && entry.planVersion === existing.version)) {
+        const item = snapshot.timeline.items.find(entry => entry.id === cue.timelineItemId);
+        const oldIntent = existing.intents.find(entry => entry.id === cue.soundIntentId);
+        const newIntent = plan.intents.find(entry => entry.id === cue.soundIntentId);
+        if (!item || !oldIntent || !newIntent) continue;
+        const relevant = (value: SoundPlan) => ({
+          startFrame: value.startFrame, endFrame: value.endFrame, narrationDirection: value.narrationDirection,
+          musicDirection: value.musicDirection, dominantRole: value.dominantRole,
+          dominantRanges: value.dominantRanges?.filter(range => range.startFrame < item.endFrame && range.endFrame > item.startFrame) ?? []
+        });
+        // 只同步原本有效且实际意图、计划与该声音范围完全未变的绑定。
+        if (digest(oldIntent) === digest(newIntent) && digest(relevant(existing)) === digest(relevant(plan))) {
+          cue.planVersion = plan.version;
+          impact.changed.push(cue.id);
+        }
+      }
+    }
+    impact.changed.push(plan.id);
+    const playback = (value: SoundPlan) => ({ startFrame: value.startFrame, endFrame: value.endFrame,
+      status: value.status, dominantRole: value.dominantRole, dominantRanges: value.dominantRanges });
+    if (!existing || digest(playback(existing)) !== digest(playback(plan))) {
+      if (existing) impact.dirtyRanges.push({ startFrame: existing.startFrame, endFrame: existing.endFrame, reason: "清理声音计划原混合范围" });
+      impact.dirtyRanges.push({ startFrame: plan.startFrame, endFrame: plan.endFrame, reason: "段落主声音或混合范围已更新" });
+    }
   });
   app.publish({ projectId, revision: state.revision.number, type: "revision" });
   return state;

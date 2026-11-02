@@ -29,7 +29,7 @@ try {
     const job=app.submitManagedMotion({projectId,baseRevision:app.readProject(projectId).revision.number,idempotencyKey:label,work:input});
     const result=await runMotionJob(app,job);
     const asset=app.readProject(projectId).snapshot.assets.find(a=>a.id===result.assetId)!;
-    runs.push({label,elapsedMs:Date.now()-started,reused:result.reused,capturedFrames:result.reused?0:(result.metrics as any).capturedFrames,metrics:result.reused?undefined:result.metrics,outputBytes:(await stat(join(created.snapshot.project.rootPath,asset.managedPath))).size,samplePngCount:(await readdir(join(created.snapshot.project.rootPath,dirname(asset.motion!.sourcePath),"frames"))).length});
+    runs.push({label,elapsedMs:Date.now()-started,reused:result.reused,capturedFrames:result.reused?0:(result.metrics as any).capturedFrames,metrics:result.reused?undefined:result.metrics,outputBytes:(await stat(join(created.snapshot.project.rootPath,asset.managedPath))).size,samplePngCount:(await readdir(join(created.snapshot.project.rootPath,dirname(asset.managedPath),"frames"))).length});
     return asset;
   };
   const first=await generate("首次生成",work);
@@ -42,7 +42,7 @@ try {
     const snapshot=structuredClone(app.readProject(projectId).snapshot);
     Object.assign(snapshot.timeline,{width:320,height:180,fps:30,durationInFrames:60});
     snapshot.scenes=[{id:"measure",type:"ExplainerScene",status:"ready",startFrame:0,endFrame:60,title:"测量",purpose:"技术测量"} as any];
-    snapshot.effectCues=[{id:"measure",type:"ManagedMotion",status:"ready",sceneId:"measure",layer:"fullscreen",startFrame:0,endFrame:60,assetBindings:[{slot:"motion",assetId:asset.id}],props:{},spatialAnchor:"full_frame",stylePackId:"managed-source",intensity:1,motion:{enterPreset:"none",settlePreset:"hold",exitPreset:"none",enterFrames:0,exitFrames:0,holdFrames:60}} as any];
+    snapshot.effectCues=[{id:"measure",type:"ManagedMotion",status:"ready",sceneId:"measure",layer:"fullscreen",startFrame:0,endFrame:60,workId: asset.motion!.workId!,props:{},spatialAnchor:"full_frame",stylePackId:"managed-source",intensity:1,motion:{enterPreset:"none",settlePreset:"hold",exitPreset:"none",enterFrames:0,exitFrames:0,holdFrames:60}} as any];
     const target=join(output,`${label}.mp4`),started=Date.now();
     await renderer.render(snapshot,target);
     const renderMs=Date.now()-started,validationAt=Date.now();

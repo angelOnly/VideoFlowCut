@@ -1,3 +1,4 @@
+import { motionWorkFixture } from "./fixtures/motion-output.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { ActorCapabilityProfile, AvatarSourceReceipt, PresenterUse } from "@videocut/contracts";
@@ -140,10 +141,15 @@ test("烘焙人物按作品实际位置核对，隐藏外层人物也不能掩�
     frameCount: 60, fps: 30, width: snapshot.timeline.width, height: snapshot.timeline.height,
     videoSources: [{ slot: "person", assetId: item.assetId, sourceHash: "actor-hash", sourceStartMs: 1000, sourceEndMs: 3000, startFrame: 0, endFrame: 60 }]
   };
+  motion.motion!.workId = "motion-work";
+  snapshot.motionWorks = [motionWorkFixture({id:"motion-work",width:snapshot.timeline.width,height:snapshot.timeline.height,fps:30,frameCount:60,videoSources:[{slot:"person",assetId:item.assetId,hash:"actor-hash",managedPath:"actor.mp4",sourceStartMs:1000,sourceEndMs:3000,startFrame:0,endFrame:60}]})];
   snapshot.assets.push(motion);
-  const cue = createEffectCue({ sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 330, endFrame: 390, assetBindings: [{ slot: "motion", assetId: motion.id }], visualComposition: { role: "primary", replacesActorItemIds: [item.id] } });
+  const cue = createEffectCue({ sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 330, endFrame: 390, workId: motion.motion!.workId!, visualComposition: { role: "primary", replacesActorItemIds: [item.id] } });
   Object.assign(cue.motion, { enterPreset: "none", exitPreset: "none", enterFrames: 0, exitFrames: 0, holdFrames: 60 });
   snapshot.effectCues.push(cue);
+  snapshot.story.beats.push({ id: "beat", title: "人物回应", purpose: "核对源码作品内人物", order: 0, semanticUnitIds: [], sceneIds: [scene.id] });
+  scene.narrativeBeatIds.push("beat");
+  assert.equal(productionReconciliation(snapshot)[0].structuralGaps.some(gap => gap.objectIds.includes("use")), false, "作品内人物应从 MotionWork 的视频绑定核对");
   assert.equal(evaluateQuality(snapshot, 1).issues.some(issue => issue.code === "MOTION_ACTOR_SOURCE_STALE"), false);
   cue.startFrame += 30; cue.endFrame += 30;
   assert.equal(evaluateQuality(snapshot, 2).issues.some(issue => issue.code === "MOTION_ACTOR_SOURCE_STALE"), true);

@@ -82,7 +82,7 @@ test("字体缺失、内容变更及目录逃逸明确失败，Worker不换绑�
     const bound = bindMotionFonts(fontWork, root);
     assert.throws(() => prepareMotionFonts(fontWork, bound.map(f => ({ ...f, weight: 500 })), root), /MOTION_FONT_BINDING_MISMATCH/u);
     const version = motionHash(fontWork, [], undefined, [], bound);
-    assert.equal(motionHashEngine(fontWork, [], version, undefined, [], bound), "managed-hyperframes-2");
+    assert.equal(motionHashEngine(fontWork, [], version, undefined, [], bound), "managed-hyperframes-4");
     assert.notEqual(version, motionHash(fontWork, [], undefined, [], bound.map(f => ({ ...f, hash: "0".repeat(64) }))));
     const legacy = motionHash(motionFixture, [], "managed-motion-12");
     assert.throws(() => motionHashEngine(motionFixture, [], legacy, "managed-motion-12"), /MOTION_ENGINE_UPGRADE_REQUIRED/);
@@ -144,7 +144,7 @@ test("新增得意黑与烟波宋TTF共同首帧加载；字形不同、字体�
     const job = app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "request-fonts", work });
     const result = await runMotionJob(app, job);
     const asset = app.readProject(projectId).snapshot.assets.find(a => a.id === result.assetId)!;
-    const directory = join(state.snapshot.project.rootPath, asset.motion!.sourcePath, "..");
+    const directory = join(state.snapshot.project.rootPath, asset.managedPath, "..");
     const bound = bindMotionFonts(work);
     const png = PNG.sync.read(await readFile(join(directory, "frames/frame-00000.png")));
     const rows = [0, 96].map(top => {
@@ -173,7 +173,8 @@ test("非法字体提交不创建Job或Revision，原输入幂等返回同一固
     assert.throws(() => app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "bad", work: { ...fontWork, fontBindings: { title: "missing" } } }), /MOTION_FONT_UNKNOWN/u);
     assert.equal(app.repository.listJobs(projectId).length, 0);
     assert.equal(app.readProject(projectId).revision.number, 1);
-    const job = app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "ok", work: fontWork });
+    const request = { projectId, baseRevision: 1, idempotencyKey: "ok", work: fontWork };
+    const job = app.submitManagedMotion(request);
     assert.equal((job.payload.boundFonts as unknown[]).length, 2);
     const fixed = bindMotionFonts(fontWork).map(font => ({ ...font, hash: "0".repeat(64), family: `VFC_${"0".repeat(64)}` }));
     // 仅篡改字体，保留提交时冻结的来源显示合同，才能实际到达字体校验。
@@ -182,7 +183,8 @@ test("非法字体提交不创建Job或Revision，原输入幂等返回同一固
     await assert.rejects(runMotionJob(app, changedJob, async () => { assert.fail("变更字体不能进入渲染"); }), /MOTION_FONT_BINDING_MISMATCH/u);
     assert.equal(app.readProject(projectId).revision.number, 1);
     assert.equal(app.readProject(projectId).snapshot.assets.length, 0);
-    assert.equal(app.submitManagedMotion({ projectId, baseRevision: 0, idempotencyKey: "ok", work: fontWork }).id, job.id);
+    assert.equal(app.submitManagedMotion(request).id, job.id);
+    assert.throws(() => app.submitManagedMotion({ ...request, baseRevision: 0 }), /MOTION_IDEMPOTENCY_CONFLICT|幂等/u);
     assert.throws(() => app.submitManagedMotion({ projectId, baseRevision: 1, idempotencyKey: "ok", work: { ...fontWork, fontBindings: { title: "noto-sans-sc-regular" } } }), /MOTION_IDEMPOTENCY_CONFLICT|幂等/u);
   } finally { app.close(); await rm(root, { recursive: true, force: true }); }
 });
@@ -201,8 +203,8 @@ test("中文常规与粗体首帧可见且重复定位稳定，字体副本可�
     const job = app.submitManagedMotion({ projectId, baseRevision: app.readProject(projectId).revision.number, idempotencyKey: "render", work: { ...fontWork, imageBindings: { fonts: image.id } } });
     const result = await runMotionJob(app, job);
     const asset = app.readProject(projectId).snapshot.assets.find(a => a.id === result.assetId)!;
-    assert.equal(asset.motion!.fontSources!.length, 2);
-    const directory = join(state.snapshot.project.rootPath, asset.motion!.sourcePath, "..");
+    assert.equal(app.readSourceMotionWork(projectId, asset.motion!.workId!).work.fontSources.length, 2);
+    const directory = join(state.snapshot.project.rootPath, asset.managedPath, "..");
     const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8"));
     assert.ok(["exact", "tolerated"].includes(manifest.determinism.status));
     assert.deepEqual(manifest.boundFonts, job.payload.boundFonts);

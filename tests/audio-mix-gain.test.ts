@@ -10,6 +10,7 @@ import { createServer } from "../apps/server/src/app.js";
 import { registerSoundTools } from "../apps/server/src/sound-tools.js";
 import { createMediaAsset, createTimelineItem, createScene } from "@videocut/domain";
 import { soundDependencySignature } from "../packages/media-intelligence/src/sound-signature.js";
+const signature = (snapshot: Parameters<typeof soundDependencySignature>[0]) => soundDependencySignature(snapshot, { method: "audio", fromFrame: 0, toFrame: 48, renderIdentity: "test" });
 
 test("整体增益 MCP/HTTP 设置绝对值、保护版本并使全片混合待审，不改音轨参数", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-mix-gain-"));
@@ -40,13 +41,17 @@ test("整体增益 MCP/HTTP 设置绝对值、保护版本并使全片混合待�
     assert.equal((await call(25)).isError, true);
     assert.equal((await call(9.5, before.revision.number - 1)).isError, true);
     assert.equal(current().revision.number, before.revision.number);
-    assert.notEqual((await call(9.5)).isError, true);
+    const written = await call(9.5);
+    assert.notEqual(written.isError, true);
+    const receipt = JSON.parse((written.content as Array<{ text: string }>)[0].text);
+    assert.equal(receipt.result.gainDb, 9.5);
+    assert.equal(receipt.snapshot, undefined, "小写入不能重复回传完整工程");
     const after = current();
     assert.equal(after.snapshot.audioMixGainDb, 9.5);
     assert.deepEqual(after.snapshot.timeline, before.snapshot.timeline);
     assert.deepEqual(after.snapshot.assets, before.snapshot.assets);
     assert.deepEqual(after.snapshot.audioCues, before.snapshot.audioCues);
-    assert.notEqual(soundDependencySignature(before.snapshot), soundDependencySignature(after.snapshot));
+    assert.notEqual(signature(before.snapshot), signature(after.snapshot));
     assert.ok(after.revision.impact.dirtyRanges.some((range) => range.startFrame === 0 && range.endFrame === 48));
     assert.notEqual((await call(9.5)).isError, true);
     assert.equal(current().snapshot.audioMixGainDb, 9.5, "不能累加成19dB");
@@ -55,6 +60,6 @@ test("整体增益 MCP/HTTP 设置绝对值、保护版本并使全片混合待�
     assert.equal((await post("9.5")).statusCode, 400);
     assert.equal((await post(0)).statusCode, 200);
     assert.equal(current().snapshot.audioMixGainDb, 0);
-    assert.equal(soundDependencySignature(before.snapshot), soundDependencySignature(current().snapshot), "归零兼容旧版声音身份");
+    assert.equal(signature(before.snapshot), signature(current().snapshot), "归零恢复原声音身份");
   } finally { await client.close(); await server.close(); await app.close(); application.repository.close(); await rm(root, { recursive: true, force: true }); }
 });

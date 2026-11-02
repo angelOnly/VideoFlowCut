@@ -40,7 +40,7 @@ test("HTTP策略与源码拒绝原子性、冻结输入、幂等恢复和历史�
     const projectId = created.snapshot.project.id;
     assert.equal(created.snapshot.project.brief.explicitCreativePreferences, undefined);
     assert.deepEqual(created.snapshot.project.brief.sourceDisplayPolicy, { mode: "internal_only" });
-    const submit = (work: typeof motionFixture, key = "同一提交") => app.inject({ method: "POST", url: `/api/projects/${projectId}/motion-works`, payload: { baseRevision: application.readProject(projectId).revision.number, idempotencyKey: key, work } });
+    const submit = (work: typeof motionFixture, key = "同一提交", baseRevision = application.readProject(projectId).revision.number) => app.inject({ method: "POST", url: `/api/projects/${projectId}/motion-works`, payload: { baseRevision, idempotencyKey: key, work } });
     const work = sizeMotionFixture({ ...motionFixture, source: source("来源：研究报告") });
     const rejected = await submit(work);
     assert.equal(rejected.statusCode, 400);
@@ -53,6 +53,7 @@ test("HTTP策略与源码拒绝原子性、冻结输入、幂等恢复和历史�
     assert.equal((await update({ ...policy, exceptions: [{ ...policy.exceptions[0], scopeId: "不存在" }] })).statusCode, 400);
     assert.deepEqual(application.readProject(projectId), created);
     assert.equal((await update(policy)).statusCode, 200);
+    const submittedRevision = application.readProject(projectId).revision.number;
     const accepted = await submit(work); assert.equal(accepted.statusCode, 200);
     const job = accepted.json();
     assert.deepEqual(job.payload.sourceDisplay.policy, policy);
@@ -61,12 +62,15 @@ test("HTTP策略与源码拒绝原子性、冻结输入、幂等恢复和历史�
     assert.equal(motionHashEngine(work, [], job.payload.version, MOTION_ENGINE_VERSION, [], [], job.payload.sourceDisplay), MOTION_ENGINE_VERSION);
     assert.throws(() => motionHashEngine(work, [], job.payload.version, MOTION_ENGINE_VERSION), /MOTION_VERSION_MISMATCH/);
     assert.equal((await update({ mode: "internal_only" })).statusCode, 200);
-    assert.equal((await submit(work)).json().id, job.id, "已提交任务按原冻结输入恢复");
+    assert.equal((await submit(work, "同一提交", submittedRevision)).json().id, job.id, "已提交任务按原冻结输入恢复");
+    assert.equal((await submit(work)).json().error, "MOTION_IDEMPOTENCY_CONFLICT", "同键不能改变提交基准");
     assert.equal((await submit(work, "新提交")).statusCode, 400);
     assert.deepEqual(application.trackJob(job.id).payload, job.payload);
-    assert.equal((await submit({ ...work, source: source("来源：另一机构") })).json().error, "MOTION_IDEMPOTENCY_CONFLICT");
+    assert.equal((await submit({ ...work, source: source("来源：另一机构") }, "同一提交", submittedRevision)).json().error, "MOTION_IDEMPOTENCY_CONFLICT");
     const legacy = application.repository.createJob({ projectId, kind: "motion_generation", idempotencyKey: "motion:历史", payload: { work, version: oldHash, boundImages: [], engineVersion: MOTION_ENGINE_VERSION } });
-    assert.equal((await submit(work, "历史")).json().id, legacy.id);
+    const legacyPayload = structuredClone(legacy.payload);
+    assert.equal((await submit(work, "历史")).json().error, "MOTION_IDEMPOTENCY_CONFLICT", "缺失基准的历史任务不能伪装为完整相同请求");
+    assert.deepEqual(application.trackJob(legacy.id).payload, legacyPayload, "历史固定输入与哈希保持原样");
     assert.equal(application.trackJob(legacy.id).payload.sourceDisplay, undefined);
   } finally { await app.close(); application.close(); await rm(root, { recursive: true, force: true }); }
 });

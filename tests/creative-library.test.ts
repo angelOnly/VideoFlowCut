@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp,mkdir,writeFile,readFile,rm } from "node:fs/promises";
+import { mkdtemp,mkdir,writeFile,readFile,rm,open } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join,resolve } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -18,14 +18,28 @@ import { createMediaJobProcessor,runOneJob } from "../apps/job-worker/src/index.
 import { projectMotionJob } from "../apps/server/src/motion-library-output.js";
 
 const root=resolve("references/motion-cases/skillry");
-test("当前87张完整卡、82独立切片和5原片复用按实际路径读回，不修改原片时间",()=>{
+test("创意索引、正文与媒体按实际路径读回，不修改原片时间",async()=>{
   const index=loadCreativeIndex(root);
-  assert.equal(index.count,87);assert.equal(index.processed_cases.length,20);assert.equal(index.catalogue_case_count,120);
-  assert.equal(index.cards.filter(card=>card.clip!==card.video).length,82);
+  const metadata=JSON.parse(await readFile(join(root,"creative-index.json"),"utf8"));
+  const catalogue=JSON.parse(await readFile(join(root,"case-catalogue.json"),"utf8"));
+  assert.ok(index.count>0);assert.equal(index.count,metadata.count);assert.equal(index.count,index.cards.length);
+  assert.deepEqual(index.processed_cases,metadata.processed_cases);
+  assert.deepEqual(new Set(index.processed_cases),new Set(index.cards.map(card=>card.case_number)));
+  assert.equal(index.catalogue_case_count,catalogue.cases.length);
+  const checkedMedia=new Set<string>();
   for(const card of index.cards){
-    const loaded=readCreativeCase(root,{id:card.id,source_sha256:index.source_sha256,include_storyboard:false});
-    const resources=loaded.result.resources as Record<string,{available:boolean}>;
+    const loaded=readCreativeCase(root,{id:card.id,source_sha256:index.source_sha256});
+    const resources=loaded.result.resources as Record<string,{available:boolean;absolute_path?:string}>;
     assert.ok(Object.values(resources).every(media=>media.available),card.id);
+    assert.ok(loaded.image,`${card.id} 分镜图片可读`);
+    for(const media of Object.values(resources)){
+      const path=media.absolute_path!;
+      if(checkedMedia.has(path))continue;
+      const handle=await open(path,"r");
+      try{assert.equal((await handle.read(Buffer.alloc(1),0,1,0)).bytesRead,1,`${card.id} 媒体可读`);}
+      finally{await handle.close();}
+      checkedMedia.add(path);
+    }
     assert.equal(loaded.result.body,card.raw);
     assert.deepEqual(loaded.result.frame_times_ms,card.frame_times_ms);
     const offset=card.clip===card.video?0:card.start_ms;
@@ -104,7 +118,7 @@ test("真实MCP语义Job与Worker分派，翻页复用，跟进显式恢复，�
     await runOneJob(app,createMediaJobProcessor(app,bridge));
     assert.equal(app.trackJob(first.diagnostics.job_id).status,'succeeded');
     const completed=await call({query:'完全不同用词的模糊观看体验',limit:3}),count=calls.length;
-    assert.equal(completed.diagnostics.semantic_used,true);assert.equal(completed.total,87);assert.equal(completed.cards.length,3);
+    assert.equal(completed.diagnostics.semantic_used,true);assert.equal(completed.total,loadCreativeIndex(root).count);assert.equal(completed.cards.length,3);
     const page=await call({query:'完全不同用词的模糊观看体验',limit:2,offset:3,source_sha256:completed.source_sha256});
     assert.equal(page.diagnostics.job_id,first.diagnostics.job_id);assert.equal(calls.length,count);assert.equal(app.listJobs(projectId).length,1);
     const tracked=projectMotionJob(app.trackJob(first.diagnostics.job_id)) as Record<string,any>;

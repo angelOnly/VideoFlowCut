@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { parseHTML } from "linkedom";
 import ts from "typescript";
-import type { BoundMotionFont, BoundMotionImage, BoundMotionVideo, DecodedMotionVideo, MotionSubmission } from "./schema.js";
+import type { BoundMotionFont, BoundMotionImage, BoundMotionVideo, DecodedMotionVideo, MotionSubmission, MotionFrameRange } from "./schema.js";
 import type { FrozenSourceDisplay } from "../../contracts/src/source-display-policy.js";
 import { motionFontProps } from "./fonts.js";
 import { MotionSourceValidationError } from "./source-validation-error.js";
@@ -66,13 +66,13 @@ export function motionHash(input: MotionSubmission, images: BoundMotionImage[] =
   return createHash("sha256").update(JSON.stringify({ engineVersion, dependencies: HYPERFRAMES_DEPENDENCIES, input, images, videos, fonts, sourceDisplay })).digest("hex");
 }
 /** 完整请求继续用于幂等；像素键不含名称、说明、参考观察和上一版本。 */
-export function motionPixelKey(input: MotionSubmission, images: BoundMotionImage[] = [], videos: BoundMotionVideo[] = [], fonts: BoundMotionFont[] = []): string {
+export function motionPixelKey(input: MotionSubmission, images: BoundMotionImage[] = [], videos: BoundMotionVideo[] = [], fonts: BoundMotionFont[] = [], frameRange?: MotionFrameRange): string {
   const sort = (entries: Array<Record<string, unknown>>) => [...entries].sort((a, b) => String(a.slot).localeCompare(String(b.slot)));
   const canonical = (value: unknown): unknown => Array.isArray(value) ? value.map(canonical) : value && typeof value === "object"
     ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, entry]) => [key, canonical(entry)])) : value;
   return createHash("sha256").update(JSON.stringify(canonical({ engine: MOTION_ENGINE_VERSION, dependencies: HYPERFRAMES_DEPENDENCIES,
     source: input.source, props: input.props, width: input.width, height: input.height, fps: input.fps, frames: input.durationInFrames,
-    compositing: input.compositing ?? "alpha", encoding: input.compositing === "opaque" ? "h264-crf18-bt709-v1" : "ffv1-bgra-v1",
+    compositing: input.compositing ?? "alpha", frameRange, encoding: input.compositing === "opaque" ? "h264-crf18-bt709-v1" : "ffv1-bgra-v1",
     images: sort(images.map(({ slot, hash }) => ({ slot, hash }))), videos: sort(videos.map(({ assetId, managedPath, ...v }) => v)), fonts: sort(fonts)
   }))).digest("hex");
 }
@@ -99,7 +99,7 @@ export function readHyperframesLibraries() {
   return { gsap: readFileSync(require.resolve("gsap/dist/gsap.min.js"), "utf8"), hyperframes: readFileSync(require.resolve("@hyperframes/core/runtime"), "utf8") };
 }
 
-export async function compileMotion(input: MotionSubmission, imageData: Record<string, string> = {}, videos: Record<string, DecodedMotionVideo> = {}, fonts: BoundMotionFont[] = [], fontCss = ""): Promise<string> {
+export async function compileMotion(input: MotionSubmission, imageData: Record<string, string> = {}, videos: Record<string, DecodedMotionVideo> = {}, fonts: BoundMotionFont[] = [], fontCss = "", environment?: { workId: string; videoBaseUrl: string }): Promise<string> {
   validateMotionSource(input.source, input);
   const doc = parseMotionHtml(input.source);
   const libraries = readHyperframesLibraries();
@@ -116,7 +116,8 @@ window.__HF_EXPORT_RENDER_SEEK_CONFIG={fps:${input.fps},fpsSource:'render-option
 window.vfc=${json({ props: { ...input.props, assets: imageData, fonts: fontProps }, config, assets: imageData, fonts: fontProps })};
 (()=>{${MATERIAL_MATH_SOURCE.replace(/export /gu, "")} window.vfc.geometry={fitSource,focusCover,sourcePoint,parentPoint,frameMapping,previewRange};})();
 const appendScript=code=>{const script=document.createElement('script');script.textContent=code;document.body.appendChild(script);};
-const paint=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+// 库的 seek 完成已等待实际资源；绘制后接续任务，避免再固定占用第二个刷新周期。
+const paint=()=>new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0)));
 (async()=>{try{
  const images=vfc.assets,fonts=vfc.fonts,ranges=${json(videos)};
  for(const [slot,url] of Object.entries(images))document.documentElement.style.setProperty('--vfc-image-'+slot,'url("'+url+'")');
@@ -148,11 +149,15 @@ const paint=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r
   if(!Number.isInteger(frame)||frame<0||frame>=vfc.config.durationInFrames)throw Error('MOTION_FRAME_RANGE');
   window.__player.renderSeek(frame/vfc.config.fps);await window.__hfWaitForSeekCompletion?.();
   await Promise.all(videoElements.map(async el=>{const slot=el.getAttribute('${VIDEO_SLOT_ATTRIBUTE}'),range=ranges[slot];const active=frame>=range.startFrame&&frame<range.endFrame;
-   el.toggleAttribute('data-vfc-out-of-range',!active);el.src=active?'https://motion.invalid/video/'+slot+'/'+frame+'.png':blank;await el.decode();}));
+   el.toggleAttribute('data-vfc-out-of-range',!active);el.src=active?${json(environment?.videoBaseUrl ?? "https://motion.invalid/video/")}+slot+'/'+frame+'.png':blank;await el.decode();}));
   await document.fonts.ready;await paint();if(window.__motionError)throw Error(window.__motionError);
  };
  window.__motionReady=true;
-}catch(error){window.__motionError=String(error);}})();`;
+ ${environment ? `const workId=${json(environment.workId)};let pending=Promise.resolve();window.addEventListener('message',event=>{
+  const request=event.data;if(event.source!==parent||request?.type!=='vfc-motion-seek'||request.workId!==workId)return;
+  pending=pending.then(async()=>{try{await window.__motionSeek(request.frame);parent.postMessage({type:'vfc-motion-frame',workId,sequence:request.sequence,frame:request.frame},'*');}catch(error){parent.postMessage({type:'vfc-motion-error',workId,sequence:request.sequence,error:String(error)},'*');}});
+ });parent.postMessage({type:'vfc-motion-ready',workId},'*');` : ""}
+}catch(error){window.__motionError=String(error);${environment ? `parent.postMessage({type:'vfc-motion-error',workId:${json(environment.workId)},error:String(error)},'*');` : ""}}})();`;
   const script = doc.createElement("script");
   script.textContent = bootstrap.replace(/<\/script/giu, "<\\/script");
   doc.body.appendChild(script);
@@ -160,9 +165,10 @@ const paint=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r
 }
 
 /** 延后插入的作者脚本也按原文哈希授权，不开放任意脚本加载。 */
-export function motionContentSecurityPolicy(html: string, source: string): string {
+export function motionContentSecurityPolicy(html: string, source: string, resourceBaseUrl?: string): string {
   const libraries = readHyperframesLibraries();
   const scripts = [libraries.gsap, libraries.hyperframes, ...[...parseMotionHtml(source).querySelectorAll("script")].map(el => el.textContent ?? ""), ...[...parseMotionHtml(html).querySelectorAll("script")].map(el => el.textContent ?? "")];
   const hashes = [...new Set(scripts.map(code => `'sha256-${createHash("sha256").update(code).digest("base64")}'`))].join(" ");
-  return `default-src 'none'; script-src ${hashes}; style-src 'unsafe-inline'; img-src data: https://motion.invalid/video/; font-src https://motion.invalid/fonts/; media-src 'none'; connect-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; sandbox allow-scripts`;
+  const resources = resourceBaseUrl ? new URL(resourceBaseUrl).href : "https://motion.invalid";
+  return `default-src 'none'; script-src ${hashes}; style-src 'unsafe-inline'; img-src data: ${resources}; font-src ${resources}; media-src 'none'; connect-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; sandbox allow-scripts`;
 }

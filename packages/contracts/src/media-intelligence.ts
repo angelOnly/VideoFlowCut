@@ -55,12 +55,15 @@ export interface MediaObservation {
   modalities: MediaModality[];
   facts: MediaFact[];
   unknowns: string[];
-  context: string;
+  /** 历史观察保留原上下文；新复核按问题和比对资料分别记录。 */
+  context?: string;
+  observationQuestions?: string;
+  comparisonReference?: string;
   rawText: string;
   /** 实际发给模型的指令，区别于仅保存的用途上下文。 */
   promptText?: string;
   audioMeasurements?: { range: SourceTimeRange; sampleRate: number; sampleOriginMs: number; hopSamples: number; firstAudibleSample: number | null; effectiveEndSample: number | null; attackCandidates: Array<{ sample: number; strength: number }>; rms: number[]; peaks: number[]; thresholdDb: number; precision: "measurement_candidate"; reviewStatus: "unreviewed" };
-  speechEvidence?: { rawText: string; runId: string; schemaVersion: string; tokenPrecision: string };
+  speechEvidence?: { rawText: string; runId: string; schemaVersion: string; tokenPrecision: string; workflowId?: string; inputEvidence?: { hash: string; path: string; mapping: Record<string, unknown> } };
   version: { workflowId: string; schemaVersion: string; model: string; prompt: string; preprocessing: string; samplingFps?: number };
   jobId: string;
   runId?: string;
@@ -92,7 +95,10 @@ export interface MediaAnalysisRecord {
   depth: AnalysisDepth;
   modalities: MediaModality[];
   targetRange?: SourceTimeRange;
-  context: string;
+  /** 仅历史分析保留；不重新送入模型。 */
+  context?: string;
+  observationQuestions?: string;
+  comparisonReference?: string;
   windows: MediaAnalysisWindow[];
   shotRanges: SourceTimeRange[];
   status: "pending" | "running" | "partial" | "succeeded" | "failed" | "unknown";

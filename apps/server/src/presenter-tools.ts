@@ -1,3 +1,4 @@
+import { projectCommandResult } from "./command-receipt.js";
 import { createReadStream, createWriteStream } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
 import { basename, join } from "node:path";
@@ -13,7 +14,7 @@ import { toolErrorResult } from "./tool-error.js";
 
 const entryChange = z.object({ action: z.enum(["rename", "remove", "set_default"]), id: z.string().min(1), name: z.string().trim().min(1).optional() }).strict();
 const importEntry = z.object({ kind: presenterMediaKindSchema, name: z.string().trim().min(1), sourcePath: z.string().min(1), replaceId: z.string().min(1).optional(), setDefault: z.boolean().optional() }).strict();
-const text = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value) }] });
+const text = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(projectCommandResult(value)) }] });
 
 export function registerPresenterRoutes(server: FastifyInstance, application: EditingApplication) {
   server.get("/api/settings/presenter-library", async () => application.presenterLibrary.read());

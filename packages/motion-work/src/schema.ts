@@ -55,9 +55,9 @@ export const motionSubmissionSchema = z.object({
     if (duration <= 0 || duration + 1 < frames * 1000 / value.fps || duration - frames * 1000 / value.fps >= 1000 / value.fps + 1) ctx.addIssue({ code: "custom", message: "视频源范围与作品帧范围不匹配（允许毫秒取整及不足一帧的余量）" });
   }
 });
-/** 局部校样仍使用完整作品的源码、Props 与根时钟。 */
+/** 校样与正式局部媒体都使用完整作品源码、Props 与根时钟。 */
 export const motionFrameRangeSchema = z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() }).strict()
-  .refine(range => range.endFrame > range.startFrame, "校样窗口必须为非空半开区间");
+  .refine(range => range.endFrame > range.startFrame, "输出窗口必须为非空半开区间");
 export type MotionFrameRange = z.infer<typeof motionFrameRangeSchema>;
 export type MotionSubmission = z.infer<typeof motionSubmissionSchema>;
 
@@ -69,7 +69,7 @@ export function parseMotionEvents(value: unknown, frameCount: number) {
 }
 
 export const motionReviewEvidenceSchema = z.object({
-  kind: z.enum(["work_proxy", "project_preview"]).describe("work_proxy用作品局部帧；project_preview用项目全局帧"), previewJobId: z.string().min(1).optional(),
+  kind: z.enum(["work_proxy", "project_preview", "workbench"]).describe("work_proxy用派生媒体局部帧；project_preview和workbench用项目全局帧"), previewJobId: z.string().min(1).optional(), observer: z.string().trim().min(1).optional(),
   startFrame: z.number().int().nonnegative().describe("实际观察半开区间的起点；坐标系取决于kind"), endFrame: z.number().int().positive().describe("实际观察半开区间的终点；failed/inconclusive允许局部范围，passed须完整覆盖作品"),
   method: z.enum(["frames", "continuous_video", "audio", "audiovisual"])
 }).strict();

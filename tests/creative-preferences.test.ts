@@ -41,9 +41,11 @@ test("默认设置主动保存、跨连接持久化、只在建项继承，API �
     assert.deepEqual(next.snapshot.project.brief.explicitCreativePreferences, { dimensions: { visual: "新的默认" } });
 
     const changed = await call("update_creative_brief", { project_id: projectId, base_revision_id: 1, brief: { tone: "直接", explicitCreativePreferences: { dimensions: { motion: "有准备与收势" } } } });
-    assert.equal(changed.snapshot.project.brief.tone, "直接");
-    assert.equal(changed.snapshot.project.brief.explicitCreativePreferences.dimensions.narration, "直接");
-    assert.equal(changed.snapshot.project.brief.explicitCreativePreferences.dimensions.visual, "材料共场");
+    const changedProject = await call("read_project", { project_id: projectId });
+    assert.equal(changedProject.revision.number, changed.revision);
+    assert.equal(changedProject.snapshot.project.brief.tone, "直接");
+    assert.equal(changedProject.snapshot.project.brief.explicitCreativePreferences.dimensions.narration, "直接");
+    assert.equal(changedProject.snapshot.project.brief.explicitCreativePreferences.dimensions.visual, "材料共场");
     assert.deepEqual(application.readCreativeDefaults(), { dimensions: { visual: "新的默认" } });
     assert.deepEqual(application.trackJob(job.id).payload, job.payload);
     const stale = await client.callTool({ name: "update_creative_brief", arguments: { project_id: projectId, base_revision_id: 1, brief: { tone: "过期" } } });
@@ -52,7 +54,7 @@ test("默认设置主动保存、跨连接持久化、只在建项继承，API �
     assert.equal((await app.inject({ method: "PUT", url: "/api/settings/creative-defaults", payload: invalid })).statusCode, 400);
     assert.equal((await app.inject({ method: "POST", url: "/api/projects", payload: { name: "无效", brief: { explicitCreativePreferences: invalid } } })).statusCode, 400);
     assert.equal((await client.callTool({ name: "create_project", arguments: { name: "无效", brief: { explicitCreativePreferences: invalid } } })).isError, true);
-    const cleared = (await app.inject({ method: "PATCH", url: `/api/projects/${projectId}/brief`, payload: { baseRevision: changed.revision.number, brief: { explicitCreativePreferences: null } } })).json();
+    const cleared = (await app.inject({ method: "PATCH", url: `/api/projects/${projectId}/brief`, payload: { baseRevision: changed.revision, brief: { explicitCreativePreferences: null } } })).json();
     assert.equal(cleared.snapshot.project.brief.explicitCreativePreferences, undefined);
     assert.equal((await app.inject({ method: "DELETE", url: "/api/settings/creative-defaults", headers: { "content-type": "application/json" }, payload: "{}" })).statusCode, 200);
     assert.deepEqual(application.readCreativeDefaults(), {});
@@ -61,13 +63,15 @@ test("默认设置主动保存、跨连接持久化、只在建项继承，API �
     assert.deepEqual(clean.snapshot.project.brief.sourceDisplayPolicy, { mode: "internal_only" });
     const scoped = await call("update_creative_brief", { project_id: clean.snapshot.project.id, base_revision_id: 1,
       brief: { sourceDisplayPolicy: { mode: "specified", exceptions: [{ scopeId: clean.snapshot.project.id, text: "来源：作者", basis: "用户要求保留署名" }] } } });
-    assert.equal(scoped.snapshot.project.brief.sourceDisplayPolicy.exceptions[0].text, "来源：作者");
-    assert.equal(scoped.snapshot.project.brief.explicitCreativePreferences, undefined, "展示规则不冒充个人风格");
-    const rejectedScope = await client.callTool({ name: "update_creative_brief", arguments: { project_id: clean.snapshot.project.id, base_revision_id: scoped.revision.number,
+    const scopedProject = await call("read_project", { project_id: clean.snapshot.project.id });
+    assert.equal(scopedProject.revision.number, scoped.revision);
+    assert.equal(scopedProject.snapshot.project.brief.sourceDisplayPolicy.exceptions[0].text, "来源：作者");
+    assert.equal(scopedProject.snapshot.project.brief.explicitCreativePreferences, undefined, "展示规则不冒充个人风格");
+    const rejectedScope = await client.callTool({ name: "update_creative_brief", arguments: { project_id: clean.snapshot.project.id, base_revision_id: scoped.revision,
       brief: { sourceDisplayPolicy: { mode: "specified", exceptions: [{ scopeId: "foreign-scope", text: "来源：作者", basis: "用户要求保留署名" }] } } } });
     assert.equal(rejectedScope.isError, true);
     assert.match(JSON.stringify(rejectedScope.content), /SOURCE_DISPLAY_SCOPE_INVALID/);
-    assert.equal(application.readProject(clean.snapshot.project.id).revision.number, scoped.revision.number);
+    assert.equal(application.readProject(clean.snapshot.project.id).revision.number, scoped.revision);
     const legacy = await call("create_project", { name: "兼容口吻", brief: { tone: "直接" } });
     assert.equal(legacy.snapshot.project.brief.explicitCreativePreferences.dimensions.narration, "直接");
   } finally {

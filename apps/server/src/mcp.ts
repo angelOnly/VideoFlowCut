@@ -32,6 +32,8 @@ import { registerObjectResourceTools } from "./object-resource-tools.js";
 import { registerMotionLibraryTools } from "./motion-library-tools.js";
 import { registerCreativeLibraryTools } from "./creative-library-tools.js";
 import { projectMotionJob } from "./motion-library-output.js";
+import { projectCommandResult } from "./command-receipt.js";
+import { motionOnSuccessSchema } from "../../../packages/contracts/src/motion-continuation.js";
 import { registerMediaIntelligenceTools } from "./media-intelligence-tools.js";
 import { sha256File } from "./media-hash.js";
 import { extractSourceAudio } from "./extract-source-audio.js";
@@ -45,7 +47,8 @@ const application = createApplication(workspaceRoot);
 const assetProviders = createDefaultAssetProviderRegistry();
 let targetProjectId: string | undefined;
 
-const asText = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] });
+const asFullText = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] });
+const asText = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(projectCommandResult(value), null, 2) }] });
 const asError = toolErrorResult;
 const projectIdFrom = (projectId?: string) => {
   const resolved = projectId ?? targetProjectId;
@@ -283,7 +286,7 @@ server.registerTool("create_project", {
   try {
     const state = application.createProject(input);
     targetProjectId = state.snapshot.project.id;
-    return asText(state);
+    return asFullText(state);
   } catch (error) { return asError(error); }
 });
 
@@ -343,7 +346,7 @@ server.registerTool("read_project", {
   inputSchema: { project_id: z.string().optional() },
   annotations: { readOnlyHint: true }
 }, async ({ project_id }) => {
-  try { return asText(application.readProject(projectIdFrom(project_id))); } catch (error) { return asError(error); }
+  try { return asFullText(application.readProject(projectIdFrom(project_id))); } catch (error) { return asError(error); }
 });
 
 server.registerTool("read_story", {
@@ -389,6 +392,9 @@ server.registerTool("get_editor_url", {
     item_id: z.string().optional(),
     effect_cue_id: z.string().optional(),
     frame: z.number().int().nonnegative().optional(),
+    revision: z.number().int().positive().optional(),
+    from_frame: z.number().int().nonnegative().optional(),
+    to_frame: z.number().int().positive().optional(),
     panel: z.literal("fonts").optional(),
     font_preview: fontPreviewSchema.optional()
   },
@@ -396,9 +402,13 @@ server.registerTool("get_editor_url", {
 }, async (input) => {
   try {
     const projectId = projectIdFrom(input.project_id);
-    const state = application.readProject(projectId);
+    const state = application.readProject(projectId, input.revision);
+    if ((input.from_frame === undefined) !== (input.to_frame === undefined) || (input.from_frame !== undefined && input.to_frame !== undefined && (input.to_frame <= input.from_frame || input.to_frame > state.snapshot.timeline.durationInFrames))) throw new Error("工作台范围必须是该版本内的非空区间");
     const url = new URL(webOrigin);
     url.searchParams.set("projectId", projectId);
+    if (input.revision !== undefined) url.searchParams.set("revision", String(state.revision.number));
+    if (input.from_frame !== undefined) url.searchParams.set("fromFrame", String(input.from_frame));
+    if (input.to_frame !== undefined) url.searchParams.set("toFrame", String(input.to_frame));
     if (input.scene_id) url.searchParams.set("sceneId", input.scene_id);
     if (input.item_id) url.searchParams.set("itemId", input.item_id);
     if (input.effect_cue_id) url.searchParams.set("effectCueId", input.effect_cue_id);
@@ -421,15 +431,22 @@ server.registerTool("focus_editor_object", {
     scene_id: z.string().optional(),
     item_id: z.string().optional(),
     effect_cue_id: z.string().optional(),
-    frame: z.number().int().nonnegative().optional()
+    frame: z.number().int().nonnegative().optional(),
+    revision: z.number().int().positive().optional(),
+    from_frame: z.number().int().nonnegative().optional(),
+    to_frame: z.number().int().positive().optional()
   },
   annotations: { readOnlyHint: true }
 }, async (input) => {
   try {
     const projectId = projectIdFrom(input.project_id);
-    const state = application.readProject(projectId);
+    const state = application.readProject(projectId, input.revision);
+    if ((input.from_frame === undefined) !== (input.to_frame === undefined) || (input.from_frame !== undefined && input.to_frame !== undefined && (input.to_frame <= input.from_frame || input.to_frame > state.snapshot.timeline.durationInFrames))) throw new Error("工作台范围必须是该版本内的非空区间");
     const url = new URL(webOrigin);
     url.searchParams.set("projectId", projectId);
+    url.searchParams.set("revision", String(state.revision.number));
+    if (input.from_frame !== undefined) url.searchParams.set("fromFrame", String(input.from_frame));
+    if (input.to_frame !== undefined) url.searchParams.set("toFrame", String(input.to_frame));
     if (input.scene_id) url.searchParams.set("sceneId", input.scene_id);
     if (input.item_id) url.searchParams.set("itemId", input.item_id);
     if (input.effect_cue_id) url.searchParams.set("effectCueId", input.effect_cue_id);
@@ -2536,12 +2553,18 @@ registerSoundTools(server, application, projectIdFrom);
 
 server.registerTool("manage_effect_cues", {
   title: "管理视觉效果",
-  description: "创建、按 cue_id 就地更新或移除单个 EffectCue，均须当前 Revision。范围必须满足 Scene.startFrame ≤ start_frame < end_frame ≤ Scene.endFrame；covered_narrative_beat_ids 只声明内容覆盖，不允许跨 Scene 边界。action 默认 create；update 保留 Cue ID 和未指定字段，不能更换 Scene/类型/层级；remove 只移除该 Cue，不删除作品或回退整片。visual_composition 仅用于 fullscreen ManagedMotion 主画面，显式列出被接管人物 Item；省略保持、null 清除，保留唯一原声与源时钟。ManagedMotion 的源码、Props、画幅和完整时长仍固定，所属 Scene 必须完整承载作品；改作品需提交新版本。范围拒绝若返回 validation/none/correct_input，按实际 Scene 范围交回原作者修订后纠正一次，不原样重放。",
+  description: "创建、按 cue_id 就地更新或移除单个 EffectCue，均须当前 Revision。范围必须满足 Scene.startFrame ≤ start_frame < end_frame ≤ Scene.endFrame；covered_narrative_beat_ids 只声明内容覆盖，不允许跨 Scene 边界。adopt_work通过work_id、target及idempotency_key排队采用已有正式作品，不重新生成；返回motion_adoption短Job。action 默认 create；update 保留 Cue ID 和未指定字段，不能更换 Scene/类型/层级；remove 只移除该 Cue，不删除作品或回退整片。visual_composition 仅用于 fullscreen ManagedMotion 主画面，显式列出被接管人物 Item；省略保持、null 清除，保留唯一原声与源时钟。ManagedMotion 保持固定源码、Props和画幅；source_start_frame/source_end_frame 按项目fps明确选择媒体源范围，长度等于目标范围。replace_range 提供 cue_id、replacement_work_id 与目标 start_frame/end_frame，在一次Revision中保留旧前后段并同步事件引用。正式局部素材来自 submit_motion_work(output_intent=asset)。所属Scene须承载全部目标范围。范围拒绝若返回 validation/none/correct_input，按实际 Scene 范围交回原作者修订后纠正一次，不原样重放。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
-    action: z.enum(["create", "update", "remove"]).default("create"),
+    action: z.enum(["create", "update", "remove", "replace_range", "adopt_work"]).default("create"),
+    idempotency_key: z.string().min(1).optional(),
+    work_id: z.string().min(1).optional(),
+    target: motionOnSuccessSchema.optional(),
     cue_id: z.string().min(1).optional(),
+    replacement_work_id: z.string().min(1).optional(),
+    source_start_frame: z.number().int().nonnegative().optional(),
+    source_end_frame: z.number().int().positive().optional(),
     scene_id: z.string().optional(),
     type: z.enum(["MetricBackdrop", "ProductFan", "GlowCTA", "PortfolioWall", "CommentCloud", "EvidenceCard", "CameraPunch", "FullScreenMeme", "DeviceShowcase", "ContentCarousel", "EndCard", "ManagedMotion"]).optional(),
     layer: z.enum(["rear", "actor", "front", "fullscreen"]).optional(),
@@ -2565,12 +2588,25 @@ server.registerTool("manage_effect_cues", {
 }, async (input) => {
   try {
     const identity = { projectId: projectIdFrom(input.project_id), baseRevision: input.base_revision_id };
+    if (input.action === "adopt_work") {
+      if (!input.work_id || !input.target || !input.idempotency_key) throw new DomainError("采用需要work_id、target和幂等键", "MOTION_ADOPTION_INPUT_REQUIRED");
+      return asText(application.submitMotionAdoption({ ...identity, workId: input.work_id, target: input.target, idempotencyKey: input.idempotency_key }));
+    }
     if (input.action !== "create" && !input.cue_id) throw new Error("更新或移除效果必须提供 cue_id");
+    if (input.action === "replace_range") {
+      if (!input.replacement_work_id || input.start_frame === undefined || input.end_frame === undefined) throw new Error("局部替换需要 cue_id、replacement_work_id 及目标 start_frame/end_frame");
+      if (Object.entries(input).some(([key,value])=>value !== undefined && !["project_id","base_revision_id","action","cue_id","replacement_work_id","start_frame","end_frame"].includes(key))) throw new Error("局部替换从原 Cue 继承编排，只接受明确替换范围与素材");
+      return asText(application.replaceManagedMotionRange({ ...identity, cueId: input.cue_id!, workId: input.replacement_work_id, startFrame: input.start_frame, endFrame: input.end_frame }));
+    }
+    if (input.replacement_work_id !== undefined) throw new Error("replacement_work_id 只用于 replace_range");
     if (input.action === "remove") {
       if (Object.entries(input).some(([key, value]) => value !== undefined && !["project_id", "base_revision_id", "action", "cue_id"].includes(key))) throw new Error("移除效果只接受 cue_id 和版本，不接受被忽略的编辑字段");
       return asText(application.removeEffectCue({ ...identity, cueId: input.cue_id! }));
     }
     const details = {
+      workId: input.work_id,
+      sourceStartFrame: input.source_start_frame,
+      sourceEndFrame: input.source_end_frame,
       note: input.note,
       narrativePurpose: input.narrative_purpose,
       audienceTask: input.audience_task,
@@ -2719,7 +2755,7 @@ server.registerTool("record_creative_decision", {
 
 server.registerTool("record_editorial_quality_review", {
   title: "记录真实审片结论",
-  description: "累积局部或全片审片证据与问题；observations 绑定成功 Preview、Revision、范围和真实观察方式。空 findings 不清除旧问题；resolutions 通过已登记的当前证据 ID 逐项复核关闭。记录不改变视频 Revision，不代表自动审美通过。",
+  description: "累积局部或全片审片证据与问题；observations 可引用成功 Preview，或明确声明 workbench、观察者与固定 Revision。必须如实填写实际观察方式；播放本身不代表已观察通过。记录不改变视频 Revision。",
   inputSchema: {
     project_id: z.string().optional(),
     run_id: z.string().min(1),
@@ -2728,7 +2764,9 @@ server.registerTool("record_editorial_quality_review", {
     preview_evidence: z.array(z.string().min(1).max(2_000)).max(40).default([]),
     observations: z.array(z.object({
       pass: z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"]),
-      preview_job_id: z.string().min(1),
+      source: z.enum(["preview", "workbench"]).optional(),
+      preview_job_id: z.string().min(1).optional(),
+      observer: z.string().trim().min(1).max(160).optional(),
       start_frame: z.number().int().nonnegative(),
       end_frame: z.number().int().positive(),
       method: z.enum(["frames", "continuous_video", "audio", "audiovisual"]),
@@ -2761,7 +2799,7 @@ server.registerTool("record_editorial_quality_review", {
       revision: input.revision,
       passes: input.passes,
       previewEvidence: input.preview_evidence,
-      observations: input.observations?.map((entry) => ({ pass: entry.pass, previewJobId: entry.preview_job_id, startFrame: entry.start_frame, endFrame: entry.end_frame, method: entry.method, observation: entry.observation })),
+      observations: input.observations?.map((entry) => ({ pass: entry.pass, source: entry.source, previewJobId: entry.preview_job_id, observer: entry.observer, startFrame: entry.start_frame, endFrame: entry.end_frame, method: entry.method, observation: entry.observation })),
       resolutions: input.resolutions?.map((entry) => ({ findingId: entry.finding_id, evidenceIds: entry.evidence_ids, note: entry.note, scope: entry.scope })),
       findings: input.findings.map((finding) => ({
         pass: finding.pass,
@@ -2896,9 +2934,9 @@ server.registerTool("inspect_composed_frames", {
 server.registerTool("submit_export", {
   title: "提交导出",
   description: "提交 draft 或 delivery 导出。draft 可用于内部审片；delivery 必须有目标 Revision 的完整真实审片与 Preview 证据，且 Remotion 失败绝不静默交付仅主轨文件。",
-  inputSchema: { project_id: z.string().optional(), revision: z.number().int().positive().optional(), purpose: z.enum(["draft", "delivery"]).optional(), idempotency_key: z.string().optional() }
-}, async ({ project_id, revision, purpose, idempotency_key }) => {
-  try { return asText(application.submitExport({ projectId: projectIdFrom(project_id), revision, purpose, idempotencyKey: idempotency_key })); } catch (error) { return asError(error); }
+  inputSchema: { project_id: z.string().optional(), revision: z.number().int().positive().optional(), purpose: z.enum(["draft", "delivery"]).optional(), idempotency_key: z.string().optional(), preflight_job_id: z.string().optional() }
+}, async ({ project_id, revision, purpose, idempotency_key, preflight_job_id }) => {
+  try { return asText(application.submitExport({ projectId: projectIdFrom(project_id), revision, purpose, idempotencyKey: idempotency_key, preflightJobId: preflight_job_id })); } catch (error) { return asError(error); }
 });
 
 server.registerTool("run_render_preflight", {
@@ -2992,6 +3030,20 @@ server.registerTool("read_job_diagnostics", {
   if (job.projectId !== projectIdFrom(project_id)) throw new DomainError("Job不属于当前项目", "JOB_PROJECT_MISMATCH");
   return asText(await readJobDiagnostics(workspaceRoot, job));
 } catch (error) { return asError(error); } });
+
+server.registerTool("read_production_status", {
+  title: "读取实际制作状态", description: "按当前工程、原Job、预览、Artifact及真实观察引用生成只读状态；文件完成不推断已看听或用户定稿。",
+  inputSchema: { project_id: z.string().optional() }, annotations: { readOnlyHint: true }
+}, async ({ project_id }) => {
+  try { return asText(application.readProductionStatus(projectIdFrom(project_id))); } catch (error) { return asError(error); }
+});
+
+server.registerTool("retry_job", {
+  title: "恢复原任务", description: "Web和MCP共用恢复入口；原失败任务只创建一个恢复子任务，结果未知先对账。预览失败不重新生成画面。",
+  inputSchema: { project_id: z.string().optional(), job_id: z.string().min(1) }
+}, async ({ project_id, job_id }) => {
+  try { return asText(projectMotionJob(application.retryJob(projectIdFrom(project_id), job_id))); } catch (error) { return asError(error); }
+});
 
 server.registerTool("track_job", {
   title: "跟踪任务",

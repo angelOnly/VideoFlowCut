@@ -313,7 +313,7 @@ test("MCP 入口以 snake_case 走完整 Explainer 编译并在错误时保留�
     const projectId = created.snapshot.project.id;
     const targeted = readMcpResult<{ projectId: string }>(await client.callTool({ name: "target_project", arguments: { project_id: projectId } }));
     assert.equal(targeted.projectId, projectId);
-    const story = readMcpResult<RevisionState>(await client.callTool({ name: "manage_story", arguments: {
+    const story = readMcpResult<{ revision: number }>(await client.callTool({ name: "manage_story", arguments: {
       base_revision_id: created.revision.number,
       title: "MCP 证据解释",
       summary: "验证 snake_case 到项目对象的映射。",
@@ -322,21 +322,23 @@ test("MCP 入口以 snake_case 走完整 Explainer 编译并在错误时保留�
         { title: "现实场景", purpose: "建立现实理解" }
       ]
     } }));
-    const documentImport = readMcpResult<ImportedAsset>(await client.callTool({ name: "import_media", arguments: {
-      base_revision_id: story.revision.number,
+    const storyState = readMcpResult<RevisionState>(await client.callTool({ name: "read_project", arguments: {} }));
+    assert.equal(storyState.revision.number, story.revision);
+    const documentImport = readMcpResult<{ asset: ImportedAsset["asset"]; state: { revision: number } }>(await client.callTool({ name: "import_media", arguments: {
+      base_revision_id: story.revision,
       file_path: fixtures.documentPath,
       role: "evidence",
       provenance: { source: "local_import", }
     } }));
-    const imageImport = readMcpResult<ImportedAsset>(await client.callTool({ name: "import_media", arguments: {
-      base_revision_id: documentImport.state.revision.number,
+    const imageImport = readMcpResult<{ asset: ImportedAsset["asset"]; state: { revision: number } }>(await client.callTool({ name: "import_media", arguments: {
+      base_revision_id: documentImport.state.revision,
       file_path: fixtures.imagePath,
       role: "evidence",
       provenance: { source: "local_import", }
     } }));
     await finishQueuedMediaAnalysis(workerApplication);
     const analyzedRevision = workerApplication.readProject(projectId).revision.number;
-    const evidence = readMcpResult<RevisionState>(await client.callTool({ name: "manage_evidence_capture", arguments: {
+    const evidence = readMcpResult<{ revision: number }>(await client.callTool({ name: "manage_evidence_capture", arguments: {
       base_revision_id: analyzedRevision,
       action: "create",
       source_asset_id: documentImport.asset.id,
@@ -351,16 +353,18 @@ test("MCP 入口以 snake_case 走完整 Explainer 编译并在错误时保留�
       limitation: "没有覆盖的人群不能直接推断。",
       highlights: [{ x: 0.1, y: 0.2, width: 0.5, height: 0.15, label: "限制" }]
     } }));
-    const evidenceCaptureId = evidence.snapshot.evidenceCaptures[0]?.id;
+    const evidenceState = readMcpResult<RevisionState>(await client.callTool({ name: "read_project", arguments: {} }));
+    assert.equal(evidenceState.revision.number, evidence.revision);
+    const evidenceCaptureId = evidenceState.snapshot.evidenceCaptures[0]?.id;
     assert.ok(evidenceCaptureId);
     const readEvidence = readMcpResult<{ evidenceCaptures: Array<{ id: string }> }>(await client.callTool({ name: "read_evidence_capture", arguments: { evidence_capture_id: evidenceCaptureId } }));
     assert.equal(readEvidence.evidenceCaptures[0]?.id, evidenceCaptureId);
-    const narrative = readMcpResult<RevisionState>(await client.callTool({ name: "manage_narrative_map", arguments: {
-      base_revision_id: evidence.revision.number,
+    const narrative = readMcpResult<{ revision: number }>(await client.callTool({ name: "manage_narrative_map", arguments: {
+      base_revision_id: evidence.revision,
       viewer_question: "证据和现实场景分别说明什么？",
       promised_model: "证据解释可信边界，现实素材建立具体情境。",
       conclusion: "两种视觉职责不能互相伪装。",
-      beats: story.snapshot.story.beats.map((beat, index) => ({
+      beats: storyState.snapshot.story.beats.map((beat, index) => ({
         narrative_beat_id: beat.id,
         entering_knowledge: index === 0 ? "只听过一个结论" : "已经看见来源限制",
         question: index === 0 ? "来源实际说了什么？" : "现实中在哪里发生？",
@@ -370,16 +374,18 @@ test("MCP 入口以 snake_case 走完整 Explainer 编译并在错误时保留�
         evidence_capture_ids: index === 0 ? [evidenceCaptureId] : []
       }))
     } }));
-    const mapBeats = narrative.snapshot.narrativeMap?.beats;
+    const narrativeState = readMcpResult<RevisionState>(await client.callTool({ name: "read_project", arguments: {} }));
+    assert.equal(narrativeState.revision.number, narrative.revision);
+    const mapBeats = narrativeState.snapshot.narrativeMap?.beats;
     assert.equal(mapBeats?.length, 2);
     for(const kind of ["HeroReveal","RouteAndFlow","Comparison"]){
-      const rejected=await client.callTool({name:"compile_explainer_scenes",arguments:{base_revision_id:narrative.revision.number,plans:[{title:"缺少内容",purpose:"验证参数可发现且拒绝无写入",start_frame:0,end_frame:24,narrative_map_beat_id:mapBeats![0]!.id,kind,primary_task:"测试",states:continuousMcpStates()}]}});
+      const rejected=await client.callTool({name:"compile_explainer_scenes",arguments:{base_revision_id:narrative.revision,plans:[{title:"缺少内容",purpose:"验证参数可发现且拒绝无写入",start_frame:0,end_frame:24,narrative_map_beat_id:mapBeats![0]!.id,kind,primary_task:"测试",states:continuousMcpStates()}]}});
       assert.equal(rejected.isError,true);
       assert.ok(textFromToolResult(rejected).length>0);
-      assert.equal(workerApplication.readProject(projectId).revision.number,narrative.revision.number);
+      assert.equal(workerApplication.readProject(projectId).revision.number,narrative.revision);
     }
-    const compiled = readMcpResult<RevisionState>(await client.callTool({ name: "compile_explainer_scenes", arguments: {
-      base_revision_id: narrative.revision.number,
+    const compiled = readMcpResult<{ revision: number }>(await client.callTool({ name: "compile_explainer_scenes", arguments: {
+      base_revision_id: narrative.revision,
       plans: [
         {
           title: "MCP 证据文档",
@@ -407,7 +413,9 @@ test("MCP 入口以 snake_case 走完整 Explainer 编译并在错误时保留�
         }
       ]
     } }));
-    assert.deepEqual(compiled.snapshot.explainerPrograms.map((program) => program.kind), ["EvidenceDocument", "RealityBroll"]);
+    const compiledState = readMcpResult<RevisionState>(await client.callTool({ name: "read_project", arguments: {} }));
+    assert.equal(compiledState.revision.number, compiled.revision);
+    assert.deepEqual(compiledState.snapshot.explainerPrograms.map((program) => program.kind), ["EvidenceDocument", "RealityBroll"]);
     const programs = readMcpResult<{ programs: Array<{ kind: string; status: string }> }>(await client.callTool({ name: "read_explainer_scene_programs", arguments: {} }));
     assert.deepEqual(programs.programs.map((program) => program.kind), ["EvidenceDocument", "RealityBroll"]);
     const quality = readMcpResult<{ issues: Array<{ code: string; level: string }> }>(await client.callTool({ name: "read_quality_report", arguments: {} }));
@@ -433,14 +441,18 @@ test("MCP 入口以 snake_case 走完整 Explainer 编译并在错误时保留�
     assert.equal(JSON.parse(textFromToolResult(invalid)).code,"REALITY_BROLL_ASSET_REQUIRED");
     assert.equal(workerApplication.readProject(projectId).revision.number, beforeInvalidRevision, "MCP 被拒绝的编译不能覆盖当前 Explainer Revision");
     assert.ok(toolNames.has("set_explainer_program_enabled"));
-    const toggle = { program_id: compiled.snapshot.explainerPrograms[0]!.id, enabled: false };
-    const disabled = readMcpResult<RevisionState>(await client.callTool({ name: "set_explainer_program_enabled", arguments: { base_revision_id: beforeInvalidRevision, ...toggle } }));
-    assert.equal(disabled.snapshot.explainerPrograms[0]!.disabled, true);
+    const toggle = { program_id: compiledState.snapshot.explainerPrograms[0]!.id, enabled: false };
+    const disabled = readMcpResult<{ revision: number }>(await client.callTool({ name: "set_explainer_program_enabled", arguments: { base_revision_id: beforeInvalidRevision, ...toggle } }));
+    const disabledState = readMcpResult<RevisionState>(await client.callTool({ name: "read_project", arguments: {} }));
+    assert.equal(disabledState.revision.number, disabled.revision);
+    assert.equal(disabledState.snapshot.explainerPrograms[0]!.disabled, true);
     const staleToggle = await client.callTool({ name: "set_explainer_program_enabled", arguments: { base_revision_id: beforeInvalidRevision, ...toggle, enabled: true } });
     assert.equal(staleToggle.isError, true);
-    assert.equal(workerApplication.readProject(projectId).revision.number, disabled.revision.number);
-    const enabled = readMcpResult<RevisionState>(await client.callTool({ name: "set_explainer_program_enabled", arguments: { base_revision_id: disabled.revision.number, ...toggle, enabled: true } }));
-    assert.equal(enabled.snapshot.explainerPrograms[0]!.disabled, false);
+    assert.equal(workerApplication.readProject(projectId).revision.number, disabled.revision);
+    const enabled = readMcpResult<{ revision: number }>(await client.callTool({ name: "set_explainer_program_enabled", arguments: { base_revision_id: disabled.revision, ...toggle, enabled: true } }));
+    const enabledState = readMcpResult<RevisionState>(await client.callTool({ name: "read_project", arguments: {} }));
+    assert.equal(enabledState.revision.number, enabled.revision);
+    assert.equal(enabledState.snapshot.explainerPrograms[0]!.disabled, false);
   } finally {
     await transport.close().catch(() => undefined);
     workerApplication.close();

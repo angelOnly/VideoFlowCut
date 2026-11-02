@@ -31,7 +31,7 @@ async function fixture() {
   const job = app.submitManagedMotion({ projectId, baseRevision: rev(), idempotencyKey: "contract", work: sizeMotionFixture({ ...motionFixture, durationInFrames: 30, imageBindings: { material: image.id } }) });
   // 此处只验证正式登记合同；真实像素与声音由独立渲染测试验证。
   const motion = completeMotionFixture(app, { projectId, jobId: job.id, sourceHash: "test-output", engineVersion: "fixture", metadata: { width: 320, height: 320, durationMs: 1000, fps: 30, hasAudio: false } });
-  const create = (startFrame = 30, endFrame = 60, ids = [item.id]) => app.createEffectCue({ projectId, baseRevision: rev(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame, endFrame, visualComposition: { role: "primary", replacesActorItemIds: ids }, assetBindings: [{ slot: "motion", assetId: motion.id }] });
+  const create = (startFrame = 30, endFrame = 60, ids = [item.id]) => app.createEffectCue({ projectId, baseRevision: rev(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame, endFrame, visualComposition: { role: "primary", replacesActorItemIds: ids }, workId: motion.motion!.workId! });
   return { root, app, projectId, current, rev, actor, item, scene, image, motion, create, close: async () => { app.close(); await rm(root, { recursive: true, force: true }); } };
 }
 
@@ -66,7 +66,7 @@ test("人物空间依赖冲突、无用外层 Mask 和失效作品分别处理",
     const snapshot = structuredClone(f.current().snapshot);
     const primary = snapshot.effectCues[0]!;
     primary.startFrame = 0; primary.endFrame = 90; primary.motion.holdFrames = 90;
-    snapshot.assets.find(asset => asset.id === f.motion.id)!.motion!.frameCount = 90;
+    snapshot.motionWorks!.find(work => work.id === f.motion.motion!.workId)!.frameCount = 90; snapshot.motionWorks![0].readyRanges = [{startFrame:0,endFrame:90}];
     snapshot.actorPerformances.push({ id: "performance", timelineItemId: f.item.id, source: "imported", audioMode: "use_source_audio", maskMode: "alpha_asset", maskAssetId: "unused-mask", status: "ready", note: "测试外层 Mask", createdAt: "test" });
     assert.ok(!resolveCompositionReachability(snapshot).assetIds.has("unused-mask"));
     assert.ok(!evaluateQuality(snapshot, 1).issues.some(issue => issue.code === "ACTOR_MASK_MISSING"));
@@ -107,15 +107,15 @@ test("采用资料沿作品真实来源对账，局部字幕不承担旧计划�
     snapshot.visualTreatments = [treatment];
     assert.deepEqual(productionReconciliation(snapshot)[0]!.structuralGaps, []);
     assert.ok(productionReconciliation(snapshot)[0]!.observationNeeds.length);
-    snapshot.assets.find(asset => asset.id === f.motion.id)!.motion!.imageSources = [];
+    snapshot.motionWorks!.find(work => work.id === f.motion.motion!.workId)!.imageSources = [];
     assert.ok(productionReconciliation(snapshot)[0]!.structuralGaps.some(gap => gap.code === "material_not_connected" && gap.assetIds.includes(f.image.id)));
     assert.equal(completionReconciliationBlockers(snapshot, { kind: "project" }).length, 1);
     assert.deepEqual(completionReconciliationBlockers(snapshot, { kind: "objects", objectIds: ["caption-only"] }), []);
     assert.equal(completionReconciliationBlockers(snapshot, { kind: "objects", objectIds: [treatment.id] }).length, 1);
     // 视频身份不能凭 sourceAssetIds 汇总冒充出现在正确语句。
-    const work = snapshot.assets.find(asset => asset.id === f.motion.id)!.motion!;
+    const work = snapshot.motionWorks!.find(work => work.id === f.motion.motion!.workId)!;
     treatment.adoptedMaterialAssetIds = [f.actor.id];
-    work.videoSources = [{ slot: "material", assetId: f.actor.id, sourceHash: "actor-source", sourceStartMs: 0, sourceEndMs: 1000, startFrame: 0, endFrame: 30 }];
+    work.videoSources = [{ slot: "material", assetId: f.actor.id, hash: "actor-source", managedPath: f.actor.managedPath, sourceStartMs: 0, sourceEndMs: 1000, startFrame: 0, endFrame: 30 }];
     assert.deepEqual(productionReconciliation(snapshot)[0]!.structuralGaps, []);
     // 30 fps 成片与 24 fps 作品：槽位 F12 才出现时，不能兑现只覆盖成片 F30–45 的语句。
     work.fps = 24; work.frameCount = 24;
@@ -140,7 +140,7 @@ test("HTTP 正式创建和 PATCH 清除接管；Run 持久保存明确范围与�
   try {
     const response = await server.app.inject({ method: "POST", url: `/api/projects/${f.projectId}/effects`, payload: {
       baseRevision: f.rev(), sceneId: f.scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 30, endFrame: 60,
-      visualComposition: { role: "primary", replacesActorItemIds: [f.item.id] }, assetBindings: [{ slot: "motion", assetId: f.motion.id }]
+      visualComposition: { role: "primary", replacesActorItemIds: [f.item.id] }, workId: f.motion.motion!.workId!
     } });
     assert.equal(response.statusCode, 200, response.body);
     const cue = f.current().snapshot.effectCues[0]!;

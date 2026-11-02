@@ -24,7 +24,7 @@ try {
   assert.equal(app.trackJob(motionJob.id).status, "succeeded", app.trackJob(motionJob.id).error);
   const work = app.readProject(projectId).snapshot.assets.find(asset => asset.motion?.jobId === motionJob.id)!;
   const sceneId = app.createScene({ projectId, baseRevision: revision(), type: "ExplainerScene", title: "编码验证", purpose: "逐帧取样", startFrame: 0, endFrame: 30 }).snapshot.scenes[0].id;
-  app.createEffectCue({ projectId, baseRevision: revision(), sceneId, type: "ManagedMotion", layer: "fullscreen", startFrame: 0, endFrame: 30, assetBindings: [{ slot: "motion", assetId: work.id }] });
+  app.createEffectCue({ projectId, baseRevision: revision(), sceneId, type: "ManagedMotion", layer: "fullscreen", startFrame: 0, endFrame: 30, workId: work.motion!.workId! });
   const renderer = new RevisionRenderer(resolve("apps/render-worker/src/render-entry.tsx"), 2);
   const results: unknown[] = [];
   for (const fps of [30, 15, 60]) {

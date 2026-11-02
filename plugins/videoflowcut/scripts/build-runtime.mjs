@@ -3,16 +3,21 @@ import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promi
 import { existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { build } from "esbuild";
-import { pluginRootFromModule, resolveRepoRoot } from "./repo-root.mjs";
+import { pluginRootFromModule, resolveRepoRoot, readOption } from "./repo-root.mjs";
 import { buildMcpCatalog } from "./build-mcp-catalog.mjs";
 
 const pluginRoot = pluginRootFromModule(import.meta.url);
 const repoRoot = resolveRepoRoot({ pluginRoot });
 const runtimeRoot = join(pluginRoot, "runtime");
-const distRoot = join(runtimeRoot, "dist");
-const webSourceRoot = join(repoRoot, "apps", "web", "dist");
+const buildArguments = process.argv.slice(2);
+const candidateDirectory = readOption(buildArguments, "--out-dir");
+const distRoot = candidateDirectory ? resolve(candidateDirectory) : join(runtimeRoot, "dist");
+const webDirectory = readOption(buildArguments, "--web-dir");
+const webSourceRoot = webDirectory ? resolve(webDirectory) : join(repoRoot, "apps", "web", "dist");
+// 候选构建必须使用新目录，不能清空仓库已有发行物或其他待验收候选。
+if (candidateDirectory && existsSync(distRoot)) throw new Error("候选发行目录已存在，请指定新的 --out-dir");
 const semanticVersionPattern = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u;
 
 /**
@@ -64,7 +69,7 @@ const buildOptions = {
 
 function assertUnder(root, candidate) {
   const relativePath = relative(root, candidate);
-  if (relativePath.startsWith("..") || relativePath === "") {
+  if (isAbsolute(relativePath) || relativePath.startsWith("..") || relativePath === "") {
     throw new Error(`发行构建目标不在插件 runtime 目录内：${candidate}`);
   }
 }
@@ -224,7 +229,7 @@ async function main() {
     await cp(join(repoRoot, "integrations", "comfyui-semantic", name), join(semanticRoot, name));
   }
   // Provider 修正版随 Runtime 发行并参与 Release ID，不能在生产环境手改 site-packages。
-  execFileSync("python", [join(pluginRoot, "scripts", "build-funasr-provider.py")], { stdio: "inherit" });
+  execFileSync("python", [join(pluginRoot, "scripts", "build-funasr-provider.py"), "--out-dir", join(distRoot, "providers")], { stdio: "inherit" });
   await Promise.all([
     requireNonEmpty(outputPaths.runtime, "Runtime 入口"),
     requireNonEmpty(outputPaths.renderThread, "渲染线程入口"),

@@ -1,6 +1,7 @@
+import { motionWorkForCue } from "@videocut/contracts";
 import type { FrameRateChangeReport, ProjectSnapshot } from "@videocut/contracts";
 import { createHash } from "node:crypto";
-import { convertFrameRate, motionDurationAtFps, projectFrameRateSchema, sourceAudioTimeOrigin } from "@videocut/contracts";
+import { convertFrameRate, motionDurationAtFps, motionEventLocalFrame, projectFrameRateSchema, sourceAudioTimeOrigin } from "@videocut/contracts";
 import { validCaptionDisplay } from "../../contracts/src/caption-presentation.js";
 import { avatarBindingMatches, resolvePresenterUseAudio } from "./avatar-source.js";
 
@@ -74,8 +75,9 @@ export function projectFrameRateChange(previous: ProjectSnapshot, fps: number, r
   for (const cue of snapshot.effectCues) {
     range(cue, cue.id); fields(cue, ["holdFrame"]);
     if (cue.type === "ManagedMotion") {
-      const work = snapshot.assets.find(asset => asset.id === cue.assetBindings.find(binding => binding.slot === "motion")?.assetId)?.motion;
-      if (work) cue.endFrame = cue.startFrame + motionDurationAtFps(work.frameCount, work.fps, fps);
+      const work = motionWorkForCue(snapshot, cue);
+      if (cue.sourceStartFrame !== undefined || cue.sourceEndFrame !== undefined) { fields(cue, ["sourceStartFrame", "sourceEndFrame"]); cue.sourceEndFrame = (cue.sourceStartFrame ?? 0) + cue.endFrame - cue.startFrame; }
+      else if (work) cue.endFrame = cue.startFrame + motionDurationAtFps(work.frameCount, work.fps, fps);
       cue.motion.enterFrames = 0; cue.motion.exitFrames = 0; cue.motion.holdFrames = cue.endFrame - cue.startFrame;
       const before = previous.effectCues.find(entry => entry.id === cue.id)!;
       rememberError(before.endFrame, cue.endFrame);
@@ -234,13 +236,14 @@ export function projectFrameRateChange(previous: ProjectSnapshot, fps: number, r
     if (binding) {
       fields(binding, ["localFrame", "endLocalFrame", "syncOffsetFrames"]);
       const effect = snapshot.effectCues.find(entry => entry.id === binding.effectCueId);
-      const work = effect?.assetBindings.map(entry => snapshot.assets.find(asset => asset.id === entry.assetId)).find(asset => asset?.motion?.eventMap)?.motion;
+      const work = effect ? motionWorkForCue(snapshot, effect) : undefined;
       const event = work?.eventMap?.events.find(entry => entry.id === binding.eventId);
       if (event && work?.eventMap && binding.workVersion === work.eventMap.version) {
         const before = previous.audioCues.find(entry => entry.id === cue.id)?.effectEvent;
-        const wasEnd = before?.endLocalFrame === undefined && event.endFrame !== undefined && before?.localFrame === Math.min(convertFrameRate(event.endFrame, work.eventMap.fps, fromFps), (previous.effectCues.find(entry => entry.id === binding.effectCueId)?.endFrame ?? 0) - (previous.effectCues.find(entry => entry.id === binding.effectCueId)?.startFrame ?? 0) - 1);
-        binding.localFrame = wasEnd ? Math.min(convertFrameRate(event.endFrame!, work.eventMap.fps, fps), effect!.endFrame - effect!.startFrame - 1) : convertFrameRate(event.startFrame, work.eventMap.fps, fps);
-        if (binding.endLocalFrame !== undefined && event.endFrame !== undefined) binding.endLocalFrame = convertFrameRate(event.endFrame, work.eventMap.fps, fps);
+        const beforeCue = previous.effectCues.find(entry => entry.id === binding.effectCueId)!;
+        const wasEnd = before?.endLocalFrame === undefined && event.endFrame !== undefined && before?.localFrame === Math.min(motionEventLocalFrame(event.endFrame, work, beforeCue, fromFps), beforeCue.endFrame - beforeCue.startFrame - 1);
+        binding.localFrame = wasEnd ? Math.min(motionEventLocalFrame(event.endFrame!, work, effect!, fps), effect!.endFrame - effect!.startFrame - 1) : motionEventLocalFrame(event.startFrame, work, effect!, fps);
+        if (binding.endLocalFrame !== undefined && event.endFrame !== undefined) binding.endLocalFrame = motionEventLocalFrame(event.endFrame, work, effect!, fps);
       }
       if (effect) cue.eventFrame = effect.startFrame + binding.localFrame + binding.syncOffsetFrames;
     }

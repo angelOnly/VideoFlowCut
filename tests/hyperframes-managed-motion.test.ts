@@ -52,8 +52,8 @@ tl.addLabel('show',2/config.fps);window.getVfcMotionEvents=()=>[{id:'show',meani
     const job=app.submitManagedMotion({projectId,baseRevision:revision,idempotencyKey:"whole",work});
     assert.equal(app.readProject(projectId).revision.number,revision);
     const result=await runMotionJob(app,job);const current=app.readProject(projectId),asset=current.snapshot.assets.find(a=>a.id===result.assetId)!;
-    assert.equal(asset.motion!.eventMap!.events[0].startFrame,2);
-    const dir=join(projectRoot,asset.motion!.sourcePath,"..");
+    assert.equal(app.readSourceMotionWork(projectId, asset.motion!.workId!).work.eventMap!.events[0].startFrame,2);
+    const dir=join(projectRoot,asset.managedPath,"..");
     const manifest=JSON.parse(await readFile(join(dir,"manifest.json"),"utf8"));
     assert.deepEqual(manifest.runtimeDependencies,HYPERFRAMES_DEPENDENCIES);assert.equal(manifest.determinism.status,"exact");
     assert.equal(await readFile(join(dir,"source.html"),"utf8"),work.source);
@@ -69,8 +69,8 @@ tl.addLabel('show',2/config.fps);window.getVfcMotionEvents=()=>[{id:'show',meani
     assert.deepEqual(proofManifest.frameHashes,manifest.frameHashes.slice(6,9));
     assert.equal((await runMotionJob(app,job)).assetId,asset.id,"完成缓存可恢复同一资产");
     const scene=app.createScene({projectId,baseRevision:before,type:"ExplainerScene",title:"接续",purpose:"隔离合成",startFrame:0,endFrame:12});
-    const cue=app.createEffectCue({projectId,baseRevision:scene.revision.number,sceneId:scene.snapshot.scenes.at(-1)!.id,type:"ManagedMotion",layer:"fullscreen",startFrame:0,endFrame:12,assetBindings:[{slot:"motion",assetId:asset.id}]});
-    assert.equal(cue.snapshot.effectCues.at(-1)!.assetBindings[0].assetId,asset.id);
+    const cue=app.createEffectCue({projectId,baseRevision:scene.revision.number,sceneId:scene.snapshot.scenes.at(-1)!.id,type:"ManagedMotion",layer:"fullscreen",startFrame:0,endFrame:12,workId: asset.motion!.workId!});
+    assert.equal(cue.snapshot.effectCues.at(-1)!.workId,asset.motion!.workId);
   }finally{app.close();await rm(root,{recursive:true,force:true});}
 });
 

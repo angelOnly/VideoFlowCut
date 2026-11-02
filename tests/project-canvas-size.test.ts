@@ -29,7 +29,7 @@ test("新建三种画幅准确；旧项目正式变更保留固定作品并使�
     const asset = completeMotionFixture(app, { projectId, jobId: job.id, sourceHash: "canvas-fixture", engineVersion: "fixture", metadata: { width: 320, height: 320, fps: 30, durationMs: 600, hasAudio: false } });
     app.updateJob(job.id, { status: "succeeded" });
     const placed = app.createEffectCue({ projectId, baseRevision: app.readProject(projectId).revision.number, sceneId: seed.snapshot.scenes[0].id,
-      type: "ManagedMotion", layer: "fullscreen", startFrame: 0, endFrame: 18, assetBindings: [{ slot: "motion", assetId: asset.id }] });
+      type: "ManagedMotion", layer: "fullscreen", startFrame: 0, endFrame: 18, workId: asset.motion!.workId! });
     const input = { projectId, baseRevision: placed.revision.number, width: 1080, height: 1920 };
     const after = app.setProjectCanvasSize(input);
     assert.deepEqual([after.snapshot.timeline.width, after.snapshot.timeline.height, after.snapshot.timeline.fps], [1080, 1920, 30]);
@@ -73,7 +73,11 @@ test("真实MCP客户端发现并调用正式画布工具", async () => {
     assert.ok((await client.listTools()).tools.find(tool => tool.name === "set_project_canvas_size"));
     const created = text(await client.callTool({ name: "create_project", arguments: { name: "MCP画幅隔离", profile: "visual_explainer" } }));
     const changed = text(await client.callTool({ name: "set_project_canvas_size", arguments: { project_id: created.snapshot.project.id, base_revision_id: 1, width: 1920, height: 1080 } }));
-    assert.deepEqual([changed.snapshot.timeline.width, changed.snapshot.timeline.height], [1920, 1080]);
-    assert.equal(changed.snapshot.project.brief.aspectRatio, "16:9");
+    assert.equal(changed.revision, 2);
+    assert.equal(Object.hasOwn(changed, "snapshot"), false);
+    const current = text(await client.callTool({ name: "read_project", arguments: { project_id: created.snapshot.project.id } }));
+    assert.equal(current.revision.number, changed.revision);
+    assert.deepEqual([current.snapshot.timeline.width, current.snapshot.timeline.height], [1920, 1080]);
+    assert.equal(current.snapshot.project.brief.aspectRatio, "16:9");
   } finally { await client.close(); await transport.close(); await rm(root, { recursive: true, force: true }); }
 });

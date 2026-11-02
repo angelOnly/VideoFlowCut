@@ -1090,7 +1090,7 @@ test("ProductionRun 缺少真实创作证据时保持 incomplete，且不复制 
     assert.equal(completed.status, "incomplete");
     assert.equal(completed.finalRevision, context.app.readProject(created.snapshot.project.id).revision.number);
     assert.ok(completed.completionBlockers.some((blocker) => blocker.includes("语义决策")));
-    assert.ok(completed.completionBlockers.some((blocker) => blocker.includes("Preview Job")));
+    assert.ok(!completed.completionBlockers.some((blocker) => blocker.includes("Preview Job")), "制作收口不强迫先生成预览文件");
     const readBack = await context.app.readSkillExecutionReport({ projectId: created.snapshot.project.id, runId: run.id });
     assert.equal(readBack.quietRanges[0]?.reason, "开场不堆动效");
     assert.equal("skillExecutionReport" in context.app.readProject(created.snapshot.project.id).snapshot, false, "报告不写入项目快照");
@@ -1099,7 +1099,7 @@ test("ProductionRun 缺少真实创作证据时保持 incomplete，且不复制 
   }
 });
 
-test("ProductionRun 有当前版本的制作记录和真实预览即可完成，未审状态继续保留", async () => {
+test("ProductionRun 不要求预览文件，未审状态继续保留", async () => {
   const context = await createTestApplication();
   try {
     const projectId = context.app.createProject({ name: "制作完成与审阅分离" }).snapshot.project.id;
@@ -1107,14 +1107,6 @@ test("ProductionRun 有当前版本的制作记录和真实预览即可完成，
     const state = context.app.buildPresenterTimeline({ projectId, baseRevision: context.app.readProject(projectId).revision.number, assetIds: [assetId] });
     const run = await context.app.startProductionRun({ projectId, loadedSkills: ["production-director"] });
     for (const category of ["semantic", "story", "visual"] as const) await context.app.recordCreativeDecision({ projectId, runId: run.id, category, decision: "合约测试制作决策", rationale: "不代表真实创意与观看" });
-    const missing = await context.app.completeProductionRun({ completionScope: { kind: "project" }, projectId, runId: run.id });
-    assert.equal(missing.status, "incomplete");
-    assert.ok(missing.completionBlockers.some(message => message.includes("Preview Job")));
-    const preview = context.app.submitPreview({ projectId, revision: state.revision.number, fromFrame: 0, toFrame: state.snapshot.timeline.durationInFrames });
-    const path = join(state.snapshot.project.rootPath, "previews", "complete.mp4");
-    await mkdir(dirname(path), { recursive: true });
-    await copyFile(await createDeterministicVideoFixture(context.root), path);
-    context.app.updateJob(preview.id, { status: "succeeded", result: { revision: state.revision.number, path, fromFrame: 0, toFrame: state.snapshot.timeline.durationInFrames } });
     const completed = await context.app.completeProductionRun({ completionScope: { kind: "project" }, projectId, runId: run.id });
     assert.equal(completed.status, "completed");
     assert.deepEqual(completed.composedFrameEvidence, []);
@@ -2093,13 +2085,14 @@ test("阶段0 Web 服务与独立 MCP 进程读写同一 Project Revision", asyn
       purpose: "验证服务和 MCP 共用 Revision",
       start_frame: 0,
       end_frame: 24
-    } }))) as { revision: { number: number }; snapshot: { scenes: Array<{ id: string }> } };
-    const sceneId = mcpSceneState.snapshot.scenes[0]?.id;
+    } }))) as { revision: number; result: { objects: Array<{ collection: string; value: { id: string } }> } };
+    assert.equal(Object.hasOwn(mcpSceneState, "snapshot"), false);
+    const sceneId = mcpSceneState.result.objects.find(entry => entry.collection === "scenes")?.value.id;
     assert.ok(sceneId);
 
     const visibleToWeb = await server.inject({ method: "GET", url: `/api/projects/${projectId}` });
     const webState = visibleToWeb.json() as { revision: { number: number }; snapshot: { scenes: Array<{ id: string }> } };
-    assert.equal(webState.revision.number, mcpSceneState.revision.number);
+    assert.equal(webState.revision.number, mcpSceneState.revision);
     assert.equal(webState.snapshot.scenes[0]?.id, sceneId);
 
     const rollbackResponse = await server.inject({ method: "POST", url: `/api/projects/${projectId}/revisions/${created.revision.number}/rollback`, payload: { baseRevision: webState.revision.number } });
@@ -2245,10 +2238,12 @@ test("video-editor-mcp 可通过 stdio 连接并定位新项目", async () => {
       purpose: "为当前人物口播留下现实生活呼吸。",
       visual_brief: "傍晚城市中景人物慢步行，竖屏上方有字幕留白。",
       query_hints: ["city", "walking", "dusk"]
-    } }))) as { revision: { number: number }; snapshot: { assetRequests: Array<{ title: string; status: string }> } };
-    assert.equal(requested.revision.number, created.revision.number + 1);
-    assert.equal(requested.snapshot.assetRequests[0]?.title, "城市步行 B-roll");
-    assert.equal(requested.snapshot.assetRequests[0]?.status, "open");
+    } }))) as { revision: number; result: { objects: Array<{ collection: string; value: { title: string; status: string } }> } };
+    assert.equal(requested.revision, created.revision.number + 1);
+    assert.equal(Object.hasOwn(requested, "snapshot"), false);
+    const request = requested.result.objects.find(entry => entry.collection === "assetRequests")?.value;
+    assert.equal(request?.title, "城市步行 B-roll");
+    assert.equal(request?.status, "open");
     const editor = JSON.parse(textFromToolResult(await client.callTool({ name: "get_editor_url", arguments: { project_id: projectId, frame: 0 } }))) as { editorUrl: string };
     assert.match(editor.editorUrl, new RegExp(`projectId=${projectId}`, "u"));
     assert.match(editor.editorUrl, /frame=0/u);
@@ -2340,8 +2335,12 @@ test("旧项目 video-editor-mcp 的 edit_captions 接受稀疏样式更新且�
       format: { font_size: 38 }
     } });
     assert.equal(result.isError, undefined, textFromToolResult(result));
-    const edited = JSON.parse(textFromToolResult(result)) as { snapshot: { timeline: { captions: CaptionCard[] } } };
-    const caption = edited.snapshot.timeline.captions.find((entry) => entry.id === captionId)!;
+    const edited = JSON.parse(textFromToolResult(result)) as { revision: number };
+    assert.equal(edited.revision, seededRevision + 1);
+    assert.equal(Object.hasOwn(edited, "snapshot"), false);
+    const project = JSON.parse(textFromToolResult(await client.callTool({ name: "read_project", arguments: {} }))) as { revision: { number: number }; snapshot: { timeline: { captions: CaptionCard[] } } };
+    assert.equal(project.revision.number, edited.revision);
+    const caption = project.snapshot.timeline.captions.find((entry) => entry.id === captionId)!;
     assert.equal(caption.format?.fontSize, 38);
     assert.equal(caption.format?.color, "#ffffff", "MCP 未传的样式字段不能被 undefined 覆盖");
     assert.equal(caption.format?.bottomPercent, 7);
@@ -2395,8 +2394,8 @@ test("video-editor-mcp 的 manage_audio 接受稀疏 Duck 更新", async () => {
       ducking: { reduction_db: -11 }
     } });
     assert.equal(result.isError, undefined, textFromToolResult(result));
-    const mixed = JSON.parse(textFromToolResult(result)) as { snapshot: { audioCues: Array<{ kind: string; ducking?: { enabled: boolean; reductionDb: number; attackFrames: number; releaseFrames: number } }> } };
-    assert.deepEqual(mixed.snapshot.audioCues[0]?.ducking, { enabled: true, reductionDb: -11, attackFrames: 4, releaseFrames: 14 });
+    const mixed = JSON.parse(textFromToolResult(result)) as { result: { objects: Array<{ collection: string; value: { ducking?: { enabled: boolean; reductionDb: number; attackFrames: number; releaseFrames: number } } }> } };
+    assert.deepEqual(mixed.result.objects.find((object) => object.collection === "audioCues")?.value.ducking, { enabled: true, reductionDb: -11, attackFrames: 4, releaseFrames: 14 });
   } finally {
     await transport.close().catch(() => undefined);
     await rm(workspaceRoot, { recursive: true, force: true });

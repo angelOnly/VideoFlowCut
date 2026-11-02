@@ -58,11 +58,27 @@ test("原稿接入既有旁白组装，改稿后旧 Dialogue 和字幕失效且�
     const assembled = app.applySpeechAssembly({ projectId, generatedAssets: [], segmentAssets, speechAsset: { id: "authored-speech-fixture", assetId: speech.asset.id, scriptRevision: authored.snapshot.script.revision, segmentAssetIds: segmentAssets.map((asset) => asset.id), timing: { precision: "segment_exact", source: "合约回归夹具，不代表真实配音", segments: authored.snapshot.speechSegments.map((segment, index) => ({ speechSegmentId: segment.id, startMs: index * 1000, endMs: (index + 1) * 1000, startFrame: index * 24, endFrame: (index + 1) * 24 })) }, status: "ready" } });
     assert.equal(assembled.snapshot.timeline.captions.length, 2);
     assert.equal(assembled.snapshot.timeline.items.filter((item) => item.assetId === speech.asset.id).length, 1);
-    const updated = app.applyAuthoredScript({ projectId, baseRevision: assembled.revision.number, sourceNote: "修改原稿", units: [{ text: "修改后必须重新配音。", kind: "statement" }] });
+    const transcribed = app.applyTranscript({ projectId, baseRevision: assembled.revision.number, assetId: speech.asset.id, text: "核对已有旁白，不改当前稿。" });
+    assert.equal(transcribed.revision.number, assembled.revision.number + 1);
+    assert.equal(transcribed.snapshot.transcripts.length, 1);
+    assert.deepEqual(transcribed.snapshot.script, assembled.snapshot.script);
+    assert.deepEqual(transcribed.snapshot.speechSegments, assembled.snapshot.speechSegments);
+    assert.deepEqual(transcribed.snapshot.speechSegmentAssets, assembled.snapshot.speechSegmentAssets);
+    assert.deepEqual(transcribed.snapshot.speechAsset, assembled.snapshot.speechAsset);
+    assert.deepEqual(transcribed.snapshot.speechAlignment, assembled.snapshot.speechAlignment);
+    assert.deepEqual(transcribed.snapshot.timeline.items, assembled.snapshot.timeline.items);
+    assert.deepEqual(transcribed.snapshot.timeline.captions, assembled.snapshot.timeline.captions);
+
+    const paused = app.applyAuthoredScript({ projectId, baseRevision: transcribed.revision.number, sourceNote: "修改停顿", units: [units[0]!, { ...units[1]!, pauseBefore: { durationMs: 500, reason: "contrast" } }] });
+    assert.equal(paused.snapshot.script.revision, assembled.snapshot.script.revision + 1);
+    assert.deepEqual(paused.snapshot.speechSegmentAssets, assembled.snapshot.speechSegmentAssets);
+    assert.equal(paused.snapshot.speechAsset, undefined);
+    assert.equal(paused.snapshot.timeline.captions.length, 0);
+    assert.ok(assembled.snapshot.timeline.captions.every((caption) => paused.revision.impact.stale.includes(caption.id)));
+    const updated = app.applyAuthoredScript({ projectId, baseRevision: paused.revision.number, sourceNote: "修改原稿", units: [{ text: "修改后必须重新配音。", kind: "statement" }] });
     assert.equal(updated.snapshot.speechAsset, undefined);
     assert.equal(updated.snapshot.timeline.captions.length, 0);
     assert.equal(updated.snapshot.timeline.items.filter((item) => item.assetId === speech.asset.id).length, 0);
-    assert.ok(assembled.snapshot.timeline.captions.every((caption) => updated.revision.impact.stale.includes(caption.id)));
     assert.equal(app.repository.getRevision(projectId, assembled.revision.number).snapshot.speechAsset?.id, "authored-speech-fixture");
   } finally { app.close(); await rm(root, { recursive: true, force: true }); }
 });
@@ -102,7 +118,11 @@ test("实时 MCP 原稿 Schema 和调用可用，原声候选限制没有放宽"
     const created = await call("create_project", { name: "MCP 新稿", profile: "visual_explainer" });
     const projectId = created.snapshot.project.id;
     const result = await call("apply_authored_script", { project_id: projectId, base_revision_id: 1, source_note: "测试原创新稿", units: [{ text: units[0]!.text, kind: "statement" }] });
-    assert.equal(result.snapshot.semanticUnits[0].sourceKind, "authored");
+    assert.equal(result.revision, 2);
+    assert.equal(Object.hasOwn(result, "snapshot"), false);
+    const current = await call("read_project", { project_id: projectId });
+    assert.equal(current.revision.number, result.revision);
+    assert.equal(current.snapshot.semanticUnits[0].sourceKind, "authored");
     const script = await call("read_script", { project_id: projectId });
     assert.equal(script.speechSegments.length, 1);
     assert.deepEqual(script.transcriptSentenceCandidates, []);

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -7,29 +7,34 @@ import { createApplication, type EditingApplication } from "@videocut/applicatio
 import type { ProjectSnapshot } from "@videocut/contracts";
 import { runProcess } from "@videocut/speech";
 import { RevisionRenderer, runPreviewJob } from "../apps/render-worker/src/exporter.js";
+import { compositeTimeline } from "../apps/render-worker/src/ffmpeg-compositor.js";
 
 class CountingPreviewRenderer extends RevisionRenderer {
   calls = 0;
 
   override async renderRange(snapshot: ProjectSnapshot, fromFrame: number, toFrame: number, targetPath: string): Promise<void> {
-    this.calls += 1;
     await mkdir(dirname(targetPath), { recursive: true });
-    const durationSeconds = (toFrame - fromFrame) / snapshot.timeline.fps;
-    // 生成真正可由 ffprobe 读取的短 MP4，使缓存测试覆盖文件校验与复制，而非只模拟路径。
-    await runProcess("ffmpeg", [
+    await compositeTimeline(snapshot, targetPath, {
+      caption: async () => { assert.fail("本例没有字幕"); },
+      browserRange: async (_state, from, to, path) => {
+        this.calls += 1;
+        // 只替换浏览器捕获，仍走生产合成和缓存；真实短 MP4 覆盖时长、帧数与文件校验。
+        await runProcess("ffmpeg", [
       "-y",
       "-f", "lavfi",
       "-i", "color=c=0x315f9d:s=96x96:r=24",
-      "-f", "lavfi",
-      "-i", "anullsrc=r=48000:cl=stereo",
-      "-t", durationSeconds.toFixed(3),
+      "-frames:v", String(to - from),
       "-c:v", "libx264",
       "-pix_fmt", "yuv420p",
-      "-c:a", "aac",
-      "-shortest",
-      targetPath
-    ]);
+      path
+        ]);
+      }
+    }, fromFrame, toFrame);
   }
+}
+
+async function previewReuse(result: Record<string, unknown>): Promise<string> {
+  return JSON.parse(await readFile(`${String(result.path)}.render-plan.json`, "utf8")).reuse;
 }
 
 async function createIsolatedExplainer(): Promise<{ root: string; app: EditingApplication; projectId: string; revision: number }> {
@@ -81,10 +86,13 @@ async function createIsolatedExplainer(): Promise<{ root: string; app: EditingAp
       props: { metric: "一次渲染", qualifier: "相同 Scene 输入命中本地预览缓存" }
     }]
   });
-  return { root, app, projectId, revision: compiled.revision.number };
+  const sized = app.repository.commit(projectId, compiled.revision.number, "隔离回归使用小画幅", snapshot => {
+    snapshot.timeline.width = 96; snapshot.timeline.height = 96;
+  });
+  return { root, app, projectId, revision: sized.revision.number };
 }
 
-test("独占 Explainer Scene 的局部预览会写入并复用受管缓存，缓存键包含可视主任务", async () => {
+test("Explainer 局部预览进入统一合成缓存，可视主任务变化重新生成", async () => {
   const context = await createIsolatedExplainer();
   try {
     const renderer = new CountingPreviewRenderer();
@@ -96,10 +104,8 @@ test("独占 Explainer Scene 的局部预览会写入并复用受管缓存，缓
       idempotencyKey: "explainer-cache-first"
     });
     const first = await runPreviewJob(context.app, firstJob, renderer);
-    const firstCache = first.sceneCache as { cacheKey?: string; hit?: boolean } | undefined;
     assert.equal(renderer.calls, 1);
-    assert.equal(firstCache?.hit, false);
-    assert.match(firstCache?.cacheKey ?? "", /^[a-f0-9]{32}$/u);
+    assert.equal(await previewReuse(first), "segments");
 
     const secondJob = context.app.submitPreview({
       projectId: context.projectId,
@@ -109,10 +115,8 @@ test("独占 Explainer Scene 的局部预览会写入并复用受管缓存，缓
       idempotencyKey: "explainer-cache-second"
     });
     const second = await runPreviewJob(context.app, secondJob, renderer);
-    const secondCache = second.sceneCache as { cacheKey?: string; hit?: boolean } | undefined;
     assert.equal(renderer.calls, 1, "相同独占 Scene 不应再次调用渲染器");
-    assert.equal(secondCache?.hit, true);
-    assert.equal(secondCache?.cacheKey, firstCache?.cacheKey);
+    assert.equal(await previewReuse(second), "complete");
 
     const program = context.app.readExplainerScenePrograms({ projectId: context.projectId }).programs[0]!;
     const changed = context.app.compileExplainerScenes({
@@ -137,6 +141,9 @@ test("独占 Explainer Scene 的局部预览会写入并复用受管缓存，缓
     });
     const changedProgram = changed.snapshot.explainerPrograms[0]!;
     assert.notEqual(changedProgram.cacheKey, program.cacheKey, "可视主任务变化不能复用旧缓存键");
+    const changedJob = context.app.submitPreview({ projectId: context.projectId, revision: changed.revision.number, fromFrame: 0, toFrame: 48 });
+    await runPreviewJob(context.app, changedJob, renderer);
+    assert.equal(renderer.calls, 2);
   } finally {
     context.app.close();
     await rm(context.root, { recursive: true, force: true });
@@ -159,16 +166,16 @@ test("停用 Program 后不能复用仍存在的旧场景视频缓存，恢复�
     const renderer = new CountingPreviewRenderer();
     const preview = async (revision: number) => runPreviewJob(context.app, context.app.submitPreview({ projectId: context.projectId, revision, fromFrame: 0, toFrame: 48 }), renderer);
     const first = await preview(extended.revision.number);
-    assert.equal((first.sceneCache as { hit: boolean }).hit, false);
+    assert.equal(await previewReuse(first), "segments");
     const programId = extended.snapshot.explainerPrograms[0]!.id;
     const off = context.app.setExplainerProgramEnabled({ projectId: context.projectId, baseRevision: extended.revision.number, programId, enabled: false });
     const disabledPreview = await preview(off.revision.number);
-    assert.equal(renderer.calls, 2, "旧缓存文件仍在，但停用后必须重新合成底层");
-    assert.equal(disabledPreview.sceneCache, undefined);
+    assert.equal(renderer.calls, 1, "停用后的底层走媒体合成，不再请求旧浏览器画面");
+    assert.equal(await previewReuse(disabledPreview), "segments");
     const on = context.app.setExplainerProgramEnabled({ projectId: context.projectId, baseRevision: off.revision.number, programId, enabled: true });
     const enabledPreview = await preview(on.revision.number);
-    assert.equal((enabledPreview.sceneCache as { hit: boolean }).hit, true);
-    assert.equal(renderer.calls, 2);
+    assert.equal(await previewReuse(enabledPreview), "complete");
+    assert.equal(renderer.calls, 1);
   } finally {
     context.app.close();
     await rm(context.root, { recursive: true, force: true });

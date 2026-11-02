@@ -28,6 +28,10 @@ function fixture(initialTools = catalog, runExclusive = (action: () => Promise<u
         callTool: async (params: { name: string; arguments?: { project_id?: string } }) => {
           if (params.name === "target_project") target = params.arguments?.project_id;
           calls.push({ release: deployment.releaseId, name: params.name, target });
+          if (params.name === "create_project") {
+            target = "project-created";
+            return { content: [{ type: "text", text: JSON.stringify({ snapshot: { project: { id: target } }, revision: { number: 1 } }) }] };
+          }
           if (params.name === "write" && write) return write();
           return { content: [{ type: "text", text: JSON.stringify({ release: deployment.releaseId, target }) }] };
         }
@@ -51,6 +55,18 @@ test("MCP 保持同一连接切换版本，并在新版恢复原项目定位", a
   assert.deepEqual(JSON.parse(result.content[0].text), { release: "B", target: "project-test" });
   assert.deepEqual(f.closed, ["A"]);
   assert.equal(f.changed(), 0);
+  await f.session.close();
+});
+
+test("创建项目的初始化回执保存真实定位，服务切换后不重放创建", async () => {
+  const tools = [...catalog, { name: "create_project", inputSchema: { type: "object" } }];
+  const f = fixture(tools);
+  await f.session.listTools();
+  await f.session.callTool({ name: "create_project" });
+  f.publish("B", tools);
+  const result = await f.session.callTool({ name: "read_project" });
+  assert.equal(JSON.parse(result.content[0].text).target, "project-created");
+  assert.equal(f.calls.filter(call => call.name === "create_project").length, 1);
   await f.session.close();
 });
 

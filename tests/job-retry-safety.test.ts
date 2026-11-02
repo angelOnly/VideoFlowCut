@@ -31,8 +31,8 @@ test("Job Retry 只重试已明确失败或取消的任务，未知结果必须�
       assert.notEqual(retry.id, original.id);
       assert.equal(retry.status, "queued");
       assert.equal(retry.kind, original.kind);
-      assert.deepEqual(retry.payload, original.payload);
-      assert.match(retry.idempotencyKey, new RegExp(`^${original.idempotencyKey}:retry:`));
+      assert.deepEqual(retry.payload, { ...original.payload, retryOfJobId: original.id });
+      assert.equal(retry.idempotencyKey, "retry:" + original.id);
       assert.equal(server.application.trackJob(original.id).status, status, "重试不能改写原任务的终态记录");
     }
 
@@ -51,22 +51,20 @@ test("Job Retry 只重试已明确失败或取消的任务，未知结果必须�
       retryOfJobId: failedTranscription.id
     }, "转写重试必须保留来源 Job，供 Worker 恢复既有 run_id");
 
-    const rejectedCases: Array<{ status: JobStatus; error: string }> = [
-      { status: "queued", error: "JOB_RETRY_NOT_TERMINAL" },
-      { status: "running", error: "JOB_RETRY_NOT_TERMINAL" },
-      { status: "succeeded", error: "JOB_RETRY_SUCCEEDED" },
-      { status: "unknown", error: "JOB_RETRY_REQUIRES_RECONCILIATION" }
-    ];
-    for (const rejected of rejectedCases) {
-      const original = createJobWithStatus(rejected.status);
-      const jobsBeforeRetry = server.application.listJobs(projectId).length;
-      const response = await server.app.inject({ method: "POST", url: `/api/jobs/${original.id}/retry` });
-      assert.equal(response.statusCode, 400, response.body);
-      const body = response.json() as { error?: string; message?: string };
-      assert.equal(body.error, rejected.error);
-      if (rejected.status === "unknown") assert.match(body.message ?? "", /对账/u);
-      assert.equal(server.application.listJobs(projectId).length, jobsBeforeRetry, "被拒绝的重试不能创建新 Job");
+    for (const status of ["queued", "running", "succeeded", "unknown"] as const) {
+      const original = createJobWithStatus(status);
+      const before = server.application.listJobs(projectId).length;
+      const response = await server.app.inject({ method: "POST", url: "/api/jobs/" + original.id + "/retry" });
+      if (status === "unknown") {
+        assert.equal(response.statusCode, 400);
+        assert.equal(response.json().error, "JOB_RETRY_REQUIRES_RECONCILIATION");
+      } else {
+        assert.equal(response.statusCode, 202);
+        assert.equal(response.json().id, original.id);
+      }
+      assert.equal(server.application.listJobs(projectId).length, before);
     }
+
   } finally {
     await server.app.close();
     server.application.close();

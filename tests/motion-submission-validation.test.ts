@@ -47,9 +47,15 @@ test("真实MCP源码拒绝无写入，纠正后同键入队且保留幂等保�
     registerMotionTools(server, application, () => projectId);
     const [ct, st] = InMemoryTransport.createLinkedPair();
     await server.connect(st); await client.connect(ct);
-    const submit = (source: string, key = "source-correction") => client.callTool({ name: "submit_motion_work", arguments: {
+    const submit = (source: string, key = "source-correction") => client.callTool({ name: "register_motion_work", arguments: {
       project_id: projectId, base_revision_id: before.revision.number, idempotency_key: key, work: sizeMotionFixture({ ...motionFixture, source })
     } });
+    const unknownFont = parsed(await client.callTool({ name: "register_motion_work", arguments: { project_id: projectId, base_revision_id: before.revision.number,
+      idempotency_key: "unknown-font", work: sizeMotionFixture({ ...motionFixture, source: good, fontBindings: { title: "unregistered-font" } }) } }));
+    assert.equal(unknownFont.code, "MOTION_FONT_UNKNOWN");
+    assert.equal(unknownFont.recovery, "correct_input");
+    assert.equal(unknownFont.sideEffects, "none");
+    assert.equal(application.repository.listJobs(projectId).length, 0);
     const rejected = await submit(bad);
     assert.equal(rejected.isError, true);
     const diagnostic = parsed(rejected);
@@ -62,6 +68,7 @@ test("真实MCP源码拒绝无写入，纠正后同键入队且保留幂等保�
     assert.equal(application.repository.listJobs(projectId).length, 0);
     const accepted = await submit(good);
     assert.notEqual(accepted.isError, true);
+    assert.equal(parsed(accepted).payload.work, undefined, "短回执不能重复返回源码");
     assert.equal(parsed(await submit(good)).id, parsed(accepted).id);
     assert.equal(application.repository.listJobs(projectId).length, 1);
     assert.equal(parsed(await submit(good.replace("148", "149"))).code, "MOTION_IDEMPOTENCY_CONFLICT");

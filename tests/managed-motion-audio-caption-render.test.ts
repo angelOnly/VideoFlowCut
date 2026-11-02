@@ -33,7 +33,7 @@ test("真实纯动效接原WAV和原SRT后可合成，音频起止与频率保�
     const motionResult = await runMotionJob(app, job);
     app.updateJob(job.id, { status: "succeeded", result: motionResult });
     const scene = app.createScene({ projectId, baseRevision: revision(), type: "ExplainerScene", title: "真实合成", purpose: "技术链路测试", startFrame: 0, endFrame: 60 }).snapshot.scenes.at(-1)!;
-    app.createEffectCue({ projectId, baseRevision: revision(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 0, endFrame: 60, assetBindings: [{ slot: "motion", assetId: String(motionResult.assetId) }] });
+    app.createEffectCue({ projectId, baseRevision: revision(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 0, endFrame: 60, workId: String(motionResult.workId) });
     const wavPath = join(project.snapshot.project.rootPath, "assets", "original.wav");
     await mkdir(join(project.snapshot.project.rootPath, "assets"), { recursive: true });
     await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2", "-c:a", "pcm_s16le", wavPath]);

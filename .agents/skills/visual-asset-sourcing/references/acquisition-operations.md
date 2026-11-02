@@ -124,7 +124,7 @@ YouTube 获取范围、画质选择、合并与缓存边界沿本页“当前能
 
 range/dense 没有连续代理时，截图不能代表实际连续观看；缺声音也不能声明听审。返回代理仍需实际观看。工具只写可重建缓存，不改 Asset 状态、采用、视频 Revision 或 Job，不重放旧下载/生成，不删除失败记录。
 
-定向模型复核用 analyze_media 的 depth=review，input.context 才作为实际专项问题发送；index/discovery 仅保存用途备注。通过 track_job、read_media_observations 读取真实覆盖、各模态事实和未知；不把处理成功扩大为完整观察。坐标与源内动作仍按真实精度，估计不保存为 measurement。
+定向模型复核用 analyze_media 的 depth=review，将中性问题放入 input.observationQuestions；预期答案和用途依据放入 input.comparisonReference，仅供作者与结果比对，不送观察模型。index/discovery 保持盲观察。通过 track_job、read_media_observations 读取真实覆盖、各模态事实和未知；不把处理成功扩大为完整观察。坐标与源内动作仍按真实精度，估计不保存为 measurement。
 
 当前稿和实际绑定保存原件、用途、源范围及原声策略。全屏、分窗和时长是当前设计，不充当永久资格条件。改变用法时更新受影响的范围、取景和绑定，必要时查看相应内容；不重新取得采用资格。实际裁切与派生文件保持来源映射，局部观察不能冒充看过整图或整段。
 

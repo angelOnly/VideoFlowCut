@@ -1,3 +1,4 @@
+import { motionWorkFixture } from "./fixtures/motion-output.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -13,7 +14,7 @@ import { runMotionJob } from "../apps/render-worker/src/motion-job.js";
 import { MotionFrameCache } from "../packages/media-intelligence/src/motion-frames.js";
 import { motionPixelKey } from "../packages/motion-work/src/compiler.js";
 import { compositeTimeline } from "../apps/render-worker/src/ffmpeg-compositor.js";
-import { buildRenderPlan } from "../apps/render-worker/src/render-plan.js";
+import { buildRenderPlan } from "../packages/edit-domain/src/render-plan.js";
 import { validateOutputFrameRate } from "../apps/render-worker/src/exporter.js";
 import { renderTimelineAudio } from "../apps/render-worker/src/timeline-audio.js";
 import { createMotionStreamEncoder } from "../apps/render-worker/src/motion-stream-encoder.js";
@@ -27,8 +28,11 @@ test("正式透明媒体无损往返、缓存淘汰重建、说明修改复用�
     const job=app.submitManagedMotion({projectId,baseRevision:1,idempotencyKey:"first",work});
     const result=await runMotionJob(app,job),asset=app.readProject(projectId).snapshot.assets.find(a=>a.id===result.assetId)!;
     assert.equal(asset.motion!.output!.kind,"alpha_video");assert.equal(asset.motion!.output!.pixelFormat,"bgra");assert.equal(asset.motion!.framesDirectory,undefined);
-    const directory=join(projectRoot,asset.motion!.sourcePath,"..");
-    assert.equal((await readdir(join(directory,"frames"))).length,3);
+    const directory=join(projectRoot,asset.managedPath,"..");
+    const manifest = JSON.parse(await readFile(join(directory,"manifest.json"),"utf8"));
+    const samples = await readdir(join(directory,"frames"));
+    for (const name of ["frame-00000.png","frame-00004.png","frame-00007.png"]) assert.ok(samples.includes(name),"全局首中末证据必须保留");
+    assert.ok(samples.length <= 3 * manifest.metrics.concurrency + 1,"每路只保留首中末和必要全局样本，不能保存整片 PNG");
     const cache=new MotionFrameCache(1);
     for(const frame of [0,1,4,7,1]){
       const png=PNG.sync.read(await cache.get(projectRoot,asset,asset.sourceHash!,frame));
@@ -42,7 +46,7 @@ test("正式透明媒体无损往返、缓存淘汰重建、说明修改复用�
     assert.throws(()=>app.submitManagedMotion({projectId,baseRevision:app.readProject(projectId).revision.number,idempotencyKey:"wrong",work:{...work,props:{text:"改变"},renderedAssetId:asset.id}}),/相同源码/);
     app.repository.commit(projectId,app.readProject(projectId).revision.number,"隔离画布",snapshot=>Object.assign(snapshot.timeline,{width:128,height:128,fps:30,durationInFrames:8}));
     const scene=app.createScene({projectId,baseRevision:app.readProject(projectId).revision.number,type:"ExplainerScene",title:"透明叠加",purpose:"精确帧合成",startFrame:0,endFrame:8});
-    const placed=app.createEffectCue({projectId,baseRevision:scene.revision.number,sceneId:scene.snapshot.scenes.at(-1)!.id,type:"ManagedMotion",layer:"fullscreen",startFrame:0,endFrame:8,assetBindings:[{slot:"motion",assetId:asset.id}]});
+    const placed=app.createEffectCue({projectId,baseRevision:scene.revision.number,sceneId:scene.snapshot.scenes.at(-1)!.id,type:"ManagedMotion",layer:"fullscreen",startFrame:0,endFrame:8,workId: asset.motion!.workId!});
     const snapshot=structuredClone(placed.snapshot);Object.assign(snapshot.timeline,{width:128,height:128,fps:30,durationInFrames:8});
     const plan=buildRenderPlan(snapshot);assert.equal(plan.renderer,"ffmpeg");
     const target=join(root,"composed.mp4");
@@ -120,15 +124,16 @@ test("24→30帧局部接点保持全局时钟、单卡字幕、统一静音与�
     for (let f = 0; f < 8; f++) {
       const png = new PNG({ width: 128, height: 128 });
       for (let i = 0; i < png.data.length; i += 4) { png.data[i] = (f + 1) * 25; png.data[i + 3] = 255; }
-      await encoder.write(PNG.sync.write(png));
+      await encoder.write(png.data);
     }
     await encoder.finish();
     const { hashMediaFile } = await import("../packages/edit-application/src/media-intelligence.js");
     const hash = await hashMediaFile(path);
     const asset = { id: "motion", name: "帧钟", kind: "video", status: "ready", managedPath: "assets/source/clock.mkv", sourceHash: hash, metadata: { width:128, height:128, hasAudio:false }, motion: { width:128,height:128,fps:24,frameCount:8,output:{path:"assets/source/clock.mkv",hash,kind:"alpha_video",codec:"ffv1",pixelFormat:"bgra"} } } as any;
+    asset.motion.workId = "source-work"; snapshot.motionWorks = [motionWorkFixture({ id: "source-work", width: 128, height: 128, fps: 24, frameCount: 8 })];
     snapshot.assets.push(asset);
     snapshot.scenes.push({ id:"scene", type:"ExplainerScene", startFrame:0, endFrame:10, title:"混合", purpose:"时钟" } as any);
-    snapshot.effectCues.push({ id:"motion-cue",type:"ManagedMotion",status:"ready",sceneId:"scene",layer:"fullscreen",startFrame:0,endFrame:10,assetBindings:[{slot:"motion",assetId:"motion"}],props:{},spatialAnchor:"full_frame",stylePackId:"managed-source",intensity:1,motion:{enterPreset:"none",settlePreset:"hold",exitPreset:"none",enterFrames:0,exitFrames:0,holdFrames:10} } as any);
+    snapshot.effectCues.push({ id:"motion-cue",type:"ManagedMotion",status:"ready",sceneId:"scene",layer:"fullscreen",startFrame:0,endFrame:10,workId:"source-work",assetBindings:[],props:{},spatialAnchor:"full_frame",stylePackId:"managed-source",intensity:1,motion:{enterPreset:"none",settlePreset:"hold",exitPreset:"none",enterFrames:0,exitFrames:0,holdFrames:10} } as any);
     snapshot.effectCues.push({ id:"special",type:"CameraPunch",status:"ready",sceneId:"scene",layer:"front",startFrame:3,endFrame:6,assetBindings:[],props:{} } as any);
     snapshot.timeline.captions.push(...[{id:"a",startFrame:0,endFrame:2},{id:"b",startFrame:2,endFrame:10}].map(c=>({...c,text:c.id}) as any));
     snapshot.project.brief.captionMode = "stable";
@@ -186,7 +191,7 @@ test("24→30帧局部接点保持全局时钟、单卡字幕、统一静音与�
 });
 
 test("局部视觉缓存损坏和淘汰只重建该段，失败不发布缓存", async () => {
-  const { reuseVisualRange } = await import("../apps/render-worker/src/visual-range-cache.js");
+  const { RenderFileCache } = await import("../apps/render-worker/src/visual-range-cache.js");
   const { stat, utimes, mkdir } = await import("node:fs/promises");
   const root=await mkdtemp(join(tmpdir(),"vfc-visual-cache-"));
   try {
@@ -194,13 +199,14 @@ test("局部视觉缓存损坏和淘汰只重建该段，失败不发布缓存",
     const pending=join(cache,`${"a".repeat(64)}.mp4.1234.pending`);await writeFile(pending,"中断");await utimes(pending,new Date(0),new Date(0));
     let calls=0;
     const generate=async()=>{calls++;await writeFile(join(root,"out.mp4"),Buffer.alloc(80,calls));};
-    const request=(key:string)=>reuseVisualRange(root,key.repeat(64),join(root,"out.mp4"),generate,100);
+    const store = new RenderFileCache(root,100);
+    const request=async(key:string)=>(await store.obtain(key.repeat(64),"mp4",join(root,"out.mp4"),generate)).hit;
     assert.equal(await request("a"),false);assert.equal(await request("a"),true);assert.equal(calls,1);
     await assert.rejects(stat(pending),{code:"ENOENT"});
     await writeFile(join(cache,`${"a".repeat(64)}.mp4`),"损坏");
     assert.equal(await request("a"),false);assert.equal(calls,2);
     assert.equal(await request("b"),false);await assert.rejects(stat(join(cache,`${"a".repeat(64)}.mp4`)),{code:"ENOENT"});
-    await assert.rejects(reuseVisualRange(root,"c".repeat(64),join(root,"out.mp4"),async()=>{throw new Error("中途失败");},100),/中途失败/);
+    await assert.rejects(store.obtain("c".repeat(64),"mp4",join(root,"out.mp4"),async()=>{throw new Error("中途失败");}),/中途失败/);
     await assert.rejects(stat(join(cache,`${"c".repeat(64)}.mp4`)),{code:"ENOENT"});
     assert.equal(await request("a"),false);assert.equal(calls,4);
   } finally { await rm(root,{recursive:true,force:true}); }

@@ -4,19 +4,18 @@
 
 ## 受管作品生成和修改
 
-`submit_motion_work` 的 `work` 包含名称、完整 HyperFrames HTML、可编辑 Props、目标 width/height/fps/durationInFrames、非空 creativeBrief（最多 6000 字符）；reference 可选，实际使用时填写 URL 与 layout/motion/rhythm/adaptation/evidence 观察说明。源码只用当前 Schema/校验器支持的 API。文字、CSS、SVG 与图片仍按帧驱动：`imageBindings` 将命名 Slot 对应到已就绪的项目图片 Asset ID，源码以 `<img data-vfc-image-slot="logo">` 消费对应图片，不能自行覆盖 props.assets。已实现的视频合同使用独立 `videoBindings`，由平台固定源身份、源范围、作品帧范围、字节哈希后为 `data-vfc-video-slot` 注入逐帧画面；具体播放语义见[组件合同](hyperframes-contract.md#图片与受管动态视频)。不开放外部资源 URL、任意依赖、网络/文件访问或隐式出声；字段未在连接 Runtime 的实时 Schema 出现时，不假定可用。
+`register_motion_work` 的 `work` 包含名称、完整 HyperFrames HTML、可编辑 Props、目标 width/height/fps/durationInFrames、非空 creativeBrief（最多 6000 字符）；reference 可选，实际使用时填写 URL 与 layout/motion/rhythm/adaptation/evidence 观察说明。源码只用当前 Schema/校验器支持的 API。文字、CSS、SVG 与图片仍按帧驱动：`imageBindings` 将命名 Slot 对应到已就绪的项目图片 Asset ID，源码以 `<img data-vfc-image-slot="logo">` 消费对应图片，不能自行覆盖 props.assets。已实现的视频合同使用独立 `videoBindings`，由平台固定源身份、源范围、作品帧范围、字节哈希后为 `data-vfc-video-slot` 注入逐帧画面；具体播放语义见[组件合同](hyperframes-contract.md#图片与受管动态视频)。不开放外部资源 URL、任意依赖、网络/文件访问或隐式出声；字段未在连接 Runtime 的实时 Schema 出现时，不假定可用。
 
-提交前按实时 Schema 核对完整载荷、能力与画布限制；`read_motion_capabilities` 是无 Project 依赖的只读查询，不创建 Job 或 Revision。提交只创建固定输入的 Job，不改变 Timeline。`track_job` 完成后用 `read_motion_work` 读回源码、版本和 Asset，再通过 `inspect_asset` 审阅生成的动态代理。需要改字、调布局或节奏时提交新作品，并以 `previousAssetId` 关联旧版；旧源码、缓存和已使用版本不能覆盖。Job 失败保留诊断，不把安全拒绝改成绕过；同一幂等键不能提交不同输入。
+提交前核对实时 Schema、画布、帧率和固定资源。作者阶段交件经 `import_motion_bundle` 导入后，把 `frozen_work` 交给 `register_motion_work`；直接程序输入使用 `work`，二者只选一个。登记 Job 只初始化真实运行库、资源和事件，不逐帧烘焙、不创建视频 Asset。`track_job` 返回 `workId` 后，使用 `read_motion_work(work_id=...)` 读取固定作品、事件及可用范围，源码不进入短轮询回执。修改画内文字、Props 或动作时登记新作品；旧版本不可原地覆盖。同一幂等键不能提交不同输入。
 
-用 `review_motion_work` 保存当前固定版本的 outcome、note 和实际 evidence。work_proxy 使用作品局部帧和无声代理，尚未放置 Cue 时也可审阅；project_preview 使用项目全局帧及同 Revision 成功的 Preview，目标版本须实际参与合成。范围均为半开区间。passed 需要覆盖完整作品的 continuous_video，或带音轨的 audiovisual；静帧、局部、仅音频或无证据不能判通过。failed/inconclusive 可记录实际局部观察；采用 project_preview 时，该范围与当前有效 Cue 相交即可。它们也可不附 evidence，此时如实保留失败原因或待审状态；未看范围与采样点写入 note，不扩大观察结论。
+`manage_effect_cues` 通过 `work_id` 放置 `type=ManagedMotion`。不填写 motion 素材绑定；Cue 的 `source_start_frame/source_end_frame` 使用项目 fps，指向完整作品的源入出点，长度须等于目标范围。内部排版、图形和动作由固定源码决定，不能在 Cue Props、Motion、StylePack 或强度上制造无效修改。首次创建、就地更新、移除、已明确目标的 `adopt_work` 和局部范围替换分别沿实时 Schema 提交。需要保留旧前后段时使用 `replacement_work_id`，源根时钟不随局部媒体的起点改变。
 
-文件、版本、哈希与范围由后端核验，不能提交外部文件冒充 Preview。审阅独立保存，不产生新 Revision，不修改作品、绑定或时序；证据仍属于观察时版本，不能据此继承整片审阅。未审、failed、inconclusive 不改变技术就绪，不阻挡放置、修订或技术条件满足的导出；问题回原作者。统一使用 outcome 与实际 evidence，不再使用历史 reference_match 别名。
+默认取得固定 Revision 的工作台链接，在实际目标范围定位、循环和复看；源码、图片、字体和受管视频由同一编译器执行，项目声音和字幕来自外层正式时间线。等待实际显示帧就绪，缓冲或失败如实记录，不把播放头变化视为已经看到画面。原作者继续处理同一作品；跨段表达回导演协调。
 
-`manage_effect_cues` 以 type=ManagedMotion、slot=motion 放置生成 Asset，明确真实 Scene、完整范围、叙事目的与语义锚点；需要时声明 covered_narrative_beat_ids。作品内部布局与动作已固定，省略 Props、Motion、空间锚点、强度和 StylePack 覆盖；这些内容需生成新版本。放置语义与最小请求见下节。
+只有需要文件、模型分析或导出时，才使用 `submit_motion_work(work_id=...)` 生成派生媒体。`frame_range` 使用作品 fps 的完整根范围；省略范围生成完整作品，范围默认校样，明确 `output_intent=asset` 才登记正式媒体。媒体记录 `derivedFromWorkId` 和真实根范围；编码、缓存或复制不改变 Cue 的 workId，也不改变作品事件。缺失媒体应在固定最终导出版前明确补齐；工作台可播放不表示文件已存在。
 
-只修正已放置作品的语义归属、出场范围或换绑技术就绪的新版本时，用 `manage_effect_cues(action=update, cue_id=已有ID, ...)` 就地更新，保留未指定字段和 Cue ID；不能借此更换 Scene、类型、层级或裁短固定作品。放弃这次使用时用 `action=remove`，只提交 Cue ID 与当前版本，不删除作品 Asset，也不回退整片。每次写后读回目标与 Impact，移动后同时复查原位置和新位置。
+`review_motion_work` 按 `work_id` 记录结论。工作台来源使用 `evidence.kind=workbench`，填写实际观察者、项目全局帧范围和方法；文件来源保留 project_preview 或 work_proxy，后者另给该作品的真实派生 asset_id。passed 仍须完整连续覆盖源码作品，局部文件全部看过不能扩大为整件通过。未观察或未覆盖范围记 inconclusive。观察独立保存，不产生视频 Revision；不伪造 Preview Job、文件哈希、观看或用户批准。
 
-正式合成读取固定版本 output：不透明 H.264/MP4 或透明 FFV1/BGRA/Matroska；preview 只用于审阅并校验自己的哈希。历史 PNG 资产按原表示读取；新作品的按需帧是可淘汰缓存，不是正式依赖。提交 compositing 按真实透明用途选择，不能把全屏等同不透明。renderedAssetId 只引用已登记且像素身份匹配的正式作品。源码与 Props 保留可编辑，修改后需等待局部渲染，这是缓存策略而非把代码焊死成视频。放入目标人物画面后再检查进入、运动中、停稳、退出及前后连续；结合声音审阅字幕竞争、阅读时间和语义落点。最终导出必须与同 Revision 的 Preview 一致。
 
 不测量字幕安全区相交来阻断提交；普通字幕位置由全片字幕格式控制，实际竞争交回原视觉作者修订。
 
@@ -43,15 +42,15 @@
 | 叙事 | `narrative_purpose`、`audience_task`、`note` | 为什么存在，观众要获得什么 |
 | 绑定 | `scene_id`、`semantic_anchor`、`anchor_target_id` | 服务哪个 Scene/语义以及关系 |
 | 表现 | `type`、`layer`、`spatial_anchor`、`asset_bindings`、`props`、`style_pack_id` | 使用什么组件、素材和构图 |
-| 时间/质量 | `start_frame`、`end_frame`、`motion`、`quality_rules` | 物理范围、内部运动和可执行检查 |
+| 时间/质量 | `start_frame`、`end_frame`、`source_start_frame`、`source_end_frame`、`motion`、`quality_rules` | 目标范围、媒体选段、内部运动和可执行检查 |
 
 原创作品的主示例（ID 与范围替换为当前项目真实值；18 帧仅演示合同）：
 
 ```json
-{"action":"create","base_revision_id":42,"scene_id":"scene-explain","type":"ManagedMotion","layer":"front","start_frame":360,"end_frame":378,"covered_narrative_beat_ids":["beat-cause","beat-result"],"semantic_anchor":{"type":"narrative_beat","target_id":"beat-cause","relation":"land_on"},"asset_bindings":[{"slot":"motion","asset_id":"asset-work-v2"}],"narrative_purpose":"让原因到结果在同一对象上可追踪","audience_task":"理解两拍之间的关系"}
+{"action":"create","base_revision_id":42,"scene_id":"scene-explain","type":"ManagedMotion","layer":"front","start_frame":360,"end_frame":378,"covered_narrative_beat_ids":["beat-cause","beat-result"],"semantic_anchor":{"type":"narrative_beat","target_id":"beat-cause","relation":"land_on"},"work_id":"motion_work-fixed-v2","narrative_purpose":"让原因到结果在同一对象上可追踪","audience_task":"理解两拍之间的关系"}
 ```
 
-覆盖是内容声明，时间锚点负责放置；声明的本项目 Beat 须属于宿主 Scene 并与作品范围相交。不填时保留原单锚点关系，同 Scene 不自动覆盖全部 Beat，也不为覆盖复制 Cue。单件不能跨 Scene，画幅须匹配，项目放置长度为 round(作品frameCount×项目fps/作品fps)，保留完整作品。省略 Props、Motion 和空间参数；这些不会重写内部像素。
+覆盖是内容声明，时间锚点负责放置；声明的本项目 Beat 须属于宿主 Scene 并与 Cue 范围相交。不填时保留原单锚点关系，同 Scene 不自动覆盖全部 Beat，也不为覆盖复制 Cue。一个 Cue 不能跨 Scene，画幅须匹配。`source_start_frame/source_end_frame` 按项目 fps 表示媒体源范围，位于 `[0,round(frameCount×项目fps/作品fps))` 内，差值等于目标 `end_frame-start_frame`；省略时采用完整媒体。源范围从这份媒体的零点起算，不能直接填原作品根帧。省略 Props、Motion 和空间参数；这些不会重写内部像素。
 
 固定透明作品可以跨项目帧率使用：平台以 floor(项目局部帧×作品fps/项目fps) 读取原作品帧，不改作品fps、frameCount、源码或内部事件。正常升采样重复已有帧，降采样减少显示采样，不改变正常播放速度；提高输出fps不增加运动细节，也不默认重生成。新作通常直接使用目标项目fps；修改项目fps后由主任务读回影响报告，把真实时间与边界差异交原作者复核，重新查看合成接点。缺帧、越界和哈希异常仍报错，不冻结末帧隐藏故障。
 
@@ -106,11 +105,11 @@ quality_rules 若需要填写，必须读取实时合法枚举。示例的重点
 
 只改已确定文字、颜色、位置、绑定或时钟时，沿当前作品版本直接修订受影响源码/参数，交主任务提交、读回并检查局部预览；不重跑导演、风格与案例检索。下面的完整链仅用于新建或实质重构。
 
-读取 Project/Revision、Beat、真实素材与时序 → 接收导演当前正文和前后场面 → 同一视觉作者共同设计美术与演出，在当前源码中形成真实材料和文字的预排，交完整参数 → 主任务 `submit_motion_work` → `track_job` / `read_motion_work` / `inspect_asset` → 原作者查看实际画面并返修，首次主要表达连同当前稿回导演协调 → 沿同一源码精修，必要时再次生成并读回 → `review_motion_work` 如实记录 → `manage_effect_cues` 放置固定版本并声明覆盖 → `read_project` / `read_impact_report` → `render_preview_range` / `track_job` → 原视觉作者与导演看实际合成，修订并明确剩余制作 → `quality-verification` 按范围复核 → 回到主工作流完成整片。文字方案是候选，实际预排可以参与主要选择，不等待静态美术全部定稿才编码。
+读取真实内容、素材和时钟 → 原作者持续设计并发布固定源码 → 主任务登记作品并采用到时间线 → 工作台同版观察 → 问题带版本和范围回原作者 → 登记并采用新版，原位复查 → 按文件用途补齐同作品媒体 → 固定最终版本导出和验证。导演、创意、文案、素材、视觉和声音职责保持原路线。
 
-`manage_effect_cues` 支持 create、update、remove；后两者指定 cue_id。每次写后读取新 Revision。结果未知先查原 Job/对象，幂等冲突不能换键盲重试。主线或覆盖内容变化后作品保持固定帧数并 stale；普通平移不能恢复旧失效。明确复核合法覆盖、或换绑新版本后才恢复，并检查相关 AudioCue。
+`manage_effect_cues` 支持 create、update、remove、replace_range，后三者指定 cue_id。范围替换在一次 Revision 内更新 Cue 及声音事件引用；每次写后读取新 Revision。结果未知先查原 Job/对象，幂等冲突不能换键盲重试。主线或覆盖内容变化后作品保持固定帧数并 stale；普通平移不能恢复旧失效。明确复核合法覆盖、或换绑新版本后才恢复，并检查相关 AudioCue。
 
-交接完整放置参数前核对所属 Scene 的真实范围：一个完整作品可以覆盖多个 Beat，但 `covered_narrative_beat_ids` 只声明内容覆盖，不赋予跨 Scene 边界播放的能力。Cue 必须全部落在同一个承载 Scene 内，且保持 ManagedMotion 的完整时长。例如作品 `[0,1784)` 不能放入 `[0,130)` 的首场景；由原导演与原作者根据当前结构重新安排承载 Scene 和 Beat 关联，不能只把七个 Beat ID 填进首场景的 Cue。主任务收到明确的 `CUE_OUT_OF_SCENE` / `INVALID_CUE_RANGE` 参数拒绝后，按 known-errors 的 `validation/none/correct_input` 合同回传修订，不擅自截短、复制分段或改写创意结构。
+交接放置参数前核对所属 Scene 的真实范围：一份作品可以覆盖多个 Beat，但 `covered_narrative_beat_ids` 不赋予跨 Scene 边界播放的能力。Cue 的目标范围必须全部落在同一个承载 Scene 内，源范围明确采用正式媒体的有效部分。例如目标 `[0,1784)` 不能放入 `[0,130)` 的首场景；由原导演与原作者按实际表达安排合法源/目标范围及 Scene 和 Beat 关联，不能只补 Beat ID。主任务收到明确的 `CUE_OUT_OF_SCENE` / `INVALID_CUE_RANGE` 参数拒绝后，按 known-errors 的 `validation/none/correct_input` 合同回传修订，不擅自丢弃内容或改写创意结构。
 
 ## 交接合同
 
@@ -144,6 +143,12 @@ HTML 入口、内联脚本、主合成和资源槽按[源码合同](hyperframes-
 
 历史作品产物保持可读；旧 Job 重新生成返回 MOTION_ENGINE_UPGRADE_REQUIRED 时，按当前合同提交新版本，不原样重放旧引擎输入。缓存损坏与正式产物损坏分别对账，不猜源范围。
 
-## 同源局部校样
+## 同源局部校样与正式范围
 
-局部返修使用 `submit_motion_work` 的 `frame_range={startFrame,endFrame}`，保留完整 work/source/Props/绑定与 durationInFrames。窗口采用作品根帧，不能截短源码后重置时间。Worker 只渲染该半开区间并校验输出；Job 返回 motion_proof 和实际范围，不登记完整素材。校样确认后省略 frame_range，提交一次完整作品，随后按真实变化完成合成复核。`read_motion_work` 与 `track_jobs` 接回原任务；参数拒绝按 Schema 修正，已入队继续原 Job。
+返修始终发布完整源码、Props、资源与根时钟的新固定作品；changedRanges 是作者的修改声明，不能证明区间外像素不变。采用局部源码使用 `manage_effect_cues(action=replace_range, replacement_work_id=...)`，在一次 Revision 中保留旧前段、新中段和旧后段，并核对真实事件和声音引用。画幅、作品 fps、完整时长或事件结构改变时须明确重新编排。
+
+源码 Cue 的源入出点始终是项目 fps 的完整作品坐标。派生媒体 `motion.rootRange` 是作品 fps 的文件覆盖范围，文件第零帧只在媒体消费时扣除；烘焙范围不会重写 Cue 源坐标。跨 fps 的局部媒体无法直接按共用整数网格采样时，合成使用同一原生根帧映射，不擅自改速或冻结末帧。
+
+需要局部文件时，以已登记 work_id 提交 `frame_range`。默认只生成 motion_proof；显式 `output_intent=asset` 登记真实范围媒体。成功同版校样可由新的正式 Job 携带 `proof_job_id` 复用，仍核对作品、资源、引擎、范围和输出身份，不重画，不改旧校样任务。
+
+写后核对实际 Revision、Cue 源/目标范围、Impact 与 AudioCue；在工作台复查接点、字幕竞争和声音。已有缓存不继承观看结论。恢复使用原 Job 和固定作品；未知结果不换幂等键重放。

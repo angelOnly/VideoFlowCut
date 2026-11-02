@@ -6,6 +6,7 @@ import importlib.util
 import itertools
 import json
 import logging
+import os
 from pathlib import Path
 import re
 import unittest
@@ -14,7 +15,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD = ROOT / "plugins/videoflowcut/scripts/build-funasr-provider.py"
-DIST = ROOT / "plugins/videoflowcut/runtime/dist/providers"
+DIST = Path(os.environ.get("VFC_TEST_RELEASE_DIR", ROOT / "plugins/videoflowcut/runtime/dist")) / "providers"
 
 
 class FunASRProviderTests(unittest.TestCase):

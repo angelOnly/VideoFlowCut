@@ -12,7 +12,7 @@ import { runMotionJob } from "../apps/render-worker/src/motion-job.js";
 import { runExportJob, runPreviewJob } from "../apps/render-worker/src/exporter.js";
 import { runSoundComparison } from "../apps/render-worker/src/sound-comparison.js";
 import { manageSoundPlan } from "../packages/edit-application/src/sound-design.js";
-import { soundDependencySignature } from "../packages/edit-application/src/sound-review.js";
+import { soundComparisonSchema, soundComparisonSignature } from "../packages/edit-application/src/sound-review.js";
 import { hashMediaFile } from "../packages/edit-application/src/media-intelligence.js";
 import { motionSubmissionSchema } from "../packages/motion-work/src/schema.js";
 
@@ -53,7 +53,7 @@ try {
   const motionAsset = app.readProject(id).snapshot.assets.find((asset) => asset.id === motionResult!.assetId)!;
   if (!state.snapshot.effectCues.length) {
   await app.reviewManagedMotion({ projectId: id, baseRevision: rev(), assetId: motionAsset.id, outcome: "inconclusive", note: "已逐帧真实渲染并验证源时序，本脚本未进行人工连续观看和实际听审。" });
-  state = app.createEffectCue({ projectId: id, baseRevision: rev(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 60, endFrame: 360, assetBindings: [{ slot: "motion", assetId: motionAsset.id }], narrativePurpose: "以最新固定案例验证连续动作与声音关系", audienceTask: "核查动作包络、层级和人物返回", note: "技术样片，保留真实文案；内容适配另审" });
+  state = app.createEffectCue({ projectId: id, baseRevision: rev(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 60, endFrame: 360, workId: motionAsset.motion!.workId!, narrativePurpose: "以最新固定案例验证连续动作与声音关系", audienceTask: "核查动作包络、层级和人物返回", note: "技术样片，保留真实文案；内容适配另审" });
   }
   const effect = state.snapshot.effectCues.at(-1)!;
   if (!state.snapshot.soundPlans?.length) state = manageSoundPlan(app, id, rev(), { action: "create", startFrame: 0, endFrame: 420, narrationDirection: "人物原声贯穿，保持唯一声音所有权", dominantRole: "source_speech", musicDirection: "同段音乐持续铺底，原声出现时退让", intents: [{ id: "fan", function: "connection", brief: "群体展开用完整运动包络" }, { id: "music", function: "music", brief: "稳定音乐支撑结构" }] });
@@ -84,7 +84,9 @@ try {
   const cue = state.snapshot.audioCues.find((entry) => entry.soundIntentId === "fan")!;
   const preview = app.submitPreview({ projectId: id, revision: rev(), fromFrame: 0, toFrame: 420 });
   app.updateJob(preview.id, { status: "succeeded", result: await runPreviewJob(app, preview) });
-  const comparison = app.repository.createJob({ projectId: id, kind: "sound_comparison", payload: { revision: rev(), fromFrame: 0, toFrame: 420, replaceCueId: cue.id, alternatives: [{ name: "较轻短起势", assetId: sweep.id, kind: "sfx", purpose: "同段比较一次起势与持续声音", eventFrame: cue.eventFrame, onsetOffsetFrames: 0, sourceStartFrame: 0, sourceEndFrame: Math.min(available, 24), gainDb: -18, design: { role: "sfx" } }], includeWithout: true, dependencySignature: soundDependencySignature(app.readProject(id).snapshot) }, idempotencyKey: "actual-alternatives" });
+  const comparisonInput = soundComparisonSchema.parse({ revision: rev(), fromFrame: 0, toFrame: 420, replaceCueId: cue.id, alternatives: [{ name: "较轻短起势", assetId: sweep.id, kind: "sfx", purpose: "同段比较一次起势与持续声音", eventFrame: cue.eventFrame, onsetOffsetFrames: 0, sourceStartFrame: 0, sourceEndFrame: Math.min(available, 24), gainDb: -18, design: { role: "sfx" } }], includeWithout: true });
+  const renderIdentity = process.env.VIDEOFLOWCUT_RELEASE_ID ?? "manual";
+  const comparison = app.repository.createJob({ projectId: id, kind: "sound_comparison", payload: { ...comparisonInput, renderIdentity, dependencySignature: soundComparisonSignature(app.readProject(id).snapshot, comparisonInput, renderIdentity) }, idempotencyKey: "actual-alternatives" });
   app.updateJob(comparison.id, { status: "succeeded", result: await runSoundComparison(app, comparison) });
   // 案例原有权利为 unknown，保留门禁；本地审阅文件不能伪称正式 ExportArtifact。
   let artifact: Record<string, unknown> | undefined;

@@ -41,7 +41,14 @@ test("视觉、动效、案例、交接与审阅共用唯一执行稿且不复�
   for (const file of files.filter((file) => file !== brief)) {
     const body = await read(file);
     const targets = links(body).map((link) => resolve(root, dirname(file), link.split("#")[0]));
-    assert.ok(targets.includes(resolve(root, brief)), `${file} 未连接执行稿`);
+    // 协调入口通过视觉作者的入口进入执行稿，避免把模板变成制作前置。
+    if (file === routing) {
+      assert.ok(targets.includes(resolve(root, visual)), `${file} 未连接视觉入口`);
+      const visualTargets = links(await read(visual)).map((link) => resolve(root, dirname(visual), link.split("#")[0]));
+      assert.ok(visualTargets.includes(resolve(root, brief)), `${file} 经视觉入口未连接执行稿`);
+    } else {
+      assert.ok(targets.includes(resolve(root, brief)), `${file} 未连接执行稿`);
+    }
     assert.ok(!body.includes(template.trim()), `${file} 重复维护完整执行稿`);
     const headings = [...body.matchAll(/^#{1,6}\s+(.+)$/gm)].map((match) => match[1].trim());
     assert.equal(new Set(headings).size, headings.length, `${file} 存在重复章节`);

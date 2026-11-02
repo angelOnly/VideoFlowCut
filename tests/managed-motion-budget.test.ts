@@ -24,17 +24,18 @@ test("真实MCP公开完整作品合同，允许长作品并在非法输入时�
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     await server.connect(serverTransport);
     await client.connect(clientTransport);
-    const tool = (await client.listTools()).tools.find(entry => entry.name === "submit_motion_work")!;
+    const tool = (await client.listTools()).tools.find(entry => entry.name === "register_motion_work")!;
     assert.match(tool.description!, /data-vfc-video-slot/u);
-    assert.match(tool.description!, /真实磁盘需求/u);
-    assert.match(tool.description!, /一个Job产生一个完整Asset/u);
+    const mediaTool = (await client.listTools()).tools.find(entry => entry.name === "submit_motion_work")!;
+    assert.match(mediaTool.description!, /真实磁盘需求/u);
+    assert.ok(mediaTool.inputSchema.properties?.output_intent, "完整作品与正式范围媒体沿用同一个生成入口");
     const workSchema = tool.inputSchema.properties!.work as { properties: Record<string, { description?: string; minimum?: number; maximum?: number }> };
     assert.match(workSchema.properties.durationInFrames.description!, /不按30秒/u);
     assert.deepEqual([workSchema.properties.width.minimum, workSchema.properties.width.maximum], [64, 1920]);
     assert.deepEqual([workSchema.properties.fps.minimum, workSchema.properties.fps.maximum], [15, 60]);
 
     const submit = (key: string, width: number, height: number, frames: number, fps = 30) => client.callTool({
-      name: "submit_motion_work", arguments: {
+      name: "register_motion_work", arguments: {
         project_id: projectId, base_revision_id: before.revision.number, idempotency_key: key,
         work: sizeMotionFixture({ ...motionFixture, width, height, durationInFrames: frames, fps })
       }

@@ -782,12 +782,12 @@ test("Avatar Worker 会重读 Bridge Schema、在 409 后重试，并将同一 J
     } });
     const result = await runMotionJob(context.app, motionJob);
     const motionAsset = current().snapshot.assets.find(asset => asset.id === result.assetId)!;
-    assert.deepEqual(motionAsset.motion?.sourceAssetIds, [actorItem.assetId]);
+    assert.deepEqual(context.app.readSourceMotionWork(projectId, motionAsset.motion!.workId!).work.videoSources.map(source => source.assetId), [actorItem.assetId]);
     assert.equal(motionAsset.metadata?.hasAudio, false);
     assert.equal(current().snapshot.actorPerformances[0]?.status, "ready", "纯布局作品不得使原人物失效或重新生成");
     assert.equal(current().snapshot.speechAsset?.id, prepared.speechAsset.id);
     assert.equal(context.app.repository.listJobs(projectId).filter(entry => entry.kind === "avatar_generation").length, 1);
-    context.app.createEffectCue({ projectId, baseRevision: revision(), sceneId: prepared.scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 0, endFrame: 24, assetBindings: [{ slot: "motion", assetId: motionAsset.id }] });
+    context.app.createEffectCue({ projectId, baseRevision: revision(), sceneId: prepared.scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 0, endFrame: 24, workId: motionAsset.motion!.workId! });
     const preview = context.app.submitPreview({ projectId, revision: revision(), fromFrame: 0, toFrame: 24 });
     const composed = await runPreviewJob(context.app, preview, new RevisionRenderer(undefined, 1));
     assert.equal(composed.frameCount, 24);

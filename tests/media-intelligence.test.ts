@@ -98,8 +98,8 @@ test("分析/观察不产生 Revision，纠错保留原文且不改变已用素�
     app.intelligence.store.saveSource(original);
     const observed = { ...observation({ ...fact("audio", "短促机械落定", { startMs: 0, endMs: 10000 }), speechPresence: "absent" as const }), projectId, sourceHash: hash, range: { startMs: 0, endMs: 10000 } };
     app.intelligence.store.saveObservation(observed);
-    const job = await app.intelligence.submitAnalysis(projectId, { assetId, depth: "index", modalities: ["audio"], context: "" });
-    const duplicate = await app.intelligence.submitAnalysis(projectId, { assetId, depth: "index", modalities: ["audio"], context: "" });
+    const job = await app.intelligence.submitAnalysis(projectId, { assetId, depth: "index", modalities: ["audio"] });
+    const duplicate = await app.intelligence.submitAnalysis(projectId, { assetId, depth: "index", modalities: ["audio"] });
     assert.equal(job.id, duplicate.id);
     assert.equal(app.readProject(projectId).revision.number, state.revision.number);
     const corrected = app.intelligence.correct(projectId, { observationId: observed.id, facts: [{ ...observed.facts[0], text: "机械声后有微弱人声", speechPresence: "present" }], unknowns: [], reason: "实际复核发现尾音中含人声", author: "测试审阅", baseRevision: state.revision.number });

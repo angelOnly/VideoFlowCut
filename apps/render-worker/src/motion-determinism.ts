@@ -80,10 +80,13 @@ export async function verifyMotionDeterminism(directory: string, frameHashes: st
   const diagnostics = join(directory, "diagnostics");
   for (const frame of sampledFrames) {
     const repeated = await capture(frame);
-    if (createHash("sha256").update(repeated).digest("hex") === frameHashes[frame - startFrame]) continue;
-    const first = await readFile(join(directory, "frames", `frame-${String(frame).padStart(5, "0")}.png`));
+    if (createHash("sha256").update(PNG.sync.read(repeated).data).digest("hex") === frameHashes[frame - startFrame]) continue;
+    let first: Buffer;
+    try {
+      first = await readFile(join(directory, "frames", `frame-${String(frame).padStart(5, "0")}.png`));
+      if (createHash("sha256").update(PNG.sync.read(first).data).digest("hex") !== frameHashes[frame - startFrame]) throw new Error("像素哈希变化");
+    } catch { throw new Error("MOTION_CACHE_CORRUPT"); }
     // 容差只适用于重新渲染的结果；磁盘原帧的完整性校验始终精确。
-    if (createHash("sha256").update(first).digest("hex") !== frameHashes[frame - startFrame]) throw new Error("MOTION_CACHE_CORRUPT");
     const difference = await saveMotionFrameDifference(diagnostics, frame, first, repeated);
     report.differences.push(difference);
     if (difference.maxChannelDelta > MOTION_MAX_CHANNEL_DELTA) report.status = "failed";

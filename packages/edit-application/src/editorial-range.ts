@@ -1,4 +1,6 @@
 import type { EditorialReviewFinding, ProjectSnapshot } from "@videocut/contracts";
+import { motionWorkForCue } from "@videocut/contracts";
+import { motionSourceRange } from "../../contracts/src/frame-rate.js";
 
 /** 只复用坐标映射，不复用旧版观看证据；映射不确定时仍检查完整对象。 */
 export function editorialResolutionRange(finding: Pick<EditorialReviewFinding, "objectId" | "frameRange">, before: ProjectSnapshot, after: ProjectSnapshot) {
@@ -12,12 +14,12 @@ export function editorialResolutionRange(finding: Pick<EditorialReviewFinding, "
     || range.startFrame < old.startFrame || range.endFrame > old.endFrame) return { startFrame: current.startFrame, endFrame: current.endFrame };
   // 源裁切或播放方式变化不能只按全局平移；内容/布局修订本身不改变时钟。
   const clock = (entry: typeof current, snapshot: ProjectSnapshot) => {
-    if ("sourceStartFrame" in entry) return [entry.sourceStartFrame, entry.sourceEndFrame];
     if ("type" in entry && entry.type === "ManagedMotion") {
       const cue = entry as ProjectSnapshot["effectCues"][number];
-      const asset = snapshot.assets.find(asset => asset.id === cue.assetBindings.find(binding => binding.slot === "motion")?.assetId);
-      return [cue.type, cue.motion, cue.props, asset?.motion?.fps, asset?.motion?.frameCount];
+      const work = motionWorkForCue(snapshot, cue);
+      return [cue.type, cue.motion, work && motionSourceRange(cue, work, snapshot.timeline.fps), work?.fps, work?.frameCount];
     }
+    if ("sourceStartFrame" in entry) return [entry.sourceStartFrame, entry.sourceEndFrame];
     return ["type" in entry ? entry.type : undefined];
   };
   if (JSON.stringify(clock(old, before)) !== JSON.stringify(clock(current, after))) return { startFrame: current.startFrame, endFrame: current.endFrame };

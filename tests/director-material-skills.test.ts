@@ -33,7 +33,7 @@ test("静态范围合同区分完整新稿、完整锁稿、原片局部和Vlog�
   const writing = read(".agents/skills/narration-writing/SKILL.md");
   const topic = read(".agents/skills/_shared/TOPIC_TO_FILM.md");
   // 只核对已发布指令及阅读入口；不冒充模型已按这些场景执行创作。
-  assert.match(writing, /原创成稿或获准实质改写[\s\S]*writing-methods\.md#人物化讲述[\s\S]*准确新正文/);
+  assert.match(writing, /人物解释类内容的文案由你完整创作[\s\S]*尊重用户明确保留的内容[\s\S]*presenter-writing\.md[\s\S]*准确新正文/);
   assert.match(topic, /完整解释[\s\S]*正文或正式声音锁定[\s\S]*整场设计与连续制作仍完整执行/);
   assert.match(routing, /只有委托本身是原片清理、选段或局部修改才按局部调用/);
   assert.match(routing, /Vlog 保持事件和原声主线/);

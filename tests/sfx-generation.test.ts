@@ -148,7 +148,13 @@ for (const mode of ["unknown", "500"]) test(`提交结果未知（${mode}）不�
   assert.equal(f.app.trackJob(job.id).status, "unknown");
   await assert.rejects(runSfxGeneration(f.app, job, f.bridge), /未知/u);
   assert.equal(calls.post, 1);
-  assert.throws(() => f.app.intelligence.retry(f.id, job.id), /明确失败/u);
+  assert.throws(() => f.app.intelligence.retry(f.id, job.id), (error: unknown) => {
+    assert.equal((error as { code?: string }).code, "JOB_RETRY_REQUIRES_RECONCILIATION");
+    assert.match((error as Error).message, /结果未知.*对账/u);
+    return true;
+  });
+  assert.equal(f.app.trackJob(job.id).status, "unknown");
+  assert.equal(calls.post, 1);
 });
 
 for (const mode of ["poll-error", "download-error"]) test(`${mode} 恢复原 Run，不再次生成`, async (t) => {

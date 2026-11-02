@@ -72,12 +72,14 @@ for (const overlap of [false, true]) test(`六个${overlap ? "交叠" : "顺序"
     const result = await runMotionJob(app, job);
     const asset = app.readProject(projectId).snapshot.assets.find(a => a.id === result.assetId)!;
     assert.equal(asset.motion!.frameCount, work.durationInFrames);
-    assert.deepEqual(asset.motion!.sourceAssetIds, [imported.asset.id]);
-    const directory = join(projectRoot, asset.motion!.sourcePath, "..");
+    assert.deepEqual([...new Set(app.readSourceMotionWork(projectId, asset.motion!.workId!).work.videoSources.map(source => source.assetId))], [imported.asset.id]);
+    const directory = join(projectRoot, asset.managedPath, "..");
     const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8"));
     assert.equal(manifest.videoResources.uniqueSources, 1);
     assert.equal(manifest.videoResources.decodedChunks, 1);
-    assert.equal((await readdir(join(directory, "frames"))).length, 3);
+    const samples = await readdir(join(directory, "frames"));
+    for (const frame of [0, Math.floor(work.durationInFrames / 2), work.durationInFrames - 1]) assert.ok(samples.includes(`frame-${String(frame).padStart(5, "0")}.png`));
+    assert.ok(samples.length <= 3 * manifest.metrics.concurrency + 1);
     // 用独立 FFmpeg 源采样逐槽对照输出，包含切口前后和嵌套 Sequence 内的根时钟。
     for (const [i, [, b]] of entries.entries()) {
       for (const local of [0, 11]) {

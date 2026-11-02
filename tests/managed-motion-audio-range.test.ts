@@ -28,7 +28,7 @@ async function fixture() {
   const scene = app.createScene({ projectId, baseRevision: revision(), type: "PresenterScene", title: "原旁白", purpose: "测试正式音频放置", startFrame: 0, endFrame: 180 }).snapshot.scenes.at(-1)!;
   const imported = app.registerImportedAsset({ projectId, baseRevision: revision(), name: "原WAV.wav", kind: "audio", managedPath: "assets/source/narration.wav", sourceHash: "original-wav", provenance: { source: "local_import", acquiredAt: new Date().toISOString() } });
   app.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: { durationMs: 2000, hasAudio: true, audioCodec: "pcm_s16le", sampleRate: 48000 } });
-  const placeMotion = () => app.createEffectCue({ projectId, baseRevision: revision(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 0, endFrame: 90, assetBindings: [{ slot: "motion", assetId: motion.id }] });
+  const placeMotion = () => app.createEffectCue({ projectId, baseRevision: revision(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 0, endFrame: 90, workId: motion.motion!.workId! });
   const narration = (extra: Partial<Parameters<typeof app.placeNarration>[0]> = {}) => app.placeNarration({ projectId, baseRevision: revision(), assetId: imported.asset.id, startFrame: 12, sourceStartFrame: 6, sourceEndFrame: 48, ...extra });
   const bgm = (extra: Partial<Parameters<typeof app.manageAudio>[0]> = {}) => app.manageAudio({ projectId, baseRevision: revision(), action: "create", kind: "bgm", assetId: imported.asset.id, purpose: "范围测试", loop: true, ...extra });
   return { root, app, projectId, current, revision, scene, motion, imported, placeMotion, narration, bgm, close: async () => { app.close(); await rm(root, { recursive: true, force: true }); } };
@@ -88,8 +88,8 @@ test("范围忽略失效、缺资产、错误时长作品及禁用画面，声�
     f.placeMotion();
     for (const mutate of [
       (snapshot: ReturnType<typeof f.current>["snapshot"]) => { snapshot.effectCues[0]!.status = "stale"; },
-      (snapshot: ReturnType<typeof f.current>["snapshot"]) => { snapshot.assets.find(asset => asset.id === f.motion.id)!.status = "missing"; },
-      (snapshot: ReturnType<typeof f.current>["snapshot"]) => { snapshot.effectCues[0]!.assetBindings[0]!.assetId = "missing"; },
+      (snapshot: ReturnType<typeof f.current>["snapshot"]) => { snapshot.motionWorks = []; },
+      (snapshot: ReturnType<typeof f.current>["snapshot"]) => { snapshot.effectCues[0]!.workId = "missing"; },
       (snapshot: ReturnType<typeof f.current>["snapshot"]) => { snapshot.effectCues[0]!.endFrame = 180; },
       (snapshot: ReturnType<typeof f.current>["snapshot"]) => { snapshot.scenes[0]!.status = "stale"; }
     ]) {

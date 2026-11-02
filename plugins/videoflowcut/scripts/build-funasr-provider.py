@@ -8,13 +8,13 @@ import json
 from pathlib import Path
 import urllib.request
 import zipfile
+import argparse
 
 
 UPSTREAM_VERSION = "1.4.6"
 VERSION = "1.4.6+videoflowcut.1"
 UPSTREAM_URL = "https://files.pythonhosted.org/packages/b9/d6/049887b6608a77b0c7a24cffa60f777b2e27b0d5ffc2311d5288d5cc4d04/funasr-1.4.6-py3-none-any.whl"
 UPSTREAM_SHA256 = "f63f8fdb70738c242f3f5a95fdff1c34e366891eb0a2af0fa586dd4b182dfb4e"
-DIST = Path(__file__).resolve().parents[1] / "runtime" / "dist" / "providers"
 AUTOMODEL = "funasr/auto/auto_model.py"
 TIMESTAMPS = "funasr/utils/timestamp_tools.py"
 
@@ -89,9 +89,12 @@ def build(upstream):
 
 
 if __name__ == "__main__":
+    arguments = argparse.ArgumentParser()
+    arguments.add_argument("--out-dir", type=Path, default=Path(__file__).resolve().parents[1] / "runtime" / "dist" / "providers")
+    destination = arguments.parse_args().out_dir
     with urllib.request.urlopen(UPSTREAM_URL, timeout=60) as response:
         wheel, manifest = build(response.read())
-    DIST.mkdir(parents=True, exist_ok=True)
-    (DIST / manifest["wheel"]).write_bytes(wheel)
-    (DIST / "funasr.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    destination.mkdir(parents=True, exist_ok=True)
+    (destination / manifest["wheel"]).write_bytes(wheel)
+    (destination / "funasr.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(manifest, ensure_ascii=True))

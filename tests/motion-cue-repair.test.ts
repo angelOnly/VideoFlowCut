@@ -23,7 +23,7 @@ async function fixture() {
   await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "单元测试固定状态，不代表真实用户视频审片。" });
   const sceneState = app.createScene({ projectId, baseRevision: revision(), type: "PresenterScene", title: "测试", purpose: "局部编辑回归", startFrame: 0, endFrame: 120 });
   const sceneId = sceneState.snapshot.scenes.at(-1)!.id;
-  const state = app.createEffectCue({ projectId, baseRevision: revision(), sceneId, type: "ManagedMotion", layer: "front", startFrame: 20, endFrame: 38, assetBindings: [{ slot: "motion", assetId: asset.id }], qualityRules: ["semantic_anchor_required"], semanticAnchor: { type: "absolute", relation: "land_on" }, note: "保留的说明" });
+  const state = app.createEffectCue({ projectId, baseRevision: revision(), sceneId, type: "ManagedMotion", layer: "front", startFrame: 20, endFrame: 38, workId: asset.motion!.workId!, qualityRules: ["semantic_anchor_required"], semanticAnchor: { type: "absolute", relation: "land_on" }, note: "保留的说明" });
   const cueId = state.snapshot.effectCues.at(-1)!.id;
   return { app, projectId, revision, asset, sceneId, cueId, state, close: async () => { app.repository.close(); await rm(root, { recursive: true, force: true }); } };
 }
@@ -104,7 +104,7 @@ test("受管作品把通用 default-clean 规范为源码样式，仍拒绝实�
       startFrame: 40,
       endFrame: 58,
       semanticAnchor: { type: "scene", targetId: f.sceneId, relation: "hold_through" },
-      assetBindings: [{ slot: "motion", assetId: f.asset.id }],
+      workId: f.asset.motion!.workId!,
       stylePackId: "default-clean"
     });
     const cue = compatible.snapshot.effectCues.at(-1)!;
@@ -120,7 +120,7 @@ test("受管作品把通用 default-clean 规范为源码样式，仍拒绝实�
       startFrame: 80,
       endFrame: 98,
       semanticAnchor: { type: "scene", targetId: f.sceneId, relation: "hold_through" },
-      assetBindings: [{ slot: "motion", assetId: f.asset.id }],
+      workId: f.asset.motion!.workId!,
       stylePackId: "warm-editorial"
     }), /固定作品参数/u);
     assert.deepEqual(f.app.readProject(f.projectId), beforeInvalid, "实际样式覆写仍无副作用地被拒绝");

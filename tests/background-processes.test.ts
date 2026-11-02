@@ -14,7 +14,7 @@ const policy = new URL("../plugins/videoflowcut/scripts/background-processes.mjs
 
 test("候选发行线程能静默渲染视频，不访问项目数据库", { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "videoflowcut-silent-render-"));
-  const dist = resolve("plugins/videoflowcut/runtime/dist");
+  const dist = resolve(process.env.VFC_TEST_RELEASE_DIR ?? "plugins/videoflowcut/runtime/dist");
   // 使用纯内存测试输入，直接调用候选发行线程，不创建正式 Project 或 Job。
   const snapshot = createProjectSnapshot({ projectId: "silent-render-fixture", name: "静默启动验证", rootPath: root });
   Object.assign(snapshot.timeline, { width: 320, height: 180, durationInFrames: 12 });

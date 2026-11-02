@@ -20,7 +20,7 @@ test("成片复核绑定真实导出哈希，不导入素材或产生Revision，
     const job = app.repository.createJob({ projectId: id, kind: "export", payload: { revision: current.revision.number }, idempotencyKey: "fixture-output" });
     app.updateJob(job.id, { status: "succeeded", result: { path } });
     const artifact = app.registerExportArtifact({ id: "artifact-review-test", projectId: id, revision: current.revision.number, jobId: job.id, purpose: "delivery", relativePath: "exports/test.mp4", fileHash: await hashMediaFile(path), fileSizeBytes: (await stat(path)).size, createdAt: new Date().toISOString(), preflight: {} as any, validation: {} as any, sourceManifest: {} as any });
-    const input = { exportArtifactId: artifact.id, depth: "review" as const, modalities: ["audio" as const], context: "检查起音与尾音" };
+    const input = { exportArtifactId: artifact.id, depth: "review" as const, modalities: ["audio" as const], observationQuestions: "检查起音与尾音" };
     const first = await app.intelligence.submitAnalysis(id, input);
     assert.equal((await app.intelligence.submitAnalysis(id, input)).id, first.id);
     assert.equal(first.payload.sourceVersion, artifact.fileHash);
@@ -39,7 +39,7 @@ test("成片复核绑定真实导出哈希，不导入素材或产生Revision，
     const other = app.createProject({ name: "另一个测试项目" });
     await assert.rejects(app.intelligence.submitAnalysis(other.snapshot.project.id, input));
     await writeFile(path, "文件已被替换");
-    await assert.rejects(app.intelligence.submitAnalysis(id, { ...input, context: "再次复核" }), /替换/u);
+    await assert.rejects(app.intelligence.submitAnalysis(id, { ...input, observationQuestions: "再次复核" }), /替换/u);
     assert.equal(app.repository.listJobs(id).length, count, "无效来源不得创建分析Job");
   } finally { app.close(); await rm(root, { recursive: true, force: true }); }
 });

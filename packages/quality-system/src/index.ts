@@ -1,3 +1,4 @@
+import { motionWorkForCue } from "@videocut/contracts";
 import { captionDisplayRanges, validCaptionDisplay, captionPlacementSchema, captionTypographySchema, resolveCaptionFormat } from "../../contracts/src/caption-presentation.js";
 import { createHash } from "node:crypto";
 import { managedMotionReviewOutcome, EFFECT_QUALITY_RULES, inspectEffectContentContract, sourceAudioTimeOrigin, type EditorialQualityReview, type ExportPurpose, type ProjectSnapshot, type QualityIssue, type QualityReport } from "@videocut/contracts";
@@ -7,7 +8,8 @@ export { exportBlockingIssues } from "./export-policy.js";
 import { layoutCaptionConservatively, type CaptionLayoutInput, type CaptionLayoutResult } from "../../remotion-runtime/src/caption-layout.js";
 import { measureCaptionLayouts } from "./caption-measurement.js";
 import { missingReviewRanges, openEditorialFindings, productionReconciliation, reviewCoverage } from "./editorial-review.js";
-import { soundDependencySignature } from "../../media-intelligence/src/sound-signature.js";
+import { SOUND_REVIEW_DEPENDENCY_VERSION, soundDependenciesHaveIdentity, soundDependencySignature, soundVisualDependenciesHaveIdentity } from "../../media-intelligence/src/sound-signature.js";
+import { captureRenderEnvironmentIdentity, currentRenderEnvironmentIdentity } from "../../media-intelligence/src/render-environment.js";
 import { mediaUsageFindings } from "../../media-intelligence/src/usage.js";
 
 /**
@@ -931,7 +933,7 @@ function hasManagedExplainerVisual(snapshot: ProjectSnapshot, scene: ProjectSnap
   const ranges = snapshot.effectCues.filter(cue => cue.sceneId === scene.id && cue.type === "ManagedMotion"
     && cue.status === "ready" && (cue.layer === "front" || cue.layer === "fullscreen")
     && cue.startFrame >= scene.startFrame && cue.endFrame <= scene.endFrame
-    && inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline).ready);
+    && inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline, snapshot.motionWorks).ready);
   return ranges.length > 0 && missingReviewRanges(ranges, scene.startFrame, scene.endFrame).length === 0;
 }
 
@@ -1202,18 +1204,18 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
   const tracksById = new Map(timeline.tracks.map((track) => [track.id, track]));
   // 人物烘焙进受管作品后，即使外层 Item 禁用或已换源，旧口型仍是成片的真实依赖。
   // 只核对当前合成使用的作品，历史候选不成为其它路线的交付前置。
-  for (const motionAsset of snapshot.assets) {
-    if (!motionAsset.motion || !compositionAssetIds.has(motionAsset.id)) continue;
-    for (const source of motionAsset.motion.videoSources ?? []) {
+  for (const motionAsset of snapshot.motionWorks ?? []) {
+    if (!compositionReachability.motionWorkIds.has(motionAsset.id)) continue;
+    for (const source of motionAsset.videoSources) {
       const actor = assetsById.get(source.assetId);
       if (actor?.kind !== "actor_video" || actor.provenance?.source !== "generated") continue;
-      const cues = snapshot.effectCues.filter(cue => compositionReachability.effectCueIds.has(cue.id) && cue.assetBindings.some(binding => binding.assetId === motionAsset.id));
+      const cues = snapshot.effectCues.filter(cue => compositionReachability.effectCueIds.has(cue.id) && cue.workId === motionAsset.id);
       const currentPerformance = actor.avatarSourceReceipt
         ? cues.length > 0 && cues.every(cue => performances.some(performance => {
           const item = timeline.items.find(candidate => candidate.id === performance.timelineItemId);
           if (!performance.sourceBinding || item?.assetId !== actor.id || performance.status !== "ready") return false;
-          const startFrame = cue.startFrame + Math.ceil((source.startFrame ?? 0) * timeline.fps / motionAsset.motion!.fps);
-          const endFrame = Math.min(cue.endFrame, cue.startFrame + Math.ceil((source.endFrame ?? motionAsset.motion!.frameCount) * timeline.fps / motionAsset.motion!.fps));
+          const startFrame = cue.startFrame + Math.ceil((source.startFrame ?? 0) * timeline.fps / motionAsset.fps);
+          const endFrame = Math.min(cue.endFrame, cue.startFrame + Math.ceil((source.endFrame ?? motionAsset.frameCount) * timeline.fps / motionAsset.fps));
           const sourceStartFrame = Math.round(source.sourceStartMs * timeline.fps / 1000);
           const sourceEndFrame = sourceStartFrame + endFrame - startFrame;
           return sourceEndFrame <= Math.round(source.sourceEndMs * timeline.fps / 1000)
@@ -1227,7 +1229,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
           && performance.scriptRevision === snapshot.script.revision
           && performance.scriptRevision === snapshot.speechAsset.scriptRevision;
         });
-      if (!currentPerformance || source.sourceHash !== actor.sourceHash) {
+      if (!currentPerformance || source.hash !== actor.sourceHash) {
         issues.push(issue({ level: "blocking", code: "MOTION_ACTOR_SOURCE_STALE", message: `作品“${motionAsset.name}”内的人物源已不对应当前声音或人物版本，请更新相关绑定并重新生成该作品。`, objectId: motionAsset.id }));
       }
     }
@@ -1340,8 +1342,29 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
   });
   const overlapsDialogue = (item: { startFrame: number; endFrame: number }) => audibleDialogueItems.some((dialogue) => dialogue.startFrame < item.endFrame && dialogue.endFrame > item.startFrame);
   const managedAudioItemIds = new Set((snapshot.audioCues ?? []).map((cue) => cue.timelineItemId));
-  const soundSignature = reviews?.soundMixes.length ? soundDependencySignature(snapshot) : undefined;
-  const currentMixReviews = [...(reviews?.soundMixes ?? [])].reverse().filter(review => review.previewHash && review.signature === soundSignature);
+  const currentEnvironment = reviews?.soundMixes.some(review => review.dependencySchemaVersion === SOUND_REVIEW_DEPENDENCY_VERSION) ? currentRenderEnvironmentIdentity() : undefined;
+  const soundContentChecks = new Map<string, boolean>();
+  const currentMixReviews = [...(reviews?.soundMixes ?? [])].reverse().filter(review => {
+    if (review.evidenceScope === "workbench") {
+      if (review.baseRevision !== revision || review.workbenchEvidence?.revision !== revision || !review.renderIdentity) return false;
+      try { return review.signature === soundDependencySignature(snapshot, { method: review.method, fromFrame: review.fromFrame, toFrame: review.toFrame, renderIdentity: review.renderIdentity }); }
+      catch { return false; }
+    }
+    if (!review.previewHash || review.dependencySchemaVersion !== SOUND_REVIEW_DEPENDENCY_VERSION || !review.renderIdentity
+      || !Number.isInteger(review.previewRevision) || review.fromFrame < 0 || review.toFrame <= review.fromFrame || review.toFrame > timeline.durationInFrames) return false;
+    // 同版也只能引用真实环境一致的旧文件；观察记录本身仍保留原始版本。
+    if (!currentEnvironment || review.renderReleaseId !== currentEnvironment.releaseId || review.renderIdentity !== currentEnvironment.audio
+      || !soundDependenciesHaveIdentity(snapshot, review.fromFrame, review.toFrame, soundContentChecks)) return false;
+    if (review.previewRevision !== revision) {
+      if (!review.renderReleaseId || ["unknown", "manual"].includes(review.renderReleaseId)) return false;
+      try { if (review.method === "audiovisual" && !soundVisualDependenciesHaveIdentity(snapshot, review.fromFrame, review.toFrame, soundContentChecks)) return false; }
+      catch { return false; }
+    }
+    try {
+      return review.signature === soundDependencySignature(snapshot, { method: review.method, fromFrame: review.fromFrame,
+        toFrame: review.toFrame, renderIdentity: review.renderIdentity });
+    } catch { return false; }
+  });
   for (const cue of snapshot.audioCues ?? []) {
     const item = timeline.items.find((candidate) => candidate.id === cue.timelineItemId);
     const asset = snapshot.assets.find((candidate) => candidate.id === cue.assetId);
@@ -1381,6 +1404,9 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     const latestMixReview = currentMixReviews.find(review => review.fromFrame < item.endFrame && review.toFrame > item.startFrame);
     const validMixReview = latestMixReview?.outcome === "passed" && latestMixReview.fromFrame <= item.startFrame && latestMixReview.toFrame >= item.endFrame;
     if (cue.role && !validMixReview && !track.muted) pendingPerception.push({ category: "audio", entry: issue({ level: "blocking", code: "SOUND_MIX_REVIEW_REQUIRED", message: "当前段落混合尚未完成真实声音复核；原文件观察、波形和模型排名不能替代最终混合。", objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame }, editorialSeverity: "inconclusive" }) });
+    if (cue.role && validMixReview && !track.muted) issues.push(issue({ level: "warning", code: "SOUND_REVIEW_SOURCE_PREVIEW",
+      message: latestMixReview.evidenceScope === "workbench" ? "该范围保存了工作台声音观察；最终文件仍需按实际编码输出核验。" : `该范围的声音观察来自预览文件 ${latestMixReview.previewHash}；新文件是否相同须核对实际文件哈希，不能据工程版本推定新文件已听审。`,
+      objectId: cue.id, frameRange: { startFrame: item.startFrame, endFrame: item.endFrame }, editorialSeverity: "inconclusive" }));
     if (cue.loop && cue.sustained && cue.loopReview?.status !== "confirmed") pendingPerception.push({ category: "audio", entry: issue({ level: "blocking", code: "SOUND_LOOP_REVIEW_REQUIRED", message: "持续音效循环接缝仍需实际复核。", objectId: cue.id, editorialSeverity: "inconclusive" }) });
     if (cue.soundPlanId && snapshot.soundPlans?.find((plan) => plan.id === cue.soundPlanId)?.version !== cue.planVersion) issues.push(issue({ level: "blocking", code: "SOUND_SELECTION_STALE", message: "声音计划已变化，需要更新当前声音设计。", objectId: cue.id }));
     if (cue.kind === "sfx" && !track.muted && cue.onsetReview?.status !== "confirmed") {
@@ -1644,10 +1670,10 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
         frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }
       }));
     }
-    const contentContract = inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline);
+    const contentContract = inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline, snapshot.motionWorks);
     if (cue.type === "ManagedMotion" && cue.status === "ready") {
-      const asset = snapshot.assets.find((entry) => entry.id === cue.assetBindings.find((binding) => binding.slot === "motion")?.assetId);
-      if (asset?.motion && managedMotionReviewOutcome(asset.motion, reviews && [...reviews.motions].reverse().find((entry) => entry.assetId === asset.id && entry.version === asset.motion?.version)) !== "passed") {
+      const work = motionWorkForCue(snapshot, cue);
+      if (work && managedMotionReviewOutcome(work, reviews && [...reviews.motions].reverse().find((entry) => entry.workId === work.id && entry.version === work.version)) !== "passed") {
         pendingPerception.push({ category: "motion", entry: issue({ level: "blocking", code: "MOTION_WORK_REVIEW_REQUIRED", message: "该作品的连续动态审阅尚未通过；可继续放置、制作、修订和导出，效果由用户观看后确认。", objectId: cue.id, frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }, editorialSeverity: "inconclusive" }) });
       }
     }
@@ -1916,6 +1942,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
 
 /** 正式报告、预检、导出与收口统一使用 Renderer 的真实字体宽度；不可回退到估算放行。 */
 export async function evaluateQualityWithBrowser(snapshot: ProjectSnapshot, revision: number, editorialReview?: EditorialQualityReview, reviews?: import("@videocut/contracts").ProjectReviews): Promise<QualityReport> {
+  if (reviews?.soundMixes.some(review => review.dependencySchemaVersion === SOUND_REVIEW_DEPENDENCY_VERSION)) await captureRenderEnvironmentIdentity({ includeVisual: false });
   const captions = snapshot.project.brief.captionMode === "none" ? [] : snapshot.timeline.captions.filter((caption) => typeof caption.text === "string" && caption.text.trim() && validCaptionDisplay(caption) && captionDisplayRanges(caption).length > 0);
   let measured: CaptionLayoutResult[];
   try {

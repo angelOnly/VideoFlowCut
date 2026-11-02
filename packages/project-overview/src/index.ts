@@ -27,7 +27,7 @@ export type RuntimeEnvironment = Record<string, string | undefined>;
  */
 export interface RuntimeConfig {
   /** 动效缓存限额是同时驻留量，不是作品累计处理量。 */
-  motion: { frameCacheBytes: number; scratchBytes: number; diskReserveBytes: number; frameTimeoutMs: number };
+  motion: { frameCacheBytes: number; scratchBytes: number; diskReserveBytes: number; frameTimeoutMs: number; renderConcurrency: 1 | 2 | 4 };
   /** 项目文件、数据库、受管素材和导出产物的根目录。 */
   workspace: {
     /** 当前实际使用的工作区绝对路径。 */
@@ -124,12 +124,15 @@ export function readRuntimeConfig(options: ReadRuntimeConfigOptions = {}): Runti
     if (!Number.isSafeInteger(value) || value <= 0 || !Number.isSafeInteger(value * multiplier)) throw new Error(`动效配置 ${key} 必须为正安全整数`);
     return value * multiplier;
   };
+  const renderConcurrency = Number(environment.VIDEOFLOWCUT_MOTION_RENDER_CONCURRENCY ?? 2);
+  if (renderConcurrency !== 1 && renderConcurrency !== 2 && renderConcurrency !== 4) throw new Error("动效配置 VIDEOFLOWCUT_MOTION_RENDER_CONCURRENCY 必须为 1、2 或 4");
   return {
     motion: {
       frameCacheBytes: motionLimit(environment.VIDEOFLOWCUT_MOTION_FRAME_CACHE_MIB, "VIDEOFLOWCUT_MOTION_FRAME_CACHE_MIB", 256, 1024 * 1024),
       scratchBytes: motionLimit(environment.VIDEOFLOWCUT_MOTION_SCRATCH_MIB, "VIDEOFLOWCUT_MOTION_SCRATCH_MIB", 512, 1024 * 1024),
       diskReserveBytes: motionLimit(environment.VIDEOFLOWCUT_MOTION_DISK_RESERVE_MIB, "VIDEOFLOWCUT_MOTION_DISK_RESERVE_MIB", 1024, 1024 * 1024),
-      frameTimeoutMs: motionLimit(environment.VIDEOFLOWCUT_MOTION_FRAME_TIMEOUT_MS, "VIDEOFLOWCUT_MOTION_FRAME_TIMEOUT_MS", 12000)
+      frameTimeoutMs: motionLimit(environment.VIDEOFLOWCUT_MOTION_FRAME_TIMEOUT_MS, "VIDEOFLOWCUT_MOTION_FRAME_TIMEOUT_MS", 12000),
+      renderConcurrency
     },
     workspace: {
       root: environment.VIDEOCUT_WORKSPACE ?? join(cwd, RUNTIME_CONFIG_DEFAULTS.workspaceDirectoryName)
@@ -253,8 +256,6 @@ export const CORE_PRODUCTION_FLOW = [
 /** 只列真实公开类、函数或 SDK 入口，帮助阅读，不把用户带入内部文件或具体算法。 */
 export const KEY_APPLICATION_ENTRIES = [
   { name: "EditingApplication", kind: "项目类", responsibility: "项目 Revision、创作对象和业务命令的统一门面", module: "@videocut/application" },
-  { name: "VideoProductionFlow", kind: "流程门面类", responsibility: "按五个顶层阶段组织 EditingApplication 的公开调用，不复制业务状态", module: "@videocut/application" },
-  { name: "createProductionFlow", kind: "函数", responsibility: "从既有 EditingApplication 创建五阶段流程门面", module: "@videocut/application" },
   { name: "ProjectRepository", kind: "持久化类", responsibility: "SQLite 项目、Revision、任务与导出记录的持久化", module: "@videocut/application" },
   { name: "AssetProviderRegistry", kind: "素材 Provider 类", responsibility: "素材搜索、候选审阅和受管下载 Provider 的目录", module: "@videocut/acquisition" },
   { name: "ComfyUIBridgeClient", kind: "Bridge 客户端类", responsibility: "动态读取 ComfyUI Workflow Schema 并提交 Bridge 任务", module: "@videocut/bridge" },
@@ -371,7 +372,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     description: "提交音乐、视频与数字人物任务，并管理可验证的人物能力和表演记录。",
     tools: [
       "submit_music_generation", "submit_sfx_generation", "submit_video_generation", "read_actor_performances", "read_actor_capabilities",
-      "manage_actor_capabilities", "manage_actor_performance", "submit_avatar_job"
+      "manage_actor_capabilities", "manage_actor_performance", "submit_avatar_job", "prepare_avatar_sources", "adopt_avatar_source"
     ]
   },
   // 场景、视觉处理、Cutaway、效果和时间线的编排操作。
@@ -382,7 +383,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     tools: [
       "browse_scene_types", "create_scene", "trim_scene", "manage_visual_treatment", "manage_cutaways", "replace_scene_asset",
       "browse_effect_types", "manage_effect_cues", "move_item", "preview_timeline",
-      "read_motion_capabilities", "browse_motion_sources", "inspect_motion_reference", "search_motion_mechanisms", "read_motion_mechanism", "search_creative_cases", "read_creative_case", "analyze_motion_reference", "submit_motion_work", "read_motion_work", "review_motion_work"
+      "read_motion_capabilities", "import_motion_bundle", "register_motion_work", "browse_motion_sources", "inspect_motion_reference", "search_motion_mechanisms", "read_motion_mechanism", "search_creative_cases", "read_creative_case", "analyze_motion_reference", "submit_motion_work", "read_motion_work", "review_motion_work"
     ]
   },
   // 生产运行、创作决定、质量报告和连续预览证据。
@@ -403,7 +404,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     description: "提交导出、执行渲染预检、读取和审核 Artifact、批准交付并跟踪任务。",
     tools: [
       "submit_export", "run_render_preflight", "track_export", "read_export_artifact", "record_export_artifact_review",
-      "approve_export_artifact", "track_job", "track_jobs", "resume_voice_synthesis", "read_job_diagnostics"
+      "approve_export_artifact", "track_job", "retry_job", "read_production_status", "track_jobs", "resume_voice_synthesis", "read_job_diagnostics"
     ]
   }
 ];
@@ -411,6 +412,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
 /** Node 服务、Worker 与发行 Runtime 的环境变量目录；敏感值只展示“是否已配置”。 */
 export const NODE_RUNTIME_CONFIGURATION_CATALOG = [
   { key: "ATTENTION_INSTALLED_PLUGIN", group: "开发验收", description: "部署验收脚本显式指定的已安装插件目录" },
+  { key: "VFC_TEST_RELEASE_DIR", group: "开发验收", description: "隔离发行测试使用的候选目录；不改变生产启动器的发行路径" },
   { key: "ATTENTION_VERIFY_EXISTING", group: "开发验收", description: "候选诊断脚本仅核验已有结果，不创建验收样本", defaultValue: "0" },
   // 工作区：所有项目级持久化数据的落盘位置。
   { key: "VIDEOCUT_WORKSPACE", group: "工作区", description: "项目数据库、素材与导出目录", defaultValue: "<cwd>/workspace" },
@@ -439,12 +441,15 @@ export const NODE_RUNTIME_CONFIGURATION_CATALOG = [
   { key: "VIDEOFLOWCUT_MOTION_SCRATCH_MIB", group: "动效资源", description: "可回收视频解码缓存驻留限额（MiB）", defaultValue: "512" },
   { key: "VIDEOFLOWCUT_MOTION_DISK_RESERVE_MIB", group: "动效资源", description: "动效任务磁盘安全余量（MiB）", defaultValue: "1024" },
   { key: "VIDEOFLOWCUT_MOTION_FRAME_TIMEOUT_MS", group: "动效资源", description: "单帧无完成超时（毫秒），不限制作品总时长", defaultValue: "12000" },
+  { key: "VIDEOFLOWCUT_MOTION_RENDER_CONCURRENCY", group: "动效资源", description: "同一动效任务的浏览器分路数，支持 1、2、4；共用视频缓存与任务预算", defaultValue: "2" },
   { key: "VIDEOCUT_MAX_ASSET_DOWNLOAD_BYTES", group: "下载限制", description: "普通 Provider 素材下载上限", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.maxAssetDownloadBytes) },
   { key: "VIDEOCUT_MAX_WIKIMEDIA_DOWNLOAD_BYTES", group: "下载限制", description: "Wikimedia Commons 下载上限", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.maxWikimediaDownloadBytes) },
   { key: "VIDEOCUT_MAX_GENERATED_VIDEO_BYTES", group: "下载限制", description: "Bridge 生成视频下载上限", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.maxGeneratedVideoBytes) },
   // 本地声音资产只接受白名单根目录；MCP 从不接收自由绝对路径来绕过该限制。
   { key: "VIDEOFLOWCUT_SFX_ROOTS", group: "本地音效", description: "本地音效根目录，多个目录用当前系统路径分隔符分开", defaultValue: "（未配置）" },
   // 发行 Runtime：插件打包版本定位 Web、Remotion 与开发回退路径所需的信息。
+  { key: "PATH", group: "系统依赖", description: "实际FFmpeg等程序的搜索路径；只公开配置名，不输出环境值" },
+  { key: "PATHEXT", group: "系统依赖", description: "Windows实际可执行文件扩展名解析；只公开配置名" },
   { key: "VIDEOFLOWCUT_RUNTIME_DIST", group: "发行 Runtime", description: "插件发行运行时目录；受管字体只从其中fonts目录读取，不读取系统目录或任意字体URL" },
   { key: "VIDEOFLOWCUT_WEB_ROOT", group: "发行 Runtime", description: "静态 Web 产物目录" },
   { key: "VIDEOFLOWCUT_REMOTION_ENTRY", group: "发行 Runtime", description: "发行版 Remotion 入口" },

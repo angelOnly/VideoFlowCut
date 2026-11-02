@@ -2,6 +2,8 @@ import { audioCueVolumeAt, plannedVoiceVolumeAt, resolveVideoSourceVolume, resol
 export { audioCueVolumeAt, plannedVoiceVolumeAt, resolveVideoSourceVolume, resolveVlogAmbientVolume } from "./audio-semantics.js";
 import { captionTextShadowCss, captionIsDisplayed, captionBoxWidthPercent, resolveCaptionFormat } from "../../contracts/src/caption-presentation.js";
 import React from "react";
+import { MotionSourceLayer } from "./motion-source-layer.js";
+import { motionWorkForCue, motionMediaForCue } from "@videocut/contracts";
 import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, useCurrentFrame, getRemotionEnvironment, delayRender, continueRender, cancelRender } from "remotion";
 import { sourceAudioTimeOrigin, inspectEffectContentContract, type ActorPerformance, type AudioCue, type CaptionCard, type CaptionEmphasis, type CaptionFormat, type Cutaway, type EffectCue, type ProjectSnapshot, type TimelineItem, type TimelineTrack } from "@videocut/contracts";
 import { compileCutawayLayout, cutawaySourceVolume } from "./cutaway-layout";
@@ -19,8 +21,10 @@ import { ExplainerSceneLayer } from "./explainer-registry";
 import { compileCameraPunchLayout, compileMotionLayout, resolveEffectStylePack, type EffectStylePack } from "./motion-layout";
 
 export interface CompositionProps {
+  playbackControl?: { playing: boolean };
   snapshot: ProjectSnapshot;
   mediaBaseUrl: string;
+  revision?: number;
   captionsOnly?: boolean;
 }
 
@@ -131,18 +135,23 @@ const CueVisual: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue
   }
 };
 
-const CueLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue: EffectCue }> = ({ snapshot, mediaBaseUrl, cue }) => {
+const CueLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue: EffectCue; revision?: number; playbackControl?: { playing: boolean } }> = ({ snapshot, mediaBaseUrl, cue, revision, playbackControl }) => {
   const frame = useCurrentFrame();
   if (frame < cue.startFrame || frame >= cue.endFrame) return null;
   // 无法满足正式内容合同的 Cue 由 QualityReport 标为问题；Preview 和交付都不能绘制调试占位。
-  if (!inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline).ready) return null;
+  if (!inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline, snapshot.motionWorks).ready) return null;
   if (cue.type === "ManagedMotion") {
-    const asset = snapshot.assets.find((entry) => entry.id === cue.assetBindings.find((binding) => binding.slot === "motion")?.assetId);
-    if (!asset?.motion) return null;
-    const localFrame = motionFrameAtProjectFrame(frame - cue.startFrame, asset.motion.fps, snapshot.timeline.fps, asset.motion.frameCount);
+    const work = motionWorkForCue(snapshot, cue);
+    if (!work) return null;
+    const rootFrame = motionFrameAtProjectFrame((cue.sourceStartFrame ?? 0) + frame - cue.startFrame, work.fps, snapshot.timeline.fps, work.frameCount);
+    if (getRemotionEnvironment().isPlayer) return <MotionSourceLayer key={`${work.id}:${revision}`} work={work} frame={rootFrame} projectFps={snapshot.timeline.fps} playbackControl={playbackControl} projectId={snapshot.project.id} revision={revision!} mediaBaseUrl={mediaBaseUrl} />;
+    const asset = motionMediaForCue(snapshot, cue);
+    if (!asset?.motion) throw new Error("MOTION_MEDIA_REQUIRED: 导出需要同作品范围的真实派生媒体");
+    const localFrame = rootFrame - (asset.motion.rootRange?.startFrame ?? 0);
     if (asset.motion.output) {
-      if (asset.motion.output.kind === "opaque_video") return <Sequence from={cue.startFrame} durationInFrames={cue.endFrame - cue.startFrame}><OffthreadVideo src={mediaUrl(snapshot, mediaBaseUrl, asset.motion.output.path)} muted style={{ width: "100%", height: "100%", objectFit: "contain" }} /></Sequence>;
-      return <AbsoluteFill><Img src={`${mediaBaseUrl.replace(/\/$/, "")}/motion-frame/${encodeURIComponent(snapshot.project.id)}/${encodeURIComponent(asset.id)}/${asset.motion.output.hash}/${localFrame}.png`} style={{ width: "100%", height: "100%", objectFit: "contain" }} /></AbsoluteFill>;
+      // 正式作品统一按原生整数帧显示，避免浏览器视频的时间舍入改变跨帧率选段相位。
+      const query = revision === undefined ? "" : `?revision=${revision}`;
+      return <AbsoluteFill><Img src={`${mediaBaseUrl.replace(/\/$/, "")}/motion-frame/${encodeURIComponent(snapshot.project.id)}/${encodeURIComponent(asset.id)}/${asset.motion.output.hash}/${localFrame}.png${query}`} style={{ width: "100%", height: "100%", objectFit: "contain" }} /></AbsoluteFill>;
     }
     const framePath = `${asset.motion.framesDirectory}/frame-${String(localFrame).padStart(5, "0")}.png`;
     // 直接使用固定版本的透明帧，不叠加旧 Registry 的通用进出场，也不播放审阅代理的背景。
@@ -446,7 +455,7 @@ const AudioLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; it
  * Web Player 与 Render Worker 都消费同一 Revision Snapshot。人物 Mask、效果层和字幕
  * 均由同一组合规则渲染，未提供 Mask 时明确走可见的前景降级。
  */
-export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, mediaBaseUrl, captionsOnly }) => {
+export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, mediaBaseUrl, revision, captionsOnly, playbackControl }) => {
   const frame = useCurrentFrame();
   const tracksById = new Map(snapshot.timeline.tracks.map((track) => [track.id, track]));
   const reachability = resolveCompositionReachability(snapshot);
@@ -482,16 +491,16 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
 
   if (captionsOnly) return <AbsoluteFill><CaptionTrackLayer snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} /></AbsoluteFill>;
   return <AbsoluteFill style={{ backgroundColor: "#070914", overflow: "hidden" }}>
-    {rearCues.filter(hasMaskedActorFor).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
+    {rearCues.filter(hasMaskedActorFor).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} />)}
     {videoItems.filter(item => !cutawaysByItem.has(item.id)).map(renderVideoItem)}
     {/* ExplainerProgram 是主视觉，不借用 Presenter Cue；没有对应 Program 的普通 Scene 不会凭空渲染。 */}
     <ExplainerSceneLayer snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} />
-    {primaryExplainerCues.map(cue => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
-    {visual.primaryCues.map(cue => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
+    {primaryExplainerCues.map(cue => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} />)}
+    {visual.primaryCues.map(cue => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} />)}
     {videoItems.filter(item => cutawaysByItem.has(item.id)).map(renderVideoItem)}
-    {rearCues.filter((cue) => !hasMaskedActorFor(cue)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
-    {cuesAt("actor", "front").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
-    {cuesAt("fullscreen").filter(cue => !explainerSceneIds.has(cue.sceneId) && !primaryCueIds.has(cue.id)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} />)}
+    {rearCues.filter((cue) => !hasMaskedActorFor(cue)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} />)}
+    {cuesAt("actor", "front").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} />)}
+    {cuesAt("fullscreen").filter(cue => !explainerSceneIds.has(cue.sceneId) && !primaryCueIds.has(cue.id)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} />)}
     <CaptionTrackLayer snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} />
     {audioItems.map((item) => <AudioLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} cue={audioCuesByItem.get(item.id)} />)}
   </AbsoluteFill>;

@@ -1,4 +1,5 @@
 import { PresenterLibrarySettings, ProjectPresenterSelection } from "./PresenterLibraryPanel";
+import { motionWorkForCue } from "@videocut/contracts";
 import { CreativeDefaultsSettings } from "./CreativeDefaultsSettings";
 import { exportBlockingIssues } from "../../../packages/quality-system/src/export-policy.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -16,10 +17,11 @@ import { FrameRateSettings } from "./FrameRateSettings";
 import { FontLibraryPanel } from "./FontLibraryPanel";
 import { CaptionFormatEditor } from "./CaptionFormatEditor";
 import { captionCardUpdate } from "./caption-editor-state";
+import { WorkbenchReviewPanel } from "./WorkbenchReviewPanel";
 
 type Panel = "assets" | "agent_work_orders" | "script" | "audio" | "actors" | "scenes" | "captions" | "fonts" | "advanced" | "jobs";
 type Selection = { kind: "asset" | "scene" | "item" | "cue"; id: string } | undefined;
-type EditorFocusQuery = { sceneId?: string; itemId?: string; effectCueId?: string; frame?: number };
+type EditorFocusQuery = { sceneId?: string; itemId?: string; effectCueId?: string; frame?: number; revision?: number; fromFrame?: number; toFrame?: number };
 
 const panelMeta: Array<{ id: Panel; label: string; icon: string }> = [
   { id: "assets", label: "素材", icon: "▦" },
@@ -64,6 +66,13 @@ const formatTimecode = (frame: number, fps: number) => {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}:${String(frames).padStart(2, "0")}`;
 };
 const statusText = (status: string) => ({ queued: "排队中", analyzing: "分析中", ready: "已就绪", failed: "失败", running: "运行中", succeeded: "完成", cancelled: "已取消", unknown: "未知", missing: "缺失", pending: "待生成", stale: "需复核", open: "待处理", claimed: "Codex 已接手", completed: "已完成" }[status] ?? status);
+const jobDetail = (job: Awaited<ReturnType<typeof api.jobs>>[number]) => {
+  const continuation = job.result?.continuation as { status?: string; appliedRevision?: number; previewJobId?: string; conflicts?: Array<{ reason: string }> } | undefined;
+  if (continuation?.status === "needs_reconfirmation") return "画面已生成，采用需重新确认：" + (continuation.conflicts?.map(entry => entry.reason).join("；") ?? "");
+  if (continuation?.status === "applied") return "已用于第" + continuation.appliedRevision + "版；预览另行处理，实际看听结果单独记录";
+  return job.error ?? job.id.slice(0, 14);
+};
+
 const assetIcon = (asset: Asset) => asset.kind === "video" || asset.kind === "actor_video" ? "▶" : asset.kind === "audio" || asset.kind === "speech" ? "♬" : "▧";
 
 type WorkOrderObjectOption = { id: string; label: string; kind: string };
@@ -77,6 +86,7 @@ function workOrderObjectOptions(snapshot: ProjectSnapshot): WorkOrderObjectOptio
     ...snapshot.scenes.map((scene) => ({ id: scene.id, kind: "Scene", label: scene.title })),
     ...snapshot.assets.map((asset) => ({ id: asset.id, kind: "素材", label: asset.name })),
     ...snapshot.timeline.items.filter((item) => !item.disabled).map((item) => ({ id: item.id, kind: "Timeline", label: `${assetName(item.assetId)} · F${item.startFrame}–${item.endFrame}` })),
+    ...snapshot.timeline.captions.map((caption) => ({ id: caption.id, kind: "字幕", label: `${caption.text} · F${caption.startFrame}–${caption.endFrame}` })),
     ...snapshot.effectCues.map((cue) => ({ id: cue.id, kind: "EffectCue", label: `${cue.type} · F${cue.startFrame}–${cue.endFrame}` })),
     ...snapshot.cutaways.map((cutaway) => ({ id: cutaway.id, kind: "Cutaway", label: cutaway.purpose }))
   ];
@@ -84,13 +94,20 @@ function workOrderObjectOptions(snapshot: ProjectSnapshot): WorkOrderObjectOptio
 
 function readEditorFocus(): EditorFocusQuery {
   const params = new URLSearchParams(window.location.search);
-  const frameValue = params.get("frame");
-  const frame = frameValue === null ? undefined : Number(frameValue);
+  const number = (key: string, minimum: number) => {
+    const value = params.get(key);
+    if (value === null) return undefined;
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed >= minimum ? parsed : undefined;
+  };
   return {
     sceneId: params.get("sceneId") ?? undefined,
     itemId: params.get("itemId") ?? undefined,
     effectCueId: params.get("effectCueId") ?? undefined,
-    frame: typeof frame === "number" && Number.isInteger(frame) && frame >= 0 ? frame : undefined
+    frame: number("frame", 0),
+    revision: number("revision", 1),
+    fromFrame: number("fromFrame", 0),
+    toFrame: number("toFrame", 1)
   };
 }
 
@@ -101,7 +118,9 @@ function useProjectId(): [string | undefined, (projectId: string | undefined) =>
     setProjectId(next);
     const url = new URL(window.location.href);
     // 推荐文案属于原项目；切项目只保留字体库入口，不带走上一项目的候选上下文。
-    if (url.searchParams.get("projectId") !== next) url.searchParams.delete("fontPreview");
+    if (url.searchParams.get("projectId") !== next) {
+      for (const key of ["fontPreview", "revision", "frame", "fromFrame", "toFrame", "sceneId", "itemId", "effectCueId"]) url.searchParams.delete(key);
+    }
     if (next) url.searchParams.set("projectId", next);
     else url.searchParams.delete("projectId");
     window.history.replaceState({}, "", url);
@@ -129,11 +148,23 @@ export function App() {
   const [workOrderTitle, setWorkOrderTitle] = useState("");
   const [workOrderIntent, setWorkOrderIntent] = useState("");
   const [selectedWorkOrderObjectIds, setSelectedWorkOrderObjectIds] = useState<string[]>([]);
+  const [pendingReviewContext, setPendingReviewContext] = useState<AgentWorkOrder["reviewContext"]>();
   const [message, setMessage] = useState("准备就绪");
   const [busy, setBusy] = useState(false);
   const playerRef = useRef<PlayerRef>(null);
+  const previewPlaybackControl = useRef({ playing: false });
   const initialFocus = useRef<EditorFocusQuery>(readEditorFocus());
   const initialFocusApplied = useRef(false);
+  const [reviewRevision, setReviewRevision] = useState(initialFocus.current.revision);
+  const reviewRevisionRef = useRef(reviewRevision);
+  reviewRevisionRef.current = reviewRevision;
+  const [rangeStart, setRangeStart] = useState(initialFocus.current.fromFrame ?? 0);
+  const [rangeEnd, setRangeEnd] = useState(initialFocus.current.toFrame ?? 0);
+  const [activeRange, setActiveRange] = useState<{ from: number; to: number }>();
+  const [rangeLoop, setRangeLoop] = useState(true);
+  const pendingSeek = useRef<number | undefined>(undefined);
+  const playRangeRequested = useRef(false);
+  const [availableRevision, setAvailableRevision] = useState<number>();
   const hasPendingWork = Boolean(
     state?.snapshot.assets.some((asset) => asset.status === "queued" || asset.status === "analyzing")
     || jobs.some((job) => job.status === "queued" || job.status === "running")
@@ -153,11 +184,19 @@ export function App() {
         const [nextJobs, nextRevisions] = await Promise.all([api.jobs(id), api.revisions(id)]);
         if (activeProject.current !== id) return;
         setJobs(nextJobs); setRevisions(nextRevisions);
-        const revision = Math.max(0, ...nextRevisions.map(entry => entry.number));
-        if (full || loadedRevision.current?.id !== id || loadedRevision.current.number !== revision) {
-          const [nextState, nextQuality] = await Promise.all([api.project(id), api.quality(id)]);
+        const latestRevision = Math.max(0, ...nextRevisions.map(entry => entry.number));
+        const requestedPin = reviewRevisionRef.current;
+        const requestedRevision = requestedPin ?? latestRevision;
+        const loaded = loadedRevision.current?.id === id ? loadedRevision.current.number : undefined;
+        // 播放中保留实际观察的快照，新版本需要显式切换。
+        if (loaded !== undefined && requestedRevision !== loaded && playerRef.current?.isPlaying()) {
+          setAvailableRevision(latestRevision);
+        } else if (full || loaded !== requestedRevision) {
+          const [nextState, nextQuality] = await Promise.all([api.project(id, requestedPin), api.quality(id, requestedPin)]);
           if (activeProject.current !== id) return;
-          setState(nextState); setQuality(nextQuality);
+          if (reviewRevisionRef.current !== requestedPin) { request.again = true; continue; }
+          if (loaded !== nextState.revision.number || (requestedPin === undefined && !playerRef.current?.isPlaying())) setState(nextState);
+          setQuality(nextQuality);
           loadedRevision.current = { id, number: nextState.revision.number };
           setProjects(previous => previous.some(project => project.id === id) ? previous : [...previous, { id, name: nextState.snapshot.project.name }]);
         }
@@ -224,7 +263,7 @@ export function App() {
     const focus = initialFocus.current;
     const snapshot = state.snapshot;
     let nextSelection: Selection;
-    let targetFrame = focus.frame;
+    let targetFrame = focus.frame ?? focus.fromFrame;
     if (focus.effectCueId) {
       const cue = snapshot.effectCues.find((candidate) => candidate.id === focus.effectCueId);
       if (cue) {
@@ -262,11 +301,18 @@ export function App() {
     const player = playerRef.current;
     if (!player) return;
     const onFrame = (event: { detail: { frame: number } }) => setPlayhead(event.detail.frame);
+    const onPlay = () => { previewPlaybackControl.current.playing = true; };
+    const onPause = () => { previewPlaybackControl.current.playing = false; };
     player.addEventListener("frameupdate", onFrame);
-    return () => player.removeEventListener("frameupdate", onFrame);
+    player.addEventListener("play", onPlay); player.addEventListener("pause", onPause); player.addEventListener("ended", onPause);
+    return () => { player.removeEventListener("frameupdate", onFrame); player.removeEventListener("play", onPlay); player.removeEventListener("pause", onPause); player.removeEventListener("ended", onPause); };
   }, [state?.revision.id]);
 
-  const act = async (label: string, operation: () => Promise<unknown>) => {
+  const act = async (label: string, operation: () => Promise<unknown>, options?: { allowHistorical?: boolean }) => {
+    if (reviewRevisionRef.current !== undefined && !options?.allowHistorical) {
+      setMessage("当前为固定版本审阅，请先切换到最新版再修改工程。");
+      return;
+    }
     try {
       setBusy(true);
       setMessage(`${label}…`);
@@ -283,18 +329,82 @@ export function App() {
 
   const seekTo = (frame: number) => {
     const safeFrame = Math.max(0, Math.min(frame, Math.max(0, (state?.snapshot.timeline.durationInFrames ?? 1) - 1)));
+    if (activeRange && (safeFrame < activeRange.from || safeFrame >= activeRange.to)) {
+      playerRef.current?.pause();
+      pendingSeek.current = safeFrame;
+      setActiveRange(undefined);
+      setPlayhead(safeFrame);
+      return;
+    }
     playerRef.current?.seekTo(safeFrame);
     setPlayhead(safeFrame);
   };
 
   const snapshot = state?.snapshot;
-  const previewInput = usePreviewInput(snapshot, API_BASE);
   const currentRevision = state?.revision.number ?? 0;
+  const previewInput = usePreviewInput(snapshot, API_BASE, currentRevision, previewPlaybackControl.current);
   const selectedAsset = selection?.kind === "asset" ? snapshot?.assets.find((asset) => asset.id === selection.id) : undefined;
   const selectedScene = selection?.kind === "scene" ? snapshot?.scenes.find((scene) => scene.id === selection.id) : undefined;
   const selectedItem = selection?.kind === "item" ? snapshot?.timeline.items.find((item) => item.id === selection.id) : undefined;
   const selectedCue = selection?.kind === "cue" ? snapshot?.effectCues.find((cue) => cue.id === selection.id) : undefined;
   const activeScene = useMemo(() => snapshot?.scenes.find((scene) => scene.startFrame <= playhead && playhead < scene.endFrame), [snapshot, playhead]);
+
+  useEffect(() => {
+    if (!snapshot) return;
+    const from = initialFocus.current.fromFrame;
+    const to = initialFocus.current.toFrame;
+    setRangeStart(from !== undefined && from < snapshot.timeline.durationInFrames ? from : 0);
+    setRangeEnd(to !== undefined && to <= snapshot.timeline.durationInFrames && to > (from ?? 0) ? to : snapshot.timeline.durationInFrames);
+    setActiveRange(undefined);
+  }, [snapshot?.project.id]);
+
+  useEffect(() => {
+    if (!snapshot) return;
+    const duration = snapshot.timeline.durationInFrames;
+    setRangeStart(current => Math.min(current, Math.max(0, duration - 1)));
+    setRangeEnd(current => current === 0 ? duration : Math.min(current, duration));
+    if (activeRange && (activeRange.from >= duration || activeRange.to > duration)) {
+      playerRef.current?.pause();
+      setActiveRange(undefined);
+    }
+  }, [snapshot?.timeline.durationInFrames]);
+
+  useEffect(() => {
+    if (!activeRange && pendingSeek.current !== undefined) {
+      playerRef.current?.seekTo(pendingSeek.current);
+      pendingSeek.current = undefined;
+      return;
+    }
+    if (!activeRange || !playRangeRequested.current) return;
+    playRangeRequested.current = false;
+    playerRef.current?.pause();
+    playerRef.current?.seekTo(activeRange.from);
+    setPlayhead(activeRange.from);
+    if (activeRange.to - activeRange.from > 1) playerRef.current?.play();
+  }, [activeRange]);
+
+  const switchProject = (id: string) => {
+    playerRef.current?.pause();
+    reviewRevisionRef.current = undefined;
+    setReviewRevision(undefined);
+    setAvailableRevision(undefined);
+    initialFocus.current = {};
+    initialFocusApplied.current = false;
+    setProjectId(id);
+  };
+
+  const showLatest = () => {
+    if (!projectId) return;
+    playerRef.current?.pause();
+    reviewRevisionRef.current = undefined;
+    setReviewRevision(undefined);
+    setAvailableRevision(undefined);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("revision");
+    window.history.replaceState({}, "", url);
+    loadedRevision.current = undefined;
+    void load(projectId).catch(error => setMessage(error instanceof Error ? error.message : String(error)));
+  };
 
   const createProject = async () => {
     try {
@@ -303,7 +413,7 @@ export function App() {
       const created = await api.createProject(newProjectName.trim() || "未命名项目", newProjectProfile, newProjectFps);
       const createdProjectId = created.snapshot.project.id;
       activeProject.current = createdProjectId;
-      setProjectId(createdProjectId);
+      switchProject(createdProjectId);
       // 新建后直接读回新项目，避免顶部入口仍短暂显示旧项目状态。
       await load(createdProjectId);
       await refreshProjects();
@@ -340,12 +450,13 @@ export function App() {
   const selectedForTimeline = selectedARollIds.filter((assetId) => videoAssets.some((asset) => asset.id === assetId));
   const blockingIssues = quality ? exportBlockingIssues(quality, "delivery") : [];
   const draftBlockingIssues = quality ? exportBlockingIssues(quality, "draft") : [];
+  const latestRevision = Math.max(0, ...revisions.map(entry => entry.number));
 
   return (
     <main className="workbench" data-testid="workbench" data-project-id={snapshot.project.id} data-revision={currentRevision}>
       <header className="topbar">
         <div className="brand"><span className="brand-dot" />VideoCut <span className="brand-sub">创作工作台</span></div>
-        <select aria-label="选择项目" value={projectId} onChange={(event) => setProjectId(event.target.value)}>
+        <select aria-label="选择项目" value={projectId} onChange={(event) => switchProject(event.target.value)}>
           {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
         </select>
         <input className="new-project-input" aria-label="新建项目名称" value={newProjectName} onChange={(event) => setNewProjectName(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void createProject()} />
@@ -358,25 +469,26 @@ export function App() {
         <span className="save-state">● 已保存</span>
         <div className="top-spacer" />
         <span className="revision-badge" data-testid="revision">R{currentRevision}</span>
+        {(reviewRevision !== undefined || availableRevision !== undefined || latestRevision > currentRevision) && <button onClick={showLatest} data-testid="show-latest-revision">{latestRevision > currentRevision ? `查看最新版 R${latestRevision}` : "退出固定版本审阅"}</button>}
         <span className="canvas-summary">{snapshot.timeline.width}×{snapshot.timeline.height} · {snapshot.timeline.fps} fps · {formatDuration(snapshot.timeline.durationInFrames, snapshot.timeline.fps)}</span>
         <CreativeDefaultsSettings />
         <PresenterLibrarySettings />
-        <FrameRateSettings key={snapshot.project.id} projectId={snapshot.project.id} revision={currentRevision} fps={snapshot.timeline.fps} onApplied={async (fromFps, toFps, durationInFrames) => {
+        {reviewRevision === undefined && <FrameRateSettings key={snapshot.project.id} projectId={snapshot.project.id} revision={currentRevision} fps={snapshot.timeline.fps} onApplied={async (fromFps, toFps, durationInFrames) => {
           const nextFrame = Math.min(Math.max(0, durationInFrames - 1), Math.round(playhead * toFps / fromFps));
           await load(snapshot.project.id);
           setPlayhead(nextFrame);
           playerRef.current?.seekTo(nextFrame);
           setMessage("帧率已更新，请重新预览并复核声画");
-        }} />
+        }} />}
         <button onClick={() => playerRef.current?.toggle()} disabled={!snapshot.timeline.durationInFrames}>播放</button>
         <button onClick={() => void act("提交局部预览", () => api.preview(snapshot.project.id, {
           revision: currentRevision,
           fromFrame: Math.max(0, playhead - snapshot.timeline.fps * 2),
           toFrame: Math.min(snapshot.timeline.durationInFrames, Math.max(playhead + snapshot.timeline.fps * 3, snapshot.timeline.fps))
-        }))} disabled={busy || !snapshot.timeline.durationInFrames}>局部预览</button>
-        <button onClick={() => void act("执行渲染前检查", () => api.renderPreflight(snapshot.project.id, currentRevision))} disabled={busy || !snapshot.timeline.durationInFrames}>渲染预检</button>
-        <button onClick={() => void act("提交草稿导出", () => api.export(snapshot.project.id, currentRevision, "draft"))} disabled={busy || draftBlockingIssues.length > 0} title={draftBlockingIssues.map(issue => issue.message).join("；")}>草稿导出</button>
-        <button className="primary" data-testid="export-button" onClick={() => void act("提交交付导出", () => api.export(snapshot.project.id, currentRevision, "delivery"))} disabled={busy || blockingIssues.length > 0} title={blockingIssues.map(issue => issue.message).join("；")}>交付导出</button>
+        }), { allowHistorical: true })} disabled={busy || !snapshot.timeline.durationInFrames}>局部预览</button>
+        <button onClick={() => void act("执行渲染前检查", () => api.renderPreflight(snapshot.project.id, currentRevision), { allowHistorical: true })} disabled={busy || !snapshot.timeline.durationInFrames}>渲染预检</button>
+        <button onClick={() => void act("提交草稿导出", () => api.export(snapshot.project.id, currentRevision, "draft"), { allowHistorical: true })} disabled={busy || draftBlockingIssues.length > 0} title={draftBlockingIssues.map(issue => issue.message).join("；")}>草稿导出</button>
+        <button className="primary" data-testid="export-button" onClick={() => void act("提交交付导出", () => api.export(snapshot.project.id, currentRevision, "delivery"), { allowHistorical: true })} disabled={busy || blockingIssues.length > 0} title={blockingIssues.map(issue => issue.message).join("；")}>交付导出</button>
       </header>
 
       <section className="editor-grid">
@@ -423,17 +535,22 @@ export function App() {
             onChangeWorkOrderTitle={setWorkOrderTitle}
             onChangeWorkOrderIntent={setWorkOrderIntent}
             onToggleWorkOrderObject={(objectId) => setSelectedWorkOrderObjectIds((current) => current.includes(objectId) ? current.filter((id) => id !== objectId) : [...current, objectId])}
-            onCreateWorkOrder={() => void act("创建 Agent 工作单", async () => {
-              await api.createAgentWorkOrder(snapshot.project.id, {
-                baseRevision: currentRevision,
-                title: workOrderTitle,
-                intent: workOrderIntent,
-                relatedObjectIds: selectedWorkOrderObjectIds
-              });
-              setWorkOrderTitle("");
-              setWorkOrderIntent("");
-              setSelectedWorkOrderObjectIds([]);
-            })}
+            onCreateWorkOrder={() => void (async () => {
+              try {
+                setBusy(true);
+                // 旧版审阅期间项目仍可能更新；提交前读当前版本，观察上下文仍指向原版。
+                const baseRevision = (await api.project(snapshot.project.id)).revision.number;
+                const range = rangeEnd > rangeStart && rangeEnd <= snapshot.timeline.durationInFrames ? { startFrame: rangeStart, endFrame: rangeEnd } : undefined;
+                await api.createAgentWorkOrder(snapshot.project.id, {
+                  baseRevision, title: workOrderTitle, intent: workOrderIntent, relatedObjectIds: selectedWorkOrderObjectIds,
+                  reviewContext: pendingReviewContext ?? (range ? { revision: currentRevision, frameRange: range } : undefined)
+                });
+                setWorkOrderTitle(""); setWorkOrderIntent(""); setSelectedWorkOrderObjectIds([]); setPendingReviewContext(undefined);
+                await load(snapshot.project.id);
+                setMessage("返修工作单已创建，观察版本保持不变。");
+              } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
+              finally { setBusy(false); }
+            })()}
             onCancelWorkOrder={(workOrderId) => {
               const reason = window.prompt("说明取消原因（将写入项目 Revision）：", "用户撤回该工作单");
               if (!reason?.trim()) return;
@@ -480,6 +597,9 @@ export function App() {
               compositionWidth={snapshot.timeline.width}
               compositionHeight={snapshot.timeline.height}
               fps={snapshot.timeline.fps}
+              inFrame={activeRange && activeRange.to - activeRange.from > 1 ? activeRange.from : undefined}
+              outFrame={activeRange && activeRange.to - activeRange.from > 1 ? activeRange.to - 1 : undefined}
+              loop={Boolean(activeRange && rangeLoop && activeRange.to - activeRange.from > 1)}
               controls
               clickToPlay
               acknowledgeRemotionLicense
@@ -491,8 +611,44 @@ export function App() {
             <button onClick={() => playerRef.current?.toggle()}>{playerRef.current?.isPlaying() ? "暂停" : "播放"}</button>
             <button onClick={() => seekTo(Math.min(snapshot.timeline.durationInFrames - 1, playhead + 1))}>帧 ›</button>
             <button onClick={() => activeScene && seekTo(activeScene.startFrame)}>场景起点</button>
+            <label>起帧 <input aria-label="审阅起帧" type="number" min={0} max={Math.max(0, snapshot.timeline.durationInFrames - 1)} value={rangeStart} onChange={event => setRangeStart(Number(event.target.value))} /></label>
+            <label>结束帧（不含） <input aria-label="审阅结束帧" type="number" min={1} max={snapshot.timeline.durationInFrames} value={rangeEnd} onChange={event => setRangeEnd(Number(event.target.value))} /></label>
+            <label><input type="checkbox" checked={rangeLoop} onChange={event => setRangeLoop(event.target.checked)} />循环</label>
+            <button disabled={!snapshot.timeline.durationInFrames} onClick={() => {
+              if (!Number.isInteger(rangeStart) || !Number.isInteger(rangeEnd) || rangeStart < 0 || rangeEnd <= rangeStart || rangeEnd > snapshot.timeline.durationInFrames) {
+                setMessage("审阅范围必须是时间线内的非空区间。");
+                return;
+              }
+              playRangeRequested.current = true;
+              setActiveRange({ from: rangeStart, to: rangeEnd });
+            }}>播放范围</button>
+            {activeRange && <button onClick={() => { playerRef.current?.pause(); setActiveRange(undefined); }}>恢复全片</button>}
             <span className="message" aria-live="polite">{message}</span>
           </div>
+          <WorkbenchReviewPanel key={snapshot.project.id} projectId={snapshot.project.id} revision={currentRevision} startFrame={rangeStart} endFrame={rangeEnd} objectId={selection?.id}
+            onLocate={finding => {
+              if (!finding.frameRange || finding.revision === undefined) { setMessage("该问题没有可定位的版本或范围。"); return; }
+              if (finding.revision !== currentRevision) {
+                const url = new URL(window.location.href);
+                url.searchParams.set("revision", String(finding.revision));
+                url.searchParams.set("frame", String(finding.frameRange.startFrame));
+                url.searchParams.set("fromFrame", String(finding.frameRange.startFrame));
+                url.searchParams.set("toFrame", String(finding.frameRange.endFrame));
+                window.location.assign(url.toString());
+                return;
+              }
+              setRangeStart(finding.frameRange.startFrame); setRangeEnd(finding.frameRange.endFrame); seekTo(finding.frameRange.startFrame);
+            }}
+            onRecheck={async finding => {
+              const range = await api.editorialResolutionRange(snapshot.project.id, finding.id, currentRevision);
+              setRangeStart(range.startFrame); setRangeEnd(range.endFrame); seekTo(range.startFrame);
+            }}
+            onRepair={finding => {
+              setPendingReviewContext({ revision: finding.revision ?? currentRevision, ...(finding.frameRange ? { frameRange: finding.frameRange } : {}), findingIds: [finding.id] });
+              setWorkOrderTitle(finding.summary); setWorkOrderIntent(`${finding.evidence}\n影响：${finding.impact}${finding.suggestedFix ? `\n建议：${finding.suggestedFix}` : ""}`);
+              setSelectedWorkOrderObjectIds(finding.objectId && workOrderObjectOptions(snapshot).some(option => option.id === finding.objectId) ? [finding.objectId] : []);
+              setPanel("agent_work_orders");
+            }} />
         </section>
 
         <aside className="inspector" data-testid="inspector" data-selected-kind={selection?.kind ?? "none"} data-selected-id={selection?.id ?? ""}>
@@ -703,7 +859,7 @@ function PanelContent(props: PanelContentProps) {
   return <>
     <PanelTitle title="Jobs / Quality / Revision" meta="统一状态" />
     <section className="quality-section"><h3>技术检查与审阅提示</h3>{props.quality && <p className="quality-review-status">辅助审阅（不阻挡导出）：{props.quality.editorial.status === "reviewed" ? "本版五轮覆盖完整" : props.quality.editorial.status === "partial" ? "阶段记录，整片尚未审完" : props.quality.editorial.status === "stale" ? "已过期，需复核当前 Revision" : "尚未记录"} · 预览证据 {props.quality.editorial.previewEvidence.length} 条</p>}{props.quality?.issues.length ? props.quality.issues.map((issue) => <div className={`quality-row ${issue.editorialSeverity ? "warning" : issue.level}`} key={issue.id}><strong>{issue.editorialSeverity ? "审阅提示" : issue.level === "blocking" ? `阻挡${issue.blockingPurposes?.length === 1 ? issue.blockingPurposes[0] === "draft" ? "内部审阅" : "对外交付" : "导出"}` : "建议"}</strong><span>{issue.message}</span></div>) : <p className="success-text">没有检测到结构性问题</p>}</section>
-    <section><h3>任务</h3>{props.jobs.map((job) => <div className="job-row" key={job.id} data-testid={`job-${job.id}`} data-object-id={job.id}><span className={`status status-${job.status}`}>{statusText(job.status)}</span><div><strong>{job.kind}</strong><small>{job.error ?? job.id.slice(0, 14)}</small></div>{job.status === "failed" && <button onClick={() => props.onRetryJob(job.id)}>重试</button>}</div>)}</section>
+    <section><h3>任务</h3>{props.jobs.map((job) => <div className="job-row" key={job.id} data-testid={`job-${job.id}`} data-object-id={job.id}><span className={`status status-${job.status}`}>{statusText(job.status)}</span><div><strong>{job.kind === "motion_generation" ? "画面生成" : job.kind === "motion_adoption" ? "画面采用" : job.kind === "preview" ? "预览合成" : job.kind}</strong><small>{jobDetail(job)}</small></div>{job.status === "failed" && <button onClick={() => props.onRetryJob(job.id)}>重试</button>}</div>)}</section>
     <section><h3>Export Artifact</h3>{props.exportArtifacts.length === 0
       ? <p className="empty-panel">尚无导出文件。技术与用途条件满足即可导出，观看后由用户决定是否定稿。</p>
       : props.exportArtifacts.map((artifact) => <article className="artifact-row" key={artifact.id} data-testid={`export-artifact-${artifact.id}`} data-object-id={artifact.id}>
@@ -1110,6 +1266,7 @@ function Inspector({ snapshot, selectedAsset, selectedScene, selectedItem, selec
   onSeek: (frame: number) => void;
 }) {
   if (selectedCue) {
+    const work = motionWorkForCue(snapshot, selectedCue);
     return (
       <>
         <PanelTitle title="Inspector" meta="EffectCue" />
@@ -1122,10 +1279,12 @@ function Inspector({ snapshot, selectedAsset, selectedScene, selectedItem, selec
           <InspectorRow label="进入" value={`F${selectedCue.startFrame}`} />
           <InspectorRow label="稳定" value={`F${selectedCue.holdFrame}`} />
           <InspectorRow label="退出" value={`F${selectedCue.endFrame}`} />
+          {work && <InspectorRow label="素材选段" value={`F${selectedCue.sourceStartFrame ?? 0}–${selectedCue.sourceEndFrame ?? Math.round(work.frameCount * snapshot.timeline.fps / work.fps)}`} />}
+          {work && <InspectorRow label="完整作品" value={`${work.frameCount} 帧 · ${work.fps} fps`} />}
           <button className="wide-button" onClick={() => onSeek(selectedCue.startFrame)}>跳到进入帧</button>
         </InspectorGroup>
         <InspectorGroup title="Animation">
-          {selectedCue.type === "ManagedMotion" ? <p>此作品的布局与动效已固定。请让 Codex 修改作品源码或参数并生成新版本，再替换绑定。</p> : <>
+          {selectedCue.type === "ManagedMotion" ? <p>可让 Codex 调整作品选段；画面修改后在工作台复查，需要文件时再生成媒体。</p> : <>
           <label className="range-label">强度 <b>{Math.round(selectedCue.intensity * 100)}%</b></label>
           <div className="button-row">
             <button onClick={() => onUpdateCue(selectedCue, Math.max(0, selectedCue.intensity - 0.1))}>−</button>

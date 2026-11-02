@@ -62,7 +62,7 @@ test("真实动画任务保留JPEG原件及固定PNG缓存，派生图损坏必�
         source: motionHtml('<img data-vfc-image-slot="photo" style="width:96px;height:64px">') }) });
     const result = await runMotionJob(app, job);
     const asset = app.readProject(projectId).snapshot.assets.find(item => item.id === result.assetId)!;
-    const directory = join(projectRoot, asset.motion!.sourcePath, "..");
+    const directory = join(projectRoot, asset.managedPath, "..");
     const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8"));
     assert.equal(manifest.imageDecodes.length, 1);
     const decoded = manifest.imageDecodes[0];
@@ -97,7 +97,8 @@ test("固定PNG在首次缩小可见、隐藏解码及原尺寸历史后得到�
       const directory = join(root, mode);
       const rendered = await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, props: { mode }, imageBindings: {photo:"fixture-photo"}, width: 320, height: 360, durationInFrames: 9 }), directory, prepared.imageData);
       assert.equal(rendered.determinism!.status, "exact", `${mode}顺播与回跳必须完全一致`);
-      assert.deepEqual(rendered.determinism!.sampledFrames, [0, 4, 8]);
+      for (const frame of [0, 4, 8]) assert.ok(rendered.determinism!.sampledFrames.includes(frame));
+      assert.ok(rendered.determinism!.sampledFrames.length <= 3 * rendered.metrics!.concurrency!);
       assert.deepEqual(rendered.determinism!.differences, []);
       // 第4帧三个历史均已到同一目标尺寸；逐像素比较照片ROI，避免背景平均掩盖差异。
       const frame = PNG.sync.read(await readFile(join(directory, "frames", "frame-00004.png")));

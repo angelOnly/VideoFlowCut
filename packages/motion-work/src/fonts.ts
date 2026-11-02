@@ -18,7 +18,7 @@ export interface PreparedMotionFont { binding: BoundMotionFont; dataUrl: string;
 /** 未登记是选择问题；这个异常仅在提交前查目录时产生，不代表渲染任务失败。 */
 export class MotionFontUnknownError extends Error {
   constructor(readonly fontId: string) {
-    super(`MOTION_FONT_UNKNOWN: ${fontId}；请查询字体库并由原作者推荐已有字体供用户选择`);
+    super(`MOTION_FONT_UNKNOWN: ${fontId}；请通过read_motion_capabilities查询实际目录；未锁定字体由原作者选择，用户锁定且无法满足时再回询`);
     this.name = "MotionFontUnknownError";
   }
 }

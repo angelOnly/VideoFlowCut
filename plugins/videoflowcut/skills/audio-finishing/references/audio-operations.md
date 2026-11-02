@@ -64,7 +64,7 @@ SFX 应绑定明确的叙事或视觉事件：预示变化、对象落定、数�
 
 当前 `manage_audio` 接受已就绪原文件，原子写入 AudioCue 与声音 Item；design 可引用 SoundPlan 与意图版本。保留当前 soundPlanId、soundIntentId、planVersion，直接生成比较片或写入当前设计，不先创建采用资格。声音计划、文件、类型与源范围由技术路径检查；起音和最终混合按实际试听说明，分析记录和历史采用状态不影响正常使用。
 
-角色 Duck 依据当前主声音范围、可听视频原声和 attack/hold/release 退让，演示声音主导时音乐同样让位。SFX 的 event_frame、onset_offset_frames 仍须明确；作品事件优先使用实际 eventMap 的 ID、版本和范围。上下文变化会使混合复核失效；源范围/循环参数变化还需重查起音和接缝。`preview_sound_alternatives` 用正式声音计算生成比较片，正式 Preview 后再 `review_sound_mix`。`set_audio_output_target` 仅设置最终完整文件测量目标，不自动调音量或取得听审通过。`smooth_audio`、Room Tone 生成、EQ、降噪、自动 J/L Cut 和通用 DAW 仍是架构目标。
+角色 Duck 依据当前主声音范围、可听视频原声和 attack/hold/release 退让，演示声音主导时音乐同样让位。SFX 的 event_frame、onset_offset_frames 仍须明确；作品事件优先使用实际 eventMap 的 ID、版本和范围。上下文变化会使混合复核失效；源范围/循环参数变化还需重查起音和接缝。`preview_sound_alternatives` 用正式声音计算生成比较片，实际工作台观察使用 `review_sound_mix(input.source=workbench)`，记录观察者和项目范围；文件观察提供成功 Preview Job，分别保留身份。`set_audio_output_target` 仅设置最终完整文件测量目标，不自动调音量或取得听审通过。`smooth_audio`、Room Tone 生成、EQ、降噪、自动 J/L Cut 和通用 DAW 仍是架构目标。
 
 具有 design 角色的 SFX 会实际使用 Duck，它不是被渲染忽略的通用字段。旁白或人物原声触发时，基础 gain_db 之外还会叠加 reductionDb，例如 -18 dB 与 -14 dB 在完整触发区间合为 -32 dB，实际触发范围仍取决于主声音、对齐与包络。当前修改这类 SFX 的 ducking 时需同时显式提供 `design: { role: "sfx" }`，也可带回已核对的计划/意图/版本；只传 ducking 会被旧 SFX 范围合同拒绝。已有计划关联会保留，关闭 Duck 后混合仍回到待审，须重新比较旁白清晰度和音效强度。
 

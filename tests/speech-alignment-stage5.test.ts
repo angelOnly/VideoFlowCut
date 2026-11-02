@@ -194,8 +194,10 @@ test("Application 仅在真实 token、审计与当前 SpeechAsset 一致时升�
       baseRevision: completed.state.revision.number,
       semanticUnitIds: completed.state.snapshot.script.semanticUnitIds
     });
-    assert.equal(invalidated.snapshot.speechAlignment, undefined, "主线变化后当前快照不能保留旧词级时间戳");
-    assert.ok(invalidated.revision.impact.stale.includes(completed.alignment.id));
+    assert.deepEqual(invalidated.snapshot.speechAlignment, completed.alignment, "相同主线输入保留真实词级时间");
+    const reordered = context.app.applyScript({ projectId: context.projectId, baseRevision: invalidated.revision.number, semanticUnitIds: [...invalidated.snapshot.script.semanticUnitIds].reverse() });
+    assert.equal(reordered.snapshot.speechAlignment, undefined, "实际顺序变化后不能保留旧词级时间");
+    assert.ok(reordered.revision.impact.stale.includes(completed.alignment.id));
   } finally {
     await context.dispose();
   }

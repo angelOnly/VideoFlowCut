@@ -30,7 +30,7 @@ async function fixture() {
   const work = completeMotionFixture(app, { projectId, jobId: job.id, engineVersion: "fixture", sourceHash: "fixture-preview", metadata: { durationMs: 600, width: 320, height: 320, fps: 30, hasAudio: false } });
   app.updateJob(job.id, { status: "succeeded", result: { assetId: work.id } });
   const scene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "图片采用", purpose: "隔离协议回归", startFrame: 0, endFrame: 18 }).snapshot.scenes.at(-1)!;
-  const cue = app.createEffectCue({ projectId, baseRevision: rev(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 0, endFrame: 18, assetBindings: [{ slot: "motion", assetId: work.id }] }).snapshot.effectCues.at(-1)!;
+  const cue = app.createEffectCue({ projectId, baseRevision: rev(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 0, endFrame: 18, workId: work.motion!.workId! }).snapshot.effectCues.at(-1)!;
   return { app, projectId, image, work, job, cue, rev, close: async () => { app.close(); await rm(root, { recursive: true, force: true }); } };
 }
 

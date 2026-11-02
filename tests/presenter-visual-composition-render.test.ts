@@ -52,13 +52,13 @@ test("真实人物源缩窗与返回：透明接管无双人物，front/字幕�
       source: motionHtml('<img id="actor" data-vfc-video-slot="actor" style="position:absolute;left:0;top:0"><div id="material"><img data-vfc-image-slot="material" style="position:absolute;left:220px;top:50px;width:80px;height:80px"><div id="line" style="position:absolute;left:150px;top:170px;height:10px;background:#00ffff"></div></div>',`const state={frame:0};function render(){const f=Math.round(state.frame),size=f<10?320-f*20:f<=20?120:120+(f-20)*200/9;Object.assign(document.querySelector('#actor').style,{width:size+'px',height:size+'px'});document.querySelector('#material').style.display=f>=10&&f<=20?'block':'none';document.querySelector('#line').style.width=f*4+'px';}render();tl.to(state,{frame:30,duration:1,ease:'none',onUpdate:render},0);`,{width:320,height:320,fps:30,durationInFrames:30})
     } });
     const motion = await runMotionJob(app, work); app.updateJob(work.id, { status: "succeeded", result: motion });
-    app.createEffectCue({ projectId, baseRevision: rev(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 15, endFrame: 45, visualComposition: { role: "primary", replacesActorItemIds: [itemId] }, assetBindings: [{ slot: "motion", assetId: String(motion.assetId) }] });
+    app.createEffectCue({ projectId, baseRevision: rev(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 15, endFrame: 45, visualComposition: { role: "primary", replacesActorItemIds: [itemId] }, workId: String(motion.workId) });
     const frontJob = app.submitManagedMotion({ projectId, baseRevision: rev(), idempotencyKey: "front", work: {
       name: "前景层序夹具", creativeBrief: "验证普通 front 在主场面之上。", width: 320, height: 320, fps: 30, durationInFrames: 60, props: {}, imageBindings: {},
       source: motionHtml('<div style="position:absolute;left:0;top:0;width:320px;height:12px;background:#ff00ff"></div>','',{width:320,height:320,fps:30,durationInFrames:60})
     } });
     const front = await runMotionJob(app, frontJob); app.updateJob(frontJob.id, { status: "succeeded", result: front });
-    app.createEffectCue({ projectId, baseRevision: rev(), sceneId: scene.id, type: "ManagedMotion", layer: "front", startFrame: 0, endFrame: 60, assetBindings: [{ slot: "motion", assetId: String(front.assetId) }] });
+    app.createEffectCue({ projectId, baseRevision: rev(), sceneId: scene.id, type: "ManagedMotion", layer: "front", startFrame: 0, endFrame: 60, workId: String(front.workId) });
     app.importSrtCaptions({ projectId, baseRevision: rev(), srtText: "1\n00:00:00,000 --> 00:00:02,000\n统一字幕\n", sourceName: "技术字幕", targetRange: { startFrame: 0, endFrame: 60 }, writePolicy: "reject_conflicts", idempotencyKey: "captions" });
     const renderer = new RevisionRenderer(undefined, 1);
     async function render(label: string) {

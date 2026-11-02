@@ -1,7 +1,8 @@
+import { motionWorkForCue } from "@videocut/contracts";
 import type { EffectCue, ImpactReport, ProjectSnapshot } from "@videocut/contracts";
 
 /** 以 Scene 局部时间比较依赖；整段纯平移不会改变作品内部内容或声音落点。 */
-function dependency(snapshot: ProjectSnapshot, cue: EffectCue) {
+export function motionCueDependencySignature(snapshot: ProjectSnapshot, cue: EffectCue) {
   const scene = snapshot.scenes.find(entry => entry.id === cue.sceneId);
   const origin = scene?.startFrame ?? 0;
   // 未声明覆盖的旧作品仍依赖宿主内容；这里的依赖追踪不扩大其质量对账覆盖。
@@ -14,7 +15,7 @@ function dependency(snapshot: ProjectSnapshot, cue: EffectCue) {
   const relativeRange = (range: { startFrame: number; endFrame: number }) => [range.startFrame - origin, range.endFrame - origin];
   const speechItems = snapshot.timeline.items.filter(item => item.assetId === snapshot.speechAsset?.assetId && !item.disabled);
   const main = snapshot.timeline.items.filter(item => item.sceneId === cue.sceneId && !snapshot.audioCues.some(audio => audio.timelineItemId === item.id));
-  const motion = snapshot.assets.find(asset => cue.assetBindings.some(binding => binding.slot === "motion" && binding.assetId === asset.id))?.motion;
+  const motion = motionWorkForCue(snapshot, cue);
   const materialIds = [...(motion?.imageSources ?? []), ...(motion?.videoSources ?? [])].map(source => source.assetId);
   const replaced = (cue.visualComposition?.replacesActorItemIds ?? []).map(id => snapshot.timeline.items.find(item => item.id === id));
   return JSON.stringify({
@@ -25,7 +26,11 @@ function dependency(snapshot: ProjectSnapshot, cue: EffectCue) {
     beats, units: snapshot.semanticUnits.filter(unit => unitIds.has(unit.id)),
     segments: segments.map(({ status: _status, ...segment }) => segment),
     speech: segmentIds.size ? [snapshot.speechAsset?.assetId, snapshot.speechAsset?.timing.segments.filter(timing => segmentIds.has(timing.speechSegmentId)).map(timing => [timing.speechSegmentId, ...relativeRange(timing)]), speechItems.map(relativeRange)] : undefined,
-    main: main.map(item => [item.id, item.assetId, item.sourceStartFrame, item.sourceEndFrame, item.disabled, ...relativeRange(item)])
+    // 同一素材 ID 下的内容或就绪状态改变，也会影响依赖它的画面。
+    main: main.map(item => {
+      const asset = snapshot.assets.find(entry => entry.id === item.assetId);
+      return [item.id, item.assetId, asset?.sourceHash, asset?.status, item.sourceStartFrame, item.sourceEndFrame, item.disabled, ...relativeRange(item)];
+    })
   });
 }
 
@@ -36,7 +41,7 @@ export function reconcileMotionDependencies(previous: ProjectSnapshot, snapshot:
     const before = previous.effectCues.find(entry => entry.id === cue.id);
     if (!before) continue;
     // 比较旧作品声明的依赖，不能通过同一次主线变化顺便改覆盖声明掩盖失效。
-    if (dependency(previous, before) === dependency(snapshot, before)) continue;
+    if (motionCueDependencySignature(previous, before) === motionCueDependencySignature(snapshot, before)) continue;
     cue.status = "stale";
     impact.stale.push(cue.id);
     impact.changed.push(cue.id);

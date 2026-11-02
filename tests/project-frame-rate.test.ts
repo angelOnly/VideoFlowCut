@@ -83,9 +83,9 @@ test("跨fps受管作品完整放置、帧映射与声音事件保持，内容�
     const job = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.revision(), idempotencyKey: "motion", work: sizeMotionFixture({ ...motionFixture, fps: 30, durationInFrames: 60 }) });
     const asset = completeMotionFixture(f.app, { projectId: f.projectId, jobId: job.id, sourceHash: "work", engineVersion: "fixture-only", metadata: { durationMs: 2000, width: 320, height: 320, fps: 30, hasAudio: false }, eventMap: { version: String(job.payload.version), fps: 30, frameCount: 60, events: [{ id: "settled", meaning: "落定", startFrame: 30 }] } });
     f.app.updateJob(job.id, { status: "succeeded" });
-    const placed = f.app.createEffectCue({ projectId: f.projectId, baseRevision: f.revision(), sceneId: f.seed.snapshot.scenes[0].id, type: "ManagedMotion", layer: "front", startFrame: 0, endFrame: 48, assetBindings: [{ slot: "motion", assetId: asset.id }] });
+    const placed = f.app.createEffectCue({ projectId: f.projectId, baseRevision: f.revision(), sceneId: f.seed.snapshot.scenes[0].id, type: "ManagedMotion", layer: "front", startFrame: 0, endFrame: 48, workId: asset.motion!.workId! });
     const cue = placed.snapshot.effectCues[0];
-    assert.equal(inspectEffectContentContract(cue, placed.snapshot.assets, placed.snapshot.timeline).ready, true);
+    assert.equal(inspectEffectContentContract(cue, placed.snapshot.assets, placed.snapshot.timeline, placed.snapshot.motionWorks).ready, true);
     assert.equal(placed.snapshot.timeline.durationInFrames, 96, "跨fps作品必须实际参与合成与时长计算");
     assert.equal(motionFrameAtProjectFrame(24, 30, 24, 60), 30);
     assert.equal(motionFrameAtProjectFrame(47, 30, 24, 60), 58);
@@ -163,8 +163,12 @@ test("真实MCP表提供fps参数与只读预检查，新客户端沿正式工�
     assert.equal(created.snapshot.timeline.fps, 30);
     const report = text(await client.callTool({ name: "preview_project_frame_rate_change", arguments: { project_id: id, base_revision_id: 1, fps: 60 } }));
     assert.equal(report.revision, 1); assert.equal(report.canApply, true);
+    const before = text(await client.callTool({ name: "read_project", arguments: { project_id: id } }));
+    assert.equal(before.revision.number, 1); assert.equal(before.snapshot.timeline.fps, 30);
     const changed = text(await client.callTool({ name: "set_project_frame_rate", arguments: { project_id: id, base_revision_id: 1, fps: 60 } }));
-    assert.equal(changed.revision.number, 2); assert.equal(changed.snapshot.timeline.fps, 60);
+    assert.equal(changed.revision, 2); assert.equal(Object.hasOwn(changed, "snapshot"), false);
+    const after = text(await client.callTool({ name: "read_project", arguments: { project_id: id } }));
+    assert.equal(after.revision.number, changed.revision); assert.equal(after.snapshot.timeline.fps, 60);
   } finally { await client.close(); await transport.close(); await rm(root, { recursive: true, force: true }); }
 });
 

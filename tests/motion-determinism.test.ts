@@ -58,10 +58,11 @@ test("SVG曲线和虚线不受局部脏区历史影响，顺序渲染与跳帧�
   try {
     // 保留完整渲染历史：只抽末帧或固定几何不能复现局部重绘遗留的边缘像素。
     const source = await readFile(new URL("./fixtures/partial-raster-motion.html", import.meta.url), "utf8");
-    const rendered = await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, props: {}, width: 768, height: 1344, fps: 24, durationInFrames: 317 }), root);
+    const rendered = await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, props: {}, width: 768, height: 1344, fps: 24, durationInFrames: 317 }), root, {}, undefined, undefined, [], undefined, undefined, undefined, { concurrency: 1 });
     assert.equal(rendered.frameHashes.length, 317);
     assert.equal(rendered.determinism!.status, "exact", "必须消除脏区引起的像素差异，不能用提高容差通过");
-    assert.deepEqual(rendered.determinism!.sampledFrames, [0, 158, 316]);
+    for (const frame of [0, 158, 316]) assert.ok(rendered.determinism!.sampledFrames.includes(frame));
+    assert.ok(rendered.determinism!.sampledFrames.length <= 3 * rendered.metrics!.concurrency!);
     assert.deepEqual(rendered.determinism!.differences, []);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
@@ -83,9 +84,10 @@ test("半透明变换图层切换后，字幕阴影不复用顺序渲染的旧�
   try {
     // 压缩复现历史：中帧顺序到达时背景图层已经存在，跳帧复核则重新出现。
     const source = frameHtml('<div style="position:absolute;inset:0;background:#070a0d"><div id="layer" style="position:absolute;inset:0;z-index:18;transform:scale(1)"><div style="position:absolute;left:-92px;bottom:-128px;width:330px;height:610px;border-radius:48px;transform:rotate(22deg);background:#7d8588"></div></div><div style="position:absolute;z-index:80;left:0;right:0;bottom:0;height:260px;background:linear-gradient(transparent,#070a0d 64%)"></div><div id="text" style="position:absolute;z-index:90;left:46px;right:46px;top:1178px;min-height:114px;display:flex;justify-content:center;align-items:center;white-space:pre-line;text-align:center;font-family:Noto Sans SC,Microsoft YaHei,sans-serif;font-size:36px;line-height:1.38;color:#F8F2E8;font-weight:600;text-shadow:0 3px 20px #000"></div></div>',`const clock=f===0?0:f===66?466:200+f,progress=(a,b)=>Math.max(0,Math.min(1,(clock-a)/(b-a))),out=x=>1-Math.pow(1-x,3);const layer=document.querySelector('#layer');layer.style.display=clock>=216&&clock<467?'block':'none';layer.style.opacity=out(progress(221,248));const text=document.querySelector('#text');text.textContent=clock>=221&&clock<268?'再贴近手机和基站这一段。\\n除了强度，还要看质量。':'人多不等于必然拥堵，\\n但满格也不保证一路畅通。';text.style.opacity=clock>=221&&clock<268?out(progress(221,228)):clock===0?0:1;`);
-    const result = await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, props: {}, width: 768, height: 1344, fps: 24, durationInFrames: 67 }), root);
+    const result = await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, props: {}, width: 768, height: 1344, fps: 24, durationInFrames: 67 }), root, {}, undefined, undefined, [], undefined, undefined, undefined, { concurrency: 1 });
     assert.equal(result.determinism!.status, "exact");
-    assert.deepEqual(result.determinism!.sampledFrames, [0, 33, 66]);
+    for (const frame of [0, 33, 66]) assert.ok(result.determinism!.sampledFrames.includes(frame));
+    assert.ok(result.determinism!.sampledFrames.length <= 3 * result.metrics!.concurrency!);
     assert.deepEqual(result.determinism!.differences, []);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
@@ -95,7 +97,7 @@ test("轻微色阶差异保留警告并通过，局部明显差异失败，缓�
   try {
     await mkdir(join(root, "frames"));
     const original = png([100, 100, 100, 255, 100, 100, 100, 255]);
-    const hash = createHash("sha256").update(original).digest("hex");
+    const hash = createHash("sha256").update(PNG.sync.read(original).data).digest("hex");
     const path = join(root, "frames", "frame-00000.png");
     await writeFile(path, original);
     assert.equal((await verifyMotionDeterminism(root, [hash], async () => original)).status, "exact");

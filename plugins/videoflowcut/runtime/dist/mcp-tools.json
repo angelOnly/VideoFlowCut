@@ -630,6 +630,18 @@
             "type": "integer",
             "minimum": 0
           },
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "from_frame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "to_frame": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
           "panel": {
             "type": "string",
             "const": "fonts"
@@ -716,6 +728,18 @@
           "frame": {
             "type": "integer",
             "minimum": 0
+          },
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "from_frame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "to_frame": {
+            "type": "integer",
+            "exclusiveMinimum": 0
           }
         },
         "additionalProperties": false,
@@ -7346,9 +7370,103 @@
       }
     },
     {
-      "name": "submit_motion_work",
-      "title": "生成受管 HyperFrames 作品",
-      "description": "可选frame_range只生成同源局部校样：完整源码、Props、绑定与根时钟不变，不创建Asset、不修改Revision；确认后省略frame_range提交完整作品。work.compositing 选择 opaque 或 alpha（省略保留透明），正式输出分别为 H.264/MP4 与 FFV1/BGRA/Matroska；renderedAssetId 仅引用同像素身份的已登记正式作品。名称和说明改变不重捕获。新作品填写 work.creativeBrief，提交固定源码、Props、图片及视频绑定，排队隔离渲染；不自动放入Timeline。修改作品重新提交并填写previousAssetId。源视频 video 和人物视频 actor_video 均可绑定；选段数量不设固定上限，实际负载受资源校验约束。每槽声明assetId、sourceStartMs、sourceEndMs、startFrame、endFrame及可选decodeScale；源码用带稳定id的img和data-vfc-video-slot显示，object-fit负责取景。平台使用作品根时钟，容器布局与显隐不重置源时间。输出帧数以endFrame-startFrame为准，源范围允许毫秒取整及不足一帧余量；正常速度且静音，原声在声音轨明确编排。源不足、源变化或取帧越界报错，不自动冻结或循环。原片按内容身份共享，不按槽复制；解码缓存按需生成、有界回收，不按原片或累计解码512MB拒绝。完整作品不设30秒、900帧或650000000累计像素帧门槛，由Worker提前检查完整输出及临时工作区真实磁盘需求；失败不登记半件Asset。画布宽高64–1920偶数、fps15–60整数；所有帧连续渲染并验证，一个Job产生一个完整Asset。imageBindings将图片映射到props.assets，使用data-vfc-image-slot或CSS资源变量，不允许任意资源URL。历史作品产物可读；历史引擎重新生成须按新合同提交。技术生成不替代连续审片。",
+      "name": "import_motion_bundle",
+      "title": "导入固定动画源码包",
+      "description": "导入 Local Codex 固定的源码和作者清单，仅写受管输入；不创建素材、版本或生成任务。相同幂等键和相同包可重试。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "bundle": {
+            "type": "object",
+            "properties": {
+              "receipt": {
+                "type": "object",
+                "properties": {
+                  "project": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "run_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "frozen_version": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "bundle_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "source": {
+                    "type": "object",
+                    "properties": {
+                      "sha256": {
+                        "$ref": "#/properties/bundle/properties/receipt/properties/bundle_sha256"
+                      },
+                      "bytes": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "required": [
+                      "sha256",
+                      "bytes"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "manifest": {
+                    "$ref": "#/properties/bundle/properties/receipt/properties/source"
+                  }
+                },
+                "required": [
+                  "project",
+                  "run_id",
+                  "frozen_version",
+                  "bundle_sha256",
+                  "source",
+                  "manifest"
+                ],
+                "additionalProperties": false
+              },
+              "source_base64": {
+                "type": "string"
+              },
+              "manifest_base64": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "receipt",
+              "source_base64",
+              "manifest_base64"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "bundle"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "register_motion_work",
+      "title": "登记固定动画源码作品",
+      "description": "校验并固定源码、资源、时钟和引擎，真实初始化取得事件，登记 workId；不捕帧、不编码、不创建视频素材。work 与 frozen_work 二选一。图片用 data-vfc-image-slot，视频用有稳定 id 的 data-vfc-video-slot；字体通过 fontBindings 固定发行原件，视频按完整作品根时钟静音执行。可提供已明确采用目标 on_success；采用冲突保留作品，读回冲突后重新确认。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7565,6 +7683,126 @@
             ],
             "additionalProperties": false
           },
+          "frozen_work": {
+            "type": "object",
+            "properties": {
+              "bundle_path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "manifest_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "bundle_path",
+              "manifest_sha256"
+            ],
+            "additionalProperties": false
+          },
+          "on_success": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "cueId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "audioPolicy": {
+                    "type": "string",
+                    "const": "rebind_unchanged_events"
+                  },
+                  "action": {
+                    "type": "string",
+                    "const": "replace_cue"
+                  }
+                },
+                "required": [
+                  "cueId",
+                  "audioPolicy",
+                  "action"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "cueId": {
+                    "$ref": "#/properties/on_success/anyOf/0/properties/cueId"
+                  },
+                  "audioPolicy": {
+                    "$ref": "#/properties/on_success/anyOf/0/properties/audioPolicy"
+                  },
+                  "action": {
+                    "type": "string",
+                    "const": "replace_range"
+                  },
+                  "targetRange": {
+                    "type": "object",
+                    "properties": {
+                      "startFrame": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "endFrame": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0
+                      }
+                    },
+                    "required": [
+                      "startFrame",
+                      "endFrame"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "cueId",
+                  "audioPolicy",
+                  "action",
+                  "targetRange"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "idempotency_key"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "submit_motion_work",
+      "title": "按固定作品生成媒体",
+      "description": "只接受已登记的 work_id；按同一源码、固定资源和实际引擎生成真实媒体，按完整输出及临时工作区的真实磁盘需求预检。frame_range 为完整作品 fps 的根半开区间；默认生成范围校样，output_intent=asset 登记正式派生媒体；省略范围生成完整媒体。生成媒体不修改 Cue 的 workId，不自动生成合成预览。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "work_id": {
+            "type": "string",
+            "minLength": 1
+          },
           "frame_range": {
             "type": "object",
             "properties": {
@@ -7582,12 +7820,22 @@
               "endFrame"
             ],
             "additionalProperties": false
+          },
+          "output_intent": {
+            "type": "string",
+            "enum": [
+              "proof",
+              "asset"
+            ]
+          },
+          "proof_job_id": {
+            "type": "string"
           }
         },
         "required": [
           "base_revision_id",
           "idempotency_key",
-          "work"
+          "work_id"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
@@ -7598,20 +7846,25 @@
     },
     {
       "name": "read_motion_work",
-      "title": "读取作品源码与状态",
-      "description": "读取所属项目的固定输入、Job、生成 Asset 与审阅状态；不会修改作品。",
+      "title": "读取固定源码作品",
+      "description": "按 work_id 读取唯一作品身份、完整时钟、绑定、事件和可用范围；任务进度使用 track_job。不会返回整份 HTML 或修改工程。",
       "inputSchema": {
         "type": "object",
         "properties": {
           "project_id": {
             "type": "string"
           },
-          "job_id": {
-            "type": "string"
+          "work_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
           }
         },
         "required": [
-          "job_id"
+          "work_id"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
@@ -7637,6 +7890,9 @@
             "type": "integer",
             "exclusiveMinimum": 0
           },
+          "work_id": {
+            "type": "string"
+          },
           "asset_id": {
             "type": "string"
           },
@@ -7660,11 +7916,16 @@
                 "type": "string",
                 "enum": [
                   "work_proxy",
-                  "project_preview"
+                  "project_preview",
+                  "workbench"
                 ],
-                "description": "work_proxy用作品局部帧；project_preview用项目全局帧"
+                "description": "work_proxy用派生媒体局部帧；project_preview和workbench用项目全局帧"
               },
               "previewJobId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "observer": {
                 "type": "string",
                 "minLength": 1
               },
@@ -7699,7 +7960,7 @@
         },
         "required": [
           "base_revision_id",
-          "asset_id",
+          "work_id",
           "outcome",
           "note"
         ],
@@ -8293,7 +8554,7 @@
     {
       "name": "analyze_media",
       "title": "分析素材声画",
-      "description": "对素材、候选、不可变 exportArtifactId 或成功 previewJobId 提交异步多模态分析。review 时 context 是实际发给模型的专项问题；index/discovery 的 context 仅作用途备注，初看保持盲观察。导出/预览只允许 review，range 以该文件起点为零的毫秒计，返回 composition 映射到对应 Revision 和时间线。不重新导入素材、不修改视频 Revision。保存实际指令、源哈希、模型版本、覆盖和未知；模型复核有效但不冒充人工或原生听觉，抽样不能证明精确同步。通过 track_job 和 read_media_observations 读取结果。",
+      "description": "对素材、候选、不可变 exportArtifactId 或成功 previewJobId 提交异步分析。review 的 observationQuestions 是不包含预期答案的中性观察问题，comparisonReference 是仅供作者比对的资料，绝不发送给观察模型；index/discovery 保持盲观察。纯 speech 只运行真实转写。导出/预览仅支持 review，range 以该文件起点为零的毫秒计，返回 composition 映射到对应 Revision 和时间线。不修改视频 Revision。保存实际指令、源哈希、模型版本、覆盖和未知；模型复核不冒充人工或原生听觉，抽样不能证明精确同步。通过 track_job 和 read_media_observations 读取结果。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -8402,10 +8663,15 @@
                   "text"
                 ]
               },
-              "context": {
+              "observationQuestions": {
                 "type": "string",
                 "maxLength": 8000,
-                "default": ""
+                "description": "仅填写不包含预期答案的中性观察问题；review 时送入模型"
+              },
+              "comparisonReference": {
+                "type": "string",
+                "maxLength": 8000,
+                "description": "期望台词或计划时间等仅供作者比对，不发送给观察模型"
               },
               "idempotencyKey": {
                 "type": "string",
@@ -9634,7 +9900,7 @@
     {
       "name": "review_sound_mix",
       "title": "记录实际混合复核",
-      "description": "根据已经实际听过或看听过的正式 Preview 记录结论，校验文件版本和覆盖。模型推测或候选试听不能自动使正式混合通过。",
+      "description": "根据实际工作台或正式文件观察记录结论。source=workbench 保存版本、观察者与范围，不伪造 Preview 文件；文件来源继续校验真实产物。模型推测或候选试听不能自动使正式混合通过。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -9642,45 +9908,97 @@
             "type": "string"
           },
           "input": {
-            "type": "object",
-            "properties": {
-              "baseRevision": {
-                "type": "integer",
-                "exclusiveMinimum": 0
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "baseRevision": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "outcome": {
+                    "type": "string",
+                    "enum": [
+                      "passed",
+                      "failed",
+                      "inconclusive"
+                    ]
+                  },
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "audio",
+                      "audiovisual"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 16,
+                    "maxLength": 4000
+                  },
+                  "source": {
+                    "type": "string",
+                    "const": "preview"
+                  },
+                  "previewJobId": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "baseRevision",
+                  "outcome",
+                  "method",
+                  "note",
+                  "previewJobId"
+                ],
+                "additionalProperties": false
               },
-              "previewJobId": {
-                "type": "string",
-                "minLength": 1
-              },
-              "outcome": {
-                "type": "string",
-                "enum": [
-                  "passed",
-                  "failed",
-                  "inconclusive"
-                ]
-              },
-              "method": {
-                "type": "string",
-                "enum": [
-                  "audio",
-                  "audiovisual"
-                ]
-              },
-              "note": {
-                "type": "string",
-                "minLength": 16,
-                "maxLength": 4000
+              {
+                "type": "object",
+                "properties": {
+                  "baseRevision": {
+                    "$ref": "#/properties/input/anyOf/0/properties/baseRevision"
+                  },
+                  "outcome": {
+                    "$ref": "#/properties/input/anyOf/0/properties/outcome"
+                  },
+                  "method": {
+                    "$ref": "#/properties/input/anyOf/0/properties/method"
+                  },
+                  "note": {
+                    "$ref": "#/properties/input/anyOf/0/properties/note"
+                  },
+                  "source": {
+                    "type": "string",
+                    "const": "workbench"
+                  },
+                  "observer": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "fromFrame": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "toFrame": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "baseRevision",
+                  "outcome",
+                  "method",
+                  "note",
+                  "source",
+                  "observer",
+                  "fromFrame",
+                  "toFrame"
+                ],
+                "additionalProperties": false
               }
-            },
-            "required": [
-              "baseRevision",
-              "previewJobId",
-              "outcome",
-              "method",
-              "note"
-            ],
-            "additionalProperties": false
+            ]
           }
         },
         "required": [
@@ -9696,7 +10014,7 @@
     {
       "name": "manage_effect_cues",
       "title": "管理视觉效果",
-      "description": "创建、按 cue_id 就地更新或移除单个 EffectCue，均须当前 Revision。范围必须满足 Scene.startFrame ≤ start_frame < end_frame ≤ Scene.endFrame；covered_narrative_beat_ids 只声明内容覆盖，不允许跨 Scene 边界。action 默认 create；update 保留 Cue ID 和未指定字段，不能更换 Scene/类型/层级；remove 只移除该 Cue，不删除作品或回退整片。visual_composition 仅用于 fullscreen ManagedMotion 主画面，显式列出被接管人物 Item；省略保持、null 清除，保留唯一原声与源时钟。ManagedMotion 的源码、Props、画幅和完整时长仍固定，所属 Scene 必须完整承载作品；改作品需提交新版本。范围拒绝若返回 validation/none/correct_input，按实际 Scene 范围交回原作者修订后纠正一次，不原样重放。",
+      "description": "创建、按 cue_id 就地更新或移除单个 EffectCue，均须当前 Revision。范围必须满足 Scene.startFrame ≤ start_frame < end_frame ≤ Scene.endFrame；covered_narrative_beat_ids 只声明内容覆盖，不允许跨 Scene 边界。adopt_work通过work_id、target及idempotency_key排队采用已有正式作品，不重新生成；返回motion_adoption短Job。action 默认 create；update 保留 Cue ID 和未指定字段，不能更换 Scene/类型/层级；remove 只移除该 Cue，不删除作品或回退整片。visual_composition 仅用于 fullscreen ManagedMotion 主画面，显式列出被接管人物 Item；省略保持、null 清除，保留唯一原声与源时钟。ManagedMotion 保持固定源码、Props和画幅；source_start_frame/source_end_frame 按项目fps明确选择媒体源范围，长度等于目标范围。replace_range 提供 cue_id、replacement_work_id 与目标 start_frame/end_frame，在一次Revision中保留旧前后段并同步事件引用。正式局部素材来自 submit_motion_work(output_intent=asset)。所属Scene须承载全部目标范围。范围拒绝若返回 validation/none/correct_input，按实际 Scene 范围交回原作者修订后纠正一次，不原样重放。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -9712,13 +10030,102 @@
             "enum": [
               "create",
               "update",
-              "remove"
+              "remove",
+              "replace_range",
+              "adopt_work"
             ],
             "default": "create"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "work_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "cueId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "audioPolicy": {
+                    "type": "string",
+                    "const": "rebind_unchanged_events"
+                  },
+                  "action": {
+                    "type": "string",
+                    "const": "replace_cue"
+                  }
+                },
+                "required": [
+                  "cueId",
+                  "audioPolicy",
+                  "action"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "cueId": {
+                    "$ref": "#/properties/target/anyOf/0/properties/cueId"
+                  },
+                  "audioPolicy": {
+                    "$ref": "#/properties/target/anyOf/0/properties/audioPolicy"
+                  },
+                  "action": {
+                    "type": "string",
+                    "const": "replace_range"
+                  },
+                  "targetRange": {
+                    "type": "object",
+                    "properties": {
+                      "startFrame": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "endFrame": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0
+                      }
+                    },
+                    "required": [
+                      "startFrame",
+                      "endFrame"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "cueId",
+                  "audioPolicy",
+                  "action",
+                  "targetRange"
+                ],
+                "additionalProperties": false
+              }
+            ]
           },
           "cue_id": {
             "type": "string",
             "minLength": 1
+          },
+          "replacement_work_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_start_frame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "source_end_frame": {
+            "type": "integer",
+            "exclusiveMinimum": 0
           },
           "scene_id": {
             "type": "string"
@@ -10203,7 +10610,7 @@
     {
       "name": "record_editorial_quality_review",
       "title": "记录真实审片结论",
-      "description": "累积局部或全片审片证据与问题；observations 绑定成功 Preview、Revision、范围和真实观察方式。空 findings 不清除旧问题；resolutions 通过已登记的当前证据 ID 逐项复核关闭。记录不改变视频 Revision，不代表自动审美通过。",
+      "description": "累积局部或全片审片证据与问题；observations 可引用成功 Preview，或明确声明 workbench、观察者与固定 Revision。必须如实填写实际观察方式；播放本身不代表已观察通过。记录不改变视频 Revision。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -10258,9 +10665,21 @@
                     "mode_specific"
                   ]
                 },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "preview",
+                    "workbench"
+                  ]
+                },
                 "preview_job_id": {
                   "type": "string",
                   "minLength": 1
+                },
+                "observer": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
                 },
                 "start_frame": {
                   "type": "integer",
@@ -10287,7 +10706,6 @@
               },
               "required": [
                 "pass",
-                "preview_job_id",
                 "start_frame",
                 "end_frame",
                 "method",
@@ -10714,6 +11132,9 @@
           },
           "idempotency_key": {
             "type": "string"
+          },
+          "preflight_job_id": {
+            "type": "string"
           }
         },
         "additionalProperties": false,
@@ -11020,6 +11441,52 @@
       },
       "annotations": {
         "readOnlyHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "read_production_status",
+      "title": "读取实际制作状态",
+      "description": "按当前工程、原Job、预览、Artifact及真实观察引用生成只读状态；文件完成不推断已看听或用户定稿。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "retry_job",
+      "title": "恢复原任务",
+      "description": "Web和MCP共用恢复入口；原失败任务只创建一个恢复子任务，结果未知先对账。预览失败不重新生成画面。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
       },
       "execution": {
         "taskSupport": "forbidden"

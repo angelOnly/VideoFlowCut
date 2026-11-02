@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import { checkReferencePublication } from "./check-reference-publication.mjs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { join, relative } from "node:path";
-import { pluginRootFromModule, resolveReleaseRuntime, resolveRepoRoot } from "./repo-root.mjs";
+import { join, relative, resolve } from "node:path";
+import { pluginRootFromModule, resolveReleaseRuntime, resolveRepoRoot, readOption } from "./repo-root.mjs";
 
 const pluginRoot = pluginRootFromModule(import.meta.url);
 const repoRoot = resolveRepoRoot({ pluginRoot });
@@ -15,7 +15,8 @@ const generatedSharedFiles = new Set([
   "_shared/SKILL.md",
   "_shared/agents/openai.yaml"
 ]);
-const runtimeRoot = join(pluginRoot, "runtime", "dist");
+const releaseDirectory = readOption(process.argv.slice(2), "--release-dir");
+const runtimeRoot = releaseDirectory ? resolve(releaseDirectory) : join(pluginRoot, "runtime", "dist");
 const semanticVersionPattern = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u;
 const releaseFiles = [
   ["Runtime 入口", join(runtimeRoot, "runtime.cjs")],
@@ -112,7 +113,7 @@ if (releaseManifest.schemaVersion !== 2 || releaseManifest.format !== "commonjs"
   throw new Error("插件发行 Runtime manifest 与启动约定不一致。请重新执行 npm run plugin:build。");
 }
 // 启动器也会执行这一校验；verify 提前失败让“只改 manifest”的伪发行无法进入部署流程。
-resolveReleaseRuntime(pluginRoot);
+resolveReleaseRuntime(pluginRoot, runtimeRoot);
 await Promise.all([
   "repo-root.mjs",
   "runtime-launcher.mjs",

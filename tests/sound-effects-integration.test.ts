@@ -189,7 +189,7 @@ test("18帧持续动作显式绑定时长，点事件可保留21帧尾音且两�
     const job = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), idempotencyKey: "duration-contract", work: { name: "持续事件协议测试", creativeBrief: "隔离验证持续范围与点事件两种参数，不作为实际作品的审美判断。", source: motionHtml("", "", { width: 1080, height: 1920, fps: 24, durationInFrames: 245 }), props: {}, imageBindings: {}, width: 1080, height: 1920, fps: 24, durationInFrames: 245, } });
     const asset = completeMotionFixture(f.app, { projectId: f.projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 10208, width: 1080, height: 1920, fps: 24, hasAudio: false, videoCodec: "h264" }, eventMap: { version: String(job.payload.version), fps: 24, frameCount: 245, events: [{ id: "relation_change", meaning: "关系改变", startFrame: 106, endFrame: 124 }] } });
     await f.app.reviewManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), assetId: asset.id, outcome: "inconclusive", note: "隔离参数验证，没有获得实际连续声画审阅证据。" });
-    const state = f.app.createEffectCue({ projectId: f.projectId, baseRevision: f.rev(), sceneId: f.app.readProject(f.projectId).snapshot.scenes[0].id, type: "ManagedMotion", layer: "fullscreen", startFrame: 1003, endFrame: 1248, assetBindings: [{ slot: "motion", assetId: asset.id }] });
+    const state = f.app.createEffectCue({ projectId: f.projectId, baseRevision: f.rev(), sceneId: f.app.readProject(f.projectId).snapshot.scenes[0].id, type: "ManagedMotion", layer: "fullscreen", startFrame: 1003, endFrame: 1248, workId: asset.motion!.workId! });
     const effectCueId = state.snapshot.effectCues.at(-1)!.id;
     const effectEvent = { effectCueId, eventId: "relation_change", workVersion: asset.motion!.version, eventName: "关系改变", localFrame: 106, endLocalFrame: 124, syncOffsetFrames: -3 };
     const base = { projectId: f.projectId, action: "create" as const, kind: "sfx" as const, assetId: f.soundId, purpose: "待审持续声协议验证", eventFrame: 1106, onsetOffsetFrames: 0, sourceStartFrame: 0, sourceEndFrame: 21, fadeOutFrames: 3, effectEvent };
@@ -281,7 +281,7 @@ test("跨帧率事件配合裁剪源范围，起音与主攻击不同仍对准�
     });
     await f.app.reviewManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), assetId: asset.id, outcome: "inconclusive", note: "隔离同步合同验证，无实际声画审阅证据。" });
     const state = f.app.createEffectCue({ projectId: f.projectId, baseRevision: f.rev(), sceneId: f.app.readProject(f.projectId).snapshot.scenes[0].id,
-      type: "ManagedMotion", layer: "fullscreen", startFrame: 100, endFrame: 160, assetBindings: [{ slot: "motion", assetId: asset.id }] });
+      type: "ManagedMotion", layer: "fullscreen", startFrame: 100, endFrame: 160, workId: asset.motion!.workId! });
     const effectCueId = state.snapshot.effectCues.at(-1)!.id;
     // 作品12帧=项目15帧。源起音8、主攻击11，裁去前6帧后 O=2、P=5，画面目标V=115。
     const placed = f.app.manageAudio({ projectId: f.projectId, baseRevision: f.rev(), action: "create", kind: "sfx", assetId: f.soundId,
@@ -311,7 +311,7 @@ test("同一个真实事件合同允许起势、落定或贯穿，禁止自行�
     const job = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), idempotencyKey: "range-event", work: { name: "事件边界协议测试", props: {}, imageBindings: {}, creativeBrief: "只检验事件绑定边界，不冒充真实视觉作品的渲染验收。", source: motionHtml("", "", { width: 1080, height: 1920, fps: 30, durationInFrames: 60 }), width: 1080, height: 1920, fps: 30, durationInFrames: 60, } });
     const asset = completeMotionFixture(f.app, { projectId: f.projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture-only", metadata: { durationMs: 2000, width: 1080, height: 1920, fps: 30, hasAudio: false, videoCodec: "h264" }, eventMap: { version: String(job.payload.version), fps: 30, frameCount: 60, events: [{ id: "fan", meaning: "展开", startFrame: 10, endFrame: 40 }, { id: "end", meaning: "片尾", startFrame: 50, endFrame: 60 }] } });
     await f.app.reviewManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), assetId: asset.id, outcome: "inconclusive", note: "仅测试已生成事件的绑定合同，不冒充视觉或声音审阅。" });
-    const state = f.app.createEffectCue({ projectId: f.projectId, baseRevision: f.rev(), sceneId: f.app.readProject(f.projectId).snapshot.scenes[0].id, type: "ManagedMotion", layer: "fullscreen", startFrame: 100, endFrame: 160, assetBindings: [{ slot: "motion", assetId: asset.id }] });
+    const state = f.app.createEffectCue({ projectId: f.projectId, baseRevision: f.rev(), sceneId: f.app.readProject(f.projectId).snapshot.scenes[0].id, type: "ManagedMotion", layer: "fullscreen", startFrame: 100, endFrame: 160, workId: asset.motion!.workId! });
     const cue = state.snapshot.effectCues.at(-1)!;
     const input = { effectCueId: cue.id, eventId: "fan", workVersion: asset.motion!.version, eventName: "展开", localFrame: 10 };
     assert.equal(bindEffectAudioEvent(state.snapshot, input, 110).localFrame, 10);

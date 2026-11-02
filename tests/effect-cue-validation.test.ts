@@ -54,7 +54,7 @@ test("真实MCP拒绝跨Scene整件作品且不写入，原作者改为完整承
     const revisions = app.readRevisions(projectId);
     const jobs = app.repository.listJobs(projectId);
     const placement = { scene_id: sceneIds[0], type: "ManagedMotion", layer: "fullscreen", start_frame: 0, end_frame: 1784,
-      covered_narrative_beat_ids: beatIds, asset_bindings: [{ slot: "motion", asset_id: asset.id }] };
+      covered_narrative_beat_ids: beatIds, work_id: asset.motion!.workId! };
     const rejected = await call(placement);
     assert.equal(rejected.raw.isError, true);
     assert.equal(rejected.value.code, "CUE_OUT_OF_SCENE");

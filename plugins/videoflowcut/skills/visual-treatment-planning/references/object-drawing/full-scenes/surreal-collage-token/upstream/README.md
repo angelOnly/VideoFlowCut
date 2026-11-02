@@ -4,7 +4,7 @@
 
 画面全部由 Claude 用 HTML / Canvas 写代码画出来，再用无头 Chrome 逐帧截图合成，**不用生图模型**。
 
-下面 7 张动图是同一段 21 秒口播（讲「AI 怎么读懂一句话」）在 7 套风格里的同一个 5 秒（7.6–12.6 秒：提示词 → 分词器把句子剪成 Token）。
+以下动图是上游参考，本地副本未包含这些 GIF；可通过上游链接查看。7 张动图是同一段 21 秒口播（讲「AI 怎么读懂一句话」）在 7 套风格里的同一个 5 秒（7.6–12.6 秒：提示词 → 分词器把句子剪成 Token）。
 
 > 出品：《大师的AI小灶》。完整展示视频（7 套同步平铺 + 每套完整一遍）发在 X：[@dashiAIxz](https://x.com/dashiAIxz)。
 
@@ -12,10 +12,10 @@
 
 | | |
 |---|---|
-| **1 立体卡通**：炭黑底、光面立体物件、杂志分栏。适合讲科学原理、实验过程<br>![立体卡通](docs/1_立体卡通.gif) | **2 黑底科技**：近黑底、暖金细线、衬线字由虚到实。适合讲高端科技概念、历史趋势<br>![黑底科技](docs/2_黑底科技.gif) |
-| **3 超现实拼贴**：米灰海报、特粗衬线大标题、一个大比喻。适合讲思维方式、认知<br>![超现实拼贴](docs/3_超现实拼贴.gif) | **4 复古剪纸**：皱纸上一层层剪纸，定格跳动。适合有态度的观点<br>![复古剪纸](docs/4_复古剪纸.gif) |
-| **5 复古报刊**：整版报纸，往下潜进深蓝插图区。适合科普解读、专题报道<br>![复古报刊](docs/5_复古报刊.gif) | **6 扁平流程图**：奶油底、琥珀标题带、编号横向流程。适合讲步骤、原理、因果链<br>![扁平流程图](docs/6_扁平流程图.gif) |
-| **7 手绘笔记**：米白纸、墨蓝钢笔线稿 + 一种橙，逐笔描、逐字写。适合讲概念拆解、观察记录<br>![手绘笔记](docs/7_手绘笔记.gif) | 每套的 3 张高清截图在 `styles/<风格>/静帧/`，配色、字体、动效写在 `styles/<风格>/风格卡.md`。 |
+| **1 立体卡通**：炭黑底、光面立体物件、杂志分栏。适合讲科学原理、实验过程<br>[上游动图：立体卡通](https://github.com/chuspeeism/dashi-animationstyle/blob/aa620f3b859aa5d191b783b2eb0fb59263731c76/docs/1_%E7%AB%8B%E4%BD%93%E5%8D%A1%E9%80%9A.gif) | **2 黑底科技**：近黑底、暖金细线、衬线字由虚到实。适合讲高端科技概念、历史趋势<br>[上游动图：黑底科技](https://github.com/chuspeeism/dashi-animationstyle/blob/aa620f3b859aa5d191b783b2eb0fb59263731c76/docs/2_%E9%BB%91%E5%BA%95%E7%A7%91%E6%8A%80.gif) |
+| **3 超现实拼贴**：米灰海报、特粗衬线大标题、一个大比喻。适合讲思维方式、认知<br>[上游动图：超现实拼贴](https://github.com/chuspeeism/dashi-animationstyle/blob/aa620f3b859aa5d191b783b2eb0fb59263731c76/docs/3_%E8%B6%85%E7%8E%B0%E5%AE%9E%E6%8B%BC%E8%B4%B4.gif) | **4 复古剪纸**：皱纸上一层层剪纸，定格跳动。适合有态度的观点<br>[上游动图：复古剪纸](https://github.com/chuspeeism/dashi-animationstyle/blob/aa620f3b859aa5d191b783b2eb0fb59263731c76/docs/4_%E5%A4%8D%E5%8F%A4%E5%89%AA%E7%BA%B8.gif) |
+| **5 复古报刊**：整版报纸，往下潜进深蓝插图区。适合科普解读、专题报道<br>[上游动图：复古报刊](https://github.com/chuspeeism/dashi-animationstyle/blob/aa620f3b859aa5d191b783b2eb0fb59263731c76/docs/5_%E5%A4%8D%E5%8F%A4%E6%8A%A5%E5%88%8A.gif) | **6 扁平流程图**：奶油底、琥珀标题带、编号横向流程。适合讲步骤、原理、因果链<br>[上游动图：扁平流程图](https://github.com/chuspeeism/dashi-animationstyle/blob/aa620f3b859aa5d191b783b2eb0fb59263731c76/docs/6_%E6%89%81%E5%B9%B3%E6%B5%81%E7%A8%8B%E5%9B%BE.gif) |
+| **7 手绘笔记**：米白纸、墨蓝钢笔线稿 + 一种橙，逐笔描、逐字写。适合讲概念拆解、观察记录<br>[上游动图：手绘笔记](https://github.com/chuspeeism/dashi-animationstyle/blob/aa620f3b859aa5d191b783b2eb0fb59263731c76/docs/7_%E6%89%8B%E7%BB%98%E7%AC%94%E8%AE%B0.gif) | 每套的 3 张高清截图在 `styles/<风格>/静帧/`，配色、字体、动效写在 `styles/<风格>/风格卡.md`。 |
 
 ## 三种用法
 

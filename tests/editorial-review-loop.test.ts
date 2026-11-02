@@ -11,6 +11,8 @@ import type { EditorialReviewObservation, EditorialReviewPass } from "@videocut/
 import { openEditorialFindings, productionReconciliation } from "../packages/quality-system/src/editorial-review.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { createServer } from "../apps/server/src/app.js";
+import { hashMediaFile } from "../packages/edit-application/src/media-intelligence.js";
 
 const passes: EditorialReviewPass[] = ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"];
 
@@ -64,13 +66,14 @@ async function fixture() {
   const app = createApplication(root);
   const created = app.createProject({ name: "结构化审片测试" });
   const projectId = created.snapshot.project.id;
-  const imported = app.registerImportedAsset({ projectId, baseRevision: created.revision.number, name: "source.mp4", kind: "video", managedPath: "assets/source/source.mp4", sourceHash: "fixture", provenance: { source: "local_import", acquiredAt: new Date().toISOString() } });
+  const source = join(created.snapshot.project.rootPath, "assets/source/source.mp4");
+  await mkdir(join(created.snapshot.project.rootPath, "assets/source"), { recursive: true });
+  await runProcess("ffmpeg", ["-y", "-f", "lavfi", "-i", "color=c=blue:s=64x64:r=24:d=2", "-f", "lavfi", "-i", "sine=frequency=500:sample_rate=48000:duration=2", "-c:v", "mpeg4", "-c:a", "aac", "-shortest", source]);
+  const imported = app.registerImportedAsset({ projectId, baseRevision: created.revision.number, name: "source.mp4", kind: "video", managedPath: "assets/source/source.mp4", sourceHash: await hashMediaFile(source), provenance: { source: "local_import", acquiredAt: new Date().toISOString() } });
   app.applyMediaAnalysis({ projectId, assetId: imported.asset.id, metadata: { durationMs: 2_000, hasAudio: true, width: 64, height: 64, fps: 24, videoCodec: "h264", audioCodec: "aac" } });
   const state = app.buildPresenterTimeline({ projectId, baseRevision: app.readProject(projectId).revision.number, assetIds: [imported.asset.id] });
   const previewRoot = join(created.snapshot.project.rootPath, "previews");
   await mkdir(previewRoot, { recursive: true });
-  const source = join(root, "sound.mp4");
-  await runProcess("ffmpeg", ["-y", "-f", "lavfi", "-i", "color=c=blue:s=64x64:r=24:d=2", "-f", "lavfi", "-i", "sine=frequency=500:sample_rate=48000:duration=2", "-c:v", "mpeg4", "-c:a", "aac", "-shortest", source]);
   const run = await app.startProductionRun({ projectId, loadedSkills: ["quality-verification"] });
   async function preview(revision = state.revision.number, from = 0, to = 48, silent = false) {
     const job = app.submitPreview({ projectId, revision, fromFrame: from, toFrame: to, idempotencyKey: `${revision}:${from}:${to}:${silent}` });
@@ -84,6 +87,64 @@ async function fixture() {
   const observe = (previewJobId: string, startFrame = 0, endFrame = 48, selected = passes): EditorialReviewObservation[] => selected.map((pass) => ({ pass, previewJobId, startFrame, endFrame, method: pass === "audio_only" ? "audio" : pass === "mute_visual" ? "continuous_video" : "audiovisual", observation: "测试观察声明，不代表真人或模型实际审美判断" }));
   return { root, app, projectId, state, run, base, preview, observe, dispose: async () => { app.close(); await rm(root, { recursive: true, force: true }); } };
 }
+
+test("工作台观察固定版本和范围，不伪造预览文件或修改视频", async () => {
+  const f = await fixture();
+  try {
+    const observation: EditorialReviewObservation = { source: "workbench", observer: "测试审阅者", pass: "mute_visual", startFrame: 5, endFrame: 12, method: "frames", observation: "实际检查指定静帧，连续运动尚未观察" };
+    const report = await f.app.recordEditorialQualityReview({ ...f.base, passes: ["mute_visual"], observations: [observation] });
+    const evidence = report.editorialReview!.evidenceRecords![0]!;
+    assert.equal(evidence.source, "workbench");
+    assert.equal(evidence.previewJobId, undefined);
+    assert.equal(evidence.relativePath, undefined);
+    assert.equal(evidence.contentHash, undefined);
+    assert.match(evidence.snapshotHash!, /^[a-f0-9]{64}$/);
+    assert.equal(evidence.workbenchIdentity!.resources[0]!.hash, f.state.snapshot.assets[0]!.sourceHash);
+    await writeFile(join(f.state.snapshot.project.rootPath, "assets/source/source.mp4"), "changed");
+    assert.equal((await f.app.readEditorialQualityReview(f.base))!.evidenceRecords!.length, 0, "实际素材改变后旧观察不再有效");
+    await assert.rejects(f.app.recordEditorialQualityReview({ ...f.base, passes: ["mute_visual"], observations: [observation] }), error => error instanceof DomainError && error.code === "EDITORIAL_RESOURCE_CHANGED");
+    assert.equal(f.app.readProject(f.projectId).revision.number, f.base.revision);
+    assert.equal((await f.app.readEditorialQualityReview(f.base))!.evidenceRecords!.length, 0);
+    assert.equal(evaluateQuality(f.state.snapshot, f.base.revision, await f.app.readEditorialQualityReview(f.base)).editorial.coverage!.find(entry => entry.pass === "mute_visual")!.complete, false);
+    await assert.rejects(() => f.app.recordEditorialQualityReview({ ...f.base, passes: ["mute_visual"], observations: [{ ...observation, previewJobId: "fake" }] }), /不能填写 Preview Job/u);
+  } finally { await f.dispose(); }
+});
+
+test("工作台观察、返修工作单和结果版复查沿同一审计闭环", async () => {
+  const f = await fixture();
+  const { app: server, application } = await createServer({ workspaceRoot: f.root });
+  try {
+    const itemId = f.state.snapshot.timeline.items[0]!.id;
+    const observation = await server.inject({ method: "POST", url: `/api/projects/${f.projectId}/workbench-observations`, payload: {
+      revision: f.base.revision, pass: "mute_visual", method: "frames", observer: "审片者", observation: "第五帧发生遮挡", startFrame: 5, endFrame: 12,
+      finding: { category: "motion", severity: "warning", summary: "遮挡文字", impact: "影响阅读", objectId: itemId }
+    } });
+    assert.equal(observation.statusCode, 200, observation.body);
+    const recorded = observation.json();
+    const finding = recorded.review.findings[0];
+    assert.equal(recorded.review.evidenceRecords[0].previewJobId, undefined);
+    assert.equal(application.readProject(f.projectId).revision.number, f.base.revision);
+    const order = await server.inject({ method: "POST", url: `/api/projects/${f.projectId}/agent-work-orders`, payload: {
+      baseRevision: f.base.revision, title: "处理遮挡", intent: "请原作者调整文字与动作", relatedObjectIds: [itemId],
+      reviewContext: { revision: f.base.revision, findingIds: [finding.id], frameRange: { startFrame: 5, endFrame: 12 } }
+    } });
+    assert.equal(order.statusCode, 201, order.body);
+    assert.deepEqual(order.json().workOrder.reviewContext.findingIds, [finding.id]);
+    const revision = order.json().state.revision.number;
+    const checked = await server.inject({ method: "POST", url: `/api/projects/${f.projectId}/workbench-observations`, payload: {
+      runId: recorded.runId, revision, pass: "mute_visual", method: "continuous_video", observer: "审片者", observation: "复查运动及两端接点", startFrame: 4, endFrame: 13
+    } });
+    assert.equal(checked.statusCode, 200, checked.body);
+    const evidence = checked.json().review.evidenceRecords.at(-1);
+    const resolution = await server.inject({ method: "POST", url: `/api/projects/${f.projectId}/editorial-resolutions`, payload: {
+      runId: recorded.runId, revision, pass: "mute_visual", findingId: finding.id, evidenceIds: [evidence.id], note: "已确认遮挡消失"
+    } });
+    assert.equal(resolution.statusCode, 200, resolution.body);
+    const current = await server.inject({ method: "GET", url: `/api/projects/${f.projectId}/editorial-review?revision=${revision}` });
+    assert.equal(current.json().resolutions[0].findingId, finding.id);
+    assert.equal(application.readProject(f.projectId).revision.number, revision, "观察及复查不创建视频版本");
+  } finally { await server.close(); application.close(); await f.dispose(); }
+});
 
 test("字幕文字单帧复核只关闭对应文字问题，不关闭动态也不补全连续覆盖", async () => {
   const f = await fixture();
@@ -132,7 +193,7 @@ test("局部和抽帧证据不等于全片，逐阶段累积并保留真实哈�
     assert.equal(quality.editorial.status, "partial");
     assert.equal(canExport(quality, "delivery"), true, "未审完不阻挡生成文件");
     assert.equal(canExport(quality, "draft"), true, "未审片仍允许草稿迭代");
-    assert.match(review!.evidenceRecords![0]!.contentHash, /^[a-f0-9]{64}$/);
+    assert.match(review!.evidenceRecords![0]!.contentHash!, /^[a-f0-9]{64}$/);
     const tail = await f.preview(f.base.revision, 24, 48);
     await f.app.recordEditorialQualityReview({ ...f.base, passes, observations: f.observe(tail.id, 24, 48) });
     review = await f.app.readEditorialQualityReview(f.base);

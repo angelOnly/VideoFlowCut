@@ -56,8 +56,11 @@ test("真实 MCP Schema 删除权利参数，旧参数在执行前被拒绝且�
     const current = JSON.parse(text(await client.callTool({ name: "read_project", arguments: { project_id: projectId } })));
     assert.equal(current.revision.number, 1);
     const created = JSON.parse(text(await client.callTool({ name: "manage_asset_requirements", arguments: args })));
-    assert.equal(created.snapshot.assetRequests[0].title, "画面");
-    assert.equal(Object.hasOwn(created.snapshot.assetRequests[0], "rightsRequirement"), false);
+    assert.equal(created.revision, 2);
+    assert.equal(Object.hasOwn(created, "snapshot"), false);
+    const request = created.result.objects.find((entry: { collection: string }) => entry.collection === "assetRequests").value;
+    assert.equal(request.title, "画面");
+    assert.equal(Object.hasOwn(request, "rightsRequirement"), false);
   } finally { await client.close(); await transport.close(); await rm(workspace, { recursive: true, force: true }); }
 });
 

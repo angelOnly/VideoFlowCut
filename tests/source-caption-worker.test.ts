@@ -244,7 +244,7 @@ test("Provider 两个带自然标点的 v4 字幕段在同一 Worker 提交中�
     }
     assert.equal(fixture.app.trackJob(retry.id).status, "succeeded");
     assert.equal(completed.counters.creates, 1, "已记录外部 Run 的 retry 绝不能再次 POST");
-    assert.ok(completed.counters.reads >= 2, "retry 必须重新读取已有 Run，而不是猜测已成功");
+    assert.equal(completed.counters.reads, 1, "已保存并验过哈希的原结果应直接复用，无需再次查询外部 Run");
     const retried = fixture.app.readProject(fixture.projectId).snapshot;
     assert.equal(retried.sourceCaptionPrograms.length, 1);
     assert.equal(retried.sourceCaptionPrograms[0]?.id, program.id, "幂等恢复不能生成第二份默认 Program");

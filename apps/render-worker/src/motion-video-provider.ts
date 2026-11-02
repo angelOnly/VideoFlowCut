@@ -8,6 +8,7 @@ import { readRuntimeConfig } from "@videocut/project-overview";
 import type { MotionSubmission, MotionVideoProvider } from "../../../packages/motion-work/src/schema.js";
 import type { MotionVideoClip, MotionVideoPlan } from "./motion-video-plan.js";
 import { hashMotionFile } from "./motion-video.js";
+import { mediaSampling } from "./media-sampling.js";
 
 interface Chunk { key: string; bytes: number; touched: number; hashes: string[]; count: number }
 const digest = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
@@ -35,8 +36,8 @@ async function acquireCacheLock(cacheRoot: string) {
 }
 
 /** 源缓存是可重建数据；原片和正式作品不在这个目录，也不参与回收。 */
-export async function createMotionVideoProvider(root: string, _directory: string, work: MotionSubmission, plan: MotionVideoPlan, signal?: AbortSignal, limits = readRuntimeConfig().motion): Promise<MotionVideoProvider & { stats: Record<string, number> }> {
-  const cacheRoot = join(root, ".cache", "motion-video");
+export async function createMotionVideoProvider(root: string, _directory: string, work: MotionSubmission, plan: MotionVideoPlan, signal?: AbortSignal, limits: Pick<ReturnType<typeof readRuntimeConfig>["motion"], "frameCacheBytes" | "scratchBytes" | "diskReserveBytes" | "frameTimeoutMs"> = readRuntimeConfig().motion, cacheDirectory?: string): Promise<MotionVideoProvider & { stats: Record<string, number> }> {
+  const cacheRoot = cacheDirectory ?? join(root, ".cache", "motion-video");
   await mkdir(cacheRoot, { recursive: true });
   const cacheRelative = relative(await realpath(root), await realpath(cacheRoot));
   if (isAbsolute(cacheRelative) || cacheRelative.startsWith("..")) throw new Error("MOTION_VIDEO_PATH_REJECTED");
@@ -101,10 +102,9 @@ export async function createMotionVideoProvider(root: string, _directory: string
     await mkdir(pendingDir);
     const geometry = clip.source.geometry;
     // seek 保留关键帧至目标之间的 PTS；每个块沿同一个绝对采样网格，不能重置 STARTPTS。
-    const origin = geometry.startTimeSeconds + phase / (work.fps * 1000);
-    const seek = Math.max(geometry.startTimeSeconds, origin + start / work.fps);
-    const filter = `setpts=PTS-(${origin})/TB,fps=${work.fps}:start_time=${start / work.fps}:round=up:eof_action=pass,scale=${geometry.rotation % 180 ? clip.height : clip.width}:${geometry.rotation % 180 ? clip.width : clip.height},setsar=1${geometry.rotation === 90 ? ",transpose=cclock" : geometry.rotation === 180 ? ",hflip,vflip" : geometry.rotation === 270 ? ",transpose=clock" : ""}`;
-    const child = spawn("ffmpeg", ["-v", "error", "-nostdin", "-threads", "1", "-noautorotate", "-copyts", "-noaccurate_seek", "-seek_timestamp", "1", "-ss", String(seek), "-i", clip.source.path, "-map", `0:${geometry.streamIndex}`, "-an", "-sn", "-dn", "-vf", filter, "-frames:v", String(count), "-pix_fmt", "rgba", "-fps_mode", "passthrough", "-f", "rawvideo", "pipe:1"], { windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
+    const sampling = mediaSampling(geometry.startTimeSeconds, work.fps, start, phase);
+    const filter = `${sampling.filter},scale=${geometry.rotation % 180 ? clip.height : clip.width}:${geometry.rotation % 180 ? clip.width : clip.height},setsar=1${geometry.rotation === 90 ? ",transpose=cclock" : geometry.rotation === 180 ? ",hflip,vflip" : geometry.rotation === 270 ? ",transpose=clock" : ""}`;
+    const child = spawn("ffmpeg", ["-v", "error", "-nostdin", "-threads", "1", "-noautorotate", ...sampling.inputArgs, "-i", clip.source.path, "-map", `0:${geometry.streamIndex}`, "-an", "-sn", "-dn", "-vf", filter, "-frames:v", String(count), "-pix_fmt", "rgba", "-fps_mode", "passthrough", "-f", "rawvideo", "pipe:1"], { windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
     let stderr = "", timeout = false, bytes = 0, frames = 0;
     const hashes: string[] = [];
     child.stderr.on("data", part => { stderr = (stderr + String(part)).slice(-4000); });
@@ -205,12 +205,12 @@ export async function createMotionVideoProvider(root: string, _directory: string
       const count = Math.min(work.fps * 2, Math.ceil(clip.source.geometry.durationMs * work.fps / 1000), Math.floor((Math.min(64 * 1024 * 1024, limits.scratchBytes) - 16384) / perFrame));
       return Math.max(maximum, Math.max(1, count) * perFrame + 16384);
     }, 0),
-    reserveDiskSpace,
+    reserveDiskSpace(bytes) { const task = queue.then(() => reserveDiskSpace(bytes)); queue = task.catch(() => undefined); return task; },
     getFrame(slot, frame) {
       // 所有 FFmpeg 解码串行；相同请求排队后命中缓存，不产生第二份解码。
       const task = queue.then(() => get(slot, frame)); queue = task.catch(() => undefined); return task;
     },
-    async releaseBefore() { await evict(0); },
+    releaseBefore() { const task = queue.then(() => evict(0)); queue = task.catch(() => undefined); return task; },
     async verifySources() {
       controller.signal.throwIfAborted();
       await queue;

@@ -1,3 +1,4 @@
+import { motionWorkForCue } from "@videocut/contracts";
 import { inspectEffectContentContract, type ProjectSnapshot } from "@videocut/contracts";
 
 /**
@@ -13,6 +14,7 @@ export interface CompositionReachability {
   effectCueIds: ReadonlySet<string>;
   explainerProgramIds: ReadonlySet<string>;
   assetIds: ReadonlySet<string>;
+  motionWorkIds: ReadonlySet<string>;
 }
 
 function resolvePlaybackReachability(snapshot: ProjectSnapshot): CompositionReachability {
@@ -33,7 +35,7 @@ function resolvePlaybackReachability(snapshot: ProjectSnapshot): CompositionReac
     })
     .map((item) => item.id));
   const effectCueIds = new Set((snapshot.effectCues ?? [])
-    .filter((cue) => cue.status === "ready" && inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline).ready)
+    .filter((cue) => cue.status === "ready" && inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline, snapshot.motionWorks).ready)
     .map((cue) => cue.id));
   const explainerProgramIds = new Set((snapshot.explainerPrograms ?? [])
     .filter((program) => !program.disabled && program.status === "ready" && snapshot.scenes.some((scene) => (
@@ -42,19 +44,23 @@ function resolvePlaybackReachability(snapshot: ProjectSnapshot): CompositionReac
     .map((program) => program.id));
 
   const assetIds = new Set<string>();
+  const motionWorkIds = new Set<string>();
   for (const item of snapshot.timeline.items) {
     if (videoItemIds.has(item.id) || audioItemIds.has(item.id)) assetIds.add(item.assetId);
   }
   for (const cue of snapshot.effectCues ?? []) {
     if (!effectCueIds.has(cue.id)) continue;
     for (const binding of cue.assetBindings ?? []) assetIds.add(binding.assetId);
+    const work = motionWorkForCue(snapshot, cue);
+    if (work) { motionWorkIds.add(work.id); for (const source of [...work.imageSources, ...work.videoSources]) assetIds.add(source.assetId); }
+
   }
   for (const program of snapshot.explainerPrograms ?? []) {
     if (!explainerProgramIds.has(program.id)) continue;
     for (const assetId of program.assetIds) assetIds.add(assetId);
   }
 
-  return { videoItemIds, audioItemIds, effectCueIds, explainerProgramIds, assetIds };
+  return { videoItemIds, audioItemIds, effectCueIds, explainerProgramIds, assetIds, motionWorkIds };
 }
 
 export type VisualRange = { startFrame: number; endFrame: number };

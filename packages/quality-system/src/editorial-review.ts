@@ -1,5 +1,7 @@
+import { motionWorkForCue } from "@videocut/contracts";
 import type { ProductionCompletionScope, EditorialQualityReview, EditorialReviewEvidence, EditorialReviewFinding, EditorialReviewPass, ProjectSnapshot, QualityReport } from "@videocut/contracts";
 import { avatarBindingMatches, compileVisualComposition, effectBeatRanges, rangesOverlap, resolveCompositionReachability } from "@videocut/domain";
+import { motionRootSpanOnTimeline } from "../../contracts/src/frame-rate.js";
 
 export const EDITORIAL_PASSES: EditorialReviewPass[] = ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"];
 
@@ -53,6 +55,14 @@ export function mergeEditorialReviews(reviews: EditorialQualityReview[], revisio
   };
 }
 
+/** 显式覆盖声明优先；锚点只作为未声明覆盖时的内容关联。 */
+function cueCoversBeat(snapshot: ProjectSnapshot, cue: ProjectSnapshot["effectCues"][number], beatId: string): boolean {
+  const declared = cue.coveredNarrativeBeatIds !== undefined
+    ? cue.coveredNarrativeBeatIds.includes(beatId)
+    : cue.semanticAnchor.type === "narrative_beat" && cue.semanticAnchor.targetId === beatId;
+  return declared && effectBeatRanges(snapshot, beatId, cue.sceneId).some(range => rangesOverlap(range, cue));
+}
+
 export function productionReconciliation(snapshot: ProjectSnapshot): NonNullable<QualityReport["productionReconciliation"]> {
   const active = resolveCompositionReachability(snapshot);
   const composition = compileVisualComposition(snapshot, active);
@@ -60,8 +70,7 @@ export function productionReconciliation(snapshot: ProjectSnapshot): NonNullable
   return [...snapshot.story.beats].sort((a, b) => a.order - b.order).map((beat) => {
     // 同属一个长 Scene 不代表某个 Cue 实现了这个 Scene 内的每一拍。
     const treatments = snapshot.visualTreatments.filter((entry) => entry.narrativeBeatId === beat.id || (!entry.narrativeBeatId && Boolean(entry.sceneId && beat.sceneIds.includes(entry.sceneId))));
-    const cues = snapshot.effectCues.filter((cue) => active.effectCueIds.has(cue.id) && (!cue.visualComposition || primaryIds.has(cue.id)) && (cue.coveredNarrativeBeatIds !== undefined
-      ? cue.coveredNarrativeBeatIds.includes(beat.id) : cue.semanticAnchor.type === "narrative_beat" && cue.semanticAnchor.targetId === beat.id));
+    const cues = snapshot.effectCues.filter((cue) => active.effectCueIds.has(cue.id) && (!cue.visualComposition || primaryIds.has(cue.id)) && cueCoversBeat(snapshot, cue, beat.id));
     const cutaways = snapshot.cutaways.filter((entry) => entry.status === "ready" && treatments.some((treatment) => treatment.id === entry.visualTreatmentId) && active.videoItemIds.has(entry.timelineItemId));
     const programs = snapshot.explainerPrograms.filter((program) => active.explainerProgramIds.has(program.id) && snapshot.narrativeMap?.beats.some((entry) => entry.id === program.narrativeMapBeatId && entry.narrativeBeatId === beat.id));
     const scenes = snapshot.scenes.filter((scene) => beat.sceneIds.includes(scene.id));
@@ -80,16 +89,17 @@ export function productionReconciliation(snapshot: ProjectSnapshot): NonNullable
     for (const program of programs) for (const id of program.assetIds) connected.add(id);
     for (const cue of cues) {
       if (!overlapsBeat(cue, cue.sceneId)) continue;
+      const work = motionWorkForCue(snapshot, cue);
+      if (work) {
+        for (const image of work.imageSources) connected.add(image.assetId);
+        for (const video of work.videoSources) {
+          const range = motionRootSpanOnTimeline(video.startFrame, video.endFrame, work, cue, snapshot.timeline.fps);
+          if (range.startFrame < range.endFrame && overlapsBeat(range, cue.sceneId)) connected.add(video.assetId);
+        }
+      }
       for (const binding of cue.assetBindings) {
         const asset = snapshot.assets.find(entry => entry.id === binding.assetId);
-        if (!asset?.motion) { connected.add(binding.assetId); continue; }
-        for (const image of asset.motion.imageSources ?? []) connected.add(image.assetId);
-        for (const video of asset.motion.videoSources ?? []) {
-          // 与作品根时钟的 floor 取帧互逆：首个可消费项目帧取 ceil。
-          const startFrame = cue.startFrame + Math.ceil((video.startFrame ?? 0) * snapshot.timeline.fps / asset.motion.fps);
-          const endFrame = Math.min(cue.endFrame, cue.startFrame + Math.ceil((video.endFrame ?? asset.motion.frameCount) * snapshot.timeline.fps / asset.motion.fps));
-          if (startFrame < endFrame && overlapsBeat({ startFrame, endFrame }, cue.sceneId)) connected.add(video.assetId);
-        }
+        if (asset) connected.add(binding.assetId);
       }
     }
     for (const treatment of treatments) {
@@ -111,18 +121,17 @@ export function productionReconciliation(snapshot: ProjectSnapshot): NonNullable
             || !avatarBindingMatches(snapshot, performance, item)) continue;
           if (!item.disabled) ranges.push(...(composition.nativeVisibleRanges.get(item.id) ?? []));
           for (const cue of snapshot.effectCues.filter(entry => active.effectCueIds.has(entry.id))) {
-            for (const binding of cue.assetBindings) {
-              const motion = snapshot.assets.find(asset => asset.id === binding.assetId)?.motion;
+            const motion = motionWorkForCue(snapshot, cue);
               for (const source of motion?.videoSources ?? []) {
                 if (source.assetId !== item.assetId) continue;
-                const startFrame = cue.startFrame + Math.ceil((source.startFrame ?? 0) * snapshot.timeline.fps / motion!.fps);
-                const endFrame = Math.min(cue.endFrame, cue.startFrame + Math.ceil((source.endFrame ?? motion!.frameCount) * snapshot.timeline.fps / motion!.fps));
-                const sourceStartFrame = Math.round(source.sourceStartMs * snapshot.timeline.fps / 1000);
+                const { startFrame, endFrame } = motionRootSpanOnTimeline(source.startFrame, source.endFrame, motion!, cue, snapshot.timeline.fps);
+                if (endFrame <= startFrame) continue;
+                const sourceStartFrame = Math.round(source.sourceStartMs * snapshot.timeline.fps / 1000
+                  + (cue.sourceStartFrame ?? 0) + startFrame - cue.startFrame - source.startFrame * snapshot.timeline.fps / motion!.fps);
                 const sourceEndFrame = sourceStartFrame + endFrame - startFrame;
                 if (sourceEndFrame <= Math.round(source.sourceEndMs * snapshot.timeline.fps / 1000)
                   && avatarBindingMatches(snapshot, performance, { ...item, startFrame, endFrame, sourceStartFrame, sourceEndFrame })) ranges.push({ startFrame, endFrame });
               }
-            }
           }
         }
         if (missingReviewRanges(ranges, use.startFrame, use.endFrame).length) {
@@ -141,13 +150,15 @@ export function productionReconciliation(snapshot: ProjectSnapshot): NonNullable
 export function completionReconciliationBlockers(snapshot: ProjectSnapshot, scope: ProductionCompletionScope): string[] {
   const selected = new Set(scope.kind === "objects" ? scope.objectIds : []);
   // 失效对象也保留真实引用；不能只用当前有效对象集合而漏掉本次待修的作品。
-  const affectedCues = snapshot.effectCues.filter(cue => selected.has(cue.id) || cue.visualComposition?.replacesActorItemIds.some(id => selected.has(id)) || cue.assetBindings.some(binding => {
-    const motion = snapshot.assets.find(asset => asset.id === binding.assetId)?.motion;
-    return selected.has(binding.assetId) || [...(motion?.imageSources ?? []), ...(motion?.videoSources ?? [])].some(source => selected.has(source.assetId));
-  }));
+  const affectedCues = snapshot.effectCues.filter(cue => {
+    const work = motionWorkForCue(snapshot, cue);
+    return selected.has(cue.id) || !!cue.workId && selected.has(cue.workId) || cue.visualComposition?.replacesActorItemIds.some(id => selected.has(id))
+      || cue.assetBindings.some(binding => selected.has(binding.assetId))
+      || [...(work?.imageSources ?? []), ...(work?.videoSources ?? [])].some(source => selected.has(source.assetId));
+  });
   return productionReconciliation(snapshot).flatMap(entry => {
     if (scope.kind === "beats" && !scope.beatIds.includes(entry.beatId)) return [];
-    const selectedImplementation = affectedCues.some(cue => cue.coveredNarrativeBeatIds?.includes(entry.beatId) || cue.semanticAnchor.type === "narrative_beat" && cue.semanticAnchor.targetId === entry.beatId)
+    const selectedImplementation = affectedCues.some(cue => cueCoversBeat(snapshot, cue, entry.beatId))
       || snapshot.cutaways.some(cutaway => (selected.has(cutaway.id) || selected.has(cutaway.timelineItemId) || selected.has(cutaway.assetId)) && Boolean(cutaway.visualTreatmentId && entry.treatmentIds.includes(cutaway.visualTreatmentId)))
       || snapshot.explainerPrograms.some(program => selected.has(program.id) && snapshot.narrativeMap?.beats.some(beat => beat.id === program.narrativeMapBeatId && beat.narrativeBeatId === entry.beatId));
     return entry.structuralGaps.filter(gap => scope.kind !== "objects" || entry.sceneIds.some(id => selected.has(id))

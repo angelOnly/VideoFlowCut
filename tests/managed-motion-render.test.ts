@@ -6,7 +6,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { normalizeMotionPng, renderManagedMotion, verifyMotionPreviewFrames } from "../apps/render-worker/src/motion-renderer.js";
+import { renderManagedMotion, verifyMotionPreviewFrames } from "../apps/render-worker/src/motion-renderer.js";
 import { runProcess } from "@videocut/speech";
 import { motionFixture } from "./fixtures/managed-motion.js";
 import { PNG } from "pngjs";
@@ -54,7 +54,7 @@ test("新作品不保存安全区测量，带旧测量字段的缓存仍校验�
     const state = app.readProject(projectId);
     const asset = state.snapshot.assets.find(entry => entry.id === result.assetId)!;
     assert.equal(Object.hasOwn(asset.motion!, "visibility"), false);
-    const manifestPath = join(state.snapshot.project.rootPath, asset.motion!.sourcePath, "..", "manifest.json");
+    const manifestPath = join(state.snapshot.project.rootPath, asset.managedPath, "..", "manifest.json");
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
     assert.equal(Object.hasOwn(manifest, "visibility"), false);
     // 旧附加字段已经失去运行语义，不应引发补测或破坏合法作品缓存。
@@ -67,41 +67,6 @@ test("新作品不保存安全区测量，带旧测量字段的缓存仍校验�
     await writeFile(framePath, "损坏帧");
     await assert.rejects(runMotionJob(app, job, async () => { assert.fail("损坏缓存不能静默重生"); }));
   } finally { app.close(); await rm(root, { recursive: true, force: true }); }
-});
-
-test("PNG 归一化保持彩色与半透明像素，拒绝损坏文件和错误画幅", () => {
-  const data = Buffer.from([188, 131, 47, 255, 27, 83, 72, 127]);
-  const png = new PNG({ width: 2, height: 1 });
-  png.data = data;
-  const encoded = PNG.sync.write(png);
-  assert.deepEqual(PNG.sync.read(normalizeMotionPng(encoded, 2, 1)).data, data);
-  assert.throws(() => normalizeMotionPng(encoded, 1, 2), /MOTION_OUTPUT_MISMATCH/u);
-  assert.throws(() => normalizeMotionPng(Buffer.from("invalid"), 2, 1));
-});
-
-test("深色渐变帧无损压缩后满足缓存预算，颜色与透明度不降级", { timeout: 60_000 }, async () => {
-  const root = await mkdtemp(join(tmpdir(), "videocut-motion-gradient-"));
-  try {
-    const source = frameHtml('<div id="a" style="position:absolute;inset:0;background:radial-gradient(ellipse at 48% 40%,#182127,#0b1014 52%,#050709)"></div>',`document.querySelector('#a').style.opacity=f===0?'1':'.5';`);
-    await renderManagedMotion(sizeMotionFixture({ ...motionFixture, source, width: 768, height: 1344, fps: 24, durationInFrames: 2 }), root);
-    for (let frame = 0; frame < 2; frame++) {
-      const bytes = await readFile(join(root, "frames", `frame-0000${frame}.png`));
-      const decoded = PNG.sync.read(bytes);
-      const oldEncoding = PNG.sync.write(decoded, { colorType: 6, inputColorType: 6, bitDepth: 8, deflateLevel: 6, deflateStrategy: 3 });
-      const filtered = PNG.sync.write(decoded, { colorType: 6, inputColorType: 6, bitDepth: 8, deflateLevel: 6, deflateStrategy: 0 });
-      assert.deepEqual(PNG.sync.read(oldEncoding).data, decoded.data, "无损压缩不得改变任一 RGBA 像素");
-      assert.deepEqual(normalizeMotionPng(oldEncoding, 768, 1344), bytes, "旧编码输入应得到相同的新编码");
-      assert.equal(bytes[25], 6);
-      assert.equal(decoded.data[3], frame === 0 ? 255 : 128);
-      assert.ok(bytes.length < oldEncoding.length * 0.8, "不能退回使渐变膨胀的编码方式");
-      assert.ok(bytes.length <= filtered.length, "选择无滤波编码不能让其它画面体积退步");
-      if (frame === 0) {
-        assert.ok(bytes.length < filtered.length * 0.9, "只替换 RLE 仍不足，渐变需要更合适的过滤方式");
-        assert.ok(oldEncoding.length * 467 > 256 * 1024 * 1024, "复现旧编码仅背景就超预算");
-        assert.ok(bytes.length * 467 < 256 * 1024 * 1024, "保持现有预算也能容纳完整背景");
-      }
-    }
-  } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test("真实 Chromium 中的外部资源、动态求值被第二层隔离拒绝", { timeout: 60_000 }, async () => {

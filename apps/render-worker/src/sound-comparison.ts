@@ -3,15 +3,16 @@ import { join } from "node:path";
 import type { EditingApplication } from "@videocut/application";
 import type { JobRecord, ImpactReport } from "@videocut/contracts";
 import { assertTimelineValid, assertProjectGraphValid, DomainError, emptyImpact } from "@videocut/domain";
-import { soundComparisonSchema, soundDependencySignature } from "../../../packages/edit-application/src/sound-review.js";
+import { soundComparisonSchema, soundComparisonSignature, soundDependencySignature } from "../../../packages/edit-application/src/sound-review.js";
 import { inspectFinalAudio } from "../../../packages/media-intelligence/src/acoustics.js";
 import { RevisionRenderer, type RevisionRenderEngine } from "./exporter.js";
 
 export async function runSoundComparison(app: EditingApplication, job: JobRecord, renderer: RevisionRenderEngine = new RevisionRenderer()) {
-  const { dependencySignature, retryOfJobId, ...raw } = job.payload;
+  const { dependencySignature, renderIdentity, retryOfJobId, ...raw } = job.payload;
   const input = soundComparisonSchema.parse(raw);
   const revision = app.repository.getRevision(job.projectId, input.revision);
-  if (soundDependencySignature(revision.snapshot) !== dependencySignature) throw new DomainError("比较依赖不一致", "SOUND_COMPARISON_STALE");
+  if (typeof renderIdentity !== "string" || renderIdentity !== (process.env.VIDEOFLOWCUT_RELEASE_ID ?? "manual")
+    || soundComparisonSignature(revision.snapshot, input, renderIdentity) !== dependencySignature) throw new DomainError("比较依赖不一致", "SOUND_COMPARISON_STALE");
   const directory = join(revision.snapshot.project.rootPath, "previews", "sound-comparison", job.id);
   await mkdir(directory, { recursive: true });
   const variants = [...input.alternatives, ...(input.includeWithout ? [null] : [])];
@@ -28,7 +29,8 @@ export async function runSoundComparison(app: EditingApplication, job: JobRecord
     const { probeMedia } = await import("@videocut/speech");
     const metadata = await probeMedia(path);
     const audio = metadata.hasAudio ? await inspectFinalAudio(path) : { hasAudio: false, decoded: false };
-    outputs.push({ name: alternative?.name ?? "不使用该音效", path, relativePath: `previews/sound-comparison/${job.id}/${index}.mp4`, settings: alternative, audio, signature: soundDependencySignature(snapshot) });
+    outputs.push({ name: alternative?.name ?? "不使用该音效", path, relativePath: `previews/sound-comparison/${job.id}/${index}.mp4`, settings: alternative, audio,
+      signature: soundDependencySignature(snapshot, { method: "audiovisual", fromFrame: input.fromFrame, toFrame: input.toFrame, renderIdentity }) });
     app.recordJobCheckpoint(job.id, { outputs });
   }
   return { revision: input.revision, fromFrame: input.fromFrame, toFrame: input.toFrame, dependencySignature, outputs, adopted: false, reviewRequired: true };

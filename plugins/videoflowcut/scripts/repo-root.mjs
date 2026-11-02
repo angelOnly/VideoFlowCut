@@ -90,9 +90,9 @@ function calculateReleaseId(root, pluginVersion) {
  * 发行插件只能执行自身 runtime/dist 的 CommonJS 入口。这里集中校验生成物，
  * 避免安装缓存悄悄退回到仓库的 TypeScript 源码或 tsx。
  */
-export function resolveReleaseRuntime(pluginRoot) {
+export function resolveReleaseRuntime(pluginRoot, distributionDirectory) {
   assertSupportedNodeRuntime();
-  const root = join(pluginRoot, "runtime", "dist");
+  const root = distributionDirectory ?? join(pluginRoot, "runtime", "dist");
   const release = {
     root,
     manifest: join(root, "manifest.json"),

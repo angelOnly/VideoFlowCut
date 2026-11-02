@@ -6,7 +6,7 @@ import test from "node:test";
 import { createApplication } from "@videocut/application";
 import { canExport, evaluateQuality } from "@videocut/quality";
 import { probeMedia, runProcess } from "@videocut/speech";
-import { runExportJob, runRenderPreflight } from "../apps/render-worker/src/exporter.js";
+import { runExportJob, runRenderPreflight, runRenderPreflightJob } from "../apps/render-worker/src/exporter.js";
 import { createServer } from "../apps/server/src/app.js";
 
 test("质量、预检、Worker 用途一致；无 AI 审阅可导出，人工定稿验证具体文件", async () => {
@@ -36,10 +36,15 @@ test("质量、预检、Worker 用途一致；无 AI 审阅可导出，人工定
     // 测试替身只校验导出调度与文件保护；完整 Remotion 渲染在独立候选验收覆盖。
     const renderer = { render: async (_snapshot: unknown, output: string) => { await copyFile(file, output); } } as never;
     const checkJob = app.submitRenderPreflight({ projectId, purpose: "delivery", idempotencyKey: "same-request" });
-    const delivery = app.submitExport({ projectId, purpose: "delivery", idempotencyKey: "same-request" });
+    const checked = await runRenderPreflightJob(app, checkJob);
+    app.updateJob(checkJob.id, { status: "succeeded", result: checked });
+    const delivery = app.submitExport({ projectId, purpose: "delivery", idempotencyKey: "same-request", preflightJobId: checkJob.id });
     assert.notEqual(checkJob.id, delivery.id, "同业务键的预检不能冒充导出结果");
     assert.equal(delivery.kind, "export");
     assert.ok((await runExportJob(app, delivery, renderer)).artifactId);
+    const reused = app.trackJob(delivery.id).result!.validationContext as { reusedFromJobId?: string; reusedProbeCount: number };
+    assert.equal(reused.reusedFromJobId, checkJob.id);
+    assert.ok(reused.reusedProbeCount > 0);
     const draft = await runExportJob(app, app.submitExport({ projectId, purpose: "draft" }), renderer);
     const draftArtifact = app.readExportArtifact({ projectId, artifactId: String(draft.artifactId) });
     assert.equal(draftArtifact.approval, undefined);

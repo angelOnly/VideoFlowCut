@@ -6,7 +6,7 @@ export type Id = string;
 export type * from "./sfx-generation.js";
 export type * from "./source-review.js";
 export * from "./frame-rate.js";
-import { motionDurationAtFps } from "./frame-rate.js";
+import { motionDurationAtFps, motionSourceRange, motionRootRangeAtProjectRange } from "./frame-rate.js";
 export type * from "./media-intelligence.js";
 import type { MediaAdoption, SoundPlan, AudioRole, AudioEnvelopePoint, MotionEventMap, SourceTimeRange } from "./media-intelligence.js";
 
@@ -207,6 +207,8 @@ export type JobKind =
   /** 文生、图生、首尾帧和多参考视频均走同一受管的 Bridge 视频生成 Job。 */
   | "video_generation"
   | "motion_generation"
+  /** 明确采用已有作品并接续预览，不再次生成画面。 */
+  | "motion_adoption"
   | "avatar_generation"
   | "speech_assembly"
   | "preview"
@@ -214,6 +216,22 @@ export type JobKind =
   | "export";
 
 export type TrackKind = "video" | "audio" | "caption";
+
+export type MotionOnSuccess = {
+  cueId: Id;
+  audioPolicy: "rebind_unchanged_events";
+} & (
+  | { action: "replace_cue" }
+  | { action: "replace_range"; targetRange: { startFrame: number; endFrame: number } }
+);
+export interface FrozenMotionContinuation {
+  request: MotionOnSuccess;
+  targetDependencyHash: string;
+}
+export type MotionContinuationResult =
+  | { status: "applied"; workId: Id; assetId?: Id; appliedRevision: number;
+      cueSegments: { oldCueId: Id; segments: Array<{ cueId: Id; startFrame: number; endFrame: number }> } }
+  | { status: "needs_reconfirmation"; workId: Id; assetId?: Id; conflicts: Array<{ objectId: Id; reason: string }> };
 /** 当前阶段只把独立 BGM / SFX 作为可编辑声音包装；主 Dialogue 仍由 SpeechAsset 管理。 */
 export type AudioCueKind = "bgm" | "sfx";
 export type AudioCueStatus = "ready" | "stale";
@@ -284,17 +302,23 @@ export interface MediaMetadata {
   mime?: string;
 }
 
+export type { MotionWork } from "./motion-work.js";
+export { motionWorkForCue, motionMediaForCue } from "./motion-work.js";
 export type MotionReviewOutcome = "passed" | "failed" | "inconclusive";
 export interface MotionReviewEvidenceInput {
-  kind: "work_proxy" | "project_preview";
+  kind: "work_proxy" | "project_preview" | "workbench";
+  observer?: string;
   previewJobId?: Id;
   startFrame: number;
   endFrame: number;
   method: "frames" | "continuous_video" | "audio" | "audiovisual";
 }
 export interface MotionReviewEvidence extends MotionReviewEvidenceInput {
-  relativePath: string;
-  contentHash: string;
+  workbenchIdentity?: WorkbenchEvidenceIdentity;
+  relativePath?: string;
+  contentHash?: string;
+  snapshotHash?: string;
+  renderReleaseId?: string;
   revision: number;
   workStartFrame: number;
   workEndFrame: number;
@@ -303,7 +327,8 @@ export interface MotionReviewEvidence extends MotionReviewEvidenceInput {
 
 /** 审阅独立于创作快照，按不可变作品版本和真实证据解释。 */
 export interface MotionWorkReview {
-  assetId: Id;
+  workId?: Id;
+  assetId?: Id;
   version: string;
   outcome: MotionReviewOutcome;
   evidence?: MotionReviewEvidence;
@@ -311,13 +336,20 @@ export interface MotionWorkReview {
   reviewedAt: string;
 }
 export interface SoundMixReview {
-  baseRevision: number; previewJobId: string; previewHash: string;
+  baseRevision: number; previewJobId?: string; previewHash?: string;
   outcome: MotionReviewOutcome; method: "audio" | "audiovisual"; note: string;
   signature: string; fromFrame: number; toFrame: number; recordedAt: string;
+  /** 观察仍属于实际播放的预览版本；历史记录不自动获得跨版本适用性。 */
+  dependencySchemaVersion?: 2;
+  previewRevision?: number;
+  renderIdentity?: string;
+  renderReleaseId?: string;
+  evidenceScope?: "source_preview" | "workbench";
+  workbenchEvidence?: EditorialReviewEvidence;
 }
 export interface ProjectReviews { motions: MotionWorkReview[]; soundMixes: SoundMixReview[] }
 
-export function managedMotionReviewOutcome(motion: Asset["motion"], review?: MotionWorkReview): MotionReviewOutcome | undefined {
+export function managedMotionReviewOutcome(motion: { version: string; frameCount: number } | undefined, review?: MotionWorkReview): MotionReviewOutcome | undefined {
   if (!review || !motion || review.version !== motion.version) return undefined;
   if (review.outcome === "passed" && (!review.evidence || !["continuous_video", "audiovisual"].includes(review.evidence.method)
     || review.evidence.workStartFrame !== 0 || review.evidence.workEndFrame !== motion.frameCount)) return undefined;
@@ -328,6 +360,8 @@ export type { PresenterUse, AvatarAudioSlice, AvatarSourceInput, AvatarSourceRec
 import type { PresenterUse, AvatarSourceReceipt, AvatarSourceBinding } from "./avatar-source.js";
 
 export interface Asset {
+  /** 受管媒体的唯一源码作品引用；媒体字节仍使用 sourceHash。 */
+  derivedFromWorkId?: Id;
   avatarSourceReceipt?: AvatarSourceReceipt;
   id: Id;
   name: string;
@@ -344,6 +378,7 @@ export interface Asset {
   failureReason?: string;
   /** 受管作品保留源码来源和透明帧缓存；审阅代理不能替代正式 Alpha 合成。 */
   motion?: {
+    workId?: Id;
     jobId: Id;
     version: string;
     engineVersion: string;
@@ -356,12 +391,14 @@ export interface Asset {
     videoSources?: Array<{ slot: string; assetId: Id; sourceHash: string; sourceStartMs: number; sourceEndMs: number; startFrame?: number; endFrame?: number }>;
     /** 字体随发行固定，不作为视频素材；保存实际文件身份便于追溯。 */
     fontSources?: Array<{ slot: string; fontId: string; sourceHash: string; weight: number; style: "normal" | "italic" }>;
-    sourcePath: string;
+    sourcePath?: string;
     /** 仅历史 PNG 资产拥有；新作品使用正式 output。 */
     framesDirectory?: string;
     output?: { kind: "opaque_video" | "alpha_video"; path: string; hash: string; codec: string; pixelFormat: string };
     preview?: { path: string; hash: string };
     pixelKey?: string;
+    /** 正式局部媒体在完整源码中的根范围；frameCount 仍是文件实际帧数。 */
+    rootRange?: { startFrame: number; endFrame: number; fullDurationInFrames: number };
     frameCount: number;
     fps: number;
     width: number;
@@ -1103,6 +1140,11 @@ export interface EffectMotion {
 }
 
 export interface EffectCue {
+  /** ManagedMotion 唯一作品版本；源范围始终指向完整作品，单位为项目帧。 */
+  workId?: Id;
+  /** 仅 ManagedMotion；与 TimelineItem 一样按项目 fps 表示媒体源范围。 */
+  sourceStartFrame?: number;
+  sourceEndFrame?: number;
   /** 仅 fullscreen ManagedMotion 接管主画面；不改变原 Item 的声音和时钟。 */
   visualComposition?: { role: "primary"; replacesActorItemIds: Id[] };
   /** 本次放置兑现的叙事点，与决定位置的单一时间锚点分开。 */
@@ -1147,7 +1189,7 @@ const finiteEffectNumber = (value: unknown): boolean => typeof value === "number
  * 每种 Registry 效果都必须消费项目真实内容。此函数不评价动效好不好，
  * 只阻止缺素材、缺文案时把“示例卡/默认口号”渲染进 Preview 或成片。
  */
-export function inspectEffectContentContract(cue: EffectCue, assets: readonly Asset[], canvas?: { width: number; height: number; fps: number }): EffectContentContractResult {
+export function inspectEffectContentContract(cue: EffectCue, assets: readonly Asset[], canvas?: { width: number; height: number; fps: number }, motionWorks: readonly import("./motion-work.js").MotionWork[] = []): EffectContentContractResult {
   const readyAssetIds = new Set(assets.filter((asset) => asset.status === "ready").map((asset) => asset.id));
   const boundAssetCount = (cue.assetBindings ?? []).filter((binding) => readyAssetIds.has(binding.assetId)).length;
   const props = cue.props ?? {};
@@ -1158,15 +1200,22 @@ export function inspectEffectContentContract(cue: EffectCue, assets: readonly As
 
   switch (cue.type) {
     case "ManagedMotion": {
-      const binding = cue.assetBindings.find((item) => item.slot === "motion");
-      const asset = assets.find((item) => item.id === binding?.assetId && item.status === "ready");
-      if (!asset?.motion) missing.push("已渲染的受管 Remotion 作品");
+      const work = motionWorks.find(item => item.id === cue.workId);
+      if (!work) missing.push("已登记的固定源码作品 workId");
       else {
-        if (motionDurationAtFps(asset.motion.frameCount, asset.motion.fps, canvas?.fps ?? asset.motion.fps) !== cue.endFrame - cue.startFrame) missing.push("作品完整时长（不可隐式裁切或拉伸）");
+        const total = motionDurationAtFps(work.frameCount, work.fps, canvas?.fps ?? work.fps);
+        const { startFrame: sourceStart, endFrame: sourceEnd } = motionSourceRange(cue, work, canvas?.fps ?? work.fps);
+        if (!Number.isInteger(sourceStart) || !Number.isInteger(sourceEnd) || sourceStart < 0 || sourceEnd > total || sourceEnd <= sourceStart
+          || sourceEnd - sourceStart !== cue.endFrame - cue.startFrame) missing.push("有效作品源范围（显式选段且不可拉伸）");
+        const rootRange = motionRootRangeAtProjectRange(sourceStart, sourceEnd, work.fps, canvas?.fps ?? work.fps);
+        let cursor = rootRange.startFrame;
+        const requiredEnd = rootRange.endFrame;
+        for (const range of [...work.readyRanges].sort((a,b) => a.startFrame-b.startFrame)) if (range.startFrame <= cursor && range.endFrame > cursor) cursor = range.endFrame;
+        if (cursor < requiredEnd) missing.push("作品已发布的可用范围");
         // 审阅状态独立于技术就绪；未审或有观感问题的作品仍可放置和修订。
-        if (canvas && (asset.motion.width !== canvas.width || asset.motion.height !== canvas.height)) missing.push("与当前画布匹配的作品版本");
+        if (canvas && (work.width !== canvas.width || work.height !== canvas.height)) missing.push("与当前画布匹配的作品版本");
       }
-      if (cue.assetBindings.length !== 1) missing.push("唯一的 motion 素材绑定；图片在作品内绑定");
+      if (cue.assetBindings.length !== 0) missing.push("ManagedMotion 只引用 workId；图片在作品内绑定");
       if (Object.keys(props).length || cue.spatialAnchor !== "full_frame" || cue.stylePackId !== "managed-source" || cue.intensity !== 1
         || cue.motion.enterPreset !== "none" || cue.motion.settlePreset !== "hold" || cue.motion.exitPreset !== "none"
         || cue.motion.enterFrames !== 0 || cue.motion.exitFrames !== 0 || cue.motion.holdFrames !== cue.endFrame - cue.startFrame) missing.push("固定作品参数；布局、样式和运动修改须生成新版本");
@@ -1574,7 +1623,12 @@ export interface EditorialReviewFinding {
 /** 范围使用成片坐标、endFrame 排他；抽帧不能充当连续声画审阅。 */
 export interface EditorialReviewObservation {
   pass: EditorialReviewPass;
-  previewJobId: Id;
+  /** 缺省表示现有预览文件证据；工作台观察不伪造媒体任务。 */
+  source?: "preview" | "workbench";
+  previewJobId?: Id;
+  observer?: string;
+  /** 观察端自报环境，仅用于复现；不据此授予审阅资格。 */
+  clientEnvironment?: string;
   startFrame: number;
   endFrame: number;
   method: "frames" | "continuous_video" | "audio" | "audiovisual";
@@ -1584,9 +1638,22 @@ export interface EditorialReviewObservation {
 export interface EditorialReviewEvidence extends EditorialReviewObservation {
   id: Id;
   revision: number;
-  relativePath: string;
-  contentHash: string;
+  relativePath?: string;
+  contentHash?: string;
+  /** 工作台观察固定项目快照和当时 Runtime 身份，不表示程序已替人看听。 */
+  snapshotHash?: string;
+  renderReleaseId?: string;
+  workbenchIdentity?: WorkbenchEvidenceIdentity;
   recordedAt: string;
+}
+
+/** 服务端核对实际资源字节和固定作品；不创建另一套项目状态。 */
+export interface WorkbenchEvidenceIdentity {
+  works: Array<{ workId: Id; definitionHash: string }>;
+  resources: Array<{ assetId: Id; hash: string }>;
+  fonts: Array<{ fontId: string; hash: string }>;
+  engineVersion: string;
+  dependencies: { hyperframes: string; gsap: string };
 }
 
 export interface EditorialFindingResolution {
@@ -1756,6 +1823,8 @@ export interface AgentWorkOrder {
   intent: string;
   /** 创建时已在该 Revision 中存在的对象 ID；后续对象被删除时仍保留这条历史引用。 */
   relatedObjectIds: Id[];
+  /** 返修意见来自哪个实际观察版本和成片帧范围。 */
+  reviewContext?: { revision: number; frameRange?: { startFrame: number; endFrame: number }; findingIds?: Id[] };
   status: AgentWorkOrderStatus;
   /** 保存该工作单的 Revision。 */
   createdRevision: number;
@@ -1825,6 +1894,7 @@ export interface RepairTicket {
 }
 
 export interface ProjectSnapshot {
+  motionWorks?: import("./motion-work.js").MotionWork[];
   project: {
     id: Id;
     name: string;
@@ -2034,6 +2104,16 @@ export interface CommandResult {
   impact: ImpactReport;
 }
 
+export interface CommandReceipt<T> {
+  projectId: Id;
+  revision: number;
+  changedIds: Id[];
+  staleIds: Id[];
+  dirtyRanges: ImpactReport["dirtyRanges"];
+  warnings: string[];
+  result: T;
+}
+
 export interface EditorFocus {
   projectId: Id;
   revision: number;
@@ -2041,6 +2121,8 @@ export interface EditorFocus {
   itemId?: Id;
   effectCueId?: Id;
   frame?: number;
+  fromFrame?: number;
+  toFrame?: number;
 }
 
 export const EFFECT_TYPES: EffectType[] = [

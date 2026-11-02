@@ -22,6 +22,7 @@ type Context = {
   sceneId?: string;
   cueId?: string;
   assetId?: string;
+  workId?: string;
   repairTicketId?: string;
   releaseHistory?: Array<{ previousReleaseId: string; releaseId: string; reason: string }>;
   iterations: Array<Record<string, unknown>>;
@@ -87,6 +88,25 @@ const waitJob = async (jobId: string) => {
   throw new Error(`候选 Job 超时，保留原 ID 对账：${jobId}`);
 };
 
+
+// 此脚本的 render 阶段明确验收文件；正式制作的工作台观察无需调用此阶段。
+const submitRenderedMotion = async (input: Record<string, unknown>) => {
+  const prepared = await call("register_motion_work", input);
+  const ready = await waitJob(prepared.id);
+  const current = await project();
+  return call("submit_motion_work", { project_id: context.projectId, base_revision_id: current.revision.number,
+    idempotency_key: `${input.idempotency_key}-media`, work_id: ready.result.workId });
+};
+const readRenderedMotion = async (jobId: unknown) => {
+  const job = await call("track_job", { job_id: jobId });
+  assert.equal(job.status, "succeeded");
+  const current = await project();
+  const asset = current.snapshot.assets.find((entry: { id: string }) => entry.id === job.result.assetId);
+  assert.ok(asset?.motion?.workId, "文件任务必须指向真实固定作品");
+  const { work } = await call("read_motion_work", { project_id: context.projectId, work_id: asset.motion.workId });
+  return { job, asset, work };
+};
+
 try {
   await client.connect(transport);
   const catalog = await client.listTools();
@@ -119,9 +139,9 @@ try {
     context.revision = current.revision.number;
     const iteration = context.iterations.at(-1);
     assert.ok(iteration?.motionJobId, "尚无可对账作品");
-    const rendered = await call("read_motion_work", { project_id: context.projectId, job_id: iteration.motionJobId });
+    const rendered = await readRenderedMotion(iteration.motionJobId);
     assert.equal(rendered.job.status, "succeeded");
-    context.assetId = rendered.asset.id;
+    context.assetId = rendered.asset.id; context.workId = rendered.work.id;
     Object.assign(iteration, { assetId: context.assetId, workPreview: join(context.projectRoot!, rendered.asset.managedPath), workVersion: rendered.asset.motion.version });
     await writeFile(`${contextPath}.snapshot.json`, JSON.stringify(current, null, 2));
   } else if (stage === "blocker") {
@@ -152,42 +172,43 @@ try {
     assert.equal(JSON.stringify(await project()), beforeAudit, "委派审计不能改变成片事实");
     if (stage === "review") {
       assert.ok(context.assetId && input.motion_review, "必须提供真实作品与子代理审阅结论");
-      const reviewed = await call("review_motion_work", { ...input.motion_review, project_id: context.projectId, base_revision_id: before.revision.number, asset_id: context.assetId });
-      Object.assign(context.iterations.at(-1)!, { workReview: reviewed.snapshot.assets.find((asset: { id: string }) => asset.id === context.assetId).motion.review });
+      const reviewed = await call("review_motion_work", { ...input.motion_review, project_id: context.projectId, base_revision_id: before.revision.number, work_id: context.workId, asset_id: context.assetId });
+      Object.assign(context.iterations.at(-1)!, { workReview: (await project()).reviews.motions.at(-1) });
     }
     if (stage === "render") {
       const work = motionSubmissionSchema.parse(input.work);
       assert.deepEqual([work.width, work.height, work.fps], [before.snapshot.timeline.width, before.snapshot.timeline.height, before.snapshot.timeline.fps]);
       assert.equal(Object.keys(work.imageBindings).length, 0, "此独立验收只接受无外部素材的作品");
-      const submitted = await call("submit_motion_work", { project_id: context.projectId, base_revision_id: before.revision.number, idempotency_key: input.delegation.assignment_id, work: { ...work, ...(context.assetId ? { previousAssetId: context.assetId } : {}) } });
+      const submitted = await submitRenderedMotion({ project_id: context.projectId, base_revision_id: before.revision.number, idempotency_key: input.delegation.assignment_id, work });
       context.iterations.push({ delegation: input.delegation, inputRevision: before.revision.number, motionJobId: submitted.id });
       await writeFile(contextPath, JSON.stringify(context, null, 2));
       await waitJob(submitted.id);
-      const rendered = await call("read_motion_work", { project_id: context.projectId, job_id: submitted.id });
-      context.assetId = rendered.asset.id;
+      const rendered = await readRenderedMotion(submitted.id);
+      context.assetId = rendered.asset.id; context.workId = rendered.work.id;
       Object.assign(context.iterations.at(-1)!, { assetId: context.assetId, workPreview: join(context.projectRoot!, rendered.asset.managedPath), workVersion: rendered.asset.motion.version, reviewStatus: "等待原子代理审阅真实作品后提交 compose 输入" });
     }
     if (stage === "compose") {
       const work = motionSubmissionSchema.parse(input.work);
       assert.ok(context.assetId && context.iterations.at(-1), "必须先生成作品并回传子代理");
-      const rendered = await call("read_motion_work", { project_id: context.projectId, job_id: context.iterations.at(-1)!.motionJobId });
+      const rendered = await readRenderedMotion(context.iterations.at(-1)!.motionJobId);
       assert.equal(rendered.asset.id, context.assetId);
-      const { previousAssetId: _submittedPrevious, ...submittedWork } = motionSubmissionSchema.parse(rendered.job.payload.work);
+      const definition = JSON.parse(await readFile(join(context.projectRoot!, rendered.work.definitionPath), "utf8"));
+      const { previousAssetId: _submittedPrevious, ...submittedWork } = motionSubmissionSchema.parse(definition.work);
       const { previousAssetId: _inputPrevious, ...inputWork } = work;
       assert.deepEqual(inputWork, submittedWork, "合成必须使用已经生成的完整固定输入");
       assert.ok(input.motion_review, "必须提供子代理实际审阅结论；证据不足用 inconclusive");
-      const reviewed = await call("review_motion_work", { ...input.motion_review, project_id: context.projectId, base_revision_id: before.revision.number, asset_id: context.assetId });
-      Object.assign(context.iterations.at(-1)!, { workReview: reviewed.snapshot.assets.find((asset: { id: string }) => asset.id === context.assetId).motion.review });
+      const reviewed = await call("review_motion_work", { ...input.motion_review, project_id: context.projectId, base_revision_id: before.revision.number, work_id: context.workId, asset_id: context.assetId });
+      Object.assign(context.iterations.at(-1)!, { workReview: (await project()).reviews.motions.at(-1) });
       if (!context.sceneId) {
-        const created = await call("create_scene", { project_id: context.projectId, base_revision_id: (await project()).revision.number, type: "ExplainerScene", title: input.scene.title, purpose: input.scene.purpose, start_frame: 0, end_frame: work.durationInFrames });
-        context.sceneId = created.snapshot.scenes.at(-1).id;
+        await call("create_scene", { project_id: context.projectId, base_revision_id: (await project()).revision.number, type: "ExplainerScene", title: input.scene.title, purpose: input.scene.purpose, start_frame: 0, end_frame: work.durationInFrames });
+        context.sceneId = (await project()).snapshot.scenes.at(-1).id;
         await save();
       }
-      const placed = await call("manage_effect_cues", { project_id: context.projectId, base_revision_id: (await project()).revision.number, ...(context.cueId ? { action: "update", cue_id: context.cueId } : { action: "create", scene_id: context.sceneId, type: "ManagedMotion", layer: "fullscreen", start_frame: 0, end_frame: work.durationInFrames, semantic_anchor: { type: "scene", target_id: context.sceneId, relation: "hold_through" } }), asset_bindings: [{ slot: "motion", asset_id: context.assetId }] });
-      context.cueId ??= placed.snapshot.effectCues.at(-1).id;
+      const placed = await call("manage_effect_cues", { project_id: context.projectId, base_revision_id: (await project()).revision.number, ...(context.cueId ? { action: "update", cue_id: context.cueId } : { action: "create", scene_id: context.sceneId, type: "ManagedMotion", layer: "fullscreen", start_frame: 0, end_frame: work.durationInFrames, semantic_anchor: { type: "scene", target_id: context.sceneId, relation: "hold_through" } }), work_id: context.workId });
+      context.cueId ??= (await project()).snapshot.effectCues.at(-1).id;
       await save();
-      const preview = await call("render_preview_range", { project_id: context.projectId, revision: placed.revision.number, from_frame: 0, to_frame: work.durationInFrames, idempotency_key: `${input.delegation.assignment_id}-preview` });
-      Object.assign(context.iterations.at(-1)!, { previewJobId: preview.id, previewRevision: placed.revision.number });
+      const preview = await call("render_preview_range", { project_id: context.projectId, revision: placed.revision, from_frame: 0, to_frame: work.durationInFrames, idempotency_key: `${input.delegation.assignment_id}-preview` });
+      Object.assign(context.iterations.at(-1)!, { previewJobId: preview.id, previewRevision: placed.revision });
       await save();
       const completed = await waitJob(preview.id);
       const mediaPath = completed.result.path ?? join(context.projectRoot!, completed.result.relativePath);
@@ -199,7 +220,7 @@ try {
         inspectionBatches.push({ frames, result });
       }
       // 原 inspection 字段保留首批结果兼容旧验收记录，完整证据从 inspectionBatches 读取。
-      Object.assign(context.iterations.at(-1)!, { assetId: context.assetId, cueId: context.cueId, previewJobId: preview.id, previewRevision: placed.revision.number, preview: mediaPath, metadata, inspection: inspectionBatches[0].result, inspectionBatches, reviewStatus: "待实际子代理审阅，抽帧与技术成功不等于连续观看或审美通过" });
+      Object.assign(context.iterations.at(-1)!, { assetId: context.assetId, cueId: context.cueId, previewJobId: preview.id, previewRevision: placed.revision, preview: mediaPath, metadata, inspection: inspectionBatches[0].result, inspectionBatches, reviewStatus: "待实际子代理审阅，抽帧与技术成功不等于连续观看或审美通过" });
     }
     const audit = await call("read_skill_execution_report", { project_id: context.projectId, run_id: context.runId });
     await writeFile(`${contextPath}.audit.json`, JSON.stringify(audit, null, 2));

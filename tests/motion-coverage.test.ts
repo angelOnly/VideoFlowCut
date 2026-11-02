@@ -7,7 +7,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { createApplication } from "@videocut/application";
 import { createTimelineItem } from "@videocut/domain";
-import { productionReconciliation } from "../packages/quality-system/src/editorial-review.js";
+import { completionReconciliationBlockers, productionReconciliation } from "../packages/quality-system/src/editorial-review.js";
 import { runProcess } from "@videocut/speech";
 import { managedMotionReviewOutcome } from "@videocut/contracts";
 import { motionFixture } from "./fixtures/managed-motion.js";
@@ -34,7 +34,7 @@ async function fixture() {
   const asset = completeMotionFixture(app, { projectId, jobId: job.id, sourceHash: "fixture", engineVersion: "fixture", metadata: { durationMs: 600, width: 320, height: 320, fps: 30, hasAudio: false } });
   await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "仅测试版本传播与覆盖，不将结构断言作为真实作品审美通过。" });
   const placement = { projectId, sceneId, type: "ManagedMotion" as const, layer: "front" as const, startFrame: 10, endFrame: 28,
-    semanticAnchor: { type: "narrative_beat" as const, targetId: "a", relation: "land_on" as const }, assetBindings: [{ slot: "motion", assetId: asset.id }] };
+    semanticAnchor: { type: "narrative_beat" as const, targetId: "a", relation: "land_on" as const }, workId: asset.motion!.workId! };
   return { app, projectId, revision, sceneId, itemId, placement, close: async () => { app.close(); await rm(root, { recursive: true, force: true }); } };
 }
 
@@ -43,7 +43,7 @@ test("仅更新作品审阅不标记重渲染，真实位置修改仍传播范�
   try {
     f.app.createEffectCue({ ...f.placement, baseRevision: f.revision() });
     const before = f.app.readProject(f.projectId);
-    const assetId = f.placement.assetBindings[0]!.assetId;
+    const assetId = f.app.readProject(f.projectId).snapshot.assets.find(asset => asset.motion?.workId === f.placement.workId)!.id;
     const assetBefore = before.snapshot.assets.find(asset => asset.id === assetId)!;
     const jobsBefore = f.app.repository.listJobs(f.projectId);
     const request = { projectId: f.projectId, baseRevision: f.revision(), assetId, outcome: "inconclusive" as const,
@@ -111,7 +111,7 @@ test("合成审阅必须来自当前项目、版本和实际完整 Cue，单件�
   const f = await fixture();
   try {
     const state = f.app.createEffectCue({ ...f.placement, baseRevision: f.revision(), coveredNarrativeBeatIds: ["a", "b"] });
-    const assetId = f.placement.assetBindings[0]!.assetId;
+    const assetId = f.app.readProject(f.projectId).snapshot.assets.find(asset => asset.motion?.workId === f.placement.workId)!.id;
     const previewRoot = join(state.snapshot.project.rootPath, "previews");
     await mkdir(previewRoot, { recursive: true });
     const makePreview = async (silent: boolean) => {
@@ -139,7 +139,7 @@ test("合成审阅必须来自当前项目、版本和实际完整 Cue，单件�
         { ...evidence, method: "frames", startFrame: 14, endFrame: 17 });
       assert.deepEqual([local!.workStartFrame, local!.workEndFrame], [4, 7]);
       await assert.rejects(validateMotionReviewEvidence(beforePartial.snapshot, f.revision(), jobs, target, outcome,
-        { ...evidence, method: "frames", startFrame: 4, endFrame: 7 }), /项目全局帧.*未与.*相交/u);
+        { ...evidence, method: "frames", startFrame: 4, endFrame: 7 }), /全局帧.*与.*相交/u);
     }
     assert.deepEqual(f.app.readProject(f.projectId), beforePartial, "局部证据验证和错误拒绝没有视频写入");
     const oldRevision = f.revision();
@@ -166,6 +166,31 @@ test("旧 Scene 锚点作品追踪宿主内容变化，但不会扩大质量对�
   } finally { await f.close(); }
 });
 
+test("同场景主画面素材身份变化使作品失效，无关素材变化不影响", async () => {
+  for (const field of ["sourceHash", "status"] as const) {
+    const f = await fixture();
+    try {
+      const unrelated = f.app.registerImportedAsset({ projectId: f.projectId, baseRevision: f.revision(), name: "无关素材", kind: "image", managedPath: "assets/unrelated.png" }).asset;
+      const placed = f.app.createEffectCue({ ...f.placement, baseRevision: f.revision() });
+      const cueId = placed.snapshot.effectCues[0]!.id;
+      const mainId = placed.snapshot.timeline.items.find(item => item.id === f.itemId)!.assetId;
+      const untouched = f.app.repository.commit(f.projectId, f.revision(), "无关素材变化", snapshot => {
+        const asset = snapshot.assets.find(entry => entry.id === unrelated.id)!;
+        asset.sourceHash = "unrelated-new-hash";
+        asset.status = "missing";
+      });
+      assert.equal(untouched.snapshot.effectCues[0]!.status, "ready");
+      const changed = f.app.repository.commit(f.projectId, f.revision(), "主画面素材身份变化", snapshot => {
+        const asset = snapshot.assets.find(entry => entry.id === mainId)!;
+        if (field === "sourceHash") asset.sourceHash = "different-content";
+        else asset.status = "missing";
+      });
+      assert.equal(changed.snapshot.effectCues[0]!.status, "stale", field);
+      assert.ok(changed.revision.impact.stale.includes(cueId));
+    } finally { await f.close(); }
+  }
+});
+
 
 test("真实语音映射限制覆盖范围，非主锚点内部时序与语义重排传播失效", async () => {
   const f = await fixture();
@@ -185,6 +210,34 @@ test("真实语音映射限制覆盖范围，非主锚点内部时序与语义�
     const reordered = f.app.applyScript({ projectId: f.projectId, baseRevision: f.revision(), semanticUnitIds: [...authored.snapshot.script.semanticUnitIds].reverse() });
     assert.equal(reordered.snapshot.effectCues[0]!.status, "stale");
     assert.equal(reordered.snapshot.effectCues[0]!.endFrame - reordered.snapshot.effectCues[0]!.startFrame, 18);
+  } finally { await f.close(); }
+});
+
+test("局部拆分按真实 Beat 范围绑定，显式空覆盖不回退旧锚点", async () => {
+  const f = await fixture();
+  try {
+    const authored = f.app.applyAuthoredScript({ projectId: f.projectId, baseRevision: f.revision(), sourceNote: "局部覆盖测试", units: [{ text: "前一拍。", kind: "statement" }, { text: "后一拍。", kind: "conclusion" }] });
+    f.app.updateStory({ projectId: f.projectId, baseRevision: f.revision(), beats: authored.snapshot.semanticUnits.map((unit, i) => ({ id: ["a", "b"][i]!, title: unit.text, purpose: "局部覆盖", semanticUnitIds: [unit.id], sceneIds: [f.sceneId] })) });
+    const audio = f.app.registerImportedAsset({ projectId: f.projectId, baseRevision: f.revision(), name: "测试旁白", kind: "speech", managedPath: "assets/test.wav" }).asset;
+    f.app.applyMediaAnalysis({ projectId: f.projectId, assetId: audio.id, metadata: { durationMs: 2000, hasAudio: true } });
+    const segments = authored.snapshot.speechSegments.map((segment, i) => ({ id: `local-segment-${i}`, speechSegmentId: segment.id, voiceReferenceAssetId: audio.id, assetId: audio.id, durationMs: [800, 1200][i]!, bridgeRunId: `local-run-${i}`, schemaVersion: "fixture", quality: "passed" as const }));
+    f.app.applySpeechAssembly({ projectId: f.projectId, generatedAssets: [], segmentAssets: segments, speechAsset: { id: "local-speech", assetId: audio.id, scriptRevision: authored.snapshot.script.revision, segmentAssetIds: segments.map(segment => segment.id), timing: { precision: "segment_exact", source: "范围测试", segments: authored.snapshot.speechSegments.map((segment, i) => ({ speechSegmentId: segment.id, startMs: i ? 800 : 0, endMs: i ? 2000 : 800, startFrame: i ? 24 : 0, endFrame: i ? 60 : 24 })) }, status: "ready" } });
+    const placed = f.app.createEffectCue({ ...f.placement, startFrame: 15, endFrame: 33, baseRevision: f.revision(), coveredNarrativeBeatIds: ["a", "b"] });
+    const oldCue = placed.snapshot.effectCues.at(-1)!;
+    const work = sizeMotionFixture({ ...motionFixture, reference: undefined });
+    const job = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.revision(), idempotencyKey: "local-range", work, frameRange: { startFrame: 5, endFrame: 12 }, outputIntent: "asset" });
+    const asset = completeMotionFixture(f.app, { projectId: f.projectId, jobId: job.id, sourceHash: "local", engineVersion: String(job.payload.engineVersion), metadata: { durationMs: 7 / 30 * 1000, width: 320, height: 320, hasAudio: false } });
+    const result = f.app.replaceManagedMotionRange({ projectId: f.projectId, baseRevision: f.revision(), cueId: oldCue.id, workId: asset.motion!.workId!, startFrame: 20, endFrame: 27 });
+    const parts = result.snapshot.effectCues;
+    assert.deepEqual(parts.map(part => part.coveredNarrativeBeatIds), [["a"], ["a", "b"], ["b"]]);
+    assert.equal(parts[2]!.semanticAnchor.targetId, "a", "保留原语义锚点，但不把它当覆盖声明");
+    assert.deepEqual(productionReconciliation(result.snapshot).map(row => row.linkedEffectCueIds), [[parts[0]!.id, parts[1]!.id], [parts[1]!.id, parts[2]!.id]]);
+    const scope = { kind: "objects" as const, objectIds: [parts[2]!.id] };
+    const onlyB = productionReconciliation(result.snapshot)[1]!.structuralGaps.map(gap => `${gap.code}：${gap.message}`);
+    assert.deepEqual(completionReconciliationBlockers(result.snapshot, scope), onlyB);
+    const empty = structuredClone(result.snapshot);
+    empty.effectCues[2]!.coveredNarrativeBeatIds = [];
+    assert.deepEqual(completionReconciliationBlockers(empty, scope), []);
   } finally { await f.close(); }
 });
 

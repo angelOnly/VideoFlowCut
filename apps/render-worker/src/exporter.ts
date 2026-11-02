@@ -1,5 +1,8 @@
+import { motionMediaForCue } from "@videocut/contracts";
+import { createValidationContext, probeWithContext, type ValidationContext } from "./render-validation-context.js";
+import { captureRenderEnvironmentIdentity } from "../../../packages/media-intelligence/src/render-environment.js";
 import { compositeTimeline } from "./ffmpeg-compositor.js";
-import { buildRenderPlan } from "./render-plan.js";
+import { buildRenderPlan } from "../../../packages/edit-domain/src/render-plan.js";
 import { MotionFrameCache } from "../../../packages/media-intelligence/src/motion-frames.js";
 import { checkFrozenExplainerSourceDisplay } from "../../../packages/edit-application/src/source-display-checks.js";
 import { inspectFinalAudio } from "../../../packages/media-intelligence/src/acoustics.js";
@@ -7,7 +10,7 @@ import { hashMediaFile } from "../../../packages/edit-application/src/media-inte
 import "../../../plugins/videoflowcut/scripts/background-processes.mjs";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync, type ReadStream } from "node:fs";
-import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { pipeline } from "node:stream/promises";
@@ -198,11 +201,11 @@ function closeServer(server: Server): Promise<void> {
 
 function usedAssetIds(snapshot: ProjectSnapshot): Set<string> {
   // 与 ProjectComposition 共用同一推导，避免 stale Scene/Cue 或隐藏轨道被预检、来源清单误算为成片依赖。
-  return new Set(resolveCompositionReachability(snapshot).assetIds);
+  return new Set([...resolveCompositionReachability(snapshot).assetIds, ...snapshot.effectCues.filter(cue => cue.status === "ready").flatMap(cue => { const media = motionMediaForCue(snapshot, cue); return media ? [media.id] : []; })]);
 }
 
 /** 文件身份直接由实际渲染引用核验，不依赖已删除的素材采用资格。 */
-export async function verifySourceFiles(snapshot: ProjectSnapshot): Promise<void> {
+export async function verifySourceFiles(snapshot: ProjectSnapshot, hashes?: Map<string, string>): Promise<void> {
   const used = usedAssetIds(snapshot);
   for (const asset of snapshot.assets.filter(entry => used.has(entry.id))) {
     const path = resolveManagedAssetPath(snapshot, asset.managedPath);
@@ -210,16 +213,19 @@ export async function verifySourceFiles(snapshot: ProjectSnapshot): Promise<void
     try { file = await stat(path); }
     catch { throw new DomainError(`素材“${asset.name}”文件缺失`, "MEDIA_SOURCE_MISSING"); }
     if (!file.isFile() || file.size <= 0) throw new DomainError(`素材“${asset.name}”文件为空或类型无效`, "MEDIA_SOURCE_INVALID");
-    if (asset.sourceHash && await hashMediaFile(path) !== asset.sourceHash) throw new DomainError(`素材“${asset.name}”文件哈希与当前绑定不符`, "MEDIA_SOURCE_CHANGED");
+    const actualHash = asset.sourceHash || hashes ? await hashMediaFile(path) : undefined;
+    if (actualHash) hashes?.set(path, actualHash);
+    if (asset.sourceHash && actualHash !== asset.sourceHash) throw new DomainError(`素材“${asset.name}”文件哈希与当前绑定不符`, "MEDIA_SOURCE_CHANGED");
   }
 }
 
 /** 透明帧也是正式依赖，不能只验证审阅 MP4 存在就放行导出。 */
-export async function verifyMotionFrameCaches(snapshot: ProjectSnapshot): Promise<void> {
+export async function verifyMotionFrameCaches(snapshot: ProjectSnapshot, probe: typeof probeMedia = probeMedia): Promise<void> {
   const used = usedAssetIds(snapshot);
   for (const cue of snapshot.effectCues.filter((cue) => cue.type === "ManagedMotion" && cue.status === "ready")) {
-    const content = inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline);
+    const content = inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline, snapshot.motionWorks);
     if (!content.ready) throw new DomainError(content.missing.join("；"), "MOTION_CONTENT_INVALID");
+    if (!motionMediaForCue(snapshot, cue)) throw new DomainError(`作品 ${cue.workId} 尚无覆盖选段的派生媒体；按 workId 生成后固定最新版本导出`, "MOTION_MEDIA_REQUIRED");
   }
   const proxyItem = snapshot.timeline.items.find((item) => !item.disabled && snapshot.assets.some((asset) => asset.id === item.assetId && asset.motion));
   if (proxyItem) throw new DomainError("受管作品的审阅代理不能作为普通视频放入时间线，请使用 ManagedMotion EffectCue", "MOTION_PROXY_NOT_RENDERABLE");
@@ -227,7 +233,13 @@ export async function verifyMotionFrameCaches(snapshot: ProjectSnapshot): Promis
     const motion = asset.motion!;
     if (motion.output) {
       if (motion.output.path !== asset.managedPath || motion.output.hash !== asset.sourceHash) throw new DomainError("正式媒体绑定不一致", "MOTION_CACHE_CORRUPT");
-      await validateOutputFrameRate(resolveManagedAssetPath(snapshot, motion.output.path), motion.fps, motion.frameCount);
+      // 正式登记已逐帧验收，verifySourceFiles 再核对相同字节；复用前不重复完整解码。
+      const metadata = await probe(resolveManagedAssetPath(snapshot, motion.output.path));
+      if (metadata.fps !== motion.fps || metadata.width !== motion.width || metadata.height !== motion.height
+        || Math.abs(metadata.durationMs - motion.frameCount / motion.fps * 1000) > 1000 / motion.fps + 2
+        || metadata.videoCodec !== motion.output.codec || metadata.pixelFormat !== motion.output.pixelFormat || metadata.hasAudio) {
+        throw new DomainError("正式作品规格与已登记合同不符", "MOTION_CACHE_CORRUPT");
+      }
       continue;
     }
     if (!motion.framesDirectory) throw new DomainError("作品没有正式媒体或历史帧目录", "MOTION_CACHE_CORRUPT");
@@ -256,68 +268,6 @@ function resolveManagedAssetPath(snapshot: ProjectSnapshot, managedPath: string)
   return targetPath;
 }
 
-type ExplainerScenePreviewCache = {
-  cacheKey: string;
-  sceneId: string;
-  localFromFrame: number;
-  localToFrame: number;
-  relativePath: string;
-};
-
-const rangesOverlap = (leftStart: number, leftEnd: number, rightStart: number, rightEnd: number) => (
-  leftStart < rightEnd && leftEnd > rightStart
-);
-
-/**
- * 首版只缓存“独占画面”的 Explainer Scene 预览。若同一帧还有字幕、Cue、Cutaway、
- * 或任何 Timeline Item，直接重新合成，避免把其它对象的旧画面错误复用。
- */
-function isolatedExplainerScenePreviewCache(
-  snapshot: ProjectSnapshot,
-  fromFrame: number,
-  toFrame: number
-): ExplainerScenePreviewCache | undefined {
-  const { explainerProgramIds } = resolveCompositionReachability(snapshot);
-  const candidates = snapshot.explainerPrograms.flatMap((program) => {
-    if (!explainerProgramIds.has(program.id) || !/^[a-f0-9]{16,128}$/iu.test(program.cacheKey)) return [];
-    const scene = snapshot.scenes.find((candidate) => candidate.id === program.sceneId);
-    if (!scene || scene.type !== "ExplainerScene" || scene.status !== "ready"
-      || fromFrame < scene.startFrame || toFrame > scene.endFrame) return [];
-    return [{ program, scene }];
-  });
-  if (candidates.length !== 1) return undefined;
-
-  const { program, scene } = candidates[0]!;
-  const hasOtherVisual = snapshot.timeline.items.some((item) => !item.disabled
-    && rangesOverlap(item.startFrame, item.endFrame, fromFrame, toFrame));
-  const hasCaption = snapshot.timeline.captions.some((caption) => rangesOverlap(caption.startFrame, caption.endFrame, fromFrame, toFrame));
-  const hasCue = snapshot.effectCues.some((cue) => cue.status === "ready"
-    && rangesOverlap(cue.startFrame, cue.endFrame, fromFrame, toFrame));
-  if (hasOtherVisual || hasCaption || hasCue) return undefined;
-
-  const localFromFrame = fromFrame - scene.startFrame;
-  const localToFrame = toFrame - scene.startFrame;
-  return {
-    cacheKey: program.cacheKey,
-    sceneId: scene.id,
-    localFromFrame,
-    localToFrame,
-    relativePath: join("cache", "explainer-scenes", program.cacheKey, `range-${localFromFrame}-${localToFrame}-${buildRenderPlan(snapshot, fromFrame, toFrame).spans.map(s=>s.cacheKey).join("-")}-gain-${snapshot.audioMixGainDb ?? 0}.mp4`)
-  };
-}
-
-async function isValidScenePreviewCache(path: string, expectedDurationMs: number): Promise<boolean> {
-  try {
-    const file = await stat(path);
-    if (!file.isFile() || file.size <= 0) return false;
-    const metadata = await probeMedia(path);
-    return metadata.durationMs > 0 && Boolean(metadata.videoCodec)
-      && Math.abs(metadata.durationMs - expectedDurationMs) <= 1_000;
-  } catch {
-    return false;
-  }
-}
-
 /** 以流式方式计算最终文件哈希，避免大文件验证耗尽 Worker 内存。 */
 async function sha256File(path: string): Promise<string> {
   const hash = createHash("sha256");
@@ -334,14 +284,16 @@ async function sha256File(path: string): Promise<string> {
  * 预检只验证当前 Revision 的实际引用和当前 Renderer 可确定的依赖。
  * 它不会假装已做完整声画审片；真正的 Remotion 渲染和 Artifact 复核仍是后续独立证据。
  */
-export async function runRenderPreflight(application: EditingApplication, projectId: string, revisionNumber: number, purpose: ExportPurpose = "delivery"): Promise<RenderPreflight> {
+export async function runRenderPreflight(application: EditingApplication, projectId: string, revisionNumber: number, purpose: ExportPurpose = "delivery", context?: ValidationContext): Promise<RenderPreflight> {
   const revision = application.repository.getRevision(projectId, revisionNumber);
   const snapshot = revision.snapshot;
   checkFrozenExplainerSourceDisplay(snapshot);
   const checks: RenderPreflightCheck[] = [];
-  try { await verifySourceFiles(snapshot); }
+  const hashes = new Map<string, string>();
+  const probe = context ? (path: string) => probeWithContext(path, hashes, context) : probeMedia;
+  try { await verifySourceFiles(snapshot, hashes); }
   catch (error) { addPreflightCheck(checks, "failed", error instanceof DomainError ? error.code : "MEDIA_SOURCE_INVALID", error instanceof Error ? error.message : String(error)); }
-  try { await verifyMotionFrameCaches(snapshot); }
+  try { await verifyMotionFrameCaches(snapshot, probe); }
   catch (error) { addPreflightCheck(checks, "failed", "MOTION_CACHE_CORRUPT", error instanceof Error ? error.message : String(error)); }
   const review = await application.readEditorialQualityReview({ projectId, revision: revisionNumber });
   const quality = await evaluateQualityWithBrowser(snapshot, revisionNumber, review, application.repository.readReviews(projectId));
@@ -378,7 +330,7 @@ export async function runRenderPreflight(application: EditingApplication, projec
       || Boolean(asset.metadata?.videoCodec || asset.metadata?.audioCodec);
     if (requiresMediaProbe) {
       try {
-        const metadata = await probeMedia(assetPath);
+        const metadata = await probe(assetPath);
         if (metadata.durationMs <= 0) throw new DomainError("媒体时长无效", "INVALID_MEDIA_DURATION");
         addPreflightCheck(checks, "passed", "PREFLIGHT_MEDIA_DECODABLE", `素材“${asset.name}”已通过当前 Worker 的媒体探测。`, asset.id);
       } catch (error) {
@@ -635,7 +587,20 @@ export async function runExportJob(
       warnings: []
     };
   }
-  const preflight = await runRenderPreflight(application, job.projectId, revisionNumber, purpose);
+  let previous: ValidationContext | undefined;
+  if (typeof job.payload.preflightJobId === "string") {
+    try {
+      const reference = application.trackJob(job.payload.preflightJobId);
+      if (reference.projectId === job.projectId && reference.kind === "render_preflight" && reference.status === "succeeded"
+        && reference.payload.revision === revisionNumber && (reference.payload.purpose ?? "delivery") === purpose) {
+        previous = reference.result?.validationContext as ValidationContext | undefined;
+      }
+    } catch { /* 缺失的旧检查引用只影响复用，本次仍执行真实预检。 */ }
+  }
+  const validationContext = await createValidationContext(revision.snapshot, revisionNumber, purpose, previous);
+  if (previous && validationContext.identity === previous.identity) validationContext.reusedFromJobId = String(job.payload.preflightJobId);
+  const preflight = await runRenderPreflight(application, job.projectId, revisionNumber, purpose, validationContext);
+  application.recordJobCheckpoint(job.id, { validationContext });
   if (preflight.status !== "passed") {
     const qualityFailures = preflight.checks.filter(check => check.status === "failed" && check.code.startsWith("QUALITY_"));
     if (qualityFailures.length) throw new DomainError(`技术/用途条件阻止导出：${qualityFailures.map(check => check.message).join("；")}`, "QUALITY_GATE_BLOCKED");
@@ -725,8 +690,10 @@ export async function runRenderPreflightJob(application: EditingApplication, job
   if (!Number.isInteger(revisionNumber) || revisionNumber <= 0) throw new DomainError("Render Preflight 任务缺少有效 Revision", "INVALID_PREFLIGHT_REVISION");
   const purpose = job.payload.purpose ?? "delivery";
   if (purpose !== "draft" && purpose !== "delivery") throw new DomainError("预检用途无效", "INVALID_PREFLIGHT_PURPOSE");
-  const preflight = await runRenderPreflight(application, job.projectId, revisionNumber, purpose);
-  return { revision: revisionNumber, preflight };
+  const snapshot = application.repository.getRevision(job.projectId, revisionNumber).snapshot;
+  const validationContext = await createValidationContext(snapshot, revisionNumber, purpose);
+  const preflight = await runRenderPreflight(application, job.projectId, revisionNumber, purpose, validationContext);
+  return { revision: revisionNumber, preflight, validationContext };
 }
 
 /** 预览任务只生成指定帧窗，供 Web/MCP 在结构修改后快速检查真实合成结果。 */
@@ -750,45 +717,23 @@ export async function runPreviewJob(
   await mkdir(dirname(targetPath), { recursive: true });
   const expectedDurationMs = Math.round(((toFrame - fromFrame) / revision.snapshot.timeline.fps) * 1000);
   checkFrozenExplainerSourceDisplay(revision.snapshot);
-  const sceneCache = isolatedExplainerScenePreviewCache(revision.snapshot, fromFrame, toFrame);
-  const cachePath = sceneCache ? join(revision.snapshot.project.rootPath, sceneCache.relativePath) : undefined;
-  let cacheHit = false;
-
-  if (cachePath && await isValidScenePreviewCache(cachePath, expectedDurationMs)) {
-    // 缓存永远只是可重建的优化：复制到当前 Revision 的 Preview 位置，保留 Revision 级证据边界。
-    await copyFile(cachePath, targetPath);
-    if (existsSync(`${cachePath}.render-plan.json`)) await copyFile(`${cachePath}.render-plan.json`, `${targetPath}.render-plan.json`);
-    cacheHit = true;
-  } else {
-    if (cachePath) await rm(cachePath, { force: true }).catch(() => undefined);
-    const renderTarget = cachePath ? `${cachePath}.${job.id}.rendering.mp4` : targetPath;
-    if (cachePath) await mkdir(dirname(cachePath), { recursive: true });
-    try {
-      await renderer.renderRange(revision.snapshot, fromFrame, toFrame, renderTarget);
-      if (cachePath) {
-        // 同一 Key 的并发渲染只会产生相同输入的可替换优化文件；正式证据仍是 targetPath。
-        await rename(renderTarget, cachePath);
-        if (existsSync(`${renderTarget}.render-plan.json`)) {
-          await rename(`${renderTarget}.render-plan.json`, `${cachePath}.render-plan.json`);
-          await copyFile(`${cachePath}.render-plan.json`, `${targetPath}.render-plan.json`);
-        }
-        await copyFile(cachePath, targetPath);
-      }
-    } catch (error) {
-      if (cachePath) {
-        await rm(renderTarget, { force: true }).catch(() => undefined);
-        await rm(`${renderTarget}.render-plan.json`, { force: true }).catch(() => undefined);
-      }
-      throw error;
-    }
-  }
+  const environmentBefore = await captureRenderEnvironmentIdentity();
+  // 所有预览都进入与 Export 相同的合成缓存，删除独占 Scene 的第二套缓存旁路。
+  await renderer.renderRange(revision.snapshot, fromFrame, toFrame, targetPath);
   const metadata = await probeMedia(targetPath);
   if (metadata.durationMs <= 0 || !metadata.videoCodec || Math.abs(metadata.durationMs - expectedDurationMs) > 1_000) {
     throw new DomainError("局部预览文件不可读或时长异常", "INVALID_PREVIEW_OUTPUT");
   }
   const frameRate = await validateOutputFrameRate(targetPath, revision.snapshot.timeline.fps, toFrame - fromFrame);
+  const environmentAfter = await captureRenderEnvironmentIdentity();
+  const renderEnvironmentIdentity = environmentBefore && environmentAfter && environmentBefore.releaseId === environmentAfter.releaseId && environmentBefore.audio === environmentAfter.audio
+    ? { releaseId: environmentAfter.releaseId, audio: environmentAfter.audio,
+        ...(environmentBefore.visual && environmentBefore.visual === environmentAfter.visual ? { visual: environmentAfter.visual } : {}) }
+    : undefined;
   return {
     revision: revisionNumber,
+    renderEnvironmentIdentity,
+    releaseId: readRuntimeConfig().runtime.releaseId,
     fromFrame,
     toFrame,
     path: targetPath,
@@ -799,13 +744,6 @@ export async function runPreviewJob(
     ...frameRate,
     hasAudio: metadata.hasAudio,
     audio: metadata.hasAudio ? await inspectFinalAudio(targetPath) : undefined,
-    sourceHash: await hashMediaFile(targetPath),
-    sceneCache: sceneCache ? {
-      sceneId: sceneCache.sceneId,
-      cacheKey: sceneCache.cacheKey,
-      localFromFrame: sceneCache.localFromFrame,
-      localToFrame: sceneCache.localToFrame,
-      hit: cacheHit
-    } : undefined
+    sourceHash: await hashMediaFile(targetPath)
   };
 }

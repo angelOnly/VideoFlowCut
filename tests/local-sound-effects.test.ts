@@ -113,8 +113,11 @@ test("MCP 只能浏览、检测并导入配置根目录内的本地音效", asyn
       project_id: project.snapshot.project.id, base_revision_id: current.revision.number, action: "create",
       title: "公开音效候选", purpose: "测试工具与真实合同", media_kind: "audio", audio_brief: "无语音的短提示", role: "sfx", fallback_plan: "local_audio"
     } })));
-    assert.equal(requirement.snapshot.assetRequests[0].mediaKind, "audio");
-    assert.equal(requirement.snapshot.assetRequests[0].targetAspectRatio, undefined);
+    assert.equal(typeof requirement.revision, "number");
+    assert.equal(Object.hasOwn(requirement, "snapshot"), false);
+    const request = requirement.result.objects.find((entry: { collection: string }) => entry.collection === "assetRequests").value;
+    assert.equal(request.mediaKind, "audio");
+    assert.equal(request.targetAspectRatio, undefined);
   } finally {
     await transport.close().catch(() => undefined);
     await rm(workspaceRoot, { recursive: true, force: true });

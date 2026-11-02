@@ -13,9 +13,7 @@ description: 作为 VideoFlowCut 主任务的协调入口，真实分派导演�
 
 完整视频用宿主 `spawn_agent` 启动持续负责的导演，让其读取 [production-director](../production-director/SKILL.md) 并沿已采用类型进入相应主视频流程。局部创意直接交相应专项，完整参数的机械修改可直接执行。准备派发、续接或接替时读取 [任务路由](references/task-routing.md)，按依赖和当前名额安排；Skill 数量不等于代理数量。
 
-`visual_explainer` 与 `presenter_motion` 的完整解释制作共同沿[主题入口](../_shared/TOPIC_TO_FILM.md)，首轮共同建立导演、文案、素材、创意和视觉责任，原创意负责人实际加载[创意统筹](../creative-sequence-design/SKILL.md)，与文案事实研究、素材探索及视觉构思并行，素材不等待导演完成规划；用 `followup_task` 接回原负责人。当前全文、实际材料、前后画面和已采用设计完整传递，不压成效果名。素材首批发现和关键预排及时交原创意、视觉、文案与导演，继续共同改稿；普通局部设计由原作者修订，跨段分歧交导演。缺完整产物回原作者补齐，缺信息保留实际缺口并回传有效材料，等待一项提交时继续无依赖研究。
-
-同一视觉作者持续负责整场效果。完整新制或主要视觉重做的视觉解说与完整人物混合解释，派发时明确要求其读取[视觉入口](../visual-treatment-planning/SKILL.md)及核心规则，完成规定范围的参考观察，并将六项表现落实到当前稿和同源作品；追加专业参考按实际问题选择，不能把必需表现降为可选。只接回配色、字体、机制名称或文字方案时，用 `followup_task` 续接原作者形成可检验的源码；源码与参数齐备后及时正式生成，将实际结果交回原作者观察和修订，再供导演判断主要选择。声音、材料或时长改变时一并回传真实差异，接回更新后的完整稿及受影响实现。中间提交、角色完成消息和文件生成均不关闭尚未兑现的表现。粗排与精修沿同一源码推进，不另建练习片；无依赖工作继续。
+`visual_explainer` 与 `presenter_motion` 的完整解释沿[主题入口](../_shared/TOPIC_TO_FILM.md)并行共创；完整新制或主要视觉重做接入[创意统筹](../creative-sequence-design/SKILL.md)和[视觉入口](../visual-treatment-planning/SKILL.md)。职责、同一当前稿、范围接回和返修沿[唯一交接约定](../_shared/PROJECT_REVISION_AND_HANDOFF.md)，不为每项规则再创建代理。
 
 实际写入、生成、渲染、审计、字体选择或恢复时读取 [项目写入](references/project-writes.md) 对应章节，核对实时 Schema，按唯一顺序提交并读回版本、影响与结果。主任务只补真实 ID 和无歧义参数，不补创意。结果未知先对账原 Job，不能换幂等键重放。
 
@@ -25,8 +23,4 @@ description: 作为 VideoFlowCut 主任务的协调入口，真实分派导演�
 
 `presenter_motion` 完整解释首轮同步落实人物导演、材料探索与整场视觉责任；人物源返回后继续接回材料、作品、绑定及合成。`vlog` 由事件导演按真实原片决定是否补材和增加视觉工作，不强制主题研究或改写旁白。收口明确 `completion_scope`：整片用 project，内容范围用 beats / beat_ids，对象修改用 objects / object_ids；按结构缺项续接原作者，观察未知另记。
 
-当前范围采用 OpenDesign 制作时，续接原视觉作者并交完整当前稿、已采用美术与机制、
-真实资源及声音依据。明确要求先读取[镜头指令](../opendesign-shot-brief/SKILL.md)，
-再沿[OpenDesign 生产](../opendesign-video-production/SKILL.md)制作同一作品。
-接回实际发送正文、源码与观察范围；形成提示词和 OpenDesign Run 成功都不代表视觉完成。
-正式登记、VFC 渲染提交和时间线放置仍由主任务负责，反馈回原作者。
+当前范围采用 OpenDesign 时，由原视觉作者沿[场景简报](../opendesign-shot-brief/SKILL.md)与[生产入口](../opendesign-video-production/SKILL.md)继续同一作品，正式任务按共同约定接回。

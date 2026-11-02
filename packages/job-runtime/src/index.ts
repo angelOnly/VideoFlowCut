@@ -41,7 +41,8 @@ export async function processClaimedJob(
     if (application.trackJob(job.id).status === "cancelled") return;
     // 外部 Bridge Run 可能已在处理过程中写入诊断信息；成功结果不能把这份恢复依据覆盖掉。
     const persisted = application.trackJob(job.id).result ?? {};
-    application.updateJob(job.id, { status: "succeeded", result: { ...persisted, ...result } });
+    application.updateJob(job.id, { status: "succeeded", result: { ...persisted, ...result,
+      ...(persisted.continuation ? { continuation: persisted.continuation } : {}) } });
   } catch (error) {
     if (application.trackJob(job.id).status === "cancelled") return;
     const detail = error instanceof Error ? error.message : String(error);

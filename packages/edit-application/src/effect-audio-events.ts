@@ -1,7 +1,9 @@
+import { motionWorkForCue } from "@videocut/contracts";
 import { createHash } from "node:crypto";
 import { inspectEffectContentContract, type EffectAudioEvent, type EffectCue, type ImpactReport, type ProjectSnapshot } from "@videocut/contracts";
 import { DomainError } from "@videocut/domain";
 import { resolveAudioProgramEndFrame } from "../../edit-domain/src/audio-program-range.js";
+import { motionEventLocalFrame } from "../../contracts/src/frame-rate.js";
 
 export type EffectAudioEventInput = Omit<EffectAudioEvent, "cueSignature" | "syncOffsetFrames" | "meaning"> & { syncOffsetFrames?: number };
 
@@ -9,7 +11,7 @@ function canBindEffectAudio(snapshot: ProjectSnapshot, cue: EffectCue): boolean 
   const scene = snapshot.scenes.find((entry) => entry.id === cue.sceneId);
   // Presenter 编译后 Scene 仍为 draft；能否使用动效应遵循渲染内容合同，而非误用解释片的 ready 门禁。
   return !!scene && scene.status !== "stale" && cue.status === "ready"
-    && inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline).ready;
+    && inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline, snapshot.motionWorks).ready;
 }
 
 function canonical(value: unknown): unknown {
@@ -22,12 +24,12 @@ function canonical(value: unknown): unknown {
 export function effectAudioSignature(snapshot: ProjectSnapshot, cue: EffectCue): string {
   const assets = cue.assetBindings.map((binding) => {
     const asset = snapshot.assets.find((entry) => entry.id === binding.assetId);
-    return { ...binding, hash: asset?.sourceHash, version: asset?.motion?.version, status: asset?.status };
+    return { ...binding, hash: asset?.sourceHash, version: asset?.motion?.version, rootRange: asset?.motion?.rootRange, status: asset?.status };
   });
   return createHash("sha256").update(JSON.stringify(canonical({ type: cue.type, layer: cue.layer,
-    fps: snapshot.timeline.fps,
+    fps: snapshot.timeline.fps, sourceStartFrame: cue.sourceStartFrame, sourceEndFrame: cue.sourceEndFrame,
     sceneId: cue.sceneId, duration: cue.endFrame - cue.startFrame, props: cue.props, motion: cue.motion,
-    intensity: cue.intensity, spatialAnchor: cue.spatialAnchor, stylePackId: cue.stylePackId, assets }))).digest("hex");
+    workId: cue.workId, intensity: cue.intensity, spatialAnchor: cue.spatialAnchor, stylePackId: cue.stylePackId, assets }))).digest("hex");
 }
 
 export function bindEffectAudioEvent(snapshot: ProjectSnapshot, input: EffectAudioEventInput, eventFrame: number): EffectAudioEvent {
@@ -36,14 +38,15 @@ export function bindEffectAudioEvent(snapshot: ProjectSnapshot, input: EffectAud
   const syncOffsetFrames = input.syncOffsetFrames ?? 0;
   let meaning: string | undefined;
   if (input.eventId) {
-    const work = cue.assetBindings.map((binding) => snapshot.assets.find((asset) => asset.id === binding.assetId)).find((asset) => asset?.motion?.eventMap);
-    const map = work?.motion?.eventMap;
+    const work = motionWorkForCue(snapshot, cue);
+    const map = work?.eventMap;
     const event = map?.events.find((entry) => entry.id === input.eventId);
-    if (!map || !event || input.workVersion !== map.version || map.version !== work?.motion?.version) throw new DomainError("请使用当前作品输出的动作事件与版本", "SFX_MOTION_EVENT_STALE");
-    const start = Math.round(event.startFrame * snapshot.timeline.fps / map.fps);
-    const end = event.endFrame === undefined ? undefined : Math.round(event.endFrame * snapshot.timeline.fps / map.fps);
+    if (!map || !event || input.workVersion !== map.version || map.version !== work?.version) throw new DomainError("请使用当前作品输出的动作事件与版本", "SFX_MOTION_EVENT_STALE");
+    const start = motionEventLocalFrame(event.startFrame, work!, cue, snapshot.timeline.fps);
+    const end = event.endFrame === undefined ? undefined : motionEventLocalFrame(event.endFrame, work!, cue, snapshot.timeline.fps);
     // 同一动作可在起势/落定发一声，也可用完整包络贯穿；持续范围不能伪造。
-    const pointEnd = end === undefined ? undefined : Math.min(end, cue.endFrame - cue.startFrame - 1);
+    const duration = cue.endFrame - cue.startFrame;
+    const pointEnd = end === undefined || end < 0 || end > duration ? undefined : Math.min(end, duration - 1);
     const matches = input.endLocalFrame === undefined ? input.localFrame === start || input.localFrame === pointEnd : input.localFrame === start && input.endLocalFrame === end;
     if (!matches) throw new DomainError("声音绑定与作品的实际事件范围不一致", "SFX_MOTION_EVENT_MISMATCH");
     meaning = event.meaning;

@@ -9,10 +9,11 @@ import { runMotionJob } from "./motion-job.js";
 const workspaceRoot = readRuntimeConfig().workspace.root;
 let defaultApplication: EditingApplication | undefined;
 const getDefaultApplication = () => (defaultApplication ??= createApplication(workspaceRoot));
-export const RENDER_JOB_KINDS: JobKind[] = ["preview", "render_preflight", "export", "motion_generation", "sound_comparison"];
+export const RENDER_JOB_KINDS: JobKind[] = ["preview", "render_preflight", "export", "motion_generation", "motion_adoption", "sound_comparison"];
 
 export function createRenderJobProcessor(app: EditingApplication, renderer: RevisionRenderEngine = new RevisionRenderer()): JobProcessor {
   return async (job, signal) => {
+    if (job.kind === "motion_adoption") return app.completeMotionAdoption(job.id);
     if (job.kind === "sound_comparison") return runSoundComparison(app, job, renderer);
     if (job.kind === "motion_generation") return runMotionJob(app, job, undefined, signal);
     if (job.kind === "preview") return runPreviewJob(app, job, renderer);

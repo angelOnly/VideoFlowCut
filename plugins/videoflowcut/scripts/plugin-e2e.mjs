@@ -14,7 +14,9 @@ const repoRoot = resolveRepoRoot({ pluginRoot: sourcePluginRoot });
 // 安装快照必须位于仓库之外，否则 CWD 向上找到 package.json 会掩盖浏览器依赖缺失。
 const installationRoot = await mkdtemp(join(tmpdir(), "videoflowcut-install-e2e-"));
 const pluginRoot = join(installationRoot, "videoflowcut");
-await cp(sourcePluginRoot, pluginRoot, { recursive: true });
+// 只复制本次候选；不能把旧 dist 或其他候选递归装进验收快照。
+await cp(sourcePluginRoot, pluginRoot, { recursive: true, filter: path => path !== join(sourcePluginRoot, "runtime") });
+await cp(process.env.VFC_TEST_RELEASE_DIR ?? join(sourcePluginRoot, "runtime/dist"), join(pluginRoot, "runtime/dist"), { recursive: true });
 const release = resolveReleaseRuntime(pluginRoot);
 const workspaceRoot = await mkdtemp(join(tmpdir(), "videoflowcut-plugin-e2e-"));
 const runtimePort = await findAvailablePort();
@@ -143,6 +145,10 @@ try {
     try { return JSON.parse(textFromResult(await client.callTool({ name, arguments: args }))); }
     catch (error) { throw new Error(`E2E 调用 ${name} 失败：${error.message}`, { cause: error }); }
   };
+  const callState = async (name, args) => {
+    const receipt = await call(name, args);
+    return call("read_project", { project_id: receipt.projectId });
+  };
   const waitForJob = async (jobId, timeoutMs = 60_000) => {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
@@ -157,7 +163,8 @@ try {
   assert.equal(tools.tools.some(tool => ["adopt_media_source", "bind_media_adoption"].includes(tool.name)), false, "发行 MCP 不再公开素材采用资格入口");
   assert.ok(tools.tools.some(tool => tool.name === "search_motion_mechanisms"), "发行 MCP 必须公开混合机制检索");
   assert.ok(tools.tools.some(tool => tool.name === "analyze_motion_reference"), "发行 MCP 必须公开按需原片理解");
-  const motionTool = tools.tools.find((tool) => tool.name === "submit_motion_work");
+  const motionTool = tools.tools.find((tool) => tool.name === "register_motion_work");
+  assert.ok(tools.tools.find(tool => tool.name === "submit_motion_work").inputSchema.required.includes("work_id"));
   assert.ok(motionTool.inputSchema.properties.work.properties.imageBindings, "内部图片直接使用真实素材绑定");
   assert.ok(motionTool.inputSchema.properties.work.properties.videoBindings, "内部视频直接使用真实源时钟绑定");
   const composedTool = tools.tools.find((tool) => tool.name === "inspect_composed_frames");
@@ -190,7 +197,7 @@ try {
   assert.equal(workbench.url, runtime.webUrl, "MCP 工作台入口必须指向同一个隔离 Runtime");
 
   const authoredProject = await call("create_project", { name: "发行版原创旁白入口验收", profile: "visual_explainer" });
-  const authoredState = await call("apply_authored_script", {
+  const authoredState = await callState("apply_authored_script", {
     project_id: authoredProject.snapshot.project.id,
     base_revision_id: authoredProject.revision.number,
     source_note: "隔离发行验收的新写旁白，不是已有素材转写",
@@ -257,11 +264,18 @@ try {
   const importedAsset = projectState.snapshot.assets.find((asset) => asset.status === "ready" && asset.kind === "video");
   assert.ok(importedAsset?.id, "媒体分析完成后必须存在可播放视频 Asset");
   // 真实发行MCP→API→Worker验证33秒，不只检查字段或直接调用开发源码。
-  const motion = await call("submit_motion_work", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number, idempotency_key: "release-motion-33",
+  const preparedMotion = await call("register_motion_work", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number, idempotency_key: "release-motion-33",
     work: { name: "发行版33秒完整动效回归", creativeBrief: "独立候选技术回归：检查作品根时钟、源复用和完整帧数，不构成审美验收。", props: {}, imageBindings: {}, width: 768, height: 1344, fps: 24, durationInFrames: 792,
       videoBindings: { footage: { assetId: importedAsset.id, sourceStartMs: 0, sourceEndMs: 2000, startFrame: 0, endFrame: 48 } },
       source: `<!doctype html><html><head><meta charset="utf-8"></head><body><main data-composition-id="main" data-start="0" data-duration="33" data-width="768" data-height="1344" style="position:relative;width:768px;height:1344px;background:#172033"><img id="footage" data-vfc-video-slot="footage" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><div id="label" style="position:absolute;left:80px;top:80px;color:white;font-size:48px"></div></main><script>const tl=gsap.timeline({paused:true}),state={frame:0};function update(){document.querySelector('#label').textContent='发行回归 '+Math.round(state.frame);}tl.to(state,{frame:792,duration:33,ease:'none',onUpdate:update});update();window.__timelines.main=tl;</script></body></html>`
     } });
+  const preparedResult = await waitForJob(preparedMotion.id);
+  assert.equal(preparedResult.result.capturedFrames, 0);
+  const fixedMotion = await call("read_motion_work", { project_id: project.snapshot.project.id, work_id: preparedResult.result.workId });
+  projectState = await call("read_project", { project_id: project.snapshot.project.id });
+  assert.equal(projectState.snapshot.assets.some(asset => asset.motion), false, "登记源码不烘焙文件");
+  const motion = await call("submit_motion_work", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
+    idempotency_key: "release-motion-33-media", work_id: preparedResult.result.workId });
   let runtimeTreeRssPeak = 0, sampling;
   const sampleMemory = () => {
     if (sampling) return;
@@ -271,18 +285,20 @@ try {
   let motionResult;
   try { motionResult = await waitForJob(motion.id, 180_000); }
   finally { clearInterval(memoryTimer); await sampling; }
-  const motionRead = await call("read_motion_work", { project_id: project.snapshot.project.id, job_id: motion.id });
-  assert.equal(motionRead.asset.motion.frameCount, 792);
-  assert.equal(motionRead.asset.metadata.durationMs, 33000);
+  projectState = await call("read_project", { project_id: project.snapshot.project.id });
+  const motionAsset = projectState.snapshot.assets.find(asset => asset.id === motionResult.result.assetId);
+  assert.equal(motionAsset.motion.frameCount, 792);
+  assert.ok(Math.abs(motionAsset.metadata.durationMs - 33000) <= 1, "容器的毫秒取整不改变已校验的792帧");
   // 发行验证消费当前 HTML 与正式媒体合同，不再使用已停用的 TSX 夹具。
-  assert.equal(motionRead.asset.motion.engineVersion, "managed-hyperframes-2");
-  assert.equal(motionRead.asset.motion.output.kind, "alpha_video");
-  assert.equal(motionRead.asset.motion.framesDirectory, undefined);
-  assert.equal(motionResult.result.assetId, motionRead.asset.id);
+  assert.equal(fixedMotion.work.engineVersion, "managed-hyperframes-4");
+  assert.equal(motionAsset.derivedFromWorkId, fixedMotion.work.id);
+  assert.equal(motionAsset.motion.output.kind, "alpha_video");
+  assert.equal(motionAsset.motion.framesDirectory, undefined);
+  assert.equal(motionResult.result.assetId, motionAsset.id);
   if (process.platform === "win32") assert.ok(runtimeTreeRssPeak > 0, "候选验证必须记录实际Runtime进程树内存");
   console.log(JSON.stringify({ releaseId: release.releaseId, frameCount: 792, durationMs: 33000, runtimeTreeRssPeakBytes: runtimeTreeRssPeak }));
   projectState = await call("read_project", { project_id: project.snapshot.project.id });
-  const assembled = await call("assemble_presenter_track", {
+  const assembled = await callState("assemble_presenter_track", {
     project_id: project.snapshot.project.id,
     base_revision_id: projectState.revision.number,
     asset_ids: [importedAsset.id]
@@ -309,23 +325,29 @@ try {
     timeline_item_id: actorItem.id, source: "imported", mask_mode: "none", audio_mode: "use_source_audio" });
   projectState = await call("read_project", { project_id: project.snapshot.project.id });
   assert.equal(projectState.snapshot.assets.find(asset => asset.id === importedAsset.id)?.kind, "actor_video");
-  const actorMotion = await call("submit_motion_work", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number, idempotency_key: "release-actor-layout",
+  const actorMotion = await call("register_motion_work", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number, idempotency_key: "release-actor-layout",
     work: { name: "发行版人物连续缩窗", creativeBrief: "隔离验证人物视频保留 actor_video 身份进入真实受管作品，布局改变时源时间连续，独立声轨承担声音。",
       props: { width: projectState.snapshot.timeline.width, height: projectState.snapshot.timeline.height }, imageBindings: {}, width: projectState.snapshot.timeline.width, height: projectState.snapshot.timeline.height, fps: 24, durationInFrames: 24,
       videoBindings: { actor: { assetId: importedAsset.id, sourceStartMs: 0, sourceEndMs: 1000, startFrame: 0, endFrame: 24 } },
       source: `<!doctype html><html><head><meta charset="utf-8"></head><body><main data-composition-id="main" data-start="0" data-duration="1" data-width="${projectState.snapshot.timeline.width}" data-height="${projectState.snapshot.timeline.height}" style="position:relative;width:${projectState.snapshot.timeline.width}px;height:${projectState.snapshot.timeline.height}px;background:#172033"><img id="actor" data-vfc-video-slot="actor" style="position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover"></main><script>const tl=gsap.timeline({paused:true});tl.to('#actor',{width:'25%',height:'25%',duration:.5,ease:'none'},0);tl.to({},{duration:1},0);window.__timelines.main=tl;</script></body></html>`
     } });
-  await waitForJob(actorMotion.id);
-  const actorMotionRead = await call("read_motion_work", { project_id: project.snapshot.project.id, job_id: actorMotion.id });
-  assert.equal(actorMotionRead.asset.metadata.hasAudio, false);
-  assert.deepEqual(actorMotionRead.asset.motion.sourceAssetIds, [importedAsset.id]);
+  const actorPrepared = await waitForJob(actorMotion.id);
+  const actorWork = await call("read_motion_work", { project_id: project.snapshot.project.id, work_id: actorPrepared.result.workId });
+  projectState = await call("read_project", { project_id: project.snapshot.project.id });
+  const actorBake = await call("submit_motion_work", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
+    idempotency_key: "release-actor-layout-media", work_id: actorWork.work.id });
+  const actorBaked = await waitForJob(actorBake.id);
+  projectState = await call("read_project", { project_id: project.snapshot.project.id });
+  const actorAsset = projectState.snapshot.assets.find(asset => asset.id === actorBaked.result.assetId);
+  assert.equal(actorAsset.metadata.hasAudio, false);
+  assert.deepEqual(actorWork.work.videoSources.map(source => source.assetId), [importedAsset.id]);
   projectState = await call("read_project", { project_id: project.snapshot.project.id });
   await call("manage_effect_cues", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
     action: "create", scene_id: projectState.snapshot.scenes[0].id, type: "ManagedMotion", layer: "fullscreen", start_frame: 0, end_frame: 24,
-    asset_bindings: [{ slot: "motion", asset_id: actorMotionRead.asset.id }] });
+    work_id: actorWork.work.id });
   projectState = await call("read_project", { project_id: project.snapshot.project.id });
   assert.equal(projectState.snapshot.project.profile, "presenter_motion");
-  console.log(JSON.stringify({ releaseId: release.releaseId, actorVideoBinding: "passed", actorMotionFrames: actorMotionRead.asset.motion.frameCount }));
+  console.log(JSON.stringify({ releaseId: release.releaseId, actorVideoBinding: "passed", actorMotionFrames: actorAsset.motion.frameCount }));
   // 音效在真实发行 Worker 中参与合成；不把无声作品或只读 Schema 当声画链已通过。
   const soundPath = join(workspaceRoot, "event-fixture.wav");
   const soundBytes = Buffer.alloc(44 + 4800 * 2);
@@ -338,15 +360,15 @@ try {
   const soundImport = await call("import_media", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number, file_path: soundPath, role: "sfx", provenance: { source: "local_import" } });
   await waitForJob(soundImport.job.id);
   projectState = await call("read_project", { project_id: project.snapshot.project.id });
-  const effectState = await call("manage_effect_cues", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
+  const effectState = await callState("manage_effect_cues", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
     action: "create", scene_id: projectState.snapshot.scenes[0].id, type: "CameraPunch", layer: "actor", start_frame: 2, end_frame: 22,
     narrative_purpose: "独立测试一个有声音关联的动作", audience_task: "验证物理事件", semantic_anchor: { type: "absolute", relation: "land_on" } });
   const effectId = effectState.snapshot.effectCues.at(-1).id;
-  const soundState = await call("manage_audio", { project_id: project.snapshot.project.id, base_revision_id: effectState.revision.number,
+  const soundState = await callState("manage_audio", { project_id: project.snapshot.project.id, base_revision_id: effectState.revision.number,
     action: "create", kind: "sfx", asset_id: soundImport.asset.id, purpose: "测试动作落点", event_frame: 8, onset_offset_frames: 0,
     effect_event: { effect_cue_id: effectId, event_name: "局部动作", local_frame: 6 } });
   assert.match(soundState.snapshot.audioCues[0].effectEvent.cueSignature, /^[a-f0-9]{64}$/u);
-  const movedState = await call("manage_effect_cues", { project_id: project.snapshot.project.id, base_revision_id: soundState.revision.number,
+  const movedState = await callState("manage_effect_cues", { project_id: project.snapshot.project.id, base_revision_id: soundState.revision.number,
     action: "update", cue_id: effectId, start_frame: 4, end_frame: 24 });
   assert.equal(movedState.snapshot.audioCues[0].eventFrame, 10);
   projectState = movedState;

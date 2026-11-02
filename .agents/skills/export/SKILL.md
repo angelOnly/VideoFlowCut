@@ -23,7 +23,9 @@ Draft 仍受技术门禁约束，不用伪报动效或声音已审来取文件�
 
 ## 导出前
 
-确认 Project、目标 Timeline/Sequence、Revision、画幅、帧率、时长和编码规格。读取 QualityReport、EditorialReview、Preview Evidence、Asset/Provenance；使用 `run_render_preflight(revision,purpose)` 检查当前 Revision 的所有实际引用是否本地存在、可解码、字体/Mask/组件可用、Speech 与 Script 一致。Preflight 通过不替代真实 Preview、审片和最终文件验证。
+对当前采用的 MotionWork 核对是否已有覆盖 Cue 完整作品源范围的真实派生媒体；缺失时按 work_id 显式提交 submit_motion_work，完成后再固定最终 Revision。工作台源码预览不生成这些文件。媒体重编码不改变作品或声音事件；同身份输出和合成缓存可以复用。
+
+确认 Project、目标 Timeline/Sequence、Revision、画幅、帧率、时长和编码规格。读取 QualityReport、EditorialReview、Preview Evidence、Asset/Provenance；无提前诊断需要时由 submit_export 内预检检查实际引用、文件、字体/Mask/组件和声音文本；需要提前诊断才调用 run_render_preflight，导出以 preflight_job_id 引用原结果。平台核对同项目、版本、用途、内容和环境后复用固定探测，文件身份、缓存和当前用途条件仍核验；引用失效就重做相应检查。Preflight 通过不替代真实 Preview、审片和最终文件验证。
 
 导出阻挡来自确定性技术错误与用途不符，例如文件损坏/缺失、引用失效、版本错配、无法渲染。辅助审阅的遮挡、节奏、观感问题和缺少 Preview/Review 提供提示，不参与导出阻挡。
 

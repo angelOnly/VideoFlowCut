@@ -45,6 +45,18 @@ export class MotionDiagnostics {
   progress(frame: number) {
     this.state = { ...this.state, lastCompletedFrame: frame, lastProgressAt: new Date().toISOString() }; this.publish(false);
   }
+  /** 分路按已完成帧数汇总，后段先完成不能冒充整片已渲染到尾帧。 */
+  lanes(lanes: Record<string, unknown>[], completedFrames: number, totalFrames: number) {
+    this.state = { ...this.state, ...(lanes.length === 1 ? lanes[0] : {}), lanes: lanes.map(lane => ({ ...lane })), completedFrames, totalFrames, lastProgressAt: new Date().toISOString() };
+    this.publish(false);
+  }
+  includeLane(lane: number, diagnostics: MotionDiagnostics) {
+    const scoped = (event: Record<string, unknown>) => ({ ...event, detail: { lane, ...(event.detail as Record<string, unknown>) } });
+    this.events.push(...diagnostics.events.map(scoped));
+    this.events = this.events.slice(-100);
+    if (!this.firstEvent && diagnostics.firstEvent) this.firstEvent = scoped(diagnostics.firstEvent);
+    if (diagnostics.stderr) this.browserStderr(`\n[lane ${lane}]\n${diagnostics.stderr}`);
+  }
   terminate(reason: string) { this.state.terminationRequestedBy ??= reason; this.event("termination_requested", { reason }); }
   browser(detail: Record<string, unknown>) { Object.assign(this.state, detail); }
   browserStderr(chunk: string) { const bytes = Buffer.from(this.stderr + chunk);

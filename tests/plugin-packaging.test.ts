@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { join, relative, resolve } from "node:path";
 import test from "node:test";
 import { createHash } from "node:crypto";
 
@@ -9,13 +9,15 @@ const repositoryRoot = process.cwd();
 const sourceSkillsRoot = join(repositoryRoot, ".agents", "skills");
 const pluginRoot = join(repositoryRoot, "plugins", "videoflowcut");
 const pluginSkillsRoot = join(pluginRoot, "skills");
+// 隔离构建必须验证本次候选，不能让仓库中的旧发行物代替新代码通过。
+const runtimeRoot = process.env.VFC_TEST_RELEASE_DIR ? resolve(process.env.VFC_TEST_RELEASE_DIR) : join(pluginRoot, "runtime/dist");
 const generatedSharedFiles = new Set([
   "_shared/SKILL.md",
   "_shared/agents/openai.yaml"
 ]);
 
 test("登记字体与许可证完整发行，字体字节及MCP真实Schema同步", async () => {
-  const sourceRoot = join(repositoryRoot, "packages/motion-work/fonts"), releaseRoot = join(pluginRoot, "runtime/dist/fonts");
+  const sourceRoot = join(repositoryRoot, "packages/motion-work/fonts"), releaseRoot = join(runtimeRoot, "fonts");
   const source = JSON.parse(await readFile(join(sourceRoot, "catalog.json"), "utf8"));
   assert.equal(source.fonts.length, 34);
   assert.equal(source.fonts.filter((font: { licenseFile?: string }) => font.licenseFile === "NOTICE-UserFonts.txt").length, 22);
@@ -28,10 +30,13 @@ test("登记字体与许可证完整发行，字体字节及MCP真实Schema同�
   for (const license of new Set(["OFL.txt", "OFL-Serif.txt", "NOTICE-RequestedFonts.txt", ...source.fonts.flatMap((font: { licenseFile?: string }) => font.licenseFile ? [font.licenseFile] : [])])) {
     assert.deepEqual(await readFile(join(sourceRoot, license)), await readFile(join(releaseRoot, license)));
   }
-  const tools = JSON.parse(await readFile(join(pluginRoot, "runtime/dist/mcp-tools.json"), "utf8")).tools;
+  const tools = JSON.parse(await readFile(join(runtimeRoot, "mcp-tools.json"), "utf8")).tools;
   assert.ok(tools.some((tool: { name: string }) => tool.name === "read_motion_capabilities"));
-  const work = tools.find((tool: { name: string }) => tool.name === "submit_motion_work").inputSchema.properties.work;
+  const work = tools.find((tool: { name: string }) => tool.name === "register_motion_work").inputSchema.properties.work;
   assert.ok(work.properties.fontBindings);
+  const bake = tools.find((tool: { name: string }) => tool.name === "submit_motion_work").inputSchema;
+  assert.ok(bake.required.includes("work_id"));
+  assert.equal(bake.properties.work, undefined);
 });
 
 async function listFiles(root: string, base = root): Promise<string[]> {
@@ -82,7 +87,6 @@ test("插件发行副本只由根目录 Skills 源同步，并声明唯一 MCP �
 });
 
 test("插件安装时只启动已构建的 CommonJS Runtime", async () => {
-  const runtimeRoot = join(pluginRoot, "runtime", "dist");
   const requiredReleaseFiles = [
     join(runtimeRoot, "runtime.cjs"),
     join(runtimeRoot, "render-thread.cjs"),

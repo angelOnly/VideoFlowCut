@@ -25,7 +25,7 @@ try {
   const repeated = await runMotionJob(app, job);
   assert.equal(repeated.assetId, result.assetId);
   const asset = app.readManagedMotion(projectId, job.id).asset!;
-  const png = await readFile(join(app.readProject(projectId).snapshot.project.rootPath, asset.motion!.sourcePath, "..", "frames", "frame-00009.png"));
+  const png = await readFile(join(app.readProject(projectId).snapshot.project.rootPath, asset.managedPath, "..", "frames", "frame-00009.png"));
   assert.equal(png[25], 6, "PNG 必须保留 RGBA 而非烧入背景");
   const projectRoot = app.readProject(projectId).snapshot.project.rootPath;
   const logoPath = join(projectRoot, "assets", "logo.png");
@@ -47,7 +47,7 @@ try {
     snapshot.timeline.items.push(createTimelineItem({ trackId: snapshot.timeline.tracks.find((track) => track.name === "Background")!.id, sceneId, assetId: background.asset.id, startFrame: 0, endFrame: 60, sourceStartFrame: 0, sourceEndFrame: 60 }));
   });
   await app.reviewManagedMotion({ projectId, baseRevision: revision(), assetId: asset.id, outcome: "inconclusive", note: "候选 fixture 用于验证渲染位置、透明度和版本，不代表正式视频审美批准。" });
-  app.createEffectCue({ projectId, baseRevision: revision(), sceneId, type: "ManagedMotion", layer: "front", startFrame: 20, endFrame: 38, assetBindings: [{ slot: "motion", assetId: asset.id }] });
+  app.createEffectCue({ projectId, baseRevision: revision(), sceneId, type: "ManagedMotion", layer: "front", startFrame: 20, endFrame: 38, workId: asset.motion!.workId! });
   const finalSnapshot = app.readProject(projectId).snapshot;
   const compositionPath = join(root, "composition.mp4");
   await new RevisionRenderer(undefined, 1).renderRange(finalSnapshot, 0, 60, compositionPath);

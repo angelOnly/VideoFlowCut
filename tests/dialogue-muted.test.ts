@@ -10,6 +10,7 @@ import { createServer } from "../apps/server/src/app.js";
 import { registerSoundTools } from "../apps/server/src/sound-tools.js";
 import { createMediaAsset, createTimelineItem } from "@videocut/domain";
 import { soundDependencySignature } from "../packages/media-intelligence/src/sound-signature.js";
+const signature = (snapshot: Parameters<typeof soundDependencySignature>[0]) => soundDependencySignature(snapshot, { method: "audio", fromFrame: 0, toFrame: 48, renderIdentity: "test" });
 
 test("Dialogue 静音经 MCP/HTTP 可逆，拒绝过期和非布尔输入，不改变素材、片段或其他音轨", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-dialogue-muted-"));
@@ -39,7 +40,7 @@ test("Dialogue 静音经 MCP/HTTP 可逆，拒绝过期和非布尔输入，不�
     assert.deepEqual(after.snapshot.timeline.items, before.snapshot.timeline.items);
     for (const key of ["assets", "script", "speechAsset", "sourceCaptionPrograms"] as const) assert.deepEqual(after.snapshot[key], before.snapshot[key]);
     assert.deepEqual(after.snapshot.timeline.tracks.filter(track => track.name !== "Dialogue"), before.snapshot.timeline.tracks.filter(track => track.name !== "Dialogue"));
-    assert.notEqual(soundDependencySignature(after.snapshot), soundDependencySignature(before.snapshot));
+    assert.notEqual(signature(after.snapshot), signature(before.snapshot));
     assert.ok(after.revision.impact.dirtyRanges.some(range => range.startFrame === 0 && range.endFrame === 48));
     assert.notEqual((await call(true)).isError, true);
     assert.equal(current().snapshot.timeline.tracks.find(track => track.name === "Dialogue")!.muted, true);

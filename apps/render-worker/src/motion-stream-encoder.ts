@@ -6,7 +6,7 @@ import type { MotionSubmission } from "../../../packages/motion-work/src/schema.
 export function createMotionStreamEncoder(input: MotionSubmission, path: string, signal?: AbortSignal) {
   signal?.throwIfAborted();
   const alpha = input.compositing !== "opaque";
-  const child = spawn("ffmpeg", ["-y", "-v", "error", "-f", "image2pipe", "-vcodec", "png", "-framerate", String(input.fps), "-i", "pipe:0", "-an",
+  const child = spawn("ffmpeg", ["-y", "-v", "error", "-f", "rawvideo", "-pixel_format", "rgba", "-video_size", `${input.width}x${input.height}`, "-framerate", String(input.fps), "-i", "pipe:0", "-an",
     ...(alpha ? ["-c:v", "ffv1", "-level", "3", "-pix_fmt", "bgra"] : ["-c:v", "libx264", "-crf", "18", "-preset", "medium", "-pix_fmt", "yuv420p", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709", "-movflags", "+faststart"]), path],
   { windowsHide: true, stdio: ["pipe", "ignore", "pipe"] });
   let stderr = "", failure: Error | undefined;
@@ -27,10 +27,11 @@ export function createMotionStreamEncoder(input: MotionSubmission, path: string,
     finally { if (timer) clearTimeout(timer); }
   };
   return {
-    async write(png: Buffer) {
+    async write(pixels: Buffer) {
       signal?.throwIfAborted();
       if (failure) throw failure;
-      await bounded(Promise.race([new Promise<void>((resolve, reject) => child.stdin.write(png, error => error ? reject(error) : resolve())), done.then(() => { throw new Error("MOTION_ENCODER_EARLY_EXIT"); })]));
+      if (pixels.length !== input.width * input.height * 4) throw new Error("MOTION_OUTPUT_MISMATCH: RGBA 单帧字节数不匹配");
+      await bounded(Promise.race([new Promise<void>((resolve, reject) => child.stdin.write(pixels, error => error ? reject(error) : resolve())), done.then(() => { throw new Error("MOTION_ENCODER_EARLY_EXIT"); })]));
     },
     async finish() { child.stdin.end(); await bounded(done); signal?.throwIfAborted(); signal?.removeEventListener("abort", abort); },
     async cancel() { child.stdin.destroy(); child.kill(); await done.catch(() => {}); signal?.removeEventListener("abort", abort); await rm(path, { force: true }); }

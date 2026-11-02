@@ -256,7 +256,15 @@ input:focus, select:focus, textarea:focus { border-color: #728cff; box-shadow: 0
 .preview-status { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .preview-stage { position: relative; display: flex; min-height: 0; flex: 1; align-items: center; justify-content: center; padding: 12px 20px; overflow: hidden; background: radial-gradient(ellipse at center, #2a2f41, #11131a 70%); }
 .preview-stage > :first-child { max-width: 100%; max-height: 100%; aspect-ratio: 9 / 16; box-shadow: 0 24px 60px #000a; }
-.preview-controls { display: flex; min-height: 39px; align-items: center; gap: 7px; padding: 5px 12px; border-top: 1px solid #2d3140; background: #1d202a; }
+.preview-controls { display: flex; min-height: 39px; flex-wrap: wrap; align-items: center; gap: 7px; padding: 5px 12px; border-top: 1px solid #2d3140; background: #1d202a; }
+.preview-controls label { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; white-space: nowrap; }
+.preview-controls input[type="number"] { width: 70px; }
+.workbench-review { padding: 8px 12px; overflow: auto; max-height: 230px; border-top: 1px solid #303443; font-size: 12px; }
+.workbench-review summary { cursor: pointer; }
+.workbench-review label { display: block; margin: 6px 0; }
+.workbench-review textarea, .workbench-review input:not([type="checkbox"]) { width: 100%; }
+.workbench-review-fields, .workbench-review-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.workbench-finding { display: grid; gap: 4px; padding: 8px 0; border-top: 1px solid #303443; }
 .preview-controls button { padding: 5px 8px; font-size: 11px; }
 .preview-controls .message { flex: 1; text-align: right; }
 

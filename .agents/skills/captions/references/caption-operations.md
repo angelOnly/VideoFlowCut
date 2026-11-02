@@ -20,7 +20,7 @@
 
 当前 MCP 可 `generate_source_audio_captions`、`generate_speech_captions`、`read_source_audio_alignment`、`apply_source_caption_program`、`read_captions` 与 `edit_captions`。原声 A-roll 默认调用 `generate_source_audio_captions`；当前完整 SpeechAsset 已组装到唯一 Dialogue 时，用 `generate_speech_captions(base_revision_id, idempotency_key?)` 从最终可听音频生成字幕。两条入口复用 FunASR 的真实 `startMs/endMs`：每个 Provider 字幕 segment 自动对应一屏，不重生 TTS。按本片既定行数排版，不在同一时刻合并多个 segment。
 
-自然 SpeechSegment 是配音生产单位，不是强制一屏的阅读单位。不要因一段自然旁白的默认字幕溢出，就拆碎配音、按字符均分时间、缩小字或删成摘要。旁白入口保留 Script、SpeechSegment、SpeechAsset、Dialogue 和画面，只在成功后原子替换未人工改写的默认字幕；新卡和重建卡继承全片规范，已有人工改写或旧项目不同局部版式不能静默覆盖。Job 期间暂缓其他项目写入，结束后读回当前 Revision；冲突先对账，不自动重放。`source_audio` 表示从实际音频派生，Alignment 的 `speechSource` 明确记录最终旁白来源，不是假 A-roll，也不会把字幕 token 升级成 SpeechTiming 的 word_exact。
+自然 SpeechSegment 是配音生产单位，不是强制一屏的阅读单位。不要因一段自然旁白的默认字幕溢出，就拆碎配音、按字符均分时间、缩小字或删成摘要。旁白入口保留 Script、SpeechSegment、SpeechAsset、Dialogue 和画面，只在成功后原子替换未人工改写的默认字幕；新卡和重建卡继承全片规范，已有人工改写或旧项目不同局部版式不能静默覆盖。Job固定真实声音、时间映射及目标字幕依赖；无关画面和素材写入可继续，目标音频、时序和人工字幕编辑需要协调。识别结果先存原Job检查点，相关依赖变化时保留结果并返回冲突，不覆盖人工内容、不重新识别；结束后读回实际提交Revision。`source_audio` 表示从实际音频派生，Alignment 的 `speechSource` 明确记录最终旁白来源，不是假 A-roll，也不会把字幕 token 升级成 SpeechTiming 的 word_exact。
 
 Provider 能提供严格 token 时间时，Alignment 标记为 `provider_token_timed`，才可在单段实际排版超出既定行数、Provider 分段明显破坏完整语义、回听确认错分段，或用户明确要求重新分屏时，读取 Alignment 并用 `apply_source_caption_program` 原子覆盖默认 Program。它不能手填时间、按字符均分时间或改写实义词。若 Alignment 标记为 `tokenPrecision: unavailable`，其 Provider segments 仍是可正常使用的 `sentence_exact` 原声字幕；但没有可验证的新切点，`apply_source_caption_program` 必须拒绝，不能为了排版或错字猜测时间。此时应保留默认段、重新取得带严格 token 证据的对齐，或回到源音频完成可追溯的纠错。
 

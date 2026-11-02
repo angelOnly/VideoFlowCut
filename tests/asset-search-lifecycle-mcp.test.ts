@@ -36,14 +36,18 @@ test("正式 MCP Schema 接受开放需求，旧候选跨改稿获取，完成�
     const updated = await call("manage_asset_requirements", { action: "update", asset_request_id: request.id, base_revision_id: created.revision.number, purpose: "新的讲法", target_aspect_ratio: "1:1" });
     const read = await call("inspect_media_candidate", { asset_candidate_id: found.candidates[0].id });
     assert.equal(read.candidate.status, "available");
-    const queued = await call("acquire_media_asset", { asset_candidate_id: found.candidates[0].id, base_revision_id: updated.revision.number });
+    assert.equal(typeof updated.revision, "number");
+    assert.equal(Object.hasOwn(updated, "snapshot"), false);
+    const queued = await call("acquire_media_asset", { asset_candidate_id: found.candidates[0].id, base_revision_id: updated.revision });
     assert.equal(queued.job.status, "queued");
-    const whileQueued = await call("manage_asset_requirements", { action: "update", asset_request_id: request.id, base_revision_id: queued.state.revision.number, visual_brief: "下载期间继续调整" });
-    const refused = await client.callTool({ name: "manage_asset_requirements", arguments: { project_id: projectId, action: "close", asset_request_id: request.id, base_revision_id: whileQueued.revision.number, close_outcome: "completed" } });
+    const whileQueued = await call("manage_asset_requirements", { action: "update", asset_request_id: request.id, base_revision_id: queued.state.revision, visual_brief: "下载期间继续调整" });
+    const refused = await client.callTool({ name: "manage_asset_requirements", arguments: { project_id: projectId, action: "close", asset_request_id: request.id, base_revision_id: whileQueued.revision, close_outcome: "completed" } });
     assert.equal(refused.isError, true);
     assert.match(JSON.stringify(refused.content), /ASSET_REQUEST_MATERIAL_REQUIRED|实际取得/);
-    const closed = await call("manage_asset_requirements", { action: "close", asset_request_id: request.id, base_revision_id: whileQueued.revision.number, close_outcome: "cancelled", close_reason: "作者取消用途" });
-    assert.equal(closed.snapshot.assetRequests[0].status, "closed");
+    const closed = await call("manage_asset_requirements", { action: "close", asset_request_id: request.id, base_revision_id: whileQueued.revision, close_outcome: "cancelled", close_reason: "作者取消用途" });
+    const current = await call("read_project", {});
+    assert.equal(current.revision.number, closed.revision);
+    assert.equal(current.snapshot.assetRequests[0].status, "closed");
     assert.equal((await call("track_job", { job_id: queued.job.id })).status, "queued");
   } finally { await client.close(); await transport.close(); await rm(root, { recursive: true, force: true }); }
 });

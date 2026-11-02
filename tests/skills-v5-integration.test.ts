@@ -376,7 +376,7 @@ test("正式提交与专业判断分工在唯一交接中维护",async()=>{
   assert.match(handoff,/不能只换 `?base_revision_id`? 重发旧产物/);
   assert.match(handoff,/技术核验归主任务[\s\S]*审美归子代理/);
   assert.match(writes,/不能认证真实宿主调用/);
-  assert.match(writes,/异步 Job[\s\S]*终态[\s\S]*Revision/);
+  assert.match(writes,/异步 Job[\s\S]*on_success[\s\S]*核对目标依赖、原子采用/);
   assert.match(await readSkill("quality-verification"),/inconclusive/);
 });
 
@@ -459,10 +459,11 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
   assert.match(contract, /兼容入口，不作为正式主链/u);
 
   const requiredInputs: Record<string, string[]> = {
-    submit_motion_work: ["base_revision_id", "idempotency_key", "work"],
+    register_motion_work: ["base_revision_id", "idempotency_key", "work", "frozen_work"],
+    submit_motion_work: ["base_revision_id", "idempotency_key", "work_id"],
     inspect_motion_reference: ["source_url", "preview_index"],
-    read_motion_work: ["job_id"],
-    review_motion_work: ["asset_id", "outcome", "evidence", "note"],
+    read_motion_work: ["work_id"],
+    review_motion_work: ["work_id", "outcome", "evidence", "note"],
     import_media: ["base_revision_id", "file_path"],
     inspect_asset: ["asset_id", "mode"],
     manage_asset_requirements: ["base_revision_id", "action"],
