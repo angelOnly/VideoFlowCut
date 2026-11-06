@@ -34,8 +34,8 @@
 | 新建主要视觉、整幅重做 | 同一视觉作者使用[视觉入口](../../visual-treatment-planning/SKILL.md#先进入本次工作)及其指定的美术、演出核心 |
 | 主题构思、完整新制或主要表达重构 | 原创意负责人执行[创意统筹](../../creative-sequence-design/SKILL.md)，与文案、素材及视觉并行 |
 | 需要创意参考或重新选择表达 | 原创意负责人执行[创意案例查读](../../creative-case-library/SKILL.md)，向量召回并核读完整卡 |
-| 已有意图或参考，还未落到本片场面 | 创意牵头、视觉共同执行[参考与素材落地](../../creative-reference-to-sequence/SKILL.md)，不新增代理或全套动画执行稿 |
-| 具体动作、运镜或接续制法有缺口 | 原视觉作者按需使用[机制入口](../../motion-case-library/SKILL.md)和演出方法，必要参考实际传给 OpenDesign；不作为调用前置 |
+| 已有意图或参考，还未落到本片场面 | 创意牵头、视觉共同执行[参考与素材落地](../../creative-reference-to-sequence/SKILL.md)，完成材料映射、视觉事件和完整时间编排，不新增代理 |
+| 完整新制或主要视觉重做的视觉编排 | 原视觉作者围绕主要事件、动作、运镜与接续主动使用[机制入口](../../motion-case-library/SKILL.md)检索，核读采用项并交给 OpenDesign；尊重用户明确的参考范围，没有合适机制时原创 |
 | 将当前设计形成连续动作 | [演出核心](../../motion-brief-writing/references/performance-design.md)，不新增独立动作设计代理 |
 | 将采用的连续范围映射为平台 Scene 等对象 | [场面规划](../../scene-planning/SKILL.md)与实际操作参考 |
 | 处理人物遮挡、空间层、Mask 或多画幅 | [空间构图](../../depth-composition/SKILL.md)及发生问题的专项章节 |
@@ -69,14 +69,14 @@
 
 事实研究与普通取材无需查机制。视觉设计阶段可由原视觉作者共用本场候选、正文、分镜与必要视频，沿[机制检索与组合](../../motion-case-library/references/mechanism-retrieval.md)完成意图转换、混合召回、整段重选及对象适配。传已有采用项和真实工具状态，不为每个机制创建代理，不把几组候选视为已经完成组合。
 
-实际预排的观察、主要采用及按根因返修沿[共同交接](../../_shared/PROJECT_REVISION_AND_HANDOFF.md)和[专业返修方法](../../quality-verification/references/professional-review.md#根因而不是症状)。不预先锁死几何、字形或时序；保护用户锁定项及无关的已成立内容。
+实际预排的观察、主要采用及按根因返修沿[共同交接](../../_shared/PROJECT_REVISION_AND_HANDOFF.md)和[专业返修方法](../../quality-verification/references/professional-review.md#根因而不是症状)。不预定全部几何和逐帧曲线；保护已确定的事件顺序、时间范围、用户锁定项及无关的已成立内容。
 
 ### 视觉派发与接回的完成口径
 
 新建或重做主要物件、连续演出时，给原视觉作者传递当前导演正文、准确句群、
 实际材料、前后关系、用户锁定项和[视觉入口](../../visual-treatment-planning/SKILL.md)。
-调用前：准确内容、表达目的、场景构思、真实输入与必要边界清楚，即可进入制作。
-具体部件、布局、路径或镜头未确定，由 OpenDesign 在制作中解决，不退回补全文。
+调用前：准确内容、真实素材角色、主要事件、完整时间编排和必要边界清楚；缺项回原作者补齐。
+部件细节、精确布局、曲线和镜头轨迹由 OpenDesign 深化，不要求逐帧参数。
 不增加提示词转换代理；主任务续接同一视觉负责人。
 
 接回时区分简报、探索、实际设计、源码、资源、输出和真实观察范围。

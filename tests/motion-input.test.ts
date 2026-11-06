@@ -10,8 +10,16 @@ import { motionFixture } from "./fixtures/managed-motion.js";
 import { createServer } from "../apps/server/src/app.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { AUTHORED_MOTION_MANIFEST_CONTRACT, parseAuthoredMotionManifest } from "../packages/contracts/src/authored-motion-manifest-v1.js";
 
 const sha = (value: Buffer) => createHash("sha256").update(value).digest("hex");
+test("作者清单 v1 对多余字段和缺失修改原因给出具体位置", () => {
+  const manifest = { authorSubmissionId: "a", sourceFile: "film.html", sourceSha256: "a".repeat(64), work: {}, readyRanges: [{ startFrame: 0, endFrame: 2 }], changedRanges: [] };
+  assert.equal(AUTHORED_MOTION_MANIFEST_CONTRACT, "videoflowcut.authored-motion-manifest.v1");
+  assert.deepEqual(parseAuthoredMotionManifest(manifest), manifest);
+  assert.throws(() => parseAuthoredMotionManifest({ ...manifest, extra: true }), /不支持字段 extra/u);
+  assert.throws(() => parseAuthoredMotionManifest({ ...manifest, changedRanges: [{ startFrame: 0, endFrame: 1 }] }), /changedRanges\[0\]\.reason/u);
+});
 test("跨服务包身份固定样例", () => assert.equal(motionBundleHash({ sha256: "a".repeat(64), bytes: 123 }, { sha256: "b".repeat(64), bytes: 45 }), "e5ecadbc707b9d600a2900e093a90dcb6840c716ac41aa25b5e94d43a2dc661e"));
 function bundle(sourceInput = motionFixture.source, readyRanges = [{ startFrame: 0, endFrame: motionFixture.durationInFrames }]) {
   const { source: _source, ...work } = motionFixture, sourceBytes = Buffer.from(sourceInput);
@@ -41,6 +49,8 @@ test("正式 MCP 在隔离项目完整导入接近源码上限的中文字节并
   try {
     const state = app.createProject({ name: "固定源码接口验证" }), projectId = state.snapshot.project.id;
     await client.connect(transport);
+    const capabilities = await client.callTool({ name: "read_motion_capabilities", arguments: {} });
+    assert.equal(JSON.parse((capabilities.content as Array<{ text: string }>)[0].text).authoredManifestContract, AUTHORED_MOTION_MANIFEST_CONTRACT);
     const longSource = motionFixture.source.replace("</body>", `<!--${"中".repeat(1_900_000)}--></body>`), input = bundle(longSource);
     const response = await client.callTool({ name: "import_motion_bundle", arguments: { project_id: projectId, idempotency_key: "大文件", bundle: input } });
     assert.notEqual(response.isError, true, JSON.stringify(response.content));

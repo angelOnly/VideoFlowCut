@@ -55,7 +55,6 @@ export { primaryVisualRanges, compileVisualComposition, uncoveredVisualRanges, r
 export const DEFAULT_BRIEF: CreativeBrief = {
   platform: "短视频",
   aspectRatio: "9:16",
-  targetDurationSeconds: 60,
   audience: "泛内容用户",
   tone: "清晰、可信、自然",
   captionMode: "stable",

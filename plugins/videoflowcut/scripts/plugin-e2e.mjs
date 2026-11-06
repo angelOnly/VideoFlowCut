@@ -197,6 +197,9 @@ try {
   assert.equal(workbench.url, runtime.webUrl, "MCP 工作台入口必须指向同一个隔离 Runtime");
 
   const authoredProject = await call("create_project", { name: "发行版原创旁白入口验收", profile: "visual_explainer" });
+  assert.equal(authoredProject.snapshot.project.brief.targetDurationSeconds, undefined, "未指定时长不能写入默认 60 秒");
+  const longProject = await call("create_project", { name: "明确指定长时长验收", profile: "visual_explainer", brief: { targetDurationSeconds: 317.39 } });
+  assert.equal(longProject.snapshot.project.brief.targetDurationSeconds, 317.39, "用户指定的长时长必须保留");
   const authoredState = await callState("apply_authored_script", {
     project_id: authoredProject.snapshot.project.id,
     base_revision_id: authoredProject.revision.number,

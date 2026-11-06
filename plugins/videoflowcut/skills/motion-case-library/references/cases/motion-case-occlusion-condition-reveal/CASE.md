@@ -26,7 +26,7 @@ description: 前景让位、遮挡揭字与挂边依据；适用于现象、产�
 - A：[job_fee74586-395d-46bd-a31b-581e8bcbd2f3 原始源码](../motion-case-mixed-scene-relay/assets/source-records/job_fee74586-395d-46bd-a31b-581e8bcbd2f3/source.tsx)
 - B：[job_25894360-a15a-4f1e-9f32-1d7c87299c84 原始源码](../motion-case-mixed-scene-relay/assets/source-records/job_25894360-a15a-4f1e-9f32-1d7c87299c84/source.tsx)
 
-原始源码含历史项目Asset ID及局部时钟，不是新项目可直接提交的文件。当前生产通过正常获取/导入建立真实绑定；源码用于理解做法，不通过替换标题冒充新的设计。原素材未随轻量包提供，精确重渲染需要依法重新取得并绑定；查看本例视频不需要那些原素材。
+源码、历史素材与当前作品的使用边界见[局部案例共同使用步骤](../../validated-use.md#局部案例共同使用步骤)。
 
 ## 5. 返回当前制作任务
 

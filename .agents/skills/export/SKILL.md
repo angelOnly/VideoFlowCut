@@ -7,7 +7,7 @@ description: 固定目标 Timeline/Sequence 与 Revision，区分 draft/delivery
 
 ## 主任务执行与专业审片
 
-主任务负责固定 Revision、门禁与规格检查、导出提交、跟踪、最终文件读回和交付；按 [production-coordinator](../production-coordinator/SKILL.md) 管理执行。最终文件的表达、节奏、自然度和完整声画审阅交 `quality-verification` 审片子代理，主任务转录实际结果，不能用技术通过代替专业审片，也不能代替用户批准。创意失败回原专项或导演修订；本 Skill 不自行改稿、改时机或补设计。
+主任务负责固定 Revision、门禁与规格检查、导出提交、跟踪、最终文件读回和交付；按 [production-coordinator](../production-coordinator/SKILL.md) 管理执行。最终文件的表达、节奏、自然度和完整声画由导演及原视觉、声音等负责人按各自范围观察；`quality-verification` 检查可验证的事实、实现与交付错误。主任务记录实际结果，技术通过不能代替专业观察，也不能代替用户批准。创意失败回原专项或导演修订；本 Skill 不自行改稿、改时机或补设计。
 
 ## 导出是固定版本的交付动作
 

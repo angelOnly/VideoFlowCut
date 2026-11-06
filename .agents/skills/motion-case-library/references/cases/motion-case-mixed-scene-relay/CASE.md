@@ -28,7 +28,7 @@ description: 混合场面的整片接力；适用于完整解释段需要组合�
 - C：[job_9a7886dd-6277-469a-8a7d-c7bcf85f1c24 原始源码](assets/source-records/job_9a7886dd-6277-469a-8a7d-c7bcf85f1c24/source.tsx)
 - D：[job_74a1aaeb-cf26-4484-ac2c-04a518ebc443 原始源码](assets/source-records/job_74a1aaeb-cf26-4484-ac2c-04a518ebc443/source.tsx)
 
-原始源码含历史项目Asset ID及局部时钟，不是新项目可直接提交的文件。当前生产通过正常获取/导入建立真实绑定；源码用于理解做法，不通过替换标题冒充新的设计。原素材未随轻量包提供，精确重渲染需要依法重新取得并绑定；查看本例视频不需要那些原素材。
+源码、历史素材与当前作品的使用边界见[局部案例共同使用步骤](../../validated-use.md#局部案例共同使用步骤)。
 
 ## 5. 返回当前制作任务
 

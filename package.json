@@ -22,6 +22,7 @@
     "mcp": "tsx apps/server/src/mcp.ts",
     "candidate-runtime": "node plugins/videoflowcut/scripts/candidate-runtime.mjs",
     "plugin:sync-skills": "node plugins/videoflowcut/scripts/sync-skills.mjs",
+    "motion-contract:sync": "node scripts/sync-opendesign-motion-contract.mjs",
     "plugin:build": "npm run typecheck && npm run build:web && npm run plugin:sync-skills && node plugins/videoflowcut/scripts/build-runtime.mjs && node plugins/videoflowcut/scripts/configure-repo.mjs",
     "plugin:build-runtime": "node plugins/videoflowcut/scripts/build-runtime.mjs",
     "plugin:verify": "node plugins/videoflowcut/scripts/verify-plugin.mjs",

@@ -169,7 +169,7 @@
 [超现实拼贴 · Token 完整作品](full-scenes/surreal-collage-token/index.html)保留原 Canvas 全场，公开及插件版本无声。
 已明确采用的原作可用于当前创作；本机字体差异、来源、依赖与用途限制见[制作说明](full-scenes/surreal-collage-token/README.md)。
 
-读取[案例学习正文](full-scenes/surreal-collage-token/LEARNING.md)，按本片问题定位具体美术、物件结构、动作与场面关系，再读取对应源码和资源。
+需要研究此案例的美术、物件结构、动作或场面关系时，读取[案例学习正文](full-scenes/surreal-collage-token/LEARNING.md)，再按需读取对应源码和资源。
 [原生与受管同阶段对照](full-scenes/surreal-collage-token/comparison.html)仅覆盖原作 8.10—14.00 秒，当前受管版仍待返修，未进入正式推荐。
 参考采用不证明代码可任意换内容；新作品使用本片资源、字体与真实时钟完成并检查。
 原作者口播只保留在忽略的本地研究归档，不随新作品或插件发行。

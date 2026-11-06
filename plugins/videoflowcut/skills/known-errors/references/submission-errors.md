@@ -79,4 +79,4 @@
 
 受管作品校验完整 HTML、主合成尺寸与时长、内联脚本和实际资源槽；浏览器继续执行原隔离和网络限制。`work.source` 拒绝只有同时提供 `stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=correct_input` 以及行列、原因和纠正依据，才可回交原作者修订并提交一次；这些字段表示提交层确认尚未创建 Job，不表示原样自动重试。诊断与合法语法矛盾时报告平台工单，重复拒绝先诊断，确认平台 Bug 阻断后才报障。Worker 编译复用同一校验器，但任务已经入队，其源码错误没有提交前重试许可；读取失败 Job 与诊断后走修复和对账。字体沿上述单一字体方法处理。
 
-调用结果先检查 `isError`，保存完整文本后再按实际内容解析 JSON；协议层 Schema 拒绝可能只有文本，解析失败不得覆盖原始错误。参数拒绝、业务冲突、运行故障和写入结果未知分别记录。仅明确 `stage=validation`、`sideEffects=none`、`safeToRetry=true`、`recovery=correct_input` 并指出字段纠正依据的参数拒绝，允许按实时 Schema 纠正后提交一次；不重放原请求，重复拒绝先诊断，确认平台 Bug 阻断后才报障。协议层文本拒绝必须核对实时 Schema 和当前 Revision，确认未进入业务执行后才能纠正。此例外不允许重试已创建的下载、生成 Job、运行失败或结果未知，不更换幂等键绕过。字体选择沿上述单一字体方法。
+原始响应保存、参数拒绝、冲突、已创建 Job 与未知结果的通用处理沿[项目提交与恢复](../../production-coordinator/references/project-writes.md#失败与不确定结果)；字体选择沿上述单一字体方法。

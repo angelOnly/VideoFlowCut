@@ -275,7 +275,7 @@ export interface CreativeBrief {
   sourceDisplayPolicy?: import("./source-display-policy.js").SourceDisplayPolicy;
   platform: string;
   aspectRatio: "9:16" | "16:9" | "1:1";
-  targetDurationSeconds: number;
+  targetDurationSeconds?: number;
   audience: string;
   tone: string;
   captionMode: "stable" | "none";

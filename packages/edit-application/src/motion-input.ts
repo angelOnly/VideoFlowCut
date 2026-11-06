@@ -2,17 +2,11 @@ import { createHash, randomUUID } from "node:crypto";
 import { link, mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join, relative, resolve, isAbsolute } from "node:path";
 import { z } from "zod";
+import { parseAuthoredMotionManifest } from "../../contracts/src/authored-motion-manifest-v1.js";
 import { motionSubmissionSchema, type MotionSubmission } from "../../motion-work/src/schema.js";
 import { validateMotionSource } from "../../motion-work/src/compiler.js";
 
 const digest = z.string().regex(/^[a-f0-9]{64}$/u);
-const range = z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() }).strict()
-  .refine(value => value.endFrame > value.startFrame, "范围必须非空");
-export const authoredMotionManifestSchema = z.object({
-  authorSubmissionId: z.string().min(1).max(160), sourceFile: z.string().min(1), sourceSha256: digest,
-  work: z.record(z.unknown()), readyRanges: z.array(range).min(1),
-  changedRanges: z.array(z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(), reason: z.string().min(1) }).strict())
-}).strict();
 const part = z.object({ sha256: digest, bytes: z.number().int().nonnegative() }).strict();
 export const frozenMotionBundleSchema = z.object({
   receipt: z.object({ project: z.string().min(1), run_id: z.string().min(1), frozen_version: z.string().min(1), bundle_sha256: digest, source: part, manifest: part }).strict(),
@@ -32,7 +26,7 @@ function decode(value: string): Buffer {
 function checkedParts(bundle: FrozenMotionBundle) {
   const source = decode(bundle.source_base64), manifestBytes = decode(bundle.manifest_base64), receipt = bundle.receipt;
   if (source.length !== receipt.source.bytes || manifestBytes.length !== receipt.manifest.bytes || hash(source) !== receipt.source.sha256 || hash(manifestBytes) !== receipt.manifest.sha256 || motionBundleHash(receipt.source, receipt.manifest) !== receipt.bundle_sha256) throw new Error("MOTION_BUNDLE_IDENTITY_MISMATCH");
-  const manifest = authoredMotionManifestSchema.parse(JSON.parse(manifestBytes.toString("utf8")));
+  const manifest = parseAuthoredMotionManifest(JSON.parse(manifestBytes.toString("utf8")));
   if (manifest.sourceSha256 !== receipt.source.sha256) throw new Error("MOTION_BUNDLE_SOURCE_MISMATCH");
   if ("source" in manifest.work || "previousAssetId" in manifest.work || "renderedAssetId" in manifest.work) throw new Error("MOTION_BUNDLE_AUTHOR_FIELD_INVALID");
   const work = motionSubmissionSchema.parse({ ...manifest.work, source: source.toString("utf8") });
