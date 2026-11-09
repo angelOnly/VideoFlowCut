@@ -1,0 +1,141 @@
+{
+  "说明": "路径相对本清单；所有音视频为可携带压缩副本，非原始字节；完整时长，画质及帧率有损变化。原文件哈希在成片来源清单和素材观察中。",
+  "素材": [
+    {
+      "文件": "../08_便携素材/atlas.mp4",
+      "用途": "Atlas 后空翻实拍，原视频完整时长压缩副本",
+      "原项目素材ID": "asset_9dae584a-d3ae-4209-895f-64d13d5cc73a",
+      "字节数": 1624789,
+      "便携副本SHA256": "ba0202e3cccac3ad11965461e92005de8900f6d608cd6ffb74f50e545239923e",
+      "媒体信息": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 854,
+            "height": 480
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "54.666667",
+          "size": "1624789"
+        }
+      }
+    },
+    {
+      "文件": "../08_便携素材/fanuc.mp4",
+      "用途": "FANUC 机械臂工作站，原视频完整时长压缩副本",
+      "原项目素材ID": "asset_9d161123-70c8-4c94-a42a-4486f703bde9",
+      "字节数": 4638782,
+      "便携副本SHA256": "da19d936b5e1ddb7418eee7463fe854e5060565a7af800c8c9bcfbe724a3ec80",
+      "媒体信息": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 854,
+            "height": 480
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "137.416667",
+          "size": "4638782"
+        }
+      }
+    },
+    {
+      "文件": "../08_便携素材/digit.mp4",
+      "用途": "Digit GXO 仓库，原视频完整时长压缩副本",
+      "原项目素材ID": "asset_657e3f43-596f-4ee1-8db7-d5dc8aaf3eaf",
+      "字节数": 3626799,
+      "便携副本SHA256": "276533600c57e2b4a825f146723d27ff821be838dc2d1d3a5001deb3a54dff56",
+      "媒体信息": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 854,
+            "height": 480
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "112.709002",
+          "size": "3626799"
+        }
+      }
+    },
+    {
+      "文件": "../08_便携素材/narration.m4a",
+      "用途": "全片旁白音频，AAC压缩副本",
+      "原项目素材ID": "asset_f1ab145e-7257-4fa4-8eff-a369ee663dab",
+      "字节数": 1071665,
+      "便携副本SHA256": "da1acd2c6c0b773fbd4a9db357547d047aa7d6e3067b93f199cd121d2673c3a4",
+      "媒体信息": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "139.340000",
+          "size": "1071665"
+        }
+      }
+    },
+    {
+      "文件": "../08_便携素材/film-preview.mp4",
+      "用途": "成片 Revision 92 的带声带字幕压缩预览",
+      "原项目素材ID": null,
+      "字节数": 6207229,
+      "便携副本SHA256": "8d500040a4eeeeeea43b2b109244e34e4b9a77ac292a6ee70fc878de8718709c",
+      "媒体信息": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 854,
+            "height": 480
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "139.416667",
+          "size": "6207229"
+        }
+      }
+    },
+    {
+      "文件": "../08_便携素材/atlas-contact.jpg",
+      "用途": "Atlas 源片24–31秒联系帧",
+      "原项目素材ID": null,
+      "字节数": 211428,
+      "便携副本SHA256": "e7b94e478e000de948277d581d65161cd6303dadf2258baa1e0be2753ff62c6c"
+    }
+  ]
+}

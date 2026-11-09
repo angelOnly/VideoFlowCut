@@ -1,0 +1,36 @@
+{
+  "id": "production_run_3cb4136f-a9ff-44e4-bbfd-c3db1c6a5a1b",
+  "projectId": "project_6425430a-6b92-4eed-9bc3-89e79a51aea3",
+  "status": "active",
+  "baseRevision": 21,
+  "loadedSkills": [
+    "project-basics",
+    "production-coordinator",
+    "production-director",
+    "visual-explainer-director",
+    "voice-production",
+    "visual-asset-sourcing",
+    "creative-sequence-design",
+    "visual-treatment-planning"
+  ],
+  "loadedReferences": [
+    "用户原始旁白",
+    "独立新制，不参考工作区旧视频"
+  ],
+  "creativeDecisions": [],
+  "quietRanges": [],
+  "effectDecisions": [],
+  "rejectedAlternatives": [],
+  "mcpCommands": [
+    {
+      "name": "start_production_run",
+      "revision": 21,
+      "createdAt": "2026-11-08T17:17:37.902Z"
+    }
+  ],
+  "previewEvidence": [],
+  "composedFrameEvidence": [],
+  "qualityReview": [],
+  "completionBlockers": [],
+  "createdAt": "2026-11-08T17:17:37.902Z"
+}

@@ -1,0 +1,78 @@
+{
+  "sourceFile": "robot-work.html",
+  "work": {
+    "name": "下一件零件 · 人形机器人进厂",
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "durationInFrames": 4180,
+    "compositing": "opaque",
+    "props": {},
+    "imageBindings": {},
+    "fontBindings": {
+      "body": "noto-sans-sc-regular",
+      "title": "noto-sans-sc-bold"
+    },
+    "videoBindings": {
+      "atlas_open": {
+        "endFrame": 207,
+        "sourceStartMs": 24000,
+        "assetId": "asset_9dae584a-d3ae-4209-895f-64d13d5cc73a",
+        "sourceEndMs": 30900,
+        "startFrame": 0
+      },
+      "bin_close": {
+        "endFrame": 613,
+        "sourceStartMs": 33600,
+        "assetId": "asset_9d161123-70c8-4c94-a42a-4486f703bde9",
+        "sourceEndMs": 35700,
+        "startFrame": 550
+      },
+      "arm_work": {
+        "endFrame": 2509,
+        "sourceStartMs": 28600,
+        "assetId": "asset_9d161123-70c8-4c94-a42a-4486f703bde9",
+        "sourceEndMs": 33600,
+        "startFrame": 2359
+      },
+      "digit_work": {
+        "endFrame": 3617,
+        "sourceStartMs": 89000,
+        "assetId": "asset_657e3f43-596f-4ee1-8db7-d5dc8aaf3eaf",
+        "sourceEndMs": 100000,
+        "startFrame": 3287
+      }
+    },
+    "creativeBrief": "完整依据 brief/visual-direction.md、brief/timed-visual-plan.md、brief/new-material-observations.md、brief/speech-timing.json 原创制作，1920×1080/30fps/[0,4180)。同一不对称金色零件贯穿立体工位、滑走、重定位、持握翻转、下道工序、概率及结尾。99%为单次成功率，在独立假设下0.99¹⁰⁰≈36.6%，一百次全部成功约37%。机械臂段保留视觉/随机抓取能力，不把失败演出归给FANUC。四个受管视频槽固定真实资产和正常速度源时间；Digit累计超过十万料箱不等同全天自主或无故障。使用正式Noto Sans SC字体槽。无旁白、音乐、普通字幕或播放器，全部由外层合成。浅金零件、青色厚壁料箱、冷灰钢件与深蓝工位为本次原创视觉决定。完整源码实现不等于连续审片通过：素材仅继承联系帧观察，Atlas连续代理再次失败，旁白未实际回听。取景及语句内部落点待外层同版连续声画复核，详见HANDOFF.md。 本次局部返修：robot-0113-director-closing-occlusion、robot-0113-probability-review；依robot-0113-face-review-correction撤回重做正反面，保留938–1053全部原设计及880/915夹持关系。实际复核记录见HANDOFF.md。"
+  },
+  "changedRanges": [
+    {
+      "endFrame": 210,
+      "reason": "robot-0113-director-closing-occlusion：结束实拍后立即接入原创工位，消除三帧空底",
+      "startFrame": 207
+    },
+    {
+      "endFrame": 1801,
+      "reason": "robot-0113-probability-review：横轴初始刻度改0，结果文案新增不透明承托，保留概率与独立假设",
+      "startFrame": 1466
+    },
+    {
+      "endFrame": 3008,
+      "reason": "robot-0113-director-closing-occlusion：底部工位文案上移133像素，避让普通字幕及输送带轮廓",
+      "startFrame": 2770
+    },
+    {
+      "endFrame": 4180,
+      "reason": "robot-0113-director-closing-occlusion：箱内落点上收、内部裁切与前沿遮挡统一，保留下一次抓取前的结尾",
+      "startFrame": 3945
+    }
+  ],
+  "readyRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 4180
+    }
+  ],
+  "authorSubmissionId": "4b12f0fcf2c0193c8258b42e185c64c51bc8d93edc188b4e6cbe303443c8273f",
+  "sourceSha256": "20f465e63b0c546a45568ba67d472b9b5d42fd29ace0ad190fc3770c11429403"
+}

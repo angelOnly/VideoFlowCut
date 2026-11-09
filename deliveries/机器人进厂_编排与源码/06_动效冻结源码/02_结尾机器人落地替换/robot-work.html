@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>人形机器人进厂 · 下一件零件</title>
+<style>
+:root{--ink:#111f2d;--paper:#edf2f4;--muted:#a4b5c1;--teal:#58c8bd;--gold:#f4cc67;--red:#ee796d;--line:#344c60;--vfc-font-title:'Noto Sans SC';--vfc-font-body:'Noto Sans SC'}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#0a121b}#main{position:relative;width:1920px;height:1080px;overflow:hidden;background:var(--ink);font-family:var(--vfc-font-body),sans-serif}
+svg{display:block;position:absolute;inset:0;width:1920px;height:1080px}#world{z-index:1}#words{z-index:3;pointer-events:none}.footage{position:absolute;z-index:2;display:none;overflow:hidden}.footage img{display:block;width:100%;height:100%;object-fit:contain}#atlas-window,#atlas-return-window{left:0;top:0;width:1920px;height:1080px}#bin-window{left:280px;top:120px;width:1360px;height:765px}#arm-window{left:272px;top:160px;width:1376px;height:774px}#bin-window img,#arm-window img{clip-path:inset(0 0 14% 0)}#digit-window{left:104px;top:176px;width:1312px;height:738px}text{font-family:var(--vfc-font-body),sans-serif}.display{font-family:var(--vfc-font-title),sans-serif;font-weight:var(--title-weight,700)}
+</style></head><body>
+<main id="main" data-composition-id="main" data-start="0" data-duration="139.33333333333334" data-width="1920" data-height="1080" data-fps="30">
+<svg id="world" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg" aria-label="同一枚零件的连续工位演出"></svg>
+<div class="footage" id="atlas-window"><img id="atlas-source" data-vfc-video-slot="atlas_open" alt="Atlas 的真实后空翻与落稳"></div>
+<div class="footage" id="atlas-return-window"><img id="atlas-return-source" data-vfc-video-slot="atlas_return" alt="Atlas 后空翻后半段、落地与起身"></div>
+<div class="footage" id="bin-window"><img id="bin-source" data-vfc-video-slot="bin_close" alt="FANUC 箱中物件与夹具"></div>
+<div class="footage" id="arm-window"><img id="arm-source" data-vfc-video-slot="arm_work" alt="FANUC 分箱工作站"></div>
+<div class="footage" id="digit-window"><img id="digit-source" data-vfc-video-slot="digit_work" alt="Digit 在 Flowery Branch 仓库搬运料箱"></div>
+<svg id="words" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg" aria-label="画内重点文字与概率解释"></svg>
+</main><script>
+'use strict';
+const CONFIG={width:1920,height:1080,fps:30,frames:4180,colors:{ink:'#111f2d',paper:'#edf2f4',muted:'#a4b5c1',teal:'#58c8bd',gold:'#f4cc67',red:'#ee796d',line:'#344c60'}};
+const world=document.getElementById('world'),words=document.getElementById('words');
+const windows={atlas:document.getElementById('atlas-window'),atlasReturn:document.getElementById('atlas-return-window'),bin:document.getElementById('bin-window'),arm:document.getElementById('arm-window'),digit:document.getElementById('digit-window')};
+const clamp=(value,min=0,max=1)=>Math.min(max,Math.max(min,value));
+const mix=(from,to,amount)=>from+(to-from)*amount;
+const ease=value=>{const amount=clamp(value);return amount*amount*(3-2*amount)};
+const progress=(frame,start,end)=>ease((frame-start)/(end-start));
+const during=(frame,start,end)=>frame>=start&&frame<end;
+const escapeText=value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+const text=(value,x,y,size=40,color=CONFIG.colors.paper,extra='')=>`<text x="${x}" y="${y}" font-size="${size}" fill="${color}" ${extra}>${escapeText(value)}</text>`;
+const line=(x1,y1,x2,y2,color=CONFIG.colors.line,width=3,extra='')=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${width}" ${extra}/>`;
+const group=(body,transform='',extra='')=>`<g transform="${transform}" ${extra}>${body}</g>`;
+const defs=`<defs><linearGradient id="steel" x2="0" y2="1"><stop stop-color="#8b9ba7"/><stop offset=".48" stop-color="#d4dde1"/><stop offset="1" stop-color="#718493"/></linearGradient><linearGradient id="part-edge" x2="0" y2="1"><stop stop-color="#f4cc67"/><stop offset="1" stop-color="#b78931"/></linearGradient><linearGradient id="bench" x2="0" y2="1"><stop stop-color="#23394c"/><stop offset="1" stop-color="#172a3c"/></linearGradient><pattern id="floor-grid" width="96" height="96" patternUnits="userSpaceOnUse"><path d="M96 0H0V96" fill="none" stroke="#223649" stroke-width="1"/></pattern><filter id="shadow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="10"/></filter></defs>`;
+function background(){return `<rect width="1920" height="1080" fill="#111f2d"/><rect y="310" width="1920" height="770" fill="url(#floor-grid)"/><path d="M0 852H1920" stroke="#31495d" stroke-width="2"/><path d="M104 200V136H168M1816 200V136H1752" fill="none" stroke="#3a5266" stroke-width="3"/>`}
+function heading(kicker,title,frame,start,end){const opacity=progress(frame,start,start+16)*(1-progress(frame,end-15,end));return group(text(kicker,112,91,26,CONFIG.colors.teal,'letter-spacing="4"')+text(title,108,173,62,CONFIG.colors.paper,'class="display"'),'',`opacity="${opacity}"`)}
+function part(x,y,angle=0,scale=1,flip=1,back=false){return group(`<ellipse cx="4" cy="15" rx="61" ry="20" fill="#070e16" opacity=".4" filter="url(#shadow)"/><path d="M-68-32H18L38-14H68V33L45 52H-68Z" fill="#936622" stroke="#0a1520" stroke-width="3"/><path d="M-68-42H18L38-24H68V23L45 42H-68Z" fill="url(#part-edge)" stroke="#ffe49a" stroke-width="3"/><path d="M-68-42V23L-49 42M-68 23H49L68 6" fill="none" stroke="#a47a29" stroke-width="3"/><circle cx="-20" cy="0" r="19" fill="#152a3a" stroke="#e6b94d" stroke-width="7"/><path d="M16-24V22H43" fill="none" stroke="${back?'#a57726':'#fff0bb'}" stroke-width="5"/>${back?'<path d="M-51-22L-40 18M-39-22L-28 18" stroke="#976e29" stroke-width="4"/>':'<circle cx="44" cy="-8" r="4" fill="#fff4c7"/><circle cx="44" cy="4" r="4" fill="#fff4c7"/><circle cx="44" cy="16" r="4" fill="#fff4c7"/>'}`,`translate(${x} ${y}) rotate(${angle}) scale(${scale*flip} ${scale})`)}
+function binBack(){return `<path d="M290 385L950 345L1090 493L1082 708L360 760L280 607Z" fill="#1b6c72" stroke="#7ad3ce" stroke-width="4"/><path d="M307 402L936 365L1059 494L367 540Z" fill="#0c303b"/><path d="M367 540L1059 494V679L367 726Z" fill="#164854"/><path d="M307 402L367 540V726L300 594Z" fill="#1f5961"/>`}
+function binFront(){return `<path d="M290 594L367 715L1082 668L1082 722L360 773L280 641Z" fill="#287c81" stroke="#73c8c6" stroke-width="4"/><path d="M371 732L1068 685" stroke="#143c48" stroke-width="8"/><rect x="562" y="722" width="174" height="20" rx="4" fill="#173e49" transform="rotate(-4 562 722)"/>`}
+function gripper(x,y,gap=90,angle=0,scale=1,held=false,flip=1){const fingers=`<path d="M-${gap/2+22} -155V-53L-${gap/2} -33V26M${gap/2+22} -155V-53L${gap/2} -33V26" fill="none" stroke="#536979" stroke-width="33" stroke-linejoin="round"/><path d="M-${gap/2+22} -155V-53L-${gap/2} -33V26M${gap/2+22} -155V-53L${gap/2} -33V26" fill="none" stroke="url(#steel)" stroke-width="23" stroke-linejoin="round"/>`;return group(`<path d="M0-500V-204" stroke="#486174" stroke-width="52"/><path d="M-13-500V-204" stroke="#91a2ad" stroke-width="8"/><rect x="-92" y="-207" width="184" height="65" rx="12" fill="url(#steel)" stroke="#e1e7e9" stroke-width="3"/><rect x="-45" y="-191" width="90" height="28" rx="6" fill="#223c50"/><circle cx="0" cy="-178" r="7" fill="#58c8bd"/>${held?part(0,0,0,1,flip,flip<0):''}${fingers}<path d="M-${gap/2} 8V29M${gap/2} 8V29" stroke="#142c3e" stroke-width="13"/>`,`translate(${x} ${y}) rotate(${angle}) scale(${scale})`)}
+function machine(x,y,scale=1,active=false){return group(`<path d="M-100-140H110V180H-100Z" fill="#294658" stroke="#6c8a9b" stroke-width="3"/><rect x="-77" y="-115" width="164" height="174" rx="8" fill="#0c1b28" stroke="#587586" stroke-width="4"/><path d="M-49-74H58V25H-49Z" fill="${active?'#236c69':'#263c4c'}"/><circle cx="-50" cy="104" r="10" fill="${active?'#58c8bd':'#ee796d'}"/><path d="M-21 100H65" stroke="#a3b4bf" stroke-width="6"/><path d="M-84 180V222M92 180V222" stroke="#577284" stroke-width="18"/>`,`translate(${x} ${y}) scale(${scale})`)}
+function bench(){return `<path d="M190 708L1390 627L1640 818L347 928Z" fill="url(#bench)" stroke="#567083" stroke-width="4"/><path d="M347 928V956L1640 845V818Z" fill="#0a1926"/><path d="M347 956V1030M1467 860V1008" stroke="#506578" stroke-width="28"/><path d="M196 710L1389 630" stroke="#a8b7be" stroke-width="5"/>`}
+function targetMark(x,y,alpha=1){return `<g opacity="${alpha}" stroke="#58c8bd" stroke-width="4" fill="none"><path d="M${x-95} ${y-52}V${y-72}H${x-65}M${x+65} ${y-72}H${x+95}V${y-52}M${x-95} ${y+40}V${y+60}H${x-65}M${x+65} ${y+60}H${x+95}V${y+40}"/></g>`}
+function workstation(frame){
+ let partX=692,partY=557,partAngle=-17;
+ let gripX=692,gripY=mix(312,490,progress(frame,354,448)),gap=160,gripAngle=0,held=false,flip=-1;
+ let camera=1+0.13*progress(frame,210,440),cameraX=-75*progress(frame,210,440),cameraY=-20*progress(frame,210,440),label='';
+ if(frame>=453){gripY=mix(490,555,progress(frame,453,532));gap=mix(160,123,progress(frame,500,543))}
+ if(frame>=613){const slide=progress(frame,624,653);partX=mix(692,839,slide);partY=mix(557,595,slide);partAngle=mix(-17,19,slide);gripY=mix(555,469,progress(frame,653,681));gap=mix(123,170,progress(frame,648,680))}
+ if(frame>=683){gripX=mix(692,839,progress(frame,762,820));gripY=mix(469,595,progress(frame,820,865));gripAngle=mix(0,19,progress(frame,783,821));gap=mix(170,126,progress(frame,865,887));held=frame>=887;gripY=mix(gripY,420,progress(frame,891,930));if(held){partX=gripX;partY=gripY;partAngle=gripAngle}if(frame<750){label=text('发现变化',1130,390,42,CONFIG.colors.teal)+line(1110,406,960,542,CONFIG.colors.teal,2)}else if(frame<824){label=text('判断位置',1130,390,42,CONFIG.colors.teal)}else if(frame<938){label=text('重新抓',1130,390,42,CONFIG.colors.teal)}}
+ if(frame>=938){gripX=839;gripY=420;gap=126;held=true;gripAngle=mix(19,0,progress(frame,942,962));flip=Math.cos(Math.PI*(1-progress(frame,965,1014)));if(Math.abs(flip)<0.08)flip=0.08;camera=1.35;cameraX=-240;cameraY=20;label=text(frame<1000?'拿反了':'转过来',1150,380,48,frame<1000?CONFIG.colors.red:CONFIG.colors.teal)}
+ if(frame>=1053){const pull=progress(frame,1060,1120);camera=mix(1.35,.88,pull);cameraX=mix(-240,80,pull);cameraY=mix(20,85,pull);gripX=mix(839,1342,progress(frame,1070,1174));gripY=mix(420,616,progress(frame,1070,1174));gripAngle=0;flip=1;held=frame<1195;gap=mix(126,180,progress(frame,1192,1214));partX=1342;partY=616;partAngle=0;label='';if(frame>=1214){gripY=mix(616,410,progress(frame,1214,1264));const shifted=progress(frame,1270,1310);partX=mix(1342,1394,shifted);partY=mix(616,650,shifted);partAngle=mix(0,23,shifted)}if(frame>=1325){gripX=mix(1342,1394,progress(frame,1325,1380));gripY=mix(410,580,progress(frame,1380,1424));label=text('一次成功 ≠ 稳定工作',430,298,52,CONFIG.colors.paper,'class="display"')}}
+ let body=bench()+machine(1350,470,.82,frame>1174)+binBack()+part(456,542,24,.72,1,false)+part(567,609,143,.78,-1,true)+part(759,476,62,.68,1,false)+part(576,478,-8,.64,-1,true);
+ if(!held)body+=part(partX,partY,partAngle,1,flip,flip<0);
+ if(during(frame,692,886))body+=targetMark(partX,partY,progress(frame,692,719));
+ if(held)gap=Math.max(18,gap*Math.abs(flip));
+ if(during(frame,1240,1325)){const falling=progress(frame,1255,1305);body+=part(mix(1210,1280,falling),mix(685,915,falling),falling*124,.6);body+=`<path d="M1192 703Q1225 818 1280 909" fill="none" stroke="#ee796d" stroke-width="3" stroke-dasharray="6 12" opacity="${falling}"/>`}
+ if(during(frame,1325,1466)){const cover=progress(frame,1335,1366);body+=part(mix(1510,1394,cover),mix(600,635,cover),-22,.8,-1,true)}
+ body+=gripper(gripX,gripY,gap,gripAngle,1,held,flip)+binFront();
+ if(during(frame,624,681))body+=`<path d="M699 603Q764 641 823 634" fill="none" stroke="#ee796d" stroke-width="4" stroke-dasharray="8 10" opacity="${1-progress(frame,660,681)}"/>`;
+ const title=frame<453?'把一件小事做好':frame<938?'碰到了，不等于拿到了':frame<1053?'看清正反，再转过来':frame<1325?'每件小事，都可能变化':'一次，还不够';
+ return {body:background()+group(body,`translate(${cameraX} ${cameraY}) scale(${camera})`),overlay:heading('从动作，到工作',title,frame,210,1466)+label};
+}
+function probability(frame){
+ const count=1+Math.floor(99*progress(frame,1540,1722));
+ const probabilityValue=Math.pow(.99,count);
+ let body=background(),overlay=heading('假设：每次结果相互独立','一次很可靠，一百次呢？',frame,1466,1801);
+ const reveal=progress(frame,1520,1560);
+ body+=group(part(0,0,-12,1.25)+gripper(0,-100,190,0,.75,false),`translate(${mix(1370,1550,reveal)} ${mix(570,810,reveal)}) scale(${mix(1,.55,reveal)})`,`opacity="${1-.7*reveal}"`);
+ overlay+=text('单次成功率',116,315,32,CONFIG.colors.muted)+text('99',108,494,172,CONFIG.colors.gold,'class="display"')+text('%',335,487,72,CONFIG.colors.gold);
+ overlay+=group(text('100 次全部成功的概率',116,590,36)+text('0.99',116,661,45,CONFIG.colors.teal)+text(`× 0.99 × … × 0.99`,230,661,37,CONFIG.colors.muted)+text('每次都要成功',116,732,30,CONFIG.colors.muted),'',`opacity="${reveal}"`);
+ const axisX=730,axisY=768,axisWidth=960,axisHeight=430;
+ body+=group(line(axisX,axisY-axisHeight,axisX,axisY,'#8b9ba7',2)+line(axisX,axisY,axisX+axisWidth,axisY,'#8b9ba7',2)+line(axisX,axisY-axisHeight*.5,axisX+axisWidth,axisY-axisHeight*.5,'#344c60',2,'stroke-dasharray="6 12"'),' ',`opacity="${reveal}"`);
+ let path='';for(let index=0;index<=100;index++){const pointX=axisX+axisWidth*index/100,pointY=axisY-axisHeight*Math.pow(.99,index);path+=`${index===0?'M':'L'}${pointX.toFixed(2)} ${pointY.toFixed(2)} `}
+ const clipWidth=axisWidth*count/100;
+ body+=`<defs><clipPath id="probability-clip"><rect x="${axisX-6}" y="${axisY-axisHeight-6}" width="${clipWidth+12}" height="${axisHeight+12}"/></clipPath></defs><path d="${path}" stroke="#58c8bd" stroke-width="6" fill="none" clip-path="url(#probability-clip)" opacity="${reveal}"/>`;
+ const pointX=axisX+clipWidth,pointY=axisY-axisHeight*probabilityValue;
+ body+=`<circle cx="${pointX}" cy="${pointY}" r="10" fill="#f4cc67" opacity="${reveal}"/>`;
+ overlay+=group(text('100%',axisX-94,axisY-axisHeight+8,26,CONFIG.colors.muted)+text('0%',axisX-62,axisY+8,26,CONFIG.colors.muted)+text('0',axisX,axisY+42,26,CONFIG.colors.muted)+text('100 次',axisX+axisWidth-84,axisY+42,26,CONFIG.colors.muted)+text('连续次数',axisX+410,axisY+90,28,CONFIG.colors.muted),'',`opacity="${reveal}"`);
+ for(let index=0;index<100;index++){const column=index%20,row=Math.floor(index/20);body+=`<rect x="${116+column*22}" y="${792+row*18}" width="13" height="8" rx="2" fill="${index<count?'#58c8bd':'#344c60'}" opacity="${reveal}"/>`}
+ const result=progress(frame,1722,1748);
+ overlay+=group('<rect x="1024" y="240" width="640" height="296" rx="8" fill="#111f2d"/>'+text('0.99¹⁰⁰ ≈ 36.6%',1040,300,46,CONFIG.colors.paper,'class="display"')+text('约 37%',1140,455,104,CONFIG.colors.gold,'class="display"')+text('一百次，全部成功',1138,511,30,CONFIG.colors.muted),'',`opacity="${result}"`);
+ if(frame<1722)overlay+=group(text(`${count} 次`,pointX+12,pointY-28,28,CONFIG.colors.teal)+text(`${(probabilityValue*100).toFixed(1)}%`,pointX+12,pointY+15,34,CONFIG.colors.gold),'',`opacity="${reveal}"`);
+ return {body,overlay};
+}
+function conveyor(x,y,width,phase=0){let body=`<path d="M${x} ${y}h${width}v43H${x}Z" fill="#304d60" stroke="#7d97a6" stroke-width="3"/><path d="M${x} ${y+43}v61M${x+width} ${y+43}v61" stroke="#506b7e" stroke-width="14"/>`;for(let index=0;index<Math.ceil(width/40);index++){const rollerX=x+((index*40+phase)%width);body+=`<circle cx="${rollerX}" cy="${y+22}" r="13" fill="#142a3b" stroke="#57798c" stroke-width="3"/>`}return body}
+function processFlow(frame){
+ let body=background(),overlay=heading('从单次动作，到整条产线',frame<2063?'小失误，后果不一样':'稳定、恢复，还要算上人',frame,1801,2278);
+ const recover=progress(frame,1840,1942),stop=progress(frame,1942,2012),resume=progress(frame,2085,2150);
+ body+=conveyor(280,490,1376,(frame-1801)*1.7)+conveyor(280,786,1376,42*(1-stop));
+ body+=machine(480,354,.44,true)+machine(1110,354,.44,recover>.6)+machine(1520,354,.44,true);
+ body+=machine(480,652,.44,false)+machine(1110,652,.44,resume>.5)+machine(1520,652,.44,resume>.5);
+ const upperX=mix(480,1520,recover);
+ body+=part(upperX,465,mix(26,0,progress(frame,1840,1890)),.5)+gripper(mix(480,650,progress(frame,1840,1900)),mix(370,444,progress(frame,1810,1850)),150,0,.42,frame<1870,-1);
+ const queueStart=frame<2085?stop:1-resume;
+ for(let index=0;index<4;index++){const queueX=mix(400+index*260,430+index*130,queueStart);body+=part(queueX,762,index===2?18:0,.48)}
+ body+=`<path d="M965 719V788M940 737L990 737" stroke="#ee796d" stroke-width="9" opacity="${stop*(1-resume)}"/>`;
+ overlay+=text('自行恢复',120,430,36,CONFIG.colors.teal)+text('继续',1620,420,32,CONFIG.colors.teal)+text('需要处理',120,730,36,CONFIG.colors.red);
+ overlay+=group(text('等待',1060,665,40,CONFIG.colors.red)+text('等待',1470,665,40,CONFIG.colors.red),'',`opacity="${stop*(1-resume)}"`);
+ overlay+=group(`<path d="M931 700V606H848" stroke="#ee796d" stroke-width="3" fill="none"/>`+text('人工处理',690,610,32,CONFIG.colors.paper),'',`opacity="${stop*(1-resume)}"`);
+ if(frame>=2063){const settle=progress(frame,2063,2090);overlay+=group(text('长时间稳定',330,296,38,CONFIG.colors.paper)+text('问题能恢复',870,296,38,CONFIG.colors.paper)+text('人员与停机',1390,296,38,CONFIG.colors.paper),'',`opacity="${settle}"`)}
+ return {body,overlay};
+}
+function armDrawing(x,y,frame,scale=1){const reach=progress(frame,2520,2595),tipX=mix(-140,200,reach),tipY=mix(-70,-40,reach);return group(`<path d="M-90 150H90V190H-90Z" fill="#405b6c"/><path d="M0 150V30L-100-80L${tipX} ${tipY}" stroke="#181d22" stroke-width="62" fill="none" stroke-linejoin="round"/><path d="M0 150V30L-100-80L${tipX} ${tipY}" stroke="#f4cc67" stroke-width="45" fill="none" stroke-linejoin="round"/><circle cy="30" r="34" fill="#697b85" stroke="#e3ba55" stroke-width="8"/><circle cx="-100" cy="-80" r="26" fill="#586e80" stroke="#e3ba55" stroke-width="7"/>`+gripper(tipX,tipY+90,150,0,.32,true,1),`translate(${x} ${y}) scale(${scale})`)}
+function armScene(frame){
+ let body=background(),overlay=heading('为什么机械臂早已上班','让流程围绕任务设计',frame,2278,2674);
+ if(frame<2359){body+=machine(1480,560,1,true)+conveyor(310,780,1240,frame)+armDrawing(780,570,frame,1.25)+part(1190,750,0,.64);overlay+=text('工装 · 接口 · 路径',116,320,42,CONFIG.colors.muted)}
+ else if(frame<2509){windows.arm.style.display='block';overlay+=text('工位、分箱与视觉抓取',113,879,34,CONFIG.colors.teal)}
+ else{const enter=progress(frame,2509,2531);body+=group(conveyor(310,780,1240,frame)+armDrawing(850,550,frame,1.05)+machine(1460,575,.8,true)+part(400,738,18,.6)+part(561,735,-32,.6)+part(1220,737,0,.6),'',`opacity="${enter}"`);body+=`<path d="M280 418H1660V850H280Z" fill="none" stroke="#58c8bd" stroke-width="3" stroke-dasharray="18 12"/><path d="M592 350L420 670L580 670Z" fill="#58c8bd" opacity=".07"/><path d="M590 356L420 670M590 356L580 670" stroke="#58c8bd" stroke-width="2"/>`;overlay+=text('任务明确',335,387,35,CONFIG.colors.paper)+text('视觉与随机抓取，也已在工作',1040,340,32,CONFIG.colors.teal)}
+ return {body,overlay};
+}
+function humanoid(x,y,frame,scale=1,carrying=false){
+ const phase=frame/17,walk=Math.sin(phase)*24,opposite=Math.sin(phase+Math.PI)*24;
+ const body=`<ellipse cx="0" cy="225" rx="90" ry="18" fill="#07111b" opacity=".55"/><path d="M-28 81L${-38+walk} 151L${-51+walk*.5} 215M28 81L${38+opposite} 151L${53+opposite*.5} 215" stroke="#7e99a9" stroke-width="27" stroke-linecap="round" fill="none"/><path d="M${-69+walk*.5} 219h45M${32+opposite*.5} 219h45" stroke="#c5d3d9" stroke-width="15" stroke-linecap="round"/><path d="M-52-84L52-84L42 55L25 92H-25L-42 55Z" fill="#446678" stroke="#b8cbd4" stroke-width="4"/><path d="M-20-62H20V8H-20Z" fill="#1b3548"/><circle cy="32" r="13" fill="#58c8bd"/><path d="M-58-58L-90 11L-62 68M58-58L90 11L62 68" fill="none" stroke="#8aa6b7" stroke-width="22" stroke-linecap="round"/><rect x="-40" y="-158" width="80" height="66" rx="22" fill="#a5b9c3"/><path d="M-24-132H24" stroke="#182f41" stroke-width="14" stroke-linecap="round"/>`;
+ const load=carrying?`<path d="M-87 18H87L75 91H-75Z" fill="#287c81" stroke="#8cd7cf" stroke-width="4"/><path d="M-87 18L-64 2H63L87 18Z" fill="#184a57"/>`+part(0,11,0,.46)+`<path d="M-87 24V38H87V24" fill="none" stroke="#8cd7cf" stroke-width="6"/><path d="M-81 39V60M81 39V60" stroke="#bed2da" stroke-width="16"/>`:'';
+ return group(body+load,`translate(${x} ${y}) scale(${scale})`);
+}
+function flexibleFactory(frame){
+ let body=background(),overlay=heading('人形的吸引力',frame<3008?'利用原本为人准备的空间':'潜在优势，要看实际表现',frame,2674,3287);
+ const walkPhase=progress(frame,2705,2918),position=mix(410,1230,walkPhase);
+ body+=`<path d="M240 820L650 381H1280L1710 820Z" fill="#192e40" stroke="#405a6c" stroke-width="3"/><path d="M650 381L580 820M1280 381L1390 820" stroke="#587789" stroke-width="4"/><path d="M925 420L925 460M925 500V560M925 610V700M925 750V810" stroke="#395568" stroke-width="7"/>`;
+ body+=machine(300,500,.8,true)+machine(1570,495,.8,true)+conveyor(110,765,350,frame)+conveyor(1430,765,350,frame);
+ body+=`<path d="M448 347V595M1435 347V595" stroke="#718b9d" stroke-width="11"/><path d="M448 351h170M1265 351h170" stroke="#718b9d" stroke-width="11"/>`;
+ if(frame<3008){body+=humanoid(position,590,frame,.9,true);overlay+=text('通道',706,345,34,CONFIG.colors.muted)+text('工具',235,287,34,CONFIG.colors.muted)+text('设备',1530,287,34,CONFIG.colors.muted);overlay+=group(text('今天搬料',410,740,36,CONFIG.colors.paper)+text('明天，也许换个工位',1110,740,36,CONFIG.colors.teal),'',`opacity="${progress(frame,2770,2810)}"`)}
+ else{body+=humanoid(980,570,0,.9,false);body+=`<path d="M1040 582Q1170 557 1207 640V746" fill="none" stroke="#58c8bd" stroke-width="8"/><rect x="1174" y="731" width="76" height="66" rx="8" fill="#294958" stroke="#8ac9c6" stroke-width="3"/><path d="M1194 763H1232" stroke="#58c8bd" stroke-width="7"/>`;const teach=progress(frame,3015,3040),power=progress(frame,3085,3110),maintenance=progress(frame,3160,3185);overlay+=group(text('换一份工作',120,319,40)+text('重新教多久？',120,386,46,CONFIG.colors.gold,'class="display"'),' ',`opacity="${teach}"`)+group(text('连续运行',1280,320,40)+text('电够用多久？',1280,387,46,CONFIG.colors.gold,'class="display"'),' ',`opacity="${power}"`)+group(text('维护和停机',1190,822,40)+text('要花多少钱？',1190,884,46,CONFIG.colors.gold,'class="display"'),' ',`opacity="${maintenance}"`);body+=group(`<path d="M435 440H760L888 493" fill="none" stroke="#718b9d" stroke-width="3"/>`,'',`opacity="${teach}"`)+group(`<path d="M1370 432V548H1117" fill="none" stroke="#718b9d" stroke-width="3"/>`,'',`opacity="${power}"`)}
+ return {body,overlay};
+}
+function futureTasks(frame){
+ let body=background(),overlay=heading('从具体工作，走向更多场景','下一步，不只是多做几次',frame,3617,3791);
+ const travel=progress(frame,3625,3765),position=mix(390,1500,travel);
+ body+=conveyor(210,745,1500,frame)+part(position,700,Math.sin(travel*Math.PI)*12,.85);
+ for(let index=0;index<3;index++){const gateX=500+index*475;body+=`<path d="M${gateX-105} 739V457H${gateX+105}V739" fill="none" stroke="${index===1?'#ee796d':'#58c8bd'}" stroke-width="13"/><path d="M${gateX-103} 455h206" stroke="#a4b5c1" stroke-width="4"/>`}
+ overlay+=text('更多任务',385,382,42,CONFIG.colors.paper)+text('更多意外',858,382,42,CONFIG.colors.paper)+text('使用成本',1333,382,42,CONFIG.colors.paper);
+ const obstruction=progress(frame,3660,3695)*(1-progress(frame,3728,3750));body+=`<path d="M935 617L1000 553L1044 617" fill="none" stroke="#ee796d" stroke-width="10" opacity="${obstruction}"/>`;
+ overlay+=group(text('能适应',405,852,34,CONFIG.colors.teal),'',`opacity="${progress(frame,3638,3655)}"`)+group(text('能处理',880,852,34,CONFIG.colors.teal),'',`opacity="${progress(frame,3690,3715)}"`)+group(text('算得过来',1330,852,34,CONFIG.colors.teal),'',`opacity="${progress(frame,3755,3775)}"`);
+ return {body,overlay};
+}
+function digitScene(frame){
+ if(frame>=3617)return futureTasks(frame);
+ windows.digit.style.display='block';
+ let body=background(),overlay=heading('已经开始的真实工作','Digit · 仓库里的料箱',frame,3287,3617);
+ const result=progress(frame,3390,3418);
+ overlay+=group(text('累计搬运',1450,382,36,CONFIG.colors.muted)+text('超过',1450,450,48,CONFIG.colors.paper)+text('10万',1438,583,116,CONFIG.colors.gold,'class="display"')+text('个料箱',1450,648,40,CONFIG.colors.paper),'',`opacity="${result}"`);
+ return {body,overlay};
+}
+function closing(frame){
+ let body=background(),overlay='';
+ if(frame<3921){windows.atlasReturn.style.display='block';overlay=text('Atlas',112,128,48,CONFIG.colors.paper,'class="display" stroke="#111f2d" stroke-width="6" paint-order="stroke"')}
+ else{const skew=progress(frame,3945,3984),fall=progress(frame,3998,4040),adjust=progress(frame,4065,4098),reach=progress(frame,4112,4160);const partX=mix(692,839,skew),partY=mix(557,625,fall);body+=bench()+machine(1350,470,.82,false)+binBack();body+='<defs><clipPath id="closing-bin-interior"><path d="M307 402L936 365L1059 494V679L367 726L300 594Z"/></clipPath></defs>';let contents=part(456,542,24,.72)+part(567,609,143,.78,-1,true)+part(759,476,62,.68)+part(partX,partY,mix(-20,37,skew)+fall*48,1,1,false);if(frame>4065)contents+=targetMark(partX,partY,progress(frame,4065,4090));body+=group(contents,'','clip-path="url(#closing-bin-interior)"');body+=gripper(mix(692,839,adjust),mix(359,partY-80,reach),170,mix(0,18,adjust),1,false)+binFront();overlay=heading('真正要看的','接下来的每一天',frame,3921,4180);if(frame<4000)overlay+=text('摆歪了',1170,390,40,CONFIG.colors.gold);else if(frame<4065)overlay+=text('掉下了',1170,390,40,CONFIG.colors.red);else overlay+=text('下一件，还能稳稳拿起吗？',1080,389,42,CONFIG.colors.paper)}
+ return {body,overlay};
+}
+function renderFrame(frame){
+ Object.values(windows).forEach(element=>{element.style.display='none'});
+ let body=background(),overlay='';
+ if(frame<207){windows.atlas.style.display='block';overlay=frame>36?text('落地很漂亮',118,180,64,CONFIG.colors.paper,'class="display"'):''}
+ else if(frame<1466){const shot=workstation(frame);body=shot.body;overlay=shot.overlay;if(during(frame,550,613)){windows.bin.style.display='block';body=background();overlay=heading('看清对象','箱子里的抓取',frame,550,613)}}
+ else if(frame<1801){const shot=probability(frame);body=shot.body;overlay=shot.overlay}
+ else if(frame<2278){const shot=processFlow(frame);body=shot.body;overlay=shot.overlay}
+ else if(frame<2674){const shot=armScene(frame);body=shot.body;overlay=shot.overlay}
+ else if(frame<3287){const shot=flexibleFactory(frame);body=shot.body;overlay=shot.overlay}
+ else if(frame<3791){const shot=digitScene(frame);body=shot.body;overlay=shot.overlay}
+ else{const shot=closing(frame);body=shot.body;overlay=shot.overlay}
+ world.innerHTML=defs+body;words.innerHTML=overlay;
+}
+if(window.vfc&&window.vfc.fonts){for(const [slot,font] of Object.entries(window.vfc.fonts))document.documentElement.style.setProperty(`--vfc-font-${slot}`,`"${font.family}"`);const titleFont=window.vfc.fonts.title,bodyFont=window.vfc.fonts.body;if(titleFont)document.documentElement.style.setProperty('--title-weight',titleFont.weight);if(bodyFont){document.getElementById('main').style.fontWeight=bodyFont.weight;document.getElementById('main').style.fontStyle=bodyFont.style}}
+const clock={};
+Object.defineProperty(clock,'frame',{get(){return this.currentFrame||0},set(value){this.currentFrame=value;renderFrame(value)}});
+const timeline=gsap.timeline({paused:true});
+timeline.fromTo(clock,{frame:0},{frame:CONFIG.frames,duration:CONFIG.frames/CONFIG.fps,ease:'none'},0);
+window.__timelines={main:timeline};
+window.getVfcMotionEvents=()=>[{id:'first_contact',meaning:'夹指接触零件',startFrame:624,endFrame:631},{id:'part_slips',meaning:'接触后目标沿箱底滑开',startFrame:625,endFrame:654},{id:'rediscover_part',meaning:'原目标在新位置被识别',startFrame:692,endFrame:750},{id:'grip_closes',meaning:'重新接近并夹住目标',startFrame:865,endFrame:888},{id:'part_lifts',meaning:'零件随夹爪保持持握上升',startFrame:891,endFrame:931},{id:'part_turns',meaning:'持握中翻转正反面',startFrame:965,endFrame:1015},{id:'part_released',meaning:'零件进入下道工序后夹爪松开',startFrame:1192,endFrame:1215},{id:'secondary_part_falls',meaning:'另一零件从工作台边缘落下',startFrame:1255,endFrame:1306},{id:'target_occluded',meaning:'邻件移至目标前方形成遮挡',startFrame:1335,endFrame:1367},{id:'probability_accumulates',meaning:'独立成功概率逐次累乘',startFrame:1540,endFrame:1723},{id:'probability_result',meaning:'一百次全部成功约37%的结果落稳',startFrame:1748,endFrame:1801},{id:'line_jams',meaning:'需要处理的失误使后续工序等待',startFrame:1942,endFrame:2013},{id:'line_recovers',meaning:'处理后产线恢复',startFrame:2085,endFrame:2151},{id:'warehouse_total',meaning:'累计超过十万料箱的事实重点形成',startFrame:3390,endFrame:3617},{id:'closing_misalignment',meaning:'同一件零件在原箱中摆歪',startFrame:3945,endFrame:3985},{id:'closing_drop',meaning:'目标落入箱底更低处',startFrame:3998,endFrame:4041},{id:'closing_reach',meaning:'夹爪重新接近，停在下一次抓取之前',startFrame:4112,endFrame:4161}];
+renderFrame(0);
+</script></body></html>

@@ -1,0 +1,160 @@
+{
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationInFrames": 4180,
+  "scriptRevision": 1,
+  "timing": {
+    "precision": "segment_exact",
+    "source": "OmniVoice 输出真实时长 + 明确段间停顿",
+    "segments": [
+      {
+        "speechSegmentId": "speech_segment_124d0507-e860-47df-afa4-f744000f9803",
+        "startMs": 0,
+        "endMs": 2520,
+        "startFrame": 0,
+        "endFrame": 76
+      },
+      {
+        "speechSegmentId": "speech_segment_6682d292-6b96-421a-ab90-505855a8320d",
+        "startMs": 2720,
+        "endMs": 6560,
+        "startFrame": 82,
+        "endFrame": 197
+      },
+      {
+        "speechSegmentId": "speech_segment_fad86bad-798b-4418-afe3-bc93bfba1406",
+        "startMs": 7010,
+        "endMs": 11390,
+        "startFrame": 210,
+        "endFrame": 342
+      },
+      {
+        "speechSegmentId": "speech_segment_989243cf-c08e-4a7c-ae16-ba5a637571c5",
+        "startMs": 11640,
+        "endMs": 14790,
+        "startFrame": 349,
+        "endFrame": 444
+      },
+      {
+        "speechSegmentId": "speech_segment_8a145fb2-6a12-4241-80c0-544155278a03",
+        "startMs": 15090,
+        "endMs": 22360,
+        "startFrame": 453,
+        "endFrame": 671
+      },
+      {
+        "speechSegmentId": "speech_segment_ba8f2051-6db3-413e-976c-c4d0b980360e",
+        "startMs": 22760,
+        "endMs": 31000,
+        "startFrame": 683,
+        "endFrame": 930
+      },
+      {
+        "speechSegmentId": "speech_segment_a7955849-8f4a-45fc-9a33-b1f2d407aeee",
+        "startMs": 31250,
+        "endMs": 34690,
+        "startFrame": 938,
+        "endFrame": 1041
+      },
+      {
+        "speechSegmentId": "speech_segment_7e9f620e-eaa3-4979-bfa3-b4d38da8611b",
+        "startMs": 35090,
+        "endMs": 43660,
+        "startFrame": 1053,
+        "endFrame": 1310
+      },
+      {
+        "speechSegmentId": "speech_segment_e379208d-e4da-4f17-b668-4db1e667bf52",
+        "startMs": 44160,
+        "endMs": 48500,
+        "startFrame": 1325,
+        "endFrame": 1455
+      },
+      {
+        "speechSegmentId": "speech_segment_b40042f4-dc68-4523-8443-632a4716e9f5",
+        "startMs": 48850,
+        "endMs": 55260,
+        "startFrame": 1466,
+        "endFrame": 1658
+      },
+      {
+        "speechSegmentId": "speech_segment_115b2f65-f201-4aba-8010-d3d0fe8c73d4",
+        "startMs": 55610,
+        "endMs": 59570,
+        "startFrame": 1668,
+        "endFrame": 1787
+      },
+      {
+        "speechSegmentId": "speech_segment_f783d2d8-eae7-413c-8351-f7b1fb338a8e",
+        "startMs": 60020,
+        "endMs": 68450,
+        "startFrame": 1801,
+        "endFrame": 2054
+      },
+      {
+        "speechSegmentId": "speech_segment_e24078be-eb38-4718-a229-83c5d6932280",
+        "startMs": 68750,
+        "endMs": 75420,
+        "startFrame": 2063,
+        "endFrame": 2263
+      },
+      {
+        "speechSegmentId": "speech_segment_dde18b6d-5b4c-4aa0-afb5-a65beb93d254",
+        "startMs": 75920,
+        "endMs": 78390,
+        "startFrame": 2278,
+        "endFrame": 2352
+      },
+      {
+        "speechSegmentId": "speech_segment_b49526fe-e176-4acc-878d-dd1ee66171f8",
+        "startMs": 78640,
+        "endMs": 88740,
+        "startFrame": 2359,
+        "endFrame": 2662
+      },
+      {
+        "speechSegmentId": "speech_segment_3bafa014-66ea-4430-beb5-e07410b97200",
+        "startMs": 89140,
+        "endMs": 99880,
+        "startFrame": 2674,
+        "endFrame": 2996
+      },
+      {
+        "speechSegmentId": "speech_segment_d990c69a-ce5b-4ab5-9df9-a8b0ad2d23f6",
+        "startMs": 100280,
+        "endMs": 109070,
+        "startFrame": 3008,
+        "endFrame": 3272
+      },
+      {
+        "speechSegmentId": "speech_segment_94097420-f515-4d41-82dd-7eff59d65333",
+        "startMs": 109570,
+        "endMs": 116810,
+        "startFrame": 3287,
+        "endFrame": 3504
+      },
+      {
+        "speechSegmentId": "speech_segment_81ea8712-30b8-419f-b0ac-d680ad509c4c",
+        "startMs": 117160,
+        "endMs": 125870,
+        "startFrame": 3515,
+        "endFrame": 3776
+      },
+      {
+        "speechSegmentId": "speech_segment_6dd8ceb4-41b3-4cfe-9ab5-8fae6d8453aa",
+        "startMs": 126370,
+        "endMs": 130350,
+        "startFrame": 3791,
+        "endFrame": 3911
+      },
+      {
+        "speechSegmentId": "speech_segment_c82385be-b455-472c-bd99-3a9620bb3a6c",
+        "startMs": 130700,
+        "endMs": 139340,
+        "startFrame": 3921,
+        "endFrame": 4180
+      }
+    ]
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "relativePath": "manifests\\sources\\export_artifact_0d92062f-0c1e-421d-9331-49a74a1aa36a.json",
+  "generatedAt": "2026-11-08T18:35:18.845Z",
+  "entries": [
+    {
+      "assetId": "asset_14e6fa35-6c02-4940-81ab-c7cac9f200bc",
+      "name": "下一件零件 · 人形机器人进厂",
+      "sourceHash": "e4d292b91eb6d8a9d940e03056d3e3c68169c3cf3b6530a2de30beed2b47730c",
+      "source": "generated",
+      "provider": "managed_hyperframes",
+      "acquiredAt": "2026-11-08T18:26:09.364Z"
+    },
+    {
+      "assetId": "asset_657e3f43-596f-4ee1-8db7-d5dc8aaf3eaf",
+      "name": "source.mp4",
+      "sourceHash": "b9f2163b2e670d8d862e2b0a1dd4a3b9cecbd84509bd123be283d723916c1745",
+      "source": "provider",
+      "provider": "youtube",
+      "sourceUrl": "https://www.youtube.com/watch?v=AJpTpUqjgrY",
+      "creator": "Agility",
+      "originalAssetId": "AJpTpUqjgrY",
+      "acquiredAt": "2026-11-08T17:15:52.135Z"
+    },
+    {
+      "assetId": "asset_6a7e951a-a754-4f77-8d86-1be7255cda62",
+      "name": "下一件零件 · 人形机器人进厂",
+      "sourceHash": "ec0bdbfa4b725372007072f5f92bc99f8f9360075d24b7edb80419ef7f18f1a6",
+      "source": "generated",
+      "provider": "managed_hyperframes",
+      "acquiredAt": "2026-11-08T18:27:35.099Z"
+    },
+    {
+      "assetId": "asset_9d161123-70c8-4c94-a42a-4486f703bde9",
+      "name": "source.mp4",
+      "sourceHash": "e0d90c8b0591fc84ef3b6e997ed89e76365114944ddb1108fb2ed86cb815a4e0",
+      "source": "provider",
+      "provider": "youtube",
+      "sourceUrl": "https://www.youtube.com/watch?v=g2KYMBxGoM4",
+      "creator": "FANUC America Corporation",
+      "originalAssetId": "g2KYMBxGoM4",
+      "acquiredAt": "2026-11-08T17:15:42.070Z"
+    },
+    {
+      "assetId": "asset_9dae584a-d3ae-4209-895f-64d13d5cc73a",
+      "name": "source.mp4",
+      "sourceHash": "e92d979d5aa2138720f5ebb15bb8376913855fb626c822ab41efe01f3b5e6720",
+      "source": "provider",
+      "provider": "youtube",
+      "sourceUrl": "https://www.youtube.com/watch?v=fRj34o4hN4I",
+      "creator": "Boston Dynamics",
+      "originalAssetId": "fRj34o4hN4I",
+      "acquiredAt": "2026-11-08T17:15:10.966Z"
+    }
+  ]
+}
