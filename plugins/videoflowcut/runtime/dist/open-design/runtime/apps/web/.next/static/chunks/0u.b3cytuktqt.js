@@ -1,0 +1,3 @@
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,16068,e=>{"use strict";var c=e.i(64875);e.i(52025),e.s([],35457),e.i(35457),e.s(["createArchitectureServices",()=>c.createArchitectureServices],16068)}]);
+
+//# sourceMappingURL=0fun412ibb2_..js.map

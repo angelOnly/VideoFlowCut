@@ -1,0 +1,1 @@
+{"version":3,"file":"official-system.d.ts","sourceRoot":"","sources":["../../src/prompts/official-system.ts"],"names":[],"mappings":"AAAA;;;;;;;;;GASG;AACH,eAAO,MAAM,wBAAwB,ulZAsHpC,CAAC;AAYF,eAAO,MAAM,0BAA0B,8JACsH,CAAC;AAC9J,eAAO,MAAM,oCAAoC,8aACuX,CAAC;AAEza,MAAM,WAAW,mCAAmC;IAElD,gBAAgB,CAAC,EAAE,OAAO,CAAC;CAC5B;AAKD,wBAAgB,4BAA4B,CAC1C,OAAO,GAAE,mCAAwC,GAChD,MAAM,CAOR"}

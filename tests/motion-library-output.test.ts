@@ -29,7 +29,7 @@ test("机制分阶段出口明确投影，保留动作关系、连接和分页�
     source_sha256: "a".repeat(64), groups: [page], externalRuns: { privateData }, futureInternalField: privateData,
     selection: { ids: ["001-m01"], adopted: ["001-m01"], unknown_ids: [], stale: false, privateData },
     connections: [card.connection], taxonomy: { states: [["整体", "完整主体"]], privateData },
-    diagnostics: { semantic_used: true, encoded_texts: 123, privateData }
+    diagnostics: { semantic_used: true, encoded_texts: 123, model: "model", workflow: "workflow", schema: "schema", instruction_version: "v2", privateData }
   };
   const result = projectMotionSearchResult(raw) as any;
   assertCompact(result);
@@ -40,6 +40,7 @@ test("机制分阶段出口明确投影，保留动作关系、连接和分页�
   assert.deepEqual(result.groups[0].cards[0].retrieval.holds, ["内部连续"]);
   assert.equal(result.groups[0].cards[0].clip.boundary_note, card.clip.boundary_note);
   assert.equal(result.connections[0].continuous_verified, false);
+  assert.deepEqual([result.diagnostics.model, result.diagnostics.workflow, result.diagnostics.schema, result.diagnostics.instruction_version], ["model", "workflow", "schema", "v2"]);
   assert.deepEqual(result.selection.adopted, ["001-m01"]);
   assert.equal(raw.groups[0].cards[0].search_text, privateData, "投影不改后台原件");
 });
@@ -81,27 +82,33 @@ test("正式 MCP 搜索、核读、track_job 与恢复均精简出口，完整�
   };
   try {
     await client.connect(transport);
+    const capabilities = await client.listTools();
+    const authoring = capabilities.tools.find(tool => tool.name === "start_motion_authoring")!;
+    const authoringSchema = authoring.inputSchema.properties?.opendesign_request as { properties?: Record<string, unknown> };
+    assert.ok(authoringSchema.properties?.continue_from_run_id, "正式 MCP 必须暴露精确续修来源");
     const request = { project_id: projectId, query: "保持前景，后层逐项建立", limit: 2 };
     const first = await call("search_motion_mechanisms", request);
     const jobId = first.diagnostics.job_id;
     assert.ok(jobId);
-    assert.equal(first.cards.length, 2);
-    assert.equal(first.cards[0].search_text, undefined);
-    assert.ok(first.cards[0].relation);
+    assert.deepEqual(first.cards, []);
+    assert.equal(first.exhausted, false);
+    const known = await call("search_motion_mechanisms", { ids: ["001-m01", "002-m17"] });
     const pending = await call("track_job", { job_id: jobId });
     assert.equal(pending.status, "queued");
     assert.equal(pending.payload, undefined);
-    const raw = { ...first, cards: first.cards.map((card: object) => ({ ...card, search_text: privateData, futureInternalField: privateData })),
+    const raw = { source_sha256: first.source_sha256, pools: { [request.query]: known.cards.map((card: { id: string }, index: number) => ({ id: card.id, score: 1 - index / 10 })) },
       diagnostics: { mode: "hybrid", semantic_used: true, source_sha256: first.source_sha256, privateData },
       externalRuns: { finished: { status: "succeeded", runId: "finished", text: privateData, textOutputs: [{ text: privateData }] } }, futureInternalField: privateData };
     app.updateJob(jobId, { status: "succeeded", result: raw });
-    for (const result of [await call("search_motion_mechanisms", request), await call("track_job", { job_id: jobId })]) {
-      assertCompact(result);
-      assert.deepEqual((result.cards ?? result.result.cards)[0].case_context, first.cards[0].case_context);
-      assert.ok(first.cards[0].case_context.materials.length, "异步结果保留父案例材料与迁移条件");
-    }
+    const search = await call("search_motion_mechanisms", request);
+    const tracked = await call("track_job", { job_id: jobId });
+    assertCompact(search); assertCompact(tracked);
+    assert.ok(search.cards[0].case_context.materials.length, "异步结果保留父案例材料与迁移条件");
+    assert.equal(tracked.result.cards, undefined);
+    assert.equal(tracked.readback.tool, "search_motion_mechanisms");
+    assert.deepEqual((await call(tracked.readback.tool, tracked.readback.arguments)).cards.map((card: { id: string }) => card.id).slice(0, 2), search.cards.map((card: { id: string }) => card.id));
     assert.deepEqual(Object.fromEntries(Object.entries(app.trackJob(jobId).result!).filter(([key]) => key !== "execution")), raw);
-    const read = await call("read_motion_mechanism", { id: first.cards[0].id, source_sha256: first.source_sha256, include_storyboard: false });
+    const read = await call("read_motion_mechanism", { id: search.cards[0].id, source_sha256: first.source_sha256, include_storyboard: false });
     assert.ok(read.body.includes("运动指令"));
     assert.ok(read.card.storyboard && read.card.clip.path && read.video_path);
     assert.equal(read.card.search_text, undefined);
@@ -113,6 +120,7 @@ test("正式 MCP 搜索、核读、track_job 与恢复均精简出口，完整�
       const search = await call("search_motion_mechanisms", request), tracked = await call("track_job", { job_id: jobId });
       assertCompact(search); assertCompact(tracked);
       assert.equal(search.diagnostics.status, status);
+      assert.deepEqual(search.cards, []);
       assert.equal(search.diagnostics.failure.code, "BRIDGE_RUN_FAILED");
       assert.deepEqual(tracked.recovery.runs.map((run: any) => run.runId), ["recoverable-run"]);
       assert.equal(tracked.recovery.action, status === "unknown" ? "reconcile" : "retry");
@@ -126,7 +134,7 @@ test("正式 MCP 搜索、核读、track_job 与恢复均精简出口，完整�
     assert.equal(retry.payload, undefined);
     assert.equal((await call("search_motion_mechanisms", request)).diagnostics.job_id, retry.id);
     assert.deepEqual(Object.fromEntries(Object.entries(app.trackJob(jobId).result!).filter(([key]) => key !== "execution")), failedResult);
-    const analysisRequest = { id: first.cards[0].id, source_sha256: first.source_sha256, range: { startMs: 0, endMs: 1000 } };
+    const analysisRequest = { id: known.cards[0].id, source_sha256: first.source_sha256, range: { startMs: 0, endMs: 1000 } };
     const config = readRuntimeConfig();
     const oldPayload = { ...analysisRequest, modelConfig: { ...config.semantic, apiBaseUrl: config.bridge.apiBaseUrl } };
     const oldAnalysis = app.repository.createJob({ projectId, kind: "motion_reference_analysis", payload: oldPayload, idempotencyKey: `motion-reference:${digest(oldPayload)}` });

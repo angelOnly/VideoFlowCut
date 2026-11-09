@@ -13,7 +13,7 @@ import { createServer } from "../apps/server/src/app.js";
 import { registerMotionTools } from "../apps/server/src/motion-tools.js";
 import { toolError } from "../apps/server/src/tool-error.js";
 import { validateMotionSource, compileMotion } from "../packages/motion-work/src/compiler.js";
-import { MotionSourceValidationError } from "../packages/motion-work/src/source-validation-error.js";
+import { MotionSourceValidationError, parseAuthoredMotionManifest } from "../packages/contracts/src/authored-motion-manifest-v1.js";
 import { motionFixture } from "./fixtures/managed-motion.js";
 import { readFile } from "node:fs/promises";
 
@@ -21,6 +21,17 @@ const good = motionHtml('<div style="position:absolute;top:148px"></div>');
 const bad = good.replace('</head>','<script src="https://example.com/bad.js"></script></head>');
 const body = (source: string, revision: number, key: string) => ({ baseRevision: revision, idempotencyKey: key, work: sizeMotionFixture({ ...motionFixture, source }) });
 const parsed = (result: any) => JSON.parse(result.content.find((entry: any) => entry.type === "text").text);
+
+test("作者清单与正式入口共用视频绑定和源码槽校验", () => {
+  const { source, ...work } = sizeMotionFixture({ ...motionFixture, source: good });
+  const manifest = { authorSubmissionId: "stage", sourceFile: "film.html", sourceSha256: "a".repeat(64),
+    work: { ...work, videoBindings: { subject: { assetId: "asset", sourceStartMs: 0.5, sourceEndMs: 600, startFrame: 0, endFrame: 18 } } },
+    readyRanges: [{ startFrame: 0, endFrame: 9 }], changedRanges: [] };
+  assert.throws(() => parseAuthoredMotionManifest(manifest), { code: "MOTION_MANIFEST_INVALID", field: "work.videoBindings.subject.sourceStartMs" });
+  const valid = parseAuthoredMotionManifest({ ...manifest, work });
+  assert.deepEqual(valid.readyRanges, [{ startFrame: 0, endFrame: 9 }]);
+  assert.throws(() => validateMotionSource(source.replace("</body>", '<img id="video" data-vfc-video-slot="subject"></body>'), work), /未绑定槽位 subject/);
+});
 
 test("已知源码拒绝全部提供结构化诊断，编译入口不携带提交重试许可", async () => {
   for (const source of ["export default function (", "import x from 'unknown';export default ()=>null;", "const x=1;",
@@ -47,6 +58,12 @@ test("真实MCP源码拒绝无写入，纠正后同键入队且保留幂等保�
     registerMotionTools(server, application, () => projectId);
     const [ct, st] = InMemoryTransport.createLinkedPair();
     await server.connect(st); await client.connect(ct);
+    const capabilities = parsed(await client.callTool({ name: "read_motion_capabilities", arguments: {} }));
+    assert.ok(capabilities.authoredManifestSchema.properties.work.properties.videoBindings);
+    assert.ok(capabilities.authoredManifestSchema.properties.readyRanges);
+    assert.ok(!capabilities.authoredManifestSchema.required.includes("authorSubmissionId"));
+    assert.ok(!capabilities.authoredManifestSchema.required.includes("sourceSha256"));
+    assert.ok(capabilities.authoredManifestRules.some((rule: string) => rule.includes("视频源毫秒")));
     const submit = (source: string, key = "source-correction") => client.callTool({ name: "register_motion_work", arguments: {
       project_id: projectId, base_revision_id: before.revision.number, idempotency_key: key, work: sizeMotionFixture({ ...motionFixture, source })
     } });

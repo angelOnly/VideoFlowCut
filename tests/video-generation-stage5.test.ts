@@ -57,11 +57,10 @@ function workflow(id: string, slots: BridgeWorkflow["itemSlots"], fields = stand
   return {
     id,
     name: id,
-    available: true,
     schemaVersion: `${id}-schema`,
     fields,
     itemSlots: slots,
-    outputs: [{ id: "final-video", label: "Final video", kind: "dynamic" }]
+    outputs: [{ id: "final-video", label: "Final video", mediaKinds: ["dynamic"], min: 1, max: 1 }]
   };
 }
 
@@ -110,15 +109,15 @@ test("四类 MiniMax 视频工作流按本次 Schema 的字段、标签与槽顺
 
     const image = await buildVideoGenerationBridgeRequest(
       context(root, "image_to_video", [first]),
-      workflow("image", [{ id: "image-first", label: "Reference first frame image", kind: "image", required: true }])
+      workflow("image", [{ id: "image-first", label: "Reference first frame image", mediaKind: "image", min: 1, max: 1 }])
     );
     assert.deepEqual(image.files.map((entry) => entry.slot.id), ["image-first"]);
 
     const firstLast = await buildVideoGenerationBridgeRequest(
       context(root, "first_last_frame", [first, last]),
       workflow("first-last", [
-        { id: "tail", label: "尾帧图像", kind: "image", required: true },
-        { id: "head", label: "首帧图像", kind: "image", required: true }
+        { id: "tail", label: "尾帧图像", mediaKind: "image", min: 1, max: 1 },
+        { id: "head", label: "首帧图像", mediaKind: "image", min: 1, max: 1 }
       ])
     );
     assert.deepEqual(firstLast.files.map((entry) => entry.slot.id), ["head", "tail"], "不能把 Bridge 声明顺序当成首尾语义");
@@ -137,11 +136,11 @@ test("四类 MiniMax 视频工作流按本次 Schema 的字段、标签与槽顺
     const multi = await buildVideoGenerationBridgeRequest(
       context(root, "multi_reference", [first, second, motion, voice]),
       workflow("multi", [
-        { id: "image-2", label: "参考图像 2", kind: "image", required: false },
-        { id: "image-1", label: "参考图像 1", kind: "image", required: false },
-        { id: "reference-video", label: "参考视频", kind: "video", required: false },
-        { id: "audio-2", label: "参考音频 2", kind: "audio", required: false },
-        { id: "audio-1", label: "参考音频 1", kind: "audio", required: false }
+        { id: "image-2", label: "参考图像 2", mediaKind: "image", min: 0, max: 1 },
+        { id: "image-1", label: "参考图像 1", mediaKind: "image", min: 0, max: 1 },
+        { id: "reference-video", label: "参考视频", mediaKind: "video", min: 0, max: 1 },
+        { id: "audio-2", label: "参考音频 2", mediaKind: "audio", min: 0, max: 1 },
+        { id: "audio-1", label: "参考音频 1", mediaKind: "audio", min: 0, max: 1 }
       ], multiFields)
     );
     assert.deepEqual(multi.files.map((entry) => entry.slot.id), ["image-1", "image-2", "audio-1", "reference-video"]);
@@ -187,15 +186,13 @@ test("生成视频先在 Job 缓存校验后才进入 assets/generated，并拒�
     const source = await createVideoFixture(root);
     const currentJob = job({});
     const bridge = {
-      downloadOutput: async (_output: unknown, target: string) => copyFile(source, target)
+      downloadOutput: async (_run: unknown, _output: unknown, target: string) => copyFile(source, target)
     } as unknown as ComfyUIBridgeClient;
-    const generated = await localizeGeneratedVideo(bridge, snapshot(root), currentJob, {
-      outputSlotId: "final-video",
-      displayName: "Final video",
+    const generated = await localizeGeneratedVideo(bridge, "run-test", snapshot(root), currentJob, {
       kind: "video",
       fileName: "mini-max-output.mp4",
       mime: "video/mp4",
-      downloadUrl: "/runs/final"
+      outputId: "final"
     });
     assert.match(generated.relativePath.replace(/\\/g, "/"), /^assets\/generated\/video-video-job-1-mini-max-output\.mp4$/);
     assert.ok(generated.durationMs > 0);
@@ -248,7 +245,7 @@ test("已提交视频 Run 丢失时不自动重提，避免未知 Provider 额�
       trackJob: () => currentJob
     } as never;
     await assert.rejects(
-      () => runVideoGeneration(application, currentJob, new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1")),
+      () => runVideoGeneration(application, currentJob, new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2")),
       (error: unknown) => error instanceof DomainError && error.code === "VIDEO_GENERATION_RUN_LOST_REQUIRES_RECONFIRMATION"
     );
     assert.equal(createRunCalls, 0, "Run 状态未知时不能创建第二个生成任务");

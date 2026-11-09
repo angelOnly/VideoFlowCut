@@ -1,0 +1,121 @@
+--- a/dist/cli.js
++++ b/dist/cli.js
+@@ -70158,6 +70158,7 @@
+ }
+ async function detectGpuEncoder() {
+   const ffmpeg = spawn(getFfmpegBinary(), ["-encoders"], {
++    windowsHide: true,
+     stdio: ["pipe", "pipe", "pipe"]
+   });
+   trackChildProcess(ffmpeg);
+@@ -70220,6 +70221,7 @@
+ }
+ async function canUseGpuEncoder(encoder) {
+   const ffmpeg = spawn(getFfmpegBinary(), getProbeArgs(encoder), {
++    windowsHide: true,
+     stdio: ["ignore", "ignore", "pipe"]
+   });
+   trackChildProcess(ffmpeg);
+@@ -70403,7 +70405,7 @@
+ }
+ async function runFfmpeg(args, opts) {
+   const timeout = opts?.timeout ?? DEFAULT_TIMEOUT;
+-  const ffmpeg = spawn2(getFfmpegBinary(), args);
++  const ffmpeg = spawn2(getFfmpegBinary(), args, { windowsHide: true });
+   trackChildProcess(ffmpeg);
+   const managed = new ManagedChildProcess(ffmpeg, {
+     signal: opts?.signal,
+@@ -70467,6 +70469,7 @@
+   }
+   const command2 = getFfprobeBinary();
+   const proc = spawn3(command2, ["-v", "error", ...argsWithoutInput, "--", filePath], {
++    windowsHide: true,
+     // Nothing is ever written to the child's stdin; leaving it as a pipe is
+     // what lets a stdin-reading invocation block indefinitely.
+     stdio: ["ignore", "pipe", "pipe"]
+@@ -71838,6 +71841,7 @@
+   }
+   const args = buildStreamingArgs(options, outputPath, gpuEncoder);
+   const ffmpeg = spawn4(getFfmpegBinary(), args, {
++    windowsHide: true,
+     stdio: ["pipe", "pipe", "pipe"]
+   });
+   trackChildProcess(ffmpeg);
+@@ -81242,7 +81246,7 @@
+ }
+ function execFileAsync(file, args) {
+   return new Promise((resolvePromise, reject2) => {
+-    execFile(file, args, { timeout: PROBE_TIMEOUT_MS }, (error, stdout2) => {
++    execFile(file, args, { windowsHide: true, timeout: PROBE_TIMEOUT_MS }, (error, stdout2) => {
+       if (error) reject2(error);
+       else resolvePromise(stdout2.toString());
+     });
+@@ -89596,7 +89600,7 @@
+     const { stderr } = await execFileP(
+       getFfmpegBinary(),
+       ["-hide_banner", "-i", pa, "-i", pb, "-lavfi", "psnr", "-f", "null", "-"],
+-      { maxBuffer: 4 * 1024 * 1024 }
++      { windowsHide: true, maxBuffer: 4 * 1024 * 1024 }
+     );
+     const m2 = /average:(inf|[\d.]+)/.exec(stderr);
+     if (!m2) throw new Error(`psnr parse failed: ${stderr.slice(-300)}`);
+@@ -92661,7 +92665,7 @@
+         "-e",
+         `fetch(${JSON.stringify(`${POSTHOG_HOST}/batch/`)},{method:"POST",headers:{"Content-Type":"application/json"},body:${JSON.stringify(payload)},signal:AbortSignal.timeout(${FLUSH_TIMEOUT_MS})}).catch(()=>{})`
+       ],
+-      { detached: true, stdio: "ignore" }
++      { detached: process.platform !== "win32", windowsHide: true, stdio: "ignore" }
+     );
+     child.unref();
+   } catch {
+@@ -96312,6 +96316,7 @@
+ }
+ function detectH264EncoderMode(ffmpegPath, gpuRequested) {
+   const encoders = execFileSync3(ffmpegPath, ["-hide_banner", "-encoders"], {
++    windowsHide: true,
+     encoding: "utf-8",
+     stdio: ["ignore", "pipe", "pipe"],
+     timeout: 5e3
+@@ -101807,6 +101812,7 @@
+   if (hdrFilterCheck?.ffmpegPath === ffmpegPath) return hdrFilterCheck.promise;
+   const promise = new Promise((resolveCheck, rejectCheck) => {
+     const proc = spawn8(ffmpegPath, ["-hide_banner", "-filters"], {
++      windowsHide: true,
+       stdio: ["ignore", "pipe", "pipe"]
+     });
+     let stdout2 = "";
+@@ -101904,6 +101910,7 @@
+     ];
+     const args = [...commonArgs, ...variant === "vp8" ? vp8Args : h264Args, outputPath];
+     const proc = spawn8(ffmpegPath, args, {
++      windowsHide: true,
+       stdio: ["ignore", "ignore", "pipe"],
+       timeout: TRANSCODE_TIMEOUT_MS,
+       killSignal: "SIGKILL"
+@@ -114514,7 +114521,7 @@
+ }
+ async function runFfmpegOnce(ffmpegPath, args, timeoutMs) {
+   return await new Promise((resolvePromise) => {
+-    const ff = spawn10(ffmpegPath, args);
++    const ff = spawn10(ffmpegPath, args, { windowsHide: true });
+     let stderr = "";
+     let timedOut = false;
+     const timer = setTimeout(() => {
+@@ -131608,7 +131615,7 @@
+ }
+ async function readFfmpegVersion() {
+   if (cachedFfmpegVersion !== null) return cachedFfmpegVersion;
+-  const { stdout: stdout2 } = await execFile6("ffmpeg", ["-version"], { maxBuffer: 1024 * 1024 });
++  const { stdout: stdout2 } = await execFile6("ffmpeg", ["-version"], { windowsHide: true, maxBuffer: 1024 * 1024 });
+   const firstLine = stdout2.split(/\r?\n/)[0]?.trim() ?? "";
+   if (!firstLine) {
+     throw new Error("ffmpeg -version returned empty output");
+@@ -134809,7 +134816,7 @@
+ }
+ function readToolVersion(binaryPath) {
+   try {
+-    const raw = execFileSync8(binaryPath, ["-version"], { encoding: "utf-8", timeout: 5e3 }).split("\n")[0] ?? "";
++    const raw = execFileSync8(binaryPath, ["-version"], { windowsHide: true, encoding: "utf-8", timeout: 5e3 }).split("\n")[0] ?? "";
+     const version2 = parseToolVersion(raw);
+     return { ok: true, detail: version2 ? `${version2} at ${binaryPath}` : binaryPath };
+   } catch (error) {

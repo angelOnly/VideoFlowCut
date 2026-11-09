@@ -29,7 +29,7 @@ for (const status of ["running", "submitting"] as const) {
       const config = readRuntimeConfig();
       const modelConfig = { ...config.semantic, apiBaseUrl: config.bridge.apiBaseUrl };
       const range = { startMs: 0, endMs: 1000 };
-      const workflow: BridgeWorkflow = { id: config.semantic.videoWorkflowId, schemaVersion: "recovery-v1", name: "隔离理解", available: true,
+      const workflow: BridgeWorkflow = { id: config.semantic.videoWorkflowId, schemaVersion: "recovery-v1", name: "隔离理解",
         fields: ["prompt", "start_seconds", "duration_seconds"].map(id => ({ id, label: id, kind: "text", required: false })), itemSlots: [], outputs: [] };
       const key = digest([id, fingerprint, hash, range, modelConfig, workflow.schemaVersion, LEGACY_MOTION_VIDEO_PROMPT, PREPROCESSING_VERSION]);
       const payload = { id, source_sha256: fingerprint, range, modelConfig };
@@ -45,8 +45,8 @@ for (const status of ["running", "submitting"] as const) {
       const reads: string[] = [];
       const prompts: unknown[] = [];
       bridge.getWorkflow = async () => workflow;
-      bridge.findRequiredSlot = () => ({ id: "video", label: "隔离视频输入", kind: "video", required: true });
-      bridge.createRunWithSchemaRetry = async (_id, build) => {
+      bridge.findRequiredSlot = () => ({ id: "video", label: "隔离视频输入", mediaKind: "video", min: 1, max: 1 });
+      bridge.createRunWithWorkflow = async (_id, build) => {
         const request = await build(workflow);
         prompts.push(request.fieldValues.prompt);
         return { workflow, request, schemaRetryCount: 0, run: { id: "new-external-run", status: "running", outputs: [] } };

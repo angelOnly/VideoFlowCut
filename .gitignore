@@ -18,6 +18,14 @@ previews/
 exports/
 cache/
 
+# 画面模块包含名为 workspace 和 cache 的源码目录，不能被根目录规则误排除。
+!components/open-design/apps/web/src/components/workspace/
+!components/open-design/apps/web/src/styles/workspace/
+!components/open-design/apps/web/tests/components/workspace/
+!components/open-design/.github/scripts/release/cache/
+!components/open-design/tools/pack/src/cache/
+!components/open-design/tools/pack/tests/cache/
+
 # VideoFlowCut 插件在本机构建时写入仓库定位指针；它不能携带某台机器的绝对路径提交。
 plugins/videoflowcut/runtime/repo-root.json
 

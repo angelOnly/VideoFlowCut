@@ -1,5 +1,8 @@
 import { motionOnSuccessSchema } from "../../../packages/contracts/src/motion-continuation.js";
-import { AUTHORED_MOTION_MANIFEST_CONTRACT } from "../../../packages/contracts/src/authored-motion-manifest-v1.js";
+import { motionAuthoringRequestSchema } from "../../../packages/contracts/src/motion-authoring.js";
+import { readRuntimeConfig } from "@videocut/project-overview";
+import { AUTHORED_MOTION_MANIFEST_CONTRACT, authoredMotionInputFields } from "../../../packages/contracts/src/authored-motion-manifest-v1.js";
+import { toJsonSchemaCompat } from "@modelcontextprotocol/sdk/server/zod-json-schema-compat.js";
 import { commandReceipt, motionJobReceipt } from "./command-receipt.js";
 import { hyperframesContract } from "../../../packages/motion-work/src/hyperframes-contract.js";
 import { toolErrorResult } from "./tool-error.js";
@@ -20,7 +23,10 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   server.registerTool("read_motion_capabilities", {
     title: "读取受管动画能力与字体", description: "只读查询当前动画引擎、HTML 合同与固定运行库及随Runtime发布的字体。fontBindings用槽名映射fontId；平台校验文件并在作者初始化前加载，源码使用vfc.fonts[槽位]的family、weight、style，不自行加载字体或联网。新增字体需要发布新版Runtime。",
     inputSchema: {}, annotations: { readOnlyHint: true }
-  }, async () => { try { return result({ engineVersion: MOTION_ENGINE_VERSION, authoredManifestContract: AUTHORED_MOTION_MANIFEST_CONTRACT, html: hyperframesContract, fonts: listMotionFonts(), objectResources: objectResourceCapabilities,
+  }, async () => { try { return result({ engineVersion: MOTION_ENGINE_VERSION, authoredManifestContract: AUTHORED_MOTION_MANIFEST_CONTRACT,
+    authoredManifestSchema: toJsonSchemaCompat(authoredMotionInputFields),
+    authoredManifestRules: ["阶段命令根据实际源码填写 sourceFile、sourceSha256 和 authorSubmissionId", "readyRanges 和 changedRanges 均使用作品根帧半开范围，结束帧不得超出完整作品", "画布宽高为偶数，作品输出体积须在安全整数范围内", "视频源毫秒范围与作品帧范围按作品 fps 对应，允许毫秒取整及不足一帧余量", "源码声明的图片和视频槽必须有绑定，根合成规格与作品一致"],
+    html: hyperframesContract, fonts: listMotionFonts(), objectResources: objectResourceCapabilities,
     videoBindings: { maxSlots: null, clock: "work_root", playback: "normal_speed_muted", description: "不设作品视频选段总数上限；每槽固定源身份、哈希、源范围和作品帧范围。分块串行解码并复用缓存，真实资源不足明确失败，不删减选段或静默降质；解码块预算不等于浏览器总内存预算。" },
     fontBindingExample: { title: "noto-sans-sc-bold" }, execution: "仅使用已登记本地字体；通过fontBindings声明，props.fonts由平台注入。配色、描边与帧驱动动效由作者生成，不要求花字模板。理想字体未收录不是平台故障：主任务控制流程，未被用户锁定时由原视觉作者选择合法字体并记录；用户锁定且无法满足时再展示工作台预览并回询。不报工单。已登记原件缺失、变更或加载失败仍明确报错。" }); } catch (error) { return failure(error); } });
   server.registerTool("inspect_motion_reference", {
@@ -30,7 +36,31 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
     const { images, ...evidence } = await inspectMotionReferenceViaRuntime(source_url, preview_index, sample_duration_ms);
     return { content: [...result({ ...evidence, samples: images.map(({ elapsedMs }) => ({ elapsedMs })) }).content, ...images.map((item) => ({ type: "image" as const, mimeType: "image/png", data: item.data }))] };
   } catch (error) { return failure(error); } });
-  server.registerTool("browse_motion_sources", { title: "在线动效来源", description: "返回已选的四个在线视觉参考库与访问入口，不下载整库，不表示已经观看预览。AE/Jitter 与开源组件均可作为视觉制作参考。", inputSchema: {}, annotations: { readOnlyHint: true } }, async () => result({ sources: MOTION_SOURCES, execution: "通过 register_motion_work 登记完整 HyperFrames HTML，再按需使用 submit_motion_work 生成媒体；原创作品按内容设计并填写 creativeBrief；仅在需要参考时观看并记录布局、运动、节奏和适配依据。" }));
+  server.registerTool("start_motion_authoring", {
+    title: "启动阶段画面制作",
+    description: "主任务接回导演对当前范围的主要采用决定后，提交视觉作者的完整制作请求和已交付资料，绑定明确的时间线目标。请求点名有效简报、参考视频与范围、本片素材、准确文案及声音和时间资料。制作作者完成整场设计，阶段源码自动登记和采用。原任务结束后的同源修订使用新幂等键，并通过 continue_from_run_id 指定原制作 Run。",
+    inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), production_run_id: z.string().min(1).optional(), target: motionOnSuccessSchema, opendesign_request: motionAuthoringRequestSchema, idempotency_key: z.string().min(1).max(120) }
+  }, async ({ project_id, base_revision_id, production_run_id, target, opendesign_request, idempotency_key }) => { try {
+    const job = await application.startMotionAuthoring({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, productionRunId: production_run_id,
+      target, openDesignRequest: opendesign_request, idempotencyKey: idempotency_key });
+    return result({ projectId: job.projectId, jobId: job.id, status: job.status, authoring: job.result?.authoring });
+  } catch (error) { return failure(error); } });
+  server.registerTool("wait_motion_authoring", {
+    title: "等待阶段画面制作结果",
+    description: "按 sequence 接回阶段制作与采用结果。authoring.status 表示制作执行与目标范围完成情况；阶段回执定位实际作品及版本，主任务交导演、创意与视觉检查材料组织、整片发展及参考表现。拒收反馈保留实际接收及对账状态；超时表示暂无新进展。",
+    inputSchema: { project_id: z.string().optional(), job_id: z.string().min(1), after_sequence: z.number().int().nonnegative().default(0), timeout_ms: z.number().int().min(0).max(30000).default(20000) },
+    annotations: { readOnlyHint: true }
+  }, async ({ project_id, job_id, after_sequence, timeout_ms }) => { try {
+    const config = readRuntimeConfig(), projectId = projectIdFrom(project_id);
+    const url = new URL(`/api/projects/${encodeURIComponent(projectId)}/motion-authoring/${encodeURIComponent(job_id)}/wait`, config.http.webOrigin);
+    url.searchParams.set("afterSequence", String(after_sequence)); url.searchParams.set("timeoutMs", String(timeout_ms));
+    const response = await fetch(url, { headers: { "x-videoflowcut-release-id": config.runtime.releaseId }, signal: AbortSignal.timeout(timeout_ms + 5000) });
+    const value = await response.json() as { message?: string; error?: string };
+    if (!response.ok) throw new Error(value.message ?? value.error ?? `Runtime HTTP ${response.status}`);
+    if (response.headers.get("x-videoflowcut-release-id") !== config.runtime.releaseId) throw new Error("RUNTIME_RELEASE_MISMATCH");
+    return result(value);
+  } catch (error) { return failure(error); } });
+  server.registerTool("browse_motion_sources", { title: "在线动效来源", description: "返回已选的四个在线视觉参考库与访问入口，不下载整库，不表示已经观看预览。AE/Jitter 与开源组件均可作为视觉制作参考。", inputSchema: {}, annotations: { readOnlyHint: true } }, async () => result({ sources: MOTION_SOURCES, execution: "完整新制或主要视觉重做应主动检索并学习创意、美术和动效参考；本在线来源按需补充。通过 register_motion_work 登记完整 HyperFrames HTML，再按需使用 submit_motion_work 生成媒体；按实际观察记录布局、运动、节奏和适配依据。" }));
   server.registerTool("import_motion_bundle", {
     title: "导入固定动画源码包", description: "导入 Local Codex 固定的源码和作者清单，仅写受管输入；不创建素材、版本或生成任务。相同幂等键和相同包可重试。",
     inputSchema: { project_id: z.string().optional(), idempotency_key: z.string().min(1).max(160), bundle: frozenMotionBundleSchema }
@@ -60,8 +90,15 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
     description: "按 work_id 读取唯一作品身份、完整时钟、绑定、事件和可用范围；任务进度使用 track_job。不会返回整份 HTML 或修改工程。",
     inputSchema: { project_id: z.string().optional(), work_id: z.string().min(1), revision: z.number().int().positive().optional() }, annotations: { readOnlyHint: true }
   }, async ({ project_id, work_id, revision }) => { try { return result(application.readSourceMotionWork(projectIdFrom(project_id), work_id, revision)); } catch (error) { return failure(error); } });
+  server.registerTool("inspect_motion_frames", {
+    title: "检查源码作品指定帧",
+    description: "以正式引擎检查固定作品根帧，比较顺序、同页回跳与干净页结果；不编码视频、不创建素材或编辑版本。返回 Job，结果仅代表实际检查的帧。",
+    inputSchema: { project_id: z.string().optional(), revision: z.number().int().positive(), work_id: z.string().min(1), frames: z.array(z.number().int().nonnegative()).min(1), idempotency_key: z.string().min(1).max(160) }
+  }, async ({ project_id, revision, work_id, frames, idempotency_key }) => { try {
+    return result(motionJobReceipt(application.submitMotionInspection({ projectId: projectIdFrom(project_id), revision, workId: work_id, frames, idempotencyKey: idempotency_key })));
+  } catch (error) { return failure(error); } });
   server.registerTool("review_motion_work", {
-    title: "记录作品动态审阅", description: "对照 creativeBrief 查看作品，再记录 outcome、note 和 evidence。evidence范围为半开区间[startFrame,endFrame)：work_proxy使用作品局部帧；project_preview使用项目全局帧，并绑定同Revision成功Preview。failed/inconclusive可记录与该版本有效Cue相交的实际局部观察，无需覆盖整件；抽帧点和未确认范围写入note，不把未观看范围扩大成证据。只有passed要求完整覆盖作品及continuous_video/audiovisual连续证据。未审或证据不足如实保留，不阻挡放置、修订、制作完成或导出；只有技术/用途条件参与阻挡。审阅独立保存，不产生新Revision；作品与时间线不变，旧证据不自动升级。按实际覆盖与变化补充合成和最终文件观察，避免各层重复整片审阅。",
+    title: "记录作品动态审阅", description: "对照完整制作简报、采用参考与同版实际作品记录 outcome、note 和 evidence，creativeBrief 保存提交摘要。evidence 使用半开范围，work_proxy 使用作品局部帧，project_preview 和 workbench 使用项目全局帧。failed/inconclusive 可记录局部观察；passed 要求连续顺序覆盖完整作品并使用 continuous_video 或 audiovisual。审阅独立保存，不产生新 Revision，未观察范围如实记录。",
     inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), work_id: z.string(), asset_id: z.string().optional(), outcome: motionReviewFields.outcome, note: motionReviewFields.note, evidence: motionReviewFields.evidence }
   }, async ({ project_id, base_revision_id, work_id, asset_id, outcome, evidence, note }) => { try { return result(commandReceipt(await application.reviewSourceMotionWork({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, workId: work_id, assetId: asset_id, outcome, evidence, note }), { assetId: asset_id, outcome }, true)); } catch (error) { return failure(error); } });
 }

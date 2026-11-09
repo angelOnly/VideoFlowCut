@@ -201,10 +201,10 @@ test("同需求旧声音候选可按当前内容重排，不把旧搜索版本�
     const current = state.snapshot.assetRequests.at(-1)!;
     assert.notEqual(found.requestVersion, assetRequestVersion(current));
     const config = readRuntimeConfig(), bridge = new ComfyUIBridgeClient(config.bridge.apiBaseUrl);
-    const workflow: BridgeWorkflow = { id: config.semantic.embeddingWorkflowId, schemaVersion: "test-v1", name: "测试编码", available: true, fields: ["texts_json", "mode", "instruction"].map(id => ({ id, label: id, kind: "text", required: false })), itemSlots: [], outputs: [] };
+    const workflow: BridgeWorkflow = { id: config.semantic.embeddingWorkflowId, schemaVersion: "test-v1", name: "测试编码", fields: ["texts_json", "mode", "instruction"].map(id => ({ id, label: id, kind: "text", required: false })), itemSlots: [], outputs: [] };
     const vectors = new Map<string, number[][]>();
     bridge.getWorkflow = async () => workflow;
-    bridge.createRunWithSchemaRetry = async (_id, build) => {
+    bridge.createRunWithWorkflow = async (_id, build) => {
       const request = await build(workflow), texts = JSON.parse(String(request.fieldValues.texts_json)) as string[], id = `sound-${vectors.size}`;
       vectors.set(id, texts.map(() => [1, ...Array<number>(1023).fill(0)]));
       return { workflow, request, schemaRetryCount: 0, run: { id, status: "queued", outputs: [] } };

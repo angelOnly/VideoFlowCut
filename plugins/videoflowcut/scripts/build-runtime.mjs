@@ -4,9 +4,11 @@ import { existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { build } from "esbuild";
 import { pluginRootFromModule, resolveRepoRoot, readOption } from "./repo-root.mjs";
 import { buildMcpCatalog } from "./build-mcp-catalog.mjs";
+import { openDesignDigest } from "./open-design-release.mjs";
 
 const pluginRoot = pluginRootFromModule(import.meta.url);
 const repoRoot = resolveRepoRoot({ pluginRoot });
@@ -109,6 +111,8 @@ async function trimReleaseTextWhitespace(root) {
 /** 发行哈希按固定 LF 文本计算，避免不同系统的构建换行改变身份。 */
 async function normalizeReleaseText(root) {
   for (const path of await releaseFiles(root)) {
+    // 画面模块的案例、模板可能以原始字节关联摘要，不能改写其内容。
+    if (relative(root, path).replace(/\\/gu, "/").startsWith("open-design/")) continue;
     if (!/\.(?:cjs|js|css|html|json|py)$/iu.test(path)) continue;
     const contents = await readFile(path, "utf8");
     const normalized = contents.replace(/\r+\n|\r/gu, "\n");
@@ -245,6 +249,24 @@ async function main() {
   ]);
   const toolCount = await buildMcpCatalog({ repoRoot, distRoot });
   console.log(`已从发行 MCP 导出 ${toolCount} 个工具定义，首次发现不依赖 Runtime 状态。`);
+  const componentRoot = join(repoRoot, "components", "open-design");
+  const componentRelease = join(distRoot, "open-design");
+  const resourceCopy = await import(pathToFileURL(join(componentRoot, "tools", "pack", "src", "resources", "index.ts")).href);
+  // 复用画面模块已有资源清单，保留案例、技能与模板原始字节。
+  await resourceCopy.copyBundledResourceTrees({ workspaceRoot: componentRoot, resourceRoot: join(componentRelease, "resources") });
+  for (const name of ["apps/daemon/src", "apps/daemon/dist", "apps/web/sidecar", "apps/web/.next", "tools/dev/dist"]) {
+    const source = join(componentRoot, name);
+    if (!existsSync(source)) throw new Error(`画面模块构建产物缺失：${source}`);
+    await cp(source, join(componentRelease, "runtime", name), { recursive: true, filter: (path) => {
+      const segment = path.split(/[\\/]/u).at(-1);
+      return segment !== "node_modules" && !(name === "apps/web/.next" && ["cache", "standalone", "diagnostics"].includes(relative(source, path)));
+    } });
+  }
+  for (const entry of await readdir(join(componentRoot, "packages"), { withFileTypes: true })) {
+    const source = join(componentRoot, "packages", entry.name, "dist");
+    if (entry.isDirectory() && existsSync(source)) await cp(source, join(componentRelease, "runtime", "packages", entry.name, "dist"), { recursive: true });
+  }
+  await writeFile(join(componentRelease, "component.json"), `${JSON.stringify(openDesignDigest(componentRoot), null, 2)}\n`);
   await normalizeReleaseText(distRoot);
   const releaseId = await createReleaseId(distRoot, pluginVersion);
   await writeFile(outputPaths.manifest, `${JSON.stringify({

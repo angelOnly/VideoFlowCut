@@ -33,6 +33,50 @@ async function fixture() {
     close: async () => { app.close(); await rm(root, { recursive: true, force: true }); } };
 }
 
+test("源码首次采用创建真实 Cue，缺少可用范围或目标变化时保留固定作品", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vfc-create-continuation-")), app = createApplication(root);
+  try {
+    const created = app.createProject({ name: "首次采用隔离验证" }), projectId = created.snapshot.project.id;
+    const rev = () => app.readProject(projectId).revision.number;
+    app.repository.commit(projectId, rev(), "隔离画布", snapshot => Object.assign(snapshot.timeline, { width: 320, height: 320, fps: 30 }));
+    const scene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "首段", purpose: "采用", startFrame: 0, endFrame: 18 }).snapshot.scenes[0];
+    const target: MotionOnSuccess = { action: "create_cue", sceneId: scene.id, layer: "fullscreen", startFrame: 0, endFrame: 18,
+      sourceStartFrame: 0, sourceEndFrame: 18, audioPolicy: "rebind_unchanged_events" };
+    const job = app.registerMotionWork({ projectId, baseRevision: rev(), idempotencyKey: "first", work: motionFixture, onSuccess: target });
+    app.repository.commit(projectId, rev(), "无关名称", (snapshot, impact) => { snapshot.project.name = "仍可采用"; impact.changed.push(snapshot.project.id); });
+    const work = app.completeSourceMotionWork(projectId, job.id);
+    const result = app.trackJob(job.id).result!.continuation as MotionContinuationResult;
+    assert.equal(result.status, "applied");
+    if (result.status !== "applied") assert.fail(JSON.stringify(result));
+    assert.equal(result.cueSegments.oldCueId, undefined);
+    assert.equal(result.cueSegments.segments.length, 1);
+    const cue = app.readProject(projectId).snapshot.effectCues.find(entry => entry.id === result.cueSegments.segments[0].cueId)!;
+    assert.equal(cue.workId, work.id);
+    const after = rev();
+    app.completeSourceMotionWork(projectId, job.id);
+    assert.equal(rev(), after);
+    assert.equal(app.readProject(projectId).snapshot.effectCues.length, 1);
+    assert.equal(app.listJobs(projectId).filter(entry => entry.kind === "preview").length, 0);
+
+    const next = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "后段", purpose: "未完成范围", startFrame: 18, endFrame: 36 }).snapshot.scenes.find(entry => entry.id !== scene.id)!;
+    const pending = app.registerMotionWork({ projectId, baseRevision: rev(), idempotencyKey: "incomplete", work: { ...motionFixture, name: "部分完成" },
+      readyRanges: [{ startFrame: 0, endFrame: 9 }], onSuccess: { ...target, sceneId: next.id, startFrame: 18, endFrame: 36 } });
+    const incomplete = app.completeSourceMotionWork(projectId, pending.id);
+    const blocked = app.trackJob(pending.id).result!.continuation as MotionContinuationResult;
+    assert.equal(blocked.status, "needs_reconfirmation");
+    assert.ok(app.readProject(projectId).snapshot.motionWorks!.some(entry => entry.id === incomplete.id));
+    assert.equal(app.readProject(projectId).snapshot.effectCues.length, 1);
+
+    const racing = app.registerMotionWork({ projectId, baseRevision: rev(), idempotencyKey: "racing", work: { ...motionFixture, name: "冲突前作品" },
+      onSuccess: { ...target, sceneId: next.id, startFrame: 18, endFrame: 36 } });
+    app.createEffectCue({ projectId, baseRevision: rev(), sceneId: next.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 18, endFrame: 36, workId: work.id });
+    const raceWork = app.completeSourceMotionWork(projectId, racing.id);
+    assert.equal((app.trackJob(racing.id).result!.continuation as MotionContinuationResult).status, "needs_reconfirmation");
+    assert.ok(app.readProject(projectId).snapshot.motionWorks!.some(entry => entry.id === raceWork.id));
+    assert.equal(app.readProject(projectId).snapshot.effectCues.length, 2);
+  } finally { app.close(); await rm(root, { recursive: true, force: true }); }
+});
+
 test("生成完成同事务采用、重绑真实不变事件，不自动生成预览；重复完成不多写", async () => {
   const f = await fixture();
   try {
@@ -50,8 +94,17 @@ test("生成完成同事务采用、重绑真实不变事件，不自动生成�
     assert.equal(current.snapshot.audioCues[0].status, "ready");
     assert.equal(current.snapshot.audioCues[0].effectEvent!.workVersion, asset.motion!.version);
     assert.notEqual(current.snapshot.timeline.items.find(item => item.id === current.snapshot.audioCues[0].timelineItemId)!.disabled, true);
+    const changedEvent = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), idempotencyKey: "bound-event-changed",
+      work: { ...motionFixture, props: { text: "绑定动作的新版本" } }, onSuccess: f.target }), beforeChanged = f.rev();
+    f.complete(changedEvent.id, "bound-change", 7);
+    const conflict = f.app.trackJob(changedEvent.id).result!.continuation as MotionContinuationResult;
+    assert.equal(conflict.status, "needs_reconfirmation");
+    if (conflict.status !== "needs_reconfirmation") assert.fail(JSON.stringify(conflict));
+    assert.match(conflict.conflicts[0].reason, /准确落定.*hit/);
+    assert.equal(f.rev(), beforeChanged + 1); // 作品登记成功，原画面与声音保持原子一致。
+    assert.equal(f.app.readProject(f.projectId).snapshot.effectCues[0].workId, asset.motion!.workId);
     f.complete(job.id);
-    assert.equal(f.rev(), before + 1);
+    assert.equal(f.rev(), beforeChanged + 1);
     assert.equal(f.app.repository.listJobs(f.projectId).filter(entry => entry.kind === "preview").length, 0);
     // 通用终态不能把已提交结果覆盖成处理器持有的旧值。
     await processClaimedJob(f.app, job, async () => ({ continuation: { status: "obsolete" } }));
@@ -61,7 +114,7 @@ test("生成完成同事务采用、重绑真实不变事件，不自动生成�
   } finally { await f.close(); }
 });
 
-test("无关编辑可继续；相关事件变化保留未采用Asset；事务写入失败整笔回滚", async () => {
+test("无关编辑和无声音事件变化可继续；事务写入失败整笔回滚", async () => {
   const f = await fixture();
   try {
     const good = f.submit("unrelated");
@@ -71,10 +124,10 @@ test("无关编辑可继续；相关事件变化保留未采用Asset；事务写
     f.complete(good.id);
     assert.equal((f.app.trackJob(good.id).result!.continuation as MotionContinuationResult).status, "applied");
     const changed = f.app.submitManagedMotion({ projectId: f.projectId, baseRevision: f.rev(), idempotencyKey: "event-changed", work: { ...motionFixture, props: { text: "不同事件的新作品" } }, onSuccess: f.target }), original = f.app.readProject(f.projectId).snapshot.effectCues[0].workId;
-    const unadopted = f.complete(changed.id, "changed", 7);
-    assert.equal((f.app.trackJob(changed.id).result!.continuation as MotionContinuationResult).status, "needs_reconfirmation");
-    assert.equal(f.app.readProject(f.projectId).snapshot.effectCues[0].workId, original);
-    assert.ok(f.app.readProject(f.projectId).snapshot.assets.some(asset => asset.id === unadopted.id));
+    const adopted = f.complete(changed.id, "changed", 7);
+    assert.equal((f.app.trackJob(changed.id).result!.continuation as MotionContinuationResult).status, "applied");
+    assert.notEqual(f.app.readProject(f.projectId).snapshot.effectCues[0].workId, original);
+    assert.equal(f.app.readProject(f.projectId).snapshot.effectCues[0].workId, adopted.motion!.workId);
     const retry = f.submit("rollback"), before = f.rev(), update = f.app.repository.updateJob.bind(f.app.repository);
     f.app.repository.updateJob = (id, input) => { if (id === retry.id && input.result?.continuation) throw new Error("注入采用记录失败"); return update(id, input); };
     assert.throws(() => f.complete(retry.id), /注入/);

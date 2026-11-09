@@ -15,8 +15,11 @@ import { motionPixelKey } from "../packages/motion-work/src/compiler.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { createServer } from "../apps/server/src/app.js";
+import { RevisionRenderer } from "../apps/render-worker/src/exporter.js";
+import { motionMediaForCue } from "../packages/contracts/src/motion-work.js";
+import { buildRenderPlan } from "../packages/edit-domain/src/render-plan.js";
 
-test("局部自动采用在捕帧前拒绝窗口外事件变化，校样复用也不能绕过", { timeout: 120_000 }, async () => {
+test("局部自动采用允许未绑定声音的窗口外事件变化", { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-range-precheck-")), app = createApplication(root);
   const previousWorkspace = process.env.VIDEOCUT_WORKSPACE;
   process.env.VIDEOCUT_WORKSPACE = root;
@@ -36,21 +39,46 @@ test("局部自动采用在捕帧前拒绝窗口外事件变化，校样复用�
     const onSuccess = { action: "replace_range" as const, cueId: cue.id, targetRange: { startFrame: 106, endFrame: 112 }, audioPolicy: "rebind_unchanged_events" as const };
     const job = app.submitManagedMotion({ projectId, baseRevision: rev(), idempotencyKey: "different-events", work: changed, frameRange, outputIntent: "asset", onSuccess });
     const before = rev();
-    await assert.rejects(() => runMotionJob(app, job), /结构变化/u);
-    assert.equal(rev(), before);
-    assert.equal(app.readProject(projectId).snapshot.effectCues[0]!.workId, original.workId);
-    const diagnostics = app.trackJob(job.id).result?.motionFailure as { completedFrames?: number };
-    assert.equal(diagnostics.completedFrames, 0, "真实事件检查必须早于捕帧");
-    const proofJob = app.submitManagedMotion({ projectId, baseRevision: rev(), idempotencyKey: "different-proof", work: changed, frameRange });
-    const proof = await runMotionJob(app, proofJob);
-    app.updateJob(proofJob.id, { status: "succeeded", result: proof });
-    const reuse = app.submitManagedMotion({ projectId, baseRevision: rev(), idempotencyKey: "different-reuse", work: changed, frameRange, outputIntent: "asset", proofJobId: proofJob.id, onSuccess });
-    await assert.rejects(() => runMotionJob(app, reuse, async () => assert.fail("复用校样不应重新捕帧")), /结构变化/u);
-    assert.equal(rev(), before);
+    const result = await runMotionJob(app, job);
+    assert.equal((result.continuation as { status: string }).status, "applied");
+    assert.equal(rev(), before + 1);
+    const cues = app.readProject(projectId).snapshot.effectCues;
+    assert.deepEqual(cues.map(item => [item.startFrame, item.endFrame]), [[100, 106], [106, 112], [112, 124]]);
+    assert.equal(cues[1].workId, result.workId);
   } finally {
     if (previousWorkspace === undefined) delete process.env.VIDEOCUT_WORKSPACE; else process.env.VIDEOCUT_WORKSPACE = previousWorkspace;
     app.close(); await rm(root, { recursive: true, force: true });
   }
+});
+
+test("跨替换范围的持续音效按实际动作范围核对并保持原子性", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vfc-sustained-range-")), app = createApplication(root);
+  try {
+    const projectId = app.createProject({ name: "持续声音隔离验证" }).snapshot.project.id;
+    const rev = () => app.readProject(projectId).revision.number;
+    app.repository.commit(projectId, rev(), "隔离画布", snapshot => Object.assign(snapshot.timeline, { width: 320, height: 320, fps: 30 }));
+    const complete = (key: string, endFrame: number) => {
+      const job = app.submitManagedMotion({ projectId, baseRevision: rev(), idempotencyKey: key, work: { ...motionFixture, props: { key } } });
+      return completeMotionFixture(app, { projectId, jobId: job.id, engineVersion: String(job.payload.engineVersion), sourceHash: key,
+        metadata: { width: 320, height: 320, durationMs: 600, hasAudio: false },
+        eventMap: { version: String(job.payload.version), fps: 30, frameCount: 18, events: [{ id: "move", meaning: "连续动作", startFrame: 3, endFrame }] } });
+    };
+    const old = complete("old", 15), changed = complete("changed", 14), unchanged = complete("unchanged", 15);
+    const scene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "持续动作", purpose: "声音", startFrame: 0, endFrame: 18 }).snapshot.scenes[0];
+    const cue = app.createEffectCue({ projectId, baseRevision: rev(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 0, endFrame: 18, workId: old.motion!.workId! }).snapshot.effectCues[0];
+    const sound = app.registerImportedAsset({ projectId, baseRevision: rev(), name: "持续声音", kind: "audio", managedPath: "assets/source/sound.wav" });
+    app.applyMediaAnalysis({ projectId, assetId: sound.asset.id, metadata: { durationMs: 500, hasAudio: true } });
+    const audio = app.manageAudio({ projectId, baseRevision: rev(), action: "create", kind: "sfx", assetId: sound.asset.id, purpose: "持续动作声",
+      eventFrame: 3, onsetOffsetFrames: 0, sourceStartFrame: 0, sourceEndFrame: 12, design: { role: "sfx", durationFrames: 12 },
+      effectEvent: { effectCueId: cue.id, eventId: "move", eventName: "连续动作", workVersion: old.motion!.version, localFrame: 3, endLocalFrame: 15 } }).snapshot.audioCues[0];
+    const before = rev();
+    assert.throws(() => app.replaceManagedMotionRange({ projectId, baseRevision: before, cueId: cue.id, workId: changed.motion!.workId!, startFrame: 6, endFrame: 12 }), /持续动作声.*move/);
+    assert.equal(rev(), before);
+    assert.equal(app.readProject(projectId).snapshot.effectCues.length, 1);
+    const adopted = app.replaceManagedMotionRange({ projectId, baseRevision: before, cueId: cue.id, workId: unchanged.motion!.workId!, startFrame: 6, endFrame: 12 });
+    assert.equal(adopted.snapshot.audioCues.find(item => item.id === audio.id)!.status, "ready");
+    assert.equal(adopted.snapshot.audioCues.find(item => item.id === audio.id)!.eventFrame, 3);
+  } finally { app.close(); await rm(root, { recursive: true, force: true }); }
 });
 
 test("正式范围采用成功校样不重画，原子替换前中后并保持声音、非零源入点及项目帧率", { timeout: 120_000 }, async () => {
@@ -82,6 +110,19 @@ test("正式范围采用成功校样不重画，原子替换前中后并保持�
     assert.equal((result.metrics as {capturedFrames:number}).capturedFrames,0);
     const nextAsset=app.readProject(projectId).snapshot.assets.find(a=>a.id===result.assetId)!;
     assert.equal(nextAsset.motion!.frameCount,6);assert.deepEqual(nextAsset.motion!.rootRange,{...frameRange,fullDurationInFrames:24});assert.equal(app.readSourceMotionWork(projectId,nextAsset.motion!.workId!).work.eventMap!.events[0].startFrame,9);
+    const partial = structuredClone(app.readProject(projectId).snapshot);
+    partial.effectCues[0].workId = nextAsset.motion!.workId!;
+    const localPreview = join(root, "partial-preview.mp4"), renderer = new RevisionRenderer(undefined, 1);
+    await renderer.renderRange(partial, 106, 112, localPreview);
+    await assert.rejects(() => renderer.renderRange(partial, 105, 112, join(root, "outside.mp4")), /尚无覆盖选段的派生媒体/);
+    const pixelsPath = join(root, "partial.rgb");
+    await runProcess("ffmpeg", ["-v", "error", "-i", localPreview, "-vf", "scale=1:1", "-pix_fmt", "rgb24", "-f", "rawvideo", pixelsPath]);
+    const partialPixels = await readFile(pixelsPath);
+    assert.equal(partialPixels.length, 6 * 3);
+    assert.ok([...Array(6).keys()].every(frame => Math.abs(partialPixels[frame * 3]! - 230) < 8));
+    // 后景层触发 Remotion 合成，验证该路径也按同一局部范围选择媒体。
+    partial.effectCues[0].layer = "rear";
+    await renderer.renderRange(partial, 106, 112, join(root, "partial-browser.mp4"));
     const before=rev(),state=app.replaceManagedMotionRange({projectId,baseRevision:before,cueId:cue.id,workId: nextAsset.motion!.workId!,startFrame:106,endFrame:112});
     assert.equal(state.revision.number,before+1);
     assert.deepEqual(state.snapshot.effectCues.map(c=>[c.startFrame,c.endFrame,c.sourceStartFrame,c.sourceEndFrame]),[[100,106,0,6],[106,112,6,12],[112,124,12,24]]);
@@ -113,6 +154,11 @@ test("24→30正式范围非零选段的事件与采样相位，错误根网格�
     const old=complete("full"),local=complete("local",{startFrame:8,endFrame:16}),bad=complete("bad",{startFrame:9,endFrame:17});
     const scene=app.createScene({projectId,baseRevision:rev(),type:"ExplainerScene",title:"共用网格",purpose:"选段",startFrame:100,endFrame:140}).snapshot.scenes[0];
     const state=app.createEffectCue({projectId,baseRevision:rev(),sceneId:scene.id,type:"ManagedMotion",layer:"fullscreen",startFrame:100,endFrame:140,workId: old.motion!.workId!}),cue=state.snapshot.effectCues[0];
+    const partial = structuredClone(state.snapshot);
+    partial.assets = partial.assets.filter(asset => asset.id !== old.id && asset.id !== bad.id);
+    assert.equal(motionMediaForCue(partial, cue, { startFrame: 110, endFrame: 120 })?.id, local.id);
+    assert.equal(motionMediaForCue(partial, cue, { startFrame: 109, endFrame: 120 }), undefined);
+    assert.equal(buildRenderPlan(partial, 110, 120).spans[0].layers[0].assetId, local.id);
     assert.equal(bad.motion!.workId, old.motion!.workId, "不同烘焙根范围不改变作品身份");
     assert.equal(rev(),state.revision.number);
     const replaced=app.replaceManagedMotionRange({projectId,baseRevision:rev(),cueId:cue.id,workId: local.motion!.workId!,startFrame:112,endFrame:118}),middle=replaced.snapshot.effectCues[1];
@@ -120,6 +166,31 @@ test("24→30正式范围非零选段的事件与采样相位，错误根网格�
     const binding=bindEffectAudioEvent(replaced.snapshot,{effectCueId:middle.id,eventId:"hit",workVersion:local.motion!.version,eventName:"落点",localFrame:3},115);
     assert.equal(binding.localFrame,3);
   } finally {app.close();await rm(root,{recursive:true,force:true});}
+});
+
+test("不同帧率下非整数相位的局部媒体按作品根帧预览", { timeout: 120_000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "vfc-partial-phase-")), app = createApplication(root);
+  try {
+    const projectId = app.createProject({ name: "局部帧相位验证" }).snapshot.project.id;
+    const rev = () => app.readProject(projectId).revision.number;
+    app.repository.commit(projectId, rev(), "隔离画布", snapshot => Object.assign(snapshot.timeline, { width: 128, height: 128, fps: 30, durationInFrames: 140 }));
+    const source = frameHtml('<div id="frame" style="position:absolute;inset:0"></div>', "document.querySelector('#frame').style.background='rgb('+(30+f*6)+',20,30)';");
+    const work = sizeMotionFixture({ ...motionFixture, source, width: 128, height: 128, fps: 24, durationInFrames: 32, compositing: "opaque" as const });
+    const job = app.submitManagedMotion({ projectId, baseRevision: rev(), idempotencyKey: "partial", work, frameRange: { startFrame: 9, endFrame: 17 }, outputIntent: "asset" });
+    const output = await runMotionJob(app, job); app.updateJob(job.id, { status: "succeeded", result: output });
+    const scene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "范围", purpose: "帧相位", startFrame: 100, endFrame: 140 }).snapshot.scenes[0];
+    const state = app.createEffectCue({ projectId, baseRevision: rev(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen", startFrame: 100, endFrame: 140, workId: String(output.workId) });
+    assert.equal(buildRenderPlan(state.snapshot, 112, 122).renderer, "hybrid");
+    const preview = join(root, "phase.mp4"), raw = join(root, "phase.rgb");
+    await new RevisionRenderer(undefined, 1).renderRange(state.snapshot, 112, 122, preview);
+    await runProcess("ffmpeg", ["-v", "error", "-i", preview, "-vf", "scale=1:1", "-pix_fmt", "rgb24", "-f", "rawvideo", raw]);
+    const pixels = await readFile(raw);
+    assert.equal(pixels.length, 30);
+    for (let index = 0; index < 10; index++) {
+      const frame = Math.floor((12 + index) * 24 / 30);
+      assert.ok(Math.abs(pixels[index * 3]! - (30 + frame * 6)) < 9, `项目第 ${112 + index} 帧应使用作品第 ${frame} 帧`);
+    }
+  } finally { app.close(); await rm(root, { recursive: true, force: true }); }
 });
 
 test("真实 HTTP/MCP 使用同一正式范围合同，源选段和原子替换字段实际生效",{timeout:30_000},async()=>{

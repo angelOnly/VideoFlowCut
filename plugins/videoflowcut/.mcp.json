@@ -9,6 +9,13 @@
       },
       "startup_timeout_sec": 45,
       "tool_timeout_sec": 180
+    },
+    "open_design": {
+      "command": "node",
+      "args": ["./scripts/open-design-mcp-launcher.mjs"],
+      "cwd": ".",
+      "startup_timeout_sec": 180,
+      "tool_timeout_sec": 180
     }
   }
 }

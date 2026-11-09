@@ -27,6 +27,12 @@ export function projectCommandResult(value: unknown): unknown {
 
 /** 提交与轮询不携带大份源码；完整输入只在受管固定定义中保存。 */
 export function motionJobReceipt(job: JobRecord) {
+  if (job.kind === "motion_authoring") {
+    const input = job.payload.input as { openDesignRequest: Record<string, unknown>; [key: string]: unknown };
+    const { prompt: _prompt, inputs: _inputs, ...openDesignRequest } = input.openDesignRequest;
+    // 委托正文保存在原 Job，跟踪时只返回定位与续接所需身份。
+    return { ...job, payload: { ...job.payload, input: { ...input, openDesignRequest } } };
+  }
   const { work: _work, boundImages: _images, boundVideos: _videos, boundFonts: _fonts, reusableAsset: _reuse, ...payload } = job.payload;
   return { ...job, payload };
 }

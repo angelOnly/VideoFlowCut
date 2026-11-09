@@ -61,7 +61,7 @@ FunASR 内部使用自动语言和 ITN，数字可能被规范为阿拉伯数字
 
 ## 实际故障和恢复
 
-- Bridge 409：重新读取 Workflow Detail，不能只换 schemaVersion；
+- Bridge v2 返回 HTTP 400 明确拒绝参数或版本时：读取错误并重新读取 Workflow Detail，按实时字段重新构造请求；不要只换 schemaVersion；
 - failed：保存 error，不创建空 Transcript；
 - succeeded 但没有 text output：视为失败；
 - 音频不可解码：先标准化或修 Asset；

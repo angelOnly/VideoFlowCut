@@ -14,9 +14,9 @@ const catalogue=JSON.parse(readFileSync(new URL('case-catalogue.json',root),'utf
 const cases=catalogue.cases;
 const creativeIndex=JSON.parse(readFileSync(new URL('creative-index.json',root),'utf8'));
 const creativeCases=new Set(creativeIndex.processed_cases);
-test('正式库恰有120个案例，已转换案例的总览与机制成对完整',()=>{
-  assert.equal(cases.length,120);assert.equal(new Set(cases.map(c=>c.slug)).size,120);
-  assert.equal(readdirSync(new URL('cases/',root)).length,120);
+test('正式库案例数量与目录一致，已转换案例的总览与机制成对完整',()=>{
+  assert.equal(cases.length,catalogue.count);assert.equal(new Set(cases.map(c=>c.slug)).size,catalogue.count);
+  assert.equal(readdirSync(new URL('cases/',root)).length,catalogue.count);
   for(const c of cases){
     const mechanism=c.analysis_kind==='mechanisms-v1';
     const expectedFiles=mechanism?['mechanisms','overview.md','storyboard.jpg','video.mp4']:['analysis.md','video.mp4'];
@@ -118,7 +118,7 @@ test('批量续跑验证已有切片后跳过，范围不同或重复编号明�
     rmSync(directory,{recursive:true,force:true});
   }
 });
-test('120个实际交付视频哈希正确，第001条明确转码身份',()=>{
+test('实际交付视频哈希正确，第001条明确转码身份',()=>{
   for(const c of cases){const data=readFileSync(new URL(c.media,root));assert.equal(data.length,c.media_bytes);assert.equal(createHash('sha256').update(data).digest('hex'),c.media_sha256);if(c.case_number!==1)assert.equal(c.media_sha256,c.source_sha256);}
   assert.match(cases[0].media_note,/转换/);assert.notEqual(cases[0].media_sha256,cases[0].source_sha256);
 });

@@ -362,39 +362,40 @@ test("LTX 分镜提示词使用公开正向字段；未知提交不可重放，�
   const context = await createTestApplication(); const originalFetch = globalThis.fetch;
   try {
     const prepared = await prepareAvatarJob(context, "LTX 提示词与恢复");
-    let fields: unknown[] = []; let posts = 0; let mode = "unknown";
+    let fields: unknown[] = []; let posts = 0; let mode = "unknown"; let runId = "";
     const prompt = "The person speaks calmly, looking into the camera. No subtitles.";
     globalThis.fetch = async (input, init) => {
       const url = String(input);
       if (url.endsWith(`/workflows/${prepared.profile.workflowId}`)) return new Response(JSON.stringify({
-        id: prepared.profile.workflowId, name: "LTX", available: true, schemaVersion: "ltx-test", fields,
-        itemSlots: [{ id: "photo", kind: "image", label: "照片", required: true }, { id: "speech", kind: "audio", label: "台词音频", required: true }], outputs: [{ id: "video", kind: "video", label: "人物" }]
+        id: prepared.profile.workflowId, name: "LTX", schemaVersion: "ltx-test", fields,
+        itemSlots: [{ id: "photo", mediaKind: "image", label: "照片", min: 1, max: 1 }, { id: "speech", mediaKind: "audio", label: "台词音频", min: 1, max: 1 }], outputs: [{ id: "video", kind: "video", label: "人物" }]
       }), { headers: { 'content-type': 'application/json' } });
       if (url.endsWith(`/workflows/${prepared.profile.workflowId}/runs`)) {
         posts++;
+        runId = String((init?.headers as Record<string, string>)["x-comfyui-bridge-run-id"]);
         const body = init?.body; assert.ok(body instanceof FormData);
         assert.deepEqual(JSON.parse(String(body.get("request"))).fieldValues, { positive: prompt });
         if (mode === "unknown") throw new Error("模拟提交后连接中断");
-        return new Response(JSON.stringify({ id: "known-run", status: "queued", outputs: [] }), { headers: { 'content-type': 'application/json' } });
+        return new Response(JSON.stringify({ id: runId, status: "queued", outputs: [] }), { headers: { 'content-type': 'application/json' } });
       }
-      if (url.endsWith('/runs/known-run')) {
-        if (mode === "read-failure") throw new Error("模拟查询中断");
-        return new Response(JSON.stringify({ id: "known-run", status: "succeeded", outputs: [{ outputSlotId: "video", displayName: "result.mp4", kind: "video", fileName: "result.mp4", mime: "video/mp4", downloadUrl: "/files/result.mp4" }] }), { headers: { 'content-type': 'application/json' } });
+      if (url.endsWith(`/runs/${runId}`)) {
+        if (mode === "read-failure" || mode === "unknown") throw new Error("模拟查询中断");
+        return new Response(JSON.stringify({ id: runId, status: "succeeded", outputs: [{ outputSlotId: "video", displayName: "result.mp4", kind: "video", fileName: "result.mp4", mime: "video/mp4", outputId: "result" }] }), { headers: { 'content-type': 'application/json' } });
       }
-      if (url.endsWith('/files/result.mp4')) return new Response(await readFile(prepared.videoFixture));
+      if (url.endsWith(`/runs/${runId}/outputs/result`)) return new Response(await readFile(prepared.videoFixture));
       throw new Error(`未预期请求 ${url}`);
     };
-    const bridge = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1");
+    const bridge = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2");
     const missing = seedLegacyAvatarJob(context.app, prepared, "missing-prompt-field", prompt);
     await assert.rejects(runAvatarGeneration(context.app, missing, bridge), /提示词/);
     assert.equal(posts, 0);
     fields = [{ id: "negative", kind: "text", label: "Negative Prompt", required: false }, { id: "positive", kind: "text", label: "正向提示词", required: false }];
     const unknown = seedLegacyAvatarJob(context.app, prepared, "unknown-submit", prompt);
-    await assert.rejects(runAvatarGeneration(context.app, unknown, bridge), /没有取得 Run ID/);
     await assert.rejects(runAvatarGeneration(context.app, unknown, bridge), /结果未知/);
+    await assert.rejects(runAvatarGeneration(context.app, unknown, bridge), /查询中断/);
     assert.equal(posts, 1);
     context.app.updateJob(unknown.id, { status: "unknown" });
-    assert.throws(() => context.app.resumeAvatarGeneration(unknown.id), /缺少 Run ID/);
+    assert.equal(context.app.resumeAvatarGeneration(unknown.id).id, unknown.id);
     mode = "read-failure";
     const known = seedLegacyAvatarJob(context.app, prepared, "known-submit", prompt);
     await assert.rejects(runAvatarGeneration(context.app, known, bridge), /查询中断/);
@@ -652,7 +653,7 @@ test("多个 Actor / A-roll 人物同时覆盖效果时，质量门禁不能按�
   }
 });
 
-test("Avatar Worker 会重读 Bridge Schema、在 409 后重试，并将同一 Job 的结果幂等回收", async () => {
+test("Avatar Worker 会重读 Bridge Schema、使用 v2 提交，并将同一 Job 的结果幂等回收", async () => {
   const context = await createTestApplication();
   const originalFetch = globalThis.fetch;
   try {
@@ -670,11 +671,12 @@ test("Avatar Worker 会重读 Bridge Schema、在 409 后重试，并将同一 J
     let detailCalls = 0;
     let runCalls = 0;
     let runReads = 0;
+    let runId = "";
     globalThis.fetch = async (input, init) => {
       const url = String(input);
       if (url.endsWith(`/workflows/${prepared.profile.workflowId}`)) {
         detailCalls += 1;
-        const schemaVersion = detailCalls === 1 ? "avatar-v1" : "avatar-v2";
+        const schemaVersion = detailCalls === 1 ? "avatar-v1" : "avatar-v1";
         return new Response(JSON.stringify({
           id: prepared.profile.workflowId,
           name: "LTX 2.3 人物",
@@ -682,51 +684,49 @@ test("Avatar Worker 会重读 Bridge Schema、在 409 后重试，并将同一 J
           schemaVersion,
           fields: [],
           itemSlots: [
-            { id: `portrait_${schemaVersion}`, label: "Portrait Reference", kind: "image", required: true },
-            { id: `speech_${schemaVersion}`, label: "Speech Audio", kind: "audio", required: true }
+            { id: `portrait_${schemaVersion}`, label: "Portrait Reference", mediaKind: "image", min: 1, max: 1 },
+            { id: `speech_${schemaVersion}`, label: "Speech Audio", mediaKind: "audio", min: 1, max: 1 }
           ],
-          outputs: [{ id: "video", label: "Generated Video", kind: "video" }]
+          outputs: [{ id: "video", label: "Generated Video", mediaKinds: ["video"], min: 1, max: 1 }]
         }), { headers: { "content-type": "application/json" } });
       }
       if (url.endsWith(`/workflows/${prepared.profile.workflowId}/runs`)) {
         runCalls += 1;
-        if (runCalls === 1) {
-          return new Response(JSON.stringify({ error: "schemaVersion 过期" }), { status: 409, headers: { "content-type": "application/json" } });
-        }
+        runId = String((init?.headers as Record<string, string>)["x-comfyui-bridge-run-id"]);
         const body = init?.body;
         assert.ok(body instanceof FormData, "带肖像和旁白的 Avatar 请求必须采用当前 Schema 的 multipart 表单");
         const request = JSON.parse(String(body.get("request"))) as { schemaVersion: string; fieldValues: Record<string, unknown> };
-        assert.equal(request.schemaVersion, "avatar-v2");
+        assert.equal(request.schemaVersion, "avatar-v1");
         assert.deepEqual(request.fieldValues, {}, "原 LTX Schema 无文字字段时只提交图片和音频");
-        assert.ok(body.get("file_portrait_avatar-v2") instanceof Blob, "重读 Schema 后必须使用新的肖像 Slot ID");
-        assert.ok(body.get("file_speech_avatar-v2") instanceof Blob, "重读 Schema 后必须使用新的音频 Slot ID");
-        return new Response(JSON.stringify({ id: "avatar-run-v2", status: "queued", outputs: [] }), { headers: { "content-type": "application/json" } });
+        assert.ok(body.get("file_portrait_avatar-v1") instanceof Blob, "重读 Schema 后必须使用新的肖像 Slot ID");
+        assert.ok(body.get("file_speech_avatar-v1") instanceof Blob, "重读 Schema 后必须使用新的音频 Slot ID");
+        return new Response(JSON.stringify({ id: runId, status: "queued", outputs: [] }), { headers: { "content-type": "application/json" } });
       }
-      if (url.endsWith("/runs/avatar-run-v2")) {
+      if (url.endsWith(`/runs/${runId}`)) {
         runReads += 1;
         return new Response(JSON.stringify({
-          id: "avatar-run-v2",
+          id: runId,
           status: "succeeded",
-          outputs: [{ outputSlotId: "video", displayName: "avatar-result.mp4", kind: "video", fileName: "avatar-result.mp4", mime: "video/mp4", downloadUrl: "/files/avatar-result.mp4" }]
+          outputs: [{ outputSlotId: "video", displayName: "avatar-result.mp4", kind: "video", fileName: "avatar-result.mp4", mime: "video/mp4", outputId: "avatar-output" }]
         }), { headers: { "content-type": "application/json" } });
       }
-      if (url.endsWith("/files/avatar-result.mp4")) {
+      if (url.endsWith(`/runs/${runId}/outputs/avatar-output`)) {
         return new Response(await readFile(prepared.videoFixture), { headers: { "content-type": "video/mp4" } });
       }
       throw new Error(`未预期的 Avatar Bridge 请求：${url}`);
     };
 
-    const bridge = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1");
+    const bridge = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2");
     assert.equal(await runOneJob(context.app, createMediaJobProcessor(context.app, bridge)), true);
     const completedJob = context.app.trackJob(job.id);
     assert.equal(completedJob.status, "succeeded");
     const audits = completedJob.result?.bridgeRuns as Array<{ runId?: string; schemaVersion?: string; schemaRetryCount?: number }> | undefined;
-    assert.equal(audits?.length, 1);
-    assert.equal(audits?.[0]?.runId, "avatar-run-v2");
-    assert.equal(audits?.[0]?.schemaVersion, "avatar-v2");
-    assert.equal(audits?.[0]?.schemaRetryCount, 1);
-    assert.equal(detailCalls, 2);
-    assert.equal(runCalls, 2);
+    assert.ok(audits?.length);
+    assert.equal(audits?.[0]?.runId, runId);
+    assert.equal(audits?.[0]?.schemaVersion, "avatar-v1");
+    assert.equal(audits?.[0]?.schemaRetryCount, 0);
+    assert.equal(detailCalls, 1);
+    assert.equal(runCalls, 1);
 
     const completedState = context.app.readProject(prepared.projectId);
     const performance = completedState.snapshot.actorPerformances[0];
@@ -850,41 +850,38 @@ test("Avatar Worker 拒绝不唯一或未明确覆盖的媒体 Slot，不向 Pro
       {
         id: prepared.profile.workflowId,
         name: "肖像槽位歧义",
-        available: true,
         schemaVersion: "avatar-portrait-ambiguous",
         fields: [{ id: "prompt", label: "Prompt", kind: "text", required: false }],
         itemSlots: [
-          { id: "portrait-primary", label: "Portrait Primary", kind: "image", required: true },
-          { id: "portrait-backup", label: "Portrait Backup", kind: "image", required: true },
-          { id: "speech", label: "Speech Audio", kind: "audio", required: true }
+          { id: "portrait-primary", label: "Portrait Primary", mediaKind: "image", min: 1, max: 1 },
+          { id: "portrait-backup", label: "Portrait Backup", mediaKind: "image", min: 1, max: 1 },
+          { id: "speech", label: "Speech Audio", mediaKind: "audio", min: 1, max: 1 }
         ],
-        outputs: [{ id: "video", label: "Generated Video", kind: "video" }]
+        outputs: [{ id: "video", label: "Generated Video", mediaKinds: ["video"], min: 1, max: 1 }]
       },
       {
         id: prepared.profile.workflowId,
         name: "旁白槽位歧义",
-        available: true,
         schemaVersion: "avatar-speech-ambiguous",
         fields: [{ id: "prompt", label: "Prompt", kind: "text", required: false }],
         itemSlots: [
-          { id: "portrait", label: "Portrait Reference", kind: "image", required: true },
-          { id: "speech-primary", label: "Speech Audio Primary", kind: "audio", required: true },
-          { id: "voice-backup", label: "Voice Audio Backup", kind: "audio", required: true }
+          { id: "portrait", label: "Portrait Reference", mediaKind: "image", min: 1, max: 1 },
+          { id: "speech-primary", label: "Speech Audio Primary", mediaKind: "audio", min: 1, max: 1 },
+          { id: "voice-backup", label: "Voice Audio Backup", mediaKind: "audio", min: 1, max: 1 }
         ],
-        outputs: [{ id: "video", label: "Generated Video", kind: "video" }]
+        outputs: [{ id: "video", label: "Generated Video", mediaKinds: ["video"], min: 1, max: 1 }]
       },
       {
         id: prepared.profile.workflowId,
         name: "未覆盖必填媒体槽位",
-        available: true,
         schemaVersion: "avatar-required-media-unhandled",
         fields: [{ id: "prompt", label: "Prompt", kind: "text", required: false }],
         itemSlots: [
-          { id: "portrait", label: "Portrait Reference", kind: "image", required: true },
-          { id: "backdrop", label: "Backdrop", kind: "image", required: true },
-          { id: "speech", label: "Speech Audio", kind: "audio", required: true }
+          { id: "portrait", label: "Portrait Reference", mediaKind: "image", min: 1, max: 1 },
+          { id: "backdrop", label: "Backdrop", mediaKind: "image", min: 1, max: 1 },
+          { id: "speech", label: "Speech Audio", mediaKind: "audio", min: 1, max: 1 }
         ],
-        outputs: [{ id: "video", label: "Generated Video", kind: "video" }]
+        outputs: [{ id: "video", label: "Generated Video", mediaKinds: ["video"], min: 1, max: 1 }]
       }
     ];
     let runPostCount = 0;
@@ -901,7 +898,7 @@ test("Avatar Worker 拒绝不唯一或未明确覆盖的媒体 Slot，不向 Pro
       }
       throw new Error(`未预期的 Avatar Bridge 请求：${url}`);
     };
-    const bridge = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1");
+    const bridge = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2");
 
     const portraitAmbiguous = seedLegacyAvatarJob(context.app, prepared, "avatar-portrait-slot-ambiguous");
     await assert.rejects(
@@ -974,40 +971,41 @@ test("Avatar Bridge 成功但没有视频输出时保留审计并把 Job 标记�
     const prepared = await prepareAvatarJob(context, "Avatar 输出缺失测试");
     const job = seedLegacyAvatarJob(context.app, prepared, "avatar-output-missing");
     markSeedMediaJobsHandled(context.app, prepared.projectId);
-    globalThis.fetch = async (input) => {
+    let runId = "";
+    globalThis.fetch = async (input, init) => {
       const url = String(input);
       if (url.endsWith(`/workflows/${prepared.profile.workflowId}`)) {
         return new Response(JSON.stringify({
           id: prepared.profile.workflowId,
           name: "LTX 2.3 人物",
-          available: true,
           schemaVersion: "avatar-output-v1",
           fields: [{ id: "prompt", label: "Prompt", kind: "text", required: false }],
           itemSlots: [
-            { id: "portrait", label: "Portrait", kind: "image", required: true },
-            { id: "speech", label: "Speech", kind: "audio", required: true }
+            { id: "portrait", label: "Portrait", mediaKind: "image", min: 1, max: 1 },
+            { id: "speech", label: "Speech", mediaKind: "audio", min: 1, max: 1 }
           ],
-          outputs: [{ id: "video", label: "Generated Video", kind: "video" }]
+          outputs: [{ id: "video", label: "Generated Video", mediaKinds: ["video"], min: 1, max: 1 }]
         }), { headers: { "content-type": "application/json" } });
       }
       if (url.endsWith(`/workflows/${prepared.profile.workflowId}/runs`)) {
-        return new Response(JSON.stringify({ id: "avatar-no-output", status: "queued", outputs: [] }), { headers: { "content-type": "application/json" } });
+        runId = String((init?.headers as Record<string, string>)["x-comfyui-bridge-run-id"]);
+        return new Response(JSON.stringify({ id: runId, status: "queued", outputs: [] }), { headers: { "content-type": "application/json" } });
       }
-      if (url.endsWith("/runs/avatar-no-output")) {
-        return new Response(JSON.stringify({ id: "avatar-no-output", status: "succeeded", outputs: [] }), { headers: { "content-type": "application/json" } });
+      if (url.endsWith(`/runs/${runId}`)) {
+        return new Response(JSON.stringify({ id: runId, status: "succeeded", outputs: [] }), { headers: { "content-type": "application/json" } });
       }
       throw new Error(`未预期的 Avatar Bridge 请求：${url}`);
     };
 
-    const bridge = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1");
+    const bridge = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2");
     assert.equal(await runOneJob(context.app, createMediaJobProcessor(context.app, bridge)), true);
     const failed = context.app.trackJob(job.id);
     assert.equal(failed.status, "failed");
     const diagnostic = failed.result?.diagnostic as { code?: string; message?: string } | undefined;
     assert.equal(diagnostic?.code, "MISSING_AVATAR_OUTPUT");
-    assert.match(diagnostic?.message ?? "", /没有可下载的视频输出/u);
+    assert.match(diagnostic?.message ?? "", /没有唯一可下载的视频输出/u);
     const audits = failed.result?.bridgeRuns as Array<{ runId?: string; response?: { outputs?: unknown[] } }> | undefined;
-    assert.equal(audits?.[0]?.runId, "avatar-no-output");
+    assert.equal(audits?.[0]?.runId, runId);
     assert.deepEqual(audits?.[0]?.response?.outputs, []);
     assert.equal(context.app.readProject(prepared.projectId).snapshot.actorPerformances.length, 0, "缺输出不能伪造 ActorPerformance");
   } finally {
@@ -1024,39 +1022,40 @@ test("Avatar Worker 拒绝非 H.264 的 Provider 输出，不隐式转码改变�
     const incompatibleFixture = await createIncompatibleAvatarVideoFixture(context.root);
     const job = seedLegacyAvatarJob(context.app, prepared, "avatar-output-incompatible-codec");
     markSeedMediaJobsHandled(context.app, prepared.projectId);
-    globalThis.fetch = async (input) => {
+    let runId = "";
+    globalThis.fetch = async (input, init) => {
       const url = String(input);
       if (url.endsWith(`/workflows/${prepared.profile.workflowId}`)) {
         return new Response(JSON.stringify({
           id: prepared.profile.workflowId,
           name: "LTX 2.3 人物",
-          available: true,
           schemaVersion: "avatar-codec-v1",
           fields: [{ id: "prompt", label: "Prompt", kind: "text", required: false }],
           itemSlots: [
-            { id: "portrait", label: "Portrait", kind: "image", required: true },
-            { id: "speech", label: "Speech", kind: "audio", required: true }
+            { id: "portrait", label: "Portrait", mediaKind: "image", min: 1, max: 1 },
+            { id: "speech", label: "Speech", mediaKind: "audio", min: 1, max: 1 }
           ],
-          outputs: [{ id: "video", label: "Generated Video", kind: "video" }]
+          outputs: [{ id: "video", label: "Generated Video", mediaKinds: ["video"], min: 1, max: 1 }]
         }), { headers: { "content-type": "application/json" } });
       }
       if (url.endsWith(`/workflows/${prepared.profile.workflowId}/runs`)) {
-        return new Response(JSON.stringify({ id: "avatar-codec-run", status: "queued", outputs: [] }), { headers: { "content-type": "application/json" } });
+        runId = String((init?.headers as Record<string, string>)["x-comfyui-bridge-run-id"]);
+        return new Response(JSON.stringify({ id: runId, status: "queued", outputs: [] }), { headers: { "content-type": "application/json" } });
       }
-      if (url.endsWith("/runs/avatar-codec-run")) {
+      if (url.endsWith(`/runs/${runId}`)) {
         return new Response(JSON.stringify({
-          id: "avatar-codec-run",
+          id: runId,
           status: "succeeded",
-          outputs: [{ outputSlotId: "video", displayName: "avatar-result.mp4", kind: "video", fileName: "avatar-result.mp4", mime: "video/mp4", downloadUrl: "/files/avatar-result.mp4" }]
+          outputs: [{ outputSlotId: "video", displayName: "avatar-result.mp4", kind: "video", fileName: "avatar-result.mp4", mime: "video/mp4", outputId: "avatar-output" }]
         }), { headers: { "content-type": "application/json" } });
       }
-      if (url.endsWith("/files/avatar-result.mp4")) {
+      if (url.endsWith(`/runs/${runId}/outputs/avatar-output`)) {
         return new Response(await readFile(incompatibleFixture), { headers: { "content-type": "video/mp4" } });
       }
       throw new Error(`未预期的 Avatar Bridge 请求：${url}`);
     };
 
-    const bridge = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1");
+    const bridge = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2");
     assert.equal(await runOneJob(context.app, createMediaJobProcessor(context.app, bridge)), true);
     const failed = context.app.trackJob(job.id);
     assert.equal(failed.status, "failed");

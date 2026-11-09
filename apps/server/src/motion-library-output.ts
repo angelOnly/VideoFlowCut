@@ -45,7 +45,7 @@ export function projectMotionSearchResult(value: unknown): Data {
     ...(source.selection ? { selection: pick(source.selection, ["v", "source_sha256", "ids", "adopted", "unknown_ids", "stale"]) } : {}),
     ...(source.taxonomy ? { taxonomy: pick(source.taxonomy, ["categories", "actions", "states", "holds", "anchors"]) } : {}),
     ...(source.diagnostics ? { diagnostics: {
-      ...pick(diagnostics, ["mode", "semantic_used", "source_sha256", "job_id", "status", "reason"]),
+      ...pick(diagnostics, ["mode", "semantic_used", "source_sha256", "job_id", "status", "reason", "model", "workflow", "schema", "instruction_version", "document_chunks", "cache_hits", "encoded_texts", "elapsed_ms"]),
       ...(diagnostics.failure ? { failure: diagnostic(diagnostics.failure) } : {}),
       ...(diagnostics.recovery ? { recovery: recovery(diagnostics.recovery) } : {})
     } } : {})
@@ -55,7 +55,8 @@ export function projectMotionSearchResult(value: unknown): Data {
 export function projectMotionMechanismResult(value: unknown): Data {
   const source = object(value);
   return {
-    ...pick(source, ["source_sha256", "part", "document", "body", "preview_url", "video_path", "observation"]),
+    ...pick(source, ["source_sha256", "part", "document", "body", "preview_url", "video_path", "observation", "clip_source_offset_ms"]),
+    ...(source.resources ? { resources: Object.fromEntries(Object.entries(object(source.resources)).map(([key, value]) => [key, pick(value, ["path", "absolute_path", "available", "reason"])])) } : {}),
     card: mechanismCard(source.card)
   };
 }
@@ -83,9 +84,9 @@ export function motionJobRecovery(job: JobRecord): Data | undefined {
     action: "reconcile", job_id: job.id, project_id: job.projectId, runs,
     message: "外部提交结果未知，先核对原 Job 与已知 Run；不能换幂等键或重新提交。"
   };
-  if (code === "MOTION_LIBRARY_STALE" || code === "CREATIVE_LIBRARY_STALE") return {
-    action: "refresh_search", tool: code === "CREATIVE_LIBRARY_STALE" ? "search_creative_cases" : "search_motion_mechanisms", job_id: job.id, project_id: job.projectId,
-    message: "资料来源已变化，重新查询当前来源并核读采用项，不重试过期请求。"
+  if (["MOTION_LIBRARY_STALE", "CREATIVE_LIBRARY_STALE", "LIBRARY_INSTRUCTION_SNAPSHOT_MISSING"].includes(String(code))) return {
+    action: "refresh_search", tool: job.kind === "creative_library_search" ? "search_creative_cases" : "search_motion_mechanisms", job_id: job.id, project_id: job.projectId,
+    message: "资料来源或检索指令快照已变化，请重新查询并核读采用项。"
   };
   return {
     action: "retry", tool: "retry_media_job", job_id: job.id, project_id: job.projectId, runs,
@@ -95,20 +96,34 @@ export function motionJobRecovery(job: JobRecord): Data | undefined {
 
 /** 只收窄已确认的机制任务链；其余工具继续使用现有合同，后台记录不变。 */
 export function projectMotionJob(job: JobRecord): JobRecord | Data {
-  if (job.kind === "motion_generation" || job.kind === "motion_adoption") return motionJobReceipt(job);
+  if (job.kind === "motion_generation" || job.kind === "motion_adoption" || job.kind === "motion_authoring") return motionJobReceipt(job);
   if (!["creative_library_search", "motion_library_search", "motion_reference_analysis"].includes(job.kind)) return job;
   const result = object(job.result), next = motionJobRecovery(job);
+  const librarySearch = job.kind === "creative_library_search" || job.kind === "motion_library_search";
+  const projected = job.kind === "creative_library_search" ? projectCreativeSearchResult(result)
+    : job.kind === "motion_library_search" ? projectMotionSearchResult(result) : projectMotionAnalysisResult(result);
+  if (librarySearch) {
+    delete projected.cards;
+    delete projected.groups;
+    delete projected.connections;
+    if (job.kind === "creative_library_search" && Array.isArray(result.cards)) projected.total = result.cards.length;
+  }
+  const readback = librarySearch && job.status === "succeeded" ? {
+    tool: job.kind === "creative_library_search" ? "search_creative_cases" : "search_motion_mechanisms",
+    arguments: { project_id: job.projectId, ...object(job.payload.request), source_sha256: job.payload.source_sha256, offset: 0 }
+  } : undefined;
   return {
     ...pick(job, ["id", "projectId", "kind", "status", "error", "attempt", "createdAt", "updatedAt"]),
     source_sha256: job.payload.source_sha256,
     ...(job.payload.retryOfJobId ? { retryOfJobId: job.payload.retryOfJobId } : {}),
     ...(job.kind === "motion_reference_analysis" ? { mechanism_id: job.payload.id, range: pick(job.payload.range, ["startMs", "endMs"]) } : {}),
     ...(job.result ? { result: {
-      ...(job.kind === "creative_library_search" ? projectCreativeSearchResult(result) : job.kind === "motion_library_search" ? projectMotionSearchResult(result) : projectMotionAnalysisResult(result)),
+      ...projected,
       ...(result.creativeIndex ? { creativeIndex: pick(result.creativeIndex, ["completed", "total", "source_sha256"]) } : {}),
       ...(result.motionIndex ? { motionIndex: pick(result.motionIndex, ["completed", "total", "source_sha256"]) } : {}),
       ...(result.diagnostic ? { diagnostic: diagnostic(result.diagnostic) } : {})
     } } : {}),
+    ...(readback ? { readback } : {}),
     ...(next ? { recovery: next } : {})
   };
 }

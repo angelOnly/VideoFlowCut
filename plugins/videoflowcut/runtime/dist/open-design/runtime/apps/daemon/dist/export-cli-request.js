@@ -1,0 +1,41 @@
+export function resolveExportCliDeckMode(options) {
+    const explicitDeck = options.deck === true;
+    const explicitPage = options.page === true || options.noDeck === true;
+    if (explicitDeck && explicitPage) {
+        throw new Error('--deck cannot be combined with --page or --no-deck');
+    }
+    if (options.format === "html" && (explicitDeck || explicitPage)) {
+        throw new Error('--deck/--page/--no-deck is not valid with --format html');
+    }
+    if (options.format === "pptx") {
+        if (explicitPage)
+            throw new Error('--page/--no-deck is not valid with --format pptx');
+        return true;
+    }
+    if (explicitDeck)
+        return true;
+    if (explicitPage)
+        return false;
+    return undefined;
+}
+export function buildExportCliRequestBody(options) {
+    const deck = options.format === "pptx" ? true : options.deck;
+    return {
+        fileName: options.fileName,
+        // PPTX is deck-only. For PDF/image, omit `deck` unless the caller explicitly
+        // chooses deck/page mode so the daemon can still auto-detect by default.
+        ...(deck !== undefined ? { deck } : {}),
+        ...(options.format === "image" && options.imageFormat ? { imageFormat: options.imageFormat } : {}),
+        ...(options.title ? { title: options.title } : {}),
+    };
+}
+export function buildExportCliResultEnvelope(options) {
+    return {
+        ok: true,
+        path: options.path,
+        out: options.path,
+        bytes: options.bytes,
+        format: options.format,
+    };
+}
+//# sourceMappingURL=export-cli-request.js.map

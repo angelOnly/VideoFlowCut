@@ -34,7 +34,6 @@ type SpeechAlignmentContext = {
   speechAsset: SpeechAsset;
   speechFile: Asset;
   workflowId: string;
-  outputSlotId?: string;
   scriptText: string;
 };
 
@@ -48,7 +47,7 @@ type RawAlignmentToken = {
 const SPEECH_ALIGNMENT_JOB_KIND = "speech_alignment";
 const MAX_ALIGNMENT_OUTPUT_CHARS = 2 * 1024 * 1024;
 
-const normalizedLabel = (value: { label: string; kind: string }) => `${value.label} ${value.kind}`.trim().toLocaleLowerCase();
+const normalizedLabel = (value: { label: string }) => `${value.label}`.trim().toLocaleLowerCase();
 const normalizedMime = (mime: string | undefined) => mime?.split(";", 1)[0]?.trim().toLocaleLowerCase() || undefined;
 
 function requirePayloadString(payload: Record<string, unknown>, key: string, message: string, code: string): string {
@@ -101,15 +100,11 @@ export function resolveSpeechAlignmentContext(application: EditingApplication, j
     || typeof speechFile.metadata.durationMs !== "number" || !Number.isInteger(speechFile.metadata.durationMs) || speechFile.metadata.durationMs <= 0) {
     throw new DomainError("词级对齐需要当前已就绪、具有真实时长的本地 SpeechAsset 音频", "SPEECH_ALIGNMENT_AUDIO_NOT_READY");
   }
-  const outputSlotId = typeof job.payload.outputSlotId === "string" && job.payload.outputSlotId.trim()
-    ? job.payload.outputSlotId.trim()
-    : undefined;
   return {
     snapshot: state.snapshot,
     speechAsset,
     speechFile,
     workflowId: requirePayloadString(job.payload, "workflowId", "词级对齐任务缺少明确的 Bridge workflowId", "SPEECH_ALIGNMENT_WORKFLOW_ID_REQUIRED"),
-    outputSlotId,
     scriptText: scriptTextForSpeech(state.snapshot, speechAsset)
   };
 }
@@ -127,7 +122,7 @@ function audioSlotScore(slot: BridgeItemSlot): number {
 }
 
 function selectAudioSlot(workflow: BridgeWorkflow): BridgeItemSlot {
-  const candidates = workflow.itemSlots.filter((slot) => slot.kind === "audio");
+  const candidates = workflow.itemSlots.filter((slot) => slot.mediaKind === "audio");
   if (candidates.length === 0) throw new DomainError("Bridge 当前对齐工作流没有音频输入槽", "SPEECH_ALIGNMENT_AUDIO_SLOT_MISSING");
   if (candidates.length === 1) return candidates[0]!;
   const ranked = candidates.map((slot) => ({ slot, score: audioSlotScore(slot) })).sort((left, right) => right.score - left.score || left.slot.id.localeCompare(right.slot.id));
@@ -178,9 +173,7 @@ export async function buildSpeechAlignmentBridgeRequest(
   context: SpeechAlignmentContext,
   workflow: BridgeWorkflow
 ): Promise<{ fieldValues: Record<string, unknown>; files: Array<{ slot: BridgeItemSlot; path: string; mime: string }> }> {
-  if (context.outputSlotId && !workflow.outputs.some((output) => output.id === context.outputSlotId)) {
-    throw new DomainError("指定的词级对齐输出槽不在当前 Bridge Schema 中", "SPEECH_ALIGNMENT_OUTPUT_SLOT_NOT_FOUND");
-  }
+
   const path = assetPath(context.snapshot, context.speechFile);
   await assertReadableInput(path);
   const textField = selectScriptTextField(workflow);
@@ -196,14 +189,12 @@ function responseSummary(run: BridgeRun): BridgeRunAudit["response"] {
     status: run.status,
     error: run.error,
     outputs: run.outputs.map((output) => ({
-      outputSlotId: output.outputSlotId,
-      displayName: output.displayName,
       kind: output.kind,
       fileName: output.fileName,
       mime: output.mime,
       outputId: output.outputId,
-      downloadUrl: output.downloadUrl,
-      text: output.text
+      text: output.text,
+      value: output.value
     }))
   };
 }
@@ -218,7 +209,7 @@ function createBridgeAudit(submission: BridgeRunSubmission, completed?: BridgeRu
     completedAt: completed ? new Date().toISOString() : undefined,
     request: {
       fieldValues: submission.request.fieldValues,
-      fileSlots: submission.request.files?.map((file) => ({ id: file.slot.id, kind: file.slot.kind, fileName: file.path.split(/[\\/]/u).pop() ?? "speech" })) ?? []
+      fileSlots: submission.request.files?.map((file) => ({ id: file.slot.id, kind: file.slot.mediaKind, fileName: file.path.split(/[\\/]/u).pop() ?? "speech" })) ?? []
     },
     response: completed ? responseSummary(completed) : undefined
   };
@@ -240,22 +231,19 @@ function completedAudit(previous: BridgeRunAudit, completed: BridgeRun): BridgeR
   return { ...previous, completedAt: new Date().toISOString(), response: responseSummary(completed) };
 }
 
-function isJsonTextOutput(output: BridgeOutput): boolean {
-  const mime = normalizedMime(output.mime);
-  return typeof output.text === "string" && (output.kind === "text" || mime === "application/json" || Boolean(mime?.endsWith("+json")));
-}
-
-/** 多个 JSON 输出时必须由提交侧固定槽位，不能误把诊断、置信度摘要或中间结果当成最终对齐。 */
-export function selectSpeechAlignmentOutput(run: BridgeRun, outputSlotId?: string): BridgeOutput {
-  const candidates = run.outputs.filter(isJsonTextOutput);
-  if (outputSlotId) {
-    const selected = candidates.find((output) => output.outputSlotId === outputSlotId);
-    if (!selected) throw new DomainError("Bridge 已完成，但指定输出槽没有可读取的 JSON 词级时间戳", "SPEECH_ALIGNMENT_OUTPUT_SLOT_MISSING");
-    return selected;
-  }
-  if (candidates.length === 0) throw new DomainError("Bridge 已完成，但没有内联 JSON 词级时间戳输出", "SPEECH_ALIGNMENT_OUTPUT_MISSING");
-  if (candidates.length > 1) throw new DomainError("Bridge 返回多个 JSON 词级输出；请提交任务时指定 outputSlotId", "SPEECH_ALIGNMENT_OUTPUT_AMBIGUOUS");
-  return candidates[0]!;
+/** 只采用能解析为词级对齐数据的唯一输出。 */
+export function selectSpeechAlignmentOutput(run: BridgeRun): BridgeOutput {
+  const candidates = run.outputs.filter((output) => {
+    try {
+      const text = output.kind === "json" ? JSON.stringify(output.value) : output.text;
+      if (!text) return false;
+      parseSpeechAlignmentJson(text);
+      return true;
+    } catch { return false; }
+  });
+  if (candidates.length !== 1) throw new DomainError("Bridge 没有唯一可识别的词级对齐输出", "SPEECH_ALIGNMENT_OUTPUT_AMBIGUOUS");
+  const selected = candidates[0]!;
+  return selected.kind === "json" ? { ...selected, text: JSON.stringify(selected.value) } : selected;
 }
 
 const normalizeAlignmentText = (value: string) => value.normalize("NFKC").toLocaleLowerCase().replace(/[\s\p{P}\p{S}]+/gu, "");
@@ -446,13 +434,13 @@ export async function runSpeechAlignment(
       const completed = await bridge.waitForRun(previousAudit.runId);
       const audit = completedAudit(previousAudit, completed);
       application.recordBridgeRun(job.id, audit);
-      const output = selectSpeechAlignmentOutput(completed, context.outputSlotId);
+      const output = selectSpeechAlignmentOutput(completed);
       const parsed = parseSpeechAlignmentJson(output.text!);
       const words = materializeWordTimings(context, parsed.tokens);
       await completeSpeechAlignment(application, {
         projectId: job.projectId,
         jobId: job.id,
-        alignment: { words, source: parsed.source ?? `Bridge workflow ${context.workflowId} / ${output.displayName}` },
+        alignment: { words, source: parsed.source ?? `Bridge workflow ${context.workflowId}` },
         bridgeAudit: audit
       });
       return { jobId: job.id, runId: completed.id, wordCount: words.length, ...completedAlignmentResult(application, job), recoveredExistingRun: true };
@@ -466,21 +454,21 @@ export async function runSpeechAlignment(
   }
 
   const submittedAt = new Date().toISOString();
-  const submission = await bridge.createRunWithSchemaRetry(
+  const submission = await bridge.createRunWithWorkflow(
     context.workflowId,
-    async (workflow) => buildSpeechAlignmentBridgeRequest(context, workflow)
+    async (workflow) => buildSpeechAlignmentBridgeRequest(context, workflow),
+    { beforeSubmit: async (pending) => { await application.recordBridgeRun(job.id, createBridgeAudit(pending, undefined, submittedAt)); } }
   );
-  application.recordBridgeRun(job.id, createBridgeAudit(submission, undefined, submittedAt));
   const completed = await bridge.waitForRun(submission.run.id);
   const audit = createBridgeAudit(submission, completed, submittedAt);
   application.recordBridgeRun(job.id, audit);
-  const output = selectSpeechAlignmentOutput(completed, context.outputSlotId);
+  const output = selectSpeechAlignmentOutput(completed);
   const parsed = parseSpeechAlignmentJson(output.text!);
   const words = materializeWordTimings(context, parsed.tokens);
   await completeSpeechAlignment(application, {
     projectId: job.projectId,
     jobId: job.id,
-    alignment: { words, source: parsed.source ?? `Bridge workflow ${context.workflowId} / ${output.displayName}` },
+    alignment: { words, source: parsed.source ?? `Bridge workflow ${context.workflowId}` },
     bridgeAudit: audit
   });
   return { jobId: job.id, runId: completed.id, wordCount: words.length, ...completedAlignmentResult(application, job) };

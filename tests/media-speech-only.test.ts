@@ -24,9 +24,9 @@ test("纯 speech 只运行真实 ASR；比较资料不进入观察模型", async
     Object.assign(asset, { status: "ready", metadata: await probeMedia(file) });
     app.repository.commit(id, project.revision.number, "隔离输入", snapshot => { snapshot.assets.push(asset); });
     const bridge = new ComfyUIBridgeClient(readRuntimeConfig().bridge.apiBaseUrl), submitted: string[] = [], prompts: string[] = [];
-    const schema = (workflowId: string): BridgeWorkflow => ({ id: workflowId, name: "测试", available: true, schemaVersion: "v1", fields: ["prompt", "start_seconds", "duration_seconds"].map(id => ({ id, label: id, kind: "text", required: false })), itemSlots: [{ id: "audio", label: "音频", kind: "audio", required: true }], outputs: [] });
+    const schema = (workflowId: string): BridgeWorkflow => ({ id: workflowId, name: "测试", schemaVersion: "v1", fields: ["prompt", "start_seconds", "duration_seconds"].map(id => ({ id, label: id, kind: "text", required: false })), itemSlots: [{ id: "audio", label: "音频", mediaKind: "audio", min: 1, max: 1 }], outputs: [] });
     bridge.getWorkflow = async workflowId => schema(workflowId);
-    bridge.createRunWithSchemaRetry = async (workflowId, build) => {
+    bridge.createRunWithWorkflow = async (workflowId, build) => {
       const workflow = schema(workflowId), request = await build(workflow);
       submitted.push(workflowId);
       if (request.fieldValues.prompt) prompts.push(String(request.fieldValues.prompt));
@@ -58,7 +58,7 @@ test("纯 speech 只运行真实 ASR；比较资料不进入观察模型", async
     assert.ok(!observed.rawText.includes("秘密测试内容"));
 
     const failed = await app.intelligence.submitAnalysis(id, { assetId: asset.id, depth: "review", modalities: ["speech"], comparisonReference: "另一轮比对" });
-    bridge.createRunWithSchemaRetry = async () => { throw new Error("模拟 ASR 不可用"); };
+    bridge.createRunWithWorkflow = async () => { throw new Error("模拟 ASR 不可用"); };
     await assert.rejects(runMediaUnderstanding(app, failed, bridge, new AssetProviderRegistry()), /ASR 不可用/);
     const failure = app.intelligence.store.analyses(id).find(entry => entry.id === failed.id)!;
     assert.equal(failure.windows[0]!.modalityStatus!.speech, "failed");

@@ -21,16 +21,44 @@ export async function validateSourceMotionReviewEvidence(snapshot: ProjectSnapsh
     if (input.kind === "project_preview" && !input.previewJobId) throw new DomainError("合成文件证据需要 Preview Job", "MOTION_REVIEW_PREVIEW_REQUIRED");
     const active = resolveCompositionReachability(snapshot);
     const cues = snapshot.effectCues.filter(cue => active.effectCueIds.has(cue.id) && cue.workId === work.id && cue.startFrame < input.endFrame && cue.endFrame > input.startFrame);
-    const cue = outcome === "passed" ? cues.find(c => input.startFrame <= c.startFrame && input.endFrame >= c.endFrame) : cues[0];
-    if (!cue) throw new DomainError("项目观察使用全局帧，范围必须与目标作品的有效 Cue 相交；通过时完整覆盖", "MOTION_REVIEW_CUE_MISMATCH");
+    const cue = cues[0];
+    if (!cue) throw new DomainError("项目观察使用全局帧，范围必须与目标作品的有效 Cue 相交，通过时完整覆盖", "MOTION_REVIEW_CUE_MISMATCH");
     const [record] = await validateEditorialObservations(snapshot, revision, jobs, [{
       source: input.kind === "workbench" ? "workbench" : "preview", observer: input.observer, previewJobId: input.previewJobId,
       startFrame: input.startFrame, endFrame: input.endFrame, method: input.method,
       pass: input.method === "audio" ? "audio_only" : input.method === "audiovisual" ? "audiovisual" : "mute_visual", observation: "校验固定作品在项目范围的观察身份；具体判断保存在作品审阅说明。"
     }]);
+    const rootRange = (start: number, end: number, offset: number) => ({
+      start: Math.max(0, Math.floor((start + offset) * work.fps / snapshot.timeline.fps)),
+      end: Math.min(work.frameCount, Math.ceil((end + offset) * work.fps / snapshot.timeline.fps))
+    });
+    let range = rootRange(Math.max(cue.startFrame, input.startFrame), Math.min(cue.endFrame, input.endFrame), (cue.sourceStartFrame ?? 0) - cue.startFrame);
+    if (outcome === "passed") {
+      // 只有项目时间与作品源时间同时连续，多个 Cue 才能证明一次完整顺播。
+      const groups = new Map<number, Array<{ start: number; end: number }>>();
+      for (const part of cues) {
+        const offset = (part.sourceStartFrame ?? 0) - part.startFrame;
+        const group = groups.get(offset) ?? [];
+        group.push({ start: Math.max(part.startFrame, input.startFrame), end: Math.min(part.endFrame, input.endFrame) });
+        groups.set(offset, group);
+      }
+      let complete = false;
+      for (const [offset, group] of groups) {
+        group.sort((left, right) => left.start - right.start || left.end - right.end);
+        let start = group[0]!.start, end = group[0]!.end;
+        for (let i = 1; i <= group.length; i++) {
+          const next = group[i];
+          if (next && next.start <= end) { end = Math.max(end, next.end); continue; }
+          const candidate = rootRange(start, end, offset);
+          if (candidate.start === 0 && candidate.end === work.frameCount) { range = candidate; complete = true; break; }
+          if (next) { start = next.start; end = next.end; }
+        }
+        if (complete) break;
+      }
+      if (!complete) throw new DomainError("项目观察缺少完整覆盖作品的连续顺播范围", "MOTION_REVIEW_INCOMPLETE");
+    }
     evidence = { ...input, relativePath: record!.relativePath, contentHash: record!.contentHash, snapshotHash: record!.snapshotHash, renderReleaseId: record!.renderReleaseId, workbenchIdentity: record!.workbenchIdentity, revision,
-      workStartFrame: Math.max(0, Math.floor(((cue.sourceStartFrame ?? 0) + Math.max(0, input.startFrame - cue.startFrame)) * work.fps / snapshot.timeline.fps)),
-      workEndFrame: Math.min(work.frameCount, Math.ceil(((cue.sourceStartFrame ?? 0) + Math.min(cue.endFrame, input.endFrame) - cue.startFrame) * work.fps / snapshot.timeline.fps)), recordedAt: now() };
+      workStartFrame: range.start, workEndFrame: range.end, recordedAt: now() };
   }
   if (outcome === "passed" && (!["continuous_video", "audiovisual"].includes(input.method) || evidence.workStartFrame !== 0 || evidence.workEndFrame !== work.frameCount)) throw new DomainError("静帧、只听声音或局部范围不能证明完整作品动态通过", "MOTION_REVIEW_INCOMPLETE");
   return evidence;

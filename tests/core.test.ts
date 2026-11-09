@@ -637,43 +637,29 @@ test("Presenter 有语义段但没有语音与稳定字幕时不能交付", asyn
   }
 });
 
-test("Bridge 在 schemaVersion 409 后读取最新工作流并重试", async () => {
+test("Bridge v2 版本被拒绝时不会自动重提", async () => {
   const originalFetch = globalThis.fetch;
-  let detailCalls = 0;
-  let runCalls = 0;
+  let detailCalls = 0, runCalls = 0, savedId = "";
   globalThis.fetch = async (input, init) => {
     const url = String(input);
     if (url.endsWith("/workflows/test-workflow")) {
-      detailCalls += 1;
-      return new Response(JSON.stringify({
-        id: "test-workflow",
-        name: "测试工作流",
-        available: true,
-        schemaVersion: detailCalls === 1 ? "v1" : "v2",
-        fields: [{ id: "prompt", label: "文本", kind: "text", required: true }],
-        itemSlots: [],
-        outputs: []
-      }), { headers: { "content-type": "application/json" } });
+      detailCalls++;
+      return Response.json({ id: "test-workflow", name: "测试", schemaVersion: "v1", fields: [], itemSlots: [], outputs: [] });
     }
     if (url.endsWith("/workflows/test-workflow/runs")) {
-      runCalls += 1;
-      const request = JSON.parse(String(init?.body));
-      if (runCalls === 1) return new Response(JSON.stringify({ error: "schemaVersion 过期" }), { status: 409, headers: { "content-type": "application/json" } });
-      assert.equal(request.schemaVersion, "v2");
-      return new Response(JSON.stringify({ id: "run-2", status: "queued", outputs: [] }), { headers: { "content-type": "application/json" } });
+      runCalls++;
+      assert.ok(init?.body instanceof FormData);
+      assert.equal((init.headers as Record<string, string>)["x-comfyui-bridge-run-id"], savedId);
+      return Response.json({ error: "schemaVersion 过期" }, { status: 400 });
     }
     throw new Error(`未预期的请求：${url}`);
   };
   try {
-    const client = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1");
-    const result = await client.createRunWithSchemaRetry("test-workflow", async (workflow) => ({ fieldValues: { prompt: workflow.schemaVersion } }));
-    assert.equal(result.workflow.schemaVersion, "v2");
-    assert.equal(result.run.id, "run-2");
-    assert.equal(detailCalls, 2);
-    assert.equal(runCalls, 2);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+    const client = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2");
+    await assert.rejects(client.createRunWithWorkflow("test-workflow", async () => ({ fieldValues: {} }), { beforeSubmit: pending => { savedId = pending.run.id; } }));
+    assert.match(savedId, /^[0-9a-f-]{36}$/u);
+    assert.equal(detailCalls, 1); assert.equal(runCalls, 1);
+  } finally { globalThis.fetch = originalFetch; }
 });
 
 test("Bridge 在读取 Workflow 时等待短暂的网络未就绪，但不会重放 Run 创建", async () => {
@@ -681,7 +667,7 @@ test("Bridge 在读取 Workflow 时等待短暂的网络未就绪，但不会重
   let workflowCalls = 0;
   let healthCalls = 0;
   let runCalls = 0;
-  globalThis.fetch = async (input) => {
+  globalThis.fetch = async (input, init) => {
     const url = String(input);
     if (url.endsWith("/workflows/recovering-workflow")) {
       workflowCalls += 1;
@@ -689,7 +675,6 @@ test("Bridge 在读取 Workflow 时等待短暂的网络未就绪，但不会重
       return new Response(JSON.stringify({
         id: "recovering-workflow",
         name: "恢复中的测试工作流",
-        available: true,
         schemaVersion: "v1",
         fields: [],
         itemSlots: [],
@@ -702,17 +687,17 @@ test("Bridge 在读取 Workflow 时等待短暂的网络未就绪，但不会重
     }
     if (url.endsWith("/workflows/recovering-workflow/runs")) {
       runCalls += 1;
-      return new Response(JSON.stringify({ id: "run-once", status: "queued", outputs: [] }), { headers: { "content-type": "application/json" } });
+      return new Response(JSON.stringify({ id: (init?.headers as Record<string, string>)["x-comfyui-bridge-run-id"], status: "queued", outputs: [] }), { headers: { "content-type": "application/json" } });
     }
     throw new Error(`未预期的请求：${url}`);
   };
   try {
-    const client = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1", {
+    const client = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2", {
       readinessTimeoutMs: 50,
       readinessPollIntervalMs: 1
     });
-    const result = await client.createRunWithSchemaRetry("recovering-workflow", async () => ({ fieldValues: {} }));
-    assert.equal(result.run.id, "run-once");
+    const result = await client.createRunWithWorkflow("recovering-workflow", async () => ({ fieldValues: {} }));
+    assert.match(result.run.id, /^[0-9a-f-]{36}$/u);
     assert.equal(workflowCalls, 2, "仅重读尚未产生副作用的 Workflow Schema");
     assert.equal(healthCalls, 1);
     assert.equal(runCalls, 1, "Bridge Run 创建请求不能因网络恢复而自动重放");
@@ -725,12 +710,12 @@ test("Bridge 网络不可达会保留安全且可行动的诊断", async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => { throw new TypeError("fetch failed"); };
   try {
-    const client = new ComfyUIBridgeClient("http://user:secret@bridge.test/comfyui-bridge/v1");
+    const client = new ComfyUIBridgeClient("http://user:secret@bridge.test/comfyui-bridge/v2");
     await assert.rejects(
       () => client.health(),
       (error: unknown) => error instanceof BridgeUnavailableError
         && error.code === "BRIDGE_UNAVAILABLE"
-        && error.message.includes("http://bridge.test/comfyui-bridge/v1/health")
+        && error.message.includes("http://bridge.test/comfyui-bridge/v2/health")
         && !error.message.includes("secret")
     );
   } finally {
@@ -742,7 +727,7 @@ test("Bridge run_id 丢失会保留明确的可诊断错误", async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({ error: "run not found" }), { status: 404, headers: { "content-type": "application/json" } });
   try {
-    const client = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1");
+    const client = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2");
     await assert.rejects(
       () => client.waitForRun("lost-run", { timeoutMs: 1, intervalMs: 1 }),
       (error: unknown) => error instanceof BridgeRunLostError && error.code === "BRIDGE_RUN_LOST" && error.runId === "lost-run"
@@ -964,7 +949,7 @@ test("转写重试恢复既有 FunASR Run，成功写回 Transcript 且不创建
       if (url.endsWith(`/workflows/${FUNASR_WORKFLOW_ID}/runs`)) runCreates += 1;
       throw new Error(`未预期的 FunASR 恢复请求：${url}`);
     };
-    assert.equal(await runOneJob(context.app, createMediaJobProcessor(context.app, new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1"))), true);
+    assert.equal(await runOneJob(context.app, createMediaJobProcessor(context.app, new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2"))), true);
     const completed = context.app.trackJob(retry.id);
     assert.equal(completed.status, "succeeded");
     assert.equal(runReads, 1);
@@ -1016,7 +1001,7 @@ test("转写重试遇到已丢失的 FunASR Run 时明确失败且不自动重�
       }
       throw new Error(`未预期的 FunASR 丢失恢复请求：${url}`);
     };
-    assert.equal(await runOneJob(context.app, createMediaJobProcessor(context.app, new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1"))), true);
+    assert.equal(await runOneJob(context.app, createMediaJobProcessor(context.app, new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2"))), true);
     const failed = context.app.trackJob(retry.id);
     assert.equal(failed.status, "failed");
     assert.equal((failed.result?.diagnostic as { code?: string } | undefined)?.code, "TRANSCRIPTION_RUN_LOST_REQUIRES_RESUBMISSION");

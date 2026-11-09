@@ -14,11 +14,11 @@ test("模型等待超时后显式恢复只续读原运行，连续超时也不�
     const project = app.createProject({ name: "隔离超时恢复验证" });
     const projectId = project.snapshot.project.id;
     const revision = project.revision.number;
-    const schema: BridgeWorkflow = { id: "workflow", name: "超时夹具", schemaVersion: "v1", available: true, fields: [], itemSlots: [], outputs: [] };
+    const schema: BridgeWorkflow = { id: "workflow", name: "超时夹具", schemaVersion: "v1", fields: [], itemSlots: [], outputs: [] };
     const bridge = new ComfyUIBridgeClient("http://127.0.0.1:1");
     let posts = 0;
     const reads: string[] = [];
-    bridge.createRunWithSchemaRetry = async (_id, build) => {
+    bridge.createRunWithWorkflow = async (_id, build) => {
       posts++;
       return { workflow: schema, request: await build(schema), schemaRetryCount: 0, run: { id: "original-run", status: "running", outputs: [] } };
     };

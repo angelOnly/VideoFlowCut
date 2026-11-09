@@ -6,3 +6,5 @@ export function assertCreativeSnapshot(index:CreativeIndex,source?:string):void;
 export function creativeCard(card:CreativeCard):Record<string,unknown>;
 export function selectCreativeCards(index:CreativeIndex,request?:CreativeRequest,ranked?:Array<{id:string;score:number}>):Record<string,unknown> & {cards:Record<string,unknown>[]};
 export function readCreativeCase(root:string,request:{id:string;source_sha256?:string;include_storyboard?:boolean}):{result:Record<string,unknown>;image?:{data:string;mimeType:string}};
+export function media(root:string,path:string):{path:string;absolute_path?:string;available:boolean;reason?:string};
+export function imageMime(bytes:Buffer):string;

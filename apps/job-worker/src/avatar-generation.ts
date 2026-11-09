@@ -208,11 +208,11 @@ function promptFields(workflow: BridgeWorkflow, prompt?: string): Record<string,
 /** LTX 接口约定一张照片和一段台词音频，按唯一媒体类型绑定，不依赖展示标签。 */
 function selectExplicitAvatarSlot(
   workflow: BridgeWorkflow,
-  kind: BridgeItemSlot["kind"],
+  kind: BridgeItemSlot["mediaKind"],
   role: "portrait" | "speech"
 ): BridgeItemSlot {
   const candidates = workflow.itemSlots.filter((slot) => (
-    slot.kind === kind
+    slot.mediaKind === kind
   ));
   if (candidates.length === 0) {
     throw new DomainError(
@@ -311,14 +311,12 @@ function responseSummary(run: BridgeRun): BridgeRunAudit["response"] {
     status: run.status,
     error: run.error,
     outputs: run.outputs.map((output) => ({
-      outputSlotId: output.outputSlotId,
-      displayName: output.displayName,
       kind: output.kind,
       fileName: output.fileName,
       mime: output.mime,
       outputId: output.outputId,
-      downloadUrl: output.downloadUrl,
-      text: output.text
+      text: output.text,
+      value: output.value
     }))
   };
 }
@@ -333,7 +331,7 @@ function createBridgeAudit(submission: BridgeRunSubmission, completed?: BridgeRu
     completedAt: completed ? new Date().toISOString() : undefined,
     request: {
       fieldValues: submission.request.fieldValues,
-      fileSlots: submission.request.files?.map((file) => ({ id: file.slot.id, kind: file.slot.kind, fileName: basename(file.path) })) ?? []
+      fileSlots: submission.request.files?.map((file) => ({ id: file.slot.id, kind: file.slot.mediaKind, fileName: basename(file.path) })) ?? []
     },
     response: completed ? responseSummary(completed) : undefined
   };
@@ -356,9 +354,9 @@ function completedAudit(previous: BridgeRunAudit, completed: BridgeRun): BridgeR
 }
 
 function videoOutput(run: BridgeRun): BridgeOutput {
-  const output = run.outputs.find((candidate) => candidate.kind === "video" && Boolean(candidate.downloadUrl));
-  if (!output) throw new DomainError("数字人 Bridge 任务已完成，但没有可下载的视频输出", "MISSING_AVATAR_OUTPUT");
-  return output;
+  const outputs = run.outputs.filter((candidate) => candidate.kind === "video" && Boolean(candidate.outputId));
+  if (outputs.length !== 1) throw new DomainError("数字人 Bridge 任务没有唯一可下载的视频输出", "MISSING_AVATAR_OUTPUT");
+  return outputs[0]!;
 }
 
 async function hashFile(path: string): Promise<string> {
@@ -449,6 +447,7 @@ async function inspectAvatarFile(snapshot: ProjectSnapshot, relativePath: string
 
 async function localizeAvatarOutput(
   bridge: ComfyUIBridgeClient,
+  runId: string,
   snapshot: ProjectSnapshot,
   job: JobRecord,
   output: BridgeOutput
@@ -462,7 +461,7 @@ async function localizeAvatarOutput(
   await rm(partialPath, { force: true }).catch(() => undefined);
   await rm(targetPath, { force: true }).catch(() => undefined);
   try {
-    await bridge.downloadOutput(output, partialPath);
+    await bridge.downloadOutput(runId, output, partialPath);
     await assertAvatarVideo(partialPath, output.mime);
     const metadata = await probeAvatarMedia(partialPath);
     const contentHash = await hashFile(partialPath);
@@ -604,7 +603,7 @@ export async function runAvatarGeneration(
       const completed = await bridge.waitForRun(previousAudit.runId);
       const audit = completedAudit(previousAudit, completed);
       await application.recordBridgeRun(job.id, audit);
-      const actorVideo = await localizeAvatarOutput(bridge, context.snapshot, job, videoOutput(completed));
+      const actorVideo = await localizeAvatarOutput(bridge, completed.id, context.snapshot, job, videoOutput(completed));
       await completeAvatarGeneration(application, { projectId: job.projectId, jobId: job.id, actorVideo, bridgeAudit: audit });
       return { jobId: job.id, runId: completed.id, actorVideo, ...completedAvatarResult(application, job), recoveredExistingRun: true };
     } catch (error) {
@@ -632,21 +631,23 @@ export async function runAvatarGeneration(
         }
       });
     }
-    submission = await bridge.createRunWithSchemaRetry(
+    submission = await bridge.createRunWithWorkflow(
       context.profile.workflowId,
       async (workflow) => {
         // Schema 重试前也核对当前需求，避免准备裁片期间已取消的任务进入 GPU。
         await assertSourceStillRequired(application, context);
         const request = await buildAvatarBridgeRequest(context, workflow, speechSlicePath);
-        await application.recordJobCheckpoint(job.id, { avatarSubmission: "submitting" });
         return request;
       },
-      { onSchemaRejected: async () => { await application.recordJobCheckpoint(job.id, { avatarSubmission: "rejected" }); } }
+      { beforeSubmit: async (pending) => {
+        await application.recordJobCheckpoint(job.id, { avatarSubmission: "submitting" });
+        await application.recordBridgeRun(job.id, createBridgeAudit(pending, undefined, submittedAt));
+      } }
     );
   } catch (error) {
     const rejected = error instanceof BridgeError && ([400, 409, 422].includes(error.status ?? 0) || error.code === "BRIDGE_INPUT_UNREADABLE");
     if (rejected) await application.recordJobCheckpoint(job.id, { avatarSubmission: "rejected" });
-    if (application.trackJob(job.id).result?.avatarSubmission === "submitting") throw new DomainError(`LTX 请求可能已经被接收，但没有取得 Run ID；先核对原请求，不能重复提交。原始原因：${error instanceof Error ? error.message : String(error)}`, "EXTERNAL_RUN_OUTCOME_UNKNOWN");
+    if (application.trackJob(job.id).result?.avatarSubmission === "submitting") throw new DomainError(`LTX 请求结果未知，已保存原 Run ID；先查询原任务，不能重复提交。原始原因：${error instanceof Error ? error.message : String(error)}`, "EXTERNAL_RUN_OUTCOME_UNKNOWN");
     throw error;
   } finally {
     // Bridge.createRun 在返回前已读取 multipart 二进制；临时局部音频不应长期占用项目空间。
@@ -657,7 +658,7 @@ export async function runAvatarGeneration(
   const completed = await bridge.waitForRun(submission.run.id);
   const audit = createBridgeAudit(submission, completed, submittedAt);
   await application.recordBridgeRun(job.id, audit);
-  const actorVideo = await localizeAvatarOutput(bridge, context.snapshot, job, videoOutput(completed));
+  const actorVideo = await localizeAvatarOutput(bridge, completed.id, context.snapshot, job, videoOutput(completed));
   await completeAvatarGeneration(application, { projectId: job.projectId, jobId: job.id, actorVideo, bridgeAudit: audit });
   return { jobId: job.id, runId: completed.id, actorVideo, ...completedAvatarResult(application, job) };
 }

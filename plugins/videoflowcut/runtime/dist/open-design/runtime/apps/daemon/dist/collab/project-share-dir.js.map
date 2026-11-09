@@ -1,0 +1,1 @@
+{"version":3,"file":"project-share-dir.js","sourceRoot":"","sources":["../../src/collab/project-share-dir.ts"],"names":[],"mappings":"AAAA,MAAM,UAAU,sBAAsB,CACpC,YAAoB,EACpB,SAAiB,EACjB,OAA8D,EAC9D,iBAA0F;IAE1F,IAAI,CAAC,OAAO;QAAE,MAAM,IAAI,KAAK,CAAC,WAAW,SAAS,YAAY,CAAC,CAAC;IAChE,OAAO,iBAAiB,CAAC,YAAY,EAAE,SAAS,EAAE,OAAO,CAAC,QAAQ,CAAC,CAAC;AACtE,CAAC"}

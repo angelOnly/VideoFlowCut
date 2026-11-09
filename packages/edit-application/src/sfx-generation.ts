@@ -76,7 +76,7 @@ export function completeSfxGeneration(app: EditingApplication, input: { projectI
   if (job.projectId !== input.projectId || job.status === "cancelled") throw new DomainError("不能登记其他项目或已取消任务的音效", "SFX_JOB_INVALID");
   const { audio, audit } = input;
   if (audit.workflowId !== payload.workflowId || !audit.runId || !audit.schemaVersion || audit.response?.status !== "succeeded"
-    || audit.request.fieldValues.prompt !== payload.prompt || audit.request.fieldValues.duration_seconds !== payload.maxDurationSeconds || audit.request.fieldValues.seed !== payload.seed) {
+    || audit.request.metadata?.prompt !== payload.prompt || audit.request.metadata?.maxDurationSeconds !== payload.maxDurationSeconds || audit.request.metadata?.seed !== payload.seed) {
     throw new DomainError("音效生成记录与固定请求不一致", "SFX_AUDIT_INVALID");
   }
   const current = app.readProject(input.projectId), root = resolve(current.snapshot.project.rootPath);

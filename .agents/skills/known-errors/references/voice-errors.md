@@ -1,8 +1,8 @@
 # 声音与Bridge工作流故障
 
-## Bridge 409
+## Bridge v2 参数或版本拒绝
 
-工作流 Schema 已变化或不可用。重新读取 Workflow Detail，检查 available/reason，用新的 schemaVersion、fields 和 itemSlots 重建请求。不能只替换版本号而保留旧 field ID。
+HTTP 400 可能表示参数、UUID、Schema 不匹配或工作流不可用。读取错误；列表查看 available/reason，重新读取 Workflow Detail，用新的 schemaVersion、fields 和 itemSlots 重建请求。不能只替换版本号而保留旧 field ID。
 
 ## run_id 丢失
 

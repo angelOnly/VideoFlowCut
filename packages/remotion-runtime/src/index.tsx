@@ -26,6 +26,7 @@ export interface CompositionProps {
   mediaBaseUrl: string;
   revision?: number;
   captionsOnly?: boolean;
+  renderRange?: { startFrame: number; endFrame: number };
 }
 
 /** 透明度只作用于字幕底板，不降低文字或强调短语的可读性。 */
@@ -135,7 +136,7 @@ const CueVisual: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue
   }
 };
 
-const CueLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue: EffectCue; revision?: number; playbackControl?: { playing: boolean } }> = ({ snapshot, mediaBaseUrl, cue, revision, playbackControl }) => {
+const CueLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue: EffectCue; revision?: number; playbackControl?: { playing: boolean }; renderRange?: { startFrame: number; endFrame: number } }> = ({ snapshot, mediaBaseUrl, cue, revision, playbackControl, renderRange }) => {
   const frame = useCurrentFrame();
   if (frame < cue.startFrame || frame >= cue.endFrame) return null;
   // 无法满足正式内容合同的 Cue 由 QualityReport 标为问题；Preview 和交付都不能绘制调试占位。
@@ -145,7 +146,7 @@ const CueLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue:
     if (!work) return null;
     const rootFrame = motionFrameAtProjectFrame((cue.sourceStartFrame ?? 0) + frame - cue.startFrame, work.fps, snapshot.timeline.fps, work.frameCount);
     if (getRemotionEnvironment().isPlayer) return <MotionSourceLayer key={`${work.id}:${revision}`} work={work} frame={rootFrame} projectFps={snapshot.timeline.fps} playbackControl={playbackControl} projectId={snapshot.project.id} revision={revision!} mediaBaseUrl={mediaBaseUrl} />;
-    const asset = motionMediaForCue(snapshot, cue);
+    const asset = motionMediaForCue(snapshot, cue, renderRange);
     if (!asset?.motion) throw new Error("MOTION_MEDIA_REQUIRED: 导出需要同作品范围的真实派生媒体");
     const localFrame = rootFrame - (asset.motion.rootRange?.startFrame ?? 0);
     if (asset.motion.output) {
@@ -455,7 +456,7 @@ const AudioLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; it
  * Web Player 与 Render Worker 都消费同一 Revision Snapshot。人物 Mask、效果层和字幕
  * 均由同一组合规则渲染，未提供 Mask 时明确走可见的前景降级。
  */
-export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, mediaBaseUrl, revision, captionsOnly, playbackControl }) => {
+export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, mediaBaseUrl, revision, captionsOnly, playbackControl, renderRange }) => {
   const frame = useCurrentFrame();
   const tracksById = new Map(snapshot.timeline.tracks.map((track) => [track.id, track]));
   const reachability = resolveCompositionReachability(snapshot);
@@ -491,16 +492,16 @@ export const ProjectComposition: React.FC<CompositionProps> = ({ snapshot, media
 
   if (captionsOnly) return <AbsoluteFill><CaptionTrackLayer snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} /></AbsoluteFill>;
   return <AbsoluteFill style={{ backgroundColor: "#070914", overflow: "hidden" }}>
-    {rearCues.filter(hasMaskedActorFor).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} />)}
+    {rearCues.filter(hasMaskedActorFor).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} renderRange={renderRange} />)}
     {videoItems.filter(item => !cutawaysByItem.has(item.id)).map(renderVideoItem)}
     {/* ExplainerProgram 是主视觉，不借用 Presenter Cue；没有对应 Program 的普通 Scene 不会凭空渲染。 */}
     <ExplainerSceneLayer snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} />
-    {primaryExplainerCues.map(cue => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} />)}
-    {visual.primaryCues.map(cue => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} />)}
+    {primaryExplainerCues.map(cue => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} renderRange={renderRange} />)}
+    {visual.primaryCues.map(cue => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} renderRange={renderRange} />)}
     {videoItems.filter(item => cutawaysByItem.has(item.id)).map(renderVideoItem)}
-    {rearCues.filter((cue) => !hasMaskedActorFor(cue)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} />)}
-    {cuesAt("actor", "front").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} />)}
-    {cuesAt("fullscreen").filter(cue => !explainerSceneIds.has(cue.sceneId) && !primaryCueIds.has(cue.id)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} />)}
+    {rearCues.filter((cue) => !hasMaskedActorFor(cue)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} renderRange={renderRange} />)}
+    {cuesAt("actor", "front").map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} renderRange={renderRange} />)}
+    {cuesAt("fullscreen").filter(cue => !explainerSceneIds.has(cue.sceneId) && !primaryCueIds.has(cue.id)).map((cue) => <CueLayer key={cue.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} cue={cue} revision={revision} playbackControl={playbackControl} renderRange={renderRange} />)}
     <CaptionTrackLayer snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} />
     {audioItems.map((item) => <AudioLayer key={item.id} snapshot={snapshot} mediaBaseUrl={mediaBaseUrl} item={item} track={tracksById.get(item.trackId)!} cue={audioCuesByItem.get(item.id)} />)}
   </AbsoluteFill>;

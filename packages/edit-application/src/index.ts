@@ -5,6 +5,7 @@ import { PresenterLibraryService } from "./presenter-library.js";
 import { checkMotionRangeCompatibility, motionRangeExpectation, replaceMotionRange } from "./motion-range-replacement.js";
 import { applyMotionAdoption, motionTargetDependencyHash, validateMotionContinuation } from "./motion-adoption.js";
 import { motionOnSuccessSchema } from "../../contracts/src/motion-continuation.js";
+import { motionAuthoringInputSchema, type MotionAuthoringInput } from "../../contracts/src/motion-authoring.js";
 import type { FrozenMotionContinuation, MotionOnSuccess } from "@videocut/contracts";
 import { readAvatarSourceSnapshot } from "./avatar-legacy-source.js";
 import { prepareAvatarSources, type AvatarSourcePlanInput } from "./avatar-source-planning.js";
@@ -41,7 +42,7 @@ import { completionReconciliationBlockers, EDITORIAL_PASSES, evidenceSupportsPas
 import { boundMotionFontSchema, boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema, type MotionSubmission } from "../../motion-work/src/schema.js";
 import { bindMotionFonts } from "../../motion-work/src/fonts.js";
 import { motionPixelKey, motionHash, motionHashEngine, MOTION_ENGINE_VERSION, validateMotionSource } from "../../motion-work/src/compiler.js";
-import { MotionSourceValidationError } from "../../motion-work/src/source-validation-error.js";
+import { MotionSourceValidationError } from "../../contracts/src/authored-motion-manifest-v1.js";
 import { MotionSubmissionValidationError } from "./motion-submission-validation.js";
 import { assertEffectCueRange } from "./effect-cue-validation.js";
 import { inspectEffectContentContract } from "@videocut/contracts";
@@ -284,7 +285,6 @@ type MusicGenerationJobPayload = {
   workflowId: string;
   prompt: string;
   durationSeconds: number;
-  outputSlotId?: string;
 };
 
 /**
@@ -299,7 +299,6 @@ type VideoGenerationJobPayload = {
   prompt: string;
   durationSeconds: number;
   aspectRatio: ProjectSnapshot["project"]["brief"]["aspectRatio"];
-  outputSlotId?: string;
   seed?: number;
   megapixels?: number;
   initialSeed?: number;
@@ -326,7 +325,6 @@ type SpeechAlignmentJobPayload = {
   speechAssetId: Id;
   scriptRevision: number;
   workflowId: string;
-  outputSlotId?: string;
 };
 
 export type CompletedSpeechAlignment = {
@@ -2567,6 +2565,42 @@ export class EditingApplication {
     return { revision: state.revision.number, work };
   }
 
+  /** 指定帧只检查固定作品，不创建媒体或编辑 Revision。 */
+  submitMotionInspection(input: { projectId: Id; revision: number; workId: Id; frames: number[]; idempotencyKey: string }): JobRecord {
+    const { work } = this.readSourceMotionWork(input.projectId, input.workId, input.revision);
+    readMotionDefinition(this.getProjectRoot(input.projectId), work);
+    const frames = [...new Set(input.frames)].sort((a, b) => a - b);
+    if (!frames.length || frames.some(frame => !Number.isInteger(frame) || frame < 0 || frame >= work.frameCount
+      || !work.readyRanges.some(range => range.startFrame <= frame && frame < range.endFrame))) {
+      throw new DomainError("指定帧必须位于作品已发布范围内", "MOTION_INSPECTION_RANGE_INVALID");
+    }
+    return this.repository.createJob({ projectId: input.projectId, kind: "motion_inspection", idempotencyKey: `motion-inspection:${input.idempotencyKey}`,
+      payload: { revision: input.revision, workId: work.id, workVersion: work.version, definitionHash: work.definitionHash, frames } });
+  }
+
+  async startMotionAuthoring(raw: MotionAuthoringInput): Promise<JobRecord> {
+    const input = motionAuthoringInputSchema.parse(raw);
+    const key = `motion-authoring:${input.idempotencyKey}`;
+    const existing = this.repository.listJobs(input.projectId).find(job => job.idempotencyKey === key);
+    if (existing) {
+      if (existing.kind !== "motion_authoring" || JSON.stringify(existing.payload.input) !== JSON.stringify(input)) throw new DomainError("幂等键已用于不同制作委托", "MOTION_IDEMPOTENCY_CONFLICT");
+      return existing;
+    }
+    if (input.productionRunId) await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.productionRunId });
+    const state = this.readProject(input.projectId);
+    if (state.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, state.revision.number);
+    validateMotionContinuation(state.snapshot, input.target);
+    const target = input.target;
+    const cue = target.action === "create_cue" ? undefined : state.snapshot.effectCues.find(entry => entry.id === target.cueId)!;
+    const startFrame = target.action === "create_cue" ? target.startFrame : target.action === "replace_range" ? target.targetRange.startFrame : cue!.startFrame;
+    const endFrame = target.action === "create_cue" ? target.endFrame : target.action === "replace_range" ? target.targetRange.endFrame : cue!.endFrame;
+    const sourceStartFrame = target.action === "create_cue" ? target.sourceStartFrame : (cue!.sourceStartFrame ?? 0) + startFrame - cue!.startFrame;
+    const sourceEndFrame = sourceStartFrame + endFrame - startFrame;
+    const initialTargetHash = motionTargetDependencyHash(state.snapshot, target.action === "create_cue" ? target : { action: "replace_cue", cueId: target.cueId, audioPolicy: target.audioPolicy });
+    return this.repository.createJob({ projectId: input.projectId, kind: "motion_authoring", idempotencyKey: key,
+      payload: { input, initialTargetHash, targetRange: { startFrame, endFrame, sourceStartFrame, sourceEndFrame }, projectFps: state.snapshot.timeline.fps } });
+  }
+
   submitMotionBake(input: { projectId: Id; baseRevision: number; idempotencyKey: string; workId: Id; frameRange?: MotionFrameRange; outputIntent?: "proof" | "asset"; proofJobId?: Id }) {
     const { work } = this.readSourceMotionWork(input.projectId, input.workId, input.baseRevision);
     const definition = readMotionDefinition(this.getProjectRoot(input.projectId), work);
@@ -2634,7 +2668,7 @@ export class EditingApplication {
         const rootRange = frameRange ?? { startFrame: 0, endFrame: work.durationInFrames };
         const expected = motionRangeExpectation(current.snapshot, { cueId: onSuccess.cueId, ...onSuccess.targetRange });
         checkMotionRangeCompatibility(expected, { width: work.width, height: work.height, fps: work.fps,
-          frameCount: rootRange.endFrame - rootRange.startFrame, rootRange: { ...rootRange, fullDurationInFrames: work.durationInFrames } }, false);
+          frameCount: rootRange.endFrame - rootRange.startFrame, rootRange: { ...rootRange, fullDurationInFrames: work.durationInFrames } });
       }
       continuation = { request: onSuccess, targetDependencyHash: motionTargetDependencyHash(current.snapshot, onSuccess) };
     }
@@ -7331,7 +7365,6 @@ export class EditingApplication {
     workflowId: string;
     prompt: string;
     durationSeconds: number;
-    outputSlotId?: string;
     idempotencyKey?: string;
   }): JobRecord {
     const state = this.readProject(input.projectId);
@@ -7341,15 +7374,13 @@ export class EditingApplication {
     if (!Number.isInteger(input.durationSeconds) || input.durationSeconds < 1 || input.durationSeconds > 1_800) {
       throw new DomainError("音乐生成时长必须是 1 到 1800 秒的整数", "INVALID_MUSIC_DURATION");
     }
-    const outputSlotId = input.outputSlotId?.trim() || undefined;
     const payload: MusicGenerationJobPayload = {
       requestedRevision: state.revision.number,
       workflowId,
       prompt,
       durationSeconds: input.durationSeconds,
-      outputSlotId
     };
-    const promptHash = createHash("sha256").update(`${workflowId}\n${prompt}\n${input.durationSeconds}\n${outputSlotId ?? ""}`).digest("hex").slice(0, 24);
+    const promptHash = createHash("sha256").update(`${workflowId}\n${prompt}\n${input.durationSeconds}`).digest("hex").slice(0, 24);
     const job = this.repository.createJob({
       projectId: input.projectId,
       kind: "music_generation",
@@ -7456,7 +7487,6 @@ export class EditingApplication {
     prompt: string;
     durationSeconds: number;
     aspectRatio?: ProjectSnapshot["project"]["brief"]["aspectRatio"];
-    outputSlotId?: string;
     seed?: number;
     megapixels?: number;
     initialSeed?: number;
@@ -7533,7 +7563,6 @@ export class EditingApplication {
       prompt,
       durationSeconds: input.durationSeconds,
       aspectRatio,
-      outputSlotId: input.outputSlotId?.trim() || undefined,
       seed: optionalInteger(input.seed, "随机种子"),
       megapixels: optionalMegapixels(input.megapixels, "清晰度"),
       initialSeed: optionalInteger(input.initialSeed, "初采随机种子"),
@@ -7674,7 +7703,6 @@ export class EditingApplication {
     baseRevision: number;
     workflowId: string;
     speechAssetId?: Id;
-    outputSlotId?: string;
     idempotencyKey?: string;
   }): JobRecord {
     const state = this.readProject(input.projectId);
@@ -7701,19 +7729,17 @@ export class EditingApplication {
       return existingJob;
     }
     const workflowId = requireText(input.workflowId, "词级对齐 Bridge workflowId");
-    const outputSlotId = input.outputSlotId?.trim() || undefined;
     const payload: SpeechAlignmentJobPayload = {
       requestedRevision: state.revision.number,
       speechAssetId: speechAsset.id,
       scriptRevision: speechAsset.scriptRevision,
       workflowId,
-      outputSlotId
     };
     const job = this.repository.createJob({
       projectId: input.projectId,
       kind: "speech_alignment",
       payload,
-      idempotencyKey: input.idempotencyKey ?? `speech_alignment:${state.revision.number}:${speechAsset.id}:${workflowId}:${outputSlotId ?? ""}`
+      idempotencyKey: input.idempotencyKey ?? `speech_alignment:${state.revision.number}:${speechAsset.id}:${workflowId}`
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
     return job;
@@ -8108,6 +8134,13 @@ export class EditingApplication {
     if (source.projectId !== projectId) throw new DomainError("任务不属于当前项目", "JOB_PROJECT_MISMATCH");
     if (source.status === "unknown") throw new DomainError("任务结果未知，请先对账原Provider运行", "JOB_RETRY_REQUIRES_RECONCILIATION");
     if (["queued", "running", "succeeded"].includes(source.status) || source.result?.continuation) return source;
+    if (source.kind === "motion_authoring") {
+      if (source.error?.includes("MOTION_AUTHORING_TARGET_CONFLICT")) throw new DomainError("目标已改变，请重新明确采用范围", "MOTION_AUTHORING_TARGET_CONFLICT");
+      // 作者任务必须保留原 Run 与阶段游标，不能创建丢失检查点的重试副本。
+      const resumed = this.repository.updateJob(source.id, { status: "queued" });
+      this.publish({ projectId, revision: this.readProject(projectId).revision.number, type: "job" });
+      return resumed;
+    }
     if (source.kind === "source_caption_generation" || source.kind === "source_caption_sentence_alignment") throw new DomainError("旧字幕执行已停用，请使用当前对齐入口", "SOURCE_CAPTION_LEGACY_JOB_DISABLED");
     if (source.kind === "voice_synthesis") return this.resumeVoiceSynthesis(source.id);
     if (source.kind === "avatar_generation") return this.resumeAvatarGeneration(source.id);

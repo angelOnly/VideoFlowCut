@@ -73,7 +73,7 @@ test("项目总览集中读取 Node 配置且不泄漏敏感值", () => {
     HOST: "0.0.0.0",
     WEB_ORIGIN: "http://127.0.0.1:5174",
     SERVE_WEB: "true",
-    COMFYUI_BRIDGE_URL: "http://127.0.0.1:8188/comfyui-bridge/v1",
+    COMFYUI_BRIDGE_URL: "http://127.0.0.1:8188/comfyui-bridge/v2",
     PEXELS_API_KEY: "secret-do-not-return",
     VIDEOFLOWCUT_RUNTIME_TOKEN: "runtime-secret"
   };
@@ -106,7 +106,7 @@ test("Web 与插件启动器配置也在项目总览中可见", async () => {
   assert.match(webApiSource, /import\.meta\.env\.VITE_API_BASE/u);
   assert.match(viteSource, /host:\s*"127\.0\.0\.1"/u);
   assert.match(viteSource, /port:\s*5173/u);
-  assert.deepEqual(launcherKeys, ["VIDEOFLOWCUT_REPO_ROOT", "VIDEOFLOWCUT_PORT", "NODE_PATH"]);
+  assert.deepEqual(launcherKeys, ["VIDEOFLOWCUT_REPO_ROOT", "VIDEOFLOWCUT_PORT", "NODE_PATH", "OD_DATA_DIR", "VIDEOFLOWCUT_OD_NAMESPACE"]);
   assert.match(launcherSource, /VIDEOFLOWCUT_REPO_ROOT/u);
   assert.match(launcherSource, /VIDEOFLOWCUT_PORT/u);
 });

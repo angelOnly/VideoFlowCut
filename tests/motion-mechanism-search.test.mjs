@@ -1,12 +1,12 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync,mkdtempSync,mkdirSync,writeFileSync,symlinkSync} from 'node:fs';
+import {readFileSync,mkdtempSync,mkdirSync,writeFileSync,symlinkSync,copyFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {resolve,join} from 'node:path';
 import {queryMechanisms,understandQuery,connection} from '../references/motion-cases/skillry/mechanism-search.mjs';
 import {taxonomy,validateRetrieval} from '../references/motion-cases/skillry/taxonomy.mjs';
 import {encodeSelection,decodeSelection,restoreSelection,editSelection} from '../references/motion-cases/skillry/selection.mjs';
-import {loadIndex,localFile} from '../references/motion-cases/skillry/tools/mechanisms.mjs';
+import {buildIndex,loadIndex,localFile} from '../references/motion-cases/skillry/tools/mechanisms.mjs';
 import {readLibraryMechanism} from '../references/motion-cases/skillry/tools/library-store.mjs';
 import {createMechanismBrowser,filterFields} from '../references/motion-cases/skillry/mechanism-filters.mjs';
 const root=resolve('references/motion-cases/skillry'),index=loadIndex(root);
@@ -41,9 +41,9 @@ test('父案例上下文随候选与精确恢复返回，不改变动作召回�
   assert.deepEqual(read.result.card.case_context,queryMechanisms(index,{ids:['001-m01']}).cards[0].case_context);
 });
 
-test('120个案例的全部资料具备统一分类，数量随正式目录变化',()=>{
+test('当前案例的全部资料具备统一分类，数量随正式目录变化',()=>{
   const catalogue=JSON.parse(readFileSync(join(root,'case-catalogue.json'),'utf8'));
-  assert.equal(index.count,catalogue.cases.reduce((n,c)=>n+c.mechanism_ids.length,0));assert.equal(new Set(index.mechanisms.map(m=>m.case_number)).size,120);
+  assert.equal(index.count,catalogue.cases.reduce((n,c)=>n+c.mechanism_ids.length,0));assert.equal(new Set(index.mechanisms.map(m=>m.case_number)).size,catalogue.cases.length);
   const categories=new Set();for(const m of index.mechanisms){validateRetrieval(m.retrieval,m.id);m.retrieval.categories.forEach(c=>categories.add(c));}
   assert.equal(categories.size,taxonomy.categories.length);
   assert.throws(()=>validateRetrieval({...index.mechanisms[0].retrieval,holds:['不知道']}),/词表/);
@@ -56,6 +56,41 @@ test('自然语言分阶段、同义词召回；否定不当正向词，同义�
   assert.deepEqual(queryMechanisms(index,{query:'放大'}).cards.map(m=>[m.id,m.score]),queryMechanisms(index,{query:'放大 变大'}).cards.map(m=>[m.id,m.score]));
   const negative=understandQuery('不要旋转，依次填满');assert.ok(!negative.concepts.actions.includes('旋转'));assert.equal(negative.warnings.length,1);
   assert.equal(queryMechanisms(index,{query:'zxqv_unfindable_902384'}).total,0);
+  const pages=queryMechanisms(index,{stages:['依次填满网格','zxqv_unfindable_902384'],offset:2,limit:3});
+  assert.ok(pages.groups[0].cards.length>0);
+  assert.deepEqual([pages.groups[1].cards.length,pages.groups[1].exhausted,pages.groups[1].next_offset],[0,true,null]);
+});
+
+test('分镜与切片缺失只影响对应资源，索引和有效正文仍可读取',()=>{
+  const temp=mkdtempSync(join(tmpdir(),'motion-resources-'));
+  try{
+    const source=JSON.parse(readFileSync(join(root,'case-catalogue.json'),'utf8'));
+    const card=index.mechanisms.find(item=>item.id==='002-m17');
+    const other=index.mechanisms.find(item=>item.id==='002-m16');
+    const item=source.cases.find(entry=>entry.case_number===card.case_number);
+    const folder=join(temp,item.directory,'mechanisms');mkdirSync(folder,{recursive:true});
+    copyFileSync(join(root,card.document),join(temp,card.document));
+    copyFileSync(join(root,other.document),join(temp,other.document));
+    writeFileSync(join(temp,'case-catalogue.json'),JSON.stringify({cases:[item]}));
+    const snapshot=buildIndex(temp);
+    writeFileSync(join(temp,'mechanism-index.json'),JSON.stringify(snapshot));
+    writeFileSync(join(temp,item.directory,'video.mp4'),'available');
+    let result=readLibraryMechanism(temp,{id:card.id,source_sha256:snapshot.source_sha256});
+    assert.ok(result.result.body.includes('运动指令'));
+    assert.equal(result.result.resources.video.available,true);
+    assert.equal(result.result.resources.storyboard.available,false);
+    assert.equal(result.result.resources.clip.available,false);
+    writeFileSync(join(temp,card.clip.path),'incomplete');
+    copyFileSync(join(root,card.storyboard),join(temp,card.storyboard));
+    result=readLibraryMechanism(temp,{id:card.id,source_sha256:snapshot.source_sha256});
+    assert.equal(result.result.resources.clip.available,false);
+    assert.match(result.result.resources.clip.reason,/大小/);
+    assert.equal(result.image.mimeType,'image/jpeg');
+    writeFileSync(join(temp,card.storyboard),Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64'));
+    assert.equal(readLibraryMechanism(temp,{id:card.id}).image.mimeType,'image/png');
+    assert.equal(loadIndex(temp).source_sha256,snapshot.source_sha256);
+    assert.equal(queryMechanisms(loadIndex(temp),{ids:[other.id]}).cards[0].id,other.id);
+  }finally{rmSync(temp,{recursive:true,force:true});}
 });
 test('当前状态、保持和排除是硬筛选，不静默放宽',()=>{
   const specific=queryMechanisms(index,{query:'内部上滚',entry:['外框'],holds:['外框保持'],limit:5});
@@ -146,7 +181,7 @@ test('候选增删、排序、采用、链接恢复与过期未知项均可追�
 });
 test('MCP资料支撑返回实际正文与JPEG，不接受任意文件路径',()=>{
   const loaded=readLibraryMechanism(root,{id:'011-m08',source_sha256:index.source_sha256});
-  assert.ok(loaded.result.body.includes('## 运动指令'));assert.equal(Buffer.from(loaded.image,'base64').readUInt16BE(0),0xffd8);
+  assert.ok(loaded.result.body.includes('## 运动指令'));assert.equal(loaded.image.mimeType,'image/jpeg');assert.equal(Buffer.from(loaded.image.data,'base64').readUInt16BE(0),0xffd8);
   const overview=readLibraryMechanism(root,{id:'011-m08',part:'overview',include_storyboard:false});assert.ok(overview.result.body.includes('完整64宫格'));assert.equal(overview.image,undefined);
   assert.throws(()=>readLibraryMechanism(root,{id:'../../secret'}),/无效/);
   assert.throws(()=>localFile(root,'../README.md'),/无效/);

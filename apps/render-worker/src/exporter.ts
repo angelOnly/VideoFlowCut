@@ -199,14 +199,14 @@ function closeServer(server: Server): Promise<void> {
   return new Promise((resolvePromise, reject) => server.close((error) => error ? reject(error) : resolvePromise()));
 }
 
-function usedAssetIds(snapshot: ProjectSnapshot): Set<string> {
+function usedAssetIds(snapshot: ProjectSnapshot, range = { startFrame: 0, endFrame: snapshot.timeline.durationInFrames }): Set<string> {
   // 与 ProjectComposition 共用同一推导，避免 stale Scene/Cue 或隐藏轨道被预检、来源清单误算为成片依赖。
-  return new Set([...resolveCompositionReachability(snapshot).assetIds, ...snapshot.effectCues.filter(cue => cue.status === "ready").flatMap(cue => { const media = motionMediaForCue(snapshot, cue); return media ? [media.id] : []; })]);
+  return new Set([...resolveCompositionReachability(snapshot).assetIds, ...snapshot.effectCues.filter(cue => cue.status === "ready").flatMap(cue => { const media = motionMediaForCue(snapshot, cue, range); return media ? [media.id] : []; })]);
 }
 
 /** 文件身份直接由实际渲染引用核验，不依赖已删除的素材采用资格。 */
-export async function verifySourceFiles(snapshot: ProjectSnapshot, hashes?: Map<string, string>): Promise<void> {
-  const used = usedAssetIds(snapshot);
+export async function verifySourceFiles(snapshot: ProjectSnapshot, hashes?: Map<string, string>, range?: { startFrame: number; endFrame: number }): Promise<void> {
+  const used = usedAssetIds(snapshot, range);
   for (const asset of snapshot.assets.filter(entry => used.has(entry.id))) {
     const path = resolveManagedAssetPath(snapshot, asset.managedPath);
     let file;
@@ -220,12 +220,12 @@ export async function verifySourceFiles(snapshot: ProjectSnapshot, hashes?: Map<
 }
 
 /** 透明帧也是正式依赖，不能只验证审阅 MP4 存在就放行导出。 */
-export async function verifyMotionFrameCaches(snapshot: ProjectSnapshot, probe: typeof probeMedia = probeMedia): Promise<void> {
-  const used = usedAssetIds(snapshot);
-  for (const cue of snapshot.effectCues.filter((cue) => cue.type === "ManagedMotion" && cue.status === "ready")) {
+export async function verifyMotionFrameCaches(snapshot: ProjectSnapshot, probe: typeof probeMedia = probeMedia, range = { startFrame: 0, endFrame: snapshot.timeline.durationInFrames }): Promise<void> {
+  const used = usedAssetIds(snapshot, range);
+  for (const cue of snapshot.effectCues.filter((cue) => cue.type === "ManagedMotion" && cue.status === "ready" && cue.startFrame < range.endFrame && cue.endFrame > range.startFrame)) {
     const content = inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline, snapshot.motionWorks);
     if (!content.ready) throw new DomainError(content.missing.join("；"), "MOTION_CONTENT_INVALID");
-    if (!motionMediaForCue(snapshot, cue)) throw new DomainError(`作品 ${cue.workId} 尚无覆盖选段的派生媒体；按 workId 生成后固定最新版本导出`, "MOTION_MEDIA_REQUIRED");
+    if (!motionMediaForCue(snapshot, cue, range)) throw new DomainError(`作品 ${cue.workId} 尚无覆盖选段的派生媒体；按 workId 生成后固定最新版本导出`, "MOTION_MEDIA_REQUIRED");
   }
   const proxyItem = snapshot.timeline.items.find((item) => !item.disabled && snapshot.assets.some((asset) => asset.id === item.assetId && asset.motion));
   if (proxyItem) throw new DomainError("受管作品的审阅代理不能作为普通视频放入时间线，请使用 ManagedMotion EffectCue", "MOTION_PROXY_NOT_RENDERABLE");
@@ -458,8 +458,9 @@ export class RevisionRenderer implements RevisionRenderEngine {
   }
 
   async renderRange(snapshot: ProjectSnapshot, fromFrame: number, toFrame: number, targetPath: string): Promise<void> {
-    await verifySourceFiles(snapshot);
-    await verifyMotionFrameCaches(snapshot);
+    const range = { startFrame: fromFrame, endFrame: toFrame };
+    await verifySourceFiles(snapshot, undefined, range);
+    await verifyMotionFrameCaches(snapshot, undefined, range);
     await compositeTimeline(snapshot, targetPath, {
       browserRange: (state, from, to, path) => withRenderNavigationRecovery(() => this.renderRangeOnce(state, from, to, path)),
       caption: (state, frame, path) => this.renderCaption(state, frame, path)
@@ -477,8 +478,9 @@ export class RevisionRenderer implements RevisionRenderEngine {
   }
 
   private async renderRangeOnce(snapshot: ProjectSnapshot, fromFrame: number, toFrame: number, targetPath: string): Promise<void> {
-    await verifySourceFiles(snapshot);
-    await verifyMotionFrameCaches(snapshot);
+    const range = { startFrame: fromFrame, endFrame: toFrame };
+    await verifySourceFiles(snapshot, undefined, range);
+    await verifyMotionFrameCaches(snapshot, undefined, range);
     if (fromFrame < 0 || toFrame <= fromFrame || toFrame > snapshot.timeline.durationInFrames) {
       throw new DomainError("局部预览范围无效", "INVALID_PREVIEW_RANGE");
     }
@@ -486,7 +488,7 @@ export class RevisionRenderer implements RevisionRenderEngine {
     try {
       const browserExecutable = await resolveRenderBrowser();
       const serveUrl = await this.getBundle();
-      const inputProps = { snapshot, mediaBaseUrl: mediaServer.mediaBaseUrl };
+      const inputProps = { snapshot, mediaBaseUrl: mediaServer.mediaBaseUrl, renderRange: range };
       const composition = await selectComposition({ serveUrl, id: "videocut-project", inputProps, browserExecutable, logLevel: "error" });
       await renderMedia({
         browserExecutable,

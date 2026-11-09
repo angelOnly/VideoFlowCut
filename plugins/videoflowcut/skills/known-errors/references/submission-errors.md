@@ -8,7 +8,7 @@
 
 素材获取故障修复并确认部署后，先读回候选和旧 Job；仅明确 `failed` 且未登记素材时，可通过 `acquire_media_asset` 使用新幂等键恢复原候选。平台重新核验当前技术条件，旧失败 Job 不改写；执行中或结果未知时不得恢复提交，人工拒绝也不能用此路径覆盖。
 
-技术错误有明确状态或合同，例如 Revision 冲突、Schema 409、文件损坏、Job 失败、Asset 不可读、Remotion 渲染异常。创作问题是语义不完整、B-roll 无关、节奏单调、字幕竞争和 Scene 像 PPT。不要把所有问题都放进 known-errors，也不要用重试处理审美问题。
+技术错误有明确状态或合同，例如 Revision 冲突、Bridge v2 Schema 拒绝、文件损坏、Job 失败、Asset 不可读、Remotion 渲染异常。创作问题是语义不完整、B-roll 无关、节奏单调、字幕竞争和 Scene 像 PPT。不要把所有问题都放进 known-errors，也不要用重试处理审美问题。
 
 ## Revision 过期
 
@@ -22,13 +22,13 @@
 
 ## Job succeeded 但输出缺失
 
-这是失败，不是成功。检查 outputs kind、downloadUrl、MIME、文件大小和本地注册。文本工作流读取 text，不寻找文件；音视频要下载并校验。HTML 错误页不能当媒体。
+这是失败，不是成功。检查 outputs kind、outputId、MIME、文件大小和本地注册。文本工作流读取 text，不寻找文件；音视频要下载并校验。HTML 错误页不能当媒体。
 
 ## 结果未知的通用规则
 
 稳定 MCP 连接在已部署 Runtime 通过发行摘要与健康核验后，才会在两次调用之间切换业务进程。新连接按输入、输出与行为合同检查变化；说明文字仍发送目录更新通知，但不把说明变化误当参数变化。输入约束、默认值、输出结构和 readOnly 等行为提示变化仍须刷新。
 
-`MCP_TOOL_SCHEMA_CHANGED` 表示该次未执行：有宿主工具刷新能力时重新读取实时表并判断参数；没有刷新能力或实际重读后仍是旧表时，报告独立 Repair Ticket，由修复任务处理兼容发行或连接更新，不能反复发同一写入。结束活动轮再续办不保证刷新，已运行旧连接的外壳代码也不会因安装新版自动替换。不能只因 Release 同版就认定工具表已刷新，也不能为通过而跳过实质参数保护。`MCP_CALL_CANCELLED` 表示排队期间取消、未执行；`MCP_CALL_OUTCOME_UNKNOWN` 不表示失败前没有写入，必须按下面的对账规则处理。部署切换后仍需重新读取当前 Project/Revision，并由原剪辑任务确认 Repair Ticket；保留了项目定位不等于保留了当前 Revision。
+`MCP_TOOL_SCHEMA_CHANGED` 表示该次未执行：有宿主工具刷新能力时重新读取实时表并判断参数；没有刷新能力或实际重读后仍是旧表时，报告独立 Repair Ticket，需要平台修复时按[项目写入与恢复](../../production-coordinator/references/project-writes.md)取得用户授权，不能反复发同一写入。结束活动轮再续办不保证刷新，已运行旧连接的外壳代码也不会因安装新版自动替换。不能只因 Release 同版就认定工具表已刷新，也不能为通过而跳过实质参数保护。`MCP_CALL_CANCELLED` 表示排队期间取消、未执行；`MCP_CALL_OUTCOME_UNKNOWN` 不表示失败前没有写入，必须按下面的对账规则处理。部署切换后仍需重新读取当前 Project/Revision，并由原剪辑任务确认 Repair Ticket；保留了项目定位不等于保留了当前 Revision。
 
 `Transport closed` 表示宿主到连接管理层本身已经断开，不能通过重复提交写操作恢复，也不能声称后台 Runtime 健康就代表这个任务已经接上。修复任务应使用宿主支持的会话恢复机制，并以原任务的真实调用作为恢复证据。
 
@@ -49,7 +49,7 @@
 | `PROJECT_NOT_TARGETED` | Project ID / target_project | project-basics |
 | Revision conflict | 当前 Revision 和并发修改 | 原专项重新判断 |
 | `UNSUPPORTED_MEDIA` / media failed | 扩展、MIME、ffprobe、编码 | asset-import |
-| Bridge 409 | Workflow Detail 与新 Schema | transcription / voice / provider |
+| Bridge v2 HTTP 400 参数或 Schema 拒绝 | Workflow Detail 与新 Schema | transcription / voice / provider |
 | `PREVIEW_NOT_READY` | Job 类型、状态、Revision | web/quality |
 | `COMPOSED_FRAME_EXTRACTION_FAILED` | Preview 文件、帧范围、ffmpeg | preview runtime |
 | `PROJECT_GRAPH_INVALID` | 悬空 Story/Scene/Item/Cue | Application + 原负责人 |

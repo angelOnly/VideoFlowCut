@@ -1397,7 +1397,7 @@
     {
       "name": "manage_asset_requirements",
       "title": "管理素材需求",
-      "description": "在当前 Revision 创建、更新或关闭视觉/声音需求。更新用途与找法保留候选及在途获取。close_outcome=completed 表示作者确认用途完成，需有实际可用材料；cancelled 表示取消。单文件取得不自动完成需求。音频用 media_kind=audio、audio_brief、role=sfx/bgm，不填画幅；候选不会自动进入 Timeline。",
+      "description": "在当前 Revision 创建、更新或关闭视觉/声音需求。首轮按主题探索，编排中补充具体缺少的画面；主任务将取得结果交回原作者，由导演组织判断用途是否完成。更新用途与找法保留候选及在途获取。close_outcome=completed 需有实际可用材料；cancelled 表示取消，单文件取得不自动完成需求。音频用 media_kind=audio、audio_brief、role=sfx/bgm，不填画幅；候选不会自动进入 Timeline。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1426,11 +1426,13 @@
           },
           "purpose": {
             "type": "string",
-            "maxLength": 800
+            "maxLength": 800,
+            "description": "说明本片主题或当前编排中材料承担的用途。"
           },
           "visual_brief": {
             "type": "string",
-            "maxLength": 1600
+            "maxLength": 1600,
+            "description": "首轮写相关对象、场景、活动及期待发现；补材时写缺少的动作、取景、细节和持续范围。"
           },
           "media_kind": {
             "type": "string",
@@ -1554,7 +1556,8 @@
               "ask_user",
               "local_audio",
               "omit_audio"
-            ]
+            ],
+            "description": "记录作者提出的替代考虑；实际采用由导演与原作者共同判断。"
           },
           "close_reason": {
             "type": "string",
@@ -2694,11 +2697,6 @@
           "speech_asset_id": {
             "type": "string",
             "minLength": 1
-          },
-          "output_slot_id": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 240
           },
           "idempotency_key": {
             "type": "string",
@@ -6139,11 +6137,6 @@
             "minimum": 1,
             "maximum": 1800
           },
-          "output_slot_id": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 240
-          },
           "idempotency_key": {
             "type": "string",
             "minLength": 1,
@@ -6216,11 +6209,6 @@
               "16:9",
               "1:1"
             ]
-          },
-          "output_slot_id": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 240
           },
           "seed": {
             "type": "integer",
@@ -6974,7 +6962,7 @@
     {
       "name": "manage_visual_treatment",
       "title": "管理视觉处理计划",
-      "description": "保存 Story Beat 或 Scene 的主视觉、注意力强度和降级方案；它不直接生成 B-roll 或效果。",
+      "description": "保存共同编排后采用的视觉用途和实际展示材料。mode 表示承载方式，包含使用素材的受管画面；具体素材组织、参考过程和完整画面安排保存在当前简报。新增或替换材料时更新对应计划。计划保存不代表实际画面效果已成立。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7060,7 +7048,8 @@
             "items": {
               "type": "string",
               "minLength": 1
-            }
+            },
+            "description": "本范围实际采用的展示素材；按有效简报更新，不填候选、声音或人物参考照。"
           },
           "visual_treatment_id": {
             "type": "string",
@@ -7354,6 +7343,295 @@
       }
     },
     {
+      "name": "start_motion_authoring",
+      "title": "启动阶段画面制作",
+      "description": "主任务接回导演对当前范围的主要采用决定后，提交视觉作者的完整制作请求和已交付资料，绑定明确的时间线目标。请求点名有效简报、参考视频与范围、本片素材、准确文案及声音和时间资料。制作作者完成整场设计，阶段源码自动登记和采用。原任务结束后的同源修订使用新幂等键，并通过 continue_from_run_id 指定原制作 Run。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "production_run_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "const": "create_cue"
+                  },
+                  "audioPolicy": {
+                    "type": "string",
+                    "const": "rebind_unchanged_events"
+                  },
+                  "sceneId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "layer": {
+                    "type": "string",
+                    "enum": [
+                      "rear",
+                      "actor",
+                      "front",
+                      "fullscreen"
+                    ]
+                  },
+                  "startFrame": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "endFrame": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "sourceStartFrame": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "sourceEndFrame": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "visualComposition": {
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "type": "string",
+                        "const": "primary"
+                      },
+                      "replacesActorItemIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    "required": [
+                      "role",
+                      "replacesActorItemIds"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "coveredNarrativeBeatIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "maxItems": 64
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "narrativePurpose": {
+                    "type": "string",
+                    "maxLength": 800
+                  },
+                  "audienceTask": {
+                    "type": "string",
+                    "maxLength": 800
+                  }
+                },
+                "required": [
+                  "action",
+                  "audioPolicy",
+                  "sceneId",
+                  "layer",
+                  "startFrame",
+                  "endFrame",
+                  "sourceStartFrame",
+                  "sourceEndFrame"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "cueId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "audioPolicy": {
+                    "type": "string",
+                    "const": "rebind_unchanged_events"
+                  },
+                  "action": {
+                    "type": "string",
+                    "const": "replace_cue"
+                  }
+                },
+                "required": [
+                  "cueId",
+                  "audioPolicy",
+                  "action"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "cueId": {
+                    "$ref": "#/properties/target/anyOf/1/properties/cueId"
+                  },
+                  "audioPolicy": {
+                    "$ref": "#/properties/target/anyOf/1/properties/audioPolicy"
+                  },
+                  "action": {
+                    "type": "string",
+                    "const": "replace_range"
+                  },
+                  "targetRange": {
+                    "type": "object",
+                    "properties": {
+                      "startFrame": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "endFrame": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0
+                      }
+                    },
+                    "required": [
+                      "startFrame",
+                      "endFrame"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "cueId",
+                  "audioPolicy",
+                  "action",
+                  "targetRange"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "opendesign_request": {
+            "type": "object",
+            "properties": {
+              "project": {
+                "type": "string",
+                "minLength": 1
+              },
+              "prompt": {
+                "type": "string",
+                "minLength": 1
+              },
+              "skill": {
+                "type": "string",
+                "minLength": 1
+              },
+              "skills": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "plugin": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputs": {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              "agent": {
+                "type": "string",
+                "minLength": 1
+              },
+              "model": {
+                "type": "string",
+                "minLength": 1
+              },
+              "serviceTier": {
+                "type": "string",
+                "minLength": 1
+              },
+              "continue_from_run_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "project",
+              "prompt"
+            ],
+            "additionalProperties": false
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "target",
+          "opendesign_request",
+          "idempotency_key"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "wait_motion_authoring",
+      "title": "等待阶段画面制作结果",
+      "description": "按 sequence 接回阶段制作与采用结果。authoring.status 表示制作执行与目标范围完成情况；阶段回执定位实际作品及版本，主任务交导演、创意与视觉检查材料组织、整片发展及参考表现。拒收反馈保留实际接收及对账状态；超时表示暂无新进展。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "after_sequence": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30000,
+            "default": 20000
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "browse_motion_sources",
       "title": "在线动效来源",
       "description": "返回已选的四个在线视觉参考库与访问入口，不下载整库，不表示已经观看预览。AE/Jitter 与开源组件均可作为视觉制作参考。",
@@ -7491,13 +7769,13 @@
                   "opaque",
                   "alpha"
                 ],
-                "description": "正式画面用途；省略为保留透明。opaque 会逐帧核查不透明，透明退出须使用 alpha。"
+                "description": "正式画面用途，省略时保留透明；opaque 要求输出不透明"
               },
               "renderedAssetId": {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 150,
-                "description": "采用已登记且像素身份完全一致的正式作品媒体；不接受临时路径或未验证的视频。"
+                "description": "采用已登记且像素身份一致的正式作品媒体"
               },
               "name": {
                 "type": "string",
@@ -7508,12 +7786,13 @@
                 "type": "string",
                 "minLength": 20,
                 "maxLength": 2000000,
-                "description": "完整 HyperFrames 单页 HTML，CSS/JS 内联；固定运行库由平台提供。"
+                "description": "完整 HyperFrames 单页 HTML，CSS 和 JS 内联，固定运行库由平台提供"
               },
               "props": {
                 "type": "object",
                 "additionalProperties": {},
-                "default": {}
+                "default": {},
+                "description": "作者输入，assets 与 fonts 由平台注入"
               },
               "imageBindings": {
                 "type": "object",
@@ -7525,31 +7804,32 @@
                 "propertyNames": {
                   "pattern": "^[a-z][a-z0-9_]{0,39}$"
                 },
-                "default": {}
+                "default": {},
+                "description": "图片槽名到已就绪项目素材 ID 的映射"
               },
               "width": {
                 "type": "integer",
                 "minimum": 64,
                 "maximum": 1920,
-                "description": "画布宽度（像素），64–1920 的偶数；完整输出按真实磁盘需求预检。"
+                "description": "画布宽度，64 至 1920 的偶数"
               },
               "height": {
                 "type": "integer",
                 "minimum": 64,
                 "maximum": 1920,
-                "description": "画布高度（像素），64–1920 的偶数；完整输出按真实磁盘需求预检。"
+                "description": "画布高度，64 至 1920 的偶数"
               },
               "fps": {
                 "type": "integer",
                 "minimum": 15,
                 "maximum": 60,
-                "description": "帧率，15–60 的整数；视频按真实时间戳重采样。"
+                "description": "作品整数帧率"
               },
               "durationInFrames": {
                 "type": "integer",
                 "minimum": 2,
                 "maximum": 9007199254740991,
-                "description": "作品完整帧数；平台有界取帧并连续渲染，不按30秒、900帧或累计像素帧要求作者拆件。"
+                "description": "作品根时钟的完整帧数；平台有界取帧并连续渲染，不按30秒、900帧或累计像素帧要求作者拆件。"
               },
               "reference": {
                 "type": "object",
@@ -7599,7 +7879,7 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 150,
-                "description": "来源说明例外适用的当前项目、Scene 或 NarrativeMap Beat ID；省略为当前项目。只选择范围，不能自行授权。"
+                "description": "已授权的来源说明范围，省略时使用项目范围"
               },
               "previousAssetId": {
                 "type": "string",
@@ -7609,7 +7889,7 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 6000,
-                "description": "新作品必填的创作说明；仅历史作品按原输入进行幂等重放时可省略。"
+                "description": "新作品的创作说明，完整编排指令由交付文件承载"
               },
               "videoBindings": {
                 "type": "object",
@@ -7659,7 +7939,7 @@
                 "propertyNames": {
                   "pattern": "^[a-z][A-Za-z0-9_]{0,39}$"
                 },
-                "description": "命名视频选段可绑定已就绪的 video 或 actor_video，不设作品选段总数上限；声明源毫秒范围和作品帧范围，实际负载受资源校验约束。data-vfc-video-slot读取作品根时钟，容器变换只改变布局；正常速度且静音。"
+                "description": "视频槽绑定素材 ID、源毫秒范围和作品根帧范围，正常速度且静音"
               },
               "fontBindings": {
                 "type": "object",
@@ -7670,7 +7950,7 @@
                 "propertyNames": {
                   "pattern": "^[a-z][A-Za-z0-9_]{0,39}$"
                 },
-                "description": "字体槽位到已登记 fontId 的映射，最多8槽。先查询 read_motion_capabilities；平台加载后注入 vfc.fonts[槽位] 的 family、weight、style 与 CSS 字体变量，不接受路径或URL。"
+                "description": "字体槽名到已登记 fontId 的映射，最多 8 槽"
               }
             },
             "required": [
@@ -7706,6 +7986,99 @@
               {
                 "type": "object",
                 "properties": {
+                  "action": {
+                    "type": "string",
+                    "const": "create_cue"
+                  },
+                  "audioPolicy": {
+                    "type": "string",
+                    "const": "rebind_unchanged_events"
+                  },
+                  "sceneId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "layer": {
+                    "type": "string",
+                    "enum": [
+                      "rear",
+                      "actor",
+                      "front",
+                      "fullscreen"
+                    ]
+                  },
+                  "startFrame": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "endFrame": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "sourceStartFrame": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "sourceEndFrame": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "visualComposition": {
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "type": "string",
+                        "const": "primary"
+                      },
+                      "replacesActorItemIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    "required": [
+                      "role",
+                      "replacesActorItemIds"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "coveredNarrativeBeatIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "maxItems": 64
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "narrativePurpose": {
+                    "type": "string",
+                    "maxLength": 800
+                  },
+                  "audienceTask": {
+                    "type": "string",
+                    "maxLength": 800
+                  }
+                },
+                "required": [
+                  "action",
+                  "audioPolicy",
+                  "sceneId",
+                  "layer",
+                  "startFrame",
+                  "endFrame",
+                  "sourceStartFrame",
+                  "sourceEndFrame"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
                   "cueId": {
                     "type": "string",
                     "minLength": 1
@@ -7730,10 +8103,10 @@
                 "type": "object",
                 "properties": {
                   "cueId": {
-                    "$ref": "#/properties/on_success/anyOf/0/properties/cueId"
+                    "$ref": "#/properties/on_success/anyOf/1/properties/cueId"
                   },
                   "audioPolicy": {
-                    "$ref": "#/properties/on_success/anyOf/0/properties/audioPolicy"
+                    "$ref": "#/properties/on_success/anyOf/1/properties/audioPolicy"
                   },
                   "action": {
                     "type": "string",
@@ -7877,9 +8250,54 @@
       }
     },
     {
+      "name": "inspect_motion_frames",
+      "title": "检查源码作品指定帧",
+      "description": "以正式引擎检查固定作品根帧，比较顺序、同页回跳与干净页结果；不编码视频、不创建素材或编辑版本。返回 Job，结果仅代表实际检查的帧。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "work_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "frames": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minItems": 1
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "revision",
+          "work_id",
+          "frames",
+          "idempotency_key"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "review_motion_work",
       "title": "记录作品动态审阅",
-      "description": "对照 creativeBrief 查看作品，再记录 outcome、note 和 evidence。evidence范围为半开区间[startFrame,endFrame)：work_proxy使用作品局部帧；project_preview使用项目全局帧，并绑定同Revision成功Preview。failed/inconclusive可记录与该版本有效Cue相交的实际局部观察，无需覆盖整件；抽帧点和未确认范围写入note，不把未观看范围扩大成证据。只有passed要求完整覆盖作品及continuous_video/audiovisual连续证据。未审或证据不足如实保留，不阻挡放置、修订、制作完成或导出；只有技术/用途条件参与阻挡。审阅独立保存，不产生新Revision；作品与时间线不变，旧证据不自动升级。按实际覆盖与变化补充合成和最终文件观察，避免各层重复整片审阅。",
+      "description": "对照完整制作简报、采用参考与同版实际作品记录 outcome、note 和 evidence，creativeBrief 保存提交摘要。evidence 使用半开范围，work_proxy 使用作品局部帧，project_preview 和 workbench 使用项目全局帧。failed/inconclusive 可记录局部观察；passed 要求连续顺序覆盖完整作品并使用 continuous_video 或 audiovisual。审阅独立保存，不产生新 Revision，未观察范围如实记录。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -8163,7 +8581,7 @@
     {
       "name": "search_motion_mechanisms",
       "title": "查找运动机制",
-      "description": "用于本场视觉与动画共同设计：依据实际材料与场面目标检索120库运动机制，共用已有候选、正文、分镜与必要原片；缺资料继续读取，真实作用不足才补查。普通事实研究和取材不必调用。按自然语言、当前状态/保持条件、相似机制或前后接续召回，stages 分阶段查找。selection 恢复网页清单的顺序与采用项。互斥方式：stages/similar_to/before/after/ids/selection。全文词法与任务级向量经现有 Job 混合召回，首次查询返回词法结果与语义 Job，track_job 完成后以相同输入读回；失败如实降级，不自动重放。返回词表、来源指纹、比较页、原文入口及 case_context 父案例类型、材料和迁移条件；上下文不证明本片具备相同能力，也不作人物片硬筛选。入围后读取指令与分镜再适配对象和连接，命中不证明连贯或观感。",
+      "description": "视觉作者依据场面目标检索完整运动和连接。语义查询需要当前项目，待完成时返回空候选和原 Job；track_job 成功后按 readback 读取语义候选，同一查询翻页复用结果。编号、选择串和浏览无需语义任务。采用前读取正文和实际媒体。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -8376,7 +8794,7 @@
     {
       "name": "read_motion_mechanism",
       "title": "读取运动指令和分镜",
-      "description": "视觉与动画共同设计时，已知编号直接核读完整 Markdown 与 JPEG 分镜，不要求先重搜，供当前作者适配真实对象和连接；局部修订可沿用未变资料。必要时 part=overview 读取原片总览与64宫格。传查询的 source_sha256 拒绝过期采用。资料是运动描述，不是现成源码；不会播放、生成或修改视频。",
+      "description": "读取完整机制正文、来源和各项实际媒体状态，分镜可用时附带实际格式图片。视觉作者查看视频中的选定过程及必要前后连接。part=overview 读取原片总览，source_sha256 用于核对资料版本。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -8471,7 +8889,7 @@
     {
       "name": "search_creative_cases",
       "title": "检索完整创意案例",
-      "description": "用自然语言向量召回完整视觉表达方案；不需要标签或标题，不先做词法过滤。首次返回现有语义 Job，track_job 完成后同输入读回；offset/limit 只切同一排名。ids 精确定位，无 query/ids 时分页浏览，两者不调用模型。采用前用 read_creative_case 核读完整卡和真实媒体。排名不证明创意迁移成立。语义查询需要当前项目；浏览和精确读卡不需要。",
+      "description": "创意作者用自然语言检索并观看候选。首次语义查询返回 Job，track_job 成功后按 readback 读取当前页并按分页信息继续。同查询分页复用排名。ids 精确定位，无 query/ids 时分页浏览。采用前读取完整卡和真实媒体，结合本片素材决定。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -10049,6 +10467,99 @@
               {
                 "type": "object",
                 "properties": {
+                  "action": {
+                    "type": "string",
+                    "const": "create_cue"
+                  },
+                  "audioPolicy": {
+                    "type": "string",
+                    "const": "rebind_unchanged_events"
+                  },
+                  "sceneId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "layer": {
+                    "type": "string",
+                    "enum": [
+                      "rear",
+                      "actor",
+                      "front",
+                      "fullscreen"
+                    ]
+                  },
+                  "startFrame": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "endFrame": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "sourceStartFrame": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "sourceEndFrame": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "visualComposition": {
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "type": "string",
+                        "const": "primary"
+                      },
+                      "replacesActorItemIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    "required": [
+                      "role",
+                      "replacesActorItemIds"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "coveredNarrativeBeatIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "maxItems": 64
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "narrativePurpose": {
+                    "type": "string",
+                    "maxLength": 800
+                  },
+                  "audienceTask": {
+                    "type": "string",
+                    "maxLength": 800
+                  }
+                },
+                "required": [
+                  "action",
+                  "audioPolicy",
+                  "sceneId",
+                  "layer",
+                  "startFrame",
+                  "endFrame",
+                  "sourceStartFrame",
+                  "sourceEndFrame"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
                   "cueId": {
                     "type": "string",
                     "minLength": 1
@@ -10073,10 +10584,10 @@
                 "type": "object",
                 "properties": {
                   "cueId": {
-                    "$ref": "#/properties/target/anyOf/0/properties/cueId"
+                    "$ref": "#/properties/target/anyOf/1/properties/cueId"
                   },
                   "audioPolicy": {
-                    "$ref": "#/properties/target/anyOf/0/properties/audioPolicy"
+                    "$ref": "#/properties/target/anyOf/1/properties/audioPolicy"
                   },
                   "action": {
                     "type": "string",
@@ -10459,7 +10970,7 @@
     {
       "name": "record_creative_decision",
       "title": "记录创作判断",
-      "description": "将创作决定、依据和证据写入 ProductionRun，不产生视频 Revision。协调者转录子代理结果时填写 delegation，关联真实代理标识、分派和输入历史版本；该来源为审计声明，不认证身份或代替宿主调用与真实审片。",
+      "description": "将作者的实际创作决定、采用范围、依据和当前有效简报引用写入 ProductionRun，不产生视频 Revision。完整编排通过实际文件交付。协调者转录子代理结果时填写 delegation，关联真实代理标识、分派和输入历史版本；该来源为审计声明，不认证身份或代替宿主调用与真实审片。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -10864,7 +11375,7 @@
     {
       "name": "complete_production_run",
       "title": "完成 ProductionRun",
-      "description": "明确 completion_scope，按本次整片、Beat 或对象范围对账收口；结构缺项返回 incomplete，观察意见独立保存，不新增导出审美门禁。",
+      "description": "明确 completion_scope，按本次整片、Beat 或对象范围对账结构、必要记录和技术条件；结构缺项返回 incomplete。导演、创意与视觉对实际表达的判断及返修结果从已有决定和审阅记录读取，观察意见独立保存。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -11495,7 +12006,7 @@
     {
       "name": "track_job",
       "title": "跟踪任务",
-      "description": "读取异步任务的 queued/running/succeeded/failed 状态与诊断信息。",
+      "description": "读取原异步任务的状态、诊断和产物。创意或动效库搜索成功后按 readback 调用对应搜索工具读取候选页；失败按返回的恢复动作继续原任务。",
       "inputSchema": {
         "type": "object",
         "properties": {

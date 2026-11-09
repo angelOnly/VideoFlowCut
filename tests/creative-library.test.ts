@@ -11,7 +11,7 @@ import { ComfyUIBridgeClient,type BridgeWorkflow } from "@videocut/bridge";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { DomainError } from "@videocut/domain";
 import { loadCreativeIndex,selectCreativeCards,readCreativeCase } from "../references/motion-cases/skillry/tools/creative-library.mjs";
-import { creativeSearchText,CREATIVE_QUERY_INSTRUCTION } from "../packages/media-intelligence/src/creative-library.js";
+import { creativeSearchText,CREATIVE_QUERY_INSTRUCTION,CREATIVE_INSTRUCTION_VERSION,CREATIVE_TEXT_VERSION } from "../packages/media-intelligence/src/creative-library.js";
 import { registerCreativeLibraryTools } from "../apps/server/src/creative-library-tools.js";
 import { searchCreativeLibrary } from "../apps/job-worker/src/creative-library.js";
 import { createMediaJobProcessor,runOneJob } from "../apps/job-worker/src/index.js";
@@ -84,16 +84,16 @@ test("卡内相对链接、真实PNG和缺媒体分别报告；损坏索引与�
   }finally{await rm(directory,{recursive:true,force:true});}
 });
 
-function mockBridge(){
+function mockBridge(expectedInstruction=CREATIVE_QUERY_INSTRUCTION){
   const config=readRuntimeConfig(),bridge=new ComfyUIBridgeClient(config.bridge.apiBaseUrl),calls:string[][]=[];
-  const workflow:BridgeWorkflow={id:config.semantic.embeddingWorkflowId,schemaVersion:'test-v1',name:'隔离编码',available:true,fields:['texts_json','mode','instruction'].map(id=>({id,label:id,kind:'text',required:false})),itemSlots:[],outputs:[]};
+  const workflow:BridgeWorkflow={id:config.semantic.embeddingWorkflowId,schemaVersion:'test-v1',name:'隔离编码',fields:['texts_json','mode','instruction'].map((label,index)=>({id:`input-${index+1}`,label,kind:'text',required:false})),itemSlots:[],outputs:[]};
   const runs=new Map<string,number[][]>();
   bridge.getWorkflow=async()=>workflow;
-  bridge.createRunWithSchemaRetry=async(_id,build)=>{
-    const request=await build(workflow),texts=JSON.parse(String(request.fieldValues.texts_json)) as string[];
-    if(request.fieldValues.mode==='query')assert.equal(request.fieldValues.instruction,CREATIVE_QUERY_INSTRUCTION);
+  bridge.createRunWithWorkflow=async(_id,build)=>{
+    const request=await build(workflow),texts=JSON.parse(String(request.fieldValues["input-1"])) as string[];
+    if(request.fieldValues["input-2"]==='query')assert.equal(request.fieldValues["input-3"],expectedInstruction);
     calls.push(texts);
-    const vectors=texts.map(text=>{const v=Array<number>(1024).fill(0);v[request.fieldValues.mode==='query'||text.startsWith('材料乙')?0:1]=1;return v;});
+    const vectors=texts.map(text=>{const v=Array<number>(1024).fill(0);v[request.fieldValues["input-2"]==='query'||text.startsWith('材料乙')?0:1]=1;return v;});
     const id=`isolated-${calls.length}`;runs.set(id,vectors);
     return {workflow,request,schemaRetryCount:0,run:{id,status:'queued' as const,outputs:[]}};
   };
@@ -123,6 +123,8 @@ test("真实MCP语义Job与Worker分派，翻页复用，跟进显式恢复，�
     assert.equal(page.diagnostics.job_id,first.diagnostics.job_id);assert.equal(calls.length,count);assert.equal(app.listJobs(projectId).length,1);
     const tracked=projectMotionJob(app.trackJob(first.diagnostics.job_id)) as Record<string,any>;
     assert.equal(tracked.payload,undefined);assert.equal(tracked.result.externalRuns,undefined);assert.equal(completed.externalRuns,undefined);
+    assert.equal(tracked.result.cards,undefined);assert.equal(tracked.readback.tool,'search_creative_cases');
+    assert.deepEqual((await call({...tracked.readback.arguments,limit:3})).cards.map((card:any)=>card.id),completed.cards.map((card:any)=>card.id));
     const failed=await call({query:'第二个查询'}),jobId=failed.diagnostics.job_id;
     app.updateJob(jobId,{status:'unknown',error:'结果未知'});assert.equal((await call({query:'第二个查询'})).diagnostics.recovery.action,'reconcile');
     app.updateJob(jobId,{status:'failed',error:'已确定失败'});assert.equal((await call({query:'第二个查询'})).diagnostics.job_id,jobId);
@@ -138,11 +140,16 @@ test("单卡更新只重算该卡，模型变更重建向量，运行期间资�
   const directory=await mkdtemp(join(tmpdir(),'creative-cache-')),library=join(directory,'library');await mkdir(library);
   const cards=await fixture(library),app=createApplication(join(directory,'workspace')),{bridge,calls}=mockBridge();
   const projectId=app.createProject({name:'隔离缓存'}).snapshot.project.id,config=readRuntimeConfig();
-  const job=(key:string,modelRevision='test')=>app.repository.createJob({projectId,kind:'creative_library_search',idempotencyKey:key,payload:{request:{query:'无词法交集'},source_sha256:loadCreativeIndex(library).source_sha256,modelConfig:{...config.semantic,embeddingRevision:modelRevision,apiBaseUrl:config.bridge.apiBaseUrl}}});
+  const job=(key:string,modelRevision='test',instruction=CREATIVE_QUERY_INSTRUCTION,instructionVersion=CREATIVE_INSTRUCTION_VERSION)=>app.repository.createJob({projectId,kind:'creative_library_search',idempotencyKey:key,payload:{request:{query:'无词法交集'},source_sha256:loadCreativeIndex(library).source_sha256,textVersion:CREATIVE_TEXT_VERSION,instructionVersion,instruction,modelConfig:{...config.semantic,embeddingRevision:modelRevision,apiBaseUrl:config.bridge.apiBaseUrl}}});
   try{
     const first=await searchCreativeLibrary(app,job('first'),bridge,library) as Record<string,any>;
     assert.equal(first.cards[0].id,'001-c02');assert.equal(first.diagnostics.document_chunks,2);
     await searchCreativeLibrary(app,job('cached'),bridge,library);assert.equal(calls.length,2);
+    const oldBridge=mockBridge('提交时保存的旧检索指令');
+    const old=await searchCreativeLibrary(app,job('frozen','test','提交时保存的旧检索指令','previous'),oldBridge.bridge,library) as Record<string,any>;
+    assert.equal(old.diagnostics.instruction_version,'previous');assert.equal(old.diagnostics.encoded_texts,3);
+    const missingSnapshot=app.repository.createJob({projectId,kind:'creative_library_search',idempotencyKey:'missing-snapshot',payload:{request:{query:'旧任务'},source_sha256:loadCreativeIndex(library).source_sha256}});
+    await assert.rejects(searchCreativeLibrary(app,missingSnapshot,bridge,library),{code:'LIBRARY_INSTRUCTION_SNAPSHOT_MISSING'});
     const path=join(library,cards[0].card);await writeFile(path,(await readFile(path,'utf8'))+'新增材料改变观看方式。\n');
     const changed=await searchCreativeLibrary(app,job('changed'),bridge,library) as Record<string,any>;
     assert.equal(changed.diagnostics.encoded_texts,1);assert.equal(changed.diagnostics.cache_hits,2);

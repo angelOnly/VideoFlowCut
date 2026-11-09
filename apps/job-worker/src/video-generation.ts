@@ -50,7 +50,6 @@ export interface VideoGenerationJobPayload {
   durationSeconds: number;
   /** 仅允许等于当前 Project Brief；省略时自动采用 Brief。 */
   aspectRatio?: "9:16" | "16:9" | "1:1";
-  outputSlotId?: string;
   /** 可选但建议固定，以便同一 Job 的 Bridge 审计能完整回溯。 */
   seed?: number;
   /** 单阶段工作流的目标清晰度（百万像素）。 */
@@ -94,7 +93,6 @@ export interface VideoGenerationContext {
   prompt: string;
   durationSeconds: number;
   aspectRatio: ProjectSnapshot["project"]["brief"]["aspectRatio"];
-  outputSlotId?: string;
   seed?: number;
   megapixels?: number;
   initialSeed?: number;
@@ -253,7 +251,6 @@ export function resolveVideoGenerationContext(application: EditingApplication, j
     prompt: requireText(payload.prompt, "视频生成任务缺少明确提示词", "VIDEO_GENERATION_PROMPT_REQUIRED"),
     durationSeconds,
     aspectRatio: state.snapshot.project.brief.aspectRatio,
-    outputSlotId: typeof payload.outputSlotId === "string" && payload.outputSlotId.trim() ? payload.outputSlotId.trim() : undefined,
     seed: optionalNonNegativeInteger(payload.seed, "随机种子"),
     megapixels: optionalMegapixels(payload.megapixels, "清晰度"),
     initialSeed: optionalNonNegativeInteger(payload.initialSeed, "初采随机种子"),
@@ -432,12 +429,12 @@ async function prepareInputAsset(snapshot: ProjectSnapshot, asset: Asset): Promi
 
 function uniqueSlotByLabel(
   workflow: BridgeWorkflow,
-  kind: BridgeItemSlot["kind"],
+  kind: BridgeItemSlot["mediaKind"],
   pattern: RegExp,
   role: string,
   fallbackOnlySlot = false
 ): BridgeItemSlot {
-  const slots = workflow.itemSlots.filter((slot) => slot.kind === kind);
+  const slots = workflow.itemSlots.filter((slot) => slot.mediaKind === kind);
   const matched = slots.filter((slot) => pattern.test(normalizedLabel(slot)));
   if (matched.length === 1) return matched[0]!;
   if (matched.length === 0 && fallbackOnlySlot && slots.length === 1) return slots[0]!;
@@ -445,7 +442,7 @@ function uniqueSlotByLabel(
 }
 
 function firstAndLastImageSlots(workflow: BridgeWorkflow): { first: BridgeItemSlot; last: BridgeItemSlot } {
-  const images = workflow.itemSlots.filter((slot) => slot.kind === "image");
+  const images = workflow.itemSlots.filter((slot) => slot.mediaKind === "image");
   const firstCandidates = images.filter((slot) => /(?:首帧|首图|首张|first\s*(?:frame|image)|start\s*(?:frame|image))/u.test(normalizedLabel(slot)));
   const lastCandidates = images.filter((slot) => /(?:尾帧|末帧|尾图|last\s*(?:frame|image)|end\s*(?:frame|image))/u.test(normalizedLabel(slot)));
   if (firstCandidates.length === 1 && lastCandidates.length === 1 && firstCandidates[0]!.id !== lastCandidates[0]!.id) {
@@ -460,17 +457,13 @@ function firstAndLastImageSlots(workflow: BridgeWorkflow): { first: BridgeItemSl
 
 function requiredSlotsAreCovered(workflow: BridgeWorkflow, files: Array<{ slot: BridgeItemSlot }>): void {
   const uploaded = new Set(files.map((file) => file.slot.id));
-  const missing = workflow.itemSlots.filter((slot) => slot.required && !uploaded.has(slot.id));
+  const missing = workflow.itemSlots.filter((slot) => slot.min > 0 && !uploaded.has(slot.id));
   if (missing.length > 0) {
     throw new DomainError(`Bridge 当前 Schema 存在未处理的必填输入槽：${missing.map((slot) => slot.label).join("、")}`, "VIDEO_GENERATION_REQUIRED_SLOT_UNHANDLED");
   }
 }
 
-function outputSlotExists(workflow: BridgeWorkflow, outputSlotId: string | undefined): void {
-  if (outputSlotId && !workflow.outputs.some((output) => output.id === outputSlotId)) {
-    throw new DomainError("指定的视频输出槽不在当前 Bridge Schema 中", "VIDEO_GENERATION_OUTPUT_SLOT_NOT_FOUND");
-  }
-}
+
 
 /**
  * 不保存任何历史 field/slot ID。每次创建 Run 前均依据本次读取的 Schema、Slot 标签和顺序
@@ -480,7 +473,6 @@ export async function buildVideoGenerationBridgeRequest(
   context: VideoGenerationContext,
   workflow: BridgeWorkflow
 ): Promise<{ fieldValues: Record<string, unknown>; files: Array<{ slot: BridgeItemSlot; path: string; mime: string }> }> {
-  outputSlotExists(workflow, context.outputSlotId);
   const promptField = chooseUniqueField(
     workflow,
     promptFieldScore,
@@ -533,8 +525,8 @@ export async function buildVideoGenerationBridgeRequest(
     const images = prepared.filter((entry) => entry.mediaKind === "image");
     const videos = prepared.filter((entry) => entry.mediaKind === "video");
     const audio = prepared.filter((entry) => entry.mediaKind === "audio");
-    const imageSlots = fieldsInWorkflowOrder(workflow.itemSlots.filter((slot) => slot.kind === "image"));
-    const audioSlots = fieldsInWorkflowOrder(workflow.itemSlots.filter((slot) => slot.kind === "audio"));
+    const imageSlots = fieldsInWorkflowOrder(workflow.itemSlots.filter((slot) => slot.mediaKind === "image"));
+    const audioSlots = fieldsInWorkflowOrder(workflow.itemSlots.filter((slot) => slot.mediaKind === "audio"));
     if (images.length > imageSlots.length || audio.length > audioSlots.length) {
       throw new DomainError("Bridge 当前多参考 Schema 的图片或音频输入槽数量不足", "VIDEO_GENERATION_MULTI_REFERENCE_SLOT_MISSING");
     }
@@ -554,14 +546,12 @@ function responseSummary(run: BridgeRun): BridgeRunAudit["response"] {
     status: run.status,
     error: run.error,
     outputs: run.outputs.map((output) => ({
-      outputSlotId: output.outputSlotId,
-      displayName: output.displayName,
       kind: output.kind,
       fileName: output.fileName,
       mime: output.mime,
       outputId: output.outputId,
-      downloadUrl: output.downloadUrl,
-      text: output.text
+      text: output.text,
+      value: output.value
     }))
   };
 }
@@ -576,7 +566,7 @@ function createBridgeAudit(submission: BridgeRunSubmission, completed?: BridgeRu
     completedAt: completed ? new Date().toISOString() : undefined,
     request: {
       fieldValues: submission.request.fieldValues,
-      fileSlots: submission.request.files?.map((file) => ({ id: file.slot.id, kind: file.slot.kind, fileName: basename(file.path) })) ?? []
+      fileSlots: submission.request.files?.map((file) => ({ id: file.slot.id, kind: file.slot.mediaKind, fileName: basename(file.path) })) ?? []
     },
     response: completed ? responseSummary(completed) : undefined
   };
@@ -608,16 +598,11 @@ function isVideoOutput(output: BridgeOutput): boolean {
   return output.kind === "video" || Boolean(mime?.startsWith("video/"));
 }
 
-/** 多个可下载视频时必须由提交侧固定 outputSlotId，不能猜“第一个”是最终成片。 */
-export function selectGeneratedVideoOutput(run: BridgeRun, outputSlotId?: string): BridgeOutput {
-  const available = run.outputs.filter((output) => isVideoOutput(output) && Boolean(output.downloadUrl));
-  if (outputSlotId) {
-    const selected = available.find((output) => output.outputSlotId === outputSlotId);
-    if (!selected) throw new DomainError("Bridge 已完成，但指定的视频输出槽没有可下载视频", "VIDEO_GENERATION_OUTPUT_SLOT_MISSING");
-    return selected;
-  }
+/** 只接受唯一视频输出，避免误用中间结果。 */
+export function selectGeneratedVideoOutput(run: BridgeRun): BridgeOutput {
+  const available = run.outputs.filter((output) => isVideoOutput(output) && Boolean(output.outputId));
   if (available.length === 0) throw new DomainError("Bridge 已完成，但没有可下载的视频输出", "MISSING_VIDEO_GENERATION_OUTPUT");
-  if (available.length > 1) throw new DomainError("Bridge 返回多个视频输出；提交任务时必须指定 outputSlotId", "VIDEO_GENERATION_OUTPUT_AMBIGUOUS");
+  if (available.length > 1) throw new DomainError("Bridge 返回多个视频输出，无法确定成品", "VIDEO_GENERATION_OUTPUT_AMBIGUOUS");
   return available[0]!;
 }
 
@@ -687,6 +672,7 @@ async function inspectExistingGeneratedVideo(snapshot: ProjectSnapshot, relative
 /** 下载先进入 Job 专属缓存；仅在 HTML、大小、ffprobe、编码和哈希都通过后才原子移动到 assets/generated。 */
 export async function localizeGeneratedVideo(
   bridge: ComfyUIBridgeClient,
+  runId: string,
   snapshot: ProjectSnapshot,
   job: JobRecord,
   output: BridgeOutput
@@ -699,7 +685,7 @@ export async function localizeGeneratedVideo(
   await mkdir(dirname(cachePath), { recursive: true });
   await rm(cachePath, { force: true }).catch(() => undefined);
   try {
-    await bridge.downloadOutput(output, cachePath);
+    await bridge.downloadOutput(runId, output, cachePath);
     const inspected = await inspectGeneratedVideoFile(cachePath, output.mime);
     await mkdir(dirname(targetPath), { recursive: true });
     await rm(targetPath, { force: true }).catch(() => undefined);
@@ -789,7 +775,7 @@ export async function runVideoGeneration(
       const completed = await bridge.waitForRun(previousAudit.runId);
       const audit = completedAudit(previousAudit, completed);
       await application.recordBridgeRun(job.id, audit);
-      const generatedVideo = await localizeGeneratedVideo(bridge, context.snapshot, job, selectGeneratedVideoOutput(completed, context.outputSlotId));
+      const generatedVideo = await localizeGeneratedVideo(bridge, completed.id, context.snapshot, job, selectGeneratedVideoOutput(completed));
       await completeVideoGeneration(application, { projectId: job.projectId, jobId: job.id, generatedVideo, bridgeAudit: audit });
       return { jobId: job.id, runId: completed.id, generatedVideo, ...completedVideoResult(application, job), recoveredExistingRun: true };
     } catch (error) {
@@ -808,16 +794,16 @@ export async function runVideoGeneration(
   }
 
   const submittedAt = new Date().toISOString();
-  const submission = await bridge.createRunWithSchemaRetry(
+  const submission = await bridge.createRunWithWorkflow(
     context.workflowId,
-    async (workflow) => buildVideoGenerationBridgeRequest(context, workflow)
+    async (workflow) => buildVideoGenerationBridgeRequest(context, workflow),
+    { beforeSubmit: async (pending) => { await application.recordBridgeRun(job.id, createBridgeAudit(pending, undefined, submittedAt)); } }
   );
   // 先保存 run_id，再等待；这样 Worker 中断或 ComfyUI 重启后仍有可诊断、可恢复的本地事实。
-  await application.recordBridgeRun(job.id, createBridgeAudit(submission, undefined, submittedAt));
   const completed = await bridge.waitForRun(submission.run.id);
   const audit = createBridgeAudit(submission, completed, submittedAt);
   await application.recordBridgeRun(job.id, audit);
-  const generatedVideo = await localizeGeneratedVideo(bridge, context.snapshot, job, selectGeneratedVideoOutput(completed, context.outputSlotId));
+  const generatedVideo = await localizeGeneratedVideo(bridge, completed.id, context.snapshot, job, selectGeneratedVideoOutput(completed));
   await completeVideoGeneration(application, { projectId: job.projectId, jobId: job.id, generatedVideo, bridgeAudit: audit });
   return { jobId: job.id, runId: completed.id, generatedVideo, ...completedVideoResult(application, job) };
 }

@@ -1,0 +1,1 @@
+{"version":3,"file":"toolchain.d.ts","sourceRoot":"","sources":["../src/toolchain.ts"],"names":[],"mappings":"AAcA,MAAM,MAAM,6BAA6B,GAAG;IAG1C,IAAI,CAAC,EAAE,MAAM,CAAC;IAKd,iBAAiB,CAAC,EAAE,OAAO,CAAC;IAK5B,GAAG,CAAC,EAAE,MAAM,CAAC,UAAU,CAAC;CACzB,CAAC;AAuBF;;;;;;;;;GASG;AACH,wBAAgB,0BAA0B,CACxC,OAAO,GAAE,6BAAkC,GAC1C,MAAM,EAAE,CAkLV"}

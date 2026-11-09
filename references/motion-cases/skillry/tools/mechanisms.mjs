@@ -1,5 +1,5 @@
 /** 从机制 Markdown 派生索引，查询与 MCP 共用本地排序。 */
-import {readFileSync,writeFileSync,readdirSync,existsSync,realpathSync,statSync} from 'node:fs';
+import {readFileSync,writeFileSync,readdirSync,existsSync,realpathSync} from 'node:fs';
 import {resolve,relative,isAbsolute,sep} from 'node:path';
 import {createHash} from 'node:crypto';
 import {parseMechanism,resolveLibraryLink} from '../document-format.mjs';
@@ -37,11 +37,10 @@ export function buildIndex(root=defaultRoot){
       const bytes=readFileSync(localFile(root,document));
       const {metadata:m,body}=parseMechanism(bytes.toString('utf8'));
       if(m.case_number!==c.case_number||name!==m.id.split('-')[1]+'.md')throw new Error(`${document} 编号与路径不符`);
-      const storyboard=document.replace(/\.md$/,'.jpg');localFile(root,storyboard);
+      const storyboard=document.replace(/\.md$/,'.jpg');
       if(m.clip){
         // 只接纳当前原片、同机制的实际切片；索引不复制媒体或维护第二套边界表。
         if(m.clip.path!==document.replace(/\.md$/,'.mp4')||m.clip.source_sha256!==c.media_sha256||m.clip.end_ms>Math.ceil(c.duration*1000))throw new Error(`${m.id} 切片来源、范围或路径不符`);
-        if(statSync(localFile(root,m.clip.path)).size!==m.clip.bytes)throw new Error(`${m.id} 切片文件不完整`);
       }
       const imageLinks=[...body.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map(x=>resolveLibraryLink(x[1],document));
       if(!imageLinks.some(x=>x?.kind==='local'&&x.path===storyboard))throw new Error(`${document} 未嵌入自身分镜`);

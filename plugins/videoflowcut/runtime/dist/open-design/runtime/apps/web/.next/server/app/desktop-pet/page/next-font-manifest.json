@@ -1,0 +1,8 @@
+{
+  "pages": {},
+  "app": {
+    "[project]/apps/web/app/desktop-pet/page": []
+  },
+  "appUsingSizeAdjust": false,
+  "pagesUsingSizeAdjust": false
+}

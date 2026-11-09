@@ -8,7 +8,7 @@ import ts from "typescript";
 import type { BoundMotionFont, BoundMotionImage, BoundMotionVideo, DecodedMotionVideo, MotionSubmission, MotionFrameRange } from "./schema.js";
 import type { FrozenSourceDisplay } from "../../contracts/src/source-display-policy.js";
 import { motionFontProps } from "./fonts.js";
-import { MotionSourceValidationError } from "./source-validation-error.js";
+import { MotionSourceValidationError, validateAuthoredMotionSource } from "../../contracts/src/authored-motion-manifest-v1.js";
 import { HYPERFRAMES_DEPENDENCIES, IMAGE_SLOT_ATTRIBUTE, VIDEO_SLOT_ATTRIBUTE, MOTION_ENGINE_VERSION } from "./hyperframes-contract.js";
 import { MATERIAL_MATH_SOURCE } from "./material-math-source.js";
 export { MOTION_ENGINE_VERSION } from "./hyperframes-contract.js";
@@ -21,31 +21,8 @@ export function validateMotionSource(source: string, work?: Pick<MotionSubmissio
     const prefix = source.slice(0, position).split("\n");
     throw new MotionSourceValidationError(code, message, { line: prefix.length, column: prefix.at(-1)!.length + 1 }, "HTML", token.slice(0, 160), suggestion);
   };
-  if (!/^\s*<!doctype\s+html\s*>/iu.test(source) || !/<html[\s>]/iu.test(source) || !/<\/html\s*>\s*$/iu.test(source))
-    reject("MOTION_SOURCE_INVALID", "提交完整 HTML 文档；旧 TSX 入口已停用", source.slice(0, 80), "读取 read_motion_capabilities 的 HyperFrames 合同");
+  validateAuthoredMotionSource(source, work);
   const doc = parseMotionHtml(source);
-  const roots = [...doc.querySelectorAll("[data-composition-id]")].filter(el => !el.parentElement?.closest("[data-composition-id]"));
-  if (roots.length !== 1) reject("MOTION_COMPOSITION_INVALID", "需要唯一主合成", "data-composition-id", "设置一个根 data-composition-id 并注册同名暂停时间线");
-  const root = roots[0]!;
-  if (!root.getAttribute("data-composition-id")?.trim()) reject("MOTION_COMPOSITION_INVALID", "合成 ID 不能为空", root.outerHTML, "设置实际合成 ID");
-  if (work) for (const [attr, value] of Object.entries({ "data-width": work.width, "data-height": work.height, "data-duration": work.durationInFrames / work.fps, "data-start": 0 })) {
-    const actual = root.getAttribute(attr);
-    if (actual === null || !Number.isFinite(Number(actual)) || Math.abs(Number(actual) - value) > 1e-7)
-      reject("MOTION_COMPOSITION_MISMATCH", `${attr} 必须与作品一致：${value}`, attr, "按实际画布与最终时长同时更新 HTML 和 work");
-  }
-  for (const el of doc.querySelectorAll("*")) {
-    const tag = el.tagName.toLowerCase();
-    if (["iframe", "object", "embed", "base", "link", "audio", "video"].includes(tag) || tag === "meta" && el.hasAttribute("http-equiv"))
-      reject("MOTION_DOM_REJECTED", `不支持 ${tag} 入口`, el.outerHTML, "CSS/JS 内联；图片和视频按槽绑定，声音交外层正式链路");
-    if ([...el.attributes].some(attr => /^on/iu.test(attr.name))) reject("MOTION_DOM_REJECTED", "内联事件属性不参与确定性求值", el.outerHTML, "在暂停的主时间线中表达动作");
-    for (const attr of [IMAGE_SLOT_ATTRIBUTE, VIDEO_SLOT_ATTRIBUTE]) if (el.hasAttribute(attr)) {
-      const slot = el.getAttribute(attr)!;
-      const bindings = attr === IMAGE_SLOT_ATTRIBUTE ? work?.imageBindings : work?.videoBindings;
-      if (!["img", "image"].includes(tag) || attr === VIDEO_SLOT_ATTRIBUTE && (tag !== "img" || !el.id) || el.hasAttribute("src") || el.hasAttribute("href") || el.hasAttribute("srcset") || el.hasAttribute("xlink:href"))
-        reject("MOTION_RESOURCE_INVALID", "槽元素使用 img（图片也可用 SVG image），视频须有稳定 id，不能同时自带资源地址", el.outerHTML, "移除 src/href/srcset；填写真实槽名");
-      if (work && !Object.hasOwn(bindings ?? {}, slot)) reject("MOTION_RESOURCE_INVALID", `未绑定槽位 ${slot}`, el.outerHTML, "补齐当前作品的素材绑定");
-    }
-  }
   for (const el of doc.querySelectorAll("script")) {
     if (el.hasAttribute("src") || !["", "text/javascript", "application/javascript"].includes(el.getAttribute("type") ?? ""))
       reject("MOTION_IMPORT_REJECTED", "仅接受普通内联 JavaScript；GSAP/HyperFrames 由平台固定提供", el.outerHTML, "移除外部加载和模块 import，直接使用 gsap 与 window.vfc");

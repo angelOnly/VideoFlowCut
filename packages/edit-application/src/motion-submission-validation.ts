@@ -1,4 +1,4 @@
-import { MotionSourceValidationError } from "../../motion-work/src/source-validation-error.js";
+import { MotionSourceValidationError } from "../../contracts/src/authored-motion-manifest-v1.js";
 
 /** 仅提交前的窄校验边界可以创建；不能包住创建 Job 或 Worker 执行。 */
 export class MotionSubmissionValidationError extends Error {

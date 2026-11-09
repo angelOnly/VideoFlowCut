@@ -65,10 +65,11 @@ async function resolveSource(app: EditingApplication, job: JobRecord, providers:
 export const MEDIA_QUERY_INSTRUCTION = "根据中文检索需求，查找描述实际画面、声音或原文的相关素材片段。";
 export async function embedBatch(app: EditingApplication, job: JobRecord, bridge: ComfyUIBridgeClient, texts: string[], mode: "document" | "query", key: string, instruction = MEDIA_QUERY_INSTRUCTION): Promise<number[][]> {
   const result = await modelText(app, job, bridge, key, semanticConfig(job).embeddingWorkflowId, async (schema) => {
-    for (const id of ["texts_json", "mode"]) if (!schema.fields.some((field) => field.id === id)) throw new DomainError(`向量接口缺少 ${id}`, "MEDIA_MODEL_SCHEMA_UNSUPPORTED");
-    const supportsInstruction = schema.fields.some((field) => field.id === "instruction");
-    if (mode === "query" && instruction !== MEDIA_QUERY_INSTRUCTION && !supportsInstruction) throw new DomainError("向量工作流未提供任务指令字段，保留全文词法结果", "MOTION_INSTRUCTION_UNSUPPORTED");
-    return { fieldValues: { texts_json: JSON.stringify(texts), mode, ...(mode === "query" && supportsInstruction ? { instruction } : {}) } };
+    const field = (label: string) => schema.fields.find((item) => item.label === label);
+    const textsField = field("texts_json"), modeField = field("mode"), instructionField = field("instruction");
+    if (!textsField || !modeField) throw new DomainError("向量接口缺少文本或模式字段", "MEDIA_MODEL_SCHEMA_UNSUPPORTED");
+    if (mode === "query" && instruction !== MEDIA_QUERY_INSTRUCTION && !instructionField) throw new DomainError("向量工作流未提供任务指令字段，保留全文词法结果", "MOTION_INSTRUCTION_UNSUPPORTED");
+    return { fieldValues: { [textsField.id]: JSON.stringify(texts), [modeField.id]: mode, ...(mode === "query" && instructionField ? { [instructionField.id]: instruction } : {}) } };
   }, undefined, digest([texts, mode, instruction, semanticConfig(job)]));
   try {
     const vectors = JSON.parse(result.text!).embeddings as unknown;
@@ -155,14 +156,16 @@ export async function runMediaUnderstanding(app: EditingApplication, job: JobRec
       const response = !observationModalities.length ? undefined : reusable ? { text: reusable.rawText, schemaVersion: reusable.version.schemaVersion, runId: reusable.runId } : await modelText(app, job, bridge, `window:${window.id}`, workflowId, async (schema) => {
         const slot = bridge.findRequiredSlot(schema, kind);
         const fields: Record<string, unknown> = {};
-        const available = new Set(schema.fields.map((field) => field.id));
-        if (!available.has("prompt")) throw new DomainError("分析工作流缺少 prompt 字段", "MEDIA_MODEL_SCHEMA_UNSUPPORTED");
-        fields.prompt = prompt;
-        if (available.has("max_new_tokens")) fields.max_new_tokens = 4096;
+        const field = (label: string) => schema.fields.find((entry) => entry.label === label);
+        const promptField = field("prompt"), maxTokens = field("max_new_tokens");
+        if (!promptField) throw new DomainError("分析工作流缺少 prompt 字段", "MEDIA_MODEL_SCHEMA_UNSUPPORTED");
+        fields[promptField.id] = prompt;
+        if (maxTokens) fields[maxTokens.id] = 4096;
         if (window.range) {
-          if (!available.has("start_seconds") || !available.has("duration_seconds")) throw new DomainError("分析接口缺少真实源时间窗口", "MEDIA_MODEL_SCHEMA_UNSUPPORTED");
-          fields.start_seconds = 0;
-          fields.duration_seconds = (window.range.endMs - window.range.startMs) / 1000;
+          const start = field("start_seconds"), duration = field("duration_seconds");
+          if (!start || !duration) throw new DomainError("分析接口缺少真实源时间窗口", "MEDIA_MODEL_SCHEMA_UNSUPPORTED");
+          fields[start.id] = 0;
+          fields[duration.id] = (window.range.endMs - window.range.startMs) / 1000;
         }
         return { fieldValues: fields, files: [{ slot, path: derived.path, mime: kind === "audio" ? "audio/wav" : kind === "image" ? "image/png" : "video/mp4" }] };
       }, undefined, requestIdentity);
@@ -178,7 +181,7 @@ export async function runMediaUnderstanding(app: EditingApplication, job: JobRec
         if (modalities.includes("speech")) {
           try {
             const audio = kind === "audio" ? derived : await deriveMediaInput(source, join(directory, "speech"), window.range, undefined, true);
-            const transcript = await modelText(app, job, bridge, `speech:${window.id}`, FUNASR_SOURCE_CAPTION_WORKFLOW_ID, async (schema) => ({ fieldValues: {}, files: [{ slot: bridge.findRequiredSlot(schema, "audio"), path: audio.path, mime: "audio/wav" }] }), "caption-alignment-json");
+            const transcript = await modelText(app, job, bridge, `speech:${window.id}`, FUNASR_SOURCE_CAPTION_WORKFLOW_ID, async (schema) => ({ fieldValues: {}, files: [{ slot: bridge.findRequiredSlot(schema, "audio"), path: audio.path, mime: "audio/wav" }] }), "caption_alignment");
             const result = parseSourceCaptionAlignmentOutput(transcript.text!);
             for (const segment of result.segments) {
               if (segment.startMs < 0 || segment.endMs > window.range.endMs - window.range.startMs + 50 || segment.endMs <= segment.startMs) throw new DomainError("转写时间超出真实输入窗口", "MEDIA_TRANSCRIPT_RANGE_INVALID");

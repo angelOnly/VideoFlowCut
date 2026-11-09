@@ -111,12 +111,12 @@ test("v2 Worker 按真实源采样补缺口；无关 Revision 和部分用途取
     use.endFrame = 905;
     let submissions = 0;
     const workflow: BridgeWorkflow = {
-      id: "avatar", name: "隔离", available: true, schemaVersion: "test", fields: [],
-      itemSlots: [{ id: "photo", label: "照片", kind: "image", required: true }, { id: "speech", label: "声音", kind: "audio", required: true }],
+      id: "avatar", name: "隔离", schemaVersion: "test", fields: [],
+      itemSlots: [{ id: "photo", label: "照片", mediaKind: "image", min: 1, max: 1 }, { id: "speech", label: "声音", mediaKind: "audio", min: 1, max: 1 }],
       outputs: []
     };
     const bridge = {
-      createRunWithSchemaRetry: async (_id: string, build: (workflow: BridgeWorkflow) => Promise<{ files: Array<{ path: string; mime: string }> }>) => {
+      createRunWithWorkflow: async (_id: string, build: (workflow: BridgeWorkflow) => Promise<{ files: Array<{ path: string; mime: string }> }>) => {
         const request = await build(workflow);
         const path = request.files.find(file => file.mime === "audio/wav")!.path;
         const bytes = await readFile(path);
@@ -142,7 +142,7 @@ test("v2 Worker 创建前拒绝已取消需求和实际文件哈希变化", asyn
   const context = await fixture();
   try {
     let calls = 0;
-    const bridge = { createRunWithSchemaRetry: () => { calls++; throw new Error("不得提交"); } } as unknown as ComfyUIBridgeClient;
+    const bridge = { createRunWithWorkflow: () => { calls++; throw new Error("不得提交"); } } as unknown as ComfyUIBridgeClient;
     const uses = context.snapshot.visualTreatments[0]!.presenterUses;
     context.snapshot.visualTreatments[0]!.presenterUses = [];
     await assert.rejects(runAvatarGeneration(context.app, context.job, bridge),
@@ -175,10 +175,10 @@ test("v2 已知 Run 在声音和需求撤销后仍回收为源；项目写入后
     const bridge = {
       waitForRun: async (id: string) => {
         assert.equal(id, "original"); polls++;
-        return { id, status: "succeeded", outputs: [{ outputSlotId: "video", kind: "video", fileName: "result.mp4", mime: "video/mp4", downloadUrl: "/result.mp4" }] };
+        return { id, status: "succeeded", outputs: [{ outputSlotId: "video", kind: "video", fileName: "result.mp4", mime: "video/mp4", outputId: "result" }] };
       },
-      downloadOutput: async (_output: unknown, path: string) => { await copyFile(video, path); },
-      createRunWithSchemaRetry: () => { assert.fail("不得重提 Provider"); }
+      downloadOutput: async (_run: unknown, _output: unknown, path: string) => { await copyFile(video, path); },
+      createRunWithWorkflow: () => { assert.fail("不得重提 Provider"); }
     } as unknown as ComfyUIBridgeClient;
     const result = await runAvatarGeneration(context.app, context.job, bridge);
     assert.equal(result.recoveredExistingRun, true);
@@ -220,10 +220,10 @@ test("人物视频仅一秒而音轨三秒时拒绝三秒需求，下载和本�
     const bridge = {
       waitForRun: async () => ({
         id: "original", status: "succeeded",
-        outputs: [{ outputSlotId: "video", kind: "video", fileName: "result.mp4", mime: "video/mp4", downloadUrl: "/result.mp4" }]
+        outputs: [{ outputSlotId: "video", kind: "video", fileName: "result.mp4", mime: "video/mp4", outputId: "result" }]
       }),
-      downloadOutput: async (_output: unknown, path: string) => { downloads++; await copyFile(video, path); },
-      createRunWithSchemaRetry: () => { assert.fail("恢复任务不得重提 Provider"); }
+      downloadOutput: async (_run: unknown, _output: unknown, path: string) => { downloads++; await copyFile(video, path); },
+      createRunWithWorkflow: () => { assert.fail("恢复任务不得重提 Provider"); }
     } as unknown as ComfyUIBridgeClient;
     for (let attempt = 0; attempt < 2; attempt++) {
       await assert.rejects(runAvatarGeneration(app, job, bridge),

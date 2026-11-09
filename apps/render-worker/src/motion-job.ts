@@ -57,7 +57,7 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
   if (rangeExpectation && !frameRange && job.payload.outputIntent !== "prepare") throw new DomainError("局部自动采用需要明确作品根范围", "MOTION_RANGE_INVALID");
   const rangeCandidate = rangeExpectation && frameRange ? { width: work.width, height: work.height, fps: work.fps, frameCount,
     rootRange: { ...frameRange, fullDurationInFrames: work.durationInFrames } } : undefined;
-  if (rangeExpectation && rangeCandidate) checkMotionRangeCompatibility(rangeExpectation, rangeCandidate, false);
+  if (rangeExpectation && rangeCandidate) checkMotionRangeCompatibility(rangeExpectation, rangeCandidate);
   const boundImages = boundMotionImageSchema.array().parse(job.payload.boundImages ?? []);
   const boundVideos = boundMotionVideoSchema.array().parse(job.payload.boundVideos ?? []);
   const boundFonts = boundMotionFontSchema.array().parse(job.payload.boundFonts ?? []);
@@ -193,7 +193,7 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
   }
   diagnostics.stage("output_validation");
   const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8")) as MotionRenderResult & { version: string; hashEngineVersion?: string; previewHash: string; imageDecodes: MotionImageDecode[]; videoDecodes?: Record<string, unknown> };
-  if (rangeExpectation && rangeCandidate) checkMotionRangeCompatibility(rangeExpectation, { ...rangeCandidate, events: manifest.events === undefined ? undefined : parseMotionEvents(manifest.events, work.durationInFrames) });
+  if (rangeExpectation && rangeCandidate) checkMotionRangeCompatibility(rangeExpectation, rangeCandidate);
   const storedSource = motionSubmissionSchema.parse(JSON.parse(await readFile(join(directory, "source.json"), "utf8")));
   if (manifest.version !== version || (manifest as any).pixelKey !== pixelKey || !Array.isArray(manifest.frameHashes) || manifest.frameHashes.length !== frameCount || JSON.stringify((manifest as any).frameRange) !== JSON.stringify(frameRange) || motionHash(storedSource, boundImages, manifest.hashEngineVersion ?? manifest.engineVersion, boundVideos, boundFonts, sourceDisplay) !== version) throw new Error("MOTION_CACHE_CORRUPT");
   if (JSON.stringify((manifest as any).boundFonts ?? []) !== JSON.stringify(boundFonts)) throw new Error("MOTION_FONT_CACHE_CORRUPT");

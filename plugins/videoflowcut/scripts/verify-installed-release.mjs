@@ -84,6 +84,8 @@ function inspectPluginIdentity(pluginRoot) {
  */
 function inspectMcpStartupChain(pluginRoot) {
   const scripts = {
+    openDesignLauncher: "scripts/open-design-mcp-launcher.mjs",
+    openDesignRelease: "scripts/open-design-release.mjs",
     mcpLauncher: "scripts/mcp-launcher.mjs",
     mcpSession: "scripts/mcp-session.mjs",
     renderBrowser: "scripts/prepare-render-browser.mjs",
@@ -151,6 +153,9 @@ function inspectMcpEntry(pluginRoot) {
   const configPath = join(pluginRoot, ".mcp.json");
   const mcp = readJson(configPath, "插件 MCP 配置");
   const server = mcp?.mcpServers?.[MCP_SERVER_NAME];
+  if (mcp?.mcpServers?.open_design?.command !== "node" || mcp?.mcpServers?.open_design?.args?.[0] !== "./scripts/open-design-mcp-launcher.mjs") {
+    fail("插件缺少画面工具入口。");
+  }
   if (server?.command !== "node" || !Array.isArray(server.args) || server.args[0] !== MCP_LAUNCHER_ARGUMENT) {
     fail("插件 MCP 入口必须是 node ./scripts/mcp-launcher.mjs。");
   }

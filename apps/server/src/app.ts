@@ -1,6 +1,7 @@
 import { motionJobReceipt } from "./command-receipt.js";
 import { registerMotionWorkbenchRoutes } from "./motion-workbench.js";
 import { motionOnSuccessSchema } from "../../../packages/contracts/src/motion-continuation.js";
+import { motionAuthoringRequestSchema } from "../../../packages/contracts/src/motion-authoring.js";
 import { MotionFrameCache } from "../../../packages/media-intelligence/src/motion-frames.js";
 import { hyperframesContract } from "../../../packages/motion-work/src/hyperframes-contract.js";
 import { registerPresenterRoutes } from "./presenter-tools.js";
@@ -105,7 +106,6 @@ const videoGenerationRequestSchema = z.object({
   prompt: z.string().trim().min(1).max(4_000),
   durationSeconds: z.number().int().min(1).max(1_800),
   aspectRatio: z.enum(["9:16", "16:9", "1:1"]).optional(),
-  outputSlotId: z.string().trim().min(1).max(240).optional(),
   seed: z.number().int().nonnegative().optional(),
   megapixels: z.number().min(0.1).max(16).optional(),
   initialSeed: z.number().int().nonnegative().optional(),
@@ -382,13 +382,13 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.get("/api/projects/:projectId/jobs", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    return application.listJobs(projectId).map(job => ["motion_generation", "motion_adoption"].includes(job.kind) ? motionJobReceipt(job) : job);
+    return application.listJobs(projectId).map(job => ["motion_generation", "motion_adoption", "motion_authoring"].includes(job.kind) ? motionJobReceipt(job) : job);
   });
 
   app.get("/api/jobs/:jobId", async (request) => {
     const { jobId } = z.object({ jobId: idSchema }).parse(request.params);
     const job = application.trackJob(jobId);
-    return ["motion_generation", "motion_adoption"].includes(job.kind) ? motionJobReceipt(job) : job;
+    return ["motion_generation", "motion_adoption", "motion_authoring"].includes(job.kind) ? motionJobReceipt(job) : job;
   });
 
   app.post("/api/captions/measure-text", async (request, reply) => {
@@ -999,7 +999,6 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       workflowId: z.string().trim().min(1).max(240),
       prompt: z.string().trim().min(1).max(4_000),
       durationSeconds: z.number().int().min(1).max(1_800),
-      outputSlotId: z.string().trim().min(1).max(240).optional(),
       idempotencyKey: z.string().trim().min(1).max(240).optional()
     }).strict().parse(request.body);
     return reply.status(202).send(application.submitMusicGeneration({ projectId, ...body }));
@@ -1129,6 +1128,29 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const body = z.object({ baseRevision: baseRevisionSchema, idempotencyKey: z.string().min(1), workId: idSchema, target: motionOnSuccessSchema }).strict().parse(request.body);
     return application.submitMotionAdoption({ projectId, ...body });
   });
+  app.post("/api/projects/:projectId/motion-authoring", async request => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const body = z.object({ baseRevision: baseRevisionSchema, productionRunId: idSchema.optional(), target: motionOnSuccessSchema,
+      openDesignRequest: motionAuthoringRequestSchema, idempotencyKey: z.string().min(1).max(120) }).strict().parse(request.body);
+    const job = await application.startMotionAuthoring({ projectId, ...body });
+    return { projectId, jobId: job.id, status: job.status, authoring: job.result?.authoring };
+  });
+  app.get("/api/projects/:projectId/motion-authoring/:jobId/wait", async (request, reply) => {
+    if (request.headers["x-videoflowcut-release-id"] !== runtimeConfig.runtime.releaseId) throw new DomainError("当前 MCP 与 Runtime 版本不一致", "RUNTIME_RELEASE_MISMATCH");
+    const { projectId, jobId } = z.object({ projectId: idSchema, jobId: idSchema }).parse(request.params);
+    const { afterSequence, timeoutMs } = z.object({ afterSequence: z.coerce.number().int().nonnegative().default(0), timeoutMs: z.coerce.number().int().min(0).max(30000).default(20000) }).parse(request.query);
+    const deadline = Date.now() + timeoutMs;
+    while (true) {
+      const job = application.trackJob(jobId);
+      if (job.projectId !== projectId || job.kind !== "motion_authoring") throw new DomainError("制作任务不属于当前项目", "MOTION_AUTHORING_JOB_NOT_FOUND");
+      const authoring = job.result?.authoring as { sequence?: number } | undefined;
+      if ((authoring?.sequence ?? 0) > afterSequence || ["succeeded", "failed", "cancelled", "unknown"].includes(job.status) || Date.now() >= deadline) {
+        return reply.header("x-videoflowcut-release-id", runtimeConfig.runtime.releaseId).send({ projectId, jobId, status: job.status, sequence: authoring?.sequence ?? 0,
+          authoring, error: job.error, timedOut: Date.now() >= deadline && (authoring?.sequence ?? 0) <= afterSequence });
+      }
+      await new Promise(resolve => setTimeout(resolve, Math.min(250, Math.max(0, deadline - Date.now()))));
+    }
+  });
   app.post("/api/projects/:projectId/motion-works", { bodyLimit: 12 * 1024 * 1024 }, async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({ baseRevision: baseRevisionSchema, idempotencyKey: z.string().min(1).max(160), work: motionSubmissionSchema, onSuccess: motionOnSuccessSchema.optional() }).strict().parse(request.body);
@@ -1143,6 +1165,11 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const { projectId, workId } = z.object({ projectId: idSchema, workId: idSchema }).parse(request.params);
     const { revision } = z.object({ revision: z.coerce.number().int().positive().optional() }).parse(request.query);
     return application.readSourceMotionWork(projectId, workId, revision);
+  });
+  app.post("/api/projects/:projectId/motion-works/:workId/inspect-frames", async request => {
+    const { projectId, workId } = z.object({ projectId: idSchema, workId: idSchema }).parse(request.params);
+    const body = z.object({ revision: baseRevisionSchema, frames: z.array(z.number().int().nonnegative()).min(1), idempotencyKey: z.string().min(1).max(160) }).strict().parse(request.body);
+    return application.submitMotionInspection({ projectId, workId, ...body });
   });
   app.post("/api/projects/:projectId/motion-works/:workId/review", async (request) => {
     const { projectId, workId } = z.object({ projectId: idSchema, workId: idSchema }).parse(request.params);
@@ -1199,7 +1226,6 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       baseRevision: baseRevisionSchema,
       workflowId: z.string().trim().min(1).max(240),
       speechAssetId: idSchema.optional(),
-      outputSlotId: z.string().trim().min(1).max(240).optional(),
       idempotencyKey: z.string().trim().min(1).max(240).optional()
     }).strict().parse(request.body);
     return reply.status(202).send(application.submitSpeechAlignment({ projectId, ...body }));

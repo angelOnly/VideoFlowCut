@@ -13,7 +13,7 @@ await mkdir(output, { recursive: true });
 const manifest = JSON.parse(await readFile(join(repo, 'plugins/videoflowcut/runtime/dist/manifest.json'), 'utf8'));
 const client = new Client({ name: '画布隔离发行核验', version: '1' });
 const transport = new StdioClientTransport({ command: process.execPath, args: [join(repo, 'plugins/videoflowcut/scripts/mcp-launcher.mjs')], cwd: repo,
-  env: { ...process.env, VIDEOCUT_WORKSPACE: workspace, VIDEOFLOWCUT_PORT: String(port), COMFYUI_BRIDGE_URL: 'http://127.0.0.1:8197/comfyui-bridge/v1' }, stderr: 'pipe' });
+  env: { ...process.env, VIDEOCUT_WORKSPACE: workspace, VIDEOFLOWCUT_PORT: String(port), COMFYUI_BRIDGE_URL: 'http://127.0.0.1:8197/comfyui-bridge/v2' }, stderr: 'pipe' });
 try {
   await client.connect(transport);
   await client.listTools();

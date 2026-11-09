@@ -20,7 +20,8 @@ export async function runLibrarySemanticSearch(app:EditingApplication,job:JobRec
   const started=Date.now(),config=semanticConfig(job),store=app.intelligence.store;
   if(bridge.apiBaseUrl!==config.apiBaseUrl)bridge=new ComfyUIBridgeClient(config.apiBaseUrl);
   const schema=await bridge.getWorkflow(config.embeddingWorkflowId);
-  if(!schema.fields.some(field=>field.id==="instruction"))throw new DomainError("向量工作流未提供任务指令字段","MOTION_INSTRUCTION_UNSUPPORTED");
+  // v2 的字段编号由工作流生成；按名称确认能力，实际提交使用返回的编号。
+  if(!schema.fields.some(field=>field.label==="instruction"))throw new DomainError("向量工作流未提供任务指令字段","MOTION_INSTRUCTION_UNSUPPORTED");
   const version={...config,schema:schema.schemaVersion};
   let encoded=0,cacheHits=0;
   const documents=adapter.documents.map(entry=>{

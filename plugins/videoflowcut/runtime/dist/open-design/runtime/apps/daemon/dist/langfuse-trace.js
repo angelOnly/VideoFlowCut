@@ -1,0 +1,2420 @@
+// Langfuse trace forwarding for completed agent runs.
+//
+// This module is intentionally dependency-free (no `langfuse` SDK). It builds
+// Langfuse ingestion batches for completed runs and sends them either to the
+// official OpenDesign telemetry relay or, for local smoke tests, directly to
+// Langfuse. Without OPEN_DESIGN_TELEMETRY_RELAY_URL or LANGFUSE_PUBLIC_KEY /
+// LANGFUSE_SECRET_KEY in the env, every entry point becomes a no-op so that
+// dev runs and forks of this open-source repo do not accidentally report.
+//
+// Privacy gates are layered: `prefs.metrics` is the master switch, and
+// `prefs.content` is required for Langfuse traces because this sink is used
+// for turn-quality evals. If either is off, no network call is made.
+// Complete-context manifests are part of content telemetry: when metrics and
+// content are both enabled, Langfuse receives the trace and associated object
+// references. If either is off, no network call is made.
+//
+// See: specs/change/20260507-langfuse-telemetry/spec.md
+import { createHash, randomUUID } from 'node:crypto';
+import { SAFE_RUN_QUALITY_V1_SCHEMA, SafeRunQualityV1Schema, } from '@open-design/contracts';
+import { normalizeOpenDesignTelemetryRelayUrl } from './integrations/telemetry-relay.js';
+import { readVelaControlApiContext } from './integrations/vela.js';
+import { deriveRunTelemetryExportExpectation, exportRunObservation, } from './observability/run-exporter.js';
+import { buildPromptStackFlatMetadata, promptStackWithoutContent, redactLocalPaths as redactPromptStackLocalPaths, structuredPromptStackInput, } from './prompt-telemetry.js';
+import { STDERR_TAIL_MAX_BYTES, } from './run-diagnostics.js';
+import { canonicalizeToolAnalyticsName, phaseAnchorFromMarks, } from './run-analytics-observability.js';
+import { redactSecrets } from './redact.js';
+import { readTelemetryEnvironment } from './telemetry-environment.js';
+// Langfuse US region: confirmed by an end-to-end smoke on 2026-05-07 — the
+// project's keys authenticate against `us.cloud.langfuse.com` only. EU host
+// (`cloud.langfuse.com`) returns 401 with the matching error message.
+// See specs/change/20260507-langfuse-telemetry/spec.md Q3.
+const DEFAULT_BASE_URL = 'https://us.cloud.langfuse.com';
+export const INPUT_MAX_BYTES = 64 * 1024;
+const OUTPUT_MAX_BYTES = 64 * 1024;
+const TOOL_INPUT_MAX_BYTES = 8 * 1024;
+const TOOL_OUTPUT_MAX_BYTES = 8 * 1024;
+const ARTIFACTS_MAX_ITEMS = 50;
+const SESSION_ID_MAX = 200; // Langfuse drops sessionIds longer than this.
+export const HARD_BATCH_MAX_BYTES = 1024 * 1024;
+const DEFAULT_FETCH_TIMEOUT_MS = 20_000;
+const DEFAULT_FETCH_RETRIES = 1;
+const PROMPT_STACK_BLAME_MAX_SECTIONS = 8;
+let missingTelemetrySinkWarned = false;
+export function readLangfuseConfig(env = process.env) {
+    const publicKey = env.LANGFUSE_PUBLIC_KEY?.trim();
+    const secretKey = env.LANGFUSE_SECRET_KEY?.trim();
+    if (!publicKey || !secretKey)
+        return null;
+    const baseUrl = (env.LANGFUSE_BASE_URL?.trim() || DEFAULT_BASE_URL).replace(/\/+$/, '');
+    const authHeader = 'Basic ' +
+        Buffer.from(`${publicKey}:${secretKey}`, 'utf8').toString('base64');
+    return {
+        authHeader,
+        baseUrl,
+        timeoutMs: parsePositiveInt(env.LANGFUSE_TIMEOUT_MS, DEFAULT_FETCH_TIMEOUT_MS),
+        retries: parseNonNegativeInt(env.LANGFUSE_RETRIES, DEFAULT_FETCH_RETRIES),
+    };
+}
+/**
+ * Resolve telemetry delivery in release-safe order: hosted relay first,
+ * direct Langfuse credentials second for local smoke tests, disabled last.
+ */
+export function readTelemetrySinkConfig(env = process.env) {
+    const relayUrl = env.OPEN_DESIGN_TELEMETRY_RELAY_URL?.trim();
+    if (relayUrl) {
+        return {
+            kind: 'relay',
+            relayUrl: normalizeOpenDesignTelemetryRelayUrl(relayUrl),
+            timeoutMs: parsePositiveInt(env.OPEN_DESIGN_TELEMETRY_TIMEOUT_MS ?? env.LANGFUSE_TIMEOUT_MS, DEFAULT_FETCH_TIMEOUT_MS),
+            retries: parseNonNegativeInt(env.OPEN_DESIGN_TELEMETRY_RETRIES ?? env.LANGFUSE_RETRIES, DEFAULT_FETCH_RETRIES),
+        };
+    }
+    const config = readLangfuseConfig(env);
+    return config == null ? null : { kind: 'langfuse', ...config };
+}
+/**
+ * Task hierarchies use the same authenticated identity as completed runs.
+ * Older Vela servers may reject the versioned schema; delivery handles that
+ * explicit compatibility rejection without changing the execution strategy.
+ */
+export function readTaskTelemetrySinkConfig(env = process.env, configuredEnv = {}) {
+    return readRunTelemetrySinkConfig(env, configuredEnv);
+}
+function isVelaTelemetryEnabled(env) {
+    const raw = env.OPEN_DESIGN_VELA_TELEMETRY?.trim().toLowerCase();
+    return raw !== '0' && raw !== 'false' && raw !== 'off' && raw !== 'no';
+}
+/**
+ * Completed-run and feedback telemetry share the same sink selection: Vela when
+ * a Control Key is present, otherwise the anonymous relay / direct Langfuse.
+ * Feedback score-only batches keep the client run id as `data.traceId`; Vela
+ * re-scopes it with the same account hash as the original run batch.
+ */
+export function readRunTelemetrySinkConfig(env = process.env, configuredEnv = {}) {
+    if (isVelaTelemetryEnabled(env)) {
+        const context = readVelaControlApiContext(env, configuredEnv);
+        const controlKey = context?.controlKey?.trim() ?? '';
+        if (context && controlKey) {
+            return {
+                kind: 'vela',
+                apiUrl: (context.apiUrl.trim() || 'https://amr-api.open-design.ai').replace(/\/+$/, ''),
+                controlKey,
+                timeoutMs: parsePositiveInt(env.OPEN_DESIGN_TELEMETRY_TIMEOUT_MS ?? env.LANGFUSE_TIMEOUT_MS, DEFAULT_FETCH_TIMEOUT_MS),
+                retries: parseNonNegativeInt(env.OPEN_DESIGN_TELEMETRY_RETRIES ?? env.LANGFUSE_RETRIES, DEFAULT_FETCH_RETRIES),
+            };
+        }
+    }
+    return readTelemetrySinkConfig(env);
+}
+/**
+ * Feedback uses the same sink as completed-run telemetry. Vela accepts
+ * score-only batches on the same endpoint and binds them via client run id.
+ */
+export function readFeedbackTelemetrySinkConfig(env = process.env, configuredEnv = {}) {
+    return readRunTelemetrySinkConfig(env, configuredEnv);
+}
+/**
+ * Allowlisted effective-sink identity for daemon logs and support bundles.
+ * URL credentials, ports, paths, queries, fragments, headers, and keys never
+ * enter the returned object.
+ */
+export function describeRunTelemetrySink(sink) {
+    if (!sink)
+        return { kind: 'none', host: null, protocol: null };
+    const rawUrl = sink.kind === 'vela'
+        ? sink.apiUrl
+        : sink.kind === 'relay'
+            ? sink.relayUrl
+            : sink.baseUrl;
+    try {
+        const url = new URL(rawUrl);
+        const protocol = url.protocol === 'https:'
+            ? 'https'
+            : url.protocol === 'http:'
+                ? 'http'
+                : null;
+        return {
+            kind: sink.kind,
+            host: url.hostname || null,
+            protocol,
+        };
+    }
+    catch {
+        return { kind: sink.kind, host: null, protocol: null };
+    }
+}
+export function deriveLangfuseDeliveryState(prefs, sink) {
+    const expectation = deriveRunTelemetryExportExpectation(prefs, sink !== null);
+    if (!expectation.expected) {
+        return {
+            langfuse_expected: false,
+            langfuse_delivery_status: 'not_expected',
+            langfuse_drop_reason: expectation.reason,
+        };
+    }
+    return {
+        langfuse_expected: true,
+        langfuse_delivery_status: 'queued',
+    };
+}
+function parsePositiveInt(value, fallback) {
+    if (value === undefined)
+        return fallback;
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+function parseNonNegativeInt(value, fallback) {
+    if (value === undefined)
+        return fallback;
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+// Byte-aware UTF-8 truncation. JS String.length counts UTF-16 code units,
+// not bytes — non-ASCII text (CJK, emoji) can occupy 2-4× as many bytes as
+// characters, so a `value.length > max` cap silently lets oversized prompts
+// through. We truncate on a UTF-8 byte boundary so the result is still
+// valid Unicode (no half-encoded characters).
+function truncate(value, maxBytes) {
+    if (!value)
+        return undefined;
+    const buf = Buffer.from(value, 'utf8');
+    if (buf.length <= maxBytes)
+        return value;
+    let cut = maxBytes;
+    // UTF-8 continuation bytes have the bit pattern 10xxxxxx. Walk backwards
+    // until we land on a leading byte (0xxxxxxx, 110xxxxx, 1110xxxx, 11110xxx)
+    // so the slice doesn't end mid-character.
+    while (cut > 0 && (buf[cut] & 0xc0) === 0x80)
+        cut -= 1;
+    return buf.subarray(0, cut).toString('utf8');
+}
+function buildTagList(ctx) {
+    const tags = ['open-design', `project:${ctx.projectId}`];
+    if (ctx.agentId)
+        tags.push(`agent:${ctx.agentId}`);
+    if (ctx.turn?.model)
+        tags.push(`model:${ctx.turn.model}`);
+    if (ctx.turn?.skillId)
+        tags.push(`skill:${ctx.turn.skillId}`);
+    if (ctx.turn?.designSystemId)
+        tags.push(`ds:${ctx.turn.designSystemId}`);
+    if (ctx.runtime?.os)
+        tags.push(`os:${ctx.runtime.os}`);
+    if (ctx.runtime?.clientType && ctx.runtime.clientType !== 'unknown') {
+        tags.push(`client:${ctx.runtime.clientType}`);
+    }
+    if (ctx.extraTags?.length)
+        tags.push(...ctx.extraTags);
+    return tags;
+}
+function validTimestamp(value) {
+    return typeof value === 'number' && Number.isFinite(value) && value >= 0
+        ? value
+        : undefined;
+}
+function timingSpanBody(input) {
+    const start = validTimestamp(input.start);
+    const end = validTimestamp(input.end);
+    if (start === undefined || end === undefined || end < start)
+        return null;
+    const durationMs = Math.round(end - start);
+    return {
+        id: `${input.runId}-phase-${input.name}`,
+        traceId: input.traceId,
+        parentObservationId: input.parentObservationId,
+        name: input.name,
+        startTime: new Date(start).toISOString(),
+        endTime: new Date(end).toISOString(),
+        input: input.input,
+        output: {
+            duration_ms: durationMs,
+            ...(input.output ?? {}),
+        },
+        metadata: {
+            durationMs,
+            ...(input.metadata ?? {}),
+        },
+    };
+}
+function promptBuildSummary(promptTelemetry) {
+    if (!promptTelemetry) {
+        return {
+            prompt_stack_available: false,
+        };
+    }
+    return {
+        prompt_stack_available: true,
+        section_count: promptTelemetry.sectionCount,
+        stack_fingerprint: promptTelemetry.stackFingerprint,
+        prompt_fingerprint: promptTelemetry.promptFingerprint,
+        raw_bytes: promptTelemetry.rawBytes,
+        redacted_bytes: promptTelemetry.redactedBytes,
+        redacted_content_bytes: promptTelemetry.redactedContentBytes,
+    };
+}
+function objectRefSummary(entries) {
+    if (!entries?.length)
+        return undefined;
+    return entries.map((entry) => ({
+        object_class: entry.object_class,
+        storage_ref: entry.storage_ref,
+        status: entry.status,
+        size_bytes: entry.size_bytes,
+        sha256: entry.sha256,
+        mime_type: entry.mime_type,
+        extension: entry.extension,
+        redacted: entry.redacted,
+        truncated: entry.truncated,
+        retention_policy: entry.retention_policy,
+        access_scope: entry.access_scope,
+        sensitivity: entry.sensitivity,
+        source: entry.source,
+        ...(entry.object_class === 'attachment'
+            ? { attachment_id: entry.attachment_id }
+            : { artifact_id: entry.artifact_id, type: entry.type }),
+    }));
+}
+function cappedManifestEntries(entries) {
+    return entries ? entries.slice(0, ARTIFACTS_MAX_ITEMS) : undefined;
+}
+function manifestTruncated(entries) {
+    return entries && entries.length > ARTIFACTS_MAX_ITEMS ? true : undefined;
+}
+function tokenUsageSummary(usage) {
+    if (!usage)
+        return undefined;
+    return {
+        input: usage.inputTokens,
+        input_provider: usage.inputTokensProvider,
+        input_effective: usage.inputTokensEffective,
+        output: usage.outputTokens,
+        total: usage.totalTokens,
+        thought: usage.thoughtTokens,
+        cache_read_input: usage.cacheReadInputTokens,
+        cache_creation_input: usage.cacheCreationInputTokens,
+        uncached_input: usage.uncachedInputTokens,
+        cache_hit_ratio: usage.cacheHitRatio,
+        cache_token_source: usage.cacheTokenSource,
+    };
+}
+function latestAgentCostUsd(ctx) {
+    if (!ctx.agentEvents?.length)
+        return undefined;
+    for (let i = ctx.agentEvents.length - 1; i >= 0; i -= 1) {
+        const event = ctx.agentEvents[i];
+        const cost = event.output?.cost_usd;
+        if (typeof cost === 'number' && Number.isFinite(cost) && cost >= 0) {
+            return cost;
+        }
+    }
+    return undefined;
+}
+function phaseCost(phase, costUsd, status, source, note) {
+    return {
+        phase,
+        cost_usd: costUsd,
+        cost_status: status,
+        cost_source: source,
+        ...(note ? { note } : {}),
+    };
+}
+function buildCostBreakdown(ctx) {
+    const costUsd = latestAgentCostUsd(ctx);
+    const hasCost = costUsd !== undefined;
+    return {
+        cost_usd: costUsd ?? null,
+        currency: 'USD',
+        pricing_version: hasCost ? 'provider_reported' : 'unavailable',
+        cost_source: hasCost ? 'agent_usage_event' : 'unavailable',
+        cost_status: hasCost ? 'available' : 'unavailable',
+        unavailable_reason: hasCost
+            ? undefined
+            : 'agent runtime did not report total_cost_usd',
+        token_usage: tokenUsageSummary(ctx.message.usage),
+        phase_costs: {
+            prompt_build: phaseCost('prompt-build', null, 'not_metered', 'not_applicable', 'local prompt assembly; no provider call in this phase'),
+            agent_call: phaseCost('agent-call', costUsd ?? null, hasCost ? 'available' : 'unavailable', hasCost ? 'agent_usage_event' : 'unavailable', hasCost
+                ? 'provider-reported total for the agent call; not split across stream/tools/artifact internally'
+                : 'runtime did not report total_cost_usd'),
+            tool_execution: phaseCost('tool-execution', null, 'included_in_agent_call_or_not_metered', 'not_split', 'tool spans are local process/tool time; provider token cost is only available at agent-call granularity'),
+            artifact_generation: phaseCost('artifact-generation', null, 'included_in_agent_call', 'not_split', 'artifact output is generated inside the agent call and is not separately priced'),
+            verification: phaseCost('verification', null, 'not_instrumented', 'unavailable', 'preview/screenshot/responsive verification is not yet emitted as a structured measured phase'),
+        },
+    };
+}
+function cleanNumber(value) {
+    return typeof value === 'number' && Number.isFinite(value) && value >= 0
+        ? value
+        : undefined;
+}
+function sectionAttributionBytes(section) {
+    return cleanNumber(section.redactedBytes) ?? cleanNumber(section.rawBytes) ?? 0;
+}
+function redactedContentBytes(section) {
+    return Buffer.byteLength(section.redactedContent ?? '', 'utf8');
+}
+function allocateProportionalTokens(total, sections) {
+    const out = new Map();
+    const cleanTotal = cleanNumber(total);
+    if (cleanTotal === undefined || cleanTotal <= 0)
+        return out;
+    const totalWeight = sections.reduce((sum, item) => sum + item.weightBytes, 0);
+    if (totalWeight <= 0)
+        return out;
+    let assigned = 0;
+    let largest = null;
+    for (const item of sections) {
+        const exact = (cleanTotal * item.weightBytes) / totalWeight;
+        const rounded = Math.floor(exact);
+        out.set(item.section, rounded);
+        assigned += rounded;
+        if (!largest || item.weightBytes > sectionAttributionBytes(largest.section)) {
+            largest = { section: item.section, tokens: rounded };
+        }
+    }
+    const remainder = Math.round(cleanTotal) - assigned;
+    if (largest && remainder > 0) {
+        out.set(largest.section, (out.get(largest.section) ?? 0) + remainder);
+    }
+    return out;
+}
+function buildPromptStackBlameMetadata(promptStack, usage, timings) {
+    if (!promptStack || promptStack.sections.length === 0)
+        return {};
+    const weightedSections = promptStack.sections
+        .map((section) => ({
+        section,
+        weightBytes: sectionAttributionBytes(section),
+    }))
+        .filter((item) => item.weightBytes > 0);
+    if (weightedSections.length === 0)
+        return {};
+    const totalBytes = weightedSections.reduce((sum, item) => sum + item.weightBytes, 0);
+    const sorted = [...weightedSections].sort((a, b) => b.weightBytes - a.weightBytes || a.section.ordinal - b.section.ordinal);
+    const cacheCreationBySection = allocateProportionalTokens(usage?.cacheCreationInputTokens, weightedSections);
+    const cacheReadBySection = allocateProportionalTokens(usage?.cacheReadInputTokens, weightedSections);
+    const inputEffectiveBySection = allocateProportionalTokens(usage?.inputTokensEffective ?? usage?.inputTokens, weightedSections);
+    const uncachedBySection = allocateProportionalTokens(usage?.uncachedInputTokens, weightedSections);
+    const sectionRow = ({ section, weightBytes }) => {
+        const share = totalBytes > 0 ? weightBytes / totalBytes : 0;
+        return {
+            kind: section.kind,
+            ordinal: section.ordinal,
+            contentMode: section.contentMode,
+            rawBytes: section.rawBytes,
+            redactedBytes: section.redactedBytes,
+            redactedContentBytes: redactedContentBytes(section),
+            attributionBytes: weightBytes,
+            attributionShare: Number(share.toFixed(6)),
+            truncated: section.truncated,
+            ...(section.truncationReason ? { truncationReason: section.truncationReason } : {}),
+            estimatedInputEffectiveTokens: inputEffectiveBySection.get(section) ?? undefined,
+            estimatedCacheCreationInputTokens: cacheCreationBySection.get(section) ?? undefined,
+            estimatedCacheReadInputTokens: cacheReadBySection.get(section) ?? undefined,
+            estimatedUncachedInputTokens: uncachedBySection.get(section) ?? undefined,
+        };
+    };
+    const primary = sorted[0];
+    const primaryShare = totalBytes > 0 ? primary.weightBytes / totalBytes : 0;
+    return {
+        promptStack_topSectionsByBytes: sorted
+            .slice(0, PROMPT_STACK_BLAME_MAX_SECTIONS)
+            .map(sectionRow),
+        cacheCreationTokensBySection: sorted
+            .filter(({ section }) => (cacheCreationBySection.get(section) ?? 0) > 0)
+            .map(({ section, weightBytes }) => ({
+            kind: section.kind,
+            ordinal: section.ordinal,
+            attributionBytes: weightBytes,
+            estimatedCacheCreationInputTokens: cacheCreationBySection.get(section) ?? 0,
+        })),
+        promptStack_ttftAttribution: {
+            method: 'proportional_by_prompt_section_redacted_bytes',
+            estimation_warning: 'Provider reports aggregate prompt/cache tokens only; section token values are estimates for diagnosis, not billing truth.',
+            time_to_first_token_ms: timings?.time_to_first_token_ms,
+            spawn_to_first_token_ms: timings?.spawn_to_first_token_ms,
+            totalAttributionBytes: totalBytes,
+            sectionCount: weightedSections.length,
+            primarySectionKind: primary.section.kind,
+            primarySectionOrdinal: primary.section.ordinal,
+            primarySectionAttributionBytes: primary.weightBytes,
+            primarySectionAttributionShare: Number(primaryShare.toFixed(6)),
+            primarySectionEstimatedInputEffectiveTokens: inputEffectiveBySection.get(primary.section) ?? undefined,
+            primarySectionEstimatedCacheCreationInputTokens: cacheCreationBySection.get(primary.section) ?? undefined,
+            primarySectionEstimatedCacheReadInputTokens: cacheReadBySection.get(primary.section) ?? undefined,
+            cacheTokenSource: usage?.cacheTokenSource,
+        },
+    };
+}
+function durationMs(startedAt, endedAt) {
+    return Math.max(0, Math.round(endedAt - startedAt));
+}
+function buildToolPerformanceDiagnostics(tools) {
+    const list = tools ?? [];
+    const byName = new Map();
+    for (const tool of list) {
+        const d = durationMs(tool.startedAt, tool.endedAt);
+        // Aggregate under allowlisted family names only — never raw ACP/MCP labels.
+        const safeName = telemetrySafeToolName(tool.name);
+        const current = byName.get(safeName) ??
+            {
+                tool_name: safeName,
+                call_count: 0,
+                error_count: 0,
+                total_duration_ms: 0,
+                max_duration_ms: 0,
+                min_duration_ms: Number.POSITIVE_INFINITY,
+                failure_types: new Set(),
+            };
+        current.call_count += 1;
+        current.total_duration_ms += d;
+        current.max_duration_ms = Math.max(current.max_duration_ms, d);
+        current.min_duration_ms = Math.min(current.min_duration_ms, d);
+        if (tool.isError === true) {
+            current.error_count += 1;
+            current.failure_types.add('tool_result_error');
+        }
+        byName.set(safeName, current);
+    }
+    return {
+        tool_call_count: list.length,
+        total_tool_duration_ms: list.reduce((sum, tool) => sum + durationMs(tool.startedAt, tool.endedAt), 0),
+        retry_count_available: false,
+        retry_count: null,
+        retry_detection: 'not_instrumented',
+        retry_unavailable_reason: 'tool spans do not yet carry retry-group or attempt indexes',
+        by_tool: [...byName.values()].map((entry) => ({
+            tool_name: entry.tool_name,
+            call_count: entry.call_count,
+            error_count: entry.error_count,
+            total_duration_ms: entry.total_duration_ms,
+            avg_duration_ms: entry.call_count > 0
+                ? Math.round(entry.total_duration_ms / entry.call_count)
+                : 0,
+            max_duration_ms: entry.max_duration_ms,
+            min_duration_ms: Number.isFinite(entry.min_duration_ms) ? entry.min_duration_ms : 0,
+            retry_count_available: false,
+            retry_count: null,
+            failure_types: entry.failure_types.size > 0 ? [...entry.failure_types] : ['none'],
+        })),
+    };
+}
+function buildArtifactWriteDiagnostics(ctx) {
+    const writeTools = (ctx.tools ?? []).filter((tool) => tool.name === 'Write');
+    const totalArtifactSizeBytes = ctx.artifacts.reduce((sum, artifact) => sum + artifact.sizeBytes, 0);
+    const writeDurationMs = writeTools.reduce((sum, tool) => sum + durationMs(tool.startedAt, tool.endedAt), 0);
+    return {
+        artifact_count: ctx.artifacts.length,
+        total_artifact_size_bytes: totalArtifactSizeBytes,
+        write_tool_count: writeTools.length,
+        write_tool_duration_ms: writeDurationMs,
+        bytes_per_write_ms: writeDurationMs > 0
+            ? Math.round(totalArtifactSizeBytes / writeDurationMs)
+            : null,
+        correlation_status: ctx.artifacts.length > 0 && writeTools.length > 0
+            ? 'heuristic_by_write_tool_total'
+            : 'unavailable',
+        correlation_unavailable_reason: ctx.artifacts.length > 0 && writeTools.length > 0
+            ? undefined
+            : 'artifact files are not yet linked to individual Write tool ids',
+        artifacts: ctx.artifacts.map((artifact) => ({
+            slug: artifact.slug,
+            type: artifact.type,
+            size_bytes: artifact.sizeBytes,
+        })),
+    };
+}
+function buildSemanticPhaseDiagnostics(ctx) {
+    const marks = ctx.run.timingMarks ?? {};
+    const measured = {};
+    const addMeasured = (name, start, end) => {
+        const s = validTimestamp(start);
+        const e = validTimestamp(end);
+        measured[name] =
+            s !== undefined && e !== undefined && e >= s
+                ? { duration_ms: Math.round(e - s), status: 'measured' }
+                : { duration_ms: null, status: 'unmeasured' };
+    };
+    addMeasured('prompt-build', marks.promptBuildStartAt, marks.promptBuildEndAt);
+    addMeasured('launch-preflight', marks.launchPreflightStartAt, marks.launchPreflightEndAt);
+    addMeasured('process-spawn', marks.processSpawnStartedAt, marks.processSpawnedAt);
+    addMeasured('stdin-write', marks.stdinWriteStartAt, marks.stdinWriteEndAt);
+    addMeasured('runtime-init-to-first-model-event', marks.stdinWriteEndAt ?? marks.modelCallStartAt ?? marks.processSpawnedAt, marks.firstModelEventAt);
+    addMeasured('runtime-init-to-first-token', marks.stdinWriteEndAt ?? marks.modelCallStartAt ?? marks.processSpawnedAt, marks.firstTokenAt);
+    addMeasured('agent-call', marks.modelCallStartAt, ctx.run.endedAt);
+    addMeasured('stream-output', marks.firstTokenAt, marks.finalizeStartAt ?? ctx.run.endedAt);
+    // `stream-output` starts at the first text token, so a tool-first run shows
+    // only its closing message here. `model-active` is the same window anchored
+    // on the first model event of any kind. Kept as a diagnostics entry rather
+    // than a second span: this map rides along in existing metadata, while a new
+    // span would add an observation row per run.
+    //
+    // Boundaries mirror `model_active_duration_ms` in run-analytics-observability
+    // exactly -- earliest of the two marks, through run end -- because the whole
+    // point of this entry is to be compared against that number. Deliberately
+    // unlike its neighbours above, which end at `finalizeStartAt`.
+    addMeasured('model-active', phaseAnchorFromMarks(marks), ctx.run.endedAt);
+    addMeasured('artifact-write', marks.firstArtifactWriteAt, marks.finalizeStartAt ?? ctx.run.endedAt);
+    addMeasured('finalize', marks.finalizeStartAt, ctx.run.endedAt);
+    return {
+        measured,
+        semantic_phase_timing_status: 'partial',
+        missing_semantic_phases: [
+            'brief-intake',
+            'route-task-kind',
+            'resolve-skill',
+            'resolve-design-system',
+            'plan',
+            'generate-artifact',
+            'critique',
+            'repair',
+            'preview-verify',
+            'export-finalize',
+            'evaluator',
+        ],
+        missing_reason: 'runtime currently emits low-level timing marks but not all product semantic phase boundaries',
+    };
+}
+function buildPerformanceDiagnostics(ctx) {
+    return {
+        timings: ctx.run.timings,
+        tool_performance: buildToolPerformanceDiagnostics(ctx.tools),
+        artifact_write: buildArtifactWriteDiagnostics(ctx),
+        preview_verify: {
+            status: 'not_instrumented',
+            screenshot_check: 'not_reported',
+            responsive_check: 'not_reported',
+            html_parse_check: 'not_reported',
+            note: 'artifact self-checks may appear in assistant output, but are not yet structured observations',
+        },
+        semantic_phases: buildSemanticPhaseDiagnostics(ctx),
+    };
+}
+function buildTimingSpanBodies(ctx, parentObservationId, opts = {}) {
+    const marks = ctx.run.timingMarks ?? {};
+    const runStart = ctx.run.startedAt;
+    const runEnd = ctx.run.endedAt;
+    const queueEnd = marks.promptBuildStartAt ?? marks.startChatRunStartedAt;
+    const costBreakdown = buildCostBreakdown(ctx);
+    const phaseCosts = costBreakdown.phase_costs;
+    const definitions = [
+        {
+            name: 'queue',
+            start: runStart,
+            end: queueEnd,
+            input: {
+                phase: 'queue',
+                from: 'run.startedAt',
+                to: 'promptBuildStartAt',
+            },
+            output: {
+                status: queueEnd === undefined ? 'unmeasured' : 'ready_for_prompt_build',
+            },
+            metadata: { boundary: 'run.startedAt -> promptBuildStartAt' },
+        },
+        {
+            name: 'prompt-build',
+            start: marks.promptBuildStartAt,
+            end: marks.promptBuildEndAt,
+            input: {
+                phase: 'prompt-build',
+                ingredients: {
+                    agent: ctx.agentId ?? 'unknown',
+                    model: ctx.turn?.model ?? 'unknown',
+                    skill_id: ctx.turn?.skillId ?? null,
+                    design_system_id: ctx.turn?.designSystemId ?? null,
+                    design_system_digest: ctx.turn?.designSystemDigest ?? null,
+                    prompt_cache_hit: ctx.turn?.promptCache?.hit ?? null,
+                    user_request_available: Boolean(ctx.message.prompt),
+                    attachment_refs: objectRefSummary(cappedManifestEntries(ctx.attachmentManifest)) ?? [],
+                    attachment_refs_truncated: manifestTruncated(ctx.attachmentManifest),
+                },
+            },
+            output: {
+                status: marks.promptBuildEndAt === undefined
+                    ? 'unmeasured'
+                    : 'prompt_stack_ready',
+                content_policy: opts.promptStack
+                    ? 'redacted_prompt_stack_on_generation_input_with_object_refs'
+                    : 'metadata_only_or_unavailable',
+                ...promptBuildSummary(ctx.promptTelemetry),
+            },
+            metadata: { boundary: 'promptBuildStartAt -> promptBuildEndAt' },
+        },
+        {
+            name: 'launch-preflight',
+            start: marks.launchPreflightStartAt,
+            end: marks.launchPreflightEndAt,
+            input: {
+                phase: 'launch-preflight',
+                from: 'promptBuildEndAt',
+                to: 'processSpawnStartedAt',
+            },
+            output: {
+                status: marks.launchPreflightEndAt === undefined
+                    ? 'unmeasured'
+                    : 'ready_to_spawn',
+            },
+            metadata: { boundary: 'launchPreflightStartAt -> launchPreflightEndAt' },
+        },
+        {
+            name: 'spawn',
+            start: marks.processSpawnStartedAt,
+            end: marks.processSpawnedAt,
+            input: {
+                phase: 'spawn',
+                agent: ctx.agentId ?? 'unknown',
+                runtime: ctx.runtime?.clientType ?? 'unknown',
+                cwd_ref: 'project',
+                raw_path_included: false,
+            },
+            output: {
+                status: marks.processSpawnedAt === undefined ? 'unmeasured' : 'process_spawned',
+            },
+            metadata: {
+                boundary: 'processSpawnStartedAt -> processSpawnedAt',
+            },
+        },
+        {
+            name: 'stdin-write',
+            start: marks.stdinWriteStartAt,
+            end: marks.stdinWriteEndAt,
+            input: {
+                phase: 'stdin-write',
+                prompt_input_format: 'redacted',
+            },
+            output: {
+                status: marks.stdinWriteEndAt === undefined ? 'unmeasured' : 'prompt_sent',
+            },
+            metadata: { boundary: 'stdinWriteStartAt -> stdinWriteEndAt' },
+        },
+        {
+            name: 'runtime-init-to-first-model-event',
+            start: marks.stdinWriteEndAt ?? marks.modelCallStartAt ?? marks.processSpawnedAt,
+            end: marks.firstModelEventAt,
+            input: {
+                phase: 'runtime-init-to-first-model-event',
+                from: 'stdinWriteEndAt',
+                to: 'firstModelEventAt',
+            },
+            output: {
+                status: marks.firstModelEventAt === undefined
+                    ? 'unmeasured'
+                    : 'first_model_event_seen',
+            },
+            metadata: { boundary: 'stdinWriteEndAt/modelCallStartAt/processSpawnedAt -> firstModelEventAt' },
+        },
+        {
+            name: 'runtime-init-to-first-token',
+            start: marks.stdinWriteEndAt ?? marks.modelCallStartAt ?? marks.processSpawnedAt,
+            end: marks.firstTokenAt,
+            input: {
+                phase: 'runtime-init-to-first-token',
+                from: 'stdinWriteEndAt',
+                to: 'firstTokenAt',
+            },
+            output: {
+                status: marks.firstTokenAt === undefined ? 'unmeasured' : 'first_token_seen',
+            },
+            metadata: { boundary: 'stdinWriteEndAt/modelCallStartAt/processSpawnedAt -> firstTokenAt' },
+        },
+        {
+            name: opts.modelCallName ?? 'agent-call',
+            start: marks.modelCallStartAt,
+            end: runEnd,
+            input: {
+                phase: opts.modelCallName ?? 'agent-call',
+                model: ctx.turn?.model ?? 'unknown',
+                agent: ctx.agentId ?? 'unknown',
+                tool_call_count: ctx.eventsSummary.toolCalls,
+                generation_observation: (opts.modelCallName ?? 'agent-call') === 'agent-call',
+            },
+            output: {
+                status: ctx.run.status,
+                error_code: ctx.run.errorCode,
+                token_usage: tokenUsageSummary(ctx.message.usage),
+                cost: phaseCosts.agent_call,
+                tool_call_count: ctx.eventsSummary.toolCalls,
+            },
+            metadata: {
+                boundary: 'modelCallStartAt -> run.endedAt',
+                toolCallCount: ctx.eventsSummary.toolCalls,
+            },
+        },
+        {
+            name: 'stream-output',
+            start: marks.firstTokenAt,
+            end: marks.finalizeStartAt ?? runEnd,
+            input: {
+                phase: 'stream-output',
+                from: 'firstTokenAt',
+                to: 'finalizeStartAt',
+            },
+            output: {
+                status: ctx.run.status,
+                output_redacted: true,
+                artifact_blocks_redacted: true,
+            },
+            metadata: { boundary: 'firstTokenAt -> finalizeStartAt' },
+        },
+        {
+            name: 'artifact-write',
+            start: marks.firstArtifactWriteAt,
+            end: marks.finalizeStartAt ?? runEnd,
+            input: {
+                phase: 'artifact-write',
+                from: 'firstArtifactWriteAt',
+                to: 'finalizeStartAt',
+            },
+            output: {
+                status: marks.firstArtifactWriteAt === undefined
+                    ? 'not_seen'
+                    : 'artifact_write_seen',
+                artifact_count: ctx.artifacts.length,
+            },
+            metadata: { boundary: 'firstArtifactWriteAt -> finalizeStartAt' },
+        },
+        {
+            name: 'finalize',
+            start: marks.finalizeStartAt,
+            end: runEnd,
+            input: {
+                phase: 'finalize',
+                artifact_manifest_enabled: ctx.prefs.metrics === true && ctx.prefs.content === true,
+            },
+            output: {
+                status: ctx.run.status,
+                artifact_count: ctx.artifacts.length,
+                attachment_count: ctx.attachmentManifest?.length ?? 0,
+                manifest_completeness: ctx.manifestCompleteness ??
+                    (ctx.prefs.metrics === true && ctx.prefs.content === true ? 'unavailable' : 'off'),
+            },
+            metadata: { boundary: 'finalizeStartAt -> run.endedAt' },
+        },
+    ];
+    return definitions
+        .map((definition) => timingSpanBody({
+        traceId: ctx.run.runId,
+        parentObservationId,
+        runId: ctx.run.runId,
+        ...definition,
+    }))
+        .filter((body) => body !== null);
+}
+function usageTotal(usage) {
+    if (!usage)
+        return 0;
+    const values = [
+        usage.inputTokens,
+        usage.inputTokensProvider,
+        usage.inputTokensEffective,
+        usage.outputTokens,
+        usage.totalTokens,
+        usage.thoughtTokens,
+        usage.cacheReadInputTokens,
+        usage.cacheCreationInputTokens,
+        usage.uncachedInputTokens,
+        usage.estimatedContextTokens,
+    ];
+    let total = 0;
+    for (const value of values) {
+        if (typeof value === 'number' && Number.isFinite(value))
+            total += value;
+    }
+    return total;
+}
+function redactArtifactBlocks(value) {
+    if (value === undefined)
+        return undefined;
+    return value.replace(/<artifact\b([^>]*)>[\s\S]*?<\/artifact>/gi, (_match, attrs) => `<artifact${attrs}>[REDACTED:artifact_content]</artifact>`);
+}
+/**
+ * Tool names known to be content-bearing (read/write/search/think tools,
+ * including ACP aliases). Used for redaction reason labels and docs.
+ *
+ * Full redaction policy is fail-closed via `shouldFullyRedactToolPayload`:
+ * only bash-like execute tools keep secret+path lexical masking; known
+ * content tools AND any unknown/custom ACP tool name (e.g. kind:other MCP
+ * filesystem readers) fully redact so private file bodies cannot leak to
+ * Langfuse under best-effort masking alone.
+ *
+ * Matching is case-insensitive. Canonical Claude-shaped names are listed
+ * here; lowercase ACP kind tokens (read/write/edit/…) are covered via the
+ * lowercased lookup set built below.
+ */
+export const CONTENT_TOOL_NAMES = new Set([
+    'Read',
+    'Write',
+    'Edit',
+    'MultiEdit',
+    'NotebookEdit',
+    'create_file',
+    'str_replace_edit',
+    'multi_edit',
+    'Grep',
+    'Search',
+    'Glob',
+    'Fetch',
+    'Think',
+    'Thinking',
+    // Common lowercase ACP kind / title tokens (also matched case-insensitively).
+    'read',
+    'write',
+    'edit',
+    'grep',
+    'search',
+    'fetch',
+    'think',
+    'glob',
+]);
+const CONTENT_TOOL_NAMES_LOWER = new Set([...CONTENT_TOOL_NAMES].map((name) => name.toLowerCase()));
+/**
+ * Execute-family tools allowed to keep secret+path-only redaction (not full
+ * payload replacement). Everything else fails closed to a placeholder.
+ */
+const PARTIAL_REDACT_TOOL_NAMES_LOWER = new Set([
+    'bash',
+    'shell',
+    'execute',
+    'terminal',
+]);
+/** True when the tool is a known content-bearing family name. */
+export function isContentToolName(toolName) {
+    const normalized = toolName.trim().toLowerCase();
+    if (!normalized)
+        return false;
+    return CONTENT_TOOL_NAMES_LOWER.has(normalized);
+}
+/**
+ * True when tool I/O may keep lexical (secret+path) redaction for telemetry.
+ * Only bash-like execute tools qualify; empty/unknown/custom names do not.
+ */
+export function isPartialRedactToolName(toolName) {
+    const normalized = toolName.trim().toLowerCase();
+    if (!normalized)
+        return false;
+    return PARTIAL_REDACT_TOOL_NAMES_LOWER.has(normalized);
+}
+/**
+ * Fail-closed telemetry gate: fully redact tool input/output unless the tool
+ * is an allowlisted bash-like execute family. Unknown/custom ACP names
+ * (kind:other, MCP tools, etc.) must not ship raw payloads to Langfuse.
+ */
+export function shouldFullyRedactToolPayload(toolName) {
+    return !isPartialRedactToolName(toolName);
+}
+/**
+ * Map an arbitrary tool name to a Langfuse-safe label (bounded family allowlist).
+ * Custom ACP/MCP names, paths, and free text never leave the host as span names
+ * or toolName metadata — even when content telemetry is off.
+ */
+export function telemetrySafeToolName(toolName) {
+    return canonicalizeToolAnalyticsName(toolName);
+}
+/**
+ * Builds the fixed placeholder used when tool I/O is fully redacted for
+ * content telemetry. Known content families keep `content_tool` plus a
+ * allowlisted family label; everything else uses `unknown_tool` without
+ * embedding the untrusted custom name (paths/tokens/MCP ids must not leak).
+ */
+export function toolPayloadRedactionPlaceholder(toolName, direction) {
+    const label = toolName.trim() || 'unnamed';
+    if (isContentToolName(label)) {
+        // Stable allowlisted family only — never the raw adapter string.
+        return `[REDACTED:tool_${direction}:content_tool:${telemetrySafeToolName(label)}]`;
+    }
+    return `[REDACTED:tool_${direction}:unknown_tool]`;
+}
+function redactLocalPaths(value) {
+    if (value === undefined)
+        return undefined;
+    // macOS /Users, Linux /home + /root, Windows C:\Users — Linux is a primary
+    // supported environment, so Bash inputs like `cat /home/alice/.env` must not
+    // leak home directories into Langfuse tool spans.
+    return value
+        .replace(/\/(?:Users|home|root)\/[^/\s"']+(?:\/[^ \n\r\t"'`<>)]*)?/g, '[REDACTED:local_path]')
+        .replace(/[A-Za-z]:\\Users\\[^\\\s"']+(?:\\[^ \n\r\t"'`<>)]*)?/g, '[REDACTED:local_path]');
+}
+function traceSafeToolPayload(toolName, direction, value) {
+    if (value === undefined)
+        return undefined;
+    if (shouldFullyRedactToolPayload(toolName)) {
+        return toolPayloadRedactionPlaceholder(toolName, direction);
+    }
+    return redactLocalPaths(redactArtifactBlocks(value));
+}
+const SAFE_QUALITY_MANIFEST_KEYS = new Set([
+    'object_class',
+    'storage_ref',
+    'status',
+    'reason',
+    'project_id',
+    'run_id',
+    'workspace_id',
+    'size_bytes',
+    'sha256',
+    'mime_type',
+    'extension',
+    'redacted',
+    'truncated',
+    'stored_in_open_design',
+    'retention_policy',
+    'access_scope',
+    'sensitivity',
+    'source',
+    'expires_at',
+    'approved_by',
+    'attachment_id',
+    'artifact_id',
+    'input_text_snapshot_id',
+    'type',
+    'artifact_kind',
+    'build_status',
+    'preview_status',
+    'export_status',
+    'open_in_open_design_url',
+    'access_policy',
+]);
+function safeQualityText(value, maxBytes) {
+    if (value === undefined)
+        return undefined;
+    const redacted = redactLocalPaths(redactSecrets(redactArtifactBlocks(value) ?? '')) ?? '';
+    if (redacted.length === 0)
+        return undefined;
+    const truncated = Buffer.byteLength(redacted, 'utf8') > maxBytes;
+    return {
+        text: truncate(redacted, maxBytes) ?? '',
+        redacted: true,
+        truncated,
+    };
+}
+/**
+ * Project one already-capped process-stream tail into transport-safe text.
+ *
+ * `collectStreamTailSummary` has already applied `redactSecrets` plus the
+ * 20-line / 4 KiB cap, so this stage only adds the stricter Prompt-stack local
+ * path masking (`redactLocalPaths`, which also covers /tmp, /private/var,
+ * /opt, /Volumes, UNC and file:// forms the trace-level masker misses) before
+ * handing the value to `safeQualityText`. Absolute paths are routine in a
+ * runtime stderr tail, so the wider rule set is the correct one here.
+ *
+ * `includeTail` is the consent gate. When it is false the caller still gets
+ * the structural facts (line count, truncation) with an explicit limitation
+ * instead of silently losing the stream.
+ */
+function safeStreamTail(summary, options) {
+    if (!summary)
+        return undefined;
+    const tail = options.includeTail
+        ? safeQualityText(redactPromptStackLocalPaths(summary.tail), STDERR_TAIL_MAX_BYTES)
+        : undefined;
+    return {
+        ...(tail ? { tail } : {}),
+        lineCount: summary.lineCount,
+        truncated: summary.truncated || (tail?.truncated ?? false),
+        ...(tail
+            ? {}
+            : {
+                limitations: [
+                    options.includeTail
+                        ? 'stream_tail_empty_after_redaction'
+                        : options.omissionLimitation,
+                ],
+            }),
+    };
+}
+/**
+ * Keep only bounded diagnostic facts. Booleans and enum/bucket identifiers
+ * pass through; anything free-form is dropped rather than redacted, because
+ * this record is not a text channel.
+ */
+function safeRunDiagnostics(diagnostics) {
+    if (!diagnostics)
+        return undefined;
+    const safe = {};
+    for (const [key, value] of Object.entries(diagnostics)) {
+        if (Object.keys(safe).length >= 64)
+            break;
+        if (!/^[a-z][a-z0-9_]{0,63}$/.test(key))
+            continue;
+        if (typeof value === 'boolean') {
+            safe[key] = value;
+            continue;
+        }
+        const identifier = safeQualityIdentifier(value);
+        if (identifier)
+            safe[key] = identifier;
+    }
+    return Object.keys(safe).length > 0 ? safe : undefined;
+}
+/**
+ * Terminal process evidence for one Run: exit code, fatal signal, stream tails
+ * and host close diagnostics.
+ *
+ * Failure *classification* answers "what kind of failure"; this answers "what
+ * the process actually did". The single-Run trace always carried both, so any
+ * producer that replaces it must carry both too.
+ */
+function safeRunProcessOutcome(input) {
+    // stderr is a diagnostic channel and follows the same rule as the run error
+    // message: redacted, capped, and reported whenever telemetry runs at all.
+    // stdout is the agent's own output stream, so it follows the rule for model
+    // output and needs content consent.
+    const stderr = safeStreamTail(input.stderr, {
+        includeTail: true,
+        omissionLimitation: 'stderr_tail_unavailable',
+    });
+    const stdout = safeStreamTail(input.stdout, {
+        includeTail: input.wantsContent,
+        omissionLimitation: 'stdout_tail_requires_content_consent',
+    });
+    const diagnostics = safeRunDiagnostics(input.diagnostics);
+    const exitCode = typeof input.exitCode === 'number' && Number.isInteger(input.exitCode)
+        ? input.exitCode
+        : undefined;
+    const signal = safeQualityIdentifier(input.signal);
+    if (exitCode === undefined &&
+        signal === undefined &&
+        !stderr &&
+        !stdout &&
+        !diagnostics) {
+        return undefined;
+    }
+    return {
+        ...(exitCode !== undefined ? { exitCode } : {}),
+        ...(signal !== undefined ? { signal } : {}),
+        ...(stderr ? { stderr } : {}),
+        ...(stdout ? { stdout } : {}),
+        ...(diagnostics ? { diagnostics } : {}),
+    };
+}
+function safeQualityIdentifier(value) {
+    return typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(value)
+        ? value
+        : undefined;
+}
+function safeQualityManifestEntry(value) {
+    return Object.fromEntries(Object.entries(value).filter(([key, entry]) => SAFE_QUALITY_MANIFEST_KEYS.has(key) && entry !== undefined));
+}
+/**
+ * Versioned, transport-neutral projection shared by single-Run and Task
+ * hierarchy producers. It accepts only facts the existing single-Run bridge
+ * already collected, applies the same content/tool byte caps plus stricter
+ * local-path masking, and never admits raw provider attributes.
+ */
+export function buildSafeRunQualityProjectionV1(input) {
+    const wantsContent = input.prefs.metrics === true && input.prefs.content === true;
+    const output = wantsContent
+        ? safeQualityText(input.messageOutput, input.contentStorage === 'object' ? Infinity : OUTPUT_MAX_BYTES)
+        : undefined;
+    const errorMessage = safeQualityText(input.errorMessage, OUTPUT_MAX_BYTES);
+    const error = errorMessage || input.errorCode || input.failure
+        ? {
+            ...(errorMessage ? { message: errorMessage } : {}),
+            ...(safeQualityIdentifier(input.errorCode)
+                ? { code: safeQualityIdentifier(input.errorCode) }
+                : {}),
+            ...(safeQualityIdentifier(input.failure?.failure_category)
+                ? { category: safeQualityIdentifier(input.failure?.failure_category) }
+                : {}),
+            ...(safeQualityIdentifier(input.failure?.failure_detail)
+                ? { detail: safeQualityIdentifier(input.failure?.failure_detail) }
+                : {}),
+            ...(safeQualityIdentifier(input.failure?.failure_stage)
+                ? { stage: safeQualityIdentifier(input.failure?.failure_stage) }
+                : {}),
+        }
+        : undefined;
+    const tools = wantsContent ? input.tools?.slice(0, input.contentStorage === 'object' ? undefined : 256).map((tool) => {
+        const safeInput = safeQualityText(traceSafeToolPayload(tool.name, 'input', tool.input === undefined ? undefined : redactSecrets(tool.input)), input.contentStorage === 'object' ? Infinity : TOOL_INPUT_MAX_BYTES);
+        const safeOutput = safeQualityText(traceSafeToolPayload(tool.name, 'output', tool.output === undefined ? undefined : redactSecrets(tool.output)), input.contentStorage === 'object' ? Infinity : TOOL_OUTPUT_MAX_BYTES);
+        return {
+            callHash: createHash('sha256').update(tool.id, 'utf8').digest('hex'),
+            name: telemetrySafeToolName(tool.name),
+            ...(safeInput ? { input: safeInput } : {}),
+            ...(safeOutput ? { output: safeOutput } : {}),
+            status: tool.isError === true
+                ? 'failed'
+                : tool.endedAt >= tool.startedAt
+                    ? 'completed'
+                    : 'unknown',
+            isError: tool.isError === true,
+            ...(Number.isFinite(tool.startedAt) && tool.startedAt >= 0
+                ? { startedAtMs: tool.startedAt }
+                : {}),
+            ...(Number.isFinite(tool.endedAt) && tool.endedAt >= 0
+                ? { endedAtMs: tool.endedAt }
+                : {}),
+        };
+    }) : undefined;
+    const hasManifests = wantsContent && (input.manifestCompleteness !== undefined ||
+        input.attachmentManifest !== undefined ||
+        input.artifactManifest !== undefined ||
+        input.inputTextSnapshotManifest !== undefined);
+    const processOutcome = safeRunProcessOutcome({
+        wantsContent,
+        ...(input.exitCode !== undefined ? { exitCode: input.exitCode } : {}),
+        ...(input.signal !== undefined ? { signal: input.signal } : {}),
+        ...(input.stderr ? { stderr: input.stderr } : {}),
+        ...(input.stdout ? { stdout: input.stdout } : {}),
+        ...(input.diagnostics ? { diagnostics: input.diagnostics } : {}),
+    });
+    return SafeRunQualityV1Schema.parse({
+        schema: SAFE_RUN_QUALITY_V1_SCHEMA,
+        ...(output || error ? { result: { ...(output ? { output } : {}), ...(error ? { error } : {}) } } : {}),
+        ...(processOutcome ? { process: processOutcome } : {}),
+        ...(input.deliverableSyntax
+            ? { deliverableSyntax: input.deliverableSyntax }
+            : {}),
+        ...(tools && tools.length > 0 ? { tools } : {}),
+        ...(hasManifests
+            ? {
+                manifests: {
+                    completeness: input.manifestCompleteness ?? 'unavailable',
+                    attachments: (input.attachmentManifest ?? []).slice(0, 50)
+                        .map(safeQualityManifestEntry),
+                    artifacts: (input.artifactManifest ?? []).slice(0, 50)
+                        .map(safeQualityManifestEntry),
+                    inputTextSnapshots: (input.inputTextSnapshotManifest ?? []).slice(0, 50)
+                        .map(safeQualityManifestEntry),
+                },
+            }
+            : {}),
+    });
+}
+function shouldCreateGenerationObservation(ctx) {
+    if (ctx.run.status === 'succeeded')
+        return true;
+    if (usageTotal(ctx.message.usage) > 0)
+        return true;
+    if (ctx.eventsSummary.toolCalls > 0)
+        return true;
+    return ctx.run.failure?.failure_stage !== 'session_init';
+}
+function stableRunIngestionEventId(event, deliveryPurpose) {
+    if (!event || typeof event !== 'object' || Array.isArray(event))
+        return null;
+    const item = event;
+    if (typeof item.type !== 'string' || !item.body || typeof item.body !== 'object') {
+        return null;
+    }
+    const bodyId = item.body.id;
+    if (typeof bodyId !== 'string' || !bodyId)
+        return null;
+    return `od-${createHash('sha256')
+        .update(`open-design/langfuse-event/v1\n${deliveryPurpose}\n${item.type}\n${bodyId}`, 'utf8')
+        .digest('hex')}`;
+}
+function stabilizeRunIngestionBatch(batch, deliveryPurpose) {
+    return batch.map((event) => {
+        const id = stableRunIngestionEventId(event, deliveryPurpose);
+        return id && event && typeof event === 'object' && !Array.isArray(event)
+            ? { ...event, id }
+            : event;
+    });
+}
+export function buildTracePayload(ctx, deliveryPurpose = 'final') {
+    const wantsContent = ctx.prefs.metrics === true && ctx.prefs.content === true;
+    const wantsArtifacts = wantsContent;
+    const safeQuality = buildSafeRunQualityProjectionV1({
+        prefs: ctx.prefs,
+        messageOutput: ctx.message.output,
+        ...(ctx.run.error !== undefined ? { errorMessage: ctx.run.error } : {}),
+        ...(ctx.run.errorCode !== undefined ? { errorCode: ctx.run.errorCode } : {}),
+        ...(ctx.run.failure !== undefined ? { failure: ctx.run.failure } : {}),
+        ...(ctx.tools !== undefined ? { tools: ctx.tools } : {}),
+        ...(ctx.attachmentManifest !== undefined
+            ? { attachmentManifest: ctx.attachmentManifest }
+            : {}),
+        ...(ctx.artifactManifest !== undefined
+            ? { artifactManifest: ctx.artifactManifest }
+            : {}),
+        ...(ctx.inputTextSnapshotManifest !== undefined
+            ? { inputTextSnapshotManifest: ctx.inputTextSnapshotManifest }
+            : {}),
+        ...(ctx.manifestCompleteness !== undefined
+            ? { manifestCompleteness: ctx.manifestCompleteness }
+            : {}),
+        ...(ctx.deliverableSyntax ? { deliverableSyntax: ctx.deliverableSyntax } : {}),
+    });
+    const safeRunError = safeQuality?.result?.error?.message?.text;
+    const sessionId = ctx.conversationId.length <= SESSION_ID_MAX ? ctx.conversationId : undefined;
+    const startTimeIso = new Date(ctx.run.startedAt).toISOString();
+    const endTimeIso = new Date(ctx.run.endedAt).toISOString();
+    const nowIso = new Date().toISOString();
+    const inputText = wantsContent
+        ? truncate(ctx.message.prompt, INPUT_MAX_BYTES)
+        : undefined;
+    const outputText = wantsContent ? safeQuality?.result?.output?.text : undefined;
+    const artifactsList = wantsArtifacts
+        ? ctx.artifacts.slice(0, ARTIFACTS_MAX_ITEMS)
+        : undefined;
+    const artifactsTruncated = wantsArtifacts && ctx.artifacts.length > ARTIFACTS_MAX_ITEMS
+        ? true
+        : undefined;
+    const attachmentManifest = wantsArtifacts
+        ? cappedManifestEntries(ctx.attachmentManifest)
+        : undefined;
+    const attachmentManifestTruncated = wantsArtifacts
+        ? manifestTruncated(ctx.attachmentManifest)
+        : undefined;
+    const artifactManifest = wantsArtifacts
+        ? cappedManifestEntries(ctx.artifactManifest)
+        : undefined;
+    const artifactManifestTruncated = wantsArtifacts
+        ? manifestTruncated(ctx.artifactManifest)
+        : undefined;
+    const inputTextSnapshotManifest = wantsArtifacts && wantsContent
+        ? cappedManifestEntries(ctx.inputTextSnapshotManifest)
+        : undefined;
+    const inputTextSnapshotManifestTruncated = wantsArtifacts && wantsContent
+        ? manifestTruncated(ctx.inputTextSnapshotManifest)
+        : undefined;
+    const tokens = ctx.message.usage
+        ? {
+            input: ctx.message.usage.inputTokens,
+            inputProvider: ctx.message.usage.inputTokensProvider,
+            inputEffective: ctx.message.usage.inputTokensEffective,
+            output: ctx.message.usage.outputTokens,
+            total: ctx.message.usage.totalTokens,
+            thought: ctx.message.usage.thoughtTokens,
+            cacheReadInput: ctx.message.usage.cacheReadInputTokens,
+            cacheCreationInput: ctx.message.usage.cacheCreationInputTokens,
+            uncachedInput: ctx.message.usage.uncachedInputTokens,
+            estimatedContext: ctx.message.usage.estimatedContextTokens,
+            cacheHitRatio: ctx.message.usage.cacheHitRatio,
+            cacheTokenSource: ctx.message.usage.cacheTokenSource,
+        }
+        : undefined;
+    const usage = ctx.message.usage
+        ? {
+            input: ctx.message.usage.inputTokensEffective ?? ctx.message.usage.inputTokens,
+            output: ctx.message.usage.outputTokens,
+            total: ctx.message.usage.totalTokens,
+            unit: 'TOKENS',
+        }
+        : undefined;
+    const costBreakdown = buildCostBreakdown(ctx);
+    const performanceDiagnostics = buildPerformanceDiagnostics(ctx);
+    const success = ctx.run.status === 'succeeded';
+    const traceId = ctx.run.runId;
+    const environment = readTelemetryEnvironment();
+    const langfuseDelivery = ctx.langfuse ??
+        deriveLangfuseDeliveryState(ctx.prefs, readRunTelemetrySinkConfig());
+    const agentSpanId = `${ctx.run.runId}-agent`;
+    const generationId = `${ctx.run.runId}-gen`;
+    const createGeneration = shouldCreateGenerationObservation(ctx);
+    const operationSpanId = createGeneration
+        ? generationId
+        : `${ctx.run.runId}-runtime`;
+    const promptStack = ctx.promptTelemetry
+        ? wantsContent
+            ? ctx.promptTelemetry
+            : promptStackWithoutContent(ctx.promptTelemetry)
+        : undefined;
+    const promptStackFlatMetadata = promptStack
+        ? buildPromptStackFlatMetadata(promptStack)
+        : {};
+    const promptStackBlameMetadata = buildPromptStackBlameMetadata(promptStack, ctx.message.usage, ctx.run.timings);
+    const generationInput = promptStack
+        ? structuredPromptStackInput(promptStack)
+        : inputText;
+    const rolloutReasonCodes = ctx.strategyRolloutDecision?.reasonCodes ?? [];
+    const rolloutCompatibilityBasis = !ctx.strategyRolloutDecision
+        ? undefined
+        : ctx.strategyRolloutDecision.syntheticCanary
+            ? 'local_synthetic_canary'
+            : ctx.strategyRolloutDecision.effectiveMode === 'active'
+                ? 'runtime_adapter_family_fixture_evidence'
+                : rolloutReasonCodes.some((reason) => reason.includes('capability'))
+                    || ctx.strategyRolloutDecision.primaryReasonCode.includes('capability')
+                    ? 'capability_unverified'
+                    : 'not_evaluated';
+    const rolloutFallbackStage = ctx.strategyRolloutDecision?.primaryReasonCode
+        === 'od_next_rollout_prestart_preparation_failed'
+        ? 'activation_preparation'
+        : undefined;
+    // Trace metadata is the queryable + exportable fact-sheet for each turn.
+    // Anything we want to slice on for evals or dataset construction lives
+    // here. Fields are flat (Langfuse stores it as JSON but indexes shallow
+    // keys best). All entries are anonymous — no PII, no credentials.
+    const traceMetadata = {
+        ...ctx.skillDiscovery,
+        ...(ctx.evalContextV2 && wantsContent ? { eval_context_v2: wantsArtifacts ? ctx.evalContextV2 : {
+                ...ctx.evalContextV2,
+                attachments: { turnDelta: { semantics: 'current_user_turn', entries: [] }, effectiveContext: { semantics: 'conversation_context_before_run', entries: [] } },
+                artifacts: { snapshotStatus: 'unavailable', entries: [] },
+                completeness: { status: 'partial', reasons: [...ctx.evalContextV2.completeness.reasons, 'artifact_manifest_consent_off'] },
+            } } : {}),
+        success,
+        env: environment,
+        status: ctx.run.status,
+        error: safeRunError,
+        error_code: ctx.run.errorCode,
+        langfuse_trace_id: traceId,
+        ...langfuseDelivery,
+        ...(ctx.run.failure ?? {}),
+        ...(ctx.run.timings ?? {}),
+        stderr: ctx.run.stderr,
+        stdout: ctx.run.stdout,
+        diagnostics: ctx.run.diagnostics,
+        eventsSummary: ctx.eventsSummary,
+        tokens,
+        cost_usd: costBreakdown.cost_usd,
+        currency: costBreakdown.currency,
+        pricing_version: costBreakdown.pricing_version,
+        cost_source: costBreakdown.cost_source,
+        cost_status: costBreakdown.cost_status,
+        cost_breakdown: costBreakdown,
+        performance_diagnostics: performanceDiagnostics,
+        artifacts: artifactsList,
+        artifactsTruncated,
+        attachment_manifest: attachmentManifest,
+        attachment_manifest_truncated: attachmentManifestTruncated,
+        artifact_manifest: artifactManifest,
+        artifact_manifest_truncated: artifactManifestTruncated,
+        input_text_snapshot_manifest: inputTextSnapshotManifest,
+        input_text_snapshot_manifest_truncated: inputTextSnapshotManifestTruncated,
+        trace_object_summary: ctx.traceObjectSummary,
+        manifest_completeness: wantsArtifacts
+            ? (ctx.manifestCompleteness ?? 'unavailable')
+            : undefined,
+        projectId: ctx.projectId || undefined,
+        agent: ctx.agentId,
+        model: ctx.turn?.model,
+        reasoning: ctx.turn?.reasoning,
+        skillId: ctx.turn?.skillId,
+        designSystemId: ctx.turn?.designSystemId,
+        designSystemDigest: ctx.turn?.designSystemDigest,
+        designSystemSelectionSource: ctx.turn?.designSystemSelectionSource,
+        stablePromptHash: ctx.turn?.promptCache?.stablePromptHash,
+        stablePromptCacheHit: ctx.turn?.promptCache?.hit,
+        stablePromptCacheMissReason: ctx.turn?.promptCache?.missReason,
+        stablePromptChangedSections: ctx.turn?.promptCache?.changedSections,
+        appVersion: ctx.runtime?.appVersion,
+        appChannel: ctx.runtime?.appChannel,
+        packaged: ctx.runtime?.packaged,
+        nodeVersion: ctx.runtime?.nodeVersion,
+        os: ctx.runtime?.os,
+        osRelease: ctx.runtime?.osRelease,
+        arch: ctx.runtime?.arch,
+        strategy_rollout_requested_mode: ctx.strategyRolloutDecision?.requestedMode,
+        strategy_rollout_effective_mode: ctx.strategyRolloutDecision?.effectiveMode,
+        strategy_rollout_primary_reason_code: ctx.strategyRolloutDecision?.primaryReasonCode,
+        strategy_rollout_compatibility_basis: rolloutCompatibilityBasis,
+        strategy_rollout_admission_stage: ctx.strategyRolloutDecision
+            ? 'activation_admission'
+            : undefined,
+        strategy_rollout_fallback_stage: rolloutFallbackStage,
+        clientType: ctx.runtime?.clientType,
+        agentCliVersion: ctx.runtime?.agentCliVersion,
+        runtimeCompanionName: ctx.runtime?.runtimeCompanionName,
+        runtimeCompanionVersion: ctx.runtime?.runtimeCompanionVersion,
+        retryAttemptCount: ctx.run.retryAttemptCount,
+        retryFinalResult: ctx.run.retryFinalResult,
+        retrySuppressedReason: ctx.run.retrySuppressedReason,
+        retryOriginalFailureCategory: ctx.run.retryOriginalFailure?.failure_category,
+        retryOriginalFailureDetail: ctx.run.retryOriginalFailure?.failure_detail,
+        retryOriginalFailureStage: ctx.run.retryOriginalFailure?.failure_stage,
+        deliverable_syntax_schema_version: ctx.deliverableSyntax?.schemaVersion,
+        deliverable_syntax_applicable: ctx.deliverableSyntax?.applicable,
+        deliverable_syntax_status: ctx.deliverableSyntax?.status,
+        deliverable_syntax_source: ctx.deliverableSyntax?.source,
+        deliverable_syntax_checker: ctx.deliverableSyntax?.checker,
+        deliverable_syntax_checked_file_count: ctx.deliverableSyntax?.checkedFileCount,
+        deliverable_syntax_check_count: ctx.deliverableSyntax?.checkCount,
+        deliverable_syntax_checker_duration_ms: ctx.deliverableSyntax?.checkerDurationMs,
+        deliverable_syntax_repair_window_duration_ms: ctx.deliverableSyntax?.repairWindowDurationMs,
+        deliverable_syntax_repair_to_delivery_duration_ms: ctx.deliverableSyntax?.repairToDeliveryDurationMs,
+        deliverable_syntax_repair_to_terminal_duration_ms: ctx.deliverableSyntax?.repairToTerminalDurationMs,
+        deliverable_syntax_terminal_run_status: ctx.deliverableSyntax?.terminalRunStatus,
+        deliverable_syntax_finalization_action: ctx.deliverableSyntax?.finalization?.action,
+        deliverable_syntax_finalization_reason: ctx.deliverableSyntax?.finalization?.reason,
+        deliverable_syntax_finalization_refusal: ctx.deliverableSyntax?.finalization?.refusal,
+        deliverable_syntax_summary_version: ctx.deliverableSyntax?.finalization?.summaryVersion,
+        deliverable_syntax_initial_status: ctx.deliverableSyntax?.finalization?.initialStatus,
+        deliverable_syntax_repair_engine: ctx.deliverableSyntax?.finalization?.repairEngine,
+        deliverable_syntax_staged_patch_count: ctx.deliverableSyntax?.finalization?.stagedPatchCount,
+        deliverable_syntax_committed_patch_count: ctx.deliverableSyntax?.finalization?.committedPatchCount,
+        deliverable_syntax_committed_repair_rules: ctx.deliverableSyntax?.finalization?.committedRepairRules?.join(','),
+        deliverable_syntax_repair_executor: ctx.deliverableSyntax?.repairExecutor,
+        deliverable_syntax_repair_duration_ms: ctx.deliverableSyntax?.repairDurationMs,
+        deliverable_syntax_applied_repair_rules: ctx.deliverableSyntax?.appliedRepairRules?.join(','),
+        deliverable_syntax_safe_fix_proposal_count: ctx.deliverableSyntax?.safeFixProposalCount,
+        deliverable_syntax_safe_fix_proposal_duration_ms: ctx.deliverableSyntax?.safeFixProposalDurationMs,
+        deliverable_syntax_repairable_check_count: ctx.deliverableSyntax?.repairableCheckCount,
+        deliverable_syntax_initial_diagnostic_count: ctx.deliverableSyntax?.initialDiagnosticCount,
+        deliverable_syntax_latest_diagnostic_count: ctx.deliverableSyntax?.latestDiagnosticCount,
+        deliverable_syntax_repair_triggered: ctx.deliverableSyntax?.repairTriggered,
+        deliverable_syntax_repair_attempts: ctx.deliverableSyntax?.repairAttempts,
+        deliverable_syntax_max_repair_attempts: ctx.deliverableSyntax?.maxRepairAttempts,
+        deliverable_syntax_repair_outcome: ctx.deliverableSyntax?.repairOutcome,
+        deliverable_syntax_recovered_delivery_count: ctx.deliverableSyntax?.recoveredDeliveryCount,
+        deliverable_syntax_blocked_broken_delivery_count: ctx.deliverableSyntax?.blockedBrokenDeliveryCount,
+        deliverable_syntax_delivered_with_syntax_warning_count: ctx.deliverableSyntax?.deliveredWithSyntaxWarningCount,
+        ...promptStackFlatMetadata,
+        ...promptStackBlameMetadata,
+    };
+    const observationVersion = ctx.runtime?.agentCliVersion ?? ctx.runtime?.appVersion;
+    // Generation-level model parameters mirror the Langfuse schema so the UI
+    // shows them in the dedicated Model Parameters card and filters work.
+    const modelParameters = ctx.turn?.reasoning ? { reasoning: ctx.turn.reasoning } : undefined;
+    const timingSpanBodies = buildTimingSpanBodies(ctx, operationSpanId, {
+        modelCallName: createGeneration ? 'agent-call' : 'runtime-call',
+        ...(promptStack ? { promptStack } : {}),
+    });
+    const toolParentObservationId = timingSpanBodies.some((span) => span.name === 'agent-call')
+        ? `${ctx.run.runId}-phase-agent-call`
+        : agentSpanId;
+    const agentEventParentObservationId = toolParentObservationId;
+    const batch = [
+        {
+            id: randomUUID(),
+            type: 'trace-create',
+            timestamp: nowIso,
+            body: {
+                id: traceId,
+                name: 'open-design-turn',
+                sessionId,
+                userId: ctx.installationId ?? undefined,
+                tags: buildTagList(ctx),
+                environment,
+                input: inputText,
+                output: outputText,
+                metadata: traceMetadata,
+                release: ctx.runtime?.appVersion,
+                version: observationVersion,
+                timestamp: startTimeIso,
+            },
+        },
+        {
+            id: randomUUID(),
+            type: 'span-create',
+            timestamp: nowIso,
+            body: {
+                id: agentSpanId,
+                traceId,
+                name: 'agent-run',
+                startTime: startTimeIso,
+                endTime: endTimeIso,
+                input: inputText,
+                output: outputText,
+                level: success ? 'DEFAULT' : 'ERROR',
+                statusMessage: safeRunError,
+                version: observationVersion,
+                metadata: {
+                    status: ctx.run.status,
+                    messageId: ctx.message.messageId || undefined,
+                    durationMs: ctx.eventsSummary.durationMs,
+                    toolCalls: ctx.eventsSummary.toolCalls,
+                    errors: ctx.eventsSummary.errors,
+                    cost_usd: costBreakdown.cost_usd,
+                    currency: costBreakdown.currency,
+                    cost_status: costBreakdown.cost_status,
+                },
+            },
+        },
+    ];
+    if (ctx.deliverableSyntax?.finalization?.reason === 'internal_error') {
+        batch.push({
+            id: randomUUID(), type: 'event-create', timestamp: nowIso,
+            body: {
+                id: `${traceId}-syntax-internal-error`, traceId, parentObservationId: agentSpanId,
+                name: 'deliverable-syntax-internal-error', startTime: endTimeIso,
+                level: 'ERROR', statusMessage: 'Syntax finalizer internal error',
+                metadata: { reason: 'internal_error', deliveryStatus: ctx.run.status },
+            },
+        });
+    }
+    if (createGeneration) {
+        batch.push({
+            id: randomUUID(),
+            type: 'generation-create',
+            timestamp: nowIso,
+            body: {
+                id: generationId,
+                traceId,
+                parentObservationId: agentSpanId,
+                name: 'llm',
+                // model / modelParameters are first-class on Langfuse generations
+                // (used for token-cost lookup, UI grouping, eval filters), so set
+                // them at the body level instead of stuffing them into metadata.
+                model: ctx.turn?.model,
+                modelParameters,
+                startTime: startTimeIso,
+                endTime: endTimeIso,
+                input: generationInput,
+                output: outputText,
+                level: success ? 'DEFAULT' : 'ERROR',
+                statusMessage: safeRunError,
+                version: observationVersion,
+                usage,
+                metadata: {
+                    durationMs: ctx.eventsSummary.durationMs,
+                    cost_usd: costBreakdown.cost_usd,
+                    currency: costBreakdown.currency,
+                    pricing_version: costBreakdown.pricing_version,
+                    cost_source: costBreakdown.cost_source,
+                    cost_breakdown: costBreakdown,
+                    performance_diagnostics: performanceDiagnostics,
+                    ...promptStackFlatMetadata,
+                    ...promptStackBlameMetadata,
+                },
+            },
+        });
+    }
+    else {
+        batch.push({
+            id: randomUUID(),
+            type: 'span-create',
+            timestamp: nowIso,
+            body: {
+                id: operationSpanId,
+                traceId,
+                parentObservationId: agentSpanId,
+                name: 'agent-runtime',
+                startTime: startTimeIso,
+                endTime: endTimeIso,
+                input: generationInput,
+                output: outputText,
+                level: 'ERROR',
+                statusMessage: safeRunError,
+                version: observationVersion,
+                metadata: {
+                    durationMs: ctx.eventsSummary.durationMs,
+                    cost_usd: costBreakdown.cost_usd,
+                    currency: costBreakdown.currency,
+                    pricing_version: costBreakdown.pricing_version,
+                    cost_source: costBreakdown.cost_source,
+                    cost_breakdown: costBreakdown,
+                    performance_diagnostics: performanceDiagnostics,
+                    ...promptStackFlatMetadata,
+                    ...promptStackBlameMetadata,
+                    reason: 'no_model_generation',
+                },
+            },
+        });
+    }
+    for (const span of timingSpanBodies) {
+        batch.push({
+            id: randomUUID(),
+            type: 'span-create',
+            timestamp: nowIso,
+            body: span,
+        });
+    }
+    if (ctx.agentEvents?.length) {
+        for (const event of ctx.agentEvents) {
+            batch.push({
+                id: randomUUID(),
+                type: 'event-create',
+                timestamp: nowIso,
+                body: {
+                    id: `${ctx.run.runId}-agent-event-${event.id}`,
+                    traceId,
+                    parentObservationId: agentEventParentObservationId,
+                    name: event.name,
+                    startTime: new Date(event.timestamp).toISOString(),
+                    input: event.input,
+                    output: event.output,
+                    level: event.level ?? 'DEFAULT',
+                    statusMessage: event.statusMessage,
+                    metadata: event.metadata,
+                },
+            });
+        }
+    }
+    if (ctx.tools?.length) {
+        for (const tool of ctx.tools) {
+            const toolSpanId = `${ctx.run.runId}-tool-${tool.id}`;
+            const toolStartedAt = new Date(tool.startedAt).toISOString();
+            const toolEndedAt = new Date(tool.endedAt).toISOString();
+            const toolDurationMs = durationMs(tool.startedAt, tool.endedAt);
+            // Redaction policy still keys off the producer name (Bash vs content vs
+            // unknown); only the labels we emit to Langfuse are allowlisted.
+            const safeToolName = telemetrySafeToolName(tool.name);
+            const qualityTool = safeQuality?.tools?.find((candidate) => (candidate.callHash === createHash('sha256').update(tool.id, 'utf8').digest('hex')));
+            const toolInput = wantsContent ? qualityTool?.input?.text : undefined;
+            const toolOutput = wantsContent ? qualityTool?.output?.text : undefined;
+            batch.push({
+                id: randomUUID(),
+                type: 'span-create',
+                timestamp: nowIso,
+                body: {
+                    id: toolSpanId,
+                    traceId,
+                    parentObservationId: toolParentObservationId,
+                    name: `tool:${safeToolName}`,
+                    startTime: toolStartedAt,
+                    endTime: toolEndedAt,
+                    input: toolInput,
+                    output: toolOutput,
+                    level: tool.isError ? 'ERROR' : 'DEFAULT',
+                    metadata: {
+                        toolCallId: tool.id,
+                        toolName: safeToolName,
+                        durationMs: toolDurationMs,
+                        hasInput: tool.input !== undefined,
+                        hasOutput: tool.output !== undefined,
+                        isError: tool.isError === true,
+                        failureType: tool.isError === true ? 'tool_result_error' : 'none',
+                        retryCount: null,
+                        retryDetection: 'not_instrumented',
+                    },
+                },
+            });
+        }
+    }
+    if (artifactsList && (artifactsList.length > 0 || artifactsTruncated)) {
+        batch.push({
+            id: randomUUID(),
+            type: 'event-create',
+            timestamp: nowIso,
+            body: {
+                id: `${ctx.run.runId}-artifacts`,
+                traceId,
+                parentObservationId: agentSpanId,
+                name: 'artifact-summary',
+                startTime: endTimeIso,
+                input: {
+                    source: 'agent_generated_artifacts',
+                    artifact_count: artifactsList.length,
+                    artifact_manifest_enabled: wantsArtifacts,
+                },
+                output: {
+                    artifacts: artifactsList,
+                    artifactsTruncated,
+                    manifest_completeness: wantsArtifacts
+                        ? (ctx.manifestCompleteness ?? 'unavailable')
+                        : 'off',
+                },
+                metadata: {
+                    artifacts: artifactsList,
+                    artifactsTruncated,
+                    artifact_write_diagnostics: performanceDiagnostics.artifact_write,
+                },
+            },
+        });
+    }
+    if (!success || ctx.eventsSummary.errors > 0) {
+        batch.push({
+            id: randomUUID(),
+            type: 'event-create',
+            timestamp: nowIso,
+            body: {
+                id: `${ctx.run.runId}-error`,
+                traceId,
+                parentObservationId: agentSpanId,
+                name: success ? 'error-summary' : 'run-error',
+                startTime: endTimeIso,
+                level: 'ERROR',
+                statusMessage: safeRunError,
+                metadata: {
+                    status: ctx.run.status,
+                    errors: ctx.eventsSummary.errors,
+                },
+            },
+        });
+    }
+    return stabilizeRunIngestionBatch(batch, deliveryPurpose);
+}
+function withDeliveryDiagnostics(state, attemptCount, idempotencyKey) {
+    return idempotencyKey
+        ? {
+            ...state,
+            langfuse_attempt_count: attemptCount,
+            langfuse_idempotency_key: idempotencyKey,
+        }
+        : state;
+}
+export async function postLangfuseBatch(config, batch, fetchImpl, onAttempt) {
+    const attempts = config.retries + 1;
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+            onAttempt?.();
+            const response = await fetchImpl(`${config.baseUrl}/api/public/ingestion`, {
+                method: 'POST',
+                headers: {
+                    Authorization: config.authHeader,
+                    'Content-Type': 'application/json',
+                },
+                signal: AbortSignal.timeout(config.timeoutMs),
+                body: JSON.stringify({ batch }),
+            });
+            if (!response.ok) {
+                const body = await response.text().catch(() => '');
+                if (attempt < attempts &&
+                    (response.status === 429 || response.status >= 500)) {
+                    await waitBeforeRetry(attempt);
+                    continue;
+                }
+                console.warn(`[langfuse-trace] Ingestion failed ${response.status}: ${body.slice(0, 200)}`);
+                return {
+                    langfuse_expected: true,
+                    langfuse_delivery_status: 'failed',
+                    langfuse_drop_reason: ingestionDropReasonFromStatus(response.status, 'langfuse'),
+                };
+            }
+            // Langfuse legacy ingestion responds with HTTP 207 Multi-Status whose
+            // body shape is `{ successes: [...], errors: [...] }`. `response.ok`
+            // is true for 207, so per-event validation errors slip through unless
+            // we look at the body. Surface them so a malformed payload doesn't
+            // silently disappear server-side.
+            const body = await response.text().catch(() => '');
+            if (body && warnPerEventErrors(body, 'Per-event errors')) {
+                return {
+                    langfuse_expected: true,
+                    langfuse_delivery_status: 'failed',
+                    langfuse_drop_reason: dropReasonFromPerEventErrors(body, 'langfuse'),
+                };
+            }
+            return {
+                langfuse_expected: true,
+                langfuse_delivery_status: 'accepted',
+            };
+        }
+        catch (error) {
+            if (attempt < attempts) {
+                await waitBeforeRetry(attempt);
+                continue;
+            }
+            console.warn(`[langfuse-trace] Fetch error: ${String(error)}`);
+            return {
+                langfuse_expected: true,
+                langfuse_delivery_status: 'failed',
+                langfuse_drop_reason: 'network_error',
+            };
+        }
+    }
+    return {
+        langfuse_expected: true,
+        langfuse_delivery_status: 'failed',
+        langfuse_drop_reason: 'network_error',
+    };
+}
+async function postRelayBatch(config, body, fetchImpl, onAttempt, idempotencyKey) {
+    const attempts = config.retries + 1;
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+            onAttempt?.();
+            const response = await fetchImpl(config.relayUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Open-Design-Telemetry': 'langfuse-ingestion-v1',
+                    ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+                },
+                signal: AbortSignal.timeout(config.timeoutMs),
+                body,
+            });
+            if (!response.ok) {
+                const responseBody = await response.text().catch(() => '');
+                if (attempt < attempts &&
+                    (response.status === 429 || response.status >= 500)) {
+                    await waitBeforeRetry(attempt);
+                    continue;
+                }
+                console.warn(`[langfuse-trace] Relay failed ${response.status}: ${responseBody.slice(0, 200)}`);
+                return {
+                    langfuse_expected: true,
+                    langfuse_delivery_status: 'failed',
+                    langfuse_drop_reason: ingestionDropReasonFromStatus(response.status, 'relay'),
+                };
+            }
+            const responseBody = await response.text().catch(() => '');
+            if (responseBody &&
+                warnPerEventErrors(responseBody, 'Relay per-event errors')) {
+                return {
+                    langfuse_expected: true,
+                    langfuse_delivery_status: 'failed',
+                    langfuse_drop_reason: dropReasonFromPerEventErrors(responseBody, 'relay'),
+                };
+            }
+            return {
+                langfuse_expected: true,
+                langfuse_delivery_status: 'accepted',
+            };
+        }
+        catch (error) {
+            if (attempt < attempts) {
+                await waitBeforeRetry(attempt);
+                continue;
+            }
+            console.warn(`[langfuse-trace] Relay fetch error: ${String(error)}`);
+            return {
+                langfuse_expected: true,
+                langfuse_delivery_status: 'failed',
+                langfuse_drop_reason: 'network_error',
+            };
+        }
+    }
+    return {
+        langfuse_expected: true,
+        langfuse_delivery_status: 'failed',
+        langfuse_drop_reason: 'network_error',
+    };
+}
+const LANGFUSE_TYPE_TO_VELA_KIND = {
+    'trace-create': 'trace',
+    'span-create': 'span',
+    'generation-create': 'generation',
+    'event-create': 'event',
+    'score-create': 'score',
+};
+function asVelaSourceEvents(batch) {
+    return batch.filter((item) => {
+        if (!item || typeof item !== 'object' || Array.isArray(item))
+            return false;
+        const event = item;
+        return (typeof event.type === 'string' &&
+            event.type in LANGFUSE_TYPE_TO_VELA_KIND &&
+            typeof event.timestamp === 'string' &&
+            !!event.body &&
+            typeof event.body === 'object' &&
+            !Array.isArray(event.body));
+    });
+}
+function stableVelaEventId(event) {
+    // Retries and deterministic rebuilds of the same event keep one id, while
+    // a later upsert of the same trace/observation with richer data gets a new
+    // ingestion id and cannot be mistaken for the earlier registration event.
+    const canonicalBody = JSON.stringify(event.body);
+    return `od-${createHash('sha256')
+        .update(`${event.type}\n${canonicalBody}`, 'utf8')
+        .digest('hex')}`;
+}
+function buildVelaEnvelope(batch, installationId) {
+    return {
+        version: 1,
+        installationId,
+        events: asVelaSourceEvents(batch).map((event) => ({
+            id: stableVelaEventId(event),
+            kind: LANGFUSE_TYPE_TO_VELA_KIND[event.type],
+            timestamp: event.timestamp,
+            data: event.body,
+        })),
+    };
+}
+function velaIdempotencyKey(envelope) {
+    // Wrapper timestamps are excluded: rebuilding an otherwise identical run
+    // should retain its key, while any changed trace/observation body gets a new
+    // key. Retries of this request reuse the same serialized envelope and key.
+    const canonical = {
+        version: envelope.version,
+        installationId: envelope.installationId,
+        events: envelope.events.map(({ id, kind, data }) => ({ id, kind, data })),
+    };
+    return createHash('sha256').update(JSON.stringify(canonical), 'utf8').digest('hex');
+}
+function telemetryResponseRecord(value) {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+        ? value : {};
+}
+async function postVelaBatch(config, batch, installationId, fetchImpl, opts = {}) {
+    // Completed-run batches may fall back to the anonymous relay when Vela
+    // rejects auth (expired Control Key, etc.). Score-only feedback must not:
+    // the matching trace is account-scoped on Vela, so anonymous delivery would
+    // orphan the scores while the feedback route has already reported accepted.
+    const allowAnonymousAuthFallback = opts.allowAnonymousAuthFallback !== false;
+    const envelope = buildVelaEnvelope(batch, installationId);
+    const body = JSON.stringify(envelope);
+    const idempotencyKey = opts.deliveryIdempotencyKey ?? velaIdempotencyKey(envelope);
+    const maxTotalAttempts = Math.max(1, opts.maxTotalAttempts ?? Number.MAX_SAFE_INTEGER);
+    const attempts = Math.min(config.retries + 1, maxTotalAttempts);
+    let attemptCount = 0;
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+            attemptCount += 1;
+            opts.onAttempt?.();
+            const response = await fetchImpl(`${config.apiUrl}/api/v1/open-design/telemetry`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${config.controlKey}`,
+                    'Content-Type': 'application/json',
+                    'Idempotency-Key': idempotencyKey,
+                },
+                signal: AbortSignal.timeout(config.timeoutMs),
+                body,
+            });
+            if (response.status === 202) {
+                const accepted = telemetryResponseRecord(await response.json().catch(() => null));
+                const clientTraceId = envelope.events.find(event => event.kind === 'trace')?.data.id;
+                const receipt = telemetryResponseRecord(accepted.receipt);
+                return {
+                    langfuse_expected: true,
+                    langfuse_delivery_status: 'accepted',
+                    ...(typeof clientTraceId === 'string'
+                        && receipt?.clientTraceId === clientTraceId
+                        && typeof receipt.scopedTraceId === 'string'
+                        && /^[a-f0-9]{64}$/.test(receipt.scopedTraceId)
+                        ? { traceReceipt: { traceId: receipt.scopedTraceId, transport: 'vela' } }
+                        : {}),
+                };
+            }
+            const rejection = telemetryResponseRecord(await response.json().catch(() => null));
+            const issues = Array.isArray(rejection.issues) ? rejection.issues : [];
+            const issue = telemetryResponseRecord(issues[0]);
+            const unsupportedTask = opts.allowTaskSchemaFallback !== false
+                && response.status === 400
+                && envelope.events.some(event => event.kind === 'trace'
+                    && event.data.name === 'open-design-strategy-task')
+                && rejection?.error === 'invalid_open_design_telemetry_payload'
+                && issues.length === 1
+                && issue.path === 'events.0.data.name'
+                && issue.message === 'trace name must be open-design-turn';
+            if (unsupportedTask || (allowAnonymousAuthFallback &&
+                (response.status === 401 || response.status === 403))) {
+                const fallback = opts.fallbackConfig === undefined
+                    ? readTelemetrySinkConfig()
+                    : opts.fallbackConfig;
+                const fallbackAttempts = maxTotalAttempts - attemptCount;
+                if (fallback && fallbackAttempts > 0) {
+                    const cappedFallback = {
+                        ...fallback,
+                        retries: Math.min(fallback.retries, fallbackAttempts - 1),
+                    };
+                    return postLegacyTelemetryBatch(cappedFallback, batch, {
+                        fetchImpl,
+                        ...(opts.onAttempt ? { onAttempt: opts.onAttempt } : {}),
+                        ...(opts.deliveryIdempotencyKey ? { deliveryIdempotencyKey: opts.deliveryIdempotencyKey } : {}),
+                    });
+                }
+            }
+            if (attempt < attempts &&
+                (response.status === 429 || response.status >= 500)) {
+                await waitBeforeRetry(attempt);
+                continue;
+            }
+            console.warn(`[langfuse-trace] Vela telemetry failed status=${response.status}`);
+            return {
+                langfuse_expected: true,
+                langfuse_delivery_status: 'failed',
+                langfuse_drop_reason: ingestionDropReasonFromStatus(response.status, 'vela'),
+            };
+        }
+        catch (error) {
+            if (attempt < attempts) {
+                await waitBeforeRetry(attempt);
+                continue;
+            }
+            console.warn(`[langfuse-trace] Vela telemetry fetch error: ${String(error)}`);
+            return {
+                langfuse_expected: true,
+                langfuse_delivery_status: 'failed',
+                langfuse_drop_reason: 'network_error',
+            };
+        }
+    }
+    return {
+        langfuse_expected: true,
+        langfuse_delivery_status: 'failed',
+        langfuse_drop_reason: 'network_error',
+    };
+}
+/**
+ * Deliver an already-sanitized legacy ingestion batch through the same
+ * effective sink priority as the single-Run compatibility exporter.
+ *
+ * Task-level observability owns payload assembly and durable delivery state;
+ * this helper owns only the existing Vela/Relay/direct wire behavior. Keeping
+ * the sink routing here prevents the rollout service from learning credentials
+ * or reimplementing fallback semantics.
+ */
+export async function postLegacyTelemetryBatch(config, batch, options = {}) {
+    const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+    if (config.kind !== 'vela') {
+        const result = config.kind === 'langfuse'
+            ? await postLangfuseBatch(config, batch, fetchImpl, options.onAttempt)
+            : await postRelayBatch(config, JSON.stringify({ batch }), fetchImpl, options.onAttempt, options.deliveryIdempotencyKey);
+        const trace = asVelaSourceEvents(batch).find(event => event.type === 'trace-create');
+        return {
+            ...result,
+            ...(result.langfuse_delivery_status === 'accepted' && typeof trace?.body.id === 'string'
+                ? { traceReceipt: { traceId: trace.body.id, transport: config.kind } }
+                : {}),
+        };
+    }
+    const installationId = options.installationId?.trim() ?? '';
+    if (installationId) {
+        return postVelaBatch(config, batch, installationId, fetchImpl, {
+            allowAnonymousAuthFallback: options.allowAnonymousAuthFallback !== false,
+            allowTaskSchemaFallback: options.allowTaskSchemaFallback !== false,
+            ...(options.deliveryIdempotencyKey
+                ? { deliveryIdempotencyKey: options.deliveryIdempotencyKey }
+                : {}),
+            ...(options.onAttempt ? { onAttempt: options.onAttempt } : {}),
+            ...(options.fallbackConfig !== undefined
+                ? { fallbackConfig: options.fallbackConfig }
+                : {}),
+            ...(options.maxTotalAttempts !== undefined
+                ? { maxTotalAttempts: options.maxTotalAttempts }
+                : {}),
+        });
+    }
+    const fallback = options.allowAnonymousAuthFallback === false ? null
+        : options.fallbackConfig === undefined
+            ? readTelemetrySinkConfig()
+            : options.fallbackConfig;
+    if (!fallback) {
+        return {
+            langfuse_expected: false,
+            langfuse_delivery_status: 'not_expected',
+            langfuse_drop_reason: 'missing_sink_config',
+        };
+    }
+    const fallbackAttempts = Math.max(1, options.maxTotalAttempts ?? fallback.retries + 1);
+    const cappedFallback = {
+        ...fallback,
+        retries: Math.min(fallback.retries, fallbackAttempts - 1),
+    };
+    return postLegacyTelemetryBatch(cappedFallback, batch, { ...options, fetchImpl });
+}
+function waitBeforeRetry(attempt) {
+    return new Promise((resolve) => setTimeout(resolve, Math.min(250 * attempt, 1000)));
+}
+function normalizeRunTelemetrySinkConfig(config) {
+    if ('kind' in config)
+        return config;
+    return { kind: 'langfuse', ...config };
+}
+function resolveRunReportConfig(opts) {
+    if (opts.config === undefined) {
+        return readRunTelemetrySinkConfig(process.env, opts.configuredEnv ?? {});
+    }
+    if (opts.config == null)
+        return null;
+    return normalizeRunTelemetrySinkConfig(opts.config);
+}
+function resolveFeedbackReportConfig(opts) {
+    if (opts.config === undefined) {
+        return readFeedbackTelemetrySinkConfig(process.env, opts.configuredEnv ?? {});
+    }
+    if (opts.config == null)
+        return null;
+    return normalizeRunTelemetrySinkConfig(opts.config);
+}
+function ingestionDropReasonFromStatus(status, sinkKind) {
+    if (sinkKind === 'vela') {
+        if (status === 401)
+            return 'vela_401';
+        if (status === 403)
+            return 'vela_403';
+        if (status === 413)
+            return 'vela_413';
+        if (status === 429)
+            return 'vela_429';
+        if (status >= 500)
+            return 'vela_5xx';
+        return 'vela_400';
+    }
+    if (sinkKind === 'relay') {
+        if (status === 429)
+            return 'relay_429';
+        if (status === 413)
+            return 'relay_413';
+        if (status >= 500)
+            return 'relay_5xx';
+        return 'langfuse_4xx';
+    }
+    if (status >= 500)
+        return 'langfuse_5xx';
+    return 'langfuse_4xx';
+}
+function dropReasonFromPerEventErrors(responseBody, sinkKind) {
+    let parsed;
+    try {
+        parsed = JSON.parse(responseBody);
+    }
+    catch {
+        return sinkKind === 'relay' ? 'relay_5xx' : 'langfuse_5xx';
+    }
+    const errors = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? parsed.errors
+        : undefined;
+    if (!Array.isArray(errors)) {
+        return sinkKind === 'relay' ? 'relay_5xx' : 'langfuse_5xx';
+    }
+    for (const error of errors) {
+        if (!error || typeof error !== 'object' || Array.isArray(error))
+            continue;
+        const status = error.status;
+        if (typeof status === 'number' && Number.isFinite(status)) {
+            return ingestionDropReasonFromStatus(status, sinkKind);
+        }
+    }
+    return sinkKind === 'relay' ? 'relay_5xx' : 'langfuse_4xx';
+}
+function warnPerEventErrors(responseBody, label) {
+    let parsed;
+    try {
+        parsed = JSON.parse(responseBody);
+    }
+    catch {
+        return false;
+    }
+    const errors = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? parsed.errors
+        : undefined;
+    if (Array.isArray(errors) && errors.length > 0) {
+        console.warn(`[langfuse-trace] ${label} (${errors.length}): ${JSON.stringify(errors).slice(0, 500)}`);
+        return true;
+    }
+    return false;
+}
+function objectRegistrationBatch(batch) {
+    const trace = batch.find((item) => {
+        if (!item || typeof item !== 'object' || Array.isArray(item))
+            return false;
+        return item.type === 'trace-create';
+    });
+    if (!trace || typeof trace !== 'object' || Array.isArray(trace))
+        return [];
+    const source = trace;
+    if (!source.body || typeof source.body !== 'object' || Array.isArray(source.body)) {
+        return [];
+    }
+    const body = source.body;
+    const sourceMetadata = body.metadata &&
+        typeof body.metadata === 'object' &&
+        !Array.isArray(body.metadata)
+        ? body.metadata
+        : {};
+    return [
+        {
+            id: source.id,
+            type: source.type,
+            timestamp: source.timestamp,
+            body: {
+                id: body.id,
+                name: body.name,
+                userId: body.userId,
+                metadata: {
+                    projectId: sourceMetadata.projectId,
+                    attachment_manifest: sourceMetadata.attachment_manifest,
+                    artifact_manifest: sourceMetadata.artifact_manifest,
+                    input_text_snapshot_manifest: sourceMetadata.input_text_snapshot_manifest,
+                    registration_only: true,
+                },
+            },
+        },
+    ];
+}
+async function exportLegacyLangfuseRun(ctx, opts = {}) {
+    const deliveryIdempotencyKey = opts.deliveryIdempotencyKey;
+    const notExpected = deriveLangfuseDeliveryState(ctx.prefs, null);
+    if (ctx.prefs.metrics !== true) {
+        return withDeliveryDiagnostics(notExpected, 0, deliveryIdempotencyKey);
+    }
+    if (ctx.prefs.content !== true) {
+        return withDeliveryDiagnostics(notExpected, 0, deliveryIdempotencyKey);
+    }
+    const config = resolveRunReportConfig(opts);
+    const langfuseDelivery = deriveLangfuseDeliveryState(ctx.prefs, config);
+    if (!config) {
+        if (!missingTelemetrySinkWarned) {
+            // Warn once per daemon process; packaged config is loaded at process
+            // start, so repeated run-level warnings would only add noise.
+            missingTelemetrySinkWarned = true;
+            console.warn('[langfuse-trace] Telemetry metrics are enabled but no relay or Langfuse credentials are configured');
+        }
+        return withDeliveryDiagnostics(langfuseDelivery, 0, deliveryIdempotencyKey);
+    }
+    let batch;
+    try {
+        batch = buildTracePayload({ ...ctx, langfuse: langfuseDelivery }, opts.deliveryPurpose ?? 'final');
+        if (opts.deliveryPurpose === 'object-registration') {
+            batch = objectRegistrationBatch(batch);
+        }
+    }
+    catch (error) {
+        console.warn(`[langfuse-trace] Payload build error: ${String(error)}`);
+        return withDeliveryDiagnostics({
+            langfuse_expected: true,
+            langfuse_delivery_status: 'failed',
+            langfuse_drop_reason: 'payload_too_large',
+        }, 0, deliveryIdempotencyKey);
+    }
+    const serialized = JSON.stringify({ batch });
+    // Compare actual UTF-8 byte length, not String.length (UTF-16 code units),
+    // so the cap matches the byte-oriented contract documented in the spec
+    // (and the byte-oriented limit Langfuse enforces server-side).
+    const serializedBytes = Buffer.byteLength(serialized, 'utf8');
+    if (serializedBytes > HARD_BATCH_MAX_BYTES) {
+        console.warn(`[langfuse-trace] Batch too large (${serializedBytes}B > ${HARD_BATCH_MAX_BYTES}B), dropping trace ${ctx.run.runId}`);
+        return withDeliveryDiagnostics({
+            langfuse_expected: true,
+            langfuse_delivery_status: 'failed',
+            langfuse_drop_reason: 'payload_too_large',
+        }, 0, deliveryIdempotencyKey);
+    }
+    const fetchImpl = opts.fetchImpl ?? globalThis.fetch;
+    let attemptCount = 0;
+    const onAttempt = () => {
+        attemptCount += 1;
+        opts.onDeliveryAttempt?.();
+    };
+    let delivery;
+    if (config.kind === 'vela') {
+        const installationId = ctx.installationId?.trim() ?? '';
+        if (!installationId) {
+            if (opts.deliveryPurpose === 'object-registration') {
+                return {
+                    langfuse_expected: true,
+                    langfuse_delivery_status: 'failed',
+                    langfuse_drop_reason: 'missing_sink_config',
+                };
+            }
+            const fallback = readTelemetrySinkConfig();
+            if (!fallback) {
+                return withDeliveryDiagnostics({
+                    langfuse_expected: false,
+                    langfuse_delivery_status: 'not_expected',
+                    langfuse_drop_reason: 'missing_sink_config',
+                }, 0, deliveryIdempotencyKey);
+            }
+            delivery = fallback.kind === 'relay'
+                ? await postRelayBatch(fallback, serialized, fetchImpl, onAttempt, deliveryIdempotencyKey)
+                : await postLangfuseBatch(fallback, batch, fetchImpl, onAttempt);
+        }
+        else {
+            delivery = await postVelaBatch(config, batch, installationId, fetchImpl, {
+                allowAnonymousAuthFallback: opts.deliveryPurpose !== 'object-registration',
+                ...(deliveryIdempotencyKey ? { deliveryIdempotencyKey } : {}),
+                onAttempt,
+            });
+        }
+    }
+    else if (config.kind === 'relay') {
+        delivery = await postRelayBatch(config, serialized, fetchImpl, onAttempt, deliveryIdempotencyKey);
+    }
+    else {
+        delivery = await postLangfuseBatch(config, batch, fetchImpl, onAttempt);
+    }
+    return withDeliveryDiagnostics(delivery, attemptCount, deliveryIdempotencyKey);
+}
+/**
+ * Compatibility exporter for the current single-Run legacy ingestion shape.
+ * All provider event assembly and transport remain owned by this adapter;
+ * callers enter through the protocol-neutral exporter seam above.
+ */
+export const legacyLangfuseRunExporter = {
+    id: 'legacy-langfuse-ingestion-v1',
+    exportRun: exportLegacyLangfuseRun,
+};
+export function reportRunCompleted(ctx, opts = {}) {
+    return exportRunObservation(legacyLangfuseRunExporter, ctx, opts);
+}
+// Build a Langfuse `score-create` batch for a user-supplied turn rating.
+//
+// Langfuse scores let evals filter traces by user feedback. We emit one
+// NUMERIC score (`user_rating`, +1 / -1) plus optional CATEGORICAL scores
+// for each reason code, so the Langfuse UI's score filters work out of
+// the box. Raw custom-reason text rides in the score metadata when the
+// user opted into telemetry.content; the consent gate lives in
+// reportRunFeedback below, so this builder stays content-agnostic.
+//
+// Limitation: stable score ids (`${traceId}-rating`, `${traceId}-reason-${code}`)
+// mean re-submission overwrites cleanly, but reason codes the user removes
+// in a follow-up submission do not get a tombstone. A future change can
+// thread `removedReasonCodes` through and emit overwriting "cleared"
+// scores for them; not done here to keep this PR scoped to the bridge.
+export function buildFeedbackPayload(ctx) {
+    const traceId = ctx.traceId ?? ctx.runId;
+    const nowIso = new Date().toISOString();
+    const batch = [];
+    const ratingMetadata = {
+        reasonCodes: ctx.reasonCodes,
+        reasonCount: ctx.reasonCodes.length,
+        hasCustomReason: ctx.hasCustomReason,
+        // Raw text — gated upstream by telemetry.content consent.
+        customReason: ctx.customReason || undefined,
+        installationId: ctx.installationId ?? undefined,
+        ...(ctx.metadata ?? {}),
+        ...(ctx.traceId ? { runId: ctx.runId } : {}),
+    };
+    batch.push({
+        id: randomUUID(),
+        type: 'score-create',
+        timestamp: nowIso,
+        body: {
+            id: `${ctx.runId}-rating`,
+            traceId,
+            name: 'user_rating',
+            value: ctx.rating === 'positive' ? 1 : -1,
+            dataType: 'NUMERIC',
+            comment: ctx.rating,
+            metadata: ratingMetadata,
+        },
+    });
+    for (const code of ctx.reasonCodes) {
+        batch.push({
+            id: randomUUID(),
+            type: 'score-create',
+            timestamp: nowIso,
+            body: {
+                // Stable per (run, code) so re-submission overwrites cleanly.
+                id: `${ctx.runId}-reason-${code}`,
+                traceId,
+                name: 'user_rating_reason',
+                value: code,
+                dataType: 'CATEGORICAL',
+                // Group the reason under the rating it was submitted with so a
+                // "matched_request" tag on a thumbs-down run is still visibly
+                // negative in the Langfuse UI.
+                comment: ctx.rating,
+            },
+        });
+    }
+    return batch;
+}
+export async function reportRunFeedback(ctx, opts = {}) {
+    if (ctx.prefs.metrics !== true)
+        return;
+    if (ctx.prefs.content !== true)
+        return;
+    const config = resolveFeedbackReportConfig(opts);
+    if (!config)
+        return;
+    let batch;
+    try {
+        batch = buildFeedbackPayload(ctx);
+    }
+    catch (error) {
+        console.warn(`[langfuse-trace] Feedback payload build error: ${String(error)}`);
+        return;
+    }
+    const serialized = JSON.stringify({ batch });
+    const serializedBytes = Buffer.byteLength(serialized, 'utf8');
+    if (serializedBytes > HARD_BATCH_MAX_BYTES) {
+        console.warn(`[langfuse-trace] Feedback batch too large (${serializedBytes}B > ${HARD_BATCH_MAX_BYTES}B), dropping feedback for ${ctx.runId}`);
+        return;
+    }
+    const fetchImpl = opts.fetchImpl ?? globalThis.fetch;
+    if (config.kind === 'vela') {
+        const installationId = ctx.installationId?.trim() ?? '';
+        if (!installationId) {
+            const fallback = readTelemetrySinkConfig();
+            if (!fallback)
+                return;
+            if (fallback.kind === 'relay') {
+                await postRelayBatch(fallback, serialized, fetchImpl);
+                return;
+            }
+            await postLangfuseBatch(fallback, batch, fetchImpl);
+            return;
+        }
+        // Never fall back to anonymous sinks for feedback: scores need the
+        // account-scoped Vela trace from the completed run.
+        await postVelaBatch(config, batch, installationId, fetchImpl, {
+            allowAnonymousAuthFallback: false,
+        });
+        return;
+    }
+    if (config.kind === 'relay') {
+        await postRelayBatch(config, serialized, fetchImpl);
+        return;
+    }
+    await postLangfuseBatch(config, batch, fetchImpl);
+}
+//# sourceMappingURL=langfuse-trace.js.map

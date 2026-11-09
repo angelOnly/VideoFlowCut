@@ -361,22 +361,24 @@ test("HTTP 与实时 MCP 均通过正式入口提交旁白字幕和显示纠错"
 function mockProvider(options: { tokenTimed?: boolean; transcript?: string; phrases?: string[]; onRead?: () => void } = {}) {
   const savedFetch = globalThis.fetch;
   let submissions = 0;
+  let runId = "";
   const tokens = (options.phrases ?? phrases).map((value, i) => ({ text: value, startMs: 100 + i * 4000, endMs: 3900 + i * 4000 }));
   const timed = options.tokenTimed !== false;
   const output = { version: 4, precision: "provider_segment_timed", text: options.transcript ?? text, alignment: { tokenEvidence: timed ? "verified" : "unavailable", tokenPrecision: timed ? "provider_token_timed" : "unavailable", tokens: timed ? tokens : [] }, segments: tokens.map((token, i) => ({ displayText: token.text, startMs: token.startMs, endMs: token.endMs, ...(timed ? { tokenStart: i, tokenEnd: i + 1 } : {}) })) };
   globalThis.fetch = async (input, init) => {
     const url = String(input);
     if (url.endsWith("/health")) return Response.json({ status: "ready", queueModes: ["foreground"] });
-    if (url.endsWith(`/workflows/${FUNASR_SOURCE_CAPTION_WORKFLOW_ID}`)) return Response.json({ id: FUNASR_SOURCE_CAPTION_WORKFLOW_ID, name: "真实音频字幕", available: true, schemaVersion: "v4-test", fields: [], itemSlots: [{ id: "audio", label: "音频", kind: "audio", required: true }], outputs: [{ id: "transcript-text", label: "全文", kind: "text" }, { id: "caption-alignment-json", label: "时间", kind: "text" }] });
+    if (url.endsWith(`/workflows/${FUNASR_SOURCE_CAPTION_WORKFLOW_ID}`)) return Response.json({ id: FUNASR_SOURCE_CAPTION_WORKFLOW_ID, name: "真实音频字幕", schemaVersion: "v4-test", fields: [], itemSlots: [{ id: "audio", label: "音频", mediaKind: "audio", min: 1, max: 1 }], outputs: [{ id: "transcript-text", label: "全文", mediaKinds: ["text"], min: 1, max: 1 }, { id: "caption-alignment-json", label: "时间", kind: "text" }] });
     if (url.endsWith(`/workflows/${FUNASR_SOURCE_CAPTION_WORKFLOW_ID}/runs`)) {
       assert.equal(init?.method, "POST");
       assert.ok(init?.body instanceof FormData);
       submissions++;
-      return Response.json({ id: "speech-caption-provider", status: "queued", outputs: [] });
+      runId = String((init?.headers as Record<string, string>)["x-comfyui-bridge-run-id"]);
+      return Response.json({ id: runId, status: "queued", outputs: [] });
     }
-    if (url.endsWith("/runs/speech-caption-provider")) {
+    if (url.endsWith(`/runs/${runId}`)) {
       options.onRead?.();
-      return Response.json({ id: "speech-caption-provider", status: "succeeded", outputs: [{ outputSlotId: "transcript-text", kind: "text", text: options.transcript ?? text }, { outputSlotId: "caption-alignment-json", kind: "text", text: JSON.stringify(output) }] });
+      return Response.json({ id: runId, status: "succeeded", outputs: [{ outputSlotId: "transcript-text", kind: "text", text: options.transcript ?? text }, { outputSlotId: "caption-alignment-json", kind: "text", text: JSON.stringify(output) }] });
     }
     throw new Error(`未预期请求 ${url}`);
   };

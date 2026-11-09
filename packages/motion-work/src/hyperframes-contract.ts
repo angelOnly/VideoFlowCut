@@ -1,9 +1,8 @@
 /** 作者、提交校验与 Worker 共用的 HTML 合同；变更运行依赖必须升级作品身份。 */
 export const HYPERFRAMES_DEPENDENCIES = { hyperframes: "0.8.1", gsap: "3.14.2" } as const;
 export const MOTION_ENGINE_VERSION = "managed-hyperframes-4";
-export const MOTION_SOURCE_MAX_LENGTH = 2_000_000;
-export const IMAGE_SLOT_ATTRIBUTE = "data-vfc-image-slot";
-export const VIDEO_SLOT_ATTRIBUTE = "data-vfc-video-slot";
+import { MOTION_SOURCE_MAX_LENGTH, IMAGE_SLOT_ATTRIBUTE, VIDEO_SLOT_ATTRIBUTE } from "../../contracts/src/authored-motion-manifest-v1.js";
+export { MOTION_SOURCE_MAX_LENGTH, IMAGE_SLOT_ATTRIBUTE, VIDEO_SLOT_ATTRIBUTE };
 export const hyperframesContract = {
   sourceFormat: "html", maxSourceLength: MOTION_SOURCE_MAX_LENGTH,
   dependencies: HYPERFRAMES_DEPENDENCIES,

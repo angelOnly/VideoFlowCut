@@ -209,6 +209,8 @@ export type JobKind =
   | "motion_generation"
   /** 明确采用已有作品并接续预览，不再次生成画面。 */
   | "motion_adoption"
+  | "motion_inspection"
+  | "motion_authoring"
   | "avatar_generation"
   | "speech_assembly"
   | "preview"
@@ -217,12 +219,13 @@ export type JobKind =
 
 export type TrackKind = "video" | "audio" | "caption";
 
-export type MotionOnSuccess = {
-  cueId: Id;
-  audioPolicy: "rebind_unchanged_events";
-} & (
-  | { action: "replace_cue" }
-  | { action: "replace_range"; targetRange: { startFrame: number; endFrame: number } }
+export type MotionOnSuccess = { audioPolicy: "rebind_unchanged_events" } & (
+  | { action: "create_cue"; sceneId: Id; layer: "rear" | "actor" | "front" | "fullscreen";
+      startFrame: number; endFrame: number; sourceStartFrame: number; sourceEndFrame: number;
+      visualComposition?: { role: "primary"; replacesActorItemIds: Id[] }; coveredNarrativeBeatIds?: Id[];
+      note?: string; narrativePurpose?: string; audienceTask?: string }
+  | { action: "replace_cue"; cueId: Id }
+  | { action: "replace_range"; cueId: Id; targetRange: { startFrame: number; endFrame: number } }
 );
 export interface FrozenMotionContinuation {
   request: MotionOnSuccess;
@@ -230,7 +233,7 @@ export interface FrozenMotionContinuation {
 }
 export type MotionContinuationResult =
   | { status: "applied"; workId: Id; assetId?: Id; appliedRevision: number;
-      cueSegments: { oldCueId: Id; segments: Array<{ cueId: Id; startFrame: number; endFrame: number }> } }
+      cueSegments: { oldCueId?: Id; segments: Array<{ cueId: Id; startFrame: number; endFrame: number }> } }
   | { status: "needs_reconfirmation"; workId: Id; assetId?: Id; conflicts: Array<{ objectId: Id; reason: string }> };
 /** 当前阶段只把独立 BGM / SFX 作为可编辑声音包装；主 Dialogue 仍由 SpeechAsset 管理。 */
 export type AudioCueKind = "bgm" | "sfx";
@@ -626,14 +629,12 @@ export interface BridgeResponseSummary {
   status: "queued" | "running" | "succeeded" | "failed";
   error?: string | null;
   outputs: Array<{
-    outputSlotId: string;
-    displayName: string;
     kind: string;
     fileName?: string;
     mime?: string;
     outputId?: string;
-    downloadUrl?: string;
     text?: string;
+    value?: unknown;
   }>;
 }
 

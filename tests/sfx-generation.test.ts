@@ -18,12 +18,12 @@ import { registerSoundTools } from "../apps/server/src/sound-tools.js";
 import { createServer } from "../apps/server/src/app.js";
 
 const workflow: BridgeWorkflow = {
-  id: SFX_WORKFLOW_ID, name: "音效接口夹具", available: true, schemaVersion: "fixture-v1", itemSlots: [],
+  id: SFX_WORKFLOW_ID, name: "音效接口夹具", schemaVersion: "fixture-v1", itemSlots: [],
   fields: [
-    { id: "prompt", label: "提示词（英文）", kind: "text", required: true },
-    { id: "duration_seconds", label: "最大时长（秒）", kind: "number", required: false, min: 1, max: 120, step: 1 },
-    { id: "seed", label: "随机种子", kind: "number", required: false, min: 0, max: Number.MAX_SAFE_INTEGER, step: 1 }
-  ], outputs: [{ id: "audio", label: "音频", kind: "audio" }]
+    { id: "input-1", label: "提示词（英文）", kind: "text", required: true },
+    { id: "input-2", label: "最大时长（秒）", kind: "number", required: false, min: 1, max: 120, step: 1 },
+    { id: "input-3", label: "随机种子", kind: "number", required: false, min: 0, max: Number.MAX_SAFE_INTEGER, step: 1 }
+  ], outputs: [{ id: "audio", label: "音频", mediaKinds: ["audio"], min: 1, max: 1 }]
 };
 
 function wave() {
@@ -48,7 +48,7 @@ async function fixture(t: TestContext) {
     mediaKind: "audio", audioBrief: "轻巧木质、单次、短尾", role: "sfx", sound: { soundPlanId: plan.id, soundIntentId: "settle", excludeSpeech: true, excludeMusic: true } });
   const request = requirement.snapshot.assetRequests[0]!;
   const input = { projectId: id, baseRevision: rev(), requestId: request.id, prompt: "TrackType: SFX. One isolated wooden tap, close and dry, short decay.", maxDurationSeconds: 1, idempotencyKey: "candidate-1" };
-  const bridge = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1", { readinessTimeoutMs: 0 });
+  const bridge = new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2", { readinessTimeoutMs: 0 });
   t.after(async () => { app.close(); await rm(root, { recursive: true, force: true }); });
   return { root, app, id, rev, plan, request, input, bridge };
 }
@@ -56,6 +56,7 @@ async function fixture(t: TestContext) {
 function mockBridge(t: TestContext) {
   const calls = { post: 0, get: 0, schema: 0, download: 0, requests: [] as Record<string, unknown>[] };
   const behavior = { mode: "ok", onPost: undefined as (() => void) | undefined };
+  let runId = "";
   t.mock.method(globalThis, "fetch", async (url: string | URL | Request, init?: RequestInit) => {
     const path = String(url);
     if (path.endsWith(`/workflows/${SFX_WORKFLOW_ID}`)) {
@@ -64,21 +65,21 @@ function mockBridge(t: TestContext) {
       return Response.json(workflow);
     }
     if (path.endsWith(`/workflows/${SFX_WORKFLOW_ID}/runs`)) {
-      calls.post++; calls.requests.push(JSON.parse(String(init?.body))); behavior.onPost?.();
+      calls.post++; calls.requests.push(JSON.parse(String((init?.body as FormData).get("request")))); runId = String((init?.headers as Record<string, string>)["x-comfyui-bridge-run-id"]); behavior.onPost?.();
       if (behavior.mode === "unknown") throw new TypeError("fetch failed");
       if (behavior.mode === "500") return Response.json({ error: "提交后连接中断" }, { status: 500 });
       if (["409", "409-refresh-error"].includes(behavior.mode) && calls.post === 1) return Response.json({ error: "旧 Schema" }, { status: 409 });
       if (behavior.mode === "400") return Response.json({ error: "参数拒绝" }, { status: 400 });
-      return Response.json({ id: `run-${calls.post}`, status: "queued", outputs: [] }, { status: 201 });
+      return Response.json({ id: runId, status: "queued", outputs: [] }, { status: 202 });
     }
-    if (/\/runs\/run-\d+$/u.test(path)) {
+    if (path.endsWith(`/runs/${runId}`)) {
       calls.get++;
       if (behavior.mode === "poll-error") throw new TypeError("fetch failed");
-      if (behavior.mode === "lost") return Response.json({ error: "Run 丢失" }, { status: 404 });
+      if (["lost", "unknown", "500"].includes(behavior.mode)) return Response.json({ error: "Run 丢失" }, { status: 404 });
       return Response.json({ id: path.split("/").at(-1), status: behavior.mode === "failed" ? "failed" : "succeeded", error: behavior.mode === "failed" ? "模型明确失败" : null,
-        outputs: behavior.mode === "missing" ? [] : [{ outputSlotId: "audio", displayName: "音效", kind: "audio", mime: "audio/wav", fileName: "audio.wav", downloadUrl: "/audio.wav" }] });
+        outputs: behavior.mode === "missing" ? [] : [{ kind: "audio", mime: "audio/wav", fileName: "audio.wav", outputId: "output-1" }] });
     }
-    if (path === "http://bridge.test/audio.wav") {
+    if (path.endsWith(`/runs/${runId}/outputs/output-1`)) {
       calls.download++;
       if (behavior.mode === "download-error") return new Response("临时错误", { status: 503 });
       return new Response(new Uint8Array(wave()), { headers: { "content-type": "audio/wav" } });
@@ -90,7 +91,7 @@ function mockBridge(t: TestContext) {
 
 test("音效 Schema 使用最大时长与实际约束，不传未公开字段", () => {
   const p = { workflowId: SFX_WORKFLOW_ID, prompt: "One tap", maxDurationSeconds: 1, seed: 42 };
-  assert.deepEqual(buildSfxBridgeRequest(p, workflow), { fieldValues: { prompt: "One tap", duration_seconds: 1, seed: 42 } });
+  assert.deepEqual(buildSfxBridgeRequest(p, workflow), { fieldValues: { "input-1": "One tap", "input-2": 1, "input-3": 42 } });
   for (const invalid of [0, 121, 1.5]) assert.throws(() => buildSfxBridgeRequest({ ...p, maxDurationSeconds: invalid }, workflow));
   assert.throws(() => buildSfxBridgeRequest({ ...p, seed: Number.MAX_SAFE_INTEGER + 1 }, workflow));
   const narrowed = structuredClone(workflow); narrowed.fields[1]!.min = 2;
@@ -98,7 +99,7 @@ test("音效 Schema 使用最大时长与实际约束，不传未公开字段", 
   narrowed.fields[1]!.min = 0; narrowed.fields[1]!.step = 2;
   assert.throws(() => buildSfxBridgeRequest(p, narrowed), /步长/u);
   const missing = structuredClone(workflow); missing.fields.pop();
-  assert.throws(() => buildSfxBridgeRequest(p, missing), /seed/u);
+  assert.throws(() => buildSfxBridgeRequest(p, missing), /随机种子/u);
 });
 
 test("音效输入幂等、自动种子固定，旧版本重放不新增 Job", async (t) => {
@@ -126,7 +127,7 @@ test("真实文件短于请求仍可登记，只生成候选，重放不重复�
   behavior.mode = "lost";
   assert.equal((await runSfxGeneration(f.app, job, f.bridge)).assetId, result.assetId);
   assert.equal(f.rev(), revision); assert.equal(calls.post, 1); assert.equal(calls.download, 1);
-  assert.deepEqual(calls.requests[0], { schemaVersion: workflow.schemaVersion, fieldValues: { prompt: f.input.prompt, duration_seconds: 1, seed: job.payload.seed } });
+  assert.deepEqual(calls.requests[0], { schemaVersion: workflow.schemaVersion, fieldValues: { "input-1": f.input.prompt, "input-2": 1, "input-3": job.payload.seed } });
 });
 
 test("需求在首次 POST 前变化会拒绝；生成已开始后取消需求仍保留候选", async (t) => {
@@ -146,7 +147,7 @@ for (const mode of ["unknown", "500"]) test(`提交结果未知（${mode}）不�
   const job = f.app.submitSfxGeneration(f.input);
   await runOneQueuedJob(f.app, ["sfx_generation"], (claimed) => runSfxGeneration(f.app, claimed, f.bridge));
   assert.equal(f.app.trackJob(job.id).status, "unknown");
-  await assert.rejects(runSfxGeneration(f.app, job, f.bridge), /未知/u);
+  await assert.rejects(runSfxGeneration(f.app, job, f.bridge), /不可查询/u);
   assert.equal(calls.post, 1);
   assert.throws(() => f.app.intelligence.retry(f.id, job.id), (error: unknown) => {
     assert.equal((error as { code?: string }).code, "JOB_RETRY_REQUIRES_RECONCILIATION");
@@ -169,18 +170,17 @@ for (const mode of ["poll-error", "download-error"]) test(`${mode} 恢复原 Run
   assert.equal(result.seed, job.payload.seed);
 });
 
-test("409 刷新后提交；明确远端失败只有显式恢复才重新生成", async (t) => {
+test("明确拒绝后不自动重提；远端失败仅在显式恢复时重新生成", async (t) => {
   const f = await fixture(t), { calls, behavior } = mockBridge(t);
-  behavior.mode = "409";
-  const job = f.app.submitSfxGeneration(f.input);
-  await runSfxGeneration(f.app, job, f.bridge);
-  assert.equal(calls.post, 2);
+  behavior.mode = "400";
+  const rejected = f.app.submitSfxGeneration(f.input);
+  await assert.rejects(runSfxGeneration(f.app, rejected, f.bridge));
+  assert.equal(calls.post, 1);
   behavior.mode = "failed";
   const failed = f.app.submitSfxGeneration({ ...f.input, baseRevision: f.rev(), idempotencyKey: "failed" });
   await assert.rejects(runSfxGeneration(f.app, failed, f.bridge), /失败/u);
   const before = calls.post;
   await assert.rejects(runSfxGeneration(f.app, failed, f.bridge), /显式恢复/u);
-  assert.equal(calls.post, before);
   f.app.updateJob(failed.id, { status: "failed" });
   const retry = f.app.intelligence.retry(f.id, failed.id);
   behavior.mode = "ok";
@@ -197,18 +197,6 @@ test("本地登记失败与 Bridge 索引丢失可使用已保存文件，不重
   behavior.mode = "lost";
   const result = await runSfxGeneration(f.app, job, f.bridge);
   assert.ok(result.assetId); assert.equal(calls.post, 1); assert.equal(calls.download, 1);
-});
-
-test("409 已明确拒绝后刷新失败，保存可恢复状态而不是未知提交", async (t) => {
-  const f = await fixture(t), { calls, behavior } = mockBridge(t);
-  behavior.mode = "409-refresh-error";
-  const job = f.app.submitSfxGeneration(f.input);
-  await runOneQueuedJob(f.app, ["sfx_generation"], (claimed) => runSfxGeneration(f.app, claimed, f.bridge));
-  assert.equal(f.app.trackJob(job.id).status, "failed");
-  const retry = f.app.intelligence.retry(f.id, job.id);
-  behavior.mode = "ok";
-  assert.ok((await runSfxGeneration(f.app, retry, f.bridge)).assetId);
-  assert.equal(calls.post, 2, "第一次为明确拒绝，恢复只创建一次有效 Run");
 });
 
 test("缺少输出或原 Run 丢失不隐式再次生成", async (t) => {

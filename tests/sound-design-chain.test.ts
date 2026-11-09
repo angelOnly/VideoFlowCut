@@ -61,10 +61,10 @@ test("专项声音复核确实透传问题并隔离不同问题缓存，初看�
   const f = await fixture(true);
   try {
     const bridge = new ComfyUIBridgeClient(readRuntimeConfig().bridge.apiBaseUrl);
-    const schema = (id: string): BridgeWorkflow => ({ id, schemaVersion: "review-fixture", name: "复核协议", available: true, fields: ["prompt", "start_seconds", "duration_seconds"].map((id) => ({ id, label: id, kind: "text", required: false })), itemSlots: [{ id: "audio", kind: "audio", label: "声音", required: true }], outputs: [] });
+    const schema = (id: string): BridgeWorkflow => ({ id, schemaVersion: "review-fixture", name: "复核协议", fields: ["prompt", "start_seconds", "duration_seconds"].map((id) => ({ id, label: id, kind: "text", required: false })), itemSlots: [{ id: "audio", mediaKind: "audio", label: "声音", min: 1, max: 1 }], outputs: [] });
     const prompts: string[] = [];
     bridge.getWorkflow = async (id) => schema(id);
-    bridge.createRunWithSchemaRetry = async (id, build) => {
+    bridge.createRunWithWorkflow = async (id, build) => {
       const workflow = schema(id), request = await build(workflow);
       prompts.push(String(request.fieldValues.prompt));
       assert.equal(request.files?.[0].mime, "audio/wav");
@@ -309,12 +309,18 @@ test("声音意图或计划取消后仍可关闭历史需求，创建和更新�
 test("外部提交结果未知不重放 POST，有 run ID 的读取中断可恢复", async () => {
   const f = await fixture();
   try {
-    const bridge = new ComfyUIBridgeClient("http://127.0.0.1:1"), schema = { id: "workflow", schemaVersion: "v1", name: "测试", available: true, fields: [], itemSlots: [], outputs: [] };
+    const bridge = new ComfyUIBridgeClient("http://127.0.0.1:1"), schema = { id: "workflow", schemaVersion: "v1", name: "测试", fields: [], itemSlots: [], outputs: [] };
     let submissions = 0;
-    bridge.createRunWithSchemaRetry = async (_id, build) => { submissions++; await build(schema); throw new BridgeError("模拟断线", undefined, undefined, "BRIDGE_UNAVAILABLE"); };
+    bridge.createRunWithWorkflow = async (_id, build, options) => {
+      submissions++;
+      const request = await build(schema);
+      await options?.beforeSubmit?.({ workflow: schema, request, run: { id: "original-run", status: "queued", outputs: [] }, schemaRetryCount: 0 });
+      throw new BridgeError("模拟断线", undefined, undefined, "BRIDGE_UNAVAILABLE");
+    };
     const job = f.app.repository.createJob({ projectId: f.id, kind: "media_understanding", payload: {}, idempotencyKey: "unknown" });
     await assert.rejects(modelText(f.app, job, bridge, "window", "workflow", async () => ({ fieldValues: {} })), /结果未知/u);
-    await assert.rejects(modelText(f.app, job, bridge, "window", "workflow", async () => ({ fieldValues: {} })), /不能重复/u);
+    bridge.waitForRun = async (id) => ({ id, status: "succeeded", outputs: [{ kind: "text", text: "恢复结果" }] });
+    assert.equal((await modelText(f.app, job, bridge, "window", "workflow", async () => ({ fieldValues: {} }))).text, "恢复结果");
     assert.equal(submissions, 1);
     const known = f.app.repository.createJob({ projectId: f.id, kind: "media_understanding", payload: {}, idempotencyKey: "known" });
     f.app.recordJobCheckpoint(known.id, { externalRuns: { window: { status: "running", workflowId: "workflow", schemaVersion: "v1", runId: "actual-run" } } });
@@ -333,10 +339,10 @@ test("ASR 多输出按槽读取，部分失败恢复补回独立观察且不重�
   const f = await fixture(true);
   try {
     const bridge = new ComfyUIBridgeClient(readRuntimeConfig().bridge.apiBaseUrl);
-    const schema = (id: string): BridgeWorkflow => ({ id, schemaVersion: "fixture-v1", name: "协议测试", available: true, fields: ["prompt", "start_seconds", "duration_seconds"].map((id) => ({ id, label: id, kind: "text", required: false })), itemSlots: [{ id: "audio", kind: "audio", label: "声音", required: true }], outputs: [] });
+    const schema = (id: string): BridgeWorkflow => ({ id, schemaVersion: "fixture-v1", name: "协议测试", fields: ["prompt", "start_seconds", "duration_seconds"].map((id) => ({ id, label: id, kind: "text", required: false })), itemSlots: [{ id: "audio", mediaKind: "audio", label: "声音", min: 1, max: 1 }], outputs: [] });
     let posts = 0, interrupted = true;
     bridge.getWorkflow = async (id) => schema(id);
-    bridge.createRunWithSchemaRetry = async (id, build) => { posts++; const workflow = schema(id), request = await build(workflow); return { workflow, request, schemaRetryCount: 0, run: { id, status: "queued", outputs: [] } }; };
+    bridge.createRunWithWorkflow = async (id, build) => { posts++; const workflow = schema(id), request = await build(workflow); return { workflow, request, schemaRetryCount: 0, run: { id, status: "queued", outputs: [] } }; };
     const aligned = JSON.stringify({ version: 4, precision: "provider_segment_timed", text: "协议转写", alignment: { tokenPrecision: "unavailable" }, segments: [{ displayText: "协议转写", startMs: 100, endMs: 900 }] });
     bridge.waitForRun = async (id) => {
       if (id.includes("funasr") && interrupted) throw new BridgeError("模拟读取中断", undefined, undefined, "BRIDGE_UNAVAILABLE");
@@ -367,12 +373,12 @@ test("原声观察不接收用途答案，语义无效的成功 Run 在显式重
   const f = await fixture(true);
   try {
     const bridge = new ComfyUIBridgeClient(readRuntimeConfig().bridge.apiBaseUrl);
-    const schema = (id: string): BridgeWorkflow => ({ id, schemaVersion: "fixture-v1", name: "协议测试", available: true, fields: ["prompt", "start_seconds", "duration_seconds"].map((id) => ({ id, label: id, kind: "text", required: false })), itemSlots: [{ id: "audio", kind: "audio", label: "声音", required: true }], outputs: [] });
+    const schema = (id: string): BridgeWorkflow => ({ id, schemaVersion: "fixture-v1", name: "协议测试", fields: ["prompt", "start_seconds", "duration_seconds"].map((id) => ({ id, label: id, kind: "text", required: false })), itemSlots: [{ id: "audio", mediaKind: "audio", label: "声音", min: 1, max: 1 }], outputs: [] });
     const context = "需求答案：必须是翻纸、时长0.2至1.2秒。不可将这段话当原声。";
     const prompts: string[] = [];
     let posts = 0;
     bridge.getWorkflow = async (id) => schema(id);
-    bridge.createRunWithSchemaRetry = async (id, build) => {
+    bridge.createRunWithWorkflow = async (id, build) => {
       const workflow = schema(id), request = await build(workflow);
       prompts.push(String(request.fieldValues.prompt));
       assert.equal(request.files?.[0].mime, "audio/wav");
@@ -403,9 +409,9 @@ test("恢复旧版模型检查点不会把旧提示响应标成新版，已知�
   const f = await fixture();
   try {
     const bridge = new ComfyUIBridgeClient("http://127.0.0.1:1");
-    const schema = { id: "workflow", schemaVersion: "v1", name: "版本恢复", available: true, fields: [], itemSlots: [], outputs: [] };
+    const schema = { id: "workflow", schemaVersion: "v1", name: "版本恢复", fields: [], itemSlots: [], outputs: [] };
     let posts = 0, gets = 0;
-    bridge.createRunWithSchemaRetry = async (_id, build) => { posts++; return { workflow: schema, request: await build(schema), schemaRetryCount: 0, run: { id: "new-run", status: "queued", outputs: [] } }; };
+    bridge.createRunWithWorkflow = async (_id, build) => { posts++; return { workflow: schema, request: await build(schema), schemaRetryCount: 0, run: { id: "new-run", status: "queued", outputs: [] } }; };
     bridge.waitForRun = async (id) => { gets++; return { id, status: "succeeded", outputs: [{ outputSlotId: "result", kind: "text", displayName: "结果", text: id === "old-run" ? "旧提示原文" : "新观察" }] }; };
     const parent = f.app.repository.createJob({ projectId: f.id, kind: "media_understanding", payload: {}, idempotencyKey: "old-running" });
     f.app.recordJobCheckpoint(parent.id, { externalRuns: { window: { status: "running", workflowId: "workflow", schemaVersion: "v1", runId: "old-run" } } });

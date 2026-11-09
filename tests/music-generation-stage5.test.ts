@@ -21,7 +21,6 @@ import { createMediaJobProcessor, MEDIA_JOB_KINDS } from "../apps/job-worker/src
 const musicWorkflow: BridgeWorkflow = {
   id: "music-workflow",
   name: "受控音乐生成",
-  available: true,
   schemaVersion: "music-v1",
   fields: [
     { id: "prompt", label: "Music prompt", kind: "text", required: true },
@@ -32,7 +31,7 @@ const musicWorkflow: BridgeWorkflow = {
     { id: "negative", label: "Negative prompt", kind: "text", required: false }
   ],
   itemSlots: [],
-  outputs: [{ id: "final_audio", label: "Final music", kind: "audio" }]
+  outputs: [{ id: "final_audio", label: "Final music", mediaKinds: ["audio"], min: 1, max: 1 }]
 };
 
 function context(root: string) {
@@ -86,30 +85,30 @@ async function createMp3Fixture(root: string): Promise<Buffer> {
 
 function installBridgeFetch(bytes: Buffer, observed: { request?: Record<string, unknown> }): () => void {
   const original = globalThis.fetch;
+  let runId = "";
   globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
     const address = String(url);
     if (address.endsWith(`/workflows/${musicWorkflow.id}`) && (!init?.method || init.method === "GET")) {
       return Response.json(musicWorkflow);
     }
     if (address.endsWith(`/workflows/${musicWorkflow.id}/runs`) && init?.method === "POST") {
-      observed.request = JSON.parse(String(init.body)) as Record<string, unknown>;
-      return Response.json({ id: "bridge-music-run", status: "queued", outputs: [] });
+      observed.request = JSON.parse(String((init.body as FormData).get("request"))) as Record<string, unknown>;
+      runId = String((init.headers as Record<string, string>)["x-comfyui-bridge-run-id"]);
+      return Response.json({ id: runId, status: "queued", outputs: [] });
     }
-    if (address.endsWith("/runs/bridge-music-run")) {
+    if (address.endsWith(`/runs/${runId}`)) {
       return Response.json({
-        id: "bridge-music-run",
+        id: runId,
         status: "succeeded",
         outputs: [{
-          outputSlotId: "final_audio",
-          displayName: "Final music",
           kind: "audio",
           fileName: "finale.mp3",
           mime: "audio/mpeg",
-          downloadUrl: "/downloads/finale.mp3"
+          outputId: "finale"
         }]
       } satisfies BridgeRun);
     }
-    if (address === "http://bridge.test/downloads/finale.mp3") {
+    if (address.endsWith(`/runs/${runId}/outputs/finale`)) {
       // Buffer 的底层 ArrayBuffer 类型在 Node DOM 声明中较宽，复制为浏览器兼容 Uint8Array 再模拟下载体。
       const body = new Uint8Array(bytes.byteLength);
       body.set(bytes);
@@ -157,7 +156,7 @@ test("音乐 Worker 动态读取 Schema、保存审计并只接收可解码的�
     assert.ok(MEDIA_JOB_KINDS.includes("music_generation"), "音乐任务必须由媒体 Worker 领取");
     const result = await createMediaJobProcessor(
       state.application,
-      new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1")
+      new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2")
     )(state.job);
     assert.equal(result.musicAssetId, "generated-music-asset");
     assert.equal(result.revision, 1);
@@ -186,8 +185,8 @@ test("多路音频输出或网页错误页不会被误当成可用音乐", async
       id: "multiple",
       status: "succeeded",
       outputs: [
-        { outputSlotId: "preview", displayName: "Preview", kind: "audio", downloadUrl: "/preview" },
-        { outputSlotId: "final", displayName: "Final", kind: "audio", downloadUrl: "/final" }
+        { kind: "audio", outputId: "preview" },
+        { kind: "audio", outputId: "final" }
       ]
     }),
     (error: unknown) => error instanceof DomainError && error.code === "MUSIC_OUTPUT_AMBIGUOUS"
@@ -234,7 +233,7 @@ test("已提交的音乐 Run 丢失时不自动重提，避免在未知额度状
       }]
     };
     await assert.rejects(
-      () => runMusicGeneration(state.application, state.job, new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1")),
+      () => runMusicGeneration(state.application, state.job, new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2")),
       (error: unknown) => error instanceof DomainError && error.code === "MUSIC_RUN_LOST_REQUIRES_RECONFIRMATION"
     );
     assert.equal(createRunCalls, 0, "未知远端状态下不得自动创建第二个音乐 Run");

@@ -133,6 +133,9 @@ const compatibilityOnlyTools = new Set(["create_presenter_timeline"]);
 const hostCollaborationTools = new Set(["spawn_agent", "followup_task", "list_agents", "interrupt_agent"]);
 
 const ignoredToolLikeTokens = new Set([
+  // 这些是受管作品采用目标的 action 值，具体调用仍由正式工具提交。
+  "replace_cue",
+  "replace_range",
   // 机制元数据中的起始状态不是 start_* 操作。
   "start_state",
   "start_ms",
@@ -365,7 +368,7 @@ test("协调入口可到达全部创意角色与共享合同，机械操作保�
   for (const name of ["asset-import", "transcription", "export", "web-editor-operator"]) {
     const skill = await readSkill(name);
     assert.match(skill, /主任务/u, `${name} 应保留确定性执行或证据获取职责`);
-    assert.match(skill, /子代理/u, `${name} 中的专业判断应明确交接`);
+    assert.match(skill, /子代理|原视觉、声音等负责人/u, `${name} 中的专业判断应明确交接`);
   }
 });
 
@@ -376,7 +379,8 @@ test("正式提交与专业判断分工在唯一交接中维护",async()=>{
   assert.match(handoff,/不能只换 `?base_revision_id`? 重发旧产物/);
   assert.match(handoff,/技术核验归主任务[\s\S]*审美归子代理/);
   assert.match(writes,/不能认证真实宿主调用/);
-  assert.match(writes,/异步 Job[\s\S]*on_success[\s\S]*核对目标依赖、原子采用/);
+  assert.match(writes,/start_motion_authoring[\s\S]*核对依赖、自动登记及采用/);
+  assert.match(writes,/on_success/);
   assert.match(await readSkill("quality-verification"),/inconclusive/);
 });
 

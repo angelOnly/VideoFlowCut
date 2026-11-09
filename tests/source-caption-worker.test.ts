@@ -72,10 +72,9 @@ function sourceCaptionWorkflowResponse(outputs = [
   return {
     id: FUNASR_SOURCE_CAPTION_WORKFLOW_ID,
     name: "FunASR 原声段级字幕对齐",
-    available: true,
     schemaVersion: "funasr-source-caption-v4",
     fields: [],
-    itemSlots: [{ id: "audio", label: "原声音频", kind: "audio", required: true }],
+    itemSlots: [{ id: "audio", label: "原声音频", mediaKind: "audio", min: 1, max: 1 }],
     outputs
   };
 }
@@ -96,7 +95,8 @@ function installProviderBridgeMock(output: unknown, runId: string, counters: Pro
       assert.equal(init?.method, "POST");
       assert.ok(init?.body instanceof FormData, "原声段级字幕必须通过 Bridge multipart 合同提交");
       const request = JSON.parse(String((init.body as FormData).get("request")));
-      assert.equal(request.queueMode, "foreground", "原声字幕必须进入前置队列，不能被长视频生成饿死");
+      assert.equal(request.queueMode, undefined);
+      runId = String((init?.headers as Record<string, string>)["x-comfyui-bridge-run-id"]);
       counters.creates += 1;
       return new Response(JSON.stringify({ id: runId, status: "queued", outputs: [] }), { headers: { "content-type": "application/json" } });
     }
@@ -179,7 +179,7 @@ async function executeProviderCaptionAlignment(
       timelineItemId: fixture.actorItem.id
     });
     installProviderBridgeMock(output, runId, counters);
-    assert.equal(await runOneJob(fixture.app, createMediaJobProcessor(fixture.app, new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1"))), true);
+    assert.equal(await runOneJob(fixture.app, createMediaJobProcessor(fixture.app, new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2"))), true);
     return { job, counters };
   } finally {
     globalThis.fetch = originalFetch;
@@ -238,7 +238,7 @@ test("Provider 两个带自然标点的 v4 字幕段在同一 Worker 提交中�
     const originalFetch = globalThis.fetch;
     try {
       installProviderBridgeMock(output, "provider-segment-default", completed.counters);
-      assert.equal(await runOneJob(fixture.app, createMediaJobProcessor(fixture.app, new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1"))), true);
+      assert.equal(await runOneJob(fixture.app, createMediaJobProcessor(fixture.app, new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2"))), true);
     } finally {
       globalThis.fetch = originalFetch;
     }

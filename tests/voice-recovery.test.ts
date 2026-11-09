@@ -20,7 +20,7 @@ test("配音第二段等待中断后续接原Run，已完成段不重生，重�
     const waits: string[] = [];
     const bridge = {
       findTextField: () => ({ id: "text" }),
-      createRunWithSchemaRetry: async (id: string, build: (workflow: BridgeWorkflow) => Promise<unknown>) => {
+      createRunWithWorkflow: async (id: string, build: (workflow: BridgeWorkflow) => Promise<unknown>) => {
         const workflow = { id, schemaVersion: "fixture", itemSlots: [] } as unknown as BridgeWorkflow;
         const request = await build(workflow);
         return { workflow, request, schemaRetryCount: 0, run: { id: `run-${++submissions}` } };
@@ -28,9 +28,9 @@ test("配音第二段等待中断后续接原Run，已完成段不重生，重�
       waitForRun: async (id: string) => {
         waits.push(id);
         if (id === "run-2" && !timedOut) { timedOut = true; throw new BridgeError("等待超时", undefined, undefined, "BRIDGE_RUN_TIMEOUT"); }
-        return { id, status: "succeeded", outputs: [{ kind: "audio", downloadUrl: "http://fixture/voice.wav", fileName: "voice.wav" }] };
+        return { id, status: "succeeded", outputs: [{ kind: "audio", outputId: "voice", fileName: "voice.wav" }] };
       },
-      downloadOutput: async (_output: unknown, path: string) => copyFile(file, path)
+      downloadOutput: async (_run: unknown, _output: unknown, path: string) => copyFile(file, path)
     } as unknown as ComfyUIBridgeClient;
     const service = new OmniVoiceSegmentService(app, bridge);
     const original = app.submitVoiceSynthesis({ projectId });

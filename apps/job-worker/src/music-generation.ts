@@ -46,7 +46,6 @@ export type MusicGenerationContext = {
   workflowId: string;
   prompt: string;
   durationSeconds: number;
-  outputSlotId?: string;
 };
 
 const MUSIC_JOB_KIND = "music_generation";
@@ -91,15 +90,11 @@ export function resolveMusicGenerationContext(application: EditingApplication, j
   if (requestedRevision !== state.revision.number) {
     throw new DomainError("项目 Revision 已变化，不能继续向音乐 Provider 提交旧请求", "STALE_MUSIC_REQUEST");
   }
-  const outputSlotId = typeof job.payload.outputSlotId === "string" && job.payload.outputSlotId.trim()
-    ? job.payload.outputSlotId.trim()
-    : undefined;
   return {
     snapshot: state.snapshot,
     workflowId: requiredPayloadText(job.payload, "workflowId", "音乐生成任务缺少经确认的 Bridge workflowId", "MUSIC_WORKFLOW_ID_REQUIRED"),
     prompt: requiredPayloadText(job.payload, "prompt", "音乐生成任务缺少明确的音乐提示词", "MUSIC_PROMPT_REQUIRED"),
     durationSeconds: boundedMusicDuration(job.payload),
-    outputSlotId
   };
 }
 
@@ -181,9 +176,7 @@ function durationValueForField(field: BridgeWorkflowField, durationSeconds: numb
 export function buildMusicBridgeRequest(context: MusicGenerationContext, workflow: BridgeWorkflow): {
   fieldValues: Record<string, unknown>;
 } {
-  if (context.outputSlotId && !workflow.outputs.some((output) => output.id === context.outputSlotId)) {
-    throw new DomainError("指定的音乐输出槽不在当前 Bridge Schema 中", "MUSIC_OUTPUT_SLOT_NOT_FOUND");
-  }
+
   const promptField = chooseUniqueField(
     workflow,
     promptFieldScore,
@@ -213,14 +206,12 @@ function responseSummary(run: BridgeRun): BridgeRunAudit["response"] {
     status: run.status,
     error: run.error,
     outputs: run.outputs.map((output) => ({
-      outputSlotId: output.outputSlotId,
-      displayName: output.displayName,
       kind: output.kind,
       fileName: output.fileName,
       mime: output.mime,
       outputId: output.outputId,
-      downloadUrl: output.downloadUrl,
-      text: output.text
+      text: output.text,
+      value: output.value
     }))
   };
 }
@@ -267,17 +258,12 @@ function isAudioOutput(output: BridgeOutput): boolean {
   return output.kind === "audio" || Boolean(mime?.startsWith("audio/"));
 }
 
-/** 多个可下载音频时必须让提交侧固定 outputSlotId，防止误把试听片段或 stem 当成最终 BGM。 */
-export function selectMusicOutput(run: BridgeRun, outputSlotId?: string): BridgeOutput {
-  const available = run.outputs.filter((output) => isAudioOutput(output) && Boolean(output.downloadUrl));
-  if (outputSlotId) {
-    const selected = available.find((output) => output.outputSlotId === outputSlotId);
-    if (!selected) throw new DomainError("Bridge 已完成，但指定的音乐输出槽没有可下载音频", "MUSIC_OUTPUT_SLOT_MISSING");
-    return selected;
-  }
+/** 只接受唯一音频输出，避免误用中间结果。 */
+export function selectMusicOutput(run: BridgeRun): BridgeOutput {
+  const available = run.outputs.filter((output) => isAudioOutput(output) && Boolean(output.outputId));
   if (available.length === 0) throw new DomainError("Bridge 已完成，但没有可下载的音频输出", "MISSING_MUSIC_OUTPUT");
   if (available.length > 1) {
-    throw new DomainError("Bridge 返回多个音频输出；提交音乐任务时必须指定 outputSlotId", "MUSIC_OUTPUT_AMBIGUOUS");
+    throw new DomainError("Bridge 返回多个音频输出，无法确定成品", "MUSIC_OUTPUT_AMBIGUOUS");
   }
   return available[0]!;
 }
@@ -311,6 +297,7 @@ async function inspectExistingMusic(snapshot: ProjectSnapshot, relativePath: str
 /** 下载先写入 .partial，所有格式和解码校验通过后再原子替换目标文件。 */
 export async function localizeGeneratedMusic(
   bridge: ComfyUIBridgeClient,
+  runId: string,
   snapshot: ProjectSnapshot,
   job: JobRecord,
   output: BridgeOutput
@@ -321,7 +308,7 @@ export async function localizeGeneratedMusic(
   await rm(partialPath, { force: true }).catch(() => undefined);
   try {
     // 先用临时文件测出真实音频编码与合适扩展名，避免 Provider 文件名把 M4A 写成 MP3。
-    await bridge.downloadOutput(output, partialPath);
+    await bridge.downloadOutput(runId, output, partialPath);
     const inspected = await inspectGeneratedMusicFile(partialPath, output.mime);
     const relativePath = musicRelativePath(job, output, inspected.metadata);
     const targetPath = join(snapshot.project.rootPath, relativePath);
@@ -392,7 +379,7 @@ export async function runMusicGeneration(
       const completed = await bridge.waitForRun(previousAudit.runId);
       const audit = completedAudit(previousAudit, completed);
       await application.recordBridgeRun(job.id, audit);
-      const musicAudio = await localizeGeneratedMusic(bridge, context.snapshot, job, selectMusicOutput(completed, context.outputSlotId));
+      const musicAudio = await localizeGeneratedMusic(bridge, completed.id, context.snapshot, job, selectMusicOutput(completed));
       await completeMusicGeneration(application, { projectId: job.projectId, jobId: job.id, musicAudio, bridgeAudit: audit });
       return { jobId: job.id, runId: completed.id, musicAudio, ...completedMusicResult(application, job), recoveredExistingRun: true };
     } catch (error) {
@@ -412,15 +399,15 @@ export async function runMusicGeneration(
   }
 
   const submittedAt = new Date().toISOString();
-  const submission = await bridge.createRunWithSchemaRetry(
+  const submission = await bridge.createRunWithWorkflow(
     context.workflowId,
-    async (workflow) => buildMusicBridgeRequest(context, workflow)
+    async (workflow) => buildMusicBridgeRequest(context, workflow),
+    { beforeSubmit: async (pending) => { await application.recordBridgeRun(job.id, createBridgeAudit(pending, undefined, submittedAt)); } }
   );
-  await application.recordBridgeRun(job.id, createBridgeAudit(submission, undefined, submittedAt));
   const completed = await bridge.waitForRun(submission.run.id);
   const audit = createBridgeAudit(submission, completed, submittedAt);
   await application.recordBridgeRun(job.id, audit);
-  const musicAudio = await localizeGeneratedMusic(bridge, context.snapshot, job, selectMusicOutput(completed, context.outputSlotId));
+  const musicAudio = await localizeGeneratedMusic(bridge, completed.id, context.snapshot, job, selectMusicOutput(completed));
   await completeMusicGeneration(application, { projectId: job.projectId, jobId: job.id, musicAudio, bridgeAudit: audit });
   return { jobId: job.id, runId: completed.id, musicAudio, ...completedMusicResult(application, job) };
 }

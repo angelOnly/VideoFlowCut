@@ -63,11 +63,11 @@ export function selectCreativeCards(index,{ids,query,offset=0,limit=20,source_sh
     library_count:index.count,total,offset,next_offset:next<total?next:null,exhausted:next>=total,cards:selected.map(creativeCard),observation};
 }
 
-function media(root,path){
+export function media(root,path){
   try{const file=localFile(root,path);if(!statSync(file).isFile())throw new Error('不是文件');return {path,absolute_path:file,available:true};}
   catch(error){return {path,available:false,reason:error.message};}
 }
-function imageMime(bytes){
+export function imageMime(bytes){
   if(bytes[0]===0xff&&bytes[1]===0xd8&&bytes[2]===0xff)return 'image/jpeg';
   if(bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))return 'image/png';
   if(bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP')return 'image/webp';

@@ -1,0 +1,12 @@
+--- a/lib/launch.js
++++ b/lib/launch.js
+@@ -154,7 +154,8 @@
+         // `detached: true` makes child process a leader of a new process group,
+         // making it possible to isolate process trees and prevent console signal propagation.
+         // @see https://nodejs.org/api/child_process.html#child_process_options_detached
+-        opts.detached ??= true;
++        // Windows 下独立进程组会让系统另开终端。
++        opts.detached ??= process.platform !== "win32";
+         const stdio = this.#configureStdio({
+             pipe: opts.pipe,
+         });

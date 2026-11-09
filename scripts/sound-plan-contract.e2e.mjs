@@ -15,7 +15,7 @@ const baseline = resolveReleaseRuntime(baselineRoot);
 await mkdir(join(repoRoot, ".candidate"), { recursive: true });
 const workspaceRoot = await mkdtemp(join(repoRoot, ".candidate", "sound-plan-e2e-"));
 const port = await findAvailablePort();
-const args = ["--repo-root", repoRoot, "--workspace", workspaceRoot, "--port", String(port), "--comfyui-bridge-url", "http://127.0.0.1:18199/comfyui-bridge/v1"];
+const args = ["--repo-root", repoRoot, "--workspace", workspaceRoot, "--port", String(port), "--comfyui-bridge-url", "http://127.0.0.1:18199/comfyui-bridge/v2"];
 const options = resolveCandidateRuntimeOptions(args);
 const candidate = resolveReleaseRuntime(options.pluginRoot);
 assert.notEqual(baseline.releaseId, candidate.releaseId);

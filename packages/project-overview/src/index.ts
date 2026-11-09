@@ -11,7 +11,7 @@ export const RUNTIME_CONFIG_DEFAULTS = {
   serverPort: 3100, // Server 与本地 Runtime 默认使用的 API 端口。
   webOrigin: "http://127.0.0.1:5173", // Vite 开发工作台的默认来源地址。
   logLevel: "info", // 未配置日志级别时的 Fastify 日志详细程度。
-  bridgeApiBaseUrl: "http://127.0.0.1:8188/comfyui-bridge/v1", // ComfyUI Bridge 的默认 HTTP API 根地址。
+  bridgeApiBaseUrl: "http://127.0.0.1:8188/comfyui-bridge/v2", // ComfyUI Bridge 的默认 HTTP API 根地址。
   maxAssetDownloadBytes: 512 * 1024 * 1024, // 普通素材下载的最大文件体积：512 MB。
   maxWikimediaDownloadBytes: 256 * 1024 * 1024, // Wikimedia Commons 素材下载的最大文件体积：256 MB。
   maxGeneratedVideoBytes: 512 * 1024 * 1024, // Bridge 生成视频下载的最大文件体积：512 MB。
@@ -529,6 +529,21 @@ export const PLUGIN_LAUNCHER_CONFIGURATION_CATALOG = [
     scope: "Node 继承环境变量",
     source: "plugins/videoflowcut/scripts/repo-root.mjs",
     description: "发行 Runtime 与 MCP 启动器用于定位宿主仓库 node_modules；会保留原有路径并追加仓库依赖路径。"
+  },
+  {
+    key: "OD_DATA_DIR",
+    group: "画面模块",
+    scope: "画面模块数据目录环境变量",
+    source: "plugins/videoflowcut/scripts/open-design-mcp-launcher.mjs",
+    description: "指定画面模块的数据目录；未设置时优先使用插件登记的目录，否则使用画面模块自身的默认目录。"
+  },
+  {
+    key: "VIDEOFLOWCUT_OD_NAMESPACE",
+    group: "画面模块",
+    scope: "画面模块启动与状态查询环境变量",
+    source: "plugins/videoflowcut/scripts/open-design-mcp-launcher.mjs",
+    description: "区分画面服务实例；隔离测试可使用不同标识。",
+    defaultValue: "videoflowcut"
   }
 ] as const;
 

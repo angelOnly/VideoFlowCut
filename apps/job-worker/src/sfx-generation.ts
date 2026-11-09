@@ -26,28 +26,25 @@ interface SfxCheckpoint {
 /** 已明确的工作流按字段 ID 适配，不能把最大时长误识别成音乐的精确时长。 */
 export function buildSfxBridgeRequest(payload: Pick<SfxGenerationPayload, "workflowId" | "prompt" | "maxDurationSeconds" | "seed">, workflow: BridgeWorkflow) {
   const badSchema = (detail: string): never => { throw new DomainError(`Stable Audio 接口不匹配：${detail}`, "SFX_SCHEMA_INVALID"); };
-  if (workflow.id !== payload.workflowId || !workflow.available || !workflow.schemaVersion) badSchema("工作流或版本不可用");
-  const values: Record<string, unknown> = { prompt: payload.prompt, duration_seconds: payload.maxDurationSeconds, seed: payload.seed };
+  if (workflow.id !== payload.workflowId || !workflow.schemaVersion) badSchema("工作流或版本不可用");
   if (!payload.prompt.trim() || !Number.isInteger(payload.maxDurationSeconds) || payload.maxDurationSeconds < 1 || payload.maxDurationSeconds > 120
     || !Number.isSafeInteger(payload.seed) || payload.seed < 0) badSchema("生成参数超出业务范围");
-  for (const id of Object.keys(values)) {
-    const matches = workflow.fields.filter((field) => field.id === id);
-    if (matches.length !== 1) badSchema(`缺少唯一字段 ${id}`);
-    const field = matches[0]!;
-    if (field.kind !== (id === "prompt" ? "text" : "number")) badSchema(`${id} 字段类型改变`);
-    if (id === "prompt") continue;
-    const value = Number(values[id]);
-    if ([field.min, field.max, field.step].some((n) => n !== undefined && !Number.isFinite(n))
-      || field.step !== undefined && field.step <= 0 || field.min !== undefined && field.max !== undefined && field.min > field.max) badSchema(`${id} 数值约束无效`);
-    if (field.min !== undefined && value < field.min || field.max !== undefined && value > field.max) badSchema(`${id} 超出实时范围`);
-    if (field.step !== undefined) {
-      const units = (value - (field.min ?? 0)) / field.step;
-      if (Math.abs(units - Math.round(units)) > 1e-7) badSchema(`${id} 不符合实时步长`);
-    }
+  const labels = ["提示词（英文）", "最大时长（秒）", "随机种子"];
+  const fields = labels.map((label) => {
+    const matches = workflow.fields.filter((field) => field.label === label);
+    if (matches.length !== 1) return badSchema(`缺少唯一字段 ${label}`);
+    return matches[0]!;
+  });
+  if (fields[0]!.kind !== "text" || fields[1]!.kind !== "number" || fields[2]!.kind !== "number") badSchema("字段类型改变");
+  const values: Record<string, unknown> = { [fields[0]!.id]: payload.prompt, [fields[1]!.id]: payload.maxDurationSeconds, [fields[2]!.id]: payload.seed };
+  for (const field of fields.slice(1)) {
+    const value = Number(values[field.id]);
+    if (field.min !== undefined && value < field.min || field.max !== undefined && value > field.max) badSchema(`${field.label} 超出实时范围`);
+    if (field.step !== undefined && Math.abs((value - (field.min ?? 0)) / field.step - Math.round((value - (field.min ?? 0)) / field.step)) > 1e-7) badSchema(`${field.label} 不符合实时步长`);
   }
   if (workflow.fields.some((field) => field.required && !(field.id in values) && field.defaultValue === undefined)
-    || workflow.itemSlots.some((slot) => slot.required)) badSchema("出现新的必填输入");
-  if (workflow.outputs.filter((output) => output.id === "audio" && output.kind === "audio").length !== 1) badSchema("缺少唯一音频输出槽");
+    || workflow.itemSlots.some((slot) => slot.min > 0)) badSchema("出现新的必填输入");
+  if (workflow.outputs.filter((output) => output.mediaKinds.includes("audio")).length !== 1) badSchema("缺少唯一音频输出槽");
   return { fieldValues: values };
 }
 
@@ -92,18 +89,22 @@ export async function runSfxGeneration(app: EditingApplication, job: JobRecord, 
   if (!checkpoint) {
     assertSfxRequestCurrent(app, job);
     try {
-      const submission = await bridge.createRunWithSchemaRetry(payload.workflowId, async (workflow) => {
+      const submission = await bridge.createRunWithWorkflow(payload.workflowId, async (workflow) => {
         checkActive();
         assertSfxRequestCurrent(app, job);
         const request = buildSfxBridgeRequest(payload, workflow);
-        save({ status: "submitting", identity, sourceJobId: job.id, attemptJobId: job.id, workflowId: workflow.id,
-          schemaVersion: workflow.schemaVersion, submittedAt: new Date().toISOString() });
         return request;
-      }, { onSchemaRejected: () => { if (checkpoint?.status === "submitting") save({ ...checkpoint, status: "failed" }); } });
+      }, { beforeSubmit: (pending) => {
+        const submittedAt = new Date().toISOString();
+        const audit: BridgeRunAudit = { workflowId: pending.workflow.id, runId: pending.run.id, schemaVersion: pending.workflow.schemaVersion,
+          schemaRetryCount: 0, submittedAt, request: { fieldValues: pending.request.fieldValues, fileSlots: [], metadata: { prompt: payload.prompt, maxDurationSeconds: payload.maxDurationSeconds, seed: payload.seed } } };
+        save({ status: "submitting", identity, sourceJobId: job.id, attemptJobId: job.id, workflowId: pending.workflow.id,
+          schemaVersion: pending.workflow.schemaVersion, submittedAt, runId: pending.run.id, audit });
+      } });
       if (!submission.run.id) throw new Error("Bridge 创建响应缺少 Run ID");
       const audit: BridgeRunAudit = { workflowId: submission.workflow.id, runId: submission.run.id,
         schemaVersion: submission.workflow.schemaVersion, schemaRetryCount: submission.schemaRetryCount,
-        submittedAt: checkpoint!.submittedAt, request: { fieldValues: submission.request.fieldValues, fileSlots: [] } };
+        submittedAt: checkpoint!.submittedAt, request: { fieldValues: submission.request.fieldValues, fileSlots: [], metadata: { prompt: payload.prompt, maxDurationSeconds: payload.maxDurationSeconds, seed: payload.seed } } };
       save({ ...checkpoint!, status: "running", runId: submission.run.id, audit });
     } catch (error) {
       checkpoint = checkpoints().sfx as SfxCheckpoint | undefined;
@@ -133,7 +134,7 @@ export async function runSfxGeneration(app: EditingApplication, job: JobRecord, 
       throw error;
     }
   }
-  const outputs = checkpoint!.run!.outputs.filter((output) => output.outputSlotId === "audio" && output.kind === "audio" && output.downloadUrl);
+  const outputs = checkpoint!.run!.outputs.filter((output) => output.kind === "audio" && output.outputId);
   if (outputs.length !== 1) throw new DomainError("生成结束但缺少唯一可下载音效", "SFX_OUTPUT_MISSING");
   const output: BridgeOutput = outputs[0]!;
   if (!audio) {
@@ -142,7 +143,7 @@ export async function runSfxGeneration(app: EditingApplication, job: JobRecord, 
     await mkdir(cache, { recursive: true });
     const partial = join(cache, "audio.partial");
     try {
-      await bridge.downloadOutput(output, partial);
+      await bridge.downloadOutput(checkpoint!.runId!, output, partial);
       const inspected = await inspectGeneratedAudioFile(partial, output.mime, true);
       const relativePath = `assets/sfx/${checkpoint.sourceJobId}/audio${extensionForGeneratedAudio(output, inspected.metadata)}`;
       const target = join(root, relativePath);

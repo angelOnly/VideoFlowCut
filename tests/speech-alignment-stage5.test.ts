@@ -16,14 +16,13 @@ import { resolveWordExactCaptionHighlight } from "../packages/remotion-runtime/s
 const alignmentWorkflow: BridgeWorkflow = {
   id: "forced-alignment-workflow",
   name: "真实强制对齐",
-  available: true,
   schemaVersion: "alignment-v1",
   fields: [
     { id: "alignment_text", label: "Forced alignment text", kind: "text", required: true },
     { id: "language", label: "Language", kind: "text", required: false }
   ],
-  itemSlots: [{ id: "speech_audio", label: "Speech audio", kind: "audio", required: true }],
-  outputs: [{ id: "alignment_json", label: "Alignment JSON", kind: "text" }]
+  itemSlots: [{ id: "speech_audio", label: "Speech audio", mediaKind: "audio", min: 1, max: 1 }],
+  outputs: [{ id: "alignment_json", label: "Alignment JSON", mediaKinds: ["text"], min: 1, max: 1 }]
 };
 
 type SpeechContext = {
@@ -238,6 +237,7 @@ test("Worker 动态读取 Schema、上传本地音频和当前 Script，并只�
   const originalFetch = globalThis.fetch;
   let observedRequest: Record<string, unknown> | undefined;
   let observedAudioFile = false;
+  let runId = "";
   globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
     const address = String(url);
     if (address.endsWith(`/workflows/${alignmentWorkflow.id}`) && (!init?.method || init.method === "GET")) return Response.json(alignmentWorkflow);
@@ -247,15 +247,14 @@ test("Worker 动态读取 Schema、上传本地音频和当前 Script，并只�
       observedRequest = JSON.parse(String(form.get("request"))) as Record<string, unknown>;
       const file = form.get("file_speech_audio");
       observedAudioFile = file instanceof Blob && file.size > 0;
-      return Response.json({ id: "alignment-run-1", status: "queued", outputs: [] });
+      runId = String((init.headers as Record<string, string>)["x-comfyui-bridge-run-id"]);
+      return Response.json({ id: runId, status: "queued", outputs: [] });
     }
-    if (address.endsWith("/runs/alignment-run-1")) {
+    if (address.endsWith(`/runs/${runId}`)) {
       return Response.json({
-        id: "alignment-run-1",
+        id: runId,
         status: "succeeded",
         outputs: [{
-          outputSlotId: "alignment_json",
-          displayName: "Final alignment",
           kind: "text",
           text: JSON.stringify({
             timeUnit: "ms",
@@ -277,7 +276,7 @@ test("Worker 动态读取 Schema、上传本地音频和当前 Script，并只�
     assert.ok(MEDIA_JOB_KINDS.includes("speech_alignment"), "词级对齐 Job 必须由媒体 Worker 领取");
     const result = await createMediaJobProcessor(
       context.app,
-      new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1")
+      new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2")
     )(job);
     assert.equal(result.speechAlignmentId, context.app.readSpeechAlignment(context.projectId)?.id);
     assert.equal(result.wordCount, 4);
@@ -324,7 +323,7 @@ test("裸时间单位和丢失的 Bridge Run 都不会被猜测或自动重提",
       request: { fieldValues: { alignment_text: "你好。世界。" }, fileSlots: [] }
     });
     await assert.rejects(
-      () => runSpeechAlignment(context.app, context.app.trackJob(job.id), new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v1")),
+      () => runSpeechAlignment(context.app, context.app.trackJob(job.id), new ComfyUIBridgeClient("http://bridge.test/comfyui-bridge/v2")),
       (error: unknown) => error instanceof DomainError && error.code === "ALIGNMENT_RUN_LOST_REQUIRES_RECONFIRMATION"
     );
     assert.equal(createRunCalls, 0, "run_id 丢失时不能自动创建第二个对齐任务");

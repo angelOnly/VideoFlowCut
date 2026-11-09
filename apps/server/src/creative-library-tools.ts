@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { z } from "zod";
 import { loadCreativeIndex,selectCreativeCards,readCreativeCase,assertCreativeSnapshot } from "../../../references/motion-cases/skillry/tools/creative-library.mjs";
 import { digest } from "../../../packages/media-intelligence/src/index.js";
-import { CREATIVE_TEXT_VERSION,CREATIVE_INSTRUCTION_VERSION } from "../../../packages/media-intelligence/src/creative-library.js";
+import { CREATIVE_TEXT_VERSION,CREATIVE_INSTRUCTION_VERSION,CREATIVE_QUERY_INSTRUCTION } from "../../../packages/media-intelligence/src/creative-library.js";
 import { latestLibraryAttempt } from "./library-job.js";
 import { motionJobRecovery } from "./motion-library-output.js";
 import { projectCreativeSearchResult } from "./creative-library-output.js";
@@ -18,7 +18,7 @@ const failure=(error:unknown,sideEffects:"none"|"unknown"="none")=>({isError:tru
 
 export function registerCreativeLibraryTools(server:McpServer,root=resolve(process.cwd(),"references/motion-cases/skillry"),app?:EditingApplication,projectIdFrom?:(id?:string)=>string) {
   server.registerTool("search_creative_cases",{
-    title:"检索完整创意案例",description:"用自然语言向量召回完整视觉表达方案；不需要标签或标题，不先做词法过滤。首次返回现有语义 Job，track_job 完成后同输入读回；offset/limit 只切同一排名。ids 精确定位，无 query/ids 时分页浏览，两者不调用模型。采用前用 read_creative_case 核读完整卡和真实媒体。排名不证明创意迁移成立。语义查询需要当前项目；浏览和精确读卡不需要。",
+    title:"检索完整创意案例",description:"创意作者用自然语言检索并观看候选。首次语义查询返回 Job，track_job 成功后按 readback 读取当前页并按分页信息继续。同查询分页复用排名。ids 精确定位，无 query/ids 时分页浏览。采用前读取完整卡和真实媒体，结合本片素材决定。",
     annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:true},
     inputSchema:{project_id:z.string().optional(),query:z.string().max(1000).optional(),ids:z.array(id).min(1).max(50).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(50).optional(),source_sha256:fingerprint.optional()}
   },async({project_id,...request})=>{
@@ -29,7 +29,7 @@ export function registerCreativeLibraryTools(server:McpServer,root=resolve(proce
       if(!app||!projectIdFrom)throw new DomainError("语义检索未连接项目任务服务；仍可按编号读取或分页浏览","CREATIVE_SEMANTIC_UNAVAILABLE");
       const projectId=projectIdFrom(project_id),config=readRuntimeConfig();
       // 翻页、一次显式快照断言均不改变查询身份，完整排名由一个 Job 保存。
-      const payload={request:{query:request.query.trim().normalize("NFC")},source_sha256:index.source_sha256,modelConfig:{...config.semantic,apiBaseUrl:config.bridge.apiBaseUrl},textVersion:CREATIVE_TEXT_VERSION,instructionVersion:CREATIVE_INSTRUCTION_VERSION};
+      const payload={request:{query:request.query.trim().normalize("NFC")},source_sha256:index.source_sha256,modelConfig:{...config.semantic,apiBaseUrl:config.bridge.apiBaseUrl},textVersion:CREATIVE_TEXT_VERSION,instructionVersion:CREATIVE_INSTRUCTION_VERSION,instruction:CREATIVE_QUERY_INSTRUCTION};
       sideEffects="unknown";
       const job=latestLibraryAttempt(app,projectId,app.repository.createJob({projectId,kind:"creative_library_search",payload,idempotencyKey:`creative-library:${digest(payload)}`}));
       let result:Record<string,unknown>;

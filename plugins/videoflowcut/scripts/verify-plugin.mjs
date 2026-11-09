@@ -4,6 +4,7 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { pluginRootFromModule, resolveReleaseRuntime, resolveRepoRoot, readOption } from "./repo-root.mjs";
+import { openDesignDigest } from "./open-design-release.mjs";
 
 const pluginRoot = pluginRootFromModule(import.meta.url);
 const repoRoot = resolveRepoRoot({ pluginRoot });
@@ -28,6 +29,10 @@ const releaseFiles = [
   ["GSAP 运行库", join(runtimeRoot, "hyperframes", "gsap.min.js")],
   ["受管 HTML 依赖版本", join(runtimeRoot, "hyperframes", "versions.json")],
   ["Web 入口", join(runtimeRoot, "web", "index.html")],
+  ["画面模块发行信息", join(runtimeRoot, "open-design", "component.json")],
+  ["画面模块源码入口", join(runtimeRoot, "open-design", "runtime", "apps", "daemon", "src", "sidecar", "index.ts")],
+  ["画面模块编译入口", join(runtimeRoot, "open-design", "runtime", "apps", "daemon", "dist", "cli.js")],
+  ["画面模块预览", join(runtimeRoot, "open-design", "runtime", "apps", "web", ".next", "BUILD_ID")],
   ["发行 manifest", join(runtimeRoot, "manifest.json")]
 ];
 
@@ -92,6 +97,10 @@ if (generatedSharedMetadata?.replace(/\r\n/g, "\n") !== expectedGeneratedSharedM
 }
 
 await Promise.all(releaseFiles.map(([label, path]) => requireNonEmptyFile(label, path)));
+const designRelease = JSON.parse(await readFile(join(runtimeRoot, "open-design", "component.json"), "utf8"));
+if (openDesignDigest(join(repoRoot, "components", "open-design")).digest !== designRelease.digest) {
+  throw new Error("画面模块与候选发行内容不一致，请重新构建。");
+}
 const releaseManifest = JSON.parse(await readFile(join(runtimeRoot, "manifest.json"), "utf8"));
 const motionDependencies = JSON.parse(await readFile(join(runtimeRoot, "hyperframes", "versions.json"), "utf8"));
 const projectDependencies = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8")).dependencies;
@@ -125,6 +134,9 @@ await Promise.all(releaseFiles.slice(0, 3).map(([, path]) => assertNoSourceRunti
 const mcp = JSON.parse(await readFile(join(pluginRoot, ".mcp.json"), "utf8"));
 if (mcp.mcpServers?.videoflowcut?.command !== "node" || mcp.mcpServers?.videoflowcut?.args?.[0] !== "./scripts/mcp-launcher.mjs") {
   throw new Error("插件 MCP 必须以 Node 启动发行 Runtime 启动器。");
+}
+if (mcp.mcpServers?.open_design?.command !== "node" || mcp.mcpServers?.open_design?.args?.[0] !== "./scripts/open-design-mcp-launcher.mjs") {
+  throw new Error("插件必须登记画面工具入口。");
 }
 if (mcp.mcpServers?.videoflowcut?.env?.VIDEOFLOWCUT_SFX_ROOTS !== undefined
   && typeof mcp.mcpServers.videoflowcut.env.VIDEOFLOWCUT_SFX_ROOTS !== "string") {

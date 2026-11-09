@@ -1,442 +1,323 @@
-# ComfyUI Bridge 全部应用 HTTP 接入文档
+# ComfyUI 模型 HTTP 接入文档（Bridge v2）
 
-本文覆盖当前插件发现到的全部应用：3DGenStudio、FunASR、LTX2.3、4 个 MiniMax H3 工作流、OmniVoice、Stable Audio 3 Medium，以及 2 个当前不可调用的 MiniMax 超级工作流。
+本机新服务以 Ador-able/comfyui_bridge 的 `63b88f3` 版本为基础，沿用现有 ComfyUI、Python、CUDA 和模型环境。新入口为 `http://127.0.0.1:8188/comfyui-bridge/v2`；局域网调用时替换主机地址。v2 是 ComfyUI 内部插件，不单独启动另一个推理服务。
 
-## 1. 使用前提与安全边界
+## 部署边界
 
-Bridge 基础地址为：
+调用链：外部程序 → 原版 Bridge v2 → 本机 ComfyUI `/prompt` → 同一执行队列 → 已有模型节点 → Bridge 终端输出 → history → HTTP 查询与下载。
+
+当前使用 `C:\Users\13222\anaconda3\envs\comfy_5090_313\python.exe`。本次没有安装或变更依赖：Torch 2.9.1+cu130、Transformers 5.3.0、OmniVoice 0.2.1、FunASR 1.4.6+videoflowcut.1 继续使用。
+
+上游 HTTP、清理及通用节点文件保持原版。入口仅加载通用节点、字幕输出、路由和清理，不导入上游附带的模型运行时，避免引入 Transformers 4.57.6 等依赖。原有 OmniVoice、FunASR、MiniCPM-o 和向量节点继续由现有插件提供；安装新 HTTP 服务不等于更换模型。
+
+本地 OmniVoice 节点在推理成功或异常后清除 Transformers 5.3.0 的音频分词器卷积层缓存，避免缓存继续持有已结束的 GPU 模型；原版 HTTP 核心未修改。正式进程已重启并加载该修复。
+
+旧 `/comfyui-bridge/v1` 在 ComfyUI 服务侧暂时保留；VideoFlowCut 源码现使用 v2，部署状态需单独核验。新旧服务共用执行队列，不会因为同时存在两套接口而在两个独立 GPU 进程中执行任务。v2 清理策略只对启用结束清理的任务生效；继续调用旧 v1 的任务不会自动获得这项策略。
+
+## 接口与调用顺序
+
+以下路径相对于 `/comfyui-bridge/v2`。
+
+| 方法 | 路径 | 行为 |
+| --- | --- | --- |
+| GET | `/health` | 返回 `status: ready`、`protocolVersion: 2`、可用工作流数量 |
+| GET | `/workflows` | 返回工作流列表及 `available`、不可用原因 |
+| GET | `/workflows/{workflowId}` | 返回实时 `schemaVersion`、`fields`、`itemSlots`、`outputs` |
+| POST | `/workflows/{workflowId}/runs` | multipart 提交，接受后返回 HTTP 202 |
+| GET | `/runs/{runId}` | 查询 `queued/running/succeeded/failed` |
+| DELETE | `/runs/{runId}` | 精确请求取消运行中任务或删除排队任务，返回 `cancelled` |
+| GET | `/runs/{runId}/outputs/{outputId}` | 下载媒体文件，同时适合浏览器预览 |
+
+先读取工作流详情，按本次返回的字段 ID 组织参数。媒体槽位使用 `mediaKind`、`min`、`max`；`min: 1` 表示必填。详情请求成功即表示目录校验通过，详情不包含 v1 的 `available` 字段。
+
+每次提交由客户端生成 UUID，并在请求头传入：
 
 ```text
-http://127.0.0.1:8188/comfyui-bridge/v1
+x-comfyui-bridge-run-id: <客户端生成的 UUID>
 ```
 
-服务没有内置鉴权。只应在本机或受控内网使用；不要将 ComfyUI 端口直接暴露到公网。
-
-工作流来源有两类：
-
-- App Mode 工作流：`<ComfyUI 用户目录>/default/workflows/**/*.json`，只要文件存在 `extra.linearData` 就会被递归发现；
-- 静态 API 工作流：插件的 `api_workflows/**/*.bridge.json`，目前包含 Trellis2 的 GLB 生成应用。
-
-每个 App Mode 工作流将执行快照、公开输入/输出映射和源图指纹保存在同一个工作流 JSON 的 `extra.comfyuiBridge` 中。图被修改后，旧快照会保留，但其指纹不再匹配，列表会返回 `available: false`，创建任务会返回 `409`；Bridge **绝不会执行旧快照中的旧工作流**。在 ComfyUI 中等待图转换完成后正常保存一次，即会生成新快照并恢复调用。
-
-## 2. 通用调用协议
-
-### 2.1 接口
-
-| 方法 | 路径 | 用途 |
-| --- | --- | --- |
-| `GET` | `/health` | 检查 Bridge 与可调用工作流数量 |
-| `GET` | `/workflows` | 列出全部工作流及可用状态 |
-| `GET` | `/workflows/{workflowId}` | 获取当前输入、输出和 `schemaVersion` |
-| `POST` | `/workflows/{workflowId}/runs` | 创建异步任务 |
-| `GET` | `/runs/{runId}` | 查询任务状态和结果 |
-| `GET` | `/runs/{runId}/outputs/{outputId}` | 下载文件结果 |
-
-每次运行前都必须重新请求工作流详情，使用刚刚返回的 `schemaVersion`。工作流重新保存后版本会改变，不能写死。
-
-### 2.2 请求格式
-
-没有媒体输入的应用使用 JSON：
+所有提交都使用 `multipart/form-data`，包括只有文字、没有媒体的请求。`request` 表单部分为 JSON 文本：
 
 ```json
 {
-  "schemaVersion": "从详情接口读取",
+  "schemaVersion": "从当前详情响应获取",
   "fieldValues": {
-    "字段 ID": "字段值"
+    "input-1": "按实际字段填写"
   }
 }
 ```
 
-有图片、视频或音频输入的应用使用 `multipart/form-data`：
+上传媒体的表单名为 `file_{slotId}`，例如 `file_input-1`。字段与文件是否省略表达可选性；空字符串、0 和 false 都是已提供的值。不要沿用旧接口的字段 ID，也不要把空文件代替省略。
 
-| 表单字段 | 内容 |
-| --- | --- |
-| `request` | 上述 JSON 的字符串形式 |
-| `file_{媒体槽位 ID}` | 对应媒体文件 |
+客户端提交前保存 runId。网络中断时先查询这个 ID；上游没有声明重复 POST 幂等，不要为同一任务自动换 ID 或反复 POST。查询 404 也不立即证明先前请求从未入队，需要结合连接状态与 ComfyUI history 判断。
 
-例如媒体槽位 ID 为 `input-xxx` 时，文件字段名就是 `file_input-xxx`。可选媒体不上传时，直接不要传该字段；Bridge 会移除工作流中对应的示例媒体连线，避免错误复用示例文件。单文件上限为 512 MB。
+## 输出与失败处理
 
-`fieldValues` 只能填写详情接口 `fields` 中给出的 ID；省略非必填字段会保留工作流快照的默认值。
-
-### 2.3 结果与状态
-
-创建成功返回 HTTP `201`，响应的 `id` 是 `runId`。轮询状态包括：
-
-| 状态 | 含义 |
-| --- | --- |
-| `queued` | 已提交，等待 ComfyUI 执行 |
-| `running` | 正在执行 |
-| `succeeded` | 完成；`outputs` 中有结果 |
-| `failed` | 失败；读取 `error` |
-
-文本结果直接包含在 `outputs[].text`。图片、视频、音频、GLB 等文件结果会包含：
+成功响应示例：
 
 ```json
 {
-  "outputSlotId": "输出槽位 ID",
-  "displayName": "输出名称",
-  "kind": "image | video | audio | file",
-  "fileName": "结果文件名",
-  "mime": "MIME 类型",
-  "outputId": "本次任务的文件 ID",
-  "downloadUrl": "/comfyui-bridge/v1/runs/{runId}/outputs/{outputId}"
-}
-```
-
-`downloadUrl` 是相对 ComfyUI 服务根地址的路径，应以 `http://127.0.0.1:8188` 拼接，不能再次拼接 Bridge 基础路径。任务记录和下载索引只保存在当前 ComfyUI 进程内，成功后请及时下载。
-
-### 2.4 通用 JavaScript 调用器
-
-下面的代码适用于本文件列出的所有可调用应用。`files` 的键为媒体槽位 ID，值为浏览器 `File` 对象；无媒体应用传空对象即可。
-
-```js
-const origin = "http://127.0.0.1:8188";
-const api = `${origin}/comfyui-bridge/v1`;
-
-async function runBridgeApplication(workflowId, fieldValues = {}, files = {}) {
-  const definitionResponse = await fetch(`${api}/workflows/${workflowId}`);
-  if (!definitionResponse.ok) throw new Error(await definitionResponse.text());
-  const definition = await definitionResponse.json();
-  if (!definition.available) throw new Error(definition.reason || "工作流当前不可调用");
-
-  const request = {
-    schemaVersion: definition.schemaVersion,
-    fieldValues,
-  };
-  const slots = Object.keys(files);
-  let response;
-  if (slots.length === 0) {
-    response = await fetch(`${api}/workflows/${workflowId}/runs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(request),
-    });
-  } else {
-    const form = new FormData();
-    form.append("request", JSON.stringify(request));
-    for (const [slotId, file] of Object.entries(files)) {
-      form.append(`file_${slotId}`, file, file.name);
+  "id": "客户端生成的 UUID",
+  "status": "succeeded",
+  "error": null,
+  "outputs": [
+    {
+      "kind": "audio",
+      "outputId": "从实际响应读取",
+      "fileName": "audio_00001_.flac",
+      "mime": "audio/flac"
     }
-    response = await fetch(`${api}/workflows/${workflowId}/runs`, {
-      method: "POST",
-      body: form,
-    });
-  }
-  if (!response.ok) throw new Error(await response.text());
-  return response.json();
-}
-
-async function waitForBridgeRun(runId) {
-  while (true) {
-    const response = await fetch(`${api}/runs/${runId}`);
-    if (!response.ok) throw new Error(await response.text());
-    const run = await response.json();
-    if (run.status === "succeeded") return run;
-    if (run.status === "failed") throw new Error(run.error || "ComfyUI 执行失败");
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-  }
-}
-
-// 文件结果下载：fetch(origin + output.downloadUrl)
-```
-
-## 3. 当前可调用应用
-
-下方字段 ID 来自当前工作流快照，用于帮助首次接入。运行时仍以详情接口为准。
-
-### 3.1 3DGenStudio Trellis2 Native 单图生成贴图 GLB
-
-| 项目 | 值 |
-| --- | --- |
-| 工作流 ID | `3dgenstudio-trellis2-native-int8` |
-| 请求方式 | multipart |
-| 必填媒体 | `file_source-image`：源图片（image） |
-| 输出 | `textured-glb`：带贴图 GLB（file） |
-
-可选字段：
-
-| 字段 ID | 含义 | 默认值 |
-| --- | --- | --- |
-| `target-face-count` | 目标面数 | `500000` |
-| `remove-background` | 去除背景 | `true` |
-| `texture-size` | 贴图尺寸 | `2048` |
-| `seed` | 随机种子 | `1234` |
-| `upsample-resolution` | 几何上采样分辨率 | `1536` |
-| `remesh-resolution` | 重拓扑分辨率 | `768` |
-| `sign-mode` | 重拓扑符号模式：`udf` / `sdf` | `udf` |
-| `qef` | 启用 QEF | `false` |
-
-该应用还依赖本机已安装 Trellis2 Native、网格保存节点及相应模型；HTTP 任务创建成功不代表模型执行一定成功，最终以任务状态为准。
-
-### 3.2 FunASR 本地音频转文字
-
-| 项目 | 值 |
-| --- | --- |
-| 工作流 ID | `dd564543-d02d-4247-9e97-089417db9e7a` |
-| 请求方式 | multipart |
-| 必填媒体 | `file_input-5885c94eaaaea66971d2aae7`：音频（audio） |
-| 标量字段 | 无 |
-| 输出 | `output-a754f8f91fab898b68713986`：文本（text） |
-
-成功后从 `outputs` 中读取 `kind: "text"` 的 `text`，无需下载文件。
-
-### 3.3 LTX2.3 数字人
-
-| 项目 | 值 |
-| --- | --- |
-| 工作流 ID | `7f5e0c56-93b4-4937-b7f2-efd0f1853e33` |
-| 请求方式 | multipart |
-| 必填媒体 | `file_input-841ec65c7590d1ca16cc8693`：人物图片（image） |
-| 必填媒体 | `file_input-f6b9636fc08252300e35b9d7`：驱动音频（audio） |
-| 标量字段 | 无 |
-| 输出 | `output-b8b44adb7d4d3baedaccf80d`：视频（通常为 MP4） |
-
-示例：
-
-```js
-const run = await runBridgeApplication(
-  "7f5e0c56-93b4-4937-b7f2-efd0f1853e33",
-  {},
-  {
-    "input-841ec65c7590d1ca16cc8693": portraitFile,
-    "input-f6b9636fc08252300e35b9d7": speechFile,
-  },
-);
-const finished = await waitForBridgeRun(run.id);
-const video = finished.outputs.find((item) => item.kind === "video");
-```
-
-### 3.4 MiniMax H3 文生视频
-
-| 项目 | 值 |
-| --- | --- |
-| 工作流 ID | `4d02d4eb-a4a5-4c13-95d5-6b6a594b4daa` |
-| 请求方式 | JSON |
-| 媒体输入 | 无 |
-| 输出 | `output-6c7fe43db63ba2c534ab2323`：视频 |
-
-| 字段 ID | 含义 |
-| --- | --- |
-| `input-9cba93bc1180fbcd475a6981` | 提示词 |
-| `input-ec1635efae33c980f7339d0d` | 视频时长（秒） |
-| `input-82c76755986379efa7f1ed67` | 画面比例 |
-| `input-3d3b5074f3c4a7ee70252e54` | 清晰度（百万像素） |
-| `input-e93ffea95203063ef1b0002f` | 随机种子 |
-
-### 3.5 MiniMax H3 图生视频
-
-| 项目 | 值 |
-| --- | --- |
-| 工作流 ID | `96dac139-f645-46a7-8dc4-f8d1fb5586d9` |
-| 请求方式 | multipart |
-| 必填媒体 | `file_input-39357e2212d4c8cb16fa160c`：参考首帧图像（image） |
-| 输出 | `output-a4afdad358a04688707ea738`：视频 |
-
-| 字段 ID | 含义 |
-| --- | --- |
-| `input-430a9ac52e063fb5990c7484` | 提示词 |
-| `input-78e423877b75bc90a4e52547` | 视频时长（秒） |
-| `input-095fc48f851fa45251839c3f` | 画面比例 |
-| `input-7bfa6da95fd6cb345d72a268` | 清晰度（百万像素） |
-| `input-9ee3d0e1afb379070c9f2ece` | 随机种子 |
-
-### 3.6 MiniMax H3 首尾帧生视频
-
-| 项目 | 值 |
-| --- | --- |
-| 工作流 ID | `ffa80b03-339d-47ba-b8c4-94577d52f775` |
-| 请求方式 | multipart |
-| 必填媒体 | `file_input-e5410f0549b2698117eea16c`：首帧图像（image） |
-| 必填媒体 | `file_input-d6a3609e515cfe83aead3c20`：尾帧图像（image） |
-| 输出 | `output-c05cebe99263ebdc05e8d38e`：视频 |
-
-| 字段 ID | 含义 |
-| --- | --- |
-| `input-5a2e9f7ec4073c663eccf036` | 提示词 |
-| `input-b587e9be1cb4fe730baeda5f` | 视频时长（秒） |
-| `input-194dc9fef7e731fe355fec7d` | 画面比例 |
-| `input-685cf6ed95997eef190ff5dc` | 清晰度（百万像素） |
-| `input-aa48dd9a3095a593a659cab7` | 随机种子 |
-
-### 3.7 MiniMax H3 多参考视频
-
-| 项目 | 值 |
-| --- | --- |
-| 工作流 ID | `79ae27fd-bd4d-4e67-8dc3-6fcd7e8ce09d` |
-| 请求方式 | multipart |
-| 输出 | `output-88829de5bdd392e91d396314`：视频 |
-
-所有媒体槽位均为可选；按实际需要上传一个或多个，不上传的槽位不要提交：
-
-| 文件字段 | 媒体含义 |
-| --- | --- |
-| `file_input-6c34d91a401708239425b2d0` | 参考图像 1 |
-| `file_input-4e3badbedb0f409ad8e4c0a1` | 参考图像 2 |
-| `file_input-d42f70bdf10e7e04ab77e89b` | 参考图像 3 |
-| `file_input-39c9e20bfa5cdffb1507e31e` | 参考图像 4 |
-| `file_input-9515c1fa94d36413a37c3267` | 参考图像 5 |
-| `file_input-4155d142acb167358743f81c` | 参考图像 6 |
-| `file_input-7d82d872cc299131e9b39617` | 参考视频 |
-| `file_input-6a686c95af18351ff7f60862` | 参考音频 1 |
-| `file_input-468f71c6757ad772bcab095f` | 参考音频 2 |
-| `file_input-26a1730b22aac74d867526b7` | 参考音频 3 |
-
-| 字段 ID | 含义 |
-| --- | --- |
-| `input-8a3551cf4e00e8f6c1227f21` | 提示词 |
-| `input-e6d51ade08a92ce0ece3f5c6` | 视频时长（秒） |
-| `input-9132a699ed38b888e08a5770` | 初采画面比例 |
-| `input-2673498cfad358686687df93` | 初采清晰度（百万像素） |
-| `input-39ad94877131325afab1e27e` | 最终画面比例 |
-| `input-98031c4a91bceb25a4e8479e` | 最终清晰度（百万像素） |
-| `input-3aedc32ad032bcc507395110` | 初采随机种子 |
-| `input-30925a51399f3d64e1bc6890` | 二采随机种子 |
-
-### 3.8 OmniVoice 自动音色克隆
-
-| 项目 | 值 |
-| --- | --- |
-| 工作流 ID | `ba6238d0-3ee4-41d5-a1f4-a2aefc3933ce` |
-| 请求方式 | multipart |
-| 必填媒体 | `file_input-1f85f7c29fbfbb2985331aae`：参考音频（audio） |
-| 输出 | `output-491586216985ba5e8fe28c56`：克隆音频 |
-
-| 字段 ID | 含义 |
-| --- | --- |
-| `input-caf62e956e5d99e3e2f4b68e` | 待合成文本 |
-
-### 3.9 Stable Audio 3 Medium 音效、环境声与无歌词音乐
-
-| 项目 | 值 |
-| --- | --- |
-| 工作流 ID | `stable-audio-3-medium-v1` |
-| 请求方式 | JSON |
-| 媒体输入 | 无 |
-| 输出 | `audio`：44.1 kHz 双声道 FLAC 音频 |
-
-该应用使用后训练的 Medium 推理模型，本工作流不使用 `medium-base` 基础模型。模型文件仅从国内镜像下载，并放入以下目录：
-
-| 文件 | 本机目录 | 国内镜像地址 |
-| --- | --- | --- |
-| `stable_audio_3_medium.safetensors` | `ComfyUI/models/checkpoints/` | `https://hf-mirror.com/Comfy-Org/stable-audio-3/resolve/main/checkpoints/stable_audio_3_medium.safetensors` |
-| `t5gemma_b_b_ul2.safetensors` | `ComfyUI/models/text_encoders/` | `https://hf-mirror.com/Comfy-Org/stable-audio-3/resolve/main/text_encoders/t5gemma_b_b_ul2.safetensors` |
-
-| 字段 ID | 类型与规则 | 默认值 |
-| --- | --- | --- |
-| `prompt` | 必填文本；建议用英文描述声音、动作、材质、空间与时长 | — |
-| `duration_seconds` | 数字，范围 1–120 秒；表示最大时长，生成结果可能更短 | `10` |
-| `seed` | 整数，范围 0–9007199254740991 | `20260921` |
-
-运行前必须请求 `GET /workflows/stable-audio-3-medium-v1` 并使用响应中的最新 `schemaVersion`。工作流保存后版本会变化。中文调用方应先将声音意图转换为英文提示词；此工作流不额外加载翻译或提示词扩写模型。
-
-成功后音频输出会同时返回两个地址：`downloadUrl` 保持强制下载行为；`previewUrl` 用于直接试听，返回 `audio/flac`、`Content-Disposition: inline`，并支持 Range 请求，可作为浏览器地址或 HTML `<audio>` 的 `src`。
-
-示例：
-
-```js
-const run = await runBridgeApplication("stable-audio-3-medium-v1", {
-  prompt: "A short cinematic thunder crack followed by distant rolling thunder in a wide valley, no music.",
-  duration_seconds: 8,
-  seed: 2026092101,
-});
-const finished = await waitForBridgeRun(run.id);
-const audio = finished.outputs.find((item) => item.kind === "audio");
-const downloadUrl = origin + audio.downloadUrl;
-const previewUrl = origin + audio.previewUrl;
-```
-
-服务端固定使用 8 步 LCM 采样与 CFG 1，不对外开放这些参数。接口会自动裁掉末尾连续静音：低于 -45 dB 且持续至少 0.35 秒的尾部静音会被移除，并保留最后有效声音后的 0.15 秒自然尾音。因此 `duration_seconds` 表示最大时长而非强制填充时长；音频中的内部停顿会原样保留。当前时长上限为 120 秒；如需提高，须先完成显存与队列压力测试。
-
-已于 2026-09-21 完成木门关闭、远处雷暴、复古科幻按钮及蒸汽喷发共 4 次真实生成验收，结果均为 44.1 kHz 双声道 FLAC；缺少 `prompt` 返回 `400`，过期 `schemaVersion` 返回 `409`。同日完成尾部静音裁剪验收：请求 8 秒“木门关闭”音效，返回 `stable_audio_3_00006.flac` 为 5.67 秒、44.1 kHz 双声道 FLAC；使用 `silencedetect` 检查，文件末尾不存在持续至少 0.35 秒的静音。
-
-#### 3.9.1 VideoFlowCut 的接入状态与职责
-
-2026-10-14 本次会话只读查询该工作流返回 `available: true`；本次没有重新生成或试听。服务端已有工作流，不等于 VideoFlowCut 已发布完整的音效生成业务。
-
-`submit_music_generation` 要求精确时长，其字段识别排除“最大时长”，不能直接套用此工作流。2026-10-14 源码已新增 `submit_sfx_generation` 与 `sfx_generation` Worker，通过现有 Bridge 客户端生成并登记候选音频，随后沿现有 `manage_audio.effect_event` 绑定动画。**源码已实现、测试已通过；本轮未正式部署，安装版本是否提供该工具必须以实时 MCP Schema 为准。**
-
-MCP 入参为 `project_id?`、`base_revision_id`、`request_id`、`prompt`、`max_duration_seconds`（1–120 整数）、`seed?`（非负安全整数）、`idempotency_key`。必须关联当前 audio/sfx 需求及声音意图。缺省 seed 在创建 Job 时一次确定并保存；同键同业务输入返回原 Job，同键不同输入拒绝。Worker 映射为本节 HTTP 的三个字段，不发送动画帧或其他未公开参数。
-
-生成成功仅登记候选 Asset，保存原文件、实际时长、hash、Run 和参数；不会自动上轨、关闭需求或标记听审通过。轮询或下载失败续用原 Run；提交结果未知时不自动重发；Web 与 MCP 显式重试共用原任务检查点。开发检查与后续隔离验收入口见 [实施与验证记录](development/音效生成与动效联动_实施与验证_20261014.md)。
-
-导演交接、提示词专用技能、候选检查、事件同步、失败恢复、改动文件及验收标准见 [音效生成与动效联动实施方案](VideoFlowCut_音效生成与动效联动实施方案.md)。本文继续作为实际 HTTP 协议的维护入口，不在实施方案中另建一套接口合同。
-
-#### 3.9.2 一次音效生成的具体 HTTP 请求
-
-第一步，读取详情，确认可用并取得最新 `schemaVersion`：
-
-```http
-GET /comfyui-bridge/v1/workflows/stable-audio-3-medium-v1 HTTP/1.1
-Host: 127.0.0.1:8188
-```
-
-第二步，提交 JSON。下面的版本占位文字必须替换为上一步实际返回值；prompt 是尚未实测的示例：
-
-```http
-POST /comfyui-bridge/v1/workflows/stable-audio-3-medium-v1/runs HTTP/1.1
-Host: 127.0.0.1:8188
-Content-Type: application/json
-
-{
-  "schemaVersion": "替换为刚读取的schemaVersion",
-  "fieldValues": {
-    "prompt": "TrackType: SFX. One isolated soft wooden tap with a crisp attack, warm compact body and very short decay, close and dry studio recording.",
-    "duration_seconds": 1,
-    "seed": 4101
-  }
+  ]
 }
 ```
 
-创建成功为 HTTP `201`，将响应 `id` 作为原 `runId` 立即保存。当前输入没有 `negative_prompt`、`cfg_scale`、参考音频、动画帧或批量候选数字段，不能自行添加。
+媒体结果不包含 `downloadUrl`，用 runId 和 outputId 拼接上述下载端点。普通 AUDIO 经上游音频输出编码为 FLAC；视频、图片、模型按相应终端节点返回。文本为 `{kind: "text", text: "..."}`，原生对象/数组输出为 `{kind: "json", value: ...}`。
 
-第三步，继续查询同一个 Run：
+结果不提供 `outputSlotId` 或节点 ID。按 `kind` 和业务内容选择结果，不依赖内部节点排序。当前 FunASR 对齐应用仍返回两个 text：普通转写文本与 JSON 文本；调用方应解析并校验 JSON 的业务结构，不将两个文本直接拼接。v2 不会自动把 JSON 字符串转成 `kind: json`。
 
-```http
-GET /comfyui-bridge/v1/runs/{实际runId} HTTP/1.1
-Host: 127.0.0.1:8188
+| 情况 | 上游行为 | 调用方处理 |
+| --- | --- | --- |
+| 参数、UUID、schema 不匹配，或创建时工作流不可用 | HTTP 400，返回 `error` | 读取错误并重新获取 schema；不套用旧 v1 的 409 重试规则 |
+| 查询不到工作流、任务或文件 | HTTP 404 | 检查工作流状态、history、服务是否重启 |
+| 创建或取消内部异常 | HTTP 500 | 保留 runId，检查 ComfyUI 日志 |
+| 模型推理失败或运行中取消 | 查询结果通常为 `failed` | 读取 `error`；详细节点异常保留在 ComfyUI 日志和原生 history |
+| 清理异常 | 记录到 ComfyUI 错误日志 | 已保存的任务结果不被清理错误改写 |
+
+取消端点返回的 `cancelled` 是布尔值；找不到可取消的任务时，本机实测返回 HTTP 200 和 `{"cancelled": false}`。已开始执行的任务取消后可能在查询中显示 `failed`，排队任务被删除后可能返回 404。
+
+HTTP 202 只表明任务被接受，不能证明每条输出分支均通过 ComfyUI 校验或模型能成功生成；应查询最终结果并在必要时检查服务日志。
+
+任务事实直接来自 ComfyUI 的队列和 history。服务重启或 history 被删除后，旧 runId 和下载端点可能失效；成功后及时下载到调用方自己的目录。原版没有前台插队协议，`queueMode: foreground` 不受支持。
+
+## Python 调用示例
+
+以下示例使用原有的“OmniVoice 自动音色克隆”应用。请先将 `reference_audio` 改为本地参考音频路径；运行后会实际生成音频。
+
+```python
+import json
+from pathlib import Path
+import time
+import uuid
+import requests
+
+base = "http://127.0.0.1:8188/comfyui-bridge/v2"
+workflow_id = "ba6238d0-3ee4-41d5-a1f4-a2aefc3933ce"
+reference_audio = Path("请替换为参考音频文件路径.wav")
+response = requests.get(f"{base}/workflows/{workflow_id}", timeout=15)
+response.raise_for_status()
+schema = response.json()
+text_field = next(field for field in schema["fields"] if field["label"] == "text")
+audio_slot = next(slot for slot in schema["itemSlots"] if slot["mediaKind"] == "audio")
+run_id = str(uuid.uuid4())
+payload = {
+    "schemaVersion": schema["schemaVersion"],
+    "fieldValues": {text_field["id"]: "你好，这是新接口的本地配音测试。"},
+}
+with reference_audio.open("rb") as audio:
+    response = requests.post(
+        f"{base}/workflows/{workflow_id}/runs",
+        headers={"x-comfyui-bridge-run-id": run_id},
+        files={
+            "request": (None, json.dumps(payload, ensure_ascii=False)),
+            f"file_{audio_slot['id']}": (reference_audio.name, audio, "audio/wav"),
+        },
+        timeout=60,
+    )
+response.raise_for_status()
+assert response.status_code == 202
+deadline = time.monotonic() + 600
+while time.monotonic() < deadline:
+    response = requests.get(f"{base}/runs/{run_id}", timeout=15)
+    response.raise_for_status()
+    run = response.json()
+    if run["status"] == "failed":
+        raise RuntimeError(run["error"])
+    if run["status"] == "succeeded":
+        break
+    time.sleep(1)
+else:
+    raise TimeoutError(f"等待超时，请继续查询原任务：{run_id}")
+output = next(item for item in run["outputs"] if item["kind"] == "audio")
+response = requests.get(f"{base}/runs/{run_id}/outputs/{output['outputId']}", timeout=60)
+response.raise_for_status()
+Path(Path(output["fileName"]).name).write_bytes(response.content)
 ```
 
-`queued/running` 表示继续等待；`failed` 读取原 `error`；`succeeded` 才从 `outputs` 选择 `outputSlotId === "audio"` 且 `kind === "audio"` 的输出。输出实例使用 `outputSlotId`，不要与详情中输出定义的 `id` 混淆。
+有媒体时，在 `files` 中加入 `file_{slotId}`；无媒体时仍使用 multipart，只提交 `request` 部分。实际字段 ID 应以本次读取的工作流详情为准。
 
-第四步，使用返回的 `downloadUrl` 下载。路径相对服务根地址 `http://127.0.0.1:8188`，不能重复拼接 `/comfyui-bridge/v1`。试听使用实际返回的 `previewUrl`；若客户端类型尚未保留这个可选字段，正式制作仍可试听已经下载的受管音频，不猜试听 URL。
+## 工作流与显存清理
 
-#### 3.9.3 项目使用时的处理规则
+服务只扫描 `user/default/workflows/AI/*.app.json`，不递归扫描整个工作流目录，也不读取旧的 `api_workflows/*.bridge.json`。
 
-- 使用已有 `ComfyUIBridgeClient` 读取 Schema、创建 Run、轮询和同源下载，不另建 HTTP 栈。
-- 首次 POST 前保存固定提示词、时长、实际 seed 与提交检查点；收到 Run ID 后立即保存。已有 Run 继续原任务，下载失败只恢复下载。
-- 当前默认 seed 固定。比较不同候选时应显式传不同 seed；恢复同一候选必须沿用原 seed，不能重新随机。
-- 一秒是当前接口最小生成窗口，不代表一次点击必须响一秒。可以从实际生成文件中选择更短的完整音效。
-- 请求时长是上限。下载后检查真实音轨、编码、时长和 hash；根据原文件确认可用范围、可听起音、主要攻击与尾音，不能从请求时长推算同步点。
-- POST 网络失败且没有 Run ID 时，外部是否执行属于未知；当前协议没有外部幂等键或按业务请求查 Run 的接口，不能直接重新生成。
-- ComfyUI 进程重启可能丢失 Run 和下载索引；生成成功后应及时保存文件。已经保存的有效文件继续使用，不因旧 URL 失效重复推理。
+当前有 22 个可用应用，v2 副本保留 workflowId、原模型与生成参数，重新生成输入槽位 ID。原工作流文件未覆盖。v2 副本添加或连接上游 Bridge 终端输出；原生保存节点可能仍执行，因此部分应用会同时保留原保存文件和 Bridge 导出文件。
 
-这里的 HTTP 示例说明实际请求格式；正式生产由 VideoFlowCut 的受管 Job 和 Worker 调用，不让提示词技能绕过项目入口直接修改素材或时间线。
+所有迁移副本均启用 `extra.comfyuiBridgeCleanupAfterRun: true`。成功、执行失败或执行中取消后，由 ComfyUI 工作线程保存 history，再卸载受管模型、重置节点缓存，进行 GC、CUDA 缓存回收及 Windows 工作集整理。跨任务不再复用模型缓存，下次需要重新加载。CUDA 上下文和第三方仍持有的对象不保证归零，也不能保证单次推理峰值一定低于显存上限。
 
-## 4. 当前不可调用的应用
+图发生变化后，需要在 ComfyUI 中重新保存，生成与图匹配的 v2 快照。保存后的图与快照指纹不一致时，上游会将应用标记为不可用。今后编辑新接口应用应打开 AI 目录中的 v2 副本；旧 v1 文件保留给尚未迁移的调用方。
 
-这两个文件同样会出现在 `/workflows`，但不能创建任务。它们不是被删除或隐藏，而是明确暴露修复原因。
+## 新服务提供方的既有检查范围
 
-| 工作流 ID | 应用 | 当前原因 | 恢复方法 |
+已在相同 Python 环境的独立候选实例验证连续文本提交、音频上传和 FLAC 下载、无效参数拒绝、执行失败结果。上游清理验证脚本仅适配本机 ComfyUI 的构造函数与导入路径，实际验证了多输出、缓存命中后回收、CPU/CUDA 张量和受管模型释放、异常与取消；服务清理代码未改动。
+
+22 个当前工作流副本通过上游目录、输入输出映射和快照指纹校验。正式服务连续执行 9 次 OmniVoice，全部生成并下载成功，每次清理后 PyTorch 活跃显存均约为 17 MiB；随后切到 MiniCPM-o 音频分析并切回 OmniVoice，均成功。模型应用的逐项推理不等于目录可用性，未逐个执行图像、视频和 3D 大模型生成。
+
+原有 FunASR 音频转写和 OmniVoice 参考音频克隆均已通过 v2 上传、执行及输出检查。其他应用的逐项推理尚未全部验证；这些结果来自提供的新服务接入说明，不能代替本次逐项连通性测试。
+
+## 回退与调用端状态
+
+部署前备份位于 `E:\ai\comfyui\bridge-v2-deploy-20261105\backup`，包括旧插件和工作流。回退需停止 ComfyUI 后移出新插件，恢复旧插件入口与目录扫描文件，再用原启动方式启动。不得同时注册两套前端保存钩子和同名 Bridge 节点。
+
+VideoFlowCut 源码已迁移 v2：使用 multipart 和客户端 UUID，读取实时媒体槽，按输出类型和内容选择结果，以 Run ID 与 outputId 下载。v2 没有前台插队能力；多个同类型输出无法唯一确定时拒绝猜测。源码变更不代表已部署，实际运行版本需单独核验。旧任务中保存的 v1 地址不会自动切换，应先对账原 Run。
+
+## 原有 8 个主要应用
+
+下列为本文件维护的 8 个主要应用。v2 使用各自的工作流副本和同一模型节点。其他已经存在的接口也保留，不影响原有调用。
+
+字段来自当前 v2 返回的结构，供接入时参考；工作流重新保存后 ID 或版本可能变化，每次运行前请重新获取工作流详情。
+
+### 1. FunASR 本地音频转文字
+
+工作流 ID：`dd564543-d02d-4247-9e97-089417db9e7a`
+
+| 输入 | 类型 | 是否必填 | 默认值或说明 |
 | --- | --- | --- | --- |
-| `24073813-2bf5-44d7-8997-14ccf86bbb18` | YZ金鱼 MiniMax H3 超级多合一工作流（官方版） | 未生成 Bridge 执行快照 | 在 ComfyUI 中打开工作流，确认 App Mode 的公开输入/输出，然后等待图转换完成并正常保存。 |
-| `8088131a-5936-4f7b-aa9e-b589c5dfaa83` | YZ金鱼 MiniMax H3 超级多合一工作流（全部可用输入输出） | `expression` 公开输入无法唯一映射到执行图 | 在 App Mode 中让该公开输入只对应一个实际 Widget；若有多个同名 `expression`，分别命名或只公开正确的一个，然后正常保存。 |
+| `file_input-1` | audio | 是 | audio |
 
-修复后先请求 `GET /workflows/{workflowId}`，确认 `available` 为 `true`，再按该接口实时返回的字段重新接入。
+输出：`text`。
 
-## 5. 常见错误
+### 2. LTX2.3 数字人
 
-| HTTP 状态 | 原因 | 处理 |
-| --- | --- | --- |
-| `400` | 媒体字段名错误、缺少必填媒体、提交了未知字段或字段值无效 | 重新读取详情，按 `file_{slotId}` 与 `fields` 发送。 |
-| `404` | 工作流、任务或输出 ID 不存在 | 检查 ID；ComfyUI 重启后旧任务 ID 无效。 |
-| `409` | `schemaVersion` 过期，或工作流快照因图变更而失效 | 重新请求详情；若 `available: false`，在 ComfyUI 重新保存工作流。 |
-| `413` | 媒体文件或请求元数据超过限制 | 单个媒体文件需小于等于 512 MB。 |
-| `500` / `failed` | 模型、节点、显存、编码或工作流本身执行失败 | 读取 `error`，并查看 ComfyUI 控制台日志。 |
+工作流 ID：`7f5e0c56-93b4-4937-b7f2-efd0f1853e33`
 
-## 6. 重启后的验收步骤
+| 输入 | 类型 | 是否必填 | 默认值或说明 |
+| --- | --- | --- | --- |
+| `file_input-1` | image | 是 | image |
+| `file_input-2` | audio | 是 | audio |
 
-1. 重启 ComfyUI。
-2. 请求 `GET /comfyui-bridge/v1/health`。
-3. 请求 `GET /comfyui-bridge/v1/workflows`，确认本文件第 3 节的 9 个应用显示 `available: true`。
-4. 先用 FunASR、LTX2.3 和一个 MiniMax 工作流各完成一次真实调用，确认音频上传、视频输出和可选媒体路径都正常。
-5. 对需要长期保留的文件结果，立即请求其 `downloadUrl` 保存到业务侧存储。
+输出：`video`。
+
+### 3. MiniMax H3 文生视频
+
+工作流 ID：`4d02d4eb-a4a5-4c13-95d5-6b6a594b4daa`
+
+| 输入 | 类型 | 是否必填 | 默认值或说明 |
+| --- | --- | --- | --- |
+| `input-1` | text | 否 | 提示词；工作流预设文本 |
+| `input-2` | number | 否 | 视频时长（秒）；`6` |
+| `input-3` | select | 否 | 画面比例；`"9:16 (Portrait Widescreen)"` |
+| `input-4` | number | 否 | 清晰度（百万像素）；`0.9` |
+| `input-5` | number | 否 | 随机种子；`773405159843938` |
+
+输出：`video`。
+
+### 4. MiniMax H3 图生视频
+
+工作流 ID：`96dac139-f645-46a7-8dc4-f8d1fb5586d9`
+
+| 输入 | 类型 | 是否必填 | 默认值或说明 |
+| --- | --- | --- | --- |
+| `file_input-1` | image | 是 | 参考首帧图像 |
+| `input-2` | text | 否 | 提示词；工作流预设文本 |
+| `input-3` | number | 否 | 视频时长（秒）；`8` |
+| `input-4` | select | 否 | 画面比例；`"3:4 (Portrait Standard)"` |
+| `input-5` | number | 否 | 清晰度（百万像素）；`0.9` |
+| `input-6` | number | 否 | 随机种子；`202098902293030` |
+
+输出：`video`。
+
+### 5. MiniMax H3 首尾帧生视频
+
+工作流 ID：`ffa80b03-339d-47ba-b8c4-94577d52f775`
+
+| 输入 | 类型 | 是否必填 | 默认值或说明 |
+| --- | --- | --- | --- |
+| `file_input-1` | image | 是 | 首帧图像 |
+| `file_input-2` | image | 是 | 尾帧图像 |
+| `input-3` | text | 否 | 提示词；`""` |
+| `input-4` | number | 否 | 视频时长（秒）；`10` |
+| `input-5` | select | 否 | 画面比例；`"3:4 (Portrait Standard)"` |
+| `input-6` | number | 否 | 清晰度（百万像素）；`0.9` |
+| `input-7` | number | 否 | 随机种子；`573299373916122` |
+
+输出：`video`。
+
+### 6. MiniMax H3 多参考视频
+
+工作流 ID：`79ae27fd-bd4d-4e67-8dc3-6fcd7e8ce09d`
+
+| 输入 | 类型 | 是否必填 | 默认值或说明 |
+| --- | --- | --- | --- |
+| `file_input-1` | image | 否 | 参考图像 1（可选） |
+| `file_input-2` | image | 否 | 参考图像 2（可选） |
+| `file_input-3` | image | 否 | 参考图像 3（可选） |
+| `file_input-4` | image | 否 | 参考图像 4（可选） |
+| `file_input-5` | image | 否 | 参考图像 5（可选） |
+| `file_input-6` | image | 否 | 参考图像 6（可选） |
+| `file_input-7` | video | 否 | 参考视频（可选） |
+| `file_input-8` | audio | 否 | 参考音频 1（可选） |
+| `file_input-9` | audio | 否 | 参考音频 2（可选） |
+| `file_input-10` | audio | 否 | 参考音频 3（可选） |
+| `input-11` | text | 否 | 提示词；工作流预设文本 |
+| `input-12` | number | 否 | 视频时长（秒）；`12` |
+| `input-13` | select | 否 | 初采画面比例；`"16:9 (Widescreen)"` |
+| `input-14` | number | 否 | 初采清晰度（百万像素）；`0.4` |
+| `input-15` | select | 否 | 最终画面比例；`"16:9 (Widescreen)"` |
+| `input-16` | number | 否 | 最终清晰度（百万像素）；`0.9` |
+| `input-17` | number | 否 | 初采随机种子；`813357748329420` |
+| `input-18` | number | 否 | 二采随机种子；`398645500441357` |
+
+输出：`video`。
+
+接口结构将参考素材列为可选。经检查，未提供参考图像时，v2 对部分图片预处理支路的处理与旧 v1 不同；其中图像 1 还连接了引导节点，缺少时可能导致该节点报错。多参考视频的缺省素材场景尚未完成端到端验证，现阶段请提供参考图像 1，并在正式使用前验证所需素材组合。
+
+### 7. OmniVoice 自动音色克隆
+
+工作流 ID：`ba6238d0-3ee4-41d5-a1f4-a2aefc3933ce`
+
+| 输入 | 类型 | 是否必填 | 默认值或说明 |
+| --- | --- | --- | --- |
+| `file_input-1` | audio | 是 | audio |
+| `input-2` | text | 否 | text；`"你好，这是本地 OmniVoice 自动转写参考文本的音色克隆测试。"` |
+
+输出：`audio`。
+
+### 8. Stable Audio 3 Medium 音效与音乐
+
+工作流 ID：`stable-audio-3-medium-v1`
+
+| 输入 | 类型 | 是否必填 | 默认值或说明 |
+| --- | --- | --- | --- |
+| `input-1` | text | 是 | 提示词（英文）；无 |
+| `input-2` | number | 否 | 最大时长（秒）；`10` |
+| `input-3` | number | 否 | 随机种子；`20260921` |
+
+输出：`audio`。
+
+提示词为英文声音描述；时长为最大时长，实际音频可能更短。模型使用 Stable Audio 3 Medium，工作流固定使用 8 步 LCM 采样与 CFG 1；尾部静音会按工作流设置裁剪。请求后应检查实际音频时长、起音和尾音。
+
+VideoFlowCut 的音效生成设计及候选素材处理见 [音效生成与动效联动实施方案](VideoFlowCut_音效生成与动效联动实施方案.md)。VideoFlowCut 源码已适配 v2，运行中的版本是否采用新代码需单独核验。
+
+## 其他已保留接口
+
+字幕对齐、MiniCPM-o 分析、文本向量和其他已存在的工作流接口继续保留，可通过 `GET /workflows` 查看；字段与输出以对应详情为准。
+
+## 2026-11-06 本机连通性复测
+
+测试基础地址为 `http://127.0.0.1:8188/comfyui-bridge/v2`。`/health` 返回 HTTP 200、`ready`、`protocolVersion: 2`，列表返回 22 项可用；本文八项详情均为 HTTP 200。八项使用错误版本提交均返回 HTTP 400，说明提交入口能够接收并拒绝过期版本。
+
+| 应用 | 本次结果 |
+| --- | --- |
+| FunASR 本地音频转文字 | 上传人声，HTTP 202，任务 `9d7727cb-f786-43ee-b768-1f9af5f714a1` 成功，返回非空文本。 |
+| OmniVoice 自动音色克隆 | 上传人声，HTTP 202，任务 `79c121a6-1e1b-45c6-8f7a-7acc1ff16ee0` 成功，音频下载 HTTP 200。 |
+| Stable Audio 3 Medium | 文本 multipart 提交 HTTP 202，任务 `5e2bd2c9-4ec6-46e5-ba1b-4ef75df96c5c` 成功，FLAC 下载 HTTP 200。 |
+| LTX2.3 数字人 | 上传图片和音频后返回 HTTP 202，随即取消成功；未验证完整推理和视频输出。 |
+| MiniMax H3 文生视频 | 提交返回 HTTP 202，随即取消成功；未验证完整生成。日志报告 `easy cleanGpuUsed` 缺少 `anything` 输入，该输出分支被忽略。 |
+| MiniMax H3 图生视频 | 上传图片后返回 HTTP 202，随即取消成功；未验证完整生成。 |
+| MiniMax H3 首尾帧生视频 | 上传两张图片后返回 HTTP 202，随即取消成功；未验证完整生成。 |
+| MiniMax H3 多参考视频 | 上传第一张参考图后返回 HTTP 202，随即取消成功；未验证完整推理、视频输出或其他素材组合。 |
+
+此前的测试中，首尾帧被拒，文生与图生视频日志出现 VAE 路径校验错误。之后三个工作流的 Schema 版本发生变化；本次复测三者均接受请求，测试期间日志未再出现该 VAE 错误。由于任务随即取消，尚不能据此判断完整推理能否成功。
+
+取消测试针对本次提交的任务：五次返回 HTTP 200、`cancelled: true`；其中已开始执行的任务后续查询为 `failed`，被删除的排队任务查询为 404。随机不存在的任务查询及下载返回 404，取消返回 HTTP 200、`cancelled: false`。测试结束时队列为空。
+
+前一次测试首次误用了静音音频，FunASR 没有有效输出，OmniVoice 因参考文本为空失败；更换人声后的测试与本次复测均成功。音频只验证生成和下载，没有进行听感验收。视频工作流均未完成实际生成，不能据此判断视频画面、音频、模型推理或输出下载是否正常。

@@ -1,0 +1,1 @@
+{"version":3,"file":"agent-setup.d.ts","sourceRoot":"","sources":["../../src/api/agent-setup.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,SAAS,EAAE,MAAM,eAAe,CAAC;AAE/C,MAAM,MAAM,yBAAyB,GAAG,oBAAoB,GAAG,WAAW,GAAG,UAAU,CAAC;AAExF,MAAM,WAAW,2BAA2B;IAC1C,MAAM,EAAE,yBAAyB,CAAC;IAClC,KAAK,EAAE,SAAS,CAAC;IACjB,EAAE,EAAE,IAAI,CAAC;IACT,cAAc,EAAE,MAAM,CAAC;CACxB"}

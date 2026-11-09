@@ -16,7 +16,7 @@ import { resolveRenderBrowser } from "./exporter.js";
 import { runProcess } from "@videocut/speech";
 import { parseMotionEvents } from "../../../packages/motion-work/src/schema.js";
 import type { MotionEvent } from "@videocut/contracts";
-import { MotionDeterminismError, saveMotionFrameDifference, verifyMotionDeterminism, type MotionDeterminismReport } from "./motion-determinism.js";
+import { compareMotionFrames, MOTION_MAX_CHANNEL_DELTA, MotionDeterminismError, saveMotionFrameDifference, verifyMotionDeterminism, type MotionDeterminismReport } from "./motion-determinism.js";
 import { checkMotionDiskSpace, checkMotionOutputBudget, motionOutputBudget } from "./motion-output-budget.js";
 import { runMotionProcess } from "./motion-process.js";
 import { HYPERFRAMES_DEPENDENCIES } from "../../../packages/motion-work/src/hyperframes-contract.js";
@@ -35,7 +35,9 @@ interface MotionLaneOptions {
   verifyNextFrame: boolean;
   progress(frame: number): void;
   rangeCheck?: { expected: MotionRangeExpectation; candidate: MotionRangeCandidate };
+  inspectOrders?: number[][];
 }
+type MotionInspectionLane = { inspected: true; captures: Array<Array<{ frame: number; png: Buffer }>>; events?: MotionEvent[] };
 
 /** 失败关闭也有限时；否则导航已超时却被finally的关闭等待拖住。 */
 export async function closeMotionBrowser(browser: Pick<Browser, "close" | "process">, diagnostics: MotionDiagnostics, timeoutMs = 3000) {
@@ -136,7 +138,7 @@ export async function renderManagedMotion(input: MotionSubmission, directory: st
             diagnostics.lanes(laneStates, counts.reduce((sum, count) => sum + count, 0), frameCount);
           }
         });
-        if ("prepared" in result) throw new Error("MOTION_EXECUTION_MODE_INVALID");
+        if ("prepared" in result || "inspected" in result) throw new Error("MOTION_EXECUTION_MODE_INVALID");
         return result;
       } catch (error) {
         if (!failed) {
@@ -246,7 +248,41 @@ export async function initializeManagedMotion(input: MotionSubmission, directory
   return result;
 }
 
-async function renderMotionRange(input: MotionSubmission, directory: string, imageData: Record<string, string>, provider: MotionVideoProvider | undefined, signal: AbortSignal, fonts: PreparedMotionFont[], diagnostics: MotionDiagnostics, frameRange: MotionFrameRange, sourceDisplay: FrozenSourceDisplay | undefined, laneOptions: MotionLaneOptions, prepareOnly = false): Promise<MotionLaneResult | { prepared: true; events?: MotionEvent[]; engineVersion: string }> {
+/** 使用正式加载与捕帧路径检查稀疏根帧，不启动编码器或修改项目。 */
+export async function inspectManagedMotionFrames(input: MotionSubmission, directory: string, frames: number[], imageData: Record<string, string>, provider: MotionVideoProvider | undefined, signal: AbortSignal, fonts: PreparedMotionFont[], diagnostics: MotionDiagnostics, sourceDisplay?: FrozenSourceDisplay) {
+  const ascending = [...new Set(frames)].sort((a, b) => a - b);
+  if (!ascending.length || ascending.some(frame => !Number.isInteger(frame) || frame < 0 || frame >= input.durationInFrames)) throw new Error("MOTION_INSPECTION_RANGE_INVALID");
+  const descending = [...ascending].reverse();
+  const options = (inspectOrders: number[][]): MotionLaneOptions => ({ samples: new Set(), verifyNextFrame: false, progress() {}, inspectOrders });
+  const range = { startFrame: 0, endFrame: input.durationInFrames };
+  const first = await renderMotionRange(input, directory, imageData, provider, signal, fonts, diagnostics, range, sourceDisplay, options([ascending, descending]));
+  const clean = await renderMotionRange(input, directory, imageData, provider, signal, fonts, diagnostics, range, sourceDisplay, options([descending]));
+  if (!("inspected" in first) || !("inspected" in clean)) throw new Error("MOTION_EXECUTION_MODE_INVALID");
+  if (JSON.stringify(first.events) !== JSON.stringify(clean.events)) throw new Error("MOTION_EVENT_NONDETERMINISTIC: 干净页面的事件不同");
+  const baselines = new Map(first.captures[0]!.map(capture => [capture.frame, capture.png]));
+  const differences: Array<Awaited<ReturnType<typeof saveMotionFrameDifference>> & { path: string }> = [];
+  await mkdir(join(directory, "frames"), { recursive: true });
+  for (const capture of first.captures[0]!) await writeFile(join(directory, "frames", motionFrameName(capture.frame)), capture.png);
+  for (const [name, captures] of [["same-page", first.captures[1]!], ["clean-page", clean.captures[0]!]] as const) {
+    const output = join(directory, "diagnostics", name);
+    await mkdir(output, { recursive: true });
+    for (const capture of captures) {
+      await writeFile(join(output, motionFrameName(capture.frame)), capture.png);
+      const baseline = baselines.get(capture.frame)!;
+      if (compareMotionFrames(baseline, capture.png).changedPixels) {
+        const difference = await saveMotionFrameDifference(output, capture.frame, baseline, capture.png);
+        differences.push({ ...difference, path: `diagnostics/${name}` });
+      }
+    }
+  }
+  const failedFrames = [...new Set(differences.filter(item => item.maxChannelDelta > MOTION_MAX_CHANNEL_DELTA).map(item => item.frame))];
+  const report = { status: failedFrames.length ? "failed" : differences.length ? "tolerated" : "exact", maxAllowedChannelDelta: MOTION_MAX_CHANNEL_DELTA,
+    sampledFrames: ascending, visitOrder: { ascending, samePageReverse: descending, cleanPageReverse: descending }, failedFrames, differences, ...(first.events === undefined ? {} : { events: first.events }) };
+  await writeFile(join(directory, "diagnostics", "report.json"), JSON.stringify(report, null, 2));
+  return report;
+}
+
+async function renderMotionRange(input: MotionSubmission, directory: string, imageData: Record<string, string>, provider: MotionVideoProvider | undefined, signal: AbortSignal, fonts: PreparedMotionFont[], diagnostics: MotionDiagnostics, frameRange: MotionFrameRange, sourceDisplay: FrozenSourceDisplay | undefined, laneOptions: MotionLaneOptions, prepareOnly = false): Promise<MotionLaneResult | MotionInspectionLane | { prepared: true; events?: MotionEvent[]; engineVersion: string }> {
   signal.throwIfAborted();
   const metrics = { captureMs: 0, seekMs: 0, screenshotMs: 0, pixelDecodeMs: 0, pipeWriteMs: 0, encoderFinishMs: 0, previewEncodeMs: 0, peakWorkerRssBytes: process.memoryUsage().rss, outputBytes: 0, capturedFrames: 0 };
   const limits = readRuntimeConfig().motion;
@@ -332,7 +368,7 @@ async function renderMotionRange(input: MotionSubmission, directory: string, ima
     const readEvents = () => page.evaluate(() => (window as unknown as { __readMotionEvents: () => unknown }).__readMotionEvents());
     const rawEvents = await readEvents();
     const events = rawEvents === null ? undefined : parseMotionEvents(rawEvents, input.durationInFrames);
-    if (laneOptions.rangeCheck) checkMotionRangeCompatibility(laneOptions.rangeCheck.expected, { ...laneOptions.rangeCheck.candidate, events });
+    if (laneOptions.rangeCheck) checkMotionRangeCompatibility(laneOptions.rangeCheck.expected, laneOptions.rangeCheck.candidate);
     if (prepareOnly) {
       // 登记只初始化并核对真实事件，不截图、不创建编码器或媒体产物。
       allowedFrame = 0;
@@ -387,6 +423,21 @@ async function renderMotionRange(input: MotionSubmission, directory: string, ima
         ]);
       } finally { if (timer) clearTimeout(timer); metrics.captureMs += Date.now() - captureAt; metrics.peakWorkerRssBytes = Math.max(metrics.peakWorkerRssBytes, process.memoryUsage().rss); }
     };
+    if (laneOptions.inspectOrders) {
+      const captures: MotionInspectionLane["captures"] = [];
+      for (const order of laneOptions.inspectOrders) {
+        const batch: MotionInspectionLane["captures"][number] = [];
+        for (const frame of order) {
+          const pixels = await capture(frame);
+          if (input.compositing === "opaque") for (let i = 3; i < pixels.data.length; i += 4) if (pixels.data[i] !== 255) throw new Error(`MOTION_OPACITY_MISMATCH: 第 ${frame} 帧含透明像素`);
+          batch.push({ frame, png: PNG.sync.write(pixels, { colorType: 6 }) });
+        }
+        captures.push(batch);
+      }
+      if (JSON.stringify(await readEvents()) !== JSON.stringify(rawEvents)) throw new Error("MOTION_EVENT_NONDETERMINISTIC: 定位改变了作品事件");
+      complete = true;
+      return { inspected: true, captures, events };
+    }
     encoder = createMotionStreamEncoder(input, outputPath, signal);
     diagnostics.stage("frame_rendering");
     for (let frame = startFrame; frame < endFrame; frame++) {

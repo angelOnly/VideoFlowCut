@@ -8,13 +8,15 @@
 
 主任务按原作者完整产物装配真实 ID与参数，不补创意。确定性项目写入携带当前 `base_revision_id`；异步接口按其真实合同使用 Asset、固定 revision 或幂等键，不能为形式一致虚构字段。新调用采用刚读回的版本，不能把新版本数字换进未重新确认的旧方案。
 
-异步 Job 的依赖和后续动作按实时接口执行。已明确的作品采用可随生成请求委托已发布的 `on_success`：应用在成功后核对目标依赖、原子采用；主任务消费回执，通过工作台检查结果，只有需要文件时才明确提交预览。其他依赖写入等待对应真实结果，相关依赖变化交原负责人处理，不只替换版本号。互不依赖的研究、设计和生成继续并行。
+异步 Job 的依赖和后续动作按实时接口执行。OD 阶段制作由主任务通过 `start_motion_authoring` 预先委托明确目标，连接器核对依赖、自动登记及采用可用范围，沿[生产入口](../../opendesign-video-production/SKILL.md#调用与续接)接回固定版本；无需逐步搬运。独立作品生成仍可使用已明确目标的 `on_success`。主任务消费回执，通过工作台检查结果，只有需要文件时才明确提交预览。相关依赖变化交原负责人处理，不只替换版本号。互不依赖的研究、设计和生成继续并行。
 
 写后读回对象与 ImpactReport，核对改变、重算、stale、冲突和需要重做的范围；不能只看 success。取得对应版本的真实预览或声音后回原作者，跨段影响交导演。作品生成、独立作品观察、合成观察和整片交付是不同结论；技术检查与实际观看不可互相替代。明确参数的局部修改只核对受影响范围，不重跑整片创意。
 
 ## 失败与不确定结果
 
 先检查 `isError`，保存完整原始文本，再按实际内容解析 JSON。协议层拒绝可能只有文字，解析失败不能覆盖原始错误。以下情况分开处理：
+
+辅助读取只有部分结果时保留已得结果和诊断，只恢复失败的读取，不自动改变素材、用途或其他项目对象。
 
 | 状态 | 下一步 |
 |---|---|
@@ -28,9 +30,9 @@
 
 素材搜索的窄例外：正式错误同时提供 `sideEffects="none"`、`safeToRetry=true` 和恢复依据，才按服务目录纠正参数或等待 `retryAfterMs` 后再搜索一次；重复失败先核对原因，确认平台 Bug 阻断后才报障，不扩展到下载、生成和未知写入。详细诊断查[参数拒绝与未知结果](../../known-errors/references/submission-errors.md)。
 
-只有确认平台或服务自身 Bug 导致无法继续，才调用 `report_editing_blocker`，沿已有同根因工单补充证据。不能为报障新建视频 Revision，不能改源码、配置、插件缓存或用脚本绕过 MCP。ComfyUI 的状态检查和指定启动方式沿根 AGENTS.md 的授权例外执行，不因单纯启动既有服务要求新版部署确认。
+只有确认平台或服务自身 Bug 导致无法继续，才调用 `report_editing_blocker`，沿已有同根因工单补充证据；工单独立存储，不写入视频快照或新建视频 Revision，报障不授权自动修复。向用户说明问题并取得授权后才开展平台修复，修复结果交用户审核，部署按用户已授权范围执行，不能通过另建或委派修复任务绕过。不能用脚本绕过 MCP。其他无依赖工作继续；ComfyUI 的状态检查和指定启动方式沿根 AGENTS.md 的已有授权执行。
 
-需要新版修复时，原剪辑任务重新连接 MCP，核对 `read_runtime_release` 的 Runtime/MCP releaseId与 Worker健康，再读当前 Project/Revision并调用 `acknowledge_repair_deployment`。旧会话不能确认新版。候选验证和部署由修复任务负责，仓库开发资料 `docs/development/motion-runtime.md` 保存候选验证与部署流程，剪辑任务不读取该开发流程代替正式工具。
+需要新版修复时，获授权的修复任务在隔离项目、目录、端口和队列中验证，发行物放在 `plugins/videoflowcut/runtime/dist/`，不手改已安装缓存；未验证构建不称为已部署。正式部署后，原剪辑任务重新连接 MCP，核对 `read_runtime_release` 的 Runtime/MCP releaseId、API 与 Worker 健康，再读当前 Project/Revision并调用 `acknowledge_repair_deployment`。旧会话不能确认新版。候选验证和部署细节见 `docs/development/motion-runtime.md`，剪辑任务不读取该开发流程代替正式工具。
 
 ## 按这次操作查对应资料
 
@@ -53,5 +55,7 @@
 ProductionRun与SkillExecutionReport记录实际工作过程，不参与动画编译，不是第二份成片状态。记录实际用到的能力、决定、对象、证据及未完成项，不能用已加载Skill或工作单代替真实宿主调用。
 
 `record_creative_decision` 的可选 delegation 使用 `{agent_id, assignment_id, role, input_revision}`；前两者为真实非空标识，role为director、specialist或reviewer，input_revision是当前Run所属Project的真实历史版本。保存后报告使用agentId、assignmentId、inputRevision等字段，产物继续关联现有objectIds/evidence。输入版本可早于提交后版本，但主任务仍需核对依赖。
+
+导演完成主要采用判断后，主任务转录实际采用范围与依据，并在 evidence 引用当前有效简报、实际材料和参考范围。完整编排通过简报交付；恢复任务时结合最新交接确认有效简报及后续换材、改稿或重排。
 
 这些字段不能认证真实宿主调用，也不证明当前负责人已接任或实际看过媒体；接替与迟到结果按共同交接约定核对。旧报告没有delegation可继续读，不能补造代理身份。

@@ -13,8 +13,8 @@ const prior = JSON.parse(await readFile(reportPath, "utf8"));
 const app = createApplication(join(dirname(reportPath), "workspace"));
 try {
   const bridge = new ComfyUIBridgeClient(readRuntimeConfig().bridge.apiBaseUrl);
-  let postCount = 0; const submit = bridge.createRunWithSchemaRetry.bind(bridge);
-  bridge.createRunWithSchemaRetry = async (...args) => { postCount++; return submit(...args); };
+  let postCount = 0; const submit = bridge.createRunWithWorkflow.bind(bridge);
+  bridge.createRunWithWorkflow = async (...args) => { postCount++; return submit(...args); };
   const before = app.readProject(prior.job.projectId).revision.number;
   const retry = app.intelligence.retry(prior.job.projectId, prior.job.id);
   await runOneJob(app, createMediaJobProcessor(app, bridge));

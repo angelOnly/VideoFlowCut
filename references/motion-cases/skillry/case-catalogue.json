@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "count": 120,
+  "count": 119,
   "path_base": "本索引所在目录",
   "scope": "整片源帧概览与关键过程拆解；原速、声音未专业核验；后写复现输入未制作验证",
   "vocabulary": {
@@ -4953,73 +4953,6 @@
         "071-m10"
       ],
       "storyboard": "cases/astrothewizard-618782-original/storyboard.jpg"
-    },
-    {
-      "case_number": 72,
-      "slug": "gizakdag-239768",
-      "original_form": "固定视频",
-      "video_types": [
-        "影像展示",
-        "品牌展示"
-      ],
-      "scenes": [
-        "集合聚焦",
-        "前后变化",
-        "空间关系"
-      ],
-      "materials": [
-        "照片",
-        "文字",
-        "抽象图形"
-      ],
-      "methods": [
-        "重复密度表达过载",
-        "共同轴线接拼贴",
-        "满场收束有限视窗"
-      ],
-      "art": [
-        "高饱和色差网格",
-        "影像切片统一颗粒",
-        "暗起尾隔开密集场"
-      ],
-      "scenario": "用于过度思考或创意情绪短段，先增加分支与重复，再收束一个可以观看的对象。",
-      "material_requirements": "需要可用影像切片、统一材质处理、短主题句及清楚的安静收束阶段。",
-      "transfer_cost": "照片式切片的摄影出处未核验，不属于新闻实拍，闪变舒适度和正文阅读须另查；原速观感与声音未核验。",
-      "recommended_segments": [
-        {
-          "start": 7,
-          "end": 12,
-          "reason": "黄路径蓝网格接彩条及多路拼贴，再接沙发光锥并缩入斜向分格与重复大字。"
-        }
-      ],
-      "aliases": [
-        "过度思考",
-        "情绪拼贴",
-        "影像切片",
-        "信息过载",
-        "先乱后静"
-      ],
-      "title": "高密度拼贴与竖屏海报",
-      "author": "gizakdag",
-      "duration": 15.061,
-      "directory": "cases/gizakdag-239768-original",
-      "detail": "detail.html?case=gizakdag-239768",
-      "analysis": "cases/gizakdag-239768-original/overview.md",
-      "source_sha256": "5f2e2a969e5a8545cb0a2b9597c5d42f92ba16b2903ef4128a0e10e2b60b8e0c",
-      "media": "cases/gizakdag-239768-original/video.mp4",
-      "media_sha256": "5f2e2a969e5a8545cb0a2b9597c5d42f92ba16b2903ef4128a0e10e2b60b8e0c",
-      "media_bytes": 3137229,
-      "media_note": "网站原片，未重新编码。",
-      "source_url": "https://skillry.dev/ai-videos/opus-5-5/gizakdag-239768",
-      "analysis_kind": "mechanisms-v1",
-      "mechanism_ids": [
-        "072-m08",
-        "072-m09",
-        "072-m05",
-        "072-m06",
-        "072-m07"
-      ],
-      "storyboard": "cases/gizakdag-239768-original/storyboard.jpg"
     },
     {
       "case_number": 73,

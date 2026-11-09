@@ -5,7 +5,7 @@ import { DomainError } from "@videocut/domain";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { digest } from "../../../packages/media-intelligence/src/index.js";
 
-export type ExternalCheckpoint = { status: "submitting" | "running" | "succeeded" | "failed"; workflowId: string; schemaVersion: string; runId?: string; text?: string; outputSlotId?: string; textOutputs?: Array<{ outputSlotId: string; text: string }>; requestIdentity?: string; attemptJobId?: string; outputRejection?: { jobId: string; reason: string } };
+export type ExternalCheckpoint = { status: "submitting" | "running" | "succeeded" | "failed"; workflowId: string; schemaVersion: string; runId?: string; text?: string; outputKind?: string; textOutputs?: string[]; requestIdentity?: string; attemptJobId?: string; outputRejection?: { jobId: string; reason: string } };
 
 /** 外部 succeeded 只代表推理结束；保留坏原文，让显式重试能取得新响应。 */
 export function rejectModelOutput(app: EditingApplication, job: JobRecord, key: string, reason: string): void {
@@ -30,7 +30,7 @@ export function restoreModelCheckpoints(app: EditingApplication, job: JobRecord,
 }
 
 /** 一次 POST 不确定即保留意图；有 run ID 只继续读取，不重复提交。 */
-export async function modelText(app: EditingApplication, job: JobRecord, bridge: ComfyUIBridgeClient, key: string, workflowId: string, build: (schema: BridgeWorkflow) => Promise<BridgeRunRequest>, outputSlotId?: string, requestIdentity?: string) {
+export async function modelText(app: EditingApplication, job: JobRecord, bridge: ComfyUIBridgeClient, key: string, workflowId: string, build: (schema: BridgeWorkflow) => Promise<BridgeRunRequest>, outputKind?: "caption_alignment", requestIdentity?: string) {
   restoreModelCheckpoints(app, job);
   const checkpoints = () => (app.trackJob(job.id).result?.externalRuns ?? {}) as Record<string, ExternalCheckpoint>;
   const save = (checkpoint: ExternalCheckpoint) => app.recordJobCheckpoint(job.id, { externalRuns: { ...checkpoints(), [key]: checkpoint } });
@@ -44,20 +44,21 @@ export async function modelText(app: EditingApplication, job: JobRecord, bridge:
       // 只在新的显式恢复任务里重算已知结束的运行；旧任务与坏输出继续保留。
       if (!job.payload.retryOfJobId || checkpoint.attemptJobId === job.id || checkpoint.outputRejection?.jobId === job.id) throw new DomainError("模型输出无效或观察版本已变化；需要显式恢复或新建分析，不能把旧响应标成新版", "MEDIA_MODEL_OUTPUT_RETRY_REQUIRED");
       checkpoint = undefined;
-    } else if (!outputSlotId || checkpoint.outputSlotId === outputSlotId) return checkpoint;
+    } else if (!outputKind || checkpoint.outputKind === outputKind) return checkpoint;
   }
   if (checkpoint?.status === "submitting" && !checkpoint.runId) throw new DomainError("外部提交结果未知，不能重复创建任务", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
   // 只有明确失败的外部任务可在显式重试中重新提交；超时/丢失仍保留原 run ID。
   if (checkpoint?.status === "failed" && job.payload.retryOfJobId) checkpoint = undefined;
   if (!checkpoint?.runId) {
     try {
-      const submission = await bridge.createRunWithSchemaRetry(workflowId, async (schema) => {
+      const submission = await bridge.createRunWithWorkflow(workflowId, async (schema) => {
         checkCancellation();
         const request = await build(schema);
-        checkpoint = { status: "submitting", workflowId, schemaVersion: schema.schemaVersion, requestIdentity, attemptJobId: job.id };
-        save(checkpoint);
         return request;
-      });
+      }, { beforeSubmit: (pending) => {
+        checkpoint = { status: "submitting", workflowId, schemaVersion: pending.workflow.schemaVersion, runId: pending.run.id, requestIdentity, attemptJobId: job.id };
+        save(checkpoint);
+      } });
       checkpoint = { status: "running", workflowId, schemaVersion: submission.workflow.schemaVersion, runId: submission.run.id, requestIdentity, attemptJobId: job.id };
       save(checkpoint);
     } catch (error) {
@@ -74,11 +75,16 @@ export async function modelText(app: EditingApplication, job: JobRecord, bridge:
     if (error instanceof BridgeError && ["BRIDGE_RUN_FAILED", "BRIDGE_RUN_CANCELLED"].includes(error.code ?? "")) save({ ...checkpoint, status: "failed" });
     throw error;
   }
-  // FunASR 的全文和对齐 JSON 是不同槽位，不能拼接后交给 JSON 解析器。
-  const textOutputs = run.outputs.filter((output) => output.kind === "text" && typeof output.text === "string").map((output) => ({ outputSlotId: output.outputSlotId, text: output.text! }));
-  const text = textOutputs.filter((output) => !outputSlotId || output.outputSlotId === outputSlotId).map((output) => output.text).join("\n");
-  if (!text) throw new DomainError("模型成功结果缺少文本输出", "MEDIA_MODEL_TEXT_MISSING");
-  checkpoint = { ...checkpoint, status: "succeeded", text, outputSlotId, textOutputs };
+  // v2 不返回输出槽位；字幕对齐按实际 JSON 结构识别，不拼接全文与 JSON。
+  const textOutputs = run.outputs.flatMap((output) => output.kind === "text" && typeof output.text === "string" ? [output.text]
+    : output.kind === "json" && output.value !== undefined ? [JSON.stringify(output.value)] : []);
+  const candidates = outputKind === "caption_alignment" ? textOutputs.filter((text) => {
+    try { const value = JSON.parse(text); return value?.version === 4 && value?.precision === "provider_segment_timed" && Array.isArray(value.segments); }
+    catch { return false; }
+  }) : textOutputs;
+  if (candidates.length !== 1 || !candidates[0]) throw new DomainError("模型结果缺少唯一可识别的文本输出", "MEDIA_MODEL_TEXT_MISSING");
+  const text = candidates[0];
+  checkpoint = { ...checkpoint, status: "succeeded", text, outputKind, textOutputs };
   save(checkpoint);
   if (requestIdentity !== undefined && checkpoint.requestIdentity !== requestIdentity) throw new DomainError("旧版外部运行已完成并保存；请显式恢复或新建分析以使用当前观察版本", "MEDIA_MODEL_OUTPUT_RETRY_REQUIRED");
   return checkpoint;

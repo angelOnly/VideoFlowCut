@@ -32,10 +32,13 @@ export function motionWorkForCue(snapshot: ProjectSnapshot, cue: EffectCue): Mot
 }
 
 /** 派生文件选择不改变编排；返回文件根范围，由媒体层单独换算其零点。 */
-export function motionMediaForCue(snapshot: ProjectSnapshot, cue: EffectCue) {
+export function motionMediaForCue(snapshot: ProjectSnapshot, cue: EffectCue, projectRange = { startFrame: cue.startFrame, endFrame: cue.endFrame }) {
   const work = motionWorkForCue(snapshot, cue);
   if (!work) return undefined;
-  const { startFrame: start, endFrame: end } = motionRootRangeAtProjectRange(cue.sourceStartFrame ?? 0, cue.sourceEndFrame ?? (cue.sourceStartFrame ?? 0) + cue.endFrame - cue.startFrame, work.fps, snapshot.timeline.fps);
+  const from = Math.max(cue.startFrame, projectRange.startFrame), to = Math.min(cue.endFrame, projectRange.endFrame);
+  if (from >= to) return undefined;
+  const sourceStart = (cue.sourceStartFrame ?? 0) + from - cue.startFrame;
+  const { startFrame: start, endFrame: end } = motionRootRangeAtProjectRange(sourceStart, sourceStart + to - from, work.fps, snapshot.timeline.fps);
   return snapshot.assets.find(asset => asset.status === "ready" && asset.motion?.workId === work.id && asset.motion.output
     && (asset.motion.rootRange?.startFrame ?? 0) <= start
     && (asset.motion.rootRange?.endFrame ?? asset.motion.frameCount) >= end);

@@ -745,15 +745,15 @@ server.registerTool("browse_sound_sources", {
 
 server.registerTool("manage_asset_requirements", {
   title: "管理素材需求",
-  description: "在当前 Revision 创建、更新或关闭视觉/声音需求。更新用途与找法保留候选及在途获取。close_outcome=completed 表示作者确认用途完成，需有实际可用材料；cancelled 表示取消。单文件取得不自动完成需求。音频用 media_kind=audio、audio_brief、role=sfx/bgm，不填画幅；候选不会自动进入 Timeline。",
+  description: "在当前 Revision 创建、更新或关闭视觉/声音需求。首轮按主题探索，编排中补充具体缺少的画面；主任务将取得结果交回原作者，由导演组织判断用途是否完成。更新用途与找法保留候选及在途获取。close_outcome=completed 需有实际可用材料；cancelled 表示取消，单文件取得不自动完成需求。音频用 media_kind=audio、audio_brief、role=sfx/bgm，不填画幅；候选不会自动进入 Timeline。",
   inputSchema: z.object({
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
     action: z.enum(["create", "update", "close"]),
     asset_request_id: z.string().min(1).optional(),
     title: z.string().max(160).optional(),
-    purpose: z.string().max(800).optional(),
-    visual_brief: z.string().max(1_600).optional(),
+    purpose: z.string().max(800).optional().describe("说明本片主题或当前编排中材料承担的用途。"),
+    visual_brief: z.string().max(1_600).optional().describe("首轮写相关对象、场景、活动及期待发现；补材时写缺少的动作、取景、细节和持续范围。"),
     media_kind: z.enum(["visual", "audio"]).optional(),
     audio_brief: z.string().max(1_600).optional(),
     sound: soundRequirementSchema.optional(),
@@ -762,7 +762,7 @@ server.registerTool("manage_asset_requirements", {
     excluded_terms: z.array(z.string().min(1).max(160)).max(20).optional(),
     target_aspect_ratio: z.enum(["9:16", "16:9", "1:1"]).optional().describe("画幅语境，不自动筛掉不同比例的源素材；省略不填默认值。"),
     min_duration_ms: z.number().int().positive().max(300_000).nullable().optional().describe("最终采用的视频或音频连续范围要求，单位毫秒；不拦截搜索或下载，图片不应用该条件。null 清空，省略保持原值，0 无效。"),
-    fallback_plan: z.enum(["keep_presenter", "remotion", "minimax", "ask_user", "local_audio", "omit_audio"]).optional(),
+    fallback_plan: z.enum(["keep_presenter", "remotion", "minimax", "ask_user", "local_audio", "omit_audio"]).optional().describe("记录作者提出的替代考虑；实际采用由导演与原作者共同判断。"),
     close_reason: z.string().max(800).optional(),
     close_outcome: z.enum(["completed", "cancelled"]).optional().describe("关闭用途的原因类别；省略按取消处理，完成需有实际可用材料。")
   }).strict()
@@ -1228,7 +1228,6 @@ server.registerTool("submit_speech_alignment", {
     base_revision_id: z.number().int().positive(),
     workflow_id: z.string().min(1).max(240),
     speech_asset_id: z.string().min(1).optional(),
-    output_slot_id: z.string().min(1).max(240).optional(),
     idempotency_key: z.string().min(1).max(240).optional()
   }
 }, async (input) => {
@@ -1238,7 +1237,6 @@ server.registerTool("submit_speech_alignment", {
       baseRevision: input.base_revision_id,
       workflowId: input.workflow_id,
       speechAssetId: input.speech_asset_id,
-      outputSlotId: input.output_slot_id,
       idempotencyKey: input.idempotency_key
     }));
   } catch (error) { return asError(error); }
@@ -2152,7 +2150,6 @@ server.registerTool("submit_music_generation", {
     workflow_id: z.string().min(1).max(240),
     prompt: z.string().min(1).max(4_000),
     duration_seconds: z.number().int().min(1).max(1_800),
-    output_slot_id: z.string().min(1).max(240).optional(),
     idempotency_key: z.string().min(1).max(240).optional()
   }
 }, async (input) => {
@@ -2163,7 +2160,6 @@ server.registerTool("submit_music_generation", {
       workflowId: input.workflow_id,
       prompt: input.prompt,
       durationSeconds: input.duration_seconds,
-      outputSlotId: input.output_slot_id,
       idempotencyKey: input.idempotency_key
     }));
   } catch (error) { return asError(error); }
@@ -2181,7 +2177,6 @@ server.registerTool("submit_video_generation", {
     prompt: z.string().trim().min(1).max(4_000),
     duration_seconds: z.number().int().min(1).max(1_800),
     aspect_ratio: z.enum(["9:16", "16:9", "1:1"]).optional(),
-    output_slot_id: z.string().min(1).max(240).optional(),
     seed: z.number().int().nonnegative().optional(),
     megapixels: z.number().min(0.1).max(16).optional(),
     initial_seed: z.number().int().nonnegative().optional(),
@@ -2202,7 +2197,6 @@ server.registerTool("submit_video_generation", {
       prompt: input.prompt,
       durationSeconds: input.duration_seconds,
       aspectRatio: input.aspect_ratio,
-      outputSlotId: input.output_slot_id,
       seed: input.seed,
       megapixels: input.megapixels,
       initialSeed: input.initial_seed,
@@ -2418,7 +2412,7 @@ server.registerTool("trim_scene", {
 
 server.registerTool("manage_visual_treatment", {
   title: "管理视觉处理计划",
-  description: "保存 Story Beat 或 Scene 的主视觉、注意力强度和降级方案；它不直接生成 B-roll 或效果。",
+  description: "保存共同编排后采用的视觉用途和实际展示材料。mode 表示承载方式，包含使用素材的受管画面；具体素材组织、参考过程和完整画面安排保存在当前简报。新增或替换材料时更新对应计划。计划保存不代表实际画面效果已成立。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
@@ -2428,7 +2422,7 @@ server.registerTool("manage_visual_treatment", {
       start_frame: z.number().int().nonnegative(), end_frame: z.number().int().positive(), performance_note: z.string().max(2000),
       timing_evidence: z.object({ kind: z.enum(["aligned", "audio_review"]), note: z.string().trim().min(1) })
     }).strict()).optional(),
-    adopted_material_asset_ids: z.array(z.string().min(1)).optional(),
+    adopted_material_asset_ids: z.array(z.string().min(1)).optional().describe("本范围实际采用的展示素材；按有效简报更新，不填候选、声音或人物参考照。"),
     visual_treatment_id: z.string().min(1).optional(),
     narrative_beat_id: z.string().min(1).optional(),
     scene_id: z.string().min(1).optional(),
@@ -2703,7 +2697,7 @@ server.registerTool("start_production_run", {
 
 server.registerTool("record_creative_decision", {
   title: "记录创作判断",
-  description: "将创作决定、依据和证据写入 ProductionRun，不产生视频 Revision。协调者转录子代理结果时填写 delegation，关联真实代理标识、分派和输入历史版本；该来源为审计声明，不认证身份或代替宿主调用与真实审片。",
+  description: "将作者的实际创作决定、采用范围、依据和当前有效简报引用写入 ProductionRun，不产生视频 Revision。完整编排通过实际文件交付。协调者转录子代理结果时填写 delegation，关联真实代理标识、分派和输入历史版本；该来源为审计声明，不认证身份或代替宿主调用与真实审片。",
   inputSchema: {
     project_id: z.string().optional(),
     run_id: z.string().min(1),
@@ -2819,7 +2813,7 @@ server.registerTool("record_editorial_quality_review", {
 
 server.registerTool("complete_production_run", {
   title: "完成 ProductionRun",
-  description: "明确 completion_scope，按本次整片、Beat 或对象范围对账收口；结构缺项返回 incomplete，观察意见独立保存，不新增导出审美门禁。",
+  description: "明确 completion_scope，按本次整片、Beat 或对象范围对账结构、必要记录和技术条件；结构缺项返回 incomplete。导演、创意与视觉对实际表达的判断及返修结果从已有决定和审阅记录读取，观察意见独立保存。",
   inputSchema: {
     project_id: z.string().optional(),
     completion_scope: z.discriminatedUnion("kind", [z.object({ kind: z.literal("project") }), z.object({ kind: z.literal("beats"), beat_ids: z.array(z.string().min(1)).min(1) }), z.object({ kind: z.literal("objects"), object_ids: z.array(z.string().min(1)).min(1) })]),
@@ -3047,7 +3041,7 @@ server.registerTool("retry_job", {
 
 server.registerTool("track_job", {
   title: "跟踪任务",
-  description: "读取异步任务的 queued/running/succeeded/failed 状态与诊断信息。",
+  description: "读取原异步任务的状态、诊断和产物。创意或动效库搜索成功后按 readback 调用对应搜索工具读取候选页；失败按返回的恢复动作继续原任务。",
   inputSchema: { job_id: z.string().min(1) },
   annotations: { readOnlyHint: true }
 }, async ({ job_id }) => {

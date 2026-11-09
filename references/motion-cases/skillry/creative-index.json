@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "description": "由创意卡元数据派生；原片拆解不等于新题材迁移已验证。",
-  "catalogue_case_count": 120,
+  "catalogue_case_count": 119,
   "processed_cases": [
     1,
     2,
@@ -74,7 +74,6 @@
     69,
     70,
     71,
-    72,
     73,
     74,
     75,
@@ -124,7 +123,7 @@
     119,
     120
   ],
-  "count": 241,
+  "count": 240,
   "cards": [
     {
       "id": "001-c01",
@@ -4660,30 +4659,6 @@
         41050,
         47717,
         54383
-      ]
-    },
-    {
-      "id": "072-c01",
-      "case_number": 72,
-      "title": "让一个念头扩散成密集拼贴，再收回到呼吸",
-      "summary": "小点与单个念头扩展为旋转文字、人物和重复图案，最后回到安静的圆形画面。",
-      "use_when": "用画面密度变化表现思绪增殖并给出短暂停顿",
-      "card": "cases/gizakdag-239768-original/creative/c01.md",
-      "video": "cases/gizakdag-239768-original/video.mp4",
-      "start_ms": 0,
-      "end_ms": 15061,
-      "clip": "cases/gizakdag-239768-original/video.mp4",
-      "storyboard": "cases/gizakdag-239768-original/storyboards/creative-c01.jpg",
-      "frame_times_ms": [
-        267,
-        1933,
-        3600,
-        5300,
-        6967,
-        8633,
-        10300,
-        11967,
-        13667
       ]
     },
     {

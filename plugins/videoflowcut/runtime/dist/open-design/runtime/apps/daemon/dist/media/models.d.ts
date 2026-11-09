@@ -1,0 +1,33 @@
+export type MediaSurface = 'image' | 'video' | 'audio';
+export type AudioKind = 'music' | 'speech' | 'sfx';
+export type MediaProvider = {
+    id: string;
+    label: string;
+    hint: string;
+    integrated: boolean;
+    defaultBaseUrl?: string;
+    docsUrl?: string;
+    credentialsRequired?: boolean;
+    settingsVisible?: boolean;
+    supportsCustomModel?: boolean;
+    customModelPlaceholder?: string;
+};
+export type MediaModel = {
+    id: string;
+    label: string;
+    hint: string;
+    provider: string;
+    caps: string[];
+    default?: boolean;
+};
+export declare const MEDIA_PROVIDERS: MediaProvider[];
+export declare const IMAGE_MODELS: MediaModel[];
+export declare const VIDEO_MODELS: MediaModel[];
+export declare const AUDIO_MODELS_BY_KIND: Record<AudioKind, MediaModel[]>;
+export declare const MEDIA_ASPECTS: string[];
+export declare const VIDEO_LENGTHS_SEC: number[];
+export declare const AUDIO_DURATIONS_SEC: number[];
+export declare function canonicalMediaModelId(id: string): string;
+export declare function findMediaModel(id: string): MediaModel | null;
+export declare function findProvider(id: string): MediaProvider | null;
+export declare function modelsForSurface(surface: MediaSurface, audioKind?: AudioKind): MediaModel[];

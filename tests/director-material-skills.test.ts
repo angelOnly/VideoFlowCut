@@ -79,3 +79,19 @@ test("默认前期资料不直连历史案例，动画交接仍可到达机制�
   assert.ok(motion.includes('../opendesign-video-production/SKILL.md'));
   assert.ok(links('motion-case-library/SKILL.md').includes('references/validated-index.md'),'用户明确请求的历史分支仍保留');
 });
+
+test("素材和参考参与共同编排，完整指令及画面限制交到制作与返修", () => {
+  const director=read('.agents/skills/production-director/SKILL.md');
+  const creative=read('.agents/skills/creative-sequence-design/SKILL.md');
+  const visual=read('.agents/skills/visual-treatment-planning/SKILL.md');
+  const brief=read('.agents/skills/opendesign-shot-brief/SKILL.md');
+  const production=read('.agents/skills/opendesign-video-production/SKILL.md');
+  assert.match(director,/必须先取得并查看对应素材[\s\S]*创意作者和视觉作者必须看过/u);
+  assert.match(creative,/参考视频、准确时间范围和完整采用意见交给视觉作者/u);
+  assert.match(visual,/禁止在视频画面中添加解释素材来源、案例属性、示意身份/u);
+  assert.match(visual,/裁切或遮挡[\s\S]*检查处理后的实际画面/u);
+  assert.match(brief,/制作简报[\s\S]*参考[\s\S]*素材/u);
+  assert.match(production,/读取完整简报，打开采用的参考视频/u);
+  assert.match(production,/带着采用参考查看本片对应范围/u);
+  assert.match(production,/opendesign_request\.continue_from_run_id/u);
+});

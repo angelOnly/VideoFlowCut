@@ -70,7 +70,7 @@ function createBridgeRunAudit(
       fieldValues: submission.request.fieldValues,
       fileSlots: submission.request.files?.map((file) => ({
         id: file.slot.id,
-        kind: file.slot.kind,
+        kind: file.slot.mediaKind,
         fileName: basename(file.path)
       })) ?? [],
       metadata
@@ -79,14 +79,12 @@ function createBridgeRunAudit(
       status: completed.status,
       error: completed.error,
       outputs: completed.outputs.map((output) => ({
-        outputSlotId: output.outputSlotId,
-        displayName: output.displayName,
-        kind: output.kind,
+            kind: output.kind,
         fileName: output.fileName,
         mime: output.mime,
         outputId: output.outputId,
-        downloadUrl: output.downloadUrl,
-        text: output.text
+          text: output.text,
+      value: output.value
       }))
     } : undefined
   };
@@ -100,14 +98,12 @@ function completeBridgeRunAudit(previous: BridgeRunAudit, completed: BridgeRun):
       status: completed.status,
       error: completed.error,
       outputs: completed.outputs.map((output) => ({
-        outputSlotId: output.outputSlotId,
-        displayName: output.displayName,
-        kind: output.kind,
+            kind: output.kind,
         fileName: output.fileName,
         mime: output.mime,
         outputId: output.outputId,
-        downloadUrl: output.downloadUrl,
-        text: output.text
+          text: output.text,
+      value: output.value
       }))
     }
   };
@@ -204,10 +200,10 @@ export class FunASRService {
     const asset = assetById(state.snapshot, assetId);
     if (!asset.metadata?.hasAudio) throw new DomainError("素材没有音频，不能提交转写", "NO_AUDIO");
     const audioPath = await extractAudioForTranscription(state.snapshot, asset);
-    const submission = await this.bridge.createRunWithSchemaRetry(FUNASR_WORKFLOW_ID, async (detail) => ({
+    const submission = await this.bridge.createRunWithWorkflow(FUNASR_WORKFLOW_ID, async (detail) => ({
       fieldValues: {},
       files: [{ slot: this.bridge.findRequiredSlot(detail, "audio"), path: audioPath, mime: "audio/wav" }]
-    }));
+    }), { beforeSubmit: async (pending) => { await onBridgeRun?.(createBridgeRunAudit(pending)); } });
     const submittedAt = now();
     const audit = createBridgeRunAudit(submission, undefined, submittedAt);
     await onBridgeRun?.(audit);
@@ -355,7 +351,7 @@ function sourceCaptionAlignmentMetadata(payload: SourceCaptionJobPayload): Recor
     sourceCaptionStartFrame: payload.sourceStartFrame,
     sourceCaptionEndFrame: payload.sourceEndFrame,
     ...(payload.speechSource ? { sourceCaptionSpeechAssetId: payload.speechSource.speechAssetId, sourceCaptionScriptRevision: payload.speechSource.scriptRevision } : {}),
-    bridgeQueueMode: "foreground"
+    bridgeQueueMode: "normal"
   };
 }
 
@@ -371,7 +367,7 @@ function sourceCaptionAlignmentAuditMatches(audit: BridgeRunAudit, payload: Sour
     && metadata.sourceCaptionEndFrame === payload.sourceEndFrame
     && metadata.sourceCaptionSpeechAssetId === payload.speechSource?.speechAssetId
     && metadata.sourceCaptionScriptRevision === payload.speechSource?.scriptRevision
-    && metadata.bridgeQueueMode === "foreground");
+    && metadata.bridgeQueueMode === "normal");
 }
 
 function sourceCaptionAlignmentIntentFromUnknown(value: unknown): SourceCaptionAlignmentIntent | undefined {
@@ -379,25 +375,19 @@ function sourceCaptionAlignmentIntentFromUnknown(value: unknown): SourceCaptionA
   return { kind: "source_caption_alignment", createdAt: value.createdAt };
 }
 
-function requireTextOutputSlot(workflow: BridgeWorkflow, outputSlotId: string): void {
-  const matching = workflow.outputs.filter((output) => output.id === outputSlotId);
-  if (matching.length !== 1 || matching[0]?.kind !== "text") {
-    throw new DomainError(
-      `FunASR 原声字幕对齐 Workflow 缺少独立的文本输出槽位 ${outputSlotId}；不会改用任意第一个文本输出。`,
-      "MISSING_SOURCE_CAPTION_ALIGNMENT_OUTPUT_SLOT"
-    );
-  }
-}
-
-function requireTextOutput(run: BridgeRun, outputSlotId: string): string {
-  const matching = run.outputs.filter((output) => output.outputSlotId === outputSlotId);
-  if (matching.length !== 1 || matching[0]?.kind !== "text" || typeof matching[0].text !== "string" || !matching[0].text.trim()) {
-    throw new DomainError(
-      `FunASR 原声字幕对齐完成但缺少 ${outputSlotId} 文本输出；不会改用任意第一个输出。`,
-      "MISSING_SOURCE_CAPTION_ALIGNMENT_OUTPUT"
-    );
-  }
-  return matching[0].text.trim();
+function selectCaptionOutputs(run: BridgeRun): { transcriptText: string; alignmentJson: string } {
+  const texts = run.outputs.flatMap((output) => output.kind === "text" && typeof output.text === "string" ? [output.text.trim()]
+    : output.kind === "json" && output.value !== undefined ? [JSON.stringify(output.value)] : []).filter(Boolean);
+  const aligned = texts.flatMap((text) => {
+    try {
+      const parsed: unknown = JSON.parse(text);
+      return isRecord(parsed) && parsed.version === 4 && parsed.precision === "provider_segment_timed" && typeof parsed.text === "string" ? [{ text, parsed }] : [];
+    } catch { return []; }
+  });
+  if (aligned.length !== 1) throw new DomainError("字幕结果缺少唯一可识别的段级对齐 JSON", "MISSING_SOURCE_CAPTION_ALIGNMENT_OUTPUT");
+  const candidates = texts.filter((text) => text !== aligned[0]!.text && normalizeSourceCaptionComparableText(text) === normalizeSourceCaptionComparableText(aligned[0]!.parsed.text as string));
+  if (candidates.length !== 1) throw new DomainError("字幕结果缺少唯一匹配的全文", "MISSING_SOURCE_CAPTION_ALIGNMENT_OUTPUT");
+  return { transcriptText: candidates[0]!, alignmentJson: aligned[0]!.text };
 }
 
 function normalizeSourceCaptionComparableText(value: string): string {
@@ -589,32 +579,10 @@ export class SourceCaptionAlignmentService {
     return path;
   }
 
-  private async submitRun(audioPath: string, beforeSubmit: () => void, onSchemaRejected: () => void): Promise<BridgeRunSubmission> {
-    let workflow = await this.bridge.getWorkflow(FUNASR_SOURCE_CAPTION_WORKFLOW_ID);
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      requireTextOutputSlot(workflow, "transcript-text");
-      requireTextOutputSlot(workflow, "caption-alignment-json");
-      const request = {
-        fieldValues: {},
-        queueMode: "foreground" as const,
-        files: [{ slot: this.bridge.findRequiredSlot(workflow, "audio"), path: audioPath, mime: "audio/wav" }]
-      };
-      beforeSubmit();
-      try {
-        const run = await this.bridge.createRun({ workflow, ...request });
-        return { workflow, run, request, schemaRetryCount: attempt };
-      } catch (error) {
-        // 409 表示服务明确拒绝旧 Schema，因此可清除 Intent 后重读一次动态 Schema；
-        // 网络中断则保留 Intent，避免将可能已创建的 Run 当作不存在。
-        if (error instanceof BridgeError && error.status === 409 && attempt === 0) {
-          onSchemaRejected();
-          workflow = await this.bridge.getWorkflow(FUNASR_SOURCE_CAPTION_WORKFLOW_ID);
-          continue;
-        }
-        throw error;
-      }
-    }
-    throw new DomainError("无法使用当前 FunASR Workflow 提交原声段级字幕对齐", "SOURCE_CAPTION_ALIGNMENT_SUBMISSION_FAILED");
+  private async submitRun(audioPath: string, beforeSubmit: (pending: BridgeRunSubmission) => void): Promise<BridgeRunSubmission> {
+    return this.bridge.createRunWithWorkflow(FUNASR_SOURCE_CAPTION_WORKFLOW_ID, async (workflow) => ({
+      fieldValues: {}, files: [{ slot: this.bridge.findRequiredSlot(workflow, "audio"), path: audioPath, mime: "audio/wav" }]
+    }), { beforeSubmit });
   }
 
   async align(job: JobRecord): Promise<Record<string, unknown>> {
@@ -644,7 +612,6 @@ export class SourceCaptionAlignmentService {
         break;
       }
       if (!audit) {
-        await this.bridge.requireQueueMode("foreground");
         const audioPath = await this.extractArollAudio(job, payload);
         this.application.recordJobCheckpoint(job.id, { sourceCaptionAlignmentInput: {
           relativePath: `cache/source-caption-alignment/${safeOutputName(job.id)}/${basename(audioPath)}`,
@@ -652,17 +619,12 @@ export class SourceCaptionAlignmentService {
         } });
         let externalSubmissionPending = false;
         try {
-          const submission = await this.submitRun(
-            audioPath,
-            () => {
-              this.saveIntent(job.id);
-              externalSubmissionPending = true;
-            },
-            () => {
-              this.clearIntent(job.id);
-              externalSubmissionPending = false;
-            }
-          );
+          const submission = await this.submitRun(audioPath, (pending) => {
+            this.saveIntent(job.id);
+            audit = createBridgeRunAudit(pending, undefined, now(), sourceCaptionAlignmentMetadata(payload));
+            this.application.recordBridgeRun(job.id, audit);
+            externalSubmissionPending = true;
+          });
           audit = createBridgeRunAudit(submission, undefined, now(), sourceCaptionAlignmentMetadata(payload));
           this.application.recordBridgeRun(job.id, audit);
           this.clearIntent(job.id);
@@ -691,10 +653,10 @@ export class SourceCaptionAlignmentService {
         }
         const completedAudit = completeBridgeRunAudit(audit, completed);
         this.application.recordBridgeRun(job.id, completedAudit);
-        const alignmentJson = requireTextOutput(completed, "caption-alignment-json");
+        const { transcriptText, alignmentJson } = selectCaptionOutputs(completed);
         let parsed: SourceCaptionAlignmentResult | undefined;
         try { parsed = parseSourceCaptionAlignmentOutput(alignmentJson); } catch { /* 先保存原始返回，再由正式解析报告错误。 */ }
-        savedResult = { runId: completed.id, transcriptText: requireTextOutput(completed, "transcript-text"), alignmentJson, audit: completedAudit, sourceFileHash: payload.sourceFileHash!,
+        savedResult = { runId: completed.id, transcriptText, alignmentJson, audit: completedAudit, sourceFileHash: payload.sourceFileHash!,
           inputRange: { sourceStartFrame: payload.sourceStartFrame, sourceEndFrame: payload.sourceEndFrame, timelineStartFrame: payload.timelineStartFrame, timelineEndFrame: payload.timelineEndFrame }, ...(parsed ? { alignment: parsed } : {}) };
         // 文件先原子落地，再保存检查点；工程冲突不会丢失 Provider 原始结果。
         await mkdir(cacheDirectory, { recursive: true });
@@ -907,22 +869,23 @@ export class OmniVoiceSegmentService {
         generatedAssets.push(checkpoint.asset); generatedSegmentAssets.push(checkpoint.segmentAsset); replacement.set(segment.id, checkpoint.segmentAsset);
         continue;
       }
-      if (checkpoint?.status === "submitting") throw new DomainError("配音提交结果未知，先核对原请求，不重复生成", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
+      if (checkpoint?.status === "submitting" && !checkpoint.audit) throw new DomainError("配音提交结果未知，先核对原请求，不重复生成", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
       if (checkpoint?.status === "failed") {
         if (!job.payload.retryOfJobId || checkpoint.attemptJobId === job.id) throw new DomainError("该段已明确失败，需显式恢复", "SPEECH_SEGMENT_FAILED");
         checkpoint = undefined;
       }
       if (!checkpoint?.audit) {
         try {
-          const submission = await this.bridge.createRunWithSchemaRetry(referencePath ? OMNIVOICE_WORKFLOW_ID : "omnivoice-default-reference-v1", async (detail) => {
+          const submission = await this.bridge.createRunWithWorkflow(referencePath ? OMNIVOICE_WORKFLOW_ID : "omnivoice-default-reference-v1", async (detail) => {
             cancelled();
             const textField = this.bridge.findTextField(detail);
-            if (!referencePath && detail.itemSlots.some((slot) => slot.required)) throw new DomainError("服务端默认音色工作流仍要求上传文件，请修复默认音色配置", "VOICE_DEFAULT_NOT_CONFIGURED");
+            if (!referencePath && detail.itemSlots.some((slot) => slot.min > 0)) throw new DomainError("服务端默认音色工作流仍要求上传文件，请修复默认音色配置", "VOICE_DEFAULT_NOT_CONFIGURED");
             const request = { fieldValues: { [textField.id]: segment.text }, files: referencePath ? [{ slot: this.bridge.findRequiredSlot(detail, "audio"), path: referencePath, mime: "audio/wav" }] : [] };
-            checkpoint = { status: "submitting", attemptJobId: job.id };
-            save(segment.id, checkpoint);
             return request;
-          }, { onSchemaRejected: () => { checkpoint = { status: "failed", attemptJobId: job.id }; save(segment.id, checkpoint); } });
+          }, { beforeSubmit: (pending) => {
+            checkpoint = { status: "submitting", attemptJobId: job.id, audit: createBridgeRunAudit(pending) };
+            save(segment.id, checkpoint);
+          } });
           checkpoint = { status: "running", attemptJobId: job.id, audit: createBridgeRunAudit(submission) };
           save(segment.id, checkpoint);
         } catch (error) {
@@ -941,13 +904,14 @@ export class OmniVoiceSegmentService {
         if (error instanceof BridgeError && ["BRIDGE_RUN_FAILED", "BRIDGE_RUN_CANCELLED"].includes(error.code ?? "")) save(segment.id, { ...checkpoint, status: "failed" });
         throw error;
       }
-      const output = completed.outputs.find((candidate) => candidate.kind === "audio" && candidate.downloadUrl);
-      if (!output?.downloadUrl) throw new DomainError("OmniVoice 已完成，但没有音频输出", "MISSING_SPEECH_OUTPUT");
+      const audioOutputs = completed.outputs.filter((candidate) => candidate.kind === "audio" && candidate.outputId);
+      if (audioOutputs.length !== 1) throw new DomainError("OmniVoice 已完成，但没有唯一可下载的音频输出", "MISSING_SPEECH_OUTPUT");
+      const output = audioOutputs[0]!;
       const extension = extname(output.fileName ?? "") || ".flac";
       const relativePath = join("assets", "speech", job.id, `${segment.id}-${safeOutputName(basename(output.fileName ?? "voice")) || "voice"}${extension === ".flac" && (output.fileName ?? "").endsWith(".flac") ? "" : ""}`);
       const targetPath = join(initial.snapshot.project.rootPath, relativePath);
       await mkdir(join(initial.snapshot.project.rootPath, "assets", "speech", job.id), { recursive: true });
-      await this.bridge.downloadOutput(output, targetPath);
+      await this.bridge.downloadOutput(completed.id, output, targetPath);
       await assertFileReadable(targetPath);
       const metadata = await probeMedia(targetPath);
       if (metadata.durationMs <= 0 || !metadata.hasAudio) throw new DomainError("下载的 OmniVoice 输出不可读或为空", "INVALID_SPEECH_OUTPUT");

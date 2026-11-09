@@ -1,0 +1,514 @@
+import { MEDIA_STOCK_BATCH_LIMITS } from '@open-design/contracts/analytics';
+// Daemon-side PostHog capture. Mirrors apps/daemon/src/langfuse-trace.ts in
+// its env-gating discipline: without POSTHOG_KEY in the env every entry point
+// is a no-op, so dev builds and third-party forks impose zero overhead.
+//
+// Web-side captures (apps/web/src/analytics) carry the matching identity in
+// HTTP headers (see x-od-analytics-* constants in @open-design/contracts);
+// daemon reads those headers off the request and reuses the same
+// device_id as the PostHog distinct_id so events from both sides land on
+// the same person. (v2: renamed from `anonymous_id`.)
+import crypto from 'node:crypto';
+import os from 'node:os';
+import { PostHog } from 'posthog-node';
+import { ANALYTICS_HEADER_DEVICE_ID, ANALYTICS_HEADER_CLIENT_TYPE, ANALYTICS_HEADER_ATTRIBUTION_QUALITY, ANALYTICS_HEADER_DISTRIBUTION_MECHANISM, ANALYTICS_HEADER_ENTRY_SURFACE, ANALYTICS_HEADER_EXTERNAL_PLUGIN_ID, ANALYTICS_HEADER_EXTERNAL_PLUGIN_VERSION, ANALYTICS_HEADER_HOST_PRODUCT, ANALYTICS_HEADER_LOCALE, ANALYTICS_HEADER_MCP_SESSION_ID, ANALYTICS_HEADER_PUBLISHER_CLASS, ANALYTICS_HEADER_REQUEST_ID, ANALYTICS_HEADER_SESSION_ID, anonymizeArtifactId as anonymizeArtifactIdShared, EVENT_SCHEMA_VERSION, buildClientTelemetryParams, isClientMetricEventName, parseClientMetricEvent, isProcessExitEventName, processExitMetricFields, } from '@open-design/contracts/analytics';
+import { readAppConfig } from './app-config.js';
+import { readTelemetryEnvironment } from './telemetry-environment.js';
+import { inferReleaseChannelFromVersion, normalizeTelemetryAppVersion, readCurrentAppVersionInfo, resolveAppVersionInfo } from './app-version.js';
+const DEFAULT_HOST = 'https://us.i.posthog.com';
+// The daemon runs on the user's own machine, so `process.platform` IS the
+// user's OS. posthog-node — unlike posthog-js, which parses `$os` from the
+// User-Agent — does NOT auto-enrich device properties, so every
+// daemon-emitted event (all `result` / backend events: run_created,
+// run_finished, project_create_result, file_upload_result, …) would land in
+// the null/unknown bucket on any OS breakdown. Stamp the canonical PostHog
+// `$os` values here so daemon events merge into the same OS segmentation as
+// the web client's posthog-js events instead of fragmenting the dashboard.
+const DAEMON_OS_NAME = process.platform === 'darwin'
+    ? 'Mac OS X'
+    : process.platform === 'win32'
+        ? 'Windows'
+        : process.platform === 'linux'
+            ? 'Linux'
+            : process.platform;
+const DAEMON_OS_VERSION = os.release();
+// Read context from an incoming request. Returns null when the web client did
+// not include analytics headers (likely because analytics is disabled on the
+// web side too). Daemon-internal capture sites (e.g. background sweeps with
+// no request) should not invoke this path.
+export function readAnalyticsContext(req) {
+    const deviceId = headerString(req, ANALYTICS_HEADER_DEVICE_ID);
+    if (!deviceId)
+        return null;
+    const sessionId = headerString(req, ANALYTICS_HEADER_SESSION_ID) ?? deviceId;
+    const clientHeader = headerString(req, ANALYTICS_HEADER_CLIENT_TYPE);
+    const clientType = clientHeader === 'desktop'
+        ? 'desktop'
+        : clientHeader === 'external_mcp'
+            ? 'external_mcp'
+            : 'web';
+    const locale = headerString(req, ANALYTICS_HEADER_LOCALE) ?? 'en';
+    const requestId = headerString(req, ANALYTICS_HEADER_REQUEST_ID);
+    const entrySurface = boundedHeader(req, ANALYTICS_HEADER_ENTRY_SURFACE, ['open_design_ui', 'od_cli', 'external_mcp']);
+    const hostProduct = boundedHeader(req, ANALYTICS_HEADER_HOST_PRODUCT, ['codex_desktop', 'codex_cli', 'codex_unknown', 'claude_code', 'unknown']);
+    const distributionMechanism = boundedHeader(req, ANALYTICS_HEADER_DISTRIBUTION_MECHANISM, ['git_marketplace', 'local_repo', 'manual', 'unknown']);
+    const publisherClass = boundedHeader(req, ANALYTICS_HEADER_PUBLISHER_CLASS, ['open_design_first_party', 'third_party', 'unknown']);
+    const attributionQuality = boundedHeader(req, ANALYTICS_HEADER_ATTRIBUTION_QUALITY, ['self_reported', 'session_correlated']);
+    const externalPluginId = boundedFreeTextHeader(req, ANALYTICS_HEADER_EXTERNAL_PLUGIN_ID);
+    const externalPluginVersion = boundedFreeTextHeader(req, ANALYTICS_HEADER_EXTERNAL_PLUGIN_VERSION);
+    const mcpSessionId = boundedFreeTextHeader(req, ANALYTICS_HEADER_MCP_SESSION_ID);
+    return {
+        deviceId,
+        sessionId,
+        clientType,
+        locale,
+        requestId,
+        ...(entrySurface ? { entrySurface } : {}),
+        ...(hostProduct ? { hostProduct } : {}),
+        ...(externalPluginId ? { externalPluginId } : {}),
+        ...(externalPluginVersion ? { externalPluginVersion } : {}),
+        ...(distributionMechanism ? { distributionMechanism } : {}),
+        ...(publisherClass ? { publisherClass } : {}),
+        ...(attributionQuality ? { attributionQuality } : {}),
+        ...(mcpSessionId ? { mcpSessionId } : {}),
+    };
+}
+function headerString(req, name) {
+    const raw = req.headers[name];
+    if (Array.isArray(raw))
+        return raw[0]?.trim() || null;
+    if (typeof raw === 'string')
+        return raw.trim() || null;
+    return null;
+}
+function boundedHeader(req, name, values) {
+    const value = headerString(req, name);
+    return value && values.includes(value) ? value : undefined;
+}
+function boundedFreeTextHeader(req, name) {
+    const value = headerString(req, name);
+    if (!value || value.length > 128 || !/^[A-Za-z0-9._:@/-]+$/u.test(value)) {
+        return undefined;
+    }
+    return value;
+}
+export function readPosthogConfig(env = process.env, packagedRuntime) {
+    const key = env.POSTHOG_KEY?.trim();
+    if (!key)
+        return null;
+    const host = (env.POSTHOG_HOST?.trim() || DEFAULT_HOST).replace(/\/+$/, '');
+    return { key, host, env: readTelemetryEnvironment(env, packagedRuntime) };
+}
+/** One consented, bounded HTTP batch. A 2xx receipt is not indexing proof. */
+export async function captureStockAnalyticsBatch(args) {
+    const cfg = readPosthogConfig(args.env);
+    if (!cfg)
+        return 'retry';
+    if (!args.events.length)
+        return 'disabled';
+    if (args.events.length > MEDIA_STOCK_BATCH_LIMITS.events)
+        return 'retry';
+    try {
+        const appCfg = await readAppConfig(args.dataDir);
+        if (appCfg.telemetry?.metrics !== true)
+            return 'disabled';
+        // Explicit null means collection had no identity; never reassign it on retry.
+        const distinctId = args.context === null ? null : args.context?.deviceId ?? appCfg.installationId;
+        if (!distinctId)
+            return 'retry';
+        const batch = args.events.map(({ id, event, timestamp, properties }) => ({
+            event, timestamp,
+            properties: {
+                ...properties,
+                distinct_id: distinctId,
+                $insert_id: id, event_id: id, event_schema_version: EVENT_SCHEMA_VERSION,
+                env: cfg.env, app_version: args.appVersion, ui_version: args.appVersion,
+                session_id: args.context?.sessionId ?? args.sessionId,
+                device_id: distinctId, capture_source: 'daemon/stock-search',
+                ...(args.context ? { client_type: args.context.clientType, locale: args.context.locale } : {}),
+                $os: DAEMON_OS_NAME, $os_version: DAEMON_OS_VERSION,
+            },
+        }));
+        const body = JSON.stringify({ token: cfg.key, batch });
+        if (Buffer.byteLength(body) > MEDIA_STOCK_BATCH_LIMITS.bytes)
+            return 'retry';
+        const response = await (args.fetch ?? fetch)(`${cfg.host}/batch/`, {
+            method: 'POST', headers: { 'content-type': 'application/json' }, body,
+            signal: args.signal ? AbortSignal.any([args.signal, AbortSignal.timeout(10_000)]) : AbortSignal.timeout(10_000),
+        });
+        if (!response.ok)
+            return 'retry';
+        const receipt = await response.json();
+        const limited = receipt.quota_limited;
+        return limited && (Array.isArray(limited) ? limited.length > 0 : Object.keys(Object(limited)).length > 0)
+            ? 'retry' : 'uploaded';
+    }
+    catch {
+        return 'retry';
+    }
+}
+// Baseline wire response for GET /api/analytics/config — checks only the
+// env-var gate. The route handler in server.ts further narrows this with
+// the user's telemetry.metrics consent before sending it to the client.
+export function readPublicConfigResponse(env = process.env, packagedRuntime) {
+    const cfg = readPosthogConfig(env, packagedRuntime);
+    const telemetryEnv = cfg?.env ?? readTelemetryEnvironment(env, packagedRuntime);
+    if (!cfg)
+        return { enabled: false, env: telemetryEnv, key: null, host: null };
+    return { enabled: true, env: cfg.env, key: cfg.key, host: cfg.host };
+}
+export function normalizeAnalyticsCaptureResult(value) {
+    if (value && typeof value === 'object') {
+        const candidate = value;
+        if ((candidate.status === 'queued'
+            || candidate.status === 'not_expected'
+            || candidate.status === 'failed')
+            && (candidate.acknowledgement === 'local_buffer'
+                || candidate.acknowledgement === 'none')) {
+            return {
+                status: candidate.status,
+                acknowledgement: candidate.acknowledgement,
+                errorType: candidate.errorType ?? null,
+            };
+        }
+    }
+    // Compatibility for injected/legacy capture implementations. A returned
+    // call proves only local queue admission, never remote PostHog ingestion.
+    return {
+        status: 'queued',
+        acknowledgement: 'local_buffer',
+        errorType: null,
+    };
+}
+const NOOP_SERVICE = {
+    capture: async () => ({
+        status: 'not_expected',
+        acknowledgement: 'none',
+        errorType: 'not_configured',
+    }),
+    captureSafety: async () => undefined,
+    mergeAnonymousPerson: async () => undefined,
+    identifyGroup: async () => undefined,
+    shutdown: async () => undefined,
+};
+// PostHog node client is created lazily so that import-time of this module
+// stays free in keyless dev/test environments. Returns the no-op service
+// when POSTHOG_KEY is unset.
+//
+// `dataDir` is required so capture can re-read app-config and gate on the
+// user's telemetry.metrics consent. This is defense in depth against PR
+// #1428 reviewer (codex-connector, lefarcen): even if a stale fetch wrapper
+// somehow attaches x-od-analytics-* headers to a request after the user
+// opted out, the daemon will still drop the capture.
+export function createAnalyticsService(args) {
+    const env = args.env ?? process.env;
+    const packagedRuntime = args.packagedRuntime;
+    const cfg = readPosthogConfig(env, packagedRuntime);
+    if (!cfg)
+        return NOOP_SERVICE;
+    // flushAt: 1 keeps the daemon-emit-then-respond pattern simple at the cost
+    // of one network round-trip per event; flushInterval: 1000 still batches
+    // bursts so a streaming run doesn't fire one HTTP per event.
+    //
+    // disableGeoip: false REVERSES posthog-node's default (true). The library
+    // assumes a server deployment where the ingestion request originates from a
+    // datacenter IP, so GeoIP would mis-attribute every user to the server's
+    // location — hence it stamps `$geoip_disable: true` and PostHog skips
+    // country enrichment. OpenDesign's daemon runs on the USER'S OWN machine,
+    // so the request's source IP is the user's real public IP, identical to what
+    // posthog-js already sends. Leaving the default on stripped country from
+    // every daemon-emitted event (run_created, run_finished, *_result, …) —
+    // they all landed in the null bucket on any country breakdown while web
+    // events were 100% enriched. Same reason we hand-stamp `$os` below:
+    // posthog-node does not auto-enrich what posthog-js gets for free.
+    const client = new PostHog(cfg.key, {
+        host: cfg.host,
+        flushAt: 1,
+        flushInterval: 1000,
+        disableGeoip: false,
+    });
+    // Suppress posthog-node's own internal error spam — analytics failures
+    // must never look like product errors. The library exposes `on('error')`.
+    client.on?.('error', () => undefined);
+    const sharedProperties = async (properties, appVersion, eventId, deviceId, clientType, sessionId, captureSource, preserveUnknownAppVersion = false) => {
+        // Normalize placeholders only for telemetry; the public version API keeps
+        // its existing resolution and packaged-runtime classification.
+        const versionEnv = { ...env, OD_APP_VERSION: normalizeTelemetryAppVersion(env.OD_APP_VERSION) ?? undefined };
+        const current = normalizeTelemetryAppVersion(appVersion)
+            ? resolveAppVersionInfo({ env: versionEnv, packageMetadata: { version: appVersion } })
+            : await readCurrentAppVersionInfo({ env: versionEnv });
+        // Without an explicit or version-inferred channel, classify by this
+        // service's packaged flag rather than execPath heuristics.
+        const channel = !env.OD_RELEASE_CHANNEL?.trim() && !env.OD_APP_CHANNEL?.trim()
+            && inferReleaseChannelFromVersion(current.version) === null
+            ? (normalizeTelemetryAppVersion(env.OD_APP_VERSION) || packagedRuntime ? 'stable' : 'development')
+            : current.channel;
+        return buildClientTelemetryParams(properties, {
+            eventId, deviceId, appSessionId: sessionId, appVersion: current.version,
+            ...(preserveUnknownAppVersion ? {} : { channel }), preserveUnknownAppVersion, clientType, captureSource, env: cfg.env,
+            platform: process.platform,
+            // os.release() is a kernel release on macOS/Linux, not the product OS
+            // version. Preserve the legacy $os_version below, but leave the new
+            // dimension unknown until a producer supplies the actual product version.
+            osVersion: process.platform === 'win32' ? DAEMON_OS_VERSION : null,
+            arch: process.arch,
+            reportedAt: new Date().toISOString(),
+        });
+    };
+    return {
+        capture: async ({ eventName, context, appVersion, properties, insertId }) => {
+            // Defense-in-depth consent re-check. The route handler already gates
+            // on header presence, but a future header leak or a Settings toggle
+            // mid-request would still let events through without this. Reading
+            // app-config.json adds one small file read per event; the daemon is
+            // not on a hot critical path here.
+            let appCfg;
+            try {
+                appCfg = await readAppConfig(args.dataDir);
+            }
+            catch {
+                return {
+                    status: 'failed',
+                    acknowledgement: 'none',
+                    errorType: 'config_read_failed',
+                };
+            }
+            if (appCfg.telemetry?.metrics !== true) {
+                return {
+                    status: 'not_expected',
+                    acknowledgement: 'none',
+                    errorType: 'metrics_consent_disabled',
+                };
+            }
+            try {
+                const common = await sharedProperties({
+                    ...properties, event_id: insertId, device_id: context.deviceId,
+                    client_type: context.clientType,
+                }, appVersion, insertId, context.deviceId, context.clientType, context.sessionId === context.deviceId ? null : context.sessionId, 'daemon/analytics');
+                const metric = isClientMetricEventName(eventName)
+                    ? parseClientMetricEvent(eventName, { ...properties, ...common }) : null;
+                if (isClientMetricEventName(eventName) && !metric) {
+                    return { status: 'failed', acknowledgement: 'none', errorType: 'enqueue_failed' };
+                }
+                client.capture({
+                    distinctId: context.deviceId,
+                    event: eventName,
+                    properties: metric ? { ...metric, $insert_id: common.event_id } : {
+                        ...properties,
+                        ui_version: common.app_version,
+                        session_id: context.sessionId,
+                        ...(context.entrySurface
+                            ? { entry_surface: context.entrySurface }
+                            : {}),
+                        ...(context.hostProduct
+                            ? { host_product: context.hostProduct }
+                            : {}),
+                        ...(context.externalPluginId
+                            ? { external_plugin_id: context.externalPluginId }
+                            : {}),
+                        ...(context.externalPluginVersion
+                            ? { external_plugin_version: context.externalPluginVersion }
+                            : {}),
+                        ...(context.distributionMechanism
+                            ? { distribution_mechanism: context.distributionMechanism }
+                            : {}),
+                        ...(context.publisherClass
+                            ? { publisher_class: context.publisherClass }
+                            : {}),
+                        ...(context.attributionQuality
+                            ? { attribution_quality: context.attributionQuality }
+                            : {}),
+                        ...(context.mcpSessionId
+                            ? { mcp_session_id: context.mcpSessionId }
+                            : {}),
+                        locale: context.locale,
+                        // Canonical PostHog OS props so backend events join the same
+                        // OS breakdown as posthog-js (which the daemon can't auto-fill).
+                        $os: DAEMON_OS_NAME,
+                        $os_version: DAEMON_OS_VERSION,
+                        ...(context.requestId ? { request_id: context.requestId } : {}),
+                        // $insert_id is PostHog's dedup key — passing the same id
+                        // from web and daemon prevents the mirrored result event
+                        // from being counted twice.
+                        ...common,
+                        $insert_id: common.event_id,
+                    },
+                });
+                // posthog-node exposes local queueing here, not a per-event remote
+                // ingestion acknowledgement. Keep that boundary explicit.
+                return {
+                    status: 'queued',
+                    acknowledgement: 'local_buffer',
+                    errorType: null,
+                };
+            }
+            catch {
+                // Swallowed by design; capture failures must never affect the Run.
+                return {
+                    status: 'failed',
+                    acknowledgement: 'none',
+                    errorType: 'enqueue_failed',
+                };
+            }
+        },
+        captureSafety: async ({ eventName, distinctId, appVersion, properties, insertId }) => {
+            // No consent re-check here: all stability events use the safety channel.
+            // We still fall back gracefully when the installationId is missing
+            // (cold start before the daemon has stamped one in app-config) by
+            // synthesizing an anonymous distinct id rooted at the process boot.
+            //
+            // Returns a Promise that resolves AFTER `client.capture()` has run.
+            // The fatal-shutdown path in server.ts awaits this before invoking
+            // `shutdown()` so the event is guaranteed to be in posthog-node's
+            // local queue when the flush starts — otherwise a fast `shutdown()`
+            // would drain an empty queue and the crash signal would be lost.
+            // See codex review on PR #2527 (Siri-Ray) for the original race.
+            const resolvedInsertId = insertId ?? randomInsertId();
+            try {
+                const resolvedDistinctId = distinctId && distinctId.length > 0
+                    ? distinctId
+                    : await readInstallationIdSafe(args.dataDir);
+                const backfill = eventName === 'desktop_unclean_exit' || eventName === 'daemon_unclean_exit';
+                const source = backfill ? { ...properties, app_version: processExitMetricFields(eventName, properties).previous_app_version,
+                    app_session_id: properties.app_session_id ?? properties.previous_session_id ?? null } : properties;
+                const common = await sharedProperties(source, appVersion, resolvedInsertId, resolvedDistinctId, 'daemon', null, 'daemon/safety', backfill);
+                const metric = isClientMetricEventName(eventName)
+                    ? parseClientMetricEvent(eventName, { ...properties, ...common }) : null;
+                if (isClientMetricEventName(eventName) && !metric)
+                    return;
+                client.capture({
+                    distinctId: common.device_id ?? resolvedDistinctId,
+                    event: eventName,
+                    properties: metric ? { ...metric, $insert_id: common.event_id } : {
+                        ...properties,
+                        ui_version: common.app_version,
+                        $os: DAEMON_OS_NAME,
+                        $os_version: DAEMON_OS_VERSION,
+                        ...common,
+                        $insert_id: common.event_id,
+                    },
+                });
+                if (isProcessExitEventName(eventName)) {
+                    const exitId = `${common.event_id}:exit`;
+                    const exit = parseClientMetricEvent('client_process_exit', {
+                        ...common, ...processExitMetricFields(eventName, properties), event_id: exitId,
+                        device_id: common.device_id === SYNTHETIC_DISTINCT_ID ? null : common.device_id,
+                    });
+                    if (exit)
+                        client.capture({ distinctId: common.device_id ?? resolvedDistinctId, event: 'client_process_exit',
+                            properties: { ...exit, $insert_id: exitId } });
+                }
+            }
+            catch {
+                // Capture failures must never propagate. The whole point of this
+                // path is best-effort observability into a degraded state.
+            }
+        },
+        mergeAnonymousPerson: async ({ anonymousDistinctId, distinctId, properties, insertId }) => {
+            try {
+                const appCfg = await readAppConfig(args.dataDir);
+                if (appCfg.telemetry?.metrics !== true)
+                    return;
+                if (!anonymousDistinctId || !distinctId || anonymousDistinctId === distinctId)
+                    return;
+                const setProperties = cleanPosthogPersonProperties(properties ?? {});
+                client.capture({
+                    distinctId,
+                    event: '$identify',
+                    properties: {
+                        distinct_id: distinctId,
+                        $anon_distinct_id: anonymousDistinctId,
+                        ...(Object.keys(setProperties).length > 0 ? { $set: setProperties } : {}),
+                        event_schema_version: EVENT_SCHEMA_VERSION,
+                        env: cfg.env,
+                        $insert_id: insertId ?? `identify-${crypto.randomUUID()}`,
+                    },
+                });
+            }
+            catch {
+                // Attribution merge failures must not block app startup or consent.
+            }
+        },
+        identifyGroup: async ({ context, groupType, groupKey, properties }) => {
+            try {
+                const appCfg = await readAppConfig(args.dataDir);
+                if (appCfg.telemetry?.metrics !== true)
+                    return;
+                const cleanProperties = cleanPosthogPersonProperties(properties);
+                if (!groupKey || Object.keys(cleanProperties).length === 0)
+                    return;
+                client.groupIdentify({
+                    groupType,
+                    groupKey,
+                    distinctId: context.deviceId,
+                    properties: cleanProperties,
+                });
+            }
+            catch {
+                // Group updates are best-effort and must never affect product reads.
+            }
+        },
+        shutdown: async () => {
+            try {
+                await client.shutdown();
+            }
+            catch {
+                // best-effort flush on shutdown.
+            }
+        },
+    };
+}
+function cleanPosthogPersonProperties(properties) {
+    const out = {};
+    for (const [key, value] of Object.entries(properties)) {
+        if (!key || key === '__proto__' || key === 'constructor')
+            continue;
+        if (value == null)
+            continue;
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (!trimmed || trimmed.toLowerCase() === 'unknown')
+                continue;
+            out[key] = trimmed;
+            continue;
+        }
+        if (Array.isArray(value)) {
+            const cleaned = value
+                .filter((item) => typeof item === 'string')
+                .map((item) => item.trim())
+                .filter((item) => item.length > 0 && item.toLowerCase() !== 'unknown');
+            if (cleaned.length > 0)
+                out[key] = cleaned;
+            continue;
+        }
+        if (typeof value === 'number' || typeof value === 'boolean')
+            out[key] = value;
+    }
+    return out;
+}
+const SYNTHETIC_DISTINCT_ID = `daemon-anon-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+async function readInstallationIdSafe(dataDir) {
+    try {
+        const cfg = await readAppConfig(dataDir);
+        if (typeof cfg.installationId === 'string' && cfg.installationId.length > 0) {
+            return cfg.installationId;
+        }
+    }
+    catch {
+        // fall through to synthetic id
+    }
+    return SYNTHETIC_DISTINCT_ID;
+}
+function randomInsertId() {
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+// Re-export so server.ts and route handlers don't need a second import
+// path; the canonical hash lives in @open-design/contracts/analytics so
+// the web bundle produces the same id for the same (projectId, fileName).
+export const anonymizeArtifactId = anonymizeArtifactIdShared;
+// Generate a fresh insert_id when the request didn't carry one. Used for
+// daemon-internal events where there is no matching web emission.
+export function newInsertId() {
+    return crypto.randomUUID();
+}
+//# sourceMappingURL=analytics.js.map

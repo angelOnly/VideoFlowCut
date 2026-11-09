@@ -131,7 +131,6 @@ export function queryMechanisms(index,options={},semantic={}){
     scored.sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
   }
   const offset=options.offset??0,limit=options.limit??12;
-  if(offset>scored.length)throw new Error('分页超出结果范围，请重新查询');
   const cards=scored.slice(offset,offset+limit),next=offset+cards.length;
   return {...base,total:scored.length,offset,next_offset:next<scored.length?next:null,exhausted:next>=scored.length,
     warnings:intent.warnings,cards,comparison:`compare.html?${encodeSelection({v:1,source_sha256:index.source_sha256,ids:cards.slice(0,40).map(m=>m.id),adopted:[]})}`};

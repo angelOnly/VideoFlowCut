@@ -1,0 +1,1 @@
+{"version":3,"file":"community.d.ts","sourceRoot":"","sources":["../../src/api/community.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,iCAAiC;IAChD,UAAU,EAAE,MAAM,CAAC;IACnB,SAAS,EAAE,MAAM,CAAC;IAClB,WAAW,EAAE,MAAM,CAAC;IACpB,WAAW,EAAE,MAAM,CAAC;IACpB,SAAS,EAAE,MAAM,CAAC;IAClB,KAAK,EAAE,OAAO,CAAC;CAChB"}

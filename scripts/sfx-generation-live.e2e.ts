@@ -14,8 +14,8 @@ if (values.help) {
   const url = new URL(values["bridge-url"]);
   const current = new URL(readRuntimeConfig().bridge.apiBaseUrl);
   if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash
-    || url.port === "8188" || url.origin === current.origin || url.pathname.replace(/\/$/u, "") !== "/comfyui-bridge/v1") {
-    throw new Error("需要独立 ComfyUI 实例的 /comfyui-bridge/v1 地址；拒绝当前配置服务和生产 8188 端口");
+    || url.port === "8188" || url.origin === current.origin || url.pathname.replace(/\/$/u, "") !== "/comfyui-bridge/v2") {
+    throw new Error("需要独立 ComfyUI 实例的 /comfyui-bridge/v2 地址；拒绝当前配置服务和生产 8188 端口");
   }
   const root = resolve(values["workspace-root"]);
   await mkdir(root); // 已存在即拒绝，避免覆盖或混入生产数据库。

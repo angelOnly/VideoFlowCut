@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { pluginRootFromModule, releaseNodePath, resolveReleaseRuntime, resolveRepoRoot, resolveWorkspaceRoot } from "./repo-root.mjs";
 import { recoverMcpDeployment, withRuntimeOperationLock } from "./runtime-launcher.mjs";
 import { createReloadingMcpSession } from "./mcp-session.mjs";
+import { readOpenDesignStatus } from "./open-design-release.mjs";
 
 const pluginRoot = pluginRootFromModule(import.meta.url);
 const launcherCodeHash = createHash("sha256").update(["mcp-launcher.mjs", "mcp-session.mjs", "runtime-launcher.mjs"]
@@ -70,9 +71,10 @@ try {
     const result = await session.callTool(request.params, { signal: extra.signal, timeout: 180_000 });
     if (request.params.name !== "read_runtime_release" || result.isError) return result;
     // 内层 MCP 可热切，外壳代码不会自动重载；部署核验必须能区分这两个版本。
+    const openDesign = await readOpenDesignStatus(repoRoot, workspaceRoot, activeDeployment?.releaseId ?? initialRelease.releaseId);
     return { ...result, content: result.content.map((item) => {
       if (item.type !== "text") return item;
-      return { ...item, text: JSON.stringify({ ...JSON.parse(item.text), launcherReleaseId: initialRelease.releaseId, launcherCodeHash, launcherPid: process.pid }) };
+      return { ...item, text: JSON.stringify({ ...JSON.parse(item.text), launcherReleaseId: initialRelease.releaseId, launcherCodeHash, launcherPid: process.pid, openDesign }) };
     }) };
   });
   // 先建立宿主协议连接；业务 Runtime 暂不可用不应永久毒化宿主的 MCP 启动状态。

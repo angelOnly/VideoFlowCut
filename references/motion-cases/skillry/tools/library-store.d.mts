@@ -4,4 +4,4 @@ export interface LibraryIndex { source_sha256:string; mechanisms:LibraryMechanis
 export function loadLibraryIndex(root:string):LibraryIndex;
 export function searchLibraryIndex(index:LibraryIndex,request?:Record<string,unknown>,semantic?:Record<string,unknown>):Record<string,unknown>;
 export function libraryVideo(root:string,id:string,source_sha256?:string):string;
-export function readLibraryMechanism(root:string,request:{id:string;part?:'mechanism'|'overview';source_sha256?:string;include_storyboard?:boolean}):{result:Record<string,unknown>;image?:string};
+export function readLibraryMechanism(root:string,request:{id:string;part?:'mechanism'|'overview';source_sha256?:string;include_storyboard?:boolean}):{result:Record<string,unknown>;image?:{data:string;mimeType:string}};

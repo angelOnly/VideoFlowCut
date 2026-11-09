@@ -21,13 +21,13 @@ test("候选 Runtime 必须显式隔离工作区、端口和 ComfyUI Bridge，�
     "--repo-root", repositoryRoot,
     "--workspace", workspaceRoot,
     "--port", "3111",
-    "--comfyui-bridge-url", "http://127.0.0.1:8199/comfyui-bridge/v1"
+    "--comfyui-bridge-url", "http://127.0.0.1:8199/comfyui-bridge/v2"
   ], {
     ...process.env,
     // 即使宿主环境带着生产值，候选入口也只能使用命令行中的显式边界。
     VIDEOCUT_WORKSPACE: productionWorkspace,
     VIDEOFLOWCUT_PORT: "3100",
-    COMFYUI_BRIDGE_URL: "http://127.0.0.1:8188/comfyui-bridge/v1"
+    COMFYUI_BRIDGE_URL: "http://127.0.0.1:8188/comfyui-bridge/v2"
   });
 
   assert.equal(result.status, 0, result.stderr);
@@ -42,7 +42,7 @@ test("候选 Runtime 必须显式隔离工作区、端口和 ComfyUI Bridge，�
   assert.equal(configuration.validated, true);
   assert.equal(configuration.workspaceRoot, workspaceRoot);
   assert.equal(configuration.port, 3111);
-  assert.equal(configuration.bridgeUrl, "http://127.0.0.1:8199/comfyui-bridge/v1");
+  assert.equal(configuration.bridgeUrl, "http://127.0.0.1:8199/comfyui-bridge/v2");
 });
 
 test("候选 Runtime 对缺失或生产边界一律 fail closed", () => {
@@ -51,22 +51,22 @@ test("候选 Runtime 对缺失或生产边界一律 fail closed", () => {
   const cases: Array<{ name: string; arguments_: string[]; expected: RegExp }> = [
     {
       name: "缺少独立工作区",
-      arguments_: ["--port", "3111", "--comfyui-bridge-url", "http://127.0.0.1:8199/comfyui-bridge/v1"],
+      arguments_: ["--port", "3111", "--comfyui-bridge-url", "http://127.0.0.1:8199/comfyui-bridge/v2"],
       expected: /必须显式提供 --workspace/u
     },
     {
       name: "使用生产工作区",
-      arguments_: ["--workspace", productionWorkspace, "--port", "3111", "--comfyui-bridge-url", "http://127.0.0.1:8199/comfyui-bridge/v1"],
+      arguments_: ["--workspace", productionWorkspace, "--port", "3111", "--comfyui-bridge-url", "http://127.0.0.1:8199/comfyui-bridge/v2"],
       expected: /不能与生产工作区重叠/u
     },
     {
       name: "使用生产 Runtime 端口",
-      arguments_: ["--workspace", candidateWorkspace, "--port", "3100", "--comfyui-bridge-url", "http://127.0.0.1:8199/comfyui-bridge/v1"],
+      arguments_: ["--workspace", candidateWorkspace, "--port", "3100", "--comfyui-bridge-url", "http://127.0.0.1:8199/comfyui-bridge/v2"],
       expected: /不能使用生产 Runtime 端口 3100/u
     },
     {
       name: "使用生产 ComfyUI 端口",
-      arguments_: ["--workspace", candidateWorkspace, "--port", "3111", "--comfyui-bridge-url", "http://127.0.0.1:8188/comfyui-bridge/v1"],
+      arguments_: ["--workspace", candidateWorkspace, "--port", "3111", "--comfyui-bridge-url", "http://127.0.0.1:8188/comfyui-bridge/v2"],
       expected: /不能指向生产 ComfyUI 端口 8188/u
     }
   ];
@@ -85,18 +85,18 @@ test("候选 Runtime 将当前环境的自定义生产边界仅作为 denylist",
     ...process.env,
     VIDEOCUT_WORKSPACE: customProductionWorkspace,
     VIDEOFLOWCUT_PORT: "4123",
-    COMFYUI_BRIDGE_URL: "http://127.0.0.1:8299/comfyui-bridge/v1"
+    COMFYUI_BRIDGE_URL: "http://127.0.0.1:8299/comfyui-bridge/v2"
   };
   const baseline = ["--repo-root", repositoryRoot];
   const cases: Array<{ name: string; arguments_: string[]; expected: RegExp }> = [
     {
       name: "自定义生产工作区",
-      arguments_: ["--workspace", customProductionWorkspace, "--port", "3111", "--comfyui-bridge-url", "http://127.0.0.1:8199/comfyui-bridge/v1"],
+      arguments_: ["--workspace", customProductionWorkspace, "--port", "3111", "--comfyui-bridge-url", "http://127.0.0.1:8199/comfyui-bridge/v2"],
       expected: /不能与生产工作区重叠/u
     },
     {
       name: "自定义生产端口",
-      arguments_: ["--workspace", candidateWorkspace, "--port", "4123", "--comfyui-bridge-url", "http://127.0.0.1:8199/comfyui-bridge/v1"],
+      arguments_: ["--workspace", candidateWorkspace, "--port", "4123", "--comfyui-bridge-url", "http://127.0.0.1:8199/comfyui-bridge/v2"],
       expected: /当前环境中的生产 Runtime 端口 4123/u
     },
     {

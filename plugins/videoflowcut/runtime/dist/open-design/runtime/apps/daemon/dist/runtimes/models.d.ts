@@ -1,0 +1,17 @@
+import type { RuntimeAgentDef, RuntimeModelOption } from './types.js';
+export declare const DEFAULT_MODEL_OPTION: RuntimeModelOption;
+export declare function resetLiveModelsForTests(): void;
+export declare function rememberRemoteLiveModels(agentId: string, models: RuntimeModelOption[], scope?: string | null): void;
+export declare function getRememberedRemoteLiveModels(agentId: string, scope?: string | null): RuntimeModelOption[];
+export declare function rememberLiveModels(agentId: string, models: RuntimeModelOption[], scope?: string | null): void;
+export declare function resolveDefaultModelFromOptions(models: RuntimeModelOption[]): string | null;
+export declare function getRememberedLiveModels(agentId: string, scope?: string | null): RuntimeModelOption[];
+export declare function preferFreshLiveModels(freshModels: RuntimeModelOption[], rememberedModels: RuntimeModelOption[]): RuntimeModelOption[];
+export declare function mergeFallbackModelMetadata(def: RuntimeAgentDef, models: RuntimeModelOption[]): RuntimeModelOption[];
+export declare function findKnownModel(def: RuntimeAgentDef, modelId: string | null | undefined, scope?: string | null): RuntimeModelOption | null;
+export declare function isKnownModel(def: RuntimeAgentDef, modelId: string | null | undefined, scope?: string | null): boolean;
+export declare function isKnownServiceTier(def: RuntimeAgentDef, modelId: string | null | undefined, serviceTier: string | null | undefined, scope?: string | null): boolean;
+export declare function isKnownReasoningEffort(def: RuntimeAgentDef, modelId: string | null | undefined, reasoningEffort: string | null | undefined, scope?: string | null): boolean;
+export declare function resolveModelForServiceTier(def: RuntimeAgentDef, modelId: string | null | undefined, serviceTier: string | null | undefined, scope?: string | null): string | null;
+export declare function resolveModelForAgent(def: RuntimeAgentDef, resolved: string | null, env?: Record<string, string | undefined>, liveModelScope?: string | null): string | null;
+export declare function sanitizeCustomModel(id: string | null | undefined): string | null;

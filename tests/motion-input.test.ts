@@ -14,7 +14,8 @@ import { AUTHORED_MOTION_MANIFEST_CONTRACT, parseAuthoredMotionManifest } from "
 
 const sha = (value: Buffer) => createHash("sha256").update(value).digest("hex");
 test("作者清单 v1 对多余字段和缺失修改原因给出具体位置", () => {
-  const manifest = { authorSubmissionId: "a", sourceFile: "film.html", sourceSha256: "a".repeat(64), work: {}, readyRanges: [{ startFrame: 0, endFrame: 2 }], changedRanges: [] };
+  const { source: _source, ...work } = motionFixture;
+  const manifest = { authorSubmissionId: "a", sourceFile: "film.html", sourceSha256: "a".repeat(64), work, readyRanges: [{ startFrame: 0, endFrame: 2 }], changedRanges: [] };
   assert.equal(AUTHORED_MOTION_MANIFEST_CONTRACT, "videoflowcut.authored-motion-manifest.v1");
   assert.deepEqual(parseAuthoredMotionManifest(manifest), manifest);
   assert.throws(() => parseAuthoredMotionManifest({ ...manifest, extra: true }), /不支持字段 extra/u);

@@ -1,0 +1,1 @@
+{"version":3,"file":"amr-auth.d.ts","sourceRoot":"","sources":["../../src/api/amr-auth.ts"],"names":[],"mappings":"AAAA,MAAM,MAAM,eAAe,GACvB,YAAY,GACZ,eAAe,GACf,iBAAiB,CAAC;AAEtB,MAAM,WAAW,gBAAgB;IAC/B,YAAY,EAAE,eAAe,CAAC;IAC9B;;;OAGG;IACH,kBAAkB,EAAE,MAAM,CAAC;CAC5B"}

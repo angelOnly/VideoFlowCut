@@ -3,6 +3,7 @@ import { runWorkerForever } from "../../job-worker/src/index.js";
 import { runRenderWorkerForever } from "../../render-worker/src/index.js";
 import { applyReleaseRuntimeDefaults } from "@videocut/project-overview";
 import { ThreadedRevisionRenderer } from "../../render-worker/src/threaded-renderer.js";
+import { runMotionAuthoringWorkerForever } from "./motion-authoring.js";
 
 /**
  * 发布构建是 CommonJS，__dirname 即 runtime/dist；开发时 TypeScript 以 ESM
@@ -86,7 +87,8 @@ async function main(): Promise<void> {
     workers.render = true;
     await Promise.all([
       runWorkerForever(application, workersAbort.signal),
-      runRenderWorkerForever(application, workersAbort.signal, renderer)
+      runRenderWorkerForever(application, workersAbort.signal, renderer),
+      runMotionAuthoringWorkerForever(application, workersAbort.signal)
     ]);
   } finally {
     workers.media = false;

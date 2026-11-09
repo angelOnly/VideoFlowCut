@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto';
 import {createReadStream} from 'node:fs';
 import {copyFile, mkdir, readFile, stat, unlink, writeFile} from 'node:fs/promises';
-import {basename, dirname, extname, join, resolve} from 'node:path';
+import {basename, dirname, extname, isAbsolute, join, posix, resolve} from 'node:path';
 import {promisify} from 'node:util';
 import {execFile} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
@@ -53,26 +53,44 @@ export async function prepareReferencePackage(input, outputRoot, libraryRoot = r
     try { add(localFile(libraryRoot,path), `references/skillry/${path}`, use); }
     catch (error) { diagnostics.push({id:use.id,path,reason:error.message}); }
   };
-  add(input.brief, 'brief/visual-director-brief.md', {kind:'brief',id:'brief',purpose:'权威视觉导演指令'});
+  const referenceUse = (selected, kind) => {
+    if (!selected.id || !selected.purpose || !['study','adopted'].includes(selected.usage)) {
+      throw new Error(`${kind}参考需要 ID、用途及 study 或 adopted 的使用状态`);
+    }
+    return {kind,id:selected.id,usage:selected.usage,purpose:selected.purpose};
+  };
+  add(input.brief, 'brief/visual-director-brief.md', {kind:'brief',id:'brief',purpose:'创意编排指令'});
   add(input.timingPlan, 'brief/timing-plan.md', {kind:'brief',id:'timing',purpose:'完整时间编排'});
   for (const selected of input.creative ?? []) {
-    if (!selected.purpose) throw new Error(`创意参考 ${selected.id} 缺少用途`);
+    const reference = referenceUse(selected,'creative');
     const {result} = readCreativeCase(libraryRoot, {id:selected.id,source_sha256:selected.sourceSha256,include_storyboard:false});
-    const card = result.card, use = {kind:'creative',id:card.id,librarySourceSha256:result.source_sha256,purpose:selected.purpose,sourceStartMs:card.start_ms,sourceEndMs:card.end_ms};
-    library(card.card,use);
-    for (const resource of Object.values(result.resources)) library(resource.path,use);
-    for (const link of result.links) if (link?.path && /\.(?:jpg|jpeg|png|webp|mp4)$/i.test(link.path)) library(link.path,use);
+    const card = result.card, use = {...reference,id:card.id,librarySourceSha256:result.source_sha256,sourceStartMs:card.start_ms,sourceEndMs:card.end_ms,timeCoordinates:'original'};
+    library(card.card,{...use,fileKind:'card'});
+    for (const [kind,resource] of Object.entries(result.resources)) library(resource.path,{...use,fileKind:kind,...(kind==='clip' ? {clipSourceOffsetMs:result.clip_source_offset_ms} : {})});
+    for (const link of result.links) if (link?.path && /\.(?:jpg|jpeg|png|webp|mp4)$/i.test(link.path)) library(link.path,{...use,fileKind:'linkedMedia'});
   }
   for (const selected of input.motion ?? []) {
-    if (!selected.purpose) throw new Error(`动效参考 ${selected.id} 缺少用途`);
+    const reference = referenceUse(selected,'motion');
     const {result} = readLibraryMechanism(libraryRoot, {id:selected.id,source_sha256:selected.sourceSha256,include_storyboard:false});
-    const card=result.card, use={kind:'motion',id:card.id,librarySourceSha256:result.source_sha256,purpose:selected.purpose,sourceStartMs:card.clip?.start_ms,sourceEndMs:card.clip?.end_ms};
-    library(card.document,use); library(card.storyboard,use);
-    if (card.clip?.path) library(card.clip.path,use);
-    else diagnostics.push({id:card.id,reason:'机制没有可用切片路径'});
+    const card=result.card, use={...reference,id:card.id,librarySourceSha256:result.source_sha256,sourceStartMs:card.clip?.start_ms,sourceEndMs:card.clip?.end_ms,timeCoordinates:'original'};
+    library(card.document,{...use,fileKind:'card'}); library(card.storyboard,{...use,fileKind:'storyboard'});
+    library(result.resources.video.path,{...use,fileKind:'video'});
+    if (card.clip?.path) {
+      if (result.resources.clip.available) library(card.clip.path,{...use,fileKind:'clip',clipSourceOffsetMs:card.clip.start_ms});
+      else diagnostics.push({id:card.id,path:card.clip.path,reason:result.resources.clip.reason});
+    }
     for (const match of result.body.matchAll(/!?\[[^\]]*\]\(([^)]+)\)/g)) {
       const link=resolveLibraryLink(match[1],card.document);
       if (link?.kind==='local' && /\.(?:jpg|jpeg|png|webp|mp4)$/i.test(link.path)) library(link.path,use);
+    }
+  }
+  for (const selected of input.references ?? []) {
+    const use = referenceUse(selected,'reference');
+    if (!Array.isArray(selected.files) || !selected.files.length) throw new Error(`参考 ${selected.id} 缺少文件`);
+    for (const file of selected.files) {
+      const destination = typeof file.deliveredPath === 'string' ? file.deliveredPath.replaceAll('\\','/') : '';
+      if (!file.path || !destination || isAbsolute(file.deliveredPath) || !destination.startsWith('references/') || posix.normalize(destination) !== destination) throw new Error(`参考 ${selected.id} 需要 references 下的相对交付路径`);
+      add(file.path,destination,use);
     }
   }
   for (const asset of input.assets ?? []) {
@@ -115,9 +133,9 @@ export async function prepareReferencePackage(input, outputRoot, libraryRoot = r
 }
 
 /** 使用 OD 文件清单返回的实际本机路径核验字节，不把文件列表当成观看证据。 */
-export async function verifyReferenceDelivery(manifest, listing, revision, odProjectId, boundaries) {
+export async function verifyReferenceDelivery(manifest, listing, revision, odProjectId) {
   if (manifest.revision !== revision) throw new Error('项目 Revision 已变化，请重新核对输入');
-  if (!odProjectId || !boundaries?.mustKeep || !boundaries?.freedom) throw new Error('需要 OD 项目身份及导演边界');
+  if (!odProjectId) throw new Error('需要 OD 项目身份');
   const uses=manifest.files.flatMap(file=>file.uses);
   for (const [kind,load] of [['creative',loadCreativeIndex],['motion',loadLibraryIndex]]) {
     const selected=uses.filter(use=>use.kind===kind);
@@ -143,8 +161,8 @@ export async function verifyReferenceDelivery(manifest, listing, revision, odPro
   const failed=files.filter(file=>!file.readableByOpenDesign);
   const verified={...manifest,odProjectId,files,verificationErrors:failed.map(file=>({path:file.deliveredPath,reason:file.readCheck}))};
   if (manifest.diagnostics.length || failed.length) return {manifest:verified};
-  const lines=files.map(file=>`- ${file.deliveredPath}：${file.uses.map(use=>`${use.kind}/${use.id}，${use.purpose}`).join('；')}`);
-  const prompt=[`先完整读取本项目中的权威导演指令 ${manifest.briefPath} 和时间编排 ${manifest.timingPlanPath}，再读取以下文件并按用途制作：`,...lines,'对参考视频实际连续观看完整范围，记录实际观察方式；只探测、解码或查看静帧时必须如实标明，不能声称已连续观看。',`必须保持：${boundaries.mustKeep}`,`可自由深化：${boundaries.freedom}`,'无法读取资料或无法实现核心事件时，返回具体缺口；拟改变核心事件、素材角色或信息顺序时，反馈原因和替代方案，不得静默删减。'].join('\n');
+  const lines=files.map(file=>`- ${file.deliveredPath}：${file.uses.map(use=>`${use.kind}/${use.id}${use.usage ? `（${use.usage === 'study' ? '学习' : '已采用'}）` : ''}，${use.purpose}${use.fileKind ? `，文件类型 ${use.fileKind}` : ''}${use.sourceStartMs !== undefined && use.sourceEndMs !== undefined ? `，资料原片范围 ${use.sourceStartMs}—${use.sourceEndMs}ms` : ''}${use.clipSourceOffsetMs !== undefined ? `，切片零点对应原片 ${use.clipSourceOffsetMs}ms` : ''}`).join('；')}`);
+  const prompt=[`先完整读取本项目中的创意编排指令 ${manifest.briefPath} 和时间资料 ${manifest.timingPlanPath}，再读取以下文件并按用途制作：`,...lines,'资料范围使用原片时间，实际采用的具体范围以编排指令为准。查看采用的创意和机制视频，连续观察选定范围及必要前后画面，并记录实际观察方式。按本片编排完成选中场面的素材组合、文字作用、背景与完整运动过程。','用户要求、事实条件及当前采用的编排以完整简报为准。制作作者完成整场构图、中文排版、素材取景、尺度、层次、镜头、动作与内部节奏。','作品交回后由原导演、视觉与创意负责人检查和组织返修。资料无法读取或材料无法支持采用过程时，反馈具体文件、动作、范围及调整建议。事实、段落含义或已采用关键过程需要改变时，与原负责人协调更新当前稿。'].join('\n');
   return {manifest:verified,prompt};
 }
 
@@ -165,7 +183,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       const manifest=await readJson(manifestFile);
       const listing=await readJson(listingFile);
       const check=await readJson(checkFile);
-      const result=await verifyReferenceDelivery(manifest,listing,check.revision,check.odProjectId,check.boundaries);
+      const result=await verifyReferenceDelivery(manifest,listing,check.revision,check.odProjectId);
       await writeFile(join(dirname(manifestFile),'verified-manifest.json'),JSON.stringify(result.manifest,null,2)+'\n','utf8');
       if (result.prompt) await writeFile(join(dirname(manifestFile),'start-run-prompt.md'),result.prompt+'\n','utf8');
       console.log(JSON.stringify({verificationErrors:result.manifest.verificationErrors,diagnostics:result.manifest.diagnostics},null,2));

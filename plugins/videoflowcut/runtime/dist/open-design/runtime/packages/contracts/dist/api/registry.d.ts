@@ -1,0 +1,634 @@
+export type ModelCost = 'low' | 'medium' | 'high' | 'very_high';
+export type ModelCapability = 'standard' | 'advanced' | 'best_quality';
+export interface ModelMetadata {
+    cost?: ModelCost;
+    capability?: ModelCapability;
+    /** Provider/catalog-declared total context window; observability only. */
+    contextWindowTokens?: number;
+}
+export interface AgentModelOption {
+    id: string;
+    label: string;
+    /** Whether the current account/tier can use this model. */
+    enabled?: boolean;
+    /** Whether this is the default model for the current account/tier. */
+    default?: boolean;
+    /** USD price per 1M input tokens when reported by the provider/catalog. */
+    inputPriceUsdPerMillion?: number;
+    /** USD price per 1M output tokens when reported by the provider/catalog. */
+    outputPriceUsdPerMillion?: number;
+    /** Provider/catalog-owned model picker metadata. */
+    metadata?: ModelMetadata;
+    /** Raw Codex `additional_speed_tiers` values, when the CLI catalog exposes them. */
+    additionalSpeedTiers?: string[];
+    /** Service tiers supported by this model, keyed by Codex config id. */
+    serviceTierOptions?: AgentModelOption[];
+    /** Reasoning efforts advertised for this exact model route. */
+    reasoningOptions?: AgentModelOption[];
+}
+/**
+ * A typed "what should the UI do to fix this" intent attached to an
+ * {@link AgentDiagnostic}. The UI renders a button per intent and owns the
+ * concrete handler (open a URL, re-run detection, write an env override,
+ * launch the OAuth terminal flow). Keeping the intent typed — rather than a
+ * pre-baked button label + URL — means the Settings card, the unavailable
+ * grid, and (PR-B) the `od agent healthcheck` CLI / health-check panel all
+ * render the same fix affordances from one source of truth instead of each
+ * re-deriving copy and wiring.
+ */
+export type AgentFixIntent = 
+/** Open the agent's configuration / auth docs (`AgentInfo.docsUrl`). */
+{
+    kind: 'openDocs';
+}
+/** Open the agent's install / download page (`AgentInfo.installUrl`). */
+ | {
+    kind: 'openInstall';
+}
+/** Re-run agent detection (the Settings "Rescan" affordance). */
+ | {
+    kind: 'rescan';
+}
+/**
+ * Prompt the user to point OpenDesign at an explicit binary by writing
+ * `envKey` (e.g. `CURSOR_AGENT_BIN`) into `agentCliEnv`. Used when the CLI
+ * is installed somewhere PATH detection can't reach.
+ */
+ | {
+    kind: 'setEnv';
+    envKey: string;
+}
+/** Clear a previously-set binary override so detection falls back to PATH. */
+ | {
+    kind: 'clearEnv';
+    envKey: string;
+}
+/**
+ * Launch the agent's interactive sign-in in a system terminal (today only
+ * Antigravity's `agy`, via POST /api/agents/:id/oauth-launch).
+ */
+ | {
+    kind: 'launchOAuth';
+    agentId: string;
+};
+/**
+ * Why a CLI agent is unavailable or only partially usable, in a shape the UI
+ * can render as "one-line reason + fix button(s)" instead of a silent grey
+ * card. Emitted by daemon detection (PATH / executable resolution + the auth
+ * probe) and reused by the connection-test / health-check surfaces so a
+ * failure is always actionable.
+ */
+export type AgentDiagnosticReason = 
+/** The binary (and any fallback names) was not found on PATH. */
+'not-on-path'
+/** A file matched but is not executable (missing +x / wrong PATHEXT). */
+ | 'not-executable'
+/**
+ * A wrapper/shim was found but its target is gone. POSIX says so with exit
+ * 127; a Windows `.cmd` wrapper starts an interpreter successfully and only
+ * then reports it in stderr, so the launcher's own words count too.
+ */
+ | 'shim-broken'
+/** A user-set `*_BIN` override points at a missing/invalid file. */
+ | 'configured-bin-invalid'
+/** The binary ran, but its version could not be read under a strict policy. */
+ | 'version-probe-failed'
+/** The installed CLI version is outside this OpenDesign build's tested set. */
+ | 'untested-version'
+/** A required external runtime profile or companion failed its handshake. */
+ | 'runtime-profile-incompatible'
+/** Installed and invocable, but the CLI is not authenticated. */
+ | 'auth-missing'
+/** Installed, but auth status could not be verified. */
+ | 'auth-unknown';
+export type AgentDiagnosticSeverity = 'error' | 'warning' | 'info';
+export interface AgentDiagnostic {
+    reason: AgentDiagnosticReason;
+    severity: AgentDiagnosticSeverity;
+    /** Short, human-readable, single-sentence explanation. */
+    message: string;
+    /** Optional longer context (e.g. the probe's stderr tail). */
+    detail?: string;
+    /**
+     * Directories PATH detection searched, surfaced verbatim for the
+     * `not-on-path` case so the user can see where we looked before being
+     * asked to set an explicit binary path. Sourced from the daemon resolver,
+     * never recomputed in the client.
+     */
+    searchedDirs?: string[];
+    /** Ordered fix affordances the UI should offer for this diagnostic. */
+    fixActions?: AgentFixIntent[];
+}
+export interface AgentInfo {
+    id: string;
+    name: string;
+    bin: string;
+    available: boolean;
+    authStatus?: 'ok' | 'missing' | 'unknown';
+    authMessage?: string;
+    path?: string;
+    version?: string | null;
+    /**
+     * Actionable reasons this agent is unavailable or only partially usable,
+     * each carrying typed fix intents. Empty / omitted means "healthy"
+     * (available and, where probed, authenticated).
+     */
+    diagnostics?: AgentDiagnostic[];
+    models?: AgentModelOption[];
+    /** Whether models came from the installed CLI or OpenDesign's static fallback. */
+    modelsSource?: 'live' | 'fallback';
+    reasoningOptions?: AgentModelOption[];
+    /** HTTPS URL to install or download the CLI (vendor docs, GitHub README, npm). */
+    installUrl?: string;
+    /** Optional HTTPS URL for configuration / auth / usage docs. */
+    docsUrl?: string;
+    /**
+     * How the daemon forwards the user's `.od/mcp-config.json` external MCP
+     * servers to this runtime at spawn time. Mirrors the field on
+     * `RuntimeAgentDef` in the daemon. Undefined means the runtime has no
+     * native MCP transport wired yet, in which case the settings UI surfaces
+     * a "configure MCP in the agent's own config file" hint instead of
+     * silently dropping the servers (issue #2142).
+     */
+    externalMcpInjection?: 'claude-mcp-json' | 'acp-merge' | 'opencode-env-content' | 'mimo-env-content';
+    /**
+     * When `false`, the Settings model picker hides the "Custom (fill below)"
+     * option and the free-text input. Use this for agents whose CLI doesn't
+     * accept a model id (e.g. Antigravity `agy` has no `--model` flag yet —
+     * upstream issue #35) or rejects free-form ids (AMR validates against the
+     * live Vela catalog). Undefined === allow, matching the historical UX.
+     */
+    supportsCustomModel?: boolean;
+    /**
+     * How the daemon writes the composed prompt to this runtime's stdin. Mirrors
+     * `RuntimeAgentDef.promptInputFormat` in the daemon (same precedent as
+     * `externalMcpInjection` above). `'text'` writes the prompt and closes stdin
+     * immediately; `'stream-json'` wraps it as one JSONL `user` message and KEEPS
+     * stdin open, which is the only way a further message can reach the model
+     * mid-turn. Undefined means `'text'`.
+     *
+     * Read it through `agentSupportsMidTurnSteering` rather than comparing the
+     * literal, so the rule lives in one place.
+     */
+    promptInputFormat?: 'text' | 'stream-json';
+}
+/**
+ * Whether B11 「引导对话」 (steer the running turn) can work on this agent at all.
+ *
+ * Steering writes a further JSONL `user` frame onto the agent child's stdin
+ * while the turn is still running. Only a `stream-json` runtime leaves stdin
+ * open past the opening prompt; for every other runtime the daemon has already
+ * closed it, so the write would be silently lost. UI surfaces must gate the
+ * affordance on this instead of assuming every agent can be steered.
+ */
+export declare function agentSupportsMidTurnSteering(agent: Pick<AgentInfo, 'promptInputFormat'> | null | undefined): boolean;
+export interface AgentsResponse {
+    agents: AgentInfo[];
+}
+export type AmrModelsSource = 'preset' | 'remote';
+export interface AmrModelsResponse {
+    source: AmrModelsSource;
+    models: AgentModelOption[];
+    refreshing: boolean;
+    stale?: boolean;
+    remoteError?: string;
+}
+export type SkillSource = 'built-in' | 'user';
+export interface SkillSummary {
+    id: string;
+    name: string;
+    displayName?: Record<string, string>;
+    description: string;
+    descriptionI18n?: Record<string, string>;
+    triggers: string[];
+    mode: 'utility' | 'prototype' | 'deck' | 'template' | 'design-system' | 'image' | 'video' | 'audio';
+    surface?: 'web' | 'image' | 'video' | 'audio';
+    platform?: 'desktop' | 'mobile' | null;
+    scenario?: string | null;
+    category?: string | null;
+    source?: SkillSource;
+    previewType: string;
+    designSystemRequired: boolean;
+    defaultFor: string[];
+    upstream: string | null;
+    featured?: number | null;
+    fidelity?: 'wireframe' | 'high-fidelity' | null;
+    speakerNotes?: boolean | null;
+    animations?: boolean | null;
+    craftRequires?: string[];
+    hasBody: boolean;
+    examplePrompt: string;
+    examplePromptI18n?: Record<string, string>;
+    aggregatesExamples: boolean;
+    /**
+     * True for a skill materialized locally from a TEAMMATE's team share (the
+     * puller's copy — never set on the sharer's own skill; mirrors
+     * `DesignSystemSummary.teamSynced` / the puller-side marker
+     * `syncSharedTeamSkill`'s `markTeamSynced` stamps into `workspace_resources`
+     * as `visibility: 'team'`). Without this, a pulled skill was indistinguishable
+     * from one the caller authored themselves — `source` reads `'user'` either
+     * way — so unsharing it team-side made it silently reappear in "Personal"
+     * instead of just dropping out of the Team scope like design-system/plugin
+     * already do.
+     */
+    teamSynced?: boolean;
+}
+export interface SkillImportRequest {
+    name: string;
+    description?: string;
+    body: string;
+    triggers?: string[];
+}
+export interface SkillImportResponse {
+    skill: SkillSummary;
+}
+export interface SkillUpdateRequest {
+    name?: string;
+    description?: string;
+    body: string;
+    triggers?: string[];
+}
+export interface SkillUpdateResponse {
+    skill: SkillSummary;
+}
+export interface SkillFileEntry {
+    path: string;
+    kind: 'file' | 'directory';
+    size: number | null;
+}
+export interface SkillFilesResponse {
+    files: SkillFileEntry[];
+}
+export interface SkillDetail extends SkillSummary {
+    body: string;
+}
+export interface SkillsResponse {
+    skills: SkillSummary[];
+}
+export interface SkillResponse {
+    skill: SkillDetail;
+}
+export type DesignTemplateSummary = SkillSummary;
+export type DesignTemplateDetail = SkillDetail;
+export interface DesignTemplatesResponse {
+    designTemplates: DesignTemplateSummary[];
+}
+export interface DesignTemplateResponse {
+    designTemplate: DesignTemplateDetail;
+}
+export interface DesignSystemSummary {
+    id: string;
+    title: string;
+    category: string;
+    summary: string;
+    swatches?: string[];
+    surface?: 'web' | 'image' | 'video' | 'audio';
+    source?: 'built-in' | 'installed' | 'user';
+    status?: 'draft' | 'published';
+    isEditable?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+    provenance?: DesignSystemProvenance;
+    projectId?: string;
+    teamSynced?: boolean;
+    /**
+     * This system's id is present in the current caller's explicitly scoped
+     * team-resource index. Unlike `teamSynced`, this also covers the original
+     * local copy owned by the member who shared it. It is display/catalog
+     * membership only and must never be used as mutation authority.
+     */
+    teamShared?: boolean;
+    /**
+     * Whether the current caller may mutate (edit / publish-toggle / delete)
+     * this design system, mirroring the daemon's own `canMutateUserDesignSystem`
+     * gate exactly (recvqb6mfyqXLD): true for anything the caller authored
+     * themselves, and for a `teamSynced` copy true only when the caller is the
+     * original sharer or a workspace owner/admin. Only the single-item GET
+     * (`/api/design-systems/:id`) response computes this per-caller verdict —
+     * treat a missing value (e.g. from the bulk list) as `true`.
+     */
+    canMutate?: boolean;
+}
+export interface DesignSystemDetail extends DesignSystemSummary {
+    body: string;
+    packageInfo?: DesignSystemPackageInfo;
+}
+export interface DesignSystemPackageInfo {
+    manifest?: {
+        schemaVersion: string;
+        id: string;
+        name: string;
+        category: string;
+        source?: {
+            type?: string;
+            url?: string;
+            path?: string;
+            branch?: string;
+            commit?: string;
+            importedAt?: string;
+            reference?: string;
+            registryUrl?: string;
+            item?: string;
+            homepage?: string;
+        };
+        files?: {
+            design?: string;
+            tokens?: string;
+            designTokens?: string;
+            tailwind?: string;
+            components?: string;
+        };
+        usage?: string;
+        componentsManifest?: string;
+        importMode?: string;
+        craft?: {
+            applies?: string[];
+            suggested?: string[];
+            exemptions?: string[];
+        };
+        fonts?: Array<{
+            family?: string;
+            weight?: string | number;
+            style?: string;
+            file?: string;
+        }>;
+        preview?: {
+            dir?: string;
+            pages?: Array<{
+                path?: string;
+                role?: string;
+                title?: string;
+            }>;
+        };
+        sourceFiles?: {
+            scanned?: string;
+            evidence?: string;
+            tokens?: string;
+            report?: string;
+            snippets?: string;
+        };
+        assetsDir?: string;
+    };
+    /** Package-relative files the daemon confirmed exist and can be served via /static. */
+    availableFiles?: string[];
+    sourceEvidence?: {
+        scannedFileCount?: number;
+        tokenCount?: number;
+        snippetCount?: number;
+        confidence?: Record<string, string | number>;
+        evidenceExcerpt?: string;
+        tokenContract?: {
+            contract?: string;
+            grade?: DesignSystemTokenContractGrade;
+            score?: number;
+            recommendRebuild?: boolean;
+            sourceBackedA1?: number;
+            requiredA1?: number;
+            fallbackTokens?: number;
+            selfCheckOk?: boolean;
+        };
+    };
+}
+export interface DesignSystemsResponse {
+    designSystems: DesignSystemSummary[];
+}
+export interface DesignSystemResponse {
+    designSystem: DesignSystemDetail;
+}
+export interface DesignSystemProvenance {
+    companyBlurb?: string;
+    sourceUrls?: string[];
+    githubUrls?: string[];
+    localCodeFiles?: string[];
+    figFiles?: string[];
+    assetFiles?: string[];
+    notes?: string;
+    sourceNotes?: string;
+}
+export type DesignSystemFileKind = 'folder' | 'page' | 'stylesheet' | 'document' | 'image' | 'data' | 'asset';
+export interface DesignSystemFileSummary {
+    path: string;
+    name: string;
+    kind: DesignSystemFileKind;
+    size?: number;
+    updatedAt?: string;
+}
+export interface DesignSystemFileDetail extends DesignSystemFileSummary {
+    content: string;
+}
+export interface DesignSystemFilesResponse {
+    files: DesignSystemFileSummary[];
+}
+export interface DesignSystemFileResponse {
+    file: DesignSystemFileDetail;
+}
+export interface DesignSystemWorkspaceResponse {
+    project: import('./projects.js').Project;
+    files: import('./files.js').ProjectFile[];
+}
+export type DesignSystemRevisionStatus = 'pending' | 'accepted' | 'rejected';
+export interface DesignSystemRevision {
+    id: string;
+    designSystemId: string;
+    status: DesignSystemRevisionStatus;
+    feedback: string;
+    baseBody: string;
+    proposedBody: string;
+    createdAt: string;
+    updatedAt: string;
+    sectionTitle?: string;
+    jobId?: string;
+    fileChanges?: DesignSystemRevisionFileChange[];
+}
+export interface DesignSystemRevisionFileChange {
+    path: string;
+    baseContent: string;
+    proposedContent: string;
+}
+export interface DesignSystemRevisionsResponse {
+    revisions: DesignSystemRevision[];
+}
+export interface DesignSystemRevisionResponse {
+    revision: DesignSystemRevision;
+}
+export type DesignSystemGenerationJobStatus = 'queued' | 'running' | 'succeeded' | 'failed';
+export type DesignSystemGenerationStepStatus = 'pending' | 'running' | 'succeeded' | 'failed';
+export interface DesignSystemGenerationStep {
+    id: string;
+    title: string;
+    status: DesignSystemGenerationStepStatus;
+    message?: string;
+    startedAt?: string;
+    completedAt?: string;
+}
+export interface DesignSystemGenerationJob {
+    id: string;
+    kind?: 'generation' | 'revision' | 'token-contract-rebuild';
+    status: DesignSystemGenerationJobStatus;
+    progress: number;
+    steps: DesignSystemGenerationStep[];
+    createdAt: string;
+    updatedAt: string;
+    completedAt?: string;
+    designSystemId?: string;
+    revisionId?: string;
+    error?: string;
+    message?: string;
+}
+export interface DesignSystemGenerationJobResponse {
+    job: DesignSystemGenerationJob;
+}
+export type DesignSystemPackageAuditSeverity = 'error' | 'warning';
+export interface DesignSystemPackageAuditIssue {
+    severity: DesignSystemPackageAuditSeverity;
+    code: string;
+    message: string;
+    path?: string;
+}
+export interface DesignSystemPackageAudit {
+    ok: boolean;
+    projectPath: string;
+    filesInspected: number;
+    errors: DesignSystemPackageAuditIssue[];
+    warnings: DesignSystemPackageAuditIssue[];
+}
+export interface DesignSystemPackageAuditResponse {
+    audit: DesignSystemPackageAudit;
+}
+export interface DesignSystemRevisionJobRequest {
+    feedback: string;
+    sectionTitle?: string;
+    body?: string;
+}
+export type DesignSystemTokenContractGrade = 'excellent' | 'usable' | 'needs-review' | 'needs-rebuild';
+export interface DesignSystemTokenContractRebuildDecision {
+    designSystemId: string;
+    available: boolean;
+    recommended: boolean;
+    forced: boolean;
+    reason: string;
+    triggers: string[];
+    reportPath?: string;
+    grade?: DesignSystemTokenContractGrade;
+    score?: number;
+    sourceBackedA1?: number;
+    requiredA1?: number;
+    fallbackTokens?: number;
+    selfCheckOk?: boolean;
+    weakTokens?: Array<{
+        name: string;
+        layer?: string;
+        confidence: string;
+        reason: string;
+        sources: string[];
+    }>;
+}
+export interface DesignSystemTokenContractRebuildJobRequest {
+    force?: boolean;
+}
+export interface DesignSystemTokenContractRebuildJobResponse {
+    decision: DesignSystemTokenContractRebuildDecision;
+    job?: DesignSystemGenerationJob;
+}
+export interface ImportLocalDesignSystemRequest {
+    /** Absolute local project directory selected by the user. */
+    baseDir: string;
+    /** Optional display name override for the generated design-system project. */
+    name?: string;
+    /** Import structure mode. Defaults to hybrid for real project imports. */
+    importMode?: 'normalized' | 'hybrid' | 'verbatim';
+    /** Craft sections that should actively apply when this system is used. */
+    craftApplies?: string[];
+}
+export interface ImportLocalDesignSystemResponse {
+    designSystem: DesignSystemSummary;
+    tokenContractRebuild?: DesignSystemTokenContractRebuildJobResponse;
+}
+export interface ImportGitHubDesignSystemRequest {
+    /** Public GitHub repository URL, e.g. https://github.com/owner/repo. */
+    githubUrl: string;
+    /** Optional branch to clone. Defaults to the repository default branch. */
+    branch?: string;
+    /** Optional display name override for the generated design-system project. */
+    name?: string;
+    /** Import structure mode. Defaults to hybrid for real project imports. */
+    importMode?: 'normalized' | 'hybrid' | 'verbatim';
+    /** Craft sections that should actively apply when this system is used. */
+    craftApplies?: string[];
+}
+export interface ImportGitHubDesignSystemResponse {
+    designSystem: DesignSystemSummary;
+    tokenContractRebuild?: DesignSystemTokenContractRebuildJobResponse;
+}
+export interface ImportShadcnDesignSystemRequest {
+    /**
+     * shadcn registry item reference. Accepts either the shadcn CLI
+     * shorthand `<owner>/<repo>/<item>` (optionally suffixed with
+     * `#<branch|tag|sha>`), which is resolved against the repository's
+     * root `registry.json` on GitHub, or a direct `https://…/<item>.json`
+     * URL pointing at a registry-item document. `http://` is accepted only
+     * for loopback hosts (localhost / 127.0.0.1) so a self-hosted local
+     * registry can be imported.
+     */
+    reference: string;
+    /** Optional display name override for the generated design-system project. */
+    name?: string;
+    /** Import structure mode. Defaults to hybrid for real project imports. */
+    importMode?: 'normalized' | 'hybrid' | 'verbatim';
+    /** Craft sections that should actively apply when this system is used. */
+    craftApplies?: string[];
+}
+export interface ImportShadcnDesignSystemResponse {
+    designSystem: DesignSystemSummary;
+    tokenContractRebuild?: DesignSystemTokenContractRebuildJobResponse;
+}
+export interface HealthResponse {
+    ok: true;
+    service?: 'daemon';
+    version?: string;
+}
+export interface CodexPetSummary {
+    id: string;
+    displayName: string;
+    description: string;
+    spritesheetUrl: string;
+    spritesheetExt: string;
+    hatchedAt: number;
+    bundled?: boolean;
+}
+export interface CodexPetsResponse {
+    pets: CodexPetSummary[];
+    rootDir: string;
+}
+export interface SyncCommunityPetsRequest {
+    source?: 'all' | 'petshare' | 'hatchery';
+    force?: boolean;
+}
+export interface SyncCommunityPetsResponse {
+    wrote: number;
+    skipped: number;
+    failed: number;
+    total: number;
+    rootDir: string;
+    errors: string[];
+}
+export type InstallInput = {
+    source: 'github';
+    url: string;
+} | {
+    source: 'local';
+    path: string;
+};
+export interface InstallSkillRequest {
+    source: string;
+}
+export interface InstallSkillResponse {
+    skill: SkillSummary;
+}
+export interface InstallDesignSystemResponse {
+    designSystem: DesignSystemSummary;
+}
+export interface UninstallResponse {
+    ok: true;
+}
+//# sourceMappingURL=registry.d.ts.map

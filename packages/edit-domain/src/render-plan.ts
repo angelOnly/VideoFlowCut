@@ -40,7 +40,7 @@ export function buildRenderPlan(snapshot: ProjectSnapshot, startFrame = 0, endFr
       layers.push({ assetId: item.assetId, origin: item.startFrame, sourceStart: item.sourceStartFrame, fit: cutaway?.fit ?? "cover", ...(cutaway ? { background: "black" } : {}) });
     };
     const cueLayer = (cue: typeof cues[number]) => {
-      const asset = motionMediaForCue(snapshot, cue);
+      const asset = motionMediaForCue(snapshot, cue, { startFrame, endFrame });
       if (cue.type !== "ManagedMotion" || !asset?.motion?.output) { reasons.push(`浏览器效果:${cue.id}`); return; }
       const offset = (asset.motion.rootRange?.startFrame ?? 0) * snapshot.timeline.fps / asset.motion.fps;
       if (!Number.isInteger(offset)) { reasons.push(`跨帧率范围:${cue.id}`); return; }

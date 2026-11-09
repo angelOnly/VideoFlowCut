@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { openAsBlob } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { basename, toNamespacedPath } from "node:path";
@@ -18,21 +19,22 @@ export interface BridgeWorkflowField {
 export interface BridgeItemSlot {
   id: string;
   label: string;
-  kind: "audio" | "video" | "image" | string;
-  required: boolean;
+  mediaKind: string;
+  min: number;
+  max: number;
 }
 
 export interface BridgeOutputSlot {
   id: string;
   label: string;
-  kind: string;
+  mediaKinds: string[];
+  min: number;
+  max: number;
 }
 
 export interface BridgeWorkflow {
   id: string;
   name: string;
-  available: boolean;
-  reason?: string | null;
   schemaVersion: string;
   fields: BridgeWorkflowField[];
   itemSlots: BridgeItemSlot[];
@@ -40,37 +42,29 @@ export interface BridgeWorkflow {
 }
 
 export interface BridgeOutput {
-  outputSlotId: string;
-  displayName: string;
-  kind: "video" | "image" | "audio" | "file" | "text" | string;
+  kind: string;
   fileName?: string;
   mime?: string;
   outputId?: string;
-  downloadUrl?: string;
   text?: string;
+  value?: unknown;
 }
-
-/** 仅用于不应被长时生成排队饿死的交互式工作；不会中断已在执行的任务。 */
-export type BridgeQueueMode = "foreground";
 
 export interface BridgeHealth {
   status: string;
   protocolVersion?: number;
   workflowCount?: number;
-  queueModes?: Array<"normal" | BridgeQueueMode>;
 }
 
 export interface BridgeRun {
   id: string;
   status: "queued" | "running" | "succeeded" | "failed";
-  queueMode?: "normal" | BridgeQueueMode;
   error?: string | null;
   outputs: BridgeOutput[];
 }
 
 export interface BridgeRunRequest {
   fieldValues: Record<string, unknown>;
-  queueMode?: BridgeQueueMode;
   files?: Array<{ slot: BridgeItemSlot; path: string; mime?: string }>;
 }
 
@@ -104,17 +98,10 @@ export class BridgeUnavailableError extends BridgeError {
   }
 }
 
-export class WorkflowUnavailableError extends BridgeError {
-  constructor(message: string, status?: number, body?: unknown) {
-    super(message, status, body, "WORKFLOW_UNAVAILABLE");
-    this.name = "WorkflowUnavailableError";
-  }
-}
-
 /** ComfyUI 重启后旧 run_id 可能不存在；调用方可据此提示重新提交，而不是误报普通网络错误。 */
 export class BridgeRunLostError extends BridgeError {
   constructor(public readonly runId: string, body?: unknown) {
-    super(`Bridge Run 已不可查询：${runId}。ComfyUI 可能已重启；本地 Job 保留了请求摘要，可据此重新提交。`, 404, body, "BRIDGE_RUN_LOST");
+    super(`Bridge Run 已不可查询：${runId}。ComfyUI 可能已重启或 history 已清理；不能据 404 判断先前请求未执行，请先对账。`, 404, body, "BRIDGE_RUN_LOST");
     this.name = "BridgeRunLostError";
   }
 }
@@ -154,10 +141,6 @@ function isTransportFailure(error: unknown): boolean {
 
 const sleep = (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 
-/**
- * Bridge 返回的 downloadUrl 相对于 ComfyUI 服务根地址，而不是 API 根路径。
- * 因此即使调用方把 Bridge API 配在带前缀的反向代理路径下，下载也不能重复拼接该前缀。
- */
 function serverOriginFromApiBase(apiBaseUrl: string): string {
   try {
     const parsed = new URL(apiBaseUrl);
@@ -165,23 +148,6 @@ function serverOriginFromApiBase(apiBaseUrl: string): string {
     return parsed.origin;
   } catch {
     throw new BridgeError("COMFYUI_BRIDGE_URL 必须是完整的 HTTP(S) 地址", undefined, apiBaseUrl, "BRIDGE_API_URL_INVALID");
-  }
-}
-
-/** Bridge 合同只允许服务根相对路径；拒绝被输出元数据引导到其他主机。 */
-function resolveSameOriginDownloadUrl(downloadUrl: string, serverBaseUrl: string): string {
-  if (!downloadUrl.startsWith("/") || downloadUrl.startsWith("//")) {
-    throw new BridgeError("Bridge 输出的 downloadUrl 必须是以单个 / 开头的同源路径", undefined, downloadUrl, "UNSAFE_OUTPUT_DOWNLOAD_URL");
-  }
-  try {
-    const resolved = new URL(downloadUrl, serverBaseUrl);
-    if (resolved.origin !== serverBaseUrl) {
-      throw new BridgeError("Bridge 输出的 downloadUrl 指向了其他服务", undefined, downloadUrl, "UNSAFE_OUTPUT_DOWNLOAD_URL");
-    }
-    return resolved.toString();
-  } catch (error) {
-    if (error instanceof BridgeError) throw error;
-    throw new BridgeError("Bridge 输出的 downloadUrl 无法解析为同源路径", undefined, downloadUrl, "UNSAFE_OUTPUT_DOWNLOAD_URL");
   }
 }
 
@@ -198,6 +164,9 @@ export class ComfyUIBridgeClient {
   constructor(apiBaseUrl = readRuntimeConfig().bridge.apiBaseUrl, options: ComfyUIBridgeClientOptions = {}) {
     this.apiBaseUrl = ensureNoTrailingSlash(apiBaseUrl);
     this.serverBaseUrl = serverOriginFromApiBase(this.apiBaseUrl);
+    if (new URL(this.apiBaseUrl).pathname.endsWith("/comfyui-bridge/v1")) {
+      throw new BridgeError("当前配置仍指向 Bridge v1，请改为 v2 后重新提交；已有任务先按原运行记录对账。", undefined, undefined, "BRIDGE_V1_UNSUPPORTED");
+    }
     this.readinessTimeoutMs = Math.max(0, options.readinessTimeoutMs ?? DEFAULT_BRIDGE_READINESS_TIMEOUT_MS);
     this.readinessPollIntervalMs = Math.max(1, options.readinessPollIntervalMs ?? DEFAULT_BRIDGE_READINESS_POLL_INTERVAL_MS);
   }
@@ -206,22 +175,7 @@ export class ComfyUIBridgeClient {
     return this.requestJson<BridgeHealth>("/health");
   }
 
-  /**
-   * 前置队列必须由 Bridge 明确声明支持，避免客户端误以为已隔离、实际仍被长任务饿死。
-   */
-  async requireQueueMode(queueMode: BridgeQueueMode): Promise<void> {
-    const health = await this.health();
-    if (health.status !== "ready" || !health.queueModes?.includes(queueMode)) {
-      throw new BridgeError(
-        `当前 ComfyUI Bridge 未声明支持 ${queueMode} 队列；不会提交可能再次被长任务饿死的工作。`,
-        undefined,
-        health,
-        "BRIDGE_QUEUE_MODE_UNSUPPORTED"
-      );
-    }
-  }
-
-  async listWorkflows(): Promise<{ workflows: BridgeWorkflow[] }> {
+  async listWorkflows(): Promise<{ workflows: Array<{ id: string; name: string; available: boolean; reason?: string | null; schemaVersion: string }> }> {
     return this.requestJson("/workflows");
   }
 
@@ -237,9 +191,6 @@ export class ComfyUIBridgeClient {
       await this.waitForBridgeReadiness(error);
       workflow = await this.requestJson<BridgeWorkflow>(path);
     }
-    if (!workflow.available) {
-      throw new WorkflowUnavailableError(`工作流不可用：${workflow.reason ?? workflow.name}`, 409, workflow);
-    }
     return workflow;
   }
 
@@ -252,52 +203,36 @@ export class ComfyUIBridgeClient {
     }
   }
 
-  async createRun(input: BridgeRunRequest & { workflow: BridgeWorkflow }): Promise<BridgeRun> {
+  async createRun(input: BridgeRunRequest & { workflow: BridgeWorkflow; runId: string }): Promise<BridgeRun> {
     const path = `/workflows/${encodeURIComponent(input.workflow.id)}/runs`;
-    const request = {
-      schemaVersion: input.workflow.schemaVersion,
-      fieldValues: input.fieldValues,
-      ...(input.queueMode ? { queueMode: input.queueMode } : {})
-    };
-    if (!input.files?.length) {
-      return this.requestJson<BridgeRun>(path, {
-        method: "POST",
-        headers: { "content-type": "application/json; charset=utf-8" },
-        body: JSON.stringify(request)
-      });
-    }
+    const request = { schemaVersion: input.workflow.schemaVersion, fieldValues: input.fieldValues };
     const form = new FormData();
     form.set("request", JSON.stringify(request));
-    for (const file of input.files) {
-      // openAsBlob 让 Undici 从磁盘按需读取 multipart 内容，避免把长视频/音频完整复制到 Node 堆。
+    for (const file of input.files ?? []) {
+      // 流式读取素材，避免长媒体完整载入 Node 堆。
       let blob: Blob;
       try { blob = await openAsBlob(toNamespacedPath(file.path), { type: file.mime ?? "application/octet-stream" }); }
       catch (error) { throw new BridgeError(`上传前无法读取本地文件：${error instanceof Error ? error.message : String(error)}`, undefined, undefined, "BRIDGE_INPUT_UNREADABLE"); }
       form.set(`file_${file.slot.id}`, blob, basename(file.path));
     }
-    return this.requestJson<BridgeRun>(path, { method: "POST", body: form });
+    const run = await this.requestJson<BridgeRun>(path, { method: "POST", headers: { "x-comfyui-bridge-run-id": input.runId }, body: form });
+    if (run.id !== input.runId) throw new BridgeError("Bridge 返回的 Run ID 与提交不一致", undefined, run, "BRIDGE_RUN_ID_MISMATCH");
+    return run;
   }
 
-  async createRunWithSchemaRetry(
+  async createRunWithWorkflow(
     workflowId: string,
     buildRequest: (workflow: BridgeWorkflow) => Promise<BridgeRunRequest>,
-    options?: { onSchemaRejected?: (workflow: BridgeWorkflow) => void | Promise<void> }
+    options?: { beforeSubmit?: (submission: BridgeRunSubmission) => void | Promise<void> }
   ): Promise<BridgeRunSubmission> {
-    let workflow = await this.getWorkflow(workflowId);
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        const request = await buildRequest(workflow);
-        const run = await this.createRun({ workflow, ...request });
-        return { workflow, run, request, schemaRetryCount: attempt };
-      } catch (error) {
-        if (!(error instanceof BridgeError) || error.status !== 409) throw error;
-        // 在下一次只读刷新前保存明确拒绝，避免刷新中断被误判为 POST 结果未知。
-        await options?.onSchemaRejected?.(workflow);
-        if (attempt === 1) throw error;
-        workflow = await this.getWorkflow(workflowId);
-      }
-    }
-    throw new BridgeError("无法创建 Bridge 任务");
+    const workflow = await this.getWorkflow(workflowId);
+    const request = await buildRequest(workflow);
+    const runId = randomUUID();
+    const pending: BridgeRunSubmission = { workflow, request, run: { id: runId, status: "queued", outputs: [] }, schemaRetryCount: 0 };
+    // 客户端 ID 在发送前保存，连接中断时只能查询原 ID，不能换 ID 重放。
+    await options?.beforeSubmit?.(pending);
+    const run = await this.createRun({ workflow, ...request, runId });
+    return { ...pending, run };
   }
 
   async waitForRun(runId: string, options?: { timeoutMs?: number; intervalMs?: number; onUpdate?: (run: BridgeRun) => void }): Promise<BridgeRun> {
@@ -315,14 +250,12 @@ export class ComfyUIBridgeClient {
     throw new BridgeError(`等待 Bridge 任务超时：${runId}`, undefined, undefined, "BRIDGE_RUN_TIMEOUT");
   }
 
-  async downloadOutput(output: BridgeOutput, targetPath: string): Promise<void> {
-    if (!output.downloadUrl) throw new BridgeError("输出缺少 downloadUrl", undefined, output, "MISSING_DOWNLOAD_URL");
-    const url = resolveSameOriginDownloadUrl(output.downloadUrl, this.serverBaseUrl);
-    // 输出端点不应将本地 Worker 重定向到其他网络位置。
+  async downloadOutput(runId: string, output: BridgeOutput, targetPath: string): Promise<void> {
+    if (!output.outputId) throw new BridgeError("输出缺少 outputId", undefined, output, "MISSING_OUTPUT_ID");
+    const url = `${this.apiBaseUrl}/runs/${encodeURIComponent(runId)}/outputs/${encodeURIComponent(output.outputId)}`;
     let response: Response;
-    try {
-      response = await fetch(url, { redirect: "error" });
-    } catch (error) {
+    try { response = await fetch(url, { redirect: "error" }); }
+    catch (error) {
       if (isTransportFailure(error)) throw this.unavailableError(url, error);
       throw error;
     }
@@ -330,9 +263,9 @@ export class ComfyUIBridgeClient {
     await writeFile(targetPath, Buffer.from(await response.arrayBuffer()));
   }
 
-  findRequiredSlot(workflow: BridgeWorkflow, kind: BridgeItemSlot["kind"], labelIncludes?: string): BridgeItemSlot {
-    const matching = workflow.itemSlots.filter((slot) => slot.kind === kind && (!labelIncludes || slot.label.toLowerCase().includes(labelIncludes.toLowerCase())));
-    const slot = matching.find((candidate) => candidate.required) ?? matching[0];
+  findRequiredSlot(workflow: BridgeWorkflow, kind: string, labelIncludes?: string): BridgeItemSlot {
+    const matching = workflow.itemSlots.filter((slot) => slot.mediaKind === kind && (!labelIncludes || slot.label.toLowerCase().includes(labelIncludes.toLowerCase())));
+    const slot = matching.find((candidate) => candidate.min > 0) ?? matching[0];
     if (!slot) throw new BridgeError(`工作流 ${workflow.name} 没有可用的 ${kind} 输入槽位`);
     return slot;
   }

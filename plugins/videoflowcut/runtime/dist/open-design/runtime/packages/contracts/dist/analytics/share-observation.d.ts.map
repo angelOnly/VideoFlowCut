@@ -1,0 +1,1 @@
+{"version":3,"file":"share-observation.d.ts","sourceRoot":"","sources":["../../src/analytics/share-observation.ts"],"names":[],"mappings":"AAAA,wFAAwF;AACxF,wBAAgB,yBAAyB,CAAC,KAAK,EAAE,OAAO,GAAG;IAAE,aAAa,CAAC,EAAE,MAAM,CAAC;IAAC,YAAY,CAAC,EAAE,MAAM,CAAA;CAAE,CAe3G;AAED,2GAA2G;AAC3G,wBAAgB,eAAe,CAAC,KAAK,EAAE,OAAO,GAAG,MAAM,EAAE,GAAG,SAAS,CAcpE"}

@@ -1,5 +1,5 @@
 import { motionWorkForCue } from "@videocut/contracts";
-import type { Asset, ImpactReport, ProjectSnapshot, EffectCue, MotionEvent } from "@videocut/contracts";
+import type { Asset, ImpactReport, ProjectSnapshot, EffectCue } from "@videocut/contracts";
 import { motionDurationAtFps } from "../../contracts/src/frame-rate.js";
 import { createId, DomainError, effectBeatRanges } from "@videocut/domain";
 import { bindEffectAudioEvent } from "./effect-audio-events.js";
@@ -8,11 +8,11 @@ type Motion = NonNullable<Asset["motion"]>;
 export interface MotionRangeExpectation {
   cueStart: number; cueEnd: number; cueSourceStart: number; projectFps: number;
   width: number; height: number; fps: number; fullDuration: number; oldRootStart: number;
-  events: MotionEvent[]; startFrame: number; endFrame: number;
+  startFrame: number; endFrame: number;
 }
 export interface MotionRangeCandidate {
   width: number; height: number; fps: number; frameCount: number;
-  rootRange: NonNullable<Motion["rootRange"]>; events?: MotionEvent[];
+  rootRange: NonNullable<Motion["rootRange"]>;
 }
 
 /** 原 Revision 是唯一预期来源，不能用生成期间变化的当前 Cue 代替。 */
@@ -23,13 +23,13 @@ export function motionRangeExpectation(snapshot: ProjectSnapshot, input: { cueId
   if (!Number.isInteger(input.startFrame) || !Number.isInteger(input.endFrame) || input.startFrame < cue.startFrame || input.endFrame > cue.endFrame || input.endFrame <= input.startFrame) throw new DomainError("修改范围必须位于当前 Cue 内", "MOTION_RANGE_INVALID");
   return { cueStart: cue.startFrame, cueEnd: cue.endFrame, cueSourceStart: cue.sourceStartFrame ?? 0, projectFps: snapshot.timeline.fps,
     width: old.width, height: old.height, fps: old.fps, fullDuration: old.frameCount,
-    oldRootStart: 0, events: old.eventMap?.events ?? [], startFrame: input.startFrame, endFrame: input.endFrame };
+    oldRootStart: 0, startFrame: input.startFrame, endFrame: input.endFrame };
 }
 
-/** 提交、捕帧前与正式采用共用同一规则；事件只有实际执行后才可比较。 */
-export function checkMotionRangeCompatibility(expected: MotionRangeExpectation, next: MotionRangeCandidate, compareEvents = true): number {
+/** 提交、捕帧前与正式采用共用同一时钟和范围规则。 */
+export function checkMotionRangeCompatibility(expected: MotionRangeExpectation, next: MotionRangeCandidate): number {
   if (expected.width !== next.width || expected.height !== next.height || expected.fps !== next.fps || expected.fullDuration !== next.rootRange.fullDurationInFrames
-    || (compareEvents && JSON.stringify(expected.events) !== JSON.stringify(next.events ?? []))) throw new DomainError("局部替换保持画幅、作品帧率、完整时长及事件时序；结构变化须重新编排", "MOTION_RANGE_STRUCTURE_CHANGED");
+  ) throw new DomainError("局部替换保持画幅、作品帧率及完整时长；结构变化须重新编排", "MOTION_RANGE_STRUCTURE_CHANGED");
   const delta = (next.rootRange.startFrame - expected.oldRootStart) * expected.projectFps / expected.fps;
   if (!Number.isInteger(delta)) throw new DomainError("局部素材根起点未落在项目共用帧网格，请向前扩展生成窗口至两种帧率的共同边界", "MOTION_RANGE_PHASE_MISMATCH");
   const sourceStart = expected.cueSourceStart + expected.startFrame - expected.cueStart - delta;
@@ -45,7 +45,7 @@ export function replaceMotionRange(snapshot: ProjectSnapshot, impact: ImpactRepo
   const next = snapshot.motionWorks?.find(work => work.id === input.workId);
   if (!cue || cue.type !== "ManagedMotion" || cue.status !== "ready" || !old || !next) throw new DomainError("需要有效的现有受管 Cue 和已登记的正式范围素材", "MOTION_RANGE_ASSET_REQUIRED");
   const expected = motionRangeExpectation(snapshot, input);
-  const sourceStart = checkMotionRangeCompatibility(expected, { width: next.width, height: next.height, fps: next.fps, frameCount: next.frameCount, rootRange: { startFrame: 0, endFrame: next.frameCount, fullDurationInFrames: next.frameCount }, events: next.eventMap?.events });
+  const sourceStart = checkMotionRangeCompatibility(expected, { width: next.width, height: next.height, fps: next.fps, frameCount: next.frameCount, rootRange: { startFrame: 0, endFrame: next.frameCount, fullDurationInFrames: next.frameCount } });
   const segments: EffectCue[] = [];
   const add = (startFrame: number, endFrame: number, source: number, workId: string) => {
     if (endFrame <= startFrame) return;
@@ -63,12 +63,25 @@ export function replaceMotionRange(snapshot: ProjectSnapshot, impact: ImpactRepo
   snapshot.effectCues.splice(snapshot.effectCues.indexOf(cue), 1, ...segments);
   for (const audio of snapshot.audioCues.filter(a => a.effectEvent?.effectCueId === cue.id && a.status === "ready")) {
     const binding = audio.effectEvent!, point = audio.eventFrame! - binding.syncOffsetFrames;
+    // 持续动作跨越替换范围时，不能只核对声音起点所属的旧片段。
+    if (binding.eventId && binding.endLocalFrame !== undefined && point < input.endFrame && cue.startFrame + binding.endLocalFrame > input.startFrame) {
+      const before = old.eventMap?.events.find(event => event.id === binding.eventId);
+      const after = next.eventMap?.events.find(event => event.id === binding.eventId);
+      if (!before || !after || before.startFrame !== after.startFrame || before.endFrame !== after.endFrame) {
+        throw new DomainError(`音效“${audio.purpose}”绑定的持续动作“${binding.eventId}”需要重新安排`, "SFX_MOTION_EVENT_MISMATCH");
+      }
+    }
     const owner = segments.find(s => point >= s.startFrame && point < s.endFrame);
     if (!owner) throw new DomainError("声音事件不在替换后的有效范围，请先核对原绑定", "MOTION_RANGE_EVENT_UNRESOLVED");
     const selected = motionWorkForCue(snapshot, owner)!;
-    audio.effectEvent = bindEffectAudioEvent(snapshot, { ...binding, effectCueId: owner.id, localFrame: point - owner.startFrame,
-      ...(binding.endLocalFrame === undefined ? {} : { endLocalFrame: cue.startFrame + binding.endLocalFrame - owner.startFrame }),
-      ...(binding.eventId ? { workVersion: selected.version } : {}) }, audio.eventFrame!);
+    try {
+      audio.effectEvent = bindEffectAudioEvent(snapshot, { ...binding, effectCueId: owner.id, localFrame: point - owner.startFrame,
+        ...(binding.endLocalFrame === undefined ? {} : { endLocalFrame: cue.startFrame + binding.endLocalFrame - owner.startFrame }),
+        ...(binding.eventId ? { workVersion: selected.version } : {}) }, audio.eventFrame!);
+    } catch (error) {
+      if (error instanceof DomainError) throw new DomainError(`音效“${audio.purpose}”绑定的动作“${binding.eventId ?? binding.eventName}”需要重新安排：${error.message}`, error.code);
+      throw error;
+    }
     impact.changed.push(audio.id);
   }
   impact.changed.push(...segments.map(s => s.id));

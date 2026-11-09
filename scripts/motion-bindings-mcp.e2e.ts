@@ -13,7 +13,7 @@ const { runCandidateRuntime } = require("../plugins/videoflowcut/scripts/candida
 await mkdir(join(repoRoot, ".candidate"), { recursive: true });
 const root = await mkdtemp(join(repoRoot, ".candidate", "motion-bindings-"));
 const port = await findAvailablePort();
-const bridgeUrl = "http://127.0.0.1:18199/comfyui-bridge/v1";
+const bridgeUrl = "http://127.0.0.1:18199/comfyui-bridge/v2";
 const args = ["--repo-root", repoRoot, "--workspace", root, "--port", String(port), "--comfyui-bridge-url", bridgeUrl];
 const runtime = await runCandidateRuntime("ensure", args);
 const transport = new StdioClientTransport({ command: process.execPath, args: [join(repoRoot, "plugins/videoflowcut/scripts/mcp-launcher.mjs")], cwd: repoRoot, stderr: "pipe", env: { ...getDefaultEnvironment(), VIDEOCUT_WORKSPACE: root, VIDEOFLOWCUT_PORT: String(port), COMFYUI_BRIDGE_URL: bridgeUrl } });

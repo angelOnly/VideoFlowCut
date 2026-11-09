@@ -1,0 +1,3 @@
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,13103,e=>{"use strict";var a=e.i(43262);e.i(71151);let r={get url(){return`file://${e.P("node_modules/.pnpm/@excalidraw+excalidraw@0.18_35ce6435019f999df7993d08bf01f01f/node_modules/@excalidraw/excalidraw/dist/prod/subset-worker.chunk.js")}`}};var s=r.url?new URL(r.url):void 0;typeof window>"u"&&"u">typeof self&&(self.onmessage=async e=>{if(e.data.command===a.a.Subset){let r=await (0,a.c)(e.data.arrayBuffer,e.data.codePoints);self.postMessage(r,{transfer:[r]})}}),e.s(["WorkerUrl",0,s])}]);
+
+//# sourceMappingURL=0~3ox7gwwnmg_.js.map

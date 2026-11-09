@@ -150,6 +150,23 @@ test("合成审阅必须来自当前项目、版本和实际完整 Cue，单件�
     assert.equal(passed.revision.number, oldRevision);
     assert.equal(managedMotionReviewOutcome(motion, review), "passed", "保存审阅不会因自身新增 Revision 失去单件结论");
     assert.deepEqual([review.evidence!.workStartFrame, review.evidence!.workEndFrame], [0, 18]);
+    const split = structuredClone(passed.snapshot);
+    const original = split.effectCues[0]!;
+    split.effectCues = [
+      { ...original, id: "split-first", startFrame: 10, endFrame: 19, sourceStartFrame: 0, sourceEndFrame: 9, motion: { ...original.motion, holdFrames: 9 } },
+      { ...original, id: "split-second", startFrame: 19, endFrame: 28, sourceStartFrame: 9, sourceEndFrame: 18, motion: { ...original.motion, holdFrames: 9 } }
+    ];
+    const splitAsset = split.assets.find(asset => asset.id === assetId)!;
+    const complete = await validateMotionReviewEvidence(split, oldRevision, jobs, splitAsset, "passed", evidence);
+    assert.deepEqual([complete!.workStartFrame, complete!.workEndFrame], [0, 18]);
+    split.effectCues[1]!.sourceStartFrame = 8;
+    split.effectCues[1]!.sourceEndFrame = 17;
+    await assert.rejects(validateMotionReviewEvidence(split, oldRevision, jobs, splitAsset, "passed", evidence), /连续顺播/u);
+    split.effectCues[0]!.sourceStartFrame = 9;
+    split.effectCues[0]!.sourceEndFrame = 18;
+    split.effectCues[1]!.sourceStartFrame = 0;
+    split.effectCues[1]!.sourceEndFrame = 9;
+    await assert.rejects(validateMotionReviewEvidence(split, oldRevision, jobs, splitAsset, "passed", evidence), /连续顺播/u);
     await f.app.reviewManagedMotion({ ...request(), evidence });
     f.app.removeEffectCue({ projectId: f.projectId, baseRevision: f.revision(), cueId: state.snapshot.effectCues[0]!.id });
     await assert.rejects(f.app.reviewManagedMotion({ ...request(), evidence }), /完整覆盖/u);
