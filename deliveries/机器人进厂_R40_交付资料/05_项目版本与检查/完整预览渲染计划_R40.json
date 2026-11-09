@@ -1,0 +1,1434 @@
+{
+  "plan": {
+    "startFrame": 0,
+    "endFrame": 1463,
+    "spans": [
+      {
+        "startFrame": 0,
+        "endFrame": 9,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "18d94e7ebd231b07fea0a3f65bfaea548a542441e1f7441133313056d10be252"
+      },
+      {
+        "startFrame": 9,
+        "endFrame": 91,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_10bd9cd4-0a5b-4846-8a69-c16f17e4e52b"
+        ],
+        "reasons": [],
+        "cacheKey": "22ffa0808e8321ee80167d85fa9e5efc0ff81d0b355a5c4aa5b8c69494662fee"
+      },
+      {
+        "startFrame": 91,
+        "endFrame": 95,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "83c3305632e5731816a0c19c40dd0af25080e00019769da269223af57328b559"
+      },
+      {
+        "startFrame": 95,
+        "endFrame": 141,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_13690ee1-65d6-46c7-94fd-cc43053d144d"
+        ],
+        "reasons": [],
+        "cacheKey": "13a327b0d5573d7ef32f0cfd12a060aec3b55eb9b619a87735438c637ec50476"
+      },
+      {
+        "startFrame": 141,
+        "endFrame": 143,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "f270a57da7bc257a5ab255ee5e41e7fce2be8ad101690dc6def030f27f9e8306"
+      },
+      {
+        "startFrame": 143,
+        "endFrame": 190,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_166668d8-3fbf-4466-b0ab-6706f2449b58"
+        ],
+        "reasons": [],
+        "cacheKey": "841a6c157e295c51848298ce3562b287296b8d39406c6f6f60463005503bda64"
+      },
+      {
+        "startFrame": 190,
+        "endFrame": 198,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "6380fe3e0432f5e16fa68a3c4d96a2bed36d9ff7230556627a446feac55c24cc"
+      },
+      {
+        "startFrame": 198,
+        "endFrame": 233,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_40fc53c1-ecfb-4b21-8f05-71e50dd08f08"
+        ],
+        "reasons": [],
+        "cacheKey": "88b118e6ed6d95f7bc6fc5de54e402be9b191c964826ba47bf59a0e274f19dcc"
+      },
+      {
+        "startFrame": 233,
+        "endFrame": 234,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "16ace3f1b6a8a52f82ebdc18d1fcefc1a202e10033e3c7e443acae0689ad355a"
+      },
+      {
+        "startFrame": 234,
+        "endFrame": 307,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_fb5beb38-de19-4587-927d-ab93e865b557"
+        ],
+        "reasons": [],
+        "cacheKey": "fdaf057b1fb8c35b6fb6305715a7f76a49a295f3149dc5cebc55a5e0cd59470d"
+      },
+      {
+        "startFrame": 307,
+        "endFrame": 317,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "51aea9cde4538138910f7fa1464347dbb854b943b1358fc1bc42406d483d1967"
+      },
+      {
+        "startFrame": 317,
+        "endFrame": 395,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_6ef93322-544d-4edf-b647-5bda2ae3265d"
+        ],
+        "reasons": [],
+        "cacheKey": "d2e4520d7af105cd086dbe4f682fa678876d9dfc7294354ef4a860da7d5d4b89"
+      },
+      {
+        "startFrame": 395,
+        "endFrame": 401,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "91ef16562bc2892a11ba8e116167be4b11ab1ea4006396e611828e11e3f627ef"
+      },
+      {
+        "startFrame": 401,
+        "endFrame": 454,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_d747216b-238f-4bd7-ade4-c9960be45c65"
+        ],
+        "reasons": [],
+        "cacheKey": "9391a761750ccf4e0e38b7cc5088f6475ac66767bac31de73d8cac17f37dde5d"
+      },
+      {
+        "startFrame": 454,
+        "endFrame": 456,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "4b2175825187623f87b1d7715f2ac17e74014c45b0926f0ae1c69ce64468ca9c"
+      },
+      {
+        "startFrame": 456,
+        "endFrame": 511,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_a7b8ff78-993c-46a5-8c3f-a003c3d2e747"
+        ],
+        "reasons": [],
+        "cacheKey": "8d8706cbafa30cd927cc2496ed4cb0f6e780f9a7fc9ad843e1d34213be799a6a"
+      },
+      {
+        "startFrame": 511,
+        "endFrame": 562,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_7e9decd9-42ed-4b66-a948-078c2720ea7d"
+        ],
+        "reasons": [],
+        "cacheKey": "e16ae8e80f99a2442d887e0996203bfddb020ff3e64729c1468278c5e1375e37"
+      },
+      {
+        "startFrame": 562,
+        "endFrame": 568,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "07230b55fefd99fe993355fd66b4bfa37fa5f55fc09378bda886c6e0ac6691eb"
+      },
+      {
+        "startFrame": 568,
+        "endFrame": 663,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_35e0daca-6596-4cb6-ab82-21487404f207"
+        ],
+        "reasons": [],
+        "cacheKey": "df430c7e0af6a039940b84ddea49be31cb8b99f13074b1040a211d9ee75e2452"
+      },
+      {
+        "startFrame": 663,
+        "endFrame": 668,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "6d4674ea9dc2e6850248634746b733d6c4012001940ce71d25f34cbe7c15d0fc"
+      },
+      {
+        "startFrame": 668,
+        "endFrame": 708,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_76afed38-11ef-4a61-9440-d47225b777ca"
+        ],
+        "reasons": [],
+        "cacheKey": "638add7ee052358929e0894b199f4d063a4b1b93c04d989093a33fd2d74e9c2e"
+      },
+      {
+        "startFrame": 708,
+        "endFrame": 759,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_d4c5f16d-04c9-4ea1-b8e6-5aed7a0bccbd"
+        ],
+        "reasons": [],
+        "cacheKey": "0bd6780b5e37415166d35ce993cb5922ad4961d8df4097ec924f3498c957851f"
+      },
+      {
+        "startFrame": 759,
+        "endFrame": 768,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "701139fb83db5afc1492371fb516a99c4eb01d5a72128be4090056485b6e3f18"
+      },
+      {
+        "startFrame": 768,
+        "endFrame": 835,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_990c6344-a4f1-4e0b-98ce-4695a0e02da9"
+        ],
+        "reasons": [],
+        "cacheKey": "811129da428c5fd1cf9b7a5c84a6f12a5c4c5a333d1a05d680877f3059d0bcb4"
+      },
+      {
+        "startFrame": 835,
+        "endFrame": 842,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "2ca86e15080273d902c60334d77a81df56b7cdeda8100028a8bd3b2f9ebbbbe3"
+      },
+      {
+        "startFrame": 842,
+        "endFrame": 918,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_16c7a0d1-77dd-4161-871d-7412a7f4e9a4"
+        ],
+        "reasons": [],
+        "cacheKey": "744f60e72104d6c2ad8fd8f0725dad55e9bc2652659b71490bc4bbaeb9a90970"
+      },
+      {
+        "startFrame": 918,
+        "endFrame": 925,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "9313a489d813ec4e5b4a4bc71f7dc9b5c8cf75206dfbbd96be500bfd695f5257"
+      },
+      {
+        "startFrame": 925,
+        "endFrame": 999,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_bf656770-4ed0-4f2c-9916-a8b04e4014d8"
+        ],
+        "reasons": [],
+        "cacheKey": "ca04e451bd5c54e297091ddb36087e7189b008da9eec038a46a3cbe38fcd8ebd"
+      },
+      {
+        "startFrame": 999,
+        "endFrame": 1004,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "48df67ce327a16f96c87b0ee8ad64be44dbb576f519447464aa7f6eb7024c8e1"
+      },
+      {
+        "startFrame": 1004,
+        "endFrame": 1069,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_71514e63-f649-422b-bf95-c251f94d69d5"
+        ],
+        "reasons": [],
+        "cacheKey": "3bfeea5b4867c63c8971c25bdb689ea0cb52dc2a6074516ca3c2116da5d349b0"
+      },
+      {
+        "startFrame": 1069,
+        "endFrame": 1073,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "f6f3ab09231873996bb8799ca0a6556b802159f572e64df557d443810afd8ef4"
+      },
+      {
+        "startFrame": 1073,
+        "endFrame": 1139,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_b12602fd-0540-4bd4-8688-09ff73a3d193"
+        ],
+        "reasons": [],
+        "cacheKey": "95a132a650e08b7178ce0b71f5b53a2dd75ae52317a569f632df818275e16649"
+      },
+      {
+        "startFrame": 1139,
+        "endFrame": 1145,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "b2fb7b09da859150b2283b27f301bbb211a286dac98d520466a31645167efa46"
+      },
+      {
+        "startFrame": 1145,
+        "endFrame": 1189,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_95f839d3-8816-4c3a-b96c-90d83c0433e8"
+        ],
+        "reasons": [],
+        "cacheKey": "86a738c4278efbb5aa704d09bc4afecbca09a967caa366022d920a3b1a507f38"
+      },
+      {
+        "startFrame": 1189,
+        "endFrame": 1192,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "598dfd8e0e437f253ef191f13c82d9ea7f95fc83adb1ca7566836c2ae81835ae"
+      },
+      {
+        "startFrame": 1192,
+        "endFrame": 1277,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_cf9277dc-0e4d-4a61-8a6b-db08f05bf503"
+        ],
+        "reasons": [],
+        "cacheKey": "680ae55046a004ad6e74ee757bb27f4582e1d8bd69ec5f4cbe8377812a3f1107"
+      },
+      {
+        "startFrame": 1277,
+        "endFrame": 1313,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_48843c98-ac71-4e8b-bc86-b2df7cfd4cd6"
+        ],
+        "reasons": [],
+        "cacheKey": "e5ee415e010796d4b6e1116cf922ed9ed4fd09c8f897d7afc3c7bcaa872156b5"
+      },
+      {
+        "startFrame": 1313,
+        "endFrame": 1320,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "d092e1c7ee01c7909e90cea4dd83124f5b6dffb64e9c7e7ff42ad6d1f631048e"
+      },
+      {
+        "startFrame": 1320,
+        "endFrame": 1367,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_efafbce6-da1e-414c-b24f-f44e5693f704"
+        ],
+        "reasons": [],
+        "cacheKey": "9d2e6386143662eadf4a3dfe7eb887d353edc9645d0709012af5f4dfcfc396b6"
+      },
+      {
+        "startFrame": 1367,
+        "endFrame": 1370,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "b59c7d7303e183a94f64c71baa0f5bfdef19f2c8ba4486c7ee9ecc72f036a710"
+      },
+      {
+        "startFrame": 1370,
+        "endFrame": 1460,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_be52a2c6-0494-4dc8-8191-f780c59c72d4"
+        ],
+        "reasons": [],
+        "cacheKey": "7cd281948181e59de0c48a350dbf3ede7eafc2e3eb3215fab9213d82fab071ff"
+      },
+      {
+        "startFrame": 1460,
+        "endFrame": 1463,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "90ccd0388aa5077fb0582317f861fd7ca2bde59beba0b103a751c11d7592ccf3"
+      }
+    ],
+    "renderer": "ffmpeg"
+  },
+  "visualKey": "e16e239aa08c76a1f5ccf1034256b1174412ce50542d460ae686e929e24fbb3c",
+  "audioKey": "899a6c6ace71788741fa8ba09e60d993ab41e700321b3774b61fb623f00b6e7e",
+  "resultKey": "76ffef5afac9033ac0c429f2f1b9566758e57a3c41acc404793ba429ea519bbb",
+  "reuse": "segments",
+  "encoder": "h264_nvenc",
+  "timings": [
+    {
+      "kind": "result",
+      "hit": false,
+      "reason": "missing"
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 0,
+      "endFrame": 9,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 14,
+      "elapsedMs": 15,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 9,
+      "endFrame": 91,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 66,
+      "elapsedMs": 66,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 91,
+      "endFrame": 95,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 3,
+      "elapsedMs": 4,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 95,
+      "endFrame": 141,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 44,
+      "elapsedMs": 44,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 141,
+      "endFrame": 143,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 2,
+      "elapsedMs": 3,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 143,
+      "endFrame": 190,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 44,
+      "elapsedMs": 44,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 190,
+      "endFrame": 198,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 19,
+      "elapsedMs": 19,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 198,
+      "endFrame": 233,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 54,
+      "elapsedMs": 55,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 233,
+      "endFrame": 234,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 3,
+      "elapsedMs": 3,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 234,
+      "endFrame": 307,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 41,
+      "elapsedMs": 42,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 307,
+      "endFrame": 317,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 4,
+      "elapsedMs": 4,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 317,
+      "endFrame": 395,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 54,
+      "elapsedMs": 54,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 395,
+      "endFrame": 401,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 10,
+      "elapsedMs": 11,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 401,
+      "endFrame": 454,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 41,
+      "elapsedMs": 41,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 454,
+      "endFrame": 456,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 4,
+      "elapsedMs": 7,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 456,
+      "endFrame": 511,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 22,
+      "elapsedMs": 22,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 511,
+      "endFrame": 562,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 20,
+      "elapsedMs": 21,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 562,
+      "endFrame": 568,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 4,
+      "elapsedMs": 5,
+      "reasons": []
+    },
+    {
+      "kind": "caption",
+      "id": "caption_35e0daca-6596-4cb6-ab82-21487404f207",
+      "hit": false,
+      "reason": "missing"
+    },
+    {
+      "kind": "source_read",
+      "startFrame": 568,
+      "endFrame": 663,
+      "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+      "inputIndex": 1,
+      "sourceStartFrame": 568,
+      "seekSeconds": 18.933333333333334,
+      "decodedFrames": 102
+    },
+    {
+      "kind": "media",
+      "cacheHit": false,
+      "cacheReason": "missing",
+      "startFrame": 568,
+      "endFrame": 663,
+      "lookupReason": "missing",
+      "lookupElapsedMs": 0,
+      "elapsedMs": 3399,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 663,
+      "endFrame": 668,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 4,
+      "elapsedMs": 5,
+      "reasons": []
+    },
+    {
+      "kind": "caption",
+      "id": "caption_76afed38-11ef-4a61-9440-d47225b777ca",
+      "hit": false,
+      "reason": "missing"
+    },
+    {
+      "kind": "source_read",
+      "startFrame": 668,
+      "endFrame": 708,
+      "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+      "inputIndex": 1,
+      "sourceStartFrame": 668,
+      "seekSeconds": 22.266666666666666,
+      "decodedFrames": 52
+    },
+    {
+      "kind": "media",
+      "cacheHit": false,
+      "cacheReason": "missing",
+      "startFrame": 668,
+      "endFrame": 708,
+      "lookupReason": "missing",
+      "lookupElapsedMs": 0,
+      "elapsedMs": 2905,
+      "reasons": []
+    },
+    {
+      "kind": "caption",
+      "id": "caption_d4c5f16d-04c9-4ea1-b8e6-5aed7a0bccbd",
+      "hit": false,
+      "reason": "missing"
+    },
+    {
+      "kind": "source_read",
+      "startFrame": 708,
+      "endFrame": 759,
+      "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+      "inputIndex": 1,
+      "sourceStartFrame": 708,
+      "seekSeconds": 23.6,
+      "decodedFrames": 54
+    },
+    {
+      "kind": "media",
+      "cacheHit": false,
+      "cacheReason": "missing",
+      "startFrame": 708,
+      "endFrame": 759,
+      "lookupReason": "missing",
+      "lookupElapsedMs": 1,
+      "elapsedMs": 3093,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 759,
+      "endFrame": 768,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 11,
+      "elapsedMs": 14,
+      "reasons": []
+    },
+    {
+      "kind": "caption",
+      "id": "caption_990c6344-a4f1-4e0b-98ce-4695a0e02da9",
+      "hit": false,
+      "reason": "missing"
+    },
+    {
+      "kind": "source_read",
+      "startFrame": 768,
+      "endFrame": 835,
+      "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+      "inputIndex": 1,
+      "sourceStartFrame": 768,
+      "seekSeconds": 25.6,
+      "decodedFrames": 72
+    },
+    {
+      "kind": "media",
+      "cacheHit": false,
+      "cacheReason": "missing",
+      "startFrame": 768,
+      "endFrame": 835,
+      "lookupReason": "missing",
+      "lookupElapsedMs": 0,
+      "elapsedMs": 3227,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 835,
+      "endFrame": 842,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 4,
+      "elapsedMs": 5,
+      "reasons": []
+    },
+    {
+      "kind": "caption",
+      "id": "caption_16c7a0d1-77dd-4161-871d-7412a7f4e9a4",
+      "hit": false,
+      "reason": "missing"
+    },
+    {
+      "kind": "source_read",
+      "startFrame": 842,
+      "endFrame": 918,
+      "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+      "inputIndex": 1,
+      "sourceStartFrame": 842,
+      "seekSeconds": 28.066666666666666,
+      "decodedFrames": 83
+    },
+    {
+      "kind": "media",
+      "cacheHit": false,
+      "cacheReason": "missing",
+      "startFrame": 842,
+      "endFrame": 918,
+      "lookupReason": "missing",
+      "lookupElapsedMs": 0,
+      "elapsedMs": 3273,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 918,
+      "endFrame": 925,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 5,
+      "elapsedMs": 6,
+      "reasons": []
+    },
+    {
+      "kind": "caption",
+      "id": "caption_bf656770-4ed0-4f2c-9916-a8b04e4014d8",
+      "hit": false,
+      "reason": "missing"
+    },
+    {
+      "kind": "source_read",
+      "startFrame": 925,
+      "endFrame": 999,
+      "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+      "inputIndex": 1,
+      "sourceStartFrame": 925,
+      "seekSeconds": 30.833333333333332,
+      "decodedFrames": 79
+    },
+    {
+      "kind": "media",
+      "cacheHit": false,
+      "cacheReason": "missing",
+      "startFrame": 925,
+      "endFrame": 999,
+      "lookupReason": "missing",
+      "lookupElapsedMs": 0,
+      "elapsedMs": 2991,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 999,
+      "endFrame": 1004,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 5,
+      "elapsedMs": 6,
+      "reasons": []
+    },
+    {
+      "kind": "caption",
+      "id": "caption_71514e63-f649-422b-bf95-c251f94d69d5",
+      "hit": false,
+      "reason": "missing"
+    },
+    {
+      "kind": "source_read",
+      "startFrame": 1004,
+      "endFrame": 1069,
+      "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+      "inputIndex": 1,
+      "sourceStartFrame": 1004,
+      "seekSeconds": 33.46666666666667,
+      "decodedFrames": 76
+    },
+    {
+      "kind": "media",
+      "cacheHit": false,
+      "cacheReason": "missing",
+      "startFrame": 1004,
+      "endFrame": 1069,
+      "lookupReason": "missing",
+      "lookupElapsedMs": 1,
+      "elapsedMs": 4463,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 1069,
+      "endFrame": 1073,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 3,
+      "elapsedMs": 3,
+      "reasons": []
+    },
+    {
+      "kind": "caption",
+      "id": "caption_b12602fd-0540-4bd4-8688-09ff73a3d193",
+      "hit": false,
+      "reason": "missing"
+    },
+    {
+      "kind": "source_read",
+      "startFrame": 1073,
+      "endFrame": 1139,
+      "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+      "inputIndex": 1,
+      "sourceStartFrame": 1073,
+      "seekSeconds": 35.766666666666666,
+      "decodedFrames": 76
+    },
+    {
+      "kind": "media",
+      "cacheHit": false,
+      "cacheReason": "missing",
+      "startFrame": 1073,
+      "endFrame": 1139,
+      "lookupReason": "missing",
+      "lookupElapsedMs": 0,
+      "elapsedMs": 3044,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 1139,
+      "endFrame": 1145,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 3,
+      "elapsedMs": 4,
+      "reasons": []
+    },
+    {
+      "kind": "caption",
+      "id": "caption_95f839d3-8816-4c3a-b96c-90d83c0433e8",
+      "hit": false,
+      "reason": "missing"
+    },
+    {
+      "kind": "source_read",
+      "startFrame": 1145,
+      "endFrame": 1189,
+      "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+      "inputIndex": 1,
+      "sourceStartFrame": 1145,
+      "seekSeconds": 38.166666666666664,
+      "decodedFrames": 53
+    },
+    {
+      "kind": "media",
+      "cacheHit": false,
+      "cacheReason": "missing",
+      "startFrame": 1145,
+      "endFrame": 1189,
+      "lookupReason": "missing",
+      "lookupElapsedMs": 0,
+      "elapsedMs": 3002,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 1189,
+      "endFrame": 1192,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 1,
+      "elapsedMs": 1,
+      "reasons": []
+    },
+    {
+      "kind": "caption",
+      "id": "caption_cf9277dc-0e4d-4a61-8a6b-db08f05bf503",
+      "hit": false,
+      "reason": "missing"
+    },
+    {
+      "kind": "source_read",
+      "startFrame": 1192,
+      "endFrame": 1277,
+      "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+      "inputIndex": 1,
+      "sourceStartFrame": 1192,
+      "seekSeconds": 39.733333333333334,
+      "decodedFrames": 94
+    },
+    {
+      "kind": "media",
+      "cacheHit": false,
+      "cacheReason": "missing",
+      "startFrame": 1192,
+      "endFrame": 1277,
+      "lookupReason": "missing",
+      "lookupElapsedMs": 1,
+      "elapsedMs": 3317,
+      "reasons": []
+    },
+    {
+      "kind": "caption",
+      "id": "caption_48843c98-ac71-4e8b-bc86-b2df7cfd4cd6",
+      "hit": false,
+      "reason": "missing"
+    },
+    {
+      "kind": "source_read",
+      "startFrame": 1277,
+      "endFrame": 1313,
+      "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+      "inputIndex": 1,
+      "sourceStartFrame": 1277,
+      "seekSeconds": 42.56666666666667,
+      "decodedFrames": 45
+    },
+    {
+      "kind": "media",
+      "cacheHit": false,
+      "cacheReason": "missing",
+      "startFrame": 1277,
+      "endFrame": 1313,
+      "lookupReason": "missing",
+      "lookupElapsedMs": 0,
+      "elapsedMs": 4815,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 1313,
+      "endFrame": 1320,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 3,
+      "elapsedMs": 4,
+      "reasons": []
+    },
+    {
+      "kind": "caption",
+      "id": "caption_efafbce6-da1e-414c-b24f-f44e5693f704",
+      "hit": false,
+      "reason": "missing"
+    },
+    {
+      "kind": "source_read",
+      "startFrame": 1320,
+      "endFrame": 1367,
+      "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+      "inputIndex": 1,
+      "sourceStartFrame": 1320,
+      "seekSeconds": 44,
+      "decodedFrames": 51
+    },
+    {
+      "kind": "media",
+      "cacheHit": false,
+      "cacheReason": "missing",
+      "startFrame": 1320,
+      "endFrame": 1367,
+      "lookupReason": "missing",
+      "lookupElapsedMs": 1,
+      "elapsedMs": 2959,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 1367,
+      "endFrame": 1370,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 3,
+      "elapsedMs": 4,
+      "reasons": []
+    },
+    {
+      "kind": "caption",
+      "id": "caption_be52a2c6-0494-4dc8-8191-f780c59c72d4",
+      "hit": false,
+      "reason": "missing"
+    },
+    {
+      "kind": "source_read",
+      "startFrame": 1370,
+      "endFrame": 1460,
+      "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+      "inputIndex": 1,
+      "sourceStartFrame": 1370,
+      "seekSeconds": 45.666666666666664,
+      "decodedFrames": 96
+    },
+    {
+      "kind": "media",
+      "cacheHit": false,
+      "cacheReason": "missing",
+      "startFrame": 1370,
+      "endFrame": 1460,
+      "lookupReason": "missing",
+      "lookupElapsedMs": 0,
+      "elapsedMs": 4153,
+      "reasons": []
+    },
+    {
+      "kind": "media",
+      "cacheHit": true,
+      "cacheReason": "hit",
+      "startFrame": 1460,
+      "endFrame": 1463,
+      "lookupReason": "hit",
+      "lookupElapsedMs": 2,
+      "elapsedMs": 3,
+      "reasons": []
+    },
+    {
+      "kind": "audio",
+      "hit": true,
+      "reason": "hit",
+      "elapsedMs": 20
+    },
+    {
+      "kind": "video_encode",
+      "elapsedMs": 6590
+    },
+    {
+      "kind": "output_validation",
+      "frameCount": 1463,
+      "fps": 30,
+      "width": 1920,
+      "height": 1080,
+      "audioDuration": 48.766,
+      "elapsedMs": 7443
+    },
+    {
+      "kind": "result_publish",
+      "saved": true
+    }
+  ],
+  "peakWorkerRssBytes": 404824064,
+  "peakWorkingDirectoryBytes": 1153726389,
+  "measurementScope": "Worker RSS 与阶段结束时临时目录占用；不含浏览器或 FFmpeg 子进程 RSS",
+  "elapsedMs": 59402
+}

@@ -1,0 +1,574 @@
+{
+  "id": "job_fa003fd7-6a99-444a-8b83-5d3f1f45ed43",
+  "projectId": "project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965",
+  "kind": "motion_generation",
+  "status": "succeeded",
+  "payload": {
+    "version": "e5d1c62372fc0cedc907e6bfc6ad6b8b4146d7ae172a53d312808f97fbb7562a",
+    "pixelKey": "c1b58b7e68937c7b6b73bfa827ca109c1cad183874f31c8c5eed1a7c14c87953",
+    "outputIntent": "asset",
+    "fixedWorkId": "motion_work_a8490086530805a1323be9011b1d2867d50bf76c849d3a8272519c102f643545",
+    "readyRanges": [
+      {
+        "startFrame": 0,
+        "endFrame": 1463
+      }
+    ],
+    "sourceDisplay": {
+      "policy": {
+        "mode": "internal_only"
+      },
+      "scopeId": "project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965"
+    },
+    "sourceDisplayWarnings": [],
+    "engineVersion": "managed-hyperframes-4",
+    "requestedRevision": 36,
+    "retryOfJobId": "job_75455b5f-2f72-4d04-84e6-66eb94159292"
+  },
+  "result": {
+    "execution": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-11-07T14:46:49.596Z",
+          "finishedAt": "2026-11-07T15:01:23.334Z",
+          "outcome": "succeeded"
+        }
+      ],
+      "lastProgressAt": "2026-11-07T15:01:23.334Z"
+    },
+    "motionProgress": {
+      "jobId": "job_fa003fd7-6a99-444a-8b83-5d3f1f45ed43",
+      "version": "e5d1c62372fc0cedc907e6bfc6ad6b8b4146d7ae172a53d312808f97fbb7562a",
+      "releaseId": "release-ce09390151f391d76c7476694dd34096803652368aac395c9faa23137f556424",
+      "stage": "completed",
+      "currentFrame": null,
+      "lastCompletedFrame": null,
+      "stageStartedAt": "2026-11-07T15:01:23.323Z",
+      "concurrency": 2,
+      "startFrame": 0,
+      "endFrame": 1463,
+      "lanes": [
+        {
+          "lane": 0,
+          "startFrame": 0,
+          "endFrame": 731,
+          "stage": "determinism_verification",
+          "currentFrame": 730,
+          "lastCompletedFrame": 730,
+          "stageStartedAt": "2026-11-07T14:59:10.034Z",
+          "browserPid": 109808,
+          "browserVersion": "HeadlessChrome/149.0.7790.0",
+          "documentBytes": 516818,
+          "operation": "pixel_decode",
+          "lastProgressAt": "2026-11-07T14:59:09.530Z",
+          "terminationRequestedBy": "normal_cleanup",
+          "browserDisconnected": true,
+          "browserExitCode": 0,
+          "browserExitSignal": null,
+          "stages": [
+            {
+              "stage": "source_compilation",
+              "startedAt": "2026-11-07T14:46:50.361Z",
+              "finishedAt": "2026-11-07T14:46:50.371Z"
+            },
+            {
+              "stage": "browser_startup",
+              "startedAt": "2026-11-07T14:46:50.371Z",
+              "finishedAt": "2026-11-07T14:46:51.012Z"
+            },
+            {
+              "stage": "page_navigation",
+              "startedAt": "2026-11-07T14:46:51.012Z",
+              "finishedAt": "2026-11-07T14:46:51.418Z"
+            },
+            {
+              "stage": "animation_initialization",
+              "startedAt": "2026-11-07T14:46:51.418Z",
+              "finishedAt": "2026-11-07T14:46:51.649Z"
+            },
+            {
+              "stage": "frame_rendering",
+              "startedAt": "2026-11-07T14:46:51.649Z",
+              "finishedAt": "2026-11-07T14:59:10.034Z"
+            },
+            {
+              "stage": "determinism_verification",
+              "startedAt": "2026-11-07T14:59:10.034Z"
+            }
+          ]
+        },
+        {
+          "lane": 1,
+          "startFrame": 731,
+          "endFrame": 1463,
+          "stage": "determinism_verification",
+          "currentFrame": 1462,
+          "lastCompletedFrame": 1462,
+          "stageStartedAt": "2026-11-07T14:56:39.606Z",
+          "browserPid": 94256,
+          "browserVersion": "HeadlessChrome/149.0.7790.0",
+          "documentBytes": 516818,
+          "operation": "pixel_decode",
+          "lastProgressAt": "2026-11-07T14:56:39.508Z",
+          "terminationRequestedBy": "normal_cleanup",
+          "browserDisconnected": true,
+          "browserExitCode": 0,
+          "browserExitSignal": null,
+          "stages": [
+            {
+              "stage": "source_compilation",
+              "startedAt": "2026-11-07T14:46:50.337Z",
+              "finishedAt": "2026-11-07T14:46:50.349Z"
+            },
+            {
+              "stage": "browser_startup",
+              "startedAt": "2026-11-07T14:46:50.349Z",
+              "finishedAt": "2026-11-07T14:46:51.011Z"
+            },
+            {
+              "stage": "page_navigation",
+              "startedAt": "2026-11-07T14:46:51.011Z",
+              "finishedAt": "2026-11-07T14:46:51.417Z"
+            },
+            {
+              "stage": "animation_initialization",
+              "startedAt": "2026-11-07T14:46:51.417Z",
+              "finishedAt": "2026-11-07T14:46:51.776Z"
+            },
+            {
+              "stage": "frame_rendering",
+              "startedAt": "2026-11-07T14:46:51.776Z",
+              "finishedAt": "2026-11-07T14:56:39.606Z"
+            },
+            {
+              "stage": "determinism_verification",
+              "startedAt": "2026-11-07T14:56:39.606Z"
+            }
+          ]
+        }
+      ],
+      "completedFrames": 1463,
+      "totalFrames": 1463,
+      "lastProgressAt": "2026-11-07T14:59:16.011Z",
+      "documentBytes": 516818,
+      "stages": [
+        {
+          "stage": "font_preparation",
+          "startedAt": "2026-11-07T14:46:49.617Z",
+          "finishedAt": "2026-11-07T14:46:49.648Z"
+        },
+        {
+          "stage": "image_preparation",
+          "startedAt": "2026-11-07T14:46:49.648Z",
+          "finishedAt": "2026-11-07T14:46:49.659Z"
+        },
+        {
+          "stage": "video_preparation",
+          "startedAt": "2026-11-07T14:46:49.659Z",
+          "finishedAt": "2026-11-07T14:46:50.328Z"
+        },
+        {
+          "stage": "parallel_frame_rendering",
+          "startedAt": "2026-11-07T14:46:50.328Z",
+          "finishedAt": "2026-11-07T14:59:16.018Z"
+        },
+        {
+          "stage": "range_assembly",
+          "startedAt": "2026-11-07T14:59:16.018Z",
+          "finishedAt": "2026-11-07T14:59:16.598Z"
+        },
+        {
+          "stage": "preview_encoding",
+          "startedAt": "2026-11-07T14:59:16.598Z",
+          "finishedAt": "2026-11-07T14:59:27.023Z"
+        },
+        {
+          "stage": "output_validation",
+          "startedAt": "2026-11-07T14:59:27.023Z",
+          "finishedAt": "2026-11-07T15:00:25.228Z"
+        },
+        {
+          "stage": "output_validation",
+          "startedAt": "2026-11-07T15:00:25.228Z",
+          "finishedAt": "2026-11-07T15:01:23.323Z"
+        },
+        {
+          "stage": "completed",
+          "startedAt": "2026-11-07T15:01:23.323Z"
+        }
+      ]
+    },
+    "assetId": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+    "version": "e5d1c62372fc0cedc907e6bfc6ad6b8b4146d7ae172a53d312808f97fbb7562a",
+    "fullWorkDurationInFrames": 1463,
+    "videoDecodes": {
+      "yellowOpening": {
+        "width": 1920,
+        "height": 1080,
+        "startFrame": 0,
+        "endFrame": 156,
+        "frameCount": 156,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 3840,
+          "encodedHeight": 2160,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 3840,
+          "displayHeight": 2160,
+          "durationMs": 9860,
+          "startTimeSeconds": 0
+        }
+      },
+      "carProbability": {
+        "width": 1920,
+        "height": 1080,
+        "startFrame": 156,
+        "endFrame": 311,
+        "frameCount": 155,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 1920,
+          "encodedHeight": 1080,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 1920,
+          "displayHeight": 1080,
+          "durationMs": 8400,
+          "startTimeSeconds": 0
+        }
+      },
+      "atlasContinuous": {
+        "width": 1920,
+        "height": 1080,
+        "startFrame": 311,
+        "endFrame": 477,
+        "frameCount": 166,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 1920,
+          "encodedHeight": 1080,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 1920,
+          "displayHeight": 1080,
+          "durationMs": 172605,
+          "startTimeSeconds": 0
+        }
+      },
+      "operatorException": {
+        "width": 1920,
+        "height": 1080,
+        "startFrame": 477,
+        "endFrame": 564,
+        "frameCount": 87,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 1920,
+          "encodedHeight": 1080,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 1920,
+          "displayHeight": 1080,
+          "durationMs": 12040,
+          "startTimeSeconds": 0
+        }
+      },
+      "conveyorException": {
+        "width": 1280,
+        "height": 720,
+        "startFrame": 477,
+        "endFrame": 564,
+        "frameCount": 87,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 1280,
+          "encodedHeight": 720,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 1280,
+          "displayHeight": 720,
+          "durationMs": 99033.333,
+          "startTimeSeconds": 0
+        }
+      },
+      "carCollection": {
+        "width": 1920,
+        "height": 1080,
+        "startFrame": 564,
+        "endFrame": 764,
+        "frameCount": 200,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 1920,
+          "encodedHeight": 1080,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 1920,
+          "displayHeight": 1080,
+          "durationMs": 8400,
+          "startTimeSeconds": 0
+        }
+      },
+      "yellowCollection": {
+        "width": 1920,
+        "height": 1080,
+        "startFrame": 564,
+        "endFrame": 720,
+        "frameCount": 156,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 3840,
+          "encodedHeight": 2160,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 3840,
+          "displayHeight": 2160,
+          "durationMs": 9860,
+          "startTimeSeconds": 0
+        }
+      },
+      "palletCollection": {
+        "width": 1920,
+        "height": 1080,
+        "startFrame": 720,
+        "endFrame": 764,
+        "frameCount": 44,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 1920,
+          "encodedHeight": 1080,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 1920,
+          "displayHeight": 1080,
+          "durationMs": 16248.332999999999,
+          "startTimeSeconds": 0
+        }
+      },
+      "operatorCollection": {
+        "width": 1920,
+        "height": 1080,
+        "startFrame": 564,
+        "endFrame": 764,
+        "frameCount": 200,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 1920,
+          "encodedHeight": 1080,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 1920,
+          "displayHeight": 1080,
+          "durationMs": 12040,
+          "startTimeSeconds": 0
+        }
+      },
+      "carQuestion": {
+        "width": 1920,
+        "height": 1080,
+        "startFrame": 764,
+        "endFrame": 838,
+        "frameCount": 74,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 1920,
+          "encodedHeight": 1080,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 1920,
+          "displayHeight": 1080,
+          "durationMs": 8400,
+          "startTimeSeconds": 0
+        }
+      },
+      "yellowStation": {
+        "width": 1920,
+        "height": 1080,
+        "startFrame": 838,
+        "endFrame": 960,
+        "frameCount": 122,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 3840,
+          "encodedHeight": 2160,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 3840,
+          "displayHeight": 2160,
+          "durationMs": 9860,
+          "startTimeSeconds": 0
+        }
+      },
+      "palletStation": {
+        "width": 1920,
+        "height": 1080,
+        "startFrame": 941,
+        "endFrame": 1081,
+        "frameCount": 140,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 1920,
+          "encodedHeight": 1080,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 1920,
+          "displayHeight": 1080,
+          "durationMs": 16248.332999999999,
+          "startTimeSeconds": 0
+        }
+      },
+      "conveyorStation": {
+        "width": 1280,
+        "height": 720,
+        "startFrame": 1035,
+        "endFrame": 1141,
+        "frameCount": 106,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 1280,
+          "encodedHeight": 720,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 1280,
+          "displayHeight": 720,
+          "durationMs": 99033.333,
+          "startTimeSeconds": 0
+        }
+      },
+      "digitNear": {
+        "width": 1920,
+        "height": 1080,
+        "startFrame": 1141,
+        "endFrame": 1252,
+        "frameCount": 111,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 1920,
+          "encodedHeight": 1080,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 1920,
+          "displayHeight": 1080,
+          "durationMs": 112654,
+          "startTimeSeconds": 0
+        }
+      },
+      "figureWork": {
+        "width": 1920,
+        "height": 1080,
+        "startFrame": 1227,
+        "endFrame": 1341,
+        "frameCount": 114,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 1920,
+          "encodedHeight": 1080,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 1920,
+          "displayHeight": 1080,
+          "durationMs": 122622,
+          "startTimeSeconds": 0
+        }
+      },
+      "digitWide": {
+        "width": 1920,
+        "height": 1080,
+        "startFrame": 1270,
+        "endFrame": 1463,
+        "frameCount": 193,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 1920,
+          "encodedHeight": 1080,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 1920,
+          "displayHeight": 1080,
+          "durationMs": 112654,
+          "startTimeSeconds": 0
+        }
+      },
+      "atlasFinal": {
+        "width": 1920,
+        "height": 1080,
+        "startFrame": 1328,
+        "endFrame": 1463,
+        "frameCount": 135,
+        "geometry": {
+          "streamIndex": 0,
+          "encodedWidth": 1920,
+          "encodedHeight": 1080,
+          "sar": 1,
+          "rotation": 0,
+          "displayWidth": 1920,
+          "displayHeight": 1080,
+          "durationMs": 172605,
+          "startTimeSeconds": 0
+        }
+      }
+    },
+    "sandbox": "chromium-os-sandbox+csp-opaque-origin+deny-network",
+    "workReviewRequired": true,
+    "workId": "motion_work_a8490086530805a1323be9011b1d2867d50bf76c849d3a8272519c102f643545",
+    "previewPath": "assets/derived/motion/job_fa003fd7-6a99-444a-8b83-5d3f1f45ed43/e5d1c62372fc0cedc907e6bfc6ad6b8b4146d7ae172a53d312808f97fbb7562a/preview.mp4",
+    "output": {
+      "kind": "alpha_video",
+      "path": "assets/derived/motion/job_fa003fd7-6a99-444a-8b83-5d3f1f45ed43/e5d1c62372fc0cedc907e6bfc6ad6b8b4146d7ae172a53d312808f97fbb7562a/output.mkv",
+      "hash": "b0ec5d1728ad41c2f1a27b1abe70c87eaf4c9e0bcc3d912046ecb0daac720992",
+      "codec": "ffv1",
+      "pixelFormat": "bgra"
+    },
+    "reused": false,
+    "metrics": {
+      "captureMs": 1074827,
+      "seekMs": 671127,
+      "screenshotMs": 339627,
+      "pixelDecodeMs": 64027,
+      "pipeWriteMs": 8091,
+      "encoderFinishMs": 39,
+      "previewEncodeMs": 10425,
+      "peakWorkerRssBytes": 11802116096,
+      "outputBytes": 1106697044,
+      "capturedFrames": 1463,
+      "wallMs": 814638,
+      "concurrency": 2,
+      "lanes": [
+        {
+          "startFrame": 0,
+          "endFrame": 731,
+          "startedAt": "2026-11-07T14:46:50.330Z",
+          "finishedAt": "2026-11-07T14:59:16.011Z",
+          "wallMs": 745681
+        },
+        {
+          "startFrame": 731,
+          "endFrame": 1463,
+          "startedAt": "2026-11-07T14:46:50.330Z",
+          "finishedAt": "2026-11-07T14:56:47.237Z",
+          "wallMs": 596907
+        }
+      ]
+    },
+    "motionDiagnostics": {
+      "status": "exact",
+      "maxAllowedChannelDelta": 2,
+      "sampledFrames": [
+        0,
+        365,
+        730,
+        731,
+        1097,
+        1462
+      ],
+      "differences": [],
+      "reportPath": "assets/derived/motion/job_fa003fd7-6a99-444a-8b83-5d3f1f45ed43/e5d1c62372fc0cedc907e6bfc6ad6b8b4146d7ae172a53d312808f97fbb7562a/diagnostics/report.json"
+    }
+  },
+  "idempotencyKey": "retry:job_75455b5f-2f72-4d04-84e6-66eb94159292",
+  "attempt": 1,
+  "createdAt": "2026-11-07T14:46:49.125Z",
+  "updatedAt": "2026-11-07T15:01:23.334Z"
+}

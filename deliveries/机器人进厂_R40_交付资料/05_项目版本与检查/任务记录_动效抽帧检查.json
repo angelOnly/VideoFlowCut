@@ -1,0 +1,268 @@
+{
+  "id": "job_9b1bbbff-a781-4be6-b3d1-e483681886f7",
+  "projectId": "project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965",
+  "kind": "motion_inspection",
+  "status": "succeeded",
+  "payload": {
+    "revision": 34,
+    "workId": "motion_work_a8490086530805a1323be9011b1d2867d50bf76c849d3a8272519c102f643545",
+    "workVersion": "e5d1c62372fc0cedc907e6bfc6ad6b8b4146d7ae172a53d312808f97fbb7562a",
+    "definitionHash": "a8490086530805a1323be9011b1d2867d50bf76c849d3a8272519c102f643545",
+    "frames": [
+      0,
+      45,
+      105,
+      155,
+      190,
+      230,
+      265,
+      300,
+      325,
+      385,
+      425,
+      460,
+      500,
+      545,
+      620,
+      700,
+      880,
+      1160,
+      1250,
+      1360,
+      1440
+    ]
+  },
+  "result": {
+    "execution": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-11-07T14:38:27.278Z",
+          "finishedAt": "2026-11-07T14:39:40.417Z",
+          "outcome": "succeeded"
+        }
+      ],
+      "lastProgressAt": "2026-11-07T14:39:40.417Z"
+    },
+    "projectId": "project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965",
+    "revision": 34,
+    "workId": "motion_work_a8490086530805a1323be9011b1d2867d50bf76c849d3a8272519c102f643545",
+    "workVersion": "e5d1c62372fc0cedc907e6bfc6ad6b8b4146d7ae172a53d312808f97fbb7562a",
+    "definitionHash": "a8490086530805a1323be9011b1d2867d50bf76c849d3a8272519c102f643545",
+    "evidencePath": "previews/motion-inspection/job_9b1bbbff-a781-4be6-b3d1-e483681886f7",
+    "report": {
+      "status": "exact",
+      "maxAllowedChannelDelta": 2,
+      "sampledFrames": [
+        0,
+        45,
+        105,
+        155,
+        190,
+        230,
+        265,
+        300,
+        325,
+        385,
+        425,
+        460,
+        500,
+        545,
+        620,
+        700,
+        880,
+        1160,
+        1250,
+        1360,
+        1440
+      ],
+      "visitOrder": {
+        "ascending": [
+          0,
+          45,
+          105,
+          155,
+          190,
+          230,
+          265,
+          300,
+          325,
+          385,
+          425,
+          460,
+          500,
+          545,
+          620,
+          700,
+          880,
+          1160,
+          1250,
+          1360,
+          1440
+        ],
+        "samePageReverse": [
+          1440,
+          1360,
+          1250,
+          1160,
+          880,
+          700,
+          620,
+          545,
+          500,
+          460,
+          425,
+          385,
+          325,
+          300,
+          265,
+          230,
+          190,
+          155,
+          105,
+          45,
+          0
+        ],
+        "cleanPageReverse": [
+          1440,
+          1360,
+          1250,
+          1160,
+          880,
+          700,
+          620,
+          545,
+          500,
+          460,
+          425,
+          385,
+          325,
+          300,
+          265,
+          230,
+          190,
+          155,
+          105,
+          45,
+          0
+        ]
+      },
+      "failedFrames": [],
+      "differences": [],
+      "events": [
+        {
+          "id": "single-trial",
+          "meaning": "假设单次成功率99%，各次独立",
+          "startFrame": 0,
+          "endFrame": 192
+        },
+        {
+          "id": "dots-circle-grid",
+          "meaning": "圆阵展开为方阵",
+          "startFrame": 38,
+          "endFrame": 94
+        },
+        {
+          "id": "dots-scan-release",
+          "meaning": "横向扫描与底边释放",
+          "startFrame": 94,
+          "endFrame": 154
+        },
+        {
+          "id": "dots-scatter-bars",
+          "meaning": "散开、竖短线再分布与再散开",
+          "startFrame": 154,
+          "endFrame": 220
+        },
+        {
+          "id": "hundred-success",
+          "meaning": "浅底点群聚为37%，100次全部成功",
+          "startFrame": 220,
+          "endFrame": 311
+        },
+        {
+          "id": "same-footage-expand",
+          "meaning": "倾斜升入转正，同一Atlas活动画面越框接管",
+          "startFrame": 311,
+          "endFrame": 405
+        },
+        {
+          "id": "same-footage-retract-scan",
+          "meaning": "同一活动画面回收、外围退虚、横向扫描",
+          "startFrame": 405,
+          "endFrame": 457
+        },
+        {
+          "id": "abstract-decision",
+          "meaning": "圆形接管上移，抽象节点分路并接回；独立生产素材持续运动",
+          "startFrame": 454,
+          "endFrame": 564
+        },
+        {
+          "id": "separate-sources",
+          "meaning": "独立人员与输送线，不构成同一故障救援事件",
+          "startFrame": 477,
+          "endFrame": 564
+        },
+        {
+          "id": "factory-collection",
+          "meaning": "车厂、黄臂、人员和托盘分窗集合，反向字带独立运动",
+          "startFrame": 564,
+          "endFrame": 764
+        },
+        {
+          "id": "why-arms",
+          "meaning": "车厂活动画面接管，再向框内收束提出机械臂问题",
+          "startFrame": 764,
+          "endFrame": 838
+        },
+        {
+          "id": "fixed-task",
+          "meaning": "黄机械臂活动画面与固定工位大字、前后贯穿红线",
+          "startFrame": 838,
+          "endFrame": 941
+        },
+        {
+          "id": "curled-cover",
+          "meaning": "卷曲覆盖换底，黄臂交给独立托盘来源",
+          "startFrame": 927,
+          "endFrame": 986
+        },
+        {
+          "id": "designed-flow",
+          "meaning": "托盘提升转动放置，流程文字依次建立",
+          "startFrame": 966,
+          "endFrame": 1081
+        },
+        {
+          "id": "conveyor-relay",
+          "meaning": "独立输送线素材接力，落在又快又稳",
+          "startFrame": 1035,
+          "endFrame": 1141
+        },
+        {
+          "id": "humanoid-opportunity",
+          "meaning": "Digit活动画面建立机会，保留可能性而非已实现承诺",
+          "startFrame": 1141,
+          "endFrame": 1252
+        },
+        {
+          "id": "existing-world",
+          "meaning": "Figure与Digit分别呈现手部工件和搬料动作",
+          "startFrame": 1227,
+          "endFrame": 1341
+        },
+        {
+          "id": "future-qualified",
+          "meaning": "不同人形机器人画面接力，未来也许的限定保留到末帧",
+          "startFrame": 1328,
+          "endFrame": 1463
+        }
+      ]
+    }
+  },
+  "idempotencyKey": "motion-inspection:robot-reliability-repair-d939-inspect-v1",
+  "attempt": 1,
+  "createdAt": "2026-11-07T14:38:26.958Z",
+  "updatedAt": "2026-11-07T14:39:40.417Z"
+}

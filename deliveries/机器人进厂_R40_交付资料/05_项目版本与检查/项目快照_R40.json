@@ -1,0 +1,4816 @@
+{
+  "revision": {
+    "id": "revision_1866cf73-99be-4fc4-aca7-f54b9fa339fe",
+    "projectId": "project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965",
+    "number": 40,
+    "parentId": "revision_1803bf8b-f7d0-4ccf-9799-d05db41a342d",
+    "summary": "统一全片普通字幕样式",
+    "impact": {
+      "changed": [
+        "caption_10bd9cd4-0a5b-4846-8a69-c16f17e4e52b",
+        "caption_13690ee1-65d6-46c7-94fd-cc43053d144d",
+        "caption_166668d8-3fbf-4466-b0ab-6706f2449b58",
+        "caption_40fc53c1-ecfb-4b21-8f05-71e50dd08f08",
+        "caption_fb5beb38-de19-4587-927d-ab93e865b557",
+        "caption_6ef93322-544d-4edf-b647-5bda2ae3265d",
+        "caption_d747216b-238f-4bd7-ade4-c9960be45c65",
+        "caption_a7b8ff78-993c-46a5-8c3f-a003c3d2e747",
+        "caption_7e9decd9-42ed-4b66-a948-078c2720ea7d",
+        "caption_35e0daca-6596-4cb6-ab82-21487404f207",
+        "caption_76afed38-11ef-4a61-9440-d47225b777ca",
+        "caption_d4c5f16d-04c9-4ea1-b8e6-5aed7a0bccbd",
+        "caption_990c6344-a4f1-4e0b-98ce-4695a0e02da9",
+        "caption_16c7a0d1-77dd-4161-871d-7412a7f4e9a4",
+        "caption_bf656770-4ed0-4f2c-9916-a8b04e4014d8",
+        "caption_71514e63-f649-422b-bf95-c251f94d69d5",
+        "caption_b12602fd-0540-4bd4-8688-09ff73a3d193",
+        "caption_95f839d3-8816-4c3a-b96c-90d83c0433e8",
+        "caption_cf9277dc-0e4d-4a61-8a6b-db08f05bf503",
+        "caption_48843c98-ac71-4e8b-bc86-b2df7cfd4cd6",
+        "caption_efafbce6-da1e-414c-b24f-f44e5693f704",
+        "caption_be52a2c6-0494-4dc8-8191-f780c59c72d4",
+        "timeline.captionFormat"
+      ],
+      "moved": [],
+      "recomputed": [
+        "普通字幕统一样式与实际行数背景"
+      ],
+      "stale": [],
+      "conflicts": [],
+      "dirtyRanges": [
+        {
+          "startFrame": 9,
+          "endFrame": 91,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 95,
+          "endFrame": 141,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 143,
+          "endFrame": 190,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 198,
+          "endFrame": 233,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 234,
+          "endFrame": 307,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 317,
+          "endFrame": 395,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 401,
+          "endFrame": 454,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 456,
+          "endFrame": 511,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 511,
+          "endFrame": 562,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 568,
+          "endFrame": 663,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 668,
+          "endFrame": 708,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 708,
+          "endFrame": 759,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 768,
+          "endFrame": 835,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 842,
+          "endFrame": 918,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 925,
+          "endFrame": 999,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 1004,
+          "endFrame": 1069,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 1073,
+          "endFrame": 1139,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 1145,
+          "endFrame": 1189,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 1192,
+          "endFrame": 1277,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 1277,
+          "endFrame": 1313,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 1320,
+          "endFrame": 1367,
+          "reason": "全片字幕样式更新"
+        },
+        {
+          "startFrame": 1370,
+          "endFrame": 1460,
+          "reason": "全片字幕样式更新"
+        }
+      ],
+      "warnings": []
+    },
+    "createdAt": "2026-11-07T15:30:24.421Z"
+  },
+  "snapshot": {
+    "project": {
+      "id": "project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965",
+      "name": "机器人进厂｜可靠性与工位｜片段样片 20261107",
+      "rootPath": "E:\\ai\\VideoCut\\workspace\\projects\\project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965",
+      "profile": "visual_explainer",
+      "brief": {
+        "platform": "短视频",
+        "aspectRatio": "16:9",
+        "audience": "面向大众的机器人技术解释",
+        "tone": "生动、准确、有好奇心",
+        "captionMode": "stable",
+        "allowHighDensityMotion": true,
+        "sourceDisplayPolicy": {
+          "mode": "internal_only"
+        },
+        "explicitCreativePreferences": {
+          "dimensions": {
+            "narration": "生动、准确、有好奇心"
+          }
+        }
+      },
+      "stylePackId": "default-clean",
+      "createdAt": "2026-11-07T13:16:50.198Z",
+      "updatedAt": "2026-11-07T15:30:24.417Z"
+    },
+    "story": {
+      "id": "story_9dfa7a14-7e67-42da-9bf0-5b4cd1dc54b0",
+      "title": "机器人进厂｜可靠性与工位｜片段样片 20261107",
+      "summary": "",
+      "beats": [],
+      "updatedAt": "2026-11-07T13:16:50.198Z"
+    },
+    "assets": [
+      {
+        "id": "asset_e8faac0e-a8aa-4188-9889-9726025a1d88",
+        "name": "旁白：假设一个动作每次都有百分之九十九的成",
+        "kind": "speech",
+        "status": "ready",
+        "managedPath": "assets\\speech\\job_12d46707-e84c-41ac-a3f0-ed9218f30cdd\\speech_segment_b6ee69d1-6827-4363-8502-292907687e99-audio_00001.flac",
+        "sourceHash": "e7252a42169c943f1893a2701e8ae402a31967aacf90fcf0e836cdc58d107ee7",
+        "provenance": {
+          "source": "local_import",
+          "acquiredAt": "2026-11-07T13:18:23.770Z"
+        },
+        "tags": [],
+        "createdAt": "2026-11-07T13:18:23.770Z",
+        "metadata": {
+          "durationMs": 6410,
+          "hasAudio": true,
+          "audioCodec": "flac",
+          "sampleRate": 24000,
+          "channels": 1,
+          "hasAlpha": false,
+          "mime": "flac"
+        }
+      },
+      {
+        "id": "asset_7aa49c4b-d92c-4e35-b2f1-9c65d9a9fa6b",
+        "name": "旁白：可连续做一百次，全部成功的概率，大约",
+        "kind": "speech",
+        "status": "ready",
+        "managedPath": "assets\\speech\\job_12d46707-e84c-41ac-a3f0-ed9218f30cdd\\speech_segment_0603a169-1464-4599-a88b-6aacdad43b63-audio_00001.flac",
+        "sourceHash": "4c59b3570d67757a8c9327181c7a50ba360f6ececbfac14938642d873b49b57c",
+        "provenance": {
+          "source": "local_import",
+          "acquiredAt": "2026-11-07T13:18:50.133Z"
+        },
+        "tags": [],
+        "createdAt": "2026-11-07T13:18:50.133Z",
+        "metadata": {
+          "durationMs": 3960,
+          "hasAudio": true,
+          "audioCodec": "flac",
+          "sampleRate": 24000,
+          "channels": 1,
+          "hasAlpha": false,
+          "mime": "flac"
+        }
+      },
+      {
+        "id": "asset_ec5b0246-c66d-4876-b3ad-277a4603a83b",
+        "name": "旁白：实际生产中，有些小失误可以自动恢复，",
+        "kind": "speech",
+        "status": "ready",
+        "managedPath": "assets\\speech\\job_12d46707-e84c-41ac-a3f0-ed9218f30cdd\\speech_segment_8c7917fd-430d-427e-a07b-b49e5ca0307d-audio_00001.flac",
+        "sourceHash": "52b75e69953afbebdeea278f792a709f8a25b78058ef3d225495cb54c452833a",
+        "provenance": {
+          "source": "local_import",
+          "acquiredAt": "2026-11-07T13:19:14.596Z"
+        },
+        "tags": [],
+        "createdAt": "2026-11-07T13:19:14.597Z",
+        "metadata": {
+          "durationMs": 8430,
+          "hasAudio": true,
+          "audioCodec": "flac",
+          "sampleRate": 24000,
+          "channels": 1,
+          "hasAlpha": false,
+          "mime": "flac"
+        }
+      },
+      {
+        "id": "asset_4d3778a6-87c3-420f-9deb-2a75375ab7de",
+        "name": "旁白：工厂需要考虑的，是机器人能不能长时间",
+        "kind": "speech",
+        "status": "ready",
+        "managedPath": "assets\\speech\\job_12d46707-e84c-41ac-a3f0-ed9218f30cdd\\speech_segment_3edafe4d-e890-4458-853c-191b064a2154-audio_00001.flac",
+        "sourceHash": "3256fb793bc7c4c7fd661f6b19863e61afe4ace80414430945a6f7acc5a33226",
+        "provenance": {
+          "source": "local_import",
+          "acquiredAt": "2026-11-07T13:19:41.930Z"
+        },
+        "tags": [],
+        "createdAt": "2026-11-07T13:19:41.930Z",
+        "metadata": {
+          "durationMs": 6670,
+          "hasAudio": true,
+          "audioCodec": "flac",
+          "sampleRate": 24000,
+          "channels": 1,
+          "hasAlpha": false,
+          "mime": "flac"
+        }
+      },
+      {
+        "id": "asset_f704c544-8564-4c7a-a03a-8f0a4c002372",
+        "name": "旁白：那为什么机械臂早就在工厂上班了？",
+        "kind": "speech",
+        "status": "ready",
+        "managedPath": "assets\\speech\\job_12d46707-e84c-41ac-a3f0-ed9218f30cdd\\speech_segment_f6711984-323f-443e-943a-bcca6293f372-audio_00001.flac",
+        "sourceHash": "99088b15f45b34c215b967f8b4f7e7b4553c251652f568988c5651fc28a7eb48",
+        "provenance": {
+          "source": "local_import",
+          "acquiredAt": "2026-11-07T13:20:07.597Z"
+        },
+        "tags": [],
+        "createdAt": "2026-11-07T13:20:07.597Z",
+        "metadata": {
+          "durationMs": 2470,
+          "hasAudio": true,
+          "audioCodec": "flac",
+          "sampleRate": 24000,
+          "channels": 1,
+          "hasAlpha": false,
+          "mime": "flac"
+        }
+      },
+      {
+        "id": "asset_5448dc09-7703-41a9-b05f-e5e9fbd7dbb6",
+        "name": "旁白：因为很多机械臂干的是相对固定的工作。",
+        "kind": "speech",
+        "status": "ready",
+        "managedPath": "assets\\speech\\job_12d46707-e84c-41ac-a3f0-ed9218f30cdd\\speech_segment_b8455ecb-5afc-4433-bca6-2a0fce51a456-audio_00001.flac",
+        "sourceHash": "9eb6063f638e470d3e81a0cd93dae9319277dffef0bfde48e6526f753d010263",
+        "provenance": {
+          "source": "local_import",
+          "acquiredAt": "2026-11-07T13:20:31.836Z"
+        },
+        "tags": [],
+        "createdAt": "2026-11-07T13:20:31.836Z",
+        "metadata": {
+          "durationMs": 10100,
+          "hasAudio": true,
+          "audioCodec": "flac",
+          "sampleRate": 24000,
+          "channels": 1,
+          "hasAlpha": false,
+          "mime": "flac"
+        }
+      },
+      {
+        "id": "asset_d1c696cc-eccc-4174-96db-cffbf4861b57",
+        "name": "旁白：人形机器人的吸引力在于，工厂里原本给",
+        "kind": "speech",
+        "status": "ready",
+        "managedPath": "assets\\speech\\job_12d46707-e84c-41ac-a3f0-ed9218f30cdd\\speech_segment_b0aafd7c-fce2-460f-bb8b-8fd942c9d175-audio_00001.flac",
+        "sourceHash": "72b4064b5e3b3186eef1154b60915dc496eeb9cbf33d140612a33631bbf65b1e",
+        "provenance": {
+          "source": "local_import",
+          "acquiredAt": "2026-11-07T13:20:56.374Z"
+        },
+        "tags": [],
+        "createdAt": "2026-11-07T13:20:56.374Z",
+        "metadata": {
+          "durationMs": 10740,
+          "hasAudio": true,
+          "audioCodec": "flac",
+          "sampleRate": 24000,
+          "channels": 1,
+          "hasAlpha": false,
+          "mime": "flac"
+        }
+      },
+      {
+        "id": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+        "name": "旁白总轨 Revision 1",
+        "kind": "speech",
+        "status": "ready",
+        "managedPath": "assets\\speech\\speech-job_12d46707-e84c-41ac-a3f0-ed9218f30cdd.wav",
+        "sourceHash": "e37f0a3e525bbde4d4047396f6a5b874a908fc805c7bf09a00755eddf66528ce",
+        "provenance": {
+          "source": "local_import",
+          "acquiredAt": "2026-11-07T13:20:57.096Z"
+        },
+        "tags": [],
+        "createdAt": "2026-11-07T13:20:57.096Z",
+        "metadata": {
+          "durationMs": 48780,
+          "hasAudio": true,
+          "audioCodec": "pcm_s16le",
+          "sampleRate": 24000,
+          "channels": 1,
+          "hasAlpha": false,
+          "mime": "wav"
+        }
+      },
+      {
+        "id": "asset_896d7f47-3aef-446a-b0ed-b67048bfda74",
+        "name": "e1f2a8684b7a05eb7150.mp4",
+        "kind": "video",
+        "status": "ready",
+        "managedPath": "assets\\source\\1794057762221-e1f2a8684b.mp4",
+        "originalPath": "E:\\ai\\VideoCut\\workspace\\projects\\project_32d7c973-6520-4d93-9115-62e4c4e4011b\\assets\\source\\e1f2a8684b7a05eb7150.mp4",
+        "sourceHash": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+        "role": "b_roll",
+        "provenance": {
+          "source": "provider",
+          "provider": "pexels",
+          "sourceUrl": "https://www.pexels.com/video/industrial-robot-arm-in-high-tech-factory-32386532/",
+          "originalAssetId": "32386532",
+          "acquiredAt": "2026-11-07T13:22:42.227Z"
+        },
+        "tags": [],
+        "createdAt": "2026-11-07T13:22:42.228Z",
+        "metadata": {
+          "durationMs": 9860,
+          "width": 3840,
+          "height": 2160,
+          "fps": 100,
+          "hasAudio": false,
+          "videoCodec": "h264",
+          "pixelFormat": "yuv420p",
+          "hasAlpha": false,
+          "mime": "mov,mp4,m4a,3gp,3g2,mj2",
+          "thumbnailPath": "assets\\proxy\\asset_896d7f47-3aef-446a-b0ed-b67048bfda74.jpg"
+        }
+      },
+      {
+        "id": "asset_2315f254-7b0f-4000-a2e1-7cd87dc35842",
+        "name": "773cba4e18d9bda0bdcb.mp4",
+        "kind": "video",
+        "status": "ready",
+        "managedPath": "assets\\source\\1794057796930-773cba4e18.mp4",
+        "originalPath": "E:\\ai\\VideoCut\\workspace\\projects\\project_32d7c973-6520-4d93-9115-62e4c4e4011b\\assets\\source\\773cba4e18d9bda0bdcb.mp4",
+        "sourceHash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+        "role": "b_roll",
+        "provenance": {
+          "source": "provider",
+          "provider": "pexels",
+          "sourceUrl": "https://www.pexels.com/video/automated-car-factory-6450803/",
+          "originalAssetId": "6450803",
+          "acquiredAt": "2026-11-07T13:23:16.933Z"
+        },
+        "tags": [],
+        "createdAt": "2026-11-07T13:23:16.936Z",
+        "metadata": {
+          "durationMs": 8405,
+          "width": 1920,
+          "height": 1080,
+          "fps": 25,
+          "hasAudio": true,
+          "audioCodec": "aac",
+          "sampleRate": 48000,
+          "channels": 2,
+          "videoCodec": "h264",
+          "pixelFormat": "yuv420p",
+          "hasAlpha": false,
+          "mime": "mov,mp4,m4a,3gp,3g2,mj2",
+          "thumbnailPath": "assets\\proxy\\asset_2315f254-7b0f-4000-a2e1-7cd87dc35842.jpg"
+        }
+      },
+      {
+        "id": "asset_ac6098fa-ae9a-4019-8479-0b6505033028",
+        "name": "df2c08770c14a23241b5.mp4",
+        "kind": "video",
+        "status": "ready",
+        "managedPath": "assets\\source\\1794057796960-df2c08770c.mp4",
+        "originalPath": "E:\\ai\\VideoCut\\workspace\\projects\\project_32d7c973-6520-4d93-9115-62e4c4e4011b\\assets\\source\\df2c08770c14a23241b5.mp4",
+        "sourceHash": "df2c08770c14a23241b58014251eb28448f53f32ec1b9cc01e233e3d402c143d",
+        "role": "b_roll",
+        "provenance": {
+          "source": "provider",
+          "provider": "pexels",
+          "sourceUrl": "https://www.pexels.com/video/a-person-operating-the-remote-9244499/",
+          "originalAssetId": "9244499",
+          "acquiredAt": "2026-11-07T13:23:16.961Z"
+        },
+        "tags": [],
+        "createdAt": "2026-11-07T13:23:16.962Z",
+        "metadata": {
+          "durationMs": 12040,
+          "width": 1920,
+          "height": 1080,
+          "fps": 25,
+          "hasAudio": false,
+          "videoCodec": "h264",
+          "pixelFormat": "yuv420p",
+          "hasAlpha": false,
+          "mime": "mov,mp4,m4a,3gp,3g2,mj2",
+          "thumbnailPath": "assets\\proxy\\asset_ac6098fa-ae9a-4019-8479-0b6505033028.jpg"
+        }
+      },
+      {
+        "id": "asset_74e1f780-3b70-4d66-8d67-0b45b5981717",
+        "name": "9724733940a92aa5b76e.mp4",
+        "kind": "video",
+        "status": "ready",
+        "managedPath": "assets\\source\\1794057796997-9724733940.mp4",
+        "originalPath": "E:\\ai\\VideoCut\\workspace\\projects\\project_32d7c973-6520-4d93-9115-62e4c4e4011b\\assets\\source\\9724733940a92aa5b76e.mp4",
+        "sourceHash": "9724733940a92aa5b76e4f119bdaa7f71c7f2defd30b2aa3539c829e25a32af0",
+        "role": "b_roll",
+        "provenance": {
+          "source": "provider",
+          "provider": "pexels",
+          "sourceUrl": "https://www.pexels.com/video/man-working-on-conveyor-machine-855091/",
+          "originalAssetId": "855091",
+          "acquiredAt": "2026-11-07T13:23:17.006Z"
+        },
+        "tags": [],
+        "createdAt": "2026-11-07T13:23:17.006Z",
+        "metadata": {
+          "durationMs": 99583,
+          "width": 1280,
+          "height": 720,
+          "fps": 30,
+          "hasAudio": true,
+          "audioCodec": "aac",
+          "sampleRate": 48000,
+          "channels": 2,
+          "videoCodec": "h264",
+          "pixelFormat": "yuv420p",
+          "hasAlpha": false,
+          "mime": "mov,mp4,m4a,3gp,3g2,mj2",
+          "thumbnailPath": "assets\\proxy\\asset_74e1f780-3b70-4d66-8d67-0b45b5981717.jpg"
+        }
+      },
+      {
+        "id": "asset_2d107d16-dc70-4e94-85ba-c22267cdea7d",
+        "name": "932c3e8671e9646432c7.mp4",
+        "kind": "video",
+        "status": "ready",
+        "managedPath": "assets\\source\\1794057797027-932c3e8671.mp4",
+        "originalPath": "E:\\ai\\VideoCut\\workspace\\projects\\project_32d7c973-6520-4d93-9115-62e4c4e4011b\\assets\\source\\932c3e8671e9646432c7.mp4",
+        "sourceHash": "932c3e8671e9646432c7306f6f0d77f9de1bccb94dd5e3f6e5122e1c2d4b7017",
+        "role": "b_roll",
+        "provenance": {
+          "source": "provider",
+          "provider": "pexels",
+          "sourceUrl": "https://www.pexels.com/video/ocelotwood-16938947/",
+          "originalAssetId": "16938947",
+          "acquiredAt": "2026-11-07T13:23:17.032Z"
+        },
+        "tags": [],
+        "createdAt": "2026-11-07T13:23:17.033Z",
+        "metadata": {
+          "durationMs": 16277,
+          "width": 1920,
+          "height": 1080,
+          "fps": 29.97002997002997,
+          "hasAudio": true,
+          "audioCodec": "aac",
+          "sampleRate": 48000,
+          "channels": 2,
+          "videoCodec": "h264",
+          "pixelFormat": "yuv420p",
+          "hasAlpha": false,
+          "mime": "mov,mp4,m4a,3gp,3g2,mj2",
+          "thumbnailPath": "assets\\proxy\\asset_2d107d16-dc70-4e94-85ba-c22267cdea7d.jpg"
+        }
+      },
+      {
+        "id": "asset_b213af67-179a-490f-bf98-7a88653b90f4",
+        "name": "a1b9b380b63a3dcc0f86.mp4",
+        "kind": "video",
+        "status": "ready",
+        "managedPath": "assets\\source\\1794057797076-a1b9b380b6.mp4",
+        "originalPath": "E:\\ai\\VideoCut\\workspace\\projects\\project_32d7c973-6520-4d93-9115-62e4c4e4011b\\assets\\source\\a1b9b380b63a3dcc0f86.mp4",
+        "sourceHash": "a1b9b380b63a3dcc0f86b66d82e83663ad4fc117924688f77a003acf0731f400",
+        "role": "b_roll",
+        "provenance": {
+          "source": "provider",
+          "provider": "youtube",
+          "sourceUrl": "https://www.youtube.com/watch?v=AJpTpUqjgrY",
+          "originalAssetId": "AJpTpUqjgrY",
+          "creator": "Agility",
+          "acquiredAt": "2026-11-07T13:23:17.090Z"
+        },
+        "tags": [],
+        "createdAt": "2026-11-07T13:23:17.090Z",
+        "metadata": {
+          "durationMs": 112710,
+          "width": 1920,
+          "height": 1080,
+          "fps": 23.976023976023978,
+          "hasAudio": true,
+          "audioCodec": "aac",
+          "sampleRate": 44100,
+          "channels": 2,
+          "videoCodec": "vp9",
+          "pixelFormat": "yuv420p",
+          "hasAlpha": false,
+          "mime": "mov,mp4,m4a,3gp,3g2,mj2",
+          "thumbnailPath": "assets\\proxy\\asset_b213af67-179a-490f-bf98-7a88653b90f4.jpg"
+        }
+      },
+      {
+        "id": "asset_e5aecd48-6398-460d-9cd7-2cc86be12416",
+        "name": "9bdd53c09e58af79c635.mp4",
+        "kind": "video",
+        "status": "ready",
+        "managedPath": "assets\\source\\1794057797115-9bdd53c09e.mp4",
+        "originalPath": "E:\\ai\\VideoCut\\workspace\\projects\\project_32d7c973-6520-4d93-9115-62e4c4e4011b\\assets\\source\\9bdd53c09e58af79c635.mp4",
+        "sourceHash": "9bdd53c09e58af79c63567cba9489816c948b167192a01a159e10fbba4f20ef6",
+        "role": "b_roll",
+        "provenance": {
+          "source": "provider",
+          "provider": "youtube",
+          "sourceUrl": "https://www.youtube.com/watch?v=xLVm-QKEZSI",
+          "originalAssetId": "xLVm-QKEZSI",
+          "creator": "BMW Group",
+          "acquiredAt": "2026-11-07T13:23:17.120Z"
+        },
+        "tags": [],
+        "createdAt": "2026-11-07T13:23:17.120Z",
+        "metadata": {
+          "durationMs": 122671,
+          "width": 1920,
+          "height": 1080,
+          "fps": 23.976023976023978,
+          "hasAudio": true,
+          "audioCodec": "aac",
+          "sampleRate": 44100,
+          "channels": 2,
+          "videoCodec": "vp9",
+          "pixelFormat": "yuv420p",
+          "hasAlpha": false,
+          "mime": "mov,mp4,m4a,3gp,3g2,mj2",
+          "thumbnailPath": "assets\\proxy\\asset_e5aecd48-6398-460d-9cd7-2cc86be12416.jpg"
+        }
+      },
+      {
+        "id": "asset_278147ff-a6b6-4620-bfa2-80e34276355f",
+        "name": "04ede5d675bb1e86ec82.mp4",
+        "kind": "video",
+        "status": "ready",
+        "managedPath": "assets\\source\\1794057797181-04ede5d675.mp4",
+        "originalPath": "E:\\ai\\VideoCut\\workspace\\projects\\project_32d7c973-6520-4d93-9115-62e4c4e4011b\\assets\\source\\04ede5d675bb1e86ec82.mp4",
+        "sourceHash": "04ede5d675bb1e86ec82e02eb15ad25b80a24217329db125f258e44ad5651b4b",
+        "role": "b_roll",
+        "provenance": {
+          "source": "provider",
+          "provider": "youtube",
+          "sourceUrl": "https://www.youtube.com/watch?v=F_7IPm7f1vI",
+          "originalAssetId": "F_7IPm7f1vI",
+          "creator": "Boston Dynamics",
+          "acquiredAt": "2026-11-07T13:23:17.197Z"
+        },
+        "tags": [],
+        "createdAt": "2026-11-07T13:23:17.198Z",
+        "metadata": {
+          "durationMs": 172664,
+          "width": 1920,
+          "height": 1080,
+          "fps": 59.94005994005994,
+          "hasAudio": true,
+          "audioCodec": "aac",
+          "sampleRate": 44100,
+          "channels": 2,
+          "videoCodec": "vp9",
+          "pixelFormat": "yuv420p",
+          "hasAlpha": false,
+          "mime": "mov,mp4,m4a,3gp,3g2,mj2",
+          "thumbnailPath": "assets\\proxy\\asset_278147ff-a6b6-4620-bfa2-80e34276355f.jpg"
+        }
+      },
+      {
+        "id": "asset_2b33e1c3-84c2-450c-b895-58bcbc3645d5",
+        "name": "机器人进厂 · 可靠性与工位",
+        "kind": "video",
+        "status": "ready",
+        "managedPath": "assets/derived/motion/job_e5f425a3-2ed8-46f3-aeef-8f9ccc2e7fc3/1aef732c216afbb658cafae7f7330e16322ce2e864592ca0efd7ebdd06231e1d/output.mkv",
+        "sourceHash": "2c471363630c14497af7f988641c5b9bc776fc3ef87e2638079a4d4b8e5889b5",
+        "role": "generated_visual",
+        "tags": [
+          "managed_motion",
+          "work_review_required"
+        ],
+        "createdAt": "2026-11-07T14:22:42.038Z",
+        "metadata": {
+          "durationMs": 18800,
+          "width": 1920,
+          "height": 1080,
+          "fps": 30,
+          "hasAudio": false,
+          "videoCodec": "ffv1",
+          "pixelFormat": "bgra",
+          "hasAlpha": true,
+          "mime": "matroska,webm"
+        },
+        "provenance": {
+          "source": "generated",
+          "provider": "managed_hyperframes",
+          "generationJobId": "job_e5f425a3-2ed8-46f3-aeef-8f9ccc2e7fc3",
+          "acquiredAt": "2026-11-07T14:22:42.038Z"
+        },
+        "derivedFromWorkId": "motion_work_b85585202406b2ff9cc6172b1c335fcd02c7392c9dc1d1ea8b5e56f7a7eb0982",
+        "motion": {
+          "workId": "motion_work_b85585202406b2ff9cc6172b1c335fcd02c7392c9dc1d1ea8b5e56f7a7eb0982",
+          "jobId": "job_e5f425a3-2ed8-46f3-aeef-8f9ccc2e7fc3",
+          "version": "1aef732c216afbb658cafae7f7330e16322ce2e864592ca0efd7ebdd06231e1d",
+          "engineVersion": "managed-hyperframes-4",
+          "output": {
+            "kind": "alpha_video",
+            "path": "assets/derived/motion/job_e5f425a3-2ed8-46f3-aeef-8f9ccc2e7fc3/1aef732c216afbb658cafae7f7330e16322ce2e864592ca0efd7ebdd06231e1d/output.mkv",
+            "hash": "2c471363630c14497af7f988641c5b9bc776fc3ef87e2638079a4d4b8e5889b5",
+            "codec": "ffv1",
+            "pixelFormat": "bgra"
+          },
+          "preview": {
+            "path": "assets/derived/motion/job_e5f425a3-2ed8-46f3-aeef-8f9ccc2e7fc3/1aef732c216afbb658cafae7f7330e16322ce2e864592ca0efd7ebdd06231e1d/preview.mp4",
+            "hash": "d6125a015025fa9cdb48cd424fd935059d9afab789425072bf25d4be3e107154"
+          },
+          "pixelKey": "885bffeeee122885a6f1c2fec3e30a26b271638d54e3ef491ec13b22b12ca302",
+          "rootRange": {
+            "startFrame": 0,
+            "endFrame": 564,
+            "fullDurationInFrames": 1463
+          },
+          "frameCount": 564,
+          "fps": 30,
+          "width": 1920,
+          "height": 1080
+        }
+      },
+      {
+        "id": "asset_836bec59-e7c6-4d5a-b23a-832ca3e28e3a",
+        "name": "机器人进厂 · 可靠性与工位",
+        "kind": "video",
+        "status": "ready",
+        "managedPath": "assets/derived/motion/job_fa003fd7-6a99-444a-8b83-5d3f1f45ed43/e5d1c62372fc0cedc907e6bfc6ad6b8b4146d7ae172a53d312808f97fbb7562a/output.mkv",
+        "sourceHash": "b0ec5d1728ad41c2f1a27b1abe70c87eaf4c9e0bcc3d912046ecb0daac720992",
+        "role": "generated_visual",
+        "tags": [
+          "managed_motion",
+          "work_review_required"
+        ],
+        "createdAt": "2026-11-07T15:01:23.329Z",
+        "metadata": {
+          "durationMs": 48767,
+          "width": 1920,
+          "height": 1080,
+          "fps": 30,
+          "hasAudio": false,
+          "videoCodec": "ffv1",
+          "pixelFormat": "bgra",
+          "hasAlpha": true,
+          "mime": "matroska,webm"
+        },
+        "provenance": {
+          "source": "generated",
+          "provider": "managed_hyperframes",
+          "generationJobId": "job_fa003fd7-6a99-444a-8b83-5d3f1f45ed43",
+          "acquiredAt": "2026-11-07T15:01:23.329Z"
+        },
+        "derivedFromWorkId": "motion_work_a8490086530805a1323be9011b1d2867d50bf76c849d3a8272519c102f643545",
+        "motion": {
+          "workId": "motion_work_a8490086530805a1323be9011b1d2867d50bf76c849d3a8272519c102f643545",
+          "jobId": "job_fa003fd7-6a99-444a-8b83-5d3f1f45ed43",
+          "version": "e5d1c62372fc0cedc907e6bfc6ad6b8b4146d7ae172a53d312808f97fbb7562a",
+          "engineVersion": "managed-hyperframes-4",
+          "output": {
+            "kind": "alpha_video",
+            "path": "assets/derived/motion/job_fa003fd7-6a99-444a-8b83-5d3f1f45ed43/e5d1c62372fc0cedc907e6bfc6ad6b8b4146d7ae172a53d312808f97fbb7562a/output.mkv",
+            "hash": "b0ec5d1728ad41c2f1a27b1abe70c87eaf4c9e0bcc3d912046ecb0daac720992",
+            "codec": "ffv1",
+            "pixelFormat": "bgra"
+          },
+          "preview": {
+            "path": "assets/derived/motion/job_fa003fd7-6a99-444a-8b83-5d3f1f45ed43/e5d1c62372fc0cedc907e6bfc6ad6b8b4146d7ae172a53d312808f97fbb7562a/preview.mp4",
+            "hash": "5b1998fd8f7e3ed8ea74a7afd8ea7a8b9bef118b90031c0c50da994cfa64bd26"
+          },
+          "pixelKey": "c1b58b7e68937c7b6b73bfa827ca109c1cad183874f31c8c5eed1a7c14c87953",
+          "frameCount": 1463,
+          "fps": 30,
+          "width": 1920,
+          "height": 1080
+        }
+      }
+    ],
+    "assetRequests": [],
+    "searchIntents": [],
+    "assetCandidates": [],
+    "evidenceCaptures": [],
+    "explainerPrograms": [],
+    "vlogShotAnalyses": [],
+    "vlogEvents": [],
+    "vlogShotSelects": [],
+    "vlogAmbientCues": [],
+    "vlogMusicBeats": [],
+    "multicamGroups": [],
+    "multicamCuts": [],
+    "agentWorkOrders": [],
+    "visualTreatments": [],
+    "cutaways": [],
+    "audioCues": [],
+    "voiceReferences": [],
+    "sourceAudioAlignments": [
+      {
+        "id": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+        "speechSource": {
+          "speechAssetId": "speech_asset_98bf84a9-a4bd-47b6-a424-226a245a5fa5",
+          "scriptRevision": 1,
+          "scriptText": "假设一个动作每次都有百分之九十九的成功率，而且每次结果互不影响。听起来已经很高了，对吧？可连续做一百次，全部成功的概率，大约只有百分之三十七。实际生产中，有些小失误可以自动恢复，有些却需要停下来找人处理。要是隔一会儿就得叫个人来帮忙，后面的工序也可能跟着等。工厂需要考虑的，是机器人能不能长时间稳定工作，出了问题能不能处理，还要不要经常有人守在旁边。那为什么机械臂早就在工厂上班了？因为很多机械臂干的是相对固定的工作。零件怎么放、机器怎么接、下一步怎么走，整条流程都可以围绕这个任务设计好。它们已经把不少工作干得又快又稳。人形机器人的吸引力在于，工厂里原本给人准备的通道、工具和设备，它都有机会利用起来。今天搬料，明天换个工位，未来也许不用为每项工作重新搭一套专门的设备。"
+        },
+        "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+        "sourceAssetHash": "e37f0a3e525bbde4d4047396f6a5b874a908fc805c7bf09a00755eddf66528ce",
+        "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+        "sourceStartFrame": 0,
+        "sourceEndFrame": 1463,
+        "timelineStartFrame": 0,
+        "timelineEndFrame": 1463,
+        "requestedRevision": 28,
+        "transcriptText": "假设一个动作每次都有百分之九十九的成功率，而且每次结果互不影响，听起来已经很高了，对吧？可连续做一百次，全部成功的概率大约只有百分之三十七，实际生产中有些小失误可以自动恢复。有些却需要停下来找人处理，要是隔一会儿就得叫个人来帮忙，后面的工序也可能跟着等。工厂需要考虑的是，机器人能不能长时间稳定工作，出了问题能不能处理，还要不要经常有人守在旁边？那为什么机械臂早就在工厂上班了？因为很多机械臂干的是相对固定的工作零件，怎么放，机器怎么接，下一步怎么走，整条流程都可以围绕这个任务设计好。他们已经把不少工作干得又快又稳。人形机器人的吸引力在于，工厂里原本给人准备的通道、工具和设备，它都有机会利用起来。今天搬料，明天换个工位。未来也许不用为每项工作重新搭一套专门的设备。",
+        "tokenPrecision": "provider_token_timed",
+        "tokens": [
+          {
+            "index": 0,
+            "text": "假",
+            "startMs": 310,
+            "endMs": 470
+          },
+          {
+            "index": 1,
+            "text": "设",
+            "startMs": 470,
+            "endMs": 610
+          },
+          {
+            "index": 2,
+            "text": "一",
+            "startMs": 610,
+            "endMs": 710
+          },
+          {
+            "index": 3,
+            "text": "个",
+            "startMs": 710,
+            "endMs": 790
+          },
+          {
+            "index": 4,
+            "text": "动",
+            "startMs": 790,
+            "endMs": 890
+          },
+          {
+            "index": 5,
+            "text": "作",
+            "startMs": 890,
+            "endMs": 1110
+          },
+          {
+            "index": 6,
+            "text": "每",
+            "startMs": 1110,
+            "endMs": 1310
+          },
+          {
+            "index": 7,
+            "text": "次",
+            "startMs": 1310,
+            "endMs": 1490
+          },
+          {
+            "index": 8,
+            "text": "都",
+            "startMs": 1490,
+            "endMs": 1610
+          },
+          {
+            "index": 9,
+            "text": "有",
+            "startMs": 1610,
+            "endMs": 1750
+          },
+          {
+            "index": 10,
+            "text": "百",
+            "startMs": 1750,
+            "endMs": 1830
+          },
+          {
+            "index": 11,
+            "text": "分",
+            "startMs": 1830,
+            "endMs": 1950
+          },
+          {
+            "index": 12,
+            "text": "之",
+            "startMs": 1950,
+            "endMs": 2090
+          },
+          {
+            "index": 13,
+            "text": "九",
+            "startMs": 2090,
+            "endMs": 2190
+          },
+          {
+            "index": 14,
+            "text": "十",
+            "startMs": 2190,
+            "endMs": 2310
+          },
+          {
+            "index": 15,
+            "text": "九",
+            "startMs": 2310,
+            "endMs": 2430
+          },
+          {
+            "index": 16,
+            "text": "的",
+            "startMs": 2430,
+            "endMs": 2530
+          },
+          {
+            "index": 17,
+            "text": "成",
+            "startMs": 2530,
+            "endMs": 2670
+          },
+          {
+            "index": 18,
+            "text": "功",
+            "startMs": 2670,
+            "endMs": 2790
+          },
+          {
+            "index": 19,
+            "text": "率",
+            "startMs": 2790,
+            "endMs": 3030
+          },
+          {
+            "index": 20,
+            "text": "而",
+            "startMs": 3150,
+            "endMs": 3270
+          },
+          {
+            "index": 21,
+            "text": "且",
+            "startMs": 3270,
+            "endMs": 3430
+          },
+          {
+            "index": 22,
+            "text": "每",
+            "startMs": 3430,
+            "endMs": 3630
+          },
+          {
+            "index": 23,
+            "text": "次",
+            "startMs": 3630,
+            "endMs": 3830
+          },
+          {
+            "index": 24,
+            "text": "结",
+            "startMs": 3830,
+            "endMs": 3990
+          },
+          {
+            "index": 25,
+            "text": "果",
+            "startMs": 3990,
+            "endMs": 4130
+          },
+          {
+            "index": 26,
+            "text": "互",
+            "startMs": 4130,
+            "endMs": 4230
+          },
+          {
+            "index": 27,
+            "text": "不",
+            "startMs": 4230,
+            "endMs": 4370
+          },
+          {
+            "index": 28,
+            "text": "影",
+            "startMs": 4370,
+            "endMs": 4470
+          },
+          {
+            "index": 29,
+            "text": "响",
+            "startMs": 4470,
+            "endMs": 4710
+          },
+          {
+            "index": 30,
+            "text": "听",
+            "startMs": 4770,
+            "endMs": 4950
+          },
+          {
+            "index": 31,
+            "text": "起",
+            "startMs": 4950,
+            "endMs": 5070
+          },
+          {
+            "index": 32,
+            "text": "来",
+            "startMs": 5070,
+            "endMs": 5210
+          },
+          {
+            "index": 33,
+            "text": "已",
+            "startMs": 5210,
+            "endMs": 5310
+          },
+          {
+            "index": 34,
+            "text": "经",
+            "startMs": 5310,
+            "endMs": 5490
+          },
+          {
+            "index": 35,
+            "text": "很",
+            "startMs": 5490,
+            "endMs": 5670
+          },
+          {
+            "index": 36,
+            "text": "高",
+            "startMs": 5670,
+            "endMs": 5850
+          },
+          {
+            "index": 37,
+            "text": "了",
+            "startMs": 5850,
+            "endMs": 5970
+          },
+          {
+            "index": 38,
+            "text": "对",
+            "startMs": 5970,
+            "endMs": 6090
+          },
+          {
+            "index": 39,
+            "text": "吧",
+            "startMs": 6090,
+            "endMs": 6330
+          },
+          {
+            "index": 40,
+            "text": "可",
+            "startMs": 6590,
+            "endMs": 6770
+          },
+          {
+            "index": 41,
+            "text": "连",
+            "startMs": 6770,
+            "endMs": 6930
+          },
+          {
+            "index": 42,
+            "text": "续",
+            "startMs": 6930,
+            "endMs": 7050
+          },
+          {
+            "index": 43,
+            "text": "做",
+            "startMs": 7050,
+            "endMs": 7250
+          },
+          {
+            "index": 44,
+            "text": "一",
+            "startMs": 7250,
+            "endMs": 7350
+          },
+          {
+            "index": 45,
+            "text": "百",
+            "startMs": 7350,
+            "endMs": 7530
+          },
+          {
+            "index": 46,
+            "text": "次",
+            "startMs": 7530,
+            "endMs": 7770
+          },
+          {
+            "index": 47,
+            "text": "全",
+            "startMs": 7790,
+            "endMs": 7950
+          },
+          {
+            "index": 48,
+            "text": "部",
+            "startMs": 7950,
+            "endMs": 8090
+          },
+          {
+            "index": 49,
+            "text": "成",
+            "startMs": 8090,
+            "endMs": 8250
+          },
+          {
+            "index": 50,
+            "text": "功",
+            "startMs": 8250,
+            "endMs": 8370
+          },
+          {
+            "index": 51,
+            "text": "的",
+            "startMs": 8370,
+            "endMs": 8510
+          },
+          {
+            "index": 52,
+            "text": "概",
+            "startMs": 8510,
+            "endMs": 8670
+          },
+          {
+            "index": 53,
+            "text": "率",
+            "startMs": 8670,
+            "endMs": 8850
+          },
+          {
+            "index": 54,
+            "text": "大",
+            "startMs": 8850,
+            "endMs": 8970
+          },
+          {
+            "index": 55,
+            "text": "约",
+            "startMs": 8970,
+            "endMs": 9150
+          },
+          {
+            "index": 56,
+            "text": "只",
+            "startMs": 9150,
+            "endMs": 9270
+          },
+          {
+            "index": 57,
+            "text": "有",
+            "startMs": 9270,
+            "endMs": 9410
+          },
+          {
+            "index": 58,
+            "text": "百",
+            "startMs": 9410,
+            "endMs": 9510
+          },
+          {
+            "index": 59,
+            "text": "分",
+            "startMs": 9510,
+            "endMs": 9630
+          },
+          {
+            "index": 60,
+            "text": "之",
+            "startMs": 9630,
+            "endMs": 9750
+          },
+          {
+            "index": 61,
+            "text": "三",
+            "startMs": 9750,
+            "endMs": 9870
+          },
+          {
+            "index": 62,
+            "text": "十",
+            "startMs": 9870,
+            "endMs": 9990
+          },
+          {
+            "index": 63,
+            "text": "七",
+            "startMs": 9990,
+            "endMs": 10230
+          },
+          {
+            "index": 64,
+            "text": "实",
+            "startMs": 10570,
+            "endMs": 10770
+          },
+          {
+            "index": 65,
+            "text": "际",
+            "startMs": 10770,
+            "endMs": 10950
+          },
+          {
+            "index": 66,
+            "text": "生",
+            "startMs": 10950,
+            "endMs": 11070
+          },
+          {
+            "index": 67,
+            "text": "产",
+            "startMs": 11070,
+            "endMs": 11250
+          },
+          {
+            "index": 68,
+            "text": "中",
+            "startMs": 11250,
+            "endMs": 11450
+          },
+          {
+            "index": 69,
+            "text": "有",
+            "startMs": 11450,
+            "endMs": 11550
+          },
+          {
+            "index": 70,
+            "text": "些",
+            "startMs": 11550,
+            "endMs": 11690
+          },
+          {
+            "index": 71,
+            "text": "小",
+            "startMs": 11690,
+            "endMs": 11870
+          },
+          {
+            "index": 72,
+            "text": "失",
+            "startMs": 11870,
+            "endMs": 12030
+          },
+          {
+            "index": 73,
+            "text": "误",
+            "startMs": 12030,
+            "endMs": 12270
+          },
+          {
+            "index": 74,
+            "text": "可",
+            "startMs": 12290,
+            "endMs": 12390
+          },
+          {
+            "index": 75,
+            "text": "以",
+            "startMs": 12390,
+            "endMs": 12530
+          },
+          {
+            "index": 76,
+            "text": "自",
+            "startMs": 12530,
+            "endMs": 12630
+          },
+          {
+            "index": 77,
+            "text": "动",
+            "startMs": 12630,
+            "endMs": 12770
+          },
+          {
+            "index": 78,
+            "text": "恢",
+            "startMs": 12770,
+            "endMs": 12930
+          },
+          {
+            "index": 79,
+            "text": "复",
+            "startMs": 12930,
+            "endMs": 13170
+          },
+          {
+            "index": 80,
+            "text": "有",
+            "startMs": 13350,
+            "endMs": 13470
+          },
+          {
+            "index": 81,
+            "text": "些",
+            "startMs": 13470,
+            "endMs": 13670
+          },
+          {
+            "index": 82,
+            "text": "却",
+            "startMs": 13670,
+            "endMs": 13850
+          },
+          {
+            "index": 83,
+            "text": "需",
+            "startMs": 13850,
+            "endMs": 13930
+          },
+          {
+            "index": 84,
+            "text": "要",
+            "startMs": 13930,
+            "endMs": 14090
+          },
+          {
+            "index": 85,
+            "text": "停",
+            "startMs": 14090,
+            "endMs": 14230
+          },
+          {
+            "index": 86,
+            "text": "下",
+            "startMs": 14230,
+            "endMs": 14350
+          },
+          {
+            "index": 87,
+            "text": "来",
+            "startMs": 14350,
+            "endMs": 14490
+          },
+          {
+            "index": 88,
+            "text": "找",
+            "startMs": 14490,
+            "endMs": 14590
+          },
+          {
+            "index": 89,
+            "text": "人",
+            "startMs": 14590,
+            "endMs": 14790
+          },
+          {
+            "index": 90,
+            "text": "处",
+            "startMs": 14790,
+            "endMs": 14890
+          },
+          {
+            "index": 91,
+            "text": "理",
+            "startMs": 14890,
+            "endMs": 15130
+          },
+          {
+            "index": 92,
+            "text": "要",
+            "startMs": 15190,
+            "endMs": 15310
+          },
+          {
+            "index": 93,
+            "text": "是",
+            "startMs": 15310,
+            "endMs": 15430
+          },
+          {
+            "index": 94,
+            "text": "隔",
+            "startMs": 15430,
+            "endMs": 15570
+          },
+          {
+            "index": 95,
+            "text": "一",
+            "startMs": 15570,
+            "endMs": 15670
+          },
+          {
+            "index": 96,
+            "text": "会",
+            "startMs": 15670,
+            "endMs": 15790
+          },
+          {
+            "index": 97,
+            "text": "儿",
+            "startMs": 15790,
+            "endMs": 15890
+          },
+          {
+            "index": 98,
+            "text": "就",
+            "startMs": 15890,
+            "endMs": 15970
+          },
+          {
+            "index": 99,
+            "text": "得",
+            "startMs": 15970,
+            "endMs": 16090
+          },
+          {
+            "index": 100,
+            "text": "叫",
+            "startMs": 16090,
+            "endMs": 16250
+          },
+          {
+            "index": 101,
+            "text": "个",
+            "startMs": 16250,
+            "endMs": 16390
+          },
+          {
+            "index": 102,
+            "text": "人",
+            "startMs": 16390,
+            "endMs": 16570
+          },
+          {
+            "index": 103,
+            "text": "来",
+            "startMs": 16570,
+            "endMs": 16710
+          },
+          {
+            "index": 104,
+            "text": "帮",
+            "startMs": 16710,
+            "endMs": 16810
+          },
+          {
+            "index": 105,
+            "text": "忙",
+            "startMs": 16810,
+            "endMs": 17030
+          },
+          {
+            "index": 106,
+            "text": "后",
+            "startMs": 17030,
+            "endMs": 17170
+          },
+          {
+            "index": 107,
+            "text": "面",
+            "startMs": 17170,
+            "endMs": 17290
+          },
+          {
+            "index": 108,
+            "text": "的",
+            "startMs": 17290,
+            "endMs": 17390
+          },
+          {
+            "index": 109,
+            "text": "工",
+            "startMs": 17390,
+            "endMs": 17470
+          },
+          {
+            "index": 110,
+            "text": "序",
+            "startMs": 17470,
+            "endMs": 17710
+          },
+          {
+            "index": 111,
+            "text": "也",
+            "startMs": 17710,
+            "endMs": 17910
+          },
+          {
+            "index": 112,
+            "text": "可",
+            "startMs": 17910,
+            "endMs": 18070
+          },
+          {
+            "index": 113,
+            "text": "能",
+            "startMs": 18070,
+            "endMs": 18190
+          },
+          {
+            "index": 114,
+            "text": "跟",
+            "startMs": 18190,
+            "endMs": 18310
+          },
+          {
+            "index": 115,
+            "text": "着",
+            "startMs": 18310,
+            "endMs": 18490
+          },
+          {
+            "index": 116,
+            "text": "等",
+            "startMs": 18490,
+            "endMs": 18730
+          },
+          {
+            "index": 117,
+            "text": "工",
+            "startMs": 18930,
+            "endMs": 19090
+          },
+          {
+            "index": 118,
+            "text": "厂",
+            "startMs": 19090,
+            "endMs": 19330
+          },
+          {
+            "index": 119,
+            "text": "需",
+            "startMs": 19350,
+            "endMs": 19450
+          },
+          {
+            "index": 120,
+            "text": "要",
+            "startMs": 19450,
+            "endMs": 19590
+          },
+          {
+            "index": 121,
+            "text": "考",
+            "startMs": 19590,
+            "endMs": 19750
+          },
+          {
+            "index": 122,
+            "text": "虑",
+            "startMs": 19750,
+            "endMs": 19870
+          },
+          {
+            "index": 123,
+            "text": "的",
+            "startMs": 19870,
+            "endMs": 19990
+          },
+          {
+            "index": 124,
+            "text": "是",
+            "startMs": 19990,
+            "endMs": 20130
+          },
+          {
+            "index": 125,
+            "text": "机",
+            "startMs": 20130,
+            "endMs": 20290
+          },
+          {
+            "index": 126,
+            "text": "器",
+            "startMs": 20290,
+            "endMs": 20410
+          },
+          {
+            "index": 127,
+            "text": "人",
+            "startMs": 20410,
+            "endMs": 20590
+          },
+          {
+            "index": 128,
+            "text": "能",
+            "startMs": 20590,
+            "endMs": 20690
+          },
+          {
+            "index": 129,
+            "text": "不",
+            "startMs": 20690,
+            "endMs": 20770
+          },
+          {
+            "index": 130,
+            "text": "能",
+            "startMs": 20770,
+            "endMs": 20930
+          },
+          {
+            "index": 131,
+            "text": "长",
+            "startMs": 20930,
+            "endMs": 21150
+          },
+          {
+            "index": 132,
+            "text": "时",
+            "startMs": 21150,
+            "endMs": 21310
+          },
+          {
+            "index": 133,
+            "text": "间",
+            "startMs": 21310,
+            "endMs": 21450
+          },
+          {
+            "index": 134,
+            "text": "稳",
+            "startMs": 21450,
+            "endMs": 21550
+          },
+          {
+            "index": 135,
+            "text": "定",
+            "startMs": 21550,
+            "endMs": 21690
+          },
+          {
+            "index": 136,
+            "text": "工",
+            "startMs": 21690,
+            "endMs": 21850
+          },
+          {
+            "index": 137,
+            "text": "作",
+            "startMs": 21850,
+            "endMs": 22090
+          },
+          {
+            "index": 138,
+            "text": "出",
+            "startMs": 22250,
+            "endMs": 22390
+          },
+          {
+            "index": 139,
+            "text": "了",
+            "startMs": 22390,
+            "endMs": 22510
+          },
+          {
+            "index": 140,
+            "text": "问",
+            "startMs": 22510,
+            "endMs": 22690
+          },
+          {
+            "index": 141,
+            "text": "题",
+            "startMs": 22690,
+            "endMs": 22930
+          },
+          {
+            "index": 142,
+            "text": "能",
+            "startMs": 22930,
+            "endMs": 23010
+          },
+          {
+            "index": 143,
+            "text": "不",
+            "startMs": 23010,
+            "endMs": 23110
+          },
+          {
+            "index": 144,
+            "text": "能",
+            "startMs": 23110,
+            "endMs": 23250
+          },
+          {
+            "index": 145,
+            "text": "处",
+            "startMs": 23250,
+            "endMs": 23410
+          },
+          {
+            "index": 146,
+            "text": "理",
+            "startMs": 23410,
+            "endMs": 23590
+          },
+          {
+            "index": 147,
+            "text": "还",
+            "startMs": 23590,
+            "endMs": 23770
+          },
+          {
+            "index": 148,
+            "text": "要",
+            "startMs": 23770,
+            "endMs": 23890
+          },
+          {
+            "index": 149,
+            "text": "不",
+            "startMs": 23890,
+            "endMs": 24010
+          },
+          {
+            "index": 150,
+            "text": "要",
+            "startMs": 24010,
+            "endMs": 24090
+          },
+          {
+            "index": 151,
+            "text": "经",
+            "startMs": 24090,
+            "endMs": 24250
+          },
+          {
+            "index": 152,
+            "text": "常",
+            "startMs": 24250,
+            "endMs": 24430
+          },
+          {
+            "index": 153,
+            "text": "有",
+            "startMs": 24430,
+            "endMs": 24550
+          },
+          {
+            "index": 154,
+            "text": "人",
+            "startMs": 24550,
+            "endMs": 24670
+          },
+          {
+            "index": 155,
+            "text": "守",
+            "startMs": 24670,
+            "endMs": 24850
+          },
+          {
+            "index": 156,
+            "text": "在",
+            "startMs": 24850,
+            "endMs": 24970
+          },
+          {
+            "index": 157,
+            "text": "旁",
+            "startMs": 24970,
+            "endMs": 25070
+          },
+          {
+            "index": 158,
+            "text": "边",
+            "startMs": 25070,
+            "endMs": 25310
+          },
+          {
+            "index": 159,
+            "text": "那",
+            "startMs": 25610,
+            "endMs": 25730
+          },
+          {
+            "index": 160,
+            "text": "为",
+            "startMs": 25730,
+            "endMs": 25870
+          },
+          {
+            "index": 161,
+            "text": "什",
+            "startMs": 25870,
+            "endMs": 25970
+          },
+          {
+            "index": 162,
+            "text": "么",
+            "startMs": 25970,
+            "endMs": 26070
+          },
+          {
+            "index": 163,
+            "text": "机",
+            "startMs": 26070,
+            "endMs": 26210
+          },
+          {
+            "index": 164,
+            "text": "械",
+            "startMs": 26210,
+            "endMs": 26330
+          },
+          {
+            "index": 165,
+            "text": "臂",
+            "startMs": 26330,
+            "endMs": 26530
+          },
+          {
+            "index": 166,
+            "text": "早",
+            "startMs": 26530,
+            "endMs": 26690
+          },
+          {
+            "index": 167,
+            "text": "就",
+            "startMs": 26690,
+            "endMs": 26810
+          },
+          {
+            "index": 168,
+            "text": "在",
+            "startMs": 26810,
+            "endMs": 26950
+          },
+          {
+            "index": 169,
+            "text": "工",
+            "startMs": 26950,
+            "endMs": 27050
+          },
+          {
+            "index": 170,
+            "text": "厂",
+            "startMs": 27050,
+            "endMs": 27250
+          },
+          {
+            "index": 171,
+            "text": "上",
+            "startMs": 27250,
+            "endMs": 27410
+          },
+          {
+            "index": 172,
+            "text": "班",
+            "startMs": 27410,
+            "endMs": 27590
+          },
+          {
+            "index": 173,
+            "text": "了",
+            "startMs": 27590,
+            "endMs": 27830
+          },
+          {
+            "index": 174,
+            "text": "因",
+            "startMs": 28070,
+            "endMs": 28190
+          },
+          {
+            "index": 175,
+            "text": "为",
+            "startMs": 28190,
+            "endMs": 28330
+          },
+          {
+            "index": 176,
+            "text": "很",
+            "startMs": 28330,
+            "endMs": 28490
+          },
+          {
+            "index": 177,
+            "text": "多",
+            "startMs": 28490,
+            "endMs": 28610
+          },
+          {
+            "index": 178,
+            "text": "机",
+            "startMs": 28610,
+            "endMs": 28730
+          },
+          {
+            "index": 179,
+            "text": "械",
+            "startMs": 28730,
+            "endMs": 28910
+          },
+          {
+            "index": 180,
+            "text": "臂",
+            "startMs": 28910,
+            "endMs": 29090
+          },
+          {
+            "index": 181,
+            "text": "干",
+            "startMs": 29090,
+            "endMs": 29210
+          },
+          {
+            "index": 182,
+            "text": "的",
+            "startMs": 29210,
+            "endMs": 29330
+          },
+          {
+            "index": 183,
+            "text": "是",
+            "startMs": 29330,
+            "endMs": 29490
+          },
+          {
+            "index": 184,
+            "text": "相",
+            "startMs": 29490,
+            "endMs": 29630
+          },
+          {
+            "index": 185,
+            "text": "对",
+            "startMs": 29630,
+            "endMs": 29870
+          },
+          {
+            "index": 186,
+            "text": "固",
+            "startMs": 29890,
+            "endMs": 29990
+          },
+          {
+            "index": 187,
+            "text": "定",
+            "startMs": 29990,
+            "endMs": 30170
+          },
+          {
+            "index": 188,
+            "text": "的",
+            "startMs": 30170,
+            "endMs": 30250
+          },
+          {
+            "index": 189,
+            "text": "工",
+            "startMs": 30250,
+            "endMs": 30350
+          },
+          {
+            "index": 190,
+            "text": "作",
+            "startMs": 30350,
+            "endMs": 30590
+          },
+          {
+            "index": 191,
+            "text": "零",
+            "startMs": 30830,
+            "endMs": 31010
+          },
+          {
+            "index": 192,
+            "text": "件",
+            "startMs": 31010,
+            "endMs": 31150
+          },
+          {
+            "index": 193,
+            "text": "怎",
+            "startMs": 31150,
+            "endMs": 31250
+          },
+          {
+            "index": 194,
+            "text": "么",
+            "startMs": 31250,
+            "endMs": 31370
+          },
+          {
+            "index": 195,
+            "text": "放",
+            "startMs": 31370,
+            "endMs": 31610
+          },
+          {
+            "index": 196,
+            "text": "机",
+            "startMs": 31630,
+            "endMs": 31730
+          },
+          {
+            "index": 197,
+            "text": "器",
+            "startMs": 31730,
+            "endMs": 31910
+          },
+          {
+            "index": 198,
+            "text": "怎",
+            "startMs": 31910,
+            "endMs": 31990
+          },
+          {
+            "index": 199,
+            "text": "么",
+            "startMs": 31990,
+            "endMs": 32090
+          },
+          {
+            "index": 200,
+            "text": "接",
+            "startMs": 32090,
+            "endMs": 32330
+          },
+          {
+            "index": 201,
+            "text": "下",
+            "startMs": 32350,
+            "endMs": 32509
+          },
+          {
+            "index": 202,
+            "text": "一",
+            "startMs": 32509,
+            "endMs": 32630
+          },
+          {
+            "index": 203,
+            "text": "步",
+            "startMs": 32630,
+            "endMs": 32830
+          },
+          {
+            "index": 204,
+            "text": "怎",
+            "startMs": 32830,
+            "endMs": 32930
+          },
+          {
+            "index": 205,
+            "text": "么",
+            "startMs": 32930,
+            "endMs": 33050
+          },
+          {
+            "index": 206,
+            "text": "走",
+            "startMs": 33050,
+            "endMs": 33290
+          },
+          {
+            "index": 207,
+            "text": "整",
+            "startMs": 33450,
+            "endMs": 33590
+          },
+          {
+            "index": 208,
+            "text": "条",
+            "startMs": 33590,
+            "endMs": 33770
+          },
+          {
+            "index": 209,
+            "text": "流",
+            "startMs": 33770,
+            "endMs": 33890
+          },
+          {
+            "index": 210,
+            "text": "程",
+            "startMs": 33890,
+            "endMs": 34070
+          },
+          {
+            "index": 211,
+            "text": "都",
+            "startMs": 34070,
+            "endMs": 34210
+          },
+          {
+            "index": 212,
+            "text": "可",
+            "startMs": 34210,
+            "endMs": 34310
+          },
+          {
+            "index": 213,
+            "text": "以",
+            "startMs": 34310,
+            "endMs": 34410
+          },
+          {
+            "index": 214,
+            "text": "围",
+            "startMs": 34410,
+            "endMs": 34550
+          },
+          {
+            "index": 215,
+            "text": "绕",
+            "startMs": 34550,
+            "endMs": 34690
+          },
+          {
+            "index": 216,
+            "text": "这",
+            "startMs": 34690,
+            "endMs": 34790
+          },
+          {
+            "index": 217,
+            "text": "个",
+            "startMs": 34790,
+            "endMs": 34870
+          },
+          {
+            "index": 218,
+            "text": "任",
+            "startMs": 34870,
+            "endMs": 34970
+          },
+          {
+            "index": 219,
+            "text": "务",
+            "startMs": 34970,
+            "endMs": 35110
+          },
+          {
+            "index": 220,
+            "text": "设",
+            "startMs": 35110,
+            "endMs": 35270
+          },
+          {
+            "index": 221,
+            "text": "计",
+            "startMs": 35270,
+            "endMs": 35390
+          },
+          {
+            "index": 222,
+            "text": "好",
+            "startMs": 35390,
+            "endMs": 35630
+          },
+          {
+            "index": 223,
+            "text": "他",
+            "startMs": 35750,
+            "endMs": 35870
+          },
+          {
+            "index": 224,
+            "text": "们",
+            "startMs": 35870,
+            "endMs": 36050
+          },
+          {
+            "index": 225,
+            "text": "已",
+            "startMs": 36050,
+            "endMs": 36130
+          },
+          {
+            "index": 226,
+            "text": "经",
+            "startMs": 36130,
+            "endMs": 36230
+          },
+          {
+            "index": 227,
+            "text": "把",
+            "startMs": 36230,
+            "endMs": 36370
+          },
+          {
+            "index": 228,
+            "text": "不",
+            "startMs": 36370,
+            "endMs": 36510
+          },
+          {
+            "index": 229,
+            "text": "少",
+            "startMs": 36510,
+            "endMs": 36710
+          },
+          {
+            "index": 230,
+            "text": "工",
+            "startMs": 36710,
+            "endMs": 36810
+          },
+          {
+            "index": 231,
+            "text": "作",
+            "startMs": 36810,
+            "endMs": 37010
+          },
+          {
+            "index": 232,
+            "text": "干",
+            "startMs": 37010,
+            "endMs": 37110
+          },
+          {
+            "index": 233,
+            "text": "得",
+            "startMs": 37110,
+            "endMs": 37230
+          },
+          {
+            "index": 234,
+            "text": "又",
+            "startMs": 37230,
+            "endMs": 37350
+          },
+          {
+            "index": 235,
+            "text": "快",
+            "startMs": 37350,
+            "endMs": 37550
+          },
+          {
+            "index": 236,
+            "text": "又",
+            "startMs": 37550,
+            "endMs": 37710
+          },
+          {
+            "index": 237,
+            "text": "稳",
+            "startMs": 37710,
+            "endMs": 37950
+          },
+          {
+            "index": 238,
+            "text": "人",
+            "startMs": 38150,
+            "endMs": 38310
+          },
+          {
+            "index": 239,
+            "text": "形",
+            "startMs": 38310,
+            "endMs": 38490
+          },
+          {
+            "index": 240,
+            "text": "机",
+            "startMs": 38490,
+            "endMs": 38610
+          },
+          {
+            "index": 241,
+            "text": "器",
+            "startMs": 38610,
+            "endMs": 38710
+          },
+          {
+            "index": 242,
+            "text": "人",
+            "startMs": 38710,
+            "endMs": 38790
+          },
+          {
+            "index": 243,
+            "text": "的",
+            "startMs": 38790,
+            "endMs": 38890
+          },
+          {
+            "index": 244,
+            "text": "吸",
+            "startMs": 38890,
+            "endMs": 38970
+          },
+          {
+            "index": 245,
+            "text": "引",
+            "startMs": 38970,
+            "endMs": 39090
+          },
+          {
+            "index": 246,
+            "text": "力",
+            "startMs": 39090,
+            "endMs": 39250
+          },
+          {
+            "index": 247,
+            "text": "在",
+            "startMs": 39250,
+            "endMs": 39390
+          },
+          {
+            "index": 248,
+            "text": "于",
+            "startMs": 39390,
+            "endMs": 39630
+          },
+          {
+            "index": 249,
+            "text": "工",
+            "startMs": 39730,
+            "endMs": 39870
+          },
+          {
+            "index": 250,
+            "text": "厂",
+            "startMs": 39870,
+            "endMs": 40110
+          },
+          {
+            "index": 251,
+            "text": "里",
+            "startMs": 40110,
+            "endMs": 40250
+          },
+          {
+            "index": 252,
+            "text": "原",
+            "startMs": 40250,
+            "endMs": 40350
+          },
+          {
+            "index": 253,
+            "text": "本",
+            "startMs": 40350,
+            "endMs": 40590
+          },
+          {
+            "index": 254,
+            "text": "给",
+            "startMs": 40610,
+            "endMs": 40710
+          },
+          {
+            "index": 255,
+            "text": "人",
+            "startMs": 40710,
+            "endMs": 40850
+          },
+          {
+            "index": 256,
+            "text": "准",
+            "startMs": 40850,
+            "endMs": 41010
+          },
+          {
+            "index": 257,
+            "text": "备",
+            "startMs": 41010,
+            "endMs": 41130
+          },
+          {
+            "index": 258,
+            "text": "的",
+            "startMs": 41130,
+            "endMs": 41270
+          },
+          {
+            "index": 259,
+            "text": "通",
+            "startMs": 41270,
+            "endMs": 41430
+          },
+          {
+            "index": 260,
+            "text": "道",
+            "startMs": 41430,
+            "endMs": 41650
+          },
+          {
+            "index": 261,
+            "text": "工",
+            "startMs": 41650,
+            "endMs": 41790
+          },
+          {
+            "index": 262,
+            "text": "具",
+            "startMs": 41790,
+            "endMs": 42030
+          },
+          {
+            "index": 263,
+            "text": "和",
+            "startMs": 42030,
+            "endMs": 42170
+          },
+          {
+            "index": 264,
+            "text": "设",
+            "startMs": 42170,
+            "endMs": 42330
+          },
+          {
+            "index": 265,
+            "text": "备",
+            "startMs": 42330,
+            "endMs": 42570
+          },
+          {
+            "index": 266,
+            "text": "它",
+            "startMs": 42570,
+            "endMs": 42690
+          },
+          {
+            "index": 267,
+            "text": "都",
+            "startMs": 42690,
+            "endMs": 42810
+          },
+          {
+            "index": 268,
+            "text": "有",
+            "startMs": 42810,
+            "endMs": 42950
+          },
+          {
+            "index": 269,
+            "text": "机",
+            "startMs": 42950,
+            "endMs": 43050
+          },
+          {
+            "index": 270,
+            "text": "会",
+            "startMs": 43050,
+            "endMs": 43230
+          },
+          {
+            "index": 271,
+            "text": "利",
+            "startMs": 43230,
+            "endMs": 43310
+          },
+          {
+            "index": 272,
+            "text": "用",
+            "startMs": 43310,
+            "endMs": 43410
+          },
+          {
+            "index": 273,
+            "text": "起",
+            "startMs": 43410,
+            "endMs": 43530
+          },
+          {
+            "index": 274,
+            "text": "来",
+            "startMs": 43530,
+            "endMs": 43770
+          },
+          {
+            "index": 275,
+            "text": "今",
+            "startMs": 43990,
+            "endMs": 44130
+          },
+          {
+            "index": 276,
+            "text": "天",
+            "startMs": 44130,
+            "endMs": 44310
+          },
+          {
+            "index": 277,
+            "text": "搬",
+            "startMs": 44310,
+            "endMs": 44430
+          },
+          {
+            "index": 278,
+            "text": "料",
+            "startMs": 44430,
+            "endMs": 44670
+          },
+          {
+            "index": 279,
+            "text": "明",
+            "startMs": 44690,
+            "endMs": 44790
+          },
+          {
+            "index": 280,
+            "text": "天",
+            "startMs": 44790,
+            "endMs": 44990
+          },
+          {
+            "index": 281,
+            "text": "换",
+            "startMs": 44990,
+            "endMs": 45090
+          },
+          {
+            "index": 282,
+            "text": "个",
+            "startMs": 45090,
+            "endMs": 45210
+          },
+          {
+            "index": 283,
+            "text": "工",
+            "startMs": 45210,
+            "endMs": 45330
+          },
+          {
+            "index": 284,
+            "text": "位",
+            "startMs": 45330,
+            "endMs": 45570
+          },
+          {
+            "index": 285,
+            "text": "未",
+            "startMs": 45650,
+            "endMs": 45750
+          },
+          {
+            "index": 286,
+            "text": "来",
+            "startMs": 45750,
+            "endMs": 45870
+          },
+          {
+            "index": 287,
+            "text": "也",
+            "startMs": 45870,
+            "endMs": 46050
+          },
+          {
+            "index": 288,
+            "text": "许",
+            "startMs": 46050,
+            "endMs": 46190
+          },
+          {
+            "index": 289,
+            "text": "不",
+            "startMs": 46190,
+            "endMs": 46290
+          },
+          {
+            "index": 290,
+            "text": "用",
+            "startMs": 46290,
+            "endMs": 46410
+          },
+          {
+            "index": 291,
+            "text": "为",
+            "startMs": 46410,
+            "endMs": 46590
+          },
+          {
+            "index": 292,
+            "text": "每",
+            "startMs": 46590,
+            "endMs": 46710
+          },
+          {
+            "index": 293,
+            "text": "项",
+            "startMs": 46710,
+            "endMs": 46870
+          },
+          {
+            "index": 294,
+            "text": "工",
+            "startMs": 46870,
+            "endMs": 47010
+          },
+          {
+            "index": 295,
+            "text": "作",
+            "startMs": 47010,
+            "endMs": 47210
+          },
+          {
+            "index": 296,
+            "text": "重",
+            "startMs": 47210,
+            "endMs": 47290
+          },
+          {
+            "index": 297,
+            "text": "新",
+            "startMs": 47290,
+            "endMs": 47450
+          },
+          {
+            "index": 298,
+            "text": "搭",
+            "startMs": 47450,
+            "endMs": 47570
+          },
+          {
+            "index": 299,
+            "text": "一",
+            "startMs": 47570,
+            "endMs": 47710
+          },
+          {
+            "index": 300,
+            "text": "套",
+            "startMs": 47710,
+            "endMs": 47810
+          },
+          {
+            "index": 301,
+            "text": "专",
+            "startMs": 47810,
+            "endMs": 48010
+          },
+          {
+            "index": 302,
+            "text": "门",
+            "startMs": 48010,
+            "endMs": 48110
+          },
+          {
+            "index": 303,
+            "text": "的",
+            "startMs": 48110,
+            "endMs": 48230
+          },
+          {
+            "index": 304,
+            "text": "设",
+            "startMs": 48230,
+            "endMs": 48350
+          },
+          {
+            "index": 305,
+            "text": "备",
+            "startMs": 48350,
+            "endMs": 48655
+          }
+        ],
+        "segments": [
+          {
+            "displayText": "假设一个动作每次都有百分之九十九的成功率，",
+            "startMs": 310,
+            "endMs": 3030,
+            "tokenStartIndex": 0,
+            "tokenEndIndex": 20
+          },
+          {
+            "displayText": "而且每次结果互不影响，",
+            "startMs": 3150,
+            "endMs": 4710,
+            "tokenStartIndex": 20,
+            "tokenEndIndex": 30
+          },
+          {
+            "displayText": "听起来已经很高了，",
+            "startMs": 4770,
+            "endMs": 5970,
+            "tokenStartIndex": 30,
+            "tokenEndIndex": 38
+          },
+          {
+            "displayText": "对吧？",
+            "startMs": 5970,
+            "endMs": 6330,
+            "tokenStartIndex": 38,
+            "tokenEndIndex": 40
+          },
+          {
+            "displayText": "可连续做一百次，",
+            "startMs": 6590,
+            "endMs": 7770,
+            "tokenStartIndex": 40,
+            "tokenEndIndex": 47
+          },
+          {
+            "displayText": "全部成功的概率大约只有百分之三十七，",
+            "startMs": 7790,
+            "endMs": 10230,
+            "tokenStartIndex": 47,
+            "tokenEndIndex": 64
+          },
+          {
+            "displayText": "实际生产中有些小失误可以自动恢复。",
+            "startMs": 10570,
+            "endMs": 13170,
+            "tokenStartIndex": 64,
+            "tokenEndIndex": 80
+          },
+          {
+            "displayText": "有些却需要停下来找人处理，",
+            "startMs": 13350,
+            "endMs": 15130,
+            "tokenStartIndex": 80,
+            "tokenEndIndex": 92
+          },
+          {
+            "displayText": "要是隔一会儿就得叫个人来帮忙，",
+            "startMs": 15190,
+            "endMs": 17030,
+            "tokenStartIndex": 92,
+            "tokenEndIndex": 106
+          },
+          {
+            "displayText": "后面的工序也可能跟着等。",
+            "startMs": 17030,
+            "endMs": 18730,
+            "tokenStartIndex": 106,
+            "tokenEndIndex": 117
+          },
+          {
+            "displayText": "工厂需要考虑的是，",
+            "startMs": 18930,
+            "endMs": 20130,
+            "tokenStartIndex": 117,
+            "tokenEndIndex": 125
+          },
+          {
+            "displayText": "机器人能不能长时间稳定工作，",
+            "startMs": 20130,
+            "endMs": 22090,
+            "tokenStartIndex": 125,
+            "tokenEndIndex": 138
+          },
+          {
+            "displayText": "出了问题能不能处理，",
+            "startMs": 22250,
+            "endMs": 23590,
+            "tokenStartIndex": 138,
+            "tokenEndIndex": 147
+          },
+          {
+            "displayText": "还要不要经常有人守在旁边？",
+            "startMs": 23590,
+            "endMs": 25310,
+            "tokenStartIndex": 147,
+            "tokenEndIndex": 159
+          },
+          {
+            "displayText": "那为什么机械臂早就在工厂上班了？",
+            "startMs": 25610,
+            "endMs": 27830,
+            "tokenStartIndex": 159,
+            "tokenEndIndex": 174
+          },
+          {
+            "displayText": "因为很多机械臂干的是相对固定的工作零件，",
+            "startMs": 28070,
+            "endMs": 31150,
+            "tokenStartIndex": 174,
+            "tokenEndIndex": 193
+          },
+          {
+            "displayText": "怎么放，",
+            "startMs": 31150,
+            "endMs": 31610,
+            "tokenStartIndex": 193,
+            "tokenEndIndex": 196
+          },
+          {
+            "displayText": "机器怎么接，",
+            "startMs": 31630,
+            "endMs": 32330,
+            "tokenStartIndex": 196,
+            "tokenEndIndex": 201
+          },
+          {
+            "displayText": "下一步怎么走，",
+            "startMs": 32350,
+            "endMs": 33290,
+            "tokenStartIndex": 201,
+            "tokenEndIndex": 207
+          },
+          {
+            "displayText": "整条流程都可以围绕这个任务设计好。",
+            "startMs": 33450,
+            "endMs": 35630,
+            "tokenStartIndex": 207,
+            "tokenEndIndex": 223
+          },
+          {
+            "displayText": "他们已经把不少工作干得又快又稳。",
+            "startMs": 35750,
+            "endMs": 37950,
+            "tokenStartIndex": 223,
+            "tokenEndIndex": 238
+          },
+          {
+            "displayText": "人形机器人的吸引力在于，",
+            "startMs": 38150,
+            "endMs": 39630,
+            "tokenStartIndex": 238,
+            "tokenEndIndex": 249
+          },
+          {
+            "displayText": "工厂里原本给人准备的通道、",
+            "startMs": 39730,
+            "endMs": 41650,
+            "tokenStartIndex": 249,
+            "tokenEndIndex": 261
+          },
+          {
+            "displayText": "工具和设备，",
+            "startMs": 41650,
+            "endMs": 42570,
+            "tokenStartIndex": 261,
+            "tokenEndIndex": 266
+          },
+          {
+            "displayText": "它都有机会利用起来。",
+            "startMs": 42570,
+            "endMs": 43770,
+            "tokenStartIndex": 266,
+            "tokenEndIndex": 275
+          },
+          {
+            "displayText": "今天搬料，",
+            "startMs": 43990,
+            "endMs": 44670,
+            "tokenStartIndex": 275,
+            "tokenEndIndex": 279
+          },
+          {
+            "displayText": "明天换个工位。",
+            "startMs": 44690,
+            "endMs": 45570,
+            "tokenStartIndex": 279,
+            "tokenEndIndex": 285
+          },
+          {
+            "displayText": "未来也许不用为每项工作重新搭一套专门的设备。",
+            "startMs": 45650,
+            "endMs": 48655,
+            "tokenStartIndex": 285,
+            "tokenEndIndex": 306
+          }
+        ],
+        "sentenceCandidateMode": "none",
+        "sentences": [],
+        "bridgeAudit": {
+          "workflowId": "funasr-source-caption-v4",
+          "runId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "schemaVersion": "23d8eb56fa99ca7807ed6a6a42a9db19ae9c4b901fcb8b946225ec7835fa6680",
+          "schemaRetryCount": 0,
+          "submittedAt": "2026-11-07T13:44:50.647Z",
+          "completedAt": "2026-11-07T13:45:16.196Z",
+          "request": {
+            "fieldValues": {},
+            "fileSlots": [
+              {
+                "id": "input-1",
+                "kind": "audio",
+                "fileName": "aroll-0-1463.wav"
+              }
+            ],
+            "metadata": {
+              "sourceCaptionKind": "caption_alignment",
+              "sourceCaptionAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+              "sourceCaptionTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+              "sourceCaptionRequestedRevision": 28,
+              "sourceCaptionStartFrame": 0,
+              "sourceCaptionEndFrame": 1463,
+              "sourceCaptionSpeechAssetId": "speech_asset_98bf84a9-a4bd-47b6-a424-226a245a5fa5",
+              "sourceCaptionScriptRevision": 1,
+              "bridgeQueueMode": "normal"
+            }
+          },
+          "response": {
+            "status": "succeeded",
+            "error": null,
+            "outputs": [
+              {
+                "kind": "text",
+                "text": "假设一个动作每次都有百分之九十九的成功率，而且每次结果互不影响，听起来已经很高了，对吧？可连续做一百次，全部成功的概率大约只有百分之三十七，实际生产中有些小失误可以自动恢复。有些却需要停下来找人处理，要是隔一会儿就得叫个人来帮忙，后面的工序也可能跟着等。工厂需要考虑的是，机器人能不能长时间稳定工作，出了问题能不能处理，还要不要经常有人守在旁边？那为什么机械臂早就在工厂上班了？因为很多机械臂干的是相对固定的工作零件，怎么放，机器怎么接，下一步怎么走，整条流程都可以围绕这个任务设计好。他们已经把不少工作干得又快又稳。人形机器人的吸引力在于，工厂里原本给人准备的通道、工具和设备，它都有机会利用起来。今天搬料，明天换个工位。未来也许不用为每项工作重新搭一套专门的设备。"
+              },
+              {
+                "kind": "text",
+                "text": "{\"version\":4,\"precision\":\"provider_segment_timed\",\"text\":\"假设一个动作每次都有百分之九十九的成功率，而且每次结果互不影响，听起来已经很高了，对吧？可连续做一百次，全部成功的概率大约只有百分之三十七，实际生产中有些小失误可以自动恢复。有些却需要停下来找人处理，要是隔一会儿就得叫个人来帮忙，后面的工序也可能跟着等。工厂需要考虑的是，机器人能不能长时间稳定工作，出了问题能不能处理，还要不要经常有人守在旁边？那为什么机械臂早就在工厂上班了？因为很多机械臂干的是相对固定的工作零件，怎么放，机器怎么接，下一步怎么走，整条流程都可以围绕这个任务设计好。他们已经把不少工作干得又快又稳。人形机器人的吸引力在于，工厂里原本给人准备的通道、工具和设备，它都有机会利用起来。今天搬料，明天换个工位。未来也许不用为每项工作重新搭一套专门的设备。\",\"segments\":[{\"displayText\":\"假设一个动作每次都有百分之九十九的成功率，\",\"startMs\":310,\"endMs\":3030,\"tokenStart\":0,\"tokenEnd\":20},{\"displayText\":\"而且每次结果互不影响，\",\"startMs\":3150,\"endMs\":4710,\"tokenStart\":20,\"tokenEnd\":30},{\"displayText\":\"听起来已经很高了，\",\"startMs\":4770,\"endMs\":5970,\"tokenStart\":30,\"tokenEnd\":38},{\"displayText\":\"对吧？\",\"startMs\":5970,\"endMs\":6330,\"tokenStart\":38,\"tokenEnd\":40},{\"displayText\":\"可连续做一百次，\",\"startMs\":6590,\"endMs\":7770,\"tokenStart\":40,\"tokenEnd\":47},{\"displayText\":\"全部成功的概率大约只有百分之三十七，\",\"startMs\":7790,\"endMs\":10230,\"tokenStart\":47,\"tokenEnd\":64},{\"displayText\":\"实际生产中有些小失误可以自动恢复。\",\"startMs\":10570,\"endMs\":13170,\"tokenStart\":64,\"tokenEnd\":80},{\"displayText\":\"有些却需要停下来找人处理，\",\"startMs\":13350,\"endMs\":15130,\"tokenStart\":80,\"tokenEnd\":92},{\"displayText\":\"要是隔一会儿就得叫个人来帮忙，\",\"startMs\":15190,\"endMs\":17030,\"tokenStart\":92,\"tokenEnd\":106},{\"displayText\":\"后面的工序也可能跟着等。\",\"startMs\":17030,\"endMs\":18730,\"tokenStart\":106,\"tokenEnd\":117},{\"displayText\":\"工厂需要考虑的是，\",\"startMs\":18930,\"endMs\":20130,\"tokenStart\":117,\"tokenEnd\":125},{\"displayText\":\"机器人能不能长时间稳定工作，\",\"startMs\":20130,\"endMs\":22090,\"tokenStart\":125,\"tokenEnd\":138},{\"displayText\":\"出了问题能不能处理，\",\"startMs\":22250,\"endMs\":23590,\"tokenStart\":138,\"tokenEnd\":147},{\"displayText\":\"还要不要经常有人守在旁边？\",\"startMs\":23590,\"endMs\":25310,\"tokenStart\":147,\"tokenEnd\":159},{\"displayText\":\"那为什么机械臂早就在工厂上班了？\",\"startMs\":25610,\"endMs\":27830,\"tokenStart\":159,\"tokenEnd\":174},{\"displayText\":\"因为很多机械臂干的是相对固定的工作零件，\",\"startMs\":28070,\"endMs\":31150,\"tokenStart\":174,\"tokenEnd\":193},{\"displayText\":\"怎么放，\",\"startMs\":31150,\"endMs\":31610,\"tokenStart\":193,\"tokenEnd\":196},{\"displayText\":\"机器怎么接，\",\"startMs\":31630,\"endMs\":32330,\"tokenStart\":196,\"tokenEnd\":201},{\"displayText\":\"下一步怎么走，\",\"startMs\":32350,\"endMs\":33290,\"tokenStart\":201,\"tokenEnd\":207},{\"displayText\":\"整条流程都可以围绕这个任务设计好。\",\"startMs\":33450,\"endMs\":35630,\"tokenStart\":207,\"tokenEnd\":223},{\"displayText\":\"他们已经把不少工作干得又快又稳。\",\"startMs\":35750,\"endMs\":37950,\"tokenStart\":223,\"tokenEnd\":238},{\"displayText\":\"人形机器人的吸引力在于，\",\"startMs\":38150,\"endMs\":39630,\"tokenStart\":238,\"tokenEnd\":249},{\"displayText\":\"工厂里原本给人准备的通道、\",\"startMs\":39730,\"endMs\":41650,\"tokenStart\":249,\"tokenEnd\":261},{\"displayText\":\"工具和设备，\",\"startMs\":41650,\"endMs\":42570,\"tokenStart\":261,\"tokenEnd\":266},{\"displayText\":\"它都有机会利用起来。\",\"startMs\":42570,\"endMs\":43770,\"tokenStart\":266,\"tokenEnd\":275},{\"displayText\":\"今天搬料，\",\"startMs\":43990,\"endMs\":44670,\"tokenStart\":275,\"tokenEnd\":279},{\"displayText\":\"明天换个工位。\",\"startMs\":44690,\"endMs\":45570,\"tokenStart\":279,\"tokenEnd\":285},{\"displayText\":\"未来也许不用为每项工作重新搭一套专门的设备。\",\"startMs\":45650,\"endMs\":48655,\"tokenStart\":285,\"tokenEnd\":306}],\"alignment\":{\"tokenEvidence\":\"verified\",\"tokenPrecision\":\"provider_token_timed\",\"tokens\":[{\"text\":\"假\",\"startMs\":310,\"endMs\":470},{\"text\":\"设\",\"startMs\":470,\"endMs\":610},{\"text\":\"一\",\"startMs\":610,\"endMs\":710},{\"text\":\"个\",\"startMs\":710,\"endMs\":790},{\"text\":\"动\",\"startMs\":790,\"endMs\":890},{\"text\":\"作\",\"startMs\":890,\"endMs\":1110},{\"text\":\"每\",\"startMs\":1110,\"endMs\":1310},{\"text\":\"次\",\"startMs\":1310,\"endMs\":1490},{\"text\":\"都\",\"startMs\":1490,\"endMs\":1610},{\"text\":\"有\",\"startMs\":1610,\"endMs\":1750},{\"text\":\"百\",\"startMs\":1750,\"endMs\":1830},{\"text\":\"分\",\"startMs\":1830,\"endMs\":1950},{\"text\":\"之\",\"startMs\":1950,\"endMs\":2090},{\"text\":\"九\",\"startMs\":2090,\"endMs\":2190},{\"text\":\"十\",\"startMs\":2190,\"endMs\":2310},{\"text\":\"九\",\"startMs\":2310,\"endMs\":2430},{\"text\":\"的\",\"startMs\":2430,\"endMs\":2530},{\"text\":\"成\",\"startMs\":2530,\"endMs\":2670},{\"text\":\"功\",\"startMs\":2670,\"endMs\":2790},{\"text\":\"率\",\"startMs\":2790,\"endMs\":3030},{\"text\":\"而\",\"startMs\":3150,\"endMs\":3270},{\"text\":\"且\",\"startMs\":3270,\"endMs\":3430},{\"text\":\"每\",\"startMs\":3430,\"endMs\":3630},{\"text\":\"次\",\"startMs\":3630,\"endMs\":3830},{\"text\":\"结\",\"startMs\":3830,\"endMs\":3990},{\"text\":\"果\",\"startMs\":3990,\"endMs\":4130},{\"text\":\"互\",\"startMs\":4130,\"endMs\":4230},{\"text\":\"不\",\"startMs\":4230,\"endMs\":4370},{\"text\":\"影\",\"startMs\":4370,\"endMs\":4470},{\"text\":\"响\",\"startMs\":4470,\"endMs\":4710},{\"text\":\"听\",\"startMs\":4770,\"endMs\":4950},{\"text\":\"起\",\"startMs\":4950,\"endMs\":5070},{\"text\":\"来\",\"startMs\":5070,\"endMs\":5210},{\"text\":\"已\",\"startMs\":5210,\"endMs\":5310},{\"text\":\"经\",\"startMs\":5310,\"endMs\":5490},{\"text\":\"很\",\"startMs\":5490,\"endMs\":5670},{\"text\":\"高\",\"startMs\":5670,\"endMs\":5850},{\"text\":\"了\",\"startMs\":5850,\"endMs\":5970},{\"text\":\"对\",\"startMs\":5970,\"endMs\":6090},{\"text\":\"吧\",\"startMs\":6090,\"endMs\":6330},{\"text\":\"可\",\"startMs\":6590,\"endMs\":6770},{\"text\":\"连\",\"startMs\":6770,\"endMs\":6930},{\"text\":\"续\",\"startMs\":6930,\"endMs\":7050},{\"text\":\"做\",\"startMs\":7050,\"endMs\":7250},{\"text\":\"一\",\"startMs\":7250,\"endMs\":7350},{\"text\":\"百\",\"startMs\":7350,\"endMs\":7530},{\"text\":\"次\",\"startMs\":7530,\"endMs\":7770},{\"text\":\"全\",\"startMs\":7790,\"endMs\":7950},{\"text\":\"部\",\"startMs\":7950,\"endMs\":8090},{\"text\":\"成\",\"startMs\":8090,\"endMs\":8250},{\"text\":\"功\",\"startMs\":8250,\"endMs\":8370},{\"text\":\"的\",\"startMs\":8370,\"endMs\":8510},{\"text\":\"概\",\"startMs\":8510,\"endMs\":8670},{\"text\":\"率\",\"startMs\":8670,\"endMs\":8850},{\"text\":\"大\",\"startMs\":8850,\"endMs\":8970},{\"text\":\"约\",\"startMs\":8970,\"endMs\":9150},{\"text\":\"只\",\"startMs\":9150,\"endMs\":9270},{\"text\":\"有\",\"startMs\":9270,\"endMs\":9410},{\"text\":\"百\",\"startMs\":9410,\"endMs\":9510},{\"text\":\"分\",\"startMs\":9510,\"endMs\":9630},{\"text\":\"之\",\"startMs\":9630,\"endMs\":9750},{\"text\":\"三\",\"startMs\":9750,\"endMs\":9870},{\"text\":\"十\",\"startMs\":9870,\"endMs\":9990},{\"text\":\"七\",\"startMs\":9990,\"endMs\":10230},{\"text\":\"实\",\"startMs\":10570,\"endMs\":10770},{\"text\":\"际\",\"startMs\":10770,\"endMs\":10950},{\"text\":\"生\",\"startMs\":10950,\"endMs\":11070},{\"text\":\"产\",\"startMs\":11070,\"endMs\":11250},{\"text\":\"中\",\"startMs\":11250,\"endMs\":11450},{\"text\":\"有\",\"startMs\":11450,\"endMs\":11550},{\"text\":\"些\",\"startMs\":11550,\"endMs\":11690},{\"text\":\"小\",\"startMs\":11690,\"endMs\":11870},{\"text\":\"失\",\"startMs\":11870,\"endMs\":12030},{\"text\":\"误\",\"startMs\":12030,\"endMs\":12270},{\"text\":\"可\",\"startMs\":12290,\"endMs\":12390},{\"text\":\"以\",\"startMs\":12390,\"endMs\":12530},{\"text\":\"自\",\"startMs\":12530,\"endMs\":12630},{\"text\":\"动\",\"startMs\":12630,\"endMs\":12770},{\"text\":\"恢\",\"startMs\":12770,\"endMs\":12930},{\"text\":\"复\",\"startMs\":12930,\"endMs\":13170},{\"text\":\"有\",\"startMs\":13350,\"endMs\":13470},{\"text\":\"些\",\"startMs\":13470,\"endMs\":13670},{\"text\":\"却\",\"startMs\":13670,\"endMs\":13850},{\"text\":\"需\",\"startMs\":13850,\"endMs\":13930},{\"text\":\"要\",\"startMs\":13930,\"endMs\":14090},{\"text\":\"停\",\"startMs\":14090,\"endMs\":14230},{\"text\":\"下\",\"startMs\":14230,\"endMs\":14350},{\"text\":\"来\",\"startMs\":14350,\"endMs\":14490},{\"text\":\"找\",\"startMs\":14490,\"endMs\":14590},{\"text\":\"人\",\"startMs\":14590,\"endMs\":14790},{\"text\":\"处\",\"startMs\":14790,\"endMs\":14890},{\"text\":\"理\",\"startMs\":14890,\"endMs\":15130},{\"text\":\"要\",\"startMs\":15190,\"endMs\":15310},{\"text\":\"是\",\"startMs\":15310,\"endMs\":15430},{\"text\":\"隔\",\"startMs\":15430,\"endMs\":15570},{\"text\":\"一\",\"startMs\":15570,\"endMs\":15670},{\"text\":\"会\",\"startMs\":15670,\"endMs\":15790},{\"text\":\"儿\",\"startMs\":15790,\"endMs\":15890},{\"text\":\"就\",\"startMs\":15890,\"endMs\":15970},{\"text\":\"得\",\"startMs\":15970,\"endMs\":16090},{\"text\":\"叫\",\"startMs\":16090,\"endMs\":16250},{\"text\":\"个\",\"startMs\":16250,\"endMs\":16390},{\"text\":\"人\",\"startMs\":16390,\"endMs\":16570},{\"text\":\"来\",\"startMs\":16570,\"endMs\":16710},{\"text\":\"帮\",\"startMs\":16710,\"endMs\":16810},{\"text\":\"忙\",\"startMs\":16810,\"endMs\":17030},{\"text\":\"后\",\"startMs\":17030,\"endMs\":17170},{\"text\":\"面\",\"startMs\":17170,\"endMs\":17290},{\"text\":\"的\",\"startMs\":17290,\"endMs\":17390},{\"text\":\"工\",\"startMs\":17390,\"endMs\":17470},{\"text\":\"序\",\"startMs\":17470,\"endMs\":17710},{\"text\":\"也\",\"startMs\":17710,\"endMs\":17910},{\"text\":\"可\",\"startMs\":17910,\"endMs\":18070},{\"text\":\"能\",\"startMs\":18070,\"endMs\":18190},{\"text\":\"跟\",\"startMs\":18190,\"endMs\":18310},{\"text\":\"着\",\"startMs\":18310,\"endMs\":18490},{\"text\":\"等\",\"startMs\":18490,\"endMs\":18730},{\"text\":\"工\",\"startMs\":18930,\"endMs\":19090},{\"text\":\"厂\",\"startMs\":19090,\"endMs\":19330},{\"text\":\"需\",\"startMs\":19350,\"endMs\":19450},{\"text\":\"要\",\"startMs\":19450,\"endMs\":19590},{\"text\":\"考\",\"startMs\":19590,\"endMs\":19750},{\"text\":\"虑\",\"startMs\":19750,\"endMs\":19870},{\"text\":\"的\",\"startMs\":19870,\"endMs\":19990},{\"text\":\"是\",\"startMs\":19990,\"endMs\":20130},{\"text\":\"机\",\"startMs\":20130,\"endMs\":20290},{\"text\":\"器\",\"startMs\":20290,\"endMs\":20410},{\"text\":\"人\",\"startMs\":20410,\"endMs\":20590},{\"text\":\"能\",\"startMs\":20590,\"endMs\":20690},{\"text\":\"不\",\"startMs\":20690,\"endMs\":20770},{\"text\":\"能\",\"startMs\":20770,\"endMs\":20930},{\"text\":\"长\",\"startMs\":20930,\"endMs\":21150},{\"text\":\"时\",\"startMs\":21150,\"endMs\":21310},{\"text\":\"间\",\"startMs\":21310,\"endMs\":21450},{\"text\":\"稳\",\"startMs\":21450,\"endMs\":21550},{\"text\":\"定\",\"startMs\":21550,\"endMs\":21690},{\"text\":\"工\",\"startMs\":21690,\"endMs\":21850},{\"text\":\"作\",\"startMs\":21850,\"endMs\":22090},{\"text\":\"出\",\"startMs\":22250,\"endMs\":22390},{\"text\":\"了\",\"startMs\":22390,\"endMs\":22510},{\"text\":\"问\",\"startMs\":22510,\"endMs\":22690},{\"text\":\"题\",\"startMs\":22690,\"endMs\":22930},{\"text\":\"能\",\"startMs\":22930,\"endMs\":23010},{\"text\":\"不\",\"startMs\":23010,\"endMs\":23110},{\"text\":\"能\",\"startMs\":23110,\"endMs\":23250},{\"text\":\"处\",\"startMs\":23250,\"endMs\":23410},{\"text\":\"理\",\"startMs\":23410,\"endMs\":23590},{\"text\":\"还\",\"startMs\":23590,\"endMs\":23770},{\"text\":\"要\",\"startMs\":23770,\"endMs\":23890},{\"text\":\"不\",\"startMs\":23890,\"endMs\":24010},{\"text\":\"要\",\"startMs\":24010,\"endMs\":24090},{\"text\":\"经\",\"startMs\":24090,\"endMs\":24250},{\"text\":\"常\",\"startMs\":24250,\"endMs\":24430},{\"text\":\"有\",\"startMs\":24430,\"endMs\":24550},{\"text\":\"人\",\"startMs\":24550,\"endMs\":24670},{\"text\":\"守\",\"startMs\":24670,\"endMs\":24850},{\"text\":\"在\",\"startMs\":24850,\"endMs\":24970},{\"text\":\"旁\",\"startMs\":24970,\"endMs\":25070},{\"text\":\"边\",\"startMs\":25070,\"endMs\":25310},{\"text\":\"那\",\"startMs\":25610,\"endMs\":25730},{\"text\":\"为\",\"startMs\":25730,\"endMs\":25870},{\"text\":\"什\",\"startMs\":25870,\"endMs\":25970},{\"text\":\"么\",\"startMs\":25970,\"endMs\":26070},{\"text\":\"机\",\"startMs\":26070,\"endMs\":26210},{\"text\":\"械\",\"startMs\":26210,\"endMs\":26330},{\"text\":\"臂\",\"startMs\":26330,\"endMs\":26530},{\"text\":\"早\",\"startMs\":26530,\"endMs\":26690},{\"text\":\"就\",\"startMs\":26690,\"endMs\":26810},{\"text\":\"在\",\"startMs\":26810,\"endMs\":26950},{\"text\":\"工\",\"startMs\":26950,\"endMs\":27050},{\"text\":\"厂\",\"startMs\":27050,\"endMs\":27250},{\"text\":\"上\",\"startMs\":27250,\"endMs\":27410},{\"text\":\"班\",\"startMs\":27410,\"endMs\":27590},{\"text\":\"了\",\"startMs\":27590,\"endMs\":27830},{\"text\":\"因\",\"startMs\":28070,\"endMs\":28190},{\"text\":\"为\",\"startMs\":28190,\"endMs\":28330},{\"text\":\"很\",\"startMs\":28330,\"endMs\":28490},{\"text\":\"多\",\"startMs\":28490,\"endMs\":28610},{\"text\":\"机\",\"startMs\":28610,\"endMs\":28730},{\"text\":\"械\",\"startMs\":28730,\"endMs\":28910},{\"text\":\"臂\",\"startMs\":28910,\"endMs\":29090},{\"text\":\"干\",\"startMs\":29090,\"endMs\":29210},{\"text\":\"的\",\"startMs\":29210,\"endMs\":29330},{\"text\":\"是\",\"startMs\":29330,\"endMs\":29490},{\"text\":\"相\",\"startMs\":29490,\"endMs\":29630},{\"text\":\"对\",\"startMs\":29630,\"endMs\":29870},{\"text\":\"固\",\"startMs\":29890,\"endMs\":29990},{\"text\":\"定\",\"startMs\":29990,\"endMs\":30170},{\"text\":\"的\",\"startMs\":30170,\"endMs\":30250},{\"text\":\"工\",\"startMs\":30250,\"endMs\":30350},{\"text\":\"作\",\"startMs\":30350,\"endMs\":30590},{\"text\":\"零\",\"startMs\":30830,\"endMs\":31010},{\"text\":\"件\",\"startMs\":31010,\"endMs\":31150},{\"text\":\"怎\",\"startMs\":31150,\"endMs\":31250},{\"text\":\"么\",\"startMs\":31250,\"endMs\":31370},{\"text\":\"放\",\"startMs\":31370,\"endMs\":31610},{\"text\":\"机\",\"startMs\":31630,\"endMs\":31730},{\"text\":\"器\",\"startMs\":31730,\"endMs\":31910},{\"text\":\"怎\",\"startMs\":31910,\"endMs\":31990},{\"text\":\"么\",\"startMs\":31990,\"endMs\":32090},{\"text\":\"接\",\"startMs\":32090,\"endMs\":32330},{\"text\":\"下\",\"startMs\":32350,\"endMs\":32509},{\"text\":\"一\",\"startMs\":32509,\"endMs\":32630},{\"text\":\"步\",\"startMs\":32630,\"endMs\":32830},{\"text\":\"怎\",\"startMs\":32830,\"endMs\":32930},{\"text\":\"么\",\"startMs\":32930,\"endMs\":33050},{\"text\":\"走\",\"startMs\":33050,\"endMs\":33290},{\"text\":\"整\",\"startMs\":33450,\"endMs\":33590},{\"text\":\"条\",\"startMs\":33590,\"endMs\":33770},{\"text\":\"流\",\"startMs\":33770,\"endMs\":33890},{\"text\":\"程\",\"startMs\":33890,\"endMs\":34070},{\"text\":\"都\",\"startMs\":34070,\"endMs\":34210},{\"text\":\"可\",\"startMs\":34210,\"endMs\":34310},{\"text\":\"以\",\"startMs\":34310,\"endMs\":34410},{\"text\":\"围\",\"startMs\":34410,\"endMs\":34550},{\"text\":\"绕\",\"startMs\":34550,\"endMs\":34690},{\"text\":\"这\",\"startMs\":34690,\"endMs\":34790},{\"text\":\"个\",\"startMs\":34790,\"endMs\":34870},{\"text\":\"任\",\"startMs\":34870,\"endMs\":34970},{\"text\":\"务\",\"startMs\":34970,\"endMs\":35110},{\"text\":\"设\",\"startMs\":35110,\"endMs\":35270},{\"text\":\"计\",\"startMs\":35270,\"endMs\":35390},{\"text\":\"好\",\"startMs\":35390,\"endMs\":35630},{\"text\":\"他\",\"startMs\":35750,\"endMs\":35870},{\"text\":\"们\",\"startMs\":35870,\"endMs\":36050},{\"text\":\"已\",\"startMs\":36050,\"endMs\":36130},{\"text\":\"经\",\"startMs\":36130,\"endMs\":36230},{\"text\":\"把\",\"startMs\":36230,\"endMs\":36370},{\"text\":\"不\",\"startMs\":36370,\"endMs\":36510},{\"text\":\"少\",\"startMs\":36510,\"endMs\":36710},{\"text\":\"工\",\"startMs\":36710,\"endMs\":36810},{\"text\":\"作\",\"startMs\":36810,\"endMs\":37010},{\"text\":\"干\",\"startMs\":37010,\"endMs\":37110},{\"text\":\"得\",\"startMs\":37110,\"endMs\":37230},{\"text\":\"又\",\"startMs\":37230,\"endMs\":37350},{\"text\":\"快\",\"startMs\":37350,\"endMs\":37550},{\"text\":\"又\",\"startMs\":37550,\"endMs\":37710},{\"text\":\"稳\",\"startMs\":37710,\"endMs\":37950},{\"text\":\"人\",\"startMs\":38150,\"endMs\":38310},{\"text\":\"形\",\"startMs\":38310,\"endMs\":38490},{\"text\":\"机\",\"startMs\":38490,\"endMs\":38610},{\"text\":\"器\",\"startMs\":38610,\"endMs\":38710},{\"text\":\"人\",\"startMs\":38710,\"endMs\":38790},{\"text\":\"的\",\"startMs\":38790,\"endMs\":38890},{\"text\":\"吸\",\"startMs\":38890,\"endMs\":38970},{\"text\":\"引\",\"startMs\":38970,\"endMs\":39090},{\"text\":\"力\",\"startMs\":39090,\"endMs\":39250},{\"text\":\"在\",\"startMs\":39250,\"endMs\":39390},{\"text\":\"于\",\"startMs\":39390,\"endMs\":39630},{\"text\":\"工\",\"startMs\":39730,\"endMs\":39870},{\"text\":\"厂\",\"startMs\":39870,\"endMs\":40110},{\"text\":\"里\",\"startMs\":40110,\"endMs\":40250},{\"text\":\"原\",\"startMs\":40250,\"endMs\":40350},{\"text\":\"本\",\"startMs\":40350,\"endMs\":40590},{\"text\":\"给\",\"startMs\":40610,\"endMs\":40710},{\"text\":\"人\",\"startMs\":40710,\"endMs\":40850},{\"text\":\"准\",\"startMs\":40850,\"endMs\":41010},{\"text\":\"备\",\"startMs\":41010,\"endMs\":41130},{\"text\":\"的\",\"startMs\":41130,\"endMs\":41270},{\"text\":\"通\",\"startMs\":41270,\"endMs\":41430},{\"text\":\"道\",\"startMs\":41430,\"endMs\":41650},{\"text\":\"工\",\"startMs\":41650,\"endMs\":41790},{\"text\":\"具\",\"startMs\":41790,\"endMs\":42030},{\"text\":\"和\",\"startMs\":42030,\"endMs\":42170},{\"text\":\"设\",\"startMs\":42170,\"endMs\":42330},{\"text\":\"备\",\"startMs\":42330,\"endMs\":42570},{\"text\":\"它\",\"startMs\":42570,\"endMs\":42690},{\"text\":\"都\",\"startMs\":42690,\"endMs\":42810},{\"text\":\"有\",\"startMs\":42810,\"endMs\":42950},{\"text\":\"机\",\"startMs\":42950,\"endMs\":43050},{\"text\":\"会\",\"startMs\":43050,\"endMs\":43230},{\"text\":\"利\",\"startMs\":43230,\"endMs\":43310},{\"text\":\"用\",\"startMs\":43310,\"endMs\":43410},{\"text\":\"起\",\"startMs\":43410,\"endMs\":43530},{\"text\":\"来\",\"startMs\":43530,\"endMs\":43770},{\"text\":\"今\",\"startMs\":43990,\"endMs\":44130},{\"text\":\"天\",\"startMs\":44130,\"endMs\":44310},{\"text\":\"搬\",\"startMs\":44310,\"endMs\":44430},{\"text\":\"料\",\"startMs\":44430,\"endMs\":44670},{\"text\":\"明\",\"startMs\":44690,\"endMs\":44790},{\"text\":\"天\",\"startMs\":44790,\"endMs\":44990},{\"text\":\"换\",\"startMs\":44990,\"endMs\":45090},{\"text\":\"个\",\"startMs\":45090,\"endMs\":45210},{\"text\":\"工\",\"startMs\":45210,\"endMs\":45330},{\"text\":\"位\",\"startMs\":45330,\"endMs\":45570},{\"text\":\"未\",\"startMs\":45650,\"endMs\":45750},{\"text\":\"来\",\"startMs\":45750,\"endMs\":45870},{\"text\":\"也\",\"startMs\":45870,\"endMs\":46050},{\"text\":\"许\",\"startMs\":46050,\"endMs\":46190},{\"text\":\"不\",\"startMs\":46190,\"endMs\":46290},{\"text\":\"用\",\"startMs\":46290,\"endMs\":46410},{\"text\":\"为\",\"startMs\":46410,\"endMs\":46590},{\"text\":\"每\",\"startMs\":46590,\"endMs\":46710},{\"text\":\"项\",\"startMs\":46710,\"endMs\":46870},{\"text\":\"工\",\"startMs\":46870,\"endMs\":47010},{\"text\":\"作\",\"startMs\":47010,\"endMs\":47210},{\"text\":\"重\",\"startMs\":47210,\"endMs\":47290},{\"text\":\"新\",\"startMs\":47290,\"endMs\":47450},{\"text\":\"搭\",\"startMs\":47450,\"endMs\":47570},{\"text\":\"一\",\"startMs\":47570,\"endMs\":47710},{\"text\":\"套\",\"startMs\":47710,\"endMs\":47810},{\"text\":\"专\",\"startMs\":47810,\"endMs\":48010},{\"text\":\"门\",\"startMs\":48010,\"endMs\":48110},{\"text\":\"的\",\"startMs\":48110,\"endMs\":48230},{\"text\":\"设\",\"startMs\":48230,\"endMs\":48350},{\"text\":\"备\",\"startMs\":48350,\"endMs\":48655}]}}"
+              }
+            ]
+          }
+        },
+        "status": "ready",
+        "createdAt": "2026-11-07T13:45:16.217Z"
+      }
+    ],
+    "sourceCaptionPrograms": [
+      {
+        "id": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+        "alignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+        "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+        "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+        "captionIds": [
+          "caption_10bd9cd4-0a5b-4846-8a69-c16f17e4e52b",
+          "caption_13690ee1-65d6-46c7-94fd-cc43053d144d",
+          "caption_166668d8-3fbf-4466-b0ab-6706f2449b58",
+          "caption_40fc53c1-ecfb-4b21-8f05-71e50dd08f08",
+          "caption_fb5beb38-de19-4587-927d-ab93e865b557",
+          "caption_6ef93322-544d-4edf-b647-5bda2ae3265d",
+          "caption_d747216b-238f-4bd7-ade4-c9960be45c65",
+          "caption_a7b8ff78-993c-46a5-8c3f-a003c3d2e747",
+          "caption_7e9decd9-42ed-4b66-a948-078c2720ea7d",
+          "caption_35e0daca-6596-4cb6-ab82-21487404f207",
+          "caption_76afed38-11ef-4a61-9440-d47225b777ca",
+          "caption_d4c5f16d-04c9-4ea1-b8e6-5aed7a0bccbd",
+          "caption_990c6344-a4f1-4e0b-98ce-4695a0e02da9",
+          "caption_16c7a0d1-77dd-4161-871d-7412a7f4e9a4",
+          "caption_bf656770-4ed0-4f2c-9916-a8b04e4014d8",
+          "caption_71514e63-f649-422b-bf95-c251f94d69d5",
+          "caption_b12602fd-0540-4bd4-8688-09ff73a3d193",
+          "caption_95f839d3-8816-4c3a-b96c-90d83c0433e8",
+          "caption_cf9277dc-0e4d-4a61-8a6b-db08f05bf503",
+          "caption_48843c98-ac71-4e8b-bc86-b2df7cfd4cd6",
+          "caption_efafbce6-da1e-414c-b24f-f44e5693f704",
+          "caption_be52a2c6-0494-4dc8-8191-f780c59c72d4"
+        ],
+        "source": "editorial_override",
+        "createdAt": "2026-11-07T13:47:59.907Z"
+      }
+    ],
+    "transcripts": [],
+    "transcriptSentenceCandidates": [],
+    "semanticUnits": [
+      {
+        "id": "semantic_04b7dde4-4180-4354-8026-27bb5a2d9b2a",
+        "sourceKind": "authored",
+        "sourceNote": "用户选定的机器人可靠性和工位片段原文",
+        "candidateIds": [],
+        "text": "假设一个动作每次都有百分之九十九的成功率，而且每次结果互不影响。听起来已经很高了，对吧？",
+        "order": 0,
+        "kind": "setup",
+        "dependencies": [],
+        "precedingContext": "",
+        "followingContext": "",
+        "confidence": 0.8,
+        "status": "included"
+      },
+      {
+        "id": "semantic_ac65cfce-fe52-4cef-ae5c-ecedc5732408",
+        "sourceKind": "authored",
+        "sourceNote": "用户选定的机器人可靠性和工位片段原文",
+        "candidateIds": [],
+        "text": "可连续做一百次，全部成功的概率，大约只有百分之三十七。",
+        "order": 1,
+        "kind": "payoff",
+        "dependencies": [],
+        "precedingContext": "",
+        "followingContext": "",
+        "confidence": 0.8,
+        "status": "included"
+      },
+      {
+        "id": "semantic_bd80692d-e53c-4330-97da-5c3868fa9c4c",
+        "sourceKind": "authored",
+        "sourceNote": "用户选定的机器人可靠性和工位片段原文",
+        "candidateIds": [],
+        "text": "实际生产中，有些小失误可以自动恢复，有些却需要停下来找人处理。要是隔一会儿就得叫个人来帮忙，后面的工序也可能跟着等。",
+        "order": 2,
+        "kind": "statement",
+        "dependencies": [],
+        "precedingContext": "",
+        "followingContext": "",
+        "confidence": 0.8,
+        "status": "included"
+      },
+      {
+        "id": "semantic_8f7a7aef-9732-44ca-b2e9-d043e09d8250",
+        "sourceKind": "authored",
+        "sourceNote": "用户选定的机器人可靠性和工位片段原文",
+        "candidateIds": [],
+        "text": "工厂需要考虑的，是机器人能不能长时间稳定工作，出了问题能不能处理，还要不要经常有人守在旁边。",
+        "order": 3,
+        "kind": "statement",
+        "dependencies": [],
+        "precedingContext": "",
+        "followingContext": "",
+        "confidence": 0.8,
+        "status": "included"
+      },
+      {
+        "id": "semantic_23d5bc10-bb0a-4f53-93b8-954eeef311a3",
+        "sourceKind": "authored",
+        "sourceNote": "用户选定的机器人可靠性和工位片段原文",
+        "candidateIds": [],
+        "text": "那为什么机械臂早就在工厂上班了？",
+        "order": 4,
+        "kind": "question",
+        "dependencies": [],
+        "precedingContext": "",
+        "followingContext": "",
+        "confidence": 0.8,
+        "status": "included"
+      },
+      {
+        "id": "semantic_b1722bd8-541c-4419-8d6c-2d32b5b3bebf",
+        "sourceKind": "authored",
+        "sourceNote": "用户选定的机器人可靠性和工位片段原文",
+        "candidateIds": [],
+        "text": "因为很多机械臂干的是相对固定的工作。零件怎么放、机器怎么接、下一步怎么走，整条流程都可以围绕这个任务设计好。它们已经把不少工作干得又快又稳。",
+        "order": 5,
+        "kind": "answer",
+        "dependencies": [],
+        "precedingContext": "",
+        "followingContext": "",
+        "confidence": 0.8,
+        "status": "included"
+      },
+      {
+        "id": "semantic_af5955be-b3d0-4fe0-9af2-e84436a2e146",
+        "sourceKind": "authored",
+        "sourceNote": "用户选定的机器人可靠性和工位片段原文",
+        "candidateIds": [],
+        "text": "人形机器人的吸引力在于，工厂里原本给人准备的通道、工具和设备，它都有机会利用起来。今天搬料，明天换个工位，未来也许不用为每项工作重新搭一套专门的设备。",
+        "order": 6,
+        "kind": "statement",
+        "dependencies": [],
+        "precedingContext": "",
+        "followingContext": "",
+        "confidence": 0.8,
+        "status": "included"
+      }
+    ],
+    "script": {
+      "semanticUnitIds": [
+        "semantic_04b7dde4-4180-4354-8026-27bb5a2d9b2a",
+        "semantic_ac65cfce-fe52-4cef-ae5c-ecedc5732408",
+        "semantic_bd80692d-e53c-4330-97da-5c3868fa9c4c",
+        "semantic_8f7a7aef-9732-44ca-b2e9-d043e09d8250",
+        "semantic_23d5bc10-bb0a-4f53-93b8-954eeef311a3",
+        "semantic_b1722bd8-541c-4419-8d6c-2d32b5b3bebf",
+        "semantic_af5955be-b3d0-4fe0-9af2-e84436a2e146"
+      ],
+      "speechSegmentIds": [
+        "speech_segment_b6ee69d1-6827-4363-8502-292907687e99",
+        "speech_segment_0603a169-1464-4599-a88b-6aacdad43b63",
+        "speech_segment_8c7917fd-430d-427e-a07b-b49e5ca0307d",
+        "speech_segment_3edafe4d-e890-4458-853c-191b064a2154",
+        "speech_segment_f6711984-323f-443e-943a-bcca6293f372",
+        "speech_segment_b8455ecb-5afc-4433-bca6-2a0fce51a456",
+        "speech_segment_b0aafd7c-fce2-460f-bb8b-8fd942c9d175"
+      ],
+      "revision": 1
+    },
+    "speechSegments": [
+      {
+        "id": "speech_segment_b6ee69d1-6827-4363-8502-292907687e99",
+        "semanticUnitIds": [
+          "semantic_04b7dde4-4180-4354-8026-27bb5a2d9b2a"
+        ],
+        "text": "假设一个动作每次都有百分之九十九的成功率，而且每次结果互不影响。听起来已经很高了，对吧？",
+        "order": 0,
+        "pauseBefore": {
+          "durationMs": 0,
+          "reason": "sentence"
+        },
+        "prePauseMs": 0,
+        "postPauseMs": 0,
+        "status": "ready"
+      },
+      {
+        "id": "speech_segment_0603a169-1464-4599-a88b-6aacdad43b63",
+        "semanticUnitIds": [
+          "semantic_ac65cfce-fe52-4cef-ae5c-ecedc5732408"
+        ],
+        "text": "可连续做一百次，全部成功的概率，大约只有百分之三十七。",
+        "order": 1,
+        "pauseBefore": {
+          "durationMs": 0,
+          "reason": "sentence"
+        },
+        "prePauseMs": 0,
+        "postPauseMs": 0,
+        "status": "ready"
+      },
+      {
+        "id": "speech_segment_8c7917fd-430d-427e-a07b-b49e5ca0307d",
+        "semanticUnitIds": [
+          "semantic_bd80692d-e53c-4330-97da-5c3868fa9c4c"
+        ],
+        "text": "实际生产中，有些小失误可以自动恢复，有些却需要停下来找人处理。要是隔一会儿就得叫个人来帮忙，后面的工序也可能跟着等。",
+        "order": 2,
+        "pauseBefore": {
+          "durationMs": 0,
+          "reason": "sentence"
+        },
+        "prePauseMs": 0,
+        "postPauseMs": 0,
+        "status": "ready"
+      },
+      {
+        "id": "speech_segment_3edafe4d-e890-4458-853c-191b064a2154",
+        "semanticUnitIds": [
+          "semantic_8f7a7aef-9732-44ca-b2e9-d043e09d8250"
+        ],
+        "text": "工厂需要考虑的，是机器人能不能长时间稳定工作，出了问题能不能处理，还要不要经常有人守在旁边。",
+        "order": 3,
+        "pauseBefore": {
+          "durationMs": 0,
+          "reason": "sentence"
+        },
+        "prePauseMs": 0,
+        "postPauseMs": 0,
+        "status": "ready"
+      },
+      {
+        "id": "speech_segment_f6711984-323f-443e-943a-bcca6293f372",
+        "semanticUnitIds": [
+          "semantic_23d5bc10-bb0a-4f53-93b8-954eeef311a3"
+        ],
+        "text": "那为什么机械臂早就在工厂上班了？",
+        "order": 4,
+        "pauseBefore": {
+          "durationMs": 0,
+          "reason": "sentence"
+        },
+        "prePauseMs": 0,
+        "postPauseMs": 0,
+        "status": "ready"
+      },
+      {
+        "id": "speech_segment_b8455ecb-5afc-4433-bca6-2a0fce51a456",
+        "semanticUnitIds": [
+          "semantic_b1722bd8-541c-4419-8d6c-2d32b5b3bebf"
+        ],
+        "text": "因为很多机械臂干的是相对固定的工作。零件怎么放、机器怎么接、下一步怎么走，整条流程都可以围绕这个任务设计好。它们已经把不少工作干得又快又稳。",
+        "order": 5,
+        "pauseBefore": {
+          "durationMs": 0,
+          "reason": "sentence"
+        },
+        "prePauseMs": 0,
+        "postPauseMs": 0,
+        "status": "ready"
+      },
+      {
+        "id": "speech_segment_b0aafd7c-fce2-460f-bb8b-8fd942c9d175",
+        "semanticUnitIds": [
+          "semantic_af5955be-b3d0-4fe0-9af2-e84436a2e146"
+        ],
+        "text": "人形机器人的吸引力在于，工厂里原本给人准备的通道、工具和设备，它都有机会利用起来。今天搬料，明天换个工位，未来也许不用为每项工作重新搭一套专门的设备。",
+        "order": 6,
+        "pauseBefore": {
+          "durationMs": 0,
+          "reason": "sentence"
+        },
+        "prePauseMs": 0,
+        "postPauseMs": 0,
+        "status": "ready"
+      }
+    ],
+    "speechSegmentAssets": [
+      {
+        "id": "speech_segment_asset_2a481e43-616f-4a74-be69-61481ba6e05a",
+        "speechSegmentId": "speech_segment_b6ee69d1-6827-4363-8502-292907687e99",
+        "assetId": "asset_e8faac0e-a8aa-4188-9889-9726025a1d88",
+        "durationMs": 6410,
+        "bridgeRunId": "5a572254-60ec-46a9-900a-545b1bddb0a2",
+        "schemaVersion": "6a9337a6548c0629a765fce593de5b5b12844f39ea1c5df59144773afb66960b",
+        "bridgeAudit": {
+          "workflowId": "omnivoice-default-reference-v1",
+          "runId": "5a572254-60ec-46a9-900a-545b1bddb0a2",
+          "schemaVersion": "6a9337a6548c0629a765fce593de5b5b12844f39ea1c5df59144773afb66960b",
+          "schemaRetryCount": 0,
+          "submittedAt": "2026-11-07T13:17:53.811Z",
+          "completedAt": "2026-11-07T13:18:23.771Z",
+          "request": {
+            "fieldValues": {
+              "input-1": "假设一个动作每次都有百分之九十九的成功率，而且每次结果互不影响。听起来已经很高了，对吧？"
+            },
+            "fileSlots": []
+          },
+          "response": {
+            "status": "succeeded",
+            "error": null,
+            "outputs": [
+              {
+                "kind": "audio",
+                "fileName": "audio_00001.flac",
+                "mime": "audio/flac",
+                "outputId": "WzBd"
+              }
+            ]
+          }
+        },
+        "quality": "passed"
+      },
+      {
+        "id": "speech_segment_asset_b3f3fa60-d972-48ff-b654-56191621ed30",
+        "speechSegmentId": "speech_segment_0603a169-1464-4599-a88b-6aacdad43b63",
+        "assetId": "asset_7aa49c4b-d92c-4e35-b2f1-9c65d9a9fa6b",
+        "durationMs": 3960,
+        "bridgeRunId": "00ab92fd-eeda-4cb0-b1fd-4ec2c1c535a2",
+        "schemaVersion": "6a9337a6548c0629a765fce593de5b5b12844f39ea1c5df59144773afb66960b",
+        "bridgeAudit": {
+          "workflowId": "omnivoice-default-reference-v1",
+          "runId": "00ab92fd-eeda-4cb0-b1fd-4ec2c1c535a2",
+          "schemaVersion": "6a9337a6548c0629a765fce593de5b5b12844f39ea1c5df59144773afb66960b",
+          "schemaRetryCount": 0,
+          "submittedAt": "2026-11-07T13:18:24.725Z",
+          "completedAt": "2026-11-07T13:18:50.134Z",
+          "request": {
+            "fieldValues": {
+              "input-1": "可连续做一百次，全部成功的概率，大约只有百分之三十七。"
+            },
+            "fileSlots": []
+          },
+          "response": {
+            "status": "succeeded",
+            "error": null,
+            "outputs": [
+              {
+                "kind": "audio",
+                "fileName": "audio_00001.flac",
+                "mime": "audio/flac",
+                "outputId": "WzBd"
+              }
+            ]
+          }
+        },
+        "quality": "passed"
+      },
+      {
+        "id": "speech_segment_asset_196876a3-ecc6-47c6-b2ad-f825d83b3465",
+        "speechSegmentId": "speech_segment_8c7917fd-430d-427e-a07b-b49e5ca0307d",
+        "assetId": "asset_ec5b0246-c66d-4876-b3ad-277a4603a83b",
+        "durationMs": 8430,
+        "bridgeRunId": "7754533e-3cc0-4344-8c9c-b92f95ac02f4",
+        "schemaVersion": "6a9337a6548c0629a765fce593de5b5b12844f39ea1c5df59144773afb66960b",
+        "bridgeAudit": {
+          "workflowId": "omnivoice-default-reference-v1",
+          "runId": "7754533e-3cc0-4344-8c9c-b92f95ac02f4",
+          "schemaVersion": "6a9337a6548c0629a765fce593de5b5b12844f39ea1c5df59144773afb66960b",
+          "schemaRetryCount": 0,
+          "submittedAt": "2026-11-07T13:18:50.385Z",
+          "completedAt": "2026-11-07T13:19:14.597Z",
+          "request": {
+            "fieldValues": {
+              "input-1": "实际生产中，有些小失误可以自动恢复，有些却需要停下来找人处理。要是隔一会儿就得叫个人来帮忙，后面的工序也可能跟着等。"
+            },
+            "fileSlots": []
+          },
+          "response": {
+            "status": "succeeded",
+            "error": null,
+            "outputs": [
+              {
+                "kind": "audio",
+                "fileName": "audio_00001.flac",
+                "mime": "audio/flac",
+                "outputId": "WzBd"
+              }
+            ]
+          }
+        },
+        "quality": "passed"
+      },
+      {
+        "id": "speech_segment_asset_83067634-6a95-42f8-b13b-ffea7c60afd4",
+        "speechSegmentId": "speech_segment_3edafe4d-e890-4458-853c-191b064a2154",
+        "assetId": "asset_4d3778a6-87c3-420f-9deb-2a75375ab7de",
+        "durationMs": 6670,
+        "bridgeRunId": "50718be0-21c4-422d-a7e0-b850d4eee43f",
+        "schemaVersion": "6a9337a6548c0629a765fce593de5b5b12844f39ea1c5df59144773afb66960b",
+        "bridgeAudit": {
+          "workflowId": "omnivoice-default-reference-v1",
+          "runId": "50718be0-21c4-422d-a7e0-b850d4eee43f",
+          "schemaVersion": "6a9337a6548c0629a765fce593de5b5b12844f39ea1c5df59144773afb66960b",
+          "schemaRetryCount": 0,
+          "submittedAt": "2026-11-07T13:19:15.906Z",
+          "completedAt": "2026-11-07T13:19:41.931Z",
+          "request": {
+            "fieldValues": {
+              "input-1": "工厂需要考虑的，是机器人能不能长时间稳定工作，出了问题能不能处理，还要不要经常有人守在旁边。"
+            },
+            "fileSlots": []
+          },
+          "response": {
+            "status": "succeeded",
+            "error": null,
+            "outputs": [
+              {
+                "kind": "audio",
+                "fileName": "audio_00001.flac",
+                "mime": "audio/flac",
+                "outputId": "WzBd"
+              }
+            ]
+          }
+        },
+        "quality": "passed"
+      },
+      {
+        "id": "speech_segment_asset_fd34d8c8-b286-42aa-8ea0-17ecb60fa403",
+        "speechSegmentId": "speech_segment_f6711984-323f-443e-943a-bcca6293f372",
+        "assetId": "asset_f704c544-8564-4c7a-a03a-8f0a4c002372",
+        "durationMs": 2470,
+        "bridgeRunId": "b3a53700-dc0b-4b7d-96ec-2fa71f3433a6",
+        "schemaVersion": "6a9337a6548c0629a765fce593de5b5b12844f39ea1c5df59144773afb66960b",
+        "bridgeAudit": {
+          "workflowId": "omnivoice-default-reference-v1",
+          "runId": "b3a53700-dc0b-4b7d-96ec-2fa71f3433a6",
+          "schemaVersion": "6a9337a6548c0629a765fce593de5b5b12844f39ea1c5df59144773afb66960b",
+          "schemaRetryCount": 0,
+          "submittedAt": "2026-11-07T13:19:42.236Z",
+          "completedAt": "2026-11-07T13:20:07.597Z",
+          "request": {
+            "fieldValues": {
+              "input-1": "那为什么机械臂早就在工厂上班了？"
+            },
+            "fileSlots": []
+          },
+          "response": {
+            "status": "succeeded",
+            "error": null,
+            "outputs": [
+              {
+                "kind": "audio",
+                "fileName": "audio_00001.flac",
+                "mime": "audio/flac",
+                "outputId": "WzBd"
+              }
+            ]
+          }
+        },
+        "quality": "passed"
+      },
+      {
+        "id": "speech_segment_asset_abc11971-6bab-4f70-b964-9c6fedca7603",
+        "speechSegmentId": "speech_segment_b8455ecb-5afc-4433-bca6-2a0fce51a456",
+        "assetId": "asset_5448dc09-7703-41a9-b05f-e5e9fbd7dbb6",
+        "durationMs": 10100,
+        "bridgeRunId": "6f961a24-f6c7-4212-bada-c49ce1f5d67d",
+        "schemaVersion": "6a9337a6548c0629a765fce593de5b5b12844f39ea1c5df59144773afb66960b",
+        "bridgeAudit": {
+          "workflowId": "omnivoice-default-reference-v1",
+          "runId": "6f961a24-f6c7-4212-bada-c49ce1f5d67d",
+          "schemaVersion": "6a9337a6548c0629a765fce593de5b5b12844f39ea1c5df59144773afb66960b",
+          "schemaRetryCount": 0,
+          "submittedAt": "2026-11-07T13:20:07.848Z",
+          "completedAt": "2026-11-07T13:20:31.837Z",
+          "request": {
+            "fieldValues": {
+              "input-1": "因为很多机械臂干的是相对固定的工作。零件怎么放、机器怎么接、下一步怎么走，整条流程都可以围绕这个任务设计好。它们已经把不少工作干得又快又稳。"
+            },
+            "fileSlots": []
+          },
+          "response": {
+            "status": "succeeded",
+            "error": null,
+            "outputs": [
+              {
+                "kind": "audio",
+                "fileName": "audio_00001.flac",
+                "mime": "audio/flac",
+                "outputId": "WzBd"
+              }
+            ]
+          }
+        },
+        "quality": "passed"
+      },
+      {
+        "id": "speech_segment_asset_ea6135ec-dc39-44f8-adae-8e0c147de03d",
+        "speechSegmentId": "speech_segment_b0aafd7c-fce2-460f-bb8b-8fd942c9d175",
+        "assetId": "asset_d1c696cc-eccc-4174-96db-cffbf4861b57",
+        "durationMs": 10740,
+        "bridgeRunId": "847a973b-d36a-43c1-b41f-4001c2b51045",
+        "schemaVersion": "6a9337a6548c0629a765fce593de5b5b12844f39ea1c5df59144773afb66960b",
+        "bridgeAudit": {
+          "workflowId": "omnivoice-default-reference-v1",
+          "runId": "847a973b-d36a-43c1-b41f-4001c2b51045",
+          "schemaVersion": "6a9337a6548c0629a765fce593de5b5b12844f39ea1c5df59144773afb66960b",
+          "schemaRetryCount": 0,
+          "submittedAt": "2026-11-07T13:20:33.142Z",
+          "completedAt": "2026-11-07T13:20:56.374Z",
+          "request": {
+            "fieldValues": {
+              "input-1": "人形机器人的吸引力在于，工厂里原本给人准备的通道、工具和设备，它都有机会利用起来。今天搬料，明天换个工位，未来也许不用为每项工作重新搭一套专门的设备。"
+            },
+            "fileSlots": []
+          },
+          "response": {
+            "status": "succeeded",
+            "error": null,
+            "outputs": [
+              {
+                "kind": "audio",
+                "fileName": "audio_00001.flac",
+                "mime": "audio/flac",
+                "outputId": "WzBd"
+              }
+            ]
+          }
+        },
+        "quality": "passed"
+      }
+    ],
+    "actorCapabilityProfiles": [],
+    "actorPerformances": [],
+    "scenes": [
+      {
+        "id": "scene_8cbcfd45-cf32-48ec-a40b-b62c20835c34",
+        "type": "ExplainerScene",
+        "title": "可靠性与工位的连续片段",
+        "purpose": "表现单次可靠性、重复任务的累积影响、生产线恢复与固定工位和人形机器人的潜在灵活性",
+        "startFrame": 0,
+        "endFrame": 1463,
+        "assetIds": [],
+        "narrativeBeatIds": [],
+        "status": "draft",
+        "stylePackId": "default-clean"
+      }
+    ],
+    "effectCues": [
+      {
+        "id": "cue_226cc4c6-9079-4e40-bb01-6bb2d45591b4",
+        "sceneId": "scene_8cbcfd45-cf32-48ec-a40b-b62c20835c34",
+        "workId": "motion_work_a8490086530805a1323be9011b1d2867d50bf76c849d3a8272519c102f643545",
+        "type": "ManagedMotion",
+        "layer": "fullscreen",
+        "anchor": "scene",
+        "startFrame": 0,
+        "sourceStartFrame": 0,
+        "sourceEndFrame": 1463,
+        "holdFrame": 731,
+        "endFrame": 1463,
+        "intensity": 1,
+        "status": "ready",
+        "note": "按返修作品重新编排的完整画面；动作事件与新作品时序一致，原场面无绑定动作事件的音效。",
+        "narrativePurpose": "表现重复操作可靠性、工位系统与人形机器人的潜在灵活性",
+        "audienceTask": "理解单次成功与连续工作和生产配合的关系",
+        "semanticAnchor": {
+          "type": "scene",
+          "targetId": "scene_8cbcfd45-cf32-48ec-a40b-b62c20835c34",
+          "relation": "land_on"
+        },
+        "spatialAnchor": "full_frame",
+        "assetBindings": [],
+        "props": {},
+        "motion": {
+          "enterPreset": "none",
+          "settlePreset": "hold",
+          "exitPreset": "none",
+          "enterFrames": 0,
+          "holdFrames": 1463,
+          "exitFrames": 0
+        },
+        "stylePackId": "managed-source",
+        "qualityRules": []
+      }
+    ],
+    "timeline": {
+      "fps": 30,
+      "width": 1920,
+      "height": 1080,
+      "durationInFrames": 1463,
+      "tracks": [
+        {
+          "id": "track_de647e9d-b071-4cc7-9886-273f21dbd6d9",
+          "name": "Cutaway / Fullscreen",
+          "kind": "video",
+          "order": 0,
+          "locked": false,
+          "hidden": false,
+          "muted": false
+        },
+        {
+          "id": "track_c880d53d-57f7-4a2c-85e4-1365fec443b0",
+          "name": "Front FX",
+          "kind": "video",
+          "order": 1,
+          "locked": false,
+          "hidden": false,
+          "muted": false
+        },
+        {
+          "id": "track_9513c7db-3560-40c3-86d9-b50cf597ba89",
+          "name": "Actor FX",
+          "kind": "video",
+          "order": 2,
+          "locked": false,
+          "hidden": false,
+          "muted": false
+        },
+        {
+          "id": "track_43c46007-4351-4e50-b664-6a365da4578f",
+          "name": "Actor / A-roll",
+          "kind": "video",
+          "order": 3,
+          "locked": false,
+          "hidden": false,
+          "muted": false
+        },
+        {
+          "id": "track_991e230f-e480-4230-a576-b9700f07aad6",
+          "name": "Rear FX",
+          "kind": "video",
+          "order": 4,
+          "locked": false,
+          "hidden": false,
+          "muted": false
+        },
+        {
+          "id": "track_cda3fea3-60d3-4153-b124-c46667fde7fe",
+          "name": "Background",
+          "kind": "video",
+          "order": 5,
+          "locked": false,
+          "hidden": false,
+          "muted": false
+        },
+        {
+          "id": "track_0b62e714-ab67-482c-a438-b6c52916e068",
+          "name": "Captions",
+          "kind": "caption",
+          "order": 6,
+          "locked": false,
+          "hidden": false,
+          "muted": false
+        },
+        {
+          "id": "track_ef3728cb-4707-4644-b42b-42c34b3f1b5d",
+          "name": "Dialogue",
+          "kind": "audio",
+          "order": 7,
+          "locked": false,
+          "hidden": false,
+          "muted": false
+        },
+        {
+          "id": "track_14bd882c-bd28-4da6-a3ee-0094c7893746",
+          "name": "Ambient",
+          "kind": "audio",
+          "order": 8,
+          "locked": false,
+          "hidden": false,
+          "muted": false
+        },
+        {
+          "id": "track_1ae43ec6-1db7-4d9d-9b53-9a1995487170",
+          "name": "SFX",
+          "kind": "audio",
+          "order": 9,
+          "locked": false,
+          "hidden": false,
+          "muted": false
+        },
+        {
+          "id": "track_57038d41-86cd-4026-be3e-6be850fec6f5",
+          "name": "BGM",
+          "kind": "audio",
+          "order": 10,
+          "locked": false,
+          "hidden": false,
+          "muted": false
+        }
+      ],
+      "items": [
+        {
+          "id": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "trackId": "track_ef3728cb-4707-4644-b42b-42c34b3f1b5d",
+          "assetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "startFrame": 0,
+          "endFrame": 1463,
+          "sourceStartFrame": 0,
+          "sourceEndFrame": 1463,
+          "gainDb": 0,
+          "disabled": false
+        }
+      ],
+      "captions": [
+        {
+          "id": "caption_10bd9cd4-0a5b-4846-8a69-c16f17e4e52b",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 9,
+          "sourceEndFrame": 91,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 0,
+          "sourceTokenEndIndex": 20,
+          "sourceCaptionRationale": "保持单次成功率完整",
+          "sourceText": "假设一个动作每次都有百分之九十九的成功率",
+          "text": "假设一个动作每次都有百分之九十九的成功率，",
+          "textMode": "manual",
+          "startFrame": 9,
+          "endFrame": 91,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_13690ee1-65d6-46c7-94fd-cc43053d144d",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 95,
+          "sourceEndFrame": 141,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 20,
+          "sourceTokenEndIndex": 30,
+          "sourceCaptionRationale": "保持独立性条件",
+          "sourceText": "而且每次结果互不影响",
+          "text": "而且每次结果互不影响。",
+          "textMode": "manual",
+          "startFrame": 95,
+          "endFrame": 141,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_166668d8-3fbf-4466-b0ab-6706f2449b58",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 143,
+          "sourceEndFrame": 190,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 30,
+          "sourceTokenEndIndex": 40,
+          "sourceCaptionRationale": "合并短问句避免闪屏",
+          "sourceText": "听起来已经很高了对吧",
+          "text": "听起来已经很高了，对吧？",
+          "textMode": "manual",
+          "startFrame": 143,
+          "endFrame": 190,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_40fc53c1-ecfb-4b21-8f05-71e50dd08f08",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 198,
+          "sourceEndFrame": 233,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 40,
+          "sourceTokenEndIndex": 47,
+          "sourceCaptionRationale": "保留转折和条件",
+          "sourceText": "可连续做一百次",
+          "text": "可连续做一百次，",
+          "textMode": "manual",
+          "startFrame": 198,
+          "endFrame": 233,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_fb5beb38-de19-4587-927d-ab93e865b557",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 234,
+          "sourceEndFrame": 307,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 47,
+          "sourceTokenEndIndex": 64,
+          "sourceCaptionRationale": "保留概率与数值",
+          "sourceText": "全部成功的概率大约只有百分之三十七",
+          "text": "全部成功的概率，大约只有百分之三十七。",
+          "textMode": "manual",
+          "startFrame": 234,
+          "endFrame": 307,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_6ef93322-544d-4edf-b647-5bda2ae3265d",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 317,
+          "sourceEndFrame": 395,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 64,
+          "sourceTokenEndIndex": 80,
+          "sourceCaptionRationale": "完整描述自动恢复",
+          "sourceText": "实际生产中有些小失误可以自动恢复",
+          "text": "实际生产中，有些小失误可以自动恢复，",
+          "textMode": "manual",
+          "startFrame": 317,
+          "endFrame": 395,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_d747216b-238f-4bd7-ade4-c9960be45c65",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 401,
+          "sourceEndFrame": 454,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 80,
+          "sourceTokenEndIndex": 92,
+          "sourceCaptionRationale": "保留对比与处理结果",
+          "sourceText": "有些却需要停下来找人处理",
+          "text": "有些却需要停下来找人处理。",
+          "textMode": "manual",
+          "startFrame": 401,
+          "endFrame": 454,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_a7b8ff78-993c-46a5-8c3f-a003c3d2e747",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 456,
+          "sourceEndFrame": 511,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 92,
+          "sourceTokenEndIndex": 106,
+          "sourceCaptionRationale": "保留条件",
+          "sourceText": "要是隔一会儿就得叫个人来帮忙",
+          "text": "要是隔一会儿就得叫个人来帮忙，",
+          "textMode": "manual",
+          "startFrame": 456,
+          "endFrame": 511,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_7e9decd9-42ed-4b66-a948-078c2720ea7d",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 511,
+          "sourceEndFrame": 562,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 106,
+          "sourceTokenEndIndex": 117,
+          "sourceCaptionRationale": "保留可能的结果",
+          "sourceText": "后面的工序也可能跟着等",
+          "text": "后面的工序也可能跟着等。",
+          "textMode": "manual",
+          "startFrame": 511,
+          "endFrame": 562,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_35e0daca-6596-4cb6-ab82-21487404f207",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 568,
+          "sourceEndFrame": 663,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 117,
+          "sourceTokenEndIndex": 138,
+          "sourceCaptionRationale": "合并句首引导语与第一个判断",
+          "sourceText": "工厂需要考虑的是机器人能不能长时间稳定工作",
+          "text": "工厂需要考虑的是，机器人能不能长时间稳定工作，",
+          "textMode": "manual",
+          "startFrame": 568,
+          "endFrame": 663,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_76afed38-11ef-4a61-9440-d47225b777ca",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 668,
+          "sourceEndFrame": 708,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 138,
+          "sourceTokenEndIndex": 147,
+          "sourceCaptionRationale": "保留问题与处理",
+          "sourceText": "出了问题能不能处理",
+          "text": "出了问题能不能处理，",
+          "textMode": "manual",
+          "startFrame": 668,
+          "endFrame": 708,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_d4c5f16d-04c9-4ea1-b8e6-5aed7a0bccbd",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 708,
+          "sourceEndFrame": 759,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 147,
+          "sourceTokenEndIndex": 159,
+          "sourceCaptionRationale": "保留人员参与条件",
+          "sourceText": "还要不要经常有人守在旁边",
+          "text": "还要不要经常有人守在旁边。",
+          "textMode": "manual",
+          "startFrame": 708,
+          "endFrame": 759,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_990c6344-a4f1-4e0b-98ce-4695a0e02da9",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 768,
+          "sourceEndFrame": 835,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 159,
+          "sourceTokenEndIndex": 174,
+          "sourceCaptionRationale": "保持完整提问",
+          "sourceText": "那为什么机械臂早就在工厂上班了",
+          "text": "那为什么机械臂早就在工厂上班了？",
+          "textMode": "manual",
+          "startFrame": 768,
+          "endFrame": 835,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_16c7a0d1-77dd-4161-871d-7412a7f4e9a4",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 842,
+          "sourceEndFrame": 918,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 174,
+          "sourceTokenEndIndex": 191,
+          "sourceCaptionRationale": "纠正跨句错分，不把零件并入前句",
+          "sourceText": "因为很多机械臂干的是相对固定的工作",
+          "text": "因为很多机械臂干的是相对固定的工作。",
+          "textMode": "manual",
+          "startFrame": 842,
+          "endFrame": 918,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_bf656770-4ed0-4f2c-9916-a8b04e4014d8",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 925,
+          "sourceEndFrame": 999,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 191,
+          "sourceTokenEndIndex": 207,
+          "sourceCaptionRationale": "把零件与动作重新组合，保持并列关系",
+          "sourceText": "零件怎么放机器怎么接下一步怎么走",
+          "text": "零件怎么放、机器怎么接、下一步怎么走，",
+          "textMode": "manual",
+          "startFrame": 925,
+          "endFrame": 999,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_71514e63-f649-422b-bf95-c251f94d69d5",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 1004,
+          "sourceEndFrame": 1069,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 207,
+          "sourceTokenEndIndex": 223,
+          "sourceCaptionRationale": "保留完整结论",
+          "sourceText": "整条流程都可以围绕这个任务设计好",
+          "text": "整条流程都可以围绕这个任务设计好。",
+          "textMode": "manual",
+          "startFrame": 1004,
+          "endFrame": 1069,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_b12602fd-0540-4bd4-8688-09ff73a3d193",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 1073,
+          "sourceEndFrame": 1139,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 223,
+          "sourceTokenEndIndex": 238,
+          "sourceCaptionRationale": "保留识别文字，随后按确认文稿纠正代词",
+          "sourceText": "他们已经把不少工作干得又快又稳",
+          "text": "它们已经把不少工作干得又快又稳。",
+          "textMode": "manual",
+          "startFrame": 1073,
+          "endFrame": 1139,
+          "style": "stable",
+          "precision": "source_token_anchored",
+          "sourceTextReview": {
+            "basis": "confirmed_script",
+            "note": "依据用户选定并用于当前配音的原稿，将指代机械臂的识别文字改为它们。",
+            "scriptRevision": 1,
+            "speechSegmentIds": [
+              "speech_segment_b8455ecb-5afc-4433-bca6-2a0fce51a456"
+            ],
+            "sourceText": "他们已经把不少工作干得又快又稳",
+            "text": "它们已经把不少工作干得又快又稳。",
+            "reviewedAt": "2026-11-07T13:48:18.650Z"
+          }
+        },
+        {
+          "id": "caption_95f839d3-8816-4c3a-b96c-90d83c0433e8",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 1145,
+          "sourceEndFrame": 1189,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 238,
+          "sourceTokenEndIndex": 249,
+          "sourceCaptionRationale": "引出人形机器人的潜力",
+          "sourceText": "人形机器人的吸引力在于",
+          "text": "人形机器人的吸引力在于，",
+          "textMode": "manual",
+          "startFrame": 1145,
+          "endFrame": 1189,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_cf9277dc-0e4d-4a61-8a6b-db08f05bf503",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 1192,
+          "sourceEndFrame": 1277,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 249,
+          "sourceTokenEndIndex": 266,
+          "sourceCaptionRationale": "合并被切断的并列名词",
+          "sourceText": "工厂里原本给人准备的通道工具和设备",
+          "text": "工厂里原本给人准备的通道、工具和设备，",
+          "textMode": "manual",
+          "startFrame": 1192,
+          "endFrame": 1277,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_48843c98-ac71-4e8b-bc86-b2df7cfd4cd6",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 1277,
+          "sourceEndFrame": 1313,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 266,
+          "sourceTokenEndIndex": 275,
+          "sourceCaptionRationale": "保留机会限定",
+          "sourceText": "它都有机会利用起来",
+          "text": "它都有机会利用起来。",
+          "textMode": "manual",
+          "startFrame": 1277,
+          "endFrame": 1313,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_efafbce6-da1e-414c-b24f-f44e5693f704",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 1320,
+          "sourceEndFrame": 1367,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 275,
+          "sourceTokenEndIndex": 285,
+          "sourceCaptionRationale": "合并连续的工作示例",
+          "sourceText": "今天搬料明天换个工位",
+          "text": "今天搬料，明天换个工位，",
+          "textMode": "manual",
+          "startFrame": 1320,
+          "endFrame": 1367,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        },
+        {
+          "id": "caption_be52a2c6-0494-4dc8-8191-f780c59c72d4",
+          "sourceKind": "source_audio",
+          "sourceAssetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "sourceTimelineItemId": "item_74862c41-5d51-4cf7-abb7-237a0552ed0b",
+          "sourceStartFrame": 1370,
+          "sourceEndFrame": 1460,
+          "sourceBridgeRunId": "38ee45f3-c0ad-44fe-b1eb-2953b534a1e6",
+          "sourceAlignmentId": "source_alignment_295a5366-2600-48c5-b327-32f44a829977",
+          "sourceCaptionProgramId": "source_caption_program_6e3c163e-c1e4-4b36-a45e-6c8c411f9ce8",
+          "sourceTokenStartIndex": 285,
+          "sourceTokenEndIndex": 306,
+          "sourceCaptionRationale": "保留未来与也许限定",
+          "sourceText": "未来也许不用为每项工作重新搭一套专门的设备",
+          "text": "未来也许不用为每项工作重新搭一套专门的设备。",
+          "textMode": "manual",
+          "startFrame": 1370,
+          "endFrame": 1460,
+          "style": "stable",
+          "precision": "source_token_anchored"
+        }
+      ],
+      "captionFormat": {
+        "fontSize": 48,
+        "fontWeight": 700,
+        "color": "#ffffff",
+        "bottomPercent": 3,
+        "horizontalInsetPercent": 8,
+        "textAlign": "center",
+        "maxLines": 2,
+        "lineHeight": 1.25,
+        "boxWidth": "content",
+        "fontId": "noto-sans-sc-bold",
+        "font": {
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        },
+        "paddingHorizontal": 20,
+        "paddingVertical": 8,
+        "borderRadius": 8,
+        "backgroundColor": "#111111",
+        "backgroundOpacity": 0.72
+      }
+    },
+    "markers": [],
+    "speechAsset": {
+      "id": "speech_asset_98bf84a9-a4bd-47b6-a424-226a245a5fa5",
+      "assetId": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+      "scriptRevision": 1,
+      "segmentAssetIds": [
+        "speech_segment_asset_2a481e43-616f-4a74-be69-61481ba6e05a",
+        "speech_segment_asset_b3f3fa60-d972-48ff-b654-56191621ed30",
+        "speech_segment_asset_196876a3-ecc6-47c6-b2ad-f825d83b3465",
+        "speech_segment_asset_83067634-6a95-42f8-b13b-ffea7c60afd4",
+        "speech_segment_asset_fd34d8c8-b286-42aa-8ea0-17ecb60fa403",
+        "speech_segment_asset_abc11971-6bab-4f70-b964-9c6fedca7603",
+        "speech_segment_asset_ea6135ec-dc39-44f8-adae-8e0c147de03d"
+      ],
+      "timing": {
+        "precision": "segment_exact",
+        "source": "OmniVoice 输出真实时长 + 明确段间停顿",
+        "segments": [
+          {
+            "speechSegmentId": "speech_segment_b6ee69d1-6827-4363-8502-292907687e99",
+            "startMs": 0,
+            "endMs": 6410,
+            "startFrame": 0,
+            "endFrame": 192
+          },
+          {
+            "speechSegmentId": "speech_segment_0603a169-1464-4599-a88b-6aacdad43b63",
+            "startMs": 6410,
+            "endMs": 10370,
+            "startFrame": 192,
+            "endFrame": 311
+          },
+          {
+            "speechSegmentId": "speech_segment_8c7917fd-430d-427e-a07b-b49e5ca0307d",
+            "startMs": 10370,
+            "endMs": 18800,
+            "startFrame": 311,
+            "endFrame": 564
+          },
+          {
+            "speechSegmentId": "speech_segment_3edafe4d-e890-4458-853c-191b064a2154",
+            "startMs": 18800,
+            "endMs": 25470,
+            "startFrame": 564,
+            "endFrame": 764
+          },
+          {
+            "speechSegmentId": "speech_segment_f6711984-323f-443e-943a-bcca6293f372",
+            "startMs": 25470,
+            "endMs": 27940,
+            "startFrame": 764,
+            "endFrame": 838
+          },
+          {
+            "speechSegmentId": "speech_segment_b8455ecb-5afc-4433-bca6-2a0fce51a456",
+            "startMs": 27940,
+            "endMs": 38040,
+            "startFrame": 838,
+            "endFrame": 1141
+          },
+          {
+            "speechSegmentId": "speech_segment_b0aafd7c-fce2-460f-bb8b-8fd942c9d175",
+            "startMs": 38040,
+            "endMs": 48780,
+            "startFrame": 1141,
+            "endFrame": 1463
+          }
+        ]
+      },
+      "status": "ready"
+    },
+    "motionWorks": [
+      {
+        "id": "motion_work_b85585202406b2ff9cc6172b1c335fcd02c7392c9dc1d1ea8b5e56f7a7eb0982",
+        "version": "1aef732c216afbb658cafae7f7330e16322ce2e864592ca0efd7ebdd06231e1d",
+        "name": "机器人进厂 · 可靠性与工位",
+        "jobId": "job_8b2335dd-7882-4c87-8bd7-457f58e3ce1b",
+        "engineVersion": "managed-hyperframes-4",
+        "definitionPath": "inputs/motion-work/b85585202406b2ff9cc6172b1c335fcd02c7392c9dc1d1ea8b5e56f7a7eb0982.json",
+        "definitionHash": "b85585202406b2ff9cc6172b1c335fcd02c7392c9dc1d1ea8b5e56f7a7eb0982",
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "frameCount": 1463,
+        "compositing": "alpha",
+        "creativeBrief": "完整不透明主画面；1920×1080、30fps、1463帧。016黑／暖白／红、满幅入框与换素材、卷曲覆盖、前后红线、集合与反向字带；026圆阵→方阵→横扫→底边释放→散开→竖短线→再散开→浅底37%聚合；032倾斜框体升入、同一Atlas视频越框全屏与回收、外围退虚、下扫、圆形接管上移、抽象分支重合。100次全部成功≈37%是独立99%假设，不是成功次数占比。不同来源分窗并由图形换场，不声称同一工厂、同一机器人或真实故障救援；人形机器人维持机会与未来也许限定。原片说明字使用底部定向遮挡与裁切，关键手部和工件区域保留。所有视频为根帧时钟正常速率，源毫秒按最近整数取整，不冻结补长。音轨和普通字幕均交VideoFlowCut独立合成。观察限制：已核读正文、分镜、按时间顺序的视频采样帧；未连续观看视频流、未试听配音；句内落点为段级边界与实际波形静音辅助编排，不冒称逐词精确或审片通过。",
+        "imageSources": [],
+        "videoSources": [
+          {
+            "slot": "yellowOpening",
+            "assetId": "asset_896d7f47-3aef-446a-b0ed-b67048bfda74",
+            "managedPath": "assets\\source\\1794057762221-e1f2a8684b.mp4",
+            "hash": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+            "sourceStartMs": 4300,
+            "sourceEndMs": 9500,
+            "startFrame": 0,
+            "endFrame": 156
+          },
+          {
+            "slot": "carProbability",
+            "assetId": "asset_2315f254-7b0f-4000-a2e1-7cd87dc35842",
+            "managedPath": "assets\\source\\1794057796930-773cba4e18.mp4",
+            "hash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+            "sourceStartMs": 0,
+            "sourceEndMs": 5167,
+            "startFrame": 156,
+            "endFrame": 311
+          },
+          {
+            "slot": "atlasContinuous",
+            "assetId": "asset_278147ff-a6b6-4620-bfa2-80e34276355f",
+            "managedPath": "assets\\source\\1794057797181-04ede5d675.mp4",
+            "hash": "04ede5d675bb1e86ec82e02eb15ad25b80a24217329db125f258e44ad5651b4b",
+            "sourceStartMs": 80000,
+            "sourceEndMs": 85533,
+            "startFrame": 311,
+            "endFrame": 477
+          },
+          {
+            "slot": "operatorException",
+            "assetId": "asset_ac6098fa-ae9a-4019-8479-0b6505033028",
+            "managedPath": "assets\\source\\1794057796960-df2c08770c.mp4",
+            "hash": "df2c08770c14a23241b58014251eb28448f53f32ec1b9cc01e233e3d402c143d",
+            "sourceStartMs": 0,
+            "sourceEndMs": 1400,
+            "startFrame": 522,
+            "endFrame": 564
+          },
+          {
+            "slot": "conveyorException",
+            "assetId": "asset_74e1f780-3b70-4d66-8d67-0b45b5981717",
+            "managedPath": "assets\\source\\1794057796997-9724733940.mp4",
+            "hash": "9724733940a92aa5b76e4f119bdaa7f71c7f2defd30b2aa3539c829e25a32af0",
+            "sourceStartMs": 34000,
+            "sourceEndMs": 35400,
+            "startFrame": 522,
+            "endFrame": 564
+          },
+          {
+            "slot": "carCollection",
+            "assetId": "asset_2315f254-7b0f-4000-a2e1-7cd87dc35842",
+            "managedPath": "assets\\source\\1794057796930-773cba4e18.mp4",
+            "hash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+            "sourceStartMs": 0,
+            "sourceEndMs": 6667,
+            "startFrame": 564,
+            "endFrame": 764
+          },
+          {
+            "slot": "yellowCollection",
+            "assetId": "asset_896d7f47-3aef-446a-b0ed-b67048bfda74",
+            "managedPath": "assets\\source\\1794057762221-e1f2a8684b.mp4",
+            "hash": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+            "sourceStartMs": 4300,
+            "sourceEndMs": 9500,
+            "startFrame": 564,
+            "endFrame": 720
+          },
+          {
+            "slot": "palletCollection",
+            "assetId": "asset_2d107d16-dc70-4e94-85ba-c22267cdea7d",
+            "managedPath": "assets\\source\\1794057797027-932c3e8671.mp4",
+            "hash": "932c3e8671e9646432c7306f6f0d77f9de1bccb94dd5e3f6e5122e1c2d4b7017",
+            "sourceStartMs": 4000,
+            "sourceEndMs": 5467,
+            "startFrame": 720,
+            "endFrame": 764
+          },
+          {
+            "slot": "operatorCollection",
+            "assetId": "asset_ac6098fa-ae9a-4019-8479-0b6505033028",
+            "managedPath": "assets\\source\\1794057796960-df2c08770c.mp4",
+            "hash": "df2c08770c14a23241b58014251eb28448f53f32ec1b9cc01e233e3d402c143d",
+            "sourceStartMs": 1000,
+            "sourceEndMs": 7667,
+            "startFrame": 564,
+            "endFrame": 764
+          },
+          {
+            "slot": "carQuestion",
+            "assetId": "asset_2315f254-7b0f-4000-a2e1-7cd87dc35842",
+            "managedPath": "assets\\source\\1794057796930-773cba4e18.mp4",
+            "hash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+            "sourceStartMs": 0,
+            "sourceEndMs": 2467,
+            "startFrame": 764,
+            "endFrame": 838
+          },
+          {
+            "slot": "yellowStation",
+            "assetId": "asset_896d7f47-3aef-446a-b0ed-b67048bfda74",
+            "managedPath": "assets\\source\\1794057762221-e1f2a8684b.mp4",
+            "hash": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+            "sourceStartMs": 4300,
+            "sourceEndMs": 8367,
+            "startFrame": 838,
+            "endFrame": 960
+          },
+          {
+            "slot": "palletStation",
+            "assetId": "asset_2d107d16-dc70-4e94-85ba-c22267cdea7d",
+            "managedPath": "assets\\source\\1794057797027-932c3e8671.mp4",
+            "hash": "932c3e8671e9646432c7306f6f0d77f9de1bccb94dd5e3f6e5122e1c2d4b7017",
+            "sourceStartMs": 4000,
+            "sourceEndMs": 8667,
+            "startFrame": 941,
+            "endFrame": 1081
+          },
+          {
+            "slot": "conveyorStation",
+            "assetId": "asset_74e1f780-3b70-4d66-8d67-0b45b5981717",
+            "managedPath": "assets\\source\\1794057796997-9724733940.mp4",
+            "hash": "9724733940a92aa5b76e4f119bdaa7f71c7f2defd30b2aa3539c829e25a32af0",
+            "sourceStartMs": 34000,
+            "sourceEndMs": 37533,
+            "startFrame": 1035,
+            "endFrame": 1141
+          },
+          {
+            "slot": "digitNear",
+            "assetId": "asset_b213af67-179a-490f-bf98-7a88653b90f4",
+            "managedPath": "assets\\source\\1794057797076-a1b9b380b6.mp4",
+            "hash": "a1b9b380b63a3dcc0f86b66d82e83663ad4fc117924688f77a003acf0731f400",
+            "sourceStartMs": 48000,
+            "sourceEndMs": 51700,
+            "startFrame": 1141,
+            "endFrame": 1252
+          },
+          {
+            "slot": "figureWork",
+            "assetId": "asset_e5aecd48-6398-460d-9cd7-2cc86be12416",
+            "managedPath": "assets\\source\\1794057797115-9bdd53c09e.mp4",
+            "hash": "9bdd53c09e58af79c63567cba9489816c948b167192a01a159e10fbba4f20ef6",
+            "sourceStartMs": 98300,
+            "sourceEndMs": 102100,
+            "startFrame": 1227,
+            "endFrame": 1341
+          },
+          {
+            "slot": "digitWide",
+            "assetId": "asset_b213af67-179a-490f-bf98-7a88653b90f4",
+            "managedPath": "assets\\source\\1794057797076-a1b9b380b6.mp4",
+            "hash": "a1b9b380b63a3dcc0f86b66d82e83663ad4fc117924688f77a003acf0731f400",
+            "sourceStartMs": 88000,
+            "sourceEndMs": 94433,
+            "startFrame": 1270,
+            "endFrame": 1463
+          },
+          {
+            "slot": "atlasFinal",
+            "assetId": "asset_278147ff-a6b6-4620-bfa2-80e34276355f",
+            "managedPath": "assets\\source\\1794057797181-04ede5d675.mp4",
+            "hash": "04ede5d675bb1e86ec82e02eb15ad25b80a24217329db125f258e44ad5651b4b",
+            "sourceStartMs": 84000,
+            "sourceEndMs": 88500,
+            "startFrame": 1328,
+            "endFrame": 1463
+          }
+        ],
+        "fontSources": [
+          {
+            "slot": "display",
+            "fontId": "aa-houdi-hei",
+            "hash": "6c42bffb6f773537050c5c2e1dd55f6839c7621f6327833cddf5b054f9c718ad",
+            "family": "VFC_6c42bffb6f773537050c5c2e1dd55f6839c7621f6327833cddf5b054f9c718ad",
+            "weight": 400,
+            "style": "normal"
+          },
+          {
+            "slot": "title",
+            "fontId": "noto-sans-sc-bold",
+            "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+            "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+            "weight": 700,
+            "style": "normal"
+          }
+        ],
+        "sourceDisplay": {
+          "policy": {
+            "mode": "internal_only"
+          },
+          "scopeId": "project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965"
+        },
+        "eventMap": {
+          "version": "1aef732c216afbb658cafae7f7330e16322ce2e864592ca0efd7ebdd06231e1d",
+          "fps": 30,
+          "frameCount": 1463,
+          "events": [
+            {
+              "id": "single-trial",
+              "meaning": "假设单次成功率99%，各次独立",
+              "startFrame": 0,
+              "endFrame": 192
+            },
+            {
+              "id": "dots-circle-grid",
+              "meaning": "圆阵展开为方阵",
+              "startFrame": 38,
+              "endFrame": 94
+            },
+            {
+              "id": "dots-scan-release",
+              "meaning": "横向扫描与底边释放",
+              "startFrame": 94,
+              "endFrame": 154
+            },
+            {
+              "id": "dots-scatter-bars",
+              "meaning": "散开、竖短线再分布与再散开",
+              "startFrame": 154,
+              "endFrame": 220
+            },
+            {
+              "id": "hundred-success",
+              "meaning": "浅底点群聚为37%，100次全部成功",
+              "startFrame": 220,
+              "endFrame": 311
+            },
+            {
+              "id": "same-footage-expand",
+              "meaning": "倾斜升入转正，同一Atlas活动画面越框接管",
+              "startFrame": 311,
+              "endFrame": 405
+            },
+            {
+              "id": "same-footage-retract-scan",
+              "meaning": "同一活动画面回收、外围退虚、横向扫描",
+              "startFrame": 405,
+              "endFrame": 457
+            },
+            {
+              "id": "abstract-decision",
+              "meaning": "圆形接管上移，恢复与人工分支回到流程",
+              "startFrame": 454,
+              "endFrame": 522
+            },
+            {
+              "id": "separate-sources",
+              "meaning": "独立人员与输送线，不构成同一故障救援事件",
+              "startFrame": 522,
+              "endFrame": 564
+            },
+            {
+              "id": "factory-collection",
+              "meaning": "车厂、黄臂、人员和托盘分窗集合，反向字带独立运动",
+              "startFrame": 564,
+              "endFrame": 764
+            },
+            {
+              "id": "why-arms",
+              "meaning": "车厂活动画面接管，再向框内收束提出机械臂问题",
+              "startFrame": 764,
+              "endFrame": 838
+            },
+            {
+              "id": "fixed-task",
+              "meaning": "黄机械臂活动画面与固定工位大字、前后贯穿红线",
+              "startFrame": 838,
+              "endFrame": 941
+            },
+            {
+              "id": "curled-cover",
+              "meaning": "卷曲覆盖换底，黄臂交给独立托盘来源",
+              "startFrame": 927,
+              "endFrame": 986
+            },
+            {
+              "id": "designed-flow",
+              "meaning": "托盘提升转动放置，流程文字依次建立",
+              "startFrame": 966,
+              "endFrame": 1081
+            },
+            {
+              "id": "conveyor-relay",
+              "meaning": "独立输送线素材接力，落在又快又稳",
+              "startFrame": 1035,
+              "endFrame": 1141
+            },
+            {
+              "id": "humanoid-opportunity",
+              "meaning": "Digit活动画面建立机会，保留可能性而非已实现承诺",
+              "startFrame": 1141,
+              "endFrame": 1252
+            },
+            {
+              "id": "existing-world",
+              "meaning": "Figure与Digit分别呈现手部工件和搬料动作",
+              "startFrame": 1227,
+              "endFrame": 1341
+            },
+            {
+              "id": "future-qualified",
+              "meaning": "不同人形机器人画面接力，未来也许的限定保留到末帧",
+              "startFrame": 1328,
+              "endFrame": 1463
+            }
+          ]
+        },
+        "readyRanges": [
+          {
+            "startFrame": 0,
+            "endFrame": 1463
+          }
+        ],
+        "author": {
+          "project": "robot-reliability-sample-20261107-d928e178",
+          "run_id": "8798efbf-9df5-4e8f-a2d9-a8ab8c76c707",
+          "frozen_version": "8798efbf-9df5-4e8f-a2d9-a8ab8c76c707_e82d8e0689065725fe35ce1f119d5cc61afcae4ad54abc8f96ba82e357198128"
+        }
+      },
+      {
+        "id": "motion_work_a8490086530805a1323be9011b1d2867d50bf76c849d3a8272519c102f643545",
+        "version": "e5d1c62372fc0cedc907e6bfc6ad6b8b4146d7ae172a53d312808f97fbb7562a",
+        "name": "机器人进厂 · 可靠性与工位",
+        "jobId": "job_7a287c08-b1ee-4b47-88c7-150976271c0a",
+        "engineVersion": "managed-hyperframes-4",
+        "definitionPath": "inputs/motion-work/a8490086530805a1323be9011b1d2867d50bf76c849d3a8272519c102f643545.json",
+        "definitionHash": "a8490086530805a1323be9011b1d2867d50bf76c849d3a8272519c102f643545",
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "frameCount": 1463,
+        "compositing": "alpha",
+        "creativeBrief": "完整不透明主画面；1920×1080、30fps、1463帧。016黑／暖白／红、满幅入框与换素材、卷曲覆盖、前后红线、集合与反向字带；026圆阵→方阵→横扫→底边释放→散开→竖短线→再散开→浅底37%聚合；032倾斜框体升入、同一Atlas视频越框全屏与回收、外围退虚、下扫、圆形接管上移、抽象分支重合。100次全部成功≈37%是独立99%假设，不是成功次数占比。不同来源分窗并由图形换场，不声称同一工厂、同一机器人或真实故障救援；人形机器人维持机会与未来也许限定。原片说明字使用底部定向遮挡与裁切，关键手部和工件区域保留。所有视频为根帧时钟正常速率，源毫秒按最近整数取整，不冻结补长。音轨和普通字幕均交VideoFlowCut独立合成。观察限制：已核读正文、分镜、按时间顺序的视频采样帧；未连续观看视频流、未试听配音；句内落点为段级边界与实际波形静音辅助编排，不冒称逐词精确或审片通过。 本轮基于e82d8e0689065725fe35ce1f119d5cc61afcae4ad54abc8f96ba82e357198128返修：Digit与Atlas以不受注帧样式控制的父层取景移除原片说明，取消黑色遮条；前段满幅扫描与视频接管、点阵全幅散开并右侧聚合37%；Atlas中性动作文字，不标注真实故障；477帧起独立人员/输送线加入抽象分支；入场初态显式建立，整条根时间线预求值固定惰性Tween起值。观察记录见motion/revision-notes.md。",
+        "imageSources": [],
+        "videoSources": [
+          {
+            "slot": "yellowOpening",
+            "assetId": "asset_896d7f47-3aef-446a-b0ed-b67048bfda74",
+            "managedPath": "assets\\source\\1794057762221-e1f2a8684b.mp4",
+            "hash": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+            "sourceStartMs": 4300,
+            "sourceEndMs": 9500,
+            "startFrame": 0,
+            "endFrame": 156
+          },
+          {
+            "slot": "carProbability",
+            "assetId": "asset_2315f254-7b0f-4000-a2e1-7cd87dc35842",
+            "managedPath": "assets\\source\\1794057796930-773cba4e18.mp4",
+            "hash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+            "sourceStartMs": 0,
+            "sourceEndMs": 5167,
+            "startFrame": 156,
+            "endFrame": 311
+          },
+          {
+            "slot": "atlasContinuous",
+            "assetId": "asset_278147ff-a6b6-4620-bfa2-80e34276355f",
+            "managedPath": "assets\\source\\1794057797181-04ede5d675.mp4",
+            "hash": "04ede5d675bb1e86ec82e02eb15ad25b80a24217329db125f258e44ad5651b4b",
+            "sourceStartMs": 80000,
+            "sourceEndMs": 85533,
+            "startFrame": 311,
+            "endFrame": 477
+          },
+          {
+            "slot": "operatorException",
+            "assetId": "asset_ac6098fa-ae9a-4019-8479-0b6505033028",
+            "managedPath": "assets\\source\\1794057796960-df2c08770c.mp4",
+            "hash": "df2c08770c14a23241b58014251eb28448f53f32ec1b9cc01e233e3d402c143d",
+            "sourceStartMs": 0,
+            "sourceEndMs": 2900,
+            "startFrame": 477,
+            "endFrame": 564
+          },
+          {
+            "slot": "conveyorException",
+            "assetId": "asset_74e1f780-3b70-4d66-8d67-0b45b5981717",
+            "managedPath": "assets\\source\\1794057796997-9724733940.mp4",
+            "hash": "9724733940a92aa5b76e4f119bdaa7f71c7f2defd30b2aa3539c829e25a32af0",
+            "sourceStartMs": 34000,
+            "sourceEndMs": 36900,
+            "startFrame": 477,
+            "endFrame": 564
+          },
+          {
+            "slot": "carCollection",
+            "assetId": "asset_2315f254-7b0f-4000-a2e1-7cd87dc35842",
+            "managedPath": "assets\\source\\1794057796930-773cba4e18.mp4",
+            "hash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+            "sourceStartMs": 0,
+            "sourceEndMs": 6667,
+            "startFrame": 564,
+            "endFrame": 764
+          },
+          {
+            "slot": "yellowCollection",
+            "assetId": "asset_896d7f47-3aef-446a-b0ed-b67048bfda74",
+            "managedPath": "assets\\source\\1794057762221-e1f2a8684b.mp4",
+            "hash": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+            "sourceStartMs": 4300,
+            "sourceEndMs": 9500,
+            "startFrame": 564,
+            "endFrame": 720
+          },
+          {
+            "slot": "palletCollection",
+            "assetId": "asset_2d107d16-dc70-4e94-85ba-c22267cdea7d",
+            "managedPath": "assets\\source\\1794057797027-932c3e8671.mp4",
+            "hash": "932c3e8671e9646432c7306f6f0d77f9de1bccb94dd5e3f6e5122e1c2d4b7017",
+            "sourceStartMs": 4000,
+            "sourceEndMs": 5467,
+            "startFrame": 720,
+            "endFrame": 764
+          },
+          {
+            "slot": "operatorCollection",
+            "assetId": "asset_ac6098fa-ae9a-4019-8479-0b6505033028",
+            "managedPath": "assets\\source\\1794057796960-df2c08770c.mp4",
+            "hash": "df2c08770c14a23241b58014251eb28448f53f32ec1b9cc01e233e3d402c143d",
+            "sourceStartMs": 1000,
+            "sourceEndMs": 7667,
+            "startFrame": 564,
+            "endFrame": 764
+          },
+          {
+            "slot": "carQuestion",
+            "assetId": "asset_2315f254-7b0f-4000-a2e1-7cd87dc35842",
+            "managedPath": "assets\\source\\1794057796930-773cba4e18.mp4",
+            "hash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+            "sourceStartMs": 0,
+            "sourceEndMs": 2467,
+            "startFrame": 764,
+            "endFrame": 838
+          },
+          {
+            "slot": "yellowStation",
+            "assetId": "asset_896d7f47-3aef-446a-b0ed-b67048bfda74",
+            "managedPath": "assets\\source\\1794057762221-e1f2a8684b.mp4",
+            "hash": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+            "sourceStartMs": 4300,
+            "sourceEndMs": 8367,
+            "startFrame": 838,
+            "endFrame": 960
+          },
+          {
+            "slot": "palletStation",
+            "assetId": "asset_2d107d16-dc70-4e94-85ba-c22267cdea7d",
+            "managedPath": "assets\\source\\1794057797027-932c3e8671.mp4",
+            "hash": "932c3e8671e9646432c7306f6f0d77f9de1bccb94dd5e3f6e5122e1c2d4b7017",
+            "sourceStartMs": 4000,
+            "sourceEndMs": 8667,
+            "startFrame": 941,
+            "endFrame": 1081
+          },
+          {
+            "slot": "conveyorStation",
+            "assetId": "asset_74e1f780-3b70-4d66-8d67-0b45b5981717",
+            "managedPath": "assets\\source\\1794057796997-9724733940.mp4",
+            "hash": "9724733940a92aa5b76e4f119bdaa7f71c7f2defd30b2aa3539c829e25a32af0",
+            "sourceStartMs": 34000,
+            "sourceEndMs": 37533,
+            "startFrame": 1035,
+            "endFrame": 1141
+          },
+          {
+            "slot": "digitNear",
+            "assetId": "asset_b213af67-179a-490f-bf98-7a88653b90f4",
+            "managedPath": "assets\\source\\1794057797076-a1b9b380b6.mp4",
+            "hash": "a1b9b380b63a3dcc0f86b66d82e83663ad4fc117924688f77a003acf0731f400",
+            "sourceStartMs": 48000,
+            "sourceEndMs": 51700,
+            "startFrame": 1141,
+            "endFrame": 1252
+          },
+          {
+            "slot": "figureWork",
+            "assetId": "asset_e5aecd48-6398-460d-9cd7-2cc86be12416",
+            "managedPath": "assets\\source\\1794057797115-9bdd53c09e.mp4",
+            "hash": "9bdd53c09e58af79c63567cba9489816c948b167192a01a159e10fbba4f20ef6",
+            "sourceStartMs": 98300,
+            "sourceEndMs": 102100,
+            "startFrame": 1227,
+            "endFrame": 1341
+          },
+          {
+            "slot": "digitWide",
+            "assetId": "asset_b213af67-179a-490f-bf98-7a88653b90f4",
+            "managedPath": "assets\\source\\1794057797076-a1b9b380b6.mp4",
+            "hash": "a1b9b380b63a3dcc0f86b66d82e83663ad4fc117924688f77a003acf0731f400",
+            "sourceStartMs": 88000,
+            "sourceEndMs": 94433,
+            "startFrame": 1270,
+            "endFrame": 1463
+          },
+          {
+            "slot": "atlasFinal",
+            "assetId": "asset_278147ff-a6b6-4620-bfa2-80e34276355f",
+            "managedPath": "assets\\source\\1794057797181-04ede5d675.mp4",
+            "hash": "04ede5d675bb1e86ec82e02eb15ad25b80a24217329db125f258e44ad5651b4b",
+            "sourceStartMs": 84000,
+            "sourceEndMs": 88500,
+            "startFrame": 1328,
+            "endFrame": 1463
+          }
+        ],
+        "fontSources": [
+          {
+            "slot": "display",
+            "fontId": "aa-houdi-hei",
+            "hash": "6c42bffb6f773537050c5c2e1dd55f6839c7621f6327833cddf5b054f9c718ad",
+            "family": "VFC_6c42bffb6f773537050c5c2e1dd55f6839c7621f6327833cddf5b054f9c718ad",
+            "weight": 400,
+            "style": "normal"
+          },
+          {
+            "slot": "title",
+            "fontId": "noto-sans-sc-bold",
+            "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+            "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+            "weight": 700,
+            "style": "normal"
+          }
+        ],
+        "sourceDisplay": {
+          "policy": {
+            "mode": "internal_only"
+          },
+          "scopeId": "project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965"
+        },
+        "eventMap": {
+          "version": "e5d1c62372fc0cedc907e6bfc6ad6b8b4146d7ae172a53d312808f97fbb7562a",
+          "fps": 30,
+          "frameCount": 1463,
+          "events": [
+            {
+              "id": "single-trial",
+              "meaning": "假设单次成功率99%，各次独立",
+              "startFrame": 0,
+              "endFrame": 192
+            },
+            {
+              "id": "dots-circle-grid",
+              "meaning": "圆阵展开为方阵",
+              "startFrame": 38,
+              "endFrame": 94
+            },
+            {
+              "id": "dots-scan-release",
+              "meaning": "横向扫描与底边释放",
+              "startFrame": 94,
+              "endFrame": 154
+            },
+            {
+              "id": "dots-scatter-bars",
+              "meaning": "散开、竖短线再分布与再散开",
+              "startFrame": 154,
+              "endFrame": 220
+            },
+            {
+              "id": "hundred-success",
+              "meaning": "浅底点群聚为37%，100次全部成功",
+              "startFrame": 220,
+              "endFrame": 311
+            },
+            {
+              "id": "same-footage-expand",
+              "meaning": "倾斜升入转正，同一Atlas活动画面越框接管",
+              "startFrame": 311,
+              "endFrame": 405
+            },
+            {
+              "id": "same-footage-retract-scan",
+              "meaning": "同一活动画面回收、外围退虚、横向扫描",
+              "startFrame": 405,
+              "endFrame": 457
+            },
+            {
+              "id": "abstract-decision",
+              "meaning": "圆形接管上移，抽象节点分路并接回；独立生产素材持续运动",
+              "startFrame": 454,
+              "endFrame": 564
+            },
+            {
+              "id": "separate-sources",
+              "meaning": "独立人员与输送线，不构成同一故障救援事件",
+              "startFrame": 477,
+              "endFrame": 564
+            },
+            {
+              "id": "factory-collection",
+              "meaning": "车厂、黄臂、人员和托盘分窗集合，反向字带独立运动",
+              "startFrame": 564,
+              "endFrame": 764
+            },
+            {
+              "id": "why-arms",
+              "meaning": "车厂活动画面接管，再向框内收束提出机械臂问题",
+              "startFrame": 764,
+              "endFrame": 838
+            },
+            {
+              "id": "fixed-task",
+              "meaning": "黄机械臂活动画面与固定工位大字、前后贯穿红线",
+              "startFrame": 838,
+              "endFrame": 941
+            },
+            {
+              "id": "curled-cover",
+              "meaning": "卷曲覆盖换底，黄臂交给独立托盘来源",
+              "startFrame": 927,
+              "endFrame": 986
+            },
+            {
+              "id": "designed-flow",
+              "meaning": "托盘提升转动放置，流程文字依次建立",
+              "startFrame": 966,
+              "endFrame": 1081
+            },
+            {
+              "id": "conveyor-relay",
+              "meaning": "独立输送线素材接力，落在又快又稳",
+              "startFrame": 1035,
+              "endFrame": 1141
+            },
+            {
+              "id": "humanoid-opportunity",
+              "meaning": "Digit活动画面建立机会，保留可能性而非已实现承诺",
+              "startFrame": 1141,
+              "endFrame": 1252
+            },
+            {
+              "id": "existing-world",
+              "meaning": "Figure与Digit分别呈现手部工件和搬料动作",
+              "startFrame": 1227,
+              "endFrame": 1341
+            },
+            {
+              "id": "future-qualified",
+              "meaning": "不同人形机器人画面接力，未来也许的限定保留到末帧",
+              "startFrame": 1328,
+              "endFrame": 1463
+            }
+          ]
+        },
+        "readyRanges": [
+          {
+            "startFrame": 0,
+            "endFrame": 1463
+          }
+        ],
+        "author": {
+          "project": "robot-reliability-sample-20261107-d928e178",
+          "run_id": "40d195a3-c0bd-4aa8-b409-247fb7c23731",
+          "frozen_version": "40d195a3-c0bd-4aa8-b409-247fb7c23731_d939964854bd7d402517b1a4a0489196682c0a9ae93e513fbde3ef1e0e65b8db"
+        }
+      }
+    ],
+    "audioMixGainDb": 8
+  },
+  "reviews": {
+    "motions": [],
+    "soundMixes": []
+  }
+}

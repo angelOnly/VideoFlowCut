@@ -1,0 +1,135 @@
+{
+  "id": "job_3b6ea774-0b13-4ed7-8bbc-7dfe3156cddd",
+  "projectId": "project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965",
+  "kind": "preview",
+  "status": "succeeded",
+  "payload": {
+    "revision": 40,
+    "fromFrame": 0,
+    "toFrame": 1463
+  },
+  "result": {
+    "execution": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-11-07T15:31:35.217Z",
+          "finishedAt": "2026-11-07T15:32:45.124Z",
+          "outcome": "succeeded"
+        }
+      ],
+      "lastProgressAt": "2026-11-07T15:33:54.877Z"
+    },
+    "revision": 40,
+    "renderEnvironmentIdentity": {
+      "releaseId": "release-ce09390151f391d76c7476694dd34096803652368aac395c9faa23137f556424",
+      "audio": "7342d2ca91ea0a953ecc15c979ff418f397201a0246509ebd3f03332b63fb061",
+      "visual": "0441b8239b4cd1a58962e0c6cf894d1ddb26f6fc7ca96f7cd796cbeaa6140a5e"
+    },
+    "releaseId": "release-ce09390151f391d76c7476694dd34096803652368aac395c9faa23137f556424",
+    "fromFrame": 0,
+    "toFrame": 1463,
+    "path": "E:\\ai\\VideoCut\\workspace\\projects\\project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965\\previews\\revision-40-0-1463.mp4",
+    "relativePath": "previews\\revision-40-0-1463.mp4",
+    "durationMs": 48767,
+    "renderer": "ffmpeg",
+    "renderReportPath": "previews\\revision-40-0-1463.mp4.render-plan.json",
+    "fps": 30,
+    "frameCount": 1463,
+    "hasAudio": true,
+    "audio": {
+      "decoded": true,
+      "integratedLufs": -21,
+      "truePeakDbfs": -3.5,
+      "loudnessRangeLu": 2.6,
+      "silence": [
+        {
+          "startSeconds": 6.249771,
+          "endSeconds": 6.610833
+        },
+        {
+          "startSeconds": 10.235062,
+          "endSeconds": 10.562938
+        },
+        {
+          "startSeconds": 18.618333,
+          "endSeconds": 19.001188
+        },
+        {
+          "startSeconds": 25.337208,
+          "endSeconds": 25.667208
+        },
+        {
+          "startSeconds": 27.798813,
+          "endSeconds": 28.096271
+        },
+        {
+          "startSeconds": 37.914479,
+          "endSeconds": 38.236667
+        }
+      ],
+      "method": "ffmpeg_ebur128_true_peak_complete_decode",
+      "rawSummary": "Summary:\r\n\r\n  Integrated loudness:\r\n    I:         -21.0 LUFS\r\n    Threshold: -31.1 LUFS\r\n\r\n  Loudness range:\r\n    LRA:         2.6 LU\r\n    Threshold: -41.2 LUFS\r\n    LRA low:   -22.4 LUFS\r\n    LRA high:  -19.8 LUFS\r\n\r\n  True peak:\r\n    Peak:       -3.5 dBFS\r\n[out#0/null @ 00000160bafab000] video:0KiB audio:9144KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown\r\nsize=N/A time=00:00:48.76 bitrate=N/A speed= 457x elapsed=0:00:00.10    \r\n"
+    },
+    "sourceHash": "8430d3c5415ca8b5bbff088713819f5dc10146288d9ed64144598b611970bfc2",
+    "inspection": {
+      "revision": 40,
+      "sourcePreviewJobId": "job_3b6ea774-0b13-4ed7-8bbc-7dfe3156cddd",
+      "inspectedAt": "2026-11-07T15:33:54.876Z",
+      "frames": [
+        {
+          "frame": 15,
+          "relativePath": "previews\\frames\\revision-40-frame-15.jpg"
+        },
+        {
+          "frame": 105,
+          "relativePath": "previews\\frames\\revision-40-frame-105.jpg"
+        },
+        {
+          "frame": 265,
+          "relativePath": "previews\\frames\\revision-40-frame-265.jpg"
+        },
+        {
+          "frame": 325,
+          "relativePath": "previews\\frames\\revision-40-frame-325.jpg"
+        },
+        {
+          "frame": 385,
+          "relativePath": "previews\\frames\\revision-40-frame-385.jpg"
+        },
+        {
+          "frame": 500,
+          "relativePath": "previews\\frames\\revision-40-frame-500.jpg"
+        },
+        {
+          "frame": 545,
+          "relativePath": "previews\\frames\\revision-40-frame-545.jpg"
+        },
+        {
+          "frame": 620,
+          "relativePath": "previews\\frames\\revision-40-frame-620.jpg"
+        },
+        {
+          "frame": 880,
+          "relativePath": "previews\\frames\\revision-40-frame-880.jpg"
+        },
+        {
+          "frame": 1160,
+          "relativePath": "previews\\frames\\revision-40-frame-1160.jpg"
+        },
+        {
+          "frame": 1250,
+          "relativePath": "previews\\frames\\revision-40-frame-1250.jpg"
+        },
+        {
+          "frame": 1440,
+          "relativePath": "previews\\frames\\revision-40-frame-1440.jpg"
+        }
+      ]
+    }
+  },
+  "idempotencyKey": "robot-sample-r40-preview-0-1463",
+  "attempt": 1,
+  "createdAt": "2026-11-07T15:30:55.756Z",
+  "updatedAt": "2026-11-07T15:33:54.877Z"
+}
