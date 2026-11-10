@@ -1,0 +1,530 @@
+{
+  "revision": 180,
+  "format": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "durationInFrames": 4152
+  },
+  "cues": [
+    {
+      "id": "cue_baa75064-41e2-4775-97a2-c70bf1e59c10",
+      "workId": "motion_work_24929375f861971cfe589962f26fa3fd8c7fbf25720038f9b2cdf634769af586",
+      "startFrame": 0,
+      "endFrame": 443,
+      "sourceStartFrame": 0,
+      "sourceEndFrame": 443
+    },
+    {
+      "id": "cue_a5461849-6e92-414b-ac92-418d64153fc8",
+      "workId": "motion_work_63877fac93d799ef41080b600416dcd1c485127d9bc74157710bedd802f630df",
+      "startFrame": 443,
+      "endFrame": 1028,
+      "sourceStartFrame": 443,
+      "sourceEndFrame": 1028
+    },
+    {
+      "id": "cue_53dc3d6b-64b9-45d2-884b-e99577ad5509",
+      "workId": "motion_work_63877fac93d799ef41080b600416dcd1c485127d9bc74157710bedd802f630df",
+      "startFrame": 1028,
+      "endFrame": 1436,
+      "sourceStartFrame": 1028,
+      "sourceEndFrame": 1436
+    },
+    {
+      "id": "cue_9730a479-1a3c-44a3-8ddc-3abf06ba88d6",
+      "workId": "motion_work_63877fac93d799ef41080b600416dcd1c485127d9bc74157710bedd802f630df",
+      "startFrame": 1436,
+      "endFrame": 1758,
+      "sourceStartFrame": 1436,
+      "sourceEndFrame": 1758
+    },
+    {
+      "id": "cue_f4421842-a89e-4f08-9cf1-829617e537b3",
+      "workId": "motion_work_63877fac93d799ef41080b600416dcd1c485127d9bc74157710bedd802f630df",
+      "startFrame": 1758,
+      "endFrame": 2227,
+      "sourceStartFrame": 1758,
+      "sourceEndFrame": 2227
+    },
+    {
+      "id": "cue_0e0394b4-4f78-49c1-b000-639aee1c1a16",
+      "workId": "motion_work_63877fac93d799ef41080b600416dcd1c485127d9bc74157710bedd802f630df",
+      "startFrame": 2227,
+      "endFrame": 2548,
+      "sourceStartFrame": 2227,
+      "sourceEndFrame": 2548
+    },
+    {
+      "id": "cue_e6d3ba87-7321-49fa-a70c-d68905517407",
+      "workId": "motion_work_8fddba56a06bf102cc6eff0b8b0d7067c11458adbe26c412fdb20be7e53efbaf",
+      "startFrame": 2548,
+      "endFrame": 2631,
+      "sourceStartFrame": 2548,
+      "sourceEndFrame": 2631
+    },
+    {
+      "id": "cue_085369d7-1ad1-4058-be8b-a645c59d0947",
+      "workId": "motion_work_8fddba56a06bf102cc6eff0b8b0d7067c11458adbe26c412fdb20be7e53efbaf",
+      "startFrame": 2631,
+      "endFrame": 3244,
+      "sourceStartFrame": 2631,
+      "sourceEndFrame": 3244
+    },
+    {
+      "id": "cue_a92323e9-8c31-48bf-a375-7be86cb53bd2",
+      "workId": "motion_work_63877fac93d799ef41080b600416dcd1c485127d9bc74157710bedd802f630df",
+      "startFrame": 3244,
+      "endFrame": 3680,
+      "sourceStartFrame": 3244,
+      "sourceEndFrame": 3680
+    },
+    {
+      "id": "cue_f810ace4-cd8c-40ba-8491-570e7cb735f4",
+      "workId": "motion_work_8fddba56a06bf102cc6eff0b8b0d7067c11458adbe26c412fdb20be7e53efbaf",
+      "startFrame": 3680,
+      "endFrame": 3738,
+      "sourceStartFrame": 3680,
+      "sourceEndFrame": 3738
+    },
+    {
+      "id": "cue_bbeac0d9-6fe9-4359-a0af-fc80d9328ae1",
+      "workId": "motion_work_8fddba56a06bf102cc6eff0b8b0d7067c11458adbe26c412fdb20be7e53efbaf",
+      "startFrame": 3738,
+      "endFrame": 4152,
+      "sourceStartFrame": 3738,
+      "sourceEndFrame": 4152
+    }
+  ],
+  "works": [
+    {
+      "id": "motion_work_24929375f861971cfe589962f26fa3fd8c7fbf25720038f9b2cdf634769af586",
+      "version": "10a5d105315217176f6e5d27470341aa12029bbf7d14602776b342c13f717972",
+      "author": {
+        "project": "robot-explainer-new-20261110",
+        "run_id": "dbb48606-3c33-4cf7-9965-6122cac18e2f",
+        "frozen_version": "dbb48606-3c33-4cf7-9965-6122cac18e2f_341d836a14b647fd714c54ff2db8f88a871b482adbb1cf73ea4c636a9564f1e9"
+      },
+      "definitionHash": "24929375f861971cfe589962f26fa3fd8c7fbf25720038f9b2cdf634769af586",
+      "eventMap": {
+        "version": "10a5d105315217176f6e5d27470341aa12029bbf7d14602776b342c13f717972",
+        "fps": 30,
+        "frameCount": 4152,
+        "events": [
+          {
+            "id": "atlas_full_action",
+            "meaning": "Atlas 完整起跳、翻转、落稳",
+            "startFrame": 0,
+            "endFrame": 111
+          },
+          {
+            "id": "atlas_action_recall",
+            "meaning": "按起跳、翻转、落稳顺序回顾完整动作",
+            "startFrame": 84,
+            "endFrame": 195
+          },
+          {
+            "id": "work_hypothesis",
+            "meaning": "从能力展示转入取件工作问题",
+            "startFrame": 184,
+            "endFrame": 282
+          },
+          {
+            "id": "canon_reference",
+            "meaning": "蓝箱固定机械臂吸头真实取件参照",
+            "startFrame": 282,
+            "endFrame": 421
+          },
+          {
+            "id": "contact_slide",
+            "meaning": "示意零件被碰后沿箱内滑动",
+            "startFrame": 602,
+            "endFrame": 667
+          },
+          {
+            "id": "human_comparison",
+            "meaning": "旁白先说明人会拨一下、换个角度继续拿",
+            "startFrame": 667,
+            "endFrame": 784
+          },
+          {
+            "id": "detect_and_retarget",
+            "meaning": "机器人发现位置变化、判断新位置并调整",
+            "startFrame": 784,
+            "endFrame": 920
+          },
+          {
+            "id": "regrip_lift_rotate",
+            "meaning": "重新夹紧，提起后发现反向并转正",
+            "startFrame": 920,
+            "endFrame": 1028
+          },
+          {
+            "id": "pull_back_to_system",
+            "meaning": "保留原工位并拉远建立连续工作链",
+            "startFrame": 1028,
+            "endFrame": 1436
+          },
+          {
+            "id": "independent_probability",
+            "meaning": "每次 99% 且相互独立的假设",
+            "startFrame": 1436,
+            "endFrame": 1634
+          },
+          {
+            "id": "hundred_run_result",
+            "meaning": "0.99 的 100 次方约等于 36.6%",
+            "startFrame": 1602,
+            "endFrame": 1758
+          },
+          {
+            "id": "automatic_recovery",
+            "meaning": "小失误自动恢复并返回流程",
+            "startFrame": 1848,
+            "endFrame": 1972
+          },
+          {
+            "id": "manual_intervention",
+            "meaning": "暂停、人工处理与下游等待",
+            "startFrame": 1972,
+            "endFrame": 2227
+          },
+          {
+            "id": "fixed_workflow_intro",
+            "meaning": "固定任务、环境和流程关系建立",
+            "startFrame": 2227,
+            "endFrame": 2307
+          },
+          {
+            "id": "welding_reality",
+            "meaning": "真实固定焊装机械臂工位",
+            "startFrame": 2307,
+            "endFrame": 2559
+          },
+          {
+            "id": "humanoid_reuse_potential",
+            "meaning": "通道、工具与设备复用的潜力示意",
+            "startFrame": 2631,
+            "endFrame": 2970
+          },
+          {
+            "id": "factory_cost_ledger",
+            "meaning": "训练、续航、维护与停机成本",
+            "startFrame": 2970,
+            "endFrame": 3244
+          },
+          {
+            "id": "digit_warehouse",
+            "meaning": "Digit 在真实仓库搬运料箱",
+            "startFrame": 3244,
+            "endFrame": 3687
+          },
+          {
+            "id": "atlas_return",
+            "meaning": "回望 Atlas 翻转与落地",
+            "startFrame": 3738,
+            "endFrame": 3822
+          },
+          {
+            "id": "final_drop_and_recovery",
+            "meaning": "同一示意箱体中掉落、发现新位置并重新接近",
+            "startFrame": 3863,
+            "endFrame": 4065
+          },
+          {
+            "id": "final_open_question",
+            "meaning": "夹爪在箱内实际夹住目标，是否能够稳稳拿起保持开放",
+            "startFrame": 4065,
+            "endFrame": 4152
+          }
+        ]
+      }
+    },
+    {
+      "id": "motion_work_63877fac93d799ef41080b600416dcd1c485127d9bc74157710bedd802f630df",
+      "version": "bd632c322d0a9ef578c5694761e7752dd9eeb6d5727f4d9df4fcb935d328e218",
+      "author": {
+        "project": "robot-explainer-new-20261110",
+        "run_id": "c55a631e-0d19-4c2d-a35e-3424fcc2d624",
+        "frozen_version": "c55a631e-0d19-4c2d-a35e-3424fcc2d624_a85e296d08107d840677e7889e05e96cae3e42e04113cb3b5bab6d06fb0f6017"
+      },
+      "definitionHash": "63877fac93d799ef41080b600416dcd1c485127d9bc74157710bedd802f630df",
+      "eventMap": {
+        "version": "bd632c322d0a9ef578c5694761e7752dd9eeb6d5727f4d9df4fcb935d328e218",
+        "fps": 30,
+        "frameCount": 4152,
+        "events": [
+          {
+            "id": "atlas_full_action",
+            "meaning": "Atlas 完整起跳、翻转、落稳",
+            "startFrame": 0,
+            "endFrame": 111
+          },
+          {
+            "id": "atlas_action_recall",
+            "meaning": "按起跳、翻转、落稳顺序回顾完整动作",
+            "startFrame": 84,
+            "endFrame": 195
+          },
+          {
+            "id": "work_hypothesis",
+            "meaning": "从能力展示转入取件工作问题",
+            "startFrame": 184,
+            "endFrame": 282
+          },
+          {
+            "id": "canon_reference",
+            "meaning": "蓝箱固定机械臂吸头真实取件参照",
+            "startFrame": 282,
+            "endFrame": 421
+          },
+          {
+            "id": "contact_slide",
+            "meaning": "示意零件被碰后沿箱内滑动",
+            "startFrame": 602,
+            "endFrame": 667
+          },
+          {
+            "id": "human_comparison",
+            "meaning": "旁白先说明人会拨一下、换个角度继续拿",
+            "startFrame": 667,
+            "endFrame": 784
+          },
+          {
+            "id": "detect_and_retarget",
+            "meaning": "机器人发现位置变化、判断新位置并调整",
+            "startFrame": 784,
+            "endFrame": 920
+          },
+          {
+            "id": "regrip_lift_rotate",
+            "meaning": "重新夹紧，提起后发现反向并转正",
+            "startFrame": 920,
+            "endFrame": 1028
+          },
+          {
+            "id": "pull_back_to_system",
+            "meaning": "保留原工位并拉远建立连续工作链",
+            "startFrame": 1028,
+            "endFrame": 1436
+          },
+          {
+            "id": "independent_probability",
+            "meaning": "每次 99% 且相互独立的假设",
+            "startFrame": 1436,
+            "endFrame": 1634
+          },
+          {
+            "id": "hundred_run_result",
+            "meaning": "0.99 的 100 次方约等于 36.6%",
+            "startFrame": 1602,
+            "endFrame": 1758
+          },
+          {
+            "id": "automatic_recovery",
+            "meaning": "小失误自动恢复并返回流程",
+            "startFrame": 1848,
+            "endFrame": 1972
+          },
+          {
+            "id": "manual_intervention",
+            "meaning": "暂停、人工处理与下游等待",
+            "startFrame": 1972,
+            "endFrame": 2227
+          },
+          {
+            "id": "fixed_workflow_intro",
+            "meaning": "固定任务、环境和流程关系建立",
+            "startFrame": 2227,
+            "endFrame": 2307
+          },
+          {
+            "id": "welding_reality",
+            "meaning": "真实固定焊装机械臂工位",
+            "startFrame": 2307,
+            "endFrame": 2559
+          },
+          {
+            "id": "humanoid_reuse_potential",
+            "meaning": "通道、工具与设备复用的潜力示意",
+            "startFrame": 2631,
+            "endFrame": 2970
+          },
+          {
+            "id": "factory_cost_ledger",
+            "meaning": "训练、续航、维护与停机成本",
+            "startFrame": 2970,
+            "endFrame": 3244
+          },
+          {
+            "id": "digit_warehouse",
+            "meaning": "Digit 在真实仓库搬运料箱",
+            "startFrame": 3244,
+            "endFrame": 3687
+          },
+          {
+            "id": "atlas_return",
+            "meaning": "回望 Atlas 翻转与落地",
+            "startFrame": 3738,
+            "endFrame": 3822
+          },
+          {
+            "id": "final_drop_and_recovery",
+            "meaning": "同一示意箱体中掉落、发现新位置并重新接近",
+            "startFrame": 3863,
+            "endFrame": 4065
+          },
+          {
+            "id": "final_open_question",
+            "meaning": "夹爪在箱内实际夹住目标，是否能够稳稳拿起保持开放",
+            "startFrame": 4065,
+            "endFrame": 4152
+          }
+        ]
+      }
+    },
+    {
+      "id": "motion_work_8fddba56a06bf102cc6eff0b8b0d7067c11458adbe26c412fdb20be7e53efbaf",
+      "version": "3aea6d6244cd28f8b59a5ec20a33fa167379f90592dba131acad338a4287cee5",
+      "author": {
+        "project": "robot-explainer-new-20261110",
+        "run_id": "35036c92-6cc0-48b9-8a00-980cc91f0515",
+        "frozen_version": "35036c92-6cc0-48b9-8a00-980cc91f0515_b689488ec50d601e0286362cc511742510227af3ea781ecfdb7c2fd48a21a4fc"
+      },
+      "definitionHash": "8fddba56a06bf102cc6eff0b8b0d7067c11458adbe26c412fdb20be7e53efbaf",
+      "eventMap": {
+        "version": "3aea6d6244cd28f8b59a5ec20a33fa167379f90592dba131acad338a4287cee5",
+        "fps": 30,
+        "frameCount": 4152,
+        "events": [
+          {
+            "id": "atlas_full_action",
+            "meaning": "Atlas 完整起跳、翻转、落稳",
+            "startFrame": 0,
+            "endFrame": 111
+          },
+          {
+            "id": "atlas_action_recall",
+            "meaning": "按起跳、翻转、落稳顺序回顾完整动作",
+            "startFrame": 84,
+            "endFrame": 195
+          },
+          {
+            "id": "work_hypothesis",
+            "meaning": "从能力展示转入取件工作问题",
+            "startFrame": 184,
+            "endFrame": 282
+          },
+          {
+            "id": "canon_reference",
+            "meaning": "蓝箱固定机械臂吸头真实取件参照",
+            "startFrame": 282,
+            "endFrame": 421
+          },
+          {
+            "id": "contact_slide",
+            "meaning": "示意零件被碰后沿箱内滑动",
+            "startFrame": 602,
+            "endFrame": 667
+          },
+          {
+            "id": "human_comparison",
+            "meaning": "旁白先说明人会拨一下、换个角度继续拿",
+            "startFrame": 667,
+            "endFrame": 784
+          },
+          {
+            "id": "detect_and_retarget",
+            "meaning": "机器人发现位置变化、判断新位置并调整",
+            "startFrame": 784,
+            "endFrame": 920
+          },
+          {
+            "id": "regrip_lift_rotate",
+            "meaning": "重新夹紧，提起后发现反向并转正",
+            "startFrame": 920,
+            "endFrame": 1028
+          },
+          {
+            "id": "pull_back_to_system",
+            "meaning": "保留原工位并拉远建立连续工作链",
+            "startFrame": 1028,
+            "endFrame": 1436
+          },
+          {
+            "id": "independent_probability",
+            "meaning": "每次 99% 且相互独立的假设",
+            "startFrame": 1436,
+            "endFrame": 1634
+          },
+          {
+            "id": "hundred_run_result",
+            "meaning": "0.99 的 100 次方约等于 36.6%",
+            "startFrame": 1602,
+            "endFrame": 1758
+          },
+          {
+            "id": "automatic_recovery",
+            "meaning": "小失误自动恢复并返回流程",
+            "startFrame": 1848,
+            "endFrame": 1972
+          },
+          {
+            "id": "manual_intervention",
+            "meaning": "暂停、人工处理与下游等待",
+            "startFrame": 1972,
+            "endFrame": 2227
+          },
+          {
+            "id": "fixed_workflow_intro",
+            "meaning": "固定任务、环境和流程关系建立",
+            "startFrame": 2227,
+            "endFrame": 2307
+          },
+          {
+            "id": "welding_reality",
+            "meaning": "真实固定焊装机械臂工位",
+            "startFrame": 2307,
+            "endFrame": 2559
+          },
+          {
+            "id": "humanoid_reuse_potential",
+            "meaning": "通道、工具与设备复用的潜力示意",
+            "startFrame": 2631,
+            "endFrame": 2970
+          },
+          {
+            "id": "factory_cost_ledger",
+            "meaning": "训练、续航、维护与停机成本",
+            "startFrame": 2970,
+            "endFrame": 3244
+          },
+          {
+            "id": "digit_warehouse",
+            "meaning": "Digit 在真实仓库搬运料箱",
+            "startFrame": 3244,
+            "endFrame": 3687
+          },
+          {
+            "id": "atlas_return",
+            "meaning": "回望 Atlas 翻转与落地",
+            "startFrame": 3738,
+            "endFrame": 3822
+          },
+          {
+            "id": "final_drop_and_recovery",
+            "meaning": "同一示意箱体中掉落、发现新位置并重新接近",
+            "startFrame": 3863,
+            "endFrame": 4065
+          },
+          {
+            "id": "final_open_question",
+            "meaning": "夹爪在箱内实际夹住目标，是否能够稳稳拿起保持开放",
+            "startFrame": 4065,
+            "endFrame": 4152
+          }
+        ]
+      }
+    }
+  ]
+}

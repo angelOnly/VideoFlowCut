@@ -1,0 +1,252 @@
+{
+  "work": {
+    "compositing": "opaque",
+    "name": "机器人进厂｜统一根作品｜全片续作",
+    "props": {
+      "projectId": "project_96c68eee-b5d8-4139-a6b0-b5b07bf71910",
+      "baseFrozenVersion": "dbb48606-3c33-4cf7-9965-6122cac18e2f_341d836a14b647fd714c54ff2db8f88a871b482adbb1cf73ea4c636a9564f1e9",
+      "handoffId": "7f2afcdf-16fa-44d6-af67-b393a3b1d2f6",
+      "sceneRanges": [
+        {
+          "sceneId": "scene_78a24868-d520-4709-bc36-bc462e696d1f",
+          "startFrame": 0,
+          "endFrame": 443
+        },
+        {
+          "sceneId": "scene_032a4144-35db-459e-812e-ab5867664dbe",
+          "startFrame": 443,
+          "endFrame": 1028
+        },
+        {
+          "sceneId": "scene_6af71051-1bef-4223-9e35-26d843921897",
+          "startFrame": 1028,
+          "endFrame": 1436
+        },
+        {
+          "sceneId": "scene_02ed1ea5-0b78-4d3c-b4dc-e155774e4250",
+          "startFrame": 1436,
+          "endFrame": 1758
+        },
+        {
+          "sceneId": "scene_9862347e-55bc-4554-9f2a-5ae4140d359f",
+          "startFrame": 1758,
+          "endFrame": 2227
+        },
+        {
+          "sceneId": "scene_aec65be7-38b0-4e59-b067-d8d45d2f75fe",
+          "startFrame": 2227,
+          "endFrame": 2631
+        },
+        {
+          "sceneId": "scene_5c16c775-99d6-4a37-a3a6-1278f830d1b4",
+          "startFrame": 2631,
+          "endFrame": 3244
+        },
+        {
+          "sceneId": "scene_352fa41b-a62b-4e8e-a971-37369fdac28b",
+          "startFrame": 3244,
+          "endFrame": 3738
+        },
+        {
+          "sceneId": "scene_04e7a6e2-e0e0-41e7-a086-77cd4d9ed619",
+          "startFrame": 3738,
+          "endFrame": 4152
+        }
+      ],
+      "fullRootRange": {
+        "startFrame": 0,
+        "endFrame": 4152
+      },
+      "scriptRevision": 1,
+      "speechTimingPrecision": "segment_exact",
+      "audioPolicy": "旁白、原声、音乐和音效由外层工程承载",
+      "captionPolicy": "普通字幕由外层工程承载，源码只包含观众需要且承担构图作用的短文字",
+      "resourceIdentity": {
+        "atlas": {
+          "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+          "sha256": "05977318ce3c64e9007ac25f41406b0d2972d10f16ee97fa9d19174af0278620",
+          "deliveredPath": "../素材/source/05977318ce3c64e9007a.mp4",
+          "sourceRangeMs": [
+            300,
+            4000
+          ],
+          "originalRangeMs": [
+            18800,
+            22500
+          ]
+        },
+        "canon": {
+          "assetId": "asset_50e90a33-38a6-417f-ba63-a87ffcccb8d6",
+          "sha256": "53eec685dbb52d76f8ed7576de0d4272937611466b9c89cab0a6aa416527476b",
+          "deliveredPath": "../素材/source/53eec685dbb52d76f8ed.mp4",
+          "sourceRangeMs": [
+            267,
+            4900
+          ],
+          "observedSourceRangeMs": [
+            267,
+            4917
+          ],
+          "originalRangeMs": [
+            44017,
+            48667
+          ]
+        },
+        "welding": {
+          "assetId": "asset_50da1997-5d8c-4684-99b3-c27ab71b5b02",
+          "sha256": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+          "deliveredPath": "../素材/source/773cba4e18d9bda0bdcb.mp4",
+          "sourceRangeMs": [
+            0,
+            8400
+          ]
+        },
+        "digit": {
+          "assetId": "asset_2afa1de8-781c-466f-876c-4966d707016e",
+          "sha256": "dea43d772e8f34a7d207700a9210167729cda56c816eaeeb7ec1cac04fb83b76",
+          "deliveredPath": "../素材/source/dea43d772e8f34a7d207.mp4",
+          "sourceRangeMs": [
+            233,
+            15000
+          ],
+          "originalRangeMs": [
+            86733,
+            101500
+          ]
+        },
+        "digitTailStill": {
+          "assetId": "asset_b5c192df-f0de-4ac2-8977-9f5c693e1719",
+          "sha256": "46668127e255aa35ef897d87faec5c858ae71fdd632719a7777f078801ccd44b",
+          "deliveredPath": "../素材/source/1794311422535-46668127e2.png",
+          "derivedFromAssetId": "asset_2afa1de8-781c-466f-876c-4966d707016e",
+          "sourceTimeMs": 14960,
+          "usage": "Digit 实拍结束后的如实尾帧停留，不生成或补画动作"
+        },
+        "narrationClock": {
+          "assetId": "asset_fcaced63-2db0-4bad-b8a0-95282b068a98",
+          "sha256": "2c07e38f35e899fc1d6e0aaf7adfee6271fe181e15d3b947e17057ed4cc49132",
+          "deliveredPath": "../素材/speech/speech-job_b2195cb6-22b5-4de4-a7cc-56f19fafeb64.wav",
+          "durationMs": 137410,
+          "usage": "仅作段级时钟与理解参考，不烧入视觉作品"
+        }
+      },
+      "referenceIdentity": {
+        "026-c02": {
+          "clipSha256": "2007751f6db31a9096490c31dc0a55723b3c74e5682a38918824fe755886b658",
+          "originalRangeMs": [
+            10000,
+            25000
+          ],
+          "usage": "只迁移数量到比例的组织关系，概率条件按本片重做"
+        },
+        "071-m12": {
+          "clipSha256": "eddd49e3cdf8e5f7fce65d609d11c82cc165973d35f7d5c60f5a64a2a8837890",
+          "originalRangeMs": [
+            24875,
+            33300
+          ],
+          "usage": "保留局部活动并拉远建立连续工作链"
+        },
+        "042-m10": {
+          "clipSha256": "06e57e0b1e502cb5d2f3c293ee0b0650e0730116beadc250d54c4d7a612c9fee",
+          "originalRangeMs": [
+            10250,
+            19817
+          ],
+          "usage": "保留对象锚点并接入新的过程反馈"
+        }
+      },
+      "productionScope": {
+        "ready": [
+          0,
+          4152
+        ],
+        "stage": "targeted-two-transition-revision"
+      },
+      "observationMethod": "本次针对 Revision 167 全片合成逐帧解码根帧 [2550,2656) 与 [3675,3751)，并用顺序联系表核对主体、亮度和交接；同时检查固定焊装源本地 8200ms、8360ms 与 Digit 源本地 14800ms、14960ms 的真实画面。Digit 停留图来自本地 14960ms 的原始解码帧，保持同一取景规则，不生成动作。修订后对两个交接的相邻根帧做同版有限复取；未进行全片连续声画听审。"
+    },
+    "videoBindings": {
+      "atlas_main": {
+        "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+        "sourceStartMs": 300,
+        "sourceEndMs": 4000,
+        "startFrame": 0,
+        "endFrame": 111,
+        "decodeScale": 1
+      },
+      "atlas_recall": {
+        "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+        "sourceStartMs": 300,
+        "sourceEndMs": 4000,
+        "startFrame": 84,
+        "endFrame": 195,
+        "decodeScale": 1
+      },
+      "canon_pick": {
+        "assetId": "asset_50e90a33-38a6-417f-ba63-a87ffcccb8d6",
+        "sourceStartMs": 267,
+        "sourceEndMs": 4900,
+        "startFrame": 282,
+        "endFrame": 421,
+        "decodeScale": 1
+      },
+      "weld_main": {
+        "assetId": "asset_50da1997-5d8c-4684-99b3-c27ab71b5b02",
+        "sourceStartMs": 0,
+        "sourceEndMs": 8400,
+        "startFrame": 2307,
+        "endFrame": 2559,
+        "decodeScale": 1
+      },
+      "digit_main": {
+        "assetId": "asset_2afa1de8-781c-466f-876c-4966d707016e",
+        "sourceStartMs": 233,
+        "sourceEndMs": 15000,
+        "startFrame": 3244,
+        "endFrame": 3687,
+        "decodeScale": 1
+      },
+      "atlas_return": {
+        "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+        "sourceStartMs": 1200,
+        "sourceEndMs": 4000,
+        "startFrame": 3738,
+        "endFrame": 3822,
+        "decodeScale": 1
+      }
+    },
+    "imageBindings": {
+      "digit_tail_still": "asset_b5c192df-f0de-4ac2-8977-9f5c693e1719"
+    },
+    "fontBindings": {
+      "title": "noto-sans-sc-bold",
+      "body": "noto-sans-sc-regular"
+    },
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "durationInFrames": 4152,
+    "creativeBrief": "在同一根时钟中修订首场并完成剩余八场。Atlas 与 Canon 保留为真实影像；箱中碰滑、重定位、重抓和转正为独立示意；工作链、概率、恢复与潜力按准确限定条件表达；固定焊装和 Digit 使用本轮真实素材。普通字幕、旁白、原声、音乐和音效均由外层工程承载。"
+  },
+  "readyRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 4152
+    }
+  ],
+  "changedRanges": [
+    {
+      "startFrame": 2548,
+      "endFrame": 2682,
+      "reason": "只修固定机械臂转入人形机会的交接：以大幅固定任务、环境与流程关系保持主体，并提前建立人的通道与人形机会，让跨 2631 帧持续可辨。"
+    },
+    {
+      "startFrame": 3680,
+      "endFrame": 3752,
+      "reason": "只修 Digit 转回 Atlas 的交接：将真实 Digit 本地 14960ms 尾帧如实停留至 Atlas 画面开始交叉接管，保留挑战信息且不虚构动作。"
+    }
+  ],
+  "sourceFile": "8fddba56a06bf102cc6eff0b8b0d7067c11458adbe26c412fdb20be7e53efbaf.html",
+  "authorSubmissionId": "bd8b6261b6b7b5e2fdf48c8ebec16e46e6b3da74b0bb0a6253d9668d266cc4c3",
+  "sourceSha256": "bdbbd38170b457d9a39896688d72b206982a399a17c28bc458c2d19ddb2389be"
+}

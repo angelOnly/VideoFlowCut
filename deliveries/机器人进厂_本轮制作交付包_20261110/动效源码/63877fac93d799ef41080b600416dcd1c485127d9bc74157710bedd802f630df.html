@@ -1,0 +1,1807 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>机器人进厂｜统一根作品</title>
+    <style>
+      :root {
+        --ink: #f4f7f8;
+        --muted: #a5b1b6;
+        --ground: #06090c;
+        --panel: #0e151a;
+        --panel-2: #151f25;
+        --line: #35464e;
+        --steel: #91a0a7;
+        --cyan: #30d5df;
+        --cyan-soft: #9cecf1;
+        --blue: #238cb8;
+        --blue-deep: #0e5979;
+        --amber: #efb74f;
+        --red: #ee6b5f;
+        --green: #78d69a;
+        --safe-x: 96px;
+        --safe-y: 72px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--ground);
+      }
+
+      body {
+        color: var(--ink);
+        font-family: var(--vfc-font-body, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+      }
+
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        isolation: isolate;
+        background: var(--ground);
+      }
+
+      .scene,
+      .layer,
+      .video-plate,
+      .shade,
+      .scene-grid {
+        position: absolute;
+        inset: 0;
+      }
+
+      .scene {
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 78% 12%, rgba(48, 213, 223, 0.08), transparent 32%),
+          linear-gradient(180deg, #0b1115 0%, #06090c 100%);
+      }
+
+      .video-plate {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        object-fit: cover;
+      }
+
+      .shade {
+        pointer-events: none;
+        background:
+          linear-gradient(90deg, rgba(3, 6, 8, 0.78) 0%, rgba(3, 6, 8, 0.12) 42%, rgba(3, 6, 8, 0.12) 70%, rgba(3, 6, 8, 0.58) 100%),
+          linear-gradient(180deg, rgba(3, 6, 8, 0.48) 0%, transparent 25%, transparent 70%, rgba(3, 6, 8, 0.82) 100%);
+      }
+
+      .scene-grid {
+        opacity: 0.22;
+        background-image:
+          linear-gradient(rgba(156, 236, 241, 0.1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(156, 236, 241, 0.1) 1px, transparent 1px);
+        background-size: 64px 64px;
+        mask-image: linear-gradient(180deg, transparent 6%, #000 36%, #000 92%, transparent 100%);
+      }
+
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        color: var(--cyan-soft);
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 1.5;
+        letter-spacing: 0.04em;
+      }
+
+      .eyebrow::before {
+        width: 42px;
+        height: 4px;
+        background: var(--cyan);
+        content: "";
+      }
+
+      .hero-copy,
+      .scene-copy {
+        position: absolute;
+        left: var(--safe-x);
+        top: var(--safe-y);
+        z-index: 8;
+        max-width: 860px;
+      }
+
+      .hero-copy h1,
+      .scene-copy h2 {
+        margin-top: 18px;
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .hero-copy h1 {
+        font-size: 104px;
+        line-height: 1.18;
+        text-shadow: 0 7px 28px rgba(0, 0, 0, 0.5);
+      }
+
+      .scene-copy h2 {
+        font-size: 64px;
+        line-height: 1.28;
+      }
+
+      .hero-copy p,
+      .scene-copy p {
+        margin-top: 20px;
+        max-width: 720px;
+        color: var(--muted);
+        font-size: 22px;
+        line-height: 1.7;
+      }
+
+      .scene-number {
+        position: absolute;
+        right: var(--safe-x);
+        top: 76px;
+        z-index: 8;
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        color: rgba(244, 247, 248, 0.64);
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      .scene-number b {
+        color: var(--cyan);
+        font-size: 44px;
+        line-height: 1;
+      }
+
+      .audience-note {
+        position: absolute;
+        z-index: 8;
+        color: rgba(244, 247, 248, 0.86);
+        font-size: 22px;
+        font-weight: 700;
+        line-height: 1.55;
+      }
+
+      .atlas-ribbon {
+        position: absolute;
+        left: 96px;
+        top: 356px;
+        z-index: 10;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 22px;
+        width: 760px;
+        padding: 24px 28px 22px;
+        background: rgba(5, 9, 12, 0.78);
+        border-top: 1px solid rgba(156, 236, 241, 0.34);
+        backdrop-filter: blur(12px);
+      }
+
+      .atlas-ribbon::before {
+        position: absolute;
+        left: 11%;
+        right: 11%;
+        top: 42px;
+        height: 3px;
+        background: rgba(48, 213, 223, 0.3);
+        content: "";
+      }
+
+      .motion-beat {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .motion-beat i {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border: 5px solid var(--cyan);
+        border-radius: 50%;
+        background: #071016;
+        box-shadow: 0 0 0 10px rgba(48, 213, 223, 0.12);
+        color: var(--cyan-soft);
+        font-size: 14px;
+        font-style: normal;
+      }
+
+      .motion-beat strong {
+        display: block;
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 28px;
+        line-height: 1.25;
+      }
+
+      .motion-beat span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      .work-map,
+      .bin-world,
+      .system-map,
+      .recovery-map,
+      .potential-map,
+      .final-map {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      svg text {
+        font-family: var(--vfc-font-body, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+      }
+
+      .svg-label {
+        fill: #d6dfe2;
+        font-size: 21px;
+        font-weight: 700;
+      }
+
+      .svg-note {
+        fill: #84969e;
+        font-size: 17px;
+      }
+
+      .reality-frame {
+        position: absolute;
+        inset: 44px;
+        z-index: 4;
+        border: 2px solid rgba(156, 236, 241, 0.46);
+        pointer-events: none;
+      }
+
+      .reality-frame::before,
+      .reality-frame::after {
+        position: absolute;
+        width: 92px;
+        height: 5px;
+        background: var(--cyan);
+        content: "";
+      }
+
+      .reality-frame::before {
+        left: -2px;
+        top: -2px;
+      }
+
+      .reality-frame::after {
+        right: -2px;
+        bottom: -2px;
+      }
+
+      .reality-label {
+        position: absolute;
+        left: var(--safe-x);
+        top: 76px;
+        z-index: 8;
+        padding-left: 22px;
+        border-left: 4px solid var(--cyan);
+      }
+
+      .reality-label span {
+        display: block;
+        color: var(--cyan-soft);
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      .reality-label strong {
+        display: block;
+        margin-top: 8px;
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 48px;
+        line-height: 1.3;
+      }
+
+      .scene-bridge-copy {
+        position: absolute;
+        left: var(--safe-x);
+        top: 84px;
+        z-index: 8;
+        max-width: 660px;
+        color: var(--cyan-soft);
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 46px;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      .process-rail {
+        position: absolute;
+        left: 96px;
+        top: 300px;
+        z-index: 10;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 7px;
+        width: 410px;
+      }
+
+      .process-step {
+        padding: 11px 18px;
+        background: rgba(6, 10, 13, 0.84);
+        border-left: 3px solid rgba(48, 213, 223, 0.22);
+        color: var(--muted);
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+      }
+
+      .process-step b {
+        display: inline-block;
+        width: 30px;
+        color: var(--cyan);
+        font-size: 15px;
+      }
+
+      .process-step.is-active {
+        color: var(--ink);
+        background: rgba(16, 38, 44, 0.96);
+        border-left-color: var(--cyan);
+      }
+
+      .sensor-callout {
+        position: absolute;
+        z-index: 9;
+        padding: 14px 20px;
+        border: 1px solid rgba(156, 236, 241, 0.55);
+        background: rgba(6, 12, 15, 0.88);
+        color: var(--cyan-soft);
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      #s2MovedCallout {
+        left: 570px;
+        top: 614px;
+      }
+
+      #s2GripCallout {
+        left: 720px;
+        top: 520px;
+      }
+
+      .system-title {
+        position: absolute;
+        left: 96px;
+        top: 76px;
+        z-index: 8;
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 66px;
+        font-weight: 700;
+        line-height: 1.25;
+      }
+
+      .system-title em {
+        color: var(--cyan);
+        font-style: normal;
+      }
+
+      .system-subtitle {
+        position: absolute;
+        left: 100px;
+        top: 176px;
+        z-index: 8;
+        color: var(--muted);
+        font-size: 22px;
+        line-height: 1.65;
+      }
+
+      .system-counter {
+        position: absolute;
+        right: 110px;
+        top: 84px;
+        z-index: 8;
+        color: var(--muted);
+        font-size: 18px;
+        font-weight: 700;
+        text-align: right;
+      }
+
+      .system-counter strong {
+        display: block;
+        color: var(--ink);
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 64px;
+        line-height: 1.15;
+      }
+
+      .probability-scene {
+        background:
+          radial-gradient(circle at 78% 55%, rgba(48, 213, 223, 0.12), transparent 32%),
+          linear-gradient(135deg, #071015 0%, #05080b 72%);
+      }
+
+      .prob-assumption {
+        position: absolute;
+        left: 96px;
+        top: 76px;
+        z-index: 8;
+      }
+
+      .prob-assumption span {
+        display: block;
+        color: var(--cyan-soft);
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      .prob-assumption strong {
+        display: block;
+        margin-top: 10px;
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 58px;
+        line-height: 1.3;
+      }
+
+      .prob-assumption small {
+        display: block;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 19px;
+      }
+
+      .prob-links {
+        position: absolute;
+        left: 96px;
+        top: 350px;
+        z-index: 6;
+        display: grid;
+        grid-template-columns: repeat(25, 22px);
+        gap: 13px 14px;
+        width: 890px;
+      }
+
+      .prob-link {
+        width: 22px;
+        height: 22px;
+        border: 3px solid rgba(156, 236, 241, 0.52);
+        border-radius: 50%;
+        background: rgba(48, 213, 223, 0.04);
+      }
+
+      .prob-link-label {
+        position: absolute;
+        left: 96px;
+        top: 525px;
+        z-index: 6;
+        color: var(--muted);
+        font-size: 18px;
+      }
+
+      .prob-formula {
+        position: absolute;
+        left: 96px;
+        bottom: 250px;
+        z-index: 7;
+        color: var(--ink);
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 44px;
+        font-weight: 700;
+      }
+
+      .prob-formula span {
+        color: var(--muted);
+        font-size: 26px;
+        font-weight: 400;
+      }
+
+      .prob-result {
+        position: absolute;
+        right: 126px;
+        top: 246px;
+        z-index: 7;
+        width: 570px;
+        height: 570px;
+      }
+
+      .prob-result svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+      }
+
+      .prob-result-copy {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        text-align: center;
+      }
+
+      .prob-result-copy strong {
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 104px;
+        line-height: 1;
+      }
+
+      .prob-result-copy span {
+        display: block;
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 20px;
+        line-height: 1.5;
+      }
+
+      .recovery-heading {
+        position: absolute;
+        left: 96px;
+        top: 74px;
+        z-index: 8;
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 62px;
+        font-weight: 700;
+        line-height: 1.3;
+      }
+
+      .recovery-heading em {
+        color: var(--cyan);
+        font-style: normal;
+      }
+
+      .recovery-legend {
+        position: absolute;
+        left: 100px;
+        top: 258px;
+        z-index: 8;
+        color: var(--muted);
+        font-size: 20px;
+      }
+
+      .recovery-outcome {
+        position: absolute;
+        z-index: 9;
+        width: 470px;
+        padding: 28px 30px 30px;
+        background: rgba(8, 14, 17, 0.9);
+        border-top: 3px solid currentColor;
+      }
+
+      .recovery-outcome strong {
+        display: block;
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 38px;
+      }
+
+      .recovery-outcome span {
+        display: block;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.6;
+      }
+
+      #autoOutcome {
+        left: 144px;
+        bottom: 220px;
+        color: var(--green);
+      }
+
+      #manualOutcome {
+        right: 144px;
+        bottom: 220px;
+        color: var(--amber);
+      }
+
+      .weld-blueprint {
+        display: grid;
+        place-items: center;
+        background:
+          linear-gradient(rgba(48, 213, 223, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(48, 213, 223, 0.08) 1px, transparent 1px),
+          #071015;
+        background-size: 60px 60px;
+      }
+
+      .weld-blueprint-inner {
+        width: 1500px;
+        height: 620px;
+        position: relative;
+      }
+
+      .weld-blueprint h2 {
+        position: absolute;
+        left: 0;
+        top: 10px;
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 68px;
+        line-height: 1.28;
+      }
+
+      .fixed-flow {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 80px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 90px;
+      }
+
+      .fixed-flow div {
+        position: relative;
+        padding-top: 34px;
+        border-top: 3px solid rgba(48, 213, 223, 0.5);
+      }
+
+      .fixed-flow div::after {
+        position: absolute;
+        right: -58px;
+        top: -13px;
+        width: 28px;
+        height: 28px;
+        border-top: 4px solid var(--cyan);
+        border-right: 4px solid var(--cyan);
+        transform: rotate(45deg);
+        content: "";
+      }
+
+      .fixed-flow div:last-child::after {
+        display: none;
+      }
+
+      .fixed-flow strong {
+        display: block;
+        font-size: 34px;
+      }
+
+      .fixed-flow span {
+        display: block;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 18px;
+      }
+
+      .weld-label {
+        position: absolute;
+        left: 96px;
+        top: 76px;
+        z-index: 8;
+        padding-left: 22px;
+        border-left: 4px solid var(--amber);
+      }
+
+      .weld-label span {
+        color: #f4d79c;
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .weld-label strong {
+        display: block;
+        margin-top: 8px;
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 48px;
+      }
+
+      .weld-value {
+        position: absolute;
+        right: 96px;
+        top: 84px;
+        z-index: 8;
+        color: rgba(244, 247, 248, 0.86);
+        font-size: 21px;
+        font-weight: 700;
+        line-height: 1.65;
+        text-align: right;
+      }
+
+      .weld-summary {
+        display: grid;
+        place-items: center;
+        background: #071015;
+      }
+
+      .weld-summary-inner {
+        width: 1500px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        background: rgba(48, 213, 223, 0.24);
+      }
+
+      .weld-summary-inner div {
+        min-height: 270px;
+        padding: 56px 42px;
+        background: #0c171c;
+      }
+
+      .weld-summary-inner strong {
+        display: block;
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 46px;
+      }
+
+      .weld-summary-inner span {
+        display: block;
+        margin-top: 20px;
+        color: var(--muted);
+        font-size: 20px;
+        line-height: 1.6;
+      }
+
+      .potential-heading {
+        position: absolute;
+        left: 96px;
+        top: 70px;
+        z-index: 8;
+        max-width: 920px;
+      }
+
+      .potential-heading h2 {
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 64px;
+        line-height: 1.28;
+      }
+
+      .potential-heading h2 em {
+        color: var(--cyan);
+        font-style: normal;
+      }
+
+      .potential-heading p {
+        margin-top: 16px;
+        color: var(--muted);
+        font-size: 20px;
+        line-height: 1.6;
+      }
+
+      .potential-ledger {
+        position: absolute;
+        left: 96px;
+        right: 96px;
+        top: 342px;
+        z-index: 9;
+        width: auto;
+        background: rgba(9, 15, 18, 0.92);
+        border-top: 3px solid var(--amber);
+      }
+
+      .potential-ledger h3 {
+        padding: 26px 30px 22px;
+        color: #f2d38f;
+        font-size: 24px;
+      }
+
+      .ledger-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border-top: 1px solid var(--line);
+      }
+
+      .ledger-cell {
+        min-height: 176px;
+        padding: 28px 30px;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .ledger-cell:last-child {
+        border-right: 0;
+      }
+
+      .ledger-cell strong {
+        display: block;
+        font-size: 30px;
+      }
+
+      .ledger-cell span {
+        display: block;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 17px;
+      }
+
+      .digit-scene {
+        background: #0a0c0e;
+      }
+
+      #digitPlate {
+        inset: auto;
+        left: -14%;
+        top: 0;
+        width: 128%;
+        height: 128%;
+      }
+
+      .digit-topline {
+        position: absolute;
+        left: 76px;
+        right: 76px;
+        top: 56px;
+        z-index: 9;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        pointer-events: none;
+      }
+
+      .digit-title {
+        padding: 18px 22px 20px;
+        background: rgba(5, 8, 10, 0.82);
+        border-top: 4px solid var(--cyan);
+      }
+
+      .digit-title span {
+        display: block;
+        color: var(--cyan-soft);
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      .digit-title strong {
+        display: block;
+        margin-top: 8px;
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 42px;
+      }
+
+      .digit-fact {
+        width: 520px;
+        padding: 20px 24px 22px;
+        background: rgba(5, 8, 10, 0.84);
+        text-align: right;
+      }
+
+      .digit-fact strong {
+        display: block;
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 70px;
+        line-height: 1;
+      }
+
+      .digit-fact span {
+        display: block;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.5;
+      }
+
+      .digit-challenge {
+        position: absolute;
+        left: 76px;
+        right: 76px;
+        top: 60px;
+        z-index: 10;
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: 1px;
+        background: rgba(48, 213, 223, 0.24);
+      }
+
+      .digit-challenge div {
+        padding: 26px 30px;
+        background: rgba(5, 8, 10, 0.88);
+      }
+
+      .digit-challenge strong {
+        display: block;
+        font-size: 30px;
+      }
+
+      .digit-challenge span {
+        display: block;
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 18px;
+      }
+
+      .final-atlas-copy {
+        position: absolute;
+        left: 96px;
+        top: 74px;
+        z-index: 9;
+        max-width: 720px;
+      }
+
+      .final-atlas-copy span {
+        display: block;
+        color: var(--cyan-soft);
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .final-atlas-copy strong {
+        display: block;
+        margin-top: 12px;
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 64px;
+        line-height: 1.25;
+      }
+
+      .final-copy {
+        position: absolute;
+        left: 96px;
+        top: 72px;
+        z-index: 9;
+        max-width: 780px;
+      }
+
+      .final-copy span {
+        color: var(--cyan-soft);
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .final-copy h2 {
+        margin-top: 14px;
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 64px;
+        line-height: 1.3;
+      }
+
+      .final-statement {
+        position: absolute;
+        right: 104px;
+        top: 120px;
+        z-index: 9;
+        width: 560px;
+        padding: 22px 26px 24px;
+        background: rgba(6, 12, 15, 0.86);
+        border-top: 3px solid var(--cyan);
+        color: var(--ink);
+        font-family: var(--vfc-font-title, "Noto Sans SC"), "Microsoft YaHei", sans-serif;
+        font-size: 42px;
+        font-weight: 700;
+        line-height: 1.35;
+        text-align: left;
+      }
+
+      .timeline-anchor {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      id="root"
+      data-composition-id="robot-explainer-root"
+      data-start="0"
+      data-duration="138.4"
+      data-width="1920"
+      data-height="1080"
+    >
+      <section id="scene1" class="scene">
+        <div id="s1Atlas" class="layer">
+          <img id="atlasPlate" class="video-plate" data-vfc-video-slot="atlas_main" alt="Atlas 后空翻真实素材" />
+          <img id="atlasRecallPlate" class="video-plate" data-vfc-video-slot="atlas_recall" alt="Atlas 起跳、翻转与落稳的正常速度回看" />
+          <div class="shade"></div>
+          <div class="hero-copy">
+            <div id="atlasKicker" class="eyebrow">先看一个完整动作</div>
+            <h1 id="atlasTitle">一个后空翻</h1>
+            <p id="atlasSub">动作很漂亮。真正的工作，从落地以后开始。</p>
+          </div>
+          <div class="scene-number"><b>01</b><span>能力展示<br />与长期工作</span></div>
+          <div id="atlasRibbon" class="atlas-ribbon">
+            <div id="beatTakeoff" class="motion-beat"><i>1</i><div><strong>起跳</strong><span>离开地面</span></div></div>
+            <div id="beatFlip" class="motion-beat"><i>2</i><div><strong>翻转</strong><span>控制姿态</span></div></div>
+            <div id="beatLand" class="motion-beat"><i>3</i><div><strong>落稳</strong><span>回到可控状态</span></div></div>
+          </div>
+        </div>
+
+        <div id="s1Work" class="layer">
+          <div class="scene-grid"></div>
+          <div class="scene-copy">
+            <div id="workEyebrow" class="eyebrow">给它一份工作</div>
+            <h2 id="workTitle">从箱里取件<br />装到机器上</h2>
+            <p id="workNote">听起来只是一步；箱里的每一种摆法，却都可能让这一步重新开始。</p>
+          </div>
+          <svg class="work-map" viewBox="0 0 1920 1080" aria-label="箱体、机械臂和机器工位关系示意">
+            <defs>
+              <linearGradient id="s1Floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#172128" /><stop offset="1" stop-color="#080d10" /></linearGradient>
+              <linearGradient id="s1Bin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#39a8d0" /><stop offset="1" stop-color="#176b92" /></linearGradient>
+            </defs>
+            <path d="M 80 820 L 1710 642 L 1900 1020 L 0 1020 Z" fill="url(#s1Floor)" stroke="#31434b" stroke-width="3" />
+            <g id="s1BinGroup">
+              <polygon points="220,640 650,598 714,820 276,886" fill="url(#s1Bin)" stroke="#9cecf1" stroke-width="6" />
+              <polyline points="220,640 294,718 700,676" fill="none" stroke="#b9f4f6" stroke-width="4" opacity="0.75" />
+              <g fill="#c7d1d5" stroke="#66777e" stroke-width="4">
+                <rect x="350" y="686" width="124" height="60" rx="5" transform="rotate(-8 412 716)" />
+                <rect x="486" y="720" width="124" height="60" rx="5" transform="rotate(12 548 750)" />
+                <rect x="326" y="778" width="124" height="60" rx="5" transform="rotate(5 388 808)" />
+              </g>
+              <text x="248" y="938" class="svg-label">料箱</text>
+            </g>
+            <g id="s1ArmGroup">
+              <rect x="790" y="772" width="176" height="118" fill="#26353c" stroke="#72838b" stroke-width="6" />
+              <circle cx="878" cy="754" r="56" fill="#34464d" stroke="#d6dfe2" stroke-width="8" />
+              <path d="M 878 754 L 830 556 L 674 456 L 574 526" fill="none" stroke="#dfe6e8" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="830" cy="556" r="40" fill="#34464d" stroke="#d6dfe2" stroke-width="8" />
+              <circle cx="674" cy="456" r="32" fill="#34464d" stroke="#d6dfe2" stroke-width="7" />
+              <rect x="538" y="506" width="76" height="60" fill="#30d5df" stroke="#ddfbfc" stroke-width="5" />
+              <line x1="552" y1="566" x2="552" y2="604" stroke="#ddfbfc" stroke-width="8" />
+              <line x1="600" y1="566" x2="600" y2="604" stroke="#ddfbfc" stroke-width="8" />
+              <text x="778" y="946" class="svg-label">机械臂</text>
+            </g>
+            <g id="s1FixtureGroup">
+              <path d="M 1280 570 L 1630 536 L 1704 800 L 1330 846 Z" fill="#263238" stroke="#76868e" stroke-width="6" />
+              <path d="M 1346 636 L 1532 616 L 1568 740 L 1374 766 Z" fill="#0d1418" stroke="#efb74f" stroke-width="5" />
+              <circle cx="1454" cy="690" r="46" fill="none" stroke="#efb74f" stroke-width="7" />
+              <text x="1340" y="918" class="svg-label">机器工位</text>
+            </g>
+            <path id="s1Route" d="M 566 650 C 778 466, 1040 478, 1438 654" fill="none" stroke="#30d5df" stroke-width="7" stroke-dasharray="18 18" stroke-linecap="round" />
+          </svg>
+        </div>
+
+        <div id="s1Canon" class="layer">
+          <img id="canonPlate" class="video-plate" data-vfc-video-slot="canon_pick" alt="蓝箱固定机械臂吸头取件真实素材" />
+          <div class="shade"></div>
+          <div class="reality-frame"></div>
+          <div id="canonAudience" class="audience-note" style="right: 96px; top: 92px; width: 420px; text-align: right;">箱里的每一件，都有自己的角度</div>
+        </div>
+
+        <div id="s1Bridge" class="layer">
+          <div class="scene-grid"></div>
+          <div id="bridgeCopy" class="scene-bridge-copy">碰一下，位置就变了</div>
+          <svg class="work-map" viewBox="0 0 1920 1080" aria-hidden="true">
+            <path d="M 0 852 L 1920 654 L 1920 1080 L 0 1080 Z" fill="#0a1115" />
+            <polygon points="250,548 900,500 982,854 318,936" fill="#176b92" stroke="#9cecf1" stroke-width="8" />
+            <polyline points="250,548 338,656 964,594" fill="none" stroke="#9cecf1" stroke-width="5" opacity="0.78" />
+            <g fill="#b8c4c9" stroke="#607279" stroke-width="5">
+              <rect x="424" y="624" width="150" height="74" rx="5" transform="rotate(-8 499 661)" />
+              <rect x="594" y="676" width="150" height="74" rx="5" transform="rotate(12 669 713)" />
+              <rect x="438" y="778" width="150" height="74" rx="5" transform="rotate(4 513 815)" />
+            </g>
+            <rect x="1230" y="738" width="190" height="142" fill="#26353c" stroke="#72838b" stroke-width="7" />
+            <circle cx="1325" cy="716" r="58" fill="#34464d" stroke="#d6dfe2" stroke-width="8" />
+            <path d="M 1325 716 L 1198 438 L 1016 604" fill="none" stroke="#dfe6e8" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" />
+            <rect x="974" y="574" width="84" height="66" fill="#30d5df" stroke="#ddfbfc" stroke-width="5" />
+            <circle cx="694" cy="748" r="86" fill="none" stroke="#30d5df" stroke-width="6" stroke-dasharray="14 14" />
+          </svg>
+        </div>
+      </section>
+
+      <section id="scene2" class="scene">
+        <div class="scene-grid"></div>
+        <div id="s2Copy" class="scene-copy">
+          <div class="eyebrow">同一个箱子</div>
+          <h2>位置变了，<br />下一步怎么办？</h2>
+        </div>
+        <div class="scene-number"><b>02</b><span>观察<br />判断<br />再动作</span></div>
+        <svg class="bin-world" viewBox="0 0 1920 1080" aria-label="箱内零件滑动、重新判断和抓取转正示意">
+          <defs>
+            <linearGradient id="s2Bin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2798c1" /><stop offset="1" stop-color="#0d5877" /></linearGradient>
+            <filter id="s2Glow"><feGaussianBlur stdDeviation="8" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+          </defs>
+          <path d="M 150 482 L 1210 432 L 1320 934 L 242 1000 Z" fill="url(#s2Bin)" stroke="#9cecf1" stroke-width="8" />
+          <path d="M 150 482 L 272 620 L 1288 564" fill="none" stroke="#baf5f7" stroke-width="6" opacity="0.72" />
+          <line x1="272" y1="620" x2="242" y2="1000" stroke="#0b4762" stroke-width="8" />
+          <g id="s2Clutter" fill="#aab7bc" stroke="#53656d" stroke-width="5">
+            <rect x="360" y="656" width="170" height="82" rx="6" transform="rotate(-8 445 697)" />
+            <rect x="502" y="604" width="170" height="82" rx="6" transform="rotate(13 587 645)" />
+            <rect x="406" y="792" width="170" height="82" rx="6" transform="rotate(6 491 833)" />
+            <rect x="984" y="692" width="170" height="82" rx="6" transform="rotate(-11 1069 733)" />
+          </g>
+          <g id="s2Buried" transform="translate(648 742) rotate(-18)">
+            <rect x="-102" y="-40" width="204" height="80" rx="7" fill="#69777d" stroke="#404f55" stroke-width="5" />
+            <line x1="-62" y1="0" x2="62" y2="0" stroke="#91a0a7" stroke-width="5" />
+          </g>
+          <g id="s2Target" transform="translate(862 752) rotate(12)">
+            <rect x="-104" y="-42" width="208" height="84" rx="7" fill="#f0c96b" stroke="#fff0b5" stroke-width="6" />
+            <circle cx="0" cy="0" r="18" fill="#0e151a" stroke="#fff0b5" stroke-width="5" />
+          </g>
+          <circle id="s2SenseRing" cx="862" cy="752" r="104" fill="none" stroke="#30d5df" stroke-width="7" stroke-dasharray="18 14" filter="url(#s2Glow)" />
+          <path id="s2Retarget" d="M 876 706 C 826 628, 748 642, 702 718" fill="none" stroke="#30d5df" stroke-width="7" stroke-dasharray="14 14" />
+          <g id="s2Robot">
+            <rect x="1236" y="318" width="168" height="126" rx="8" fill="#1f2b31" stroke="#71828a" stroke-width="7" />
+            <circle cx="1320" cy="446" r="66" fill="#26353c" stroke="#d6dfe2" stroke-width="9" />
+            <line id="s2Upper" x1="1320" y1="446" x2="1080" y2="610" stroke="#dfe6e8" stroke-width="42" stroke-linecap="round" />
+            <circle id="s2ElbowJoint" cx="1080" cy="610" r="48" fill="#34464d" stroke="#d6dfe2" stroke-width="8" />
+            <line id="s2Fore" x1="1080" y1="610" x2="862" y2="640" stroke="#dfe6e8" stroke-width="36" stroke-linecap="round" />
+            <circle id="s2WristJoint" cx="862" cy="640" r="40" fill="#34464d" stroke="#d6dfe2" stroke-width="7" />
+            <g id="s2Gripper" transform="translate(862 640)">
+              <rect x="-50" y="-34" width="100" height="68" fill="#30d5df" stroke="#ddfbfc" stroke-width="6" />
+              <path id="s2JawL" d="M -34 30 L -92 82 L -86 112" fill="none" stroke="#ddfbfc" stroke-width="11" stroke-linecap="round" />
+              <path id="s2JawR" d="M 34 30 L 92 82 L 86 112" fill="none" stroke="#ddfbfc" stroke-width="11" stroke-linecap="round" />
+            </g>
+          </g>
+        </svg>
+        <div id="s2MovedCallout" class="sensor-callout">位置变了</div>
+        <div id="s2GripCallout" class="sensor-callout">重新夹紧 · 提起 · 转正</div>
+        <div class="process-rail">
+          <div id="stepAcquire" class="process-step"><b>01</b>看准目标</div>
+          <div id="stepTouch" class="process-step"><b>02</b>接触并滑动</div>
+          <div id="stepHuman" class="process-step"><b>03</b>人会拨一下再继续</div>
+          <div id="stepDetect" class="process-step"><b>04</b>发现 · 判断新位置</div>
+          <div id="stepRetarget" class="process-step"><b>05</b>调整并重新抓</div>
+          <div id="stepGrip" class="process-step"><b>06</b>提起后转正</div>
+        </div>
+      </section>
+
+      <section id="scene3" class="scene">
+        <div class="scene-grid"></div>
+        <div id="s3Title" class="system-title">一次抓起，<em>不等于</em>连续工作</div>
+        <div id="s3Subtitle" class="system-subtitle">工位要把观察、判断、动作与下一道流程接在一起。</div>
+        <div id="s3Counter" class="system-counter"><span>从一个动作拉远</span><strong>一整条工作链</strong></div>
+        <svg class="system-map" viewBox="0 0 1920 1080" aria-label="从单一取件动作拉远到连续工作链">
+          <defs><linearGradient id="s3CellFill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#153443" /><stop offset="1" stop-color="#091116" /></linearGradient></defs>
+          <g id="s3Cell" style="transform-box: fill-box; transform-origin: center;">
+            <rect x="560" y="280" width="800" height="600" rx="24" fill="url(#s3CellFill)" stroke="#30d5df" stroke-width="6" />
+            <polygon points="650,570 1000,538 1046,770 686,814" fill="#176b92" stroke="#9cecf1" stroke-width="6" />
+            <g fill="#b8c4c9" stroke="#5a6d75" stroke-width="4"><rect x="730" y="628" width="120" height="58" transform="rotate(-7 790 657)" /><rect x="848" y="674" width="120" height="58" transform="rotate(10 908 703)" /></g>
+            <circle cx="1180" cy="486" r="48" fill="#34464d" stroke="#d6dfe2" stroke-width="7" />
+            <path d="M 1180 486 L 1080 608 L 984 666" fill="none" stroke="#dfe6e8" stroke-width="30" stroke-linecap="round" />
+            <rect x="948" y="640" width="72" height="58" fill="#30d5df" stroke="#ddfbfc" stroke-width="5" />
+            <circle id="s3CellPulse" cx="902" cy="704" r="82" fill="none" stroke="#30d5df" stroke-width="6" stroke-dasharray="14 14" />
+          </g>
+          <path id="s3MainLine" d="M 348 720 C 590 720, 728 720, 912 720 S 1350 720, 1690 720" fill="none" stroke="#30d5df" stroke-width="8" stroke-linecap="round" />
+          <g id="s3Stations">
+            <g class="s3-station" transform="translate(362 720)"><circle r="54" fill="#0f1c22" stroke="#30d5df" stroke-width="6" /><text x="0" y="92" text-anchor="middle" class="svg-label">看见</text></g>
+            <g class="s3-station" transform="translate(694 720)"><circle r="54" fill="#0f1c22" stroke="#30d5df" stroke-width="6" /><text x="0" y="92" text-anchor="middle" class="svg-label">判断</text></g>
+            <g class="s3-station" transform="translate(1026 720)"><circle r="54" fill="#0f1c22" stroke="#30d5df" stroke-width="6" /><text x="0" y="92" text-anchor="middle" class="svg-label">动手</text></g>
+            <g class="s3-station" transform="translate(1358 720)"><circle r="54" fill="#0f1c22" stroke="#30d5df" stroke-width="6" /><text x="0" y="92" text-anchor="middle" class="svg-label">交接</text></g>
+            <g class="s3-station" transform="translate(1690 720)"><circle r="54" fill="#0f1c22" stroke="#30d5df" stroke-width="6" /><text x="0" y="92" text-anchor="middle" class="svg-label">下一件</text></g>
+          </g>
+          <g id="s3Items" fill="#efb74f" stroke="#fff0b5" stroke-width="4">
+            <rect id="s3Item1" x="296" y="686" width="68" height="68" rx="8" />
+            <rect id="s3Item2" x="296" y="686" width="68" height="68" rx="8" />
+            <rect id="s3Item3" x="296" y="686" width="68" height="68" rx="8" />
+          </g>
+          <g id="s3Surprises">
+            <path d="M 796 548 L 834 614 L 758 614 Z" fill="#ee6b5f" /><text x="796" y="650" text-anchor="middle" class="svg-note">临时变化</text>
+            <path d="M 1458 548 L 1496 614 L 1420 614 Z" fill="#efb74f" /><text x="1458" y="650" text-anchor="middle" class="svg-note">新的情况</text>
+          </g>
+        </svg>
+      </section>
+
+      <section id="scene4" class="scene probability-scene">
+        <div class="prob-assumption">
+          <span>准确的假设条件</span>
+          <strong>每次成功率 99%<br />各次相互独立</strong>
+          <small>这是计算条件，不是实测成功率。</small>
+        </div>
+        <div id="probLinks" class="prob-links" aria-label="连续一百次均需成功的链条示意"></div>
+        <div class="prob-link-label">100 个环节全部保持完整，才算这一轮全程成功</div>
+        <div id="probFormula" class="prob-formula">0.99 × 0.99 × … × 0.99 <span>（100 次）</span></div>
+        <div class="prob-result">
+          <svg viewBox="0 0 570 570" aria-hidden="true">
+            <circle cx="285" cy="285" r="222" fill="none" stroke="rgba(156,236,241,.12)" stroke-width="54" />
+            <circle id="probArc" cx="285" cy="285" r="222" pathLength="100" fill="none" stroke="#30d5df" stroke-width="54" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100" />
+          </svg>
+          <div id="probResultCopy" class="prob-result-copy"><strong>36.6%</strong><span>连续 100 次<br />全部成功的概率</span></div>
+        </div>
+      </section>
+
+      <section id="scene5" class="scene">
+        <div class="scene-grid"></div>
+        <div id="s5Heading" class="recovery-heading">失误之后，差别在于<br /><em>能不能接住</em></div>
+        <div class="recovery-legend">同一工位的两种情景示意，不代表实测比例。</div>
+        <svg class="recovery-map" viewBox="0 0 1920 1080" aria-label="自动恢复与人工介入两种情景示意">
+          <g id="s5Cell">
+            <rect x="760" y="292" width="400" height="250" rx="18" fill="#0f1d23" stroke="#71828a" stroke-width="6" />
+            <polygon points="810,400 1014,382 1040,500 826,524" fill="#176b92" stroke="#9cecf1" stroke-width="5" />
+            <circle cx="1092" cy="350" r="36" fill="#34464d" stroke="#d6dfe2" stroke-width="6" />
+            <path d="M 1092 350 L 1006 430 L 948 454" fill="none" stroke="#dfe6e8" stroke-width="24" stroke-linecap="round" />
+            <rect x="922" y="436" width="54" height="42" fill="#30d5df" stroke="#ddfbfc" stroke-width="4" />
+            <g id="s5Fault"><circle cx="914" cy="466" r="58" fill="none" stroke="#ee6b5f" stroke-width="6" stroke-dasharray="12 10" /><path d="M 888 440 L 940 492 M 940 440 L 888 492" stroke="#ee6b5f" stroke-width="9" stroke-linecap="round" /></g>
+          </g>
+          <path id="s5AutoPath" d="M 882 548 C 662 628, 490 650, 376 782 C 512 832, 672 810, 804 704" fill="none" stroke="#78d69a" stroke-width="8" stroke-linecap="round" />
+          <path id="s5ManualPath" d="M 1038 548 C 1260 588, 1428 598, 1548 650" fill="none" stroke="#efb74f" stroke-width="8" stroke-linecap="round" />
+          <g id="s5AutoMarkers" fill="#78d69a"><circle cx="654" cy="646" r="16" /><circle cx="498" cy="720" r="16" /><circle cx="628" cy="804" r="16" /></g>
+          <g id="s5ManualMarkers" fill="#efb74f"><circle cx="1260" cy="588" r="16" /><circle cx="1412" cy="612" r="16" /><circle cx="1548" cy="650" r="16" /></g>
+          <g id="s5Downstream">
+            <line x1="1210" y1="572" x2="1740" y2="572" stroke="#5c6c73" stroke-width="8" />
+            <rect x="1230" y="530" width="96" height="84" fill="#233139" stroke="#71828a" stroke-width="5" />
+            <rect x="1412" y="530" width="96" height="84" fill="#233139" stroke="#71828a" stroke-width="5" />
+            <rect x="1594" y="530" width="96" height="84" fill="#233139" stroke="#71828a" stroke-width="5" />
+            <path id="s5StopBar" d="M 1370 508 L 1370 636 M 1388 508 L 1388 636" stroke="#ee6b5f" stroke-width="12" />
+            <text x="1450" y="684" text-anchor="middle" class="svg-note">后续工序可能等待</text>
+          </g>
+        </svg>
+        <div id="autoOutcome" class="recovery-outcome"><strong>自动恢复</strong><span>重新定位后回到流程，不需要人为接管。</span></div>
+        <div id="manualOutcome" class="recovery-outcome"><strong>暂停 · 人工处理</strong><span>有人介入时，后面的工序也可能被迫等待。</span></div>
+      </section>
+
+      <section id="scene6" class="scene">
+        <div id="s6Blueprint" class="layer weld-blueprint">
+          <div class="weld-blueprint-inner">
+            <h2>机械臂为什么<br />早就在工厂上班？</h2>
+            <div class="fixed-flow">
+              <div><strong>零件怎么放</strong><span>位置与夹具预先确定</span></div>
+              <div><strong>机器怎么接</strong><span>工位围绕任务布置</span></div>
+              <div><strong>下一步怎么走</strong><span>流程顺序可以设计</span></div>
+            </div>
+          </div>
+        </div>
+        <div id="s6Video" class="layer">
+          <img id="weldPlate" class="video-plate" data-vfc-video-slot="weld_main" alt="汽车焊装工位固定机械臂真实素材" />
+          <div class="shade"></div>
+          <div class="weld-label"><span>焊装工序</span><strong>固定机械臂协同作业</strong></div>
+          <div class="weld-value">围绕固定任务设计工位<br />让每一步都更可预期</div>
+        </div>
+        <div id="s6Summary" class="layer weld-summary">
+          <div class="weld-summary-inner">
+            <div><strong>固定任务</strong><span>动作边界更清楚</span></div>
+            <div><strong>固定环境</strong><span>位置关系更稳定</span></div>
+            <div><strong>固定流程</strong><span>上下游更容易协同</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="scene7" class="scene">
+        <div class="scene-grid"></div>
+        <div class="potential-heading">
+          <h2>更通用的身体，<br /><em>有机会</em>复用人的环境</h2>
+          <p>通道、工具和设备可能不用为每项工作全部重建；“有机会”不等于已经普遍实现。</p>
+        </div>
+        <svg class="potential-map" viewBox="0 0 1920 1080" aria-label="人形机器人在通道、工具和工位之间移动的潜力示意">
+          <path id="s7Route" d="M 180 780 C 420 780, 520 650, 690 650 S 970 520, 1140 520 S 1430 650, 1670 650" fill="none" stroke="#30d5df" stroke-width="8" stroke-dasharray="16 16" />
+          <g id="s7Zones">
+            <g class="s7-zone" transform="translate(270 690)"><rect x="-130" y="-110" width="260" height="220" fill="#0e1a20" stroke="#50646d" stroke-width="5" /><path d="M -62 110 L -62 -70 L 62 -70 L 62 110" fill="none" stroke="#9cecf1" stroke-width="6" /><text x="0" y="160" text-anchor="middle" class="svg-label">人的通道</text></g>
+            <g class="s7-zone" transform="translate(790 560)"><rect x="-130" y="-110" width="260" height="220" fill="#0e1a20" stroke="#50646d" stroke-width="5" /><path d="M -60 -18 L 58 -18 M 0 -76 L 0 44 M -72 70 L 72 70" stroke="#9cecf1" stroke-width="8" stroke-linecap="round" /><text x="0" y="160" text-anchor="middle" class="svg-label">人的工具</text></g>
+            <g class="s7-zone" transform="translate(1320 560)"><rect x="-130" y="-110" width="260" height="220" fill="#0e1a20" stroke="#50646d" stroke-width="5" /><circle cx="0" cy="-8" r="58" fill="none" stroke="#9cecf1" stroke-width="7" /><path d="M -82 80 L 82 80" stroke="#9cecf1" stroke-width="8" /><text x="0" y="160" text-anchor="middle" class="svg-label">现有设备</text></g>
+          </g>
+          <g id="s7Humanoid" transform="translate(168 668)">
+            <circle cx="0" cy="-108" r="34" fill="#dfe6e8" stroke="#30d5df" stroke-width="6" />
+            <rect x="-40" y="-68" width="80" height="104" rx="18" fill="#26353c" stroke="#dfe6e8" stroke-width="6" />
+            <line x1="-38" y1="-42" x2="-78" y2="32" stroke="#dfe6e8" stroke-width="16" stroke-linecap="round" />
+            <line x1="38" y1="-42" x2="78" y2="32" stroke="#dfe6e8" stroke-width="16" stroke-linecap="round" />
+            <line x1="-22" y1="34" x2="-38" y2="118" stroke="#dfe6e8" stroke-width="18" stroke-linecap="round" />
+            <line x1="22" y1="34" x2="38" y2="118" stroke="#dfe6e8" stroke-width="18" stroke-linecap="round" />
+          </g>
+          <g id="s7PotentialLabels">
+            <text x="510" y="850" class="svg-note">移动</text><text x="1000" y="620" class="svg-note">使用</text><text x="1540" y="730" class="svg-note">换岗</text>
+          </g>
+        </svg>
+        <div id="s7Ledger" class="potential-ledger">
+          <h3>真正进厂，还要把这些算进去</h3>
+          <div class="ledger-grid">
+            <div class="ledger-cell"><strong>训练</strong><span>换一份工作要重新教多久</span></div>
+            <div class="ledger-cell"><strong>续航</strong><span>一班工作能坚持多久</span></div>
+            <div class="ledger-cell"><strong>维护</strong><span>故障与保养怎么处理</span></div>
+            <div class="ledger-cell"><strong>停机</strong><span>等待与恢复会花多少成本</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="scene8" class="scene digit-scene">
+        <img id="digitPlate" class="video-plate" data-vfc-video-slot="digit_main" alt="Digit 在真实仓库搬运料箱素材" />
+        <div class="shade" style="background: linear-gradient(180deg, rgba(3,6,8,.66) 0%, transparent 28%, transparent 74%, rgba(3,6,8,.26) 100%);"></div>
+        <div id="digitTopline" class="digit-topline">
+          <div class="digit-title"><strong>Digit 搬运料箱</strong></div>
+          <div id="digitFact" class="digit-fact"><strong>&gt;100,000</strong><span>Agility 官方企业整体累计报告<br />不代表单台、零干预或成功率</span></div>
+        </div>
+        <div id="digitChallenge" class="digit-challenge">
+          <div><strong>已经成立</strong><span>在一些具体场景中完成真实工作</span></div>
+          <div><strong>接下来的挑战</strong><span>更多任务 · 更多意外 · 可接受的使用成本</span></div>
+        </div>
+      </section>
+
+      <section id="scene9" class="scene">
+        <div id="s9Atlas" class="layer">
+          <img id="atlasReturnPlate" class="video-plate" data-vfc-video-slot="atlas_return" alt="Atlas 后空翻落地呼应素材" />
+          <div class="shade"></div>
+          <div class="final-atlas-copy"><span>回到那次落地</span><strong>漂亮的一瞬间，<br />值得欣赏</strong></div>
+        </div>
+        <div id="s9Box" class="layer">
+          <div class="scene-grid"></div>
+          <div class="final-copy"><span>回到同一个箱子</span><h2>零件摆歪、掉落之后，<br />机器重新寻找它</h2></div>
+          <svg class="final-map" viewBox="0 0 1920 1080" aria-label="同一示意箱体中零件掉落、重新定位并尝试夹取">
+            <defs><linearGradient id="s9Bin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2798c1" /><stop offset="1" stop-color="#0d5877" /></linearGradient></defs>
+            <path d="M 170 520 L 1220 472 L 1320 956 L 254 1018 Z" fill="url(#s9Bin)" stroke="#9cecf1" stroke-width="8" />
+            <path d="M 170 520 L 288 654 L 1288 600" fill="none" stroke="#baf5f7" stroke-width="6" opacity="0.72" />
+            <g fill="#aab7bc" stroke="#53656d" stroke-width="5"><rect x="390" y="694" width="168" height="80" transform="rotate(-9 474 734)" /><rect x="546" y="782" width="168" height="80" transform="rotate(8 630 822)" /><rect x="996" y="720" width="168" height="80" transform="rotate(-10 1080 760)" /></g>
+            <g id="s9Target" transform="translate(820 760) rotate(18)"><rect x="-105" y="-42" width="210" height="84" rx="7" fill="#f0c96b" stroke="#fff0b5" stroke-width="6" /><circle r="18" fill="#0e151a" stroke="#fff0b5" stroke-width="5" /></g>
+            <circle id="s9Ring" cx="820" cy="760" r="108" fill="none" stroke="#30d5df" stroke-width="7" stroke-dasharray="18 14" />
+            <g id="s9Robot">
+              <rect x="1266" y="318" width="168" height="126" rx="8" fill="#1f2b31" stroke="#71828a" stroke-width="7" />
+              <circle cx="1350" cy="446" r="66" fill="#26353c" stroke="#d6dfe2" stroke-width="9" />
+              <line id="s9Upper" x1="1350" y1="446" x2="1080" y2="580" stroke="#dfe6e8" stroke-width="42" stroke-linecap="round" />
+              <circle id="s9ElbowJoint" cx="1080" cy="580" r="48" fill="#34464d" stroke="#d6dfe2" stroke-width="8" />
+              <line id="s9Fore" x1="1080" y1="580" x2="980" y2="570" stroke="#dfe6e8" stroke-width="36" stroke-linecap="round" />
+              <circle id="s9WristJoint" cx="980" cy="570" r="40" fill="#34464d" stroke="#d6dfe2" stroke-width="7" />
+              <g id="s9Gripper" transform="translate(980 570)">
+                <rect x="-50" y="-34" width="100" height="68" fill="#30d5df" stroke="#ddfbfc" stroke-width="6" />
+                <path id="s9JawL" d="M -34 30 L -115 84 L -105 116" fill="none" stroke="#ddfbfc" stroke-width="11" stroke-linecap="round" />
+                <path id="s9JawR" d="M 34 30 L 115 84 L 105 116" fill="none" stroke="#ddfbfc" stroke-width="11" stroke-linecap="round" />
+              </g>
+            </g>
+          </svg>
+          <div id="finalStatement" class="final-statement">还能不能稳稳地把下一件拿起来？</div>
+        </div>
+      </section>
+
+      <div id="timelineAnchor" class="timeline-anchor"></div>
+    </main>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+
+      const fps = 30;
+      const durationInFrames = 4152;
+      const fullDuration = durationInFrames / fps;
+      const at = (frame) => frame / fps;
+      const timeline = gsap.timeline({ paused: true });
+      const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
+      const mix = (from, to, amount) => from + (to - from) * amount;
+      const ease = (amount) => {
+        const value = clamp(amount);
+        return value * value * (3 - 2 * value);
+      };
+      const phase = (frame, start, end) => ease((frame - start) / (end - start));
+      const setVisible = (selector, opacity) => {
+        const element = typeof selector === "string" ? document.querySelector(selector) : selector;
+        if (!element) return;
+        const value = clamp(opacity);
+        element.style.opacity = value.toFixed(4);
+        element.style.visibility = value <= 0.001 ? "hidden" : "visible";
+      };
+
+      const probLinks = document.getElementById("probLinks");
+      for (let index = 0; index < 100; index += 1) {
+        const link = document.createElement("span");
+        link.className = "prob-link";
+        probLinks.appendChild(link);
+      }
+
+      gsap.set(["#scene2", "#scene3", "#scene4", "#scene5", "#scene6", "#scene7", "#scene8", "#scene9"], { autoAlpha: 0 });
+      gsap.set(["#s1Work", "#s1Canon", "#s1Bridge"], { autoAlpha: 0 });
+      gsap.set("#atlasRecallPlate", { autoAlpha: 0 });
+      gsap.set(["#atlasKicker", "#atlasTitle", "#atlasSub"], { autoAlpha: 0, y: 24 });
+      gsap.set("#atlasRibbon", { autoAlpha: 0, y: 30 });
+      gsap.set(["#beatTakeoff", "#beatFlip", "#beatLand"], { autoAlpha: 0, y: 18 });
+      gsap.set(["#workEyebrow", "#workTitle", "#workNote", "#s1BinGroup", "#s1ArmGroup", "#s1FixtureGroup"], { autoAlpha: 0, y: 24 });
+      gsap.set("#s1Route", { strokeDasharray: 1200, strokeDashoffset: 1200 });
+      gsap.set(["#canonAudience", "#bridgeCopy", "#s2Copy"], { autoAlpha: 0, y: 20 });
+
+      gsap.set(["#s2SenseRing", "#s2Retarget", "#s2MovedCallout", "#s2GripCallout"], { autoAlpha: 0 });
+      gsap.set("#s2Retarget", { strokeDasharray: 420, strokeDashoffset: 420 });
+      gsap.set(".process-step", { autoAlpha: 0 });
+
+      gsap.set(["#s3Title", "#s3Subtitle", "#s3Counter"], { autoAlpha: 0, y: 22 });
+      gsap.set("#s3MainLine", { strokeDasharray: 1600, strokeDashoffset: 1600 });
+      gsap.set([".s3-station", "#s3Surprises", "#s3Item1", "#s3Item2", "#s3Item3"], { autoAlpha: 0 });
+
+      gsap.set([".prob-assumption", ".prob-link-label", "#probFormula", "#probResultCopy"], { autoAlpha: 0, y: 20 });
+      gsap.set(".prob-link", { autoAlpha: 0, scale: 0.25 });
+
+      gsap.set(["#s5Heading", ".recovery-legend", "#autoOutcome", "#manualOutcome"], { autoAlpha: 0, y: 22 });
+      gsap.set(["#s5AutoPath", "#s5ManualPath"], { strokeDasharray: 900, strokeDashoffset: 900 });
+      gsap.set(["#s5AutoMarkers", "#s5ManualMarkers", "#s5Downstream", "#s5StopBar", "#s5Fault"], { autoAlpha: 0 });
+
+      gsap.set(["#s6Video", "#s6Summary"], { autoAlpha: 0 });
+      gsap.set([".weld-blueprint h2", ".fixed-flow div", ".weld-label", ".weld-value", ".weld-summary-inner div"], { autoAlpha: 0, y: 22 });
+
+      gsap.set([".potential-heading", ".s7-zone", "#s7Humanoid", "#s7PotentialLabels", "#s7Ledger"], { autoAlpha: 0 });
+      gsap.set("#s7Route", { strokeDasharray: 1700, strokeDashoffset: 1700 });
+      gsap.set(".ledger-cell", { autoAlpha: 0 });
+
+      gsap.set(["#digitTopline", "#digitFact", "#digitChallenge"], { autoAlpha: 0, y: 22 });
+      gsap.set("#s9Box", { autoAlpha: 0 });
+      gsap.set([".final-atlas-copy", ".final-copy", "#finalStatement", "#s9Ring"], { autoAlpha: 0 });
+
+      const setLine = (selector, start, end) => {
+        const line = document.querySelector(selector);
+        line.setAttribute("x1", start.x.toFixed(2));
+        line.setAttribute("y1", start.y.toFixed(2));
+        line.setAttribute("x2", end.x.toFixed(2));
+        line.setAttribute("y2", end.y.toFixed(2));
+      };
+
+      const setPoint = (selector, point) => {
+        const element = document.querySelector(selector);
+        element.setAttribute("cx", point.x.toFixed(2));
+        element.setAttribute("cy", point.y.toFixed(2));
+      };
+
+      const solveArm = (base, wrist, upperLength, foreLength) => {
+        const deltaX = wrist.x - base.x;
+        const deltaY = wrist.y - base.y;
+        const rawDistance = Math.hypot(deltaX, deltaY);
+        const distance = Math.min(upperLength + foreLength - 0.01, Math.max(Math.abs(upperLength - foreLength) + 0.01, rawDistance));
+        const direction = Math.atan2(deltaY, deltaX);
+        const offset = Math.acos(clamp((upperLength * upperLength + distance * distance - foreLength * foreLength) / (2 * upperLength * distance), -1, 1));
+        const shoulderAngle = direction + offset;
+        return {
+          x: base.x + Math.cos(shoulderAngle) * upperLength,
+          y: base.y + Math.sin(shoulderAngle) * upperLength,
+        };
+      };
+
+      const renderSceneOne = (frame) => {
+        const sceneOneOpacity = frame < 435 ? 1 : 1 - phase(frame, 435, 443);
+        const sceneTwoOpacity = frame < 435 ? 0 : frame < 443 ? phase(frame, 435, 443) : frame < 1028 ? 1 : 1 - phase(frame, 1028, 1042);
+        setVisible("#scene1", sceneOneOpacity);
+        setVisible("#scene2", sceneTwoOpacity);
+
+        const atlasOpacity = 1 - phase(frame, 192, 206);
+        const workOpacity = phase(frame, 184, 198) * (1 - phase(frame, 270, 282));
+        const canonOpacity = (frame >= 282 ? 1 : 0) * (1 - phase(frame, 410, 430));
+        const bridgeOpacity = phase(frame, 406, 420);
+        setVisible("#s1Atlas", atlasOpacity);
+        setVisible("#s1Work", workOpacity);
+        setVisible("#s1Canon", canonOpacity);
+        setVisible("#s1Bridge", bridgeOpacity);
+
+        const recallOpacity = phase(frame, 84, 94) * (1 - phase(frame, 191, 195));
+        setVisible("#atlasPlate", 1 - phase(frame, 84, 94));
+        setVisible("#atlasRecallPlate", recallOpacity);
+        const ribbonOpacity = phase(frame, 82, 92) * (1 - phase(frame, 188, 198));
+        setVisible("#atlasRibbon", ribbonOpacity);
+
+        const beats = [
+          { selector: "#beatTakeoff", start: 84, end: 111 },
+          { selector: "#beatFlip", start: 111, end: 146 },
+          { selector: "#beatLand", start: 146, end: 195 },
+        ];
+        beats.forEach(({ selector, start, end }) => {
+          const element = document.querySelector(selector);
+          const reached = frame >= start;
+          const active = frame >= start && frame < end;
+          element.style.opacity = reached ? (active ? "1" : "0.42") : "0.18";
+          element.querySelector("strong").style.color = active ? "var(--cyan-soft)" : "var(--ink)";
+        });
+      };
+
+      const renderSceneTwo = (frame) => {
+        const target = { x: 862, y: 752, rotation: 12 };
+        const wrist = { x: 1010, y: 566 };
+        let jawClose = 0;
+        let gripperRotation = 0;
+
+        if (frame >= 520 && frame < 559) {
+          const amount = phase(frame, 520, 559);
+          wrist.x = mix(1010, 862, amount);
+          wrist.y = mix(566, 646, amount);
+        } else if (frame >= 559 && frame < 784) {
+          wrist.x = 862;
+          wrist.y = 646;
+        } else if (frame >= 784 && frame < 826) {
+          const amount = phase(frame, 784, 826);
+          wrist.x = mix(862, 980, amount);
+          wrist.y = mix(646, 560, amount);
+        } else if (frame >= 826 && frame < 840) {
+          wrist.x = 980;
+          wrist.y = 560;
+        } else if (frame >= 840 && frame < 900) {
+          const amount = phase(frame, 840, 900);
+          wrist.x = mix(980, 730, amount);
+          wrist.y = mix(560, 690, amount);
+        } else if (frame >= 900) {
+          wrist.x = 730;
+          wrist.y = 690;
+        }
+
+        if (frame >= 602 && frame < 667) {
+          const amount = phase(frame, 602, 667);
+          target.x = mix(862, 730, amount);
+          target.y = mix(752, 786, amount);
+          target.rotation = mix(12, -18, amount);
+        } else if (frame >= 667) {
+          target.x = 730;
+          target.y = 786;
+          target.rotation = -18;
+        }
+
+        if (frame >= 840 && frame < 900) {
+          gripperRotation = mix(0, -18, phase(frame, 840, 900));
+        } else if (frame >= 900) {
+          gripperRotation = -18;
+        }
+
+        if (frame >= 890) jawClose = phase(frame, 890, 920);
+
+        if (frame >= 920 && frame < 970) {
+          const amount = phase(frame, 920, 970);
+          wrist.x = mix(730, 790, amount);
+          wrist.y = mix(690, 524, amount);
+          target.x = wrist.x;
+          target.y = wrist.y + 96;
+          target.rotation = -18;
+        } else if (frame >= 970) {
+          const amount = phase(frame, 970, 1010);
+          wrist.x = mix(790, 820, amount);
+          wrist.y = mix(524, 474, amount);
+          target.x = wrist.x;
+          target.y = wrist.y + 96;
+          target.rotation = mix(-18, 0, amount);
+          gripperRotation = target.rotation;
+          jawClose = 1;
+        }
+
+        const base = { x: 1320, y: 446 };
+        const elbow = solveArm(base, wrist, 350, 330);
+        setLine("#s2Upper", base, elbow);
+        setPoint("#s2ElbowJoint", elbow);
+        setLine("#s2Fore", elbow, wrist);
+        setPoint("#s2WristJoint", wrist);
+        document.querySelector("#s2Gripper").setAttribute("transform", `translate(${wrist.x.toFixed(2)} ${wrist.y.toFixed(2)}) rotate(${gripperRotation.toFixed(2)})`);
+        document.querySelector("#s2JawL").setAttribute("transform", `translate(${(jawClose * 18).toFixed(2)} 0)`);
+        document.querySelector("#s2JawR").setAttribute("transform", `translate(${(-jawClose * 18).toFixed(2)} 0)`);
+        document.querySelector("#s2Target").setAttribute("transform", `translate(${target.x.toFixed(2)} ${target.y.toFixed(2)}) rotate(${target.rotation.toFixed(2)})`);
+
+        const ring = document.querySelector("#s2SenseRing");
+        const ringAtMovedTarget = frame >= 667;
+        ring.setAttribute("cx", (ringAtMovedTarget ? 730 : 862).toString());
+        ring.setAttribute("cy", (ringAtMovedTarget ? 786 : 752).toString());
+        const ringOpacity = phase(frame, 784, 800) * (1 - phase(frame, 840, 858));
+        setVisible(ring, ringOpacity);
+        const retargetOpacity = phase(frame, 820, 838) * (1 - phase(frame, 900, 918));
+        const retarget = document.querySelector("#s2Retarget");
+        retarget.setAttribute("d", "M 862 752 C 826 682, 772 704, 730 786");
+        retarget.style.strokeDashoffset = (420 * (1 - phase(frame, 820, 884))).toFixed(2);
+        setVisible(retarget, retargetOpacity);
+        setVisible("#s2MovedCallout", phase(frame, 784, 800) * (1 - phase(frame, 840, 858)));
+        setVisible("#s2GripCallout", phase(frame, 920, 938) * (1 - phase(frame, 1010, 1024)));
+
+        const steps = [
+          { selector: "#stepAcquire", start: 458, end: 602 },
+          { selector: "#stepTouch", start: 602, end: 667 },
+          { selector: "#stepHuman", start: 667, end: 784 },
+          { selector: "#stepDetect", start: 784, end: 840 },
+          { selector: "#stepRetarget", start: 840, end: 920 },
+          { selector: "#stepGrip", start: 920, end: 1028 },
+        ];
+        steps.forEach(({ selector, start, end }) => {
+          const element = document.querySelector(selector);
+          setVisible(element, frame >= 458 ? 1 : 0);
+          element.classList.toggle("is-active", frame >= start && frame < end);
+        });
+      };
+
+      const renderSceneSeven = (frame) => {
+        const headingOpacity = phase(frame, 2642, 2656);
+        setVisible(".potential-heading", headingOpacity);
+
+        const opportunityOpacity = 1 - phase(frame, 2954, 2980);
+        const route = document.querySelector("#s7Route");
+        route.style.strokeDashoffset = (1700 * (1 - phase(frame, 2670, 2790))).toFixed(2);
+        route.style.opacity = opportunityOpacity.toFixed(4);
+
+        document.querySelectorAll(".s7-zone").forEach((zone, index) => {
+          const appear = phase(frame, 2680 + index * 28, 2692 + index * 28);
+          setVisible(zone, appear * opportunityOpacity);
+        });
+
+        const humanoid = document.querySelector("#s7Humanoid");
+        humanoid.style.transform = "none";
+        let humanoidPoint = { x: 168, y: 668 };
+        if (frame >= 2700 && frame < 2798) {
+          const amount = phase(frame, 2700, 2798);
+          humanoidPoint = { x: mix(168, 684, amount), y: mix(668, 538, amount) };
+        } else if (frame >= 2798 && frame < 2902) {
+          const amount = phase(frame, 2798, 2902);
+          humanoidPoint = { x: mix(684, 1208, amount), y: 538 };
+        } else if (frame >= 2902) {
+          const amount = phase(frame, 2902, 2954);
+          humanoidPoint = { x: mix(1208, 1660, amount), y: mix(538, 662, amount) };
+        }
+        humanoid.setAttribute("transform", `translate(${humanoidPoint.x.toFixed(2)} ${humanoidPoint.y.toFixed(2)})`);
+        setVisible(humanoid, phase(frame, 2672, 2682) * opportunityOpacity);
+        setVisible("#s7PotentialLabels", phase(frame, 2780, 2792) * opportunityOpacity);
+
+        const ledgerOpacity = phase(frame, 2968, 2986);
+        setVisible("#s7Ledger", ledgerOpacity);
+        document.querySelectorAll(".ledger-cell").forEach((cell, index) => {
+          cell.style.transform = "none";
+          setVisible(cell, phase(frame, 2990 + index * 18, 3002 + index * 18));
+        });
+      };
+
+      const renderSceneNine = (frame) => {
+        const boxOpacity = phase(frame, 3814, 3838);
+        setVisible("#s9Atlas", 1 - boxOpacity);
+        setVisible("#s9Box", boxOpacity);
+        setVisible(".final-atlas-copy", phase(frame, 3746, 3760) * (1 - phase(frame, 3804, 3824)));
+        setVisible(".final-copy", phase(frame, 3838, 3858));
+
+        const target = { x: 820, y: 760, rotation: 18 };
+        const wrist = { x: 980, y: 570 };
+        let gripperRotation = 0;
+        let jawClose = 0;
+
+        if (frame >= 3863 && frame < 3908) {
+          const amount = phase(frame, 3863, 3908);
+          wrist.x = mix(980, 820, amount);
+          wrist.y = mix(570, 656, amount);
+        } else if (frame >= 3908 && frame < 3950) {
+          const amount = phase(frame, 3908, 3950);
+          wrist.x = mix(820, 810, amount);
+          wrist.y = mix(656, 672, amount);
+          target.x = mix(820, 720, amount);
+          target.y = mix(760, 812, amount);
+          target.rotation = mix(18, -16, amount);
+        } else if (frame >= 3950 && frame < 3995) {
+          const amount = phase(frame, 3950, 3995);
+          wrist.x = mix(810, 950, amount);
+          wrist.y = mix(672, 570, amount);
+          target.x = 720;
+          target.y = 812;
+          target.rotation = -16;
+        } else if (frame >= 3995 && frame < 4065) {
+          const amount = phase(frame, 3995, 4065);
+          wrist.x = mix(950, 720, amount);
+          wrist.y = mix(570, 708, amount);
+          target.x = 720;
+          target.y = 812;
+          target.rotation = -16;
+          gripperRotation = mix(0, -16, amount);
+        } else if (frame >= 4065) {
+          wrist.x = 720;
+          wrist.y = 708;
+          target.x = 720;
+          target.y = 812;
+          target.rotation = -16;
+          gripperRotation = -16;
+          jawClose = phase(frame, 4065, 4095);
+        }
+
+        const base = { x: 1350, y: 446 };
+        const elbow = solveArm(base, wrist, 360, 350);
+        setLine("#s9Upper", base, elbow);
+        setPoint("#s9ElbowJoint", elbow);
+        setLine("#s9Fore", elbow, wrist);
+        setPoint("#s9WristJoint", wrist);
+        document.querySelector("#s9Gripper").setAttribute("transform", `translate(${wrist.x.toFixed(2)} ${wrist.y.toFixed(2)}) rotate(${gripperRotation.toFixed(2)})`);
+        document.querySelector("#s9JawL").setAttribute("transform", `translate(${(jawClose * 16).toFixed(2)} 0)`);
+        document.querySelector("#s9JawR").setAttribute("transform", `translate(${(-jawClose * 16).toFixed(2)} 0)`);
+        document.querySelector("#s9Target").setAttribute("transform", `translate(${target.x.toFixed(2)} ${target.y.toFixed(2)}) rotate(${target.rotation.toFixed(2)})`);
+
+        const ring = document.querySelector("#s9Ring");
+        ring.setAttribute("cx", target.x.toFixed(2));
+        ring.setAttribute("cy", target.y.toFixed(2));
+        setVisible(ring, phase(frame, 3950, 3970) * (1 - phase(frame, 4048, 4070)));
+        setVisible("#finalStatement", phase(frame, 4090, 4110));
+      };
+
+      const renderDeterministic = (frame) => {
+        renderSceneOne(frame);
+        renderSceneTwo(frame);
+        renderSceneSeven(frame);
+        renderSceneNine(frame);
+      };
+
+      timeline.to("#timelineAnchor", { x: 1, duration: fullDuration, ease: "none" }, 0);
+
+      timeline.fromTo("#atlasPlate", { autoAlpha: 0, scale: 1.025 }, { autoAlpha: 1, scale: 1, duration: at(10), ease: "power2.out" }, 0);
+      timeline.to("#atlasKicker", { autoAlpha: 1, y: 0, duration: at(12), ease: "power2.out" }, at(5));
+      timeline.to("#atlasTitle", { autoAlpha: 1, y: 0, duration: at(16), ease: "power3.out" }, at(10));
+      timeline.to("#atlasSub", { autoAlpha: 1, y: 0, duration: at(14), ease: "power2.out" }, at(24));
+      timeline.to(["#atlasKicker", "#atlasTitle", "#atlasSub"], { autoAlpha: 0, y: -18, duration: at(12), ease: "power2.in" }, at(68));
+      timeline.fromTo("#atlasRecallPlate", { autoAlpha: 0, scale: 1.015 }, { autoAlpha: 1, scale: 1, duration: at(10), ease: "power2.out", immediateRender: false }, at(84));
+      timeline.fromTo("#atlasPlate", { autoAlpha: 1 }, { autoAlpha: 0, duration: at(10), ease: "power2.in", immediateRender: false }, at(84));
+      timeline.to("#atlasRibbon", { autoAlpha: 1, y: 0, duration: at(10), ease: "power2.out" }, at(82));
+      timeline.to("#atlasRibbon", { autoAlpha: 0, y: -20, duration: at(12), ease: "power2.in" }, at(188));
+
+      timeline.to("#workEyebrow", { autoAlpha: 1, y: 0, duration: at(10), ease: "power2.out" }, at(186));
+      timeline.to("#workTitle", { autoAlpha: 1, y: 0, duration: at(14), ease: "power3.out" }, at(194));
+      timeline.to("#workNote", { autoAlpha: 1, y: 0, duration: at(12), ease: "power2.out" }, at(214));
+      timeline.to("#s1BinGroup", { autoAlpha: 1, y: 0, duration: at(14), ease: "power2.out" }, at(182));
+      timeline.to("#s1ArmGroup", { autoAlpha: 1, y: 0, duration: at(14), ease: "power2.out" }, at(188));
+      timeline.to("#s1FixtureGroup", { autoAlpha: 1, y: 0, duration: at(14), ease: "power2.out" }, at(198));
+      timeline.to("#s1Route", { strokeDashoffset: 0, duration: at(34), ease: "power2.inOut" }, at(218));
+
+      timeline.fromTo("#canonPlate", { scale: 1.025 }, { scale: 1, duration: at(24), ease: "power2.out" }, at(282));
+      timeline.fromTo("#canonAudience", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: at(12), ease: "power2.out", immediateRender: false }, at(322));
+      timeline.to("#canonAudience", { autoAlpha: 0, y: -12, duration: at(8), ease: "power2.in" }, at(404));
+      timeline.fromTo("#bridgeCopy", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: at(8), ease: "power2.out", immediateRender: false }, at(410));
+      timeline.fromTo("#bridgeCopy", { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -12, duration: at(8), ease: "power2.in", immediateRender: false }, at(427));
+
+      timeline.fromTo("#s2Copy", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: at(12), ease: "power2.out", immediateRender: false }, at(447));
+
+      timeline.to("#scene3", { autoAlpha: 1, duration: at(12), ease: "power2.out" }, at(1028));
+      timeline.to("#scene2", { autoAlpha: 0, duration: at(14), ease: "power2.in" }, at(1028));
+      timeline.to(["#s3Title", "#s3Subtitle", "#s3Counter"], { autoAlpha: 1, y: 0, duration: at(14), stagger: at(7), ease: "power2.out" }, at(1038));
+      timeline.to("#s3Cell", { scale: 0.54, x: -500, y: 54, duration: at(78), ease: "power3.inOut" }, at(1090));
+      timeline.to("#s3MainLine", { strokeDashoffset: 0, duration: at(100), ease: "power2.inOut" }, at(1136));
+      timeline.to(".s3-station", { autoAlpha: 1, duration: at(10), stagger: at(17), ease: "power2.out" }, at(1160));
+      timeline.to("#s3Item1", { autoAlpha: 1, duration: at(8) }, at(1168));
+      timeline.to("#s3Item1", { x: 1328, duration: at(150), ease: "none" }, at(1176));
+      timeline.to("#s3Item2", { autoAlpha: 1, duration: at(8) }, at(1220));
+      timeline.to("#s3Item2", { x: 996, duration: at(118), ease: "none" }, at(1228));
+      timeline.to("#s3Item3", { autoAlpha: 1, duration: at(8) }, at(1270));
+      timeline.to("#s3Item3", { x: 664, duration: at(86), ease: "none" }, at(1278));
+      timeline.to("#s3Surprises", { autoAlpha: 1, duration: at(14), ease: "power2.out" }, at(1260));
+      timeline.to("#s3CellPulse", { rotation: 180, duration: at(120), ease: "none" }, at(1160));
+
+      timeline.to("#scene4", { autoAlpha: 1, duration: at(12), ease: "power2.out" }, at(1426));
+      timeline.to("#scene3", { autoAlpha: 0, duration: at(14), ease: "power2.in" }, at(1436));
+      timeline.to(".prob-assumption", { autoAlpha: 1, y: 0, duration: at(14), ease: "power2.out" }, at(1440));
+      timeline.to(".prob-link", { autoAlpha: 1, scale: 1, duration: at(5), stagger: at(0.55), ease: "back.out(1.6)" }, at(1484));
+      timeline.to(".prob-link-label", { autoAlpha: 1, y: 0, duration: at(12), ease: "power2.out" }, at(1542));
+      timeline.to("#probFormula", { autoAlpha: 1, y: 0, duration: at(14), ease: "power2.out" }, at(1578));
+      timeline.to("#probArc", { strokeDashoffset: 63.4, duration: at(104), ease: "power2.inOut" }, at(1602));
+      timeline.to("#probResultCopy", { autoAlpha: 1, y: 0, duration: at(16), ease: "power2.out" }, at(1660));
+
+      timeline.to("#scene5", { autoAlpha: 1, duration: at(12), ease: "power2.out" }, at(1748));
+      timeline.to("#scene4", { autoAlpha: 0, duration: at(14), ease: "power2.in" }, at(1758));
+      timeline.to(["#s5Heading", ".recovery-legend"], { autoAlpha: 1, y: 0, duration: at(14), stagger: at(8), ease: "power2.out" }, at(1768));
+      timeline.to("#s5Fault", { autoAlpha: 1, duration: at(12), ease: "power2.out" }, at(1826));
+      timeline.to("#s5AutoPath", { strokeDashoffset: 0, duration: at(66), ease: "power2.inOut" }, at(1848));
+      timeline.to("#s5AutoMarkers", { autoAlpha: 1, duration: at(12), ease: "power2.out" }, at(1880));
+      timeline.to("#autoOutcome", { autoAlpha: 1, y: 0, duration: at(14), ease: "power2.out" }, at(1916));
+      timeline.to("#s5ManualPath", { strokeDashoffset: 0, duration: at(66), ease: "power2.inOut" }, at(1972));
+      timeline.to("#s5ManualMarkers", { autoAlpha: 1, duration: at(12), ease: "power2.out" }, at(2004));
+      timeline.to("#manualOutcome", { autoAlpha: 1, y: 0, duration: at(14), ease: "power2.out" }, at(2040));
+      timeline.to("#s5Downstream", { autoAlpha: 1, duration: at(14), ease: "power2.out" }, at(2068));
+      timeline.to("#s5StopBar", { autoAlpha: 1, duration: at(8), ease: "power2.out" }, at(2106));
+
+      timeline.to("#scene6", { autoAlpha: 1, duration: at(12), ease: "power2.out" }, at(2217));
+      timeline.to("#scene5", { autoAlpha: 0, duration: at(14), ease: "power2.in" }, at(2227));
+      timeline.to(".weld-blueprint h2", { autoAlpha: 1, y: 0, duration: at(14), ease: "power2.out" }, at(2234));
+      timeline.to(".fixed-flow div", { autoAlpha: 1, y: 0, duration: at(12), stagger: at(12), ease: "power2.out" }, at(2250));
+      timeline.to("#s6Video", { autoAlpha: 1, duration: at(14), ease: "power2.out" }, at(2298));
+      timeline.to("#s6Blueprint", { autoAlpha: 0, duration: at(16), ease: "power2.in" }, at(2304));
+      timeline.to([".weld-label", ".weld-value"], { autoAlpha: 1, y: 0, duration: at(14), stagger: at(10), ease: "power2.out" }, at(2314));
+      timeline.to("#s6Summary", { autoAlpha: 1, duration: at(18), ease: "power2.out" }, at(2528));
+      timeline.to("#s6Video", { autoAlpha: 0, duration: at(20), ease: "power2.in" }, at(2538));
+      timeline.to(".weld-summary-inner div", { autoAlpha: 1, y: 0, duration: at(12), stagger: at(10), ease: "power2.out" }, at(2540));
+
+      timeline.to("#scene7", { autoAlpha: 1, duration: at(12), ease: "power2.out" }, at(2621));
+      timeline.to("#scene6", { autoAlpha: 0, duration: at(14), ease: "power2.in" }, at(2631));
+      timeline.to("#scene8", { autoAlpha: 1, duration: at(12), ease: "power2.out" }, at(3234));
+      timeline.to("#scene7", { autoAlpha: 0, duration: at(14), ease: "power2.in" }, at(3244));
+      timeline.to("#digitTopline", { autoAlpha: 1, y: 0, duration: at(14), ease: "power2.out" }, at(3252));
+      timeline.to("#digitFact", { autoAlpha: 1, y: 0, duration: at(16), ease: "power2.out" }, at(3418));
+      timeline.to("#digitTopline", { autoAlpha: 0, y: -18, duration: at(12), ease: "power2.in" }, at(3576));
+      timeline.to("#digitChallenge", { autoAlpha: 1, y: 0, duration: at(16), ease: "power2.out" }, at(3588));
+
+      timeline.to("#scene9", { autoAlpha: 1, duration: at(12), ease: "power2.out" }, at(3728));
+      timeline.to("#scene8", { autoAlpha: 0, duration: at(14), ease: "power2.in" }, at(3738));
+      const deterministicFrame = { value: 0 };
+      timeline.to(deterministicFrame, {
+        value: durationInFrames - 1,
+        duration: fullDuration,
+        ease: "none",
+        onUpdate: () => renderDeterministic(Math.round(deterministicFrame.value)),
+      }, 0);
+      renderDeterministic(0);
+
+      window.getVfcMotionEvents = () => [
+        { id: "atlas_full_action", meaning: "Atlas 完整起跳、翻转、落稳", startFrame: 0, endFrame: 111 },
+        { id: "atlas_action_recall", meaning: "按起跳、翻转、落稳顺序回顾完整动作", startFrame: 84, endFrame: 195 },
+        { id: "work_hypothesis", meaning: "从能力展示转入取件工作问题", startFrame: 184, endFrame: 282 },
+        { id: "canon_reference", meaning: "蓝箱固定机械臂吸头真实取件参照", startFrame: 282, endFrame: 421 },
+        { id: "contact_slide", meaning: "示意零件被碰后沿箱内滑动", startFrame: 602, endFrame: 667 },
+        { id: "human_comparison", meaning: "旁白先说明人会拨一下、换个角度继续拿", startFrame: 667, endFrame: 784 },
+        { id: "detect_and_retarget", meaning: "机器人发现位置变化、判断新位置并调整", startFrame: 784, endFrame: 920 },
+        { id: "regrip_lift_rotate", meaning: "重新夹紧，提起后发现反向并转正", startFrame: 920, endFrame: 1028 },
+        { id: "pull_back_to_system", meaning: "保留原工位并拉远建立连续工作链", startFrame: 1028, endFrame: 1436 },
+        { id: "independent_probability", meaning: "每次 99% 且相互独立的假设", startFrame: 1436, endFrame: 1634 },
+        { id: "hundred_run_result", meaning: "0.99 的 100 次方约等于 36.6%", startFrame: 1602, endFrame: 1758 },
+        { id: "automatic_recovery", meaning: "小失误自动恢复并返回流程", startFrame: 1848, endFrame: 1972 },
+        { id: "manual_intervention", meaning: "暂停、人工处理与下游等待", startFrame: 1972, endFrame: 2227 },
+        { id: "fixed_workflow_intro", meaning: "固定任务、环境和流程关系建立", startFrame: 2227, endFrame: 2307 },
+        { id: "welding_reality", meaning: "真实固定焊装机械臂工位", startFrame: 2307, endFrame: 2559 },
+        { id: "humanoid_reuse_potential", meaning: "通道、工具与设备复用的潜力示意", startFrame: 2631, endFrame: 2970 },
+        { id: "factory_cost_ledger", meaning: "训练、续航、维护与停机成本", startFrame: 2970, endFrame: 3244 },
+        { id: "digit_warehouse", meaning: "Digit 在真实仓库搬运料箱", startFrame: 3244, endFrame: 3687 },
+        { id: "atlas_return", meaning: "回望 Atlas 翻转与落地", startFrame: 3738, endFrame: 3822 },
+        { id: "final_drop_and_recovery", meaning: "同一示意箱体中掉落、发现新位置并重新接近", startFrame: 3863, endFrame: 4065 },
+        { id: "final_open_question", meaning: "夹爪在箱内实际夹住目标，是否能够稳稳拿起保持开放", startFrame: 4065, endFrame: 4152 }
+      ];
+
+      window.__timelines["robot-explainer-root"] = timeline;
+    </script>
+  </body>
+</html>

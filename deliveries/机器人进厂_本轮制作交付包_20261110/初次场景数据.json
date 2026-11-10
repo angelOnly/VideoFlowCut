@@ -1,0 +1,68 @@
+{
+  "projectId": "project_96c68eee-b5d8-4139-a6b0-b5b07bf71910",
+  "revision": 98,
+  "scenes": [
+    {
+      "sceneId": "scene_78a24868-d520-4709-bc36-bc462e696d1f",
+      "status": "ready",
+      "resourceIds": [
+        "motion-request",
+        "actual-narration"
+      ],
+      "visualRoles": [
+        {
+          "role": "真实后空翻",
+          "referenceFunction": "建立机器人能力与片头观看兴趣",
+          "usage": "保留起跳、旋转、落稳，与后续假设工作清晰区分。",
+          "assets": [
+            {
+              "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+              "deliveredPath": "素材/source/05977318ce3c64e9007a.mp4",
+              "sourceHash": "05977318ce3c64e9007ac25f41406b0d2972d10f16ee97fa9d19174af0278620",
+              "sourceRanges": [
+                {
+                  "startMs": 300,
+                  "endMs": 4000,
+                  "timeCoordinates": "asset",
+                  "originalStartMs": 18800,
+                  "originalEndMs": 22500
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "role": "箱中真实取件参照",
+          "referenceFunction": "引入待解释的实际工位",
+          "usage": "展示固定机械臂吸头与堆叠件，不伪称人形手或滑脱重抓。",
+          "assets": [
+            {
+              "assetId": "asset_50e90a33-38a6-417f-ba63-a87ffcccb8d6",
+              "deliveredPath": "素材/source/53eec685dbb52d76f8ed.mp4",
+              "sourceHash": "53eec685dbb52d76f8ed7576de0d4272937611466b9c89cab0a6aa416527476b",
+              "sourceRanges": [
+                {
+                  "startMs": 267,
+                  "endMs": 4917,
+                  "timeCoordinates": "asset",
+                  "originalStartMs": 44017,
+                  "originalEndMs": 48667
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "process": "完整呈现 Atlas 后空翻与落地，自嘲旁白后进入工作假设；真实 Canon 料箱画面先建立物件，再交由下一场的原创示意接管。全片九场以统一根作品连续制作，后续场面的资料与真实时钟随完整简报提供。",
+      "preserve": [
+        "用户全文与横屏无出镜要求",
+        "真实实拍和假设示意的边界",
+        "声音和普通字幕由外层承载"
+      ],
+      "adapt": [
+        "根据真实素材动作和实际旁白段界决定运镜、排版和转场",
+        "后续九场采用同一根时钟，分别绑定真实 Scene"
+      ]
+    }
+  ]
+}

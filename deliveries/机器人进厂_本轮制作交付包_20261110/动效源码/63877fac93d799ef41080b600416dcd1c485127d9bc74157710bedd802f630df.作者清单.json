@@ -1,0 +1,241 @@
+{
+  "work": {
+    "compositing": "opaque",
+    "name": "机器人进厂｜统一根作品｜全片续作",
+    "props": {
+      "projectId": "project_96c68eee-b5d8-4139-a6b0-b5b07bf71910",
+      "baseFrozenVersion": "f8f6bb8b-6431-4dc5-a1c5-87a768b7a1f3_edcef79a0c0fca3578d0393caf7c4e365dcf3e6733849b7dbcc21e04c072e45c",
+      "handoffId": "7f2afcdf-16fa-44d6-af67-b393a3b1d2f6",
+      "sceneRanges": [
+        {
+          "sceneId": "scene_78a24868-d520-4709-bc36-bc462e696d1f",
+          "startFrame": 0,
+          "endFrame": 443
+        },
+        {
+          "sceneId": "scene_032a4144-35db-459e-812e-ab5867664dbe",
+          "startFrame": 443,
+          "endFrame": 1028
+        },
+        {
+          "sceneId": "scene_6af71051-1bef-4223-9e35-26d843921897",
+          "startFrame": 1028,
+          "endFrame": 1436
+        },
+        {
+          "sceneId": "scene_02ed1ea5-0b78-4d3c-b4dc-e155774e4250",
+          "startFrame": 1436,
+          "endFrame": 1758
+        },
+        {
+          "sceneId": "scene_9862347e-55bc-4554-9f2a-5ae4140d359f",
+          "startFrame": 1758,
+          "endFrame": 2227
+        },
+        {
+          "sceneId": "scene_aec65be7-38b0-4e59-b067-d8d45d2f75fe",
+          "startFrame": 2227,
+          "endFrame": 2631
+        },
+        {
+          "sceneId": "scene_5c16c775-99d6-4a37-a3a6-1278f830d1b4",
+          "startFrame": 2631,
+          "endFrame": 3244
+        },
+        {
+          "sceneId": "scene_352fa41b-a62b-4e8e-a971-37369fdac28b",
+          "startFrame": 3244,
+          "endFrame": 3738
+        },
+        {
+          "sceneId": "scene_04e7a6e2-e0e0-41e7-a086-77cd4d9ed619",
+          "startFrame": 3738,
+          "endFrame": 4152
+        }
+      ],
+      "fullRootRange": {
+        "startFrame": 0,
+        "endFrame": 4152
+      },
+      "scriptRevision": 1,
+      "speechTimingPrecision": "segment_exact",
+      "audioPolicy": "旁白、原声、音乐和音效由外层工程承载",
+      "captionPolicy": "普通字幕由外层工程承载，源码只包含观众需要且承担构图作用的短文字",
+      "resourceIdentity": {
+        "atlas": {
+          "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+          "sha256": "05977318ce3c64e9007ac25f41406b0d2972d10f16ee97fa9d19174af0278620",
+          "deliveredPath": "../素材/source/05977318ce3c64e9007a.mp4",
+          "sourceRangeMs": [
+            300,
+            4000
+          ],
+          "originalRangeMs": [
+            18800,
+            22500
+          ]
+        },
+        "canon": {
+          "assetId": "asset_50e90a33-38a6-417f-ba63-a87ffcccb8d6",
+          "sha256": "53eec685dbb52d76f8ed7576de0d4272937611466b9c89cab0a6aa416527476b",
+          "deliveredPath": "../素材/source/53eec685dbb52d76f8ed.mp4",
+          "sourceRangeMs": [
+            267,
+            4900
+          ],
+          "observedSourceRangeMs": [
+            267,
+            4917
+          ],
+          "originalRangeMs": [
+            44017,
+            48667
+          ]
+        },
+        "welding": {
+          "assetId": "asset_50da1997-5d8c-4684-99b3-c27ab71b5b02",
+          "sha256": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+          "deliveredPath": "../素材/source/773cba4e18d9bda0bdcb.mp4",
+          "sourceRangeMs": [
+            0,
+            8400
+          ]
+        },
+        "digit": {
+          "assetId": "asset_2afa1de8-781c-466f-876c-4966d707016e",
+          "sha256": "dea43d772e8f34a7d207700a9210167729cda56c816eaeeb7ec1cac04fb83b76",
+          "deliveredPath": "../素材/source/dea43d772e8f34a7d207.mp4",
+          "sourceRangeMs": [
+            233,
+            15000
+          ],
+          "originalRangeMs": [
+            86733,
+            101500
+          ]
+        },
+        "narrationClock": {
+          "assetId": "asset_fcaced63-2db0-4bad-b8a0-95282b068a98",
+          "sha256": "2c07e38f35e899fc1d6e0aaf7adfee6271fe181e15d3b947e17057ed4cc49132",
+          "deliveredPath": "../素材/speech/speech-job_b2195cb6-22b5-4de4-a7cc-56f19fafeb64.wav",
+          "durationMs": 137410,
+          "usage": "仅作段级时钟与理解参考，不烧入视觉作品"
+        }
+      },
+      "referenceIdentity": {
+        "026-c02": {
+          "clipSha256": "2007751f6db31a9096490c31dc0a55723b3c74e5682a38918824fe755886b658",
+          "originalRangeMs": [
+            10000,
+            25000
+          ],
+          "usage": "只迁移数量到比例的组织关系，概率条件按本片重做"
+        },
+        "071-m12": {
+          "clipSha256": "eddd49e3cdf8e5f7fce65d609d11c82cc165973d35f7d5c60f5a64a2a8837890",
+          "originalRangeMs": [
+            24875,
+            33300
+          ],
+          "usage": "保留局部活动并拉远建立连续工作链"
+        },
+        "042-m10": {
+          "clipSha256": "06e57e0b1e502cb5d2f3c293ee0b0650e0730116beadc250d54c4d7a612c9fee",
+          "originalRangeMs": [
+            10250,
+            19817
+          ],
+          "usage": "保留对象锚点并接入新的过程反馈"
+        }
+      },
+      "productionScope": {
+        "ready": [
+          0,
+          4152
+        ],
+        "stage": "targeted-two-fix-revision"
+      },
+      "observationMethod": "沿用本片四个真实素材与三段参考的全流解码和 5fps 联系表观察；本次另核对用户提供的根帧 190、3360，并对 Atlas 本地 [3200,4000)ms 与 Digit 本地 [3600,4850)ms 生成密集顺序联系表检查相邻变化。未在本制作环境中连续原速播放或进行完整声画听审。"
+    },
+    "videoBindings": {
+      "atlas_main": {
+        "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+        "sourceStartMs": 300,
+        "sourceEndMs": 4000,
+        "startFrame": 0,
+        "endFrame": 111,
+        "decodeScale": 1
+      },
+      "atlas_recall": {
+        "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+        "sourceStartMs": 300,
+        "sourceEndMs": 4000,
+        "startFrame": 84,
+        "endFrame": 195,
+        "decodeScale": 1
+      },
+      "canon_pick": {
+        "assetId": "asset_50e90a33-38a6-417f-ba63-a87ffcccb8d6",
+        "sourceStartMs": 267,
+        "sourceEndMs": 4900,
+        "startFrame": 282,
+        "endFrame": 421,
+        "decodeScale": 1
+      },
+      "weld_main": {
+        "assetId": "asset_50da1997-5d8c-4684-99b3-c27ab71b5b02",
+        "sourceStartMs": 0,
+        "sourceEndMs": 8400,
+        "startFrame": 2307,
+        "endFrame": 2559,
+        "decodeScale": 1
+      },
+      "digit_main": {
+        "assetId": "asset_2afa1de8-781c-466f-876c-4966d707016e",
+        "sourceStartMs": 233,
+        "sourceEndMs": 15000,
+        "startFrame": 3244,
+        "endFrame": 3687,
+        "decodeScale": 1
+      },
+      "atlas_return": {
+        "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+        "sourceStartMs": 1200,
+        "sourceEndMs": 4000,
+        "startFrame": 3738,
+        "endFrame": 3822,
+        "decodeScale": 1
+      }
+    },
+    "fontBindings": {
+      "title": "noto-sans-sc-bold",
+      "body": "noto-sans-sc-regular"
+    },
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "durationInFrames": 4152,
+    "creativeBrief": "在同一根时钟中修订首场并完成剩余八场。Atlas 与 Canon 保留为真实影像；箱中碰滑、重定位、重抓和转正为独立示意；工作链、概率、恢复与潜力按准确限定条件表达；固定焊装和 Digit 使用本轮真实素材。普通字幕、旁白、原声、音乐和音效均由外层工程承载。"
+  },
+  "readyRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 4152
+    }
+  ],
+  "changedRanges": [
+    {
+      "startFrame": 180,
+      "endFrame": 205,
+      "reason": "修复 Atlas 动作回顾到工作构想的连续交接：让落稳画面持续可见，并提前建立料箱、机械臂与工作标题，消除 190 帧主体消失造成的黑闪。"
+    },
+    {
+      "startFrame": 3244,
+      "endFrame": 3687,
+      "reason": "重取景 Digit 真实仓库段，完整裁掉原片底部地点字残片，同时保留机器人、料箱和搬运动作，并维持企业整体累计报告的事实限定。"
+    }
+  ],
+  "sourceFile": "63877fac93d799ef41080b600416dcd1c485127d9bc74157710bedd802f630df.html",
+  "authorSubmissionId": "e7f6c2d42ab13e7176920f63bac8b9c1aab20f813515cde62465e86ff955d16d",
+  "sourceSha256": "ff79c9afc41b1a2eeccbd0c74de931d5bb2eb48a59e55ab522a8d7f50138a279"
+}

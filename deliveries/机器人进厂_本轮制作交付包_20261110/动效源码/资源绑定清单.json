@@ -1,0 +1,294 @@
+{
+  "revision": 180,
+  "works": [
+    {
+      "workId": "motion_work_24929375f861971cfe589962f26fa3fd8c7fbf25720038f9b2cdf634769af586",
+      "source": "24929375f861971cfe589962f26fa3fd8c7fbf25720038f9b2cdf634769af586.html",
+      "manifest": "24929375f861971cfe589962f26fa3fd8c7fbf25720038f9b2cdf634769af586.作者清单.json",
+      "videoBindings": [
+        {
+          "slot": "atlas_main",
+          "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+          "hash": "05977318ce3c64e9007ac25f41406b0d2972d10f16ee97fa9d19174af0278620",
+          "sourceStartMs": 300,
+          "sourceEndMs": 4000,
+          "startFrame": 0,
+          "endFrame": 111,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/05977318ce3c64e9007a.mp4"
+        },
+        {
+          "slot": "atlas_recall",
+          "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+          "hash": "05977318ce3c64e9007ac25f41406b0d2972d10f16ee97fa9d19174af0278620",
+          "sourceStartMs": 300,
+          "sourceEndMs": 4000,
+          "startFrame": 84,
+          "endFrame": 195,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/05977318ce3c64e9007a.mp4"
+        },
+        {
+          "slot": "canon_pick",
+          "assetId": "asset_50e90a33-38a6-417f-ba63-a87ffcccb8d6",
+          "hash": "53eec685dbb52d76f8ed7576de0d4272937611466b9c89cab0a6aa416527476b",
+          "sourceStartMs": 267,
+          "sourceEndMs": 4900,
+          "startFrame": 282,
+          "endFrame": 421,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/53eec685dbb52d76f8ed.mp4"
+        },
+        {
+          "slot": "weld_main",
+          "assetId": "asset_50da1997-5d8c-4684-99b3-c27ab71b5b02",
+          "hash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+          "sourceStartMs": 0,
+          "sourceEndMs": 8400,
+          "startFrame": 2307,
+          "endFrame": 2559,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/773cba4e18d9bda0bdcb.mp4"
+        },
+        {
+          "slot": "digit_main",
+          "assetId": "asset_2afa1de8-781c-466f-876c-4966d707016e",
+          "hash": "dea43d772e8f34a7d207700a9210167729cda56c816eaeeb7ec1cac04fb83b76",
+          "sourceStartMs": 233,
+          "sourceEndMs": 15000,
+          "startFrame": 3244,
+          "endFrame": 3687,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/dea43d772e8f34a7d207.mp4"
+        },
+        {
+          "slot": "atlas_return",
+          "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+          "hash": "05977318ce3c64e9007ac25f41406b0d2972d10f16ee97fa9d19174af0278620",
+          "sourceStartMs": 1200,
+          "sourceEndMs": 4000,
+          "startFrame": 3738,
+          "endFrame": 3822,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/05977318ce3c64e9007a.mp4"
+        }
+      ],
+      "imageBindings": [],
+      "fontBindings": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal",
+          "packagePath": "../素材/字体/NotoSansSC-Regular.otf"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal",
+          "packagePath": "../素材/字体/NotoSansSC-Bold.otf"
+        }
+      ]
+    },
+    {
+      "workId": "motion_work_63877fac93d799ef41080b600416dcd1c485127d9bc74157710bedd802f630df",
+      "source": "63877fac93d799ef41080b600416dcd1c485127d9bc74157710bedd802f630df.html",
+      "manifest": "63877fac93d799ef41080b600416dcd1c485127d9bc74157710bedd802f630df.作者清单.json",
+      "videoBindings": [
+        {
+          "slot": "atlas_main",
+          "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+          "hash": "05977318ce3c64e9007ac25f41406b0d2972d10f16ee97fa9d19174af0278620",
+          "sourceStartMs": 300,
+          "sourceEndMs": 4000,
+          "startFrame": 0,
+          "endFrame": 111,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/05977318ce3c64e9007a.mp4"
+        },
+        {
+          "slot": "atlas_recall",
+          "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+          "hash": "05977318ce3c64e9007ac25f41406b0d2972d10f16ee97fa9d19174af0278620",
+          "sourceStartMs": 300,
+          "sourceEndMs": 4000,
+          "startFrame": 84,
+          "endFrame": 195,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/05977318ce3c64e9007a.mp4"
+        },
+        {
+          "slot": "canon_pick",
+          "assetId": "asset_50e90a33-38a6-417f-ba63-a87ffcccb8d6",
+          "hash": "53eec685dbb52d76f8ed7576de0d4272937611466b9c89cab0a6aa416527476b",
+          "sourceStartMs": 267,
+          "sourceEndMs": 4900,
+          "startFrame": 282,
+          "endFrame": 421,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/53eec685dbb52d76f8ed.mp4"
+        },
+        {
+          "slot": "weld_main",
+          "assetId": "asset_50da1997-5d8c-4684-99b3-c27ab71b5b02",
+          "hash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+          "sourceStartMs": 0,
+          "sourceEndMs": 8400,
+          "startFrame": 2307,
+          "endFrame": 2559,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/773cba4e18d9bda0bdcb.mp4"
+        },
+        {
+          "slot": "digit_main",
+          "assetId": "asset_2afa1de8-781c-466f-876c-4966d707016e",
+          "hash": "dea43d772e8f34a7d207700a9210167729cda56c816eaeeb7ec1cac04fb83b76",
+          "sourceStartMs": 233,
+          "sourceEndMs": 15000,
+          "startFrame": 3244,
+          "endFrame": 3687,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/dea43d772e8f34a7d207.mp4"
+        },
+        {
+          "slot": "atlas_return",
+          "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+          "hash": "05977318ce3c64e9007ac25f41406b0d2972d10f16ee97fa9d19174af0278620",
+          "sourceStartMs": 1200,
+          "sourceEndMs": 4000,
+          "startFrame": 3738,
+          "endFrame": 3822,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/05977318ce3c64e9007a.mp4"
+        }
+      ],
+      "imageBindings": [],
+      "fontBindings": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal",
+          "packagePath": "../素材/字体/NotoSansSC-Regular.otf"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal",
+          "packagePath": "../素材/字体/NotoSansSC-Bold.otf"
+        }
+      ]
+    },
+    {
+      "workId": "motion_work_8fddba56a06bf102cc6eff0b8b0d7067c11458adbe26c412fdb20be7e53efbaf",
+      "source": "8fddba56a06bf102cc6eff0b8b0d7067c11458adbe26c412fdb20be7e53efbaf.html",
+      "manifest": "8fddba56a06bf102cc6eff0b8b0d7067c11458adbe26c412fdb20be7e53efbaf.作者清单.json",
+      "videoBindings": [
+        {
+          "slot": "atlas_main",
+          "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+          "hash": "05977318ce3c64e9007ac25f41406b0d2972d10f16ee97fa9d19174af0278620",
+          "sourceStartMs": 300,
+          "sourceEndMs": 4000,
+          "startFrame": 0,
+          "endFrame": 111,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/05977318ce3c64e9007a.mp4"
+        },
+        {
+          "slot": "atlas_recall",
+          "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+          "hash": "05977318ce3c64e9007ac25f41406b0d2972d10f16ee97fa9d19174af0278620",
+          "sourceStartMs": 300,
+          "sourceEndMs": 4000,
+          "startFrame": 84,
+          "endFrame": 195,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/05977318ce3c64e9007a.mp4"
+        },
+        {
+          "slot": "canon_pick",
+          "assetId": "asset_50e90a33-38a6-417f-ba63-a87ffcccb8d6",
+          "hash": "53eec685dbb52d76f8ed7576de0d4272937611466b9c89cab0a6aa416527476b",
+          "sourceStartMs": 267,
+          "sourceEndMs": 4900,
+          "startFrame": 282,
+          "endFrame": 421,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/53eec685dbb52d76f8ed.mp4"
+        },
+        {
+          "slot": "weld_main",
+          "assetId": "asset_50da1997-5d8c-4684-99b3-c27ab71b5b02",
+          "hash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+          "sourceStartMs": 0,
+          "sourceEndMs": 8400,
+          "startFrame": 2307,
+          "endFrame": 2559,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/773cba4e18d9bda0bdcb.mp4"
+        },
+        {
+          "slot": "digit_main",
+          "assetId": "asset_2afa1de8-781c-466f-876c-4966d707016e",
+          "hash": "dea43d772e8f34a7d207700a9210167729cda56c816eaeeb7ec1cac04fb83b76",
+          "sourceStartMs": 233,
+          "sourceEndMs": 15000,
+          "startFrame": 3244,
+          "endFrame": 3687,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/dea43d772e8f34a7d207.mp4"
+        },
+        {
+          "slot": "atlas_return",
+          "assetId": "asset_ad86c8e5-8286-4f35-92fc-488ffaae6feb",
+          "hash": "05977318ce3c64e9007ac25f41406b0d2972d10f16ee97fa9d19174af0278620",
+          "sourceStartMs": 1200,
+          "sourceEndMs": 4000,
+          "startFrame": 3738,
+          "endFrame": 3822,
+          "decodeScale": 1,
+          "packagePath": "../素材/source/05977318ce3c64e9007a.mp4"
+        }
+      ],
+      "imageBindings": [
+        {
+          "slot": "digit_tail_still",
+          "assetId": "asset_b5c192df-f0de-4ac2-8977-9f5c693e1719",
+          "hash": "46668127e255aa35ef897d87faec5c858ae71fdd632719a7777f078801ccd44b",
+          "packagePath": "../素材/source/1794311422535-46668127e2.png"
+        }
+      ],
+      "fontBindings": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal",
+          "packagePath": "../素材/字体/NotoSansSC-Regular.otf"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal",
+          "packagePath": "../素材/字体/NotoSansSC-Bold.otf"
+        }
+      ]
+    }
+  ]
+}
