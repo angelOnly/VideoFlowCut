@@ -163,6 +163,7 @@ try {
   assert.equal(tools.tools.some(tool => ["adopt_media_source", "bind_media_adoption"].includes(tool.name)), false, "发行 MCP 不再公开素材采用资格入口");
   assert.ok(tools.tools.some(tool => tool.name === "search_motion_mechanisms"), "发行 MCP 必须公开混合机制检索");
   assert.ok(tools.tools.some(tool => tool.name === "analyze_motion_reference"), "发行 MCP 必须公开按需原片理解");
+  assert.ok(tools.tools.some(tool => tool.name === "prepare_motion_handoff"), "发行 MCP 必须公开场面制作交付");
   const motionTool = tools.tools.find((tool) => tool.name === "register_motion_work");
   assert.ok(tools.tools.find(tool => tool.name === "submit_motion_work").inputSchema.required.includes("work_id"));
   assert.ok(motionTool.inputSchema.properties.work.properties.imageBindings, "内部图片直接使用真实素材绑定");
@@ -266,6 +267,23 @@ try {
   let projectState = await call("read_project", { project_id: project.snapshot.project.id });
   const importedAsset = projectState.snapshot.assets.find((asset) => asset.status === "ready" && asset.kind === "video");
   assert.ok(importedAsset?.id, "媒体分析完成后必须存在可播放视频 Asset");
+  const handoffBrief = join(workspaceRoot, "handoff-brief.md"), handoffTiming = join(workspaceRoot, "handoff-timing.md");
+  await writeFile(handoffBrief, "真实素材作为视觉主体，连续形成画面。", "utf8");
+  await writeFile(handoffTiming, "素材前一秒用于隔离交付验证。", "utf8");
+  const creative = await call("search_creative_cases", { ids: ["002-c01"] });
+  const handoff = await call("prepare_motion_handoff", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
+    brief_path: handoffBrief, timing_plan_path: handoffTiming, selected_scene_ids: ["ready"],
+    assets: [{ id: importedAsset.id, purpose: "已导入的测试视频" }],
+    creative: [{ id: "002-c01", sourceSha256: creative.source_sha256, usage: "adopted", purpose: "隔离验证参考资料" }], scenes: [
+      { sceneId: "ready", status: "ready", visualRoles: [{ role: "主体", referenceFunction: "运动过程", usage: "展示视频主体",
+        assetIds: [importedAsset.id], sourceRanges: [{ startMs: 0, endMs: 1000 }] }],
+        references: [{ kind: "creative", id: "002-c01", sourceSha256: creative.source_sha256, startMs: 0, endMs: 9800, purpose: "参考画面组织" }],
+        process: "主体出现并连续运动", preserve: ["真实动作"], adapt: ["排版"] },
+      { sceneId: "pending", status: "pending", visualRoles: [{ role: "主体", referenceFunction: "待定", usage: "待补材", assetIds: ["missing"] }] }
+    ] });
+  assert.match(handoff.manifestSha256, /^[a-f0-9]{64}$/u);
+  assert.deepEqual(handoff.scenes.map(scene => scene.status), ["ready", "pending"]);
+  assert.ok(handoff.files.some(file => file.path.includes(importedAsset.id) && file.requiredForRun), "发行版须固定实际素材");
   // 真实发行MCP→API→Worker验证33秒，不只检查字段或直接调用开发源码。
   const preparedMotion = await call("register_motion_work", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number, idempotency_key: "release-motion-33",
     work: { name: "发行版33秒完整动效回归", creativeBrief: "独立候选技术回归：检查作品根时钟、源复用和完整帧数，不构成审美验收。", props: {}, imageBindings: {}, width: 768, height: 1344, fps: 24, durationInFrames: 792,

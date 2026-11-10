@@ -2423,6 +2423,7 @@ server.registerTool("manage_visual_treatment", {
       timing_evidence: z.object({ kind: z.enum(["aligned", "audio_review"]), note: z.string().trim().min(1) })
     }).strict()).optional(),
     adopted_material_asset_ids: z.array(z.string().min(1)).optional().describe("本范围实际采用的展示素材；按有效简报更新，不填候选、声音或人物参考照。"),
+    adopted_decision_ref: z.object({ production_run_id: z.string().min(1), decision_id: z.string().min(1) }).strict().nullable().optional(),
     visual_treatment_id: z.string().min(1).optional(),
     narrative_beat_id: z.string().min(1).optional(),
     scene_id: z.string().min(1).optional(),
@@ -2443,6 +2444,9 @@ server.registerTool("manage_visual_treatment", {
         referenceImageAssetId: u.reference_image_asset_id, startFrame: u.start_frame, endFrame: u.end_frame,
         performanceNote: u.performance_note, timingEvidence: u.timing_evidence })),
       adoptedMaterialAssetIds: input.adopted_material_asset_ids,
+      adoptedDecisionRef: input.adopted_decision_ref === null ? null : input.adopted_decision_ref ? {
+        productionRunId: input.adopted_decision_ref.production_run_id, decisionId: input.adopted_decision_ref.decision_id
+      } : undefined,
       visualTreatmentId: input.visual_treatment_id,
       narrativeBeatId: input.narrative_beat_id,
       sceneId: input.scene_id,
@@ -2707,10 +2711,13 @@ server.registerTool("record_creative_decision", {
     object_ids: z.array(z.string()).max(80).optional(),
     evidence: z.array(z.string().max(1_000)).max(80).optional(),
     alternatives: z.array(z.string().max(1_000)).max(20).optional(),
+    delivery_ref: z.object({ manifest_path: z.string().min(1), manifest_sha256: z.string().regex(/^[a-f0-9]{64}$/u),
+      scene_ids: z.array(z.string().min(1)).min(1) }).strict().optional(),
     delegation: z.object({
       agent_id: z.string().trim().min(1).max(160),
       assignment_id: z.string().trim().min(1).max(160),
       role: z.enum(["director", "specialist", "reviewer"]),
+      skill_id: z.string().trim().min(1).max(160),
       input_revision: z.number().int().positive().max(Number.MAX_SAFE_INTEGER)
     }).strict().optional(),
     quiet_range: z.object({ start_frame: z.number().int().min(0), end_frame: z.number().int().positive(), reason: z.string().min(1).max(800) }).optional(),
@@ -2731,10 +2738,13 @@ server.registerTool("record_creative_decision", {
       objectIds: input.object_ids,
       evidence: input.evidence,
       alternatives: input.alternatives,
+      deliveryRef: input.delivery_ref ? { manifestPath: input.delivery_ref.manifest_path,
+        manifestSha256: input.delivery_ref.manifest_sha256, sceneIds: input.delivery_ref.scene_ids } : undefined,
       delegation: input.delegation ? {
         agentId: input.delegation.agent_id,
         assignmentId: input.delegation.assignment_id,
         role: input.delegation.role,
+        skillId: input.delegation.skill_id,
         inputRevision: input.delegation.input_revision
       } : undefined,
       quietRange: input.quiet_range ? { startFrame: input.quiet_range.start_frame, endFrame: input.quiet_range.end_frame, reason: input.quiet_range.reason } : undefined,

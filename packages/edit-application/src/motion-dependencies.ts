@@ -1,5 +1,30 @@
 import { motionWorkForCue } from "@videocut/contracts";
-import type { EffectCue, ImpactReport, ProjectSnapshot } from "@videocut/contracts";
+import type { EffectCue, ImpactReport, MotionAuthoringTreatmentInput, ProjectSnapshot } from "@videocut/contracts";
+import { createHash } from "node:crypto";
+
+/** 只冻结实际采用的计划及其素材，不把更新时间计入画面依赖。 */
+export function motionTreatmentSignature(snapshot: ProjectSnapshot, id: string): string {
+  const treatment = snapshot.visualTreatments.find(item => item.id === id);
+  if (!treatment) return "missing";
+  const { createdAt: _createdAt, updatedAt: _updatedAt, presenterUses, ...content } = treatment;
+  const origin = snapshot.scenes.find(scene => scene.id === treatment.sceneId)?.startFrame ?? 0;
+  const uses = presenterUses?.map(use => ({ ...use, startFrame: use.startFrame - origin, endFrame: use.endFrame - origin }));
+  const materials = (treatment.adoptedMaterialAssetIds ?? []).map(assetId => {
+    const asset = snapshot.assets.find(item => item.id === assetId);
+    return { id: assetId, hash: asset?.sourceHash, status: asset?.status };
+  });
+  return createHash("sha256").update(JSON.stringify({ content, presenterUses: uses, materials })).digest("hex");
+}
+
+export function motionAuthoringInputsCurrent(snapshot: ProjectSnapshot, inputs: MotionAuthoringTreatmentInput[] | undefined): boolean {
+  return (inputs ?? []).every(input => {
+    const treatment = snapshot.visualTreatments.find(item => item.id === input.visualTreatmentId);
+    return treatment?.status === "ready"
+      && treatment.adoptedDecisionRef?.productionRunId === input.adoptedDecisionRef.productionRunId
+      && treatment.adoptedDecisionRef.decisionId === input.adoptedDecisionRef.decisionId
+      && motionTreatmentSignature(snapshot, input.visualTreatmentId) === input.treatmentSignature;
+  });
+}
 
 /** 以 Scene 局部时间比较依赖；整段纯平移不会改变作品内部内容或声音落点。 */
 export function motionCueDependencySignature(snapshot: ProjectSnapshot, cue: EffectCue) {
@@ -19,6 +44,7 @@ export function motionCueDependencySignature(snapshot: ProjectSnapshot, cue: Eff
   const materialIds = [...(motion?.imageSources ?? []), ...(motion?.videoSources ?? [])].map(source => source.assetId);
   const replaced = (cue.visualComposition?.replacesActorItemIds ?? []).map(id => snapshot.timeline.items.find(item => item.id === id));
   return JSON.stringify({
+    treatments: (cue.authoringInputs ?? []).map(input => [input.visualTreatmentId, motionTreatmentSignature(snapshot, input.visualTreatmentId)]),
     materials: materialIds.map(id => { const asset = snapshot.assets.find(entry => entry.id === id); return [id, asset?.sourceHash, asset?.status]; }),
     replaced: replaced.map(item => item ? [item.id, item.assetId, item.sourceStartFrame, item.sourceEndFrame, ...relativeRange(item)] : null),
     scene: scene ? [scene.id, scene.endFrame - origin, scene.status] : null,

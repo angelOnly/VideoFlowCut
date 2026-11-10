@@ -11,6 +11,7 @@ export const motionAuthoringRequestSchema = z.object({
 }).strict();
 export const motionAuthoringInputSchema = z.object({
   projectId: z.string().min(1), baseRevision: z.number().int().positive(), productionRunId: z.string().min(1).optional(),
+  visualTreatmentIds: z.array(z.string().min(1)).min(1).optional(),
   target: motionOnSuccessSchema, openDesignRequest: motionAuthoringRequestSchema,
   idempotencyKey: z.string().min(1).max(120)
 }).strict();

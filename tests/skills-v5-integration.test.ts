@@ -497,7 +497,7 @@ test("Skill 中的 MCP 名称、输入字段和工具状态与代码一致", asy
     render_preview_range: ["revision", "from_frame", "to_frame"],
     inspect_composed_frames: ["preview_job_id"],
     record_editorial_quality_review: ["run_id", "revision", "passes", "preview_evidence", "findings"],
-    record_creative_decision: ["run_id", "category", "decision", "rationale", "object_ids", "evidence", "delegation", "agent_id", "assignment_id", "role", "input_revision"],
+    record_creative_decision: ["run_id", "category", "decision", "rationale", "object_ids", "evidence", "delegation", "agent_id", "assignment_id", "role", "skill_id", "input_revision"],
     run_render_preflight: ["revision"],
     submit_export: ["revision", "purpose"],
     track_export: ["job_id"],

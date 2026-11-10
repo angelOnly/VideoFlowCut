@@ -16,6 +16,23 @@ import { inspectMotionReferenceViaRuntime } from "./motion-reference-client.js";
 import { listMotionFonts } from "../../../packages/motion-work/src/fonts.js";
 import { MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compiler.js";
 import { frozenMotionBundleSchema, importMotionBundle, readFrozenMotionWork } from "../../../packages/edit-application/src/motion-input.js";
+import { prepareReferencePackage } from "../../../packages/edit-application/src/opendesign-reference-package.mjs";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
+const handoffReferenceSchema = z.object({ id: z.string().min(1), sourceSha256: z.string().min(1),
+  usage: z.enum(["study", "adopted"]), purpose: z.string().min(1) }).strict();
+const handoffSceneSchema = z.object({
+  sceneId: z.string().min(1), status: z.enum(["ready", "pending"]),
+  references: z.array(z.object({ kind: z.enum(["creative", "motion"]), id: z.string().min(1), sourceSha256: z.string().min(1),
+    startMs: z.number().nonnegative(), endMs: z.number().positive(), purpose: z.string().min(1) }).strict()).optional(),
+  resourceIds: z.array(z.string().min(1)).optional(),
+  visualRoles: z.array(z.object({ role: z.string().min(1), referenceFunction: z.string().min(1), usage: z.string().min(1),
+    assetIds: z.array(z.string().min(1)), sourceRanges: z.array(z.object({ assetId: z.string().optional(),
+      startMs: z.number().nonnegative(), endMs: z.number().positive() }).strict()).optional() }).strict()).optional(),
+  process: z.string().optional(), preserve: z.array(z.string()).optional(), adapt: z.array(z.string()).optional()
+}).strict();
 
 export function registerMotionTools(server: McpServer, application: EditingApplication, projectIdFrom: (value?: string) => string) {
   const result = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] });
@@ -36,13 +53,47 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
     const { images, ...evidence } = await inspectMotionReferenceViaRuntime(source_url, preview_index, sample_duration_ms);
     return { content: [...result({ ...evidence, samples: images.map(({ elapsedMs }) => ({ elapsedMs })) }).content, ...images.map((item) => ({ type: "image" as const, mimeType: "image/png", data: item.data }))] };
   } catch (error) { return failure(error); } });
+  server.registerTool("prepare_motion_handoff", {
+    title: "准备场面制作交付",
+    description: "按当前项目快照准备固定简报、时间资料、素材及参考，返回清单哈希、实际文件和逐场面缺口。文件须通过制作端文件接口交付，启动时另核对实际接收文件。",
+    inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), brief_path: z.string().min(1),
+      timing_plan_path: z.string().min(1), selected_scene_ids: z.array(z.string().min(1)).min(1),
+      assets: z.array(z.object({ id: z.string().min(1), path: z.string().optional(), purpose: z.string().min(1),
+        sourceStartMs: z.number().nonnegative().optional(), sourceEndMs: z.number().positive().optional() }).strict()).optional(),
+      creative: z.array(handoffReferenceSchema).optional(), motion: z.array(handoffReferenceSchema).optional(),
+      references: z.array(z.object({ id: z.string().min(1), usage: z.enum(["study", "adopted"]), purpose: z.string().min(1),
+        files: z.array(z.object({ path: z.string().min(1), deliveredPath: z.string().min(1) }).strict()).min(1) }).strict()).optional(),
+      scenes: z.array(handoffSceneSchema).min(1) }
+  }, async ({ project_id, base_revision_id, brief_path, timing_plan_path, selected_scene_ids, assets, creative, motion, references, scenes }) => { try {
+    const projectId = projectIdFrom(project_id), current = application.readProject(projectId);
+    if (current.revision.number !== base_revision_id) throw new Error("项目 Revision 已变化，请读取当前项目后准备交付");
+    const handoffId = randomUUID();
+    const output = join(current.snapshot.project.rootPath, "reports", "motion-handoffs", handoffId);
+    await mkdir(output, { recursive: true });
+    const snapshotPath = join(output, "project-snapshot.json");
+    await writeFile(snapshotPath, JSON.stringify(current), "utf8");
+    const sources = assets?.map(asset => {
+      const registered = current.snapshot.assets.find(item => item.id === asset.id);
+      return { ...asset, path: asset.path ?? (registered ? join(current.snapshot.project.rootPath, registered.managedPath)
+        : join(output, "missing-assets", asset.id)) };
+    });
+    const manifest = await prepareReferencePackage({ projectId, revision: base_revision_id, projectSnapshot: snapshotPath,
+      brief: brief_path, timingPlan: timing_plan_path, deliveryPrefix: `handoffs/${handoffId}`, freezeInputs: true, selectedSceneIds: selected_scene_ids, assets: sources,
+      creative, motion, references, scenes }, output);
+    const manifestPath = join(output, "delivery-manifest.json");
+    const manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");
+    return result({ projectId, inputRevision: base_revision_id, manifestPath, manifestSha256,
+      scenes: manifest.scenes, diagnostics: manifest.diagnostics,
+      files: manifest.files.map(file => ({ path: file.deliveredPath, localPath: join(output, file.deliveredPath),
+        sha256: file.sha256, requiredForRun: file.requiredForRun !== false, uses: file.uses })) });
+  } catch (error) { return failure(error); } });
   server.registerTool("start_motion_authoring", {
     title: "启动阶段画面制作",
     description: "主任务接回导演对当前范围的主要采用决定后，提交视觉作者的完整制作请求和已交付资料，绑定明确的时间线目标。请求点名有效简报、参考视频与范围、本片素材、准确文案及声音和时间资料。制作作者完成整场设计，阶段源码自动登记和采用。原任务结束后的同源修订使用新幂等键，并通过 continue_from_run_id 指定原制作 Run。",
-    inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), production_run_id: z.string().min(1).optional(), target: motionOnSuccessSchema, opendesign_request: motionAuthoringRequestSchema, idempotency_key: z.string().min(1).max(120) }
-  }, async ({ project_id, base_revision_id, production_run_id, target, opendesign_request, idempotency_key }) => { try {
+    inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), production_run_id: z.string().min(1).optional(), visual_treatment_ids: z.array(z.string().min(1)).min(1).optional(), target: motionOnSuccessSchema, opendesign_request: motionAuthoringRequestSchema, idempotency_key: z.string().min(1).max(120) }
+  }, async ({ project_id, base_revision_id, production_run_id, visual_treatment_ids, target, opendesign_request, idempotency_key }) => { try {
     const job = await application.startMotionAuthoring({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, productionRunId: production_run_id,
-      target, openDesignRequest: opendesign_request, idempotencyKey: idempotency_key });
+      visualTreatmentIds: visual_treatment_ids, target, openDesignRequest: opendesign_request, idempotencyKey: idempotency_key });
     return result({ projectId: job.projectId, jobId: job.id, status: job.status, authoring: job.result?.authoring });
   } catch (error) { return failure(error); } });
   server.registerTool("wait_motion_authoring", {

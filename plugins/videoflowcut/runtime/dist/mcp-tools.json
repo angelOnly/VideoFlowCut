@@ -7051,6 +7051,31 @@
             },
             "description": "本范围实际采用的展示素材；按有效简报更新，不填候选、声音或人物参考照。"
           },
+          "adopted_decision_ref": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "production_run_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "decision_id": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "production_run_id",
+                  "decision_id"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "visual_treatment_id": {
             "type": "string",
             "minLength": 1
@@ -7343,6 +7368,324 @@
       }
     },
     {
+      "name": "prepare_motion_handoff",
+      "title": "准备场面制作交付",
+      "description": "按当前项目快照准备固定简报、时间资料、素材及参考，返回清单哈希、实际文件和逐场面缺口。文件须通过制作端文件接口交付，启动时另核对实际接收文件。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "brief_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timing_plan_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "selected_scene_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          },
+          "assets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "path": {
+                  "type": "string"
+                },
+                "purpose": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sourceStartMs": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "sourceEndMs": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              },
+              "required": [
+                "id",
+                "purpose"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "creative": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sourceSha256": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "usage": {
+                  "type": "string",
+                  "enum": [
+                    "study",
+                    "adopted"
+                  ]
+                },
+                "purpose": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "id",
+                "sourceSha256",
+                "usage",
+                "purpose"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "motion": {
+            "type": "array",
+            "items": {
+              "$ref": "#/properties/creative/items"
+            }
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "usage": {
+                  "type": "string",
+                  "enum": [
+                    "study",
+                    "adopted"
+                  ]
+                },
+                "purpose": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "files": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "deliveredPath": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "deliveredPath"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "id",
+                "usage",
+                "purpose",
+                "files"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "scenes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sceneId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "ready",
+                    "pending"
+                  ]
+                },
+                "references": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "creative",
+                          "motion"
+                        ]
+                      },
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "sourceSha256": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "startMs": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "endMs": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "purpose": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "id",
+                      "sourceSha256",
+                      "startMs",
+                      "endMs",
+                      "purpose"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "resourceIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "visualRoles": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "referenceFunction": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "usage": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "assetIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "sourceRanges": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "assetId": {
+                              "type": "string"
+                            },
+                            "startMs": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "endMs": {
+                              "type": "number",
+                              "exclusiveMinimum": 0
+                            }
+                          },
+                          "required": [
+                            "startMs",
+                            "endMs"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "role",
+                      "referenceFunction",
+                      "usage",
+                      "assetIds"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "process": {
+                  "type": "string"
+                },
+                "preserve": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "adapt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "sceneId",
+                "status"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "brief_path",
+          "timing_plan_path",
+          "selected_scene_ids",
+          "scenes"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "start_motion_authoring",
       "title": "启动阶段画面制作",
       "description": "主任务接回导演对当前范围的主要采用决定后，提交视觉作者的完整制作请求和已交付资料，绑定明确的时间线目标。请求点名有效简报、参考视频与范围、本片素材、准确文案及声音和时间资料。制作作者完成整场设计，阶段源码自动登记和采用。原任务结束后的同源修订使用新幂等键，并通过 continue_from_run_id 指定原制作 Run。",
@@ -7359,6 +7702,14 @@
           "production_run_id": {
             "type": "string",
             "minLength": 1
+          },
+          "visual_treatment_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
           },
           "target": {
             "anyOf": [
@@ -11025,6 +11376,33 @@
             },
             "maxItems": 20
           },
+          "delivery_ref": {
+            "type": "object",
+            "properties": {
+              "manifest_path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "manifest_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "scene_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "manifest_path",
+              "manifest_sha256",
+              "scene_ids"
+            ],
+            "additionalProperties": false
+          },
           "delegation": {
             "type": "object",
             "properties": {
@@ -11046,6 +11424,11 @@
                   "reviewer"
                 ]
               },
+              "skill_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
               "input_revision": {
                 "type": "integer",
                 "exclusiveMinimum": 0,
@@ -11056,6 +11439,7 @@
               "agent_id",
               "assignment_id",
               "role",
+              "skill_id",
               "input_revision"
             ],
             "additionalProperties": false

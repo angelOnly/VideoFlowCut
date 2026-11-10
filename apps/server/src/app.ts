@@ -1030,6 +1030,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       baseRevision: baseRevisionSchema,
       action: z.enum(["upsert", "remove"]),
       adoptedMaterialAssetIds: z.array(idSchema).optional(),
+      adoptedDecisionRef: z.object({ productionRunId: idSchema, decisionId: idSchema }).strict().nullable().optional(),
       presenterUses: z.array(z.object({
         id: idSchema, speechAssetId: idSchema, referenceImageAssetId: idSchema,
         startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(),
@@ -1130,7 +1131,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   });
   app.post("/api/projects/:projectId/motion-authoring", async request => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    const body = z.object({ baseRevision: baseRevisionSchema, productionRunId: idSchema.optional(), target: motionOnSuccessSchema,
+    const body = z.object({ baseRevision: baseRevisionSchema, productionRunId: idSchema.optional(), visualTreatmentIds: z.array(idSchema).min(1).optional(), target: motionOnSuccessSchema,
       openDesignRequest: motionAuthoringRequestSchema, idempotencyKey: z.string().min(1).max(120) }).strict().parse(request.body);
     const job = await application.startMotionAuthoring({ projectId, ...body });
     return { projectId, jobId: job.id, status: job.status, authoring: job.result?.authoring };

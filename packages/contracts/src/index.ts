@@ -230,6 +230,7 @@ export type MotionOnSuccess = { audioPolicy: "rebind_unchanged_events" } & (
 export interface FrozenMotionContinuation {
   request: MotionOnSuccess;
   targetDependencyHash: string;
+  authoringInputs?: MotionAuthoringTreatmentInput[];
 }
 export type MotionContinuationResult =
   | { status: "applied"; workId: Id; assetId?: Id; appliedRevision: number;
@@ -1070,11 +1071,32 @@ export interface Scene {
 export type VisualTreatmentMode = "keep_presenter" | "quiet" | "light_overlay" | "remotion" | "b_roll" | "cutaway" | "evidence";
 export type VisualTreatmentIntensity = "quiet" | "low" | "medium" | "high";
 
+/** 导演在制作记录中采用的交付清单及其范围。 */
+export interface CreativeDeliveryRef {
+  manifestPath: string;
+  manifestSha256: string;
+  sceneIds: string[];
+}
+
+export interface CreativeAdoptionRef {
+  productionRunId: Id;
+  decisionId: Id;
+}
+
+/** 固定某次作品实际使用的计划与导演采用。 */
+export interface MotionAuthoringTreatmentInput {
+  visualTreatmentId: Id;
+  adoptedDecisionRef: CreativeAdoptionRef;
+  deliveryRef: CreativeDeliveryRef;
+  treatmentSignature: string;
+}
+
 export interface VisualTreatment {
   /** undefined 为尚未记录；空数组明确表示本范围不需要人物。 */
   presenterUses?: PresenterUse[];
   /** 导演已采用、应进入画面的资料；空数组表示取消采用。 */
   adoptedMaterialAssetIds?: Id[];
+  adoptedDecisionRef?: CreativeAdoptionRef;
   id: Id;
   narrativeBeatId?: Id;
   sceneId?: Id;
@@ -1143,6 +1165,7 @@ export interface EffectMotion {
 export interface EffectCue {
   /** ManagedMotion 唯一作品版本；源范围始终指向完整作品，单位为项目帧。 */
   workId?: Id;
+  authoringInputs?: MotionAuthoringTreatmentInput[];
   /** 仅 ManagedMotion；与 TimelineItem 一样按项目 fps 表示媒体源范围。 */
   sourceStartFrame?: number;
   sourceEndFrame?: number;
@@ -1741,6 +1764,8 @@ export interface CreativeDelegation {
   agentId: string;
   assignmentId: string;
   role: "director" | "specialist" | "reviewer";
+  /** 本次委派的主要专业技能，其他技能可按需加载。 */
+  skillId: string;
   /** 子代理实际使用的历史版本；记录审计时不得替换成当前版本。 */
   inputRevision: number;
 }
@@ -1753,6 +1778,7 @@ export interface CreativeDecision {
   objectIds: Id[];
   evidence: string[];
   alternatives?: string[];
+  deliveryRef?: CreativeDeliveryRef;
   /** 旧报告及用户已明确指定的操作可以省略；对象和产物沿用 objectIds、evidence。 */
   delegation?: CreativeDelegation;
   createdAt: string;

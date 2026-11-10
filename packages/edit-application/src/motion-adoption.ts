@@ -4,7 +4,7 @@ import { motionWorkForCue, inspectEffectContentContract } from "@videocut/contra
 import { assertEffectCoverage, compileVisualComposition, createEffectCue, DomainError } from "@videocut/domain";
 import { assertEffectCueRange } from "./effect-cue-validation.js";
 import { bindEffectAudioEvent } from "./effect-audio-events.js";
-import { motionCueDependencySignature } from "./motion-dependencies.js";
+import { motionAuthoringInputsCurrent, motionCueDependencySignature, motionTreatmentSignature } from "./motion-dependencies.js";
 import { replaceMotionRange } from "./motion-range-replacement.js";
 
 function canonical(value: unknown): unknown {
@@ -25,7 +25,7 @@ export function validateMotionContinuation(snapshot: ProjectSnapshot, request: M
     return;
   }
   const cue = snapshot.effectCues.find(entry => entry.id === request.cueId);
-  if (!cue || cue.type !== "ManagedMotion" || cue.status !== "ready") throw new DomainError("采用目标必须是当前可用的受管画面", "MOTION_ADOPTION_TARGET_INVALID");
+  if (!cue || cue.type !== "ManagedMotion" || !motionWorkForCue(snapshot, cue)) throw new DomainError("采用目标必须是已登记的受管画面", "MOTION_ADOPTION_TARGET_INVALID");
   if (request.audioPolicy !== "rebind_unchanged_events") throw new DomainError("请明确声音事件处理策略", "MOTION_ADOPTION_AUDIO_POLICY");
   if (request.action === "replace_range") {
     const target = request.targetRange;
@@ -34,15 +34,44 @@ export function validateMotionContinuation(snapshot: ProjectSnapshot, request: M
   } else if (request.action !== "replace_cue") throw new DomainError("不支持的作品采用动作", "MOTION_ADOPTION_ACTION_INVALID");
 }
 
+/** 比较交付准备时实际相关的场面、内容与声音，允许其他场面继续变化。 */
+export function motionHandoffDependencyHash(snapshot: ProjectSnapshot, sceneId: string, beatIds: string[], range: { startFrame: number; endFrame: number }): string {
+  const scene = snapshot.scenes.find(item => item.id === sceneId);
+  const beats = beatIds.map(id => snapshot.story.beats.find(beat => beat.id === id));
+  const unitIds = new Set(beats.flatMap(beat => beat?.semanticUnitIds ?? []));
+  const segments = snapshot.speechSegments.filter(segment => segment.semanticUnitIds.some(id => unitIds.has(id)));
+  const segmentIds = new Set(segments.map(segment => segment.id));
+  const items = snapshot.timeline.items.filter(item => segmentIds.size && item.assetId === snapshot.speechAsset?.assetId
+    && item.startFrame < range.endFrame && item.endFrame > range.startFrame);
+  return createHash("sha256").update(JSON.stringify(canonical({
+    scene: scene && { id: scene.id, type: scene.type, title: scene.title, purpose: scene.purpose,
+      startFrame: scene.startFrame, endFrame: scene.endFrame, status: scene.status, stylePackId: scene.stylePackId,
+      narrativeBeatIds: scene.narrativeBeatIds.filter(id => beatIds.includes(id)) },
+    beats, units: snapshot.semanticUnits.filter(unit => unitIds.has(unit.id)), segments,
+    speech: segmentIds.size ? { assetId: snapshot.speechAsset?.assetId,
+      timing: snapshot.speechAsset?.timing.segments.filter(item => segmentIds.has(item.speechSegmentId)), items } : undefined,
+    canvas: { width: snapshot.timeline.width, height: snapshot.timeline.height, fps: snapshot.timeline.fps }
+  }))).digest("hex");
+}
+
 /** 只冻结目标真正依赖的内容，无关素材、字幕和其它段落不会挡住采用。 */
-export function motionTargetDependencyHash(snapshot: ProjectSnapshot, request: MotionOnSuccess): string {
+export function motionTargetDependencyHash(snapshot: ProjectSnapshot, request: MotionOnSuccess, visualTreatmentIds?: string[]): string {
   if (request.action === "create_cue") {
     const overlapping = (entry: { startFrame: number; endFrame: number }) => entry.startFrame < request.endFrame && entry.endFrame > request.startFrame;
     const cues = snapshot.effectCues.filter(cue => cue.sceneId === request.sceneId && overlapping(cue));
     const items = snapshot.timeline.items.filter(item => item.sceneId === request.sceneId && overlapping(item));
     const assets = new Set(items.map(item => item.assetId));
+    const scene = snapshot.scenes.find(item => item.id === request.sceneId);
+    const beatIds = request.coveredNarrativeBeatIds ?? scene?.narrativeBeatIds ?? [];
+    const beats = snapshot.story.beats.filter(beat => beatIds.includes(beat.id));
+    const unitIds = new Set(beats.flatMap(beat => beat.semanticUnitIds));
+    const segments = snapshot.speechSegments.filter(segment => segment.semanticUnitIds.some(id => unitIds.has(id)));
+    const segmentIds = new Set(segments.map(segment => segment.id));
     return createHash("sha256").update(JSON.stringify(canonical({
-      scene: snapshot.scenes.find(scene => scene.id === request.sceneId), cues, items,
+      scene, cues, items, beats, units: snapshot.semanticUnits.filter(unit => unitIds.has(unit.id)), segments,
+      speech: segmentIds.size ? { assetId: snapshot.speechAsset?.assetId,
+        timing: snapshot.speechAsset?.timing.segments.filter(item => segmentIds.has(item.speechSegmentId)) } : undefined,
+      treatments: (visualTreatmentIds ?? []).map(id => [id, motionTreatmentSignature(snapshot, id)]),
       tracks: snapshot.timeline.tracks.filter(track => items.some(item => item.trackId === track.id)),
       assets: snapshot.assets.filter(asset => assets.has(asset.id)).map(asset => ({ id: asset.id, hash: asset.sourceHash, status: asset.status })),
       canvas: { width: snapshot.timeline.width, height: snapshot.timeline.height, fps: snapshot.timeline.fps },
@@ -56,6 +85,7 @@ export function motionTargetDependencyHash(snapshot: ProjectSnapshot, request: M
   return createHash("sha256").update(JSON.stringify(canonical({
     cue, work: cue ? motionWorkForCue(snapshot, cue) : undefined,
     dependencies: cue ? motionCueDependencySignature(snapshot, cue) : null,
+    treatments: (visualTreatmentIds ?? []).map(id => [id, motionTreatmentSignature(snapshot, id)]),
     assets: snapshot.assets.filter(asset => assets.has(asset.id)).map(asset => ({
       id: asset.id, hash: asset.sourceHash, status: asset.status
     })),
@@ -74,13 +104,16 @@ export function applyMotionAdoption(snapshot: ProjectSnapshot, impact: ImpactRep
   const conflict = (reason: string): AdoptionMutation => ({
     status: "needs_reconfirmation", workId, conflicts: [{ objectId: request.action === "create_cue" ? request.sceneId : request.cueId, reason }]
   });
-  if (motionTargetDependencyHash(snapshot, request) !== frozen.targetDependencyHash) return conflict("目标画面、内容、时钟或关联声音已改变，请读回后明确重新采用");
+  const treatmentIds = frozen.authoringInputs?.map(input => input.visualTreatmentId);
+  if (motionTargetDependencyHash(snapshot, request, treatmentIds) !== frozen.targetDependencyHash
+    || !motionAuthoringInputsCurrent(snapshot, frozen.authoringInputs)) return conflict("目标画面、采用稿、内容或关联声音已改变，请读回后明确重新采用");
   const candidate = structuredClone(snapshot), delta = structuredClone(impact);
   try {
     validateMotionContinuation(candidate, request);
     let segments;
     if (request.action === "create_cue") {
       const cue = createEffectCue({ ...request, type: "ManagedMotion", workId });
+      if (frozen.authoringInputs?.length) cue.authoringInputs = structuredClone(frozen.authoringInputs);
       assertEffectCoverage(candidate, cue);
       const content = inspectEffectContentContract(cue, candidate.assets, candidate.timeline, candidate.motionWorks);
       if (!content.ready) return conflict(content.missing.join("；"));
@@ -91,15 +124,19 @@ export function applyMotionAdoption(snapshot: ProjectSnapshot, impact: ImpactRep
       delta.dirtyRanges.push({ startFrame: cue.startFrame, endFrame: cue.endFrame, reason: "首次采用源码画面；等待实际声画观察" });
       segments = [cue];
     } else if (request.action === "replace_range") {
-      segments = replaceMotionRange(candidate, delta, { cueId: request.cueId, workId, ...request.targetRange });
+      const oldCue = candidate.effectCues.find(entry => entry.id === request.cueId)!;
+      if (!frozen.authoringInputs?.length && !motionAuthoringInputsCurrent(candidate, oldCue.authoringInputs)) return conflict("当前采用稿已变化，请使用新的视觉计划续修");
+      segments = replaceMotionRange(candidate, delta, { cueId: request.cueId, workId, authoringInputs: frozen.authoringInputs, ...request.targetRange });
     } else {
       const cue = candidate.effectCues.find(entry => entry.id === request.cueId)!;
+      if (!frozen.authoringInputs?.length && !motionAuthoringInputsCurrent(candidate, cue.authoringInputs)) return conflict("当前采用稿已变化，请使用新的视觉计划续修");
       const old = motionWorkForCue(candidate, cue);
       const next = candidate.motionWorks?.find(work => work.id === workId);
       if (!old || !next
         || old.width !== next.width || old.height !== next.height || old.fps !== next.fps
         || old.frameCount !== next.frameCount) return conflict("作品画幅、总时长或根范围改变，需要作者明确编排");
-      cue.workId = workId; cue.assetBindings = [];
+      cue.workId = workId; cue.assetBindings = []; cue.status = "ready";
+      if (frozen.authoringInputs?.length) cue.authoringInputs = structuredClone(frozen.authoringInputs);
       // 作品换版后，先按真实新事件重绑，再交统一 reconcile；不让旧签名静默禁音。
       for (const audio of candidate.audioCues.filter(entry => entry.effectEvent?.effectCueId === cue.id && entry.status === "ready")) {
         const binding = audio.effectEvent!;
@@ -117,6 +154,7 @@ export function applyMotionAdoption(snapshot: ProjectSnapshot, impact: ImpactRep
       segments = [cue];
     }
     for (const cue of segments) {
+      if (cue.status === "stale") continue;
       assertEffectCoverage(candidate, cue);
       const content = inspectEffectContentContract(cue, candidate.assets, candidate.timeline, candidate.motionWorks);
       if (!content.ready) return conflict(content.missing.join("；"));

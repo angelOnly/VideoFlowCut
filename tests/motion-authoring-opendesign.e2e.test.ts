@@ -1,14 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { createHash } from "node:crypto";
 import { createApplication } from "@videocut/application";
 import { processClaimedJob } from "@videocut/job-runtime";
 import { runMotionJob } from "../apps/render-worker/src/motion-job.js";
 import { runMotionAuthoringJob } from "../apps/runtime/src/motion-authoring.js";
 import { motionFixture } from "./fixtures/managed-motion.js";
+import { prepareReferencePackage } from "../packages/edit-application/src/opendesign-reference-package.mjs";
 
 test("隔离 OD 阶段交件、同作者反馈与 VFC 自动采用端到端联通", { timeout: 90_000 }, async (context) => {
   const root = await mkdtemp(join(tmpdir(), "vfc-od-authoring-e2e-"));
@@ -78,7 +80,29 @@ process.stdin.on('end',()=>process.exit(0));
     const initial = app.createProject({ name: "阶段制作隔离验证" }), projectId = initial.snapshot.project.id, rev = () => app.readProject(projectId).revision.number;
     app.repository.commit(projectId, rev(), "隔离画布", snapshot => Object.assign(snapshot.timeline, { width: 320, height: 320, fps: 30 }));
     const scene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "连续场面", purpose: "验证", startFrame: 0, endFrame: 18 }).snapshot.scenes[0];
-    const job = await app.startMotionAuthoring({ projectId, baseRevision: rev(), idempotencyKey: "real-od", target: { action: "create_cue", sceneId: scene.id,
+    const brief = join(root, "brief.md"), timing = join(root, "timing.md"), projectSnapshot = join(root, "project.json"), output = join(root, "handoff");
+    await writeFile(brief, "隔离制作的完整共同编排"); await writeFile(timing, "真实时间资料");
+    await writeFile(projectSnapshot, JSON.stringify(app.readProject(projectId)));
+    const manifest = await prepareReferencePackage({ projectId, revision: rev(), projectSnapshot, brief, timingPlan: timing, freezeInputs: true,
+      deliveryPrefix: "handoffs/real-od", selectedSceneIds: ["opening"], scenes: [{ sceneId: "opening", status: "ready",
+        visualRoles: [{ role: "主体", referenceFunction: "连续发展", assetIds: [], usage: "原创图形" }],
+        process: "主体建立、变化并接续", preserve: ["连续关系"], adapt: ["中文文字"] }] }, output);
+    for (const file of manifest.files.filter(item => item.requiredForRun !== false)) {
+      const content = (await readFile(join(output, file.deliveredPath))).toString("base64");
+      const upload: Response = await fetch(`${od.url}/api/projects/${odProject}/files`, { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: file.deliveredPath, content, encoding: "base64" }) });
+      assert.equal(upload.status, 200, await upload.text());
+    }
+    const run = await app.startProductionRun({ projectId, loadedSkills: ["production-coordinator"] });
+    const manifestPath = join(output, "delivery-manifest.json");
+    const manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");
+    const decision = (await app.recordCreativeDecision({ projectId, runId: run.id, category: "scene", decision: "采用场面", rationale: "真实交付链路验证",
+      delegation: { agentId: "/fixture/director", assignmentId: "director", role: "director", skillId: "production-director", inputRevision: rev() },
+      deliveryRef: { manifestPath, manifestSha256, sceneIds: ["opening"] } })).creativeDecisions[0];
+    const treatment = app.manageVisualTreatment({ projectId, baseRevision: rev(), action: "upsert", sceneId: scene.id, mode: "remotion",
+      intensity: "medium", primaryAttention: "主体", narrativePurpose: "验证", adoptedMaterialAssetIds: [],
+      adoptedDecisionRef: { productionRunId: run.id, decisionId: decision.id } }).snapshot.visualTreatments[0];
+    const job = await app.startMotionAuthoring({ projectId, baseRevision: rev(), productionRunId: run.id, visualTreatmentIds: [treatment.id], idempotencyKey: "real-od", target: { action: "create_cue", sceneId: scene.id,
       layer: "fullscreen", startFrame: 0, endFrame: 18, sourceStartFrame: 0, sourceEndFrame: 18, audioPolicy: "rebind_unchanged_events" },
       openDesignRequest: { project: odProject, prompt: "请依据已提供的完整演出稿交付连续画面。", agent: "codex" } });
     authoring = runMotionAuthoringJob(app, job, controller.signal, { url: od.url });
@@ -100,6 +124,7 @@ process.stdin.on('end',()=>process.exit(0));
     assert.equal(result.authoring.status, "succeeded");
     assert.equal(result.authoring.receipts.length, 2);
     assert.deepEqual(app.readProject(projectId).snapshot.effectCues.map(cue => [cue.startFrame, cue.endFrame]), [[0, 9], [9, 18]]);
+    assert.ok(app.readProject(projectId).snapshot.effectCues.every(cue => cue.authoringInputs?.[0].adoptedDecisionRef.decisionId === decision.id));
     assert.equal(app.readProject(projectId).snapshot.assets.length, 0);
   } finally {
     controller.abort(); if (authoring) await authoring.catch(() => undefined);

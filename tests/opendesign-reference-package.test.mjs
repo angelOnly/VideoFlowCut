@@ -140,8 +140,13 @@ test('动效参考交付原片和切片，制作请求保留原片范围与切�
     await writeFile(brief,'完整创意编排'); await writeFile(timing,'实际时间安排');
     const index=loadLibraryIndex();
     const manifest=await prepareReferencePackage({projectId:'isolation',revision:1,brief,timingPlan:timing,
-      motion:[{id:'002-m17',sourceSha256:index.source_sha256,usage:'adopted',purpose:'完成所选连续变化'}]},output);
+      motion:[{id:'002-m17',sourceSha256:index.source_sha256,usage:'adopted',purpose:'完成所选连续变化'}],
+      scenes:[{sceneId:'motion',status:'ready',references:[{kind:'motion',id:'002-m17',sourceSha256:index.source_sha256,
+        startMs:4700,endMs:9300,purpose:'主体接管'}],visualRoles:[{role:'主体',referenceFunction:'共同变化',assetIds:[],usage:'原创画面'}],
+        process:'主体建立后完成接管',preserve:['运动关系'],adapt:['文字']} ]},output);
     assert.deepEqual(manifest.diagnostics,[]);
+    assert.equal(manifest.scenes[0].references[0].kind,'motion');
+    assert.equal(manifest.scenes[0].references[0].id,'002-m17');
     assert.ok(manifest.files.some(file=>file.uses.some(use=>use.fileKind==='video')));
     assert.ok(manifest.files.some(file=>file.uses.some(use=>use.fileKind==='clip'&&use.clipSourceOffsetMs===4700)));
     const listing={files:manifest.files.map(file=>({path:file.deliveredPath,localPath:join(output,file.deliveredPath)}))};
@@ -149,6 +154,27 @@ test('动效参考交付原片和切片，制作请求保留原片范围与切�
     assert.match(result.prompt,/资料原片范围 4700—9300ms/);
     assert.match(result.prompt,/切片零点对应原片 4700ms/);
     assert.match(result.prompt,/查看采用的创意和机制视频/);
+
+    // 另一个场面仍缺素材和机制交付时，已选范围使用自己的依赖集合。
+    const snapshot=join(root,'project.json');
+    await writeFile(snapshot,JSON.stringify({revision:{number:1},snapshot:{project:{id:'isolation'},assets:[]}}));
+    const pendingOutput=join(root,'partial');
+    const partial=await prepareReferencePackage({projectId:'isolation',revision:1,projectSnapshot:snapshot,brief,timingPlan:timing,
+      selectedSceneIds:['a'],assets:[{id:'missing',path:join(root,'missing.mp4'),purpose:'待获取'}],
+      motion:[{id:'002-m17',sourceSha256:index.source_sha256,usage:'adopted',purpose:'待完成场面的运动'}],scenes:[
+        {sceneId:'a',status:'ready',visualRoles:[{role:'主体',referenceFunction:'共同构图',assetIds:[],usage:'原创图形'}],process:'建立、变化并接续',preserve:[],adapt:[]},
+        {sceneId:'b',status:'pending',references:[{kind:'motion',id:'002-m17',sourceSha256:index.source_sha256,startMs:4700,endMs:9300,purpose:'待用机制'}],
+          visualRoles:[{role:'主体',referenceFunction:'动作',assetIds:['missing'],usage:'待取得'}]}]},pendingOutput);
+    assert.equal(partial.scenes[0].status,'ready');
+    assert.equal(partial.scenes[1].status,'pending');
+    assert.ok(partial.diagnostics.some(item=>item.path?.includes('missing') && item.requiredForRun===false));
+    assert.ok(partial.diagnostics.some(item=>item.id==='002-m17' && item.requiredForRun===false));
+    assert.ok(partial.files.filter(file=>file.uses.some(use=>use.kind==='motion')).every(file=>file.requiredForRun===false));
+    const partialListing={files:partial.files.filter(file=>file.requiredForRun!==false).map(file=>({path:file.deliveredPath,localPath:join(pendingOutput,file.deliveredPath)}))};
+    const current={revision:{number:2},snapshot:{project:{id:'isolation'},assets:[]}};
+    const partialResult=await verifyReferenceDelivery(partial,partialListing,2,'isolated-od',current);
+    assert.match(partialResult.prompt,/就绪场面 a/);
+    assert.doesNotMatch(partialResult.prompt,/就绪场面 b/);
   } finally { await rm(root,{recursive:true,force:true}); }
 });
 

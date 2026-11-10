@@ -54,8 +54,8 @@
 
 ProductionRun与SkillExecutionReport记录实际工作过程，不参与动画编译，不是第二份成片状态。记录实际用到的能力、决定、对象、证据及未完成项，不能用已加载Skill或工作单代替真实宿主调用。
 
-`record_creative_decision` 的可选 delegation 使用 `{agent_id, assignment_id, role, input_revision}`；前两者为真实非空标识，role为director、specialist或reviewer，input_revision是当前Run所属Project的真实历史版本。保存后报告使用agentId、assignmentId、inputRevision等字段，产物继续关联现有objectIds/evidence。输入版本可早于提交后版本，但主任务仍需核对依赖。
+`record_creative_decision` 的 delegation 使用 `{agent_id, assignment_id, role, skill_id, input_revision}`；前两者为宿主返回的真实标识，skill_id 为本次专业职责的主 Skill，input_revision 是实际使用的历史版本。导演采用需保存 `delivery_ref` 的 `manifest_path、manifest_sha256、scene_ids`。报告中的字段使用 camelCase，主任务继续核对真实负责人和输入依赖。
 
-导演完成主要采用判断后，主任务转录实际采用范围与依据，并在 evidence 引用当前有效简报、实际材料和参考范围。完整编排通过简报交付；恢复任务时结合最新交接确认有效简报及后续换材、改稿或重排。
+导演完成主要采用判断后，主任务以 `manage_visual_treatment.adopted_decision_ref` 关联本次 ProductionRun 和决定，并写入本场实际采用素材。用当前版本和 `visual_treatment_ids` 启动制作。状态读回与续修按受影响范围处理，当前采用改变后核对 stale 和声音未完成项。
 
 这些字段不能认证真实宿主调用，也不证明当前负责人已接任或实际看过媒体；接替与迟到结果按共同交接约定核对。旧报告没有delegation可继续读，不能补造代理身份。

@@ -18,7 +18,7 @@ async function fixture() {
   const run = await app.startProductionRun({ projectId, loadedSkills: ["production-coordinator", "opendesign-video-production"] });
   const reportPath = join(created.snapshot.project.rootPath, "reports", `production-run-${run.id}.json`);
   const base = { projectId, runId: run.id, category: "visual" as const, decision: "保留完整关系变化", rationale: "测试审计读回，不代表实际子代理创作或审美通过" };
-  const delegation: CreativeDelegation = { agentId: "/fixture/motion", assignmentId: "motion-01", role: "specialist", inputRevision: 1 };
+  const delegation: CreativeDelegation = { agentId: "/fixture/motion", assignmentId: "motion-01", role: "specialist", skillId: "visual-treatment-planning", inputRevision: 1 };
   return { root, app, created, projectId, run, reportPath, base, delegation, dispose: async () => {
     app.close();
     // 只清理本测试亲自创建的临时工作区，禁止扩大到共享项目目录。
@@ -52,7 +52,7 @@ test("无效委派来源和不存在的本项目版本在落盘前拒绝", async
     const other = f.app.createProject({ name: "另一个隔离项目" });
     f.app.updateStory({ projectId: other.snapshot.project.id, baseRevision: 1, title: "只有另一项目有 R2" });
     const before = await readFile(f.reportPath, "utf8");
-    const invalid: unknown[] = [null, [], "agent", {}, { ...f.delegation, agentId: " " }, { ...f.delegation, agentId: "a".repeat(161) }, { ...f.delegation, assignmentId: "" }, { ...f.delegation, assignmentId: "a".repeat(161) }, { ...f.delegation, role: "coordinator" }, ...[0, -1, 1.2, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1].map((inputRevision) => ({ ...f.delegation, inputRevision }))];
+    const invalid: unknown[] = [null, [], "agent", {}, { ...f.delegation, agentId: " " }, { ...f.delegation, agentId: "a".repeat(161) }, { ...f.delegation, assignmentId: "" }, { ...f.delegation, assignmentId: "a".repeat(161) }, { ...f.delegation, skillId: " " }, { ...f.delegation, role: "coordinator" }, ...[0, -1, 1.2, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1].map((inputRevision) => ({ ...f.delegation, inputRevision }))];
     for (const delegation of invalid) {
       await assert.rejects(() => f.app.recordCreativeDecision({ ...f.base, delegation: delegation as CreativeDelegation }), (error: unknown) => error instanceof DomainError && error.code === "INVALID_CREATIVE_DELEGATION");
     }
@@ -104,15 +104,15 @@ test("实时 MCP Schema 接收可选 delegation，并原样关联输入版本与
     await client.connect(transport);
     const schema = (await client.listTools()).tools.find((tool) => tool.name === "record_creative_decision")!.inputSchema;
     const source = schema.properties!.delegation as { required: string[]; properties: Record<string, { enum?: string[] }> };
-    assert.deepEqual([...source.required].sort(), ["agent_id", "assignment_id", "input_revision", "role"]);
+    assert.deepEqual([...source.required].sort(), ["agent_id", "assignment_id", "input_revision", "role", "skill_id"]);
     assert.deepEqual(source.properties.role.enum, ["director", "specialist", "reviewer"]);
     assert.ok(!schema.required?.includes("delegation"));
     const args = { project_id: f.projectId, run_id: f.run.id, category: "visual", decision: f.base.decision, rationale: f.base.rationale };
-    const recorded = parse(await client.callTool({ name: "record_creative_decision", arguments: { ...args, delegation: { agent_id: f.delegation.agentId, assignment_id: f.delegation.assignmentId, role: f.delegation.role, input_revision: 1 }, evidence: ["fixture-only:host-trace-reference"] } }));
+    const recorded = parse(await client.callTool({ name: "record_creative_decision", arguments: { ...args, delegation: { agent_id: f.delegation.agentId, assignment_id: f.delegation.assignmentId, role: f.delegation.role, skill_id: f.delegation.skillId, input_revision: 1 }, evidence: ["fixture-only:host-trace-reference"] } }));
     assert.deepEqual(recorded.creativeDecisions[0].delegation, f.delegation);
     const legacy = parse(await client.callTool({ name: "record_creative_decision", arguments: args }));
     assert.equal("delegation" in legacy.creativeDecisions[1], false);
-    for (const delegation of [{ agent_id: " ", assignment_id: "case", role: "specialist", input_revision: 1 }, { agent_id: "agent", assignment_id: "case", role: "coordinator", input_revision: 1 }, { agent_id: "agent", assignment_id: "case", role: "specialist", input_revision: 99 }]) {
+    for (const delegation of [{ agent_id: " ", assignment_id: "case", role: "specialist", skill_id: "visual-treatment-planning", input_revision: 1 }, { agent_id: "agent", assignment_id: "case", role: "coordinator", skill_id: "visual-treatment-planning", input_revision: 1 }, { agent_id: "agent", assignment_id: "case", role: "specialist", skill_id: "visual-treatment-planning", input_revision: 99 }, { agent_id: "agent", assignment_id: "case", role: "specialist", input_revision: 1 }]) {
       const result = await client.callTool({ name: "record_creative_decision", arguments: { ...args, delegation } });
       assert.equal(result.isError, true);
     }
@@ -148,7 +148,7 @@ test("完整声画稿走现有附件引用，MCP读回保留中途、末段与�
     const evidence = [path, `sha256:${checksum}`, "fixture-only:source-range-v1", "fixture-only:preview-R1-v1", "fixture-only:speech-v1:sentence-level"];
     const input = { project_id: f.projectId, run_id: f.run.id, category: "visual", decision: "采用当前全文引用，设计与动态仍待实际验证", rationale: "长稿不挤入摘要，不用历史预览为新版背书" };
     for (const role of ["director", "specialist", "reviewer"]) {
-      const result = parse(await client.callTool({ name: "record_creative_decision", arguments: { ...input, evidence, delegation: { agent_id: `/fixture/${role}`, assignment_id: `handoff-${role}`, role, input_revision: 1 } } }));
+      const result = parse(await client.callTool({ name: "record_creative_decision", arguments: { ...input, evidence, delegation: { agent_id: `/fixture/${role}`, assignment_id: `handoff-${role}`, role, skill_id: role === "director" ? "production-director" : role === "reviewer" ? "quality-verification" : "visual-treatment-planning", input_revision: 1 } } }));
       const entry = result.creativeDecisions.at(-1)!;
       assert.deepEqual(entry.evidence, evidence);
       assert.equal(await readFile(entry.evidence[0], "utf8"), script, "接收引用后全文含中途与末段，不得截断");
@@ -158,7 +158,7 @@ test("完整声画稿走现有附件引用，MCP读回保留中途、末段与�
     const nextPath = join(f.created.snapshot.project.rootPath, "reports", "声画稿-v2.md");
     await writeFile(nextPath, updated, "utf8");
     const nextEvidence = [nextPath, "fixture-only:source-range-v1", "fixture-only:speech-v2:sentence-level", "fixture-only:preview-v2-pending"];
-    await client.callTool({ name: "record_creative_decision", arguments: { ...input, evidence: nextEvidence, delegation: { agent_id: "/fixture/specialist", assignment_id: "handoff-specialist", role: "specialist", input_revision: 2 } } }).then(parse);
+    await client.callTool({ name: "record_creative_decision", arguments: { ...input, evidence: nextEvidence, delegation: { agent_id: "/fixture/specialist", assignment_id: "handoff-specialist", role: "specialist", skill_id: "visual-treatment-planning", input_revision: 2 } } }).then(parse);
     const readBack = parse(await client.callTool({ name: "read_skill_execution_report", arguments: { project_id: f.projectId, run_id: f.run.id } }));
     assert.equal(readBack.creativeDecisions.length, 4);
     assert.deepEqual(readBack.creativeDecisions.slice(0, 3).map(entry => entry.evidence), [evidence, evidence, evidence]);
