@@ -173,6 +173,9 @@ try {
   assert.match(composedTool.description, /1–12.*分批/u, "压缩工具声明未展示maxItems时，描述仍须明确上限");
   assert.match(tools.tools.find((tool) => tool.name === "inspect_asset")?.description ?? "", /range最长60秒，dense最长12秒/u, "发行工具表须公开素材短范围限制");
   assert.match(tools.tools.find((tool) => tool.name === "render_preview_range")?.description ?? "", /result.audio.*integratedLufs.*truePeakDbfs/u, "发行工具表须明确混合响度的读取位置");
+  assert.ok(tools.tools.find(tool => tool.name === "get_editor_url")?.inputSchema.properties.production_run_id, "工作台入口须接受本次 ProductionRun");
+  assert.ok(tools.tools.find(tool => tool.name === "read_production_status")?.inputSchema.properties.completion_scope, "制作状态须接受本次收口范围");
+  assert.ok(tools.tools.find(tool => tool.name === "complete_production_run")?.inputSchema.required.includes("final_revision"), "制作收口须明确结果版本");
   assert.match(motionTool?.description ?? "", /data-vfc-video-slot.*作品根时钟/u, "发行工具表必须公开作品根时钟视频合同");
   assert.match(motionTool.inputSchema.properties.work.properties.durationInFrames.description, /不按30秒/u, "发行字段必须公开完整作品资源策略");
   assert.ok(tools.tools.some((tool) => tool.name === "inspect_asset"), "插件 MCP 必须发现 inspect_asset");
@@ -415,6 +418,9 @@ try {
   });
   assert.equal(composedFrames.frames.length, 2, "发行版 Preview 必须可提取实际合成帧");
   const reviewRun = await call("start_production_run", { project_id: project.snapshot.project.id, loaded_skills: ["quality-verification"] });
+  const editor = await call("get_editor_url", { project_id: project.snapshot.project.id, production_run_id: reviewRun.id,
+    revision: projectState.revision.number, from_frame: 0, to_frame: previewToFrame });
+  assert.equal(new URL(editor.editorUrl).searchParams.get("productionRunId"), reviewRun.id);
   const review = await call("record_editorial_quality_review", {
     project_id: project.snapshot.project.id,
     run_id: reviewRun.id,
@@ -427,6 +433,13 @@ try {
   const reviewQuality = await call("read_quality_report", { project_id: project.snapshot.project.id });
   assert.equal(reviewQuality.editorial.status, "partial", "一轮观察不能冒充五轮完整审阅");
   assert.ok(Array.isArray(reviewQuality.productionReconciliation));
+  const status = await call("read_production_status", { project_id: project.snapshot.project.id, run_id: reviewRun.id, completion_scope: { kind: "project" } });
+  assert.equal(status.completion.runId, reviewRun.id);
+  assert.ok(status.completion.observationGaps.length > 0, "预览文件不能代替工作台观察");
+  const completion = await call("complete_production_run", { project_id: project.snapshot.project.id, run_id: reviewRun.id,
+    final_revision: projectState.revision.number, completion_scope: { kind: "project" } });
+  assert.equal(completion.status, "incomplete");
+  assert.deepEqual(completion.completionBlockers, status.completion.completionBlockers, "读取状态与收口必须使用相同判断");
   assert.equal((await call("read_project", { project_id: project.snapshot.project.id })).revision.number, projectState.revision.number, "审片不得创建视频 Revision");
   await transport.close();
   transport = undefined;

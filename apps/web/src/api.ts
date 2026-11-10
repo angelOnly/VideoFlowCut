@@ -113,7 +113,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { ...(init?.body instanceof FormData ? {} : { "content-type": "application/json" }), ...(init?.headers ?? {}) }
   });
   const payload = await response.json().catch(() => undefined) as { message?: string } | T | undefined;
-  if (!response.ok) throw new Error(typeof payload === "object" && payload && "message" in payload ? String(payload.message) : `请求失败：${response.status}`);
+  if (!response.ok) {
+    const error = new Error(typeof payload === "object" && payload && "message" in payload ? String(payload.message) : `请求失败：${response.status}`);
+    if (payload && typeof payload === "object") {
+      Object.assign(error, payload);
+      if ("error" in payload) Object.assign(error, { code: payload.error });
+    }
+    throw error;
+  }
   return payload as T;
 }
 

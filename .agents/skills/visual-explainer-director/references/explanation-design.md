@@ -104,7 +104,7 @@
 
 ## 工具与当前落地
 
-当前 MCP 已实现 `manage_story` 保存 Beat、`manage_narrative_map` 写入 NarrativeMap、`read_narrative_map` 读回当前 Revision 的问题/知识/递进与证据交接、`manage_visual_treatment` 保存主视觉决定、`create_scene` 创建基础 ExplainerScene 或 CutawayScene、`manage_cutaways` 将已就绪本地视频放入 Fullscreen/PiP、`submit_motion_work` 生成原创固定版本，`review_motion_work` 审阅，`manage_effect_cues` 放置，以及 `render_preview_range` 与 `inspect_composed_frames` 验证。当前 Scene Schema 没有独立 DocumentScene；文档、网页和证据只能作为已登记 Asset 进入已有 Scene。
+当前 MCP 已实现 `manage_story` 保存 Beat、`manage_narrative_map` 写入 NarrativeMap、`read_narrative_map` 读回当前 Revision 的问题/知识/递进与证据交接、`manage_visual_treatment` 保存主视觉决定、`create_scene` 创建基础 ExplainerScene 或 CutawayScene、`manage_cutaways` 将已就绪本地视频放入 Fullscreen/PiP、`submit_motion_work` 生成原创固定版本，`review_motion_work` 审阅，`manage_effect_cues` 放置，以及通过工作台固定版本的范围播放检查实际合成。文件交接、离线检查或渲染差异诊断使用 `render_preview_range`，具体静态问题使用 `inspect_composed_frames` 定位。当前 Scene Schema 没有独立 DocumentScene；文档、网页和证据只能作为已登记 Asset 进入已有 Scene。
 
 这些对象和命令已有确定性 MCP/项目图测试，但不等于 Evidence Provider、完整 Scene Registry、复杂数据/文档组件或审美效果已经完成真实验证。每次写入 NarrativeMap 后读回对象、Revision、Impact 和 Preview；缺失组件不能用错误的通用卡片替代后声称完成。
 

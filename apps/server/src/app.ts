@@ -460,13 +460,15 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.get("/api/projects/:projectId/editor-url", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    const query = z.object({ revision: z.coerce.number().int().positive().optional(), sceneId: z.string().optional(), itemId: z.string().optional(), effectCueId: z.string().optional(), frame: z.coerce.number().int().min(0).optional(), fromFrame: z.coerce.number().int().nonnegative().optional(), toFrame: z.coerce.number().int().positive().optional() }).parse(request.query);
+    const query = z.object({ productionRunId: idSchema.optional(), revision: z.coerce.number().int().positive().optional(), sceneId: z.string().optional(), itemId: z.string().optional(), effectCueId: z.string().optional(), frame: z.coerce.number().int().min(0).optional(), fromFrame: z.coerce.number().int().nonnegative().optional(), toFrame: z.coerce.number().int().positive().optional() }).parse(request.query);
+    if (query.productionRunId) await application.readSkillExecutionReport({ projectId, runId: query.productionRunId });
     const state = application.readProject(projectId, query.revision);
     if ((query.fromFrame === undefined) !== (query.toFrame === undefined) || (query.fromFrame !== undefined && query.toFrame !== undefined && (query.toFrame <= query.fromFrame || query.toFrame > state.snapshot.timeline.durationInFrames))) throw new DomainError("工作台范围必须是该版本内的非空区间", "INVALID_PREVIEW_RANGE");
     const { revision: _revision, ...selection } = query;
     const focus: EditorFocus = { projectId, revision: state.revision.number, ...selection };
     const url = new URL(webOrigin);
     url.searchParams.set("projectId", projectId);
+    if (query.productionRunId) url.searchParams.set("productionRunId", query.productionRunId);
     if (query.revision !== undefined) url.searchParams.set("revision", String(query.revision));
     if (query.fromFrame !== undefined) url.searchParams.set("fromFrame", String(query.fromFrame));
     if (query.toFrame !== undefined) url.searchParams.set("toFrame", String(query.toFrame));
@@ -1450,7 +1452,13 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.get("/api/projects/:projectId/production-status", async request => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    return application.readProductionStatus(projectId);
+    const query = z.object({ runId: idSchema.optional(), completionScope: z.string().optional() }).parse(request.query);
+    if (Boolean(query.runId) !== Boolean(query.completionScope)) throw new DomainError("runId 和 completionScope 需要一起提供", "PRODUCTION_STATUS_CONTEXT_REQUIRED");
+    if (!query.runId || !query.completionScope) return application.readProductionStatus(projectId);
+    let rawScope: unknown;
+    try { rawScope = JSON.parse(query.completionScope); } catch { throw new DomainError("completionScope 必须是有效 JSON", "COMPLETION_SCOPE_INVALID"); }
+    const completionScope = z.discriminatedUnion("kind", [z.object({ kind: z.literal("project") }), z.object({ kind: z.literal("beats"), beatIds: z.array(idSchema).min(1) }), z.object({ kind: z.literal("objects"), objectIds: z.array(idSchema).min(1) })]).parse(rawScope);
+    return application.readProductionStatus(projectId, { runId: query.runId, completionScope });
   });
 
   app.post("/api/jobs/:jobId/retry", async (request, reply) => {

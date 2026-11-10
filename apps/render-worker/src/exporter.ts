@@ -326,12 +326,15 @@ export async function runRenderPreflight(application: EditingApplication, projec
       addPreflightCheck(checks, "failed", "PREFLIGHT_ASSET_FILE_MISSING", `素材“${asset.name}”当前不可被 Render Worker 读取：${message}`, asset.id);
       continue;
     }
-    const requiresMediaProbe = ["video", "audio", "actor_video", "speech"].includes(asset.kind)
+    const requiresMediaProbe = ["image", "video", "audio", "actor_video", "speech"].includes(asset.kind)
       || Boolean(asset.metadata?.videoCodec || asset.metadata?.audioCodec);
     if (requiresMediaProbe) {
       try {
         const metadata = await probe(assetPath);
-        if (metadata.durationMs <= 0) throw new DomainError("媒体时长无效", "INVALID_MEDIA_DURATION");
+        if (asset.kind === "image") {
+          if (!metadata.width || !metadata.height) throw new DomainError("图片尺寸无效", "INVALID_IMAGE_SIZE");
+          await runProcess("ffmpeg", ["-v", "error", "-i", assetPath, "-frames:v", "1", "-f", "null", "-"], 30_000);
+        } else if (metadata.durationMs <= 0) throw new DomainError("媒体时长无效", "INVALID_MEDIA_DURATION");
         addPreflightCheck(checks, "passed", "PREFLIGHT_MEDIA_DECODABLE", `素材“${asset.name}”已通过当前 Worker 的媒体探测。`, asset.id);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

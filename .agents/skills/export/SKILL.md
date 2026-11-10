@@ -33,7 +33,7 @@ Draft 仍受技术门禁约束，不用伪报动效或声音已审来取文件�
 
 使用 `submit_export`，明确 revision 和 purpose，保存 Job ID，再 `track_job` 到终态。旧 Job 没有 purpose 时当前代码按 delivery 处理，防止绕过门禁。Remotion 失败会使正式导出失败，不会自动返回只有主轨的 FFmpeg 文件。
 
-Job succeeded 后用 `track_export` 和 `read_export_artifact` 核对文件、目标 Revision、校验和哈希。`record_export_artifact_review` 只记录实际执行的一个或多个复核轮次，不必补齐五轮。用户主动认可具体文件时，才通过 `approve_export_artifact(artifact_id,file_hash,confirmed_by_user=true,note?)` 记录人工定稿；全权剪辑授权不等于对尚未观看文件的认可。完成制作与核验后直接交付文件和实际检查范围，不主动索要试听、审片或定稿确认，不把缺少人工认可写成等待用户处理的未完成事项，也不伪造批准。
+Job succeeded 后用 `track_export` 和 `read_export_artifact` 核对文件、目标 Revision、校验和哈希。`record_export_artifact_review` 记录实际执行的复核。本次任务包含制作或修改时，主任务按协调入口完成本次 Run 收口，并核对完成版本与交付 Artifact 的对应关系，再交付文件及实际检查结果。用户仅要求导出现有版本时，按导出范围交付。用户对具体文件的明确认可通过 `approve_export_artifact(artifact_id,file_hash,confirmed_by_user=true,note?)` 单独记录。
 
 ## 最终文件验证
 

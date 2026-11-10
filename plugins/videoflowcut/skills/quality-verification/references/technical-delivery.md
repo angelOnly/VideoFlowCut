@@ -33,14 +33,17 @@ Draft 用于内部审片、A/B 和调试，可以在完整 Editorial Review 前�
 
 ## 当前调用与读回：预览
 
-| 阶段 | 当前 MCP 命令与关键输入 | 写后读回 / 下一步 |
+| 阶段 | 入口与关键输入 | 读回及下一步 |
 |---|---|---|
-| 预览 | `render_preview_range(revision?, from_frame?, to_frame?, idempotency_key?)` | `track_job(job_id)` 成功后，`inspect_composed_frames(preview_job_id, frames?)` 会保存当前 Revision 的帧证据；仍须连续播放需要的范围。 |
+| 工作台观察 | 制作回执的 `editorUrl`，或 `get_editor_url`、`focus_editor_object` 返回的入口 | 核对版本、对象和范围，直接播放实际合成，保存真实观察。 |
+| 工作台修改与复查 | 已有持久化控件及“在本版复查” | 保存后读回新 Revision，播放修改范围及接点，记录结果。 |
+| 按用途生成预览文件 | `render_preview_range` | 跟踪 Job，核对版本和范围，按文件用途检查。 |
+| 静态问题定位 | `inspect_composed_frames` | 记录实际抽取帧和该时刻可确认的结论。 |
 
 ### 阶段审片、对账与恢复
 
 `read_quality_report` 在现有只读入口返回 `productionReconciliation`、`editorial.openFindings` 和 `editorial.coverage`。对账从当前 Story、VisualTreatment、有效 Cue/Cutaway/Program 推导，不另存一份 Timeline。共用 Scene 的字幕/声音只作为场景内线索，不能推断已兑现每拍设计；缺少明确关联时先核实，不为消除提示强行改成留白。
 
-`observations` 每项包含 `pass`、`preview_job_id`、`start_frame`、`end_frame`（成片坐标，排他）、`method`、`observation`。方法为 frames、continuous_video、audio、audiovisual；抽帧不能表示连续观看或听觉输入。服务端固定返回证据 ID、Revision、文件哈希、路径与记录时间，并验证成功 Preview、实际媒体时长和所需音轨。这仅证明证据可追溯，不能证明审美或真实试听成立。旧自由文字保留可读，但不获得全片覆盖资格。
+`observations` 记录实际 `pass`、`source`、观察者、成片半开帧范围、`method` 和 `observation`。工作台观察使用 `source="workbench"`，文件观察引用实际 `preview_job_id`。方法按实际检查选择 frames、continuous_video、audio 或 audiovisual。服务端保存观察身份、版本、范围及对应资源依据。连续画面结论来自实际连续观看，声音结论来自实际听审。当前版本可继续使用的观察范围，通过应用层的依赖适用性结果读取。
 
 先登记修后观察，再用 `resolutions=[{finding_id,evidence_ids,note}]` 关闭原问题；不能用空 findings 清空待修项。证据必须晚于原发现、属于当前 Revision 和对应 Pass，并覆盖原范围或新版本可定位对象的完整范围；跨版本无法定位对象时需全片复核。证据失效会恢复待审。辅助 Findings 的 blocking、major、inconclusive 严重程度如实保留，但不阻挡制作、修订或导出。first_viewer 需一份覆盖整片的连续声画观察，不能由多个短样片相加冒充。

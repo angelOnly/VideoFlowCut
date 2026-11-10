@@ -363,9 +363,19 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
         ?? app.submitMotionInspection({ projectId: job.projectId, revision: latest.revision.number, workId: work.id, frames, idempotencyKey: inspectionKey }) : undefined;
       const editor = new URL("/", readRuntimeConfig().http.webOrigin);
       editor.searchParams.set("projectId", job.projectId); editor.searchParams.set("revision", String(latest.revision.number));
-      if (currentCues[0]) { editor.searchParams.set("effectCueId", currentCues[0].id); editor.searchParams.set("frame", String(currentCues[0].startFrame)); }
+      if (input.productionRunId) editor.searchParams.set("productionRunId", input.productionRunId);
+      // 回执定位本阶段实际采用的范围，避免落到先前阶段的画面。
+      const firstRange = [...stage.adopted].sort((a, b) => a.startFrame - b.startFrame)[0];
+      const stageCues = currentCues.filter(cue => cue.workId === work.id && stage.adopted!.some(range => cue.startFrame < range.endFrame && cue.endFrame > range.startFrame));
+      const firstCue = firstRange && stageCues.find(cue => cue.startFrame <= firstRange.startFrame && cue.endFrame > firstRange.startFrame);
+      if (firstRange) {
+        editor.searchParams.set("frame", String(firstRange.startFrame));
+        editor.searchParams.set("fromFrame", String(firstRange.startFrame));
+        editor.searchParams.set("toFrame", String(firstRange.endFrame));
+      }
+      if (firstCue) editor.searchParams.set("effectCueId", firstCue.id);
       state!.receipts.push({ runId: stageRunId, eventId: stage.eventId, frozenVersion: stage.frozenVersion, workId: work.id, revision: latest.revision.number,
-        cueId: currentCues[0]?.id, cueIds: currentCues.map(cue => cue.id), ranges: stage.adopted, editorUrl: editor.toString(),
+        cueId: firstCue?.id, cueIds: stageCues.map(cue => cue.id), ranges: stage.adopted, editorUrl: editor.toString(),
         ...(authoringInputs.length ? { authoringInputs } : {}), ...(inspection ? { inspectionJobId: inspection.id } : {}) });
       state!.seenVersions.push(stage.frozenVersion); state!.cursor = Math.max(state!.cursor, stage.eventId); state!.stage = undefined; state!.status = "running"; save();
     });

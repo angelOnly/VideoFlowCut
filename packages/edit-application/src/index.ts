@@ -37,7 +37,8 @@ import { submitSfxGeneration, completeSfxGeneration } from "./sfx-generation.js"
 import { createHash } from "node:crypto";
 import { bindEffectAudioEvent, type EffectAudioEventInput } from "./effect-audio-events.js";
 import { resolveAudioProgramEndFrame } from "../../edit-domain/src/audio-program-range.js";
-import { evidenceHash, validateEditorialObservations, workbenchSnapshotHash, workbenchEvidenceIdentity } from "./editorial-evidence.js";
+import { applicableWorkbenchEvidence, evidenceHash, productionObservationRanges, validateEditorialObservations } from "./editorial-evidence.js";
+import type { ProductionCompletionEvaluation } from "@videocut/contracts";
 import { validateMotionReviewEvidence, validateSourceMotionReviewEvidence } from "./motion-review.js";
 import type { MotionReviewEvidenceInput, MotionReviewOutcome } from "@videocut/contracts";
 import { completionReconciliationBlockers, EDITORIAL_PASSES, evidenceSupportsPass, mergeEditorialReviews, missingReviewRanges, openEditorialFindings, reviewCoverage } from "../../quality-system/src/editorial-review.js";
@@ -2268,26 +2269,40 @@ export class EditingApplication {
       try { hashes.set(evidence.relativePath, await evidenceHash(this.getProjectRoot(input.projectId), evidence.relativePath)); }
       catch { hashes.set(evidence.relativePath, undefined); }
     }
-    const workbenchIdentities = new Map<string, string | undefined>();
+    const targetSnapshot = this.repository.getRevision(input.projectId, revision).snapshot;
+    const resourceHashes = new Map<string, Promise<string>>();
     const validEvidence: typeof review.evidenceRecords = [];
+    const applicableEvidence: NonNullable<EditorialQualityReview["applicableEvidence"]> = [];
     for (const entry of review.evidenceRecords ?? []) {
       if (entry.source !== "workbench") {
-        if (entry.relativePath && entry.contentHash && hashes.get(entry.relativePath) === entry.contentHash) validEvidence.push(entry);
+        if (entry.relativePath && entry.contentHash && hashes.get(entry.relativePath) === entry.contentHash) {
+          validEvidence.push(entry);
+          if (entry.revision === revision) applicableEvidence.push({ evidenceId: entry.id, targetRevision: revision, startFrame: entry.startFrame, endFrame: entry.endFrame });
+        }
         continue;
       }
       const observed = this.repository.getRevision(input.projectId, entry.revision).snapshot;
-      if (!entry.snapshotHash || entry.snapshotHash !== workbenchSnapshotHash(observed) || !entry.workbenchIdentity) continue;
-      const key = `${entry.revision}:${entry.startFrame}:${entry.endFrame}`;
-      if (!workbenchIdentities.has(key)) {
-        try { workbenchIdentities.set(key, JSON.stringify(await workbenchEvidenceIdentity(observed, entry))); }
-        catch { workbenchIdentities.set(key, undefined); }
-      }
-      // 素材被替换后保留原始报告，但不再让旧观察支撑覆盖和问题关闭。
-      if (workbenchIdentities.get(key) === JSON.stringify(entry.workbenchIdentity)) validEvidence.push(entry);
+      const ranges = await applicableWorkbenchEvidence(entry, observed, targetSnapshot, resourceHashes);
+      if (ranges.length) validEvidence.push(entry);
+      applicableEvidence.push(...ranges.map(range => ({ evidenceId: entry.id, targetRevision: revision, ...range })));
     }
     review.evidenceRecords = validEvidence;
+    review.applicableEvidence = applicableEvidence;
     const validIds = new Set(review.evidenceRecords.map((entry) => entry.id));
-    review.resolutions = (review.resolutions ?? []).filter((entry) => entry.evidenceIds.length > 0 && entry.evidenceIds.every((id) => validIds.has(id)));
+    review.resolutions = (review.resolutions ?? []).filter((entry) => {
+      if (!entry.evidenceIds.length || entry.evidenceIds.some(id => !validIds.has(id))) return false;
+      const ranges = applicableEvidence.filter(part => entry.evidenceIds.includes(part.evidenceId));
+      if (entry.scope === "caption_text") {
+        const finding = review.findings.find(item => item.id === entry.findingId);
+        const before = this.repository.getRevision(input.projectId, entry.revision).snapshot.timeline.captions.find(item => item.id === finding?.objectId);
+        const after = targetSnapshot.timeline.captions.find(item => item.id === finding?.objectId);
+        return Boolean(before && after && JSON.stringify(before) === JSON.stringify(after)) && entry.evidenceIds.every(id => {
+          const evidence = review.evidenceRecords!.find(item => item.id === id)!;
+          return missingReviewRanges(ranges.filter(part => part.evidenceId === id), evidence.startFrame, evidence.endFrame).length === 0;
+        });
+      }
+      return missingReviewRanges(ranges, entry.frameRange.startFrame, entry.frameRange.endFrame).length === 0;
+    });
     return review;
   }
 
@@ -2464,6 +2479,7 @@ export class EditingApplication {
     });
     const previous = await this.readEditorialQualityReview({ projectId: input.projectId, revision: input.revision });
     const availableEvidence = [...(previous?.evidenceRecords ?? []), ...evidenceRecords];
+    const applicableRanges = [...(previous?.applicableEvidence ?? []), ...evidenceRecords.map(entry => ({ evidenceId: entry.id, targetRevision: input.revision, startFrame: entry.startFrame, endFrame: entry.endFrame }))];
     const resolutions: EditorialFindingResolution[] = (input.resolutions ?? []).map((resolution) => {
       const finding = openEditorialFindings(previous).find((entry) => entry.id === resolution.findingId);
       if (!finding || !resolution.note.trim()) throw new DomainError("复核必须引用仍待修的问题并说明结果", "EDITORIAL_RESOLUTION_INVALID");
@@ -2472,16 +2488,17 @@ export class EditingApplication {
         : finding.revision === undefined ? { startFrame: 0, endFrame: target.snapshot.timeline.durationInFrames }
         : editorialResolutionRange(finding, this.repository.getRevision(input.projectId, finding.revision).snapshot, target.snapshot);
       const evidence = resolution.evidenceIds.map((id) => availableEvidence.find((entry) => entry.id === id));
+      const validRanges = applicableRanges.filter(entry => resolution.evidenceIds.includes(entry.evidenceId));
       if (resolution.scope === "caption_text") {
         const caption = target.snapshot.timeline.captions.find((entry) => entry.id === finding.objectId);
         // 只允许有实际字幕对象的文字问题；单帧不因此取得声音或整轮连续覆盖资格。
         if (!caption || finding.pass !== "mute_visual" || !["semantic", "typography"].includes(finding.category)
           || !evidence.length || evidence.some((entry) => !entry || entry.revision !== input.revision || entry.pass !== "mute_visual" || entry.method !== "frames"
             || entry.endFrame !== entry.startFrame + 1 || entry.startFrame < caption.startFrame || entry.endFrame > caption.endFrame
-            || (finding.recordedAt && entry.recordedAt < finding.recordedAt))) throw new DomainError("文字复核仅接受当前字幕卡内、发现问题后登记的单帧静音证据；不能关闭声音或运动问题", "EDITORIAL_RESOLUTION_EVIDENCE_REQUIRED");
+            || (finding.recordedAt && entry.recordedAt < finding.recordedAt) || missingReviewRanges(validRanges, entry.startFrame, entry.endFrame).length)) throw new DomainError("文字复核仅接受当前字幕卡内、发现问题后登记的单帧静音证据；不能关闭声音或运动问题", "EDITORIAL_RESOLUTION_EVIDENCE_REQUIRED");
         return { findingId: finding.id, revision: input.revision, evidenceIds: [...new Set(resolution.evidenceIds)], note: resolution.note.trim(), resolvedAt: now(), scope: "caption_text", frameRange: { startFrame: caption.startFrame, endFrame: caption.endFrame } };
       }
-      if (!evidence.length || evidence.some((entry) => !entry || entry.revision !== input.revision || entry.pass !== finding.pass || !evidenceSupportsPass(entry) || (finding.recordedAt && entry.recordedAt < finding.recordedAt)) || missingReviewRanges(evidence.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)), range.startFrame, range.endFrame).length) throw new DomainError("问题关闭需要发现问题之后登记的当前 Revision、对应轮次与完整复核范围的连续证据", "EDITORIAL_RESOLUTION_EVIDENCE_REQUIRED");
+      if (!evidence.length || evidence.some((entry) => !entry || entry.revision !== input.revision || entry.pass !== finding.pass || !evidenceSupportsPass(entry) || (finding.recordedAt && entry.recordedAt < finding.recordedAt)) || missingReviewRanges(validRanges, range.startFrame, range.endFrame).length) throw new DomainError("问题关闭需要发现问题之后登记的当前 Revision、对应轮次与完整复核范围的连续证据", "EDITORIAL_RESOLUTION_EVIDENCE_REQUIRED");
       return { findingId: finding.id, revision: input.revision, evidenceIds: [...new Set(resolution.evidenceIds)], note: resolution.note.trim(), resolvedAt: now(), frameRange: { startFrame: range.startFrame, endFrame: range.endFrame } };
     });
     if (report.editorialReview && report.editorialReview.revision !== input.revision) {
@@ -2506,22 +2523,12 @@ export class EditingApplication {
     return report;
   }
 
-  /**
-   * 制作收口检查当前版本的技术与用途条件；观察证据按实际范围保存，不强制重复全片审阅。
-   * 未满足时保留 incomplete 状态，调用方可以继续补证据而不会丢失本次导演判断。
-   */
-  async completeProductionRun(input: { completionScope: ProductionCompletionScope; projectId: Id; runId: Id; finalRevision?: number; qualityReview?: string[]; previewEvidence?: string[] }): Promise<SkillExecutionReport> {
-    return this.withProductionAuditLock(input.projectId, () => this.completeProductionRunUnlocked(input));
-  }
-
-  private async completeProductionRunUnlocked(input: Parameters<EditingApplication["completeProductionRun"]>[0]): Promise<SkillExecutionReport> {
+  /** 查询与收口使用相同的只读判断，实际写入仍由收口操作完成。 */
+  async evaluateProductionCompletion(input: { completionScope: ProductionCompletionScope; projectId: Id; runId: Id; revision: number }): Promise<ProductionCompletionEvaluation> {
     const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
-    this.resumeIncompleteProductionRun(report, "收口");
     const current = this.readProject(input.projectId);
-    const finalRevision = input.finalRevision ?? current.revision.number;
+    const finalRevision = input.revision;
     const target = this.repository.getRevision(input.projectId, finalRevision);
-    if (input.previewEvidence) report.previewEvidence.push(...input.previewEvidence.map((value) => value.trim()).filter(Boolean));
-    if (input.qualityReview) report.qualityReview.push(...input.qualityReview.map((value) => value.trim()).filter(Boolean));
 
     const scope = input.completionScope;
     if (!scope || !["project", "beats", "objects"].includes(scope.kind)) throw new DomainError("收口必须明确 completionScope", "COMPLETION_SCOPE_REQUIRED");
@@ -2530,7 +2537,6 @@ export class EditingApplication {
       if (!scope.objectIds.length) throw new DomainError("收口对象范围不得为空", "COMPLETION_SCOPE_INVALID");
       this.inspectAgentWorkOrderObjects(target.snapshot, scope.objectIds);
     }
-    report.completionScope = structuredClone(scope);
     const blockers: string[] = completionReconciliationBlockers(target.snapshot, scope);
     if (scope.kind === "objects") blockers.push(...this.inspectAgentWorkOrderObjects(target.snapshot, scope.objectIds).map(entry => `${entry.objectId}：${entry.message}`));
     const authoringJobs = this.repository.listJobs(input.projectId).filter(job => {
@@ -2599,16 +2605,104 @@ export class EditingApplication {
     for (const category of (scope.kind === "objects" ? [] : ["semantic", "story", "visual"] as const)) {
       if (!decisionCategories.has(category)) blockers.push(`缺少 ${category === "semantic" ? "语义" : category === "story" ? "故事" : "视觉处理"}决策记录。`);
     }
-    const composedFrameEvidence = await this.findComposedFrameEvidence(input.projectId, finalRevision);
-    const composedFramePaths = composedFrameEvidence.map((artifact) => artifact.relativePath);
-    report.composedFrameEvidence = composedFramePaths;
-    // 制作完成只表明当前版本可产出；抽帧、辅助审阅与人工定稿另行保留事实。
     const projectReview = await this.readEditorialQualityReview({ projectId: input.projectId, revision: finalRevision });
     const quality = await evaluateQualityWithBrowser(target.snapshot, finalRevision, projectReview, this.repository.readReviews(input.projectId));
     blockers.push(...exportBlockingIssues(quality, "draft").map(entry => `技术/用途条件：${entry.message}`));
-    report.finalRevision = finalRevision;
-    report.mcpCommands.push({ name: "complete_production_run", revision: finalRevision, createdAt: now() });
-    report.completionBlockers = [...new Set(blockers)];
+    let ranges = productionObservationRanges(target.snapshot, scope);
+    const source = this.repository.getRevision(input.projectId, report.baseRevision).snapshot;
+    const selectedCaptions = scope.kind === "objects" ? scope.objectIds.map(id => target.snapshot.timeline.captions.find(caption => caption.id === id)) : [];
+    let captionTextOnly = selectedCaptions.length > 0 && selectedCaptions.every(Boolean);
+    if (captionTextOnly) {
+      const before = structuredClone(source), after = structuredClone(target.snapshot);
+      let changedText = false;
+      for (const caption of selectedCaptions) {
+        const oldCaption = before.timeline.captions.find(item => item.id === caption!.id);
+        const newCaption = after.timeline.captions.find(item => item.id === caption!.id);
+        if (!oldCaption || !newCaption) { captionTextOnly = false; break; }
+        changedText ||= oldCaption.text !== newCaption.text;
+        newCaption.text = oldCaption.text;
+        newCaption.textMode = oldCaption.textMode;
+      }
+      before.project.updatedAt = after.project.updatedAt;
+      before.agentWorkOrders = []; after.agentWorkOrders = [];
+      captionTextOnly &&= changedText && JSON.stringify(before) === JSON.stringify(after);
+    }
+    if (scope.kind !== "project" && !captionTextOnly) {
+      // 移动或替换后，原位置与新位置的交接都需要复查。
+      const changed = [...ranges, ...productionObservationRanges(source, scope)].map(range => ({
+        startFrame: Math.max(0, range.startFrame - 1), endFrame: Math.min(target.snapshot.timeline.durationInFrames, range.endFrame + 1)
+      })).filter(range => range.endFrame > range.startFrame).sort((a, b) => a.startFrame - b.startFrame);
+      ranges = [];
+      for (const range of changed) {
+        const last = ranges.at(-1);
+        if (last && range.startFrame <= last.endFrame) last.endFrame = Math.max(last.endFrame, range.endFrame);
+        else ranges.push(range);
+      }
+    }
+    const hasAudio = target.snapshot.timeline.items.some(item => {
+      const track = target.snapshot.timeline.tracks.find(candidate => candidate.id === item.trackId);
+      const asset = target.snapshot.assets.find(candidate => candidate.id === item.assetId);
+      return ranges.some(range => item.startFrame < range.endFrame && item.endFrame > range.startFrame)
+        && Boolean(asset && (track?.kind === "audio" || asset.metadata?.hasAudio)) && !track?.muted && item.mediaAudioPolicy !== "mute";
+    });
+    const hasVideo = target.snapshot.timeline.items.some(item => ranges.some(range => item.startFrame < range.endFrame && item.endFrame > range.startFrame)
+      && target.snapshot.timeline.tracks.some(track => track.id === item.trackId && track.kind === "video" && !track.muted))
+      || target.snapshot.effectCues.some(cue => ranges.some(range => cue.startFrame < range.endFrame && cue.endFrame > range.startFrame))
+      || target.snapshot.timeline.captions.some(caption => ranges.some(range => caption.startFrame < range.endFrame && caption.endFrame > range.startFrame));
+    const audioOnly = hasAudio && !hasVideo || scope.kind === "objects" && scope.objectIds.every(id => target.snapshot.audioCues.some(cue => cue.id === id)
+      || target.snapshot.timeline.items.some(item => item.id === id && target.snapshot.timeline.tracks.some(track => track.id === item.trackId && track.kind === "audio")));
+    const method: ProductionCompletionEvaluation["observationGaps"][number]["method"] = captionTextOnly ? "frames" : audioOnly ? "audio" : hasAudio ? "audiovisual" : "continuous_video";
+    const evidence = (projectReview?.evidenceRecords ?? []).filter(entry => entry.source === "workbench" && (entry.method === method
+      || entry.method === "audiovisual" && (method === "audio" || method === "continuous_video" || method === "frames")
+      || entry.method === "continuous_video" && method === "frames"));
+    const eligibleIds = new Set(evidence.map(entry => entry.id));
+    const applicable = (projectReview?.applicableEvidence ?? []).filter(entry => eligibleIds.has(entry.evidenceId));
+    const validObservations: ProductionCompletionEvaluation["validObservations"] = applicable.flatMap(part => ranges.flatMap(range => {
+      const startFrame = Math.max(part.startFrame, range.startFrame), endFrame = Math.min(part.endFrame, range.endFrame);
+      const original = evidence.find(entry => entry.id === part.evidenceId)!;
+      return startFrame < endFrame ? [{ evidenceId: part.evidenceId, observedRevision: original.revision, method: original.method, startFrame, endFrame }] : [];
+    }));
+    const observationGaps: ProductionCompletionEvaluation["observationGaps"] = [];
+    for (const range of ranges) {
+      if (method === "frames" && applicable.some(part => part.startFrame < range.endFrame && part.endFrame > range.startFrame)) continue;
+      for (const gap of missingReviewRanges(applicable, range.startFrame, range.endFrame)) observationGaps.push({ ...gap, method });
+    }
+    const openRequiredFindings = openEditorialFindings(projectReview).filter(finding => {
+      if (!["blocking", "major"].includes(finding.severity)) return false;
+      if (scope.kind === "project" || scope.kind === "objects" && finding.objectId && scope.objectIds.includes(finding.objectId)) return true;
+      const findingRange = finding.objectId && finding.revision !== undefined && finding.revision !== finalRevision
+        ? editorialResolutionRange(finding, this.repository.getRevision(input.projectId, finding.revision).snapshot, target.snapshot)
+        : finding.frameRange;
+      return Boolean(findingRange && ranges.some(range => range.startFrame < findingRange.endFrame && range.endFrame > findingRange.startFrame));
+    });
+    for (const gap of observationGaps) blockers.push(`工作台 ${gap.method} 待观察范围：${gap.startFrame}–${gap.endFrame}。`);
+    for (const finding of openRequiredFindings) blockers.push(`必修问题 ${finding.id} 尚未完成复查：${finding.summary}`);
+    const completionBlockers = [...new Set(blockers)];
+    return { runId: input.runId, revision: finalRevision, completionScope: scope, recordedStatus: report.status,
+      recordedFinalRevision: report.finalRevision, recordedCompletionScope: report.completionScope,
+      ready: completionBlockers.length === 0, completionBlockers, validObservations, observationGaps, openRequiredFindingIds: openRequiredFindings.map(finding => finding.id) };
+  }
+
+  async completeProductionRun(input: { completionScope: ProductionCompletionScope; projectId: Id; runId: Id; finalRevision: number; qualityReview?: string[]; previewEvidence?: string[] }): Promise<SkillExecutionReport> {
+    return this.withProductionAuditLock(input.projectId, () => this.completeProductionRunUnlocked(input));
+  }
+
+  private async completeProductionRunUnlocked(input: Parameters<EditingApplication["completeProductionRun"]>[0]): Promise<SkillExecutionReport> {
+    const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
+    const normalizeScope = (scope?: ProductionCompletionScope) => scope?.kind === "beats" ? { kind: scope.kind, beatIds: [...scope.beatIds].sort() }
+      : scope?.kind === "objects" ? { kind: scope.kind, objectIds: [...scope.objectIds].sort() } : scope;
+    if (report.status === "completed" && report.finalRevision === input.finalRevision && JSON.stringify(normalizeScope(report.completionScope)) === JSON.stringify(normalizeScope(input.completionScope))) return report;
+    this.resumeIncompleteProductionRun(report, "收口");
+    const evaluation = await this.evaluateProductionCompletion({ projectId: input.projectId, runId: input.runId, revision: input.finalRevision, completionScope: input.completionScope });
+    if (input.previewEvidence) report.previewEvidence.push(...input.previewEvidence.map((value) => value.trim()).filter(Boolean));
+    if (input.qualityReview) report.qualityReview.push(...input.qualityReview.map((value) => value.trim()).filter(Boolean));
+    report.completionScope = structuredClone(input.completionScope);
+    report.composedFrameEvidence = (await this.findComposedFrameEvidence(input.projectId, input.finalRevision)).map(artifact => artifact.relativePath);
+    const currentRevision = this.readProject(input.projectId).revision.number;
+    if (currentRevision !== input.finalRevision) throw new RevisionConflictError(input.finalRevision, currentRevision);
+    report.finalRevision = input.finalRevision;
+    report.mcpCommands.push({ name: "complete_production_run", revision: input.finalRevision, createdAt: now() });
+    report.completionBlockers = evaluation.completionBlockers;
     if (report.completionBlockers.length > 0) {
       report.status = "incomplete";
       report.completedAt = undefined;
@@ -8306,8 +8400,8 @@ export class EditingApplication {
   }
 
   /** Web和MCP只转发到这里；专用外部运行保留原来的检查点恢复。 */
-  readProductionStatus(projectId: Id) {
-    return readProductionStatus(this, projectId);
+  readProductionStatus(projectId: Id, context?: { runId: Id; completionScope: ProductionCompletionScope }) {
+    return readProductionStatus(this, projectId, context);
   }
 
   retryJob(projectId: Id, jobId: Id): JobRecord {

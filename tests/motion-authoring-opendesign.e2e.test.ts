@@ -31,9 +31,9 @@ if (!process.argv.includes('app-server')) { console.error('unexpected invocation
 const source=${JSON.stringify(source)}, work=${JSON.stringify(work)};
 let buffer='';
 function send(frame){ process.stdout.write(JSON.stringify(frame)+'\\n'); }
-async function stage(end){
+async function stage(end, partial=false){
  fs.mkdirSync('output',{recursive:true}); fs.writeFileSync('output/film.html',source);
- fs.writeFileSync('output/work.json',JSON.stringify({work,readyRanges:[{startFrame:0,endFrame:end}],changedRanges:[]}));
+ fs.writeFileSync('output/work.json',JSON.stringify({work,readyRanges:partial?[{startFrame:9,endFrame:18}]:[{startFrame:0,endFrame:end}],changedRanges:[]}));
  const response=await fetch(process.env.OD_DAEMON_URL+'/api/tools/motion-work/stage',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+process.env.OD_TOOL_TOKEN},body:JSON.stringify({source_path:'output/film.html',manifest_path:'output/work.json'})});
  if(!response.ok) throw Error('stage failed '+response.status+' '+await response.text());
 }
@@ -41,7 +41,7 @@ process.stdin.setEncoding('utf8'); process.stdin.on('data',chunk=>{ buffer+=chun
  if(frame.method==='initialize') send({id:frame.id,result:{userAgent:'codex/0.153.4'}});
  else if(frame.method==='thread/start') send({id:frame.id,result:{thread:{id:'thread-e2e'}}});
  else if(frame.method==='turn/start'){send({id:frame.id,result:{turn:{id:'turn-e2e'}}});send({method:'turn/started',params:{threadId:'thread-e2e',turn:{id:'turn-e2e'}}});stage(9).catch(error=>{console.error(error);process.exit(3)});}
- else if(frame.method==='turn/steer'){send({id:frame.id,result:{turnId:'turn-e2e'}});stage(18).then(()=>{send({method:'item/agentMessage/delta',params:{threadId:'thread-e2e',turnId:'turn-e2e',itemId:'message-e2e',delta:'画面源码已交付'}});send({method:'item/completed',params:{item:{id:'message-e2e',type:'agentMessage',text:'画面源码已交付'}}});send({method:'turn/completed',params:{threadId:'thread-e2e',turn:{id:'turn-e2e',status:'completed',items:[]}}});}).catch(error=>{console.error(error);process.exit(3)});}
+ else if(frame.method==='turn/steer'){send({id:frame.id,result:{turnId:'turn-e2e'}});stage(18,true).then(()=>stage(18)).then(()=>{send({method:'item/agentMessage/delta',params:{threadId:'thread-e2e',turnId:'turn-e2e',itemId:'message-e2e',delta:'画面源码已交付'}});send({method:'item/completed',params:{item:{id:'message-e2e',type:'agentMessage',text:'画面源码已交付'}}});send({method:'turn/completed',params:{threadId:'thread-e2e',turn:{id:'turn-e2e',status:'completed',items:[]}}});}).catch(error=>{console.error(error);process.exit(3)});}
  }});
 process.stdin.on('end',()=>process.exit(0));
 `;
@@ -108,7 +108,7 @@ process.stdin.on('end',()=>process.exit(0));
     authoring = runMotionAuthoringJob(app, job, controller.signal, { url: od.url });
     void authoring.catch(() => undefined);
     const deadline = Date.now() + 45_000;
-    let stage: { runId: string; receipts: Array<{ runId: string; frozenVersion: string; workId: string; revision: number; cueId: string }> } | undefined;
+    let stage: { runId: string; receipts: Array<{ runId: string; frozenVersion: string; workId: string; revision: number; cueId: string; editorUrl: string }> } | undefined;
     while (Date.now() < deadline) {
       stage = app.trackJob(job.id).result?.authoring as typeof stage;
       if (stage?.receipts?.length) break;
@@ -116,6 +116,10 @@ process.stdin.on('end',()=>process.exit(0));
     }
     assert.ok(stage?.runId && stage.receipts.length === 1, "首个真实 OD 阶段未进入 VFC");
     const firstReceipt = stage.receipts[0];
+    const firstUrl = new URL(firstReceipt.editorUrl);
+    assert.equal(firstUrl.searchParams.get("productionRunId"), run.id);
+    assert.equal(firstUrl.searchParams.get("fromFrame"), "0");
+    assert.equal(firstUrl.searchParams.get("toFrame"), "9");
     const firstWork = app.readSourceMotionWork(projectId, firstReceipt.workId, firstReceipt.revision).work;
     assert.deepEqual(firstWork.readyRanges, [{ startFrame: 0, endFrame: 9 }]);
     assert.deepEqual(firstWork.author, { project: odProject, run_id: stage.runId, frozen_version: firstReceipt.frozenVersion });
@@ -124,16 +128,23 @@ process.stdin.on('end',()=>process.exit(0));
     assert.equal(feedback.status, 200, await feedback.text());
     let timer: ReturnType<typeof setTimeout> | undefined;
     const result = await Promise.race([authoring, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("第二阶段未在时限内完成")), 25_000); })])
-      .finally(() => { if (timer) clearTimeout(timer); }) as { authoring: { status: string; receipts: Array<{ runId: string; frozenVersion: string; workId: string; revision: number }> } };
+      .finally(() => { if (timer) clearTimeout(timer); }) as { authoring: { status: string; receipts: Array<{ runId: string; frozenVersion: string; workId: string; revision: number; cueId: string; editorUrl: string }> } };
     assert.equal(result.authoring.status, "succeeded");
-    assert.equal(result.authoring.receipts.length, 2);
+    assert.equal(result.authoring.receipts.length, 3);
     const secondReceipt = result.authoring.receipts[1];
+    const secondUrl = new URL(secondReceipt.editorUrl);
+    assert.equal(secondUrl.searchParams.get("productionRunId"), run.id);
+    assert.equal(secondUrl.searchParams.get("fromFrame"), "9");
+    assert.equal(secondUrl.searchParams.get("toFrame"), "18");
+    assert.equal(secondUrl.searchParams.get("effectCueId"), secondReceipt.cueId);
     const secondWork = app.readSourceMotionWork(projectId, secondReceipt.workId, secondReceipt.revision).work;
     assert.equal(secondReceipt.runId, firstReceipt.runId);
     assert.notEqual(secondReceipt.frozenVersion, firstReceipt.frozenVersion);
-    assert.deepEqual(secondWork.readyRanges, [{ startFrame: 0, endFrame: 18 }]);
+    assert.deepEqual(secondWork.readyRanges, [{ startFrame: 9, endFrame: 18 }]);
     assert.deepEqual(secondWork.author, { project: odProject, run_id: stage.runId, frozen_version: secondReceipt.frozenVersion });
-    assert.equal(app.readProject(projectId).snapshot.motionWorks?.length, 2);
+    const finalReceipt = result.authoring.receipts[2];
+    assert.deepEqual(app.readSourceMotionWork(projectId, finalReceipt.workId, finalReceipt.revision).work.readyRanges, [{ startFrame: 0, endFrame: 18 }]);
+    assert.equal(app.readProject(projectId).snapshot.motionWorks?.length, 3);
     assert.deepEqual(app.readProject(projectId).snapshot.effectCues.map(cue => [cue.startFrame, cue.endFrame]), [[0, 9], [9, 18]]);
     assert.ok(app.readProject(projectId).snapshot.effectCues.every(cue => cue.authoringInputs?.[0].adoptedDecisionRef.decisionId === decision.id));
     assert.equal(app.readProject(projectId).snapshot.assets.length, 0);

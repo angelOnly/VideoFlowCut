@@ -152,14 +152,14 @@ test("HTTP 正式创建和 PATCH 清除接管；Run 持久保存明确范围与�
     const adopted = await server.app.inject({ method: "POST", url: `/api/projects/${f.projectId}/visual-treatments`, payload: { baseRevision: f.rev(), action: "upsert", narrativeBeatId: beat.id, mode: "evidence", intensity: "medium", primaryAttention: "原件", narrativePurpose: "解释", adoptedMaterialAssetIds: [f.image.id] } });
     assert.equal(adopted.statusCode, 200, adopted.body);
     const run = await f.app.startProductionRun({ projectId: f.projectId, loadedSkills: ["presenter-motion-director"] });
-    const incomplete = await f.app.completeProductionRun({ projectId: f.projectId, runId: run.id, completionScope: { kind: "beats", beatIds: [beat.id] } });
+    const incomplete = await f.app.completeProductionRun({ projectId: f.projectId, runId: run.id, finalRevision: f.app.readProject(f.projectId).revision.number, completionScope: { kind: "beats", beatIds: [beat.id] } });
     assert.equal(incomplete.status, "incomplete");
     assert.ok(incomplete.completionBlockers.some(message => message.startsWith("material_not_connected")));
     assert.deepEqual((await f.app.readSkillExecutionReport({ projectId: f.projectId, runId: run.id })).completionScope, { kind: "beats", beatIds: [beat.id] });
-    await assert.rejects(f.app.completeProductionRun({ projectId: f.projectId, runId: run.id, completionScope: { kind: "beats", beatIds: ["missing"] } }), { code: "COMPLETION_SCOPE_INVALID" });
+    await assert.rejects(f.app.completeProductionRun({ projectId: f.projectId, runId: run.id, finalRevision: f.app.readProject(f.projectId).revision.number, completionScope: { kind: "beats", beatIds: ["missing"] } }), { code: "COMPLETION_SCOPE_INVALID" });
     f.app.importSrtCaptions({ projectId: f.projectId, baseRevision: f.rev(), srtText: "1\n00:00:00,000 --> 00:00:01,000\n局部字幕\n", sourceName: "对象范围", targetRange: { startFrame: 0, endFrame: 90 }, writePolicy: "reject_conflicts", idempotencyKey: "local-captions" });
     const caption = f.current().snapshot.timeline.captions[0]!;
-    const local = await f.app.completeProductionRun({ projectId: f.projectId, runId: run.id, completionScope: { kind: "objects", objectIds: [caption.id] } });
+    const local = await f.app.completeProductionRun({ projectId: f.projectId, runId: run.id, finalRevision: f.app.readProject(f.projectId).revision.number, completionScope: { kind: "objects", objectIds: [caption.id] } });
     assert.ok(!local.completionBlockers.some(message => /material_not_connected|missing_implementation|missing_treatment/u.test(message)));
   } finally { await server.app.close(); server.application.close(); await f.close(); }
 });

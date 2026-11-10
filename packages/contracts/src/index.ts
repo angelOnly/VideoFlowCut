@@ -1703,6 +1703,8 @@ export interface EditorialQualityReview {
   reviewedAt: string;
   evidenceRecords?: EditorialReviewEvidence[];
   resolutions?: EditorialFindingResolution[];
+  /** 读取时计算目标版本仍适用的观察区间，不写入审阅报告。 */
+  applicableEvidence?: Array<{ evidenceId: Id; targetRevision: number; startFrame: number; endFrame: number }>;
 }
 
 export interface QualityReport {
@@ -1758,6 +1760,20 @@ export type ProductionCompletionScope =
   | { kind: "project" }
   | { kind: "beats"; beatIds: Id[] }
   | { kind: "objects"; objectIds: Id[] };
+
+export interface ProductionCompletionEvaluation {
+  runId: Id;
+  revision: number;
+  completionScope: ProductionCompletionScope;
+  recordedStatus: ProductionRunStatus;
+  recordedFinalRevision?: number;
+  recordedCompletionScope?: ProductionCompletionScope;
+  ready: boolean;
+  completionBlockers: string[];
+  validObservations: Array<{ evidenceId: Id; observedRevision: number; method: EditorialReviewObservation["method"]; startFrame: number; endFrame: number }>;
+  observationGaps: Array<{ startFrame: number; endFrame: number; method: EditorialReviewObservation["method"]; objectId?: Id }>;
+  openRequiredFindingIds: Id[];
+}
 
 /** 协调者记录的子代理来源，只用于追溯，不认证宿主身份或代替实际调用证据。 */
 export interface CreativeDelegation {
@@ -2144,6 +2160,7 @@ export interface CommandReceipt<T> {
 export interface EditorFocus {
   projectId: Id;
   revision: number;
+  productionRunId?: Id;
   sceneId?: Id;
   itemId?: Id;
   effectCueId?: Id;

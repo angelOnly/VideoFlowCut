@@ -21,7 +21,7 @@ import { WorkbenchReviewPanel } from "./WorkbenchReviewPanel";
 
 type Panel = "assets" | "agent_work_orders" | "script" | "audio" | "actors" | "scenes" | "captions" | "fonts" | "advanced" | "jobs";
 type Selection = { kind: "asset" | "scene" | "item" | "cue"; id: string } | undefined;
-type EditorFocusQuery = { sceneId?: string; itemId?: string; effectCueId?: string; frame?: number; revision?: number; fromFrame?: number; toFrame?: number };
+type EditorFocusQuery = { sceneId?: string; itemId?: string; effectCueId?: string; frame?: number; revision?: number; fromFrame?: number; toFrame?: number; productionRunId?: string };
 
 const panelMeta: Array<{ id: Panel; label: string; icon: string }> = [
   { id: "assets", label: "素材", icon: "▦" },
@@ -104,6 +104,7 @@ function readEditorFocus(): EditorFocusQuery {
     sceneId: params.get("sceneId") ?? undefined,
     itemId: params.get("itemId") ?? undefined,
     effectCueId: params.get("effectCueId") ?? undefined,
+    productionRunId: params.get("productionRunId") ?? undefined,
     frame: number("frame", 0),
     revision: number("revision", 1),
     fromFrame: number("fromFrame", 0),
@@ -119,7 +120,7 @@ function useProjectId(): [string | undefined, (projectId: string | undefined) =>
     const url = new URL(window.location.href);
     // 推荐文案属于原项目；切项目只保留字体库入口，不带走上一项目的候选上下文。
     if (url.searchParams.get("projectId") !== next) {
-      for (const key of ["fontPreview", "revision", "frame", "fromFrame", "toFrame", "sceneId", "itemId", "effectCueId"]) url.searchParams.delete(key);
+      for (const key of ["fontPreview", "revision", "frame", "fromFrame", "toFrame", "sceneId", "itemId", "effectCueId", "productionRunId"]) url.searchParams.delete(key);
     }
     if (next) url.searchParams.set("projectId", next);
     else url.searchParams.delete("projectId");
@@ -152,8 +153,10 @@ export function App() {
   const [message, setMessage] = useState("准备就绪");
   const [busy, setBusy] = useState(false);
   const playerRef = useRef<PlayerRef>(null);
-  const previewPlaybackControl = useRef({ playing: false });
+  const previewPlaybackControl = useRef<{ playing: boolean; range?: { from: number; to: number }; loop: boolean }>({ playing: false, loop: false });
   const initialFocus = useRef<EditorFocusQuery>(readEditorFocus());
+  const [productionRunId, setProductionRunId] = useState(initialFocus.current.productionRunId);
+  useEffect(() => { setProductionRunId(new URLSearchParams(window.location.search).get("productionRunId") ?? undefined); }, [projectId]);
   const initialFocusApplied = useRef(false);
   const [reviewRevision, setReviewRevision] = useState(initialFocus.current.revision);
   const reviewRevisionRef = useRef(reviewRevision);
@@ -162,6 +165,8 @@ export function App() {
   const [rangeEnd, setRangeEnd] = useState(initialFocus.current.toFrame ?? 0);
   const [activeRange, setActiveRange] = useState<{ from: number; to: number }>();
   const [rangeLoop, setRangeLoop] = useState(true);
+  previewPlaybackControl.current.range = activeRange;
+  previewPlaybackControl.current.loop = Boolean(activeRange && rangeLoop);
   const pendingSeek = useRef<number | undefined>(undefined);
   const playRangeRequested = useRef(false);
   const [availableRevision, setAvailableRevision] = useState<number>();
@@ -316,12 +321,21 @@ export function App() {
     try {
       setBusy(true);
       setMessage(`${label}…`);
+      if (!options?.allowHistorical) playerRef.current?.pause();
       await operation();
       if (projectId) await load(projectId);
       await refreshProjects();
       setMessage(`${label}完成`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : String(error));
+      const detail = error instanceof Error ? error.message : String(error);
+      if (projectId && error instanceof Error && "code" in error && error.code === "REVISION_CONFLICT") {
+        try { await load(projectId); }
+        catch (refreshError) {
+          setMessage(`${detail}；刷新失败：${refreshError instanceof Error ? refreshError.message : String(refreshError)}`);
+          return;
+        }
+      }
+      setMessage(detail);
     } finally {
       setBusy(false);
     }
@@ -485,7 +499,7 @@ export function App() {
           revision: currentRevision,
           fromFrame: Math.max(0, playhead - snapshot.timeline.fps * 2),
           toFrame: Math.min(snapshot.timeline.durationInFrames, Math.max(playhead + snapshot.timeline.fps * 3, snapshot.timeline.fps))
-        }), { allowHistorical: true })} disabled={busy || !snapshot.timeline.durationInFrames}>局部预览</button>
+        }), { allowHistorical: true })} disabled={busy || !snapshot.timeline.durationInFrames}>生成预览文件</button>
         <button onClick={() => void act("执行渲染前检查", () => api.renderPreflight(snapshot.project.id, currentRevision), { allowHistorical: true })} disabled={busy || !snapshot.timeline.durationInFrames}>渲染预检</button>
         <button onClick={() => void act("提交草稿导出", () => api.export(snapshot.project.id, currentRevision, "draft"), { allowHistorical: true })} disabled={busy || draftBlockingIssues.length > 0} title={draftBlockingIssues.map(issue => issue.message).join("；")}>草稿导出</button>
         <button className="primary" data-testid="export-button" onClick={() => void act("提交交付导出", () => api.export(snapshot.project.id, currentRevision, "delivery"), { allowHistorical: true })} disabled={busy || blockingIssues.length > 0} title={blockingIssues.map(issue => issue.message).join("；")}>交付导出</button>
@@ -625,7 +639,10 @@ export function App() {
             {activeRange && <button onClick={() => { playerRef.current?.pause(); setActiveRange(undefined); }}>恢复全片</button>}
             <span className="message" aria-live="polite">{message}</span>
           </div>
-          <WorkbenchReviewPanel key={snapshot.project.id} projectId={snapshot.project.id} revision={currentRevision} startFrame={rangeStart} endFrame={rangeEnd} objectId={selection?.id}
+          <WorkbenchReviewPanel key={snapshot.project.id} projectId={snapshot.project.id} productionRunId={productionRunId} onRunChange={runId => {
+            setProductionRunId(runId);
+            const url = new URL(window.location.href); url.searchParams.set("productionRunId", runId); window.history.replaceState({}, "", url);
+          }} revision={currentRevision} startFrame={rangeStart} endFrame={rangeEnd} objectId={selection?.id}
             onLocate={finding => {
               if (!finding.frameRange || finding.revision === undefined) { setMessage("该问题没有可定位的版本或范围。"); return; }
               if (finding.revision !== currentRevision) {

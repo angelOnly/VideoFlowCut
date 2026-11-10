@@ -12,6 +12,23 @@ const pluginManifestPath = join(pluginRoot, ".codex-plugin", "plugin.json");
 const pluginMcpPath = join(pluginRoot, ".mcp.json");
 const mcpSourcePath = join(repositoryRoot, "apps", "server", "src", "mcp.ts");
 
+test("制作入口保留工作台观察、修改、结果版复查与收口职责", async () => {
+  const [shared, coordinator, routing, operator, visual] = await Promise.all([
+    readFile(join(skillsRoot, "_shared/PROJECT_REVISION_AND_HANDOFF.md"), "utf8"),
+    readFile(join(skillsRoot, "production-coordinator/SKILL.md"), "utf8"),
+    readFile(join(skillsRoot, "production-coordinator/references/task-routing.md"), "utf8"),
+    readFile(join(skillsRoot, "web-editor-operator/SKILL.md"), "utf8"),
+    readFile(join(skillsRoot, "visual-treatment-planning/SKILL.md"), "utf8")
+  ]);
+  assert.match(shared, /同源预排 → 工作台观察 → 制作深化 → 阶段接回 → 工作台修改与复查/u);
+  assert.match(shared, /已有控件支持的调整在工作台保存[\s\S]*新版接回后，在工作台复查/u);
+  assert.match(coordinator, /工作台入口[\s\S]*原视觉作者[\s\S]*工作台/u);
+  assert.match(visual, /工作台[\s\S]*已观察范围/u);
+  assert.match(operator, /已有控件[\s\S]*直接保存[\s\S]*结果版[\s\S]*复查/u);
+  assert.match(routing, /read_production_status[\s\S]*工作台检查[\s\S]*complete_production_run[\s\S]*final_revision/u);
+  assert.doesNotMatch(operator, /正式剪辑只通过已发布 MCP 写入|子代理不操作 UI 修改正式项目/u);
+});
+
 test("字体身份与选择操作分别位于实现合同和提交参考", async () => {
   const contract = await readFile(join(skillsRoot,"opendesign-video-production/references/hyperframes-contract.md"),"utf8");
   for (const token of ["read_motion_capabilities","fontBindings","props.fonts","作者初始化前","哈希","实际字重"]) assert.ok(contract.includes(token),token);

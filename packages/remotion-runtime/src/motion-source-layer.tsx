@@ -3,8 +3,8 @@ import { useBufferState } from "remotion";
 import type { MotionWork } from "@videocut/contracts";
 
 /** 父合成只提供根帧；请求序号对应真实完成帧，慢帧不排成无限积压。 */
-export function MotionSourceLayer({ work, projectId, revision, mediaBaseUrl, frame, projectFps, playbackControl }: {
-  work: MotionWork; projectId: string; revision: number; mediaBaseUrl: string; frame: number; projectFps: number; playbackControl?: { playing: boolean };
+export function MotionSourceLayer({ work, projectId, revision, mediaBaseUrl, frame, projectFps, playbackControl, visible = true }: {
+  work: MotionWork; projectId: string; revision: number; mediaBaseUrl: string; frame: number; projectFps: number; playbackControl?: { playing: boolean }; visible?: boolean;
 }) {
   const iframe = useRef<HTMLIFrameElement>(null);
   const buffer = useBufferState();
@@ -23,10 +23,16 @@ export function MotionSourceLayer({ work, projectId, revision, mediaBaseUrl, fra
     iframe.current?.contentWindow?.postMessage({ type: "vfc-motion-seek", workId: work.id, sequence: active.current, frame: desired.current }, "*");
   };
   useLayoutEffect(() => {
+    if (!visible || failure) {
+      // 隐藏的预备作品和已失败作品都不能让整条合成一直等待。
+      handle.current?.unblock(); handle.current = undefined;
+      if (!failure) send.current();
+      return;
+    }
     // 暂停定位等待准确帧；连续播放只在未就绪或落后一帧以上时统一缓冲。
     if (!playbackControl?.playing || !ready.current || displayed === undefined || Math.abs(frame - displayed) > Math.ceil(work.fps / projectFps)) handle.current ??= buffer.delayPlayback();
     send.current();
-  }, [frame, buffer, playbackControl, projectFps, work.fps]);
+  }, [frame, buffer, playbackControl, projectFps, work.fps, visible, failure]);
   useEffect(() => {
     const listener = (event: MessageEvent) => {
       const message = event.data;
@@ -44,7 +50,7 @@ export function MotionSourceLayer({ work, projectId, revision, mediaBaseUrl, fra
     return () => { clearTimeout(timeout); clearTimeout(requestTimer.current); window.removeEventListener("message", listener); handle.current?.unblock(); };
   }, [work.id]);
   const url = `${mediaBaseUrl.replace(/\/$/u, "")}/motion-work/${encodeURIComponent(projectId)}/${encodeURIComponent(work.id)}/${revision}/document`;
-  return <div data-motion-work={work.id} data-requested-frame={frame} data-displayed-frame={displayed} data-motion-error={failure} style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+  return <div data-motion-work={work.id} data-requested-frame={frame} data-displayed-frame={displayed} data-motion-error={failure} style={{ position: "absolute", inset: 0, overflow: "hidden", display: visible ? undefined : "none" }}>
     <iframe ref={iframe} title={work.name} src={url} sandbox="allow-scripts" style={{ width: work.width, height: work.height, border: 0, background: "transparent", pointerEvents: "none" }} />
     {failure && <div role="alert" style={{ position: "absolute", inset: 0, background: "#200e19", color: "white", padding: 32 }}>{failure}</div>}
   </div>;

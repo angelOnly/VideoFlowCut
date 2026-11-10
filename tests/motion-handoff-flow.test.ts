@@ -156,7 +156,7 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     app.repository.commit(projectId, rev(), "恢复已采用场面", snapshot => { snapshot.scenes.find(item => item.id === scene.id)!.purpose = "验证交接"; });
     const first = await start("first", target);
     assert.equal((await start("first", target)).jobId, first.jobId);
-    assert.ok(app.readProductionStatus(projectId).work.pending.some(job => job.jobId === first.jobId));
+    assert.ok((await app.readProductionStatus(projectId)).work.pending.some(job => job.jobId === first.jobId));
 
     const bundle = frozenWork(importedVideo.asset.id);
     const delivered = prepared.files.filter(file => file.requiredForRun).map(file => ({ path: file.path, localPath: file.localPath }));
@@ -221,7 +221,7 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
       const currentCue = snapshot.effectCues.find(item => item.id === cue.id)!;
       currentCue.endFrame = 20; currentCue.sourceEndFrame = 20;
     });
-    const missingCoverage = await app.completeProductionRun({ projectId, runId: report.id, completionScope: { kind: "objects", objectIds: [treatmentId] } });
+    const missingCoverage = await app.completeProductionRun({ projectId, runId: report.id, finalRevision: app.readProject(projectId).revision.number, completionScope: { kind: "objects", objectIds: [treatmentId] } });
     assert.ok(missingCoverage.completionBlockers.some(item => item.includes(first.jobId) && item.includes("20–30")));
     app.repository.commit(projectId, rev(), "恢复原目标范围", snapshot => {
       const currentCue = snapshot.effectCues.find(item => item.id === cue.id)!;
@@ -259,11 +259,11 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.equal(snapshot.effectCues[1].authoringInputs?.[0].adoptedDecisionRef.decisionId, nextDecision.id);
     assert.equal(snapshot.audioCues[0].status, "stale");
     assert.equal(snapshot.timeline.items.find(item => item.id === snapshot.audioCues[0].timelineItemId)?.disabled, true);
-    assert.ok(app.readProductionStatus(projectId).audio.pending.some(item => item.audioCueId === snapshot.audioCues[0].id));
-    const completion = await app.completeProductionRun({ projectId, runId: report.id, completionScope: { kind: "objects", objectIds: [treatmentId] } });
+    assert.ok((await app.readProductionStatus(projectId)).audio.pending.some(item => item.audioCueId === snapshot.audioCues[0].id));
+    const completion = await app.completeProductionRun({ projectId, runId: report.id, finalRevision: app.readProject(projectId).revision.number, completionScope: { kind: "objects", objectIds: [treatmentId] } });
     assert.ok(completion.completionBlockers.some(item => item.includes(second.jobId)));
     app.updateJob(second.jobId, { status: "succeeded", result: { authoring: { status: "succeeded" } } });
-    const unfinishedRepair = await app.completeProductionRun({ projectId, runId: report.id, completionScope: { kind: "objects", objectIds: [treatmentId] } });
+    const unfinishedRepair = await app.completeProductionRun({ projectId, runId: report.id, finalRevision: app.readProject(projectId).revision.number, completionScope: { kind: "objects", objectIds: [treatmentId] } });
     assert.ok(unfinishedRepair.completionBlockers.some(item => item.includes("画面") && item.includes("仍待修订")));
     assert.ok(unfinishedRepair.completionBlockers.some(item => item.includes(snapshot.audioCues[0].id)));
 

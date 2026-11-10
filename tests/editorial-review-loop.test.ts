@@ -38,6 +38,21 @@ test("真实 MCP Schema 支持阶段审片并把结构化证据和对账返回�
     await client.connect(transport);
     const tools = (await client.listTools()).tools;
     const schema = tools.find((tool) => tool.name === "record_editorial_quality_review")!.inputSchema;
+    const editor = await client.callTool({ name: "get_editor_url", arguments: { project_id: f.projectId, production_run_id: f.run.id, revision: f.base.revision, from_frame: 5, to_frame: 12 } });
+    assert.notEqual(editor.isError, true);
+    const editorResult = JSON.parse((editor.content as Array<{ text: string }>)[0]!.text);
+    const editorUrl = new URL(editorResult.editorUrl);
+    assert.equal(editorUrl.searchParams.get("productionRunId"), f.run.id);
+    assert.equal(editorUrl.searchParams.get("fromFrame"), "5");
+    assert.equal(editorUrl.searchParams.get("toFrame"), "12");
+    const statusArgs = { project_id: f.projectId, run_id: f.run.id, completion_scope: { kind: "objects", object_ids: [f.state.snapshot.timeline.items[0]!.id] } };
+    const statusResult = await client.callTool({ name: "read_production_status", arguments: statusArgs });
+    assert.notEqual(statusResult.isError, true);
+    const productionStatus = JSON.parse((statusResult.content as Array<{ text: string }>)[0]!.text);
+    assert.equal(productionStatus.completion.revision, productionStatus.revision);
+    assert.equal(productionStatus.completion.runId, f.run.id);
+    const invalidStatus = await client.callTool({ name: "read_production_status", arguments: { project_id: f.projectId, run_id: f.run.id } });
+    assert.equal(invalidStatus.isError, true);
     assert.ok(tools.find(tool => tool.name === "submit_motion_work")!.inputSchema.properties?.frame_range);
     assert.equal(Object.hasOwn(tools.find(tool => tool.name === "review_motion_work")!.inputSchema.properties!, "reference_match"), false);
     assert.ok(tools.find(tool => tool.name === "resume_voice_synthesis"));
@@ -88,6 +103,62 @@ async function fixture() {
   return { root, app, projectId, state, run, base, preview, observe, dispose: async () => { app.close(); await rm(root, { recursive: true, force: true }); } };
 }
 
+test("工作台观察随局部字幕修改分段复用，结果版复查后可收口并幂等重试", async () => {
+  const f = await fixture();
+  try {
+    f.app.importSrtCaptions({ projectId: f.projectId, baseRevision: f.state.revision.number, srtText: "1\n00:00:00,000 --> 00:00:01,000\n修改前\n", sourceName: "工作台复查", targetRange: { startFrame: 0, endFrame: 48 }, writePolicy: "reject_conflicts", idempotencyKey: "workbench-caption" });
+    const initial = f.app.readProject(f.projectId);
+    const caption = initial.snapshot.timeline.captions[0]!;
+    const run = await f.app.startProductionRun({ projectId: f.projectId, baseRevision: initial.revision.number, loadedSkills: ["web-editor-operator"] });
+    const scope = { kind: "objects" as const, objectIds: [caption.id] };
+    const firstStatus = await f.app.readProductionStatus(f.projectId, { runId: run.id, completionScope: scope });
+    assert.equal(firstStatus.completion!.ready, false);
+    const initialReview = await f.app.recordEditorialQualityReview({
+      projectId: f.projectId, runId: run.id, revision: initial.revision.number, passes: ["audiovisual", "mute_visual"], previewEvidence: [],
+      observations: [{ source: "workbench", observer: "隔离测试", pass: "audiovisual", method: "audiovisual", startFrame: 0, endFrame: 48, observation: "测试声明：已观察完整声画" }],
+      findings: [{ pass: "mute_visual", severity: "major", category: "typography", summary: "字幕文字需要修改", evidence: "工作台测试观察", impact: "影响字幕", objectId: caption.id, frameRange: { startFrame: caption.startFrame, endFrame: caption.endFrame } }]
+    });
+    const evidenceId = initialReview.editorialReview!.evidenceRecords![0]!.id;
+    const findingId = initialReview.editorialReview!.findings[0]!.id;
+    const changed = f.app.editCaptions({ projectId: f.projectId, baseRevision: initial.revision.number, captionId: caption.id, action: "update", text: "修改后" });
+    const review = await f.app.readEditorialQualityReview({ projectId: f.projectId, revision: changed.revision.number });
+    assert.deepEqual(review!.applicableEvidence!.filter(part => part.evidenceId === evidenceId).map(({ startFrame, endFrame }) => ({ startFrame, endFrame })), [{ startFrame: caption.endFrame, endFrame: 48 }]);
+    const pending = await f.app.readProductionStatus(f.projectId, { runId: run.id, completionScope: scope });
+    assert.ok(pending.completion!.observationGaps.length);
+    assert.deepEqual(pending.completion!.openRequiredFindingIds, [findingId]);
+    const observed = await f.app.recordEditorialQualityReview({ projectId: f.projectId, runId: run.id, revision: changed.revision.number, passes: ["mute_visual"], previewEvidence: [], findings: [], observations: [{ source: "workbench", observer: "隔离测试", pass: "mute_visual", method: "frames", startFrame: caption.startFrame, endFrame: caption.startFrame + 1, observation: "测试声明：已复查字幕文字" }] });
+    const newEvidenceId = observed.editorialReview!.evidenceRecords!.at(-1)!.id;
+    await f.app.recordEditorialQualityReview({ projectId: f.projectId, runId: run.id, revision: changed.revision.number, passes: ["mute_visual"], previewEvidence: [], findings: [], resolutions: [{ findingId, evidenceIds: [newEvidenceId], note: "测试声明：文字已修正", scope: "caption_text" }] });
+    const completed = await f.app.completeProductionRun({ projectId: f.projectId, runId: run.id, finalRevision: changed.revision.number, completionScope: scope });
+    assert.equal(completed.status, "completed", completed.completionBlockers.join("; "));
+    const repeated = await f.app.completeProductionRun({ projectId: f.projectId, runId: run.id, finalRevision: changed.revision.number, completionScope: scope });
+    assert.equal(repeated.completedAt, completed.completedAt);
+    const status = await f.app.readProductionStatus(f.projectId, { runId: run.id, completionScope: scope });
+    assert.equal(status.completion!.recordedStatus, "completed");
+    assert.equal(status.completion!.revision, changed.revision.number);
+    assert.equal(f.app.listJobs(f.projectId).filter(job => job.kind === "preview" || job.kind === "export").length, 0);
+  } finally { await f.dispose(); }
+});
+
+test("工作台声画观察在局部声音变更后只保留依赖未变的范围", async () => {
+  const f = await fixture();
+  try {
+    const recorded = await f.app.recordEditorialQualityReview({ ...f.base, passes: ["audiovisual"], observations: [{
+      source: "workbench", observer: "隔离测试", pass: "audiovisual", method: "audiovisual", startFrame: 0, endFrame: 48, observation: "测试声明：观察原始声画"
+    }] });
+    const evidenceId = recorded.editorialReview!.evidenceRecords![0]!.id;
+    const soundPath = join(f.state.snapshot.project.rootPath, "assets/source/local-sound.wav");
+    await runProcess("ffmpeg", ["-y", "-f", "lavfi", "-i", "sine=frequency=400:sample_rate=48000:duration=0.5", "-c:a", "pcm_s16le", soundPath]);
+    const imported = f.app.registerImportedAsset({ projectId: f.projectId, baseRevision: f.app.readProject(f.projectId).revision.number, name: "local-sound.wav", kind: "audio", managedPath: "assets/source/local-sound.wav", sourceHash: await hashMediaFile(soundPath) });
+    f.app.applyMediaAnalysis({ projectId: f.projectId, assetId: imported.asset.id, metadata: { durationMs: 500, hasAudio: true, audioCodec: "pcm_s16le" } });
+    const changed = f.app.placeNarration({ projectId: f.projectId, baseRevision: f.app.readProject(f.projectId).revision.number, assetId: imported.asset.id, startFrame: 0, sourceStartFrame: 0, sourceEndFrame: 12 });
+    const review = await f.app.readEditorialQualityReview({ projectId: f.projectId, revision: changed.revision.number });
+    const parts = review!.applicableEvidence!.filter(part => part.evidenceId === evidenceId);
+    assert.ok(parts.every(part => part.startFrame >= 12), "新增声音的位置应重新检查");
+    assert.ok(parts.some(part => part.endFrame === 48 && part.startFrame <= 24), "声音影响范围之外应复用旧观察");
+  } finally { await f.dispose(); }
+});
+
 test("工作台观察固定版本和范围，不伪造预览文件或修改视频", async () => {
   const f = await fixture();
   try {
@@ -115,12 +186,16 @@ test("工作台观察、返修工作单和结果版复查沿同一审计闭环",
   const { app: server, application } = await createServer({ workspaceRoot: f.root });
   try {
     const itemId = f.state.snapshot.timeline.items[0]!.id;
+    const editorUrl = await server.inject({ method: "GET", url: `/api/projects/${f.projectId}/editor-url?productionRunId=${encodeURIComponent(f.run.id)}&revision=${f.base.revision}&fromFrame=5&toFrame=12` });
+    assert.equal(editorUrl.statusCode, 200, editorUrl.body);
+    assert.equal(new URL(editorUrl.json().editorUrl).searchParams.get("productionRunId"), f.run.id);
     const observation = await server.inject({ method: "POST", url: `/api/projects/${f.projectId}/workbench-observations`, payload: {
-      revision: f.base.revision, pass: "mute_visual", method: "frames", observer: "审片者", observation: "第五帧发生遮挡", startFrame: 5, endFrame: 12,
+      runId: f.run.id, revision: f.base.revision, pass: "mute_visual", method: "frames", observer: "审片者", observation: "第五帧发生遮挡", startFrame: 5, endFrame: 12,
       finding: { category: "motion", severity: "warning", summary: "遮挡文字", impact: "影响阅读", objectId: itemId }
     } });
     assert.equal(observation.statusCode, 200, observation.body);
     const recorded = observation.json();
+    assert.equal(recorded.runId, f.run.id);
     const finding = recorded.review.findings[0];
     assert.equal(recorded.review.evidenceRecords[0].previewJobId, undefined);
     assert.equal(application.readProject(f.projectId).revision.number, f.base.revision);
@@ -142,6 +217,12 @@ test("工作台观察、返修工作单和结果版复查沿同一审计闭环",
     assert.equal(resolution.statusCode, 200, resolution.body);
     const current = await server.inject({ method: "GET", url: `/api/projects/${f.projectId}/editorial-review?revision=${revision}` });
     assert.equal(current.json().resolutions[0].findingId, finding.id);
+    const status = await server.inject({ method: "GET", url: `/api/projects/${f.projectId}/production-status?runId=${encodeURIComponent(f.run.id)}&completionScope=${encodeURIComponent(JSON.stringify({ kind: "objects", objectIds: [itemId] }))}` });
+    assert.equal(status.statusCode, 200, status.body);
+    assert.equal(status.json().completion.runId, f.run.id);
+    assert.equal(status.json().completion.revision, revision);
+    const invalid = await server.inject({ method: "GET", url: `/api/projects/${f.projectId}/production-status?runId=${encodeURIComponent(f.run.id)}` });
+    assert.equal(invalid.statusCode, 400);
     assert.equal(application.readProject(f.projectId).revision.number, revision, "观察及复查不创建视频版本");
   } finally { await server.close(); application.close(); await f.dispose(); }
 });

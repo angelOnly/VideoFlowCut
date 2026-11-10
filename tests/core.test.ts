@@ -1071,7 +1071,7 @@ test("ProductionRun 缺少真实创作证据时保持 incomplete，且不复制 
       mcpCommand: "record_creative_decision"
     });
     assert.equal(recorded.creativeDecisions.length, 1);
-    const completed = await context.app.completeProductionRun({ completionScope: { kind: "project" }, projectId: created.snapshot.project.id, runId: run.id });
+    const completed = await context.app.completeProductionRun({ completionScope: { kind: "project" }, projectId: created.snapshot.project.id, runId: run.id, finalRevision: context.app.readProject(created.snapshot.project.id).revision.number });
     assert.equal(completed.status, "incomplete");
     assert.equal(completed.finalRevision, context.app.readProject(created.snapshot.project.id).revision.number);
     assert.ok(completed.completionBlockers.some((blocker) => blocker.includes("语义决策")));
@@ -1092,8 +1092,9 @@ test("ProductionRun 不要求预览文件，未审状态继续保留", async () 
     const state = context.app.buildPresenterTimeline({ projectId, baseRevision: context.app.readProject(projectId).revision.number, assetIds: [assetId] });
     const run = await context.app.startProductionRun({ projectId, loadedSkills: ["production-director"] });
     for (const category of ["semantic", "story", "visual"] as const) await context.app.recordCreativeDecision({ projectId, runId: run.id, category, decision: "合约测试制作决策", rationale: "不代表真实创意与观看" });
-    const completed = await context.app.completeProductionRun({ completionScope: { kind: "project" }, projectId, runId: run.id });
-    assert.equal(completed.status, "completed");
+    const completed = await context.app.completeProductionRun({ completionScope: { kind: "project" }, projectId, runId: run.id, finalRevision: state.revision.number });
+    assert.equal(completed.status, "incomplete");
+    assert.ok(completed.completionBlockers.some(blocker => blocker.includes("工作台")));
     assert.deepEqual(completed.composedFrameEvidence, []);
     assert.equal(completed.editorialReview, undefined);
     assert.equal((await context.app.readEditorialQualityReview({ projectId, revision: state.revision.number })), undefined);
@@ -1143,8 +1144,9 @@ test("ProductionRun 不要求每个效果抽帧，已有证据仍按真实范围
       findings: []
     });
     const missingCueFrame = await context.app.completeProductionRun({ completionScope: { kind: "project" }, projectId: created.snapshot.project.id, runId: run.id, finalRevision: revision });
-    assert.equal(missingCueFrame.status, "completed");
-    assert.deepEqual(missingCueFrame.completionBlockers, []);
+    assert.equal(missingCueFrame.status, "incomplete");
+    assert.ok(missingCueFrame.completionBlockers.some(blocker => blocker.includes("工作台")));
+    assert.ok(!missingCueFrame.completionBlockers.some(blocker => blocker.includes("效果抽帧")));
     assert.equal(missingCueFrame.composedFrameEvidence.length, outsideFrames.length);
   } finally {
     await context.dispose();

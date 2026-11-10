@@ -25,9 +25,14 @@ export function missingReviewRanges(ranges: Array<{ startFrame: number; endFrame
 
 export function reviewCoverage(review: EditorialQualityReview | undefined, revision: number, duration: number): NonNullable<QualityReport["editorial"]["coverage"]> {
   return EDITORIAL_PASSES.map((pass) => {
-    const evidence = (review?.evidenceRecords ?? []).filter((entry) => entry.revision === revision && entry.pass === pass && evidenceSupportsPass(entry));
-    // 首次观众轮必须连续看完整片，不能拼合多个互不相邻的观看会话。
-    const ranges = pass === "first_viewer" ? evidence.filter((entry) => entry.startFrame === 0 && entry.endFrame === duration) : evidence;
+    const evidence = (review?.evidenceRecords ?? []).filter((entry) => entry.pass === pass && evidenceSupportsPass(entry));
+    const applicable = review?.applicableEvidence;
+    const ranges: Array<{ startFrame: number; endFrame: number }> = evidence.flatMap(entry => {
+      const parts: Array<{ startFrame: number; endFrame: number }> = applicable ? applicable.filter(part => part.evidenceId === entry.id && part.targetRevision === revision) : entry.revision === revision ? [entry] : [];
+      // 首次观众轮要求同一条原观察及其有效范围覆盖完整视频。
+      if (pass === "first_viewer" && (entry.startFrame !== 0 || entry.endFrame !== duration || missingReviewRanges(parts, 0, duration).length)) return [];
+      return parts;
+    });
     const missingRanges = missingReviewRanges(ranges, 0, duration);
     return { pass, complete: duration > 0 && missingRanges.length === 0, missingRanges };
   });

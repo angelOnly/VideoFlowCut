@@ -206,7 +206,7 @@ test("真实画面生成后自动采用并合成可播放预览，状态与观�
     assert.equal(rendered.frameCount, 18);
     assert.equal(rendered.fps, 30);
     assert.ok(typeof rendered.sourceHash === "string" && rendered.sourceHash.length === 64);
-    const status = app.readProductionStatus(projectId);
+    const status = await app.readProductionStatus(projectId);
     assert.equal(status.work.adopted[0].assetId, generated.assetId);
     assert.equal(status.files.previews[0].status, "succeeded");
     assert.deepEqual(status.observations.sound, []);

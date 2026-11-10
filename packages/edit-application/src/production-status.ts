@@ -1,14 +1,16 @@
 import { motionMediaForCue, motionWorkForCue } from "@videocut/contracts";
 import type { EditingApplication } from "./index.js";
-import type { MotionContinuationResult } from "@videocut/contracts";
+import type { MotionContinuationResult, ProductionCompletionScope } from "@videocut/contracts";
 
 /** 只从真实对象派生状态，不保存另一份“当前制作状态”。 */
-export function readProductionStatus(app: EditingApplication, projectId: string) {
+export async function readProductionStatus(app: EditingApplication, projectId: string, context?: { runId: string; completionScope: ProductionCompletionScope }) {
   const state = app.readProject(projectId), jobs = app.repository.listJobs(projectId);
   const jobById = new Map(jobs.map(job => [job.id, job]));
   const artifacts = app.repository.listExportArtifacts(projectId);
+  const completion = context ? await app.evaluateProductionCompletion({ projectId, runId: context.runId, completionScope: context.completionScope, revision: state.revision.number }) : undefined;
   return {
     projectId, revision: state.revision.number, generatedAt: new Date().toISOString(),
+    ...(completion ? { completion } : {}),
     work: {
       adopted: state.snapshot.effectCues.filter(cue => cue.type === "ManagedMotion").map(cue => {
         const work = motionWorkForCue(state.snapshot, cue);
@@ -46,7 +48,7 @@ export function readProductionStatus(app: EditingApplication, projectId: string)
         currentRevisionApplicability: review.previewRevision === state.revision.number ? "same_revision" : "requires_dependency_check" })),
       motion: state.reviews.motions.map(review => ({ workId: review.workId, assetId: review.assetId, version: review.version,
         outcome: review.outcome, note: review.note, evidence: review.evidence })),
-      completeAudiovisualCoverage: "未由技术状态推断；依据实际观察的方法、范围和依赖判断"
+      editorial: completion ? { observationGaps: completion.observationGaps, openRequiredFindingIds: completion.openRequiredFindingIds } : undefined
     },
     user: artifacts.map(artifact => ({ artifactId: artifact.id, fileHash: artifact.fileHash, approval: artifact.approval ?? null }))
   };

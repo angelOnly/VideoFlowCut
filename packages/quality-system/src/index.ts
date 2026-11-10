@@ -1886,9 +1886,12 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
   const allIssues = [...technicalIssues];
   const coverage = reviewCoverage(editorialReview, revision, timeline.durationInFrames);
   const openFindings = openEditorialFindings(editorialReview);
+  const applicableIds = new Set(editorialReview?.applicableEvidence?.filter(entry => entry.targetRevision === revision).map(entry => entry.evidenceId) ?? []);
+  const applicablePasses = editorialReview?.evidenceRecords?.filter(entry => applicableIds.has(entry.id)).map(entry => entry.pass) ?? [];
+  const hasApplicableReview = editorialReview?.revision === revision || applicableIds.size > 0;
   const editorial: QualityReport["editorial"] = {
-    status: editorialReview ? editorialReview.revision === revision ? coverage.every((entry) => entry.complete) ? "reviewed" : "partial" : "stale" : "not_recorded",
-    passes: editorialReview?.revision === revision ? [...editorialReview.passes] : [],
+    status: editorialReview ? hasApplicableReview ? coverage.every((entry) => entry.complete) ? "reviewed" : "partial" : "stale" : "not_recorded",
+    passes: hasApplicableReview ? [...new Set([...(editorialReview?.revision === revision ? editorialReview.passes : []), ...applicablePasses])] : [],
     semantic: [],
     pacing: [],
     attention: [],

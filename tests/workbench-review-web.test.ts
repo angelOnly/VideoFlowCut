@@ -24,6 +24,7 @@ test("工作台固定版本、按范围循环时不创建预览文件或切换�
     const asset = application.registerImportedAsset({ projectId, baseRevision: created.revision.number, name: "review.mp4", kind: "video", managedPath: "assets/source/review.mp4" });
     application.applyMediaAnalysis({ projectId, assetId: asset.asset.id, metadata: { durationMs: 2000, width: 64, height: 64, fps: 24, hasAudio: false, videoCodec: "h264" } });
     const timed = application.buildPresenterTimeline({ projectId, baseRevision: application.readProject(projectId).revision.number, assetIds: [asset.asset.id] });
+    const run = await application.startProductionRun({ projectId, baseRevision: timed.revision.number, loadedSkills: ["web-editor-operator"] });
     application.updateStory({ projectId, baseRevision: timed.revision.number, title: "更新后的版本" });
     const apiUrl = await server.listen({ host: "127.0.0.1", port: 0 });
     process.env.VITE_API_BASE = apiUrl;
@@ -38,7 +39,7 @@ test("工作台固定版本、按范围循环时不创建预览文件或切换�
     page.on("pageerror", error => errors.push(String(error)));
     page.on("response", response => { if (response.request().method() === "GET" && response.url().includes(`/api/projects/${projectId}`)) projectReads.push(`${response.status()} ${response.url()}`); });
     const itemId = timed.snapshot.timeline.items[0]!.id;
-    await page.goto(`http://127.0.0.1:${port}/?projectId=${encodeURIComponent(projectId)}&revision=${timed.revision.number}&itemId=${encodeURIComponent(itemId)}&fromFrame=5&toFrame=12`, { waitUntil: "networkidle2" });
+    await page.goto(`http://127.0.0.1:${port}/?projectId=${encodeURIComponent(projectId)}&productionRunId=${encodeURIComponent(run.id)}&revision=${timed.revision.number}&itemId=${encodeURIComponent(itemId)}&fromFrame=5&toFrame=12`, { waitUntil: "networkidle2" });
     await page.waitForSelector('[data-testid="workbench"]');
     assert.equal(await page.$eval('[data-testid="revision"]', el => el.textContent), `R${timed.revision.number}`);
     assert.equal(await page.$eval('[aria-label="审阅起帧"]', el => (el as HTMLInputElement).value), "5");
@@ -67,6 +68,7 @@ test("工作台固定版本、按范围循环时不创建预览文件或切换�
     await page.type('[aria-label="观察者"]', "审片者");
     await page.type('[aria-label="实际观察"]', "第 5 至 11 帧文字被遮挡");
     await page.type('[aria-label="问题影响"]', "影响阅读");
+    await page.select('[aria-label="严重程度"]', "major");
     await page.$$eval('[data-testid="workbench-review"] button', buttons => buttons.find(button => button.textContent === "记录问题")!.click());
     await page.waitForFunction(() => document.querySelector('[data-testid="workbench-review"] [role="status"]')?.textContent?.includes("已记录问题"));
     await page.$$eval('[data-testid="workbench-review"] button', buttons => buttons.find(button => button.textContent === "准备返修")!.click());
@@ -82,24 +84,39 @@ test("工作台固定版本、按范围循环时不创建预览文件或切换�
     assert.equal(await page.$eval('[data-testid="revision"]', el => el.textContent), `R${timed.revision.number}`);
     const agentId = "隔离测试接手者";
     const claimed = application.claimAgentWorkOrder({ projectId, baseRevision: createdOrderState.revision.number, workOrderId: order.id, agentId });
-    const edited = application.moveItem({ projectId, baseRevision: claimed.state.revision.number, itemId, startFrame: 3 });
-    const latest = application.completeAgentWorkOrder({ projectId, baseRevision: edited.revision.number, workOrderId: order.id, agentId, completionKind: "edited", completionSummary: "测试将片段移动三帧。" }).state;
+    await page.click('[data-testid="show-latest-revision"]');
+    await page.waitForFunction(revision => document.querySelector('[data-testid="revision"]')?.textContent === `R${revision}`, {}, claimed.state.revision.number);
+    await page.$$eval('[data-testid="inspector"] button', buttons => buttons.find(button => button.textContent === "后移 1 帧")!.click());
+    await page.waitForFunction(revision => Number(document.querySelector('[data-testid="revision"]')?.textContent?.slice(1)) > revision, {}, claimed.state.revision.number);
+    const edited = application.readProject(projectId);
+    assert.equal(edited.snapshot.timeline.items.find(item => item.id === itemId)!.startFrame, 1);
+    const latest = application.completeAgentWorkOrder({ projectId, baseRevision: edited.revision.number, workOrderId: order.id, agentId, completionKind: "edited", completionSummary: "测试将片段移动一帧。" }).state;
     const beforeRecheck = await application.readEditorialQualityReview({ projectId, revision: latest.revision.number });
     assert.equal(beforeRecheck?.resolutions?.length ?? 0, 0, "完成工作单不能自动关闭审阅问题");
-    await page.click('[data-testid="show-latest-revision"]');
+    await page.reload({ waitUntil: "networkidle2" });
+    assert.equal(new URL(page.url()).searchParams.get("productionRunId"), run.id);
+    await page.click('[data-testid="workbench-review"] summary');
+    await page.type('[aria-label="观察者"]', "审片者");
     await page.waitForFunction(revision => document.querySelector('[data-testid="revision"]')?.textContent === `R${revision}`, { timeout: 5000 }, latest.revision.number).catch(async error => {
       throw new Error(`切换到 R${latest.revision.number} 失败：${await page.$eval('[data-testid="revision"]', el => el.textContent)}；${page.url()}；${await page.$eval('.preview-controls .message', el => el.textContent)}；${projectReads.join("\n")}；${error}`);
     });
     await page.waitForFunction(() => document.querySelectorAll('[aria-label="复查问题"] option').length > 1);
     await page.$$eval('[data-testid="workbench-review"] button', buttons => buttons.find(button => button.textContent === "在本版复查")!.click());
-    await page.waitForFunction(() => (document.querySelector('[aria-label="审阅起帧"]') as HTMLInputElement)?.value === "7" && (document.querySelector('[aria-label="审阅结束帧"]') as HTMLInputElement)?.value === "16");
+    await page.waitForFunction(() => (document.querySelector('[aria-label="审阅起帧"]') as HTMLInputElement)?.value === "5" && (document.querySelector('[aria-label="审阅结束帧"]') as HTMLInputElement)?.value === "14");
     assert.equal(await page.$eval('[aria-label="观察方式"]', el => (el as HTMLSelectElement).value), "continuous_video");
+    await page.$$eval("button", buttons => buttons.find(button => button.textContent === "播放范围")!.click());
+    await page.waitForFunction(() => {
+      const match = /F(\d+)/u.exec(document.querySelector(".preview-toolbar span:last-child")?.textContent ?? "");
+      return Boolean(match && Number(match[1]) > 5 && Number(match[1]) < 14);
+    });
     await page.type('[aria-label="实际观察"]', "连续复查该范围及运动，遮挡已消失");
     await page.$$eval('[data-testid="workbench-review"] button', buttons => buttons.find(button => button.textContent === "保存观察并关闭已解决问题")!.click());
     await page.waitForFunction(() => document.querySelector('[data-testid="workbench-review"] [role="status"]')?.textContent?.includes("已保存观察并复查该问题"), { timeout: 5000 }).catch(async error => {
       throw new Error(`复查失败：${await page.$eval('[data-testid="workbench-review"] [role="status"]', el => el.textContent)}；${error}`);
     });
     const review = await application.readEditorialQualityReview({ projectId, revision: latest.revision.number });
+    assert.equal(review?.findings?.[0]?.severity, "major");
+    assert.ok((await application.readSkillExecutionReport({ projectId, runId: run.id })).editorialReviewHistory?.length);
     assert.equal(review?.resolutions?.[0]?.findingId, order.reviewContext?.findingIds?.[0]);
     assert.equal(application.listJobs(projectId).filter(job => job.kind === "preview" || job.kind === "export").length, 0);
     assert.deepEqual(errors, []);

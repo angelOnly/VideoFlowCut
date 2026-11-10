@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import type { EditorialQualityReview, EditorialReviewCategory, EditorialReviewFinding, EditorialReviewPass } from "@videocut/contracts";
+import type { EditorialQualityReview, EditorialReviewCategory, EditorialReviewFinding, EditorialReviewPass, EditorialReviewSeverity } from "@videocut/contracts";
 import { api } from "./api";
 
 type Method = "frames" | "continuous_video" | "audio" | "audiovisual";
 
 /** 审阅只记录明确声明的观察；播放和定位本身不产生结论。 */
-export function WorkbenchReviewPanel({ projectId, revision, startFrame, endFrame, objectId, onLocate, onRecheck, onRepair }: {
+export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, revision, startFrame, endFrame, objectId, onLocate, onRecheck, onRepair }: {
   projectId: string; revision: number; startFrame: number; endFrame: number; objectId?: string;
+  productionRunId?: string; onRunChange: (runId: string) => void;
   onLocate: (finding: EditorialReviewFinding) => void;
   onRecheck: (finding: EditorialReviewFinding) => Promise<void>;
   onRepair: (finding: EditorialReviewFinding) => void;
@@ -18,6 +19,7 @@ export function WorkbenchReviewPanel({ projectId, revision, startFrame, endFrame
   const [method, setMethod] = useState<Method>("frames");
   const [pass, setPass] = useState<EditorialReviewPass>("mute_visual");
   const [category, setCategory] = useState<EditorialReviewCategory>("motion");
+  const [severity, setSeverity] = useState<EditorialReviewSeverity>("warning");
   const [findingId, setFindingId] = useState("");
   const [captionOnly, setCaptionOnly] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -40,10 +42,11 @@ export function WorkbenchReviewPanel({ projectId, revision, startFrame, endFrame
     setBusy(true); setMessage("");
     try {
       const result = await api.recordWorkbenchObservation(projectId, {
-        runId: runId.current, revision, pass, method, observer, observation, startFrame, endFrame,
-        ...(mode === "finding" ? { finding: { category, severity: "warning", summary: observation, impact, objectId } } : {})
+        runId: productionRunId ?? runId.current, revision, pass, method, observer, observation, startFrame, endFrame,
+        ...(mode === "finding" ? { finding: { category, severity, summary: observation, impact, objectId } } : {})
       });
       runId.current = result.runId;
+      onRunChange(result.runId);
       if (mode === "resolution") {
         const evidence = result.review.evidenceRecords?.at(-1);
         if (!evidence) throw new Error("观察已保存，但未取得可复查的证据标识。");
@@ -74,6 +77,9 @@ export function WorkbenchReviewPanel({ projectId, revision, startFrame, endFrame
       </select></label>
       <label>问题类别 <select aria-label="问题类别" value={category} onChange={event => setCategory(event.target.value as EditorialReviewCategory)}>
         <option value="motion">运动</option><option value="typography">文字排版</option><option value="semantic">内容</option><option value="pacing">节奏</option><option value="attention">注意力</option><option value="audio">声音</option><option value="mode_specific">专项</option>
+      </select></label>
+      <label>严重程度 <select aria-label="严重程度" value={severity} onChange={event => setSeverity(event.target.value as EditorialReviewSeverity)}>
+        <option value="warning">提醒</option><option value="major">需要修复</option><option value="blocking">阻断</option><option value="minor">轻微</option><option value="suggestion">建议</option><option value="inconclusive">待确认</option>
       </select></label>
     </div>
     <label>实际观察<textarea aria-label="实际观察" value={observation} onChange={event => setObservation(event.target.value)} /></label>

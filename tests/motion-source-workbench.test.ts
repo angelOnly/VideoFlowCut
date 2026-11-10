@@ -15,8 +15,9 @@ import { runProcess } from "@videocut/speech";
 import { motionHtml } from "./fixtures/hyperframes.js";
 import { motionSubmissionSchema } from "../packages/motion-work/src/schema.js";
 import { readOutputFrame } from "./fixtures/motion-output.js";
-import { runPreviewJob, runExportJob } from "../apps/render-worker/src/exporter.js";
+import { runPreviewJob, runExportJob, runRenderPreflight } from "../apps/render-worker/src/exporter.js";
 import { reviewSoundMix } from "../packages/edit-application/src/sound-review.js";
+import { inspectEffectContentContract } from "@videocut/contracts";
 
 test("固定源码直接进入工作台，真实图片字体视频按根帧预览，换版后按需生成同作品媒体", { timeout: 180_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-source-workbench-"));
@@ -34,7 +35,7 @@ test("固定源码直接进入工作台，真实图片字体视频按根帧预�
     const imageBytes = PNG.sync.write(png);
     await writeFile(join(projectRoot, "assets/source/image.png"), imageBytes);
     const image = app.registerImportedAsset({ projectId: id, baseRevision: rev(), name: "实图", kind: "image", managedPath: "assets/source/image.png", sourceHash: createHash("sha256").update(imageBytes).digest("hex") });
-    app.applyMediaAnalysis({ projectId: id, assetId: image.asset.id, metadata: { durationMs: 0, width: 32, height: 32, hasAudio: false } });
+    app.applyMediaAnalysis({ projectId: id, assetId: image.asset.id, metadata: { durationMs: 0, width: 32, height: 32, hasAudio: false, videoCodec: "png" } });
     const videoPath = join(projectRoot, "assets/source/video.mp4");
     await runProcess("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "testsrc2=s=64x64:r=30:d=2", "-c:v", "libx264", "-pix_fmt", "yuv420p", videoPath]);
     const { hashMediaFile } = await import("../packages/edit-application/src/media-intelligence.js");
@@ -65,6 +66,12 @@ test("固定源码直接进入工作台，真实图片字体视频按根帧预�
     app.placeNarration({ projectId: id, baseRevision: rev(), assetId: audio.asset.id, startFrame: 0, sourceStartFrame: 0, sourceEndFrame: 24 });
     app.repository.commit(id, rev(), "隔离字幕规格", snapshot => { snapshot.timeline.captionFormat!.fontSize = 20; });
     app.importSrtCaptions({ projectId: id, baseRevision: rev(), srtText: "1\n00:00:00,250 --> 00:00:00,750\n技术样片\n", sourceName: "隔离字幕.srt", targetRange: { startFrame: 0, endFrame: 24 }, writePolicy: "reject_conflicts", idempotencyKey: "captions" });
+    const imageCheck = await runRenderPreflight(app, id, rev(), "draft");
+    assert.ok(imageCheck.checks.some(check => check.objectId === image.asset.id && check.code === "PREFLIGHT_MEDIA_DECODABLE" && check.status === "passed"));
+    await writeFile(join(projectRoot, "assets/source/image.png"), "损坏的图片");
+    const corruptCheck = await runRenderPreflight(app, id, rev(), "draft");
+    assert.ok(corruptCheck.checks.some(check => check.objectId === image.asset.id && check.code === "PREFLIGHT_MEDIA_UNDECODABLE" && check.status === "failed"));
+    await writeFile(join(projectRoot, "assets/source/image.png"), imageBytes);
 
     const apiUrl = await server.listen({ host: "127.0.0.1", port: 0 });
     process.env.VITE_API_BASE = apiUrl;
@@ -116,6 +123,15 @@ test("固定源码直接进入工作台，真实图片字体视频按根帧预�
     const playback = await page.evaluate(() => new Promise<{ frames: number[]; maxLag: number; maxAudioOffset: number }>(resolve => {
       const layer = document.querySelector('[data-motion-work]')!, frames: number[] = [];
       let maxLag = 0, maxAudioOffset = 0;
+      const completion = {
+        finished: false,
+        finish() {
+          if (this.finished) return;
+          this.finished = true; clearTimeout(timeout); observer.disconnect();
+          [...document.querySelectorAll('.preview-controls button')].find(button => button.textContent === "暂停")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          resolve({ frames, maxLag, maxAudioOffset });
+        }
+      };
       const observer = new MutationObserver(() => {
         const shown = Number(layer.getAttribute("data-displayed-frame")), requested = Number(layer.getAttribute("data-requested-frame"));
         if (frames.at(-1) !== shown) frames.push(shown);
@@ -124,17 +140,16 @@ test("固定源码直接进入工作台，真实图片字体视频按根帧预�
         const projectFrame = Number(/F(\d+)/u.exec(document.querySelector('.preview-toolbar span:last-child')?.textContent ?? "")?.[1] ?? 0);
         const audio = document.querySelector("audio");
         if (audio && !audio.paused) maxAudioOffset = Math.max(maxAudioOffset, Math.abs(audio.currentTime - projectFrame / 24));
+        if (projectFrame >= 23 && shown >= 36) completion.finish();
       });
       observer.observe(layer, { attributes: true });
+      const timeout = setTimeout(() => completion.finish(), 15_000);
       [...document.querySelectorAll('.preview-controls button')].find(button => button.textContent === "播放")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      setTimeout(() => {
-        [...document.querySelectorAll('.preview-controls button')].find(button => button.textContent === "暂停")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-        observer.disconnect(); resolve({ frames, maxLag, maxAudioOffset });
-      }, 1800);
     }));
     console.log(`工作台连续播放：显示${playback.frames.length}个状态，最大源帧差${playback.maxLag}，声音时钟偏差${(playback.maxAudioOffset * 1000).toFixed(1)}ms`);
     assert.ok(playback.frames.length >= 15, "连续播放必须实际求值多帧");
-    assert.ok(Array.from({ length: 24 }, (_, frame) => Math.floor((6 + frame) * 30 / 24)).every(frame => playback.frames.includes(frame)), "该连续范围的每个项目采样帧都应实际显示");
+    const expectedFrames = Array.from({ length: 24 }, (_, frame) => Math.floor((6 + frame) * 30 / 24));
+    assert.ok(expectedFrames.every(frame => playback.frames.includes(frame)), `连续播放缺少显示帧：${expectedFrames.filter(frame => !playback.frames.includes(frame)).join(",")}；实际：${playback.frames.join(",")}`);
     assert.ok(playback.maxLag <= 4, "连续请求与完成帧之间最多保留两个项目刷新周期，不能持续积压");
     assert.ok(playback.maxAudioOffset < 0.25, "声音必须随合成缓冲，不能独自跑完整段");
     await page.waitForFunction(() => { const el = document.querySelector('[data-motion-work]'); return el?.getAttribute("data-displayed-frame") === el?.getAttribute("data-requested-frame"); });
@@ -152,6 +167,74 @@ test("固定源码直接进入工作台，真实图片字体视频按根帧预�
     await page.waitForFunction((workId, rootFrame) => document.querySelector(`[data-motion-work="${workId}"]`)?.getAttribute("data-displayed-frame") === rootFrame, { timeout: 30_000 }, nextId, expectedRoot);
     console.log(`切换结果版至同位置就绪：${(performance.now() - recheckStart).toFixed(1)}ms`);
     assert.equal(await page.frames().find(frame => frame.url().includes(nextId))!.$eval("#title", el => el.textContent), "版本二");
+    // 两个相邻源码 Cue 在循环和跨镜时都要显示自己的实际完成帧。
+    const currentCue = app.readProject(id).snapshot.effectCues.find(cue => cue.workId === nextId)!;
+    const splitJob = app.submitMotionAdoption({ projectId: id, baseRevision: rev(), idempotencyKey: "cross-cue-review", workId,
+      target: { action: "replace_range", cueId: currentCue.id, targetRange: { startFrame: 12, endFrame: 24 }, audioPolicy: "rebind_unchanged_events" } });
+    const splitResult = await app.completeMotionAdoption(splitJob.id);
+    assert.equal((splitResult.continuation as { status: string }).status, "applied");
+    const splitSnapshot = app.readProject(id).snapshot;
+    for (const cue of splitSnapshot.effectCues) {
+      const contract = inspectEffectContentContract(cue, splitSnapshot.assets, splitSnapshot.timeline, splitSnapshot.motionWorks);
+      assert.equal(contract.ready, true, JSON.stringify({ cue, contract }));
+    }
+    const splitDocumentRequests: string[] = [];
+    page.on("request", request => {
+      if (/\/motion-work\/.*\/document$/u.test(request.url())) splitDocumentRequests.push(request.url());
+    });
+    await page.goto(`http://127.0.0.1:${port}/?projectId=${id}&revision=${rev()}&frame=8&fromFrame=8&toFrame=16`, { waitUntil: "networkidle2" });
+    await page.waitForFunction(expected => {
+      const layer = document.querySelector('[data-motion-work]');
+      return layer?.getAttribute("data-motion-work") === expected && layer.getAttribute("data-displayed-frame") !== null;
+    }, {}, nextId);
+    await page.$$eval("button", buttons => buttons.find(button => button.textContent === "播放范围")!.click());
+    const crossCue = await page.evaluate(() => new Promise<{ works: string[]; errors: string[]; frames: number[] }>(resolve => {
+      const works = new Set<string>(), errors = new Set<string>(), frames = new Set<number>();
+      const timer = setInterval(() => {
+        for (const layer of document.querySelectorAll('[data-motion-work]')) {
+          if (!layer.getClientRects().length) continue;
+          const work = layer.getAttribute("data-motion-work"), failure = layer.getAttribute("data-motion-error");
+          if (work && layer.getAttribute("data-displayed-frame") !== null) works.add(work);
+          if (failure) errors.add(failure);
+        }
+        const frame = /F(\d+)/u.exec(document.querySelector('.preview-toolbar span:last-child')?.textContent ?? "");
+        if (frame) frames.add(Number(frame[1]));
+      }, 30);
+      setTimeout(() => { clearInterval(timer); resolve({ works: [...works], errors: [...errors], frames: [...frames] }); }, 5000);
+    }));
+    assert.ok(crossCue.works.includes(nextId) && crossCue.works.includes(workId), `循环需显示两个阶段作品：${crossCue.works.join(",")}；目标：${nextId}、${workId}；播放帧：${crossCue.frames.join(",")}`);
+    assert.deepEqual(crossCue.errors, []);
+    for (const id of [nextId, workId]) {
+      assert.equal(splitDocumentRequests.filter(url => url.includes(`/${id}/`)).length, 1, "跨镜循环应复用已加载的作品文档");
+    }
+    const splitCue = app.readProject(id).snapshot.effectCues.find(cue => cue.workId === workId && cue.startFrame === 12)!;
+    const restoreJob = app.submitMotionAdoption({ projectId: id, baseRevision: rev(), idempotencyKey: "cross-cue-restore", workId: nextId,
+      target: { action: "replace_cue", cueId: splitCue.id, audioPolicy: "rebind_unchanged_events" } });
+    assert.equal(((await app.completeMotionAdoption(restoreJob.id)).continuation as { status: string }).status, "applied");
+
+    // 作品明确报错时显示故障，但不能让合成播放器永久停在缓冲状态。
+    await page.setRequestInterception(true);
+    let failedDocuments = 0;
+    const failDocument = (request: import("puppeteer-core").HTTPRequest) => {
+      if (request.url().includes(`/${nextId}/`) && request.url().endsWith("/document")) {
+        failedDocuments++;
+        void request.respond({ status: 200, contentType: "text/html; charset=utf-8", body: `<script>setTimeout(() => parent.postMessage({type:"vfc-motion-error",workId:${JSON.stringify(nextId)},error:"隔离测试错误"},"*"),100)</script>` });
+      } else void request.continue();
+    };
+    page.on("request", failDocument);
+    await page.goto(`http://127.0.0.1:${port}/?projectId=${id}&revision=${rev()}&frame=6`, { waitUntil: "networkidle2" });
+    await page.waitForFunction(() => document.querySelector('[data-motion-error="隔离测试错误"]'), { timeout: 10_000 }).catch(async error => {
+      const layers = await page.$$eval('[data-motion-work]', elements => elements.map(element => ({ work: element.getAttribute("data-motion-work"), error: element.getAttribute("data-motion-error") })));
+      throw new Error(`未收到模拟作品错误：拦截${failedDocuments}次，画面层${JSON.stringify(layers)}；${error}`);
+    });
+    await page.$$eval(".preview-controls button", buttons => buttons.find(button => button.textContent === "播放")!.click());
+    await page.waitForFunction(() => {
+      const match = /F(\d+)/u.exec(document.querySelector(".preview-toolbar span:last-child")?.textContent ?? "");
+      return Boolean(match && Number(match[1]) > 6);
+    }, { timeout: 10_000 });
+    page.off("request", failDocument);
+    await page.setRequestInterception(false);
+
     const fixedDefinition = app.readSourceMotionWork(id, nextId).work;
     app.updateCreativeBrief({ projectId: id, baseRevision: rev(), brief: { sourceDisplayPolicy: { mode: "specified", exceptions: [{ scopeId: id, text: "后续作品才采用的新署名策略", basis: "隔离回归" }] } } });
     const bake = app.submitMotionBake({ projectId: id, baseRevision: rev(), idempotencyKey: "bake-two", workId: nextId });
@@ -171,6 +254,7 @@ test("固定源码直接进入工作台，真实图片字体视频按根帧预�
     const delivery = await runExportJob(app, exported);
     assert.equal(delivery.revision, rev());
     assert.ok(delivery.artifactId);
+
   } finally {
     await browser?.close(); await vite?.close(); await server.close(); app.close();
     if (priorApi === undefined) delete process.env.VITE_API_BASE; else process.env.VITE_API_BASE = priorApi;

@@ -385,9 +385,10 @@ server.registerTool("manage_story", {
 
 server.registerTool("get_editor_url", {
   title: "获取工作台链接",
-  description: "只读返回项目或对象的工作台URL；panel=fonts可打开字体库，font_preview提供实际文案、预期字体、用途及原视觉作者推荐的最多3款已登记字体和理由。链接只展示候选，不自动选择或修改项目；主任务等待用户在聊天确认后续接原作者。",
+  description: "返回指定项目、版本、对象和范围的工作台入口，可关联本次 ProductionRun。使用工作台范围播放检查实际合成。panel=fonts 可打开字体库并展示 font_preview 字体候选；链接只展示候选，不自动选择或修改项目，主任务等待用户在聊天确认后续接原作者。",
   inputSchema: {
     project_id: z.string().optional(),
+    production_run_id: z.string().min(1).optional(),
     scene_id: z.string().optional(),
     item_id: z.string().optional(),
     effect_cue_id: z.string().optional(),
@@ -402,10 +403,12 @@ server.registerTool("get_editor_url", {
 }, async (input) => {
   try {
     const projectId = projectIdFrom(input.project_id);
+    if (input.production_run_id) await application.readSkillExecutionReport({ projectId, runId: input.production_run_id });
     const state = application.readProject(projectId, input.revision);
     if ((input.from_frame === undefined) !== (input.to_frame === undefined) || (input.from_frame !== undefined && input.to_frame !== undefined && (input.to_frame <= input.from_frame || input.to_frame > state.snapshot.timeline.durationInFrames))) throw new Error("工作台范围必须是该版本内的非空区间");
     const url = new URL(webOrigin);
     url.searchParams.set("projectId", projectId);
+    if (input.production_run_id) url.searchParams.set("productionRunId", input.production_run_id);
     if (input.revision !== undefined) url.searchParams.set("revision", String(state.revision.number));
     if (input.from_frame !== undefined) url.searchParams.set("fromFrame", String(input.from_frame));
     if (input.to_frame !== undefined) url.searchParams.set("toFrame", String(input.to_frame));
@@ -419,15 +422,16 @@ server.registerTool("get_editor_url", {
       for (const candidate of input.font_preview.candidates) if (!available.has(candidate.font_id)) throw new Error(`MOTION_FONT_UNKNOWN: 推荐字体${candidate.font_id}未登记，请重新查询字体库`);
       url.searchParams.set("fontPreview", JSON.stringify(input.font_preview));
     }
-    return asText({ editorUrl: url.toString(), revision: state.revision.number });
+    return asText({ editorUrl: url.toString(), revision: state.revision.number, productionRunId: input.production_run_id });
   } catch (error) { return asError(error); }
 });
 
 server.registerTool("focus_editor_object", {
   title: "定位工作台对象",
-  description: "生成指向指定 Scene、Timeline Item、EffectCue 或帧的稳定工作台 URL；不会修改项目。",
+  description: "返回指定项目、版本、对象和范围的工作台入口，可关联本次 ProductionRun，供实际播放与复查。",
   inputSchema: {
     project_id: z.string().optional(),
+    production_run_id: z.string().min(1).optional(),
     scene_id: z.string().optional(),
     item_id: z.string().optional(),
     effect_cue_id: z.string().optional(),
@@ -440,10 +444,12 @@ server.registerTool("focus_editor_object", {
 }, async (input) => {
   try {
     const projectId = projectIdFrom(input.project_id);
+    if (input.production_run_id) await application.readSkillExecutionReport({ projectId, runId: input.production_run_id });
     const state = application.readProject(projectId, input.revision);
     if ((input.from_frame === undefined) !== (input.to_frame === undefined) || (input.from_frame !== undefined && input.to_frame !== undefined && (input.to_frame <= input.from_frame || input.to_frame > state.snapshot.timeline.durationInFrames))) throw new Error("工作台范围必须是该版本内的非空区间");
     const url = new URL(webOrigin);
     url.searchParams.set("projectId", projectId);
+    if (input.production_run_id) url.searchParams.set("productionRunId", input.production_run_id);
     url.searchParams.set("revision", String(state.revision.number));
     if (input.from_frame !== undefined) url.searchParams.set("fromFrame", String(input.from_frame));
     if (input.to_frame !== undefined) url.searchParams.set("toFrame", String(input.to_frame));
@@ -451,7 +457,7 @@ server.registerTool("focus_editor_object", {
     if (input.item_id) url.searchParams.set("itemId", input.item_id);
     if (input.effect_cue_id) url.searchParams.set("effectCueId", input.effect_cue_id);
     if (input.frame !== undefined) url.searchParams.set("frame", String(input.frame));
-    return asText({ editorUrl: url.toString(), revision: state.revision.number, focus: input });
+    return asText({ editorUrl: url.toString(), revision: state.revision.number, productionRunId: input.production_run_id, focus: input });
   } catch (error) { return asError(error); }
 });
 
@@ -2759,7 +2765,7 @@ server.registerTool("record_creative_decision", {
 
 server.registerTool("record_editorial_quality_review", {
   title: "记录真实审片结论",
-  description: "累积局部或全片审片证据与问题；observations 可引用成功 Preview，或明确声明 workbench、观察者与固定 Revision。必须如实填写实际观察方式；播放本身不代表已观察通过。记录不改变视频 Revision。",
+  description: "记录实际工作台观察及问题，关联本次 ProductionRun、观察者、版本、范围和方式。关闭返修问题时引用结果版观察及问题 ID，历史观察对新版的适用范围由应用层计算。记录不改变视频 Revision。",
   inputSchema: {
     project_id: z.string().optional(),
     run_id: z.string().min(1),
@@ -2821,14 +2827,17 @@ server.registerTool("record_editorial_quality_review", {
   } catch (error) { return asError(error); }
 });
 
+const productionCompletionScopeSchema = z.discriminatedUnion("kind", [z.object({ kind: z.literal("project") }), z.object({ kind: z.literal("beats"), beat_ids: z.array(z.string().min(1)).min(1) }), z.object({ kind: z.literal("objects"), object_ids: z.array(z.string().min(1)).min(1) })]);
+const applicationCompletionScope = (scope: z.infer<typeof productionCompletionScopeSchema>) => scope.kind === "beats" ? { kind: "beats" as const, beatIds: scope.beat_ids } : scope.kind === "objects" ? { kind: "objects" as const, objectIds: scope.object_ids } : { kind: "project" as const };
+
 server.registerTool("complete_production_run", {
   title: "完成 ProductionRun",
-  description: "明确 completion_scope，按本次整片、Beat 或对象范围对账结构、必要记录和技术条件；结构缺项返回 incomplete。导演、创意与视觉对实际表达的判断及返修结果从已有决定和审阅记录读取，观察意见独立保存。",
+  description: "完成指定版本和范围的制作，检查结构、采用、工作台观察及必修问题复查。缺项返回 incomplete，相同 Run、版本和范围的重试返回原回执。",
   inputSchema: {
     project_id: z.string().optional(),
-    completion_scope: z.discriminatedUnion("kind", [z.object({ kind: z.literal("project") }), z.object({ kind: z.literal("beats"), beat_ids: z.array(z.string().min(1)).min(1) }), z.object({ kind: z.literal("objects"), object_ids: z.array(z.string().min(1)).min(1) })]),
+    completion_scope: productionCompletionScopeSchema,
     run_id: z.string().min(1),
-    final_revision: z.number().int().positive().optional(),
+    final_revision: z.number().int().positive(),
     quality_review: z.array(z.string().max(2_000)).max(40).optional(),
     preview_evidence: z.array(z.string().max(2_000)).max(40).optional()
   }
@@ -2836,7 +2845,7 @@ server.registerTool("complete_production_run", {
   try {
     return asText(await application.completeProductionRun({
       projectId: projectIdFrom(project_id),
-      completionScope: completion_scope.kind === "beats" ? { kind: "beats", beatIds: completion_scope.beat_ids } : completion_scope.kind === "objects" ? { kind: "objects", objectIds: completion_scope.object_ids } : { kind: "project" },
+      completionScope: applicationCompletionScope(completion_scope),
       runId: run_id,
       finalRevision: final_revision,
       qualityReview: quality_review,
@@ -2882,8 +2891,8 @@ server.registerTool("read_quality_report", {
 });
 
 server.registerTool("render_preview_range", {
-  title: "渲染局部预览",
-  description: "固定指定 Revision 与帧范围，提交可追踪的 Remotion 预览任务。范围按Timeline的半开区间[from_frame,to_frame)计，省略时默认0到该Revision的timeline.durationInFrames；可覆盖全片，不适用inspect_asset的60秒/12秒短范围限制。track_job成功后的result包含revision/fromFrame/toFrame/sourceHash；有音轨时result.audio包含实际输出文件完整解码的integratedLufs、truePeakDbfs、loudnessRangeLu和method。测量只代表该输出的合成范围，局部值不能当全片值，也不是原WAV的独立测量或真实听审。",
+  title: "生成预览文件",
+  description: "为文件交接、离线检查或渲染差异诊断生成指定版本的预览文件。日常观察使用工作台范围播放。范围按 Timeline 半开区间 [from_frame,to_frame) 计，省略时覆盖目标时间线；可覆盖全片，不适用 inspect_asset 的短范围限制。track_job 成功后的 result 包含 revision、fromFrame、toFrame、sourceHash；有音轨时 result.audio 包含实际输出完整解码的 integratedLufs、truePeakDbfs、loudnessRangeLu 和 method。测量只代表该输出的合成范围，局部值不能当全片值，也不是原 WAV 的独立测量或真实听审。",
   inputSchema: {
     project_id: z.string().optional(),
     revision: z.number().int().positive().optional(),
@@ -2937,7 +2946,7 @@ server.registerTool("inspect_composed_frames", {
 
 server.registerTool("submit_export", {
   title: "提交导出",
-  description: "提交 draft 或 delivery 导出。draft 可用于内部审片；delivery 必须有目标 Revision 的完整真实审片与 Preview 证据，且 Remotion 失败绝不静默交付仅主轨文件。",
+  description: "固定目标 Revision，按 draft 或 delivery 用途提交导出，执行技术预检、渲染和最终文件校验。制作完成状态由 complete_production_run 与 read_production_status 读取，用户对具体文件的认可单独记录。",
   inputSchema: { project_id: z.string().optional(), revision: z.number().int().positive().optional(), purpose: z.enum(["draft", "delivery"]).optional(), idempotency_key: z.string().optional(), preflight_job_id: z.string().optional() }
 }, async ({ project_id, revision, purpose, idempotency_key, preflight_job_id }) => {
   try { return asText(application.submitExport({ projectId: projectIdFrom(project_id), revision, purpose, idempotencyKey: idempotency_key, preflightJobId: preflight_job_id })); } catch (error) { return asError(error); }
@@ -3036,10 +3045,14 @@ server.registerTool("read_job_diagnostics", {
 } catch (error) { return asError(error); } });
 
 server.registerTool("read_production_status", {
-  title: "读取实际制作状态", description: "按当前工程、原Job、预览、Artifact及真实观察引用生成只读状态；文件完成不推断已看听或用户定稿。",
-  inputSchema: { project_id: z.string().optional() }, annotations: { readOnlyHint: true }
-}, async ({ project_id }) => {
-  try { return asText(application.readProductionStatus(projectIdFrom(project_id))); } catch (error) { return asError(error); }
+  title: "读取实际制作状态", description: "读取项目制作状态。提供 run_id 和 completion_scope 时，评估本次版本的结构、工作台观察覆盖及未解决问题，并返回原 Run 的记录状态。",
+  inputSchema: { project_id: z.string().optional(), run_id: z.string().min(1).optional(), completion_scope: productionCompletionScopeSchema.optional() }, annotations: { readOnlyHint: true }
+}, async ({ project_id, run_id, completion_scope }) => {
+  try {
+    if (Boolean(run_id) !== Boolean(completion_scope)) throw new DomainError("run_id 和 completion_scope 需要一起提供", "PRODUCTION_STATUS_CONTEXT_REQUIRED");
+    const context = run_id && completion_scope ? { runId: run_id, completionScope: applicationCompletionScope(completion_scope) } : undefined;
+    return asText(await application.readProductionStatus(projectIdFrom(project_id), context));
+  } catch (error) { return asError(error); }
 });
 
 server.registerTool("retry_job", {

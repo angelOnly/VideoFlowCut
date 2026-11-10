@@ -4,8 +4,12 @@ import { createReadStream } from "node:fs";
 import { realpath, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import { promisify } from "node:util";
-import type { EditorialReviewEvidence, EditorialReviewObservation, JobRecord, ProjectSnapshot, WorkbenchEvidenceIdentity } from "@videocut/contracts";
-import { createId, DomainError, now, resolveCompositionReachability } from "@videocut/domain";
+import type { EditorialReviewEvidence, EditorialReviewObservation, JobRecord, ProductionCompletionScope, ProjectSnapshot, WorkbenchEvidenceIdentity } from "@videocut/contracts";
+import { createId, DomainError, effectBeatRanges, now, resolveCompositionReachability } from "@videocut/domain";
+import { motionWorkForCue } from "@videocut/contracts";
+import { captionDisplayRanges } from "../../contracts/src/caption-presentation.js";
+import { soundDependencySignature } from "../../media-intelligence/src/sound-signature.js";
+import { visualAssetIdentity } from "../../edit-domain/src/render-plan.js";
 import { evidenceSupportsPass } from "../../quality-system/src/editorial-review.js";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { readMotionDefinition } from "./motion-definition.js";
@@ -18,7 +22,7 @@ const runFile = promisify(execFile);
 export const workbenchSnapshotHash = (snapshot: ProjectSnapshot): string => createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
 
 /** 只检查观察范围真正使用的资源；不为了核对几帧重新渲染全片。 */
-export async function workbenchEvidenceIdentity(snapshot: ProjectSnapshot, range: { startFrame: number; endFrame: number }): Promise<WorkbenchEvidenceIdentity> {
+export async function workbenchEvidenceIdentity(snapshot: ProjectSnapshot, range: { startFrame: number; endFrame: number }, hashes = new Map<string, Promise<string>>()): Promise<WorkbenchEvidenceIdentity> {
   const overlaps = (entry: { startFrame: number; endFrame: number }) => entry.startFrame < range.endFrame && entry.endFrame > range.startFrame;
   const active = resolveCompositionReachability({ ...snapshot, timeline: { ...snapshot.timeline, items: snapshot.timeline.items.filter(overlaps) },
     effectCues: snapshot.effectCues.filter(overlaps), explainerPrograms: snapshot.explainerPrograms.filter(program => snapshot.scenes.some(scene => scene.id === program.sceneId && overlaps(scene))) });
@@ -37,12 +41,113 @@ export async function workbenchEvidenceIdentity(snapshot: ProjectSnapshot, range
   const resources: WorkbenchEvidenceIdentity["resources"] = [];
   for (const asset of snapshot.assets) {
     if (!active.assetIds.has(asset.id)) continue;
-    const hash = await evidenceHash(snapshot.project.rootPath, asset.managedPath);
+    const key = resolve(snapshot.project.rootPath, asset.managedPath);
+    if (!hashes.has(key)) hashes.set(key, evidenceHash(snapshot.project.rootPath, asset.managedPath));
+    const hash = await hashes.get(key)!;
     const expected = boundHashes.get(asset.id) ?? asset.sourceHash;
     if (expected && expected !== hash) throw new DomainError(`观察素材已改变：${asset.id}`, "EDITORIAL_RESOURCE_CHANGED");
     resources.push({ assetId: asset.id, hash });
   }
   return { works, resources, fonts: [...fonts.values()], engineVersion: MOTION_ENGINE_VERSION, dependencies: HYPERFRAMES_DEPENDENCIES };
+}
+
+type FrameRange = { startFrame: number; endFrame: number };
+
+/** 只把本次对象及其实际时间线引用映射为待观察范围。 */
+export function productionObservationRanges(snapshot: ProjectSnapshot, scope: ProductionCompletionScope): FrameRange[] {
+  if (scope.kind === "project") return snapshot.timeline.durationInFrames > 0 ? [{ startFrame: 0, endFrame: snapshot.timeline.durationInFrames }] : [];
+  if (scope.kind === "beats") return scope.beatIds.flatMap(beatId => snapshot.scenes.flatMap(scene => effectBeatRanges(snapshot, beatId, scene.id)));
+  const ids = new Set(scope.objectIds);
+  const audioItems = new Set(snapshot.audioCues.filter(cue => ids.has(cue.id)).map(cue => cue.timelineItemId));
+  const relatedScenes = new Set(snapshot.visualTreatments.filter(item => ids.has(item.id) && item.sceneId).map(item => item.sceneId));
+  return [
+    ...snapshot.scenes.filter(item => ids.has(item.id) || relatedScenes.has(item.id)),
+    ...snapshot.timeline.items.filter(item => ids.has(item.id) || ids.has(item.assetId) || audioItems.has(item.id)),
+    ...snapshot.timeline.captions.filter(item => ids.has(item.id)),
+    ...snapshot.effectCues.filter(item => ids.has(item.id)),
+    ...snapshot.cutaways.filter(item => ids.has(item.id))
+  ].map(item => ({ startFrame: item.startFrame, endFrame: item.endFrame }));
+}
+
+/** 截取工作台实际合成所需的局部画面，排除派生媒体和其它时间段。 */
+function workbenchVisualProjection(snapshot: ProjectSnapshot, range: FrameRange, identity: WorkbenchEvidenceIdentity) {
+  const overlaps = (item: FrameRange) => item.startFrame < range.endFrame && item.endFrame > range.startFrame;
+  const active = resolveCompositionReachability(snapshot);
+  const items = snapshot.timeline.items.filter(item => active.videoItemIds.has(item.id) && overlaps(item));
+  const cues = snapshot.effectCues.filter(cue => active.effectCueIds.has(cue.id) && overlaps(cue));
+  const scenes = snapshot.scenes.filter(overlaps);
+  const captions = snapshot.project.brief.captionMode === "none" ? [] : snapshot.timeline.captions.filter(caption => captionDisplayRanges(caption).some(overlaps));
+  const itemIds = new Set(items.map(item => item.id));
+  const sceneIds = new Set(scenes.map(scene => scene.id));
+  const resourceIds = new Set(identity.resources.map(resource => resource.assetId));
+  const programs = snapshot.explainerPrograms.filter(program => sceneIds.has(program.sceneId));
+  return {
+    width: snapshot.timeline.width, height: snapshot.timeline.height, fps: snapshot.timeline.fps,
+    profile: snapshot.project.profile, stylePackId: snapshot.project.stylePackId, captionMode: snapshot.project.brief.captionMode,
+    items: items.map(({ gainDb, mediaAudioPolicy, ...item }) => item),
+    tracks: snapshot.timeline.tracks.filter(track => items.some(item => item.trackId === track.id)),
+    cues, scenes, captions, captionFormat: captions.length ? snapshot.timeline.captionFormat : undefined,
+    speechAlignment: captions.length && !snapshot.timeline.captionFormat ? snapshot.speechAlignment : undefined,
+    speechAsset: captions.length && !snapshot.timeline.captionFormat ? snapshot.speechAsset : undefined,
+    script: captions.length && !snapshot.timeline.captionFormat ? snapshot.script : undefined,
+    works: cues.map(cue => {
+      const work = motionWorkForCue(snapshot, cue);
+      return work && { id: work.id, definitionHash: work.definitionHash, fps: work.fps, frameCount: work.frameCount, width: work.width, height: work.height };
+    }),
+    assets: snapshot.assets.filter(asset => resourceIds.has(asset.id)).map(visualAssetIdentity),
+    performances: snapshot.actorPerformances.filter(item => itemIds.has(item.timelineItemId)).map(({ audioMode, ...item }) => item),
+    cutaways: snapshot.cutaways.filter(item => itemIds.has(item.timelineItemId)).map(({ audioMode, ...item }) => item),
+    programs,
+    evidenceCaptures: snapshot.evidenceCaptures.filter(entry => programs.some(program => program.evidenceCaptureId === entry.id))
+  };
+}
+
+/** 原观察保持原版本，只有依赖一致的区间可用于当前版本的覆盖计算。 */
+export async function applicableWorkbenchEvidence(entry: EditorialReviewEvidence, observed: ProjectSnapshot, target: ProjectSnapshot, hashes = new Map<string, Promise<string>>()): Promise<FrameRange[]> {
+  if (!entry.workbenchIdentity || entry.snapshotHash !== workbenchSnapshotHash(observed)) return [];
+  if (entry.renderReleaseId !== readRuntimeConfig().runtime.releaseId) return [];
+  const end = Math.min(entry.endFrame, target.timeline.durationInFrames);
+  if (entry.startFrame >= end || observed.timeline.fps !== target.timeline.fps) return [];
+  const boundaries = (snapshot: ProjectSnapshot) => {
+    const entries = [...snapshot.timeline.items, ...snapshot.effectCues, ...snapshot.scenes, ...snapshot.timeline.captions.flatMap(captionDisplayRanges)];
+    const points = entries.flatMap(item => [item.startFrame, item.endFrame]);
+    if (entry.method === "audio" || entry.method === "audiovisual") {
+      const ducks = snapshot.audioCues.map(cue => cue.ducking).filter((duck): duck is NonNullable<typeof duck> => Boolean(duck));
+      const before = Math.max(12, ...ducks.map(duck => (duck.holdFrames ?? 6) + duck.releaseFrames));
+      const after = Math.max(3, ...ducks.map(duck => duck.attackFrames));
+      points.push(...snapshot.timeline.items.flatMap(item => [item.startFrame - after, item.endFrame + before]));
+    }
+    return points;
+  };
+  const points = [...new Set([entry.startFrame, end, ...boundaries(observed), ...boundaries(target)]
+    .filter(point => point >= entry.startFrame && point <= end))].sort((a, b) => a - b);
+  const result: FrameRange[] = [];
+  const original = entry.workbenchIdentity;
+  const isRecorded = (identity: WorkbenchEvidenceIdentity) => {
+    if (identity.engineVersion !== original.engineVersion || JSON.stringify(identity.dependencies) !== JSON.stringify(original.dependencies)) return false;
+    return identity.works.every(item => original.works.some(saved => saved.workId === item.workId && saved.definitionHash === item.definitionHash))
+      && identity.resources.every(item => original.resources.some(saved => saved.assetId === item.assetId && saved.hash === item.hash))
+      && identity.fonts.every(item => original.fonts.some(saved => saved.fontId === item.fontId && saved.hash === item.hash));
+  };
+  for (let index = 0; index < points.length - 1; index++) {
+    const range = { startFrame: points[index]!, endFrame: points[index + 1]! };
+    try {
+      const before = await workbenchEvidenceIdentity(observed, range, hashes);
+      const after = await workbenchEvidenceIdentity(target, range, hashes);
+      if (!isRecorded(before) || JSON.stringify(before) !== JSON.stringify(after)) continue;
+      if (entry.method !== "audio" && JSON.stringify(workbenchVisualProjection(observed, range, before)) !== JSON.stringify(workbenchVisualProjection(target, range, after))) continue;
+      if (entry.method === "audio" || entry.method === "audiovisual") {
+        const input = { method: "audio" as const, fromFrame: range.startFrame, toFrame: range.endFrame, renderIdentity: original.engineVersion };
+        if (soundDependencySignature(observed, input) !== soundDependencySignature(target, input)) continue;
+      }
+      const last = result.at(-1);
+      if (last && last.endFrame === range.startFrame) last.endFrame = range.endFrame;
+      else result.push(range);
+    } catch {
+      // 素材变更或缺失只影响引用它的区间。
+    }
+  }
+  return result;
 }
 
 export async function evidenceHash(root: string, path: string): Promise<string> {
