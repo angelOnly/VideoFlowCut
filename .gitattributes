@@ -15,3 +15,8 @@ plugins/videoflowcut/skills/visual-treatment-planning/references/whole-scene-col
 # 物件案例源码、参数与预览通过字节哈希关联，检出时不转换换行。
 .agents/skills/visual-treatment-planning/references/object-drawing/** -text
 plugins/videoflowcut/skills/visual-treatment-planning/references/object-drawing/** -text
+
+# 视频交付包中的源码、清单和素材均按原字节保存，确保文件校验有效。
+deliveries/机器人进厂_本轮视频编排与动效源码/** -text
+deliveries/机器人进厂_本轮视频编排与动效源码/01_影片与声音/视频预览_R140.mp4 filter=lfs diff=lfs merge=lfs -text
+deliveries/机器人进厂_本轮视频编排与动效源码/04_素材/Digit仓库作业.mp4 filter=lfs diff=lfs merge=lfs -text

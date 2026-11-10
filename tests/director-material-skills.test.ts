@@ -95,3 +95,16 @@ test("素材和参考参与共同编排，完整指令及画面限制交到制�
   assert.match(production,/带着采用参考查看本片对应范围/u);
   assert.match(production,/opendesign_request\.continue_from_run_id/u);
 });
+
+test("完整新制的参考、素材和视觉并行续接，并以完整映射交给制作", () => {
+  const routing=read('.agents/skills/production-coordinator/references/task-routing.md');
+  const transfer=read('.agents/skills/creative-reference-to-sequence/SKILL.md');
+  const brief=read('.agents/skills/opendesign-shot-brief/SKILL.md');
+  const production=read('.agents/skills/opendesign-video-production/SKILL.md');
+  const parallel=routing.split('## 完整新制的并行路由')[1]?.split('## 让材料与预览回到当前完整稿')[0];
+  assert.match(parallel!,/创意作者：creative-sequence-design[\s\S]*素材作者：visual-asset-sourcing[\s\S]*视觉作者：visual-treatment-planning/);
+  assert.match(parallel!,/可以同时续接原素材作者和原创意作者[\s\S]*已经具备条件的范围可以继续深化/);
+  assert.match(transfer,/完整的视觉表达单元[\s\S]*视觉角色对应关系[\s\S]*Asset ID[\s\S]*完整画面过程/);
+  assert.match(brief,/参考原片及准确范围[\s\S]*真实素材及具体用途[\s\S]*视觉角色与本片内容的对应关系[\s\S]*完整过程/);
+  assert.match(production,/read_project[\s\S]*brief\/scenes\.json[\s\S]*项目快照只用于本地核验/);
+});

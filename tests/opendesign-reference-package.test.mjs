@@ -4,6 +4,7 @@ import {mkdtemp, mkdir, readFile, writeFile, copyFile, rm} from 'node:fs/promise
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {prepareReferencePackage,verifyReferenceDelivery} from '../scripts/opendesign-reference-package.mjs';
 import {loadLibraryIndex} from '../references/motion-cases/skillry/tools/library-store.mjs';
 
@@ -48,6 +49,59 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
     assert.match(verified.prompt,/制作作者完成整场构图、中文排版/);
     assert.match(verified.prompt,/用户要求、事实条件及当前采用的编排以完整简报为准/);
     assert.doesNotMatch(verified.prompt,/必须保持的内容、参考关键过程/);
+    // 场面使用的 ID、文件和本地源时间以真实项目读回为准；未就绪范围不阻塞其他场面。
+    const video=join(dir,'video.mp4'), projectSnapshot=join(root,'project.json');
+    const videoHash=createHash('sha256').update(await readFile(video)).digest('hex');
+    const project={revision:{number:1},snapshot:{project:{id:'isolation'},assets:[{id:'asset-1',status:'ready',sourceHash:videoHash,provenance:{acquisition:{sourceRange:{startMs:10000,endMs:11000}}}}]}};
+    await writeFile(projectSnapshot,JSON.stringify(project));
+    const sourceSha256=clean.files.find(file=>file.deliveredPath.endsWith('current.md')).uses[0].librarySourceSha256;
+    const scene={sceneId:'scene-1',status:'ready',reference:{creativeCaseId:'001-c01',sourceSha256,startMs:100,endMs:900},
+      visualRoles:[{role:'主要主体',referenceFunction:'主体进入并重排',assetIds:['asset-1'],sourceRanges:[{startMs:100,endMs:700}],usage:'使用主体画面进入并接力'}],
+      process:'主体进入，文字共同移动并形成新构图，最后接入下一场。',preserve:['素材共同重排'],adapt:['中文排版']};
+    const missingScene={...scene,sceneId:'scene-missing',visualRoles:[{...scene.visualRoles[0],assetIds:['candidate-not-asset']}]};
+    const sceneInput={...input,projectSnapshot,assets:[{id:'asset-1',path:video,purpose:'主体画面'},{id:'candidate-not-asset',path:join(root,'still-missing.mp4'),purpose:'尚未取得的候选'}],scenes:[scene,missingScene,{sceneId:'scene-later',status:'pending'}]};
+    const sceneOutput=join(root,'scenes');
+    const packaged=await prepareReferencePackage(sceneInput,sceneOutput,library);
+    assert.deepEqual(packaged.scenes.map(item=>item.status),['ready','incomplete','pending']);
+    assert.match(packaged.scenes[1].diagnostics.join(' '),/未取得/);
+    assert.equal(packaged.scenes[0].references[0].video,'references/skillry/cases/example/video.mp4');
+    assert.deepEqual(packaged.scenes[0].visualRoles[0].assets[0].sourceRanges[0],{startMs:100,endMs:700,timeCoordinates:'asset',originalStartMs:10100,originalEndMs:10700});
+    assert.equal(packaged.scenes[0].visualRoles[0].assets[0].sourceHash,videoHash);
+    assert.equal(packaged.diagnostics.find(item=>item.path.includes('still-missing')).requiredForRun,false);
+    const sceneFile=JSON.parse(await readFile(join(sceneOutput,'brief/scenes.json'),'utf8'));
+    assert.equal(sceneFile.scenes[0].process,scene.process);
+    const sceneListing={files:packaged.files.filter(file=>file.requiredForRun!==false).map(file=>({path:file.deliveredPath,localPath:join(sceneOutput,file.deliveredPath)}))};
+    const sceneVerified=await verifyReferenceDelivery(packaged,sceneListing,1,'od-isolation');
+    assert.match(sceneVerified.prompt,/就绪场面 scene-1/);
+    assert.match(sceneVerified.prompt,/主体进入并重排/);
+    assert.match(sceneVerified.prompt,/10100/);
+    assert.doesNotMatch(sceneVerified.prompt,/就绪场面 scene-missing/);
+    const multi={...scene,reference:undefined,references:[{...scene.reference,purpose:'建立主体'},{...scene.reference,startMs:200,endMs:800,purpose:'接续构图'}]};
+    const multiple=await prepareReferencePackage({...sceneInput,assets:sceneInput.assets.slice(0,1),scenes:[multi]},join(root,'multi'),library);
+    assert.equal(multiple.scenes[0].status,'ready');
+    assert.deepEqual(multiple.scenes[0].references.map(ref=>ref.purpose),['建立主体','接续构图']);
+    await writeFile(projectSnapshot,JSON.stringify({...project,revision:{number:2}}));
+    await assert.rejects(verifyReferenceDelivery(packaged,sceneListing,1,'od-isolation'),/项目快照已变化/);
+    await writeFile(projectSnapshot,JSON.stringify(project));
+    const incorrect=await prepareReferencePackage({...sceneInput,scenes:[{...scene,reference:{...scene.reference,endMs:2000,video:'错误原片.mp4',sourceSha256:'0'.repeat(64)},visualRoles:[{...scene.visualRoles[0],sourceRanges:[{startMs:0,endMs:2000}]}]}]},join(root,'bad-scene'),library);
+    assert.equal(incorrect.scenes[0].status,'incomplete');
+    assert.match(incorrect.scenes[0].diagnostics.join(' '),/参考原片范围/);
+    assert.match(incorrect.scenes[0].diagnostics.join(' '),/参考原片与创意卡不一致/);
+    assert.match(incorrect.scenes[0].diagnostics.join(' '),/创意卡来源指纹不一致/);
+    assert.match(incorrect.scenes[0].diagnostics.join(' '),/源时间范围/);
+    const incorrectListing={files:incorrect.files.map(file=>({path:file.deliveredPath,localPath:join(root,'bad-scene',file.deliveredPath)}))};
+    assert.equal((await verifyReferenceDelivery(incorrect,incorrectListing,1,'od-isolation')).prompt,undefined);
+    const mismatched=await prepareReferencePackage({...sceneInput,assets:[{id:'asset-1',path:join(dir,'storyboards','main.png'),purpose:'错误文件'}],scenes:[scene]},join(root,'wrong-asset'),library);
+    assert.equal(mismatched.scenes[0].status,'incomplete');
+    assert.match(mismatched.scenes[0].diagnostics.join(' '),/文件哈希与项目不一致/);
+    await writeFile(join(root,'stale-project.json'),JSON.stringify({...project,revision:{number:2}}));
+    await writeFile(join(sceneOutput,'start-run-prompt.md'),'旧请求');
+    await assert.rejects(prepareReferencePackage({...sceneInput,projectSnapshot:join(root,'stale-project.json')},sceneOutput,library),/项目身份或 Revision 不一致/);
+    await assert.rejects(readFile(join(sceneOutput,'start-run-prompt.md')),{code:'ENOENT'});
+    await writeFile(join(sceneOutput,'start-run-prompt.md'),'旧请求');
+    await writeFile(join(root,'malformed.json'),'{');
+    assert.throws(()=>execFileSync(process.execPath,['scripts/opendesign-reference-package.mjs','prepare',join(root,'malformed.json'),sceneOutput],{stdio:'ignore'}));
+    await assert.rejects(readFile(join(sceneOutput,'start-run-prompt.md')),{code:'ENOENT'});
     await assert.rejects(prepareReferencePackage({...input,creative:[{id:'001-c01',purpose:'缺少用途类型'}]},join(root,'bad-usage'),library),/study 或 adopted/);
     await assert.rejects(prepareReferencePackage({...input,references:[{id:'art',usage:'study',purpose:'学习',files:[{path:brief,deliveredPath:'references/../brief/override.md'}]}]},join(root,'bad-path'),library),/相对交付路径/);
     const cleanRoot=join(root,'clean');
@@ -95,5 +149,26 @@ test('动效参考交付原片和切片，制作请求保留原片范围与切�
     assert.match(result.prompt,/资料原片范围 4700—9300ms/);
     assert.match(result.prompt,/切片零点对应原片 4700ms/);
     assert.match(result.prompt,/查看采用的创意和机制视频/);
+  } finally { await rm(root,{recursive:true,force:true}); }
+});
+
+test('常见网络视频与声音资料实际解码后才能进入制作请求', async () => {
+  const root=await mkdtemp(join(tmpdir(),'vfc-reference-media-'));
+  try {
+    const brief=join(root,'brief.md'),timing=join(root,'timing.md'),video=join(root,'source.webm'),audio=join(root,'voice.flac'),output=join(root,'out');
+    await writeFile(brief,'完整编排'); await writeFile(timing,'声音时间');
+    execFileSync('ffmpeg',['-v','error','-f','lavfi','-i','color=c=black:s=16x16:r=10:d=1','-c:v','libvpx',video]);
+    execFileSync('ffmpeg',['-v','error','-f','lavfi','-i','sine=frequency=440:duration=1','-c:a','flac',audio]);
+    const input={projectId:'isolated',revision:1,brief,timingPlan:timing,references:[{id:'media',usage:'adopted',purpose:'参考视频与配音',files:[
+      {path:video,deliveredPath:'references/media/source.webm'},{path:audio,deliveredPath:'references/media/voice.flac'}]}]};
+    const result=await prepareReferencePackage(input,output);
+    assert.deepEqual(result.diagnostics,[]);
+    assert.equal(result.files.find(file=>file.deliveredPath.endsWith('.webm')).localDecode,'verified');
+    assert.equal(result.files.find(file=>file.deliveredPath.endsWith('.flac')).durationMs,1000);
+    const listing={files:result.files.map(file=>({path:file.deliveredPath,localPath:join(output,file.deliveredPath)}))};
+    assert.match((await verifyReferenceDelivery(result,listing,1,'isolated-od')).prompt,/voice\.flac/);
+    await writeFile(audio,'损坏音频');
+    const broken=await prepareReferencePackage(input,join(root,'broken'));
+    assert.ok(broken.diagnostics.some(item=>item.path.endsWith('.flac')));
   } finally { await rm(root,{recursive:true,force:true}); }
 });

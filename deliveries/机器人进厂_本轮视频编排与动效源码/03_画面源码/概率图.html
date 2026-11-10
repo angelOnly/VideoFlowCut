@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="od-motion-audio" content="silent">
+<title>连续全部成功的概率</title>
+<style>
+:root{--ground:#101a22;--ink:#f2f6f8;--secondary:#bfccd3;--axis:#81949f;--grid:#30434f;--signal:#9ee6cf;--vfc-font-title:"Noto Sans SC",sans-serif;--title-size:60px;--label-size:32px;--small-size:28px;--number-size:116px}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--ground)}
+#probability{width:1920px;height:1080px;transform-origin:0 0;background:var(--ground)}
+svg{display:block;width:1920px;height:1080px;overflow:visible}text{font-family:var(--vfc-font-title);fill:var(--ink);font-size:var(--label-size);font-variant-numeric:tabular-nums}
+.secondary{fill:var(--secondary)}.signal{fill:var(--signal)}.title{font-size:var(--title-size);letter-spacing:2px}.small{font-size:var(--small-size)}.number{font-size:var(--number-size);letter-spacing:-4px}.assumption-value{font-size:56px}
+.grid-line{stroke:var(--grid);stroke-width:2}.axis-line{stroke:var(--axis);stroke-width:3}.curve-line{fill:none;stroke:var(--signal);stroke-width:7;stroke-linecap:round;stroke-linejoin:round}
+.value-state{opacity:0}.value-state[data-step="100"]{opacity:1}.guide{fill:none;stroke:var(--signal);stroke-width:2;stroke-dasharray:6 10;opacity:.65}
+</style>
+</head>
+<body>
+<main id="probability" data-composition-id="main" data-start="0" data-width="1920" data-height="1080" data-fps="30" data-duration="10.366666666666667" data-poster-time="9.2" aria-label="独立假设下，单次成功率99%，连续100次全部成功的概率约为37%">
+<svg viewBox="0 0 1920 1080" role="img" aria-labelledby="chart-title chart-description">
+<title id="chart-title">连续全部成功的概率</title>
+<desc id="chart-description">假设单次成功率99%，且每次结果相互独立。横轴连续动作次数0到100，纵轴全部成功概率0到100%。P(n)=0.99的n次方，100次时约36.6%，即约37%。不是100次中成功37次。</desc>
+<defs><clipPath id="curve-clip"><rect id="curve-window" x="236" y="344" width="1048" height="464"/></clipPath></defs>
+<g id="scene">
+<g id="heading"><text class="title" x="176" y="168">连续做，全部成功的概率</text></g>
+<g id="assumptions">
+<text class="secondary small" x="176" y="256">假设条件</text>
+<text x="352" y="256">单次 <tspan class="signal assumption-value">99%</tspan></text>
+<line x1="632" y1="216" x2="632" y2="264" stroke="#81949f" stroke-width="2"/>
+<text x="680" y="256">每次独立</text>
+</g>
+<g id="chart-scaffold"><text class="secondary small" x="176" y="320">全部成功概率</text><g id="grid"></g><path class="axis-line" d="M240 352 V792 H1296" fill="none"/><g id="x-ticks"></g><text class="secondary small" text-anchor="middle" x="760" y="880">连续动作次数 n</text></g>
+<g id="curve-group"><path id="curve" class="curve-line" clip-path="url(#curve-clip)"/><circle id="tracking-dot" cx="1280" cy="634" r="10" fill="#9ee6cf" stroke="#101a22" stroke-width="4"/></g>
+<g id="initial-readout"><text class="secondary" x="1392" y="400">单次成功率</text><text class="number signal" x="1384" y="536">99%</text></g>
+<g id="probability-readout"><text class="secondary" x="1392" y="400">全部成功概率</text><g id="value-states"></g></g>
+<g id="result"><text class="signal" x="1392" y="704" style="font-size:88px;letter-spacing:-2px">≈37%</text></g>
+<g id="equation"><text class="secondary" x="1392" y="800" style="font-size:36px">P(n) = 0.99<tspan dy="-18" style="font-size:24px">n</tspan></text></g>
+<g id="endpoint-guides"><path id="endpoint-guide" class="guide"/><circle id="endpoint-ring" cx="1280" cy="634" r="18" fill="none" stroke="#9ee6cf" stroke-width="2"/></g>
+</g>
+</svg>
+</main>
+<script>
+(() => {
+  const settings = Object.freeze({width:1920,height:1080,fps:30,durationInFrames:311,probability:.99,trials:100,plot:{left:240,top:360,width:1040,height:432},frames:{conditions:12,axes:42,firstTrial:94,labelChange:112,run:192,land:252,rounded:256,handoff:300,end:311}});
+  const namespace = 'http://www.w3.org/2000/svg';
+  const root = document.getElementById('probability');
+  const plot = settings.plot;
+  const pointAt = count => ({x:plot.left+plot.width*count/settings.trials,y:plot.top+plot.height*(1-Math.pow(settings.probability,count))});
+  const element = (tag,attributes,text) => {
+    const node = document.createElementNS(namespace,tag);
+    Object.entries(attributes).forEach(([name,value])=>node.setAttribute(name,String(value)));
+    if(text!==undefined) node.textContent=text;
+    return node;
+  };
+  const grid = document.getElementById('grid');
+  [0,25,50,75,100].forEach(percent=>{
+    const vertical=plot.top+plot.height*(1-percent/100);
+    if(percent>0) grid.appendChild(element('line',{x1:plot.left,y1:vertical,x2:plot.left+plot.width,y2:vertical,class:'grid-line'}));
+    grid.appendChild(element('text',{x:216,y:vertical+10,'text-anchor':'end',class:'secondary small'},`${percent}%`));
+  });
+  const ticks = document.getElementById('x-ticks');
+  [0,25,50,75,100].forEach(count=>{
+    const horizontal=pointAt(count).x;
+    ticks.appendChild(element('line',{x1:horizontal,y1:792,x2:horizontal,y2:804,class:'axis-line'}));
+    ticks.appendChild(element('text',{x:horizontal,y:848,'text-anchor':'middle',class:'secondary small'},String(count)));
+  });
+  const points=Array.from({length:settings.trials+1},(_,count)=>pointAt(count));
+  document.getElementById('curve').setAttribute('d',points.map((point,index)=>`${index?'L':'M'}${point.x.toFixed(5)},${point.y.toFixed(5)}`).join(' '));
+  const lastPoint=pointAt(settings.trials);
+  document.getElementById('tracking-dot').setAttribute('cy',String(lastPoint.y));
+  document.getElementById('endpoint-ring').setAttribute('cy',String(lastPoint.y));
+  document.getElementById('endpoint-guide').setAttribute('d',`M${lastPoint.x},${lastPoint.y} V792`);
+  const states=document.getElementById('value-states');
+  for(let count=1;count<=settings.trials;count+=1){
+    const state=element('g',{class:'value-state','data-step':count,id:`probability-value-${count}`});
+    const percent=Math.pow(settings.probability,count)*100;
+    state.appendChild(element('text',{class:'number signal',x:1384,y:536},count===1?'99%':`${percent.toFixed(1)}%`));
+    state.appendChild(element('text',{class:'secondary',x:1392,y:592},`连续 ${count} 次`));
+    states.appendChild(state);
+  }
+  if(!window.vfc||!window.gsap){
+    document.getElementById('initial-readout').style.opacity='0';
+    root.style.transform=`scale(${Math.min(window.innerWidth/settings.width,window.innerHeight/settings.height)})`;
+    return;
+  }
+  const registeredFont=window.vfc.fonts.title;
+  root.style.fontWeight=String(registeredFont.weight);
+  root.style.fontStyle=registeredFont.style;
+  root.style.setProperty('--vfc-font-title',registeredFont.family);
+  const seconds=frame=>frame/settings.fps;
+  const timeline=gsap.timeline({paused:true});
+  const clock={time:0};
+  timeline.to(clock,{time:seconds(settings.durationInFrames),duration:seconds(settings.durationInFrames),ease:'none'},0);
+  timeline.set(['#heading','#assumptions','#chart-scaffold','#curve-group','#probability-readout','#equation','#result','#endpoint-guides','#initial-readout'],{opacity:0},0);
+  timeline.set('.value-state',{opacity:0},0);
+  timeline.set('#probability-value-1',{opacity:1},0);
+  timeline.set('#curve-window',{attr:{width:0}},0);
+  timeline.set('#tracking-dot',{attr:{cx:points[0].x,cy:points[0].y}},0);
+  timeline.fromTo('#heading',{opacity:1,y:16},{opacity:1,y:0,duration:seconds(24),ease:'power2.out'},0);
+  timeline.fromTo('#assumptions',{opacity:0,y:16},{opacity:1,y:0,duration:seconds(24),ease:'power2.out'},seconds(settings.frames.conditions));
+  timeline.fromTo('#initial-readout',{opacity:0,y:16},{opacity:1,y:0,duration:seconds(24),ease:'power2.out'},seconds(18));
+  timeline.to('#chart-scaffold',{opacity:1,duration:seconds(30),ease:'power1.out'},seconds(settings.frames.axes));
+  timeline.to('#equation',{opacity:1,duration:seconds(18),ease:'power1.out'},seconds(76));
+  timeline.to('#curve-group',{opacity:1,duration:seconds(10),ease:'none'},seconds(settings.frames.firstTrial));
+  timeline.to('#curve-window',{attr:{width:4+plot.width/settings.trials},duration:seconds(10),ease:'none'},seconds(settings.frames.firstTrial));
+  timeline.to('#tracking-dot',{attr:{cx:points[1].x,cy:points[1].y},duration:seconds(10),ease:'none'},seconds(settings.frames.firstTrial));
+  timeline.to('#initial-readout',{opacity:0,duration:seconds(12),ease:'none'},seconds(settings.frames.labelChange));
+  timeline.to('#probability-readout',{opacity:1,duration:seconds(12),ease:'none'},seconds(settings.frames.labelChange));
+  const runDuration=settings.frames.land-settings.frames.run;
+  timeline.to('#curve-window',{attr:{width:plot.width+4},duration:seconds(runDuration),ease:'none'},seconds(settings.frames.run));
+  for(let count=2;count<=settings.trials;count+=1){
+    const start=settings.frames.run+(count-2)*runDuration/(settings.trials-1);
+    const finish=settings.frames.run+(count-1)*runDuration/(settings.trials-1);
+    timeline.to('#tracking-dot',{attr:{cx:points[count].x,cy:points[count].y},duration:seconds(finish-start),ease:'none'},seconds(start));
+    timeline.set(`#probability-value-${count-1}`,{opacity:0},seconds(finish));
+    timeline.set(`#probability-value-${count}`,{opacity:1},seconds(finish));
+  }
+  timeline.to('#endpoint-guides',{opacity:1,duration:seconds(12),ease:'power1.out'},seconds(settings.frames.land));
+  timeline.fromTo('#result',{opacity:0,y:12},{opacity:1,y:0,duration:seconds(14),ease:'power2.out'},seconds(settings.frames.rounded));
+  timeline.to(['#chart-scaffold','#curve-group','#equation'],{opacity:.24,y:-16,duration:seconds(11),ease:'power1.in'},seconds(settings.frames.handoff));
+  timeline.to('#endpoint-guides',{opacity:0,duration:seconds(8),ease:'power1.in'},seconds(settings.frames.handoff));
+  timeline.addLabel('conditions_readable',seconds(36));
+  timeline.addLabel('independent_trials_run',seconds(settings.frames.run));
+  timeline.addLabel('hundred_trials_landed',seconds(settings.frames.land));
+  timeline.addLabel('rounded_result_readable',seconds(270));
+  timeline.addLabel('handoff',seconds(settings.frames.handoff));
+  window.__timelines={main:timeline};
+  window.getVfcMotionEvents=()=>[
+    {id:'conditions_readable',meaning:'单次99%与每次独立同时保持可读',startFrame:36,endFrame:300},
+    {id:'independent_trials_run',meaning:'沿P(n)=0.99^n展开连续全部成功概率',startFrame:192,endFrame:252},
+    {id:'hundred_trials_landed',meaning:'连续100次全部成功概率为36.6%',startFrame:252,endFrame:300},
+    {id:'rounded_result_readable',meaning:'36.6%约等于37%的稳定阅读范围，退出期间保持结果与条件',startFrame:270,endFrame:311},
+    {id:'handoff',meaning:'坐标与曲线退让，保留条件与结果，供外层剪辑接回实际工位',startFrame:300,endFrame:311}
+  ];
+})();
+</script>
+</body>
+</html>

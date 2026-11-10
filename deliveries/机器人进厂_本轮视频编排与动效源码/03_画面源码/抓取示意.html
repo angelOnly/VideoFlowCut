@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, height=1080">
+<meta name="od-motion-audio" content="silent">
+<title>箱内板件 · 接触、重定位与翻正</title>
+<style>
+:root{--ground:#101a24;--floor:#1b2a36;--wall:#304655;--edge:#6e8795;--plate:#a6b3bd;--plate-back:#647887;--plate-edge:#d4dee4;--ink:#172631;--tool:#68c9c7;--tool-dark:#267a82;--tool-light:#b7f1e9}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:var(--ground)}body{display:grid;place-items:center}#main{width:1920px;height:1080px;background:var(--ground);overflow:hidden}svg{display:block;width:100%;height:100%}.edge{stroke:var(--edge);stroke-width:3;stroke-linejoin:round}.tool-edge{stroke:var(--tool-light);stroke-width:3;stroke-linejoin:round}.board-face{fill:var(--plate);stroke:var(--plate-edge);stroke-width:3;fill-rule:evenodd}.board-back{fill:var(--plate-back);stroke:#9aaebc;stroke-width:3;fill-rule:evenodd}.board-rim{fill:none;stroke:#dce6ec;stroke-width:3;opacity:.65}.rib{fill:none;stroke:#354e60;stroke-width:6;stroke-linecap:round}.tool-fill{fill:var(--tool)}.tool-shade{fill:var(--tool-dark)}
+</style>
+</head>
+<body>
+<main id="main" data-composition-id="main" data-start="0" data-duration="18.933333333333334" data-width="1920" data-height="1080" data-fps="30" data-poster-time="6.7" aria-label="原创图形：板件接触滑移、重新抓取及另一种情况下的翻正">
+<svg viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="零件箱和机械夹指的连续动作">
+<defs><pattern id="floor-hatch" width="36" height="36" patternUnits="userSpaceOnUse"><path d="M0 36L36 0" stroke="#426071" stroke-width="1" opacity=".18"/></pattern></defs>
+<rect width="1920" height="1080" fill="var(--ground)"/>
+<path d="M224 846H1680M224 846V816M1680 846V816" fill="none" stroke="#355060" stroke-width="2"/>
+<g id="primary-world">
+<ellipse cx="934" cy="786" rx="594" ry="55" fill="#080f16" opacity=".42"/>
+<g id="crate">
+<path d="M364 380Q364 348 396 348H1400Q1432 348 1432 380V716L1392 792H404L364 716Z" fill="#263a48" class="edge"/>
+<path d="M404 416H1392V744H404Z" fill="var(--floor)"/>
+<path d="M404 416H1392V744H404Z" fill="url(#floor-hatch)"/>
+<path d="M364 380L404 416H1392L1432 380V366Q1432 348 1400 348H396Q364 348 364 380Z" fill="#48606e" class="edge"/>
+<path d="M364 380L404 416V744L364 716Z" fill="#39515f" class="edge"/>
+<path d="M1432 380L1392 416V744L1432 716Z" fill="#263e4e" class="edge"/>
+<path d="M418 435H1378M418 726H1378" fill="none" stroke="#506977" stroke-width="2" opacity=".6"/>
+<path d="M451 370H628M1160 370H1345" stroke="#1a303e" stroke-width="12" stroke-linecap="round"/>
+</g>
+<g id="rest-parts">
+<g transform="translate(760 640) rotate(8)"><g data-board="back"/></g>
+<g transform="translate(600 555) rotate(-14)"><g data-board="front"/></g>
+<g transform="translate(945 482) rotate(167) scale(.65)"><g data-board="back"/></g>
+<g transform="translate(790 584) rotate(-13)"><g data-board="front"/></g>
+</g>
+<g id="target-shadow" transform="translate(960 550) rotate(-8)"><ellipse cy="12" rx="151" ry="78" fill="#080f16" opacity=".45"/></g>
+<g id="old-location" opacity="0" transform="translate(960 550) rotate(-8)"><path d="M-132-72H80L132-20V72H-132Z" fill="none" stroke="#c7d3db" stroke-width="3" stroke-dasharray="12 12"/><circle cx="-80" cy="-27" r="16" fill="none" stroke="#c7d3db" stroke-width="2"/></g>
+<g id="target" transform="translate(960 550) rotate(-8)"><g data-board="front"/></g>
+<g id="crate-front"><path d="M364 716L404 744H1392L1432 716V762Q1432 794 1400 794H396Q364 794 364 762Z" fill="#3c5363" class="edge"/><path d="M408 763H1384" stroke="#8197a4" stroke-width="3"/><path d="M493 756H641M1150 756H1298" stroke="#203744" stroke-width="9" stroke-linecap="round"/></g>
+<g id="robot-arm">
+<path id="arm-path" d="M1536 230L1360 270L1250 230" fill="none" stroke="#345762" stroke-width="49" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="arm-highlight" d="M1536 230L1360 270L1250 230" fill="none" stroke="#6ba2ab" stroke-width="29" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1540" cy="185" r="63" fill="#233e4c" stroke="#6d919f" stroke-width="4"/>
+<circle cx="1540" cy="185" r="33" fill="#557784" stroke="#a3bbc6" stroke-width="3"/>
+<circle id="elbow" cx="1360" cy="270" r="30" fill="#80b3ba" stroke="#c3e3e3" stroke-width="3"/>
+</g>
+<g id="tool" transform="translate(1250 470)"><g data-tool="primary"/></g>
+<g id="contact-mark" opacity="0" transform="translate(1055 475)"><path d="M-8-14L-14-28M7-17L13-31M19-8L34-14" fill="none" stroke="var(--tool-light)" stroke-width="4" stroke-linecap="round"/></g>
+</g>
+<g id="alternative-world" opacity="0">
+<path d="M1092 292V756" fill="none" stroke="#55727f" stroke-width="2"/>
+<path d="M1160 735H1632M1160 735V719M1632 735V719" fill="none" stroke="#36515f" stroke-width="2"/>
+<ellipse cx="1406" cy="709" rx="177" ry="30" fill="#070f17" opacity=".4"/>
+<path d="M1650 184L1555 218L1406 278" fill="none" stroke="#345762" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1650 184L1555 218L1406 278" fill="none" stroke="#6ba2ab" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1650" cy="184" r="44" fill="#233e4c" stroke="#6d919f" stroke-width="3"/>
+<rect x="1394" y="278" width="24" height="74" rx="10" fill="#355b67" stroke="#a0d2d6" stroke-width="3"/>
+<ellipse cx="1406" cy="348" rx="19" ry="8" fill="#68c9c7" stroke="#b7f1e9" stroke-width="3"/>
+<g id="alternative-carrier" transform="translate(1406 418)"><g id="alternative-flip">
+<g id="alternative-back"><g data-board="back"/></g>
+<g id="alternative-front" opacity="0" transform="scale(-1 1)"><g data-board="front"/></g>
+<g transform="translate(0 100)"><g data-tool="alternative"/></g>
+</g></g></g>
+<path id="alternative-edge" d="M1406 346V498" stroke="#d4dee4" stroke-width="7" opacity="0"/>
+<path id="turn-arc" d="M1284 617C1310 658 1496 658 1522 617M1510 620L1522 617L1520 630" fill="none" stroke="#68c9c7" stroke-width="3" stroke-linecap="round" opacity="0"/>
+</svg>
+</main>
+<script>
+(() => {
+  const configuration = Object.freeze({fps:30,frames:568,width:1920,height:1080});
+  const timing = Object.freeze({approach:90,contact:166,slip:177,slipEnd:207,oldFade:213,firstReady:218,observeEnd:270,withdrawEnd:291,openEnd:317,realignEnd:374,gripStart:386,gripEnd:406,liftEnd:451,branchStart:465,branchEstablished:479,flipStart:505,flipEdge:525,flipEnd:544});
+  const boardOutline = 'M-132-72H80L132-20V72H-132Z';
+  const holes = [{x:-80,y:-27,r:16},{x:38,y:-27,r:16},{x:-80,y:30,r:16},{x:38,y:30,r:16},{x:99,y:30,r:8}];
+  const holePath = holes.map(hole => `M${hole.x-hole.r},${hole.y}a${hole.r},${hole.r} 0 1,0 ${hole.r*2},0a${hole.r},${hole.r} 0 1,0 ${-hole.r*2},0Z`).join('');
+  document.querySelectorAll('[data-board]').forEach(node => {
+    const back = node.dataset.board === 'back';
+    if (back) node.setAttribute('transform','scale(-1 1)');
+    const rim = holes.map(hole => `<circle cx="${hole.x}" cy="${hole.y}" r="${hole.r+5}" class="board-rim"/>`).join('');
+    node.innerHTML = `<path d="${boardOutline}${holePath}" class="${back?'board-back':'board-face'}"/><path d="M-132 72H132V80H-132Z" fill="#526979"/>${rim}${back?'<path d="M-112-6H70M-112 53H70M-12-55V55" class="rib"/>':'<path d="M-112-54H67L114-7" fill="none" stroke="#eff5f7" stroke-width="3" opacity=".7"/><path d="M85-51L112-24H85Z" fill="#526979"/>'}`;
+  });
+  document.querySelectorAll('[data-tool]').forEach(node => {
+    const name = node.dataset.tool;
+    node.innerHTML = `<g transform="translate(0 -240)"><rect x="-32" width="64" height="72" rx="15" fill="#355b67" stroke="#a0d2d6" stroke-width="3"/><circle cy="32" r="18" fill="#1e3f4b" stroke="#8bd3d3" stroke-width="3"/></g><path d="M-170-170H170V-131H-170Z" class="tool-fill tool-edge"/><path d="M-170-131H170V-119H-170Z" class="tool-shade"/><g id="${name}-left" transform="translate(-90 0)"><path d="M-17-151H17V-78L5-66H-17Z" class="tool-fill tool-edge"/><path d="M5-115H19V-77L5-66Z" class="tool-shade"/></g><g id="${name}-right" transform="translate(90 0)"><path d="M-17-151H17V-66H-5L-17-78Z" class="tool-fill tool-edge"/><path d="M-19-115H-5V-66L-19-78Z" class="tool-shade"/></g>`;
+  });
+  const events = [{id:'first_touch',meaning:'夹指首次触碰板件后缘',startFrame:timing.contact,endFrame:timing.slip},{id:'plate_slide',meaning:'同一板件受触碰后滑离旧位',startFrame:timing.slip,endFrame:timing.slipEnd},{id:'new_position_settled',meaning:'新位置稳定，夹指暂停',startFrame:timing.slipEnd,endFrame:timing.firstReady}];
+  events[2].endFrame = timing.observeEnd;
+  events.push(
+    {id:'withdraw',meaning:'夹指先离开碰触位置，为调整留出空间',startFrame:timing.observeEnd,endFrame:timing.withdrawEnd},
+    {id:'jaws_open',meaning:'夹指张开，在新位置两侧建立净空',startFrame:timing.withdrawEnd,endFrame:timing.openEnd},
+    {id:'realign_approach',meaning:'围绕同一板件的新位置调整角度并重新接近',startFrame:timing.openEnd,endFrame:timing.realignEnd},
+    {id:'grip_close',meaning:'两夹指在板件两侧收合，保持孔位身份',startFrame:timing.gripStart,endFrame:timing.gripEnd},
+    {id:'lift_clear',meaning:'夹住后板件和夹指作为刚性整体抬起',startFrame:timing.gripEnd,endFrame:timing.liftEnd},
+    {id:'alternative_case',meaning:'成功抓取保持在左，右侧独立建立另一种拿反的可能情形',startFrame:timing.branchStart,endFrame:timing.branchEstablished},
+    {id:'turn_upright',meaning:'独立情形中夹持的反面板件经过侧缘再翻到正面',startFrame:timing.flipStart,endFrame:timing.flipEnd},
+    {id:'upright_hold',meaning:'翻正后的完整板件稳定保留至作品结束',startFrame:timing.flipEnd,endFrame:configuration.frames}
+  );
+  window.getVfcMotionEvents = () => events.map(event => ({...event}));
+  const nodes = Object.fromEntries(['target','target-shadow','tool','old-location','contact-mark','primary-left','primary-right','arm-path','arm-highlight','elbow','primary-world','alternative-world','alternative-flip','alternative-back','alternative-front','alternative-edge','turn-arc'].map(name => [name,document.getElementById(name)]));
+  const initial = {x:1010,y:535,angle:-8};
+  const settled = {x:1110,y:610,angle:12};
+  const mix = (start,end,amount) => start+(end-start)*amount;
+  const progress = (frame,start,end) => Math.min(1,Math.max(0,(frame-start)/(end-start)));
+  const smooth = amount => amount*amount*(3-2*amount);
+  const poseBetween = (start,end,amount) => ({x:mix(start.x,end.x,amount),y:mix(start.y,end.y,amount),angle:mix(start.angle,end.angle,amount)});
+  const offset = (pose,horizontal,vertical) => {
+    const radians = pose.angle*Math.PI/180;
+    return {x:pose.x+horizontal*Math.cos(radians)-vertical*Math.sin(radians),y:pose.y+horizontal*Math.sin(radians)+vertical*Math.cos(radians),angle:pose.angle};
+  };
+  const transform = (name,pose) => nodes[name].setAttribute('transform',`translate(${pose.x} ${pose.y}) rotate(${pose.angle})`);
+  const opacity = (name,value) => nodes[name].setAttribute('opacity',String(value));
+  const renderFrame = frame => {
+    const slide = 1-Math.pow(1-progress(frame,timing.slip,timing.slipEnd),2);
+    const lift = smooth(progress(frame,timing.gripEnd,timing.liftEnd));
+    const board = poseBetween(initial,settled,slide);
+    board.x += 25*lift;
+    board.y -= 180*lift;
+    transform('target',board);
+    transform('target-shadow',settled);
+    nodes['target-shadow'].setAttribute('transform',`translate(${mix(initial.x,settled.x,slide)} ${mix(initial.y,settled.y,slide)}) rotate(${board.angle}) scale(${mix(1,.7,lift)})`);
+    opacity('target-shadow',mix(.8,.2,lift));
+    transform('old-location',initial);
+    opacity('old-location',.65*progress(frame,177,185)*(1-progress(frame,191,213)));
+    let toolPose = poseBetween({x:1280,y:410,angle:0},offset(initial,0,-6),smooth(progress(frame,timing.approach,timing.contact)));
+    const withdrawn = {x:1000,y:390,angle:-8};
+    if (frame>=timing.observeEnd) toolPose=poseBetween(offset(initial,0,-6),withdrawn,smooth(progress(frame,timing.observeEnd,timing.withdrawEnd)));
+    if (frame>=timing.openEnd) toolPose=poseBetween(withdrawn,offset(settled,0,100),smooth(progress(frame,timing.openEnd,timing.realignEnd)));
+    if (frame>=timing.gripEnd) toolPose=offset(board,0,100);
+    transform('tool',toolPose);
+    const jawGap = frame<timing.withdrawEnd?90:frame<timing.gripStart?mix(90,174,smooth(progress(frame,timing.withdrawEnd,timing.openEnd))):mix(174,151,smooth(progress(frame,timing.gripStart,timing.gripEnd)));
+    nodes['primary-left'].setAttribute('transform',`translate(${-jawGap} 0)`);
+    nodes['primary-right'].setAttribute('transform',`translate(${jawGap} 0)`);
+    const wrist = offset(toolPose,0,-240);
+    const base = {x:1540,y:185};
+    const delta = {x:wrist.x-base.x,y:wrist.y-base.y};
+    const distance = Math.hypot(delta.x,delta.y);
+    const along = (350*350-430*430+distance*distance)/(2*distance);
+    const height = Math.sqrt(Math.max(0,350*350-along*along));
+    const elbow = {x:base.x+along*delta.x/distance+height*delta.y/distance,y:base.y+along*delta.y/distance-height*delta.x/distance};
+    const armPath = `M${base.x} ${base.y}L${elbow.x} ${elbow.y}L${wrist.x} ${wrist.y}`;
+    nodes['arm-path'].setAttribute('d',armPath);
+    nodes['arm-highlight'].setAttribute('d',armPath);
+    nodes.elbow.setAttribute('cx',String(elbow.x));
+    nodes.elbow.setAttribute('cy',String(elbow.y));
+    transform('contact-mark',offset(initial,-90,-72));
+    opacity('contact-mark',progress(frame,166,169)*(1-progress(frame,177,185)));
+    const branch = smooth(progress(frame,timing.branchStart,timing.branchEstablished));
+    nodes['primary-world'].setAttribute('transform',`translate(${-25*branch} ${145*branch}) scale(${mix(1,.64,branch)})`);
+    opacity('primary-world',mix(1,.68,branch));
+    opacity('alternative-world',branch);
+    const rotation = Math.PI*smooth(progress(frame,timing.flipStart,timing.flipEnd));
+    const projection = Math.cos(rotation);
+    nodes['alternative-flip'].setAttribute('transform',`scale(${projection} 1)`);
+    opacity('alternative-back',projection>=0?1:0);
+    opacity('alternative-front',projection<0?1:0);
+    opacity('alternative-edge',branch*Math.sin(rotation));
+    opacity('turn-arc',branch*progress(frame,501,505)*(1-progress(frame,544,552)));
+  };
+  document.getElementById('alternative-left').setAttribute('transform','translate(-151 0)');
+  document.getElementById('alternative-right').setAttribute('transform','translate(151 0)');
+  renderFrame(0);
+  if (!window.gsap) return;
+  const timeline = gsap.timeline({paused:true});
+  const seconds = frame => frame/configuration.fps;
+  let currentFrame = 0;
+  const clock = Object.defineProperty({},'frame',{get:()=>currentFrame,set:value=>{currentFrame=value;renderFrame(value);}});
+  timeline.to(clock,{frame:configuration.frames,duration:seconds(configuration.frames),ease:'none'},0);
+  events.forEach(event => timeline.addLabel(event.id,seconds(event.startFrame)));
+  window.__timelines = {main:timeline};
+})();
+</script>
+</body>
+</html>

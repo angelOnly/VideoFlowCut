@@ -1,0 +1,24 @@
+{
+  "name": "箱内板件：接触、重定位与翻正",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "durationInFrames": 568,
+  "compositing": "opaque",
+  "props": {},
+  "imageBindings": {},
+  "videoBindings": {},
+  "fontBindings": {},
+  "源码": "./抓取示意.html",
+  "作品定义哈希": "0ad90b95a90ad87a9afb09754410194db1df933716f803ab3a27f37b31f9e0bf",
+  "版本": "7ef378589873ae39ced49df47242133e4bcad5b66e430a05a46b372f1e6f4960",
+  "运行引擎": "managed-hyperframes-4",
+  "readyRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 568
+    }
+  ],
+  "说明": "本文件从固定作品定义提取；源码原字节未改。动态预览需要对应受管 HyperFrames/GSAP 环境；不等同独立剪辑工程。",
+  "源码SHA256": "24f35aee09d58a0f35292fd60af3b6aed180890dae3bcf8d17b454bcc6a2fc47"
+}

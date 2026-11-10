@@ -1,14 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm, copyFile } from "node:fs/promises";
+import { mkdtemp, rm, copyFile, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { execFileSync } from "node:child_process";
+import { createServer } from "node:http";
 import { createApplication } from "@videocut/application";
 import { AssetProviderRegistry } from "@videocut/acquisition";
 import { runProcess } from "@videocut/speech";
 import type { MediaObservation, MediaSource } from "@videocut/contracts";
 import { YoutubeProvider } from "../packages/asset-acquisition/src/youtube.js";
 import { createMediaJobProcessor, runOneJob } from "../apps/job-worker/src/index.js";
+import { runMotionAuthoringJob } from "../apps/runtime/src/motion-authoring.js";
 
 test("升级后只解除旧时长自动拒绝，人工与类型拒绝保持", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-duration-upgrade-"));
@@ -73,6 +76,48 @@ test("范围获取保留时间对应和既有观察，分析纠错不影响原�
     assert.deepEqual(asset.provenance?.acquisition?.sourceRange, options.sourceRange);
     assert.deepEqual(completed.result?.localRange, { startMs: 0, endMs: 2000 });
     assert.deepEqual(completed.result?.observations, [observation]);
+    // 实际获取的 Asset、源范围和项目读回继续进入制作交付，不以候选 ID 代替。
+    const targetScene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "交付目标", purpose: "验证完整交付", startFrame: 0, endFrame: 24 }).snapshot.scenes[0];
+    const state = app.readProject(projectId), snapshotPath = join(root, "project-readback.json"), brief = join(root, "brief.md"), timing = join(root, "timing.md");
+    await writeFile(snapshotPath, JSON.stringify(state)); await writeFile(brief, "完整画面编排"); await writeFile(timing, "真实时间资料");
+    const inputPath = join(root, "package-input.json"), output = join(root, "package");
+    await writeFile(inputPath, JSON.stringify({ projectId, revision: state.revision.number, projectSnapshot: snapshotPath, brief, timingPlan: timing,
+      assets: [{ id: asset.id, path: join(state.snapshot.project.rootPath, asset.managedPath), purpose: "展示实际动作" }],
+      scenes: [{ sceneId: "action", status: "ready", visualRoles: [{ role: "主体", referenceFunction: "动作接力", assetIds: [asset.id],
+        sourceRanges: [{ startMs: 100, endMs: 1500 }], usage: "展示已获取的主体动作" }], process: "主体进入、动作发展后接入下一画面", preserve: ["动作连续"], adapt: ["中文排版"] }] }));
+    execFileSync(process.execPath, ["scripts/opendesign-reference-package.mjs", "prepare", inputPath, output]);
+    const delivery = JSON.parse(await readFile(join(output, "delivery-manifest.json"), "utf8"));
+    assert.equal(delivery.scenes[0].status, "ready");
+    const mapped = delivery.scenes[0].visualRoles[0].assets[0];
+    assert.equal(mapped.assetId, asset.id); assert.equal(mapped.sourceHash, asset.sourceHash);
+    assert.deepEqual(mapped.sourceRanges[0], { startMs: 100, endMs: 1500, timeCoordinates: "asset", originalStartMs: 10100, originalEndMs: 11500 });
+    const listingPath = join(root, "od-listing.json"), checkPath = join(root, "od-check.json");
+    await writeFile(listingPath, JSON.stringify({ files: delivery.files.map((file: { deliveredPath: string }) => ({ path: file.deliveredPath, localPath: join(output, file.deliveredPath) })) }));
+    await writeFile(checkPath, JSON.stringify({ revision: state.revision.number, odProjectId: "isolated-od" }));
+    execFileSync(process.execPath, ["scripts/opendesign-reference-package.mjs", "verify", join(output, "delivery-manifest.json"), listingPath, checkPath]);
+    const prompt = (await readFile(join(output, "start-run-prompt.md"), "utf8")).trimEnd();
+    assert.match(prompt, /展示已获取的主体动作/);
+    let receivedPrompt = "";
+    const od = createServer((req, res) => {
+      if (req.method === "POST" && req.url === "/api/runs") {
+        let body = ""; req.setEncoding("utf8"); req.on("data", part => { body += part; });
+        req.on("end", () => { receivedPrompt = JSON.parse(body).message; res.end(JSON.stringify({ runId: "isolated-run" })); }); return;
+      }
+      if (req.url?.includes("/events")) { res.setHeader("content-type", "text/event-stream"); res.end(); return; }
+      if (req.url === "/api/runs/isolated-run") { res.end(JSON.stringify({ status: "succeeded" })); return; }
+      res.statusCode = 404; res.end();
+    });
+    await new Promise<void>(resolve => od.listen(0, "127.0.0.1", resolve));
+    try {
+      const job = await app.startMotionAuthoring({ projectId, baseRevision: state.revision.number, idempotencyKey: "isolated-package",
+        target: { action: "create_cue", sceneId: targetScene.id, layer: "fullscreen", startFrame: 0, endFrame: 24,
+          sourceStartFrame: 0, sourceEndFrame: 24, audioPolicy: "rebind_unchanged_events" },
+        openDesignRequest: { project: "isolated-od", prompt } });
+      const endpoint = { url: `http://127.0.0.1:${(od.address() as { port: number }).port}` };
+      await runMotionAuthoringJob(app, job, new AbortController().signal, endpoint);
+      assert.equal(receivedPrompt, prompt);
+      assert.match(receivedPrompt, /brief\/scenes\.json/);
+    } finally { await new Promise<void>(resolve => od.close(() => resolve())); }
     const read = app.intelligence.inspect(projectId, { assetId: asset.id });
     assert.equal(read.candidateEvidence[0].observations[0].context, observation.context);
     assert.equal(app.readAssetCandidate({ projectId, assetCandidateId: candidate.id }).candidate.durationMs, undefined, "不能用片段长度覆盖原片未知长度");

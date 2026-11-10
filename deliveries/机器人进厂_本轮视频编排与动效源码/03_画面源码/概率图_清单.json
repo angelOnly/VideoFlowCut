@@ -1,0 +1,28 @@
+{
+  "name": "机器人进厂 · 独立成功概率",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "durationInFrames": 311,
+  "compositing": "opaque",
+  "props": {},
+  "imageBindings": {},
+  "videoBindings": {},
+  "fontBindings": {
+    "title": "noto-sans-sc-bold"
+  },
+  "源码": "./概率图.html",
+  "作品定义哈希": "f7fdea3e244fa73a308a570b8a087d7749bb964c284ab0d12886b5cd353534f5",
+  "版本": "ac94de111838e321c88017d12892749bd80809b9ab9178ab6123e35c7fbe2c5b",
+  "运行引擎": "managed-hyperframes-4",
+  "readyRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 311
+    }
+  ],
+  "说明": "本文件从固定作品定义提取；源码原字节未改。动态预览需要对应受管 HyperFrames/GSAP 环境；不等同独立剪辑工程。",
+  "字体文件": "./字体/NotoSansSC-Bold.otf",
+  "字体许可": "./字体/OFL.txt",
+  "源码SHA256": "7732c7d4dd1738eb9085f730e4aff38a229713c0c87660046501a17793ce6135"
+}
