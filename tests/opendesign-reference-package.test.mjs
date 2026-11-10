@@ -46,7 +46,7 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
     assert.match(verified.prompt,/观察材料关系/);
     assert.match(verified.prompt,/reference\/art（学习），学习排印/);
     assert.match(verified.prompt,/creative\/001-c01（已采用）/);
-    assert.match(verified.prompt,/制作作者完成整场构图、中文排版/);
+    assert.match(verified.prompt,/制作作者在不改变主要视觉关系的前提下深化/);
     assert.match(verified.prompt,/用户要求、事实条件及当前采用的编排以完整简报为准/);
     assert.doesNotMatch(verified.prompt,/必须保持的内容、参考关键过程/);
     // 场面使用的 ID、文件和本地源时间以真实项目读回为准；未就绪范围不阻塞其他场面。
@@ -73,9 +73,66 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
     const sceneListing={files:packaged.files.filter(file=>file.requiredForRun!==false).map(file=>({path:file.deliveredPath,localPath:join(sceneOutput,file.deliveredPath)}))};
     const sceneVerified=await verifyReferenceDelivery(packaged,sceneListing,1,'od-isolation');
     assert.match(sceneVerified.prompt,/就绪场面 scene-1/);
+    assert.match(sceneVerified.prompt,/未提供同源预排状态，资料就绪不代表主要视觉设计已经预排成立/);
     assert.match(sceneVerified.prompt,/主体进入并重排/);
     assert.match(sceneVerified.prompt,/10100/);
     assert.doesNotMatch(sceneVerified.prompt,/就绪场面 scene-missing/);
+
+    // 预排只能指向当前快照中的真实固定作品，交付的源码定义必须与项目哈希一致。
+    const previewRoot=join(root,'project-root'), definition=JSON.stringify({work:{source:'真实同源源码',videoBindings:{subject:'asset-1'}}});
+    const definitionHash=createHash('sha256').update(definition).digest('hex'), workId=`motion_work_${definitionHash}`;
+    const definitionPath=`inputs/motion-work/${definitionHash}.json`;
+    await mkdir(join(previewRoot,'inputs','motion-work'),{recursive:true});
+    await writeFile(join(previewRoot,definitionPath),definition);
+    await mkdir(join(previewRoot,'assets'),{recursive:true});
+    await copyFile(video,join(previewRoot,'assets','video.mp4'));
+    const previewProject={...project,snapshot:{...project.snapshot,project:{id:'isolation',rootPath:previewRoot},assets:[{...project.snapshot.assets[0],managedPath:'assets/video.mp4'}],motionWorks:[{
+      id:workId,definitionPath,definitionHash,fps:30,readyRanges:[{startFrame:0,endFrame:10},{startFrame:10,endFrame:20}],
+      videoSources:[{assetId:'asset-1',hash:videoHash,startFrame:0,endFrame:18,sourceStartMs:100,sourceEndMs:700}],
+      author:{project:'od-isolation',run_id:'run-preview',frozen_version:'frozen-preview'}
+    }]}};
+    const previewSnapshot=join(root,'preview-project.json'); await writeFile(previewSnapshot,JSON.stringify(previewProject));
+    const plan={status:'previewed',primaryRoles:['主要主体'],referenceMappings:[{referenceId:'001-c01',targetRole:'主要主体',treatment:'扩大主体接管'}],
+      preview:{workId,startFrame:0,endFrame:18}};
+    const planInput={...sceneInput,projectSnapshot:previewSnapshot,assets:sceneInput.assets.slice(0,1),scenes:[{...scene,visualPlan:plan}]};
+    const preparedPlan=await prepareReferencePackage(planInput,join(root,'preview'),library);
+    assert.equal(preparedPlan.scenes[0].status,'ready');
+    assert.equal(preparedPlan.scenes[0].visualPlan.preview.definitionHash,definitionHash);
+    assert.equal(preparedPlan.scenes[0].visualPlan.preview.author.run_id,'run-preview');
+    const previewFile=preparedPlan.files.find(file=>file.uses.some(use=>use.kind==='preview'));
+    assert.equal(previewFile.sha256,definitionHash);
+    assert.equal(await readFile(join(root,'preview',previewFile.deliveredPath),'utf8'),definition);
+    const previewListing={files:preparedPlan.files.map(file=>({path:file.deliveredPath,localPath:join(root,'preview',file.deliveredPath)}))};
+    const previewVerified=await verifyReferenceDelivery(preparedPlan,previewListing,1,'od-isolation',previewProject);
+    assert.match(previewVerified.prompt,/run-preview/);
+    assert.match(previewVerified.prompt,/预排引用仅供追溯，不代表视觉质量已通过/);
+    const graphicPlan=await prepareReferencePackage({...planInput,scenes:[{...scene,visualPlan:{...plan,graphicLed:true,graphicReasons:['用图形解释不可见的概率累计关系']}}]},join(root,'graphic-valid'),library);
+    assert.equal(graphicPlan.scenes[0].status,'ready');
+    const studyPlan=await prepareReferencePackage({...planInput,creative:[{id:'001-c01',usage:'study',purpose:'候选参考'}]},join(root,'study-reference'),library);
+    assert.match(studyPlan.scenes[0].diagnostics.join(' '),/必须.*adopted/);
+    assert.equal((await verifyReferenceDelivery(preparedPlan,previewListing,1,'other-project',previewProject)).prompt,undefined);
+    await assert.rejects(verifyReferenceDelivery(preparedPlan,previewListing,1,'od-isolation',
+      {...previewProject,snapshot:{...previewProject.snapshot,motionWorks:[]}}),/预排作品.*已变化/);
+    for (const [name,change,expected] of [
+      ['bad-role',{primaryRoles:['不存在']},/主要角色/],
+      ['bad-reference',{referenceMappings:[{referenceId:'未采用',targetRole:'主要主体',treatment:'接管'}]},/必须已采用且实际交付/],
+      ['bad-range',{preview:{workId,startFrame:0,endFrame:21}},/已发布范围/],
+      ['no-preview',{preview:undefined},/MotionWork 引用/],
+      ['graphic',{graphicLed:true,graphicReasons:['更方便制作']},/承担的表达内容和原因/],
+      ['pending',{status:'pending'},/视觉预排尚未完成/]
+    ]) {
+      const invalidPlan=await prepareReferencePackage({...planInput,scenes:[{...scene,visualPlan:{...plan,...change}}]},join(root,name),library);
+      assert.equal(invalidPlan.scenes[0].status,'incomplete',name);
+      assert.match(invalidPlan.scenes[0].diagnostics.join(' '),expected,name);
+    }
+    const missingRange=await prepareReferencePackage({...planInput,scenes:[{...scene,visualRoles:[{...scene.visualRoles[0],sourceRanges:[]}],visualPlan:plan}]},join(root,'missing-range'),library);
+    assert.match(missingRange.scenes[0].diagnostics.join(' '),/缺少可核验的源时间范围/);
+    const missingBinding=await prepareReferencePackage({...planInput,scenes:[{...scene,visualRoles:[{...scene.visualRoles[0],assetIds:[],sourceRanges:[]}],visualPlan:plan}]},join(root,'missing-preview-binding'),library);
+    assert.match(missingBinding.scenes[0].diagnostics.join(' '),/预排素材 asset-1 未按同一身份纳入场面交付/);
+    const wrongRange=await prepareReferencePackage({...planInput,scenes:[{...scene,visualRoles:[{...scene.visualRoles[0],sourceRanges:[{startMs:0,endMs:150}]}],visualPlan:plan}]},join(root,'wrong-preview-range'),library);
+    assert.match(wrongRange.scenes[0].diagnostics.join(' '),/实际源范围未被场面交付覆盖/);
+    await writeFile(join(root,'preview',previewFile.deliveredPath),'已改动');
+    assert.equal((await verifyReferenceDelivery(preparedPlan,previewListing,1,'od-isolation',previewProject)).prompt,undefined);
     const multi={...scene,reference:undefined,references:[{...scene.reference,purpose:'建立主体'},{...scene.reference,startMs:200,endMs:800,purpose:'接续构图'}]};
     const multiple=await prepareReferencePackage({...sceneInput,assets:sceneInput.assets.slice(0,1),scenes:[multi]},join(root,'multi'),library);
     assert.equal(multiple.scenes[0].status,'ready');

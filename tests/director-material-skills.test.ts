@@ -4,7 +4,12 @@ import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 
 const read = (path: string) => readFileSync(resolve(path), "utf8").replace(/\r\n/g, "\n");
-const roles = ["motion-case-library/references/cases/motion-case-attention-programme/CASE.md", "motion-case-library/references/cases/motion-case-attention-programme/references/transfer-guide.md", "production-director/references/asset-briefing.md", "narration-writing/SKILL.md", "visual-treatment-planning/references/art-direction.md", "motion-brief-writing/references/performance-design.md", "visual-asset-sourcing/references/source-review.md", "_shared/SCENE_DESIGN_HANDOFF.md", "production-coordinator/references/task-routing.md", "quality-verification/references/professional-review.md"];
+const roles = ["production-director/SKILL.md", "production-director/references/story-and-shot-design.md", "production-director/references/asset-briefing.md",
+  "visual-asset-sourcing/SKILL.md", "visual-asset-sourcing/references/source-review.md", "creative-sequence-design/SKILL.md", "creative-reference-to-sequence/SKILL.md",
+  "visual-treatment-planning/SKILL.md", "visual-treatment-planning/references/art-direction.md", "motion-brief-writing/SKILL.md",
+  "motion-brief-writing/references/performance-design.md", "motion-brief-writing/references/execution-brief-template.md", "opendesign-shot-brief/SKILL.md",
+  "opendesign-shot-brief/references/shot-construction.md", "opendesign-video-production/SKILL.md", "production-coordinator/SKILL.md",
+  "production-coordinator/references/task-routing.md", "_shared/TOPIC_TO_FILM.md", "_shared/SCENE_DESIGN_HANDOFF.md", "_shared/PROJECT_REVISION_AND_HANDOFF.md"];
 
 test("两类完整解释直达同一主干，人物表达正文仍可读取，旧生命周期冲突已移除", () => {
   const skill = (path: string) => read(`.agents/skills/${path}`);
@@ -86,7 +91,8 @@ test("素材和参考参与共同编排，完整指令及画面限制交到制�
   const visual=read('.agents/skills/visual-treatment-planning/SKILL.md');
   const brief=read('.agents/skills/opendesign-shot-brief/SKILL.md');
   const production=read('.agents/skills/opendesign-video-production/SKILL.md');
-  assert.match(director,/必须先取得并查看对应素材[\s\S]*创意作者和视觉作者必须看过/u);
+  assert.match(director,/导演在确定主要视觉表现之前，必须结合实际素材/u);
+  assert.match(director,/视觉作者从首轮开始查看实际材料/u);
   assert.match(creative,/参考视频、准确时间范围和完整采用意见交给视觉作者/u);
   assert.match(visual,/禁止在视频画面中添加解释素材来源、案例属性、示意身份/u);
   assert.match(visual,/裁切或遮挡[\s\S]*检查处理后的实际画面/u);
@@ -94,6 +100,22 @@ test("素材和参考参与共同编排，完整指令及画面限制交到制�
   assert.match(production,/读取完整简报，打开采用的参考视频/u);
   assert.match(production,/带着采用参考查看本片对应范围/u);
   assert.match(production,/opendesign_request\.continue_from_run_id/u);
+});
+
+test("视觉作者贯穿实际预排、制作交接与返修，创意和制作各有边界", () => {
+  const visual=read('.agents/skills/visual-treatment-planning/SKILL.md');
+  const creative=read('.agents/skills/creative-sequence-design/SKILL.md');
+  const production=read('.agents/skills/opendesign-video-production/SKILL.md');
+  const handoff=read('.agents/skills/_shared/SCENE_DESIGN_HANDOFF.md');
+  const versions=read('.agents/skills/_shared/PROJECT_REVISION_AND_HANDOFF.md');
+  assert.match(visual,/从素材首次返回就查看实际主体[\s\S]*同源预排[\s\S]*继续检查和返修/u);
+  assert.match(creative,/你不独立替代视觉作者完成整幅画面设计/u);
+  assert.match(handoff,/同源预排[\s\S]*OD 可以改进实现细节，但不得静默替换主要主体/u);
+  assert.match(production,/OpenDesign 是视觉作者的实现与深化作者/u);
+  assert.match(versions,/阶段交付后，原视觉作者继续检查同版实际作品/u);
+  for (const text of [visual, production, handoff, versions]) {
+    assert.doesNotMatch(text,/由 OD (?:在同一作品中)?(?:制作|完成)实际预排/u);
+  }
 });
 
 test("完整新制的参考、素材和视觉并行续接，并以完整映射交给制作", () => {
@@ -106,5 +128,5 @@ test("完整新制的参考、素材和视觉并行续接，并以完整映射�
   assert.match(parallel!,/可以同时续接原素材作者和原创意作者[\s\S]*已经具备条件的范围可以继续深化/);
   assert.match(transfer,/完整的视觉表达单元[\s\S]*视觉角色对应关系[\s\S]*Asset ID[\s\S]*完整画面过程/);
   assert.match(brief,/参考原片及准确范围[\s\S]*真实素材及具体用途[\s\S]*视觉角色与本片内容的对应关系[\s\S]*完整过程/);
-  assert.match(production,/read_project[\s\S]*brief\/scenes\.json[\s\S]*项目快照只用于本地核验/);
+  assert.match(production,/prepare_motion_handoff[\s\S]*base_revision_id[\s\S]*visualPlan/);
 });

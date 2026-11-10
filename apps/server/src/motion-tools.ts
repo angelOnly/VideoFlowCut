@@ -31,6 +31,11 @@ const handoffSceneSchema = z.object({
   visualRoles: z.array(z.object({ role: z.string().min(1), referenceFunction: z.string().min(1), usage: z.string().min(1),
     assetIds: z.array(z.string().min(1)), sourceRanges: z.array(z.object({ assetId: z.string().optional(),
       startMs: z.number().nonnegative(), endMs: z.number().positive() }).strict()).optional() }).strict()).optional(),
+  visualPlan: z.object({ status: z.enum(["draft", "previewed", "pending"]), primaryRoles: z.array(z.string().min(1)).min(1),
+    referenceMappings: z.array(z.object({ referenceId: z.string().min(1), targetRole: z.string().min(1), treatment: z.string().min(1) }).strict()).optional(),
+    graphicLed: z.boolean().optional(), graphicReasons: z.array(z.string().min(1)).optional(),
+    preview: z.object({ workId: z.string().min(1), startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() }).strict().optional()
+  }).strict().optional(),
   process: z.string().optional(), preserve: z.array(z.string()).optional(), adapt: z.array(z.string()).optional()
 }).strict();
 
@@ -55,7 +60,7 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   } catch (error) { return failure(error); } });
   server.registerTool("prepare_motion_handoff", {
     title: "准备场面制作交付",
-    description: "按当前项目快照准备固定简报、时间资料、素材及参考，返回清单哈希、实际文件和逐场面缺口。文件须通过制作端文件接口交付，启动时另核对实际接收文件。",
+    description: "按当前项目快照准备固定简报、时间资料、素材、参考与可选同源预排，返回清单哈希、实际文件和逐场面缺口。预排引用使用当前项目的 MotionWork 与作品根帧；资料就绪不等于画面质量通过。",
     inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), brief_path: z.string().min(1),
       timing_plan_path: z.string().min(1), selected_scene_ids: z.array(z.string().min(1)).min(1),
       assets: z.array(z.object({ id: z.string().min(1), path: z.string().optional(), purpose: z.string().min(1),
@@ -89,7 +94,7 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   } catch (error) { return failure(error); } });
   server.registerTool("start_motion_authoring", {
     title: "启动阶段画面制作",
-    description: "主任务接回导演对当前范围的主要采用决定后，提交视觉作者的完整制作请求和已交付资料，绑定明确的时间线目标。请求点名有效简报、参考视频与范围、本片素材、准确文案及声音和时间资料。制作作者完成整场设计，阶段源码自动登记和采用。原任务结束后的同源修订使用新幂等键，并通过 continue_from_run_id 指定原制作 Run。",
+    description: "主任务提交当前范围的完整制作请求与资料，绑定明确的时间线目标。完整新制与主要视觉重构先接回导演采用及视觉作者的同源预排；局部修改沿已有作品继续。制作作者深化已确定的主要关系，阶段源码自动登记和采用。原任务结束后的同源修订使用新幂等键，并通过 continue_from_run_id 指定原制作 Run。",
     inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), production_run_id: z.string().min(1).optional(), visual_treatment_ids: z.array(z.string().min(1)).min(1).optional(), target: motionOnSuccessSchema, opendesign_request: motionAuthoringRequestSchema, idempotency_key: z.string().min(1).max(120) }
   }, async ({ project_id, base_revision_id, production_run_id, visual_treatment_ids, target, opendesign_request, idempotency_key }) => { try {
     const job = await application.startMotionAuthoring({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, productionRunId: production_run_id,

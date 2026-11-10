@@ -69,6 +69,12 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     const importedVideo = app.registerImportedAsset({ projectId, baseRevision: rev(), name: "实际主体", kind: "video",
       managedPath: "assets/source/subject.mp4", sourceHash });
     app.applyMediaAnalysis({ projectId, assetId: importedVideo.asset.id, metadata: { width: 64, height: 64, durationMs: 1000, hasAudio: false } });
+    const previewJob = app.registerMotionWork({ projectId, baseRevision: rev(), idempotencyKey: "preview-before-handoff", work: videoWork(importedVideo.asset.id) });
+    const previewClaim = app.claimNextJob(["motion_generation"], 60_000);
+    assert.equal(previewClaim?.id, previewJob.id);
+    await processClaimedJob(app, previewClaim!, (item, signal) => runMotionJob(app, item, undefined, signal));
+    const previewWorkId = app.trackJob(previewJob.id).result?.workId;
+    assert.equal(typeof previewWorkId, "string");
     const report = await app.startProductionRun({ projectId, loadedSkills: ["production-coordinator"] });
     const brief = join(root, "brief.md"), timing = join(root, "timing.md");
     await writeFile(brief, "完整连续画面及准确文字");
@@ -87,6 +93,8 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
             startMs: 0, endMs: 9800, purpose: "参考画面组织" }],
             visualRoles: [{ role: "主体", referenceFunction: "连续变化", assetIds: [importedVideo.asset.id],
               sourceRanges: [{ startMs: 0, endMs: 1000 }], usage: "展示真实主体" }],
+            visualPlan: { status: "previewed", primaryRoles: ["主体"], preview: { workId: previewWorkId, startFrame: 0, endFrame: 24 },
+              referenceMappings: [{ referenceId: "002-c01", targetRole: "主体", treatment: "真实主体接管" }] },
             process: "主体出现、发展并接续", preserve: ["连续过程"], adapt: ["中文文字"] },
           { sceneId: "b", status: "pending", references: [{ kind: "motion", id: "003-m01", sourceSha256: index.source_sha256,
             startMs: 0, endMs: 2080, purpose: "下一场机制" }], resourceIds: ["missing-art"],
@@ -98,6 +106,7 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.ok(prepared.diagnostics.some(item => item.id === "003-m01" && item.requiredForRun === false));
     assert.ok(prepared.diagnostics.some(item => item.id === "missing-art" && item.requiredForRun === false));
     assert.ok(prepared.files.filter(file => file.uses.some(use => use.kind === "motion")).every(file => !file.requiredForRun));
+    assert.ok(prepared.files.some(file => file.uses.some(use => use.kind === "preview")));
     assert.ok(prepared.files.every(file => file.path.startsWith("handoffs/")));
     await writeFile(brief, "另一场面更新后的原始稿");
     const fixedBrief = prepared.files.find(file => file.path.endsWith("brief/visual-director-brief.md"))!;
@@ -200,6 +209,8 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.match(receivedPrompt, /完整共同编排/);
     assert.match(receivedPrompt, /就绪场面 a/);
     assert.match(receivedPrompt, /002-c01/);
+    assert.match(receivedPrompt, /预排引用仅供追溯/);
+    assert.match(receivedPrompt, new RegExp(String(previewWorkId)));
     assert.match(receivedPrompt, new RegExp(importedVideo.asset.id));
     assert.equal(result.authoring.receipts[0].authoringInputs[0].adoptedDecisionRef.decisionId, decision.id);
     const cue = app.readProject(projectId).snapshot.effectCues[0];

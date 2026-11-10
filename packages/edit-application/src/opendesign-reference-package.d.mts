@@ -13,6 +13,15 @@ export interface ReferenceScene {
   status: "ready" | "pending" | "incomplete";
   diagnostics?: string[];
   visualRoles?: Array<{ assets: Array<{ assetId: string; sourceHash: string }> }>;
+  visualPlan?: {
+    status: "draft" | "previewed" | "pending";
+    primaryRoles: string[];
+    referenceMappings?: Array<{ referenceId: string; targetRole: string; treatment: string }>;
+    graphicLed?: boolean;
+    graphicReasons?: string[];
+    preview?: { workId: string; startFrame: number; endFrame: number; definitionHash: string; definitionPath: string;
+      author?: { project: string; run_id: string; frozen_version: string } };
+  };
 }
 
 export interface ReferenceManifest {
