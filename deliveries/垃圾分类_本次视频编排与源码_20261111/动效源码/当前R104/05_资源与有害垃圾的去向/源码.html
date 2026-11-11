@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box}html,body{padding:0;margin:0;overflow:hidden}
+#film{position:relative;width:1920px;height:1080px;background:#e9e7df;overflow:hidden;font-family:var(--vfc-font-main),sans-serif}
+.layer{position:absolute;inset:0;width:1920px;height:1080px}svg{width:1920px;height:1080px;display:block}
+.sans{font-family:var(--vfc-font-main),sans-serif}.bold{font-family:var(--vfc-font-bold),sans-serif}
+#sortScene{background:#173331}#sortScene img{width:100%;height:100%;object-fit:cover;display:block}
+#sortShade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(13,35,33,.75),rgba(13,35,33,.08) 75%),linear-gradient(0deg,rgba(13,35,33,.55),transparent 25%)}
+</style></head><body>
+<div id="film" data-composition-id="garbage-ending" data-start="0" data-width="1920" data-height="1080" data-duration="20.56">
+<svg class="layer" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+<defs><pattern id="grid" width="54" height="54" patternUnits="userSpaceOnUse"><path d="M54 0H0V54" fill="none" stroke="#879b96" stroke-opacity=".16" stroke-width="2"/></pattern></defs>
+<rect width="1920" height="1080" fill="#e9e7df"/><rect width="1920" height="1080" fill="url(#grid)"/>
+<path d="M0 98H1920" stroke="#91a49d" stroke-width="2" opacity=".6"/>
+<text x="86" y="67" class="sans" font-size="27" letter-spacing="4" fill="#344e4e">垃圾的去向</text>
+<g id="recyclables" opacity="0">
+ <text x="108" y="185" class="bold" font-size="67" fill="#193636">这些东西仍有回收价值</text>
+ <path d="M110 207H827" stroke="#c57a43" stroke-width="7"/>
+ <g id="paper">
+  <path d="M248 359h250v290H248z" fill="#d5c8aa" stroke="#9c9f88" stroke-width="5"/>
+  <path d="M275 389h250v290H275z" fill="#f5eddb" stroke="#a6af9a" stroke-width="5"/>
+  <path d="M307 441h164M307 483h164M307 525h120" stroke="#b2c1ac" stroke-width="10"/>
+  <text x="333" y="765" class="bold" font-size="46" fill="#315250">纸张</text>
+ </g>
+ <g id="plastic">
+  <path d="M890 339h116v58l34 51v183c0 35-20 50-49 50h-86c-29 0-49-15-49-50V448l34-51z" fill="#a3c7ba" stroke="#5f8c80" stroke-width="7"/>
+  <rect x="886" y="316" width="124" height="35" rx="6" fill="#628c80"/>
+  <path d="M875 493h145M875 567h145" stroke="#d7e9db" stroke-width="12"/>
+  <text x="902" y="765" class="bold" font-size="46" fill="#315250">塑料</text>
+ </g>
+ <g id="metal">
+  <rect x="1405" y="376" width="208" height="288" rx="17" fill="#aebeb3" stroke="#6b8a80" stroke-width="6"/>
+  <ellipse cx="1509" cy="376" rx="104" ry="22" fill="#d4ded3" stroke="#6b8a80" stroke-width="6"/>
+  <ellipse cx="1509" cy="662" rx="104" ry="22" fill="#829f93"/>
+  <path d="M1439 455h140M1439 492h140M1439 529h140" stroke="#dce6da" stroke-width="10"/>
+  <text x="1462" y="765" class="bold" font-size="46" fill="#315250">金属</text>
+ </g>
+</g>
+<g id="hazard" opacity="0">
+ <text x="108" y="185" class="bold" font-size="67" fill="#193636">有害垃圾需要单独处理</text>
+ <path d="M110 207H889" stroke="#c57a43" stroke-width="7"/>
+ <g id="battery">
+  <rect x="274" y="366" width="192" height="288" rx="18" fill="#b36c4f" stroke="#874a36" stroke-width="6"/>
+  <rect x="331" y="340" width="78" height="30" rx="5" fill="#bdc4b7"/>
+  <path d="M314 439h112" stroke="#f1ddd0" stroke-width="10"/><path d="M370 417v44" stroke="#f1ddd0" stroke-width="10"/>
+  <text x="275" y="760" class="bold" font-size="39" fill="#7e4937">特定废电池</text>
+ </g>
+ <g id="lamp">
+  <path d="M826 413h264v120H826z" fill="#e7e8d9" stroke="#8fa99d" stroke-width="6"/>
+  <path d="M796 424h30v98h-30zm294 0h30v98h-30z" fill="#879f95"/>
+  <path d="M844 443h229" stroke="#fff9df" stroke-width="15"/>
+  <text x="862" y="760" class="bold" font-size="39" fill="#7e4937">废荧光灯管</text>
+ </g>
+ <g id="medicine">
+  <rect x="1437" y="370" width="178" height="270" rx="18" fill="#edf0e5" stroke="#91aaa0" stroke-width="6"/>
+  <rect x="1462" y="337" width="128" height="40" rx="7" fill="#7d9b8e"/>
+  <path d="M1507 428v108m-54-54h108" stroke="#b76b51" stroke-width="20"/>
+  <text x="1487" y="760" class="bold" font-size="39" fill="#7e4937">药品</text>
+ </g>
+</g>
+<g id="food" opacity="0">
+ <text x="108" y="185" class="bold" font-size="67" fill="#193636">厨余也能资源化</text>
+ <path d="M110 207H702" stroke="#c57a43" stroke-width="7"/>
+ <g>
+  <path d="M228 660l58-40 57 19 56-48 59 25 56-30 55 28 58-21 64 47v99H228Z" fill="#6e9380"/>
+  <path d="M318 613c33-16 56-51 68-97 16 45 3 91-38 116z" fill="#dec175"/>
+  <path d="M498 605c18-43 51-66 89-68-20 44-48 74-85 82z" fill="#b3c993"/>
+  <path d="M394 672c0-20 20-44 20-44s20 24 20 44a20 20 0 1 1-40 0z" fill="#8bc4c2"/>
+  <text x="348" y="805" class="bold" font-size="45" fill="#315250">分类厨余</text>
+ </g>
+ <path d="M735 588h247" stroke="#739386" stroke-width="9" stroke-linecap="round"/>
+ <path d="M956 563l30 25-30 25" fill="none" stroke="#739386" stroke-width="9"/>
+ <g>
+  <circle cx="1366" cy="573" r="189" fill="#d6e4d4" stroke="#88a99a" stroke-width="8"/>
+  <path d="M1278 641c43-85 119-134 196-146-22 86-87 155-177 170z" fill="#7daa84"/>
+  <path d="M1286 659c45-51 86-88 151-127" stroke="#ecf0df" stroke-width="9" fill="none"/>
+  <text x="1269" y="805" class="bold" font-size="45" fill="#315250">资源化处理</text>
+ </g>
+</g>
+<g id="closing" opacity="0">
+ <text x="108" y="185" class="bold" font-size="67" fill="#193636">让垃圾去合适的地方</text>
+ <path d="M110 207H805" stroke="#c57a43" stroke-width="7"/>
+ <circle cx="960" cy="483" r="112" fill="#789e8c"/>
+ <path d="M922 478c22-43 59-64 103-66-21 49-52 80-96 85z" fill="#e4ecd9"/>
+ <path d="M960 598v100 M960 646H442v54 M960 646h518v54" fill="none" stroke="#8ca69a" stroke-width="8"/>
+ <g id="resultA">
+  <rect x="183" y="702" width="516" height="110" rx="12" fill="#d4e4d8"/>
+  <text x="249" y="774" class="bold" font-size="45" fill="#315b50">有用资源 · 回收利用</text>
+ </g>
+ <g id="resultB">
+  <rect x="1220" y="702" width="516" height="110" rx="12" fill="#ead7c3"/>
+  <text x="1279" y="774" class="bold" font-size="45" fill="#9d5539">特殊垃圾 · 单独处理</text>
+ </g>
+</g>
+</svg>
+<div id="sortScene" class="layer">
+<img id="sorting" data-vfc-video-slot="ending_sort" alt="">
+<div id="sortShade"></div>
+<svg class="layer" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+ <text x="111" y="215" class="bold" font-size="71" fill="#f5f3e9">垃圾分类，还有用吗？</text>
+ <path d="M113 241H881" stroke="#e2a164" stroke-width="8"/>
+ <text id="answer" x="112" y="333" class="bold" font-size="52" fill="#e9e9db" opacity="0">仍然有用</text>
+</svg>
+</div>
+</div>
+<script>
+const t=gsap.timeline({paused:true});
+t.to("#answer",{opacity:1,y:-8,duration:.45},.9)
+ .to("#sortScene",{opacity:0,duration:.4},2.0)
+ .to("#recyclables",{opacity:1,duration:.4},2.15)
+ .from("#paper",{opacity:0,y:28,duration:.45},2.3)
+ .from("#plastic",{opacity:0,y:28,duration:.45},2.65)
+ .from("#metal",{opacity:0,y:28,duration:.45},3.0)
+ .to("#recyclables",{opacity:0,duration:.4},5.1)
+ .to("#hazard",{opacity:1,duration:.45},5.3)
+ .from("#battery",{opacity:0,y:22,duration:.4},5.45)
+ .from("#lamp",{opacity:0,y:22,duration:.4},6.0)
+ .from("#medicine",{opacity:0,y:22,duration:.4},6.55)
+ .to("#hazard",{opacity:0,duration:.4},9.95)
+ .to("#food",{opacity:1,duration:.5},10.1)
+ .to("#food",{opacity:0,duration:.5},12.7)
+ .to("#closing",{opacity:1,duration:.6},13.0)
+ .from("#resultA",{opacity:0,y:18,duration:.45},14.8)
+ .from("#resultB",{opacity:0,y:18,duration:.45},17.0)
+ .to({},{duration:3.11},17.45);
+window.__timelines=window.__timelines||{};window.__timelines["garbage-ending"]=t;
+window.getVfcMotionEvents=()=>[
+ {id:"classification_matters",meaning:"分类仍然有用",startFrame:0,endFrame:60},
+ {id:"recycling",meaning:"纸塑金属具有回收价值",startFrame:60,endFrame:133},
+ {id:"hazardous",meaning:"有害垃圾单独处理",startFrame:133,endFrame:253},
+ {id:"food_reuse",meaning:"厨余资源化",startFrame:253,endFrame:326},
+ {id:"closing",meaning:"资源回收与垃圾各归其处",startFrame:326,endFrame:513}
+];
+</script></body></html>
+

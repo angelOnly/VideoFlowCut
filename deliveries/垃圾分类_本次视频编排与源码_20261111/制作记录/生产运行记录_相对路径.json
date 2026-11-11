@@ -1,0 +1,542 @@
+{
+  "id": "production_run_b7dfa35a-1293-41c5-b67d-6cfcf6a8abd3",
+  "projectId": "project_280cb0dc-14d0-4c0d-bdd8-11acd653ba35",
+  "status": "incomplete",
+  "baseRevision": 1,
+  "loadedSkills": [
+    "project-basics",
+    "production-coordinator",
+    "production-director",
+    "visual-explainer-director",
+    "visual-treatment-planning",
+    "visual-asset-sourcing",
+    "voice-production"
+  ],
+  "loadedReferences": [
+    "video-type-routing",
+    "project-writes",
+    "TOPIC_TO_FILM"
+  ],
+  "creativeDecisions": [
+    {
+      "id": "creative_decision_2ac5b811-fab5-4bd8-8ad4-38bd3ae319dd",
+      "category": "semantic",
+      "decision": "在保持原稿叙述顺序的前提下修订清运数据、分类目的、焚烧条件与分类范围，并为可懂性将年份和术语改为自然读法。",
+      "rationale": "国家统计局数据、早期分类政策、焚烧控制规范与当前实际语音识别均表明原文若干绝对表述或读法需要限定。",
+      "objectIds": [],
+      "evidence": [
+        "../资料/来源快照/01_国家统计局_2000年垃圾清运量.txt",
+        "../资料/来源快照/03_生态环境部_焚烧运行控制.txt",
+        "新版旁白的两套模型辅助转写；未进行真实听审。"
+      ],
+      "createdAt": "2026-11-11T08:18:37.575Z"
+    },
+    {
+      "id": "creative_decision_a0c46218-dea8-4758-8877-1605816a7341",
+      "category": "story",
+      "decision": "采用五段：日常分类观察、垃圾量与处理选择、焚烧控制条件、垃圾池与炉排、资源及有害垃圾的去向。",
+      "rationale": "沿垃圾的流向建立问题、处理条件和结尾回收价值，避免把不同地域画面冒充同一真实现场。",
+      "objectIds": [
+        "story_beat_a897640a-a49d-4d84-a9f8-b91a4b0f10e9",
+        "story_beat_499496e1-ad92-4108-bcc4-434a3c2c4423",
+        "story_beat_37886f89-c021-4f18-8962-620a37b204df",
+        "story_beat_4ff94b54-1eb9-405a-abb8-bd08e145de1b",
+        "story_beat_759c9292-9202-48fa-affa-8c98b1e0a6d7"
+      ],
+      "evidence": [],
+      "createdAt": "2026-11-11T08:18:37.587Z"
+    },
+    {
+      "id": "creative_decision_08588a70-be54-43c4-8f40-023bf9600b57",
+      "category": "visual",
+      "decision": "采用暖灰与炭灰的原创连续画面，结合本次取得的分拣和垃圾堆场素材、炉排照片及明确的处理过程图解。",
+      "rationale": "真实素材提供环境，数据和不可见处理机制由清晰标示的图解说明；受用户要求不使用历史项目或任务。",
+      "objectIds": [
+        "scene_1e747001-5a74-43d5-832a-05c3bf64c875",
+        "scene_1a860dc7-f5df-4105-851c-0ae994f8a3f7",
+        "scene_6dfa8693-2039-4ee7-968b-210325b3f35d",
+        "scene_11644f89-c1da-4306-be2c-ce1df721fd5d",
+        "scene_0d66ac3c-cec4-4527-8b4c-d5d3b2341779"
+      ],
+      "evidence": [
+        "原视觉作者在工作台检查开场与第二场的指定时点，并对两处画面时序进行修订；全片连续观察未完成。"
+      ],
+      "createdAt": "2026-11-11T08:18:37.599Z"
+    },
+    {
+      "id": "creative_decision_14722248-b302-4577-b973-560594d7dcbe",
+      "category": "audio",
+      "decision": "全片由中文旁白承担声音，音乐与机械环境声留白。",
+      "rationale": "候选的声源、歌词与对旁白的遮蔽尚缺可靠连续听觉证据；本片以信息清楚为先。",
+      "objectIds": [],
+      "evidence": [
+        "候选为本次独立检索并已入库；模型结果不等于实际听审。"
+      ],
+      "createdAt": "2026-11-11T08:18:37.611Z"
+    },
+    {
+      "id": "creative_decision_4414061b-937e-4fe2-8f91-ce520888652e",
+      "category": "semantic",
+      "decision": "2019年清运量采用约2.4亿吨；分类目的、处理方式和特殊垃圾范围按来源保留限定。",
+      "rationale": "避免将个别地区和个别设施的实践扩大为全国统一因果或固定做法。",
+      "objectIds": [],
+      "evidence": [
+        "../资料/来源快照/18_原报告误引_气候变化年报.pdf",
+        "../资料/来源快照/04_北京_1999年生活垃圾治理.txt",
+        "../资料/来源快照/05_上海_有害垃圾分类指引.txt"
+      ],
+      "createdAt": "2026-11-11T08:26:08.937Z"
+    }
+  ],
+  "quietRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 2504,
+      "reason": "音乐与机械环境声留白；旁白继续。"
+    }
+  ],
+  "effectDecisions": [],
+  "rejectedAlternatives": [],
+  "mcpCommands": [
+    {
+      "name": "start_production_run",
+      "revision": 1,
+      "createdAt": "2026-11-11T07:32:52.259Z"
+    },
+    {
+      "name": "record_editorial_quality_review",
+      "revision": 59,
+      "createdAt": "2026-11-11T08:28:50.381Z"
+    },
+    {
+      "name": "record_editorial_quality_review",
+      "revision": 78,
+      "createdAt": "2026-11-11T08:29:13.736Z"
+    },
+    {
+      "name": "record_editorial_quality_review",
+      "revision": 101,
+      "createdAt": "2026-11-11T09:03:09.748Z"
+    },
+    {
+      "name": "record_editorial_quality_review",
+      "revision": 104,
+      "createdAt": "2026-11-11T09:11:24.862Z"
+    },
+    {
+      "name": "complete_production_run",
+      "revision": 104,
+      "createdAt": "2026-11-11T09:11:57.439Z"
+    }
+  ],
+  "previewEvidence": [
+    "job_95b02d59-d30f-4c3f-91d2-9326fd8b9c4b：R104 F875 合成静帧已核对二噁英画内文字与字幕；此为局部静帧。",
+    "export_artifact_3cee1aae-edae-4edc-8eaa-417de8a22c18：R104 草稿导出已生成并通过技术预检及文件校验。"
+  ],
+  "composedFrameEvidence": [
+    "../素材/图片/R104_合成860帧.jpg",
+    "../素材/图片/R104_合成875帧.jpg",
+    "../素材/图片/R104_合成890帧.jpg",
+    "../素材/图片/R104_合成964帧.jpg"
+  ],
+  "qualityReview": [
+    "R59 追加 mute_visual 审片记录；全片覆盖以结构化证据为准。",
+    "R78 追加 mute_visual 审片记录；全片覆盖以结构化证据为准。",
+    "R101 追加 mute_visual 审片记录；全片覆盖以结构化证据为准。",
+    "R104 追加 mute_visual 审片记录；全片覆盖以结构化证据为准。",
+    "R101 的堆场切换在导出静帧可见修订，但尚无覆盖问题范围的连续复查。",
+    "R104 完整连续画面、声音自然度、旁白可懂性与同步尚未完成实际视听审查；工作台播放时约 F964 曾提示画面未及时就绪，R101 导出对应帧正常。"
+  ],
+  "completionBlockers": [
+    "工作台 audiovisual 待观察范围：0–2504。",
+    "必修问题 editorial_finding_c7c92a5d-f6e4-4d9e-be6d-3cdef2ac2342 尚未完成复查：境外堆场实拍停留到填埋场讲述"
+  ],
+  "createdAt": "2026-11-11T07:32:52.259Z",
+  "editorialReview": {
+    "revision": 104,
+    "passes": [
+      "mute_visual"
+    ],
+    "previewEvidence": [
+      "../素材/视频/检视/R104_840至980帧合成预览.mp4"
+    ],
+    "findings": [],
+    "evidenceRecords": [
+      {
+        "pass": "mute_visual",
+        "source": "preview",
+        "previewJobId": "job_95b02d59-d30f-4c3f-91d2-9326fd8b9c4b",
+        "observer": "主任务",
+        "startFrame": 875,
+        "endFrame": 876,
+        "method": "frames",
+        "observation": "实际查看 R104 合成预览 F875，画内“可能产生二噁英”和字幕中的“二噁英”均显示清楚；此证据仅为静帧，不证明连续视听。",
+        "id": "editorial_evidence_cf9c1d0e-e02f-4ec7-934b-616e3ae44364",
+        "revision": 104,
+        "relativePath": "../素材/视频/检视/R104_840至980帧合成预览.mp4",
+        "contentHash": "1f09ed3c1c3f4e66c41263a38f0253ef19661d6773af06396b4320dc2bc6db21",
+        "recordedAt": "2026-11-11T09:11:24.509Z"
+      }
+    ],
+    "resolutions": [],
+    "reviewedAt": "2026-11-11T09:11:24.862Z"
+  },
+  "editorialReviewHistory": [
+    {
+      "revision": 59,
+      "passes": [
+        "mute_visual"
+      ],
+      "previewEvidence": [],
+      "findings": [
+        {
+          "id": "editorial_finding_00067bd6-3f77-457c-a5bb-049ac50c21f3",
+          "revision": 59,
+          "recordedAt": "2026-11-11T08:28:50.379Z",
+          "pass": "mute_visual",
+          "severity": "minor",
+          "category": "pacing",
+          "summary": "第二数据柱过早完整显示",
+          "evidence": "R59 F411 的字幕仍为约1.2亿吨时，2.4亿吨柱已经完整出现。",
+          "impact": "第二个比较值早于对应讲述，削弱数据建立顺序。",
+          "suggestedFix": "按实际字幕与语义顺序推迟第二柱建立。",
+          "verificationMethod": "工作台定点画面观察",
+          "objectId": "cue_512ea069-c66c-4bcb-88d0-a07be8b6dc8c",
+          "frameRange": {
+            "startFrame": 411,
+            "endFrame": 412
+          }
+        },
+        {
+          "id": "editorial_finding_c7c92a5d-f6e4-4d9e-be6d-3cdef2ac2342",
+          "revision": 59,
+          "recordedAt": "2026-11-11T08:28:50.379Z",
+          "pass": "mute_visual",
+          "severity": "major",
+          "category": "semantic",
+          "summary": "境外堆场实拍停留到填埋场讲述",
+          "evidence": "R59 F530 显示境外堆场实拍，同时字幕为但填埋场占地。",
+          "impact": "画面可能被误认为所述填埋场或国内事实证据。",
+          "suggestedFix": "在填埋叙述前切到原创图解，实拍仅用于垃圾量规模。",
+          "verificationMethod": "工作台定点画面观察",
+          "objectId": "cue_512ea069-c66c-4bcb-88d0-a07be8b6dc8c",
+          "frameRange": {
+            "startFrame": 530,
+            "endFrame": 531
+          }
+        }
+      ],
+      "evidenceRecords": [
+        {
+          "pass": "mute_visual",
+          "source": "workbench",
+          "observer": "视觉作者",
+          "startFrame": 411,
+          "endFrame": 412,
+          "method": "frames",
+          "observation": "F411 实际画面显示两根数据柱，字幕仍在讲2000年约1.2亿吨。",
+          "id": "editorial_evidence_2e1d2ec8-b5b7-4b0a-b5ab-8e696abdc2cb",
+          "revision": 59,
+          "snapshotHash": "b35c2a0dfbfdd2d39f1bc18d9a45b293fd5649102614680f171da1bc0a8c0e6d",
+          "renderReleaseId": "release-08808e7c0b92f4f913743f393f6431245948891f7a6654478900ab4fbf989627",
+          "workbenchIdentity": {
+            "works": [
+              {
+                "workId": "motion_work_0c3d401bb8a2418b2338b805fe3189778499882ca78c6c6e8f2c84a2399d2903",
+                "definitionHash": "0c3d401bb8a2418b2338b805fe3189778499882ca78c6c6e8f2c84a2399d2903"
+              }
+            ],
+            "resources": [
+              {
+                "assetId": "asset_808187ec-81d5-4ec9-9af9-b06043e297b5",
+                "hash": "6d21c345d1dd54aab371ea39568423319d1a8730ba11130cdc69b78e730e6d6f"
+              },
+              {
+                "assetId": "asset_8efbec3b-93a2-43f0-a926-12e64797625d",
+                "hash": "a81215c6382dd91d5b2cc65cf8e2e03ba77a9d695607c9fc9db0fcfde6e968e5"
+              }
+            ],
+            "fonts": [
+              {
+                "fontId": "noto-sans-sc-bold",
+                "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0"
+              },
+              {
+                "fontId": "noto-sans-sc-regular",
+                "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9"
+              }
+            ],
+            "engineVersion": "managed-hyperframes-4",
+            "dependencies": {
+              "hyperframes": "0.8.1",
+              "gsap": "3.14.2"
+            }
+          },
+          "recordedAt": "2026-11-11T08:28:49.599Z"
+        },
+        {
+          "pass": "mute_visual",
+          "source": "workbench",
+          "observer": "视觉作者",
+          "startFrame": 530,
+          "endFrame": 531,
+          "method": "frames",
+          "observation": "F530 实际画面显示本次取得的境外垃圾堆场航拍，字幕为但填埋场占地。",
+          "id": "editorial_evidence_87d51925-6d03-4280-941b-d26731d3d59f",
+          "revision": 59,
+          "snapshotHash": "b35c2a0dfbfdd2d39f1bc18d9a45b293fd5649102614680f171da1bc0a8c0e6d",
+          "renderReleaseId": "release-08808e7c0b92f4f913743f393f6431245948891f7a6654478900ab4fbf989627",
+          "workbenchIdentity": {
+            "works": [
+              {
+                "workId": "motion_work_0c3d401bb8a2418b2338b805fe3189778499882ca78c6c6e8f2c84a2399d2903",
+                "definitionHash": "0c3d401bb8a2418b2338b805fe3189778499882ca78c6c6e8f2c84a2399d2903"
+              }
+            ],
+            "resources": [
+              {
+                "assetId": "asset_808187ec-81d5-4ec9-9af9-b06043e297b5",
+                "hash": "6d21c345d1dd54aab371ea39568423319d1a8730ba11130cdc69b78e730e6d6f"
+              },
+              {
+                "assetId": "asset_8efbec3b-93a2-43f0-a926-12e64797625d",
+                "hash": "a81215c6382dd91d5b2cc65cf8e2e03ba77a9d695607c9fc9db0fcfde6e968e5"
+              }
+            ],
+            "fonts": [
+              {
+                "fontId": "noto-sans-sc-bold",
+                "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0"
+              },
+              {
+                "fontId": "noto-sans-sc-regular",
+                "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9"
+              }
+            ],
+            "engineVersion": "managed-hyperframes-4",
+            "dependencies": {
+              "hyperframes": "0.8.1",
+              "gsap": "3.14.2"
+            }
+          },
+          "recordedAt": "2026-11-11T08:28:50.378Z"
+        }
+      ],
+      "resolutions": [],
+      "reviewedAt": "2026-11-11T08:28:50.381Z"
+    },
+    {
+      "revision": 78,
+      "passes": [
+        "mute_visual"
+      ],
+      "previewEvidence": [],
+      "findings": [],
+      "evidenceRecords": [
+        {
+          "pass": "mute_visual",
+          "source": "workbench",
+          "observer": "视觉作者",
+          "startFrame": 411,
+          "endFrame": 412,
+          "method": "frames",
+          "observation": "F411 字幕仍在说约1.2亿吨，画面只显示1.2亿吨柱。",
+          "id": "editorial_evidence_d9f136ff-9c5b-4639-bdbf-6fdd702fdca7",
+          "revision": 78,
+          "snapshotHash": "a04cdc29b6f5b12c6d7e6376c99cab648ea1ca49a346247d8be681df53c2f2ba",
+          "renderReleaseId": "release-08808e7c0b92f4f913743f393f6431245948891f7a6654478900ab4fbf989627",
+          "workbenchIdentity": {
+            "works": [
+              {
+                "workId": "motion_work_36be45ee45d8dce4660e1ecbc9a8169412f52f950ce6af2498508013d5e89ffe",
+                "definitionHash": "36be45ee45d8dce4660e1ecbc9a8169412f52f950ce6af2498508013d5e89ffe"
+              }
+            ],
+            "resources": [
+              {
+                "assetId": "asset_808187ec-81d5-4ec9-9af9-b06043e297b5",
+                "hash": "6d21c345d1dd54aab371ea39568423319d1a8730ba11130cdc69b78e730e6d6f"
+              },
+              {
+                "assetId": "asset_8efbec3b-93a2-43f0-a926-12e64797625d",
+                "hash": "a81215c6382dd91d5b2cc65cf8e2e03ba77a9d695607c9fc9db0fcfde6e968e5"
+              }
+            ],
+            "fonts": [
+              {
+                "fontId": "noto-sans-sc-bold",
+                "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0"
+              },
+              {
+                "fontId": "noto-sans-sc-regular",
+                "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9"
+              }
+            ],
+            "engineVersion": "managed-hyperframes-4",
+            "dependencies": {
+              "hyperframes": "0.8.1",
+              "gsap": "3.14.2"
+            }
+          },
+          "recordedAt": "2026-11-11T08:29:11.242Z"
+        },
+        {
+          "pass": "mute_visual",
+          "source": "workbench",
+          "observer": "视觉作者",
+          "startFrame": 421,
+          "endFrame": 422,
+          "method": "frames",
+          "observation": "F421 字幕转入2019年和2.4亿吨，第二柱已经开始上升。",
+          "id": "editorial_evidence_0dbecbd6-c606-46f4-9fa7-0c17923d0805",
+          "revision": 78,
+          "snapshotHash": "a04cdc29b6f5b12c6d7e6376c99cab648ea1ca49a346247d8be681df53c2f2ba",
+          "renderReleaseId": "release-08808e7c0b92f4f913743f393f6431245948891f7a6654478900ab4fbf989627",
+          "workbenchIdentity": {
+            "works": [
+              {
+                "workId": "motion_work_36be45ee45d8dce4660e1ecbc9a8169412f52f950ce6af2498508013d5e89ffe",
+                "definitionHash": "36be45ee45d8dce4660e1ecbc9a8169412f52f950ce6af2498508013d5e89ffe"
+              }
+            ],
+            "resources": [
+              {
+                "assetId": "asset_808187ec-81d5-4ec9-9af9-b06043e297b5",
+                "hash": "6d21c345d1dd54aab371ea39568423319d1a8730ba11130cdc69b78e730e6d6f"
+              },
+              {
+                "assetId": "asset_8efbec3b-93a2-43f0-a926-12e64797625d",
+                "hash": "a81215c6382dd91d5b2cc65cf8e2e03ba77a9d695607c9fc9db0fcfde6e968e5"
+              }
+            ],
+            "fonts": [
+              {
+                "fontId": "noto-sans-sc-bold",
+                "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0"
+              },
+              {
+                "fontId": "noto-sans-sc-regular",
+                "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9"
+              }
+            ],
+            "engineVersion": "managed-hyperframes-4",
+            "dependencies": {
+              "hyperframes": "0.8.1",
+              "gsap": "3.14.2"
+            }
+          },
+          "recordedAt": "2026-11-11T08:29:12.357Z"
+        },
+        {
+          "pass": "mute_visual",
+          "source": "workbench",
+          "observer": "视觉作者",
+          "startFrame": 502,
+          "endFrame": 503,
+          "method": "frames",
+          "observation": "F502 字幕为过去主要靠填埋，画面已经切换至原创填埋图，未见境外实拍。",
+          "id": "editorial_evidence_6dc34305-bce7-4f80-8ba5-55b6e98e9027",
+          "revision": 78,
+          "snapshotHash": "a04cdc29b6f5b12c6d7e6376c99cab648ea1ca49a346247d8be681df53c2f2ba",
+          "renderReleaseId": "release-08808e7c0b92f4f913743f393f6431245948891f7a6654478900ab4fbf989627",
+          "workbenchIdentity": {
+            "works": [
+              {
+                "workId": "motion_work_36be45ee45d8dce4660e1ecbc9a8169412f52f950ce6af2498508013d5e89ffe",
+                "definitionHash": "36be45ee45d8dce4660e1ecbc9a8169412f52f950ce6af2498508013d5e89ffe"
+              }
+            ],
+            "resources": [
+              {
+                "assetId": "asset_808187ec-81d5-4ec9-9af9-b06043e297b5",
+                "hash": "6d21c345d1dd54aab371ea39568423319d1a8730ba11130cdc69b78e730e6d6f"
+              },
+              {
+                "assetId": "asset_8efbec3b-93a2-43f0-a926-12e64797625d",
+                "hash": "a81215c6382dd91d5b2cc65cf8e2e03ba77a9d695607c9fc9db0fcfde6e968e5"
+              }
+            ],
+            "fonts": [
+              {
+                "fontId": "noto-sans-sc-bold",
+                "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0"
+              },
+              {
+                "fontId": "noto-sans-sc-regular",
+                "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9"
+              }
+            ],
+            "engineVersion": "managed-hyperframes-4",
+            "dependencies": {
+              "hyperframes": "0.8.1",
+              "gsap": "3.14.2"
+            }
+          },
+          "recordedAt": "2026-11-11T08:29:13.314Z"
+        }
+      ],
+      "resolutions": [],
+      "reviewedAt": "2026-11-11T08:29:13.736Z"
+    },
+    {
+      "revision": 101,
+      "passes": [
+        "mute_visual"
+      ],
+      "previewEvidence": [],
+      "findings": [],
+      "evidenceRecords": [
+        {
+          "pass": "mute_visual",
+          "source": "workbench",
+          "observer": "主任务",
+          "startFrame": 964,
+          "endFrame": 965,
+          "method": "frames",
+          "observation": "工作台播放期间，在约 F964 的截图中出现“目标画面未按时就绪”提示；同一 R101 草稿导出对应帧可见焚烧控制示意画面。此次仅为单帧对照，未连续观看或听审，不能据此判断其他帧或完整视频。",
+          "id": "editorial_evidence_55fe3797-74a4-4e63-825d-7bab8e1309a4",
+          "revision": 101,
+          "snapshotHash": "84f0b6c945403351fee36d0c528a1831fde0daf962967041069d7341c0c495a0",
+          "renderReleaseId": "release-08808e7c0b92f4f913743f393f6431245948891f7a6654478900ab4fbf989627",
+          "workbenchIdentity": {
+            "works": [
+              {
+                "workId": "motion_work_01f7fc90bab9192813e9abd1b1e8237d597b5934d7f1bda35bb942cdf2c59f4f",
+                "definitionHash": "01f7fc90bab9192813e9abd1b1e8237d597b5934d7f1bda35bb942cdf2c59f4f"
+              }
+            ],
+            "resources": [
+              {
+                "assetId": "asset_8efbec3b-93a2-43f0-a926-12e64797625d",
+                "hash": "a81215c6382dd91d5b2cc65cf8e2e03ba77a9d695607c9fc9db0fcfde6e968e5"
+              }
+            ],
+            "fonts": [
+              {
+                "fontId": "noto-sans-sc-bold",
+                "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0"
+              },
+              {
+                "fontId": "noto-sans-sc-regular",
+                "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9"
+              }
+            ],
+            "engineVersion": "managed-hyperframes-4",
+            "dependencies": {
+              "hyperframes": "0.8.1",
+              "gsap": "3.14.2"
+            }
+          },
+          "recordedAt": "2026-11-11T09:03:09.373Z"
+        }
+      ],
+      "resolutions": [],
+      "reviewedAt": "2026-11-11T09:03:09.748Z"
+    }
+  ],
+  "completionScope": {
+    "kind": "project"
+  },
+  "finalRevision": 104,
+  "交付说明": "原运行记录的外部来源和文件引用已改为相对于本文件的本地路径；原报告将气候变化年报误用于2019年垃圾数据，请参阅决策核查说明。"
+}

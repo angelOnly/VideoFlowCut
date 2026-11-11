@@ -1,0 +1,398 @@
+[
+  {
+    "名称": "分类日常与分拣｜原创预排",
+    "状态": "R104当前采用",
+    "源码": "当前R104/01_分类日常与分拣/源码.html",
+    "定义": "当前R104/01_分类日常与分拣/定义_相对路径.json",
+    "成片段": "../素材/视频/分场画面/01_分类日常与分拣.mp4",
+    "作品Id": "motion_work_d4ba98ffe2f7ed9362114975c24704c768b4b2db49d9a7431cc7a984f4aebe53",
+    "作品版本": "797af370bd8015c44376260de9b98d54c9b40f9641c5b61b2124dd5c301c9906",
+    "帧数": 337,
+    "事件": [
+      {
+        "id": "opening_question",
+        "meaning": "提出垃圾分类意义的问题",
+        "startFrame": 0,
+        "endFrame": 192
+      },
+      {
+        "id": "many_purposes",
+        "meaning": "分类有多种目的",
+        "startFrame": 200,
+        "endFrame": 335
+      }
+    ]
+  },
+  {
+    "名称": "垃圾增长与处理选择｜原创预排",
+    "状态": "本项目过程版本",
+    "源码": "过程版本/垃圾增长与处理选择｜原创预排_0c3d401b/源码.html",
+    "定义": "过程版本/垃圾增长与处理选择｜原创预排_0c3d401b/定义_相对路径.json",
+    "成片段": null,
+    "作品Id": "motion_work_0c3d401bb8a2418b2338b805fe3189778499882ca78c6c6e8f2c84a2399d2903",
+    "作品版本": "2f9631a0d707650ff2b2706ab7c8d9aa2a58442c8a595278b062bc4b1da3187b",
+    "帧数": 483,
+    "事件": [
+      {
+        "id": "growth",
+        "meaning": "垃圾清运量增长比较",
+        "startFrame": 0,
+        "endFrame": 130
+      },
+      {
+        "id": "waste_scale",
+        "meaning": "垃圾堆积的规模",
+        "startFrame": 130,
+        "endFrame": 225
+      },
+      {
+        "id": "landfill",
+        "meaning": "填埋占地与渗滤液",
+        "startFrame": 220,
+        "endFrame": 337
+      },
+      {
+        "id": "energy",
+        "meaning": "焚烧减容并利用热量发电",
+        "startFrame": 337,
+        "endFrame": 482
+      }
+    ]
+  },
+  {
+    "名称": "焚烧条件与湿垃圾｜原创预排",
+    "状态": "本项目过程版本",
+    "源码": "过程版本/焚烧条件与湿垃圾｜原创预排_5a56f0f3/源码.html",
+    "定义": "过程版本/焚烧条件与湿垃圾｜原创预排_5a56f0f3/定义_相对路径.json",
+    "成片段": null,
+    "作品Id": "motion_work_5a56f0f393984bc6dfd1b527a3c2f6b1d3be5537b95b3ec6376b691c5a82de39",
+    "作品版本": "a96520f2acd5d3ed08548d950551bd24a56e1f92f6c55ca8deff7d52728bb7b9",
+    "帧数": 649,
+    "事件": [
+      {
+        "id": "dioxin",
+        "meaning": "焚烧可能产生二恶英",
+        "startFrame": 20,
+        "endFrame": 85
+      },
+      {
+        "id": "gas_conditions",
+        "meaning": "烟气温度、停留时间与净化",
+        "startFrame": 75,
+        "endFrame": 240
+      },
+      {
+        "id": "wet_fuel",
+        "meaning": "湿垃圾对稳定燃烧的影响",
+        "startFrame": 250,
+        "endFrame": 450
+      },
+      {
+        "id": "changing_emphasis",
+        "meaning": "分类宣传与后端处理的变化",
+        "startFrame": 461,
+        "endFrame": 648
+      }
+    ]
+  },
+  {
+    "名称": "垃圾池与机械炉排｜原创预排",
+    "状态": "本项目过程版本",
+    "源码": "过程版本/垃圾池与机械炉排｜原创预排_b8ecb731/源码.html",
+    "定义": "过程版本/垃圾池与机械炉排｜原创预排_b8ecb731/定义_相对路径.json",
+    "成片段": null,
+    "作品Id": "motion_work_b8ecb731e83667f3777f81a9d6d0c6e3af5de99d89580461c745aab9790d62de",
+    "作品版本": "73382fe7b747d55161599efc1c30353081f216ae1f05418e5f2801275ec39f83",
+    "帧数": 521,
+    "事件": [
+      {
+        "id": "drain",
+        "meaning": "部分水分沥出",
+        "startFrame": 32,
+        "endFrame": 98
+      },
+      {
+        "id": "transfer",
+        "meaning": "抓斗把垃圾送入炉体",
+        "startFrame": 117,
+        "endFrame": 185
+      },
+      {
+        "id": "grate_dry_burn",
+        "meaning": "炉排上的干燥和燃烧",
+        "startFrame": 190,
+        "endFrame": 330
+      },
+      {
+        "id": "heat_reuse",
+        "meaning": "燃烧热量帮助烘干",
+        "startFrame": 280,
+        "endFrame": 375
+      }
+    ]
+  },
+  {
+    "名称": "垃圾增长与处理选择｜修订预排",
+    "状态": "本项目过程版本",
+    "源码": "过程版本/垃圾增长与处理选择｜修订预排_36be45ee/源码.html",
+    "定义": "过程版本/垃圾增长与处理选择｜修订预排_36be45ee/定义_相对路径.json",
+    "成片段": null,
+    "作品Id": "motion_work_36be45ee45d8dce4660e1ecbc9a8169412f52f950ce6af2498508013d5e89ffe",
+    "作品版本": "573189cfca68bc354ea1680cc04f725a8c9d98cda3362cc1ee1254293db5a182",
+    "帧数": 483,
+    "事件": [
+      {
+        "id": "growth",
+        "meaning": "垃圾清运量增长比较",
+        "startFrame": 0,
+        "endFrame": 135
+      },
+      {
+        "id": "waste_scale",
+        "meaning": "垃圾堆积的规模",
+        "startFrame": 135,
+        "endFrame": 165
+      },
+      {
+        "id": "landfill",
+        "meaning": "填埋占地与渗滤液",
+        "startFrame": 165,
+        "endFrame": 337
+      },
+      {
+        "id": "energy",
+        "meaning": "焚烧减容并利用热量发电",
+        "startFrame": 337,
+        "endFrame": 482
+      }
+    ]
+  },
+  {
+    "名称": "资源和有害垃圾的去向｜原创预排",
+    "状态": "本项目过程版本",
+    "源码": "过程版本/资源和有害垃圾的去向｜原创预排_717f748f/源码.html",
+    "定义": "过程版本/资源和有害垃圾的去向｜原创预排_717f748f/定义_相对路径.json",
+    "成片段": null,
+    "作品Id": "motion_work_717f748f696143b3235b8dd2f2ef44f3d4ba2280a9dc69d36b7d30ff6c8e2423",
+    "作品版本": "6d806d89e4445cb7825baff55be024810c6bcd12bee13d411285f9500667d2c1",
+    "帧数": 514,
+    "事件": [
+      {
+        "id": "classification_matters",
+        "meaning": "分类仍然有用",
+        "startFrame": 0,
+        "endFrame": 60
+      },
+      {
+        "id": "recycling",
+        "meaning": "纸塑金属具有回收价值",
+        "startFrame": 60,
+        "endFrame": 133
+      },
+      {
+        "id": "hazardous",
+        "meaning": "有害垃圾单独处理",
+        "startFrame": 133,
+        "endFrame": 253
+      },
+      {
+        "id": "food_reuse",
+        "meaning": "厨余资源化",
+        "startFrame": 253,
+        "endFrame": 326
+      },
+      {
+        "id": "closing",
+        "meaning": "资源回收与垃圾各归其处",
+        "startFrame": 326,
+        "endFrame": 513
+      }
+    ]
+  },
+  {
+    "名称": "垃圾池与机械炉排｜帧稳定性修订",
+    "状态": "R104当前采用",
+    "源码": "当前R104/04_垃圾池与机械炉排/源码.html",
+    "定义": "当前R104/04_垃圾池与机械炉排/定义_相对路径.json",
+    "成片段": "../素材/视频/分场画面/04_垃圾池与机械炉排.mp4",
+    "作品Id": "motion_work_390e10b07ed7524eb1df750f9701f2fea4e3edd7bce5932be7250dab06c3f655",
+    "作品版本": "87777e82a924847a78372cc30764e9f4361c3e584e71820153069bcd62edea5d",
+    "帧数": 521,
+    "事件": [
+      {
+        "id": "drain",
+        "meaning": "部分水分沥出",
+        "startFrame": 32,
+        "endFrame": 98
+      },
+      {
+        "id": "transfer",
+        "meaning": "抓斗把垃圾送入炉体",
+        "startFrame": 117,
+        "endFrame": 185
+      },
+      {
+        "id": "grate_dry_burn",
+        "meaning": "炉排上的干燥和燃烧",
+        "startFrame": 190,
+        "endFrame": 330
+      },
+      {
+        "id": "heat_reuse",
+        "meaning": "燃烧热量帮助烘干",
+        "startFrame": 280,
+        "endFrame": 375
+      }
+    ]
+  },
+  {
+    "名称": "资源与有害垃圾的去向｜文字修订",
+    "状态": "R104当前采用",
+    "源码": "当前R104/05_资源与有害垃圾的去向/源码.html",
+    "定义": "当前R104/05_资源与有害垃圾的去向/定义_相对路径.json",
+    "成片段": "../素材/视频/分场画面/05_资源与有害垃圾去向.mp4",
+    "作品Id": "motion_work_3ca2b97237b09242fa71163834a5856a38b240826abdb6b1db2ed50903cd27a2",
+    "作品版本": "2abe4348815fd37958759f1213eec107e9351fb2de89415cf1699bc85d37dfd2",
+    "帧数": 514,
+    "事件": [
+      {
+        "id": "classification_matters",
+        "meaning": "分类仍然有用",
+        "startFrame": 0,
+        "endFrame": 60
+      },
+      {
+        "id": "recycling",
+        "meaning": "纸塑金属具有回收价值",
+        "startFrame": 60,
+        "endFrame": 133
+      },
+      {
+        "id": "hazardous",
+        "meaning": "有害垃圾单独处理",
+        "startFrame": 133,
+        "endFrame": 253
+      },
+      {
+        "id": "food_reuse",
+        "meaning": "厨余资源化",
+        "startFrame": 253,
+        "endFrame": 326
+      },
+      {
+        "id": "closing",
+        "meaning": "资源回收与垃圾各归其处",
+        "startFrame": 326,
+        "endFrame": 513
+      }
+    ]
+  },
+  {
+    "名称": "焚烧条件与湿垃圾｜事实关系修订",
+    "状态": "本项目过程版本",
+    "源码": "过程版本/焚烧条件与湿垃圾｜事实关系修订_01f7fc90/源码.html",
+    "定义": "过程版本/焚烧条件与湿垃圾｜事实关系修订_01f7fc90/定义_相对路径.json",
+    "成片段": null,
+    "作品Id": "motion_work_01f7fc90bab9192813e9abd1b1e8237d597b5934d7f1bda35bb942cdf2c59f4f",
+    "作品版本": "37fba832b6b1e4d37d8813079300c08e45ac5953716a1bf4f261df6ea30d2297",
+    "帧数": 649,
+    "事件": [
+      {
+        "id": "dioxin",
+        "meaning": "焚烧可能产生二恶英",
+        "startFrame": 20,
+        "endFrame": 85
+      },
+      {
+        "id": "gas_conditions",
+        "meaning": "烟气温度、停留时间与净化",
+        "startFrame": 75,
+        "endFrame": 240
+      },
+      {
+        "id": "wet_fuel",
+        "meaning": "湿垃圾对稳定燃烧的影响",
+        "startFrame": 250,
+        "endFrame": 450
+      },
+      {
+        "id": "changing_emphasis",
+        "meaning": "分类宣传与后端处理的变化",
+        "startFrame": 461,
+        "endFrame": 648
+      }
+    ]
+  },
+  {
+    "名称": "垃圾增长与处理选择｜接点修订",
+    "状态": "R104当前采用",
+    "源码": "当前R104/02_垃圾增长与处理选择/源码.html",
+    "定义": "当前R104/02_垃圾增长与处理选择/定义_相对路径.json",
+    "成片段": "../素材/视频/分场画面/02_垃圾增长与处理选择.mp4",
+    "作品Id": "motion_work_0ee5e3243060f7ff430ee404d722b7e2969d2f0d8c12db7c0a17087ca95eacd6",
+    "作品版本": "24bbde4108e110389dd2915a1881bb3a2b1aa3887f3fe6df4fd7c5295a291230",
+    "帧数": 483,
+    "事件": [
+      {
+        "id": "growth",
+        "meaning": "垃圾清运量增长比较",
+        "startFrame": 0,
+        "endFrame": 135
+      },
+      {
+        "id": "waste_scale",
+        "meaning": "垃圾堆积的规模",
+        "startFrame": 135,
+        "endFrame": 165
+      },
+      {
+        "id": "landfill",
+        "meaning": "填埋占地与渗滤液",
+        "startFrame": 165,
+        "endFrame": 337
+      },
+      {
+        "id": "energy",
+        "meaning": "焚烧减容并利用热量发电",
+        "startFrame": 337,
+        "endFrame": 482
+      }
+    ]
+  },
+  {
+    "名称": "焚烧条件与湿垃圾｜术语正字",
+    "状态": "R104当前采用",
+    "源码": "当前R104/03_焚烧条件与湿垃圾/源码.html",
+    "定义": "当前R104/03_焚烧条件与湿垃圾/定义_相对路径.json",
+    "成片段": "../素材/视频/分场画面/03_焚烧条件与湿垃圾.mp4",
+    "作品Id": "motion_work_3fadaca06347c862d1344aa0d329943e06f767160bb68a09d29d2d353d863b70",
+    "作品版本": "d5128e5432e4ffa275ca7aa299ff1d6d11356e55f4728f98cb4f819281d060b3",
+    "帧数": 649,
+    "事件": [
+      {
+        "id": "dioxin",
+        "meaning": "焚烧可能产生二噁英",
+        "startFrame": 20,
+        "endFrame": 85
+      },
+      {
+        "id": "gas_conditions",
+        "meaning": "烟气温度、停留时间与净化",
+        "startFrame": 75,
+        "endFrame": 240
+      },
+      {
+        "id": "wet_fuel",
+        "meaning": "湿垃圾对稳定燃烧的影响",
+        "startFrame": 250,
+        "endFrame": 450
+      },
+      {
+        "id": "changing_emphasis",
+        "meaning": "分类宣传与后端处理的变化",
+        "startFrame": 461,
+        "endFrame": 648
+      }
+    ]
+  }
+]

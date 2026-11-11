@@ -1,0 +1,60 @@
+{
+  "work": {
+    "compositing": "opaque",
+    "name": "焚烧条件与湿垃圾｜原创预排",
+    "source": "<!doctype html>\r\n<html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><style>\r\n*{box-sizing:border-box}html,body{padding:0;margin:0;overflow:hidden}\r\n#film{width:1920px;height:1080px;background:#e9e7df;font-family:var(--vfc-font-main),sans-serif}\r\nsvg{width:1920px;height:1080px;display:block}.sans{font-family:var(--vfc-font-main),sans-serif}.bold{font-family:var(--vfc-font-bold),sans-serif}\r\n</style></head><body>\r\n<div id=\"film\" data-composition-id=\"gas-treatment\" data-start=\"0\" data-width=\"1920\" data-height=\"1080\" data-duration=\"25.96\">\r\n<svg viewBox=\"0 0 1920 1080\" xmlns=\"http://www.w3.org/2000/svg\">\r\n<defs><pattern id=\"grid\" width=\"54\" height=\"54\" patternUnits=\"userSpaceOnUse\"><path d=\"M54 0H0V54\" fill=\"none\" stroke=\"#879b96\" stroke-opacity=\".16\" stroke-width=\"2\"/></pattern>\r\n<linearGradient id=\"fire\" x1=\"0\" x2=\"0\" y1=\"1\" y2=\"0\"><stop stop-color=\"#ffc160\"/><stop offset=\".62\" stop-color=\"#d86937\"/><stop offset=\"1\" stop-color=\"#b84126\" stop-opacity=\".2\"/></linearGradient></defs>\r\n<rect width=\"1920\" height=\"1080\" fill=\"#e9e7df\"/><rect width=\"1920\" height=\"1080\" fill=\"url(#grid)\"/>\r\n<path d=\"M0 98H1920\" stroke=\"#91a49d\" stroke-width=\"2\" opacity=\".6\"/>\r\n<text x=\"86\" y=\"67\" class=\"sans\" font-size=\"27\" letter-spacing=\"4\" fill=\"#344e4e\">垃圾的去向</text>\r\n<g id=\"gasScene\">\r\n <text x=\"106\" y=\"185\" class=\"bold\" font-size=\"67\" fill=\"#193636\">焚烧如何控制污染</text>\r\n <path d=\"M108 207H648\" stroke=\"#c57a43\" stroke-width=\"7\"/>\r\n <g id=\"combustor\">\r\n  <path d=\"M145 432H500V775H145Z\" fill=\"#34514f\"/>\r\n  <path d=\"M170 455H475V738H170Z\" fill=\"#1f3635\"/>\r\n  <path d=\"M198 710c-19-75 20-114 35-155 2 51 24 69 32 99 17-48 44-74 42-125 45 74 68 120 41 181z\" fill=\"url(#fire)\"/>\r\n  <path d=\"M280 717c-12-48 13-73 23-100 1 32 15 44 21 63 12-32 29-49 28-81 28 47 44 79 27 118z\" fill=\"#f3b65b\"/>\r\n  <path d=\"M175 736H474\" stroke=\"#92a89c\" stroke-width=\"12\"/>\r\n  <path d=\"M427 432V330H623V418\" fill=\"none\" stroke=\"#617e76\" stroke-width=\"30\"/>\r\n  <path d=\"M438 331H618\" fill=\"none\" stroke=\"#a0b3a2\" stroke-width=\"5\"/>\r\n  <text x=\"183\" y=\"828\" class=\"bold\" font-size=\"40\" fill=\"#315250\">垃圾焚烧</text>\r\n </g>\r\n <g id=\"dioxin\" opacity=\"0\">\r\n  <rect x=\"145\" y=\"249\" width=\"295\" height=\"66\" rx=\"33\" fill=\"#f0d5bc\"/>\r\n  <text x=\"171\" y=\"294\" class=\"bold\" font-size=\"34\" fill=\"#a45232\">可能产生二恶英</text>\r\n </g>\r\n <g id=\"chamber\" opacity=\"0\">\r\n  <path d=\"M597 417h367v321H597Z\" fill=\"#b3c3b3\" stroke=\"#536e67\" stroke-width=\"7\"/>\r\n  <path d=\"M620 441h321v273H620Z\" fill=\"#f4efe2\"/>\r\n  <path d=\"M964 518h109v35H964Z\" fill=\"#68857b\"/>\r\n  <path d=\"M1058 504l42 32-42 32Z\" fill=\"#68857b\"/>\r\n  <text x=\"655\" y=\"510\" class=\"bold\" font-size=\"38\" fill=\"#48645c\">烟气停留条件</text>\r\n  <text x=\"655\" y=\"589\" class=\"bold\" font-size=\"62\" fill=\"#b75e35\">≥ 850℃</text>\r\n  <text x=\"655\" y=\"662\" class=\"bold\" font-size=\"54\" fill=\"#b75e35\">至少 2 秒</text>\r\n </g>\r\n <g id=\"purification\" opacity=\"0\">\r\n  <path d=\"M1149 505l45-76h237l44 76v233h-326Z\" fill=\"#6b8880\"/>\r\n  <path d=\"M1178 527h269v188h-269Z\" fill=\"#d1dccd\"/>\r\n  <path d=\"M1205 553v136m45-136v136m45-136v136m45-136v136m45-136v136\" stroke=\"#6f978a\" stroke-width=\"12\"/>\r\n  <path d=\"M1475 508h86V306h80V508\" fill=\"none\" stroke=\"#68877b\" stroke-width=\"26\"/>\r\n  <path d=\"M1557 306h88\" fill=\"none\" stroke=\"#93a99a\" stroke-width=\"7\"/>\r\n  <text x=\"1160\" y=\"820\" class=\"bold\" font-size=\"41\" fill=\"#315250\">烟气净化</text>\r\n </g>\r\n</g>\r\n<g id=\"wetScene\" opacity=\"0\">\r\n <text x=\"106\" y=\"185\" class=\"bold\" font-size=\"67\" fill=\"#193636\">湿垃圾对燃烧的影响</text>\r\n <path d=\"M108 207H710\" stroke=\"#c57a43\" stroke-width=\"7\"/>\r\n <g id=\"wetPile\">\r\n  <path d=\"M177 652L230 612l51 22 40-47 56 21 42-31 54 23 45-30 47 28 42-19 48 46 47-6 53 44v91H177Z\" fill=\"#668a79\"/>\r\n  <path d=\"M203 690l36-28 43 13 31-24 42 17 30-25 36 20 38-20 37 23 42-19 39 26 46-10 58 31v61H203Z\" fill=\"#4c6e5d\"/>\r\n  <path d=\"M245 612c34-13 55-43 69-81 11 45-6 88-43 108z\" fill=\"#deba70\"/>\r\n  <path d=\"M421 590c17-38 45-59 79-62-17 39-40 65-75 79z\" fill=\"#a8b987\"/>\r\n  <path d=\"M347 651c0-20 20-45 20-45s20 25 20 45a20 20 0 1 1-40 0z M537 654c0-20 20-45 20-45s20 25 20 45a20 20 0 1 1-40 0z\" fill=\"#80bdc0\"/>\r\n  <text x=\"191\" y=\"829\" class=\"bold\" font-size=\"47\" fill=\"#315250\">厨余湿垃圾</text>\r\n </g>\r\n <g id=\"wetText\">\r\n  <rect x=\"710\" y=\"450\" width=\"332\" height=\"94\" rx=\"47\" fill=\"#d9e8df\"/>\r\n  <text x=\"760\" y=\"511\" class=\"bold\" font-size=\"46\" fill=\"#326b69\">含水量高</text>\r\n  <rect x=\"710\" y=\"565\" width=\"332\" height=\"94\" rx=\"47\" fill=\"#e8e4ce\"/>\r\n  <text x=\"782\" y=\"626\" class=\"bold\" font-size=\"46\" fill=\"#626e4c\">热值低</text>\r\n </g>\r\n <path id=\"wetArrow\" d=\"M1075 589h143\" fill=\"none\" stroke=\"#77928a\" stroke-width=\"8\" stroke-linecap=\"round\"/>\r\n <path d=\"M1205 571l24 18-24 18\" fill=\"none\" stroke=\"#77928a\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\r\n <g id=\"wetFurnace\">\r\n  <path d=\"M1251 395h430v368h-430Z\" fill=\"#34514f\"/>\r\n  <path d=\"M1279 425h374v308h-374Z\" fill=\"#1f3635\"/>\r\n  <path d=\"M1355 717c-13-48 13-75 24-103 1 34 18 46 24 64 12-30 29-47 27-80 30 48 45 79 28 119z\" fill=\"url(#fire)\"/>\r\n  <path d=\"M1516 465h54v174a42 42 0 1 1-54 0z\" fill=\"#ecebdc\"/>\r\n  <path d=\"M1536 501h14v154a22 22 0 1 1-14 0z\" fill=\"#d88848\"/>\r\n  <path d=\"M1280 733h373\" stroke=\"#93a99a\" stroke-width=\"12\"/>\r\n  <text x=\"1247\" y=\"835\" class=\"bold\" font-size=\"40\" fill=\"#a65c35\">增加稳定燃烧的难度</text>\r\n </g>\r\n</g>\r\n<g id=\"bridgeScene\" opacity=\"0\">\r\n <text x=\"108\" y=\"185\" class=\"bold\" font-size=\"67\" fill=\"#193636\">分类热度为何变化？</text>\r\n <path d=\"M110 207H746\" stroke=\"#c57a43\" stroke-width=\"7\"/>\r\n <g id=\"management\">\r\n  <rect x=\"260\" y=\"355\" width=\"545\" height=\"340\" rx=\"8\" fill=\"#d4dfd1\" stroke=\"#94aa9c\" stroke-width=\"5\"/>\r\n  <path d=\"M382 432h300v126H382Z\" fill=\"#6d9284\"/>\r\n  <path d=\"M416 467h230M416 500h160M416 533h194\" stroke=\"#e2eadb\" stroke-width=\"12\"/>\r\n  <path d=\"M533 558v66m-84 0h168\" stroke=\"#66867b\" stroke-width=\"10\"/>\r\n  <text x=\"337\" y=\"765\" class=\"bold\" font-size=\"42\" fill=\"#315250\">宣传与管理方式变化</text>\r\n </g>\r\n <g id=\"backend\">\r\n  <rect x=\"1114\" y=\"355\" width=\"545\" height=\"340\" rx=\"8\" fill=\"#e7dcc7\" stroke=\"#b8a98b\" stroke-width=\"5\"/>\r\n  <path d=\"M1195 600h380v-95l-84-58v58l-80-58v58l-80-58v58h-136Z\" fill=\"#66867b\"/>\r\n  <path d=\"M1512 447v-96h49v134\" fill=\"#66867b\"/>\r\n  <path d=\"M1230 546h45v54h-45zm87 0h45v54h-45zm87 0h45v54h-45zm87 0h45v54h-45z\" fill=\"#dbe7d8\"/>\r\n  <text x=\"1187\" y=\"765\" class=\"bold\" font-size=\"42\" fill=\"#315250\">后端处理能力发展</text>\r\n </g>\r\n <text x=\"918\" y=\"564\" class=\"bold\" font-size=\"88\" fill=\"#bc875a\">＋</text>\r\n</g></svg></div>\r\n<script>\r\nconst t=gsap.timeline({paused:true});\r\nt.from(\"#combustor\",{opacity:0,y:25,duration:.7},0)\r\n .to(\"#dioxin\",{opacity:1,duration:.5},.8)\r\n .to(\"#chamber\",{opacity:1,duration:.7},3.0)\r\n .to(\"#purification\",{opacity:1,duration:.7},5.2)\r\n .to(\"#gasScene\",{opacity:0,duration:.6},9.6)\r\n .to(\"#wetScene\",{opacity:1,duration:.6},10.0)\r\n .from(\"#wetPile\",{x:-40,opacity:0,duration:.8},10.1)\r\n .from(\"#wetText\",{opacity:0,y:20,duration:.6},10.6)\r\n .from(\"#wetArrow\",{scaleX:0,transformOrigin:\"0% 50%\",duration:.6},11.4)\r\n .from(\"#wetFurnace\",{opacity:0,x:35,duration:.7},11.6)\r\n .to(\"#wetScene\",{opacity:0,duration:.55},18.1)\r\n .to(\"#bridgeScene\",{opacity:1,duration:.6},18.45)\r\n .from(\"#management\",{y:22,opacity:0,duration:.55},18.6)\r\n .from(\"#backend\",{y:22,opacity:0,duration:.55},19.4)\r\n .to({},{duration:6.01},19.95);\r\nwindow.__timelines=window.__timelines||{};window.__timelines[\"gas-treatment\"]=t;\r\nwindow.getVfcMotionEvents=()=>[\r\n {id:\"dioxin\",meaning:\"焚烧可能产生二恶英\",startFrame:20,endFrame:85},\r\n {id:\"gas_conditions\",meaning:\"烟气温度、停留时间与净化\",startFrame:75,endFrame:240},\r\n {id:\"wet_fuel\",meaning:\"湿垃圾对稳定燃烧的影响\",startFrame:250,endFrame:450},\r\n {id:\"changing_emphasis\",meaning:\"分类宣传与后端处理的变化\",startFrame:461,endFrame:648}\r\n];\r\n</script></body></html>\r\n\r\n",
+    "props": {},
+    "imageBindings": {},
+    "width": 1920,
+    "height": 1080,
+    "fps": 25,
+    "durationInFrames": 649,
+    "creativeBrief": "依次建立二恶英风险、烟气不低于850度并停留两秒与净化，再解释湿垃圾高水分及燃烧难度，衔接分类管理与后端能力变化；不暗示单一因果。",
+    "fontBindings": {
+      "main": "noto-sans-sc-regular",
+      "bold": "noto-sans-sc-bold"
+    }
+  },
+  "boundImages": [],
+  "boundVideos": [],
+  "boundFonts": [
+    {
+      "slot": "bold",
+      "fontId": "noto-sans-sc-bold",
+      "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+      "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+      "weight": 700,
+      "style": "normal"
+    },
+    {
+      "slot": "main",
+      "fontId": "noto-sans-sc-regular",
+      "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+      "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+      "weight": 400,
+      "style": "normal"
+    }
+  ],
+  "sourceDisplay": {
+    "policy": {
+      "mode": "internal_only"
+    },
+    "scopeId": "project_280cb0dc-14d0-4c0d-bdd8-11acd653ba35"
+  },
+  "readyRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 649
+    }
+  ],
+  "version": "a96520f2acd5d3ed08548d950551bd24a56e1f92f6c55ca8deff7d52728bb7b9",
+  "engineVersion": "managed-hyperframes-4",
+  "交付说明": {
+    "说明": "源码未更改；本定义副本仅调整素材路径，并增加此说明。",
+    "原定义文件SHA256": "5a56f0f393984bc6dfd1b527a3c2f6b1d3be5537b95b3ec6376b691c5a82de39",
+    "字体": {
+      "main": "../../../素材/字体/NotoSansSC-Regular.otf",
+      "bold": "../../../素材/字体/NotoSansSC-Bold.otf"
+    }
+  }
+}

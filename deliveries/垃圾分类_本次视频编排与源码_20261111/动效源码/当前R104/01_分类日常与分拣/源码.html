@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box}html,body{padding:0;margin:0;overflow:hidden}
+#film{position:relative;width:1920px;height:1080px;background:#e9e7df;overflow:hidden;font-family:var(--vfc-font-main),sans-serif}
+.layer{position:absolute;inset:0;width:1920px;height:1080px}
+#sorting{width:100%;height:100%;object-fit:cover;display:block}
+#videoScene{opacity:0;overflow:hidden;background:#193332}
+#videoShade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,40,38,.03) 0%,rgba(20,40,38,.14) 43%,rgba(20,40,38,.9) 72%),linear-gradient(0deg,rgba(12,27,26,.58),transparent 25%)}
+svg{display:block;width:1920px;height:1080px}.sans{font-family:var(--vfc-font-main),sans-serif}.bold{font-family:var(--vfc-font-bold),sans-serif}
+</style></head><body>
+<div id="film" data-composition-id="garbage-intro" data-start="0" data-width="1920" data-height="1080" data-duration="13.48">
+<div id="opening" class="layer">
+<svg viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+<defs><pattern id="grid" width="54" height="54" patternUnits="userSpaceOnUse"><path d="M54 0H0V54" fill="none" stroke="#879b96" stroke-opacity=".16" stroke-width="2"/></pattern></defs>
+<rect width="1920" height="1080" fill="#e9e7df"/><rect width="1920" height="1080" fill="url(#grid)"/>
+<path d="M0 98H1920" stroke="#91a49d" stroke-width="2" opacity=".6"/>
+<text x="86" y="67" class="sans" font-size="27" letter-spacing="4" fill="#344e4e">垃圾的去向</text>
+<g id="introTitle">
+ <text x="108" y="192" class="bold" font-size="72" fill="#193636">垃圾分类，意义变了吗？</text>
+ <path d="M111 215H860" stroke="#c57a43" stroke-width="7"/>
+</g>
+<!-- 社区为原创图形，不对应具体地点或现场。 -->
+<g id="buildings" fill="#b7c6b9">
+ <path d="M0 497h155V345h176v152h106V398h156v99h112V320h170v177h100V389h171v108h97V339h179v158h108V400h151v97h142v-34h97v375H0Z" opacity=".38"/>
+ <path d="M77 425h32v45H77zm92-31h32v45h-32zm58 0h32v45h-32zm37 80h32v45h-32zm506-104h35v51h-35zm59 0h35v51h-35zm244 66h32v47h-32zm229-54h31v47h-31zm58 0h31v47h-31z" fill="#e9e7df" opacity=".75"/>
+</g>
+<path d="M0 829H1920" stroke="#748c81" stroke-width="5"/>
+<g id="station">
+ <rect x="447" y="383" width="1026" height="395" rx="8" fill="#cdd6c9" stroke="#82998e" stroke-width="5"/>
+ <path d="M420 383l57-87h964l60 87Z" fill="#68847a"/>
+ <path d="M500 307H1414" stroke="#dce4d6" stroke-width="8" opacity=".65"/>
+ <g id="banner">
+  <rect x="698" y="330" width="525" height="82" rx="5" fill="#d7aa81"/>
+  <text x="805" y="385" class="bold" font-size="45" fill="#fff4e4">垃圾分类</text>
+ </g>
+ <g id="bins">
+  <g transform="translate(555 472)">
+   <rect x="0" y="30" width="192" height="224" rx="10" fill="#648b7f"/>
+   <rect x="-13" y="8" width="218" height="40" rx="8" fill="#416c61"/>
+   <path d="M30 254h132" stroke="#365e56" stroke-width="10"/>
+   <circle cx="38" cy="270" r="13" fill="#375952"/><circle cx="153" cy="270" r="13" fill="#375952"/>
+   <path d="M71 111c17-28 39-38 62-30-10 29-27 48-55 48Z" fill="#d5e6d0"/>
+   <text x="53" y="194" class="bold" font-size="30" fill="#f3f1e7">厨余</text>
+  </g>
+  <g transform="translate(863 472)">
+   <rect x="0" y="30" width="192" height="224" rx="10" fill="#6c8d94"/>
+   <rect x="-13" y="8" width="218" height="40" rx="8" fill="#4c737b"/>
+   <path d="M30 254h132" stroke="#365963" stroke-width="10"/>
+   <circle cx="38" cy="270" r="13" fill="#35555c"/><circle cx="153" cy="270" r="13" fill="#35555c"/>
+   <path d="M80 76h35l15 22-16 31H79l-15-30z" fill="#e1ece4"/>
+   <text x="36" y="194" class="bold" font-size="30" fill="#f3f1e7">可回收</text>
+  </g>
+  <g transform="translate(1171 472)">
+   <rect x="0" y="30" width="192" height="224" rx="10" fill="#8b8f7c"/>
+   <rect x="-13" y="8" width="218" height="40" rx="8" fill="#6b725e"/>
+   <path d="M30 254h132" stroke="#555d4d" stroke-width="10"/>
+   <circle cx="38" cy="270" r="13" fill="#565e4e"/><circle cx="153" cy="270" r="13" fill="#565e4e"/>
+   <path d="M66 86h60v43H66z" fill="#e3e7d5"/><path d="M77 76h39" stroke="#e3e7d5" stroke-width="8"/>
+   <text x="52" y="194" class="bold" font-size="30" fill="#f3f1e7">其他</text>
+  </g>
+ </g>
+</g>
+
+</svg>
+</div>
+<div id="videoScene" class="layer">
+<img id="sorting" data-vfc-video-slot="sort_video" alt="">
+<div id="videoShade"></div>
+<svg class="layer" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+ <rect x="112" y="781" width="275" height="62" rx="31" fill="#213d3b" opacity=".78"/>
+ <text x="143" y="823" class="sans" font-size="31" fill="#eef2e8">回收物分拣</text>
+ <text x="1198" y="230" class="sans" font-size="32" letter-spacing="3" fill="#c6d8c8">垃圾分类</text>
+ <text x="1195" y="321" class="bold" font-size="68" fill="#f6f3e9">不止一种目的</text>
+ <path d="M1197 349H1740" stroke="#e1a267" stroke-width="8"/>
+ <g id="reason">
+  <path d="M1216 457c21-45 54-70 97-74-20 48-48 78-90 96z" fill="#aac69e"/>
+  <path d="M1312 455c0-20 20-43 20-43s20 23 20 43a20 20 0 1 1-40 0z" fill="#8ec4c4"/>
+  <text x="1385" y="458" class="bold" font-size="46" fill="#f5f2e8">厨余分出</text>
+  <text x="1385" y="525" class="sans" font-size="38" fill="#d7e5d7">有助于焚烧</text>
+ </g>
+</svg>
+</div>
+</div>
+<script>
+const t=gsap.timeline({paused:true});
+t.from("#introTitle",{opacity:0,y:22,duration:.7},0)
+ .from("#buildings",{opacity:0,duration:.8},.1)
+ .from("#station",{y:45,opacity:0,duration:.8,ease:"power2.out"},.5)
+ .to("#banner",{opacity:.35,duration:1.2},3.5)
+ .to("#opening",{opacity:0,duration:.55},7.55)
+ .to("#videoScene",{opacity:1,duration:.55},7.95)
+ .from("#reason",{opacity:0,y:18,duration:.7},8.65)
+ .to({},{duration:4.13},9.35);
+window.__timelines=window.__timelines||{};window.__timelines["garbage-intro"]=t;
+window.getVfcMotionEvents=()=>[{id:"opening_question",meaning:"提出垃圾分类意义的问题",startFrame:0,endFrame:192},{id:"many_purposes",meaning:"分类有多种目的",startFrame:200,endFrame:335}];
+</script></body></html>
+

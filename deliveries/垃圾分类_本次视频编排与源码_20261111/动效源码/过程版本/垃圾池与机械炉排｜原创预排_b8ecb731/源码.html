@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+*{box-sizing:border-box}
+html,body{padding:0;margin:0;width:100%;height:100%;overflow:hidden}
+#film{width:1920px;height:1080px;overflow:hidden;background:#e9e7df;color:#152b2d;font-family:var(--vfc-font-main),sans-serif}
+svg{display:block;width:1920px;height:1080px}
+.sans{font-family:var(--vfc-font-main),sans-serif}
+.bold{font-family:var(--vfc-font-bold),sans-serif}
+</style>
+</head>
+<body>
+<div id="film" data-composition-id="garbage-furnace" data-start="0" data-width="1920" data-height="1080" data-duration="20.84">
+<svg viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<clipPath id="photoClip"><rect x="1280" y="148" width="490" height="266" rx="6"/></clipPath>
+<linearGradient id="wall" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#446163"/><stop offset="1" stop-color="#263c3d"/></linearGradient>
+<linearGradient id="steel" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#7a9290"/><stop offset=".48" stop-color="#4c6868"/><stop offset="1" stop-color="#253e3f"/></linearGradient>
+<linearGradient id="fire" x1="0" x2="0" y1="1" y2="0"><stop stop-color="#f5ae4b"/><stop offset=".55" stop-color="#db6b34"/><stop offset="1" stop-color="#b84126" stop-opacity=".12"/></linearGradient>
+<pattern id="grid" width="54" height="54" patternUnits="userSpaceOnUse"><path d="M54 0H0V54" fill="none" stroke="#879b96" stroke-opacity=".16" stroke-width="2"/></pattern>
+</defs>
+<rect width="1920" height="1080" fill="#e9e7df"/>
+<path d="M0 0H1920V1080H0Z" fill="url(#grid)"/>
+<path d="M0 98H1920" stroke="#91a49d" stroke-width="2" opacity=".6"/>
+<g class="sans" fill="#344e4e"><text x="86" y="67" font-size="27" letter-spacing="4">垃圾的去向</text></g>
+<g id="header" fill="#193636">
+ <text class="bold" x="84" y="178" font-size="68">从垃圾池到炉排炉</text>
+ <path d="M86 200H590" stroke="#c57a43" stroke-width="7"/>
+</g>
+<g id="poolScene">
+<!-- 垃圾池保持清晰的前壁、坑口和承重结构。 -->
+<g id="pit">
+ <path d="M90 330L736 330 766 382 766 761 716 820 129 820 90 761Z" fill="#314a49"/>
+ <path d="M112 367H742V748L706 786H147L112 748Z" fill="url(#wall)" stroke="#9bb1a5" stroke-width="4"/>
+ <path d="M112 369L178 412V741L146 784 112 748Z" fill="#2b4444"/>
+ <path d="M178 419L205 397 228 411 257 385 284 406 317 391 344 417 374 392 399 406 426 380 460 405 486 389 516 416 547 391 580 409 605 392 629 421 655 398 702 430 706 736 178 736Z" fill="#767c63"/>
+ <path d="M181 570L229 542 268 557 314 529 366 548 411 526 465 548 506 522 560 548 610 526 704 556V735H181Z" fill="#645d4b"/>
+ <path d="M207 600l34-18 41 13-16 24-45 5z M317 620l35-18 46 7 8 26-65 7z M460 589l33-18 38 13-4 23-57 5z M582 623l40-18 44 12-17 26-55-3z" fill="#a69b78" opacity=".9"/>
+ <path d="M228 471l28-14 26 10-3 20-42 4z M373 474l21-17 39 10-5 18-48 4z M548 478l31-16 23 9-3 22-42 3z" fill="#9ba182"/>
+ <path d="M112 744H742L711 790H145Z" fill="#9aab9b"/>
+ <path d="M145 790H711V819H145Z" fill="#344e4e"/>
+ <path d="M263 819v30h319v-30" fill="none" stroke="#456769" stroke-width="12"/>
+ <path d="M582 845h94v27" fill="none" stroke="#456769" stroke-width="12"/>
+ <path id="drop1" d="M311 725c0-15 15-30 15-30s15 15 15 30a15 15 0 1 1-30 0z" fill="#80bdc0" opacity="0"/>
+ <path id="drop2" d="M430 714c0-12 12-25 12-25s12 13 12 25a12 12 0 1 1-24 0z" fill="#80bdc0" opacity="0"/>
+ <path id="drop3" d="M546 725c0-15 14-28 14-28s14 13 14 28a14 14 0 1 1-28 0z" fill="#80bdc0" opacity="0"/>
+ <path d="M117 327H740" stroke="#c8d1c0" stroke-width="13"/>
+ <rect x="667" y="818" width="106" height="58" rx="4" fill="#d5dfd4" stroke="#456769" stroke-width="5"/>
+ <text x="680" y="854" class="sans" font-size="23" fill="#344e4e">处理</text>
+ <text x="168" y="306" class="bold" font-size="42" fill="#27494a">堆放几天</text>
+ <text id="drainLabel" x="168" y="878" class="sans" font-size="30" fill="#507576" opacity="0">沥出部分水分</text>
+</g>
+<!-- 抓斗的移动提供从垃圾池进入炉体的方向。 -->
+<g id="crane">
+ <path d="M350 224H922" fill="none" stroke="#657d77" stroke-width="12"/>
+ <g id="grab" transform="translate(420 0)">
+  <rect x="-44" y="207" width="90" height="29" rx="5" fill="#70877e"/>
+  <line id="grabCable" x1="0" y1="232" x2="0" y2="356" stroke="#344e4e" stroke-width="7"/>
+  <g id="bucket">
+  <path d="M-28 355H28L42 387 28 415 0 426 -28 415 -42 387Z" fill="#b8c2b2" stroke="#334d4a" stroke-width="6"/>
+  <path d="M-34 391L0 421 34 391" fill="none" stroke="#536d67" stroke-width="7"/>
+  <path d="M-26 414L0 429 26 414" fill="none" stroke="#273e3d" stroke-width="6"/>
+  <path id="grabLoad" d="M-27 412l13-10 13 5 12-6 17 10-5 15-45 1z" fill="#9b8967" opacity="0"/>
+  </g>
+ </g>
+</g>
+</g>
+<!-- 炉体为剖面图形，炉排、燃烧、烟气与残渣各自有清晰承载。 -->
+<g id="furnace" opacity="0">
+ <path d="M850 400L933 400 963 456 963 515 1668 515 1705 551 1705 800 923 800 923 517 893 471 850 471Z" fill="#344e4e"/>
+ <path d="M974 529H1654L1684 556V766H974Z" fill="#1f3434" stroke="#8aa096" stroke-width="4"/>
+ <path d="M861 414H923L953 470V534H926L896 482H861Z" fill="#a8b8a6"/>
+ <path d="M975 655L1638 720 1638 755 975 690Z" fill="#81968a"/>
+ <g id="grate" fill="#bdc7b4" stroke="#526e67" stroke-width="3">
+  <path class="grateA" d="M991 651l76 7-2 25-76-7z"/><path class="grateB" d="M1065 658l76 7-2 25-76-7z"/>
+  <path class="grateA" d="M1139 665l76 7-2 25-76-7z"/><path class="grateB" d="M1213 672l76 7-2 25-76-7z"/>
+  <path class="grateA" d="M1287 679l76 7-2 25-76-7z"/><path class="grateB" d="M1361 686l76 7-2 25-76-7z"/>
+  <path class="grateA" d="M1435 693l76 7-2 25-76-7z"/><path class="grateB" d="M1509 700l76 7-2 25-76-7z"/>
+  <path class="grateA" d="M1583 707l49 5-2 25-49-5z"/>
+ </g>
+ <g id="fuel">
+  <path d="M1010 621l27-17 26 13-3 25-38 3z M1060 626l30-21 29 13-3 27-39 3z M1112 627l32-18 32 16-7 28-43-4z" fill="#a39370"/>
+  <path d="M1176 633l33-19 30 15-6 31-40-4z M1238 642l30-15 34 13-6 25-42-3z" fill="#a77b56"/>
+  <path d="M1308 648l32-14 24 16-6 22-38-3z M1367 654l25-18 32 15-3 28-40-5z M1430 660l28-16 26 15-5 25-37-2z" fill="#8b6c51"/>
+ </g>
+ <g id="flames" opacity="0" fill="url(#fire)">
+  <path d="M1182 632c-12-45 10-62 22-86-2 30 14 33 19 49 7-28 24-38 24-69 32 49 39 69 24 112z"/>
+  <path d="M1278 644c-15-48 15-73 24-102 2 25 18 36 20 49 12-32 32-48 29-79 29 49 46 82 27 141z"/>
+  <path d="M1388 653c-15-49 9-64 25-99-3 32 13 37 18 55 9-26 27-40 27-70 29 42 42 77 25 123z"/>
+ </g>
+ <path d="M1467 514V439H1571V514" fill="none" stroke="#728980" stroke-width="23"/>
+ <path d="M1519 439V377H1628V440" fill="none" stroke="#728980" stroke-width="17"/>
+ <path d="M1635 375V441" stroke="#df8e4b" stroke-width="7" stroke-dasharray="12 12"/>
+ <path d="M979 799H1662" fill="none" stroke="#b8c4b5" stroke-width="12"/>
+ <text x="1003" y="860" class="bold" font-size="37" fill="#27494a">烘干</text>
+ <text x="1258" y="860" class="bold" font-size="37" fill="#9a4e2b">燃烧</text>
+ <text x="1512" y="860" class="sans" font-size="29" fill="#4d6863">炉渣排出</text>
+
+</g>
+<g id="heat" opacity="0">
+ <path d="M1459 478C1322 338 1153 326 990 399" fill="none" stroke="#d17a3e" stroke-width="7" stroke-linecap="round" stroke-dasharray="12 13"/>
+ <path d="M1009 382L985 401 1016 407" fill="none" stroke="#d17a3e" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+ <rect x="1120" y="298" width="287" height="59" rx="30" fill="#f3e0c5"/>
+ <text x="1148" y="338" class="bold" font-size="30" fill="#a7572f">热量帮助烘干</text>
+</g>
+<g id="photo" opacity="0">
+ <rect x="1264" y="132" width="522" height="298" fill="#f6f4eb" stroke="#a9b6a8" stroke-width="3"/>
+ <image data-vfc-image-slot="grate_photo" x="1280" y="148" width="490" height="266" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip)"/>
+</g>
+</svg>
+</div>
+<script>
+const t = gsap.timeline({paused:true});
+t.set("#poolScene",{x:340},0)
+ .set("#grab",{x:420},0)
+ .from("#header",{y:25,opacity:0,duration:0.55,ease:"power2.out"},0)
+ .from("#pit",{x:-55,opacity:0,duration:0.7,ease:"power2.out"},0.1)
+ .from("#crane",{y:-40,opacity:0,duration:0.6,ease:"power2.out"},0.4)
+ .to("#drop1",{opacity:1,y:56,duration:0.8,ease:"power1.in"},1.3)
+ .to("#drop2",{opacity:1,y:65,duration:0.8,ease:"power1.in"},1.9)
+ .to("#drop3",{opacity:1,y:59,duration:0.8,ease:"power1.in"},2.5)
+ .to("#drainLabel",{opacity:1,duration:0.4},2.0)
+ .to("#grabLoad",{opacity:1,duration:0.2},3.4)
+ .to("#bucket",{y:-68,duration:.7,ease:"power1.inOut"},3.6)
+ .to("#grabCable",{attr:{y2:288},duration:.7,ease:"power1.inOut"},3.6)
+ .to("#poolScene",{x:0,duration:1.0,ease:"power2.inOut"},4.2)
+ .to("#grab",{x:900,duration:2.0,ease:"power1.inOut"},4.7)
+ .to("#furnace",{opacity:1,duration:.7},5.3)
+ .to("#grabLoad",{y:120,opacity:0,duration:.7,ease:"power1.in"},6.7)
+ .from("#fuel",{x:-110,y:-8,opacity:0,duration:1.3,ease:"power2.out"},7.0)
+ .to(".grateA",{x:12,duration:.55,repeat:7,yoyo:true,ease:"sine.inOut"},7.6)
+ .to(".grateB",{x:-10,duration:.55,repeat:7,yoyo:true,ease:"sine.inOut"},8.15)
+ .to("#fuel",{x:54,y:5,duration:6,ease:"none"},7.8)
+ .to("#flames",{opacity:1,duration:.7},8.9)
+ .to("#heat",{opacity:1,duration:.6},11.2)
+ .to("#heat",{opacity:0,duration:.5},15.0)
+ .to("#photo",{opacity:1,duration:.8},15.5)
+ .to({},{duration:4.54},16.3);
+window.__timelines=window.__timelines||{};
+window.__timelines["garbage-furnace"]=t;
+window.getVfcMotionEvents=()=>[
+ {id:"drain",meaning:"部分水分沥出",startFrame:32,endFrame:98},
+ {id:"transfer",meaning:"抓斗把垃圾送入炉体",startFrame:117,endFrame:185},
+ {id:"grate_dry_burn",meaning:"炉排上的干燥和燃烧",startFrame:190,endFrame:330},
+ {id:"heat_reuse",meaning:"燃烧热量帮助烘干",startFrame:280,endFrame:375}
+];
+</script>
+</body>
+</html>
+

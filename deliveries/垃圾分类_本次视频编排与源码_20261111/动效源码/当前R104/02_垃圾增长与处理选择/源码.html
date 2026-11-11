@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box} html,body{padding:0;margin:0;overflow:hidden} 
+#film{position:relative;width:1920px;height:1080px;background:#e9e7df;color:#193636;font-family:var(--vfc-font-main),sans-serif}
+svg{display:block;width:1920px;height:1080px}.sans{font-family:var(--vfc-font-main),sans-serif}.bold{font-family:var(--vfc-font-bold),sans-serif}
+#landVideo{position:absolute;inset:0;opacity:0;overflow:hidden;background:#263d3a}
+#landVideo img{display:block;width:100%;height:100%;object-fit:cover}
+#landShade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(18,39,37,.78),rgba(18,39,37,.06) 75%),linear-gradient(0deg,rgba(18,39,37,.55),transparent 24%)}
+#landHeadline{position:absolute;left:110px;top:150px;color:#f4f3e9;font-family:var(--vfc-font-bold),sans-serif;font-size:67px}
+</style></head><body>
+<div id="film" data-composition-id="garbage-growth" data-start="0" data-width="1920" data-height="1080" data-duration="19.32">
+<svg viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+<defs><pattern id="grid" width="54" height="54" patternUnits="userSpaceOnUse"><path d="M54 0H0V54" fill="none" stroke="#879b96" stroke-opacity=".16" stroke-width="2"/></pattern>
+<linearGradient id="land" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#999172"/><stop offset="1" stop-color="#635e4e"/></linearGradient></defs>
+<rect width="1920" height="1080" fill="#e9e7df"/><rect width="1920" height="1080" fill="url(#grid)"/>
+<path d="M0 98H1920" stroke="#91a49d" stroke-width="2" opacity=".6"/>
+<text x="86" y="67" class="sans" font-size="27" letter-spacing="4" fill="#344e4e">垃圾的去向</text>
+<g id="chart">
+ <text x="125" y="220" class="bold" font-size="67" fill="#193636">城市生活垃圾清运量</text>
+ <path d="M128 765H1004" stroke="#69817b" stroke-width="5"/>
+ <path d="M128 765V264" stroke="#a9b7aa" stroke-width="3"/>
+ <text x="88" y="775" class="sans" font-size="27" fill="#607b75">0</text>
+ <g id="barA"><rect x="284" y="515" width="210" height="250" rx="5" fill="#809f94"/><path d="M284 515H494" stroke="#577d73" stroke-width="9"/></g>
+ <g id="barB"><rect x="646" y="265" width="210" height="500" rx="5" fill="#315b59"/><path d="M646 265H856" stroke="#193f3f" stroke-width="9"/></g>
+ <g id="labelA" fill="#315b59"><text x="275" y="478" class="bold" font-size="55">1.2 亿吨</text><text x="323" y="825" class="sans" font-size="33">2000 年</text></g>
+ <g id="labelB" fill="#244d4b"><text x="665" y="330" class="bold" font-size="47" fill="#f3f1e8">2.4 亿吨</text><text x="685" y="825" class="sans" font-size="33">2019 年</text></g>
+</g>
+<g id="landfill" opacity="0">
+ <path d="M1073 688L1122 649 1166 662 1216 601 1270 614 1312 572 1372 591 1431 533 1493 554 1547 518 1622 563 1676 548 1730 604 1808 617 1854 670 1854 762H1073Z" fill="url(#land)"/>
+ <path d="M1073 727L1139 705 1190 718 1254 673 1301 685 1359 647 1413 664 1487 623 1542 643 1598 611 1672 646 1740 643 1813 685 1854 683V762H1073Z" fill="#5d6253"/>
+ <path d="M1163 678l29-16 27 9-4 17-37 1z M1265 642l32-14 26 10-5 20-38 1z M1398 610l28-18 25 9-3 22-38-2z M1548 584l27-11 26 12-5 15-33 1z M1694 645l29-14 25 9-5 17-35 1z" fill="#c0b699"/>
+ <path d="M1074 762H1854V813H1074Z" fill="#596a5e"/>
+ <path d="M1074 813H1854V908H1074Z" fill="#c7bd9f"/>
+ <path d="M1074 908H1854" stroke="#83b8b8" stroke-width="14"/>
+ <text x="1080" y="476" class="bold" font-size="53" fill="#334f4e">填埋场占地</text>
+ <g id="leachate" opacity="0">
+   <path d="M1355 744c0-14 14-30 14-30s14 16 14 30a14 14 0 1 1-28 0z M1486 724c0-14 14-30 14-30s14 16 14 30a14 14 0 1 1-28 0z M1593 748c0-14 14-30 14-30s14 16 14 30a14 14 0 1 1-28 0z" fill="#5d9a9c"/>
+   <path d="M1370 775v65 M1500 755v65 M1607 779v65" fill="none" stroke="#579193" stroke-width="5" stroke-dasharray="8 8"/>
+   <rect x="1316" y="855" width="401" height="65" rx="32" fill="#efddc6"/>
+   <text x="1343" y="899" class="bold" font-size="30" fill="#9f5133">渗滤液处理不当会污染</text>
+ </g>
+</g>
+<g id="energy" opacity="0">
+ <text x="108" y="185" class="bold" font-size="67" fill="#193636">焚烧：减容与发电</text>
+ <path d="M110 207H655" stroke="#c57a43" stroke-width="7"/>
+ <g id="energyWaste">
+  <path d="M154 636l50-37 47 18 40-44 51 18 47-33 50 24 51-24 50 34 50-12 55 57v109H154Z" fill="#79836c"/>
+  <path d="M183 687l42-27 47 14 43-26 51 16 43-28 52 28 54-17 46 31 49-7v75H183Z" fill="#5e6a59"/>
+  <text x="204" y="816" class="bold" font-size="41" fill="#315250">生活垃圾</text>
+ </g>
+ <path d="M594 640h104" stroke="#7a9489" stroke-width="8"/><path d="M684 620l26 20-26 20" fill="none" stroke="#7a9489" stroke-width="8"/>
+ <g id="energyFurnace">
+  <path d="M738 423h390v327H738Z" fill="#34514f"/>
+  <path d="M764 449h338v271H764Z" fill="#1f3635"/>
+  <path d="M814 708c-15-60 15-89 28-123 2 40 21 53 28 77 15-40 37-62 36-103 36 60 55 100 34 149z" fill="#e48243"/>
+  <path d="M902 711c-11-41 11-64 21-88 2 27 13 38 18 54 9-27 25-42 24-70 26 41 38 71 24 104z" fill="#ffc162"/>
+  <path d="M765 720h337" stroke="#9eb4a6" stroke-width="10"/>
+  <text x="814" y="817" class="bold" font-size="41" fill="#315250">减少体积</text>
+ </g>
+ <g id="energyPower">
+  <path d="M1068 422V339h365v143" fill="none" stroke="#7b988b" stroke-width="24"/>
+  <circle cx="1513" cy="594" r="152" fill="#cfdbce" stroke="#56796f" stroke-width="12"/>
+  <circle cx="1513" cy="594" r="32" fill="#587b70"/>
+  <path id="turbineBlades" d="M1513 456l24 94-24 39-25-39z M1649 594l-94 24-39-24 39-25z M1513 730l-24-94 24-39 25 39z M1377 594l94-25 39 25-39 24z" fill="#7ca396"/>
+  <path d="M1703 491l-48 110h51l-23 100 86-138h-51l36-72Z" fill="#d98742"/>
+  <text x="1391" y="817" class="bold" font-size="41" fill="#315250">利用热量发电</text>
+ </g>
+</g></svg>
+<div id="landVideo"><img id="landfillFootage" data-vfc-video-slot="landfill_video" alt=""><div id="landShade"></div><div id="landHeadline">垃圾越来越多</div></div>
+</div>
+<script>
+const t=gsap.timeline({paused:true});
+t.set("#chart",{x:350},0)
+ .set("#landfill",{x:-590,y:-80},0)
+ .from("#chart",{opacity:0,y:18,duration:.5},0)
+ .from("#barA",{scaleY:0,transformOrigin:"50% 100%",duration:.9,ease:"power2.out"},.3)
+ .from("#labelA",{opacity:0,y:15,duration:.45},.7)
+ .from("#barB",{scaleY:0,transformOrigin:"50% 100%",duration:.8,ease:"power2.out"},3.3)
+ .from("#labelB",{opacity:0,y:15,duration:.4},3.9)
+ .to("#landVideo",{opacity:1,duration:.25},5.4)
+ .to("#chart",{opacity:0,duration:.1},5.65)
+ .to("#landVideo",{opacity:0,duration:.24},6.12)
+ .to("#landfill",{opacity:1,duration:.4},6.12)
+ .to("#leachate",{opacity:1,duration:.7},10.05)
+ .to("#landfill",{opacity:0,duration:.5},13.2)
+ .to("#energy",{opacity:1,duration:.6},13.45)
+ .from("#energyFurnace",{opacity:0,y:25,duration:.5},13.7)
+ .from("#energyPower",{opacity:0,x:25,duration:.7},15.3)
+ .to("#turbineBlades",{rotation:90,transformOrigin:"50% 50%",duration:3.3,ease:"none"},15.4)
+ .to({},{duration:3.32},16.0);
+window.__timelines=window.__timelines||{};window.__timelines["garbage-growth"]=t;
+window.getVfcMotionEvents=()=>[
+ {id:"growth",meaning:"垃圾清运量增长比较",startFrame:0,endFrame:135},
+ {id:"waste_scale",meaning:"垃圾堆积的规模",startFrame:135,endFrame:165},
+ {id:"landfill",meaning:"填埋占地与渗滤液",startFrame:165,endFrame:337},
+ {id:"energy",meaning:"焚烧减容并利用热量发电",startFrame:337,endFrame:482}
+];
+</script></body></html>
+

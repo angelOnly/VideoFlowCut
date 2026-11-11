@@ -1,0 +1,230 @@
+{
+  "说明": "按原交接清单整理；路径改为相对于本文件。简报文件因链接重写而不同，原哈希仅供追溯；媒体为原文件副本。五场保持原状态，未证明OD读取。",
+  "原Revision": 101,
+  "场景": [
+    {
+      "sceneId": "scene_1e747001-5a74-43d5-832a-05c3bf64c875",
+      "status": "pending",
+      "visualPlan": {
+        "status": "draft",
+        "primaryRoles": [
+          "分类站",
+          "回收物分拣"
+        ],
+        "preview": {
+          "workId": "motion_work_d4ba98ffe2f7ed9362114975c24704c768b4b2db49d9a7431cc7a984f4aebe53",
+          "startFrame": 0,
+          "endFrame": 337
+        }
+      },
+      "process": "原创分类站建立并转入回收物分拣实拍；保留分类多目的、字幕安全和事实边界。",
+      "preserve": [
+        "分类站与实拍的角色区别",
+        "旁白和普通字幕独立"
+      ],
+      "adapt": [
+        "排印、动线和动作曲线可深化"
+      ]
+    },
+    {
+      "sceneId": "scene_1a860dc7-f5df-4105-851c-0ae994f8a3f7",
+      "status": "pending",
+      "visualPlan": {
+        "status": "draft",
+        "primaryRoles": [
+          "清运量数据",
+          "垃圾规模实拍",
+          "处理示意"
+        ],
+        "preview": {
+          "workId": "motion_work_0ee5e3243060f7ff430ee404d722b7e2969d2f0d8c12db7c0a17087ca95eacd6",
+          "startFrame": 0,
+          "endFrame": 483
+        }
+      },
+      "process": "零基线1.2与2.4对比、垃圾规模实拍转入原创填埋示意，再衔接焚烧和发电。",
+      "preserve": [
+        "数据比例与语音顺序",
+        "境外堆场不作填埋污染证据"
+      ],
+      "adapt": [
+        "对象细节与场面接续可深化"
+      ]
+    },
+    {
+      "sceneId": "scene_6dfa8693-2039-4ee7-968b-210325b3f35d",
+      "status": "pending",
+      "visualPlan": {
+        "status": "draft",
+        "primaryRoles": [
+          "炉体",
+          "烟气条件",
+          "湿垃圾"
+        ],
+        "graphicLed": true,
+        "graphicReasons": [
+          "不可见处理条件与热值关系需用清楚的原创图解表达。"
+        ],
+        "preview": {
+          "workId": "motion_work_01f7fc90bab9192813e9abd1b1e8237d597b5934d7f1bda35bb942cdf2c59f4f",
+          "startFrame": 0,
+          "endFrame": 649
+        }
+      },
+      "process": "烟气条件、净化及湿垃圾解释；分类管理和处理发展并列，不暗示未经证实的因果。",
+      "preserve": [
+        "850℃、至少2秒及净化共同成立",
+        "并列而非归因"
+      ],
+      "adapt": [
+        "运动衔接与视觉层次可深化"
+      ]
+    },
+    {
+      "sceneId": "scene_11644f89-c1da-4306-be2c-ce1df721fd5d",
+      "status": "pending",
+      "visualPlan": {
+        "status": "draft",
+        "primaryRoles": [
+          "垃圾池",
+          "抓斗",
+          "炉排",
+          "炉排照片"
+        ],
+        "graphicLed": true,
+        "graphicReasons": [
+          "需要解释设备内部不可见的处理过程。"
+        ],
+        "preview": {
+          "workId": "motion_work_390e10b07ed7524eb1df750f9701f2fea4e3edd7bce5932be7250dab06c3f655",
+          "startFrame": 0,
+          "endFrame": 521
+        }
+      },
+      "process": "垃圾池沥水并送处理、抓斗转送、炉排干燥燃烧及余热回馈，静照辅助。",
+      "preserve": [
+        "沥液送处理",
+        "炉排移动和真实照片的区分"
+      ],
+      "adapt": [
+        "部件造型、动作曲线与层次可深化"
+      ]
+    },
+    {
+      "sceneId": "scene_0d66ac3c-cec4-4527-8b4c-d5d3b2341779",
+      "status": "pending",
+      "visualPlan": {
+        "status": "draft",
+        "primaryRoles": [
+          "分拣实拍",
+          "可回收物",
+          "有害垃圾",
+          "厨余"
+        ],
+        "preview": {
+          "workId": "motion_work_3ca2b97237b09242fa71163834a5856a38b240826abdb6b1db2ed50903cd27a2",
+          "startFrame": 0,
+          "endFrame": 514
+        }
+      },
+      "process": "回收分拣实拍转入纸塑金属、特定废电池、废荧光灯管、药品和厨余不同去向。",
+      "preserve": [
+        "特定废电池和废荧光灯管的范围",
+        "真实分拣与原创示意区分"
+      ],
+      "adapt": [
+        "图形细节与收束节奏可深化"
+      ]
+    }
+  ],
+  "文件": [
+    {
+      "本包路径": "R101_画面演出制作简报.md",
+      "原始用途": [
+        {
+          "kind": "brief",
+          "id": "brief",
+          "purpose": "创意编排指令"
+        }
+      ],
+      "原文件SHA256": "c00c96266870eae8ba2e41837dfd428651972716f9d705b73fe41073b29d8a4e",
+      "原文件字节数": 8422,
+      "OD读取": false,
+      "读取检查": "未核验 OD 读取"
+    },
+    {
+      "本包路径": "R101_时间资料.md",
+      "原始用途": [
+        {
+          "kind": "brief",
+          "id": "timing",
+          "purpose": "完整时间编排"
+        }
+      ],
+      "原文件SHA256": "6dc9209c884248bcb35dba38a8d71a513e919fe5856e62a82cfbde5c8a80dec2",
+      "原文件字节数": 2097,
+      "OD读取": false,
+      "读取检查": "未核验 OD 读取"
+    },
+    {
+      "本包路径": "../素材/视频/回收物分拣_Pexels3195440.mp4",
+      "原始用途": [
+        {
+          "kind": "source",
+          "id": "asset_64ee38d6-798c-494a-bcf3-c5c71d17258e",
+          "purpose": "本次取得的回收物分拣实拍，第一及第五场使用；地点未知。",
+          "sourceStartMs": 8000,
+          "sourceEndMs": 15880
+        }
+      ],
+      "原文件SHA256": "66dcdced4269af7ed84080f51e175d2ccfc7629ee2f38f03879ab8104a12d42a",
+      "原文件字节数": 46954827,
+      "OD读取": false,
+      "读取检查": "未核验 OD 读取"
+    },
+    {
+      "本包路径": "../素材/视频/垃圾堆场_Pexels4445843.mp4",
+      "原始用途": [
+        {
+          "kind": "source",
+          "id": "asset_808187ec-81d5-4ec9-9af9-b06043e297b5",
+          "purpose": "本次取得的垃圾堆场实拍，仅表现垃圾规模，不指称中国或作为填埋污染证据。",
+          "sourceStartMs": 10000,
+          "sourceEndMs": 11200
+        }
+      ],
+      "原文件SHA256": "6d21c345d1dd54aab371ea39568423319d1a8730ba11130cdc69b78e730e6d6f",
+      "原文件字节数": 191233272,
+      "OD读取": false,
+      "读取检查": "未核验 OD 读取"
+    },
+    {
+      "本包路径": "../素材/图片/移动炉排_OlePoulsen.jpg",
+      "原始用途": [
+        {
+          "kind": "source",
+          "id": "asset_02e7f1d5-1e28-49d9-b0b6-de804375a5c8",
+          "purpose": "真实炉排静照，辅助辨认结构，不冒称动态现场。"
+        }
+      ],
+      "原文件SHA256": "b9f85f019fe52cbcd02589705d4fed1b22726d434d715de9bdd518b096a72658",
+      "原文件字节数": 94543,
+      "OD读取": false,
+      "读取检查": "未核验 OD 读取"
+    },
+    {
+      "本包路径": "R101_场景状态.json",
+      "原始用途": [
+        {
+          "kind": "brief",
+          "id": "scenes",
+          "purpose": "场面、参考和真实素材映射"
+        }
+      ],
+      "原文件SHA256": "bbc6b69b274a31a3913a0a0b7651fd2fe0e3174e5a49bb6fbf4328645385ae01",
+      "原文件字节数": 4249,
+      "OD读取": false,
+      "读取检查": "未核验 OD 读取"
+    }
+  ]
+}

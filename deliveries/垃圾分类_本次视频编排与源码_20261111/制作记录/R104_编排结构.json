@@ -1,0 +1,613 @@
+{
+  "项目": "垃圾分类：从焚烧到资源回收｜全新解说",
+  "项目版本": 104,
+  "制作状态": "incomplete",
+  "fps": 25,
+  "尺寸": [
+    1920,
+    1080
+  ],
+  "总帧数": 2504,
+  "叙事地图": {
+    "id": "narrative_map_9f75fc7e-8a5b-4a04-97c8-3f87242cf30a",
+    "viewerQuestion": "垃圾分类为什么好像不那么热闹了，它今天还有什么作用？",
+    "promisedModel": "沿垃圾从投放到处理再到资源回收的去向，理解分类与焚烧之间的关系及其多重价值。",
+    "conclusion": "分类既帮助后端处理，也让可回收资源和需要特殊处理的垃圾进入合适路径。",
+    "beats": [
+      {
+        "id": "narrative_map_beat_d603a647-5342-4e8c-96f4-2f768e7dcbee",
+        "narrativeBeatId": "story_beat_a897640a-a49d-4d84-a9f8-b91a4b0f10e9",
+        "enteringKnowledge": "生活中见过分类宣传和分类桶。",
+        "question": "为什么现在一些地方的分类看起来不那么热闹？",
+        "newKnowledge": "分类有多种目的，干湿分离也有助于焚烧。",
+        "deferredInformation": "垃圾为什么需要焚烧，以及湿垃圾如何影响处理。",
+        "evidenceCaptureIds": [],
+        "sceneIds": []
+      },
+      {
+        "id": "narrative_map_beat_a26c8dfa-a64e-4db8-b23b-f3b81dd3d97d",
+        "narrativeBeatId": "story_beat_499496e1-ad92-4108-bcc4-434a3c2c4423",
+        "enteringKnowledge": "分类与垃圾处理相关。",
+        "question": "垃圾处理面临什么压力？",
+        "newKnowledge": "城市生活垃圾清运量增长，填埋占地且需控制渗滤液；焚烧可减容发电。",
+        "deferredInformation": "焚烧需要什么运行与污染控制条件。",
+        "evidenceCaptureIds": [],
+        "sceneIds": []
+      },
+      {
+        "id": "narrative_map_beat_11a38e26-cddc-4b45-b1de-af63a9681a2a",
+        "narrativeBeatId": "story_beat_37886f89-c021-4f18-8962-620a37b204df",
+        "enteringKnowledge": "焚烧能减容并回收热量。",
+        "question": "为什么湿垃圾会增加焚烧难度？",
+        "newKnowledge": "高含水降低混合垃圾热值；高温、足够烟气停留时间及净化共同控制污染。",
+        "deferredInformation": "厂内如何处理混合垃圾。",
+        "evidenceCaptureIds": [],
+        "sceneIds": []
+      },
+      {
+        "id": "narrative_map_beat_322913d5-0e71-4220-9e34-c163f34830ac",
+        "narrativeBeatId": "story_beat_4ff94b54-1eb9-405a-abb8-bd08e145de1b",
+        "enteringKnowledge": "稳定燃烧和污染控制需要合适条件。",
+        "question": "垃圾池与机械炉排如何帮助处理垃圾？",
+        "newKnowledge": "一些垃圾先沥出部分水，再在炉排上干燥、翻动和燃烧，仍需运行控制。",
+        "deferredInformation": "即使能处理混合垃圾，分类还有何意义。",
+        "evidenceCaptureIds": [],
+        "sceneIds": []
+      },
+      {
+        "id": "narrative_map_beat_ad4b4043-00f4-4555-8440-76d42fde183c",
+        "narrativeBeatId": "story_beat_759c9292-9202-48fa-affa-8c98b1e0a6d7",
+        "enteringKnowledge": "部分混合垃圾经适当处理可以稳定焚烧。",
+        "question": "分类还有用吗？",
+        "newKnowledge": "纸塑金属、厨余和需要特殊处理的有害垃圾各有不同去向。",
+        "deferredInformation": "观众可依当地分类规则落实到日常投放。",
+        "evidenceCaptureIds": [],
+        "sceneIds": []
+      }
+    ],
+    "updatedAt": "2026-11-11T07:55:12.089Z"
+  },
+  "故事": {
+    "id": "story_06d1a0d9-e7ff-49e4-8b74-b00c5a522fd5",
+    "title": "垃圾分类：垃圾去向与资源回收",
+    "summary": "从分类热度的日常观察出发，解释垃圾清运、焚烧控制和厂内处理，最后回到资源回收与有害垃圾分类。",
+    "beats": [
+      {
+        "id": "story_beat_a897640a-a49d-4d84-a9f8-b91a4b0f10e9",
+        "order": 0,
+        "title": "分类的日常与多重目的",
+        "purpose": "引出观众对分类变化的疑问，建立分类与干湿分离的关系。",
+        "semanticUnitIds": [
+          "semantic_a3088999-77d9-4b59-b62b-b175859b0862",
+          "semantic_2330a530-43d9-43fc-aa5c-aea6e035cf30"
+        ],
+        "sceneIds": [
+          "scene_1e747001-5a74-43d5-832a-05c3bf64c875"
+        ]
+      },
+      {
+        "id": "story_beat_499496e1-ad92-4108-bcc4-434a3c2c4423",
+        "order": 1,
+        "title": "垃圾增长与焚烧选择",
+        "purpose": "用数据和填埋限制解释焚烧减容与发电的作用。",
+        "semanticUnitIds": [
+          "semantic_dec7bc95-1388-4831-b342-6b24a9a2895e",
+          "semantic_c2464e05-0c6c-49c7-ad85-79a0514b8d7b"
+        ],
+        "sceneIds": [
+          "scene_1a860dc7-f5df-4105-851c-0ae994f8a3f7"
+        ]
+      },
+      {
+        "id": "story_beat_37886f89-c021-4f18-8962-620a37b204df",
+        "order": 2,
+        "title": "稳定焚烧和污染控制",
+        "purpose": "说明湿垃圾对燃烧的影响，以及高温、烟气停留时间和净化的共同作用。",
+        "semanticUnitIds": [
+          "semantic_5d9a83ca-4772-45ca-b3f9-cdeb74da2eb3"
+        ],
+        "sceneIds": [
+          "scene_6dfa8693-2039-4ee7-968b-210325b3f35d"
+        ]
+      },
+      {
+        "id": "story_beat_4ff94b54-1eb9-405a-abb8-bd08e145de1b",
+        "order": 3,
+        "title": "垃圾池与机械炉排",
+        "purpose": "沿垃圾流向解释沥水、翻动、干燥和燃烧，以及运行控制的必要性。",
+        "semanticUnitIds": [
+          "semantic_dfed71ad-c8e7-4271-a745-e4516fde5a43",
+          "semantic_3a7edc74-e95f-46df-a286-7a415883a885",
+          "semantic_d911f460-af91-4d06-960b-4f0eac3d338d"
+        ],
+        "sceneIds": [
+          "scene_11644f89-c1da-4306-be2c-ce1df721fd5d"
+        ]
+      },
+      {
+        "id": "story_beat_759c9292-9202-48fa-affa-8c98b1e0a6d7",
+        "order": 4,
+        "title": "回收价值与分别处理",
+        "purpose": "让观众理解可回收物、厨余和有害垃圾仍需要适当分类。",
+        "semanticUnitIds": [
+          "semantic_ae8a5072-0705-4357-878a-5ef4d7c489e7",
+          "semantic_25f6b4d7-d5e2-4256-810d-78ce606ceb0b"
+        ],
+        "sceneIds": [
+          "scene_0d66ac3c-cec4-4527-8b4c-d5d3b2341779"
+        ]
+      }
+    ],
+    "updatedAt": "2026-11-11T08:00:43.428Z"
+  },
+  "场景": [
+    {
+      "id": "scene_1e747001-5a74-43d5-832a-05c3bf64c875",
+      "type": "ExplainerScene",
+      "title": "分类的日常与多重目的",
+      "purpose": "从投放场景引出分类热度的观察与干湿分离的作用。",
+      "startFrame": 0,
+      "endFrame": 337,
+      "assetIds": [],
+      "narrativeBeatIds": [
+        "story_beat_a897640a-a49d-4d84-a9f8-b91a4b0f10e9"
+      ],
+      "status": "draft",
+      "stylePackId": "default-clean"
+    },
+    {
+      "id": "scene_1a860dc7-f5df-4105-851c-0ae994f8a3f7",
+      "type": "ExplainerScene",
+      "title": "垃圾增长与处理选择",
+      "purpose": "比较清运量并展示填埋与焚烧减容发电的关系。",
+      "startFrame": 337,
+      "endFrame": 820,
+      "assetIds": [],
+      "narrativeBeatIds": [
+        "story_beat_499496e1-ad92-4108-bcc4-434a3c2c4423"
+      ],
+      "status": "draft",
+      "stylePackId": "default-clean"
+    },
+    {
+      "id": "scene_6dfa8693-2039-4ee7-968b-210325b3f35d",
+      "type": "ExplainerScene",
+      "title": "焚烧条件与湿垃圾",
+      "purpose": "解释高温、停留时间、烟气净化与高含水对燃烧的影响。",
+      "startFrame": 820,
+      "endFrame": 1469,
+      "assetIds": [],
+      "narrativeBeatIds": [
+        "story_beat_37886f89-c021-4f18-8962-620a37b204df"
+      ],
+      "status": "draft",
+      "stylePackId": "default-clean"
+    },
+    {
+      "id": "scene_11644f89-c1da-4306-be2c-ce1df721fd5d",
+      "type": "ExplainerScene",
+      "title": "垃圾池与机械炉排",
+      "purpose": "沿垃圾进入垃圾池、沥水和机械炉排流动解释处理过程。",
+      "startFrame": 1469,
+      "endFrame": 1990,
+      "assetIds": [],
+      "narrativeBeatIds": [
+        "story_beat_4ff94b54-1eb9-405a-abb8-bd08e145de1b"
+      ],
+      "status": "draft",
+      "stylePackId": "default-clean"
+    },
+    {
+      "id": "scene_0d66ac3c-cec4-4527-8b4c-d5d3b2341779",
+      "type": "ExplainerScene",
+      "title": "资源与有害垃圾的去向",
+      "purpose": "说明可回收物、厨余和有害垃圾仍应分别处理。",
+      "startFrame": 1990,
+      "endFrame": 2504,
+      "assetIds": [],
+      "narrativeBeatIds": [
+        "story_beat_759c9292-9202-48fa-affa-8c98b1e0a6d7"
+      ],
+      "status": "draft",
+      "stylePackId": "default-clean"
+    }
+  ],
+  "画面方案": [
+    {
+      "id": "visual_treatment_b1faad39-5fa1-43be-9c94-1b3350777077",
+      "adoptedMaterialAssetIds": [
+        "asset_64ee38d6-798c-494a-bcf3-c5c71d17258e"
+      ],
+      "narrativeBeatId": "story_beat_a897640a-a49d-4d84-a9f8-b91a4b0f10e9",
+      "sceneId": "scene_1e747001-5a74-43d5-832a-05c3bf64c875",
+      "mode": "remotion",
+      "primaryAttention": "社区分类站与真实回收物分拣",
+      "narrativePurpose": "从分类日常进入多重目的及干湿分离的作用。",
+      "intensity": "medium",
+      "status": "ready",
+      "createdAt": "2026-11-11T08:17:07.511Z",
+      "updatedAt": "2026-11-11T08:17:07.511Z"
+    },
+    {
+      "id": "visual_treatment_74b2ae34-7549-493f-baf4-c856bc3e81a4",
+      "adoptedMaterialAssetIds": [
+        "asset_808187ec-81d5-4ec9-9af9-b06043e297b5"
+      ],
+      "narrativeBeatId": "story_beat_499496e1-ad92-4108-bcc4-434a3c2c4423",
+      "sceneId": "scene_1a860dc7-f5df-4105-851c-0ae994f8a3f7",
+      "mode": "remotion",
+      "primaryAttention": "零基线清运量比较与垃圾处理图解",
+      "narrativePurpose": "展示增长、填埋压力及焚烧减容和发电。",
+      "intensity": "medium",
+      "status": "ready",
+      "createdAt": "2026-11-11T08:17:07.564Z",
+      "updatedAt": "2026-11-11T08:17:07.564Z"
+    },
+    {
+      "id": "visual_treatment_f6a051cd-72ff-4bc6-a398-fa035d9a97e9",
+      "adoptedMaterialAssetIds": [],
+      "narrativeBeatId": "story_beat_37886f89-c021-4f18-8962-620a37b204df",
+      "sceneId": "scene_6dfa8693-2039-4ee7-968b-210325b3f35d",
+      "mode": "remotion",
+      "primaryAttention": "烟气温度、停留时间、净化与湿垃圾示意",
+      "narrativePurpose": "解释污染控制条件与含水量对稳定燃烧的影响。",
+      "intensity": "medium",
+      "status": "ready",
+      "createdAt": "2026-11-11T08:17:07.640Z",
+      "updatedAt": "2026-11-11T08:17:07.640Z"
+    },
+    {
+      "id": "visual_treatment_9dc71b18-c2e9-4fe8-b76c-0e577ba15c10",
+      "adoptedMaterialAssetIds": [
+        "asset_02e7f1d5-1e28-49d9-b0b6-de804375a5c8"
+      ],
+      "narrativeBeatId": "story_beat_4ff94b54-1eb9-405a-abb8-bd08e145de1b",
+      "sceneId": "scene_11644f89-c1da-4306-be2c-ce1df721fd5d",
+      "mode": "remotion",
+      "primaryAttention": "垃圾池与移动炉排的连续剖面",
+      "narrativePurpose": "沿垃圾流向显示沥水、干燥、燃烧与运行控制。",
+      "intensity": "medium",
+      "status": "ready",
+      "createdAt": "2026-11-11T08:17:07.718Z",
+      "updatedAt": "2026-11-11T08:17:07.718Z"
+    },
+    {
+      "id": "visual_treatment_3f01b822-dcc7-4e14-a870-1562924e95cd",
+      "adoptedMaterialAssetIds": [
+        "asset_64ee38d6-798c-494a-bcf3-c5c71d17258e"
+      ],
+      "narrativeBeatId": "story_beat_759c9292-9202-48fa-affa-8c98b1e0a6d7",
+      "sceneId": "scene_0d66ac3c-cec4-4527-8b4c-d5d3b2341779",
+      "mode": "remotion",
+      "primaryAttention": "回收分拣与不同垃圾的去向",
+      "narrativePurpose": "说明资源回收、厨余资源化和有害垃圾单独处理。",
+      "intensity": "medium",
+      "status": "ready",
+      "createdAt": "2026-11-11T08:17:07.784Z",
+      "updatedAt": "2026-11-11T08:17:07.784Z"
+    }
+  ],
+  "画面线索": [
+    {
+      "id": "cue_1a6b5731-eabf-49b7-8d70-065a9f92c379",
+      "sceneId": "scene_1e747001-5a74-43d5-832a-05c3bf64c875",
+      "workId": "motion_work_d4ba98ffe2f7ed9362114975c24704c768b4b2db49d9a7431cc7a984f4aebe53",
+      "coveredNarrativeBeatIds": [
+        "story_beat_a897640a-a49d-4d84-a9f8-b91a4b0f10e9"
+      ],
+      "type": "ManagedMotion",
+      "layer": "fullscreen",
+      "anchor": "scene",
+      "startFrame": 0,
+      "sourceStartFrame": 0,
+      "sourceEndFrame": 337,
+      "holdFrame": 168,
+      "endFrame": 337,
+      "intensity": 1,
+      "status": "ready",
+      "note": "",
+      "narrativePurpose": "引出分类现象与多重目的",
+      "audienceTask": "观察分类站与分拣画面，理解干湿分离是分类的一种作用",
+      "semanticAnchor": {
+        "type": "scene",
+        "targetId": "scene_1e747001-5a74-43d5-832a-05c3bf64c875",
+        "relation": "land_on"
+      },
+      "spatialAnchor": "full_frame",
+      "assetBindings": [],
+      "props": {},
+      "motion": {
+        "enterPreset": "none",
+        "settlePreset": "hold",
+        "exitPreset": "none",
+        "enterFrames": 0,
+        "holdFrames": 337,
+        "exitFrames": 0
+      },
+      "stylePackId": "managed-source",
+      "qualityRules": []
+    },
+    {
+      "id": "cue_512ea069-c66c-4bcb-88d0-a07be8b6dc8c",
+      "sceneId": "scene_1a860dc7-f5df-4105-851c-0ae994f8a3f7",
+      "workId": "motion_work_0ee5e3243060f7ff430ee404d722b7e2969d2f0d8c12db7c0a17087ca95eacd6",
+      "coveredNarrativeBeatIds": [
+        "story_beat_499496e1-ad92-4108-bcc4-434a3c2c4423"
+      ],
+      "type": "ManagedMotion",
+      "layer": "fullscreen",
+      "anchor": "scene",
+      "startFrame": 337,
+      "sourceStartFrame": 0,
+      "sourceEndFrame": 483,
+      "holdFrame": 578,
+      "endFrame": 820,
+      "intensity": 1,
+      "status": "ready",
+      "note": "",
+      "narrativePurpose": "解释垃圾增长与填埋、焚烧处理",
+      "audienceTask": "观察清运量变化及垃圾处理选择",
+      "semanticAnchor": {
+        "type": "scene",
+        "targetId": "scene_1a860dc7-f5df-4105-851c-0ae994f8a3f7",
+        "relation": "land_on"
+      },
+      "spatialAnchor": "full_frame",
+      "assetBindings": [],
+      "props": {},
+      "motion": {
+        "enterPreset": "none",
+        "settlePreset": "hold",
+        "exitPreset": "none",
+        "enterFrames": 0,
+        "holdFrames": 483,
+        "exitFrames": 0
+      },
+      "stylePackId": "managed-source",
+      "qualityRules": []
+    },
+    {
+      "id": "cue_e514cbfb-9521-4752-8b24-9ddbb8c9be2c",
+      "sceneId": "scene_6dfa8693-2039-4ee7-968b-210325b3f35d",
+      "workId": "motion_work_3fadaca06347c862d1344aa0d329943e06f767160bb68a09d29d2d353d863b70",
+      "coveredNarrativeBeatIds": [
+        "story_beat_37886f89-c021-4f18-8962-620a37b204df"
+      ],
+      "type": "ManagedMotion",
+      "layer": "fullscreen",
+      "anchor": "scene",
+      "startFrame": 820,
+      "sourceStartFrame": 0,
+      "sourceEndFrame": 649,
+      "holdFrame": 1144,
+      "endFrame": 1469,
+      "intensity": 1,
+      "status": "ready",
+      "note": "",
+      "narrativePurpose": "解释焚烧污染控制与含水量影响",
+      "audienceTask": "理解运行条件、净化与湿垃圾热值",
+      "semanticAnchor": {
+        "type": "scene",
+        "targetId": "scene_6dfa8693-2039-4ee7-968b-210325b3f35d",
+        "relation": "land_on"
+      },
+      "spatialAnchor": "full_frame",
+      "assetBindings": [],
+      "props": {},
+      "motion": {
+        "enterPreset": "none",
+        "settlePreset": "hold",
+        "exitPreset": "none",
+        "enterFrames": 0,
+        "holdFrames": 649,
+        "exitFrames": 0
+      },
+      "stylePackId": "managed-source",
+      "qualityRules": []
+    },
+    {
+      "id": "cue_7d334030-eaf4-4e44-a28f-6dc8118bb3d6",
+      "sceneId": "scene_11644f89-c1da-4306-be2c-ce1df721fd5d",
+      "workId": "motion_work_390e10b07ed7524eb1df750f9701f2fea4e3edd7bce5932be7250dab06c3f655",
+      "coveredNarrativeBeatIds": [
+        "story_beat_4ff94b54-1eb9-405a-abb8-bd08e145de1b"
+      ],
+      "type": "ManagedMotion",
+      "layer": "fullscreen",
+      "anchor": "scene",
+      "startFrame": 1469,
+      "sourceStartFrame": 0,
+      "sourceEndFrame": 521,
+      "holdFrame": 1729,
+      "endFrame": 1990,
+      "intensity": 1,
+      "status": "ready",
+      "note": "",
+      "narrativePurpose": "展示垃圾池沥水及机械炉排的处理过程",
+      "audienceTask": "沿垃圾流向观察干燥与燃烧条件",
+      "semanticAnchor": {
+        "type": "scene",
+        "targetId": "scene_11644f89-c1da-4306-be2c-ce1df721fd5d",
+        "relation": "land_on"
+      },
+      "spatialAnchor": "full_frame",
+      "assetBindings": [],
+      "props": {},
+      "motion": {
+        "enterPreset": "none",
+        "settlePreset": "hold",
+        "exitPreset": "none",
+        "enterFrames": 0,
+        "holdFrames": 521,
+        "exitFrames": 0
+      },
+      "stylePackId": "managed-source",
+      "qualityRules": []
+    },
+    {
+      "id": "cue_c9616eab-8a7e-4fa1-9121-2ae516335dbc",
+      "sceneId": "scene_0d66ac3c-cec4-4527-8b4c-d5d3b2341779",
+      "workId": "motion_work_3ca2b97237b09242fa71163834a5856a38b240826abdb6b1db2ed50903cd27a2",
+      "coveredNarrativeBeatIds": [
+        "story_beat_759c9292-9202-48fa-affa-8c98b1e0a6d7"
+      ],
+      "type": "ManagedMotion",
+      "layer": "fullscreen",
+      "anchor": "scene",
+      "startFrame": 1990,
+      "sourceStartFrame": 0,
+      "sourceEndFrame": 514,
+      "holdFrame": 2247,
+      "endFrame": 2504,
+      "intensity": 1,
+      "status": "ready",
+      "note": "",
+      "narrativePurpose": "说明分类对回收和特殊处理仍有价值",
+      "audienceTask": "比较不同垃圾的合适去向",
+      "semanticAnchor": {
+        "type": "scene",
+        "targetId": "scene_0d66ac3c-cec4-4527-8b4c-d5d3b2341779",
+        "relation": "land_on"
+      },
+      "spatialAnchor": "full_frame",
+      "assetBindings": [],
+      "props": {},
+      "motion": {
+        "enterPreset": "none",
+        "settlePreset": "hold",
+        "exitPreset": "none",
+        "enterFrames": 0,
+        "holdFrames": 514,
+        "exitFrames": 0
+      },
+      "stylePackId": "managed-source",
+      "qualityRules": []
+    }
+  ],
+  "声音方案": [
+    {
+      "startFrame": 0,
+      "endFrame": 2504,
+      "narrationDirection": "普通话清晰居前，开头带疑问，数据与流程平稳，结论自然收束；检查数字和专业名词。",
+      "dominantRole": "narration",
+      "musicDirection": "导演本次选择音乐留白，旁白独立承担叙事；现有候选保留，实际音乐听感未确认。",
+      "intents": [
+        {
+          "id": "intent_music_bed",
+          "function": "silence",
+          "brief": "全片以清楚旁白为主，不加未确认的音乐。"
+        },
+        {
+          "id": "intent_furnace_ambience",
+          "function": "silence",
+          "brief": "炉排段留白，让讲述与画面直接说明过程；候选保留，未作听感结论。"
+        }
+      ],
+      "id": "sound_plan_97e06f9d-316c-46ac-971e-fec33e8aebd6",
+      "version": 2,
+      "status": "current",
+      "updatedAt": "2026-11-11T08:14:56.730Z"
+    }
+  ],
+  "最终混音增益dB": 10,
+  "字幕格式": {
+    "fontSize": 44,
+    "fontWeight": 700,
+    "color": "#ffffff",
+    "bottomPercent": 7,
+    "horizontalInsetPercent": 8,
+    "textAlign": "center",
+    "maxLines": 2,
+    "lineHeight": 1.3,
+    "boxWidth": "content",
+    "fontId": "noto-sans-sc-bold",
+    "font": {
+      "fontId": "noto-sans-sc-bold",
+      "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+      "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+      "weight": 700,
+      "style": "normal"
+    },
+    "paddingHorizontal": 18,
+    "paddingVertical": 8,
+    "borderRadius": 10,
+    "backgroundColor": "#10181c",
+    "backgroundOpacity": 0.72
+  },
+  "旁白时钟": {
+    "precision": "segment_exact",
+    "source": "OmniVoice 输出真实时长 + 明确段间停顿",
+    "segments": [
+      {
+        "speechSegmentId": "speech_segment_539e09af-3f28-43d7-861c-39dd0ee62177",
+        "startMs": 0,
+        "endMs": 7660,
+        "startFrame": 0,
+        "endFrame": 192
+      },
+      {
+        "speechSegmentId": "speech_segment_17464e68-5575-41ad-a0e8-6477557beb3c",
+        "startMs": 8010,
+        "endMs": 13120,
+        "startFrame": 200,
+        "endFrame": 328
+      },
+      {
+        "speechSegmentId": "speech_segment_9d38f09a-5d59-4157-938f-c569dfb432de",
+        "startMs": 13470,
+        "endMs": 26390,
+        "startFrame": 337,
+        "endFrame": 660
+      },
+      {
+        "speechSegmentId": "speech_segment_d372c251-7de9-4b5c-b173-dd068de26808",
+        "startMs": 26690,
+        "endMs": 32460,
+        "startFrame": 667,
+        "endFrame": 812
+      },
+      {
+        "speechSegmentId": "speech_segment_32b3fb11-2479-45c5-bf8d-fd4468974d86",
+        "startMs": 32810,
+        "endMs": 50790,
+        "startFrame": 820,
+        "endFrame": 1270
+      },
+      {
+        "speechSegmentId": "speech_segment_94263968-c2a9-4a1d-a781-9ee3a510eb0e",
+        "startMs": 51190,
+        "endMs": 58450,
+        "startFrame": 1280,
+        "endFrame": 1461
+      },
+      {
+        "speechSegmentId": "speech_segment_75e8796b-0ace-40e6-b8d1-e82676861435",
+        "startMs": 58750,
+        "endMs": 73750,
+        "startFrame": 1469,
+        "endFrame": 1844
+      },
+      {
+        "speechSegmentId": "speech_segment_b45050c4-3d38-4866-9f7d-93fc0e79a355",
+        "startMs": 74050,
+        "endMs": 79200,
+        "startFrame": 1851,
+        "endFrame": 1980
+      },
+      {
+        "speechSegmentId": "speech_segment_c5ad88d2-1364-49bc-978a-6c5717f005c8",
+        "startMs": 79600,
+        "endMs": 92140,
+        "startFrame": 1990,
+        "endFrame": 2304
+      },
+      {
+        "speechSegmentId": "speech_segment_58fc2b90-6ed5-407d-9c67-c27d192f2425",
+        "startMs": 92540,
+        "endMs": 100150,
+        "startFrame": 2314,
+        "endFrame": 2504
+      }
+    ]
+  }
+}
