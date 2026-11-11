@@ -32,7 +32,9 @@ const handoffSceneSchema = z.object({
     assetIds: z.array(z.string().min(1)), sourceRanges: z.array(z.object({ assetId: z.string().optional(),
       startMs: z.number().nonnegative(), endMs: z.number().positive() }).strict()).optional() }).strict()).optional(),
   visualPlan: z.object({ status: z.enum(["draft", "previewed", "pending"]), primaryRoles: z.array(z.string().min(1)).min(1),
-    referenceMappings: z.array(z.object({ referenceId: z.string().min(1), targetRole: z.string().min(1), treatment: z.string().min(1) }).strict()).optional(),
+    referenceMappings: z.array(z.object({ referenceId: z.string().min(1).describe("对应本场已采用参考的 ID；来源指纹使用场面 references 中对应记录"),
+      referenceKind: z.enum(["creative", "motion"]).optional().describe("参考类型；同一 ID 同时对应创意和机制时必须填写"),
+      targetRole: z.string().min(1), treatment: z.string().min(1), preserveRelation: z.string().optional().describe("需要保留的原参考关系") }).strict()).optional(),
     graphicLed: z.boolean().optional(), graphicReasons: z.array(z.string().min(1)).optional(),
     preview: z.object({ workId: z.string().min(1), startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() }).strict().optional()
   }).strict().optional(),

@@ -11,6 +11,7 @@ import { ComfyUIBridgeClient,type BridgeWorkflow } from "@videocut/bridge";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { DomainError } from "@videocut/domain";
 import { loadCreativeIndex,selectCreativeCards,readCreativeCase } from "../references/motion-cases/skillry/tools/creative-library.mjs";
+import { buildCreativeIndex } from "../references/motion-cases/skillry/tools/creative-index.mjs";
 import { creativeSearchText,CREATIVE_QUERY_INSTRUCTION,CREATIVE_INSTRUCTION_VERSION,CREATIVE_TEXT_VERSION } from "../packages/media-intelligence/src/creative-library.js";
 import { registerCreativeLibraryTools } from "../apps/server/src/creative-library-tools.js";
 import { searchCreativeLibrary } from "../apps/job-worker/src/creative-library.js";
@@ -68,6 +69,29 @@ async function fixture(directory:string){
   await writeFile(join(directory,cards[0].storyboard),Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jwzQAAAAASUVORK5CYII=','base64'));
   return cards;
 }
+
+test("创意索引从正式卡片派生，编号或媒体不一致时拒绝生成",async()=>{
+  const directory=await mkdtemp(join(tmpdir(),'creative-index-'));
+  try{
+    const cards=await fixture(directory);
+    await writeFile(join(directory,'case-catalogue.json'),JSON.stringify({cases:[{case_number:1,duration:21,media:'cases/example/video.mp4',directory:'cases/example'}]}));
+    await writeFile(join(directory,cards[0].video),'video');
+    for(const card of cards)await writeFile(join(directory,card.clip),'clip');
+    await writeFile(join(directory,cards[1].storyboard),'storyboard');
+    const index=buildCreativeIndex(directory);
+    assert.deepEqual(index.cards.map(card=>card.id),cards.map(card=>card.id));
+    assert.equal(index.count,2);
+    assert.equal(loadCreativeIndex(directory,Buffer.from(JSON.stringify(index))).count,2);
+
+    const path=join(directory,cards[1].card);
+    const raw=await readFile(path,'utf8');
+    await writeFile(path,raw.replace('001-c02','001-c01'));
+    assert.throws(()=>buildCreativeIndex(directory),/编号或父案例不一致/);
+    await writeFile(path,raw);
+    await rm(join(directory,cards[1].clip));
+    assert.throws(()=>buildCreativeIndex(directory),/ENOENT|资料不可用/);
+  }finally{await rm(directory,{recursive:true,force:true});}
+});
 
 test("卡内相对链接、真实PNG和缺媒体分别报告；损坏索引与越界路径明确拒绝",async()=>{
   const directory=await mkdtemp(join(tmpdir(),'creative-data-'));

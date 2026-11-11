@@ -94,7 +94,7 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
             visualRoles: [{ role: "主体", referenceFunction: "连续变化", assetIds: [importedVideo.asset.id],
               sourceRanges: [{ startMs: 0, endMs: 1000 }], usage: "展示真实主体" }],
             visualPlan: { status: "previewed", primaryRoles: ["主体"], preview: { workId: previewWorkId, startFrame: 0, endFrame: 24 },
-              referenceMappings: [{ referenceId: "002-c01", targetRole: "主体", treatment: "真实主体接管" }] },
+              referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative", targetRole: "主体", treatment: "真实主体接管", preserveRelation: "主体与文字共同变化" }] },
             process: "主体出现、发展并接续", preserve: ["连续过程"], adapt: ["中文文字"] },
           { sceneId: "b", status: "pending", references: [{ kind: "motion", id: "003-m01", sourceSha256: index.source_sha256,
             startMs: 0, endMs: 2080, purpose: "下一场机制" }], resourceIds: ["missing-art"],
@@ -102,6 +102,11 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
         ] }
     }));
     assert.deepEqual(prepared.scenes.map(item => item.status), ["ready", "pending"]);
+    const scenesFile = prepared.files.find(file => file.path.endsWith("/brief/scenes.json"));
+    assert.ok(scenesFile);
+    const deliveredScenes = JSON.parse(await readFile(scenesFile.localPath, "utf8"));
+    assert.deepEqual(deliveredScenes.scenes[0].visualPlan.referenceMappings[0], { referenceId: "002-c01", referenceKind: "creative",
+      targetRole: "主体", treatment: "真实主体接管", preserveRelation: "主体与文字共同变化" });
     assert.ok(prepared.diagnostics.some(item => item.requiredForRun === false));
     assert.ok(prepared.diagnostics.some(item => item.id === "003-m01" && item.requiredForRun === false));
     assert.ok(prepared.diagnostics.some(item => item.id === "missing-art" && item.requiredForRun === false));
@@ -209,6 +214,7 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.match(receivedPrompt, /完整共同编排/);
     assert.match(receivedPrompt, /就绪场面 a/);
     assert.match(receivedPrompt, /002-c01/);
+    assert.match(receivedPrompt, /主体与文字共同变化/);
     assert.match(receivedPrompt, /预排引用仅供追溯/);
     assert.match(receivedPrompt, new RegExp(String(previewWorkId)));
     assert.match(receivedPrompt, new RegExp(importedVideo.asset.id));

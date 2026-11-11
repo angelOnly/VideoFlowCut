@@ -97,6 +97,7 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
     const planInput={...sceneInput,projectSnapshot:previewSnapshot,assets:sceneInput.assets.slice(0,1),scenes:[{...scene,visualPlan:plan}]};
     const preparedPlan=await prepareReferencePackage(planInput,join(root,'preview'),library);
     assert.equal(preparedPlan.scenes[0].status,'ready');
+    assert.deepEqual(preparedPlan.scenes[0].visualPlan.referenceMappings,plan.referenceMappings);
     assert.equal(preparedPlan.scenes[0].visualPlan.preview.definitionHash,definitionHash);
     assert.equal(preparedPlan.scenes[0].visualPlan.preview.author.run_id,'run-preview');
     const previewFile=preparedPlan.files.find(file=>file.uses.some(use=>use.kind==='preview'));
@@ -106,6 +107,14 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
     const previewVerified=await verifyReferenceDelivery(preparedPlan,previewListing,1,'od-isolation',previewProject);
     assert.match(previewVerified.prompt,/run-preview/);
     assert.match(previewVerified.prompt,/预排引用仅供追溯，不代表视觉质量已通过/);
+    assert.match(previewVerified.prompt,/先完整读取[\s\S]*时间资料[\s\S]*再读取 brief\/scenes\.json[\s\S]*逐项核对参考原片、机制原片、真实素材与视觉角色映射/);
+    const mapping={referenceId:'001-c01',referenceKind:'creative',targetRole:'主要主体',treatment:'扩大主体接管',preserveRelation:'文字随主体共同重排'};
+    const typedOutput=join(root,'typed-reference');
+    const typed=await prepareReferencePackage({...planInput,scenes:[{...scene,visualPlan:{...plan,referenceMappings:[mapping]}}]},typedOutput,library);
+    assert.equal(typed.scenes[0].status,'ready');
+    const typedScene=JSON.parse(await readFile(join(typedOutput,'brief/scenes.json'),'utf8')).scenes[0];
+    assert.deepEqual(typedScene.visualPlan.referenceMappings,[mapping]);
+    for (const field of ['references','visualRoles','process','preserve','adapt','visualPlan']) assert.ok(field in typedScene,field);
     const graphicPlan=await prepareReferencePackage({...planInput,scenes:[{...scene,visualPlan:{...plan,graphicLed:true,graphicReasons:['用图形解释不可见的概率累计关系']}}]},join(root,'graphic-valid'),library);
     assert.equal(graphicPlan.scenes[0].status,'ready');
     const studyPlan=await prepareReferencePackage({...planInput,creative:[{id:'001-c01',usage:'study',purpose:'候选参考'}]},join(root,'study-reference'),library);
@@ -116,6 +125,11 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
     for (const [name,change,expected] of [
       ['bad-role',{primaryRoles:['不存在']},/主要角色/],
       ['bad-reference',{referenceMappings:[{referenceId:'未采用',targetRole:'主要主体',treatment:'接管'}]},/必须已采用且实际交付/],
+      ['wrong-reference-kind',{referenceMappings:[{...mapping,referenceKind:'motion'}]},/类型和来源指纹需与场面参考一致/],
+      ['invalid-reference-kind',{referenceMappings:[{...mapping,referenceKind:'其他'}]},/参考映射类型/],
+      ['missing-target-role',{referenceMappings:[{...mapping,targetRole:'不存在'}]},/已有视觉角色/],
+      ['empty-treatment',{referenceMappings:[{...mapping,treatment:'  '}]},/具体处理方式/],
+      ['invalid-preserve-relation',{referenceMappings:[{...mapping,preserveRelation:123}]},/保留关系必须是文字/],
       ['bad-range',{preview:{workId,startFrame:0,endFrame:21}},/已发布范围/],
       ['no-preview',{preview:undefined},/MotionWork 引用/],
       ['graphic',{graphicLed:true,graphicReasons:['更方便制作']},/承担的表达内容和原因/],
@@ -125,6 +139,19 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
       assert.equal(invalidPlan.scenes[0].status,'incomplete',name);
       assert.match(invalidPlan.scenes[0].diagnostics.join(' '),expected,name);
     }
+    const wrongSource=await prepareReferencePackage({...planInput,scenes:[{...scene,
+      reference:{...scene.reference,sourceSha256:'0'.repeat(64)},visualPlan:{...plan,referenceMappings:[mapping]}}]},join(root,'mapping-wrong-source'),library);
+    assert.equal(wrongSource.scenes[0].status,'incomplete');
+    assert.match(wrongSource.scenes[0].diagnostics.join(' '),/来源指纹不一致/);
+    assert.match(wrongSource.scenes[0].diagnostics.join(' '),/类型和来源指纹需与场面参考一致/);
+    // 当前创意与机制编号格式不重叠，构造场面输入验证未来跨类型同 ID 时不能猜测。
+    const conflictingScene={...scene,reference:undefined,references:[{kind:'creative',id:'001-c01',sourceSha256,startMs:100,endMs:900,purpose:'完整画面'},
+      {kind:'motion',id:'001-c01',sourceSha256,startMs:100,endMs:900,purpose:'局部运动'}]};
+    const ambiguous=await prepareReferencePackage({...planInput,scenes:[{...conflictingScene,visualPlan:plan}]},join(root,'ambiguous'),library);
+    assert.equal(ambiguous.scenes[0].status,'incomplete');
+    assert.match(ambiguous.scenes[0].diagnostics.join(' '),/跨类型 ID 存在歧义，请指定 referenceKind/);
+    const explicit=await prepareReferencePackage({...planInput,scenes:[{...conflictingScene,visualPlan:{...plan,referenceMappings:[mapping]}}]},join(root,'explicit-kind'),library);
+    assert.doesNotMatch(explicit.scenes[0].diagnostics.join(' '),/歧义|视觉计划参考/);
     const missingRange=await prepareReferencePackage({...planInput,scenes:[{...scene,visualRoles:[{...scene.visualRoles[0],sourceRanges:[]}],visualPlan:plan}]},join(root,'missing-range'),library);
     assert.match(missingRange.scenes[0].diagnostics.join(' '),/缺少可核验的源时间范围/);
     const missingBinding=await prepareReferencePackage({...planInput,scenes:[{...scene,visualRoles:[{...scene.visualRoles[0],assetIds:[],sourceRanges:[]}],visualPlan:plan}]},join(root,'missing-preview-binding'),library);

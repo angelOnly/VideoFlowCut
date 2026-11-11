@@ -93,7 +93,8 @@ test("素材和参考参与共同编排，完整指令及画面限制交到制�
   const production=read('.agents/skills/opendesign-video-production/SKILL.md');
   assert.match(director,/导演在确定主要视觉表现之前，必须结合实际素材/u);
   assert.match(director,/视觉作者从首轮开始查看实际材料/u);
-  assert.match(creative,/参考视频、准确时间范围和完整采用意见交给视觉作者/u);
+  assert.match(creative,/将参考研究和本片迁移结论交给同一位视觉作者/u);
+  assert.match(creative,/阶段性交回必须带真实参考 ID、来源指纹、原片路径、采用范围、实际观看方式/u);
   assert.match(visual,/禁止在视频画面中添加解释素材来源、案例属性、示意身份/u);
   assert.match(visual,/裁切或遮挡[\s\S]*检查处理后的实际画面/u);
   assert.match(brief,/制作简报[\s\S]*参考[\s\S]*素材/u);
@@ -109,7 +110,8 @@ test("视觉作者贯穿实际预排、制作交接与返修，创意和制作�
   const handoff=read('.agents/skills/_shared/SCENE_DESIGN_HANDOFF.md');
   const versions=read('.agents/skills/_shared/PROJECT_REVISION_AND_HANDOFF.md');
   assert.match(visual,/从素材首次返回就查看实际主体[\s\S]*同源预排[\s\S]*继续检查和返修/u);
-  assert.match(creative,/你不独立替代视觉作者完成整幅画面设计/u);
+  assert.match(creative,/视觉作者是本片整幅视觉创作的唯一持续负责人/u);
+  assert.match(creative,/你不能替代视觉作者锁定最终构图、素材主次和具体镜头/u);
   assert.match(handoff,/同源预排[\s\S]*OD 可以改进实现细节，但不得静默替换主要主体/u);
   assert.match(production,/OpenDesign 是视觉作者的实现与深化作者/u);
   assert.match(versions,/阶段交付后，原视觉作者继续检查同版实际作品/u);
@@ -126,7 +128,7 @@ test("完整新制的参考、素材和视觉并行续接，并以完整映射�
   const parallel=routing.split('## 完整新制的并行路由')[1]?.split('## 让材料与预览回到当前完整稿')[0];
   assert.match(parallel!,/创意作者：creative-sequence-design[\s\S]*素材作者：visual-asset-sourcing[\s\S]*视觉作者：visual-treatment-planning/);
   assert.match(parallel!,/可以同时续接原素材作者和原创意作者[\s\S]*已经具备条件的范围可以继续深化/);
-  assert.match(transfer,/完整的视觉表达单元[\s\S]*视觉角色对应关系[\s\S]*Asset ID[\s\S]*完整画面过程/);
-  assert.match(brief,/参考原片及准确范围[\s\S]*真实素材及具体用途[\s\S]*视觉角色与本片内容的对应关系[\s\S]*完整过程/);
+  assert.match(transfer,/创意卡 ID、来源指纹、原片路径和采用范围[\s\S]*本片真实素材 Asset ID[\s\S]*原参考对象与本片视觉角色的映射[\s\S]*本片完整画面构思/);
+  assert.match(brief,/创意卡 ID[\s\S]*采用的完整源时间范围[\s\S]*本片真实素材[\s\S]*参考对象与本片角色映射[\s\S]*完整画面发展/);
   assert.match(production,/prepare_motion_handoff[\s\S]*base_revision_id[\s\S]*visualPlan/);
 });

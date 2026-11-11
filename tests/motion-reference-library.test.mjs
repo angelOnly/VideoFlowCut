@@ -125,8 +125,8 @@ test('实际交付视频哈希正确，第001条明确转码身份',()=>{
 test('材料与用途检索保留代表例，并且无结果不擅自放宽',()=>{
   assert.ok(searchCases(cases,{query:'手机 照片',limit:5}).some(c=>c.case_number===43));
   assert.ok(searchCases(cases,{query:'新闻 对照',limit:5}).some(c=>c.case_number===51));
-  assert.ok(searchCases(cases,{query:'跨尺度'}).some(c=>c.case_number===71));
-  assert.deepEqual(searchCases(cases,{query:'071'}).map(c=>c.case_number),[71]);
+  assert.ok(searchCases(cases,{query:'跨尺度'}).some(c=>c.case_number===64));
+  assert.deepEqual(searchCases(cases,{query:'064'}).map(c=>c.case_number),[64]);
   const found=searchCases(cases,{filters:{video_types:'新闻解读',materials:'人物视频'}});
   assert.ok(found.length>0&&!found.some(c=>c.case_number===51));
   assert.deepEqual(searchCases(cases,{query:'绝不存在的观看任务'}),[]);

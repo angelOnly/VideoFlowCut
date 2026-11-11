@@ -10,8 +10,8 @@ const observation='资料基于源帧抽样整理，未完成全量原速观看�
 export const creativeCard=card=>Object.fromEntries([...fields,'score'].filter(key=>card[key]!==undefined).map(key=>[key,card[key]]));
 
 /** 消费现有索引和正文，不生成索引，也不把媒体存在当成动态观察。 */
-export function loadCreativeIndex(root){
-  const bytes=readFileSync(localFile(root,'creative-index.json')),index=JSON.parse(bytes.toString('utf8'));
+export function loadCreativeIndex(root,bytes=readFileSync(localFile(root,'creative-index.json'))){
+  const index=JSON.parse(bytes.toString('utf8'));
   if(index.schema_version!==1)throw fail('不支持的创意索引版本');
   if(!Array.isArray(index.cards)||index.count!==index.cards.length||!Array.isArray(index.processed_cases)
     ||new Set(index.processed_cases).size!==index.processed_cases.length)throw fail('创意索引数量或覆盖范围不一致');

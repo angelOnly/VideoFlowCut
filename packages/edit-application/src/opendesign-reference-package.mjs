@@ -135,8 +135,19 @@ function prepareScenes(input, entries, creativeRecords, motionRecords, project, 
         if (!Array.isArray(plan.primaryRoles) || !plan.primaryRoles.length || plan.primaryRoles.some(role=>!roles.has(role))) fail('视觉计划主要角色必须对应场面视觉角色');
         if (plan.referenceMappings !== undefined && !Array.isArray(plan.referenceMappings)) fail('参考映射必须是列表');
         for (const mapping of Array.isArray(plan.referenceMappings) ? plan.referenceMappings : []) {
-          if (!mapping || !references.some(ref=>ref.id===mapping.referenceId && entries.get(ref.video)?.localReadable)) fail(`视觉计划参考 ${mapping?.referenceId ?? ''} 必须已采用且实际交付`);
+          const matches=refs.filter(ref=>(ref.id ?? ref.creativeCaseId)===mapping?.referenceId);
+          const kinds=new Set(matches.map(ref=>ref.kind ?? 'creative'));
+          if (mapping?.referenceKind !== undefined && !['creative','motion'].includes(mapping.referenceKind)) fail('参考映射类型必须为 creative 或 motion');
+          else if (mapping?.referenceKind === undefined && kinds.size > 1) fail(`视觉计划参考 ${mapping?.referenceId ?? ''} 跨类型 ID 存在歧义，请指定 referenceKind`);
+          else {
+            const kind=mapping?.referenceKind ?? [...kinds][0];
+            // 原场面的类型、编号和来源指纹必须共同对应已采用且交付的参考。
+            const deliveredReference=matches.some(ref=>(ref.kind ?? 'creative')===kind && references.some(item=>
+              item.kind===kind && item.id===mapping?.referenceId && item.sourceSha256===ref.sourceSha256 && entries.get(item.video)?.localReadable));
+            if (!deliveredReference) fail(`视觉计划参考 ${mapping?.referenceId ?? ''} 必须已采用且实际交付，类型和来源指纹需与场面参考一致`);
+          }
           if (!roles.has(mapping?.targetRole) || typeof mapping?.treatment !== 'string' || !mapping.treatment.trim()) fail('参考映射需要已有视觉角色及具体处理方式');
+          if (mapping?.preserveRelation !== undefined && typeof mapping.preserveRelation !== 'string') fail('参考映射保留关系必须是文字');
         }
         if (plan.graphicLed === true && (!Array.isArray(plan.graphicReasons) || !plan.graphicReasons.some(reason=>typeof reason==='string' && reason.trim() && !/^(?:更?方便制作|制作方便)[。.!！]?$/u.test(reason.trim())))) fail('图形主导场面需要说明承担的表达内容和原因');
         let preview;
@@ -409,7 +420,7 @@ export async function verifyReferenceDelivery(manifest, listing, revision, odPro
   }
   const lines=files.filter(file=>file.requiredForRun!==false).map(file=>`- ${file.deliveredPath}：${file.uses.map(use=>`${use.kind}/${use.id}${use.usage ? `（${use.usage === 'study' ? '学习' : '已采用'}）` : ''}，${use.purpose}${use.fileKind ? `，文件类型 ${use.fileKind}` : ''}${use.sourceStartMs !== undefined && use.sourceEndMs !== undefined ? `，资料原片范围 ${use.sourceStartMs}—${use.sourceEndMs}ms` : ''}${use.clipSourceOffsetMs !== undefined ? `，切片零点对应原片 ${use.clipSourceOffsetMs}ms` : ''}`).join('；')}`);
   const sceneLines=readyScenes ? [`本次只制作 ${manifest.scenesPath} 中状态为 ready 的场面；pending 或 incomplete 场面继续探索，不得冒充完成。`,...readyScenes.map(scene=>`- 资料就绪场面 ${scene.sceneId}：${JSON.stringify(scene)}${scene.visualPlan?.status==='previewed' ? '；预排引用仅供追溯，不代表视觉质量已通过。' : '；未提供同源预排状态，资料就绪不代表主要视觉设计已经预排成立。'}`)] : [];
-  const prompt=[`先完整读取本项目中的创意编排指令 ${manifest.briefPath} 和时间资料 ${manifest.timingPlanPath}，再读取以下文件并按用途制作：`,...lines,...sceneLines,'参考范围使用原片时间，素材范围使用交付文件的本地时间；已知原片偏移时另列原片时间。查看采用的创意和机制视频，连续观察选定范围及必要前后画面，并记录实际观察方式。','完整视觉稿是权威依据。读取视觉作者当前作品及同源预排，识别已确定的主要主体、素材角色、构图、发展与参考关系，以及预排尚未完成的范围。预排定义文件的 work.source 是固定 HTML 源码，相关素材及字体绑定和根时钟保留在同一文件；继续时使用这些真实输入。未提供预排时向原视觉作者反馈，不得因资料齐全就宣称主要视觉设计已成立。','用户要求、事实条件及当前采用的编排以完整简报为准。制作作者在不改变主要视觉关系的前提下深化局部构图、中文排版、素材取景、镜头路径、曲线和内部时序；不得静默替换主要素材、参考核心或整场发展。','沿同一作品和现有 Run 继续深化；原 Run 已结束时按现有续接机制保持作品及作者身份。技术或素材限制需要改变主要决定时，反馈具体对象、范围、原方案、限制和可行替代，由原视觉作者决定；涉及事实、主线或跨段关系由导演协调。','阶段作品沿现有冻结和采用链路接回 VideoFlowCut。主任务将固定版本的工作台入口、对象和范围交回原视觉负责人，原导演、创意及视觉负责人按职责在工作台观察实际合成。已有控件支持的调整在工作台保存，作品内部画面由原制作作者沿同一作品修订。新版接回后，在工作台复查修改范围与前后连接，并保存实际观察和问题处理结果。资料无法读取或材料无法支持采用过程时，反馈具体文件、动作、范围及调整建议。'].join('\n');
+  const prompt=[`先完整读取本项目中的创意编排指令 ${manifest.briefPath} 和时间资料 ${manifest.timingPlanPath}。${manifest.scenesPath ? `再读取 ${manifest.scenesPath} 中本次就绪场面，逐项核对参考原片、机制原片、真实素材与视觉角色映射。` : ''}以下文件按用途制作：`,...lines,...sceneLines,'参考范围使用原片时间，素材范围使用交付文件的本地时间；已知原片偏移时另列原片时间。查看采用的创意和机制视频，连续观察选定范围及必要前后画面，并记录实际观察方式。','完整视觉稿是权威依据。读取视觉作者当前作品及同源预排，识别已确定的主要主体、素材角色、构图、发展与参考关系，以及预排尚未完成的范围。预排定义文件的 work.source 是固定 HTML 源码，相关素材及字体绑定和根时钟保留在同一文件；继续时使用这些真实输入。未提供预排时向原视觉作者反馈，不得因资料齐全就宣称主要视觉设计已成立。','用户要求、事实条件及当前采用的编排以完整简报为准。制作作者在不改变主要视觉关系的前提下深化局部构图、中文排版、素材取景、镜头路径、曲线和内部时序；不得静默替换主要素材、参考核心或整场发展。','沿同一作品和现有 Run 继续深化；原 Run 已结束时按现有续接机制保持作品及作者身份。技术或素材限制需要改变主要决定时，反馈具体对象、范围、原方案、限制和可行替代，由原视觉作者决定；涉及事实、主线或跨段关系由导演协调。','阶段作品沿现有冻结和采用链路接回 VideoFlowCut。主任务将固定版本的工作台入口、对象和范围交回原视觉负责人，原导演、创意及视觉负责人按职责在工作台观察实际合成。已有控件支持的调整在工作台保存，作品内部画面由原制作作者沿同一作品修订。新版接回后，在工作台复查修改范围与前后连接，并保存实际观察和问题处理结果。资料无法读取或材料无法支持采用过程时，反馈具体文件、动作、范围及调整建议。'].join('\n');
   return {manifest:verified,prompt};
 }
 
