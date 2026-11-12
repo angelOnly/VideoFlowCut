@@ -1,0 +1,1027 @@
+[
+  {
+    "id": "asset_8fd9cf33-1434-4ac0-9222-ad79b6baf48e",
+    "name": "darioamodei.com",
+    "kind": "image",
+    "role": "evidence",
+    "managedPath": "assets/derived/source-material/job_027d0b06-1b5e-41b7-87e0-a81a7b402805/original.png",
+    "sourceHash": "4b930f9e92c06bc407073e6f9a9109c5f61254c1cb566905748e5e8053ab5ae4",
+    "metadata": {
+      "durationMs": 0,
+      "width": 1440,
+      "height": 4905,
+      "fps": 25,
+      "hasAudio": false,
+      "videoCodec": "png",
+      "pixelFormat": "rgb24",
+      "hasAlpha": false,
+      "mime": "png_pipe"
+    },
+    "provenance": {
+      "source": "provider",
+      "provider": "source_material",
+      "generationJobId": "job_027d0b06-1b5e-41b7-87e0-a81a7b402805",
+      "sourceUrl": "https://darioamodei.com/post/we-must-pace-the-frontier",
+      "originalAssetId": "https://darioamodei.com/post/we-must-pace-the-frontier",
+      "acquiredAt": "2026-10-15T16:16:33.518Z"
+    }
+  },
+  {
+    "id": "asset_7ef67096-fdef-449c-b7eb-1d6fbbc4a2dd",
+    "name": "cdn.openai.com",
+    "kind": "document",
+    "role": "evidence",
+    "managedPath": "assets/derived/source-material/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/original.pdf",
+    "sourceHash": "dd635cf6e5f39f0e1f646f08c36549090d77156ed89cbd3d733ed496648cae9c",
+    "metadata": {
+      "durationMs": 0,
+      "hasAudio": false,
+      "mime": "application/pdf"
+    },
+    "provenance": {
+      "source": "provider",
+      "provider": "source_material",
+      "generationJobId": "job_f4f0fac5-7396-4f96-b80c-4352ba466ae6",
+      "sourceUrl": "https://cdn.openai.com/pdf/67869394-cb91-4c12-888c-5cbd85c7814c/OpenAI-Hugging-Face%20Incident-Technical-Report.pdf",
+      "originalAssetId": "https://cdn.openai.com/pdf/67869394-cb91-4c12-888c-5cbd85c7814c/OpenAI-Hugging-Face%20Incident-Technical-Report.pdf",
+      "acquiredAt": "2026-10-15T16:18:28.542Z"
+    }
+  },
+  {
+    "id": "asset_1298d8ca-f673-4a34-90c0-a674c01ce9f6",
+    "name": "来源第1页",
+    "kind": "image",
+    "role": "evidence",
+    "managedPath": "assets/derived/source-material/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/page-1.png",
+    "sourceHash": "491fd21ed306196e5632418c4a0e8f85b7bc6ace6d0af068a025f863706fc5f3",
+    "metadata": {
+      "durationMs": 0,
+      "width": 1391,
+      "height": 1800,
+      "fps": 25,
+      "hasAudio": false,
+      "videoCodec": "png",
+      "pixelFormat": "rgb24",
+      "hasAlpha": false,
+      "mime": "png_pipe"
+    },
+    "provenance": {
+      "source": "provider",
+      "provider": "source_material",
+      "generationJobId": "job_f4f0fac5-7396-4f96-b80c-4352ba466ae6",
+      "sourceUrl": "https://cdn.openai.com/pdf/67869394-cb91-4c12-888c-5cbd85c7814c/OpenAI-Hugging-Face%20Incident-Technical-Report.pdf",
+      "originalAssetId": "https://cdn.openai.com/pdf/67869394-cb91-4c12-888c-5cbd85c7814c/OpenAI-Hugging-Face%20Incident-Technical-Report.pdf#page=1",
+      "acquiredAt": "2026-10-15T16:18:28.542Z"
+    }
+  },
+  {
+    "id": "asset_75ca0a09-4079-4a27-ab9e-81330ead38c8",
+    "name": "来源第4页",
+    "kind": "image",
+    "role": "evidence",
+    "managedPath": "assets/derived/source-material/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/page-4.png",
+    "sourceHash": "e6e5f8318695710269ffffec1f4f84bd5976e0dbbc9f150d3df08af01796bd6f",
+    "metadata": {
+      "durationMs": 0,
+      "width": 1391,
+      "height": 1800,
+      "fps": 25,
+      "hasAudio": false,
+      "videoCodec": "png",
+      "pixelFormat": "rgb24",
+      "hasAlpha": false,
+      "mime": "png_pipe"
+    },
+    "provenance": {
+      "source": "provider",
+      "provider": "source_material",
+      "generationJobId": "job_f4f0fac5-7396-4f96-b80c-4352ba466ae6",
+      "sourceUrl": "https://cdn.openai.com/pdf/67869394-cb91-4c12-888c-5cbd85c7814c/OpenAI-Hugging-Face%20Incident-Technical-Report.pdf",
+      "originalAssetId": "https://cdn.openai.com/pdf/67869394-cb91-4c12-888c-5cbd85c7814c/OpenAI-Hugging-Face%20Incident-Technical-Report.pdf#page=4",
+      "acquiredAt": "2026-10-15T16:18:28.542Z"
+    }
+  },
+  {
+    "id": "asset_713697be-26d8-456f-940c-d3d982878157",
+    "name": "来源第9页",
+    "kind": "image",
+    "role": "evidence",
+    "managedPath": "assets/derived/source-material/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/page-9.png",
+    "sourceHash": "10d8dc0eb08e040fc5b07f8ecb0a2743943c999b2be92bda5237314d22ce1319",
+    "metadata": {
+      "durationMs": 0,
+      "width": 1391,
+      "height": 1800,
+      "fps": 25,
+      "hasAudio": false,
+      "videoCodec": "png",
+      "pixelFormat": "rgb24",
+      "hasAlpha": false,
+      "mime": "png_pipe"
+    },
+    "provenance": {
+      "source": "provider",
+      "provider": "source_material",
+      "generationJobId": "job_f4f0fac5-7396-4f96-b80c-4352ba466ae6",
+      "sourceUrl": "https://cdn.openai.com/pdf/67869394-cb91-4c12-888c-5cbd85c7814c/OpenAI-Hugging-Face%20Incident-Technical-Report.pdf",
+      "originalAssetId": "https://cdn.openai.com/pdf/67869394-cb91-4c12-888c-5cbd85c7814c/OpenAI-Hugging-Face%20Incident-Technical-Report.pdf#page=9",
+      "acquiredAt": "2026-10-15T16:18:28.542Z"
+    }
+  },
+  {
+    "id": "asset_8d744500-1457-40ba-b0ca-d9bd8109244c",
+    "name": "raw.githubusercontent.com",
+    "kind": "image",
+    "role": "evidence",
+    "managedPath": "assets/derived/source-material/job_9a2e5b08-b581-4043-b29e-8ad2be94d009/original.jpg",
+    "sourceHash": "686a87f7604519597ec22b6b2ba7ebe976ef16c3602e738ba850b4b6b75f20b2",
+    "metadata": {
+      "durationMs": 40,
+      "width": 2636,
+      "height": 3700,
+      "fps": 25,
+      "hasAudio": false,
+      "videoCodec": "mjpeg",
+      "pixelFormat": "yuvj420p",
+      "hasAlpha": false,
+      "mime": "image2"
+    },
+    "provenance": {
+      "source": "provider",
+      "provider": "source_material",
+      "generationJobId": "job_9a2e5b08-b581-4043-b29e-8ad2be94d009",
+      "sourceUrl": "https://raw.githubusercontent.com/interestingLSY/interestingLSY.github.io/master/public/photo.jpg",
+      "originalAssetId": "https://raw.githubusercontent.com/interestingLSY/interestingLSY.github.io/master/public/photo.jpg",
+      "acquiredAt": "2026-10-15T16:19:10.615Z"
+    }
+  },
+  {
+    "id": "asset_c9b98380-ed3f-48ba-8fd3-b402f1305490",
+    "name": "mp.weixin.qq.com",
+    "kind": "image",
+    "role": "evidence",
+    "managedPath": "assets/derived/source-material/job_a4012d30-412e-44ba-8c98-9b4c1544fa40/original.png",
+    "sourceHash": "e6c19cf2aa9fba1cf2b5ec8bce067d67bb3bcccdf47f85fa2f54a3e1b0f40154",
+    "metadata": {
+      "durationMs": 0,
+      "width": 1440,
+      "height": 3444,
+      "fps": 25,
+      "hasAudio": false,
+      "videoCodec": "png",
+      "pixelFormat": "rgb24",
+      "hasAlpha": false,
+      "mime": "png_pipe"
+    },
+    "provenance": {
+      "source": "provider",
+      "provider": "source_material",
+      "generationJobId": "job_a4012d30-412e-44ba-8c98-9b4c1544fa40",
+      "sourceUrl": "https://mp.weixin.qq.com/s/zk0KxuLzhmMJ4LPYW_OHMA",
+      "originalAssetId": "https://mp.weixin.qq.com/s/zk0KxuLzhmMJ4LPYW_OHMA",
+      "acquiredAt": "2026-10-15T16:19:13.200Z"
+    }
+  },
+  {
+    "id": "asset_64826ac5-2c1e-47c0-99ee-43d8b6b11c86",
+    "name": "旁白：最懂 AI 的那批人，正在害怕。",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_0261f948-b231-4385-8cc6-b08f0e868415-ComfyUI_temp_ydtzi_00003.flac",
+    "sourceHash": "ed664349e958f0126a64f14f00a3be457d2da65a11e336026ac47421910d5163",
+    "metadata": {
+      "durationMs": 2060,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:18:49.592Z"
+    }
+  },
+  {
+    "id": "asset_be60933b-7144-408b-a52c-9bc1b3261d83",
+    "name": "旁白：有人担心苦练多年的本事被取代，有人警",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_aa651a45-810c-4091-8a50-b3bb9bd1950c-ComfyUI_temp_rwzte_00003.flac",
+    "sourceHash": "6edfe786c67508bec806b2a532a42fb6192630a4b57c259db1cd59e16183d498",
+    "metadata": {
+      "durationMs": 4320,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:18:51.866Z"
+    }
+  },
+  {
+    "id": "asset_2dc6ef64-3864-4056-b89a-dfc8303e7445",
+    "name": "旁白：到底发生了什么，让离 AI 最近的人",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_2338cb84-d616-43b7-b29b-cae3a940c684-ComfyUI_temp_jdxcv_00003.flac",
+    "sourceHash": "49a0d2ef4f75a05aa872e3b1f76c82e7ed6a7d2c0015f89bf205a578f7bca34a",
+    "metadata": {
+      "durationMs": 3710,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:18:54.145Z"
+    }
+  },
+  {
+    "id": "asset_84be5b38-a0e1-4421-95fc-75149eb5fb1a",
+    "name": "旁白：DeepSeek 工程师刘胜与写了一",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_3819b550-4903-4b8f-ada1-955622cabff6-ComfyUI_temp_kprdl_00003.flac",
+    "sourceHash": "97c5de89940aaf93509f42e31255e8de92085d55488d9b425ec819b00ae95e1d",
+    "metadata": {
+      "durationMs": 4560,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:18:56.430Z"
+    }
+  },
+  {
+    "id": "asset_448c90b5-943c-43c7-8960-00562b14d6a4",
+    "name": "旁白：他是北大图灵班出身，写过核心 Att",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_f820161e-d559-4311-8fad-c992d25cad79-ComfyUI_temp_nktug_00003.flac",
+    "sourceHash": "f21ba79bd010e46e1a54e66ef1f6c295fc1b63168a46a61e22c3683848a5f73d",
+    "metadata": {
+      "durationMs": 7840,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:01.294Z"
+    }
+  },
+  {
+    "id": "asset_7be90b46-713d-4a7f-afb6-e9db0c14a38e",
+    "name": "旁白：人得“转业”了，从亲自干活，变成指挥",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_5580ba0f-fa3f-4c31-8e37-655312befaa0-ComfyUI_temp_rpoqi_00003.flac",
+    "sourceHash": "e9fe0660b2c3d30b581a8c5fde47b832c51e88d477c70a2cdbfdcec3bad85901",
+    "metadata": {
+      "durationMs": 3690,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:05.685Z"
+    }
+  },
+  {
+    "id": "asset_f45b8122-c640-4a3c-ac8a-d533d8e246f1",
+    "name": "旁白：而更大的变化是：AI 已经开始帮助人",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_0998f4f9-0cba-4452-b5f2-936904562b26-ComfyUI_temp_bzrac_00003.flac",
+    "sourceHash": "e2072bccfd24db142972606dd3256177c69b2975993cdd14d4b56ea2daf07ca3",
+    "metadata": {
+      "durationMs": 3030,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:07.942Z"
+    }
+  },
+  {
+    "id": "asset_4b689a9c-609c-4b31-a3b2-aa2782ea3af6",
+    "name": "旁白：这一过程如果不断加速，就可能走向“递",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_abbdfbe0-a07b-407c-88d6-316951d8d7a6-ComfyUI_temp_xmwzv_00003.flac",
+    "sourceHash": "30643e93275ce7474c9a7ebe55c016d97092ee52f7847bcfb6557fb5b34a966a",
+    "metadata": {
+      "durationMs": 6680,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:12.777Z"
+    }
+  },
+  {
+    "id": "asset_fe2729e5-6cdc-4709-97bf-5c6d8d50d0c9",
+    "name": "旁白：过去，技术进步受限于人类研究员的时间",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_39a69d18-fe1b-4292-97aa-207ebc3dfc30-ComfyUI_temp_uatpk_00003.flac",
+    "sourceHash": "46c2e3a439979155bd6297e5b78bfe4d890a52f50d197fb6fcca8c09310c6843",
+    "metadata": {
+      "durationMs": 5690,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:15.078Z"
+    }
+  },
+  {
+    "id": "asset_2b8afd5b-6d54-44bf-a4ef-79a7628695db",
+    "name": "旁白：但能力越强，一个问题就越难回避：它会",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_a7442b68-ffd8-4d6c-a41b-7b2cb223c044-ComfyUI_temp_hxkwc_00003.flac",
+    "sourceHash": "5981b4ff7797568de25a55d5264e3423383e9a0b2475ccb69d25e756d5162f00",
+    "metadata": {
+      "durationMs": 5330,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:17.334Z"
+    }
+  },
+  {
+    "id": "asset_1695853f-6fc3-4b0c-8e3f-00b89678f900",
+    "name": "旁白：据相关复盘，OpenAI 的一次网络",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_867a026d-c96c-4eff-a1ac-8374b34f185b-ComfyUI_temp_gshhz_00003.flac",
+    "sourceHash": "a63a98c01f43175d5b659bf1b386be97ea99ca79fb6e8fc09b8e0b250446b676",
+    "metadata": {
+      "durationMs": 7770,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:19.590Z"
+    }
+  },
+  {
+    "id": "asset_17ab46e1-0ea8-47a4-90f6-aff1298ad613",
+    "name": "旁白：原本是让它做题，它却开始想办法突破考",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_5f447574-dae2-46ba-b373-620a9e8b8411-ComfyUI_temp_ezroc_00003.flac",
+    "sourceHash": "5a1430486ef5c874db10689825e8997053e6168ff47303f79927ef8fe60f2345",
+    "metadata": {
+      "durationMs": 2920,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:23.967Z"
+    }
+  },
+  {
+    "id": "asset_c61e6617-1541-4744-ab09-adb2a8f23127",
+    "name": "旁白：这也是为什么，Anthropic C",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_bbb2123d-1d49-4d40-ac57-c3c05a90b2bb-ComfyUI_temp_ckqpd_00003.flac",
+    "sourceHash": "59234fc24f5ef3036023acd0eacda97c9d3f5be376ecc8de27b9929fbab3019e",
+    "metadata": {
+      "durationMs": 3240,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:26.228Z"
+    }
+  },
+  {
+    "id": "asset_18967aa1-9ed0-4661-88a1-55a08d1a70b9",
+    "name": "旁白：他的意思不是停训几年，而是让安全研究",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_44089ae6-669e-425b-94cd-78418fdec0f8-ComfyUI_temp_jrjwd_00002.flac",
+    "sourceHash": "fab1f96b1b50808ad3da9e9c0faf4223b31c8cefdc59e479b9f573dd39ce724f",
+    "metadata": {
+      "durationMs": 5480,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:28.508Z"
+    }
+  },
+  {
+    "id": "asset_ca49c6fd-a7e6-498d-8c2e-fe39e17dee8a",
+    "name": "旁白：比如，让独立机构更深入地测试模型，让",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_a5f8b1ec-c441-4c7b-b1d1-747791b5a726-ComfyUI_temp_rkrgz_00002.flac",
+    "sourceHash": "2e58aa2e5008edc7acf3ad04828e44e3718524d0482450928deec9067a46405c",
+    "metadata": {
+      "durationMs": 6400,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:30.766Z"
+    }
+  },
+  {
+    "id": "asset_090d43cb-0223-493d-bed3-3a885d282cb5",
+    "name": "旁白：听起来合理，但最难的问题来了：谁先减",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_4d71c924-2f13-46f4-a1b4-a19d26d03bba-ComfyUI_temp_trsjo_00002.flac",
+    "sourceHash": "a40df62c7289c2e4aac00eda3dc31e11f7acaf044b036db3be35eeacb59e8cbf",
+    "metadata": {
+      "durationMs": 2860,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:35.081Z"
+    }
+  },
+  {
+    "id": "asset_675fb4cd-bc2a-43ce-9ea7-49351787402b",
+    "name": "旁白：一家慢下来，竞争对手继续跑，怎么办？",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_5acf4361-a7b4-4f0a-b8ad-e9b7efa3e06c-ComfyUI_temp_ctzmk_00001.flac",
+    "sourceHash": "8d0c700575fa32cbd4e1ea2fc9196af13bea99541f4e1bdfc94dd852efad0535",
+    "metadata": {
+      "durationMs": 5480,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:39.854Z"
+    }
+  },
+  {
+    "id": "asset_01b9540b-4db6-4da7-a7e0-161adf12fc9f",
+    "name": "旁白：达里奥给出的思路，是一边推动安全合作",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_c18ab12a-991d-4fd3-b972-ba9f796f27e1-ComfyUI_temp_shjfg_00001.flac",
+    "sourceHash": "7fc7fe98a1e42ed30f9a545d7ef943d560b1fa53736a9c72c2b2a2dc1a0cdaa7",
+    "metadata": {
+      "durationMs": 7820,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:44.119Z"
+    }
+  },
+  {
+    "id": "asset_e86c156d-1224-4bce-a571-214462e0f12d",
+    "name": "旁白：争议也恰恰在这里。",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_9e5187bf-b706-4c63-89b7-146012f0b4f8-ComfyUI_temp_fbtvi_00001.flac",
+    "sourceHash": "c881161301f028852ee2add860688b224ce0674f2a4a15e06727887e6208eed5",
+    "metadata": {
+      "durationMs": 1870,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:46.392Z"
+    }
+  },
+  {
+    "id": "asset_55b05866-4ac7-4730-939e-53893a74b58a",
+    "name": "旁白：你是在防范风险，还是自己上了车，就想",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_37fa5bc4-ab6e-43bd-9e13-1dee37ab23f8-ComfyUI_temp_pccvy_00001.flac",
+    "sourceHash": "553a16f350c3d5c6249a4849126bb4d063175210140ec3a6b0cafbafd906ed6d",
+    "metadata": {
+      "durationMs": 3340,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:50.668Z"
+    }
+  },
+  {
+    "id": "asset_9675ac54-8c20-41b0-a926-d3c55b6ce987",
+    "name": "旁白：这不代表他的担忧都是假的。但安全主张",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_15c0a777-47bc-48ff-89b0-13e2043f908f-ComfyUI_temp_eebcw_00001.flac",
+    "sourceHash": "e1f0f6b17d2c9b8150009d7841888fcdaacb8eedc9f80a36e10f2261cc66344a",
+    "metadata": {
+      "durationMs": 6570,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:54.933Z"
+    }
+  },
+  {
+    "id": "asset_6f7fe504-ff92-47d6-ad64-fd6d068f42c7",
+    "name": "旁白：于是，AI 发展陷入了一个困局：",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_0cfae18a-ea5f-4423-b061-bac6c46f165b-ComfyUI_temp_rvmwq_00001.flac",
+    "sourceHash": "96380bee95732248c02615dbf7bb562c7a08782f4a89de228f9fdf7780ff6c96",
+    "metadata": {
+      "durationMs": 2100,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:19:57.204Z"
+    }
+  },
+  {
+    "id": "asset_3c6bbcc6-50b5-4710-bb55-8a9ef188314b",
+    "name": "旁白：大家一起慢下来，可能更安全；可只要不",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_88ece2c2-6d62-424f-8b78-0a951aea474b-ComfyUI_temp_iqzhg_00001.flac",
+    "sourceHash": "6c638b90546b8a17d67b2c412e4c8379993031cc259e391ee05aba0db9067594",
+    "metadata": {
+      "durationMs": 5350,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:20:01.495Z"
+    }
+  },
+  {
+    "id": "asset_6575c95f-098b-4420-a26a-33ac9ec2959d",
+    "name": "旁白：支持继续加速的人认为，不能因为尚未发",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_72316722-09f6-4f52-94d7-30a04228ca3d-ComfyUI_temp_vsnsi_00001.flac",
+    "sourceHash": "fa296cfbdcb38809cca3028ed1277fced0649574f004752fcfdabb0eb28a527e",
+    "metadata": {
+      "durationMs": 4880,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:20:05.794Z"
+    }
+  },
+  {
+    "id": "asset_2b37982c-e7a6-4910-940d-b2568a2cc959",
+    "name": "旁白：主张谨慎的人则担心，等危险真正发生，",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_7a4037ee-62bf-4fdb-98ee-ac5eb99ce841-ComfyUI_temp_opvuw_00001.flac",
+    "sourceHash": "13a8b06398e34e0f8382700da14792a0143797d9e9ba2709754d95388c4ed49d",
+    "metadata": {
+      "durationMs": 3960,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:20:10.135Z"
+    }
+  },
+  {
+    "id": "asset_4be3b007-f491-4bd1-82b5-157c17fd786d",
+    "name": "旁白：最懂 AI 的人，也没有一致答案。",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_be176661-e529-4614-8f76-21af3514d94e-ComfyUI_temp_ydtzi_00004.flac",
+    "sourceHash": "0efc3e9d330fa2f4fd6f5f4096afab66d3e59910ea8484f357bad49639e8618d",
+    "metadata": {
+      "durationMs": 2090,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:20:35.810Z"
+    }
+  },
+  {
+    "id": "asset_116ba981-e738-4a43-bb7d-1229c0dacc66",
+    "name": "旁白：真正的问题或许是：在继续踩油门之前，",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_0e660872-7f87-4268-a9b2-cbffd90df64a-ComfyUI_temp_ydtzi_00005.flac",
+    "sourceHash": "9d7ae2ea1d9c11a7b36992d39d421a7bf839e1a82cba98aeffc1225ac8eaba63",
+    "metadata": {
+      "durationMs": 4020,
+      "hasAudio": true,
+      "audioCodec": "flac",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "flac"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:20:57.704Z"
+    }
+  },
+  {
+    "id": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+    "name": "旁白总轨 Revision 1",
+    "kind": "speech",
+    "role": null,
+    "managedPath": "assets\\speech\\speech-job_70fe6843-c950-4682-b0cb-635eeb262292.wav",
+    "sourceHash": "e615932919ce3cb2f3347e540ea10f77e2a1f804fc6a7921c0a665254a9d55e5",
+    "metadata": {
+      "durationMs": 123060,
+      "hasAudio": true,
+      "audioCodec": "pcm_s16le",
+      "sampleRate": 24000,
+      "channels": 1,
+      "hasAlpha": false,
+      "mime": "wav"
+    },
+    "provenance": {
+      "source": "local_import",
+      "acquiredAt": "2026-10-15T16:20:57.833Z"
+    }
+  },
+  {
+    "id": "asset_d71fbb9c-1fff-43e4-958c-d1c37a3154eb",
+    "name": "pexels-31155915.mp4",
+    "kind": "video",
+    "role": "b_roll",
+    "managedPath": "assets\\source\\c1f9c103de20a07c851c.mp4",
+    "sourceHash": "c1f9c103de20a07c851c389fd13fc0aaf33f55bd51fcc247ef2bd7c811eb04ca",
+    "metadata": {
+      "durationMs": 5939,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "hasAudio": false,
+      "videoCodec": "h264",
+      "pixelFormat": "yuv420p",
+      "hasAlpha": false,
+      "mime": "mov,mp4,m4a,3gp,3g2,mj2",
+      "thumbnailPath": "assets\\proxy\\asset_d71fbb9c-1fff-43e4-958c-d1c37a3154eb.jpg"
+    },
+    "provenance": {
+      "source": "provider",
+      "provider": "pexels",
+      "sourceUrl": "https://www.pexels.com/video/programmer-coding-on-computer-at-night-31155915/",
+      "originalAssetId": "31155915",
+      "acquisition": {
+        "qualityHeight": 1080,
+        "candidateId": "asset_candidate_7a4aaa60-539b-4e2e-8fd2-b82ad8119d68"
+      },
+      "acquiredAt": "2026-10-15T16:30:20.766Z"
+    }
+  },
+  {
+    "id": "asset_d1e56c69-8943-4175-a600-7078fa76da30",
+    "name": "source.mp4",
+    "kind": "video",
+    "role": "b_roll",
+    "managedPath": "assets\\source\\f275b4f4a0fec1239335.mp4",
+    "sourceHash": "f275b4f4a0fec123933523721b740ea16e15799a900517f009d4775654cde168",
+    "metadata": {
+      "durationMs": 30030,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "sampleRate": 44100,
+      "channels": 2,
+      "videoCodec": "h264",
+      "pixelFormat": "yuv420p",
+      "hasAlpha": false,
+      "mime": "mov,mp4,m4a,3gp,3g2,mj2",
+      "thumbnailPath": "assets\\proxy\\asset_d1e56c69-8943-4175-a600-7078fa76da30.jpg"
+    },
+    "provenance": {
+      "source": "provider",
+      "provider": "youtube",
+      "sourceUrl": "https://www.youtube.com/watch?v=hQR_VJF6ukk",
+      "originalAssetId": "hQR_VJF6ukk",
+      "creator": "CBS Sunday Morning",
+      "acquisition": {
+        "qualityHeight": 1080,
+        "sourceRange": {
+          "startMs": 0,
+          "endMs": 30000
+        },
+        "candidateId": "asset_candidate_d91f2341-742c-4563-bc74-135593dc2818"
+      },
+      "acquiredAt": "2026-10-15T16:30:55.947Z"
+    }
+  },
+  {
+    "id": "asset_09a0ed39-6503-49d1-8c0d-8d7c21ee2ed1",
+    "name": "mixkit-3117.wav",
+    "kind": "audio",
+    "role": "sfx",
+    "managedPath": "assets\\source\\f486f7f66d21795c5437.wav",
+    "sourceHash": "f486f7f66d21795c54371ef2d06ee696376d1e77ea01c546d6f4c91d942c1a39",
+    "metadata": {
+      "durationMs": 2500,
+      "hasAudio": true,
+      "audioCodec": "pcm_s16le",
+      "sampleRate": 44100,
+      "channels": 2,
+      "hasAlpha": false,
+      "mime": "wav"
+    },
+    "provenance": {
+      "source": "provider",
+      "provider": "mixkit",
+      "sourceUrl": "https://mixkit.co/free-sound-effects/technology/",
+      "originalAssetId": "3117",
+      "acquisition": {
+        "candidateId": "asset_candidate_cd312fb4-c6a2-4a65-90cd-16e60e11eff2"
+      },
+      "acquiredAt": "2026-10-15T16:30:59.314Z"
+    }
+  },
+  {
+    "id": "asset_f4a12863-97e8-4d8e-bd54-7c12091b55d6",
+    "name": "mixkit-music-184.mp3",
+    "kind": "audio",
+    "role": "bgm",
+    "managedPath": "assets\\source\\3ffae7ccd5ea6f612f75.mp3",
+    "sourceHash": "3ffae7ccd5ea6f612f75efdf9a8318ccce79a5e4f355b26e233631330a57660f",
+    "metadata": {
+      "durationMs": 229820,
+      "hasAudio": true,
+      "audioCodec": "mp3",
+      "sampleRate": 44100,
+      "channels": 2,
+      "hasAlpha": false,
+      "mime": "mp3"
+    },
+    "provenance": {
+      "source": "provider",
+      "provider": "mixkit_music",
+      "sourceUrl": "https://mixkit.co/free-stock-music/tag/ambient/",
+      "originalAssetId": "184",
+      "creator": "by Andrew Ev",
+      "acquisition": {
+        "candidateId": "asset_candidate_88560f1a-5fb3-4136-9b3e-18598a575088"
+      },
+      "acquiredAt": "2026-10-15T16:30:59.966Z"
+    }
+  },
+  {
+    "id": "asset_32d72286-0599-4e5f-83f2-ab929c3974ec",
+    "name": "mixkit-1465.wav",
+    "kind": "audio",
+    "role": "sfx",
+    "managedPath": "assets\\source\\2b6af0f6de39c12bbf37.wav",
+    "sourceHash": "2b6af0f6de39c12bbf378a56947d5f1fa5610e3b5dfe3ef689648f05bbc37d3f",
+    "metadata": {
+      "durationMs": 2257,
+      "hasAudio": true,
+      "audioCodec": "pcm_s16le",
+      "sampleRate": 44100,
+      "channels": 2,
+      "hasAlpha": false,
+      "mime": "wav"
+    },
+    "provenance": {
+      "source": "provider",
+      "provider": "mixkit",
+      "sourceUrl": "https://mixkit.co/free-sound-effects/transition/",
+      "originalAssetId": "1465",
+      "acquisition": {
+        "candidateId": "asset_candidate_9a0ecedb-d6cc-4d99-b3d1-9e83d97ad594"
+      },
+      "acquiredAt": "2026-10-15T16:31:00.245Z"
+    }
+  },
+  {
+    "id": "asset_29e4d7c1-7271-443d-a4f5-ac94e0b7a187",
+    "name": "mixkit-3124.wav",
+    "kind": "audio",
+    "role": "sfx",
+    "managedPath": "assets\\source\\00270a1847195cddb82d.wav",
+    "sourceHash": "00270a1847195cddb82d1b10c9407880ce311f522284afaefdc218fbba70d3ed",
+    "metadata": {
+      "durationMs": 500,
+      "hasAudio": true,
+      "audioCodec": "pcm_s16le",
+      "sampleRate": 44100,
+      "channels": 2,
+      "hasAlpha": false,
+      "mime": "wav"
+    },
+    "provenance": {
+      "source": "provider",
+      "provider": "mixkit",
+      "sourceUrl": "https://mixkit.co/free-sound-effects/technology/",
+      "originalAssetId": "3124",
+      "acquisition": {
+        "candidateId": "asset_candidate_031c1855-5924-427c-9b7c-9c462a74d18f"
+      },
+      "acquiredAt": "2026-10-15T16:31:00.663Z"
+    }
+  },
+  {
+    "id": "asset_f111f05a-db05-490c-bddf-a0cc25dadadb",
+    "name": "AI 的油门与刹车",
+    "kind": "video",
+    "role": "generated_visual",
+    "managedPath": "assets/derived/motion/job_13c90344-8862-43c0-af49-60b9a08df853/aba83a097e3ddecf5d278082a4f850981c893767a635edc549fd0b776f46d3ec/preview.mp4",
+    "sourceHash": "5b29bc06173b5430be0ee25d50d942513d5926dd481cb99d76d641e0f2c88518",
+    "metadata": {
+      "durationMs": 123067,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "hasAudio": false,
+      "videoCodec": "h264",
+      "pixelFormat": "yuv420p",
+      "hasAlpha": false,
+      "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+    },
+    "provenance": {
+      "source": "generated",
+      "provider": "managed_remotion",
+      "generationJobId": "job_13c90344-8862-43c0-af49-60b9a08df853",
+      "acquiredAt": "2026-10-15T16:53:40.866Z"
+    }
+  },
+  {
+    "id": "asset_258e57fb-3c56-4795-aca1-b0b00b3e2cd2",
+    "name": "AI 的油门与刹车",
+    "kind": "video",
+    "role": "generated_visual",
+    "managedPath": "assets/derived/motion/job_3318bb86-46f8-41cd-8654-dcbcb61e6de0/ab91cbf793181e5c6451e348ef966003dd9521aa1d4adcb372525e625b48d026/preview.mp4",
+    "sourceHash": "d20feff231ea68e480c5ef18acc28b5ce36d067c89e0c26f128999297a84d695",
+    "metadata": {
+      "durationMs": 123067,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "hasAudio": false,
+      "videoCodec": "h264",
+      "pixelFormat": "yuv420p",
+      "hasAlpha": false,
+      "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+    },
+    "provenance": {
+      "source": "generated",
+      "provider": "managed_remotion",
+      "generationJobId": "job_3318bb86-46f8-41cd-8654-dcbcb61e6de0",
+      "acquiredAt": "2026-10-15T17:11:28.366Z"
+    }
+  },
+  {
+    "id": "asset_f31a408c-7e0a-45b3-9b66-0c1b94f54dd2",
+    "name": "AI 的油门与刹车",
+    "kind": "video",
+    "role": "generated_visual",
+    "managedPath": "assets/derived/motion/job_3088e3d1-0243-438d-830b-8636b8b50603/d4eaaa6cbb0dca411f7d5f7dada47a3c2e0d8f19da10507ba8ea9127e8af61ac/preview.mp4",
+    "sourceHash": "f3f722a974d661261df1b5cd34f291b5c99216bdcb71c2eb1346f14ccfb0c988",
+    "metadata": {
+      "durationMs": 123067,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "hasAudio": false,
+      "videoCodec": "h264",
+      "pixelFormat": "yuv420p",
+      "hasAlpha": false,
+      "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+    },
+    "provenance": {
+      "source": "generated",
+      "provider": "managed_remotion",
+      "generationJobId": "job_3088e3d1-0243-438d-830b-8636b8b50603",
+      "acquiredAt": "2026-10-15T17:34:49.871Z"
+    }
+  }
+]

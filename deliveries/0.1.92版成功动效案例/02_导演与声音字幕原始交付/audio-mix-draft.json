@@ -1,0 +1,149 @@
+{
+  "status": "待真实Asset与当前作品事件ID补齐后提交；起音及听感为inconclusive",
+  "bgm": {
+    "action": "create",
+    "kind": "bgm",
+    "purpose": "低密度电子脉冲连接研发与竞争；原文、争议和最后问题退让",
+    "start_frame": 0,
+    "end_frame": 3571,
+    "source_start_frame": 0,
+    "source_end_frame": 3571,
+    "gain_db": -23,
+    "fade_in_frames": 45,
+    "fade_out_frames": 62,
+    "loop": false,
+    "ducking": {
+      "enabled": true,
+      "reduction_db": 6,
+      "attack_frames": 6,
+      "hold_frames": 12,
+      "release_frames": 21
+    },
+    "design": {
+      "role": "music",
+      "soundPlanId": "sound_plan_73280da0-385a-4303-bc96-b532e8b10695",
+      "soundIntentId": "music-pulse",
+      "envelope": [
+        {
+          "frame": 0,
+          "gainDb": -5
+        },
+        {
+          "frame": 180,
+          "gainDb": 0
+        },
+        {
+          "frame": 303,
+          "gainDb": -4
+        },
+        {
+          "frame": 675,
+          "gainDb": 0
+        },
+        {
+          "frame": 876,
+          "gainDb": 2
+        },
+        {
+          "frame": 1247,
+          "gainDb": -5
+        },
+        {
+          "frame": 1407,
+          "gainDb": -8
+        },
+        {
+          "frame": 1630,
+          "gainDb": -14
+        },
+        {
+          "frame": 1728,
+          "gainDb": -4
+        },
+        {
+          "frame": 1825,
+          "gainDb": 0
+        },
+        {
+          "frame": 2182,
+          "gainDb": -4
+        },
+        {
+          "frame": 2267,
+          "gainDb": 1
+        },
+        {
+          "frame": 2666,
+          "gainDb": -8
+        },
+        {
+          "frame": 2723,
+          "gainDb": -12
+        },
+        {
+          "frame": 2823,
+          "gainDb": -4
+        },
+        {
+          "frame": 3020,
+          "gainDb": 0
+        },
+        {
+          "frame": 3509,
+          "gainDb": -4
+        },
+        {
+          "frame": 3571,
+          "gainDb": -24
+        }
+      ]
+    },
+    "asset_id": "asset_f4a12863-97e8-4d8e-bd54-7c12091b55d6"
+  },
+  "sfx_by_intent": [
+    {
+      "intent": "mechanical-join",
+      "candidateId": "asset_candidate_cd312fb4-c6a2-4a65-90cd-16e60e11eff2",
+      "placement": "handoff事件终点的落定；不完整铺满两秒动作",
+      "gain_db": -18,
+      "ducking": {
+        "enabled": false
+      },
+      "onset_review": {
+        "status": "inconclusive",
+        "note": "待原文件真实起音检测与所选范围复听，不将文件起点冒充攻击。"
+      },
+      "asset_id": "asset_09a0ed39-6503-49d1-8c0d-8d7c21ee2ed1"
+    },
+    {
+      "intent": "recursive-flow",
+      "candidateId": "asset_candidate_9a0ecedb-d6cc-4d99-b3d1-9e83d97ad594",
+      "placement": "研发结果回返输入路径的开始点，使用完整短气流包络；不循环填满整段",
+      "gain_db": -19,
+      "ducking": {
+        "enabled": false
+      },
+      "onset_review": {
+        "status": "inconclusive",
+        "note": "待原文件起音候选；声音支持一次回返而非逐节点。"
+      },
+      "asset_id": "asset_32d72286-0599-4e5f-83f2-ab929c3974ec"
+    },
+    {
+      "intent": "boundary-hit",
+      "candidateId": "asset_candidate_031c1855-5924-427c-9b7c-9c462a74d18f",
+      "placement": "escape中主体穿过边界那一刻的点绑定，需视觉作者明确局部帧，不直接用事件起始",
+      "gain_db": -17,
+      "ducking": {
+        "enabled": false
+      },
+      "onset_review": {
+        "status": "inconclusive",
+        "note": "短电子断点为低冲击候选替代，需原文件和上下文比较；若带确认/胜利感则不能采用。"
+      },
+      "asset_id": "asset_29e4d7c1-7271-443d-a4f5-ac94e0b7a187"
+    }
+  ],
+  "silence": "3571–3692帧仅旁白；竞速多次变化不逐项加声，背景节奏已承担连续性。",
+  "verification": "数值只是首版混合起点，未测得适配。SFX原文件起音和当前eventMap补齐，preview_sound_alternatives比较有声/无声/调整版，再正式Preview测全片并记录听感能力边界。"
+}

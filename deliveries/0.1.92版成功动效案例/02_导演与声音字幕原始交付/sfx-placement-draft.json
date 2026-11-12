@@ -1,0 +1,73 @@
+[
+  {
+    "action": "create",
+    "kind": "sfx",
+    "asset_id": "asset_09a0ed39-6503-49d1-8c0d-8d7c21ee2ed1",
+    "purpose": "工作角色交接落定",
+    "event_frame": 717,
+    "source_start_frame": 0,
+    "source_end_frame": 41,
+    "onset_offset_frames": 0,
+    "gain_db": -14,
+    "fade_out_frames": 3,
+    "ducking": {
+      "enabled": false
+    },
+    "onset_review": {
+      "note": "原文件inspect 0–75帧：41帧起为静音，起点无前导静音检测；使用0–41帧，offset0是技术起音候选，尚未实际听审。",
+      "status": "inconclusive"
+    },
+    "design": {
+      "soundIntentId": "mechanical-join",
+      "soundPlanId": "sound_plan_73280da0-385a-4303-bc96-b532e8b10695",
+      "role": "sfx"
+    }
+  },
+  {
+    "action": "create",
+    "kind": "sfx",
+    "asset_id": "asset_32d72286-0599-4e5f-83f2-ab929c3974ec",
+    "purpose": "研发结果开始沿回路返回输入",
+    "event_frame": 966,
+    "source_start_frame": 0,
+    "source_end_frame": 67,
+    "onset_offset_frames": 0,
+    "gain_db": -19,
+    "fade_out_frames": 4,
+    "ducking": {
+      "enabled": false
+    },
+    "onset_review": {
+      "note": "原文件inspect 0–67帧无检测静音，offset0仅技术候选；采用短声自身包络，不循环、不称整段回返持续声。",
+      "status": "inconclusive"
+    },
+    "design": {
+      "soundIntentId": "recursive-flow",
+      "soundPlanId": "sound_plan_73280da0-385a-4303-bc96-b532e8b10695",
+      "role": "sfx"
+    }
+  },
+  {
+    "action": "create",
+    "kind": "sfx",
+    "asset_id": "asset_29e4d7c1-7271-443d-a4f5-ac94e0b7a187",
+    "purpose": "Agent中心穿过授权边界的短反应",
+    "event_frame": 1586,
+    "source_start_frame": 0,
+    "source_end_frame": 3,
+    "onset_offset_frames": 0,
+    "gain_db": -14,
+    "ducking": {
+      "enabled": false
+    },
+    "onset_review": {
+      "note": "原文件inspect 0–15帧检测1–15帧静音，声音是约1帧短攻击，保留3帧含自然尾，offset0是技术候选；模型对0.5秒片段音乐判断不稳定，未把模型当听审。",
+      "status": "inconclusive"
+    },
+    "design": {
+      "soundIntentId": "boundary-hit",
+      "soundPlanId": "sound_plan_73280da0-385a-4303-bc96-b532e8b10695",
+      "role": "sfx"
+    }
+  }
+]

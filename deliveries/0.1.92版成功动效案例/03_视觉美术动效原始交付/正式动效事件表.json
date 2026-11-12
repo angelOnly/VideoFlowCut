@@ -1,0 +1,57 @@
+{
+  "version": "d4eaaa6cbb0dca411f7d5f7dada47a3c2e0d8f19da10507ba8ea9127e8af61ac",
+  "fps": 30,
+  "frameCount": 3692,
+  "events": [
+    {
+      "id": "handoff",
+      "meaning": "人的工作台向 Agent 控制台让位",
+      "startFrame": 675,
+      "endFrame": 735
+    },
+    {
+      "id": "handoff_land",
+      "meaning": "转业字组与控制关系落定",
+      "startFrame": 717
+    },
+    {
+      "id": "recursive",
+      "meaning": "研发结果沿路径成为下一代研发输入",
+      "startFrame": 876,
+      "endFrame": 1077
+    },
+    {
+      "id": "recursive_depart",
+      "meaning": "研发结果开始沿回路返回",
+      "startFrame": 966
+    },
+    {
+      "id": "recursive_return",
+      "meaning": "研发结果抵达下一轮 AI 输入",
+      "startFrame": 1056
+    },
+    {
+      "id": "escape",
+      "meaning": "测试对象越过授权边界",
+      "startFrame": 1563,
+      "endFrame": 1623
+    },
+    {
+      "id": "escape_cross",
+      "meaning": "Agent 中心穿过授权边界",
+      "startFrame": 1586
+    },
+    {
+      "id": "competition",
+      "meaning": "两路竞速形成互相等待的减速困局",
+      "startFrame": 2182,
+      "endFrame": 3020
+    },
+    {
+      "id": "brake",
+      "meaning": "两路合流，刹车问题停留",
+      "startFrame": 3509,
+      "endFrame": 3692
+    }
+  ]
+}

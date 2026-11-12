@@ -1,0 +1,55 @@
+{
+  "relativePath": "manifests\\sources\\export_artifact_c2483c5c-bd2d-45dd-a077-e6e75138f345.json",
+  "generatedAt": "2026-10-15T17:39:04.558Z",
+  "entries": [
+    {
+      "assetId": "asset_09a0ed39-6503-49d1-8c0d-8d7c21ee2ed1",
+      "name": "mixkit-3117.wav",
+      "sourceHash": "f486f7f66d21795c54371ef2d06ee696376d1e77ea01c546d6f4c91d942c1a39",
+      "source": "provider",
+      "provider": "mixkit",
+      "sourceUrl": "https://mixkit.co/free-sound-effects/technology/",
+      "originalAssetId": "3117",
+      "acquiredAt": "2026-10-15T16:30:59.314Z"
+    },
+    {
+      "assetId": "asset_29e4d7c1-7271-443d-a4f5-ac94e0b7a187",
+      "name": "mixkit-3124.wav",
+      "sourceHash": "00270a1847195cddb82d1b10c9407880ce311f522284afaefdc218fbba70d3ed",
+      "source": "provider",
+      "provider": "mixkit",
+      "sourceUrl": "https://mixkit.co/free-sound-effects/technology/",
+      "originalAssetId": "3124",
+      "acquiredAt": "2026-10-15T16:31:00.663Z"
+    },
+    {
+      "assetId": "asset_32d72286-0599-4e5f-83f2-ab929c3974ec",
+      "name": "mixkit-1465.wav",
+      "sourceHash": "2b6af0f6de39c12bbf378a56947d5f1fa5610e3b5dfe3ef689648f05bbc37d3f",
+      "source": "provider",
+      "provider": "mixkit",
+      "sourceUrl": "https://mixkit.co/free-sound-effects/transition/",
+      "originalAssetId": "1465",
+      "acquiredAt": "2026-10-15T16:31:00.245Z"
+    },
+    {
+      "assetId": "asset_f31a408c-7e0a-45b3-9b66-0c1b94f54dd2",
+      "name": "AI 的油门与刹车",
+      "sourceHash": "f3f722a974d661261df1b5cd34f291b5c99216bdcb71c2eb1346f14ccfb0c988",
+      "source": "generated",
+      "provider": "managed_remotion",
+      "acquiredAt": "2026-10-15T17:34:49.871Z"
+    },
+    {
+      "assetId": "asset_f4a12863-97e8-4d8e-bd54-7c12091b55d6",
+      "name": "mixkit-music-184.mp3",
+      "sourceHash": "3ffae7ccd5ea6f612f75efdf9a8318ccce79a5e4f355b26e233631330a57660f",
+      "source": "provider",
+      "provider": "mixkit_music",
+      "sourceUrl": "https://mixkit.co/free-stock-music/tag/ambient/",
+      "creator": "by Andrew Ev",
+      "originalAssetId": "184",
+      "acquiredAt": "2026-10-15T16:30:59.966Z"
+    }
+  ]
+}

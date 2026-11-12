@@ -1,0 +1,587 @@
+[
+  {
+    "路径": "00_先读我.md",
+    "字节": 3663,
+    "SHA256": "0658b1c7c2e4bd3e4a2731873a2d336aeeceeaed7919e025d0eade2fc00ad5f9"
+  },
+  {
+    "路径": "01_制作决策与关键清单.md",
+    "字节": 6237,
+    "SHA256": "d95c528c75fa5d50e4ab4875f4c8ecb4eb7008ea7b7758fc5388a11757c399d8"
+  },
+  {
+    "路径": "01_成片/AI的油门与刹车_R144_压缩观看版.mp4",
+    "字节": 9148710,
+    "SHA256": "5792f4f7c74039cf9360f8bc8b8452d8c726e092c0306358a2595da88085cb43"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/alignment-evidence.json",
+    "字节": 113259,
+    "SHA256": "b0028ce8ea5135155c8eb4eb86f296766e236d34cb6df79ff8b50f9e18d0c9b2"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/audio-mix-draft.json",
+    "字节": 4246,
+    "SHA256": "9bf6df73b272ca1335b4ad2f0b713d99db42a76bbf9d99086c68d7c2c718edbc"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/caption-corrections-by-token.json",
+    "字节": 31025,
+    "SHA256": "444e312439749e6406676f2b0e6b8ca71aad04072def9bb316954707ec1e8de0"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/caption-program-input.json",
+    "字节": 15454,
+    "SHA256": "0ef89e03ba01ae94816b3930af1e946ccb1d7bb5f8860fe3d086e416b53d9178"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/current-av-script.md",
+    "字节": 7946,
+    "SHA256": "1dcbf034b88d117f05edf1f5dfee4ef4f983accda5bd350382b12ec1df1060ff"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/music-observation-partial.json",
+    "字节": 23440,
+    "SHA256": "9cc10b1ad2afa6da8ac98006d509b3a024e075c20826ed370836d20a58063fe1"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/narrative-map-by-order.json",
+    "字节": 2844,
+    "SHA256": "31db04912fd52f0a01a30b1ffe479c2cfcf1768eb565c089ae8ef2e163ca3bdc"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/script-units.json",
+    "字节": 3410,
+    "SHA256": "f20f5a746d6d0519acd8d1d16c2a6f3a248d4b9b668d5b013ce82dc651273b41"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/sfx-placement-draft.json",
+    "字节": 2347,
+    "SHA256": "247abcfabea11b316219d101c47b10389055ac7f573b3be08ad93c288aa99fb2"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/sound-ambient-raw.json",
+    "字节": 95471,
+    "SHA256": "fa9ae75cb5a15a74e83be135e110c5c3ffea654f22f7139550f00538afed158c"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/sound-analysis-inputs.json",
+    "字节": 1031,
+    "SHA256": "c2229a743ec3d77a0060527821daf2b04d4763a7726ef6e27e81d883862aa90c"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/sound-original-inspection.json",
+    "字节": 6996,
+    "SHA256": "ee53e28fd91c3723be278b6a5cb5f5989bf37e3e30ef8189ed61fcaa7d74a18b"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/sound-plan-input.json",
+    "字节": 1826,
+    "SHA256": "12f782865bd9f69ebf86eb467deaddec55e69ea036b5aeaaeb349c5f6337d892"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/sound-plan-update.json",
+    "字节": 768,
+    "SHA256": "d836e2fdf15a3bb27482dbca33c5b2140fb5a85930ab8916318e94b6db2f4b2a"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/sound-requirements.json",
+    "字节": 2012,
+    "SHA256": "066147604d2f4893f30a14e486d0862940f0368fe7d15f5aeaa02a1076fcf9f4"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/sound-search-raw.json",
+    "字节": 333831,
+    "SHA256": "0c5b17e4ae864474d7d041c738906efda6f66403c3f8208806c3b3b7ac71254b"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/story-input.json",
+    "字节": 2980,
+    "SHA256": "795d03caef4315e537616c97a7aa103b96f348fc4fcc2f467b81bf10cc2f1a34"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/structure-and-treatment-input.json",
+    "字节": 5969,
+    "SHA256": "969c3d01dd6dfac9845fc814d0522ace34282531ae177e18a56dd7dfc945a6ab"
+  },
+  {
+    "路径": "02_导演与声音字幕原始交付/最终字幕_R144.srt",
+    "字节": 4946,
+    "SHA256": "9ad8fd996ee6d7a725a35f088639b9a62d361f27befb3bd25befdcb6dc03fafe"
+  },
+  {
+    "路径": "03_视觉美术动效原始交付/AiBrakes.tsx",
+    "字节": 16777,
+    "SHA256": "1e3b30803845b972caa6605a38ce883b3899c0056d720101dd32d61bc5891cb4"
+  },
+  {
+    "路径": "03_视觉美术动效原始交付/build-work.mjs",
+    "字节": 2090,
+    "SHA256": "5ee2733bfebf0c95837a5bf83b9065d02070df74d777bb46943255d21c70de14"
+  },
+  {
+    "路径": "03_视觉美术动效原始交付/captions-current.json",
+    "字节": 70521,
+    "SHA256": "89933f05d713522ff3d2a677c0a1635ecd7478adbdf2d6507b843f0fb3df2850"
+  },
+  {
+    "路径": "03_视觉美术动效原始交付/materials.md",
+    "字节": 6263,
+    "SHA256": "7b3ed63df0317413abd32b1c39145376cae5e4cc0c7926f5c9066c5770b02a7d"
+  },
+  {
+    "路径": "03_视觉美术动效原始交付/motion-work.json",
+    "字节": 19305,
+    "SHA256": "dc06cc44de1f574c036c0756ea82982810c323d1e04f8871036a94e90a3292f5"
+  },
+  {
+    "路径": "03_视觉美术动效原始交付/production-inputs.json",
+    "字节": 42419,
+    "SHA256": "6551aeb3b9001b1f40f98282282d18aecf57fb6eabfe0aaff9abd5a0e65f09b7"
+  },
+  {
+    "路径": "03_视觉美术动效原始交付/正式动效事件表.json",
+    "字节": 1405,
+    "SHA256": "c1569a4f08a58bce7c0147bc42a224fd43486815eaa5b1fef28d4944b8f62bb2"
+  },
+  {
+    "路径": "03_视觉美术动效原始交付/正式固定输入_R144_source.json",
+    "字节": 19372,
+    "SHA256": "66fcd9caab45470457675f011ba6c275e8df7fd2da0ad96a8b65fc489051cfc9"
+  },
+  {
+    "路径": "03_视觉美术动效原始交付/视觉采用与观察.md",
+    "字节": 6864,
+    "SHA256": "5e9df4c272125604a93d33bc899f7fb4735c91f2485c912081c67ec4cfef1a0e"
+  },
+  {
+    "路径": "04_真实指令与检索记录/主任务_可见协作指令与回传.jsonl",
+    "字节": 55750,
+    "SHA256": "879eeca2c4283ad81f0888fe7347a15e4f38c55cc0ce530ef6e04a2be9cd7708"
+  },
+  {
+    "路径": "04_真实指令与检索记录/主任务_可读指令与交付.md",
+    "字节": 37850,
+    "SHA256": "ac91c2a3f65ba4bdfd422df3e799dce5e65ee19ca20a077a292b4a5a4037a8c0"
+  },
+  {
+    "路径": "04_真实指令与检索记录/主任务_工具操作与结果.jsonl",
+    "字节": 9252292,
+    "SHA256": "c7bc1fabf59801741571c9bdf5bc5f963f75b43c69823fd699cfb3dd660c4060"
+  },
+  {
+    "路径": "04_真实指令与检索记录/主任务_检索取材与观察原始记录.jsonl",
+    "字节": 775444,
+    "SHA256": "fa538b8d1b4834e3526954129e19dc14f4aa9ada56c993e30ff8e12e57b6eee1"
+  },
+  {
+    "路径": "04_真实指令与检索记录/主任务_索引.json",
+    "字节": 1743,
+    "SHA256": "ce76c8c77954bf224aaa8e7c24dbe73c8b72c26064752da203192cda2f94ac72"
+  },
+  {
+    "路径": "04_真实指令与检索记录/导演_可见协作指令与回传.jsonl",
+    "字节": 10899,
+    "SHA256": "c4267c8572b2dd48424891c33784c04d4e7ef3ced8a8639788001d15ca24fb77"
+  },
+  {
+    "路径": "04_真实指令与检索记录/导演_可读指令与交付.md",
+    "字节": 7317,
+    "SHA256": "c61e375330d60b551d9fa5973148b7615fa3680e0a06cc0063e39d3624ddecc1"
+  },
+  {
+    "路径": "04_真实指令与检索记录/导演_工具操作与结果.jsonl",
+    "字节": 1600483,
+    "SHA256": "9176a1b769e4a7c2107f05c49eb5570a6c71a17a21c1057e682483c93dab38e1"
+  },
+  {
+    "路径": "04_真实指令与检索记录/导演_检索取材与观察原始记录.jsonl",
+    "字节": 712662,
+    "SHA256": "997f0ef4f9fd77d1a72b4817e9880a80f306666b217c3c35513f79c876ce2a03"
+  },
+  {
+    "路径": "04_真实指令与检索记录/导演_索引.json",
+    "字节": 647,
+    "SHA256": "c7fd71120054465a05acfd36acb4d863c9a8d537052f98c692479d830b5a32d3"
+  },
+  {
+    "路径": "04_真实指令与检索记录/素材作者_可见协作指令与回传.jsonl",
+    "字节": 6779,
+    "SHA256": "e59c6b5de92486737c15ff9b9da5b92baa5980d7eb7d2a44b52aebcac382e727"
+  },
+  {
+    "路径": "04_真实指令与检索记录/素材作者_可读指令与交付.md",
+    "字节": 4814,
+    "SHA256": "2e60bba1529659e92e0b980057bbbae76aa01e10a43559e997ab72e15c6ba8a4"
+  },
+  {
+    "路径": "04_真实指令与检索记录/素材作者_工具操作与结果.jsonl",
+    "字节": 663416,
+    "SHA256": "7351a2815f299033b665d2ed7c061e3cffbe35a1451b79cb93c3b0b1f6888343"
+  },
+  {
+    "路径": "04_真实指令与检索记录/素材作者_检索取材与观察原始记录.jsonl",
+    "字节": 531075,
+    "SHA256": "0f0ded7976ef4ffbd0d2d4cee593176039760a9e32fa5c8220eee8bfe2283afc"
+  },
+  {
+    "路径": "04_真实指令与检索记录/素材作者_索引.json",
+    "字节": 422,
+    "SHA256": "78156c084a06695225d2eabb9dc39bc6320ce325447898edf272d69d59855b77"
+  },
+  {
+    "路径": "04_真实指令与检索记录/视觉作者_可见协作指令与回传.jsonl",
+    "字节": 17288,
+    "SHA256": "3a293f9126e4e86c63cfea52e21d49af019666a824843b8ec14cb49607e13460"
+  },
+  {
+    "路径": "04_真实指令与检索记录/视觉作者_可读指令与交付.md",
+    "字节": 11039,
+    "SHA256": "96b1fd964101f9e6bc60db9d1bee71414bc1cdb972c5b183bfa59b4067958d64"
+  },
+  {
+    "路径": "04_真实指令与检索记录/视觉作者_工具操作与结果.jsonl",
+    "字节": 734034,
+    "SHA256": "d976febaf2429a92e1862d5b762bc5cc75a246ab25100e25ecfecc15cd84e3be"
+  },
+  {
+    "路径": "04_真实指令与检索记录/视觉作者_检索取材与观察原始记录.jsonl",
+    "字节": 59295,
+    "SHA256": "5f744ebcadcc8fdb53663bc6a95165ccd71479dd1821516788e1cef25f7dfb5e"
+  },
+  {
+    "路径": "04_真实指令与检索记录/视觉作者_索引.json",
+    "字节": 508,
+    "SHA256": "f57e6f6a125b806b05a4044fbb5e613082928420ec285526294e7270f71b3905"
+  },
+  {
+    "路径": "05_实际素材/全部素材登记与来源.json",
+    "字节": 36640,
+    "SHA256": "64f7f418e9c51376e3a69fef3b8a8333a502bd820c97fcdb26362379dfef0072"
+  },
+  {
+    "路径": "05_实际素材/包内素材清单.json",
+    "字节": 5081,
+    "SHA256": "df72f76e491257e392c8521ca41ce0e0c863c75c7efd786433093a80b46c7234"
+  },
+  {
+    "路径": "05_实际素材/声音节选代理/BGM采用源范围0-119.033秒_未加包络.m4a",
+    "字节": 1229573,
+    "SHA256": "9de9245b68e616c33ddca4cf908200dea3476da81811d4064e0119bd0282f348"
+  },
+  {
+    "路径": "05_实际素材/声音节选代理/完整旁白_压缩代理.m4a",
+    "字节": 1206664,
+    "SHA256": "eef22df2a69d9b6099ef81c1465fcb6c51b52e6770d162664ce310f35fd2f940"
+  },
+  {
+    "路径": "05_实际素材/证据原件/job_027d0b06-1b5e-41b7-87e0-a81a7b402805/manifest.json",
+    "字节": 390,
+    "SHA256": "6039da5aefb88d1bea8b42d1e2e193a8aa0ac8f92282ecb46f4328bb0234df2a"
+  },
+  {
+    "路径": "05_实际素材/证据原件/job_027d0b06-1b5e-41b7-87e0-a81a7b402805/original.png",
+    "字节": 602286,
+    "SHA256": "4b930f9e92c06bc407073e6f9a9109c5f61254c1cb566905748e5e8053ab5ae4"
+  },
+  {
+    "路径": "05_实际素材/证据原件/job_9a2e5b08-b581-4043-b29e-8ad2be94d009/manifest.json",
+    "字节": 269,
+    "SHA256": "7cff039117286118c635e5d3d47567deb703ae437c873a385b2006c0612dc75e"
+  },
+  {
+    "路径": "05_实际素材/证据原件/job_9a2e5b08-b581-4043-b29e-8ad2be94d009/original.jpg",
+    "字节": 278963,
+    "SHA256": "686a87f7604519597ec22b6b2ba7ebe976ef16c3602e738ba850b4b6b75f20b2"
+  },
+  {
+    "路径": "05_实际素材/证据原件/job_a4012d30-412e-44ba-8c98-9b4c1544fa40/manifest.json",
+    "字节": 754,
+    "SHA256": "d53b9f316fa474fbe1da73722d540c2d93aba769605d270874e84a1c86733ac7"
+  },
+  {
+    "路径": "05_实际素材/证据原件/job_a4012d30-412e-44ba-8c98-9b4c1544fa40/original.png",
+    "字节": 431332,
+    "SHA256": "e6c19cf2aa9fba1cf2b5ec8bce067d67bb3bcccdf47f85fa2f54a3e1b0f40154"
+  },
+  {
+    "路径": "05_实际素材/证据原件/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/manifest.json",
+    "字节": 650,
+    "SHA256": "314bfe8db5a50f757dd7349b82f6c4f3b893b7c4fd5372cbe8f58d95c014342f"
+  },
+  {
+    "路径": "05_实际素材/证据原件/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/original.pdf",
+    "字节": 521159,
+    "SHA256": "dd635cf6e5f39f0e1f646f08c36549090d77156ed89cbd3d733ed496648cae9c"
+  },
+  {
+    "路径": "05_实际素材/证据原件/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/page-1.png",
+    "字节": 36571,
+    "SHA256": "491fd21ed306196e5632418c4a0e8f85b7bc6ace6d0af068a025f863706fc5f3"
+  },
+  {
+    "路径": "05_实际素材/证据原件/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/page-4.png",
+    "字节": 420640,
+    "SHA256": "e6e5f8318695710269ffffec1f4f84bd5976e0dbbc9f150d3df08af01796bd6f"
+  },
+  {
+    "路径": "05_实际素材/证据原件/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/page-9.png",
+    "字节": 417794,
+    "SHA256": "10d8dc0eb08e040fc5b07f8ecb0a2743943c999b2be92bda5237314d22ce1319"
+  },
+  {
+    "路径": "05_实际素材/采用视频节选代理/interview_19000-27000ms_720p静音.mp4",
+    "字节": 521425,
+    "SHA256": "fb4573c62a8becf2a6eea55dfe0f009a325cb1cd7178cbcd43c6e8a7f6e7b371"
+  },
+  {
+    "路径": "05_实际素材/采用视频节选代理/work_2000-5933ms_720p静音.mp4",
+    "字节": 274349,
+    "SHA256": "6ff9d95a135595249f2038134407cc466d308afe861429d4f9c010bda7e229db"
+  },
+  {
+    "路径": "05_实际素材/音效原文件/mixkit-1465.wav",
+    "字节": 398104,
+    "SHA256": "2b6af0f6de39c12bbf378a56947d5f1fa5610e3b5dfe3ef689648f05bbc37d3f"
+  },
+  {
+    "路径": "05_实际素材/音效原文件/mixkit-3117.wav",
+    "字节": 442732,
+    "SHA256": "f486f7f66d21795c54371ef2d06ee696376d1e77ea01c546d6f4c91d942c1a39"
+  },
+  {
+    "路径": "05_实际素材/音效原文件/mixkit-3124.wav",
+    "字节": 88930,
+    "SHA256": "00270a1847195cddb82d1b10c9407880ce311f522284afaefdc218fbba70d3ed"
+  },
+  {
+    "路径": "06_校样与素材观察/cbs-contact.jpg",
+    "字节": 72395,
+    "SHA256": "e5e8866ccdd62cee000bcc7349544473b3273ff9858f1f6d20fad49ada2f3a00"
+  },
+  {
+    "路径": "06_校样与素材观察/proof1-contact.jpg",
+    "字节": 139596,
+    "SHA256": "aeff28f3d28a38937618ccc1581fa2f02ecba0140078bd2cf297ffba3b919f33"
+  },
+  {
+    "路径": "06_校样与素材观察/proof2-contact.jpg",
+    "字节": 222454,
+    "SHA256": "25efe28a711998243095ab3eba1e628a3d55f0c676b9d2700268878dac8abaf0"
+  },
+  {
+    "路径": "06_校样与素材观察/work-contact.jpg",
+    "字节": 92201,
+    "SHA256": "7c01ae831b1fcde3aac9759c78e7e27ab0339d8411b6aa057b8d48442a6e7b82"
+  },
+  {
+    "路径": "06_校样与素材观察/最终合成/revision-144-frame-3020.jpg",
+    "字节": 15344,
+    "SHA256": "1c1ece5ebf6b0b76c8712e152aa21787061cf9788ac7a47b80bd31be4f6748e1"
+  },
+  {
+    "路径": "06_校样与素材观察/最终合成/revision-144-frame-3050.jpg",
+    "字节": 20875,
+    "SHA256": "672608cef9e683cbd4e879a7137a95137e5f5c5ea7940514793d89133b2b4880"
+  },
+  {
+    "路径": "06_校样与素材观察/最终合成/revision-144-frame-3080.jpg",
+    "字节": 24623,
+    "SHA256": "f0c2b63a149927cc7db76a4a1c89f325513a5384b7763e5b629f0009373cf9e4"
+  },
+  {
+    "路径": "06_校样与素材观察/最终合成/revision-144-frame-3150.jpg",
+    "字节": 28712,
+    "SHA256": "0350ec0654a04986af19cc792f84d1f1034e3b89838ef764e17adcc4e8f3b890"
+  },
+  {
+    "路径": "06_校样与素材观察/最终合成/revision-144-frame-3250.jpg",
+    "字节": 26164,
+    "SHA256": "feea858e266e81c26ea556870ed5e2f95332d99afac1f998108839fc76b46720"
+  },
+  {
+    "路径": "06_校样与素材观察/最终合成/revision-144-frame-3650.jpg",
+    "字节": 26704,
+    "SHA256": "fdedb394a8424f1aad8bb50e8f537ed40251fd1f0e11afbe3e9d279e1c43bc89"
+  },
+  {
+    "路径": "06_校样与素材观察/最终合成/revision-144-frame-560.jpg",
+    "字节": 48103,
+    "SHA256": "d558321333fb3236889f5239fd9dfd1b1e0f551ae758b37e8ba5c56a2b4b8be0"
+  },
+  {
+    "路径": "06_校样与素材观察/最终合成/revision-144-frame-600.jpg",
+    "字节": 51511,
+    "SHA256": "50cb1ab57faddd8bb4707fa28867dd35de46f79ce44b2eb2f0be58408c6397e9"
+  },
+  {
+    "路径": "06_校样与素材观察/最终合成/revision-144-frame-680.jpg",
+    "字节": 45271,
+    "SHA256": "a4507d3e30820e6823943f8fafe0e420054185452105aa56acb0b2b44d60bbc1"
+  },
+  {
+    "路径": "07_项目快照与验证/captions-final.json",
+    "字节": 98257,
+    "SHA256": "50b39c6799cc9e2f24ad9859a25a9976c1f44c28ffdf45411a1ac0a9f705b823"
+  },
+  {
+    "路径": "07_项目快照与验证/export-artifact.json",
+    "字节": 5941,
+    "SHA256": "ca128eede25cd4a9c69e551222d46133487713621a83863e03a9fe471efa6d37"
+  },
+  {
+    "路径": "07_项目快照与验证/production-run-production_run_c202b427-4035-476a-b0a5-f0dad3bef2c4.json",
+    "字节": 3805,
+    "SHA256": "6ca1ef160748ee9e3f8234ef1059b4fde6bbe278d5d4f9d0c96418b37f34cb3d"
+  },
+  {
+    "路径": "07_项目快照与验证/project-snapshot.json",
+    "字节": 492383,
+    "SHA256": "37ba1cf794163a8638dbb6f214b62c68218dd88d2e47318f357a0ba243286c3d"
+  },
+  {
+    "路径": "07_项目快照与验证/压缩成片验证.json",
+    "字节": 431,
+    "SHA256": "f82d8e6d0fb001b0f971a6056796253e2fabc4f8bcd77cda2dba95ec70bd18d2"
+  },
+  {
+    "路径": "07_项目快照与验证/复制来源清单.json",
+    "字节": 27165,
+    "SHA256": "d0a433e4fd00a9ba3cdc71ef39071f1c5f4156281bb702bdbaa85f740055f134"
+  },
+  {
+    "路径": "07_项目快照与验证/完成归档.py",
+    "字节": 15751,
+    "SHA256": "d195119ffd4047fbb3057e2599662cc59c77116f2191cf11a5aaa008858238da"
+  },
+  {
+    "路径": "07_项目快照与验证/整理资料包.py",
+    "字节": 10527,
+    "SHA256": "39b593a589304077a8d98d096e751bccf97c59e3319899fd6d0af35424f963d0"
+  },
+  {
+    "路径": "07_项目快照与验证/最终身份与依赖.json",
+    "字节": 112053,
+    "SHA256": "11c4ef503bb76cb149715d2bfa308583441bb3d6ab76eefea81e1f93dcba5282"
+  },
+  {
+    "路径": "07_项目快照与验证/来源清单/export_artifact_c2483c5c-bd2d-45dd-a077-e6e75138f345.json",
+    "字节": 2141,
+    "SHA256": "be4de5e074821355da35fdbc74aefbb28c77d3ca87a1980eca557922692e6c54"
+  },
+  {
+    "路径": "08_本轮方法与指令/_shared/TOPIC_TO_FILM.md",
+    "字节": 7650,
+    "SHA256": "d681a5df131852370f3dfaeb4b81fe623317975a97521d83c3a88a89d99afb9f"
+  },
+  {
+    "路径": "08_本轮方法与指令/audio-finishing/SKILL.md",
+    "字节": 12822,
+    "SHA256": "bab128001e3054a02acfca063f2cd172a756510f5cd42d57a01f06fd8a3ded26"
+  },
+  {
+    "路径": "08_本轮方法与指令/captions/SKILL.md",
+    "字节": 8090,
+    "SHA256": "1db3cfb4ef22e42cd1ab1ac53daaaace897efaa292fa139da6eb47b73e17f704"
+  },
+  {
+    "路径": "08_本轮方法与指令/effect-timing/SKILL.md",
+    "字节": 8611,
+    "SHA256": "7e6cf9f84c003c01b55de3597e7db58a4a90343f186870aeb96e88efd058e844"
+  },
+  {
+    "路径": "08_本轮方法与指令/evidence-visualization/SKILL.md",
+    "字节": 8818,
+    "SHA256": "b17e67aaca1448dfbad5a3be745b9617207f774995db6eddd8c6f38677e59a87"
+  },
+  {
+    "路径": "08_本轮方法与指令/export/SKILL.md",
+    "字节": 6201,
+    "SHA256": "b49424b1c2641ebc2136f80a91bbedc3bbe2adf478a08518a3f8be88a41cd42b"
+  },
+  {
+    "路径": "08_本轮方法与指令/motion-case-library/SKILL.md",
+    "字节": 3943,
+    "SHA256": "9202f2ee1a3483d1e55fbbcc57a9863e9b498ac2ab2bef229cd3fcdbd14b6313"
+  },
+  {
+    "路径": "08_本轮方法与指令/production-coordinator/references/video-type-routing.md",
+    "字节": 2490,
+    "SHA256": "b066ed34625cb1f9d09707af79d0d91cfac9e3a9021d396def5c86ec90a78b59"
+  },
+  {
+    "路径": "08_本轮方法与指令/production-coordinator/SKILL.md",
+    "字节": 4067,
+    "SHA256": "8de9767a3139a45782597a52e5bc0c191e7edc0b18c45001f1bdc6c5a1215148"
+  },
+  {
+    "路径": "08_本轮方法与指令/production-director/SKILL.md",
+    "字节": 6550,
+    "SHA256": "16176f645f4ab085f101defd2f35ca5864e26747ddd20284413be2631a4fa047"
+  },
+  {
+    "路径": "08_本轮方法与指令/project-basics/SKILL.md",
+    "字节": 1894,
+    "SHA256": "dc8f129cb40f199fb9bea538a102bbd3d310b92d5c5ee02a757ed1c732f5dc10"
+  },
+  {
+    "路径": "08_本轮方法与指令/quality-verification/references/professional-review.md",
+    "字节": 27925,
+    "SHA256": "cc2dc315189096a77f514ea141f2d96609f7f26476b2cd49df92308483c6083a"
+  },
+  {
+    "路径": "08_本轮方法与指令/quality-verification/SKILL.md",
+    "字节": 3925,
+    "SHA256": "49040777a898e02d6dcaebcfae17f4b3324668628f31a4d6f9fff5fa8a70935f"
+  },
+  {
+    "路径": "08_本轮方法与指令/remotion-production/references/submission-and-recovery.md",
+    "字节": 18414,
+    "SHA256": "44050d7c209ad49967e4cbc0f0d71b8a516b0c1ffbf310b4bbcd063c448e7175"
+  },
+  {
+    "路径": "08_本轮方法与指令/remotion-production/SKILL.md",
+    "字节": 8894,
+    "SHA256": "f7c42dcf9fc3f773f2a687d4bb2844465f79f53be7626830bade9ea5d033fa29"
+  },
+  {
+    "路径": "08_本轮方法与指令/scene-planning/SKILL.md",
+    "字节": 10405,
+    "SHA256": "6261ef4d0ce84c94e467f7296f87fdfa904e4450a1206057e325ad63dad867ef"
+  },
+  {
+    "路径": "08_本轮方法与指令/sound-asset-sourcing/SKILL.md",
+    "字节": 6018,
+    "SHA256": "49a741321998eccd7ebe165b92b3834f3f71fcc71b264eb06a777451363931f2"
+  },
+  {
+    "路径": "08_本轮方法与指令/visual-asset-sourcing/SKILL.md",
+    "字节": 2495,
+    "SHA256": "70d0ba5f215a0d80ac3845cf0ad07261bdea959b2404b5b2e60136dc21b835ae"
+  },
+  {
+    "路径": "08_本轮方法与指令/visual-explainer-director/SKILL.md",
+    "字节": 2002,
+    "SHA256": "6b6b9b050c2bd1013519c12066aadb63a4adf48abbb4b09b9c4973d37f84873b"
+  },
+  {
+    "路径": "08_本轮方法与指令/visual-treatment-planning/references/art-direction.md",
+    "字节": 21877,
+    "SHA256": "4cc95e9c2d7b77e270cdf99abaa95b873152d6574216cfef28397bc32fb5afd4"
+  },
+  {
+    "路径": "08_本轮方法与指令/visual-treatment-planning/SKILL.md",
+    "字节": 8547,
+    "SHA256": "7804f41d79aad73d04c5cdf513e0dbedd6011b60a14102f64929a3632e955383"
+  },
+  {
+    "路径": "08_本轮方法与指令/voice-production/SKILL.md",
+    "字节": 7023,
+    "SHA256": "c7c1bb35cb6a509b515588112252a3fd06bf61f6dc20ecbc95df4b5e6bad08b9"
+  },
+  {
+    "路径": "08_本轮方法与指令/项目AGENTS.md",
+    "字节": 8870,
+    "SHA256": "c89fde2d9381873671f6dfeb04e4cc80f88facbed2a26b73b159bc1b4764d249"
+  }
+]

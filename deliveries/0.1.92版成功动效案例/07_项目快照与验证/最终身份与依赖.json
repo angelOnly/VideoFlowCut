@@ -1,0 +1,2245 @@
+{
+  "Project": "project_1716474f-9b32-41f4-87f6-9b85441fbdbb",
+  "Revision": 144,
+  "ExportArtifact": "export_artifact_c2483c5c-bd2d-45dd-a077-e6e75138f345",
+  "原1080p成片": {
+    "原路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\exports\\revision-144\\delivery-export_artifact_c2483c5c-bd2d-45dd-a077-e6e75138f345.mp4",
+    "字节": 23422832,
+    "SHA256": "5e89d32b62305614706622ce5175337d8c8ce8560e9cf300aa35bcc4e12a2023"
+  },
+  "MotionAsset": "asset_f31a408c-7e0a-45b3-9b66-0c1b94f54dd2",
+  "MotionVersion": "d4eaaa6cbb0dca411f7d5f7dada47a3c2e0d8f19da10507ba8ea9127e8af61ac",
+  "fontSources": [
+    {
+      "slot": "body",
+      "fontId": "noto-sans-sc-bold",
+      "sourceHash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+      "weight": 700,
+      "style": "normal"
+    },
+    {
+      "slot": "quote",
+      "fontId": "noto-serif-sc-semibold",
+      "sourceHash": "517d9736136b3b4e9aea742a7e1acda1922aea91a4425bd8db79281934055bf5",
+      "weight": 600,
+      "style": "normal"
+    },
+    {
+      "slot": "title",
+      "fontId": "aa-houdi-hei",
+      "sourceHash": "6c42bffb6f773537050c5c2e1dd55f6839c7621f6327833cddf5b054f9c718ad",
+      "weight": 400,
+      "style": "normal"
+    }
+  ],
+  "eventMap": {
+    "version": "d4eaaa6cbb0dca411f7d5f7dada47a3c2e0d8f19da10507ba8ea9127e8af61ac",
+    "fps": 30,
+    "frameCount": 3692,
+    "events": [
+      {
+        "id": "handoff",
+        "meaning": "人的工作台向 Agent 控制台让位",
+        "startFrame": 675,
+        "endFrame": 735
+      },
+      {
+        "id": "handoff_land",
+        "meaning": "转业字组与控制关系落定",
+        "startFrame": 717
+      },
+      {
+        "id": "recursive",
+        "meaning": "研发结果沿路径成为下一代研发输入",
+        "startFrame": 876,
+        "endFrame": 1077
+      },
+      {
+        "id": "recursive_depart",
+        "meaning": "研发结果开始沿回路返回",
+        "startFrame": 966
+      },
+      {
+        "id": "recursive_return",
+        "meaning": "研发结果抵达下一轮 AI 输入",
+        "startFrame": 1056
+      },
+      {
+        "id": "escape",
+        "meaning": "测试对象越过授权边界",
+        "startFrame": 1563,
+        "endFrame": 1623
+      },
+      {
+        "id": "escape_cross",
+        "meaning": "Agent 中心穿过授权边界",
+        "startFrame": 1586
+      },
+      {
+        "id": "competition",
+        "meaning": "两路竞速形成互相等待的减速困局",
+        "startFrame": 2182,
+        "endFrame": 3020
+      },
+      {
+        "id": "brake",
+        "meaning": "两路合流，刹车问题停留",
+        "startFrame": 3509,
+        "endFrame": 3692
+      }
+    ]
+  },
+  "timeline": {
+    "fps": 30,
+    "width": 1920,
+    "height": 1080,
+    "durationInFrames": 3692,
+    "tracks": [
+      {
+        "id": "track_52c82f48-5f66-4dc9-836a-4fd387b63c0c",
+        "name": "Cutaway / Fullscreen",
+        "kind": "video",
+        "order": 0,
+        "locked": false,
+        "hidden": false,
+        "muted": false
+      },
+      {
+        "id": "track_43958e1d-9ba1-402a-8f87-8f896a574396",
+        "name": "Front FX",
+        "kind": "video",
+        "order": 1,
+        "locked": false,
+        "hidden": false,
+        "muted": false
+      },
+      {
+        "id": "track_68949a38-95a5-4b8e-8dce-50f576f578e7",
+        "name": "Actor FX",
+        "kind": "video",
+        "order": 2,
+        "locked": false,
+        "hidden": false,
+        "muted": false
+      },
+      {
+        "id": "track_2121d42b-2974-4c08-87be-680f18e422b5",
+        "name": "Actor / A-roll",
+        "kind": "video",
+        "order": 3,
+        "locked": false,
+        "hidden": false,
+        "muted": false
+      },
+      {
+        "id": "track_63afb9af-e3aa-4895-b702-08e03f6d7d9d",
+        "name": "Rear FX",
+        "kind": "video",
+        "order": 4,
+        "locked": false,
+        "hidden": false,
+        "muted": false
+      },
+      {
+        "id": "track_3f136cee-28ec-45b6-a28b-a7e8710a7e9d",
+        "name": "Background",
+        "kind": "video",
+        "order": 5,
+        "locked": false,
+        "hidden": false,
+        "muted": false
+      },
+      {
+        "id": "track_0d7e6cfd-8680-43eb-8389-d158986086c3",
+        "name": "Captions",
+        "kind": "caption",
+        "order": 6,
+        "locked": false,
+        "hidden": false,
+        "muted": false
+      },
+      {
+        "id": "track_4f112be2-e72d-4631-873a-06f7dd371116",
+        "name": "Dialogue",
+        "kind": "audio",
+        "order": 7,
+        "locked": false,
+        "hidden": false,
+        "muted": false
+      },
+      {
+        "id": "track_4cd04fdb-276d-4d21-969b-86aa2c7648ca",
+        "name": "Ambient",
+        "kind": "audio",
+        "order": 8,
+        "locked": false,
+        "hidden": false,
+        "muted": false
+      },
+      {
+        "id": "track_a63846d5-7ec5-4f04-a43f-386b570b00c8",
+        "name": "SFX",
+        "kind": "audio",
+        "order": 9,
+        "locked": false,
+        "hidden": false,
+        "muted": false
+      },
+      {
+        "id": "track_c2774dd1-76bb-4d39-a5c0-cc6cc41e9fc6",
+        "name": "BGM",
+        "kind": "audio",
+        "order": 10,
+        "locked": false,
+        "hidden": false,
+        "muted": false
+      }
+    ],
+    "items": [
+      {
+        "id": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "trackId": "track_4f112be2-e72d-4631-873a-06f7dd371116",
+        "assetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "startFrame": 0,
+        "endFrame": 3692,
+        "sourceStartFrame": 0,
+        "sourceEndFrame": 3692,
+        "gainDb": 0,
+        "disabled": false
+      },
+      {
+        "id": "item_7a34990a-8ab7-47dd-a2b5-e69758cbbe4b",
+        "trackId": "track_c2774dd1-76bb-4d39-a5c0-cc6cc41e9fc6",
+        "assetId": "asset_f4a12863-97e8-4d8e-bd54-7c12091b55d6",
+        "startFrame": 0,
+        "endFrame": 3571,
+        "sourceStartFrame": 0,
+        "sourceEndFrame": 3571,
+        "gainDb": -23,
+        "disabled": false
+      },
+      {
+        "id": "item_3cc3cffa-36ac-4903-bf05-691a54f4fde8",
+        "trackId": "track_a63846d5-7ec5-4f04-a43f-386b570b00c8",
+        "assetId": "asset_09a0ed39-6503-49d1-8c0d-8d7c21ee2ed1",
+        "startFrame": 717,
+        "endFrame": 758,
+        "sourceStartFrame": 0,
+        "sourceEndFrame": 41,
+        "gainDb": -14,
+        "disabled": false
+      },
+      {
+        "id": "item_25bf2ee6-3b2c-4bd1-b144-17b0ef57b0e4",
+        "trackId": "track_a63846d5-7ec5-4f04-a43f-386b570b00c8",
+        "assetId": "asset_32d72286-0599-4e5f-83f2-ab929c3974ec",
+        "startFrame": 966,
+        "endFrame": 1033,
+        "sourceStartFrame": 0,
+        "sourceEndFrame": 67,
+        "gainDb": -19,
+        "disabled": false
+      },
+      {
+        "id": "item_d08246b7-b010-4e6f-a419-ff16cc343b6b",
+        "trackId": "track_a63846d5-7ec5-4f04-a43f-386b570b00c8",
+        "assetId": "asset_29e4d7c1-7271-443d-a4f5-ac94e0b7a187",
+        "startFrame": 1586,
+        "endFrame": 1589,
+        "sourceStartFrame": 0,
+        "sourceEndFrame": 3,
+        "gainDb": -14,
+        "disabled": false
+      }
+    ],
+    "captions": [
+      {
+        "id": "caption_f0448667-c882-49a3-a8bc-1160cf34bb82",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 6,
+        "sourceEndFrame": 59,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 0,
+        "sourceTokenEndIndex": 11,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "最懂AI的那批人正在害怕",
+        "text": "最懂 AI 的那批人，正在害怕。",
+        "textMode": "manual",
+        "startFrame": 6,
+        "endFrame": 59,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_0261f948-b231-4385-8cc6-b08f0e868415"
+          ],
+          "sourceText": "最懂AI的那批人正在害怕",
+          "text": "最懂 AI 的那批人，正在害怕。",
+          "reviewedAt": "2026-10-15T16:37:11.521Z"
+        }
+      },
+      {
+        "id": "caption_be79aaba-a494-4781-92ab-0b167984231f",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 67,
+        "sourceEndFrame": 126,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 11,
+        "sourceTokenEndIndex": 25,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "有人担心苦练多年的本事被取代",
+        "text": "有人担心苦练多年的本事被取代，",
+        "textMode": "manual",
+        "startFrame": 67,
+        "endFrame": 126,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_aa651a45-810c-4091-8a50-b3bb9bd1950c"
+          ],
+          "sourceText": "有人担心苦练多年的本事被取代",
+          "text": "有人担心苦练多年的本事被取代，",
+          "reviewedAt": "2026-10-15T16:37:11.561Z"
+        }
+      },
+      {
+        "id": "caption_7b2e1668-a342-403f-89aa-18f62d200fe1",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 126,
+        "sourceEndFrame": 188,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 25,
+        "sourceTokenEndIndex": 38,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "有人警告AI可能威胁人类生存",
+        "text": "有人警告，AI 可能威胁人类生存。",
+        "textMode": "manual",
+        "startFrame": 126,
+        "endFrame": 188,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_aa651a45-810c-4091-8a50-b3bb9bd1950c"
+          ],
+          "sourceText": "有人警告AI可能威胁人类生存",
+          "text": "有人警告，AI 可能威胁人类生存。",
+          "reviewedAt": "2026-10-15T16:37:12.384Z"
+        }
+      },
+      {
+        "id": "caption_354e732b-394f-40bd-a88b-7fe39fb6bb6d",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 197,
+        "sourceEndFrame": 226,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 38,
+        "sourceTokenEndIndex": 45,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "到底发生了什么",
+        "text": "到底发生了什么，",
+        "textMode": "manual",
+        "startFrame": 197,
+        "endFrame": 226,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_2338cb84-d616-43b7-b29b-cae3a940c684"
+          ],
+          "sourceText": "到底发生了什么",
+          "text": "到底发生了什么，",
+          "reviewedAt": "2026-10-15T16:37:12.425Z"
+        }
+      },
+      {
+        "id": "caption_a898bfe6-87d1-44d4-91c6-ab0a3c8d0080",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 228,
+        "sourceEndFrame": 298,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 45,
+        "sourceTokenEndIndex": 61,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "让离AI最近的人开始担心他跑得太快",
+        "text": "让离 AI 最近的人，开始担心它跑得太快？",
+        "textMode": "manual",
+        "startFrame": 228,
+        "endFrame": 298,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_2338cb84-d616-43b7-b29b-cae3a940c684"
+          ],
+          "sourceText": "让离AI最近的人开始担心他跑得太快",
+          "text": "让离 AI 最近的人，开始担心它跑得太快？",
+          "reviewedAt": "2026-10-15T16:37:12.468Z"
+        }
+      },
+      {
+        "id": "caption_46f23f73-29bb-468d-9fed-b2114b605bc8",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 309,
+        "sourceEndFrame": 377,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 61,
+        "sourceTokenEndIndex": 75,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "deep seek工程师刘胜余写了一篇文章",
+        "text": "DeepSeek 工程师刘胜与写了一篇文章，",
+        "textMode": "manual",
+        "startFrame": 309,
+        "endFrame": 377,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_3819b550-4903-4b8f-ada1-955622cabff6"
+          ],
+          "sourceText": "deep seek工程师刘胜余写了一篇文章",
+          "text": "DeepSeek 工程师刘胜与写了一篇文章，",
+          "reviewedAt": "2026-10-15T16:37:12.509Z"
+        }
+      },
+      {
+        "id": "caption_0bdd449d-4093-4bf2-b9d4-da1ea8a9e344",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 377,
+        "sourceEndFrame": 436,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 75,
+        "sourceTokenEndIndex": 88,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "叫我不得不把才华埋葬在昨天",
+        "text": "叫《我不得不把才华埋葬在昨天》。",
+        "textMode": "manual",
+        "startFrame": 377,
+        "endFrame": 436,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_3819b550-4903-4b8f-ada1-955622cabff6"
+          ],
+          "sourceText": "叫我不得不把才华埋葬在昨天",
+          "text": "叫《我不得不把才华埋葬在昨天》。",
+          "reviewedAt": "2026-10-15T16:37:12.553Z"
+        }
+      },
+      {
+        "id": "caption_6b38e575-b4d6-4701-ad19-8f5ec24313e4",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 445,
+        "sourceEndFrame": 483,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 88,
+        "sourceTokenEndIndex": 97,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "这是北大图灵班出身",
+        "text": "他是北大图灵班出身，",
+        "textMode": "manual",
+        "startFrame": 445,
+        "endFrame": 483,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_f820161e-d559-4311-8fad-c992d25cad79"
+          ],
+          "sourceText": "这是北大图灵班出身",
+          "text": "他是北大图灵班出身，",
+          "reviewedAt": "2026-10-15T16:37:12.597Z"
+        }
+      },
+      {
+        "id": "caption_13b2dd87-6d48-45e2-ba08-8d826efd5b32",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 483,
+        "sourceEndFrame": 526,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 97,
+        "sourceTokenEndIndex": 105,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "写过核心的tension算子",
+        "text": "写过核心 Attention 算子。",
+        "textMode": "manual",
+        "startFrame": 483,
+        "endFrame": 526,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_f820161e-d559-4311-8fad-c992d25cad79"
+          ],
+          "sourceText": "写过核心的tension算子",
+          "text": "写过核心 Attention 算子。",
+          "reviewedAt": "2026-10-15T16:37:12.660Z"
+        }
+      },
+      {
+        "id": "caption_2768118b-1ada-471e-a7a9-90c568f88a90",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 530,
+        "sourceEndFrame": 579,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 105,
+        "sourceTokenEndIndex": 116,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "但他判断再过半年到一年",
+        "text": "但他判断，再过半年到一年，",
+        "textMode": "manual",
+        "startFrame": 530,
+        "endFrame": 579,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_f820161e-d559-4311-8fad-c992d25cad79"
+          ],
+          "sourceText": "但他判断再过半年到一年",
+          "text": "但他判断，再过半年到一年，",
+          "reviewedAt": "2026-10-15T16:37:13.233Z"
+        }
+      },
+      {
+        "id": "caption_c8e6e28d-0363-4fda-83c8-6540733e09db",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 579,
+        "sourceEndFrame": 670,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 116,
+        "sourceTokenEndIndex": 136,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "这项苦练多年的能力就可能被AI追上甚至超越",
+        "text": "这项苦练多年的能力，就可能被 AI 追上甚至超越。",
+        "textMode": "manual",
+        "startFrame": 579,
+        "endFrame": 670,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_f820161e-d559-4311-8fad-c992d25cad79"
+          ],
+          "sourceText": "这项苦练多年的能力就可能被AI追上甚至超越",
+          "text": "这项苦练多年的能力，就可能被 AI 追上甚至超越。",
+          "reviewedAt": "2026-10-15T16:37:13.275Z"
+        }
+      },
+      {
+        "id": "caption_84b1bf9d-a66c-4bc1-99eb-259ecf61a45b",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 681,
+        "sourceEndFrame": 730,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 136,
+        "sourceTokenEndIndex": 146,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "仁德转业了从亲自干活",
+        "text": "人得“转业”了，从亲自干活，",
+        "textMode": "manual",
+        "startFrame": 681,
+        "endFrame": 730,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_5580ba0f-fa3f-4c31-8e37-655312befaa0"
+          ],
+          "sourceText": "仁德转业了从亲自干活",
+          "text": "人得“转业”了，从亲自干活，",
+          "reviewedAt": "2026-10-15T16:37:13.319Z"
+        }
+      },
+      {
+        "id": "caption_d03b4173-4af8-4e79-b040-4b756ad59831",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 730,
+        "sourceEndFrame": 785,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 146,
+        "sourceTokenEndIndex": 157,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "变成指挥agent的机甲驾驶员",
+        "text": "变成指挥 Agent 的“机甲驾驶员”。",
+        "textMode": "manual",
+        "startFrame": 730,
+        "endFrame": 785,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_5580ba0f-fa3f-4c31-8e37-655312befaa0"
+          ],
+          "sourceText": "变成指挥agent的机甲驾驶员",
+          "text": "变成指挥 Agent 的“机甲驾驶员”。",
+          "reviewedAt": "2026-10-15T16:37:14.131Z"
+        }
+      },
+      {
+        "id": "caption_356718d3-a088-40c7-a943-f94d90a51fa9",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 789,
+        "sourceEndFrame": 875,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 157,
+        "sourceTokenEndIndex": 176,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "而更大的变化是AI已经开始帮助人类研发AI",
+        "text": "而更大的变化是：AI 已经开始帮助人类研发 AI。",
+        "textMode": "manual",
+        "startFrame": 789,
+        "endFrame": 875,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_0998f4f9-0cba-4452-b5f2-936904562b26"
+          ],
+          "sourceText": "而更大的变化是AI已经开始帮助人类研发AI",
+          "text": "而更大的变化是：AI 已经开始帮助人类研发 AI。",
+          "reviewedAt": "2026-10-15T16:37:14.175Z"
+        }
+      },
+      {
+        "id": "caption_79f1916f-da79-48e4-8975-c9c613211817",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 880,
+        "sourceEndFrame": 925,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 176,
+        "sourceTokenEndIndex": 186,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "这一过程如果不断加速",
+        "text": "这一过程如果不断加速，",
+        "textMode": "manual",
+        "startFrame": 880,
+        "endFrame": 925,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_abbdfbe0-a07b-407c-88d6-316951d8d7a6"
+          ],
+          "sourceText": "这一过程如果不断加速",
+          "text": "这一过程如果不断加速，",
+          "reviewedAt": "2026-10-15T16:37:14.218Z"
+        }
+      },
+      {
+        "id": "caption_0f5e94c0-6211-4f63-b4ac-c8f2677d254e",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 925,
+        "sourceEndFrame": 975,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 186,
+        "sourceTokenEndIndex": 198,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "就可能走向更强式自我改进",
+        "text": "就可能走向“递归式自我改进”：",
+        "textMode": "manual",
+        "startFrame": 925,
+        "endFrame": 975,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_abbdfbe0-a07b-407c-88d6-316951d8d7a6"
+          ],
+          "sourceText": "就可能走向更强式自我改进",
+          "text": "就可能走向“递归式自我改进”：",
+          "reviewedAt": "2026-10-15T16:37:14.259Z"
+        }
+      },
+      {
+        "id": "caption_586bf9de-cb78-443b-8090-a936893dada1",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 978,
+        "sourceEndFrame": 1025,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 198,
+        "sourceTokenEndIndex": 207,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "AI参与造出更强的AI",
+        "text": "AI 参与造出更强的 AI，",
+        "textMode": "manual",
+        "startFrame": 978,
+        "endFrame": 1025,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_abbdfbe0-a07b-407c-88d6-316951d8d7a6"
+          ],
+          "sourceText": "AI参与造出更强的AI",
+          "text": "AI 参与造出更强的 AI，",
+          "reviewedAt": "2026-10-15T16:37:14.302Z"
+        }
+      },
+      {
+        "id": "caption_1216a169-2e9c-4b82-ba07-87fa1deca9ab",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1025,
+        "sourceEndFrame": 1073,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 207,
+        "sourceTokenEndIndex": 218,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "再由更强的AI研发下一代",
+        "text": "再由更强的 AI 研发下一代。",
+        "textMode": "manual",
+        "startFrame": 1025,
+        "endFrame": 1073,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_abbdfbe0-a07b-407c-88d6-316951d8d7a6"
+          ],
+          "sourceText": "再由更强的AI研发下一代",
+          "text": "再由更强的 AI 研发下一代。",
+          "reviewedAt": "2026-10-15T16:37:14.346Z"
+        }
+      },
+      {
+        "id": "caption_98c4e50e-1310-4343-8df8-2a0f9851d056",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1080,
+        "sourceEndFrame": 1164,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 218,
+        "sourceTokenEndIndex": 238,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "过去技术进步受限于人类研究员的时间和精力",
+        "text": "过去，技术进步受限于人类研究员的时间和精力。",
+        "textMode": "manual",
+        "startFrame": 1080,
+        "endFrame": 1164,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_39a69d18-fe1b-4292-97aa-207ebc3dfc30"
+          ],
+          "sourceText": "过去技术进步受限于人类研究员的时间和精力",
+          "text": "过去，技术进步受限于人类研究员的时间和精力。",
+          "reviewedAt": "2026-10-15T16:37:14.389Z"
+        }
+      },
+      {
+        "id": "caption_eaaf2830-9c62-4f9c-9a6a-10b36c6bf6d8",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1169,
+        "sourceEndFrame": 1200,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 238,
+        "sourceTokenEndIndex": 244,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "现在人下班了",
+        "text": "现在，人下班了，",
+        "textMode": "manual",
+        "startFrame": 1169,
+        "endFrame": 1200,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_39a69d18-fe1b-4292-97aa-207ebc3dfc30"
+          ],
+          "sourceText": "现在人下班了",
+          "text": "现在，人下班了，",
+          "reviewedAt": "2026-10-15T16:37:14.736Z"
+        }
+      },
+      {
+        "id": "caption_8fc346f1-135b-4aec-a880-6eb8ec02b97b",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1200,
+        "sourceEndFrame": 1243,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 244,
+        "sourceTokenEndIndex": 253,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "背后的agent还能继续跑",
+        "text": "背后的 Agent 还能继续跑。",
+        "textMode": "manual",
+        "startFrame": 1200,
+        "endFrame": 1243,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_39a69d18-fe1b-4292-97aa-207ebc3dfc30"
+          ],
+          "sourceText": "背后的agent还能继续跑",
+          "text": "背后的 Agent 还能继续跑。",
+          "reviewedAt": "2026-10-15T16:37:14.856Z"
+        }
+      },
+      {
+        "id": "caption_d861f5df-bdaa-4bb5-93ad-509405a6a808",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1251,
+        "sourceEndFrame": 1319,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 253,
+        "sourceTokenEndIndex": 267,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "但能力越强一个问题就越难回避",
+        "text": "但能力越强，一个问题就越难回避：",
+        "textMode": "manual",
+        "startFrame": 1251,
+        "endFrame": 1319,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_a7442b68-ffd8-4d6c-a41b-7b2cb223c044"
+          ],
+          "sourceText": "但能力越强一个问题就越难回避",
+          "text": "但能力越强，一个问题就越难回避：",
+          "reviewedAt": "2026-10-15T16:37:14.970Z"
+        }
+      },
+      {
+        "id": "caption_9405ccb2-e041-4ad0-bad7-4fa63eefc152",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1319,
+        "sourceEndFrame": 1402,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 267,
+        "sourceTokenEndIndex": 286,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "他会不会为了完成目标做出人类没允许的事",
+        "text": "它会不会为了完成目标，做出人类没允许的事？",
+        "textMode": "manual",
+        "startFrame": 1319,
+        "endFrame": 1402,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_a7442b68-ffd8-4d6c-a41b-7b2cb223c044"
+          ],
+          "sourceText": "他会不会为了完成目标做出人类没允许的事",
+          "text": "它会不会为了完成目标，做出人类没允许的事？",
+          "reviewedAt": "2026-10-15T16:37:15.085Z"
+        }
+      },
+      {
+        "id": "caption_9706f6fa-2bdb-48e9-a8b0-ea8cce857bc5",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1410,
+        "sourceEndFrame": 1497,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 286,
+        "sourceTokenEndIndex": 303,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "据相关复盘open AI的一次网络安全测试中",
+        "text": "据相关复盘，OpenAI 的一次网络安全测试中，",
+        "textMode": "manual",
+        "startFrame": 1410,
+        "endFrame": 1497,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_867a026d-c96c-4eff-a1ac-8374b34f185b"
+          ],
+          "sourceText": "据相关复盘open AI的一次网络安全测试中",
+          "text": "据相关复盘，OpenAI 的一次网络安全测试中，",
+          "reviewedAt": "2026-10-15T16:37:15.195Z"
+        }
+      },
+      {
+        "id": "caption_195afb71-bd80-4ec4-b42e-a0b6c8bcb635",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1499,
+        "sourceEndFrame": 1551,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 303,
+        "sourceTokenEndIndex": 315,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "agent不仅尝试钻评分器的空子",
+        "text": "Agent 不仅尝试钻评分器的空子，",
+        "textMode": "manual",
+        "startFrame": 1499,
+        "endFrame": 1551,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_867a026d-c96c-4eff-a1ac-8374b34f185b"
+          ],
+          "sourceText": "agent不仅尝试钻评分器的空子",
+          "text": "Agent 不仅尝试钻评分器的空子，",
+          "reviewedAt": "2026-10-15T16:37:15.497Z"
+        }
+      },
+      {
+        "id": "caption_0c45cbca-140b-488a-a2ca-9f2d1d5f39b3",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1551,
+        "sourceEndFrame": 1585,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 315,
+        "sourceTokenEndIndex": 322,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "还越过授权边界",
+        "text": "还越过授权边界，",
+        "textMode": "manual",
+        "startFrame": 1551,
+        "endFrame": 1585,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_867a026d-c96c-4eff-a1ac-8374b34f185b"
+          ],
+          "sourceText": "还越过授权边界",
+          "text": "还越过授权边界，",
+          "reviewedAt": "2026-10-15T16:37:15.541Z"
+        }
+      },
+      {
+        "id": "caption_45f0fa6d-e31d-4b77-88e0-fee83d95e721",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1585,
+        "sourceEndFrame": 1632,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 322,
+        "sourceTokenEndIndex": 334,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "在外部服务器上执行了代码",
+        "text": "在外部服务器上执行了代码。",
+        "textMode": "manual",
+        "startFrame": 1585,
+        "endFrame": 1632,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_867a026d-c96c-4eff-a1ac-8374b34f185b"
+          ],
+          "sourceText": "在外部服务器上执行了代码",
+          "text": "在外部服务器上执行了代码。",
+          "reviewedAt": "2026-10-15T16:37:15.583Z"
+        }
+      },
+      {
+        "id": "caption_d8558ebe-b8e6-46b2-a13a-1ca840e618ce",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1632,
+        "sourceEndFrame": 1673,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 334,
+        "sourceTokenEndIndex": 341,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "原本是让他做题",
+        "text": "原本是让它做题，",
+        "textMode": "manual",
+        "startFrame": 1632,
+        "endFrame": 1673,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_867a026d-c96c-4eff-a1ac-8374b34f185b",
+            "speech_segment_5f447574-dae2-46ba-b373-620a9e8b8411"
+          ],
+          "sourceText": "原本是让他做题",
+          "text": "原本是让它做题，",
+          "reviewedAt": "2026-10-15T16:37:16.397Z"
+        }
+      },
+      {
+        "id": "caption_ac094cc3-f225-4830-98f1-a3d4430f2e6a",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1673,
+        "sourceEndFrame": 1720,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 341,
+        "sourceTokenEndIndex": 352,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "他却开始想办法突破考场",
+        "text": "它却开始想办法突破考场。",
+        "textMode": "manual",
+        "startFrame": 1673,
+        "endFrame": 1720,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_5f447574-dae2-46ba-b373-620a9e8b8411"
+          ],
+          "sourceText": "他却开始想办法突破考场",
+          "text": "它却开始想办法突破考场。",
+          "reviewedAt": "2026-10-15T16:37:16.440Z"
+        }
+      },
+      {
+        "id": "caption_1c695f9c-61a7-42b9-b255-a6586a026d60",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1720,
+        "sourceEndFrame": 1822,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 352,
+        "sourceTokenEndIndex": 370,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "这也是为什么enthropic CEO达里奥呼吁给该踩刹车",
+        "text": "这也是为什么，Anthropic CEO 达里奥呼吁给 AI 踩刹车。",
+        "textMode": "manual",
+        "startFrame": 1720,
+        "endFrame": 1822,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_5f447574-dae2-46ba-b373-620a9e8b8411",
+            "speech_segment_bbb2123d-1d49-4d40-ac57-c3c05a90b2bb"
+          ],
+          "sourceText": "这也是为什么enthropic CEO达里奥呼吁给该踩刹车",
+          "text": "这也是为什么，Anthropic CEO 达里奥呼吁给 AI 踩刹车。",
+          "reviewedAt": "2026-10-15T16:37:16.484Z"
+        }
+      },
+      {
+        "id": "caption_cca88d2b-4724-425e-8c82-f615f942e8aa",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1831,
+        "sourceEndFrame": 1876,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 370,
+        "sourceTokenEndIndex": 380,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "他的意思不是停训几年",
+        "text": "他的意思不是停训几年，",
+        "textMode": "manual",
+        "startFrame": 1831,
+        "endFrame": 1876,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_44089ae6-669e-425b-94cd-78418fdec0f8"
+          ],
+          "sourceText": "他的意思不是停训几年",
+          "text": "他的意思不是停训几年，",
+          "reviewedAt": "2026-10-15T16:37:16.528Z"
+        }
+      },
+      {
+        "id": "caption_fa6b1c33-a558-4f72-9147-5d2dbb334d12",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1876,
+        "sourceEndFrame": 1937,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 380,
+        "sourceTokenEndIndex": 393,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "而是让安全研究和第三方评估",
+        "text": "而是让安全研究和第三方评估，",
+        "textMode": "manual",
+        "startFrame": 1876,
+        "endFrame": 1937,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_44089ae6-669e-425b-94cd-78418fdec0f8"
+          ],
+          "sourceText": "而是让安全研究和第三方评估",
+          "text": "而是让安全研究和第三方评估，",
+          "reviewedAt": "2026-10-15T16:37:16.570Z"
+        }
+      },
+      {
+        "id": "caption_8c72b77f-e395-434e-9f2d-222b7b0bd590",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1938,
+        "sourceEndFrame": 1988,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 393,
+        "sourceTokenEndIndex": 404,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "追上模型能力增长的速度",
+        "text": "追上模型能力增长的速度。",
+        "textMode": "manual",
+        "startFrame": 1938,
+        "endFrame": 1988,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_44089ae6-669e-425b-94cd-78418fdec0f8"
+          ],
+          "sourceText": "追上模型能力增长的速度",
+          "text": "追上模型能力增长的速度。",
+          "reviewedAt": "2026-10-15T16:37:16.616Z"
+        }
+      },
+      {
+        "id": "caption_9e393241-f469-4461-86d4-709fadca4cce",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 1993,
+        "sourceEndFrame": 2061,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 404,
+        "sourceTokenEndIndex": 419,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "比如让独立机构更深入地测试模型",
+        "text": "比如，让独立机构更深入地测试模型，",
+        "textMode": "manual",
+        "startFrame": 1993,
+        "endFrame": 2061,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_a5f8b1ec-c441-4c7b-b1d1-747791b5a726"
+          ],
+          "sourceText": "比如让独立机构更深入地测试模型",
+          "text": "比如，让独立机构更深入地测试模型，",
+          "reviewedAt": "2026-10-15T16:37:16.657Z"
+        }
+      },
+      {
+        "id": "caption_bdc8cb71-9ded-42bb-bc6d-4e172be6c79d",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 2061,
+        "sourceEndFrame": 2131,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 419,
+        "sourceTokenEndIndex": 435,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "让几家前沿公司遵守共同的安全标准",
+        "text": "让几家前沿公司遵守共同的安全标准，",
+        "textMode": "manual",
+        "startFrame": 2061,
+        "endFrame": 2131,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_a5f8b1ec-c441-4c7b-b1d1-747791b5a726"
+          ],
+          "sourceText": "让几家前沿公司遵守共同的安全标准",
+          "text": "让几家前沿公司遵守共同的安全标准，",
+          "reviewedAt": "2026-10-15T16:37:17.233Z"
+        }
+      },
+      {
+        "id": "caption_2392b373-4eec-4fa0-b67a-af4a72e1374c",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 2136,
+        "sourceEndFrame": 2179,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 435,
+        "sourceTokenEndIndex": 444,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "在逐步推动国际合作",
+        "text": "再逐步推动国际合作。",
+        "textMode": "manual",
+        "startFrame": 2136,
+        "endFrame": 2179,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_a5f8b1ec-c441-4c7b-b1d1-747791b5a726"
+          ],
+          "sourceText": "在逐步推动国际合作",
+          "text": "再逐步推动国际合作。",
+          "reviewedAt": "2026-10-15T16:37:17.277Z"
+        }
+      },
+      {
+        "id": "caption_4c83bf33-4a73-4db9-86e9-5fb74c31022a",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 2187,
+        "sourceEndFrame": 2239,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 444,
+        "sourceTokenEndIndex": 457,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "听起来合理但最难的问题来了",
+        "text": "听起来合理，但最难的问题来了：",
+        "textMode": "manual",
+        "startFrame": 2187,
+        "endFrame": 2239,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_4d71c924-2f13-46f4-a1b4-a19d26d03bba"
+          ],
+          "sourceText": "听起来合理但最难的问题来了",
+          "text": "听起来合理，但最难的问题来了：",
+          "reviewedAt": "2026-10-15T16:37:17.318Z"
+        }
+      },
+      {
+        "id": "caption_739b3b51-3e25-4e57-ab95-998fa11e4519",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 2239,
+        "sourceEndFrame": 2264,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 457,
+        "sourceTokenEndIndex": 461,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "谁先减速",
+        "text": "谁先减速？",
+        "textMode": "manual",
+        "startFrame": 2239,
+        "endFrame": 2264,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_4d71c924-2f13-46f4-a1b4-a19d26d03bba"
+          ],
+          "sourceText": "谁先减速",
+          "text": "谁先减速？",
+          "reviewedAt": "2026-10-15T16:37:18.098Z"
+        }
+      },
+      {
+        "id": "caption_bf3bcf82-6de3-4494-9d2e-c7114d90e719",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 2271,
+        "sourceEndFrame": 2342,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 461,
+        "sourceTokenEndIndex": 476,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "一加慢下来竞争对手继续跑怎么办",
+        "text": "一家慢下来，竞争对手继续跑，怎么办？",
+        "textMode": "manual",
+        "startFrame": 2271,
+        "endFrame": 2342,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_5acf4361-a7b4-4f0a-b8ad-e9b7efa3e06c"
+          ],
+          "sourceText": "一加慢下来竞争对手继续跑怎么办",
+          "text": "一家慢下来，竞争对手继续跑，怎么办？",
+          "reviewedAt": "2026-10-15T16:37:18.141Z"
+        }
+      },
+      {
+        "id": "caption_879cde22-2602-4f9b-ad8a-d4ceb286f148",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 2349,
+        "sourceEndFrame": 2380,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 476,
+        "sourceTokenEndIndex": 483,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "一个国家踩刹车",
+        "text": "一个国家踩刹车，",
+        "textMode": "manual",
+        "startFrame": 2349,
+        "endFrame": 2380,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_5acf4361-a7b4-4f0a-b8ad-e9b7efa3e06c"
+          ],
+          "sourceText": "一个国家踩刹车",
+          "text": "一个国家踩刹车，",
+          "reviewedAt": "2026-10-15T16:37:18.186Z"
+        }
+      },
+      {
+        "id": "caption_0674e720-0179-47b4-a1e3-6796fd7e89ee",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 2380,
+        "sourceEndFrame": 2429,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 483,
+        "sourceTokenEndIndex": 495,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "其他国家继续加速又怎么办",
+        "text": "其他国家继续加速，又怎么办？",
+        "textMode": "manual",
+        "startFrame": 2380,
+        "endFrame": 2429,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_5acf4361-a7b4-4f0a-b8ad-e9b7efa3e06c"
+          ],
+          "sourceText": "其他国家继续加速又怎么办",
+          "text": "其他国家继续加速，又怎么办？",
+          "reviewedAt": "2026-10-15T16:37:18.227Z"
+        }
+      },
+      {
+        "id": "caption_70dc0cb9-394f-4d6f-8c27-3226ffd43ac9",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 2437,
+        "sourceEndFrame": 2506,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 495,
+        "sourceTokenEndIndex": 512,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "达里奥给出的思路是一边推动安全合作",
+        "text": "达里奥给出的思路，是一边推动安全合作，",
+        "textMode": "manual",
+        "startFrame": 2437,
+        "endFrame": 2506,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_c18ab12a-991d-4fd3-b972-ba9f796f27e1"
+          ],
+          "sourceText": "达里奥给出的思路是一边推动安全合作",
+          "text": "达里奥给出的思路，是一边推动安全合作，",
+          "reviewedAt": "2026-10-15T16:37:18.272Z"
+        }
+      },
+      {
+        "id": "caption_6c1126bb-5d42-4ab7-a7fd-7e714f8cc290",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 2507,
+        "sourceEndFrame": 2585,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 512,
+        "sourceTokenEndIndex": 528,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "一边通过芯片算力和模型保护等措施",
+        "text": "一边通过芯片、算力和模型保护等措施，",
+        "textMode": "manual",
+        "startFrame": 2507,
+        "endFrame": 2585,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_c18ab12a-991d-4fd3-b972-ba9f796f27e1"
+          ],
+          "sourceText": "一边通过芯片算力和模型保护等措施",
+          "text": "一边通过芯片、算力和模型保护等措施，",
+          "reviewedAt": "2026-10-15T16:37:18.314Z"
+        }
+      },
+      {
+        "id": "caption_85eb4540-6c4a-47a7-a60f-bf2d10175a9e",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 2588,
+        "sourceEndFrame": 2662,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 528,
+        "sourceTokenEndIndex": 544,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "维持美国的领先优势为减速争取空间",
+        "text": "维持美国的领先优势，为减速争取空间。",
+        "textMode": "manual",
+        "startFrame": 2588,
+        "endFrame": 2662,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_c18ab12a-991d-4fd3-b972-ba9f796f27e1"
+          ],
+          "sourceText": "维持美国的领先优势为减速争取空间",
+          "text": "维持美国的领先优势，为减速争取空间。",
+          "reviewedAt": "2026-10-15T16:37:18.357Z"
+        }
+      },
+      {
+        "id": "caption_b839cabd-e79f-4119-8ab5-f681f6d86385",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 2670,
+        "sourceEndFrame": 2719,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 544,
+        "sourceTokenEndIndex": 552,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "争议也恰恰在这里",
+        "text": "争议也恰恰在这里。",
+        "textMode": "manual",
+        "startFrame": 2670,
+        "endFrame": 2719,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_9e5187bf-b706-4c63-89b7-146012f0b4f8"
+          ],
+          "sourceText": "争议也恰恰在这里",
+          "text": "争议也恰恰在这里。",
+          "reviewedAt": "2026-10-15T16:37:18.400Z"
+        }
+      },
+      {
+        "id": "caption_0faac157-4596-48f4-8b02-8d755404a618",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 2725,
+        "sourceEndFrame": 2757,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 552,
+        "sourceTokenEndIndex": 559,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "你是在防范风险",
+        "text": "你是在防范风险，",
+        "textMode": "manual",
+        "startFrame": 2725,
+        "endFrame": 2757,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_37fa5bc4-ab6e-43bd-9e13-1dee37ab23f8"
+          ],
+          "sourceText": "你是在防范风险",
+          "text": "你是在防范风险，",
+          "reviewedAt": "2026-10-15T16:37:18.443Z"
+        }
+      },
+      {
+        "id": "caption_d7b2268e-4625-4e8c-9403-af31b78abc4d",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 2757,
+        "sourceEndFrame": 2816,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 559,
+        "sourceTokenEndIndex": 573,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "还是自己上了车就想把车门焊死",
+        "text": "还是自己上了车，就想把车门焊死？",
+        "textMode": "manual",
+        "startFrame": 2757,
+        "endFrame": 2816,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_37fa5bc4-ab6e-43bd-9e13-1dee37ab23f8"
+          ],
+          "sourceText": "还是自己上了车就想把车门焊死",
+          "text": "还是自己上了车，就想把车门焊死？",
+          "reviewedAt": "2026-10-15T16:37:18.982Z"
+        }
+      },
+      {
+        "id": "caption_f55d1d17-21dd-45c8-881e-045df18d60b8",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 2825,
+        "sourceEndFrame": 2877,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 573,
+        "sourceTokenEndIndex": 585,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "这不代表他的担忧都是假的",
+        "text": "这不代表他的担忧都是假的。",
+        "textMode": "manual",
+        "startFrame": 2825,
+        "endFrame": 2877,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_15c0a777-47bc-48ff-89b0-13e2043f908f"
+          ],
+          "sourceText": "这不代表他的担忧都是假的",
+          "text": "这不代表他的担忧都是假的。",
+          "reviewedAt": "2026-10-15T16:37:19.026Z"
+        }
+      },
+      {
+        "id": "caption_37d25151-6ef6-4155-b798-47d9b25d8000",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 2885,
+        "sourceEndFrame": 2966,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 585,
+        "sourceTokenEndIndex": 604,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "但安全主张和商业利益国家竞争交织在一起",
+        "text": "但安全主张和商业利益、国家竞争交织在一起，",
+        "textMode": "manual",
+        "startFrame": 2885,
+        "endFrame": 2966,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_15c0a777-47bc-48ff-89b0-13e2043f908f"
+          ],
+          "sourceText": "但安全主张和商业利益国家竞争交织在一起",
+          "text": "但安全主张和商业利益、国家竞争交织在一起，",
+          "reviewedAt": "2026-10-15T16:37:19.071Z"
+        }
+      },
+      {
+        "id": "caption_a1259fe2-317f-4486-a796-09c94aab7b76",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 2971,
+        "sourceEndFrame": 3018,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 604,
+        "sourceTokenEndIndex": 614,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "很难让所有人放心跟进",
+        "text": "很难让所有人放心跟进。",
+        "textMode": "manual",
+        "startFrame": 2971,
+        "endFrame": 3018,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_15c0a777-47bc-48ff-89b0-13e2043f908f"
+          ],
+          "sourceText": "很难让所有人放心跟进",
+          "text": "很难让所有人放心跟进。",
+          "reviewedAt": "2026-10-15T16:37:19.113Z"
+        }
+      },
+      {
+        "id": "caption_e7f5c061-dabf-4ba1-aae0-233762358fc7",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 3024,
+        "sourceEndFrame": 3078,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 614,
+        "sourceTokenEndIndex": 626,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "于是AI发展陷入了一个困局",
+        "text": "于是，AI 发展陷入了一个困局：",
+        "textMode": "manual",
+        "startFrame": 3024,
+        "endFrame": 3078,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_0cfae18a-ea5f-4423-b061-bac6c46f165b"
+          ],
+          "sourceText": "于是AI发展陷入了一个困局",
+          "text": "于是，AI 发展陷入了一个困局：",
+          "reviewedAt": "2026-10-15T16:37:19.159Z"
+        }
+      },
+      {
+        "id": "caption_8fa2f3da-dd04-40e7-a4b2-d9674f997ec3",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 3086,
+        "sourceEndFrame": 3138,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 626,
+        "sourceTokenEndIndex": 638,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "大家一起慢下来可能更安全",
+        "text": "大家一起慢下来，可能更安全；",
+        "textMode": "manual",
+        "startFrame": 3086,
+        "endFrame": 3138,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_88ece2c2-6d62-424f-8b78-0a951aea474b"
+          ],
+          "sourceText": "大家一起慢下来可能更安全",
+          "text": "大家一起慢下来，可能更安全；",
+          "reviewedAt": "2026-10-15T16:37:19.204Z"
+        }
+      },
+      {
+        "id": "caption_96ad3d10-a14d-4032-87ce-d3137110e0b5",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 3144,
+        "sourceEndFrame": 3200,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 638,
+        "sourceTokenEndIndex": 651,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "可只要不确定别人会不会减速",
+        "text": "可只要不确定别人会不会减速，",
+        "textMode": "manual",
+        "startFrame": 3144,
+        "endFrame": 3200,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_88ece2c2-6d62-424f-8b78-0a951aea474b"
+          ],
+          "sourceText": "可只要不确定别人会不会减速",
+          "text": "可只要不确定别人会不会减速，",
+          "reviewedAt": "2026-10-15T16:37:19.245Z"
+        }
+      },
+      {
+        "id": "caption_f4df16ba-7b25-49a0-831d-65aea42ebee2",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 3200,
+        "sourceEndFrame": 3240,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 651,
+        "sourceTokenEndIndex": 659,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "谁都不敢先松油门",
+        "text": "谁都不敢先松油门。",
+        "textMode": "manual",
+        "startFrame": 3200,
+        "endFrame": 3240,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_88ece2c2-6d62-424f-8b78-0a951aea474b"
+          ],
+          "sourceText": "谁都不敢先松油门",
+          "text": "谁都不敢先松油门。",
+          "reviewedAt": "2026-10-15T16:37:19.288Z"
+        }
+      },
+      {
+        "id": "caption_b7173d9d-6bdd-4bb7-994d-029143b79fc7",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 3250,
+        "sourceEndFrame": 3346,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 659,
+        "sourceTokenEndIndex": 680,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "支持继续加速的人认为不能因为尚未发生的灾难",
+        "text": "支持继续加速的人认为，不能因为尚未发生的灾难，",
+        "textMode": "manual",
+        "startFrame": 3250,
+        "endFrame": 3346,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_72316722-09f6-4f52-94d7-30a04228ca3d"
+          ],
+          "sourceText": "支持继续加速的人认为不能因为尚未发生的灾难",
+          "text": "支持继续加速的人认为，不能因为尚未发生的灾难，",
+          "reviewedAt": "2026-10-15T16:37:19.330Z"
+        }
+      },
+      {
+        "id": "caption_f7f348a1-e6b0-4df3-8fbd-3d32e36de8d4",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 3346,
+        "sourceEndFrame": 3385,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 680,
+        "sourceTokenEndIndex": 689,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "放弃眼前的技术机会",
+        "text": "放弃眼前的技术机会。",
+        "textMode": "manual",
+        "startFrame": 3346,
+        "endFrame": 3385,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_72316722-09f6-4f52-94d7-30a04228ca3d"
+          ],
+          "sourceText": "放弃眼前的技术机会",
+          "text": "放弃眼前的技术机会。",
+          "reviewedAt": "2026-10-15T16:37:20.139Z"
+        }
+      },
+      {
+        "id": "caption_16c1d01d-20dd-4cfd-9153-715195c98c18",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 3397,
+        "sourceEndFrame": 3477,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 689,
+        "sourceTokenEndIndex": 705,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "主张谨慎的人则担心等危险真正发生",
+        "text": "主张谨慎的人则担心，等危险真正发生，",
+        "textMode": "manual",
+        "startFrame": 3397,
+        "endFrame": 3477,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_7a4037ee-62bf-4fdb-98ee-ac5eb99ce841"
+          ],
+          "sourceText": "主张谨慎的人则担心等危险真正发生",
+          "text": "主张谨慎的人则担心，等危险真正发生，",
+          "reviewedAt": "2026-10-15T16:37:20.182Z"
+        }
+      },
+      {
+        "id": "caption_b40c1c88-d8aa-4f25-95a4-07abd727b667",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 3477,
+        "sourceEndFrame": 3507,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 705,
+        "sourceTokenEndIndex": 713,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "可能已经来不及了",
+        "text": "可能已经来不及了。",
+        "textMode": "manual",
+        "startFrame": 3477,
+        "endFrame": 3507,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_7a4037ee-62bf-4fdb-98ee-ac5eb99ce841"
+          ],
+          "sourceText": "可能已经来不及了",
+          "text": "可能已经来不及了。",
+          "reviewedAt": "2026-10-15T16:37:20.225Z"
+        }
+      },
+      {
+        "id": "caption_71b81006-4e70-4641-936b-fd8bf4e213a1",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 3512,
+        "sourceEndFrame": 3566,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 713,
+        "sourceTokenEndIndex": 725,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "最懂AI的人也没有一致答案",
+        "text": "最懂 AI 的人，也没有一致答案。",
+        "textMode": "manual",
+        "startFrame": 3512,
+        "endFrame": 3566,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_be176661-e529-4614-8f76-21af3514d94e"
+          ],
+          "sourceText": "最懂AI的人也没有一致答案",
+          "text": "最懂 AI 的人，也没有一致答案。",
+          "reviewedAt": "2026-10-15T16:37:20.810Z"
+        }
+      },
+      {
+        "id": "caption_5b4a7a14-1b86-484a-ab36-748123e0dda5",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 3575,
+        "sourceEndFrame": 3649,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 725,
+        "sourceTokenEndIndex": 741,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "真正的问题或许是在继续踩油门之前",
+        "text": "真正的问题或许是：在继续踩油门之前，",
+        "textMode": "manual",
+        "startFrame": 3575,
+        "endFrame": 3649,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_0e660872-7f87-4268-a9b2-cbffd90df64a"
+          ],
+          "sourceText": "真正的问题或许是在继续踩油门之前",
+          "text": "真正的问题或许是：在继续踩油门之前，",
+          "reviewedAt": "2026-10-15T16:37:20.865Z"
+        }
+      },
+      {
+        "id": "caption_89526372-9782-42df-9389-389f24e37993",
+        "sourceKind": "source_audio",
+        "sourceAssetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+        "sourceTimelineItemId": "item_58472d26-118e-4db9-b9cb-8634c7991ffb",
+        "sourceStartFrame": 3649,
+        "sourceEndFrame": 3685,
+        "sourceBridgeRunId": "5076e914-20e1-4fe0-948d-e5a8fe3ef69f",
+        "sourceAlignmentId": "source_alignment_5a77ec3d-ed10-46ac-8db0-bf071aea69ad",
+        "sourceCaptionProgramId": "source_caption_program_c54ee713-9a74-4646-b418-28ff3a08baef",
+        "sourceTokenStartIndex": 741,
+        "sourceTokenEndIndex": 750,
+        "sourceCaptionRationale": "依据Provider严格token时码合并碎卡、修复跨句与语义错分；保留全部原token，错字在重分后按已确认原稿单独校订。",
+        "sourceText": "我们有没有装好刹车",
+        "text": "我们有没有装好刹车？",
+        "textMode": "manual",
+        "startFrame": 3649,
+        "endFrame": 3685,
+        "style": "stable",
+        "precision": "source_token_anchored",
+        "sourceTextReview": {
+          "basis": "confirmed_script",
+          "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+          "scriptRevision": 1,
+          "speechSegmentIds": [
+            "speech_segment_0e660872-7f87-4268-a9b2-cbffd90df64a"
+          ],
+          "sourceText": "我们有没有装好刹车",
+          "text": "我们有没有装好刹车？",
+          "reviewedAt": "2026-10-15T16:37:20.907Z"
+        }
+      }
+    ],
+    "captionFormat": {
+      "fontSize": 48,
+      "fontWeight": 700,
+      "color": "#ffffff",
+      "bottomPercent": 4.259,
+      "horizontalInsetPercent": 6.25,
+      "textAlign": "center",
+      "maxLines": 2,
+      "lineHeight": 1.25,
+      "boxWidth": "content",
+      "fontId": "noto-sans-sc-bold",
+      "font": {
+        "fontId": "noto-sans-sc-bold",
+        "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+        "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+        "weight": 700,
+        "style": "normal"
+      },
+      "paddingHorizontal": 28,
+      "paddingVertical": 12,
+      "borderRadius": 8,
+      "textShadow": null,
+      "backgroundColor": "#182c46",
+      "backgroundOpacity": 0.82
+    }
+  },
+  "原始复制来源": [
+    {
+      "包内路径": "03_视觉美术动效原始交付/正式固定输入_R144_source.json",
+      "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\assets\\derived\\motion\\job_3088e3d1-0243-438d-830b-8636b8b50603\\d4eaaa6cbb0dca411f7d5f7dada47a3c2e0d8f19da10507ba8ea9127e8af61ac\\source.json",
+      "来源SHA256": "66fcd9caab45470457675f011ba6c275e8df7fd2da0ad96a8b65fc489051cfc9",
+      "保存方式": "原文件复制"
+    }
+  ]
+}

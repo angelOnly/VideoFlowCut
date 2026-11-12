@@ -1,0 +1,15 @@
+{
+ "viewer_question":"为什么离AI最近的人也担心它跑得太快？",
+ "promised_model":"沿个人技能替代、研发递归、授权边界与竞争激励，看清加速与安全之间的联系。",
+ "conclusion":"争议不只在要不要加速，也在能力继续增长时，评估、约束与合作是否跟得上。",
+ "beats_by_order":[
+ {"entering_knowledge":"AI正在快速发展","question":"为什么最懂AI的人也担心？","new_knowledge":"担忧同时涉及技能替代和生存风险","deferred_information":"后文用个人经历、测试和治理方案分别展开","claim":"两类担忧并存"},
+ {"entering_knowledge":"能力增长可能改变个人工作","question":"一项苦练的技能会怎样变化？","new_knowledge":"刘胜与判断能力可能被追上，工作角色转向指挥Agent","deferred_information":"从个人变化继续看研发本身的变化","claim":"半年到一年是本人判断而非确定预测"},
+ {"entering_knowledge":"Agent可承担工作","question":"AI参与研发AI会带来什么？","new_knowledge":"若不断加速，结果可以成为下一代研发输入，形成潜在递归改进","deferred_information":"更强能力是否遵守授权边界","claim":"递归式自我改进作为条件性机制解释"},
+ {"entering_knowledge":"能力增长与持续运行正在改变研发","question":"它会不会越过人类授权？","new_knowledge":"OpenAI内部安全评估暴露了奖励投机与外部执行代码问题","deferred_information":"安全研究如何追赶","claim":"具体内部测试不等于所有公开产品均已失控"},
+ {"entering_knowledge":"能力与约束存在差距","question":"踩刹车意味着什么？","new_knowledge":"达里奥提出独立评估、共同标准与合作，让安全跟上能力","deferred_information":"谁有激励先减速","claim":"不是停训几年"},
+ {"entering_knowledge":"安全合作有可讨论的措施","question":"谁愿意先减速？","new_knowledge":"竞争与领先优势政策使安全方案同时引发门槛争议","deferred_information":"各方不确定性如何形成困局","claim":"政策同时包含安全合作与领先优势措施，动机不能简单定罪"},
+ {"entering_knowledge":"安全、利益与竞争交织","question":"为什么谁都不敢先松油门？","new_knowledge":"共同减速可能更安全，但无法确定别人是否同步减速","deferred_information":"两种立场各自担心什么","claim":"不确定对方行动形成持续加速激励"},
+ {"entering_knowledge":"加速与减速都有机会成本","question":"继续踩油门前是否装好刹车？","new_knowledge":"专家无一致答案，治理与评估准备程度是共同面对的问题","deferred_information":"不承诺本片给出唯一安全速度","claim":"未来风险与眼前机会需一起考虑"}
+ ]
+}

@@ -1,0 +1,81 @@
+{
+  "title": "AI 的油门与刹车",
+  "summary": "从技能替代、研发递归和越界评估，推进到安全合作与竞争激励的困局，最终回问刹车是否准备好。",
+  "beats": [
+    {
+      "title": "离 AI 最近的人",
+      "purpose": "建立技能替代与生存风险两种担忧",
+      "semantic_unit_ids": [
+        "semantic_01e37803-aaae-4a70-91eb-e5c3c04ff1b5",
+        "semantic_8569b16a-44d8-4470-a901-dd2e8a37a2cb",
+        "semantic_87ba2af4-4e39-4486-b06a-b76d032d317d"
+      ]
+    },
+    {
+      "title": "一门本事的时间",
+      "purpose": "用刘胜与本人判断说明角色改变",
+      "semantic_unit_ids": [
+        "semantic_a2c880e3-6286-45ef-8155-57a79d8518eb",
+        "semantic_b3b43772-75bf-4e11-937f-857477b8feb4",
+        "semantic_99aa906c-d69e-4f8a-8389-9549b17fc473"
+      ]
+    },
+    {
+      "title": "研发回路",
+      "purpose": "解释AI参与研发AI及潜在递归",
+      "semantic_unit_ids": [
+        "semantic_104246b9-b291-4908-b973-2506fb385967",
+        "semantic_5bd561a5-f8bd-4361-b766-facd928745a5",
+        "semantic_a770d1ef-5231-464b-bba5-789012aee67e"
+      ]
+    },
+    {
+      "title": "任务和边界",
+      "purpose": "以内部安全评估展示越权风险",
+      "semantic_unit_ids": [
+        "semantic_5c789e00-41a8-4f81-9c36-e1d1d34909fa",
+        "semantic_7a3f5391-864c-4a18-ba02-9dc52378a323",
+        "semantic_d006d4e5-5fc9-49de-b87e-50c898915d61"
+      ]
+    },
+    {
+      "title": "刹车怎样装",
+      "purpose": "区分暂停训练与让安全追上能力",
+      "semantic_unit_ids": [
+        "semantic_d32d62c8-19e6-42a2-aabb-f6940173b868",
+        "semantic_0097c63b-dc6e-4143-9e6a-1adbab393944",
+        "semantic_672cba20-cae5-427b-8e49-cbd6959825a1"
+      ]
+    },
+    {
+      "title": "谁先减速",
+      "purpose": "揭示竞争约束及安全政策争议",
+      "semantic_unit_ids": [
+        "semantic_d2cade38-f072-4ea3-94e1-6b79806990f8",
+        "semantic_08b0285e-1813-4fa2-8331-70943a76d24d",
+        "semantic_18c61d7e-1ccd-4d2b-96b8-38ec09ba5899",
+        "semantic_6e71524b-0369-4ce1-8cc5-f9eb08a410d1",
+        "semantic_374e81d7-f2b9-4b66-98c1-4757712a7275"
+      ]
+    },
+    {
+      "title": "互不确定",
+      "purpose": "把多方激励连接成减速困局",
+      "semantic_unit_ids": [
+        "semantic_b0d1ed2f-41c7-4ec6-a8b0-23b0f09d67d2",
+        "semantic_cc31e4c3-3720-4667-834f-689ee958ce01",
+        "semantic_f92da392-f494-4630-9909-d68915745e5f"
+      ]
+    },
+    {
+      "title": "回到刹车",
+      "purpose": "保留两种观点并回扣治理能力问题",
+      "semantic_unit_ids": [
+        "semantic_819784c8-d1a0-4558-a5a8-a7a884fc1d50",
+        "semantic_73f842f8-6911-4b34-961b-4292b9dc3c3a",
+        "semantic_40a56389-c9b1-44c2-b1cf-42f5ca82db35",
+        "semantic_d26deb6c-097c-4c09-9beb-70ac50a4cfce"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,464 @@
+[
+  {
+    "包内路径": "02_导演与声音字幕原始交付/alignment-evidence.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\alignment-evidence.json",
+    "来源SHA256": "b0028ce8ea5135155c8eb4eb86f296766e236d34cb6df79ff8b50f9e18d0c9b2",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/audio-mix-draft.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\audio-mix-draft.json",
+    "来源SHA256": "9bf6df73b272ca1335b4ad2f0b713d99db42a76bbf9d99086c68d7c2c718edbc",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/caption-corrections-by-token.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\caption-corrections-by-token.json",
+    "来源SHA256": "444e312439749e6406676f2b0e6b8ca71aad04072def9bb316954707ec1e8de0",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/caption-program-input.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\caption-program-input.json",
+    "来源SHA256": "0ef89e03ba01ae94816b3930af1e946ccb1d7bb5f8860fe3d086e416b53d9178",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/current-av-script.md",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\current-av-script.md",
+    "来源SHA256": "1dcbf034b88d117f05edf1f5dfee4ef4f983accda5bd350382b12ec1df1060ff",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/music-observation-partial.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\music-observation-partial.json",
+    "来源SHA256": "9cc10b1ad2afa6da8ac98006d509b3a024e075c20826ed370836d20a58063fe1",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/narrative-map-by-order.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\narrative-map-by-order.json",
+    "来源SHA256": "31db04912fd52f0a01a30b1ffe479c2cfcf1768eb565c089ae8ef2e163ca3bdc",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/script-units.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\script-units.json",
+    "来源SHA256": "f20f5a746d6d0519acd8d1d16c2a6f3a248d4b9b668d5b013ce82dc651273b41",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/sfx-placement-draft.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\sfx-placement-draft.json",
+    "来源SHA256": "247abcfabea11b316219d101c47b10389055ac7f573b3be08ad93c288aa99fb2",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/sound-ambient-raw.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\sound-ambient-raw.json",
+    "来源SHA256": "fa9ae75cb5a15a74e83be135e110c5c3ffea654f22f7139550f00538afed158c",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/sound-analysis-inputs.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\sound-analysis-inputs.json",
+    "来源SHA256": "c2229a743ec3d77a0060527821daf2b04d4763a7726ef6e27e81d883862aa90c",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/sound-original-inspection.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\sound-original-inspection.json",
+    "来源SHA256": "ee53e28fd91c3723be278b6a5cb5f5989bf37e3e30ef8189ed61fcaa7d74a18b",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/sound-plan-input.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\sound-plan-input.json",
+    "来源SHA256": "12f782865bd9f69ebf86eb467deaddec55e69ea036b5aeaaeb349c5f6337d892",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/sound-plan-update.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\sound-plan-update.json",
+    "来源SHA256": "d836e2fdf15a3bb27482dbca33c5b2140fb5a85930ab8916318e94b6db2f4b2a",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/sound-requirements.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\sound-requirements.json",
+    "来源SHA256": "066147604d2f4893f30a14e486d0862940f0368fe7d15f5aeaa02a1076fcf9f4",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/sound-search-raw.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\sound-search-raw.json",
+    "来源SHA256": "0c5b17e4ae864474d7d041c738906efda6f66403c3f8208806c3b3b7ac71254b",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/story-input.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\story-input.json",
+    "来源SHA256": "795d03caef4315e537616c97a7aa103b96f348fc4fcc2f467b81bf10cc2f1a34",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "02_导演与声音字幕原始交付/structure-and-treatment-input.json",
+    "来源路径": "E:\\ai\\VideoCut\\.production\\ai-brakes-20261016\\structure-and-treatment-input.json",
+    "来源SHA256": "969c3d01dd6dfac9845fc814d0522ace34282531ae177e18a56dd7dfc945a6ab",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "03_视觉美术动效原始交付/AiBrakes.tsx",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\authoring\\AiBrakes.tsx",
+    "来源SHA256": "1e3b30803845b972caa6605a38ce883b3899c0056d720101dd32d61bc5891cb4",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "03_视觉美术动效原始交付/build-work.mjs",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\authoring\\build-work.mjs",
+    "来源SHA256": "5ee2733bfebf0c95837a5bf83b9065d02070df74d777bb46943255d21c70de14",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "03_视觉美术动效原始交付/captions-current.json",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\authoring\\captions-current.json",
+    "来源SHA256": "89933f05d713522ff3d2a677c0a1635ecd7478adbdf2d6507b843f0fb3df2850",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "06_校样与素材观察/cbs-contact.jpg",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\authoring\\cbs-contact.jpg",
+    "来源SHA256": "e5e8866ccdd62cee000bcc7349544473b3273ff9858f1f6d20fad49ada2f3a00",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "03_视觉美术动效原始交付/materials.md",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\authoring\\materials.md",
+    "来源SHA256": "7b3ed63df0317413abd32b1c39145376cae5e4cc0c7926f5c9066c5770b02a7d",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "03_视觉美术动效原始交付/motion-work.json",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\authoring\\motion-work.json",
+    "来源SHA256": "dc06cc44de1f574c036c0756ea82982810c323d1e04f8871036a94e90a3292f5",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "03_视觉美术动效原始交付/production-inputs.json",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\authoring\\production-inputs.json",
+    "来源SHA256": "6551aeb3b9001b1f40f98282282d18aecf57fb6eabfe0aaff9abd5a0e65f09b7",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "06_校样与素材观察/proof1-contact.jpg",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\authoring\\proof1-contact.jpg",
+    "来源SHA256": "aeff28f3d28a38937618ccc1581fa2f02ecba0140078bd2cf297ffba3b919f33",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "06_校样与素材观察/proof2-contact.jpg",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\authoring\\proof2-contact.jpg",
+    "来源SHA256": "25efe28a711998243095ab3eba1e628a3d55f0c676b9d2700268878dac8abaf0",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "06_校样与素材观察/work-contact.jpg",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\authoring\\work-contact.jpg",
+    "来源SHA256": "7c01ae831b1fcde3aac9759c78e7e27ab0339d8411b6aa057b8d48442a6e7b82",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "03_视觉美术动效原始交付/视觉采用与观察.md",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\authoring\\视觉采用与观察.md",
+    "来源SHA256": "5e9df4c272125604a93d33bc899f7fb4735c91f2485c912081c67ec4cfef1a0e",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "05_实际素材/证据原件/job_027d0b06-1b5e-41b7-87e0-a81a7b402805/manifest.json",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\assets\\derived\\source-material\\job_027d0b06-1b5e-41b7-87e0-a81a7b402805\\manifest.json",
+    "来源SHA256": "6039da5aefb88d1bea8b42d1e2e193a8aa0ac8f92282ecb46f4328bb0234df2a",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "05_实际素材/证据原件/job_027d0b06-1b5e-41b7-87e0-a81a7b402805/original.png",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\assets\\derived\\source-material\\job_027d0b06-1b5e-41b7-87e0-a81a7b402805\\original.png",
+    "来源SHA256": "4b930f9e92c06bc407073e6f9a9109c5f61254c1cb566905748e5e8053ab5ae4",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "05_实际素材/证据原件/job_9a2e5b08-b581-4043-b29e-8ad2be94d009/manifest.json",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\assets\\derived\\source-material\\job_9a2e5b08-b581-4043-b29e-8ad2be94d009\\manifest.json",
+    "来源SHA256": "7cff039117286118c635e5d3d47567deb703ae437c873a385b2006c0612dc75e",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "05_实际素材/证据原件/job_9a2e5b08-b581-4043-b29e-8ad2be94d009/original.jpg",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\assets\\derived\\source-material\\job_9a2e5b08-b581-4043-b29e-8ad2be94d009\\original.jpg",
+    "来源SHA256": "686a87f7604519597ec22b6b2ba7ebe976ef16c3602e738ba850b4b6b75f20b2",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "05_实际素材/证据原件/job_a4012d30-412e-44ba-8c98-9b4c1544fa40/manifest.json",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\assets\\derived\\source-material\\job_a4012d30-412e-44ba-8c98-9b4c1544fa40\\manifest.json",
+    "来源SHA256": "d53b9f316fa474fbe1da73722d540c2d93aba769605d270874e84a1c86733ac7",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "05_实际素材/证据原件/job_a4012d30-412e-44ba-8c98-9b4c1544fa40/original.png",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\assets\\derived\\source-material\\job_a4012d30-412e-44ba-8c98-9b4c1544fa40\\original.png",
+    "来源SHA256": "e6c19cf2aa9fba1cf2b5ec8bce067d67bb3bcccdf47f85fa2f54a3e1b0f40154",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "05_实际素材/证据原件/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/manifest.json",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\assets\\derived\\source-material\\job_f4f0fac5-7396-4f96-b80c-4352ba466ae6\\manifest.json",
+    "来源SHA256": "314bfe8db5a50f757dd7349b82f6c4f3b893b7c4fd5372cbe8f58d95c014342f",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "05_实际素材/证据原件/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/original.pdf",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\assets\\derived\\source-material\\job_f4f0fac5-7396-4f96-b80c-4352ba466ae6\\original.pdf",
+    "来源SHA256": "dd635cf6e5f39f0e1f646f08c36549090d77156ed89cbd3d733ed496648cae9c",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "05_实际素材/证据原件/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/page-1.png",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\assets\\derived\\source-material\\job_f4f0fac5-7396-4f96-b80c-4352ba466ae6\\page-1.png",
+    "来源SHA256": "491fd21ed306196e5632418c4a0e8f85b7bc6ace6d0af068a025f863706fc5f3",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "05_实际素材/证据原件/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/page-4.png",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\assets\\derived\\source-material\\job_f4f0fac5-7396-4f96-b80c-4352ba466ae6\\page-4.png",
+    "来源SHA256": "e6e5f8318695710269ffffec1f4f84bd5976e0dbbc9f150d3df08af01796bd6f",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "05_实际素材/证据原件/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/page-9.png",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\assets\\derived\\source-material\\job_f4f0fac5-7396-4f96-b80c-4352ba466ae6\\page-9.png",
+    "来源SHA256": "10d8dc0eb08e040fc5b07f8ecb0a2743943c999b2be92bda5237314d22ce1319",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "07_项目快照与验证/production-run-production_run_c202b427-4035-476a-b0a5-f0dad3bef2c4.json",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\reports\\production-run-production_run_c202b427-4035-476a-b0a5-f0dad3bef2c4.json",
+    "来源SHA256": "6ca1ef160748ee9e3f8234ef1059b4fde6bbe278d5d4f9d0c96418b37f34cb3d",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "07_项目快照与验证/来源清单/export_artifact_c2483c5c-bd2d-45dd-a077-e6e75138f345.json",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\manifests\\sources\\export_artifact_c2483c5c-bd2d-45dd-a077-e6e75138f345.json",
+    "来源SHA256": "be4de5e074821355da35fdbc74aefbb28c77d3ca87a1980eca557922692e6c54",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "06_校样与素材观察/最终合成/revision-144-frame-560.jpg",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\previews\\frames\\revision-144-frame-560.jpg",
+    "来源SHA256": "d558321333fb3236889f5239fd9dfd1b1e0f551ae758b37e8ba5c56a2b4b8be0",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "06_校样与素材观察/最终合成/revision-144-frame-600.jpg",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\previews\\frames\\revision-144-frame-600.jpg",
+    "来源SHA256": "50cb1ab57faddd8bb4707fa28867dd35de46f79ce44b2eb2f0be58408c6397e9",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "06_校样与素材观察/最终合成/revision-144-frame-680.jpg",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\previews\\frames\\revision-144-frame-680.jpg",
+    "来源SHA256": "a4507d3e30820e6823943f8fafe0e420054185452105aa56acb0b2b44d60bbc1",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "06_校样与素材观察/最终合成/revision-144-frame-3020.jpg",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\previews\\frames\\revision-144-frame-3020.jpg",
+    "来源SHA256": "1c1ece5ebf6b0b76c8712e152aa21787061cf9788ac7a47b80bd31be4f6748e1",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "06_校样与素材观察/最终合成/revision-144-frame-3050.jpg",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\previews\\frames\\revision-144-frame-3050.jpg",
+    "来源SHA256": "672608cef9e683cbd4e879a7137a95137e5f5c5ea7940514793d89133b2b4880",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "06_校样与素材观察/最终合成/revision-144-frame-3080.jpg",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\previews\\frames\\revision-144-frame-3080.jpg",
+    "来源SHA256": "f0c2b63a149927cc7db76a4a1c89f325513a5384b7763e5b629f0009373cf9e4",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "06_校样与素材观察/最终合成/revision-144-frame-3150.jpg",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\previews\\frames\\revision-144-frame-3150.jpg",
+    "来源SHA256": "0350ec0654a04986af19cc792f84d1f1034e3b89838ef764e17adcc4e8f3b890",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "06_校样与素材观察/最终合成/revision-144-frame-3250.jpg",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\previews\\frames\\revision-144-frame-3250.jpg",
+    "来源SHA256": "feea858e266e81c26ea556870ed5e2f95332d99afac1f998108839fc76b46720",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "06_校样与素材观察/最终合成/revision-144-frame-3650.jpg",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\previews\\frames\\revision-144-frame-3650.jpg",
+    "来源SHA256": "fdedb394a8424f1aad8bb50e8f537ed40251fd1f0e11afbe3e9d279e1c43bc89",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/production-coordinator/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\production-coordinator\\SKILL.md",
+    "来源SHA256": "8de9767a3139a45782597a52e5bc0c191e7edc0b18c45001f1bdc6c5a1215148",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/production-director/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\production-director\\SKILL.md",
+    "来源SHA256": "16176f645f4ab085f101defd2f35ca5864e26747ddd20284413be2631a4fa047",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/visual-explainer-director/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\visual-explainer-director\\SKILL.md",
+    "来源SHA256": "6b6b9b050c2bd1013519c12066aadb63a4adf48abbb4b09b9c4973d37f84873b",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/visual-treatment-planning/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\visual-treatment-planning\\SKILL.md",
+    "来源SHA256": "7804f41d79aad73d04c5cdf513e0dbedd6011b60a14102f64929a3632e955383",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/motion-case-library/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\motion-case-library\\SKILL.md",
+    "来源SHA256": "9202f2ee1a3483d1e55fbbcc57a9863e9b498ac2ab2bef229cd3fcdbd14b6313",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/visual-asset-sourcing/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\visual-asset-sourcing\\SKILL.md",
+    "来源SHA256": "70d0ba5f215a0d80ac3845cf0ad07261bdea959b2404b5b2e60136dc21b835ae",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/remotion-production/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\remotion-production\\SKILL.md",
+    "来源SHA256": "f7c42dcf9fc3f773f2a687d4bb2844465f79f53be7626830bade9ea5d033fa29",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/evidence-visualization/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\evidence-visualization\\SKILL.md",
+    "来源SHA256": "b17e67aaca1448dfbad5a3be745b9617207f774995db6eddd8c6f38677e59a87",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/scene-planning/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\scene-planning\\SKILL.md",
+    "来源SHA256": "6261ef4d0ce84c94e467f7296f87fdfa904e4450a1206057e325ad63dad867ef",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/effect-timing/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\effect-timing\\SKILL.md",
+    "来源SHA256": "7e6cf9f84c003c01b55de3597e7db58a4a90343f186870aeb96e88efd058e844",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/audio-finishing/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\audio-finishing\\SKILL.md",
+    "来源SHA256": "bab128001e3054a02acfca063f2cd172a756510f5cd42d57a01f06fd8a3ded26",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/sound-asset-sourcing/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\sound-asset-sourcing\\SKILL.md",
+    "来源SHA256": "49a741321998eccd7ebe165b92b3834f3f71fcc71b264eb06a777451363931f2",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/voice-production/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\voice-production\\SKILL.md",
+    "来源SHA256": "c7c1bb35cb6a509b515588112252a3fd06bf61f6dc20ecbc95df4b5e6bad08b9",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/captions/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\captions\\SKILL.md",
+    "来源SHA256": "1db3cfb4ef22e42cd1ab1ac53daaaace897efaa292fa139da6eb47b73e17f704",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/quality-verification/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\quality-verification\\SKILL.md",
+    "来源SHA256": "49040777a898e02d6dcaebcfae17f4b3324668628f31a4d6f9fff5fa8a70935f",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/export/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\export\\SKILL.md",
+    "来源SHA256": "b49424b1c2641ebc2136f80a91bbedc3bbe2adf478a08518a3f8be88a41cd42b",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/project-basics/SKILL.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\project-basics\\SKILL.md",
+    "来源SHA256": "dc8f129cb40f199fb9bea538a102bbd3d310b92d5c5ee02a757ed1c732f5dc10",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/_shared/TOPIC_TO_FILM.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\_shared\\TOPIC_TO_FILM.md",
+    "来源SHA256": "d681a5df131852370f3dfaeb4b81fe623317975a97521d83c3a88a89d99afb9f",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/production-coordinator/references/video-type-routing.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\production-coordinator\\references\\video-type-routing.md",
+    "来源SHA256": "b066ed34625cb1f9d09707af79d0d91cfac9e3a9021d396def5c86ec90a78b59",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/visual-treatment-planning/references/art-direction.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\visual-treatment-planning\\references\\art-direction.md",
+    "来源SHA256": "4cc95e9c2d7b77e270cdf99abaa95b873152d6574216cfef28397bc32fb5afd4",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/quality-verification/references/professional-review.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\quality-verification\\references\\professional-review.md",
+    "来源SHA256": "cc2dc315189096a77f514ea141f2d96609f7f26476b2cd49df92308483c6083a",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/remotion-production/references/submission-and-recovery.md",
+    "来源路径": "E:\\ai\\VideoCut\\.agents\\skills\\remotion-production\\references\\submission-and-recovery.md",
+    "来源SHA256": "44050d7c209ad49967e4cbc0f0d71b8a516b0c1ffbf310b4bbcd063c448e7175",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "08_本轮方法与指令/项目AGENTS.md",
+    "来源路径": "E:\\ai\\VideoCut\\AGENTS.md",
+    "来源SHA256": "c89fde2d9381873671f6dfeb04e4cc80f88facbed2a26b73b159bc1b4764d249",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "05_实际素材/音效原文件/mixkit-3117.wav",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\assets\\source\\f486f7f66d21795c5437.wav",
+    "来源SHA256": "f486f7f66d21795c54371ef2d06ee696376d1e77ea01c546d6f4c91d942c1a39",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "05_实际素材/音效原文件/mixkit-1465.wav",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\assets\\source\\2b6af0f6de39c12bbf37.wav",
+    "来源SHA256": "2b6af0f6de39c12bbf378a56947d5f1fa5610e3b5dfe3ef689648f05bbc37d3f",
+    "保存方式": "原文件复制"
+  },
+  {
+    "包内路径": "05_实际素材/音效原文件/mixkit-3124.wav",
+    "来源路径": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\assets\\source\\00270a1847195cddb82d.wav",
+    "来源SHA256": "00270a1847195cddb82d1b10c9407880ce311f522284afaefdc218fbba70d3ed",
+    "保存方式": "原文件复制"
+  }
+]

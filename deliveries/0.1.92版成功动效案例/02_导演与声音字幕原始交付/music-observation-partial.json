@@ -1,0 +1,494 @@
+[
+  {
+    "id": "asset_candidate_d51858f5-01ce-4766-8b0b-7a0cc5c1f083",
+    "coverage": [
+      {
+        "id": "job_82c4b75d-9718-48ff-97d5-1cae17c055c4",
+        "sourceId": "media_source_d9eb2a5e84eb28b3660e98b5de010baf58cb2e3b7cbb02041612bcc6d65443a3",
+        "depth": "index",
+        "status": "running",
+        "totalWindows": 10,
+        "completedWindows": 4,
+        "failedWindows": [
+          {
+            "id": "job_82c4b75d-9718-48ff-97d5-1cae17c055c4:0",
+            "range": {
+              "startMs": 0,
+              "endMs": 30000
+            },
+            "status": "failed",
+            "modalityStatus": {
+              "audio": "unknown"
+            },
+            "observationId": "observation_070da54b75bcbbaf249539101e7c2af0f0d6e86810d17e6371904bbeeff2f1f4",
+            "runId": "a9ba7099-369e-4518-b739-1009d3ad9a5b",
+            "workflowId": "863d530d-8066-52b2-a59d-de4301f41013",
+            "schemaVersion": "350da5f0e99639ccb55e5d629be183e305eaf58474307497f10b876f96b63305",
+            "error": "本窗口没有通过校验的事实，原文可读，覆盖仍未完成"
+          }
+        ],
+        "missingRanges": [
+          {
+            "startMs": 0,
+            "endMs": 28000
+          },
+          {
+            "startMs": 142000,
+            "endMs": 261923
+          }
+        ],
+        "shotRanges": [],
+        "totalShots": 0
+      }
+    ],
+    "observations": [
+      {
+        "id": "observation_070da54b75bcbbaf249539101e7c2af0f0d6e86810d17e6371904bbeeff2f1f4",
+        "range": {
+          "startMs": 0,
+          "endMs": 30000
+        },
+        "facts": [],
+        "unknowns": [
+          "有一条模型事实结构无效，已单独排除并保留原文"
+        ],
+        "rawText": "{\n  \"facts\": [\n    {\n      \"audio\": \"持续的电子音乐背景音，包含低频合成器音色和节奏感强的鼓点元素。\",\n      \"text\": \"电子音乐伴奏\",\n      \"keywords\": [\n        \"电子音乐\",\n        \"合成器\",\n        \"鼓点\",\n        \"节奏\"\n      ],\n      \"speechPresence\": \"absent\",\n      \"musicPresence\": \"present\"\n    }\n  ],\n  \"unknowns\": []\n}",
+        "jobId": "job_82c4b75d-9718-48ff-97d5-1cae17c055c4",
+        "runId": "a9ba7099-369e-4518-b739-1009d3ad9a5b",
+        "inputEvidence": {
+          "path": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\cache\\mi\\3fef1dd422ce8ae8fa1cc2a2\\input.wav",
+          "hash": "1a585c2622a29e2b0473b8bf558414765648af344e883ec2ec2b7848326d115f",
+          "mapping": {
+            "parentSourceId": "media_source_d9eb2a5e84eb28b3660e98b5de010baf58cb2e3b7cbb02041612bcc6d65443a3",
+            "parentHash": "e98aaa4574f3e83ac9aefe2aa32ae8bedd1da4e9f5517858f2ccc3cb4c5f3221",
+            "offsetMs": 0,
+            "rate": 1,
+            "coordinateSpace": "display_after_rotation",
+            "preprocessing": "source-pts-window-v2"
+          }
+        }
+      },
+      {
+        "id": "observation_8b5be7b0d8733646bbd48f50804e3b54855a02fa735a34ad18818792e1cda90a",
+        "range": {
+          "startMs": 28000,
+          "endMs": 58000
+        },
+        "facts": [
+          {
+            "modality": "audio",
+            "text": "持续的电子音乐，包含合成器音色、鼓点和旋律线条，具有明显的节奏感和现代感。",
+            "basis": "model",
+            "precision": "model_estimated",
+            "keywords": [
+              "electronic music",
+              "synthesizer",
+              "drum beat",
+              "melody"
+            ],
+            "speechPresence": "absent",
+            "musicPresence": "present"
+          }
+        ],
+        "unknowns": [
+          "这条事实尚无可靠源时间范围，不能作为连续采用范围的覆盖证明"
+        ],
+        "rawText": "{\"facts\": [{\"modality\": \"audio\", \"text\": \"持续的电子音乐，包含合成器音色、鼓点和旋律线条，具有明显的节奏感和现代感。\", \"keywords\": [\"electronic music\", \"synthesizer\", \"drum beat\", \"melody\"], \"speechPresence\": \"absent\", \"musicPresence\": \"present\"}], \"unknowns\": []}",
+        "jobId": "job_82c4b75d-9718-48ff-97d5-1cae17c055c4",
+        "runId": "f5e5f1a2-4397-4a58-94d8-01827da0db14",
+        "inputEvidence": {
+          "path": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\cache\\mi\\1ba3d733e6c1aa6a73225e12\\input.wav",
+          "hash": "c6be2a1e1c3a286f10e13aab941e7d897b31401df9606f0593cfb45bcda6043e",
+          "mapping": {
+            "parentSourceId": "media_source_d9eb2a5e84eb28b3660e98b5de010baf58cb2e3b7cbb02041612bcc6d65443a3",
+            "parentHash": "e98aaa4574f3e83ac9aefe2aa32ae8bedd1da4e9f5517858f2ccc3cb4c5f3221",
+            "offsetMs": 28000,
+            "rate": 1,
+            "coordinateSpace": "display_after_rotation",
+            "preprocessing": "source-pts-window-v2"
+          }
+        }
+      },
+      {
+        "id": "observation_c5da43e30c8534751e543561773a6efa8160cba98264c9f95c1e8d3a71bcdb7b",
+        "range": {
+          "startMs": 56000,
+          "endMs": 86000
+        },
+        "facts": [
+          {
+            "modality": "audio",
+            "text": "持续的电子合成器音乐，包含清脆的铃声和节奏感强的鼓点伴奏。",
+            "basis": "model",
+            "precision": "model_estimated",
+            "keywords": [
+              "electronic music",
+              "synthesizer",
+              "bell sounds",
+              "rhythmic beat"
+            ],
+            "speechPresence": "absent",
+            "musicPresence": "present"
+          }
+        ],
+        "unknowns": [
+          "这条事实尚无可靠源时间范围，不能作为连续采用范围的覆盖证明"
+        ],
+        "rawText": "{\"facts\": [{\"modality\": \"audio\", \"text\": \"持续的电子合成器音乐，包含清脆的铃声和节奏感强的鼓点伴奏。\", \"keywords\": [\"electronic music\", \"synthesizer\", \"bell sounds\", \"rhythmic beat\"], \"speechPresence\": \"absent\", \"musicPresence\": \"present\"}], \"unknowns\": []}",
+        "jobId": "job_82c4b75d-9718-48ff-97d5-1cae17c055c4",
+        "runId": "ba679641-1299-4a83-94d8-8d29afbbbbe1",
+        "inputEvidence": {
+          "path": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\cache\\mi\\b092bd5665a133a14159ee7b\\input.wav",
+          "hash": "ae25b9b12a109bf2cf0acc4fca04da62902fb6982e47c1fd001b1bc29538b258",
+          "mapping": {
+            "parentSourceId": "media_source_d9eb2a5e84eb28b3660e98b5de010baf58cb2e3b7cbb02041612bcc6d65443a3",
+            "parentHash": "e98aaa4574f3e83ac9aefe2aa32ae8bedd1da4e9f5517858f2ccc3cb4c5f3221",
+            "offsetMs": 56000,
+            "rate": 1,
+            "coordinateSpace": "display_after_rotation",
+            "preprocessing": "source-pts-window-v2"
+          }
+        }
+      },
+      {
+        "id": "observation_676a73bf3310f9668e0ae84b2415350395538aa45adc498b7e460699b51dfb75",
+        "range": {
+          "startMs": 84000,
+          "endMs": 114000
+        },
+        "facts": [
+          {
+            "modality": "audio",
+            "text": "持续的电子合成器音乐，包含清脆的铃声和节奏感强的鼓点。",
+            "basis": "model",
+            "precision": "model_estimated",
+            "keywords": [
+              "electronic music",
+              "synthesizer",
+              "bell sounds",
+              "rhythmic beat"
+            ],
+            "speechPresence": "absent",
+            "musicPresence": "present"
+          }
+        ],
+        "unknowns": [
+          "这条事实尚无可靠源时间范围，不能作为连续采用范围的覆盖证明"
+        ],
+        "rawText": "{\n  \"facts\": [\n    {\n      \"modality\": \"audio\",\n      \"text\": \"持续的电子合成器音乐，包含清脆的铃声和节奏感强的鼓点。\",\n      \"keywords\": [\"electronic music\", \"synthesizer\", \"bell sounds\", \"rhythmic beat\"],\n      \"speechPresence\": \"absent\",\n      \"musicPresence\": \"present\"\n    }\n  ],\n  \"unknowns\": []\n}",
+        "jobId": "job_82c4b75d-9718-48ff-97d5-1cae17c055c4",
+        "runId": "c59b570b-da55-4c73-9e73-dc43569041a5",
+        "inputEvidence": {
+          "path": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\cache\\mi\\58885e0291370258bb93f9ab\\input.wav",
+          "hash": "a1ed8849e237a452010d181828844b4736da60aebdc0f35ca39251f86eb2b603",
+          "mapping": {
+            "parentSourceId": "media_source_d9eb2a5e84eb28b3660e98b5de010baf58cb2e3b7cbb02041612bcc6d65443a3",
+            "parentHash": "e98aaa4574f3e83ac9aefe2aa32ae8bedd1da4e9f5517858f2ccc3cb4c5f3221",
+            "offsetMs": 84000,
+            "rate": 1,
+            "coordinateSpace": "display_after_rotation",
+            "preprocessing": "source-pts-window-v2"
+          }
+        }
+      },
+      {
+        "id": "observation_20d65021585b7143d1bfe18d7da78f2a5ed037761246b2681a307b40e05df834",
+        "range": {
+          "startMs": 112000,
+          "endMs": 142000
+        },
+        "facts": [
+          {
+            "modality": "audio",
+            "text": "持续的电子合成器音乐，带有空灵的氛围感，音色偏向柔和的电子琴或合成器音效。",
+            "basis": "model",
+            "precision": "model_estimated",
+            "keywords": [
+              "electronic music",
+              "synthesizer",
+              "ambient",
+              "soft tone"
+            ],
+            "speechPresence": "absent",
+            "musicPresence": "present"
+          }
+        ],
+        "unknowns": [
+          "这条事实尚无可靠源时间范围，不能作为连续采用范围的覆盖证明"
+        ],
+        "rawText": "{\"facts\": [{\"modality\": \"audio\", \"text\": \"持续的电子合成器音乐，带有空灵的氛围感，音色偏向柔和的电子琴或合成器音效。\", \"keywords\": [\"electronic music\", \"synthesizer\", \"ambient\", \"soft tone\"], \"speechPresence\": \"absent\", \"musicPresence\": \"present\"}], \"unknowns\": []}",
+        "jobId": "job_82c4b75d-9718-48ff-97d5-1cae17c055c4",
+        "runId": "67efa238-784e-49d3-9e46-490abe70e7da",
+        "inputEvidence": {
+          "path": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\cache\\mi\\502f518c16e956d9a2da6d21\\input.wav",
+          "hash": "3394186308760388f199afdfa27878be512e1d8f0a3df5cde7c38e2ba0c8a7cd",
+          "mapping": {
+            "parentSourceId": "media_source_d9eb2a5e84eb28b3660e98b5de010baf58cb2e3b7cbb02041612bcc6d65443a3",
+            "parentHash": "e98aaa4574f3e83ac9aefe2aa32ae8bedd1da4e9f5517858f2ccc3cb4c5f3221",
+            "offsetMs": 112000,
+            "rate": 1,
+            "coordinateSpace": "display_after_rotation",
+            "preprocessing": "source-pts-window-v2"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "asset_candidate_88560f1a-5fb3-4136-9b3e-18598a575088",
+    "coverage": [
+      {
+        "id": "job_38e30363-0c0b-4ec1-87e7-94960be994d5",
+        "sourceId": "media_source_2b732adf537583d8980fd8a3f4688dc4a740712cbc758b876676a9e3bd4d64e1",
+        "depth": "index",
+        "status": "running",
+        "totalWindows": 9,
+        "completedWindows": 5,
+        "failedWindows": [],
+        "missingRanges": [
+          {
+            "startMs": 142000,
+            "endMs": 229820
+          }
+        ],
+        "shotRanges": [],
+        "totalShots": 0
+      }
+    ],
+    "observations": [
+      {
+        "id": "observation_d652e4a45ed9126337b08580f826f03cd3d32eb8ed014d1841e5a801bdcb7ba1",
+        "range": {
+          "startMs": 0,
+          "endMs": 30000
+        },
+        "facts": [
+          {
+            "modality": "audio",
+            "text": "持续的低频合成器音色，带有轻微的失真和混响效果，营造出一种空旷、深沉的氛围。",
+            "basis": "model",
+            "precision": "model_estimated",
+            "keywords": [
+              "synthesizer",
+              "ambient",
+              "low-frequency",
+              "reverb"
+            ],
+            "speechPresence": "absent",
+            "musicPresence": "present"
+          },
+          {
+            "modality": "audio",
+            "text": "规律的脉冲式打击乐点，类似于电子节拍器或鼓机的敲击声，节奏稳定且具有重复性。",
+            "basis": "model",
+            "precision": "model_estimated",
+            "keywords": [
+              "drum machine",
+              "pulse",
+              "rhythm",
+              "electronic"
+            ],
+            "speechPresence": "absent",
+            "musicPresence": "present"
+          },
+          {
+            "modality": "audio",
+            "text": "在背景中隐约可以听到一些细微的环境噪音，可能是录音设备的底噪或者是混音时加入的氛围音效。",
+            "basis": "model",
+            "precision": "model_estimated",
+            "keywords": [
+              "ambient noise",
+              "background hum",
+              "noise floor"
+            ],
+            "speechPresence": "absent",
+            "musicPresence": "present"
+          }
+        ],
+        "unknowns": [
+          "这条事实尚无可靠源时间范围，不能作为连续采用范围的覆盖证明",
+          "这条事实尚无可靠源时间范围，不能作为连续采用范围的覆盖证明",
+          "这条事实尚无可靠源时间范围，不能作为连续采用范围的覆盖证明"
+        ],
+        "rawText": "{\n  \"facts\": [\n    {\n      \"modality\": \"audio\",\n      \"text\": \"持续的低频合成器音色，带有轻微的失真和混响效果，营造出一种空旷、深沉的氛围。\",\n      \"keywords\": [\"synthesizer\", \"ambient\", \"low-frequency\", \"reverb\"],\n      \"speechPresence\": \"absent\",\n      \"musicPresence\": \"present\"\n    },\n    {\n      \"modality\": \"audio\",\n      \"text\": \"规律的脉冲式打击乐点，类似于电子节拍器或鼓机的敲击声，节奏稳定且具有重复性。\",\n      \"keywords\": [\"drum machine\", \"pulse\", \"rhythm\", \"electronic\"],\n      \"speechPresence\": \"absent\",\n      \"musicPresence\": \"present\"\n    },\n    {\n      \"modality\": \"audio\",\n      \"text\": \"在背景中隐约可以听到一些细微的环境噪音，可能是录音设备的底噪或者是混音时加入的氛围音效。\",\n      \"keywords\": [\"ambient noise\", \"background hum\", \"noise floor\"],\n      \"speechPresence\": \"absent\",\n      \"musicPresence\": \"present\"\n    }\n  ],\n  \"unknowns\": []\n}",
+        "jobId": "job_38e30363-0c0b-4ec1-87e7-94960be994d5",
+        "runId": "4e10fcbe-495a-45c8-b580-c6d38004b15b",
+        "inputEvidence": {
+          "path": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\cache\\mi\\b2f06944c6eeb5840809e573\\input.wav",
+          "hash": "b5d412871f0b63f89d25e692bcfadad89913b058f1df76fe794a4b11354f0241",
+          "mapping": {
+            "parentSourceId": "media_source_2b732adf537583d8980fd8a3f4688dc4a740712cbc758b876676a9e3bd4d64e1",
+            "parentHash": "3ffae7ccd5ea6f612f75efdf9a8318ccce79a5e4f355b26e233631330a57660f",
+            "offsetMs": 0,
+            "rate": 1,
+            "coordinateSpace": "display_after_rotation",
+            "preprocessing": "source-pts-window-v2"
+          }
+        }
+      },
+      {
+        "id": "observation_1dde7833e71de2af7bec68f523ee58bfca73c965e8a6a6e8918e5065c9fd283a",
+        "range": {
+          "startMs": 28000,
+          "endMs": 58000
+        },
+        "facts": [
+          {
+            "modality": "audio",
+            "text": "持续的电子音乐背景音，包含低频鼓点和合成器旋律。",
+            "basis": "model",
+            "precision": "model_estimated",
+            "keywords": [
+              "electronic music",
+              "drum beat",
+              "synthesizer",
+              "ambient"
+            ],
+            "speechPresence": "absent",
+            "musicPresence": "present"
+          }
+        ],
+        "unknowns": [
+          "这条事实尚无可靠源时间范围，不能作为连续采用范围的覆盖证明"
+        ],
+        "rawText": "{\n  \"facts\": [\n    {\n      \"modality\": \"audio\",\n      \"text\": \"持续的电子音乐背景音，包含低频鼓点和合成器旋律。\",\n      \"keywords\": [\"electronic music\", \"drum beat\", \"synthesizer\", \"ambient\"],\n      \"speechPresence\": \"absent\",\n      \"musicPresence\": \"present\"\n    }\n  ],\n  \"unknowns\": []\n}",
+        "jobId": "job_38e30363-0c0b-4ec1-87e7-94960be994d5",
+        "runId": "79d63cbd-1502-4960-bbcd-a164d7db60f9",
+        "inputEvidence": {
+          "path": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\cache\\mi\\da0b1754c4a49081eacebb47\\input.wav",
+          "hash": "00c38b843b2afa72124d784d76d228c61f475cd1d43f203155c95e52a94d79ca",
+          "mapping": {
+            "parentSourceId": "media_source_2b732adf537583d8980fd8a3f4688dc4a740712cbc758b876676a9e3bd4d64e1",
+            "parentHash": "3ffae7ccd5ea6f612f75efdf9a8318ccce79a5e4f355b26e233631330a57660f",
+            "offsetMs": 28000,
+            "rate": 1,
+            "coordinateSpace": "display_after_rotation",
+            "preprocessing": "source-pts-window-v2"
+          }
+        }
+      },
+      {
+        "id": "observation_fbe4122a79cbafc0d359a5b0925a30c05d54cc3106c8d7cf7a9ccc4d33fe507d",
+        "range": {
+          "startMs": 56000,
+          "endMs": 86000
+        },
+        "facts": [
+          {
+            "modality": "audio",
+            "text": "持续的电子音乐背景音，包含低频鼓点和合成器旋律。",
+            "basis": "model",
+            "precision": "model_estimated",
+            "keywords": [
+              "electronic music",
+              "drum beat",
+              "synthesizer melody"
+            ],
+            "speechPresence": "absent",
+            "musicPresence": "present"
+          }
+        ],
+        "unknowns": [
+          "这条事实尚无可靠源时间范围，不能作为连续采用范围的覆盖证明"
+        ],
+        "rawText": "{\"facts\": [{\"modality\": \"audio\", \"text\": \"持续的电子音乐背景音，包含低频鼓点和合成器旋律。\", \"keywords\": [\"electronic music\", \"drum beat\", \"synthesizer melody\"], \"speechPresence\": \"absent\", \"musicPresence\": \"present\"}], \"unknowns\": []}",
+        "jobId": "job_38e30363-0c0b-4ec1-87e7-94960be994d5",
+        "runId": "b70a6a0c-7013-430c-8f32-a41aca1e67c2",
+        "inputEvidence": {
+          "path": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\cache\\mi\\26065d42af08650e98c04293\\input.wav",
+          "hash": "5d742441bc5799a879daed9e277b345674aa5678accfa6fd2204c291310c3d42",
+          "mapping": {
+            "parentSourceId": "media_source_2b732adf537583d8980fd8a3f4688dc4a740712cbc758b876676a9e3bd4d64e1",
+            "parentHash": "3ffae7ccd5ea6f612f75efdf9a8318ccce79a5e4f355b26e233631330a57660f",
+            "offsetMs": 56000,
+            "rate": 1,
+            "coordinateSpace": "display_after_rotation",
+            "preprocessing": "source-pts-window-v2"
+          }
+        }
+      },
+      {
+        "id": "observation_94a9a874edc81f1ae32737f212c2af7daf4aa007491632eca9b372596026b744",
+        "range": {
+          "startMs": 84000,
+          "endMs": 114000
+        },
+        "facts": [
+          {
+            "modality": "audio",
+            "text": "持续的低频电子合成器音色，带有轻微的脉冲感和节奏性变化。",
+            "basis": "model",
+            "precision": "model_estimated",
+            "keywords": [
+              "electronic music",
+              "synthesizer",
+              "ambient",
+              "pulse"
+            ],
+            "speechPresence": "absent",
+            "musicPresence": "present"
+          }
+        ],
+        "unknowns": [
+          "这条事实尚无可靠源时间范围，不能作为连续采用范围的覆盖证明"
+        ],
+        "rawText": "{\"facts\": [{\"modality\": \"audio\", \"text\": \"持续的低频电子合成器音色，带有轻微的脉冲感和节奏性变化。\", \"keywords\": [\"electronic music\", \"synthesizer\", \"ambient\", \"pulse\"], \"speechPresence\": \"absent\", \"musicPresence\": \"present\"}], \"unknowns\": []}",
+        "jobId": "job_38e30363-0c0b-4ec1-87e7-94960be994d5",
+        "runId": "c350d721-7c08-437e-8236-9880efcfcc12",
+        "inputEvidence": {
+          "path": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\cache\\mi\\267200e1975322d61d662ff4\\input.wav",
+          "hash": "12a620c03c1304720ccdd4b8ec113e9e07837321a379bdacd9b067cecad4b947",
+          "mapping": {
+            "parentSourceId": "media_source_2b732adf537583d8980fd8a3f4688dc4a740712cbc758b876676a9e3bd4d64e1",
+            "parentHash": "3ffae7ccd5ea6f612f75efdf9a8318ccce79a5e4f355b26e233631330a57660f",
+            "offsetMs": 84000,
+            "rate": 1,
+            "coordinateSpace": "display_after_rotation",
+            "preprocessing": "source-pts-window-v2"
+          }
+        }
+      },
+      {
+        "id": "observation_bb14a9f0c4bb0e2b9e71b9df3a40f2f49023ba4656932124116e6d618a5ca2ea",
+        "range": {
+          "startMs": 112000,
+          "endMs": 142000
+        },
+        "facts": [
+          {
+            "modality": "audio",
+            "text": "持续的电子音乐背景音，包含合成器旋律、低频鼓点和环境氛围音效。",
+            "basis": "model",
+            "precision": "model_estimated",
+            "keywords": [
+              "electronic music",
+              "synthesizer melody",
+              "drum beat",
+              "ambient sound effect"
+            ],
+            "speechPresence": "absent",
+            "musicPresence": "present"
+          }
+        ],
+        "unknowns": [
+          "这条事实尚无可靠源时间范围，不能作为连续采用范围的覆盖证明"
+        ],
+        "rawText": "{\"facts\": [{\"modality\": \"audio\", \"text\": \"持续的电子音乐背景音，包含合成器旋律、低频鼓点和环境氛围音效。\", \"keywords\": [\"electronic music\", \"synthesizer melody\", \"drum beat\", \"ambient sound effect\"], \"speechPresence\": \"absent\", \"musicPresence\": \"present\"}], \"unknowns\": []}",
+        "jobId": "job_38e30363-0c0b-4ec1-87e7-94960be994d5",
+        "runId": "a44bddc5-a9b8-41d1-8d17-9f7ac76bd3ad",
+        "inputEvidence": {
+          "path": "E:\\ai\\VideoCut\\workspace\\projects\\project_1716474f-9b32-41f4-87f6-9b85441fbdbb\\cache\\mi\\9994b6796751c86c96de0510\\input.wav",
+          "hash": "8f22769614da51e6d0f2284230d36d9bb0e786ac4aa326eaf67d9190aebbd4d7",
+          "mapping": {
+            "parentSourceId": "media_source_2b732adf537583d8980fd8a3f4688dc4a740712cbc758b876676a9e3bd4d64e1",
+            "parentHash": "3ffae7ccd5ea6f612f75efdf9a8318ccce79a5e4f355b26e233631330a57660f",
+            "offsetMs": 112000,
+            "rate": 1,
+            "coordinateSpace": "display_after_rotation",
+            "preprocessing": "source-pts-window-v2"
+          }
+        }
+      }
+    ]
+  }
+]

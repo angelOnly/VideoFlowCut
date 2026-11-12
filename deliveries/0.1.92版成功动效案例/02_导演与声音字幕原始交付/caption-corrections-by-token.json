@@ -1,0 +1,919 @@
+[
+  {
+    "token_start_index": 0,
+    "token_end_index": 11,
+    "text": "最懂 AI 的那批人，正在害怕。",
+    "startFrame": 6,
+    "endFrame": 59,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_0261f948-b231-4385-8cc6-b08f0e868415"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 11,
+    "token_end_index": 25,
+    "text": "有人担心苦练多年的本事被取代，",
+    "startFrame": 67,
+    "endFrame": 126,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_aa651a45-810c-4091-8a50-b3bb9bd1950c"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 25,
+    "token_end_index": 38,
+    "text": "有人警告，AI 可能威胁人类生存。",
+    "startFrame": 126,
+    "endFrame": 188,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_aa651a45-810c-4091-8a50-b3bb9bd1950c"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 38,
+    "token_end_index": 45,
+    "text": "到底发生了什么，",
+    "startFrame": 197,
+    "endFrame": 226,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_2338cb84-d616-43b7-b29b-cae3a940c684"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 45,
+    "token_end_index": 61,
+    "text": "让离 AI 最近的人，开始担心它跑得太快？",
+    "startFrame": 228,
+    "endFrame": 298,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_2338cb84-d616-43b7-b29b-cae3a940c684"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 61,
+    "token_end_index": 75,
+    "text": "DeepSeek 工程师刘胜与写了一篇文章，",
+    "startFrame": 309,
+    "endFrame": 377,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_3819b550-4903-4b8f-ada1-955622cabff6"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 75,
+    "token_end_index": 88,
+    "text": "叫《我不得不把才华埋葬在昨天》。",
+    "startFrame": 377,
+    "endFrame": 436,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_3819b550-4903-4b8f-ada1-955622cabff6"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 88,
+    "token_end_index": 97,
+    "text": "他是北大图灵班出身，",
+    "startFrame": 445,
+    "endFrame": 483,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_f820161e-d559-4311-8fad-c992d25cad79"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 97,
+    "token_end_index": 105,
+    "text": "写过核心 Attention 算子。",
+    "startFrame": 483,
+    "endFrame": 526,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_f820161e-d559-4311-8fad-c992d25cad79"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 105,
+    "token_end_index": 116,
+    "text": "但他判断，再过半年到一年，",
+    "startFrame": 530,
+    "endFrame": 579,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_f820161e-d559-4311-8fad-c992d25cad79"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 116,
+    "token_end_index": 136,
+    "text": "这项苦练多年的能力，就可能被 AI 追上甚至超越。",
+    "startFrame": 579,
+    "endFrame": 670,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_f820161e-d559-4311-8fad-c992d25cad79"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 136,
+    "token_end_index": 146,
+    "text": "人得“转业”了，从亲自干活，",
+    "startFrame": 681,
+    "endFrame": 730,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_5580ba0f-fa3f-4c31-8e37-655312befaa0"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 146,
+    "token_end_index": 157,
+    "text": "变成指挥 Agent 的“机甲驾驶员”。",
+    "startFrame": 730,
+    "endFrame": 785,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_5580ba0f-fa3f-4c31-8e37-655312befaa0"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 157,
+    "token_end_index": 176,
+    "text": "而更大的变化是：AI 已经开始帮助人类研发 AI。",
+    "startFrame": 789,
+    "endFrame": 875,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_0998f4f9-0cba-4452-b5f2-936904562b26"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 176,
+    "token_end_index": 186,
+    "text": "这一过程如果不断加速，",
+    "startFrame": 880,
+    "endFrame": 925,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_abbdfbe0-a07b-407c-88d6-316951d8d7a6"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 186,
+    "token_end_index": 198,
+    "text": "就可能走向“递归式自我改进”：",
+    "startFrame": 925,
+    "endFrame": 975,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_abbdfbe0-a07b-407c-88d6-316951d8d7a6"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 198,
+    "token_end_index": 207,
+    "text": "AI 参与造出更强的 AI，",
+    "startFrame": 978,
+    "endFrame": 1025,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_abbdfbe0-a07b-407c-88d6-316951d8d7a6"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 207,
+    "token_end_index": 218,
+    "text": "再由更强的 AI 研发下一代。",
+    "startFrame": 1025,
+    "endFrame": 1073,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_abbdfbe0-a07b-407c-88d6-316951d8d7a6"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 218,
+    "token_end_index": 238,
+    "text": "过去，技术进步受限于人类研究员的时间和精力。",
+    "startFrame": 1080,
+    "endFrame": 1164,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_39a69d18-fe1b-4292-97aa-207ebc3dfc30"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 238,
+    "token_end_index": 244,
+    "text": "现在，人下班了，",
+    "startFrame": 1169,
+    "endFrame": 1200,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_39a69d18-fe1b-4292-97aa-207ebc3dfc30"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 244,
+    "token_end_index": 253,
+    "text": "背后的 Agent 还能继续跑。",
+    "startFrame": 1200,
+    "endFrame": 1243,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_39a69d18-fe1b-4292-97aa-207ebc3dfc30"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 253,
+    "token_end_index": 267,
+    "text": "但能力越强，一个问题就越难回避：",
+    "startFrame": 1251,
+    "endFrame": 1319,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_a7442b68-ffd8-4d6c-a41b-7b2cb223c044"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 267,
+    "token_end_index": 286,
+    "text": "它会不会为了完成目标，做出人类没允许的事？",
+    "startFrame": 1319,
+    "endFrame": 1402,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_a7442b68-ffd8-4d6c-a41b-7b2cb223c044"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 286,
+    "token_end_index": 303,
+    "text": "据相关复盘，OpenAI 的一次网络安全测试中，",
+    "startFrame": 1410,
+    "endFrame": 1497,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_867a026d-c96c-4eff-a1ac-8374b34f185b"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 303,
+    "token_end_index": 315,
+    "text": "Agent 不仅尝试钻评分器的空子，",
+    "startFrame": 1499,
+    "endFrame": 1551,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_867a026d-c96c-4eff-a1ac-8374b34f185b"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 315,
+    "token_end_index": 322,
+    "text": "还越过授权边界，",
+    "startFrame": 1551,
+    "endFrame": 1585,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_867a026d-c96c-4eff-a1ac-8374b34f185b"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 322,
+    "token_end_index": 334,
+    "text": "在外部服务器上执行了代码。",
+    "startFrame": 1585,
+    "endFrame": 1632,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_867a026d-c96c-4eff-a1ac-8374b34f185b"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 334,
+    "token_end_index": 341,
+    "text": "原本是让它做题，",
+    "startFrame": 1632,
+    "endFrame": 1673,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_867a026d-c96c-4eff-a1ac-8374b34f185b",
+        "speech_segment_5f447574-dae2-46ba-b373-620a9e8b8411"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 341,
+    "token_end_index": 352,
+    "text": "它却开始想办法突破考场。",
+    "startFrame": 1673,
+    "endFrame": 1720,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_5f447574-dae2-46ba-b373-620a9e8b8411"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 352,
+    "token_end_index": 370,
+    "text": "这也是为什么，Anthropic CEO 达里奥呼吁给 AI 踩刹车。",
+    "startFrame": 1720,
+    "endFrame": 1822,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_5f447574-dae2-46ba-b373-620a9e8b8411",
+        "speech_segment_bbb2123d-1d49-4d40-ac57-c3c05a90b2bb"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 370,
+    "token_end_index": 380,
+    "text": "他的意思不是停训几年，",
+    "startFrame": 1831,
+    "endFrame": 1876,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_44089ae6-669e-425b-94cd-78418fdec0f8"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 380,
+    "token_end_index": 393,
+    "text": "而是让安全研究和第三方评估，",
+    "startFrame": 1876,
+    "endFrame": 1937,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_44089ae6-669e-425b-94cd-78418fdec0f8"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 393,
+    "token_end_index": 404,
+    "text": "追上模型能力增长的速度。",
+    "startFrame": 1938,
+    "endFrame": 1988,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_44089ae6-669e-425b-94cd-78418fdec0f8"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 404,
+    "token_end_index": 419,
+    "text": "比如，让独立机构更深入地测试模型，",
+    "startFrame": 1993,
+    "endFrame": 2061,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_a5f8b1ec-c441-4c7b-b1d1-747791b5a726"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 419,
+    "token_end_index": 435,
+    "text": "让几家前沿公司遵守共同的安全标准，",
+    "startFrame": 2061,
+    "endFrame": 2131,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_a5f8b1ec-c441-4c7b-b1d1-747791b5a726"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 435,
+    "token_end_index": 444,
+    "text": "再逐步推动国际合作。",
+    "startFrame": 2136,
+    "endFrame": 2179,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_a5f8b1ec-c441-4c7b-b1d1-747791b5a726"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 444,
+    "token_end_index": 457,
+    "text": "听起来合理，但最难的问题来了：",
+    "startFrame": 2187,
+    "endFrame": 2239,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_4d71c924-2f13-46f4-a1b4-a19d26d03bba"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 457,
+    "token_end_index": 461,
+    "text": "谁先减速？",
+    "startFrame": 2239,
+    "endFrame": 2264,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_4d71c924-2f13-46f4-a1b4-a19d26d03bba"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 461,
+    "token_end_index": 476,
+    "text": "一家慢下来，竞争对手继续跑，怎么办？",
+    "startFrame": 2271,
+    "endFrame": 2342,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_5acf4361-a7b4-4f0a-b8ad-e9b7efa3e06c"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 476,
+    "token_end_index": 483,
+    "text": "一个国家踩刹车，",
+    "startFrame": 2349,
+    "endFrame": 2380,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_5acf4361-a7b4-4f0a-b8ad-e9b7efa3e06c"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 483,
+    "token_end_index": 495,
+    "text": "其他国家继续加速，又怎么办？",
+    "startFrame": 2380,
+    "endFrame": 2429,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_5acf4361-a7b4-4f0a-b8ad-e9b7efa3e06c"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 495,
+    "token_end_index": 512,
+    "text": "达里奥给出的思路，是一边推动安全合作，",
+    "startFrame": 2437,
+    "endFrame": 2506,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_c18ab12a-991d-4fd3-b972-ba9f796f27e1"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 512,
+    "token_end_index": 528,
+    "text": "一边通过芯片、算力和模型保护等措施，",
+    "startFrame": 2507,
+    "endFrame": 2585,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_c18ab12a-991d-4fd3-b972-ba9f796f27e1"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 528,
+    "token_end_index": 544,
+    "text": "维持美国的领先优势，为减速争取空间。",
+    "startFrame": 2588,
+    "endFrame": 2662,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_c18ab12a-991d-4fd3-b972-ba9f796f27e1"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 544,
+    "token_end_index": 552,
+    "text": "争议也恰恰在这里。",
+    "startFrame": 2670,
+    "endFrame": 2719,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_9e5187bf-b706-4c63-89b7-146012f0b4f8"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 552,
+    "token_end_index": 559,
+    "text": "你是在防范风险，",
+    "startFrame": 2725,
+    "endFrame": 2757,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_37fa5bc4-ab6e-43bd-9e13-1dee37ab23f8"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 559,
+    "token_end_index": 573,
+    "text": "还是自己上了车，就想把车门焊死？",
+    "startFrame": 2757,
+    "endFrame": 2816,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_37fa5bc4-ab6e-43bd-9e13-1dee37ab23f8"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 573,
+    "token_end_index": 585,
+    "text": "这不代表他的担忧都是假的。",
+    "startFrame": 2825,
+    "endFrame": 2877,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_15c0a777-47bc-48ff-89b0-13e2043f908f"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 585,
+    "token_end_index": 604,
+    "text": "但安全主张和商业利益、国家竞争交织在一起，",
+    "startFrame": 2885,
+    "endFrame": 2966,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_15c0a777-47bc-48ff-89b0-13e2043f908f"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 604,
+    "token_end_index": 614,
+    "text": "很难让所有人放心跟进。",
+    "startFrame": 2971,
+    "endFrame": 3018,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_15c0a777-47bc-48ff-89b0-13e2043f908f"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 614,
+    "token_end_index": 626,
+    "text": "于是，AI 发展陷入了一个困局：",
+    "startFrame": 3024,
+    "endFrame": 3078,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_0cfae18a-ea5f-4423-b061-bac6c46f165b"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 626,
+    "token_end_index": 638,
+    "text": "大家一起慢下来，可能更安全；",
+    "startFrame": 3086,
+    "endFrame": 3138,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_88ece2c2-6d62-424f-8b78-0a951aea474b"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 638,
+    "token_end_index": 651,
+    "text": "可只要不确定别人会不会减速，",
+    "startFrame": 3144,
+    "endFrame": 3200,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_88ece2c2-6d62-424f-8b78-0a951aea474b"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 651,
+    "token_end_index": 659,
+    "text": "谁都不敢先松油门。",
+    "startFrame": 3200,
+    "endFrame": 3240,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_88ece2c2-6d62-424f-8b78-0a951aea474b"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 659,
+    "token_end_index": 680,
+    "text": "支持继续加速的人认为，不能因为尚未发生的灾难，",
+    "startFrame": 3250,
+    "endFrame": 3346,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_72316722-09f6-4f52-94d7-30a04228ca3d"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 680,
+    "token_end_index": 689,
+    "text": "放弃眼前的技术机会。",
+    "startFrame": 3346,
+    "endFrame": 3385,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_72316722-09f6-4f52-94d7-30a04228ca3d"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 689,
+    "token_end_index": 705,
+    "text": "主张谨慎的人则担心，等危险真正发生，",
+    "startFrame": 3397,
+    "endFrame": 3477.0,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_7a4037ee-62bf-4fdb-98ee-ac5eb99ce841"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 705,
+    "token_end_index": 713,
+    "text": "可能已经来不及了。",
+    "startFrame": 3477.0,
+    "endFrame": 3507,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_7a4037ee-62bf-4fdb-98ee-ac5eb99ce841"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 713,
+    "token_end_index": 725,
+    "text": "最懂 AI 的人，也没有一致答案。",
+    "startFrame": 3512,
+    "endFrame": 3566,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_be176661-e529-4614-8f76-21af3514d94e"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 725,
+    "token_end_index": 741,
+    "text": "真正的问题或许是：在继续踩油门之前，",
+    "startFrame": 3575,
+    "endFrame": 3649,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_0e660872-7f87-4268-a9b2-cbffd90df64a"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  },
+  {
+    "token_start_index": 741,
+    "token_end_index": 750,
+    "text": "我们有没有装好刹车？",
+    "startFrame": 3649,
+    "endFrame": 3685,
+    "source_text_review": {
+      "speechSegmentIds": [
+        "speech_segment_0e660872-7f87-4268-a9b2-cbffd90df64a"
+      ],
+      "note": "对照用户确认的当前Script Revision 1逐卡校订，保留真实token时序；未宣称实际回听。",
+      "scriptRevision": 1,
+      "basis": "confirmed_script"
+    }
+  }
+]

@@ -1,0 +1,34 @@
+[
+  {
+    "assetRequestId": "asset_request_eb6130b5-2a73-448e-895c-c72d73668bb9",
+    "candidateIds": [
+      "asset_candidate_88560f1a-5fb3-4136-9b3e-18598a575088",
+      "asset_candidate_d51858f5-01ce-4766-8b0b-7a0cc5c1f083"
+    ],
+    "analyzeTop": 2
+  },
+  {
+    "assetRequestId": "asset_request_887e7878-99d1-41b8-9ed1-4d2a28b85513",
+    "candidateIds": [
+      "asset_candidate_cd312fb4-c6a2-4a65-90cd-16e60e11eff2",
+      "asset_candidate_b80223e8-b4ce-4990-81bd-be705619a796"
+    ],
+    "analyzeTop": 2
+  },
+  {
+    "assetRequestId": "asset_request_e8e2271f-56ef-4837-9bcb-96d26ea26dc2",
+    "candidateIds": [
+      "asset_candidate_6fee0237-e213-4f76-99f8-ac1f2637b099",
+      "asset_candidate_9a0ecedb-d6cc-4d99-b3d1-9e83d97ad594"
+    ],
+    "analyzeTop": 2
+  },
+  {
+    "assetRequestId": "asset_request_216125f8-d264-4d66-9b54-0eed0cdf08a7",
+    "candidateIds": [
+      "asset_candidate_08324a7f-e7fa-4ac7-9eac-1fdb6954f761",
+      "asset_candidate_031c1855-5924-427c-9b7c-9c462a74d18f"
+    ],
+    "analyzeTop": 2
+  }
+]

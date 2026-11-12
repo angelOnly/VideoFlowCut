@@ -1,0 +1,1335 @@
+{
+  "revision": 26,
+  "timing": {
+    "precision": "segment_exact",
+    "source": "OmniVoice 输出真实时长 + 明确段间停顿",
+    "segments": [
+      {
+        "speechSegmentId": "speech_segment_0261f948-b231-4385-8cc6-b08f0e868415",
+        "startMs": 0,
+        "endMs": 2060,
+        "startFrame": 0,
+        "endFrame": 62
+      },
+      {
+        "speechSegmentId": "speech_segment_aa651a45-810c-4091-8a50-b3bb9bd1950c",
+        "startMs": 2060,
+        "endMs": 6380,
+        "startFrame": 62,
+        "endFrame": 191
+      },
+      {
+        "speechSegmentId": "speech_segment_2338cb84-d616-43b7-b29b-cae3a940c684",
+        "startMs": 6380,
+        "endMs": 10090,
+        "startFrame": 191,
+        "endFrame": 303
+      },
+      {
+        "speechSegmentId": "speech_segment_3819b550-4903-4b8f-ada1-955622cabff6",
+        "startMs": 10090,
+        "endMs": 14650,
+        "startFrame": 303,
+        "endFrame": 440
+      },
+      {
+        "speechSegmentId": "speech_segment_f820161e-d559-4311-8fad-c992d25cad79",
+        "startMs": 14650,
+        "endMs": 22490,
+        "startFrame": 440,
+        "endFrame": 675
+      },
+      {
+        "speechSegmentId": "speech_segment_5580ba0f-fa3f-4c31-8e37-655312befaa0",
+        "startMs": 22490,
+        "endMs": 26180,
+        "startFrame": 675,
+        "endFrame": 785
+      },
+      {
+        "speechSegmentId": "speech_segment_0998f4f9-0cba-4452-b5f2-936904562b26",
+        "startMs": 26180,
+        "endMs": 29210,
+        "startFrame": 785,
+        "endFrame": 876
+      },
+      {
+        "speechSegmentId": "speech_segment_abbdfbe0-a07b-407c-88d6-316951d8d7a6",
+        "startMs": 29210,
+        "endMs": 35890,
+        "startFrame": 876,
+        "endFrame": 1077
+      },
+      {
+        "speechSegmentId": "speech_segment_39a69d18-fe1b-4292-97aa-207ebc3dfc30",
+        "startMs": 35890,
+        "endMs": 41580,
+        "startFrame": 1077,
+        "endFrame": 1247
+      },
+      {
+        "speechSegmentId": "speech_segment_a7442b68-ffd8-4d6c-a41b-7b2cb223c044",
+        "startMs": 41580,
+        "endMs": 46910,
+        "startFrame": 1247,
+        "endFrame": 1407
+      },
+      {
+        "speechSegmentId": "speech_segment_867a026d-c96c-4eff-a1ac-8374b34f185b",
+        "startMs": 46910,
+        "endMs": 54680,
+        "startFrame": 1407,
+        "endFrame": 1640
+      },
+      {
+        "speechSegmentId": "speech_segment_5f447574-dae2-46ba-b373-620a9e8b8411",
+        "startMs": 54680,
+        "endMs": 57600,
+        "startFrame": 1640,
+        "endFrame": 1728
+      },
+      {
+        "speechSegmentId": "speech_segment_bbb2123d-1d49-4d40-ac57-c3c05a90b2bb",
+        "startMs": 57600,
+        "endMs": 60840,
+        "startFrame": 1728,
+        "endFrame": 1825
+      },
+      {
+        "speechSegmentId": "speech_segment_44089ae6-669e-425b-94cd-78418fdec0f8",
+        "startMs": 60840,
+        "endMs": 66320,
+        "startFrame": 1825,
+        "endFrame": 1990
+      },
+      {
+        "speechSegmentId": "speech_segment_a5f8b1ec-c441-4c7b-b1d1-747791b5a726",
+        "startMs": 66320,
+        "endMs": 72720,
+        "startFrame": 1990,
+        "endFrame": 2182
+      },
+      {
+        "speechSegmentId": "speech_segment_4d71c924-2f13-46f4-a1b4-a19d26d03bba",
+        "startMs": 72720,
+        "endMs": 75580,
+        "startFrame": 2182,
+        "endFrame": 2267
+      },
+      {
+        "speechSegmentId": "speech_segment_5acf4361-a7b4-4f0a-b8ad-e9b7efa3e06c",
+        "startMs": 75580,
+        "endMs": 81060,
+        "startFrame": 2267,
+        "endFrame": 2432
+      },
+      {
+        "speechSegmentId": "speech_segment_c18ab12a-991d-4fd3-b972-ba9f796f27e1",
+        "startMs": 81060,
+        "endMs": 88880,
+        "startFrame": 2432,
+        "endFrame": 2666
+      },
+      {
+        "speechSegmentId": "speech_segment_9e5187bf-b706-4c63-89b7-146012f0b4f8",
+        "startMs": 88880,
+        "endMs": 90750,
+        "startFrame": 2666,
+        "endFrame": 2723
+      },
+      {
+        "speechSegmentId": "speech_segment_37fa5bc4-ab6e-43bd-9e13-1dee37ab23f8",
+        "startMs": 90750,
+        "endMs": 94090,
+        "startFrame": 2723,
+        "endFrame": 2823
+      },
+      {
+        "speechSegmentId": "speech_segment_15c0a777-47bc-48ff-89b0-13e2043f908f",
+        "startMs": 94090,
+        "endMs": 100660,
+        "startFrame": 2823,
+        "endFrame": 3020
+      },
+      {
+        "speechSegmentId": "speech_segment_0cfae18a-ea5f-4423-b061-bac6c46f165b",
+        "startMs": 100660,
+        "endMs": 102760,
+        "startFrame": 3020,
+        "endFrame": 3083
+      },
+      {
+        "speechSegmentId": "speech_segment_88ece2c2-6d62-424f-8b78-0a951aea474b",
+        "startMs": 102760,
+        "endMs": 108110,
+        "startFrame": 3083,
+        "endFrame": 3243
+      },
+      {
+        "speechSegmentId": "speech_segment_72316722-09f6-4f52-94d7-30a04228ca3d",
+        "startMs": 108110,
+        "endMs": 112990,
+        "startFrame": 3243,
+        "endFrame": 3390
+      },
+      {
+        "speechSegmentId": "speech_segment_7a4037ee-62bf-4fdb-98ee-ac5eb99ce841",
+        "startMs": 112990,
+        "endMs": 116950,
+        "startFrame": 3390,
+        "endFrame": 3509
+      },
+      {
+        "speechSegmentId": "speech_segment_be176661-e529-4614-8f76-21af3514d94e",
+        "startMs": 116950,
+        "endMs": 119040,
+        "startFrame": 3509,
+        "endFrame": 3571
+      },
+      {
+        "speechSegmentId": "speech_segment_0e660872-7f87-4268-a9b2-cbffd90df64a",
+        "startMs": 119040,
+        "endMs": 123060,
+        "startFrame": 3571,
+        "endFrame": 3692
+      }
+    ]
+  },
+  "segments": [
+    {
+      "id": "speech_segment_0261f948-b231-4385-8cc6-b08f0e868415",
+      "semanticUnitIds": [
+        "semantic_01e37803-aaae-4a70-91eb-e5c3c04ff1b5"
+      ],
+      "text": "最懂 AI 的那批人，正在害怕。",
+      "order": 0,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_aa651a45-810c-4091-8a50-b3bb9bd1950c",
+      "semanticUnitIds": [
+        "semantic_8569b16a-44d8-4470-a901-dd2e8a37a2cb"
+      ],
+      "text": "有人担心苦练多年的本事被取代，有人警告，AI 可能威胁人类生存。",
+      "order": 1,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_2338cb84-d616-43b7-b29b-cae3a940c684",
+      "semanticUnitIds": [
+        "semantic_87ba2af4-4e39-4486-b06a-b76d032d317d"
+      ],
+      "text": "到底发生了什么，让离 AI 最近的人，开始担心它跑得太快？",
+      "order": 2,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_3819b550-4903-4b8f-ada1-955622cabff6",
+      "semanticUnitIds": [
+        "semantic_a2c880e3-6286-45ef-8155-57a79d8518eb"
+      ],
+      "text": "DeepSeek 工程师刘胜与写了一篇文章，叫《我不得不把才华埋葬在昨天》。",
+      "order": 3,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_f820161e-d559-4311-8fad-c992d25cad79",
+      "semanticUnitIds": [
+        "semantic_b3b43772-75bf-4e11-937f-857477b8feb4"
+      ],
+      "text": "他是北大图灵班出身，写过核心 Attention 算子。但他判断，再过半年到一年，这项苦练多年的能力，就可能被 AI 追上甚至超越。",
+      "order": 4,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_5580ba0f-fa3f-4c31-8e37-655312befaa0",
+      "semanticUnitIds": [
+        "semantic_99aa906c-d69e-4f8a-8389-9549b17fc473"
+      ],
+      "text": "人得“转业”了，从亲自干活，变成指挥 Agent 的“机甲驾驶员”。",
+      "order": 5,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_0998f4f9-0cba-4452-b5f2-936904562b26",
+      "semanticUnitIds": [
+        "semantic_104246b9-b291-4908-b973-2506fb385967"
+      ],
+      "text": "而更大的变化是：AI 已经开始帮助人类研发 AI。",
+      "order": 6,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_abbdfbe0-a07b-407c-88d6-316951d8d7a6",
+      "semanticUnitIds": [
+        "semantic_5bd561a5-f8bd-4361-b766-facd928745a5"
+      ],
+      "text": "这一过程如果不断加速，就可能走向“递归式自我改进”：AI 参与造出更强的 AI，再由更强的 AI 研发下一代。",
+      "order": 7,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_39a69d18-fe1b-4292-97aa-207ebc3dfc30",
+      "semanticUnitIds": [
+        "semantic_a770d1ef-5231-464b-bba5-789012aee67e"
+      ],
+      "text": "过去，技术进步受限于人类研究员的时间和精力。现在，人下班了，背后的 Agent 还能继续跑。",
+      "order": 8,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_a7442b68-ffd8-4d6c-a41b-7b2cb223c044",
+      "semanticUnitIds": [
+        "semantic_5c789e00-41a8-4f81-9c36-e1d1d34909fa"
+      ],
+      "text": "但能力越强，一个问题就越难回避：它会不会为了完成目标，做出人类没允许的事？",
+      "order": 9,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_867a026d-c96c-4eff-a1ac-8374b34f185b",
+      "semanticUnitIds": [
+        "semantic_7a3f5391-864c-4a18-ba02-9dc52378a323"
+      ],
+      "text": "据相关复盘，OpenAI 的一次网络安全测试中，Agent 不仅尝试钻评分器的空子，还越过授权边界，在外部服务器上执行了代码。",
+      "order": 10,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_5f447574-dae2-46ba-b373-620a9e8b8411",
+      "semanticUnitIds": [
+        "semantic_d006d4e5-5fc9-49de-b87e-50c898915d61"
+      ],
+      "text": "原本是让它做题，它却开始想办法突破考场。",
+      "order": 11,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_bbb2123d-1d49-4d40-ac57-c3c05a90b2bb",
+      "semanticUnitIds": [
+        "semantic_d32d62c8-19e6-42a2-aabb-f6940173b868"
+      ],
+      "text": "这也是为什么，Anthropic CEO 达里奥呼吁给 AI 踩刹车。",
+      "order": 12,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_44089ae6-669e-425b-94cd-78418fdec0f8",
+      "semanticUnitIds": [
+        "semantic_0097c63b-dc6e-4143-9e6a-1adbab393944"
+      ],
+      "text": "他的意思不是停训几年，而是让安全研究和第三方评估，追上模型能力增长的速度。",
+      "order": 13,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_a5f8b1ec-c441-4c7b-b1d1-747791b5a726",
+      "semanticUnitIds": [
+        "semantic_672cba20-cae5-427b-8e49-cbd6959825a1"
+      ],
+      "text": "比如，让独立机构更深入地测试模型，让几家前沿公司遵守共同的安全标准，再逐步推动国际合作。",
+      "order": 14,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_4d71c924-2f13-46f4-a1b4-a19d26d03bba",
+      "semanticUnitIds": [
+        "semantic_d2cade38-f072-4ea3-94e1-6b79806990f8"
+      ],
+      "text": "听起来合理，但最难的问题来了：谁先减速？",
+      "order": 15,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_5acf4361-a7b4-4f0a-b8ad-e9b7efa3e06c",
+      "semanticUnitIds": [
+        "semantic_08b0285e-1813-4fa2-8331-70943a76d24d"
+      ],
+      "text": "一家慢下来，竞争对手继续跑，怎么办？一个国家踩刹车，其他国家继续加速，又怎么办？",
+      "order": 16,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_c18ab12a-991d-4fd3-b972-ba9f796f27e1",
+      "semanticUnitIds": [
+        "semantic_18c61d7e-1ccd-4d2b-96b8-38ec09ba5899"
+      ],
+      "text": "达里奥给出的思路，是一边推动安全合作，一边通过芯片、算力和模型保护等措施，维持美国的领先优势，为减速争取空间。",
+      "order": 17,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_9e5187bf-b706-4c63-89b7-146012f0b4f8",
+      "semanticUnitIds": [
+        "semantic_6e71524b-0369-4ce1-8cc5-f9eb08a410d1"
+      ],
+      "text": "争议也恰恰在这里。",
+      "order": 18,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_37fa5bc4-ab6e-43bd-9e13-1dee37ab23f8",
+      "semanticUnitIds": [
+        "semantic_374e81d7-f2b9-4b66-98c1-4757712a7275"
+      ],
+      "text": "你是在防范风险，还是自己上了车，就想把车门焊死？",
+      "order": 19,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_15c0a777-47bc-48ff-89b0-13e2043f908f",
+      "semanticUnitIds": [
+        "semantic_b0d1ed2f-41c7-4ec6-a8b0-23b0f09d67d2"
+      ],
+      "text": "这不代表他的担忧都是假的。但安全主张和商业利益、国家竞争交织在一起，很难让所有人放心跟进。",
+      "order": 20,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_0cfae18a-ea5f-4423-b061-bac6c46f165b",
+      "semanticUnitIds": [
+        "semantic_cc31e4c3-3720-4667-834f-689ee958ce01"
+      ],
+      "text": "于是，AI 发展陷入了一个困局：",
+      "order": 21,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_88ece2c2-6d62-424f-8b78-0a951aea474b",
+      "semanticUnitIds": [
+        "semantic_f92da392-f494-4630-9909-d68915745e5f"
+      ],
+      "text": "大家一起慢下来，可能更安全；可只要不确定别人会不会减速，谁都不敢先松油门。",
+      "order": 22,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_72316722-09f6-4f52-94d7-30a04228ca3d",
+      "semanticUnitIds": [
+        "semantic_819784c8-d1a0-4558-a5a8-a7a884fc1d50"
+      ],
+      "text": "支持继续加速的人认为，不能因为尚未发生的灾难，放弃眼前的技术机会。",
+      "order": 23,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_7a4037ee-62bf-4fdb-98ee-ac5eb99ce841",
+      "semanticUnitIds": [
+        "semantic_73f842f8-6911-4b34-961b-4292b9dc3c3a"
+      ],
+      "text": "主张谨慎的人则担心，等危险真正发生，可能已经来不及了。",
+      "order": 24,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_be176661-e529-4614-8f76-21af3514d94e",
+      "semanticUnitIds": [
+        "semantic_40a56389-c9b1-44c2-b1cf-42f5ca82db35"
+      ],
+      "text": "最懂 AI 的人，也没有一致答案。",
+      "order": 25,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    },
+    {
+      "id": "speech_segment_0e660872-7f87-4268-a9b2-cbffd90df64a",
+      "semanticUnitIds": [
+        "semantic_d26deb6c-097c-4c09-9beb-70ac50a4cfce"
+      ],
+      "text": "真正的问题或许是：在继续踩油门之前，我们有没有装好刹车？",
+      "order": 26,
+      "pauseBefore": {
+        "durationMs": 0,
+        "reason": "sentence"
+      },
+      "prePauseMs": 0,
+      "postPauseMs": 0,
+      "status": "ready"
+    }
+  ],
+  "assets": [
+    {
+      "id": "asset_8fd9cf33-1434-4ac0-9222-ad79b6baf48e",
+      "managedPath": "assets/derived/source-material/job_027d0b06-1b5e-41b7-87e0-a81a7b402805/original.png",
+      "metadata": {
+        "durationMs": 0,
+        "width": 1440,
+        "height": 4905,
+        "fps": 25,
+        "hasAudio": false,
+        "videoCodec": "png",
+        "pixelFormat": "rgb24",
+        "hasAlpha": false,
+        "mime": "png_pipe"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_7ef67096-fdef-449c-b7eb-1d6fbbc4a2dd",
+      "managedPath": "assets/derived/source-material/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/original.pdf",
+      "metadata": {
+        "durationMs": 0,
+        "hasAudio": false,
+        "mime": "application/pdf"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_1298d8ca-f673-4a34-90c0-a674c01ce9f6",
+      "managedPath": "assets/derived/source-material/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/page-1.png",
+      "metadata": {
+        "durationMs": 0,
+        "width": 1391,
+        "height": 1800,
+        "fps": 25,
+        "hasAudio": false,
+        "videoCodec": "png",
+        "pixelFormat": "rgb24",
+        "hasAlpha": false,
+        "mime": "png_pipe"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_75ca0a09-4079-4a27-ab9e-81330ead38c8",
+      "managedPath": "assets/derived/source-material/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/page-4.png",
+      "metadata": {
+        "durationMs": 0,
+        "width": 1391,
+        "height": 1800,
+        "fps": 25,
+        "hasAudio": false,
+        "videoCodec": "png",
+        "pixelFormat": "rgb24",
+        "hasAlpha": false,
+        "mime": "png_pipe"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_713697be-26d8-456f-940c-d3d982878157",
+      "managedPath": "assets/derived/source-material/job_f4f0fac5-7396-4f96-b80c-4352ba466ae6/page-9.png",
+      "metadata": {
+        "durationMs": 0,
+        "width": 1391,
+        "height": 1800,
+        "fps": 25,
+        "hasAudio": false,
+        "videoCodec": "png",
+        "pixelFormat": "rgb24",
+        "hasAlpha": false,
+        "mime": "png_pipe"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_8d744500-1457-40ba-b0ca-d9bd8109244c",
+      "managedPath": "assets/derived/source-material/job_9a2e5b08-b581-4043-b29e-8ad2be94d009/original.jpg",
+      "metadata": {
+        "durationMs": 40,
+        "width": 2636,
+        "height": 3700,
+        "fps": 25,
+        "hasAudio": false,
+        "videoCodec": "mjpeg",
+        "pixelFormat": "yuvj420p",
+        "hasAlpha": false,
+        "mime": "image2"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_c9b98380-ed3f-48ba-8fd3-b402f1305490",
+      "managedPath": "assets/derived/source-material/job_a4012d30-412e-44ba-8c98-9b4c1544fa40/original.png",
+      "metadata": {
+        "durationMs": 0,
+        "width": 1440,
+        "height": 3444,
+        "fps": 25,
+        "hasAudio": false,
+        "videoCodec": "png",
+        "pixelFormat": "rgb24",
+        "hasAlpha": false,
+        "mime": "png_pipe"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_64826ac5-2c1e-47c0-99ee-43d8b6b11c86",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_0261f948-b231-4385-8cc6-b08f0e868415-ComfyUI_temp_ydtzi_00003.flac",
+      "metadata": {
+        "durationMs": 2060,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_be60933b-7144-408b-a52c-9bc1b3261d83",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_aa651a45-810c-4091-8a50-b3bb9bd1950c-ComfyUI_temp_rwzte_00003.flac",
+      "metadata": {
+        "durationMs": 4320,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_2dc6ef64-3864-4056-b89a-dfc8303e7445",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_2338cb84-d616-43b7-b29b-cae3a940c684-ComfyUI_temp_jdxcv_00003.flac",
+      "metadata": {
+        "durationMs": 3710,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_84be5b38-a0e1-4421-95fc-75149eb5fb1a",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_3819b550-4903-4b8f-ada1-955622cabff6-ComfyUI_temp_kprdl_00003.flac",
+      "metadata": {
+        "durationMs": 4560,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_448c90b5-943c-43c7-8960-00562b14d6a4",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_f820161e-d559-4311-8fad-c992d25cad79-ComfyUI_temp_nktug_00003.flac",
+      "metadata": {
+        "durationMs": 7840,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_7be90b46-713d-4a7f-afb6-e9db0c14a38e",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_5580ba0f-fa3f-4c31-8e37-655312befaa0-ComfyUI_temp_rpoqi_00003.flac",
+      "metadata": {
+        "durationMs": 3690,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_f45b8122-c640-4a3c-ac8a-d533d8e246f1",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_0998f4f9-0cba-4452-b5f2-936904562b26-ComfyUI_temp_bzrac_00003.flac",
+      "metadata": {
+        "durationMs": 3030,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_4b689a9c-609c-4b31-a3b2-aa2782ea3af6",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_abbdfbe0-a07b-407c-88d6-316951d8d7a6-ComfyUI_temp_xmwzv_00003.flac",
+      "metadata": {
+        "durationMs": 6680,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_fe2729e5-6cdc-4709-97bf-5c6d8d50d0c9",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_39a69d18-fe1b-4292-97aa-207ebc3dfc30-ComfyUI_temp_uatpk_00003.flac",
+      "metadata": {
+        "durationMs": 5690,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_2b8afd5b-6d54-44bf-a4ef-79a7628695db",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_a7442b68-ffd8-4d6c-a41b-7b2cb223c044-ComfyUI_temp_hxkwc_00003.flac",
+      "metadata": {
+        "durationMs": 5330,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_1695853f-6fc3-4b0c-8e3f-00b89678f900",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_867a026d-c96c-4eff-a1ac-8374b34f185b-ComfyUI_temp_gshhz_00003.flac",
+      "metadata": {
+        "durationMs": 7770,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_17ab46e1-0ea8-47a4-90f6-aff1298ad613",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_5f447574-dae2-46ba-b373-620a9e8b8411-ComfyUI_temp_ezroc_00003.flac",
+      "metadata": {
+        "durationMs": 2920,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_c61e6617-1541-4744-ab09-adb2a8f23127",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_bbb2123d-1d49-4d40-ac57-c3c05a90b2bb-ComfyUI_temp_ckqpd_00003.flac",
+      "metadata": {
+        "durationMs": 3240,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_18967aa1-9ed0-4661-88a1-55a08d1a70b9",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_44089ae6-669e-425b-94cd-78418fdec0f8-ComfyUI_temp_jrjwd_00002.flac",
+      "metadata": {
+        "durationMs": 5480,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_ca49c6fd-a7e6-498d-8c2e-fe39e17dee8a",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_a5f8b1ec-c441-4c7b-b1d1-747791b5a726-ComfyUI_temp_rkrgz_00002.flac",
+      "metadata": {
+        "durationMs": 6400,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_090d43cb-0223-493d-bed3-3a885d282cb5",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_4d71c924-2f13-46f4-a1b4-a19d26d03bba-ComfyUI_temp_trsjo_00002.flac",
+      "metadata": {
+        "durationMs": 2860,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_675fb4cd-bc2a-43ce-9ea7-49351787402b",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_5acf4361-a7b4-4f0a-b8ad-e9b7efa3e06c-ComfyUI_temp_ctzmk_00001.flac",
+      "metadata": {
+        "durationMs": 5480,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_01b9540b-4db6-4da7-a7e0-161adf12fc9f",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_c18ab12a-991d-4fd3-b972-ba9f796f27e1-ComfyUI_temp_shjfg_00001.flac",
+      "metadata": {
+        "durationMs": 7820,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_e86c156d-1224-4bce-a571-214462e0f12d",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_9e5187bf-b706-4c63-89b7-146012f0b4f8-ComfyUI_temp_fbtvi_00001.flac",
+      "metadata": {
+        "durationMs": 1870,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_55b05866-4ac7-4730-939e-53893a74b58a",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_37fa5bc4-ab6e-43bd-9e13-1dee37ab23f8-ComfyUI_temp_pccvy_00001.flac",
+      "metadata": {
+        "durationMs": 3340,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_9675ac54-8c20-41b0-a926-d3c55b6ce987",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_15c0a777-47bc-48ff-89b0-13e2043f908f-ComfyUI_temp_eebcw_00001.flac",
+      "metadata": {
+        "durationMs": 6570,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_6f7fe504-ff92-47d6-ad64-fd6d068f42c7",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_0cfae18a-ea5f-4423-b061-bac6c46f165b-ComfyUI_temp_rvmwq_00001.flac",
+      "metadata": {
+        "durationMs": 2100,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_3c6bbcc6-50b5-4710-bb55-8a9ef188314b",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_88ece2c2-6d62-424f-8b78-0a951aea474b-ComfyUI_temp_iqzhg_00001.flac",
+      "metadata": {
+        "durationMs": 5350,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_6575c95f-098b-4420-a26a-33ac9ec2959d",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_72316722-09f6-4f52-94d7-30a04228ca3d-ComfyUI_temp_vsnsi_00001.flac",
+      "metadata": {
+        "durationMs": 4880,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_2b37982c-e7a6-4910-940d-b2568a2cc959",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_7a4037ee-62bf-4fdb-98ee-ac5eb99ce841-ComfyUI_temp_opvuw_00001.flac",
+      "metadata": {
+        "durationMs": 3960,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_4be3b007-f491-4bd1-82b5-157c17fd786d",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_be176661-e529-4614-8f76-21af3514d94e-ComfyUI_temp_ydtzi_00004.flac",
+      "metadata": {
+        "durationMs": 2090,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_116ba981-e738-4a43-bb7d-1229c0dacc66",
+      "managedPath": "assets\\speech\\job_70fe6843-c950-4682-b0cb-635eeb262292\\speech_segment_0e660872-7f87-4268-a9b2-cbffd90df64a-ComfyUI_temp_ydtzi_00005.flac",
+      "metadata": {
+        "durationMs": 4020,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      },
+      "status": "ready"
+    },
+    {
+      "id": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+      "managedPath": "assets\\speech\\speech-job_70fe6843-c950-4682-b0cb-635eeb262292.wav",
+      "metadata": {
+        "durationMs": 123060,
+        "hasAudio": true,
+        "audioCodec": "pcm_s16le",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "wav"
+      },
+      "status": "ready"
+    }
+  ],
+  "speechAsset": {
+    "id": "speech_asset_2fd9738a-59de-47dd-a6a7-a30c66827852",
+    "assetId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d",
+    "scriptRevision": 1,
+    "segmentAssetIds": [
+      "speech_segment_asset_200fada8-6ba1-4d6c-809c-e9619504da1a",
+      "speech_segment_asset_df9270df-3149-42a3-8ec5-73bd32e95c17",
+      "speech_segment_asset_82bae031-eca7-420f-8221-e704c0ea9a5b",
+      "speech_segment_asset_c1b50b90-6b53-499d-b888-ee14926a24c7",
+      "speech_segment_asset_8120471d-dfe1-425f-9cc2-af0c841e87cb",
+      "speech_segment_asset_2a76dab7-201d-41b0-a143-61721620402b",
+      "speech_segment_asset_4fd4844f-e2b8-451f-adfb-e9c25bbff445",
+      "speech_segment_asset_675ce4c4-68e6-4e76-9073-10ae6af7f478",
+      "speech_segment_asset_9c1b7b85-a8e8-413f-9413-7a79afed4a67",
+      "speech_segment_asset_d75c4d74-45ad-444d-8a94-2a22928a8bb6",
+      "speech_segment_asset_473dd457-062a-421d-91b5-3c6aac562d43",
+      "speech_segment_asset_6b8d33bb-3c65-465f-a00c-cbacd01b27e3",
+      "speech_segment_asset_f7a7ec7f-60f1-41f9-9bc3-abf3747d9ec6",
+      "speech_segment_asset_f8b67a70-7c22-4f7b-8219-1fa8ad95234e",
+      "speech_segment_asset_fd296be3-731c-45c1-9a07-4fae8fc1d748",
+      "speech_segment_asset_1d7c29b8-c85d-44f5-8092-7fe8500b4533",
+      "speech_segment_asset_ab2a30a6-8640-4ca1-b96a-71d88241f4f2",
+      "speech_segment_asset_37be3875-e052-479f-9977-ce8b369ca006",
+      "speech_segment_asset_8edfbb0e-5953-4adb-a907-3b389219834f",
+      "speech_segment_asset_809023ae-204d-4642-a964-26e38287694f",
+      "speech_segment_asset_05b5e590-56af-4164-9932-d83ab167435a",
+      "speech_segment_asset_ec4a9e5c-04d9-49f4-8bae-75a249ea0bea",
+      "speech_segment_asset_114dea01-56fd-4eba-81ef-252d55e04458",
+      "speech_segment_asset_efd54e4f-0dde-48b0-b16c-a9576fe85c8f",
+      "speech_segment_asset_0e7624af-cb40-4d61-970b-8fa5b19bd979",
+      "speech_segment_asset_05d55c63-d9ec-43ec-92c7-53c2614156ac",
+      "speech_segment_asset_f473a5b5-0e94-48e3-b775-b39d062f4ff1"
+    ],
+    "timing": {
+      "precision": "segment_exact",
+      "source": "OmniVoice 输出真实时长 + 明确段间停顿",
+      "segments": [
+        {
+          "speechSegmentId": "speech_segment_0261f948-b231-4385-8cc6-b08f0e868415",
+          "startMs": 0,
+          "endMs": 2060,
+          "startFrame": 0,
+          "endFrame": 62
+        },
+        {
+          "speechSegmentId": "speech_segment_aa651a45-810c-4091-8a50-b3bb9bd1950c",
+          "startMs": 2060,
+          "endMs": 6380,
+          "startFrame": 62,
+          "endFrame": 191
+        },
+        {
+          "speechSegmentId": "speech_segment_2338cb84-d616-43b7-b29b-cae3a940c684",
+          "startMs": 6380,
+          "endMs": 10090,
+          "startFrame": 191,
+          "endFrame": 303
+        },
+        {
+          "speechSegmentId": "speech_segment_3819b550-4903-4b8f-ada1-955622cabff6",
+          "startMs": 10090,
+          "endMs": 14650,
+          "startFrame": 303,
+          "endFrame": 440
+        },
+        {
+          "speechSegmentId": "speech_segment_f820161e-d559-4311-8fad-c992d25cad79",
+          "startMs": 14650,
+          "endMs": 22490,
+          "startFrame": 440,
+          "endFrame": 675
+        },
+        {
+          "speechSegmentId": "speech_segment_5580ba0f-fa3f-4c31-8e37-655312befaa0",
+          "startMs": 22490,
+          "endMs": 26180,
+          "startFrame": 675,
+          "endFrame": 785
+        },
+        {
+          "speechSegmentId": "speech_segment_0998f4f9-0cba-4452-b5f2-936904562b26",
+          "startMs": 26180,
+          "endMs": 29210,
+          "startFrame": 785,
+          "endFrame": 876
+        },
+        {
+          "speechSegmentId": "speech_segment_abbdfbe0-a07b-407c-88d6-316951d8d7a6",
+          "startMs": 29210,
+          "endMs": 35890,
+          "startFrame": 876,
+          "endFrame": 1077
+        },
+        {
+          "speechSegmentId": "speech_segment_39a69d18-fe1b-4292-97aa-207ebc3dfc30",
+          "startMs": 35890,
+          "endMs": 41580,
+          "startFrame": 1077,
+          "endFrame": 1247
+        },
+        {
+          "speechSegmentId": "speech_segment_a7442b68-ffd8-4d6c-a41b-7b2cb223c044",
+          "startMs": 41580,
+          "endMs": 46910,
+          "startFrame": 1247,
+          "endFrame": 1407
+        },
+        {
+          "speechSegmentId": "speech_segment_867a026d-c96c-4eff-a1ac-8374b34f185b",
+          "startMs": 46910,
+          "endMs": 54680,
+          "startFrame": 1407,
+          "endFrame": 1640
+        },
+        {
+          "speechSegmentId": "speech_segment_5f447574-dae2-46ba-b373-620a9e8b8411",
+          "startMs": 54680,
+          "endMs": 57600,
+          "startFrame": 1640,
+          "endFrame": 1728
+        },
+        {
+          "speechSegmentId": "speech_segment_bbb2123d-1d49-4d40-ac57-c3c05a90b2bb",
+          "startMs": 57600,
+          "endMs": 60840,
+          "startFrame": 1728,
+          "endFrame": 1825
+        },
+        {
+          "speechSegmentId": "speech_segment_44089ae6-669e-425b-94cd-78418fdec0f8",
+          "startMs": 60840,
+          "endMs": 66320,
+          "startFrame": 1825,
+          "endFrame": 1990
+        },
+        {
+          "speechSegmentId": "speech_segment_a5f8b1ec-c441-4c7b-b1d1-747791b5a726",
+          "startMs": 66320,
+          "endMs": 72720,
+          "startFrame": 1990,
+          "endFrame": 2182
+        },
+        {
+          "speechSegmentId": "speech_segment_4d71c924-2f13-46f4-a1b4-a19d26d03bba",
+          "startMs": 72720,
+          "endMs": 75580,
+          "startFrame": 2182,
+          "endFrame": 2267
+        },
+        {
+          "speechSegmentId": "speech_segment_5acf4361-a7b4-4f0a-b8ad-e9b7efa3e06c",
+          "startMs": 75580,
+          "endMs": 81060,
+          "startFrame": 2267,
+          "endFrame": 2432
+        },
+        {
+          "speechSegmentId": "speech_segment_c18ab12a-991d-4fd3-b972-ba9f796f27e1",
+          "startMs": 81060,
+          "endMs": 88880,
+          "startFrame": 2432,
+          "endFrame": 2666
+        },
+        {
+          "speechSegmentId": "speech_segment_9e5187bf-b706-4c63-89b7-146012f0b4f8",
+          "startMs": 88880,
+          "endMs": 90750,
+          "startFrame": 2666,
+          "endFrame": 2723
+        },
+        {
+          "speechSegmentId": "speech_segment_37fa5bc4-ab6e-43bd-9e13-1dee37ab23f8",
+          "startMs": 90750,
+          "endMs": 94090,
+          "startFrame": 2723,
+          "endFrame": 2823
+        },
+        {
+          "speechSegmentId": "speech_segment_15c0a777-47bc-48ff-89b0-13e2043f908f",
+          "startMs": 94090,
+          "endMs": 100660,
+          "startFrame": 2823,
+          "endFrame": 3020
+        },
+        {
+          "speechSegmentId": "speech_segment_0cfae18a-ea5f-4423-b061-bac6c46f165b",
+          "startMs": 100660,
+          "endMs": 102760,
+          "startFrame": 3020,
+          "endFrame": 3083
+        },
+        {
+          "speechSegmentId": "speech_segment_88ece2c2-6d62-424f-8b78-0a951aea474b",
+          "startMs": 102760,
+          "endMs": 108110,
+          "startFrame": 3083,
+          "endFrame": 3243
+        },
+        {
+          "speechSegmentId": "speech_segment_72316722-09f6-4f52-94d7-30a04228ca3d",
+          "startMs": 108110,
+          "endMs": 112990,
+          "startFrame": 3243,
+          "endFrame": 3390
+        },
+        {
+          "speechSegmentId": "speech_segment_7a4037ee-62bf-4fdb-98ee-ac5eb99ce841",
+          "startMs": 112990,
+          "endMs": 116950,
+          "startFrame": 3390,
+          "endFrame": 3509
+        },
+        {
+          "speechSegmentId": "speech_segment_be176661-e529-4614-8f76-21af3514d94e",
+          "startMs": 116950,
+          "endMs": 119040,
+          "startFrame": 3509,
+          "endFrame": 3571
+        },
+        {
+          "speechSegmentId": "speech_segment_0e660872-7f87-4268-a9b2-cbffd90df64a",
+          "startMs": 119040,
+          "endMs": 123060,
+          "startFrame": 3571,
+          "endFrame": 3692
+        }
+      ]
+    },
+    "status": "ready"
+  }
+}

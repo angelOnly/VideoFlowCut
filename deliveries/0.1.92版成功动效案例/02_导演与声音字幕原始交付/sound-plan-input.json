@@ -1,0 +1,16 @@
+{
+  "action":"create",
+  "soundPlanId":"ai-brakes-main-sound",
+  "startFrame":0,
+  "endFrame":9000,
+  "dominantRole":"narration",
+  "narrationDirection":"完整用户正文，默认本地音色，自然解释、理性爽快，重点问题有停顿但不恐吓。0–9000帧仅配音前估计；以真实语音修订。专名刘胜与、DeepSeek、Attention、Agent、Anthropic需核实际发音。",
+  "musicDirection":"低密度无主唱电子脉冲，支持机制展开；原件阅读减弱，研发回路略增活动，越界与争议问句前退让，最后问题撤乐。按真实乐句裁切或循环并检查接缝，不铺满掩盖语义。",
+  "intents":[
+    {"id":"music-pulse","function":"music","brief":"低密度电子节奏床，无人声，音色清楚、避免夸张灾难低频；开场缓入，递归与竞争段有活动，复杂原文与最后问句退让。计划全片按段使用，不等于连续铺满。"},
+    {"id":"mechanical-join","function":"settle","brief":"亲手操作转为指挥Agent时关系接合的轻机械短声；约0.2至0.8秒攻击、短尾，清脆不尖锐，无人声无旋律。安全方案层建立可复用变体，需实际上下文比较。"},
+    {"id":"recursive-flow","function":"connection","brief":"研发回路形成时一次有起势、递进与释放的轻电子气流，约1至3秒，避免过长尾音与游戏胜利旋律，不逐节点提示。"},
+    {"id":"boundary-hit","function":"reaction","brief":"授权边界越过时短低冲击，约0.3至1秒，清晰但不过重，无爆炸、警报或恐怖冲击；发生后退让给突破考场的旁白。"},
+    {"id":"final-silence","function":"silence","brief":"最后问题前撤去背景音乐及音效，让旁白独立落下；自然尾音后结束。导演主动留白，不需获取音频。"}
+  ]
+}

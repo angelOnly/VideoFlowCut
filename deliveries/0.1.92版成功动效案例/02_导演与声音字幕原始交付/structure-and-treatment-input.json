@@ -1,0 +1,133 @@
+{
+  "checked_revision": 125,
+  "story_fix": {
+    "project_id": "project_1716474f-9b32-41f4-87f6-9b85441fbdbb",
+    "base_revision_id": 125,
+    "beats": [
+      {
+        "id": "story_beat_9dda8b42-5f5b-4ce7-a757-7543c57db8c4",
+        "title": "离 AI 最近的人",
+        "purpose": "建立技能替代与生存风险两种担忧",
+        "semantic_unit_ids": [
+          "semantic_01e37803-aaae-4a70-91eb-e5c3c04ff1b5",
+          "semantic_8569b16a-44d8-4470-a901-dd2e8a37a2cb",
+          "semantic_87ba2af4-4e39-4486-b06a-b76d032d317d"
+        ],
+        "scene_ids": [
+          "scene_4cc6e053-ac6c-4261-a9b5-2d7ed2022cc6"
+        ]
+      },
+      {
+        "id": "story_beat_dae53485-96e1-44eb-a800-b072e37837ec",
+        "title": "一门本事的时间",
+        "purpose": "用刘胜与本人判断说明角色改变",
+        "semantic_unit_ids": [
+          "semantic_a2c880e3-6286-45ef-8155-57a79d8518eb",
+          "semantic_b3b43772-75bf-4e11-937f-857477b8feb4",
+          "semantic_99aa906c-d69e-4f8a-8389-9549b17fc473"
+        ],
+        "scene_ids": [
+          "scene_4cc6e053-ac6c-4261-a9b5-2d7ed2022cc6"
+        ]
+      },
+      {
+        "id": "story_beat_5a866896-27b3-425e-ab85-11d3dfc72538",
+        "title": "研发回路",
+        "purpose": "解释AI参与研发AI及潜在递归",
+        "semantic_unit_ids": [
+          "semantic_104246b9-b291-4908-b973-2506fb385967",
+          "semantic_5bd561a5-f8bd-4361-b766-facd928745a5",
+          "semantic_a770d1ef-5231-464b-bba5-789012aee67e"
+        ],
+        "scene_ids": [
+          "scene_4cc6e053-ac6c-4261-a9b5-2d7ed2022cc6"
+        ]
+      },
+      {
+        "id": "story_beat_79c2d7c5-9ae5-407f-a037-157d1207780b",
+        "title": "任务和边界",
+        "purpose": "以内部安全评估展示越权风险",
+        "semantic_unit_ids": [
+          "semantic_5c789e00-41a8-4f81-9c36-e1d1d34909fa",
+          "semantic_7a3f5391-864c-4a18-ba02-9dc52378a323",
+          "semantic_d006d4e5-5fc9-49de-b87e-50c898915d61"
+        ],
+        "scene_ids": [
+          "scene_4cc6e053-ac6c-4261-a9b5-2d7ed2022cc6"
+        ]
+      },
+      {
+        "id": "story_beat_af7b9947-5180-4b6d-9b89-88c2a9adff64",
+        "title": "刹车怎样装",
+        "purpose": "区分暂停训练与让安全追上能力",
+        "semantic_unit_ids": [
+          "semantic_d32d62c8-19e6-42a2-aabb-f6940173b868",
+          "semantic_0097c63b-dc6e-4143-9e6a-1adbab393944",
+          "semantic_672cba20-cae5-427b-8e49-cbd6959825a1"
+        ],
+        "scene_ids": [
+          "scene_4cc6e053-ac6c-4261-a9b5-2d7ed2022cc6"
+        ]
+      },
+      {
+        "id": "story_beat_d067ead2-c585-4e64-a0ff-c213ee9db9d2",
+        "title": "谁先减速",
+        "purpose": "揭示竞争约束及安全政策争议",
+        "semantic_unit_ids": [
+          "semantic_d2cade38-f072-4ea3-94e1-6b79806990f8",
+          "semantic_08b0285e-1813-4fa2-8331-70943a76d24d",
+          "semantic_18c61d7e-1ccd-4d2b-96b8-38ec09ba5899",
+          "semantic_6e71524b-0369-4ce1-8cc5-f9eb08a410d1",
+          "semantic_374e81d7-f2b9-4b66-98c1-4757712a7275"
+        ],
+        "scene_ids": [
+          "scene_4cc6e053-ac6c-4261-a9b5-2d7ed2022cc6"
+        ]
+      },
+      {
+        "id": "story_beat_1929e0cc-560a-4fdb-90c6-8cdeba1df603",
+        "title": "互不确定",
+        "purpose": "把多方激励连接成减速困局",
+        "semantic_unit_ids": [
+          "semantic_b0d1ed2f-41c7-4ec6-a8b0-23b0f09d67d2",
+          "semantic_cc31e4c3-3720-4667-834f-689ee958ce01",
+          "semantic_f92da392-f494-4630-9909-d68915745e5f"
+        ],
+        "scene_ids": [
+          "scene_4cc6e053-ac6c-4261-a9b5-2d7ed2022cc6"
+        ]
+      },
+      {
+        "id": "story_beat_a4037ed0-2586-41b2-981e-ea2cd25b9edd",
+        "title": "回到刹车",
+        "purpose": "保留两种观点并回扣治理能力问题",
+        "semantic_unit_ids": [
+          "semantic_819784c8-d1a0-4558-a5a8-a7a884fc1d50",
+          "semantic_73f842f8-6911-4b34-961b-4292b9dc3c3a",
+          "semantic_40a56389-c9b1-44c2-b1cf-42f5ca82db35",
+          "semantic_d26deb6c-097c-4c09-9beb-70ac50a4cfce"
+        ],
+        "scene_ids": [
+          "scene_4cc6e053-ac6c-4261-a9b5-2d7ed2022cc6"
+        ]
+      }
+    ]
+  },
+  "visual_treatment": {
+    "action": "upsert",
+    "project_id": "project_1716474f-9b32-41f4-87f6-9b85441fbdbb",
+    "base_revision_id": 126,
+    "scene_id": "scene_4cc6e053-ac6c-4261-a9b5-2d7ed2022cc6",
+    "mode": "remotion",
+    "intensity": "medium",
+    "narrative_purpose": "同一连续场景承载八拍：个人能力替代→研发递归→授权越界→安全措施→竞争减速困局→刹车追问；保留本人判断、条件性机制、内部安全评估和动机不可直接定罪的边界。",
+    "primary_attention": "主注意随真实旁白在材料原件、工程机制与竞速因果中接力：刘胜与文章、OpenAI原文、达里奥采访与原文负责现实锚点；同源受管动画负责技能交接、递归回路、越界和竞争行为，字幕全片统一稳定。",
+    "fallback_plan": "若材料不可用先保留已核实原件与解释结构，缺失素材退回对应作者补齐；不以无依据生成画面冒充证据，不自动改写用户旁白。"
+  },
+  "adoption_status": "导演采用整片路线与六项表现设计。仅观察旧版两段静态校样，完整最新版本aba83a097e3ddecf5d278082a4f850981c893767a635edc549fd0b776f46d3ec正在渲染；未完成新版连续视觉、音频或最终合成审查，不能记为终审通过。",
+  "notes": [
+    "NarrativeMap八拍的narrativeBeatId与Story完全一一对应，且均关联唯一Scene；无需重写NarrativeMap。",
+    "Story八拍sceneIds全空，Scene.narrativeBeatIds也为空。先执行manage_story填scene_ids，再读回是否派生同步Scene反向引用；勿新建重复Scene。",
+    "正式写入base_revision_id由主任务读取当前最新值替换；示例126仅表示顺序。"
+  ]
+}

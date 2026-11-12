@@ -1,0 +1,102 @@
+{
+  "id": "production_run_c202b427-4035-476a-b0a5-f0dad3bef2c4",
+  "projectId": "project_1716474f-9b32-41f4-87f6-9b85441fbdbb",
+  "status": "active",
+  "baseRevision": 1,
+  "loadedSkills": [
+    "project-basics",
+    "production-coordinator",
+    "voice-production"
+  ],
+  "loadedReferences": [
+    "production-coordinator/references/video-type-routing.md",
+    "production-coordinator/references/task-routing.md",
+    "production-coordinator/references/project-writes.md",
+    "_shared/TOPIC_TO_FILM.md"
+  ],
+  "creativeDecisions": [
+    {
+      "id": "creative_decision_2121897b-7cee-4ea2-9142-3262ecedaa0e",
+      "category": "story",
+      "decision": "按用户完整正文制作新横屏 visual_explainer；无出镜主持，默认 OmniVoice。八叙事拍由一完整持续场面承载，实际旁白123.06秒。",
+      "rationale": "导演在真实并行协作中采用从个人工作、研发递归、授权边界到竞争困局的观看发展；素材作者核实原文，保留条件性判断和观点归属。",
+      "objectIds": [
+        "scene_4cc6e053-ac6c-4261-a9b5-2d7ed2022cc6"
+      ],
+      "evidence": [
+        ".production/ai-brakes-20261016/current-av-script.md",
+        "workspace/projects/project_1716474f-9b32-41f4-87f6-9b85441fbdbb/authoring/materials.md"
+      ],
+      "delegation": {
+        "agentId": "/root/director",
+        "assignmentId": "director",
+        "role": "director",
+        "inputRevision": 26
+      },
+      "createdAt": "2026-10-15T16:27:06.015Z"
+    }
+  ],
+  "quietRanges": [],
+  "effectDecisions": [],
+  "rejectedAlternatives": [],
+  "mcpCommands": [
+    {
+      "name": "start_production_run",
+      "revision": 1,
+      "createdAt": "2026-10-15T16:13:41.896Z"
+    },
+    {
+      "name": "record_editorial_quality_review",
+      "revision": 144,
+      "createdAt": "2026-10-15T17:38:21.903Z"
+    }
+  ],
+  "previewEvidence": [],
+  "composedFrameEvidence": [],
+  "qualityReview": [
+    "R144 追加 mute_visual、audio_only 审片记录；全片覆盖以结构化证据为准。"
+  ],
+  "completionBlockers": [],
+  "createdAt": "2026-10-15T16:13:41.896Z",
+  "editorialReview": {
+    "revision": 144,
+    "passes": [
+      "mute_visual",
+      "audio_only"
+    ],
+    "previewEvidence": [
+      "previews\\revision-144-0-3692.mp4"
+    ],
+    "findings": [
+      {
+        "id": "editorial_finding_7ad2d70d-bbf1-48b0-93de-e2728cacbbaa",
+        "revision": 144,
+        "recordedAt": "2026-10-15T17:38:21.902Z",
+        "pass": "audio_only",
+        "severity": "inconclusive",
+        "category": "audio",
+        "summary": "原生连续听审未完成，模板化模型结论不采纳",
+        "evidence": "R139真实全片音频五窗模型输出缺定位并重复末尾/三音效结论，导演核读判不可靠；R144完整解码实测-19.4LUFS/-2.1dBTP。",
+        "impact": "不能据模型声称无掩盖、音效自然或完整听审通过。",
+        "verificationMethod": "完整解码测量与模型原始输出核读"
+      }
+    ],
+    "evidenceRecords": [
+      {
+        "pass": "mute_visual",
+        "previewJobId": "job_578dd2b5-b1cb-4da8-ab61-a56ec114290f",
+        "startFrame": 560,
+        "endFrame": 3651,
+        "method": "frames",
+        "observation": "独立审片只看560/600/680/3020/3050/3080/3150/3250/3650九帧：两处已知图文/字幕重叠关闭，上下文未见新遮挡。非此范围逐帧或连续观看。",
+        "id": "editorial_evidence_99b5aa05-ef0e-42e9-bd47-b39aed947cbe",
+        "revision": 144,
+        "relativePath": "previews\\revision-144-0-3692.mp4",
+        "contentHash": "5e89d32b62305614706622ce5175337d8c8ce8560e9cf300aa35bcc4e12a2023",
+        "recordedAt": "2026-10-15T17:38:21.902Z"
+      }
+    ],
+    "resolutions": [],
+    "reviewedAt": "2026-10-15T17:38:21.903Z"
+  }
+}

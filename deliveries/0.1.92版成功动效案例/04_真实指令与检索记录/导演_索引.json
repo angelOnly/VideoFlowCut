@@ -1,0 +1,20 @@
+{
+  "来源会话文件": "rollout-2026-10-16T00-12-36-01a14056-406b-7ab1-aab0-2f61139b542d.jsonl",
+  "可见消息数量": 34,
+  "操作数量": 65,
+  "检索观察数量": 27,
+  "MCP工具计数": {
+    "browse_sound_sources": 1,
+    "search_media_candidates": 5,
+    "inspect_media_candidate": 5,
+    "track_job": 14,
+    "track_jobs": 7,
+    "inspect_asset": 5,
+    "read_media_observations": 10,
+    "read_source_audio_alignment": 1,
+    "read_project": 2,
+    "read_narrative_map": 1,
+    "read_story": 1
+  },
+  "边界": "排除Reasoning、系统开发者消息、上下文压缩、加密字段明文和无关会话。"
+}

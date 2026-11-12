@@ -1,0 +1,143 @@
+{
+  "id": "export_artifact_c2483c5c-bd2d-45dd-a077-e6e75138f345",
+  "projectId": "project_1716474f-9b32-41f4-87f6-9b85441fbdbb",
+  "revision": 144,
+  "jobId": "job_19556b7a-a881-4c9a-9436-f15f9a3c1f32",
+  "purpose": "delivery",
+  "relativePath": "exports\\revision-144\\delivery-export_artifact_c2483c5c-bd2d-45dd-a077-e6e75138f345.mp4",
+  "fileHash": "5e89d32b62305614706622ce5175337d8c8ce8560e9cf300aa35bcc4e12a2023",
+  "fileSizeBytes": 23422832,
+  "preflight": {
+    "id": "render_preflight_5155e87e-759d-47cd-9352-c9a85399f1d2",
+    "projectId": "project_1716474f-9b32-41f4-87f6-9b85441fbdbb",
+    "revision": 144,
+    "purpose": "delivery",
+    "status": "passed",
+    "checks": [
+      {
+        "status": "passed",
+        "code": "PREFLIGHT_MEDIA_DECODABLE",
+        "message": "素材“旁白总轨 Revision 1”已通过当前 Worker 的媒体探测。",
+        "objectId": "asset_6aba342d-c842-4e99-966c-0d992d17d14d"
+      },
+      {
+        "status": "passed",
+        "code": "PREFLIGHT_MEDIA_DECODABLE",
+        "message": "素材“mixkit-music-184.mp3”已通过当前 Worker 的媒体探测。",
+        "objectId": "asset_f4a12863-97e8-4d8e-bd54-7c12091b55d6"
+      },
+      {
+        "status": "passed",
+        "code": "PREFLIGHT_MEDIA_DECODABLE",
+        "message": "素材“mixkit-3117.wav”已通过当前 Worker 的媒体探测。",
+        "objectId": "asset_09a0ed39-6503-49d1-8c0d-8d7c21ee2ed1"
+      },
+      {
+        "status": "passed",
+        "code": "PREFLIGHT_MEDIA_DECODABLE",
+        "message": "素材“mixkit-1465.wav”已通过当前 Worker 的媒体探测。",
+        "objectId": "asset_32d72286-0599-4e5f-83f2-ab929c3974ec"
+      },
+      {
+        "status": "passed",
+        "code": "PREFLIGHT_MEDIA_DECODABLE",
+        "message": "素材“mixkit-3124.wav”已通过当前 Worker 的媒体探测。",
+        "objectId": "asset_29e4d7c1-7271-443d-a4f5-ac94e0b7a187"
+      },
+      {
+        "status": "passed",
+        "code": "PREFLIGHT_MEDIA_DECODABLE",
+        "message": "素材“AI 的油门与刹车”已通过当前 Worker 的媒体探测。",
+        "objectId": "asset_f31a408c-7e0a-45b3-9b66-0c1b94f54dd2"
+      },
+      {
+        "status": "passed",
+        "code": "PREFLIGHT_EFFECT_COMPONENTS_AVAILABLE",
+        "message": "当前 Revision 的已启用效果均可由现有 Remotion Registry 解析。"
+      },
+      {
+        "status": "passed",
+        "code": "PREFLIGHT_FONT_RUNTIME",
+        "message": "当前首版只使用 Remotion 运行时固定字体栈，不存在额外的项目级字体文件依赖。"
+      }
+    ],
+    "checkedAt": "2026-10-15T17:37:46.367Z"
+  },
+  "validation": {
+    "durationMs": 123114,
+    "hasAudio": true,
+    "blackSegments": [],
+    "audio": {
+      "decoded": true,
+      "integratedLufs": -19.4,
+      "truePeakDbfs": -2.1,
+      "loudnessRangeLu": 3.3,
+      "silence": [
+        {
+          "startSeconds": 118.930896,
+          "endSeconds": 119.278062
+        }
+      ],
+      "method": "ffmpeg_ebur128_true_peak_complete_decode",
+      "rawSummary": "Summary:\r\n\r\n  Integrated loudness:\r\n    I:         -19.4 LUFS\r\n    Threshold: -29.6 LUFS\r\n\r\n  Loudness range:\r\n    LRA:         3.3 LU\r\n    Threshold: -39.6 LUFS\r\n    LRA low:   -21.3 LUFS\r\n    LRA high:  -18.0 LUFS\r\n\r\n  True peak:\r\n    Peak:       -2.1 dBFS\r\n[out#0/null @ 00000178af730d80] video:0KiB audio:23084KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown\r\nsize=N/A time=00:02:03.11 bitrate=N/A speed= 467x elapsed=0:00:00.26    \r\n"
+    },
+    "fps": 30,
+    "frameCount": 3692
+  },
+  "sourceManifest": {
+    "relativePath": "manifests\\sources\\export_artifact_c2483c5c-bd2d-45dd-a077-e6e75138f345.json",
+    "generatedAt": "2026-10-15T17:39:04.558Z",
+    "entries": [
+      {
+        "assetId": "asset_09a0ed39-6503-49d1-8c0d-8d7c21ee2ed1",
+        "name": "mixkit-3117.wav",
+        "sourceHash": "f486f7f66d21795c54371ef2d06ee696376d1e77ea01c546d6f4c91d942c1a39",
+        "source": "provider",
+        "provider": "mixkit",
+        "sourceUrl": "https://mixkit.co/free-sound-effects/technology/",
+        "originalAssetId": "3117",
+        "acquiredAt": "2026-10-15T16:30:59.314Z"
+      },
+      {
+        "assetId": "asset_29e4d7c1-7271-443d-a4f5-ac94e0b7a187",
+        "name": "mixkit-3124.wav",
+        "sourceHash": "00270a1847195cddb82d1b10c9407880ce311f522284afaefdc218fbba70d3ed",
+        "source": "provider",
+        "provider": "mixkit",
+        "sourceUrl": "https://mixkit.co/free-sound-effects/technology/",
+        "originalAssetId": "3124",
+        "acquiredAt": "2026-10-15T16:31:00.663Z"
+      },
+      {
+        "assetId": "asset_32d72286-0599-4e5f-83f2-ab929c3974ec",
+        "name": "mixkit-1465.wav",
+        "sourceHash": "2b6af0f6de39c12bbf378a56947d5f1fa5610e3b5dfe3ef689648f05bbc37d3f",
+        "source": "provider",
+        "provider": "mixkit",
+        "sourceUrl": "https://mixkit.co/free-sound-effects/transition/",
+        "originalAssetId": "1465",
+        "acquiredAt": "2026-10-15T16:31:00.245Z"
+      },
+      {
+        "assetId": "asset_f31a408c-7e0a-45b3-9b66-0c1b94f54dd2",
+        "name": "AI 的油门与刹车",
+        "sourceHash": "f3f722a974d661261df1b5cd34f291b5c99216bdcb71c2eb1346f14ccfb0c988",
+        "source": "generated",
+        "provider": "managed_remotion",
+        "acquiredAt": "2026-10-15T17:34:49.871Z"
+      },
+      {
+        "assetId": "asset_f4a12863-97e8-4d8e-bd54-7c12091b55d6",
+        "name": "mixkit-music-184.mp3",
+        "sourceHash": "3ffae7ccd5ea6f612f75efdf9a8318ccce79a5e4f355b26e233631330a57660f",
+        "source": "provider",
+        "provider": "mixkit_music",
+        "sourceUrl": "https://mixkit.co/free-stock-music/tag/ambient/",
+        "creator": "by Andrew Ev",
+        "originalAssetId": "184",
+        "acquiredAt": "2026-10-15T16:30:59.966Z"
+      }
+    ]
+  },
+  "createdAt": "2026-10-15T17:39:04.584Z"
+}

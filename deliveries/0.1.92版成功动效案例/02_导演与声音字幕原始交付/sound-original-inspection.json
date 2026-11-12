@@ -1,0 +1,188 @@
+[
+  {
+    "id": "job_ebead691-a70e-4a54-a3a3-7b3bef873951",
+    "assetId": "asset_f4a12863-97e8-4d8e-bd54-7c12091b55d6",
+    "analysis": "job_0619d405-5c3e-4010-82ad-2aa4c9a4fdab",
+    "duration": 229820,
+    "diagnostics": {
+      "status": "complete",
+      "requestedFrames": 0,
+      "generatedFrames": 0,
+      "components": {
+        "contactSheet": "not_requested",
+        "proxy": "complete",
+        "waveform": "complete",
+        "audioAnalysis": "complete"
+      },
+      "continuousReview": "available",
+      "issues": [],
+      "recovery": "none",
+      "sideEffects": "review_cache_only"
+    },
+    "sourceRange": {
+      "startFrame": 0,
+      "endFrame": 900,
+      "startMs": 0,
+      "endMs": 30000,
+      "fps": 30
+    },
+    "audio": {
+      "hasAudio": true,
+      "waveform": {
+        "relativePath": "cache/source-review/d65258e31e9890e7016524b71f36aacf09826e88534ee1d380ddc680fcd15c05/audio-waveform.png",
+        "mediaPath": "/media/project_1716474f-9b32-41f4-87f6-9b85441fbdbb/cache/source-review/d65258e31e9890e7016524b71f36aacf09826e88534ee1d380ddc680fcd15c05/audio-waveform.png"
+      },
+      "silenceRanges": [],
+      "meanVolumeDb": -13.5,
+      "maxVolumeDb": -0.3,
+      "onsetFrames": [],
+      "limitations": [
+        "波形、静音和 dBFS 只覆盖当前请求的短范围；它们是辅助定位证据，不判断话语含义、表演质量或音乐节拍。",
+        "明显起声点仅由静音结束推得；没有可用的逐词时间或通用音频事件识别。"
+      ]
+    },
+    "reviewPath": "/review/project_1716474f-9b32-41f4-87f6-9b85441fbdbb/cache/source-review/d65258e31e9890e7016524b71f36aacf09826e88534ee1d380ddc680fcd15c05/source-range.m4a"
+  },
+  {
+    "id": "job_715c99d1-3e8b-4850-928c-df9c84626e5f",
+    "assetId": "asset_09a0ed39-6503-49d1-8c0d-8d7c21ee2ed1",
+    "analysis": "job_2d564446-398e-402b-b1ce-c74c7bc74797",
+    "duration": 2500,
+    "diagnostics": {
+      "status": "complete",
+      "requestedFrames": 0,
+      "generatedFrames": 0,
+      "components": {
+        "contactSheet": "not_requested",
+        "proxy": "complete",
+        "waveform": "complete",
+        "audioAnalysis": "complete"
+      },
+      "continuousReview": "available",
+      "issues": [],
+      "recovery": "none",
+      "sideEffects": "review_cache_only"
+    },
+    "sourceRange": {
+      "startFrame": 0,
+      "endFrame": 75,
+      "startMs": 0,
+      "endMs": 2500,
+      "fps": 30
+    },
+    "audio": {
+      "hasAudio": true,
+      "waveform": {
+        "relativePath": "cache/source-review/a42de48783c020c4fcb5c5ef6631bfc0ea7f02d30d2bc8fc7bd937196fce924e/audio-waveform.png",
+        "mediaPath": "/media/project_1716474f-9b32-41f4-87f6-9b85441fbdbb/cache/source-review/a42de48783c020c4fcb5c5ef6631bfc0ea7f02d30d2bc8fc7bd937196fce924e/audio-waveform.png"
+      },
+      "silenceRanges": [
+        {
+          "startFrame": 41,
+          "endFrame": 75
+        }
+      ],
+      "meanVolumeDb": -27.6,
+      "maxVolumeDb": -2.6,
+      "onsetFrames": [],
+      "limitations": [
+        "波形、静音和 dBFS 只覆盖当前请求的短范围；它们是辅助定位证据，不判断话语含义、表演质量或音乐节拍。",
+        "明显起声点仅由静音结束推得；没有可用的逐词时间或通用音频事件识别。"
+      ]
+    },
+    "reviewPath": "/review/project_1716474f-9b32-41f4-87f6-9b85441fbdbb/cache/source-review/a42de48783c020c4fcb5c5ef6631bfc0ea7f02d30d2bc8fc7bd937196fce924e/source-range.m4a"
+  },
+  {
+    "id": "job_b47f2af7-287f-43f2-b231-53f8be3c768c",
+    "assetId": "asset_32d72286-0599-4e5f-83f2-ab929c3974ec",
+    "analysis": "job_13d1dd72-7355-48b1-94b2-0e2232a74faf",
+    "duration": 2257,
+    "diagnostics": {
+      "status": "complete",
+      "requestedFrames": 0,
+      "generatedFrames": 0,
+      "components": {
+        "contactSheet": "not_requested",
+        "proxy": "complete",
+        "waveform": "complete",
+        "audioAnalysis": "complete"
+      },
+      "continuousReview": "available",
+      "issues": [],
+      "recovery": "none",
+      "sideEffects": "review_cache_only"
+    },
+    "sourceRange": {
+      "startFrame": 0,
+      "endFrame": 67,
+      "startMs": 0,
+      "endMs": 2233,
+      "fps": 30
+    },
+    "audio": {
+      "hasAudio": true,
+      "waveform": {
+        "relativePath": "cache/source-review/3621a2258c6246ebb408ef7010478f62fbf1413033212d7418de4bad074b2ebd/audio-waveform.png",
+        "mediaPath": "/media/project_1716474f-9b32-41f4-87f6-9b85441fbdbb/cache/source-review/3621a2258c6246ebb408ef7010478f62fbf1413033212d7418de4bad074b2ebd/audio-waveform.png"
+      },
+      "silenceRanges": [],
+      "meanVolumeDb": -18.2,
+      "maxVolumeDb": -0.6,
+      "onsetFrames": [],
+      "limitations": [
+        "波形、静音和 dBFS 只覆盖当前请求的短范围；它们是辅助定位证据，不判断话语含义、表演质量或音乐节拍。",
+        "明显起声点仅由静音结束推得；没有可用的逐词时间或通用音频事件识别。"
+      ]
+    },
+    "reviewPath": "/review/project_1716474f-9b32-41f4-87f6-9b85441fbdbb/cache/source-review/3621a2258c6246ebb408ef7010478f62fbf1413033212d7418de4bad074b2ebd/source-range.m4a"
+  },
+  {
+    "id": "job_105f111e-10ff-40f9-a5b4-8d39c312babc",
+    "assetId": "asset_29e4d7c1-7271-443d-a4f5-ac94e0b7a187",
+    "analysis": "job_1659deea-c993-4ad6-a261-fded5d1e912c",
+    "duration": 500,
+    "diagnostics": {
+      "status": "complete",
+      "requestedFrames": 0,
+      "generatedFrames": 0,
+      "components": {
+        "contactSheet": "not_requested",
+        "proxy": "complete",
+        "waveform": "complete",
+        "audioAnalysis": "complete"
+      },
+      "continuousReview": "available",
+      "issues": [],
+      "recovery": "none",
+      "sideEffects": "review_cache_only"
+    },
+    "sourceRange": {
+      "startFrame": 0,
+      "endFrame": 15,
+      "startMs": 0,
+      "endMs": 500,
+      "fps": 30
+    },
+    "audio": {
+      "hasAudio": true,
+      "waveform": {
+        "relativePath": "cache/source-review/c35e3dbe17c571da374dc45b32ad2717271b72e378c5acfa8c7de42b966add74/audio-waveform.png",
+        "mediaPath": "/media/project_1716474f-9b32-41f4-87f6-9b85441fbdbb/cache/source-review/c35e3dbe17c571da374dc45b32ad2717271b72e378c5acfa8c7de42b966add74/audio-waveform.png"
+      },
+      "silenceRanges": [
+        {
+          "startFrame": 1,
+          "endFrame": 15
+        }
+      ],
+      "meanVolumeDb": -28.4,
+      "maxVolumeDb": -4.1,
+      "onsetFrames": [],
+      "limitations": [
+        "波形、静音和 dBFS 只覆盖当前请求的短范围；它们是辅助定位证据，不判断话语含义、表演质量或音乐节拍。",
+        "明显起声点仅由静音结束推得；没有可用的逐词时间或通用音频事件识别。"
+      ]
+    },
+    "reviewPath": "/review/project_1716474f-9b32-41f4-87f6-9b85441fbdbb/cache/source-review/c35e3dbe17c571da374dc45b32ad2717271b72e378c5acfa8c7de42b966add74/source-range.m4a"
+  }
+]
