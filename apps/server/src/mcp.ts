@@ -2685,32 +2685,69 @@ server.registerTool("preview_timeline", {
   } catch (error) { return asError(error); }
 });
 
+const productionCompletionScopeSchema = z.discriminatedUnion("kind", [z.object({ kind: z.literal("project") }), z.object({ kind: z.literal("beats"), beat_ids: z.array(z.string().min(1)).min(1) }), z.object({ kind: z.literal("objects"), object_ids: z.array(z.string().min(1)).min(1) }), z.object({ kind: z.literal("frames"), start_frame: z.number().int().nonnegative(), end_frame: z.number().int().positive() })]);
+const productionOperationIdSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,160}$/u);
+const applicationCompletionScope = (scope: z.infer<typeof productionCompletionScopeSchema>) => scope.kind === "beats" ? { kind: "beats" as const, beatIds: scope.beat_ids } : scope.kind === "objects" ? { kind: "objects" as const, objectIds: scope.object_ids } : scope.kind === "frames" ? { kind: "frames" as const, startFrame: scope.start_frame, endFrame: scope.end_frame } : { kind: "project" as const };
+
 server.registerTool("start_production_run", {
   title: "开始 ProductionRun",
   description: "为本次 Skill 驱动的剪辑创建最小审计报告；报告保存在项目 reports 目录，不复制 Project Snapshot。",
   inputSchema: {
     project_id: z.string().optional(),
-    base_revision_id: z.number().int().positive().optional(),
+    base_revision_id: z.number().int().positive(),
+    intent: z.enum(["full_creation", "visual_rework", "local_edit", "review_only"]),
+    completion_scope: productionCompletionScopeSchema,
+    operation_id: productionOperationIdSchema,
     loaded_skills: z.array(z.string().min(1)).min(1).max(40),
     loaded_references: z.array(z.string().min(1)).max(120).optional()
   }
-}, async ({ project_id, base_revision_id, loaded_skills, loaded_references }) => {
+}, async ({ project_id, base_revision_id, intent, completion_scope, operation_id, loaded_skills, loaded_references }) => {
   try {
     return asText(await application.startProductionRun({
       projectId: projectIdFrom(project_id),
       baseRevision: base_revision_id,
+      intent,
+      completionScope: applicationCompletionScope(completion_scope),
+      operationId: operation_id,
       loadedSkills: loaded_skills,
       loadedReferences: loaded_references
     }));
   } catch (error) { return asError(error); }
 });
 
+server.registerTool("update_production_run", {
+  title: "更新制作职责与范围",
+  description: "登记实际分派、接替或调整任务目标，使用当前审计版本和稳定操作编号；记录为来源声明，不代替宿主调用。",
+  inputSchema: {
+    project_id: z.string().optional(), run_id: z.string().min(1), expected_audit_version: z.number().int().positive(), operation_id: productionOperationIdSchema,
+    action: z.enum(["update_scope", "add_assignment", "replace_assignment"]), completion_scope: productionCompletionScopeSchema.optional(), reason: z.string().optional(),
+    assignment: z.object({ assignment_id: z.string().min(1), agent_id: z.string().min(1),
+      responsibilities: z.array(z.enum(["director", "creative_research", "visual_design", "motion_research", "review"])).min(1),
+      skill_ids: z.array(z.string().min(1)).min(1), scope: productionCompletionScopeSchema,
+      input_revision: z.number().int().positive().nullable(), supersedes_assignment_id: z.string().optional() }).strict().optional()
+  }
+}, async input => {
+  try {
+    const base = { projectId: projectIdFrom(input.project_id), runId: input.run_id, expectedAuditVersion: input.expected_audit_version, operationId: input.operation_id };
+    if (input.action === "update_scope") {
+      if (!input.completion_scope || !input.reason) throw new DomainError("调整范围需要目标范围和原因", "PRODUCTION_SCOPE_REASON_REQUIRED");
+      return asText(await application.updateProductionRun({ ...base, action: input.action, completionScope: applicationCompletionScope(input.completion_scope), reason: input.reason }));
+    }
+    if (!input.assignment) throw new DomainError("分派信息缺失", "PRODUCTION_ASSIGNMENT_INVALID");
+    const assignment = input.assignment;
+    return asText(await application.updateProductionRun({ ...base, action: input.action, assignment: { assignmentId: assignment.assignment_id,
+      agentId: assignment.agent_id, responsibilities: assignment.responsibilities, skillIds: assignment.skill_ids,
+      scope: applicationCompletionScope(assignment.scope), inputRevision: assignment.input_revision, supersedesAssignmentId: assignment.supersedes_assignment_id } }));
+  } catch (error) { return asError(error); }
+});
+
 server.registerTool("record_creative_decision", {
   title: "记录创作判断",
-  description: "将作者的实际创作决定、采用范围、依据和当前有效简报引用写入 ProductionRun，不产生视频 Revision。完整编排通过实际文件交付。协调者转录子代理结果时填写 delegation，关联真实代理标识、分派和输入历史版本；该来源为审计声明，不认证身份或代替宿主调用与真实审片。",
+  description: "记录作者结果、真实分派、输入版本及上游决定；完整编排通过实际文件交付。记录是来源声明，不代替真实观察。",
   inputSchema: {
     project_id: z.string().optional(),
     run_id: z.string().min(1),
+    operation_id: productionOperationIdSchema,
     category: z.enum(["story", "semantic", "scene", "visual", "audio", "quality"]),
     decision: z.string().min(1).max(2_000),
     rationale: z.string().min(1).max(4_000),
@@ -2719,13 +2756,10 @@ server.registerTool("record_creative_decision", {
     alternatives: z.array(z.string().max(1_000)).max(20).optional(),
     delivery_ref: z.object({ manifest_path: z.string().min(1), manifest_sha256: z.string().regex(/^[a-f0-9]{64}$/u),
       scene_ids: z.array(z.string().min(1)).min(1) }).strict().optional(),
-    delegation: z.object({
-      agent_id: z.string().trim().min(1).max(160),
-      assignment_id: z.string().trim().min(1).max(160),
-      role: z.enum(["director", "specialist", "reviewer"]),
-      skill_id: z.string().trim().min(1).max(160),
-      input_revision: z.number().int().positive().max(Number.MAX_SAFE_INTEGER)
-    }).strict().optional(),
+    phase: z.enum(["creative_research", "motion_research", "visual_design", "adoption"]).optional(),
+    assignment_id: z.string().min(1).optional(), input_revision: z.number().int().positive().nullable().optional(),
+    input_decision_ids: z.array(z.string().min(1)).optional(), research_outcome: z.enum(["pending", "researched", "not_applicable"]).optional(),
+    research_references: z.array(z.object({ kind: z.enum(["creative", "motion"]), id: z.string().min(1), source_sha256: z.string().regex(/^[a-f0-9]{64}$/u) }).strict()).optional(),
     quiet_range: z.object({ start_frame: z.number().int().min(0), end_frame: z.number().int().positive(), reason: z.string().min(1).max(800) }).optional(),
     effect_decision: z.string().max(2_000).optional(),
     rejected_alternative: z.string().max(2_000).optional(),
@@ -2738,6 +2772,7 @@ server.registerTool("record_creative_decision", {
     return asText(await application.recordCreativeDecision({
       projectId: projectIdFrom(input.project_id),
       runId: input.run_id,
+      operationId: input.operation_id,
       category: input.category,
       decision: input.decision,
       rationale: input.rationale,
@@ -2746,13 +2781,9 @@ server.registerTool("record_creative_decision", {
       alternatives: input.alternatives,
       deliveryRef: input.delivery_ref ? { manifestPath: input.delivery_ref.manifest_path,
         manifestSha256: input.delivery_ref.manifest_sha256, sceneIds: input.delivery_ref.scene_ids } : undefined,
-      delegation: input.delegation ? {
-        agentId: input.delegation.agent_id,
-        assignmentId: input.delegation.assignment_id,
-        role: input.delegation.role,
-        skillId: input.delegation.skill_id,
-        inputRevision: input.delegation.input_revision
-      } : undefined,
+      phase: input.phase, assignmentId: input.assignment_id, inputRevision: input.input_revision,
+      inputDecisionIds: input.input_decision_ids, researchOutcome: input.research_outcome,
+      researchReferences: input.research_references?.map(reference => ({ kind: reference.kind, id: reference.id, sourceSha256: reference.source_sha256 })),
       quietRange: input.quiet_range ? { startFrame: input.quiet_range.start_frame, endFrame: input.quiet_range.end_frame, reason: input.quiet_range.reason } : undefined,
       effectDecision: input.effect_decision,
       rejectedAlternative: input.rejected_alternative,
@@ -2769,6 +2800,7 @@ server.registerTool("record_editorial_quality_review", {
   inputSchema: {
     project_id: z.string().optional(),
     run_id: z.string().min(1),
+    operation_id: productionOperationIdSchema,
     revision: z.number().int().positive(),
     passes: z.array(z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"])).min(1).max(5),
     preview_evidence: z.array(z.string().min(1).max(2_000)).max(40).default([]),
@@ -2780,7 +2812,8 @@ server.registerTool("record_editorial_quality_review", {
       start_frame: z.number().int().nonnegative(),
       end_frame: z.number().int().positive(),
       method: z.enum(["frames", "continuous_video", "audio", "audiovisual"]),
-      observation: z.string().min(1).max(2_000)
+      observation: z.string().min(1).max(2_000),
+      adoption_refs: z.array(z.object({ production_run_id: z.string().min(1), decision_id: z.string().min(1) }).strict()).optional()
     })).max(40).optional(),
     resolutions: z.array(z.object({
       finding_id: z.string().min(1),
@@ -2806,10 +2839,11 @@ server.registerTool("record_editorial_quality_review", {
     return asText(await application.recordEditorialQualityReview({
       projectId: projectIdFrom(input.project_id),
       runId: input.run_id,
+      operationId: input.operation_id,
       revision: input.revision,
       passes: input.passes,
       previewEvidence: input.preview_evidence,
-      observations: input.observations?.map((entry) => ({ pass: entry.pass, source: entry.source, previewJobId: entry.preview_job_id, observer: entry.observer, startFrame: entry.start_frame, endFrame: entry.end_frame, method: entry.method, observation: entry.observation })),
+      observations: input.observations?.map((entry) => ({ pass: entry.pass, source: entry.source, previewJobId: entry.preview_job_id, observer: entry.observer, startFrame: entry.start_frame, endFrame: entry.end_frame, method: entry.method, observation: entry.observation, adoptionRefs: entry.adoption_refs?.map(ref => ({ productionRunId: ref.production_run_id, decisionId: ref.decision_id })) })),
       resolutions: input.resolutions?.map((entry) => ({ findingId: entry.finding_id, evidenceIds: entry.evidence_ids, note: entry.note, scope: entry.scope })),
       findings: input.findings.map((finding) => ({
         pass: finding.pass,
@@ -2827,26 +2861,25 @@ server.registerTool("record_editorial_quality_review", {
   } catch (error) { return asError(error); }
 });
 
-const productionCompletionScopeSchema = z.discriminatedUnion("kind", [z.object({ kind: z.literal("project") }), z.object({ kind: z.literal("beats"), beat_ids: z.array(z.string().min(1)).min(1) }), z.object({ kind: z.literal("objects"), object_ids: z.array(z.string().min(1)).min(1) })]);
-const applicationCompletionScope = (scope: z.infer<typeof productionCompletionScopeSchema>) => scope.kind === "beats" ? { kind: "beats" as const, beatIds: scope.beat_ids } : scope.kind === "objects" ? { kind: "objects" as const, objectIds: scope.object_ids } : { kind: "project" as const };
-
 server.registerTool("complete_production_run", {
   title: "完成 ProductionRun",
-  description: "完成指定版本和范围的制作，检查结构、采用、工作台观察及必修问题复查。缺项返回 incomplete，相同 Run、版本和范围的重试返回原回执。",
+  description: "完成指定版本和范围的制作，检查结构、采用、工作台观察及必修问题复查。缺项返回 incomplete；相同操作重试不会重复写入，并返回当前记录。",
   inputSchema: {
     project_id: z.string().optional(),
     completion_scope: productionCompletionScopeSchema,
     run_id: z.string().min(1),
+    operation_id: productionOperationIdSchema,
     final_revision: z.number().int().positive(),
     quality_review: z.array(z.string().max(2_000)).max(40).optional(),
     preview_evidence: z.array(z.string().max(2_000)).max(40).optional()
   }
-}, async ({ project_id, run_id, completion_scope, final_revision, quality_review, preview_evidence }) => {
+}, async ({ project_id, run_id, completion_scope, final_revision, operation_id, quality_review, preview_evidence }) => {
   try {
     return asText(await application.completeProductionRun({
       projectId: projectIdFrom(project_id),
       completionScope: applicationCompletionScope(completion_scope),
       runId: run_id,
+      operationId: operation_id,
       finalRevision: final_revision,
       qualityReview: quality_review,
       previewEvidence: preview_evidence
@@ -3049,8 +3082,8 @@ server.registerTool("read_production_status", {
   inputSchema: { project_id: z.string().optional(), run_id: z.string().min(1).optional(), completion_scope: productionCompletionScopeSchema.optional() }, annotations: { readOnlyHint: true }
 }, async ({ project_id, run_id, completion_scope }) => {
   try {
-    if (Boolean(run_id) !== Boolean(completion_scope)) throw new DomainError("run_id 和 completion_scope 需要一起提供", "PRODUCTION_STATUS_CONTEXT_REQUIRED");
-    const context = run_id && completion_scope ? { runId: run_id, completionScope: applicationCompletionScope(completion_scope) } : undefined;
+    if (completion_scope && !run_id) throw new DomainError("completion_scope 需要 run_id", "PRODUCTION_STATUS_CONTEXT_REQUIRED");
+    const context = run_id ? { runId: run_id, completionScope: completion_scope ? applicationCompletionScope(completion_scope) : undefined } : undefined;
     return asText(await application.readProductionStatus(projectIdFrom(project_id), context));
   } catch (error) { return asError(error); }
 });

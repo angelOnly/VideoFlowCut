@@ -1,0 +1,72 @@
+{
+  "projectId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5",
+  "revision": 98,
+  "workId": "motion_work_3f7f6048f53e8516d70c8f50eedff761cd0e190e795e7280bbfb86d06f9a848f",
+  "workVersion": "2afffe3ef0d24c07bf6724d3c9d91fb5d9ac25883cb91d4f1f495a112a1cf352",
+  "definitionHash": "3f7f6048f53e8516d70c8f50eedff761cd0e190e795e7280bbfb86d06f9a848f",
+  "evidencePath": "previews/motion-inspection/job_b569ff76-5faf-4016-926c-fc3bc61e2633",
+  "report": {
+    "status": "exact",
+    "maxAllowedChannelDelta": 2,
+    "sampledFrames": [
+      220,
+      225,
+      228,
+      229,
+      230,
+      231,
+      235
+    ],
+    "visitOrder": {
+      "ascending": [
+        220,
+        225,
+        228,
+        229,
+        230,
+        231,
+        235
+      ],
+      "samePageReverse": [
+        235,
+        231,
+        230,
+        229,
+        228,
+        225,
+        220
+      ],
+      "cleanPageReverse": [
+        235,
+        231,
+        230,
+        229,
+        228,
+        225,
+        220
+      ]
+    },
+    "failedFrames": [],
+    "differences": [],
+    "events": [
+      {
+        "id": "factory-arm",
+        "meaning": "真实工厂机械臂画面",
+        "startFrame": 0,
+        "endFrame": 315
+      },
+      {
+        "id": "designed-process",
+        "meaning": "相对固定任务与围绕任务设计的流程",
+        "startFrame": 80,
+        "endFrame": 222
+      },
+      {
+        "id": "fast-and-steady",
+        "meaning": "肯定既有机械臂的快与稳",
+        "startFrame": 222,
+        "endFrame": 315
+      }
+    ]
+  }
+}

@@ -1,0 +1,2615 @@
+{
+  "revision": {
+    "id": "revision_2d9aa895-04ef-4117-b1ac-d8c82699fab9",
+    "projectId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5",
+    "number": 114,
+    "parentId": "revision_b60fff44-e6bb-49e3-95be-00785382d913",
+    "summary": "登记并采用受管作品",
+    "impact": {
+      "changed": [
+        "cue_7c9b1dbd-8051-42c9-bdbc-e62ab98daf01"
+      ],
+      "moved": [],
+      "recomputed": [],
+      "stale": [],
+      "conflicts": [],
+      "dirtyRanges": [
+        {
+          "startFrame": 338,
+          "endFrame": 1135,
+          "reason": "首次采用源码画面；等待实际声画观察"
+        }
+      ],
+      "warnings": []
+    },
+    "createdAt": "2026-11-12T01:25:30.883Z"
+  },
+  "project": {
+    "id": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5",
+    "name": "机器人会翻跟头，为什么进厂还这么难？｜全新横屏解说",
+    "rootPath": "E:\\ai\\VideoCut\\workspace\\projects\\project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5",
+    "profile": "visual_explainer",
+    "brief": {
+      "platform": "短视频",
+      "aspectRatio": "16:9",
+      "audience": "对机器人感兴趣的普通观众",
+      "tone": "明快、好奇、通俗，事实部分克制",
+      "captionMode": "stable",
+      "allowHighDensityMotion": false,
+      "explicitCreativePreferences": {
+        "dimensions": {
+          "narration": "明快、好奇、通俗，事实部分克制"
+        }
+      },
+      "sourceDisplayPolicy": {
+        "mode": "internal_only"
+      }
+    },
+    "stylePackId": "default-clean",
+    "createdAt": "2026-11-11T17:11:41.328Z",
+    "updatedAt": "2026-11-12T01:25:30.879Z"
+  },
+  "story": {
+    "id": "story_67f33402-ecff-458e-b74c-eafb0c3e0d47",
+    "title": "机器人会翻跟头，为什么进厂还这么难？｜全新横屏解说",
+    "summary": "从一次惊艳动作转向工作中的变化、恢复、长期可靠性和真实仓库部署。",
+    "beats": [
+      {
+        "id": "story_beat_ddf793b0-e311-4abd-b0ad-16eef391554a",
+        "order": 0,
+        "title": "翻跟头之后，安排一份工作",
+        "purpose": "从惊艳的单次动作转向想象中的工位任务",
+        "semanticUnitIds": [
+          "semantic_74e8c0ac-92ba-46ff-8d37-6bdcb649092d",
+          "semantic_8608d153-cd3b-45ee-a027-863c5adbe79e"
+        ],
+        "sceneIds": [
+          "scene_08a22e0b-b19a-4fa0-9269-57c28aa5004a"
+        ]
+      },
+      {
+        "id": "story_beat_72cfe2d6-99a4-4013-9108-8b7432aa03e7",
+        "order": 1,
+        "title": "乱箱里的零件",
+        "purpose": "说明物体姿态、遮挡和移动使抓取需要重新观察与调整",
+        "semanticUnitIds": [
+          "semantic_eed032a7-6b74-4dbe-9428-d015bb7657b0",
+          "semantic_76f4797f-8f1a-48af-98d6-dbbc6742ad28",
+          "semantic_b5245d38-1d95-4855-b9ff-127a02400a0b"
+        ],
+        "sceneIds": [
+          "scene_79fc874e-b686-4410-8529-2d88380ddb70"
+        ]
+      },
+      {
+        "id": "story_beat_27e7d9f6-14d0-4692-9920-c89a014d3227",
+        "order": 2,
+        "title": "看、判断、动手",
+        "purpose": "把连续变化作为工厂实际工作的共同挑战",
+        "semanticUnitIds": [
+          "semantic_c1147da4-f0e4-4f8f-8083-e4eaed50e9af"
+        ],
+        "sceneIds": [
+          "scene_79fc874e-b686-4410-8529-2d88380ddb70"
+        ]
+      },
+      {
+        "id": "story_beat_baa0ffa8-cf9c-4b72-b1bd-7286de7bb80a",
+        "order": 3,
+        "title": "成功一次与长期稳定",
+        "purpose": "区分独立假设下连续全成功概率、错误恢复与生产等待",
+        "semanticUnitIds": [
+          "semantic_4c1bb4b5-b40e-445f-8d06-2bd4b2924a50",
+          "semantic_c9a044b9-5f11-4af0-b12b-e3127cda7267",
+          "semantic_68d35d11-b274-492d-8e04-a2dbda1ef3d5",
+          "semantic_01456a05-4f54-4292-a437-2dabe2079594",
+          "semantic_9628ccbc-1ccf-4ef3-80fa-433242593676"
+        ],
+        "sceneIds": [
+          "scene_79fc874e-b686-4410-8529-2d88380ddb70",
+          "scene_3c643436-9315-4f12-b1f2-f3a8b8a5bf8c",
+          "scene_ab355815-b25b-4830-9f4f-06819af98aef"
+        ]
+      },
+      {
+        "id": "story_beat_54a191a0-9f56-4695-a709-384904a06775",
+        "order": 4,
+        "title": "机械臂和人形机器人的取舍",
+        "purpose": "公正展示固定流程的优势、通用潜力以及实际经济性",
+        "semanticUnitIds": [
+          "semantic_35e65e53-3348-426f-ac28-a1f8e069dbda",
+          "semantic_49db5d2b-3e34-4a75-be7f-af70509e8ee0",
+          "semantic_be3015b3-cd63-4a41-bf13-99e4ebf8a16a",
+          "semantic_b9dc17c9-4ab2-4a79-b748-5d5c56e2bdb5"
+        ],
+        "sceneIds": [
+          "scene_10cd5fcc-3850-4480-8ad1-cccd7d7bf7ae",
+          "scene_65c5e08a-4210-4e30-8ea1-9e82e80f49f9"
+        ]
+      },
+      {
+        "id": "story_beat_3781ec4e-937e-422c-99a2-a14e5fa5809e",
+        "order": 5,
+        "title": "Digit 在仓库的实际工作",
+        "purpose": "准确交代公开披露的累计料箱成果与尚存挑战",
+        "semanticUnitIds": [
+          "semantic_563cc162-3f88-474c-aa1c-570db01d6ffe",
+          "semantic_92322ddc-2d1b-4361-b3a4-f47ee2c0572a"
+        ],
+        "sceneIds": [
+          "scene_7d386941-5004-41d6-92f3-ec7f4b05f3fa"
+        ]
+      },
+      {
+        "id": "story_beat_8be429ca-e314-48f4-9ab1-0330be0909d2",
+        "order": 6,
+        "title": "接下来的每一天",
+        "purpose": "回到后空翻，用日常抓取和稳定性问题收束",
+        "semanticUnitIds": [
+          "semantic_b46c1e92-877f-4b38-ad84-af96fa4f5773",
+          "semantic_45ec7f11-49a6-40ce-8496-204b99bdb429"
+        ],
+        "sceneIds": [
+          "scene_d9d231ca-acc6-48f9-8647-a56fad268d8c"
+        ]
+      }
+    ],
+    "updatedAt": "2026-11-11T17:59:50.469Z"
+  },
+  "scenes": [
+    {
+      "id": "scene_08a22e0b-b19a-4fa0-9269-57c28aa5004a",
+      "type": "ExplainerScene",
+      "title": "后空翻之后的一份工作",
+      "purpose": "以真实动作建立反差，再提出假设的取件装配任务",
+      "startFrame": 0,
+      "endFrame": 338,
+      "assetIds": [],
+      "narrativeBeatIds": [
+        "story_beat_ddf793b0-e311-4abd-b0ad-16eef391554a"
+      ],
+      "status": "draft",
+      "stylePackId": "default-clean"
+    },
+    {
+      "id": "scene_79fc874e-b686-4410-8529-2d88380ddb70",
+      "type": "ExplainerScene",
+      "title": "乱箱与持续变化",
+      "purpose": "通过零件姿态、遮挡、滑动及调整，理解观察、判断和动手的连续需求",
+      "startFrame": 338,
+      "endFrame": 1135,
+      "assetIds": [],
+      "narrativeBeatIds": [
+        "story_beat_72cfe2d6-99a4-4013-9108-8b7432aa03e7",
+        "story_beat_27e7d9f6-14d0-4692-9920-c89a014d3227",
+        "story_beat_baa0ffa8-cf9c-4b72-b1bd-7286de7bb80a"
+      ],
+      "status": "draft",
+      "stylePackId": "default-clean"
+    },
+    {
+      "id": "scene_3c643436-9315-4f12-b1f2-f3a8b8a5bf8c",
+      "type": "ExplainerScene",
+      "title": "一次成功与一百次",
+      "purpose": "在每次独立且成功率均为99%的假设下，解释连续100次全部成功约为37%",
+      "startFrame": 1135,
+      "endFrame": 1394,
+      "assetIds": [],
+      "narrativeBeatIds": [
+        "story_beat_baa0ffa8-cf9c-4b72-b1bd-7286de7bb80a"
+      ],
+      "status": "draft",
+      "stylePackId": "default-clean"
+    },
+    {
+      "id": "scene_ab355815-b25b-4830-9f4f-06819af98aef",
+      "type": "ExplainerScene",
+      "title": "出错后的恢复和等待",
+      "purpose": "区分自动恢复与人工干预，并理解长期稳定和后续工序等待",
+      "startFrame": 1394,
+      "endFrame": 1771,
+      "assetIds": [],
+      "narrativeBeatIds": [
+        "story_beat_baa0ffa8-cf9c-4b72-b1bd-7286de7bb80a"
+      ],
+      "status": "draft",
+      "stylePackId": "default-clean"
+    },
+    {
+      "id": "scene_10cd5fcc-3850-4480-8ad1-cccd7d7bf7ae",
+      "type": "ExplainerScene",
+      "title": "已经在工作的机械臂",
+      "purpose": "解释很多工业机械臂在相对固定、专为任务设计的流程中快而稳",
+      "startFrame": 1771,
+      "endFrame": 2086,
+      "assetIds": [],
+      "narrativeBeatIds": [
+        "story_beat_54a191a0-9f56-4695-a709-384904a06775"
+      ],
+      "status": "draft",
+      "stylePackId": "default-clean"
+    },
+    {
+      "id": "scene_65c5e08a-4210-4e30-8ea1-9e82e80f49f9",
+      "type": "ExplainerScene",
+      "title": "人形机器人的潜力与成本",
+      "purpose": "讨论利用人类空间和换岗的可能性以及重新教学、续航、维护与停机成本",
+      "startFrame": 2086,
+      "endFrame": 2574,
+      "assetIds": [],
+      "narrativeBeatIds": [
+        "story_beat_54a191a0-9f56-4695-a709-384904a06775"
+      ],
+      "status": "draft",
+      "stylePackId": "default-clean"
+    },
+    {
+      "id": "scene_7d386941-5004-41d6-92f3-ec7f4b05f3fa",
+      "type": "ExplainerScene",
+      "title": "Digit 的仓库实践",
+      "purpose": "展示真实仓储搬运与累计成果，同时保留应用范围和未来挑战",
+      "startFrame": 2574,
+      "endFrame": 2973,
+      "assetIds": [],
+      "narrativeBeatIds": [
+        "story_beat_3781ec4e-937e-422c-99a2-a14e5fa5809e"
+      ],
+      "status": "draft",
+      "stylePackId": "default-clean"
+    },
+    {
+      "id": "scene_d9d231ca-acc6-48f9-8647-a56fad268d8c",
+      "type": "ExplainerScene",
+      "title": "接下来的每一天",
+      "purpose": "回到后空翻并以日常变化和持续可靠性的问题收束",
+      "startFrame": 2973,
+      "endFrame": 3288,
+      "assetIds": [],
+      "narrativeBeatIds": [
+        "story_beat_8be429ca-e314-48f4-9ab1-0330be0909d2"
+      ],
+      "status": "draft",
+      "stylePackId": "default-clean"
+    }
+  ],
+  "effectCues": [
+    {
+      "id": "cue_67e95268-bce0-485b-9061-6bad3c673d8d",
+      "sceneId": "scene_3c643436-9315-4f12-b1f2-f3a8b8a5bf8c",
+      "workId": "motion_work_9ef54d9c57984803edf3b9400340987f8d1fbb59029dd3fec0c7c1366553b8fc",
+      "coveredNarrativeBeatIds": [
+        "story_beat_baa0ffa8-cf9c-4b72-b1bd-7286de7bb80a"
+      ],
+      "type": "ManagedMotion",
+      "layer": "fullscreen",
+      "anchor": "scene",
+      "startFrame": 1135,
+      "sourceStartFrame": 0,
+      "sourceEndFrame": 259,
+      "holdFrame": 1264,
+      "endFrame": 1394,
+      "intensity": 1,
+      "status": "ready",
+      "note": "本次同源预排，尚需工作台实际声画观察与进一步深化。",
+      "narrativePurpose": "用单次99%且相互独立的假设解释100次全部成功的概率",
+      "audienceTask": "理解连续100次全部成功约37%，不将其误认为机器人实测值",
+      "semanticAnchor": {
+        "type": "scene",
+        "targetId": "scene_3c643436-9315-4f12-b1f2-f3a8b8a5bf8c",
+        "relation": "land_on"
+      },
+      "spatialAnchor": "full_frame",
+      "assetBindings": [],
+      "props": {},
+      "motion": {
+        "enterPreset": "none",
+        "settlePreset": "hold",
+        "exitPreset": "none",
+        "enterFrames": 0,
+        "holdFrames": 259,
+        "exitFrames": 0
+      },
+      "stylePackId": "managed-source",
+      "qualityRules": []
+    },
+    {
+      "id": "cue_b8cb24af-1fd9-4da3-89c3-7e4842cfe37f",
+      "sceneId": "scene_08a22e0b-b19a-4fa0-9269-57c28aa5004a",
+      "workId": "motion_work_866356adb1e01aedbc3fb14732226a0c520d1c2426c609e8a6c6f8587a2dd520",
+      "coveredNarrativeBeatIds": [
+        "story_beat_ddf793b0-e311-4abd-b0ad-16eef391554a"
+      ],
+      "type": "ManagedMotion",
+      "layer": "fullscreen",
+      "anchor": "scene",
+      "startFrame": 0,
+      "sourceStartFrame": 0,
+      "sourceEndFrame": 338,
+      "holdFrame": 169,
+      "endFrame": 338,
+      "intensity": 1,
+      "status": "ready",
+      "note": "临时同源预排，实际声画与转场仍待观察和深化。",
+      "narrativePurpose": "以真实后空翻引出假设的取件与装配任务",
+      "audienceTask": "欣赏一次动作并理解接下来是假设的工位任务",
+      "semanticAnchor": {
+        "type": "scene",
+        "targetId": "scene_08a22e0b-b19a-4fa0-9269-57c28aa5004a",
+        "relation": "land_on"
+      },
+      "spatialAnchor": "full_frame",
+      "assetBindings": [],
+      "props": {},
+      "motion": {
+        "enterPreset": "none",
+        "settlePreset": "hold",
+        "exitPreset": "none",
+        "enterFrames": 0,
+        "holdFrames": 338,
+        "exitFrames": 0
+      },
+      "stylePackId": "managed-source",
+      "qualityRules": []
+    },
+    {
+      "id": "cue_dc6bbf24-6aa1-48e4-aa11-77c92511ba33",
+      "sceneId": "scene_ab355815-b25b-4830-9f4f-06819af98aef",
+      "workId": "motion_work_30ced52463e1e45a7eceb51b28dd0f4f62cd07cc1bbda1c4b5c410974e9a3e60",
+      "coveredNarrativeBeatIds": [
+        "story_beat_baa0ffa8-cf9c-4b72-b1bd-7286de7bb80a"
+      ],
+      "type": "ManagedMotion",
+      "layer": "fullscreen",
+      "anchor": "scene",
+      "startFrame": 1394,
+      "sourceStartFrame": 0,
+      "sourceEndFrame": 377,
+      "holdFrame": 1582,
+      "endFrame": 1771,
+      "intensity": 1,
+      "status": "ready",
+      "note": "本次同源预排，尚需工作台实际声画观察与进一步深化。",
+      "narrativePurpose": "区分自动恢复与需要人处理后可能导致的等待",
+      "audienceTask": "理解失误不必然造成停线，长期稳定与恢复能力同样重要",
+      "semanticAnchor": {
+        "type": "scene",
+        "targetId": "scene_ab355815-b25b-4830-9f4f-06819af98aef",
+        "relation": "land_on"
+      },
+      "spatialAnchor": "full_frame",
+      "assetBindings": [],
+      "props": {},
+      "motion": {
+        "enterPreset": "none",
+        "settlePreset": "hold",
+        "exitPreset": "none",
+        "enterFrames": 0,
+        "holdFrames": 377,
+        "exitFrames": 0
+      },
+      "stylePackId": "managed-source",
+      "qualityRules": []
+    },
+    {
+      "id": "cue_14879fe8-3e0c-4360-aab8-bf21a168e956",
+      "sceneId": "scene_7d386941-5004-41d6-92f3-ec7f4b05f3fa",
+      "workId": "motion_work_96adac8d3b31384dd31f24044309c807993e3a22c613a6296a7fae3e1194e9f9",
+      "coveredNarrativeBeatIds": [
+        "story_beat_3781ec4e-937e-422c-99a2-a14e5fa5809e"
+      ],
+      "type": "ManagedMotion",
+      "layer": "fullscreen",
+      "anchor": "scene",
+      "startFrame": 2574,
+      "sourceStartFrame": 0,
+      "sourceEndFrame": 399,
+      "holdFrame": 2773,
+      "endFrame": 2973,
+      "intensity": 1,
+      "status": "ready",
+      "note": "临时同源预排：源画面有遮挡，裁切及连续动作尚待工作台检查。",
+      "narrativePurpose": "呈现 Digit 的真实仓储画面与仓库累计十万箱的有限成果",
+      "audienceTask": "区分具体应用和更广泛的任务挑战",
+      "semanticAnchor": {
+        "type": "scene",
+        "targetId": "scene_7d386941-5004-41d6-92f3-ec7f4b05f3fa",
+        "relation": "land_on"
+      },
+      "spatialAnchor": "full_frame",
+      "assetBindings": [],
+      "props": {},
+      "motion": {
+        "enterPreset": "none",
+        "settlePreset": "hold",
+        "exitPreset": "none",
+        "enterFrames": 0,
+        "holdFrames": 399,
+        "exitFrames": 0
+      },
+      "stylePackId": "managed-source",
+      "qualityRules": []
+    },
+    {
+      "id": "cue_43df346b-23de-4757-a583-91299400a3e6",
+      "sceneId": "scene_10cd5fcc-3850-4480-8ad1-cccd7d7bf7ae",
+      "workId": "motion_work_3f7f6048f53e8516d70c8f50eedff761cd0e190e795e7280bbfb86d06f9a848f",
+      "coveredNarrativeBeatIds": [
+        "story_beat_54a191a0-9f56-4695-a709-384904a06775"
+      ],
+      "type": "ManagedMotion",
+      "layer": "fullscreen",
+      "anchor": "scene",
+      "startFrame": 1771,
+      "sourceStartFrame": 0,
+      "sourceEndFrame": 315,
+      "holdFrame": 1928,
+      "endFrame": 2086,
+      "intensity": 1,
+      "status": "ready",
+      "note": "同源临时预排；连续动作和旁白节奏待检查。",
+      "narrativePurpose": "解释相对固定任务可围绕工位流程设计，并肯定机械臂的速度与稳定性",
+      "audienceTask": "看懂固定工位的素材与流程关系，区分两个工厂的实拍",
+      "semanticAnchor": {
+        "type": "scene",
+        "targetId": "scene_10cd5fcc-3850-4480-8ad1-cccd7d7bf7ae",
+        "relation": "land_on"
+      },
+      "spatialAnchor": "full_frame",
+      "assetBindings": [],
+      "props": {},
+      "motion": {
+        "enterPreset": "none",
+        "settlePreset": "hold",
+        "exitPreset": "none",
+        "enterFrames": 0,
+        "holdFrames": 315,
+        "exitFrames": 0
+      },
+      "stylePackId": "managed-source",
+      "qualityRules": []
+    },
+    {
+      "id": "cue_27494fc5-c69f-4fda-ac7b-c0bfe1d1a286",
+      "sceneId": "scene_65c5e08a-4210-4e30-8ea1-9e82e80f49f9",
+      "workId": "motion_work_729a053e24b296d44aa1ade1517efe6c54ea183402b0a0ae4e97d09bf838f159",
+      "coveredNarrativeBeatIds": [
+        "story_beat_54a191a0-9f56-4695-a709-384904a06775"
+      ],
+      "type": "ManagedMotion",
+      "layer": "fullscreen",
+      "anchor": "scene",
+      "startFrame": 2086,
+      "sourceStartFrame": 0,
+      "sourceEndFrame": 488,
+      "holdFrame": 2330,
+      "endFrame": 2574,
+      "intensity": 1,
+      "status": "ready",
+      "note": "同源临时预排；旁白与画面完整节奏待检查。",
+      "narrativePurpose": "展示人形机器人利用人类环境和换岗的潜力，并提出实际成本条件",
+      "audienceTask": "区分未来可能性与待验证的表现和成本",
+      "semanticAnchor": {
+        "type": "scene",
+        "targetId": "scene_65c5e08a-4210-4e30-8ea1-9e82e80f49f9",
+        "relation": "land_on"
+      },
+      "spatialAnchor": "full_frame",
+      "assetBindings": [],
+      "props": {},
+      "motion": {
+        "enterPreset": "none",
+        "settlePreset": "hold",
+        "exitPreset": "none",
+        "enterFrames": 0,
+        "holdFrames": 488,
+        "exitFrames": 0
+      },
+      "stylePackId": "managed-source",
+      "qualityRules": []
+    },
+    {
+      "id": "cue_3528e048-5278-477e-8cd4-9ec4e964a847",
+      "sceneId": "scene_d9d231ca-acc6-48f9-8647-a56fad268d8c",
+      "workId": "motion_work_ff0edd70a0375da9eaea479244b1b13558af002cdf010f43291c5932ab04ded0",
+      "coveredNarrativeBeatIds": [
+        "story_beat_8be429ca-e314-48f4-9ab1-0330be0909d2"
+      ],
+      "type": "ManagedMotion",
+      "layer": "fullscreen",
+      "anchor": "scene",
+      "startFrame": 2973,
+      "sourceStartFrame": 0,
+      "sourceEndFrame": 315,
+      "holdFrame": 3130,
+      "endFrame": 3288,
+      "intensity": 1,
+      "status": "ready",
+      "note": "同源临时预排；连续过渡、字幕与旁白节奏待检查。",
+      "narrativePurpose": "回扣后空翻，提出机器人在日常工位应对变化与稳定工作的结尾问题",
+      "audienceTask": "把单次动作和每天稳定工作联系起来",
+      "semanticAnchor": {
+        "type": "scene",
+        "targetId": "scene_d9d231ca-acc6-48f9-8647-a56fad268d8c",
+        "relation": "land_on"
+      },
+      "spatialAnchor": "full_frame",
+      "assetBindings": [],
+      "props": {},
+      "motion": {
+        "enterPreset": "none",
+        "settlePreset": "hold",
+        "exitPreset": "none",
+        "enterFrames": 0,
+        "holdFrames": 315,
+        "exitFrames": 0
+      },
+      "stylePackId": "managed-source",
+      "qualityRules": []
+    },
+    {
+      "id": "cue_7c9b1dbd-8051-42c9-bdbc-e62ab98daf01",
+      "sceneId": "scene_79fc874e-b686-4410-8529-2d88380ddb70",
+      "workId": "motion_work_502e15a331362ecd0ca8c7923fcfa987c035547736a3c6183467db37d466c9e9",
+      "coveredNarrativeBeatIds": [
+        "story_beat_72cfe2d6-99a4-4013-9108-8b7432aa03e7",
+        "story_beat_27e7d9f6-14d0-4692-9920-c89a014d3227",
+        "story_beat_baa0ffa8-cf9c-4b72-b1bd-7286de7bb80a"
+      ],
+      "type": "ManagedMotion",
+      "layer": "fullscreen",
+      "anchor": "scene",
+      "startFrame": 338,
+      "sourceStartFrame": 0,
+      "sourceEndFrame": 797,
+      "holdFrame": 736,
+      "endFrame": 1135,
+      "intensity": 1,
+      "status": "ready",
+      "note": "修订版同源临时预排；连续动作及旁白与字幕时机待复核。",
+      "narrativePurpose": "以明确示意解释乱箱姿态、滑移、重新判断重抓、转正及连续变化",
+      "audienceTask": "理解一次工作需要持续看、判断和动手处理变化",
+      "semanticAnchor": {
+        "type": "scene",
+        "targetId": "scene_79fc874e-b686-4410-8529-2d88380ddb70",
+        "relation": "land_on"
+      },
+      "spatialAnchor": "full_frame",
+      "assetBindings": [],
+      "props": {},
+      "motion": {
+        "enterPreset": "none",
+        "settlePreset": "hold",
+        "exitPreset": "none",
+        "enterFrames": 0,
+        "holdFrames": 797,
+        "exitFrames": 0
+      },
+      "stylePackId": "managed-source",
+      "qualityRules": []
+    }
+  ],
+  "motionWorks": [
+    {
+      "id": "motion_work_499d582eaf32b1a4eb23bdfb7dfe3085ea9b52df661090879712bf6ed39b6f21",
+      "version": "5929cd503593f45bc810623bed546312014f641c087f7ef249f36c1c30cb2e46",
+      "name": "概率连续成功｜视觉预排（时长暂定）",
+      "jobId": "job_1b833b82-55eb-49a3-afb8-646f35cbafd5",
+      "engineVersion": "managed-hyperframes-4",
+      "definitionPath": "inputs/motion-work/499d582eaf32b1a4eb23bdfb7dfe3085ea9b52df661090879712bf6ed39b6f21.json",
+      "definitionHash": "499d582eaf32b1a4eb23bdfb7dfe3085ea9b52df661090879712bf6ed39b6f21",
+      "width": 1920,
+      "height": 1080,
+      "fps": 25,
+      "frameCount": 400,
+      "compositing": "opaque",
+      "creativeBrief": "本片概率段原创图形视觉预排：每次成功率99%、结果相互独立，连续N次全部成功概率0.99^N，100次约36.6%。16秒仅为视觉探索临时时长，尚未按真实旁白同步，不在时间线正式采用。",
+      "imageSources": [],
+      "videoSources": [],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourceDisplay": {
+        "policy": {
+          "mode": "internal_only"
+        },
+        "scopeId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5"
+      },
+      "eventMap": {
+        "version": "5929cd503593f45bc810623bed546312014f641c087f7ef249f36c1c30cb2e46",
+        "fps": 25,
+        "frameCount": 400,
+        "events": [
+          {
+            "id": "assumptions-visible",
+            "meaning": "每次成功率与相互独立的前提建立",
+            "startFrame": 12,
+            "endFrame": 62
+          },
+          {
+            "id": "success-probability-changes",
+            "meaning": "重复次数增加，连续全部成功的概率变化",
+            "startFrame": 62,
+            "endFrame": 263
+          },
+          {
+            "id": "hundred-success-result",
+            "meaning": "一百次全部成功概率约百分之三十六点六",
+            "startFrame": 263,
+            "endFrame": 400
+          }
+        ]
+      },
+      "readyRanges": [
+        {
+          "startFrame": 0,
+          "endFrame": 400
+        }
+      ]
+    },
+    {
+      "id": "motion_work_77d33c5f2f5cd909cbc6bae2b187836720b3dc0b891d5a6d4e147908213e8b39",
+      "version": "1e80a7058f85b08cb081da8711f33aa805a93d702aa1db4f519dbdd8ed4f05c2",
+      "name": "概率连续成功｜视觉预排修订（时长暂定）",
+      "jobId": "job_a438f64c-9515-4af5-8ab8-36e1347517bb",
+      "engineVersion": "managed-hyperframes-4",
+      "definitionPath": "inputs/motion-work/77d33c5f2f5cd909cbc6bae2b187836720b3dc0b891d5a6d4e147908213e8b39.json",
+      "definitionHash": "77d33c5f2f5cd909cbc6bae2b187836720b3dc0b891d5a6d4e147908213e8b39",
+      "width": 1920,
+      "height": 1080,
+      "fps": 25,
+      "frameCount": 400,
+      "compositing": "opaque",
+      "creativeBrief": "本片概率段原创图形视觉预排：假设每次成功率99%、结果相互独立，连续N次全部成功概率0.99^N，100次约36.6%。修正图表标签与前提文字。16秒仅为视觉探索临时时长，尚未按真实旁白同步，不在时间线正式采用。",
+      "imageSources": [],
+      "videoSources": [],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourceDisplay": {
+        "policy": {
+          "mode": "internal_only"
+        },
+        "scopeId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5"
+      },
+      "eventMap": {
+        "version": "1e80a7058f85b08cb081da8711f33aa805a93d702aa1db4f519dbdd8ed4f05c2",
+        "fps": 25,
+        "frameCount": 400,
+        "events": [
+          {
+            "id": "assumptions-visible",
+            "meaning": "每次成功率与相互独立的前提建立",
+            "startFrame": 12,
+            "endFrame": 62
+          },
+          {
+            "id": "success-probability-changes",
+            "meaning": "重复次数增加，连续全部成功的概率变化",
+            "startFrame": 62,
+            "endFrame": 263
+          },
+          {
+            "id": "hundred-success-result",
+            "meaning": "一百次全部成功概率约百分之三十六点六",
+            "startFrame": 263,
+            "endFrame": 400
+          }
+        ]
+      },
+      "readyRanges": [
+        {
+          "startFrame": 0,
+          "endFrame": 400
+        }
+      ]
+    },
+    {
+      "id": "motion_work_9ef54d9c57984803edf3b9400340987f8d1fbb59029dd3fec0c7c1366553b8fc",
+      "version": "f7dca14a7948d34a07cb051c5cf18de7fb04e289828cdcd6dc4ed1382a5e8bc1",
+      "name": "概率连续成功｜按旁白段界预排",
+      "jobId": "job_3bd43789-8b1e-401f-a07b-75664459cadb",
+      "engineVersion": "managed-hyperframes-4",
+      "definitionPath": "inputs/motion-work/9ef54d9c57984803edf3b9400340987f8d1fbb59029dd3fec0c7c1366553b8fc.json",
+      "definitionHash": "9ef54d9c57984803edf3b9400340987f8d1fbb59029dd3fec0c7c1366553b8fc",
+      "width": 1920,
+      "height": 1080,
+      "fps": 25,
+      "frameCount": 259,
+      "compositing": "opaque",
+      "creativeBrief": "假设每次成功率99%、结果相互独立，连续N次全部成功概率0.99^N，100次约36.6%。259帧按实际旁白段界初排，局部160帧为第二段开头，尚未按词级和实际听感同步；不在时间线自动采用。",
+      "imageSources": [],
+      "videoSources": [],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourceDisplay": {
+        "policy": {
+          "mode": "internal_only"
+        },
+        "scopeId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5"
+      },
+      "eventMap": {
+        "version": "f7dca14a7948d34a07cb051c5cf18de7fb04e289828cdcd6dc4ed1382a5e8bc1",
+        "fps": 25,
+        "frameCount": 259,
+        "events": [
+          {
+            "id": "assumptions-visible",
+            "meaning": "每次成功率与相互独立的前提建立",
+            "startFrame": 12,
+            "endFrame": 160
+          },
+          {
+            "id": "success-probability-changes",
+            "meaning": "重复次数增加，连续全部成功的概率变化",
+            "startFrame": 160,
+            "endFrame": 202
+          },
+          {
+            "id": "hundred-success-result",
+            "meaning": "一百次全部成功概率约百分之三十六点六",
+            "startFrame": 202,
+            "endFrame": 259
+          }
+        ]
+      },
+      "readyRanges": [
+        {
+          "startFrame": 0,
+          "endFrame": 259
+        }
+      ]
+    },
+    {
+      "id": "motion_work_f2099b59efdec3ca16b582315c938a1e337d0eecd22e39594c4251b345d94577",
+      "version": "e2e7029cdd5b6a4e335ef704354f4226ddb5807cdf51bee2b02b805bfca4e765",
+      "name": "后空翻与工位设想｜开场同源预排",
+      "jobId": "job_603d2603-0b5a-4855-9be5-0f4c071fb91a",
+      "engineVersion": "managed-hyperframes-4",
+      "definitionPath": "inputs/motion-work/f2099b59efdec3ca16b582315c938a1e337d0eecd22e39594c4251b345d94577.json",
+      "definitionHash": "f2099b59efdec3ca16b582315c938a1e337d0eecd22e39594c4251b345d94577",
+      "width": 1920,
+      "height": 1080,
+      "fps": 25,
+      "frameCount": 338,
+      "compositing": "opaque",
+      "creativeBrief": "开场由 Atlas 原片动作进入明显图形化的取件装配设想，不暗示实际 Atlas 执行该工作；旁白和普通字幕独立，真实素材和音画连续性仍待工作台观察。",
+      "imageSources": [],
+      "videoSources": [
+        {
+          "slot": "atlas",
+          "assetId": "asset_97a996ba-6205-441c-a195-2d4f43802bcb",
+          "managedPath": "assets\\source\\e92d979d5aa2138720f5.mp4",
+          "hash": "e92d979d5aa2138720f5ebb15bb8376913855fb626c822ab41efe01f3b5e6720",
+          "sourceStartMs": 16920,
+          "sourceEndMs": 23040,
+          "startFrame": 0,
+          "endFrame": 153
+        }
+      ],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourceDisplay": {
+        "policy": {
+          "mode": "internal_only"
+        },
+        "scopeId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5"
+      },
+      "eventMap": {
+        "version": "e2e7029cdd5b6a4e335ef704354f4226ddb5807cdf51bee2b02b805bfca4e765",
+        "fps": 25,
+        "frameCount": 338,
+        "events": [
+          {
+            "id": "atlas-action",
+            "meaning": "真实后空翻镜头",
+            "startFrame": 0,
+            "endFrame": 153
+          },
+          {
+            "id": "work-task",
+            "meaning": "假设的料箱取件与安装任务",
+            "startFrame": 153,
+            "endFrame": 282
+          },
+          {
+            "id": "work-question",
+            "meaning": "注意力回到料箱和伸手前的变化",
+            "startFrame": 282,
+            "endFrame": 338
+          }
+        ]
+      },
+      "readyRanges": [
+        {
+          "startFrame": 0,
+          "endFrame": 338
+        }
+      ]
+    },
+    {
+      "id": "motion_work_b7e72e6873a6844b299aefdf89e8f4b5445d2c088f748de2257732b1e8143974",
+      "version": "0cbbf923b7af688b89151a24f31bbbe8e8f8bad3136a22c07c4bc7af3e51e064",
+      "name": "后空翻与工位设想｜开场同源预排修订",
+      "jobId": "job_6f86da82-4ef4-46e3-a306-edd2c7bbbc11",
+      "engineVersion": "managed-hyperframes-4",
+      "definitionPath": "inputs/motion-work/b7e72e6873a6844b299aefdf89e8f4b5445d2c088f748de2257732b1e8143974.json",
+      "definitionHash": "b7e72e6873a6844b299aefdf89e8f4b5445d2c088f748de2257732b1e8143974",
+      "width": 1920,
+      "height": 1080,
+      "fps": 25,
+      "frameCount": 338,
+      "compositing": "opaque",
+      "creativeBrief": "开场由 Atlas 原片动作进入明显图形化的取件装配设想，不暗示实际 Atlas 执行该工作；修正零件沿路径进入槽位的空间关系。旁白和普通字幕独立，真实素材和音画连续性仍待工作台观察。",
+      "imageSources": [],
+      "videoSources": [
+        {
+          "slot": "atlas",
+          "assetId": "asset_97a996ba-6205-441c-a195-2d4f43802bcb",
+          "managedPath": "assets\\source\\e92d979d5aa2138720f5.mp4",
+          "hash": "e92d979d5aa2138720f5ebb15bb8376913855fb626c822ab41efe01f3b5e6720",
+          "sourceStartMs": 16920,
+          "sourceEndMs": 23040,
+          "startFrame": 0,
+          "endFrame": 153
+        }
+      ],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourceDisplay": {
+        "policy": {
+          "mode": "internal_only"
+        },
+        "scopeId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5"
+      },
+      "eventMap": {
+        "version": "0cbbf923b7af688b89151a24f31bbbe8e8f8bad3136a22c07c4bc7af3e51e064",
+        "fps": 25,
+        "frameCount": 338,
+        "events": [
+          {
+            "id": "atlas-action",
+            "meaning": "真实后空翻镜头",
+            "startFrame": 0,
+            "endFrame": 153
+          },
+          {
+            "id": "work-task",
+            "meaning": "假设的料箱取件与安装任务",
+            "startFrame": 153,
+            "endFrame": 282
+          },
+          {
+            "id": "work-question",
+            "meaning": "注意力回到料箱和伸手前的变化",
+            "startFrame": 282,
+            "endFrame": 338
+          }
+        ]
+      },
+      "readyRanges": [
+        {
+          "startFrame": 0,
+          "endFrame": 338
+        }
+      ]
+    },
+    {
+      "id": "motion_work_2a306391d572383a91466e191c57774459a70a3b15705a0652900b3f29309de1",
+      "version": "d99cac98661eb7c925c221ea4c47ed1b2a86aed9fc5faa9dd69c6f451b925739",
+      "name": "错误恢复与等待｜同源预排",
+      "jobId": "job_a830082b-849a-404d-8a12-a5322182de64",
+      "engineVersion": "managed-hyperframes-4",
+      "definitionPath": "inputs/motion-work/2a306391d572383a91466e191c57774459a70a3b15705a0652900b3f29309de1.json",
+      "definitionHash": "2a306391d572383a91466e191c57774459a70a3b15705a0652900b3f29309de1",
+      "width": 1920,
+      "height": 1080,
+      "fps": 25,
+      "frameCount": 377,
+      "compositing": "opaque",
+      "creativeBrief": "从假设的异常分出自行恢复与人工处理，只有后者可能造成暂停和后续工序等待，接续长期稳定、处理问题与人工参与。按段级时钟预排，仍待实际声画观察。",
+      "imageSources": [],
+      "videoSources": [],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourceDisplay": {
+        "policy": {
+          "mode": "internal_only"
+        },
+        "scopeId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5"
+      },
+      "eventMap": {
+        "version": "d99cac98661eb7c925c221ea4c47ed1b2a86aed9fc5faa9dd69c6f451b925739",
+        "fps": 25,
+        "frameCount": 377,
+        "events": [
+          {
+            "id": "incident",
+            "meaning": "生产中出现一次异常",
+            "startFrame": 26,
+            "endFrame": 44
+          },
+          {
+            "id": "automatic-recovery",
+            "meaning": "一条可能路径是自动恢复并继续",
+            "startFrame": 44,
+            "endFrame": 91
+          },
+          {
+            "id": "manual-recovery",
+            "meaning": "另一条可能路径是人工处理并可能造成后续等待",
+            "startFrame": 91,
+            "endFrame": 211
+          },
+          {
+            "id": "factory-questions",
+            "meaning": "回到稳定工作、异常处理与人工参与",
+            "startFrame": 211,
+            "endFrame": 377
+          }
+        ]
+      },
+      "readyRanges": [
+        {
+          "startFrame": 0,
+          "endFrame": 377
+        }
+      ]
+    },
+    {
+      "id": "motion_work_30ced52463e1e45a7eceb51b28dd0f4f62cd07cc1bbda1c4b5c410974e9a3e60",
+      "version": "23343a04595747fdda26d8a5690414fc299f72b2e15a5a0c3e7698492094e66f",
+      "name": "错误恢复与等待｜同源预排修订",
+      "jobId": "job_4ef872a5-7e41-4b9a-8763-047024fbbbd2",
+      "engineVersion": "managed-hyperframes-4",
+      "definitionPath": "inputs/motion-work/30ced52463e1e45a7eceb51b28dd0f4f62cd07cc1bbda1c4b5c410974e9a3e60.json",
+      "definitionHash": "30ced52463e1e45a7eceb51b28dd0f4f62cd07cc1bbda1c4b5c410974e9a3e60",
+      "width": 1920,
+      "height": 1080,
+      "fps": 25,
+      "frameCount": 377,
+      "compositing": "opaque",
+      "creativeBrief": "从一次异常分出自行恢复与人工处理，只有后者可能造成暂停和后续工序等待，接续长期稳定、处理问题与人工参与；修正分支和列表的空间关系。按段级时钟预排，仍待实际声画观察。",
+      "imageSources": [],
+      "videoSources": [],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourceDisplay": {
+        "policy": {
+          "mode": "internal_only"
+        },
+        "scopeId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5"
+      },
+      "eventMap": {
+        "version": "23343a04595747fdda26d8a5690414fc299f72b2e15a5a0c3e7698492094e66f",
+        "fps": 25,
+        "frameCount": 377,
+        "events": [
+          {
+            "id": "incident",
+            "meaning": "生产中出现一次异常",
+            "startFrame": 26,
+            "endFrame": 44
+          },
+          {
+            "id": "automatic-recovery",
+            "meaning": "一条可能路径是自动恢复并继续",
+            "startFrame": 44,
+            "endFrame": 91
+          },
+          {
+            "id": "manual-recovery",
+            "meaning": "另一条可能路径是人工处理并可能造成后续等待",
+            "startFrame": 91,
+            "endFrame": 211
+          },
+          {
+            "id": "factory-questions",
+            "meaning": "回到稳定工作、异常处理与人工参与",
+            "startFrame": 211,
+            "endFrame": 377
+          }
+        ]
+      },
+      "readyRanges": [
+        {
+          "startFrame": 0,
+          "endFrame": 377
+        }
+      ]
+    },
+    {
+      "id": "motion_work_96adac8d3b31384dd31f24044309c807993e3a22c613a6296a7fae3e1194e9f9",
+      "version": "037c0d38351d08342ae04cdfa4a00fa6ff209e3e563e3b25013a3036a37bc8c3",
+      "name": "Digit 仓库搬箱｜同源预排",
+      "jobId": "job_47acb70d-b91c-46b4-8289-94eb08c7b50d",
+      "engineVersion": "managed-hyperframes-4",
+      "definitionPath": "inputs/motion-work/96adac8d3b31384dd31f24044309c807993e3a22c613a6296a7fae3e1194e9f9.json",
+      "definitionHash": "96adac8d3b31384dd31f24044309c807993e3a22c613a6296a7fae3e1194e9f9",
+      "width": 1920,
+      "height": 1080,
+      "fps": 25,
+      "frameCount": 399,
+      "compositing": "opaque",
+      "creativeBrief": "真实 Digit 仓库候选影像与仓库累计超过10万料箱的限定事实结合，不声称镜头正好拍到第十万箱、单台或无人干预；源画面裁切、动作与字幕仍须核看。",
+      "imageSources": [],
+      "videoSources": [
+        {
+          "slot": "digit",
+          "assetId": "asset_fac6c26b-e87e-4ec5-abe3-cbf8fc36a380",
+          "managedPath": "assets\\source\\9229fb74d44f7fff6302.mp4",
+          "hash": "9229fb74d44f7fff6302e2d5c5fd84f7679fbaece43c8264723b0e76c1995086",
+          "sourceStartMs": 88000,
+          "sourceEndMs": 98000,
+          "startFrame": 0,
+          "endFrame": 250
+        }
+      ],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourceDisplay": {
+        "policy": {
+          "mode": "internal_only"
+        },
+        "scopeId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5"
+      },
+      "eventMap": {
+        "version": "037c0d38351d08342ae04cdfa4a00fa6ff209e3e563e3b25013a3036a37bc8c3",
+        "fps": 25,
+        "frameCount": 399,
+        "events": [
+          {
+            "id": "warehouse-work",
+            "meaning": "Digit 在真实仓库接触料箱的画面",
+            "startFrame": 0,
+            "endFrame": 250
+          },
+          {
+            "id": "warehouse-total",
+            "meaning": "仓库累计搬运料箱超过十万个",
+            "startFrame": 101,
+            "endFrame": 248
+          },
+          {
+            "id": "remaining-challenges",
+            "meaning": "更多任务、意外处理与使用成本仍是挑战",
+            "startFrame": 241,
+            "endFrame": 399
+          }
+        ]
+      },
+      "readyRanges": [
+        {
+          "startFrame": 0,
+          "endFrame": 399
+        }
+      ]
+    },
+    {
+      "id": "motion_work_866356adb1e01aedbc3fb14732226a0c520d1c2426c609e8a6c6f8587a2dd520",
+      "version": "634b9e6322809ca1b86ac341afea865c6287c02851a1092eb6ff166b2771802f",
+      "name": "后空翻与工位设想｜开场同源预排再修订",
+      "jobId": "job_7b792652-90de-4913-ab8b-a95a959d5fa4",
+      "engineVersion": "managed-hyperframes-4",
+      "definitionPath": "inputs/motion-work/866356adb1e01aedbc3fb14732226a0c520d1c2426c609e8a6c6f8587a2dd520.json",
+      "definitionHash": "866356adb1e01aedbc3fb14732226a0c520d1c2426c609e8a6c6f8587a2dd520",
+      "width": 1920,
+      "height": 1080,
+      "fps": 25,
+      "frameCount": 338,
+      "compositing": "opaque",
+      "creativeBrief": "开场以 Atlas 原片引出图形化工位设想；调整真实画面避让统一字幕，零件经槽口遮挡进入机器。字幕与旁白独立，实际声画与细部仍待复查。",
+      "imageSources": [],
+      "videoSources": [
+        {
+          "slot": "atlas",
+          "assetId": "asset_97a996ba-6205-441c-a195-2d4f43802bcb",
+          "managedPath": "assets\\source\\e92d979d5aa2138720f5.mp4",
+          "hash": "e92d979d5aa2138720f5ebb15bb8376913855fb626c822ab41efe01f3b5e6720",
+          "sourceStartMs": 16920,
+          "sourceEndMs": 23040,
+          "startFrame": 0,
+          "endFrame": 153
+        }
+      ],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourceDisplay": {
+        "policy": {
+          "mode": "internal_only"
+        },
+        "scopeId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5"
+      },
+      "eventMap": {
+        "version": "634b9e6322809ca1b86ac341afea865c6287c02851a1092eb6ff166b2771802f",
+        "fps": 25,
+        "frameCount": 338,
+        "events": [
+          {
+            "id": "atlas-action",
+            "meaning": "真实后空翻镜头",
+            "startFrame": 0,
+            "endFrame": 153
+          },
+          {
+            "id": "work-task",
+            "meaning": "假设的料箱取件与安装任务",
+            "startFrame": 153,
+            "endFrame": 282
+          },
+          {
+            "id": "work-question",
+            "meaning": "注意力回到料箱和伸手前的变化",
+            "startFrame": 282,
+            "endFrame": 338
+          }
+        ]
+      },
+      "readyRanges": [
+        {
+          "startFrame": 0,
+          "endFrame": 338
+        }
+      ]
+    },
+    {
+      "id": "motion_work_3f7f6048f53e8516d70c8f50eedff761cd0e190e795e7280bbfb86d06f9a848f",
+      "version": "2afffe3ef0d24c07bf6724d3c9d91fb5d9ac25883cb91d4f1f495a112a1cf352",
+      "name": "工业机械臂：真实工位与固定流程预排",
+      "jobId": "job_1a63a7ff-6260-4018-8fa4-466a60936f13",
+      "engineVersion": "managed-hyperframes-4",
+      "definitionPath": "inputs/motion-work/3f7f6048f53e8516d70c8f50eedff761cd0e190e795e7280bbfb86d06f9a848f.json",
+      "definitionHash": "3f7f6048f53e8516d70c8f50eedff761cd0e190e795e7280bbfb86d06f9a848f",
+      "width": 1920,
+      "height": 1080,
+      "fps": 25,
+      "frameCount": 315,
+      "compositing": "opaque",
+      "creativeBrief": "以真实汽车工厂蓝色机械臂建立固定工位，画面缩至一侧后展开相对固定任务、放置、衔接和路径的流程关系，再切至另一工厂的黄色机械臂强调快与稳。两处为不同工厂，不暗示同一产线；字幕由项目统一呈现。",
+      "imageSources": [],
+      "videoSources": [
+        {
+          "slot": "car",
+          "assetId": "asset_7b90da11-c0a1-4d48-9d3b-784ee53aa074",
+          "managedPath": "assets\\source\\773cba4e18d9bda0bdcb.mp4",
+          "hash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+          "sourceStartMs": 0,
+          "sourceEndMs": 8400,
+          "startFrame": 0,
+          "endFrame": 210
+        },
+        {
+          "slot": "yellow",
+          "assetId": "asset_578bb73a-4ca4-4cec-bb6f-57a88bf9b20f",
+          "managedPath": "assets\\source\\e1f2a8684b7a05eb7150.mp4",
+          "hash": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+          "sourceStartMs": 0,
+          "sourceEndMs": 4200,
+          "startFrame": 210,
+          "endFrame": 315
+        }
+      ],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourceDisplay": {
+        "policy": {
+          "mode": "internal_only"
+        },
+        "scopeId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5"
+      },
+      "eventMap": {
+        "version": "2afffe3ef0d24c07bf6724d3c9d91fb5d9ac25883cb91d4f1f495a112a1cf352",
+        "fps": 25,
+        "frameCount": 315,
+        "events": [
+          {
+            "id": "factory-arm",
+            "meaning": "真实工厂机械臂画面",
+            "startFrame": 0,
+            "endFrame": 315
+          },
+          {
+            "id": "designed-process",
+            "meaning": "相对固定任务与围绕任务设计的流程",
+            "startFrame": 80,
+            "endFrame": 222
+          },
+          {
+            "id": "fast-and-steady",
+            "meaning": "肯定既有机械臂的快与稳",
+            "startFrame": 222,
+            "endFrame": 315
+          }
+        ]
+      },
+      "readyRanges": [
+        {
+          "startFrame": 0,
+          "endFrame": 315
+        }
+      ]
+    },
+    {
+      "id": "motion_work_729a053e24b296d44aa1ade1517efe6c54ea183402b0a0ae4e97d09bf838f159",
+      "version": "b5929f907f7802156a5ace9e04069f66e10050b26f268d39e458f192ae752a78",
+      "name": "人形机器人潜力与成本预排",
+      "jobId": "job_1f606542-3a9e-4da0-9be5-4f882a9c5b0e",
+      "engineVersion": "managed-hyperframes-4",
+      "definitionPath": "inputs/motion-work/729a053e24b296d44aa1ade1517efe6c54ea183402b0a0ae4e97d09bf838f159.json",
+      "definitionHash": "729a053e24b296d44aa1ade1517efe6c54ea183402b0a0ae4e97d09bf838f159",
+      "width": 1920,
+      "height": 1080,
+      "fps": 25,
+      "frameCount": 488,
+      "compositing": "opaque",
+      "creativeBrief": "非照片式人形机器人与路径对接通道、工具和设备，标示有机会；接续今天搬料、明天换岗与未来也许的设想；后段以重新教学、续航、维护、停机作为待评估问题，不填虚构数值。保留前段固定机械臂的优势。",
+      "imageSources": [],
+      "videoSources": [],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourceDisplay": {
+        "policy": {
+          "mode": "internal_only"
+        },
+        "scopeId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5"
+      },
+      "eventMap": {
+        "version": "b5929f907f7802156a5ace9e04069f66e10050b26f268d39e458f192ae752a78",
+        "fps": 25,
+        "frameCount": 488,
+        "events": [
+          {
+            "id": "human-spaces",
+            "meaning": "利用为人准备的通道、工具和设备的可能性",
+            "startFrame": 0,
+            "endFrame": 128
+          },
+          {
+            "id": "possible-change",
+            "meaning": "未来换岗的设想",
+            "startFrame": 125,
+            "endFrame": 268
+          },
+          {
+            "id": "real-evaluation",
+            "meaning": "以实际表现评估重新教学、续航、维护和停机",
+            "startFrame": 266,
+            "endFrame": 488
+          }
+        ]
+      },
+      "readyRanges": [
+        {
+          "startFrame": 0,
+          "endFrame": 488
+        }
+      ]
+    },
+    {
+      "id": "motion_work_ff0edd70a0375da9eaea479244b1b13558af002cdf010f43291c5932ab04ded0",
+      "version": "f28d1cb4c5846f30024dbd89616a69d34ffe008db78b0f2721f1b78db860ca4f",
+      "name": "回到后空翻与日常工作问题预排",
+      "jobId": "job_0b307f9e-f6f6-479e-90ae-13368647805b",
+      "engineVersion": "managed-hyperframes-4",
+      "definitionPath": "inputs/motion-work/ff0edd70a0375da9eaea479244b1b13558af002cdf010f43291c5932ab04ded0.json",
+      "definitionHash": "ff0edd70a0375da9eaea479244b1b13558af002cdf010f43291c5932ab04ded0",
+      "width": 1920,
+      "height": 1080,
+      "fps": 25,
+      "frameCount": 315,
+      "compositing": "opaque",
+      "creativeBrief": "先以真实 Atlas 后空翻回扣开场并为字幕留出空间，再用非照片式图形表现零件摆歪、掉落和夹爪接近下一件，提出日常稳定工作问题。图形不冒充实拍。",
+      "imageSources": [],
+      "videoSources": [
+        {
+          "slot": "atlas",
+          "assetId": "asset_97a996ba-6205-441c-a195-2d4f43802bcb",
+          "managedPath": "assets\\source\\e92d979d5aa2138720f5.mp4",
+          "hash": "e92d979d5aa2138720f5ebb15bb8376913855fb626c822ab41efe01f3b5e6720",
+          "sourceStartMs": 17680,
+          "sourceEndMs": 21640,
+          "startFrame": 0,
+          "endFrame": 99
+        }
+      ],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourceDisplay": {
+        "policy": {
+          "mode": "internal_only"
+        },
+        "scopeId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5"
+      },
+      "eventMap": {
+        "version": "f28d1cb4c5846f30024dbd89616a69d34ffe008db78b0f2721f1b78db860ca4f",
+        "fps": 25,
+        "frameCount": 315,
+        "events": [
+          {
+            "id": "atlas-return",
+            "meaning": "回看真实后空翻与落地",
+            "startFrame": 0,
+            "endFrame": 99
+          },
+          {
+            "id": "part-tilt",
+            "meaning": "零件摆歪后的问题",
+            "startFrame": 99,
+            "endFrame": 162
+          },
+          {
+            "id": "part-drop",
+            "meaning": "东西掉落后的问题",
+            "startFrame": 161,
+            "endFrame": 214
+          },
+          {
+            "id": "next-piece",
+            "meaning": "长期工作后还能否稳稳拿起下一件",
+            "startFrame": 212,
+            "endFrame": 315
+          }
+        ]
+      },
+      "readyRanges": [
+        {
+          "startFrame": 0,
+          "endFrame": 315
+        }
+      ]
+    },
+    {
+      "id": "motion_work_909206003d36b989f1ba3fee070c0e2ca21f8b379ef4d31295f45449e9d9dab0",
+      "version": "d25eb045fbbd396bf1348d9096557698d4959b694fab197f24649c555ca48957",
+      "name": "乱箱抓取与变化预排",
+      "jobId": "job_26fb6e97-476d-4c99-b731-85f07d71e694",
+      "engineVersion": "managed-hyperframes-4",
+      "definitionPath": "inputs/motion-work/909206003d36b989f1ba3fee070c0e2ca21f8b379ef4d31295f45449e9d9dab0.json",
+      "definitionHash": "909206003d36b989f1ba3fee070c0e2ca21f8b379ef4d31295f45449e9d9dab0",
+      "width": 1920,
+      "height": 1080,
+      "fps": 25,
+      "frameCount": 797,
+      "compositing": "opaque",
+      "creativeBrief": "使用非照片式原创图形，按文案演示乱箱姿态、滑移、人手调整、重新观察重抓、转正，接续看、判断、动手与长期稳定；不把假设故障伪装为实拍，不冒充任何具体机器人的真实表现。",
+      "imageSources": [],
+      "videoSources": [],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourceDisplay": {
+        "policy": {
+          "mode": "internal_only"
+        },
+        "scopeId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5"
+      },
+      "eventMap": {
+        "version": "d25eb045fbbd396bf1348d9096557698d4959b694fab197f24649c555ca48957",
+        "fps": 25,
+        "frameCount": 797,
+        "events": [
+          {
+            "id": "bin-and-slip",
+            "meaning": "零件姿态、遮挡及接触后滑动",
+            "startFrame": 0,
+            "endFrame": 182
+          },
+          {
+            "id": "human-adjusts",
+            "meaning": "手拨开零件并换角度",
+            "startFrame": 182,
+            "endFrame": 242
+          },
+          {
+            "id": "robot-regrabs",
+            "meaning": "发现位置变化、判断与调整重抓",
+            "startFrame": 242,
+            "endFrame": 388
+          },
+          {
+            "id": "turn-part",
+            "meaning": "拿反后把零件转过来",
+            "startFrame": 388,
+            "endFrame": 474
+          },
+          {
+            "id": "see-judge-act",
+            "meaning": "看、判断与动手应对连续变化",
+            "startFrame": 474,
+            "endFrame": 688
+          },
+          {
+            "id": "one-is-not-the-job",
+            "meaning": "一次成功尚不足以交付整个工位",
+            "startFrame": 688,
+            "endFrame": 797
+          }
+        ]
+      },
+      "readyRanges": [
+        {
+          "startFrame": 0,
+          "endFrame": 797
+        }
+      ]
+    },
+    {
+      "id": "motion_work_502e15a331362ecd0ca8c7923fcfa987c035547736a3c6183467db37d466c9e9",
+      "version": "5206f25241970c0aa8a6e713ff2d268dd07e147b96fbd68a060e6bd3e2216611",
+      "name": "乱箱抓取与变化预排修订版",
+      "jobId": "job_19f7e74f-57ac-4337-a6d0-f274e3d6dcf9",
+      "engineVersion": "managed-hyperframes-4",
+      "definitionPath": "inputs/motion-work/502e15a331362ecd0ca8c7923fcfa987c035547736a3c6183467db37d466c9e9.json",
+      "definitionHash": "502e15a331362ecd0ca8c7923fcfa987c035547736a3c6183467db37d466c9e9",
+      "width": 1920,
+      "height": 1080,
+      "fps": 25,
+      "frameCount": 797,
+      "compositing": "opaque",
+      "creativeBrief": "使用非照片式原创图形，按文案演示乱箱姿态、滑移、人手调整、重新观察重抓、转正，接续看、判断、动手与长期稳定；不把假设故障伪装为实拍。修订看判断动手卡片遮挡标题及零件旋转中心，待实际帧复核。",
+      "imageSources": [],
+      "videoSources": [],
+      "fontSources": [
+        {
+          "slot": "body",
+          "fontId": "noto-sans-sc-regular",
+          "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "family": "VFC_faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+          "weight": 400,
+          "style": "normal"
+        },
+        {
+          "slot": "title",
+          "fontId": "noto-sans-sc-bold",
+          "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+          "weight": 700,
+          "style": "normal"
+        }
+      ],
+      "sourceDisplay": {
+        "policy": {
+          "mode": "internal_only"
+        },
+        "scopeId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5"
+      },
+      "eventMap": {
+        "version": "5206f25241970c0aa8a6e713ff2d268dd07e147b96fbd68a060e6bd3e2216611",
+        "fps": 25,
+        "frameCount": 797,
+        "events": [
+          {
+            "id": "bin-and-slip",
+            "meaning": "零件姿态、遮挡及接触后滑动",
+            "startFrame": 0,
+            "endFrame": 182
+          },
+          {
+            "id": "human-adjusts",
+            "meaning": "手拨开零件并换角度",
+            "startFrame": 182,
+            "endFrame": 242
+          },
+          {
+            "id": "robot-regrabs",
+            "meaning": "发现位置变化、判断与调整重抓",
+            "startFrame": 242,
+            "endFrame": 388
+          },
+          {
+            "id": "turn-part",
+            "meaning": "拿反后把零件转过来",
+            "startFrame": 388,
+            "endFrame": 474
+          },
+          {
+            "id": "see-judge-act",
+            "meaning": "看、判断与动手应对连续变化",
+            "startFrame": 474,
+            "endFrame": 688
+          },
+          {
+            "id": "one-is-not-the-job",
+            "meaning": "一次成功尚不足以交付整个工位",
+            "startFrame": 688,
+            "endFrame": 797
+          }
+        ]
+      },
+      "readyRanges": [
+        {
+          "startFrame": 0,
+          "endFrame": 797
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "id": "asset_97a996ba-6205-441c-a195-2d4f43802bcb",
+      "name": "source.mp4",
+      "kind": "video",
+      "role": "b_roll",
+      "managedPath": "assets\\source\\e92d979d5aa2138720f5.mp4",
+      "sourceHash": "e92d979d5aa2138720f5ebb15bb8376913855fb626c822ab41efe01f3b5e6720",
+      "provenance": {
+        "source": "provider",
+        "provider": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=fRj34o4hN4I",
+        "originalAssetId": "fRj34o4hN4I",
+        "creator": "Boston Dynamics",
+        "acquisition": {
+          "qualityHeight": 1080,
+          "candidateId": "asset_candidate_9619954e-72b9-45da-8160-f97c6014b19d"
+        },
+        "acquiredAt": "2026-11-11T17:42:52.691Z"
+      },
+      "metadata": {
+        "durationMs": 54660,
+        "width": 1920,
+        "height": 1080,
+        "fps": 59.94005994005994,
+        "hasAudio": true,
+        "audioCodec": "aac",
+        "sampleRate": 44100,
+        "channels": 2,
+        "videoCodec": "h264",
+        "pixelFormat": "yuv420p",
+        "hasAlpha": false,
+        "mime": "mov,mp4,m4a,3gp,3g2,mj2",
+        "thumbnailPath": "assets\\proxy\\asset_97a996ba-6205-441c-a195-2d4f43802bcb.jpg"
+      }
+    },
+    {
+      "id": "asset_f98c02d9-975a-42ec-ae01-535c02b1c729",
+      "name": "source.mp4",
+      "kind": "video",
+      "role": "b_roll",
+      "managedPath": "assets\\source\\df93d2a0e4357c9482e1.mp4",
+      "sourceHash": "df93d2a0e4357c9482e19e2db9fe5ac3ad5a7c93a734233e08bd0def0467b126",
+      "provenance": {
+        "source": "provider",
+        "provider": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=mOC-u2pHslg",
+        "originalAssetId": "mOC-u2pHslg",
+        "creator": "Mech-Mind Robotics",
+        "acquisition": {
+          "qualityHeight": 1080,
+          "candidateId": "asset_candidate_6e10f20c-3a5a-44ea-935e-08da91729b59"
+        },
+        "acquiredAt": "2026-11-11T17:43:06.575Z"
+      },
+      "metadata": {
+        "durationMs": 59815,
+        "width": 1920,
+        "height": 1080,
+        "fps": 60,
+        "hasAudio": true,
+        "audioCodec": "aac",
+        "sampleRate": 44100,
+        "channels": 2,
+        "videoCodec": "vp9",
+        "pixelFormat": "yuv420p",
+        "hasAlpha": false,
+        "mime": "mov,mp4,m4a,3gp,3g2,mj2",
+        "thumbnailPath": "assets\\proxy\\asset_f98c02d9-975a-42ec-ae01-535c02b1c729.jpg"
+      }
+    },
+    {
+      "id": "asset_fac6c26b-e87e-4ec5-abe3-cbf8fc36a380",
+      "name": "source.mp4",
+      "kind": "video",
+      "role": "b_roll",
+      "managedPath": "assets\\source\\9229fb74d44f7fff6302.mp4",
+      "sourceHash": "9229fb74d44f7fff6302e2d5c5fd84f7679fbaece43c8264723b0e76c1995086",
+      "provenance": {
+        "source": "provider",
+        "provider": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=AJpTpUqjgrY",
+        "originalAssetId": "AJpTpUqjgrY",
+        "creator": "Agility",
+        "acquisition": {
+          "qualityHeight": 1080,
+          "candidateId": "asset_candidate_0bb1cd96-f0ae-475a-8caf-c3065bda3bb8"
+        },
+        "acquiredAt": "2026-11-11T17:43:18.288Z"
+      },
+      "metadata": {
+        "durationMs": 112710,
+        "width": 1920,
+        "height": 1080,
+        "fps": 23.976023976023978,
+        "hasAudio": true,
+        "audioCodec": "aac",
+        "sampleRate": 44100,
+        "channels": 2,
+        "videoCodec": "vp9",
+        "pixelFormat": "yuv420p",
+        "hasAlpha": false,
+        "mime": "mov,mp4,m4a,3gp,3g2,mj2",
+        "thumbnailPath": "assets\\proxy\\asset_fac6c26b-e87e-4ec5-abe3-cbf8fc36a380.jpg"
+      }
+    },
+    {
+      "id": "asset_7b90da11-c0a1-4d48-9d3b-784ee53aa074",
+      "name": "pexels-6450803.mp4",
+      "kind": "video",
+      "role": "b_roll",
+      "managedPath": "assets\\source\\773cba4e18d9bda0bdcb.mp4",
+      "sourceHash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+      "provenance": {
+        "source": "provider",
+        "provider": "pexels",
+        "sourceUrl": "https://www.pexels.com/video/automated-car-factory-6450803/",
+        "originalAssetId": "6450803",
+        "acquisition": {
+          "qualityHeight": 1080,
+          "candidateId": "asset_candidate_3ffa2513-f9c0-4016-9c15-b77665f672bd"
+        },
+        "acquiredAt": "2026-11-11T17:43:23.599Z"
+      },
+      "metadata": {
+        "durationMs": 8405,
+        "width": 1920,
+        "height": 1080,
+        "fps": 25,
+        "hasAudio": true,
+        "audioCodec": "aac",
+        "sampleRate": 48000,
+        "channels": 2,
+        "videoCodec": "h264",
+        "pixelFormat": "yuv420p",
+        "hasAlpha": false,
+        "mime": "mov,mp4,m4a,3gp,3g2,mj2",
+        "thumbnailPath": "assets\\proxy\\asset_7b90da11-c0a1-4d48-9d3b-784ee53aa074.jpg"
+      }
+    },
+    {
+      "id": "asset_578bb73a-4ca4-4cec-bb6f-57a88bf9b20f",
+      "name": "pexels-32386532.mp4",
+      "kind": "video",
+      "role": "b_roll",
+      "managedPath": "assets\\source\\e1f2a8684b7a05eb7150.mp4",
+      "sourceHash": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+      "provenance": {
+        "source": "provider",
+        "provider": "pexels",
+        "sourceUrl": "https://www.pexels.com/video/industrial-robot-arm-in-high-tech-factory-32386532/",
+        "originalAssetId": "32386532",
+        "acquisition": {
+          "qualityHeight": 1080,
+          "candidateId": "asset_candidate_7d6b0cb2-827d-4e8c-8140-337f39a5728e"
+        },
+        "acquiredAt": "2026-11-11T17:43:27.725Z"
+      },
+      "metadata": {
+        "durationMs": 9860,
+        "width": 3840,
+        "height": 2160,
+        "fps": 100,
+        "hasAudio": false,
+        "videoCodec": "h264",
+        "pixelFormat": "yuv420p",
+        "hasAlpha": false,
+        "mime": "mov,mp4,m4a,3gp,3g2,mj2",
+        "thumbnailPath": "assets\\proxy\\asset_578bb73a-4ca4-4cec-bb6f-57a88bf9b20f.jpg"
+      }
+    },
+    {
+      "id": "asset_07623b65-1f45-4688-bff4-2a42168cc554",
+      "name": "mixkit-music-506.mp3",
+      "kind": "audio",
+      "role": "bgm",
+      "managedPath": "assets\\source\\f69583e38a066edec722.mp3",
+      "sourceHash": "f69583e38a066edec7221475d76f82b16e15a2416b1af88adf2679947623bec3",
+      "provenance": {
+        "source": "provider",
+        "provider": "mixkit_music",
+        "sourceUrl": "https://mixkit.co/free-stock-music/tag/minimalism/",
+        "originalAssetId": "506",
+        "creator": "by Diego Nava",
+        "acquisition": {
+          "candidateId": "asset_candidate_344bb846-3e25-4309-9648-387febef2457"
+        },
+        "acquiredAt": "2026-11-11T17:43:33.910Z"
+      },
+      "metadata": {
+        "durationMs": 102781,
+        "hasAudio": true,
+        "audioCodec": "mp3",
+        "sampleRate": 44100,
+        "channels": 2,
+        "hasAlpha": false,
+        "mime": "mp3"
+      }
+    },
+    {
+      "id": "asset_6f726988-a825-4604-906c-90a905ab4d61",
+      "name": "mixkit-music-12.mp3",
+      "kind": "audio",
+      "role": "bgm",
+      "managedPath": "assets\\source\\52c6ac5a27af5f6f0e99.mp3",
+      "sourceHash": "52c6ac5a27af5f6f0e997467024be0778a1ac08a7b1e6dfcf57ae21791932ca9",
+      "provenance": {
+        "source": "provider",
+        "provider": "mixkit_music",
+        "sourceUrl": "https://mixkit.co/free-stock-music/mood/cheerful/",
+        "originalAssetId": "12",
+        "creator": "by Ahjay Stelino",
+        "acquisition": {
+          "candidateId": "asset_candidate_9406adb7-3fe5-45b4-bf07-94103b13fee8"
+        },
+        "acquiredAt": "2026-11-11T17:43:37.275Z"
+      },
+      "metadata": {
+        "durationMs": 181846,
+        "hasAudio": true,
+        "audioCodec": "mp3",
+        "sampleRate": 44100,
+        "channels": 2,
+        "hasAlpha": false,
+        "mime": "mp3"
+      }
+    },
+    {
+      "id": "asset_6866880a-21e9-4f66-a627-a2a47381a376",
+      "name": "mixkit-2858.wav",
+      "kind": "audio",
+      "role": "sfx",
+      "managedPath": "assets\\source\\8255e8de6596d6ca3d24.wav",
+      "sourceHash": "8255e8de6596d6ca3d243df7c7817c341dc31de8c398a4b2ad04d224c9586246",
+      "provenance": {
+        "source": "provider",
+        "provider": "mixkit",
+        "sourceUrl": "https://mixkit.co/free-sound-effects/metal/",
+        "originalAssetId": "2858",
+        "acquisition": {
+          "candidateId": "asset_candidate_edc9b591-9ae9-4409-a3c2-2dba2f3d363f"
+        },
+        "acquiredAt": "2026-11-11T17:43:40.106Z"
+      },
+      "metadata": {
+        "durationMs": 1099,
+        "hasAudio": true,
+        "audioCodec": "pcm_s16le",
+        "sampleRate": 44100,
+        "channels": 2,
+        "hasAlpha": false,
+        "mime": "wav"
+      }
+    },
+    {
+      "id": "asset_16455446-dc8c-4268-bb7e-d8bd8ada2a61",
+      "name": "mixkit-835.wav",
+      "kind": "audio",
+      "role": "sfx",
+      "managedPath": "assets\\source\\dd8c4175aa50e01ddd62.wav",
+      "sourceHash": "dd8c4175aa50e01ddd620d18c4d2690aea40c21c6d6db67f178af024af23328a",
+      "provenance": {
+        "source": "provider",
+        "provider": "mixkit",
+        "sourceUrl": "https://mixkit.co/free-sound-effects/metal/",
+        "originalAssetId": "835",
+        "acquisition": {
+          "candidateId": "asset_candidate_0fc17e08-2ead-47a5-ba07-f86c5faeab3a"
+        },
+        "acquiredAt": "2026-11-11T17:43:42.504Z"
+      },
+      "metadata": {
+        "durationMs": 1257,
+        "hasAudio": true,
+        "audioCodec": "pcm_s24le",
+        "sampleRate": 44100,
+        "channels": 2,
+        "hasAlpha": false,
+        "mime": "wav"
+      }
+    },
+    {
+      "id": "asset_48a7362b-0471-49ce-97ed-d77e754ba4eb",
+      "name": "旁白：这台机器人，刚刚完成了一个后空翻。跳",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_fd1b5c9d-8378-4fde-b353-ea940010db52-audio_00001.flac",
+      "sourceHash": "1670dfa1de0ab24aad4897f20cfa85a013c0f5454ee9935789e287f4ec543915",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:43:10.489Z"
+      },
+      "metadata": {
+        "durationMs": 6130,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_b6500b68-944c-45fd-a66b-c85e513d7685",
+      "name": "旁白：然后，你给它安排了一份工作：从箱子里",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_54dbbc12-810b-4acb-a41d-a251a743347d-audio_00001.flac",
+      "sourceHash": "b7bffda7ba0cb1da594c06cc56fb864d810c50842cc411055633f932a1343dee",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:43:35.917Z"
+      },
+      "metadata": {
+        "durationMs": 7390,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_25eff5ef-9b91-4174-86a7-e6a5ee7f165a",
+      "name": "旁白：箱子里的零件，有的正着，有的倒着，还",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_ee9c9fbb-ad29-4ddb-83a2-4f7d9966e0a8-audio_00001.flac",
+      "sourceHash": "523b1d27b4987aad0e0fb877543e9a56ed8b8d0c248f844939cb9d17ecabc94e",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:44:00.486Z"
+      },
+      "metadata": {
+        "durationMs": 7270,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_c0b94d55-c9e4-4b8a-a4eb-620ec984b450",
+      "name": "旁白：人遇到这种情况，通常会伸手拨一下，换",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_f51f2e71-ecfd-466a-9406-929a4ff74c69-audio_00001.flac",
+      "sourceHash": "537c3599589f152fba722ea5eade9e7ce4937b6d02d6d38e399f30e71482364b",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:44:24.572Z"
+      },
+      "metadata": {
+        "durationMs": 8240,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_9bf5b070-b431-4bf6-b70a-617e05952882",
+      "name": "旁白：如果抓起来以后才发现拿反了，还得想办",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_8dea9278-372a-42f6-b300-ccc94df3cc84-audio_00001.flac",
+      "sourceHash": "aec02c886b734d29b8a52c558a994862c50cacde71de775d1a649f6297ac6685",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:44:48.152Z"
+      },
+      "metadata": {
+        "durationMs": 3440,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_ee3caae9-2913-449c-9f73-876824e72a6d",
+      "name": "旁白：翻跟头已经很厉害了。但工厂里每件小事",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_f60780a1-f087-4ab2-bd4a-6ef0a3e58238-audio_00001.flac",
+      "sourceHash": "d933fa623e44d193ac092adf9a56f034c071d207cfb1f7a6aa0e5f6a91b44433",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:45:13.978Z"
+      },
+      "metadata": {
+        "durationMs": 8570,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_6ac033d5-8806-4064-a9aa-335292de173c",
+      "name": "旁白：更难的是，工厂不会因为它成功了一次，",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_4225480a-37f6-4234-be66-7b52f097ba73-audio_00001.flac",
+      "sourceHash": "13a3693ca905808ec8e1a1aea88a7d36f1851a40be2eae9eaf7f8ac218872357",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:45:36.401Z"
+      },
+      "metadata": {
+        "durationMs": 4340,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_5a3d3352-f7c3-4d7e-b387-976831e9bd66",
+      "name": "旁白：假设一个动作每次都有百分之九十九的成",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_36cc1d21-0b95-4aad-b8d7-29c2d528b988-audio_00001.flac",
+      "sourceHash": "e7252a42169c943f1893a2701e8ae402a31967aacf90fcf0e836cdc58d107ee7",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:46:02.296Z"
+      },
+      "metadata": {
+        "durationMs": 6410,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_1da55545-38ae-435e-8505-413adef74b32",
+      "name": "旁白：可连续做一百次，全部成功的概率，大约",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_ff36967e-bf4a-4de8-8590-abc782632cec-audio_00001.flac",
+      "sourceHash": "4c59b3570d67757a8c9327181c7a50ba360f6ececbfac14938642d873b49b57c",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:46:26.373Z"
+      },
+      "metadata": {
+        "durationMs": 3960,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_401492b9-41cb-4812-892b-a4da0fc9a0d9",
+      "name": "旁白：实际生产中，有些小失误可以自动恢复，",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_14456b68-06a8-4045-8ac0-484f186b021d-audio_00001.flac",
+      "sourceHash": "52b75e69953afbebdeea278f792a709f8a25b78058ef3d225495cb54c452833a",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:46:50.880Z"
+      },
+      "metadata": {
+        "durationMs": 8430,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_e808dd97-1d21-4bb1-8ea5-daff3cd7c89c",
+      "name": "旁白：工厂需要考虑的，是机器人能不能长时间",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_32985b6f-be21-4cf1-9c6a-cde40ca87273-audio_00001.flac",
+      "sourceHash": "3256fb793bc7c4c7fd661f6b19863e61afe4ace80414430945a6f7acc5a33226",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:47:14.375Z"
+      },
+      "metadata": {
+        "durationMs": 6670,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_a9bae684-ee6c-474c-9685-6b95f7202297",
+      "name": "旁白：那为什么机械臂早就在工厂上班了？",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_3d1cd409-c359-41b2-ba61-25e908965fbf-audio_00001.flac",
+      "sourceHash": "99088b15f45b34c215b967f8b4f7e7b4553c251652f568988c5651fc28a7eb48",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:47:37.361Z"
+      },
+      "metadata": {
+        "durationMs": 2470,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_9c1579ef-2f7b-4db0-9034-460ff7104142",
+      "name": "旁白：因为很多机械臂干的是相对固定的工作。",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_4295b32f-5e99-4845-ada4-9afceec2d366-audio_00001.flac",
+      "sourceHash": "9eb6063f638e470d3e81a0cd93dae9319277dffef0bfde48e6526f753d010263",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:48:04.355Z"
+      },
+      "metadata": {
+        "durationMs": 10100,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_13c83e19-9b5b-4bb3-b18b-e01d65216963",
+      "name": "旁白：人形机器人的吸引力在于，工厂里原本给",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_2f7c774b-6476-4e76-8ff6-0b407963b0d3-audio_00001.flac",
+      "sourceHash": "72b4064b5e3b3186eef1154b60915dc496eeb9cbf33d140612a33631bbf65b1e",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:48:29.423Z"
+      },
+      "metadata": {
+        "durationMs": 10740,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_27d426f8-0fc5-402c-a9f6-7678f97ace8d",
+      "name": "旁白：不过，这个优势能发挥多少，还得看实际",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_331742c6-e7dc-4db5-8566-ce1a84d577ac-audio_00001.flac",
+      "sourceHash": "c6584d6ab4a874809bf5927b8920f10bb2b690855d9a4bc65550e08f5c595c99",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:48:52.660Z"
+      },
+      "metadata": {
+        "durationMs": 8790,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_985bef19-a743-4730-ae46-30b2a69a8e5f",
+      "name": "旁白：现在，已经有人开始交作业了。Agil",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_f761416f-3bc0-49a0-b6d0-ace82bfd6d58-audio_00001.flac",
+      "sourceHash": "989d95a5fc2012bcde6b4ca4f0273e0ef6bfae5c54f5d0b6159d245e6c00542a",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:49:40.656Z"
+      },
+      "metadata": {
+        "durationMs": 7240,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_60235ef3-f53a-431b-8449-71f606614633",
+      "name": "旁白：这说明人形机器人已经能在一些具体场景",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_debf0862-8662-4aa5-bf94-705905b1f9f8-audio_00001.flac",
+      "sourceHash": "29995e8aafd40c2cbd09af5f2acce9bd8f422957e9c27de0d1653007766627de",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:50:27.449Z"
+      },
+      "metadata": {
+        "durationMs": 8710,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_d8ce3e1e-53f7-4f12-bc6a-89e28fa5f0a1",
+      "name": "旁白：所以，下次再看到机器人翻跟头，可以欣",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_04b0e7b3-abe9-4789-97de-da3cd55d5608-audio_00001.flac",
+      "sourceHash": "dfa4f43594860b96c0d44be7744ed39fcd0ff579a5cbc6a6b3f29de5c9996ad5",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:51:13.564Z"
+      },
+      "metadata": {
+        "durationMs": 3980,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_420c7bd1-2790-47b9-b817-85064638c311",
+      "name": "旁白：而要看它能不能进厂，还得看看接下来的",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\job_304b7b3c-f6b1-4dd7-b005-0131e557603e\\speech_segment_cd7d0556-8064-4072-a1f6-b0d3981b2a5e-audio_00001.flac",
+      "sourceHash": "32466629d3800c99306da4f5e069548196bd0c5b73db6a024e4b803104face4b",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:52:00.907Z"
+      },
+      "metadata": {
+        "durationMs": 8640,
+        "hasAudio": true,
+        "audioCodec": "flac",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "flac"
+      }
+    },
+    {
+      "id": "asset_56251d5c-cf70-4662-883f-b5d2fa391064",
+      "name": "旁白总轨 Revision 1",
+      "kind": "speech",
+      "managedPath": "assets\\speech\\speech-job_304b7b3c-f6b1-4dd7-b005-0131e557603e.wav",
+      "sourceHash": "6eb75592b126b694d3e9df1fc6f2189bebad835197f2e28b990559cc966613be",
+      "provenance": {
+        "source": "local_import",
+        "acquiredAt": "2026-11-11T17:52:02.051Z"
+      },
+      "metadata": {
+        "durationMs": 131520,
+        "hasAudio": true,
+        "audioCodec": "pcm_s16le",
+        "sampleRate": 24000,
+        "channels": 1,
+        "hasAlpha": false,
+        "mime": "wav"
+      }
+    },
+    {
+      "id": "asset_c8b01f9c-d75d-464f-8254-1bfcbcf7f10b",
+      "name": "概率连续成功｜按旁白段界预排",
+      "kind": "video",
+      "role": "generated_visual",
+      "managedPath": "assets/derived/motion/job_7e81a4b2-8ba8-42ca-9540-72c155df040a/f7dca14a7948d34a07cb051c5cf18de7fb04e289828cdcd6dc4ed1382a5e8bc1/output.mp4",
+      "sourceHash": "fe9f7213e781ca720688517bd7a027c28847686ba206a1d3ab1551e1b19d025b",
+      "provenance": {
+        "source": "generated",
+        "provider": "managed_hyperframes",
+        "generationJobId": "job_7e81a4b2-8ba8-42ca-9540-72c155df040a",
+        "acquiredAt": "2026-11-12T01:07:05.987Z"
+      },
+      "metadata": {
+        "durationMs": 10360,
+        "width": 1920,
+        "height": 1080,
+        "fps": 25,
+        "hasAudio": false,
+        "videoCodec": "h264",
+        "pixelFormat": "yuv420p",
+        "hasAlpha": false,
+        "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+      }
+    },
+    {
+      "id": "asset_6ccd6021-a3c0-4167-ac1d-d6326ed30721",
+      "name": "后空翻与工位设想｜开场同源预排再修订",
+      "kind": "video",
+      "role": "generated_visual",
+      "managedPath": "assets/derived/motion/job_b7562f53-c63f-415e-bce0-a022abc15beb/634b9e6322809ca1b86ac341afea865c6287c02851a1092eb6ff166b2771802f/output.mp4",
+      "sourceHash": "c39759b760cd7e31df547832ed3d02d7fc6db55c51e12174c6bfaa55183a7333",
+      "provenance": {
+        "source": "generated",
+        "provider": "managed_hyperframes",
+        "generationJobId": "job_b7562f53-c63f-415e-bce0-a022abc15beb",
+        "acquiredAt": "2026-11-12T01:10:03.118Z"
+      },
+      "metadata": {
+        "durationMs": 13520,
+        "width": 1920,
+        "height": 1080,
+        "fps": 25,
+        "hasAudio": false,
+        "videoCodec": "h264",
+        "pixelFormat": "yuv420p",
+        "hasAlpha": false,
+        "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+      }
+    },
+    {
+      "id": "asset_1e59febd-2e85-4243-9d92-7ee7a3547819",
+      "name": "错误恢复与等待｜同源预排修订",
+      "kind": "video",
+      "role": "generated_visual",
+      "managedPath": "assets/derived/motion/job_799f680d-a1f0-4935-be7d-f3e0e97bbece/23343a04595747fdda26d8a5690414fc299f72b2e15a5a0c3e7698492094e66f/output.mp4",
+      "sourceHash": "64eaca9259eae802b7e05d915bc13d38bd33e9ff38181c9295d2a37639f304ef",
+      "provenance": {
+        "source": "generated",
+        "provider": "managed_hyperframes",
+        "generationJobId": "job_799f680d-a1f0-4935-be7d-f3e0e97bbece",
+        "acquiredAt": "2026-11-12T01:10:46.942Z"
+      },
+      "metadata": {
+        "durationMs": 15080,
+        "width": 1920,
+        "height": 1080,
+        "fps": 25,
+        "hasAudio": false,
+        "videoCodec": "h264",
+        "pixelFormat": "yuv420p",
+        "hasAlpha": false,
+        "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+      }
+    },
+    {
+      "id": "asset_35a3f2fa-7b31-4100-8478-787b995f4c13",
+      "name": "人形机器人潜力与成本预排",
+      "kind": "video",
+      "role": "generated_visual",
+      "managedPath": "assets/derived/motion/job_ae61f190-db17-4293-ac34-0dc1ce78bb3f/b5929f907f7802156a5ace9e04069f66e10050b26f268d39e458f192ae752a78/output.mp4",
+      "sourceHash": "8a84cbda69039506a8b8597b32b5fc1bdead3385dd40e922d25b12257f9669b3",
+      "provenance": {
+        "source": "generated",
+        "provider": "managed_hyperframes",
+        "generationJobId": "job_ae61f190-db17-4293-ac34-0dc1ce78bb3f",
+        "acquiredAt": "2026-11-12T01:13:42.285Z"
+      },
+      "metadata": {
+        "durationMs": 19520,
+        "width": 1920,
+        "height": 1080,
+        "fps": 25,
+        "hasAudio": false,
+        "videoCodec": "h264",
+        "pixelFormat": "yuv420p",
+        "hasAlpha": false,
+        "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+      }
+    },
+    {
+      "id": "asset_ef3434e4-8807-4659-9e9e-f73dc2f9abc2",
+      "name": "Digit 仓库搬箱｜同源预排",
+      "kind": "video",
+      "role": "generated_visual",
+      "managedPath": "assets/derived/motion/job_f6ea29d3-3e56-4dbc-a153-6a8fc059b7d0/037c0d38351d08342ae04cdfa4a00fa6ff209e3e563e3b25013a3036a37bc8c3/output.mp4",
+      "sourceHash": "138807e45486a3013b94122067032df1368db6e5ac22a965f9891f01546d8314",
+      "provenance": {
+        "source": "generated",
+        "provider": "managed_hyperframes",
+        "generationJobId": "job_f6ea29d3-3e56-4dbc-a153-6a8fc059b7d0",
+        "acquiredAt": "2026-11-12T01:15:55.243Z"
+      },
+      "metadata": {
+        "durationMs": 15960,
+        "width": 1920,
+        "height": 1080,
+        "fps": 25,
+        "hasAudio": false,
+        "videoCodec": "h264",
+        "pixelFormat": "yuv420p",
+        "hasAlpha": false,
+        "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+      }
+    },
+    {
+      "id": "asset_d7b4571f-34c1-4f00-84dd-d4247d443a99",
+      "name": "回到后空翻与日常工作问题预排",
+      "kind": "video",
+      "role": "generated_visual",
+      "managedPath": "assets/derived/motion/job_65cc0c9b-d785-473b-ac27-5d2b2286743c/f28d1cb4c5846f30024dbd89616a69d34ffe008db78b0f2721f1b78db860ca4f/output.mp4",
+      "sourceHash": "98ba9074f21745d9252de72aa3a8cf6428210f6c688249dcaee9f24a1b0c8a10",
+      "provenance": {
+        "source": "generated",
+        "provider": "managed_hyperframes",
+        "generationJobId": "job_65cc0c9b-d785-473b-ac27-5d2b2286743c",
+        "acquiredAt": "2026-11-12T01:17:29.834Z"
+      },
+      "metadata": {
+        "durationMs": 12600,
+        "width": 1920,
+        "height": 1080,
+        "fps": 25,
+        "hasAudio": false,
+        "videoCodec": "h264",
+        "pixelFormat": "yuv420p",
+        "hasAlpha": false,
+        "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+      }
+    },
+    {
+      "id": "asset_20aae224-3707-4310-9adb-56299b090b94",
+      "name": "工业机械臂：真实工位与固定流程预排",
+      "kind": "video",
+      "role": "generated_visual",
+      "managedPath": "assets/derived/motion/job_3065d5d5-5654-4251-a010-0572e5181795/2afffe3ef0d24c07bf6724d3c9d91fb5d9ac25883cb91d4f1f495a112a1cf352/output.mp4",
+      "sourceHash": "6919bb508bc78e274cb7d60986d8aee527ea513c481889ebae7cff42b6185b25",
+      "provenance": {
+        "source": "generated",
+        "provider": "managed_hyperframes",
+        "generationJobId": "job_3065d5d5-5654-4251-a010-0572e5181795",
+        "acquiredAt": "2026-11-12T01:20:15.380Z"
+      },
+      "metadata": {
+        "durationMs": 12600,
+        "width": 1920,
+        "height": 1080,
+        "fps": 25,
+        "hasAudio": false,
+        "videoCodec": "h264",
+        "pixelFormat": "yuv420p",
+        "hasAlpha": false,
+        "mime": "mov,mp4,m4a,3gp,3g2,mj2"
+      }
+    }
+  ],
+  "timeline": {
+    "fps": 25,
+    "captionFormat": {
+      "fontSize": 40,
+      "fontWeight": 700,
+      "color": "#ffffff",
+      "bottomPercent": 7,
+      "horizontalInsetPercent": 8,
+      "textAlign": "center",
+      "maxLines": 2,
+      "lineHeight": 1.3,
+      "boxWidth": "content",
+      "fontId": "noto-sans-sc-bold",
+      "font": {
+        "fontId": "noto-sans-sc-bold",
+        "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+        "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+        "weight": 700,
+        "style": "normal"
+      },
+      "paddingHorizontal": 18,
+      "paddingVertical": 8,
+      "borderRadius": 8,
+      "backgroundColor": "#101719",
+      "backgroundOpacity": 0.78
+    }
+  }
+}

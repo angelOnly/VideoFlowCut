@@ -49,6 +49,7 @@ import { projectCanvasSizeSchema } from "../../../packages/contracts/src/canvas-
 import { inspectMotionReference } from "./motion-reference.js";
 
 const idSchema = z.string().min(1);
+const productionOperationIdSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,160}$/u);
 const baseRevisionSchema = z.number().int().positive();
 /**
  * 素材审阅是只读派生请求，不带 baseRevision；缓存不会进入项目 Revision。
@@ -433,28 +434,32 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   app.post("/api/projects/:projectId/workbench-observations", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({
-      runId: idSchema.optional(), revision: z.number().int().positive(),
+      runId: idSchema.optional(), operationId: productionOperationIdSchema, revision: z.number().int().positive(),
       pass: z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"]),
       method: z.enum(["frames", "continuous_video", "audio", "audiovisual"]),
       observer: z.string().trim().min(1).max(160), observation: z.string().trim().min(1).max(2000),
       startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(),
+      adoptionRefs: z.array(z.object({ productionRunId: idSchema, decisionId: idSchema }).strict()).optional(),
       finding: z.object({ category: z.enum(["semantic", "pacing", "attention", "motion", "typography", "audio", "mode_specific"]), severity: z.enum(["blocking", "warning", "major", "minor", "suggestion", "inconclusive"]), summary: z.string().trim().min(1).max(2000), impact: z.string().trim().min(1).max(2000), objectId: idSchema.optional() }).strict().optional()
     }).strict().parse(request.body);
     const snapshot = application.readProject(projectId, body.revision).snapshot;
     if (body.endFrame <= body.startFrame || body.endFrame > snapshot.timeline.durationInFrames) throw new DomainError("观察范围超出目标版本", "EDITORIAL_EVIDENCE_RANGE_INVALID");
-    const runId = body.runId ?? (await application.startProductionRun({ projectId, baseRevision: body.revision, loadedSkills: [] })).id;
+    const runOperationId = `workbench_run_${createHash("sha256").update(body.operationId).digest("hex")}`;
+    const runId = body.runId ?? (await application.startProductionRun({ projectId, baseRevision: body.revision, intent: "review_only", completionScope: { kind: "frames", startFrame: body.startFrame, endFrame: body.endFrame }, operationId: runOperationId, loadedSkills: [] })).id;
     const report = await application.recordEditorialQualityReview({
-      projectId, runId, revision: body.revision, passes: [body.pass], previewEvidence: [],
-      observations: [{ source: "workbench", observer: body.observer, clientEnvironment: request.headers["user-agent"], pass: body.pass, method: body.method, startFrame: body.startFrame, endFrame: body.endFrame, observation: body.observation }],
+      projectId, runId, operationId: body.operationId, revision: body.revision, passes: [body.pass], previewEvidence: [],
+      observations: [{ source: "workbench", observer: body.observer, clientEnvironment: request.headers["user-agent"], pass: body.pass, method: body.method, startFrame: body.startFrame, endFrame: body.endFrame, observation: body.observation, adoptionRefs: body.adoptionRefs }],
       findings: body.finding ? [{ ...body.finding, pass: body.pass, evidence: body.observation, frameRange: { startFrame: body.startFrame, endFrame: body.endFrame } }] : []
     });
-    return { runId, review: report.editorialReview };
+    const evidence = [...(report.editorialReviewHistory ?? []), ...(report.editorialReview ? [report.editorialReview] : [])]
+      .flatMap(review => review.evidenceRecords ?? []).find(entry => entry.operationId === body.operationId);
+    return { runId, review: report.editorialReview, evidenceId: evidence?.id };
   });
 
   app.post("/api/projects/:projectId/editorial-resolutions", async (request) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    const body = z.object({ runId: idSchema, revision: z.number().int().positive(), pass: z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"]), findingId: idSchema, evidenceIds: z.array(idSchema).min(1).max(40), note: z.string().trim().min(1).max(2000), scope: z.literal("caption_text").optional() }).strict().parse(request.body);
-    const report = await application.recordEditorialQualityReview({ projectId, runId: body.runId, revision: body.revision, passes: [body.pass], previewEvidence: [], observations: [], findings: [], resolutions: [{ findingId: body.findingId, evidenceIds: body.evidenceIds, note: body.note, scope: body.scope }] });
+    const body = z.object({ runId: idSchema, operationId: productionOperationIdSchema, revision: z.number().int().positive(), pass: z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"]), findingId: idSchema, evidenceIds: z.array(idSchema).min(1).max(40), note: z.string().trim().min(1).max(2000), scope: z.literal("caption_text").optional() }).strict().parse(request.body);
+    const report = await application.recordEditorialQualityReview({ projectId, runId: body.runId, operationId: body.operationId, revision: body.revision, passes: [body.pass], previewEvidence: [], observations: [], findings: [], resolutions: [{ findingId: body.findingId, evidenceIds: body.evidenceIds, note: body.note, scope: body.scope }] });
     return { runId: body.runId, review: report.editorialReview };
   });
 
@@ -1453,11 +1458,12 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   app.get("/api/projects/:projectId/production-status", async request => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const query = z.object({ runId: idSchema.optional(), completionScope: z.string().optional() }).parse(request.query);
-    if (Boolean(query.runId) !== Boolean(query.completionScope)) throw new DomainError("runId 和 completionScope 需要一起提供", "PRODUCTION_STATUS_CONTEXT_REQUIRED");
-    if (!query.runId || !query.completionScope) return application.readProductionStatus(projectId);
+    if (query.completionScope && !query.runId) throw new DomainError("completionScope 需要 runId", "PRODUCTION_STATUS_CONTEXT_REQUIRED");
+    if (!query.runId) return application.readProductionStatus(projectId);
+    if (!query.completionScope) return application.readProductionStatus(projectId, { runId: query.runId });
     let rawScope: unknown;
     try { rawScope = JSON.parse(query.completionScope); } catch { throw new DomainError("completionScope 必须是有效 JSON", "COMPLETION_SCOPE_INVALID"); }
-    const completionScope = z.discriminatedUnion("kind", [z.object({ kind: z.literal("project") }), z.object({ kind: z.literal("beats"), beatIds: z.array(idSchema).min(1) }), z.object({ kind: z.literal("objects"), objectIds: z.array(idSchema).min(1) })]).parse(rawScope);
+    const completionScope = z.discriminatedUnion("kind", [z.object({ kind: z.literal("project") }), z.object({ kind: z.literal("beats"), beatIds: z.array(idSchema).min(1) }), z.object({ kind: z.literal("objects"), objectIds: z.array(idSchema).min(1) }), z.object({ kind: z.literal("frames"), startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() })]).parse(rawScope);
     return application.readProductionStatus(projectId, { runId: query.runId, completionScope });
   });
 

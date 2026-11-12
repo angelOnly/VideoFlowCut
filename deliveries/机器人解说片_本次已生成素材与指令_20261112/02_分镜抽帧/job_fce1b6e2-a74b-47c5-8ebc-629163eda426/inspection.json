@@ -1,0 +1,76 @@
+{
+  "projectId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5",
+  "revision": 19,
+  "workId": "motion_work_499d582eaf32b1a4eb23bdfb7dfe3085ea9b52df661090879712bf6ed39b6f21",
+  "workVersion": "5929cd503593f45bc810623bed546312014f641c087f7ef249f36c1c30cb2e46",
+  "definitionHash": "499d582eaf32b1a4eb23bdfb7dfe3085ea9b52df661090879712bf6ed39b6f21",
+  "evidencePath": "previews/motion-inspection/job_fce1b6e2-a74b-47c5-8ebc-629163eda426",
+  "report": {
+    "status": "exact",
+    "maxAllowedChannelDelta": 2,
+    "sampledFrames": [
+      0,
+      25,
+      62,
+      112,
+      175,
+      250,
+      300,
+      399
+    ],
+    "visitOrder": {
+      "ascending": [
+        0,
+        25,
+        62,
+        112,
+        175,
+        250,
+        300,
+        399
+      ],
+      "samePageReverse": [
+        399,
+        300,
+        250,
+        175,
+        112,
+        62,
+        25,
+        0
+      ],
+      "cleanPageReverse": [
+        399,
+        300,
+        250,
+        175,
+        112,
+        62,
+        25,
+        0
+      ]
+    },
+    "failedFrames": [],
+    "differences": [],
+    "events": [
+      {
+        "id": "assumptions-visible",
+        "meaning": "每次成功率与相互独立的前提建立",
+        "startFrame": 12,
+        "endFrame": 62
+      },
+      {
+        "id": "success-probability-changes",
+        "meaning": "重复次数增加，连续全部成功的概率变化",
+        "startFrame": 62,
+        "endFrame": 263
+      },
+      {
+        "id": "hundred-success-result",
+        "meaning": "一百次全部成功概率约百分之三十六点六",
+        "startFrame": 263,
+        "endFrame": 400
+      }
+    ]
+  }
+}

@@ -52,7 +52,7 @@ OpenDesign 是视觉作者的实现与深化作者。视觉作者持续负责整
 
 已有预排时，场面的可选 `visualPlan` 填写 `status: previewed`、`primaryRoles`，以 `preview: {workId, startFrame, endFrame}` 引用当前项目中已发布的 MotionWork 根帧范围。必要时通过 `referenceMappings` 记录已采用参考、目标视觉角色及处理方式；图形主导时设置 `graphicLed` 并在 `graphicReasons` 说明承担的内容及原因。工具交付同版固定源码与绑定并核对哈希；若作品来自 OD 阶段交件，预排引用同时保留真实项目、Run 和冻结版本。`draft` 或 `pending` 返回未完成诊断。没有视觉计划字段的旧交付仍可准备，但资料就绪不表示预排已完成，视觉作者仍须实际交回预排。字段只定位决定，不代替观看或完整视觉稿。
 
-按返回的 `files` 通过制作端文件接口交付本次需要的文件。导演确认后主任务使用 `record_creative_decision.delivery_ref` 保存 `manifest_path、manifest_sha256、scene_ids` 和导演 delegation，再通过 `manage_visual_treatment` 写入 `adopted_decision_ref` 与本范围采用素材。制作启动传对应 `production_run_id` 和 `visual_treatment_ids`，连接器核对制作端真实文件、当前素材与采用稿后发送完整请求。准备后如果目标场面、相关内容或声音时序变化，重新准备并确认受影响场面；其他场面的变化不妨碍继续。未就绪场面继续探索；其他已选且就绪的场面可以单独准备和制作。
+按返回的 `files` 通过制作端文件接口交付本次需要的文件。导演确认后主任务使用 `record_creative_decision` 的 `adoption` 阶段引用导演分派、视觉设计及 `delivery_ref` 的 `manifest_path、manifest_sha256、scene_ids`，再通过 `manage_visual_treatment` 写入 `adopted_decision_ref` 与本范围采用素材。制作启动传对应 `production_run_id` 和 `visual_treatment_ids`，连接器核对制作端真实文件、当前素材与采用稿后发送完整请求。准备后如果目标场面、相关内容或声音时序变化，重新准备并确认受影响场面；其他场面的变化不妨碍继续。未就绪场面继续探索；其他已选且就绪的场面可以单独准备和制作。
 
 完整请求由视觉负责人编写。请求点名本片制作简报、时间资料和实际文件，要求制作作者先读取完整简报，打开采用的参考视频，查看指定范围的连续变化及必要前后画面，再查看本片对应素材。
 

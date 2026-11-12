@@ -21,3 +21,12 @@ deliveries/机器人进厂_本轮视频编排与动效源码/** -text
 deliveries/机器人进厂_本轮视频编排与动效源码/机器人进厂_视频_R140.mp4 filter=lfs diff=lfs merge=lfs -text
 deliveries/机器人进厂_本轮视频编排与动效源码/01_影片与声音/视频预览_R140.mp4 filter=lfs diff=lfs merge=lfs -text
 deliveries/机器人进厂_本轮视频编排与动效源码/04_素材/Digit仓库作业.mp4 filter=lfs diff=lfs merge=lfs -text
+
+# 本轮解说片资料保留字节身份，视频和音频交由 Git LFS 保存。
+deliveries/机器人解说片_本次已生成素材与指令_20261112/** -text
+deliveries/机器人解说片_本次已生成素材与指令_20261112/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+deliveries/机器人解说片_本次已生成素材与指令_20261112/**/*.wav filter=lfs diff=lfs merge=lfs -text
+deliveries/机器人解说片_本次已生成素材与指令_20261112/**/*.mp3 filter=lfs diff=lfs merge=lfs -text
+
+# 本轮新增创意参考的视频原件使用 Git LFS，卡片与分镜正常版本管理。
+references/motion-cases/skillry/cases/creative-ref-20261112-*/**/*.mp4 filter=lfs diff=lfs merge=lfs -text

@@ -119,6 +119,7 @@ async function main(): Promise<void> {
     const run = await call<{ id: string }>("start_production_run", {
       project_id: projectId,
       base_revision_id: created.revision.number,
+      intent: "full_creation", completion_scope: { kind: "project" }, operation_id: "stage1-run",
       loaded_skills: liveSkills,
       loaded_references: [
         "docs/asr接入.md",
@@ -288,6 +289,7 @@ async function main(): Promise<void> {
     });
 
     await call("record_creative_decision", {
+      operation_id: "stage1-semantic",
       project_id: projectId,
       run_id: run.id,
       category: "semantic",
@@ -298,6 +300,7 @@ async function main(): Promise<void> {
       alternatives: ["按标点进一步拆成关键词字幕", "删除未回听确认的短语"]
     });
     await call("record_creative_decision", {
+      operation_id: "stage1-story",
       project_id: projectId,
       run_id: run.id,
       category: "story",
@@ -309,6 +312,7 @@ async function main(): Promise<void> {
       alternatives: ["每个转写候选单独成 Scene", "以全屏文字替换人物"]
     });
     await call("record_creative_decision", {
+      operation_id: "stage1-visual",
       project_id: projectId,
       run_id: run.id,
       category: "visual",
@@ -355,6 +359,7 @@ async function main(): Promise<void> {
       completion_scope: { kind: "project" },
       project_id: projectId,
       run_id: run.id,
+      operation_id: "stage1-complete",
       final_revision: state.revision.number
     });
     const quality = await call<{ issues: Array<{ level: string; code: string; message: string }> }>("read_quality_report", { project_id: projectId });

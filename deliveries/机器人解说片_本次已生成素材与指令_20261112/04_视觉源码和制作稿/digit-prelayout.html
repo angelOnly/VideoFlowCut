@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    body { font-family: var(--vfc-font-body); }
+    .composition { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #eeeae0; color: #f7f5ef; }
+    .sheet { position: absolute; inset: 54px 64px 86px; overflow: hidden; background: #1b292e; }
+    .grid { position: absolute; inset: 0; opacity: .12; background-image: linear-gradient(#9ca9a7 1px,transparent 1px),linear-gradient(90deg,#9ca9a7 1px,transparent 1px); background-size: 64px 64px; mask-image: linear-gradient(to right,transparent 12%,black 65%); }
+    .topline { position: absolute; left: 88px; right: 88px; top: 65px; height: 83px; display: flex; align-items: center; gap: 30px; border-bottom: 2px solid rgba(239,244,240,.2); }
+    .flag { width: 13px; height: 50px; background: #ffb84c; }
+    .head { font: 700 38px var(--vfc-font-title); letter-spacing: .05em; }
+    .photo { position: absolute; left: 150px; top: 173px; width: 1480px; height: 650px; overflow: hidden; background: #293e3b; transform-origin: left top; }
+    .photo img { display: block; width: 1480px; height: 832.5px; object-fit: cover; }
+    .fact { position: absolute; top: 255px; left: 1160px; width: 515px; }
+    .fact .lead { color: #d5e1d6; font-size: 32px; }
+    .fact .number { margin-top: 18px; color: #ffb84c; font: 700 76px/1.1 var(--vfc-font-title); white-space: nowrap; }
+    .fact .label { margin-top: 24px; color: #edf3eb; font-size: 30px; }
+    .future { position: absolute; left: 125px; right: 125px; top: 235px; }
+    .future h2 { margin: 0 0 56px; font: 700 50px/1.2 var(--vfc-font-title); }
+    .steps { display: flex; gap: 64px; }
+    .step { flex: 1; border-top: 5px solid #ffb84c; padding-top: 30px; }
+    .step span { display: block; font: 700 41px var(--vfc-font-title); }
+    .step small { display: block; margin-top: 24px; color: #b4c9bd; font: 400 27px/1.5 var(--vfc-font-body); }
+  </style>
+</head>
+<body>
+  <main class="composition" data-composition-id="digit-work" data-width="1920" data-height="1080" data-start="0" data-duration="15.96">
+    <section class="sheet">
+      <div class="grid"></div>
+      <div class="topline"><span class="flag"></span><span class="head">Digit 的仓库工作</span></div>
+      <div class="photo"><img id="digit-shot" data-vfc-video-slot="digit" alt=""></div>
+      <div class="fact"><div class="lead">仓库累计搬运料箱</div><div class="number">超过 10 万个</div><div class="label">在具体场景中工作</div></div>
+      <div class="future">
+        <h2>接下来的挑战</h2>
+        <div class="steps">
+          <div class="step first"><span>更多任务</span><small>适应不同工作</small></div>
+          <div class="step second"><span>处理意外</span><small>变化发生后继续应对</small></div>
+          <div class="step third"><span>使用成本</span><small>让实际使用说得过去</small></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    // 底部取景去掉原片说明文字；料箱与双手是否完整需逐帧复查。
+    gsap.set('.fact', { autoAlpha: 0, x: 35 });
+    gsap.set('.future', { autoAlpha: 0, y: 20 });
+    gsap.set('.step', { autoAlpha: 0, y: 25 });
+    const sequence = gsap.timeline({ paused: true });
+    sequence.to('.photo', { scale: .61, duration: .8, ease: 'power2.inOut' }, 3.4)
+      .to('.fact', { autoAlpha: 1, x: 0, duration: .55, ease: 'power2.out' }, 4.05)
+      .to('.photo, .fact', { autoAlpha: 0, y: -30, duration: .65, ease: 'power2.in' }, 9.25)
+      .to('.future', { autoAlpha: 1, y: 0, duration: .55, ease: 'power2.out' }, 9.65)
+      .to('.first', { autoAlpha: 1, y: 0, duration: .45 }, 10.0)
+      .to('.second', { autoAlpha: 1, y: 0, duration: .45 }, 10.8)
+      .to('.third', { autoAlpha: 1, y: 0, duration: .45 }, 11.6)
+      .to({}, { duration: .01 }, 15.95);
+    window.__timelines = { 'digit-work': sequence };
+    window.getVfcMotionEvents = () => [
+      { id: 'warehouse-work', meaning: 'Digit 在真实仓库接触料箱的画面', startFrame: 0, endFrame: 250 },
+      { id: 'warehouse-total', meaning: '仓库累计搬运料箱超过十万个', startFrame: 101, endFrame: 248 },
+      { id: 'remaining-challenges', meaning: '更多任务、意外处理与使用成本仍是挑战', startFrame: 241, endFrame: 399 }
+    ];
+  </script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    body { font-family: var(--vfc-font-body); }
+    .composition { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #eeeae0; color: #f7f5ef; }
+    .atlas { position: absolute; inset: 0; overflow: hidden; background: #1b292e; }
+    .atlas img { position: absolute; left: 142px; top: 20px; width: 1636px; height: 920px; object-fit: contain; }
+    .atlas:after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg,rgba(11,24,27,.22),transparent 45%); pointer-events: none; }
+    .motion-label { position: absolute; left: 172px; top: 72px; padding-left: 22px; border-left: 9px solid #ffb84c; font: 700 36px var(--vfc-font-title); text-shadow: 0 2px 12px #111a; }
+    .work { position: absolute; inset: 0; overflow: hidden; background: #eeeae0; }
+    .sheet { position: absolute; inset: 54px 64px 86px; overflow: hidden; background: #1b292e; }
+    .grid { position: absolute; inset: 0; opacity: .12; background-image: linear-gradient(#9ca9a7 1px,transparent 1px),linear-gradient(90deg,#9ca9a7 1px,transparent 1px); background-size: 64px 64px; mask-image: linear-gradient(to right,transparent 12%,black 65%); }
+    .topline { position: absolute; left: 88px; right: 88px; top: 65px; height: 83px; display: flex; align-items: center; gap: 30px; border-bottom: 2px solid rgba(239,244,240,.2); }
+    .flag { width: 13px; height: 50px; background: #ffb84c; }
+    .head { font: 700 38px var(--vfc-font-title); letter-spacing: .05em; color: #f7f5ef; }
+    .visual { position: absolute; left: 90px; top: 165px; width: 1600px; height: 650px; overflow: visible; }
+    .visual text { fill: #f3f5ee; font-family: var(--vfc-font-body); }
+    .visual .label { font: 700 48px var(--vfc-font-title); }
+    .visual .sub { font-size: 30px; fill: #b7ccc0; }
+    .visual .orange { fill: #ffb84c; }
+    .visual .line { fill: none; stroke: #c8d9ce; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+    .visual .dash { fill: none; stroke: #ffb84c; stroke-width: 5; stroke-dasharray: 12 12; stroke-linecap: round; }
+  </style>
+</head>
+<body>
+  <main class="composition" data-composition-id="ending-work" data-width="1920" data-height="1080" data-start="0" data-duration="12.6">
+    <div class="atlas"><img id="atlas-shot" data-vfc-video-slot="atlas" alt=""><div class="motion-label">后空翻</div></div>
+    <section class="work">
+      <div class="sheet">
+        <div class="grid"></div>
+        <div class="topline"><span class="flag"></span><span class="head">接下来的每一天</span></div>
+        <svg class="visual" viewBox="0 0 1600 650" aria-label="零件摆歪、掉落以及拿起下一件的日常问题">
+          <g id="tilt-scene">
+            <text class="label" x="90" y="90">零件<tspan class="orange">摆歪</tspan>了怎么办？</text>
+            <path d="M250 400 H1120 V458 H250 Z" fill="#476a62" stroke="#c4d8ca" stroke-width="6"/>
+            <path d="M278 458 V530 M1090 458 V530" class="line"/>
+            <path d="M370 370 H1010" stroke="#8eaca0" stroke-width="5" stroke-dasharray="10 12"/>
+            <g id="tilt-part" transform="translate(630 298)">
+              <path d="M0 36 L150 0 L220 42 L70 78 Z" fill="#abc6b7" stroke="#e1eae0" stroke-width="6"/>
+              <path d="M70 78 L220 42 V72 L70 108 Z" fill="#688f80" stroke="#d4e4d6" stroke-width="6"/>
+            </g>
+            <path id="tilt-mark" class="dash" d="M890 320 Q918 286 887 247"/>
+          </g>
+          <g id="drop-scene">
+            <text class="label" x="90" y="90">东西<tspan class="orange">掉落</tspan>了怎么办？</text>
+            <path d="M220 330 H850 V390 H220 Z" fill="#476a62" stroke="#c4d8ca" stroke-width="6"/>
+            <path d="M245 390 V520 M825 390 V520" class="line"/>
+            <path class="dash" d="M740 270 C900 250 980 330 1020 480"/>
+            <g id="falling-part" transform="translate(705 235)">
+              <path d="M0 36 L150 0 L220 42 L70 78 Z" fill="#abc6b7" stroke="#e1eae0" stroke-width="6"/>
+              <path d="M70 78 L220 42 V72 L70 108 Z" fill="#688f80" stroke="#d4e4d6" stroke-width="6"/>
+            </g>
+            <path d="M890 548 H1260" class="line"/>
+          </g>
+          <g id="next-scene">
+            <text class="label" x="90" y="90">忙了一整天，</text>
+            <text class="label orange" x="90" y="155">还能稳稳拿起下一件？</text>
+            <path d="M315 285 L725 285 L785 335 L785 548 L375 548 L315 498 Z" fill="#4d7470" stroke="#bad0c5" stroke-width="6"/>
+            <path d="M315 285 L375 335 H785 L725 285 Z" fill="#79968b" stroke="#bad0c5" stroke-width="6"/>
+            <path d="M375 335 H785 V548 H375 Z" fill="#31524e"/>
+            <path d="M400 365 H760 V515 H400 Z" fill="#233d3b"/>
+            <path d="M430 468 l96 -34 49 39 -96 34 z" fill="#8fa8a0" stroke="#cfdbd4" stroke-width="4"/>
+            <g id="next-part" transform="translate(560 391)">
+              <path d="M0 24 L108 -10 L157 26 L49 60 Z" fill="#dce9dc" stroke="#ffb84c" stroke-width="5"/>
+              <path d="M49 60 L157 26 V49 L49 83 Z" fill="#83a394" stroke="#ffb84c" stroke-width="5"/>
+            </g>
+            <g id="gripper" transform="translate(620 125)">
+              <path d="M-12 0 V70 H-72 V125 M12 0 V70 H72 V125" fill="none" stroke="#c8d9ce" stroke-width="16" stroke-linejoin="round"/>
+              <path d="M-72 123 L-42 148 M72 123 L42 148" fill="none" stroke="#ffb84c" stroke-width="16" stroke-linecap="round"/>
+            </g>
+            <text class="sub" x="1010" y="350">下一件</text>
+            <text class="label orange" x="1010" y="420">每一天</text>
+          </g>
+        </svg>
+      </div>
+    </section>
+  </main>
+  <script>
+    // 后空翻是真实镜头；后续摆歪、掉落和取件均由原创图形表达问题。
+    gsap.set('.work', { x: 1920 });
+    gsap.set('#tilt-mark', { autoAlpha: 0 });
+    gsap.set('#drop-scene, #next-scene', { autoAlpha: 0 });
+    const sequence = gsap.timeline({ paused: true });
+    sequence.to('.work', { x: 0, duration: .6, ease: 'power2.inOut' }, 3.65)
+      .to('#tilt-part', { rotation: -18, transformOrigin: '110px 54px', duration: .55, ease: 'power2.out' }, 4.75)
+      .to('#tilt-mark', { autoAlpha: 1, duration: .2 }, 4.9)
+      .to('#tilt-scene', { autoAlpha: 0, x: -35, duration: .4 }, 6.2)
+      .to('#drop-scene', { autoAlpha: 1, duration: .3 }, 6.45)
+      .to('#falling-part', { x: 1010, y: 438, rotation: 30, transformOrigin: '110px 54px', duration: .85, ease: 'power2.in' }, 6.8)
+      .to('#drop-scene', { autoAlpha: 0, x: -35, duration: .4 }, 8.25)
+      .to('#next-scene', { autoAlpha: 1, duration: .4 }, 8.5)
+      .to('#gripper', { y: 232, duration: .8, ease: 'power2.inOut' }, 9.05)
+      .to('#gripper, #next-part', { y: '-=48', duration: .8, ease: 'power2.out' }, 10.25)
+      .to({}, { duration: .01 }, 12.59);
+    window.__timelines = { 'ending-work': sequence };
+    window.getVfcMotionEvents = () => [
+      { id: 'atlas-return', meaning: '回看真实后空翻与落地', startFrame: 0, endFrame: 99 },
+      { id: 'part-tilt', meaning: '零件摆歪后的问题', startFrame: 99, endFrame: 162 },
+      { id: 'part-drop', meaning: '东西掉落后的问题', startFrame: 161, endFrame: 214 },
+      { id: 'next-piece', meaning: '长期工作后还能否稳稳拿起下一件', startFrame: 212, endFrame: 315 }
+    ];
+  </script>
+</body>
+</html>

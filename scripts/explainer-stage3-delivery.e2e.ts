@@ -525,13 +525,13 @@ async function main(): Promise<void> {
       frames: frames.map((frame) => ({ frame: frame.frame, relativePath: frame.relativePath }))
     });
 
-    const run = await application.startProductionRun({
+    const run = await application.startProductionRun({ operationId: globalThis.crypto.randomUUID(), intent: "local_edit", completionScope: { kind: "project" },
       projectId,
       baseRevision: program.revision,
       loadedSkills: ["project-basics", "production-director", "visual-explainer-director", "captions", "quality-verification", "export"],
       loadedReferences: ["stage3 离线技术 E2E；本地 SAPI 仅用于声音可播放性，不替代人工听感判断。"]
     });
-    const editorial = await application.recordEditorialQualityReview({
+    const editorial = await application.recordEditorialQualityReview({ operationId: globalThis.crypto.randomUUID(),
       projectId,
       runId: run.id,
       revision: program.revision,

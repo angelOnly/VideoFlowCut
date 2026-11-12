@@ -643,6 +643,9 @@ export function App() {
             setProductionRunId(runId);
             const url = new URL(window.location.href); url.searchParams.set("productionRunId", runId); window.history.replaceState({}, "", url);
           }} revision={currentRevision} startFrame={rangeStart} endFrame={rangeEnd} objectId={selection?.id}
+            adoptionRefs={snapshot.visualTreatments.filter(treatment => snapshot.scenes.some(scene => scene.startFrame < rangeEnd && scene.endFrame > rangeStart
+              && (treatment.sceneId === scene.id || !!treatment.narrativeBeatId && scene.narrativeBeatIds.includes(treatment.narrativeBeatId))))
+              .flatMap(treatment => treatment.adoptedDecisionRef ? [treatment.adoptedDecisionRef] : [])}
             onLocate={finding => {
               if (!finding.frameRange || finding.revision === undefined) { setMessage("该问题没有可定位的版本或范围。"); return; }
               if (finding.revision !== currentRevision) {

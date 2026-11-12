@@ -75,7 +75,7 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     await processClaimedJob(app, previewClaim!, (item, signal) => runMotionJob(app, item, undefined, signal));
     const previewWorkId = app.trackJob(previewJob.id).result?.workId;
     assert.equal(typeof previewWorkId, "string");
-    const report = await app.startProductionRun({ projectId, loadedSkills: ["production-coordinator"] });
+    const report = await app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: app.readProject(projectId).revision.number, intent: "local_edit", completionScope: { kind: "project" }, projectId, loadedSkills: ["production-coordinator"] });
     const brief = join(root, "brief.md"), timing = join(root, "timing.md");
     await writeFile(brief, "完整连续画面及准确文字");
     await writeFile(timing, "依据实际声音安排时间");
@@ -118,13 +118,18 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.equal(await readFile(fixedBrief.localPath, "utf8"), "完整连续画面及准确文字");
 
     const delivery = { manifest_path: prepared.manifestPath, manifest_sha256: prepared.manifestSha256, scene_ids: ["a"] };
-    const record = async (assignment: string) => parse<SkillExecutionReport>(await client.callTool({ name: "record_creative_decision", arguments: {
-      project_id: projectId, run_id: report.id, category: "scene", decision: "采用共同场面", rationale: "依据实际编排",
-      delivery_ref: delivery, delegation: { agent_id: "/test/director", assignment_id: assignment, role: "director",
-        skill_id: "production-director", input_revision: rev() }
-    } })).creativeDecisions.at(-1)!;
+    const record = async (assignment: string) => {
+      const current = await app.readSkillExecutionReport({ projectId, runId: report.id });
+      const previous = current.assignments.at(-1);
+      await app.updateProductionRun({ projectId, runId: report.id, expectedAuditVersion: current.auditVersion, operationId: `assign-${assignment}`, action: previous ? "replace_assignment" : "add_assignment",
+        assignment: { agentId: "/test/director", assignmentId: assignment, responsibilities: ["director"], skillIds: ["production-director"], inputRevision: rev(), scope: { kind: "project" }, supersedesAssignmentId: previous?.assignmentId } });
+      return parse<SkillExecutionReport>(await client.callTool({ name: "record_creative_decision", arguments: {
+        project_id: projectId, run_id: report.id, operation_id: `decision-${assignment}`, category: "scene", decision: "采用共同场面", rationale: "依据实际编排",
+        phase: "adoption", assignment_id: assignment, input_revision: rev(), object_ids: [scene.id], delivery_ref: delivery
+      } })).creativeDecisions.at(-1)!;
+    };
     const decision = await record("director-1");
-    assert.equal(decision.delegation?.skillId, "production-director");
+    assert.equal(decision.assignmentId, "director-1");
     app.repository.commit(projectId, rev(), "其他场面独立变化", snapshot => {
       snapshot.project.name = "其他场面更新";
       snapshot.scenes.find(item => item.id === pendingScene.id)!.purpose = "继续补材";
@@ -227,7 +232,10 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
       const currentCue = snapshot.effectCues.find(item => item.id === cue.id)!;
       currentCue.endFrame = 20; currentCue.sourceEndFrame = 20;
     });
-    const missingCoverage = await app.completeProductionRun({ projectId, runId: report.id, finalRevision: app.readProject(projectId).revision.number, completionScope: { kind: "objects", objectIds: [treatmentId] } });
+    const beforeScope = await app.readSkillExecutionReport({ projectId, runId: report.id });
+    await app.updateProductionRun({ projectId, runId: report.id, expectedAuditVersion: beforeScope.auditVersion, operationId: "target-treatment",
+      action: "update_scope", completionScope: { kind: "objects", objectIds: [treatmentId] }, reason: "本次收口该视觉计划" });
+    const missingCoverage = await app.completeProductionRun({ operationId: globalThis.crypto.randomUUID(), projectId, runId: report.id, finalRevision: app.readProject(projectId).revision.number, completionScope: { kind: "objects", objectIds: [treatmentId] } });
     assert.ok(missingCoverage.completionBlockers.some(item => item.includes(first.jobId) && item.includes("20–30")));
     app.repository.commit(projectId, rev(), "恢复原目标范围", snapshot => {
       const currentCue = snapshot.effectCues.find(item => item.id === cue.id)!;
@@ -266,10 +274,10 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.equal(snapshot.audioCues[0].status, "stale");
     assert.equal(snapshot.timeline.items.find(item => item.id === snapshot.audioCues[0].timelineItemId)?.disabled, true);
     assert.ok((await app.readProductionStatus(projectId)).audio.pending.some(item => item.audioCueId === snapshot.audioCues[0].id));
-    const completion = await app.completeProductionRun({ projectId, runId: report.id, finalRevision: app.readProject(projectId).revision.number, completionScope: { kind: "objects", objectIds: [treatmentId] } });
+    const completion = await app.completeProductionRun({ operationId: globalThis.crypto.randomUUID(), projectId, runId: report.id, finalRevision: app.readProject(projectId).revision.number, completionScope: { kind: "objects", objectIds: [treatmentId] } });
     assert.ok(completion.completionBlockers.some(item => item.includes(second.jobId)));
     app.updateJob(second.jobId, { status: "succeeded", result: { authoring: { status: "succeeded" } } });
-    const unfinishedRepair = await app.completeProductionRun({ projectId, runId: report.id, finalRevision: app.readProject(projectId).revision.number, completionScope: { kind: "objects", objectIds: [treatmentId] } });
+    const unfinishedRepair = await app.completeProductionRun({ operationId: globalThis.crypto.randomUUID(), projectId, runId: report.id, finalRevision: app.readProject(projectId).revision.number, completionScope: { kind: "objects", objectIds: [treatmentId] } });
     assert.ok(unfinishedRepair.completionBlockers.some(item => item.includes("画面") && item.includes("仍待修订")));
     assert.ok(unfinishedRepair.completionBlockers.some(item => item.includes(snapshot.audioCues[0].id)));
 

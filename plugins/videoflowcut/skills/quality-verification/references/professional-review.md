@@ -221,13 +221,13 @@ blocking 包括事实错误、严重语义断裂、重复人声、关键内容�
 
 整片任务通常已有 ProductionRun。先读 `read_quality_report` 的 `productionReconciliation`、`editorial.openFindings` 和 `editorial.coverage`：分别回答计划有没有实际对象、旧问题是否仍待修、哪些范围还没以正确方式审过。对账里的场景音效/字幕只是实际使用线索，共用长 Scene 不能证明每拍都已实施；对象关联完整也不能证明设计兑现，需要回到观看结果。
 
-`record_editorial_quality_review` 可以只提交本阶段实际执行的一个或多个 Pass，不必为了保存一个局部发现虚填五轮。`observations` 逐条写成功 Preview Job、成片 start/end（end 排他）、pass、method 与实际观察，服务端验证版本、文件哈希、真实时长和音轨。frames 只支持静态观察；audio_only 使用 audio，mute_visual 使用 continuous_video，其余轮次使用 audiovisual。播放器启动、音轨存在、波形或 Contact Sheet 都不证明模型真正看过、听过；没有对应感知输入，记录具体范围的 inconclusive，继续制作及导出，不虚报该轮。
+`record_editorial_quality_review` 可以只提交本阶段实际执行的一个或多个 Pass，不必为了保存一个局部发现虚填五轮。`observations` 逐条记录实际来源（工作台或成功的 Preview Job）、成片 start/end（end 排他）、pass、method 与实际观察；工作台观察填写观察者并固定版本。frames 只支持静态观察，不能代表连续观看；连续静音画面用 continuous_video，听声音用 audio，声画观察用 audiovisual。播放器启动、音轨存在、波形或 Contact Sheet 都不证明模型真正看过、听过；没有对应感知输入时保留未知，继续其他可执行工作，不虚报该轮。
 
 问题保存后使用返回的 Finding ID 持续跟进。新 Revision 或新 Run 不会清除旧问题；空 findings 只是没有新增发现。修复后先登记当前范围的新观察，再用 `resolutions` 引用返回的 evidenceIds，说明怎样复核原问题。跨版本在对象时钟映射可验证时保留原局部范围并补必要接点，映射改变时复核当前对象范围；未关联可定位对象时要求整片，不能任选一小段关闭旧问题。关闭保留原始发现，文件丢失或替换会使对应证据和关闭资格失效。
 
 仅针对字幕卡字面显示的 semantic/typography 问题，可由原负责人明确采用 `resolutions.scope="caption_text"`：Finding 必须是 mute_visual 且 objectId 绑定当前 caption，证据必须为问题发现之后登记、当前 Revision、该卡范围内实际看过的一帧（end=start+1）。这只关闭文字显示问题，不确认发音、换卡时机、可读时长、动画或整轮连续覆盖；涉及这些因素须分别保留问题并用对应证据复核。没有 scope 的旧调用仍遵守完整范围规则。
 
-`complete_production_run` 按明确 completion_scope 消费当前根类型的结构对账，并校验当前版本、制作记录、真实成功预览及必要技术/内部用途条件；结构缺项返回 incomplete，不要求 AI 审阅或每个 Cue 的抽帧。导出按技术条件执行；未关闭的 blocking、major、inconclusive 作为辅助提示，不阻挡制作、修订或文件产出。五轮是可按需执行的专业观察方法，缺少感知输入时保留未知，不补造观看证据。最终效果与人工定稿由用户确认具体 Artifact，不由 ProductionRun 或 AI 代替。
+`complete_production_run` 按目标范围检查当前版本、适用的工作台观察和未关闭的 blocking／major 问题；完整制作和重构还检查结构、创作链路及必要技术条件。独立审阅只检查自身范围及实际选择的观察方式，不承担其他范围的问题或导出条件；静帧抽样只表示实际执行的静态检查，不能据此声称连续观看或听审。缺项返回 incomplete；采用参考的范围还要有引用该采用决定的实际对照观察。观察未知不伪装成通过，也不阻挡其他可执行的制作、修订或按技术条件导出；五轮仍按任务需要执行。最终效果与人工定稿由用户确认具体 Artifact，不由 ProductionRun 或 AI 代替。
 
 ## 自动修订的边界
 

@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "count": 87,
+  "count": 108,
   "path_base": "本索引所在目录",
-  "scope": "整片源帧概览与关键过程拆解；原速、声音未专业核验；后写复现输入未制作验证",
+  "scope": "整片源帧观察；87个案例已有机制拆解，另有21个案例目前仅有待复核创意卡；原速、声音和迁移未全面核验。",
   "vocabulary": {
     "original_form": [
       "固定视频",
@@ -6044,7 +6044,849 @@
         "120-m15"
       ],
       "storyboard": "cases/mtvneo-148436-original/storyboard.jpg"
+    },
+    {
+      "case_number": 121,
+      "slug": "creative-ref-20261112-p04",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "从档案局部走进历史影像，再回到证据对照",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 0.0,
+          "end": 40.0,
+          "reason": "从档案局部走进历史影像，再回到证据对照"
+        }
+      ],
+      "aliases": [
+        "p04"
+      ],
+      "title": "档案纸张与照片聚焦",
+      "author": "未核实",
+      "duration": 40.0,
+      "directory": "cases/creative-ref-20261112-p04-original",
+      "detail": "detail.html?case=creative-ref-20261112-p04",
+      "analysis": "cases/creative-ref-20261112-p04-original/overview.md",
+      "source_sha256": "6c1fba1d1e193575c8642e1fdd72b40b9e99eb3d6ae7ded87f17e149c31c9ba0",
+      "media": "cases/creative-ref-20261112-p04-original/video.mp4",
+      "media_sha256": "6c1fba1d1e193575c8642e1fdd72b40b9e99eb3d6ae7ded87f17e149c31c9ba0",
+      "media_bytes": 113083178,
+      "media_note": "本地来源按原文件共享，未重编码。 完整短片；画风偏历史档案。",
+      "source_url": "https://www.reclip.io/claude-opus-5-5-video-prompts/two-seconds-short-archive-light-table",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 122,
+      "slug": "creative-ref-20261112-p06",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "先回到比赛现场，再用并列视角解释判定；在比赛回放画面上逐层解释空位、动作与结果",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 0.0,
+          "end": 18.2,
+          "reason": "先回到比赛现场，再用并列视角解释判定"
+        },
+        {
+          "start": 18.13,
+          "end": 46.7,
+          "reason": "在比赛回放画面上逐层解释空位、动作与结果"
+        }
+      ],
+      "aliases": [
+        "p06"
+      ],
+      "title": "比赛画面定格与路线标注",
+      "author": "未核实",
+      "duration": 54.4,
+      "directory": "cases/creative-ref-20261112-p06-original",
+      "detail": "detail.html?case=creative-ref-20261112-p06",
+      "analysis": "cases/creative-ref-20261112-p06-original/overview.md",
+      "source_sha256": "09e9971b3d979979bd57b4e1d6e3d993acf4e5e5bf4d189f32b34495dad9abc0",
+      "media": "cases/creative-ref-20261112-p06-original/video.mp4",
+      "media_sha256": "09e9971b3d979979bd57b4e1d6e3d993acf4e5e5bf4d189f32b34495dad9abc0",
+      "media_bytes": 47145436,
+      "media_note": "本地来源按原文件共享，未重编码。 完整短片；参考已有影像上的解释性标注。",
+      "source_url": "https://www.reclip.io/claude-opus-5-5-video-prompts/freeze-frame-football-telestrator",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 123,
+      "slug": "creative-ref-20261112-p08",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "从单车新闻到两车型对照，再扩成整体价格背景",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 0.0,
+          "end": 21.0,
+          "reason": "从单车新闻到两车型对照，再扩成整体价格背景"
+        }
+      ],
+      "aliases": [
+        "p08"
+      ],
+      "title": "汽车图片与新闻信息_前27秒",
+      "author": "未核实",
+      "duration": 27.0,
+      "directory": "cases/creative-ref-20261112-p08-original",
+      "detail": "detail.html?case=creative-ref-20261112-p08",
+      "analysis": "cases/creative-ref-20261112-p08-original/overview.md",
+      "source_sha256": "c526fa7a687e5b81cc49f957f872caf9f395c59b1827215313f742cb1990ceef",
+      "media": "cases/creative-ref-20261112-p08-original/video.mp4",
+      "media_sha256": "c526fa7a687e5b81cc49f957f872caf9f395c59b1827215313f742cb1990ceef",
+      "media_bytes": 2105893,
+      "media_note": "本地来源按原文件共享，未重编码。 原片 00:00–00:27；公开副本约 480p，带中文字幕及平台水印。 该文件是完整公开视频的前 27 秒摘录。",
+      "source_url": "https://www.youtube.com/watch?v=rkxMdmipYqM",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 124,
+      "slug": "creative-ref-20261112-p12",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "让城市从夜到早晨，承接一项任务的进度与结果",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 0.0,
+          "end": 24.042667,
+          "reason": "让城市从夜到早晨，承接一项任务的进度与结果"
+        }
+      ],
+      "aliases": [
+        "p12"
+      ],
+      "title": "城市影像与界面文字",
+      "author": "未核实",
+      "duration": 24.042667,
+      "directory": "cases/creative-ref-20261112-p12-original",
+      "detail": "detail.html?case=creative-ref-20261112-p12",
+      "analysis": "cases/creative-ref-20261112-p12-original/overview.md",
+      "source_sha256": "961ee6cf86895a052250c6af9c1958ba2cf32781223f16770ee4a6d43a31a5c4",
+      "media": "cases/creative-ref-20261112-p12-original/video.mp4",
+      "media_sha256": "961ee6cf86895a052250c6af9c1958ba2cf32781223f16770ee4a6d43a31a5c4",
+      "media_bytes": 9658013,
+      "media_note": "本地来源按原文件共享，未重编码。 完整短片；方形画幅，部分画面是产品界面。",
+      "source_url": "https://www.reclip.io/claude-opus-5-5-video-prompts/nightshift-code-rendered-launch-film",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 125,
+      "slug": "creative-ref-20261112-p13",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "把作品画面装入网页，再让页面成为可观察的对象",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 6.6,
+          "end": 10.8,
+          "reason": "把作品画面装入网页，再让页面成为可观察的对象"
+        }
+      ],
+      "aliases": [
+        "p13"
+      ],
+      "title": "实景画面文字与网页构图",
+      "author": "未核实",
+      "duration": 15.104,
+      "directory": "cases/creative-ref-20261112-p13-original",
+      "detail": "detail.html?case=creative-ref-20261112-p13",
+      "analysis": "cases/creative-ref-20261112-p13-original/overview.md",
+      "source_sha256": "1cb4cabe201b9db4eb2628c4ddcc44448866821a29ef39d2def6d02bcc2811db",
+      "media": "cases/creative-ref-20261112-p13-original/video.mp4",
+      "media_sha256": "1cb4cabe201b9db4eb2628c4ddcc44448866821a29ef39d2def6d02bcc2811db",
+      "media_bytes": 1916721,
+      "media_note": "本地来源按原文件共享，未重编码。 完整短片；节奏较快，可重点看是否适合。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/andginja-618685",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 126,
+      "slug": "creative-ref-20261112-s01",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "在画作原貌上同时展示局部标注和一句引文；从同一作品的版本集合进入一处细节",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 12.0,
+          "end": 18.1,
+          "reason": "在画作原貌上同时展示局部标注和一句引文"
+        },
+        {
+          "start": 18.1,
+          "end": 32.0,
+          "reason": "从同一作品的版本集合进入一处细节"
+        }
+      ],
+      "aliases": [
+        "s01"
+      ],
+      "title": "呐喊背后的故事",
+      "author": "未核实",
+      "duration": 38.0,
+      "directory": "cases/creative-ref-20261112-s01-original",
+      "detail": "detail.html?case=creative-ref-20261112-s01",
+      "analysis": "cases/creative-ref-20261112-s01-original/overview.md",
+      "source_sha256": "ad21072aa30f465a1b12b7066ee3a6155783b9a0fa9cea720ab2d771b261671a",
+      "media": "cases/creative-ref-20261112-s01-original/video.mp4",
+      "media_sha256": "ad21072aa30f465a1b12b7066ee3a6155783b9a0fa9cea720ab2d771b261671a",
+      "media_bytes": 24138150,
+      "media_note": "本地来源按原文件共享，未重编码。",
+      "source_url": "https://skillry.dev/ai-videos/fable5-2/osmanaga-146194",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 127,
+      "slug": "creative-ref-20261112-s02",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "用同一视觉线索把版画、文字和品牌标志串成一组",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 0.0,
+          "end": 14.528,
+          "reason": "用同一视觉线索把版画、文字和品牌标志串成一组"
+        }
+      ],
+      "aliases": [
+        "s02"
+      ],
+      "title": "版画与文字拼贴",
+      "author": "未核实",
+      "duration": 14.528,
+      "directory": "cases/creative-ref-20261112-s02-original",
+      "detail": "detail.html?case=creative-ref-20261112-s02",
+      "analysis": "cases/creative-ref-20261112-s02-original/overview.md",
+      "source_sha256": "b5f7ea37cfc173f2a95afb02e41069dedb441109a474ff8b4808a94697d038a8",
+      "media": "cases/creative-ref-20261112-s02-original/video.mp4",
+      "media_sha256": "b5f7ea37cfc173f2a95afb02e41069dedb441109a474ff8b4808a94697d038a8",
+      "media_bytes": 7851390,
+      "media_note": "本地来源按原文件共享，未重编码。",
+      "source_url": "https://www.reclip.io/claude-opus-5-5-video-prompts/engraving-style-claude-ad",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 128,
+      "slug": "creative-ref-20261112-s03",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "在同一展台上切换海报，并展开选中作品的说明；从放射状作品集合中选择一件，再回到集合；让书页本身承担作品浏览与详情展示；在有透视的画廊空间里选中作品并展开详情；在产品集合里固定一个展位，再展开单品",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 0.0,
+          "end": 6.9,
+          "reason": "在同一展台上切换海报，并展开选中作品的说明"
+        },
+        {
+          "start": 6.9,
+          "end": 14.3,
+          "reason": "从放射状作品集合中选择一件，再回到集合"
+        },
+        {
+          "start": 14.3,
+          "end": 21.0,
+          "reason": "让书页本身承担作品浏览与详情展示"
+        },
+        {
+          "start": 21.0,
+          "end": 33.0,
+          "reason": "在有透视的画廊空间里选中作品并展开详情"
+        },
+        {
+          "start": 33.0,
+          "end": 42.533,
+          "reason": "在产品集合里固定一个展位，再展开单品"
+        }
+      ],
+      "aliases": [
+        "s03"
+      ],
+      "title": "六组网站动效展示",
+      "author": "未核实",
+      "duration": 42.533333,
+      "directory": "cases/creative-ref-20261112-s03-original",
+      "detail": "detail.html?case=creative-ref-20261112-s03",
+      "analysis": "cases/creative-ref-20261112-s03-original/overview.md",
+      "source_sha256": "94d6b5cccd1471a069335f88cd57b3554b0856393af63d6d7296ae2f3aceecf6",
+      "media": "cases/creative-ref-20261112-s03-original/video.mp4",
+      "media_sha256": "94d6b5cccd1471a069335f88cd57b3554b0856393af63d6d7296ae2f3aceecf6",
+      "media_bytes": 24625757,
+      "media_note": "本地来源按原文件共享，未重编码。 本地文件无音轨。",
+      "source_url": "https://skillry.dev/ai-videos/fable5-2/maybeflorent-792255",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 129,
+      "slug": "creative-ref-20261112-s04",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "从图片浏览进入一张画面，再在画内定位对象",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 0.0,
+          "end": 14.0,
+          "reason": "从图片浏览进入一张画面，再在画内定位对象"
+        }
+      ],
+      "aliases": [
+        "s04"
+      ],
+      "title": "从图片列表进入画面",
+      "author": "未核实",
+      "duration": 14.0,
+      "directory": "cases/creative-ref-20261112-s04-original",
+      "detail": "detail.html?case=creative-ref-20261112-s04",
+      "analysis": "cases/creative-ref-20261112-s04-original/overview.md",
+      "source_sha256": "3da22be556eda767d7654876f726327dd101f35e42307592320dbb52b1cfae50",
+      "media": "cases/creative-ref-20261112-s04-original/video.mp4",
+      "media_sha256": "3da22be556eda767d7654876f726327dd101f35e42307592320dbb52b1cfae50",
+      "media_bytes": 4095241,
+      "media_note": "本地来源按原文件共享，未重编码。 与 S04 至 S08 同属一个示例系列，部分图片素材相同。 本地文件无音轨。",
+      "source_url": "https://skillry.dev/skills/bs-launchmotion-ui-genre-browse-zooms",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 130,
+      "slug": "creative-ref-20261112-s05",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "让一张画面中的小窗口接力成为下一张画面",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 0.0,
+          "end": 10.5,
+          "reason": "让一张画面中的小窗口接力成为下一张画面"
+        }
+      ],
+      "aliases": [
+        "s05"
+      ],
+      "title": "画中画接力推进",
+      "author": "未核实",
+      "duration": 10.5,
+      "directory": "cases/creative-ref-20261112-s05-original",
+      "detail": "detail.html?case=creative-ref-20261112-s05",
+      "analysis": "cases/creative-ref-20261112-s05-original/overview.md",
+      "source_sha256": "e5575f7f14cf1972b486e07d90ac1f00a5fd43cce36863e7831d98a1f5fdd4f4",
+      "media": "cases/creative-ref-20261112-s05-original/video.mp4",
+      "media_sha256": "e5575f7f14cf1972b486e07d90ac1f00a5fd43cce36863e7831d98a1f5fdd4f4",
+      "media_bytes": 2836988,
+      "media_note": "本地来源按原文件共享，未重编码。 与 S04 至 S08 同属一个示例系列，部分图片素材相同。 本地文件无音轨。",
+      "source_url": "https://skillry.dev/skills/bs-launchmotion-cta-earthrise-dives-through",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 131,
+      "slug": "creative-ref-20261112-s06",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "把图片集合重组成标题，再让一张图片接管",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 0.0,
+          "end": 8.0,
+          "reason": "把图片集合重组成标题，再让一张图片接管"
+        }
+      ],
+      "aliases": [
+        "s06"
+      ],
+      "title": "图片墙转标题",
+      "author": "未核实",
+      "duration": 8.0,
+      "directory": "cases/creative-ref-20261112-s06-original",
+      "detail": "detail.html?case=creative-ref-20261112-s06",
+      "analysis": "cases/creative-ref-20261112-s06-original/overview.md",
+      "source_sha256": "bd1cd9f8e6b63c417e6ccdad93dca4a82a34c3db6c2dbb2aef4ed54f13c2ed4d",
+      "media": "cases/creative-ref-20261112-s06-original/video.mp4",
+      "media_sha256": "bd1cd9f8e6b63c417e6ccdad93dca4a82a34c3db6c2dbb2aef4ed54f13c2ed4d",
+      "media_bytes": 3275260,
+      "media_note": "本地来源按原文件共享，未重编码。 与 S04 至 S08 同属一个示例系列，部分图片素材相同。 本地文件无音轨。",
+      "source_url": "https://skillry.dev/skills/bs-launchmotion-reveal-anatomy-panels-resolve",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 132,
+      "slug": "creative-ref-20261112-s07",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "让同一个小对象穿过多张风格不同的画面",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 0.0,
+          "end": 9.0,
+          "reason": "让同一个小对象穿过多张风格不同的画面"
+        }
+      ],
+      "aliases": [
+        "s07"
+      ],
+      "title": "纸飞机连接画面",
+      "author": "未核实",
+      "duration": 9.0,
+      "directory": "cases/creative-ref-20261112-s07-original",
+      "detail": "detail.html?case=creative-ref-20261112-s07",
+      "analysis": "cases/creative-ref-20261112-s07-original/overview.md",
+      "source_sha256": "08e4c033370680c69db34cfd14d8b5f65e70e6f776cb4822ad74348483de19e8",
+      "media": "cases/creative-ref-20261112-s07-original/video.mp4",
+      "media_sha256": "08e4c033370680c69db34cfd14d8b5f65e70e6f776cb4822ad74348483de19e8",
+      "media_bytes": 2631764,
+      "media_note": "本地来源按原文件共享，未重编码。 与 S04 至 S08 同属一个示例系列，部分图片素材相同。 本地文件无音轨。",
+      "source_url": "https://skillry.dev/skills/bs-launchmotion-grid-pan-settles-embroidered",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 133,
+      "slug": "creative-ref-20261112-s08",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "从图片墙中沿线定位几处，再回到整体",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 0.0,
+          "end": 11.4,
+          "reason": "从图片墙中沿线定位几处，再回到整体"
+        }
+      ],
+      "aliases": [
+        "s08"
+      ],
+      "title": "图片墙中移动和定位",
+      "author": "未核实",
+      "duration": 11.4,
+      "directory": "cases/creative-ref-20261112-s08-original",
+      "detail": "detail.html?case=creative-ref-20261112-s08",
+      "analysis": "cases/creative-ref-20261112-s08-original/overview.md",
+      "source_sha256": "30eb17b40a806daaf272fb4afd283d227417ab7e22c187ee135947b213353213",
+      "media": "cases/creative-ref-20261112-s08-original/video.mp4",
+      "media_sha256": "30eb17b40a806daaf272fb4afd283d227417ab7e22c187ee135947b213353213",
+      "media_bytes": 4415161,
+      "media_note": "本地来源按原文件共享，未重编码。 与 S04 至 S08 同属一个示例系列，部分图片素材相同。 本地文件无音轨。",
+      "source_url": "https://skillry.dev/skills/bs-launchmotion-grid-camera-pushes-petroglyph",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 134,
+      "slug": "creative-ref-20261112-a01",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "用地图定位工地，再让档案照片和数字展示施工规模；让档案原文、关键数字和照片共同解释工作进度；先比较建筑高度，再回到施工层数与完成结果",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 4.5,
+          "end": 18.6,
+          "reason": "用地图定位工地，再让档案照片和数字展示施工规模"
+        },
+        {
+          "start": 18.6,
+          "end": 28.4,
+          "reason": "让档案原文、关键数字和照片共同解释工作进度"
+        },
+        {
+          "start": 35.0,
+          "end": 55.6,
+          "reason": "先比较建筑高度，再回到施工层数与完成结果"
+        }
+      ],
+      "aliases": [
+        "a01"
+      ],
+      "title": "410Days档案影像与数字编排",
+      "author": "未核实",
+      "duration": 60.0,
+      "directory": "cases/creative-ref-20261112-a01-original",
+      "detail": "detail.html?case=creative-ref-20261112-a01",
+      "analysis": "cases/creative-ref-20261112-a01-original/overview.md",
+      "source_sha256": "7149ad97990a4b0de348fde50918bdd58d78943093bc2e0cefd3120475a40ecd",
+      "media": "cases/creative-ref-20261112-a01-original/video.mp4",
+      "media_sha256": "7149ad97990a4b0de348fde50918bdd58d78943093bc2e0cefd3120475a40ecd",
+      "media_bytes": 111764542,
+      "media_note": "本地来源按原文件共享，未重编码。 原清单中的早前 1 至 4，用户已一并确认。",
+      "source_url": "https://www.reclip.io/claude-opus-5-5-video-prompts/410-days-constructivist-archive-montage",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 135,
+      "slug": "creative-ref-20261112-a02",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "从网页作品墙选出单件，再展示设备中的页面",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 4.5,
+          "end": 8.15,
+          "reason": "从网页作品墙选出单件，再展示设备中的页面"
+        }
+      ],
+      "aliases": [
+        "a02"
+      ],
+      "title": "Pixelup影像文字与页面切换",
+      "author": "未核实",
+      "duration": 15.061,
+      "directory": "cases/creative-ref-20261112-a02-original",
+      "detail": "detail.html?case=creative-ref-20261112-a02",
+      "analysis": "cases/creative-ref-20261112-a02-original/overview.md",
+      "source_sha256": "93f62c0f82057a92f5e07444a616f96c87e7f17115cd88474468d5d9b0e291f8",
+      "media": "cases/creative-ref-20261112-a02-original/video.mp4",
+      "media_sha256": "93f62c0f82057a92f5e07444a616f96c87e7f17115cd88474468d5d9b0e291f8",
+      "media_bytes": 7300021,
+      "media_note": "本地来源按原文件共享，未重编码。 原清单中的早前 1 至 4，用户已一并确认。",
+      "source_url": "https://www.reclip.io/claude-opus-5-5-video-prompts/pixelup-labs-studio-showreel",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 136,
+      "slug": "creative-ref-20261112-a03",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "从一个生成画面扩展到图片墙，再回到单张详情；让输入与多个并列结果同处一屏，再展示结果的不同状态；在工作区中让单个素材发展成一组输出",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 0.0,
+          "end": 20.0,
+          "reason": "从一个生成画面扩展到图片墙，再回到单张详情"
+        },
+        {
+          "start": 20.0,
+          "end": 32.7,
+          "reason": "让输入与多个并列结果同处一屏，再展示结果的不同状态"
+        },
+        {
+          "start": 33.0,
+          "end": 43.0,
+          "reason": "在工作区中让单个素材发展成一组输出"
+        }
+      ],
+      "aliases": [
+        "a03"
+      ],
+      "title": "GenVizu图片墙与界面接力",
+      "author": "未核实",
+      "duration": 52.021,
+      "directory": "cases/creative-ref-20261112-a03-original",
+      "detail": "detail.html?case=creative-ref-20261112-a03",
+      "analysis": "cases/creative-ref-20261112-a03-original/overview.md",
+      "source_sha256": "12806febf705d869c34f1c59dd4f60a4bf1782ba6a25cd042abc7d7671ba713c",
+      "media": "cases/creative-ref-20261112-a03-original/video.mp4",
+      "media_sha256": "12806febf705d869c34f1c59dd4f60a4bf1782ba6a25cd042abc7d7671ba713c",
+      "media_bytes": 17604464,
+      "media_note": "本地来源按原文件共享，未重编码。 原清单中的早前 1 至 4，用户已一并确认。",
+      "source_url": "https://www.reclip.io/claude-opus-5-5-video-prompts/genvizu-product-launch",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 137,
+      "slug": "creative-ref-20261112-a04",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "让一个人物扩展成多屏内容，再连接发布与反馈",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 3.45,
+          "end": 11.2,
+          "reason": "让一个人物扩展成多屏内容，再连接发布与反馈"
+        }
+      ],
+      "aliases": [
+        "a04"
+      ],
+      "title": "ViralGrow人物素材与多屏组合",
+      "author": "未核实",
+      "duration": 15.061,
+      "directory": "cases/creative-ref-20261112-a04-original",
+      "detail": "detail.html?case=creative-ref-20261112-a04",
+      "analysis": "cases/creative-ref-20261112-a04-original/overview.md",
+      "source_sha256": "cb1355647c8bcb999b09e26f5f60df97d1a61ae8f02f24bf9e6cac283a02f6ea",
+      "media": "cases/creative-ref-20261112-a04-original/video.mp4",
+      "media_sha256": "cb1355647c8bcb999b09e26f5f60df97d1a61ae8f02f24bf9e6cac283a02f6ea",
+      "media_bytes": 5523648,
+      "media_note": "本地来源按原文件共享，未重编码。 原清单中的早前 1 至 4，用户已一并确认。",
+      "source_url": "https://www.reclip.io/claude-opus-5-5-video-prompts/viralgrow-product-promo",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 138,
+      "slug": "creative-ref-20261112-n01",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "从人物关系网找到一个人物，再把他放回具体语境；用不同人物肖像与一条贯穿线建立并列认识",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 3.0,
+          "end": 20.7,
+          "reason": "从人物关系网找到一个人物，再把他放回具体语境"
+        },
+        {
+          "start": 28.2,
+          "end": 37.8,
+          "reason": "用不同人物肖像与一条贯穿线建立并列认识"
+        }
+      ],
+      "aliases": [
+        "n01"
+      ],
+      "title": "Hinton人物纪录片样片",
+      "author": "未核实",
+      "duration": 46.762993,
+      "directory": "cases/creative-ref-20261112-n01-original",
+      "detail": "detail.html?case=creative-ref-20261112-n01",
+      "analysis": "cases/creative-ref-20261112-n01-original/overview.md",
+      "source_sha256": "4c9bf0b2c14e2daf42c83874a654d402cf7121d766351cffb4a277a84d284741",
+      "media": "cases/creative-ref-20261112-n01-original/video.mp4",
+      "media_sha256": "4c9bf0b2c14e2daf42c83874a654d402cf7121d766351cffb4a277a84d284741",
+      "media_bytes": 4755779,
+      "media_note": "本地来源按原文件共享，未重编码。 Fiverr 公开样片，画面带网站水印。",
+      "source_url": "https://www.fiverr.com/yaqub_editor/edit-youtube-documentary-videos-in-vox-style-with-motion-graphics",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 139,
+      "slug": "creative-ref-20261112-n02",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "把船、日期和冰山放进同一舞台来展示事件；由新闻资料切到人物证据墙，集中查看一位角色",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 0.0,
+          "end": 16.1,
+          "reason": "把船、日期和冰山放进同一舞台来展示事件"
+        },
+        {
+          "start": 16.0,
+          "end": 28.4,
+          "reason": "由新闻资料切到人物证据墙，集中查看一位角色"
+        }
+      ],
+      "aliases": [
+        "n02"
+      ],
+      "title": "泰坦尼克号纪录片样片",
+      "author": "未核实",
+      "duration": 29.802993,
+      "directory": "cases/creative-ref-20261112-n02-original",
+      "detail": "detail.html?case=creative-ref-20261112-n02",
+      "analysis": "cases/creative-ref-20261112-n02-original/overview.md",
+      "source_sha256": "9bcfcb490ce896ef544062ca3e83e6d6a6f985da851c91530acbe275bc3c7cea",
+      "media": "cases/creative-ref-20261112-n02-original/video.mp4",
+      "media_sha256": "9bcfcb490ce896ef544062ca3e83e6d6a6f985da851c91530acbe275bc3c7cea",
+      "media_bytes": 3151008,
+      "media_note": "本地来源按原文件共享，未重编码。 Fiverr 公开样片，画面带网站水印。",
+      "source_url": "https://www.fiverr.com/bimdasboy420/edit-vox-style-documentary-video-with-map-animation-and-motion-graphics",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 140,
+      "slug": "creative-ref-20261112-n03",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "从系列封面集合进入品牌关系，再展开作品时间线；先并列比较数量，再把规模投向地图",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 0.0,
+          "end": 26.9,
+          "reason": "从系列封面集合进入品牌关系，再展开作品时间线"
+        },
+        {
+          "start": 26.9,
+          "end": 40.6,
+          "reason": "先并列比较数量，再把规模投向地图"
+        }
+      ],
+      "aliases": [
+        "n03"
+      ],
+      "title": "FIFA游戏发展样片",
+      "author": "未核实",
+      "duration": 71.722993,
+      "directory": "cases/creative-ref-20261112-n03-original",
+      "detail": "detail.html?case=creative-ref-20261112-n03",
+      "analysis": "cases/creative-ref-20261112-n03-original/overview.md",
+      "source_sha256": "a9aa2525eba731e1e17cf2ee08557e95a90e39eb2f49f492645846b6d93261ae",
+      "media": "cases/creative-ref-20261112-n03-original/video.mp4",
+      "media_sha256": "a9aa2525eba731e1e17cf2ee08557e95a90e39eb2f49f492645846b6d93261ae",
+      "media_bytes": 8155015,
+      "media_note": "本地来源按原文件共享，未重编码。 Fiverr 公开样片，画面带网站水印。",
+      "source_url": "https://www.fiverr.com/ashabulnaeem/professional-youtube-social-media-ads-sport-commercial-and-educational-videos",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
+    },
+    {
+      "case_number": 141,
+      "slug": "creative-ref-20261112-n05",
+      "original_form": "固定视频",
+      "video_types": [],
+      "scenes": [],
+      "materials": [],
+      "methods": [],
+      "art": [],
+      "scenario": "从手机部件展开元素，再把数量收回到整机",
+      "material_requirements": "按各创意卡的适用条件核对实际素材。",
+      "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
+      "recommended_segments": [
+        {
+          "start": 0.0,
+          "end": 10.0,
+          "reason": "从手机部件展开元素，再把数量收回到整机"
+        }
+      ],
+      "aliases": [
+        "n05"
+      ],
+      "title": "手机里藏着多少种元素",
+      "author": "未核实",
+      "duration": 10.0,
+      "directory": "cases/creative-ref-20261112-n05-original",
+      "detail": "detail.html?case=creative-ref-20261112-n05",
+      "analysis": "cases/creative-ref-20261112-n05-original/overview.md",
+      "source_sha256": "615d1ef7810463861572093e4ab707a42bd996ef060b4f1b7ba85ebd4d77a905",
+      "media": "cases/creative-ref-20261112-n05-original/video.mp4",
+      "media_sha256": "615d1ef7810463861572093e4ab707a42bd996ef060b4f1b7ba85ebd4d77a905",
+      "media_bytes": 11705444,
+      "media_note": "本地来源按原文件共享，未重编码。 短场面示例。",
+      "source_url": "https://vincentwei1021.github.io/mg-styles-15/videos/19-paperclip.mp4",
+      "analysis_kind": "creative-only",
+      "mechanism_ids": []
     }
   ],
-  "structure": "每例仅保留video.mp4和analysis.md，分析正文包含用途、设计、实现建议及来源。"
+  "structure": "案例目录包含原视频及相应观察资料；机制卡与创意卡分别按实际覆盖维护。"
 }

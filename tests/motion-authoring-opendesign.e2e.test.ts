@@ -93,11 +93,13 @@ process.stdin.on('end',()=>process.exit(0));
         body: JSON.stringify({ name: file.deliveredPath, content, encoding: "base64" }) });
       assert.equal(upload.status, 200, await upload.text());
     }
-    const run = await app.startProductionRun({ projectId, loadedSkills: ["production-coordinator"] });
+    const run = await app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: app.readProject(projectId).revision.number, intent: "local_edit", completionScope: { kind: "project" }, projectId, loadedSkills: ["production-coordinator"] });
+    await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: run.auditVersion, operationId: "director-assignment", action: "add_assignment",
+      assignment: { agentId: "/fixture/director", assignmentId: "director", responsibilities: ["director"], skillIds: ["production-director"], inputRevision: rev(), scope: { kind: "project" } } });
     const manifestPath = join(output, "delivery-manifest.json");
     const manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");
-    const decision = (await app.recordCreativeDecision({ projectId, runId: run.id, category: "scene", decision: "采用场面", rationale: "真实交付链路验证",
-      delegation: { agentId: "/fixture/director", assignmentId: "director", role: "director", skillId: "production-director", inputRevision: rev() },
+    const decision = (await app.recordCreativeDecision({ operationId: globalThis.crypto.randomUUID(), projectId, runId: run.id, category: "scene", decision: "采用场面", rationale: "真实交付链路验证",
+      phase: "adoption", assignmentId: "director", inputRevision: rev(), objectIds: [scene.id],
       deliveryRef: { manifestPath, manifestSha256, sceneIds: ["opening"] } })).creativeDecisions[0];
     const treatment = app.manageVisualTreatment({ projectId, baseRevision: rev(), action: "upsert", sceneId: scene.id, mode: "remotion",
       intensity: "medium", primaryAttention: "主体", narrativePurpose: "验证", adoptedMaterialAssetIds: [],

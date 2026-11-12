@@ -1,8 +1,42 @@
 # 创意卡拆解完成与核验记录
 
-## 2026-11-11 当前创意库
+## 2026-11-12 新增案例接入
 
-原审阅稿整理为正式创意卡；按用户要求清理后，当前保留 87 条视频的 198 张创意卡，并按新场面边界更新切片、分镜、案例总览和派生索引。卡片编号保留原样，004-c11 已并入 004-c02。新增媒体来自本轮审阅目录，其他媒体按实际文件复用。
+本次在原有 87 条来源、198 张卡的基础上，新增 21 条来源视频和 34 张创意卡；当前共 108 条来源、232 张卡。正式编号从 121 至 141，原有编号和 198 张卡不变。
+新增案例只接入创意卡，未制作动效机制；原有 437 条机制正文和媒体不变。因案例目录来源指纹变化，机制派生索引同步更新来源指纹和覆盖范围。
+新增卡由本地来源的时间序列抽帧和九宫格形成，未独立完成原速连续观看或听审，也未进行新题材迁移实做。P08 本地仅原片前 27 秒；N01—N03 带 Fiverr 水印。接入检索不改变这些观察限制。
+原片、已截片段和分镜在同一磁盘通过硬链接与原审阅文件共享，不重复编码；任一路径对同一文件内容的改写会影响另一处。
+
+| 正式案例 | 原批次 | 创意场面 |
+| --- | --- | --- |
+| [121](cases/creative-ref-20261112-p04-original/creative/overview.md) | P04 | 1 张 |
+| [122](cases/creative-ref-20261112-p06-original/creative/overview.md) | P06 | 2 张 |
+| [123](cases/creative-ref-20261112-p08-original/creative/overview.md) | P08 | 1 张 |
+| [124](cases/creative-ref-20261112-p12-original/creative/overview.md) | P12 | 1 张 |
+| [125](cases/creative-ref-20261112-p13-original/creative/overview.md) | P13 | 1 张 |
+| [126](cases/creative-ref-20261112-s01-original/creative/overview.md) | S01 | 2 张 |
+| [127](cases/creative-ref-20261112-s02-original/creative/overview.md) | S02 | 1 张 |
+| [128](cases/creative-ref-20261112-s03-original/creative/overview.md) | S03 | 5 张 |
+| [129](cases/creative-ref-20261112-s04-original/creative/overview.md) | S04 | 1 张 |
+| [130](cases/creative-ref-20261112-s05-original/creative/overview.md) | S05 | 1 张 |
+| [131](cases/creative-ref-20261112-s06-original/creative/overview.md) | S06 | 1 张 |
+| [132](cases/creative-ref-20261112-s07-original/creative/overview.md) | S07 | 1 张 |
+| [133](cases/creative-ref-20261112-s08-original/creative/overview.md) | S08 | 1 张 |
+| [134](cases/creative-ref-20261112-a01-original/creative/overview.md) | A01 | 3 张 |
+| [135](cases/creative-ref-20261112-a02-original/creative/overview.md) | A02 | 1 张 |
+| [136](cases/creative-ref-20261112-a03-original/creative/overview.md) | A03 | 3 张 |
+| [137](cases/creative-ref-20261112-a04-original/creative/overview.md) | A04 | 1 张 |
+| [138](cases/creative-ref-20261112-n01-original/creative/overview.md) | N01 | 2 张 |
+| [139](cases/creative-ref-20261112-n02-original/creative/overview.md) | N02 | 2 张 |
+| [140](cases/creative-ref-20261112-n03-original/creative/overview.md) | N03 | 2 张 |
+| [141](cases/creative-ref-20261112-n05-original/creative/overview.md) | N05 | 1 张 |
+
+正式卡片保留来源、范围、三段正文和观察限制；每卡编号与旧待审编号的完整映射见项目交付目录的“正式编号对照.md”。
+
+
+## 2026-11-11 上一批创意库（历史记录）
+
+原审阅稿整理为正式创意卡；按用户要求清理后，当时保留 87 条视频的 198 张创意卡，并按新场面边界更新切片、分镜、案例总览和派生索引。卡片编号保留原样，004-c11 已并入 004-c02。新增媒体来自本轮审阅目录，其他媒体按实际文件复用。
 
 多数卡片依据全片抽帧与分镜研究，未对全部视频独立完成连续原速观看和听审。快于抽帧的动作、声音同步和新题材迁移效果仍待核验；每卡保留具体观察方式与未确认事项。下方原记录为此前批次的历史处理与核验情况。
 

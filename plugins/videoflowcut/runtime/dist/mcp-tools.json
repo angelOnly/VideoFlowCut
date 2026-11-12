@@ -11396,6 +11396,103 @@
             "type": "integer",
             "exclusiveMinimum": 0
           },
+          "intent": {
+            "type": "string",
+            "enum": [
+              "full_creation",
+              "visual_rework",
+              "local_edit",
+              "review_only"
+            ]
+          },
+          "completion_scope": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "project"
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "beats"
+                  },
+                  "beat_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "kind",
+                  "beat_ids"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "objects"
+                  },
+                  "object_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "kind",
+                  "object_ids"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "frames"
+                  },
+                  "start_frame": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "end_frame": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "kind",
+                  "start_frame",
+                  "end_frame"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]{1,160}$"
+          },
           "loaded_skills": {
             "type": "array",
             "items": {
@@ -11415,7 +11512,203 @@
           }
         },
         "required": [
+          "base_revision_id",
+          "intent",
+          "completion_scope",
+          "operation_id",
           "loaded_skills"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "update_production_run",
+      "title": "更新制作职责与范围",
+      "description": "登记实际分派、接替或调整任务目标，使用当前审计版本和稳定操作编号；记录为来源声明，不代替宿主调用。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "run_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_audit_version": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]{1,160}$"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "update_scope",
+              "add_assignment",
+              "replace_assignment"
+            ]
+          },
+          "completion_scope": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "project"
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "beats"
+                  },
+                  "beat_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "kind",
+                  "beat_ids"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "objects"
+                  },
+                  "object_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "kind",
+                  "object_ids"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "frames"
+                  },
+                  "start_frame": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "end_frame": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "kind",
+                  "start_frame",
+                  "end_frame"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "assignment": {
+            "type": "object",
+            "properties": {
+              "assignment_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "agent_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "responsibilities": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "director",
+                    "creative_research",
+                    "visual_design",
+                    "motion_research",
+                    "review"
+                  ]
+                },
+                "minItems": 1
+              },
+              "skill_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              },
+              "scope": {
+                "$ref": "#/properties/completion_scope"
+              },
+              "input_revision": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "supersedes_assignment_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "assignment_id",
+              "agent_id",
+              "responsibilities",
+              "skill_ids",
+              "scope",
+              "input_revision"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "run_id",
+          "expected_audit_version",
+          "operation_id",
+          "action"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
@@ -11427,7 +11720,7 @@
     {
       "name": "record_creative_decision",
       "title": "记录创作判断",
-      "description": "将作者的实际创作决定、采用范围、依据和当前有效简报引用写入 ProductionRun，不产生视频 Revision。完整编排通过实际文件交付。协调者转录子代理结果时填写 delegation，关联真实代理标识、分派和输入历史版本；该来源为审计声明，不认证身份或代替宿主调用与真实审片。",
+      "description": "记录作者结果、真实分派、输入版本及上游决定；完整编排通过实际文件交付。记录是来源声明，不代替真实观察。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -11437,6 +11730,10 @@
           "run_id": {
             "type": "string",
             "minLength": 1
+          },
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]{1,160}$"
           },
           "category": {
             "type": "string",
@@ -11509,46 +11806,73 @@
             ],
             "additionalProperties": false
           },
-          "delegation": {
-            "type": "object",
-            "properties": {
-              "agent_id": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 160
-              },
-              "assignment_id": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 160
-              },
-              "role": {
-                "type": "string",
-                "enum": [
-                  "director",
-                  "specialist",
-                  "reviewer"
-                ]
-              },
-              "skill_id": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 160
-              },
-              "input_revision": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "creative_research",
+              "motion_research",
+              "visual_design",
+              "adoption"
+            ]
+          },
+          "assignment_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "input_revision": {
+            "anyOf": [
+              {
                 "type": "integer",
-                "exclusiveMinimum": 0,
-                "maximum": 9007199254740991
+                "exclusiveMinimum": 0
+              },
+              {
+                "type": "null"
               }
-            },
-            "required": [
-              "agent_id",
-              "assignment_id",
-              "role",
-              "skill_id",
-              "input_revision"
-            ],
-            "additionalProperties": false
+            ]
+          },
+          "input_decision_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "research_outcome": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "researched",
+              "not_applicable"
+            ]
+          },
+          "research_references": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "creative",
+                    "motion"
+                  ]
+                },
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "kind",
+                "id",
+                "source_sha256"
+              ],
+              "additionalProperties": false
+            }
           },
           "quiet_range": {
             "type": "object",
@@ -11597,6 +11921,7 @@
         },
         "required": [
           "run_id",
+          "operation_id",
           "category",
           "decision",
           "rationale"
@@ -11621,6 +11946,10 @@
           "run_id": {
             "type": "string",
             "minLength": 1
+          },
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]{1,160}$"
           },
           "revision": {
             "type": "integer",
@@ -11703,6 +12032,27 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 2000
+                },
+                "adoption_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "production_run_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "decision_id": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "production_run_id",
+                      "decision_id"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               },
               "required": [
@@ -11851,6 +12201,7 @@
         },
         "required": [
           "run_id",
+          "operation_id",
           "revision",
           "passes",
           "findings"
@@ -11865,7 +12216,7 @@
     {
       "name": "complete_production_run",
       "title": "完成 ProductionRun",
-      "description": "完成指定版本和范围的制作，检查结构、采用、工作台观察及必修问题复查。缺项返回 incomplete，相同 Run、版本和范围的重试返回原回执。",
+      "description": "完成指定版本和范围的制作，检查结构、采用、工作台观察及必修问题复查。缺项返回 incomplete；相同操作重试不会重复写入，并返回当前记录。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -11930,12 +12281,39 @@
                   "object_ids"
                 ],
                 "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "frames"
+                  },
+                  "start_frame": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "end_frame": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "kind",
+                  "start_frame",
+                  "end_frame"
+                ],
+                "additionalProperties": false
               }
             ]
           },
           "run_id": {
             "type": "string",
             "minLength": 1
+          },
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]{1,160}$"
           },
           "final_revision": {
             "type": "integer",
@@ -11961,6 +12339,7 @@
         "required": [
           "completion_scope",
           "run_id",
+          "operation_id",
           "final_revision"
         ],
         "additionalProperties": false,
@@ -12518,6 +12897,29 @@
                 "required": [
                   "kind",
                   "object_ids"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "frames"
+                  },
+                  "start_frame": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "end_frame": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "kind",
+                  "start_frame",
+                  "end_frame"
                 ],
                 "additionalProperties": false
               }

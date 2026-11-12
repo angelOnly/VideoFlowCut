@@ -110,7 +110,8 @@ const readRenderedMotion = async (jobId: unknown) => {
 try {
   await client.connect(transport);
   const catalog = await client.listTools();
-  assert.ok(catalog.tools.find((tool) => tool.name === "record_creative_decision")?.inputSchema.properties?.delegation, "发行 MCP 必须真实暴露新增字段");
+  assert.ok(catalog.tools.find((tool) => tool.name === "record_creative_decision")?.inputSchema.properties?.assignment_id, "发行 MCP 必须真实暴露分派引用");
+  assert.ok(catalog.tools.find((tool) => tool.name === "update_production_run"));
   const release = await call("read_runtime_release");
   assert.equal(release.aligned, true);
   assert.equal(release.runtime.releaseId, runtime.releaseId);
@@ -131,7 +132,7 @@ try {
     context.projectId = created.snapshot.project.id;
     context.projectRoot = created.snapshot.project.rootPath;
     context.revision = created.revision.number;
-    context.runId = (await call("start_production_run", { project_id: context.projectId, base_revision_id: context.revision, loaded_skills: ["production-coordinator", "project-basics"] })).id;
+    context.runId = (await call("start_production_run", { project_id: context.projectId, base_revision_id: context.revision, intent: "local_edit", completion_scope: { kind: "project" }, operation_id: "prepare-run", loaded_skills: ["production-coordinator", "project-basics"] })).id;
     await writeFile(`${contextPath}.schema.json`, JSON.stringify(catalog, null, 2));
   } else if (stage === "inspect") {
     // 中断后只读对账，不重复生成或重放写入；把真实对象交回原代理确认。
@@ -158,15 +159,24 @@ try {
     assert.ok(inputArgument, "必须提供子代理产物或审计输入");
     const input = JSON.parse(await readFile(resolve(inputArgument), "utf8"));
     const before = await project();
-    assert.equal(input.delegation.input_revision, before.revision.number, "测试输入过期，交原子代理重新确认；不能替换版本重发");
+    assert.equal(input.assignment.input_revision, before.revision.number, "测试输入过期，交原作者重新确认；不能替换版本重发");
+    assert.ok(input.operation_id && input.assignment_operation_id && input.phase && input.object_ids?.length, "需要真实分派、阶段、范围和稳定操作编号");
     // 在审计、作品审阅和放置前拒绝错误取样输入，避免失败后留下无关项目写入。
     const inspectionFrames = stage === "compose"
       ? planCreativePreviewFrames(motionSubmissionSchema.parse(input.work).durationInFrames, input.inspection_frames)
       : [];
     const beforeAudit = JSON.stringify(before);
-    await call("record_creative_decision", { project_id: context.projectId, run_id: context.runId, category: input.category ?? "visual", decision: input.decision, rationale: input.rationale, delegation: input.delegation, object_ids: input.object_ids ?? [], evidence: input.evidence ?? [] });
+    const report = await call("read_skill_execution_report", { project_id: context.projectId, run_id: context.runId });
+    if (!report.assignments.some((item: { assignmentId: string }) => item.assignmentId === input.assignment.assignment_id)) {
+      await call("update_production_run", { project_id: context.projectId, run_id: context.runId, expected_audit_version: report.auditVersion,
+        operation_id: input.assignment_operation_id, action: "add_assignment", assignment: input.assignment });
+    }
+    await call("record_creative_decision", { project_id: context.projectId, run_id: context.runId, operation_id: input.operation_id, category: input.category ?? "visual",
+      decision: input.decision, rationale: input.rationale, phase: input.phase, assignment_id: input.assignment.assignment_id,
+      input_revision: input.assignment.input_revision, input_decision_ids: input.input_decision_ids, research_outcome: input.research_outcome,
+      research_references: input.research_references, object_ids: input.object_ids, evidence: input.evidence ?? [] });
     if (input.editorial_review) {
-      await call("record_editorial_quality_review", { ...input.editorial_review, project_id: context.projectId, run_id: context.runId, revision: before.revision.number });
+      await call("record_editorial_quality_review", { ...input.editorial_review, project_id: context.projectId, run_id: context.runId, operation_id: `${input.operation_id}-review`, revision: before.revision.number });
       await writeFile(`${contextPath}.quality.json`, JSON.stringify(await call("read_quality_report", { project_id: context.projectId }), null, 2));
     }
     assert.equal(JSON.stringify(await project()), beforeAudit, "委派审计不能改变成片事实");
@@ -179,8 +189,8 @@ try {
       const work = motionSubmissionSchema.parse(input.work);
       assert.deepEqual([work.width, work.height, work.fps], [before.snapshot.timeline.width, before.snapshot.timeline.height, before.snapshot.timeline.fps]);
       assert.equal(Object.keys(work.imageBindings).length, 0, "此独立验收只接受无外部素材的作品");
-      const submitted = await submitRenderedMotion({ project_id: context.projectId, base_revision_id: before.revision.number, idempotency_key: input.delegation.assignment_id, work });
-      context.iterations.push({ delegation: input.delegation, inputRevision: before.revision.number, motionJobId: submitted.id });
+      const submitted = await submitRenderedMotion({ project_id: context.projectId, base_revision_id: before.revision.number, idempotency_key: input.assignment.assignment_id, work });
+      context.iterations.push({ assignment: input.assignment, inputRevision: before.revision.number, motionJobId: submitted.id });
       await writeFile(contextPath, JSON.stringify(context, null, 2));
       await waitJob(submitted.id);
       const rendered = await readRenderedMotion(submitted.id);
@@ -207,7 +217,7 @@ try {
       const placed = await call("manage_effect_cues", { project_id: context.projectId, base_revision_id: (await project()).revision.number, ...(context.cueId ? { action: "update", cue_id: context.cueId } : { action: "create", scene_id: context.sceneId, type: "ManagedMotion", layer: "fullscreen", start_frame: 0, end_frame: work.durationInFrames, semantic_anchor: { type: "scene", target_id: context.sceneId, relation: "hold_through" } }), work_id: context.workId });
       context.cueId ??= (await project()).snapshot.effectCues.at(-1).id;
       await save();
-      const preview = await call("render_preview_range", { project_id: context.projectId, revision: placed.revision, from_frame: 0, to_frame: work.durationInFrames, idempotency_key: `${input.delegation.assignment_id}-preview` });
+      const preview = await call("render_preview_range", { project_id: context.projectId, revision: placed.revision, from_frame: 0, to_frame: work.durationInFrames, idempotency_key: `${input.assignment.assignment_id}-preview` });
       Object.assign(context.iterations.at(-1)!, { previewJobId: preview.id, previewRevision: placed.revision });
       await save();
       const completed = await waitJob(preview.id);

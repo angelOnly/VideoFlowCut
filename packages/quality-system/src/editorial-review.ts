@@ -61,11 +61,46 @@ export function mergeEditorialReviews(reviews: EditorialQualityReview[], revisio
 }
 
 /** 显式覆盖声明优先；锚点只作为未声明覆盖时的内容关联。 */
-function cueCoversBeat(snapshot: ProjectSnapshot, cue: ProjectSnapshot["effectCues"][number], beatId: string): boolean {
+export function cueCoversBeat(snapshot: ProjectSnapshot, cue: ProjectSnapshot["effectCues"][number], beatId: string): boolean {
   const declared = cue.coveredNarrativeBeatIds !== undefined
     ? cue.coveredNarrativeBeatIds.includes(beatId)
     : cue.semanticAnchor.type === "narrative_beat" && cue.semanticAnchor.targetId === beatId;
   return declared && effectBeatRanges(snapshot, beatId, cue.sceneId).some(range => rangesOverlap(range, cue));
+}
+
+/** 按计划的实际实现方式对账，素材直放与受管作品共用同一判断。 */
+export function hasVisualTreatmentImplementation(treatment: ProjectSnapshot["visualTreatments"][number], candidates: {
+  cues: ProjectSnapshot["effectCues"]; cutaways: ProjectSnapshot["cutaways"];
+  programs: ProjectSnapshot["explainerPrograms"]; videoItems: ProjectSnapshot["timeline"]["items"];
+  snapshot: ProjectSnapshot; ranges: Array<{ startFrame: number; endFrame: number }>;
+}): boolean {
+  const cues = candidates.cues.filter(cue => (!treatment.sceneId || cue.sceneId === treatment.sceneId)
+    && (!treatment.adoptedDecisionRef || cue.authoringInputs?.some(input => input.visualTreatmentId === treatment.id
+      && input.adoptedDecisionRef.productionRunId === treatment.adoptedDecisionRef!.productionRunId
+      && input.adoptedDecisionRef.decisionId === treatment.adoptedDecisionRef!.decisionId)));
+  const programs = candidates.programs.filter(program => !treatment.sceneId || program.sceneId === treatment.sceneId);
+  if (treatment.mode === "keep_presenter") {
+    const { snapshot, ranges } = candidates;
+    const actorItems = snapshot.timeline.items.filter(item => snapshot.assets.some(asset => asset.id === item.assetId && ["video", "actor_video"].includes(asset.kind))
+      && (snapshot.timeline.tracks.some(track => track.id === item.trackId && track.name === "Actor / A-roll")
+        || snapshot.actorPerformances.some(performance => performance.timelineItemId === item.id && performance.status === "ready")));
+    if (candidates.videoItems.some(item => actorItems.some(actor => actor.id === item.id))) return true;
+    const actorAssets = new Set(actorItems.map(item => item.assetId));
+    return cues.some(cue => {
+      const work = motionWorkForCue(snapshot, cue);
+      return work?.videoSources.some(source => {
+        const span = motionRootSpanOnTimeline(source.startFrame, source.endFrame, work, cue, snapshot.timeline.fps);
+        return actorAssets.has(source.assetId) && span.startFrame < span.endFrame && ranges.some(range => rangesOverlap(range, span));
+      }) ?? false;
+    });
+  }
+  if (["light_overlay", "remotion"].includes(treatment.mode)) return cues.length > 0 || programs.length > 0;
+  if (["b_roll", "cutaway", "evidence"].includes(treatment.mode)) {
+    return candidates.cutaways.some(cutaway => cutaway.visualTreatmentId === treatment.id)
+      || candidates.videoItems.some(item => (!treatment.sceneId || item.sceneId === treatment.sceneId)
+        && treatment.adoptedMaterialAssetIds?.includes(item.assetId)) || cues.length > 0 || programs.length > 0;
+  }
+  return true;
 }
 
 export function productionReconciliation(snapshot: ProjectSnapshot): NonNullable<QualityReport["productionReconciliation"]> {
@@ -90,6 +125,9 @@ export function productionReconciliation(snapshot: ProjectSnapshot): NonNullable
     if (!treatments.length && expectsPlan) gap("missing_treatment", [beat.id, ...beat.sceneIds], "没有明确关联本 Beat 的视觉计划；检查是否遗漏，不能把共用 Scene 当成逐拍计划。");
     const connected = new Set<string>();
     const overlapsBeat = (range: { startFrame: number; endFrame: number }, sceneId: string) => effectBeatRanges(snapshot, beat.id, sceneId).some(target => rangesOverlap(target, range));
+    const videoItems = snapshot.timeline.items.filter(item => active.videoItemIds.has(item.id) && !!item.sceneId && beat.sceneIds.includes(item.sceneId)
+      && (composition.nativeVisibleRanges.get(item.id) ?? []).some(range => overlapsBeat(range, item.sceneId!)));
+    for (const item of videoItems) connected.add(item.assetId);
     for (const cutaway of cutaways) if (overlapsBeat(cutaway, cutaway.hostSceneId)) connected.add(cutaway.assetId);
     for (const program of programs) for (const id of program.assetIds) connected.add(id);
     for (const cue of cues) {
@@ -110,8 +148,8 @@ export function productionReconciliation(snapshot: ProjectSnapshot): NonNullable
     for (const treatment of treatments) {
       if (treatment.status === "stale") gap("stale_treatment", [treatment.id], `${treatment.id} 需要重新确认失效视觉计划。`);
       else {
-        if (["light_overlay", "remotion"].includes(treatment.mode) && !cues.length && !programs.length
-          || ["b_roll", "cutaway", "evidence"].includes(treatment.mode) && !cutaways.length && !cues.length && !programs.length) gap("missing_implementation", [treatment.id], `${treatment.id} 未发现明确关联的有效视觉实现。`);
+        const ranges = scenes.flatMap(scene => effectBeatRanges(snapshot, beat.id, scene.id));
+        if (!hasVisualTreatmentImplementation(treatment, { cues, cutaways, programs, videoItems, snapshot, ranges })) gap("missing_implementation", [treatment.id], `${treatment.id} 未发现明确关联的有效视觉实现。`);
         if (["quiet", "keep_presenter"].includes(treatment.mode) && !treatment.quietReason) observationNeeds.push(`${treatment.id} 需要说明人物保持或留白如何服务观看。`);
       }
       const missing = (treatment.adoptedMaterialAssetIds ?? []).filter(id => !connected.has(id));
@@ -163,6 +201,7 @@ export function completionReconciliationBlockers(snapshot: ProjectSnapshot, scop
   });
   return productionReconciliation(snapshot).flatMap(entry => {
     if (scope.kind === "beats" && !scope.beatIds.includes(entry.beatId)) return [];
+    if (scope.kind === "frames" && !entry.sceneIds.some(sceneId => effectBeatRanges(snapshot, entry.beatId, sceneId).some(range => rangesOverlap(range, scope)))) return [];
     const selectedImplementation = affectedCues.some(cue => cueCoversBeat(snapshot, cue, entry.beatId))
       || snapshot.cutaways.some(cutaway => (selected.has(cutaway.id) || selected.has(cutaway.timelineItemId) || selected.has(cutaway.assetId)) && Boolean(cutaway.visualTreatmentId && entry.treatmentIds.includes(cutaway.visualTreatmentId)))
       || snapshot.explainerPrograms.some(program => selected.has(program.id) && snapshot.narrativeMap?.beats.some(beat => beat.id === program.narrativeMapBeatId && beat.narrativeBeatId === entry.beatId));

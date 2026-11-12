@@ -3,11 +3,14 @@ import type { EditorialQualityReview, EditorialReviewCategory, EditorialReviewFi
 import { api } from "./api";
 
 type Method = "frames" | "continuous_video" | "audio" | "audiovisual";
+type ObservationPayload = Parameters<typeof api.recordWorkbenchObservation>[1];
+type ObservationResult = Awaited<ReturnType<typeof api.recordWorkbenchObservation>>;
 
 /** 审阅只记录明确声明的观察；播放和定位本身不产生结论。 */
-export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, revision, startFrame, endFrame, objectId, onLocate, onRecheck, onRepair }: {
+export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, revision, startFrame, endFrame, objectId, adoptionRefs, onLocate, onRecheck, onRepair }: {
   projectId: string; revision: number; startFrame: number; endFrame: number; objectId?: string;
   productionRunId?: string; onRunChange: (runId: string) => void;
+  adoptionRefs: import("@videocut/contracts").CreativeAdoptionRef[];
   onLocate: (finding: EditorialReviewFinding) => void;
   onRecheck: (finding: EditorialReviewFinding) => Promise<void>;
   onRepair: (finding: EditorialReviewFinding) => void;
@@ -22,9 +25,12 @@ export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, 
   const [severity, setSeverity] = useState<EditorialReviewSeverity>("warning");
   const [findingId, setFindingId] = useState("");
   const [captionOnly, setCaptionOnly] = useState(false);
+  const [comparedReferences, setComparedReferences] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const runId = useRef<string | undefined>(undefined);
+  const pending = useRef<{ signature: string; payload: ObservationPayload; result?: ObservationResult; resolutionOperationId: string } | undefined>(undefined);
+  const adoptionKey = JSON.stringify(adoptionRefs.map(ref => `${ref.productionRunId}:${ref.decisionId}`).sort());
 
   const refresh = async () => setReview(await api.editorialReview(projectId, revision));
   useEffect(() => {
@@ -32,6 +38,8 @@ export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, 
     void api.editorialReview(projectId, revision).then(value => { if (active) setReview(value); }).catch(error => { if (active) setMessage(error instanceof Error ? error.message : String(error)); });
     return () => { active = false; };
   }, [projectId, revision]);
+  useEffect(() => { setComparedReferences(false); }, [projectId, revision, startFrame, endFrame, adoptionKey]);
+  useEffect(() => { runId.current = undefined; pending.current = undefined; }, [projectId]);
 
   const resolved = new Set(review?.resolutions?.map(entry => entry.findingId) ?? []);
   const open = (review?.findings ?? []).filter(entry => !resolved.has(entry.id));
@@ -41,23 +49,34 @@ export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, 
     if (mode === "resolution" && !findingId) { setMessage("请先选择要复查的问题。"); return; }
     setBusy(true); setMessage("");
     try {
-      const result = await api.recordWorkbenchObservation(projectId, {
-        runId: productionRunId ?? runId.current, revision, pass, method, observer, observation, startFrame, endFrame,
+      const fields = {
+        revision, pass, method, observer, observation, startFrame, endFrame,
+        ...(comparedReferences ? { adoptionRefs } : {}),
         ...(mode === "finding" ? { finding: { category, severity, summary: observation, impact, objectId } } : {})
-      });
+      };
+      const signature = JSON.stringify({ projectId, mode, fields, ...(mode === "resolution" ? { findingId, captionOnly } : {}) });
+      const currentRunId = productionRunId ?? runId.current;
+      let submission = pending.current;
+      if (!submission || submission.signature !== signature || (currentRunId !== submission.payload.runId && currentRunId !== submission.result?.runId)) {
+        submission = { signature, payload: { ...fields, runId: currentRunId, operationId: crypto.randomUUID() }, resolutionOperationId: crypto.randomUUID() };
+        pending.current = submission;
+      }
+      // 结果未知时重用同一提交；复查失败只重试尚未确认的关闭操作。
+      const result = submission.result ?? await api.recordWorkbenchObservation(projectId, submission.payload);
+      submission.result = result;
       runId.current = result.runId;
       onRunChange(result.runId);
       if (mode === "resolution") {
-        const evidence = result.review.evidenceRecords?.at(-1);
-        if (!evidence) throw new Error("观察已保存，但未取得可复查的证据标识。");
+        if (!result.evidenceId) throw new Error("观察已保存，但未取得可复查的证据标识。");
         try {
-          await api.resolveEditorialFinding(projectId, { runId: result.runId, revision, pass, findingId, evidenceIds: [evidence.id], note: observation, ...(captionOnly ? { scope: "caption_text" } : {}) });
+          await api.resolveEditorialFinding(projectId, { runId: result.runId, operationId: submission.resolutionOperationId, revision, pass, findingId, evidenceIds: [result.evidenceId], note: observation, ...(captionOnly ? { scope: "caption_text" } : {}) });
         } catch (error) {
           await refresh();
           throw new Error(`观察已保存，问题尚未关闭：${error instanceof Error ? error.message : String(error)}`);
         }
       }
       await refresh();
+      pending.current = undefined;
       setMessage(mode === "resolution" ? "已保存观察并复查该问题。" : mode === "finding" ? "已记录问题，可交原负责人处理。" : "已保存实际观察。");
       setObservation(""); setImpact("");
     } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
@@ -83,6 +102,7 @@ export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, 
       </select></label>
     </div>
     <label>实际观察<textarea aria-label="实际观察" value={observation} onChange={event => setObservation(event.target.value)} /></label>
+    {adoptionRefs.length > 0 && <label><input type="checkbox" checked={comparedReferences} onChange={event => setComparedReferences(event.target.checked)} />已对照本范围当前采用的参考</label>}
     <label>问题影响（记录问题时填写）<input aria-label="问题影响" value={impact} onChange={event => setImpact(event.target.value)} /></label>
     <div className="workbench-review-actions"><button disabled={busy} onClick={() => void save("observation")}>保存观察</button><button disabled={busy} onClick={() => void save("finding")}>记录问题</button></div>
     {open.length > 0 && <>

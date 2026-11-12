@@ -1657,9 +1657,13 @@ export interface EditorialReviewObservation {
   endFrame: number;
   method: "frames" | "continuous_video" | "audio" | "audiovisual";
   observation: string;
+  /** 观察者声明实际对照的导演采用决定。 */
+  adoptionRefs?: CreativeAdoptionRef[];
 }
 
 export interface EditorialReviewEvidence extends EditorialReviewObservation {
+  /** 标识产生此证据的提交，用于重试后取回同一项观察。 */
+  operationId?: string;
   id: Id;
   revision: number;
   relativePath?: string;
@@ -1756,10 +1760,15 @@ export interface QualityReport {
 /** incomplete 表示已经尝试收口，但缺少阶段 1 的必需证据；仍可继续补充同一 Run。 */
 export type ProductionRunStatus = "active" | "incomplete" | "completed" | "abandoned";
 
+export type ProductionIntent = "full_creation" | "visual_rework" | "local_edit" | "review_only";
+export type ProductionResponsibility = "director" | "creative_research" | "visual_design" | "motion_research" | "review";
+export type CreativeDecisionPhase = "creative_research" | "motion_research" | "visual_design" | "adoption";
+
 export type ProductionCompletionScope =
   | { kind: "project" }
   | { kind: "beats"; beatIds: Id[] }
-  | { kind: "objects"; objectIds: Id[] };
+  | { kind: "objects"; objectIds: Id[] }
+  | { kind: "frames"; startFrame: number; endFrame: number };
 
 export interface ProductionCompletionEvaluation {
   runId: Id;
@@ -1773,17 +1782,31 @@ export interface ProductionCompletionEvaluation {
   validObservations: Array<{ evidenceId: Id; observedRevision: number; method: EditorialReviewObservation["method"]; startFrame: number; endFrame: number }>;
   observationGaps: Array<{ startFrame: number; endFrame: number; method: EditorialReviewObservation["method"]; objectId?: Id }>;
   openRequiredFindingIds: Id[];
+  coordinationIssues: ProductionCoordinationIssue[];
 }
 
-/** 协调者记录的子代理来源，只用于追溯，不认证宿主身份或代替实际调用证据。 */
-export interface CreativeDelegation {
+/** 由协调者登记实际分派，只用于追溯，不认证宿主身份。 */
+export interface ProductionAssignment {
   agentId: string;
   assignmentId: string;
-  role: "director" | "specialist" | "reviewer";
-  /** 本次委派的主要专业技能，其他技能可按需加载。 */
-  skillId: string;
-  /** 子代理实际使用的历史版本；记录审计时不得替换成当前版本。 */
-  inputRevision: number;
+  /** 登记此次分派的操作编号，用于区分接替前后返回的结果。 */
+  operationId: string;
+  responsibilities: ProductionResponsibility[];
+  skillIds: string[];
+  scope: ProductionCompletionScope;
+  inputRevision: number | null;
+  supersedesAssignmentId?: string;
+}
+
+export interface ProductionCoordinationIssue {
+  code: string;
+  scope: ProductionCompletionScope;
+  assignmentId?: string;
+  relatedDecisionIds: Id[];
+  relatedObjectIds: Id[];
+  state: "missing" | "pending" | "stale" | "unknown";
+  message: string;
+  nextAction: string;
 }
 
 export interface CreativeDecision {
@@ -1795,8 +1818,13 @@ export interface CreativeDecision {
   evidence: string[];
   alternatives?: string[];
   deliveryRef?: CreativeDeliveryRef;
-  /** 旧报告及用户已明确指定的操作可以省略；对象和产物沿用 objectIds、evidence。 */
-  delegation?: CreativeDelegation;
+  phase?: CreativeDecisionPhase;
+  assignmentId?: string;
+  inputRevision?: number | null;
+  inputDecisionIds?: Id[];
+  researchOutcome?: "pending" | "researched" | "not_applicable";
+  researchReferences?: Array<{ kind: "creative" | "motion"; id: string; sourceSha256: string }>;
+  operationId?: string;
   createdAt: string;
 }
 
@@ -1805,7 +1833,11 @@ export interface CreativeDecision {
  * 用于回答“这次为什么这样剪”。
  */
 export interface SkillExecutionReport {
-  completionScope?: ProductionCompletionScope;
+  completionScope: ProductionCompletionScope;
+  intent: ProductionIntent;
+  assignments: ProductionAssignment[];
+  auditVersion: number;
+  operations: Array<{ id: string; hash: string }>;
   id: Id;
   projectId: Id;
   status: ProductionRunStatus;

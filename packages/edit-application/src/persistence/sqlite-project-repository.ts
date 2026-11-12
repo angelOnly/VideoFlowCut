@@ -2,7 +2,8 @@ import type { PresenterLibrary } from "@videocut/contracts";
 import { explicitCreativePreferencesSchema } from "../../../contracts/src/creative-preferences.js";
 import { bindMotionFonts } from "../../../motion-work/src/fonts.js";
 import { reconcileSoundDesign } from "../sound-design.js";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { reconcileMotionDependencies } from "../motion-dependencies.js";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -235,6 +236,30 @@ export class ProjectRepository {
       this.db.exec("ROLLBACK");
       throw error;
     }
+  }
+
+  /** 报告文件和项目版本共同构成审计计算的输入。 */
+  productionAuditState(projectId: Id): { revision: number; fingerprint: string } {
+    const project = this.getProjectRow(projectId);
+    const directory = join(project.root_path, "reports");
+    const hash = createHash("sha256");
+    if (existsSync(directory)) {
+      for (const name of readdirSync(directory).filter(entry => /^production-run-production_run_[a-zA-Z0-9-]+\.json$/u.test(entry)).sort()) {
+        hash.update(name).update("\0").update(readFileSync(join(directory, name))).update("\0");
+      }
+    }
+    return { revision: project.current_revision_number, fingerprint: hash.digest("hex") };
+  }
+
+  /** 短事务只串行化报告提交；耗时计算在事务外完成。 */
+  commitProductionAudit(projectId: Id, expected: { revision: number; fingerprint: string }, temporaryPath: string, targetPath: string): void {
+    this.transaction(() => {
+      const current = this.productionAuditState(projectId);
+      if (current.revision !== expected.revision || current.fingerprint !== expected.fingerprint) {
+        throw new DomainError("项目或制作记录已变化，请读取最新状态后重试", "PRODUCTION_AUDIT_CONFLICT");
+      }
+      renameSync(temporaryPath, targetPath);
+    });
   }
 
   private revisionFromRow(row: RevisionRow): RevisionRecord {

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    body { font-family: var(--vfc-font-body); }
+    .composition { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #eeeae0; color: #f7f5ef; }
+    .atlas { position: absolute; inset: 0; overflow: hidden; background: #1b292e; }
+    .atlas img { position: absolute; left: 142px; top: 20px; width: 1636px; height: 920px; object-fit: contain; }
+    .atlas:after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg,rgba(11,24,27,.22),transparent 45%); pointer-events: none; }
+    .motion-label { position: absolute; left: 172px; top: 72px; padding-left: 22px; border-left: 9px solid #ffb84c; font: 700 36px var(--vfc-font-title); text-shadow: 0 2px 12px #111a; }
+    .work { position: absolute; inset: 0; overflow: hidden; background: #eeeae0; color: #f7f5ef; }
+    .sheet { position: absolute; inset: 54px 64px 86px; overflow: hidden; background: #1b292e; }
+    .grid { position: absolute; inset: 0; opacity: .12; background-image: linear-gradient(#9ca9a7 1px,transparent 1px),linear-gradient(90deg,#9ca9a7 1px,transparent 1px); background-size: 64px 64px; mask-image: linear-gradient(to right,transparent 12%,black 65%); }
+    .topline { position: absolute; left: 88px; right: 88px; top: 65px; height: 83px; display: flex; align-items: center; gap: 30px; border-bottom: 2px solid rgba(239,244,240,.2); }
+    .flag { width: 13px; height: 50px; background: #ffb84c; }
+    .head { font: 700 38px var(--vfc-font-title); letter-spacing: .05em; }
+    .head-note { color: #c7d5ce; font-size: 29px; }
+    .visual { position: absolute; left: 90px; top: 172px; width: 1600px; height: 650px; overflow: visible; }
+    .label { font: 700 34px var(--vfc-font-title); fill: #e9f0e9; }
+    .small { font: 400 25px var(--vfc-font-body); fill: #9eb4aa; }
+    .action-line { fill: none; stroke: #ffb84c; stroke-width: 7; stroke-linecap: round; stroke-dasharray: 12 15; }
+    .cue-ring { fill: none; stroke: #ffb84c; stroke-width: 6; }
+  </style>
+</head>
+<body>
+  <main class="composition" data-composition-id="opening-work" data-width="1920" data-height="1080" data-start="0" data-duration="13.52">
+    <div class="atlas">
+      <img id="atlas-shot" data-vfc-video-slot="atlas" alt="">
+      <div class="motion-label">后空翻</div>
+    </div>
+    <section class="work">
+      <div class="sheet">
+        <div class="grid"></div>
+        <div class="topline"><span class="flag"></span><span class="head">一份工作</span><span class="head-note">取出零件 · 装到机器上</span></div>
+        <svg class="visual" viewBox="0 0 1600 650" aria-label="从料箱取件并装到机器上的任务关系">
+          <defs>
+            <marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#ffb84c" stroke-width="2"/></marker>
+            <clipPath id="slot-clip"><rect x="1245" y="347" width="135" height="37"/></clipPath>
+          </defs>
+          <g id="bin">
+            <path d="M80 215 L445 215 L500 262 L500 516 L135 516 L80 469 Z" fill="#4d7470" stroke="#bad0c5" stroke-width="6"/>
+            <path d="M80 215 L135 262 L500 262 L445 215 Z" fill="#79968b" stroke="#bad0c5" stroke-width="6"/>
+            <path d="M135 262 L500 262 L500 516 L135 516 Z" fill="#31524e"/>
+            <path d="M155 290 L479 290 L479 486 L155 486 Z" fill="#233d3b"/>
+            <path d="M174 420 l110 -38 54 42 -110 39 z" fill="#8fa8a0" stroke="#cfdbd4" stroke-width="4"/>
+            <path id="source-part" d="M305 355 l98 -35 55 43 -98 35 z" fill="#627d75" stroke="#b9cdc2" stroke-width="4"/>
+            <path d="M256 318 l75 -31 45 35 -75 31 z" fill="#9eb4a8" stroke="#d8e1d8" stroke-width="4"/>
+            <text class="label" x="130" y="574">从料箱取件</text>
+          </g>
+          <g id="machine">
+            <path d="M1085 191 h348 l58 52 v263 h-406 z" fill="#425d59" stroke="#c4d6cb" stroke-width="6"/>
+            <path d="M1433 191 l58 52 h-348 l-58 -52 z" fill="#6c8880" stroke="#c4d6cb" stroke-width="6"/>
+            <path d="M1143 243 h348 v263 h-348 z" fill="#283f3e"/>
+            <rect x="1204" y="302" width="216" height="130" rx="4" fill="#132a2b" stroke="#91aaa0" stroke-width="6"/>
+            <rect x="1240" y="342" width="145" height="48" rx="3" fill="#0e2021" stroke="#bed1c4" stroke-width="4"/>
+            <circle cx="1175" cy="287" r="8" fill="#ffb84c"/>
+            <text class="label" x="1141" y="574">装到机器上</text>
+          </g>
+          <path id="route" class="action-line" d="M 458 307 C 690 192 1030 200 1315 364" marker-end="url(#arrow)"/>
+          <g id="moving-part">
+            <path d="M0 12 L109 -20 L151 14 L42 46 Z" fill="#e2e9de" stroke="#ffb84c" stroke-width="5"/>
+            <path d="M42 46 L151 14 L151 34 L42 68 Z" fill="#8ca99a" stroke="#ffb84c" stroke-width="5"/>
+          </g>
+          <g id="installed-part" clip-path="url(#slot-clip)">
+            <path d="M1244 353 L1383 353 L1383 383 L1244 383 Z" fill="#dce9d8" stroke="#ffb84c" stroke-width="5"/>
+          </g>
+          <path d="M1240 391 H1385" stroke="#bed1c4" stroke-width="5"/>
+          <g id="focus">
+            <circle class="cue-ring" cx="302" cy="355" r="124"/>
+            <circle class="cue-ring" cx="302" cy="355" r="144" opacity=".35"/>
+          </g>
+        </svg>
+      </div>
+    </section>
+  </main>
+  <script>
+    // 真实镜头与图形任务分开：图形仅表达假设的取件和安装。
+    const sequence = gsap.timeline({ paused: true });
+    gsap.set('.work', { x: 1920 });
+    gsap.set('#bin', { autoAlpha: 0, y: 32 });
+    gsap.set('#machine', { autoAlpha: 0, y: 32 });
+    gsap.set('#route', { autoAlpha: 0 });
+    gsap.set('#moving-part', { autoAlpha: 0, x: 383, y: 283, transformOrigin: '0 0' });
+    gsap.set('#installed-part', { autoAlpha: 0 });
+    gsap.set('#focus', { autoAlpha: 0, transformOrigin: '302px 355px', scale: .86 });
+    sequence.from('.motion-label', { autoAlpha: 0, y: 12, duration: .5 }, .2)
+      .to('.work', { x: 0, duration: .65, ease: 'power2.inOut' }, 5.55)
+      .to('#bin', { autoAlpha: 1, y: 0, duration: .55, ease: 'power2.out' }, 6.12)
+      .to('#machine', { autoAlpha: 1, y: 0, duration: .55, ease: 'power2.out' }, 6.55)
+      .to('#route', { autoAlpha: 1, duration: .45 }, 7.5)
+      .to('#moving-part', { autoAlpha: 1, duration: .2 }, 7.55)
+      .to('#source-part', { autoAlpha: 0, duration: .15 }, 7.55)
+      // 通过两个明确拐点让零件沿虚线路径靠近机器槽位。
+      .to('#moving-part', { x: 760, y: 202, duration: .9, ease: 'power1.out' }, 7.75)
+      .to('#moving-part', { x: 1254, y: 345, duration: .9, ease: 'power1.in' }, 8.65)
+      .to('#moving-part', { scale: .8, duration: .25, ease: 'power2.out' }, 9.3)
+      // 槽口遮住移动件，槽内留下可辨的安装结果。
+      .to('#moving-part', { autoAlpha: 0, scale: .45, duration: .3 }, 9.55)
+      .to('#installed-part', { autoAlpha: 1, duration: .25 }, 9.65)
+      .to('#route', { autoAlpha: .28, duration: .35 }, 9.7)
+      .to('#machine', { opacity: .42, duration: .55 }, 11.25)
+      .to('#focus', { autoAlpha: 1, scale: 1, duration: .55, ease: 'power2.out' }, 11.4)
+      .to({}, { duration: .01 }, 13.51);
+    window.__timelines = { 'opening-work': sequence };
+    window.getVfcMotionEvents = () => [
+      { id: 'atlas-action', meaning: '真实后空翻镜头', startFrame: 0, endFrame: 153 },
+      { id: 'work-task', meaning: '假设的料箱取件与安装任务', startFrame: 153, endFrame: 282 },
+      { id: 'work-question', meaning: '注意力回到料箱和伸手前的变化', startFrame: 282, endFrame: 338 }
+    ];
+  </script>
+</body>
+</html>

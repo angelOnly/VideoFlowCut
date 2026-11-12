@@ -1,0 +1,350 @@
+{
+  "id": "production_run_ad966b30ffe26b2d831383005e504fe8",
+  "projectId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5",
+  "status": "active",
+  "assignments": [
+    {
+      "assignmentId": "robot-director-01",
+      "agentId": "/root/director",
+      "responsibilities": [
+        "director"
+      ],
+      "skillIds": [
+        "production-director",
+        "visual-explainer-director",
+        "audio-finishing"
+      ],
+      "scope": {
+        "kind": "project"
+      },
+      "inputRevision": 1,
+      "operationId": "robot-director-01-assign"
+    },
+    {
+      "assignmentId": "robot-visual-01",
+      "agentId": "/root/visual_author",
+      "responsibilities": [
+        "visual_design",
+        "motion_research"
+      ],
+      "skillIds": [
+        "visual-treatment-planning",
+        "motion-case-library"
+      ],
+      "scope": {
+        "kind": "project"
+      },
+      "inputRevision": 1,
+      "operationId": "robot-visual-01-assign"
+    },
+    {
+      "assignmentId": "robot-research-01",
+      "agentId": "/root/research_assets",
+      "responsibilities": [
+        "creative_research"
+      ],
+      "skillIds": [
+        "creative-sequence-design",
+        "creative-case-library",
+        "visual-asset-sourcing"
+      ],
+      "scope": {
+        "kind": "project"
+      },
+      "inputRevision": 1,
+      "operationId": "robot-research-01-assign"
+    },
+    {
+      "assignmentId": "robot-visual-02",
+      "agentId": "/root/visual_resume",
+      "responsibilities": [
+        "visual_design",
+        "motion_research"
+      ],
+      "skillIds": [
+        "visual-treatment-planning",
+        "motion-case-library"
+      ],
+      "scope": {
+        "kind": "project"
+      },
+      "inputRevision": 103,
+      "supersedesAssignmentId": "robot-visual-01",
+      "operationId": "robot-visual-resume-after-interruption-v1"
+    },
+    {
+      "assignmentId": "robot-director-02",
+      "agentId": "/root/director_resume",
+      "responsibilities": [
+        "director"
+      ],
+      "skillIds": [
+        "production-director",
+        "visual-explainer-director",
+        "audio-finishing"
+      ],
+      "scope": {
+        "kind": "project"
+      },
+      "inputRevision": 103,
+      "supersedesAssignmentId": "robot-director-01",
+      "operationId": "robot-director-resume-after-interruption-v1"
+    }
+  ],
+  "creativeDecisions": [
+    {
+      "id": "creative_decision_9d9cd6a6-5c11-4c5c-a8a8-c264253a7df6",
+      "category": "visual",
+      "decision": "开场保留真实 Atlas 后空翻画面，完整画幅缩小上移以保留平台与字幕区；随后切换为原创料箱、选中零件、路径与机器槽口的示意，零件进入后焦点回到箱子。",
+      "rationale": "以可辨真实动作建立话题，再明确转向假设工作；给下一场乱箱问题留下视觉接点，不把不同来源或图形示意伪装为同一实拍事件。",
+      "objectIds": [
+        "scene_08a22e0b-b19a-4fa0-9269-57c28aa5004a"
+      ],
+      "evidence": [
+        "视觉作者交回 opening-production-brief.md 与 opening-timing.md；同源作品 motion_work_866356adb1e01aedbc3fb14732226a0c520d1c2426c609e8a6c6f8587a2dd520 已在 R95 放置。",
+        "R96 开场 F102 实际截图显示字幕未遮双脚和落地点；其他动作观察为间隔静帧，连续声画和听审未知。",
+        "创意与动效候选仅完成读卡、分镜和静帧初筛，本场未宣称采用已验证参考迁移。"
+      ],
+      "phase": "visual_design",
+      "assignmentId": "robot-visual-01",
+      "inputRevision": 98,
+      "inputDecisionIds": [],
+      "operationId": "robot-opening-visual-design-r98-v1",
+      "createdAt": "2026-11-11T18:47:30.955Z"
+    },
+    {
+      "id": "creative_decision_09266865-9bab-469c-95e6-fa24ea39e70c",
+      "category": "visual",
+      "decision": "采用开场既有主要编排进入画面深化：真实 Atlas 后空翻建立兴趣，转入非照片式取件与装机假设，再回到料箱引出下一场。",
+      "rationale": "场面从用户原文的动作转向实际工位问题，明确区分真实画面和假设过程，并与后续乱箱段形成联系。",
+      "objectIds": [
+        "scene_08a22e0b-b19a-4fa0-9269-57c28aa5004a"
+      ],
+      "evidence": [
+        "导演读取 R98 清单、视觉简报、时序和场面文件，并查看同源预排 F73、80、102、140、240、250、300 及 R96 F102 合成截图。",
+        "所看 F102 脚部和字幕关系、F250 槽内结果成立；该结论仅覆盖静帧。",
+        "连续交接、完整运动、配音听感及同步未知；没有已验证的参考迁移。"
+      ],
+      "phase": "adoption",
+      "assignmentId": "robot-director-01",
+      "inputRevision": 98,
+      "inputDecisionIds": [
+        "creative_decision_9d9cd6a6-5c11-4c5c-a8a8-c264253a7df6"
+      ],
+      "operationId": "robot-opening-director-adoption-r98-v1",
+      "deliveryRef": {
+        "manifestPath": "E:\\ai\\VideoCut\\workspace\\projects\\project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5\\reports\\motion-handoffs\\ef4e0df7-717d-41ed-8dcd-33bc2606a66d\\delivery-manifest.json",
+        "manifestSha256": "7d6a5f205755ef5fbd8f9282599d7399b58550af9728be89ef8695e1eba358c2",
+        "sceneIds": [
+          "scene_08a22e0b-b19a-4fa0-9269-57c28aa5004a"
+        ]
+      },
+      "createdAt": "2026-11-11T18:51:16.682Z"
+    },
+    {
+      "id": "creative_decision_377dfea2-b3ef-47fe-a6f9-651df39abf2d",
+      "category": "visual",
+      "decision": "以重复动作积累、局部异常影响整体等待以及固定装置与移动主体比较为问题进行创意库初筛；目前不把任何候选作为已验证迁移。",
+      "rationale": "五张候选仅完成卡片和九宫格静帧观察，尚缺参考过程连续观看及与本片素材的适配复核。",
+      "objectIds": [
+        "scene_08a22e0b-b19a-4fa0-9269-57c28aa5004a",
+        "scene_79fc874e-b686-4410-8529-2d88380ddb70",
+        "scene_3c643436-9315-4f12-b1f2-f3a8b8a5bf8c",
+        "scene_ab355815-b25b-4830-9f4f-06819af98aef",
+        "scene_10cd5fcc-3850-4480-8ad1-cccd7d7bf7ae",
+        "scene_65c5e08a-4210-4e30-8ea1-9e82e80f49f9",
+        "scene_7d386941-5004-41d6-92f3-ec7f4b05f3fa",
+        "scene_d9d231ca-acc6-48f9-8647-a56fad268d8c"
+      ],
+      "evidence": [
+        "本轮三项语义检索均成功，已阅读五张卡正文及九宫格。",
+        "不能由静帧推断参考运动、接续或声音；未正式采用任何候选。"
+      ],
+      "phase": "creative_research",
+      "assignmentId": "robot-research-01",
+      "inputRevision": null,
+      "inputDecisionIds": [],
+      "researchOutcome": "pending",
+      "researchReferences": [
+        {
+          "kind": "creative",
+          "id": "055-c01",
+          "sourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085"
+        },
+        {
+          "kind": "creative",
+          "id": "004-c03",
+          "sourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085"
+        },
+        {
+          "kind": "creative",
+          "id": "130-c01",
+          "sourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085"
+        },
+        {
+          "kind": "creative",
+          "id": "122-c01",
+          "sourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085"
+        },
+        {
+          "kind": "creative",
+          "id": "059-c01",
+          "sourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085"
+        }
+      ],
+      "operationId": "robot-creative-research-partial-record-v1",
+      "createdAt": "2026-11-11T18:53:31.215Z"
+    }
+  ],
+  "editorialReview": {
+    "revision": 103,
+    "passes": [
+      "mute_visual"
+    ],
+    "previewEvidence": [],
+    "findings": [],
+    "evidenceRecords": [
+      {
+        "pass": "mute_visual",
+        "source": "workbench",
+        "observer": "director_resume",
+        "startFrame": 2150,
+        "endFrame": 2151,
+        "method": "frames",
+        "observation": "R103 工作台 F2150：人形机器人示意与通道、工具图形可辨，‘有机会利用为人准备的空间’限定可见；底部两行字幕完整，未遮所见主体和标签。",
+        "id": "editorial_evidence_843d5bcd-90b4-4784-9c9f-2f9e62c359cf",
+        "revision": 103,
+        "snapshotHash": "e0da82513bcdf206a1da78f1afbf973ed2f9e2d0eb85a35b6464a49efa7d9a21",
+        "renderReleaseId": "release-eeed8233605c862b5942080579a36ed001a1e151b21793b983823adc1e96419c",
+        "workbenchIdentity": {
+          "works": [
+            {
+              "workId": "motion_work_729a053e24b296d44aa1ade1517efe6c54ea183402b0a0ae4e97d09bf838f159",
+              "definitionHash": "729a053e24b296d44aa1ade1517efe6c54ea183402b0a0ae4e97d09bf838f159"
+            }
+          ],
+          "resources": [
+            {
+              "assetId": "asset_56251d5c-cf70-4662-883f-b5d2fa391064",
+              "hash": "6eb75592b126b694d3e9df1fc6f2189bebad835197f2e28b990559cc966613be"
+            }
+          ],
+          "fonts": [
+            {
+              "fontId": "noto-sans-sc-regular",
+              "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9"
+            },
+            {
+              "fontId": "noto-sans-sc-bold",
+              "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0"
+            }
+          ],
+          "engineVersion": "managed-hyperframes-4",
+          "dependencies": {
+            "hyperframes": "0.8.1",
+            "gsap": "3.14.2"
+          }
+        },
+        "recordedAt": "2026-11-12T01:11:47.799Z",
+        "operationId": "director-resume-r103-humanoid-stills-20261112"
+      },
+      {
+        "pass": "mute_visual",
+        "source": "workbench",
+        "observer": "director_resume",
+        "startFrame": 2450,
+        "endFrame": 2451,
+        "method": "frames",
+        "observation": "R103 工作台 F2450：画面显示优势需看实际表现，重新教学与续航两卡可辨、维护卡正在显现；‘换一份工作要重新教多久’字幕位于底部，未遮两卡。",
+        "id": "editorial_evidence_b468d691-97d2-4421-8e35-6fd656b6bbc9",
+        "revision": 103,
+        "snapshotHash": "e0da82513bcdf206a1da78f1afbf973ed2f9e2d0eb85a35b6464a49efa7d9a21",
+        "renderReleaseId": "release-eeed8233605c862b5942080579a36ed001a1e151b21793b983823adc1e96419c",
+        "workbenchIdentity": {
+          "works": [
+            {
+              "workId": "motion_work_729a053e24b296d44aa1ade1517efe6c54ea183402b0a0ae4e97d09bf838f159",
+              "definitionHash": "729a053e24b296d44aa1ade1517efe6c54ea183402b0a0ae4e97d09bf838f159"
+            }
+          ],
+          "resources": [
+            {
+              "assetId": "asset_56251d5c-cf70-4662-883f-b5d2fa391064",
+              "hash": "6eb75592b126b694d3e9df1fc6f2189bebad835197f2e28b990559cc966613be"
+            }
+          ],
+          "fonts": [
+            {
+              "fontId": "noto-sans-sc-regular",
+              "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9"
+            },
+            {
+              "fontId": "noto-sans-sc-bold",
+              "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0"
+            }
+          ],
+          "engineVersion": "managed-hyperframes-4",
+          "dependencies": {
+            "hyperframes": "0.8.1",
+            "gsap": "3.14.2"
+          }
+        },
+        "recordedAt": "2026-11-12T01:11:47.820Z",
+        "operationId": "director-resume-r103-humanoid-stills-20261112"
+      },
+      {
+        "pass": "mute_visual",
+        "source": "workbench",
+        "observer": "director_resume",
+        "startFrame": 2520,
+        "endFrame": 2521,
+        "method": "frames",
+        "observation": "R103 工作台 F2520：重新教学、续航、维护、停机四项同时可辨，维护和停机成本提问字幕未遮项目。观察为间隔静帧；连续运动、阅读节奏、音频及同步未知。",
+        "id": "editorial_evidence_a69c7514-711e-4d77-8dbe-b7fbd2107a2f",
+        "revision": 103,
+        "snapshotHash": "e0da82513bcdf206a1da78f1afbf973ed2f9e2d0eb85a35b6464a49efa7d9a21",
+        "renderReleaseId": "release-eeed8233605c862b5942080579a36ed001a1e151b21793b983823adc1e96419c",
+        "workbenchIdentity": {
+          "works": [
+            {
+              "workId": "motion_work_729a053e24b296d44aa1ade1517efe6c54ea183402b0a0ae4e97d09bf838f159",
+              "definitionHash": "729a053e24b296d44aa1ade1517efe6c54ea183402b0a0ae4e97d09bf838f159"
+            }
+          ],
+          "resources": [
+            {
+              "assetId": "asset_56251d5c-cf70-4662-883f-b5d2fa391064",
+              "hash": "6eb75592b126b694d3e9df1fc6f2189bebad835197f2e28b990559cc966613be"
+            }
+          ],
+          "fonts": [
+            {
+              "fontId": "noto-sans-sc-regular",
+              "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9"
+            },
+            {
+              "fontId": "noto-sans-sc-bold",
+              "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0"
+            }
+          ],
+          "engineVersion": "managed-hyperframes-4",
+          "dependencies": {
+            "hyperframes": "0.8.1",
+            "gsap": "3.14.2"
+          }
+        },
+        "recordedAt": "2026-11-12T01:11:47.844Z",
+        "operationId": "director-resume-r103-humanoid-stills-20261112"
+      }
+    ],
+    "resolutions": [],
+    "reviewedAt": "2026-11-12T01:11:48.955Z"
+  },
+  "qualityReview": [
+    "R94 追加 mute_visual 审片记录；全片覆盖以结构化证据为准。",
+    "R96 追加 mute_visual 审片记录；全片覆盖以结构化证据为准。",
+    "R98 追加 mute_visual 审片记录；全片覆盖以结构化证据为准。",
+    "R98 追加 mute_visual 审片记录；全片覆盖以结构化证据为准。",
+    "R103 追加 mute_visual 审片记录；全片覆盖以结构化证据为准。"
+  ]
+}

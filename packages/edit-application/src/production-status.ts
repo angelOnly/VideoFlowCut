@@ -3,11 +3,12 @@ import type { EditingApplication } from "./index.js";
 import type { MotionContinuationResult, ProductionCompletionScope } from "@videocut/contracts";
 
 /** 只从真实对象派生状态，不保存另一份“当前制作状态”。 */
-export async function readProductionStatus(app: EditingApplication, projectId: string, context?: { runId: string; completionScope: ProductionCompletionScope }) {
+export async function readProductionStatus(app: EditingApplication, projectId: string, context?: { runId: string; completionScope?: ProductionCompletionScope }) {
   const state = app.readProject(projectId), jobs = app.repository.listJobs(projectId);
   const jobById = new Map(jobs.map(job => [job.id, job]));
   const artifacts = app.repository.listExportArtifacts(projectId);
-  const completion = context ? await app.evaluateProductionCompletion({ projectId, runId: context.runId, completionScope: context.completionScope, revision: state.revision.number }) : undefined;
+  const run = context ? await app.readSkillExecutionReport({ projectId, runId: context.runId }) : undefined;
+  const completion = context && run ? await app.evaluateProductionCompletion({ projectId, runId: context.runId, completionScope: context.completionScope ?? run.completionScope, revision: state.revision.number }) : undefined;
   return {
     projectId, revision: state.revision.number, generatedAt: new Date().toISOString(),
     ...(completion ? { completion } : {}),

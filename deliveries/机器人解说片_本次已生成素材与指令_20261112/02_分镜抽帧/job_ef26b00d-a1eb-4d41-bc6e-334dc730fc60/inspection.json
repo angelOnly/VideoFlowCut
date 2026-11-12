@@ -1,0 +1,92 @@
+{
+  "projectId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5",
+  "revision": 92,
+  "workId": "motion_work_96adac8d3b31384dd31f24044309c807993e3a22c613a6296a7fae3e1194e9f9",
+  "workVersion": "037c0d38351d08342ae04cdfa4a00fa6ff209e3e563e3b25013a3036a37bc8c3",
+  "definitionHash": "96adac8d3b31384dd31f24044309c807993e3a22c613a6296a7fae3e1194e9f9",
+  "evidencePath": "previews/motion-inspection/job_ef26b00d-a1eb-4d41-bc6e-334dc730fc60",
+  "report": {
+    "status": "exact",
+    "maxAllowedChannelDelta": 2,
+    "sampledFrames": [
+      0,
+      25,
+      60,
+      90,
+      125,
+      165,
+      200,
+      235,
+      249,
+      250,
+      300,
+      398
+    ],
+    "visitOrder": {
+      "ascending": [
+        0,
+        25,
+        60,
+        90,
+        125,
+        165,
+        200,
+        235,
+        249,
+        250,
+        300,
+        398
+      ],
+      "samePageReverse": [
+        398,
+        300,
+        250,
+        249,
+        235,
+        200,
+        165,
+        125,
+        90,
+        60,
+        25,
+        0
+      ],
+      "cleanPageReverse": [
+        398,
+        300,
+        250,
+        249,
+        235,
+        200,
+        165,
+        125,
+        90,
+        60,
+        25,
+        0
+      ]
+    },
+    "failedFrames": [],
+    "differences": [],
+    "events": [
+      {
+        "id": "warehouse-work",
+        "meaning": "Digit 在真实仓库接触料箱的画面",
+        "startFrame": 0,
+        "endFrame": 250
+      },
+      {
+        "id": "warehouse-total",
+        "meaning": "仓库累计搬运料箱超过十万个",
+        "startFrame": 101,
+        "endFrame": 248
+      },
+      {
+        "id": "remaining-challenges",
+        "meaning": "更多任务、意外处理与使用成本仍是挑战",
+        "startFrame": 241,
+        "endFrame": 399
+      }
+    ]
+  }
+}

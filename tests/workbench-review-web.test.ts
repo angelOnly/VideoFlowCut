@@ -24,7 +24,7 @@ test("工作台固定版本、按范围循环时不创建预览文件或切换�
     const asset = application.registerImportedAsset({ projectId, baseRevision: created.revision.number, name: "review.mp4", kind: "video", managedPath: "assets/source/review.mp4" });
     application.applyMediaAnalysis({ projectId, assetId: asset.asset.id, metadata: { durationMs: 2000, width: 64, height: 64, fps: 24, hasAudio: false, videoCodec: "h264" } });
     const timed = application.buildPresenterTimeline({ projectId, baseRevision: application.readProject(projectId).revision.number, assetIds: [asset.asset.id] });
-    const run = await application.startProductionRun({ projectId, baseRevision: timed.revision.number, loadedSkills: ["web-editor-operator"] });
+    const run = await application.startProductionRun({ operationId: globalThis.crypto.randomUUID(), intent: "local_edit", completionScope: { kind: "project" }, projectId, baseRevision: timed.revision.number, loadedSkills: ["web-editor-operator"] });
     application.updateStory({ projectId, baseRevision: timed.revision.number, title: "更新后的版本" });
     const apiUrl = await server.listen({ host: "127.0.0.1", port: 0 });
     process.env.VITE_API_BASE = apiUrl;
@@ -69,8 +69,25 @@ test("工作台固定版本、按范围循环时不创建预览文件或切换�
     await page.type('[aria-label="实际观察"]', "第 5 至 11 帧文字被遮挡");
     await page.type('[aria-label="问题影响"]', "影响阅读");
     await page.select('[aria-label="严重程度"]', "major");
+    await page.evaluate(() => {
+      const originalFetch = window.fetch.bind(window);
+      let dropped = false;
+      window.fetch = async (...args) => {
+        const response = await originalFetch(...args);
+        if (!dropped && String(args[0]).includes("/workbench-observations")) {
+          dropped = true;
+          throw new Error("模拟响应丢失");
+        }
+        return response;
+      };
+    });
+    await page.$$eval('[data-testid="workbench-review"] button', buttons => buttons.find(button => button.textContent === "记录问题")!.click());
+    await page.waitForFunction(() => document.querySelector('[data-testid="workbench-review"] [role="status"]')?.textContent?.includes("模拟响应丢失"));
     await page.$$eval('[data-testid="workbench-review"] button', buttons => buttons.find(button => button.textContent === "记录问题")!.click());
     await page.waitForFunction(() => document.querySelector('[data-testid="workbench-review"] [role="status"]')?.textContent?.includes("已记录问题"));
+    const reviewAfterRetry = await application.readEditorialQualityReview({ projectId, revision: timed.revision.number });
+    assert.equal(reviewAfterRetry?.findings.length, 1);
+    assert.equal(reviewAfterRetry?.evidenceRecords?.length, 1);
     await page.$$eval('[data-testid="workbench-review"] button', buttons => buttons.find(button => button.textContent === "准备返修")!.click());
     await page.waitForSelector('[data-testid="create-agent-work-order"]');
     await page.click('[data-testid="create-agent-work-order"]');

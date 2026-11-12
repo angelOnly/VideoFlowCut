@@ -127,10 +127,38 @@ test("采用资料沿作品真实来源对账，局部字幕不承担旧计划�
     assert.ok(productionReconciliation(snapshot)[0]!.structuralGaps.some(gap => gap.code === "material_not_connected"));
     work.videoSources[0]!.startFrame = 0; work.videoSources[0]!.endFrame = 12;
     assert.deepEqual(productionReconciliation(snapshot)[0]!.structuralGaps, []);
+    treatment.mode = "b_roll";
+    treatment.adoptedDecisionRef = { productionRunId: "fixture-run", decisionId: "fixture-adoption" };
+    assert.ok(productionReconciliation(snapshot)[0]!.structuralGaps.some(gap => gap.code === "missing_implementation"), "被全屏作品遮挡的素材不能算作直放实现");
+    cue.status = "stale";
+    assert.ok(!productionReconciliation(snapshot)[0]!.structuralGaps.some(gap => gap.code === "missing_implementation" || gap.code === "material_not_connected"), "实际可见的已采用素材可以直接承担画面");
+    treatment.mode = "remotion";
+    delete treatment.adoptedDecisionRef;
     cue.status = "stale";
     assert.ok(completionReconciliationBlockers(snapshot, { kind: "objects", objectIds: [cue.id] }).length, "选定失效 Cue 仍追踪它应兑现的计划");
     snapshot.project.profile = "vlog"; snapshot.visualTreatments = [];
     assert.deepEqual(completionReconciliationBlockers(snapshot, { kind: "project" }), []);
+  } finally { await f.close(); }
+});
+
+test("人物保持必须有可见人物，受管作品内的人物也可承担画面", async () => {
+  const f = await fixture();
+  try {
+    f.create();
+    const snapshot = structuredClone(f.current().snapshot);
+    const beat = snapshot.story.beats[0]!;
+    const treatment = f.app.manageVisualTreatment({ projectId: f.projectId, baseRevision: f.rev(), action: "upsert", narrativeBeatId: beat.id, sceneId: f.scene.id,
+      mode: "keep_presenter", intensity: "quiet", primaryAttention: "人物", narrativePurpose: "人物继续讲述" }).snapshot.visualTreatments.at(-1)!;
+    snapshot.visualTreatments = [treatment];
+    const cue = snapshot.effectCues[0]!;
+    cue.coveredNarrativeBeatIds = [beat.id];
+    assert.ok(!productionReconciliation(snapshot)[0]!.structuralGaps.some(gap => gap.code === "missing_implementation"));
+    snapshot.timeline.items.find(item => item.id === f.item.id)!.disabled = true;
+    assert.ok(productionReconciliation(snapshot)[0]!.structuralGaps.some(gap => gap.code === "missing_implementation"));
+    const work = snapshot.motionWorks!.find(item => item.id === f.motion.motion!.workId)!;
+    work.videoSources = [{ slot: "actor", assetId: f.actor.id, hash: "actor-source", managedPath: f.actor.managedPath,
+      sourceStartMs: 0, sourceEndMs: 1000, startFrame: 0, endFrame: 30 }];
+    assert.ok(!productionReconciliation(snapshot)[0]!.structuralGaps.some(gap => gap.code === "missing_implementation"));
   } finally { await f.close(); }
 });
 
@@ -151,15 +179,16 @@ test("HTTP 正式创建和 PATCH 清除接管；Run 持久保存明确范围与�
     const beat = f.current().snapshot.story.beats[0]!;
     const adopted = await server.app.inject({ method: "POST", url: `/api/projects/${f.projectId}/visual-treatments`, payload: { baseRevision: f.rev(), action: "upsert", narrativeBeatId: beat.id, mode: "evidence", intensity: "medium", primaryAttention: "原件", narrativePurpose: "解释", adoptedMaterialAssetIds: [f.image.id] } });
     assert.equal(adopted.statusCode, 200, adopted.body);
-    const run = await f.app.startProductionRun({ projectId: f.projectId, loadedSkills: ["presenter-motion-director"] });
-    const incomplete = await f.app.completeProductionRun({ projectId: f.projectId, runId: run.id, finalRevision: f.app.readProject(f.projectId).revision.number, completionScope: { kind: "beats", beatIds: [beat.id] } });
+    const run = await f.app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: f.app.readProject(f.projectId).revision.number, intent: "local_edit", completionScope: { kind: "beats", beatIds: [beat.id] }, projectId: f.projectId, loadedSkills: ["presenter-motion-director"] });
+    const incomplete = await f.app.completeProductionRun({ operationId: globalThis.crypto.randomUUID(), projectId: f.projectId, runId: run.id, finalRevision: f.app.readProject(f.projectId).revision.number, completionScope: { kind: "beats", beatIds: [beat.id] } });
     assert.equal(incomplete.status, "incomplete");
     assert.ok(incomplete.completionBlockers.some(message => message.startsWith("material_not_connected")));
     assert.deepEqual((await f.app.readSkillExecutionReport({ projectId: f.projectId, runId: run.id })).completionScope, { kind: "beats", beatIds: [beat.id] });
-    await assert.rejects(f.app.completeProductionRun({ projectId: f.projectId, runId: run.id, finalRevision: f.app.readProject(f.projectId).revision.number, completionScope: { kind: "beats", beatIds: ["missing"] } }), { code: "COMPLETION_SCOPE_INVALID" });
+    await assert.rejects(f.app.completeProductionRun({ operationId: globalThis.crypto.randomUUID(), projectId: f.projectId, runId: run.id, finalRevision: f.app.readProject(f.projectId).revision.number, completionScope: { kind: "beats", beatIds: ["missing"] } }), { code: "PRODUCTION_SCOPE_MISMATCH" });
     f.app.importSrtCaptions({ projectId: f.projectId, baseRevision: f.rev(), srtText: "1\n00:00:00,000 --> 00:00:01,000\n局部字幕\n", sourceName: "对象范围", targetRange: { startFrame: 0, endFrame: 90 }, writePolicy: "reject_conflicts", idempotencyKey: "local-captions" });
     const caption = f.current().snapshot.timeline.captions[0]!;
-    const local = await f.app.completeProductionRun({ projectId: f.projectId, runId: run.id, finalRevision: f.app.readProject(f.projectId).revision.number, completionScope: { kind: "objects", objectIds: [caption.id] } });
+    const localRun = await f.app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), projectId: f.projectId, baseRevision: f.rev(), intent: "local_edit", completionScope: { kind: "objects", objectIds: [caption.id] }, loadedSkills: ["captions"] });
+    const local = await f.app.completeProductionRun({ operationId: globalThis.crypto.randomUUID(), projectId: f.projectId, runId: localRun.id, finalRevision: f.app.readProject(f.projectId).revision.number, completionScope: { kind: "objects", objectIds: [caption.id] } });
     assert.ok(!local.completionBlockers.some(message => /material_not_connected|missing_implementation|missing_treatment/u.test(message)));
   } finally { await server.app.close(); server.application.close(); await f.close(); }
 });

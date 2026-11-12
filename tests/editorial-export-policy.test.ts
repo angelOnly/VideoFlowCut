@@ -50,8 +50,8 @@ test("质量、预检、Worker 用途一致；无 AI 审阅可导出，人工定
     assert.equal(draftArtifact.approval, undefined);
     await assert.rejects(app.approveExportArtifact({ projectId, artifactId: draftArtifact.id, fileHash: draftArtifact.fileHash, confirmedByUser: true }), { code: "EXPORT_ARTIFACT_APPROVAL_PURPOSE_INVALID" });
     const next = app.updateAssetEditorialMetadata({ projectId, baseRevision: state.revision.number, assetId: imported.asset.id, provenance: { ...imported.asset.provenance!, } });
-    const run = await app.startProductionRun({ projectId, loadedSkills: ["quality-verification"] });
-    await app.recordEditorialQualityReview({ projectId, runId: run.id, revision: next.revision.number, passes: ["mute_visual"], findings: [{ pass: "mute_visual", severity: "major", category: "motion", summary: "合约模拟的待复核问题", evidence: "测试输入，不表示真人观看", impact: "保留提示" }], previewEvidence: ["合约模拟历史文字记录，不等于真实连续观看"] });
+    const run = await app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: app.readProject(projectId).revision.number, intent: "local_edit", completionScope: { kind: "project" }, projectId, loadedSkills: ["quality-verification"] });
+    await app.recordEditorialQualityReview({ operationId: globalThis.crypto.randomUUID(), projectId, runId: run.id, revision: next.revision.number, passes: ["mute_visual"], findings: [{ pass: "mute_visual", severity: "major", category: "motion", summary: "合约模拟的待复核问题", evidence: "测试输入，不表示真人观看", impact: "保留提示" }], previewEvidence: ["合约模拟历史文字记录，不等于真实连续观看"] });
     const result = await runExportJob(app, app.submitExport({ projectId, purpose: "delivery" }), renderer);
     const artifactId = String(result.artifactId);
     const artifact = app.readExportArtifact({ projectId, artifactId });

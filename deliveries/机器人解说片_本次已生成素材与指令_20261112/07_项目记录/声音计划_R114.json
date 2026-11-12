@@ -1,0 +1,43 @@
+{
+  "revision": 114,
+  "plans": [
+    {
+      "startFrame": 0,
+      "endFrame": 3288,
+      "narrationDirection": "单一中文旁白，像讲给朋友听；开场略带惊喜和自嘲，解释数字时清晰保留假设与独立条件，结尾让问题自然收束。实际语气仍需回听。",
+      "dominantRole": "narration",
+      "musicDirection": "可探索轻快好奇、稀疏透明的器乐，解释密集处让位于旁白；音乐与音效均需按实际候选及声画取舍。",
+      "intents": [
+        {
+          "id": "robot-sound-landing",
+          "function": "settle",
+          "brief": "开场只在真实落地动作可辨时比较现场声或克制短声，不叠造不存在的动作。"
+        },
+        {
+          "id": "robot-sound-contact",
+          "function": "reaction",
+          "brief": "零件接触和滑动仅在实际图形事件或真实画面支持时探索短促材质声。"
+        },
+        {
+          "id": "robot-sound-probability",
+          "function": "silence",
+          "brief": "概率前提和结果让声音收敛，保证旁白清楚，不逐个数字添加提示音。"
+        },
+        {
+          "id": "robot-sound-warehouse",
+          "function": "ambience",
+          "brief": "Digit 与机械臂段优先判断对应现场原声能否使用，不把另一处环境声伪装为现场。"
+        },
+        {
+          "id": "robot-sound-ending",
+          "function": "silence",
+          "brief": "结尾逐渐留给最后几个问题及尾音。"
+        }
+      ],
+      "id": "sound_plan_0edee64b-c498-4dc0-be16-f75dd02e18d0",
+      "version": 1,
+      "status": "current",
+      "updatedAt": "2026-11-11T18:16:23.900Z"
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import { readProductionStatus } from "./production-status.js";
+import { assignmentCoversObjects, assignmentCoversScope, assignmentScopesOverlap, evaluateProductionCoordination, normalizeProductionScope } from "./production-coordination.js";
 import { readMotionDefinition, storeMotionDefinition } from "./motion-definition.js";
 import { motionWorkForCue, type MotionWork } from "@videocut/contracts";
 import { PresenterLibraryService } from "./presenter-library.js";
@@ -34,7 +35,7 @@ import { digest as mediaDigest, assetRequestVersion } from "../../media-intellig
 import { assertEffectCoverage } from "@videocut/domain";
 import { MediaIntelligenceApplication } from "./media-intelligence.js";
 import { submitSfxGeneration, completeSfxGeneration } from "./sfx-generation.js";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { bindEffectAudioEvent, type EffectAudioEventInput } from "./effect-audio-events.js";
 import { resolveAudioProgramEndFrame } from "../../edit-domain/src/audio-program-range.js";
 import { applicableWorkbenchEvidence, evidenceHash, productionObservationRanges, validateEditorialObservations } from "./editorial-evidence.js";
@@ -50,7 +51,7 @@ import { MotionSubmissionValidationError } from "./motion-submission-validation.
 import { assertEffectCueRange } from "./effect-cue-validation.js";
 import { inspectEffectContentContract } from "@videocut/contracts";
 import { closeSync, createReadStream, existsSync, openSync, readFileSync, readSync, statSync } from "node:fs";
-import { mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type {
   AgentWorkOrder,
@@ -78,7 +79,9 @@ import type {
   CreativeAdoptionRef,
   CreativeDeliveryRef,
   ExplicitCreativePreferences,
-  CreativeDelegation,
+  CreativeDecisionPhase,
+  ProductionAssignment,
+  ProductionIntent,
   Cutaway,
   CutawayAudioMode,
   CutawayFit,
@@ -1374,6 +1377,7 @@ export interface AssetSearchCandidateInput {
 export class EditingApplication {
   private readonly listeners = new Set<(event: AppEvent) => void>();
   private readonly productionAuditWrites = new Map<Id, Promise<void>>();
+  private readonly productionAuditInputs = new Map<Id, { revision: number; fingerprint: string }>();
 
   /** 同一入口并发提交审片/决策时串行读改写，避免后完成的请求覆盖先完成的问题。 */
   private async withProductionAuditLock<T>(projectId: Id, operation: () => Promise<T>): Promise<T> {
@@ -1382,8 +1386,12 @@ export class EditingApplication {
     const pending = new Promise<void>((resolve) => { release = resolve; });
     this.productionAuditWrites.set(projectId, pending);
     await previous;
-    try { return await operation(); }
+    try {
+      this.productionAuditInputs.set(projectId, this.repository.productionAuditState(projectId));
+      return await operation();
+    }
     finally {
+      this.productionAuditInputs.delete(projectId);
       release();
       if (this.productionAuditWrites.get(projectId) === pending) this.productionAuditWrites.delete(projectId);
     }
@@ -2068,6 +2076,9 @@ export class EditingApplication {
 
   /** incomplete 不是终态；补充决定或审片后可继续同一份 ProductionRun。 */
   private resumeIncompleteProductionRun(report: SkillExecutionReport, action: string): void {
+    if (!report.intent || !report.assignments || !report.operations) {
+      throw new DomainError("旧制作记录只保留审计，请创建新 Run 承接后续范围", "PRODUCTION_RUN_LEGACY_READ_ONLY");
+    }
     if (report.status === "completed" || report.status === "abandoned") {
       throw new DomainError(`ProductionRun 已结束，不能继续${action}`, "PRODUCTION_RUN_CLOSED");
     }
@@ -2212,9 +2223,16 @@ export class EditingApplication {
   private async writeSkillExecutionReport(report: SkillExecutionReport): Promise<void> {
     const path = this.reportPath(report.projectId, report.id);
     await mkdir(join(this.getProjectRoot(report.projectId), "reports"), { recursive: true });
-    const temporaryPath = `${path}.tmp`;
-    await writeFile(temporaryPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
-    await rename(temporaryPath, path);
+    const expected = this.productionAuditInputs.get(report.projectId);
+    if (!expected) throw new DomainError("制作记录写入必须经过统一提交入口", "PRODUCTION_AUDIT_LOCK_REQUIRED");
+    const temporaryPath = `${path}.${randomUUID()}.tmp`;
+    report.auditVersion += 1;
+    try {
+      await writeFile(temporaryPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+      this.repository.commitProductionAudit(report.projectId, expected, temporaryPath, path);
+    } finally {
+      await rm(temporaryPath, { force: true });
+    }
   }
 
   async readSkillExecutionReport(input: { projectId: Id; runId: Id }): Promise<SkillExecutionReport> {
@@ -2311,15 +2329,58 @@ export class EditingApplication {
     return this.readLatestEditorialQualityReview(input);
   }
 
-  async startProductionRun(input: { projectId: Id; baseRevision?: number; loadedSkills: string[]; loadedReferences?: string[] }): Promise<SkillExecutionReport> {
-    const current = this.readProject(input.projectId);
-    const baseRevision = input.baseRevision ?? current.revision.number;
-    this.repository.getRevision(input.projectId, baseRevision);
-    const report: SkillExecutionReport = {
-      id: createId("production_run"),
+  private addProductionOperation(report: SkillExecutionReport, operationId: string, input: unknown): boolean {
+    if (!/^[a-zA-Z0-9_-]{1,160}$/u.test(operationId)) throw new DomainError("操作编号格式无效", "PRODUCTION_OPERATION_INVALID");
+    const hash = createHash("sha256").update(JSON.stringify(input)).digest("hex");
+    const existing = report.operations.find(operation => operation.id === operationId);
+    if (existing) {
+      if (existing.hash !== hash) throw new DomainError("操作编号已用于不同内容", "PRODUCTION_OPERATION_CONFLICT");
+      return false;
+    }
+    report.operations.push({ id: operationId, hash });
+    return true;
+  }
+
+  private assertProductionScope(snapshot: ProjectSnapshot, scope: ProductionCompletionScope): void {
+    if (scope.kind === "project") return;
+    if (scope.kind === "frames") {
+      if (!Number.isInteger(scope.startFrame) || !Number.isInteger(scope.endFrame) || scope.startFrame < 0
+        || scope.endFrame <= scope.startFrame || scope.endFrame > snapshot.timeline.durationInFrames) throw new DomainError("制作帧范围无效", "COMPLETION_SCOPE_INVALID");
+      return;
+    }
+    if (scope.kind === "beats") {
+      if (!scope.beatIds.length || scope.beatIds.some(id => !snapshot.story.beats.some(beat => beat.id === id))) {
+        throw new DomainError("制作范围中的 Beat 不存在或范围为空", "COMPLETION_SCOPE_INVALID");
+      }
+      return;
+    }
+    if (scope.kind !== "objects" || !scope.objectIds.length) throw new DomainError("制作对象范围为空", "COMPLETION_SCOPE_INVALID");
+    this.inspectAgentWorkOrderObjects(snapshot, scope.objectIds);
+  }
+
+  async startProductionRun(input: { projectId: Id; baseRevision: number; intent: ProductionIntent; completionScope: ProductionCompletionScope; operationId: string; loadedSkills: string[]; loadedReferences?: string[] }): Promise<SkillExecutionReport> {
+    return this.withProductionAuditLock(input.projectId, async () => {
+      if (!/^[a-zA-Z0-9_-]{1,160}$/u.test(input.operationId)) throw new DomainError("操作编号格式无效", "PRODUCTION_OPERATION_INVALID");
+      const current = this.readProject(input.projectId);
+      const base = this.repository.getRevision(input.projectId, input.baseRevision);
+      this.assertProductionScope(base.snapshot, input.completionScope);
+      if (!["full_creation", "visual_rework", "local_edit", "review_only"].includes(input.intent)) throw new DomainError("制作意图无效", "PRODUCTION_INTENT_INVALID");
+      const id = `production_run_${createHash("sha256").update(input.operationId).digest("hex").slice(0, 32)}`;
+      if (existsSync(this.reportPath(input.projectId, id))) {
+        const existing = await this.readSkillExecutionReport({ projectId: input.projectId, runId: id });
+        this.addProductionOperation(existing, input.operationId, input);
+        return existing;
+      }
+      const report: SkillExecutionReport = {
+      id,
       projectId: input.projectId,
       status: "active",
-      baseRevision,
+      baseRevision: input.baseRevision,
+      intent: input.intent,
+      completionScope: normalizeProductionScope(input.completionScope),
+      assignments: [],
+      auditVersion: 0,
+      operations: [],
       loadedSkills: [...new Set(input.loadedSkills.map((skill) => skill.trim()).filter(Boolean))],
       loadedReferences: [...new Set((input.loadedReferences ?? []).map((reference) => reference.trim()).filter(Boolean))],
       creativeDecisions: [],
@@ -2333,8 +2394,58 @@ export class EditingApplication {
       completionBlockers: [],
       createdAt: now()
     };
+    this.addProductionOperation(report, input.operationId, input);
     await this.writeSkillExecutionReport(report);
     return report;
+    });
+  }
+
+  async updateProductionRun(input: { projectId: Id; runId: Id; expectedAuditVersion: number; operationId: string; action: "update_scope"; completionScope: ProductionCompletionScope; reason: string } | { projectId: Id; runId: Id; expectedAuditVersion: number; operationId: string; action: "add_assignment" | "replace_assignment"; assignment: Omit<ProductionAssignment, "operationId"> }): Promise<SkillExecutionReport> {
+    return this.withProductionAuditLock(input.projectId, async () => {
+      const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
+      if (!report.operations) throw new DomainError("旧制作记录只保留审计", "PRODUCTION_RUN_LEGACY_READ_ONLY");
+      if (!this.addProductionOperation(report, input.operationId, input)) return report;
+      this.resumeIncompleteProductionRun(report, "更新职责");
+      if (report.auditVersion !== input.expectedAuditVersion) throw new DomainError("制作记录已变化，请重新读取后更新", "PRODUCTION_AUDIT_CONFLICT");
+      if (input.action === "update_scope") {
+        if (!input.reason.trim()) throw new DomainError("调整范围需要说明原因", "PRODUCTION_SCOPE_REASON_REQUIRED");
+        this.assertProductionScope(this.readProject(input.projectId).snapshot, input.completionScope);
+        report.completionScope = normalizeProductionScope(input.completionScope);
+        report.mcpCommands.push({ name: `update_scope: ${input.reason.trim()}`, createdAt: now() });
+      } else {
+        const assignment = input.assignment;
+        const responsibilities = ["director", "creative_research", "visual_design", "motion_research", "review"];
+        if (!assignment.assignmentId.trim() || !assignment.agentId.trim() || !assignment.skillIds.length || assignment.skillIds.some(id => !id.trim())
+          || !assignment.responsibilities.length || assignment.responsibilities.some(role => !responsibilities.includes(role))
+          || report.assignments.some(entry => entry.assignmentId === assignment.assignmentId)) {
+          throw new DomainError("分派身份、职责或技能无效", "PRODUCTION_ASSIGNMENT_INVALID");
+        }
+        if (assignment.inputRevision !== null) this.repository.getRevision(input.projectId, assignment.inputRevision);
+        const snapshot = this.readProject(input.projectId).snapshot;
+        this.assertProductionScope(snapshot, assignment.scope);
+        if (assignment.scope.kind === "frames") {
+          throw new DomainError("创作分派需使用项目、Beat 或对象范围；帧范围用于观察", "PRODUCTION_ASSIGNMENT_INVALID");
+        }
+        const replaced = assignment.supersedesAssignmentId;
+        if (input.action === "replace_assignment") {
+          const prior = report.assignments.find(entry => entry.assignmentId === replaced);
+          if (!prior || assignment.responsibilities.some(role => !prior.responsibilities.includes(role))
+            || !assignmentCoversScope(snapshot, prior.scope, assignment.scope)
+            || report.assignments.some(entry => entry.supersedesAssignmentId === replaced
+              && entry.responsibilities.some(role => assignment.responsibilities.includes(role)) && assignmentScopesOverlap(snapshot, entry.scope, assignment.scope))) {
+            throw new DomainError("接替范围或职责与原分派不符，或已有重叠接替", "PRODUCTION_ASSIGNMENT_INVALID");
+          }
+        }
+        if (input.action === "add_assignment" && (replaced || report.assignments.some(entry => entry.responsibilities.some(role => assignment.responsibilities.includes(role))
+          && assignmentScopesOverlap(snapshot, entry.scope, assignment.scope)))) {
+          throw new DomainError("相同职责和范围已有分派，请按实际接替", "PRODUCTION_ASSIGNMENT_INVALID");
+        }
+        report.assignments.push({ ...structuredClone(assignment), operationId: input.operationId });
+        report.mcpCommands.push({ name: input.action, createdAt: now() });
+      }
+      await this.writeSkillExecutionReport(report);
+      return report;
+    });
   }
 
   async recordCreativeDecision(input: {
@@ -2346,7 +2457,13 @@ export class EditingApplication {
     objectIds?: Id[];
     evidence?: string[];
     alternatives?: string[];
-    delegation?: CreativeDelegation;
+    phase?: CreativeDecisionPhase;
+    assignmentId?: string;
+    inputRevision?: number | null;
+    inputDecisionIds?: Id[];
+    researchOutcome?: "pending" | "researched" | "not_applicable";
+    researchReferences?: Array<{ kind: "creative" | "motion"; id: string; sourceSha256: string }>;
+    operationId: string;
     deliveryRef?: CreativeDeliveryRef;
     quietRange?: { startFrame: number; endFrame: number; reason: string };
     effectDecision?: string;
@@ -2358,32 +2475,42 @@ export class EditingApplication {
     return this.withProductionAuditLock(input.projectId, () => this.recordCreativeDecisionUnlocked(input));
   }
 
-  private validateCreativeDelegation(projectId: Id, value: CreativeDelegation | undefined): CreativeDelegation | undefined {
-    if (value === undefined) return undefined;
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      throw new DomainError("子代理来源必须包含代理、分派、职责和输入版本", "INVALID_CREATIVE_DELEGATION");
-    }
-    const agentId = typeof value.agentId === "string" ? value.agentId.trim() : "";
-    const assignmentId = typeof value.assignmentId === "string" ? value.assignmentId.trim() : "";
-    const skillId = typeof value.skillId === "string" ? value.skillId.trim() : "";
-    if (!agentId || agentId.length > 160 || !assignmentId || assignmentId.length > 160
-      || !skillId || skillId.length > 160
-      || !["director", "specialist", "reviewer"].includes(value.role)
-      || !Number.isSafeInteger(value.inputRevision) || value.inputRevision < 1) {
-      throw new DomainError("子代理来源的标识、职责或输入版本无效", "INVALID_CREATIVE_DELEGATION");
-    }
-    // 核对本项目的真实历史，不把自报来源升级成权限证明，也不自动重定基旧方案。
-    this.repository.getRevision(projectId, value.inputRevision);
-    return { agentId, assignmentId, role: value.role, skillId, inputRevision: value.inputRevision };
-  }
-
   private async recordCreativeDecisionUnlocked(input: Parameters<EditingApplication["recordCreativeDecision"]>[0]): Promise<SkillExecutionReport> {
     const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
+    if (!report.operations) throw new DomainError("旧制作记录只保留审计", "PRODUCTION_RUN_LEGACY_READ_ONLY");
+    if (!this.addProductionOperation(report, input.operationId, input)) return report;
     this.resumeIncompleteProductionRun(report, "创作判断");
     const decision = input.decision.trim();
     const rationale = input.rationale.trim();
     if (!decision || !rationale) throw new DomainError("创作判断必须说明决定与原因", "INVALID_CREATIVE_DECISION");
-    const delegation = this.validateCreativeDelegation(input.projectId, input.delegation);
+    if (input.phase) {
+      const responsibility = input.phase === "adoption" ? "director" : input.phase;
+      const assignment = report.assignments.find(entry => entry.assignmentId === input.assignmentId);
+      if (!assignment?.responsibilities.includes(responsibility) || input.inputRevision === undefined || !input.objectIds?.length) {
+        throw new DomainError("阶段结果需要对应职责、实际输入版本及明确范围", "PRODUCTION_DECISION_SOURCE_REQUIRED");
+      }
+      if (input.inputRevision !== null) {
+        if (!Number.isSafeInteger(input.inputRevision) || input.inputRevision < 1) throw new DomainError("输入版本无效", "PRODUCTION_DECISION_SOURCE_REQUIRED");
+        this.repository.getRevision(input.projectId, input.inputRevision);
+      }
+      const inputSnapshot = input.inputRevision === null ? this.readProject(input.projectId).snapshot : this.repository.getRevision(input.projectId, input.inputRevision).snapshot;
+      const objects = input.objectIds.filter(id => !inputSnapshot.story.beats.some(beat => beat.id === id));
+      if (objects.length) this.assertProductionScope(inputSnapshot, { kind: "objects", objectIds: objects });
+      if (!assignmentCoversObjects(inputSnapshot, assignment.scope, input.objectIds)) {
+        throw new DomainError("结果范围超出实际分派", "PRODUCTION_DECISION_SCOPE_INVALID");
+      }
+      if (input.inputDecisionIds?.some(id => !report.creativeDecisions.some(entry => entry.id === id))) throw new DomainError("输入决定不存在于本次 Run", "PRODUCTION_DECISION_INPUT_INVALID");
+      const isResearch = input.phase === "creative_research" || input.phase === "motion_research";
+      if (isResearch !== Boolean(input.researchOutcome)) throw new DomainError("研究结果必须说明研究结论", "PRODUCTION_RESEARCH_OUTCOME_REQUIRED");
+      if (input.researchOutcome && !["pending", "researched", "not_applicable"].includes(input.researchOutcome)) throw new DomainError("研究结论无效", "PRODUCTION_RESEARCH_OUTCOME_REQUIRED");
+      if (input.researchReferences?.some(reference => !isResearch || input.researchOutcome === "not_applicable"
+        || reference.kind !== (input.phase === "creative_research" ? "creative" : "motion")
+        || !reference.id.trim() || !/^[a-f0-9]{64}$/u.test(reference.sourceSha256))) {
+        throw new DomainError("研究参考需要对应类型、真实编号和来源指纹", "PRODUCTION_RESEARCH_REFERENCE_INVALID");
+      }
+    } else if (input.assignmentId || input.inputDecisionIds?.length || input.researchOutcome || input.researchReferences?.length) {
+      throw new DomainError("分派及输入引用需要明确创作阶段", "PRODUCTION_DECISION_PHASE_REQUIRED");
+    }
     if (input.deliveryRef && (!input.deliveryRef.manifestPath.trim() || !/^[a-f0-9]{64}$/u.test(input.deliveryRef.manifestSha256)
       || !input.deliveryRef.sceneIds.length || input.deliveryRef.sceneIds.some(id => !id.trim()))) {
       throw new DomainError("交付引用需要清单路径、内容哈希和场面范围", "CREATIVE_DELIVERY_REF_INVALID");
@@ -2396,7 +2523,9 @@ export class EditingApplication {
       objectIds: input.objectIds ?? [],
       evidence: input.evidence ?? [],
       alternatives: input.alternatives?.filter(Boolean),
-      ...(delegation ? { delegation } : {}),
+      ...(input.phase ? { phase: input.phase, assignmentId: input.assignmentId, inputRevision: input.inputRevision,
+        inputDecisionIds: input.inputDecisionIds ?? [], researchOutcome: input.researchOutcome, researchReferences: input.researchReferences } : {}),
+      operationId: input.operationId,
       ...(input.deliveryRef ? { deliveryRef: structuredClone(input.deliveryRef) } : {}),
       createdAt: now()
     });
@@ -2420,6 +2549,7 @@ export class EditingApplication {
     projectId: Id;
     runId: Id;
     revision: number;
+    operationId: string;
     passes: EditorialReviewPass[];
     previewEvidence: string[];
     observations?: EditorialReviewObservation[];
@@ -2442,6 +2572,8 @@ export class EditingApplication {
 
   private async recordEditorialQualityReviewUnlocked(input: Parameters<EditingApplication["recordEditorialQualityReview"]>[0]): Promise<SkillExecutionReport> {
     const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
+    if (!report.operations) throw new DomainError("旧制作记录只保留审计", "PRODUCTION_RUN_LEGACY_READ_ONLY");
+    if (!this.addProductionOperation(report, input.operationId, input)) return report;
     this.resumeIncompleteProductionRun(report, "审片");
     const target = this.repository.getRevision(input.projectId, input.revision);
     const passes = [...new Set(input.passes)];
@@ -2449,7 +2581,14 @@ export class EditingApplication {
       throw new DomainError("审片至少记录一个真实执行的轮次", "EDITORIAL_REVIEW_INCOMPLETE");
     }
     if ((input.observations ?? []).some((entry) => !passes.includes(entry.pass))) throw new DomainError("证据引用了未执行的轮次", "EDITORIAL_REVIEW_PASS_MISSING");
+    for (const reference of (input.observations ?? []).flatMap(entry => entry.adoptionRefs ?? [])) {
+      const source = await this.readSkillExecutionReport({ projectId: input.projectId, runId: reference.productionRunId });
+      if (!source.creativeDecisions.some(decision => decision.id === reference.decisionId && decision.phase === "adoption")) {
+        throw new DomainError("对照观察需要引用本项目的导演采用决定", "EDITORIAL_ADOPTION_INVALID");
+      }
+    }
     const evidenceRecords = await validateEditorialObservations(target.snapshot, input.revision, this.repository.listJobs(input.projectId), input.observations ?? []);
+    for (const evidence of evidenceRecords) evidence.operationId = input.operationId;
     const previewEvidence = [...new Set(input.previewEvidence.map((evidence) => evidence.trim()).filter(Boolean))];
     if (previewEvidence.length === 0 && evidenceRecords.length === 0 && !input.resolutions?.length) throw new DomainError("审片必须附至少一条真实预览证据", "PREVIEW_EVIDENCE_REQUIRED");
     const findings = input.findings.map((finding) => {
@@ -2531,14 +2670,15 @@ export class EditingApplication {
     const target = this.repository.getRevision(input.projectId, finalRevision);
 
     const scope = input.completionScope;
-    if (!scope || !["project", "beats", "objects"].includes(scope.kind)) throw new DomainError("收口必须明确 completionScope", "COMPLETION_SCOPE_REQUIRED");
+    if (!scope || !["project", "beats", "objects", "frames"].includes(scope.kind)) throw new DomainError("收口必须明确 completionScope", "COMPLETION_SCOPE_REQUIRED");
+    if (scope.kind === "frames") this.assertProductionScope(target.snapshot, scope);
     if (scope.kind === "beats" && (!scope.beatIds.length || scope.beatIds.some(id => !target.snapshot.story.beats.some(beat => beat.id === id)))) throw new DomainError("收口 Beat 不存在或范围为空", "COMPLETION_SCOPE_INVALID");
     if (scope.kind === "objects") {
       if (!scope.objectIds.length) throw new DomainError("收口对象范围不得为空", "COMPLETION_SCOPE_INVALID");
       this.inspectAgentWorkOrderObjects(target.snapshot, scope.objectIds);
     }
-    const blockers: string[] = completionReconciliationBlockers(target.snapshot, scope);
-    if (scope.kind === "objects") blockers.push(...this.inspectAgentWorkOrderObjects(target.snapshot, scope.objectIds).map(entry => `${entry.objectId}：${entry.message}`));
+    const blockers: string[] = report.intent === "review_only" ? [] : completionReconciliationBlockers(target.snapshot, scope);
+    if (scope.kind === "objects" && report.intent !== "review_only") blockers.push(...this.inspectAgentWorkOrderObjects(target.snapshot, scope.objectIds).map(entry => `${entry.objectId}：${entry.message}`));
     const authoringJobs = this.repository.listJobs(input.projectId).filter(job => {
       if (job.kind !== "motion_authoring") return false;
       const request = job.payload.input as MotionAuthoringInput;
@@ -2550,6 +2690,10 @@ export class EditingApplication {
           : target.snapshot.effectCues.find(cue => cue.id === (request.target as { cueId: string }).cueId)?.sceneId;
       if (scope.kind === "project") return true;
       if (scope.kind === "beats") return target.snapshot.scenes.find(scene => scene.id === sceneId)?.narrativeBeatIds.some(id => scope.beatIds.includes(id)) ?? false;
+      if (scope.kind === "frames") {
+        const range = job.payload.targetRange as { startFrame?: number; endFrame?: number } | undefined;
+        return range?.startFrame !== undefined && range.endFrame !== undefined && range.startFrame < scope.endFrame && range.endFrame > scope.startFrame;
+      }
       return (sceneId !== undefined && scope.objectIds.includes(sceneId))
         || (request.target.action !== "create_cue" && scope.objectIds.includes(request.target.cueId))
         || authoringInputs.some(entry => scope.objectIds.includes(entry.visualTreatmentId));
@@ -2577,19 +2721,21 @@ export class EditingApplication {
           && actual.adoptedDecisionRef.decisionId === expected.adoptedDecisionRef.decisionId
           && actual.deliveryRef.manifestSha256 === expected.deliveryRef.manifestSha256
           && actual.treatmentSignature === expected.treatmentSignature)));
-      const missing = missingReviewRanges(ranges, range.startFrame, range.endFrame);
+      const startFrame = scope.kind === "frames" ? Math.max(range.startFrame, scope.startFrame) : range.startFrame;
+      const endFrame = scope.kind === "frames" ? Math.min(range.endFrame, scope.endFrame) : range.endFrame;
+      const missing = missingReviewRanges(ranges, startFrame, endFrame);
       if (missing.length) blockers.push(`制作委托 ${job.id} 的当前目标仍有未采用范围：${missing.map(part => `${part.startFrame}–${part.endFrame}`).join("、")}。`);
     }
     for (const treatment of target.snapshot.visualTreatments.filter(item => item.adoptedDecisionRef?.productionRunId === input.runId)) {
       const inScope = scope.kind === "project" || scope.kind === "beats" && (Boolean(treatment.narrativeBeatId && scope.beatIds.includes(treatment.narrativeBeatId))
         || Boolean(treatment.sceneId && target.snapshot.scenes.find(scene => scene.id === treatment.sceneId)?.narrativeBeatIds.some(id => scope.beatIds.includes(id))))
+        || scope.kind === "frames" && (Boolean(treatment.sceneId && target.snapshot.scenes.some(scene => scene.id === treatment.sceneId && scene.startFrame < scope.endFrame && scene.endFrame > scope.startFrame))
+          || Boolean(treatment.narrativeBeatId && productionObservationRanges(target.snapshot, { kind: "beats", beatIds: [treatment.narrativeBeatId] }).some(range => range.startFrame < scope.endFrame && range.endFrame > scope.startFrame)))
         || scope.kind === "objects" && (scope.objectIds.includes(treatment.id) || Boolean(treatment.sceneId && scope.objectIds.includes(treatment.sceneId))
           || target.snapshot.effectCues.some(cue => scope.objectIds.includes(cue.id) && cue.authoringInputs?.some(entry => entry.visualTreatmentId === treatment.id)));
       if (!inScope) continue;
-      const adopted = target.snapshot.effectCues.some(cue => cue.status === "ready" && motionAuthoringInputsCurrent(target.snapshot, cue.authoringInputs)
-        && cue.authoringInputs?.some(entry => entry.visualTreatmentId === treatment.id));
-      if (!adopted) blockers.push(`视觉计划 ${treatment.id} 的当前采用稿尚未进入可用作品。`);
-      const cueInScope = (cue: EffectCue) => scope.kind !== "objects" || scope.objectIds.includes(treatment.id)
+      // 各视觉模式的实现由统一结构对账判断，不把实拍或留白强制当作动画。
+      const cueInScope = (cue: EffectCue) => scope.kind === "frames" ? cue.startFrame < scope.endFrame && cue.endFrame > scope.startFrame : scope.kind !== "objects" || scope.objectIds.includes(treatment.id)
         || Boolean(treatment.sceneId && scope.objectIds.includes(treatment.sceneId)) || scope.objectIds.includes(cue.id);
       const staleCues = target.snapshot.effectCues.filter(cue => cue.status === "stale"
         && cueInScope(cue) && cue.authoringInputs?.some(entry => entry.visualTreatmentId === treatment.id));
@@ -2602,12 +2748,17 @@ export class EditingApplication {
     }
     if (finalRevision !== current.revision.number) blockers.push(`正式 ProductionRun 必须收口当前 Revision（当前 R${current.revision.number}，请求 R${finalRevision}）。`);
     const decisionCategories = new Set(report.creativeDecisions.map((decision) => decision.category));
-    for (const category of (scope.kind === "objects" ? [] : ["semantic", "story", "visual"] as const)) {
+    for (const category of (scope.kind === "objects" || report.intent === "local_edit" || report.intent === "review_only" ? [] : ["semantic", "story"] as const)) {
       if (!decisionCategories.has(category)) blockers.push(`缺少 ${category === "semantic" ? "语义" : category === "story" ? "故事" : "视觉处理"}决策记录。`);
     }
     const projectReview = await this.readEditorialQualityReview({ projectId: input.projectId, revision: finalRevision });
-    const quality = await evaluateQualityWithBrowser(target.snapshot, finalRevision, projectReview, this.repository.readReviews(input.projectId));
-    blockers.push(...exportBlockingIssues(quality, "draft").map(entry => `技术/用途条件：${entry.message}`));
+    const coordinationIssues = await evaluateProductionCoordination({ report, snapshot: target.snapshot, scope, review: projectReview,
+      readRevision: revision => this.repository.getRevision(input.projectId, revision).snapshot });
+    blockers.push(...coordinationIssues.map(issue => issue.message));
+    if (report.intent !== "review_only") {
+      const quality = await evaluateQualityWithBrowser(target.snapshot, finalRevision, projectReview, this.repository.readReviews(input.projectId));
+      blockers.push(...exportBlockingIssues(quality, "draft").map(entry => `技术/用途条件：${entry.message}`));
+    }
     let ranges = productionObservationRanges(target.snapshot, scope);
     const source = this.repository.getRevision(input.projectId, report.baseRevision).snapshot;
     const selectedCaptions = scope.kind === "objects" ? scope.objectIds.map(id => target.snapshot.timeline.captions.find(caption => caption.id === id)) : [];
@@ -2627,7 +2778,7 @@ export class EditingApplication {
       before.agentWorkOrders = []; after.agentWorkOrders = [];
       captionTextOnly &&= changedText && JSON.stringify(before) === JSON.stringify(after);
     }
-    if (scope.kind !== "project" && !captionTextOnly) {
+    if (scope.kind !== "project" && !(scope.kind === "frames" && report.intent === "review_only") && !captionTextOnly) {
       // 移动或替换后，原位置与新位置的交接都需要复查。
       const changed = [...ranges, ...productionObservationRanges(source, scope)].map(range => ({
         startFrame: Math.max(0, range.startFrame - 1), endFrame: Math.min(target.snapshot.timeline.durationInFrames, range.endFrame + 1)
@@ -2651,10 +2802,15 @@ export class EditingApplication {
       || target.snapshot.timeline.captions.some(caption => ranges.some(range => caption.startFrame < range.endFrame && caption.endFrame > range.startFrame));
     const audioOnly = hasAudio && !hasVideo || scope.kind === "objects" && scope.objectIds.every(id => target.snapshot.audioCues.some(cue => cue.id === id)
       || target.snapshot.timeline.items.some(item => item.id === id && target.snapshot.timeline.tracks.some(track => track.id === item.trackId && track.kind === "audio")));
-    const method: ProductionCompletionEvaluation["observationGaps"][number]["method"] = captionTextOnly ? "frames" : audioOnly ? "audio" : hasAudio ? "audiovisual" : "continuous_video";
+    const ownEvidence = [...(report.editorialReviewHistory ?? []), ...(report.editorialReview ? [report.editorialReview] : [])]
+      .flatMap(review => review.evidenceRecords ?? []);
+    const ownEvidenceIds = new Set(ownEvidence.map(entry => entry.id));
+    // 独立审阅使用本次实际选择的观察方式，不把只听声音升级成声画审阅。
+    const reviewMethod = report.intent === "review_only" ? ownEvidence.find(entry => ranges.some(range => entry.startFrame < range.endFrame && entry.endFrame > range.startFrame))?.method : undefined;
+    const method: ProductionCompletionEvaluation["observationGaps"][number]["method"] = reviewMethod ?? (captionTextOnly ? "frames" : audioOnly ? "audio" : hasAudio ? "audiovisual" : "continuous_video");
     const evidence = (projectReview?.evidenceRecords ?? []).filter(entry => entry.source === "workbench" && (entry.method === method
       || entry.method === "audiovisual" && (method === "audio" || method === "continuous_video" || method === "frames")
-      || entry.method === "continuous_video" && method === "frames"));
+      || entry.method === "continuous_video" && method === "frames") && (report.intent !== "review_only" || ownEvidenceIds.has(entry.id)));
     const eligibleIds = new Set(evidence.map(entry => entry.id));
     const applicable = (projectReview?.applicableEvidence ?? []).filter(entry => eligibleIds.has(entry.evidenceId));
     const validObservations: ProductionCompletionEvaluation["validObservations"] = applicable.flatMap(part => ranges.flatMap(range => {
@@ -2680,23 +2836,29 @@ export class EditingApplication {
     const completionBlockers = [...new Set(blockers)];
     return { runId: input.runId, revision: finalRevision, completionScope: scope, recordedStatus: report.status,
       recordedFinalRevision: report.finalRevision, recordedCompletionScope: report.completionScope,
-      ready: completionBlockers.length === 0, completionBlockers, validObservations, observationGaps, openRequiredFindingIds: openRequiredFindings.map(finding => finding.id) };
+      ready: completionBlockers.length === 0, completionBlockers, validObservations, observationGaps, openRequiredFindingIds: openRequiredFindings.map(finding => finding.id), coordinationIssues };
   }
 
-  async completeProductionRun(input: { completionScope: ProductionCompletionScope; projectId: Id; runId: Id; finalRevision: number; qualityReview?: string[]; previewEvidence?: string[] }): Promise<SkillExecutionReport> {
+  async completeProductionRun(input: { completionScope: ProductionCompletionScope; projectId: Id; runId: Id; finalRevision: number; operationId: string; qualityReview?: string[]; previewEvidence?: string[] }): Promise<SkillExecutionReport> {
     return this.withProductionAuditLock(input.projectId, () => this.completeProductionRunUnlocked(input));
   }
 
   private async completeProductionRunUnlocked(input: Parameters<EditingApplication["completeProductionRun"]>[0]): Promise<SkillExecutionReport> {
     const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
-    const normalizeScope = (scope?: ProductionCompletionScope) => scope?.kind === "beats" ? { kind: scope.kind, beatIds: [...scope.beatIds].sort() }
-      : scope?.kind === "objects" ? { kind: scope.kind, objectIds: [...scope.objectIds].sort() } : scope;
-    if (report.status === "completed" && report.finalRevision === input.finalRevision && JSON.stringify(normalizeScope(report.completionScope)) === JSON.stringify(normalizeScope(input.completionScope))) return report;
+    if (!report.operations) throw new DomainError("旧制作记录只保留审计", "PRODUCTION_RUN_LEGACY_READ_ONLY");
+    if (!this.addProductionOperation(report, input.operationId, input)) return report;
+    if (JSON.stringify(normalizeProductionScope(report.completionScope)) !== JSON.stringify(normalizeProductionScope(input.completionScope))) {
+      throw new DomainError("完成范围必须与本次任务目标一致", "PRODUCTION_SCOPE_MISMATCH");
+    }
+    if (report.status === "completed" && report.finalRevision === input.finalRevision) {
+      // 新操作编号也要持久保存，后续重试才能核对请求是否一致。
+      await this.writeSkillExecutionReport(report);
+      return report;
+    }
     this.resumeIncompleteProductionRun(report, "收口");
     const evaluation = await this.evaluateProductionCompletion({ projectId: input.projectId, runId: input.runId, revision: input.finalRevision, completionScope: input.completionScope });
     if (input.previewEvidence) report.previewEvidence.push(...input.previewEvidence.map((value) => value.trim()).filter(Boolean));
     if (input.qualityReview) report.qualityReview.push(...input.qualityReview.map((value) => value.trim()).filter(Boolean));
-    report.completionScope = structuredClone(input.completionScope);
     report.composedFrameEvidence = (await this.findComposedFrameEvidence(input.projectId, input.finalRevision)).map(artifact => artifact.relativePath);
     const currentRevision = this.readProject(input.projectId).revision.number;
     if (currentRevision !== input.finalRevision) throw new RevisionConflictError(input.finalRevision, currentRevision);
@@ -2713,6 +2875,8 @@ export class EditingApplication {
     report.completedAt = now();
     report.completionBlockers = [];
     await this.writeSkillExecutionReport(report);
+    const latestRevision = this.readProject(input.projectId).revision.number;
+    if (latestRevision !== input.finalRevision) throw new RevisionConflictError(input.finalRevision, latestRevision);
     return report;
   }
 
@@ -2777,7 +2941,8 @@ export class EditingApplication {
       }
       const decision = report.creativeDecisions.find(item => item.id === adoption.decisionId);
       const delivery = decision?.deliveryRef;
-      if (!delivery || decision?.delegation?.role !== "director") {
+      const director = report.assignments?.find(entry => entry.assignmentId === decision?.assignmentId);
+      if (!delivery || decision?.phase !== "adoption" || !director?.responsibilities.includes("director")) {
         throw new DomainError(`视觉计划 ${id} 的采用记录缺少导演或交付清单`, "MOTION_AUTHORING_ADOPTION_REQUIRED");
       }
       let manifest: ReferenceManifest;
@@ -6638,8 +6803,9 @@ export class EditingApplication {
         throw new DomainError("视觉计划引用的 ProductionRun 不可读取", "VISUAL_TREATMENT_ADOPTION_INVALID");
       }
       const decision = report.creativeDecisions.find(item => item.id === input.adoptedDecisionRef!.decisionId);
+      const director = report.assignments?.find(entry => entry.assignmentId === decision?.assignmentId);
       if (report.projectId !== input.projectId || report.id !== input.adoptedDecisionRef.productionRunId
-        || decision?.delegation?.role !== "director" || !decision.deliveryRef) {
+        || decision?.phase !== "adoption" || !director?.responsibilities.includes("director") || !decision.deliveryRef) {
         throw new DomainError("视觉计划需要本项目导演采用的交付决定", "VISUAL_TREATMENT_ADOPTION_INVALID");
       }
     }
@@ -8400,7 +8566,7 @@ export class EditingApplication {
   }
 
   /** Web和MCP只转发到这里；专用外部运行保留原来的检查点恢复。 */
-  readProductionStatus(projectId: Id, context?: { runId: Id; completionScope: ProductionCompletionScope }) {
+  readProductionStatus(projectId: Id, context?: { runId: Id; completionScope?: ProductionCompletionScope }) {
     return readProductionStatus(this, projectId, context);
   }
 

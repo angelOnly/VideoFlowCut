@@ -1,0 +1,100 @@
+{
+  "projectId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5",
+  "revision": 86,
+  "workId": "motion_work_b7e72e6873a6844b299aefdf89e8f4b5445d2c088f748de2257732b1e8143974",
+  "workVersion": "0cbbf923b7af688b89151a24f31bbbe8e8f8bad3136a22c07c4bc7af3e51e064",
+  "definitionHash": "b7e72e6873a6844b299aefdf89e8f4b5445d2c088f748de2257732b1e8143974",
+  "evidencePath": "previews/motion-inspection/job_df33a2eb-220f-417d-95cd-f11442252105",
+  "report": {
+    "status": "exact",
+    "maxAllowedChannelDelta": 2,
+    "sampledFrames": [
+      25,
+      65,
+      73,
+      76,
+      80,
+      87,
+      140,
+      165,
+      210,
+      225,
+      240,
+      250,
+      300,
+      337
+    ],
+    "visitOrder": {
+      "ascending": [
+        25,
+        65,
+        73,
+        76,
+        80,
+        87,
+        140,
+        165,
+        210,
+        225,
+        240,
+        250,
+        300,
+        337
+      ],
+      "samePageReverse": [
+        337,
+        300,
+        250,
+        240,
+        225,
+        210,
+        165,
+        140,
+        87,
+        80,
+        76,
+        73,
+        65,
+        25
+      ],
+      "cleanPageReverse": [
+        337,
+        300,
+        250,
+        240,
+        225,
+        210,
+        165,
+        140,
+        87,
+        80,
+        76,
+        73,
+        65,
+        25
+      ]
+    },
+    "failedFrames": [],
+    "differences": [],
+    "events": [
+      {
+        "id": "atlas-action",
+        "meaning": "真实后空翻镜头",
+        "startFrame": 0,
+        "endFrame": 153
+      },
+      {
+        "id": "work-task",
+        "meaning": "假设的料箱取件与安装任务",
+        "startFrame": 153,
+        "endFrame": 282
+      },
+      {
+        "id": "work-question",
+        "meaning": "注意力回到料箱和伸手前的变化",
+        "startFrame": 282,
+        "endFrame": 338
+      }
+    ]
+  }
+}

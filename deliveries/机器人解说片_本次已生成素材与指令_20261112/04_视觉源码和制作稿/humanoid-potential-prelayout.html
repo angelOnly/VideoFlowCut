@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    body { font-family: var(--vfc-font-body); }
+    .composition { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #eeeae0; color: #f7f5ef; }
+    .sheet { position: absolute; inset: 54px 64px 86px; overflow: hidden; background: #1b292e; }
+    .grid { position: absolute; inset: 0; opacity: .12; background-image: linear-gradient(#9ca9a7 1px,transparent 1px),linear-gradient(90deg,#9ca9a7 1px,transparent 1px); background-size: 64px 64px; mask-image: linear-gradient(to right,transparent 12%,black 65%); }
+    .topline { position: absolute; left: 88px; right: 88px; top: 65px; height: 83px; display: flex; align-items: center; gap: 30px; border-bottom: 2px solid rgba(239,244,240,.2); }
+    .flag { width: 13px; height: 50px; background: #ffb84c; }
+    .head { font: 700 38px var(--vfc-font-title); letter-spacing: .05em; }
+    .stage { position: absolute; left: 90px; top: 160px; width: 1600px; height: 650px; overflow: visible; }
+    .stage text { font-family: var(--vfc-font-body); fill: #e9f0e9; }
+    .stage .label { font: 700 34px var(--vfc-font-title); }
+    .stage .note { font-size: 28px; fill: #b7ccc0; }
+    .stage .strong { font: 700 43px var(--vfc-font-title); }
+    .stage .orange { fill: #ffb84c; }
+    .stage .outline { fill: none; stroke: #afc8b9; stroke-width: 6; stroke-linejoin: round; stroke-linecap: round; }
+    .stage .dash { fill: none; stroke: #ffb84c; stroke-width: 5; stroke-dasharray: 12 12; stroke-linecap: round; }
+    .costs { position: absolute; left: 100px; right: 100px; top: 185px; }
+    .cost-title { margin: 0 0 54px; font: 700 47px/1.25 var(--vfc-font-title); }
+    .cost-title span { color: #ffb84c; }
+    .cards { display: flex; gap: 25px; }
+    .card { width: 375px; height: 365px; padding: 33px 30px; background: #29413f; border-top: 5px solid #ffb84c; }
+    .card h3 { margin: 0; font: 700 38px var(--vfc-font-title); white-space: nowrap; }
+    .card .icon { margin-top: 36px; height: 110px; }
+    .card .icon svg { height: 110px; width: 150px; fill: none; stroke: #bfd1c6; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+    .card .question { margin-top: 22px; color: #b8cec0; font: 400 28px/1.35 var(--vfc-font-body); }
+  </style>
+</head>
+<body>
+  <main class="composition" data-composition-id="humanoid-potential" data-width="1920" data-height="1080" data-start="0" data-duration="19.52">
+    <section class="sheet">
+      <div class="grid"></div>
+      <div class="topline"><span class="flag"></span><span class="head">人形机器人的潜力与成本</span></div>
+      <svg class="stage" viewBox="0 0 1600 650" aria-label="人形机器人利用通道工具设备的可能性和换岗设想">
+        <defs>
+          <marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#ffb84c" stroke-width="2"/></marker>
+        </defs>
+        <g id="space-plan">
+          <text class="strong" x="40" y="68">有机会利用为人准备的空间</text>
+          <g id="robot" transform="translate(155 130)">
+            <rect x="76" y="0" width="94" height="72" rx="26" fill="#a6c4b4" stroke="#dce9dc" stroke-width="6"/>
+            <path d="M60 100 Q123 76 186 100 L196 245 Q123 270 50 245 Z" fill="#73998c" stroke="#dce9dc" stroke-width="6"/>
+            <path d="M57 115 L5 205 L25 225 L72 164 M190 115 L242 205 L222 225 L176 164" fill="#66897e" stroke="#dce9dc" stroke-width="6" stroke-linejoin="round"/>
+            <path d="M80 250 L68 375 L104 375 L125 273 L145 375 L182 375 L168 250" fill="#73998c" stroke="#dce9dc" stroke-width="6" stroke-linejoin="round"/>
+            <path d="M98 35 h48" stroke="#1b292e" stroke-width="7" stroke-linecap="round"/>
+            <circle cx="123" cy="165" r="25" fill="#263f3b" stroke="#dce9dc" stroke-width="4"/>
+          </g>
+          <path class="dash" d="M435 325 C560 325 565 325 650 325" marker-end="url(#arrow)"/>
+          <g id="passage" transform="translate(700 165)">
+            <rect x="0" y="0" width="245" height="278" rx="9" fill="#29413f"/>
+            <path class="outline" d="M64 195 V70 H180 V195 M86 195 V92 H158 V195 M55 195 H190"/>
+            <text class="label" x="122" y="245" text-anchor="middle">通道</text>
+          </g>
+          <g id="tool" transform="translate(985 165)">
+            <rect x="0" y="0" width="245" height="278" rx="9" fill="#29413f"/>
+            <path class="outline" d="M83 72 Q63 99 89 122 L143 176 Q158 190 172 175 Q186 161 171 146 L117 93 Q100 108 83 72 Z"/>
+            <text class="label" x="122" y="245" text-anchor="middle">工具</text>
+          </g>
+          <g id="equipment" transform="translate(1270 165)">
+            <rect x="0" y="0" width="245" height="278" rx="9" fill="#29413f"/>
+            <rect class="outline" x="50" y="68" width="145" height="126" rx="5"/>
+            <rect class="outline" x="75" y="93" width="91" height="47" rx="3"/>
+            <path class="outline" d="M75 167 H169"/>
+            <text class="label" x="122" y="245" text-anchor="middle">设备</text>
+          </g>
+        </g>
+        <g id="switch-plan">
+          <text class="strong" x="40" y="68">一台机器，未来也许能换岗</text>
+          <g transform="translate(110 130)">
+            <rect width="550" height="300" rx="8" fill="#29413f"/>
+            <text class="note" x="42" y="62">今天</text>
+            <text class="strong" x="42" y="119">搬料</text>
+            <path d="M326 100 l80 -32 80 32 -80 33 z M326 100 v85 l80 35 v-87 M486 100 v85 l-80 35" fill="#6e9788" stroke="#d8e7db" stroke-width="6" stroke-linejoin="round"/>
+          </g>
+          <path class="dash" d="M695 285 H855" marker-end="url(#arrow)"/>
+          <g transform="translate(890 130)">
+            <rect width="550" height="300" rx="8" fill="#29413f"/>
+            <text class="note" x="42" y="62">明天</text>
+            <text class="strong" x="42" y="119">换个工位</text>
+            <path class="outline" d="M338 94 Q318 121 344 144 L398 198 Q413 212 427 197 Q441 183 426 168 L372 115 Q355 130 338 94 Z"/>
+          </g>
+          <text class="note" x="110" y="503">不一定为每项工作重新搭建专用设备</text>
+        </g>
+      </svg>
+      <div class="costs">
+        <h2 class="cost-title">优势能发挥多少，<span>还得看实际表现</span></h2>
+        <div class="cards">
+          <div class="card teach"><h3>重新教学</h3><div class="icon"><svg viewBox="0 0 150 110"><rect x="15" y="10" width="95" height="64" rx="4"/><path d="M62 74 v25 M40 99 h45 M40 43 l15 14 30 -30"/></svg></div><div class="question">换岗需要多久？</div></div>
+          <div class="card battery"><h3>续航</h3><div class="icon"><svg viewBox="0 0 150 110"><rect x="20" y="25" width="95" height="60" rx="8"/><path d="M115 43 h12 v24 h-12 M67 34 l-15 25 h18 l-8 17 26 -31 h-18 l8 -11"/></svg></div><div class="question">电够用多久？</div></div>
+          <div class="card maintenance"><h3>维护</h3><div class="icon"><svg viewBox="0 0 150 110"><path d="M27 14 Q7 38 31 57 L79 100 Q90 108 100 97 Q110 87 100 77 L55 33 Q42 43 27 14 Z"/></svg></div><div class="question">维护投入多少？</div></div>
+          <div class="card downtime"><h3>停机</h3><div class="icon"><svg viewBox="0 0 150 110"><circle cx="65" cy="55" r="43"/><path d="M65 29 v28 l20 12 M108 25 l14 -12 M113 44 h20"/></svg></div><div class="question">停机花费多少？</div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    // 虚线和“有机会／未来也许”表达潜力，不将设想包装成已实现的能力。
+    gsap.set('#passage, #tool, #equipment', { autoAlpha: 0, y: 18 });
+    gsap.set('#switch-plan', { autoAlpha: 0, y: 20 });
+    gsap.set('.costs', { autoAlpha: 0, y: 20 });
+    gsap.set('.card', { autoAlpha: 0, y: 22 });
+    const sequence = gsap.timeline({ paused: true });
+    sequence.to('#passage', { autoAlpha: 1, y: 0, duration: .45 }, 1.4)
+      .to('#tool', { autoAlpha: 1, y: 0, duration: .45 }, 2.25)
+      .to('#equipment', { autoAlpha: 1, y: 0, duration: .45 }, 3.1)
+      .to('#space-plan', { autoAlpha: 0, y: -20, duration: .5, ease: 'power2.in' }, 4.65)
+      .to('#switch-plan', { autoAlpha: 1, y: 0, duration: .55, ease: 'power2.out' }, 5.0)
+      .to('#switch-plan', { autoAlpha: 0, y: -20, duration: .5, ease: 'power2.in' }, 10.35)
+      .to('.costs', { autoAlpha: 1, y: 0, duration: .55, ease: 'power2.out' }, 10.65)
+      .to('.teach', { autoAlpha: 1, y: 0, duration: .45 }, 11.55)
+      .to('.battery', { autoAlpha: 1, y: 0, duration: .45 }, 13.0)
+      .to('.maintenance', { autoAlpha: 1, y: 0, duration: .45 }, 14.4)
+      .to('.downtime', { autoAlpha: 1, y: 0, duration: .45 }, 15.55)
+      .to({}, { duration: .01 }, 19.51);
+    window.__timelines = { 'humanoid-potential': sequence };
+    window.getVfcMotionEvents = () => [
+      { id: 'human-spaces', meaning: '利用为人准备的通道、工具和设备的可能性', startFrame: 0, endFrame: 128 },
+      { id: 'possible-change', meaning: '未来换岗的设想', startFrame: 125, endFrame: 268 },
+      { id: 'real-evaluation', meaning: '以实际表现评估重新教学、续航、维护和停机', startFrame: 266, endFrame: 488 }
+    ];
+  </script>
+</body>
+</html>

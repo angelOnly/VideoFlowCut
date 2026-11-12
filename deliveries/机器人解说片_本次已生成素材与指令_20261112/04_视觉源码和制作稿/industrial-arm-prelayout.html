@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    body { font-family: var(--vfc-font-body); }
+    .composition { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #eeeae0; color: #f7f5ef; }
+    .sheet { position: absolute; inset: 54px 64px 86px; overflow: hidden; background: #1b292e; }
+    .grid { position: absolute; inset: 0; opacity: .12; background-image: linear-gradient(#9ca9a7 1px,transparent 1px),linear-gradient(90deg,#9ca9a7 1px,transparent 1px); background-size: 64px 64px; mask-image: linear-gradient(to right,transparent 12%,black 65%); }
+    .topline { position: absolute; left: 88px; right: 88px; top: 65px; height: 83px; display: flex; align-items: center; gap: 30px; border-bottom: 2px solid rgba(239,244,240,.2); }
+    .flag { width: 13px; height: 50px; background: #ffb84c; }
+    .head { font: 700 38px var(--vfc-font-title); letter-spacing: .05em; }
+    .film { position: absolute; left: 110px; top: 168px; width: 1280px; height: 720px; overflow: hidden; background: #293e3b; transform-origin: left top; }
+    .film img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .explain { position: absolute; left: 1080px; top: 235px; width: 540px; }
+    .explain .lead { font: 700 49px/1.25 var(--vfc-font-title); }
+    .explain .detail { margin-top: 30px; color: #c3d5ca; font-size: 31px; line-height: 1.5; }
+    .route { display: flex; align-items: center; gap: 12px; margin-top: 36px; color: #e8eee7; font-size: 29px; }
+    .route i { display: block; width: 22px; height: 3px; background: #ffb84c; }
+    .result { margin-top: 42px; color: #ffb84c; font: 700 67px var(--vfc-font-title); }
+  </style>
+</head>
+<body>
+  <main class="composition" data-composition-id="industrial-arm" data-width="1920" data-height="1080" data-start="0" data-duration="12.6">
+    <section class="sheet">
+      <div class="grid"></div>
+      <div class="topline"><span class="flag"></span><span class="head">已经在工作的机械臂</span></div>
+      <div class="film">
+        <img id="car-shot" data-vfc-video-slot="car" alt="">
+        <img id="yellow-shot" data-vfc-video-slot="yellow" alt="">
+      </div>
+      <div class="explain">
+        <div class="lead">相对固定的任务</div>
+        <div class="detail">流程可以围绕<br>任务设计</div>
+        <div class="route"><span>放置</span><i></i><span>衔接</span><i></i><span>路径</span></div>
+        <div class="result">又快又稳</div>
+      </div>
+    </section>
+  </main>
+  <script>
+    // 两段工厂实拍是不同工位，不将它们剪成同一条真实生产线。
+    gsap.set('.explain', { autoAlpha: 0, x: 35 });
+    gsap.set('.route, .result', { autoAlpha: 0, y: 18 });
+    const sequence = gsap.timeline({ paused: true });
+    sequence.to('.film', { scale: .69, duration: .8, ease: 'power2.inOut' }, 2.75)
+      .to('.explain', { autoAlpha: 1, x: 0, duration: .6, ease: 'power2.out' }, 3.2)
+      .to('.route', { autoAlpha: 1, y: 0, duration: .5 }, 5.0)
+      .to('.result', { autoAlpha: 1, y: 0, duration: .5 }, 8.9)
+      .to({}, { duration: .01 }, 12.59);
+    window.__timelines = { 'industrial-arm': sequence };
+    window.getVfcMotionEvents = () => [
+      { id: 'factory-arm', meaning: '真实工厂机械臂画面', startFrame: 0, endFrame: 315 },
+      { id: 'designed-process', meaning: '相对固定任务与围绕任务设计的流程', startFrame: 80, endFrame: 222 },
+      { id: 'fast-and-steady', meaning: '肯定既有机械臂的快与稳', startFrame: 222, endFrame: 315 }
+    ];
+  </script>
+</body>
+</html>

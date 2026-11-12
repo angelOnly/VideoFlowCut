@@ -1056,12 +1056,12 @@ test("ProductionRun 缺少真实创作证据时保持 incomplete，且不复制 
   const context = await createTestApplication();
   try {
     const created = context.app.createProject({ name: "ProductionRun 测试" });
-    const run = await context.app.startProductionRun({
+    const run = await context.app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: context.app.readProject(created.snapshot.project.id).revision.number, intent: "full_creation", completionScope: { kind: "project" },
       projectId: created.snapshot.project.id,
       loadedSkills: ["production-director", "semantic-continuity"],
       loadedReferences: [".agents/skills/_shared/EDITORIAL_FOUNDATIONS.md"]
     });
-    const recorded = await context.app.recordCreativeDecision({
+    const recorded = await context.app.recordCreativeDecision({ operationId: globalThis.crypto.randomUUID(),
       projectId: created.snapshot.project.id,
       runId: run.id,
       category: "visual",
@@ -1071,7 +1071,7 @@ test("ProductionRun 缺少真实创作证据时保持 incomplete，且不复制 
       mcpCommand: "record_creative_decision"
     });
     assert.equal(recorded.creativeDecisions.length, 1);
-    const completed = await context.app.completeProductionRun({ completionScope: { kind: "project" }, projectId: created.snapshot.project.id, runId: run.id, finalRevision: context.app.readProject(created.snapshot.project.id).revision.number });
+    const completed = await context.app.completeProductionRun({ operationId: globalThis.crypto.randomUUID(), completionScope: { kind: "project" }, projectId: created.snapshot.project.id, runId: run.id, finalRevision: context.app.readProject(created.snapshot.project.id).revision.number });
     assert.equal(completed.status, "incomplete");
     assert.equal(completed.finalRevision, context.app.readProject(created.snapshot.project.id).revision.number);
     assert.ok(completed.completionBlockers.some((blocker) => blocker.includes("语义决策")));
@@ -1090,9 +1090,9 @@ test("ProductionRun 不要求预览文件，未审状态继续保留", async () 
     const projectId = context.app.createProject({ name: "制作完成与审阅分离" }).snapshot.project.id;
     const assetId = addReadyAsset(context.app, projectId, "presenter.mp4", "video", 1000);
     const state = context.app.buildPresenterTimeline({ projectId, baseRevision: context.app.readProject(projectId).revision.number, assetIds: [assetId] });
-    const run = await context.app.startProductionRun({ projectId, loadedSkills: ["production-director"] });
-    for (const category of ["semantic", "story", "visual"] as const) await context.app.recordCreativeDecision({ projectId, runId: run.id, category, decision: "合约测试制作决策", rationale: "不代表真实创意与观看" });
-    const completed = await context.app.completeProductionRun({ completionScope: { kind: "project" }, projectId, runId: run.id, finalRevision: state.revision.number });
+    const run = await context.app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: context.app.readProject(projectId).revision.number, intent: "local_edit", completionScope: { kind: "project" }, projectId, loadedSkills: ["production-director"] });
+    for (const category of ["semantic", "story", "visual"] as const) await context.app.recordCreativeDecision({ operationId: globalThis.crypto.randomUUID(), projectId, runId: run.id, category, decision: "合约测试制作决策", rationale: "不代表真实创意与观看" });
+    const completed = await context.app.completeProductionRun({ operationId: globalThis.crypto.randomUUID(), completionScope: { kind: "project" }, projectId, runId: run.id, finalRevision: state.revision.number });
     assert.equal(completed.status, "incomplete");
     assert.ok(completed.completionBlockers.some(blocker => blocker.includes("工作台")));
     assert.deepEqual(completed.composedFrameEvidence, []);
@@ -1120,9 +1120,9 @@ test("ProductionRun 不要求每个效果抽帧，已有证据仍按真实范围
       note: "只在这个短区间强调人物"
     });
     const revision = withCue.revision.number;
-    const run = await context.app.startProductionRun({ projectId: created.snapshot.project.id, loadedSkills: ["production-director", "quality-verification"] });
+    const run = await context.app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: context.app.readProject(created.snapshot.project.id).revision.number, intent: "local_edit", completionScope: { kind: "project" }, projectId: created.snapshot.project.id, loadedSkills: ["production-director", "quality-verification"] });
     for (const category of ["semantic", "story", "visual"] as const) {
-      await context.app.recordCreativeDecision({ projectId: created.snapshot.project.id, runId: run.id, category, decision: `${category} 决策`, rationale: "验证每个视觉事件都必须被实际检查" });
+      await context.app.recordCreativeDecision({ operationId: globalThis.crypto.randomUUID(), projectId: created.snapshot.project.id, runId: run.id, category, decision: `${category} 决策`, rationale: "验证每个视觉事件都必须被实际检查" });
     }
     const preview = context.app.submitPreview({ projectId: created.snapshot.project.id, revision, fromFrame: 0, toFrame: withCue.snapshot.timeline.durationInFrames });
     const previewPath = join(created.snapshot.project.rootPath, "previews", "effect-coverage.mp4");
@@ -1134,7 +1134,7 @@ test("ProductionRun 不要求每个效果抽帧，已有证据仍按真实范围
     context.app.updateJob(preview.id, { status: "succeeded", result: { revision, path: previewPath, fromFrame: 0, toFrame: withCue.snapshot.timeline.durationInFrames } });
     const toArtifact = (frame: number) => ({ frame, relativePath: join("previews", "frames", `revision-${revision}-frame-${frame}.jpg`) });
     await context.app.recordPreviewInspection({ projectId: created.snapshot.project.id, previewJobId: preview.id, revision, frames: outsideFrames.map(toArtifact) });
-    await context.app.recordEditorialQualityReview({
+    await context.app.recordEditorialQualityReview({ operationId: globalThis.crypto.randomUUID(),
       projectId: created.snapshot.project.id,
       runId: run.id,
       revision,
@@ -1143,7 +1143,7 @@ test("ProductionRun 不要求每个效果抽帧，已有证据仍按真实范围
       observations: fixtureObservations(preview.id, withCue.snapshot.timeline.durationInFrames),
       findings: []
     });
-    const missingCueFrame = await context.app.completeProductionRun({ completionScope: { kind: "project" }, projectId: created.snapshot.project.id, runId: run.id, finalRevision: revision });
+    const missingCueFrame = await context.app.completeProductionRun({ operationId: globalThis.crypto.randomUUID(), completionScope: { kind: "project" }, projectId: created.snapshot.project.id, runId: run.id, finalRevision: revision });
     assert.equal(missingCueFrame.status, "incomplete");
     assert.ok(missingCueFrame.completionBlockers.some(blocker => blocker.includes("工作台")));
     assert.ok(!missingCueFrame.completionBlockers.some(blocker => blocker.includes("效果抽帧")));
@@ -1185,8 +1185,8 @@ test("draft 错误只列真实技术阻断，不将待审观感误报为草稿�
     const assetId = addReadyAsset(context.app, projectId, "missing-source.mp4", "video", 1000);
     const built = context.app.buildPresenterTimeline({ projectId, baseRevision: context.app.readProject(projectId).revision.number, assetIds: [assetId] });
     const state = context.app.updateAssetEditorialMetadata({ projectId, baseRevision: built.revision.number, assetId, provenance: { ...built.snapshot.assets.find(asset => asset.id === assetId)!.provenance!, source: "generated", } });
-    const run = await context.app.startProductionRun({ projectId, loadedSkills: ["quality-verification"] });
-    await context.app.recordEditorialQualityReview({ projectId, runId: run.id, revision: state.revision.number, passes: ["mute_visual"], previewEvidence: ["测试输入"], findings: [{ pass: "mute_visual", category: "motion", severity: "inconclusive", summary: "观感等待连续复核", impact: "不代表失败", evidence: "合约模拟" }] });
+    const run = await context.app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: context.app.readProject(projectId).revision.number, intent: "local_edit", completionScope: { kind: "project" }, projectId, loadedSkills: ["quality-verification"] });
+    await context.app.recordEditorialQualityReview({ operationId: globalThis.crypto.randomUUID(), projectId, runId: run.id, revision: state.revision.number, passes: ["mute_visual"], previewEvidence: ["测试输入"], findings: [{ pass: "mute_visual", category: "motion", severity: "inconclusive", summary: "观感等待连续复核", impact: "不代表失败", evidence: "合约模拟" }] });
     for (const purpose of ["draft", "delivery"] as const) {
       const job = context.app.submitExport({ projectId, revision: state.revision.number, purpose });
       await assert.rejects(() => runExportJob(context.app, job, { render: async () => assert.fail("缺少源文件不应进入渲染") } as never), (error: unknown) => {
@@ -1213,13 +1213,13 @@ test("delivery ExportArtifact 固定 Revision、保留来源快照并让批准�
       baseRevision: context.app.readProject(created.snapshot.project.id).revision.number,
       assetIds: [videoAssetId]
     });
-    const run = await context.app.startProductionRun({ projectId: created.snapshot.project.id, loadedSkills: ["quality-verification", "export"] });
+    const run = await context.app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: context.app.readProject(created.snapshot.project.id).revision.number, intent: "local_edit", completionScope: { kind: "project" }, projectId: created.snapshot.project.id, loadedSkills: ["quality-verification", "export"] });
     const preview = context.app.submitPreview({ projectId: created.snapshot.project.id, revision: assembled.revision.number, fromFrame: 0, toFrame: assembled.snapshot.timeline.durationInFrames });
     const previewPath = join(created.snapshot.project.rootPath, "previews", "artifact-gate.mp4");
     await mkdir(join(created.snapshot.project.rootPath, "previews"), { recursive: true });
     await copyFile(fixturePath, previewPath);
     context.app.updateJob(preview.id, { status: "succeeded", result: { revision: assembled.revision.number, path: previewPath, fromFrame: 0, toFrame: assembled.snapshot.timeline.durationInFrames } });
-    await context.app.recordEditorialQualityReview({
+    await context.app.recordEditorialQualityReview({ operationId: globalThis.crypto.randomUUID(),
       projectId: created.snapshot.project.id,
       runId: run.id,
       revision: assembled.revision.number,
@@ -1276,11 +1276,11 @@ test("真实审片记录会按 Revision 合并到 QualityReport，过期记录�
   const context = await createTestApplication();
   try {
     const created = context.app.createProject({ name: "编辑审片记录测试" });
-    const run = await context.app.startProductionRun({
+    const run = await context.app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: context.app.readProject(created.snapshot.project.id).revision.number, intent: "local_edit", completionScope: { kind: "project" },
       projectId: created.snapshot.project.id,
       loadedSkills: ["quality-verification"]
     });
-    const recorded = await context.app.recordEditorialQualityReview({
+    const recorded = await context.app.recordEditorialQualityReview({ operationId: globalThis.crypto.randomUUID(),
       projectId: created.snapshot.project.id,
       runId: run.id,
       revision: created.revision.number,
@@ -1324,11 +1324,11 @@ test("目标 Revision 导出只读取自身的审片记录，不被更新版本�
       previewEvidence: ["真实 Preview 已完成检查"],
       findings: []
     };
-    const firstRun = await context.app.startProductionRun({ projectId: created.snapshot.project.id, loadedSkills: ["quality-verification"] });
-    await context.app.recordEditorialQualityReview({ projectId: created.snapshot.project.id, runId: firstRun.id, revision: created.revision.number, ...reviewInput });
+    const firstRun = await context.app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: context.app.readProject(created.snapshot.project.id).revision.number, intent: "local_edit", completionScope: { kind: "project" }, projectId: created.snapshot.project.id, loadedSkills: ["quality-verification"] });
+    await context.app.recordEditorialQualityReview({ operationId: globalThis.crypto.randomUUID(), projectId: created.snapshot.project.id, runId: firstRun.id, revision: created.revision.number, ...reviewInput });
     const second = context.app.updateStory({ projectId: created.snapshot.project.id, baseRevision: created.revision.number, title: "R2" });
-    const secondRun = await context.app.startProductionRun({ projectId: created.snapshot.project.id, loadedSkills: ["quality-verification"] });
-    await context.app.recordEditorialQualityReview({ projectId: created.snapshot.project.id, runId: secondRun.id, revision: second.revision.number, ...reviewInput });
+    const secondRun = await context.app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: context.app.readProject(created.snapshot.project.id).revision.number, intent: "local_edit", completionScope: { kind: "project" }, projectId: created.snapshot.project.id, loadedSkills: ["quality-verification"] });
+    await context.app.recordEditorialQualityReview({ operationId: globalThis.crypto.randomUUID(), projectId: created.snapshot.project.id, runId: secondRun.id, revision: second.revision.number, ...reviewInput });
 
     const firstReview = await context.app.readEditorialQualityReview({ projectId: created.snapshot.project.id, revision: created.revision.number });
     const secondReview = await context.app.readEditorialQualityReview({ projectId: created.snapshot.project.id, revision: second.revision.number });
@@ -2196,6 +2196,7 @@ test("video-editor-mcp 可通过 stdio 连接并定位新项目", async () => {
       "replace_scene_asset",
       "manage_effect_cues",
       "start_production_run",
+      "update_production_run",
       "record_creative_decision",
       "record_editorial_quality_review",
       "complete_production_run",

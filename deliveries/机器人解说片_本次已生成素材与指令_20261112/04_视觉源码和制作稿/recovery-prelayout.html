@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    body { font-family: var(--vfc-font-body); }
+    .composition { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #eeeae0; color: #f7f5ef; }
+    .sheet { position: absolute; inset: 54px 64px 86px; overflow: hidden; background: #1b292e; }
+    .grid { position: absolute; inset: 0; opacity: .12; background-image: linear-gradient(#9ca9a7 1px,transparent 1px),linear-gradient(90deg,#9ca9a7 1px,transparent 1px); background-size: 64px 64px; mask-image: linear-gradient(to right,transparent 12%,black 65%); }
+    .topline { position: absolute; left: 88px; right: 88px; top: 65px; height: 83px; display: flex; align-items: center; gap: 30px; border-bottom: 2px solid rgba(239,244,240,.2); }
+    .flag { width: 13px; height: 50px; background: #ffb84c; }
+    .head { font: 700 38px var(--vfc-font-title); letter-spacing: .05em; }
+    .sub { font-size: 29px; color: #c7d5ce; }
+    .flow { position: absolute; left: 72px; top: 200px; width: 1645px; height: 618px; overflow: visible; transform-origin: left center; }
+    .branch { fill: none; stroke: #708b81; stroke-width: 8; stroke-linecap: round; }
+    .branch-active { fill: none; stroke: #ffb84c; stroke-width: 9; stroke-linecap: round; }
+    .flow text { fill: #eef3eb; font: 700 34px var(--vfc-font-title); }
+    .flow .note { fill: #b9cbc1; font: 400 25px var(--vfc-font-body); }
+    .summary { position: absolute; top: 260px; right: 125px; width: 620px; }
+    .summary-title { font: 700 46px var(--vfc-font-title); margin-bottom: 39px; }
+    .point { display: flex; align-items: center; gap: 20px; margin: 25px 0; color: #edf2e9; font: 700 38px var(--vfc-font-title); }
+    .point b { display: block; width: 12px; height: 40px; background: #ffb84c; }
+  </style>
+</head>
+<body>
+  <main class="composition" data-composition-id="recovery" data-width="1920" data-height="1080" data-start="0" data-duration="15.08">
+    <section class="sheet">
+      <div class="grid"></div>
+      <div class="topline"><span class="flag"></span><span class="head">一次异常之后</span><span class="sub">恢复路径并不相同</span></div>
+      <svg class="flow" viewBox="0 0 1645 618" aria-label="一次异常后可能自动恢复，或需要人工处理并可能使后续工序等待">
+        <g id="feed">
+          <path class="branch" d="M 70 309 L 652 309"/>
+          <g fill="#92aaa0" stroke="#d0ddd2" stroke-width="4">
+            <rect x="110" y="270" width="85" height="54" rx="4"/>
+            <rect x="270" y="270" width="85" height="54" rx="4"/>
+            <rect x="430" y="270" width="85" height="54" rx="4"/>
+          </g>
+          <text x="74" y="389">连续工作</text>
+        </g>
+        <g id="incident">
+          <path d="M 652 309 L 720 241 L 788 309 L 720 377 Z" fill="#ffb84c"/>
+          <text x="720" y="318" text-anchor="middle" style="fill:#1b292e;font-size:29px">异常</text>
+        </g>
+        <g id="automatic">
+          <path class="branch" d="M 788 309 C 900 309 898 135 1050 135 L 1515 135"/>
+          <path id="auto-path" class="branch-active" d="M 788 309 C 900 309 898 135 1050 135 L 1515 135"/>
+          <circle cx="1090" cy="135" r="41" fill="#355c50" stroke="#b8d0c0" stroke-width="5"/>
+          <path d="M 1068 136 l 15 16 l 30 -34" fill="none" stroke="#f3f7ea" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+          <text x="1150" y="126">自动恢复</text>
+          <text class="note" x="1150" y="165">调整后继续</text>
+        </g>
+        <g id="manual">
+          <path class="branch" d="M 788 309 C 900 309 898 495 1050 495 L 1515 495"/>
+          <path id="manual-path" class="branch-active" d="M 788 309 C 900 309 898 495 1050 495 L 1515 495"/>
+          <circle cx="1090" cy="495" r="41" fill="#614c31" stroke="#ffcf85" stroke-width="5"/>
+          <rect x="1073" y="478" width="10" height="34" fill="#fff7e8"/><rect x="1097" y="478" width="10" height="34" fill="#fff7e8"/>
+          <text x="1150" y="485">人工处理</text>
+          <text class="note" x="1150" y="524">后续工序可能等待</text>
+          <g id="waiting" fill="#6d8279" stroke="#b5c8bc" stroke-width="3">
+            <rect x="1435" y="452" width="52" height="38" rx="3"/>
+            <rect x="1500" y="452" width="52" height="38" rx="3"/>
+            <rect x="1565" y="452" width="52" height="38" rx="3"/>
+          </g>
+        </g>
+      </svg>
+      <div class="summary">
+        <div class="summary-title">工厂还要看</div>
+        <div class="point one"><b></b><span>长时间稳定工作</span></div>
+        <div class="point two"><b></b><span>出错后的处理</span></div>
+        <div class="point three"><b></b><span>需要多少人工参与</span></div>
+      </div>
+    </section>
+  </main>
+  <script>
+    // 分支只表达可能的恢复路径，人工分支才出现暂停与等待。
+    gsap.set('#incident', { autoAlpha: 0, scale: .7, transformOrigin: '720px 309px' });
+    gsap.set('#automatic, #manual', { autoAlpha: 0 });
+    gsap.set('#auto-path, #manual-path', { strokeDasharray: '8 2000', strokeDashoffset: 0 });
+    gsap.set('#waiting', { autoAlpha: 0, x: 35 });
+    gsap.set('.summary', { autoAlpha: 0, x: 40 });
+    gsap.set('.point', { autoAlpha: 0, x: 25 });
+    const sequence = gsap.timeline({ paused: true });
+    sequence.from('#feed', { autoAlpha: 0, x: -80, duration: .7, ease: 'power2.out' }, .1)
+      .to('#incident', { autoAlpha: 1, scale: 1, duration: .45, ease: 'back.out(1.2)' }, 1.05)
+      .to('#automatic', { autoAlpha: 1, duration: .35 }, 1.75)
+      .to('#auto-path', { strokeDasharray: '2000 2000', duration: 1.4, ease: 'power1.inOut' }, 1.85)
+      .to('#manual', { autoAlpha: 1, duration: .35 }, 3.65)
+      .to('#manual-path', { strokeDasharray: '2000 2000', duration: 1.4, ease: 'power1.inOut' }, 3.75)
+      .to('#waiting', { autoAlpha: 1, x: 0, duration: .6, ease: 'power2.out' }, 5.0)
+      .to('.flow', { scale: .57, x: -20, duration: .9, ease: 'power2.inOut' }, 8.44)
+      .to('.summary', { autoAlpha: 1, x: 0, duration: .55, ease: 'power2.out' }, 8.8)
+      .to('.point.one', { autoAlpha: 1, x: 0, duration: .45 }, 9.2)
+      .to('.point.two', { autoAlpha: 1, x: 0, duration: .45 }, 10.1)
+      .to('.point.three', { autoAlpha: 1, x: 0, duration: .45 }, 11.1)
+      .to({}, { duration: .01 }, 15.07);
+    window.__timelines = { recovery: sequence };
+    window.getVfcMotionEvents = () => [
+      { id: 'incident', meaning: '生产中出现一次异常', startFrame: 26, endFrame: 44 },
+      { id: 'automatic-recovery', meaning: '一条可能路径是自动恢复并继续', startFrame: 44, endFrame: 91 },
+      { id: 'manual-recovery', meaning: '另一条可能路径是人工处理并可能造成后续等待', startFrame: 91, endFrame: 211 },
+      { id: 'factory-questions', meaning: '回到稳定工作、异常处理与人工参与', startFrame: 211, endFrame: 377 }
+    ];
+  </script>
+</body>
+</html>

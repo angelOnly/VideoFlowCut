@@ -1,0 +1,90 @@
+{
+  "projectId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5",
+  "revision": 87,
+  "workId": "motion_work_2a306391d572383a91466e191c57774459a70a3b15705a0652900b3f29309de1",
+  "workVersion": "d99cac98661eb7c925c221ea4c47ed1b2a86aed9fc5faa9dd69c6f451b925739",
+  "definitionHash": "2a306391d572383a91466e191c57774459a70a3b15705a0652900b3f29309de1",
+  "evidencePath": "previews/motion-inspection/job_2002be75-3ec2-44ea-b8bf-6306eb951899",
+  "report": {
+    "status": "exact",
+    "maxAllowedChannelDelta": 2,
+    "sampledFrames": [
+      0,
+      35,
+      65,
+      105,
+      150,
+      210,
+      230,
+      280,
+      340,
+      376
+    ],
+    "visitOrder": {
+      "ascending": [
+        0,
+        35,
+        65,
+        105,
+        150,
+        210,
+        230,
+        280,
+        340,
+        376
+      ],
+      "samePageReverse": [
+        376,
+        340,
+        280,
+        230,
+        210,
+        150,
+        105,
+        65,
+        35,
+        0
+      ],
+      "cleanPageReverse": [
+        376,
+        340,
+        280,
+        230,
+        210,
+        150,
+        105,
+        65,
+        35,
+        0
+      ]
+    },
+    "failedFrames": [],
+    "differences": [],
+    "events": [
+      {
+        "id": "incident",
+        "meaning": "生产中出现一次异常",
+        "startFrame": 26,
+        "endFrame": 44
+      },
+      {
+        "id": "automatic-recovery",
+        "meaning": "一条可能路径是自动恢复并继续",
+        "startFrame": 44,
+        "endFrame": 91
+      },
+      {
+        "id": "manual-recovery",
+        "meaning": "另一条可能路径是人工处理并可能造成后续等待",
+        "startFrame": 91,
+        "endFrame": 211
+      },
+      {
+        "id": "factory-questions",
+        "meaning": "回到稳定工作、异常处理与人工参与",
+        "startFrame": 211,
+        "endFrame": 377
+      }
+    ]
+  }
+}

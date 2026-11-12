@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    body { font-family: var(--vfc-font-body); }
+    .composition { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #eeeae0; color: #f7f5ef; }
+    .sheet { position: absolute; inset: 54px 64px 86px; overflow: hidden; background: #1b292e; }
+    .grid { position: absolute; inset: 0; opacity: .12; background-image: linear-gradient(#9ca9a7 1px, transparent 1px), linear-gradient(90deg, #9ca9a7 1px, transparent 1px); background-size: 64px 64px; mask-image: linear-gradient(to right, transparent 12%, black 65%); }
+    .topline { position: absolute; left: 88px; right: 88px; top: 65px; height: 83px; display: flex; align-items: center; gap: 30px; border-bottom: 2px solid rgba(239,244,240,.20); }
+    .flag { width: 13px; height: 50px; background: #ffb84c; }
+    .top-label { font-family: var(--vfc-font-title); font-size: 32px; letter-spacing: .08em; color: #f6f5ee; white-space: nowrap; }
+    .divider { height: 36px; width: 2px; background: rgba(239,244,240,.24); }
+    .condition { font-size: 30px; color: #d5e0d8; white-space: nowrap; }
+    .condition strong { font-family: var(--vfc-font-title); color: #fffdf6; font-weight: 700; }
+    .left { position: absolute; left: 103px; top: 224px; width: 635px; }
+    .kicker { display: flex; align-items: baseline; gap: 13px; font-size: 42px; line-height: 1.3; color: #d9e5dc; }
+    .kicker .counter { font-family: var(--vfc-font-title); color: #ffb84c; font-size: 74px; line-height: 1; font-variant-numeric: tabular-nums; }
+    .purpose { margin-top: 12px; font-family: var(--vfc-font-title); font-size: 48px; line-height: 1.3; letter-spacing: .015em; }
+    .result { margin-top: 54px; font-family: var(--vfc-font-title); font-size: 172px; line-height: 1.05; letter-spacing: -.045em; font-variant-numeric: tabular-nums; color: #ffb84c; white-space: nowrap; }
+    .result .percent { font-size: .48em; letter-spacing: 0; margin-left: 4px; }
+    .estimate { margin-top: 18px; font-size: 34px; color: #e8eee9; letter-spacing: .02em; }
+    .math { margin-top: 58px; color: #b8c7c0; font-size: 31px; font-variant-numeric: tabular-nums; }
+    .chart { position: absolute; left: 775px; top: 206px; width: 935px; height: 590px; overflow: visible; }
+    .chart text { font-family: var(--vfc-font-body); fill: #a7b8b0; font-size: 24px; }
+    .chart .axis { stroke: #6a7e78; stroke-width: 2; }
+    .chart .guide { stroke: #99aba4; stroke-opacity: .18; stroke-width: 1.5; }
+    .chart .basecurve { fill: none; stroke: #61756e; stroke-opacity: .65; stroke-width: 6; }
+    .chart .curve { fill: none; stroke: #ffb84c; stroke-width: 8; stroke-linecap: round; }
+    .chart .cursorline { stroke: #ffb84c; stroke-opacity: .5; stroke-width: 2; stroke-dasharray: 8 10; }
+    .chart .marker { fill: #ffb84c; stroke: #1b292e; stroke-width: 6; }
+    .chart .axis-note { font-size: 27px; fill: #d9e5dc; }
+  </style>
+</head>
+<body>
+  <main class="composition" data-composition-id="robot-reliability" data-width="1920" data-height="1080" data-start="0" data-duration="10.36">
+    <section class="sheet">
+      <div class="grid"></div>
+      <div class="topline">
+        <div class="flag"></div>
+        <div class="top-label">连续成功</div>
+        <div class="divider"></div>
+        <div class="condition">假设：每次成功率 <strong>99%</strong></div>
+        <div class="divider"></div>
+        <div class="condition"><strong>每次结果相互独立</strong></div>
+      </div>
+      <div class="left">
+        <div class="kicker"><span>连续</span><span class="counter" id="count">1</span><span>次</span></div>
+        <div class="purpose">全部成功的概率</div>
+        <div class="result"><span id="chance">99.0</span><span class="percent">%</span></div>
+        <div class="estimate" id="estimate">约 37%</div>
+        <div class="math" id="formula">0.99¹⁰⁰ ≈ 36.6%</div>
+      </div>
+      <svg class="chart" viewBox="0 0 1010 620" aria-label="连续次数与全部成功概率的关系图">
+        <line class="guide" x1="64" y1="82" x2="940" y2="82"></line>
+        <line class="guide" x1="64" y1="292" x2="940" y2="292"></line>
+        <line class="axis" x1="64" y1="502" x2="940" y2="502"></line>
+        <text x="40" y="90" text-anchor="end">100%</text>
+        <text x="40" y="300" text-anchor="end">50%</text>
+        <text x="40" y="510" text-anchor="end">0%</text>
+        <path class="basecurve" id="basecurve"></path>
+        <defs><clipPath id="curve-reveal"><rect id="curve-mask" x="0" y="0" width="64" height="540"></rect></clipPath></defs>
+        <path class="curve" id="curve" clip-path="url(#curve-reveal)"></path>
+        <line class="cursorline" id="cursor" x1="64" x2="64" y1="82" y2="502"></line>
+        <circle class="marker" id="marker" cx="64" cy="86" r="13"></circle>
+        <g text-anchor="middle">
+          <text x="64" y="544">1</text><text x="276.4" y="544">25</text><text x="497.6" y="544">50</text><text x="718.8" y="544">75</text><text x="940" y="544">100</text>
+        </g>
+        <text class="axis-note" x="940" y="594" text-anchor="end">重复次数</text>
+      </svg>
+    </section>
+  </main>
+  <script>
+    // 连续 N 次全部成功的概率；每次独立，且单次成功率保持 99%。
+    const plot = { left: 64, right: 940, top: 82, bottom: 502 };
+    const px = n => plot.left + (n - 1) / 99 * (plot.right - plot.left);
+    const py = p => plot.top + (1 - p) * (plot.bottom - plot.top);
+    const chance = n => Math.pow(0.99, n);
+    const points = Array.from({ length: 100 }, (_, i) => {
+      const n = i + 1;
+      return `${i ? 'L' : 'M'}${px(n).toFixed(2)} ${py(chance(n)).toFixed(2)}`;
+    }).join(' ');
+    document.getElementById('basecurve').setAttribute('d', points);
+    document.getElementById('curve').setAttribute('d', points);
+    const state = { n: 1 };
+    const count = document.getElementById('count');
+    const number = document.getElementById('chance');
+    const marker = document.getElementById('marker');
+    const cursor = document.getElementById('cursor');
+    const mask = document.getElementById('curve-mask');
+    function showState() {
+      const n = Math.max(1, Math.min(100, Math.round(state.n)));
+      const x = px(n);
+      count.textContent = String(n);
+      number.textContent = (chance(n) * 100).toFixed(1);
+      marker.setAttribute('cx', x.toFixed(2));
+      marker.setAttribute('cy', py(chance(n)).toFixed(2));
+      cursor.setAttribute('x1', x.toFixed(2));
+      cursor.setAttribute('x2', x.toFixed(2));
+      mask.setAttribute('width', (x + 5).toFixed(2));
+    }
+    showState();
+    gsap.set('#estimate, #formula', { autoAlpha: 0, y: 12 });
+    const sequence = gsap.timeline({ paused: true });
+    sequence.from('.topline', { autoAlpha: 0, y: 18, duration: .65, ease: 'power2.out' }, 0.1)
+      .from('.left', { autoAlpha: 0, y: 26, duration: .65, ease: 'power2.out' }, 0.45)
+      .from('.chart', { autoAlpha: 0, x: 34, duration: .75, ease: 'power2.out' }, 1.2)
+      // 仅按两段旁白的真实段界安排，词语落点留待听审后调整。
+      .to(state, { n: 100, duration: 1.65, ease: 'none', onUpdate: showState }, 6.4)
+      .to('#estimate', { autoAlpha: 1, y: 0, duration: .35, ease: 'power2.out' }, 8.05)
+      .to('#formula', { autoAlpha: 1, y: 0, duration: .35, ease: 'power2.out' }, 8.3)
+      .to({}, { duration: .01 }, 10.35);
+    window.__timelines = { 'robot-reliability': sequence };
+    window.getVfcMotionEvents = () => [
+      { id: 'assumptions-visible', meaning: '每次成功率与相互独立的前提建立', startFrame: 12, endFrame: 160 },
+      { id: 'success-probability-changes', meaning: '重复次数增加，连续全部成功的概率变化', startFrame: 160, endFrame: 202 },
+      { id: 'hundred-success-result', meaning: '一百次全部成功概率约百分之三十六点六', startFrame: 202, endFrame: 259 }
+    ];
+  </script>
+</body>
+</html>

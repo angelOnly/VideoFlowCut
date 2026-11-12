@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    body { font-family: var(--vfc-font-body); }
+    .composition { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #eeeae0; color: #f7f5ef; }
+    .sheet { position: absolute; inset: 54px 64px 86px; overflow: hidden; background: #1b292e; }
+    .grid { position: absolute; inset: 0; opacity: .12; background-image: linear-gradient(#9ca9a7 1px,transparent 1px),linear-gradient(90deg,#9ca9a7 1px,transparent 1px); background-size: 64px 64px; mask-image: linear-gradient(to right,transparent 12%,black 65%); }
+    .topline { position: absolute; left: 88px; right: 88px; top: 65px; height: 83px; display: flex; align-items: center; gap: 30px; border-bottom: 2px solid rgba(239,244,240,.2); }
+    .flag { width: 13px; height: 50px; background: #ffb84c; }
+    .head { font: 700 38px var(--vfc-font-title); letter-spacing: .05em; }
+    .visual { position: absolute; left: 90px; top: 165px; width: 1600px; height: 650px; overflow: visible; }
+    .visual text { font-family: var(--vfc-font-body); fill: #f3f5ee; }
+    .visual .label { font: 700 42px var(--vfc-font-title); }
+    .visual .small { font-size: 28px; fill: #bdd0c4; }
+    .visual .emph { font: 700 57px var(--vfc-font-title); fill: #ffb84c; }
+    .visual .big { font: 700 68px var(--vfc-font-title); }
+    .visual .line { fill: none; stroke: #c5d9cc; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+    .visual .dash { fill: none; stroke: #ffb84c; stroke-width: 6; stroke-dasharray: 12 12; stroke-linecap: round; stroke-linejoin: round; }
+  </style>
+</head>
+<body>
+  <main class="composition" data-composition-id="changing-bin" data-width="1920" data-height="1080" data-start="0" data-duration="31.88">
+    <section class="sheet">
+      <div class="grid"></div>
+      <div class="topline"><span class="flag"></span><span class="head">乱箱与持续变化</span></div>
+      <svg class="visual" viewBox="0 0 1600 650" aria-label="从乱箱中的零件变化到观察、判断与重新抓取">
+        <defs>
+          <marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#ffb84c" stroke-width="2"/></marker>
+        </defs>
+        <g id="bin-scene">
+          <text class="label" x="70" y="70">箱里的零件，并不总在同一个位置</text>
+          <path d="M170 225 L790 225 L875 292 L875 510 L255 510 L170 443 Z" fill="#4d7470" stroke="#bad0c5" stroke-width="6"/>
+          <path d="M170 225 L255 292 H875 L790 225 Z" fill="#79968b" stroke="#bad0c5" stroke-width="6"/>
+          <path d="M255 292 H875 V510 H255 Z" fill="#31524e"/>
+          <path d="M280 317 H850 V475 H280 Z" fill="#233d3b"/>
+          <path d="M323 439 l148 -48 67 47 -148 48 z" fill="#688a7e" stroke="#aec8b8" stroke-width="5"/>
+          <path d="M424 382 l148 -45 74 48 -148 45 z" fill="#9bb8a9" stroke="#d9e7da" stroke-width="5"/>
+          <path d="M636 393 l103 -35 66 45 -103 35 z" fill="#6e9385" stroke="#c7ddcf" stroke-width="5"/>
+          <g id="sliding-part">
+            <path d="M500 326 l127 -38 66 43 -127 38 z" fill="#d8e7d9" stroke="#ffb84c" stroke-width="6"/>
+            <circle cx="626" cy="325" r="9" fill="#37584e"/>
+          </g>
+          <g id="first-gripper">
+            <path d="M570 117 V180 H520 V240 M615 117 V180 H665 V240" fill="none" stroke="#d5e4d8" stroke-width="14" stroke-linejoin="round"/>
+            <path d="M520 240 l28 26 M665 240 l-28 26" fill="none" stroke="#ffb84c" stroke-width="14" stroke-linecap="round"/>
+          </g>
+          <path id="slide-trail" class="dash" d="M675 335 C760 340 810 365 846 388" marker-end="url(#arrow)"/>
+          <g id="bin-notes">
+            <text class="small" x="1060" y="260">有的正着，有的倒着</text>
+            <text class="small" x="1060" y="325">还有一个压在下面</text>
+          </g>
+          <g id="slip-note"><text class="emph" x="1060" y="430">碰到，滑走</text></g>
+          <g id="hand">
+            <path d="M88 355 C135 339 185 337 225 342 L448 353 Q473 355 472 373 Q471 391 447 392 L290 399 L356 410 Q382 415 376 432 Q370 449 345 447 L190 435 Q125 430 88 413 Z" fill="#e1c4a5" stroke="#f2e0c8" stroke-width="5"/>
+          </g>
+          <g id="human-note"><text class="label" x="1050" y="235">拨一下</text><text class="small" x="1050" y="285">换个角度，继续拿</text></g>
+          <g id="observe-ring"><circle cx="700" cy="350" r="90" fill="none" stroke="#ffb84c" stroke-width="6"/><circle cx="700" cy="350" r="110" fill="none" stroke="#ffb84c" stroke-opacity=".35" stroke-width="5"/></g>
+          <path id="adjust-path" class="dash" d="M1060 370 C970 310 865 304 784 338" marker-end="url(#arrow)"/>
+          <g id="robot-note"><text class="label" x="1035" y="230">发现位置变了</text><text class="small" x="1035" y="285">判断新位置，再调整重抓</text></g>
+        </g>
+        <g id="turn-scene">
+          <text class="label" x="80" y="90">抓起来，才发现拿反了</text>
+          <text class="small" x="80" y="140">还得想办法转过来</text>
+          <g id="turn-part">
+            <path d="M460 270 L850 175 L1015 280 L625 375 Z" fill="#b1cbbc" stroke="#e0ede2" stroke-width="8"/>
+            <path d="M625 375 L1015 280 V350 L625 445 Z" fill="#6f9787" stroke="#d5e7d9" stroke-width="8"/>
+            <circle cx="885" cy="264" r="22" fill="#24423b" stroke="#ffb84c" stroke-width="7"/>
+          </g>
+          <path class="dash" d="M525 505 C640 590 930 570 1040 455" marker-end="url(#arrow)"/>
+          <text class="emph" x="1130" y="345">转过来</text>
+        </g>
+        <g id="respond-scene">
+          <text class="label" x="80" y="90">每件小事，都可能出现新情况</text>
+          <g transform="translate(90 170)"><g id="see">
+            <rect width="415" height="300" rx="6" fill="#29413f"/>
+            <text class="emph" x="35" y="76">看</text>
+            <path class="line" d="M105 190 Q205 83 305 190 Q205 297 105 190 Z"/><circle cx="205" cy="190" r="37" fill="none" stroke="#c5d9cc" stroke-width="7"/>
+          </g></g>
+          <g transform="translate(590 170)"><g id="judge">
+            <rect width="415" height="300" rx="6" fill="#29413f"/>
+            <text class="emph" x="35" y="76">判断</text>
+            <circle cx="135" cy="183" r="24" fill="#a9c8b6"/><circle cx="285" cy="133" r="24" fill="#a9c8b6"/><circle cx="285" cy="242" r="24" fill="#a9c8b6"/>
+            <path class="line" d="M159 183 L260 133 M159 183 L260 242"/>
+          </g></g>
+          <g transform="translate(1090 170)"><g id="act">
+            <rect width="415" height="300" rx="6" fill="#29413f"/>
+            <text class="emph" x="35" y="76">动手</text>
+            <path class="line" d="M205 94 V155 H140 V205 M205 155 H270 V205 M140 205 l31 29 M270 205 l-31 29"/>
+            <path d="M165 249 l65 -21 39 27 -65 21 z" fill="#a9c8b6" stroke="#ffb84c" stroke-width="5"/>
+          </g></g>
+        </g>
+        <g id="once-scene">
+          <text class="label" x="90" y="95">工厂不会只看一次成功</text>
+          <text class="big" x="90" y="235">一次成功</text>
+          <text class="emph" x="505" y="235">≠</text>
+          <text class="big" x="650" y="235">整个工位</text>
+          <rect x="95" y="325" width="130" height="95" rx="4" fill="#a9c8b6" stroke="#d8e8dc" stroke-width="5"/>
+          <path d="M128 371 l25 24 42 -49" fill="none" stroke="#24423b" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+          <path class="dash" d="M270 372 H570" marker-end="url(#arrow)"/>
+          <g fill="none" stroke="#9ebbb0" stroke-width="5">
+            <rect x="650" y="325" width="130" height="95" rx="4"/><rect x="805" y="325" width="130" height="95" rx="4"/><rect x="960" y="325" width="130" height="95" rx="4"/><rect x="1115" y="325" width="130" height="95" rx="4"/><rect x="1270" y="325" width="130" height="95" rx="4"/>
+          </g>
+          <text class="small" x="650" y="480">一件接一件，持续工作</text>
+        </g>
+      </svg>
+    </section>
+  </main>
+  <script>
+    // 箱内变化、手与夹具都是原创图形，用同一零件贯穿观察和调整。
+    gsap.set('#slide-trail, #slip-note, #hand, #human-note, #observe-ring, #adjust-path, #robot-note', { autoAlpha: 0 });
+    gsap.set('#turn-scene, #respond-scene, #once-scene', { autoAlpha: 0, y: 20 });
+    gsap.set('#see, #judge, #act', { autoAlpha: 0, y: 18 });
+    const sequence = gsap.timeline({ paused: true });
+    sequence.to('#first-gripper', { y: 65, duration: .8, ease: 'power2.inOut' }, 3.7)
+      .to('#sliding-part', { x: 135, y: 25, duration: .6, ease: 'power2.out' }, 4.6)
+      .to('#slide-trail, #slip-note', { autoAlpha: 1, duration: .25 }, 4.65)
+      .to('#first-gripper, #slide-trail, #slip-note, #bin-notes', { autoAlpha: 0, duration: .35 }, 7.0)
+      .to('#hand, #human-note', { autoAlpha: 1, duration: .3 }, 7.35)
+      .to('#hand', { x: 90, duration: .55, ease: 'power2.out' }, 7.7)
+      .to('#sliding-part', { x: 65, y: 8, rotation: -10, svgOrigin: '595 329', duration: .65, ease: 'power2.inOut' }, 8.0)
+      .to('#hand, #human-note', { autoAlpha: 0, duration: .4 }, 9.4)
+      .to('#observe-ring, #robot-note', { autoAlpha: 1, duration: .4 }, 9.8)
+      .to('#adjust-path', { autoAlpha: 1, duration: .4 }, 11.3)
+      .to('#first-gripper', { autoAlpha: 1, x: 70, y: 45, duration: .7, ease: 'power2.out' }, 12.1)
+      .to('#first-gripper', { y: 95, duration: .65, ease: 'power2.inOut' }, 13.2)
+      .to('#first-gripper, #sliding-part', { y: '-=40', duration: .7, ease: 'power2.out' }, 14.1)
+      .to('#bin-scene', { autoAlpha: 0, x: -30, duration: .5 }, 15.3)
+      .to('#turn-scene', { autoAlpha: 1, y: 0, duration: .45 }, 15.55)
+      .to('#turn-part', { rotation: 180, svgOrigin: '737 310', duration: 1.2, ease: 'power2.inOut' }, 16.45)
+      .to('#turn-scene', { autoAlpha: 0, x: -30, duration: .45 }, 18.8)
+      .to('#respond-scene', { autoAlpha: 1, y: 0, duration: .45 }, 19.05)
+      .to('#see', { autoAlpha: 1, y: 0, duration: .45 }, 20.0)
+      .to('#judge', { autoAlpha: 1, y: 0, duration: .45 }, 21.6)
+      .to('#act', { autoAlpha: 1, y: 0, duration: .45 }, 23.2)
+      .to('#respond-scene', { autoAlpha: 0, x: -30, duration: .5 }, 27.3)
+      .to('#once-scene', { autoAlpha: 1, y: 0, duration: .5 }, 27.55)
+      .to({}, { duration: .01 }, 31.87);
+    window.__timelines = { 'changing-bin': sequence };
+    window.getVfcMotionEvents = () => [
+      { id: 'bin-and-slip', meaning: '零件姿态、遮挡及接触后滑动', startFrame: 0, endFrame: 182 },
+      { id: 'human-adjusts', meaning: '手拨开零件并换角度', startFrame: 182, endFrame: 242 },
+      { id: 'robot-regrabs', meaning: '发现位置变化、判断与调整重抓', startFrame: 242, endFrame: 388 },
+      { id: 'turn-part', meaning: '拿反后把零件转过来', startFrame: 388, endFrame: 474 },
+      { id: 'see-judge-act', meaning: '看、判断与动手应对连续变化', startFrame: 474, endFrame: 688 },
+      { id: 'one-is-not-the-job', meaning: '一次成功尚不足以交付整个工位', startFrame: 688, endFrame: 797 }
+    ];
+  </script>
+</body>
+</html>

@@ -57,6 +57,7 @@ type FrameRange = { startFrame: number; endFrame: number };
 export function productionObservationRanges(snapshot: ProjectSnapshot, scope: ProductionCompletionScope): FrameRange[] {
   if (scope.kind === "project") return snapshot.timeline.durationInFrames > 0 ? [{ startFrame: 0, endFrame: snapshot.timeline.durationInFrames }] : [];
   if (scope.kind === "beats") return scope.beatIds.flatMap(beatId => snapshot.scenes.flatMap(scene => effectBeatRanges(snapshot, beatId, scene.id)));
+  if (scope.kind === "frames") return [{ startFrame: scope.startFrame, endFrame: scope.endFrame }];
   const ids = new Set(scope.objectIds);
   const audioItems = new Set(snapshot.audioCues.filter(cue => ids.has(cue.id)).map(cue => cue.timelineItemId));
   const relatedScenes = new Set(snapshot.visualTreatments.filter(item => ids.has(item.id) && item.sceneId).map(item => item.sceneId));

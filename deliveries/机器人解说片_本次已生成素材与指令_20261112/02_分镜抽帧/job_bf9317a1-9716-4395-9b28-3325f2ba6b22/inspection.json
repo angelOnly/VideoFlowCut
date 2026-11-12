@@ -1,0 +1,130 @@
+{
+  "projectId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5",
+  "revision": 102,
+  "workId": "motion_work_ff0edd70a0375da9eaea479244b1b13558af002cdf010f43291c5932ab04ded0",
+  "workVersion": "f28d1cb4c5846f30024dbd89616a69d34ffe008db78b0f2721f1b78db860ca4f",
+  "definitionHash": "ff0edd70a0375da9eaea479244b1b13558af002cdf010f43291c5932ab04ded0",
+  "evidencePath": "previews/motion-inspection/job_bf9317a1-9716-4395-9b28-3325f2ba6b22",
+  "report": {
+    "status": "exact",
+    "maxAllowedChannelDelta": 2,
+    "sampledFrames": [
+      0,
+      28,
+      45,
+      54,
+      65,
+      80,
+      98,
+      105,
+      120,
+      140,
+      160,
+      170,
+      185,
+      200,
+      215,
+      235,
+      250,
+      270,
+      290,
+      314
+    ],
+    "visitOrder": {
+      "ascending": [
+        0,
+        28,
+        45,
+        54,
+        65,
+        80,
+        98,
+        105,
+        120,
+        140,
+        160,
+        170,
+        185,
+        200,
+        215,
+        235,
+        250,
+        270,
+        290,
+        314
+      ],
+      "samePageReverse": [
+        314,
+        290,
+        270,
+        250,
+        235,
+        215,
+        200,
+        185,
+        170,
+        160,
+        140,
+        120,
+        105,
+        98,
+        80,
+        65,
+        54,
+        45,
+        28,
+        0
+      ],
+      "cleanPageReverse": [
+        314,
+        290,
+        270,
+        250,
+        235,
+        215,
+        200,
+        185,
+        170,
+        160,
+        140,
+        120,
+        105,
+        98,
+        80,
+        65,
+        54,
+        45,
+        28,
+        0
+      ]
+    },
+    "failedFrames": [],
+    "differences": [],
+    "events": [
+      {
+        "id": "atlas-return",
+        "meaning": "回看真实后空翻与落地",
+        "startFrame": 0,
+        "endFrame": 99
+      },
+      {
+        "id": "part-tilt",
+        "meaning": "零件摆歪后的问题",
+        "startFrame": 99,
+        "endFrame": 162
+      },
+      {
+        "id": "part-drop",
+        "meaning": "东西掉落后的问题",
+        "startFrame": 161,
+        "endFrame": 214
+      },
+      {
+        "id": "next-piece",
+        "meaning": "长期工作后还能否稳稳拿起下一件",
+        "startFrame": 212,
+        "endFrame": 315
+      }
+    ]
+  }
+}

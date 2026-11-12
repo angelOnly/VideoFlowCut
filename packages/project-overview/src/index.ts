@@ -392,7 +392,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     name: "生产与质量",
     description: "记录创作决定，运行生产流程，读取技能交接、图结构和连续预览审片证据。",
     tools: [
-      "start_production_run", "record_creative_decision", "record_editorial_quality_review", "complete_production_run",
+      "start_production_run", "update_production_run", "record_creative_decision", "record_editorial_quality_review", "complete_production_run",
       "read_skill_execution_report", "validate_project_graph", "read_quality_report", "render_preview_range",
       "inspect_composed_frames"
     ]

@@ -176,6 +176,8 @@ try {
   assert.ok(tools.tools.find(tool => tool.name === "get_editor_url")?.inputSchema.properties.production_run_id, "工作台入口须接受本次 ProductionRun");
   assert.ok(tools.tools.find(tool => tool.name === "read_production_status")?.inputSchema.properties.completion_scope, "制作状态须接受本次收口范围");
   assert.ok(tools.tools.find(tool => tool.name === "complete_production_run")?.inputSchema.required.includes("final_revision"), "制作收口须明确结果版本");
+  assert.ok(tools.tools.find(tool => tool.name === "update_production_run"), "发行 MCP 须支持登记实际职责");
+  assert.ok(tools.tools.find(tool => tool.name === "record_creative_decision")?.inputSchema.properties.input_decision_ids, "发行 MCP 须保留作者之间的输入关系");
   assert.match(motionTool?.description ?? "", /data-vfc-video-slot.*作品根时钟/u, "发行工具表必须公开作品根时钟视频合同");
   assert.match(motionTool.inputSchema.properties.work.properties.durationInFrames.description, /不按30秒/u, "发行字段必须公开完整作品资源策略");
   assert.ok(tools.tools.some((tool) => tool.name === "inspect_asset"), "插件 MCP 必须发现 inspect_asset");
@@ -417,13 +419,15 @@ try {
     frames: [0, previewToFrame - 1]
   });
   assert.equal(composedFrames.frames.length, 2, "发行版 Preview 必须可提取实际合成帧");
-  const reviewRun = await call("start_production_run", { project_id: project.snapshot.project.id, loaded_skills: ["quality-verification"] });
+  const reviewRun = await call("start_production_run", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
+    intent: "review_only", completion_scope: { kind: "project" }, operation_id: "release-review-run", loaded_skills: ["quality-verification"] });
   const editor = await call("get_editor_url", { project_id: project.snapshot.project.id, production_run_id: reviewRun.id,
     revision: projectState.revision.number, from_frame: 0, to_frame: previewToFrame });
   assert.equal(new URL(editor.editorUrl).searchParams.get("productionRunId"), reviewRun.id);
   const review = await call("record_editorial_quality_review", {
     project_id: project.snapshot.project.id,
     run_id: reviewRun.id,
+    operation_id: "release-review-observation",
     revision: projectState.revision.number,
     passes: ["mute_visual"],
     findings: [],
@@ -437,9 +441,21 @@ try {
   assert.equal(status.completion.runId, reviewRun.id);
   assert.ok(status.completion.observationGaps.length > 0, "预览文件不能代替工作台观察");
   const completion = await call("complete_production_run", { project_id: project.snapshot.project.id, run_id: reviewRun.id,
-    final_revision: projectState.revision.number, completion_scope: { kind: "project" } });
+    final_revision: projectState.revision.number, completion_scope: { kind: "project" }, operation_id: "release-review-complete" });
   assert.equal(completion.status, "incomplete");
   assert.deepEqual(completion.completionBlockers, status.completion.completionBlockers, "读取状态与收口必须使用相同判断");
+  const stillScope = { kind: "frames", start_frame: 0, end_frame: 1 };
+  const stillRun = await call("start_production_run", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
+    intent: "review_only", completion_scope: stillScope, operation_id: "release-still-run", loaded_skills: ["quality-verification"] });
+  await call("record_editorial_quality_review", { project_id: project.snapshot.project.id, run_id: stillRun.id, operation_id: "release-still-observation",
+    revision: projectState.revision.number, passes: ["mute_visual"], findings: [], observations: [{ source: "workbench", observer: "隔离验证",
+      pass: "mute_visual", method: "frames", start_frame: 0, end_frame: 1, observation: "测试声明：单帧观察，只验证合同" }] });
+  const stillCompletion = { project_id: project.snapshot.project.id, run_id: stillRun.id, final_revision: projectState.revision.number, completion_scope: stillScope };
+  assert.equal((await call("complete_production_run", { ...stillCompletion, operation_id: "release-still-complete" })).status, "completed");
+  const confirm = { ...stillCompletion, operation_id: "release-still-confirm" };
+  assert.equal((await call("complete_production_run", confirm)).status, "completed");
+  assert.equal((await call("complete_production_run", confirm)).status, "completed");
+  await assert.rejects(() => call("complete_production_run", { ...confirm, quality_review: ["不同内容"] }), /操作编号已用于不同内容/u);
   assert.equal((await call("read_project", { project_id: project.snapshot.project.id })).revision.number, projectState.revision.number, "审片不得创建视频 Revision");
   await transport.close();
   transport = undefined;

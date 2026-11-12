@@ -1,0 +1,104 @@
+{
+  "projectId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5",
+  "revision": 100,
+  "workId": "motion_work_729a053e24b296d44aa1ade1517efe6c54ea183402b0a0ae4e97d09bf838f159",
+  "workVersion": "b5929f907f7802156a5ace9e04069f66e10050b26f268d39e458f192ae752a78",
+  "definitionHash": "729a053e24b296d44aa1ade1517efe6c54ea183402b0a0ae4e97d09bf838f159",
+  "evidencePath": "previews/motion-inspection/job_9636ddd9-29d3-46cf-95d3-aded51f36874",
+  "report": {
+    "status": "exact",
+    "maxAllowedChannelDelta": 2,
+    "sampledFrames": [
+      0,
+      40,
+      80,
+      115,
+      130,
+      160,
+      240,
+      265,
+      275,
+      305,
+      340,
+      375,
+      410,
+      450,
+      487
+    ],
+    "visitOrder": {
+      "ascending": [
+        0,
+        40,
+        80,
+        115,
+        130,
+        160,
+        240,
+        265,
+        275,
+        305,
+        340,
+        375,
+        410,
+        450,
+        487
+      ],
+      "samePageReverse": [
+        487,
+        450,
+        410,
+        375,
+        340,
+        305,
+        275,
+        265,
+        240,
+        160,
+        130,
+        115,
+        80,
+        40,
+        0
+      ],
+      "cleanPageReverse": [
+        487,
+        450,
+        410,
+        375,
+        340,
+        305,
+        275,
+        265,
+        240,
+        160,
+        130,
+        115,
+        80,
+        40,
+        0
+      ]
+    },
+    "failedFrames": [],
+    "differences": [],
+    "events": [
+      {
+        "id": "human-spaces",
+        "meaning": "利用为人准备的通道、工具和设备的可能性",
+        "startFrame": 0,
+        "endFrame": 128
+      },
+      {
+        "id": "possible-change",
+        "meaning": "未来换岗的设想",
+        "startFrame": 125,
+        "endFrame": 268
+      },
+      {
+        "id": "real-evaluation",
+        "meaning": "以实际表现评估重新教学、续航、维护和停机",
+        "startFrame": 266,
+        "endFrame": 488
+      }
+    ]
+  }
+}

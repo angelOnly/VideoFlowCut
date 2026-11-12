@@ -1,0 +1,134 @@
+{
+  "projectId": "project_01dbb05a-9134-4b46-9b5e-47a2c8cda5b5",
+  "revision": 113,
+  "workId": "motion_work_502e15a331362ecd0ca8c7923fcfa987c035547736a3c6183467db37d466c9e9",
+  "workVersion": "5206f25241970c0aa8a6e713ff2d268dd07e147b96fbd68a060e6bd3e2216611",
+  "definitionHash": "502e15a331362ecd0ca8c7923fcfa987c035547736a3c6183467db37d466c9e9",
+  "evidencePath": "previews/motion-inspection/job_e73cbd2b-e19c-46a6-9a8b-baa5c83278dd",
+  "report": {
+    "status": "exact",
+    "maxAllowedChannelDelta": 2,
+    "sampledFrames": [
+      205,
+      240,
+      325,
+      350,
+      385,
+      395,
+      420,
+      440,
+      460,
+      474,
+      500,
+      540,
+      580,
+      620,
+      680,
+      690,
+      730,
+      796
+    ],
+    "visitOrder": {
+      "ascending": [
+        205,
+        240,
+        325,
+        350,
+        385,
+        395,
+        420,
+        440,
+        460,
+        474,
+        500,
+        540,
+        580,
+        620,
+        680,
+        690,
+        730,
+        796
+      ],
+      "samePageReverse": [
+        796,
+        730,
+        690,
+        680,
+        620,
+        580,
+        540,
+        500,
+        474,
+        460,
+        440,
+        420,
+        395,
+        385,
+        350,
+        325,
+        240,
+        205
+      ],
+      "cleanPageReverse": [
+        796,
+        730,
+        690,
+        680,
+        620,
+        580,
+        540,
+        500,
+        474,
+        460,
+        440,
+        420,
+        395,
+        385,
+        350,
+        325,
+        240,
+        205
+      ]
+    },
+    "failedFrames": [],
+    "differences": [],
+    "events": [
+      {
+        "id": "bin-and-slip",
+        "meaning": "零件姿态、遮挡及接触后滑动",
+        "startFrame": 0,
+        "endFrame": 182
+      },
+      {
+        "id": "human-adjusts",
+        "meaning": "手拨开零件并换角度",
+        "startFrame": 182,
+        "endFrame": 242
+      },
+      {
+        "id": "robot-regrabs",
+        "meaning": "发现位置变化、判断与调整重抓",
+        "startFrame": 242,
+        "endFrame": 388
+      },
+      {
+        "id": "turn-part",
+        "meaning": "拿反后把零件转过来",
+        "startFrame": 388,
+        "endFrame": 474
+      },
+      {
+        "id": "see-judge-act",
+        "meaning": "看、判断与动手应对连续变化",
+        "startFrame": 474,
+        "endFrame": 688
+      },
+      {
+        "id": "one-is-not-the-job",
+        "meaning": "一次成功尚不足以交付整个工位",
+        "startFrame": 688,
+        "endFrame": 797
+      }
+    ]
+  }
+}

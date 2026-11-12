@@ -54,8 +54,10 @@
 
 ProductionRun与SkillExecutionReport记录实际工作过程，不参与动画编译，不是第二份成片状态。记录实际用到的能力、决定、对象、证据及未完成项，不能用已加载Skill或工作单代替真实宿主调用。
 
-`record_creative_decision` 的 delegation 使用 `{agent_id, assignment_id, role, skill_id, input_revision}`；前两者为宿主返回的真实标识，skill_id 为本次专业职责的主 Skill，input_revision 是实际使用的历史版本。导演采用需保存 `delivery_ref` 的 `manifest_path、manifest_sha256、scene_ids`。报告中的字段使用 camelCase，主任务继续核对真实负责人和输入依赖。
+`start_production_run` 使用实际 `base_revision_id`、任务 `intent`、目标 `completion_scope` 和稳定 `operation_id`；`frames` 范围的 `start_frame` 包含、`end_frame` 不包含。宿主分派后通过 `update_production_run` 登记真实 agent_id、协调者生成的 assignment_id、职责、技能、范围和输入版本；创作职责以实际负责的 project、beats 或 objects 分派，帧范围用于观察。更新携带当前 `expected_audit_version`。同一操作重试复用 operation_id，读回可能包含后续追加的记录。
+
+`record_creative_decision` 使用 `phase`、`assignment_id`、实际 `input_revision`、明确 `object_ids` 和 `operation_id`。创意与机制研究分别使用 `creative_research`、`motion_research`，填写真实 `research_outcome` 和依据；部分结果或尚未核实使用 `pending`，完成研究用 `researched`，明确不适用用 `not_applicable`。实际研究的库参考以 `research_references` 记录类型、编号和来源指纹；视觉设计用 `input_decision_ids` 引用实际接收的研究，导演采用引用视觉设计并填写 `delivery_ref` 的 `manifest_path、manifest_sha256、scene_ids`。研究后未采用也记录真实结论。
 
 导演完成主要采用判断后，主任务以 `manage_visual_treatment.adopted_decision_ref` 关联本次 ProductionRun 和决定，并写入本场实际采用素材。用当前版本和 `visual_treatment_ids` 启动制作。状态读回与续修按受影响范围处理，当前采用改变后核对 stale 和声音未完成项。
 
-这些字段不能认证真实宿主调用，也不证明当前负责人已接任或实际看过媒体；接替与迟到结果按共同交接约定核对。旧报告没有delegation可继续读，不能补造代理身份。
+这些字段不能认证真实宿主调用，也不证明当前负责人已接任或实际看过媒体；接替与迟到结果按共同交接约定核对。旧报告作为审计资料读取，后续范围由新 Run 承接。

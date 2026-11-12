@@ -70,7 +70,7 @@ async function main(): Promise<void> {
     const projectId = created.snapshot.project.id;
     const run = JSON.parse(textFromToolResult(await client.callTool({
       name: "start_production_run",
-      arguments: { project_id: projectId, base_revision_id: created.revision.number, loaded_skills: requiredSkills, loaded_references: [".agents/skills/_shared/EDITORIAL_FOUNDATIONS.md"] }
+      arguments: { project_id: projectId, base_revision_id: created.revision.number, intent: "full_creation", completion_scope: { kind: "project" }, operation_id: "creative-eval-run", loaded_skills: requiredSkills, loaded_references: [".agents/skills/_shared/EDITORIAL_FOUNDATIONS.md"] }
     }))) as { id: string; loadedSkills: string[] };
     assert.deepEqual(run.loadedSkills, requiredSkills);
 
@@ -79,6 +79,7 @@ async function main(): Promise<void> {
       arguments: {
         project_id: projectId,
         run_id: run.id,
+        operation_id: "creative-eval-decision",
         category: "quality",
         decision: "将真实预览和质量复核列为交付前必经步骤",
         rationale: "组件冒烟测试不能证明脚本、素材和节奏的实际成片质量",
@@ -90,7 +91,7 @@ async function main(): Promise<void> {
     const report = JSON.parse(textFromToolResult(await client.callTool({ name: "read_skill_execution_report", arguments: { project_id: projectId, run_id: run.id } }))) as { id: string; status: string };
     assert.equal(report.id, run.id);
     assert.equal(report.status, "active");
-    const completed = JSON.parse(textFromToolResult(await client.callTool({ name: "complete_production_run", arguments: { completion_scope: { kind: "project" }, project_id: projectId, run_id: run.id } }))) as { status: string; completionBlockers?: string[] };
+    const completed = JSON.parse(textFromToolResult(await client.callTool({ name: "complete_production_run", arguments: { completion_scope: { kind: "project" }, project_id: projectId, run_id: run.id, operation_id: "creative-eval-complete", final_revision: created.revision.number } }))) as { status: string; completionBlockers?: string[] };
     assert.equal(completed.status, "incomplete", "没有真实项目、预览和审片证据的 Run 不能被伪装成完成");
     assert.ok(completed.completionBlockers?.length, "不完整 Run 必须返回可补齐的收口条件");
 
