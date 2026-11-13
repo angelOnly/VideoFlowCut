@@ -56,7 +56,7 @@ ProductionRun与SkillExecutionReport记录实际工作过程，不参与动画�
 
 `start_production_run` 使用实际 `base_revision_id`、任务 `intent`、目标 `completion_scope` 和稳定 `operation_id`；`frames` 范围的 `start_frame` 包含、`end_frame` 不包含。宿主分派后通过 `update_production_run` 登记真实 agent_id、协调者生成的 assignment_id、职责、技能、范围和输入版本；创作职责以实际负责的 project、beats 或 objects 分派，帧范围用于观察。更新携带当前 `expected_audit_version`。同一操作重试复用 operation_id，读回可能包含后续追加的记录。
 
-`record_creative_decision` 使用 `phase`、`assignment_id`、实际 `input_revision`、明确 `object_ids` 和 `operation_id`。创意与机制研究分别使用 `creative_research`、`motion_research`，填写真实 `research_outcome` 和依据；部分结果或尚未核实使用 `pending`，完成研究用 `researched`，明确不适用用 `not_applicable`。实际研究的库参考以 `research_references` 记录类型、编号和来源指纹；视觉设计用 `input_decision_ids` 引用实际接收的研究，导演采用引用视觉设计并填写 `delivery_ref` 的 `manifest_path、manifest_sha256、scene_ids`。研究后未采用也记录真实结论。
+`record_creative_decision` 使用 `phase`、`assignment_id`、实际 `input_revision`、明确 `object_ids` 和 `operation_id`。创意与机制研究分别使用 `creative_research`、`motion_research`，填写真实 `research_outcome` 和依据。部分结果或尚未核实使用 `pending`；有参考的研究完成时使用 `researched`，必须在 `research_references` 中记录实际参考的类型、编号和来源指纹。研究后无适用参考或决定不采用时使用 `not_applicable`，在 `evidence` 写明实际研究范围和理由，也可用 `research_references` 保留研究过但未采用的参考；这些参考不自动成为正式采用。视觉设计用 `input_decision_ids` 引用实际接收的研究，导演采用引用视觉设计并填写 `delivery_ref` 的 `manifest_path、manifest_sha256、scene_ids`。
 
 导演完成主要采用判断后，主任务以 `manage_visual_treatment.adopted_decision_ref` 关联本次 ProductionRun 和决定，并写入本场实际采用素材。用当前版本和 `visual_treatment_ids` 启动制作。状态读回与续修按受影响范围处理，当前采用改变后核对 stale 和声音未完成项。
 

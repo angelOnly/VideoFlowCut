@@ -1,4 +1,5 @@
 import type { Asset, JobRecord, MotionReviewEvidence, MotionReviewEvidenceInput, MotionReviewOutcome, MotionWork, ProjectSnapshot } from "@videocut/contracts";
+import { motionWorkForCue, motionWorkVersion } from "@videocut/contracts";
 import { DomainError, now, resolveCompositionReachability } from "@videocut/domain";
 import { inspectEvidenceMedia, validateEditorialObservations } from "./editorial-evidence.js";
 
@@ -20,7 +21,8 @@ export async function validateSourceMotionReviewEvidence(snapshot: ProjectSnapsh
   } else {
     if (input.kind === "project_preview" && !input.previewJobId) throw new DomainError("合成文件证据需要 Preview Job", "MOTION_REVIEW_PREVIEW_REQUIRED");
     const active = resolveCompositionReachability(snapshot);
-    const cues = snapshot.effectCues.filter(cue => active.effectCueIds.has(cue.id) && cue.workId === work.id && cue.startFrame < input.endFrame && cue.endFrame > input.startFrame);
+    const cues = snapshot.effectCues.filter(cue => active.effectCueIds.has(cue.id) && cue.workId === work.id
+      && motionWorkForCue(snapshot, cue)?.definitionHash === work.definitionHash && cue.startFrame < input.endFrame && cue.endFrame > input.startFrame);
     const cue = cues[0];
     if (!cue) throw new DomainError("项目观察使用全局帧，范围必须与目标作品的有效 Cue 相交，通过时完整覆盖", "MOTION_REVIEW_CUE_MISMATCH");
     const [record] = await validateEditorialObservations(snapshot, revision, jobs, [{
@@ -65,7 +67,9 @@ export async function validateSourceMotionReviewEvidence(snapshot: ProjectSnapsh
 }
 
 export async function validateMotionReviewEvidence(snapshot: ProjectSnapshot, revision: number, jobs: JobRecord[], asset: Asset, outcome: MotionReviewOutcome, input?: MotionReviewEvidenceInput) {
-  const work = snapshot.motionWorks?.find(work => work.id === asset.motion?.workId);
+  const active = snapshot.motionWorks?.find(work => work.id === asset.motion?.workId);
+  const work = asset.motion?.definitionHash ? motionWorkVersion(snapshot.motionWorks, asset.motion.workId, asset.motion.definitionHash)
+    : [active, ...(active?.previousVersions ?? [])].find(item => item?.version === asset.motion?.version);
   if (!work) throw new DomainError("派生媒体没有固定作品引用", "MOTION_WORK_NOT_FOUND");
   return validateSourceMotionReviewEvidence(snapshot, revision, jobs, work, outcome, input, asset);
 }

@@ -91,7 +91,7 @@ async function executeMotionJob(application: EditingApplication, job: JobRecord,
       await provider.verifySources();
       const eventMap = initialized.events === undefined ? undefined : { version, fps: work.fps, frameCount: work.durationInFrames, events: initialized.events };
       const registered = application.completeSourceMotionWork(job.projectId, job.id, eventMap);
-      return { kind: "motion_work", workId: registered.id, version, revision: application.readProject(job.projectId).revision.number, capturedFrames: 0 };
+      return { kind: "motion_work", workId: registered.id, definitionHash: registered.definitionHash, version, revision: application.readProject(job.projectId).revision.number, capturedFrames: 0 };
     } finally { await provider?.close(); await rm(temporary, { recursive: true, force: true }); }
   }
   const parent = proof ? join(snapshot.project.rootPath, "previews", "motion", job.id) : join(snapshot.project.rootPath, "assets", "derived", "motion", job.id);

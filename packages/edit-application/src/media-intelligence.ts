@@ -96,15 +96,28 @@ export class MediaIntelligenceApplication {
       candidateEvidence,
       evidenceAvailability: observations.slice(offset, offset + limit).map((observation) => ({ observationId: observation.id, inputAvailable: observation.inputEvidence ? existsSync(observation.inputEvidence.path) : undefined, sourceAvailable: existsSync(currentSources.find((source) => source.id === observation.sourceId)!.path) })),
       modalityCoverage: analyses.map((record) => ({ analysisId: record.id, windows: record.windows.map((window) => ({ range: window.range, region: window.region, modalities: window.modalityStatus ?? {}, error: window.error })), facts: record.modalities.map((modality) => {
-        const facts = observations.filter((observation) => observation.sourceId === record.sourceId).flatMap((observation) => observation.facts).filter((fact) => fact.modality === modality);
-        const localized = facts.flatMap((fact) => fact.range ? [fact.range] : []);
-        return { modality, factCount: facts.length, unlocatedFactCount: facts.filter((fact) => !fact.range && record.targetRange).length, unknownRanges: record.targetRange ? uncoveredRanges(record.targetRange, localized) : undefined, precision: [...new Set(facts.map((fact) => fact.precision))] };
+        // 每次分析只汇总自己的窗口与纠正链，不能借用同一素材的其他分析结果。
+        const windowIds = new Set(record.windows.flatMap((window) => window.observationId ? [window.observationId] : []));
+        const belongsToAnalysis = (observation: typeof observations[number]) => {
+          let current = observation;
+          while (!windowIds.has(current.id) && current.supersedes) {
+            const previous = this.store.observation(projectId, current.supersedes);
+            if (!previous || previous.sourceId !== record.sourceId) return false;
+            current = previous;
+          }
+          return windowIds.has(current.id);
+        };
+        const facts = observations.filter((observation) => observation.sourceId === record.sourceId && belongsToAnalysis(observation))
+          .flatMap((observation) => observation.facts).filter((fact) => fact.modality === modality);
+        const range = record.targetRange && target.range ? intersection(record.targetRange, target.range) : record.targetRange;
+        const localized = facts.flatMap((fact) => fact.range && range ? [intersection(fact.range, range)].filter((part): part is NonNullable<typeof part> => !!part) : []);
+        return { modality, factCount: facts.length, unlocatedFactCount: facts.filter((fact) => !fact.range && range).length, unknownRanges: range ? uncoveredRanges(range, localized) : undefined, precision: [...new Set(facts.map((fact) => fact.precision))] };
       }) })),
       observations: observations.slice(offset, offset + limit), nextOffset: offset + limit < observations.length ? offset + limit : undefined,
       coverage: analyses.map((record) => ({ id: record.id, sourceId: record.sourceId, depth: record.depth, status: record.status, totalWindows: record.windows.length, completedWindows: record.windows.filter((window) => window.status === "succeeded").length, failedWindows: record.windows.filter((window) => ["failed", "unknown"].includes(window.status)), missingRanges: record.targetRange ? uncoveredRanges(record.targetRange, record.windows.filter((window) => window.status === "succeeded" && window.range).map((window) => window.range!)) : [], shotRanges: record.shotRanges.slice(offset, offset + limit), totalShots: record.shotRanges.length })),
       technicalStatus: target.assetId ? assetById(snapshot, target.assetId).status : undefined,
       // 窗口处理完成不等于画面/声音事实完整覆盖，更不等于已经复听。
-      semanticStatus: !analyses.length ? "not_analyzed" : observations.some((observation) => observation.facts.length) ? "observations_available" : "no_confirmed_facts",
+      semanticStatus: !analyses.length ? "not_analyzed" : observations.some((observation) => observation.facts.length || observation.timingMeasurement?.status === "measured") ? "observations_available" : "no_confirmed_facts",
       processingStatus: !analyses.length ? "not_started" : analyses.every((record) => record.status === "succeeded") ? "requested_windows_processed" : "partial_or_pending"
     };
   }

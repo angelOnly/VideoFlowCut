@@ -47,7 +47,7 @@ export async function readProductionStatus(app: EditingApplication, projectId: s
       sound: state.reviews.soundMixes.map(review => ({ previewJobId: review.previewJobId, previewRevision: review.previewRevision,
         method: review.method, fromFrame: review.fromFrame, toFrame: review.toFrame, outcome: review.outcome,
         currentRevisionApplicability: review.previewRevision === state.revision.number ? "same_revision" : "requires_dependency_check" })),
-      motion: state.reviews.motions.map(review => ({ workId: review.workId, assetId: review.assetId, version: review.version,
+      motion: state.reviews.motions.map(review => ({ workId: review.workId, assetId: review.assetId, version: review.version, definitionHash: review.definitionHash,
         outcome: review.outcome, note: review.note, evidence: review.evidence })),
       editorial: completion ? { observationGaps: completion.observationGaps, openRequiredFindingIds: completion.openRequiredFindingIds } : undefined
     },

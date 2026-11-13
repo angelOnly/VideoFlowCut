@@ -130,7 +130,8 @@ test("24→30帧局部接点保持全局时钟、单卡字幕、统一静音与�
     const { hashMediaFile } = await import("../packages/edit-application/src/media-intelligence.js");
     const hash = await hashMediaFile(path);
     const asset = { id: "motion", name: "帧钟", kind: "video", status: "ready", managedPath: "assets/source/clock.mkv", sourceHash: hash, metadata: { width:128, height:128, hasAudio:false }, motion: { width:128,height:128,fps:24,frameCount:8,output:{path:"assets/source/clock.mkv",hash,kind:"alpha_video",codec:"ffv1",pixelFormat:"bgra"} } } as any;
-    asset.motion.workId = "source-work"; snapshot.motionWorks = [motionWorkFixture({ id: "source-work", width: 128, height: 128, fps: 24, frameCount: 8 })];
+    snapshot.motionWorks = [motionWorkFixture({ id: "source-work", width: 128, height: 128, fps: 24, frameCount: 8 })];
+    asset.motion.workId = "source-work"; asset.motion.version = snapshot.motionWorks[0].version;
     snapshot.assets.push(asset);
     snapshot.scenes.push({ id:"scene", type:"ExplainerScene", startFrame:0, endFrame:10, title:"混合", purpose:"时钟" } as any);
     snapshot.effectCues.push({ id:"motion-cue",type:"ManagedMotion",status:"ready",sceneId:"scene",layer:"fullscreen",startFrame:0,endFrame:10,workId:"source-work",assetBindings:[],props:{},spatialAnchor:"full_frame",stylePackId:"managed-source",intensity:1,motion:{enterPreset:"none",settlePreset:"hold",exitPreset:"none",enterFrames:0,exitFrames:0,holdFrames:10} } as any);

@@ -48,8 +48,8 @@ export function MotionSourceLayer({ work, projectId, revision, mediaBaseUrl, fra
     window.addEventListener("message", listener);
     const timeout = window.setTimeout(() => { if (!ready.current) setFailure("作品初始化未完成，请查看固定资源和运行时状态。"); }, 30_000);
     return () => { clearTimeout(timeout); clearTimeout(requestTimer.current); window.removeEventListener("message", listener); handle.current?.unblock(); };
-  }, [work.id]);
-  const url = `${mediaBaseUrl.replace(/\/$/u, "")}/motion-work/${encodeURIComponent(projectId)}/${encodeURIComponent(work.id)}/${revision}/document`;
+  }, [work.id, work.definitionHash]);
+  const url = `${mediaBaseUrl.replace(/\/$/u, "")}/motion-work/${encodeURIComponent(projectId)}/${encodeURIComponent(work.id)}/${revision}/${work.definitionHash}/document`;
   return <div data-motion-work={work.id} data-requested-frame={frame} data-displayed-frame={displayed} data-motion-error={failure} style={{ position: "absolute", inset: 0, overflow: "hidden", display: visible ? undefined : "none" }}>
     <iframe ref={iframe} title={work.name} src={url} sandbox="allow-scripts" style={{ width: work.width, height: work.height, border: 0, background: "transparent", pointerEvents: "none" }} />
     {failure && <div role="alert" style={{ position: "absolute", inset: 0, background: "#200e19", color: "white", padding: 32 }}>{failure}</div>}

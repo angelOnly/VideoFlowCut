@@ -181,6 +181,7 @@ export async function validateEditorialObservations(snapshot: ProjectSnapshot, r
   const result: EditorialReviewEvidence[] = [];
   const identities = new Map<string, WorkbenchEvidenceIdentity>();
   for (const entry of observations) {
+    if (entry.source === "artifact") throw new DomainError("成片观察必须通过文件复核入口登记", "EDITORIAL_EVIDENCE_SOURCE_INVALID");
     if (!evidenceSupportsPass(entry) && !(entry.method === "frames" && ["mute_visual", "mode_specific"].includes(entry.pass))) throw new DomainError("观察方式不支持该审片轮次；抽帧不能表示听过或完整声画观看", "EDITORIAL_METHOD_INVALID");
     if (!Number.isInteger(entry.startFrame) || !Number.isInteger(entry.endFrame) || entry.startFrame < 0 || entry.endFrame > snapshot.timeline.durationInFrames || entry.endFrame <= entry.startFrame) throw new DomainError("实际审阅范围超出目标时间线", "EDITORIAL_EVIDENCE_RANGE_INVALID");
     if (!entry.observation.trim()) throw new DomainError("必须记录实际观察与仍未确认事项", "EDITORIAL_OBSERVATION_REQUIRED");

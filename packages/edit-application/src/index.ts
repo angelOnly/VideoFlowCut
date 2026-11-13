@@ -1,13 +1,16 @@
 import { readProductionStatus } from "./production-status.js";
 import { assignmentCoversObjects, assignmentCoversScope, assignmentScopesOverlap, evaluateProductionCoordination, normalizeProductionScope } from "./production-coordination.js";
+import { MotionAuthoringCoordinationError } from "./motion-coordination-error.js";
+import { rangeCovered, scopeReferenceManifest } from "./opendesign-reference-package.mjs";
 import { readMotionDefinition, storeMotionDefinition } from "./motion-definition.js";
-import { motionWorkForCue, type MotionWork } from "@videocut/contracts";
+import { motionWorkForCue, motionWorkVersion, type MotionWork } from "@videocut/contracts";
 import { PresenterLibraryService } from "./presenter-library.js";
 import { checkMotionRangeCompatibility, motionRangeExpectation, replaceMotionRange } from "./motion-range-replacement.js";
 import { applyMotionAdoption, motionHandoffDependencyHash, motionTargetDependencyHash, validateMotionContinuation } from "./motion-adoption.js";
 import { motionAuthoringInputsCurrent, motionTreatmentSignature } from "./motion-dependencies.js";
 import { motionOnSuccessSchema } from "../../contracts/src/motion-continuation.js";
 import { motionAuthoringInputSchema, type MotionAuthoringInput } from "../../contracts/src/motion-authoring.js";
+import { motionRootRangeAtProjectRange } from "../../contracts/src/frame-rate.js";
 import type { FrozenMotionContinuation, MotionOnSuccess, MotionAuthoringTreatmentInput } from "@videocut/contracts";
 import type { ReferenceManifest } from "./opendesign-reference-package.mjs";
 import { readAvatarSourceSnapshot } from "./avatar-legacy-source.js";
@@ -102,10 +105,10 @@ import type {
   EditorialReviewPass,
   EditorialReviewSeverity,
   EditorialReviewObservation,
+  ArtifactReviewObservation,
   EditorialFindingResolution,
   ExportPurpose,
   ExportArtifact,
-  ExportArtifactReview,
   ExplainerSceneKind,
   ExplainerSceneProgram,
   ExplainerSceneState,
@@ -2358,7 +2361,7 @@ export class EditingApplication {
     this.inspectAgentWorkOrderObjects(snapshot, scope.objectIds);
   }
 
-  async startProductionRun(input: { projectId: Id; baseRevision: number; intent: ProductionIntent; completionScope: ProductionCompletionScope; operationId: string; loadedSkills: string[]; loadedReferences?: string[] }): Promise<SkillExecutionReport> {
+  async startProductionRun(input: { projectId: Id; baseRevision: number; intent: ProductionIntent; completionScope: ProductionCompletionScope; operationId: string; loadedSkills: string[]; loadedReferences?: string[]; deliveryReviewRequired?: boolean }): Promise<SkillExecutionReport> {
     return this.withProductionAuditLock(input.projectId, async () => {
       if (!/^[a-zA-Z0-9_-]{1,160}$/u.test(input.operationId)) throw new DomainError("操作编号格式无效", "PRODUCTION_OPERATION_INVALID");
       const current = this.readProject(input.projectId);
@@ -2378,6 +2381,7 @@ export class EditingApplication {
       baseRevision: input.baseRevision,
       intent: input.intent,
       completionScope: normalizeProductionScope(input.completionScope),
+      deliveryReviewRequired: input.deliveryReviewRequired || undefined,
       assignments: [],
       auditVersion: 0,
       operations: [],
@@ -2400,7 +2404,7 @@ export class EditingApplication {
     });
   }
 
-  async updateProductionRun(input: { projectId: Id; runId: Id; expectedAuditVersion: number; operationId: string; action: "update_scope"; completionScope: ProductionCompletionScope; reason: string } | { projectId: Id; runId: Id; expectedAuditVersion: number; operationId: string; action: "add_assignment" | "replace_assignment"; assignment: Omit<ProductionAssignment, "operationId"> }): Promise<SkillExecutionReport> {
+  async updateProductionRun(input: { projectId: Id; runId: Id; expectedAuditVersion: number; operationId: string; action: "update_scope"; completionScope: ProductionCompletionScope; reason: string } | { projectId: Id; runId: Id; expectedAuditVersion: number; operationId: string; action: "select_delivery_artifact"; artifactId: Id } | { projectId: Id; runId: Id; expectedAuditVersion: number; operationId: string; action: "add_assignment" | "replace_assignment"; assignment: Omit<ProductionAssignment, "operationId"> }): Promise<SkillExecutionReport> {
     return this.withProductionAuditLock(input.projectId, async () => {
       const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
       if (!report.operations) throw new DomainError("旧制作记录只保留审计", "PRODUCTION_RUN_LEGACY_READ_ONLY");
@@ -2412,9 +2416,19 @@ export class EditingApplication {
         this.assertProductionScope(this.readProject(input.projectId).snapshot, input.completionScope);
         report.completionScope = normalizeProductionScope(input.completionScope);
         report.mcpCommands.push({ name: `update_scope: ${input.reason.trim()}`, createdAt: now() });
+      } else if (input.action === "select_delivery_artifact") {
+        const artifact = this.readExportArtifact({ projectId: input.projectId, artifactId: input.artifactId });
+        if (artifact.purpose !== "delivery" || artifact.revision !== this.readProject(input.projectId).revision.number) {
+          throw new DomainError("交付文件必须属于当前项目和当前版本", "PRODUCTION_DELIVERY_ARTIFACT_INVALID");
+        }
+        await this.assertExportArtifactIntact(artifact);
+        report.deliveryReviewRequired = true;
+        report.deliveryArtifactId = artifact.id;
+        report.deliveryArtifactHistory = [...new Set([...(report.deliveryArtifactHistory ?? []), artifact.id])];
+        report.mcpCommands.push({ name: input.action, revision: artifact.revision, createdAt: now() });
       } else {
         const assignment = input.assignment;
-        const responsibilities = ["director", "creative_research", "visual_design", "motion_research", "review"];
+        const responsibilities = ["director", "narration", "asset_sourcing", "creative_research", "visual_design", "motion_research", "review"];
         if (!assignment.assignmentId.trim() || !assignment.agentId.trim() || !assignment.skillIds.length || assignment.skillIds.some(id => !id.trim())
           || !assignment.responsibilities.length || assignment.responsibilities.some(role => !responsibilities.includes(role))
           || report.assignments.some(entry => entry.assignmentId === assignment.assignmentId)) {
@@ -2503,13 +2517,26 @@ export class EditingApplication {
       const isResearch = input.phase === "creative_research" || input.phase === "motion_research";
       if (isResearch !== Boolean(input.researchOutcome)) throw new DomainError("研究结果必须说明研究结论", "PRODUCTION_RESEARCH_OUTCOME_REQUIRED");
       if (input.researchOutcome && !["pending", "researched", "not_applicable"].includes(input.researchOutcome)) throw new DomainError("研究结论无效", "PRODUCTION_RESEARCH_OUTCOME_REQUIRED");
-      if (input.researchReferences?.some(reference => !isResearch || input.researchOutcome === "not_applicable"
+      if (input.researchReferences?.some(reference => !isResearch
         || reference.kind !== (input.phase === "creative_research" ? "creative" : "motion")
         || !reference.id.trim() || !/^[a-f0-9]{64}$/u.test(reference.sourceSha256))) {
         throw new DomainError("研究参考需要对应类型、真实编号和来源指纹", "PRODUCTION_RESEARCH_REFERENCE_INVALID");
       }
-    } else if (input.assignmentId || input.inputDecisionIds?.length || input.researchOutcome || input.researchReferences?.length) {
-      throw new DomainError("分派及输入引用需要明确创作阶段", "PRODUCTION_DECISION_PHASE_REQUIRED");
+    } else {
+      if (input.inputDecisionIds?.length || input.researchOutcome || input.researchReferences?.length) {
+        throw new DomainError("研究及上游决策引用需要明确创作阶段", "PRODUCTION_DECISION_PHASE_REQUIRED");
+      }
+      if (input.assignmentId) {
+        const assignment = report.assignments.find(entry => entry.assignmentId === input.assignmentId);
+        if (!assignment || input.inputRevision === undefined || input.inputRevision === null) {
+          throw new DomainError("作者结果需要实际分派和输入版本", "PRODUCTION_DECISION_SOURCE_REQUIRED");
+        }
+        const snapshot = this.repository.getRevision(input.projectId, input.inputRevision).snapshot;
+        const objectIds = input.objectIds?.length ? input.objectIds : [snapshot.project.id];
+        if (!assignmentCoversObjects(snapshot, assignment.scope, objectIds)) {
+          throw new DomainError("结果范围超出实际分派", "PRODUCTION_DECISION_SCOPE_INVALID");
+        }
+      }
     }
     if (input.deliveryRef && (!input.deliveryRef.manifestPath.trim() || !/^[a-f0-9]{64}$/u.test(input.deliveryRef.manifestSha256)
       || !input.deliveryRef.sceneIds.length || input.deliveryRef.sceneIds.some(id => !id.trim()))) {
@@ -2524,7 +2551,8 @@ export class EditingApplication {
       evidence: input.evidence ?? [],
       alternatives: input.alternatives?.filter(Boolean),
       ...(input.phase ? { phase: input.phase, assignmentId: input.assignmentId, inputRevision: input.inputRevision,
-        inputDecisionIds: input.inputDecisionIds ?? [], researchOutcome: input.researchOutcome, researchReferences: input.researchReferences } : {}),
+        inputDecisionIds: input.inputDecisionIds ?? [], researchOutcome: input.researchOutcome, researchReferences: input.researchReferences }
+        : input.assignmentId ? { assignmentId: input.assignmentId, inputRevision: input.inputRevision } : {}),
       operationId: input.operationId,
       ...(input.deliveryRef ? { deliveryRef: structuredClone(input.deliveryRef) } : {}),
       createdAt: now()
@@ -2581,7 +2609,7 @@ export class EditingApplication {
       throw new DomainError("审片至少记录一个真实执行的轮次", "EDITORIAL_REVIEW_INCOMPLETE");
     }
     if ((input.observations ?? []).some((entry) => !passes.includes(entry.pass))) throw new DomainError("证据引用了未执行的轮次", "EDITORIAL_REVIEW_PASS_MISSING");
-    for (const reference of (input.observations ?? []).flatMap(entry => entry.adoptionRefs ?? [])) {
+    for (const reference of (input.observations ?? []).flatMap(entry => [...(entry.adoptionRefs ?? []), ...(entry.referenceReviews ?? [])])) {
       const source = await this.readSkillExecutionReport({ projectId: input.projectId, runId: reference.productionRunId });
       if (!source.creativeDecisions.some(decision => decision.id === reference.decisionId && decision.phase === "adoption")) {
         throw new DomainError("对照观察需要引用本项目的导演采用决定", "EDITORIAL_ADOPTION_INVALID");
@@ -2751,7 +2779,40 @@ export class EditingApplication {
     for (const category of (scope.kind === "objects" || report.intent === "local_edit" || report.intent === "review_only" ? [] : ["semantic", "story"] as const)) {
       if (!decisionCategories.has(category)) blockers.push(`缺少 ${category === "semantic" ? "语义" : category === "story" ? "故事" : "视觉处理"}决策记录。`);
     }
-    const projectReview = await this.readEditorialQualityReview({ projectId: input.projectId, revision: finalRevision });
+    let projectReview = await this.readEditorialQualityReview({ projectId: input.projectId, revision: finalRevision });
+    let deliveryArtifact: ExportArtifact | undefined;
+    if (report.deliveryReviewRequired) {
+      if (!report.deliveryArtifactId) blockers.push("尚未选择本次验收的交付文件。");
+      else {
+        try {
+          const candidate = this.readExportArtifact({ projectId: input.projectId, artifactId: report.deliveryArtifactId });
+          if (candidate.purpose !== "delivery" || candidate.revision !== finalRevision) throw new Error("版本不一致");
+          await this.assertExportArtifactIntact(candidate);
+          deliveryArtifact = candidate;
+        } catch {
+          blockers.push("所选交付文件已失效、缺失或不属于当前版本，请重新导出并选择。");
+        }
+      }
+    }
+    if (deliveryArtifact) {
+      const previousArtifacts = (report.deliveryArtifactHistory ?? []).map(id => this.readExportArtifact({ projectId: input.projectId, artifactId: id }));
+      const findings = previousArtifacts.flatMap(item => item.artifactReview?.findings ?? []);
+      const uniqueFindings = [...new Map(findings.map(item => [item.id, item])).values()];
+      const records = (deliveryArtifact.artifactReview?.observations ?? []).filter(item => item.outcome === "confirmed"
+        && ["frames", "continuous_video", "audio", "audiovisual"].includes(item.method)).map(item => ({
+          id: item.id, operationId: item.operationId, revision: finalRevision, source: "artifact" as const,
+          startFrame: item.startFrame, endFrame: item.endFrame,
+          method: item.method as EditorialReviewObservation["method"],
+          pass: item.pass ?? (item.method === "audio" ? "audio_only" : item.method === "frames" || item.method === "continuous_video" ? "mute_visual" : "audiovisual") as EditorialReviewPass,
+          observer: item.observer, observation: item.note, referenceReviews: item.referenceReviews, recordedAt: item.recordedAt,
+          adoptionRefs: item.referenceReviews?.map(ref => ({ productionRunId: ref.productionRunId, decisionId: ref.decisionId }))
+        }));
+      const base: EditorialQualityReview = projectReview ?? { revision: finalRevision, passes: [], previewEvidence: [], findings: [], reviewedAt: now() };
+      projectReview = { ...base, findings: [...base.findings, ...uniqueFindings],
+        evidenceRecords: [...(base.evidenceRecords ?? []), ...records],
+        applicableEvidence: [...(base.applicableEvidence ?? []), ...records.map(entry => ({ evidenceId: entry.id, targetRevision: finalRevision, startFrame: entry.startFrame, endFrame: entry.endFrame }))],
+        resolutions: [...(base.resolutions ?? []), ...(deliveryArtifact.artifactReview?.resolutions ?? [])] };
+    }
     const coordinationIssues = await evaluateProductionCoordination({ report, snapshot: target.snapshot, scope, review: projectReview,
       readRevision: revision => this.repository.getRevision(input.projectId, revision).snapshot });
     blockers.push(...coordinationIssues.map(issue => issue.message));
@@ -2808,7 +2869,7 @@ export class EditingApplication {
     // 独立审阅使用本次实际选择的观察方式，不把只听声音升级成声画审阅。
     const reviewMethod = report.intent === "review_only" ? ownEvidence.find(entry => ranges.some(range => entry.startFrame < range.endFrame && entry.endFrame > range.startFrame))?.method : undefined;
     const method: ProductionCompletionEvaluation["observationGaps"][number]["method"] = reviewMethod ?? (captionTextOnly ? "frames" : audioOnly ? "audio" : hasAudio ? "audiovisual" : "continuous_video");
-    const evidence = (projectReview?.evidenceRecords ?? []).filter(entry => entry.source === "workbench" && (entry.method === method
+    const evidence = (projectReview?.evidenceRecords ?? []).filter(entry => (entry.source === "workbench" || entry.source === "artifact") && (entry.method === method
       || entry.method === "audiovisual" && (method === "audio" || method === "continuous_video" || method === "frames")
       || entry.method === "continuous_video" && method === "frames") && (report.intent !== "review_only" || ownEvidenceIds.has(entry.id)));
     const eligibleIds = new Set(evidence.map(entry => entry.id));
@@ -2831,32 +2892,89 @@ export class EditingApplication {
         : finding.frameRange;
       return Boolean(findingRange && ranges.some(range => range.startFrame < findingRange.endFrame && range.endFrame > findingRange.startFrame));
     });
-    for (const gap of observationGaps) blockers.push(`工作台 ${gap.method} 待观察范围：${gap.startFrame}–${gap.endFrame}。`);
+    for (const gap of observationGaps) blockers.push(`声画待观察范围：${gap.startFrame}–${gap.endFrame}（${gap.method}）。`);
+    const artifactGaps: typeof observationGaps = [];
+    if (deliveryArtifact) {
+      const fileRecords = (deliveryArtifact.artifactReview?.observations ?? []).filter(item => item.check === "audiovisual" && item.outcome === "confirmed"
+        && (item.method === method || item.method === "audiovisual" && ["audio", "continuous_video", "frames"].includes(method)));
+      for (const range of ranges) {
+        for (const gap of missingReviewRanges(fileRecords, range.startFrame, range.endFrame)) artifactGaps.push({ ...gap, method });
+      }
+      for (const gap of artifactGaps) blockers.push(`交付文件待观察范围：${gap.startFrame}–${gap.endFrame}（${gap.method}）。`);
+    }
     for (const finding of openRequiredFindings) blockers.push(`必修问题 ${finding.id} 尚未完成复查：${finding.summary}`);
+    const eventPending: Array<{ startFrame: number; endFrame: number; subjectId: string }> = [];
+    const fileObservations = deliveryArtifact?.artifactReview?.observations ?? [];
+    for (const unknown of fileObservations.filter(item => item.required && item.check === "event_sync" && item.outcome === "inconclusive" && item.subjectId)) {
+      const confirmed = fileObservations.filter(item => item.check === unknown.check && item.subjectId === unknown.subjectId
+        && item.outcome === "confirmed" && ["event_measurement", "audiovisual"].includes(item.method) && item.recordedAt >= unknown.recordedAt);
+      for (const gap of missingReviewRanges(confirmed, unknown.startFrame, unknown.endFrame)) {
+        eventPending.push({ ...gap, subjectId: unknown.subjectId! });
+        blockers.push(`事件 ${unknown.subjectId} 待复核范围：${gap.startFrame}–${gap.endFrame}。`);
+      }
+    }
     const completionBlockers = [...new Set(blockers)];
+    // 各类待办共用接替判断，避免把声音问题派回已离开的负责人。
+    const isCurrentAssignment = (entry: ProductionAssignment, responsibility: ProductionAssignment["responsibilities"][number], requested: ProductionCompletionScope) =>
+      !report.assignments.some(other => other.supersedesAssignmentId === entry.assignmentId
+        && other.responsibilities.includes(responsibility) && assignmentScopesOverlap(target.snapshot, other.scope, requested));
+    const assignmentForScope = (responsibility: ProductionAssignment["responsibilities"][number], requested: ProductionCompletionScope) =>
+      [...report.assignments].reverse().find(entry => entry.responsibilities.includes(responsibility)
+        && assignmentScopesOverlap(target.snapshot, entry.scope, requested) && isCurrentAssignment(entry, responsibility, requested));
+    const nextGaps = [...new Map([...observationGaps, ...artifactGaps]
+      .map(gap => [`${gap.startFrame}:${gap.endFrame}:${gap.method}`, gap])).values()];
+    const nextActions: NonNullable<ProductionCompletionEvaluation["nextActions"]> = [
+      ...coordinationIssues.map(issue => ({ code: issue.code, scope: issue.scope, revision: finalRevision, artifactId: deliveryArtifact?.id,
+        assignmentId: issue.assignmentId, relatedRefs: [...issue.relatedDecisionIds, ...issue.relatedObjectIds], referenceReview: issue.referenceReview, question: issue.message, nextAction: issue.nextAction, closesWhen: "提交当前范围的有效观察或修订结果" })),
+      ...nextGaps.map(gap => ({ code: "OBSERVATION_PENDING", scope: { kind: "frames" as const, startFrame: gap.startFrame, endFrame: gap.endFrame },
+        revision: finalRevision, artifactId: deliveryArtifact?.id, assignmentId: assignmentForScope("review", { kind: "frames", startFrame: gap.startFrame, endFrame: gap.endFrame })?.assignmentId, relatedRefs: [],
+        question: `缺少 ${gap.method} 实际观察`, nextAction: "续接审阅负责人检查该范围并保存实际结果", closesWhen: "当前范围获得符合方式的有效观察" })),
+      ...eventPending.map(gap => ({ code: "EVENT_REVIEW_PENDING", scope: { kind: "frames" as const, startFrame: gap.startFrame, endFrame: gap.endFrame },
+        revision: finalRevision, artifactId: deliveryArtifact?.id, assignmentId: assignmentForScope("review", { kind: "frames", startFrame: gap.startFrame, endFrame: gap.endFrame })?.assignmentId, relatedRefs: [gap.subjectId],
+        question: `事件 ${gap.subjectId} 需要声画时序观察`, nextAction: "续接审阅和声音作者定位事件", closesWhen: "登记能够回答该事件的有效测量" })),
+      ...openRequiredFindings.map(finding => ({ code: "FINDING_PENDING", scope, revision: finalRevision, artifactId: deliveryArtifact?.id,
+        assignmentId: (finding.category === "audio"
+          ? [...report.assignments].reverse().find(entry => entry.skillIds.some(id => /(?:audio-finishing|voice-production)$/u.test(id)) && assignmentScopesOverlap(target.snapshot, entry.scope, scope)
+            && entry.responsibilities.some(role => isCurrentAssignment(entry, role, scope)))
+          : assignmentForScope(["motion", "typography"].includes(finding.category) ? "visual_design" : "director", scope))?.assignmentId,
+        relatedRefs: [finding.id], question: finding.summary,
+        nextAction: "交原负责人修订并复查", closesWhen: "用当前文件的有效证据关闭问题" }))
+    ];
+    if (report.deliveryReviewRequired && !deliveryArtifact) nextActions.push({ code: "DELIVERY_ARTIFACT_PENDING", scope, revision: finalRevision,
+      relatedRefs: [], question: "缺少有效交付文件", nextAction: "导出当前版本并选择本次交付文件", closesWhen: "选择哈希有效的当前版本文件" });
+    const director = assignmentForScope("director", scope);
+    for (const blocker of completionBlockers) {
+      if (coordinationIssues.some(issue => issue.message === blocker) || ["声画待观察范围", "交付文件待观察范围", "事件 ", "必修问题 ", "尚未选择本次验收", "所选交付文件已失效"].some(prefix => blocker.startsWith(prefix))) continue;
+      nextActions.push({ code: "PRODUCTION_BLOCKER", scope, revision: finalRevision, artifactId: deliveryArtifact?.id,
+        assignmentId: director?.assignmentId, relatedRefs: [], question: blocker,
+        nextAction: "续接主导演定位问题并交原负责人处理", closesWhen: "相关制作缺项不再阻塞本次范围" });
+    }
+    // 同场多个视觉计划可能产生完全相同的待办；保留不同负责人、范围和参考映射。
+    const uniqueNextActions = [...new Map(nextActions.map(action => [JSON.stringify(action), action])).values()];
     return { runId: input.runId, revision: finalRevision, completionScope: scope, recordedStatus: report.status,
-      recordedFinalRevision: report.finalRevision, recordedCompletionScope: report.completionScope,
+      recordedFinalRevision: report.finalRevision, recordedCompletionScope: report.completionScope, artifactId: deliveryArtifact?.id, nextActions: uniqueNextActions,
       ready: completionBlockers.length === 0, completionBlockers, validObservations, observationGaps, openRequiredFindingIds: openRequiredFindings.map(finding => finding.id), coordinationIssues };
   }
 
-  async completeProductionRun(input: { completionScope: ProductionCompletionScope; projectId: Id; runId: Id; finalRevision: number; operationId: string; qualityReview?: string[]; previewEvidence?: string[] }): Promise<SkillExecutionReport> {
+  async completeProductionRun(input: { completionScope: ProductionCompletionScope; projectId: Id; runId: Id; finalRevision: number; operationId: string; qualityReview?: string[]; previewEvidence?: string[] }): Promise<SkillExecutionReport & { evaluation: ProductionCompletionEvaluation }> {
     return this.withProductionAuditLock(input.projectId, () => this.completeProductionRunUnlocked(input));
   }
 
-  private async completeProductionRunUnlocked(input: Parameters<EditingApplication["completeProductionRun"]>[0]): Promise<SkillExecutionReport> {
+  private async completeProductionRunUnlocked(input: Parameters<EditingApplication["completeProductionRun"]>[0]): Promise<SkillExecutionReport & { evaluation: ProductionCompletionEvaluation }> {
     const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
     if (!report.operations) throw new DomainError("旧制作记录只保留审计", "PRODUCTION_RUN_LEGACY_READ_ONLY");
-    if (!this.addProductionOperation(report, input.operationId, input)) return report;
+    const added = this.addProductionOperation(report, input.operationId, input);
     if (JSON.stringify(normalizeProductionScope(report.completionScope)) !== JSON.stringify(normalizeProductionScope(input.completionScope))) {
       throw new DomainError("完成范围必须与本次任务目标一致", "PRODUCTION_SCOPE_MISMATCH");
     }
+    const evaluation = await this.evaluateProductionCompletion({ projectId: input.projectId, runId: input.runId, revision: input.finalRevision, completionScope: input.completionScope });
+    if (!added) return { ...report, evaluation };
     if (report.status === "completed" && report.finalRevision === input.finalRevision) {
-      // 新操作编号也要持久保存，后续重试才能核对请求是否一致。
+      // 历史回执保持不变，同时返回当前文件和证据的重新评估。
       await this.writeSkillExecutionReport(report);
-      return report;
+      return { ...report, evaluation };
     }
     this.resumeIncompleteProductionRun(report, "收口");
-    const evaluation = await this.evaluateProductionCompletion({ projectId: input.projectId, runId: input.runId, revision: input.finalRevision, completionScope: input.completionScope });
     if (input.previewEvidence) report.previewEvidence.push(...input.previewEvidence.map((value) => value.trim()).filter(Boolean));
     if (input.qualityReview) report.qualityReview.push(...input.qualityReview.map((value) => value.trim()).filter(Boolean));
     report.composedFrameEvidence = (await this.findComposedFrameEvidence(input.projectId, input.finalRevision)).map(artifact => artifact.relativePath);
@@ -2869,7 +2987,7 @@ export class EditingApplication {
       report.status = "incomplete";
       report.completedAt = undefined;
       await this.writeSkillExecutionReport(report);
-      return report;
+      return { ...report, evaluation };
     }
     report.status = "completed";
     report.completedAt = now();
@@ -2877,7 +2995,7 @@ export class EditingApplication {
     await this.writeSkillExecutionReport(report);
     const latestRevision = this.readProject(input.projectId).revision.number;
     if (latestRevision !== input.finalRevision) throw new RevisionConflictError(input.finalRevision, latestRevision);
-    return report;
+    return { ...report, evaluation };
   }
 
   /** 提交只创建固定输入的 Job；不改变 Timeline，也不把代码装进平台 Registry。 */
@@ -2885,20 +3003,20 @@ export class EditingApplication {
     return submitObjectResources(this, input);
   }
 
-  registerMotionWork(input: { projectId: Id; baseRevision: number; idempotencyKey: string; work: MotionSubmission; onSuccess?: MotionOnSuccess; readyRanges?: MotionWork["readyRanges"]; inputBundle?: Parameters<EditingApplication["submitManagedMotion"]>[0]["inputBundle"] }) {
+  registerMotionWork(input: { projectId: Id; baseRevision: number; idempotencyKey: string; work: MotionSubmission; logicalWorkId?: Id; onSuccess?: MotionOnSuccess; readyRanges?: MotionWork["readyRanges"]; inputBundle?: Parameters<EditingApplication["submitManagedMotion"]>[0]["inputBundle"] }) {
     return this.submitManagedMotion({ ...input, outputIntent: "prepare" });
   }
 
-  readSourceMotionWork(projectId: Id, workId: Id, revision?: number) {
+  readSourceMotionWork(projectId: Id, workId: Id, revision?: number, definitionHash?: string) {
     const state = this.readProject(projectId, revision);
-    const work = state.snapshot.motionWorks?.find(entry => entry.id === workId);
+    const work = motionWorkVersion(state.snapshot.motionWorks, workId, definitionHash);
     if (!work) throw new DomainError("未找到固定源码作品", "MOTION_WORK_NOT_FOUND");
     return { revision: state.revision.number, work };
   }
 
   /** 指定帧只检查固定作品，不创建媒体或编辑 Revision。 */
-  submitMotionInspection(input: { projectId: Id; revision: number; workId: Id; frames: number[]; idempotencyKey: string }): JobRecord {
-    const { work } = this.readSourceMotionWork(input.projectId, input.workId, input.revision);
+  submitMotionInspection(input: { projectId: Id; revision: number; workId: Id; definitionHash?: string; frames: number[]; idempotencyKey: string }): JobRecord {
+    const { work } = this.readSourceMotionWork(input.projectId, input.workId, input.revision, input.definitionHash);
     readMotionDefinition(this.getProjectRoot(input.projectId), work);
     const frames = [...new Set(input.frames)].sort((a, b) => a - b);
     if (!frames.length || frames.some(frame => !Number.isInteger(frame) || frame < 0 || frame >= work.frameCount
@@ -2957,6 +3075,7 @@ export class EditingApplication {
         || JSON.stringify([...manifest.selectedSceneIds].sort()) !== JSON.stringify([...delivery.sceneIds].sort())) {
         throw new DomainError("交付清单的项目或选中场面与导演采用不一致", "MOTION_AUTHORING_DELIVERY_INVALID");
       }
+      if (!manifest.selectedSceneIds.includes(targetScene.id)) throw new DomainError("交付范围不包含实际制作目标", "MOTION_AUTHORING_DELIVERY_INCOMPLETE");
       let prepared: ProjectState;
       try {
         if (!manifest.projectSnapshot) throw new Error("缺少准备时的项目快照");
@@ -2968,16 +3087,36 @@ export class EditingApplication {
         throw new DomainError(`交付快照不可用：${error instanceof Error ? error.message : String(error)}`, "MOTION_AUTHORING_DELIVERY_INVALID");
       }
       const coveredBeatIds = target.action === "create_cue" ? target.coveredNarrativeBeatIds : targetCue?.coveredNarrativeBeatIds;
-      const beatIds = coveredBeatIds ?? [...new Set([...(prepared.snapshot.scenes.find(scene => scene.id === targetScene.id)?.narrativeBeatIds ?? []),
-        ...targetScene.narrativeBeatIds])];
+      const beatIds = coveredBeatIds ?? (treatment.narrativeBeatId ? [treatment.narrativeBeatId] : [...new Set([
+        ...(prepared.snapshot.scenes.find(scene => scene.id === targetScene.id)?.narrativeBeatIds ?? []), ...targetScene.narrativeBeatIds])]);
       const range = target.action === "create_cue" ? target : target.action === "replace_range" ? target.targetRange : targetCue!;
       if (motionHandoffDependencyHash(prepared.snapshot, targetScene.id, beatIds, range)
         !== motionHandoffDependencyHash(state.snapshot, targetScene.id, beatIds, range)) {
         throw new DomainError("制作范围的场面、内容或声音时序自交付准备后已变化，请重新准备并确认", "MOTION_AUTHORING_DEPENDENCY_CHANGED");
       }
-      const selected = delivery.sceneIds.map(sceneId => manifest.scenes!.find(scene => scene.sceneId === sceneId));
-      if (selected.some(scene => !scene || scene.status !== "ready")) throw new DomainError("选中场面仍有未完成资料", "MOTION_AUTHORING_DELIVERY_INCOMPLETE");
-      for (const file of manifest.files.filter(entry => entry.requiredForRun !== false)) {
+      const scopedManifest = scopeReferenceManifest(manifest, [targetScene.id]);
+      const selected = scopedManifest.selectedSceneIds!.map(sceneId => scopedManifest.scenes!.find(scene => scene.sceneId === sceneId));
+      if (selected.some(scene => !scene || scene.status !== "ready") || !selected.some(scene => scene?.sceneId === targetScene.id)) {
+        throw new DomainError("选中场面仍有未完成资料或不包含实际制作目标", "MOTION_AUTHORING_DELIVERY_INCOMPLETE");
+      }
+      const previews = selected.map(scene => scene?.visualPlan?.status === "previewed" ? scene.visualPlan.preview : undefined);
+      if (previews.some(preview => !preview) || new Set(previews.map(preview => preview?.workId)).size !== 1) {
+        throw new DomainError("选中场面需要引用同一个已预排的完整作品", "MOTION_AUTHORING_PREVIEW_INVALID");
+      }
+      for (const preview of previews) {
+        const work = motionWorkVersion(state.snapshot.motionWorks, preview!.workId, preview!.definitionHash);
+        const projectStart = target.action === "create_cue" ? target.startFrame : target.action === "replace_range" ? target.targetRange.startFrame : targetCue!.startFrame;
+        const projectEnd = target.action === "create_cue" ? target.endFrame : target.action === "replace_range" ? target.targetRange.endFrame : targetCue!.endFrame;
+        const sourceStart = target.action === "create_cue" ? target.sourceStartFrame : (targetCue!.sourceStartFrame ?? 0) + projectStart - targetCue!.startFrame;
+        const rootRange = work && motionRootRangeAtProjectRange(sourceStart, sourceStart + projectEnd - projectStart, work.fps, state.snapshot.timeline.fps);
+        if (!work || work.definitionHash !== preview!.definitionHash || !rangeCovered(work.readyRanges, preview!.startFrame, preview!.endFrame)
+          || !rootRange || preview!.startFrame > rootRange.startFrame || preview!.endFrame < rootRange.endFrame
+          || ["project", "run_id", "frozen_version"].some(key => work.author?.[key as keyof NonNullable<typeof work.author>] !== preview!.author?.[key as keyof NonNullable<typeof work.author>])
+          || await sha256File(join(state.snapshot.project.rootPath, work.definitionPath)).catch(() => "") !== preview!.definitionHash) {
+          throw new DomainError(`场面预排作品 ${preview!.workId} 不存在、已变化或未覆盖已发布的目标根帧范围`, "MOTION_AUTHORING_PREVIEW_INVALID");
+        }
+      }
+      for (const file of scopedManifest.files.filter(entry => entry.requiredForRun !== false)) {
         if (!file.sha256 || !file.localReadable || await sha256File(join(dirname(delivery.manifestPath), file.deliveredPath)).catch(() => "") !== file.sha256) {
           throw new DomainError(`交付文件缺失或已变化：${file.deliveredPath}`, "MOTION_AUTHORING_DELIVERY_INVALID");
         }
@@ -2989,7 +3128,7 @@ export class EditingApplication {
           throw new DomainError(`场面素材 ${source.assetId} 与当前视觉采用不一致`, "MOTION_AUTHORING_MATERIAL_CHANGED");
         }
       }
-      inputs.push({ visualTreatmentId: id, adoptedDecisionRef: structuredClone(adoption), deliveryRef: structuredClone(delivery),
+      inputs.push({ visualTreatmentId: id, previewWorkId: previews[0]!.workId, adoptedDecisionRef: structuredClone(adoption), deliveryRef: structuredClone(delivery),
         treatmentSignature: motionTreatmentSignature(state.snapshot, id) });
     }
     return inputs;
@@ -3003,11 +3142,62 @@ export class EditingApplication {
       if (existing.kind !== "motion_authoring" || JSON.stringify(existing.payload.input) !== JSON.stringify(input)) throw new DomainError("幂等键已用于不同制作委托", "MOTION_IDEMPOTENCY_CONFLICT");
       return existing;
     }
-    if (input.productionRunId) await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.productionRunId });
     const state = this.readProject(input.projectId);
     if (state.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, state.revision.number);
     validateMotionContinuation(state.snapshot, input.target);
-    const authoringInputs = await this.resolveMotionAuthoringInputs(input, state);
+    const requestedTarget = input.target;
+    const requestedCue = requestedTarget.action === "create_cue" ? undefined : state.snapshot.effectCues.find(cue => cue.id === requestedTarget.cueId)!;
+    const targetSceneId = requestedTarget.action === "create_cue" ? requestedTarget.sceneId : requestedCue!.sceneId;
+    const scope = { kind: "objects" as const, objectIds: [targetSceneId, ...(input.visualTreatmentIds ?? [])] };
+    if (!input.productionRunId && input.intent !== "local_edit") {
+      throw new MotionAuthoringCoordinationError([{ code: "PRODUCTION_RUN_MISSING", scope, relatedDecisionIds: [], relatedObjectIds: [targetSceneId],
+        state: "missing", message: "完整新制或主要视觉重构需要当前 ProductionRun", nextAction: "提供当前制作记录；局部编辑明确声明 local_edit" }]);
+    }
+    const report = input.productionRunId ? await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.productionRunId }) : undefined;
+    if (report?.intent === "review_only") {
+      throw new MotionAuthoringCoordinationError([{ code: "PRODUCTION_RUN_REVIEW_ONLY", scope, relatedDecisionIds: [], relatedObjectIds: [targetSceneId],
+        state: "missing", message: "当前任务仅用于审阅，不能启动画面制作", nextAction: "按实际修改范围创建或续接制作任务" }]);
+    }
+    if (report && (report.intent === "full_creation" || report.intent === "visual_rework")) {
+      if (!input.visualTreatmentIds?.length) {
+        throw new MotionAuthoringCoordinationError([{ code: "VISUAL_TREATMENT_MISSING", scope, relatedDecisionIds: [], relatedObjectIds: [targetSceneId],
+          state: "missing", message: "当前制作目标缺少已采用的视觉计划", nextAction: "接回本范围的视觉方案和导演采用，提交视觉计划 ID" }]);
+      }
+      const targetRange = requestedTarget.action === "create_cue" ? requestedTarget : requestedTarget.action === "replace_range" ? requestedTarget.targetRange : requestedCue!;
+      const targetBeatIds = requestedTarget.action === "create_cue" ? requestedTarget.coveredNarrativeBeatIds : requestedCue?.coveredNarrativeBeatIds;
+      const issues = await evaluateProductionCoordination({ report, snapshot: state.snapshot, scope, phase: "authoring", targetTreatmentIds: input.visualTreatmentIds, targetBeatIds, targetRange,
+        readRevision: revision => this.repository.getRevision(input.projectId, revision).snapshot });
+      if (issues.length) throw new MotionAuthoringCoordinationError(issues);
+    }
+    let authoringInputs: MotionAuthoringTreatmentInput[];
+    try {
+      authoringInputs = await this.resolveMotionAuthoringInputs(input, state);
+    } catch (error) {
+      if (report && (report.intent === "full_creation" || report.intent === "visual_rework") && error instanceof DomainError
+        && error.code.startsWith("MOTION_AUTHORING_")) {
+        const decisionIds = state.snapshot.visualTreatments.filter(item => input.visualTreatmentIds?.includes(item.id) && item.adoptedDecisionRef?.productionRunId === report.id)
+          .map(item => item.adoptedDecisionRef!.decisionId);
+        throw new MotionAuthoringCoordinationError([{ code: error.code, scope, relatedDecisionIds: decisionIds,
+          relatedObjectIds: scope.objectIds, state: "stale", message: error.message,
+          nextAction: "续接视觉作者和主导演，核对当前场面、同源预排、素材及交付后重新提交" }]);
+      }
+      throw error;
+    }
+    const targetWorkIds = new Set(authoringInputs.map(entry => entry.previewWorkId).filter(Boolean));
+    if (report && (report.intent === "full_creation" || report.intent === "visual_rework") && targetWorkIds.size !== 1) {
+      throw new DomainError("当前制作目标的预排必须属于同一个完整作品", "MOTION_AUTHORING_PREVIEW_INVALID");
+    }
+    // 局部替换也沿目标 Cue 的作品和固定作者续修；新建 Cue 没有既有作品可继承。
+    const logicalWorkId = report && (report.intent === "full_creation" || report.intent === "visual_rework")
+      ? [...targetWorkIds][0] : input.intent === "local_edit" ? requestedCue?.workId : undefined;
+    const continuationWork = requestedCue && logicalWorkId && requestedCue.workId === logicalWorkId
+      ? motionWorkForCue(state.snapshot, requestedCue) : logicalWorkId ? motionWorkVersion(state.snapshot.motionWorks, logicalWorkId) : undefined;
+    const continuationAuthor = continuationWork?.author;
+    if (continuationAuthor && (continuationAuthor.project !== input.openDesignRequest.project || !input.openDesignRequest.continue_from_run_id)) {
+      throw new MotionAuthoringCoordinationError([{ code: "MOTION_AUTHORING_CONTINUATION_INVALID", scope, relatedDecisionIds: [],
+        relatedObjectIds: [targetSceneId, logicalWorkId!], state: "stale", message: "连续作品必须沿原 OpenDesign 项目和制作任务继续",
+        nextAction: "使用原项目并提供 continue_from_run_id，继续当前作品" }]);
+    }
     const target = input.target;
     const cue = target.action === "create_cue" ? undefined : state.snapshot.effectCues.find(entry => entry.id === target.cueId)!;
     const startFrame = target.action === "create_cue" ? target.startFrame : target.action === "replace_range" ? target.targetRange.startFrame : cue!.startFrame;
@@ -3015,14 +3205,19 @@ export class EditingApplication {
     const sourceStartFrame = target.action === "create_cue" ? target.sourceStartFrame : (cue!.sourceStartFrame ?? 0) + startFrame - cue!.startFrame;
     const sourceEndFrame = sourceStartFrame + endFrame - startFrame;
     const initialTargetHash = motionTargetDependencyHash(state.snapshot, target.action === "create_cue" ? target : { action: "replace_cue", cueId: target.cueId, audioPolicy: target.audioPolicy }, input.visualTreatmentIds);
-    return this.repository.createJob({ projectId: input.projectId, kind: "motion_authoring", idempotencyKey: key,
-      payload: { input, authoringInputs, initialTargetHash, targetSceneId: target.action === "create_cue" ? target.sceneId : cue!.sceneId,
+    const submitted = this.repository.createMotionAuthoringJob({ projectId: input.projectId, baseRevision: input.baseRevision, idempotencyKey: key,
+      payload: { input, authoringInputs, initialTargetHash, ...(logicalWorkId ? { logicalWorkId } : {}), ...(continuationAuthor ? { continuationAuthor } : {}), targetSceneId: target.action === "create_cue" ? target.sceneId : cue!.sceneId,
         targetLayer: target.action === "create_cue" ? target.layer : cue!.layer,
         targetRange: { startFrame, endFrame, sourceStartFrame, sourceEndFrame }, projectFps: state.snapshot.timeline.fps } });
+    if (submitted.busy) throw new MotionAuthoringCoordinationError([{ code: "MOTION_AUTHORING_WORK_BUSY", scope,
+      relatedDecisionIds: authoringInputs.map(entry => entry.adoptedDecisionRef.decisionId), relatedObjectIds: [targetSceneId, logicalWorkId!],
+      state: submitted.busy.status === "unknown" ? "unknown" : "pending", message: `同一作品已有制作任务 ${submitted.busy.id}`,
+      nextAction: "先读取原任务状态并继续原委托，其他不依赖该作品写入的工作可以并行" }]);
+    return submitted.job!;
   }
 
-  submitMotionBake(input: { projectId: Id; baseRevision: number; idempotencyKey: string; workId: Id; frameRange?: MotionFrameRange; outputIntent?: "proof" | "asset"; proofJobId?: Id }) {
-    const { work } = this.readSourceMotionWork(input.projectId, input.workId, input.baseRevision);
+  submitMotionBake(input: { projectId: Id; baseRevision: number; idempotencyKey: string; workId: Id; definitionHash?: string; frameRange?: MotionFrameRange; outputIntent?: "proof" | "asset"; proofJobId?: Id }) {
+    const { work } = this.readSourceMotionWork(input.projectId, input.workId, input.baseRevision, input.definitionHash);
     const definition = readMotionDefinition(this.getProjectRoot(input.projectId), work);
     const required = input.frameRange ?? { startFrame: 0, endFrame: work.frameCount };
     let cursor = required.startFrame;
@@ -3033,7 +3228,7 @@ export class EditingApplication {
       const asset = current.assets.find(entry => entry.id === source.assetId);
       if (!asset || asset.sourceHash !== source.hash || asset.managedPath !== source.managedPath) throw new DomainError("固定作品的源素材身份已改变", "MOTION_RESOURCE_CHANGED");
     }
-    return this.submitManagedMotion({ ...input, fixedWorkId: work.id, work: definition.work, readyRanges: definition.readyRanges });
+    return this.submitManagedMotion({ ...input, fixedWorkId: work.id, fixedDefinitionHash: work.definitionHash, work: definition.work, readyRanges: definition.readyRanges });
   }
 
   completeSourceMotionWork(projectId: Id, jobId: Id, eventMap?: import("@videocut/contracts").MotionEventMap) {
@@ -3041,22 +3236,37 @@ export class EditingApplication {
     if (job.projectId !== projectId || job.kind !== "motion_generation" || job.status === "cancelled") throw new DomainError("作品准备任务无效", "MOTION_JOB_NOT_FOUND");
     const current = this.readProject(projectId);
     const work = storeMotionDefinition(current.snapshot.project.rootPath, job, eventMap);
-    const existing = current.snapshot.motionWorks?.find(entry => entry.id === work.id);
+    const existing = motionWorkVersion(current.snapshot.motionWorks, work.id, work.definitionHash);
     if (existing) {
       if (JSON.stringify(existing.eventMap) !== JSON.stringify(work.eventMap)) throw new DomainError("同一固定作品的事件不确定", "MOTION_EVENT_NONDETERMINISTIC");
-      if (job.payload.continuation && !job.result?.continuation) this.commitMotionAdoption(job, existing.id);
-      return existing;
+      if (current.snapshot.motionWorks?.find(entry => entry.id === work.id)?.definitionHash === work.definitionHash) {
+        if (job.payload.continuation && !job.result?.continuation) this.commitMotionAdoption(job, existing.id);
+        return existing;
+      }
     }
     const continuation = job.payload.continuation as FrozenMotionContinuation | undefined;
-    const register = (snapshot: ProjectSnapshot, impact: ImpactReport) => { (snapshot.motionWorks ??= []).push(work); impact.changed.push(work.id); };
+    const register = (snapshot: ProjectSnapshot, impact: ImpactReport) => {
+      const works = snapshot.motionWorks ??= [], index = works.findIndex(entry => entry.id === work.id);
+      if (index < 0) works.push(work);
+      else {
+        if (!job.payload.logicalWorkId) throw new DomainError("固定作品只能通过连续制作登记新版本", "MOTION_WORK_IMMUTABLE");
+        const currentWork = works[index]!, { previousVersions = [], ...currentVersion } = currentWork;
+        const reused = previousVersions.find(entry => entry.definitionHash === work.definitionHash);
+        if (reused && JSON.stringify(reused.eventMap) !== JSON.stringify(work.eventMap)) throw new DomainError("同一固定作品的事件不确定", "MOTION_EVENT_NONDETERMINISTIC");
+        // 固定先前片段的版本，后续交件不能静默改变已经采用的画面。
+        for (const cue of snapshot.effectCues) if (cue.workId === work.id && !cue.workDefinitionHash) cue.workDefinitionHash = currentWork.definitionHash;
+        works[index] = { ...(reused ?? work), previousVersions: [...previousVersions.filter(entry => entry.definitionHash !== work.definitionHash), currentVersion] };
+      }
+      impact.changed.push(work.id);
+    };
     const state = continuation ? this.repository.commitMotionResult({ projectId, jobId, mutate: (snapshot, impact) => {
-      register(snapshot, impact); return applyMotionAdoption(snapshot, impact, work.id, continuation);
+      register(snapshot, impact); return applyMotionAdoption(snapshot, impact, work.id, continuation, work.definitionHash);
     } }).state : this.repository.commit(projectId, current.revision.number, "登记固定源码作品", register);
     this.publish({ projectId, revision: state.revision.number, type: "revision" });
-    return work;
+    return motionWorkVersion(state.snapshot.motionWorks, work.id, work.definitionHash)!;
   }
 
-  submitManagedMotion(input: { projectId: Id; baseRevision: number; idempotencyKey: string; work: MotionSubmission; fixedWorkId?: Id; frameRange?: MotionFrameRange; outputIntent?: "prepare" | "proof" | "asset"; readyRanges?: MotionWork["readyRanges"]; proofJobId?: Id; onSuccess?: MotionOnSuccess; inputBundle?: { bundlePath: string; bundleSha256: string; manifestSha256: string; source: { project: string; run_id: string; frozen_version: string } } }): JobRecord {
+  submitManagedMotion(input: { projectId: Id; baseRevision: number; idempotencyKey: string; work: MotionSubmission; fixedWorkId?: Id; fixedDefinitionHash?: string; logicalWorkId?: Id; frameRange?: MotionFrameRange; outputIntent?: "prepare" | "proof" | "asset"; readyRanges?: MotionWork["readyRanges"]; proofJobId?: Id; onSuccess?: MotionOnSuccess; inputBundle?: { bundlePath: string; bundleSha256: string; manifestSha256: string; source: { project: string; run_id: string; frozen_version: string } } }): JobRecord {
     const work = motionSubmissionSchema.parse(input.work);
     const frameRange = input.frameRange ? motionFrameRangeSchema.parse(input.frameRange) : undefined;
     const outputIntent = input.outputIntent ?? (frameRange ? "proof" : "asset");
@@ -3071,7 +3281,7 @@ export class EditingApplication {
     }
     const existing = this.repository.listJobs(input.projectId).find((job) => job.idempotencyKey === `motion:${input.idempotencyKey}`);
     if (existing) {
-      if (existing.payload.fixedWorkId !== input.fixedWorkId) throw new DomainError("幂等键已用于不同固定作品", "MOTION_IDEMPOTENCY_CONFLICT");
+      if (existing.payload.fixedWorkId !== input.fixedWorkId || existing.payload.fixedDefinitionHash !== input.fixedDefinitionHash || existing.payload.logicalWorkId !== input.logicalWorkId) throw new DomainError("幂等键已用于不同固定作品", "MOTION_IDEMPOTENCY_CONFLICT");
       if (JSON.stringify((existing.payload.continuation as FrozenMotionContinuation | undefined)?.request) !== JSON.stringify(onSuccess)) throw new DomainError("幂等键已用于不同采用指令", "MOTION_IDEMPOTENCY_CONFLICT");
       if (existing.payload.requestedRevision !== input.baseRevision || JSON.stringify(existing.payload.inputBundle) !== JSON.stringify(input.inputBundle) || JSON.stringify(existing.payload.readyRanges) !== JSON.stringify(input.readyRanges)) throw new DomainError("幂等键已用于不同基准、可用范围或冻结来源", "MOTION_IDEMPOTENCY_CONFLICT");
       if (existing.kind !== "motion_generation" || motionHash(motionSubmissionSchema.parse(existing.payload.work)) !== motionHash(work) || JSON.stringify(existing.payload.frameRange) !== JSON.stringify(frameRange) || (existing.payload.outputIntent ?? (existing.payload.frameRange ? "proof" : "asset")) !== outputIntent || (existing.payload.reusableProof as { jobId?: string } | undefined)?.jobId !== input.proofJobId) throw new DomainError("幂等键已用于不同作品输入", "MOTION_IDEMPOTENCY_CONFLICT");
@@ -3080,6 +3290,12 @@ export class EditingApplication {
     if (!work.creativeBrief) throw new DomainError("新作品必须提供创作说明 creativeBrief；参考可选，不填写占位参考", "MOTION_CREATIVE_BRIEF_REQUIRED");
     const current = this.readProject(input.projectId);
     if (current.revision.number !== input.baseRevision) throw new DomainError("项目 Revision 已变化，请重新读取", "REVISION_CONFLICT");
+    if (input.logicalWorkId) {
+      const previous = motionWorkVersion(current.snapshot.motionWorks, input.logicalWorkId);
+      if (!previous || previous.width !== work.width || previous.height !== work.height || previous.fps !== work.fps || previous.frameCount !== work.durationInFrames) {
+        throw new DomainError("连续作品必须保持已登记作品的画幅、帧率和完整时长", "MOTION_WORK_STRUCTURE_CHANGED");
+      }
+    }
     let continuation: FrozenMotionContinuation | undefined;
     if (onSuccess) {
       validateMotionContinuation(current.snapshot, onSuccess);
@@ -3093,12 +3309,13 @@ export class EditingApplication {
       continuation = { request: onSuccess, targetDependencyHash: motionTargetDependencyHash(current.snapshot, onSuccess) };
     }
     if (work.previousAssetId && !current.snapshot.assets.some((asset) => asset.id === work.previousAssetId && asset.motion)) throw new DomainError("上一版本不是当前项目的受管作品", "MOTION_PREVIOUS_VERSION_MISSING");
-    const fixedWork = input.fixedWorkId ? current.snapshot.motionWorks?.find(entry => entry.id === input.fixedWorkId) : undefined;
+    const fixedWork = input.fixedWorkId ? motionWorkVersion(current.snapshot.motionWorks, input.fixedWorkId, input.fixedDefinitionHash) : undefined;
     if (input.fixedWorkId && !fixedWork) throw new DomainError("未找到固定源码作品", "MOTION_WORK_NOT_FOUND");
     // 烘焙解释的是已采用版本，不能随当前简报重新冻结来源策略而变成另一件作品。
-    const sourceDisplay: FrozenSourceDisplay = fixedWork ? readMotionDefinition(current.snapshot.project.rootPath, fixedWork).sourceDisplay!
+    const sourceWork = fixedWork ?? (input.logicalWorkId ? motionWorkVersion(current.snapshot.motionWorks, input.logicalWorkId) : undefined);
+    const sourceDisplay: FrozenSourceDisplay = sourceWork ? readMotionDefinition(current.snapshot.project.rootPath, sourceWork).sourceDisplay!
       : { policy: resolveSourceDisplayPolicy(current.snapshot.project.brief.sourceDisplayPolicy), scopeId: work.sourceDisplayScopeId ?? current.snapshot.project.id };
-    if (!fixedWork) {
+    if (!sourceWork) {
       validateSourceDisplayScope(current.snapshot, sourceDisplay.scopeId);
       validateSourceDisplayScopes(current.snapshot, sourceDisplay.policy);
     }
@@ -3130,7 +3347,7 @@ export class EditingApplication {
     const reusable = current.snapshot.assets.find(asset => asset.status === "ready" && asset.motion?.output && asset.motion.pixelKey === pixelKey
       && (!work.renderedAssetId || asset.id === work.renderedAssetId));
     if (work.renderedAssetId && (!reusable || outputIntent === "proof")) throw new DomainError("所引用媒体没有相同源码、绑定、字体、时钟、输出范围和编码身份，或当前提交为校样", "MOTION_RENDERED_ASSET_MISMATCH");
-    const job = this.repository.createJob({ projectId: input.projectId, kind: "motion_generation", payload: { work, version, pixelKey, outputIntent, ...(input.fixedWorkId ? { fixedWorkId: input.fixedWorkId } : {}), ...(input.readyRanges ? { readyRanges: input.readyRanges } : {}), ...(input.inputBundle ? { inputBundle: input.inputBundle } : {}), ...(continuation ? { continuation } : {}), ...(reusableProof ? { reusableProof } : {}), ...(reusable && outputIntent === "asset" ? { reusableAsset: reusable } : {}), ...(frameRange ? { frameRange } : {}), sourceDisplay, sourceDisplayWarnings, engineVersion: MOTION_ENGINE_VERSION, requestedRevision: input.baseRevision, boundImages, ...(boundVideos.length ? { boundVideos } : {}), ...(boundFonts.length ? { boundFonts } : {}) }, idempotencyKey: `motion:${input.idempotencyKey}` });
+    const job = this.repository.createJob({ projectId: input.projectId, kind: "motion_generation", payload: { work, version, pixelKey, outputIntent, ...(input.fixedWorkId ? { fixedWorkId: input.fixedWorkId, fixedDefinitionHash: input.fixedDefinitionHash, sourceAuthor: fixedWork?.author } : {}), ...(input.logicalWorkId ? { logicalWorkId: input.logicalWorkId } : {}), ...(input.readyRanges ? { readyRanges: input.readyRanges } : {}), ...(input.inputBundle ? { inputBundle: input.inputBundle } : {}), ...(continuation ? { continuation } : {}), ...(reusableProof ? { reusableProof } : {}), ...(reusable && outputIntent === "asset" ? { reusableAsset: reusable } : {}), ...(frameRange ? { frameRange } : {}), sourceDisplay, sourceDisplayWarnings, engineVersion: MOTION_ENGINE_VERSION, requestedRevision: input.baseRevision, boundImages, ...(boundVideos.length ? { boundVideos } : {}), ...(boundFonts.length ? { boundFonts } : {}) }, idempotencyKey: `motion:${input.idempotencyKey}` });
     this.publish({ projectId: input.projectId, revision: current.revision.number, type: "job" });
     return job;
   }
@@ -3175,14 +3392,15 @@ export class EditingApplication {
         role: "generated_visual", tags: ["managed_motion", "work_review_required"], createdAt: now(), metadata: input.metadata,
         provenance: { source: "generated", provider: "managed_hyperframes", generationJobId: job.id, acquiredAt: now() },
         derivedFromWorkId: fixedWork.id,
-        motion: { workId: fixedWork.id, jobId: job.id, version, engineVersion: input.engineVersion,
+        motion: { workId: fixedWork.id, definitionHash: fixedWork.definitionHash, jobId: job.id, version, engineVersion: input.engineVersion,
           output: input.output, preview: input.preview, pixelKey: String(job.payload.pixelKey),
           ...(job.payload.frameRange ? { rootRange: { ...motionFrameRangeSchema.parse(job.payload.frameRange), fullDurationInFrames: work.durationInFrames } } : {}),
           frameCount: job.payload.frameRange ? motionFrameRangeSchema.parse(job.payload.frameRange).endFrame - motionFrameRangeSchema.parse(job.payload.frameRange).startFrame : work.durationInFrames,
           fps: work.fps, width: work.width, height: work.height }
       };
-      const oldWork = snapshot.motionWorks?.find(entry => entry.id === fixedWork.id);
+      const oldWork = motionWorkVersion(snapshot.motionWorks, fixedWork.id, fixedWork.definitionHash);
       if (oldWork && JSON.stringify(oldWork.eventMap) !== JSON.stringify(fixedWork.eventMap)) throw new DomainError("固定作品事件不确定", "MOTION_EVENT_NONDETERMINISTIC");
+      if (!oldWork && snapshot.motionWorks?.some(entry => entry.id === fixedWork.id)) throw new DomainError("派生媒体的固定源码版本不存在", "MOTION_VERSION_MISMATCH");
       if (!oldWork) { (snapshot.motionWorks ??= []).push(fixedWork); impact.changed.push(fixedWork.id); }
       snapshot.assets.push(asset);
       impact.changed.push(asset.id);
@@ -3192,7 +3410,7 @@ export class EditingApplication {
       projectId: input.projectId, jobId: job.id,
       mutate: (snapshot, impact) => {
         registerAsset(snapshot, impact);
-        return applyMotionAdoption(snapshot, impact, fixedWork.id, continuation);
+        return applyMotionAdoption(snapshot, impact, fixedWork.id, continuation, fixedWork.definitionHash);
       }
     }).state : this.repository.commit(input.projectId, current.revision.number, "登记受管 HyperFrames 作品（待审阅）", registerAsset);
     asset = state.snapshot.assets.find(entry => entry.motion?.jobId === job.id)!;
@@ -3201,11 +3419,11 @@ export class EditingApplication {
     return asset;
   }
 
-  submitMotionAdoption(input: { projectId: Id; baseRevision: number; idempotencyKey: string; workId: Id; target: MotionOnSuccess; authoringInputs?: MotionAuthoringTreatmentInput[] }): JobRecord {
+  submitMotionAdoption(input: { projectId: Id; baseRevision: number; idempotencyKey: string; workId: Id; definitionHash?: string; target: MotionOnSuccess; authoringInputs?: MotionAuthoringTreatmentInput[] }): JobRecord {
     const request = motionOnSuccessSchema.parse(input.target);
     const current = this.readProject(input.projectId);
     if (current.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, current.revision.number);
-    const { work } = this.readSourceMotionWork(input.projectId, input.workId);
+    const { work } = this.readSourceMotionWork(input.projectId, input.workId, undefined, input.definitionHash);
     readMotionDefinition(current.snapshot.project.rootPath, work);
     validateMotionContinuation(current.snapshot, request);
     if (!motionAuthoringInputsCurrent(current.snapshot, input.authoringInputs)) throw new DomainError("当前采用稿已变化，请重新确认制作输入", "MOTION_AUTHORING_ADOPTION_CHANGED");
@@ -3222,12 +3440,12 @@ export class EditingApplication {
     const frozen = job.payload.continuation as FrozenMotionContinuation;
     const committed = this.repository.commitMotionResult({ projectId: job.projectId, jobId: job.id,
       mutate: (snapshot, impact) => {
-        const candidate = snapshot.motionWorks?.find(work => work.id === workId);
-        if (!candidate || job.kind === "motion_adoption" && candidate.definitionHash !== job.payload.definitionHash) return {
+        const candidate = motionWorkVersion(snapshot.motionWorks, workId, job.kind === "motion_adoption" ? String(job.payload.definitionHash) : undefined);
+        if (!candidate) return {
           status: "needs_reconfirmation", workId, conflicts: [{ objectId: workId, reason: "待采用作品身份已改变，需要重新确认" }]
         };
         readMotionDefinition(snapshot.project.rootPath, candidate);
-        return applyMotionAdoption(snapshot, impact, workId, frozen);
+        return applyMotionAdoption(snapshot, impact, workId, frozen, candidate.definitionHash);
       } });
     this.publish({ projectId: job.projectId, revision: committed.state.revision.number, type: "revision" });
     this.publish({ projectId: job.projectId, revision: committed.state.revision.number, type: "job" });
@@ -3241,15 +3459,16 @@ export class EditingApplication {
     return this.commitMotionAdoption(job, String(job.payload.workId));
   }
 
-  async reviewSourceMotionWork(input: { projectId: Id; baseRevision: number; workId: Id; assetId?: Id; outcome: MotionReviewOutcome; note: string; evidence?: MotionReviewEvidenceInput }): Promise<ProjectState> {
+  async reviewSourceMotionWork(input: { projectId: Id; baseRevision: number; workId: Id; definitionHash?: string; assetId?: Id; outcome: MotionReviewOutcome; note: string; evidence?: MotionReviewEvidenceInput }): Promise<ProjectState> {
     if (input.note.trim().length < 16 || input.note.length > 2400) throw new DomainError("请记录实际观察和仍未知范围", "MOTION_REVIEW_EVIDENCE_REQUIRED");
     const current = this.readProject(input.projectId);
     if (current.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, current.revision.number);
-    const { work } = this.readSourceMotionWork(input.projectId, input.workId);
-    const media = input.assetId ? current.snapshot.assets.find(asset => asset.id === input.assetId && asset.motion?.workId === work.id) : undefined;
+    const media = input.assetId ? current.snapshot.assets.find(asset => asset.id === input.assetId && asset.motion?.workId === input.workId) : undefined;
+    const { work } = this.readSourceMotionWork(input.projectId, input.workId, undefined, input.definitionHash ?? media?.motion?.definitionHash);
+    if (media?.motion && media.motion.version !== work.version) throw new DomainError("审阅媒体与指定作品版本不一致", "MOTION_VERSION_MISMATCH");
     const evidence = await validateSourceMotionReviewEvidence(current.snapshot, input.baseRevision, this.repository.listJobs(input.projectId), work, input.outcome, input.evidence, media);
     const state = this.repository.recordReview(input.projectId, input.baseRevision, reviews => {
-      reviews.motions.push({ workId: work.id, assetId: media?.id, version: work.version, outcome: input.outcome, evidence, note: input.note.trim(), reviewedAt: now() });
+      reviews.motions.push({ workId: work.id, assetId: media?.id, version: work.version, definitionHash: work.definitionHash, outcome: input.outcome, evidence, note: input.note.trim(), reviewedAt: now() });
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "review" });
     return state;
@@ -3265,7 +3484,7 @@ export class EditingApplication {
     if (!target.motion) throw new DomainError("不是受管作品", "MOTION_ASSET_REQUIRED");
     const evidence = await validateMotionReviewEvidence(current.snapshot, input.baseRevision, this.repository.listJobs(input.projectId), target, outcome, input.evidence);
     const state = this.repository.recordReview(input.projectId, input.baseRevision, (reviews) => {
-      reviews.motions.push({ workId: target.motion!.workId, assetId: target.id, outcome, version: target.motion!.version, evidence, note: input.note.trim(), reviewedAt: now() });
+      reviews.motions.push({ workId: target.motion!.workId, assetId: target.id, outcome, version: target.motion!.version, definitionHash: target.motion!.definitionHash, evidence, note: input.note.trim(), reviewedAt: now() });
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "review" });
     return state;
@@ -7172,7 +7391,8 @@ export class EditingApplication {
         const asset = assetById(snapshot, binding.assetId);
         if (asset.status !== "ready") throw new DomainError(`效果素材尚未就绪：${asset.name}`, "EFFECT_ASSET_NOT_READY");
       }
-      const cue = createEffectCue({ ...input, anchorTargetId: legacyAnchorTargetId });
+      const cue = createEffectCue({ ...input, anchorTargetId: legacyAnchorTargetId,
+        ...(input.type === "ManagedMotion" && input.workId ? { workDefinitionHash: motionWorkVersion(snapshot.motionWorks, input.workId)?.definitionHash } : {}) });
       assertEffectCoverage(snapshot, cue);
       this.assertManagedMotionCue(snapshot, cue);
       snapshot.effectCues.push(cue);
@@ -7225,7 +7445,10 @@ export class EditingApplication {
       const previousRange = { startFrame: cue.startFrame, endFrame: cue.endFrame, reason: "清理效果原位置" };
       cue.startFrame = input.startFrame ?? cue.startFrame;
       cue.endFrame = input.endFrame ?? cue.endFrame;
-      cue.workId = input.workId ?? cue.workId;
+      if (input.workId !== undefined && input.workId !== cue.workId) {
+        cue.workId = input.workId;
+        cue.workDefinitionHash = motionWorkVersion(snapshot.motionWorks, input.workId)?.definitionHash;
+      }
       cue.sourceStartFrame = input.sourceStartFrame ?? cue.sourceStartFrame;
       cue.sourceEndFrame = input.sourceEndFrame ?? cue.sourceEndFrame;
       if (cue.type === "ManagedMotion") cue.motion.holdFrames = cue.endFrame - cue.startFrame;
@@ -9548,9 +9771,14 @@ export class EditingApplication {
   async recordExportArtifactReview(input: {
     projectId: Id;
     artifactId: Id;
-    passes: EditorialReviewPass[];
-    evidence: string[];
-    findings: Array<{
+    operationId?: string;
+    runId?: Id;
+    assignmentId?: Id;
+    observer?: string;
+    passes?: EditorialReviewPass[];
+    evidence?: string[];
+    observations?: Array<Omit<ArtifactReviewObservation, "id" | "operationId" | "runId" | "assignmentId" | "observer" | "recordedAt">>;
+    findings?: Array<{
       pass: EditorialReviewPass;
       severity: EditorialReviewSeverity;
       category: EditorialReviewCategory;
@@ -9562,47 +9790,139 @@ export class EditingApplication {
       objectId?: Id;
       frameRange?: { startFrame: number; endFrame: number };
     }>;
-  }): Promise<ExportArtifact> {
+    resolutions?: Array<{ findingId: Id; evidenceIds: Id[]; note: string }>;
+  }): Promise<ExportArtifact & { reviewReceipt?: { operationId: string; evidenceIds: Id[]; findingIds: Id[] } }> {
     const artifact = this.readExportArtifact({ projectId: input.projectId, artifactId: input.artifactId });
     if (artifact.purpose !== "delivery") throw new DomainError("只有 delivery ExportArtifact 可以登记正式成片复核", "EXPORT_ARTIFACT_REVIEW_PURPOSE_INVALID");
     await this.assertExportArtifactIntact(artifact);
-    const passes = [...new Set(input.passes)];
-    if (!passes.length || passes.some(pass => !["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"].includes(pass))) {
-      throw new DomainError("只登记实际执行的文件复核轮次，至少提供一项", "EXPORT_ARTIFACT_REVIEW_INCOMPLETE");
+    const snapshot = this.repository.getRevision(input.projectId, artifact.revision).snapshot;
+    const observations = input.observations ?? [];
+    const operationId = input.operationId;
+    const hash = createHash("sha256").update(JSON.stringify(input)).digest("hex");
+    if ((observations.length || input.resolutions?.length) && (!operationId || !/^[a-zA-Z0-9_-]{1,160}$/u.test(operationId))) {
+      throw new DomainError("结构化文件复核需要稳定操作编号", "EXPORT_REVIEW_OPERATION_REQUIRED");
     }
-    const evidence = [...new Set(input.evidence.map((value) => value.trim()).filter(Boolean))];
-    if (evidence.length === 0) throw new DomainError("成片复核必须说明实际播放或试听最终文件的证据", "EXPORT_ARTIFACT_EVIDENCE_REQUIRED");
-    const findings: EditorialReviewFinding[] = input.findings.map((finding) => {
-      if (!passes.includes(finding.pass)) throw new DomainError("成片复核问题引用了未执行的审片轮次", "EXPORT_ARTIFACT_REVIEW_PASS_MISSING");
-      const summary = finding.summary.trim();
-      const evidenceText = finding.evidence.trim();
-      const impact = finding.impact.trim();
-      if (!summary || !evidenceText || !impact) throw new DomainError("成片复核问题必须说明现象、证据和影响", "INVALID_EXPORT_ARTIFACT_FINDING");
-      if (finding.frameRange && (finding.frameRange.startFrame < 0 || finding.frameRange.endFrame <= finding.frameRange.startFrame)) {
-        throw new DomainError("成片复核问题的帧范围无效", "INVALID_EXPORT_ARTIFACT_FRAME_RANGE");
+    if (observations.length && !input.observer?.trim()) {
+      throw new DomainError("文件观察需要实际观察者", "EXPORT_REVIEW_OPERATION_REQUIRED");
+    }
+    const previousOperation = operationId && artifact.artifactReview?.operations?.find(entry => entry.id === operationId);
+    if (previousOperation) {
+      if (previousOperation.hash !== hash) throw new DomainError("操作编号已用于不同的复核内容", "PRODUCTION_OPERATION_CONFLICT");
+      return { ...artifact, reviewReceipt: { operationId, evidenceIds: previousOperation.evidenceIds, findingIds: previousOperation.findingIds } };
+    }
+    let report: SkillExecutionReport | undefined;
+    if (input.runId) {
+      report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
+      if (report.status === "completed" || report.status === "abandoned") throw new DomainError("制作任务已结束，不能追加审阅", "PRODUCTION_RUN_CLOSED");
+      if (input.assignmentId && !report.assignments.some(entry => entry.assignmentId === input.assignmentId)) {
+        throw new DomainError("审阅分派不属于当前制作任务", "PRODUCTION_ASSIGNMENT_INVALID");
       }
-      return {
-        id: createId("export_artifact_finding"),
-        pass: finding.pass,
-        severity: finding.severity,
-        category: finding.category,
-        summary,
-        evidence: evidenceText,
-        impact,
-        suggestedFix: finding.suggestedFix?.trim() || undefined,
-        verificationMethod: finding.verificationMethod?.trim() || undefined,
-        objectId: finding.objectId,
-        frameRange: finding.frameRange
+    } else if (input.assignmentId) {
+      throw new DomainError("审阅分派需要指定制作任务", "PRODUCTION_ASSIGNMENT_INVALID");
+    }
+    const timestamp = now();
+    const records: ArtifactReviewObservation[] = [];
+    for (const observation of observations) {
+      if (!Number.isInteger(observation.startFrame) || !Number.isInteger(observation.endFrame)
+        || observation.startFrame < 0 || observation.endFrame <= observation.startFrame || observation.endFrame > snapshot.timeline.durationInFrames
+        || !observation.note.trim()) throw new DomainError("文件观察范围或实际说明无效", "EDITORIAL_EVIDENCE_RANGE_INVALID");
+      if (!["audiovisual", "event_sync", "reference"].includes(observation.check)
+        || !["frames", "continuous_video", "audio", "audiovisual", "sampled_av", "event_measurement"].includes(observation.method)
+        || !["confirmed", "issue", "inconclusive"].includes(observation.outcome)) throw new DomainError("文件观察方式或结果无效", "EDITORIAL_METHOD_INVALID");
+      if (observation.pass && !EDITORIAL_PASSES.includes(observation.pass)) throw new DomainError("审阅轮次无效", "EDITORIAL_METHOD_INVALID");
+      if (observation.pass && observation.outcome === "confirmed" && ["frames", "continuous_video", "audio", "audiovisual"].includes(observation.method)
+        && !(observation.method === "frames" && ["mute_visual", "mode_specific"].includes(observation.pass))
+        && !evidenceSupportsPass({ pass: observation.pass, method: observation.method as EditorialReviewObservation["method"] })) {
+        throw new DomainError("观察方式不能支持声明的审阅轮次", "EDITORIAL_METHOD_INVALID");
+      }
+      if (["audio", "audiovisual", "sampled_av", "event_measurement"].includes(observation.method) && !artifact.validation.hasAudio) {
+        throw new DomainError("文件没有音轨，不能登记声音观察", "EDITORIAL_METHOD_INVALID");
+      }
+      if (observation.mediaObservationIds?.length && ["continuous_video", "audio", "audiovisual"].includes(observation.method)) {
+        throw new DomainError("模型观察不能登记为原生连续观看或听审", "EDITORIAL_METHOD_INVALID");
+      }
+      if (["sampled_av", "event_measurement"].includes(observation.method) && !observation.mediaObservationIds?.length) {
+        throw new DomainError("模型或测量观察需要引用实际媒体观察", "EDITORIAL_EVIDENCE_REQUIRED");
+      }
+      for (const id of observation.mediaObservationIds ?? []) {
+        const found = this.intelligence.store.observation(input.projectId, id);
+        const source = found && this.intelligence.store.source(input.projectId, found.sourceId);
+        if (!found || !source || source.target.exportArtifactId !== artifact.id || found.sourceHash !== artifact.fileHash
+          || !found.range || found.range.startMs > observation.startFrame * 1000 / snapshot.timeline.fps
+          || found.range.endMs < observation.endFrame * 1000 / snapshot.timeline.fps) {
+          throw new DomainError("媒体观察不属于该文件或未覆盖申报范围", "EXPORT_REVIEW_OBSERVATION_MISMATCH");
+        }
+        if (observation.method === "event_measurement" && (!found.timingMeasurement
+          || observation.outcome === "confirmed" && found.timingMeasurement.status !== "measured")) {
+          throw new DomainError("事件测量须引用对应的实际测量结果", "EDITORIAL_EVIDENCE_REQUIRED");
+        }
+      }
+      if (observation.check === "event_sync" && observation.required && !observation.subjectId?.trim()) {
+        throw new DomainError("必需的事件检查需要标明目标事件", "EDITORIAL_EVIDENCE_REQUIRED");
+      }
+      if (observation.check === "reference" && !observation.referenceReviews?.length) {
+        throw new DomainError("参考对照必须指出实际参考映射", "EDITORIAL_ADOPTION_INVALID");
+      }
+      for (const reference of observation.referenceReviews ?? []) {
+        const source = await this.readSkillExecutionReport({ projectId: input.projectId, runId: reference.productionRunId });
+        if (!source.creativeDecisions.some(decision => decision.id === reference.decisionId && decision.phase === "adoption")) {
+          throw new DomainError("参考对照必须引用本项目的导演采用", "EDITORIAL_ADOPTION_INVALID");
+        }
+      }
+      records.push({ ...observation, id: createId("editorial_evidence"), operationId: operationId!, runId: input.runId,
+        assignmentId: input.assignmentId, observer: input.observer!.trim(), note: observation.note.trim(), recordedAt: timestamp });
+    }
+    if (observations.some(item => item.outcome === "issue") && !input.findings?.length) throw new DomainError("发现问题时需要登记具体问题", "INVALID_EXPORT_ARTIFACT_FINDING");
+    const passes = [...new Set(input.passes ?? [])];
+    if (passes.some(pass => !EDITORIAL_PASSES.includes(pass))) throw new DomainError("文件复核轮次无效", "EXPORT_ARTIFACT_REVIEW_INCOMPLETE");
+    const evidence = [...new Set((input.evidence ?? []).map(value => value.trim()).filter(Boolean))];
+    if (!records.length && !input.resolutions?.length && (!passes.length || !evidence.length)) throw new DomainError("文件复核必须提供实际观察", "EXPORT_ARTIFACT_EVIDENCE_REQUIRED");
+    const findings: EditorialReviewFinding[] = (input.findings ?? []).map(finding => {
+      if (!passes.includes(finding.pass) || !finding.summary.trim() || !finding.evidence.trim() || !finding.impact.trim()) {
+        throw new DomainError("成片问题需要实际轮次、现象、证据和影响", "INVALID_EXPORT_ARTIFACT_FINDING");
+      }
+      if (finding.frameRange && (!Number.isInteger(finding.frameRange.startFrame) || !Number.isInteger(finding.frameRange.endFrame)
+        || finding.frameRange.startFrame < 0 || finding.frameRange.endFrame <= finding.frameRange.startFrame
+        || finding.frameRange.endFrame > snapshot.timeline.durationInFrames)) throw new DomainError("成片问题范围无效", "INVALID_EXPORT_ARTIFACT_FINDING");
+      return { ...finding, id: createId("export_artifact_finding"), revision: artifact.revision, recordedAt: timestamp,
+        summary: finding.summary.trim(), evidence: finding.evidence.trim(), impact: finding.impact.trim() };
+    });
+    const history = (report?.deliveryArtifactHistory ?? []).map(id => this.readExportArtifact({ projectId: input.projectId, artifactId: id }));
+    const allFindings = [...history.flatMap(item => item.artifactReview?.findings ?? []), ...(artifact.artifactReview?.findings ?? []), ...findings];
+    const allEvidence = [...(artifact.artifactReview?.observations ?? []), ...records];
+    const resolutions: EditorialFindingResolution[] = (input.resolutions ?? []).map(resolution => {
+      const finding = allFindings.find(item => item.id === resolution.findingId);
+      const relevant = resolution.evidenceIds.map(id => allEvidence.find(item => item.id === id));
+      const range = finding?.revision !== undefined && finding.revision !== artifact.revision
+        ? editorialResolutionRange(finding, this.repository.getRevision(input.projectId, finding.revision).snapshot, snapshot)
+        : finding?.frameRange ?? { startFrame: 0, endFrame: snapshot.timeline.durationInFrames };
+      if (!finding || !resolution.note.trim() || !relevant.length || relevant.some(item => !item || item.outcome !== "confirmed"
+        || (finding.recordedAt && item.recordedAt < finding.recordedAt)
+        || (finding.pass === "audio_only" ? !["audio", "audiovisual"].includes(item.method)
+          : finding.pass === "mute_visual" ? !["continuous_video", "audiovisual"].includes(item.method)
+          : item.method !== "audiovisual")) || missingReviewRanges(relevant.filter((item): item is ArtifactReviewObservation => !!item), range.startFrame, range.endFrame).length) {
+        throw new DomainError("关闭问题需要发现之后对当前文件实际复查对应范围", "EDITORIAL_RESOLUTION_EVIDENCE_REQUIRED");
+      }
+      return { findingId: finding.id, revision: artifact.revision, evidenceIds: resolution.evidenceIds, note: resolution.note.trim(), resolvedAt: timestamp, frameRange: range };
+    });
+    const updated = this.repository.updateExportArtifact(input.projectId, input.artifactId, stored => {
+      const prior = stored.artifactReview;
+      const existing = operationId && prior?.operations?.find(entry => entry.id === operationId);
+      if (existing) {
+        if (existing.hash !== hash) throw new DomainError("操作编号已用于不同的复核内容", "PRODUCTION_OPERATION_CONFLICT");
+        return;
+      }
+      if (stored.approval) throw new DomainError("已批准的 ExportArtifact 不能覆盖成片复核记录", "EXPORT_ARTIFACT_APPROVED");
+      stored.artifactReview = {
+        passes: [...new Set([...(prior?.passes ?? []), ...passes])], evidence: [...new Set([...(prior?.evidence ?? []), ...evidence])],
+        findings: [...(prior?.findings ?? []), ...findings], observations: [...(prior?.observations ?? []), ...records],
+        resolutions: [...(prior?.resolutions ?? []), ...resolutions], reviewedAt: timestamp,
+        operations: [...(prior?.operations ?? []), ...(operationId ? [{ id: operationId, hash, evidenceIds: records.map(item => item.id), findingIds: findings.map(item => item.id) }] : [])]
       };
     });
-    const review: ExportArtifactReview = { passes, evidence, findings, reviewedAt: now() };
-    const updated = this.repository.updateExportArtifact(input.projectId, input.artifactId, (stored) => {
-      if (stored.approval) throw new DomainError("已批准的 ExportArtifact 不能覆盖成片复核记录", "EXPORT_ARTIFACT_APPROVED");
-      // 固定文件没有发生修复时，空的新报告不能抹掉该文件已有的问题；修片后导出新 Artifact。
-      stored.artifactReview = { ...review, findings: [...(stored.artifactReview?.findings ?? []), ...review.findings] };
-    });
     this.publish({ projectId: input.projectId, revision: artifact.revision, type: "job" });
-    return updated;
+    const receipt = operationId && updated.artifactReview?.operations?.find(entry => entry.id === operationId);
+    return receipt ? { ...updated, reviewReceipt: { operationId, evidenceIds: receipt.evidenceIds, findingIds: receipt.findingIds } } : updated;
   }
 
   async approveExportArtifact(input: { projectId: Id; artifactId: Id; confirmedByUser?: true; fileHash?: string; note?: string }): Promise<ExportArtifact> {

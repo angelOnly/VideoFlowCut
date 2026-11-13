@@ -24,3 +24,32 @@ jobs:
       - run: npm test
       - run: npm run test:creative-eval
       - run: npm run build
+
+  windows-background:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: npm ci
+      - name: 准备 FFmpeg
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
+            choco install ffmpeg --no-progress -y
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            "$env:ChocolateyInstall\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          }
+      - name: 检查后台进程调用
+        run: node --test tests/background-process-policy.test.mjs
+      - name: 验证后台启动默认行为
+        run: node --import tsx --test --test-name-pattern="后台策略|静默进程" tests/background-processes.test.ts
+      - name: 验证 Windows 桌面静默
+        shell: pwsh
+        run: powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File tests/windows-background-desktop.ps1

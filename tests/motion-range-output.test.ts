@@ -112,6 +112,7 @@ test("正式范围采用成功校样不重画，原子替换前中后并保持�
     assert.equal(nextAsset.motion!.frameCount,6);assert.deepEqual(nextAsset.motion!.rootRange,{...frameRange,fullDurationInFrames:24});assert.equal(app.readSourceMotionWork(projectId,nextAsset.motion!.workId!).work.eventMap!.events[0].startFrame,9);
     const partial = structuredClone(app.readProject(projectId).snapshot);
     partial.effectCues[0].workId = nextAsset.motion!.workId!;
+    partial.effectCues[0].workDefinitionHash = nextAsset.motion!.definitionHash;
     const localPreview = join(root, "partial-preview.mp4"), renderer = new RevisionRenderer(undefined, 1);
     await renderer.renderRange(partial, 106, 112, localPreview);
     await assert.rejects(() => renderer.renderRange(partial, 105, 112, join(root, "outside.mp4")), /尚无覆盖选段的派生媒体/);

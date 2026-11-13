@@ -77,6 +77,27 @@ test("后台策略覆盖两种启动签名，保留参数且同步 ESM 导出", 
   assert.match(stdout, /ok/u);
 });
 
+test("后台策略可以在没有全局 process 的 Node REPL 中加载", async () => {
+  const { stdout } = await run(process.execPath, ["--input-type=module", "-e", `
+    import assert from 'node:assert/strict';
+    import cp from 'node:child_process';
+    import {platform} from 'node:os';
+    const savedProcess = globalThis.process;
+    let options;
+    cp.spawn = (_command, _args, value) => { options = value; return 'child'; };
+    globalThis.process = undefined;
+    try {
+      await import(${JSON.stringify(policy)});
+      assert.equal(cp.spawn('tool', [], {windowsHide: false}), 'child');
+      assert.equal(options.windowsHide, platform() === 'win32');
+    } finally {
+      globalThis.process = savedProcess;
+    }
+    console.log('ok');
+  `], { windowsHide: true });
+  assert.match(stdout, /ok/u);
+});
+
 test("静默进程保留标准输出、错误、退出码与取消能力", async () => {
   const { stdout } = await run(process.execPath, ["--input-type=module", "-e", `
     import assert from 'node:assert/strict';

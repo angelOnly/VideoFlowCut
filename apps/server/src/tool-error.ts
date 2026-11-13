@@ -4,9 +4,12 @@ import { DomainError } from "@videocut/domain";
 import { MotionSubmissionValidationError } from "../../../packages/edit-application/src/motion-submission-validation.js";
 import { EffectCueRangeValidationError } from "../../../packages/edit-application/src/effect-cue-validation.js";
 import { MotionFontUnknownError } from "../../../packages/motion-work/src/fonts.js";
+import { MotionAuthoringCoordinationError } from "../../../packages/edit-application/src/motion-coordination-error.js";
 
 /** 未知异常不能宣称没有写入；只有明确的输入校验拒绝可纠正参数。 */
 export function toolError(error: unknown, validationBeforeExecution = false) {
+  if (error instanceof MotionAuthoringCoordinationError) return { error: error.message, message: error.message, code: error.code,
+    stage: "validation", sideEffects: "none", safeToRetry: true, recovery: "continue_responsible_author", issues: error.issues };
   if (error instanceof MotionFontUnknownError) return { error: error.message, message: error.message, code: "MOTION_FONT_UNKNOWN", stage: "validation", sideEffects: "none", safeToRetry: true, recovery: "correct_input", fontId: error.fontId,
     fields: [{ field: "work.fontBindings", message: "字体未登记", suggestion: "读取 read_motion_capabilities，由原视觉作者选择已登记字体；用户锁定且无法满足时再回询。" }] };
   if (error instanceof SourceDisplayValidationError) return { error: error.message, message: error.message, code: error.code, stage: "validation", sideEffects: "none", safeToRetry: true, recovery: "correct_input", fields: error.fields };

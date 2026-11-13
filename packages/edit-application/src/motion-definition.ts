@@ -14,10 +14,11 @@ export function motionDefinitionFromPayload(payload: JobRecord["payload"]) {
   const boundVideos = boundMotionVideoSchema.array().parse(payload.boundVideos ?? []);
   const boundFonts = boundMotionFontSchema.array().parse(payload.boundFonts ?? []);
   const sourceDisplay = payload.sourceDisplay === undefined ? undefined : frozenSourceDisplaySchema.parse(payload.sourceDisplay);
+  const author = (payload.sourceAuthor ?? (payload.inputBundle as { source?: MotionWork["author"] } | undefined)?.source ?? payload.author) as MotionWork["author"] | undefined;
   motionHashEngine(work, boundImages, payload.version, payload.engineVersion, boundVideos, boundFonts, sourceDisplay);
   const readyRanges = (payload.readyRanges as MotionWork["readyRanges"] | undefined) ?? [{ startFrame: 0, endFrame: work.durationInFrames }];
   for (const range of readyRanges) if (!Number.isInteger(range.startFrame) || !Number.isInteger(range.endFrame) || range.startFrame < 0 || range.endFrame <= range.startFrame || range.endFrame > work.durationInFrames) throw new Error("MOTION_BUNDLE_RANGE_INVALID");
-  return { work, boundImages, boundVideos, boundFonts, sourceDisplay, readyRanges, version: String(payload.version), engineVersion: MOTION_ENGINE_VERSION };
+  return { work, boundImages, boundVideos, boundFonts, sourceDisplay, readyRanges, ...(author ? { author } : {}), version: String(payload.version), engineVersion: MOTION_ENGINE_VERSION };
 }
 
 /** 原子保存完整固定输入；快照只引用此文件，阶段包和 Job 是来源审计。 */
@@ -35,13 +36,14 @@ export function storeMotionDefinition(root: string, job: JobRecord, eventMap?: M
     try { writeFileSync(temporary, bytes, { flag: "wx" }); renameSync(temporary, join(root, path)); }
     finally { rmSync(temporary, { force: true }); }
   }
-  const bundle = job.payload.inputBundle as { source?: MotionWork["author"]; readyRanges?: MotionWork["readyRanges"] } | undefined;
-  return { id: `motion_work_${definitionHash}`, version, name: work.name, jobId: job.id, engineVersion: definition.engineVersion,
+  const workId = typeof job.payload.logicalWorkId === "string" ? job.payload.logicalWorkId
+    : typeof job.payload.fixedWorkId === "string" ? job.payload.fixedWorkId : `motion_work_${definitionHash}`;
+  return { id: workId, version, name: work.name, jobId: job.id, engineVersion: definition.engineVersion,
     definitionPath: path, definitionHash, width: work.width, height: work.height, fps: work.fps,
     frameCount: work.durationInFrames, compositing: work.compositing ?? "alpha", creativeBrief: work.creativeBrief,
     imageSources: definition.boundImages, videoSources: definition.boundVideos, fontSources: definition.boundFonts,
     sourceDisplay: definition.sourceDisplay, eventMap,
-    readyRanges: definition.readyRanges, author: bundle?.source };
+    readyRanges: definition.readyRanges, author: definition.author };
 }
 
 export function readMotionDefinition(root: string, work: MotionWork) {
@@ -49,6 +51,6 @@ export function readMotionDefinition(root: string, work: MotionWork) {
   if (digest(bytes) !== work.definitionHash) throw new Error("MOTION_DEFINITION_CHANGED");
   if (work.engineVersion !== MOTION_ENGINE_VERSION) throw new Error("MOTION_ENGINE_UPGRADE_REQUIRED");
   const definition = motionDefinitionFromPayload(JSON.parse(bytes.toString("utf8")));
-  if (`motion_work_${digest(bytes)}` !== work.id || definition.version !== work.version) throw new Error("MOTION_VERSION_MISMATCH");
+  if (definition.version !== work.version) throw new Error("MOTION_VERSION_MISMATCH");
   return definition;
 }

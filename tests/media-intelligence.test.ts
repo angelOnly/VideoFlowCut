@@ -196,3 +196,33 @@ test("缓存预算保留历史/活动引用，仅清除模块内过期派生文�
     await assert.rejects(pruneMediaCache(root, [protectedPath], { maxBytes: 1, reserveBytes: 0 }), /受保护/u);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
+
+test("每次分析只统计自己窗口及纠正链中的事实", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vfc-analysis-isolation-"));
+  const app = createApplication(root);
+  try {
+    const projectId = app.createProject({ name: "分析范围隔离" }).snapshot.project.id;
+    const media: MediaSource = { ...source, projectId, target: { candidateId: "candidate" }, durationMs: 10000 };
+    app.intelligence.store.saveSource(media);
+    const makeObservation = (id: string, startMs: number, endMs: number): MediaObservation => ({
+      ...observation(fact("visual", id, { startMs, endMs })), id, projectId, sourceId: media.id, sourceHash: media.hash,
+      range: { startMs, endMs }, modalities: ["visual"]
+    });
+    const first = makeObservation("first", 0, 5000);
+    const second = makeObservation("second", 5000, 10000);
+    app.intelligence.store.saveObservation(first);
+    app.intelligence.store.saveObservation(second);
+    app.intelligence.store.saveObservation({ ...first, id: "first-corrected", supersedes: first.id });
+    for (const item of [first, second]) app.intelligence.store.saveAnalysis({
+      id: "analysis-" + item.id, projectId, sourceId: media.id, key: item.id, depth: "review", modalities: ["visual"],
+      targetRange: { startMs: 0, endMs: 10000 }, windows: [{ id: item.id, range: item.range, status: "succeeded", observationId: item.id }],
+      shotRanges: [], status: "succeeded", updatedAt: new Date().toISOString()
+    });
+    const result = app.intelligence.inspect(projectId, { candidateId: "candidate" });
+    const firstResult = result.modalityCoverage.find(item => item.analysisId === "analysis-first")!.facts[0];
+    const secondResult = result.modalityCoverage.find(item => item.analysisId === "analysis-second")!.facts[0];
+    assert.deepEqual(firstResult.unknownRanges, [{ startMs: 5000, endMs: 10000 }]);
+    assert.deepEqual(secondResult.unknownRanges, [{ startMs: 0, endMs: 5000 }]);
+    assert.equal(firstResult.factCount, 1);
+  } finally { app.close(); await rm(root, { recursive: true, force: true }); }
+});

@@ -334,7 +334,7 @@ export function isLaunchLockOwnerCurrent(owner) {
   // 只在过期锁恢复时查询进程出生时间；查不到时保守保留，不按固定超时抢活跃操作的锁。
   const result = process.platform === "win32"
     ? spawnSync(join(process.env.SystemRoot ?? "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe"), ["-NoProfile", "-NonInteractive", "-Command", `try { (Get-Process -Id ${Number(owner.pid)} -ErrorAction Stop).StartTime.ToUniversalTime().ToString('o') } catch { exit 1 }`], { encoding: "utf8", windowsHide: true, timeout: 5000 })
-    : spawnSync("ps", ["-p", String(owner.pid), "-o", "lstart="], { encoding: "utf8", timeout: 5000, env: { ...process.env, LC_ALL: "C" } });
+    : spawnSync("ps", ["-p", String(owner.pid), "-o", "lstart="], { encoding: "utf8", windowsHide: true, timeout: 5000, env: { ...process.env, LC_ALL: "C" } });
   const processStartedAt = result.status === 0 ? Date.parse(result.stdout.trim()) : NaN;
   return !Number.isFinite(processStartedAt) || processStartedAt <= createdAt + 1500;
 }

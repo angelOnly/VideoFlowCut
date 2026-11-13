@@ -248,6 +248,11 @@ export class ProjectRepository {
         hash.update(name).update("\0").update(readFileSync(join(directory, name))).update("\0");
       }
     }
+    // 文件复核与制作报告共同决定收口；并发新增问题时必须重新评估。
+    const artifactReviews = this.listExportArtifacts(projectId)
+      .map(artifact => ({ id: artifact.id, review: artifact.artifactReview }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+    hash.update(JSON.stringify(artifactReviews));
     return { revision: project.current_revision_number, fingerprint: hash.digest("hex") };
   }
 
@@ -492,7 +497,11 @@ export class ProjectRepository {
       // 固定作品只能追加新版本；任何普通编辑都不能原地改源码身份、事件或资源。
       for (const work of current.snapshot.motionWorks ?? []) {
         const next = snapshot.motionWorks?.find(entry => entry.id === work.id);
-        if (!next || !isDeepStrictEqual(work, next)) throw new DomainError("固定源码作品不可原地修改；请登记新版本", "MOTION_WORK_IMMUTABLE");
+        const { previousVersions: previous = [], ...currentVersion } = work;
+        const available = next ? [(({ previousVersions: _versions, ...version }) => version)(next), ...(next.previousVersions ?? [])] : [];
+        if ([currentVersion, ...previous].some(version => !available.some(candidate => candidate.definitionHash === version.definitionHash && isDeepStrictEqual(candidate, version)))) {
+          throw new DomainError("固定源码版本不可原地修改或删除；请登记新版本", "MOTION_WORK_IMMUTABLE");
+        }
       }
       if (snapshot.timeline.captionFormat) {
         // 生成、重建与局部纠错都继承同一规范，不重新保存每卡外观。
@@ -577,6 +586,28 @@ export class ProjectRepository {
       VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, NULL, ?, ?)`)
       .run(job.id, job.projectId, job.kind, job.status, JSON.stringify(job.payload), job.idempotencyKey, job.attempt, job.createdAt, job.updatedAt);
     return job;
+  }
+
+  /** 同一作品的制作任务在同一事务中检查并登记，避免独立 MCP 与服务进程同时创建委托。 */
+  createMotionAuthoringJob(input: { projectId: Id; baseRevision: number; payload: Record<string, unknown>; idempotencyKey: string }): { job?: JobRecord; busy?: JobRecord } {
+    return this.transaction(() => {
+      const jobs = this.listJobs(input.projectId);
+      const previous = jobs.find(job => job.idempotencyKey === input.idempotencyKey);
+      const request = { projectId: input.projectId, kind: "motion_authoring" as const, payload: input.payload, idempotencyKey: input.idempotencyKey };
+      if (previous) {
+        // 与制作入口一致：相同原始委托始终读回原 Job，不因异步生成的附带资料重建任务。
+        if (previous.kind !== "motion_authoring" || JSON.stringify(previous.payload.input) !== JSON.stringify(input.payload.input)) {
+          throw new DomainError("幂等键已用于不同制作委托", "MOTION_IDEMPOTENCY_CONFLICT");
+        }
+        return { job: previous };
+      }
+      const current = this.getCurrent(input.projectId);
+      if (current.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, current.revision.number);
+      const logicalWorkId = input.payload.logicalWorkId;
+      const busy = typeof logicalWorkId === "string" ? jobs.find(job => job.kind === "motion_authoring" && job.payload.logicalWorkId === logicalWorkId
+        && ["queued", "running", "unknown"].includes(job.status)) : undefined;
+      return busy ? { busy } : { job: this.createJob(request) };
+    });
   }
 
   /** 原失败任务只有一个恢复子任务；检查与创建在同一短事务中完成。 */

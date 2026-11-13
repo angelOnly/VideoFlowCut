@@ -1673,7 +1673,8 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     const contentContract = inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline, snapshot.motionWorks);
     if (cue.type === "ManagedMotion" && cue.status === "ready") {
       const work = motionWorkForCue(snapshot, cue);
-      if (work && managedMotionReviewOutcome(work, reviews && [...reviews.motions].reverse().find((entry) => entry.workId === work.id && entry.version === work.version)) !== "passed") {
+      if (work && managedMotionReviewOutcome(work, reviews && [...reviews.motions].reverse().find((entry) => entry.workId === work.id && entry.version === work.version
+        && (!entry.definitionHash || entry.definitionHash === work.definitionHash))) !== "passed") {
         pendingPerception.push({ category: "motion", entry: issue({ level: "blocking", code: "MOTION_WORK_REVIEW_REQUIRED", message: "该作品的连续动态审阅尚未通过；可继续放置、制作、修订和导出，效果由用户观看后确认。", objectId: cue.id, frameRange: { startFrame: cue.startFrame, endFrame: cue.endFrame }, editorialSeverity: "inconclusive" }) });
       }
     }

@@ -47,6 +47,12 @@
 
 视频任务先读取 `.agents/skills/project-basics/SKILL.md` 和 `.agents/skills/production-coordinator/SKILL.md`。主任务按实际需求与协调 Skill 组织协作、按需加载专业 Skills，负责项目事实、正式提交、结果接回和交付。
 
+## 视频任务的后台执行
+
+- Windows 下制作、审核和素材处理默认不打开终端窗口。优先使用现有 VideoFlowCut 工具完成素材探测、抽帧和审阅。
+- 需要临时运行命令时，在 Node REPL 中先导入仓库的 `plugins/videoflowcut/scripts/background-processes.mjs`，再使用 `child_process.spawn` 或 `spawnSync`。该入口在 Windows 下默认隐藏子进程窗口。保留标准输出、错误输出和退出码，长任务保留取消能力。
+- 执行入口本身也必须后台运行。不要先通过会显示窗口的 Shell 工具启动 PowerShell，再在 PowerShell 内隐藏子进程。
+
 ## 制作与平台修复分开
 
 制作中发现需要修复平台的问题，先向用户说明并取得授权，才可修改平台源码、依赖、启动器或发行物；修复结果交用户审核，正式部署须在用户已授权的范围内执行。不得通过新建或委派修复任务绕过授权。已有授权的服务恢复仍按授权执行。

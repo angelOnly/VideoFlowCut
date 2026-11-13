@@ -1541,6 +1541,7 @@ export function createAudioCue(input: Omit<AudioCue, "id" | "status" | "createdA
 
 export function createEffectCue(input: {
   workId?: Id;
+  workDefinitionHash?: string;
   sourceStartFrame?: number;
   sourceEndFrame?: number;
   visualComposition?: EffectCue["visualComposition"] | null;
@@ -1579,6 +1580,7 @@ export function createEffectCue(input: {
     ...(input.visualComposition ? { visualComposition: structuredClone(input.visualComposition) } : {}),
     sceneId: input.sceneId,
     ...(input.workId ? { workId: input.workId } : {}),
+    ...(input.workDefinitionHash ? { workDefinitionHash: input.workDefinitionHash } : {}),
     ...(input.coveredNarrativeBeatIds !== undefined ? { coveredNarrativeBeatIds: [...new Set(input.coveredNarrativeBeatIds)] } : {}),
     type: input.type,
     layer: input.layer,

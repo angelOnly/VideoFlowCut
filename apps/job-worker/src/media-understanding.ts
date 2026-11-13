@@ -1,6 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { modelText, semanticConfig, restoreModelCheckpoints, rejectModelOutput } from "./model-http.js";
 import { deriveMediaInput, documentPageCount, PREPROCESSING_VERSION } from "../../../packages/media-intelligence/src/derive.js";
+import { measureAudioVisualTiming } from "../../../packages/media-intelligence/src/timing.js";
 import { measureAudioWindow } from "../../../packages/media-intelligence/src/acoustics.js";
 import { parseSourceCaptionAlignmentOutput } from "@videocut/speech";
 import { FUNASR_SOURCE_CAPTION_WORKFLOW_ID } from "@videocut/bridge";
@@ -125,12 +126,12 @@ export async function runMediaUnderstanding(app: EditingApplication, job: JobRec
   if (!record) {
     const ranges = source.durationMs ? planWindows(source.durationMs, input.depth, input.range) : [];
     const targetRange = source.durationMs ? input.range ?? { startMs: 0, endMs: source.durationMs } : undefined;
-    const boundaries = source.kind === "video" ? await detectSceneBoundaries(source.path) : [];
+    const boundaries = source.kind === "video" && !input.timingCheck ? await detectSceneBoundaries(source.path) : [];
     const cuts = [...new Set([0, ...boundaries.map((boundary) => boundary.seconds * 1000).filter((time) => time > 0 && time < source.durationMs), source.durationMs])].sort((a, b) => a - b);
     record = { id: job.id, projectId: job.projectId, sourceId: source.id, key: String(job.payload.analysisKey), depth: input.depth, modalities, targetRange,
       observationQuestions: input.observationQuestions, comparisonReference: input.comparisonReference,
       windows: ranges.length ? ranges.map((range, index) => ({ id: `${job.id}:${index}`, range, status: "pending" })) : [{ id: `${job.id}:0`, region: input.region, status: "pending" }],
-      shotRanges: source.kind === "video" ? cuts.slice(0, -1).map((startMs, index) => ({ startMs, endMs: cuts[index + 1] })) : [], status: "running", updatedAt: now() };
+      shotRanges: source.kind === "video" && !input.timingCheck ? cuts.slice(0, -1).map((startMs, index) => ({ startMs, endMs: cuts[index + 1] })) : [], status: "running", updatedAt: now() };
     store.saveAnalysis(record);
   }
   if (source.kind === "document" && !input.region && record.windows.length === 1 && !record.windows[0].region) {
@@ -145,6 +146,25 @@ export async function runMediaUnderstanding(app: EditingApplication, job: JobRec
     try {
       window.modalityStatus = Object.fromEntries(input.modalities.map((modality) => [modality, modalities.includes(modality) ? "unknown" : "unavailable"]));
       const directory = join(app.readProject(job.projectId).snapshot.project.rootPath, "cache", "mi", digest([job.id, window.id]).slice(0, 24));
+      if (input.timingCheck) {
+        if (!window.range) throw new DomainError("声画事件测量需要时间范围", "MEDIA_RANGE_REQUIRED");
+        const measured = await measureAudioVisualTiming(source, window.range, directory);
+        const { clipPath, mapping, ...timingMeasurement } = measured;
+        const observation: MediaObservation = {
+          id: `observation_${digest([job.id, window.id, source.hash, input.timingCheck])}`,
+          projectId: job.projectId, sourceId: source.id, sourceHash: source.hash, range: window.range, depth: input.depth,
+          modalities: ["visual", "audio"], facts: [], unknowns: measured.status === "inconclusive" ? [measured.note] : [],
+          observationQuestions: input.observationQuestions, comparisonReference: input.comparisonReference,
+          rawText: measured.note, timingMeasurement,
+          version: { workflowId: "local-hard-cut-audio", schemaVersion: "1", model: "none", prompt: "none", preprocessing: PREPROCESSING_VERSION },
+          jobId: job.id, inputEvidence: { path: clipPath, hash: await hashMediaFile(clipPath), mapping }, createdAt: now()
+        };
+        store.saveObservation(observation);
+        window.observationId = observation.id;
+        window.modalityStatus = { visual: measured.status === "measured" ? "observed" : "unknown", audio: measured.status === "measured" ? "observed" : "unknown" };
+        window.status = "succeeded"; window.error = undefined;
+        continue;
+      }
       const derived = await deriveMediaInput(source, directory, window.range, window.region, modalities.every((entry) => entry === "audio" || entry === "speech"));
       const kind = derived.kind;
       const observationModalities = modalities.filter((modality) => modality !== "speech");

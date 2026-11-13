@@ -1,9 +1,10 @@
 import childProcess from "node:child_process";
 import { syncBuiltinESMExports } from "node:module";
+import { platform } from "node:os";
 
 // 仅由后台渲染入口加载。Windows 不会把父进程的隐藏设置传给子进程，
 // 因此 Remotion 等依赖的直接 spawn 也必须覆盖；不改变管道、信号和退出行为。
-if (process.platform === "win32") {
+if (platform() === "win32") {
   for (const name of ["spawn", "spawnSync"]) {
     const original = childProcess[name];
     childProcess[name] = function (command, args, options) {

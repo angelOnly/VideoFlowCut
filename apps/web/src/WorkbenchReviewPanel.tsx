@@ -26,6 +26,8 @@ export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, 
   const [findingId, setFindingId] = useState("");
   const [captionOnly, setCaptionOnly] = useState(false);
   const [comparedReferences, setComparedReferences] = useState(false);
+  const [references, setReferences] = useState<import("@videocut/contracts").ReferenceReviewRef[]>([]);
+  const [selectedReferences, setSelectedReferences] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const runId = useRef<string | undefined>(undefined);
@@ -38,7 +40,18 @@ export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, 
     void api.editorialReview(projectId, revision).then(value => { if (active) setReview(value); }).catch(error => { if (active) setMessage(error instanceof Error ? error.message : String(error)); });
     return () => { active = false; };
   }, [projectId, revision]);
-  useEffect(() => { setComparedReferences(false); }, [projectId, revision, startFrame, endFrame, adoptionKey]);
+  useEffect(() => {
+    setComparedReferences(false); setSelectedReferences([]); setReferences([]);
+    if (!productionRunId) return;
+    let active = true;
+    void api.productionStatus(projectId, productionRunId).then(status => {
+      if (!active) return;
+      const values = status.completion?.coordinationIssues.flatMap(issue => issue.referenceReview && issue.scope.kind === "frames"
+        && issue.scope.startFrame < endFrame && issue.scope.endFrame > startFrame ? [issue.referenceReview] : []) ?? [];
+      setReferences([...new Map(values.map(ref => [JSON.stringify(ref), ref])).values()]);
+    }).catch(error => { if (active) setMessage(error instanceof Error ? error.message : String(error)); });
+    return () => { active = false; };
+  }, [projectId, productionRunId, revision, startFrame, endFrame, adoptionKey]);
   useEffect(() => { runId.current = undefined; pending.current = undefined; }, [projectId]);
 
   const resolved = new Set(review?.resolutions?.map(entry => entry.findingId) ?? []);
@@ -51,7 +64,8 @@ export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, 
     try {
       const fields = {
         revision, pass, method, observer, observation, startFrame, endFrame,
-        ...(comparedReferences ? { adoptionRefs } : {}),
+        ...(comparedReferences && !references.length ? { adoptionRefs } : {}),
+        ...(selectedReferences.length ? { referenceReviews: references.filter(ref => selectedReferences.includes(JSON.stringify(ref))) } : {}),
         ...(mode === "finding" ? { finding: { category, severity, summary: observation, impact, objectId } } : {})
       };
       const signature = JSON.stringify({ projectId, mode, fields, ...(mode === "resolution" ? { findingId, captionOnly } : {}) });
@@ -102,7 +116,14 @@ export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, 
       </select></label>
     </div>
     <label>实际观察<textarea aria-label="实际观察" value={observation} onChange={event => setObservation(event.target.value)} /></label>
-    {adoptionRefs.length > 0 && <label><input type="checkbox" checked={comparedReferences} onChange={event => setComparedReferences(event.target.checked)} />已对照本范围当前采用的参考</label>}
+    {references.map(ref => {
+      const key = JSON.stringify(ref);
+      return <label key={key}><input type="checkbox" checked={selectedReferences.includes(key)} onChange={event => setSelectedReferences(current =>
+        event.target.checked ? [...current, key] : current.filter(item => item !== key))} />
+        已对照 {ref.referenceId} · {ref.targetRole} · 原片 {ref.startMs}–{ref.endMs} 毫秒
+      </label>;
+    })}
+    {!references.length && adoptionRefs.length === 1 && <label><input type="checkbox" checked={comparedReferences} onChange={event => setComparedReferences(event.target.checked)} />已对照本范围当前采用的参考</label>}
     <label>问题影响（记录问题时填写）<input aria-label="问题影响" value={impact} onChange={event => setImpact(event.target.value)} /></label>
     <div className="workbench-review-actions"><button disabled={busy} onClick={() => void save("observation")}>保存观察</button><button disabled={busy} onClick={() => void save("finding")}>记录问题</button></div>
     {open.length > 0 && <>

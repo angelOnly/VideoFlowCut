@@ -8,7 +8,7 @@ import {parseMechanism} from '../document-format.mjs';
 const root=resolve('references/motion-cases/skillry');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function run(command,args){
-  const r=spawnSync(command,args,{encoding:'utf8',maxBuffer:8*1024*1024});
+  const r=spawnSync(command,args,{windowsHide:true,encoding:'utf8',maxBuffer:8*1024*1024});
   if(r.error||r.status!==0)throw new Error(`${command} 执行失败：${r.error?.message??r.stderr}`);
   return r.stdout;
 }

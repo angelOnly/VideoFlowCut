@@ -85,18 +85,18 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     const prepared = parse<{ manifestPath: string; manifestSha256: string; scenes: Array<{ sceneId: string; status: string }>;
       diagnostics: Array<{ id?: string; requiredForRun?: boolean }>; files: Array<{ path: string; localPath: string; requiredForRun: boolean; uses: Array<{ kind: string }> }> }>(await client.callTool({
       name: "prepare_motion_handoff", arguments: { project_id: projectId, base_revision_id: rev(), brief_path: brief, timing_plan_path: timing,
-        selected_scene_ids: ["a"], assets: [{ id: importedVideo.asset.id, purpose: "真实主体" }, { id: "missing-b", purpose: "等待真实素材" }],
+        selected_scene_ids: [scene.id], assets: [{ id: importedVideo.asset.id, purpose: "真实主体" }, { id: "missing-b", purpose: "等待真实素材" }],
         creative: [{ id: "002-c01", sourceSha256: creative.source_sha256, usage: "adopted", purpose: "参考画面组织" }],
         motion: [{ id: "003-m01", sourceSha256: index.source_sha256, usage: "adopted", purpose: "待补场面的机制" }],
         references: [{ id: "missing-art", usage: "study", purpose: "下一场素材", files: [{ path: join(root, "missing-art.png"), deliveredPath: "references/art/missing.png" }] }], scenes: [
-          { sceneId: "a", status: "ready", references: [{ kind: "creative", id: "002-c01", sourceSha256: creative.source_sha256,
+          { sceneId: scene.id, status: "ready", references: [{ kind: "creative", id: "002-c01", sourceSha256: creative.source_sha256,
             startMs: 0, endMs: 9800, purpose: "参考画面组织" }],
             visualRoles: [{ role: "主体", referenceFunction: "连续变化", assetIds: [importedVideo.asset.id],
               sourceRanges: [{ startMs: 0, endMs: 1000 }], usage: "展示真实主体" }],
             visualPlan: { status: "previewed", primaryRoles: ["主体"], preview: { workId: previewWorkId, startFrame: 0, endFrame: 24 },
               referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative", targetRole: "主体", treatment: "真实主体接管", preserveRelation: "主体与文字共同变化" }] },
             process: "主体出现、发展并接续", preserve: ["连续过程"], adapt: ["中文文字"] },
-          { sceneId: "b", status: "pending", references: [{ kind: "motion", id: "003-m01", sourceSha256: index.source_sha256,
+          { sceneId: pendingScene.id, status: "pending", references: [{ kind: "motion", id: "003-m01", sourceSha256: index.source_sha256,
             startMs: 0, endMs: 2080, purpose: "下一场机制" }], resourceIds: ["missing-art"],
             visualRoles: [{ role: "主体", referenceFunction: "动作", assetIds: ["missing-b"], usage: "待获取" }] }
         ] }
@@ -117,7 +117,7 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     const fixedBrief = prepared.files.find(file => file.path.endsWith("brief/visual-director-brief.md"))!;
     assert.equal(await readFile(fixedBrief.localPath, "utf8"), "完整连续画面及准确文字");
 
-    const delivery = { manifest_path: prepared.manifestPath, manifest_sha256: prepared.manifestSha256, scene_ids: ["a"] };
+    const delivery = { manifest_path: prepared.manifestPath, manifest_sha256: prepared.manifestSha256, scene_ids: [scene.id] };
     const record = async (assignment: string) => {
       const current = await app.readSkillExecutionReport({ projectId, runId: report.id });
       const previous = current.assignments.at(-1);
@@ -217,7 +217,7 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.equal(result.authoring.status, "succeeded");
     assert.equal(starts, 1);
     assert.match(receivedPrompt, /完整共同编排/);
-    assert.match(receivedPrompt, /就绪场面 a/);
+    assert.ok(receivedPrompt.includes(`就绪场面 ${scene.id}`));
     assert.match(receivedPrompt, /002-c01/);
     assert.match(receivedPrompt, /主体与文字共同变化/);
     assert.match(receivedPrompt, /预排引用仅供追溯/);

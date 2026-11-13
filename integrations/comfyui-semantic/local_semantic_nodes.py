@@ -2,6 +2,7 @@
 
 import json
 import math
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -86,6 +87,8 @@ def _analyze_media(model, path, kind, prompt, start_seconds, duration_seconds, m
         process = subprocess.run(
             [str(python), str(Path(__file__).with_name("minicpmo_worker.py"))],
             input=json.dumps(request), capture_output=True, text=True, encoding="utf-8", errors="replace",
+            # ComfyUI 在 Windows 后台运行时，模型子进程也不能创建控制台窗口。
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
         )
         if process.returncode:
             raise RuntimeError(f"MiniCPM-o 推理失败：{process.stderr.strip().splitlines()[-1] if process.stderr.strip() else process.returncode}")

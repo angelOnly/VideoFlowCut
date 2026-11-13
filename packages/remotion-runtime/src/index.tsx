@@ -147,7 +147,7 @@ const CueLayer: React.FC<{ snapshot: ProjectSnapshot; mediaBaseUrl: string; cue:
     if (!work) return null;
     const projectFrame = Math.max(cue.startFrame, Math.min(frame, cue.endFrame - 1));
     const rootFrame = motionFrameAtProjectFrame((cue.sourceStartFrame ?? 0) + projectFrame - cue.startFrame, work.fps, snapshot.timeline.fps, work.frameCount);
-    if (getRemotionEnvironment().isPlayer) return <MotionSourceLayer key={`${work.id}:${revision}`} work={work} frame={rootFrame} projectFps={snapshot.timeline.fps} playbackControl={playbackControl} visible={visible} projectId={snapshot.project.id} revision={revision!} mediaBaseUrl={mediaBaseUrl} />;
+    if (getRemotionEnvironment().isPlayer) return <MotionSourceLayer key={`${work.id}:${work.definitionHash}:${revision}`} work={work} frame={rootFrame} projectFps={snapshot.timeline.fps} playbackControl={playbackControl} visible={visible} projectId={snapshot.project.id} revision={revision!} mediaBaseUrl={mediaBaseUrl} />;
     const asset = motionMediaForCue(snapshot, cue, renderRange);
     if (!asset?.motion) throw new Error("MOTION_MEDIA_REQUIRED: 导出需要同作品范围的真实派生媒体");
     const localFrame = rootFrame - (asset.motion.rootRange?.startFrame ?? 0);

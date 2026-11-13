@@ -392,3 +392,139 @@ test("严重观感问题不得被质量门禁丢弃，空报告和新 Run 不得
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("成片一次登记可供文件与任务使用，并区分同版本不同文件", async () => {
+  const f = await fixture();
+  const { app: server, application } = await createServer({ workspaceRoot: f.root });
+  try {
+    const exportDir = join(f.state.snapshot.project.rootPath, "exports");
+    await mkdir(exportDir, { recursive: true });
+    async function artifact(id: string) {
+      const file = join(exportDir, id + ".mp4");
+      await copyFile(join(f.state.snapshot.project.rootPath, "assets/source/source.mp4"), file);
+      const job = f.app.repository.createJob({ projectId: f.projectId, kind: "export", payload: { revision: f.base.revision }, idempotencyKey: id });
+      f.app.updateJob(job.id, { status: "succeeded", result: { path: file } });
+      const { size } = await import("node:fs/promises").then(module => module.stat(file));
+      return f.app.registerExportArtifact({ id, projectId: f.projectId, revision: f.base.revision, jobId: job.id,
+        purpose: "delivery", relativePath: `exports/${id}.mp4`, fileHash: await hashMediaFile(file), fileSizeBytes: size,
+        createdAt: new Date().toISOString(), preflight: {} as any, sourceManifest: {} as any,
+        validation: { durationMs: 2000, fps: 24, frameCount: 48, hasAudio: true, blackSegments: [] } });
+    }
+    const first = await artifact("artifact_a");
+    const second = await artifact("artifact_b");
+    const requiredRun = await f.app.startProductionRun({ projectId: f.projectId, baseRevision: f.base.revision, intent: "local_edit",
+      completionScope: { kind: "project" }, operationId: "require-delivery", loadedSkills: ["quality-verification"], deliveryReviewRequired: true });
+    const missingDelivery = await f.app.readProductionStatus(f.projectId, { runId: requiredRun.id });
+    assert.ok(missingDelivery.completion!.nextActions?.some(action => action.code === "DELIVERY_ARTIFACT_PENDING"));
+    const selected = await f.app.updateProductionRun({ projectId: f.projectId, runId: f.run.id,
+      expectedAuditVersion: f.run.auditVersion, action: "select_delivery_artifact", artifactId: first.id, operationId: "select-a" });
+    const body = { operationId: "first-half", runId: f.run.id, observer: "隔离测试", passes: ["audiovisual"], evidence: ["测试观察"],
+      findings: [{ pass: "audiovisual", severity: "major", category: "audio", summary: "音效偏移", evidence: "测试声明", impact: "影响同步", frameRange: { startFrame: 0, endFrame: 24 } }],
+      observations: [{ check: "audiovisual", method: "audiovisual", outcome: "confirmed",
+        startFrame: 0, endFrame: 24, note: "测试声明：观察前半段" }] };
+    const endpoint = `/api/projects/${f.projectId}/export-artifacts/${first.id}/review`;
+    const response = await server.inject({ method: "POST", url: endpoint, payload: body });
+    assert.equal(response.statusCode, 200, response.body);
+    const evidenceId = response.json().reviewReceipt.evidenceIds[0];
+    const findingId = response.json().reviewReceipt.findingIds[0];
+    const retry = await server.inject({ method: "POST", url: endpoint, payload: body });
+    assert.equal(retry.json().reviewReceipt.evidenceIds[0], evidenceId);
+    const auditBefore = f.app.repository.productionAuditState(f.projectId);
+    const parallel = await Promise.all(["parallel-1", "parallel-2"].map(operationId => server.inject({
+      method: "POST", url: endpoint, payload: { ...body, operationId, findings: [],
+        observations: [{ check: "audiovisual", method: "frames", outcome: "confirmed", startFrame: 0, endFrame: 1, note: operationId }] }
+    })));
+    assert.ok(parallel.every(result => result.statusCode === 200));
+    assert.notEqual(parallel[0].json().reviewReceipt.evidenceIds[0], parallel[1].json().reviewReceipt.evidenceIds[0]);
+    const temporary = join(f.root, "audit-concurrent.tmp");
+    await writeFile(temporary, "{}");
+    assert.throws(() => f.app.repository.commitProductionAudit(f.projectId, auditBefore, temporary, join(f.root, "never-committed.json")),
+      (error: unknown) => error instanceof DomainError && error.code === "PRODUCTION_AUDIT_CONFLICT");
+    const fileRead = await server.inject({ method: "GET", url: `/api/projects/${f.projectId}/export-artifacts/${first.id}` });
+    assert.equal(fileRead.json().artifactReview.observations[0].id, evidenceId);
+    const transport = new StdioClientTransport({ command: process.execPath, args: ["--import", "tsx", "apps/server/src/mcp.ts"],
+      cwd: process.cwd(), env: { ...process.env, VIDEOCUT_WORKSPACE: f.root } as Record<string, string>, stderr: "pipe" });
+    const client = new Client({ name: "artifact-review-cross-entry", version: "1.0.0" });
+    try {
+      await client.connect(transport);
+      const result = await client.callTool({ name: "read_export_artifact", arguments: { project_id: f.projectId, artifact_id: first.id } });
+      assert.notEqual(result.isError, true);
+      const artifact = JSON.parse((result.content as Array<{ text: string }>)[0].text);
+      assert.equal(artifact.artifactReview.observations[0].id, evidenceId);
+    } finally { await client.close(); }
+    const statusA = await f.app.readProductionStatus(f.projectId, { runId: f.run.id });
+    assert.equal(statusA.completion!.validObservations[0].evidenceId, evidenceId);
+    assert.deepEqual(statusA.completion!.observationGaps.map(({ startFrame, endFrame }) => ({ startFrame, endFrame })),
+      [{ startFrame: 24, endFrame: 48 }]);
+    const switched = await f.app.updateProductionRun({ projectId: f.projectId, runId: f.run.id,
+      expectedAuditVersion: selected.auditVersion, action: "select_delivery_artifact", artifactId: second.id, operationId: "select-b" });
+    const statusB = await f.app.readProductionStatus(f.projectId, { runId: f.run.id });
+    assert.equal(statusB.completion!.artifactId, second.id);
+    assert.equal(statusB.completion!.validObservations.length, 0);
+    assert.deepEqual(statusB.completion!.openRequiredFindingIds, [findingId]);
+    assert.ok(statusB.completion!.nextActions?.some(action => action.code === "OBSERVATION_PENDING"));
+    const early = await f.app.completeProductionRun({ projectId: f.projectId, runId: f.run.id,
+      completionScope: { kind: "project" }, finalRevision: f.base.revision, operationId: "complete-before" });
+    assert.equal(early.status, "incomplete");
+    assert.ok(early.evaluation.nextActions?.length);
+    assert.ok(switched.auditVersion > selected.auditVersion);
+    const full = await server.inject({ method: "POST", url: `/api/projects/${f.projectId}/export-artifacts/${second.id}/review`,
+      payload: { ...body, operationId: "full-b", findings: [], observations: [{ ...body.observations[0], endFrame: 48 }] } });
+    assert.equal(full.statusCode, 200, full.body);
+    const unknownEvent = await server.inject({ method: "POST", url: `/api/projects/${f.projectId}/export-artifacts/${second.id}/review`,
+      payload: { operationId: "event-unknown", runId: f.run.id, observer: "隔离测试",
+        observations: [{ check: "event_sync", subjectId: "cut-sound", required: true, method: "frames", outcome: "inconclusive",
+          startFrame: 0, endFrame: 24, note: "静帧无法确认声音时间" }] } });
+    assert.equal(unknownEvent.statusCode, 200, unknownEvent.body);
+    const pendingEvent = await f.app.readProductionStatus(f.projectId, { runId: f.run.id });
+    assert.ok(pendingEvent.completion!.nextActions?.some(action => action.code === "EVENT_REVIEW_PENDING"));
+    const confirmedEvent = await server.inject({ method: "POST", url: `/api/projects/${f.projectId}/export-artifacts/${second.id}/review`,
+      payload: { operationId: "event-confirmed", runId: f.run.id, observer: "隔离测试",
+        observations: [{ check: "event_sync", subjectId: "cut-sound", required: true, method: "audiovisual", outcome: "confirmed",
+          startFrame: 0, endFrame: 24, note: "测试声明：连续声画复核事件" }] } });
+    assert.equal(confirmedEvent.statusCode, 200, confirmedEvent.body);
+    const resolved = await server.inject({ method: "POST", url: `/api/projects/${f.projectId}/export-artifacts/${second.id}/review`,
+      payload: { operationId: "resolve-on-b", runId: f.run.id, resolutions: [{ findingId, evidenceIds: full.json().reviewReceipt.evidenceIds, note: "测试声明：复查已修正" }] } });
+    assert.equal(resolved.statusCode, 200, resolved.body);
+    const final = await f.app.completeProductionRun({ projectId: f.projectId, runId: f.run.id,
+      completionScope: { kind: "project" }, finalRevision: f.base.revision, operationId: "complete-after" });
+    assert.equal(final.status, "completed", final.completionBlockers.join("; "));
+    assert.equal(final.evaluation.artifactId, second.id);
+    const conflict = await server.inject({ method: "POST", url: endpoint, payload: { ...body, observer: "不同观察者" } });
+    assert.ok(conflict.statusCode >= 400);
+    await writeFile(join(exportDir, second.id + ".mp4"), "文件内容已变化");
+    const changed = await f.app.readProductionStatus(f.projectId, { runId: f.run.id });
+    assert.equal(changed.completion!.ready, false);
+  } finally { await server.close(); application.close(); await f.dispose(); }
+});
+
+test("声音负责人接替后不把待办继续发给旧负责人", async () => {
+  const f = await fixture();
+  try {
+    const original = await f.app.updateProductionRun({ projectId: f.projectId, runId: f.run.id,
+      expectedAuditVersion: f.run.auditVersion, operationId: "audio-owner-old", action: "add_assignment",
+      assignment: { assignmentId: "audio-old", agentId: "old-agent", responsibilities: ["asset_sourcing"],
+        skillIds: ["audio-finishing"], scope: { kind: "project" }, inputRevision: f.base.revision } });
+    await f.app.updateProductionRun({ projectId: f.projectId, runId: f.run.id,
+      expectedAuditVersion: original.auditVersion, operationId: "audio-owner-replaced", action: "replace_assignment",
+      assignment: { assignmentId: "material-new", agentId: "new-agent", responsibilities: ["asset_sourcing"],
+        skillIds: ["visual-asset-sourcing"], scope: { kind: "project" }, inputRevision: f.base.revision,
+        supersedesAssignmentId: "audio-old" } });
+    await f.app.recordEditorialQualityReview({ ...f.base, operationId: "audio-problem", passes: ["audio_only"],
+      observations: [{ source: "workbench", observer: "测试审阅者", pass: "audio_only", method: "audio",
+        startFrame: 0, endFrame: 48, observation: "测试声明：检查声音" }],
+      findings: [{ pass: "audio_only", severity: "major", category: "audio", summary: "旁白被音乐盖住",
+        evidence: "测试声明：音乐掩盖语音", impact: "影响内容理解" }] });
+    const status = await f.app.readProductionStatus(f.projectId, { runId: f.run.id });
+    const action = status.completion!.nextActions!.find(item => item.code === "FINDING_PENDING" && item.question === "旁白被音乐盖住");
+    assert.ok(action, "应返回声音问题的续办");
+    assert.equal(action.assignmentId, undefined, "旧负责人已被完整接替，应重新指定声音负责人");
+    const report = await f.app.readSkillExecutionReport({ projectId: f.projectId, runId: f.run.id });
+    await f.app.updateProductionRun({ projectId: f.projectId, runId: f.run.id,
+      expectedAuditVersion: report.auditVersion, operationId: "audio-owner-new", action: "add_assignment",
+      assignment: { assignmentId: "audio-new", agentId: "audio-agent", responsibilities: ["review"],
+        skillIds: ["audio-finishing"], scope: { kind: "project" }, inputRevision: f.base.revision } });
+    const resumed = await f.app.readProductionStatus(f.projectId, { runId: f.run.id });
+    assert.equal(resumed.completion!.nextActions!.find(item => item.code === "FINDING_PENDING" && item.question === "旁白被音乐盖住")?.assignmentId, "audio-new");
+  } finally { await f.dispose(); }
+});

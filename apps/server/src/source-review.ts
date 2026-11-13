@@ -465,6 +465,8 @@ async function createRangeProxy(input: {
       "-c:a", "aac",
       "-r", String(input.range.fps),
       "-vsync", "cfr",
+      // 输入截取在变换帧率时可能多解出尾帧；只限制上界，缺帧仍由下方校验拒绝。
+      "-frames:v", String(input.range.endFrame - input.range.startFrame),
       "-movflags", "+faststart",
       "-y", temporaryPath
     ], Math.max(120_000, Math.ceil(durationSeconds * 8_000)));

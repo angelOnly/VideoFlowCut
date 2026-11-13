@@ -307,7 +307,8 @@ export interface MediaMetadata {
 }
 
 export type { MotionWork } from "./motion-work.js";
-export { motionWorkForCue, motionMediaForCue } from "./motion-work.js";
+export { motionWorkForCue, motionMediaForCue, motionWorkVersion } from "./motion-work.js";
+import { motionWorkVersion } from "./motion-work.js";
 export type MotionReviewOutcome = "passed" | "failed" | "inconclusive";
 export interface MotionReviewEvidenceInput {
   kind: "work_proxy" | "project_preview" | "workbench";
@@ -334,6 +335,7 @@ export interface MotionWorkReview {
   workId?: Id;
   assetId?: Id;
   version: string;
+  definitionHash?: string;
   outcome: MotionReviewOutcome;
   evidence?: MotionReviewEvidence;
   note: string;
@@ -353,8 +355,9 @@ export interface SoundMixReview {
 }
 export interface ProjectReviews { motions: MotionWorkReview[]; soundMixes: SoundMixReview[] }
 
-export function managedMotionReviewOutcome(motion: { version: string; frameCount: number } | undefined, review?: MotionWorkReview): MotionReviewOutcome | undefined {
+export function managedMotionReviewOutcome(motion: { version: string; frameCount: number; definitionHash?: string } | undefined, review?: MotionWorkReview): MotionReviewOutcome | undefined {
   if (!review || !motion || review.version !== motion.version) return undefined;
+  if (review.definitionHash && motion.definitionHash && review.definitionHash !== motion.definitionHash) return undefined;
   if (review.outcome === "passed" && (!review.evidence || !["continuous_video", "audiovisual"].includes(review.evidence.method)
     || review.evidence.workStartFrame !== 0 || review.evidence.workEndFrame !== motion.frameCount)) return undefined;
   return review.outcome;
@@ -383,6 +386,7 @@ export interface Asset {
   /** 受管作品保留源码来源和透明帧缓存；审阅代理不能替代正式 Alpha 合成。 */
   motion?: {
     workId?: Id;
+    definitionHash?: string;
     jobId: Id;
     version: string;
     engineVersion: string;
@@ -1086,6 +1090,7 @@ export interface CreativeAdoptionRef {
 /** 固定某次作品实际使用的计划与导演采用。 */
 export interface MotionAuthoringTreatmentInput {
   visualTreatmentId: Id;
+  previewWorkId?: Id;
   adoptedDecisionRef: CreativeAdoptionRef;
   deliveryRef: CreativeDeliveryRef;
   treatmentSignature: string;
@@ -1163,8 +1168,10 @@ export interface EffectMotion {
 }
 
 export interface EffectCue {
-  /** ManagedMotion 唯一作品版本；源范围始终指向完整作品，单位为项目帧。 */
+  /** ManagedMotion 作品身份；源范围始终指向完整作品，单位为项目帧。 */
   workId?: Id;
+  /** 当前片段实际采用的固定源码版本，不随同一作品的后续交件改变。 */
+  workDefinitionHash?: string;
   authoringInputs?: MotionAuthoringTreatmentInput[];
   /** 仅 ManagedMotion；与 TimelineItem 一样按项目 fps 表示媒体源范围。 */
   sourceStartFrame?: number;
@@ -1224,7 +1231,7 @@ export function inspectEffectContentContract(cue: EffectCue, assets: readonly As
 
   switch (cue.type) {
     case "ManagedMotion": {
-      const work = motionWorks.find(item => item.id === cue.workId);
+      const work = motionWorkVersion(motionWorks, cue.workId, cue.workDefinitionHash);
       if (!work) missing.push("已登记的固定源码作品 workId");
       else {
         const total = motionDurationAtFps(work.frameCount, work.fps, canvas?.fps ?? work.fps);
@@ -1648,7 +1655,7 @@ export interface EditorialReviewFinding {
 export interface EditorialReviewObservation {
   pass: EditorialReviewPass;
   /** 缺省表示现有预览文件证据；工作台观察不伪造媒体任务。 */
-  source?: "preview" | "workbench";
+  source?: "preview" | "workbench" | "artifact";
   previewJobId?: Id;
   observer?: string;
   /** 观察端自报环境，仅用于复现；不据此授予审阅资格。 */
@@ -1659,6 +1666,8 @@ export interface EditorialReviewObservation {
   observation: string;
   /** 观察者声明实际对照的导演采用决定。 */
   adoptionRefs?: CreativeAdoptionRef[];
+  /** 实际逐条对照的参考及其视觉角色。 */
+  referenceReviews?: ReferenceReviewRef[];
 }
 
 export interface EditorialReviewEvidence extends EditorialReviewObservation {
@@ -1761,7 +1770,7 @@ export interface QualityReport {
 export type ProductionRunStatus = "active" | "incomplete" | "completed" | "abandoned";
 
 export type ProductionIntent = "full_creation" | "visual_rework" | "local_edit" | "review_only";
-export type ProductionResponsibility = "director" | "creative_research" | "visual_design" | "motion_research" | "review";
+export type ProductionResponsibility = "director" | "narration" | "asset_sourcing" | "creative_research" | "visual_design" | "motion_research" | "review";
 export type CreativeDecisionPhase = "creative_research" | "motion_research" | "visual_design" | "adoption";
 
 export type ProductionCompletionScope =
@@ -1769,6 +1778,37 @@ export type ProductionCompletionScope =
   | { kind: "beats"; beatIds: Id[] }
   | { kind: "objects"; objectIds: Id[] }
   | { kind: "frames"; startFrame: number; endFrame: number };
+
+export interface ReferenceReviewRef extends CreativeAdoptionRef {
+  sceneId: Id;
+  referenceKind: "creative" | "motion";
+  referenceId: Id;
+  sourceSha256: string;
+  targetRole: string;
+  startMs: number;
+  endMs: number;
+}
+
+export interface ArtifactReviewObservation {
+  id: Id;
+  operationId: string;
+  runId?: Id;
+  assignmentId?: Id;
+  observer: string;
+  check: "audiovisual" | "event_sync" | "reference";
+  pass?: EditorialReviewPass;
+  subjectId?: Id;
+  /** 只有当前任务确实要求判断的事项才计入待办。 */
+  required?: boolean;
+  method: "frames" | "continuous_video" | "audio" | "audiovisual" | "sampled_av" | "event_measurement";
+  outcome: "confirmed" | "issue" | "inconclusive";
+  startFrame: number;
+  endFrame: number;
+  note: string;
+  mediaObservationIds?: Id[];
+  referenceReviews?: ReferenceReviewRef[];
+  recordedAt: string;
+}
 
 export interface ProductionCompletionEvaluation {
   runId: Id;
@@ -1783,6 +1823,8 @@ export interface ProductionCompletionEvaluation {
   observationGaps: Array<{ startFrame: number; endFrame: number; method: EditorialReviewObservation["method"]; objectId?: Id }>;
   openRequiredFindingIds: Id[];
   coordinationIssues: ProductionCoordinationIssue[];
+  artifactId?: Id;
+  nextActions?: Array<{ code: string; scope: ProductionCompletionScope; artifactId?: Id; revision: number; assignmentId?: Id; relatedRefs: Id[]; referenceReview?: ReferenceReviewRef; question: string; nextAction: string; closesWhen: string }>;
 }
 
 /** 由协调者登记实际分派，只用于追溯，不认证宿主身份。 */
@@ -1807,6 +1849,7 @@ export interface ProductionCoordinationIssue {
   state: "missing" | "pending" | "stale" | "unknown";
   message: string;
   nextAction: string;
+  referenceReview?: ReferenceReviewRef;
 }
 
 export interface CreativeDecision {
@@ -1859,6 +1902,10 @@ export interface SkillExecutionReport {
   editorialReviewHistory?: EditorialQualityReview[];
   /** 调用 complete 时未满足的条件；完成后为空。 */
   completionBlockers: string[];
+  /** 本次完整制作是否需要对指定的交付文件验收。 */
+  deliveryReviewRequired?: boolean;
+  deliveryArtifactId?: Id;
+  deliveryArtifactHistory?: Id[];
   createdAt: string;
   completedAt?: string;
 }
@@ -2130,6 +2177,9 @@ export interface ExportArtifactReview {
   evidence: string[];
   findings: EditorialReviewFinding[];
   reviewedAt: string;
+  observations?: ArtifactReviewObservation[];
+  operations?: Array<{ id: string; hash: string; evidenceIds: Id[]; findingIds: Id[] }>;
+  resolutions?: EditorialFindingResolution[];
 }
 
 export interface ExportArtifactApproval {

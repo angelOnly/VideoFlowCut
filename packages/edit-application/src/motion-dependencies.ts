@@ -67,7 +67,8 @@ export function reconcileMotionDependencies(previous: ProjectSnapshot, snapshot:
     const before = previous.effectCues.find(entry => entry.id === cue.id);
     if (!before) continue;
     // 比较旧作品声明的依赖，不能通过同一次主线变化顺便改覆盖声明掩盖失效。
-    if (motionCueDependencySignature(previous, before) === motionCueDependencySignature(snapshot, before)) continue;
+    const sameVersion = before.workDefinitionHash ? before : { ...before, workDefinitionHash: cue.workDefinitionHash };
+    if (motionCueDependencySignature(previous, before) === motionCueDependencySignature(snapshot, sameVersion)) continue;
     cue.status = "stale";
     impact.stale.push(cue.id);
     impact.changed.push(cue.id);

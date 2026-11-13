@@ -6,11 +6,13 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createHash } from "node:crypto";
 import { createApplication } from "@videocut/application";
+import { motionMediaForCue, motionWorkForCue } from "@videocut/contracts";
 import { processClaimedJob } from "@videocut/job-runtime";
 import { runMotionJob } from "../apps/render-worker/src/motion-job.js";
 import { runMotionAuthoringJob } from "../apps/runtime/src/motion-authoring.js";
 import { motionFixture } from "./fixtures/managed-motion.js";
 import { prepareReferencePackage } from "../packages/edit-application/src/opendesign-reference-package.mjs";
+import { createServer as createVfcServer } from "../apps/server/src/app.js";
 
 test("隔离 OD 阶段交件、同作者反馈与 VFC 自动采用端到端联通", { timeout: 90_000 }, async (context) => {
   const root = await mkdtemp(join(tmpdir(), "vfc-od-authoring-e2e-"));
@@ -32,7 +34,7 @@ const source=${JSON.stringify(source)}, work=${JSON.stringify(work)};
 let buffer='';
 function send(frame){ process.stdout.write(JSON.stringify(frame)+'\\n'); }
 async function stage(end, partial=false){
- fs.mkdirSync('output',{recursive:true}); fs.writeFileSync('output/film.html',source);
+ fs.mkdirSync('output',{recursive:true}); fs.writeFileSync('output/film.html',source.replace('</body>','<!--stage-'+end+'-'+partial+'--></body>'));
  fs.writeFileSync('output/work.json',JSON.stringify({work,readyRanges:partial?[{startFrame:9,endFrame:18}]:[{startFrame:0,endFrame:end}],changedRanges:[]}));
  const response=await fetch(process.env.OD_DAEMON_URL+'/api/tools/motion-work/stage',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+process.env.OD_TOOL_TOKEN},body:JSON.stringify({source_path:'output/film.html',manifest_path:'output/work.json'})});
  if(!response.ok) throw Error('stage failed '+response.status+' '+await response.text());
@@ -80,12 +82,16 @@ process.stdin.on('end',()=>process.exit(0));
     const initial = app.createProject({ name: "阶段制作隔离验证" }), projectId = initial.snapshot.project.id, rev = () => app.readProject(projectId).revision.number;
     app.repository.commit(projectId, rev(), "隔离画布", snapshot => Object.assign(snapshot.timeline, { width: 320, height: 320, fps: 30 }));
     const scene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "连续场面", purpose: "验证", startFrame: 0, endFrame: 18 }).snapshot.scenes[0];
+    const previewJob = app.registerMotionWork({ projectId, baseRevision: rev(), idempotencyKey: "preview", work: motionFixture });
+    const preview = app.completeSourceMotionWork(projectId, previewJob.id);
     const brief = join(root, "brief.md"), timing = join(root, "timing.md"), projectSnapshot = join(root, "project.json"), output = join(root, "handoff");
     await writeFile(brief, "隔离制作的完整共同编排"); await writeFile(timing, "真实时间资料");
     await writeFile(projectSnapshot, JSON.stringify(app.readProject(projectId)));
     const manifest = await prepareReferencePackage({ projectId, revision: rev(), projectSnapshot, brief, timingPlan: timing, freezeInputs: true,
-      deliveryPrefix: "handoffs/real-od", selectedSceneIds: ["opening"], scenes: [{ sceneId: "opening", status: "ready",
+      deliveryPrefix: "handoffs/real-od", selectedSceneIds: [scene.id], scenes: [{ sceneId: scene.id, status: "ready",
         visualRoles: [{ role: "主体", referenceFunction: "连续发展", assetIds: [], usage: "原创图形" }],
+        visualPlan: { status: "previewed", primaryRoles: ["主体"], graphicLed: true, graphicReasons: ["原创图形承担不可见的运动关系"],
+          preview: { workId: preview.id, startFrame: 0, endFrame: 18 } },
         process: "主体建立、变化并接续", preserve: ["连续关系"], adapt: ["中文文字"] }] }, output);
     for (const file of manifest.files.filter(item => item.requiredForRun !== false)) {
       const content = (await readFile(join(output, file.deliveredPath))).toString("base64");
@@ -93,14 +99,21 @@ process.stdin.on('end',()=>process.exit(0));
         body: JSON.stringify({ name: file.deliveredPath, content, encoding: "base64" }) });
       assert.equal(upload.status, 200, await upload.text());
     }
-    const run = await app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: app.readProject(projectId).revision.number, intent: "local_edit", completionScope: { kind: "project" }, projectId, loadedSkills: ["production-coordinator"] });
+    const run = await app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: app.readProject(projectId).revision.number, intent: "full_creation", completionScope: { kind: "project" }, projectId, loadedSkills: ["production-coordinator"] });
     await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: run.auditVersion, operationId: "director-assignment", action: "add_assignment",
-      assignment: { agentId: "/fixture/director", assignmentId: "director", responsibilities: ["director"], skillIds: ["production-director"], inputRevision: rev(), scope: { kind: "project" } } });
+      assignment: { agentId: "/fixture/director", assignmentId: "director", responsibilities: ["director", "narration", "creative_research", "visual_design", "motion_research"],
+        skillIds: ["production-director", "narration-writing", "creative-sequence-design", "visual-treatment-planning", "motion-case-library"], inputRevision: rev(), scope: { kind: "project" } } });
     const manifestPath = join(output, "delivery-manifest.json");
     const manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");
+    const research = async (phase: "creative_research" | "motion_research") => (await app.recordCreativeDecision({ operationId: globalThis.crypto.randomUUID(),
+      projectId, runId: run.id, category: "visual", decision: "本次不采用参考", rationale: "已研究候选，当前关系采用原创方案", phase,
+      assignmentId: "director", inputRevision: rev(), objectIds: [scene.id], researchOutcome: "not_applicable", evidence: ["已核对相关候选及原片范围"] })).creativeDecisions.at(-1)!;
+    const creative = await research("creative_research"), motion = await research("motion_research");
+    const design = (await app.recordCreativeDecision({ operationId: globalThis.crypto.randomUUID(), projectId, runId: run.id, category: "visual", decision: "采用完整视觉设计", rationale: "结合实际预排",
+      phase: "visual_design", assignmentId: "director", inputRevision: rev(), objectIds: [scene.id], inputDecisionIds: [creative.id, motion.id] })).creativeDecisions.at(-1)!;
     const decision = (await app.recordCreativeDecision({ operationId: globalThis.crypto.randomUUID(), projectId, runId: run.id, category: "scene", decision: "采用场面", rationale: "真实交付链路验证",
       phase: "adoption", assignmentId: "director", inputRevision: rev(), objectIds: [scene.id],
-      deliveryRef: { manifestPath, manifestSha256, sceneIds: ["opening"] } })).creativeDecisions[0];
+      inputDecisionIds: [design.id], deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } })).creativeDecisions.at(-1)!;
     const treatment = app.manageVisualTreatment({ projectId, baseRevision: rev(), action: "upsert", sceneId: scene.id, mode: "remotion",
       intensity: "medium", primaryAttention: "主体", narrativePurpose: "验证", adoptedMaterialAssetIds: [],
       adoptedDecisionRef: { productionRunId: run.id, decisionId: decision.id } }).snapshot.visualTreatments[0];
@@ -118,6 +131,7 @@ process.stdin.on('end',()=>process.exit(0));
     }
     assert.ok(stage?.runId && stage.receipts.length === 1, "首个真实 OD 阶段未进入 VFC");
     const firstReceipt = stage.receipts[0];
+    assert.equal(firstReceipt.workId, preview.id, "首个交件沿用同源预排的作品身份");
     const firstUrl = new URL(firstReceipt.editorUrl);
     assert.equal(firstUrl.searchParams.get("productionRunId"), run.id);
     assert.equal(firstUrl.searchParams.get("fromFrame"), "0");
@@ -140,16 +154,50 @@ process.stdin.on('end',()=>process.exit(0));
     assert.equal(secondUrl.searchParams.get("toFrame"), "18");
     assert.equal(secondUrl.searchParams.get("effectCueId"), secondReceipt.cueId);
     const secondWork = app.readSourceMotionWork(projectId, secondReceipt.workId, secondReceipt.revision).work;
+    assert.equal(secondReceipt.workId, firstReceipt.workId, "分阶段制作始终沿用同一作品");
     assert.equal(secondReceipt.runId, firstReceipt.runId);
     assert.notEqual(secondReceipt.frozenVersion, firstReceipt.frozenVersion);
     assert.deepEqual(secondWork.readyRanges, [{ startFrame: 9, endFrame: 18 }]);
     assert.deepEqual(secondWork.author, { project: odProject, run_id: stage.runId, frozen_version: secondReceipt.frozenVersion });
+    const secondSnapshot = app.readProject(projectId, secondReceipt.revision).snapshot;
+    const [firstPart, secondPart] = secondSnapshot.effectCues;
+    assert.equal(firstPart.workId, secondPart.workId);
+    assert.equal(motionWorkForCue(secondSnapshot, firstPart)?.definitionHash, firstWork.definitionHash);
+    assert.equal(motionWorkForCue(secondSnapshot, secondPart)?.definitionHash, secondWork.definitionHash);
+    assert.notEqual(firstPart.workDefinitionHash, secondPart.workDefinitionHash, "不同阶段的固定版本不能被后续交件覆盖");
     const finalReceipt = result.authoring.receipts[2];
     assert.deepEqual(app.readSourceMotionWork(projectId, finalReceipt.workId, finalReceipt.revision).work.readyRanges, [{ startFrame: 0, endFrame: 18 }]);
-    assert.equal(app.readProject(projectId).snapshot.motionWorks?.length, 3);
+    assert.equal(finalReceipt.workId, preview.id);
+    const finalSnapshot = app.readProject(projectId).snapshot;
+    assert.equal(finalSnapshot.motionWorks?.length, 1);
+    assert.equal(finalSnapshot.assets.length, 0, "阶段登记不会自动生成派生媒体");
+    assert.ok((finalSnapshot.motionWorks?.[0].previousVersions?.length ?? 0) >= 2);
+    assert.ok(finalSnapshot.effectCues.every(cue => motionWorkForCue(finalSnapshot, cue)?.definitionHash === cue.workDefinitionHash));
+    assert.equal(app.readSourceMotionWork(projectId, preview.id, undefined, firstWork.definitionHash).work.definitionHash, firstWork.definitionHash);
+    const { app: workbench, application: workbenchApp } = await createVfcServer({ workspaceRoot: join(root, "vfc") });
+    try {
+      for (const [version, marker] of [[firstWork, "stage-9-false"], [secondWork, "stage-18-true"]] as const) {
+        const response = await workbench.inject({ method: "GET", url: `/motion-work/${projectId}/${preview.id}/${rev()}/${version.definitionHash}/document` });
+        assert.equal(response.statusCode, 200, response.body);
+        assert.ok(response.body.includes(`/${version.definitionHash}/resources/`), "工作台必须读取指定固定版本的资源");
+        assert.ok(response.body.includes(marker), "工作台必须读取该阶段对应的源码内容");
+      }
+    } finally { await workbench.close(); workbenchApp.close(); }
+    const baked = app.submitMotionBake({ projectId, baseRevision: rev(), idempotencyKey: "bake-first-stage", workId: preview.id,
+      definitionHash: firstWork.definitionHash, frameRange: { startFrame: 0, endFrame: 9 }, outputIntent: "asset" });
+    const bakeDeadline = Date.now() + 30_000;
+    while (["queued", "running"].includes(app.trackJob(baked.id).status) && Date.now() < bakeDeadline) await new Promise(resolve => setTimeout(resolve, 100));
+    const bakeResult = app.trackJob(baked.id);
+    assert.equal(bakeResult.status, "succeeded", JSON.stringify(bakeResult.error));
+    const bakedSnapshot = app.readProject(projectId).snapshot;
+    const bakedAsset = bakedSnapshot.assets.find(asset => asset.id === bakeResult.result?.assetId);
+    assert.equal(bakedAsset?.motion?.workId, preview.id);
+    assert.equal(bakedAsset?.motion?.definitionHash, firstWork.definitionHash);
+    assert.equal(motionMediaForCue(bakedSnapshot, firstPart)?.id, bakedAsset?.id, "旧阶段必须找到自己的派生媒体");
+    assert.equal(motionMediaForCue(bakedSnapshot, finalSnapshot.effectCues[0]), undefined, "不能把旧源码的媒体用于新版片段");
     assert.deepEqual(app.readProject(projectId).snapshot.effectCues.map(cue => [cue.startFrame, cue.endFrame]), [[0, 9], [9, 18]]);
     assert.ok(app.readProject(projectId).snapshot.effectCues.every(cue => cue.authoringInputs?.[0].adoptedDecisionRef.decisionId === decision.id));
-    assert.equal(app.readProject(projectId).snapshot.assets.length, 0);
+    assert.equal(app.readProject(projectId).snapshot.assets.length, 1);
   } finally {
     controller.abort(); if (authoring) await authoring.catch(() => undefined);
     stop = true; await worker;

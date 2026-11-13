@@ -1,4 +1,4 @@
-import { motionWorkForCue } from "@videocut/contracts";
+import { motionWorkForCue, motionWorkVersion } from "@videocut/contracts";
 import type { Asset, ImpactReport, ProjectSnapshot, EffectCue, MotionAuthoringTreatmentInput } from "@videocut/contracts";
 import { motionDurationAtFps } from "../../contracts/src/frame-rate.js";
 import { createId, DomainError, effectBeatRanges } from "@videocut/domain";
@@ -40,10 +40,10 @@ export function checkMotionRangeCompatibility(expected: MotionRangeExpectation, 
 }
 
 /** 仅组织现有 Cue；前、新、后三段及声音引用在同一 Revision 中生效。 */
-export function replaceMotionRange(snapshot: ProjectSnapshot, impact: ImpactReport, input: { cueId: string; workId: string; startFrame: number; endFrame: number; authoringInputs?: MotionAuthoringTreatmentInput[] }): EffectCue[] {
+export function replaceMotionRange(snapshot: ProjectSnapshot, impact: ImpactReport, input: { cueId: string; workId: string; definitionHash?: string; startFrame: number; endFrame: number; authoringInputs?: MotionAuthoringTreatmentInput[] }): EffectCue[] {
   const cue = snapshot.effectCues.find(c => c.id === input.cueId);
   const old = cue ? motionWorkForCue(snapshot, cue) : undefined;
-  const next = snapshot.motionWorks?.find(work => work.id === input.workId);
+  const next = motionWorkVersion(snapshot.motionWorks, input.workId, input.definitionHash);
   if (!cue || cue.type !== "ManagedMotion" || !old || !next) throw new DomainError("需要已登记的受管 Cue 和正式范围素材", "MOTION_RANGE_ASSET_REQUIRED");
   if (!motionAuthoringInputsCurrent(snapshot, input.authoringInputs ?? cue.authoringInputs)) {
     throw new DomainError("当前采用稿已变化，请使用新的视觉计划续修", "MOTION_AUTHORING_ADOPTION_CHANGED");
@@ -58,7 +58,7 @@ export function replaceMotionRange(snapshot: ProjectSnapshot, impact: ImpactRepo
         effectBeatRanges(snapshot, id, cue.sceneId).some(range => range.startFrame < endFrame && range.endFrame > startFrame)) }),
       sourceStartFrame: source, sourceEndFrame: source + endFrame - startFrame,
       holdFrame: Math.min(endFrame - 1, startFrame + Math.floor((endFrame - startFrame) / 2)),
-      motion: { ...cue.motion, holdFrames: endFrame - startFrame }, workId, assetBindings: [],
+      motion: { ...cue.motion, holdFrames: endFrame - startFrame }, workId, workDefinitionHash: replaced ? next.definitionHash : old.definitionHash, assetBindings: [],
       ...(replaced && input.authoringInputs?.length ? { authoringInputs: structuredClone(input.authoringInputs) } : {}),
       status: replaced ? "ready" : cue.status });
   };

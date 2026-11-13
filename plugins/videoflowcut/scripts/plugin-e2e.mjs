@@ -218,6 +218,16 @@ try {
   assert.equal(authoredState.snapshot.transcripts.length, 0);
   assert.equal(authoredState.snapshot.transcriptSentenceCandidates.length, 0);
   assert.equal((await call("read_script", { project_id: authoredProject.snapshot.project.id })).semanticUnits[0].sourceAssetId, undefined);
+  const authorRun = await call("start_production_run", { project_id: authoredProject.snapshot.project.id, base_revision_id: authoredState.revision.number,
+    intent: "full_creation", completion_scope: { kind: "project" }, operation_id: "release-narration-run", loaded_skills: ["production-coordinator"] });
+  await call("update_production_run", { project_id: authoredProject.snapshot.project.id, run_id: authorRun.id, expected_audit_version: authorRun.auditVersion,
+    action: "add_assignment", operation_id: "release-narration-assignment", assignment: { assignment_id: "release-writer", agent_id: "fixture-writer",
+      responsibilities: ["narration"], skill_ids: ["narration-writing"], scope: { kind: "project" }, input_revision: authoredState.revision.number } });
+  const authorReport = await call("record_creative_decision", { project_id: authoredProject.snapshot.project.id, run_id: authorRun.id,
+    operation_id: "release-narration-evidence", category: "story", decision: "交回文案和待核项", rationale: "隔离测试记录当前稿",
+    assignment_id: "release-writer", input_revision: authoredState.revision.number, object_ids: [authoredProject.snapshot.project.id], evidence: ["来源及待核事项"] });
+  assert.equal(authorReport.creativeDecisions.at(-1).inputRevision, authoredState.revision.number);
+  assert.equal(authorReport.creativeDecisions.at(-1).assignmentId, "release-writer");
 
   // 在隔离目录生成可解码的声画测试文件，发行验收不依赖开发者私有素材。
   const sourceVideo = join(workspaceRoot, "media-worker-fixture.mp4");
@@ -272,23 +282,6 @@ try {
   let projectState = await call("read_project", { project_id: project.snapshot.project.id });
   const importedAsset = projectState.snapshot.assets.find((asset) => asset.status === "ready" && asset.kind === "video");
   assert.ok(importedAsset?.id, "媒体分析完成后必须存在可播放视频 Asset");
-  const handoffBrief = join(workspaceRoot, "handoff-brief.md"), handoffTiming = join(workspaceRoot, "handoff-timing.md");
-  await writeFile(handoffBrief, "真实素材作为视觉主体，连续形成画面。", "utf8");
-  await writeFile(handoffTiming, "素材前一秒用于隔离交付验证。", "utf8");
-  const creative = await call("search_creative_cases", { ids: ["002-c01"] });
-  const handoff = await call("prepare_motion_handoff", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
-    brief_path: handoffBrief, timing_plan_path: handoffTiming, selected_scene_ids: ["ready"],
-    assets: [{ id: importedAsset.id, purpose: "已导入的测试视频" }],
-    creative: [{ id: "002-c01", sourceSha256: creative.source_sha256, usage: "adopted", purpose: "隔离验证参考资料" }], scenes: [
-      { sceneId: "ready", status: "ready", visualRoles: [{ role: "主体", referenceFunction: "运动过程", usage: "展示视频主体",
-        assetIds: [importedAsset.id], sourceRanges: [{ startMs: 0, endMs: 1000 }] }],
-        references: [{ kind: "creative", id: "002-c01", sourceSha256: creative.source_sha256, startMs: 0, endMs: 9800, purpose: "参考画面组织" }],
-        process: "主体出现并连续运动", preserve: ["真实动作"], adapt: ["排版"] },
-      { sceneId: "pending", status: "pending", visualRoles: [{ role: "主体", referenceFunction: "待定", usage: "待补材", assetIds: ["missing"] }] }
-    ] });
-  assert.match(handoff.manifestSha256, /^[a-f0-9]{64}$/u);
-  assert.deepEqual(handoff.scenes.map(scene => scene.status), ["ready", "pending"]);
-  assert.ok(handoff.files.some(file => file.path.includes(importedAsset.id) && file.requiredForRun), "发行版须固定实际素材");
   // 真实发行MCP→API→Worker验证33秒，不只检查字段或直接调用开发源码。
   const preparedMotion = await call("register_motion_work", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number, idempotency_key: "release-motion-33",
     work: { name: "发行版33秒完整动效回归", creativeBrief: "独立候选技术回归：检查作品根时钟、源复用和完整帧数，不构成审美验收。", props: {}, imageBindings: {}, width: 768, height: 1344, fps: 24, durationInFrames: 792,
@@ -300,6 +293,26 @@ try {
   const fixedMotion = await call("read_motion_work", { project_id: project.snapshot.project.id, work_id: preparedResult.result.workId });
   projectState = await call("read_project", { project_id: project.snapshot.project.id });
   assert.equal(projectState.snapshot.assets.some(asset => asset.motion), false, "登记源码不烘焙文件");
+  const handoffBrief = join(workspaceRoot, "handoff-brief.md"), handoffTiming = join(workspaceRoot, "handoff-timing.md");
+  await writeFile(handoffBrief, "真实素材作为视觉主体，连续形成画面。", "utf8");
+  await writeFile(handoffTiming, "素材前一秒用于隔离交付验证。", "utf8");
+  const creative = await call("search_creative_cases", { ids: ["002-c01"] });
+  const handoff = await call("prepare_motion_handoff", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
+    brief_path: handoffBrief, timing_plan_path: handoffTiming, selected_scene_ids: ["ready"],
+    assets: [{ id: importedAsset.id, purpose: "已导入的测试视频" }],
+    creative: [{ id: "002-c01", sourceSha256: creative.source_sha256, usage: "adopted", purpose: "隔离验证参考资料" }], scenes: [
+      { sceneId: "ready", status: "ready", visualRoles: [{ role: "主体", referenceFunction: "运动过程", usage: "展示视频主体",
+        assetIds: [importedAsset.id], sourceRanges: [{ startMs: 0, endMs: 1000 }] }],
+        references: [{ kind: "creative", id: "002-c01", sourceSha256: creative.source_sha256, startMs: 0, endMs: 9800, purpose: "参考画面组织" }],
+        visualPlan: { status: "previewed", primaryRoles: ["主体"], referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative",
+          targetRole: "主体", treatment: "以真实视频主体接续画面", preserveRelation: "真实动作与参考的画面组织共同作用" }],
+          preview: { workId: fixedMotion.work.id, startFrame: 0, endFrame: 24 } },
+        process: "主体出现并连续运动", preserve: ["真实动作"], adapt: ["排版"] },
+      { sceneId: "pending", status: "pending", visualRoles: [{ role: "主体", referenceFunction: "待定", usage: "待补材", assetIds: ["missing"] }] }
+    ] });
+  assert.match(handoff.manifestSha256, /^[a-f0-9]{64}$/u);
+  assert.deepEqual(handoff.scenes.map(scene => scene.status), ["ready", "pending"]);
+  assert.ok(handoff.files.some(file => file.path.includes(importedAsset.id) && file.requiredForRun), "发行版须固定实际素材");
   const motion = await call("submit_motion_work", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
     idempotency_key: "release-motion-33-media", work_id: preparedResult.result.workId });
   let runtimeTreeRssPeak = 0, sampling;
@@ -346,6 +359,15 @@ try {
   });
   projectState = await call("read_project", { project_id: project.snapshot.project.id });
   const previewToFrame = Math.min(projectState.snapshot.timeline.durationInFrames, 24);
+  const admission = await client.callTool({ name: "start_motion_authoring", arguments: { project_id: project.snapshot.project.id,
+    base_revision_id: projectState.revision.number, idempotency_key: "release-missing-run",
+    target: { action: "create_cue", sceneId: projectState.snapshot.scenes[0].id, layer: "fullscreen", startFrame: 0, endFrame: previewToFrame,
+      sourceStartFrame: 0, sourceEndFrame: previewToFrame, audioPolicy: "rebind_unchanged_events" },
+    opendesign_request: { project: "isolated-release", prompt: "校验完整制作准入" } } });
+  assert.equal(admission.isError, true);
+  const admissionError = JSON.parse(admission.content.find(item => item.type === "text").text);
+  assert.ok(admissionError.issues.some(issue => issue.code === "PRODUCTION_RUN_MISSING"));
+  assert.equal(admissionError.sideEffects, "none");
   // 人物身份必须经公开接口登记，再由同一发行版完成绑定、缩窗和最终合成。
   await call("manage_actor_performance", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
     timeline_item_id: actorItem.id, source: "imported", mask_mode: "none", audio_mode: "use_source_audio" });

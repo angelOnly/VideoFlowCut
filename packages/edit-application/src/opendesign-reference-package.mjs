@@ -24,27 +24,32 @@ export async function clearPrepared(output) {
 async function probe(path) {
   const ext = extname(path).toLowerCase();
   if (['.jpg','.jpeg','.png','.webp'].includes(ext)) {
-    await run('ffmpeg', ['-v','error','-xerror','-i',path,'-frames:v','1','-f','null','-'], {maxBuffer:2_000_000});
+    await run('ffmpeg', ['-v','error','-xerror','-i',path,'-frames:v','1','-f','null','-'], {windowsHide:true,maxBuffer:2_000_000});
     return {localDecode:'verified'};
   }
   const videoFile = ['.mp4','.m4v','.mov','.webm','.ogv'].includes(ext);
   const audioFile = ['.wav','.mp3','.m4a','.flac','.aif','.aiff','.aac','.ogg'].includes(ext);
   if (!videoFile && !audioFile) return {};
-  const {stdout} = await run('ffprobe', ['-v','error','-show_entries','format=duration:stream=codec_type,r_frame_rate','-of','json',path], {maxBuffer: 2_000_000});
+  const {stdout} = await run('ffprobe', ['-v','error','-show_entries','format=duration:stream=codec_type,r_frame_rate','-of','json',path], {windowsHide:true,maxBuffer:2_000_000});
   const data = JSON.parse(stdout), stream = data.streams?.find(item => item.codec_type === (videoFile ? 'video' : 'audio'));
   if (!stream) throw new Error(videoFile ? '没有视频流' : '没有音频流');
   const [n,d] = (stream.r_frame_rate ?? '').split('/').map(Number);
   const durationMs = Math.round(Number(data.format?.duration) * 1000);
   if (!Number.isFinite(durationMs) || durationMs <= 0) throw new Error('媒体时长不可用');
   // 实际解码整段，ffprobe 成功本身不能证明视频完整可读。
-  await run('ffmpeg', ['-v','error','-xerror','-i',path,'-map',videoFile ? '0:v:0' : '0:a:0','-f','null','-'], {maxBuffer: 2_000_000});
+  await run('ffmpeg', ['-v','error','-xerror','-i',path,'-map',videoFile ? '0:v:0' : '0:a:0','-f','null','-'], {windowsHide:true,maxBuffer:2_000_000});
   return {durationMs, ...(n > 0 && d > 0 ? {fps:n/d} : {}), localDecode:'verified'};
 }
 
 const sceneReferences = scene => Array.isArray(scene.references) ? scene.references : scene.reference ? [scene.reference] : [];
+const previewVersion = (project, preview) => {
+  const current=project?.snapshot?.motionWorks?.find(item=>item.id===preview?.workId);
+  if (!current || !preview?.definitionHash || current.definitionHash===preview.definitionHash) return current;
+  return current.previousVersions?.find(item=>item.definitionHash===preview.definitionHash);
+};
 
 // 预排范围使用作品根帧，允许相邻的已发布范围共同覆盖。
-function rangeCovered(ranges, startFrame, endFrame) {
+export function rangeCovered(ranges, startFrame, endFrame) {
   if (!Number.isSafeInteger(startFrame) || !Number.isSafeInteger(endFrame) || startFrame < 0 || endFrame <= startFrame) return false;
   let cursor = startFrame;
   for (const range of [...(ranges ?? [])].sort((a,b)=>a.startFrame-b.startFrame)) {
@@ -71,7 +76,7 @@ function sourceRangeCovered(ranges, startMs, endMs) {
 function prepareScenes(input, entries, creativeRecords, motionRecords, project, delivered) {
   const ids = new Set(), assets = new Map((input.assets ?? []).map(asset => [asset.id,asset]));
   if (assets.size !== (input.assets ?? []).length) throw new Error('素材 ID 重复');
-  return (input.scenes ?? []).map(scene => {
+  const scenes = (input.scenes ?? []).map(scene => {
     if (!scene.sceneId || ids.has(scene.sceneId)) throw new Error('场面需要唯一的 sceneId');
     ids.add(scene.sceneId);
     if (!['ready','pending'].includes(scene.status)) throw new Error(`场面 ${scene.sceneId} 的状态必须为 ready 或 pending`);
@@ -80,7 +85,7 @@ function prepareScenes(input, entries, creativeRecords, motionRecords, project, 
     const errors = [], fail = message => errors.push(message);
     if (typeof scene.process !== 'string' || !scene.process.trim()) fail('缺少从开始到结束的连续画面过程');
     if (!Array.isArray(scene.visualRoles) || !scene.visualRoles.length) fail('缺少视觉角色映射');
-    if (!Array.isArray(scene.preserve) || !Array.isArray(scene.adapt)) fail('需要明确保留和允许深化的内容');
+    if (![scene.preserve,scene.adapt].every(items=>Array.isArray(items) && items.some(item=>typeof item==='string' && item.trim()))) fail('需要明确保留和允许深化的内容');
     if (scene.references !== undefined && !Array.isArray(scene.references)) fail('场面参考必须是列表');
     if (scene.references && scene.reference) fail('场面参考只能使用 reference 或 references 其中一种');
     const refs=sceneReferences(scene);
@@ -104,7 +109,8 @@ function prepareScenes(input, entries, creativeRecords, motionRecords, project, 
       }
     });
     const visualRoles=(Array.isArray(scene.visualRoles) ? scene.visualRoles : []).map(role => {
-      if (!role.role || !role.referenceFunction || !role.usage || !Array.isArray(role.assetIds)) fail('视觉角色需要名称、参考作用、素材列表和具体用法');
+      if (![role.role,role.referenceFunction,role.usage].every(value=>typeof value==='string' && value.trim()) || !Array.isArray(role.assetIds)
+        || role.assetIds.some(id=>typeof id!=='string' || !id.trim())) fail('视觉角色需要名称、参考作用、素材列表和具体用法');
       const roleIds=Array.isArray(role.assetIds) ? role.assetIds : [];
       const sourceRanges=Array.isArray(role.sourceRanges) ? role.sourceRanges : [];
       const mapped=roleIds.map(id => {
@@ -126,6 +132,7 @@ function prepareScenes(input, entries, creativeRecords, motionRecords, project, 
       return {role:role.role,referenceFunction:role.referenceFunction,usage:role.usage,assets:mapped};
     });
     let visualPlan;
+    if (scene.visualPlan === undefined) fail('正式制作场面缺少已预排的视觉计划');
     if (scene.visualPlan !== undefined) {
       const plan=scene.visualPlan;
       if (!plan || typeof plan !== 'object' || Array.isArray(plan)) fail('视觉计划必须是对象');
@@ -147,13 +154,24 @@ function prepareScenes(input, entries, creativeRecords, motionRecords, project, 
             if (!deliveredReference) fail(`视觉计划参考 ${mapping?.referenceId ?? ''} 必须已采用且实际交付，类型和来源指纹需与场面参考一致`);
           }
           if (!roles.has(mapping?.targetRole) || typeof mapping?.treatment !== 'string' || !mapping.treatment.trim()) fail('参考映射需要已有视觉角色及具体处理方式');
-          if (mapping?.preserveRelation !== undefined && typeof mapping.preserveRelation !== 'string') fail('参考映射保留关系必须是文字');
+          if (typeof mapping?.preserveRelation !== 'string' || !mapping.preserveRelation.trim()) fail('参考映射需要明确保持的关系');
+          if (mapping.targetRange) {
+            const target=project?.snapshot?.scenes?.find(item=>item.id===scene.sceneId), range=mapping.targetRange;
+            if (!target || !Number.isInteger(range.startFrame) || !Number.isInteger(range.endFrame)
+              || range.startFrame<target.startFrame || range.endFrame>target.endFrame || range.endFrame<=range.startFrame) fail('参考映射的成片帧范围必须在当前场面内');
+          }
+        }
+        for (const reference of references) {
+          const kinds=new Set(refs.filter(ref=>(ref.id ?? ref.creativeCaseId)===reference.id).map(ref=>ref.kind ?? 'creative'));
+          if (!(Array.isArray(plan.referenceMappings) ? plan.referenceMappings : []).some(mapping => mapping.referenceId === reference.id
+            && (mapping.referenceKind ?? (kinds.size === 1 ? reference.kind : undefined)) === reference.kind
+            && typeof mapping.preserveRelation === 'string' && mapping.preserveRelation.trim())) fail(`采用参考 ${reference.id} 缺少完整的视觉角色映射和保持关系`);
         }
         if (plan.graphicLed === true && (!Array.isArray(plan.graphicReasons) || !plan.graphicReasons.some(reason=>typeof reason==='string' && reason.trim() && !/^(?:更?方便制作|制作方便)[。.!！]?$/u.test(reason.trim())))) fail('图形主导场面需要说明承担的表达内容和原因');
         let preview;
         if (plan.status === 'previewed') {
-          const requested=plan.preview, work=project?.snapshot?.motionWorks?.find(item=>item.id===requested?.workId);
-          const path=work && delivered(`brief/previews/${work.id}.json`), file=path && entries.get(path);
+          const requested=plan.preview, work=previewVersion(project,requested);
+          const path=work && delivered(`brief/previews/${work.id}-${work.definitionHash}.json`), file=path && entries.get(path);
           if (!work || !rangeCovered(work.readyRanges,requested?.startFrame,requested?.endFrame)) fail('已预排场面需要当前项目中已发布范围内的 MotionWork 引用');
           if (!work?.definitionHash || !file?.localReadable || file.sha256 !== work.definitionHash || file.sourceSha256 !== work.definitionHash) fail('预排作品源码定义缺失或哈希与项目不一致');
           // 只检查预排范围实际用到的绑定，避免把其他场面的资源变成当前范围的前置条件。
@@ -179,6 +197,15 @@ function prepareScenes(input, entries, creativeRecords, motionRecords, project, 
     return {sceneId:scene.sceneId,status:errors.length ? 'incomplete' : 'ready',...(references.length ? {references} : {}),
       ...(scene.resourceIds?.length ? {resourceIds:scene.resourceIds} : {}),visualRoles,process:scene.process,preserve:scene.preserve,adapt:scene.adapt,...(visualPlan ? {visualPlan} : {}),...(errors.length ? {diagnostics:errors} : {})};
   });
+  // 同一次制作中的就绪场面共用一个作品，未选中的范围不参与检查。
+  const selected=scenes.filter(scene=>scene.status==='ready' && (!input.selectedSceneIds || input.selectedSceneIds.includes(scene.sceneId)));
+  if (new Set(selected.map(scene=>`${scene.visualPlan.preview.workId}:${scene.visualPlan.preview.definitionHash}`)).size > 1) {
+    for (const scene of selected) {
+      scene.status='incomplete';
+      (scene.diagnostics ??= []).push('同一次制作的场面必须引用同一个完整 MotionWork 和固定版本');
+    }
+  }
+  return scenes;
 }
 
 /** 只准备本地交付包；OD 可读性和运行时读取必须由实际工具单独核验。 */
@@ -276,9 +303,9 @@ export async function prepareReferencePackage(input, outputRoot, libraryRoot = r
     add(asset.path, delivered(`references/source-materials/${asset.id}/${basename(asset.path)}`), {kind:'source',id:asset.id,purpose:asset.purpose,sourceStartMs:asset.sourceStartMs,sourceEndMs:asset.sourceEndMs});
   }
   for (const scene of selectedScenes) {
-    const work=project?.snapshot?.motionWorks?.find(item=>item.id===scene.visualPlan?.preview?.workId);
+    const work=previewVersion(project,scene.visualPlan?.preview);
     if (scene.visualPlan?.status === 'previewed' && work?.definitionPath && project.snapshot.project.rootPath) {
-      add(join(project.snapshot.project.rootPath,work.definitionPath),delivered(`brief/previews/${work.id}.json`),
+      add(join(project.snapshot.project.rootPath,work.definitionPath),delivered(`brief/previews/${work.id}-${work.definitionHash}.json`),
         {kind:'preview',id:work.id,purpose:'同源预排的固定源码、绑定和作品时钟'});
     }
   }
@@ -351,6 +378,31 @@ export async function prepareReferencePackage(input, outputRoot, libraryRoot = r
   return manifest;
 }
 
+/** 复用原清单，只收窄本次目标场面的依赖；其他场面的文件仍留在原交付中。 */
+export function scopeReferenceManifest(manifest, sceneIds) {
+  if (!manifest.scenes || !manifest.selectedSceneIds || sceneIds.some(id=>!manifest.selectedSceneIds.includes(id))) throw new Error('制作目标不在已采用的交付范围内');
+  const collect=scenes=>{
+    const result=new Map(['source','creative','motion','reference','preview'].map(kind=>[kind,new Set()]));
+    for (const scene of scenes) {
+      for (const role of scene.visualRoles ?? []) for (const asset of role.assets ?? []) result.get('source').add(asset.assetId);
+      for (const ref of scene.references ?? []) result.get(ref.kind)?.add(ref.id);
+      for (const id of scene.resourceIds ?? []) result.get('reference').add(id);
+      if (scene.visualPlan?.preview?.workId) result.get('preview').add(scene.visualPlan.preview.workId);
+    }
+    return result;
+  };
+  const all=collect(manifest.scenes), selected=collect(manifest.scenes.filter(scene=>sceneIds.includes(scene.sceneId)));
+  const relevant=use=>!all.get(use.kind)?.has(use.id) || selected.get(use.kind)?.has(use.id);
+  const files=manifest.files.map(file=>file.requiredForRun!==false && file.uses.every(use=>!relevant(use)) ? {...file,requiredForRun:false} : file);
+  const byPath=new Map(files.map(file=>[file.deliveredPath,file]));
+  const diagnostics=manifest.diagnostics.map(item=>{
+    const unselectedId=item.id && [...all].some(([kind,ids])=>ids.has(item.id) && !selected.get(kind).has(item.id))
+      && ![...selected.values()].some(ids=>ids.has(item.id));
+    return byPath.get(item.path)?.requiredForRun===false || unselectedId ? {...item,requiredForRun:false} : item;
+  });
+  return {...manifest,selectedSceneIds:sceneIds,files,diagnostics};
+}
+
 /** 使用 OD 文件清单返回的实际本机路径核验字节，不把文件列表当成观看证据。 */
 export async function verifyReferenceDelivery(manifest, listing, revision, odProjectId, currentProject) {
   if (!currentProject && manifest.revision !== revision) throw new Error('项目 Revision 已变化，请重新核对输入');
@@ -363,7 +415,8 @@ export async function verifyReferenceDelivery(manifest, listing, revision, odPro
       if (!asset.managedPath || await hashFile(join(currentProject.snapshot.project.rootPath,asset.managedPath))!==source.sourceHash) throw new Error(`素材 ${source.assetId} 的实际文件已变化`);
     }
     for (const preview of selected.map(scene=>scene.visualPlan?.preview).filter(Boolean)) {
-      const work=currentProject.snapshot.motionWorks?.find(item=>item.id===preview.workId);
+      const current=currentProject.snapshot.motionWorks?.find(item=>item.id===preview.workId);
+      const work=current?.definitionHash===preview.definitionHash ? current : current?.previousVersions?.find(item=>item.definitionHash===preview.definitionHash);
       if (!work || work.definitionHash!==preview.definitionHash || ['project','run_id','frozen_version'].some(key=>work.author?.[key]!==preview.author?.[key])
         || !rangeCovered(work.readyRanges,preview.startFrame,preview.endFrame)) throw new Error(`预排作品 ${preview.workId} 已变化，请重新准备`);
       if (!work.definitionPath || await hashFile(join(currentProject.snapshot.project.rootPath,work.definitionPath)).catch(()=>undefined)!==preview.definitionHash) throw new Error(`预排作品 ${preview.workId} 的固定源码已变化，请重新准备`);

@@ -2699,9 +2699,10 @@ server.registerTool("start_production_run", {
     completion_scope: productionCompletionScopeSchema,
     operation_id: productionOperationIdSchema,
     loaded_skills: z.array(z.string().min(1)).min(1).max(40),
-    loaded_references: z.array(z.string().min(1)).max(120).optional()
+    loaded_references: z.array(z.string().min(1)).max(120).optional(),
+    delivery_review_required: z.boolean().optional()
   }
-}, async ({ project_id, base_revision_id, intent, completion_scope, operation_id, loaded_skills, loaded_references }) => {
+}, async ({ project_id, base_revision_id, intent, completion_scope, operation_id, loaded_skills, loaded_references, delivery_review_required }) => {
   try {
     return asText(await application.startProductionRun({
       projectId: projectIdFrom(project_id),
@@ -2710,7 +2711,8 @@ server.registerTool("start_production_run", {
       completionScope: applicationCompletionScope(completion_scope),
       operationId: operation_id,
       loadedSkills: loaded_skills,
-      loadedReferences: loaded_references
+      loadedReferences: loaded_references,
+      deliveryReviewRequired: delivery_review_required
     }));
   } catch (error) { return asError(error); }
 });
@@ -2720,9 +2722,9 @@ server.registerTool("update_production_run", {
   description: "登记实际分派、接替或调整任务目标，使用当前审计版本和稳定操作编号；记录为来源声明，不代替宿主调用。",
   inputSchema: {
     project_id: z.string().optional(), run_id: z.string().min(1), expected_audit_version: z.number().int().positive(), operation_id: productionOperationIdSchema,
-    action: z.enum(["update_scope", "add_assignment", "replace_assignment"]), completion_scope: productionCompletionScopeSchema.optional(), reason: z.string().optional(),
+    action: z.enum(["update_scope", "add_assignment", "replace_assignment", "select_delivery_artifact"]), completion_scope: productionCompletionScopeSchema.optional(), reason: z.string().optional(), artifact_id: z.string().min(1).optional(),
     assignment: z.object({ assignment_id: z.string().min(1), agent_id: z.string().min(1),
-      responsibilities: z.array(z.enum(["director", "creative_research", "visual_design", "motion_research", "review"])).min(1),
+      responsibilities: z.array(z.enum(["director", "narration", "asset_sourcing", "creative_research", "visual_design", "motion_research", "review"])).min(1),
       skill_ids: z.array(z.string().min(1)).min(1), scope: productionCompletionScopeSchema,
       input_revision: z.number().int().positive().nullable(), supersedes_assignment_id: z.string().optional() }).strict().optional()
   }
@@ -2732,6 +2734,10 @@ server.registerTool("update_production_run", {
     if (input.action === "update_scope") {
       if (!input.completion_scope || !input.reason) throw new DomainError("调整范围需要目标范围和原因", "PRODUCTION_SCOPE_REASON_REQUIRED");
       return asText(await application.updateProductionRun({ ...base, action: input.action, completionScope: applicationCompletionScope(input.completion_scope), reason: input.reason }));
+    }
+    if (input.action === "select_delivery_artifact") {
+      if (!input.artifact_id) throw new DomainError("请选择交付文件", "PRODUCTION_DELIVERY_ARTIFACT_INVALID");
+      return asText(await application.updateProductionRun({ ...base, action: input.action, artifactId: input.artifact_id }));
     }
     if (!input.assignment) throw new DomainError("分派信息缺失", "PRODUCTION_ASSIGNMENT_INVALID");
     const assignment = input.assignment;
@@ -2743,7 +2749,7 @@ server.registerTool("update_production_run", {
 
 server.registerTool("record_creative_decision", {
   title: "记录创作判断",
-  description: "记录作者结果、真实分派、输入版本及上游决定；完整编排通过实际文件交付。记录是来源声明，不代替真实观察。",
+  description: "记录作者结果、真实分派和输入版本；创意阶段另记录上游决定，文案事实依据与待核项可随作者及 Revision 记录。完整编排通过实际文件交付；记录是来源声明，不代替宿主调用或真实观察。",
   inputSchema: {
     project_id: z.string().optional(),
     run_id: z.string().min(1),
@@ -2813,7 +2819,10 @@ server.registerTool("record_editorial_quality_review", {
       end_frame: z.number().int().positive(),
       method: z.enum(["frames", "continuous_video", "audio", "audiovisual"]),
       observation: z.string().min(1).max(2_000),
-      adoption_refs: z.array(z.object({ production_run_id: z.string().min(1), decision_id: z.string().min(1) }).strict()).optional()
+      adoption_refs: z.array(z.object({ production_run_id: z.string().min(1), decision_id: z.string().min(1) }).strict()).optional(),
+      reference_reviews: z.array(z.object({ production_run_id: z.string().min(1), decision_id: z.string().min(1), scene_id: z.string().min(1),
+        reference_kind: z.enum(["creative", "motion"]), reference_id: z.string().min(1), source_sha256: z.string().min(1),
+        target_role: z.string().min(1), start_ms: z.number().nonnegative(), end_ms: z.number().positive() }).strict()).optional()
     })).max(40).optional(),
     resolutions: z.array(z.object({
       finding_id: z.string().min(1),
@@ -2843,7 +2852,10 @@ server.registerTool("record_editorial_quality_review", {
       revision: input.revision,
       passes: input.passes,
       previewEvidence: input.preview_evidence,
-      observations: input.observations?.map((entry) => ({ pass: entry.pass, source: entry.source, previewJobId: entry.preview_job_id, observer: entry.observer, startFrame: entry.start_frame, endFrame: entry.end_frame, method: entry.method, observation: entry.observation, adoptionRefs: entry.adoption_refs?.map(ref => ({ productionRunId: ref.production_run_id, decisionId: ref.decision_id })) })),
+      observations: input.observations?.map((entry) => ({ pass: entry.pass, source: entry.source, previewJobId: entry.preview_job_id, observer: entry.observer, startFrame: entry.start_frame, endFrame: entry.end_frame, method: entry.method, observation: entry.observation, adoptionRefs: entry.adoption_refs?.map(ref => ({ productionRunId: ref.production_run_id, decisionId: ref.decision_id })),
+        referenceReviews: entry.reference_reviews?.map(ref => ({ productionRunId: ref.production_run_id, decisionId: ref.decision_id,
+          sceneId: ref.scene_id, referenceKind: ref.reference_kind, referenceId: ref.reference_id, sourceSha256: ref.source_sha256,
+          targetRole: ref.target_role, startMs: ref.start_ms, endMs: ref.end_ms })) })),
       resolutions: input.resolutions?.map((entry) => ({ findingId: entry.finding_id, evidenceIds: entry.evidence_ids, note: entry.note, scope: entry.scope })),
       findings: input.findings.map((finding) => ({
         pass: finding.pass,
@@ -3018,44 +3030,44 @@ server.registerTool("read_export_artifact", {
 
 server.registerTool("record_export_artifact_review", {
   title: "记录最终文件复核",
-  description: "在实际播放指定 delivery 文件后，记录实际执行的文件复核轮次及问题，辅助审阅不阻挡导出或人工定稿；不会修改 Project Revision。",
+  description: "按实际观察追加固定文件审阅；同一操作编号安全重试，抽样观察不充当连续声画。",
   inputSchema: {
-    project_id: z.string().optional(),
-    artifact_id: z.string().min(1),
-    passes: z.array(z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"])).min(1).max(5),
-    evidence: z.array(z.string().min(1).max(2_000)).min(1).max(40),
-    findings: z.array(z.object({
-      pass: z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"]),
+    project_id: z.string().optional(), artifact_id: z.string().min(1), operation_id: productionOperationIdSchema.optional(),
+    run_id: z.string().min(1).optional(), assignment_id: z.string().min(1).optional(), observer: z.string().trim().min(1).optional(),
+    passes: z.array(z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"])).max(5).optional(),
+    evidence: z.array(z.string().min(1).max(2000)).max(40).optional(),
+    findings: z.array(z.object({ pass: z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"]),
       severity: z.enum(["blocking", "warning", "major", "minor", "suggestion", "inconclusive"]),
       category: z.enum(["semantic", "pacing", "attention", "motion", "typography", "audio", "mode_specific"]),
-      summary: z.string().min(1).max(2_000),
-      evidence: z.string().min(1).max(2_000),
-      impact: z.string().min(1).max(2_000),
-      suggested_fix: z.string().max(2_000).optional(),
-      verification_method: z.string().max(2_000).optional(),
-      object_id: z.string().optional(),
-      frame_range: z.object({ start_frame: z.number().int().min(0), end_frame: z.number().int().positive() }).optional()
-    })).max(120)
+      summary: z.string().min(1).max(2000), evidence: z.string().min(1).max(2000), impact: z.string().min(1).max(2000),
+      suggested_fix: z.string().max(2000).optional(), verification_method: z.string().max(2000).optional(), object_id: z.string().optional(),
+      frame_range: z.object({ start_frame: z.number().int().nonnegative(), end_frame: z.number().int().positive() }).strict().optional() }).strict()).max(120).optional(),
+    observations: z.array(z.object({ check: z.enum(["audiovisual", "event_sync", "reference"]), pass: z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"]).optional(), subject_id: z.string().min(1).optional(), required: z.boolean().optional(),
+      method: z.enum(["frames", "continuous_video", "audio", "audiovisual", "sampled_av", "event_measurement"]),
+      outcome: z.enum(["confirmed", "issue", "inconclusive"]), start_frame: z.number().int().nonnegative(), end_frame: z.number().int().positive(),
+      note: z.string().trim().min(1).max(2000), media_observation_ids: z.array(z.string().min(1)).max(40).optional(),
+      reference_reviews: z.array(z.object({ production_run_id: z.string().min(1), decision_id: z.string().min(1),
+        scene_id: z.string().min(1), reference_kind: z.enum(["creative", "motion"]), reference_id: z.string().min(1),
+        source_sha256: z.string().min(1), target_role: z.string().min(1), start_ms: z.number().nonnegative(), end_ms: z.number().positive() }).strict()).max(40).optional()
+    }).strict()).max(120).optional(),
+    resolutions: z.array(z.object({ finding_id: z.string().min(1), evidence_ids: z.array(z.string().min(1)).min(1).max(40), note: z.string().trim().min(1).max(2000) }).strict()).max(40).optional()
   }
-}, async (input) => {
+}, async input => {
   try {
     return asText(await application.recordExportArtifactReview({
-      projectId: projectIdFrom(input.project_id),
-      artifactId: input.artifact_id,
-      passes: input.passes,
-      evidence: input.evidence,
-      findings: input.findings.map((finding) => ({
-        pass: finding.pass,
-        severity: finding.severity,
-        category: finding.category,
-        summary: finding.summary,
-        evidence: finding.evidence,
-        impact: finding.impact,
-        suggestedFix: finding.suggested_fix,
-        verificationMethod: finding.verification_method,
-        objectId: finding.object_id,
-        frameRange: finding.frame_range ? { startFrame: finding.frame_range.start_frame, endFrame: finding.frame_range.end_frame } : undefined
-      }))
+      projectId: projectIdFrom(input.project_id), artifactId: input.artifact_id, operationId: input.operation_id,
+      runId: input.run_id, assignmentId: input.assignment_id, observer: input.observer, passes: input.passes, evidence: input.evidence,
+      findings: input.findings?.map(finding => ({ pass: finding.pass, severity: finding.severity, category: finding.category,
+        summary: finding.summary, evidence: finding.evidence, impact: finding.impact, suggestedFix: finding.suggested_fix,
+        verificationMethod: finding.verification_method, objectId: finding.object_id,
+        frameRange: finding.frame_range && { startFrame: finding.frame_range.start_frame, endFrame: finding.frame_range.end_frame } })),
+      observations: input.observations?.map(observation => ({ check: observation.check, pass: observation.pass, subjectId: observation.subject_id, required: observation.required,
+        method: observation.method, outcome: observation.outcome, startFrame: observation.start_frame, endFrame: observation.end_frame,
+        note: observation.note, mediaObservationIds: observation.media_observation_ids,
+        referenceReviews: observation.reference_reviews?.map(ref => ({ productionRunId: ref.production_run_id, decisionId: ref.decision_id,
+          sceneId: ref.scene_id, referenceKind: ref.reference_kind, referenceId: ref.reference_id, sourceSha256: ref.source_sha256,
+          targetRole: ref.target_role, startMs: ref.start_ms, endMs: ref.end_ms })) })),
+      resolutions: input.resolutions?.map(item => ({ findingId: item.finding_id, evidenceIds: item.evidence_ids, note: item.note }))
     }));
   } catch (error) { return asError(error); }
 });

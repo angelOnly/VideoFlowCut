@@ -406,7 +406,7 @@ test("inspect_asset 只生成可重建审阅缓存，并交付 overview、range�
       assert.match(inspectTool.description!, /range最长60秒，dense最长12秒/u);
       assert.match(inspectTool.description!, /dBFS.*不提供LUFS或true peak/u);
       const previewTool = catalog.find((tool) => tool.name === "render_preview_range")!;
-      assert.match(previewTool.description!, /省略时默认0.*timeline.durationInFrames/u);
+      assert.match(previewTool.description!, /省略时覆盖目标时间线/u);
       assert.match(previewTool.description!, /result.audio.*integratedLufs.*truePeakDbfs/u);
       const toolResult = await client.callTool({
         name: "inspect_asset",

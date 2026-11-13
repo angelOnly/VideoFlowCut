@@ -8,14 +8,14 @@ import { inspectAsset } from "../apps/server/src/source-review.js";
 import { classifySourceReviewFailure } from "../apps/server/src/source-review-diagnostics.js";
 import { MediaProcessError, probeMedia, runProcess } from "@videocut/speech";
 
-async function fixture() {
+async function fixture(sourceFps = 24) {
   const root = await mkdtemp(join(tmpdir(), "source-review-recovery-"));
   const server = await createServer({ workspaceRoot: root });
   const app = server.application;
   const created = app.createProject({ name: "审阅容错隔离夹具" });
   const projectId = created.snapshot.project.id;
   const original = join(root, "fixture.mp4");
-  await runProcess("ffmpeg", ["-v", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=96x72:rate=24:duration=1",
+  await runProcess("ffmpeg", ["-v", "error", "-y", "-f", "lavfi", "-i", `testsrc2=size=96x72:rate=${sourceFps}:duration=1`,
     "-f", "lavfi", "-i", "sine=frequency=440:duration=1", "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", original]);
   const imported = app.registerImportedAsset({ projectId, baseRevision: created.revision.number, name: "fixture.mp4", kind: "video", managedPath: "assets/source/fixture.mp4" });
   const path = join(created.snapshot.project.rootPath, imported.asset.managedPath);
@@ -171,5 +171,17 @@ test("代理虽有有效画面但缺少后半段时不能标为连续审阅成�
     assert.equal(result.diagnostics.continuousReview, "unavailable");
     assert.equal(result.diagnostics.issues.find(issue => issue.stage === "proxy")!.code, "SOURCE_REVIEW_PROXY_INCOMPLETE");
     assert.match(result.evidenceBoundaries.join(" "), /不能以截图替代连续观看/u);
+  } finally { await f.close(); }
+});
+
+test("高帧率素材转换为项目帧率时，连续代理只包含请求范围", async () => {
+  const f = await fixture(100);
+  try {
+    const result = await inspectAsset(f.app, { ...f.input, mode: "range", sourceStartFrame: 0, sourceEndFrame: 24 });
+    assert.equal(result.diagnostics.continuousReview, "available");
+    assert.ok(result.proxy);
+    const decoded = JSON.parse(await runProcess("ffprobe", ["-v", "error", "-select_streams", "v:0", "-count_frames",
+      "-show_entries", "stream=nb_read_frames", "-of", "json", join(f.before.snapshot.project.rootPath, result.proxy.relativePath)]));
+    assert.equal(Number(decoded.streams[0].nb_read_frames), 24);
   } finally { await f.close(); }
 });

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { FrozenMotionContinuation, ImpactReport, MotionContinuationResult, MotionOnSuccess, ProjectSnapshot } from "@videocut/contracts";
-import { motionWorkForCue, inspectEffectContentContract } from "@videocut/contracts";
+import { motionWorkForCue, motionWorkVersion, inspectEffectContentContract } from "@videocut/contracts";
 import { assertEffectCoverage, compileVisualComposition, createEffectCue, DomainError } from "@videocut/domain";
 import { assertEffectCueRange } from "./effect-cue-validation.js";
 import { bindEffectAudioEvent } from "./effect-audio-events.js";
@@ -80,10 +80,11 @@ export function motionTargetDependencyHash(snapshot: ProjectSnapshot, request: M
   }
   const cue = snapshot.effectCues.find(entry => entry.id === request.cueId);
   const sounds = snapshot.audioCues.filter(audio => audio.effectEvent?.effectCueId === request.cueId);
+  const cueContent = cue ? (({ workDefinitionHash: _definitionHash, ...content }) => content)(cue) : undefined;
   const assets = new Set([...(cue?.assetBindings.map(binding => binding.assetId) ?? []),
     ...sounds.flatMap(audio => snapshot.timeline.items.filter(item => item.id === audio.timelineItemId).map(item => item.assetId))]);
   return createHash("sha256").update(JSON.stringify(canonical({
-    cue, work: cue ? motionWorkForCue(snapshot, cue) : undefined,
+    cue: cueContent, work: cue ? motionWorkForCue(snapshot, cue) : undefined,
     dependencies: cue ? motionCueDependencySignature(snapshot, cue) : null,
     treatments: (visualTreatmentIds ?? []).map(id => [id, motionTreatmentSignature(snapshot, id)]),
     assets: snapshot.assets.filter(asset => assets.has(asset.id)).map(asset => ({
@@ -99,7 +100,7 @@ export type AdoptionMutation = Omit<Extract<MotionContinuationResult, { status: 
   | Extract<MotionContinuationResult, { status: "needs_reconfirmation" }>;
 
 /** 先在候选副本完成全部变更；事件不一致时连原画面与音轨也不改变。 */
-export function applyMotionAdoption(snapshot: ProjectSnapshot, impact: ImpactReport, workId: string, frozen: FrozenMotionContinuation): AdoptionMutation {
+export function applyMotionAdoption(snapshot: ProjectSnapshot, impact: ImpactReport, workId: string, frozen: FrozenMotionContinuation, definitionHash?: string): AdoptionMutation {
   const request = frozen.request;
   const conflict = (reason: string): AdoptionMutation => ({
     status: "needs_reconfirmation", workId, conflicts: [{ objectId: request.action === "create_cue" ? request.sceneId : request.cueId, reason }]
@@ -110,9 +111,11 @@ export function applyMotionAdoption(snapshot: ProjectSnapshot, impact: ImpactRep
   const candidate = structuredClone(snapshot), delta = structuredClone(impact);
   try {
     validateMotionContinuation(candidate, request);
+    const selectedWork = motionWorkVersion(candidate.motionWorks, workId, definitionHash);
+    if (!selectedWork) return conflict("目标作品的固定版本不存在");
     let segments;
     if (request.action === "create_cue") {
-      const cue = createEffectCue({ ...request, type: "ManagedMotion", workId });
+      const cue = createEffectCue({ ...request, type: "ManagedMotion", workId, workDefinitionHash: selectedWork.definitionHash });
       if (frozen.authoringInputs?.length) cue.authoringInputs = structuredClone(frozen.authoringInputs);
       assertEffectCoverage(candidate, cue);
       const content = inspectEffectContentContract(cue, candidate.assets, candidate.timeline, candidate.motionWorks);
@@ -126,16 +129,16 @@ export function applyMotionAdoption(snapshot: ProjectSnapshot, impact: ImpactRep
     } else if (request.action === "replace_range") {
       const oldCue = candidate.effectCues.find(entry => entry.id === request.cueId)!;
       if (!frozen.authoringInputs?.length && !motionAuthoringInputsCurrent(candidate, oldCue.authoringInputs)) return conflict("当前采用稿已变化，请使用新的视觉计划续修");
-      segments = replaceMotionRange(candidate, delta, { cueId: request.cueId, workId, authoringInputs: frozen.authoringInputs, ...request.targetRange });
+      segments = replaceMotionRange(candidate, delta, { cueId: request.cueId, workId, definitionHash: selectedWork.definitionHash, authoringInputs: frozen.authoringInputs, ...request.targetRange });
     } else {
       const cue = candidate.effectCues.find(entry => entry.id === request.cueId)!;
       if (!frozen.authoringInputs?.length && !motionAuthoringInputsCurrent(candidate, cue.authoringInputs)) return conflict("当前采用稿已变化，请使用新的视觉计划续修");
       const old = motionWorkForCue(candidate, cue);
-      const next = candidate.motionWorks?.find(work => work.id === workId);
+      const next = selectedWork;
       if (!old || !next
         || old.width !== next.width || old.height !== next.height || old.fps !== next.fps
         || old.frameCount !== next.frameCount) return conflict("作品画幅、总时长或根范围改变，需要作者明确编排");
-      cue.workId = workId; cue.assetBindings = []; cue.status = "ready";
+      cue.workId = workId; cue.workDefinitionHash = next.definitionHash; cue.assetBindings = []; cue.status = "ready";
       if (frozen.authoringInputs?.length) cue.authoringInputs = structuredClone(frozen.authoringInputs);
       // 作品换版后，先按真实新事件重绑，再交统一 reconcile；不让旧签名静默禁音。
       for (const audio of candidate.audioCues.filter(entry => entry.effectEvent?.effectCueId === cue.id && entry.status === "ready")) {

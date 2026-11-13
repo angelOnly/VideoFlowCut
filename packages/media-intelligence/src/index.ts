@@ -31,9 +31,12 @@ export const analysisInputSchema = z.object({
   modalities: z.array(z.enum(["visual", "audio", "speech", "text"])).min(1).max(4).default(["visual", "audio", "speech", "text"]),
   observationQuestions: z.string().max(8000).optional().describe("仅填写不包含预期答案的中性观察问题；review 时送入模型"),
   comparisonReference: z.string().max(8000).optional().describe("期望台词或计划时间等仅供作者比对，不发送给观察模型"),
-  idempotencyKey: z.string().min(1).max(240).optional()
+  idempotencyKey: z.string().min(1).max(240).optional(),
+  timingCheck: z.object({ kind: z.literal("hard_cut_audio") }).strict().optional()
 }).strict().refine((input) => [input.assetId, input.candidateId, input.exportArtifactId, input.previewJobId].filter(Boolean).length === 1, "必须指定一个素材、候选、导出或预览")
-  .refine((input) => !(input.exportArtifactId || input.previewJobId) || input.depth === "review" && !input.region, "成片与预览仅支持时间范围复核");
+  .refine((input) => !(input.exportArtifactId || input.previewJobId) || input.depth === "review" && !input.region, "成片与预览仅支持时间范围复核")
+  .refine((input) => !input.timingCheck || !!(input.exportArtifactId || input.previewJobId) && !!input.range && input.depth === "review" && input.range.endMs - input.range.startMs <= 30000, "声画测量需要不超过 30 秒的成片或预览范围")
+  .refine((input) => !input.timingCheck || input.modalities.length === 2 && input.modalities.includes("visual") && input.modalities.includes("audio"), "声画事件测量只接收 visual 和 audio 两个模态");
 export type AnalysisInput = z.input<typeof analysisInputSchema>;
 export const searchQuerySchema = z.object({
   query: z.string().trim().min(1).max(2000), modality: z.enum(["visual", "audio", "speech", "text"]),

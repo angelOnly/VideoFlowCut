@@ -62,6 +62,7 @@ export interface MediaObservation {
   rawText: string;
   /** 实际发给模型的指令，区别于仅保存的用途上下文。 */
   promptText?: string;
+  timingMeasurement?: { status: "measured" | "inconclusive"; videoTimeMs?: number; audioTimeMs?: number; offsetMs?: number; videoResolutionMs: number; audioStepMs: number; cutCandidates: Array<{ timeMs: number; score?: number }>; audioCandidates: Array<{ timeMs: number; strength: number }>; note: string };
   audioMeasurements?: { range: SourceTimeRange; sampleRate: number; sampleOriginMs: number; hopSamples: number; firstAudibleSample: number | null; effectiveEndSample: number | null; attackCandidates: Array<{ sample: number; strength: number }>; rms: number[]; peaks: number[]; thresholdDb: number; precision: "measurement_candidate"; reviewStatus: "unreviewed" };
   speechEvidence?: { rawText: string; runId: string; schemaVersion: string; tokenPrecision: string; workflowId?: string; inputEvidence?: { hash: string; path: string; mapping: Record<string, unknown> } };
   version: { workflowId: string; schemaVersion: string; model: string; prompt: string; preprocessing: string; samplingFps?: number };

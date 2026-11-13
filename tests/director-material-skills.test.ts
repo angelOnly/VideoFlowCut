@@ -126,8 +126,15 @@ test("完整新制的参考、素材和视觉并行续接，并以完整映射�
   const brief=read('.agents/skills/opendesign-shot-brief/SKILL.md');
   const production=read('.agents/skills/opendesign-video-production/SKILL.md');
   const parallel=routing.split('## 完整新制的并行路由')[1]?.split('## 让材料与预览回到当前完整稿')[0];
-  assert.match(parallel!,/创意作者：creative-sequence-design[\s\S]*素材作者：visual-asset-sourcing[\s\S]*视觉作者：visual-treatment-planning/);
-  assert.match(parallel!,/可以同时续接原素材作者和原创意作者[\s\S]*已经具备条件的范围可以继续深化/);
+  // 检查各作者与并行回溯能力，不把分派列表的书写顺序当成执行先后。
+  assert.match(parallel!,/文案作者：[^\n]*narration-writing/);
+  assert.match(parallel!,/apply_authored_script[\s\S]*read_script[\s\S]*read_impact_report/);
+  assert.match(parallel!,/record_creative_decision[^\n]*assignment_id[^\n]*input_revision[^\n]*evidence/);
+  assert.match(parallel!,/创意作者：[^\n]*creative-case-library[^\n]*creative-sequence-design/);
+  assert.match(parallel!,/素材作者：visual-asset-sourcing/);
+  assert.match(parallel!,/视觉作者：visual-treatment-planning[^\n]*creative-reference-to-sequence[^\n]*motion-case-library/);
+  assert.match(parallel!,/素材不足时续接原素材作者；参考不足时续接原创意作者。两个任务可以并行/);
+  assert.match(parallel!,/已就绪且不依赖缺口的范围可以继续推进/);
   assert.match(transfer,/创意卡 ID、来源指纹、原片路径和采用范围[\s\S]*本片真实素材 Asset ID[\s\S]*原参考对象与本片视觉角色的映射[\s\S]*本片完整画面构思/);
   assert.match(brief,/创意卡 ID[\s\S]*采用的完整源时间范围[\s\S]*本片真实素材[\s\S]*参考对象与本片角色映射[\s\S]*完整画面发展/);
   assert.match(production,/prepare_motion_handoff[\s\S]*base_revision_id[\s\S]*visualPlan/);

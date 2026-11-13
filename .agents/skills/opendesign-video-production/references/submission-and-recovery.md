@@ -6,7 +6,7 @@
 
 `register_motion_work` 的 `work` 包含名称、完整 HyperFrames HTML、可编辑 Props、目标 width/height/fps/durationInFrames、非空 creativeBrief（最多 6000 字符）；reference 可选，实际使用时填写 URL 与 layout/motion/rhythm/adaptation/evidence 观察说明。源码只用当前 Schema/校验器支持的 API。文字、CSS、SVG 与图片仍按帧驱动：`imageBindings` 将命名 Slot 对应到已就绪的项目图片 Asset ID，源码以 `<img data-vfc-image-slot="logo">` 消费对应图片，不能自行覆盖 props.assets。已实现的视频合同使用独立 `videoBindings`，由平台固定源身份、源范围、作品帧范围、字节哈希后为 `data-vfc-video-slot` 注入逐帧画面；具体播放语义见[组件合同](hyperframes-contract.md#图片与受管动态视频)。不开放外部资源 URL、任意依赖、网络/文件访问或隐式出声；字段未在连接 Runtime 的实时 Schema 出现时，不假定可用。
 
-提交前核对实时 Schema、画布、帧率和固定资源。正常 OD 制作沿[生产入口](../SKILL.md#调用与续接)使用 `start_motion_authoring` 自动接收阶段交件、登记并按目标采用，不另行逐步搬运。独立源码登记或显式修复时才使用下列底层能力：作者冻结包经 `import_motion_bundle` 导入后，把 `frozen_work` 交给 `register_motion_work`；直接程序输入使用 `work`，二者只选一个。登记 Job 只初始化真实运行库、资源和事件，不逐帧烘焙、不创建视频 Asset。`track_job` 返回 `workId` 后，使用 `read_motion_work(work_id=...)` 读取固定作品、事件及可用范围，源码不进入短轮询回执。修改画内文字、Props 或动作时登记新作品；旧版本不可原地覆盖。同一幂等键不能提交不同输入。
+提交前核对实时 Schema、画布、帧率和固定资源。正常 OD 制作沿[生产入口](../SKILL.md#调用与续接)使用 `start_motion_authoring` 自动接收阶段交件、登记并按目标采用，不另行逐步搬运。独立源码登记或显式修复时才使用下列底层能力：作者冻结包经 `import_motion_bundle` 导入后，把 `frozen_work` 交给 `register_motion_work`；直接程序输入使用 `work`，二者只选一个。登记 Job 只初始化真实运行库、资源和事件，不逐帧烘焙、不创建视频 Asset。`track_job` 返回 `workId` 后，使用 `read_motion_work(work_id=...)` 读取固定作品、事件及可用范围，源码不进入短轮询回执。独立源码修改可登记新作品；连续作品的局部返修沿同一 workId 形成新固定版本，旧版本不可原地覆盖。同一幂等键不能提交不同输入。
 
 `manage_effect_cues` 通过 `work_id` 放置 `type=ManagedMotion`。不填写 motion 素材绑定；Cue 的 `source_start_frame/source_end_frame` 使用项目 fps，指向完整作品的源入出点，长度须等于目标范围。内部排版、图形和动作由固定源码决定，不能在 Cue Props、Motion、StylePack 或强度上制造无效修改。首次创建、就地更新、移除、已明确目标的 `adopt_work` 和局部范围替换分别沿实时 Schema 提交。需要保留旧前后段时使用 `replacement_work_id`，源根时钟不随局部媒体的起点改变。
 
@@ -145,7 +145,7 @@ HTML 入口、内联脚本、主合成和资源槽按[源码合同](hyperframes-
 
 ## 同源局部校样与正式范围
 
-返修始终发布完整源码、Props、资源与根时钟的新固定作品；changedRanges 是作者的修改声明，不能证明区间外像素不变。采用局部源码使用 `manage_effect_cues(action=replace_range, replacement_work_id=...)`，在一次 Revision 中保留旧前段、新中段和旧后段，并核对真实事件和声音引用。画幅、作品 fps、完整时长或事件结构改变时须明确重新编排。
+返修始终发布完整源码、Props、资源与根时钟的新固定版本；连续作品沿用原 workId。changedRanges 是作者的修改声明，不能证明区间外像素不变。采用局部源码使用 `manage_effect_cues(action=replace_range, replacement_work_id=...)`，在一次 Revision 中保留旧前段、新中段和旧后段，并核对真实事件和声音引用。画幅、作品 fps、完整时长或事件结构改变时须明确重新编排。
 
 源码 Cue 的源入出点始终是项目 fps 的完整作品坐标。派生媒体 `motion.rootRange` 是作品 fps 的文件覆盖范围，文件第零帧只在媒体消费时扣除；烘焙范围不会重写 Cue 源坐标。跨 fps 的局部媒体无法直接按共用整数网格采样时，合成使用同一原生根帧映射，不擅自改速或冻结末帧。
 

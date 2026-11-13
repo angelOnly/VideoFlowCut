@@ -17,7 +17,7 @@ import { writeFile } from "node:fs/promises";
 export async function runMotionInspectionJob(application: EditingApplication, job: JobRecord, signal?: AbortSignal): Promise<Record<string, unknown>> {
   if (job.kind !== "motion_inspection") throw new Error("MOTION_INSPECTION_JOB_INVALID");
   const revision = Number(job.payload.revision), workId = String(job.payload.workId);
-  const { work } = application.readSourceMotionWork(job.projectId, workId, revision);
+  const { work } = application.readSourceMotionWork(job.projectId, workId, revision, String(job.payload.definitionHash));
   if (work.version !== job.payload.workVersion || work.definitionHash !== job.payload.definitionHash) throw new Error("MOTION_VERSION_MISMATCH");
   const root = application.readProject(job.projectId, revision).snapshot.project.rootPath;
   const definition = readMotionDefinition(root, work);
