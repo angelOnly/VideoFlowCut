@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#080e16;color:#fff;font-family:var(--vfc-font-title),sans-serif}
+#robot-film{position:relative;width:1920px;height:1080px;overflow:hidden;background:#080e16}
+.shot{position:absolute;inset:0;opacity:0;overflow:hidden;background:#111b24}
+.shot img,.tile img{width:100%;height:100%;display:block;object-fit:cover}
+.shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(4,12,20,.76) 0%,rgba(4,12,20,.32) 39%,rgba(4,12,20,.02) 70%);pointer-events:none}
+#shot-arm .shade{background:linear-gradient(270deg,rgba(4,12,20,.78) 0%,rgba(4,12,20,.32) 39%,rgba(4,12,20,.02) 70%)}
+.shot:after{content:'';position:absolute;inset:0;box-shadow:inset 0 0 115px rgba(0,0,0,.18);pointer-events:none}
+.message{position:absolute;z-index:20;opacity:0;left:105px;top:100px;text-shadow:0 3px 16px rgba(0,0,0,.55)}
+#single,#hundred{left:auto;right:95px;width:650px}
+.bar{width:76px;height:8px;background:#61d9d1;margin-bottom:28px}
+.title{font-size:69px;line-height:1.24;letter-spacing:1px;font-weight:700;width:730px}
+.eyebrow{font-size:38px;font-weight:700;letter-spacing:2px;margin-bottom:18px;color:#e5f4f2}
+.stat{font-size:192px;font-weight:700;line-height:.98;letter-spacing:-5px;color:#fff}
+.stat strong{font-size:.48em;color:#63ded3}
+.detail{font-size:40px;line-height:1.35;font-weight:700;margin-top:26px;color:#f4fbfa}
+.result{font-size:108px;line-height:1.13;font-weight:700;letter-spacing:-2px}
+.result span{color:#63ded3}
+.choice{display:flex;gap:20px;margin-top:26px}
+.choice span{font-size:37px;line-height:1.2;font-weight:700;padding:18px 22px;border:2px solid rgba(216,255,250,.65);background:rgba(5,19,26,.52)}
+#closing{position:absolute;inset:0;background:#0b1721;z-index:15;opacity:0;overflow:hidden}
+.tile{position:absolute;overflow:hidden;background:#243743;box-shadow:0 12px 38px rgba(0,0,0,.3)}
+#tile-factory{left:60px;top:112px;width:1080px;height:608px;z-index:1}
+#tile-factory:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(4,12,20,.72),rgba(4,12,20,.25) 43%,transparent 72%);pointer-events:none}
+#tile-control{left:1164px;top:112px;width:696px;height:292px;z-index:2}
+#tile-belt{left:1164px;top:428px;width:696px;height:292px;z-index:2}
+#closing-words{position:absolute;left:60px;top:755px;color:#f1fbf9;font-size:57px;font-weight:700;letter-spacing:4px;z-index:3}
+#closing-words i{font-style:normal;color:#63ded3;margin:0 22px}
+#end-message{top:110px}
+</style>
+</head>
+<body>
+<main id="robot-film" data-composition-id="robot-film" data-start="0" data-width="1920" data-height="1080" data-duration="26.12">
+  <div id="shot-flip" class="shot"><img id="video-flip" data-vfc-video-slot="flip"><div class="shade"></div></div>
+  <div id="shot-arm" class="shot"><img id="video-arm" data-vfc-video-slot="arm"><div class="shade"></div></div>
+  <div id="shot-factory" class="shot"><img id="video-factory" data-vfc-video-slot="factory"><div class="shade"></div></div>
+  <div id="shot-control" class="shot"><img id="video-control" data-vfc-video-slot="control"><div class="shade"></div></div>
+  <div id="shot-belt" class="shot"><img id="video-belt" data-vfc-video-slot="belt"><div class="shade"></div></div>
+  <div id="closing">
+    <div id="tile-factory" class="tile"><img id="video-factory-end" data-vfc-video-slot="factory_end"></div>
+    <div id="tile-control" class="tile"><img id="video-control-end" data-vfc-video-slot="control_end"></div>
+    <div id="tile-belt" class="tile"><img id="video-belt-end" data-vfc-video-slot="belt_end"></div>
+    <div id="closing-words">稳定工作<i>·</i>处理问题<i>·</i>人工介入</div>
+  </div>
+  <div id="opening" class="message"><div class="bar"></div><div class="title">机器人都能后空翻了，<br>为啥不能进工厂？</div></div>
+  <div id="single" class="message"><div class="bar"></div><div class="eyebrow">假设单次成功率</div><div class="stat">99<strong>%</strong></div><div class="detail">每次结果互不影响</div></div>
+  <div id="hundred" class="message"><div class="bar"></div><div class="eyebrow">假设每次独立 · 连续 100 次</div><div id="result-label" class="result">全部成功<br><span id="result-value">约 37%</span></div><div id="formula" class="detail">99% 连续相乘 100 次</div></div>
+  <div id="recovery" class="message"><div class="bar"></div><div class="eyebrow">如果生产中出现小失误</div><div class="choice"><span>可能自动恢复</span><span>可能需要人工处理</span></div></div>
+  <div id="handoff" class="message"><div class="bar"></div><div class="eyebrow">人来帮忙</div><div class="result">后续工序<br><span>可能等待</span></div></div>
+  <div id="end-message" class="message"><div class="bar"></div><div class="eyebrow">工厂需要考虑</div><div class="result">能否长时间<br><span>稳定工作</span></div></div>
+</main>
+<script>
+// 所有对象共用作品根时钟；素材源时钟由平台固定注帧。
+const tl=gsap.timeline({paused:true});
+const f=n=>n/25;
+const fade=(id,a,b)=>{tl.to(id,{opacity:1,duration:.28,ease:'power1.out'},f(a));tl.to(id,{opacity:0,duration:.24,ease:'power1.in'},f(b)-.24)};
+tl.to({}, {duration:26.12},0);
+tl.set('#shot-flip',{opacity:1},0);
+// 让真实主体由画面边缘接手；托盘动作在两项概率文字之间连续播放。
+tl.set('#shot-arm',{xPercent:100,opacity:1},0);
+tl.to('#shot-arm',{xPercent:0,duration:.48,ease:'power2.inOut'},f(58));
+tl.set('#shot-factory',{xPercent:-100,opacity:1},0);
+tl.to('#shot-factory',{xPercent:0,duration:.36,ease:'power2.inOut'},f(263));
+tl.set('#shot-control',{scale:.72,x:400},0);
+tl.set('#shot-control',{opacity:1},f(376));
+tl.to('#shot-control',{scale:1,x:0,duration:.40,ease:'power2.inOut'},f(376));
+tl.set('#shot-belt',{yPercent:100,opacity:1},0);
+tl.to('#shot-belt',{yPercent:0,duration:.40,ease:'power2.inOut'},f(480));
+tl.to('#closing',{opacity:1,duration:.45,ease:'power1.inOut'},f(555));
+tl.from('#tile-factory',{x:-100,duration:.65,ease:'power2.out'},f(555));
+tl.from('#tile-control',{x:110,duration:.65,ease:'power2.out'},f(560));
+tl.from('#tile-belt',{x:110,duration:.65,ease:'power2.out'},f(565));
+tl.to(['#tile-control','#tile-belt','#closing-words'],{opacity:0,duration:.45,ease:'power1.in'},f(603));
+tl.to('#tile-factory',{left:0,top:0,width:1920,height:1080,duration:1.15,ease:'power2.inOut'},f(605));
+fade('#opening',1,63);fade('#single',78,162);fade('#hundred',177,266);
+// 依据旁白和字幕的段级边界分步揭示，最终落点仍须实际声画复核。
+tl.set(['#result-label','#result-value','#formula'],{opacity:0},0);
+tl.to('#result-label',{opacity:1,duration:.22,ease:'power1.out'},f(205));
+tl.to('#formula',{opacity:1,duration:.22,ease:'power1.out'},f(205));
+tl.to('#result-value',{opacity:1,duration:.22,ease:'power1.out'},f(230));
+fade('#recovery',281,367);fade('#handoff',397,476);
+tl.to('#end-message',{opacity:1,duration:.28,ease:'power1.out'},f(614));
+window.__timelines=window.__timelines||{};window.__timelines['robot-film']=tl;
+window.getVfcMotionEvents=()=>[
+ {id:'opening',meaning:'后空翻与标题建立问题',startFrame:0,endFrame:70},
+ {id:'single-probability',meaning:'单次成功率与独立假设',startFrame:78,endFrame:162},
+ {id:'hundred-probability',meaning:'一百次全部成功概率',startFrame:177,endFrame:260},
+ {id:'recovery-choices',meaning:'故障后可能的处理方式',startFrame:281,endFrame:367},
+ {id:'human-and-line',meaning:'人工介入与后续工序',startFrame:397,endFrame:555},
+ {id:'closing',meaning:'工厂连续工作问题归拢',startFrame:555,endFrame:653}
+];
+</script>
+</body>
+</html>

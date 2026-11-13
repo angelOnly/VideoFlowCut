@@ -1,0 +1,80 @@
+{
+  "compositing": "opaque",
+  "name": "机器人进工厂_同源预排_概率条件大字",
+  "props": {},
+  "imageBindings": {},
+  "width": 1920,
+  "height": 1080,
+  "fps": 25,
+  "durationInFrames": 653,
+  "creativeBrief": "真实托盘作业同源连续承接概率假设，概率文字位于右侧并避让主体；条件表述、逐步揭示和结尾文字对比按照导演及视觉作者反馈修订。",
+  "videoBindings": {
+    "flip": {
+      "assetId": "asset_c76bdd85-5971-4fb6-835e-a51c596f65a3",
+      "sourceStartMs": 18680,
+      "sourceEndMs": 21480,
+      "startFrame": 0,
+      "endFrame": 70,
+      "localPath": "../素材/后空翻.mp4"
+    },
+    "arm": {
+      "assetId": "asset_825d5dc3-09c6-4256-8918-2e3990cb1a38",
+      "sourceStartMs": 4000,
+      "sourceEndMs": 12560,
+      "startFrame": 58,
+      "endFrame": 272,
+      "localPath": "../素材/托盘机械臂.mp4"
+    },
+    "factory": {
+      "assetId": "asset_8e7505b1-e871-4ea4-a2e1-65169b71336f",
+      "sourceStartMs": 0,
+      "sourceEndMs": 4920,
+      "startFrame": 263,
+      "endFrame": 386,
+      "localPath": "../素材/工厂蓝臂.mp4"
+    },
+    "control": {
+      "assetId": "asset_98f3fbde-5ad0-4ef6-b9ad-2685191ecbb5",
+      "sourceStartMs": 0,
+      "sourceEndMs": 4560,
+      "startFrame": 376,
+      "endFrame": 490,
+      "localPath": "../素材/控制器.mp4"
+    },
+    "belt": {
+      "assetId": "asset_ce636988-a90b-4afb-8e49-3d463d1f4a49",
+      "sourceStartMs": 32000,
+      "sourceEndMs": 36600,
+      "startFrame": 480,
+      "endFrame": 595,
+      "localPath": "../素材/料箱线.mp4"
+    },
+    "factory_end": {
+      "assetId": "asset_8e7505b1-e871-4ea4-a2e1-65169b71336f",
+      "sourceStartMs": 0,
+      "sourceEndMs": 3920,
+      "startFrame": 555,
+      "endFrame": 653,
+      "localPath": "../素材/工厂蓝臂.mp4"
+    },
+    "control_end": {
+      "assetId": "asset_98f3fbde-5ad0-4ef6-b9ad-2685191ecbb5",
+      "sourceStartMs": 0,
+      "sourceEndMs": 3920,
+      "startFrame": 555,
+      "endFrame": 653,
+      "localPath": "../素材/控制器.mp4"
+    },
+    "belt_end": {
+      "assetId": "asset_ce636988-a90b-4afb-8e49-3d463d1f4a49",
+      "sourceStartMs": 33500,
+      "sourceEndMs": 37420,
+      "startFrame": 555,
+      "endFrame": 653,
+      "localPath": "../素材/料箱线.mp4"
+    }
+  },
+  "fontBindings": {
+    "title": "noto-sans-sc-bold"
+  }
+}
