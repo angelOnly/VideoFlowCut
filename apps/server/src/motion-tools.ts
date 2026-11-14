@@ -1,5 +1,6 @@
 import { motionOnSuccessSchema } from "../../../packages/contracts/src/motion-continuation.js";
 import { motionAuthoringRequestSchema } from "../../../packages/contracts/src/motion-authoring.js";
+import { motionRootRangeAtProjectRange } from "../../../packages/contracts/src/frame-rate.js";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { AUTHORED_MOTION_MANIFEST_CONTRACT, authoredMotionInputFields } from "../../../packages/contracts/src/authored-motion-manifest-v1.js";
 import { toJsonSchemaCompat } from "@modelcontextprotocol/sdk/server/zod-json-schema-compat.js";
@@ -31,13 +32,13 @@ const handoffSceneSchema = z.object({
   visualRoles: z.array(z.object({ role: z.string().min(1), referenceFunction: z.string().min(1), usage: z.string().min(1),
     assetIds: z.array(z.string().min(1)), sourceRanges: z.array(z.object({ assetId: z.string().optional(),
       startMs: z.number().nonnegative(), endMs: z.number().positive() }).strict()).optional() }).strict()).optional(),
-  visualPlan: z.object({ status: z.enum(["draft", "previewed", "pending"]), primaryRoles: z.array(z.string().min(1)).min(1),
+  visualPlan: z.object({ primaryRoles: z.array(z.string().min(1)).min(1),
     referenceMappings: z.array(z.object({ referenceId: z.string().min(1).describe("对应本场已采用参考的 ID；来源指纹使用场面 references 中对应记录"),
       referenceKind: z.enum(["creative", "motion"]).optional().describe("参考类型；同一 ID 同时对应创意和机制时必须填写"),
+      researchDecisionId: z.string().min(1), startMs: z.number().int().nonnegative(), endMs: z.number().int().positive(),
       targetRole: z.string().min(1), treatment: z.string().min(1), preserveRelation: z.string().optional().describe("需要保留的原参考关系"),
       targetRange: z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() }).strict().optional().describe("成片时间线帧范围") }).strict()).optional(),
-    graphicLed: z.boolean().optional(), graphicReasons: z.array(z.string().min(1)).optional(),
-    preview: z.object({ workId: z.string().min(1), definitionHash: z.string().regex(/^[a-f0-9]{64}$/u).optional(), startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() }).strict().optional()
+    graphicLed: z.boolean().optional(), graphicReasons: z.array(z.string().min(1)).optional()
   }).strict().optional(),
   process: z.string().optional(), preserve: z.array(z.string()).optional(), adapt: z.array(z.string()).optional()
 }).strict();
@@ -63,7 +64,7 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   } catch (error) { return failure(error); } });
   server.registerTool("prepare_motion_handoff", {
     title: "准备场面制作交付",
-    description: "按当前项目快照准备固定简报、时间资料、素材、参考与可选同源预排，返回清单哈希、实际文件和逐场面缺口。预排引用使用当前项目的 MotionWork 与作品根帧；资料就绪不等于画面质量通过。",
+    description: "按当前项目快照准备固定导演稿、时间资料、真实素材和采用参考，返回清单哈希、选中场面、实际文件与逐场面缺口。资料就绪不代表首版画面已完成或质量已通过。",
     inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), brief_path: z.string().min(1),
       timing_plan_path: z.string().min(1), selected_scene_ids: z.array(z.string().min(1)).min(1),
       assets: z.array(z.object({ id: z.string().min(1), path: z.string().optional(), purpose: z.string().min(1),
@@ -90,14 +91,14 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
       creative, motion, references, scenes }, output);
     const manifestPath = join(output, "delivery-manifest.json");
     const manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");
-    return result({ projectId, inputRevision: base_revision_id, manifestPath, manifestSha256,
+    return result({ projectId, inputRevision: base_revision_id, manifestPath, manifestSha256, selectedSceneIds: manifest.selectedSceneIds,
       scenes: manifest.scenes, diagnostics: manifest.diagnostics,
       files: manifest.files.map(file => ({ path: file.deliveredPath, localPath: join(output, file.deliveredPath),
         sha256: file.sha256, requiredForRun: file.requiredForRun !== false, uses: file.uses })) });
   } catch (error) { return failure(error); } });
   server.registerTool("start_motion_authoring", {
     title: "启动阶段画面制作",
-    description: "主任务提交当前范围的完整制作请求与资料，绑定明确的时间线目标。完整新制与主要视觉重构先接回导演采用及视觉作者的同源预排；局部修改沿已有作品继续。制作作者深化已确定的主要关系，阶段源码自动登记和采用。原任务结束后的同源修订使用新幂等键，并通过 continue_from_run_id 指定原制作 Run。",
+    description: "主任务提交导演采用的视觉方案、交付资料和明确的时间线目标。OD 制作首版并分阶段交回，后续修订沿同一作品继续。原任务结束后的续修使用新幂等键，并通过 continue_from_run_id 指定原制作 Run。",
     inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), production_run_id: z.string().min(1).optional(),
       intent: z.literal("local_edit").optional().describe("仅无 ProductionRun 的局部编辑填写；完整新制和主要视觉重构必须提供 production_run_id"),
       visual_treatment_ids: z.array(z.string().min(1)).min(1).optional(), target: motionOnSuccessSchema, opendesign_request: motionAuthoringRequestSchema, idempotency_key: z.string().min(1).max(120) }
@@ -108,18 +109,33 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   } catch (error) { return failure(error); } });
   server.registerTool("wait_motion_authoring", {
     title: "等待阶段画面制作结果",
-    description: "按 sequence 接回阶段制作与采用结果。authoring.status 表示制作执行与目标范围完成情况；阶段回执定位实际作品及版本，主任务交导演、创意与视觉检查材料组织、整片发展及参考表现。拒收反馈保留实际接收及对账状态；超时表示暂无新进展。",
-    inputSchema: { project_id: z.string().optional(), job_id: z.string().min(1), after_sequence: z.number().int().nonnegative().default(0), timeout_ms: z.number().int().min(0).max(30000).default(20000) },
+    description: "按 sequence 接回阶段制作与采用结果。阶段回执的 rangeMappings 同时提供工作台使用的 projectRange 和 OD 反馈使用的 workRootRange，均为半开帧范围。返修只是阶段内的短段时，传入 range_request 的原 run_id、frozen_version 和工作台 project_range，读取 requestedRangeMapping 的精确作品根帧再交给 OD。主任务交导演、创意与视觉检查实际画面。拒收反馈保留实际接收及对账状态；超时表示暂无新进展。",
+    inputSchema: { project_id: z.string().optional(), job_id: z.string().min(1), after_sequence: z.number().int().nonnegative().default(0), timeout_ms: z.number().int().min(0).max(30000).default(20000),
+      range_request: z.object({ run_id: z.string().min(1), frozen_version: z.string().min(1), project_range: motionFrameRangeSchema }).strict().optional() },
     annotations: { readOnlyHint: true }
-  }, async ({ project_id, job_id, after_sequence, timeout_ms }) => { try {
+  }, async ({ project_id, job_id, after_sequence, timeout_ms, range_request }) => { try {
     const config = readRuntimeConfig(), projectId = projectIdFrom(project_id);
     const url = new URL(`/api/projects/${encodeURIComponent(projectId)}/motion-authoring/${encodeURIComponent(job_id)}/wait`, config.http.webOrigin);
     url.searchParams.set("afterSequence", String(after_sequence)); url.searchParams.set("timeoutMs", String(timeout_ms));
     const response = await fetch(url, { headers: { "x-videoflowcut-release-id": config.runtime.releaseId }, signal: AbortSignal.timeout(timeout_ms + 5000) });
-    const value = await response.json() as { message?: string; error?: string };
+    const value = await response.json() as { message?: string; error?: string; authoring?: { receipts?: Array<{ runId: string; frozenVersion: string; workId: string;
+      definitionHash: string; rangeMappings?: Array<{ projectRange: { startFrame: number; endFrame: number } }> }> } };
     if (!response.ok) throw new Error(value.message ?? value.error ?? `Runtime HTTP ${response.status}`);
     if (response.headers.get("x-videoflowcut-release-id") !== config.runtime.releaseId) throw new Error("RUNTIME_RELEASE_MISMATCH");
-    return result(value);
+    if (!range_request) return result(value);
+    const { run_id: runId, frozen_version: frozenVersion, project_range: projectRange } = range_request;
+    const receipt = value.authoring?.receipts?.find(item => item.runId === runId && item.frozenVersion === frozenVersion);
+    if (!receipt?.rangeMappings?.some(item => item.projectRange.startFrame <= projectRange.startFrame && item.projectRange.endFrame >= projectRange.endFrame)) {
+      throw new Error("返修范围不属于指定 Run 和冻结版本的已采用阶段");
+    }
+    const job = application.trackJob(job_id);
+    if (job.projectId !== projectId || job.kind !== "motion_authoring") throw new Error("制作任务不属于当前项目");
+    const target = job.payload.targetRange as { startFrame: number; sourceStartFrame: number };
+    const work = application.readSourceMotionWork(projectId, receipt.workId, undefined, receipt.definitionHash).work;
+    // 按原目标入点和作品帧率换算，避免阶段子段或不同帧率时沿用整段范围。
+    const workRootRange = motionRootRangeAtProjectRange(target.sourceStartFrame + projectRange.startFrame - target.startFrame,
+      target.sourceStartFrame + projectRange.endFrame - target.startFrame, work.fps, Number(job.payload.projectFps));
+    return result({ ...value, requestedRangeMapping: { runId, frozenVersion, projectRange, workRootRange } });
   } catch (error) { return failure(error); } });
   server.registerTool("browse_motion_sources", { title: "在线动效来源", description: "返回已选的四个在线视觉参考库与访问入口，不下载整库，不表示已经观看预览。AE/Jitter 与开源组件均可作为视觉制作参考。", inputSchema: {}, annotations: { readOnlyHint: true } }, async () => result({ sources: MOTION_SOURCES, execution: "完整新制或主要视觉重做应主动检索并学习创意、美术和动效参考；本在线来源按需补充。通过 register_motion_work 登记完整 HyperFrames HTML，再按需使用 submit_motion_work 生成媒体；按实际观察记录布局、运动、节奏和适配依据。" }));
   server.registerTool("import_motion_bundle", {

@@ -68,8 +68,9 @@ function projectMotionAnalysisResult(value: unknown): Data {
     ...(source.range ? { range: pick(source.range, ["startMs", "endMs"]) } : {}),
     ...(source.sampling ? { sampling: pick(source.sampling, ["model_frame_density", "limitation"]) } : {}),
     ...(source.input ? { input: {
+      ...pick(input, ["source_has_audio", "has_audio"]),
       mapping: pick(input.mapping, ["parentSourceId", "parentHash", "offsetMs", "rate", "coordinateSpace", "preprocessing"]),
-      streams: list(input.streams, entry => pick(entry, ["nb_read_frames", "avg_frame_rate"]))
+      streams: list(input.streams, entry => pick(entry, ["codec_type", "nb_read_frames", "avg_frame_rate"]))
     } } : {})
   };
 }
@@ -116,7 +117,7 @@ export function projectMotionJob(job: JobRecord): JobRecord | Data {
     ...pick(job, ["id", "projectId", "kind", "status", "error", "attempt", "createdAt", "updatedAt"]),
     source_sha256: job.payload.source_sha256,
     ...(job.payload.retryOfJobId ? { retryOfJobId: job.payload.retryOfJobId } : {}),
-    ...(job.kind === "motion_reference_analysis" ? { mechanism_id: job.payload.id, range: pick(job.payload.range, ["startMs", "endMs"]) } : {}),
+    ...(job.kind === "motion_reference_analysis" ? { reference_id: job.payload.id, range: pick(job.payload.range, ["startMs", "endMs"]) } : {}),
     ...(job.result ? { result: {
       ...projected,
       ...(result.creativeIndex ? { creativeIndex: pick(result.creativeIndex, ["completed", "total", "source_sha256"]) } : {}),

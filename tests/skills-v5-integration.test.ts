@@ -20,10 +20,10 @@ test("制作入口保留工作台观察、修改、结果版复查与收口职�
     readFile(join(skillsRoot, "web-editor-operator/SKILL.md"), "utf8"),
     readFile(join(skillsRoot, "visual-treatment-planning/SKILL.md"), "utf8")
   ]);
-  assert.match(shared, /同源预排 → 工作台观察 → 制作深化 → 阶段接回 → 工作台修改与复查/u);
-  assert.match(shared, /已有控件支持的调整在工作台保存[\s\S]*新版接回后，在工作台复查/u);
-  assert.match(coordinator, /工作台入口[\s\S]*原视觉作者[\s\S]*工作台/u);
-  assert.match(visual, /工作台[\s\S]*已观察范围/u);
+  assert.match(shared, /完整新制使用一部连续作品[\s\S]*导演稿采用后交 OD 制作首版/u);
+  assert.match(shared, /工作台入口[\s\S]*冻结版本和根帧[\s\S]*交回原负责人/u);
+  assert.match(coordinator, /工作台入口及可查范围交回原作者/u);
+  assert.match(visual, /首版回来后[\s\S]*看实际合成[\s\S]*视觉返修并复查/u);
   assert.match(operator, /已有控件[\s\S]*直接保存[\s\S]*结果版[\s\S]*复查/u);
   assert.match(routing, /read_production_status[\s\S]*工作台检查[\s\S]*complete_production_run[\s\S]*final_revision/u);
   assert.doesNotMatch(operator, /正式剪辑只通过已发布 MCP 写入|子代理不操作 UI 修改正式项目/u);
@@ -151,6 +151,7 @@ const hostCollaborationTools = new Set(["spawn_agent", "followup_task", "list_ag
 
 const ignoredToolLikeTokens = new Set([
   // 这些是受管作品采用目标的 action 值，具体调用仍由正式工具提交。
+  "create_cue",
   "replace_cue",
   "replace_range",
   // 机制元数据中的起始状态不是 start_* 操作。

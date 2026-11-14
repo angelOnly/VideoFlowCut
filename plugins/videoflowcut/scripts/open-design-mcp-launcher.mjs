@@ -30,6 +30,17 @@ async function assertPreviousServiceStopped() {
   if (status?.url) throw new Error("原画面服务仍在使用同一数据目录；请先按现有服务流程完成安全切换，再启动新服务。");
 }
 
+// Windows 可能短暂占用刚复制的目录，等待后重试；持续失败仍原样报错。
+async function placePreparedRuntime(source, target) {
+  for (let attempt = 0; ; attempt += 1) {
+    try { await rename(source, target); return; }
+    catch (error) {
+      if (process.platform !== "win32" || error?.code !== "EPERM" || attempt >= 5) throw error;
+      await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+    }
+  }
+}
+
 async function prepare() {
   const actual = openDesignDigest(componentRoot);
   if (actual.digest !== expected.digest) throw new Error("画面模块与插件发行内容不一致，请重新构建并安装配套插件。");
@@ -46,7 +57,7 @@ async function prepare() {
     const temporary = await mkdtemp(join(runtimeParent, "preparing-"));
     await cp(webSource, join(temporary, "web"), { recursive: true });
     await cp(join(componentRelease, "resources"), join(temporary, "resources"), { recursive: true });
-    await rename(temporary, runtimeRoot);
+    await placePreparedRuntime(temporary, runtimeRoot);
   }
 
   const env = { ...process.env, VIDEOFLOWCUT_RELEASE_ID: release.releaseId,

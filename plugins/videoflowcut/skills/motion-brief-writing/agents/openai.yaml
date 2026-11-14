@@ -1,5 +1,5 @@
 interface:
   display_name: "完整声画演出稿"
-  short_description: "供同一视觉作者设计连续演出，在实际预排中共同修订空间与时机"
+  short_description: "视觉作者编写连续演出指令，OD 制作首版后按实际画面修订空间与时机"
 policy:
   allow_implicit_invocation: false

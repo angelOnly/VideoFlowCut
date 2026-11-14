@@ -45,7 +45,10 @@ def _audio_content(path, start_seconds, duration_seconds):
             raise ValueError("文件没有可解码音轨")
         begin = (container.start_time or 0) / av.time_base + start_seconds
         end = begin + duration_seconds
-        container.seek(int(begin * av.time_base), backward=True)
+        stream = container.streams.audio[0]
+        if stream.time_base is None:
+            raise ValueError("音轨缺少时间基准，无法定位所选窗口")
+        container.seek(math.floor(begin / stream.time_base), stream=stream, backward=True)
         audio = np.zeros(math.ceil(duration_seconds * 16000), dtype=np.float32)
         resampler = av.AudioResampler(format="fltp", layout="mono", rate=16000)
         written = 0
@@ -99,36 +102,70 @@ def _analyze_media(model, path, kind, prompt, start_seconds, duration_seconds, m
 
 
 def _video_content(path, start_seconds, duration_seconds):
-    """按真实 PTS 抽取每秒画面，将原音轨对齐到同一时间窗口。"""
+    """按真实 PTS 为每秒时间窗取画面，并保留同窗的完整音频。"""
     if not math.isfinite(start_seconds) or start_seconds < 0:
         raise ValueError("开始时间必须是非负有限秒数")
     if not math.isfinite(duration_seconds) or not 0 < duration_seconds <= 30:
         raise ValueError("片段时长必须在 0 到 30 秒之间")
     frames = []
+    frame_count = math.ceil(duration_seconds)
     with av.open(str(path)) as container:
         if not container.streams.video:
             raise ValueError("文件没有可解码的视频轨道")
+        stream = container.streams.video[0]
         origin = (container.start_time or 0) / av.time_base
         begin = origin + start_seconds
         end = begin + duration_seconds
-        container.seek(int(begin * av.time_base), backward=True)
-        next_time = begin
+        stream_end = None
+        if stream.start_time is not None and stream.duration is not None and stream.time_base is not None:
+            stream_end = float((stream.start_time + stream.duration) * stream.time_base)
+        if stream.time_base is None:
+            raise ValueError("视频轨道缺少时间基准，无法定位所选窗口")
+        container.seek(math.floor(begin / stream.time_base), stream=stream, backward=True)
+        previous = None
+        reached_end = False
         for frame in container.decode(video=0):
-            if frame.time is None or frame.time < next_time:
+            if frame.time is None:
+                raise ValueError("视频画面缺少时间戳，无法对齐音画")
+            if frame.time < begin:
+                # 从关键帧回溯时保留切点前仍在播放的画面。
+                previous = frame
                 continue
+            while len(frames) < frame_count and begin + len(frames) < frame.time - 1e-7:
+                target = begin + len(frames)
+                if previous is not None and (stream_end is None or target < stream_end):
+                    frames.append(previous.to_image().convert("RGB"))
+                else:
+                    frames.append(None)
             if frame.time >= end:
+                reached_end = True
                 break
-            frames.append((frame.time - begin, frame.to_image().convert("RGB")))
-            next_time = begin + len(frames)
-    if not frames:
-        raise ValueError("所选时间窗口没有视频画面，请检查开始时间")
+            previous = frame
+            while len(frames) < frame_count and begin + len(frames) <= frame.time + 1e-7:
+                frames.append(frame.to_image().convert("RGB"))
+        if stream_end is None and not reached_end and previous is not None:
+            # 未知流时长时，只延用到最后一帧有据可查的展示结束点。
+            duration = getattr(previous, "duration", None)
+            stream_end = previous.time + float(duration * previous.time_base) if duration and previous.time_base else previous.time
+        while len(frames) < frame_count:
+            target = begin + len(frames)
+            if previous is not None and (stream_end is None or target < stream_end):
+                frames.append(previous.to_image().convert("RGB"))
+            else:
+                frames.append(None)
+    if any(frame is None for frame in frames) or (stream_end is not None and end > stream_end + 1e-7):
+        raise ValueError("所选时间窗口存在无法确认画面的时段，请缩小范围或单独分析音频")
 
     audio = None
     with av.open(str(path)) as container:
         if container.streams.audio:
             audio = np.zeros(math.ceil(duration_seconds * 16000), dtype=np.float32)
-            container.seek(int(begin * av.time_base), backward=True)
+            stream = container.streams.audio[0]
+            if stream.time_base is None:
+                raise ValueError("音轨缺少时间基准，无法定位所选窗口")
+            container.seek(math.floor(begin / stream.time_base), stream=stream, backward=True)
             resampler = av.AudioResampler(format="fltp", layout="mono", rate=16000)
+            written = 0
             for frame in container.decode(audio=0):
                 if frame.time is not None and frame.time >= end:
                     break
@@ -140,14 +177,18 @@ def _video_content(path, start_seconds, duration_seconds):
                     left, right = max(0, offset), min(len(audio), offset + len(samples))
                     if right > left:
                         audio[left:right] = samples[left - offset:right - offset]
+                        written += right - left
             for chunk in resampler.resample(None):
                 offset = round((chunk.time - begin) * 16000)
                 samples = chunk.to_ndarray().reshape(-1)
                 left, right = max(0, offset), min(len(audio), offset + len(samples))
                 if right > left:
                     audio[left:right] = samples[left - offset:right - offset]
+                    written += right - left
+            if not written:
+                raise ValueError("所选窗口没有实际音频数据")
     content = []
-    for index, (_, image) in enumerate(frames):
+    for index, image in enumerate(frames):
         content.append(image)
         if audio is not None:
             content.append(audio[index * 16000:min((index + 1) * 16000, len(audio))].copy())

@@ -1090,7 +1090,6 @@ export interface CreativeAdoptionRef {
 /** 固定某次作品实际使用的计划与导演采用。 */
 export interface MotionAuthoringTreatmentInput {
   visualTreatmentId: Id;
-  previewWorkId?: Id;
   adoptedDecisionRef: CreativeAdoptionRef;
   deliveryRef: CreativeDeliveryRef;
   treatmentSignature: string;
@@ -1866,7 +1865,8 @@ export interface CreativeDecision {
   inputRevision?: number | null;
   inputDecisionIds?: Id[];
   researchOutcome?: "pending" | "researched" | "not_applicable";
-  researchReferences?: Array<{ kind: "creative" | "motion"; id: string; sourceSha256: string }>;
+  researchReferences?: Array<{ kind: "creative" | "motion"; id: string; sourceSha256: string;
+    startMs?: number; endMs?: number; observedRelation?: string }>;
   operationId?: string;
   createdAt: string;
 }

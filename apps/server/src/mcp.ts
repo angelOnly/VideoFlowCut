@@ -2765,7 +2765,8 @@ server.registerTool("record_creative_decision", {
     phase: z.enum(["creative_research", "motion_research", "visual_design", "adoption"]).optional(),
     assignment_id: z.string().min(1).optional(), input_revision: z.number().int().positive().nullable().optional(),
     input_decision_ids: z.array(z.string().min(1)).optional(), research_outcome: z.enum(["pending", "researched", "not_applicable"]).optional(),
-    research_references: z.array(z.object({ kind: z.enum(["creative", "motion"]), id: z.string().min(1), source_sha256: z.string().regex(/^[a-f0-9]{64}$/u) }).strict()).optional(),
+    research_references: z.array(z.object({ kind: z.enum(["creative", "motion"]), id: z.string().min(1), source_sha256: z.string().regex(/^[a-f0-9]{64}$/u),
+      start_ms: z.number().int().nonnegative().optional(), end_ms: z.number().int().positive().optional(), observed_relation: z.string().min(1).max(2000).optional() }).strict()).optional(),
     quiet_range: z.object({ start_frame: z.number().int().min(0), end_frame: z.number().int().positive(), reason: z.string().min(1).max(800) }).optional(),
     effect_decision: z.string().max(2_000).optional(),
     rejected_alternative: z.string().max(2_000).optional(),
@@ -2789,7 +2790,8 @@ server.registerTool("record_creative_decision", {
         manifestSha256: input.delivery_ref.manifest_sha256, sceneIds: input.delivery_ref.scene_ids } : undefined,
       phase: input.phase, assignmentId: input.assignment_id, inputRevision: input.input_revision,
       inputDecisionIds: input.input_decision_ids, researchOutcome: input.research_outcome,
-      researchReferences: input.research_references?.map(reference => ({ kind: reference.kind, id: reference.id, sourceSha256: reference.source_sha256 })),
+      researchReferences: input.research_references?.map(reference => ({ kind: reference.kind, id: reference.id, sourceSha256: reference.source_sha256,
+        startMs: reference.start_ms, endMs: reference.end_ms, observedRelation: reference.observed_relation })),
       quietRange: input.quiet_range ? { startFrame: input.quiet_range.start_frame, endFrame: input.quiet_range.end_frame, reason: input.quiet_range.reason } : undefined,
       effectDecision: input.effect_decision,
       rejectedAlternative: input.rejected_alternative,
@@ -2797,7 +2799,14 @@ server.registerTool("record_creative_decision", {
       previewEvidence: input.preview_evidence,
       qualityReview: input.quality_review
     }));
-  } catch (error) { return asError(error); }
+  } catch (error) {
+    // 阶段来源校验在审计持久化之前完成，允许按实际分派、版本和范围纠正输入。
+    if (error instanceof DomainError && error.code === "PRODUCTION_DECISION_SOURCE_REQUIRED") {
+      return { ...asText({ error: error.message, message: error.message, code: error.code,
+        stage: "validation", sideEffects: "none", safeToRetry: true, recovery: "correct_input" }), isError: true };
+    }
+    return asError(error);
+  }
 });
 
 server.registerTool("record_editorial_quality_review", {

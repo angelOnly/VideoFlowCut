@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { createServer } from "node:http";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { getDefaultEnvironment, StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { createApplication } from "@videocut/application";
@@ -64,17 +64,12 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     const pendingScene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "待补场面", purpose: "并行取材", startFrame: 30, endFrame: 60 }).snapshot.scenes.find(item => item.id !== scene.id)!;
     const sourcePath = join(app.readProject(projectId).snapshot.project.rootPath, "assets", "source", "subject.mp4");
     await mkdir(join(app.readProject(projectId).snapshot.project.rootPath, "assets", "source"), { recursive: true });
-    execFileSync("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "testsrc2=s=64x64:r=24:d=1", "-c:v", "libx264", "-pix_fmt", "yuv420p", sourcePath]);
+    execFileSync("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "testsrc2=s=64x64:r=24:d=1", "-c:v", "libx264", "-pix_fmt", "yuv420p", sourcePath], { windowsHide: true });
     const sourceHash = createHash("sha256").update(await readFile(sourcePath)).digest("hex");
     const importedVideo = app.registerImportedAsset({ projectId, baseRevision: rev(), name: "实际主体", kind: "video",
       managedPath: "assets/source/subject.mp4", sourceHash });
     app.applyMediaAnalysis({ projectId, assetId: importedVideo.asset.id, metadata: { width: 64, height: 64, durationMs: 1000, hasAudio: false } });
-    const previewJob = app.registerMotionWork({ projectId, baseRevision: rev(), idempotencyKey: "preview-before-handoff", work: videoWork(importedVideo.asset.id) });
-    const previewClaim = app.claimNextJob(["motion_generation"], 60_000);
-    assert.equal(previewClaim?.id, previewJob.id);
-    await processClaimedJob(app, previewClaim!, (item, signal) => runMotionJob(app, item, undefined, signal));
-    const previewWorkId = app.trackJob(previewJob.id).result?.workId;
-    assert.equal(typeof previewWorkId, "string");
+    assert.equal(app.readProject(projectId).snapshot.motionWorks?.length ?? 0, 0);
     const report = await app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: app.readProject(projectId).revision.number, intent: "local_edit", completionScope: { kind: "project" }, projectId, loadedSkills: ["production-coordinator"] });
     const brief = join(root, "brief.md"), timing = join(root, "timing.md");
     await writeFile(brief, "完整连续画面及准确文字");
@@ -93,8 +88,9 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
             startMs: 0, endMs: 9800, purpose: "参考画面组织" }],
             visualRoles: [{ role: "主体", referenceFunction: "连续变化", assetIds: [importedVideo.asset.id],
               sourceRanges: [{ startMs: 0, endMs: 1000 }], usage: "展示真实主体" }],
-            visualPlan: { status: "previewed", primaryRoles: ["主体"], preview: { workId: previewWorkId, startFrame: 0, endFrame: 24 },
-              referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative", targetRole: "主体", treatment: "真实主体接管", preserveRelation: "主体与文字共同变化" }] },
+            visualPlan: { primaryRoles: ["主体"],
+              referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative", researchDecisionId: "research-fixture", startMs: 0, endMs: 9800,
+                targetRole: "主体", treatment: "真实主体接管", preserveRelation: "主体与文字共同变化" }] },
             process: "主体出现、发展并接续", preserve: ["连续过程"], adapt: ["中文文字"] },
           { sceneId: pendingScene.id, status: "pending", references: [{ kind: "motion", id: "003-m01", sourceSha256: index.source_sha256,
             startMs: 0, endMs: 2080, purpose: "下一场机制" }], resourceIds: ["missing-art"],
@@ -106,12 +102,12 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.ok(scenesFile);
     const deliveredScenes = JSON.parse(await readFile(scenesFile.localPath, "utf8"));
     assert.deepEqual(deliveredScenes.scenes[0].visualPlan.referenceMappings[0], { referenceId: "002-c01", referenceKind: "creative",
-      targetRole: "主体", treatment: "真实主体接管", preserveRelation: "主体与文字共同变化" });
+      researchDecisionId: "research-fixture", startMs: 0, endMs: 9800, targetRole: "主体", treatment: "真实主体接管", preserveRelation: "主体与文字共同变化" });
     assert.ok(prepared.diagnostics.some(item => item.requiredForRun === false));
     assert.ok(prepared.diagnostics.some(item => item.id === "003-m01" && item.requiredForRun === false));
     assert.ok(prepared.diagnostics.some(item => item.id === "missing-art" && item.requiredForRun === false));
     assert.ok(prepared.files.filter(file => file.uses.some(use => use.kind === "motion")).every(file => !file.requiredForRun));
-    assert.ok(prepared.files.some(file => file.uses.some(use => use.kind === "preview")));
+    assert.ok(!prepared.files.some(file => file.uses.some(use => use.kind === "preview")));
     assert.ok(prepared.files.every(file => file.path.startsWith("handoffs/")));
     await writeFile(brief, "另一场面更新后的原始稿");
     const fixedBrief = prepared.files.find(file => file.path.endsWith("brief/visual-director-brief.md"))!;
@@ -169,13 +165,28 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.ok((await app.readProductionStatus(projectId)).work.pending.some(job => job.jobId === first.jobId));
 
     const bundle = frozenWork(importedVideo.asset.id);
-    const delivered = prepared.files.filter(file => file.requiredForRun).map(file => ({ path: file.path, localPath: file.localPath }));
-    let completeListing = false, starts = 0, receivedPrompt = "";
+    const delivered: Array<{ path: string; localPath: string }> = [];
+    let rejectUpload = true, starts = 0, receivedPrompt = "";
     let onRunStart: (() => Promise<void>) | undefined;
     server = createServer((request, response) => {
       const url = new URL(request.url!, "http://127.0.0.1");
-      if (url.pathname === "/api/projects/isolated-od/files") {
-        response.end(JSON.stringify({ files: completeListing ? delivered : delivered.slice(1) })); return;
+      if (request.method === "GET" && url.pathname === "/api/projects/isolated-od/files") {
+        response.end(JSON.stringify({ files: delivered })); return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/projects/isolated-od/files") {
+        if (rejectUpload) { response.statusCode = 400; response.end("模拟送件失败"); return; }
+        const chunks: Buffer[] = [];
+        request.on("data", chunk => chunks.push(Buffer.from(chunk)));
+        request.on("end", () => { void (async () => {
+          const form = await new Request("http://isolated-od/files", { method: "POST", headers: { "content-type": request.headers["content-type"]! }, body: Buffer.concat(chunks) }).formData();
+          const path = String(form.get("name")), file = form.get("file") as File;
+          const localPath = join(root, "od-files", path);
+          await mkdir(dirname(localPath), { recursive: true }); await writeFile(localPath, Buffer.from(await file.arrayBuffer()));
+          const previous = delivered.findIndex(item => item.path === path);
+          if (previous >= 0) delivered.splice(previous, 1);
+          delivered.push({ path, localPath });
+          response.end(JSON.stringify({ file: { path } }));
+        })().catch(error => { response.statusCode = 500; response.end(String(error)); }); }); return;
       }
       if (request.method === "POST" && url.pathname === "/api/runs") {
         starts++;
@@ -198,9 +209,9 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     await new Promise<void>(resolve => server!.listen(0, "127.0.0.1", resolve));
     const endpoint = { url: `http://127.0.0.1:${(server.address() as { port: number }).port}` };
     const originalJob = app.trackJob(first.jobId);
-    await assert.rejects(runMotionAuthoringJob(app, originalJob, new AbortController().signal, endpoint), /交付未就绪/);
+    await assert.rejects(runMotionAuthoringJob(app, originalJob, new AbortController().signal, endpoint), /MOTION_AUTHORING_OD_HTTP: 400/);
     assert.equal(starts, 0, "文件未交付时不能启动制作作者");
-    completeListing = true;
+    rejectUpload = false;
     app.repository.commit(projectId, rev(), "排队期间目标发生变化", snapshot => { snapshot.scenes.find(item => item.id === scene.id)!.purpose = "新的内容目标"; });
     await assert.rejects(runMotionAuthoringJob(app, originalJob, new AbortController().signal, endpoint), /启动前已变化/);
     assert.equal(starts, 0, "排队期间目标变化时不能启动制作作者");
@@ -220,8 +231,8 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.ok(receivedPrompt.includes(`就绪场面 ${scene.id}`));
     assert.match(receivedPrompt, /002-c01/);
     assert.match(receivedPrompt, /主体与文字共同变化/);
-    assert.match(receivedPrompt, /预排引用仅供追溯/);
-    assert.match(receivedPrompt, new RegExp(String(previewWorkId)));
+    assert.match(receivedPrompt, /制作首版/);
+    assert.doesNotMatch(receivedPrompt, /同源预排/);
     assert.match(receivedPrompt, new RegExp(importedVideo.asset.id));
     assert.equal(result.authoring.receipts[0].authoringInputs[0].adoptedDecisionRef.decisionId, decision.id);
     const cue = app.readProject(projectId).snapshot.effectCues[0];

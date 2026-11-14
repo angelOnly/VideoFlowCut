@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { join } from "node:path";
-import { readFile } from "node:fs/promises";
+import { join, toNamespacedPath } from "node:path";
+import { createReadStream, openAsBlob } from "node:fs";
+import { readFile, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import type { EditingApplication } from "@videocut/application";
 import type { EffectCue, JobRecord, MotionAuthoringTreatmentInput, MotionContinuationResult, MotionOnSuccess, ProjectSnapshot } from "@videocut/contracts";
@@ -14,8 +15,11 @@ import { scopeReferenceManifest, verifyReferenceDelivery, type ReferenceManifest
 import { frozenMotionBundleSchema, importMotionBundle, readFrozenMotionWork } from "../../../packages/edit-application/src/motion-input.js";
 import { resolveMcpWorkspaceContext } from "../../../components/open-design/apps/daemon/src/mcp-workspace-context.js";
 import type { MotionAuthoringInput } from "../../../packages/contracts/src/motion-authoring.js";
-import { AuthoredMotionValidationError, MotionSourceValidationError } from "../../../packages/contracts/src/authored-motion-manifest-v1.js";
+import { AUTHORED_MOTION_MANIFEST_CONTRACT, authoredMotionInputFields, AuthoredMotionValidationError, MotionSourceValidationError } from "../../../packages/contracts/src/authored-motion-manifest-v1.js";
 import { ZodError } from "zod";
+import { toJsonSchemaCompat } from "@modelcontextprotocol/sdk/server/zod-json-schema-compat.js";
+import { motionRootRangeAtProjectRange } from "../../../packages/contracts/src/frame-rate.js";
+import { hyperframesContract } from "../../../packages/motion-work/src/hyperframes-contract.js";
 
 type Range = { startFrame: number; endFrame: number };
 type TargetRange = Range & { sourceStartFrame: number; sourceEndFrame: number };
@@ -114,6 +118,71 @@ async function jsonRequest(endpoint: Endpoint, path: string, signal: AbortSignal
   return JSON.parse(bodyText) as Record<string, unknown>;
 }
 
+type ProjectFileListing = { files: Array<{ path: string; localPath?: string }> };
+
+async function fileSha256(path: string): Promise<string> {
+  const hash = createHash("sha256");
+  for await (const chunk of createReadStream(path)) hash.update(chunk);
+  return hash.digest("hex");
+}
+
+/** 逐项补齐本次场面的固定文件；重试时保留已经核对正确的文件。 */
+export async function deliverMotionHandoff(endpoint: Endpoint, project: string, manifest: ReferenceManifest, signal: AbortSignal): Promise<ProjectFileListing> {
+  const base = `/api/projects/${encodeURIComponent(project)}`;
+  const list = async (): Promise<ProjectFileListing> => {
+    const result = await jsonRequest(endpoint, `${base}/files`, signal);
+    if (!Array.isArray(result.files)) throw new DomainError("制作端文件清单不可用", "MOTION_AUTHORING_DELIVERY_INVALID");
+    return result as ProjectFileListing;
+  };
+  let listing = await list();
+  for (const file of manifest.files.filter(item => item.requiredForRun !== false)) {
+    signal.throwIfAborted();
+    if (!manifest.packageRoot || !file.localReadable || !file.sha256) throw new DomainError(`固定交付文件不可读取：${file.deliveredPath}`, "MOTION_AUTHORING_DELIVERY_INVALID");
+    const localPath = join(manifest.packageRoot, file.deliveredPath);
+    if (await fileSha256(localPath) !== file.sha256) throw new DomainError(`固定交付文件已变化：${file.deliveredPath}`, "MOTION_AUTHORING_DELIVERY_INVALID");
+    const existing = listing.files.find(item => item.path === file.deliveredPath);
+    if (existing?.localPath && await fileSha256(existing.localPath).catch(() => "") === file.sha256) continue;
+
+    const size = (await stat(localPath)).size;
+    const large = size > 20 * 1024 * 1024;
+    if (large && existing) {
+      // 大文件接口会对重名文件加后缀；先移除本次交付中哈希不符的旧文件，重试可从缺件继续。
+      let removed: Response;
+      try {
+        removed = await fetch(`${endpoint.url}${base}/files/${encodeURIComponent(file.deliveredPath)}`, {
+          method: "DELETE", headers: endpoint.headers, signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]) });
+      } catch (error) { if (signal.aborted) throw error; throw new OpenDesignTransportError(error); }
+      if (!removed.ok && removed.status !== 404) throw new OpenDesignHttpError(removed.status, await removed.text());
+    }
+    const segments = file.deliveredPath.split("/"), name = segments.pop()!;
+    const form = new FormData();
+    let contents: Blob;
+    // Windows 的 Blob 文件接口不会自动转换长路径，与普通文件读取不同。
+    try { contents = await openAsBlob(toNamespacedPath(localPath)); }
+    catch (error) { throw new DomainError(`无法读取交付文件 ${file.deliveredPath}：${String(error)}`, "MOTION_AUTHORING_DELIVERY_INVALID"); }
+    if (large) {
+      form.append("dir", segments.join("/"));
+      form.append("files", contents, name);
+    } else {
+      form.append("name", file.deliveredPath);
+      form.append("file", contents, name);
+    }
+    let response: Response;
+    try {
+      response = await fetch(`${endpoint.url}${base}/${large ? "upload" : "files"}`, { method: "POST", headers: endpoint.headers, body: form,
+        signal: AbortSignal.any([signal, AbortSignal.timeout(180_000)]) });
+    } catch (error) { if (signal.aborted) throw error; throw new OpenDesignTransportError(error); }
+    const body = await response.text();
+    if (!response.ok) throw new OpenDesignHttpError(response.status, body);
+    listing = await list();
+    const uploaded = listing.files.find(item => item.path === file.deliveredPath);
+    if (!uploaded?.localPath || await fileSha256(uploaded.localPath).catch(() => "") !== file.sha256) {
+      throw new DomainError(`制作端文件写入后核验失败：${file.deliveredPath}`, "MOTION_AUTHORING_DELIVERY_INVALID");
+    }
+  }
+  return listing;
+}
+
 /** OD 事件日志提供跨进程游标；只在完成本条交件后推进该游标。 */
 async function* events(endpoint: Endpoint, runId: string, cursor: number, signal: AbortSignal): AsyncGenerator<{ id: number; event: string; data: unknown }> {
   let response: Response;
@@ -171,6 +240,42 @@ function readyProjectRanges(ready: Range[], target: TargetRange, projectFps: num
   return merged;
 }
 
+/** 工作台使用成片帧，OD 反馈使用作品根帧。 */
+export function projectRangeToWorkRoot(projectRange: Range, target: TargetRange, projectFps: number, workFps: number): Range {
+  return motionRootRangeAtProjectRange(target.sourceStartFrame + projectRange.startFrame - target.startFrame,
+    target.sourceStartFrame + projectRange.endFrame - target.startFrame, workFps, projectFps);
+}
+
+/** 只核对本阶段目标范围实际使用的视频，完整作品中其他场面的绑定不因此受限。 */
+export function verifyMotionStageVideoSources(
+  work: { fps: number; videoBindings?: Record<string, { assetId: string; sourceStartMs: number; startFrame: number; endFrame: number }> },
+  readyRanges: Range[], target: TargetRange, projectFps: number, scenes: NonNullable<ReferenceManifest["scenes"]>
+): void {
+  const materials = scenes.flatMap(scene => (scene.visualRoles ?? []).flatMap(role => role.assets));
+  const targetRoot = projectRangeToWorkRoot(target, target, projectFps, work.fps);
+  for (const [slot, binding] of Object.entries(work.videoBindings ?? {})) {
+    for (const ready of readyRanges) {
+      const start = Math.max(binding.startFrame, ready.startFrame, targetRoot.startFrame);
+      const end = Math.min(binding.endFrame, ready.endFrame, targetRoot.endFrame);
+      if (start >= end) continue;
+      const sourceStart = binding.sourceStartMs + (start - binding.startFrame) * 1000 / work.fps;
+      const sourceEnd = binding.sourceStartMs + (end - binding.startFrame) * 1000 / work.fps;
+      const ranges = materials.filter(item => item.assetId === binding.assetId).flatMap(item => item.sourceRanges)
+        .sort((a, b) => a.startMs - b.startMs);
+      let cursor = sourceStart;
+      for (const range of ranges) {
+        if (range.endMs <= cursor) continue;
+        if (range.startMs > cursor + 1) break;
+        cursor = Math.max(cursor, range.endMs);
+        if (cursor + 1 >= sourceEnd) break;
+      }
+      if (cursor + 1 < sourceEnd) {
+        throw new AuthorStageError("MOTION_VIDEO_SOURCE_RANGE", `素材 ${binding.assetId} 在本阶段使用的源范围未包含在导演采用的场面资料中`, `videoBindings.${slot}`);
+      }
+    }
+  }
+}
+
 function existingHash(snapshot: ProjectSnapshot, cueId: string, treatmentIds?: string[]): string {
   return motionTargetDependencyHash(snapshot, { action: "replace_cue", cueId, audioPolicy: "rebind_unchanged_events" }, treatmentIds);
 }
@@ -190,6 +295,11 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
     state!.conflict = { code: "MOTION_AUTHORING_TARGET_CONFLICT", message };
     save();
     throw new DomainError(message, "MOTION_AUTHORING_TARGET_CONFLICT");
+  };
+  const checkTarget = (snapshot: ProjectSnapshot) => {
+    const hash = target.action === "create_cue" ? motionTargetDependencyHash(snapshot, target, input.visualTreatmentIds)
+      : existingHash(snapshot, target.cueId, input.visualTreatmentIds);
+    if (!motionAuthoringInputsCurrent(snapshot, authoringInputs) || hash !== initialHash) targetConflict("制作目标或当前采用在启动前已变化");
   };
   let endpoint = endpointOverride ?? await resolveEndpoint();
   const lockKey = typeof job.payload.logicalWorkId === "string" ? `${job.projectId}:work:${job.payload.logicalWorkId}`
@@ -227,12 +337,19 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
             state.continuation = { runId: sourceRequest.continue_from_run_id, conversationId: run.conversationId, taskExecutionId: task.taskExecutionId };
             save();
           }
-          const prompts = [sourceRequest.prompt];
+          // OD 使用通用创作指南，正式送件时必须同时收到当前受管作品合同。
+          const prompts = [sourceRequest.prompt, [
+            "本次交付给 VideoFlowCut 的受管作品；通用 HyperFrames 示例与以下合同冲突时，以本合同为准。",
+            `HTML 和素材槽合同：${JSON.stringify(hyperframesContract)}`,
+            `阶段清单 ${AUTHORED_MOTION_MANIFEST_CONTRACT} 的输入 Schema：${JSON.stringify(toJsonSchemaCompat(authoredMotionInputFields))}`,
+            "阶段清单必须包含 work、readyRanges、changedRanges；范围均为作品根帧半开区间。使用 od motion-work stage --source <项目源码路径> --manifest <项目清单路径> 发布；命令自动填写源码路径、哈希和作者交件身份。",
+            "视频素材须在 work.videoBindings 中绑定真实项目素材和源范围，HTML 使用有稳定 id 的 <img data-vfc-video-slot=\"槽名\">；不能使用原生 video 标签、资源 URL 或外部脚本。声音由外层合成。"
+          ].join("\n")];
           if (authoringInputs.length) {
             const current = app.readProject(job.projectId);
             if (!motionAuthoringInputsCurrent(current.snapshot, authoringInputs)) throw new DomainError("当前采用稿已变化，请重新准备制作", "MOTION_AUTHORING_ADOPTION_CHANGED");
-            const listing = await jsonRequest(endpoint, `/api/projects/${encodeURIComponent(sourceRequest.project)}/files`, signal);
-            if (!Array.isArray(listing.files)) throw new DomainError("制作端文件清单不可用", "MOTION_AUTHORING_DELIVERY_INVALID");
+            // 排队期间已失效的目标不应开始传输资料；传输结束后还要再次核对。
+            checkTarget(current.snapshot);
             const checked = new Set<string>();
             for (const item of authoringInputs) {
               const delivery = item.deliveryRef;
@@ -241,7 +358,8 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
               if (createHash("sha256").update(bytes).digest("hex") !== delivery.manifestSha256) throw new DomainError("已采用交付清单发生变化", "MOTION_AUTHORING_DELIVERY_INVALID");
               const manifest = JSON.parse(bytes.toString("utf8")) as ReferenceManifest;
               const scoped = scopeReferenceManifest(manifest, [String(job.payload.targetSceneId)]);
-              const verified = await verifyReferenceDelivery(scoped, listing as { files: Array<{ path: string; localPath?: string }> },
+              const listing = await deliverMotionHandoff(endpoint, sourceRequest.project, scoped, signal);
+              const verified = await verifyReferenceDelivery(scoped, listing,
                 current.revision.number, sourceRequest.project, current);
               if (!verified.prompt) throw new DomainError(`制作端交付未就绪：${JSON.stringify(verified.manifest.verificationErrors ?? verified.manifest.diagnostics)}`, "MOTION_AUTHORING_DELIVERY_INCOMPLETE");
               prompts.push(verified.prompt);
@@ -250,10 +368,7 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
           }
           if (authoringInputs.length) {
             // 文件核验期间目标仍可能被改动；发送作者请求前再核对冻结的目标。
-            const latest = app.readProject(job.projectId).snapshot;
-            const hash = target.action === "create_cue" ? motionTargetDependencyHash(latest, target, input.visualTreatmentIds)
-              : existingHash(latest, target.cueId, input.visualTreatmentIds);
-            if (!motionAuthoringInputsCurrent(latest, authoringInputs) || hash !== initialHash) targetConflict("制作目标或当前采用在启动前已变化");
+            checkTarget(app.readProject(job.projectId).snapshot);
           }
           const message = prompts.join("\n\n");
           const body = { projectId: sourceRequest.project, clientRequestId: state.requestId, message, currentPrompt: message,
@@ -295,6 +410,16 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
       const loaded = await readFrozenMotionWork(root, imported.bundle_path, imported.manifest_sha256);
       // 同内容可复用字节，但来源身份必须指向本次实际收到的 Run。
       loaded.inputBundle.source = { project: bundle.receipt.project, run_id: stageRunId, frozen_version: stage.frozenVersion };
+      if (authoringInputs.length) {
+        const scenes: NonNullable<ReferenceManifest["scenes"]> = [];
+        for (const delivery of new Map(authoringInputs.map(item => [item.deliveryRef.manifestSha256, item.deliveryRef])).values()) {
+          const bytes = await readFile(delivery.manifestPath);
+          if (createHash("sha256").update(bytes).digest("hex") !== delivery.manifestSha256) throw new DomainError("已采用交付清单发生变化", "MOTION_AUTHORING_DELIVERY_INVALID");
+          const manifest = JSON.parse(bytes.toString("utf8")) as ReferenceManifest;
+          scenes.push(...(manifest.scenes ?? []).filter(scene => scene.sceneId === job.payload.targetSceneId));
+        }
+        verifyMotionStageVideoSources(loaded.work, loaded.readyRanges, targetRange, projectFps, scenes);
+      }
       let registration = stage.registrationJobId ? app.trackJob(stage.registrationJobId)
         : app.listJobs(job.projectId).find(item => item.idempotencyKey === `motion:${stage.registrationKey}`);
       if (!registration) {
@@ -388,7 +513,9 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
       }
       if (firstCue) editor.searchParams.set("effectCueId", firstCue.id);
       state!.receipts.push({ runId: stageRunId, eventId: stage.eventId, frozenVersion: stage.frozenVersion, workId: work.id, definitionHash: work.definitionHash, revision: latest.revision.number,
-        cueId: firstCue?.id, cueIds: stageCues.map(cue => cue.id), ranges: stage.adopted, editorUrl: editor.toString(),
+        cueId: firstCue?.id, cueIds: stageCues.map(cue => cue.id), ranges: stage.adopted,
+        rangeMappings: stage.adopted.map(projectRange => ({ projectRange,
+          workRootRange: projectRangeToWorkRoot(projectRange, targetRange, projectFps, work.fps) })), editorUrl: editor.toString(),
         ...(authoringInputs.length ? { authoringInputs } : {}), ...(inspection ? { inspectionJobId: inspection.id } : {}) });
       state!.seenVersions.push(stage.frozenVersion); state!.cursor = Math.max(state!.cursor, stage.eventId); state!.stage = undefined; state!.status = "running"; save();
     });

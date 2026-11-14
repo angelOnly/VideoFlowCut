@@ -97,27 +97,23 @@ test("素材和参考参与共同编排，完整指令及画面限制交到制�
   assert.match(creative,/阶段性交回必须带真实参考 ID、来源指纹、原片路径、采用范围、实际观看方式/u);
   assert.match(visual,/禁止在视频画面中添加解释素材来源、案例属性、示意身份/u);
   assert.match(visual,/裁切或遮挡[\s\S]*检查处理后的实际画面/u);
-  assert.match(brief,/制作简报[\s\S]*参考[\s\S]*素材/u);
-  assert.match(production,/读取完整简报，打开采用的参考视频/u);
-  assert.match(production,/带着采用参考查看本片对应范围/u);
+  assert.match(brief,/参考研究[\s\S]*制作首版[\s\S]*素材/u);
+  assert.match(production,/读取完整简报，打开采用的参考视频[\s\S]*再查看本片对应素材/u);
   assert.match(production,/opendesign_request\.continue_from_run_id/u);
 });
 
-test("视觉作者贯穿实际预排、制作交接与返修，创意和制作各有边界", () => {
+test("视觉作者交导演稿，OD 制作首版并沿同一作品返修", () => {
   const visual=read('.agents/skills/visual-treatment-planning/SKILL.md');
   const creative=read('.agents/skills/creative-sequence-design/SKILL.md');
   const production=read('.agents/skills/opendesign-video-production/SKILL.md');
   const handoff=read('.agents/skills/_shared/SCENE_DESIGN_HANDOFF.md');
   const versions=read('.agents/skills/_shared/PROJECT_REVISION_AND_HANDOFF.md');
-  assert.match(visual,/从素材首次返回就查看实际主体[\s\S]*同源预排[\s\S]*继续检查和返修/u);
-  assert.match(creative,/视觉作者是本片整幅视觉创作的唯一持续负责人/u);
-  assert.match(creative,/你不能替代视觉作者锁定最终构图、素材主次和具体镜头/u);
-  assert.match(handoff,/同源预排[\s\S]*OD 可以改进实现细节，但不得静默替换主要主体/u);
-  assert.match(production,/OpenDesign 是视觉作者的实现与深化作者/u);
-  assert.match(versions,/阶段交付后，原视觉作者继续检查同版实际作品/u);
-  for (const text of [visual, production, handoff, versions]) {
-    assert.doesNotMatch(text,/由 OD (?:在同一作品中)?(?:制作|完成)实际预排/u);
-  }
+  assert.match(visual,/真实素材返回[\s\S]*可执行的视觉导演稿[\s\S]*第一版可播放画面由 OD 制作/u);
+  assert.match(visual,/首版回来后[\s\S]*视觉返修并复查/u);
+  assert.match(creative,/原片区间、观察方式和实际看到的过程[\s\S]*真实素材/u);
+  assert.match(handoff,/导演确认后，OD 直接制作第一版画面/u);
+  assert.match(production,/OD 是第一版可播放画面的制作作者/u);
+  assert.match(versions,/第一次登记时记录真实 Work、Run、冻结版和根时钟/u);
 });
 
 test("完整新制的参考、素材和视觉并行续接，并以完整映射交给制作", () => {

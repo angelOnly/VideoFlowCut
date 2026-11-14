@@ -1,0 +1,201 @@
+{
+  "projectId": "project_67699563-17cb-4eba-8126-f0576e2f84b1",
+  "revision": 24,
+  "scenes": [
+    {
+      "sceneId": "scene_137bfd82-3c04-4e87-8a4d-4dc5da4ab3fa",
+      "status": "ready",
+      "references": [
+        {
+          "kind": "creative",
+          "id": "011-c01",
+          "creativeCaseId": "011-c01",
+          "sourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+          "video": "../04_参考资料/011/video.mp4",
+          "startMs": 4700,
+          "endMs": 6600,
+          "timeCoordinates": "original",
+          "purpose": "多个候选画面逐渐让位于一个被选择的画面，最后由该画面占满。"
+        },
+        {
+          "kind": "motion",
+          "id": "011-m04",
+          "sourceSha256": "712195edd295e621adec873be6b2580bf195d0753240f50ca7da160ef655b024",
+          "video": "../04_参考资料/011/video.mp4",
+          "startMs": 10400,
+          "endMs": 11800,
+          "timeCoordinates": "original",
+          "purpose": "新画面先在圆形区域内显露，再发展为全幅。"
+        }
+      ],
+      "resourceIds": [
+        "visual_context"
+      ],
+      "visualRoles": [
+        {
+          "role": "后空翻",
+          "referenceFunction": "以真实动作建立开场主体",
+          "usage": "项目[0,70)帧对应源[18680,21480)毫秒",
+          "assets": [
+            {
+              "assetId": "asset_b8a3e83c-3cbb-4a56-8b60-b2a3a27e1b93",
+              "deliveredPath": "../05_视频与素材/原始素材/01_后空翻机器人.mp4",
+              "sourceHash": "e92d979d5aa2138720f5ebb15bb8376913855fb626c822ab41efe01f3b5e6720",
+              "sourceRanges": [
+                {
+                  "startMs": 18680,
+                  "endMs": 21480,
+                  "timeCoordinates": "asset"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "role": "黄色机械臂",
+          "referenceFunction": "从候选中取得主位并连续发展",
+          "usage": "项目[58,208)帧对应源[3000,9000)毫秒",
+          "assets": [
+            {
+              "assetId": "asset_cc61ec44-06b3-406b-99ee-d33c2b58503e",
+              "deliveredPath": "../05_视频与素材/原始素材/02_黄色机械臂.mp4",
+              "sourceHash": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+              "sourceRanges": [
+                {
+                  "startMs": 3000,
+                  "endMs": 9000,
+                  "timeCoordinates": "asset"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "role": "白色机械臂",
+          "referenceFunction": "作为工位画面承接概率解释",
+          "usage": "项目[58,88)帧对应源[36500,37700)毫秒；项目[200,350)帧对应源[36500,42500)毫秒",
+          "assets": [
+            {
+              "assetId": "asset_39aba990-c589-47bb-8d91-95bd24f7e4ec",
+              "deliveredPath": "../05_视频与素材/原始素材/03_白色机械臂.mp4",
+              "sourceHash": "b0c1f4211abfb20c3a534b535cda5ca75f4a029fe6f99714b5d4fc93fe0cea67",
+              "sourceRanges": [
+                {
+                  "startMs": 36500,
+                  "endMs": 42500,
+                  "timeCoordinates": "asset"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "role": "人工控制",
+          "referenceFunction": "作为人手操作的独立示意",
+          "usage": "项目[58,88)帧对应源[0,1200)毫秒；项目[315,450)帧对应源[0,5400)毫秒",
+          "assets": [
+            {
+              "assetId": "asset_49fc28a5-ce7a-4a92-856d-6f7650996de0",
+              "deliveredPath": "../05_视频与素材/原始素材/04_手持控制器.mp4",
+              "sourceHash": "df2c08770c14a23241b58014251eb28448f53f32ec1b9cc01e233e3d402c143d",
+              "sourceRanges": [
+                {
+                  "startMs": 0,
+                  "endMs": 5400,
+                  "timeCoordinates": "asset"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "role": "输送线",
+          "referenceFunction": "作为后续工序语境的独立示意",
+          "usage": "项目[58,88)帧对应源[32000,33200)毫秒；项目[415,565)帧对应源[32000,38000)毫秒",
+          "assets": [
+            {
+              "assetId": "asset_3a321910-e751-4800-b4cf-054816283433",
+              "deliveredPath": "../05_视频与素材/原始素材/05_蓝箱输送线.mp4",
+              "sourceHash": "9724733940a92aa5b76e4f119bdaa7f71c7f2defd30b2aa3539c829e25a32af0",
+              "sourceRanges": [
+                {
+                  "startMs": 32000,
+                  "endMs": 38000,
+                  "timeCoordinates": "asset"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "role": "生产线",
+          "referenceFunction": "作为收束的生产环境",
+          "usage": "项目[435,637)帧对应源[0,8080)毫秒",
+          "assets": [
+            {
+              "assetId": "asset_fa084d92-ace2-4862-a29d-bd63e6848db1",
+              "deliveredPath": "../05_视频与素材/原始素材/06_汽车生产线.mp4",
+              "sourceHash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+              "sourceRanges": [
+                {
+                  "startMs": 0,
+                  "endMs": 8080,
+                  "timeCoordinates": "asset"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "process": "后空翻引出多个候选，黄色臂取得主位并发展；白色臂承接百次成功概率，圆区显露控制器；输送线和汽车生产线依次接力，最终保留生产线与三个判断维度。",
+      "preserve": [
+        "准确正文、独立假设、两条参考状态关系和不同来源素材的事实边界",
+        "源视频范围、正常源时钟以及全片连接"
+      ],
+      "adapt": [
+        "局部取景、字形、比例、空间、蒙版与运动曲线由 OD 深化"
+      ],
+      "visualPlan": {
+        "primaryRoles": [
+          "后空翻",
+          "黄色机械臂",
+          "白色机械臂",
+          "人工控制",
+          "输送线",
+          "生产线"
+        ],
+        "referenceMappings": [
+          {
+            "referenceId": "011-c01",
+            "referenceKind": "creative",
+            "researchDecisionId": "creative_decision_91444c8b-d002-437c-b7c6-2dd6b80918a2",
+            "startMs": 4700,
+            "endMs": 6600,
+            "targetRole": "黄色机械臂",
+            "treatment": "黄色臂从真实候选中取得主位并以同一视频槽持续",
+            "preserveRelation": "多个候选画面逐渐让位于一个被选择的画面，最后由该画面占满。",
+            "targetRange": {
+              "startFrame": 58,
+              "endFrame": 105
+            }
+          },
+          {
+            "referenceId": "011-m04",
+            "referenceKind": "motion",
+            "researchDecisionId": "creative_decision_b11a2953-bd4a-41de-a3f9-5dabbfb95d3d",
+            "startMs": 10400,
+            "endMs": 11800,
+            "targetRole": "人工控制",
+            "treatment": "ABB画面上圆形区域先露出控制器再发展为全幅",
+            "preserveRelation": "新画面先在圆形区域内显露，再发展为全幅。",
+            "targetRange": {
+              "startFrame": 315,
+              "endFrame": 350
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "说明": "由 OD 实际接收的场面清单整理，媒体路径改为相对于本文件；原清单的 SHA-256 见交接清单。"
+}

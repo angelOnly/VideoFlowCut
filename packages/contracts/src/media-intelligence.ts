@@ -168,6 +168,8 @@ export interface SoundIntent {
   brief: string;
   requestId?: string;
   motionEventId?: string;
+  /** 仅用于导演明确要求精确卡点的事件，范围使用成片时间线帧。 */
+  requiredSyncReview?: { startFrame: number; endFrame: number };
 }
 export interface SoundPlan {
   id: string;

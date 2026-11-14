@@ -1,0 +1,98 @@
+{
+  "work": {
+    "name": "从一次动作到持续可靠性",
+    "compositing": "opaque",
+    "width": 1920,
+    "height": 1080,
+    "fps": 25,
+    "durationInFrames": 637,
+    "creativeBrief": "真实后空翻引出工厂持续可靠性；四候选让位于黄色臂，独立假设下百次全部成功约37%；ABB经圆形显露交给控制器，输送线和汽车生产线收束。不同来源画面只作独立示意，不证明实际故障或停线。仅视觉，配音和普通字幕外层合成。",
+    "props": {},
+    "imageBindings": {},
+    "videoBindings": {
+      "backflip": {
+        "assetId": "asset_b8a3e83c-3cbb-4a56-8b60-b2a3a27e1b93",
+        "sourceStartMs": 18680,
+        "sourceEndMs": 21480,
+        "startFrame": 0,
+        "endFrame": 70
+      },
+      "yellow": {
+        "assetId": "asset_cc61ec44-06b3-406b-99ee-d33c2b58503e",
+        "sourceStartMs": 3000,
+        "sourceEndMs": 9000,
+        "startFrame": 58,
+        "endFrame": 208
+      },
+      "abb_candidate": {
+        "assetId": "asset_39aba990-c589-47bb-8d91-95bd24f7e4ec",
+        "sourceStartMs": 36500,
+        "sourceEndMs": 37700,
+        "startFrame": 58,
+        "endFrame": 88
+      },
+      "controller_candidate": {
+        "assetId": "asset_49fc28a5-ce7a-4a92-856d-6f7650996de0",
+        "sourceStartMs": 0,
+        "sourceEndMs": 1200,
+        "startFrame": 58,
+        "endFrame": 88
+      },
+      "conveyor_candidate": {
+        "assetId": "asset_3a321910-e751-4800-b4cf-054816283433",
+        "sourceStartMs": 32000,
+        "sourceEndMs": 33200,
+        "startFrame": 58,
+        "endFrame": 88
+      },
+      "abb": {
+        "assetId": "asset_39aba990-c589-47bb-8d91-95bd24f7e4ec",
+        "sourceStartMs": 36500,
+        "sourceEndMs": 42500,
+        "startFrame": 200,
+        "endFrame": 350
+      },
+      "controller": {
+        "assetId": "asset_49fc28a5-ce7a-4a92-856d-6f7650996de0",
+        "sourceStartMs": 0,
+        "sourceEndMs": 5400,
+        "startFrame": 315,
+        "endFrame": 450
+      },
+      "conveyor": {
+        "assetId": "asset_3a321910-e751-4800-b4cf-054816283433",
+        "sourceStartMs": 32000,
+        "sourceEndMs": 38000,
+        "startFrame": 415,
+        "endFrame": 565
+      },
+      "factory": {
+        "assetId": "asset_fa084d92-ace2-4862-a29d-bd63e6848db1",
+        "sourceStartMs": 0,
+        "sourceEndMs": 8080,
+        "startFrame": 435,
+        "endFrame": 637
+      }
+    },
+    "fontBindings": {
+      "body": "noto-sans-sc-regular",
+      "title": "noto-sans-sc-bold"
+    }
+  },
+  "readyRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 637
+    }
+  ],
+  "changedRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 70,
+      "reason": "基于R32合成静帧反馈修正开场：移除标题默认边距、保留76px字号并增加逐行不透明纸底；完整后空翻画面下移至标题下方。保留原素材源时钟、退场及候选让位接续；其他段落不改。"
+    }
+  ],
+  "sourceFile": "motion-source/robot-factory/index.html",
+  "authorSubmissionId": "cc051a4d518cb416f34b8c30842229ad82e1c8ba5e7a0fccf6fd527db21fe392",
+  "sourceSha256": "4ff70d4c7e76989f278cc7f05e1d28755ca0e3c050ec0fef341b4dc49cd23e59"
+}

@@ -1,0 +1,216 @@
+{
+  "说明": "内容取自本片真实创意决定；路径已改写，原固定清单摘要保留用于身份追溯。",
+  "assignments": [
+    {
+      "assignmentId": "r40_director",
+      "agentId": "/root/isolated_video_acceptance",
+      "responsibilities": [
+        "director"
+      ],
+      "skillIds": [
+        "production-director"
+      ],
+      "scope": {
+        "kind": "project"
+      },
+      "inputRevision": 24,
+      "operationId": "r40_assign_r40_director"
+    },
+    {
+      "assignmentId": "r40_narration",
+      "agentId": "/root/isolated_video_acceptance/narration_author",
+      "responsibilities": [
+        "narration"
+      ],
+      "skillIds": [
+        "narration-writing"
+      ],
+      "scope": {
+        "kind": "project"
+      },
+      "inputRevision": null,
+      "operationId": "r40_assign_r40_narration"
+    },
+    {
+      "assignmentId": "r40_creative",
+      "agentId": "/root/isolated_video_acceptance/creative_author",
+      "responsibilities": [
+        "creative_research"
+      ],
+      "skillIds": [
+        "creative-case-library",
+        "creative-sequence-design"
+      ],
+      "scope": {
+        "kind": "project"
+      },
+      "inputRevision": null,
+      "operationId": "r40_assign_r40_creative"
+    },
+    {
+      "assignmentId": "r40_visual",
+      "agentId": "/root/isolated_video_acceptance/visual_author",
+      "responsibilities": [
+        "visual_design",
+        "motion_research",
+        "asset_sourcing"
+      ],
+      "skillIds": [
+        "visual-treatment-planning",
+        "creative-reference-to-sequence",
+        "motion-case-library",
+        "visual-asset-sourcing"
+      ],
+      "scope": {
+        "kind": "project"
+      },
+      "inputRevision": null,
+      "operationId": "r40_assign_r40_visual"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "creative_decision_b11a2953-bd4a-41de-a3f9-5dabbfb95d3d",
+      "category": "visual",
+      "decision": "采用 011-m04 新画面先在圆形区域内显露、后占满的状态关系，连接白色机械臂与人工控制画面。",
+      "rationale": "以局部显露与接管连接不同工作语境，同时保留不同来源素材的事实边界。",
+      "objectIds": [
+        "scene_137bfd82-3c04-4e87-8a4d-4dc5da4ab3fa"
+      ],
+      "evidence": [
+        "视觉作者独立检查原片 10.40、10.68、10.96、11.24、11.52、11.79 秒顺序帧；原速运动和声音未核。"
+      ],
+      "phase": "motion_research",
+      "assignmentId": "r40_visual",
+      "inputRevision": 24,
+      "inputDecisionIds": [],
+      "researchOutcome": "pending",
+      "researchReferences": [
+        {
+          "kind": "motion",
+          "id": "011-m04",
+          "sourceSha256": "712195edd295e621adec873be6b2580bf195d0753240f50ca7da160ef655b024",
+          "startMs": 10400,
+          "endMs": 11800,
+          "observedRelation": "圆形区域露出新画面，之后新画面占满。"
+        }
+      ],
+      "operationId": "r40_motion_011m04",
+      "createdAt": "2026-11-14T07:26:41.830Z"
+    },
+    {
+      "id": "creative_decision_91444c8b-d002-437c-b7c6-2dd6b80918a2",
+      "category": "visual",
+      "decision": "针对当前场面采用 011-c01 的候选让位关系：在项目 [58,105) 帧由黄色机械臂从多种场景候选中取得主位并占满。",
+      "rationale": "原创意作者在 Revision 24 重新对照新 Scene、视觉稿与素材安排，确认黄色臂以同一视频槽继续至 [58,208)，不同来源的候选仅为示意。",
+      "objectIds": [
+        "scene_137bfd82-3c04-4e87-8a4d-4dc5da4ab3fa"
+      ],
+      "evidence": [
+        "作者重新查看原片 4.7、5.5、6.5 秒三张离散抽帧并核对 Revision 24；连续轨迹、原速节奏和声音仍未知。"
+      ],
+      "phase": "creative_research",
+      "assignmentId": "r40_creative",
+      "inputRevision": 24,
+      "inputDecisionIds": [],
+      "researchOutcome": "pending",
+      "researchReferences": [
+        {
+          "kind": "creative",
+          "id": "011-c01",
+          "sourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+          "startMs": 4700,
+          "endMs": 6600,
+          "observedRelation": "多个候选让位，石拱图取得主位并占满画面。"
+        }
+      ],
+      "operationId": "r40_creative_revision24_recheck",
+      "createdAt": "2026-11-14T07:33:16.702Z"
+    },
+    {
+      "id": "creative_decision_b37910b5-5c25-449c-a444-5e54d36753cb",
+      "category": "visual",
+      "decision": "以 6 段真实素材及两条参考的状态关系，完成横屏 25 fps、[0,637) 的连续视觉导演稿和可执行时间计划。",
+      "rationale": "以素材本身组织从一次动作到持续可靠性的观看发展，并将不同来源场面保留为示意；图形只承担独立假设、概率和判断维度。",
+      "objectIds": [
+        "scene_137bfd82-3c04-4e87-8a4d-4dc5da4ab3fa"
+      ],
+      "evidence": [
+        "../01_角色指令/03_视觉作者_完整导演稿.md",
+        "../01_角色指令/06_文案与时间计划.md",
+        "../01_角色指令/04_OD_首版制作委托.md，SHA-256 085a4d3e0b7eabd9d55420a9ea110321fdda0006793b786b76e15279eef09ad3",
+        "作者复核 Revision 24 的六项受管素材与九次使用范围；连续画面、声音和实际作品仍待复查。"
+      ],
+      "phase": "visual_design",
+      "assignmentId": "r40_visual",
+      "inputRevision": 24,
+      "inputDecisionIds": [
+        "creative_decision_91444c8b-d002-437c-b7c6-2dd6b80918a2",
+        "creative_decision_b11a2953-bd4a-41de-a3f9-5dabbfb95d3d"
+      ],
+      "operationId": "r40_visual_revision24",
+      "createdAt": "2026-11-14T07:33:45.673Z"
+    },
+    {
+      "id": "creative_decision_2ae18bd2-8094-4da1-a199-33d1791352b0",
+      "category": "visual",
+      "decision": "采用当前 [0,637) 的视觉导演稿及固定清单，交 OD 直接制作可检查首版。",
+      "rationale": "旁白锁定且源时长明确，六段真实素材承担观看，99% 独立假设与约 37% 的含义明确；不同来源现场仅作示意，参考只采用可由顺序帧支持的状态关系。需在首版复看连续动作、阅读和声画。",
+      "objectIds": [
+        "scene_137bfd82-3c04-4e87-8a4d-4dc5da4ab3fa"
+      ],
+      "evidence": [
+        "清单场面 ready 且无资料缺口；交付内容包括作者请求、时序、素材、参考原片及分镜。",
+        "素材来源网址与许可未核，不将其宣称为真实故障、实测率或同一事件。"
+      ],
+      "phase": "adoption",
+      "assignmentId": "r40_director",
+      "inputRevision": 24,
+      "inputDecisionIds": [
+        "creative_decision_b37910b5-5c25-449c-a444-5e54d36753cb"
+      ],
+      "operationId": "r40_director_adoption_revision24",
+      "deliveryRef": {
+        "manifestPath": "04_交接19份清单.json",
+        "manifestSha256": "c4bd582c8f616ead9149305517fc2aa2e787d1b8b73aab1c788c8f2e267d9dcb",
+        "sceneIds": [
+          "scene_137bfd82-3c04-4e87-8a4d-4dc5da4ab3fa"
+        ]
+      },
+      "createdAt": "2026-11-14T07:35:42.568Z"
+    },
+    {
+      "id": "creative_decision_cdbbd256-4a6d-41e8-9859-99300446218b",
+      "category": "semantic",
+      "decision": "保留四段锁定正文和已核实同文案的 25.470 秒原配音，不重写、重生成或伪装词级对齐。",
+      "rationale": "原文先说明独立条件下的单次成功率与一百次全部成功概率，再以条件语气讨论恢复、人工介入与后续工序；不同来源画面不作为真实故障因果证据。",
+      "objectIds": [
+        "project_67699563-17cb-4eba-8126-f0576e2f84b1"
+      ],
+      "evidence": [
+        "原文案作者核对当前 Script 与历史配音四段逐字一致；同一 WAV SHA-256 为 2d7252da2f7003efb313f32ae5f19cb894f3928a1a437243e906f1f3dfa7977c。",
+        "原 SpeechTiming 四段为 0–6410、6410–10370、10370–18800、18800–25470 ms，均为段级而非逐词对齐。"
+      ],
+      "assignmentId": "r40_narration",
+      "inputRevision": 24,
+      "operationId": "r40_semantic_narration_checked",
+      "createdAt": "2026-11-14T08:12:39.054Z"
+    },
+    {
+      "id": "creative_decision_b0be7734-2ec5-4e30-84e8-f4f825d030a3",
+      "category": "story",
+      "decision": "整片从机器人一次动作引入连续成功概率，再转向持续工作、问题处理和人工介入的判断。",
+      "rationale": "锁定台词的逻辑由单次假设推进到多次概率及工厂可靠性；不同生产场景并置只承载一般语境，保留事实边界。",
+      "objectIds": [
+        "project_67699563-17cb-4eba-8126-f0576e2f84b1"
+      ],
+      "evidence": [
+        "视觉导演稿、时间计划与当前场面 [0,637)；本次完整画面及声画仍待实际复审。"
+      ],
+      "assignmentId": "r40_director",
+      "inputRevision": 31,
+      "operationId": "r40_story_director_checked",
+      "createdAt": "2026-11-14T08:12:43.358Z"
+    }
+  ]
+}

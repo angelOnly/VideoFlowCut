@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+<meta name="od-motion-output" content="video">
+<meta name="od-motion-audio" content="silent">
+<title>从一次动作到持续可靠性</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+
+    <style>
+:root {
+  --paper: #f5f4ee;
+  --ink: #191c1b;
+  --muted-ink: #454944;
+  --yellow: #e8c126;
+  --hairline: rgba(25, 28, 27, .2);
+  --font-display: var(--vfc-font-title);
+  --font-body: var(--vfc-font-body);
+  --font-number: var(--vfc-font-title);
+  --space: 8px;
+  --type-small: 32px;
+  --type-body: 44px;
+  --type-heading: 76px;
+  --type-number: 192px;
+  --line-body: 1.5;
+}
+#root {
+  width: 1920px;
+  height: 1080px;
+  display: grid;
+  grid-template: 1080px / 1920px;
+  isolation: isolate;
+  overflow: clip;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+#root > * { grid-area: 1 / 1; align-self: start; justify-self: start; }
+.paper { width: 1920px; height: 1080px; background: var(--paper); }
+.paper::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: .22;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.74' numOctaves='3' seed='24' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%238b8c7b' opacity='.12' filter='url(%23n)' d='M0 0h160v160H0z'/%3E%3C/svg%3E");
+}
+.media-panel {
+  width: 1920px;
+  aspect-ratio: 16 / 9;
+  margin: 0;
+  overflow: clip;
+  visibility: hidden;
+  transform-origin: 0 0;
+  background: var(--paper);
+}
+.media-panel img { width: 100%; height: auto; aspect-ratio: 16 / 9; display: block; object-fit: contain; }
+.candidate { outline: 8px solid var(--paper); outline-offset: -1px; }
+.selected { outline-color: var(--yellow); }
+.opening-title { width: 1200px; padding: 56px 0 0 112px; z-index: 12; }
+.opening-title h1 { margin: 0; }
+.opening-title h1 span { width: max-content; background: var(--paper); }
+h1 { font: 700 var(--type-heading)/1.24 var(--font-display); letter-spacing: -3px; }
+h1 span { display: block; white-space: nowrap; }
+.yellow-rule { display: block; width: 136px; height: 12px; margin-top: 24px; background: var(--yellow); }
+.paper-label { padding: 40px; background: var(--paper); z-index: 20; visibility: hidden; }
+.single-probability { width: 536px; transform: translate(1272px, 160px); }
+.eyebrow { display: flex; align-items: center; gap: 16px; font-size: var(--type-small); line-height: var(--line-body); font-weight: 700; }
+.assumption-tag { display: block; padding: 0 12px; background: var(--yellow); color: var(--ink); }
+.large-number { font: 700 var(--type-number)/1.15 var(--font-number); letter-spacing: -6px; white-space: nowrap; margin: 16px 0; }
+.percent { font-size: .6em; margin-left: 8px; }
+.condition { font-size: var(--type-small); font-weight: 700; line-height: var(--line-body); border-top: 2px solid var(--hairline); padding-top: 16px; white-space: nowrap; }
+.probability-explainer { width: 1056px; padding: 32px 48px; transform: translate(752px, 648px); }
+.probability-heading { font-size: 52px; line-height: 1.3; display: flex; align-items: baseline; gap: 24px; }
+.probability-heading strong { font-weight: 700; }
+.formula { display: flex; align-items: baseline; gap: 16px; margin-top: 16px; font: 700 112px/1.1 var(--font-number); white-space: nowrap; }
+.formula sup { font-size: 48px; align-self: flex-start; margin-left: -12px; }
+.formula .result { font-weight: 700; background: var(--yellow); padding: 0 12px; }
+.formula-caption { font-size: var(--type-small); line-height: 1.5; margin-top: 16px; }
+.conditional-copy { width: 808px; padding: 32px 40px; transform: translate(112px, 152px); }
+.conditional-copy p { font: 700 64px/1.3 var(--font-display); }
+.conditional-copy .subline { font: 400 32px/1.5 var(--font-body); color: var(--muted-ink); margin-top: 16px; }
+.conditional-copy .highlight, .context-copy .highlight { box-shadow: inset 0 -16px 0 var(--yellow); }
+.context-copy { width: 840px; padding: 32px 40px; transform: translate(968px, 152px); }
+.context-copy p { font: 700 64px/1.3 var(--font-display); }
+.context-copy small { font: 400 32px/1.5 var(--font-body); display: block; margin-top: 16px; }
+.closing { width: 1696px; transform: translate(112px, 104px); padding: 32px 40px; }
+.closing h2 { font: 700 56px/1.2 var(--font-display); letter-spacing: -1px; }
+.criteria { display: flex; gap: 32px; margin-top: 24px; }
+.criterion { flex: 1; border-top: 4px solid var(--ink); padding-top: 16px; }
+.criterion .number { font: 700 32px/1.2 var(--font-number); color: var(--muted-ink); display: block; }
+.criterion strong { display: block; font-size: 44px; line-height: 1.2; }
+.criterion span:last-child { display: block; font-size: 32px; line-height: 1.5; margin-top: 8px; }
+.boundary-note { font-size: 28px; line-height: 1.5; margin-top: 16px; color: var(--muted-ink); }
+.final-strip { width: 1696px; transform: translate(112px, 816px); padding: 24px 40px; }
+.final-strip h2 { font: 700 56px/1.2 var(--font-display); }
+.final-criteria { display: flex; gap: 40px; margin-top: 16px; font-size: 40px; line-height: 1.4; }
+.final-criteria span { display: block; border-top: 6px solid var(--yellow); padding-top: 8px; }
+.site-boundary { width: auto; padding: 8px 16px; transform: translate(112px, 960px); font-size: 28px; line-height: 1.5; }
+    </style>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #f5f4ee;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="25.48"
+      data-width="1920"
+      data-height="1080"
+      data-fps="25"
+      data-poster-time="5.2"
+      aria-label="机器人进工厂：从一次动作到持续可靠性，静音视觉源码"
+    >
+      <div class="paper" aria-hidden="true"></div>
+      <figure id="backflip-panel" class="media-panel">
+        <img id="backflip" class="clip" data-vfc-video-slot="backflip" alt="后空翻机器人的完整动作画面">
+      </figure>
+      <header id="opening-title" class="opening-title">
+        <h1><span>机器人都能后空翻了，</span><span>为啥不能进工厂？</span></h1>
+        <span class="yellow-rule" aria-hidden="true"></span>
+      </header>
+      <figure id="abb-candidate-panel" class="media-panel candidate">
+        <img id="abb-candidate" class="clip" data-vfc-video-slot="abb_candidate" alt="白色 ABB 机械臂，独立候选画面">
+      </figure>
+      <figure id="controller-candidate-panel" class="media-panel candidate">
+        <img id="controller-candidate" class="clip" data-vfc-video-slot="controller_candidate" alt="人手与控制器，独立候选画面">
+      </figure>
+      <figure id="conveyor-candidate-panel" class="media-panel candidate">
+        <img id="conveyor-candidate" class="clip" data-vfc-video-slot="conveyor_candidate" alt="蓝箱输送线，独立候选画面">
+      </figure>
+      <figure id="yellow-panel" class="media-panel candidate selected">
+        <img id="yellow" class="clip" data-vfc-video-slot="yellow" alt="黄色机械臂，连续正常速度播放">
+      </figure>
+      <figure id="abb-panel" class="media-panel">
+        <img id="abb" class="clip" data-vfc-video-slot="abb" alt="白色 ABB 机械臂，另一段落的回看，不表示同一次连续作业">
+      </figure>
+      <figure id="controller-panel" class="media-panel">
+        <img id="controller" class="clip" data-vfc-video-slot="controller" alt="手持控制器，独立现场示意，不确认正在处理故障">
+      </figure>
+      <figure id="conveyor-panel" class="media-panel candidate">
+        <img id="conveyor" class="clip" data-vfc-video-slot="conveyor" alt="蓝箱输送线，独立场景，保持真实速度，不表示已停线">
+      </figure>
+      <figure id="factory-panel" class="media-panel candidate">
+        <img id="factory" class="clip" data-vfc-video-slot="factory" alt="汽车生产线，独立生产环境，同一视频槽连续扩大为收束主画面">
+      </figure>
+      <section id="single-probability" class="paper-label single-probability">
+        <p class="eyebrow"><span class="assumption-tag">假设</span><span>单次成功率</span></p>
+        <p class="large-number">99<span class="percent">%</span></p>
+        <p class="condition">每次结果互不影响</p>
+      </section>
+      <section id="probability-explainer" class="paper-label probability-explainer">
+        <h2 class="probability-heading"><span id="hundred">连续 100 次</span><strong id="all-success">全部成功</strong></h2>
+        <div class="formula" aria-label="零点九九的一百次方约等于百分之三十七">
+          <span id="formula-base">0.99</span><sup id="formula-exponent">100</sup><span id="formula-equals">≈</span><span id="formula-result" class="result">37%</span>
+        </div>
+        <p class="formula-caption">假设单次成功率 99%，各次结果互不影响</p>
+      </section>
+      <section id="auto-recovery" class="paper-label conditional-copy">
+        <p><span class="highlight">可能</span>自动恢复</p>
+        <p class="subline">实际生产中的不同情况</p>
+      </section>
+      <section id="human-help" class="paper-label conditional-copy">
+        <p><span class="highlight">可能</span>需要人处理</p>
+      </section>
+      <section id="downstream" class="paper-label context-copy">
+        <p>后续工序<br><span class="highlight">可能等待</span></p>
+        <small>条件示意，不表示画中产线已停线</small>
+      </section>
+      <p id="site-boundary" class="paper-label site-boundary">不同现场的画面，仅作条件示意</p>
+      <section id="criteria-board" class="paper-label closing">
+        <h2>从一次动作，到持续可靠</h2>
+        <div class="criteria">
+          <div id="criterion-stable" class="criterion"><strong>稳定工作</strong><span>能不能长时间运行？</span></div>
+          <div id="criterion-recover" class="criterion"><strong>处理问题</strong><span>出了问题能不能处理？</span></div>
+          <div id="criterion-human" class="criterion"><strong>人工介入</strong><span>是否需要经常有人守着？</span></div>
+        </div>
+        <p class="boundary-note">不同现场画面并置，不表示同一次作业</p>
+      </section>
+      <section id="closing-final" class="paper-label final-strip">
+        <h2>工厂考验的，是持续可靠</h2>
+        <div class="final-criteria"><span>稳定工作</span><span>处理问题</span><span>人工介入</span></div>
+      </section>
+    </div>
+    <script>
+const FILM = Object.freeze({ width: 1920, height: 1080, fps: 25, frames: 637, duration: 25.48, readyEndFrame: 637 });
+const seconds = frame => frame / FILM.fps;
+const timeline = gsap.timeline({ paused: true });
+const clock = { time: 0 };
+timeline.to(clock, { time: FILM.duration, duration: FILM.duration, ease: 'none' }, 0);
+
+function showRange(selector, startFrame, endFrame) {
+  timeline.set(selector, { visibility: 'visible' }, seconds(startFrame));
+  timeline.set(selector, { visibility: 'hidden' }, seconds(endFrame));
+}
+
+function move(selector, from, to, startFrame, endFrame, ease = 'power2.inOut') {
+  timeline.fromTo(selector, from, { ...to, duration: seconds(endFrame - startFrame), ease, immediateRender: false }, seconds(startFrame));
+}
+
+gsap.set('#backflip-panel', { x: 544, y: 304, width: 1376 });
+gsap.set('#opening-title', { opacity: 1 });
+gsap.set('#abb-candidate-panel', { x: 152, y: 168, width: 544 });
+gsap.set('#controller-candidate-panel', { x: 152, y: 616, width: 544 });
+gsap.set('#conveyor-candidate-panel', { x: 1080, y: 648, width: 544 });
+gsap.set('#yellow-panel', { x: 944, y: 168, width: 768 });
+showRange('#backflip-panel', 0, 70);
+showRange('#opening-title', 0, 66);
+move('#opening-title', { opacity: 1, y: 0 }, { opacity: 0, y: -24 }, 58, 66, 'power2.in');
+move('#backflip-panel', { opacity: 1 }, { opacity: 0 }, 64, 70, 'power2.in');
+
+const candidatePanels = ['#abb-candidate-panel', '#controller-candidate-panel', '#conveyor-candidate-panel'];
+for (const selector of candidatePanels) {
+  showRange(selector, 58, 88);
+  move(selector, { opacity: 0 }, { opacity: 1 }, 58, 64, 'power2.out');
+}
+move('#abb-candidate-panel', { x: 152, y: 168, width: 544, opacity: 1 }, { x: -440, y: 112, width: 416, opacity: 0 }, 74, 88, 'power2.in');
+move('#controller-candidate-panel', { x: 152, y: 616, width: 544, opacity: 1 }, { x: -440, y: 768, width: 416, opacity: 0 }, 74, 88, 'power2.in');
+move('#conveyor-candidate-panel', { x: 1080, y: 648, width: 544, opacity: 1 }, { x: 1920, y: 792, width: 416, opacity: 0 }, 74, 88, 'power2.in');
+showRange('#yellow-panel', 58, 208);
+move('#yellow-panel', { opacity: 0 }, { opacity: 1 }, 58, 64, 'power2.out');
+move('#yellow-panel', { x: 944, y: 168, width: 768, outlineWidth: 8 }, { x: 0, y: 0, width: 1920, outlineWidth: 0 }, 74, 105, 'power3.inOut');
+showRange('#single-probability', 106, 172);
+move('#single-probability', { opacity: 0, y: 184 }, { opacity: 1, y: 160 }, 106, 116, 'power2.out');
+move('#single-probability', { opacity: 1, y: 160 }, { opacity: 0, y: 136 }, 160, 172, 'power2.in');
+
+gsap.set('#abb-panel', { x: 0, y: 0, width: 1920 });
+showRange('#abb-panel', 200, 350);
+move('#abb-panel', { clipPath: 'inset(0% 0% 0% 100%)' }, { clipPath: 'inset(0% 0% 0% 0%)' }, 200, 208, 'power2.inOut');
+
+showRange('#probability-explainer', 160, 259);
+move('#probability-explainer', { opacity: 0, y: 680 }, { opacity: 1, y: 648 }, 160, 172, 'power2.out');
+move('#all-success', { opacity: 0, y: 16 }, { opacity: 1, y: 0 }, 177, 187, 'power2.out');
+move('#formula-base', { opacity: 0 }, { opacity: 1 }, 185, 193, 'power2.out');
+move('#formula-exponent', { opacity: 0, y: 12 }, { opacity: 1, y: 0 }, 193, 202, 'power2.out');
+move('#formula-equals', { opacity: 0 }, { opacity: 1 }, 206, 214, 'power2.out');
+move('#formula-result', { opacity: 0, y: 16 }, { opacity: 1, y: 0 }, 214, 225, 'power2.out');
+move('#probability-explainer', { opacity: 1, y: 648 }, { opacity: 0, y: 672 }, 252, 259, 'power2.in');
+
+showRange('#auto-recovery', 259, 296);
+move('#auto-recovery', { opacity: 0, y: 176 }, { opacity: 1, y: 152 }, 259, 268, 'power2.out');
+move('#auto-recovery', { opacity: 1 }, { opacity: 0 }, 289, 296, 'power2.in');
+showRange('#human-help', 296, 343);
+move('#human-help', { opacity: 0, y: 176 }, { opacity: 1, y: 152 }, 296, 305, 'power2.out');
+move('#human-help', { opacity: 1, y: 152 }, { opacity: 0, y: 128 }, 329, 343, 'power2.in');
+
+gsap.set('#controller-panel', { x: 0, y: 0, width: 1920 });
+showRange('#controller-panel', 315, 450);
+move('#controller-panel', { clipPath: 'circle(0px at 1200px 620px)' }, { clipPath: 'circle(232px at 1200px 620px)' }, 315, 322, 'power2.out');
+move('#controller-panel', { clipPath: 'circle(232px at 1200px 620px)' }, { clipPath: 'circle(1440px at 1200px 620px)' }, 329, 350, 'power3.inOut');
+showRange('#site-boundary', 350, 470);
+move('#site-boundary', { opacity: 0 }, { opacity: 1 }, 350, 360, 'power2.out');
+move('#site-boundary', { opacity: 1 }, { opacity: 0 }, 462, 470, 'power2.in');
+
+gsap.set('#conveyor-panel', { x: 112, y: 408, width: 1152 });
+showRange('#conveyor-panel', 415, 565);
+move('#conveyor-panel', { opacity: 0 }, { opacity: 1 }, 415, 425, 'power2.out');
+move('#conveyor-panel', { x: 112, y: 408, width: 1152, outlineWidth: 8 }, { x: 0, y: 0, width: 1920, outlineWidth: 0 }, 425, 450, 'power2.inOut');
+move('#conveyor-panel', { x: 0, y: 0, width: 1920 }, { x: 112, y: 552, width: 896, outlineWidth: 8 }, 470, 490, 'power2.inOut');
+move('#conveyor-panel', { x: 112, y: 552, width: 896, opacity: 1 }, { x: -928, y: 552, width: 896, opacity: 0 }, 535, 565, 'power2.in');
+showRange('#downstream', 426, 470);
+move('#downstream', { opacity: 0, y: 176 }, { opacity: 1, y: 152 }, 426, 436, 'power2.out');
+move('#downstream', { opacity: 1, y: 152 }, { opacity: 0, y: 128 }, 459, 470, 'power2.in');
+
+gsap.set('#factory-panel', { x: 1280, y: 648, width: 528 });
+showRange('#factory-panel', 435, 637);
+move('#factory-panel', { opacity: 0 }, { opacity: 1 }, 435, 445, 'power2.out');
+move('#factory-panel', { x: 1280, y: 648, width: 528 }, { x: 1040, y: 552, width: 768 }, 470, 490, 'power2.inOut');
+move('#factory-panel', { x: 1040, y: 552, width: 768, outlineWidth: 8 }, { x: 0, y: 0, width: 1920, outlineWidth: 0 }, 535, 565, 'power3.inOut');
+
+showRange('#criteria-board', 470, 560);
+move('#criteria-board', { opacity: 0, y: 128 }, { opacity: 1, y: 104 }, 470, 482, 'power2.out');
+move('#criterion-stable', { opacity: .72 }, { opacity: 1 }, 482, 492, 'power2.out');
+move('#criterion-recover', { opacity: .72 }, { opacity: 1 }, 500, 510, 'power2.out');
+move('#criterion-human', { opacity: .72 }, { opacity: 1 }, 518, 528, 'power2.out');
+move('#criteria-board', { opacity: 1, y: 104 }, { opacity: 0, y: 80 }, 548, 560, 'power2.in');
+showRange('#closing-final', 560, 637);
+move('#closing-final', { opacity: 0, y: 840 }, { opacity: 1, y: 816 }, 560, 574, 'power2.out');
+
+window.__timelines = { main: timeline };
+window.__robotFactory = { config: FILM, clock, precision: 'segment-planned', audioOwner: 'VideoFlowCut', sourceOnly: true };
+
+    </script>
+  </body>
+</html>

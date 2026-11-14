@@ -50,6 +50,7 @@ test("同一硬切的声音延迟可定位，多个起音保持不确定", async
     const { createDefaultAssetProviderRegistry } = await import("@videocut/acquisition");
     const { hashMediaFile } = await import("../packages/edit-application/src/media-intelligence.js");
     const { runMediaUnderstanding } = await import("../apps/job-worker/src/media-understanding.js");
+    const { manageSoundPlan } = await import("../packages/edit-application/src/sound-design.js");
     const { mkdir, copyFile, stat } = await import("node:fs/promises");
     const app = createApplication(join(root, "project-workspace"));
     try {
@@ -59,13 +60,17 @@ test("同一硬切的声音延迟可定位，多个起音保持不确定", async
         snapshot.timeline.fps = 25;
         snapshot.scenes.push(Object.assign(createScene({ type: "ExplainerScene", title: "测量", purpose: "验证时间", startFrame: 0, endFrame: 50 }), { status: "ready" as const }));
       });
+      const planned = manageSoundPlan(app, projectId, revision.revision.number, { action: "create", startFrame: 0, endFrame: 50,
+        narrationDirection: "清楚讲述", dominantRole: "narration", musicDirection: "留白",
+        intents: [{ id: "cut-sound", function: "settle", brief: "硬切与提示音精确对点", requiredSyncReview: { startFrame: 13, endFrame: 45 } }] });
+      const planId = planned.snapshot.soundPlans![0]!.id, finalRevision = planned.revision.number;
       const exportsDir = join(project.snapshot.project.rootPath, "exports");
       await mkdir(exportsDir, { recursive: true });
       const output = join(exportsDir, "delayed.mp4");
       await copyFile(b.path, output);
-      const exportJob = app.repository.createJob({ projectId, kind: "export", payload: { revision: revision.revision.number }, idempotencyKey: "timing-export" });
+      const exportJob = app.repository.createJob({ projectId, kind: "export", payload: { revision: finalRevision }, idempotencyKey: "timing-export" });
       app.updateJob(exportJob.id, { status: "succeeded", result: { path: output } });
-      const artifact = app.registerExportArtifact({ id: "timing-artifact", projectId, revision: revision.revision.number,
+      const artifact = app.registerExportArtifact({ id: "timing-artifact", projectId, revision: finalRevision,
         jobId: exportJob.id, purpose: "delivery", relativePath: "exports/delayed.mp4",
         fileHash: await hashMediaFile(output), fileSizeBytes: (await stat(output)).size, createdAt: new Date().toISOString(),
         preflight: {} as any, sourceManifest: {} as any, validation: { durationMs: 2000, fps: 25, frameCount: 50, hasAudio: true, blackSegments: [] } });
@@ -76,11 +81,21 @@ test("同一硬切的声音延迟可定位，多个起音保持不确定", async
       const observations = app.intelligence.inspect(projectId, { exportArtifactId: artifact.id }).observations;
       assert.equal(observations[0].timingMeasurement?.status, "measured");
       assert.ok(Math.abs(observations[0].timingMeasurement!.offsetMs! - 200) <= 40);
-      const review = { projectId, artifactId: artifact.id, operationId: "timing-review", observer: "隔离测试",
-        observations: [{ check: "event_sync" as const, subjectId: "cut-sound", required: true, method: "event_measurement" as const,
+      const run = await app.startProductionRun({ projectId, baseRevision: finalRevision, intent: "review_only", completionScope: { kind: "project" },
+        operationId: "timing-run", loadedSkills: ["quality-verification"], deliveryReviewRequired: true });
+      await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: run.auditVersion,
+        action: "select_delivery_artifact", artifactId: artifact.id, operationId: "timing-select" });
+      const subjectId = `${planId}:cut-sound`;
+      await app.recordExportArtifactReview({ projectId, artifactId: artifact.id, runId: run.id, operationId: "timing-listen", observer: "隔离测试",
+        observations: [{ check: "event_sync", subjectId, required: true, method: "audiovisual", outcome: "confirmed",
+          startFrame: 13, endFrame: 45, note: "测试声明：观看声画" }] });
+      assert.ok((await app.readProductionStatus(projectId, { runId: run.id })).completion!.nextActions!.some(action => action.code === "EVENT_REVIEW_PENDING"));
+      const review = { projectId, artifactId: artifact.id, runId: run.id, operationId: "timing-review", observer: "隔离测试",
+        observations: [{ check: "event_sync" as const, subjectId, required: true, method: "event_measurement" as const,
           outcome: "confirmed" as const, startFrame: 13, endFrame: 45, note: "确认同一事件的测量结果", mediaObservationIds: [observations[0].id] }] };
       const saved = await app.recordExportArtifactReview(review);
-      assert.equal(saved.artifactReview?.observations?.[0].mediaObservationIds?.[0], observations[0].id);
+      assert.equal(saved.artifactReview?.observations?.at(-1)?.mediaObservationIds?.[0], observations[0].id);
+      assert.ok(!(await app.readProductionStatus(projectId, { runId: run.id })).completion!.nextActions!.some(action => action.code === "EVENT_REVIEW_PENDING"));
       await assert.rejects(() => app.recordExportArtifactReview({ ...review, operationId: "fake-continuous",
         observations: [{ ...review.observations[0], check: "audiovisual", method: "audiovisual" }] }));
     } finally { app.close(); }

@@ -1,0 +1,397 @@
+{
+  "说明": "根据本次正式固定清单整理；路径相对于本文件，不可将此阅读副本冒充原固定清单。",
+  "原固定清单SHA256": "c4bd582c8f616ead9149305517fc2aa2e787d1b8b73aab1c788c8f2e267d9dcb",
+  "原项目Revision": 24,
+  "文件": [
+    {
+      "序号": 1,
+      "包内相对路径": "../01_角色指令/04_OD_首版制作委托.md",
+      "用途": [
+        {
+          "kind": "brief",
+          "id": "brief",
+          "purpose": "创意编排指令"
+        }
+      ],
+      "原送件SHA256": "085a4d3e0b7eabd9d55420a9ea110321fdda0006793b786b76e15279eef09ad3",
+      "包内SHA256": "14907d7d5f0f7798af904f9e95e1ca58cbed600ef856863c723d62710d8d5464",
+      "内容说明": "阅读副本：依据原件改写相对路径，哈希因此不同"
+    },
+    {
+      "序号": 2,
+      "包内相对路径": "../01_角色指令/06_文案与时间计划.md",
+      "用途": [
+        {
+          "kind": "brief",
+          "id": "timing",
+          "purpose": "完整时间编排"
+        }
+      ],
+      "原送件SHA256": "b8eceb6096d0d955ba6bd2f44ff7e041241a7a32577a26816a92e86a2c2f45fb",
+      "包内SHA256": "b6ecbef5c85d5d9d0938f615e1e0dd3ed7050ee156bbc9debd4725f0b04c5483",
+      "内容说明": "阅读副本：依据原件改写相对路径，哈希因此不同"
+    },
+    {
+      "序号": 3,
+      "包内相对路径": "../04_参考资料/011/creative/c01.md",
+      "用途": [
+        {
+          "kind": "creative",
+          "id": "011-c01",
+          "usage": "adopted",
+          "purpose": "候选让位、黄色臂成为主体",
+          "librarySourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+          "sourceStartMs": 0,
+          "sourceEndMs": 10300,
+          "timeCoordinates": "original",
+          "fileKind": "card"
+        }
+      ],
+      "原送件SHA256": "3c3cf0e01be710444d6915b1d7dde57f569d2de368ed606fc331448bcd4b5d87",
+      "包内SHA256": "a422d8c99d66a77ef6fda1b707b2a21438208982611d8e6afa191c364955fd76",
+      "内容说明": "阅读副本：依据原件改写相对路径，哈希因此不同"
+    },
+    {
+      "序号": 4,
+      "包内相对路径": "../04_参考资料/011/video.mp4",
+      "用途": [
+        {
+          "kind": "creative",
+          "id": "011-c01",
+          "usage": "adopted",
+          "purpose": "候选让位、黄色臂成为主体",
+          "librarySourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+          "sourceStartMs": 0,
+          "sourceEndMs": 10300,
+          "timeCoordinates": "original",
+          "fileKind": "video"
+        },
+        {
+          "kind": "creative",
+          "id": "011-c01",
+          "usage": "adopted",
+          "purpose": "候选让位、黄色臂成为主体",
+          "librarySourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+          "sourceStartMs": 0,
+          "sourceEndMs": 10300,
+          "timeCoordinates": "original",
+          "fileKind": "linkedMedia"
+        },
+        {
+          "kind": "motion",
+          "id": "011-m04",
+          "usage": "adopted",
+          "purpose": "圆形区域显露控制器并发展至全幅",
+          "librarySourceSha256": "712195edd295e621adec873be6b2580bf195d0753240f50ca7da160ef655b024",
+          "sourceStartMs": 10400,
+          "sourceEndMs": 11800,
+          "timeCoordinates": "original",
+          "fileKind": "video"
+        }
+      ],
+      "原送件SHA256": "aecbc38bcf192b60069ca61194dcac335f7bbcc82ac6ae4a93e0e7dcb105915c",
+      "包内SHA256": "aecbc38bcf192b60069ca61194dcac335f7bbcc82ac6ae4a93e0e7dcb105915c",
+      "内容说明": "原始字节副本"
+    },
+    {
+      "序号": 5,
+      "包内相对路径": "../04_参考资料/011/creative/c01-general-redo.mp4",
+      "用途": [
+        {
+          "kind": "creative",
+          "id": "011-c01",
+          "usage": "adopted",
+          "purpose": "候选让位、黄色臂成为主体",
+          "librarySourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+          "sourceStartMs": 0,
+          "sourceEndMs": 10300,
+          "timeCoordinates": "original",
+          "fileKind": "clip",
+          "clipSourceOffsetMs": 0
+        },
+        {
+          "kind": "creative",
+          "id": "011-c01",
+          "usage": "adopted",
+          "purpose": "候选让位、黄色臂成为主体",
+          "librarySourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+          "sourceStartMs": 0,
+          "sourceEndMs": 10300,
+          "timeCoordinates": "original",
+          "fileKind": "linkedMedia"
+        }
+      ],
+      "原送件SHA256": "b70f054702c2cfe0eca610a04a1a40156d72e85136a235b21e2d1938fa5ae24e",
+      "包内SHA256": "b70f054702c2cfe0eca610a04a1a40156d72e85136a235b21e2d1938fa5ae24e",
+      "内容说明": "原始字节副本"
+    },
+    {
+      "序号": 6,
+      "包内相对路径": "../04_参考资料/011/storyboards/creative-c01-general-redo.jpg",
+      "用途": [
+        {
+          "kind": "creative",
+          "id": "011-c01",
+          "usage": "adopted",
+          "purpose": "候选让位、黄色臂成为主体",
+          "librarySourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+          "sourceStartMs": 0,
+          "sourceEndMs": 10300,
+          "timeCoordinates": "original",
+          "fileKind": "storyboard"
+        },
+        {
+          "kind": "creative",
+          "id": "011-c01",
+          "usage": "adopted",
+          "purpose": "候选让位、黄色臂成为主体",
+          "librarySourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+          "sourceStartMs": 0,
+          "sourceEndMs": 10300,
+          "timeCoordinates": "original",
+          "fileKind": "linkedMedia"
+        }
+      ],
+      "原送件SHA256": "9040d641ad2fa3bee3eb9cb2f689c9027b7e41cafe2f51d0247d9c21a10c821c",
+      "包内SHA256": "9040d641ad2fa3bee3eb9cb2f689c9027b7e41cafe2f51d0247d9c21a10c821c",
+      "内容说明": "原始字节副本"
+    },
+    {
+      "序号": 7,
+      "包内相对路径": "../04_参考资料/011/mechanisms/m04.md",
+      "用途": [
+        {
+          "kind": "motion",
+          "id": "011-m04",
+          "usage": "adopted",
+          "purpose": "圆形区域显露控制器并发展至全幅",
+          "librarySourceSha256": "712195edd295e621adec873be6b2580bf195d0753240f50ca7da160ef655b024",
+          "sourceStartMs": 10400,
+          "sourceEndMs": 11800,
+          "timeCoordinates": "original",
+          "fileKind": "card"
+        }
+      ],
+      "原送件SHA256": "bcc1bda187562823e52c49f7b2d488d823666c09acf5a2f943d7b14e9c2d6035",
+      "包内SHA256": "016ee4365e6d479632aade8368481ac50b0fbeebbbd5c89a551cb17cf3653498",
+      "内容说明": "阅读副本：依据原件改写相对路径，哈希因此不同"
+    },
+    {
+      "序号": 8,
+      "包内相对路径": "../04_参考资料/011/mechanisms/m04.jpg",
+      "用途": [
+        {
+          "kind": "motion",
+          "id": "011-m04",
+          "usage": "adopted",
+          "purpose": "圆形区域显露控制器并发展至全幅",
+          "librarySourceSha256": "712195edd295e621adec873be6b2580bf195d0753240f50ca7da160ef655b024",
+          "sourceStartMs": 10400,
+          "sourceEndMs": 11800,
+          "timeCoordinates": "original",
+          "fileKind": "storyboard"
+        },
+        {
+          "kind": "motion",
+          "id": "011-m04",
+          "usage": "adopted",
+          "purpose": "圆形区域显露控制器并发展至全幅",
+          "librarySourceSha256": "712195edd295e621adec873be6b2580bf195d0753240f50ca7da160ef655b024",
+          "sourceStartMs": 10400,
+          "sourceEndMs": 11800,
+          "timeCoordinates": "original"
+        }
+      ],
+      "原送件SHA256": "0889e933041a3fd90ccae908e76a89897dc4818d0b89c56d4e42b17e801c52f8",
+      "包内SHA256": "0889e933041a3fd90ccae908e76a89897dc4818d0b89c56d4e42b17e801c52f8",
+      "内容说明": "原始字节副本"
+    },
+    {
+      "序号": 9,
+      "包内相对路径": "../04_参考资料/011/mechanisms/m04.mp4",
+      "用途": [
+        {
+          "kind": "motion",
+          "id": "011-m04",
+          "usage": "adopted",
+          "purpose": "圆形区域显露控制器并发展至全幅",
+          "librarySourceSha256": "712195edd295e621adec873be6b2580bf195d0753240f50ca7da160ef655b024",
+          "sourceStartMs": 10400,
+          "sourceEndMs": 11800,
+          "timeCoordinates": "original",
+          "fileKind": "clip",
+          "clipSourceOffsetMs": 10400
+        },
+        {
+          "kind": "motion",
+          "id": "011-m04",
+          "usage": "adopted",
+          "purpose": "圆形区域显露控制器并发展至全幅",
+          "librarySourceSha256": "712195edd295e621adec873be6b2580bf195d0753240f50ca7da160ef655b024",
+          "sourceStartMs": 10400,
+          "sourceEndMs": 11800,
+          "timeCoordinates": "original"
+        }
+      ],
+      "原送件SHA256": "7ba924c080ea09b795efdad5b9247bfe68674e700fb1db9ef29b869df663cbfb",
+      "包内SHA256": "7ba924c080ea09b795efdad5b9247bfe68674e700fb1db9ef29b869df663cbfb",
+      "内容说明": "原始字节副本"
+    },
+    {
+      "序号": 10,
+      "包内相对路径": "../01_角色指令/03_视觉作者_完整导演稿.md",
+      "用途": [
+        {
+          "kind": "reference",
+          "id": "visual_context",
+          "usage": "adopted",
+          "purpose": "原视觉导演稿与详细时序素材映射，以本次新版绑定和中性名称为准"
+        }
+      ],
+      "原送件SHA256": "8a6d269f772a6a28322e5cafe86ffeabefbebe9cc0eb692c7fea347b95de036d",
+      "包内SHA256": "0abca4ac11639f8ba81feab26b11bbcdc848d5420246a1d6f5365ca734b8e564",
+      "内容说明": "阅读副本：依据原件改写相对路径，哈希因此不同"
+    },
+    {
+      "序号": 11,
+      "包内相对路径": "07_视觉原稿素材映射_相对路径.json",
+      "用途": [
+        {
+          "kind": "reference",
+          "id": "visual_context",
+          "usage": "adopted",
+          "purpose": "原视觉导演稿与详细时序素材映射，以本次新版绑定和中性名称为准"
+        }
+      ],
+      "原送件SHA256": "e8fdf9e8cfc41e94c4b10c0bf6b9b233852f0457cd5acbb1f1cb60e1afe78303",
+      "包内SHA256": "ac31067afeb2b3e59aa2d7cfce3d5d7f8f1971768a3731e537fc369f1be89e60",
+      "内容说明": "阅读副本：依据原件改写相对路径，哈希因此不同"
+    },
+    {
+      "序号": 12,
+      "包内相对路径": "../05_视频与素材/原始素材/01_后空翻机器人.mp4",
+      "用途": [
+        {
+          "kind": "source",
+          "id": "asset_b8a3e83c-3cbb-4a56-8b60-b2a3a27e1b93",
+          "purpose": "以真实动作建立开场主体",
+          "sourceStartMs": 18680,
+          "sourceEndMs": 21480
+        }
+      ],
+      "原送件SHA256": "e92d979d5aa2138720f5ebb15bb8376913855fb626c822ab41efe01f3b5e6720",
+      "包内SHA256": "e92d979d5aa2138720f5ebb15bb8376913855fb626c822ab41efe01f3b5e6720",
+      "内容说明": "原始字节副本"
+    },
+    {
+      "序号": 13,
+      "包内相对路径": "../05_视频与素材/原始素材/02_黄色机械臂.mp4",
+      "用途": [
+        {
+          "kind": "source",
+          "id": "asset_cc61ec44-06b3-406b-99ee-d33c2b58503e",
+          "purpose": "从候选中取得主位并连续发展",
+          "sourceStartMs": 3000,
+          "sourceEndMs": 9000
+        }
+      ],
+      "原送件SHA256": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+      "包内SHA256": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+      "内容说明": "原始字节副本"
+    },
+    {
+      "序号": 14,
+      "包内相对路径": "../05_视频与素材/原始素材/03_白色机械臂.mp4",
+      "用途": [
+        {
+          "kind": "source",
+          "id": "asset_39aba990-c589-47bb-8d91-95bd24f7e4ec",
+          "purpose": "作为工位画面承接概率解释",
+          "sourceStartMs": 36500,
+          "sourceEndMs": 42500
+        }
+      ],
+      "原送件SHA256": "b0c1f4211abfb20c3a534b535cda5ca75f4a029fe6f99714b5d4fc93fe0cea67",
+      "包内SHA256": "b0c1f4211abfb20c3a534b535cda5ca75f4a029fe6f99714b5d4fc93fe0cea67",
+      "内容说明": "原始字节副本"
+    },
+    {
+      "序号": 15,
+      "包内相对路径": "../05_视频与素材/原始素材/04_手持控制器.mp4",
+      "用途": [
+        {
+          "kind": "source",
+          "id": "asset_49fc28a5-ce7a-4a92-856d-6f7650996de0",
+          "purpose": "作为人手操作的独立示意",
+          "sourceStartMs": 0,
+          "sourceEndMs": 5400
+        }
+      ],
+      "原送件SHA256": "df2c08770c14a23241b58014251eb28448f53f32ec1b9cc01e233e3d402c143d",
+      "包内SHA256": "df2c08770c14a23241b58014251eb28448f53f32ec1b9cc01e233e3d402c143d",
+      "内容说明": "原始字节副本"
+    },
+    {
+      "序号": 16,
+      "包内相对路径": "../05_视频与素材/原始素材/05_蓝箱输送线.mp4",
+      "用途": [
+        {
+          "kind": "source",
+          "id": "asset_3a321910-e751-4800-b4cf-054816283433",
+          "purpose": "作为后续工序语境的独立示意",
+          "sourceStartMs": 32000,
+          "sourceEndMs": 38000
+        }
+      ],
+      "原送件SHA256": "9724733940a92aa5b76e4f119bdaa7f71c7f2defd30b2aa3539c829e25a32af0",
+      "包内SHA256": "9724733940a92aa5b76e4f119bdaa7f71c7f2defd30b2aa3539c829e25a32af0",
+      "内容说明": "原始字节副本"
+    },
+    {
+      "序号": 17,
+      "包内相对路径": "../05_视频与素材/原始素材/06_汽车生产线.mp4",
+      "用途": [
+        {
+          "kind": "source",
+          "id": "asset_fa084d92-ace2-4862-a29d-bd63e6848db1",
+          "purpose": "作为收束的生产环境",
+          "sourceStartMs": 0,
+          "sourceEndMs": 8080
+        }
+      ],
+      "原送件SHA256": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+      "包内SHA256": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+      "内容说明": "原始字节副本"
+    },
+    {
+      "序号": 18,
+      "包内相对路径": "../05_视频与素材/旁白/四段旁白_25.470秒.wav",
+      "用途": [
+        {
+          "kind": "source",
+          "id": "asset_251b8b77-6f41-442b-aecb-75456321bb8f",
+          "purpose": "真实旁白，仅供画面时序参考；由项目外层合成，不烧入源码",
+          "sourceStartMs": 0,
+          "sourceEndMs": 25470
+        }
+      ],
+      "原送件SHA256": "2d7252da2f7003efb313f32ae5f19cb894f3928a1a437243e906f1f3dfa7977c",
+      "包内SHA256": "2d7252da2f7003efb313f32ae5f19cb894f3928a1a437243e906f1f3dfa7977c",
+      "内容说明": "原始字节副本"
+    },
+    {
+      "序号": 19,
+      "包内相对路径": "08_OD场面_相对路径.json",
+      "用途": [
+        {
+          "kind": "brief",
+          "id": "scenes",
+          "purpose": "场面、参考和真实素材映射"
+        }
+      ],
+      "原送件SHA256": "4bb6b02d8c1da8f123ff30625d028e8013f1788557d6107174efaf0d353f772e",
+      "包内SHA256": "85c471d57db5b6e3af27ec8f4094cce1d07fa5ddbf0c1f394b1701bbf061faba",
+      "内容说明": "阅读副本：依据原件改写相对路径，哈希因此不同"
+    }
+  ]
+}

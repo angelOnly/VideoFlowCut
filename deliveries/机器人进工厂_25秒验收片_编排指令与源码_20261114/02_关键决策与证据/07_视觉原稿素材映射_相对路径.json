@@ -1,0 +1,202 @@
+{
+  "project": "待隔离项目建立后登记",
+  "fps": 25,
+  "width": 1920,
+  "height": 1080,
+  "durationInFrames": 637,
+  "voice": {
+    "path": "../05_视频与素材/旁白/四段旁白_25.470秒.wav",
+    "durationMs": 25470,
+    "sha256": "2d7252da2f7003efb313f32ae5f19cb894f3928a1a437243e906f1f3dfa7977c",
+    "precision": "segment_exact",
+    "segments": [
+      {
+        "startMs": 0,
+        "endMs": 6410,
+        "startFrame": 0,
+        "endFrame": 160
+      },
+      {
+        "startMs": 6410,
+        "endMs": 10370,
+        "startFrame": 160,
+        "endFrame": 259
+      },
+      {
+        "startMs": 10370,
+        "endMs": 18800,
+        "startFrame": 259,
+        "endFrame": 470
+      },
+      {
+        "startMs": 18800,
+        "endMs": 25470,
+        "startFrame": 470,
+        "endFrame": 637
+      }
+    ]
+  },
+  "roles": [
+    {
+      "role": "后空翻",
+      "path": "../05_视频与素材/原始素材/01_后空翻机器人.mp4",
+      "sourceRanges": [
+        {
+          "startMs": 18680,
+          "endMs": 21480
+        }
+      ],
+      "uses": [
+        {
+          "startFrame": 0,
+          "endFrame": 70,
+          "sourceStartMs": 18680,
+          "sourceEndMs": 21480
+        }
+      ],
+      "assetId": "asset_b8a3e83c-3cbb-4a56-8b60-b2a3a27e1b93"
+    },
+    {
+      "role": "黄色机械臂",
+      "path": "../05_视频与素材/原始素材/02_黄色机械臂.mp4",
+      "sourceRanges": [
+        {
+          "startMs": 3000,
+          "endMs": 9000
+        }
+      ],
+      "uses": [
+        {
+          "startFrame": 58,
+          "endFrame": 208,
+          "sourceStartMs": 3000,
+          "sourceEndMs": 9000
+        }
+      ],
+      "assetId": "asset_cc61ec44-06b3-406b-99ee-d33c2b58503e"
+    },
+    {
+      "role": "白色机械臂",
+      "path": "../05_视频与素材/原始素材/03_白色机械臂.mp4",
+      "sourceRanges": [
+        {
+          "startMs": 36500,
+          "endMs": 42500
+        }
+      ],
+      "uses": [
+        {
+          "startFrame": 58,
+          "endFrame": 88,
+          "sourceStartMs": 36500,
+          "sourceEndMs": 37700
+        },
+        {
+          "startFrame": 200,
+          "endFrame": 350,
+          "sourceStartMs": 36500,
+          "sourceEndMs": 42500
+        }
+      ],
+      "assetId": "asset_39aba990-c589-47bb-8d91-95bd24f7e4ec"
+    },
+    {
+      "role": "人工控制",
+      "path": "../05_视频与素材/原始素材/04_手持控制器.mp4",
+      "sourceRanges": [
+        {
+          "startMs": 0,
+          "endMs": 5400
+        }
+      ],
+      "uses": [
+        {
+          "startFrame": 58,
+          "endFrame": 88,
+          "sourceStartMs": 0,
+          "sourceEndMs": 1200
+        },
+        {
+          "startFrame": 315,
+          "endFrame": 450,
+          "sourceStartMs": 0,
+          "sourceEndMs": 5400
+        }
+      ],
+      "assetId": "asset_49fc28a5-ce7a-4a92-856d-6f7650996de0"
+    },
+    {
+      "role": "输送线",
+      "path": "../05_视频与素材/原始素材/05_蓝箱输送线.mp4",
+      "sourceRanges": [
+        {
+          "startMs": 32000,
+          "endMs": 38000
+        }
+      ],
+      "uses": [
+        {
+          "startFrame": 58,
+          "endFrame": 88,
+          "sourceStartMs": 32000,
+          "sourceEndMs": 33200
+        },
+        {
+          "startFrame": 415,
+          "endFrame": 565,
+          "sourceStartMs": 32000,
+          "sourceEndMs": 38000
+        }
+      ],
+      "assetId": "asset_3a321910-e751-4800-b4cf-054816283433"
+    },
+    {
+      "role": "生产线",
+      "path": "../05_视频与素材/原始素材/06_汽车生产线.mp4",
+      "sourceRanges": [
+        {
+          "startMs": 0,
+          "endMs": 8080
+        }
+      ],
+      "uses": [
+        {
+          "startFrame": 435,
+          "endFrame": 637,
+          "sourceStartMs": 0,
+          "sourceEndMs": 8080
+        }
+      ],
+      "assetId": "asset_fa084d92-ace2-4862-a29d-bd63e6848db1"
+    }
+  ],
+  "references": [
+    {
+      "kind": "creative",
+      "id": "011-c01",
+      "sourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+      "startMs": 4700,
+      "endMs": 6600,
+      "targetRole": "黄色机械臂",
+      "targetRange": {
+        "startFrame": 58,
+        "endFrame": 105
+      },
+      "preserveRelation": "多个候选画面逐渐让位于一个被选择的画面，最后由该画面占满。"
+    },
+    {
+      "kind": "motion",
+      "id": "011-m04",
+      "sourceSha256": "712195edd295e621adec873be6b2580bf195d0753240f50ca7da160ef655b024",
+      "startMs": 10400,
+      "endMs": 11800,
+      "targetRole": "人工控制",
+      "targetRange": {
+        "startFrame": 315,
+        "endFrame": 350
+      },
+      "preserveRelation": "新画面先在圆形区域内显露，再发展为全幅。"
+    }
+  ],
+  "说明": "根据首版视觉作者的原映射整理；原文件路径改为相对于本文件的包内路径，补录 R36 素材 ID。原稿的项目字段保留为制作时状态。"
+}

@@ -13,6 +13,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { createServer } from "../apps/server/src/app.js";
 import { hashMediaFile } from "../packages/edit-application/src/media-intelligence.js";
+import { manageSoundPlan } from "../packages/edit-application/src/sound-design.js";
 
 const passes: EditorialReviewPass[] = ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"];
 
@@ -490,12 +491,57 @@ test("成片一次登记可供文件与任务使用，并区分同版本不同�
       completionScope: { kind: "project" }, finalRevision: f.base.revision, operationId: "complete-after" });
     assert.equal(final.status, "completed", final.completionBlockers.join("; "));
     assert.equal(final.evaluation.artifactId, second.id);
+    const independent = await f.app.startProductionRun({ projectId: f.projectId, baseRevision: f.base.revision, intent: "review_only",
+      completionScope: { kind: "project" }, operationId: "file-only-review", loadedSkills: ["quality-verification"], deliveryReviewRequired: true });
+    await f.app.updateProductionRun({ projectId: f.projectId, runId: independent.id, expectedAuditVersion: independent.auditVersion,
+      action: "select_delivery_artifact", artifactId: second.id, operationId: "select-file-for-independent" });
+    const independentObservation = await server.inject({ method: "POST", url: `/api/projects/${f.projectId}/export-artifacts/${second.id}/review`,
+      payload: { operationId: "independent-file-observation", runId: independent.id, observer: "隔离测试",
+        observations: [{ check: "audiovisual", method: "audiovisual", outcome: "confirmed", startFrame: 0, endFrame: 48, note: "测试声明：完整观察本次文件" }] } });
+    assert.equal(independentObservation.statusCode, 200, independentObservation.body);
+    const independentStatus = await f.app.readProductionStatus(f.projectId, { runId: independent.id });
+    assert.deepEqual(independentStatus.completion!.observationGaps, []);
+    assert.ok(independentStatus.completion!.validObservations.some(item => item.evidenceId === independentObservation.json().reviewReceipt.evidenceIds[0]));
     const conflict = await server.inject({ method: "POST", url: endpoint, payload: { ...body, observer: "不同观察者" } });
     assert.ok(conflict.statusCode >= 400);
     await writeFile(join(exportDir, second.id + ".mp4"), "文件内容已变化");
     const changed = await f.app.readProductionStatus(f.projectId, { runId: f.run.id });
     assert.equal(changed.completion!.ready, false);
   } finally { await server.close(); application.close(); await f.dispose(); }
+});
+
+test("导演锁定的声画事件即使尚未登记观察也会返回具体待办", async () => {
+  const f = await fixture();
+  try {
+    const planned = manageSoundPlan(f.app, f.projectId, f.base.revision, { action: "create", soundPlanId: "plan",
+      startFrame: 0, endFrame: 48, narrationDirection: "清楚讲述", dominantRole: "narration", musicDirection: "轻音乐",
+      intents: [{ id: "impact", function: "settle", brief: "提示音与画面落点对齐", requiredSyncReview: { startFrame: 10, endFrame: 15 } }] });
+    const plan = planned.snapshot.soundPlans![0];
+    const revision = planned.revision.number, exportDir = join(planned.snapshot.project.rootPath, "exports");
+    await mkdir(exportDir, { recursive: true });
+    const path = join(exportDir, "locked-event.mp4");
+    await copyFile(join(planned.snapshot.project.rootPath, "assets/source/source.mp4"), path);
+    const job = f.app.repository.createJob({ projectId: f.projectId, kind: "export", payload: { revision }, idempotencyKey: "locked-event-export" });
+    f.app.updateJob(job.id, { status: "succeeded", result: { path } });
+    const size = (await import("node:fs/promises").then(module => module.stat(path))).size;
+    const artifact = f.app.registerExportArtifact({ id: "locked-event", projectId: f.projectId, revision, jobId: job.id,
+      purpose: "delivery", relativePath: "exports/locked-event.mp4", fileHash: await hashMediaFile(path), fileSizeBytes: size,
+      createdAt: new Date().toISOString(), preflight: {} as any, sourceManifest: {} as any,
+      validation: { durationMs: 2000, fps: 24, frameCount: 48, hasAudio: true, blackSegments: [] } });
+    const run = await f.app.startProductionRun({ projectId: f.projectId, baseRevision: revision, intent: "review_only", completionScope: { kind: "project" },
+      operationId: "locked-review", loadedSkills: ["quality-verification"], deliveryReviewRequired: true });
+    await f.app.updateProductionRun({ projectId: f.projectId, runId: run.id, expectedAuditVersion: run.auditVersion,
+      action: "select_delivery_artifact", artifactId: artifact.id, operationId: "select-locked" });
+    await f.app.recordExportArtifactReview({ projectId: f.projectId, artifactId: artifact.id, runId: run.id, operationId: "watch-locked", observer: "测试",
+      observations: [{ check: "audiovisual", method: "audiovisual", outcome: "confirmed", startFrame: 0, endFrame: 48, note: "测试声明：观看整片" }] });
+    const before = await f.app.readProductionStatus(f.projectId, { runId: run.id });
+    assert.ok(before.completion!.nextActions!.some(action => action.code === "EVENT_REVIEW_PENDING" && action.relatedRefs.includes(`${plan.id}:impact`)));
+    await f.app.recordExportArtifactReview({ projectId: f.projectId, artifactId: artifact.id, runId: run.id, operationId: "verify-locked", observer: "测试",
+      observations: [{ check: "event_sync", subjectId: `${plan.id}:impact`, required: true, method: "audiovisual", outcome: "confirmed",
+        startFrame: 10, endFrame: 15, note: "测试声明：对照该事件的声画落点" }] });
+    const after = await f.app.readProductionStatus(f.projectId, { runId: run.id });
+    assert.ok(after.completion!.nextActions!.some(action => action.code === "EVENT_REVIEW_PENDING"), "精确卡点不能只用普通声画观看关闭");
+  } finally { await f.dispose(); }
 });
 
 test("声音负责人接替后不把待办继续发给旧负责人", async () => {

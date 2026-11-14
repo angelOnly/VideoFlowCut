@@ -1,0 +1,98 @@
+{
+  "work": {
+    "name": "从一次动作到持续可靠性",
+    "compositing": "opaque",
+    "width": 1920,
+    "height": 1080,
+    "fps": 25,
+    "durationInFrames": 637,
+    "creativeBrief": "真实后空翻引出工厂持续可靠性；四候选让位于黄色臂，独立假设下百次全部成功约37%；ABB经圆形显露交给控制器，输送线和汽车生产线收束。不同来源画面只作独立示意，不证明实际故障或停线。仅视觉，配音和普通字幕外层合成。",
+    "props": {},
+    "imageBindings": {},
+    "videoBindings": {
+      "backflip": {
+        "assetId": "asset_b8a3e83c-3cbb-4a56-8b60-b2a3a27e1b93",
+        "sourceStartMs": 18680,
+        "sourceEndMs": 21480,
+        "startFrame": 0,
+        "endFrame": 70
+      },
+      "yellow": {
+        "assetId": "asset_cc61ec44-06b3-406b-99ee-d33c2b58503e",
+        "sourceStartMs": 3000,
+        "sourceEndMs": 9000,
+        "startFrame": 58,
+        "endFrame": 208
+      },
+      "abb_candidate": {
+        "assetId": "asset_39aba990-c589-47bb-8d91-95bd24f7e4ec",
+        "sourceStartMs": 36500,
+        "sourceEndMs": 37700,
+        "startFrame": 58,
+        "endFrame": 88
+      },
+      "controller_candidate": {
+        "assetId": "asset_49fc28a5-ce7a-4a92-856d-6f7650996de0",
+        "sourceStartMs": 0,
+        "sourceEndMs": 1200,
+        "startFrame": 58,
+        "endFrame": 88
+      },
+      "conveyor_candidate": {
+        "assetId": "asset_3a321910-e751-4800-b4cf-054816283433",
+        "sourceStartMs": 32000,
+        "sourceEndMs": 33200,
+        "startFrame": 58,
+        "endFrame": 88
+      },
+      "abb": {
+        "assetId": "asset_39aba990-c589-47bb-8d91-95bd24f7e4ec",
+        "sourceStartMs": 36500,
+        "sourceEndMs": 42500,
+        "startFrame": 200,
+        "endFrame": 350
+      },
+      "controller": {
+        "assetId": "asset_49fc28a5-ce7a-4a92-856d-6f7650996de0",
+        "sourceStartMs": 0,
+        "sourceEndMs": 5400,
+        "startFrame": 315,
+        "endFrame": 450
+      },
+      "conveyor": {
+        "assetId": "asset_3a321910-e751-4800-b4cf-054816283433",
+        "sourceStartMs": 32000,
+        "sourceEndMs": 38000,
+        "startFrame": 415,
+        "endFrame": 565
+      },
+      "factory": {
+        "assetId": "asset_fa084d92-ace2-4862-a29d-bd63e6848db1",
+        "sourceStartMs": 0,
+        "sourceEndMs": 8080,
+        "startFrame": 435,
+        "endFrame": 637
+      }
+    },
+    "fontBindings": {
+      "body": "noto-sans-sc-regular",
+      "title": "noto-sans-sc-bold"
+    }
+  },
+  "readyRanges": [
+    {
+      "endFrame": 160,
+      "startFrame": 0
+    }
+  ],
+  "changedRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 160,
+      "reason": "开场、候选让位与独立假设首段完成；修正为平台受管视频槽及登记字体"
+    }
+  ],
+  "sourceFile": "motion-source/robot-factory/index.html",
+  "authorSubmissionId": "bc15fcc23ae0cada3c251d10523834b9c957b84884677bb556013c63e6752671",
+  "sourceSha256": "c9ec9178fa68a115de5032ad5c69beb98a875d0a9e51f1dd90ad3b949a3a76f5"
+}

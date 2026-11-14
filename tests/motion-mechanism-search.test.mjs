@@ -43,7 +43,10 @@ test('父案例上下文随候选与精确恢复返回，不改变动作召回�
 
 test('当前案例的全部资料具备统一分类，数量随正式目录变化',()=>{
   const catalogue=JSON.parse(readFileSync(join(root,'case-catalogue.json'),'utf8'));
-  assert.equal(index.count,catalogue.cases.reduce((n,c)=>n+c.mechanism_ids.length,0));assert.equal(new Set(index.mechanisms.map(m=>m.case_number)).size,catalogue.cases.length);
+  assert.equal(index.count,catalogue.cases.reduce((n,c)=>n+c.mechanism_ids.length,0));
+  // 仅有创意卡的案例不进入动效机制索引，已转换的案例仍须全部覆盖。
+  assert.deepEqual([...new Set(index.mechanisms.map(m=>m.case_number))].sort((a,b)=>a-b),
+    catalogue.cases.filter(c=>c.analysis_kind==='mechanisms-v1').map(c=>c.case_number).sort((a,b)=>a-b));
   const categories=new Set();for(const m of index.mechanisms){validateRetrieval(m.retrieval,m.id);m.retrieval.categories.forEach(c=>categories.add(c));}
   assert.equal(categories.size,taxonomy.categories.length);
   assert.throws(()=>validateRetrieval({...index.mechanisms[0].retrieval,holds:['不知道']}),/词表/);

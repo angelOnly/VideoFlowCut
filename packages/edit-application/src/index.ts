@@ -1,7 +1,7 @@
 import { readProductionStatus } from "./production-status.js";
 import { assignmentCoversObjects, assignmentCoversScope, assignmentScopesOverlap, evaluateProductionCoordination, normalizeProductionScope } from "./production-coordination.js";
 import { MotionAuthoringCoordinationError } from "./motion-coordination-error.js";
-import { rangeCovered, scopeReferenceManifest } from "./opendesign-reference-package.mjs";
+import { scopeReferenceManifest } from "./opendesign-reference-package.mjs";
 import { readMotionDefinition, storeMotionDefinition } from "./motion-definition.js";
 import { motionWorkForCue, motionWorkVersion, type MotionWork } from "@videocut/contracts";
 import { PresenterLibraryService } from "./presenter-library.js";
@@ -79,6 +79,7 @@ import type {
   CaptionEmphasis,
   CaptionFormat,
   CreativeBrief,
+  CreativeDecision,
   CreativeAdoptionRef,
   CreativeDeliveryRef,
   ExplicitCreativePreferences,
@@ -2476,7 +2477,7 @@ export class EditingApplication {
     inputRevision?: number | null;
     inputDecisionIds?: Id[];
     researchOutcome?: "pending" | "researched" | "not_applicable";
-    researchReferences?: Array<{ kind: "creative" | "motion"; id: string; sourceSha256: string }>;
+    researchReferences?: CreativeDecision["researchReferences"];
     operationId: string;
     deliveryRef?: CreativeDeliveryRef;
     quietRange?: { startFrame: number; endFrame: number; reason: string };
@@ -2519,8 +2520,11 @@ export class EditingApplication {
       if (input.researchOutcome && !["pending", "researched", "not_applicable"].includes(input.researchOutcome)) throw new DomainError("研究结论无效", "PRODUCTION_RESEARCH_OUTCOME_REQUIRED");
       if (input.researchReferences?.some(reference => !isResearch
         || reference.kind !== (input.phase === "creative_research" ? "creative" : "motion")
-        || !reference.id.trim() || !/^[a-f0-9]{64}$/u.test(reference.sourceSha256))) {
-        throw new DomainError("研究参考需要对应类型、真实编号和来源指纹", "PRODUCTION_RESEARCH_REFERENCE_INVALID");
+        || !reference.id.trim() || !/^[a-f0-9]{64}$/u.test(reference.sourceSha256)
+        || ([reference.startMs, reference.endMs, reference.observedRelation].some(value => value !== undefined)
+          && (!Number.isSafeInteger(reference.startMs) || !Number.isSafeInteger(reference.endMs)
+            || reference.startMs! < 0 || reference.endMs! <= reference.startMs! || !reference.observedRelation?.trim())))) {
+        throw new DomainError("研究参考需要对应类型、真实编号和来源指纹；填写原片区间或所见关系时须同时给出有效起点、终点和观察内容", "PRODUCTION_RESEARCH_REFERENCE_INVALID");
       }
     } else {
       if (input.inputDecisionIds?.length || input.researchOutcome || input.researchReferences?.length) {
@@ -2865,6 +2869,13 @@ export class EditingApplication {
       || target.snapshot.timeline.items.some(item => item.id === id && target.snapshot.timeline.tracks.some(track => track.id === item.trackId && track.kind === "audio")));
     const ownEvidence = [...(report.editorialReviewHistory ?? []), ...(report.editorialReview ? [report.editorialReview] : [])]
       .flatMap(review => review.evidenceRecords ?? []);
+    // 文件审阅直接写入成片记录，同一次独立审阅也要复用这些证据。
+    if (report.intent === "review_only" && deliveryArtifact) {
+      const artifactEvidenceIds = new Set((deliveryArtifact.artifactReview?.observations ?? [])
+        .filter(item => item.runId === report.id && item.outcome === "confirmed").map(item => item.id));
+      ownEvidence.push(...(projectReview?.evidenceRecords ?? []).filter(item =>
+        item.source === "artifact" && artifactEvidenceIds.has(item.id)));
+    }
     const ownEvidenceIds = new Set(ownEvidence.map(entry => entry.id));
     // 独立审阅使用本次实际选择的观察方式，不把只听声音升级成声画审阅。
     const reviewMethod = report.intent === "review_only" ? ownEvidence.find(entry => ranges.some(range => entry.startFrame < range.endFrame && entry.endFrame > range.startFrame))?.method : undefined;
@@ -2911,6 +2922,27 @@ export class EditingApplication {
       for (const gap of missingReviewRanges(confirmed, unknown.startFrame, unknown.endFrame)) {
         eventPending.push({ ...gap, subjectId: unknown.subjectId! });
         blockers.push(`事件 ${unknown.subjectId} 待复核范围：${gap.startFrame}–${gap.endFrame}。`);
+      }
+    }
+    // 声音计划中明确锁定的事件，即使尚未登记过审阅，也必须回到实际成片检查。
+    if (deliveryArtifact) for (const plan of target.snapshot.soundPlans ?? []) {
+      if (plan.status !== "current") continue;
+      for (const intent of plan.intents) {
+        if (!intent.requiredSyncReview) continue;
+        const subjectId = `${plan.id}:${intent.id}`;
+        const confirmed = fileObservations.filter(item => item.check === "event_sync" && item.subjectId === subjectId
+          && item.outcome === "confirmed" && item.method === "event_measurement");
+        for (const range of ranges) {
+          const start = Math.max(range.startFrame, intent.requiredSyncReview.startFrame);
+          const end = Math.min(range.endFrame, intent.requiredSyncReview.endFrame);
+          if (start >= end) continue;
+          for (const gap of missingReviewRanges(confirmed, start, end)) {
+            if (!eventPending.some(item => item.subjectId === subjectId && item.startFrame === gap.startFrame && item.endFrame === gap.endFrame)) {
+              eventPending.push({ ...gap, subjectId });
+              blockers.push(`事件 ${subjectId} 待复核范围：${gap.startFrame}–${gap.endFrame}。`);
+            }
+          }
+        }
       }
     }
     const completionBlockers = [...new Set(blockers)];
@@ -3099,23 +3131,6 @@ export class EditingApplication {
       if (selected.some(scene => !scene || scene.status !== "ready") || !selected.some(scene => scene?.sceneId === targetScene.id)) {
         throw new DomainError("选中场面仍有未完成资料或不包含实际制作目标", "MOTION_AUTHORING_DELIVERY_INCOMPLETE");
       }
-      const previews = selected.map(scene => scene?.visualPlan?.status === "previewed" ? scene.visualPlan.preview : undefined);
-      if (previews.some(preview => !preview) || new Set(previews.map(preview => preview?.workId)).size !== 1) {
-        throw new DomainError("选中场面需要引用同一个已预排的完整作品", "MOTION_AUTHORING_PREVIEW_INVALID");
-      }
-      for (const preview of previews) {
-        const work = motionWorkVersion(state.snapshot.motionWorks, preview!.workId, preview!.definitionHash);
-        const projectStart = target.action === "create_cue" ? target.startFrame : target.action === "replace_range" ? target.targetRange.startFrame : targetCue!.startFrame;
-        const projectEnd = target.action === "create_cue" ? target.endFrame : target.action === "replace_range" ? target.targetRange.endFrame : targetCue!.endFrame;
-        const sourceStart = target.action === "create_cue" ? target.sourceStartFrame : (targetCue!.sourceStartFrame ?? 0) + projectStart - targetCue!.startFrame;
-        const rootRange = work && motionRootRangeAtProjectRange(sourceStart, sourceStart + projectEnd - projectStart, work.fps, state.snapshot.timeline.fps);
-        if (!work || work.definitionHash !== preview!.definitionHash || !rangeCovered(work.readyRanges, preview!.startFrame, preview!.endFrame)
-          || !rootRange || preview!.startFrame > rootRange.startFrame || preview!.endFrame < rootRange.endFrame
-          || ["project", "run_id", "frozen_version"].some(key => work.author?.[key as keyof NonNullable<typeof work.author>] !== preview!.author?.[key as keyof NonNullable<typeof work.author>])
-          || await sha256File(join(state.snapshot.project.rootPath, work.definitionPath)).catch(() => "") !== preview!.definitionHash) {
-          throw new DomainError(`场面预排作品 ${preview!.workId} 不存在、已变化或未覆盖已发布的目标根帧范围`, "MOTION_AUTHORING_PREVIEW_INVALID");
-        }
-      }
       for (const file of scopedManifest.files.filter(entry => entry.requiredForRun !== false)) {
         if (!file.sha256 || !file.localReadable || await sha256File(join(dirname(delivery.manifestPath), file.deliveredPath)).catch(() => "") !== file.sha256) {
           throw new DomainError(`交付文件缺失或已变化：${file.deliveredPath}`, "MOTION_AUTHORING_DELIVERY_INVALID");
@@ -3128,7 +3143,7 @@ export class EditingApplication {
           throw new DomainError(`场面素材 ${source.assetId} 与当前视觉采用不一致`, "MOTION_AUTHORING_MATERIAL_CHANGED");
         }
       }
-      inputs.push({ visualTreatmentId: id, previewWorkId: previews[0]!.workId, adoptedDecisionRef: structuredClone(adoption), deliveryRef: structuredClone(delivery),
+      inputs.push({ visualTreatmentId: id, adoptedDecisionRef: structuredClone(adoption), deliveryRef: structuredClone(delivery),
         treatmentSignature: motionTreatmentSignature(state.snapshot, id) });
     }
     return inputs;
@@ -3179,17 +3194,14 @@ export class EditingApplication {
           .map(item => item.adoptedDecisionRef!.decisionId);
         throw new MotionAuthoringCoordinationError([{ code: error.code, scope, relatedDecisionIds: decisionIds,
           relatedObjectIds: scope.objectIds, state: "stale", message: error.message,
-          nextAction: "续接视觉作者和主导演，核对当前场面、同源预排、素材及交付后重新提交" }]);
+          nextAction: "续接视觉作者和主导演，核对当前场面、素材及交付后重新提交" }]);
       }
       throw error;
     }
-    const targetWorkIds = new Set(authoringInputs.map(entry => entry.previewWorkId).filter(Boolean));
-    if (report && (report.intent === "full_creation" || report.intent === "visual_rework") && targetWorkIds.size !== 1) {
-      throw new DomainError("当前制作目标的预排必须属于同一个完整作品", "MOTION_AUTHORING_PREVIEW_INVALID");
-    }
-    // 局部替换也沿目标 Cue 的作品和固定作者续修；新建 Cue 没有既有作品可继承。
+    // 完整委托预留稳定身份，首个冻结作品登记后和后续阶段使用同一 ID。
     const logicalWorkId = report && (report.intent === "full_creation" || report.intent === "visual_rework")
-      ? [...targetWorkIds][0] : input.intent === "local_edit" ? requestedCue?.workId : undefined;
+      ? requestedCue?.workId ?? ("motion_work_" + createHash("sha256").update(input.projectId + ":" + report.id).digest("hex"))
+      : input.intent === "local_edit" ? requestedCue?.workId : undefined;
     const continuationWork = requestedCue && logicalWorkId && requestedCue.workId === logicalWorkId
       ? motionWorkForCue(state.snapshot, requestedCue) : logicalWorkId ? motionWorkVersion(state.snapshot.motionWorks, logicalWorkId) : undefined;
     const continuationAuthor = continuationWork?.author;
@@ -3292,7 +3304,10 @@ export class EditingApplication {
     if (current.revision.number !== input.baseRevision) throw new DomainError("项目 Revision 已变化，请重新读取", "REVISION_CONFLICT");
     if (input.logicalWorkId) {
       const previous = motionWorkVersion(current.snapshot.motionWorks, input.logicalWorkId);
-      if (!previous || previous.width !== work.width || previous.height !== work.height || previous.fps !== work.fps || previous.frameCount !== work.durationInFrames) {
+      if (!previous && !(input.inputBundle && outputIntent === "prepare")) {
+        throw new DomainError("连续作品尚未登记", "MOTION_WORK_NOT_FOUND");
+      }
+      if (previous && (previous.width !== work.width || previous.height !== work.height || previous.fps !== work.fps || previous.frameCount !== work.durationInFrames)) {
         throw new DomainError("连续作品必须保持已登记作品的画幅、帧率和完整时长", "MOTION_WORK_STRUCTURE_CHANGED");
       }
     }

@@ -14,7 +14,9 @@ const soundPlanFields = z.object({
   startFrame: z.number().int().nonnegative().describe("段落起始帧；配音前按项目 fps 换算预估范围，配音后按实测声音更新。"),
   endFrame: z.number().int().positive().describe("段落结束帧（不含），必须大于 startFrame；预估范围不表示已锁定成片时长。"),
   narrationDirection: z.string().trim().min(1).max(2000), dominantRole: audioRoleSchema, musicDirection: z.string().trim().min(1).max(2000),
-  intents: z.array(z.object({ id: z.string().min(1).max(160), function: z.enum(["anticipation", "settle", "reaction", "connection", "ambience", "music", "silence", "demonstration"]), brief: z.string().trim().min(1).max(1600), requestId: z.string().optional(), motionEventId: z.string().optional() }).strict()).max(30),
+  intents: z.array(z.object({ id: z.string().min(1).max(160), function: z.enum(["anticipation", "settle", "reaction", "connection", "ambience", "music", "silence", "demonstration"]), brief: z.string().trim().min(1).max(1600), requestId: z.string().optional(), motionEventId: z.string().optional(),
+    requiredSyncReview: z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() }).strict().optional()
+      .describe("仅登记导演明确要求精确卡点的事件；成片半开帧范围，须用事件测量复核，审阅 subject_id 为声音计划 ID:声音意图 ID。") }).strict()).max(30),
   // 短句也足以说明主导声音；不让长度限制在 MCP 入参层误拒绝有效计划。
   dominantRanges: z.array(z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(), role: audioRoleSchema, reason: z.string().trim().min(1).max(800) }).strict()).max(40).optional()
 }).strict();
@@ -77,7 +79,11 @@ export function manageSoundPlan(app: EditingApplication, projectId: string, base
     }
     const plan = { ...existing, ...Object.fromEntries(Object.entries(input).filter(([key, value]) => value !== undefined && !["action", "soundPlanId"].includes(key))), id: existing?.id ?? createId("sound_plan"), version: (existing?.version ?? 0) + 1, status: "current", updatedAt: now() } as SoundPlan;
     if (!Number.isInteger(plan.startFrame) || !Number.isInteger(plan.endFrame) || plan.endFrame <= plan.startFrame || !plan.narrationDirection || !plan.musicDirection || !plan.dominantRole || !Array.isArray(plan.intents)) throw new DomainError("计划需要完整范围、旁白意图、主声音、音乐设计和声音意图", "SOUND_PLAN_INCOMPLETE");
-    if (new Set(plan.intents.map((entry) => entry.id)).size !== plan.intents.length || plan.dominantRanges?.some((range) => range.startFrame < plan.startFrame || range.endFrame > plan.endFrame || range.startFrame >= range.endFrame)) throw new DomainError("声音意图重复或主导范围越界", "SOUND_PLAN_RANGE_INVALID");
+    if (new Set(plan.intents.map((entry) => entry.id)).size !== plan.intents.length || plan.dominantRanges?.some((range) => range.startFrame < plan.startFrame || range.endFrame > plan.endFrame || range.startFrame >= range.endFrame)
+      || plan.intents.some(entry => entry.requiredSyncReview && (entry.requiredSyncReview.startFrame < plan.startFrame
+        || entry.requiredSyncReview.endFrame > plan.endFrame || entry.requiredSyncReview.startFrame >= entry.requiredSyncReview.endFrame))) {
+      throw new DomainError("声音意图重复或计划内范围越界", "SOUND_PLAN_RANGE_INVALID");
+    }
     snapshot.soundPlans ??= [];
     if (existing) snapshot.soundPlans[snapshot.soundPlans.indexOf(existing)] = plan; else snapshot.soundPlans.push(plan);
     if (existing?.status === "current") {

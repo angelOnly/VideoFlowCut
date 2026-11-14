@@ -19,9 +19,12 @@ test('正式库案例数量与目录一致，已转换案例的总览与机制�
   assert.equal(readdirSync(new URL('cases/',root)).length,catalogue.count);
   for(const c of cases){
     const mechanism=c.analysis_kind==='mechanisms-v1';
-    const expectedFiles=mechanism?['mechanisms','overview.md','storyboard.jpg','video.mp4']:['analysis.md','video.mp4'];
+    const creativeOnly=c.analysis_kind==='creative-only';
+    const expectedFiles=mechanism?['mechanisms','overview.md','storyboard.jpg','video.mp4']
+      :creativeOnly?['overview.md','video.mp4']:['analysis.md','video.mp4'];
     if(creativeCases.has(c.case_number))expectedFiles.push('creative','storyboards');
     assert.deepEqual(readdirSync(new URL(c.directory+'/',root)).sort(),expectedFiles.sort());
+    if(creativeOnly)assert.deepEqual(c.mechanism_ids,[]);
     if(mechanism){
       assert.equal(c.storyboard,c.directory+'/storyboard.jpg');
       const picture=readFileSync(new URL(c.storyboard,root));
@@ -31,7 +34,8 @@ test('正式库案例数量与目录一致，已转换案例的总览与机制�
     assert.equal(new URL(c.detail,'http://localhost/').pathname,'/detail.html');
     for(const s of c.recommended_segments)assert.ok(s.start>=0&&s.end>s.start&&s.end<=c.duration);
     const text=readFileSync(new URL(c.analysis,root),'utf8');
-    const sections=mechanism?['运动总览','完整64宫格']:['适用场景','动效与美术拆解','实现建议','作者公开输入与来源','观看与文件说明'];
+    const sections=mechanism?['运动总览','完整64宫格']:creativeOnly?['创意场面']
+      :['适用场景','动效与美术拆解','实现建议','作者公开输入与来源','观看与文件说明'];
     for(const section of sections)assert.ok(text.includes(section),`${c.case_number} ${section}`);
     if(mechanism){
       assert.ok(!/\d+(?:\.\d+)?\s*秒|第\s*\d+\s*格/.test(text));

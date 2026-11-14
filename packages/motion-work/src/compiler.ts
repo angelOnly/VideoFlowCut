@@ -118,9 +118,17 @@ const paint=()=>new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0)));
  if(window.__motionError)throw Error(window.__motionError);
  const root=document.querySelector('[data-composition-id]');const timeline=window.__timelines[root.getAttribute('data-composition-id')];
  if(!timeline||!timeline.paused()||Math.abs(timeline.totalDuration()-vfc.config.durationInFrames/vfc.config.fps)>1e-7)throw Error('MOTION_TIMELINE_INVALID: 主时间线须暂停，且总时长与作品一致');
+ ${environment ? `// 记录作者初始状态，避免 HyperFrames 的嵌入式编辑器自动标记覆盖作品时序。
+ const authoredState=new Map([...document.querySelectorAll('*')].filter(el=>el instanceof HTMLElement).map(el=>[el,{
+  stamped:el.hasAttribute('data-hf-autostamped'),start:el.getAttribute('data-start'),duration:el.getAttribute('data-duration'),
+  visibility:el.style.getPropertyValue('visibility'),priority:el.style.getPropertyPriority('visibility')}]));` : ""}
  appendScript(${json(libraries.hyperframes)});
  while(!window.__renderReady||!window.__playerReady){if(window.__motionError)throw Error(window.__motionError);await paint();}
  window.__player.pause();gsap.ticker.sleep();
+ ${environment ? `// 只撤销运行库自动添加的标记，保留作者自己的范围与可见性设置。
+ for(const el of document.querySelectorAll('[data-hf-autostamped]')){const old=authoredState.get(el);if(!old||old.stamped)continue;
+  for(const [name,value] of [['data-start',old.start],['data-duration',old.duration]])value===null?el.removeAttribute(name):el.setAttribute(name,value);
+  el.removeAttribute('data-hf-autostamped');old.visibility?el.style.setProperty('visibility',old.visibility,old.priority):el.style.removeProperty('visibility');}` : ""}
  window.__readMotionEvents=()=>typeof window.getVfcMotionEvents==='function'?window.getVfcMotionEvents():null;
  window.__motionSeek=async frame=>{
   if(!Number.isInteger(frame)||frame<0||frame>=vfc.config.durationInFrames)throw Error('MOTION_FRAME_RANGE');

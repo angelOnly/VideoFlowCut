@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { createRequire } from "node:module";
 import { promisify } from "node:util";
+import { pathToFileURL } from "node:url";
 import { pluginRootFromModule, resolveRepoRoot } from "./repo-root.mjs";
 import { readOpenDesignStatus } from "./open-design-release.mjs";
 import { findAvailablePort, stopRuntime } from "./runtime-launcher.mjs";
@@ -34,6 +35,23 @@ try {
   await cp(join(sourcePlugin, ".codex-plugin"), join(pluginRoot, ".codex-plugin"), { recursive: true });
   await mkdir(join(pluginRoot, "runtime"), { recursive: true });
   await cp(sourceRelease, join(pluginRoot, "runtime", "dist"), { recursive: true });
+  // 真实启动时注入一次目录占用，验证启动器能恢复而不是只检查重试代码。
+  const renameMarker = join(root, "rename-retry.marker");
+  if (process.platform === "win32") {
+    const preload = join(root, "rename-once.mjs");
+    await writeFile(preload, String.raw`import fs from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
+const original=fs.rename;let injected=false;
+fs.rename=async function(from,to){
+ const source=String(from).replaceAll('\\','/'),target=String(to).replaceAll('\\','/');
+ if(!injected && process.env.VIDEOFLOWCUT_OD_NAMESPACE?.startsWith('vfc-test-') && source.includes('/.videoflowcut-runtime/open-design/preparing-') && target.includes('/.videoflowcut-runtime/open-design/release-')){
+  injected=true;await fs.writeFile(process.env.VFC_TEST_RENAME_MARKER,'EPERM 已注入');const error=new Error('模拟 Windows 短暂占用');error.code='EPERM';throw error;
+ }
+ return original.call(this,from,to);
+};syncBuiltinESMExports();`, "utf8");
+    env.NODE_OPTIONS = [env.NODE_OPTIONS, `--import=${pathToFileURL(preload).href}`].filter(Boolean).join(" ");
+    env.VFC_TEST_RENAME_MARKER = renameMarker;
+  }
   transport = new StdioClientTransport({ command: process.execPath, args: [join(pluginRoot, "scripts", "open-design-mcp-launcher.mjs")],
     cwd: pluginRoot, env, stderr: "pipe" });
   let diagnostic = "";
@@ -41,6 +59,7 @@ try {
   client = new Client({ name: "videoflowcut-open-design-e2e", version: "1.0.0" });
   try { await client.connect(transport, { timeout: 180_000 }); }
   catch (error) { throw new Error(`画面工具未连接：${error.message}\n${diagnostic}`); }
+  if (process.platform === "win32") assert.equal(await readFile(renameMarker, "utf8"), "EPERM 已注入");
   const tools = await client.listTools();
   for (const name of ["list_skills", "create_project", "start_run", "prepare_authored_work_submission", "freeze_project_work", "read_frozen_work"]) {
     assert.ok(tools.tools.some(tool => tool.name === name), `缺少画面工具：${name}`);

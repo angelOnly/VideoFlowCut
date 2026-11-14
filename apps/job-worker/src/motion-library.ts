@@ -5,6 +5,7 @@ import type { JobRecord } from "@videocut/contracts";
 import { DomainError } from "@videocut/domain";
 import { probeMedia, runProcess } from "@videocut/speech";
 import { loadLibraryIndex, searchLibraryIndex, libraryVideo } from "../../../references/motion-cases/skillry/tools/library-store.mjs";
+import { readCreativeCase } from "../../../references/motion-cases/skillry/tools/creative-library.mjs";
 import { digest, timeRangeSchema } from "../../../packages/media-intelligence/src/index.js";
 import { mechanismChunks, motionCacheKey, MOTION_TEXT_VERSION, LEGACY_MOTION_VIDEO_PROMPT } from "../../../packages/media-intelligence/src/motion-library.js";
 import { deriveMediaInput, PREPROCESSING_VERSION } from "../../../packages/media-intelligence/src/derive.js";
@@ -39,20 +40,30 @@ export async function runMotionLibrarySearch(app: EditingApplication, job: JobRe
 /** 只允许库编号和源范围；不接收任意文件路径，不创建项目素材或观察。 */
 export async function runMotionReferenceAnalysis(app: EditingApplication, job: JobRecord, bridge: ComfyUIBridgeClient): Promise<Record<string, unknown>> {
   const id = String(job.payload.id), fingerprint = String(job.payload.source_sha256);
-  const path = libraryVideo(libraryRoot(), id, fingerprint), range = timeRangeSchema.parse(job.payload.range);
+  const creative = id.includes("-c") ? readCreativeCase(libraryRoot(), { id, source_sha256: fingerprint, include_storyboard: false }) : undefined;
+  const video = creative?.result.resources as { video?: { absolute_path?: string } } | undefined;
+  const path = creative ? video?.video?.absolute_path : libraryVideo(libraryRoot(), id, fingerprint);
+  if (!path) throw new DomainError("参考原片不可读取", "MOTION_REFERENCE_VIDEO_MISSING");
+  const range = timeRangeSchema.parse(job.payload.range);
   const metadata = await probeMedia(path);
   if (range.endMs > metadata.durationMs || range.endMs - range.startMs > 15000) throw new DomainError("原片分析范围必须在文件内且不超过15秒", "MOTION_REFERENCE_RANGE_INVALID");
   const hash = await hashMediaFile(path), config = semanticConfig(job);
   if (bridge.apiBaseUrl !== config.apiBaseUrl) bridge = new ComfyUIBridgeClient(config.apiBaseUrl);
   const schema = await bridge.getWorkflow(config.videoWorkflowId);
   const prompt = typeof job.payload.videoPrompt === "string" ? job.payload.videoPrompt : LEGACY_MOTION_VIDEO_PROMPT;
-  const key = digest([id, fingerprint, hash, range, config, schema.schemaVersion, prompt, PREPROCESSING_VERSION]);
+  const identity: unknown[] = [id, fingerprint, hash, range, config, schema.schemaVersion, prompt, PREPROCESSING_VERSION];
+  // 新请求的音轨处理必须参与缓存身份，旧任务仍沿原身份恢复。
+  if (job.payload.analysisMode) identity.push("reference-audio-track-v2", job.payload.analysisMode);
+  const key = digest(identity);
   const cached = app.intelligence.store.libraryCache<Record<string, unknown>>(`motion-video:${key}`);
   if (cached) return { ...cached, cache_hit: true };
   const probe = JSON.parse(await runProcess("ffprobe", ["-v", "error", "-show_format", "-of", "json", path], 120000));
   const directory = join(app.getProjectRoot(job.projectId), "cache", "motion-reference", key);
-  const derived = await deriveMediaInput({ id: `library:${id}`, hash, path, kind: "video", hasAudio: false, startSeconds: Number(probe.format?.start_time ?? 0) }, directory, range);
-  const inputFrames = JSON.parse(await runProcess("ffprobe", ["-v", "error", "-select_streams", "v:0", "-count_frames", "-show_entries", "stream=nb_read_frames,avg_frame_rate", "-of", "json", derived.path], 120000));
+  const hasAudio = job.payload.analysisMode === "audiovisual" && Boolean(metadata.hasAudio);
+  const derived = await deriveMediaInput({ id: `library:${id}`, hash, path, kind: "video", hasAudio, startSeconds: Number(probe.format?.start_time ?? 0) }, directory, range);
+  const inputFrames = JSON.parse(await runProcess("ffprobe", ["-v", "error", "-count_frames", "-show_entries", "stream=codec_type,nb_read_frames,avg_frame_rate", "-of", "json", derived.path], 120000));
+  const derivedHasAudio = Array.isArray(inputFrames.streams) && inputFrames.streams.some((stream: { codec_type?: string }) => stream.codec_type === "audio");
+  if (hasAudio && !derivedHasAudio) throw new DomainError("参考原片有声音，但提交分析的片段缺少音轨", "MOTION_REFERENCE_AUDIO_MISSING");
   const response = await modelText(app, job, bridge, `motion-video:${key}`, config.videoWorkflowId, async workflow => {
     const fieldValues: Record<string, unknown> = {};
     for (const [label, value] of Object.entries({ prompt, start_seconds: 0, duration_seconds: (range.endMs - range.startMs) / 1000 })) {
@@ -62,7 +73,7 @@ export async function runMotionReferenceAnalysis(app: EditingApplication, job: J
     }
     return { fieldValues, files: [{ slot: bridge.findRequiredSlot(workflow, "video"), path: derived.path, mime: "video/mp4" }] };
   }, undefined, key);
-  const result = { id, source_sha256: fingerprint, source_hash: hash, range, description: response.text, model: config.modelRevision, schema: response.schemaVersion, run_id: response.runId, input: { path: derived.path, mapping: derived.mapping, streams: inputFrames.streams }, sampling: { model_frame_density: "unknown", limitation: "派生片段帧数不等于模型实际抽样；未返回模型采样证据，快速交叠与精确速度保持未知。" }, cache_hit: false };
+  const result = { id, source_sha256: fingerprint, source_hash: hash, range, description: response.text, model: config.modelRevision, schema: response.schemaVersion, run_id: response.runId, input: { path: derived.path, mapping: derived.mapping, source_has_audio: Boolean(metadata.hasAudio), has_audio: derivedHasAudio, streams: inputFrames.streams }, sampling: { model_frame_density: "unknown", limitation: "派生片段帧数不等于模型实际抽样；未返回模型采样证据，快速交叠与精确速度保持未知。" }, cache_hit: false };
   app.intelligence.store.saveLibraryCache(`motion-video:${key}`, result);
   return result;
 }

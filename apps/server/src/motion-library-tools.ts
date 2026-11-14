@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { resolve } from "node:path";
 import { z } from "zod";
 import { loadLibraryIndex, searchLibraryIndex, readLibraryMechanism } from "../../../references/motion-cases/skillry/tools/library-store.mjs";
+import { readCreativeCase } from "../../../references/motion-cases/skillry/tools/creative-library.mjs";
 import { termsFor } from "../../../references/motion-cases/skillry/taxonomy.mjs";
 import type { EditingApplication } from "@videocut/application";
 import { readRuntimeConfig } from "@videocut/project-overview";
@@ -92,17 +93,22 @@ export function registerMotionLibraryTools(server: McpServer, root = resolve(pro
     } catch(error) {return failure(error);}
   });
   if(app&&projectIdFrom) server.registerTool("analyze_motion_reference", {
-    title:"读取原片运动范围",
-    description:"需要补充实际构图、美术与运动过程的观察时，按库编号和原片毫秒范围提交异步理解，最多15秒。track_job 读取真实描述、来源与采样边界；不修改机制原文或项目 Revision，不创建素材审核。失败任务沿 retry_media_job 显式恢复。",
+    title:"分析创意或动效参考原片",
+    description:"按创意卡或动效卡编号、原片毫秒范围和观察问题提交异步理解，单段最多15秒。默认保留同段原声，track_job 返回实际输入和采样边界。失败任务沿 retry_media_job 显式恢复。",
     annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:true},
-    inputSchema:{project_id:z.string().optional(),id,source_sha256:fingerprint,range:timeRangeSchema}
+    inputSchema:{project_id:z.string().optional(),id:z.string().regex(/^\d{3}-[mc]\d{2}$/u),source_sha256:fingerprint,range:timeRangeSchema,
+      mode:z.enum(["visual","audiovisual"]).default("audiovisual"),observation_questions:z.array(z.string().min(1).max(1000)).max(8).optional()}
   },async({project_id,...request})=>{
     let sideEffects: "none" | "unknown" = "none";
     try{
       if(request.range.endMs-request.range.startMs>15000)throw new Error("原片范围不能超过15秒");
-      readLibraryMechanism(root,{id:request.id,source_sha256:request.source_sha256,include_storyboard:false});
+      if (request.id.includes("-c")) readCreativeCase(root,{id:request.id,source_sha256:request.source_sha256,include_storyboard:false});
+      else readLibraryMechanism(root,{id:request.id,source_sha256:request.source_sha256,include_storyboard:false});
       // 提示参与任务身份，避免新观察要求命中旧的成功 Job；Worker 沿提交时的提示执行。
-      const config=readRuntimeConfig(),payload={...request,videoPrompt:MOTION_VIDEO_PROMPT,modelConfig:{...config.semantic,apiBaseUrl:config.bridge.apiBaseUrl}};
+      const config=readRuntimeConfig(),payload={id:request.id,source_sha256:request.source_sha256,range:request.range,analysisMode:request.mode,
+        videoPrompt:[MOTION_VIDEO_PROMPT,request.mode==="audiovisual"?"同时描述本段实际听到的声音及其与画面的关系，无法分辨时说明未知。":"只判断画面。",
+          ...(request.observation_questions?.length?[`本次需要观察的问题：${request.observation_questions.join("；")}`]:[])].join("\n"),
+        modelConfig:{...config.semantic,apiBaseUrl:config.bridge.apiBaseUrl}};
       const projectId=projectIdFrom(project_id);
       sideEffects="unknown";
       const submitted=app.repository.createJob({projectId,kind:"motion_reference_analysis",payload,idempotencyKey:`motion-reference:${digest(payload)}`});

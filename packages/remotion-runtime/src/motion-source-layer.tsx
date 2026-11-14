@@ -2,6 +2,8 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useBufferState } from "remotion";
 import type { MotionWork } from "@videocut/contracts";
 
+const seekTimeoutMessage = "目标画面未按时就绪，请查看素材解码与作品诊断。";
+
 /** 父合成只提供根帧；请求序号对应真实完成帧，慢帧不排成无限积压。 */
 export function MotionSourceLayer({ work, projectId, revision, mediaBaseUrl, frame, projectFps, playbackControl, visible = true }: {
   work: MotionWork; projectId: string; revision: number; mediaBaseUrl: string; frame: number; projectFps: number; playbackControl?: { playing: boolean }; visible?: boolean;
@@ -19,7 +21,7 @@ export function MotionSourceLayer({ work, projectId, revision, mediaBaseUrl, fra
     if (!ready.current || active.current !== undefined || failure) return;
     active.current = ++sequence.current;
     clearTimeout(requestTimer.current);
-    requestTimer.current = setTimeout(() => setFailure("目标画面未按时就绪，请查看素材解码与作品诊断。"), 15_000);
+    requestTimer.current = setTimeout(() => setFailure(seekTimeoutMessage), 15_000);
     iframe.current?.contentWindow?.postMessage({ type: "vfc-motion-seek", workId: work.id, sequence: active.current, frame: desired.current }, "*");
   };
   useLayoutEffect(() => {
@@ -42,6 +44,8 @@ export function MotionSourceLayer({ work, projectId, revision, mediaBaseUrl, fra
       if (message.type !== "vfc-motion-frame" || message.sequence !== active.current) return;
       clearTimeout(requestTimer.current);
       active.current = undefined; setDisplayed(message.frame);
+      // 迟到的实际画面可以解除寻帧超时；其他作品错误仍须保留。
+      setFailure(current => current === seekTimeoutMessage ? undefined : current);
       if (message.frame !== desired.current) { send.current(); return; }
       handle.current?.unblock(); handle.current = undefined;
     };
@@ -50,7 +54,8 @@ export function MotionSourceLayer({ work, projectId, revision, mediaBaseUrl, fra
     return () => { clearTimeout(timeout); clearTimeout(requestTimer.current); window.removeEventListener("message", listener); handle.current?.unblock(); };
   }, [work.id, work.definitionHash]);
   const url = `${mediaBaseUrl.replace(/\/$/u, "")}/motion-work/${encodeURIComponent(projectId)}/${encodeURIComponent(work.id)}/${revision}/${work.definitionHash}/document`;
-  return <div data-motion-work={work.id} data-requested-frame={frame} data-displayed-frame={displayed} data-motion-error={failure} style={{ position: "absolute", inset: 0, overflow: "hidden", display: visible ? undefined : "none" }}>
+  // 预备层不能使用 display:none：隐藏 iframe 的绘制回调会被浏览器暂停，导致预取帧超时。
+  return <div data-motion-work={work.id} data-requested-frame={frame} data-displayed-frame={displayed} data-motion-error={failure} style={{ position: "absolute", inset: 0, overflow: "hidden", visibility: visible ? undefined : "hidden" }}>
     <iframe ref={iframe} title={work.name} src={url} sandbox="allow-scripts" style={{ width: work.width, height: work.height, border: 0, background: "transparent", pointerEvents: "none" }} />
     {failure && <div role="alert" style={{ position: "absolute", inset: 0, background: "#200e19", color: "white", padding: 32 }}>{failure}</div>}
   </div>;

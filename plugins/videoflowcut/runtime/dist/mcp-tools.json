@@ -7378,7 +7378,7 @@
     {
       "name": "prepare_motion_handoff",
       "title": "准备场面制作交付",
-      "description": "按当前项目快照准备固定简报、时间资料、素材、参考与可选同源预排，返回清单哈希、实际文件和逐场面缺口。预排引用使用当前项目的 MotionWork 与作品根帧；资料就绪不等于画面质量通过。",
+      "description": "按当前项目快照准备固定导演稿、时间资料、真实素材和采用参考，返回清单哈希、选中场面、实际文件与逐场面缺口。资料就绪不代表首版画面已完成或质量已通过。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7657,14 +7657,6 @@
                 "visualPlan": {
                   "type": "object",
                   "properties": {
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "draft",
-                        "previewed",
-                        "pending"
-                      ]
-                    },
                     "primaryRoles": {
                       "type": "array",
                       "items": {
@@ -7690,6 +7682,18 @@
                               "motion"
                             ],
                             "description": "参考类型；同一 ID 同时对应创意和机制时必须填写"
+                          },
+                          "researchDecisionId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "startMs": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "endMs": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0
                           },
                           "targetRole": {
                             "type": "string",
@@ -7725,6 +7729,9 @@
                         },
                         "required": [
                           "referenceId",
+                          "researchDecisionId",
+                          "startMs",
+                          "endMs",
                           "targetRole",
                           "treatment"
                         ],
@@ -7740,37 +7747,9 @@
                         "type": "string",
                         "minLength": 1
                       }
-                    },
-                    "preview": {
-                      "type": "object",
-                      "properties": {
-                        "workId": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "definitionHash": {
-                          "type": "string",
-                          "pattern": "^[a-f0-9]{64}$"
-                        },
-                        "startFrame": {
-                          "type": "integer",
-                          "minimum": 0
-                        },
-                        "endFrame": {
-                          "type": "integer",
-                          "exclusiveMinimum": 0
-                        }
-                      },
-                      "required": [
-                        "workId",
-                        "startFrame",
-                        "endFrame"
-                      ],
-                      "additionalProperties": false
                     }
                   },
                   "required": [
-                    "status",
                     "primaryRoles"
                   ],
                   "additionalProperties": false
@@ -7817,7 +7796,7 @@
     {
       "name": "start_motion_authoring",
       "title": "启动阶段画面制作",
-      "description": "主任务提交当前范围的完整制作请求与资料，绑定明确的时间线目标。完整新制与主要视觉重构先接回导演采用及视觉作者的同源预排；局部修改沿已有作品继续。制作作者深化已确定的主要关系，阶段源码自动登记和采用。原任务结束后的同源修订使用新幂等键，并通过 continue_from_run_id 指定原制作 Run。",
+      "description": "主任务提交导演采用的视觉方案、交付资料和明确的时间线目标。OD 制作首版并分阶段交回，后续修订沿同一作品继续。原任务结束后的续修使用新幂等键，并通过 continue_from_run_id 指定原制作 Run。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -8080,7 +8059,7 @@
     {
       "name": "wait_motion_authoring",
       "title": "等待阶段画面制作结果",
-      "description": "按 sequence 接回阶段制作与采用结果。authoring.status 表示制作执行与目标范围完成情况；阶段回执定位实际作品及版本，主任务交导演、创意与视觉检查材料组织、整片发展及参考表现。拒收反馈保留实际接收及对账状态；超时表示暂无新进展。",
+      "description": "按 sequence 接回阶段制作与采用结果。阶段回执的 rangeMappings 同时提供工作台使用的 projectRange 和 OD 反馈使用的 workRootRange，均为半开帧范围。返修只是阶段内的短段时，传入 range_request 的原 run_id、frozen_version 和工作台 project_range，读取 requestedRangeMapping 的精确作品根帧再交给 OD。主任务交导演、创意与视觉检查实际画面。拒收反馈保留实际接收及对账状态；超时表示暂无新进展。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -8101,6 +8080,43 @@
             "minimum": 0,
             "maximum": 30000,
             "default": 20000
+          },
+          "range_request": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "frozen_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "project_range": {
+                "type": "object",
+                "properties": {
+                  "startFrame": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "endFrame": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "startFrame",
+                  "endFrame"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "run_id",
+              "frozen_version",
+              "project_range"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -9335,8 +9351,8 @@
     },
     {
       "name": "analyze_motion_reference",
-      "title": "读取原片运动范围",
-      "description": "需要补充实际构图、美术与运动过程的观察时，按库编号和原片毫秒范围提交异步理解，最多15秒。track_job 读取真实描述、来源与采样边界；不修改机制原文或项目 Revision，不创建素材审核。失败任务沿 retry_media_job 显式恢复。",
+      "title": "分析创意或动效参考原片",
+      "description": "按创意卡或动效卡编号、原片毫秒范围和观察问题提交异步理解，单段最多15秒。默认保留同段原声，track_job 返回实际输入和采样边界。失败任务沿 retry_media_job 显式恢复。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -9345,7 +9361,7 @@
           },
           "id": {
             "type": "string",
-            "pattern": "^\\d{3}-m\\d{2}$"
+            "pattern": "^\\d{3}-[mc]\\d{2}$"
           },
           "source_sha256": {
             "type": "string",
@@ -9368,6 +9384,23 @@
               "endMs"
             ],
             "additionalProperties": false
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "visual",
+              "audiovisual"
+            ],
+            "default": "audiovisual"
+          },
+          "observation_questions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            },
+            "maxItems": 8
           }
         },
         "required": [
@@ -10344,7 +10377,7 @@
     {
       "name": "manage_sound_plans",
       "title": "管理段落声音计划",
-      "description": "在真实旁白和作品制作前确定段落主声音、表演意图、动作功能、音乐与留白。create 必须提供完整 startFrame/endFrame、narrationDirection、dominantRole、musicDirection 和 intents；配音前按项目 fps 提交预估帧范围，配音后用 update 按实测时长修订。update/remove 必须提供 soundPlanId，update 可只传待改字段。无 input 只读；写入必须提供当前 base_revision_id。",
+      "description": "在真实旁白和作品制作前确定段落主声音、表演意图、动作功能、音乐与留白。create 必须提供完整 startFrame/endFrame、narrationDirection、dominantRole、musicDirection 和 intents；配音前按项目 fps 提交预估帧范围，配音后用 update 按实测时长修订。导演明确要求精确卡点的意图填写 requiredSyncReview 成片帧范围，最终事件审阅须引用实际测量，subject_id 使用计划 ID:意图 ID。update/remove 必须提供 soundPlanId，update 可只传待改字段。无 input 只读；写入必须提供当前 base_revision_id。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -10424,6 +10457,25 @@
                         },
                         "motionEventId": {
                           "type": "string"
+                        },
+                        "requiredSyncReview": {
+                          "type": "object",
+                          "properties": {
+                            "startFrame": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "endFrame": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0
+                            }
+                          },
+                          "required": [
+                            "startFrame",
+                            "endFrame"
+                          ],
+                          "additionalProperties": false,
+                          "description": "仅登记导演明确要求精确卡点的事件；成片半开帧范围，须用事件测量复核，审阅 subject_id 为声音计划 ID:声音意图 ID。"
                         }
                       },
                       "required": [
@@ -11931,6 +11983,19 @@
                 "source_sha256": {
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
+                },
+                "start_ms": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "end_ms": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                "observed_relation": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
                 }
               },
               "required": [

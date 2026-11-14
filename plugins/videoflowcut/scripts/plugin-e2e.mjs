@@ -304,14 +304,20 @@ try {
       { sceneId: "ready", status: "ready", visualRoles: [{ role: "主体", referenceFunction: "运动过程", usage: "展示视频主体",
         assetIds: [importedAsset.id], sourceRanges: [{ startMs: 0, endMs: 1000 }] }],
         references: [{ kind: "creative", id: "002-c01", sourceSha256: creative.source_sha256, startMs: 0, endMs: 9800, purpose: "参考画面组织" }],
-        visualPlan: { status: "previewed", primaryRoles: ["主体"], referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative",
-          targetRole: "主体", treatment: "以真实视频主体接续画面", preserveRelation: "真实动作与参考的画面组织共同作用" }],
-          preview: { workId: fixedMotion.work.id, startFrame: 0, endFrame: 24 } },
+        visualPlan: { primaryRoles: ["主体"], referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative",
+          researchDecisionId: "release-research-fixture", startMs: 0, endMs: 9800,
+          targetRole: "主体", treatment: "以真实视频主体接续画面", preserveRelation: "真实动作与参考的画面组织共同作用" }] },
         process: "主体出现并连续运动", preserve: ["真实动作"], adapt: ["排版"] },
       { sceneId: "pending", status: "pending", visualRoles: [{ role: "主体", referenceFunction: "待定", usage: "待补材", assetIds: ["missing"] }] }
     ] });
   assert.match(handoff.manifestSha256, /^[a-f0-9]{64}$/u);
   assert.deepEqual(handoff.scenes.map(scene => scene.status), ["ready", "pending"]);
+  const handoffScenes = handoff.files.find(file => file.path.endsWith("/brief/scenes.json"));
+  assert.ok(handoffScenes, "发行交接须包含场面资料");
+  const deliveredScenes = JSON.parse(await readFile(handoffScenes.localPath, "utf8"));
+  assert.deepEqual(deliveredScenes.scenes[0].visualPlan.referenceMappings[0], { referenceId: "002-c01", referenceKind: "creative",
+    researchDecisionId: "release-research-fixture", startMs: 0, endMs: 9800, targetRole: "主体",
+    treatment: "以真实视频主体接续画面", preserveRelation: "真实动作与参考的画面组织共同作用" });
   assert.ok(handoff.files.some(file => file.path.includes(importedAsset.id) && file.requiredForRun), "发行版须固定实际素材");
   const motion = await call("submit_motion_work", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
     idempotency_key: "release-motion-33-media", work_id: preparedResult.result.workId });

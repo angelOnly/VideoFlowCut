@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { createApplication } from "@videocut/application";
@@ -11,6 +11,7 @@ import { projectMotionJob, projectMotionSearchResult } from "../apps/server/src/
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { digest } from "../packages/media-intelligence/src/index.js";
 import { MOTION_VIDEO_PROMPT } from "../packages/media-intelligence/src/motion-library.js";
+import { loadCreativeIndex } from "../references/motion-cases/skillry/tools/creative-library.mjs";
 
 const privateData = "内部请求与向量不得进入创作返回";
 const assertCompact = (value: unknown) => assert.ok(!JSON.stringify(value).includes(privateData), JSON.stringify(value));
@@ -141,11 +142,22 @@ test("正式 MCP 搜索、核读、track_job 与恢复均精简出口，完整�
     app.updateJob(oldAnalysis.id, { status: "succeeded", result: { description: "旧提示的已完成结果" } });
     const analyzed = await call("analyze_motion_reference", { project_id: projectId, ...analysisRequest });
     assert.notEqual(analyzed.id, oldAnalysis.id, "提示更新不能命中旧成功任务");
-    assert.equal(app.trackJob(analyzed.id).payload.videoPrompt, MOTION_VIDEO_PROMPT);
+    assert.ok(String(app.trackJob(analyzed.id).payload.videoPrompt).startsWith(MOTION_VIDEO_PROMPT));
+    assert.match(String(app.trackJob(analyzed.id).payload.videoPrompt), /同时描述本段实际听到的声音/);
     assert.equal((await call("analyze_motion_reference", { project_id: projectId, ...analysisRequest })).id, analyzed.id, "同提示同范围只恢复原任务");
     assert.equal(analyzed.kind, "motion_reference_analysis");
+    assert.equal(analyzed.reference_id, known.cards[0].id);
     assert.equal(analyzed.payload, undefined);
     assert.deepEqual(analyzed.range, { startMs: 0, endMs: 1000 });
+    const creativeIndex = loadCreativeIndex(resolve("references/motion-cases/skillry"));
+    const creativeRequest = { project_id: projectId, id: "002-c01", source_sha256: creativeIndex.source_sha256,
+      range: { startMs: 100, endMs: 900 }, observation_questions: ["小窗如何接管画面？"] };
+    const creative = await call("analyze_motion_reference", creativeRequest);
+    assert.equal(creative.reference_id, "002-c01");
+    assert.match(String(app.trackJob(creative.id).payload.videoPrompt), /小窗如何接管画面/);
+    assert.equal(app.trackJob(creative.id).payload.analysisMode, "audiovisual");
+    const differentQuestion = await call("analyze_motion_reference", { ...creativeRequest, observation_questions: ["同期声音是否触发动作？"] });
+    assert.notEqual(differentQuestion.id, creative.id, "不同观察问题不得复用旧任务");
     assert.equal(app.readProject(projectId).revision.number, 1);
   } finally {
     await client.close(); await transport.close(); app.close();

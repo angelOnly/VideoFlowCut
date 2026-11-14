@@ -49,7 +49,7 @@ test("固定源码直接进入工作台，真实图片字体视频按根帧预�
     const work = motionSubmissionSchema.parse({ name: "源码版本一", creativeBrief: "隔离技术样片，检查图片字体视频、非零源偏移及跨帧率，不能当作正式作品审美通过。", width: 320, height: 320, fps: 30, durationInFrames: 60,
       imageBindings: { image: image.asset.id }, fontBindings: { title: "noto-sans-sc-bold" },
       videoBindings: { clip: { assetId: video.asset.id, sourceStartMs: 0, sourceEndMs: 2000, startFrame: 0, endFrame: 60 } }, props: { label: "版本一" },
-      source: motionHtml('<img data-vfc-image-slot="image" style="position:absolute;left:0;top:0;width:32px;height:32px"><img id="clip" data-vfc-video-slot="clip" style="position:absolute;left:64px;top:0;width:64px;height:64px"><div id="title" style="position:absolute;left:20px;top:150px;color:white;font-size:24px;font-family:var(--vfc-font-title)"></div><div id="marker" style="position:absolute;left:0;top:90px;width:20px;height:20px;background:#ff0000"></div>', "document.querySelector('#title').textContent=props.label;tl.to('#marker',{x:100,duration:2,ease:'none'},0);window.getVfcMotionEvents=()=>[{id:'move',meaning:'标记移动',startFrame:0,endFrame:60},{id:'land',meaning:'中段落定',startFrame:15,endFrame:30}];", { width: 320, height: 320, fps: 30, durationInFrames: 60 }) });
+      source: motionHtml('<img data-vfc-image-slot="image" style="position:absolute;left:0;top:0;width:32px;height:32px"><img id="clip" data-vfc-video-slot="clip" style="position:absolute;left:64px;top:0;width:64px;height:64px"><div id="title" style="position:absolute;left:20px;top:150px;color:white;font-size:24px;font-family:var(--vfc-font-title)"></div><div id="marker" style="position:absolute;left:0;top:90px;width:20px;height:20px;background:#ff0000"></div><div id="later" style="position:absolute;top:250px;visibility:hidden">后段文字</div>', "document.querySelector('#title').textContent=props.label;tl.to('#marker',{x:100,duration:2,ease:'none'},0);tl.set('#later',{visibility:'visible'},20/30);window.getVfcMotionEvents=()=>[{id:'move',meaning:'标记移动',startFrame:0,endFrame:60},{id:'land',meaning:'中段落定',startFrame:15,endFrame:30}];", { width: 320, height: 320, fps: 30, durationInFrames: 60 }) });
     const prepare = app.registerMotionWork({ projectId: id, baseRevision: rev(), idempotencyKey: "prepare-one", work });
     const result = await runMotionJob(app, prepare);
     assert.equal(result.capturedFrames, 0);
@@ -87,6 +87,7 @@ test("固定源码直接进入工作台，真实图片字体视频按根帧预�
     const child = page.frames().find(frame => frame.url().includes("/motion-work/"))!;
     assert.equal(await child.$eval("#title", el => el.textContent), "版本一");
     assert.equal(await child.$eval("#clip", el => (el as HTMLImageElement).naturalWidth), 64);
+    assert.equal(await child.$eval("#later", el => getComputedStyle(el).visibility), "hidden", "工作台首段不能提前显示后段文字");
     assert.ok(await page.$("audio"), "项目声音由外层合成统一播放");
     assert.ok((await page.content()).includes("技术样片"));
     assert.deepEqual(errors, []);
@@ -118,8 +119,10 @@ test("固定源码直接进入工作台，真实图片字体视频按根帧预�
     hotSeeks.sort((a,b) => a-b);
     console.log(`工作台热定位：样本10，P95=${hotSeeks[9].toFixed(1)}ms`);
     assert.ok(hotSeeks[9] < 1000, "精确热定位不能退化为逐次媒体生成");
+    assert.equal(await child.$eval("#later", el => getComputedStyle(el).visibility), "visible", "工作台须按作品时钟显示后段文字");
     await page.$$eval('.preview-controls button', buttons => buttons.find(button => button.textContent === "场景起点")!.click());
     await page.waitForFunction(() => document.querySelector('[data-motion-work]')?.getAttribute("data-displayed-frame") === "7");
+    assert.equal(await child.$eval("#later", el => getComputedStyle(el).visibility), "hidden", "回到前段后不能保留后段状态");
     const playback = await page.evaluate(() => new Promise<{ frames: number[]; maxLag: number; maxAudioOffset: number }>(resolve => {
       const layer = document.querySelector('[data-motion-work]')!, frames: number[] = [];
       let maxLag = 0, maxAudioOffset = 0;
@@ -187,12 +190,14 @@ test("固定源码直接进入工作台，真实图片字体视频按根帧预�
       const layer = document.querySelector('[data-motion-work]');
       return layer?.getAttribute("data-motion-work") === expected && layer.getAttribute("data-displayed-frame") !== null;
     }, {}, nextId);
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-motion-work]')].some(layer =>
+      getComputedStyle(layer).visibility === "hidden" && layer.getAttribute("data-displayed-frame") !== null), { timeout: 10_000 });
     await page.$$eval("button", buttons => buttons.find(button => button.textContent === "播放范围")!.click());
     const crossCue = await page.evaluate(() => new Promise<{ works: string[]; errors: string[]; frames: number[] }>(resolve => {
       const works = new Set<string>(), errors = new Set<string>(), frames = new Set<number>();
       const timer = setInterval(() => {
         for (const layer of document.querySelectorAll('[data-motion-work]')) {
-          if (!layer.getClientRects().length) continue;
+          if (!layer.getClientRects().length || getComputedStyle(layer).visibility === "hidden") continue;
           const work = layer.getAttribute("data-motion-work"), failure = layer.getAttribute("data-motion-error");
           if (work && layer.getAttribute("data-displayed-frame") !== null) works.add(work);
           if (failure) errors.add(failure);
@@ -207,6 +212,59 @@ test("固定源码直接进入工作台，真实图片字体视频按根帧预�
     for (const id of [nextId, workId]) {
       assert.equal(splitDocumentRequests.filter(url => url.includes(`/${id}/`)).length, 1, "跨镜循环应复用已加载的作品文档");
     }
+
+    // 延迟下一场的首帧回执，验证预加载超时后能接住迟到画面并继续定位。
+    const delayedFrame = await page.evaluateOnNewDocument(`(() => {
+      if (window !== window.top) return;
+      let held;
+      const intercept = event => {
+        if (event.data?.type !== "vfc-motion-frame" || event.data.workId !== ${JSON.stringify(workId)} || held) return;
+        held = { data: event.data, source: event.source };
+        window.delayedFrameHeld = true;
+        event.stopImmediatePropagation();
+      };
+      window.addEventListener("message", intercept, true);
+      window.releaseDelayedFrame = () => {
+        window.removeEventListener("message", intercept, true);
+        if (!held) throw new Error("没有收到待释放的画面回执");
+        window.dispatchEvent(new MessageEvent("message", { data: held.data, source: held.source }));
+      };
+    })()`);
+    await page.goto(`http://127.0.0.1:${port}/?projectId=${id}&revision=${rev()}&frame=11&fromFrame=0&toFrame=24`, { waitUntil: "networkidle2" });
+    await page.removeScriptToEvaluateOnNewDocument(delayedFrame.identifier);
+    assert.equal(await page.evaluate(() => typeof (window as typeof window & { releaseDelayedFrame?: () => void }).releaseDelayedFrame), "function", `未安装延迟回执：${errors.join("；")}`);
+    await page.waitForFunction(target => {
+      const layer = document.querySelector(`[data-motion-work="${target}"]`);
+      return layer && getComputedStyle(layer).visibility === "hidden" && layer.getAttribute("data-motion-error")?.includes("目标画面未按时就绪");
+    }, { timeout: 25_000 }, workId).catch(async error => {
+      const layers = await page.$$eval('[data-motion-work]', elements => elements.map(element => ({
+        work: element.getAttribute("data-motion-work"), visibility: getComputedStyle(element).visibility,
+        error: element.getAttribute("data-motion-error"), requested: element.getAttribute("data-requested-frame"), displayed: element.getAttribute("data-displayed-frame")
+      })));
+      const injected = await page.evaluate(() => ({
+        held: (window as typeof window & { delayedFrameHeld?: boolean }).delayedFrameHeld,
+        release: typeof (window as typeof window & { releaseDelayedFrame?: () => void }).releaseDelayedFrame
+      }));
+      throw new Error(`未观察到预加载超时：target=${workId}，injected=${JSON.stringify(injected)}，errors=${JSON.stringify(errors)}，layers=${JSON.stringify(layers)}；${String(error)}`);
+    });
+    const heldFrame = await page.$eval(`[data-motion-work="${workId}"]`, layer => layer.getAttribute("data-requested-frame"));
+    await page.$$eval(".preview-controls button", buttons => buttons.find(button => button.textContent === "帧 ›")!.click());
+    await page.waitForFunction(target => {
+      const layer = document.querySelector(`[data-motion-work="${target}"]`);
+      return layer && getComputedStyle(layer).visibility !== "hidden" && layer.getAttribute("data-motion-error");
+    }, {}, workId);
+    await page.$$eval(".preview-controls button", buttons => buttons.find(button => button.textContent === "帧 ›")!.click());
+    await page.waitForFunction((target, previous) => {
+      const layer = document.querySelector(`[data-motion-work="${target}"]`);
+      return layer && layer.getAttribute("data-requested-frame") !== previous;
+    }, {}, workId, heldFrame);
+    const latestFrame = await page.$eval(`[data-motion-work="${workId}"]`, layer => layer.getAttribute("data-requested-frame"));
+    await page.evaluate(() => (window as typeof window & { releaseDelayedFrame: () => void }).releaseDelayedFrame());
+    await page.waitForFunction((target, expected) => {
+      const layer = document.querySelector(`[data-motion-work="${target}"]`);
+      return layer && !layer.getAttribute("data-motion-error") && layer.getAttribute("data-displayed-frame") === expected;
+    }, { timeout: 10_000 }, workId, latestFrame);
+
     const splitCue = app.readProject(id).snapshot.effectCues.find(cue => cue.workId === workId && cue.startFrame === 12)!;
     const restoreJob = app.submitMotionAdoption({ projectId: id, baseRevision: rev(), idempotencyKey: "cross-cue-restore", workId: nextId,
       target: { action: "replace_cue", cueId: splitCue.id, audioPolicy: "rebind_unchanged_events" } });

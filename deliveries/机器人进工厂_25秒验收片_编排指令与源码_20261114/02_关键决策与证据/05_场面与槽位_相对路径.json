@@ -1,0 +1,129 @@
+{
+  "说明": "依据 R36 MotionWork 的 videoSources 与固定交接场面整理，路径相对于本 JSON；不是未修改的原始冻结清单。",
+  "projectId": "project_67699563-17cb-4eba-8126-f0576e2f84b1",
+  "revision": 36,
+  "fps": 25,
+  "durationInFrames": 637,
+  "voice": {
+    "assetId": "asset_251b8b77-6f41-442b-aecb-75456321bb8f",
+    "path": "../05_视频与素材/旁白/四段旁白_25.470秒.wav",
+    "durationMs": 25470,
+    "sha256": "2d7252da2f7003efb313f32ae5f19cb894f3928a1a437243e906f1f3dfa7977c"
+  },
+  "videoSlots": [
+    {
+      "slot": "backflip",
+      "assetId": "asset_b8a3e83c-3cbb-4a56-8b60-b2a3a27e1b93",
+      "managedPath": "../05_视频与素材/原始素材/01_后空翻机器人.mp4",
+      "hash": "e92d979d5aa2138720f5ebb15bb8376913855fb626c822ab41efe01f3b5e6720",
+      "sourceStartMs": 18680,
+      "sourceEndMs": 21480,
+      "startFrame": 0,
+      "endFrame": 70
+    },
+    {
+      "slot": "yellow",
+      "assetId": "asset_cc61ec44-06b3-406b-99ee-d33c2b58503e",
+      "managedPath": "../05_视频与素材/原始素材/02_黄色机械臂.mp4",
+      "hash": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+      "sourceStartMs": 3000,
+      "sourceEndMs": 9000,
+      "startFrame": 58,
+      "endFrame": 208
+    },
+    {
+      "slot": "abb_candidate",
+      "assetId": "asset_39aba990-c589-47bb-8d91-95bd24f7e4ec",
+      "managedPath": "../05_视频与素材/原始素材/03_白色机械臂.mp4",
+      "hash": "b0c1f4211abfb20c3a534b535cda5ca75f4a029fe6f99714b5d4fc93fe0cea67",
+      "sourceStartMs": 36500,
+      "sourceEndMs": 37700,
+      "startFrame": 58,
+      "endFrame": 88
+    },
+    {
+      "slot": "controller_candidate",
+      "assetId": "asset_49fc28a5-ce7a-4a92-856d-6f7650996de0",
+      "managedPath": "../05_视频与素材/原始素材/04_手持控制器.mp4",
+      "hash": "df2c08770c14a23241b58014251eb28448f53f32ec1b9cc01e233e3d402c143d",
+      "sourceStartMs": 0,
+      "sourceEndMs": 1200,
+      "startFrame": 58,
+      "endFrame": 88
+    },
+    {
+      "slot": "conveyor_candidate",
+      "assetId": "asset_3a321910-e751-4800-b4cf-054816283433",
+      "managedPath": "../05_视频与素材/原始素材/05_蓝箱输送线.mp4",
+      "hash": "9724733940a92aa5b76e4f119bdaa7f71c7f2defd30b2aa3539c829e25a32af0",
+      "sourceStartMs": 32000,
+      "sourceEndMs": 33200,
+      "startFrame": 58,
+      "endFrame": 88
+    },
+    {
+      "slot": "abb",
+      "assetId": "asset_39aba990-c589-47bb-8d91-95bd24f7e4ec",
+      "managedPath": "../05_视频与素材/原始素材/03_白色机械臂.mp4",
+      "hash": "b0c1f4211abfb20c3a534b535cda5ca75f4a029fe6f99714b5d4fc93fe0cea67",
+      "sourceStartMs": 36500,
+      "sourceEndMs": 42500,
+      "startFrame": 200,
+      "endFrame": 350
+    },
+    {
+      "slot": "controller",
+      "assetId": "asset_49fc28a5-ce7a-4a92-856d-6f7650996de0",
+      "managedPath": "../05_视频与素材/原始素材/04_手持控制器.mp4",
+      "hash": "df2c08770c14a23241b58014251eb28448f53f32ec1b9cc01e233e3d402c143d",
+      "sourceStartMs": 0,
+      "sourceEndMs": 5400,
+      "startFrame": 315,
+      "endFrame": 450
+    },
+    {
+      "slot": "conveyor",
+      "assetId": "asset_3a321910-e751-4800-b4cf-054816283433",
+      "managedPath": "../05_视频与素材/原始素材/05_蓝箱输送线.mp4",
+      "hash": "9724733940a92aa5b76e4f119bdaa7f71c7f2defd30b2aa3539c829e25a32af0",
+      "sourceStartMs": 32000,
+      "sourceEndMs": 38000,
+      "startFrame": 415,
+      "endFrame": 565
+    },
+    {
+      "slot": "factory",
+      "assetId": "asset_fa084d92-ace2-4862-a29d-bd63e6848db1",
+      "managedPath": "../05_视频与素材/原始素材/06_汽车生产线.mp4",
+      "hash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+      "sourceStartMs": 0,
+      "sourceEndMs": 8080,
+      "startFrame": 435,
+      "endFrame": 637
+    }
+  ],
+  "references": [
+    {
+      "id": "011-c01",
+      "path": "../04_参考资料/011/video.mp4",
+      "startMs": 4700,
+      "endMs": 6600,
+      "targetFrames": [
+        58,
+        105
+      ],
+      "researchDecisionId": "creative_decision_91444c8b-d002-437c-b7c6-2dd6b80918a2"
+    },
+    {
+      "id": "011-m04",
+      "path": "../04_参考资料/011/video.mp4",
+      "startMs": 10400,
+      "endMs": 11800,
+      "targetFrames": [
+        315,
+        350
+      ],
+      "researchDecisionId": "creative_decision_b11a2953-bd4a-41de-a3f9-5dabbfb95d3d"
+    }
+  ]
+}

@@ -56,7 +56,9 @@ ProductionRun与SkillExecutionReport记录实际工作过程，不参与动画�
 
 `start_production_run` 使用实际 `base_revision_id`、任务 `intent`、目标 `completion_scope` 和稳定 `operation_id`；`frames` 范围的 `start_frame` 包含、`end_frame` 不包含。宿主分派后通过 `update_production_run` 登记真实 agent_id、协调者生成的 assignment_id、职责、技能、范围和输入版本；创作职责以实际负责的 project、beats 或 objects 分派，帧范围用于观察。更新携带当前 `expected_audit_version`。同一操作重试复用 operation_id，读回可能包含后续追加的记录。
 
-`record_creative_decision` 使用 `phase`、`assignment_id`、实际 `input_revision`、明确 `object_ids` 和 `operation_id`。创意与机制研究分别使用 `creative_research`、`motion_research`，填写真实 `research_outcome` 和依据。部分结果或尚未核实使用 `pending`；有参考的研究完成时使用 `researched`，必须在 `research_references` 中记录实际参考的类型、编号和来源指纹。研究后无适用参考或决定不采用时使用 `not_applicable`，在 `evidence` 写明实际研究范围和理由，也可用 `research_references` 保留研究过但未采用的参考；这些参考不自动成为正式采用。视觉设计用 `input_decision_ids` 引用实际接收的研究，导演采用引用视觉设计并填写 `delivery_ref` 的 `manifest_path、manifest_sha256、scene_ids`。
+使用 `record_creative_decision` 登记真实 `assignment_id`、`input_revision`、`object_ids`、`operation_id`。创意与机制分别用 `creative_research` 和 `motion_research`。`research_references` 的每个采用依据写参考类型、编号、`source_sha256`、原片 `start_ms`、`end_ms` 和 `observed_relation`。`evidence` 写明实际观察方式、范围与出处。观察不足可保留 `pending`，其中已确证的具体关系仍可被本场使用。关键关系缺乏依据时退给研究负责人。`researched` 说明该研究范围已完成，`not_applicable` 需要实际考察和放弃理由。仅供学习的候选不算作本片采用。
+
+视觉 `input_decision_ids` 引用实际消费的研究。对应 `visualPlan.referenceMappings[]` 用 `researchDecisionId` 指向该决定，`startMs` 和 `endMs` 选中该决定里实际采用的原片区间。按类型、编号、来源指纹、原片区间核对场面参考、研究条目与保留关系。一份研究可以支撑多个场面和区间，同一卡分段使用可复用同一决定。切片时间先折算为原片时间。本片导演的 `adoption` 引用 `visual_design` 与已冻结清单的 `manifest_path`、`manifest_sha256`、`scene_ids`。
 
 导演完成主要采用判断后，主任务以 `manage_visual_treatment.adopted_decision_ref` 关联本次 ProductionRun 和决定，并写入本场实际采用素材。用当前版本和 `visual_treatment_ids` 启动制作。状态读回与续修按受影响范围处理，当前采用改变后核对 stale 和声音未完成项。
 
