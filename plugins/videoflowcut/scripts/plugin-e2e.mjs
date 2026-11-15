@@ -293,20 +293,24 @@ try {
   const fixedMotion = await call("read_motion_work", { project_id: project.snapshot.project.id, work_id: preparedResult.result.workId });
   projectState = await call("read_project", { project_id: project.snapshot.project.id });
   assert.equal(projectState.snapshot.assets.some(asset => asset.motion), false, "登记源码不烘焙文件");
+  // 参考目标范围必须属于真实项目场面，后续口播编译会替换此隔离场面。
+  projectState = await callState("create_scene", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
+    type: "PresenterScene", title: "参考交接测试场面", purpose: "验证参考目标范围", start_frame: 0, end_frame: 24 });
+  const handoffSceneId = projectState.snapshot.scenes.find(scene => scene.title === "参考交接测试场面").id;
   const handoffBrief = join(workspaceRoot, "handoff-brief.md"), handoffTiming = join(workspaceRoot, "handoff-timing.md");
   await writeFile(handoffBrief, "真实素材作为视觉主体，连续形成画面。", "utf8");
   await writeFile(handoffTiming, "素材前一秒用于隔离交付验证。", "utf8");
   const creative = await call("search_creative_cases", { ids: ["002-c01"] });
   const handoff = await call("prepare_motion_handoff", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
-    brief_path: handoffBrief, timing_plan_path: handoffTiming, selected_scene_ids: ["ready"],
+    brief_path: handoffBrief, timing_plan_path: handoffTiming, selected_scene_ids: [handoffSceneId],
     assets: [{ id: importedAsset.id, purpose: "已导入的测试视频" }],
     creative: [{ id: "002-c01", sourceSha256: creative.source_sha256, usage: "adopted", purpose: "隔离验证参考资料" }], scenes: [
-      { sceneId: "ready", status: "ready", visualRoles: [{ role: "主体", referenceFunction: "运动过程", usage: "展示视频主体",
+      { sceneId: handoffSceneId, status: "ready", visualRoles: [{ role: "主体", referenceFunction: "运动过程", usage: "展示视频主体",
         assetIds: [importedAsset.id], sourceRanges: [{ startMs: 0, endMs: 1000 }] }],
         references: [{ kind: "creative", id: "002-c01", sourceSha256: creative.source_sha256, startMs: 0, endMs: 9800, purpose: "参考画面组织" }],
         visualPlan: { primaryRoles: ["主体"], referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative",
           researchDecisionId: "release-research-fixture", startMs: 0, endMs: 9800,
-          targetRole: "主体", treatment: "以真实视频主体接续画面", preserveRelation: "真实动作与参考的画面组织共同作用" }] },
+          targetRole: "主体", treatment: "以真实视频主体接续画面", preserveRelation: "真实动作与参考的画面组织共同作用", targetRange: { startFrame: 0, endFrame: 24 } }] },
         process: "主体出现并连续运动", preserve: ["真实动作"], adapt: ["排版"] },
       { sceneId: "pending", status: "pending", visualRoles: [{ role: "主体", referenceFunction: "待定", usage: "待补材", assetIds: ["missing"] }] }
     ] });
@@ -317,7 +321,7 @@ try {
   const deliveredScenes = JSON.parse(await readFile(handoffScenes.localPath, "utf8"));
   assert.deepEqual(deliveredScenes.scenes[0].visualPlan.referenceMappings[0], { referenceId: "002-c01", referenceKind: "creative",
     researchDecisionId: "release-research-fixture", startMs: 0, endMs: 9800, targetRole: "主体",
-    treatment: "以真实视频主体接续画面", preserveRelation: "真实动作与参考的画面组织共同作用" });
+    treatment: "以真实视频主体接续画面", preserveRelation: "真实动作与参考的画面组织共同作用", targetRange: { startFrame: 0, endFrame: 24 } });
   assert.ok(handoff.files.some(file => file.path.includes(importedAsset.id) && file.requiredForRun), "发行版须固定实际素材");
   const motion = await call("submit_motion_work", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
     idempotency_key: "release-motion-33-media", work_id: preparedResult.result.workId });

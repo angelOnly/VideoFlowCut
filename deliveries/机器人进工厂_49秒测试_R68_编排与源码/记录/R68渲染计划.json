@@ -1,0 +1,830 @@
+{
+  "plan": {
+    "startFrame": 0,
+    "endFrame": 1463,
+    "spans": [
+      {
+        "startFrame": 0,
+        "endFrame": 9,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "8c44940497139b975ec599e3701e93d420383ead8489cf3fd92cf9e2ff9686f2"
+      },
+      {
+        "startFrame": 9,
+        "endFrame": 91,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_9f29237d-cba7-4671-9ad8-43310a42c390"
+        ],
+        "reasons": [],
+        "cacheKey": "98e11f6b8296710a924723217a0900555c6b8c89882a6b491389afa1fdc0d73e"
+      },
+      {
+        "startFrame": 91,
+        "endFrame": 95,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "93081c26d3fbc9b452ce4055cf517c69a16a1fb5dba84618ef1b22b67de65ab7"
+      },
+      {
+        "startFrame": 95,
+        "endFrame": 141,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_8aa4da90-348c-4898-875e-52517e43bdd4"
+        ],
+        "reasons": [],
+        "cacheKey": "1330ef31fb8e5d57ca7402ba002e8f2415b30b5ba6ca0b84f302d5d528c52373"
+      },
+      {
+        "startFrame": 141,
+        "endFrame": 143,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "2f2bd03d2c708e93bfbbecd2157d56291f9dcf7a7e8db6adef78e1e08fb62d39"
+      },
+      {
+        "startFrame": 143,
+        "endFrame": 190,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_25bbd315-9741-41be-a3ef-7c90fe270904"
+        ],
+        "reasons": [],
+        "cacheKey": "e40ec8ef941f86f038765e4d9af66cfaf87154fc5758a44c594b03f32b9e76df"
+      },
+      {
+        "startFrame": 190,
+        "endFrame": 198,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "f074371dc6953d4f4d5ed56b702c82495657b84631f2f81022bb680eedbfb6cb"
+      },
+      {
+        "startFrame": 198,
+        "endFrame": 233,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_f529bf89-3ef4-4158-9fe8-fb329796044d"
+        ],
+        "reasons": [],
+        "cacheKey": "821bd845ef84170c4b5d08c711684c7c2560d6f0223de5254d53daa792a9ece7"
+      },
+      {
+        "startFrame": 233,
+        "endFrame": 234,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "ae9f0b1c34f2c3783a8b3eb576995722f775cbbba9647fbfb1c1099d138d9be2"
+      },
+      {
+        "startFrame": 234,
+        "endFrame": 307,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_90ff5c95-2dc6-47ed-a2a9-4f14efff037c"
+        ],
+        "reasons": [],
+        "cacheKey": "ef15d483538fba2607c8195b954b28c5e767a131bd354607bcd7cf8876e3dea2"
+      },
+      {
+        "startFrame": 307,
+        "endFrame": 311,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 0,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "7265b9a6dad153186c1fd04b2196a1a365df2794f8f7fa4c990b4208055494d8"
+      },
+      {
+        "startFrame": 311,
+        "endFrame": 317,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 311,
+            "sourceStart": 311,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "3d33dd8ca10d90ca968779393709c3b98a7e3d27dde9b7822a4487f743731058"
+      },
+      {
+        "startFrame": 317,
+        "endFrame": 395,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 311,
+            "sourceStart": 311,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_f64b3409-ea23-4996-b06c-f6e9230cc3ba"
+        ],
+        "reasons": [],
+        "cacheKey": "d5dbc58608f48bee04d3834e6edc0d6791841c895ca9102f9815c96fd7f2507f"
+      },
+      {
+        "startFrame": 395,
+        "endFrame": 401,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 311,
+            "sourceStart": 311,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "95c845c2a6c2855dd627ece9b644456ea9a017739106a04d94e613bb2e6c7a50"
+      },
+      {
+        "startFrame": 401,
+        "endFrame": 454,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 311,
+            "sourceStart": 311,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_a3444a33-0d82-4844-b252-ff9787ab45bb"
+        ],
+        "reasons": [],
+        "cacheKey": "496eb101d6a006077f6575ebf7ac81f3c45e77843ac30553afb6850c98765b40"
+      },
+      {
+        "startFrame": 454,
+        "endFrame": 456,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 311,
+            "sourceStart": 311,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "ab556b0f3a423b49c77ee15d73b6833f421fb1c3da9470fb77361fa3669f9df7"
+      },
+      {
+        "startFrame": 456,
+        "endFrame": 511,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 311,
+            "sourceStart": 311,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_e0a7173d-7e19-43be-9794-87f145727aa7"
+        ],
+        "reasons": [],
+        "cacheKey": "a6ed7d2799fa35b43d22ddeb0c01606b91d9017ab7d2a643d845ba160a226c7e"
+      },
+      {
+        "startFrame": 511,
+        "endFrame": 562,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 311,
+            "sourceStart": 311,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_58d1efc5-2f29-48e7-bb3c-efc28aa05f70"
+        ],
+        "reasons": [],
+        "cacheKey": "065e58364d99ab29c9524415f2811b77525407e873dd11b5cf736897224db5e4"
+      },
+      {
+        "startFrame": 562,
+        "endFrame": 568,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 311,
+            "sourceStart": 311,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "6f309a958114b7453ad2f6258cb7d9114d5957583038207807cf8ee93c0cb8cf"
+      },
+      {
+        "startFrame": 568,
+        "endFrame": 604,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 311,
+            "sourceStart": 311,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_a8549d0d-896c-4442-8dd0-c7c350ab1b76"
+        ],
+        "reasons": [],
+        "cacheKey": "d3ae5a3bfc900844fc81d0e73b81be251e607124253c9b8e40f777675586edf2"
+      },
+      {
+        "startFrame": 604,
+        "endFrame": 663,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 311,
+            "sourceStart": 311,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_5f20c2df-b4a9-4184-87f2-8b98d6dccc5d"
+        ],
+        "reasons": [],
+        "cacheKey": "a5f59e9745d7809a7cb3811baba48de838eaa18ca133bea75704c19e0c549997"
+      },
+      {
+        "startFrame": 663,
+        "endFrame": 668,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 311,
+            "sourceStart": 311,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "089f2dd9cd5b0d59a5995627d75010be8ffe190906526c4cbe18e4ce62b0400d"
+      },
+      {
+        "startFrame": 668,
+        "endFrame": 708,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 311,
+            "sourceStart": 311,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_2ac12cff-96a5-41f2-b89e-48b9fb90e67b"
+        ],
+        "reasons": [],
+        "cacheKey": "ded573b45b7bf00ed6ace54cec175c1206c6375befae11b0977e0cd69651d579"
+      },
+      {
+        "startFrame": 708,
+        "endFrame": 759,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 311,
+            "sourceStart": 311,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_1f12134a-449e-470a-a515-213e38746b57"
+        ],
+        "reasons": [],
+        "cacheKey": "b5407c8f4f575cac043ea2bc8d0bb407651101dee61ce09c54068b2ab5688186"
+      },
+      {
+        "startFrame": 759,
+        "endFrame": 764,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_a188f313-6b46-42f0-9be4-b25de7e8dd9a",
+            "origin": 311,
+            "sourceStart": 311,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "c3cddfb80f91b5b70aad671567cd454e9adc7e08aa2af44bfb93f122aeddd604"
+      },
+      {
+        "startFrame": 764,
+        "endFrame": 768,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 764,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "b7653446e2093aa1a3bdf83912eb22c4c5f69efe8d1634c406452090950dab40"
+      },
+      {
+        "startFrame": 768,
+        "endFrame": 835,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 764,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_0cde2fa0-0b05-4e46-be05-3927011d6f8f"
+        ],
+        "reasons": [],
+        "cacheKey": "89ae4e47a33d52e0084f7eb8563407fd7e6b66d1a9313c5e87b61d00f1d8e63f"
+      },
+      {
+        "startFrame": 835,
+        "endFrame": 842,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 764,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "9a91eba31b4955ace365ad201dedb7486f7f5e79ba9118d89ad41a37c9397e1b"
+      },
+      {
+        "startFrame": 842,
+        "endFrame": 918,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 764,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_d3ec5d0a-0c06-42ec-bfd6-f20354c25b6d"
+        ],
+        "reasons": [],
+        "cacheKey": "5ad2321e692584dc5d8db01bb823d96f6f15942a6e1a1bde31ccbd9e5b94dfa9"
+      },
+      {
+        "startFrame": 918,
+        "endFrame": 925,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 764,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "8ea170e8a1e31cd4afefbc9587bd9183e8cc0c0ed3422bc75d6450a913715f00"
+      },
+      {
+        "startFrame": 925,
+        "endFrame": 999,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 764,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_dc2245e3-b402-4af8-86a6-0647a2b110ca"
+        ],
+        "reasons": [],
+        "cacheKey": "5ff6b0217870ecee7505efb1193923303c14fa0f3a9a9b5ea7f28c5c21bc45a7"
+      },
+      {
+        "startFrame": 999,
+        "endFrame": 1004,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 764,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "c4f1372c8cd086037d07944a7aa352873737c8b9155ebbac8e2ccc6de59b72eb"
+      },
+      {
+        "startFrame": 1004,
+        "endFrame": 1069,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 764,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_bd9fb6fd-fbb7-40cc-9a15-65da56f88342"
+        ],
+        "reasons": [],
+        "cacheKey": "3c6070abb6ef19a32ccf9ea685b6479b46fb58bd765523f06ff582443224225a"
+      },
+      {
+        "startFrame": 1069,
+        "endFrame": 1073,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 764,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "943afea34f497093d9dc6cdf8524827333b6af4e24935e0e4b2173fc4d356de4"
+      },
+      {
+        "startFrame": 1073,
+        "endFrame": 1139,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 764,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_86847bde-2e2a-4d70-a675-0be08ce659c8"
+        ],
+        "reasons": [],
+        "cacheKey": "80bccec630e0b584df982ac416be5262d0ec96b10ca47ef26d9c3e55cab3462e"
+      },
+      {
+        "startFrame": 1139,
+        "endFrame": 1141,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 764,
+            "sourceStart": 0,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "6524228ea14592fa3bb4da3d3bd0929ff2bb2eb8390e2524c2ab35e86e09113b"
+      },
+      {
+        "startFrame": 1141,
+        "endFrame": 1145,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 1141,
+            "sourceStart": 377,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "9d6bcddb72cccd3977361f38f9bdb8287a7c60c0ac34e82c2cc36b0d3dded074"
+      },
+      {
+        "startFrame": 1145,
+        "endFrame": 1189,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 1141,
+            "sourceStart": 377,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_9cd82ec0-ae8c-47c9-8196-880bb0763f17"
+        ],
+        "reasons": [],
+        "cacheKey": "454d2340d6318e2abe14eddffd84926b2254820558434fe2232ce7f980da0da1"
+      },
+      {
+        "startFrame": 1189,
+        "endFrame": 1192,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 1141,
+            "sourceStart": 377,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "0c5ca651604430a7d116a7f3eaadf143636ab7a3cce89ccbb9565c5190d65f4d"
+      },
+      {
+        "startFrame": 1192,
+        "endFrame": 1277,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 1141,
+            "sourceStart": 377,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_584a6882-6ef0-4f30-97f1-ff879fff2bcf"
+        ],
+        "reasons": [],
+        "cacheKey": "6344c2509dfc6f462129a504d9919996a77934645ae5e5652d79a18b210aab06"
+      },
+      {
+        "startFrame": 1277,
+        "endFrame": 1313,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 1141,
+            "sourceStart": 377,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_1fb6eacb-0e2d-42d0-adf6-1cfc6e3c6564"
+        ],
+        "reasons": [],
+        "cacheKey": "b14e4ee6311a0c2a1753da19b6cd83db35c555b2e0cacca2ea9d97e605acb63a"
+      },
+      {
+        "startFrame": 1313,
+        "endFrame": 1320,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 1141,
+            "sourceStart": 377,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "ba4f9b502f99859bf46d5ea12d3e475d560416bd4eac9cdbddbac253dcbdab12"
+      },
+      {
+        "startFrame": 1320,
+        "endFrame": 1367,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 1141,
+            "sourceStart": 377,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_a832aef2-5c15-434e-a41b-3ee95582a48c"
+        ],
+        "reasons": [],
+        "cacheKey": "8215248e04f088b4143f2e52aebd774eba1b9d01612753ab4141821c126b4ca7"
+      },
+      {
+        "startFrame": 1367,
+        "endFrame": 1370,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 1141,
+            "sourceStart": 377,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "b22f73ef5441030d5a71aef3571b215ac0446234353822bcf04e3f551e0c0b17"
+      },
+      {
+        "startFrame": 1370,
+        "endFrame": 1460,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 1141,
+            "sourceStart": 377,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [
+          "caption_887b7454-a251-4db2-8790-d73d3f9c4498"
+        ],
+        "reasons": [],
+        "cacheKey": "c3a7dbad43a7cffac8709dbdfc43bf76c547205ffc3350a702d9d25619aeed85"
+      },
+      {
+        "startFrame": 1460,
+        "endFrame": 1463,
+        "kind": "media",
+        "layers": [
+          {
+            "assetId": "asset_68958283-c662-4260-8a4e-07f86053f36d",
+            "origin": 1141,
+            "sourceStart": 377,
+            "fit": "contain"
+          }
+        ],
+        "captionIds": [],
+        "reasons": [],
+        "cacheKey": "87936e813d46b87625bf0a3fbd1fc270ab3446a0aee3e689b6e3a8a76e363fa7"
+      }
+    ],
+    "renderer": "ffmpeg"
+  },
+  "visualKey": "7b061408ae45a79cc7e6f740d6514de562614fb0626fe7f4fbebd61f1d9b9e24",
+  "audioKey": "4dabcb150f66bff5d6c8d449b2bdfca03c2b6969b9cee32617fb6dbc5127d7a4",
+  "resultKey": "818c425330b748f71158d6b43041291cbe002d734424bbdbbdaf5a2d6cd40ea8",
+  "reuse": "video_stream",
+  "encoder": "h264_nvenc",
+  "timings": [
+    {
+      "kind": "result",
+      "hit": false,
+      "reason": "missing"
+    },
+    {
+      "kind": "audio",
+      "hit": false,
+      "reason": "missing",
+      "elapsedMs": 719
+    },
+    {
+      "kind": "video_stream_copy",
+      "elapsedMs": 2170
+    },
+    {
+      "kind": "output_validation",
+      "frameCount": 1463,
+      "fps": 30,
+      "width": 1920,
+      "height": 1080,
+      "audioDuration": 48.766,
+      "elapsedMs": 1842
+    },
+    {
+      "kind": "result_publish",
+      "saved": true
+    }
+  ],
+  "peakWorkerRssBytes": 580190208,
+  "peakWorkingDirectoryBytes": 48729495,
+  "measurementScope": "Worker RSS 与阶段结束时临时目录占用；不含浏览器或 FFmpeg 子进程 RSS",
+  "elapsedMs": 4775
+}

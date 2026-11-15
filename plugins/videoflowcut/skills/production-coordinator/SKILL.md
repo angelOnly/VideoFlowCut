@@ -74,6 +74,8 @@ Skill 数量不等于代理数量。并发受限时允许相邻职责由同一�
 
 阶段回执的 `rangeMappings` 将工作台的 `projectRange` 与 OD 的 `workRootRange` 成对给出。若问题只在阶段中的较短范围，调用 `wait_motion_authoring`，在 `range_request` 中填写该阶段的 `run_id`、`frozen_version` 和审阅确定的 `project_range`；使用返回的 `requestedRangeMapping.workRootRange`，连同原 Run 和冻结版本向 OD 返修，不用整段根帧代替短段。
 
+工作台产生返修工作单时，使用现有 `read_agent_work_orders`、`claim_agent_work_order` 和 `complete_agent_work_order`，保留原观察 Revision、Finding ID、项目帧范围并尽量关联对应 ManagedMotion Cue。原 Run 运行中使用原冻结版和换算后的根帧反馈；已结束则以新幂等键和 `continue_from_run_id` 续接原项目、作品与制作任务。新版回到工作台，复查同一 Finding 后才能关闭；完成工作单不自动关闭问题。
+
 OD 每次返回当前作品后，主任务将作品交回原作者团队，重新进入本章第三节的同一协作机制。初次创作、OD 制作期间的补充工作和后续返修使用相同的作者角色、职责边界、结果接回和问题回流规则：
 
 - 视觉作者检查真实素材、素材主次、构图、美术、排版、镜头、运动和整片视觉连续性；判断视觉方案本身是否成立，并作为 OD 主要专业对接人整理具体反馈、提出修改要求和复核结果。

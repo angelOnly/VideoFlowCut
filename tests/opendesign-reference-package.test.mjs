@@ -53,7 +53,7 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
     // 场面使用的 ID、文件和本地源时间以真实项目读回为准；未就绪范围不阻塞其他场面。
     const video=join(dir,'video.mp4'), projectSnapshot=join(root,'project.json');
     const videoHash=createHash('sha256').update(await readFile(video)).digest('hex');
-    const project={revision:{number:1},snapshot:{project:{id:'isolation'},assets:[{id:'asset-1',status:'ready',sourceHash:videoHash,provenance:{acquisition:{sourceRange:{startMs:10000,endMs:11000}}}}]}};
+    const project={revision:{number:1},snapshot:{project:{id:'isolation'},scenes:[{id:'scene-1',startFrame:0,endFrame:30},{id:'scene-2',startFrame:0,endFrame:30}],assets:[{id:'asset-1',status:'ready',sourceHash:videoHash,provenance:{acquisition:{sourceRange:{startMs:10000,endMs:11000}}}}]}};
     await writeFile(projectSnapshot,JSON.stringify(project));
     const sourceSha256=clean.files.find(file=>file.deliveredPath.endsWith('current.md')).uses[0].librarySourceSha256;
     const scene={sceneId:'scene-1',status:'ready',reference:{creativeCaseId:'001-c01',sourceSha256,startMs:100,endMs:900},
@@ -82,7 +82,7 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
     await copyFile(video,join(previewRoot,'assets','video.mp4'));
     const previewProject={...project,snapshot:{...project.snapshot,project:{id:'isolation',rootPath:previewRoot},assets:[{...project.snapshot.assets[0],managedPath:'assets/video.mp4'}],motionWorks:[]}};
     const previewSnapshot=join(root,'preview-project.json'); await writeFile(previewSnapshot,JSON.stringify(previewProject));
-    const plan={primaryRoles:['主要主体'],referenceMappings:[{referenceId:'001-c01',researchDecisionId:'research-1',startMs:100,endMs:900,targetRole:'主要主体',treatment:'扩大主体接管',preserveRelation:'文字随主体共同重排'}]};
+    const plan={primaryRoles:['主要主体'],referenceMappings:[{referenceId:'001-c01',researchDecisionId:'research-1',startMs:100,endMs:900,targetRole:'主要主体',treatment:'扩大主体接管',preserveRelation:'文字随主体共同重排',targetRange:{startFrame:5,endFrame:25}}]};
     const planInput={...sceneInput,projectSnapshot:previewSnapshot,assets:sceneInput.assets.slice(0,1),scenes:[{...scene,visualPlan:plan}]};
     const preparedPlan=await prepareReferencePackage(planInput,join(root,'preview'),library);
     assert.equal(preparedPlan.scenes[0].status,'ready');
@@ -112,7 +112,7 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
     const previewVerified=await verifyReferenceDelivery(preparedPlan,previewListing,1,'od-isolation',previewProject);
     assert.match(previewVerified.prompt,/依据视觉导演稿、真实素材和参考关系制作首版/);
     assert.doesNotMatch(previewVerified.prompt,/同源预排/);
-    const mapping={referenceId:'001-c01',referenceKind:'creative',researchDecisionId:'research-1',startMs:100,endMs:900,targetRole:'主要主体',treatment:'扩大主体接管',preserveRelation:'文字随主体共同重排'};
+    const mapping={referenceId:'001-c01',referenceKind:'creative',researchDecisionId:'research-1',startMs:100,endMs:900,targetRole:'主要主体',treatment:'扩大主体接管',preserveRelation:'文字随主体共同重排',targetRange:{startFrame:5,endFrame:25}};
     const typedOutput=join(root,'typed-reference');
     const typed=await prepareReferencePackage({...planInput,scenes:[{...scene,visualPlan:{...plan,referenceMappings:[mapping]}}]},typedOutput,library);
     assert.equal(typed.scenes[0].status,'ready');
@@ -138,6 +138,15 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
       const invalidPlan=await prepareReferencePackage({...planInput,scenes:[{...scene,visualPlan:{...plan,...change}}]},join(root,name),library);
       assert.equal(invalidPlan.scenes[0].status,'incomplete',name);
       assert.match(invalidPlan.scenes[0].diagnostics.join(' '),expected,name);
+    }
+    for (const [name,targetRange] of [['missing',undefined],['empty',{startFrame:5,endFrame:5}],['outside',{startFrame:0,endFrame:31}],['fraction',{startFrame:1.5,endFrame:20}]]) {
+      const output=join(root,`target-${name}`);
+      const invalid=await prepareReferencePackage({...planInput,selectedSceneIds:['scene-1'],scenes:[{...scene,visualPlan:{...plan,referenceMappings:[{...mapping,targetRange}]}},
+        {sceneId:'scene-later',status:'pending',visualPlan:{...plan,referenceMappings:[{...mapping,targetRange:undefined}]}}]},output,library);
+      assert.deepEqual(invalid.scenes.map(item=>item.status),['incomplete','pending']);
+      assert.match(invalid.scenes[0].diagnostics.join(' '),/半开帧范围 targetRange/);
+      const files=invalid.files.map(file=>({path:file.deliveredPath,localPath:join(output,file.deliveredPath)}));
+      assert.equal((await verifyReferenceDelivery(invalid,{files},1,'od-isolation',previewProject)).prompt,undefined);
     }
     const wrongSource=await prepareReferencePackage({...planInput,scenes:[{...scene,
       reference:{...scene.reference,sourceSha256:'0'.repeat(64)},visualPlan:{...plan,referenceMappings:[mapping]}}]},join(root,'mapping-wrong-source'),library);
@@ -222,7 +231,7 @@ test('动效参考交付原片和切片，制作请求保留原片范围与切�
     const brief=join(root,'brief.md'), timing=join(root,'timing.md'), output=join(root,'out');
     await writeFile(brief,'完整创意编排'); await writeFile(timing,'实际时间安排');
     const snapshot=join(root,'project.json');
-    const project={revision:{number:1},snapshot:{project:{id:'isolation',rootPath:root},assets:[],motionWorks:[]}};
+    const project={revision:{number:1},snapshot:{project:{id:'isolation',rootPath:root},scenes:[{id:'motion',startFrame:0,endFrame:30}],assets:[],motionWorks:[]}};
     await writeFile(snapshot,JSON.stringify(project));
     const preview={primaryRoles:['主体'],graphicLed:true,graphicReasons:['原创图形承担不可见过程']};
     const index=loadLibraryIndex();
@@ -230,7 +239,7 @@ test('动效参考交付原片和切片，制作请求保留原片范围与切�
       motion:[{id:'002-m17',sourceSha256:index.source_sha256,usage:'adopted',purpose:'完成所选连续变化'}],
       scenes:[{sceneId:'motion',status:'ready',references:[{kind:'motion',id:'002-m17',sourceSha256:index.source_sha256,
         startMs:4700,endMs:9300,purpose:'主体接管'}],visualRoles:[{role:'主体',referenceFunction:'共同变化',assetIds:[],usage:'原创画面'}],
-        visualPlan:{...preview,referenceMappings:[{referenceId:'002-m17',referenceKind:'motion',researchDecisionId:'motion-research',startMs:4700,endMs:9300,targetRole:'主体',treatment:'主体接管',preserveRelation:'主体共同变化'}]},
+        visualPlan:{...preview,referenceMappings:[{referenceId:'002-m17',referenceKind:'motion',researchDecisionId:'motion-research',startMs:4700,endMs:9300,targetRole:'主体',treatment:'主体接管',preserveRelation:'主体共同变化',targetRange:{startFrame:0,endFrame:30}}]},
         process:'主体建立后完成接管',preserve:['运动关系'],adapt:['文字']} ]},output);
     assert.deepEqual(manifest.diagnostics,[]);
     assert.equal(manifest.scenes[0].references[0].kind,'motion');

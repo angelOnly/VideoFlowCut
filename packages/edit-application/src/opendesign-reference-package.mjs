@@ -131,10 +131,11 @@ function prepareScenes(input, entries, creativeRecords, motionRecords, project, 
             fail('采用参考的目标角色需要绑定真实素材；确由图形承担的场面须说明原因');
           }
           if (typeof mapping?.preserveRelation !== 'string' || !mapping.preserveRelation.trim()) fail('参考映射需要明确保持的关系');
-          if (mapping.targetRange) {
-            const target=project?.snapshot?.scenes?.find(item=>item.id===scene.sceneId), range=mapping.targetRange;
-            if (!target || !Number.isInteger(range.startFrame) || !Number.isInteger(range.endFrame)
-              || range.startFrame<target.startFrame || range.endFrame>target.endFrame || range.endFrame<=range.startFrame) fail('参考映射的成片帧范围必须在当前场面内');
+          // 新交接明确每条参考的项目半开帧范围；历史清单由读取方继续兼容。
+          const target=project?.snapshot?.scenes?.find(item=>item.id===scene.sceneId), range=mapping?.targetRange;
+          if (!range || !target || !Number.isSafeInteger(range.startFrame) || !Number.isSafeInteger(range.endFrame)
+            || range.startFrame<target.startFrame || range.endFrame>target.endFrame || range.endFrame<=range.startFrame) {
+            fail('参考映射需要当前场面内的非空成片半开帧范围 targetRange');
           }
         }
         for (const reference of references) {

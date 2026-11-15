@@ -7378,7 +7378,7 @@
     {
       "name": "prepare_motion_handoff",
       "title": "准备场面制作交付",
-      "description": "按当前项目快照准备固定导演稿、时间资料、真实素材和采用参考，返回清单哈希、选中场面、实际文件与逐场面缺口。资料就绪不代表首版画面已完成或质量已通过。",
+      "description": "按当前项目快照准备固定导演稿、时间资料、真实素材和采用参考，返回清单哈希、选中场面、实际文件与逐场面缺口。ready 场面的每条参考映射必须提供场面内的非空成片半开帧范围 targetRange；pending 场面可暂缺。资料就绪不代表首版画面已完成或质量已通过。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7724,7 +7724,7 @@
                               "endFrame"
                             ],
                             "additionalProperties": false,
-                            "description": "成片时间线帧范围"
+                            "description": "ready 场面的每条采用参考必填：位于对应场面内的成片时间线半开帧范围；整场采用也须填写整场范围。pending 场面可暂缺"
                           }
                         },
                         "required": [
@@ -8059,7 +8059,7 @@
     {
       "name": "wait_motion_authoring",
       "title": "等待阶段画面制作结果",
-      "description": "按 sequence 接回阶段制作与采用结果。阶段回执的 rangeMappings 同时提供工作台使用的 projectRange 和 OD 反馈使用的 workRootRange，均为半开帧范围。返修只是阶段内的短段时，传入 range_request 的原 run_id、frozen_version 和工作台 project_range，读取 requestedRangeMapping 的精确作品根帧再交给 OD。主任务交导演、创意与视觉检查实际画面。拒收反馈保留实际接收及对账状态；超时表示暂无新进展。",
+      "description": "按 sequence 接回阶段制作与采用结果。阶段回执的 creativeBrief 是作者交回的制作说明，不代表实际审阅通过；rangeMappings 同时提供工作台使用的 projectRange 和 OD 反馈使用的 workRootRange，均为半开帧范围。返修只是阶段内的短段时，传入 range_request 的原 run_id、frozen_version 和工作台 project_range，读取 requestedRangeMapping 的精确作品根帧再交给 OD。主任务交导演、创意与视觉检查实际画面。拒收反馈保留实际接收及对账状态；超时表示暂无新进展。",
       "inputSchema": {
         "type": "object",
         "properties": {

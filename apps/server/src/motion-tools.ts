@@ -37,7 +37,7 @@ const handoffSceneSchema = z.object({
       referenceKind: z.enum(["creative", "motion"]).optional().describe("参考类型；同一 ID 同时对应创意和机制时必须填写"),
       researchDecisionId: z.string().min(1), startMs: z.number().int().nonnegative(), endMs: z.number().int().positive(),
       targetRole: z.string().min(1), treatment: z.string().min(1), preserveRelation: z.string().optional().describe("需要保留的原参考关系"),
-      targetRange: z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() }).strict().optional().describe("成片时间线帧范围") }).strict()).optional(),
+      targetRange: z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() }).strict().optional().describe("ready 场面的每条采用参考必填：位于对应场面内的成片时间线半开帧范围；整场采用也须填写整场范围。pending 场面可暂缺") }).strict()).optional(),
     graphicLed: z.boolean().optional(), graphicReasons: z.array(z.string().min(1)).optional()
   }).strict().optional(),
   process: z.string().optional(), preserve: z.array(z.string()).optional(), adapt: z.array(z.string()).optional()
@@ -64,7 +64,7 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   } catch (error) { return failure(error); } });
   server.registerTool("prepare_motion_handoff", {
     title: "准备场面制作交付",
-    description: "按当前项目快照准备固定导演稿、时间资料、真实素材和采用参考，返回清单哈希、选中场面、实际文件与逐场面缺口。资料就绪不代表首版画面已完成或质量已通过。",
+    description: "按当前项目快照准备固定导演稿、时间资料、真实素材和采用参考，返回清单哈希、选中场面、实际文件与逐场面缺口。ready 场面的每条参考映射必须提供场面内的非空成片半开帧范围 targetRange；pending 场面可暂缺。资料就绪不代表首版画面已完成或质量已通过。",
     inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), brief_path: z.string().min(1),
       timing_plan_path: z.string().min(1), selected_scene_ids: z.array(z.string().min(1)).min(1),
       assets: z.array(z.object({ id: z.string().min(1), path: z.string().optional(), purpose: z.string().min(1),
@@ -109,7 +109,7 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   } catch (error) { return failure(error); } });
   server.registerTool("wait_motion_authoring", {
     title: "等待阶段画面制作结果",
-    description: "按 sequence 接回阶段制作与采用结果。阶段回执的 rangeMappings 同时提供工作台使用的 projectRange 和 OD 反馈使用的 workRootRange，均为半开帧范围。返修只是阶段内的短段时，传入 range_request 的原 run_id、frozen_version 和工作台 project_range，读取 requestedRangeMapping 的精确作品根帧再交给 OD。主任务交导演、创意与视觉检查实际画面。拒收反馈保留实际接收及对账状态；超时表示暂无新进展。",
+    description: "按 sequence 接回阶段制作与采用结果。阶段回执的 creativeBrief 是作者交回的制作说明，不代表实际审阅通过；rangeMappings 同时提供工作台使用的 projectRange 和 OD 反馈使用的 workRootRange，均为半开帧范围。返修只是阶段内的短段时，传入 range_request 的原 run_id、frozen_version 和工作台 project_range，读取 requestedRangeMapping 的精确作品根帧再交给 OD。主任务交导演、创意与视觉检查实际画面。拒收反馈保留实际接收及对账状态；超时表示暂无新进展。",
     inputSchema: { project_id: z.string().optional(), job_id: z.string().min(1), after_sequence: z.number().int().nonnegative().default(0), timeout_ms: z.number().int().min(0).max(30000).default(20000),
       range_request: z.object({ run_id: z.string().min(1), frozen_version: z.string().min(1), project_range: motionFrameRangeSchema }).strict().optional() },
     annotations: { readOnlyHint: true }

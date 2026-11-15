@@ -544,6 +544,11 @@ test("两个采用参考必须分别复核并续接原作者", async () => {
     review.applicableEvidence.push({ evidenceId: second.id, targetRevision: f.revision(), startFrame: 0, endFrame: 24 });
     assert.equal((await evaluate()).filter(issue => issue.code === "REFERENCE_REVIEW_PENDING").length, 0);
 
+    // 历史清单未标目标范围时，仍按完整场面判断观察覆盖。
+    first.endFrame = 12; review.applicableEvidence[0].endFrame = 12;
+    assert.ok((await evaluate()).some(issue => issue.code === "REFERENCE_REVIEW_PENDING" && issue.referenceReview?.referenceId === "ref-a"));
+    first.endFrame = 24; review.applicableEvidence[0].endFrame = 24;
+
     // 同一卡的两段分别交接；其他问题 pending 不能阻止已有依据的关系。
     const research = report.creativeDecisions.find(item => item.id === "creative")!;
     research.researchOutcome = "pending";
@@ -570,6 +575,11 @@ test("两个采用参考必须分别复核并续接原作者", async () => {
     assert.ok(!(await targetIssues(0, 12)).some(issue => issue.code === "REFERENCE_RESEARCH_UNLINKED"));
     assert.ok((await targetIssues(12, 24)).some(issue => issue.code === "REFERENCE_RESEARCH_UNLINKED"));
     research.researchReferences![1].startMs = 200;
+    // 新清单按每条参考的实际目标范围分别核对，不要求各自覆盖整场。
+    first.endFrame = 12; review.applicableEvidence[0].endFrame = 12;
+    second.startFrame = 12; review.applicableEvidence[1].startFrame = 12;
+    second.referenceReviews = [ref("ref-a", sourceHashA, 200, 800)];
+    assert.equal((await evaluate()).filter(issue => issue.code === "REFERENCE_REVIEW_PENDING").length, 0);
     manifest.scenes[0].visualPlan.referenceMappings[1].researchDecisionId = "unrelated";
     const wrongIdBytes = JSON.stringify(manifest);
     await writeFile(manifestPath, wrongIdBytes);

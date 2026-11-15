@@ -63,7 +63,7 @@ test("完整新制从零作品准备参考、自动送件并接回同一冻结�
         startMs: 100, endMs: 900, purpose: "主体进入小窗" }],
         visualRoles: [{ role: "主体", referenceFunction: "进入并接管", assetIds: [asset.id], usage: "真实主体" }],
         visualPlan: { primaryRoles: ["主体"], referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative", researchDecisionId: research.id,
-          startMs: 100, endMs: 900, targetRole: "主体", treatment: "主体进入小窗", preserveRelation: "主体接管" }] },
+          startMs: 100, endMs: 900, targetRole: "主体", treatment: "主体进入小窗", preserveRelation: "主体接管", targetRange: { startFrame: 100, endFrame: 125 } }] },
         process: "主体建立、进入小窗并接续", preserve: ["主体接管"], adapt: ["文字排版"] }] }, output);
     assert.equal(manifest.scenes?.[0].status, "ready", JSON.stringify(manifest.scenes?.[0]));
     const manifestPath = join(output, "delivery-manifest.json"), manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");

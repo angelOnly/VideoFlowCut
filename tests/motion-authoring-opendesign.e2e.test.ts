@@ -2,9 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createHash } from "node:crypto";
+import puppeteer from "puppeteer-core";
+import { createServer as createViteServer } from "vite";
 import { createApplication } from "@videocut/application";
 import { motionMediaForCue, motionWorkForCue } from "@videocut/contracts";
 import { processClaimedJob } from "@videocut/job-runtime";
@@ -13,8 +15,9 @@ import { runMotionAuthoringJob } from "../apps/runtime/src/motion-authoring.js";
 import { motionFixture } from "./fixtures/managed-motion.js";
 import { prepareReferencePackage } from "../packages/edit-application/src/opendesign-reference-package.mjs";
 import { createServer as createVfcServer } from "../apps/server/src/app.js";
+import { resolveRenderBrowser } from "../packages/remotion-runtime/src/browser.js";
 
-test("隔离 OD 阶段交件、同作者反馈与 VFC 自动采用端到端联通", { timeout: 90_000 }, async (context) => {
+test("隔离 OD 阶段交件、同作者反馈与 VFC 自动采用端到端联通", { timeout: 150_000 }, async (context) => {
   const root = await mkdtemp(join(tmpdir(), "vfc-od-authoring-e2e-"));
   const previousData = process.env.OD_DATA_DIR, previousTransport = process.env.OD_CODEX_TRANSPORT, previousRollout = process.env.OD_NEXT_STRATEGY_ROLLOUT;
   process.env.OD_DATA_DIR = join(root, "od-data");
@@ -123,7 +126,7 @@ process.stdin.on('end',()=>process.exit(0));
     authoring = runMotionAuthoringJob(app, job, controller.signal, { url: od.url });
     void authoring.catch(() => undefined);
     const deadline = Date.now() + 45_000;
-    let stage: { runId: string; receipts: Array<{ runId: string; frozenVersion: string; workId: string; revision: number; cueId: string; editorUrl: string }> } | undefined;
+    let stage: { runId: string; receipts: Array<{ runId: string; frozenVersion: string; workId: string; revision: number; cueId: string; editorUrl: string; creativeBrief: string }> } | undefined;
     while (Date.now() < deadline) {
       stage = app.trackJob(job.id).result?.authoring as typeof stage;
       if (stage?.receipts?.length) break;
@@ -141,6 +144,7 @@ process.stdin.on('end',()=>process.exit(0));
     assert.equal(firstUrl.searchParams.get("fromFrame"), "0");
     assert.equal(firstUrl.searchParams.get("toFrame"), "9");
     const firstWork = app.readSourceMotionWork(projectId, firstReceipt.workId, firstReceipt.revision).work;
+    assert.equal(firstReceipt.creativeBrief, firstWork.creativeBrief, "回执须保留该固定版本的作者说明");
     assert.deepEqual(firstWork.readyRanges, [{ startFrame: 0, endFrame: 9 }]);
     assert.deepEqual(firstWork.author, { project: odProject, run_id: stage.runId, frozen_version: firstReceipt.frozenVersion });
     const feedback = await fetch(`${od.url}/api/runs/${encodeURIComponent(stage.runId)}/steer`, { method: "POST", headers: { "content-type": "application/json" },
@@ -179,6 +183,9 @@ process.stdin.on('end',()=>process.exit(0));
     assert.ok(finalSnapshot.effectCues.every(cue => motionWorkForCue(finalSnapshot, cue)?.definitionHash === cue.workDefinitionHash));
     assert.equal(app.readSourceMotionWork(projectId, firstReceipt.workId, undefined, firstWork.definitionHash).work.definitionHash, firstWork.definitionHash);
     const { app: workbench, application: workbenchApp } = await createVfcServer({ workspaceRoot: join(root, "vfc") });
+    const previousApi = process.env.VITE_API_BASE;
+    let vite: Awaited<ReturnType<typeof createViteServer>> | undefined;
+    let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined;
     try {
       for (const [version, marker] of [[firstWork, "stage-9-false"], [secondWork, "stage-18-true"]] as const) {
         const response = await workbench.inject({ method: "GET", url: `/motion-work/${projectId}/${firstReceipt.workId}/${rev()}/${version.definitionHash}/document` });
@@ -186,7 +193,39 @@ process.stdin.on('end',()=>process.exit(0));
         assert.ok(response.body.includes(`/${version.definitionHash}/resources/`), "工作台必须读取指定固定版本的资源");
         assert.ok(response.body.includes(marker), "工作台必须读取该阶段对应的源码内容");
       }
-    } finally { await workbench.close(); workbenchApp.close(); }
+      const apiUrl = await workbench.listen({ host: "127.0.0.1", port: 0 });
+      process.env.VITE_API_BASE = apiUrl;
+      vite = await createViteServer({ configFile: resolve("apps/web/vite.config.ts"), server: { host: "127.0.0.1", port: 0 }, logLevel: "silent" });
+      await vite.listen();
+      const port = (vite.httpServer!.address() as { port: number }).port;
+      browser = await puppeteer.launch({ executablePath: await resolveRenderBrowser(), headless: true, pipe: true });
+      const page = await browser.newPage();
+      await page.setViewport({ width: 1440, height: 900 });
+      const errors: string[] = [];
+      page.on("pageerror", error => errors.push(String(error)));
+      // 保留阶段回执的全部定位参数，仅把服务地址换成隔离工作台。
+      await page.goto(`http://127.0.0.1:${port}${secondUrl.pathname}${secondUrl.search}`, { waitUntil: "networkidle2" });
+      await page.waitForSelector('[data-testid="workbench"]');
+      assert.equal(await page.$eval('[data-testid="revision"]', el => el.textContent), `R${secondReceipt.revision}`);
+      assert.equal(await page.$eval('[aria-label="审阅起帧"]', el => (el as HTMLInputElement).value), "9");
+      assert.equal(await page.$eval('[aria-label="审阅结束帧"]', el => (el as HTMLInputElement).value), "18");
+      await page.waitForFunction(workId => document.querySelector(`[data-motion-work="${workId}"]`)?.getAttribute("data-displayed-frame") === "9", { timeout: 30_000 }, secondReceipt.workId);
+      const displayed = await page.evaluate(() => new Promise<number[]>(resolve => {
+        const frames: number[] = [];
+        const element = document.querySelector('[data-motion-work]')!;
+        const observer = new MutationObserver(() => { const frame = Number(element.getAttribute("data-displayed-frame")); if (Number.isFinite(frame)) frames.push(frame); });
+        observer.observe(element, { attributes: true, attributeFilter: ["data-displayed-frame"] });
+        [...document.querySelectorAll("button")].find(button => button.textContent === "播放范围")?.click();
+        setTimeout(() => { observer.disconnect(); resolve(frames); }, 1000);
+      }));
+      assert.ok(displayed.some(frame => frame > 9 && frame < 18), `阶段范围未实际推进：${displayed.join(",")}`);
+      assert.ok(displayed.every(frame => frame >= 9 && frame < 18), `阶段范围播放越界：${displayed.join(",")}`);
+      assert.equal(workbenchApp.listJobs(projectId).filter(item => item.kind === "preview" || item.kind === "export").length, 0);
+      assert.deepEqual(errors, []);
+    } finally {
+      await browser?.close(); await vite?.close(); await workbench.close(); workbenchApp.close();
+      if (previousApi === undefined) delete process.env.VITE_API_BASE; else process.env.VITE_API_BASE = previousApi;
+    }
     const baked = app.submitMotionBake({ projectId, baseRevision: rev(), idempotencyKey: "bake-first-stage", workId: firstReceipt.workId,
       definitionHash: firstWork.definitionHash, frameRange: { startFrame: 0, endFrame: 9 }, outputIntent: "asset" });
     const bakeDeadline = Date.now() + 30_000;

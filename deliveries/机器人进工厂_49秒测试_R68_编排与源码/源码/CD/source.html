@@ -1,0 +1,149 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="od-motion-audio" content="silent"><title>从单次成功，到持续生产</title><style>
+:root{--bg:#151c20;--plate:#202d33;--ink:#f0f4f2;--muted:#b7c5ca;--line:#42545c;--yellow:#f3ce68;--cyan:#7cd9cf;--vfc-font-title:"Microsoft YaHei";--display:132px;--heading:56px;--label:40px;--body:32px;--small:28px}html,body{margin:0;background:var(--bg)}#factory-ab{width:1920px;height:1080px;overflow:hidden;background:var(--bg)}svg{display:block;width:1920px;height:1080px}text{font-family:var(--vfc-font-title),"Microsoft YaHei",sans-serif;font-weight:700;fill:var(--ink);letter-spacing:0}.muted{fill:var(--muted)}.yellow{fill:var(--yellow)}.cyan{fill:var(--cyan)}.h{font-size:var(--heading)}.label{font-size:var(--label)}.body{font-size:var(--body)}.small{font-size:var(--small)}.num{font-size:var(--display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}.rule{fill:none;stroke:var(--line);stroke-width:2}.route{fill:none;stroke:var(--ink);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}.accent{fill:none;stroke:var(--yellow);stroke-width:6;stroke-linecap:round}.hidden{opacity:0}.station{fill:var(--plate);stroke:var(--muted);stroke-width:3}
+#factory-ab{position:relative}#cd-stage{position:absolute;inset:0;opacity:0;background:var(--bg);color:var(--ink);font-family:var(--vfc-font-title),"Microsoft YaHei",sans-serif;font-weight:700;--cd-title:48px;--cd-copy:32px;--cd-credit:28px}#cd-stage *{box-sizing:border-box}#cd-stage .cd-rule{position:absolute;left:144px;right:144px;height:2px;background:var(--line)}#cd-stage .cd-top{top:104px}#cd-stage .cd-bottom{top:832px}#cd-stage .cd-title{position:absolute;left:176px;top:128px;margin:0;font-size:var(--cd-title);line-height:1.4;letter-spacing:0}#cd-stage .cd-mark{position:absolute;left:144px;top:136px;width:8px;height:52px;background:var(--yellow)}#cd-stage .cd-shot{position:absolute;inset:0;opacity:0}#cd-stage .cd-media{position:absolute;left:144px;top:232px;width:1104px;height:621px;overflow:hidden;background:#101619}#cd-stage .cd-media img{display:block;width:100%;height:100%;object-fit:contain}#cd-stage .cd-intro-media{clip-path:inset(72% 0 28% 0)}#cd-stage .cd-side{position:absolute;left:1296px;top:280px;width:480px}#cd-stage p{margin:0 0 24px;font-size:var(--cd-copy);line-height:1.7;letter-spacing:0}#cd-stage .cd-badge{display:inline-block;padding:8px 16px;margin-bottom:32px;color:var(--yellow);border:2px solid var(--yellow);font-size:var(--cd-copy);line-height:1.5}#cd-stage .cd-muted{color:var(--muted)}#cd-stage .cd-credit-short{font-size:var(--cd-credit);line-height:1.7}#cd-stage .cd-return-media{width:1008px;height:567px;top:240px}#cd-stage .cd-credits{position:absolute;left:1184px;top:240px;width:592px;padding-left:32px;border-left:2px solid var(--line)}#cd-stage .cd-credits p{font-size:var(--cd-credit);line-height:1.55;margin:0 0 16px;overflow-wrap:anywhere}#cd-stage .cd-credits .cd-work-title{font-size:var(--cd-copy);line-height:1.4;margin-bottom:24px}#cd-stage .cd-credits .cd-license{color:var(--cyan)}#cd-stage .cd-brackets{position:absolute;inset:0;pointer-events:none}#cd-stage .cd-brackets path{fill:none;stroke:var(--cyan);stroke-width:3}#cd-stage .cd-route{position:absolute;left:144px;top:816px;width:1008px;height:4px;background:var(--cyan);transform-origin:left center;transform:scaleX(0)}
+#cd-stage #cd-future .cd-badge{position:absolute;left:1328px;top:136px;margin:0}#cd-stage #cd-future .cd-diagram-caption{position:absolute;left:176px;top:232px;color:var(--muted)}#cd-stage .cd-concept-svg{position:absolute;inset:0}#cd-stage .cd-concept-svg .d-wire{fill:none;stroke:var(--muted);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}#cd-stage .cd-concept-svg .d-potential{fill:none;stroke:var(--cyan);stroke-width:3;stroke-dasharray:10 10;stroke-linecap:round;stroke-linejoin:round}#cd-stage .cd-concept-svg .d-human{fill:var(--plate);stroke:var(--yellow);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}#cd-stage .cd-concept-svg .d-hidden{opacity:0}#cd-stage #baxter-credits{opacity:0}#cd-stage #baxter-credits .cd-work-title{color:var(--cyan)}
+</style></head><body><main id="factory-ab" data-composition-id="factory-ab" data-start="0" data-duration="48.766666666666666" data-width="1920" data-height="1080" data-fps="30"><svg id="ab-world" viewBox="0 0 1920 1080" role="img" aria-label="独立假设下连续成功概率与持续生产的不同处理路径">
+<defs><pattern id="mesh" width="64" height="64" patternUnits="userSpaceOnUse"><path d="M64 0H0V64" fill="none" stroke="#233137"/></pattern></defs><rect width="1920" height="864" fill="url(#mesh)" opacity=".44"/><path d="M144 104H1776M144 832H1776" class="rule"/><rect x="144" y="136" width="8" height="52" fill="var(--yellow)"/>
+<g id="headline"><text x="176" y="180" class="h">一次很高，连续全部成功呢？</text></g><g id="conditions"><text x="176" y="244" class="body muted">假设条件：每次相同、相互独立</text><text x="1744" y="244" text-anchor="end" class="small muted">数学示意 · 非机器人实测</text></g>
+<g id="table"><path d="M272 674H1648L1704 730H328Z" fill="var(--plate)" stroke="var(--line)" stroke-width="2"/><path d="M328 730V786M1704 730V786" class="rule"/></g><path id="baseline" d="M304 690H1640" class="route"/>
+<g id="single"><text x="352" y="386" class="label muted">单次成功率</text><text x="344" y="542" class="num yellow">99<tspan font-size="72">%</tspan></text><text x="1056" y="458" class="body muted">一次假设动作</text><path d="M1060 486H1272L1292 506" class="rule"/></g><g id="operation"><rect x="-30" y="-30" width="60" height="60" rx="8" fill="var(--yellow)"/><path d="M-14 0L-3 12L16-12" fill="none" stroke="var(--bg)" stroke-width="5"/></g>
+<g id="chart" class="hidden"><path d="M450 370V690M450 540H1160M450 390H1160" class="rule"/><text x="450" y="332" class="body muted">全部成功的概率</text><text x="416" y="402" text-anchor="end" class="small muted">100%</text><text x="416" y="552" text-anchor="end" class="small muted">50%</text><text x="416" y="702" text-anchor="end" class="small muted">0</text><g id="ticks"/><text x="1184" y="786" text-anchor="end" class="body muted">连续次数 n</text><g id="curve-segments"/><g id="dot"><circle r="12" fill="var(--yellow)"/><circle r="23" fill="none" stroke="var(--yellow)" stroke-width="2" opacity=".5"/></g><g id="counter"/></g>
+<g id="result" class="hidden"><text x="1704" y="372" text-anchor="end" class="body">连续 100 次全部成功</text><text x="1712" y="500" text-anchor="end" class="num yellow">≈ 37<tspan font-size="64">%</tspan></text><text x="1704" y="562" text-anchor="end" class="body muted">0.99¹⁰⁰ ≈ 36.6%</text></g><g id="formula" class="hidden"><text x="176" y="794" class="small muted">P(n) = 0.99ⁿ</text><text x="1744" y="794" text-anchor="end" class="small muted">整串全部成功，非成功次数占比</text></g><g id="production"/>
+</svg><section id="cd-stage" aria-label="生产设备资料、独立实验演示与未来工位示意">
+<div class="cd-rule cd-top"></div><div class="cd-rule cd-bottom"></div><div class="cd-mark"></div>
+<section id="cd-gigaset-intro" class="cd-shot">
+<h2 class="cd-title">从稳定工位，走进设备环境</h2>
+<div class="cd-media cd-intro-media"><img id="gigaset-intro-frame" data-vfc-video-slot="gigaset_intro" alt="防护栏内的 Gigaset 生产设备环境，保留完整原始构图"></div>
+<div class="cd-side"><p class="cd-badge">生产设备资料</p><p>保留设备与<br>工作区域的关系</p><p class="cd-credit-short cd-muted">Gigaset 生产设备｜Inke Pickhardt</p></div>
+</section>
+<section id="cd-baxter" class="cd-shot">
+<h2 class="cd-title">另一处环境：研究实验</h2>
+<div class="cd-media"><img id="baxter-lab-frame" data-vfc-video-slot="baxter_lab" alt="不同地点的 Baxter 实验演示，红色双臂、桌面和实验环境共同可见"></div>
+<svg class="cd-brackets" viewBox="0 0 1920 1080" aria-hidden="true"><path d="M304 304V264H344M760 264H800V304M304 600V640H344M760 640H800V600"/></svg>
+<div class="cd-side"><p class="cd-badge">Baxter｜实验演示</p><p>红色双臂机器人</p><p class="cd-muted">不同地点 · 不同事件</p><p class="cd-credit-short cd-muted">Alomari、Hogg、Cohn<br>研究资料 · CC BY 4.0</p></div>
+</section>
+<section id="cd-gigaset-return" class="cd-shot">
+<h2 class="cd-title">工位与流程，围绕任务设计</h2>
+<div class="cd-media cd-return-media"><img id="gigaset-return-frame" data-vfc-video-slot="gigaset_return" alt="回到同一 Gigaset 来源的后续设备画面，原速呈现，不据此推断性能"></div>
+<aside class="cd-credits" aria-label="Gigaset 素材完整署名">
+<p class="cd-work-title">Gigaset Cordless<br>Telephone Production V</p>
+<p>影像 Inke Pickhardt<br>录音 Kathinka Engels</p>
+<p id="gigaset-source">来源：youtube.com/watch?v=YkudjzDZfIM</p>
+<p class="cd-license">CC BY 3.0<br>creativecommons.org/licenses/by/3.0/</p>
+<p>本片修改：节选、叠加说明文字、原声静音、等比缩放。</p>
+</aside><div id="cd-to-diagram" class="cd-route"></div>
+</section>
+<section id="cd-future" class="cd-shot">
+<h2 class="cd-title">未来可能：适配既有环境</h2><p class="cd-badge">示意｜未来可能</p>
+<p class="cd-diagram-caption">通道、工具与不同工位</p>
+<svg class="cd-concept-svg" viewBox="0 0 1920 1080" role="img" aria-label="未来可能的概念示意：同一通道、工具与两个工位，人形轮廓仅表示候选位置而非真实部署">
+<path id="d-shared-baseline" d="M144 816H1152" fill="none" stroke="var(--cyan)" stroke-width="4"/>
+<g id="d-corridor" class="d-hidden"><path d="M208 690H1104L1152 752H256Z" fill="var(--plate)" stroke="var(--line)" stroke-width="2"/><path d="M208 350H1104M208 350V690M196 350H220M196 690H220" class="d-potential"/><text x="240" y="336" class="small muted">人类尺度通道</text></g>
+<g id="d-workplace-a" class="d-hidden"><path d="M280 574H440V690H280Z" class="station"/><path d="M296 598H424M312 620V672M408 620V672" class="d-wire"/><rect x="326" y="542" width="68" height="32" fill="var(--plate)" stroke="var(--muted)" stroke-width="3"/><text x="360" y="800" text-anchor="middle" class="body">工位 A</text></g>
+<g id="d-positions" class="d-hidden"><ellipse cx="540" cy="690" rx="56" ry="16" class="d-potential"/><ellipse cx="740" cy="690" rx="56" ry="16" class="d-potential"/><path d="M592 550H692M676 538L692 550L676 562" class="d-potential"/><text x="640" y="390" text-anchor="middle" class="small cyan">候选位置</text></g>
+<g id="d-human" class="d-hidden"><rect x="520" y="424" width="40" height="44" rx="12" class="d-human"/><path d="M516 486H564L574 560H506Z" class="d-human"/><path d="M516 490L488 528L478 572M564 490L592 528L602 572M522 560L512 618L508 680H486M558 560L568 618L572 680H594" fill="none" stroke="var(--yellow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="488" cy="528" r="7" fill="var(--yellow)"/><circle cx="592" cy="528" r="7" fill="var(--yellow)"/></g>
+<g id="d-human-origin" class="d-hidden"><path d="M520 424H560V468H520ZM516 486H564L574 560H506ZM522 560L508 680H486M558 560L572 680H594M516 490L478 572M564 490L602 572" fill="none" stroke="var(--yellow)" stroke-width="2" stroke-dasharray="8 10"/></g>
+<g id="d-tools" class="d-hidden"><path d="M898 420L910 438L932 428L930 406Q958 420 946 444L918 466L886 500L870 484L902 450Q880 436 898 420Z" class="d-wire"/><text x="984" y="454" class="small muted">工具</text></g>
+<g id="d-workplace-b" class="d-hidden"><path d="M864 586H1056V610H864ZM884 610V690M1036 610V690" class="d-wire"/><rect x="936" y="538" width="56" height="48" fill="var(--plate)" stroke="var(--muted)" stroke-width="3"/><path d="M920 514H1008V538" class="d-potential"/><text x="960" y="800" text-anchor="middle" class="body">工位 B</text></g>
+</svg>
+<aside id="baxter-credits" class="cd-credits" aria-label="此前 Baxter 实验素材完整署名">
+<p class="cd-work-title">此前实验资料｜Baxter full</p>
+<p>Muhannad Alomari<br>David C. Hogg、Anthony G. Cohn</p>
+<p id="baxter-source">来源：doi.org/10.5518/110</p>
+<p class="cd-license">CC BY 4.0<br>creativecommons.org/licenses/by/4.0/</p>
+<p>本片修改：节选、叠加说明文字、原声静音、等比缩放。</p>
+<p class="cd-muted">此栏为前段实验影像署名<br>左侧为原创未来概念示意</p>
+</aside>
+</section>
+</section></main><script>
+const config={width:1920,height:1080,fps:30,durationInFrames:1463};
+const beats={chart:192,curve:204,result:252,process:311,summary:564,exit:724,end:1463};
+const seconds=frame=>frame/config.fps;
+function make(tag,attributes,text){const element=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attributes).forEach(([key,value])=>element.setAttribute(key,value));if(text!==undefined)element.textContent=text;return element;}
+const points=Array.from({length:101},(_,index)=>({x:450+710*index/100,y:690-300*Math.pow(.99,index)}));
+const timeline=gsap.timeline({paused:true});const clock={time:0};timeline.to(clock,{time:seconds(beats.end),duration:seconds(beats.end),ease:'none'},0);
+[0,25,50,75,100].forEach(value=>{const position=450+710*value/100;document.getElementById('ticks').append(make('path',{d:`M${position} 682V702`,class:'rule'}),make('text',{x:position,y:738,'text-anchor':'middle',class:'small muted'},String(value)));});
+points.forEach((point,index)=>{const frame=beats.curve+index*48/100;document.getElementById('counter').append(make('text',{id:`counter-${index}`,x:point.x,y:point.y-40,'text-anchor':'middle',class:'small yellow',opacity:0},`n=${index}`));timeline.set(`#counter-${index}`,{opacity:1},seconds(frame));if(index<100)timeline.set(`#counter-${index}`,{opacity:0},seconds(frame+48/100));if(index>0){const previous=points[index-1];document.getElementById('curve-segments').append(make('path',{id:`segment-${index}`,d:`M${previous.x} ${previous.y}L${point.x} ${point.y}`,class:'accent',opacity:0}));timeline.set(`#segment-${index}`,{opacity:1},seconds(frame));timeline.to('#dot',{x:point.x,y:point.y,duration:seconds(48/100),ease:'none'},seconds(frame-48/100));}});
+gsap.set('#operation',{x:600,y:690});gsap.set('#dot',{x:450,y:390});
+timeline.fromTo('#single',{opacity:0,y:16},{opacity:1,y:0,duration:seconds(20),ease:'power2.out'},seconds(8));timeline.to('#operation',{x:1280,duration:seconds(64),ease:'power2.inOut'},seconds(36));timeline.to('#single',{opacity:0,y:-12,duration:seconds(14),ease:'power2.in'},seconds(180));timeline.to('#operation',{opacity:0,duration:seconds(12)},seconds(192));timeline.to('#table',{opacity:.36,duration:seconds(20)},seconds(192));timeline.to('#chart',{opacity:1,duration:seconds(16)},seconds(192));timeline.to('#formula',{opacity:1,duration:seconds(16)},seconds(198));timeline.fromTo('#result',{opacity:0,y:12},{opacity:1,y:0,duration:seconds(16),ease:'power2.out'},seconds(252));
+const production=document.getElementById('production');
+production.innerHTML=`
+<g id="b-heading" opacity="0"><text x="176" y="180" class="h">持续生产，还要能处理异常</text></g>
+<g id="b-note" opacity="0"><text x="176" y="244" class="body muted">两种不同情况，不是依次必经</text><text x="1744" y="244" text-anchor="end" class="small muted">流程示意 · 非现场记录</text></g>
+<g id="stations" opacity="0">
+<g id="station-upstream"><rect x="340" y="650" width="160" height="80" rx="8" class="station"/><path d="M376 670H464M376 710H464" class="rule"/><text x="420" y="786" text-anchor="middle" class="small muted">前序工位</text></g>
+<g id="station-current"><rect x="750" y="644" width="140" height="92" rx="8" class="station"/><path d="M776 664H864M776 716H864" class="rule"/><rect x="802" y="672" width="36" height="36" rx="4" fill="var(--yellow)"/></g>
+<g id="station-next"><rect x="1200" y="654" width="120" height="72" rx="8" class="station"/><path d="M1224 674H1296M1224 706H1296" class="rule"/><text x="1260" y="786" text-anchor="middle" class="small muted">后续工序</text></g>
+<g id="station-last"><rect x="1480" y="650" width="160" height="80" rx="8" class="station"/><path d="M1512 670H1608M1512 710H1608" class="rule"/></g></g>
+<g id="abnormal" opacity="0"><path d="M788 610H852" class="accent"/><text x="820" y="588" text-anchor="middle" class="body yellow">异常</text></g>
+<g id="branches">
+<g id="automatic" opacity="0"><path d="M820 640V460Q820 420 860 420H1036Q1076 420 1076 460V672" fill="none" stroke="var(--cyan)" stroke-width="5"/><path d="M1064 654L1076 674L1088 654" fill="none" stroke="var(--cyan)" stroke-width="4"/><text x="948" y="366" text-anchor="middle" class="label cyan">可自动恢复</text></g>
+<g id="manual" opacity="0"><path d="M856 642V588Q856 550 894 550H1000" class="accent"/><rect x="1000" y="516" width="64" height="68" rx="6" fill="var(--plate)" stroke="var(--yellow)" stroke-width="3"/><path d="M1016 516V500H1048V516" fill="none" stroke="var(--yellow)" stroke-width="3"/><text x="1112" y="554" class="label yellow">需要人处理</text></g>
+<g id="alternative" opacity="0"><text x="744" y="494" text-anchor="end" class="body muted">或</text><path d="M760 430H744V550H760" class="rule"/></g>
+<g id="waiting" opacity="0"><path d="M1072 590Q1180 590 1260 640" fill="none" stroke="var(--muted)" stroke-width="3" stroke-dasharray="8 12"/><text x="1424" y="446" text-anchor="middle" class="body">后续可能等待</text><path d="M1424 468V582L1300 638" class="rule"/><path d="M1248 622V638M1272 622V638" fill="none" stroke="var(--muted)" stroke-width="4"/></g>
+</g>
+<g id="auto-token" opacity="0"><circle r="10" fill="var(--cyan)"/></g>
+<g id="flow-token" opacity="0"><rect x="-14" y="-14" width="28" height="28" rx="4" fill="var(--cyan)"/></g>
+<g id="summary-title" opacity="0"><text x="176" y="180" class="h">工厂要看的是：持续运行</text></g>
+<g id="summary-stability" opacity="0"><text x="420" y="366" text-anchor="middle" class="label">长期稳定</text><path d="M340 394H500" class="accent"/><path d="M420 412V622" class="rule"/></g>
+<g id="summary-recovery" opacity="0"><text x="948" y="366" text-anchor="middle" class="label">异常处理</text><path d="M868 394H1028" class="accent"/><path d="M948 446V486" class="rule"/></g>
+<g id="summary-human" opacity="0"><text x="1504" y="366" text-anchor="middle" class="label">人工介入频率</text><path d="M1384 394H1624" class="accent"/><path d="M1504 412V594" class="rule"/></g>
+<path id="exit-route" d="M1640 690H1776" class="route" opacity="0"/>
+`;
+timeline.to('#headline,#conditions,#formula,#result',{opacity:0,duration:seconds(20),ease:'power2.in'},seconds(beats.process));
+timeline.to('#chart',{opacity:0,scaleY:.12,svgOrigin:'450 690',duration:seconds(24),ease:'power2.inOut'},seconds(beats.process));
+timeline.to('#table',{opacity:1,duration:seconds(24)},seconds(beats.process));
+timeline.to('#b-heading,#b-note',{opacity:1,duration:seconds(18)},seconds(327));
+timeline.fromTo('#stations',{opacity:0,y:12},{opacity:1,y:0,duration:seconds(24),ease:'power2.out'},seconds(323));
+timeline.to('#abnormal',{opacity:1,duration:seconds(14)},seconds(348));
+timeline.to('#automatic',{opacity:1,duration:seconds(20)},seconds(374));
+timeline.to('#manual,#alternative',{opacity:1,duration:seconds(20)},seconds(420));
+timeline.to('#waiting',{opacity:1,duration:seconds(20)},seconds(480));
+gsap.set('#auto-token',{x:820,y:640});
+timeline.set('#auto-token',{opacity:1},seconds(394));
+timeline.to('#auto-token',{y:460,duration:seconds(8),ease:'none'},seconds(394));
+timeline.to('#auto-token',{x:860,y:420,duration:seconds(4),ease:'none'},seconds(402));
+timeline.to('#auto-token',{x:1036,duration:seconds(8),ease:'none'},seconds(406));
+timeline.to('#auto-token',{x:1076,y:460,duration:seconds(4),ease:'none'},seconds(414));
+timeline.to('#auto-token',{y:690,duration:seconds(10),ease:'none'},seconds(418));
+timeline.to('#auto-token',{opacity:0,duration:seconds(6)},seconds(428));
+gsap.set('#flow-token',{x:1080,y:690});
+timeline.set('#flow-token',{opacity:1},seconds(430));
+timeline.to('#flow-token',{x:1440,duration:seconds(28),ease:'none'},seconds(430));
+timeline.to('#flow-token',{opacity:0,duration:seconds(8)},seconds(458));
+timeline.to('#b-heading',{opacity:0,duration:seconds(14)},seconds(beats.summary));
+timeline.to('#summary-title',{opacity:1,duration:seconds(18)},seconds(578));
+timeline.to('#automatic text,#manual text,#alternative,#abnormal,#waiting',{opacity:0,duration:seconds(18)},seconds(beats.summary));
+timeline.to('#automatic path,#manual path,#manual rect',{opacity:.38,duration:seconds(24)},seconds(beats.summary));
+timeline.fromTo('#summary-stability',{opacity:0,y:12},{opacity:1,y:0,duration:seconds(18),ease:'power2.out'},seconds(580));
+timeline.fromTo('#summary-recovery',{opacity:0,y:12},{opacity:1,y:0,duration:seconds(18),ease:'power2.out'},seconds(620));
+timeline.fromTo('#summary-human',{opacity:0,y:12},{opacity:1,y:0,duration:seconds(18),ease:'power2.out'},seconds(660));
+timeline.to('#b-note',{opacity:0,duration:seconds(16)},seconds(696));
+timeline.to('#summary-stability,#summary-recovery,#summary-human,#branches',{opacity:0,duration:seconds(20),ease:'power2.in'},seconds(beats.exit));
+timeline.to('#exit-route',{opacity:1,duration:seconds(20)},seconds(beats.exit));
+const motionEvents=[{id:'single-action',meaning:'一次假设动作',startFrame:36,endFrame:100},{id:'probability-accumulation',meaning:'独立假设下整串成功概率',startFrame:204,endFrame:252},{id:'probability-result',meaning:'连续100次全部成功约36.6%',startFrame:252,endFrame:311},{id:'baseline-to-production',meaning:'共同基线延续为工序轨道',startFrame:311,endFrame:347},{id:'automatic-recovery',meaning:'一种情况：自动恢复返回主流程',startFrame:374,endFrame:434},{id:'manual-alternative',meaning:'另一种情况：需要人处理，非自动恢复之后必经',startFrame:420,endFrame:564},{id:'downstream-may-wait',meaning:'下游仅可能等待，并非必然',startFrame:480,endFrame:564},{id:'production-considerations',meaning:'长期稳定、异常处理、人工介入频率',startFrame:580,endFrame:724},{id:'stable-exit',meaning:'保留工位与开放的视觉出口',startFrame:744,endFrame:764}];
+timeline.set('#cd-stage,#cd-gigaset-intro',{opacity:1},seconds(764));
+timeline.to('#ab-world',{opacity:0,duration:seconds(16),ease:'power2.in'},seconds(764));
+timeline.to('#cd-gigaset-intro .cd-intro-media',{clipPath:'inset(0% 0% 0% 0%)',duration:seconds(16),ease:'power2.out'},seconds(764));
+timeline.set('#cd-gigaset-intro',{opacity:0},seconds(838));
+timeline.set('#cd-baxter',{opacity:1},seconds(838));
+timeline.set('#cd-baxter',{opacity:0},seconds(922));
+timeline.set('#cd-gigaset-return',{opacity:1},seconds(922));
+timeline.to('#cd-to-diagram',{scaleX:1,duration:seconds(20),ease:'power2.out'},seconds(1121));
+motionEvents.push({id:'production-equipment-entry',meaning:'稳定工位让位给真实生产设备环境',startFrame:764,endFrame:838},{id:'independent-lab-example',meaning:'不同来源的Baxter实验演示，保留环境和静态局部提示',startFrame:838,endFrame:922},{id:'equipment-return-and-credit',meaning:'返回同一设备来源的后续范围，完整署名连续停留',startFrame:922,endFrame:1141});
+timeline.set('#cd-gigaset-return',{opacity:0},seconds(1141));
+timeline.set('#cd-future',{opacity:1},seconds(1141));
+timeline.to('#d-shared-baseline',{y:-126,duration:seconds(20),ease:'power2.inOut'},seconds(1141));
+timeline.to('#d-corridor',{opacity:1,duration:seconds(20),ease:'power2.out'},seconds(1149));
+timeline.to('#d-workplace-a',{opacity:1,duration:seconds(18),ease:'power2.out'},seconds(1161));
+timeline.to('#d-human',{opacity:1,duration:seconds(20),ease:'power2.out'},seconds(1173));
+timeline.to('#d-tools',{opacity:1,duration:seconds(18),ease:'power2.out'},seconds(1213));
+timeline.to('#d-workplace-b',{opacity:1,duration:seconds(20),ease:'power2.out'},seconds(1237));
+timeline.to('#d-positions',{opacity:1,duration:seconds(16)},seconds(1257));
+timeline.to('#d-human-origin',{opacity:.3,duration:seconds(12)},seconds(1273));
+timeline.to('#d-human',{x:200,duration:seconds(32),ease:'power2.inOut'},seconds(1273));
+timeline.set('#baxter-credits',{opacity:1},seconds(1301));
+timeline.to('#d-positions path',{opacity:.35,duration:seconds(20)},seconds(1353));
+motionEvents.push({id:'future-concept-boundary',meaning:'真实设备明确退出，路径转入持续标示未来可能的原创空间',startFrame:1141,endFrame:1179},{id:'human-scale-corridor',meaning:'概念人形与既有通道和首个工位建立相对尺度',startFrame:1161,endFrame:1213},{id:'potential-tools-and-positions',meaning:'工具和另一工位加入，轮廓移向另一候选位置，非实拍行动',startFrame:1213,endFrame:1305},{id:'baxter-full-credit',meaning:'此前实验资料完整署名独立展示5.4秒',startFrame:1301,endFrame:1463},{id:'future-whole-hold',meaning:'稳定保留通道、两工位、人形与未来可能标识',startFrame:1373,endFrame:1463});
+window.getVfcMotionEvents=()=>motionEvents;window.__timelines={'factory-ab':timeline};
+</script></body></html>

@@ -77,8 +77,7 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     await client.connect(transport);
     const libraryRoot = join(process.cwd(), "references", "motion-cases", "skillry");
     const index = loadLibraryIndex(libraryRoot), creative = loadCreativeIndex(libraryRoot);
-    const prepared = parse<{ manifestPath: string; manifestSha256: string; scenes: Array<{ sceneId: string; status: string }>;
-      diagnostics: Array<{ id?: string; requiredForRun?: boolean }>; files: Array<{ path: string; localPath: string; requiredForRun: boolean; uses: Array<{ kind: string }> }> }>(await client.callTool({
+    const handoffRequest = {
       name: "prepare_motion_handoff", arguments: { project_id: projectId, base_revision_id: rev(), brief_path: brief, timing_plan_path: timing,
         selected_scene_ids: [scene.id], assets: [{ id: importedVideo.asset.id, purpose: "真实主体" }, { id: "missing-b", purpose: "等待真实素材" }],
         creative: [{ id: "002-c01", sourceSha256: creative.source_sha256, usage: "adopted", purpose: "参考画面组织" }],
@@ -90,19 +89,26 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
               sourceRanges: [{ startMs: 0, endMs: 1000 }], usage: "展示真实主体" }],
             visualPlan: { primaryRoles: ["主体"],
               referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative", researchDecisionId: "research-fixture", startMs: 0, endMs: 9800,
-                targetRole: "主体", treatment: "真实主体接管", preserveRelation: "主体与文字共同变化" }] },
+                targetRole: "主体", treatment: "真实主体接管", preserveRelation: "主体与文字共同变化", targetRange: { startFrame: 0, endFrame: 30 } }] },
             process: "主体出现、发展并接续", preserve: ["连续过程"], adapt: ["中文文字"] },
           { sceneId: pendingScene.id, status: "pending", references: [{ kind: "motion", id: "003-m01", sourceSha256: index.source_sha256,
             startMs: 0, endMs: 2080, purpose: "下一场机制" }], resourceIds: ["missing-art"],
             visualRoles: [{ role: "主体", referenceFunction: "动作", assetIds: ["missing-b"], usage: "待获取" }] }
         ] }
-    }));
+    };
+    const missingRangeRequest = JSON.parse(JSON.stringify(handoffRequest));
+    delete missingRangeRequest.arguments.scenes[0].visualPlan.referenceMappings[0].targetRange;
+    const incomplete = parse<{ scenes: Array<{ status: string; diagnostics?: string[] }> }>(await client.callTool(missingRangeRequest));
+    assert.deepEqual(incomplete.scenes.map(item => item.status), ["incomplete", "pending"]);
+    assert.match(incomplete.scenes[0].diagnostics!.join(" "), /半开帧范围 targetRange/);
+    const prepared = parse<{ manifestPath: string; manifestSha256: string; scenes: Array<{ sceneId: string; status: string }>;
+      diagnostics: Array<{ id?: string; requiredForRun?: boolean }>; files: Array<{ path: string; localPath: string; requiredForRun: boolean; uses: Array<{ kind: string }> }> }>(await client.callTool(handoffRequest));
     assert.deepEqual(prepared.scenes.map(item => item.status), ["ready", "pending"]);
     const scenesFile = prepared.files.find(file => file.path.endsWith("/brief/scenes.json"));
     assert.ok(scenesFile);
     const deliveredScenes = JSON.parse(await readFile(scenesFile.localPath, "utf8"));
     assert.deepEqual(deliveredScenes.scenes[0].visualPlan.referenceMappings[0], { referenceId: "002-c01", referenceKind: "creative",
-      researchDecisionId: "research-fixture", startMs: 0, endMs: 9800, targetRole: "主体", treatment: "真实主体接管", preserveRelation: "主体与文字共同变化" });
+      researchDecisionId: "research-fixture", startMs: 0, endMs: 9800, targetRole: "主体", treatment: "真实主体接管", preserveRelation: "主体与文字共同变化", targetRange: { startFrame: 0, endFrame: 30 } });
     assert.ok(prepared.diagnostics.some(item => item.requiredForRun === false));
     assert.ok(prepared.diagnostics.some(item => item.id === "003-m01" && item.requiredForRun === false));
     assert.ok(prepared.diagnostics.some(item => item.id === "missing-art" && item.requiredForRun === false));
@@ -224,7 +230,7 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
         else await new Promise(resolve => setTimeout(resolve, 25));
       }
     })();
-    const result = await runMotionAuthoringJob(app, originalJob, new AbortController().signal, endpoint) as { authoring: { status: string; receipts: Array<{ authoringInputs: MotionAuthoringTreatmentInput[] }> } };
+    const result = await runMotionAuthoringJob(app, originalJob, new AbortController().signal, endpoint) as { authoring: { status: string; receipts: Array<{ creativeBrief: string; authoringInputs: MotionAuthoringTreatmentInput[] }> } };
     assert.equal(result.authoring.status, "succeeded");
     assert.equal(starts, 1);
     assert.match(receivedPrompt, /完整共同编排/);
@@ -232,8 +238,12 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.match(receivedPrompt, /002-c01/);
     assert.match(receivedPrompt, /主体与文字共同变化/);
     assert.match(receivedPrompt, /制作首版/);
+    assert.match(receivedPrompt, /日常预览、审阅和返修统一使用 VideoFlowCut 现有工作台/);
+    assert.match(receivedPrompt, /不要为日常预览制作 MP4 或另建播放器/);
+    assert.match(receivedPrompt, /work\.creativeBrief.*作者自述/);
     assert.doesNotMatch(receivedPrompt, /同源预排/);
     assert.match(receivedPrompt, new RegExp(importedVideo.asset.id));
+    assert.equal(result.authoring.receipts[0].creativeBrief, motionFixture.creativeBrief);
     assert.equal(result.authoring.receipts[0].authoringInputs[0].adoptedDecisionRef.decisionId, decision.id);
     const cue = app.readProject(projectId).snapshot.effectCues[0];
     assert.equal(cue.authoringInputs?.[0].deliveryRef.manifestSha256, prepared.manifestSha256);

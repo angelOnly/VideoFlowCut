@@ -343,7 +343,9 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
             `HTML 和素材槽合同：${JSON.stringify(hyperframesContract)}`,
             `阶段清单 ${AUTHORED_MOTION_MANIFEST_CONTRACT} 的输入 Schema：${JSON.stringify(toJsonSchemaCompat(authoredMotionInputFields))}`,
             "阶段清单必须包含 work、readyRanges、changedRanges；范围均为作品根帧半开区间。使用 od motion-work stage --source <项目源码路径> --manifest <项目清单路径> 发布；命令自动填写源码路径、哈希和作者交件身份。",
-            "视频素材须在 work.videoBindings 中绑定真实项目素材和源范围，HTML 使用有稳定 id 的 <img data-vfc-video-slot=\"槽名\">；不能使用原生 video 标签、资源 URL 或外部脚本。声音由外层合成。"
+            "视频素材须在 work.videoBindings 中绑定真实项目素材和源范围，HTML 使用有稳定 id 的 <img data-vfc-video-slot=\"槽名\">；不能使用原生 video 标签、资源 URL 或外部脚本。声音由外层合成。",
+            "日常预览、审阅和返修统一使用 VideoFlowCut 现有工作台。完成可检查范围后发布固定源码和清单，由 VideoFlowCut 登记、采用并返回工作台入口；不要为日常预览制作 MP4 或另建播放器。工作台反馈的项目帧由 VideoFlowCut 换算为作品根帧，源码修订沿原项目和制作任务继续，发布新版后回工作台复查。仅正式交付、离线检查或明确的渲染差异诊断按需生成媒体。",
+            "在阶段清单的 work.creativeBrief 中如实简述本版已实现的主要参考关系及作品范围、尚未实现的设计、与导演稿的偏差、自主深化及需要其他作者处理的问题。该说明是作者自述，不能代替工作台的实际观察。"
           ].join("\n")];
           if (authoringInputs.length) {
             const current = app.readProject(job.projectId);
@@ -514,6 +516,7 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
       if (firstCue) editor.searchParams.set("effectCueId", firstCue.id);
       state!.receipts.push({ runId: stageRunId, eventId: stage.eventId, frozenVersion: stage.frozenVersion, workId: work.id, definitionHash: work.definitionHash, revision: latest.revision.number,
         cueId: firstCue?.id, cueIds: stageCues.map(cue => cue.id), ranges: stage.adopted,
+        ...(work.creativeBrief ? { creativeBrief: work.creativeBrief } : {}),
         rangeMappings: stage.adopted.map(projectRange => ({ projectRange,
           workRootRange: projectRangeToWorkRoot(projectRange, targetRange, projectFps, work.fps) })), editorUrl: editor.toString(),
         ...(authoringInputs.length ? { authoringInputs } : {}), ...(inspection ? { inspectionJobId: inspection.id } : {}) });
