@@ -37,6 +37,46 @@ function invalidFrozen() {
     source_base64: source.toString("base64"), manifest_base64: bytes.toString("base64") };
 }
 
+test("启动请求断线后继续使用已登记的原请求", { timeout: 20_000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "vfc-start-reconcile-")), app = createApplication(root);
+  const projectId = app.createProject({ name: "启动对账隔离验证" }).snapshot.project.id;
+  const rev = () => app.readProject(projectId).revision.number;
+  const scene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "场面", purpose: "原安排", startFrame: 0, endFrame: 18 }).snapshot.scenes[0];
+  const requests: Array<Record<string, unknown>> = [];
+  const server = createServer((req, res) => {
+    const url = new URL(req.url!, "http://127.0.0.1");
+    if (req.method === "POST" && url.pathname === "/api/runs") {
+      let body = ""; req.setEncoding("utf8"); req.on("data", part => { body += part; });
+      req.on("end", () => {
+        requests.push(JSON.parse(body));
+        if (requests.length === 1) {
+          app.repository.commit(projectId, rev(), "制作已启动后修改目标", snapshot => { snapshot.scenes[0]!.purpose = "新的安排"; });
+          req.socket.destroy();
+        } else res.end(JSON.stringify({ runId: "run-one" }));
+      });
+      return;
+    }
+    if (url.pathname === "/api/runs") { res.end(JSON.stringify({ runs: [] })); return; }
+    if (url.pathname.endsWith("/events")) { res.writeHead(200, { "content-type": "text/event-stream" }); res.end(); return; }
+    if (url.pathname === "/api/runs/run-one") { res.end(JSON.stringify({ status: "succeeded" })); return; }
+    res.writeHead(404); res.end();
+  });
+  try {
+    await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+    const endpoint = { url: `http://127.0.0.1:${(server.address() as { port: number }).port}` };
+    const job = await app.startMotionAuthoring({ projectId, baseRevision: rev(), intent: "local_edit", idempotencyKey: "reconcile",
+      target: { action: "create_cue", sceneId: scene.id, layer: "fullscreen", startFrame: 0, endFrame: 18, sourceStartFrame: 0, sourceEndFrame: 18, audioPolicy: "rebind_unchanged_events" },
+      openDesignRequest: { project: "od-project", prompt: "使用已确认的制作安排" } });
+    const result = await runMotionAuthoringJob(app, job, new AbortController().signal, endpoint) as { authoring: { runId: string } };
+    assert.equal(result.authoring.runId, "run-one");
+    assert.equal(requests.length, 2);
+    assert.deepEqual(requests[1], requests[0], "对账时必须复用检查点中的完整请求");
+  } finally {
+    await new Promise<void>(resolve => server.close(() => resolve()));
+    app.close(); await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("阶段清单被拒后接回修正版，最后交件被拒时保留未完成状态", { timeout: 120_000 }, async () => {
   for (const rejectedLast of [false, true]) {
     const root = await mkdtemp(join(tmpdir(), "vfc-stage-rejection-")), app = createApplication(root);
@@ -162,8 +202,9 @@ test("终态后的修订精确使用指定来源 Run 的会话与制作任务", 
     const result = await runMotionAuthoringJob(app, job, new AbortController().signal, endpoint) as { authoring: { continuation: Record<string, string>; status: string } };
     assert.equal(submitted?.conversationId, "old-conversation");
     assert.equal(submitted?.taskExecutionId, "old-task");
-    assert.equal(submitted?.message, prompt);
-    assert.equal(submitted?.currentPrompt, prompt);
+    assert.ok(typeof submitted?.message === "string" && submitted.message.startsWith(`${prompt}\n\n`));
+    assert.match(submitted.message, /受管作品合同|受管作品/);
+    assert.equal(submitted.currentPrompt, submitted.message);
     assert.equal(submitted?.pluginId, "motion-design");
     assert.deepEqual(submitted?.pluginInputs, inputs);
     assert.equal(result.authoring.continuation.runId, "old-run");

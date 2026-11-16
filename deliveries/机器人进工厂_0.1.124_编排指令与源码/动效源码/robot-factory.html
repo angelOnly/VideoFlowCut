@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, initial-scale=1">
+<title>机器人都能后空翻了，为啥不能进工厂？</title>
+<style>
+:root{--ink:#11161c;--paper:#f4f7fa;--muted:#bcc8d3;--blue:#72c4f0;--line:#657b8d;--space:24px;--title:56px;--body:32px;--small:26px;--number:112px;--panel:rgba(17,22,28,.94)}
+*{box-sizing:border-box}html,body{margin:0;width:1920px;height:1080px;background:var(--ink);overflow:hidden}body{font-family:var(--vfc-font-body,"Noto Sans SC",sans-serif);color:var(--paper)}
+#robot-factory{width:1920px;height:1080px;display:grid;isolation:isolate;background:var(--ink);overflow:clip}
+.shot,.copy,.mark{grid-area:1/1;transform-origin:0 0;min-width:0;min-height:0}
+.shot{width:1920px;height:1080px;display:grid;background:var(--ink);visibility:hidden}
+.shot img{display:block;width:100%;height:100%;object-fit:contain;grid-area:1/1}
+.copy{visibility:hidden;z-index:20;align-self:start;justify-self:end;width:560px;margin:120px 160px 0 0;padding:32px;background:var(--panel);display:flex;flex-direction:column;gap:16px}
+.eyebrow{margin:0;color:var(--blue);font-size:var(--small);line-height:1.5;letter-spacing:0}
+h1,h2,p{margin:0}h1,h2{font-family:var(--vfc-font-title,"Noto Sans SC",sans-serif);font-size:var(--title);font-weight:700;line-height:1.35;letter-spacing:0;text-wrap:balance}
+.body{font-size:var(--body);line-height:1.75;max-width:65ch}.small{font-size:var(--small);line-height:1.7;color:var(--muted)}
+.number{font-family:var(--vfc-font-title,"Noto Sans SC",sans-serif);font-size:var(--number);font-weight:700;line-height:1.15;white-space:nowrap;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.formula{font-size:40px;line-height:1.5;white-space:nowrap}.formula sup{font-size:.6em}
+.mark{visibility:hidden;z-index:24;align-self:start;justify-self:start;margin:96px 0 0 144px;padding:12px 24px;background:rgba(17,22,28,.92);font-size:var(--small);line-height:1.5}
+.wide{justify-self:start;width:720px;margin:104px 0 0 144px}.compact{width:640px}.route{display:flex;flex-wrap:wrap;align-items:center;gap:16px;font-size:var(--body);line-height:1.75}.route strong{font-weight:400;color:var(--blue)}
+.question,.mosaic-title{grid-area:1/1;visibility:hidden;z-index:21;align-self:start;justify-self:start;min-width:0;font-family:var(--vfc-font-title,"Noto Sans SC",sans-serif);font-size:40px;line-height:1.4;letter-spacing:0}
+#question-stability{margin:144px 0 0 144px}#question-recovery{margin:144px 0 0 552px}#question-staffing{margin:144px 0 0 1056px}
+.question{font-size:32px;padding:12px 20px;background:var(--panel)}
+#mosaic-title{margin:80px 0 0 144px;padding:8px 20px;background:var(--panel);font-size:var(--small);color:var(--blue);font-family:var(--vfc-font-body,"Noto Sans SC",sans-serif);line-height:1.5}
+#fixed-work{width:736px}.process{display:flex;flex-wrap:wrap;gap:16px;align-items:center;font-size:var(--small);line-height:1.7}.process span{display:block}.process b{color:var(--blue);font-weight:400}
+#potential{width:592px}#future{width:624px}.small strong{font-weight:400;color:var(--paper)}
+#hypothesis,#probability{justify-self:start;width:608px;margin:64px 0 0 80px;padding:20px 24px;gap:10px}
+#hypothesis h1{font-size:40px}#hypothesis .small{font-size:26px}
+#probability h2{font-size:32px}#probability .number{font-size:64px}#probability .small{font-size:26px}
+#waiting{width:704px;padding:20px 24px;gap:8px}#waiting .route{font-size:32px}
+#future{width:1008px;margin:40px 0 0 80px;padding:12px 24px;gap:6px}#future h2{font-size:40px}
+</style>
+</head>
+<body>
+<main id="robot-factory" data-composition-id="robot-factory" data-width="1920" data-height="1080" data-start="0" data-duration="50.458333333333336" aria-label="机器人进工厂：真实素材解释画面">
+<section class="shot" id="atlas"><img id="atlas-frame" data-vfc-video-slot="atlas" alt="Atlas在蓝色平台旁完成真实后空翻，保留源片空间与动作"></section>
+<section class="shot" id="workers"><img id="workers-frame" data-vfc-video-slot="workers" alt="人员在滚筒输送台旁搬运蓝色料箱，一般生产环境"></section>
+<section class="shot" id="equipment"><img id="equipment-frame" data-vfc-video-slot="equipment" alt="KUKA设备实拍，作为另一独立来源的工位画面"></section>
+<section class="shot" id="car-arms"><img id="car-arms-frame" data-vfc-video-slot="carArms" alt="车身、防护设施与蓝色机械臂，持续播放的同一画面由小窗扩大"></section>
+<section class="shot" id="kuka-detail"><img id="kuka-detail-frame" data-vfc-video-slot="kukaDetail" alt="橙色机械臂、夹具和防护设施的真实活动画面"></section>
+<section class="shot" id="kuka-overhead"><img id="kuka-overhead-frame" data-vfc-video-slot="kukaOverhead" alt="固定工位及多机械臂的俯视实拍"></section>
+<section class="shot" id="material-a"><img id="material-a-frame" data-vfc-video-slot="materialA" alt="Atlas搬动物件，展示机器人全身、料架和现有空间"></section>
+<section class="shot" id="material-b"><img id="material-b-frame" data-vfc-video-slot="materialB" alt="另一段Atlas搬料演示，保留原视频自带的识别小窗与文字"></section>
+<section class="copy" id="hypothesis"><p class="eyebrow">概率示例 · 非 Atlas 实测</p><h1>假设：单次成功率99%</h1><p class="small">每次结果相互独立</p></section>
+<section class="copy" id="probability"><p class="eyebrow">沿用单次99%、每次独立的假设</p><h2>连续100次全部成功</h2><p class="number">≈37%</p><p class="small">0.99¹⁰⁰ ≈ 36.6% · 非实测</p></section>
+<p class="mark" id="source-boundary">生产语境示意 · 与前一镜头不是同一事件</p>
+<section class="copy wide" id="recovery"><p class="eyebrow">面对小失误，处理路径可能不同</p><div class="route"><span>自动恢复</span><strong>或</strong><span>需要人工处理</span></div><p class="small">画面只呈现正常作业，不是故障实录</p></section>
+<section class="copy wide" id="waiting"><p class="eyebrow">如果反复需要人工介入</p><div class="route"><span>后续工序</span><strong>可能等待</strong></div></section>
+<p class="mosaic-title" id="mosaic-title">工厂需要考虑的问题</p>
+<p class="question" id="question-stability">长期稳定？</p>
+<p class="question" id="question-recovery">异常怎么处理？</p>
+<p class="question" id="question-staffing">需要经常值守？</p>
+<section class="copy wide compact" id="arm-question"><p class="eyebrow">再看另一类机器人</p><h2>机械臂为什么<br>已经在工厂上班？</h2></section>
+<section class="copy wide" id="fixed-work"><p class="eyebrow">很多机械臂的工作条件</p><h2>相对固定的任务</h2><div class="process"><span>零件放置</span><b>→</b><span>设备衔接</span><b>→</b><span>下一步</span></div><p class="small">让流程围绕任务设计</p></section>
+<section class="copy wide compact" id="mature-work"><p class="eyebrow">在适合的工位中</p><h2>专用流程<br>支撑稳定运行</h2></section>
+<section class="copy" id="potential"><p class="eyebrow">人形机器人的吸引力</p><h2>利用已有环境<br>的潜力</h2><p class="small">人用通道、工具与设备<br><strong>画面为搬料演示</strong></p></section>
+<section class="copy wide" id="future"><p class="eyebrow">未来的可能</p><h2>今天搬料，未来也许能换个工位</h2></section>
+</main>
+<script>
+const fps=24;
+const totalFrames=1211;
+const seconds=frame=>frame/fps;
+const timing={firstInset:228,firstReadable:240,firstExpand:264,firstTakeover:288,mosaic:528,equipment:552,carArms:588,armReadable:600,armExpand:624,armTakeover:700,kukaDetail:786,kukaOverhead:870,materialA:948,materialB:1116};
+const timeline=gsap.timeline({paused:true});
+const show=(target,frame)=>timeline.set(target,{visibility:'visible'},seconds(frame));
+const hide=(target,frame)=>timeline.set(target,{visibility:'hidden'},seconds(frame));
+const appear=(target,start,end)=>{show(target,start);timeline.fromTo(target,{opacity:0,y:16},{opacity:1,y:0,duration:seconds(10),ease:'power2.out',immediateRender:false},seconds(start));timeline.to(target,{opacity:0,duration:seconds(6),ease:'power2.in'},seconds(end-6));hide(target,end);};
+timeline.set('#atlas',{visibility:'visible'},0);
+appear('#hypothesis',0,156);
+appear('#probability',160,228);
+timeline.set('#workers',{visibility:'visible',x:80,y:96,scale:.325,opacity:0},seconds(timing.firstInset));
+timeline.to('#workers',{opacity:1,duration:seconds(12),ease:'power2.out'},seconds(timing.firstInset));
+timeline.to('#workers',{x:0,y:0,scale:1,duration:seconds(24),ease:'power3.inOut'},seconds(timing.firstExpand));
+hide('#atlas',timing.firstTakeover);
+appear('#recovery',304,368);
+appear('#waiting',376,462);
+appear('#question-stability',468,636);
+timeline.to('#workers',{x:144,y:280,scale:.45,duration:seconds(24),ease:'power3.inOut'},seconds(timing.mosaic));
+appear('#mosaic-title',468,636);
+timeline.set('#equipment',{visibility:'visible',x:1080,y:248,scale:.30,opacity:0},seconds(timing.equipment));
+timeline.to('#equipment',{opacity:1,duration:seconds(12),ease:'power2.out'},seconds(timing.equipment));
+appear('#question-recovery',552,636);
+timeline.set('#car-arms',{visibility:'visible',x:1080,y:552,scale:.30,opacity:0},seconds(timing.carArms));
+timeline.to('#car-arms',{opacity:1,duration:seconds(12),ease:'power2.out'},seconds(timing.carArms));
+appear('#question-staffing',588,636);
+timeline.to('#workers',{x:-816,opacity:0,duration:seconds(12),ease:'power2.in'},seconds(636));
+timeline.to('#equipment',{x:1920,opacity:0,duration:seconds(12),ease:'power2.in'},seconds(636));
+hide('#workers',648);
+hide('#equipment',648);
+timeline.to('#car-arms',{x:0,y:0,scale:1,duration:seconds(timing.armTakeover-timing.armExpand),ease:'power2.out'},seconds(timing.armExpand));
+appear('#arm-question',650,695);
+appear('#fixed-work',704,870);
+show('#kuka-detail',timing.kukaDetail);
+hide('#car-arms',timing.kukaDetail);
+show('#kuka-overhead',timing.kukaOverhead);
+hide('#kuka-detail',timing.kukaOverhead);
+appear('#mature-work',881,941);
+show('#material-a',timing.materialA);
+hide('#kuka-overhead',timing.materialA);
+appear('#potential',958,1080);
+appear('#future',1092,totalFrames);
+show('#material-b',timing.materialB);
+hide('#material-a',timing.materialB);
+timeline.to({clock:0},{clock:1,duration:seconds(totalFrames),ease:'none'},0);
+window.__timelines=window.__timelines||{};
+window.__timelines['robot-factory']=timeline;
+window.getVfcMotionEvents=()=>[
+{id:'hypothetical_reliability',meaning:'独立概率假设，不是Atlas实测',startFrame:0,endFrame:228},
+{id:'workers_readable',meaning:'人员与滚筒小窗识别与停留',startFrame:240,endFrame:264},
+{id:'workers_takeover',meaning:'130参考关系：同一人员窗口扩大接管',startFrame:timing.firstExpand,endFrame:timing.firstTakeover},
+{id:'production_juxtaposition',meaning:'005参考关系：保留人员画面，设备及机械臂错峰进入并置；独立来源不是同一事件',startFrame:timing.mosaic,endFrame:636},
+{id:'arm_readable',meaning:'机械臂小窗保持可辨，源时钟连续',startFrame:timing.armReadable,endFrame:timing.armExpand},
+{id:'arm_takeover',meaning:'本片组合设计：005并置之后借130关系扩大同一机械臂窗口',startFrame:timing.armExpand,endFrame:timing.armTakeover},
+{id:'fixed_task_detail',meaning:'真实机械臂与夹具画面接续，不宣称完整工艺循环',startFrame:timing.kukaDetail,endFrame:timing.materialA},
+{id:'humanoid_potential',meaning:'搬料演示呈现人形主体及已有环境',startFrame:timing.materialA,endFrame:totalFrames},
+{id:'future_possibility',meaning:'换工位为未来可能性，不是已部署事实',startFrame:1092,endFrame:totalFrames}
+];
+</script>
+</body>
+</html>

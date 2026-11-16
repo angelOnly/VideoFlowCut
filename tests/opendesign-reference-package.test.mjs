@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp, mkdir, readFile, writeFile, copyFile, rm} from 'node:fs/promises';
+import {mkdtemp, mkdir, readFile, writeFile, copyFile, rename, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
@@ -86,6 +86,15 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
     const planInput={...sceneInput,projectSnapshot:previewSnapshot,assets:sceneInput.assets.slice(0,1),scenes:[{...scene,visualPlan:plan}]};
     const preparedPlan=await prepareReferencePackage(planInput,join(root,'preview'),library);
     assert.equal(preparedPlan.scenes[0].status,'ready');
+    const picturesOnly=await prepareReferencePackage({...planInput,creative:[]},join(root,'pictures-only'),library);
+    assert.equal(picturesOnly.scenes[0].status,'incomplete');
+    assert.match(picturesOnly.scenes[0].diagnostics.join(' '),/scene-1.*001-c01.*视频/);
+    await rename(video,video+'.temporarily-unavailable');
+    try {
+      const missingVideo=await prepareReferencePackage(planInput,join(root,'missing-reference-video'),library);
+      assert.equal(missingVideo.scenes[0].status,'incomplete');
+      assert.match(missingVideo.scenes[0].diagnostics.join(' '),/scene-1.*001-c01.*视频/);
+    } finally { await rename(video+'.temporarily-unavailable',video); }
     assert.deepEqual(preparedPlan.scenes[0].visualPlan.referenceMappings,plan.referenceMappings);
     assert.ok(!preparedPlan.files.some(file=>file.uses.some(use=>use.kind==='preview')));
     const extraPath=join(previewRoot,'assets','extra.png'); await copyFile(join(dir,'storyboards','main.png'),extraPath);
@@ -103,6 +112,13 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
     const incompleteListing={files:sameWork.files.filter(file=>file!==otherFile).map(file=>({path:file.deliveredPath,localPath:join(root,'same-work',file.deliveredPath)}))};
     assert.equal((await verifyReferenceDelivery(sameWork,incompleteListing,1,'od-isolation',scopedProject)).prompt,undefined);
     const onlyFirst=scopeReferenceManifest(sameWork,['scene-1']);
+    const invalidRole=structuredClone(sameWork);
+    delete invalidRole.scenes[0].visualRoles[0].assets;
+    assert.throws(()=>scopeReferenceManifest(invalidRole,['scene-1']),/说明或素材绑定无效/);
+    const completeListing={files:sameWork.files.map(file=>({path:file.deliveredPath,localPath:join(root,'same-work',file.deliveredPath)}))};
+    const invalidDelivery=await verifyReferenceDelivery(invalidRole,completeListing,1,'od-isolation');
+    assert.equal(invalidDelivery.prompt,undefined);
+    assert.match(invalidDelivery.manifest.verificationErrors[0].reason,/说明或素材绑定无效/);
     assert.equal(onlyFirst.files.find(file=>file.deliveredPath===otherFile.deliveredPath).requiredForRun,false);
     assert.match((await verifyReferenceDelivery(onlyFirst,incompleteListing,1,'od-isolation',scopedProject)).prompt,/就绪场面 scene-1/);
     assert.equal(sameWork.files.find(file=>file.deliveredPath===otherFile.deliveredPath).requiredForRun,undefined,'收窄范围不能修改原清单');
@@ -119,10 +135,23 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
     const typedScene=JSON.parse(await readFile(join(typedOutput,'brief/scenes.json'),'utf8')).scenes[0];
     assert.deepEqual(typedScene.visualPlan.referenceMappings,[mapping]);
     for (const field of ['references','visualRoles','process','preserve','adapt','visualPlan']) assert.ok(field in typedScene,field);
-    const graphicPlan=await prepareReferencePackage({...planInput,scenes:[{...scene,visualPlan:{...plan,graphicLed:true,graphicReasons:['用图形解释不可见的概率累计关系']}}]},join(root,'graphic-valid'),library);
+    const graphicPlan=await prepareReferencePackage({...planInput,scenes:[{...scene,
+      visualRoles:[...scene.visualRoles,{role:'辅助图形',referenceFunction:'辅助说明',assetIds:[],usage:'说明累计关系'}],
+      process:'真实主体进入，辅助图形随主体变化并接续下一场',visualPlan:{...plan,primaryRoles:['主要主体','辅助图形']}}]},join(root,'graphic-valid'),library);
     assert.equal(graphicPlan.scenes[0].status,'ready');
+    assert.ok(graphicPlan.scenes[0].visualRoles.every(role=>!('kind' in role)));
+    const mixed=await prepareReferencePackage({...planInput,assets:[],scenes:[{...scene,
+      visualRoles:[{...scene.visualRoles[0],role:'照片与文字卡片',usage:'照片、文字和原创图形共同变化'}],
+      visualPlan:{primaryRoles:['照片与文字卡片'],referenceMappings:plan.referenceMappings.map(item=>({...item,targetRole:'照片与文字卡片'}))}}]},join(root,'mixed'),library);
+    assert.equal(mixed.scenes[0].status,'ready');
+    assert.equal(mixed.scenes[0].visualRoles[0].assets[0].assetId,'asset-1');
+    const unknown=await prepareReferencePackage({...planInput,assets:[],scenes:[{...scene,
+      visualRoles:[{...scene.visualRoles[0],assetIds:['unknown']}],visualPlan:plan}]},join(root,'unknown-material'),library);
+    assert.equal(unknown.scenes[0].status,'incomplete');
+    assert.match(unknown.scenes[0].diagnostics.join(' '),/素材 unknown 未取得/);
+    assert.ok(unknown.diagnostics.some(item=>item.id==='unknown' && /未登记/.test(item.reason)));
     const studyPlan=await prepareReferencePackage({...planInput,creative:[{id:'001-c01',usage:'study',purpose:'候选参考'}]},join(root,'study-reference'),library);
-    assert.match(studyPlan.scenes[0].diagnostics.join(' '),/必须.*adopted/);
+    assert.match(studyPlan.scenes[0].diagnostics.join(' '),/scene-1.*001-c01.*已采用/);
     for (const [name,change,expected] of [
       ['bad-role',{primaryRoles:['不存在']},/主要角色/],
       ['bad-reference',{referenceMappings:[{referenceId:'未采用',targetRole:'主要主体',treatment:'接管'}]},/必须已采用且实际交付/],
@@ -132,7 +161,6 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
       ['empty-treatment',{referenceMappings:[{...mapping,treatment:'  '}]},/具体处理方式/],
       ['invalid-preserve-relation',{referenceMappings:[{...mapping,preserveRelation:123}]},/保持的关系/],
       ['missing-reference-mapping',{referenceMappings:[]},/缺少完整的视觉角色映射/],
-      ['graphic',{graphicLed:true,graphicReasons:['更方便制作']},/承担的表达内容和原因/],
       ['missing-research-id',{referenceMappings:[{...mapping,researchDecisionId:''}]},/实际研究决定 ID/]
     ]) {
       const invalidPlan=await prepareReferencePackage({...planInput,scenes:[{...scene,visualPlan:{...plan,...change}}]},join(root,name),library);
@@ -163,8 +191,8 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
     assert.doesNotMatch(explicit.scenes[0].diagnostics.join(' '),/歧义|视觉计划参考/);
     const missingRange=await prepareReferencePackage({...planInput,scenes:[{...scene,visualRoles:[{...scene.visualRoles[0],sourceRanges:[]}],visualPlan:plan}]},join(root,'missing-range'),library);
     assert.match(missingRange.scenes[0].diagnostics.join(' '),/缺少可核验的源时间范围/);
-    const missingBinding=await prepareReferencePackage({...planInput,scenes:[{...scene,visualRoles:[{...scene.visualRoles[0],assetIds:[],sourceRanges:[]}],visualPlan:plan}]},join(root,'missing-binding'),library);
-    assert.match(missingBinding.scenes[0].diagnostics.join(' '),/目标角色需要绑定真实素材/);
+    const pureGraphic=await prepareReferencePackage({...planInput,assets:[],scenes:[{...scene,visualRoles:[{...scene.visualRoles[0],assetIds:[],sourceRanges:[]}],visualPlan:plan}]},join(root,'pure-graphic'),library);
+    assert.equal(pureGraphic.scenes[0].status,'ready');
     const briefFile=preparedPlan.files.find(file=>file.deliveredPath.endsWith('visual-director-brief.md'));
     await writeFile(join(root,'preview',briefFile.deliveredPath),'已改动');
     assert.equal((await verifyReferenceDelivery(preparedPlan,previewListing,1,'od-isolation',previewProject)).prompt,undefined);
@@ -233,7 +261,7 @@ test('动效参考交付原片和切片，制作请求保留原片范围与切�
     const snapshot=join(root,'project.json');
     const project={revision:{number:1},snapshot:{project:{id:'isolation',rootPath:root},scenes:[{id:'motion',startFrame:0,endFrame:30}],assets:[],motionWorks:[]}};
     await writeFile(snapshot,JSON.stringify(project));
-    const preview={primaryRoles:['主体'],graphicLed:true,graphicReasons:['原创图形承担不可见过程']};
+    const preview={primaryRoles:['主体']};
     const index=loadLibraryIndex();
     const manifest=await prepareReferencePackage({projectId:'isolation',revision:1,projectSnapshot:snapshot,brief,timingPlan:timing,
       motion:[{id:'002-m17',sourceSha256:index.source_sha256,usage:'adopted',purpose:'完成所选连续变化'}],

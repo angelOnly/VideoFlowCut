@@ -1,0 +1,1085 @@
+{
+  "ref130": [
+    {
+      "meta": {
+        "id": "130-c01",
+        "source_sha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+        "source_hash": "e5575f7f14cf1972b486e07d90ac1f00a5fd43cce36863e7831d98a1f5fdd4f4",
+        "range": {
+          "startMs": 0,
+          "endMs": 2000
+        },
+        "frame_count": 60,
+        "first_source_ms": 0,
+        "last_source_ms": 1966.667,
+        "frame_rate": "30/1",
+        "observation": "连续返回起点正在显示的源帧及区间内全部可解码源帧；首帧时间戳可能早于选段起点。此结果不代表模型看到这些帧，声音请在同范围播放原片核查。"
+      },
+      "frames": [
+        {
+          "time_ms": 0,
+          "file": "./130/frame_0000000000.jpg"
+        },
+        {
+          "time_ms": 33.333,
+          "file": "./130/frame_0000033333.jpg"
+        },
+        {
+          "time_ms": 66.667,
+          "file": "./130/frame_0000066667.jpg"
+        },
+        {
+          "time_ms": 100,
+          "file": "./130/frame_0000100000.jpg"
+        },
+        {
+          "time_ms": 133.333,
+          "file": "./130/frame_0000133333.jpg"
+        },
+        {
+          "time_ms": 166.667,
+          "file": "./130/frame_0000166667.jpg"
+        },
+        {
+          "time_ms": 200,
+          "file": "./130/frame_0000200000.jpg"
+        },
+        {
+          "time_ms": 233.333,
+          "file": "./130/frame_0000233333.jpg"
+        },
+        {
+          "time_ms": 266.667,
+          "file": "./130/frame_0000266667.jpg"
+        },
+        {
+          "time_ms": 300,
+          "file": "./130/frame_0000300000.jpg"
+        },
+        {
+          "time_ms": 333.333,
+          "file": "./130/frame_0000333333.jpg"
+        },
+        {
+          "time_ms": 366.667,
+          "file": "./130/frame_0000366667.jpg"
+        },
+        {
+          "time_ms": 400,
+          "file": "./130/frame_0000400000.jpg"
+        },
+        {
+          "time_ms": 433.333,
+          "file": "./130/frame_0000433333.jpg"
+        },
+        {
+          "time_ms": 466.667,
+          "file": "./130/frame_0000466667.jpg"
+        },
+        {
+          "time_ms": 500,
+          "file": "./130/frame_0000500000.jpg"
+        },
+        {
+          "time_ms": 533.333,
+          "file": "./130/frame_0000533333.jpg"
+        },
+        {
+          "time_ms": 566.667,
+          "file": "./130/frame_0000566667.jpg"
+        },
+        {
+          "time_ms": 600,
+          "file": "./130/frame_0000600000.jpg"
+        },
+        {
+          "time_ms": 633.333,
+          "file": "./130/frame_0000633333.jpg"
+        },
+        {
+          "time_ms": 666.667,
+          "file": "./130/frame_0000666667.jpg"
+        },
+        {
+          "time_ms": 700,
+          "file": "./130/frame_0000700000.jpg"
+        },
+        {
+          "time_ms": 733.333,
+          "file": "./130/frame_0000733333.jpg"
+        },
+        {
+          "time_ms": 766.667,
+          "file": "./130/frame_0000766667.jpg"
+        },
+        {
+          "time_ms": 800,
+          "file": "./130/frame_0000800000.jpg"
+        },
+        {
+          "time_ms": 833.333,
+          "file": "./130/frame_0000833333.jpg"
+        },
+        {
+          "time_ms": 866.667,
+          "file": "./130/frame_0000866667.jpg"
+        },
+        {
+          "time_ms": 900,
+          "file": "./130/frame_0000900000.jpg"
+        },
+        {
+          "time_ms": 933.333,
+          "file": "./130/frame_0000933333.jpg"
+        },
+        {
+          "time_ms": 966.667,
+          "file": "./130/frame_0000966667.jpg"
+        },
+        {
+          "time_ms": 1000,
+          "file": "./130/frame_0001000000.jpg"
+        },
+        {
+          "time_ms": 1033.333,
+          "file": "./130/frame_0001033333.jpg"
+        },
+        {
+          "time_ms": 1066.667,
+          "file": "./130/frame_0001066667.jpg"
+        },
+        {
+          "time_ms": 1100,
+          "file": "./130/frame_0001100000.jpg"
+        },
+        {
+          "time_ms": 1133.333,
+          "file": "./130/frame_0001133333.jpg"
+        },
+        {
+          "time_ms": 1166.667,
+          "file": "./130/frame_0001166667.jpg"
+        },
+        {
+          "time_ms": 1200,
+          "file": "./130/frame_0001200000.jpg"
+        },
+        {
+          "time_ms": 1233.333,
+          "file": "./130/frame_0001233333.jpg"
+        },
+        {
+          "time_ms": 1266.667,
+          "file": "./130/frame_0001266667.jpg"
+        },
+        {
+          "time_ms": 1300,
+          "file": "./130/frame_0001300000.jpg"
+        },
+        {
+          "time_ms": 1333.333,
+          "file": "./130/frame_0001333333.jpg"
+        },
+        {
+          "time_ms": 1366.667,
+          "file": "./130/frame_0001366667.jpg"
+        },
+        {
+          "time_ms": 1400,
+          "file": "./130/frame_0001400000.jpg"
+        },
+        {
+          "time_ms": 1433.333,
+          "file": "./130/frame_0001433333.jpg"
+        },
+        {
+          "time_ms": 1466.667,
+          "file": "./130/frame_0001466667.jpg"
+        },
+        {
+          "time_ms": 1500,
+          "file": "./130/frame_0001500000.jpg"
+        },
+        {
+          "time_ms": 1533.333,
+          "file": "./130/frame_0001533333.jpg"
+        },
+        {
+          "time_ms": 1566.667,
+          "file": "./130/frame_0001566667.jpg"
+        },
+        {
+          "time_ms": 1600,
+          "file": "./130/frame_0001600000.jpg"
+        },
+        {
+          "time_ms": 1633.333,
+          "file": "./130/frame_0001633333.jpg"
+        },
+        {
+          "time_ms": 1666.667,
+          "file": "./130/frame_0001666667.jpg"
+        },
+        {
+          "time_ms": 1700,
+          "file": "./130/frame_0001700000.jpg"
+        },
+        {
+          "time_ms": 1733.333,
+          "file": "./130/frame_0001733333.jpg"
+        },
+        {
+          "time_ms": 1766.667,
+          "file": "./130/frame_0001766667.jpg"
+        },
+        {
+          "time_ms": 1800,
+          "file": "./130/frame_0001800000.jpg"
+        },
+        {
+          "time_ms": 1833.333,
+          "file": "./130/frame_0001833333.jpg"
+        },
+        {
+          "time_ms": 1866.667,
+          "file": "./130/frame_0001866667.jpg"
+        },
+        {
+          "time_ms": 1900,
+          "file": "./130/frame_0001900000.jpg"
+        },
+        {
+          "time_ms": 1933.333,
+          "file": "./130/frame_0001933333.jpg"
+        },
+        {
+          "time_ms": 1966.667,
+          "file": "./130/frame_0001966667.jpg"
+        }
+      ]
+    },
+    {
+      "meta": {
+        "id": "130-c01",
+        "source_sha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+        "source_hash": "e5575f7f14cf1972b486e07d90ac1f00a5fd43cce36863e7831d98a1f5fdd4f4",
+        "range": {
+          "startMs": 2000,
+          "endMs": 3200
+        },
+        "frame_count": 36,
+        "first_source_ms": 2000,
+        "last_source_ms": 3166.667,
+        "frame_rate": "30/1",
+        "observation": "连续返回起点正在显示的源帧及区间内全部可解码源帧；首帧时间戳可能早于选段起点。此结果不代表模型看到这些帧，声音请在同范围播放原片核查。"
+      },
+      "frames": [
+        {
+          "time_ms": 2000,
+          "file": "./130/frame_0002000000.jpg"
+        },
+        {
+          "time_ms": 2033.333,
+          "file": "./130/frame_0002033333.jpg"
+        },
+        {
+          "time_ms": 2066.667,
+          "file": "./130/frame_0002066667.jpg"
+        },
+        {
+          "time_ms": 2100,
+          "file": "./130/frame_0002100000.jpg"
+        },
+        {
+          "time_ms": 2133.333,
+          "file": "./130/frame_0002133333.jpg"
+        },
+        {
+          "time_ms": 2166.667,
+          "file": "./130/frame_0002166667.jpg"
+        },
+        {
+          "time_ms": 2200,
+          "file": "./130/frame_0002200000.jpg"
+        },
+        {
+          "time_ms": 2233.333,
+          "file": "./130/frame_0002233333.jpg"
+        },
+        {
+          "time_ms": 2266.667,
+          "file": "./130/frame_0002266667.jpg"
+        },
+        {
+          "time_ms": 2300,
+          "file": "./130/frame_0002300000.jpg"
+        },
+        {
+          "time_ms": 2333.333,
+          "file": "./130/frame_0002333333.jpg"
+        },
+        {
+          "time_ms": 2366.667,
+          "file": "./130/frame_0002366667.jpg"
+        },
+        {
+          "time_ms": 2400,
+          "file": "./130/frame_0002400000.jpg"
+        },
+        {
+          "time_ms": 2433.333,
+          "file": "./130/frame_0002433333.jpg"
+        },
+        {
+          "time_ms": 2466.667,
+          "file": "./130/frame_0002466667.jpg"
+        },
+        {
+          "time_ms": 2500,
+          "file": "./130/frame_0002500000.jpg"
+        },
+        {
+          "time_ms": 2533.333,
+          "file": "./130/frame_0002533333.jpg"
+        },
+        {
+          "time_ms": 2566.667,
+          "file": "./130/frame_0002566667.jpg"
+        },
+        {
+          "time_ms": 2600,
+          "file": "./130/frame_0002600000.jpg"
+        },
+        {
+          "time_ms": 2633.333,
+          "file": "./130/frame_0002633333.jpg"
+        },
+        {
+          "time_ms": 2666.667,
+          "file": "./130/frame_0002666667.jpg"
+        },
+        {
+          "time_ms": 2700,
+          "file": "./130/frame_0002700000.jpg"
+        },
+        {
+          "time_ms": 2733.333,
+          "file": "./130/frame_0002733333.jpg"
+        },
+        {
+          "time_ms": 2766.667,
+          "file": "./130/frame_0002766667.jpg"
+        },
+        {
+          "time_ms": 2800,
+          "file": "./130/frame_0002800000.jpg"
+        },
+        {
+          "time_ms": 2833.333,
+          "file": "./130/frame_0002833333.jpg"
+        },
+        {
+          "time_ms": 2866.667,
+          "file": "./130/frame_0002866667.jpg"
+        },
+        {
+          "time_ms": 2900,
+          "file": "./130/frame_0002900000.jpg"
+        },
+        {
+          "time_ms": 2933.333,
+          "file": "./130/frame_0002933333.jpg"
+        },
+        {
+          "time_ms": 2966.667,
+          "file": "./130/frame_0002966667.jpg"
+        },
+        {
+          "time_ms": 3000,
+          "file": "./130/frame_0003000000.jpg"
+        },
+        {
+          "time_ms": 3033.333,
+          "file": "./130/frame_0003033333.jpg"
+        },
+        {
+          "time_ms": 3066.667,
+          "file": "./130/frame_0003066667.jpg"
+        },
+        {
+          "time_ms": 3100,
+          "file": "./130/frame_0003100000.jpg"
+        },
+        {
+          "time_ms": 3133.333,
+          "file": "./130/frame_0003133333.jpg"
+        },
+        {
+          "time_ms": 3166.667,
+          "file": "./130/frame_0003166667.jpg"
+        }
+      ]
+    }
+  ],
+  "ref005": [
+    {
+      "meta": {
+        "id": "005-m06",
+        "source_sha256": "712195edd295e621adec873be6b2580bf195d0753240f50ca7da160ef655b024",
+        "source_hash": "61cf6bd985d5b540d24e7e01285fe7e1dabae38c7fbbebbf4fa12a1ff646fa6a",
+        "range": {
+          "startMs": 28233,
+          "endMs": 30233
+        },
+        "frame_count": 61,
+        "first_source_ms": 28200,
+        "last_source_ms": 30200,
+        "frame_rate": "30/1",
+        "observation": "连续返回起点正在显示的源帧及区间内全部可解码源帧；首帧时间戳可能早于选段起点。此结果不代表模型看到这些帧，声音请在同范围播放原片核查。"
+      },
+      "frames": [
+        {
+          "time_ms": 28200,
+          "file": "./005/frame_0028200000.jpg"
+        },
+        {
+          "time_ms": 28233.333,
+          "file": "./005/frame_0028233333.jpg"
+        },
+        {
+          "time_ms": 28266.667,
+          "file": "./005/frame_0028266667.jpg"
+        },
+        {
+          "time_ms": 28300,
+          "file": "./005/frame_0028300000.jpg"
+        },
+        {
+          "time_ms": 28333.333,
+          "file": "./005/frame_0028333333.jpg"
+        },
+        {
+          "time_ms": 28366.667,
+          "file": "./005/frame_0028366667.jpg"
+        },
+        {
+          "time_ms": 28400,
+          "file": "./005/frame_0028400000.jpg"
+        },
+        {
+          "time_ms": 28433.333,
+          "file": "./005/frame_0028433333.jpg"
+        },
+        {
+          "time_ms": 28466.667,
+          "file": "./005/frame_0028466667.jpg"
+        },
+        {
+          "time_ms": 28500,
+          "file": "./005/frame_0028500000.jpg"
+        },
+        {
+          "time_ms": 28533.333,
+          "file": "./005/frame_0028533333.jpg"
+        },
+        {
+          "time_ms": 28566.667,
+          "file": "./005/frame_0028566667.jpg"
+        },
+        {
+          "time_ms": 28600,
+          "file": "./005/frame_0028600000.jpg"
+        },
+        {
+          "time_ms": 28633.333,
+          "file": "./005/frame_0028633333.jpg"
+        },
+        {
+          "time_ms": 28666.667,
+          "file": "./005/frame_0028666667.jpg"
+        },
+        {
+          "time_ms": 28700,
+          "file": "./005/frame_0028700000.jpg"
+        },
+        {
+          "time_ms": 28733.333,
+          "file": "./005/frame_0028733333.jpg"
+        },
+        {
+          "time_ms": 28766.667,
+          "file": "./005/frame_0028766667.jpg"
+        },
+        {
+          "time_ms": 28800,
+          "file": "./005/frame_0028800000.jpg"
+        },
+        {
+          "time_ms": 28833.333,
+          "file": "./005/frame_0028833333.jpg"
+        },
+        {
+          "time_ms": 28866.667,
+          "file": "./005/frame_0028866667.jpg"
+        },
+        {
+          "time_ms": 28900,
+          "file": "./005/frame_0028900000.jpg"
+        },
+        {
+          "time_ms": 28933.333,
+          "file": "./005/frame_0028933333.jpg"
+        },
+        {
+          "time_ms": 28966.667,
+          "file": "./005/frame_0028966667.jpg"
+        },
+        {
+          "time_ms": 29000,
+          "file": "./005/frame_0029000000.jpg"
+        },
+        {
+          "time_ms": 29033.333,
+          "file": "./005/frame_0029033333.jpg"
+        },
+        {
+          "time_ms": 29066.667,
+          "file": "./005/frame_0029066667.jpg"
+        },
+        {
+          "time_ms": 29100,
+          "file": "./005/frame_0029100000.jpg"
+        },
+        {
+          "time_ms": 29133.333,
+          "file": "./005/frame_0029133333.jpg"
+        },
+        {
+          "time_ms": 29166.667,
+          "file": "./005/frame_0029166667.jpg"
+        },
+        {
+          "time_ms": 29200,
+          "file": "./005/frame_0029200000.jpg"
+        },
+        {
+          "time_ms": 29233.333,
+          "file": "./005/frame_0029233333.jpg"
+        },
+        {
+          "time_ms": 29266.667,
+          "file": "./005/frame_0029266667.jpg"
+        },
+        {
+          "time_ms": 29300,
+          "file": "./005/frame_0029300000.jpg"
+        },
+        {
+          "time_ms": 29333.333,
+          "file": "./005/frame_0029333333.jpg"
+        },
+        {
+          "time_ms": 29366.667,
+          "file": "./005/frame_0029366667.jpg"
+        },
+        {
+          "time_ms": 29400,
+          "file": "./005/frame_0029400000.jpg"
+        },
+        {
+          "time_ms": 29433.333,
+          "file": "./005/frame_0029433333.jpg"
+        },
+        {
+          "time_ms": 29466.667,
+          "file": "./005/frame_0029466667.jpg"
+        },
+        {
+          "time_ms": 29500,
+          "file": "./005/frame_0029500000.jpg"
+        },
+        {
+          "time_ms": 29533.333,
+          "file": "./005/frame_0029533333.jpg"
+        },
+        {
+          "time_ms": 29566.667,
+          "file": "./005/frame_0029566667.jpg"
+        },
+        {
+          "time_ms": 29600,
+          "file": "./005/frame_0029600000.jpg"
+        },
+        {
+          "time_ms": 29633.333,
+          "file": "./005/frame_0029633333.jpg"
+        },
+        {
+          "time_ms": 29666.667,
+          "file": "./005/frame_0029666667.jpg"
+        },
+        {
+          "time_ms": 29700,
+          "file": "./005/frame_0029700000.jpg"
+        },
+        {
+          "time_ms": 29733.333,
+          "file": "./005/frame_0029733333.jpg"
+        },
+        {
+          "time_ms": 29766.667,
+          "file": "./005/frame_0029766667.jpg"
+        },
+        {
+          "time_ms": 29800,
+          "file": "./005/frame_0029800000.jpg"
+        },
+        {
+          "time_ms": 29833.333,
+          "file": "./005/frame_0029833333.jpg"
+        },
+        {
+          "time_ms": 29866.667,
+          "file": "./005/frame_0029866667.jpg"
+        },
+        {
+          "time_ms": 29900,
+          "file": "./005/frame_0029900000.jpg"
+        },
+        {
+          "time_ms": 29933.333,
+          "file": "./005/frame_0029933333.jpg"
+        },
+        {
+          "time_ms": 29966.667,
+          "file": "./005/frame_0029966667.jpg"
+        },
+        {
+          "time_ms": 30000,
+          "file": "./005/frame_0030000000.jpg"
+        },
+        {
+          "time_ms": 30033.333,
+          "file": "./005/frame_0030033333.jpg"
+        },
+        {
+          "time_ms": 30066.667,
+          "file": "./005/frame_0030066667.jpg"
+        },
+        {
+          "time_ms": 30100,
+          "file": "./005/frame_0030100000.jpg"
+        },
+        {
+          "time_ms": 30133.333,
+          "file": "./005/frame_0030133333.jpg"
+        },
+        {
+          "time_ms": 30166.667,
+          "file": "./005/frame_0030166667.jpg"
+        },
+        {
+          "time_ms": 30200,
+          "file": "./005/frame_0030200000.jpg"
+        }
+      ]
+    },
+    {
+      "meta": {
+        "id": "005-m06",
+        "source_sha256": "712195edd295e621adec873be6b2580bf195d0753240f50ca7da160ef655b024",
+        "source_hash": "61cf6bd985d5b540d24e7e01285fe7e1dabae38c7fbbebbf4fa12a1ff646fa6a",
+        "range": {
+          "startMs": 30233,
+          "endMs": 32233
+        },
+        "frame_count": 61,
+        "first_source_ms": 30200,
+        "last_source_ms": 32200,
+        "frame_rate": "30/1",
+        "observation": "连续返回起点正在显示的源帧及区间内全部可解码源帧；首帧时间戳可能早于选段起点。此结果不代表模型看到这些帧，声音请在同范围播放原片核查。"
+      },
+      "frames": [
+        {
+          "time_ms": 30200,
+          "file": "./005/frame_0030200000.jpg"
+        },
+        {
+          "time_ms": 30233.333,
+          "file": "./005/frame_0030233333.jpg"
+        },
+        {
+          "time_ms": 30266.667,
+          "file": "./005/frame_0030266667.jpg"
+        },
+        {
+          "time_ms": 30300,
+          "file": "./005/frame_0030300000.jpg"
+        },
+        {
+          "time_ms": 30333.333,
+          "file": "./005/frame_0030333333.jpg"
+        },
+        {
+          "time_ms": 30366.667,
+          "file": "./005/frame_0030366667.jpg"
+        },
+        {
+          "time_ms": 30400,
+          "file": "./005/frame_0030400000.jpg"
+        },
+        {
+          "time_ms": 30433.333,
+          "file": "./005/frame_0030433333.jpg"
+        },
+        {
+          "time_ms": 30466.667,
+          "file": "./005/frame_0030466667.jpg"
+        },
+        {
+          "time_ms": 30500,
+          "file": "./005/frame_0030500000.jpg"
+        },
+        {
+          "time_ms": 30533.333,
+          "file": "./005/frame_0030533333.jpg"
+        },
+        {
+          "time_ms": 30566.667,
+          "file": "./005/frame_0030566667.jpg"
+        },
+        {
+          "time_ms": 30600,
+          "file": "./005/frame_0030600000.jpg"
+        },
+        {
+          "time_ms": 30633.333,
+          "file": "./005/frame_0030633333.jpg"
+        },
+        {
+          "time_ms": 30666.667,
+          "file": "./005/frame_0030666667.jpg"
+        },
+        {
+          "time_ms": 30700,
+          "file": "./005/frame_0030700000.jpg"
+        },
+        {
+          "time_ms": 30733.333,
+          "file": "./005/frame_0030733333.jpg"
+        },
+        {
+          "time_ms": 30766.667,
+          "file": "./005/frame_0030766667.jpg"
+        },
+        {
+          "time_ms": 30800,
+          "file": "./005/frame_0030800000.jpg"
+        },
+        {
+          "time_ms": 30833.333,
+          "file": "./005/frame_0030833333.jpg"
+        },
+        {
+          "time_ms": 30866.667,
+          "file": "./005/frame_0030866667.jpg"
+        },
+        {
+          "time_ms": 30900,
+          "file": "./005/frame_0030900000.jpg"
+        },
+        {
+          "time_ms": 30933.333,
+          "file": "./005/frame_0030933333.jpg"
+        },
+        {
+          "time_ms": 30966.667,
+          "file": "./005/frame_0030966667.jpg"
+        },
+        {
+          "time_ms": 31000,
+          "file": "./005/frame_0031000000.jpg"
+        },
+        {
+          "time_ms": 31033.333,
+          "file": "./005/frame_0031033333.jpg"
+        },
+        {
+          "time_ms": 31066.667,
+          "file": "./005/frame_0031066667.jpg"
+        },
+        {
+          "time_ms": 31100,
+          "file": "./005/frame_0031100000.jpg"
+        },
+        {
+          "time_ms": 31133.333,
+          "file": "./005/frame_0031133333.jpg"
+        },
+        {
+          "time_ms": 31166.667,
+          "file": "./005/frame_0031166667.jpg"
+        },
+        {
+          "time_ms": 31200,
+          "file": "./005/frame_0031200000.jpg"
+        },
+        {
+          "time_ms": 31233.333,
+          "file": "./005/frame_0031233333.jpg"
+        },
+        {
+          "time_ms": 31266.667,
+          "file": "./005/frame_0031266667.jpg"
+        },
+        {
+          "time_ms": 31300,
+          "file": "./005/frame_0031300000.jpg"
+        },
+        {
+          "time_ms": 31333.333,
+          "file": "./005/frame_0031333333.jpg"
+        },
+        {
+          "time_ms": 31366.667,
+          "file": "./005/frame_0031366667.jpg"
+        },
+        {
+          "time_ms": 31400,
+          "file": "./005/frame_0031400000.jpg"
+        },
+        {
+          "time_ms": 31433.333,
+          "file": "./005/frame_0031433333.jpg"
+        },
+        {
+          "time_ms": 31466.667,
+          "file": "./005/frame_0031466667.jpg"
+        },
+        {
+          "time_ms": 31500,
+          "file": "./005/frame_0031500000.jpg"
+        },
+        {
+          "time_ms": 31533.333,
+          "file": "./005/frame_0031533333.jpg"
+        },
+        {
+          "time_ms": 31566.667,
+          "file": "./005/frame_0031566667.jpg"
+        },
+        {
+          "time_ms": 31600,
+          "file": "./005/frame_0031600000.jpg"
+        },
+        {
+          "time_ms": 31633.333,
+          "file": "./005/frame_0031633333.jpg"
+        },
+        {
+          "time_ms": 31666.667,
+          "file": "./005/frame_0031666667.jpg"
+        },
+        {
+          "time_ms": 31700,
+          "file": "./005/frame_0031700000.jpg"
+        },
+        {
+          "time_ms": 31733.333,
+          "file": "./005/frame_0031733333.jpg"
+        },
+        {
+          "time_ms": 31766.667,
+          "file": "./005/frame_0031766667.jpg"
+        },
+        {
+          "time_ms": 31800,
+          "file": "./005/frame_0031800000.jpg"
+        },
+        {
+          "time_ms": 31833.333,
+          "file": "./005/frame_0031833333.jpg"
+        },
+        {
+          "time_ms": 31866.667,
+          "file": "./005/frame_0031866667.jpg"
+        },
+        {
+          "time_ms": 31900,
+          "file": "./005/frame_0031900000.jpg"
+        },
+        {
+          "time_ms": 31933.333,
+          "file": "./005/frame_0031933333.jpg"
+        },
+        {
+          "time_ms": 31966.667,
+          "file": "./005/frame_0031966667.jpg"
+        },
+        {
+          "time_ms": 32000,
+          "file": "./005/frame_0032000000.jpg"
+        },
+        {
+          "time_ms": 32033.333,
+          "file": "./005/frame_0032033333.jpg"
+        },
+        {
+          "time_ms": 32066.667,
+          "file": "./005/frame_0032066667.jpg"
+        },
+        {
+          "time_ms": 32100,
+          "file": "./005/frame_0032100000.jpg"
+        },
+        {
+          "time_ms": 32133.333,
+          "file": "./005/frame_0032133333.jpg"
+        },
+        {
+          "time_ms": 32166.667,
+          "file": "./005/frame_0032166667.jpg"
+        },
+        {
+          "time_ms": 32200,
+          "file": "./005/frame_0032200000.jpg"
+        }
+      ]
+    },
+    {
+      "meta": {
+        "id": "005-m06",
+        "source_sha256": "712195edd295e621adec873be6b2580bf195d0753240f50ca7da160ef655b024",
+        "source_hash": "61cf6bd985d5b540d24e7e01285fe7e1dabae38c7fbbebbf4fa12a1ff646fa6a",
+        "range": {
+          "startMs": 32233,
+          "endMs": 33150
+        },
+        "frame_count": 29,
+        "first_source_ms": 32200,
+        "last_source_ms": 33133.333,
+        "frame_rate": "30/1",
+        "observation": "连续返回起点正在显示的源帧及区间内全部可解码源帧；首帧时间戳可能早于选段起点。此结果不代表模型看到这些帧，声音请在同范围播放原片核查。"
+      },
+      "frames": [
+        {
+          "time_ms": 32200,
+          "file": "./005/frame_0032200000.jpg"
+        },
+        {
+          "time_ms": 32233.333,
+          "file": "./005/frame_0032233333.jpg"
+        },
+        {
+          "time_ms": 32266.667,
+          "file": "./005/frame_0032266667.jpg"
+        },
+        {
+          "time_ms": 32300,
+          "file": "./005/frame_0032300000.jpg"
+        },
+        {
+          "time_ms": 32333.333,
+          "file": "./005/frame_0032333333.jpg"
+        },
+        {
+          "time_ms": 32366.667,
+          "file": "./005/frame_0032366667.jpg"
+        },
+        {
+          "time_ms": 32400,
+          "file": "./005/frame_0032400000.jpg"
+        },
+        {
+          "time_ms": 32433.333,
+          "file": "./005/frame_0032433333.jpg"
+        },
+        {
+          "time_ms": 32466.667,
+          "file": "./005/frame_0032466667.jpg"
+        },
+        {
+          "time_ms": 32500,
+          "file": "./005/frame_0032500000.jpg"
+        },
+        {
+          "time_ms": 32533.333,
+          "file": "./005/frame_0032533333.jpg"
+        },
+        {
+          "time_ms": 32566.667,
+          "file": "./005/frame_0032566667.jpg"
+        },
+        {
+          "time_ms": 32600,
+          "file": "./005/frame_0032600000.jpg"
+        },
+        {
+          "time_ms": 32633.333,
+          "file": "./005/frame_0032633333.jpg"
+        },
+        {
+          "time_ms": 32666.667,
+          "file": "./005/frame_0032666667.jpg"
+        },
+        {
+          "time_ms": 32700,
+          "file": "./005/frame_0032700000.jpg"
+        },
+        {
+          "time_ms": 32733.333,
+          "file": "./005/frame_0032733333.jpg"
+        },
+        {
+          "time_ms": 32766.667,
+          "file": "./005/frame_0032766667.jpg"
+        },
+        {
+          "time_ms": 32800,
+          "file": "./005/frame_0032800000.jpg"
+        },
+        {
+          "time_ms": 32833.333,
+          "file": "./005/frame_0032833333.jpg"
+        },
+        {
+          "time_ms": 32866.667,
+          "file": "./005/frame_0032866667.jpg"
+        },
+        {
+          "time_ms": 32900,
+          "file": "./005/frame_0032900000.jpg"
+        },
+        {
+          "time_ms": 32933.333,
+          "file": "./005/frame_0032933333.jpg"
+        },
+        {
+          "time_ms": 32966.667,
+          "file": "./005/frame_0032966667.jpg"
+        },
+        {
+          "time_ms": 33000,
+          "file": "./005/frame_0033000000.jpg"
+        },
+        {
+          "time_ms": 33033.333,
+          "file": "./005/frame_0033033333.jpg"
+        },
+        {
+          "time_ms": 33066.667,
+          "file": "./005/frame_0033066667.jpg"
+        },
+        {
+          "time_ms": 33100,
+          "file": "./005/frame_0033100000.jpg"
+        },
+        {
+          "time_ms": 33133.333,
+          "file": "./005/frame_0033133333.jpg"
+        }
+      ]
+    }
+  ],
+  "说明": "图片路径按本交付目录本地化；每个 file 均相对于本 JSON 文件。其他时间及观察元数据保持原记录。"
+}

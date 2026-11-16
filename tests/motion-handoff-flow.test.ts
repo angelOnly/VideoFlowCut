@@ -79,7 +79,7 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     const index = loadLibraryIndex(libraryRoot), creative = loadCreativeIndex(libraryRoot);
     const handoffRequest = {
       name: "prepare_motion_handoff", arguments: { project_id: projectId, base_revision_id: rev(), brief_path: brief, timing_plan_path: timing,
-        selected_scene_ids: [scene.id], assets: [{ id: importedVideo.asset.id, purpose: "真实主体" }, { id: "missing-b", purpose: "等待真实素材" }],
+        selected_scene_ids: [scene.id], assets: [{ id: "missing-b", purpose: "等待真实素材" }],
         creative: [{ id: "002-c01", sourceSha256: creative.source_sha256, usage: "adopted", purpose: "参考画面组织" }],
         motion: [{ id: "003-m01", sourceSha256: index.source_sha256, usage: "adopted", purpose: "待补场面的机制" }],
         references: [{ id: "missing-art", usage: "study", purpose: "下一场素材", files: [{ path: join(root, "missing-art.png"), deliveredPath: "references/art/missing.png" }] }], scenes: [
@@ -101,7 +101,13 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     const incomplete = parse<{ scenes: Array<{ status: string; diagnostics?: string[] }> }>(await client.callTool(missingRangeRequest));
     assert.deepEqual(incomplete.scenes.map(item => item.status), ["incomplete", "pending"]);
     assert.match(incomplete.scenes[0].diagnostics!.join(" "), /半开帧范围 targetRange/);
-    const prepared = parse<{ manifestPath: string; manifestSha256: string; scenes: Array<{ sceneId: string; status: string }>;
+    const obsoleteKindRequest = JSON.parse(JSON.stringify(handoffRequest));
+    obsoleteKindRequest.arguments.scenes[0].visualRoles[0].kind = "material";
+    assert.equal((await client.callTool(obsoleteKindRequest)).isError, true, "新 MCP 合同不再接收角色类型");
+    const obsoletePlanRequest = JSON.parse(JSON.stringify(handoffRequest));
+    obsoletePlanRequest.arguments.scenes[0].visualPlan.graphicLed = true;
+    assert.equal((await client.callTool(obsoletePlanRequest)).isError, true, "旧的全场图形标记不能进入新合同");
+    const prepared = parse<{ inputRevision: number; manifestPath: string; manifestSha256: string; scenes: Array<{ sceneId: string; status: string }>;
       diagnostics: Array<{ id?: string; requiredForRun?: boolean }>; files: Array<{ path: string; localPath: string; requiredForRun: boolean; uses: Array<{ kind: string }> }> }>(await client.callTool(handoffRequest));
     assert.deepEqual(prepared.scenes.map(item => item.status), ["ready", "pending"]);
     const scenesFile = prepared.files.find(file => file.path.endsWith("/brief/scenes.json"));
@@ -118,16 +124,24 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     await writeFile(brief, "另一场面更新后的原始稿");
     const fixedBrief = prepared.files.find(file => file.path.endsWith("brief/visual-director-brief.md"))!;
     assert.equal(await readFile(fixedBrief.localPath, "utf8"), "完整连续画面及准确文字");
+    await writeFile(brief, "完整连续画面及准确文字");
 
     const delivery = { manifest_path: prepared.manifestPath, manifest_sha256: prepared.manifestSha256, scene_ids: [scene.id] };
+    const initialReport = await app.readSkillExecutionReport({ projectId, runId: report.id });
+    await app.updateProductionRun({ projectId, runId: report.id, expectedAuditVersion: initialReport.auditVersion, operationId: "assign-visual", action: "add_assignment",
+      assignment: { agentId: "/test/visual", assignmentId: "visual", responsibilities: ["visual_design"], skillIds: ["visual-treatment-planning"], inputRevision: rev(), scope: { kind: "project" } } });
+    const visual = parse<SkillExecutionReport>(await client.callTool({ name: "record_creative_decision", arguments: {
+      project_id: projectId, run_id: report.id, operation_id: "visual-design", category: "visual", decision: "完成当前场面", rationale: "依据固定交接",
+      phase: "visual_design", assignment_id: "visual", input_revision: prepared.inputRevision, object_ids: [scene.id], delivery_ref: delivery
+    } })).creativeDecisions.at(-1)!;
     const record = async (assignment: string) => {
       const current = await app.readSkillExecutionReport({ projectId, runId: report.id });
-      const previous = current.assignments.at(-1);
+      const previous = [...current.assignments].reverse().find(item => item.responsibilities.includes("director"));
       await app.updateProductionRun({ projectId, runId: report.id, expectedAuditVersion: current.auditVersion, operationId: `assign-${assignment}`, action: previous ? "replace_assignment" : "add_assignment",
         assignment: { agentId: "/test/director", assignmentId: assignment, responsibilities: ["director"], skillIds: ["production-director"], inputRevision: rev(), scope: { kind: "project" }, supersedesAssignmentId: previous?.assignmentId } });
       return parse<SkillExecutionReport>(await client.callTool({ name: "record_creative_decision", arguments: {
         project_id: projectId, run_id: report.id, operation_id: `decision-${assignment}`, category: "scene", decision: "采用共同场面", rationale: "依据实际编排",
-        phase: "adoption", assignment_id: assignment, input_revision: rev(), object_ids: [scene.id], delivery_ref: delivery
+        phase: "adoption", assignment_id: assignment, input_revision: rev(), object_ids: [scene.id], input_decision_ids: [visual.id], delivery_ref: delivery
       } })).creativeDecisions.at(-1)!;
     };
     const decision = await record("director-1");
@@ -218,6 +232,7 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     await assert.rejects(runMotionAuthoringJob(app, originalJob, new AbortController().signal, endpoint), /MOTION_AUTHORING_OD_HTTP: 400/);
     assert.equal(starts, 0, "文件未交付时不能启动制作作者");
     rejectUpload = false;
+    await writeFile(brief, "排队期间视觉作者更新了导演稿");
     app.repository.commit(projectId, rev(), "排队期间目标发生变化", snapshot => { snapshot.scenes.find(item => item.id === scene.id)!.purpose = "新的内容目标"; });
     await assert.rejects(runMotionAuthoringJob(app, originalJob, new AbortController().signal, endpoint), /启动前已变化/);
     assert.equal(starts, 0, "排队期间目标变化时不能启动制作作者");
@@ -305,11 +320,13 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     const thirdDecision = await record("director-3");
     const inFlight = await start("in-flight", { action: "replace_cue", cueId: snapshot.effectCues[1].id, audioPolicy: "rebind_unchanged_events" });
     onRunStart = async () => { await updateTreatment(thirdDecision.id, treatmentId); };
-    await assert.rejects(runMotionAuthoringJob(app, app.trackJob(inFlight.jobId), new AbortController().signal, endpoint), /当前采用稿已变化/);
-    const conflict = app.trackJob(inFlight.jobId).result?.authoring as { status: string; conflict: { code: string }; stage?: { workId?: string } };
-    assert.equal(conflict.status, "incomplete");
-    assert.equal(conflict.conflict.code, "MOTION_AUTHORING_TARGET_CONFLICT");
-    assert.ok(conflict.stage?.workId, "冲突前已登记的作品应保留");
+    const returned = await runMotionAuthoringJob(app, app.trackJob(inFlight.jobId), new AbortController().signal, endpoint) as {
+      authoring: { status: string; receipts: Array<{ status: string; workId: string; definitionHash: string; pendingRanges: unknown[] }> }
+    };
+    assert.equal(returned.authoring.status, "incomplete");
+    const pending = returned.authoring.receipts.find(receipt => receipt.status === "needs_reconfirmation");
+    assert.ok(pending?.pendingRanges.length, "换稿后的范围应保留为待协调成果");
+    assert.ok(app.readSourceMotionWork(projectId, pending.workId, undefined, pending.definitionHash).work, "已登记作品应保留");
   } finally {
     stopWorker = true;
     await worker;

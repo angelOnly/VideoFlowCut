@@ -92,7 +92,7 @@ test("素材和参考参与共同编排，完整指令及画面限制交到制�
   const brief=read('.agents/skills/opendesign-shot-brief/SKILL.md');
   const production=read('.agents/skills/opendesign-video-production/SKILL.md');
   assert.match(director,/导演在确定主要视觉表现之前，必须结合实际素材/u);
-  assert.match(director,/视觉作者从首轮开始查看实际材料/u);
+  assert.match(director,/视觉作者从首轮就读取主题、文案、已有素材和可用参考/u);
   assert.match(creative,/将参考研究和本片迁移结论交给同一位视觉作者/u);
   assert.match(creative,/阶段性交回必须带真实参考 ID、来源指纹、原片路径、采用范围、实际观看方式/u);
   assert.match(visual,/禁止在视频画面中添加解释素材来源、案例属性、示意身份/u);
@@ -108,9 +108,10 @@ test("视觉作者交导演稿，OD 制作首版并沿同一作品返修", () =>
   const production=read('.agents/skills/opendesign-video-production/SKILL.md');
   const handoff=read('.agents/skills/_shared/SCENE_DESIGN_HANDOFF.md');
   const versions=read('.agents/skills/_shared/PROJECT_REVISION_AND_HANDOFF.md');
-  assert.match(visual,/真实素材返回[\s\S]*可执行的视觉导演稿[\s\S]*第一版可播放画面由 OD 制作/u);
+  assert.match(visual,/视觉作者，从完整制作的第一轮开始参与/u);
+  assert.match(visual,/交付可执行视觉导演稿，由主导演采用，OD 直接制作第一版/u);
   assert.match(visual,/首版回来后[\s\S]*视觉返修并复查/u);
-  assert.match(creative,/原片区间、观察方式和实际看到的过程[\s\S]*真实素材/u);
+  assert.match(creative,/原片区间、实际观察方式、核心关系[\s\S]*真实素材返回后/u);
   assert.match(handoff,/导演确认后，OD 直接制作第一版画面/u);
   assert.match(production,/OD 是第一版可播放画面的制作作者/u);
   assert.match(versions,/第一次登记时记录真实 Work、Run、冻结版和根时钟/u);

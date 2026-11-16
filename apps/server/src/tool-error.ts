@@ -5,11 +5,19 @@ import { MotionSubmissionValidationError } from "../../../packages/edit-applicat
 import { EffectCueRangeValidationError } from "../../../packages/edit-application/src/effect-cue-validation.js";
 import { MotionFontUnknownError } from "../../../packages/motion-work/src/fonts.js";
 import { MotionAuthoringCoordinationError } from "../../../packages/edit-application/src/motion-coordination-error.js";
+import { RevisionConflictError } from "@videocut/application";
 
 /** 未知异常不能宣称没有写入；只有明确的输入校验拒绝可纠正参数。 */
 export function toolError(error: unknown, validationBeforeExecution = false) {
+  if (error instanceof RevisionConflictError && validationBeforeExecution) return { error: error.message, message: error.message, code: "REVISION_CONFLICT",
+    stage: "validation", sideEffects: "none", safeToRetry: true, recovery: "correct_input",
+    nextAction: "读取当前项目并协调采用后，使用当前版本提交", expectedRevision: error.expected, currentRevision: error.actual };
   if (error instanceof MotionAuthoringCoordinationError) return { error: error.message, message: error.message, code: error.code,
     stage: "validation", sideEffects: "none", safeToRetry: true, recovery: "continue_responsible_author", issues: error.issues };
+  if (error instanceof DomainError && ["VISUAL_REVISION_DELIVERY_INVALID", "VISUAL_REVISION_SCOPE_INVALID"].includes(error.code)) {
+    return { error: error.message, message: error.message, code: error.code, stage: "validation", sideEffects: "none", safeToRetry: true,
+      recovery: "correct_input" };
+  }
   if (error instanceof MotionFontUnknownError) return { error: error.message, message: error.message, code: "MOTION_FONT_UNKNOWN", stage: "validation", sideEffects: "none", safeToRetry: true, recovery: "correct_input", fontId: error.fontId,
     fields: [{ field: "work.fontBindings", message: "字体未登记", suggestion: "读取 read_motion_capabilities，由原视觉作者选择已登记字体；用户锁定且无法满足时再回询。" }] };
   if (error instanceof SourceDisplayValidationError) return { error: error.message, message: error.message, code: error.code, stage: "validation", sideEffects: "none", safeToRetry: true, recovery: "correct_input", fields: error.fields };
@@ -38,4 +46,4 @@ export function toolError(error: unknown, validationBeforeExecution = false) {
       fields: error.issues.map(issue => ({ field: issue.path.join("."), message: issue.message })) } : { sideEffects: "unknown", safeToRetry: false }) };
 }
 
-export const toolErrorResult = (error: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(toolError(error), null, 2) }], isError: true });
+export const toolErrorResult = (error: unknown, validationBeforeExecution = false) => ({ content: [{ type: "text" as const, text: JSON.stringify(toolError(error, validationBeforeExecution), null, 2) }], isError: true });

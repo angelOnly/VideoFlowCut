@@ -4,6 +4,7 @@ import type { CreativeDecision, EditorialQualityReview, ProductionAssignment, Pr
 import { cueCoversBeat, hasVisualTreatmentImplementation, missingReviewRanges } from "../../quality-system/src/editorial-review.js";
 import { compileVisualComposition, effectBeatRanges, rangesOverlap, resolveCompositionReachability } from "@videocut/domain";
 import { motionHandoffDependencyHash } from "./motion-adoption.js";
+import { sameVisualDelivery } from "./visual-design-revisions.js";
 import { productionObservationRanges } from "./editorial-evidence.js";
 
 type Scene = ProjectSnapshot["scenes"][number];
@@ -99,7 +100,7 @@ export async function evaluateProductionCoordination(input: {
   const labels = { director: "导演", narration: "文案", asset_sourcing: "素材", creative_research: "创意研究", visual_design: "视觉设计", motion_research: "动效机制研究", review: "审阅" } as const;
   // 一项研究可以仍有待查问题；已看清的具体原片关系可独立交给下游。
   const usableReference = (reference: NonNullable<CreativeDecision["researchReferences"]>[number]) =>
-    Number.isSafeInteger(reference.startMs) && Number.isSafeInteger(reference.endMs)
+    Number.isFinite(reference.startMs) && Number.isFinite(reference.endMs)
     && reference.startMs! >= 0 && reference.endMs! > reference.startMs! && !!reference.observedRelation?.trim();
   const completeResearch = (decision: CreativeDecision) =>
     (decision.researchOutcome === "researched" || decision.researchOutcome === "pending")
@@ -133,10 +134,11 @@ export async function evaluateProductionCoordination(input: {
     const applies = (assignment: ProductionAssignment, treatment?: VisualTreatment) => assignmentScopesOverlap(snapshot, scope, assignment.scope)
       && (!scene || coversScene(snapshot, assignment.scope, scene, treatment)
         || !treatment && treatments.some(item => coversScene(snapshot, assignment.scope, scene, item)));
-    const assignmentFor = (responsibility: ProductionAssignment["responsibilities"][number], treatment?: VisualTreatment) => report.assignments.find(assignment => assignment.responsibilities.includes(responsibility)
+    const assignmentsFor = (responsibility: ProductionAssignment["responsibilities"][number], treatment?: VisualTreatment) => report.assignments.filter(assignment => assignment.responsibilities.includes(responsibility)
       && applies(assignment, treatment)
       && !report.assignments.some(other => other.supersedesAssignmentId === assignment.assignmentId && other.responsibilities.includes(responsibility)
         && (!scene ? other.scope.kind === "project" : applies(other, treatment))));
+    const assignmentFor = (responsibility: ProductionAssignment["responsibilities"][number], treatment?: VisualTreatment) => assignmentsFor(responsibility, treatment)[0];
     const acceptedFor = (decision: CreativeDecision, assignment?: ProductionAssignment, adoption?: CreativeDecision) => {
       if (!assignment) return false;
       if (decision.assignmentId === assignment.assignmentId) return true;
@@ -153,11 +155,22 @@ export async function evaluateProductionCoordination(input: {
     for (const responsibility of ["director", "creative_research", "visual_design", "motion_research"] as const) {
       if (!assignmentFor(responsibility)) add("ASSIGNMENT_MISSING", scene, "missing", `缺少${labels[responsibility]}职责的承接记录`, "分派或续接对应负责人");
     }
-    // 完整新制需要有文案作者的真实分派声明；技能加载仍由宿主执行，记录不能代替调用。
-    if (input.phase === "authoring" && report.intent === "full_creation") {
+    // 分派记录只校验职责和技能路由，不能代替宿主实际启动作者或转交结果。
+    if (report.intent === "full_creation") {
       const writer = assignmentFor("narration");
-      if (!writer || !writer.skillIds.some(id => id === "narration-writing" || id.endsWith(":narration-writing"))) {
-        add("NARRATION_ASSIGNMENT_MISSING", scene, "missing", "缺少文案作者及 narration-writing 的分派记录", "分派文案作者并加载现有文案技能", writer);
+      if (!writer) add("NARRATION_ASSIGNMENT_MISSING", scene, "missing", "缺少文案作者的分派记录", "分派或续接文案作者");
+      if (!assignmentFor("asset_sourcing")) add("ASSET_ASSIGNMENT_MISSING", scene, "missing", "缺少素材作者的分派记录", "分派或续接素材作者");
+    }
+    const requiredSkills = {
+      director: ["production-director"], narration: ["narration-writing"], asset_sourcing: ["visual-asset-sourcing"],
+      creative_research: ["creative-sequence-design"], visual_design: ["visual-treatment-planning", "creative-reference-to-sequence"],
+      motion_research: ["motion-case-library"]
+    } as const;
+    for (const responsibility of Object.keys(requiredSkills) as Array<keyof typeof requiredSkills>) {
+      for (const assignment of assignmentsFor(responsibility)) {
+        const missing = requiredSkills[responsibility].filter(skill => !assignment.skillIds.some(id => id === skill || id.endsWith(`:${skill}`)));
+        if (missing.length) add("SKILL_ROUTING_MISSING", scene, "missing", `${labels[responsibility]}分派缺少技能：${missing.join("、")}`,
+          "续接对应负责人并登记实际使用的技能", assignment);
       }
     }
     for (const phase of ["creative_research", "motion_research"] as const) {
@@ -201,6 +214,10 @@ export async function evaluateProductionCoordination(input: {
       if (!designs.length) {
         add("VISUAL_INPUT_MISSING", scene, "missing", "采用决定未关联本场视觉设计", "续接视觉作者并重新采用", assignmentFor("visual_design", treatment), [adoption.id]);
         continue;
+      }
+      const deliveredDesigns = designs.filter(design => sameVisualDelivery(design.deliveryRef, adoption.deliveryRef));
+      if (!deliveredDesigns.length) {
+        add("VISUAL_DELIVERY_MISMATCH", scene, "stale", "本场视觉设计与导演采用没有引用同一份固定交付", "准备并采用对应的正式视觉设计", assignmentFor("visual_design", treatment), [adoption.id, ...designs.map(design => design.id)]);
       }
       if (!acceptedFor(adoption, assignmentFor("director", treatment), adoption)) add("ADOPTION_OWNER_STALE", scene, "stale", "导演接替后的采用尚未由当前负责人确认", "续接当前导演", assignmentFor("director", treatment), [adoption.id]);
       if (!designs.some(design => acceptedFor(design, assignmentFor("visual_design", treatment), adoption))) add("VISUAL_OWNER_STALE", scene, "stale", "视觉负责人接替后的设计尚未确认", "续接当前视觉作者", assignmentFor("visual_design", treatment), designs.map(item => item.id));

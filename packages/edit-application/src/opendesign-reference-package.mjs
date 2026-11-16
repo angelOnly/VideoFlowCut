@@ -69,12 +69,12 @@ function prepareScenes(input, entries, creativeRecords, motionRecords, project, 
       const kind=ref.kind ?? 'creative';
       const referenceId=ref.id ?? ref.creativeCaseId;
       const record=kind==='creative' ? creativeRecords.get(referenceId) : kind==='motion' ? motionRecords.get(referenceId) : undefined;
-      if (!record || record.usage !== 'adopted') { fail(`场面参考 ${referenceId ?? ''} 必须在对应资料中标为 adopted`); return []; }
+      if (!record || record.usage !== 'adopted') { fail(`场面 ${scene.sceneId} 采用的动态参考 ${referenceId ?? ''} 缺少已采用的创意卡或动效卡及其视频`); return []; }
       else {
         const video=entries.get(record.videoPath);
-        if (!ref.sourceSha256 || ref.sourceSha256 !== record.sourceSha256) fail(`${kind==='creative' ? '创意卡' : '动效机制'}来源指纹不一致`);
+        if (!ref.sourceSha256 || ref.sourceSha256 !== record.sourceSha256) fail(`${kind==='creative' ? '创意卡' : '动效机制'}来源指纹不一致：${referenceId}`);
         if (ref.video && ref.video !== record.videoPath && ref.video !== record.libraryVideoPath && resolve(ref.video) !== resolve(record.sourcePath)) fail('参考原片与创意卡不一致');
-        if (!video?.localReadable) fail('参考原片未就绪');
+        if (!video?.localReadable) fail(`场面 ${scene.sceneId} 采用的动态参考 ${referenceId} 缺少可读取的视频`);
         if (!Number.isFinite(ref.startMs) || !Number.isFinite(ref.endMs) || ref.startMs < 0 || ref.endMs <= ref.startMs || !video?.durationMs || ref.endMs > video.durationMs) fail('参考原片范围无效或超出视频');
         if (refs.length>1 && !ref.purpose) fail('多个参考需要说明各自的场面用途');
         return [{kind,id:referenceId,...(kind==='creative' ? {creativeCaseId:referenceId} : {}),sourceSha256:record.sourceSha256,video:record.videoPath,startMs:ref.startMs,endMs:ref.endMs,timeCoordinates:'original',...(ref.purpose ? {purpose:ref.purpose} : {})}];
@@ -87,7 +87,7 @@ function prepareScenes(input, entries, creativeRecords, motionRecords, project, 
       const sourceRanges=Array.isArray(role.sourceRanges) ? role.sourceRanges : [];
       const mapped=roleIds.map(id => {
         const selected=assets.get(id), actual=project?.snapshot?.assets?.find(asset => asset.id===id);
-        const deliveredPath=selected && delivered(odSafePath(`references/source-materials/${selected.id}/${basename(selected.path)}`));
+        const deliveredPath=selected?.path && delivered(odSafePath(`references/source-materials/${selected.id}/${basename(selected.path)}`));
         const file=deliveredPath && entries.get(deliveredPath);
         if (!selected || !actual || actual.status !== 'ready' || !actual.sourceHash || !file?.localReadable || file.sourceSha256 !== actual.sourceHash || file.sha256 !== actual.sourceHash) fail(`素材 ${id} 未取得、未就绪或文件哈希与项目不一致`);
         if (['video','actor_video','audio'].includes(actual?.kind) && !file?.durationMs) fail(`素材 ${id} 缺少可核验的媒体时长`);
@@ -127,9 +127,6 @@ function prepareScenes(input, entries, creativeRecords, motionRecords, project, 
           }
           if (typeof mapping?.researchDecisionId !== 'string' || !mapping.researchDecisionId.trim()) fail('参考映射需要实际研究决定 ID');
           if (!roles.has(mapping?.targetRole) || typeof mapping?.treatment !== 'string' || !mapping.treatment.trim()) fail('参考映射需要已有视觉角色及具体处理方式');
-          if (roles.has(mapping?.targetRole) && !visualRoles.find(role=>role.role===mapping.targetRole)?.assets.length && plan.graphicLed !== true) {
-            fail('采用参考的目标角色需要绑定真实素材；确由图形承担的场面须说明原因');
-          }
           if (typeof mapping?.preserveRelation !== 'string' || !mapping.preserveRelation.trim()) fail('参考映射需要明确保持的关系');
           // 新交接明确每条参考的项目半开帧范围；历史清单由读取方继续兼容。
           const target=project?.snapshot?.scenes?.find(item=>item.id===scene.sceneId), range=mapping?.targetRange;
@@ -145,9 +142,7 @@ function prepareScenes(input, entries, creativeRecords, motionRecords, project, 
             && mapping.startMs === reference.startMs && mapping.endMs === reference.endMs
             && typeof mapping.preserveRelation === 'string' && mapping.preserveRelation.trim())) fail(`采用参考 ${reference.id} 缺少完整的视觉角色映射和保持关系`);
         }
-        if (plan.graphicLed === true && (!Array.isArray(plan.graphicReasons) || !plan.graphicReasons.some(reason=>typeof reason==='string' && reason.trim() && !/^(?:更?方便制作|制作方便)[。.!！]?$/u.test(reason.trim())))) fail('图形主导场面需要说明承担的表达内容和原因');
-        visualPlan={primaryRoles:plan.primaryRoles,...(plan.referenceMappings ? {referenceMappings:plan.referenceMappings} : {}),
-          ...(plan.graphicLed !== undefined ? {graphicLed:plan.graphicLed} : {}),...(plan.graphicReasons ? {graphicReasons:plan.graphicReasons} : {})};
+        visualPlan={primaryRoles:plan.primaryRoles,...(plan.referenceMappings ? {referenceMappings:plan.referenceMappings} : {})};
       }
     }
     return {sceneId:scene.sceneId,status:errors.length ? 'incomplete' : 'ready',...(references.length ? {references} : {}),
@@ -177,6 +172,22 @@ export async function prepareReferencePackage(input, outputRoot, libraryRoot = r
   const entries = new Map(), diagnostics = [], creativeRecords = new Map(), motionRecords = new Map();
   const sceneList=input.scenes ?? [];
   const selectedScenes=sceneList.filter(scene=>scene.status==='ready' && (!input.selectedSceneIds || input.selectedSceneIds.includes(scene.sceneId)));
+  const explicitAssets=input.assets ?? [];
+  const assets=new Map(explicitAssets.map(asset=>[asset.id,asset]));
+  if (input.scenes && assets.size !== explicitAssets.length) throw new Error('素材 ID 重复');
+  // 场面已点名的素材从项目读取，只复制一次，显式来源仍需核对项目身份。
+  for (const scene of selectedScenes) for (const role of Array.isArray(scene.visualRoles) ? scene.visualRoles : []) {
+    for (const id of Array.isArray(role.assetIds) ? role.assetIds : []) {
+      if (typeof id === 'string' && id.trim() && !assets.has(id)) assets.set(id,{id,purpose:role.usage || '场面引用的素材'});
+    }
+  }
+  for (const [id,asset] of assets) {
+    const registered=project?.snapshot?.assets?.find(item=>item.id===id);
+    if (!asset.path && registered?.managedPath && project.snapshot.project.rootPath) {
+      assets.set(id,{...asset,path:join(project.snapshot.project.rootPath,registered.managedPath)});
+    }
+  }
+  const sources=input.scenes ? [...assets.values()] : explicitAssets;
   const sceneUses=(scenes,kind)=>new Set(scenes.flatMap(scene=>kind==='source' ? (scene.visualRoles ?? []).flatMap(role=>role.assetIds ?? [])
     : kind==='reference' ? scene.resourceIds ?? []
     : sceneReferences(scene).filter(ref=>(ref.kind ?? 'creative')===kind).map(ref=>ref.id ?? ref.creativeCaseId)).filter(Boolean));
@@ -245,9 +256,13 @@ export async function prepareReferencePackage(input, outputRoot, libraryRoot = r
       add(file.path,delivered(odSafePath(destination)),use);
     }
   }
-  for (const asset of input.assets ?? []) {
+  for (const asset of sources) {
     if (skipUnselected('source',asset.id,asset.path)) continue;
-    if (!asset.id || !asset.path || !asset.purpose) throw new Error('素材需要 ID、路径和用途');
+    if (!asset.id || !asset.purpose) throw new Error('素材需要 ID 和用途');
+    if (!asset.path) {
+      diagnostics.push({id:asset.id,reason:`素材 ${asset.id} 未登记或文件路径不可用`});
+      continue;
+    }
     add(asset.path, delivered(odSafePath(`references/source-materials/${asset.id}/${basename(asset.path)}`)), {kind:'source',id:asset.id,purpose:asset.purpose,sourceStartMs:asset.sourceStartMs,sourceEndMs:asset.sourceEndMs});
   }
   for (const entry of entries.values()) {
@@ -256,6 +271,8 @@ export async function prepareReferencePackage(input, outputRoot, libraryRoot = r
       target=resolve(output,entry.deliveredPath);
       if (!target.startsWith(output + (process.platform === 'win32' ? '\\' : '/'))) throw new Error('交付路径越界');
       await mkdir(dirname(target), {recursive:true});
+      const liveDocument=entry.uses.some(use=>use.kind==='brief' && ['brief','timing'].includes(use.id));
+      const documentHash=liveDocument ? await hashFile(entry.sourcePath) : undefined;
       let body;
       if (entry.deliveredPath.startsWith(delivered('references/skillry/')) && entry.deliveredPath.endsWith('.md')) {
         const libraryPath=entry.deliveredPath.slice(delivered('references/skillry/').length);
@@ -276,6 +293,7 @@ export async function prepareReferencePackage(input, outputRoot, libraryRoot = r
         if (!Number.isFinite(start) || start<0 || (media.durationMs!==undefined && start>=media.durationMs) || (end!==undefined && (!Number.isFinite(end) || end<=start || (media.durationMs!==undefined && end>media.durationMs)))) throw new Error('素材源时间范围无效或超出视频');
       }
       const sourceSha256=await hashFile(entry.sourcePath), sha256=await hashFile(target);
+      if (liveDocument && (documentHash!==sourceSha256 || sha256!==sourceSha256)) throw new Error('导演稿或时间计划在准备交付期间发生变化，请重新准备');
       if (project) for (const use of entry.uses.filter(item=>item.kind==='source')) {
         const asset=project.snapshot.assets.find(item=>item.id===use.id);
         if (!asset || asset.status!=='ready' || !asset.sourceHash || asset.sourceHash!==sourceSha256 || asset.sourceHash!==sha256) throw new Error(`素材 ${use.id} 未取得、未就绪或文件哈希与项目不一致`);
@@ -289,7 +307,7 @@ export async function prepareReferencePackage(input, outputRoot, libraryRoot = r
   }
   let scenes, scenesPath;
   if (input.scenes) {
-    scenes=prepareScenes(input,entries,creativeRecords,motionRecords,project,delivered);
+    scenes=prepareScenes({...input,assets:sources},entries,creativeRecords,motionRecords,project,delivered);
     scenesPath=delivered('brief/scenes.json');
     const path=join(output,scenesPath);
     await mkdir(dirname(path),{recursive:true});
@@ -319,9 +337,24 @@ export async function prepareReferencePackage(input, outputRoot, libraryRoot = r
   return manifest;
 }
 
+function assertReadyRoleBindings(scenes) {
+  for (const scene of scenes.filter(item=>item.status==='ready')) {
+    if (!Array.isArray(scene.visualRoles) || !scene.visualRoles.length) throw new Error(`场面 ${scene.sceneId} 缺少视觉角色`);
+    for (const role of scene.visualRoles) {
+      if (![role.role,role.referenceFunction,role.usage].every(value=>typeof value==='string' && value.trim())
+        || !Array.isArray(role.assets) || role.assets.some(asset=>!asset || typeof asset.assetId!=='string' || !asset.assetId.trim()
+          || typeof asset.deliveredPath!=='string' || !asset.deliveredPath.trim() || typeof asset.sourceHash!=='string' || !asset.sourceHash.trim()
+          || !Array.isArray(asset.sourceRanges))) {
+        throw new Error(`场面 ${scene.sceneId} 的视觉角色 ${role.role ?? ''} 说明或素材绑定无效`);
+      }
+    }
+  }
+}
+
 /** 复用原清单，只收窄本次目标场面的依赖；其他场面的文件仍留在原交付中。 */
 export function scopeReferenceManifest(manifest, sceneIds) {
   if (!manifest.scenes || !manifest.selectedSceneIds || sceneIds.some(id=>!manifest.selectedSceneIds.includes(id))) throw new Error('制作目标不在已采用的交付范围内');
+  assertReadyRoleBindings(manifest.scenes.filter(scene=>sceneIds.includes(scene.sceneId)));
   const collect=scenes=>{
     const result=new Map(['source','creative','motion','reference'].map(kind=>[kind,new Set()]));
     for (const scene of scenes) {
@@ -349,7 +382,7 @@ export async function verifyReferenceDelivery(manifest, listing, revision, odPro
   if (currentProject) {
     if (currentProject.snapshot?.project?.id !== manifest.projectId || currentProject.revision?.number !== revision) throw new Error('当前项目或 Revision 不一致');
     const selected=manifest.scenes?.filter(scene=>scene.status==='ready' && (!manifest.selectedSceneIds || manifest.selectedSceneIds.includes(scene.sceneId))) ?? [];
-    for (const source of selected.flatMap(scene=>scene.visualRoles.flatMap(role=>role.assets))) {
+    for (const source of selected.flatMap(scene=>(scene.visualRoles ?? []).flatMap(role=>role.assets ?? []))) {
       const asset=currentProject.snapshot.assets.find(item=>item.id===source.assetId);
       if (!asset || asset.status!=='ready' || asset.sourceHash!==source.sourceHash) throw new Error(`素材 ${source.assetId} 已变化，请重新编排`);
       if (!asset.managedPath || await hashFile(join(currentProject.snapshot.project.rootPath,asset.managedPath))!==source.sourceHash) throw new Error(`素材 ${source.assetId} 的实际文件已变化`);
@@ -397,8 +430,13 @@ export async function verifyReferenceDelivery(manifest, listing, revision, odPro
     verified.verificationErrors.push({path:manifest.scenesPath,reason:'没有具备完整输入的就绪场面'});
     return {manifest:verified};
   }
+  try { assertReadyRoleBindings(readyScenes ?? []); }
+  catch (error) {
+    verified.verificationErrors.push({path:manifest.scenesPath,reason:error.message});
+    return {manifest:verified};
+  }
   const lines=files.filter(file=>file.requiredForRun!==false).map(file=>`- ${file.deliveredPath}：${file.uses.map(use=>`${use.kind}/${use.id}${use.usage ? `（${use.usage === 'study' ? '学习' : '已采用'}）` : ''}，${use.purpose}${use.fileKind ? `，文件类型 ${use.fileKind}` : ''}${use.sourceStartMs !== undefined && use.sourceEndMs !== undefined ? `，资料原片范围 ${use.sourceStartMs}—${use.sourceEndMs}ms` : ''}${use.clipSourceOffsetMs !== undefined ? `，切片零点对应原片 ${use.clipSourceOffsetMs}ms` : ''}`).join('；')}`);
-  const sceneLines=readyScenes ? ['本次只制作选中场面 ' + (manifest.selectedSceneIds ?? readyScenes.map(scene=>scene.sceneId)).join('、') + '，其他场面仅作为上下文。',...readyScenes.map(scene=>'- 资料就绪场面 ' + scene.sceneId + '：' + JSON.stringify(scene))] : [];
+  const sceneLines=readyScenes ? ['本次制作选中场面 ' + (manifest.selectedSceneIds ?? readyScenes.map(scene=>scene.sceneId)).join('、') + '。完整导演稿是采用时固定的整片上下文，本场设计及接续以本次交付为准；其他场面后续可能继续修改。',...readyScenes.map(scene=>'- 资料就绪场面 ' + scene.sceneId + '：' + JSON.stringify(scene))] : [];
   const prompt=['先完整读取本项目中的创意编排指令 ' + manifest.briefPath + ' 和时间资料 ' + manifest.timingPlanPath + '。再读取本次选中场面，核对参考原片、真实素材与视觉角色映射。',...lines,...sceneLines,
     '参考范围使用原片时间，素材范围使用交付文件的本地时间。查看采用的创意和机制视频及必要的前后画面，记录实际观察方式。',
     '依据视觉导演稿、真实素材和参考关系制作首版。保持已采用的主要主体、素材角色、构图发展及场面接续，在此基础上深化构图、排版、取景、镜头运动和内部时序。',

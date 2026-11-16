@@ -74,7 +74,7 @@ test("阶段素材只在实际发布的目标范围内核对导演采用的源�
     later: { assetId: "other-scene", startFrame: 25, endFrame: 50, sourceStartMs: 0 }
   } };
   const scenes: NonNullable<ReferenceManifest["scenes"]> = [{ sceneId: "scene", status: "ready",
-    visualRoles: [{ role: "主体", assets: [{ assetId: "actor", sourceHash: "hash", sourceRanges: [{ startMs: 1000, endMs: 2000 }] }] }] }];
+    visualRoles: [{ role: "主体", referenceFunction: "画面主体", usage: "呈现动作", assets: [{ assetId: "actor", deliveredPath: "references/actor.mp4", sourceHash: "hash", sourceRanges: [{ startMs: 1000, endMs: 2000 }] }] }] }];
   verifyMotionStageVideoSources(work, [{ startFrame: 0, endFrame: 50 }], target, 25, scenes);
   scenes[0].visualRoles![0].assets[0].sourceRanges[0].endMs = 1800;
   assert.throws(() => verifyMotionStageVideoSources(work, [{ startFrame: 0, endFrame: 50 }], target, 25, scenes),

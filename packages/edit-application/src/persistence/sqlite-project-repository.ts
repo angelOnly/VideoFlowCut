@@ -589,7 +589,8 @@ export class ProjectRepository {
   }
 
   /** 同一作品的制作任务在同一事务中检查并登记，避免独立 MCP 与服务进程同时创建委托。 */
-  createMotionAuthoringJob(input: { projectId: Id; baseRevision: number; payload: Record<string, unknown>; idempotencyKey: string }): { job?: JobRecord; busy?: JobRecord } {
+  createMotionAuthoringJob(input: { projectId: Id; baseRevision: number; payload: Record<string, unknown>; idempotencyKey: string;
+    validate?: (snapshot: ProjectSnapshot) => void }): { job?: JobRecord; busy?: JobRecord } {
     return this.transaction(() => {
       const jobs = this.listJobs(input.projectId);
       const previous = jobs.find(job => job.idempotencyKey === input.idempotencyKey);
@@ -603,10 +604,21 @@ export class ProjectRepository {
       }
       const current = this.getCurrent(input.projectId);
       if (current.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, current.revision.number);
+      input.validate?.(current.snapshot);
       const logicalWorkId = input.payload.logicalWorkId;
       const busy = typeof logicalWorkId === "string" ? jobs.find(job => job.kind === "motion_authoring" && job.payload.logicalWorkId === logicalWorkId
         && ["queued", "running", "unknown"].includes(job.status)) : undefined;
       return busy ? { busy } : { job: this.createJob(request) };
+    });
+  }
+
+  /** 与正式修订提交共用短事务，确保启动检查和检查点不会被修订插入。 */
+  recordMotionAuthoringStart(jobId: Id, checkpoint: Record<string, unknown>, validate: (snapshot: ProjectSnapshot) => void): JobRecord {
+    return this.transaction(() => {
+      const job = this.getJob(jobId);
+      if (job.kind !== "motion_authoring" || job.status === "cancelled") throw new DomainError("制作任务不可启动", "MOTION_AUTHORING_JOB_INVALID");
+      validate(this.getCurrent(job.projectId).snapshot);
+      return this.updateJob(jobId, { status: job.status, result: { ...(job.result ?? {}), ...checkpoint } });
     });
   }
 

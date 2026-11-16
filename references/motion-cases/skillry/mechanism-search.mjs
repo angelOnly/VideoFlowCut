@@ -53,7 +53,7 @@ function validateOptions(o){
 export function queryMechanisms(index,options={},semantic={}){
   validateOptions(options);
   if(index.schema_version!==2)throw new Error('索引版本不支持检索，请重新生成');
-  if(options.source_sha256&&options.source_sha256!==index.source_sha256)throw new Error('资料已经变化，请重新查询并核读采用项');
+  if(options.source_sha256&&options.source_sha256!==index.source_sha256)throw Object.assign(new Error('资料已经变化，请重新查询并核读采用项'),{code:'MOTION_LIBRARY_STALE'});
   for(const m of index.mechanisms)validateRetrieval(m.retrieval,m.id);
   const byId=new Map(index.mechanisms.map(m=>[m.id,m]));
   const get=id=>{const m=byId.get(id);if(!m)throw new Error(`未知机制：${id}`);return m;};

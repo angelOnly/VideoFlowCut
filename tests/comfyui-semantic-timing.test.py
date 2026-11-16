@@ -79,9 +79,11 @@ class VideoAudioTimingTest(unittest.TestCase):
 
     def test_sparse_pts_keep_each_second_of_audio(self):
         make_fixture(self.path, [(0, 32), (2, 128), (3, 224)])
-        content, has_audio = self.video_content(self.path, 0, 4)
+        content, has_audio, sampling = self.video_content(self.path, 0, 4)
         pixels, audio = pixels_and_audio(content)
         self.assertTrue(has_audio)
+        self.assertEqual(sampling["frame_timestamps_ms"], [0, 0, 2000, 3000])
+        self.assertEqual(sampling["audio"]["decoded_intervals_ms"], [[0, 4000]])
         self.assert_pixels(pixels, [32, 32, 128, 224])
         self.assertEqual([len(item) for item in audio], [16000] * 4)
         for item, expected in zip(audio, (0.1, 0.2, 0.3, 0.4)):
@@ -89,7 +91,7 @@ class VideoAudioTimingTest(unittest.TestCase):
 
     def test_regular_pts_keep_matching_frames_and_audio(self):
         make_fixture(self.path, [(0, 32), (1, 80), (2, 128), (3, 224)])
-        content, has_audio = self.video_content(self.path, 0, 4)
+        content, has_audio, sampling = self.video_content(self.path, 0, 4)
         pixels, audio = pixels_and_audio(content)
         self.assertTrue(has_audio)
         self.assert_pixels(pixels, [32, 80, 128, 224])
@@ -99,9 +101,11 @@ class VideoAudioTimingTest(unittest.TestCase):
 
     def test_fractional_window_keeps_preceding_frame_and_last_partial_audio(self):
         make_fixture(self.path, [(0, 32), (2, 128), (3, 224)])
-        content, has_audio = self.video_content(self.path, 0.4, 2.3)
+        content, has_audio, sampling = self.video_content(self.path, 0.4, 2.3)
         pixels, audio = pixels_and_audio(content)
         self.assertTrue(has_audio)
+        self.assertEqual(sampling["frame_timestamps_ms"], [0, 0, 2000])
+        self.assertEqual(sampling["audio"]["input_end_ms"], 2700)
         self.assert_pixels(pixels, [32, 32, 128])
         self.assertEqual([len(item) for item in audio], [16000, 16000, 4800])
         for item, expected in zip(audio, (0.14, 0.24, 0.3)):
@@ -109,7 +113,7 @@ class VideoAudioTimingTest(unittest.TestCase):
 
     def test_video_only_keeps_sampled_display_frames(self):
         make_fixture(self.path, [(0, 32), (2, 128), (3, 224)], with_audio=False)
-        content, has_audio = self.video_content(self.path, 0, 4)
+        content, has_audio, sampling = self.video_content(self.path, 0, 4)
         pixels, audio = pixels_and_audio(content)
         self.assertFalse(has_audio)
         self.assert_pixels(pixels, [32, 32, 128, 224])
@@ -137,7 +141,7 @@ class VideoAudioTimingTest(unittest.TestCase):
 
     def test_exact_end_accepts_fractional_rounding(self):
         make_fixture(self.path, [(0, 32), (0.1, 80), (0.2, 128)], video_rate=10)
-        content, has_audio = self.video_content(self.path, 0.1, 0.2)
+        content, has_audio, sampling = self.video_content(self.path, 0.1, 0.2)
         pixels, audio = pixels_and_audio(content)
         self.assertTrue(has_audio)
         self.assert_pixels(pixels, [80])
@@ -145,7 +149,7 @@ class VideoAudioTimingTest(unittest.TestCase):
 
     def test_exact_end_with_nonzero_video_start(self):
         make_fixture(self.path, [(0.5, 32), (0.6, 80), (0.7, 128)], video_rate=10)
-        content, has_audio = self.video_content(self.path, 0.6, 0.2)
+        content, has_audio, sampling = self.video_content(self.path, 0.6, 0.2)
         pixels, audio = pixels_and_audio(content)
         self.assertTrue(has_audio)
         self.assert_pixels(pixels, [80])
@@ -160,7 +164,7 @@ class VideoAudioTimingTest(unittest.TestCase):
     def test_exact_end_with_2997_fps(self):
         frames = [(index * 1001 / 30000, 32 + index) for index in range(30)]
         make_fixture(self.path, frames, video_rate=Fraction(30000, 1001))
-        content, has_audio = self.video_content(self.path, 0.1, 0.901)
+        content, has_audio, sampling = self.video_content(self.path, 0.1, 0.901)
         pixels, audio = pixels_and_audio(content)
         self.assertTrue(has_audio)
         self.assertEqual(len(pixels), 1)
@@ -173,7 +177,7 @@ class VideoAudioTimingTest(unittest.TestCase):
 
     def test_decoded_silence_is_valid_audio(self):
         make_fixture(self.path, [(0, 32), (1, 80), (2, 128), (3, 224)], amplitudes=(0, 0, 0, 0))
-        content, has_audio = self.video_content(self.path, 0, 4)
+        content, has_audio, sampling = self.video_content(self.path, 0, 4)
         _, audio = pixels_and_audio(content)
         self.assertTrue(has_audio)
         self.assertEqual([len(item) for item in audio], [16000] * 4)

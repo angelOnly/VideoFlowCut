@@ -1865,6 +1865,7 @@ export interface CreativeDecision {
   inputRevision?: number | null;
   inputDecisionIds?: Id[];
   researchOutcome?: "pending" | "researched" | "not_applicable";
+  /** 来源指纹取读卡结果顶层 source_sha256；时间为原片毫秒半开区间。 */
   researchReferences?: Array<{ kind: "creative" | "motion"; id: string; sourceSha256: string;
     startMs?: number; endMs?: number; observedRelation?: string }>;
   operationId?: string;

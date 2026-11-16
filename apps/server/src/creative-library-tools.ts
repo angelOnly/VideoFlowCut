@@ -10,6 +10,8 @@ import { CREATIVE_TEXT_VERSION,CREATIVE_INSTRUCTION_VERSION,CREATIVE_QUERY_INSTR
 import { latestLibraryAttempt } from "./library-job.js";
 import { motionJobRecovery } from "./motion-library-output.js";
 import { projectCreativeSearchResult } from "./creative-library-output.js";
+import { libraryOrigin } from "./library-origin.js";
+import { timeRangeSchema } from "../../../packages/media-intelligence/src/index.js";
 
 const id=z.string().regex(/^\d{3}-c\d{2}$/u),fingerprint=z.string().regex(/^[a-f0-9]{64}$/u);
 const response=(value:unknown)=>({content:[{type:"text" as const,text:JSON.stringify(value)}]});
@@ -42,12 +44,12 @@ export function registerCreativeLibraryTools(server:McpServer,root=resolve(proce
     }catch(error){return failure(error,sideEffects);}
   });
   server.registerTool("read_creative_case",{
-    title:"读取完整创意卡与媒体",description:"按真实 ID 读取完整 Markdown、原片、完整创意切片、实际分镜与源时间；传 source_sha256 拒绝过期引用。按真实格式返回分镜图片，媒体缺失逐项说明。本工具不播放或听审，不创建 Job、素材或 Revision。",
+    title:"读取完整创意卡与媒体",description:"按真实 ID 读取正文、媒体和可复开的原片选段。source_sha256 取读卡结果顶层资料库指纹；range 是原片毫秒半开区间。工具不代表实际观看或听审。",
     annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false},
-    inputSchema:{id,source_sha256:fingerprint.optional(),include_storyboard:z.boolean().optional()}
+    inputSchema:{id,source_sha256:fingerprint.optional(),range:timeRangeSchema.optional(),include_storyboard:z.boolean().optional()}
   },async request=>{
     try{
-      const loaded=readCreativeCase(root,request);
+      const loaded=readCreativeCase(root,{...request,preview_origin:libraryOrigin()});
       const content:Array<{type:"text";text:string}|{type:"image";data:string;mimeType:string}>=[{type:"text",text:JSON.stringify(loaded.result)}];
       if(loaded.image)content.push({type:"image",...loaded.image});
       return {content};

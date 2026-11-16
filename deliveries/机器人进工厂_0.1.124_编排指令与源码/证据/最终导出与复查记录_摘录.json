@@ -1,0 +1,138 @@
+{
+  "说明": "此为导出记录的必要字段摘录，文件路径已按本交付目录调整。",
+  "revision": 61,
+  "file": "../成片/robot-factory-0.1.124-draft.mp4",
+  "fileHash": "10e2c4f451528e66c752f778e494ff60c288933be36c2ede14f2cb9b6eebf416",
+  "fileSizeBytes": 86138126,
+  "validation": {
+    "durationMs": 50458,
+    "hasAudio": true,
+    "blackSegments": [],
+    "audio": {
+      "decoded": true,
+      "integratedLufs": -19.3,
+      "truePeakDbfs": -2.4,
+      "loudnessRangeLu": 2,
+      "silence": [],
+      "method": "ffmpeg_ebur128_true_peak_complete_decode",
+      "rawSummary": "Summary:\r\n\r\n  Integrated loudness:\r\n    I:         -19.3 LUFS\r\n    Threshold: -29.3 LUFS\r\n\r\n  Loudness range:\r\n    LRA:         2.0 LU\r\n    Threshold: -39.3 LUFS\r\n    LRA low:   -20.2 LUFS\r\n    LRA high:  -18.2 LUFS\r\n\r\n  True peak:\r\n    Peak:       -2.4 dBFS\r\n[out#0/null @ 000002bea8b70ac0] video:0KiB audio:9464KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown\r\nsize=N/A time=00:00:50.47 bitrate=N/A speed= 411x elapsed=0:00:00.12    \r\n"
+    },
+    "fps": 24,
+    "frameCount": 1211
+  },
+  "artifactReview": {
+    "passes": [],
+    "evidence": [],
+    "findings": [],
+    "observations": [
+      {
+        "check": "audiovisual",
+        "method": "frames",
+        "outcome": "inconclusive",
+        "startFrame": 181,
+        "endFrame": 182,
+        "note": "从与所选交付文件 SHA-256 一致的导出文件抽取该帧：概率卡位于左上，机器人主体可见。 本次无连续观看或听审。",
+        "id": "editorial_evidence_ae0c32a8-4d74-4332-acca-ab035e150ffc",
+        "operationId": "robot-0124-final-export-four-frames",
+        "runId": "production_run_add4f4e6a6cb1d4789fdab6e30fa7c1f",
+        "observer": "主任务",
+        "recordedAt": "2026-11-15T18:05:16.800Z"
+      },
+      {
+        "check": "audiovisual",
+        "method": "frames",
+        "outcome": "inconclusive",
+        "startFrame": 265,
+        "endFrame": 266,
+        "note": "从与所选交付文件 SHA-256 一致的导出文件抽取该帧：人员小窗与机器人同时可见，未观察到该帧文字遮挡小窗。 本次无连续观看或听审。",
+        "id": "editorial_evidence_922d93d5-cbfb-4bef-96ba-933285bfe3b5",
+        "operationId": "robot-0124-final-export-four-frames",
+        "runId": "production_run_add4f4e6a6cb1d4789fdab6e30fa7c1f",
+        "observer": "主任务",
+        "recordedAt": "2026-11-15T18:05:16.800Z"
+      },
+      {
+        "check": "audiovisual",
+        "method": "frames",
+        "outcome": "inconclusive",
+        "startFrame": 650,
+        "endFrame": 651,
+        "note": "从与所选交付文件 SHA-256 一致的导出文件抽取该帧：机械臂视频占据画面主体，周围仍有深色边界；单帧不能判断接管过程是否连续。 本次无连续观看或听审。",
+        "id": "editorial_evidence_ed7c8baa-6b64-48fa-840f-2116b738963f",
+        "operationId": "robot-0124-final-export-four-frames",
+        "runId": "production_run_add4f4e6a6cb1d4789fdab6e30fa7c1f",
+        "observer": "主任务",
+        "recordedAt": "2026-11-15T18:05:16.800Z"
+      },
+      {
+        "check": "audiovisual",
+        "method": "frames",
+        "outcome": "inconclusive",
+        "startFrame": 1150,
+        "endFrame": 1151,
+        "note": "从与所选交付文件 SHA-256 一致的导出文件抽取该帧：人形机器人和料架可见，中文字幕与素材内英文相邻；单帧不能判断整段是否重叠。 本次无连续观看或听审。",
+        "id": "editorial_evidence_d3fac61f-ce08-4d10-90c1-934fd7a07562",
+        "operationId": "robot-0124-final-export-four-frames",
+        "runId": "production_run_add4f4e6a6cb1d4789fdab6e30fa7c1f",
+        "observer": "主任务",
+        "recordedAt": "2026-11-15T18:05:16.800Z"
+      },
+      {
+        "check": "audiovisual",
+        "method": "sampled_av",
+        "outcome": "inconclusive",
+        "startFrame": 0,
+        "endFrame": 720,
+        "note": "模型抽样分析该范围：画面每秒一帧，音频分窗送入模型并自动转写；不能确认连续运动、音画同步或听感。",
+        "mediaObservationIds": [
+          "observation_f89a371ac25ad36536268a9eae235593192ad31825663c51e7cc4a9dda142984"
+        ],
+        "id": "editorial_evidence_82d8f66e-876b-4ae5-ab11-9fee713e1303",
+        "operationId": "robot-0124-delivery-two-window-sampled-av",
+        "runId": "production_run_add4f4e6a6cb1d4789fdab6e30fa7c1f",
+        "observer": "抽样复核",
+        "recordedAt": "2026-11-15T18:06:20.727Z"
+      },
+      {
+        "check": "audiovisual",
+        "method": "sampled_av",
+        "outcome": "inconclusive",
+        "startFrame": 720,
+        "endFrame": 1210,
+        "note": "模型抽样分析该范围：画面每秒一帧，音频分窗送入模型并自动转写；不能确认连续运动、音画同步或听感。最后一帧不在此条登记范围。",
+        "mediaObservationIds": [
+          "observation_4193a1df26f700b1320f7608c38af7d9a98141e2c18d3007fef4843edf57103f"
+        ],
+        "id": "editorial_evidence_28077073-5817-4b1a-a305-c94f28f1b413",
+        "operationId": "robot-0124-delivery-two-window-sampled-av",
+        "runId": "production_run_add4f4e6a6cb1d4789fdab6e30fa7c1f",
+        "observer": "抽样复核",
+        "recordedAt": "2026-11-15T18:06:20.727Z"
+      }
+    ],
+    "resolutions": [],
+    "reviewedAt": "2026-11-15T18:06:20.727Z",
+    "operations": [
+      {
+        "id": "robot-0124-final-export-four-frames",
+        "hash": "b89c28e9d6a58775a500abd42e637acf07c86094b02f738f88b23c0cc9cef711",
+        "evidenceIds": [
+          "editorial_evidence_ae0c32a8-4d74-4332-acca-ab035e150ffc",
+          "editorial_evidence_922d93d5-cbfb-4bef-96ba-933285bfe3b5",
+          "editorial_evidence_ed7c8baa-6b64-48fa-840f-2116b738963f",
+          "editorial_evidence_d3fac61f-ce08-4d10-90c1-934fd7a07562"
+        ],
+        "findingIds": []
+      },
+      {
+        "id": "robot-0124-delivery-two-window-sampled-av",
+        "hash": "cf08d66f488309ad5601ae0f8b955ae2161d064e9d23952eb1d868ec23063129",
+        "evidenceIds": [
+          "editorial_evidence_82d8f66e-876b-4ae5-ab11-9fee713e1303",
+          "editorial_evidence_28077073-5817-4b1a-a305-c94f28f1b413"
+        ],
+        "findingIds": []
+      }
+    ]
+  }
+}

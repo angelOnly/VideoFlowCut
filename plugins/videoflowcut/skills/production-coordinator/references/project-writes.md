@@ -58,7 +58,9 @@ ProductionRun与SkillExecutionReport记录实际工作过程，不参与动画�
 
 使用 `record_creative_decision` 登记真实 `assignment_id`、`input_revision`、`object_ids`、`operation_id`。创意与机制分别用 `creative_research` 和 `motion_research`。`research_references` 的每个采用依据写参考类型、编号、`source_sha256`、原片 `start_ms`、`end_ms` 和 `observed_relation`。`evidence` 写明实际观察方式、范围与出处。观察不足可保留 `pending`，其中已确证的具体关系仍可被本场使用。关键关系缺乏依据时退给研究负责人。`researched` 说明该研究范围已完成，`not_applicable` 需要实际考察和放弃理由。仅供学习的候选不算作本片采用。
 
-视觉 `input_decision_ids` 引用实际消费的研究。对应 `visualPlan.referenceMappings[]` 用 `researchDecisionId` 指向该决定，`startMs` 和 `endMs` 选中该决定里实际采用的原片区间；每条就绪映射的 `targetRange` 单独写明本片场面内的非空项目半开帧范围。按类型、编号、来源指纹、原片区间核对场面参考、研究条目与保留关系。一份研究可以支撑多个场面和区间，同一卡分段使用可复用同一决定。切片时间先折算为原片时间。本片导演的 `adoption` 引用 `visual_design` 与已冻结清单的 `manifest_path`、`manifest_sha256`、`scene_ids`。
+视觉 `input_decision_ids` 引用实际消费的研究。先用 `prepare_motion_handoff` 固定本次就绪场面，再以 `visual_design` 登记其 `delivery_ref` 和清单对应的 `input_revision`。候选可并行登记；导演确认后记录 `adoption`，再用 `manage_visual_treatment` 的 `action=adopt` 将同次涉及的计划、素材及采用在一个版本写入。项目版本冲突时读回当前采用并协调后提交。重复同一次成功写入可读回已生效版本。
+
+对应 `visualPlan.referenceMappings[]` 用 `researchDecisionId` 指向研究决定，`startMs` 和 `endMs` 选中该决定里实际采用的原片区间；每条就绪映射的 `targetRange` 单独写明本片场面内的非空项目半开帧范围。按类型、编号、来源指纹、原片区间核对场面参考、研究条目与保留关系。一份研究可以支撑多个场面和区间，同一卡分段使用可复用同一决定。切片时间先折算为原片时间。导演的 `adoption` 引用该 `visual_design` 与同一份冻结清单的 `manifest_path`、`manifest_sha256`、`scene_ids`。
 
 导演完成主要采用判断后，主任务以 `manage_visual_treatment.adopted_decision_ref` 关联本次 ProductionRun 和决定，并写入本场实际采用素材。用当前版本和 `visual_treatment_ids` 启动制作。状态读回与续修按受影响范围处理，当前采用改变后核对 stale 和声音未完成项。
 

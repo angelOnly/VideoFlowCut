@@ -13,7 +13,7 @@ export async function documentPageCount(path: string): Promise<number> {
 }
 
 /** 派生始终保存真实源偏移；先按 PTS 裁切，再归零，保留音轨迟入的静音。 */
-export async function deriveMediaInput(source: Pick<MediaSource, "id" | "hash" | "kind" | "path" | "startSeconds" | "hasAudio" | "pageCount">, directory: string, range?: SourceTimeRange, region?: SourceRegion, audioOnly = false): Promise<{ path: string; kind: "video" | "audio" | "image"; mapping: Record<string, unknown> }> {
+export async function deriveMediaInput(source: Pick<MediaSource, "id" | "hash" | "kind" | "path" | "startSeconds" | "hasAudio" | "pageCount">, directory: string, range?: SourceTimeRange, region?: SourceRegion, audioOnly = false, videoLeadingFrameSeconds?: number): Promise<{ path: string; kind: "video" | "audio" | "image"; mapping: Record<string, unknown> }> {
   await mkdir(directory, { recursive: true });
   const kind = source.kind === "document" || source.kind === "image" ? "image" : source.kind === "audio" || audioOnly ? "audio" : "video";
   const path = join(directory, `input.${kind === "image" ? "png" : kind === "audio" ? "wav" : "mp4"}`);
@@ -36,9 +36,12 @@ export async function deriveMediaInput(source: Pick<MediaSource, "id" | "hash" |
     if (kind === "audio") {
       await runProcess("ffmpeg", ["-hide_banner", "-nostdin", "-y", "-copyts", "-i", source.path, "-vn", "-map", "0:a:0", "-af", audioFilter, "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", path], 180_000);
     } else {
-      const filters = `[0:v:0]trim=start=${start}:end=${end},setpts=PTS-${start}/TB,scale=w='min(960,iw)':h=-2[v]${source.hasAudio ? `;[0:a:0]${audioFilter}[a]` : ""}`;
-      await runProcess("ffmpeg", ["-hide_banner", "-nostdin", "-y", "-copyts", "-i", source.path, "-filter_complex", filters, "-map", "[v]", ...(source.hasAudio ? ["-map", "[a]", "-ac", "1", "-ar", "16000", "-c:a", "aac"] : ["-an"]), "-c:v", "libx264", "-preset", "veryfast", "-crf", "19", "-pix_fmt", "yuv420p", "-fps_mode", "vfr", "-t", String(duration), path], 180_000);
+      // 参考短片保留切点正在显示的源帧，并以细时间基准保留后续帧的真实间隔。
+      const leading = videoLeadingFrameSeconds !== undefined;
+      const filters = `[0:v:0]trim=start=${leading ? videoLeadingFrameSeconds : start}:end=${end},setpts=${leading ? `'max(PTS-${start}/TB,0)'` : `PTS-${start}/TB`},scale=w='min(960,iw)':h=-2[v]${source.hasAudio ? `;[0:a:0]${audioFilter}[a]` : ""}`;
+      await runProcess("ffmpeg", ["-hide_banner", "-nostdin", "-y", "-copyts", "-i", source.path, "-filter_complex", filters, "-map", "[v]", ...(source.hasAudio ? ["-map", "[a]", "-ac", "1", "-ar", "16000", "-c:a", "aac"] : ["-an"]), "-c:v", "libx264", "-preset", "veryfast", "-crf", "19", "-pix_fmt", "yuv420p", ...(leading ? ["-enc_time_base:v", "1:90000"] : []), "-fps_mode", "vfr", "-t", String(duration), path], 180_000);
     }
   }
-  return { path, kind, mapping: { parentSourceId: source.id, parentHash: source.hash, offsetMs: range?.startMs, region, rate: 1, coordinateSpace: "display_after_rotation", preprocessing: PREPROCESSING_VERSION } };
+  return { path, kind, mapping: { parentSourceId: source.id, parentHash: source.hash, offsetMs: range?.startMs, region, rate: 1, coordinateSpace: "display_after_rotation",
+    preprocessing: videoLeadingFrameSeconds === undefined ? PREPROCESSING_VERSION : "reference-source-pts-v1" } };
 }

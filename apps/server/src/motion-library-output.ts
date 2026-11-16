@@ -55,7 +55,7 @@ export function projectMotionSearchResult(value: unknown): Data {
 export function projectMotionMechanismResult(value: unknown): Data {
   const source = object(value);
   return {
-    ...pick(source, ["source_sha256", "part", "document", "body", "preview_url", "video_path", "observation", "clip_source_offset_ms"]),
+    ...pick(source, ["id", "kind", "source_sha256", "range", "part", "document", "body", "preview_url", "video_path", "observation", "clip_source_offset_ms"]),
     ...(source.resources ? { resources: Object.fromEntries(Object.entries(object(source.resources)).map(([key, value]) => [key, pick(value, ["path", "absolute_path", "available", "reason"])])) } : {}),
     card: mechanismCard(source.card)
   };
@@ -66,7 +66,8 @@ function projectMotionAnalysisResult(value: unknown): Data {
   return {
     ...pick(source, ["id", "source_sha256", "source_hash", "description", "model", "schema", "run_id"]),
     ...(source.range ? { range: pick(source.range, ["startMs", "endMs"]) } : {}),
-    ...(source.sampling ? { sampling: pick(source.sampling, ["model_frame_density", "limitation"]) } : {}),
+    ...(source.sampling ? { sampling: { ...pick(source.sampling, ["model_frame_density", "version", "model_frame_count", "model_source_timestamps_ms", "limitation"]),
+      ...(object(source.sampling).audio ? { audio: pick(object(source.sampling).audio, ["included", "sample_rate", "input_start_ms", "input_end_ms", "decoded_intervals_ms"]) } : {}) } } : {}),
     ...(source.input ? { input: {
       ...pick(input, ["source_has_audio", "has_audio"]),
       mapping: pick(input.mapping, ["parentSourceId", "parentHash", "offsetMs", "rate", "coordinateSpace", "preprocessing"]),

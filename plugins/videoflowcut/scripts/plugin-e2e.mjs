@@ -163,6 +163,17 @@ try {
   assert.equal(tools.tools.some(tool => ["adopt_media_source", "bind_media_adoption"].includes(tool.name)), false, "发行 MCP 不再公开素材采用资格入口");
   assert.ok(tools.tools.some(tool => tool.name === "search_motion_mechanisms"), "发行 MCP 必须公开混合机制检索");
   assert.ok(tools.tools.some(tool => tool.name === "analyze_motion_reference"), "发行 MCP 必须公开按需原片理解");
+  assert.ok(tools.tools.some(tool => tool.name === "inspect_motion_reference_frames"), "发行 MCP 必须公开参考连续帧核查");
+  const reference = await call("read_motion_mechanism", { id: "001-m03", include_storyboard: false });
+  assert.equal(new URL(reference.preview_url).origin, runtime.apiUrl, "参考链接必须指向本次隔离 Runtime");
+  assert.deepEqual(reference.range, { startMs: 3850, endMs: 5200 });
+  assert.equal((await fetchWithTimeout(reference.preview_url)).status, 200);
+  const segment = await fetch(`${runtime.apiUrl}/library/${reference.card.clip.path}`, { headers: { range: "bytes=0-99" }, signal: AbortSignal.timeout(5_000) });
+  assert.equal(segment.status, 206, "发行播放器必须支持拖动视频");
+  assert.equal((await segment.arrayBuffer()).byteLength, 100);
+  const creativeReference = await call("read_creative_case", { id: "002-c01", range: { startMs: 100, endMs: 900 }, include_storyboard: false });
+  assert.equal(new URL(creativeReference.preview_url).origin, runtime.apiUrl);
+  assert.equal(new URL(creativeReference.preview_url).searchParams.get("startMs"), "100");
   assert.ok(tools.tools.some(tool => tool.name === "prepare_motion_handoff"), "发行 MCP 必须公开场面制作交付");
   const motionTool = tools.tools.find((tool) => tool.name === "register_motion_work");
   assert.ok(tools.tools.find(tool => tool.name === "submit_motion_work").inputSchema.required.includes("work_id"));

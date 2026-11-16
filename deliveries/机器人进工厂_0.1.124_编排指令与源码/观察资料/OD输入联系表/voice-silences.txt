@@ -1,0 +1,57 @@
+[aist#0:0/pcm_s16le @ 000001e1fc800cc0] Guessed Channel Layout: mono
+Input #0, wav, from '../../声音/旁白.wav':
+  Metadata:
+    encoder         : Lavf62.12.100
+  Duration: 00:00:50.45, bitrate: 384 kb/s
+  Stream #0:0: Audio: pcm_s16le ([1][0][0][0] / 0x0001), 24000 Hz, mono, s16, 384 kb/s
+Stream mapping:
+  Stream #0:0 -> #0:0 (pcm_s16le (native) -> pcm_s16le (native))
+Press [q] to stop, [?] for help
+Output #0, null, to 'pipe:':
+  Metadata:
+    encoder         : Lavf62.12.100
+  Stream #0:0: Audio: pcm_s16le, 24000 Hz, mono, s16, 384 kb/s
+    Metadata:
+      encoder         : Lavc62.28.100 pcm_s16le
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 0
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 0.302792 | silence_duration: 0.302792
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 2.926708
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 3.077542 | silence_duration: 0.150833
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 4.647375
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 4.809042 | silence_duration: 0.161667
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 6.1925
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 6.87575 | silence_duration: 0.68325
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 10.447875
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 11.078875 | silence_duration: 0.631
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 13.431083
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 13.716625 | silence_duration: 0.285542
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 15.261958
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 15.640125 | silence_duration: 0.378167
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 17.572542
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 17.895125 | silence_duration: 0.322583
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 19.31875
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 19.70625 | silence_duration: 0.3875
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 22.753333
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 23.004542 | silence_duration: 0.251208
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 24.2025
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 24.36125 | silence_duration: 0.15875
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 26.007625
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 26.678833 | silence_duration: 0.671208
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 28.708583
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 29.14725 | silence_duration: 0.438667
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 34.021708
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 34.352875 | silence_duration: 0.331167
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 36.54025
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 36.904875 | silence_duration: 0.364625
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 39.028167
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 39.739667 | silence_duration: 0.7115
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 41.254083
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 41.470208 | silence_duration: 0.216125
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 45.257167
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 45.788292 | silence_duration: 0.531125
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 47.201792
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 47.44475 | silence_duration: 0.242958
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_start: 50.252083
+[Parsed_silencedetect_0 @ 000001e1faab6640] silence_end: 50.45 | silence_duration: 0.197917
+[out#0/null @ 000001e1fc7f8d80] video:0KiB audio:2365KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+size=N/A time=00:00:50.45 bitrate=N/A speed=9.22e+03x elapsed=0:00:00.00    

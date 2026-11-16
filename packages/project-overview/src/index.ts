@@ -383,7 +383,7 @@ export const MCP_CAPABILITY_GROUPS: readonly McpCapabilityGroup[] = [
     tools: [
       "browse_scene_types", "create_scene", "trim_scene", "manage_visual_treatment", "manage_cutaways", "replace_scene_asset",
       "browse_effect_types", "manage_effect_cues", "move_item", "preview_timeline",
-      "read_motion_capabilities", "prepare_motion_handoff", "start_motion_authoring", "wait_motion_authoring", "inspect_motion_frames", "import_motion_bundle", "register_motion_work", "browse_motion_sources", "inspect_motion_reference", "search_motion_mechanisms", "read_motion_mechanism", "search_creative_cases", "read_creative_case", "analyze_motion_reference", "submit_motion_work", "read_motion_work", "review_motion_work"
+      "read_motion_capabilities", "prepare_motion_handoff", "start_motion_authoring", "wait_motion_authoring", "inspect_motion_frames", "import_motion_bundle", "register_motion_work", "browse_motion_sources", "inspect_motion_reference", "search_motion_mechanisms", "read_motion_mechanism", "search_creative_cases", "read_creative_case", "inspect_motion_reference_frames", "analyze_motion_reference", "submit_motion_work", "read_motion_work", "review_motion_work"
     ]
   },
   // 生产运行、创作决定、质量报告和连续预览证据。
@@ -420,6 +420,7 @@ export const NODE_RUNTIME_CONFIGURATION_CATALOG = [
   { key: "HOST", group: "HTTP", description: "Server 与 Runtime 监听地址", defaultValue: RUNTIME_CONFIG_DEFAULTS.serverHost },
   { key: "PORT", group: "HTTP", description: "Server 与 Runtime 监听端口", defaultValue: String(RUNTIME_CONFIG_DEFAULTS.serverPort) },
   { key: "WEB_ORIGIN", group: "HTTP", description: "开发态 Web 工作台地址", defaultValue: RUNTIME_CONFIG_DEFAULTS.webOrigin },
+  { key: "VIDEOFLOWCUT_RUNTIME_ORIGIN", group: "HTTP", description: "插件启动器传入的实际 Runtime 地址，用于案例库播放链接" },
   { key: "SERVE_WEB", group: "HTTP", description: "Server 是否托管静态 Web 产物", defaultValue: "false" },
   { key: "LOG_LEVEL", group: "HTTP", description: "Fastify 日志级别", defaultValue: RUNTIME_CONFIG_DEFAULTS.logLevel },
   // Bridge：所有 ComfyUI Bridge HTTP 调用共用的地址。
@@ -549,6 +550,12 @@ export const PLUGIN_LAUNCHER_CONFIGURATION_CATALOG = [
 
 /** 真实服务不会读取该变量；它只用于手工触发阶段 1 live E2E 的隔离工作区。 */
 export const EVALUATION_CONFIGURATION_CATALOG = [
+  {
+    key: "VFC_TEST_RENAME_MARKER",
+    group: "本地 E2E",
+    scope: "plugins/videoflowcut/scripts/open-design-e2e.mjs",
+    description: "隔离测试注入一次临时文件占用时使用的标记路径。"
+  },
   {
     key: "VIDEOCUT_AUDIT_SOURCE_ENTRY",
     group: "渲染回归审计",

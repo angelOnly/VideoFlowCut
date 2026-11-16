@@ -43,3 +43,10 @@ deliveries/机器人进工厂_49秒测试_R68_编排与源码/**/*.mp4 filter=lf
 deliveries/机器人进工厂_49秒测试_R68_编排与源码/**/*.webm filter=lfs diff=lfs merge=lfs -text
 deliveries/机器人进工厂_49秒测试_R68_编排与源码/**/*.wav filter=lfs diff=lfs merge=lfs -text
 deliveries/机器人进工厂_49秒测试_R68_编排与源码/**/*.otf filter=lfs diff=lfs merge=lfs -text
+
+# 0.1.124 测试片交付包保留原始字节，视频、音频与字体由 Git LFS 管理。
+deliveries/机器人进工厂_0.1.124_编排指令与源码/** -text
+deliveries/机器人进工厂_0.1.124_编排指令与源码/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+deliveries/机器人进工厂_0.1.124_编排指令与源码/**/*.wav filter=lfs diff=lfs merge=lfs -text
+deliveries/机器人进工厂_0.1.124_编排指令与源码/**/*.mp3 filter=lfs diff=lfs merge=lfs -text
+deliveries/机器人进工厂_0.1.124_编排指令与源码/**/*.otf filter=lfs diff=lfs merge=lfs -text

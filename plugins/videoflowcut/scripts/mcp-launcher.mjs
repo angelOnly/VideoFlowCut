@@ -44,7 +44,8 @@ try {
         env: {
           ...process.env, NODE_PATH: releaseNodePath(repoRoot),
           VIDEOFLOWCUT_NODE_MODULES: join(repoRoot, "node_modules"), VIDEOCUT_WORKSPACE: workspaceRoot,
-          WEB_ORIGIN: `${release.apiUrl}/`, VIDEOFLOWCUT_RUNTIME_DIST: release.root, VIDEOFLOWCUT_RELEASE_ID: release.releaseId
+          WEB_ORIGIN: `${release.apiUrl}/`, VIDEOFLOWCUT_RUNTIME_ORIGIN: release.apiUrl,
+          VIDEOFLOWCUT_RUNTIME_DIST: release.root, VIDEOFLOWCUT_RELEASE_ID: release.releaseId
         }
       });
       transport.stderr?.on("data", (data) => process.stderr.write(data));

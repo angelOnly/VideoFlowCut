@@ -11,6 +11,8 @@ import { digest, timeRangeSchema } from "../../../packages/media-intelligence/sr
 import { MOTION_TEXT_VERSION, MOTION_INSTRUCTION_VERSION, MOTION_QUERY_INSTRUCTION, MOTION_VIDEO_PROMPT } from "../../../packages/media-intelligence/src/motion-library.js";
 import { motionJobRecovery, projectMotionJob, projectMotionMechanismResult, projectMotionSearchResult } from "./motion-library-output.js";
 import { latestLibraryAttempt as latestAttempt } from "./library-job.js";
+import { libraryOrigin } from "./library-origin.js";
+import { referenceFrames } from "./reference-frames.js";
 
 const id = z.string().regex(/^\d{3}-m\d{2}$/u);
 const fingerprint = z.string().regex(/^[a-f0-9]{64}$/u);
@@ -81,20 +83,32 @@ export function registerMotionLibraryTools(server: McpServer, root = resolve(pro
   });
   server.registerTool("read_motion_mechanism", {
     title:"读取运动指令和分镜",
-    description:"读取完整机制正文、来源和各项实际媒体状态，分镜可用时附带实际格式图片。视觉作者查看视频中的选定过程及必要前后连接。part=overview 读取原片总览，source_sha256 用于核对资料版本。",
+    description:"读取完整机制正文、媒体和可复开的原片选段。source_sha256 取读卡结果顶层资料库指纹；range 是原片毫秒半开区间。工具不代表实际观看或听审。",
     annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false},
-    inputSchema:{id,part:z.enum(['mechanism','overview']).optional(),source_sha256:fingerprint.optional(),include_storyboard:z.boolean().optional()}
+    inputSchema:{id,part:z.enum(['mechanism','overview']).optional(),source_sha256:fingerprint.optional(),range:timeRangeSchema.optional(),include_storyboard:z.boolean().optional()}
   }, async (request) => {
     try {
-      const loaded=readLibraryMechanism(root,request);
+      const loaded=readLibraryMechanism(root,{...request,preview_origin:libraryOrigin()});
       const content: Array<{type:"text";text:string}|{type:"image";data:string;mimeType:string}>=[{type:"text",text:JSON.stringify(projectMotionMechanismResult(loaded.result))}];
       if(loaded.image)content.push({type:"image",...loaded.image});
       return {content};
     } catch(error) {return failure(error);}
   });
+  server.registerTool("inspect_motion_reference_frames", {
+    title:"逐帧核查参考短窗",
+    description:"按创意或动效卡编号、读卡顶层资料库指纹和原片毫秒范围，返回不跳采的源帧及各自时间戳。每次最多 2 秒、96 帧；只按需解码，未运行模型，也不包含声音。",
+    annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false},
+    inputSchema:{id:z.string().regex(/^\d{3}-[mc]\d{2}$/u),source_sha256:fingerprint,range:timeRangeSchema}
+  },async request=>{
+    try {
+      const {frames,...summary}=await referenceFrames(root,request);
+      return {content:[{type:"text" as const,text:JSON.stringify(summary)},...frames.flatMap(frame=>[
+        {type:"text" as const,text:`原片 ${frame.source_ms} 毫秒`},{type:"image" as const,data:frame.data,mimeType:"image/jpeg"}])]};
+    } catch(error) {return failure(error);}
+  });
   if(app&&projectIdFrom) server.registerTool("analyze_motion_reference", {
     title:"分析创意或动效参考原片",
-    description:"按创意卡或动效卡编号、原片毫秒范围和观察问题提交异步理解，单段最多15秒。默认保留同段原声，track_job 返回实际输入和采样边界。失败任务沿 retry_media_job 显式恢复。",
+    description:"按创意卡或动效卡编号、读卡结果顶层 source_sha256、原片毫秒范围和观察问题提交异步理解，单段最多15秒。默认保留同段原声，track_job 返回实际输入和采样边界。失败任务沿 retry_media_job 显式恢复。",
     annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:true},
     inputSchema:{project_id:z.string().optional(),id:z.string().regex(/^\d{3}-[mc]\d{2}$/u),source_sha256:fingerprint,range:timeRangeSchema,
       mode:z.enum(["visual","audiovisual"]).default("audiovisual"),observation_questions:z.array(z.string().min(1).max(1000)).max(8).optional()}
@@ -105,7 +119,7 @@ export function registerMotionLibraryTools(server: McpServer, root = resolve(pro
       if (request.id.includes("-c")) readCreativeCase(root,{id:request.id,source_sha256:request.source_sha256,include_storyboard:false});
       else readLibraryMechanism(root,{id:request.id,source_sha256:request.source_sha256,include_storyboard:false});
       // 提示参与任务身份，避免新观察要求命中旧的成功 Job；Worker 沿提交时的提示执行。
-      const config=readRuntimeConfig(),payload={id:request.id,source_sha256:request.source_sha256,range:request.range,analysisMode:request.mode,
+      const config=readRuntimeConfig(),payload={id:request.id,source_sha256:request.source_sha256,range:request.range,analysisMode:request.mode,samplingVersion:"minicpmo-one-per-second-v1",
         videoPrompt:[MOTION_VIDEO_PROMPT,request.mode==="audiovisual"?"同时描述本段实际听到的声音及其与画面的关系，无法分辨时说明未知。":"只判断画面。",
           ...(request.observation_questions?.length?[`本次需要观察的问题：${request.observation_questions.join("；")}`]:[])].join("\n"),
         modelConfig:{...config.semantic,apiBaseUrl:config.bridge.apiBaseUrl}};

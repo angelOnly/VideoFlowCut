@@ -12,7 +12,7 @@ test("正式 MCP Schema 接受开放需求，旧候选跨改稿获取，完成�
   const seed = createApplication(root);
   const project = seed.createProject({ name: "生命周期协议隔离" });
   const projectId = project.snapshot.project.id;
-  const created = seed.manageAssetRequirement({ projectId, baseRevision: 1, action: "create", title: "内容", purpose: "补充关系", visualBrief: "探索材料" });
+  const created = seed.manageAssetRequirement({ projectId, baseRevision: 1, action: "create", title: "内容", purpose: "第一场主体接管画面", visualBrief: "第一场主体角色：寻找进入工厂的连续动作及源范围" });
   const request = created.snapshot.assetRequests[0];
   const found = seed.recordAssetSearch({ projectId, baseRevision: created.revision.number, assetRequestId: request.id, provider: "youtube", query: "https://youtu.be/abcdefghijk", candidates: [{ originalAssetId: "abcdefghijk", sourceUrl: "https://youtu.be/abcdefghijk", name: "测试来源", kind: "video" }] });
   seed.close();
@@ -33,11 +33,16 @@ test("正式 MCP Schema 接受开放需求，旧候选跨改稿获取，完成�
     assert.ok(schema.properties?.close_outcome);
     assert.ok(!schema.required?.includes("query_hints"));
     assert.ok(!tools.tools.some(tool => ["adopt_media_fragment", "bind_media_adoption"].includes(tool.name)));
-    const updated = await call("manage_asset_requirements", { action: "update", asset_request_id: request.id, base_revision_id: created.revision.number, purpose: "新的讲法", target_aspect_ratio: "1:1" });
+    const updated = await call("manage_asset_requirements", { action: "update", asset_request_id: request.id, base_revision_id: created.revision.number,
+      purpose: "第一场主体与设备并列", visual_brief: "第一场主体角色：寻找进入车间后与设备并列的动作及源范围", target_aspect_ratio: "1:1" });
     const read = await call("inspect_media_candidate", { asset_candidate_id: found.candidates[0].id });
     assert.equal(read.candidate.status, "available");
     assert.equal(typeof updated.revision, "number");
     assert.equal(Object.hasOwn(updated, "snapshot"), false);
+    const afterSearch = await call("read_project", {});
+    assert.equal(afterSearch.snapshot.assetRequests[0].purpose, "第一场主体与设备并列");
+    assert.match(afterSearch.snapshot.assetRequests[0].visualBrief, /第一场主体角色.*源范围/);
+    assert.equal(afterSearch.snapshot.assets.length, 0, "候选搜索不能自动取得或采用素材");
     const queued = await call("acquire_media_asset", { asset_candidate_id: found.candidates[0].id, base_revision_id: updated.revision });
     assert.equal(queued.job.status, "queued");
     const whileQueued = await call("manage_asset_requirements", { action: "update", asset_request_id: request.id, base_revision_id: queued.state.revision, visual_brief: "下载期间继续调整" });

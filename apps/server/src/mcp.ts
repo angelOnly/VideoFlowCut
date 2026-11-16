@@ -759,7 +759,7 @@ server.registerTool("manage_asset_requirements", {
     asset_request_id: z.string().min(1).optional(),
     title: z.string().max(160).optional(),
     purpose: z.string().max(800).optional().describe("说明本片主题或当前编排中材料承担的用途。"),
-    visual_brief: z.string().max(1_600).optional().describe("首轮写相关对象、场景、活动及期待发现；补材时写缺少的动作、取景、细节和持续范围。"),
+    visual_brief: z.string().max(1_600).optional().describe("首轮写相关对象、场景、活动及期待发现；补材时写目标场面、视觉角色、画面作用，以及缺少的主体、动作、空间、细节和源范围。"),
     media_kind: z.enum(["visual", "audio"]).optional(),
     audio_brief: z.string().max(1_600).optional(),
     sound: soundRequirementSchema.optional(),
@@ -2418,17 +2418,26 @@ server.registerTool("trim_scene", {
 
 server.registerTool("manage_visual_treatment", {
   title: "管理视觉处理计划",
-  description: "保存共同编排后采用的视觉用途和实际展示材料。mode 表示承载方式，包含使用素材的受管画面；具体素材组织、参考过程和完整画面安排保存在当前简报。新增或替换材料时更新对应计划。计划保存不代表实际画面效果已成立。",
+  description: "保存视觉计划；action=adopt 时将一次导演采用涉及的多个已有计划和素材在同一版本生效。候选设计登记不改变当前采用。",
   inputSchema: {
     project_id: z.string().optional(),
     base_revision_id: z.number().int().positive(),
-    action: z.enum(["upsert", "remove"]),
+    action: z.enum(["upsert", "remove", "adopt"]),
+    adoptions: z.array(z.object({ visual_treatment_id: z.string().min(1),
+      adopted_decision_ref: z.object({ production_run_id: z.string().min(1), decision_id: z.string().min(1) }).strict(),
+      adopted_material_asset_ids: z.array(z.string().min(1)).optional().describe("本计划明确要求进入作品的展示素材；省略时沿用原清单，空数组表示清空。"), scene_id: z.string().min(1).nullable().optional(),
+      narrative_beat_id: z.string().min(1).nullable().optional(), mode: z.enum(["keep_presenter", "quiet", "light_overlay", "remotion", "b_roll", "cutaway", "evidence"]).optional(),
+      intensity: z.enum(["quiet", "low", "medium", "high"]).optional(), primary_attention: z.string().max(500).optional(),
+      narrative_purpose: z.string().max(800).optional(), quiet_reason: z.string().max(800).nullable().optional(), fallback_plan: z.string().max(800).nullable().optional(),
+      presenter_uses: z.array(z.object({ id: z.string().min(1), speech_asset_id: z.string().min(1), reference_image_asset_id: z.string().min(1),
+        start_frame: z.number().int().nonnegative(), end_frame: z.number().int().positive(), performance_note: z.string().max(2000),
+        timing_evidence: z.object({ kind: z.enum(["aligned", "audio_review"]), note: z.string().trim().min(1) }) }).strict()).optional() }).strict()).min(1).optional(),
     presenter_uses: z.array(z.object({
       id: z.string().min(1), speech_asset_id: z.string().min(1), reference_image_asset_id: z.string().min(1),
       start_frame: z.number().int().nonnegative(), end_frame: z.number().int().positive(), performance_note: z.string().max(2000),
       timing_evidence: z.object({ kind: z.enum(["aligned", "audio_review"]), note: z.string().trim().min(1) })
     }).strict()).optional(),
-    adopted_material_asset_ids: z.array(z.string().min(1)).optional().describe("本范围实际采用的展示素材；按有效简报更新，不填候选、声音或人物参考照。"),
+    adopted_material_asset_ids: z.array(z.string().min(1)).optional().describe("本计划明确要求进入作品的展示素材；按有效简报更新，不填候选、声音或人物参考照。"),
     adopted_decision_ref: z.object({ production_run_id: z.string().min(1), decision_id: z.string().min(1) }).strict().nullable().optional(),
     visual_treatment_id: z.string().min(1).optional(),
     narrative_beat_id: z.string().min(1).optional(),
@@ -2442,6 +2451,14 @@ server.registerTool("manage_visual_treatment", {
   }
 }, async (input) => {
   try {
+    if (input.action === "adopt") return asText(application.applyVisualAdoptions({ projectId: projectIdFrom(input.project_id),
+      baseRevision: input.base_revision_id, adoptions: (input.adoptions ?? []).map(item => ({ visualTreatmentId: item.visual_treatment_id,
+        adoptedDecisionRef: { productionRunId: item.adopted_decision_ref.production_run_id, decisionId: item.adopted_decision_ref.decision_id },
+        adoptedMaterialAssetIds: item.adopted_material_asset_ids, sceneId: item.scene_id, narrativeBeatId: item.narrative_beat_id,
+        mode: item.mode, intensity: item.intensity, primaryAttention: item.primary_attention, narrativePurpose: item.narrative_purpose,
+        quietReason: item.quiet_reason, fallbackPlan: item.fallback_plan,
+        presenterUses: item.presenter_uses?.map(u => ({ id: u.id, speechAssetId: u.speech_asset_id, referenceImageAssetId: u.reference_image_asset_id,
+          startFrame: u.start_frame, endFrame: u.end_frame, performanceNote: u.performance_note, timingEvidence: u.timing_evidence })) })) }));
     return asText(application.manageVisualTreatment({
       projectId: projectIdFrom(input.project_id),
       baseRevision: input.base_revision_id,
@@ -2463,7 +2480,7 @@ server.registerTool("manage_visual_treatment", {
       quietReason: input.quiet_reason,
       fallbackPlan: input.fallback_plan
     }));
-  } catch (error) { return asError(error); }
+  } catch (error) { return input.action === "adopt" ? toolErrorResult(error, true) : asError(error); }
 });
 
 server.registerTool("manage_cutaways", {
@@ -2749,7 +2766,7 @@ server.registerTool("update_production_run", {
 
 server.registerTool("record_creative_decision", {
   title: "记录创作判断",
-  description: "记录作者结果、真实分派和输入版本；创意阶段另记录上游决定，文案事实依据与待核项可随作者及 Revision 记录。完整编排通过实际文件交付；记录是来源声明，不代替宿主调用或真实观察。",
+  description: "持久化作者判断、真实分派、输入版本和上游决定。研究引用的 source_sha256 使用读卡结果顶层资料库指纹，不能填原片文件哈希；复看时按卡号、指纹和原片范围重新读卡。记录不通知作者，主任务须实际转交。",
   inputSchema: {
     project_id: z.string().optional(),
     run_id: z.string().min(1),
@@ -2765,8 +2782,8 @@ server.registerTool("record_creative_decision", {
     phase: z.enum(["creative_research", "motion_research", "visual_design", "adoption"]).optional(),
     assignment_id: z.string().min(1).optional(), input_revision: z.number().int().positive().nullable().optional(),
     input_decision_ids: z.array(z.string().min(1)).optional(), research_outcome: z.enum(["pending", "researched", "not_applicable"]).optional(),
-    research_references: z.array(z.object({ kind: z.enum(["creative", "motion"]), id: z.string().min(1), source_sha256: z.string().regex(/^[a-f0-9]{64}$/u),
-      start_ms: z.number().int().nonnegative().optional(), end_ms: z.number().int().positive().optional(), observed_relation: z.string().min(1).max(2000).optional() }).strict()).optional(),
+    research_references: z.array(z.object({ kind: z.enum(["creative", "motion"]), id: z.string().min(1), source_sha256: z.string().regex(/^[a-f0-9]{64}$/u).describe("读卡结果顶层 source_sha256，表示资料库版本，不是原片文件哈希"),
+      start_ms: z.number().finite().nonnegative().optional(), end_ms: z.number().finite().positive().optional(), observed_relation: z.string().min(1).max(2000).optional() }).strict()).optional(),
     quiet_range: z.object({ start_frame: z.number().int().min(0), end_frame: z.number().int().positive(), reason: z.string().min(1).max(800) }).optional(),
     effect_decision: z.string().max(2_000).optional(),
     rejected_alternative: z.string().max(2_000).optional(),
@@ -2801,7 +2818,7 @@ server.registerTool("record_creative_decision", {
     }));
   } catch (error) {
     // 阶段来源校验在审计持久化之前完成，允许按实际分派、版本和范围纠正输入。
-    if (error instanceof DomainError && error.code === "PRODUCTION_DECISION_SOURCE_REQUIRED") {
+    if (error instanceof DomainError && ["PRODUCTION_DECISION_SOURCE_REQUIRED", "PRODUCTION_RESEARCH_REFERENCE_INVALID", "PRODUCTION_RESEARCH_REFERENCE_STALE"].includes(error.code)) {
       return { ...asText({ error: error.message, message: error.message, code: error.code,
         stage: "validation", sideEffects: "none", safeToRetry: true, recovery: "correct_input" }), isError: true };
     }

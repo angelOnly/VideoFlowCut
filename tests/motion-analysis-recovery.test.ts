@@ -97,7 +97,8 @@ test("同一参考原片按声画与静音模式分开缓存，并把真实音�
     const workflow: BridgeWorkflow = { id: config.semantic.videoWorkflowId, schemaVersion: "audio-v1", name: "隔离理解",
       fields: ["prompt", "start_seconds", "duration_seconds"].map(id => ({ id, label: id, kind: "text", required: false })), itemSlots: [], outputs: [] };
     const bridge = new ComfyUIBridgeClient(config.bridge.apiBaseUrl);
-    const uploaded: boolean[] = [], prompts: unknown[] = [];
+    const uploaded: boolean[] = [], prompts: unknown[] = [], uploadedPaths: string[] = [];
+    let plainOutput = false;
     bridge.getWorkflow = async () => workflow;
     bridge.findRequiredSlot = () => ({ id: "video", label: "视频", mediaKind: "video", min: 1, max: 1 });
     bridge.createRunWithWorkflow = async (_id, build) => {
@@ -105,9 +106,14 @@ test("同一参考原片按声画与静音模式分开缓存，并把真实音�
       prompts.push(request.fieldValues.prompt);
       const probe = JSON.parse(await runProcess("ffprobe", ["-v", "error", "-show_entries", "stream=codec_type", "-of", "json", request.files![0].path]));
       uploaded.push(probe.streams.some((stream: { codec_type: string }) => stream.codec_type === "audio"));
+      uploadedPaths.push(request.files![0].path);
       return { workflow, request, schemaRetryCount: 0, run: { id: `run-${uploaded.length}`, status: "running", outputs: [] } };
     };
-    bridge.waitForRun = async id => ({ id, status: "succeeded", outputs: [{ outputSlotId: "text", kind: "text", displayName: "描述", text: "隔离模拟观察" }] });
+    bridge.waitForRun = async id => ({ id, status: "succeeded", outputs: [...(plainOutput ? [] : [{ outputSlotId: "sampling", kind: "json" as const, displayName: "采样回执", value: {
+      schema: "motion-reference-observation-v1", description: "隔离模拟观察", sampling: { version: "minicpmo-one-per-second-v1", frame_count: 1,
+        frame_timestamps_ms: [40], audio: { included: uploaded.at(-1), sample_rate: uploaded.at(-1) ? 16000 : null,
+          input_start_ms: 0, input_end_ms: 800, decoded_intervals_ms: uploaded.at(-1) ? [[0, 800]] : [] } } } }]),
+      { outputSlotId: "text", kind: "text" as const, displayName: "描述", text: plainOutput ? "旧工作流的纯文本" : "隔离模拟观察" }] });
     const payload = { id: "026-m07", source_sha256: index.source_sha256, range: { startMs: 10083, endMs: 12083 }, modelConfig, videoPrompt: MOTION_VIDEO_PROMPT };
     const audiovisual = app.repository.createJob({ projectId, kind: "motion_reference_analysis", payload: { ...payload, analysisMode: "audiovisual" }, idempotencyKey: "with-audio" });
     const visual = app.repository.createJob({ projectId, kind: "motion_reference_analysis", payload: { ...payload, analysisMode: "visual" }, idempotencyKey: "without-audio" });
@@ -131,7 +137,29 @@ test("同一参考原片按声画与静音模式分开缓存，并把真实音�
     const observed = await runMotionReferenceAnalysis(app, app.trackJob(receipt.id), bridge);
     assert.equal(observed.id, "002-c01");
     assert.deepEqual(observed.range, { startMs: 100, endMs: 900 });
+    assert.equal(observed.description, "隔离模拟观察");
+    assert.deepEqual((observed.sampling as { model_source_timestamps_ms: number[] }).model_source_timestamps_ms, [140]);
+    assert.equal((observed.sampling as { model_frame_count: number }).model_frame_count, 1);
+    assert.equal((observed.sampling as { audio: { input_end_ms: number } }).audio.input_end_ms, 900);
+    const projected = (await import("../apps/server/src/motion-library-output.js")).projectMotionJob({ ...app.trackJob(receipt.id), status: "succeeded", result: observed }) as any;
+    assert.deepEqual(projected.result.sampling.model_source_timestamps_ms, [140]);
     assert.match(String(prompts[2]), /画面如何接管/);
     assert.equal((observed.input as { has_audio: boolean }).has_audio, (observed.input as { source_has_audio: boolean }).source_has_audio);
+    plainOutput = true;
+    const legacyReceipt = await client.callTool({ name: "analyze_motion_reference", arguments: { project_id: projectId,
+      id: "002-c01", source_sha256: creative.source_sha256, range: { startMs: 100, endMs: 900 }, observation_questions: ["旧节点回执"] } });
+    const legacyId = JSON.parse((legacyReceipt.content as Array<{ text: string }>)[0]!.text).id;
+    const legacy = await runMotionReferenceAnalysis(app, app.trackJob(legacyId), bridge);
+    assert.equal(legacy.description, "旧工作流的纯文本");
+    assert.equal((legacy.sampling as { model_frame_density: string }).model_frame_density, "unknown");
+    const fractionalReceipt = await client.callTool({ name: "analyze_motion_reference", arguments: { project_id: projectId,
+      id: "001-m03", source_sha256: index.source_sha256, range: { startMs: 3850, endMs: 5200 }, mode: "audiovisual" } });
+    const fractionalId = JSON.parse((fractionalReceipt.content as Array<{ text: string }>)[0]!.text).id;
+    await runMotionReferenceAnalysis(app, app.trackJob(fractionalId), bridge);
+    const derived = JSON.parse(await runProcess("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_frames", "-show_entries",
+      "stream=start_time,duration:frame=best_effort_timestamp_time", "-of", "json", uploadedPaths.at(-1)!]));
+    assert.equal(Number(derived.streams[0].start_time), 0, "切点正在显示的上一源帧必须进入分析");
+    assert.ok(Math.abs(Number(derived.frames[1].best_effort_timestamp_time) - 0.028875) < 0.002, "后续帧保留真实源时间间隔");
+    assert.ok(Number(derived.streams[0].duration) >= 1.35, "视频不能短于同段声音");
   } finally { await client?.close(); await server?.close(); app.close(); await rm(directory, { recursive: true, force: true }); }
 });

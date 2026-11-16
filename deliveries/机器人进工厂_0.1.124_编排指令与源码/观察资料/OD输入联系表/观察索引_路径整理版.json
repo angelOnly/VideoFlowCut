@@ -1,0 +1,160 @@
+{
+  "observations": [
+    {
+      "label": "ref130",
+      "source": "../../参考/130_画中画接力/原片.mp4",
+      "start": 0,
+      "duration": 3.2,
+      "rate": 30,
+      "frames": 96,
+      "sheets": [
+        "./ref130-1.jpg",
+        "./ref130-2.jpg"
+      ],
+      "framesDirectory": "./ref130/"
+    },
+    {
+      "label": "ref130-context",
+      "source": "../../参考/130_画中画接力/原片.mp4",
+      "start": 3.2,
+      "duration": 7.3,
+      "rate": 2,
+      "frames": 15,
+      "sheets": [
+        "./ref130-context-1.jpg"
+      ],
+      "framesDirectory": "./ref130-context/"
+    },
+    {
+      "label": "ref005",
+      "source": "../../参考/005_错峰并置/原片.mp4",
+      "start": 28.233333,
+      "duration": 4.916667,
+      "rate": 30,
+      "frames": 148,
+      "sheets": [
+        "./ref005-1.jpg",
+        "./ref005-2.jpg",
+        "./ref005-3.jpg",
+        "./ref005-4.jpg"
+      ],
+      "framesDirectory": "./ref005/"
+    },
+    {
+      "label": "ref005-context",
+      "source": "../../参考/005_错峰并置/原片.mp4",
+      "start": 26,
+      "duration": 9,
+      "rate": 2,
+      "frames": 18,
+      "sheets": [
+        "./ref005-context-1.jpg"
+      ],
+      "framesDirectory": "./ref005-context/"
+    },
+    {
+      "label": "ref005-clip",
+      "source": "../../参考/005_错峰并置/机制片段.mp4",
+      "start": 0,
+      "duration": 4.933333,
+      "rate": 3,
+      "frames": 15,
+      "sheets": [
+        "./ref005-clip-1.jpg"
+      ],
+      "framesDirectory": "./ref005-clip/"
+    },
+    {
+      "label": "atlas-overview",
+      "source": "../../真实素材/01_Atlas翻转.mp4",
+      "start": 30,
+      "duration": 20,
+      "rate": 2,
+      "frames": 40,
+      "sheets": [
+        "./atlas-overview-1.jpg"
+      ],
+      "framesDirectory": "./atlas-overview/"
+    },
+    {
+      "label": "workers",
+      "source": "../../真实素材/02_人员滚筒.mp4",
+      "start": 30,
+      "duration": 30,
+      "rate": 1,
+      "frames": 30,
+      "sheets": [
+        "./workers-1.jpg"
+      ],
+      "framesDirectory": "./workers/"
+    },
+    {
+      "label": "car-arms",
+      "source": "../../真实素材/03_汽车机械臂.mp4",
+      "start": 0,
+      "duration": 8.4,
+      "rate": 4,
+      "frames": 34,
+      "sheets": [
+        "./car-arms-1.jpg"
+      ],
+      "framesDirectory": "./car-arms/"
+    },
+    {
+      "label": "kuka-detail",
+      "source": "../../真实素材/04_KUKA机械臂.mp4",
+      "start": 116,
+      "duration": 8,
+      "rate": 3,
+      "frames": 24,
+      "sheets": [
+        "./kuka-detail-1.jpg"
+      ],
+      "framesDirectory": "./kuka-detail/"
+    },
+    {
+      "label": "kuka-overhead",
+      "source": "../../真实素材/04_KUKA机械臂.mp4",
+      "start": 26,
+      "duration": 10,
+      "rate": 3,
+      "frames": 30,
+      "sheets": [
+        "./kuka-overhead-1.jpg"
+      ],
+      "framesDirectory": "./kuka-overhead/"
+    },
+    {
+      "label": "atlas-material-a",
+      "source": "../../真实素材/05_Atlas搬料.mp4",
+      "start": 19,
+      "duration": 9,
+      "rate": 3,
+      "frames": 27,
+      "sheets": [
+        "./atlas-material-a-1.jpg"
+      ],
+      "framesDirectory": "./atlas-material-a/"
+    },
+    {
+      "label": "atlas-material-b",
+      "source": "../../真实素材/05_Atlas搬料.mp4",
+      "start": 46,
+      "duration": 8,
+      "rate": 3,
+      "frames": 24,
+      "sheets": [
+        "./atlas-material-b-1.jpg"
+      ],
+      "framesDirectory": "./atlas-material-b/"
+    }
+  ],
+  "voice": {
+    "sampleRate": 24000,
+    "channels": 1,
+    "samples": 1210800,
+    "duration": 50.45,
+    "decodedBytes": 2421600
+  },
+  "说明": "OD 观察输入时的记录，路径已按本目录本地化。其 ref005 为 148 帧；上游视觉作者的 149 帧记录含一张区间前置帧，两者不是同一次提取。"
+}

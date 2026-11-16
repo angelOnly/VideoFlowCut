@@ -30,7 +30,7 @@ export function restoreModelCheckpoints(app: EditingApplication, job: JobRecord,
 }
 
 /** 一次 POST 不确定即保留意图；有 run ID 只继续读取，不重复提交。 */
-export async function modelText(app: EditingApplication, job: JobRecord, bridge: ComfyUIBridgeClient, key: string, workflowId: string, build: (schema: BridgeWorkflow) => Promise<BridgeRunRequest>, outputKind?: "caption_alignment", requestIdentity?: string) {
+export async function modelText(app: EditingApplication, job: JobRecord, bridge: ComfyUIBridgeClient, key: string, workflowId: string, build: (schema: BridgeWorkflow) => Promise<BridgeRunRequest>, outputKind?: "caption_alignment" | "motion_reference", requestIdentity?: string) {
   restoreModelCheckpoints(app, job);
   const checkpoints = () => (app.trackJob(job.id).result?.externalRuns ?? {}) as Record<string, ExternalCheckpoint>;
   const save = (checkpoint: ExternalCheckpoint) => app.recordJobCheckpoint(job.id, { externalRuns: { ...checkpoints(), [key]: checkpoint } });
@@ -78,12 +78,20 @@ export async function modelText(app: EditingApplication, job: JobRecord, bridge:
   // v2 不返回输出槽位；字幕对齐按实际 JSON 结构识别，不拼接全文与 JSON。
   const textOutputs = run.outputs.flatMap((output) => output.kind === "text" && typeof output.text === "string" ? [output.text]
     : output.kind === "json" && output.value !== undefined ? [JSON.stringify(output.value)] : []);
+  const isMotionReceipt = (text: string) => {
+    try { return JSON.parse(text)?.schema === "motion-reference-observation-v1"; } catch { return false; }
+  };
   const candidates = outputKind === "caption_alignment" ? textOutputs.filter((text) => {
     try { const value = JSON.parse(text); return value?.version === 4 && value?.precision === "provider_segment_timed" && Array.isArray(value.segments); }
     catch { return false; }
-  }) : textOutputs;
+  }) : outputKind === "motion_reference" && textOutputs.some(isMotionReceipt) ? textOutputs.filter(isMotionReceipt)
+    : !outputKind && textOutputs.some(text => !isMotionReceipt(text)) ? textOutputs.filter(text => !isMotionReceipt(text)) : textOutputs;
   if (candidates.length !== 1 || !candidates[0]) throw new DomainError("模型结果缺少唯一可识别的文本输出", "MEDIA_MODEL_TEXT_MISSING");
-  const text = candidates[0];
+  let text = candidates[0];
+  // 普通素材分析仍消费文字；参考分析读取完整回执，旧工作流仍如实保留未知。
+  if (!outputKind) {
+    try { const value = JSON.parse(text); if (value?.schema === "motion-reference-observation-v1" && typeof value.description === "string") text = value.description; } catch { /* 原有纯文本 */ }
+  }
   checkpoint = { ...checkpoint, status: "succeeded", text, outputKind, textOutputs };
   save(checkpoint);
   if (requestIdentity !== undefined && checkpoint.requestIdentity !== requestIdentity) throw new DomainError("旧版外部运行已完成并保存；请显式恢复或新建分析以使用当前观察版本", "MEDIA_MODEL_OUTPUT_RETRY_REQUIRED");

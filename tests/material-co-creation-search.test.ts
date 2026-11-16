@@ -15,7 +15,7 @@ test("真实搜索入口允许旧版本，固定在途需求并保留关闭后�
   const root = await mkdtemp(join(tmpdir(), "vfc-co-creation-"));
   const application = createApplication(root);
   const projectId = application.createProject({ name: "独立搜索验证" }).snapshot.project.id;
-  const created = application.manageAssetRequirement({ projectId, baseRevision: 1, action: "create", title: "首轮材料", purpose: "原始内容", visualBrief: "初始材料" });
+  const created = application.manageAssetRequirement({ projectId, baseRevision: 1, action: "create", title: "首轮材料", purpose: "原始内容", visualBrief: "第一场主体角色进入画面，需要完整动作与源范围" });
   const requestId = created.snapshot.assetRequests[0].id;
   const inputs: ProviderSearchInput[] = [];
   let release: (() => void) | undefined;
@@ -53,6 +53,8 @@ test("真实搜索入口允许旧版本，固定在途需求并保留关闭后�
     assert.equal(inputs.length, 1);
     assert.equal(found.state.revision.number, advanced.revision.number);
     assert.equal(found.intent.query, "主题");
+    assert.equal(inputs[0].request.visualBrief, "第一场主体角色进入画面，需要完整动作与源范围");
+    assert.equal(found.state.snapshot.assets.length, 0, "搜索候选不会自动取得或采用");
     assert.throws(() => application.acquireAssetCandidate({ projectId, baseRevision: 1, assetCandidateId: found.candidates[0].id }), /Revision/);
     assert.equal(parse(await call({ query: "省略版本" })).state.revision.number, advanced.revision.number);
 

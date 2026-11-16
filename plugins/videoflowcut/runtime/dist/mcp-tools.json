@@ -1440,7 +1440,7 @@
           "visual_brief": {
             "type": "string",
             "maxLength": 1600,
-            "description": "首轮写相关对象、场景、活动及期待发现；补材时写缺少的动作、取景、细节和持续范围。"
+            "description": "首轮写相关对象、场景、活动及期待发现；补材时写目标场面、视觉角色、画面作用，以及缺少的主体、动作、空间、细节和源范围。"
           },
           "media_kind": {
             "type": "string",
@@ -6970,7 +6970,7 @@
     {
       "name": "manage_visual_treatment",
       "title": "管理视觉处理计划",
-      "description": "保存共同编排后采用的视觉用途和实际展示材料。mode 表示承载方式，包含使用素材的受管画面；具体素材组织、参考过程和完整画面安排保存在当前简报。新增或替换材料时更新对应计划。计划保存不代表实际画面效果已成立。",
+      "description": "保存视觉计划；action=adopt 时将一次导演采用涉及的多个已有计划和素材在同一版本生效。候选设计登记不改变当前采用。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -6985,8 +6985,189 @@
             "type": "string",
             "enum": [
               "upsert",
-              "remove"
+              "remove",
+              "adopt"
             ]
+          },
+          "adoptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "visual_treatment_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "adopted_decision_ref": {
+                  "type": "object",
+                  "properties": {
+                    "production_run_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "decision_id": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "production_run_id",
+                    "decision_id"
+                  ],
+                  "additionalProperties": false
+                },
+                "adopted_material_asset_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "本计划明确要求进入作品的展示素材；省略时沿用原清单，空数组表示清空。"
+                },
+                "scene_id": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "narrative_beat_id": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "keep_presenter",
+                    "quiet",
+                    "light_overlay",
+                    "remotion",
+                    "b_roll",
+                    "cutaway",
+                    "evidence"
+                  ]
+                },
+                "intensity": {
+                  "type": "string",
+                  "enum": [
+                    "quiet",
+                    "low",
+                    "medium",
+                    "high"
+                  ]
+                },
+                "primary_attention": {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                "narrative_purpose": {
+                  "type": "string",
+                  "maxLength": 800
+                },
+                "quiet_reason": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 800
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "fallback_plan": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 800
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "presenter_uses": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "speech_asset_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "reference_image_asset_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "start_frame": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "end_frame": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0
+                      },
+                      "performance_note": {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      "timing_evidence": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "aligned",
+                              "audio_review"
+                            ]
+                          },
+                          "note": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "note"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "speech_asset_id",
+                      "reference_image_asset_id",
+                      "start_frame",
+                      "end_frame",
+                      "performance_note",
+                      "timing_evidence"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "visual_treatment_id",
+                "adopted_decision_ref"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1
           },
           "presenter_uses": {
             "type": "array",
@@ -7057,7 +7238,7 @@
               "type": "string",
               "minLength": 1
             },
-            "description": "本范围实际采用的展示素材；按有效简报更新，不填候选、声音或人物参考照。"
+            "description": "本计划明确要求进入作品的展示素材；按有效简报更新，不填候选、声音或人物参考照。"
           },
           "adopted_decision_ref": {
             "anyOf": [
@@ -7378,7 +7559,7 @@
     {
       "name": "prepare_motion_handoff",
       "title": "准备场面制作交付",
-      "description": "按当前项目快照准备固定导演稿、时间资料、真实素材和采用参考，返回清单哈希、选中场面、实际文件与逐场面缺口。ready 场面的每条参考映射必须提供场面内的非空成片半开帧范围 targetRange；pending 场面可暂缺。资料就绪不代表首版画面已完成或质量已通过。",
+      "description": "按当前项目快照准备固定导演稿、时间资料、真实素材和采用参考；从选中场面的 assetIds 自动收集项目素材，返回清单哈希、实际文件与逐场面缺口。ready 场面的每条参考映射必须提供场面内的非空成片半开帧范围 targetRange；pending 场面可暂缺。资料就绪不代表首版画面已完成或质量已通过。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7618,7 +7799,8 @@
                         "items": {
                           "type": "string",
                           "minLength": 1
-                        }
+                        },
+                        "description": "本对象使用的项目素材 ID；工具自动收集文件，无素材时填空数组。"
                       },
                       "sourceRanges": {
                         "type": "array",
@@ -7688,11 +7870,11 @@
                             "minLength": 1
                           },
                           "startMs": {
-                            "type": "integer",
+                            "type": "number",
                             "minimum": 0
                           },
                           "endMs": {
-                            "type": "integer",
+                            "type": "number",
                             "exclusiveMinimum": 0
                           },
                           "targetRole": {
@@ -7736,16 +7918,6 @@
                           "treatment"
                         ],
                         "additionalProperties": false
-                      }
-                    },
-                    "graphicLed": {
-                      "type": "boolean"
-                    },
-                    "graphicReasons": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "minLength": 1
                       }
                     }
                   },
@@ -8059,7 +8231,7 @@
     {
       "name": "wait_motion_authoring",
       "title": "等待阶段画面制作结果",
-      "description": "按 sequence 接回阶段制作与采用结果。阶段回执的 creativeBrief 是作者交回的制作说明，不代表实际审阅通过；rangeMappings 同时提供工作台使用的 projectRange 和 OD 反馈使用的 workRootRange，均为半开帧范围。返修只是阶段内的短段时，传入 range_request 的原 run_id、frozen_version 和工作台 project_range，读取 requestedRangeMapping 的精确作品根帧再交给 OD。主任务交导演、创意与视觉检查实际画面。拒收反馈保留实际接收及对账状态；超时表示暂无新进展。",
+      "description": "按 sequence 接回阶段制作与采用结果。needs_reconfirmation 回执保留固定作品和 pendingRanges，供协调者核对后沿原作品续修；rangeMappings 提供项目帧与作品根帧。creativeBrief 是作者说明，主任务须交导演、创意与视觉检查实际画面。超时表示暂无新进展。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -9311,7 +9483,7 @@
     {
       "name": "read_motion_mechanism",
       "title": "读取运动指令和分镜",
-      "description": "读取完整机制正文、来源和各项实际媒体状态，分镜可用时附带实际格式图片。视觉作者查看视频中的选定过程及必要前后连接。part=overview 读取原片总览，source_sha256 用于核对资料版本。",
+      "description": "读取完整机制正文、媒体和可复开的原片选段。source_sha256 取读卡结果顶层资料库指纹；range 是原片毫秒半开区间。工具不代表实际观看或听审。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -9329,6 +9501,24 @@
           "source_sha256": {
             "type": "string",
             "pattern": "^[a-f0-9]{64}$"
+          },
+          "range": {
+            "type": "object",
+            "properties": {
+              "startMs": {
+                "type": "number",
+                "minimum": 0
+              },
+              "endMs": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "startMs",
+              "endMs"
+            ],
+            "additionalProperties": false
           },
           "include_storyboard": {
             "type": "boolean"
@@ -9350,9 +9540,60 @@
       }
     },
     {
+      "name": "inspect_motion_reference_frames",
+      "title": "逐帧核查参考短窗",
+      "description": "按创意或动效卡编号、读卡顶层资料库指纹和原片毫秒范围，返回不跳采的源帧及各自时间戳。每次最多 2 秒、96 帧；只按需解码，未运行模型，也不包含声音。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^\\d{3}-[mc]\\d{2}$"
+          },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "range": {
+            "type": "object",
+            "properties": {
+              "startMs": {
+                "type": "number",
+                "minimum": 0
+              },
+              "endMs": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "startMs",
+              "endMs"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "source_sha256",
+          "range"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "analyze_motion_reference",
       "title": "分析创意或动效参考原片",
-      "description": "按创意卡或动效卡编号、原片毫秒范围和观察问题提交异步理解，单段最多15秒。默认保留同段原声，track_job 返回实际输入和采样边界。失败任务沿 retry_media_job 显式恢复。",
+      "description": "按创意卡或动效卡编号、读卡结果顶层 source_sha256、原片毫秒范围和观察问题提交异步理解，单段最多15秒。默认保留同段原声，track_job 返回实际输入和采样边界。失败任务沿 retry_media_job 显式恢复。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -9472,7 +9713,7 @@
     {
       "name": "read_creative_case",
       "title": "读取完整创意卡与媒体",
-      "description": "按真实 ID 读取完整 Markdown、原片、完整创意切片、实际分镜与源时间；传 source_sha256 拒绝过期引用。按真实格式返回分镜图片，媒体缺失逐项说明。本工具不播放或听审，不创建 Job、素材或 Revision。",
+      "description": "按真实 ID 读取正文、媒体和可复开的原片选段。source_sha256 取读卡结果顶层资料库指纹；range 是原片毫秒半开区间。工具不代表实际观看或听审。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -9483,6 +9724,24 @@
           "source_sha256": {
             "type": "string",
             "pattern": "^[a-f0-9]{64}$"
+          },
+          "range": {
+            "type": "object",
+            "properties": {
+              "startMs": {
+                "type": "number",
+                "minimum": 0
+              },
+              "endMs": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "startMs",
+              "endMs"
+            ],
+            "additionalProperties": false
           },
           "include_storyboard": {
             "type": "boolean"
@@ -11839,7 +12098,7 @@
     {
       "name": "record_creative_decision",
       "title": "记录创作判断",
-      "description": "记录作者结果、真实分派和输入版本；创意阶段另记录上游决定，文案事实依据与待核项可随作者及 Revision 记录。完整编排通过实际文件交付；记录是来源声明，不代替宿主调用或真实观察。",
+      "description": "持久化作者判断、真实分派、输入版本和上游决定。研究引用的 source_sha256 使用读卡结果顶层资料库指纹，不能填原片文件哈希；复看时按卡号、指纹和原片范围重新读卡。记录不通知作者，主任务须实际转交。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -11982,14 +12241,15 @@
                 },
                 "source_sha256": {
                   "type": "string",
-                  "pattern": "^[a-f0-9]{64}$"
+                  "pattern": "^[a-f0-9]{64}$",
+                  "description": "读卡结果顶层 source_sha256，表示资料库版本，不是原片文件哈希"
                 },
                 "start_ms": {
-                  "type": "integer",
+                  "type": "number",
                   "minimum": 0
                 },
                 "end_ms": {
-                  "type": "integer",
+                  "type": "number",
                   "exclusiveMinimum": 0
                 },
                 "observed_relation": {

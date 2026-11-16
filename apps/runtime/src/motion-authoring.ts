@@ -4,7 +4,7 @@ import { join, toNamespacedPath } from "node:path";
 import { createReadStream, openAsBlob } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import type { EditingApplication } from "@videocut/application";
+import { RevisionConflictError, type EditingApplication } from "@videocut/application";
 import type { EffectCue, JobRecord, MotionAuthoringTreatmentInput, MotionContinuationResult, MotionOnSuccess, ProjectSnapshot } from "@videocut/contracts";
 import { effectBeatRanges, DomainError } from "@videocut/domain";
 import { readRuntimeConfig } from "@videocut/project-overview";
@@ -26,8 +26,10 @@ type TargetRange = Range & { sourceStartFrame: number; sourceEndFrame: number };
 type OwnedCue = { cueId: string; hash: string };
 type PendingOperation = { key: string; target: MotionOnSuccess; endFrame: number; childId?: string };
 type Stage = { runId: string; eventId: number; frozenVersion: string; registrationKey: string; registrationRevision?: number; registrationJobId?: string;
-  workId?: string; definitionHash?: string; durationInFrames?: number; ranges?: Range[]; rangeIndex: number; cursor?: number; operation?: PendingOperation; adopted?: Range[] };
+  workId?: string; definitionHash?: string; durationInFrames?: number; ranges?: Range[]; rangeIndex: number; cursor?: number; operation?: PendingOperation;
+  adopted?: Range[]; pending?: Array<Range & { reason: string }> };
 type AuthoringState = { sequence: number; requestId: string; startRequested?: boolean; runId?: string; activeRunId?: string; cursor: number; seenVersions: string[]; owned: OwnedCue[];
+  startRequest?: Record<string, unknown>;
   continuation?: { runId: string; conversationId: string; taskExecutionId: string };
   stage?: Stage; receipts: Array<Record<string, unknown>>; status: string; conflict?: unknown };
 type Endpoint = { url: string; headers?: Record<string, string> };
@@ -290,16 +292,18 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
   state ??= { sequence: 0, requestId: job.id.replace(/^job_/u, ""), cursor: 0, seenVersions: [], receipts: [], status: "starting",
     owned: target.action === "create_cue" ? [] : [{ cueId: target.cueId, hash: initialHash }] };
   const save = () => { state!.sequence++; app.recordJobCheckpoint(job.id, { authoring: state }); };
-  const targetConflict = (message: string): never => {
-    state!.status = "incomplete";
-    state!.conflict = { code: "MOTION_AUTHORING_TARGET_CONFLICT", message };
+  const targetConflict = (message: string, code = "MOTION_AUTHORING_TARGET_CONFLICT"): never => {
+    state!.status = code === "MOTION_AUTHORING_ADOPTION_CHANGED" ? "superseded" : "incomplete";
+    state!.conflict = { code, message };
     save();
-    throw new DomainError(message, "MOTION_AUTHORING_TARGET_CONFLICT");
+    throw new DomainError(message, code);
   };
   const checkTarget = (snapshot: ProjectSnapshot) => {
     const hash = target.action === "create_cue" ? motionTargetDependencyHash(snapshot, target, input.visualTreatmentIds)
       : existingHash(snapshot, target.cueId, input.visualTreatmentIds);
-    if (!motionAuthoringInputsCurrent(snapshot, authoringInputs) || hash !== initialHash) targetConflict("制作目标或当前采用在启动前已变化");
+    try { app.assertMotionAuthoringInputsCurrent(snapshot, String(job.payload.targetSceneId), authoringInputs); }
+    catch (error) { targetConflict(error instanceof Error ? error.message : String(error), error instanceof DomainError ? error.code : undefined); }
+    if (hash !== initialHash) targetConflict("制作目标或当前采用在启动前已变化");
   };
   let endpoint = endpointOverride ?? await resolveEndpoint();
   const lockKey = typeof job.payload.logicalWorkId === "string" ? `${job.projectId}:work:${job.payload.logicalWorkId}`
@@ -317,6 +321,11 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
               && (item as { clientRequestId?: unknown }).clientRequestId === state!.requestId && typeof (item as { id?: unknown }).id === "string"));
             if (matches.length > 1) throw new DomainError("原请求对应多个作者 Run，不能自动选择", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
             if (matches.length === 1) { state.runId = matches[0]!.id; break; }
+            if (!state.startRequest) throw new DomainError("启动请求已登记但内容不可读取，请先核对原制作任务", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
+            const started = await jsonRequest(endpoint, "/api/runs", signal, state.startRequest);
+            if (typeof started.runId !== "string" || !started.runId) throw new DomainError("作者请求未返回 Run 身份", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
+            state.runId = started.runId;
+            break;
           }
           if (sourceRequest.continue_from_run_id && !state.continuation) {
             const run = await jsonRequest(endpoint, `/api/runs/${encodeURIComponent(sourceRequest.continue_from_run_id)}`, signal);
@@ -349,7 +358,6 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
           ].join("\n")];
           if (authoringInputs.length) {
             const current = app.readProject(job.projectId);
-            if (!motionAuthoringInputsCurrent(current.snapshot, authoringInputs)) throw new DomainError("当前采用稿已变化，请重新准备制作", "MOTION_AUTHORING_ADOPTION_CHANGED");
             // 排队期间已失效的目标不应开始传输资料；传输结束后还要再次核对。
             checkTarget(current.snapshot);
             const checked = new Set<string>();
@@ -378,9 +386,13 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
             ...(sourceRequest.plugin ? { pluginId: sourceRequest.plugin } : {}), ...(sourceRequest.inputs ? { pluginInputs: sourceRequest.inputs } : {}),
             ...(sourceRequest.agent ? { agentId: sourceRequest.agent } : {}), ...(sourceRequest.model ? { model: sourceRequest.model } : {}),
             ...(sourceRequest.serviceTier ? { serviceTier: sourceRequest.serviceTier } : {}) };
-          state.startRequested = true; state.status = "starting"; save();
-          const started = await jsonRequest(endpoint, "/api/runs", signal, { ...body,
-            ...(state.continuation ? { conversationId: state.continuation.conversationId, taskExecutionId: state.continuation.taskExecutionId } : {}) });
+          const startRequest = { ...body,
+            ...(state.continuation ? { conversationId: state.continuation.conversationId, taskExecutionId: state.continuation.taskExecutionId } : {}) };
+          const startedState: AuthoringState = { ...state, startRequested: true, startRequest, status: "starting", sequence: state.sequence + 1 };
+          try { app.beginMotionAuthoringStart(job.id, { authoring: startedState }); }
+          catch (error) { targetConflict(error instanceof Error ? error.message : String(error), error instanceof DomainError ? error.code : undefined); }
+          state = startedState;
+          const started = await jsonRequest(endpoint, "/api/runs", signal, startRequest);
           if (typeof started.runId !== "string" || !started.runId) throw new DomainError("作者请求未返回 Run 身份", "EXTERNAL_RUN_OUTCOME_UNKNOWN");
           state.runId = started.runId;
         } catch (error) {
@@ -438,9 +450,22 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
       stage.workId = registration.result.workId;
       stage.definitionHash = registration.result.definitionHash;
       const work = app.readSourceMotionWork(job.projectId, stage.workId, undefined, stage.definitionHash).work;
-      if (projectFps !== app.readProject(job.projectId).snapshot.timeline.fps) targetConflict("项目帧率已变化");
       stage.ranges ??= readyProjectRanges(work.readyRanges, targetRange, projectFps, work.fps);
       stage.adopted ??= [];
+      stage.pending ??= [];
+      const deferRemaining = (position: number, reason: string) => {
+        const remaining = stage.ranges!.slice(stage.rangeIndex).map((range, index) => ({
+          startFrame: index === 0 ? position : range.startFrame, endFrame: range.endFrame, reason
+        })).filter(range => range.startFrame < range.endFrame);
+        stage.pending!.push(...remaining);
+        stage.rangeIndex = stage.ranges!.length;
+        stage.cursor = undefined;
+        stage.operation = undefined;
+        save();
+      };
+      if (projectFps !== app.readProject(job.projectId).snapshot.timeline.fps && stage.rangeIndex < stage.ranges.length) {
+        deferRemaining(stage.cursor ?? stage.ranges[stage.rangeIndex]!.startFrame, "项目帧率已变化");
+      }
       state!.status = "adopting"; save();
       while (stage.rangeIndex < stage.ranges.length) {
         signal.throwIfAborted();
@@ -449,19 +474,22 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
         if (position >= range.endFrame) { stage.rangeIndex++; stage.cursor = undefined; save(); continue; }
         if (!stage.operation) {
           const current = app.readProject(job.projectId), snapshot = current.snapshot;
-          if (!motionAuthoringInputsCurrent(snapshot, authoringInputs)) targetConflict("当前采用稿已变化");
+          try { app.assertMotionAuthoringInputsCurrent(snapshot, String(job.payload.targetSceneId), authoringInputs); }
+          catch (error) { deferRemaining(position, error instanceof Error ? error.message : String(error)); break; }
           if (target.action === "create_cue") {
             const own = new Set(state!.owned.map(item => item.cueId));
             const base = { ...snapshot, effectCues: snapshot.effectCues.filter(cue => !own.has(cue.id)) };
-            if (motionTargetDependencyHash(base, target, input.visualTreatmentIds) !== initialHash) targetConflict("目标场面或相关内容已改变");
+            if (motionTargetDependencyHash(base, target, input.visualTreatmentIds) !== initialHash) {
+              deferRemaining(position, "目标场面或相关内容已改变"); break;
+            }
           }
           const currentCues = state!.owned.map(entry => snapshot.effectCues.find(cue => cue.id === entry.cueId)).filter((cue): cue is EffectCue => Boolean(cue));
-          if (currentCues.length !== state!.owned.length) targetConflict("已采用画面已改变");
+          if (currentCues.length !== state!.owned.length) { deferRemaining(position, "已采用画面已改变"); break; }
           const cue = currentCues.find(item => item.startFrame <= position && item.endFrame > position);
           let action: MotionOnSuccess, endFrame: number;
           if (cue) {
             const saved = state!.owned.find(item => item.cueId === cue.id)!;
-            if (existingHash(snapshot, cue.id, input.visualTreatmentIds) !== saved.hash) targetConflict("目标画面或关联声音已改变");
+            if (existingHash(snapshot, cue.id, input.visualTreatmentIds) !== saved.hash) { deferRemaining(position, "目标画面或关联声音已改变"); break; }
             endFrame = Math.min(cue.endFrame, range.endFrame);
             action = position === cue.startFrame && endFrame === cue.endFrame
               ? { action: "replace_cue", cueId: cue.id, audioPolicy: "rebind_unchanged_events" }
@@ -475,17 +503,37 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
             action = { ...target, startFrame: position, endFrame, sourceStartFrame, sourceEndFrame: sourceStartFrame + endFrame - position,
               ...(coveredNarrativeBeatIds ? { coveredNarrativeBeatIds } : {}),
               ...(target.visualComposition ? { visualComposition: { role: "primary", replacesActorItemIds: replacesActorItemIds ?? [] } } : {}) };
-          } else return targetConflict("原目标范围不完整");
+          } else { deferRemaining(position, "原目标范围不完整"); break; }
           stage.operation = { key: `${job.id}:${stageRunId}:${stage.eventId}:${stage.rangeIndex}:${position}`, target: action, endFrame }; save();
         }
         const operation = stage.operation;
         let child = operation.childId ? app.trackJob(operation.childId) : app.listJobs(job.projectId).find(item => item.idempotencyKey === `motion-adoption:${operation.key}`);
-        if (!child) child = app.submitMotionAdoption({ projectId: job.projectId, baseRevision: app.readProject(job.projectId).revision.number,
-          workId: stage.workId, definitionHash: stage.definitionHash, target: operation.target, idempotencyKey: operation.key, authoringInputs });
+        if (!child) {
+          try {
+            child = app.submitMotionAdoption({ projectId: job.projectId, baseRevision: app.readProject(job.projectId).revision.number,
+              workId: stage.workId, definitionHash: stage.definitionHash, target: operation.target, idempotencyKey: operation.key, authoringInputs });
+          } catch (error) {
+            if (error instanceof RevisionConflictError) {
+              stage.operation = undefined;
+              save();
+              continue;
+            }
+            if (error instanceof DomainError && error.code === "MOTION_AUTHORING_ADOPTION_CHANGED") {
+              deferRemaining(position, error.message); break;
+            }
+            if (error instanceof DomainError && ["SCENE_NOT_FOUND", "MOTION_ADOPTION_TARGET_INVALID", "MOTION_RANGE_INVALID"].includes(error.code)) {
+              deferRemaining(position, error.message); break;
+            }
+            throw error;
+          }
+        }
         if (!operation.childId) { operation.childId = child.id; save(); }
         child = await waitChild(app, child.id, signal);
         const result = child.result?.continuation as MotionContinuationResult | undefined;
-        if (!result || result.status !== "applied") { state!.status = "incomplete"; state!.conflict = result ?? "未返回采用结果"; save(); throw new DomainError("作品已登记但未采用", "MOTION_AUTHORING_TARGET_CONFLICT"); }
+        if (!result) throw new DomainError("作品采用任务未返回结果", "MOTION_AUTHORING_TARGET_CONFLICT");
+        if (result.status === "needs_reconfirmation") {
+          deferRemaining(position, result.conflicts.map(conflict => conflict.reason).join("；")); break;
+        }
         const current = app.readProject(job.projectId).snapshot;
         if (operation.target.action !== "create_cue") {
           const oldCueId = operation.target.cueId;
@@ -515,10 +563,11 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
       }
       if (firstCue) editor.searchParams.set("effectCueId", firstCue.id);
       state!.receipts.push({ runId: stageRunId, eventId: stage.eventId, frozenVersion: stage.frozenVersion, workId: work.id, definitionHash: work.definitionHash, revision: latest.revision.number,
+        ...(stage.pending.length ? { status: "needs_reconfirmation", pendingRanges: stage.pending } : {}),
         cueId: firstCue?.id, cueIds: stageCues.map(cue => cue.id), ranges: stage.adopted,
         ...(work.creativeBrief ? { creativeBrief: work.creativeBrief } : {}),
-        rangeMappings: stage.adopted.map(projectRange => ({ projectRange,
-          workRootRange: projectRangeToWorkRoot(projectRange, targetRange, projectFps, work.fps) })), editorUrl: editor.toString(),
+        rangeMappings: [...stage.adopted, ...stage.pending].map(({ startFrame, endFrame }) => ({ projectRange: { startFrame, endFrame },
+          workRootRange: projectRangeToWorkRoot({ startFrame, endFrame }, targetRange, projectFps, work.fps) })), ...(firstRange ? { editorUrl: editor.toString() } : {}),
         ...(authoringInputs.length ? { authoringInputs } : {}), ...(inspection ? { inspectionJobId: inspection.id } : {}) });
       state!.seenVersions.push(stage.frozenVersion); state!.cursor = Math.max(state!.cursor, stage.eventId); state!.stage = undefined; state!.status = "running"; save();
     });

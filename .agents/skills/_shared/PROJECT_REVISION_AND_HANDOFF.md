@@ -102,7 +102,9 @@ OD 阶段交付后，原视觉作者继续检查同版实际作品。实现遗�
 
 视觉负责人汇总创意与素材发现，交同一份导演稿、时间计划、可直接发送的完整请求和资源用途。主任务按当前正式权限创建或复用目标 OD 项目、送交实际文件、登记导演采用并接回结果。导演与视觉需要调整时续接原作者。
 
-主任务用 `prepare_motion_handoff` 固定本次共同简报、时间、资料及选中场面；将实际文件交付制作端，导演判断后以 `record_creative_decision.delivery_ref` 记录清单路径、哈希和场面。用 `manage_visual_treatment.adopted_decision_ref` 关联当前采用，再以 `start_motion_authoring.visual_treatment_ids`、完整请求、真实目标和版本提交。连接器核验制作端实际文件并接回同版阶段作品。资料或采用变化时更新受影响范围并沿原负责人续修。
+主任务用 `prepare_motion_handoff` 固定本次共同简报、时间、资料及选中场面，以 `record_creative_decision` 的 `visual_design` 保存候选，导演判断后以 `adoption` 引用该设计及同一 `delivery_ref`。候选和采用决定的记录不会切换项目制作依据。主任务以 `manage_visual_treatment` 的 `action=adopt` 和 `adoptions` 一次写入相关现有计划、导演采用及本次素材和计划变化；项目版本提交成功时生效。每项填写 `visual_treatment_id`、`adopted_decision_ref`，有素材变化时填写本计划明确要求进入作品的 `adopted_material_asset_ids`。程序核对这些素材已在计划覆盖的场面交付；多场计划按覆盖范围核对，作品接回后继续检查实际连接与画面。新建计划先沿现有 `upsert` 建立，再批量采用。以 `start_motion_authoring.visual_treatment_ids`、完整请求、真实目标和版本提交制作。
+
+原稿编辑、移动或删除不改变固定交付。导演和视觉作者判断修改范围与前后接续；采用生效前在途制作继续使用原版本。采用生效后，尚未启动的旧委托读取诊断并按新采用提交；已经启动的委托继续接回阶段成果。回执的 `needs_reconfirmation` 和 `pendingRanges` 表示作品已固定、相关范围等待协调，`workId` 与 `definitionHash` 可用于读取作品或按需生成范围校样。主任务等待原任务结束，结合新采用和原作者反馈通过 `continue_from_run_id` 续修同一作品，再在工作台检查实际结果。
 
 导演持续判断实际作品的材料组织与整片发展。视觉负责人与创意负责人对照参考检查，并组织同一制作作者返修。主任务接回修订版本，交原作者复看对应范围。
 

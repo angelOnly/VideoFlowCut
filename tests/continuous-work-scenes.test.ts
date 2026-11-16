@@ -24,8 +24,7 @@ test("无预排的完整新制跨场面沿用首个冻结作品", async () => {
     await writeFile(snapshotPath, JSON.stringify(app.readProject(projectId)));
     const sceneInput = (sceneId: string, startFrame: number, endFrame: number) => ({ sceneId, status: "ready",
       visualRoles: [{ role: "主体", referenceFunction: "连续画面", assetIds: [], usage: "原创示意" }], process: "主体建立并接续下一状态",
-      preserve: ["主体连续"], adapt: ["文字细节"], visualPlan: { primaryRoles: ["主体"], graphicLed: true,
-        graphicReasons: ["需要示意不可见的过程"] } });
+      preserve: ["主体连续"], adapt: ["文字细节"], visualPlan: { primaryRoles: ["主体"] } });
     const manifest = await prepareReferencePackage({ projectId, revision: rev(), projectSnapshot: snapshotPath, brief, timingPlan: timing,
       freezeInputs: true, selectedSceneIds: [first.id, second.id], scenes: [sceneInput(first.id, 0, 24), sceneInput(second.id, 24, 48)] }, output);
     assert.deepEqual(manifest.scenes!.map(scene => scene.status), ["ready", "ready"]);
@@ -33,13 +32,13 @@ test("无预排的完整新制跨场面沿用首个冻结作品", async () => {
     const run = await app.startProductionRun({ projectId, baseRevision: rev(), intent: "full_creation", completionScope: { kind: "project" },
       operationId: "start", loadedSkills: ["production-coordinator"] });
     await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: run.auditVersion, operationId: "assign", action: "add_assignment",
-      assignment: { assignmentId: "authors", agentId: "/fixture/authors", responsibilities: ["director", "narration", "creative_research", "visual_design", "motion_research"],
-        skillIds: ["production-director", "narration-writing", "creative-sequence-design", "visual-treatment-planning", "motion-case-library"], scope: { kind: "project" }, inputRevision: rev() } });
+      assignment: { assignmentId: "authors", agentId: "/fixture/authors", responsibilities: ["director", "narration", "asset_sourcing", "creative_research", "visual_design", "motion_research"],
+        skillIds: ["production-director", "narration-writing", "visual-asset-sourcing", "creative-sequence-design", "visual-treatment-planning", "creative-reference-to-sequence", "motion-case-library"], scope: { kind: "project" }, inputRevision: rev() } });
     const record = async (phase: "creative_research" | "motion_research" | "visual_design" | "adoption", inputDecisionIds: string[] = []) =>
       (await app.recordCreativeDecision({ projectId, runId: run.id, operationId: randomUUID(), category: "visual", phase, assignmentId: "authors", inputRevision: rev(),
         objectIds: [first.id, second.id], decision: phase, rationale: "按两个场面的真实范围判断", inputDecisionIds,
         ...(phase.endsWith("research") ? { researchOutcome: "not_applicable" as const, evidence: ["已研究候选，当前画面无适用参考"] } : {}),
-        ...(phase === "adoption" ? { deliveryRef: { manifestPath, manifestSha256, sceneIds: [first.id, second.id] } } : {}) })).creativeDecisions.at(-1)!;
+        ...(["visual_design", "adoption"].includes(phase) ? { deliveryRef: { manifestPath, manifestSha256, sceneIds: [first.id, second.id] } } : {}) })).creativeDecisions.at(-1)!;
     const creative = await record("creative_research"), motion = await record("motion_research");
     const design = await record("visual_design", [creative.id, motion.id]), adoption = await record("adoption", [design.id]);
     const treatment = (sceneId: string) => app.manageVisualTreatment({ projectId, baseRevision: rev(), action: "upsert", sceneId, mode: "remotion",

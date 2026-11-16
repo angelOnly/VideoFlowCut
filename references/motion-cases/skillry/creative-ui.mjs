@@ -1,4 +1,5 @@
 import {splitDocument,resolveLibraryLink} from './document-format.mjs';
+import {appendReferencePlayer} from './reference-player.mjs';
 
 const $=id=>document.getElementById(id);
 const element=(tag,text='')=>{const node=document.createElement(tag);node.textContent=text;return node;};
@@ -49,19 +50,8 @@ function renderDocument(parent,text,documentPath,mainStoryboard){
 }
 
 function addPlayer(parent,card){
-  const section=element('section');section.className='mechanism-clip';
-  const video=document.createElement('video');video.src=card.clip;video.poster=card.storyboard;video.controls=true;video.playsInline=true;video.preload='metadata';video.muted=true;
-  video.setAttribute('aria-label',card.id+' 的创意片段');
-  video.addEventListener('play',()=>{for(const other of document.querySelectorAll('video'))if(other!==video)other.pause();});
-  const controls=element('div');controls.className='clip-controls';
-  const speedLabel=element('label','播放速度 '),speed=element('select');speed.setAttribute('aria-label',card.id+' 播放速度');
-  for(const value of [0.25,0.5,1])speed.append(new Option(value===1?'原速':value+' 倍速',String(value)));
-  speed.value='1';speed.addEventListener('change',()=>{video.playbackRate=Number(speed.value);});speedLabel.append(speed);
-  const loopLabel=element('label'),loop=document.createElement('input');loop.type='checkbox';loop.addEventListener('change',()=>{video.loop=loop.checked;});loopLabel.append(loop,' 循环播放');
-  const open=element('a','打开片段');open.href=card.clip;open.target='_blank';open.rel='noopener';
-  controls.append(speedLabel,loopLabel,open);section.append(video,controls);
-  video.addEventListener('error',()=>{if(section.querySelector('.clip-error'))return;const note=element('p','片段无法播放，请查看分镜或打开完整原片。');note.className='clip-error';section.append(note);});
-  parent.append(section);
+  return appendReferencePlayer(parent,{id:card.id,kind:'creative',clip:card.clip===card.video?null:card.clip,video:card.video,
+    offset:card.clip===card.video?0:card.start_ms,startMs:card.start_ms,endMs:card.end_ms,poster:card.storyboard});
 }
 
 async function readJson(path){const response=await fetch(path);if(!response.ok)throw new Error(path+' 读取失败');return response.json();}
@@ -78,7 +68,8 @@ try{
   if(index.processed_cases.includes(Number(params.get('case'))))$('case').value=params.get('case');
   $('selected-only').checked=params.get('only')==='1';
   function syncUrl(){
-    const url=new URL(location.href);url.search='';
+    const url=new URL(location.href);
+    for(const key of ['q','case','selected','only'])url.searchParams.delete(key);
     if($('query').value.trim())url.searchParams.set('q',$('query').value.trim());
     if($('case').value)url.searchParams.set('case',$('case').value);
     if(selected.size)url.searchParams.set('selected',[...selected].join(','));
@@ -122,7 +113,7 @@ try{
     const terms=$('query').value.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
     const filtered=cards.filter(card=>{
       const haystack=[card.id,card.title,card.summary,card.use_when,names.get(card.case_number)||''].join(' ').toLocaleLowerCase();
-      return terms.every(term=>haystack.includes(term))&&(!$('case').value||String(card.case_number)===$('case').value)&&(!$('selected-only').checked||selected.has(card.id));
+      return (!params.get('card')||card.id===params.get('card'))&&terms.every(term=>haystack.includes(term))&&(!$('case').value||String(card.case_number)===$('case').value)&&(!$('selected-only').checked||selected.has(card.id));
     });
     const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize));page=Math.max(0,Math.min(page,totalPages-1));
     $('count').textContent=`找到 ${filtered.length} / ${cards.length} 张创意卡`;$('page').textContent=`第 ${page+1} / ${totalPages} 页`;
@@ -131,8 +122,9 @@ try{
     if(!filtered.length){const empty=element('div','没有匹配的创意卡。可以更换关键词、来源视频或关闭“只看已保留的候选”。');empty.className='empty';$('results').append(empty);}
     syncUrl();
   }
-  for(const id of ['query','case','selected-only'])$(id).addEventListener(id==='query'?'input':'change',()=>{page=0;render();});
-  $('reset').addEventListener('click',()=>{$('query').value='';$('case').value='';$('selected-only').checked=false;page=0;render();});
+  const clearDeepLink=()=>{for(const key of ['card','startMs','endMs','source_sha256'])params.delete(key);const url=new URL(location.href);for(const key of ['card','startMs','endMs','source_sha256'])url.searchParams.delete(key);history.replaceState(null,'',url);};
+  for(const id of ['query','case','selected-only'])$(id).addEventListener(id==='query'?'input':'change',()=>{clearDeepLink();page=0;render();});
+  $('reset').addEventListener('click',()=>{clearDeepLink();$('query').value='';$('case').value='';$('selected-only').checked=false;page=0;render();});
   $('previous').addEventListener('click',()=>{page--;render();});$('next').addEventListener('click',()=>{page++;render();});
   $('copy-link').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(location.href);$('notice').textContent='当前浏览链接已复制，包含候选与筛选条件。';}catch{$('notice').textContent='复制失败，请从浏览器地址栏复制当前链接。';}});
   render();

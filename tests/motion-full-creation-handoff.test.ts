@@ -14,7 +14,8 @@ import { registerMotionTools } from "../apps/server/src/motion-tools.js";
 import { prepareReferencePackage } from "../packages/edit-application/src/opendesign-reference-package.mjs";
 import { motionBundleHash } from "../packages/edit-application/src/motion-input.js";
 import { runMotionAuthoringJob } from "../apps/runtime/src/motion-authoring.js";
-import { loadCreativeIndex } from "../references/motion-cases/skillry/tools/creative-library.mjs";
+import { loadCreativeIndex, readCreativeCase } from "../references/motion-cases/skillry/tools/creative-library.mjs";
+import { readLibraryMechanism } from "../references/motion-cases/skillry/tools/library-store.mjs";
 import { motionFixture } from "./fixtures/managed-motion.js";
 import { motionHtml } from "./fixtures/hyperframes.js";
 
@@ -41,19 +42,26 @@ test("完整新制从零作品准备参考、自动送件并接回同一冻结�
     const run = await app.startProductionRun({ projectId, baseRevision: rev(), intent: "full_creation", completionScope: { kind: "project" },
       operationId: "full-run", loadedSkills: ["production-coordinator"] });
     await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: run.auditVersion, operationId: "assign-authors", action: "add_assignment",
-      assignment: { assignmentId: "authors", agentId: "/fixture/authors", responsibilities: ["director", "narration", "creative_research", "visual_design", "motion_research"],
-        skillIds: ["production-director", "narration-writing", "creative-sequence-design", "visual-treatment-planning", "motion-case-library"],
+      assignment: { assignmentId: "authors", agentId: "/fixture/authors", responsibilities: ["director", "narration", "asset_sourcing", "creative_research", "visual_design", "motion_research"],
+        skillIds: ["production-director", "narration-writing", "visual-asset-sourcing", "creative-sequence-design", "visual-treatment-planning", "creative-reference-to-sequence", "motion-case-library"],
         scope: { kind: "project" }, inputRevision: rev() } });
     const fingerprint = loadCreativeIndex(resolve("references/motion-cases/skillry")).source_sha256;
     const record = async (phase: "creative_research" | "motion_research" | "visual_design" | "adoption", extra: Record<string, unknown>) =>
       (await app.recordCreativeDecision({ projectId, runId: run.id, operationId: randomUUID(), category: "visual", phase, assignmentId: "authors",
         inputRevision: rev(), objectIds: [scene.id], decision: "隔离场面", rationale: "依据测试参考和真实素材", ...extra })).creativeDecisions.at(-1)!;
+    const actualVideo = (readCreativeCase(resolve("references/motion-cases/skillry"), { id: "002-c01", include_storyboard: false }).result.resources as { video: { absolute_path: string } }).video.absolute_path;
+    const fileHash = createHash("sha256").update(await readFile(actualVideo)).digest("hex");
+    await assert.rejects(record("creative_research", { researchOutcome: "researched", researchReferences: [{ kind: "creative", id: "002-c01", sourceSha256: fileHash }] }),
+      /002-c01.*source_sha256.*顶层/u);
+    const originalMotionHash = (readLibraryMechanism(resolve("references/motion-cases/skillry"), { id: "001-m03", include_storyboard: false }).result.card as { clip: { source_sha256: string } }).clip.source_sha256;
+    await assert.rejects(record("motion_research", { researchOutcome: "researched", researchReferences: [{ kind: "motion", id: "001-m03", sourceSha256: originalMotionHash }] }),
+      /001-m03.*source_sha256.*顶层/u);
     const research = await record("creative_research", { researchOutcome: "pending", evidence: ["其余候选仍待确认"], researchReferences: [{ kind: "creative",
       id: "002-c01", sourceSha256: fingerprint, startMs: 100, endMs: 900, observedRelation: "主体切入小窗" }] });
     const motion = await record("motion_research", { researchOutcome: "not_applicable", evidence: ["当前场面没有采用机制"] });
-    const design = await record("visual_design", { inputDecisionIds: [research.id, motion.id] });
     const brief = join(root, "brief.md"), timing = join(root, "timing.md"), snapshotPath = join(root, "snapshot.json"), output = join(root, "handoff");
-    await writeFile(brief, "主体进入小窗，文字随主体接管画面。");
+    const latestBrief = "最新版导演稿：主体进入小窗，文字随主体接管画面。";
+    await writeFile(brief, latestBrief);
     await writeFile(timing, "成片 100–125 帧，作品 0–25 帧。");
     await writeFile(snapshotPath, JSON.stringify(app.readProject(projectId)));
     const manifest = await prepareReferencePackage({ projectId, revision: rev(), projectSnapshot: snapshotPath, brief, timingPlan: timing, freezeInputs: true,
@@ -67,12 +75,28 @@ test("完整新制从零作品准备参考、自动送件并接回同一冻结�
         process: "主体建立、进入小窗并接续", preserve: ["主体接管"], adapt: ["文字排版"] }] }, output);
     assert.equal(manifest.scenes?.[0].status, "ready", JSON.stringify(manifest.scenes?.[0]));
     const manifestPath = join(output, "delivery-manifest.json"), manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");
+    const design = await record("visual_design", { inputDecisionIds: [research.id, motion.id], deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } });
     const adoption = await record("adoption", { inputDecisionIds: [design.id], deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } });
     const treatment = app.manageVisualTreatment({ projectId, baseRevision: rev(), action: "upsert", sceneId: scene.id, mode: "b_roll", intensity: "medium",
       primaryAttention: "主体", narrativePurpose: "说明", adoptedMaterialAssetIds: [asset.id], adoptedDecisionRef: { productionRunId: run.id, decisionId: adoption.id } }).snapshot.visualTreatments[0]!;
     const request = { projectId, baseRevision: rev(), productionRunId: run.id, visualTreatmentIds: [treatment.id], idempotencyKey: "first",
       target: { action: "create_cue" as const, sceneId: scene.id, layer: "fullscreen" as const, startFrame: 100, endFrame: 125,
         sourceStartFrame: 0, sourceEndFrame: 25, audioPolicy: "rebind_unchanged_events" as const }, openDesignRequest: { project: "isolated-od", prompt: "按导演稿制作首版" } };
+    await writeFile(brief, "视觉作者更新的导演稿");
+    const adoptedManifest = await readFile(manifestPath);
+    await writeFile(manifestPath, Buffer.concat([adoptedManifest, Buffer.from(" ")]));
+    await assert.rejects(app.startMotionAuthoring(request), (error: any) => error.issues?.some((issue: { code: string }) => issue.code === "DELIVERY_INVALID"),
+      "清单变化后不能冒用原采用哈希");
+    await writeFile(manifestPath, adoptedManifest);
+    const updateMaterials = (assetIds: string[]) => app.manageVisualTreatment({ projectId, baseRevision: rev(), action: "upsert", visualTreatmentId: treatment.id,
+      sceneId: scene.id, mode: "b_roll", intensity: "medium", primaryAttention: "主体", narrativePurpose: "说明", adoptedMaterialAssetIds: assetIds,
+      adoptedDecisionRef: { productionRunId: run.id, decisionId: adoption.id } });
+    updateMaterials([]);
+    const extraDelivery = await app.startMotionAuthoring({ ...request, baseRevision: rev(), idempotencyKey: "extra-delivery" });
+    assert.ok(extraDelivery.id, "交付中包含其他资料时仍可开始制作");
+    app.updateJob(extraDelivery.id, { status: "failed", result: {} });
+    updateMaterials([asset.id]);
+    request.baseRevision = rev();
     const job = await app.startMotionAuthoring(request);
     assert.equal((await app.startMotionAuthoring(request)).id, job.id);
 
@@ -184,6 +208,14 @@ test("完整新制从零作品准备参考、自动送件并接回同一冻结�
     assert.ok([...files.keys()].some(path => path.endsWith("timing-plan.md")));
     assert.ok([...files.keys()].some(path => path.endsWith("video.mp4")));
     assert.ok([...files.keys()].some(path => path.endsWith("真实-主体-_测试_.png")));
+    const uploadedBrief = [...files].find(([path]) => path.endsWith("visual-director-brief.md"))!;
+    const uploadedScene = [...files].find(([path]) => path.endsWith("brief/scenes.json"))!;
+    assert.equal(await readFile(uploadedBrief[1], "utf8"), latestBrief);
+    const deliveredScene = JSON.parse(await readFile(uploadedScene[1], "utf8")).scenes[0];
+    assert.equal("kind" in deliveredScene.visualRoles[0], false);
+    assert.equal(deliveredScene.visualRoles[0].assets[0].assetId, asset.id);
+    assert.equal(deliveredScene.visualPlan.referenceMappings[0].researchDecisionId, research.id);
+    assert.match(prompt, new RegExp(asset.id));
     assert.deepEqual(result.authoring.receipts[0].rangeMappings, [{ projectRange: { startFrame: 100, endFrame: 125 }, workRootRange: { startFrame: 0, endFrame: 25 } }]);
     assert.equal(result.authoring.receipts.length, 2);
     assert.equal(result.authoring.receipts[0].workId, result.authoring.receipts[1].workId);

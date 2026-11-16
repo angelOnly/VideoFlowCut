@@ -65,7 +65,7 @@ try{
     $('download').href=c.media;$('source').href=c.source_url;$('source').target='_blank';$('source').rel='noopener';
     $('media-note').textContent=mechanism?mechanism.summary:c.media_note;
     if(mechanism){
-      if(appendMechanismClip($('segments'),mechanism))$('media-note').textContent=mechanism.summary+' 切片保留原速与原画幅，默认静音，可用播放器开启声音。';
+      if(appendMechanismClip($('segments'),mechanism,Math.ceil(c.duration*1000)))$('media-note').textContent=mechanism.summary+' 播放器默认静音，可开启声音。';
       else $('segments').append(element('p','本机制尚未提供独立切片，可通过上方“打开视频”查看完整原片。'));
       $('overview').href=c.detail;$('overview').hidden=false;
       const info=$('mechanism-info');info.hidden=false;

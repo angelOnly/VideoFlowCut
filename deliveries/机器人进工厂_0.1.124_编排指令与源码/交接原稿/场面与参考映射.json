@@ -1,0 +1,196 @@
+{
+  "projectId": "project_cea5b03f-4817-44da-adeb-4e03da09195a",
+  "revision": 45,
+  "scenes": [
+    {
+      "sceneId": "scene_d8d10602-43be-48c5-854f-6f274d8518cd",
+      "status": "ready",
+      "references": [
+        {
+          "kind": "creative",
+          "id": "130-c01",
+          "creativeCaseId": "130-c01",
+          "sourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+          "video": "../参考/130_画中画接力/原片.mp4",
+          "startMs": 0,
+          "endMs": 3200,
+          "timeCoordinates": "original",
+          "purpose": "下一真实素材先可辨并停留，再扩大接管；也与005并置关系组合"
+        },
+        {
+          "kind": "motion",
+          "id": "005-m06",
+          "sourceSha256": "712195edd295e621adec873be6b2580bf195d0753240f50ca7da160ef655b024",
+          "video": "../参考/005_错峰并置/原片.mp4",
+          "startMs": 28233,
+          "endMs": 33150,
+          "timeCoordinates": "original",
+          "purpose": "保持已出现画面并错峰补齐其他画面，形成真实素材并置"
+        }
+      ],
+      "visualRoles": [
+        {
+          "role": "机器人动作主体",
+          "referenceFunction": "原始主体，转交下一素材",
+          "usage": "开场试用20–32秒真实原速动作；注意原片约23.833秒切机位，不把两个机位说成独立试验。",
+          "assets": [
+            {
+              "assetId": "asset_6385fb42-0f30-4ad0-acf0-d7384fbdac53",
+              "deliveredPath": "../真实素材/01_Atlas翻转.mp4",
+              "sourceHash": "e92d979d5aa2138720f5ebb15bb8376913855fb626c822ab41efe01f3b5e6720",
+              "sourceRanges": [
+                {
+                  "startMs": 20000,
+                  "endMs": 32000,
+                  "timeCoordinates": "asset"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "role": "人员与工序",
+          "referenceFunction": "130-c01 的下一真实素材",
+          "usage": "试用35–52.5秒人员与输送装置，只作一般生产语境，与其他真实素材错峰组织。",
+          "assets": [
+            {
+              "assetId": "asset_171a99dc-4b14-44f8-8830-4d47297d6684",
+              "deliveredPath": "../真实素材/02_人员滚筒.mp4",
+              "sourceHash": "9724733940a92aa5b76e4f119bdaa7f71c7f2defd30b2aa3539c829e25a32af0",
+              "sourceRanges": [
+                {
+                  "startMs": 35000,
+                  "endMs": 52500,
+                  "timeCoordinates": "asset"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "role": "机械臂工位",
+          "referenceFunction": "005错峰并置中的真实画面，接管借130关系并由本片组合设计",
+          "usage": "Pexels工厂画面接管，随后KUKA实拍补充设备与夹具",
+          "assets": [
+            {
+              "assetId": "asset_ec740bd7-2f2a-4095-a790-edeec1af1571",
+              "deliveredPath": "../真实素材/03_汽车机械臂.mp4",
+              "sourceHash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+              "sourceRanges": [
+                {
+                  "startMs": 0,
+                  "endMs": 8400,
+                  "timeCoordinates": "asset"
+                }
+              ]
+            },
+            {
+              "assetId": "asset_4e4503c1-1b1f-4638-b891-7aaa6e36dd95",
+              "deliveredPath": "../真实素材/04_KUKA机械臂.mp4",
+              "sourceHash": "1835b3515a53446ec5cb68c8704f7803f55802a02b6aba0e455385c6c087cfb7",
+              "sourceRanges": [
+                {
+                  "startMs": 117000,
+                  "endMs": 122000,
+                  "timeCoordinates": "asset"
+                },
+                {
+                  "startMs": 27000,
+                  "endMs": 35000,
+                  "timeCoordinates": "asset"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "role": "人形搬料主体",
+          "referenceFunction": "作为末段真实演示素材",
+          "usage": "展示人形主体与料架、物件和空间；不暗示已完成未来设想",
+          "assets": [
+            {
+              "assetId": "asset_bdb981d2-f6d1-4095-8f83-7f1babdb9db5",
+              "deliveredPath": "../真实素材/05_Atlas搬料.mp4",
+              "sourceHash": "3a19e0f7c577d758a35526cfa61e0e6e3048420671d0126d5d01f2dbdd21e952",
+              "sourceRanges": [
+                {
+                  "startMs": 20000,
+                  "endMs": 27000,
+                  "timeCoordinates": "asset"
+                },
+                {
+                  "startMs": 47000,
+                  "endMs": 52000,
+                  "timeCoordinates": "asset"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "process": "Atlas动作与概率假设引入；人员画面由130小窗关系接管；不同真实画面按005错峰并置后，由130关系使机械臂窗口接管；以人形搬料演示和未来可能性收束。",
+      "preserve": [
+        "真实素材主体与正常源时钟",
+        "130的下一素材先识别再接管和005的保留已有对象并错峰并置",
+        "独立概率假设和不同来源不冒充同一事件",
+        "普通字幕和声音由外层合成"
+      ],
+      "adapt": [
+        "第二处小窗接管结合130和005，是本片设计而非声称005原片直接放大",
+        "原速观看感受、声音、源切点仍待核查"
+      ],
+      "visualPlan": {
+        "primaryRoles": [
+          "机器人动作主体",
+          "人员与工序",
+          "机械臂工位",
+          "人形搬料主体"
+        ],
+        "referenceMappings": [
+          {
+            "referenceId": "130-c01",
+            "referenceKind": "creative",
+            "researchDecisionId": "creative_decision_728dbc89-99e4-47be-98cc-a68c47659e36",
+            "startMs": 0,
+            "endMs": 3200,
+            "targetRole": "人员与工序",
+            "treatment": "人员与滚筒画面在Atlas空位作为活动小窗出现并保持，之后扩大接管",
+            "preserveRelation": "下一主体先可识别，再从原画面接管",
+            "targetRange": {
+              "startFrame": 228,
+              "endFrame": 288
+            }
+          },
+          {
+            "referenceId": "005-m06",
+            "referenceKind": "motion",
+            "researchDecisionId": "creative_decision_a3edcc5d-6c5d-4354-9b51-fbd8550ec475",
+            "startMs": 28233,
+            "endMs": 33150,
+            "targetRole": "机械臂工位",
+            "treatment": "已有真实生产画面保持，其他真实人、设备和机械臂活动画面错峰进入形成并置",
+            "preserveRelation": "保留前项并错峰补齐多组素材，之后整组让出至下一观看重点",
+            "targetRange": {
+              "startFrame": 528,
+              "endFrame": 700
+            }
+          },
+          {
+            "referenceId": "130-c01",
+            "referenceKind": "creative",
+            "researchDecisionId": "creative_decision_728dbc89-99e4-47be-98cc-a68c47659e36",
+            "startMs": 0,
+            "endMs": 3200,
+            "targetRole": "机械臂工位",
+            "treatment": "在005的并置建立后，借130让其中持续播放的机械臂小窗扩大接管；连接是本片新设计",
+            "preserveRelation": "先看见并识别下一主体，再由该小窗接管",
+            "targetRange": {
+              "startFrame": 528,
+              "endFrame": 700
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

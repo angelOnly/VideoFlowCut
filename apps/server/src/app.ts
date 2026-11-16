@@ -20,6 +20,8 @@ import { audioDesignSchema } from "../../../packages/edit-application/src/sound-
 import { registerSourceResearchRoutes } from "./source-research-tools.js";
 import { registerSoundRoutes } from "./sound-tools.js";
 import { listMotionFonts } from "../../../packages/motion-work/src/fonts.js";
+import { readCreativeCase } from "../../../references/motion-cases/skillry/tools/creative-library.mjs";
+import { readLibraryMechanism } from "../../../references/motion-cases/skillry/tools/library-store.mjs";
 import { registerFontLibraryRoutes } from "./font-library.js";
 import { MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compiler.js";
 import { createHash, randomUUID } from "node:crypto";
@@ -254,6 +256,15 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   const application = createApplication(workspaceRoot);
   const bridge = new ComfyUIBridgeClient();
   const app = Fastify({ logger: { level: runtimeConfig.http.logLevel } });
+  // 复用仓库案例库，和工作台静态目录分开挂载，媒体拖动沿用 Range 支持。
+  const libraryRoot = resolve(process.cwd(), "references/motion-cases/skillry");
+  if (existsSync(libraryRoot)) await app.register(staticPlugin, { root: libraryRoot, prefix: "/library/", decorateReply: false });
+  app.get("/api/library/reference-info", async request => {
+    const query = z.object({ kind: z.enum(["creative", "motion"]), id: z.string().regex(/^\d{3}-[cm]\d{2}$/u) }).strict().parse(request.query);
+    const options = { id: query.id, include_storyboard: false };
+    const result = (query.kind === "creative" ? readCreativeCase(libraryRoot, options) : readLibraryMechanism(libraryRoot, options)).result;
+    return { id: query.id, kind: query.kind, source_sha256: result.source_sha256 };
+  });
   registerMediaIntelligenceRoutes(app, application);
 
   await app.register(cors, { origin: true });
@@ -1039,7 +1050,16 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({
       baseRevision: baseRevisionSchema,
-      action: z.enum(["upsert", "remove"]),
+      action: z.enum(["upsert", "remove", "adopt"]),
+      adoptions: z.array(z.object({ visualTreatmentId: idSchema,
+        adoptedDecisionRef: z.object({ productionRunId: idSchema, decisionId: idSchema }).strict(),
+        adoptedMaterialAssetIds: z.array(idSchema).optional(), sceneId: idSchema.nullable().optional(), narrativeBeatId: idSchema.nullable().optional(),
+        mode: z.enum(["keep_presenter", "quiet", "light_overlay", "remotion", "b_roll", "cutaway", "evidence"]).optional(),
+        intensity: z.enum(["quiet", "low", "medium", "high"]).optional(), primaryAttention: z.string().max(500).optional(),
+        narrativePurpose: z.string().max(800).optional(), quietReason: z.string().max(800).nullable().optional(), fallbackPlan: z.string().max(800).nullable().optional(),
+        presenterUses: z.array(z.object({ id: idSchema, speechAssetId: idSchema, referenceImageAssetId: idSchema,
+          startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(), performanceNote: z.string().max(2000),
+          timingEvidence: z.object({ kind: z.enum(["aligned", "audio_review"]), note: z.string().trim().min(1) }) }).strict()).optional() }).strict()).min(1).optional(),
       adoptedMaterialAssetIds: z.array(idSchema).optional(),
       adoptedDecisionRef: z.object({ productionRunId: idSchema, decisionId: idSchema }).strict().nullable().optional(),
       presenterUses: z.array(z.object({
@@ -1058,7 +1078,8 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       quietReason: z.string().max(800).optional(),
       fallbackPlan: z.string().max(800).optional()
     }).parse(request.body);
-    return application.manageVisualTreatment({ projectId, ...body });
+    if (body.action === "adopt") return application.applyVisualAdoptions({ projectId, baseRevision: body.baseRevision, adoptions: body.adoptions ?? [] });
+    return application.manageVisualTreatment({ projectId, ...body, action: body.action as "upsert" | "remove" });
   });
 
   app.post("/api/projects/:projectId/cutaways", async (request) => {

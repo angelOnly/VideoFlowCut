@@ -123,7 +123,7 @@ test("范围获取保留时间对应和既有观察，分析纠错不影响原�
         openDesignRequest: { project: "isolated-od", prompt } });
       const endpoint = { url: `http://127.0.0.1:${(od.address() as { port: number }).port}` };
       await runMotionAuthoringJob(app, job, new AbortController().signal, endpoint);
-      assert.equal(receivedPrompt, prompt);
+      assert.ok(receivedPrompt.startsWith(prompt), "制作请求必须包含已核验的交付指令");
       assert.match(receivedPrompt, /brief\/scenes\.json/);
     } finally { await new Promise<void>(resolve => od.close(() => resolve())); }
     const read = app.intelligence.inspect(projectId, { assetId: asset.id });

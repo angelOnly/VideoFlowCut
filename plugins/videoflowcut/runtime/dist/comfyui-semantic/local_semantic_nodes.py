@@ -90,6 +90,7 @@ def _analyze_media(model, path, kind, prompt, start_seconds, duration_seconds, m
         process = subprocess.run(
             [str(python), str(Path(__file__).with_name("minicpmo_worker.py"))],
             input=json.dumps(request), capture_output=True, text=True, encoding="utf-8", errors="replace",
+            env={**os.environ, "PYTHONUTF8": "1"},
             # ComfyUI 在 Windows 后台运行时，模型子进程也不能创建控制台窗口。
             creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
         )
@@ -98,6 +99,11 @@ def _analyze_media(model, path, kind, prompt, start_seconds, duration_seconds, m
         text = output.read_text(encoding="utf-8")
     if not text.strip():
         raise ValueError("MiniCPM-o 未返回有效分析文本")
+    # 视频输出同时保留节点间使用的普通文本和 Bridge 可读取的采样回执。
+    if kind == "video":
+        data = json.loads(text)
+        return {"ui": {"text": [data["description"]], "comfyui_bridge_outputs": [{"kind": "json", "value": data}]},
+                "result": (data["description"],)}
     return {"ui": {"text": [text]}, "result": (text,)}
 
 
@@ -108,6 +114,7 @@ def _video_content(path, start_seconds, duration_seconds):
     if not math.isfinite(duration_seconds) or not 0 < duration_seconds <= 30:
         raise ValueError("片段时长必须在 0 到 30 秒之间")
     frames = []
+    timestamps = []
     frame_count = math.ceil(duration_seconds)
     with av.open(str(path)) as container:
         if not container.streams.video:
@@ -135,6 +142,7 @@ def _video_content(path, start_seconds, duration_seconds):
                 target = begin + len(frames)
                 if previous is not None and (stream_end is None or target < stream_end):
                     frames.append(previous.to_image().convert("RGB"))
+                    timestamps.append(round((previous.time - origin) * 1000, 3))
                 else:
                     frames.append(None)
             if frame.time >= end:
@@ -143,6 +151,7 @@ def _video_content(path, start_seconds, duration_seconds):
             previous = frame
             while len(frames) < frame_count and begin + len(frames) <= frame.time + 1e-7:
                 frames.append(frame.to_image().convert("RGB"))
+                timestamps.append(round((frame.time - origin) * 1000, 3))
         if stream_end is None and not reached_end and previous is not None:
             # 未知流时长时，只延用到最后一帧有据可查的展示结束点。
             duration = getattr(previous, "duration", None)
@@ -151,12 +160,14 @@ def _video_content(path, start_seconds, duration_seconds):
             target = begin + len(frames)
             if previous is not None and (stream_end is None or target < stream_end):
                 frames.append(previous.to_image().convert("RGB"))
+                timestamps.append(round((previous.time - origin) * 1000, 3))
             else:
                 frames.append(None)
     if any(frame is None for frame in frames) or (stream_end is not None and end > stream_end + 1e-7):
         raise ValueError("所选时间窗口存在无法确认画面的时段，请缩小范围或单独分析音频")
 
     audio = None
+    audio_intervals = []
     with av.open(str(path)) as container:
         if container.streams.audio:
             audio = np.zeros(math.ceil(duration_seconds * 16000), dtype=np.float32)
@@ -178,6 +189,7 @@ def _video_content(path, start_seconds, duration_seconds):
                     if right > left:
                         audio[left:right] = samples[left - offset:right - offset]
                         written += right - left
+                        audio_intervals.append([left, right])
             for chunk in resampler.resample(None):
                 offset = round((chunk.time - begin) * 16000)
                 samples = chunk.to_ndarray().reshape(-1)
@@ -185,6 +197,7 @@ def _video_content(path, start_seconds, duration_seconds):
                 if right > left:
                     audio[left:right] = samples[left - offset:right - offset]
                     written += right - left
+                    audio_intervals.append([left, right])
             if not written:
                 raise ValueError("所选窗口没有实际音频数据")
     content = []
@@ -192,7 +205,18 @@ def _video_content(path, start_seconds, duration_seconds):
         content.append(image)
         if audio is not None:
             content.append(audio[index * 16000:min((index + 1) * 16000, len(audio))].copy())
-    return content, audio is not None
+    merged = []
+    for left, right in sorted(audio_intervals):
+        if merged and left <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], right)
+        else:
+            merged.append([left, right])
+    sampling = {"version": "minicpmo-one-per-second-v1", "frame_count": len(frames),
+                "frame_timestamps_ms": timestamps,
+                "audio": {"included": audio is not None, "sample_rate": 16000 if audio is not None else None,
+                          "input_start_ms": round(start_seconds * 1000, 3), "input_end_ms": round((start_seconds + duration_seconds) * 1000, 3),
+                          "decoded_intervals_ms": [[round(start_seconds * 1000 + a / 16, 3), round(start_seconds * 1000 + b / 16, 3)] for a, b in merged]}}
+    return content, audio is not None, sampling
 
 
 class LoadLocalMiniCPMO45:

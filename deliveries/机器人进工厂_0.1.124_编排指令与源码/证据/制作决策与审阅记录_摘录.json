@@ -1,0 +1,716 @@
+{
+  "说明": "根据本片 ProductionRun 原记录摘录；仅移除原机器路径和交接清单路径，保留决定与证据原文；绝非角色隐含思维过程的逐字记录。",
+  "projectId": "project_cea5b03f-4817-44da-adeb-4e03da09195a",
+  "finalRevision": 61,
+  "status": "incomplete",
+  "assignments": [
+    {
+      "assignmentId": "robot-0124-director",
+      "agentId": "/root/director",
+      "responsibilities": [
+        "director"
+      ],
+      "inputRevision": 1
+    },
+    {
+      "assignmentId": "robot-0124-materials",
+      "agentId": "/root/materials",
+      "responsibilities": [
+        "asset_sourcing"
+      ],
+      "inputRevision": 1
+    },
+    {
+      "assignmentId": "robot-0124-creative",
+      "agentId": "/root/creative",
+      "responsibilities": [
+        "creative_research"
+      ],
+      "inputRevision": 1
+    },
+    {
+      "assignmentId": "robot-0124-visual",
+      "agentId": "/root/visual",
+      "responsibilities": [
+        "visual_design",
+        "motion_research"
+      ],
+      "inputRevision": 1
+    },
+    {
+      "assignmentId": "robot-0124-narration",
+      "agentId": "/root/narration_sound",
+      "responsibilities": [
+        "narration"
+      ],
+      "inputRevision": 1
+    }
+  ],
+  "creativeDecisions": [
+    {
+      "id": "creative_decision_844b705a-3443-4982-9362-8696f81c1e4c",
+      "category": "visual",
+      "decision": "候选采用 130-c01 的画面接力关系：Atlas 动作成为主体，真实工厂／机械臂画面先在旁侧小窗出现，再扩大接管；两个来源不暗示同一现场。具体素材源段与精确目标范围待视觉、素材共同确认。",
+      "rationale": "参考中下一画面先出现为小窗，再成为主体的关键状态可用于从展示动作进入生产语境。",
+      "objectIds": [
+        "story_beat_86e2f994-f1e5-471d-bc72-51c2096b26ce",
+        "story_beat_d8a6c075-3a96-4994-8004-0fc69474c3fb"
+      ],
+      "evidence": [
+        "创意作者在案例库播放器原速播放0–10.5秒；可取得的是离散截图，不构成完整连续视觉观察。",
+        "0.25倍速离散截图：0.797和1.728秒为帆船主画面含桥小窗，2.658秒桥成为大画面并出现月面小窗。",
+        "job_247c6faa-c4f7-48f3-9c77-f2535852efa4 对0–10.5秒按每秒约1帧取11帧、无音轨；快速交叠、运动曲线与精确速度未核实。"
+      ],
+      "phase": "creative_research",
+      "assignmentId": "robot-0124-creative",
+      "inputRevision": 11,
+      "inputDecisionIds": [],
+      "researchOutcome": "pending",
+      "researchReferences": [
+        {
+          "kind": "creative",
+          "id": "130-c01",
+          "sourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+          "startMs": 0,
+          "endMs": 3200,
+          "observedRelation": "下一影像先在当前影像中以小窗出现，随后成为主要画面；关键状态由离散截图支持，连续运动细节未知。"
+        }
+      ],
+      "operationId": "creative-130-c01-initial",
+      "createdAt": "2026-11-15T16:30:22.033Z"
+    },
+    {
+      "id": "creative_decision_046da98b-a375-4274-8a27-8e6182567f95",
+      "category": "visual",
+      "decision": "候选将 005-m06 的并置后单一活动画面接管关系用于约22–29秒：不同来源真实生产画面先并置，再由选中的工厂机械臂画面扩大接管，其余画面退让；不把并置画面描述为同一事件。",
+      "rationale": "利用真实素材的先并置再接管衔接工厂考量和固定工位解释。",
+      "objectIds": [
+        "story_beat_d8a6c075-3a96-4994-8004-0fc69474c3fb",
+        "story_beat_dc0d3545-70cd-43a0-86ee-a93351de6fc1"
+      ],
+      "evidence": [
+        "视觉作者在机制库原速播放并以0.25倍速复看，实际收到离散截图：约28.2秒单窗，29.26–31.19秒三窗并置，32.18秒活动画面成为大画幅。",
+        "job_543ddc2d-13c8-4425-b468-4c3b42bea138 的模型辅助分析失败，未作为观察依据。",
+        "连续运动曲线、是否完全同一帧源及声音仍未知；OD 可依本片重新设计运动。"
+      ],
+      "phase": "motion_research",
+      "assignmentId": "robot-0124-visual",
+      "inputRevision": 29,
+      "inputDecisionIds": [],
+      "researchOutcome": "pending",
+      "researchReferences": [
+        {
+          "kind": "motion",
+          "id": "005-m06",
+          "sourceSha256": "712195edd295e621adec873be6b2580bf195d0753240f50ca7da160ef655b024",
+          "startMs": 28233,
+          "endMs": 33150,
+          "observedRelation": "单窗发展为多个并置窗口，之后活动画面成为大画幅；仅离散状态可见，连续过程未知。"
+        }
+      ],
+      "operationId": "motion-005-m06-initial",
+      "createdAt": "2026-11-15T16:32:54.427Z"
+    },
+    {
+      "id": "creative_decision_6fe130fc-beea-4286-adcb-3f0839153e07",
+      "category": "story",
+      "decision": "从单次动作的高成功率切入，转向整条产线能否长时间运转，再解释相对固定的机械臂工位与人形机器人利用人用环境的潜力。",
+      "rationale": "观众需要理解连续成功与长期生产的差异，同时保留现实生产中不同失误可恢复或需人工处理的区别。",
+      "objectIds": [
+        "story_beat_86e2f994-f1e5-471d-bc72-51c2096b26ce",
+        "story_beat_d8a6c075-3a96-4994-8004-0fc69474c3fb",
+        "story_beat_dc0d3545-70cd-43a0-86ee-a93351de6fc1",
+        "story_beat_fad101d9-c0d1-4e4e-ba3c-4dd6ffd8cec4"
+      ],
+      "evidence": [
+        "用户提供的完整正文与标题；SpeechTiming 使用实际生成旁白的段级边界。",
+        "导演初稿基于文案及实际总时长；具体素材动作、参考曲线和成片声画仍需后续核对。"
+      ],
+      "assignmentId": "robot-0124-director",
+      "inputRevision": 11,
+      "operationId": "director-story-0124",
+      "createdAt": "2026-11-15T16:35:25.816Z"
+    },
+    {
+      "id": "creative_decision_cc31c648-4bf5-4e47-ab5a-b4de7c2b27dd",
+      "category": "visual",
+      "decision": "依照完整视觉导演稿，以真实机器人、工厂人员、机械臂和搬料演示组织整片；130关系用于 Atlas 到生产素材接管，005关系用于生产并置到机械臂接管。",
+      "rationale": "让观众先看真实动作，再理解生产连续性和固定工位与人形机器人潜力的区别。",
+      "objectIds": [
+        "scene_d8d10602-43be-48c5-854f-6f274d8518cd"
+      ],
+      "evidence": [
+        "交付清单已核验5条真实视频、两段参考原片及旁白和时间计划；两项参考研究均为pending，离散观察与未核切点见简报。",
+        "视觉作者完成导演稿与完整制作请求；实际画面尚未制作。"
+      ],
+      "phase": "visual_design",
+      "assignmentId": "robot-0124-visual",
+      "inputRevision": 43,
+      "inputDecisionIds": [
+        "creative_decision_844b705a-3443-4982-9362-8696f81c1e4c",
+        "creative_decision_046da98b-a375-4274-8a27-8e6182567f95",
+        "creative_decision_6fe130fc-beea-4286-adcb-3f0839153e07"
+      ],
+      "operationId": "visual-design-0124-manifest1",
+      "createdAt": "2026-11-15T16:40:46.467Z",
+      "原交接清单哈希": "a6286c20e88b4bc7f491a377afc8b75556aa15ffa86a95cce3573e54d5681a5a"
+    },
+    {
+      "id": "creative_decision_ae588db1-7eec-4fdb-a8e1-eb29bb5371f0",
+      "category": "visual",
+      "decision": "主导演同意将已阅读的视觉导演稿、实际旁白时间计划及清单所列参考和素材交由 OD 直接制作首版。采用真实素材作为画面主体、两处素材接管、固定任务机械臂与人形潜力的完整叙事。",
+      "rationale": "视觉方案使概率假设、生产连续性、固定任务和人形机器人潜力连贯展开；真实素材组织承担主要表达。",
+      "objectIds": [
+        "scene_d8d10602-43be-48c5-854f-6f274d8518cd"
+      ],
+      "evidence": [
+        "导演已阅读完整视觉稿和时间计划正文及清单摘要，并同意据此首版试制。",
+        "导演尚未独立打开清单、连续观看参考与素材或实际听过旁白；两条参考研究仍为 pending，源切点、节奏及听感待复核。",
+        "不得将独立假设、不同来源画面、未来可能性误称为真实成功率、同一故障或已部署事实。"
+      ],
+      "phase": "adoption",
+      "assignmentId": "robot-0124-director",
+      "inputRevision": 43,
+      "inputDecisionIds": [
+        "creative_decision_cc31c648-4bf5-4e47-ab5a-b4de7c2b27dd"
+      ],
+      "operationId": "director-adopt-0124-manifest1",
+      "createdAt": "2026-11-15T16:46:18.935Z",
+      "原交接清单哈希": "a6286c20e88b4bc7f491a377afc8b75556aa15ffa86a95cce3573e54d5681a5a"
+    },
+    {
+      "id": "creative_decision_728dbc89-99e4-47be-98cc-a68c47659e36",
+      "category": "visual",
+      "decision": "限定原片0–3.2秒的逐帧视觉研究：下一主体先在旧画面空位作为可识别小窗出现并停留，随后旧画面前推、小窗扩大成为主体；建议以Atlas与人员/滚筒真实素材实现该接管。",
+      "rationale": "0.50–0.77秒桥小窗渐显，0.8–1.73秒保持，约1.77–2.20秒先旧画面前推再小窗扩大，2.23–2.27秒桥成为主体。",
+      "objectIds": [
+        "scene_d8d10602-43be-48c5-854f-6f274d8518cd"
+      ],
+      "evidence": [
+        "创意作者已按序检查0–3.2秒全部96张相邻源帧，30fps；由 inspect_motion_reference_frames 返回，逐帧时间戳保存在审阅缓存。",
+        "此前案例库播放器原速启动后仅收到离散截图；模型每秒约一帧辅助；未取得原速连续视觉感受或听审。",
+        "本记录仅完成限定范围内该项可迁移视觉关系的研究，原片其他部分、实时节奏和声音不因此视为完成。"
+      ],
+      "phase": "creative_research",
+      "assignmentId": "robot-0124-creative",
+      "inputRevision": 44,
+      "inputDecisionIds": [
+        "creative_decision_844b705a-3443-4982-9362-8696f81c1e4c"
+      ],
+      "researchOutcome": "researched",
+      "researchReferences": [
+        {
+          "kind": "creative",
+          "id": "130-c01",
+          "sourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+          "startMs": 0,
+          "endMs": 3200,
+          "observedRelation": "旧画面中的下一主体小窗先可辨并保持，随后旧画面前推、小窗扩大成为主画面；该过程经连续源帧逐帧观察。"
+        }
+      ],
+      "operationId": "creative-130-frames-reviewed-0124",
+      "createdAt": "2026-11-15T16:51:15.652Z"
+    },
+    {
+      "id": "creative_decision_a3edcc5d-6c5d-4354-9b51-fbd8550ec475",
+      "category": "visual",
+      "decision": "限定原片28.233–33.150秒的逐帧视觉研究：原有画面保持，其他画面错峰补入并置，后整组前推模糊并以亮过渡让出下一全画面。本片借错峰并置，机械臂小窗持续播放并扩大接管是结合130关系的新设计。",
+      "rationale": "28.2–28.8秒三组依次出现并保持；31.733–31.9秒整组似放大左移模糊；31.933秒亮过渡、31.967秒进入厨房全幅，不能证明原小窗同一视频连续扩大。",
+      "objectIds": [
+        "scene_d8d10602-43be-48c5-854f-6f274d8518cd"
+      ],
+      "evidence": [
+        "视觉作者按序检查目标及首帧前置共149张去重相邻源帧，30fps；目标区间不跳采，无音轨。",
+        "先前播放器原速及慢放只获得离散截图，之前所称原小窗直接扩大接管缺乏证据，现明确更正。",
+        "未取得原速连续视觉感受、声音和精确曲线；本记录仅完成目标区间所用视觉关系的逐帧研究。"
+      ],
+      "phase": "motion_research",
+      "assignmentId": "robot-0124-visual",
+      "inputRevision": 44,
+      "inputDecisionIds": [
+        "creative_decision_046da98b-a375-4274-8a27-8e6182567f95"
+      ],
+      "researchOutcome": "researched",
+      "researchReferences": [
+        {
+          "kind": "motion",
+          "id": "005-m06",
+          "sourceSha256": "712195edd295e621adec873be6b2580bf195d0753240f50ca7da160ef655b024",
+          "startMs": 28233,
+          "endMs": 33150,
+          "observedRelation": "保留已建立对象，错峰补齐多组画面；整体过渡让出另一全幅，不能证实由同一原窗直接放大。"
+        }
+      ],
+      "operationId": "motion-005-frames-reviewed-0124",
+      "createdAt": "2026-11-15T16:51:19.699Z"
+    },
+    {
+      "id": "creative_decision_26d91848-f8a4-4e2a-a80a-2fc249269602",
+      "category": "visual",
+      "decision": "依据修订稿，以130的先识别后接管安排Atlas到工厂人员；以005的错峰并置结合130的窗口接管安排生产画面到机械臂。本片第二处连接是新设计，不误称005原窗无缝扩大。",
+      "rationale": "逐帧核实后修正参考归因，保留真实素材主体和准确事实边界。",
+      "objectIds": [
+        "scene_d8d10602-43be-48c5-854f-6f274d8518cd"
+      ],
+      "evidence": [
+        "视觉作者亲自逐帧检查130目标96帧和005目标149帧，结合创意作者意见更新导演稿及时间计划。",
+        "资料为不跳采视觉帧序；原速连续视觉与原声未实际获得，真实素材源切点仍需核查。"
+      ],
+      "phase": "visual_design",
+      "assignmentId": "robot-0124-visual",
+      "inputRevision": 44,
+      "inputDecisionIds": [
+        "creative_decision_728dbc89-99e4-47be-98cc-a68c47659e36",
+        "creative_decision_a3edcc5d-6c5d-4354-9b51-fbd8550ec475",
+        "creative_decision_6fe130fc-beea-4286-adcb-3f0839153e07"
+      ],
+      "operationId": "visual-design-0124-manifest2",
+      "createdAt": "2026-11-15T16:53:36.539Z",
+      "原交接清单哈希": "0f8e6be6cc2515ec92b0be1cafb969c28dff7a73d9b7584216e38b6c31524462"
+    },
+    {
+      "id": "creative_decision_0c3dc17a-2d60-42f2-aa7e-d72e9d5a3f93",
+      "category": "visual",
+      "decision": "主导演同意以修订后的两项参考组合、同一交接清单和真实素材交 OD 直接制作首版；开场显示假设单次成功率99%，37%绑定独立与100次全部成功。",
+      "rationale": "参考归因修正后仍满足真实素材主体与完整叙事。",
+      "objectIds": [
+        "scene_d8d10602-43be-48c5-854f-6f274d8518cd"
+      ],
+      "evidence": [
+        "导演根据研究者的逐帧结论和替换内容确认修改；参考原速连续声画、素材剪点和首版效果未核实。"
+      ],
+      "phase": "adoption",
+      "assignmentId": "robot-0124-director",
+      "inputRevision": 44,
+      "inputDecisionIds": [
+        "creative_decision_26d91848-f8a4-4e2a-a80a-2fc249269602"
+      ],
+      "operationId": "director-adopt-0124-manifest2",
+      "createdAt": "2026-11-15T16:53:40.385Z",
+      "原交接清单哈希": "0f8e6be6cc2515ec92b0be1cafb969c28dff7a73d9b7584216e38b6c31524462"
+    },
+    {
+      "id": "creative_decision_f7311be3-0649-463c-8baa-a58f82d85ed8",
+      "category": "visual",
+      "decision": "保留已采用的两处参考组合与真实素材主线，开场Atlas试用源20–32秒，人员滚筒试用源35–52.5秒；更新制作交接以与首版作者实际取段一致。",
+      "rationale": "开场新段的抽样包含可辨翻转和落台，原候选存在黑场；人员段可作为一般生产语境。",
+      "objectIds": [
+        "scene_d8d10602-43be-48c5-854f-6f274d8518cd"
+      ],
+      "evidence": [
+        "视觉作者核看Atlas6fps图和人员1秒间隔图，并在正式审阅器启动原速播放；实际获得离散截图，未连续视听。",
+        "Atlas20秒已在空中、约23.833秒原片切机位，约25–27.5秒另一机位可辨翻转；不得将不同机位称作独立成功试验。",
+        "人员35–52.5秒仅作生产语境，不是故障或停线证据；具体源边界、连续动态和声音仍待确认。"
+      ],
+      "phase": "visual_design",
+      "assignmentId": "robot-0124-visual",
+      "inputRevision": 45,
+      "inputDecisionIds": [
+        "creative_decision_728dbc89-99e4-47be-98cc-a68c47659e36",
+        "creative_decision_a3edcc5d-6c5d-4354-9b51-fbd8550ec475",
+        "creative_decision_26d91848-f8a4-4e2a-a80a-2fc249269602"
+      ],
+      "operationId": "visual-design-0124-manifest3",
+      "createdAt": "2026-11-15T17:14:29.670Z",
+      "原交接清单哈希": "e4ae51a941ad05e7a7d810d1e45d7e7363328ee145040f6d47ba7ff0d1fa1de7"
+    },
+    {
+      "id": "creative_decision_cd114b3f-838f-430b-881d-efc5107be0bb",
+      "category": "visual",
+      "decision": "导演同意采用调整后的两个试用源范围，并保留概率假设、事实边界与参考关系，沿原制作作者同一作品续作。",
+      "rationale": "新范围在抽样观察中可支持首版试制，无需退回含黑场的旧候选。",
+      "objectIds": [
+        "scene_d8d10602-43be-48c5-854f-6f274d8518cd"
+      ],
+      "evidence": [
+        "导演依据原视觉负责人抽样观察同意，两个范围的原速连续声画、精确切点和成片效果尚未核实。"
+      ],
+      "phase": "adoption",
+      "assignmentId": "robot-0124-director",
+      "inputRevision": 45,
+      "inputDecisionIds": [
+        "creative_decision_f7311be3-0649-463c-8baa-a58f82d85ed8"
+      ],
+      "operationId": "director-adopt-0124-manifest3",
+      "createdAt": "2026-11-15T17:14:33.499Z",
+      "原交接清单哈希": "e4ae51a941ad05e7a7d810d1e45d7e7363328ee145040f6d47ba7ff0d1fa1de7"
+    },
+    {
+      "id": "creative_decision_c72a99d0-e07c-4798-a1fc-90436bf5b346",
+      "category": "semantic",
+      "decision": "99%^100≈36.6%仅适用于每次成功率99%、结果相互独立时连续100次全部成功的假设，不是Atlas实测；失误可能自动恢复或需人工，频繁介入可能令后续工序等待；很多机械臂面向相对固定任务，人形机器人利用人用环境和未来换工位是潜力，不是已经普遍实现。不同来源仅作概念与环境组织，不剪成同一故障、流程或已完成商业部署。",
+      "rationale": "保持用户文案中的假设条件、生产例外与未来可能性的事实边界。",
+      "objectIds": [
+        "story_beat_86e2f994-f1e5-471d-bc72-51c2096b26ce",
+        "story_beat_d8a6c075-3a96-4994-8004-0fc69474c3fb",
+        "story_beat_dc0d3545-70cd-43a0-86ee-e93351de6fc1",
+        "story_beat_fad101d9-c0d1-4e4e-ba3c-4dd6ffd8cec4"
+      ],
+      "evidence": [
+        "导演根据用户完整文案和本片素材来源确认上述语义决定。"
+      ],
+      "assignmentId": "robot-0124-director",
+      "inputRevision": 59,
+      "operationId": "robot-0124-director-semantic",
+      "createdAt": "2026-11-15T17:48:59.146Z"
+    },
+    {
+      "id": "creative_decision_6d1fb169-4074-41dc-ab69-2d986098b388",
+      "category": "semantic",
+      "decision": "在各次独立、单次99%的假设下连续100次全成功约36.6%，不是Atlas实测；生产失误可能自恢复或需人工，频繁介入可能使后续等待；许多机械臂适合固定任务，人形机器人利用人用环境及未来换工位属于潜力。不同来源不剪成同一故障或已部署事实。",
+      "rationale": "更正上一语义记录中机械臂段对象ID的输入笔误，语义判断不变。",
+      "objectIds": [
+        "story_beat_86e2f994-f1e5-471d-bc72-51c2096b26ce",
+        "story_beat_d8a6c075-3a96-4994-8004-0fc69474c3fb",
+        "story_beat_dc0d3545-70cd-43a0-86ee-a93351de6fc1",
+        "story_beat_fad101d9-c0d1-4e4e-ba3c-4dd6ffd8cec4"
+      ],
+      "evidence": [
+        "导演依据用户文案和本片实际素材确认；对象ID按项目当前场面包含的四个真实Beat读回。"
+      ],
+      "assignmentId": "robot-0124-director",
+      "inputRevision": 59,
+      "operationId": "robot-0124-director-semantic-corrected-beats",
+      "createdAt": "2026-11-15T17:49:15.538Z"
+    },
+    {
+      "id": "creative_decision_b74961b5-63bd-4989-92a5-5aa31aa8c724",
+      "category": "quality",
+      "decision": "第二条视觉计划的展示素材清单误列了 Atlas 搬料素材；该段实际采用人员滚筒、KUKA 机械臂与汽车机械臂。Atlas 搬料素材用于结尾。此登记错误目前未修正，系统仍提示 material_not_connected。",
+      "rationale": "导演与视觉作者已按实际画面确认；更正采用清单会使已接回的作品输入签名过期，需要重新交接并核对，不能仅抹掉检查提示。",
+      "objectIds": [
+        "visual_treatment_702ed1a9-3e20-4331-8642-1b05d3e60a73"
+      ],
+      "evidence": [],
+      "assignmentId": "robot-0124-director",
+      "inputRevision": 61,
+      "operationId": "robot-0124-material-misregistration-note",
+      "createdAt": "2026-11-15T18:04:23.613Z"
+    }
+  ],
+  "editorialReviewHistory": [
+    {
+      "revision": 48,
+      "passes": [
+        "mute_visual"
+      ],
+      "previewEvidence": [],
+      "findings": [
+        {
+          "id": "editorial_finding_371b2d75-e8e6-41d9-b173-5e002de8979b",
+          "revision": 48,
+          "recordedAt": "2026-11-15T17:26:03.710Z",
+          "pass": "mute_visual",
+          "severity": "major",
+          "category": "attention",
+          "summary": "概率卡遮挡机器人和新出现的人员小窗",
+          "evidence": "R48工作台定点截图：F181、230深色说明卡遮挡主体；F250人员小窗大部分被卡遮住；F265小窗覆盖机器人躯干。",
+          "impact": "真实素材主体和130参考要求的先识别、再接管关系被削弱。",
+          "suggestedFix": "保留概率假设和独立条件，精简重复说明、缩小移动卡片，让人员小窗在不遮机器人空位完整出现并可辨后继续扩大接管。",
+          "verificationMethod": "工作台定点截图；连续运动与声音未核查。",
+          "objectId": "cue_59094b5c-ac74-45f5-8f64-50cfacf6302c",
+          "frameRange": {
+            "startFrame": 150,
+            "endFrame": 265
+          }
+        }
+      ],
+      "evidenceRecords": [
+        {
+          "pass": "mute_visual",
+          "source": "workbench",
+          "observer": "/root/visual",
+          "startFrame": 0,
+          "endFrame": 288,
+          "method": "frames",
+          "observation": "实际定位截图F0、59、121、181、230、250、265、280、286；启动范围播放但未获得连续视觉或听审。F0/59/121 Atlas为主体；F250人员小窗大部被概率卡遮盖；F265小窗可辨但压在机器人躯干上；F280和286已扩至主体或全幅。",
+          "id": "editorial_evidence_9127cb0f-2616-474d-88ff-c0d7499573ef",
+          "revision": 48,
+          "snapshotHash": "60e1170579bb7135ef88cc4a6304a0a5a0ac072d6a63689160815858b5b01e4d",
+          "renderReleaseId": "release-7f89157d0b55edae96bcb5a101b305535200ec6a00b5dcb06774d8bd9c393814",
+          "workbenchIdentity": {
+            "works": [
+              {
+                "workId": "motion_work_623002f05ca1be0418815c27036bf8ed7798a4859dc1e221e70d305c8ec37ee7",
+                "definitionHash": "de69dea8c03ef14ffc5c5a598ef4bf0b92a1c7cbe91a425f19a64cfa60a156d8"
+              }
+            ],
+            "resources": [
+              {
+                "assetId": "asset_2c2eeb67-4fbe-4f4f-9a86-c020a2cd0692",
+                "hash": "1d631b6fb7733fb12895c26f20e727efd161fcf8069b256e944df8910aa98a75"
+              },
+              {
+                "assetId": "asset_171a99dc-4b14-44f8-8830-4d47297d6684",
+                "hash": "9724733940a92aa5b76e4f119bdaa7f71c7f2defd30b2aa3539c829e25a32af0"
+              },
+              {
+                "assetId": "asset_6385fb42-0f30-4ad0-acf0-d7384fbdac53",
+                "hash": "e92d979d5aa2138720f5ebb15bb8376913855fb626c822ab41efe01f3b5e6720"
+              }
+            ],
+            "fonts": [
+              {
+                "fontId": "noto-sans-sc-regular",
+                "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9"
+              },
+              {
+                "fontId": "noto-sans-sc-bold",
+                "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0"
+              }
+            ],
+            "engineVersion": "managed-hyperframes-4",
+            "dependencies": {
+              "hyperframes": "0.8.1",
+              "gsap": "3.14.2"
+            }
+          },
+          "recordedAt": "2026-11-15T17:26:03.710Z",
+          "operationId": "robot-0124-r48-opening-visual-review"
+        }
+      ],
+      "resolutions": [],
+      "reviewedAt": "2026-11-15T17:26:03.711Z"
+    },
+    {
+      "revision": 52,
+      "passes": [
+        "mute_visual"
+      ],
+      "previewEvidence": [
+        "固定作品检查 job_e0214442-1f85-4a01-afb7-72501bf0bbb9 与补帧 job_4986cb2c-8b5d-41b7-88ef-96b6d29c7a36；源码静帧不含外层字幕或声音。"
+      ],
+      "findings": [
+        {
+          "id": "editorial_finding_9d4c2120-df4e-4c6f-aefc-0e3b0055e9b1",
+          "revision": 52,
+          "recordedAt": "2026-11-15T17:31:27.738Z",
+          "pass": "mute_visual",
+          "severity": "major",
+          "category": "attention",
+          "summary": "机械臂接管初段前序素材过早退出，画面主要变为深底小窗",
+          "evidence": "R52作品F635/640仍并置；F645前组退出，F650/655蓝色机械臂仅在右下小窗；F665开始变大，F685/690接近全幅。",
+          "impact": "素材主体和从并置逐步接管的参照关系被削弱。",
+          "suggestedFix": "让前序素材保留至目标窗开始扩大，或让放大更早开始，前组随之让位；保留同一真实素材持续接管。",
+          "verificationMethod": "固定作品离散帧检查；连续速度与声音未核查。",
+          "objectId": "cue_a865d309-4e83-4b8d-8259-5585c4dbb64f",
+          "frameRange": {
+            "startFrame": 625,
+            "endFrame": 700
+          }
+        },
+        {
+          "id": "editorial_finding_14959d2a-4c89-4a70-b1f0-22be20265d6b",
+          "revision": 52,
+          "recordedAt": "2026-11-15T17:31:27.739Z",
+          "pass": "mute_visual",
+          "severity": "major",
+          "category": "semantic",
+          "summary": "稳定、异常和值守问题与单一素材紧贴，可能误指画面事实",
+          "evidence": "F588异常处理问题紧贴未经核实故障的红色机械臂画面；F625值守问题紧贴另一来源机械臂画面。",
+          "impact": "观众可能误以为具体来源展示了故障或值守。",
+          "suggestedFix": "将三个问题处理为面向工厂整体的通用提问，不一一指向未经证实的素材事件。",
+          "verificationMethod": "固定作品离散帧检查，不含外层字幕。",
+          "objectId": "cue_a865d309-4e83-4b8d-8259-5585c4dbb64f",
+          "frameRange": {
+            "startFrame": 552,
+            "endFrame": 650
+          }
+        },
+        {
+          "id": "editorial_finding_92d0b8ea-add2-4665-b443-37d9b5b16aec",
+          "revision": 52,
+          "recordedAt": "2026-11-15T17:31:27.739Z",
+          "pass": "mute_visual",
+          "severity": "major",
+          "category": "attention",
+          "summary": "结尾文字卡遮住人形机器人主要动作",
+          "evidence": "固定作品F1150大块黑卡覆盖人形机器人头部与上身；F1000可清楚看到人形与物料关系。",
+          "impact": "末段真实素材主体和搬料关系不易看清。",
+          "suggestedFix": "将简短的未来可能性文字移到空位或缩小，并调整显示时机，保留真实机器人与物料可见。",
+          "verificationMethod": "固定作品离散帧检查；源英文与普通字幕的重叠尚未检查。",
+          "objectId": "cue_a865d309-4e83-4b8d-8259-5585c4dbb64f",
+          "frameRange": {
+            "startFrame": 1100,
+            "endFrame": 1211
+          }
+        }
+      ],
+      "evidenceRecords": [],
+      "resolutions": [],
+      "reviewedAt": "2026-11-15T17:31:28.253Z"
+    },
+    {
+      "revision": 56,
+      "passes": [
+        "mute_visual"
+      ],
+      "previewEvidence": [],
+      "findings": [],
+      "evidenceRecords": [
+        {
+          "pass": "mute_visual",
+          "source": "workbench",
+          "observer": "/root/visual",
+          "startFrame": 0,
+          "endFrame": 1211,
+          "method": "frames",
+          "observation": "实际定位F181、230、240、250、265、280、624、636、649、664、684、999、1149，逐次等待画面就绪；只覆盖这些离散帧，未完成连续视觉或听审。F181概率卡缩至左上，机器人可见；F240/250/265人员窗完整可辨不压机器人；F624三组并置，F636开始扩大且旧画面仍可辨，F649机械臂占主要版面；F1149机器人上身及搬料可辨。F999/1149源英文与中文字幕在所见帧上下错开、位置较近。",
+          "id": "editorial_evidence_a8b2cc93-5aca-4a80-aa7c-6e14da1ca6b8",
+          "revision": 56,
+          "snapshotHash": "38ffec0a0c38de52a1c2d3d96c28acf388ae879b387a30b01f23b9655d011b5a",
+          "renderReleaseId": "release-7f89157d0b55edae96bcb5a101b305535200ec6a00b5dcb06774d8bd9c393814",
+          "workbenchIdentity": {
+            "works": [
+              {
+                "workId": "motion_work_623002f05ca1be0418815c27036bf8ed7798a4859dc1e221e70d305c8ec37ee7",
+                "definitionHash": "3dab346010e40baabd446a96a451d5f18456370b7836dbde4babf6817237d4f9"
+              }
+            ],
+            "resources": [
+              {
+                "assetId": "asset_2c2eeb67-4fbe-4f4f-9a86-c020a2cd0692",
+                "hash": "1d631b6fb7733fb12895c26f20e727efd161fcf8069b256e944df8910aa98a75"
+              },
+              {
+                "assetId": "asset_ec740bd7-2f2a-4095-a790-edeec1af1571",
+                "hash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e"
+              },
+              {
+                "assetId": "asset_171a99dc-4b14-44f8-8830-4d47297d6684",
+                "hash": "9724733940a92aa5b76e4f119bdaa7f71c7f2defd30b2aa3539c829e25a32af0"
+              },
+              {
+                "assetId": "asset_6385fb42-0f30-4ad0-acf0-d7384fbdac53",
+                "hash": "e92d979d5aa2138720f5ebb15bb8376913855fb626c822ab41efe01f3b5e6720"
+              },
+              {
+                "assetId": "asset_bdb981d2-f6d1-4095-8f83-7f1babdb9db5",
+                "hash": "3a19e0f7c577d758a35526cfa61e0e6e3048420671d0126d5d01f2dbdd21e952"
+              },
+              {
+                "assetId": "asset_4e4503c1-1b1f-4638-b891-7aaa6e36dd95",
+                "hash": "1835b3515a53446ec5cb68c8704f7803f55802a02b6aba0e455385c6c087cfb7"
+              },
+              {
+                "assetId": "asset_d8e9e4b2-084c-441b-8b55-6bddca6881ab",
+                "hash": "3ffae7ccd5ea6f612f75efdf9a8318ccce79a5e4f355b26e233631330a57660f"
+              }
+            ],
+            "fonts": [
+              {
+                "fontId": "noto-sans-sc-regular",
+                "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9"
+              },
+              {
+                "fontId": "noto-sans-sc-bold",
+                "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0"
+              }
+            ],
+            "engineVersion": "managed-hyperframes-4",
+            "dependencies": {
+              "hyperframes": "0.8.1",
+              "gsap": "3.14.2"
+            }
+          },
+          "recordedAt": "2026-11-15T17:46:55.506Z",
+          "operationId": "robot-0124-r56-visual-recheck"
+        }
+      ],
+      "resolutions": [],
+      "reviewedAt": "2026-11-15T17:46:56.051Z"
+    },
+    {
+      "revision": 59,
+      "passes": [
+        "mute_visual"
+      ],
+      "previewEvidence": [],
+      "findings": [],
+      "evidenceRecords": [
+        {
+          "pass": "mute_visual",
+          "source": "workbench",
+          "observer": "/root/visual",
+          "startFrame": 625,
+          "endFrame": 1151,
+          "method": "frames",
+          "observation": "实际定位F625和F1150并等待素材加载：F625顶部为“工厂需要考虑的问题”、三个并列问句，无旧制作备注；F1150为“未来的可能／今天搬料，未来也许能换个工位”，机器人及物料可辨。F1150中文字幕与原片Fully Autonomous相邻但该帧未直接叠压；仅此两帧，未完成连续视觉或听审。",
+          "id": "editorial_evidence_c13738eb-4457-479f-9f01-9be1dba6b892",
+          "revision": 59,
+          "snapshotHash": "62ab26038c87146cdd53e4571754d834b2de43744155e046446a9772d5d53ff5",
+          "renderReleaseId": "release-7f89157d0b55edae96bcb5a101b305535200ec6a00b5dcb06774d8bd9c393814",
+          "workbenchIdentity": {
+            "works": [
+              {
+                "workId": "motion_work_623002f05ca1be0418815c27036bf8ed7798a4859dc1e221e70d305c8ec37ee7",
+                "definitionHash": "661236f2ce8b5a7ca82d6e44334103b2d073a4f69be1643751bcfa61b81cf35f"
+              }
+            ],
+            "resources": [
+              {
+                "assetId": "asset_2c2eeb67-4fbe-4f4f-9a86-c020a2cd0692",
+                "hash": "1d631b6fb7733fb12895c26f20e727efd161fcf8069b256e944df8910aa98a75"
+              },
+              {
+                "assetId": "asset_ec740bd7-2f2a-4095-a790-edeec1af1571",
+                "hash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e"
+              },
+              {
+                "assetId": "asset_171a99dc-4b14-44f8-8830-4d47297d6684",
+                "hash": "9724733940a92aa5b76e4f119bdaa7f71c7f2defd30b2aa3539c829e25a32af0"
+              },
+              {
+                "assetId": "asset_6385fb42-0f30-4ad0-acf0-d7384fbdac53",
+                "hash": "e92d979d5aa2138720f5ebb15bb8376913855fb626c822ab41efe01f3b5e6720"
+              },
+              {
+                "assetId": "asset_bdb981d2-f6d1-4095-8f83-7f1babdb9db5",
+                "hash": "3a19e0f7c577d758a35526cfa61e0e6e3048420671d0126d5d01f2dbdd21e952"
+              },
+              {
+                "assetId": "asset_4e4503c1-1b1f-4638-b891-7aaa6e36dd95",
+                "hash": "1835b3515a53446ec5cb68c8704f7803f55802a02b6aba0e455385c6c087cfb7"
+              },
+              {
+                "assetId": "asset_d8e9e4b2-084c-441b-8b55-6bddca6881ab",
+                "hash": "3ffae7ccd5ea6f612f75efdf9a8318ccce79a5e4f355b26e233631330a57660f"
+              }
+            ],
+            "fonts": [
+              {
+                "fontId": "noto-sans-sc-regular",
+                "hash": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9"
+              },
+              {
+                "fontId": "noto-sans-sc-bold",
+                "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0"
+              }
+            ],
+            "engineVersion": "managed-hyperframes-4",
+            "dependencies": {
+              "hyperframes": "0.8.1",
+              "gsap": "3.14.2"
+            }
+          },
+          "recordedAt": "2026-11-15T17:47:45.244Z",
+          "operationId": "robot-0124-r59-final-text-check"
+        }
+      ],
+      "resolutions": [],
+      "reviewedAt": "2026-11-15T17:47:47.314Z"
+    }
+  ],
+  "completionBlockers": [
+    "material_not_connected：visual_treatment_702ed1a9-3e20-4331-8642-1b05d3e60a73 已采用展示资料尚未连接：asset_bdb981d2-f6d1-4095-8f83-7f1babdb9db5。",
+    "参考 130-c01 的 人员与工序 尚无覆盖 228–288 的对照观察",
+    "参考 130-c01 的 机械臂工位 尚无覆盖 528–700 的对照观察",
+    "参考 005-m06 的 机械臂工位 尚无覆盖 528–700 的对照观察",
+    "声画待观察范围：0–1211（audiovisual）。",
+    "交付文件待观察范围：0–1211（audiovisual）。",
+    "必修问题 editorial_finding_371b2d75-e8e6-41d9-b173-5e002de8979b 尚未完成复查：概率卡遮挡机器人和新出现的人员小窗",
+    "必修问题 editorial_finding_9d4c2120-df4e-4c6f-aefc-0e3b0055e9b1 尚未完成复查：机械臂接管初段前序素材过早退出，画面主要变为深底小窗",
+    "必修问题 editorial_finding_14959d2a-4c89-4a70-b1f0-22be20265d6b 尚未完成复查：稳定、异常和值守问题与单一素材紧贴，可能误指画面事实",
+    "必修问题 editorial_finding_92d0b8ea-add2-4665-b443-37d9b5b16aec 尚未完成复查：结尾文字卡遮住人形机器人主要动作"
+  ]
+}

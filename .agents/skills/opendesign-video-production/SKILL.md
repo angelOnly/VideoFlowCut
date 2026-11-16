@@ -39,11 +39,11 @@ OD 是第一版可播放画面的制作作者。视觉作者负责设计和专�
 
 逐项交付供学习与已采用的创意、美术、动效参考及本片真实素材；已选整片交完整原片，机制交正文、视频、分镜及必要上下文。按真实读取结果保留相对目录与链接，不能按编号猜文件或复制整库。共用文件只交付一次，清单保留各用途。记录项目与输入 Revision、参考 ID 和库来源指纹、原路径或 Asset ID、OD 实际路径、文件 SHA-256、MIME、大小、视频时长与帧率、源范围和用途。库指纹不代替实际文件哈希。核验文件读取与视频解码；无法核实时如实记录，不能把路径存在、静帧或写入成功称为 OD 观看了视频。
 
-主任务使用 `prepare_motion_handoff`，传当前 `base_revision_id`、`brief_path`、`timing_plan_path`、`selected_scene_ids`、实际素材、创意与机制参考和 `scenes`。每个场面给 `sceneId、status、visualRoles、process、preserve、adapt`；采用参考放入 `references`，逐项提供 `kind`（`creative` 或 `motion`）、`id、sourceSha256、startMs、endMs、purpose`。其他按场面使用的声音、美术等资料在顶层 `references` 中声明，并以场面的 `resourceIds` 引用。素材角色使用真实 Asset ID 和素材文件本地范围。工具读取当前项目，返回清单路径、哈希、文件及逐场面缺口。
+主任务使用 `prepare_motion_handoff`，传当前 `base_revision_id`、`brief_path`、`timing_plan_path`、`selected_scene_ids`、创意与机制参考和 `scenes`。每个场面给 `sceneId、status、visualRoles、process、preserve、adapt`；采用参考放入 `references`，逐项提供 `kind`（`creative` 或 `motion`）、`id、sourceSha256、startMs、endMs、purpose`。其他按场面使用的声音、美术等资料在顶层 `references` 中声明，并以场面的 `resourceIds` 引用。画面对象写实际用途与 Asset ID；视频使用素材文件的本地范围。工具从项目收集引用的素材，也可在顶层 `assets` 指定来源或补充资料，并返回清单路径、哈希、文件及逐场面缺口。
 
-就绪场面提交 `visualPlan.primaryRoles`、按实际采用逐条填写的 `referenceMappings`，以及适用的 `graphicLed` 和 `graphicReasons`。每条映射写清 `researchDecisionId`、参考身份、原片 `startMs` 和 `endMs`、实际素材角色、处理方法、保留关系和场面内项目时间线半开帧范围 `targetRange`；整场采用也须填写整场范围。未就绪场面允许暂缺。首版的交付清单只列已有真实文件。参考的库来源指纹和实际文件哈希分别核对。
+就绪场面在 `visualRoles` 写明对象、参考作用、具体用法和使用的 `assetIds`，没有素材时用空列表。照片、文字和图形可作为同一对象描述；视频填写相应 `sourceRanges`。同时提交 `visualPlan.primaryRoles` 和按实际采用逐条填写的 `referenceMappings`。每条映射写清 `researchDecisionId`、参考身份、原片 `startMs` 和 `endMs`、目标对象、处理方法、保留关系和场面内项目时间线半开帧范围 `targetRange`；整场采用也须填写整场范围。未就绪场面允许暂缺。参考的库来源指纹和实际文件哈希分别核对。
 
-按返回的 `files` 通过制作端文件接口交付本次需要的文件。导演确认后主任务使用 `record_creative_decision` 的 `adoption` 阶段引用导演分派、视觉设计及 `delivery_ref` 的 `manifest_path、manifest_sha256、scene_ids`，再通过 `manage_visual_treatment` 写入 `adopted_decision_ref` 与本范围采用素材。制作启动传对应 `production_run_id` 和 `visual_treatment_ids`，连接器核对制作端真实文件、当前素材与采用稿后发送完整请求。准备后如果目标场面、相关内容或声音时序变化，重新准备并确认受影响场面；其他场面的变化不妨碍继续。未就绪场面继续探索；其他已选且就绪的场面可以单独准备和制作。
+主任务先以 `record_creative_decision` 的 `visual_design` 阶段引用候选交付清单。导演确认后，`adoption` 引用该视觉设计及同一 `delivery_ref` 的 `manifest_path、manifest_sha256、scene_ids`，主任务通过 `manage_visual_treatment` 的 `action=adopt` 一次写入相关计划、采用和该计划明确要求进入作品的素材，成功后新采用生效。采用时核对必需素材已在计划范围的交付中；制作启动传对应 `production_run_id` 和 `visual_treatment_ids`，连接器核对制作端真实文件、当前素材与采用稿后发送完整请求。候选登记期间原任务继续；在途换稿后的待协调作品按回执固定版本接回并沿原任务续修。
 
 完整请求由视觉负责人编写。请求点名本片制作简报、时间资料和实际文件，要求制作作者先读取完整简报，打开采用的参考视频，查看指定范围的连续变化及必要前后画面，再查看本片对应素材。
 

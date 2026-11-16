@@ -1,9 +1,23 @@
-import functools,http.server,pathlib,re,shutil,urllib.parse
+import functools,http.server,json,os,pathlib,re,shutil,subprocess,urllib.parse
 ROOT=pathlib.Path(__file__).resolve().parent.parent
 STUDY=ROOT
 class PreviewHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         route=urllib.parse.unquote(urllib.parse.urlsplit(self.path).path)
+        if route=='/api/library/reference-info':
+            query=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+            kind=(query.get('kind') or [''])[0];card=(query.get('id') or [''])[0]
+            if not re.fullmatch(r'\d{3}-[cm]\d{2}',card) or kind not in ('creative','motion'):
+                self.send_error(400,'Invalid reference');return
+            # 复用 Runtime 相同的读卡校验，避免独立浏览时另维护一套指纹算法。
+            script="import {readCreativeCase} from './tools/creative-library.mjs'; import {readLibraryMechanism} from './tools/library-store.mjs'; const [kind,id]=process.argv.slice(1); const result=(kind==='creative'?readCreativeCase('.',{id,include_storyboard:false}):readLibraryMechanism('.',{id,include_storyboard:false})).result; console.log(JSON.stringify({kind,id,source_sha256:result.source_sha256}));"
+            result=subprocess.run(['node','--input-type=module','-e',script,kind,card],cwd=ROOT,capture_output=True,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
+            if result.returncode:
+                self.send_error(400,'Reference unavailable');return
+            try: payload=json.dumps(json.loads(result.stdout),ensure_ascii=False).encode('utf-8')
+            except (ValueError,UnicodeError): self.send_error(500,'Invalid reference result');return
+            self.send_response(200);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Content-Length',str(len(payload)));self.end_headers();self.wfile.write(payload);return
         legacy=re.fullmatch(r'/library/cases/([a-zA-Z0-9-]+)-original/index.html',route)
         # 兼容历史详情链接，共用一个详情页，不再保存逐例重复网页。
         if legacy or route=='/library/使用说明.html':

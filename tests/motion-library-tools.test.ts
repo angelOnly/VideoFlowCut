@@ -11,7 +11,7 @@ test('真实MCP协议可发现两入口，查询后按指纹读取图文，拒�
   const client=new Client({name:'motion-reader',version:'1'});const [clientTransport,serverTransport]=InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport);await client.connect(clientTransport);
   try{
-    const listing=await client.listTools();assert.deepEqual(listing.tools.map(t=>t.name).sort(),['read_motion_mechanism','search_motion_mechanisms']);
+    const listing=await client.listTools();assert.deepEqual(listing.tools.map(t=>t.name).sort(),['inspect_motion_reference_frames','read_motion_mechanism','search_motion_mechanisms']);
     const response=await client.callTool({name:'search_motion_mechanisms',arguments:{limit:3}});
     assert.ok(!response.isError);const content=response.content as Array<{type:string;text:string}>;
     const result=JSON.parse(content[0].text);assert.equal(result.cards.length,3);assert.ok(result.taxonomy);

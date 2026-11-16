@@ -25,7 +25,7 @@ def main():
     path = Path(request["media"])
     kind = request["kind"]
     if kind == "video":
-        content, has_audio = _video_content(path, request["start_seconds"], request["duration_seconds"])
+        content, has_audio, sampling = _video_content(path, request["start_seconds"], request["duration_seconds"])
     elif kind == "audio":
         content, has_audio = [_audio_content(path, request["start_seconds"], request["duration_seconds"])], True
     elif kind == "image":
@@ -48,7 +48,8 @@ def main():
     )
     if not isinstance(text, str) or not text.strip():
         raise ValueError("MiniCPM-o 未返回有效分析文本")
-    Path(request["output"]).write_text(text, encoding="utf-8")
+    result = json.dumps({"schema": "motion-reference-observation-v1", "description": text, "sampling": sampling}, ensure_ascii=False) if kind == "video" else text
+    Path(request["output"]).write_text(result, encoding="utf-8")
 
 
 if __name__ == "__main__":

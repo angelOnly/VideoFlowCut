@@ -2,6 +2,7 @@ import {readFileSync,statSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {splitDocument,resolveLibraryLink} from '../document-format.mjs';
 import {localFile} from './mechanisms.mjs';
+import {referencePreview} from './reference-preview.mjs';
 
 const hash=value=>createHash('sha256').update(value).digest('hex');
 const fail=(message,code='CREATIVE_LIBRARY_INVALID')=>Object.assign(new Error(message),{code});
@@ -74,11 +75,15 @@ export function imageMime(bytes){
   if(['GIF87a','GIF89a'].includes(bytes.toString('ascii',0,6)))return 'image/gif';
   throw new Error('分镜不是支持的图片格式');
 }
-export function readCreativeCase(root,{id,source_sha256,include_storyboard=true}){
+export function readCreativeCase(root,{id,source_sha256,include_storyboard=true,range,preview_origin}){
   const index=loadCreativeIndex(root);
   assertCreativeSnapshot(index,source_sha256);
   const card=index.cards.find(card=>card.id===id);
   if(!card)throw fail(`未知创意卡：${id}`);
+  if(range){
+    const parent=JSON.parse(readFileSync(localFile(root,'case-catalogue.json'),'utf8')).cases.find(entry=>entry.case_number===card.case_number);
+    if(Number.isFinite(parent?.duration)&&range.endMs>Math.ceil(parent.duration*1000))throw fail(`${id} 原片范围超出视频时长`);
+  }
   const resources=Object.fromEntries(['video','clip','storyboard'].map(key=>[key,media(root,card[key])]));
   // 卡内 ../ 按卡位置规范化，再由 localFile 核对真实路径是否仍在库内。
   const links=[...card.body.matchAll(/!?\[[^\]]*\]\(([^)]+)\)/g)].map(match=>{
@@ -93,7 +98,9 @@ export function readCreativeCase(root,{id,source_sha256,include_storyboard=true}
       image={data:bytes.toString('base64'),mimeType:imageMime(bytes)};
     }catch(error){resources.storyboard={...resources.storyboard,available:false,reason:error.message};}
   }
-  return {result:{card:creativeCard(card),source_sha256:index.source_sha256,body:card.raw,resources,links,
+  const selected=range??{startMs:card.start_ms,endMs:card.end_ms};
+  const preview_url=referencePreview({origin:preview_origin,kind:'creative',id,source_sha256:index.source_sha256,range:selected});
+  return {result:{id,kind:'creative',card:creativeCard(card),source_sha256:index.source_sha256,range:selected,preview_url,body:card.raw,resources,links,
     frame_times_ms:card.frame_times_ms,clip_frame_times_ms:card.frame_times_ms.map(time=>time-(card.clip===card.video?0:card.start_ms)),
     clip_source_offset_ms:card.clip===card.video?0:card.start_ms,observation},image};
 }

@@ -4,8 +4,10 @@ import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { createHash } from "node:crypto";
 import puppeteer from "puppeteer-core";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer as createViteServer } from "vite";
 import { createApplication } from "@videocut/application";
 import { motionMediaForCue, motionWorkForCue } from "@videocut/contracts";
@@ -13,9 +15,10 @@ import { processClaimedJob } from "@videocut/job-runtime";
 import { runMotionJob } from "../apps/render-worker/src/motion-job.js";
 import { runMotionAuthoringJob } from "../apps/runtime/src/motion-authoring.js";
 import { motionFixture } from "./fixtures/managed-motion.js";
-import { prepareReferencePackage } from "../packages/edit-application/src/opendesign-reference-package.mjs";
 import { createServer as createVfcServer } from "../apps/server/src/app.js";
+import { registerMotionTools } from "../apps/server/src/motion-tools.js";
 import { resolveRenderBrowser } from "../packages/remotion-runtime/src/browser.js";
+import { loadLibraryIndex } from "../references/motion-cases/skillry/tools/library-store.mjs";
 
 test("隔离 OD 阶段交件、同作者反馈与 VFC 自动采用端到端联通", { timeout: 150_000 }, async (context) => {
   const root = await mkdtemp(join(tmpdir(), "vfc-od-authoring-e2e-"));
@@ -86,34 +89,49 @@ process.stdin.on('end',()=>process.exit(0));
     app.repository.commit(projectId, rev(), "隔离画布", snapshot => Object.assign(snapshot.timeline, { width: 320, height: 320, fps: 30 }));
     const scene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "连续场面", purpose: "验证", startFrame: 0, endFrame: 18 }).snapshot.scenes[0];
     assert.equal(app.readProject(projectId).snapshot.motionWorks?.length ?? 0, 0);
+    const sourceSha256 = loadLibraryIndex(resolve("references/motion-cases/skillry")).source_sha256;
+    const run = await app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: rev(), intent: "full_creation", completionScope: { kind: "project" }, projectId, loadedSkills: ["production-coordinator"] });
+    await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: run.auditVersion, operationId: "director-assignment", action: "add_assignment",
+      assignment: { agentId: "/fixture/director", assignmentId: "director", responsibilities: ["director", "narration", "asset_sourcing", "creative_research", "visual_design", "motion_research"],
+        skillIds: ["production-director", "narration-writing", "visual-asset-sourcing", "creative-sequence-design", "visual-treatment-planning", "creative-reference-to-sequence", "motion-case-library"], inputRevision: rev(), scope: { kind: "project" } } });
+    const research = async (phase: "creative_research" | "motion_research") => (await app.recordCreativeDecision({ operationId: globalThis.crypto.randomUUID(),
+      projectId, runId: run.id, category: "visual", decision: "记录隔离测试中的参考关系", rationale: "核查同段媒体和目标范围的交接", phase,
+      assignmentId: "director", inputRevision: rev(), objectIds: [scene.id], researchOutcome: phase === "motion_research" ? "researched" : "not_applicable",
+      ...(phase === "motion_research" ? { researchReferences: [{ kind: "motion" as const, id: "001-m03", sourceSha256, startMs: 3850.5, endMs: 5200.25, observedRelation: "主体保持，后层更换" }] } : {}),
+      evidence: ["隔离测试参考"] })).creativeDecisions.at(-1)!;
+    const creative = await research("creative_research"), motion = await research("motion_research");
     const brief = join(root, "brief.md"), timing = join(root, "timing.md"), reference = join(root, "参考 素材 (版本 1).md"),
-      largeReference = join(root, "较大 素材 (1).bin"), projectSnapshot = join(root, "project.json"), output = join(root, "handoff");
+      largeReference = join(root, "较大 素材 (1).bin");
     await writeFile(brief, "隔离制作的完整共同编排"); await writeFile(timing, "真实时间资料");
     await writeFile(reference, "本场的参考资料");
     await writeFile(largeReference, Buffer.alloc(21 * 1024 * 1024, 7));
-    await writeFile(projectSnapshot, JSON.stringify(app.readProject(projectId)));
-    const manifest = await prepareReferencePackage({ projectId, revision: rev(), projectSnapshot, brief, timingPlan: timing, freezeInputs: true,
-      deliveryPrefix: "handoffs/real-od", selectedSceneIds: [scene.id],
+    const mcp = new McpServer({ name: "隔离制作交接", version: "1" }), client = new Client({ name: "隔离视觉作者", version: "1" });
+    registerMotionTools(mcp, app, () => projectId);
+    const [local, remote] = InMemoryTransport.createLinkedPair(); await mcp.connect(remote); await client.connect(local);
+    let handoff: { manifestPath: string; manifestSha256: string; scenes: Array<{ status: string; references: Array<{ startMs: number; endMs: number }> }> };
+    try {
+      const response = await client.callTool({ name: "prepare_motion_handoff", arguments: { project_id: projectId, base_revision_id: rev(), brief_path: brief,
+      timing_plan_path: timing, selected_scene_ids: [scene.id],
       references: [{ id: "visual-note", usage: "adopted", purpose: "本场参考", files: [
         { path: reference, deliveredPath: "references/样片/参考 素材 (版本 1).md" },
         { path: largeReference, deliveredPath: "references/样片/较大 素材 (1).bin" }
       ] }],
+      motion: [{ id: "001-m03", sourceSha256, usage: "adopted", purpose: "主体保持时后层变化" }],
       scenes: [{ sceneId: scene.id, status: "ready", resourceIds: ["visual-note"],
+        references: [{ kind: "motion", id: "001-m03", sourceSha256, startMs: 3850.5, endMs: 5200.25, purpose: "主体保持" }],
         visualRoles: [{ role: "主体", referenceFunction: "连续发展", assetIds: [], usage: "原创图形" }],
-        visualPlan: { primaryRoles: ["主体"], graphicLed: true, graphicReasons: ["原创图形承担不可见的运动关系"] },
-        process: "主体建立、变化并接续", preserve: ["连续关系"], adapt: ["中文文字"] }] }, output);
-    const run = await app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: app.readProject(projectId).revision.number, intent: "full_creation", completionScope: { kind: "project" }, projectId, loadedSkills: ["production-coordinator"] });
-    await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: run.auditVersion, operationId: "director-assignment", action: "add_assignment",
-      assignment: { agentId: "/fixture/director", assignmentId: "director", responsibilities: ["director", "narration", "creative_research", "visual_design", "motion_research"],
-        skillIds: ["production-director", "narration-writing", "creative-sequence-design", "visual-treatment-planning", "motion-case-library"], inputRevision: rev(), scope: { kind: "project" } } });
-    const manifestPath = join(output, "delivery-manifest.json");
-    const manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");
-    const research = async (phase: "creative_research" | "motion_research") => (await app.recordCreativeDecision({ operationId: globalThis.crypto.randomUUID(),
-      projectId, runId: run.id, category: "visual", decision: "本次不采用参考", rationale: "已研究候选，当前关系采用原创方案", phase,
-      assignmentId: "director", inputRevision: rev(), objectIds: [scene.id], researchOutcome: "not_applicable", evidence: ["已核对相关候选及原片范围"] })).creativeDecisions.at(-1)!;
-    const creative = await research("creative_research"), motion = await research("motion_research");
+        visualPlan: { primaryRoles: ["主体"], referenceMappings: [{ referenceKind: "motion", referenceId: "001-m03", researchDecisionId: motion.id,
+          startMs: 3850.5, endMs: 5200.25, targetRole: "主体", treatment: "主体保持时后层变化", preserveRelation: "主体保持，后层更换", targetRange: { startFrame: 0, endFrame: 18 } }] },
+        process: "主体建立、变化并接续", preserve: ["连续关系"], adapt: ["中文文字"] }] } });
+      assert.notEqual(response.isError, true, JSON.stringify(response.content));
+      handoff = JSON.parse((response.content as Array<{ text: string }>)[0]!.text);
+    } finally { await client.close(); await mcp.close(); }
+    assert.equal(handoff.scenes[0]!.status, "ready");
+    assert.deepEqual([handoff.scenes[0]!.references[0]!.startMs, handoff.scenes[0]!.references[0]!.endMs], [3850.5, 5200.25]);
+    const { manifestPath, manifestSha256 } = handoff;
     const design = (await app.recordCreativeDecision({ operationId: globalThis.crypto.randomUUID(), projectId, runId: run.id, category: "visual", decision: "采用完整视觉设计", rationale: "依据完整导演稿",
-      phase: "visual_design", assignmentId: "director", inputRevision: rev(), objectIds: [scene.id], inputDecisionIds: [creative.id, motion.id] })).creativeDecisions.at(-1)!;
+      phase: "visual_design", assignmentId: "director", inputRevision: rev(), objectIds: [scene.id], inputDecisionIds: [creative.id, motion.id],
+      deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } })).creativeDecisions.at(-1)!;
     const decision = (await app.recordCreativeDecision({ operationId: globalThis.crypto.randomUUID(), projectId, runId: run.id, category: "scene", decision: "采用场面", rationale: "真实交付链路验证",
       phase: "adoption", assignmentId: "director", inputRevision: rev(), objectIds: [scene.id],
       inputDecisionIds: [design.id], deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } })).creativeDecisions.at(-1)!;
@@ -139,6 +157,8 @@ process.stdin.on('end',()=>process.exit(0));
     assert.ok(odListing.files.some(file => file.path.endsWith("visual-director-brief.md")), "正式启动自动送达导演稿");
     assert.ok(odListing.files.some(file => file.path.endsWith("references/样片/参考-素材-_版本-1_.md")), "带空格和中文的参考按清单实际送达");
     assert.ok(odListing.files.some(file => file.path.endsWith("references/样片/较大-素材-_1_.bin")), "大文件按清单实际送达");
+    assert.ok(odListing.files.some(file => file.path.endsWith("sab8a-475686-original/video.mp4")), "已采用参考的原片实际送达隔离 OD");
+    assert.ok(odListing.files.some(file => file.path.endsWith("sab8a-475686-original/mechanisms/m03.mp4")), "已采用参考的切片实际送达隔离 OD");
     const firstUrl = new URL(firstReceipt.editorUrl);
     assert.equal(firstUrl.searchParams.get("productionRunId"), run.id);
     assert.equal(firstUrl.searchParams.get("fromFrame"), "0");

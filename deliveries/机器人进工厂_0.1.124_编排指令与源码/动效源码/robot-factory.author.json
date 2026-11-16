@@ -1,0 +1,95 @@
+{
+  "work": {
+    "name": "机器人都能后空翻了，为啥不能进工厂？",
+    "compositing": "opaque",
+    "width": 1920,
+    "height": 1080,
+    "fps": 24,
+    "durationInFrames": 1211,
+    "props": {},
+    "fontBindings": {
+      "title": "noto-sans-sc-bold",
+      "body": "noto-sans-sc-regular"
+    },
+    "videoBindings": {
+      "atlas": {
+        "assetId": "asset_6385fb42-0f30-4ad0-acf0-d7384fbdac53",
+        "sourceStartMs": 20000,
+        "sourceEndMs": 32000,
+        "startFrame": 0,
+        "endFrame": 288
+      },
+      "workers": {
+        "assetId": "asset_171a99dc-4b14-44f8-8830-4d47297d6684",
+        "sourceStartMs": 35000,
+        "sourceEndMs": 52500,
+        "startFrame": 228,
+        "endFrame": 648
+      },
+      "equipment": {
+        "assetId": "asset_4e4503c1-1b1f-4638-b891-7aaa6e36dd95",
+        "sourceStartMs": 27000,
+        "sourceEndMs": 31000,
+        "startFrame": 552,
+        "endFrame": 648
+      },
+      "carArms": {
+        "assetId": "asset_ec740bd7-2f2a-4095-a790-edeec1af1571",
+        "sourceStartMs": 0,
+        "sourceEndMs": 8250,
+        "startFrame": 588,
+        "endFrame": 786
+      },
+      "kukaDetail": {
+        "assetId": "asset_4e4503c1-1b1f-4638-b891-7aaa6e36dd95",
+        "sourceStartMs": 117000,
+        "sourceEndMs": 120500,
+        "startFrame": 786,
+        "endFrame": 870
+      },
+      "kukaOverhead": {
+        "assetId": "asset_4e4503c1-1b1f-4638-b891-7aaa6e36dd95",
+        "sourceStartMs": 27000,
+        "sourceEndMs": 30250,
+        "startFrame": 870,
+        "endFrame": 948
+      },
+      "materialA": {
+        "assetId": "asset_bdb981d2-f6d1-4095-8f83-7f1babdb9db5",
+        "sourceStartMs": 20000,
+        "sourceEndMs": 27000,
+        "startFrame": 948,
+        "endFrame": 1116
+      },
+      "materialB": {
+        "assetId": "asset_bdb981d2-f6d1-4095-8f83-7f1babdb9db5",
+        "sourceStartMs": 47000,
+        "sourceEndMs": 50958,
+        "startFrame": 1116,
+        "endFrame": 1211
+      }
+    },
+    "creativeBrief": "本版沿原robot-factory.html与同一1211帧根时钟，仅修改上版冻结bc9ade56-1109-47d8-9f2c-cdeb0e558d55_2473ea0f0c49e29f9477907bdff31b0c9efda941aa4e529c60382e9a7e2e4c01的两处上屏文案：[468,636)顶部改为“工厂需要考虑的问题”，三个并列问句保持；[1092,1211)顶部改为“未来的可能”，主句“今天搬料，未来也许能换个工位”保持。制作限定留在作者说明，不再作为这两处上屏标题；事实边界仍由问句、也许和不同来源素材关系表达。完整readyRanges为[0,1211)，本委托正式采用目标为后段Cue，主任务随后将同版应用到开场Cue。不新建作品或播放器。其余源码画面、排版样式、字体、动画时序与事件、全部真实视频槽及源绑定、1920×1080、24fps和1211帧时钟不改；普通字幕、旁白和BGM保持外层不动。延续130先识别同窗再扩大、005错峰并置与130组合的既有关系，第二处组合为本片设计；正常速度静音，不把不同来源当同一故障，不把99%当Atlas实测，不把未来换工位当已部署事实。完整源码没有未编写区间；本轮没有新增素材观察、工作台播放或听审，不以文字修改或冻结成功声称合成审阅通过。新版登记采用及工作台复查由主任务与原视觉作者接续。"
+  },
+  "readyRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 1211
+    }
+  ],
+  "changedRanges": [
+    {
+      "startFrame": 468,
+      "endFrame": 636,
+      "reason": "仅将顶部标题“工厂整体需要考虑的问题 · 非对应画面的故障判断”改为“工厂需要考虑的问题”；三个并列问句、样式与时序不变"
+    },
+    {
+      "startFrame": 1092,
+      "endFrame": 1211,
+      "reason": "仅将顶部小标题“未来可能性 · 不是已部署事实”改为“未来的可能”；主句“今天搬料，未来也许能换个工位”、样式与时序不变"
+    }
+  ],
+  "sourceFile": "robot-factory.html",
+  "authorSubmissionId": "e09d2457ea82775538c3ff434a2403e46e33a0987f5c738ec4985a9d67cbc391",
+  "sourceSha256": "d06113f2f515fe6bfc366042601bd1a3e01a9b98b7caf7fd05b9517fa8f0d7fa"
+}
