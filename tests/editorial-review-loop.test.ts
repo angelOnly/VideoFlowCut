@@ -36,6 +36,12 @@ test("真实 MCP Schema 支持阶段审片并把结构化证据和对账返回�
   const client = new Client({ name: "editorial-loop-regression", version: "1.0.0" });
   try {
     const preview = await f.preview();
+    await f.app.updateProductionRun({ projectId: f.projectId, runId: f.run.id, expectedAuditVersion: f.run.auditVersion,
+      operationId: "mcp-reference-director", action: "add_assignment", assignment: { assignmentId: "director", agentId: "/fixture/director",
+        responsibilities: ["director"], skillIds: ["production-director"], scope: { kind: "project" }, inputRevision: f.base.revision } });
+    const adoption = (await f.app.recordCreativeDecision({ projectId: f.projectId, runId: f.run.id, operationId: "mcp-reference-adoption",
+      category: "visual", phase: "adoption", assignmentId: "director", inputRevision: f.base.revision, objectIds: [f.projectId],
+      decision: "采用测试参考", rationale: "验证审阅合同" })).creativeDecisions.at(-1)!;
     await client.connect(transport);
     const tools = (await client.listTools()).tools;
     const schema = tools.find((tool) => tool.name === "record_editorial_quality_review")!.inputSchema;
@@ -66,6 +72,19 @@ test("真实 MCP Schema 支持阶段审片并把结构化证据和对账返回�
     assert.ok(schema.properties?.observations && schema.properties?.resolutions);
     const recorded = await client.callTool({ name: "record_editorial_quality_review", arguments: { project_id: f.projectId, run_id: f.run.id, operation_id: "mcp-review", revision: f.base.revision, passes: ["mute_visual"], findings: [], observations: [{ pass: "mute_visual", preview_job_id: preview.id, start_frame: 5, end_frame: 12, method: "continuous_video", observation: "MCP 回归模拟观察声明" }] } });
     assert.ok(!recorded.isError, JSON.stringify(recorded));
+    const referenceArgs = { project_id: f.projectId, run_id: f.run.id, operation_id: "mcp-reference-issue", revision: f.base.revision,
+      passes: ["mute_visual"], findings: [], observations: [{ pass: "mute_visual", source: "workbench", observer: "测试作者",
+        start_frame: 5, end_frame: 12, method: "continuous_video", observation: "窗口未接管", reference_reviews: [{
+          production_run_id: f.run.id, decision_id: adoption.id, scene_id: "fixture-scene", reference_kind: "creative", reference_id: "reference-a",
+          source_sha256: "a".repeat(64), target_role: "主体", start_ms: 100, end_ms: 900, original_relation: "窗口接管",
+          actual_implementation: "窗口未接管", difference: "接管缺失", outcome: "issue", impact: "核心关系缺失" }] }] };
+    const referenceIssue = await client.callTool({ name: "record_editorial_quality_review", arguments: referenceArgs });
+    assert.notEqual(referenceIssue.isError, true, JSON.stringify(referenceIssue.content));
+    const receipt = JSON.parse((referenceIssue.content as Array<{ text: string }>)[0].text).reviewReceipt;
+    assert.equal(receipt.evidenceIds.length, 1);
+    assert.equal(receipt.findingIds.length, 1);
+    const referenceRetry = await client.callTool({ name: "record_editorial_quality_review", arguments: referenceArgs });
+    assert.deepEqual(JSON.parse((referenceRetry.content as Array<{ text: string }>)[0].text).reviewReceipt, receipt);
     const quality = await client.callTool({ name: "read_quality_report", arguments: { project_id: f.projectId } });
     assert.ok(!quality.isError);
     const content = quality.content as Array<{ type: string; text?: string }>;
@@ -448,10 +467,48 @@ test("成片一次登记可供文件与任务使用，并区分同版本不同�
     const client = new Client({ name: "artifact-review-cross-entry", version: "1.0.0" });
     try {
       await client.connect(transport);
+      await f.app.updateProductionRun({ projectId: f.projectId, runId: requiredRun.id, expectedAuditVersion: requiredRun.auditVersion,
+        operationId: "reference-director", action: "add_assignment", assignment: { assignmentId: "director", agentId: "/fixture/director",
+          responsibilities: ["director"], skillIds: ["production-director"], scope: { kind: "project" }, inputRevision: f.base.revision } });
+      const referenceAdoption = (await f.app.recordCreativeDecision({ projectId: f.projectId, runId: requiredRun.id, operationId: "reference-adoption",
+        category: "visual", phase: "adoption", assignmentId: "director", inputRevision: f.base.revision, objectIds: [f.projectId],
+        decision: "测试参考采用", rationale: "验证文件审阅交接" })).creativeDecisions.at(-1)!;
+      const referenceArtifact = await artifact("artifact_reference");
+      const referenceResult = await client.callTool({ name: "record_export_artifact_review", arguments: { project_id: f.projectId,
+        artifact_id: referenceArtifact.id, run_id: requiredRun.id, operation_id: "reference-file-review", observer: "测试审阅者",
+        observations: [{ check: "reference", method: "continuous_video", outcome: "confirmed", start_frame: 0, end_frame: 24, note: "对照原片与文件",
+          reference_reviews: [{ production_run_id: requiredRun.id, decision_id: referenceAdoption.id, scene_id: "fixture-scene", reference_kind: "creative",
+            reference_id: "fixture-reference", source_sha256: "a".repeat(64), target_role: "主体", start_ms: 100, end_ms: 900,
+            original_relation: "主体和文字共同运动", actual_implementation: "本片文字随主体接管", difference: "无", outcome: "confirmed" }] }] } });
+      assert.notEqual(referenceResult.isError, true, JSON.stringify(referenceResult.content));
+      const referenceRecord = JSON.parse((referenceResult.content as Array<{ text: string }>)[0].text).artifactReview.observations[0].referenceReviews[0];
+      assert.deepEqual([referenceRecord.originalRelation, referenceRecord.actualImplementation, referenceRecord.difference],
+        ["主体和文字共同运动", "本片文字随主体接管", "无"]);
+      const issueArgs = { project_id: f.projectId, artifact_id: referenceArtifact.id, run_id: requiredRun.id,
+        operation_id: "reference-file-issue", observer: "测试审阅者", observations: [{ check: "reference", method: "continuous_video", outcome: "issue",
+          start_frame: 0, end_frame: 24, note: "窗口未接管", reference_reviews: [{ production_run_id: requiredRun.id,
+            decision_id: referenceAdoption.id, scene_id: "fixture-scene", reference_kind: "creative", reference_id: "fixture-reference",
+            source_sha256: "a".repeat(64), target_role: "主体", start_ms: 100, end_ms: 900, original_relation: "主体接管",
+            actual_implementation: "主体未放大", difference: "缺少接管", outcome: "issue", impact: "核心关系缺失" }] }] };
+      const issueResult = await client.callTool({ name: "record_export_artifact_review", arguments: issueArgs });
+      assert.notEqual(issueResult.isError, true, JSON.stringify(issueResult.content));
+      const issueReceipt = JSON.parse((issueResult.content as Array<{ text: string }>)[0].text).reviewReceipt;
+      assert.equal(issueReceipt.findingIds.length, 1);
+      const issueRetry = await client.callTool({ name: "record_export_artifact_review", arguments: issueArgs });
+      assert.deepEqual(JSON.parse((issueRetry.content as Array<{ text: string }>)[0].text).reviewReceipt.findingIds, issueReceipt.findingIds);
+      const checkedResult = await client.callTool({ name: "record_export_artifact_review", arguments: { ...issueArgs,
+        operation_id: "reference-file-rechecked", observations: [{ ...issueArgs.observations[0], outcome: "confirmed",
+          reference_reviews: [{ ...issueArgs.observations[0].reference_reviews[0], outcome: "confirmed", finding_id: issueReceipt.findingIds[0] }] }] } });
+      assert.notEqual(checkedResult.isError, true, JSON.stringify(checkedResult.content));
+      const checkedReceipt = JSON.parse((checkedResult.content as Array<{ text: string }>)[0].text).reviewReceipt;
+      const closedResult = await client.callTool({ name: "record_export_artifact_review", arguments: { project_id: f.projectId,
+        artifact_id: referenceArtifact.id, run_id: requiredRun.id, operation_id: "reference-file-closed",
+        resolutions: [{ finding_id: issueReceipt.findingIds[0], evidence_ids: checkedReceipt.evidenceIds, note: "已复查接管" }] } });
+      assert.notEqual(closedResult.isError, true, JSON.stringify(closedResult.content));
       const result = await client.callTool({ name: "read_export_artifact", arguments: { project_id: f.projectId, artifact_id: first.id } });
       assert.notEqual(result.isError, true);
-      const artifact = JSON.parse((result.content as Array<{ text: string }>)[0].text);
-      assert.equal(artifact.artifactReview.observations[0].id, evidenceId);
+      const inspectedArtifact = JSON.parse((result.content as Array<{ text: string }>)[0].text);
+      assert.equal(inspectedArtifact.artifactReview.observations[0].id, evidenceId);
     } finally { await client.close(); }
     const statusA = await f.app.readProductionStatus(f.projectId, { runId: f.run.id });
     assert.equal(statusA.completion!.validObservations[0].evidenceId, evidenceId);

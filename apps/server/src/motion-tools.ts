@@ -24,6 +24,12 @@ import { join } from "node:path";
 
 const handoffReferenceSchema = z.object({ id: z.string().min(1), sourceSha256: z.string().min(1),
   usage: z.enum(["study", "adopted"]), purpose: z.string().min(1) }).strict();
+const referenceMappingSchema = z.object({ referenceId: z.string().min(1).describe("对应本场已采用参考的 ID；来源指纹使用场面 references 中对应记录"),
+  referenceKind: z.enum(["creative", "motion"]).optional().describe("参考类型；同一 ID 同时对应创意和机制时必须填写"),
+  researchDecisionId: z.string().min(1), startMs: z.number().finite().nonnegative(), endMs: z.number().finite().positive(),
+  targetRole: z.string().min(1), treatment: z.string().min(1), preserveRelation: z.string().optional().describe("需要保留的原参考关系"),
+  targetRange: z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() }).strict().optional()
+    .describe("ready 场面的采用参考必填场面内成片半开帧范围；pending 场面可暂缺") }).strict().partial();
 const handoffSceneSchema = z.object({
   sceneId: z.string().min(1), status: z.enum(["ready", "pending"]),
   references: z.array(z.object({ kind: z.enum(["creative", "motion"]), id: z.string().min(1), sourceSha256: z.string().min(1),
@@ -33,12 +39,15 @@ const handoffSceneSchema = z.object({
     referenceFunction: z.string().min(1), usage: z.string().min(1),
     assetIds: z.array(z.string().min(1)).describe("本对象使用的项目素材 ID；工具自动收集文件，无素材时填空数组。"), sourceRanges: z.array(z.object({ assetId: z.string().optional(),
       startMs: z.number().nonnegative(), endMs: z.number().positive() }).strict()).optional() }).strict()).optional(),
-  visualPlan: z.object({ primaryRoles: z.array(z.string().min(1)).min(1),
-    referenceMappings: z.array(z.object({ referenceId: z.string().min(1).describe("对应本场已采用参考的 ID；来源指纹使用场面 references 中对应记录"),
-      referenceKind: z.enum(["creative", "motion"]).optional().describe("参考类型；同一 ID 同时对应创意和机制时必须填写"),
-      researchDecisionId: z.string().min(1), startMs: z.number().finite().nonnegative(), endMs: z.number().finite().positive(),
-      targetRole: z.string().min(1), treatment: z.string().min(1), preserveRelation: z.string().optional().describe("需要保留的原参考关系"),
-      targetRange: z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() }).strict().optional().describe("ready 场面的每条采用参考必填：位于对应场面内的成片时间线半开帧范围；整场采用也须填写整场范围。pending 场面可暂缺") }).strict()).optional()
+  visualPlan: z.object({ primaryRoles: z.array(z.string().min(1)).optional(),
+    referenceMappings: z.array(referenceMappingSchema).optional(),
+    composition: z.object({ opening: z.string().optional(), primarySubject: z.string().optional(), supportingSubjects: z.array(z.string()).optional(),
+      spatialRelations: z.array(z.object({ roles: z.array(z.string()), relation: z.string() }).strict()).optional(),
+      textAndGraphics: z.string().optional(), ending: z.string().optional() }).strict().optional(),
+    sequence: z.array(z.object({ purpose: z.string().optional(), subjects: z.array(z.string()).optional(), action: z.string().optional(),
+      retainedElements: z.array(z.string()).optional(), transition: z.string().optional() }).strict()).optional(),
+    attentionPath: z.array(z.string()).optional(),
+    odBoundaries: z.object({ locked: z.array(z.string()).optional(), adjustable: z.array(z.string()).optional(), escalation: z.string().optional() }).strict().optional()
   }).strict().optional(),
   process: z.string().optional(), preserve: z.array(z.string()).optional(), adapt: z.array(z.string()).optional()
 }).strict();
@@ -64,7 +73,7 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   } catch (error) { return failure(error); } });
   server.registerTool("prepare_motion_handoff", {
     title: "准备场面制作交付",
-    description: "按当前项目快照准备固定导演稿、时间资料、真实素材和采用参考；从选中场面的 assetIds 自动收集项目素材，返回清单哈希、实际文件与逐场面缺口。ready 场面的每条参考映射必须提供场面内的非空成片半开帧范围 targetRange；pending 场面可暂缺。资料就绪不代表首版画面已完成或质量已通过。",
+    description: "按当前项目快照准备固定导演稿、时间资料、真实素材和采用参考。ready 场面须提供完整构图、连续发展、观看中心、OD 权限边界及每条参考的成片范围；设计文字直接摘自导演稿，程序核对原文一致。pending 场面可先交不完整结果。返回清单哈希、实际文件和逐场面缺口。",
     inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), brief_path: z.string().min(1),
       timing_plan_path: z.string().min(1), selected_scene_ids: z.array(z.string().min(1)).min(1),
       assets: z.array(z.object({ id: z.string().min(1), path: z.string().optional(), purpose: z.string().min(1),

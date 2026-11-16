@@ -1,0 +1,285 @@
+{
+  "说明": "摘自本片 Revision 73 的正式交接场面；只改写文件路径为相对路径，其余字段保留。",
+  "revision": 73,
+  "scene": {
+    "sceneId": "scene_be2e2934-d63f-48c3-93fe-bbebeb73f875",
+    "status": "ready",
+    "references": [
+      {
+        "kind": "creative",
+        "id": "130-c01",
+        "creativeCaseId": "130-c01",
+        "sourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+        "video": "../参考原片/130/video.mp4",
+        "startMs": 0,
+        "endMs": 2400,
+        "timeCoordinates": "original",
+        "purpose": "一轮真实素材主体接力，旧画面保持、新画面建立并保持、推进和接管。"
+      },
+      {
+        "kind": "creative",
+        "id": "134-c02",
+        "creativeCaseId": "134-c02",
+        "sourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+        "video": "../参考原片/134/video.mp4",
+        "startMs": 18600,
+        "endMs": 28400,
+        "timeCoordinates": "original",
+        "purpose": "数字与真实影像共同构图；不沿用未观察的运动细节。"
+      }
+    ],
+    "visualRoles": [
+      {
+        "role": "空翻机器人",
+        "referenceFunction": "真实动作与开场主体",
+        "usage": "实验室后空翻，保留头脚、蓝箱和落点",
+        "assets": [
+          {
+            "assetId": "asset_54bafc32-c0a2-4e90-99ed-5c5a1bd774c1",
+            "deliveredPath": "../assets/source/e92d979d5aa2138720f5.mp4",
+            "sourceHash": "e92d979d5aa2138720f5ebb15bb8376913855fb626c822ab41efe01f3b5e6720",
+            "sourceRanges": [
+              {
+                "startMs": 18000,
+                "endMs": 23500,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "汽车产线",
+        "referenceFunction": "真实生产与概率数字共构",
+        "usage": "原速跨语音边界承接假设和结果",
+        "assets": [
+          {
+            "assetId": "asset_3424e6c8-cc7a-40ec-a444-683108d50737",
+            "deliveredPath": "../assets/source/773cba4e18d9bda0bdcb.mp4",
+            "sourceHash": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+            "sourceRanges": [
+              {
+                "startMs": 0,
+                "endMs": 8367,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "黄色机械臂",
+        "referenceFunction": "固定工位及接管前旧主体",
+        "usage": "保留臂端、右侧设备和工位；新画面出现及推进时仍可辨",
+        "assets": [
+          {
+            "assetId": "asset_dc2caf08-7456-4577-89e9-517364b717f1",
+            "deliveredPath": "../assets/source/e1f2a8684b7a05eb7150.mp4",
+            "sourceHash": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+            "sourceRanges": [
+              {
+                "startMs": 0,
+                "endMs": 9000,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "白色机械臂",
+        "referenceFunction": "固定工作环境与工位关系",
+        "usage": "保留机械臂、夹具和右侧固定框架",
+        "assets": [
+          {
+            "assetId": "asset_03fe0c4e-877a-492d-b914-858dcc8320ac",
+            "deliveredPath": "../assets/source/faf6a40b0f52c079e02b.mp4",
+            "sourceHash": "faf6a40b0f52c079e02b6d0fa439ea260b54602491d12c74b19e9d8a81c505a5",
+            "sourceRanges": [
+              {
+                "startMs": 0,
+                "endMs": 8300,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "人形机器人",
+        "referenceFunction": "演示环境及从旧主体接管的新主体",
+        "usage": "独立新窗建立并保持，再推进接管；保留机器人、工件及料架关系",
+        "assets": [
+          {
+            "assetId": "asset_91d7724e-5463-4ffc-b3f6-8f16be293b63",
+            "deliveredPath": "../assets/source/2f4177008746b6d23937.mp4",
+            "sourceHash": "2f4177008746b6d2393720786c3f6a9a1ecea3b57a98119d973529a5a898fdae",
+            "sourceRanges": [
+              {
+                "startMs": 0,
+                "endMs": 6667,
+                "timeCoordinates": "asset"
+              },
+              {
+                "startMs": 14000,
+                "endMs": 26267,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "假设数字与问题短语",
+        "referenceFunction": "可读假设条件及工厂关注问题",
+        "usage": "与真实影像共同构图，不冒充素材实测；留出字幕安全区",
+        "assets": []
+      }
+    ],
+    "process": "空翻动作原速播放；标题让位于假设、单次 99%、相互独立，接汽车产线让连续 100 次和约 37% 与真实影像共同构图。",
+    "preserve": [
+      "素材主体与来源身份",
+      "130-c01 的旧主体保持、新画面建立并保持、推进及接管关系",
+      "素材源时间与原速"
+    ],
+    "adapt": [
+      "按实际语音微调重点文字出现时间"
+    ],
+    "visualPlan": {
+      "primaryRoles": [
+        "空翻机器人",
+        "汽车产线",
+        "黄色机械臂",
+        "白色机械臂",
+        "人形机器人",
+        "假设数字与问题短语"
+      ],
+      "referenceMappings": [
+        {
+          "referenceId": "130-c01",
+          "referenceKind": "creative",
+          "researchDecisionId": "creative_decision_c0fdc12a-2d2a-42cd-a15b-bf5ff04bfd15",
+          "startMs": 0,
+          "endMs": 2400,
+          "targetRole": "人形机器人",
+          "treatment": "黄色机械臂及工位保持时，人形机器人先以可辨识的独立窗口出现并保持，再推进接管。",
+          "preserveRelation": "旧主体仍在、新画面建立并保持、推进、新主体取得全画面。",
+          "targetRange": {
+            "startFrame": 1095,
+            "endFrame": 1135
+          }
+        },
+        {
+          "referenceId": "134-c02",
+          "referenceKind": "creative",
+          "researchDecisionId": "creative_decision_c0fdc12a-2d2a-42cd-a15b-bf5ff04bfd15",
+          "startMs": 18600,
+          "endMs": 28400,
+          "targetRole": "假设数字与问题短语",
+          "treatment": "假设条件和关键数字与持续运动的真实影像共同构图，数字不暗示画面中的机器人实测。",
+          "preserveRelation": "关键数字与影像形成可读的主次和整体构图；未核实的原片入场运动由本片原创。",
+          "targetRange": {
+            "startFrame": 60,
+            "endFrame": 311
+          }
+        }
+      ],
+      "composition": {
+        "opening": "真实后空翻机器人占画面主体，保留头脚、蓝箱和落点；标题在左上并为后续假设字组让位。",
+        "primarySubject": "空翻机器人",
+        "supportingSubjects": [
+          "汽车产线",
+          "黄色机械臂",
+          "白色机械臂",
+          "人形机器人",
+          "假设数字与问题短语"
+        ],
+        "spatialRelations": [
+          {
+            "roles": [
+              "空翻机器人",
+              "假设数字与问题短语"
+            ],
+            "relation": "假设条件和数字处于独立编辑空间，不标注在机器人身上，也不暗示画面为概率实测。"
+          },
+          {
+            "roles": [
+              "黄色机械臂",
+              "人形机器人"
+            ],
+            "relation": "旧机械臂及工位仍可辨时，新的人形机器人画面先独立出现并保持，再向新画面推进，最后由新画面接管；保持不同场地的边界。"
+          }
+        ],
+        "textAndGraphics": "深中性色与浅色中文统一美术，强调色只突出概率和关键问题；字幕由现有字幕轨负责，左右各留至少 5% 安全边距，底部约 180 像素留给普通字幕。",
+        "ending": "人形机器人及工件、料架共同留在画面中，以可能性语气收束，不宣称演示已普遍实现。"
+      },
+      "sequence": [
+        {
+          "purpose": "建立问题与假设",
+          "subjects": [
+            "空翻机器人",
+            "假设数字与问题短语"
+          ],
+          "action": "空翻动作原速播放；标题让位于假设、单次 99%、相互独立，接汽车产线让连续 100 次和约 37% 与真实影像共同构图。",
+          "retainedElements": [
+            "真实主体与假设条件"
+          ],
+          "transition": "空翻自然收势后接正在运动的汽车产线，字组跨镜延续。"
+        },
+        {
+          "purpose": "从概率进入生产与可靠性",
+          "subjects": [
+            "汽车产线",
+            "黄色机械臂",
+            "人形机器人",
+            "假设数字与问题短语"
+          ],
+          "action": "真实产线和不同工位接续，依讲述呈现可自动恢复或需要人工处理的条件；三个工厂关注问题依次建立并让位。",
+          "retainedElements": [
+            "不同来源的场地身份",
+            "现场主体及空间"
+          ],
+          "transition": "不同现场并列示意，不剪成同一次真实故障。"
+        },
+        {
+          "purpose": "说明固定机械臂和现有环境的差异",
+          "subjects": [
+            "白色机械臂",
+            "黄色机械臂",
+            "人形机器人",
+            "假设数字与问题短语"
+          ],
+          "action": "白色臂与工装建立固定工作环境；黄臂接续，新的人形画面先以独立窗口出现并保持，再推进接管，真实源视频持续原速运行。",
+          "retainedElements": [
+            "机械臂、臂端与工位",
+            "人形机器人、工件及货架",
+            "各自的源时钟"
+          ],
+          "transition": "新画面取得主体后保持机器人与货架，接住末段可能性表达。"
+        }
+      ],
+      "attentionPath": [
+        "后空翻真实动作",
+        "假设条件与连续成功结果",
+        "生产环境及异常处理",
+        "固定机械臂与工位",
+        "独立进入的人形机器人画面"
+      ],
+      "odBoundaries": {
+        "locked": [
+          "素材主体与来源身份",
+          "99% 为单次假设且各次独立，0.99 的 100 次方约 37%，不是素材实测",
+          "130-c01 的旧主体保持、新画面建立并保持、推进及接管关系",
+          "素材源时间与原速",
+          "不得生成真人或数字人口播",
+          "字幕走现有字幕轨"
+        ],
+        "adjustable": [
+          "在不遮挡主体和字幕前提下深化具体排版、局部位置、曲线、动画交叠和内部节奏",
+          "按实际语音微调重点文字出现时间"
+        ],
+        "escalation": "素材不支持主要动作、需要改变主体或创意关系时反馈原视觉作者；涉及事实或跨段关系由导演协调，不得静默替换。"
+      }
+    }
+  }
+}

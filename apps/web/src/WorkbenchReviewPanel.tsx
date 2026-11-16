@@ -1,10 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import type { EditorialQualityReview, EditorialReviewCategory, EditorialReviewFinding, EditorialReviewPass, EditorialReviewSeverity } from "@videocut/contracts";
+import type { EditorialQualityReview, EditorialReviewCategory, EditorialReviewFinding, EditorialReviewPass, EditorialReviewSeverity, ReferenceReviewRef } from "@videocut/contracts";
 import { api } from "./api";
 
 type Method = "frames" | "continuous_video" | "audio" | "audiovisual";
 type ObservationPayload = Parameters<typeof api.recordWorkbenchObservation>[1];
 type ObservationResult = Awaited<ReturnType<typeof api.recordWorkbenchObservation>>;
+type ReferenceDetails = { originalRelation: string; actualImplementation: string; difference: string; outcome: "" | "confirmed" | "issue" | "inconclusive"; impact: string };
+const emptyReferenceDetails = (): ReferenceDetails => ({ originalRelation: "", actualImplementation: "", difference: "", outcome: "", impact: "" });
+const referenceIdentity = (ref: ReferenceReviewRef): ReferenceReviewRef => ({ productionRunId: ref.productionRunId, decisionId: ref.decisionId,
+  sceneId: ref.sceneId, referenceKind: ref.referenceKind, referenceId: ref.referenceId, sourceSha256: ref.sourceSha256,
+  targetRole: ref.targetRole, startMs: ref.startMs, endMs: ref.endMs });
+const referenceKey = (ref: ReferenceReviewRef) => JSON.stringify(referenceIdentity(ref));
+const sameReference = (first: ReferenceReviewRef, second: ReferenceReviewRef) => first.sceneId === second.sceneId
+  && first.referenceKind === second.referenceKind && first.referenceId === second.referenceId && first.sourceSha256 === second.sourceSha256
+  && first.targetRole === second.targetRole && first.startMs === second.startMs && first.endMs === second.endMs;
 
 /** 审阅只记录明确声明的观察；播放和定位本身不产生结论。 */
 export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, revision, startFrame, endFrame, objectId, adoptionRefs, onLocate, onRecheck, onRepair }: {
@@ -28,6 +37,7 @@ export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, 
   const [comparedReferences, setComparedReferences] = useState(false);
   const [references, setReferences] = useState<import("@videocut/contracts").ReferenceReviewRef[]>([]);
   const [selectedReferences, setSelectedReferences] = useState<string[]>([]);
+  const [referenceDetails, setReferenceDetails] = useState<Record<string, ReferenceDetails>>({});
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const runId = useRef<string | undefined>(undefined);
@@ -40,15 +50,15 @@ export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, 
     void api.editorialReview(projectId, revision).then(value => { if (active) setReview(value); }).catch(error => { if (active) setMessage(error instanceof Error ? error.message : String(error)); });
     return () => { active = false; };
   }, [projectId, revision]);
+  useEffect(() => { setComparedReferences(false); setSelectedReferences([]); setReferences([]); setReferenceDetails({}); }, [projectId, revision]);
   useEffect(() => {
-    setComparedReferences(false); setSelectedReferences([]); setReferences([]);
     if (!productionRunId) return;
     let active = true;
     void api.productionStatus(projectId, productionRunId).then(status => {
       if (!active) return;
       const values = status.completion?.coordinationIssues.flatMap(issue => issue.referenceReview && issue.scope.kind === "frames"
         && issue.scope.startFrame < endFrame && issue.scope.endFrame > startFrame ? [issue.referenceReview] : []) ?? [];
-      setReferences([...new Map(values.map(ref => [JSON.stringify(ref), ref])).values()]);
+      setReferences([...new Map(values.map(ref => [referenceKey(ref), referenceIdentity(ref)])).values()]);
     }).catch(error => { if (active) setMessage(error instanceof Error ? error.message : String(error)); });
     return () => { active = false; };
   }, [projectId, productionRunId, revision, startFrame, endFrame, adoptionKey]);
@@ -56,16 +66,34 @@ export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, 
 
   const resolved = new Set(review?.resolutions?.map(entry => entry.findingId) ?? []);
   const open = (review?.findings ?? []).filter(entry => !resolved.has(entry.id));
+  const visibleReferences = [...new Map([...references, ...open.flatMap(finding => finding.referenceReview ? [referenceIdentity(finding.referenceReview)] : [])]
+    .map(ref => [referenceKey(ref), ref])).values()];
+  const prepareReferenceRecheck = (finding: EditorialReviewFinding) => {
+    if (!finding.referenceReview) return;
+    const ref = visibleReferences.find(item => sameReference(item, finding.referenceReview!)) ?? referenceIdentity(finding.referenceReview);
+    const key = referenceKey(ref);
+    setSelectedReferences([key]);
+    setReferenceDetails({ [key]: { ...emptyReferenceDetails(), originalRelation: finding.referenceReview.originalRelation ?? "" } });
+  };
   const save = async (mode: "observation" | "finding" | "resolution") => {
     if (!observer.trim() || !observation.trim() || endFrame <= startFrame) { setMessage("请填写观察者、实际观察与有效帧范围。"); return; }
     if (mode === "finding" && !impact.trim()) { setMessage("记录问题时请说明影响。"); return; }
     if (mode === "resolution" && !findingId) { setMessage("请先选择要复查的问题。"); return; }
+    if (selectedReferences.some(key => !referenceDetails[key]?.originalRelation.trim() || !referenceDetails[key]?.actualImplementation.trim()
+      || !referenceDetails[key]?.difference.trim() || !referenceDetails[key]?.outcome
+      || referenceDetails[key]?.outcome === "issue" && !referenceDetails[key]?.impact.trim())) {
+      setMessage("请逐条填写原片关系、本片实现、差异和结论；需要修复时说明影响。"); return;
+    }
     setBusy(true); setMessage("");
     try {
       const fields = {
         revision, pass, method, observer, observation, startFrame, endFrame,
-        ...(comparedReferences && !references.length ? { adoptionRefs } : {}),
-        ...(selectedReferences.length ? { referenceReviews: references.filter(ref => selectedReferences.includes(JSON.stringify(ref))) } : {}),
+        ...(comparedReferences && !visibleReferences.length ? { adoptionRefs } : {}),
+        ...(selectedReferences.length ? { referenceReviews: visibleReferences.filter(ref => selectedReferences.includes(referenceKey(ref)))
+          .map(ref => { const details = referenceDetails[referenceKey(ref)];
+            const finding = open.find(item => item.id === findingId && item.referenceReview && sameReference(item.referenceReview, ref));
+            return { ...referenceIdentity(ref), ...details, outcome: details.outcome as NonNullable<ReferenceReviewRef["outcome"]>,
+              impact: details.impact.trim() || undefined, ...(finding ? { findingId: finding.id } : {}) }; }) } : {}),
         ...(mode === "finding" ? { finding: { category, severity, summary: observation, impact, objectId } } : {})
       };
       const signature = JSON.stringify({ projectId, mode, fields, ...(mode === "resolution" ? { findingId, captionOnly } : {}) });
@@ -91,8 +119,8 @@ export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, 
       }
       await refresh();
       pending.current = undefined;
-      setMessage(mode === "resolution" ? "已保存观察并复查该问题。" : mode === "finding" ? "已记录问题，可交原负责人处理。" : "已保存实际观察。");
-      setObservation(""); setImpact("");
+      setMessage(mode === "resolution" ? "已保存观察并复查该问题。" : result.findingIds.length ? "已保存参考审阅并登记必修问题。" : mode === "finding" ? "已记录问题，可交原负责人处理。" : "已保存实际观察。");
+      setObservation(""); setImpact(""); setSelectedReferences([]); setReferenceDetails({});
     } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
     finally { setBusy(false); }
   };
@@ -116,18 +144,34 @@ export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, 
       </select></label>
     </div>
     <label>实际观察<textarea aria-label="实际观察" value={observation} onChange={event => setObservation(event.target.value)} /></label>
-    {references.map(ref => {
-      const key = JSON.stringify(ref);
-      return <label key={key}><input type="checkbox" checked={selectedReferences.includes(key)} onChange={event => setSelectedReferences(current =>
-        event.target.checked ? [...current, key] : current.filter(item => item !== key))} />
-        已对照 {ref.referenceId} · {ref.targetRole} · 原片 {ref.startMs}–{ref.endMs} 毫秒
-      </label>;
+    {visibleReferences.map(ref => {
+      const key = referenceKey(ref);
+      const selected = selectedReferences.includes(key);
+      const details = referenceDetails[key] ?? emptyReferenceDetails();
+      const update = (field: keyof ReferenceDetails, value: string) => setReferenceDetails(current => ({
+        ...current, [key]: { ...details, [field]: value }
+      }));
+      return <div key={key}>
+        <label><input type="checkbox" checked={selected} onChange={event => setSelectedReferences(current =>
+          event.target.checked ? [...current, key] : current.filter(item => item !== key))} />
+          已对照 {ref.referenceId} · {ref.targetRole} · 原片 {ref.startMs}–{ref.endMs} 毫秒
+        </label>
+        {selected && <>
+          <label>原片关系<textarea aria-label={`原片关系 ${ref.referenceId}`} value={details.originalRelation} onChange={event => update("originalRelation", event.target.value)} /></label>
+          <label>本片实现<textarea aria-label={`本片实现 ${ref.referenceId}`} value={details.actualImplementation} onChange={event => update("actualImplementation", event.target.value)} /></label>
+          <label>缺失或偏差<textarea aria-label={`缺失或偏差 ${ref.referenceId}`} value={details.difference} onChange={event => update("difference", event.target.value)} /></label>
+          <label>审阅结论<select aria-label={`审阅结论 ${ref.referenceId}`} value={details.outcome} onChange={event => update("outcome", event.target.value)}>
+            <option value="">选择结论</option><option value="confirmed">已实现</option><option value="issue">需要修复</option><option value="inconclusive">无法确认</option>
+          </select></label>
+          {details.outcome === "issue" && <label>问题影响<input aria-label={`问题影响 ${ref.referenceId}`} value={details.impact} onChange={event => update("impact", event.target.value)} /></label>}
+        </>}
+      </div>;
     })}
-    {!references.length && adoptionRefs.length === 1 && <label><input type="checkbox" checked={comparedReferences} onChange={event => setComparedReferences(event.target.checked)} />已对照本范围当前采用的参考</label>}
+    {!visibleReferences.length && adoptionRefs.length === 1 && <label><input type="checkbox" checked={comparedReferences} onChange={event => setComparedReferences(event.target.checked)} />已对照本范围当前采用的参考</label>}
     <label>问题影响（记录问题时填写）<input aria-label="问题影响" value={impact} onChange={event => setImpact(event.target.value)} /></label>
-    <div className="workbench-review-actions"><button disabled={busy} onClick={() => void save("observation")}>保存观察</button><button disabled={busy} onClick={() => void save("finding")}>记录问题</button></div>
+    <div className="workbench-review-actions"><button disabled={busy} onClick={() => void save("observation")}>{selectedReferences.length ? "保存参考审阅" : "保存观察"}</button>{!selectedReferences.length && <button disabled={busy} onClick={() => void save("finding")}>记录问题</button>}</div>
     {open.length > 0 && <>
-      <label>复查问题 <select aria-label="复查问题" value={findingId} onChange={event => setFindingId(event.target.value)}><option value="">选择问题</option>{open.map(finding => <option key={finding.id} value={finding.id}>R{finding.revision} · {finding.summary}</option>)}</select></label>
+      <label>复查问题 <select aria-label="复查问题" value={findingId} onChange={event => { setFindingId(event.target.value); const finding = open.find(item => item.id === event.target.value); if (finding) prepareReferenceRecheck(finding); }}><option value="">选择问题</option>{open.map(finding => <option key={finding.id} value={finding.id}>R{finding.revision} · {finding.summary}</option>)}</select></label>
       <label><input type="checkbox" checked={captionOnly} onChange={event => setCaptionOnly(event.target.checked)} />仅复查字幕文字单帧</label>
       <button disabled={busy || !findingId} onClick={() => void save("resolution")}>保存观察并关闭已解决问题</button>
     </>}
@@ -136,6 +180,7 @@ export function WorkbenchReviewPanel({ projectId, productionRunId, onRunChange, 
       try {
         await onRecheck(finding);
         setFindingId(finding.id); setPass(finding.pass);
+        prepareReferenceRecheck(finding);
         setMethod(finding.pass === "audio_only" ? "audio" : finding.pass === "mute_visual" ? "continuous_video" : "audiovisual");
         setCaptionOnly(false); setMessage("已定位本版复查范围；请实际检查后填写观察。");
       } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }

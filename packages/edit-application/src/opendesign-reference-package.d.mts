@@ -17,12 +17,18 @@ export interface ReferenceScene {
   visualRoles?: Array<{ role: string; referenceFunction: string; usage: string;
     assets: Array<{ assetId: string; deliveredPath: string; sourceHash: string; sourceRanges: Array<{ startMs: number; endMs: number }> }> }>;
   visualPlan?: {
-    primaryRoles: string[];
-    referenceMappings?: Array<{ referenceId: string; referenceKind?: "creative" | "motion"; researchDecisionId: string; startMs: number; endMs: number; targetRole: string; treatment: string; preserveRelation?: string; targetRange?: { startFrame: number; endFrame: number } }>;
+    primaryRoles?: string[];
+    referenceMappings?: Array<{ referenceId?: string; referenceKind?: "creative" | "motion"; researchDecisionId?: string; startMs?: number; endMs?: number; targetRole?: string; treatment?: string; preserveRelation?: string; targetRange?: { startFrame: number; endFrame: number } }>;
+    composition?: { opening?: string; primarySubject?: string; supportingSubjects?: string[];
+      spatialRelations?: Array<{ roles: string[]; relation: string }>; textAndGraphics?: string; ending?: string };
+    sequence?: Array<{ purpose?: string; subjects?: string[]; action?: string; retainedElements?: string[]; transition?: string }>;
+    attentionPath?: string[];
+    odBoundaries?: { locked?: string[]; adjustable?: string[]; escalation?: string };
   };
 }
 
 export function scopeReferenceManifest(manifest: ReferenceManifest, sceneIds: string[]): ReferenceManifest;
+export function assertVisualDesign(scenes: ReferenceScene[], briefText?: string): void;
 
 export interface ReferenceManifest {
   projectId: string;

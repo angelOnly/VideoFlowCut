@@ -174,7 +174,7 @@ try {
     await call("record_creative_decision", { project_id: context.projectId, run_id: context.runId, operation_id: input.operation_id, category: input.category ?? "visual",
       decision: input.decision, rationale: input.rationale, phase: input.phase, assignment_id: input.assignment.assignment_id,
       input_revision: input.assignment.input_revision, input_decision_ids: input.input_decision_ids, research_outcome: input.research_outcome,
-      research_references: input.research_references, object_ids: input.object_ids, evidence: input.evidence ?? [] });
+      research_coverage: input.research_coverage, research_references: input.research_references, object_ids: input.object_ids, evidence: input.evidence ?? [] });
     if (input.editorial_review) {
       await call("record_editorial_quality_review", { ...input.editorial_review, project_id: context.projectId, run_id: context.runId, operation_id: `${input.operation_id}-review`, revision: before.revision.number });
       await writeFile(`${contextPath}.quality.json`, JSON.stringify(await call("read_quality_report", { project_id: context.projectId }), null, 2));

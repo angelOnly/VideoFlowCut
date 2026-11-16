@@ -18,6 +18,7 @@ import { loadLibraryIndex } from "../references/motion-cases/skillry/tools/libra
 import { loadCreativeIndex } from "../references/motion-cases/skillry/tools/creative-library.mjs";
 import { motionFixture } from "./fixtures/managed-motion.js";
 import { motionHtml } from "./fixtures/hyperframes.js";
+import { directorBrief, visualPlan } from "./fixtures/visual-plan.mjs";
 
 function parse<T>(value: unknown): T {
   const result = value as { isError?: boolean; content: Array<{ type: string; text?: string }> };
@@ -72,7 +73,10 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.equal(app.readProject(projectId).snapshot.motionWorks?.length ?? 0, 0);
     const report = await app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: app.readProject(projectId).revision.number, intent: "local_edit", completionScope: { kind: "project" }, projectId, loadedSkills: ["production-coordinator"] });
     const brief = join(root, "brief.md"), timing = join(root, "timing.md");
-    await writeFile(brief, "完整连续画面及准确文字");
+    const scenePlan = { ...visualPlan("主体"), referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative", researchDecisionId: "research-fixture", startMs: 0, endMs: 9800,
+      targetRole: "主体", treatment: "真实主体接管", preserveRelation: "主体与文字共同变化", targetRange: { startFrame: 0, endFrame: 30 } }] };
+    const briefText = directorBrief(scenePlan);
+    await writeFile(brief, briefText);
     await writeFile(timing, "依据实际声音安排时间");
     await client.connect(transport);
     const libraryRoot = join(process.cwd(), "references", "motion-cases", "skillry");
@@ -87,13 +91,12 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
             startMs: 0, endMs: 9800, purpose: "参考画面组织" }],
             visualRoles: [{ role: "主体", referenceFunction: "连续变化", assetIds: [importedVideo.asset.id],
               sourceRanges: [{ startMs: 0, endMs: 1000 }], usage: "展示真实主体" }],
-            visualPlan: { primaryRoles: ["主体"],
-              referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative", researchDecisionId: "research-fixture", startMs: 0, endMs: 9800,
-                targetRole: "主体", treatment: "真实主体接管", preserveRelation: "主体与文字共同变化", targetRange: { startFrame: 0, endFrame: 30 } }] },
+            visualPlan: scenePlan,
             process: "主体出现、发展并接续", preserve: ["连续过程"], adapt: ["中文文字"] },
           { sceneId: pendingScene.id, status: "pending", references: [{ kind: "motion", id: "003-m01", sourceSha256: index.source_sha256,
             startMs: 0, endMs: 2080, purpose: "下一场机制" }], resourceIds: ["missing-art"],
-            visualRoles: [{ role: "主体", referenceFunction: "动作", assetIds: ["missing-b"], usage: "待获取" }] }
+            visualRoles: [{ role: "主体", referenceFunction: "动作", assetIds: ["missing-b"], usage: "待获取" }],
+            visualPlan: { composition: { opening: "初步画面" }, referenceMappings: [{ referenceId: "003-m01" }] } }
         ] }
     };
     const missingRangeRequest = JSON.parse(JSON.stringify(handoffRequest));
@@ -123,8 +126,8 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.ok(prepared.files.every(file => file.path.startsWith("handoffs/")));
     await writeFile(brief, "另一场面更新后的原始稿");
     const fixedBrief = prepared.files.find(file => file.path.endsWith("brief/visual-director-brief.md"))!;
-    assert.equal(await readFile(fixedBrief.localPath, "utf8"), "完整连续画面及准确文字");
-    await writeFile(brief, "完整连续画面及准确文字");
+    assert.equal(await readFile(fixedBrief.localPath, "utf8"), briefText);
+    await writeFile(brief, briefText);
 
     const delivery = { manifest_path: prepared.manifestPath, manifest_sha256: prepared.manifestSha256, scene_ids: [scene.id] };
     const initialReport = await app.readSkillExecutionReport({ projectId, runId: report.id });

@@ -41,7 +41,11 @@ OD 是第一版可播放画面的制作作者。视觉作者负责设计和专�
 
 主任务使用 `prepare_motion_handoff`，传当前 `base_revision_id`、`brief_path`、`timing_plan_path`、`selected_scene_ids`、创意与机制参考和 `scenes`。每个场面给 `sceneId、status、visualRoles、process、preserve、adapt`；采用参考放入 `references`，逐项提供 `kind`（`creative` 或 `motion`）、`id、sourceSha256、startMs、endMs、purpose`。其他按场面使用的声音、美术等资料在顶层 `references` 中声明，并以场面的 `resourceIds` 引用。画面对象写实际用途与 Asset ID；视频使用素材文件的本地范围。工具从项目收集引用的素材，也可在顶层 `assets` 指定来源或补充资料，并返回清单路径、哈希、文件及逐场面缺口。
 
-就绪场面在 `visualRoles` 写明对象、参考作用、具体用法和使用的 `assetIds`，没有素材时用空列表。照片、文字和图形可作为同一对象描述；视频填写相应 `sourceRanges`。同时提交 `visualPlan.primaryRoles` 和按实际采用逐条填写的 `referenceMappings`。每条映射写清 `researchDecisionId`、参考身份、原片 `startMs` 和 `endMs`、目标对象、处理方法、保留关系和场面内项目时间线半开帧范围 `targetRange`；整场采用也须填写整场范围。未就绪场面允许暂缺。参考的库来源指纹和实际文件哈希分别核对。
+就绪场面在 `visualRoles` 写明对象、参考作用、具体用法和使用的 `assetIds`，没有素材时用空列表。照片、文字和图形可作为同一对象描述；视频填写相应 `sourceRanges`。`visualPlan` 从导演稿原文摘录 `primaryRoles`、`composition`、`sequence`、`attentionPath` 和 `odBoundaries`，空间关系的 `roles` 引用已登记视觉角色。逐条填写采用的 `referenceMappings`，包括研究决定、参考身份、原片范围、目标角色、处理方法、保留关系和场面内项目时间线半开帧范围 `targetRange`。未就绪场面允许暂缺。导演稿更新后重新准备并采用交付；分别核对参考库指纹和实际文件哈希。
+
+采用的原片片段可位于同一研究决定已观察范围之内；同源连续观察可共同覆盖。场面参考与视觉映射中的采用片段保持一致。采用检查返回缺失区间或研究关联时，交原研究负责人和视觉作者核对，修订交付后再提交。
+
+`composition` 填 `opening、primarySubject、supportingSubjects、spatialRelations、textAndGraphics、ending`，空间关系每项填 `roles` 和 `relation`。`sequence` 按观看顺序填 `purpose、subjects、action、retainedElements、transition`；`attentionPath` 写观看中心变化，`odBoundaries` 填 `locked、adjustable、escalation`。允许为空的对象或可调整项明确使用空列表。设计文字和参考映射中的处理、保留关系须是导演稿中的原文，交付包固定全文和场面摘要并核对一致。
 
 主任务先以 `record_creative_decision` 的 `visual_design` 阶段引用候选交付清单。导演确认后，`adoption` 引用该视觉设计及同一 `delivery_ref` 的 `manifest_path、manifest_sha256、scene_ids`，主任务通过 `manage_visual_treatment` 的 `action=adopt` 一次写入相关计划、采用和该计划明确要求进入作品的素材，成功后新采用生效。采用时核对必需素材已在计划范围的交付中；制作启动传对应 `production_run_id` 和 `visual_treatment_ids`，连接器核对制作端真实文件、当前素材与采用稿后发送完整请求。候选登记期间原任务继续；在途换稿后的待协调作品按回执固定版本接回并沿原任务续修。
 
@@ -49,7 +53,7 @@ OD 是第一版可播放画面的制作作者。视觉作者负责设计和专�
 
 实际观看的范围和方式照实记录。只读卡片、分镜或部分抽帧时，记录尚未看清的动作和节奏，并继续补看对应过程。文件可读、作者实际观看与作品实现分别按真实情况说明。
 
-先按采用关系明确谁占据画面、谁保持、谁接管、文字与背景如何响应，以及从上一场接什么、向下一场留什么。结合实际素材和真实时钟，OD 制作第一版，决定局部取景、排印实现、路径、曲线及内部时序。把所用参考及范围、应交付的画幅和源码约定一并写进请求。
+先按采用关系明确谁占据画面、谁保持、谁接管、文字与背景如何响应，以及从上一场接什么、向下一场留什么。OD 结合实际素材和真实时钟按既定设计制作第一版，深化坐标、路径、曲线及内部时序。把所用参考及范围、应交付的画幅和源码约定一并写进请求。
 
 资料无法读取时返回具体文件。素材无法支持某项表现时，指出缺少的动作、画面或持续时间，交原视觉作者处理。指令与参考表现存在影响制作的冲突，或需要改变主要编排时，由创意与视觉共同更新简报。
 

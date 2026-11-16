@@ -7559,7 +7559,7 @@
     {
       "name": "prepare_motion_handoff",
       "title": "准备场面制作交付",
-      "description": "按当前项目快照准备固定导演稿、时间资料、真实素材和采用参考；从选中场面的 assetIds 自动收集项目素材，返回清单哈希、实际文件与逐场面缺口。ready 场面的每条参考映射必须提供场面内的非空成片半开帧范围 targetRange；pending 场面可暂缺。资料就绪不代表首版画面已完成或质量已通过。",
+      "description": "按当前项目快照准备固定导演稿、时间资料、真实素材和采用参考。ready 场面须提供完整构图、连续发展、观看中心、OD 权限边界及每条参考的成片范围；设计文字直接摘自导演稿，程序核对原文一致。pending 场面可先交不完整结果。返回清单哈希、实际文件和逐场面缺口。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7844,8 +7844,7 @@
                       "items": {
                         "type": "string",
                         "minLength": 1
-                      },
-                      "minItems": 1
+                      }
                     },
                     "referenceMappings": {
                       "type": "array",
@@ -7906,24 +7905,116 @@
                               "endFrame"
                             ],
                             "additionalProperties": false,
-                            "description": "ready 场面的每条采用参考必填：位于对应场面内的成片时间线半开帧范围；整场采用也须填写整场范围。pending 场面可暂缺"
+                            "description": "ready 场面的采用参考必填场面内成片半开帧范围；pending 场面可暂缺"
                           }
                         },
-                        "required": [
-                          "referenceId",
-                          "researchDecisionId",
-                          "startMs",
-                          "endMs",
-                          "targetRole",
-                          "treatment"
-                        ],
                         "additionalProperties": false
                       }
+                    },
+                    "composition": {
+                      "type": "object",
+                      "properties": {
+                        "opening": {
+                          "type": "string"
+                        },
+                        "primarySubject": {
+                          "type": "string"
+                        },
+                        "supportingSubjects": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "spatialRelations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "roles": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "relation": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "roles",
+                              "relation"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "textAndGraphics": {
+                          "type": "string"
+                        },
+                        "ending": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "sequence": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "purpose": {
+                            "type": "string"
+                          },
+                          "subjects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "action": {
+                            "type": "string"
+                          },
+                          "retainedElements": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "transition": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "attentionPath": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "odBoundaries": {
+                      "type": "object",
+                      "properties": {
+                        "locked": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "adjustable": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "escalation": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false
                     }
                   },
-                  "required": [
-                    "primaryRoles"
-                  ],
                   "additionalProperties": false
                 },
                 "process": {
@@ -12098,7 +12189,7 @@
     {
       "name": "record_creative_decision",
       "title": "记录创作判断",
-      "description": "持久化作者判断、真实分派、输入版本和上游决定。研究引用的 source_sha256 使用读卡结果顶层资料库指纹，不能填原片文件哈希；复看时按卡号、指纹和原片范围重新读卡。记录不通知作者，主任务须实际转交。",
+      "description": "持久化作者判断、真实分派、输入版本和上游决定。创意研究可先交接局部结果；完整新制和视觉重做的视觉或场面正式采用须引用固定交付及视觉设计，并核对整体视觉、场面构图和运动机制的研究覆盖与关键未决问题，不适用的层次须说明理由。研究引用的 source_sha256 使用读卡结果顶层资料库指纹。记录不通知作者，主任务须实际转交。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -12223,6 +12314,67 @@
               "not_applicable"
             ]
           },
+          "research_coverage": {
+            "type": "object",
+            "properties": {
+              "overall_visual": {
+                "type": "string",
+                "enum": [
+                  "covered",
+                  "not_applicable",
+                  "pending"
+                ]
+              },
+              "scene_composition": {
+                "type": "string",
+                "enum": [
+                  "covered",
+                  "not_applicable",
+                  "pending"
+                ]
+              },
+              "motion_mechanisms": {
+                "type": "string",
+                "enum": [
+                  "covered",
+                  "not_applicable",
+                  "pending"
+                ]
+              },
+              "not_applicable_reasons": {
+                "type": "object",
+                "properties": {
+                  "overall_visual": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "scene_composition": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "motion_mechanisms": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false
+              },
+              "blocking_questions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "required": [
+              "overall_visual",
+              "scene_composition",
+              "motion_mechanisms",
+              "blocking_questions"
+            ],
+            "additionalProperties": false
+          },
           "research_references": {
             "type": "array",
             "items": {
@@ -12328,7 +12480,7 @@
     {
       "name": "record_editorial_quality_review",
       "title": "记录真实审片结论",
-      "description": "记录实际工作台观察及问题，关联本次 ProductionRun、观察者、版本、范围和方式。关闭返修问题时引用结果版观察及问题 ID，历史观察对新版的适用范围由应用层计算。记录不改变视频 Revision。",
+      "description": "记录实际工作台观察及问题，关联本次 ProductionRun、观察者、版本、范围和方式。逐条参考对照填写原片关系、本片实现、差异和明确结论；issue 自动登记必修问题，复查需引用原 finding_id。记录不改变视频 Revision。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -12489,6 +12641,34 @@
                       "end_ms": {
                         "type": "number",
                         "exclusiveMinimum": 0
+                      },
+                      "original_relation": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "actual_implementation": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "difference": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "outcome": {
+                        "type": "string",
+                        "enum": [
+                          "confirmed",
+                          "issue",
+                          "inconclusive"
+                        ]
+                      },
+                      "impact": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "finding_id": {
+                        "type": "string",
+                        "minLength": 1
                       }
                     },
                     "required": [
@@ -12500,7 +12680,11 @@
                       "source_sha256",
                       "target_role",
                       "start_ms",
-                      "end_ms"
+                      "end_ms",
+                      "original_relation",
+                      "actual_implementation",
+                      "difference",
+                      "outcome"
                     ],
                     "additionalProperties": false
                   }
@@ -13067,7 +13251,7 @@
     {
       "name": "record_export_artifact_review",
       "title": "记录最终文件复核",
-      "description": "按实际观察追加固定文件审阅；同一操作编号安全重试，抽样观察不充当连续声画。",
+      "description": "按实际观察追加固定文件审阅；逐条参考对照填写原片关系、本片实现、差异和明确结论，issue 自动登记必修问题。同一操作编号安全重试，抽样观察不充当连续声画。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -13325,6 +13509,34 @@
                       "end_ms": {
                         "type": "number",
                         "exclusiveMinimum": 0
+                      },
+                      "original_relation": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "actual_implementation": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "difference": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "outcome": {
+                        "type": "string",
+                        "enum": [
+                          "confirmed",
+                          "issue",
+                          "inconclusive"
+                        ]
+                      },
+                      "impact": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "finding_id": {
+                        "type": "string",
+                        "minLength": 1
                       }
                     },
                     "required": [
@@ -13336,7 +13548,11 @@
                       "source_sha256",
                       "target_role",
                       "start_ms",
-                      "end_ms"
+                      "end_ms",
+                      "original_relation",
+                      "actual_implementation",
+                      "difference",
+                      "outcome"
                     ],
                     "additionalProperties": false
                   },

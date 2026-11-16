@@ -15,6 +15,7 @@ import { motionBundleHash } from "../packages/edit-application/src/motion-input.
 import { runMotionAuthoringJob } from "../apps/runtime/src/motion-authoring.js";
 import { createServer as createVfcServer } from "../apps/server/src/app.js";
 import { motionFixture } from "./fixtures/managed-motion.js";
+import { completeResearchCoverage, directorBrief, visualPlan } from "./fixtures/visual-plan.mjs";
 
 function frozenStage(endFrame: number) {
   const { source, ...work } = motionFixture;
@@ -111,10 +112,12 @@ test("候选登记不切换采用，正式采用在排队、传输和结果接�
         scope: { kind: "project" }, inputRevision: rev() } });
     const research = async (phase: "creative_research" | "motion_research") => (await app.recordCreativeDecision({ projectId, runId: run.id,
       operationId: randomUUID(), category: "visual", phase, assignmentId: "authors", inputRevision: rev(), objectIds: [a.id, b.id],
-      decision: "研究当前场面", rationale: "按本次素材判断", researchOutcome: "not_applicable", evidence: ["已检查候选"] })).creativeDecisions.at(-1)!;
+      decision: "研究当前场面", rationale: "按本次素材判断", researchOutcome: phase === "creative_research" ? "researched" : "not_applicable",
+      ...(phase === "creative_research" ? { researchCoverage: completeResearchCoverage } : {}), evidence: ["已检查候选并原创画面"] })).creativeDecisions.at(-1)!;
     const creative = await research("creative_research"), motion = await research("motion_research");
     const brief = join(root, "brief.md"), timing = join(root, "timing.md");
-    await writeFile(brief, "A 原始画面；B 原始画面。");
+    const visualBrief = directorBrief(visualPlan("主体"));
+    await writeFile(brief, `A 原始画面；B 原始画面。\n${visualBrief}`);
     await writeFile(timing, "A 与 B 的时间安排。");
     const prepare = async (sceneIds: string[]) => {
       const revision = rev(), output = join(root, randomUUID());
@@ -122,7 +125,7 @@ test("候选登记不切换采用，正式采用在排队、传输和结果接�
       const snapshotPath = join(output, "project-snapshot.json");
       await writeFile(snapshotPath, JSON.stringify(app.readProject(projectId)));
       const scene = (sceneId: string) => ({ sceneId, status: "ready", visualRoles: [{ role: "主体", referenceFunction: "连续发展", assetIds: [], usage: "原创主体" }],
-        visualPlan: { primaryRoles: ["主体"] }, process: "主体建立、发展并接续", preserve: ["主体关系"], adapt: ["细节"] });
+        visualPlan: visualPlan("主体"), process: "主体建立、发展并接续", preserve: ["主体关系"], adapt: ["细节"] });
       await prepareReferencePackage({ projectId, revision, projectSnapshot: snapshotPath, brief, timingPlan: timing, freezeInputs: true,
         deliveryPrefix: `handoffs/${randomUUID()}`, selectedSceneIds: sceneIds, scenes: sceneIds.map(scene) }, output);
       const manifestPath = join(output, "delivery-manifest.json");
@@ -149,7 +152,7 @@ test("候选登记不切换采用，正式采用在排队、传输和结果接�
       productionRunId: run.id, visualTreatmentIds: [treatmentId], idempotencyKey: key, target: target(sceneId, startFrame),
       openDesignRequest: { project: "isolated-od", prompt: "按已采用的场面制作", ...(continueFrom ? { continue_from_run_id: continueFrom } : {}) } });
     const queuedA = await start(a.id, treatmentA.id, "a-queued", 0);
-    await writeFile(brief, "A 原始画面；B 修改后的画面。");
+    await writeFile(brief, `A 原始画面；B 修改后的画面。\n${visualBrief}`);
     const bPack = await prepare([b.id]);
     const bManifest = JSON.parse(await readFile(bPack.deliveryRef.manifestPath, "utf8"));
     const bBrief = bManifest.files.find((file: any) => file.uses.some((use: any) => use.kind === "brief" && use.id === "brief"));
@@ -176,11 +179,11 @@ test("候选登记不切换采用，正式采用在排队、传输和结果接�
     await assert.rejects(runMotionAuthoringJob(app, queuedA, new AbortController().signal, endpoint), /MOTION_AUTHORING_OD_HTTP: 400/);
     assert.equal(starts, 1, "B 的修订和原稿移动不能阻挡 A 使用固定副本启动");
     const copied = files.find(file => file.path.endsWith("brief/visual-director-brief.md"))!;
-    assert.equal(await readFile(copied.localPath, "utf8"), "A 原始画面；B 原始画面。");
+    assert.equal(await readFile(copied.localPath, "utf8"), `A 原始画面；B 原始画面。\n${visualBrief}`);
     app.updateJob(queuedA.id, { status: "failed", result: {} });
 
     const queuedAgain = await start(a.id, treatmentA.id, "a-before-revision", 0);
-    await writeFile(brief, "A 修改后的画面；B 修改后的画面。");
+    await writeFile(brief, `A 修改后的画面；B 修改后的画面。\n${visualBrief}`);
     await writeFile(timing, "A 与 B 的时间安排。");
     const aPack = await prepare([a.id]);
     const b2Pack = await prepare([b.id]);

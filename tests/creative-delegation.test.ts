@@ -8,7 +8,8 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { getDefaultEnvironment, StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { createApplication } from "@videocut/application";
 import { createServer } from "../apps/server/src/app.js";
-import { evaluateProductionCoordination } from "../packages/edit-application/src/production-coordination.js";
+import { completeResearchCoverage, directorBrief, visualPlan } from "./fixtures/visual-plan.mjs";
+import { evaluateProductionCoordination, referenceResearchOwnerAccepted } from "../packages/edit-application/src/production-coordination.js";
 import { prepareReferencePackage } from "../packages/edit-application/src/opendesign-reference-package.mjs";
 import { motionFixture } from "./fixtures/managed-motion.js";
 import { motionHtml } from "./fixtures/hyperframes.js";
@@ -91,14 +92,14 @@ test("完整新制无需预排即可通过真实 MCP 提交导演采用", { time
     f.app.createScene({ projectId: f.projectId, baseRevision: f.revision(), type: "ExplainerScene", title: "尚未就绪的另一场", purpose: "不阻塞当前场面", startFrame: 24, endFrame: 48 });
     assert.equal(f.app.readProject(f.projectId).snapshot.motionWorks?.length ?? 0, 0);
     const brief = join(f.root, "brief.md"), timing = join(f.root, "timing.md");
-    await writeFile(brief, "当前场面的完整视觉方案"); await writeFile(timing, "实际时间安排");
+    await writeFile(brief, directorBrief(visualPlan("主体"))); await writeFile(timing, "实际时间安排");
     await client.connect(transport);
     const handoff = parse<{ inputRevision: number; manifestPath: string; manifestSha256: string; scenes: Array<{ status: string; diagnostics?: string[] }> }>(await client.callTool({
       name: "prepare_motion_handoff", arguments: { project_id: f.projectId, base_revision_id: f.revision(), brief_path: brief, timing_plan_path: timing,
         selected_scene_ids: [f.scene.id], assets: [{ id: f.assetId, purpose: "真实主体" }], scenes: [{ sceneId: f.scene.id, status: "ready",
           visualRoles: [{ role: "主体", referenceFunction: "连续组织", assetIds: [f.assetId], usage: "呈现真实主体" }],
           process: "主体建立、变化并接续", preserve: ["主体关系"], adapt: ["排版"],
-          visualPlan: { primaryRoles: ["主体"] } }] }
+          visualPlan: visualPlan("主体") }] }
     }) as never);
     assert.equal(handoff.scenes[0].status, "ready", JSON.stringify(handoff.scenes[0].diagnostics));
     const deliveryRef = { manifestPath: handoff.manifestPath, manifestSha256: handoff.manifestSha256, sceneIds: [f.scene.id] };
@@ -109,21 +110,30 @@ test("完整新制无需预排即可通过真实 MCP 提交导演采用", { time
         scope: { kind: "project" }, inputRevision: f.revision() } });
     const record = async (phase: "creative_research" | "motion_research" | "visual_design" | "adoption", options: {
       inputDecisionIds?: string[]; researchOutcome?: "pending" | "researched" | "not_applicable"; evidence?: string[]; delivery?: boolean;
+      researchCoverage?: typeof completeResearchCoverage;
       researchReferences?: Array<{ kind: "creative" | "motion"; id: string; sourceSha256: string }> } = {}) => {
       const result = (await f.app.recordCreativeDecision({ projectId: f.projectId, runId: f.run.id, operationId: randomUUID(), category: "visual",
         phase, assignmentId: "all", inputRevision: phase === "visual_design" ? handoff.inputRevision : f.revision(), objectIds: [f.scene.id], decision: phase, rationale: "按当前场面和实际研究判断",
-        inputDecisionIds: options.inputDecisionIds, researchOutcome: options.researchOutcome, researchReferences: options.researchReferences, evidence: options.evidence,
+        inputDecisionIds: options.inputDecisionIds, researchOutcome: options.researchOutcome, researchCoverage: options.researchCoverage, researchReferences: options.researchReferences, evidence: options.evidence,
         ...(phase === "visual_design" || options.delivery ? { deliveryRef } : {}) })).creativeDecisions.at(-1)!;
       return result;
     };
     await record("creative_research", { researchOutcome: "not_applicable" });
     const motion = await record("motion_research", { researchOutcome: "not_applicable", evidence: ["研究过相关机制，当前素材运动无需借用"] });
     const initialDesign = await record("visual_design");
-    const initialAdoption = await record("adoption", { inputDecisionIds: [initialDesign.id], delivery: true });
+    await assert.rejects(record("adoption", { inputDecisionIds: [initialDesign.id], delivery: true }), { code: "PRODUCTION_RESEARCH_INCOMPLETE" });
+    const untraceable = await record("creative_research", { researchOutcome: "researched" });
+    const untraceableDesign = await record("visual_design", { inputDecisionIds: [untraceable.id, motion.id] });
+    await assert.rejects(record("adoption", { inputDecisionIds: [untraceableDesign.id], delivery: true }), { code: "PRODUCTION_RESEARCH_INCOMPLETE" });
+    const creative = await record("creative_research", { researchOutcome: "researched", researchCoverage: completeResearchCoverage,
+      evidence: ["已研究相关原片，结合素材原创整体画面"], researchReferences: [{ kind: "creative", id: "001-c01", sourceSha256: creativeFingerprint }] });
+    const design = await record("visual_design", { inputDecisionIds: [creative.id, motion.id] });
+    await assert.rejects(record("adoption", { delivery: true }), { code: "PRODUCTION_RESEARCH_INCOMPLETE" });
+    const adopted = await record("adoption", { inputDecisionIds: [design.id], delivery: true });
     const updateTreatment = (decisionId: string, visualTreatmentId?: string) => f.app.manageVisualTreatment({ projectId: f.projectId, baseRevision: f.revision(),
       action: "upsert", visualTreatmentId, sceneId: f.scene.id, narrativeBeatId: beats[0]!.id, mode: "b_roll", intensity: "medium", primaryAttention: "主体", narrativePurpose: "解释",
       adoptedMaterialAssetIds: [f.assetId], adoptedDecisionRef: { productionRunId: f.run.id, decisionId } }).snapshot.visualTreatments[0];
-    const treatment = updateTreatment(initialAdoption.id);
+    const treatment = updateTreatment(adopted.id);
     const target = { action: "create_cue", sceneId: f.scene.id, layer: "fullscreen", startFrame: 0, endFrame: 24,
       sourceStartFrame: 0, sourceEndFrame: 24, coveredNarrativeBeatIds: [beats[0]!.id] as string[] | undefined, audioPolicy: "rebind_unchanged_events" };
     const start = (key: string, requestedTarget = target) => client.callTool({ name: "start_motion_authoring", arguments: { project_id: f.projectId, base_revision_id: f.revision(),
@@ -134,8 +144,6 @@ test("完整新制无需预排即可通过真实 MCP 提交导演采用", { time
     const pendingError = JSON.parse((pending.content as Array<{ text: string }>)[0].text);
     assert.ok(pendingError.issues.some((issue: { code: string }) => issue.code === "NARRATION_ASSIGNMENT_MISSING"));
     assert.ok(pendingError.issues.some((issue: { code: string }) => issue.code === "ASSET_ASSIGNMENT_MISSING"));
-    assert.ok(pendingError.issues.some((issue: { code: string }) => issue.code === "RESEARCH_PENDING"));
-    assert.ok(pendingError.issues.some((issue: { code: string }) => issue.code === "RESEARCH_NOT_CONSUMED"));
     assert.equal(pendingError.sideEffects, "none");
     assert.equal(f.app.repository.listJobs(f.projectId).filter(job => job.kind === "motion_authoring").length, 0);
 
@@ -145,24 +153,6 @@ test("完整新制无需预排即可通过真实 MCP 提交导演采用", { time
       assignment: { assignment_id: "narration-and-assets", agent_id: "/fixture/narration", responsibilities: ["narration", "asset_sourcing"],
         skill_ids: ["narration-writing", "visual-asset-sourcing"], scope: { kind: "project" }, input_revision: f.revision() } } }) as never);
 
-    const untraceable = await record("creative_research", { researchOutcome: "researched" });
-    const untraceableDesign = await record("visual_design", { inputDecisionIds: [untraceable.id, motion.id] });
-    const untraceableAdoption = await record("adoption", { inputDecisionIds: [untraceableDesign.id], delivery: true });
-    updateTreatment(untraceableAdoption.id, treatment.id);
-    const withoutSource = await start("research-without-source");
-    assert.equal(withoutSource.isError, true);
-    assert.ok(JSON.parse((withoutSource.content as Array<{ text: string }>)[0].text).issues.some((issue: { code: string }) =>
-      issue.code === "RESEARCH_PENDING" || issue.code === "RESEARCH_INPUT_PENDING"));
-    assert.equal(f.app.repository.listJobs(f.projectId).filter(job => job.kind === "motion_authoring").length, 0);
-
-    const creative = await record("creative_research", { researchOutcome: "not_applicable", evidence: ["已研究相关原片，当前场面没有适用关系"],
-      researchReferences: [{ kind: "creative", id: "001-c01", sourceSha256: creativeFingerprint }] });
-    const design = await record("visual_design", { inputDecisionIds: [creative.id, motion.id] });
-    const missingDesign = await record("adoption", { delivery: true });
-    assert.throws(() => updateTreatment(missingDesign.id, treatment.id), { code: "VISUAL_TREATMENT_ADOPTION_INVALID" });
-
-    const adopted = await record("adoption", { inputDecisionIds: [design.id], delivery: true });
-    updateTreatment(adopted.id, treatment.id);
     f.app.repository.commit(f.projectId, f.revision(), "修改当前内容", snapshot => { snapshot.story.beats.find(beat => beat.id === beats[0]!.id)!.title = "当前内容已变"; });
     const changedTarget = await start("changed-target");
     assert.equal(changedTarget.isError, true);
@@ -227,7 +217,7 @@ test("视觉采用必须追溯已接回研究，研究后未采用参考可以�
       const report = await f.app.recordCreativeDecision({ projectId: f.projectId, runId: f.run.id, operationId: randomUUID(), category: "visual",
         phase, assignmentId: "author", inputRevision: phase === "visual_design" && deliveryRef ? preparedRevision : f.revision(), objectIds: [f.scene.id], inputDecisionIds,
         ...(phase.endsWith("research") ? { researchOutcome: "researched" as const } : {}),
-        ...(phase === "creative_research" ? { researchReferences: [{ kind: "creative" as const, id: "001-c01", sourceSha256: creativeFingerprint, startMs: 0, endMs: 1000, observedRelation: "主体与文字共同变化" }] } : {}),
+        ...(phase === "creative_research" ? { researchCoverage: completeResearchCoverage, researchReferences: [{ kind: "creative" as const, id: "001-c01", sourceSha256: creativeFingerprint, startMs: 0, endMs: 1000, observedRelation: "主体与文字共同变化" }] } : {}),
         ...(phase === "motion_research" ? { researchReferences: [{ kind: "motion" as const, id: "001-m01", sourceSha256: motionFingerprint, startMs: 0, endMs: 1000, observedRelation: "主体接管画面" }] } : {}),
         decision: phase, rationale: "核对范围与资料", deliveryRef });
       return report.creativeDecisions.at(-1)!;
@@ -235,21 +225,22 @@ test("视觉采用必须追溯已接回研究，研究后未采用参考可以�
     const creative = await record("creative_research");
     const motion = await record("motion_research");
     const brief = join(f.root, "brief.md"), timing = join(f.root, "timing.md"), snapshotPath = join(f.root, "snapshot.json"), baseOutput = join(f.root, "base-handoff");
-    await writeFile(brief, "本场视觉设计");
+    await writeFile(brief, directorBrief(visualPlan("主体")) + "\n结合实际素材\n保持主体和文字的共同变化");
     await writeFile(timing, "本场时间安排");
     await writeFile(snapshotPath, JSON.stringify(f.app.readProject(f.projectId)));
     await prepareReferencePackage({ projectId: f.projectId, revision: preparedRevision, projectSnapshot: snapshotPath, brief, timingPlan: timing,
       freezeInputs: true, selectedSceneIds: [f.scene.id], scenes: [{ sceneId: f.scene.id, status: "ready",
         visualRoles: [{ role: "主体", referenceFunction: "连续变化", assetIds: [f.assetId], usage: "主体图片" }],
-        visualPlan: { primaryRoles: ["主体"] }, process: "主体建立并发展", preserve: ["主体"], adapt: ["细节"] }] }, baseOutput);
+        visualPlan: visualPlan("主体"), process: "主体建立并发展", preserve: ["主体"], adapt: ["细节"] }] }, baseOutput);
     const deliveryFor = async (scenes: unknown[]) => {
       const output = join(f.root, randomUUID());
       await cp(baseOutput, output, { recursive: true });
       const manifestPath = join(output, "delivery-manifest.json");
       const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
       manifest.packageRoot = output;
-      const visualRoles = manifest.scenes[0].visualRoles;
-      manifest.scenes = scenes.map((scene: any) => ({ ...scene, visualRoles }));
+      const baseScene = manifest.scenes[0];
+      manifest.scenes = scenes.map((scene: any) => ({ ...baseScene, ...scene, visualRoles: baseScene.visualRoles,
+        visualPlan: { ...baseScene.visualPlan, ...scene.visualPlan } }));
       const sceneFile = manifest.files.find((file: any) => file.uses.some((use: any) => use.kind === "brief" && use.id === "scenes"));
       const bytes = Buffer.from(JSON.stringify({ projectId: f.projectId, revision: preparedRevision, scenes: manifest.scenes }));
       await writeFile(join(output, sceneFile.deliveredPath), bytes);
@@ -260,44 +251,116 @@ test("视觉采用必须追溯已接回研究，研究后未采用参考可以�
       return { manifestPath, manifestSha256: createHash("sha256").update(manifestBytes).digest("hex"), sceneIds: [f.scene.id] };
     };
     const delivery = await deliveryFor([{ sceneId: f.scene.id, status: "ready", references: [] }]);
+    const beforeMissingDelivery = await f.app.readSkillExecutionReport({ projectId: f.projectId, runId: f.run.id });
+    await assert.rejects(record("adoption"), { code: "PRODUCTION_ADOPTION_DELIVERY_INVALID" }, "没有固定交付不能登记正式视觉采用");
+    await assert.rejects(f.app.recordCreativeDecision({ projectId: f.projectId, runId: f.run.id, operationId: "adopt-scene-without-delivery",
+      category: "scene", phase: "adoption", assignmentId: "author", inputRevision: f.revision(), objectIds: [f.scene.id],
+      decision: "采用场面", rationale: "验证交付检查" }), { code: "PRODUCTION_ADOPTION_DELIVERY_INVALID" });
+    assert.deepEqual(await f.app.readSkillExecutionReport({ projectId: f.projectId, runId: f.run.id }), beforeMissingDelivery, "拒绝采用不写入制作记录");
+    const audioDecision = await f.app.recordCreativeDecision({ projectId: f.projectId, runId: f.run.id, operationId: "adopt-audio-without-visual-delivery",
+      category: "audio", phase: "adoption", assignmentId: "author", inputRevision: f.revision(), objectIds: [f.scene.id],
+      decision: "采用声音方向", rationale: "无需视觉交付" });
+    assert.equal(audioDecision.creativeDecisions.at(-1)?.category, "audio", "其他类型判断不受视觉交付限制");
     const initialDesign = await record("visual_design", [], delivery);
-    const first = await record("adoption", [initialDesign.id], delivery);
-    const treatment = f.app.manageVisualTreatment({ projectId: f.projectId, baseRevision: f.revision(), action: "upsert", sceneId: f.scene.id,
-      mode: "b_roll", intensity: "medium", primaryAttention: "主体", narrativePurpose: "说明", adoptedMaterialAssetIds: [f.assetId], adoptedDecisionRef: { productionRunId: f.run.id, decisionId: first.id } }).snapshot.visualTreatments[0];
-    assert.ok((await evaluate()).some(issue => issue.code === "RESEARCH_NOT_CONSUMED"));
+    await assert.rejects(record("adoption", [initialDesign.id], delivery), { code: "PRODUCTION_RESEARCH_INCOMPLETE" });
     const revised = await record("visual_design", [creative.id, motion.id], delivery);
     const adopted = await record("adoption", [revised.id], delivery);
-    f.app.manageVisualTreatment({ projectId: f.projectId, baseRevision: f.revision(), action: "upsert", visualTreatmentId: treatment.id, sceneId: f.scene.id,
-      mode: "b_roll", intensity: "medium", primaryAttention: "主体", narrativePurpose: "说明", adoptedMaterialAssetIds: [f.assetId], adoptedDecisionRef: { productionRunId: f.run.id, decisionId: adopted.id } });
+    const treatment = f.app.manageVisualTreatment({ projectId: f.projectId, baseRevision: f.revision(), action: "upsert", sceneId: f.scene.id,
+      mode: "b_roll", intensity: "medium", primaryAttention: "主体", narrativePurpose: "说明", adoptedMaterialAssetIds: [f.assetId], adoptedDecisionRef: { productionRunId: f.run.id, decisionId: adopted.id } }).snapshot.visualTreatments[0];
     assert.deepEqual(await evaluate(), []);
     const incompleteDelivery = await deliveryFor([{ sceneId: f.scene.id, status: "ready",
       references: [{ kind: "creative", id: "unseen", sourceSha256: "b".repeat(64) }] }]);
     const incompleteDesign = await record("visual_design", [creative.id, motion.id], incompleteDelivery);
-    const incompleteAdoption = await record("adoption", [incompleteDesign.id], incompleteDelivery);
-    f.app.manageVisualTreatment({ projectId: f.projectId, baseRevision: f.revision(), action: "upsert", visualTreatmentId: treatment.id, sceneId: f.scene.id,
-      mode: "b_roll", intensity: "medium", primaryAttention: "主体", narrativePurpose: "说明", adoptedMaterialAssetIds: [f.assetId], adoptedDecisionRef: { productionRunId: f.run.id, decisionId: incompleteAdoption.id } });
-    const missingReference = await evaluate();
-    assert.ok(missingReference.some(issue => issue.code === "REFERENCE_MAPPING_MISSING"));
+    const beforeRejectedAdoption = await f.app.readSkillExecutionReport({ projectId: f.projectId, runId: f.run.id });
+    await assert.rejects(record("adoption", [incompleteDesign.id], incompleteDelivery), (error: any) =>
+      error.code === "PRODUCTION_REFERENCE_RESEARCH_INVALID" && error.issues.some((issue: any) => issue.code === "REFERENCE_MAPPING_MISSING"));
+    assert.equal((await f.app.readSkillExecutionReport({ projectId: f.projectId, runId: f.run.id })).creativeDecisions.length,
+      beforeRejectedAdoption.creativeDecisions.length, "被拒绝的采用不写入审计");
+    const reportPath = join(f.app.getProjectRoot(f.projectId), "reports", `production-run-${f.run.id}.json`);
+    const priorReport = await readFile(reportPath);
+    const historical = JSON.parse(priorReport.toString("utf8"));
+    historical.creativeDecisions.push({ ...adopted, id: "historical-invalid-adoption", inputDecisionIds: [incompleteDesign.id], deliveryRef: incompleteDelivery });
+    await writeFile(reportPath, JSON.stringify(historical));
+    try {
+      const revisionBefore = f.revision();
+      assert.throws(() => f.app.manageVisualTreatment({ projectId: f.projectId, baseRevision: revisionBefore, action: "upsert", visualTreatmentId: treatment.id,
+        sceneId: f.scene.id, mode: "b_roll", intensity: "medium", primaryAttention: "主体", narrativePurpose: "说明", adoptedMaterialAssetIds: [f.assetId],
+        adoptedDecisionRef: { productionRunId: f.run.id, decisionId: "historical-invalid-adoption" } }), { code: "PRODUCTION_REFERENCE_RESEARCH_INVALID" });
+      assert.equal(f.revision(), revisionBefore, "旧的无效采用不能通过 upsert 生效");
+    } finally { await writeFile(reportPath, priorReport); }
     const withReference = JSON.stringify({ scenes: [{ sceneId: f.scene.id, status: "ready",
       references: [{ kind: "creative", id: "001-c01", sourceSha256: creativeFingerprint, startMs: 0, endMs: 1000 }],
       visualRoles: [{ role: "主体" }],
-      visualPlan: { referenceMappings: [{ referenceId: "001-c01", referenceKind: "creative", researchDecisionId: creative.id, startMs: 0, endMs: 1000, targetRole: "主体", treatment: "结合实际素材", preserveRelation: "保持主体和文字的共同变化" }] } }] });
+      visualPlan: { referenceMappings: [{ referenceId: "001-c01", referenceKind: "creative", researchDecisionId: creative.id, startMs: 0, endMs: 1000, targetRole: "主体", treatment: "结合实际素材", preserveRelation: "保持主体和文字的共同变化", targetRange: { startFrame: 0, endFrame: 24 } }] } }] });
     const uncheckedRange = withReference.replaceAll('"startMs":0,"endMs":1000', '"startMs":1000,"endMs":2000');
     const uncheckedDelivery = await deliveryFor(JSON.parse(uncheckedRange).scenes);
     const uncheckedDesign = await record("visual_design", [creative.id, motion.id], uncheckedDelivery);
-    const uncheckedAdoption = await record("adoption", [uncheckedDesign.id], uncheckedDelivery);
-    f.app.manageVisualTreatment({ projectId: f.projectId, baseRevision: f.revision(), action: "upsert", visualTreatmentId: treatment.id, sceneId: f.scene.id,
-      mode: "b_roll", intensity: "medium", primaryAttention: "主体", narrativePurpose: "说明", adoptedMaterialAssetIds: [f.assetId], adoptedDecisionRef: { productionRunId: f.run.id, decisionId: uncheckedAdoption.id } });
-    assert.ok((await evaluate()).some(issue => issue.code === "REFERENCE_RESEARCH_UNLINKED"), "同一卡的另一段不能冒用已观察范围");
+    await assert.rejects(record("adoption", [uncheckedDesign.id], uncheckedDelivery), (error: any) =>
+      error.code === "PRODUCTION_REFERENCE_RESEARCH_INVALID" && error.issues.some((issue: any) => issue.code === "REFERENCE_RESEARCH_UNLINKED"),
+      "同一卡的另一段在正式采用前就要拒绝");
+    const transport = new StdioClientTransport({ command: process.execPath, args: ["--import", "tsx", "apps/server/src/mcp.ts"], cwd: process.cwd(),
+      env: { ...getDefaultEnvironment(), VIDEOCUT_WORKSPACE: f.root }, stderr: "pipe" });
+    const client = new Client({ name: "reference-adoption-contract", version: "1.0.0" });
+    try {
+      await client.connect(transport);
+      const rejected = await client.callTool({ name: "record_creative_decision", arguments: { project_id: f.projectId, run_id: f.run.id,
+        operation_id: "mcp-reject-uncovered-reference", category: "visual", phase: "adoption", assignment_id: "author", input_revision: f.revision(),
+        object_ids: [f.scene.id], input_decision_ids: [uncheckedDesign.id], decision: "采用", rationale: "验证缺失范围",
+        delivery_ref: { manifest_path: uncheckedDelivery.manifestPath, manifest_sha256: uncheckedDelivery.manifestSha256, scene_ids: uncheckedDelivery.sceneIds } } });
+      assert.equal(rejected.isError, true);
+      const diagnostic = JSON.parse((rejected.content as Array<{ text: string }>)[0].text);
+      assert.equal(diagnostic.sideEffects, "none");
+      assert.ok(diagnostic.issues.some((issue: any) => issue.code === "REFERENCE_RESEARCH_UNLINKED" && issue.message.includes("1000–2000")));
+    } finally { await client.close(); }
+    const subsetDelivery = await deliveryFor(JSON.parse(withReference.replaceAll('"startMs":0,"endMs":1000', '"startMs":200,"endMs":800')).scenes);
+    const subsetDesign = await record("visual_design", [creative.id, motion.id], subsetDelivery);
+    assert.ok((await record("adoption", [subsetDesign.id], subsetDelivery)).id, "已研究区间内的子片段可以采用");
     const referenceDelivery = await deliveryFor(JSON.parse(withReference).scenes);
     const referenceDesign = await record("visual_design", [creative.id, motion.id], referenceDelivery);
     const referenceAdoption = await record("adoption", [referenceDesign.id], referenceDelivery);
     f.app.manageVisualTreatment({ projectId: f.projectId, baseRevision: f.revision(), action: "upsert", visualTreatmentId: treatment.id, sceneId: f.scene.id,
       mode: "b_roll", intensity: "medium", primaryAttention: "主体", narrativePurpose: "说明", adoptedMaterialAssetIds: [f.assetId], adoptedDecisionRef: { productionRunId: f.run.id, decisionId: referenceAdoption.id } });
     assert.ok((await evaluate()).some(issue => issue.code === "REFERENCE_REVIEW_PENDING"));
+    const referenceReview = { productionRunId: f.run.id, decisionId: referenceAdoption.id,
+      sceneId: f.scene.id, referenceKind: "creative" as const, referenceId: "001-c01", sourceSha256: creativeFingerprint, targetRole: "主体", startMs: 0, endMs: 1000 };
+    await assert.rejects(f.app.recordEditorialQualityReview({ projectId: f.projectId, runId: f.run.id, revision: f.revision(), operationId: "reference-review-incomplete",
+      passes: ["mute_visual"], previewEvidence: [], findings: [], observations: [{ source: "workbench", observer: "测试作者", pass: "mute_visual", method: "continuous_video",
+        startFrame: 0, endFrame: 24, observation: "只登记参考身份", referenceReviews: [referenceReview] }] }), { code: "REFERENCE_REVIEW_DETAILS_REQUIRED" });
     await f.app.recordEditorialQualityReview({ projectId: f.projectId, runId: f.run.id, revision: f.revision(), operationId: "reference-review",
       passes: ["mute_visual"], previewEvidence: [], findings: [], observations: [{ source: "workbench", observer: "测试作者", pass: "mute_visual", method: "continuous_video",
-        startFrame: 0, endFrame: 24, observation: "测试声明：已对照", adoptionRefs: [{ productionRunId: f.run.id, decisionId: referenceAdoption.id }] }] });
+        startFrame: 0, endFrame: 24, observation: "测试声明：已对照", referenceReviews: [{ ...referenceReview,
+          originalRelation: "主体与文字共同变化", actualImplementation: "本片主体与文字接续", difference: "无", outcome: "confirmed" }] }] });
+    assert.deepEqual(await evaluate(), []);
+    await f.app.recordEditorialQualityReview({ projectId: f.projectId, runId: f.run.id, revision: f.revision(), operationId: "reference-later-unknown",
+      passes: ["mute_visual"], previewEvidence: [], findings: [], observations: [{ source: "workbench", observer: "测试作者", pass: "mute_visual", method: "continuous_video",
+        startFrame: 0, endFrame: 24, observation: "后续观察仍需确认", referenceReviews: [{ ...referenceReview,
+          originalRelation: "主体接管", actualImplementation: "暂不清楚", difference: "无法确认", outcome: "inconclusive" }] }] });
+    assert.ok((await evaluate()).some(issue => issue.code === "REFERENCE_REVIEW_PENDING"), "后续待核不能被旧通过覆盖");
+    const issueInput = { projectId: f.projectId, runId: f.run.id, revision: f.revision(), operationId: "reference-issue",
+      passes: ["mute_visual" as const], previewEvidence: [], findings: [], observations: [{ source: "workbench" as const, observer: "测试作者", pass: "mute_visual" as const,
+        method: "continuous_video" as const, startFrame: 0, endFrame: 24, observation: "连续观察发现窗口没有接管", referenceReviews: [{ ...referenceReview,
+          originalRelation: "主体接管", actualImplementation: "主体未放大", difference: "缺少接管", outcome: "issue" as const, impact: "核心关系缺失" }] }] };
+    const withIssue = await f.app.recordEditorialQualityReview(issueInput);
+    const finding = withIssue.editorialReview!.findings.find(item => item.referenceReview?.referenceId === referenceReview.referenceId)!;
+    assert.equal(finding.severity, "major");
+    assert.equal((await f.app.recordEditorialQualityReview(issueInput)).editorialReview!.findings.filter(item => item.id === finding.id).length, 1);
+    assert.ok(!(await evaluate()).some(issue => issue.code === "REFERENCE_REVIEW_PENDING"), "待修问题不重复生成参考待审");
+    const pendingStatus = await f.app.readProductionStatus(f.projectId, { runId: f.run.id });
+    const next = pendingStatus.completion?.nextActions?.find(action => action.relatedRefs.includes(finding.id));
+    assert.equal(next?.assignmentId, "author");
+    assert.equal(next?.referenceReview?.referenceId, referenceReview.referenceId);
+    const recheck = { ...issueInput, operationId: "reference-uncertain", observations: [{ ...issueInput.observations[0],
+      referenceReviews: [{ ...issueInput.observations[0].referenceReviews[0], outcome: "inconclusive" as const, findingId: finding.id }] }] };
+    const uncertain = await f.app.recordEditorialQualityReview(recheck);
+    const uncertainId = uncertain.editorialReview!.evidenceRecords!.at(-1)!.id;
+    await assert.rejects(f.app.recordEditorialQualityReview({ projectId: f.projectId, runId: f.run.id, revision: f.revision(), operationId: "reference-close-uncertain",
+      passes: ["mute_visual"], previewEvidence: [], findings: [], resolutions: [{ findingId: finding.id, evidenceIds: [uncertainId], note: "仍未看清" }] }),
+      { code: "REFERENCE_REVIEW_RESOLUTION_REQUIRED" });
+    const checked = await f.app.recordEditorialQualityReview({ ...recheck, operationId: "reference-confirmed", observations: [{ ...recheck.observations[0],
+      referenceReviews: [{ ...recheck.observations[0].referenceReviews[0], outcome: "confirmed" as const, actualImplementation: "主体已经接管", difference: "已修复" }] }] });
+    const checkedId = checked.editorialReview!.evidenceRecords!.at(-1)!.id;
+    await f.app.recordEditorialQualityReview({ projectId: f.projectId, runId: f.run.id, revision: f.revision(), operationId: "reference-close",
+      passes: ["mute_visual"], previewEvidence: [], findings: [], resolutions: [{ findingId: finding.id, evidenceIds: [checkedId], note: "已复查接管" }] });
     assert.deepEqual(await evaluate(), []);
     const beforeReplacement = await f.app.readSkillExecutionReport({ projectId: f.projectId, runId: f.run.id });
     await f.app.updateProductionRun({ projectId: f.projectId, runId: f.run.id, expectedAuditVersion: beforeReplacement.auditVersion, operationId: "replace-creative",
@@ -326,8 +389,8 @@ test("兼任分派只接替指定职责和范围，迟到研究需要当前负�
         responsibilities: ["creative_research"], skillIds: ["creative-sequence-design"], scope: { kind: "objects", objectIds: [f.scene.id] },
         inputRevision: f.revision(), supersedesAssignmentId: "original" } });
     const lateReport = await f.app.recordCreativeDecision({ projectId: f.projectId, runId: f.run.id, operationId: "late-result", category: "visual", phase: "creative_research",
-      assignmentId: "original", inputRevision: f.revision(), objectIds: [f.scene.id], researchOutcome: "researched",
-      researchReferences: [{ kind: "creative", id: "001-c01", sourceSha256: creativeFingerprint }], decision: "旧负责人迟到结果", rationale: "保留供接任者判断" });
+      assignmentId: "original", inputRevision: f.revision(), objectIds: [f.scene.id], researchOutcome: "researched", researchCoverage: completeResearchCoverage,
+      researchReferences: [{ kind: "creative", id: "001-c01", sourceSha256: creativeFingerprint, startMs: 0, endMs: 1000, observedRelation: "主体与文字共同变化" }], decision: "旧负责人迟到结果", rationale: "保留供接任者判断" });
     const report = await f.app.readSkillExecutionReport({ projectId: f.projectId, runId: f.run.id });
     const issues = await evaluateProductionCoordination({ report, snapshot: f.app.readProject(f.projectId).snapshot, scope: { kind: "project" },
       readRevision: revision => f.app.readProject(f.projectId, revision).snapshot });
@@ -336,15 +399,15 @@ test("兼任分派只接替指定职责和范围，迟到研究需要当前负�
     const late = lateReport.creativeDecisions.at(-1)!;
     const motionReport = await f.app.recordCreativeDecision({ projectId: f.projectId, runId: f.run.id, operationId: "motion-result", category: "visual",
       phase: "motion_research", assignmentId: "original", inputRevision: f.revision(), objectIds: [f.scene.id], researchOutcome: "researched",
-      researchReferences: [{ kind: "motion", id: "001-m01", sourceSha256: motionFingerprint }], decision: "机制研究", rationale: "测试接替链" });
+      researchReferences: [{ kind: "motion", id: "001-m01", sourceSha256: motionFingerprint }], evidence: ["已研究机制"], decision: "机制研究", rationale: "测试接替链" });
     const brief = join(f.root, "replacement-brief.md"), timing = join(f.root, "replacement-timing.md"), snapshot = join(f.root, "replacement-snapshot.json");
     const output = join(f.root, "replacement-handoff"), preparedRevision = f.revision();
-    await writeFile(brief, "实际画面"); await writeFile(timing, "时间安排");
+    await writeFile(brief, directorBrief(visualPlan("主体"))); await writeFile(timing, "时间安排");
     await writeFile(snapshot, JSON.stringify(f.app.readProject(f.projectId)));
     await prepareReferencePackage({ projectId: f.projectId, revision: preparedRevision, projectSnapshot: snapshot, brief, timingPlan: timing,
       freezeInputs: true, selectedSceneIds: [f.scene.id], scenes: [{ sceneId: f.scene.id, status: "ready",
         visualRoles: [{ role: "主体", referenceFunction: "展示主体", usage: "主体图片", assetIds: [f.assetId] }],
-        visualPlan: { primaryRoles: ["主体"] }, process: "建立并发展", preserve: ["主体"], adapt: ["细节"] }] }, output);
+        visualPlan: visualPlan("主体"), process: "建立并发展", preserve: ["主体"], adapt: ["细节"] }] }, output);
     const manifestPath = join(output, "delivery-manifest.json"), manifestBytes = await readFile(manifestPath);
     const deliveryRef = { manifestPath, manifestSha256: createHash("sha256").update(manifestBytes).digest("hex"), sceneIds: [f.scene.id] };
     const designReport = await f.app.recordCreativeDecision({ projectId: f.projectId, runId: f.run.id, operationId: "design-result", category: "visual",
@@ -385,6 +448,12 @@ test("同一场面内不同 Beat 的职责独立分派并按目标范围核对",
       readRevision: revision => f.app.readProject(f.projectId, revision).snapshot });
     assert.ok(issues.some(issue => issue.code === "RESEARCH_PENDING" && issue.assignmentId === "author-1"));
     assert.ok(!issues.some(issue => issue.assignmentId === "author-0"));
+    report = await f.app.recordCreativeDecision({ projectId: f.projectId, runId: f.run.id, operationId: "second-beat-research", category: "visual", phase: "creative_research",
+      assignmentId: "author-1", inputRevision: f.revision(), objectIds: [beats[1]!.id], researchOutcome: "researched", decision: "第二拍研究", rationale: "只覆盖第二拍" });
+    const second = report.creativeDecisions.at(-1)!;
+    const snapshot = f.app.readProject(f.projectId).snapshot;
+    assert.equal(referenceResearchOwnerAccepted(report, snapshot, snapshot.scenes.find(scene => scene.id === f.scene.id)!, undefined, second, "creative_research"), true,
+      "同场其他拍的先前分派不能覆盖当前研究的真实负责人");
   } finally { await f.close(); }
 });
 
@@ -469,10 +538,12 @@ test("真实 MCP 合同可接回研究，HTTP 与 MCP 返回同一待办", async
     assert.ok(!pending.completion.coordinationIssues.some((issue: { code: string; message: string }) => issue.code === "RESEARCH_NOT_CONSUMED" && issue.message.includes("创意研究")));
     const completeReport = await call("record_creative_decision", { project_id: f.projectId, run_id: run.id, operation_id: "mcp-research-complete", category: "visual",
       phase: "creative_research", assignment_id: "creative", input_revision: f.revision(), object_ids: [f.projectId], research_outcome: "researched",
+      research_coverage: { overall_visual: "covered", scene_composition: "covered", motion_mechanisms: "covered", blocking_questions: [] },
       research_references: [{ kind: "creative", id: "016-c01", source_sha256: creativeFingerprint, start_ms: 100.5, end_ms: 900.25, observed_relation: "主体切入小窗" }], decision: "研究已回传", rationale: "记录实际参考与比较" });
     const savedResearch = completeReport.creativeDecisions.find((entry: { operationId: string }) => entry.operationId === "mcp-research-complete");
     assert.deepEqual(savedResearch.researchReferences[0], { kind: "creative", id: "016-c01", sourceSha256: creativeFingerprint,
       startMs: 100.5, endMs: 900.25, observedRelation: "主体切入小窗" });
+    assert.deepEqual(savedResearch.researchCoverage, completeResearchCoverage);
     const mcp = await call("read_production_status", { project_id: f.projectId, run_id: run.id });
     const http = await server.inject({ method: "GET", url: `/api/projects/${f.projectId}/production-status?runId=${run.id}` });
     assert.equal(http.statusCode, 200, http.body);
@@ -595,18 +666,18 @@ test("两个采用参考必须分别复核并续接原作者", async () => {
     const baseDecision = { category: "visual", decision: "测试", rationale: "测试", objectIds: [f.scene.id],
       assignmentId: assignment.assignmentId, inputRevision: f.revision(), evidence: ["测试"], createdAt: new Date().toISOString() };
     report.creativeDecisions = [
-      { ...baseDecision, id: "creative", phase: "creative_research", researchOutcome: "researched", researchReferences: [
+      { ...baseDecision, id: "creative", phase: "creative_research", researchOutcome: "researched", researchCoverage: completeResearchCoverage, researchReferences: [
         { kind: "creative", id: "ref-a", sourceSha256: sourceHashA, startMs: 100, endMs: 900, observedRelation: "主体接管" },
         { kind: "creative", id: "ref-b", sourceSha256: sourceHashB, startMs: 200, endMs: 800, observedRelation: "持续运动" }] },
       { ...baseDecision, id: "motion", phase: "motion_research", researchOutcome: "not_applicable" },
-      { ...baseDecision, id: "design", phase: "visual_design", inputDecisionIds: ["creative", "motion"] },
+      { ...baseDecision, id: "design", phase: "visual_design", inputDecisionIds: ["creative", "motion"], deliveryRef },
       { ...baseDecision, id: "adoption", phase: "adoption", inputDecisionIds: ["design"], deliveryRef }
     ] as any;
     snapshot.visualTreatments.push({ id: "treatment", sceneId: f.scene.id, mode: "b_roll",
       adoptedDecisionRef: { productionRunId: report.id, decisionId: "adoption" } } as any);
     const ref = (referenceId: string, sourceSha256: string, startMs: number, endMs: number) => ({
       productionRunId: report.id, decisionId: "adoption", sceneId: f.scene.id, referenceKind: "creative" as const,
-      referenceId, sourceSha256, targetRole: "素材", startMs, endMs
+      referenceId, sourceSha256, targetRole: "素材", startMs, endMs, originalRelation: "参考主体运动", actualImplementation: "本片主体运动", difference: "无", outcome: "confirmed" as const
     });
     const evidence = (id: string, reference: ReturnType<typeof ref>) => ({ id, revision: f.revision(), source: "workbench" as const,
       pass: "mute_visual" as const, method: "continuous_video" as const, observer: "测试作者", observation: "实际对照声明",
@@ -623,6 +694,13 @@ test("两个采用参考必须分别复核并续接原作者", async () => {
     review.evidenceRecords.push(second);
     review.applicableEvidence.push({ evidenceId: second.id, targetRevision: f.revision(), startFrame: 0, endFrame: 24 });
     assert.equal((await evaluate()).filter(issue => issue.code === "REFERENCE_REVIEW_PENDING").length, 0);
+    const mixed = { ...first, id: "mixed", referenceReviews: [first.referenceReviews[0], { ...second.referenceReviews[0], outcome: "issue", impact: "核心关系缺失" }] };
+    const mixedReview = { ...review, evidenceRecords: [mixed], applicableEvidence: [{ evidenceId: mixed.id, targetRevision: f.revision(), startFrame: 0, endFrame: 24 }], findings: [] as any[] };
+    const mixedIssues = () => evaluateProductionCoordination({ report, snapshot, scope: { kind: "project" }, review: mixedReview as any, readRevision: () => snapshot, phase: "completion" });
+    assert.deepEqual((await mixedIssues()).filter(issue => issue.code === "REFERENCE_REVIEW_PENDING").map(issue => issue.referenceReview?.referenceId), ["ref-b"]);
+    mixedReview.findings.push({ id: "finding-b", revision: f.revision(), severity: "major", category: "motion", pass: "mute_visual",
+      summary: "缺少接管", evidence: "观察", impact: "核心关系缺失", frameRange: { startFrame: 0, endFrame: 24 }, referenceReview: mixed.referenceReviews[1] });
+    assert.equal((await mixedIssues()).filter(issue => issue.code === "REFERENCE_REVIEW_PENDING").length, 0, "待修参考由现有问题承接");
 
     // 历史清单未标目标范围时，仍按完整场面判断观察覆盖。
     first.endFrame = 12; review.applicableEvidence[0].endFrame = 12;
@@ -630,19 +708,30 @@ test("两个采用参考必须分别复核并续接原作者", async () => {
     first.endFrame = 24; review.applicableEvidence[0].endFrame = 24;
 
     // 同一卡的两段分别交接；其他问题 pending 不能阻止已有依据的关系。
-    const research = report.creativeDecisions.find(item => item.id === "creative")!;
+    const research = structuredClone(report.creativeDecisions.find(item => item.id === "creative")!);
+    research.id = "creative-local";
     research.researchOutcome = "pending";
-    research.researchReferences![1] = { kind: "creative", id: "ref-a", sourceSha256: sourceHashA,
-      startMs: 200, endMs: 800, observedRelation: "另一段窗口交接" };
+    research.researchReferences = [{ kind: "creative", id: "ref-a", sourceSha256: sourceHashA,
+      startMs: 200, endMs: 800, observedRelation: "另一段窗口交接" }];
     manifest.scenes[0].references[1] = { kind: "creative", id: "ref-a", sourceSha256: sourceHashA, startMs: 200, endMs: 800 };
     manifest.scenes[0].visualPlan.referenceMappings[1].referenceId = "ref-a";
+    manifest.scenes[0].visualPlan.referenceMappings[1].researchDecisionId = research.id;
+    report.creativeDecisions.push(research);
+    report.creativeDecisions.find(item => item.id === "design")!.inputDecisionIds!.push(research.id);
     const sameCardBytes = JSON.stringify(manifest);
     await writeFile(manifestPath, sameCardBytes);
     deliveryRef.manifestSha256 = createHash("sha256").update(sameCardBytes).digest("hex");
     const authoring = () => evaluateProductionCoordination({ report, snapshot, scope: { kind: "project" }, readRevision: () => snapshot, phase: "authoring" });
     const usable = await authoring();
     assert.ok(!usable.some(issue => ["RESEARCH_PENDING", "RESEARCH_INPUT_PENDING", "REFERENCE_RESEARCH_UNLINKED", "REFERENCE_MAPPING_MISSING"].includes(issue.code)), JSON.stringify(usable));
-    research.researchReferences![1].startMs = 300;
+    research.researchReferences![0].endMs = 500;
+    research.researchReferences!.push({ kind: "creative", id: "ref-a", sourceSha256: sourceHashA, startMs: 500, endMs: 800, observedRelation: "接续观察" });
+    assert.ok(!(await authoring()).some(issue => issue.code === "REFERENCE_RESEARCH_UNLINKED"), "同一研究决定的连续范围可以合并");
+    research.researchReferences![1].startMs = 501;
+    assert.ok((await authoring()).some(issue => issue.code === "REFERENCE_RESEARCH_UNLINKED" && issue.message.includes("500–501")));
+    research.researchReferences!.pop();
+    research.researchReferences![0].endMs = 800;
+    research.researchReferences![0].startMs = 300;
     const wrongRange = await authoring();
     assert.ok(wrongRange.some(issue => issue.code === "REFERENCE_RESEARCH_UNLINKED" && issue.message.includes("200–800")));
     Object.assign(manifest.scenes[0].visualPlan.referenceMappings[0], { targetRange: { startFrame: 0, endFrame: 12 } });
@@ -654,7 +743,7 @@ test("两个采用参考必须分别复核并续接原作者", async () => {
       readRevision: () => snapshot, phase: "authoring", targetRange: { startFrame, endFrame } });
     assert.ok(!(await targetIssues(0, 12)).some(issue => issue.code === "REFERENCE_RESEARCH_UNLINKED"));
     assert.ok((await targetIssues(12, 24)).some(issue => issue.code === "REFERENCE_RESEARCH_UNLINKED"));
-    research.researchReferences![1].startMs = 200;
+    research.researchReferences![0].startMs = 200;
     // 新清单按每条参考的实际目标范围分别核对，不要求各自覆盖整场。
     first.endFrame = 12; review.applicableEvidence[0].endFrame = 12;
     second.startFrame = 12; review.applicableEvidence[1].startFrame = 12;

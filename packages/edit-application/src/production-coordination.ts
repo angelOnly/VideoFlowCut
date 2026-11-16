@@ -1,11 +1,14 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import type { CreativeDecision, EditorialQualityReview, ProductionAssignment, ProductionCompletionScope, ProductionCoordinationIssue, ProjectSnapshot, SkillExecutionReport, VisualTreatment } from "@videocut/contracts";
-import { cueCoversBeat, hasVisualTreatmentImplementation, missingReviewRanges } from "../../quality-system/src/editorial-review.js";
+import { cueCoversBeat, hasVisualTreatmentImplementation, missingReviewRanges, openEditorialFindings } from "../../quality-system/src/editorial-review.js";
 import { compileVisualComposition, effectBeatRanges, rangesOverlap, resolveCompositionReachability } from "@videocut/domain";
 import { motionHandoffDependencyHash } from "./motion-adoption.js";
-import { sameVisualDelivery } from "./visual-design-revisions.js";
+import { sameVisualDelivery, visualDesignCovers } from "./visual-design-revisions.js";
 import { productionObservationRanges } from "./editorial-evidence.js";
+import type { ReferenceManifest, ReferenceScene } from "./opendesign-reference-package.mjs";
+import { sameReferenceReview } from "./reference-review.js";
+import { editorialResolutionRange } from "./editorial-range.js";
 
 type Scene = ProjectSnapshot["scenes"][number];
 
@@ -78,6 +81,102 @@ function decisionCovers(decision: CreativeDecision, projectId: string, scene: Sc
       : scene.narrativeBeatIds.some(id => decision.objectIds.includes(id)));
 }
 
+export function referenceResearchOwnerAccepted(report: SkillExecutionReport, snapshot: ProjectSnapshot, scene: Scene,
+  treatment: VisualTreatment | undefined, research: CreativeDecision, phase: "creative_research" | "motion_research", adoptionOperationId?: string): boolean {
+  const applies = (assignment: ProductionAssignment) => assignment.responsibilities.includes(phase)
+    && coversScene(snapshot, assignment.scope, scene, treatment);
+  const owners = report.assignments.filter(assignment => applies(assignment)
+    && !report.assignments.some(other => other.supersedesAssignmentId === assignment.assignmentId && applies(other)));
+  const adoptionOrder = report.operations.findIndex(operation => operation.id === adoptionOperationId);
+  return owners.some(current => {
+    let owner: ProductionAssignment | undefined = current;
+    while (owner) {
+      if (owner.assignmentId === research.assignmentId) return true;
+      const replacementOrder = report.operations.findIndex(operation => operation.id === owner!.operationId);
+      if (adoptionOrder < 0 || replacementOrder <= adoptionOrder) return false;
+      owner = report.assignments.find(item => item.assignmentId === owner!.supersedesAssignmentId);
+    }
+    return false;
+  });
+}
+
+const researchLevels = ["overallVisual", "sceneComposition", "motionMechanisms"] as const;
+
+function usableReference(reference: NonNullable<CreativeDecision["researchReferences"]>[number]): boolean {
+  return !!reference.id?.trim() && /^[a-f0-9]{64}$/u.test(reference.sourceSha256)
+    && Number.isFinite(reference.startMs) && Number.isFinite(reference.endMs)
+    && reference.startMs! >= 0 && reference.endMs! > reference.startMs! && !!reference.observedRelation?.trim();
+}
+
+/** 采用、制作和收口使用相同依据；同一研究决定内的连续观察可以共同覆盖采用范围。 */
+export function referenceResearchIssues(input: {
+  report: SkillExecutionReport;
+  snapshot: ProjectSnapshot;
+  scene: Scene;
+  delivered: ReferenceScene;
+  designs: CreativeDecision[];
+  treatment?: VisualTreatment;
+  targetRange?: { startFrame: number; endFrame: number };
+  accepted: (research: CreativeDecision, phase: "creative_research" | "motion_research") => boolean;
+}) {
+  const { report, snapshot, scene, delivered, designs, treatment } = input;
+  const issues: Array<{ code: "REFERENCE_MAPPING_MISSING" | "REFERENCE_RESEARCH_UNLINKED"; referenceId: string;
+    researchDecisionId?: string; phase: "creative_research" | "motion_research"; message: string; nextAction: string }> = [];
+  for (const reference of delivered.references ?? []) {
+    const phase = reference.kind === "creative" ? "creative_research" : "motion_research";
+    const mappings = (delivered.visualPlan?.referenceMappings ?? []).filter(item => item.referenceId === reference.id
+      && (!item.referenceKind || item.referenceKind === reference.kind) && item.startMs === reference.startMs && item.endMs === reference.endMs
+      && item.targetRole?.trim() && item.treatment?.trim() && item.preserveRelation?.trim()
+      && delivered.visualRoles?.some(role => role.role === item.targetRole));
+    if (!mappings.length) {
+      issues.push({ code: "REFERENCE_MAPPING_MISSING", referenceId: reference.id, phase,
+        message: `采用参考 ${reference.id} 缺少本场角色映射`, nextAction: "续接视觉作者补充实际素材与画面关系" });
+      continue;
+    }
+    for (const mapping of mappings) {
+      if (input.targetRange && mapping.targetRange && !rangesOverlap(mapping.targetRange, input.targetRange)) continue;
+      const research = report.creativeDecisions.find(item => item.id === mapping.researchDecisionId && item.phase === phase);
+      const linkedDesigns = research ? designs.filter(design => design.inputDecisionIds?.includes(research.id)) : [];
+      const covers = research && (decisionCovers(research, snapshot.project.id, scene, treatment)
+        || !treatment && snapshot.visualTreatments.some(item => (item.sceneId === scene.id || !!item.narrativeBeatId && scene.narrativeBeatIds.includes(item.narrativeBeatId))
+          && linkedDesigns.some(design => visualDesignCovers(snapshot, design, scene, item)) && decisionCovers(research, snapshot.project.id, scene, item)));
+      const accepted = research && input.accepted(research, phase);
+      const linked = research && linkedDesigns.length > 0 && covers && accepted && research.researchOutcome !== "not_applicable";
+      const ranges = linked ? (research.researchReferences ?? []).filter(source => source.kind === reference.kind && source.id === reference.id
+        && source.sourceSha256 === reference.sourceSha256 && usableReference(source))
+        .map(source => ({ startFrame: source.startMs!, endFrame: source.endMs! })) : [];
+      const missing = missingReviewRanges(ranges, reference.startMs, reference.endMs);
+      if (missing.length) {
+        const gap = missing.map(range => `${range.startFrame}–${range.endFrame}`).join("、");
+        const sameReference = research?.researchReferences?.some(source => source.kind === reference.kind && source.id === reference.id && usableReference(source));
+        const reason = !research ? "研究决定不存在或类型不符" : !linkedDesigns.length ? "研究决定未进入当前视觉设计"
+          : !covers ? "研究决定未覆盖当前场面" : !accepted ? "研究负责人尚未确认该结果"
+          : research.researchOutcome === "not_applicable" ? "该研究未采用参考" : !ranges.length && sameReference ? "参考来源指纹不一致"
+          : !ranges.length ? "没有对应参考的有效观察" : "研究范围未覆盖采用片段";
+        issues.push({ code: "REFERENCE_RESEARCH_UNLINKED", referenceId: reference.id, researchDecisionId: mapping.researchDecisionId, phase,
+          message: `采用参考 ${reference.id} 的 ${reference.startMs}–${reference.endMs} 毫秒未关联对应研究结果：${reason}；未覆盖 ${gap} 毫秒`,
+          nextAction: "续接原研究负责人核对或补看缺失范围，并由视觉作者关联实际研究决定" });
+      }
+    }
+  }
+  return issues;
+}
+
+/** 局部关系可以提前交接；正式采用另需整场研究覆盖。 */
+export function researchComplete(decision: CreativeDecision): boolean {
+  const hasEvidence = decision.evidence.some(item => item.trim());
+  if (decision.phase === "motion_research") {
+    return decision.researchOutcome === "not_applicable" ? hasEvidence
+      : decision.researchOutcome === "researched" && (hasEvidence || !!decision.researchReferences?.some(usableReference));
+  }
+  const coverage = decision.researchCoverage;
+  return decision.phase === "creative_research" && decision.researchOutcome === "researched" && !!coverage
+    && researchLevels.every(level => coverage[level] === "covered"
+      || coverage[level] === "not_applicable" && !!coverage.notApplicableReasons?.[level]?.trim())
+    && Array.isArray(coverage.blockingQuestions) && coverage.blockingQuestions.length === 0
+    && (hasEvidence || !!decision.researchReferences?.some(usableReference));
+}
+
 /** 状态由真实分派、当前采用链和审阅记录派生，保持未知与完成分开。 */
 export async function evaluateProductionCoordination(input: {
   report: SkillExecutionReport;
@@ -98,15 +197,6 @@ export async function evaluateProductionCoordination(input: {
   const composition = compileVisualComposition(snapshot, active);
   const primaryIds = new Set(composition.primaryCues.map(cue => cue.id));
   const labels = { director: "导演", narration: "文案", asset_sourcing: "素材", creative_research: "创意研究", visual_design: "视觉设计", motion_research: "动效机制研究", review: "审阅" } as const;
-  // 一项研究可以仍有待查问题；已看清的具体原片关系可独立交给下游。
-  const usableReference = (reference: NonNullable<CreativeDecision["researchReferences"]>[number]) =>
-    Number.isFinite(reference.startMs) && Number.isFinite(reference.endMs)
-    && reference.startMs! >= 0 && reference.endMs! > reference.startMs! && !!reference.observedRelation?.trim();
-  const completeResearch = (decision: CreativeDecision) =>
-    (decision.researchOutcome === "researched" || decision.researchOutcome === "pending")
-      && !!decision.researchReferences?.some(usableReference)
-    || decision.researchOutcome === "pending" && decision.evidence.some(item => item.trim())
-    || decision.researchOutcome === "not_applicable" && decision.evidence.some(item => item.trim());
   const add = (code: string, scene: Scene | undefined, state: ProductionCoordinationIssue["state"], message: string, nextAction: string, assignment?: ProductionAssignment, decisions: string[] = []) => {
     let target: ProductionCompletionScope = scope;
     if (scene && scope.kind === "project") target = { kind: "objects", objectIds: [scene.id] };
@@ -175,7 +265,7 @@ export async function evaluateProductionCoordination(input: {
     }
     for (const phase of ["creative_research", "motion_research"] as const) {
       const assignment = assignmentFor(phase);
-      const research = report.creativeDecisions.find(decision => decision.phase === phase && completeResearch(decision) && decision.assignmentId === assignment?.assignmentId
+      const research = report.creativeDecisions.find(decision => decision.phase === phase && researchComplete(decision) && decision.assignmentId === assignment?.assignmentId
         && (!scene ? decision.objectIds.includes(snapshot.project.id) : decisionCovers(decision, snapshot.project.id, scene)
           || treatments.some(item => decisionCovers(decision, snapshot.project.id, scene, item))));
       const priorAccepted = scene && treatments.length > 0 && treatments.every(treatment => {
@@ -184,7 +274,7 @@ export async function evaluateProductionCoordination(input: {
         return !!adoption && (adoption.inputDecisionIds ?? []).some(id => {
           const design = report.creativeDecisions.find(item => item.id === id && item.phase === "visual_design");
           return design?.inputDecisionIds?.some(researchId => report.creativeDecisions.some(item => item.id === researchId && item.phase === phase
-            && completeResearch(item) && decisionCovers(item, snapshot.project.id, scene, treatment) && acceptedFor(item, assignmentFor(phase, treatment), adoption)));
+            && researchComplete(item) && decisionCovers(item, snapshot.project.id, scene, treatment) && acceptedFor(item, assignmentFor(phase, treatment), adoption)));
         });
       });
       if (assignment && !research && !priorAccepted) add("RESEARCH_PENDING", scene, "pending", `${labels[phase]}尚未完成`, "续接研究负责人", assignment);
@@ -204,7 +294,7 @@ export async function evaluateProductionCoordination(input: {
           const linked = candidates.flatMap(design => (design.inputDecisionIds ?? []).map(id => report.creativeDecisions.find(item => item.id === id)))
             .filter((item): item is CreativeDecision => !!item && item.phase === phase && decisionCovers(item, snapshot.project.id, scene, treatment));
           if (candidates.length && !linked.length) add("RESEARCH_NOT_CONSUMED", scene, "pending", `视觉设计尚未关联${labels[phase]}结果`, "接回研究并续接视觉作者", assignmentFor(phase, treatment), candidates.map(item => item.id));
-          else if (linked.length && !linked.some(item => completeResearch(item) && acceptedFor(item, assignmentFor(phase, treatment)))) add("RESEARCH_INPUT_PENDING", scene, "pending", `视觉设计已接收${labels[phase]}结果，当前负责人仍需完成或确认`, "续接当前研究负责人和视觉作者", assignmentFor(phase, treatment), linked.map(item => item.id));
+          else if (linked.length && !linked.some(item => researchComplete(item) && acceptedFor(item, assignmentFor(phase, treatment)))) add("RESEARCH_INPUT_PENDING", scene, "pending", `视觉设计已接收${labels[phase]}结果，当前负责人仍需完成或确认`, "续接当前研究负责人和视觉作者", assignmentFor(phase, treatment), linked.map(item => item.id));
         }
         add("ADOPTION_PENDING", scene, "pending", "当前视觉计划尚未关联本次范围的导演采用", "接回设计并交导演判断", assignmentFor("director", treatment));
         continue;
@@ -238,7 +328,7 @@ export async function evaluateProductionCoordination(input: {
         const linked = designs.flatMap(design => (design.inputDecisionIds ?? []).map(id => report.creativeDecisions.find(item => item.id === id)))
           .filter((item): item is CreativeDecision => !!item && item.phase === phase && decisionCovers(item, snapshot.project.id, scene, treatment));
         if (!linked.length) add("RESEARCH_NOT_CONSUMED", scene, "pending", `当前视觉设计尚未关联${labels[phase]}结果`, "接回研究并续接视觉作者", assignmentFor(phase, treatment), designs.map(item => item.id));
-        else if (!linked.some(item => completeResearch(item) && acceptedFor(item, assignmentFor(phase, treatment), adoption))) add("RESEARCH_INPUT_PENDING", scene, "pending", `当前视觉设计已接收${labels[phase]}结果，当前负责人仍需完成或确认`, "续接当前研究负责人和视觉作者", assignmentFor(phase, treatment), linked.map(item => item.id));
+        else if (!linked.some(item => researchComplete(item) && acceptedFor(item, assignmentFor(phase, treatment), adoption))) add("RESEARCH_INPUT_PENDING", scene, "pending", `当前视觉设计已接收${labels[phase]}结果，当前负责人仍需完成或确认`, "续接当前研究负责人和视觉作者", assignmentFor(phase, treatment), linked.map(item => item.id));
       }
       for (const design of designs) {
         if (design.inputRevision === null || design.inputRevision === undefined) {
@@ -262,39 +352,33 @@ export async function evaluateProductionCoordination(input: {
       try {
         const bytes = await readFile(adoption.deliveryRef.manifestPath);
         if (createHash("sha256").update(bytes).digest("hex") !== adoption.deliveryRef.manifestSha256) throw new Error("hash");
-        const manifest = JSON.parse(bytes.toString("utf8")) as { projectId: string; selectedSceneIds?: string[]; scenes?: Array<{ sceneId: string;
-          references?: Array<{ kind: "creative" | "motion"; id: string; sourceSha256: string; startMs: number; endMs: number }>;
-          visualRoles?: Array<{ role: string }>;
-          visualPlan?: { referenceMappings?: Array<{ referenceId: string; referenceKind?: "creative" | "motion"; researchDecisionId: string; startMs: number; endMs: number; targetRole: string; treatment: string; preserveRelation?: string; targetRange?: { startFrame: number; endFrame: number } }> } }> };
+        const manifest = JSON.parse(bytes.toString("utf8")) as ReferenceManifest;
         const selected = manifest.scenes?.filter(item => adoption.deliveryRef!.sceneIds.includes(item.sceneId)) ?? [];
         const delivered = selected.find(item => item.sceneId === scene.id);
         if (manifest.projectId !== snapshot.project.id || !delivered || !manifest.selectedSceneIds
           || JSON.stringify([...manifest.selectedSceneIds].sort()) !== JSON.stringify([...adoption.deliveryRef.sceneIds].sort())) throw new Error("scene");
+        for (const issue of referenceResearchIssues({ report, snapshot, scene, delivered, designs, treatment,
+          targetRange: input.phase === "authoring" ? input.targetRange : undefined,
+          accepted: (research, phase) => acceptedFor(research, assignmentFor(phase, treatment), adoption) })) {
+          add(issue.code, scene, "missing", issue.message, issue.nextAction,
+            assignmentFor(issue.code === "REFERENCE_MAPPING_MISSING" ? "visual_design" : issue.phase, treatment),
+            [adoption.id, issue.researchDecisionId].filter((id): id is string => !!id));
+        }
         if (delivered.references?.length) {
           for (const reference of delivered.references) {
             const sceneMappings = (delivered.visualPlan?.referenceMappings ?? []).filter(item => item.referenceId === reference.id
               && (!item.referenceKind || item.referenceKind === reference.kind) && item.startMs === reference.startMs && item.endMs === reference.endMs
               && item.targetRole?.trim() && item.treatment?.trim() && item.preserveRelation?.trim()
               && delivered.visualRoles?.some(role => role.role === item.targetRole));
-            if (!sceneMappings.length) add("REFERENCE_MAPPING_MISSING", scene, "missing", `采用参考 ${reference.id} 缺少本场角色映射`, "续接视觉作者补充实际素材与画面关系", assignmentFor("visual_design", treatment), [adoption.id]);
             const mappings = input.phase === "authoring" && input.targetRange
               ? sceneMappings.filter(item => !item.targetRange || rangesOverlap(item.targetRange, input.targetRange!)) : sceneMappings;
             if (sceneMappings.length && !mappings.length) continue;
-            for (const mapping of mappings) {
-              const phase = reference.kind === "creative" ? "creative_research" : "motion_research";
-              const research = report.creativeDecisions.find(item => item.id === mapping.researchDecisionId && item.phase === phase);
-              const studied = research && designs.some(design => design.inputDecisionIds?.includes(research.id))
-                && decisionCovers(research, snapshot.project.id, scene, treatment)
-                && acceptedFor(research, assignmentFor(phase, treatment), adoption)
-                && research.researchOutcome !== "not_applicable"
-                && research.researchReferences?.some(source => source.kind === reference.kind && source.id === reference.id
-                  && source.sourceSha256 === reference.sourceSha256 && source.startMs === mapping.startMs && source.endMs === mapping.endMs
-                  && usableReference(source));
-              if (!studied) add("REFERENCE_RESEARCH_UNLINKED", scene, "missing", `采用参考 ${reference.id} 的 ${reference.startMs}–${reference.endMs} 毫秒未关联对应研究结果`,
-                "续接原研究负责人核对该原片区间，并由视觉作者关联实际研究决定", assignmentFor(phase, treatment), [adoption.id, mapping.researchDecisionId].filter(Boolean));
-            }
             if (input.phase === "authoring") continue;
             for (const mapping of mappings) {
+              if (!mapping.targetRole) continue;
+              const targetReference = { productionRunId: report.id, decisionId: adoption.id, sceneId: scene.id,
+                referenceKind: reference.kind, referenceId: reference.id, sourceSha256: reference.sourceSha256,
+                targetRole: mapping.targetRole, startMs: reference.startMs, endMs: reference.endMs };
               const targetRanges = productionObservationRanges(snapshot, scope).map(range => ({
                 startFrame: Math.max(range.startFrame, scene.startFrame, mapping.targetRange?.startFrame ?? scene.startFrame),
                 endFrame: Math.min(range.endFrame, scene.endFrame, mapping.targetRange?.endFrame ?? scene.endFrame)
@@ -303,14 +387,20 @@ export async function evaluateProductionCoordination(input: {
                 (item.source === "workbench" || item.source === "artifact")
                 && (item.method === "continuous_video" || item.method === "audiovisual")
                 && (item.referenceReviews?.some(ref => ref.productionRunId === report.id && ref.decisionId === adoption.id
-                  && ref.sceneId === scene.id && ref.referenceKind === reference.kind && ref.referenceId === reference.id
-                  && ref.sourceSha256 === reference.sourceSha256 && ref.targetRole === mapping.targetRole
-                  && ref.startMs === reference.startMs && ref.endMs === reference.endMs)
-                  || delivered.references!.length === 1 && mappings.length === 1 && !item.referenceReviews?.length
-                    && item.source === "workbench" && item.adoptionRefs?.some(ref => ref.productionRunId === report.id && ref.decisionId === adoption.id)));
-              const evidenceIds = new Set(evidence.map(item => item.id));
-              const observed = (review?.applicableEvidence ?? []).filter(item => evidenceIds.has(item.evidenceId));
-              const missing = targetRanges.flatMap(range => missingReviewRanges(observed, range.startFrame, range.endFrame));
+                  && sameReferenceReview(ref, targetReference))));
+              const events = evidence.flatMap(item => (review?.applicableEvidence ?? []).filter(part => part.evidenceId === item.id)
+                .map(part => ({ ...part, recordedAt: item.recordedAt,
+                  outcome: item.referenceReviews!.find(ref => ref.productionRunId === report.id && ref.decisionId === adoption.id
+                    && sameReferenceReview(ref, targetReference))?.outcome })))
+                .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
+              // 后来的待核或问题观察覆盖旧通过；未关闭的问题由返修待办承接。
+              const confirmed = events.flatMap((event, index) => event.outcome === "confirmed"
+                ? missingReviewRanges(events.slice(index + 1).filter(later => later.outcome !== "confirmed"), event.startFrame, event.endFrame) : []);
+              const open = openEditorialFindings(review).filter(finding => finding.referenceReview && sameReferenceReview(finding.referenceReview, targetReference))
+                .map(finding => finding.revision !== undefined && review?.revision !== undefined && finding.revision !== review.revision
+                  ? editorialResolutionRange(finding, input.readRevision(finding.revision), snapshot)
+                  : finding.frameRange ?? { startFrame: scene.startFrame, endFrame: scene.endFrame });
+              const missing = targetRanges.flatMap(range => missingReviewRanges([...confirmed, ...open], range.startFrame, range.endFrame));
               for (const gap of missing) {
                 add("REFERENCE_REVIEW_PENDING", scene, "pending", `参考 ${reference.id} 的 ${mapping.targetRole} 尚无覆盖 ${gap.startFrame}–${gap.endFrame} 的对照观察`,
                   "续接原参考作者和视觉作者，对照原片及成片后记录实际结果",
@@ -318,9 +408,7 @@ export async function evaluateProductionCoordination(input: {
                 const issue = issues[issues.length - 1];
                 issue.scope = { kind: "frames", startFrame: gap.startFrame, endFrame: gap.endFrame };
                 issue.relatedObjectIds.push(reference.id);
-                issue.referenceReview = { productionRunId: report.id, decisionId: adoption.id, sceneId: scene.id,
-                  referenceKind: reference.kind, referenceId: reference.id, sourceSha256: reference.sourceSha256,
-                  targetRole: mapping.targetRole, startMs: reference.startMs, endMs: reference.endMs };
+                issue.referenceReview = targetReference;
               }
             }
           }

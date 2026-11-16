@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>机器人都能后空翻了，为啥不能进工厂？</title>
+<style>
+:root{--ink:#121a20;--paper:#f5f7f8;--muted:#b8c4cb;--accent:#e5f277;--rule:#56636c;--display:176px;--title:64px;--heading:48px;--body:36px;--small:28px;--leading:1.36;--edge:96px}
+*{box-sizing:border-box}html,body{margin:0;width:1920px;height:1080px;background:var(--ink);color:var(--paper)}body{font-family:var(--vfc-font-body),"Noto Sans SC",sans-serif;font-weight:400}#film{position:relative;width:1920px;height:1080px;overflow:hidden;background:var(--ink)}.plane{position:absolute;left:0;top:0;width:1920px;height:1080px}.foot{position:absolute;left:0;top:900px;width:1920px;height:180px;background:var(--ink)}.video{position:absolute;left:0;top:0;width:1920px;height:1080px;object-fit:contain;transform-origin:0 0}.copy{position:absolute;margin:0;font-family:var(--vfc-font-title),"Noto Sans SC",sans-serif;font-weight:700;line-height:var(--leading);letter-spacing:0}.muted{color:var(--muted)}.accent{color:var(--accent)}.rail{position:absolute;left:64px;top:184px;width:320px;display:flex;flex-direction:column;gap:24px}.eyebrow{font-size:var(--small);line-height:1.5}.number{font-family:var(--vfc-font-title),"Noto Sans SC",sans-serif;font-size:var(--display);font-weight:700;line-height:1.05;letter-spacing:-.025em;white-space:nowrap}.number .unit{font-size:96px;letter-spacing:0}.opener{left:96px;top:64px;width:880px;font-size:var(--title);text-shadow:0 3px 16px #000,0 1px 4px #000}.hypothesis{position:absolute;left:0;top:0;width:416px;height:900px;background:var(--ink)}#independent{left:64px;top:452px;width:320px;font-size:40px}#not-measured{left:64px;top:748px;width:320px;font-size:var(--small);line-height:1.5}#trial-count{left:64px;top:192px;width:336px;font-size:48px}#result{left:56px;top:352px;width:352px}#result .about{font-size:40px;display:block;margin-bottom:24px;letter-spacing:0}#formula{left:512px;top:840px;width:1160px;font-size:48px;line-height:1.2;white-space:nowrap}#formula sup{font-size:.58em;vertical-align:super}#assumption-compact{left:64px;top:92px;width:328px;font-size:30px;line-height:1.6}#rule-probability{position:absolute;left:64px;top:676px;width:288px;height:2px;background:var(--rule)}#production-note{left:1584px;top:112px;width:272px;font-size:44px}#production-limit{left:1584px;top:684px;width:256px;font-size:28px;line-height:1.5}
+.shot{position:absolute;aspect-ratio:16/9;transform-origin:0 0}.shot>.video{width:100%;height:100%}.side-copy{position:absolute;left:64px;width:288px}.section-heading{font-size:var(--heading)}.section-small{font-size:var(--small);line-height:1.5}.question{font-size:var(--body);line-height:1.5}.divider{position:absolute;height:2px;background:var(--rule)}.question-index{display:block;font-family:var(--vfc-font-body),sans-serif;font-size:var(--small);color:var(--muted);line-height:1.5;margin-bottom:8px}.relation{position:absolute;left:64px;width:288px;display:flex;align-items:center;gap:16px;font-size:var(--body)}.relation-mark{width:32px;height:2px;background:var(--accent);flex:none}.context-note{font-size:var(--small);line-height:1.5}.right-copy{left:1504px;width:320px}#yellow-a-shot{left:0;top:32px;width:1440px;height:810px}#humanoid-a-shot,#white-shot{left:384px;top:16px;width:1536px;height:864px}#yellow-b-shot{left:96px;top:112px;width:1248px;height:702px}#handoff-incoming{left:1376px;top:112px;width:448px;height:252px;z-index:5;outline:2px solid var(--muted);outline-offset:0}#handoff-ground{position:absolute;left:1344px;top:0;width:576px;height:900px;background:var(--ink)}#handoff-axis{position:absolute;left:1344px;top:64px;width:2px;height:772px;background:var(--rule)}#yellow-b-caption{left:96px;top:32px;width:1248px;font-size:40px}#yellow-b-baseline{left:96px;top:848px;width:1248px}#incoming-label{left:1376px;top:400px;width:448px;font-size:var(--body)}#handoff-potential{left:1376px;top:584px;width:448px;font-size:var(--heading)}#reuse-heading{left:64px;top:96px;width:352px;font-size:var(--heading)}#reuse-path{left:64px;top:272px;width:352px;font-size:var(--body)}#reuse-tools{left:64px;top:384px;width:352px;font-size:var(--body)}#reuse-opportunity{left:64px;top:576px;width:352px;font-size:var(--body)}#demo-limit{left:64px;top:768px;width:352px;font-size:var(--small);line-height:1.5}#future-heading{left:64px;top:128px;width:352px;font-size:var(--heading)}#future-copy{left:64px;top:256px;width:352px;font-size:var(--body);line-height:1.5}#future-rule{left:64px;top:480px;width:288px}
+</style></head><body>
+<main id="film" data-composition-id="robot_factory" data-start="0" data-duration="48.766666666666666" data-width="1920" data-height="1080" data-fps="30" aria-label="机器人进工厂：真实素材与假设概率解释">
+<div class="plane" id="probability-plane">
+<img id="video-flip" class="video" data-vfc-video-slot="flip" alt="实验室机器人从蓝箱后空翻并落地，完整原画幅">
+<img id="video-car" class="video" data-vfc-video-slot="car" alt="另一来源的汽车产线，机械臂与车身持续运行">
+<div id="hypothesis-ground" class="hypothesis"></div>
+<h1 id="opening-title" class="copy opener">机器人都能后空翻了，<br>为啥不能进工厂？</h1>
+<div id="single" class="rail"><span class="eyebrow muted">假设 · 单次成功率</span><span class="number accent">99<span class="unit">%</span></span></div>
+<p id="independent" class="copy">每次结果<br><span class="accent">相互独立</span></p>
+<p id="assumption-compact" class="copy muted">假设：单次 99%<br>每次结果相互独立</p>
+<div id="trial-count" class="copy"><span class="eyebrow muted" style="display:block">连续完成</span><span class="number accent">100<span class="unit">次</span></span></div>
+<p id="all-success" class="copy" style="left:1328px;top:496px;width:496px;font-size:40px">全部成功的概率？</p>
+<div id="result" class="copy number accent"><span class="about">大约只有</span>37<span class="unit">%</span></div>
+<div id="rule-probability"></div>
+<p id="formula" class="copy">0.99<sup>100</sup><span id="formula-answer"> <span class="muted">≈</span> <span class="accent">37%</span></span></p>
+<p id="production-note" class="copy">部分小失误<br><span class="accent">可自动恢复</span></p>
+<p id="human-treatment" class="copy" style="left:1584px;top:112px;width:272px;font-size:44px">另一些<br>需要停下来<br><span class="accent">找人处理</span></p>
+</div>
+<section class="plane" id="exception-plane" aria-label="另一来源的黄色机械臂与一般异常处理条件">
+<div class="shot" id="yellow-a-shot"><img id="video-yellow-a" class="video" data-vfc-video-slot="yellowA" alt="黄色机械臂、臂端与右侧工位，保持完整源画幅"></div>
+<p id="exception-kicker" class="copy right-copy section-small muted" style="top:80px">另一现场 · 黄色机械臂</p>
+<p id="exception-heading" class="copy right-copy section-heading" style="top:184px">另一些失误<br>需要<span class="accent">人处理</span></p>
+<div id="exception-divider" class="divider" style="left:1504px;top:420px;width:288px"></div>
+<p id="waiting-condition" class="copy right-copy question" style="top:480px">若频繁求助<br>后续工序<br>也可能等待</p>
+</section>
+<section class="plane" id="questions-plane" aria-label="人形机器人演示与工厂关注的三个问题">
+<div class="shot" id="humanoid-a-shot"><img id="video-humanoid-a" class="video" data-vfc-video-slot="humanoidA" alt="人形机器人在演示场地、料架与设备之间行动"></div>
+<p id="questions-heading" class="copy side-copy section-heading" style="top:64px">工厂关心的</p>
+<p id="question-stability" class="copy side-copy question" style="top:224px"><span class="question-index">01 / 稳定</span>长时间稳定？</p>
+<p id="question-recovery" class="copy side-copy question" style="top:416px"><span class="question-index">02 / 应对</span>出了问题<br>能处理？</p>
+<p id="question-supervision" class="copy side-copy question" style="top:640px"><span class="question-index">03 / 人力</span>是否常需人守？</p>
+</section>
+<section class="plane" id="fixed-plane" aria-label="白色机械臂与围绕固定任务设计的工作环境">
+<div class="shot" id="white-shot"><img id="video-white" class="video" data-vfc-video-slot="white" alt="白色机械臂与夹具、右侧固定框架的完整关系"></div>
+<p id="fixed-question" class="copy side-copy section-heading" style="top:96px">机械臂<br>为什么早已<br>进工厂？</p>
+<p id="fixed-heading" class="copy side-copy section-heading" style="top:80px">相对<span class="accent">固定</span><br>的任务</p>
+<div id="part-relation" class="copy relation" style="top:336px"><span class="relation-mark"></span><span>零件位置</span></div>
+<div id="machine-relation" class="copy relation" style="top:464px"><span class="relation-mark"></span><span>设备衔接</span></div>
+<div id="path-relation" class="copy relation" style="top:592px"><span class="relation-mark"></span><span>动作路径</span></div>
+</section>
+<section class="plane" id="handoff-plane" aria-label="固定工位保留、新的人形机器人画面独立建立后推进接管">
+<div id="yellow-b-group" class="plane">
+<div class="shot" id="yellow-b-shot"><img id="video-yellow-b" class="video" data-vfc-video-slot="yellowB" alt="黄色机械臂按自身源时钟继续运动，右侧设备保持可辨"></div>
+<p id="yellow-b-caption" class="copy">围绕<span class="accent">固定任务</span>设计好环境</p>
+<div id="yellow-b-rule" class="divider" style="left:96px;top:832px;width:1248px"></div>
+<p id="yellow-b-baseline" class="copy context-note muted">黄色机械臂现场 · 固定工位</p>
+</div>
+<div id="handoff-ground"></div><div id="handoff-axis"></div>
+<p id="incoming-label" class="copy muted">另一现场<br>人形机器人演示</p>
+<p id="handoff-potential" class="copy">从专用工位<br>到<span class="accent">现有环境</span></p>
+<div class="shot" id="handoff-incoming"><img id="video-humanoid-b" class="video" data-vfc-video-slot="humanoidB" alt="人形机器人与黑色工件、料架，从独立小画面到主画面保持同一源时钟"></div>
+<p id="reuse-heading" class="copy">已有的<br><span class="accent">工作环境</span></p>
+<p id="reuse-path" class="copy">为人准备的通道</p>
+<p id="reuse-tools" class="copy">工具与设备</p>
+<p id="reuse-opportunity" class="copy accent">有机会利用起来</p>
+<p id="future-heading" class="copy">未来，<span class="accent">也许</span></p>
+<p id="future-copy" class="copy">不必为每项工作<br>重搭专用设备</p>
+<div id="future-rule" class="divider"></div>
+</section>
+<div class="foot"></div>
+</main>
+<script>
+const config={width:1920,height:1080,fps:30,durationInFrames:1463};
+const seconds=frame=>frame/config.fps;
+const timeline=gsap.timeline({paused:true});
+const clock={seconds:0};
+timeline.to(clock,{seconds:seconds(config.durationInFrames),duration:seconds(config.durationInFrames),ease:'none'},0);
+const show=(target,start,end)=>{timeline.set(target,{autoAlpha:1},seconds(start));timeline.set(target,{autoAlpha:0},seconds(end));};
+const enter=(target,start,length=12,distance=24)=>timeline.fromTo(target,{autoAlpha:0,y:distance},{autoAlpha:1,y:0,duration:seconds(length),ease:'power2.out',immediateRender:false},seconds(start));
+const leave=(target,start,length=8)=>timeline.to(target,{autoAlpha:0,y:-16,duration:seconds(length),ease:'power2.in'},seconds(start));
+const timing={single:53,independent:124,hundred:218,allSuccess:234,result:282,human:401,incoming:1095,hold:1105,push:1120,takeover:1135};
+gsap.set(['#video-car','#hypothesis-ground','#single','#independent','#assumption-compact','#trial-count','#all-success','#result','#formula','#formula-answer','#rule-probability','#production-note','#human-treatment'],{autoAlpha:0});
+show('#video-flip',0,165);show('#video-car',165,416);
+gsap.set('#video-car',{x:416,y:32,width:1504,height:846});
+gsap.set('#video-flip',{x:160,y:0,width:1600,height:900});
+gsap.set('#formula',{left:1328,top:592,width:496,fontSize:48});
+gsap.set('#trial-count',{left:1328,top:240,width:496});
+gsap.set('#result',{left:64,top:320,width:512});
+gsap.set('#rule-probability',{left:64,top:652,width:480});
+timeline.fromTo('#opening-title',{autoAlpha:0,y:12},{autoAlpha:1,y:0,duration:seconds(12),ease:'power2.out'},0);
+leave('#opening-title',41,8);
+timeline.to('#video-flip',{x:416,y:32,width:1504,height:846,duration:seconds(18),ease:'power2.inOut'},seconds(45));
+timeline.to('#hypothesis-ground',{autoAlpha:1,duration:seconds(8)},seconds(45));
+enter('#single',timing.single,10);enter('#independent',timing.independent,10);
+leave(['#single','#independent'],198,8);
+enter('#assumption-compact',208,10,8);
+timeline.set('#assumption-compact',{left:64,top:56,width:1160},seconds(208));
+timeline.to('#hypothesis-ground',{width:1920,height:192,duration:seconds(16),ease:'power2.inOut'},seconds(202));
+timeline.to('#video-car',{x:64,y:208,width:1216,height:684,duration:seconds(16),ease:'power2.inOut'},seconds(202));
+enter('#trial-count',timing.hundred,12);enter('#all-success',timing.allSuccess,10,12);enter('#formula',timing.allSuccess,10,8);
+leave(['#trial-count','#all-success'],270,10);
+timeline.to('#video-car',{x:640,y:64,width:1280,height:720,duration:seconds(12),ease:'power2.inOut'},seconds(270));
+timeline.to('#hypothesis-ground',{width:608,height:900,duration:seconds(12),ease:'power2.inOut'},seconds(270));
+timeline.to('#assumption-compact',{left:64,top:80,width:512,duration:seconds(12),ease:'power2.inOut'},seconds(270));
+timeline.to('#formula',{left:64,top:704,width:512,duration:seconds(12),ease:'power2.inOut'},seconds(270));
+enter('#formula-answer',timing.result,8,0);enter('#result',timing.result,10,16);enter('#rule-probability',timing.result,10,0);
+leave(['#assumption-compact','#trial-count','#all-success','#result','#formula','#rule-probability'],311,8);
+timeline.to('#hypothesis-ground',{autoAlpha:0,duration:seconds(12)},seconds(311));
+timeline.to('#video-car',{x:0,y:0,width:1536,height:864,duration:seconds(18),ease:'power2.inOut'},seconds(311));
+enter('#production-note',318,12);
+timeline.set('#production-note',{autoAlpha:0},seconds(timing.human));
+enter('#human-treatment',timing.human,6,8);
+timeline.set('#probability-plane',{autoAlpha:0},seconds(416));
+gsap.set(['#exception-plane','#questions-plane','#fixed-plane','#handoff-plane'],{autoAlpha:0});
+gsap.set(['#exception-heading','#exception-divider','#waiting-condition','#question-stability','#question-recovery','#question-supervision','#fixed-heading','#part-relation','#machine-relation','#path-relation','#handoff-incoming','#incoming-label','#handoff-potential','#reuse-heading','#reuse-path','#reuse-tools','#reuse-opportunity','#future-heading','#future-copy','#future-rule'],{autoAlpha:0});
+show('#exception-plane',416,564);
+enter('#exception-heading',416,12);enter('#exception-divider',448,12,0);enter('#waiting-condition',464,14);
+timeline.to('#yellow-a-shot',{left:32,top:64,width:1376,height:774,duration:seconds(24),ease:'power2.inOut'},seconds(464));
+leave(['#exception-heading','#waiting-condition','#exception-divider'],550,10);
+show('#questions-plane',564,764);
+enter('#questions-heading',564,12);
+enter('#question-stability',602,12);enter('#question-recovery',667,10);enter('#question-supervision',707,10);
+timeline.to('#question-stability',{color:'#b8c4cb',duration:seconds(8)},seconds(667));
+timeline.to('#question-recovery',{color:'#b8c4cb',duration:seconds(8)},seconds(707));
+leave(['#questions-heading','#question-stability','#question-recovery','#question-supervision'],752,10);
+show('#fixed-plane',764,1013);
+enter('#fixed-question',766,12);leave('#fixed-question',830,8);enter('#fixed-heading',840,12);
+enter('#part-relation',869,12);enter('#machine-relation',900,12);enter('#path-relation',933,12);
+timeline.fromTo('.relation-mark',{width:0},{width:32,duration:seconds(12),stagger:seconds(32),ease:'power2.out',immediateRender:false},seconds(869));
+timeline.to('#white-shot',{left:400,top:32,width:1504,height:846,duration:seconds(24),ease:'power2.inOut'},seconds(840));
+leave(['#fixed-heading','#part-relation','#machine-relation','#path-relation'],1000,10);
+show('#handoff-plane',1013,1463);
+enter('#yellow-b-caption',1013,12);enter('#yellow-b-baseline',1013,12,8);
+enter('#handoff-incoming',1095,10,16);enter('#incoming-label',1095,10,12);enter('#handoff-potential',1105,10,12);
+timeline.to('#handoff-incoming',{left:160,top:0,width:1600,height:900,outlineColor:'#121a20',duration:seconds(15),ease:'power3.inOut'},seconds(1120));
+timeline.to('#yellow-b-group',{x:-192,autoAlpha:.5,duration:seconds(15),ease:'power2.in'},seconds(1120));
+timeline.to('#handoff-ground',{left:0,width:1920,duration:seconds(15),ease:'power3.inOut'},seconds(1120));
+timeline.to('#handoff-axis',{left:96,autoAlpha:0,duration:seconds(15),ease:'power2.inOut'},seconds(1120));
+leave(['#incoming-label','#handoff-potential'],1120,10);
+timeline.set('#yellow-b-group',{autoAlpha:0},seconds(1135));
+timeline.to('#handoff-incoming',{left:480,top:32,width:1440,height:810,duration:seconds(22),ease:'power2.inOut'},seconds(1156));
+enter('#reuse-heading',1156,16);enter('#reuse-path',1193,12);enter('#reuse-tools',1251,12);enter('#reuse-opportunity',1279,12);
+leave(['#reuse-heading','#reuse-path','#reuse-tools','#reuse-opportunity'],1362,10);
+enter('#future-heading',1372,12);enter('#future-copy',1384,14);enter('#future-rule',1384,14,0);
+window.__timelines={robot_factory:timeline};
+window.getVfcMotionEvents=()=>[
+{id:'hypothesis_single99',meaning:'假设单次99%，与真实空翻分区',startFrame:timing.single,endFrame:206},
+{id:'independent_results',meaning:'相互独立条件建立',startFrame:timing.independent,endFrame:206},
+{id:'hundred_trials',meaning:'连续100次，产线转为左下主体并与右侧大数字共构',startFrame:timing.hundred,endFrame:280},
+{id:'probability_formula',meaning:'先建立连续成功问题与幂式，结果尚不出现',startFrame:timing.allSuccess,endFrame:timing.result},
+{id:'probability_result',meaning:'约37%揭示，产线转右侧主体，结果与条件居左',startFrame:timing.result,endFrame:319},
+{id:'human_intervention',meaning:'自动恢复文字撤下，改为需要停下来找人处理',startFrame:timing.human,endFrame:564},
+{id:'exception_condition',meaning:'不同现场仅用于一般异常处理条件示意，不宣称真实故障',startFrame:416,endFrame:564},
+{id:'factory_questions',meaning:'长时间稳定、异常处理、人员看守三个问题逐步建立',startFrame:602,endFrame:762},
+{id:'fixed_task_relations',meaning:'零件位置、设备衔接、动作路径与固定工位共构',startFrame:840,endFrame:1010},
+{id:'independent_picture_enter',meaning:'黄色机械臂仍在时另一现场的人形画面独立建立',startFrame:1095,endFrame:1105},
+{id:'independent_picture_hold',meaning:'独立新画面保持可辨，两条素材各沿自身源时钟',startFrame:1105,endFrame:1120},
+{id:'new_subject_push',meaning:'新主体推进，同时旧工位、文字及分隔轴退让',startFrame:1120,endFrame:1135},
+{id:'new_subject_takeover',meaning:'人形机器人取得主画面，不重置源时间',startFrame:1135,endFrame:1463},
+{id:'conditional_future',meaning:'未来也许的条件性表达，不扩写厂商演示为普遍事实',startFrame:1372,endFrame:1463}
+];
+</script></body></html>

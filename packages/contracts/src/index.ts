@@ -1648,6 +1648,9 @@ export interface EditorialReviewFinding {
   frameRange?: { startFrame: number; endFrame: number };
   revision?: number;
   recordedAt?: string;
+  /** 参考迁移问题沿同一观察、采用和作品范围续修。 */
+  referenceReview?: ReferenceReviewRef;
+  referenceEvidenceId?: Id;
 }
 
 /** 范围使用成片坐标、endFrame 排他；抽帧不能充当连续声画审阅。 */
@@ -1772,6 +1775,15 @@ export type ProductionIntent = "full_creation" | "visual_rework" | "local_edit" 
 export type ProductionResponsibility = "director" | "narration" | "asset_sourcing" | "creative_research" | "visual_design" | "motion_research" | "review";
 export type CreativeDecisionPhase = "creative_research" | "motion_research" | "visual_design" | "adoption";
 
+export interface CreativeResearchCoverage {
+  overallVisual: "covered" | "not_applicable" | "pending";
+  sceneComposition: "covered" | "not_applicable" | "pending";
+  motionMechanisms: "covered" | "not_applicable" | "pending";
+  /** 不适用的研究层次分别说明原因。 */
+  notApplicableReasons?: Partial<Record<"overallVisual" | "sceneComposition" | "motionMechanisms", string>>;
+  blockingQuestions: string[];
+}
+
 export type ProductionCompletionScope =
   | { kind: "project" }
   | { kind: "beats"; beatIds: Id[] }
@@ -1786,6 +1798,14 @@ export interface ReferenceReviewRef extends CreativeAdoptionRef {
   targetRole: string;
   startMs: number;
   endMs: number;
+  /** 待审项目只有参考身份；实际观察时填写逐项对照。 */
+  originalRelation?: string;
+  actualImplementation?: string;
+  difference?: string;
+  outcome?: "confirmed" | "issue" | "inconclusive";
+  impact?: string;
+  /** 对已有问题复查时引用原问题，避免重新创建。 */
+  findingId?: Id;
 }
 
 export interface ArtifactReviewObservation {
@@ -1865,6 +1885,7 @@ export interface CreativeDecision {
   inputRevision?: number | null;
   inputDecisionIds?: Id[];
   researchOutcome?: "pending" | "researched" | "not_applicable";
+  researchCoverage?: CreativeResearchCoverage;
   /** 来源指纹取读卡结果顶层 source_sha256；时间为原片毫秒半开区间。 */
   researchReferences?: Array<{ kind: "creative" | "motion"; id: string; sourceSha256: string;
     startMs?: number; endMs?: number; observedRelation?: string }>;

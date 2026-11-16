@@ -8,6 +8,7 @@ import { createApplication } from "@videocut/application";
 import { prepareReferencePackage } from "../packages/edit-application/src/opendesign-reference-package.mjs";
 import { motionFixture } from "./fixtures/managed-motion.js";
 import { motionHtml } from "./fixtures/hyperframes.js";
+import { completeResearchCoverage, directorBrief, visualPlan } from "./fixtures/visual-plan.mjs";
 
 test("无预排的完整新制跨场面沿用首个冻结作品", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-continuous-scenes-")), app = createApplication(root);
@@ -20,11 +21,11 @@ test("无预排的完整新制跨场面沿用首个冻结作品", async () => {
     const work = { ...motionFixture, durationInFrames: 48, source: motionHtml('<div id="subject">初稿</div>', "", { durationInFrames: 48 }) };
     assert.equal(app.readProject(projectId).snapshot.motionWorks?.length ?? 0, 0);
     const brief = join(root, "brief.md"), timing = join(root, "timing.md"), snapshotPath = join(root, "snapshot.json"), output = join(root, "handoff");
-    await writeFile(brief, "跨场面的完整画面设计"); await writeFile(timing, "两场真实时间资料");
+    await writeFile(brief, directorBrief(visualPlan("主体"))); await writeFile(timing, "两场真实时间资料");
     await writeFile(snapshotPath, JSON.stringify(app.readProject(projectId)));
     const sceneInput = (sceneId: string, startFrame: number, endFrame: number) => ({ sceneId, status: "ready",
       visualRoles: [{ role: "主体", referenceFunction: "连续画面", assetIds: [], usage: "原创示意" }], process: "主体建立并接续下一状态",
-      preserve: ["主体连续"], adapt: ["文字细节"], visualPlan: { primaryRoles: ["主体"] } });
+      preserve: ["主体连续"], adapt: ["文字细节"], visualPlan: visualPlan("主体") });
     const manifest = await prepareReferencePackage({ projectId, revision: rev(), projectSnapshot: snapshotPath, brief, timingPlan: timing,
       freezeInputs: true, selectedSceneIds: [first.id, second.id], scenes: [sceneInput(first.id, 0, 24), sceneInput(second.id, 24, 48)] }, output);
     assert.deepEqual(manifest.scenes!.map(scene => scene.status), ["ready", "ready"]);
@@ -37,7 +38,8 @@ test("无预排的完整新制跨场面沿用首个冻结作品", async () => {
     const record = async (phase: "creative_research" | "motion_research" | "visual_design" | "adoption", inputDecisionIds: string[] = []) =>
       (await app.recordCreativeDecision({ projectId, runId: run.id, operationId: randomUUID(), category: "visual", phase, assignmentId: "authors", inputRevision: rev(),
         objectIds: [first.id, second.id], decision: phase, rationale: "按两个场面的真实范围判断", inputDecisionIds,
-        ...(phase.endsWith("research") ? { researchOutcome: "not_applicable" as const, evidence: ["已研究候选，当前画面无适用参考"] } : {}),
+        ...(phase === "creative_research" ? { researchOutcome: "researched" as const, researchCoverage: completeResearchCoverage, evidence: ["已研究候选并原创整体视觉系统"] } : {}),
+        ...(phase === "motion_research" ? { researchOutcome: "not_applicable" as const, evidence: ["已研究候选，当前画面无需采用机制"] } : {}),
         ...(["visual_design", "adoption"].includes(phase) ? { deliveryRef: { manifestPath, manifestSha256, sceneIds: [first.id, second.id] } } : {}) })).creativeDecisions.at(-1)!;
     const creative = await record("creative_research"), motion = await record("motion_research");
     const design = await record("visual_design", [creative.id, motion.id]), adoption = await record("adoption", [design.id]);

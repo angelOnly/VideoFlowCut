@@ -69,6 +69,8 @@ description: 协调完整制作、局部创意或参数修改，分派与续接�
 
 主任务接回创意、机制的实际研究决定和视觉作者的导演稿、时间计划、真实参考与素材。视觉作者交出本次决定、受影响范围和实际消费的研究。让独立补搜继续。当前场面的关键资料缺失时，将具体问题和范围交原负责人处理。
 
+采用参考的原片范围可以是实际研究范围内的子段；同一研究决定内同源、连续的观察可以共同覆盖。导演采用前按返回的参考、缺失区间和职责续接原研究负责人及视觉作者，补看或更正关联后重新提交。交付参考与视觉映射仍指向同一实际采用片段。
+
 先用 `prepare_motion_handoff` 固定导演稿、时间和文件清单。主任务以 `visual_design` 登记相同的 `delivery_ref`、交付的输入版本和实际消费的研究。主导演确认后，以 `adoption` 引用该设计和同一清单，再用 `manage_visual_treatment` 的 `action=adopt` 在一个项目版本中写入本次相关计划的采用及素材。通过 `start_motion_authoring` 提交制作委托。新片开工时无须已有 `MotionWork`。
 
 编辑原稿和登记候选期间继续使用已采用的固定副本。导演采用写入项目后，相关制作按新采用接续。若一场的修改改变相邻场接续，视觉作者和导演一并协调。制作中途换稿时，继续接回原任务的阶段作品；待协调范围读取固定版本和原因，沿原制作任务续修。
@@ -82,6 +84,8 @@ description: 协调完整制作、局部创意或参数修改，分派与续接�
 阶段回执的 `rangeMappings` 将工作台的 `projectRange` 与 OD 的 `workRootRange` 成对给出。若问题只在阶段中的较短范围，调用 `wait_motion_authoring`，在 `range_request` 中填写该阶段的 `run_id`、`frozen_version` 和审阅确定的 `project_range`；使用返回的 `requestedRangeMapping.workRootRange`，连同原 Run 和冻结版本向 OD 返修，不用整段根帧代替短段。
 
 工作台产生返修工作单时，使用现有 `read_agent_work_orders`、`claim_agent_work_order` 和 `complete_agent_work_order`，保留原观察 Revision、Finding ID、项目帧范围并尽量关联对应 ManagedMotion Cue。原 Run 运行中使用原冻结版和换算后的根帧反馈；已结束则以新幂等键和 `continue_from_run_id` 续接原项目、作品与制作任务。新版回到工作台，复查同一 Finding 后才能关闭；完成工作单不自动关闭问题。
+
+接回参考对照后立即读取 `read_production_status`。参考 `issue` 已生成必修 Finding，按 `nextActions` 续接视觉作者与原参考研究负责人，交原作品处理；`inconclusive` 按待审范围补看。复查时使用原 Finding ID，不能把一次新的通过观察当作自动关闭。
 
 OD 每次返回当前作品后，主任务将作品交回原作者团队，重新进入本章第三节的同一协作机制。初次创作、OD 制作期间的补充工作和后续返修使用相同的作者角色、职责边界、结果接回和问题回流规则：
 

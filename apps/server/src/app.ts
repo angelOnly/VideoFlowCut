@@ -12,10 +12,10 @@ import { creativeBriefSchema, creativeBriefUpdateSchema, explicitCreativePrefere
 import { captionTypographySchema, captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
 import { captionSrtImportSchema } from "../../../packages/contracts/src/caption-srt.js";
 import { MotionSubmissionValidationError } from "../../../packages/edit-application/src/motion-submission-validation.js";
-import { MotionAuthoringCoordinationError } from "../../../packages/edit-application/src/motion-coordination-error.js";
+import { MotionAuthoringCoordinationError, ProductionReferenceResearchError } from "../../../packages/edit-application/src/motion-coordination-error.js";
 import { toolError } from "./tool-error.js";
 import { explainerPlanWithContent } from "../../../packages/contracts/src/explainer-inputs.js";
-import { sourceCaptionTextReviewSchema, exportApprovalSchema } from "../../../packages/contracts/src/editorial-inputs.js";
+import { sourceCaptionTextReviewSchema, exportApprovalSchema, referenceReviewInputSchema } from "../../../packages/contracts/src/editorial-inputs.js";
 import { audioDesignSchema } from "../../../packages/edit-application/src/sound-design.js";
 import { registerSourceResearchRoutes } from "./source-research-tools.js";
 import { registerSoundRoutes } from "./sound-tools.js";
@@ -271,7 +271,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   await app.register(multipart, { limits: { files: 18, fileSize: 512 * 1024 * 1024 } });
 
   app.setErrorHandler((error, _request, reply) => {
-    if (error instanceof MotionSubmissionValidationError || error instanceof SourceDisplayValidationError || error instanceof MotionAuthoringCoordinationError) return reply.status(400).send(toolError(error));
+    if (error instanceof MotionSubmissionValidationError || error instanceof SourceDisplayValidationError || error instanceof MotionAuthoringCoordinationError || error instanceof ProductionReferenceResearchError) return reply.status(400).send(toolError(error));
     if (error instanceof RevisionConflictError) {
       return reply.status(409).send({ error: "REVISION_CONFLICT", message: error.message, expectedRevision: error.expected, currentRevision: error.actual });
     }
@@ -452,13 +452,14 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       observer: z.string().trim().min(1).max(160), observation: z.string().trim().min(1).max(2000),
       startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(),
       adoptionRefs: z.array(z.object({ productionRunId: idSchema, decisionId: idSchema }).strict()).optional(),
-      referenceReviews: z.array(z.object({ productionRunId: idSchema, decisionId: idSchema, sceneId: idSchema,
-        referenceKind: z.enum(["creative", "motion"]), referenceId: idSchema, sourceSha256: z.string().min(1), targetRole: z.string().min(1),
-        startMs: z.number().nonnegative(), endMs: z.number().positive() }).strict()).optional(),
+      referenceReviews: z.array(referenceReviewInputSchema).optional(),
       finding: z.object({ category: z.enum(["semantic", "pacing", "attention", "motion", "typography", "audio", "mode_specific"]), severity: z.enum(["blocking", "warning", "major", "minor", "suggestion", "inconclusive"]), summary: z.string().trim().min(1).max(2000), impact: z.string().trim().min(1).max(2000), objectId: idSchema.optional() }).strict().optional()
     }).strict().parse(request.body);
     const snapshot = application.readProject(projectId, body.revision).snapshot;
     if (body.endFrame <= body.startFrame || body.endFrame > snapshot.timeline.durationInFrames) throw new DomainError("观察范围超出目标版本", "EDITORIAL_EVIDENCE_RANGE_INVALID");
+    if (body.referenceReviews?.some(item => item.outcome === "issue" && !item.impact?.trim())) {
+      throw new DomainError("参考需要修复时请说明影响", "REFERENCE_REVIEW_DETAILS_REQUIRED");
+    }
     const runOperationId = `workbench_run_${createHash("sha256").update(body.operationId).digest("hex")}`;
     const runId = body.runId ?? (await application.startProductionRun({ projectId, baseRevision: body.revision, intent: "review_only", completionScope: { kind: "frames", startFrame: body.startFrame, endFrame: body.endFrame }, operationId: runOperationId, loadedSkills: [] })).id;
     const report = await application.recordEditorialQualityReview({
@@ -468,7 +469,9 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     });
     const evidence = [...(report.editorialReviewHistory ?? []), ...(report.editorialReview ? [report.editorialReview] : [])]
       .flatMap(review => review.evidenceRecords ?? []).find(entry => entry.operationId === body.operationId);
-    return { runId, review: report.editorialReview, evidenceId: evidence?.id };
+    const findingIds = evidence ? [...new Set([...(report.editorialReview?.findings ?? []).filter(item => item.referenceEvidenceId === evidence.id).map(item => item.id),
+      ...(body.referenceReviews ?? []).flatMap(item => item.outcome === "issue" && item.findingId ? [item.findingId] : [])])] : [];
+    return { runId, review: report.editorialReview, evidenceId: evidence?.id, findingIds };
   });
 
   app.post("/api/projects/:projectId/editorial-resolutions", async (request) => {
@@ -1460,9 +1463,6 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.post("/api/projects/:projectId/export-artifacts/:artifactId/review", async (request) => {
     const { projectId, artifactId } = z.object({ projectId: idSchema, artifactId: idSchema }).parse(request.params);
-    const reference = z.object({ productionRunId: idSchema, decisionId: idSchema, sceneId: idSchema,
-      referenceKind: z.enum(["creative", "motion"]), referenceId: idSchema, sourceSha256: z.string().min(1),
-      targetRole: z.string().min(1), startMs: z.number().nonnegative(), endMs: z.number().positive() }).strict();
     const body = z.object({
       operationId: productionOperationIdSchema.optional(), runId: idSchema.optional(), assignmentId: idSchema.optional(), observer: z.string().trim().min(1).optional(),
       passes: z.array(z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"])).max(5).optional(),
@@ -1472,7 +1472,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
         method: z.enum(["frames", "continuous_video", "audio", "audiovisual", "sampled_av", "event_measurement"]),
         outcome: z.enum(["confirmed", "issue", "inconclusive"]), startFrame: z.number().int().nonnegative(),
         endFrame: z.number().int().positive(), note: z.string().trim().min(1).max(2000),
-        mediaObservationIds: z.array(idSchema).max(40).optional(), referenceReviews: z.array(reference).max(40).optional() }).strict()).max(120).optional(),
+        mediaObservationIds: z.array(idSchema).max(40).optional(), referenceReviews: z.array(referenceReviewInputSchema).max(40).optional() }).strict()).max(120).optional(),
       resolutions: z.array(z.object({ findingId: idSchema, evidenceIds: z.array(idSchema).min(1).max(40), note: z.string().trim().min(1).max(2000) }).strict()).max(40).optional()
     }).strict().parse(request.body);
     return application.recordExportArtifactReview({ projectId, artifactId, ...body });

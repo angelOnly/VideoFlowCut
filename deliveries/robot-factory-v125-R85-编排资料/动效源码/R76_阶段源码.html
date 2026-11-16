@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>机器人都能后空翻了，为啥不能进工厂？</title>
+<style>
+:root{--ink:#121a20;--paper:#f5f7f8;--muted:#b8c4cb;--accent:#e5f277;--rule:#56636c;--display:176px;--title:64px;--heading:48px;--body:36px;--small:28px;--leading:1.36;--edge:96px}
+*{box-sizing:border-box}html,body{margin:0;width:1920px;height:1080px;background:var(--ink);color:var(--paper)}body{font-family:var(--vfc-font-body),"Noto Sans SC",sans-serif;font-weight:400}#film{position:relative;width:1920px;height:1080px;overflow:hidden;background:var(--ink)}.plane{position:absolute;left:0;top:0;width:1920px;height:1080px}.foot{position:absolute;left:0;top:900px;width:1920px;height:180px;background:var(--ink)}.video{position:absolute;left:0;top:0;width:1920px;height:1080px;object-fit:contain;transform-origin:0 0}.copy{position:absolute;margin:0;font-family:var(--vfc-font-title),"Noto Sans SC",sans-serif;font-weight:700;line-height:var(--leading);letter-spacing:0}.muted{color:var(--muted)}.accent{color:var(--accent)}.rail{position:absolute;left:64px;top:184px;width:320px;display:flex;flex-direction:column;gap:24px}.eyebrow{font-size:var(--small);line-height:1.5}.number{font-family:var(--vfc-font-title),"Noto Sans SC",sans-serif;font-size:var(--display);font-weight:700;line-height:1.05;letter-spacing:-.025em;white-space:nowrap}.number .unit{font-size:96px;letter-spacing:0}.opener{left:96px;top:64px;width:880px;font-size:var(--title);text-shadow:0 3px 16px #000,0 1px 4px #000}.hypothesis{position:absolute;left:0;top:0;width:416px;height:900px;background:var(--ink)}#independent{left:64px;top:452px;width:320px;font-size:40px}#not-measured{left:64px;top:748px;width:320px;font-size:var(--small);line-height:1.5}#trial-count{left:64px;top:192px;width:336px;font-size:48px}#result{left:56px;top:352px;width:352px}#result .about{font-size:40px;display:block;margin-bottom:24px;letter-spacing:0}#formula{left:512px;top:840px;width:1160px;font-size:48px;line-height:1.2;white-space:nowrap}#formula sup{font-size:.58em;vertical-align:super}#assumption-compact{left:64px;top:92px;width:328px;font-size:30px;line-height:1.6}#rule-probability{position:absolute;left:64px;top:676px;width:288px;height:2px;background:var(--rule)}#production-note{left:1584px;top:112px;width:272px;font-size:44px}#production-limit{left:1584px;top:684px;width:256px;font-size:28px;line-height:1.5}
+</style></head><body>
+<main id="film" data-composition-id="robot_factory" data-start="0" data-duration="48.766666666666666" data-width="1920" data-height="1080" data-fps="30" aria-label="机器人进工厂：真实素材与假设概率解释">
+<div class="plane" id="probability-plane">
+<img id="video-flip" class="video" data-vfc-video-slot="flip" alt="实验室机器人从蓝箱后空翻并落地，完整原画幅">
+<img id="video-car" class="video" data-vfc-video-slot="car" alt="另一来源的汽车产线，机械臂与车身持续运行">
+<div id="hypothesis-ground" class="hypothesis"></div>
+<h1 id="opening-title" class="copy opener">机器人都能后空翻了，<br>为啥不能进工厂？</h1>
+<div id="single" class="rail"><span class="eyebrow muted">假设 · 单次成功率</span><span class="number accent">99<span class="unit">%</span></span></div>
+<p id="independent" class="copy">每次结果<br><span class="accent">相互独立</span></p>
+<p id="not-measured" class="copy muted">理论假设计算<br>不是所示机器人实测</p>
+<p id="assumption-compact" class="copy muted">假设：单次 99%<br>每次结果相互独立</p>
+<p id="trial-count" class="copy">连续 <span class="accent">100</span> 次<br>全部成功</p>
+<div id="result" class="copy number accent"><span class="about">大约只有</span>37<span class="unit">%</span></div>
+<div id="rule-probability"></div>
+<p id="formula" class="copy">0.99<sup>100</sup> <span class="muted">≈</span> <span class="accent">37%</span><span style="font-size:28px;margin-left:48px;color:var(--muted)">相同假设下的连续成功概率</span></p>
+<p id="production-note" class="copy">部分小失误<br><span class="accent">可自动恢复</span></p>
+<p id="production-limit" class="copy muted">生产场景示意<br>非实测故障记录</p>
+</div>
+<div class="foot"></div>
+</main>
+<script>
+const config={width:1920,height:1080,fps:30,durationInFrames:1463};
+const seconds=frame=>frame/config.fps;
+const timeline=gsap.timeline({paused:true});
+const clock={seconds:0};
+timeline.to(clock,{seconds:seconds(config.durationInFrames),duration:seconds(config.durationInFrames),ease:'none'},0);
+const show=(target,start,end)=>{timeline.set(target,{autoAlpha:1},seconds(start));timeline.set(target,{autoAlpha:0},seconds(end));};
+const enter=(target,start,length=12,distance=24)=>timeline.fromTo(target,{autoAlpha:0,y:distance},{autoAlpha:1,y:0,duration:seconds(length),ease:'power2.out',immediateRender:false},seconds(start));
+const leave=(target,start,length=8)=>timeline.to(target,{autoAlpha:0,y:-16,duration:seconds(length),ease:'power2.in'},seconds(start));
+gsap.set(['#video-car','#hypothesis-ground','#single','#independent','#not-measured','#assumption-compact','#trial-count','#result','#formula','#rule-probability','#production-note','#production-limit'],{autoAlpha:0});
+show('#video-flip',0,165);show('#video-car',165,416);
+gsap.set('#video-car',{x:416,y:32,width:1504,height:846});
+gsap.set('#video-flip',{x:160,y:0,width:1600,height:900});
+gsap.set('#formula',{backgroundColor:'#121a20',padding:'8px 16px'});
+timeline.fromTo('#opening-title',{autoAlpha:0,y:12},{autoAlpha:1,y:0,duration:seconds(12),ease:'power2.out'},0);
+leave('#opening-title',54,8);
+timeline.to('#video-flip',{x:416,y:32,width:1504,height:846,duration:seconds(18),ease:'power2.inOut'},seconds(60));
+timeline.to('#hypothesis-ground',{autoAlpha:1,duration:seconds(12)},seconds(60));
+enter('#single',60,14);enter('#independent',95,12);enter('#not-measured',60,12,8);
+leave(['#single','#independent'],188,8);enter('#assumption-compact',192,12,12);enter('#trial-count',197,14,24);
+enter('#formula',235,12,12);enter('#result',263,12,24);enter('#rule-probability',263,12,0);
+leave(['#assumption-compact','#trial-count','#result','#formula','#rule-probability','#not-measured'],311,8);
+timeline.to('#hypothesis-ground',{autoAlpha:0,duration:seconds(12)},seconds(311));
+timeline.to('#video-car',{x:0,y:0,width:1536,height:864,duration:seconds(18),ease:'power2.inOut'},seconds(311));
+enter('#production-note',318,12);enter('#production-limit',318,12,8);
+leave('#probability-plane',408,8);
+window.__timelines={robot_factory:timeline};
+window.getVfcMotionEvents=()=>[
+{id:'hypothesis_single99',meaning:'单次99%及非实测的假设标记开始建立',startFrame:60,endFrame:196},
+{id:'independent_results',meaning:'相互独立条件建立',startFrame:95,endFrame:196},
+{id:'hundred_trials',meaning:'连续100次全部成功',startFrame:197,endFrame:319},
+{id:'probability_formula',meaning:'0.99的100次方约37%的假设计算',startFrame:235,endFrame:319},
+{id:'probability_result',meaning:'约37%的结果落点',startFrame:263,endFrame:319}
+];
+</script></body></html>

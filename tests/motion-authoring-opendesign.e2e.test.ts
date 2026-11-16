@@ -19,6 +19,7 @@ import { createServer as createVfcServer } from "../apps/server/src/app.js";
 import { registerMotionTools } from "../apps/server/src/motion-tools.js";
 import { resolveRenderBrowser } from "../packages/remotion-runtime/src/browser.js";
 import { loadLibraryIndex } from "../references/motion-cases/skillry/tools/library-store.mjs";
+import { completeResearchCoverage, directorBrief, visualPlan } from "./fixtures/visual-plan.mjs";
 
 test("隔离 OD 阶段交件、同作者反馈与 VFC 自动采用端到端联通", { timeout: 150_000 }, async (context) => {
   const root = await mkdtemp(join(tmpdir(), "vfc-od-authoring-e2e-"));
@@ -96,13 +97,16 @@ process.stdin.on('end',()=>process.exit(0));
         skillIds: ["production-director", "narration-writing", "visual-asset-sourcing", "creative-sequence-design", "visual-treatment-planning", "creative-reference-to-sequence", "motion-case-library"], inputRevision: rev(), scope: { kind: "project" } } });
     const research = async (phase: "creative_research" | "motion_research") => (await app.recordCreativeDecision({ operationId: globalThis.crypto.randomUUID(),
       projectId, runId: run.id, category: "visual", decision: "记录隔离测试中的参考关系", rationale: "核查同段媒体和目标范围的交接", phase,
-      assignmentId: "director", inputRevision: rev(), objectIds: [scene.id], researchOutcome: phase === "motion_research" ? "researched" : "not_applicable",
+      assignmentId: "director", inputRevision: rev(), objectIds: [scene.id], researchOutcome: "researched",
+      ...(phase === "creative_research" ? { researchCoverage: completeResearchCoverage } : {}),
       ...(phase === "motion_research" ? { researchReferences: [{ kind: "motion" as const, id: "001-m03", sourceSha256, startMs: 3850.5, endMs: 5200.25, observedRelation: "主体保持，后层更换" }] } : {}),
       evidence: ["隔离测试参考"] })).creativeDecisions.at(-1)!;
     const creative = await research("creative_research"), motion = await research("motion_research");
     const brief = join(root, "brief.md"), timing = join(root, "timing.md"), reference = join(root, "参考 素材 (版本 1).md"),
       largeReference = join(root, "较大 素材 (1).bin");
-    await writeFile(brief, "隔离制作的完整共同编排"); await writeFile(timing, "真实时间资料");
+    const scenePlan = { ...visualPlan("主体"), referenceMappings: [{ referenceKind: "motion", referenceId: "001-m03", researchDecisionId: motion.id,
+      startMs: 3850.5, endMs: 5200.25, targetRole: "主体", treatment: "主体保持时后层变化", preserveRelation: "主体保持，后层更换", targetRange: { startFrame: 0, endFrame: 18 } }] };
+    await writeFile(brief, directorBrief(scenePlan)); await writeFile(timing, "真实时间资料");
     await writeFile(reference, "本场的参考资料");
     await writeFile(largeReference, Buffer.alloc(21 * 1024 * 1024, 7));
     const mcp = new McpServer({ name: "隔离制作交接", version: "1" }), client = new Client({ name: "隔离视觉作者", version: "1" });
@@ -120,8 +124,7 @@ process.stdin.on('end',()=>process.exit(0));
       scenes: [{ sceneId: scene.id, status: "ready", resourceIds: ["visual-note"],
         references: [{ kind: "motion", id: "001-m03", sourceSha256, startMs: 3850.5, endMs: 5200.25, purpose: "主体保持" }],
         visualRoles: [{ role: "主体", referenceFunction: "连续发展", assetIds: [], usage: "原创图形" }],
-        visualPlan: { primaryRoles: ["主体"], referenceMappings: [{ referenceKind: "motion", referenceId: "001-m03", researchDecisionId: motion.id,
-          startMs: 3850.5, endMs: 5200.25, targetRole: "主体", treatment: "主体保持时后层变化", preserveRelation: "主体保持，后层更换", targetRange: { startFrame: 0, endFrame: 18 } }] },
+        visualPlan: scenePlan,
         process: "主体建立、变化并接续", preserve: ["连续关系"], adapt: ["中文文字"] }] } });
       assert.notEqual(response.isError, true, JSON.stringify(response.content));
       handoff = JSON.parse((response.content as Array<{ text: string }>)[0]!.text);

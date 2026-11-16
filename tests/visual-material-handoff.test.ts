@@ -6,6 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { createApplication } from "@videocut/application";
 import { prepareReferencePackage, scopeReferenceManifest, verifyReferenceDelivery } from "../packages/edit-application/src/opendesign-reference-package.mjs";
+import { directorBrief, visualPlan } from "./fixtures/visual-plan.mjs";
 
 test("采用检查必需素材，局部制作允许同一交付携带其他资料", { timeout: 60_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-visual-materials-"));
@@ -40,7 +41,7 @@ test("采用检查必需素材，局部制作允许同一交付携带其他资�
       assignment: { assignmentId: "authors", agentId: "/fixture/authors", responsibilities: ["director", "visual_design"],
         skillIds: ["production-director", "visual-treatment-planning"], scope: { kind: "project" }, inputRevision: rev() } });
     const brief = join(root, "brief.md"), timing = join(root, "timing.md"), snapshotPath = join(root, "snapshot.json"), output = join(root, "handoff");
-    await writeFile(brief, "第一场照片与图形共同变化，第二场展示另一张照片。");
+    await writeFile(brief, directorBrief(visualPlan("主体"), visualPlan("后续")) + "\n背景");
     await writeFile(timing, "第一场 0—24 帧，第二场 24—48 帧。");
     const preparedRevision = rev();
     await writeFile(snapshotPath, JSON.stringify(app.readProject(projectId)));
@@ -48,9 +49,9 @@ test("采用检查必需素材，局部制作允许同一交付携带其他资�
     const manifest = await prepareReferencePackage({ projectId, revision: preparedRevision, projectSnapshot: snapshotPath, brief, timingPlan: timing,
       freezeInputs: true, selectedSceneIds: [first.id, second.id], scenes: [
         { sceneId: first.id, status: "ready", visualRoles: [role("主体", [assets[0], assets[1]]), role("背景", [assets[1]])],
-          visualPlan: { primaryRoles: ["主体", "背景"] }, process: "建立主体并展示背景", preserve: ["画面关系"], adapt: ["细节"] },
+          visualPlan: { ...visualPlan("主体"), primaryRoles: ["主体", "背景"] }, process: "建立主体并展示背景", preserve: ["画面关系"], adapt: ["细节"] },
         { sceneId: second.id, status: "ready", visualRoles: [role("后续", [assets[2]])],
-          visualPlan: { primaryRoles: ["后续"] }, process: "展示后续并接续", preserve: ["画面关系"], adapt: ["细节"] }
+          visualPlan: visualPlan("后续"), process: "展示后续并接续", preserve: ["画面关系"], adapt: ["细节"] }
       ] }, output);
     assert.deepEqual(manifest.scenes!.map(scene => scene.status), ["ready", "ready"]);
     assert.equal(manifest.files.filter(file => file.uses.some(use => use.kind === "source")).length, 3, "多个对象共用的素材只交付一次");

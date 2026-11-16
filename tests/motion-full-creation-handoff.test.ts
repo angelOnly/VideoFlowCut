@@ -18,6 +18,7 @@ import { loadCreativeIndex, readCreativeCase } from "../references/motion-cases/
 import { readLibraryMechanism } from "../references/motion-cases/skillry/tools/library-store.mjs";
 import { motionFixture } from "./fixtures/managed-motion.js";
 import { motionHtml } from "./fixtures/hyperframes.js";
+import { completeResearchCoverage, directorBrief, visualPlan } from "./fixtures/visual-plan.mjs";
 
 test("完整新制从零作品准备参考、自动送件并接回同一冻结作品", { timeout: 60_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-full-handoff-")), app = createApplication(root);
@@ -60,7 +61,9 @@ test("完整新制从零作品准备参考、自动送件并接回同一冻结�
       id: "002-c01", sourceSha256: fingerprint, startMs: 100, endMs: 900, observedRelation: "主体切入小窗" }] });
     const motion = await record("motion_research", { researchOutcome: "not_applicable", evidence: ["当前场面没有采用机制"] });
     const brief = join(root, "brief.md"), timing = join(root, "timing.md"), snapshotPath = join(root, "snapshot.json"), output = join(root, "handoff");
-    const latestBrief = "最新版导演稿：主体进入小窗，文字随主体接管画面。";
+    const plan = { ...visualPlan("主体"), referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative", researchDecisionId: research.id,
+      startMs: 100, endMs: 900, targetRole: "主体", treatment: "主体进入小窗", preserveRelation: "主体接管", targetRange: { startFrame: 100, endFrame: 125 } }] };
+    const latestBrief = `最新版导演稿：\n${directorBrief(plan)}`;
     await writeFile(brief, latestBrief);
     await writeFile(timing, "成片 100–125 帧，作品 0–25 帧。");
     await writeFile(snapshotPath, JSON.stringify(app.readProject(projectId)));
@@ -70,12 +73,23 @@ test("完整新制从零作品准备参考、自动送件并接回同一冻结�
       scenes: [{ sceneId: scene.id, status: "ready", references: [{ kind: "creative", id: "002-c01", sourceSha256: fingerprint,
         startMs: 100, endMs: 900, purpose: "主体进入小窗" }],
         visualRoles: [{ role: "主体", referenceFunction: "进入并接管", assetIds: [asset.id], usage: "真实主体" }],
-        visualPlan: { primaryRoles: ["主体"], referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative", researchDecisionId: research.id,
-          startMs: 100, endMs: 900, targetRole: "主体", treatment: "主体进入小窗", preserveRelation: "主体接管", targetRange: { startFrame: 100, endFrame: 125 } }] },
+        visualPlan: plan,
         process: "主体建立、进入小窗并接续", preserve: ["主体接管"], adapt: ["文字排版"] }] }, output);
     assert.equal(manifest.scenes?.[0].status, "ready", JSON.stringify(manifest.scenes?.[0]));
     const manifestPath = join(output, "delivery-manifest.json"), manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");
-    const design = await record("visual_design", { inputDecisionIds: [research.id, motion.id], deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } });
+    const pendingDesign = await record("visual_design", { inputDecisionIds: [research.id, motion.id], deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } });
+    await assert.rejects(record("adoption", { inputDecisionIds: [pendingDesign.id], deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } }),
+      { code: "PRODUCTION_RESEARCH_INCOMPLETE" });
+    const blockedResearch = await record("creative_research", { researchOutcome: "researched", evidence: ["整体设计仍待确定"],
+      researchCoverage: { ...completeResearchCoverage, blockingQuestions: ["主体空间关系尚未确定"] } });
+    const blockedDesign = await record("visual_design", { inputDecisionIds: [research.id, blockedResearch.id, motion.id], deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } });
+    await assert.rejects(record("adoption", { inputDecisionIds: [blockedDesign.id], deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } }),
+      { code: "PRODUCTION_RESEARCH_INCOMPLETE" });
+    await assert.rejects(record("creative_research", { researchOutcome: "researched", evidence: ["整体设计"],
+      researchCoverage: { ...completeResearchCoverage, motionMechanisms: "not_applicable" } }), { code: "PRODUCTION_RESEARCH_COVERAGE_INVALID" });
+    const complete = await record("creative_research", { researchOutcome: "researched", evidence: ["整体视觉系统由视觉作者原创，真实主体与文字共同构图，其他候选继续研究"],
+      researchCoverage: { ...completeResearchCoverage, motionMechanisms: "not_applicable", notApplicableReasons: { motionMechanisms: "当前场面无需局部机制" } } });
+    const design = await record("visual_design", { inputDecisionIds: [research.id, complete.id, motion.id], deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } });
     const adoption = await record("adoption", { inputDecisionIds: [design.id], deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } });
     const treatment = app.manageVisualTreatment({ projectId, baseRevision: rev(), action: "upsert", sceneId: scene.id, mode: "b_roll", intensity: "medium",
       primaryAttention: "主体", narrativePurpose: "说明", adoptedMaterialAssetIds: [asset.id], adoptedDecisionRef: { productionRunId: run.id, decisionId: adoption.id } }).snapshot.visualTreatments[0]!;
@@ -83,6 +97,9 @@ test("完整新制从零作品准备参考、自动送件并接回同一冻结�
       target: { action: "create_cue" as const, sceneId: scene.id, layer: "fullscreen" as const, startFrame: 100, endFrame: 125,
         sourceStartFrame: 0, sourceEndFrame: 25, audioPolicy: "rebind_unchanged_events" as const }, openDesignRequest: { project: "isolated-od", prompt: "按导演稿制作首版" } };
     await writeFile(brief, "视觉作者更新的导演稿");
+    await assert.rejects(record("adoption", { inputDecisionIds: [design.id], deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } }),
+      { code: "PRODUCTION_ADOPTION_DELIVERY_INVALID" });
+    await writeFile(brief, latestBrief);
     const adoptedManifest = await readFile(manifestPath);
     await writeFile(manifestPath, Buffer.concat([adoptedManifest, Buffer.from(" ")]));
     await assert.rejects(app.startMotionAuthoring(request), (error: any) => error.issues?.some((issue: { code: string }) => issue.code === "DELIVERY_INVALID"),

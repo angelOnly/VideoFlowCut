@@ -309,7 +309,16 @@ try {
     type: "PresenterScene", title: "参考交接测试场面", purpose: "验证参考目标范围", start_frame: 0, end_frame: 24 });
   const handoffSceneId = projectState.snapshot.scenes.find(scene => scene.title === "参考交接测试场面").id;
   const handoffBrief = join(workspaceRoot, "handoff-brief.md"), handoffTiming = join(workspaceRoot, "handoff-timing.md");
-  await writeFile(handoffBrief, "真实素材作为视觉主体，连续形成画面。", "utf8");
+  const handoffPlan = { primaryRoles: ["主体"],
+    composition: { opening: "主体在画面中央建立", primarySubject: "主体", supportingSubjects: [],
+      spatialRelations: [{ roles: ["主体"], relation: "主体位于背景前方" }], textAndGraphics: "文字与主体共同构图", ending: "主体接续下一画面" },
+    sequence: [{ purpose: "建立连续画面", subjects: ["主体"], action: "主体进入并持续运动", retainedElements: ["文字"], transition: "保留主体接入下一画面" }],
+    attentionPath: ["观看中心跟随主体"], odBoundaries: { locked: ["保持主体与构图"], adjustable: ["调整运动曲线"], escalation: "设计问题交视觉作者确认" },
+    referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative", researchDecisionId: "release-research-fixture", startMs: 0, endMs: 9800,
+      targetRole: "主体", treatment: "以真实视频主体接续画面", preserveRelation: "真实动作与参考的画面组织共同作用", targetRange: { startFrame: 0, endFrame: 24 } }] };
+  await writeFile(handoffBrief, ["主体在画面中央建立", "主体位于背景前方", "文字与主体共同构图", "主体接续下一画面", "建立连续画面",
+    "主体进入并持续运动", "保留主体接入下一画面", "观看中心跟随主体", "保持主体与构图", "调整运动曲线", "设计问题交视觉作者确认",
+    "以真实视频主体接续画面", "真实动作与参考的画面组织共同作用"].join("\n"), "utf8");
   await writeFile(handoffTiming, "素材前一秒用于隔离交付验证。", "utf8");
   const creative = await call("search_creative_cases", { ids: ["002-c01"] });
   const handoff = await call("prepare_motion_handoff", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
@@ -319,11 +328,10 @@ try {
       { sceneId: handoffSceneId, status: "ready", visualRoles: [{ role: "主体", referenceFunction: "运动过程", usage: "展示视频主体",
         assetIds: [importedAsset.id], sourceRanges: [{ startMs: 0, endMs: 1000 }] }],
         references: [{ kind: "creative", id: "002-c01", sourceSha256: creative.source_sha256, startMs: 0, endMs: 9800, purpose: "参考画面组织" }],
-        visualPlan: { primaryRoles: ["主体"], referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative",
-          researchDecisionId: "release-research-fixture", startMs: 0, endMs: 9800,
-          targetRole: "主体", treatment: "以真实视频主体接续画面", preserveRelation: "真实动作与参考的画面组织共同作用", targetRange: { startFrame: 0, endFrame: 24 } }] },
+        visualPlan: handoffPlan,
         process: "主体出现并连续运动", preserve: ["真实动作"], adapt: ["排版"] },
-      { sceneId: "pending", status: "pending", visualRoles: [{ role: "主体", referenceFunction: "待定", usage: "待补材", assetIds: ["missing"] }] }
+      { sceneId: "pending", status: "pending", visualRoles: [{ role: "主体", referenceFunction: "待定", usage: "待补材", assetIds: ["missing"] }],
+        visualPlan: { referenceMappings: [{ referenceId: "待研究" }] } }
     ] });
   assert.match(handoff.manifestSha256, /^[a-f0-9]{64}$/u);
   assert.deepEqual(handoff.scenes.map(scene => scene.status), ["ready", "pending"]);
