@@ -1,7 +1,7 @@
 import { motionJobReceipt } from "./command-receipt.js";
 import { registerMotionWorkbenchRoutes } from "./motion-workbench.js";
 import { motionOnSuccessSchema } from "../../../packages/contracts/src/motion-continuation.js";
-import { motionAuthoringRequestSchema } from "../../../packages/contracts/src/motion-authoring.js";
+import { motionAuthoringRequestSchema, motionAuthoringTargetSchema } from "../../../packages/contracts/src/motion-authoring.js";
 import { MotionFrameCache } from "../../../packages/media-intelligence/src/motion-frames.js";
 import { hyperframesContract } from "../../../packages/motion-work/src/hyperframes-contract.js";
 import { registerPresenterRoutes } from "./presenter-tools.js";
@@ -12,10 +12,10 @@ import { creativeBriefSchema, creativeBriefUpdateSchema, explicitCreativePrefere
 import { captionTypographySchema, captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema } from "../../../packages/contracts/src/caption-presentation.js";
 import { captionSrtImportSchema } from "../../../packages/contracts/src/caption-srt.js";
 import { MotionSubmissionValidationError } from "../../../packages/edit-application/src/motion-submission-validation.js";
-import { MotionAuthoringCoordinationError } from "../../../packages/edit-application/src/motion-coordination-error.js";
+import { MotionAuthoringCoordinationError, ProductionReferenceResearchError } from "../../../packages/edit-application/src/motion-coordination-error.js";
 import { toolError } from "./tool-error.js";
 import { explainerPlanWithContent } from "../../../packages/contracts/src/explainer-inputs.js";
-import { sourceCaptionTextReviewSchema, exportApprovalSchema } from "../../../packages/contracts/src/editorial-inputs.js";
+import { sourceCaptionTextReviewSchema, exportApprovalSchema, referenceReviewInputSchema, responsibilityReviewInputSchema } from "../../../packages/contracts/src/editorial-inputs.js";
 import { audioDesignSchema } from "../../../packages/edit-application/src/sound-design.js";
 import { registerSourceResearchRoutes } from "./source-research-tools.js";
 import { registerSoundRoutes } from "./sound-tools.js";
@@ -259,6 +259,17 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   // 复用仓库案例库，和工作台静态目录分开挂载，媒体拖动沿用 Range 支持。
   const libraryRoot = resolve(process.cwd(), "references/motion-cases/skillry");
   if (existsSync(libraryRoot)) await app.register(staticPlugin, { root: libraryRoot, prefix: "/library/", decorateReply: false });
+  // 发行版始终使用同一插件的教学媒体，开发版使用仓库维护源。
+  const skillsRoot = runtimeConfig.runtime.distributionDirectory
+    ? resolve(runtimeConfig.runtime.distributionDirectory, "..", "..", "skills")
+    : resolve(process.cwd(), ".agents/skills");
+  for (const [prefix, directory] of [
+    ["/teaching/r40/", "creative-sequence-design/references/R40-机器人进厂/教学素材/成片"],
+    ["/teaching/airfare/", "visual-treatment-planning/references/whole-scene-collaboration"]
+  ]) {
+    const root = join(skillsRoot, directory!);
+    if (existsSync(root)) await app.register(staticPlugin, { root, prefix, decorateReply: false });
+  }
   app.get("/api/library/reference-info", async request => {
     const query = z.object({ kind: z.enum(["creative", "motion"]), id: z.string().regex(/^\d{3}-[cm]\d{2}$/u) }).strict().parse(request.query);
     const options = { id: query.id, include_storyboard: false };
@@ -271,7 +282,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   await app.register(multipart, { limits: { files: 18, fileSize: 512 * 1024 * 1024 } });
 
   app.setErrorHandler((error, _request, reply) => {
-    if (error instanceof MotionSubmissionValidationError || error instanceof SourceDisplayValidationError || error instanceof MotionAuthoringCoordinationError) return reply.status(400).send(toolError(error));
+    if (error instanceof MotionSubmissionValidationError || error instanceof SourceDisplayValidationError || error instanceof MotionAuthoringCoordinationError || error instanceof ProductionReferenceResearchError) return reply.status(400).send(toolError(error));
     if (error instanceof RevisionConflictError) {
       return reply.status(409).send({ error: "REVISION_CONFLICT", message: error.message, expectedRevision: error.expected, currentRevision: error.actual });
     }
@@ -452,23 +463,27 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
       observer: z.string().trim().min(1).max(160), observation: z.string().trim().min(1).max(2000),
       startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(),
       adoptionRefs: z.array(z.object({ productionRunId: idSchema, decisionId: idSchema }).strict()).optional(),
-      referenceReviews: z.array(z.object({ productionRunId: idSchema, decisionId: idSchema, sceneId: idSchema,
-        referenceKind: z.enum(["creative", "motion"]), referenceId: idSchema, sourceSha256: z.string().min(1), targetRole: z.string().min(1),
-        startMs: z.number().nonnegative(), endMs: z.number().positive() }).strict()).optional(),
+      referenceReviews: z.array(referenceReviewInputSchema).optional(),
+      responsibilityReviews: z.array(responsibilityReviewInputSchema).optional(),
       finding: z.object({ category: z.enum(["semantic", "pacing", "attention", "motion", "typography", "audio", "mode_specific"]), severity: z.enum(["blocking", "warning", "major", "minor", "suggestion", "inconclusive"]), summary: z.string().trim().min(1).max(2000), impact: z.string().trim().min(1).max(2000), objectId: idSchema.optional() }).strict().optional()
     }).strict().parse(request.body);
     const snapshot = application.readProject(projectId, body.revision).snapshot;
     if (body.endFrame <= body.startFrame || body.endFrame > snapshot.timeline.durationInFrames) throw new DomainError("观察范围超出目标版本", "EDITORIAL_EVIDENCE_RANGE_INVALID");
+    if (body.referenceReviews?.some(item => item.outcome === "issue" && !item.impact?.trim())) {
+      throw new DomainError("参考需要修复时请说明影响", "REFERENCE_REVIEW_DETAILS_REQUIRED");
+    }
     const runOperationId = `workbench_run_${createHash("sha256").update(body.operationId).digest("hex")}`;
     const runId = body.runId ?? (await application.startProductionRun({ projectId, baseRevision: body.revision, intent: "review_only", completionScope: { kind: "frames", startFrame: body.startFrame, endFrame: body.endFrame }, operationId: runOperationId, loadedSkills: [] })).id;
     const report = await application.recordEditorialQualityReview({
       projectId, runId, operationId: body.operationId, revision: body.revision, passes: [body.pass], previewEvidence: [],
-      observations: [{ source: "workbench", observer: body.observer, clientEnvironment: request.headers["user-agent"], pass: body.pass, method: body.method, startFrame: body.startFrame, endFrame: body.endFrame, observation: body.observation, adoptionRefs: body.adoptionRefs, referenceReviews: body.referenceReviews }],
+      observations: [{ source: "workbench", observer: body.observer, clientEnvironment: request.headers["user-agent"], pass: body.pass, method: body.method, startFrame: body.startFrame, endFrame: body.endFrame, observation: body.observation, adoptionRefs: body.adoptionRefs, referenceReviews: body.referenceReviews, responsibilityReviews: body.responsibilityReviews }],
       findings: body.finding ? [{ ...body.finding, pass: body.pass, evidence: body.observation, frameRange: { startFrame: body.startFrame, endFrame: body.endFrame } }] : []
     });
     const evidence = [...(report.editorialReviewHistory ?? []), ...(report.editorialReview ? [report.editorialReview] : [])]
       .flatMap(review => review.evidenceRecords ?? []).find(entry => entry.operationId === body.operationId);
-    return { runId, review: report.editorialReview, evidenceId: evidence?.id };
+    const findingIds = evidence ? [...new Set([...(report.editorialReview?.findings ?? []).filter(item => item.referenceEvidenceId === evidence.id || item.responsibilityEvidenceId === evidence.id).map(item => item.id),
+      ...(body.referenceReviews ?? []).flatMap(item => item.outcome === "issue" && item.findingId ? [item.findingId] : [])])] : [];
+    return { runId, review: report.editorialReview, evidenceId: evidence?.id, findingIds };
   });
 
   app.post("/api/projects/:projectId/editorial-resolutions", async (request) => {
@@ -1163,7 +1178,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   });
   app.post("/api/projects/:projectId/motion-authoring", async request => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    const body = z.object({ baseRevision: baseRevisionSchema, productionRunId: idSchema.optional(), intent: z.literal("local_edit").optional(), visualTreatmentIds: z.array(idSchema).min(1).optional(), target: motionOnSuccessSchema,
+    const body = z.object({ baseRevision: baseRevisionSchema, productionRunId: idSchema, visualTreatmentIds: z.array(idSchema).min(1).optional(), target: motionAuthoringTargetSchema,
       openDesignRequest: motionAuthoringRequestSchema, idempotencyKey: z.string().min(1).max(120) }).strict().parse(request.body);
     const job = await application.startMotionAuthoring({ projectId, ...body });
     return { projectId, jobId: job.id, status: job.status, authoring: job.result?.authoring };
@@ -1460,9 +1475,6 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.post("/api/projects/:projectId/export-artifacts/:artifactId/review", async (request) => {
     const { projectId, artifactId } = z.object({ projectId: idSchema, artifactId: idSchema }).parse(request.params);
-    const reference = z.object({ productionRunId: idSchema, decisionId: idSchema, sceneId: idSchema,
-      referenceKind: z.enum(["creative", "motion"]), referenceId: idSchema, sourceSha256: z.string().min(1),
-      targetRole: z.string().min(1), startMs: z.number().nonnegative(), endMs: z.number().positive() }).strict();
     const body = z.object({
       operationId: productionOperationIdSchema.optional(), runId: idSchema.optional(), assignmentId: idSchema.optional(), observer: z.string().trim().min(1).optional(),
       passes: z.array(z.enum(["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"])).max(5).optional(),
@@ -1472,7 +1484,8 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
         method: z.enum(["frames", "continuous_video", "audio", "audiovisual", "sampled_av", "event_measurement"]),
         outcome: z.enum(["confirmed", "issue", "inconclusive"]), startFrame: z.number().int().nonnegative(),
         endFrame: z.number().int().positive(), note: z.string().trim().min(1).max(2000),
-        mediaObservationIds: z.array(idSchema).max(40).optional(), referenceReviews: z.array(reference).max(40).optional() }).strict()).max(120).optional(),
+        mediaObservationIds: z.array(idSchema).max(40).optional(), referenceReviews: z.array(referenceReviewInputSchema).max(40).optional(),
+        responsibilityReviews: z.array(responsibilityReviewInputSchema).max(40).optional() }).strict()).max(120).optional(),
       resolutions: z.array(z.object({ findingId: idSchema, evidenceIds: z.array(idSchema).min(1).max(40), note: z.string().trim().min(1).max(2000) }).strict()).max(40).optional()
     }).strict().parse(request.body);
     return application.recordExportArtifactReview({ projectId, artifactId, ...body });
@@ -1492,14 +1505,23 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
 
   app.get("/api/projects/:projectId/production-status", async request => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
-    const query = z.object({ runId: idSchema.optional(), completionScope: z.string().optional() }).parse(request.query);
-    if (query.completionScope && !query.runId) throw new DomainError("completionScope 需要 runId", "PRODUCTION_STATUS_CONTEXT_REQUIRED");
-    if (!query.runId) return application.readProductionStatus(projectId);
-    if (!query.completionScope) return application.readProductionStatus(projectId, { runId: query.runId });
+    const { completionScope: scopeText, ...context } = z.object({ runId: idSchema.optional(), completionScope: z.string().optional(),
+      referenceDecisionId: idSchema.optional(), referenceArtifactId: idSchema.optional() }).parse(request.query);
+    if ((scopeText || context.referenceDecisionId) && !context.runId) throw new DomainError("completionScope 和 referenceDecisionId 需要 runId", "PRODUCTION_STATUS_CONTEXT_REQUIRED");
+    if (context.referenceDecisionId && context.referenceArtifactId) throw new DomainError("请指定一个参考对照目标", "PRODUCTION_STATUS_CONTEXT_REQUIRED");
+    if (!scopeText) return application.readProductionStatus(projectId, context);
     let rawScope: unknown;
-    try { rawScope = JSON.parse(query.completionScope); } catch { throw new DomainError("completionScope 必须是有效 JSON", "COMPLETION_SCOPE_INVALID"); }
+    try { rawScope = JSON.parse(scopeText); } catch { throw new DomainError("completionScope 必须是有效 JSON", "COMPLETION_SCOPE_INVALID"); }
     const completionScope = z.discriminatedUnion("kind", [z.object({ kind: z.literal("project") }), z.object({ kind: z.literal("beats"), beatIds: z.array(idSchema).min(1) }), z.object({ kind: z.literal("objects"), objectIds: z.array(idSchema).min(1) }), z.object({ kind: z.literal("frames"), startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() })]).parse(rawScope);
-    return application.readProductionStatus(projectId, { runId: query.runId, completionScope });
+    return application.readProductionStatus(projectId, { ...context, completionScope });
+  });
+
+  app.get("/api/projects/:projectId/reference-comparisons", async request => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
+    const { revision, startFrame, endFrame } = z.object({ revision: z.coerce.number().int().positive(),
+      startFrame: z.coerce.number().int().nonnegative(), endFrame: z.coerce.number().int().positive() }).parse(request.query);
+    if (endFrame <= startFrame) throw new DomainError("参考对照需要有效帧范围", "EDITORIAL_EVIDENCE_RANGE_INVALID");
+    return application.readRevisionReferenceComparisons(projectId, revision, { startFrame, endFrame });
   });
 
   app.post("/api/jobs/:jobId/retry", async (request, reply) => {

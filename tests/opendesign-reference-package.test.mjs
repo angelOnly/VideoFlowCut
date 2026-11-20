@@ -8,6 +8,7 @@ import {createHash} from 'node:crypto';
 import {prepareReferencePackage,verifyReferenceDelivery} from '../scripts/opendesign-reference-package.mjs';
 import {scopeReferenceManifest} from '../packages/edit-application/src/opendesign-reference-package.mjs';
 import {loadLibraryIndex} from '../references/motion-cases/skillry/tools/library-store.mjs';
+import {directorBrief,visualPlan} from './fixtures/visual-plan.mjs';
 
 test('沿当前索引收集参考，复用原片、保留补图并如实报告缺失', async () => {
   const root=await mkdtemp(join(tmpdir(),'vfc-reference-'));
@@ -48,7 +49,7 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
     assert.match(verified.prompt,/reference\/art（学习），学习排印/);
     assert.match(verified.prompt,/creative\/001-c01（已采用）/);
     assert.match(verified.prompt,/依据视觉导演稿、真实素材和参考关系制作首版/);
-    assert.match(verified.prompt,/保持已采用的主要主体、素材角色、构图发展及场面接续/);
+    assert.match(verified.prompt,/保持已采用的主要主体、素材角色、构图、美术、排版/);
     assert.doesNotMatch(verified.prompt,/必须保持的内容、参考关键过程/);
     // 场面使用的 ID、文件和本地源时间以真实项目读回为准；未就绪范围不阻塞其他场面。
     const video=join(dir,'video.mp4'), projectSnapshot=join(root,'project.json');
@@ -82,7 +83,8 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
     await copyFile(video,join(previewRoot,'assets','video.mp4'));
     const previewProject={...project,snapshot:{...project.snapshot,project:{id:'isolation',rootPath:previewRoot},assets:[{...project.snapshot.assets[0],managedPath:'assets/video.mp4'}],motionWorks:[]}};
     const previewSnapshot=join(root,'preview-project.json'); await writeFile(previewSnapshot,JSON.stringify(previewProject));
-    const plan={primaryRoles:['主要主体'],referenceMappings:[{referenceId:'001-c01',researchDecisionId:'research-1',startMs:100,endMs:900,targetRole:'主要主体',treatment:'扩大主体接管',preserveRelation:'文字随主体共同重排',targetRange:{startFrame:5,endFrame:25}}]};
+    const plan={...visualPlan('主要主体'),referenceMappings:[{referenceId:'001-c01',researchDecisionId:'research-1',startMs:100,endMs:900,targetRole:'主要主体',treatment:'扩大主体接管',preserveRelation:'文字随主体共同重排',targetRange:{startFrame:5,endFrame:25}}]};
+    await writeFile(brief,directorBrief(plan,visualPlan('照片与文字卡片'))+'\n辅助图形');
     const planInput={...sceneInput,projectSnapshot:previewSnapshot,assets:sceneInput.assets.slice(0,1),scenes:[{...scene,visualPlan:plan}]};
     const preparedPlan=await prepareReferencePackage(planInput,join(root,'preview'),library);
     assert.equal(preparedPlan.scenes[0].status,'ready');
@@ -142,7 +144,7 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
     assert.ok(graphicPlan.scenes[0].visualRoles.every(role=>!('kind' in role)));
     const mixed=await prepareReferencePackage({...planInput,assets:[],scenes:[{...scene,
       visualRoles:[{...scene.visualRoles[0],role:'照片与文字卡片',usage:'照片、文字和原创图形共同变化'}],
-      visualPlan:{primaryRoles:['照片与文字卡片'],referenceMappings:plan.referenceMappings.map(item=>({...item,targetRole:'照片与文字卡片'}))}}]},join(root,'mixed'),library);
+      visualPlan:{...visualPlan('照片与文字卡片'),referenceMappings:plan.referenceMappings.map(item=>({...item,targetRole:'照片与文字卡片'}))}}]},join(root,'mixed'),library);
     assert.equal(mixed.scenes[0].status,'ready');
     assert.equal(mixed.scenes[0].visualRoles[0].assets[0].assetId,'asset-1');
     const unknown=await prepareReferencePackage({...planInput,assets:[],scenes:[{...scene,
@@ -166,6 +168,19 @@ test('沿当前索引收集参考，复用原片、保留补图并如实报告�
       const invalidPlan=await prepareReferencePackage({...planInput,scenes:[{...scene,visualPlan:{...plan,...change}}]},join(root,name),library);
       assert.equal(invalidPlan.scenes[0].status,'incomplete',name);
       assert.match(invalidPlan.scenes[0].diagnostics.join(' '),expected,name);
+    }
+    for (const [name,change,expected] of [
+      ['missing-composition',{composition:undefined},/初始构图/],
+      ['invalid-spatial-role',{composition:{...plan.composition,spatialRelations:[{roles:['不存在'],relation:'主体空间'}]}},/空间关系必须引用已有视觉角色/],
+      ['missing-sequence',{sequence:[]},/连续画面发展/],
+      ['missing-attention',{attentionPath:[]},/观看中心/],
+      ['missing-boundaries',{odBoundaries:{...plan.odBoundaries,locked:[]}},/不得改变的设计/],
+      ['different-brief',{composition:{...plan.composition,ending:'与导演稿不同的结尾'}},/最终构图与导演稿原文不一致/]
+    ]) {
+      const invalid=await prepareReferencePackage({...planInput,scenes:[{...scene,visualPlan:{...plan,...change}},
+        {sceneId:'later',status:'pending',visualPlan:{primaryRoles:[]}}]},join(root,name),library);
+      assert.deepEqual(invalid.scenes.map(item=>item.status),['incomplete','pending']);
+      assert.match(invalid.scenes[0].diagnostics.join(' '),expected);
     }
     for (const [name,targetRange] of [['missing',undefined],['empty',{startFrame:5,endFrame:5}],['outside',{startFrame:0,endFrame:31}],['fraction',{startFrame:1.5,endFrame:20}]]) {
       const output=join(root,`target-${name}`);
@@ -257,11 +272,12 @@ test('动效参考交付原片和切片，制作请求保留原片范围与切�
   const root=await mkdtemp(join(tmpdir(),'vfc-motion-reference-'));
   try {
     const brief=join(root,'brief.md'), timing=join(root,'timing.md'), output=join(root,'out');
-    await writeFile(brief,'完整创意编排'); await writeFile(timing,'实际时间安排');
+    await writeFile(timing,'实际时间安排');
     const snapshot=join(root,'project.json');
     const project={revision:{number:1},snapshot:{project:{id:'isolation',rootPath:root},scenes:[{id:'motion',startFrame:0,endFrame:30}],assets:[],motionWorks:[]}};
     await writeFile(snapshot,JSON.stringify(project));
-    const preview={primaryRoles:['主体']};
+    const preview=visualPlan('主体');
+    await writeFile(brief,directorBrief(preview)+'\n主体接管\n主体共同变化');
     const index=loadLibraryIndex();
     const manifest=await prepareReferencePackage({projectId:'isolation',revision:1,projectSnapshot:snapshot,brief,timingPlan:timing,
       motion:[{id:'002-m17',sourceSha256:index.source_sha256,usage:'adopted',purpose:'完成所选连续变化'}],

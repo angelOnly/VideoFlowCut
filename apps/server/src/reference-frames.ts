@@ -17,13 +17,12 @@ export async function referenceFrames(root: string, request: { id: string; sourc
   const metadata = await probeMedia(path);
   if (range.endMs > metadata.durationMs) throw new Error(`参考 ${id} 的范围超出原片`);
   const sourceHash = await hashMediaFile(path);
-  const {origin, timestamps, frameRate} = await referenceFrameTimes(path, range);
-  const leading = timestamps[0]!, end = origin + range.endMs / 1000;
+  const {origin, timestamps, frameRate, leadingPts, endPts} = await referenceFrameTimes(path, range);
   if (timestamps.length > 96) throw new Error("所选范围超过 96 帧，请缩小范围以逐帧核查");
   const directory = await mkdtemp(join(tmpdir(), "vfc-reference-frames-"));
   try {
     await runProcess("ffmpeg", ["-v", "error", "-nostdin", "-copyts", "-i", path, "-map", "0:v:0", "-vf",
-      `trim=start=${leading}:end=${end},scale=w='min(960,iw)':h=-2`, "-fps_mode", "passthrough", "-q:v", "4", join(directory, "%04d.jpg")]);
+      `trim=start_pts=${leadingPts}:end_pts=${endPts},scale=w='min(960,iw)':h=-2`, "-fps_mode", "passthrough", "-q:v", "4", join(directory, "%04d.jpg")]);
     const files = (await readdir(directory)).filter(name => /^\d{4}\.jpg$/u.test(name)).sort();
     if (files.length !== timestamps.length || await hashMediaFile(path) !== sourceHash) throw new Error("源帧与时间戳数量不一致或原片发生变化，请重新核查");
     const frames = await Promise.all(files.map(async (file, index) => ({ source_ms: Math.round((timestamps[index]! - origin) * 1_000_000) / 1000,

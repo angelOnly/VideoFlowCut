@@ -1,0 +1,176 @@
+{
+  "work": {
+    "name": "机器人进厂 · 可靠性与工位",
+    "creativeBrief": "完整不透明主画面；1920×1080、30fps、1463帧。016黑／暖白／红、满幅入框与换素材、卷曲覆盖、前后红线、集合与反向字带；026圆阵→方阵→横扫→底边释放→散开→竖短线→再散开→浅底37%聚合；032倾斜框体升入、同一Atlas视频越框全屏与回收、外围退虚、下扫、圆形接管上移、抽象分支重合。100次全部成功≈37%是独立99%假设，不是成功次数占比。不同来源分窗并由图形换场，不声称同一工厂、同一机器人或真实故障救援；人形机器人维持机会与未来也许限定。原片说明字使用底部定向遮挡与裁切，关键手部和工件区域保留。所有视频为根帧时钟正常速率，源毫秒按最近整数取整，不冻结补长。音轨和普通字幕均交VideoFlowCut独立合成。观察限制：已核读正文、分镜、按时间顺序的视频采样帧；未连续观看视频流、未试听配音；句内落点为段级边界与实际波形静音辅助编排，不冒称逐词精确或审片通过。 本轮基于e82d8e0689065725fe35ce1f119d5cc61afcae4ad54abc8f96ba82e357198128返修：Digit与Atlas以不受注帧样式控制的父层取景移除原片说明，取消黑色遮条；前段满幅扫描与视频接管、点阵全幅散开并右侧聚合37%；Atlas中性动作文字，不标注真实故障；477帧起独立人员/输送线加入抽象分支；入场初态显式建立，整条根时间线预求值固定惰性Tween起值。观察记录见motion/revision-notes.md。",
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "durationInFrames": 1463,
+    "props": {
+      "visualRole": "opaque_main_picture",
+      "clock": "work_root",
+      "frameRangeConvention": "half_open",
+      "audioOwnership": "VideoFlowCut",
+      "captionOwnership": "VideoFlowCut",
+      "sourceObservation": "chronological_sampled_frames_not_continuous_playback",
+      "narrationAlignment": "segment_exact_with_silence_assisted_intra_segment_cues"
+    },
+    "imageBindings": {},
+    "videoBindings": {
+      "yellowOpening": {
+        "assetId": "asset_896d7f47-3aef-446a-b0ed-b67048bfda74",
+        "sourceStartMs": 4300,
+        "sourceEndMs": 9500,
+        "startFrame": 0,
+        "endFrame": 156
+      },
+      "carProbability": {
+        "assetId": "asset_2315f254-7b0f-4000-a2e1-7cd87dc35842",
+        "sourceStartMs": 0,
+        "sourceEndMs": 5167,
+        "startFrame": 156,
+        "endFrame": 311
+      },
+      "atlasContinuous": {
+        "assetId": "asset_278147ff-a6b6-4620-bfa2-80e34276355f",
+        "sourceStartMs": 80000,
+        "sourceEndMs": 85533,
+        "startFrame": 311,
+        "endFrame": 477
+      },
+      "operatorException": {
+        "assetId": "asset_ac6098fa-ae9a-4019-8479-0b6505033028",
+        "sourceStartMs": 0,
+        "sourceEndMs": 2900,
+        "startFrame": 477,
+        "endFrame": 564
+      },
+      "conveyorException": {
+        "assetId": "asset_74e1f780-3b70-4d66-8d67-0b45b5981717",
+        "sourceStartMs": 34000,
+        "sourceEndMs": 36900,
+        "startFrame": 477,
+        "endFrame": 564
+      },
+      "carCollection": {
+        "assetId": "asset_2315f254-7b0f-4000-a2e1-7cd87dc35842",
+        "sourceStartMs": 0,
+        "sourceEndMs": 6667,
+        "startFrame": 564,
+        "endFrame": 764
+      },
+      "yellowCollection": {
+        "assetId": "asset_896d7f47-3aef-446a-b0ed-b67048bfda74",
+        "sourceStartMs": 4300,
+        "sourceEndMs": 9500,
+        "startFrame": 564,
+        "endFrame": 720
+      },
+      "palletCollection": {
+        "assetId": "asset_2d107d16-dc70-4e94-85ba-c22267cdea7d",
+        "sourceStartMs": 4000,
+        "sourceEndMs": 5467,
+        "startFrame": 720,
+        "endFrame": 764
+      },
+      "operatorCollection": {
+        "assetId": "asset_ac6098fa-ae9a-4019-8479-0b6505033028",
+        "sourceStartMs": 1000,
+        "sourceEndMs": 7667,
+        "startFrame": 564,
+        "endFrame": 764
+      },
+      "carQuestion": {
+        "assetId": "asset_2315f254-7b0f-4000-a2e1-7cd87dc35842",
+        "sourceStartMs": 0,
+        "sourceEndMs": 2467,
+        "startFrame": 764,
+        "endFrame": 838
+      },
+      "yellowStation": {
+        "assetId": "asset_896d7f47-3aef-446a-b0ed-b67048bfda74",
+        "sourceStartMs": 4300,
+        "sourceEndMs": 8367,
+        "startFrame": 838,
+        "endFrame": 960
+      },
+      "palletStation": {
+        "assetId": "asset_2d107d16-dc70-4e94-85ba-c22267cdea7d",
+        "sourceStartMs": 4000,
+        "sourceEndMs": 8667,
+        "startFrame": 941,
+        "endFrame": 1081
+      },
+      "conveyorStation": {
+        "assetId": "asset_74e1f780-3b70-4d66-8d67-0b45b5981717",
+        "sourceStartMs": 34000,
+        "sourceEndMs": 37533,
+        "startFrame": 1035,
+        "endFrame": 1141
+      },
+      "digitNear": {
+        "assetId": "asset_b213af67-179a-490f-bf98-7a88653b90f4",
+        "sourceStartMs": 48000,
+        "sourceEndMs": 51700,
+        "startFrame": 1141,
+        "endFrame": 1252
+      },
+      "figureWork": {
+        "assetId": "asset_e5aecd48-6398-460d-9cd7-2cc86be12416",
+        "sourceStartMs": 98300,
+        "sourceEndMs": 102100,
+        "startFrame": 1227,
+        "endFrame": 1341
+      },
+      "digitWide": {
+        "assetId": "asset_b213af67-179a-490f-bf98-7a88653b90f4",
+        "sourceStartMs": 88000,
+        "sourceEndMs": 94433,
+        "startFrame": 1270,
+        "endFrame": 1463
+      },
+      "atlasFinal": {
+        "assetId": "asset_278147ff-a6b6-4620-bfa2-80e34276355f",
+        "sourceStartMs": 84000,
+        "sourceEndMs": 88500,
+        "startFrame": 1328,
+        "endFrame": 1463
+      }
+    },
+    "fontBindings": {
+      "display": "aa-houdi-hei",
+      "title": "noto-sans-sc-bold"
+    }
+  },
+  "readyRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 1463
+    }
+  ],
+  "changedRanges": [
+    {
+      "endFrame": 311,
+      "reason": "满幅扫描、素材与全幅点群接力、反向数字聚合；概率假设及结果保持",
+      "startFrame": 0
+    },
+    {
+      "endFrame": 564,
+      "reason": "中性Atlas动作文案、同源退虚背景、真实素材参与分支；非同一故障事件",
+      "startFrame": 311
+    },
+    {
+      "endFrame": 764,
+      "reason": "robot-stage-unbound-slot-20261107-02保持完整对象绑定；交叉字带显式初态与时间线缓存初始化修复",
+      "startFrame": 564
+    },
+    {
+      "endFrame": 1463,
+      "reason": "Digit/Atlas父层取景去除原片说明字；取消显眼黑条；保留原始正常播放范围",
+      "startFrame": 1141
+    }
+  ],
+  "sourceFile": "motion/robot-reliability.html",
+  "authorSubmissionId": "c91ef0d36e9434dd72c762195136a8760ef2146592377be1fdb5a4476f2bda71",
+  "sourceSha256": "24aab38de341ad50ea96f1cb73a75e05d6d6a67e1f34848f3e2b3f8236bad532"
+}

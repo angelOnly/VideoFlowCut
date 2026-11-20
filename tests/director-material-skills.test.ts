@@ -93,12 +93,13 @@ test("素材和参考参与共同编排，完整指令及画面限制交到制�
   const production=read('.agents/skills/opendesign-video-production/SKILL.md');
   assert.match(director,/导演在确定主要视觉表现之前，必须结合实际素材/u);
   assert.match(director,/视觉作者从首轮就读取主题、文案、已有素材和可用参考/u);
-  assert.match(creative,/将参考研究和本片迁移结论交给同一位视觉作者/u);
-  assert.match(creative,/阶段性交回必须带真实参考 ID、来源指纹、原片路径、采用范围、实际观看方式/u);
-  assert.match(visual,/禁止在视频画面中添加解释素材来源、案例属性、示意身份/u);
-  assert.match(visual,/裁切或遮挡[\s\S]*检查处理后的实际画面/u);
+  assert.match(creative,/将参考研究和本片迁移结论融入同一份稿/u);
+  assert.match(creative,/原片可辨认的美术、布局、运动关系及本片采用理由/u);
+  assert.match(visual,/「示例」「说明」「来源」「示意」等字样禁止出现在任何画面中/u);
+  assert.match(visual,/换词后作用相同的标签/u);
+  assert.match(visual,/检查实际使用的全部源段[\s\S]*裁切或遮挡/u);
   assert.match(brief,/参考研究[\s\S]*制作首版[\s\S]*素材/u);
-  assert.match(production,/读取完整简报，打开采用的参考视频[\s\S]*再查看本片对应素材/u);
+  assert.match(production,/先读完冻结的整片请求和时间计划[^\n]*再打开各场采用的参考原段、复摆对照和对应素材/u);
   assert.match(production,/opendesign_request\.continue_from_run_id/u);
 });
 
@@ -127,10 +128,10 @@ test("完整新制的参考、素材和视觉并行续接，并以完整映射�
   assert.match(parallel!,/文案作者：[^\n]*narration-writing/);
   assert.match(parallel!,/apply_authored_script[\s\S]*read_script[\s\S]*read_impact_report/);
   assert.match(parallel!,/record_creative_decision[^\n]*assignment_id[^\n]*input_revision[^\n]*evidence/);
-  assert.match(parallel!,/创意作者：[^\n]*creative-case-library[^\n]*creative-sequence-design/);
   assert.match(parallel!,/素材作者：visual-asset-sourcing/);
-  assert.match(parallel!,/视觉作者：visual-treatment-planning[^\n]*creative-reference-to-sequence[^\n]*motion-case-library/);
-  assert.match(parallel!,/素材不足时续接原素材作者；参考不足时续接原创意作者。两个任务可以并行/);
+  assert.match(parallel!,/创意作者：[^\n]*creative-case-library[^\n]*creative-sequence-design[^\n]*写本片替换前实际读完[^\n]*creative-reference-to-sequence/u);
+  assert.match(parallel!,/视觉作者：从首轮并行参与[^\n]*接回创意原文和实际素材[^\n]*按同一演出状态复摆并核对，成立后再做跨场适配/u);
+  assert.match(parallel!,/缺素材[^。]*交原素材作者[^。]*续接原创意作者/u);
   assert.match(parallel!,/已就绪且不依赖缺口的范围可以继续推进/);
   assert.match(transfer,/创意卡 ID、来源指纹、原片路径和采用范围[\s\S]*本片真实素材 Asset ID[\s\S]*原参考对象与本片视觉角色的映射[\s\S]*本片完整画面构思/);
   assert.match(brief,/创意卡 ID[\s\S]*采用的完整源时间范围[\s\S]*本片真实素材[\s\S]*参考对象与本片角色映射[\s\S]*完整画面发展/);

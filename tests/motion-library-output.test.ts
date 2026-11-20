@@ -55,13 +55,17 @@ test("原片分析保留真实描述、来源和采样边界，其他任务保�
       id: "001-m01", description: "主体保持，背景从左侧接入", source_hash: "b".repeat(64), run_id: "original-run",
       range: { startMs: 20, endMs: 2000, privateData }, externalRuns: { privateData },
       sampling: { model_frame_density: "unknown", limitation: "快速交叠未知", privateData },
-      input: { path: privateData, mapping: { parentHash: "b".repeat(64), offsetMs: 20, rate: 1, privateData }, streams: [{ nb_read_frames: "60", avg_frame_rate: "30/1", privateData }] }
+      input: { path: privateData, mapping: { parentHash: "b".repeat(64), offsetMs: 20, rate: 1, privateData }, streams: [{ nb_read_frames: "60", avg_frame_rate: "30/1", privateData }],
+        video_coverage: { analysis_start_ms: 20, analysis_end_ms: 2000, boundary_marker_ms: 1980, privateData },
+        source_audio_coverage: { source_start_ms: 0, source_end_ms: 2061, padding_intervals_ms: [], privateData } }
     }
   };
   const result = projectMotionJob(job) as any;
   assertCompact(result);
   assert.equal(result.result.description, job.result!.description);
   assert.equal(result.result.input.mapping.offsetMs, 20);
+  assert.equal(result.result.input.video_coverage.boundary_marker_ms, 1980);
+  assert.equal(result.result.input.source_audio_coverage.source_end_ms, 2061);
   assert.equal(result.result.sampling.model_frame_density, "unknown");
   assert.equal(result.result.run_id, "original-run");
   assert.equal(result.recovery, undefined);

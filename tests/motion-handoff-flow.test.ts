@@ -18,6 +18,7 @@ import { loadLibraryIndex } from "../references/motion-cases/skillry/tools/libra
 import { loadCreativeIndex } from "../references/motion-cases/skillry/tools/creative-library.mjs";
 import { motionFixture } from "./fixtures/managed-motion.js";
 import { motionHtml } from "./fixtures/hyperframes.js";
+import { directorBrief, visualPlan } from "./fixtures/visual-plan.mjs";
 
 function parse<T>(value: unknown): T {
   const result = value as { isError?: boolean; content: Array<{ type: string; text?: string }> };
@@ -72,7 +73,10 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.equal(app.readProject(projectId).snapshot.motionWorks?.length ?? 0, 0);
     const report = await app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: app.readProject(projectId).revision.number, intent: "local_edit", completionScope: { kind: "project" }, projectId, loadedSkills: ["production-coordinator"] });
     const brief = join(root, "brief.md"), timing = join(root, "timing.md");
-    await writeFile(brief, "完整连续画面及准确文字");
+    const scenePlan = { ...visualPlan("主体"), referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative", researchDecisionId: "research-fixture", startMs: 0, endMs: 9800,
+      targetRole: "主体", treatment: "真实主体接管", preserveRelation: "主体与文字共同变化", targetRange: { startFrame: 0, endFrame: 30 } }] };
+    const briefText = directorBrief(scenePlan) + `\n\n## 发给 OD 的完整请求\n### 场面 ${scene.id}\n按完整共同编排制作`;
+    await writeFile(brief, briefText);
     await writeFile(timing, "依据实际声音安排时间");
     await client.connect(transport);
     const libraryRoot = join(process.cwd(), "references", "motion-cases", "skillry");
@@ -87,13 +91,12 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
             startMs: 0, endMs: 9800, purpose: "参考画面组织" }],
             visualRoles: [{ role: "主体", referenceFunction: "连续变化", assetIds: [importedVideo.asset.id],
               sourceRanges: [{ startMs: 0, endMs: 1000 }], usage: "展示真实主体" }],
-            visualPlan: { primaryRoles: ["主体"],
-              referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative", researchDecisionId: "research-fixture", startMs: 0, endMs: 9800,
-                targetRole: "主体", treatment: "真实主体接管", preserveRelation: "主体与文字共同变化", targetRange: { startFrame: 0, endFrame: 30 } }] },
+            visualPlan: scenePlan,
             process: "主体出现、发展并接续", preserve: ["连续过程"], adapt: ["中文文字"] },
           { sceneId: pendingScene.id, status: "pending", references: [{ kind: "motion", id: "003-m01", sourceSha256: index.source_sha256,
             startMs: 0, endMs: 2080, purpose: "下一场机制" }], resourceIds: ["missing-art"],
-            visualRoles: [{ role: "主体", referenceFunction: "动作", assetIds: ["missing-b"], usage: "待获取" }] }
+            visualRoles: [{ role: "主体", referenceFunction: "动作", assetIds: ["missing-b"], usage: "待获取" }],
+            visualPlan: { composition: { opening: "初步画面" }, referenceMappings: [{ referenceId: "003-m01" }] } }
         ] }
     };
     const missingRangeRequest = JSON.parse(JSON.stringify(handoffRequest));
@@ -107,9 +110,12 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     const obsoletePlanRequest = JSON.parse(JSON.stringify(handoffRequest));
     obsoletePlanRequest.arguments.scenes[0].visualPlan.graphicLed = true;
     assert.equal((await client.callTool(obsoletePlanRequest)).isError, true, "旧的全场图形标记不能进入新合同");
-    const prepared = parse<{ inputRevision: number; manifestPath: string; manifestSha256: string; scenes: Array<{ sceneId: string; status: string }>;
+    const prepared = parse<{ inputRevision: number; manifestPath: string; manifestSha256: string; authorRequest: { text: string; sha256: string; manifestSha256: string }; scenes: Array<{ sceneId: string; status: string }>;
       diagnostics: Array<{ id?: string; requiredForRun?: boolean }>; files: Array<{ path: string; localPath: string; requiredForRun: boolean; uses: Array<{ kind: string }> }> }>(await client.callTool(handoffRequest));
     assert.deepEqual(prepared.scenes.map(item => item.status), ["ready", "pending"]);
+    assert.equal(prepared.authorRequest.text, `### 场面 ${scene.id}\n按完整共同编排制作`);
+    assert.equal(prepared.authorRequest.manifestSha256, prepared.manifestSha256);
+    assert.equal(prepared.authorRequest.sha256, createHash("sha256").update(prepared.authorRequest.text).digest("hex"));
     const scenesFile = prepared.files.find(file => file.path.endsWith("/brief/scenes.json"));
     assert.ok(scenesFile);
     const deliveredScenes = JSON.parse(await readFile(scenesFile.localPath, "utf8"));
@@ -123,13 +129,13 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.ok(prepared.files.every(file => file.path.startsWith("handoffs/")));
     await writeFile(brief, "另一场面更新后的原始稿");
     const fixedBrief = prepared.files.find(file => file.path.endsWith("brief/visual-director-brief.md"))!;
-    assert.equal(await readFile(fixedBrief.localPath, "utf8"), "完整连续画面及准确文字");
-    await writeFile(brief, "完整连续画面及准确文字");
+    assert.equal(await readFile(fixedBrief.localPath, "utf8"), briefText);
+    await writeFile(brief, briefText);
 
     const delivery = { manifest_path: prepared.manifestPath, manifest_sha256: prepared.manifestSha256, scene_ids: [scene.id] };
     const initialReport = await app.readSkillExecutionReport({ projectId, runId: report.id });
     await app.updateProductionRun({ projectId, runId: report.id, expectedAuditVersion: initialReport.auditVersion, operationId: "assign-visual", action: "add_assignment",
-      assignment: { agentId: "/test/visual", assignmentId: "visual", responsibilities: ["visual_design"], skillIds: ["visual-treatment-planning"], inputRevision: rev(), scope: { kind: "project" } } });
+      assignment: { agentId: "/test/visual", assignmentId: "visual", responsibilities: ["creative_research", "motion_research", "visual_design"], skillIds: ["creative-sequence-design", "motion-case-library", "visual-treatment-planning", "creative-reference-to-sequence"], inputRevision: rev(), scope: { kind: "project" } } });
     const visual = parse<SkillExecutionReport>(await client.callTool({ name: "record_creative_decision", arguments: {
       project_id: projectId, run_id: report.id, operation_id: "visual-design", category: "visual", decision: "完成当前场面", rationale: "依据固定交接",
       phase: "visual_design", assignment_id: "visual", input_revision: prepared.inputRevision, object_ids: [scene.id], delivery_ref: delivery
@@ -163,9 +169,20 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.equal(rev(), beforeInvalid);
     await updateTreatment(decision.id);
     const treatmentId = app.readProject(projectId).snapshot.visualTreatments[0].id;
-    const start = async (key: string, target: object) => parse<{ jobId: string }>(await client.callTool({ name: "start_motion_authoring", arguments: {
+    const recordLocalDecisions = async () => {
+      const localDecisions: string[] = [];
+      for (const phase of ["creative_research", "motion_research", "visual_design"] as const) {
+        const recorded = await app.recordCreativeDecision({ projectId, runId: report.id, operationId: `local-${phase}-${globalThis.crypto.randomUUID()}`, category: "visual", phase,
+          assignmentId: "visual", inputRevision: rev(), objectIds: [scene.id], decision: "当前场面判断", rationale: "核对场面和素材", evidence: ["当前场面"],
+          ...(phase === "visual_design" ? { inputDecisionIds: localDecisions } : { researchOutcome: "researched" as const }) });
+        localDecisions.push(recorded.creativeDecisions.at(-1)!.id);
+      }
+    };
+    await recordLocalDecisions();
+    const start = async (key: string, target: { action: string; [key: string]: unknown }) => parse<{ jobId: string }>(await client.callTool({ name: "start_motion_authoring", arguments: {
       project_id: projectId, base_revision_id: rev(), production_run_id: report.id, visual_treatment_ids: [treatmentId],
-      idempotency_key: key, target, opendesign_request: { project: "isolated-od", prompt: "按完整共同编排制作" }
+      idempotency_key: key, target, opendesign_request: { project: "isolated-od",
+        ...(target.action === "create_cue" ? {} : { prompt: "按完整共同编排制作", continue_from_run_id: "run-one" }) }
     } }));
     const target = { action: "create_cue", sceneId: scene.id, layer: "fullscreen", startFrame: 0, endFrame: 30,
       sourceStartFrame: 0, sourceEndFrame: 30, audioPolicy: "rebind_unchanged_events" };
@@ -178,7 +195,7 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
       base_revision_id: rev(), production_run_id: report.id, visual_treatment_ids: [treatmentId], idempotency_key: "changed-target", target,
       opendesign_request: { project: "isolated-od", prompt: "当前场面" } } });
     assert.equal(changedTarget.isError, true);
-    assert.match(JSON.stringify(changedTarget.content), /场面、内容或声音时序.*变化/);
+    assert.match(JSON.stringify(changedTarget.content), /本范围输入已变化/);
     app.repository.commit(projectId, rev(), "恢复已采用场面", snapshot => { snapshot.scenes.find(item => item.id === scene.id)!.purpose = "验证交接"; });
     const first = await start("first", target);
     assert.equal((await start("first", target)).jobId, first.jobId);
@@ -223,7 +240,8 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
         response.end(); return;
       }
       if (url.pathname.includes("/frozen-work/")) { response.end(JSON.stringify(bundle)); return; }
-      if (url.pathname === "/api/runs/run-one") { response.end(JSON.stringify({ status: "succeeded" })); return; }
+      if (url.pathname === "/api/runs/run-one") { response.end(JSON.stringify({ status: "succeeded", projectId: "isolated-od",
+        conversationId: "isolated-conversation", strategyTask: { taskExecutionId: "isolated-task", terminal: true, outcome: "completed" } })); return; }
       response.statusCode = 404; response.end();
     });
     await new Promise<void>(resolve => server!.listen(0, "127.0.0.1", resolve));
@@ -291,6 +309,7 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.equal(app.readProject(projectId).snapshot.effectCues[0].status, "stale");
 
     const replace = { action: "replace_range", cueId: cue.id, targetRange: { startFrame: 10, endFrame: 20 }, audioPolicy: "rebind_unchanged_events" };
+    await recordLocalDecisions();
     const second = await start("second", replace);
     const registration = app.registerMotionWork({ projectId, baseRevision: rev(), idempotencyKey: "revised-work",
       work: videoWork(importedVideo.asset.id, "修订内容") });
@@ -318,6 +337,7 @@ test("实际 MCP 交付、导演采用、阶段制作与失效局部续修贯通
     assert.ok(unfinishedRepair.completionBlockers.some(item => item.includes(snapshot.audioCues[0].id)));
 
     const thirdDecision = await record("director-3");
+    await recordLocalDecisions();
     const inFlight = await start("in-flight", { action: "replace_cue", cueId: snapshot.effectCues[1].id, audioPolicy: "rebind_unchanged_events" });
     onRunStart = async () => { await updateTreatment(thirdDecision.id, treatmentId); };
     const returned = await runMotionAuthoringJob(app, app.trackJob(inFlight.jobId), new AbortController().signal, endpoint) as {

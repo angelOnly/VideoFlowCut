@@ -8,6 +8,7 @@ import type { EditingApplication } from "@videocut/application";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { DomainError } from "@videocut/domain";
 import { digest, timeRangeSchema } from "../../../packages/media-intelligence/src/index.js";
+import { REFERENCE_PREPROCESSING_VERSION } from "../../../packages/media-intelligence/src/derive.js";
 import { MOTION_TEXT_VERSION, MOTION_INSTRUCTION_VERSION, MOTION_QUERY_INSTRUCTION, MOTION_VIDEO_PROMPT } from "../../../packages/media-intelligence/src/motion-library.js";
 import { motionJobRecovery, projectMotionJob, projectMotionMechanismResult, projectMotionSearchResult } from "./motion-library-output.js";
 import { latestLibraryAttempt as latestAttempt } from "./library-job.js";
@@ -119,7 +120,7 @@ export function registerMotionLibraryTools(server: McpServer, root = resolve(pro
       if (request.id.includes("-c")) readCreativeCase(root,{id:request.id,source_sha256:request.source_sha256,include_storyboard:false});
       else readLibraryMechanism(root,{id:request.id,source_sha256:request.source_sha256,include_storyboard:false});
       // 提示参与任务身份，避免新观察要求命中旧的成功 Job；Worker 沿提交时的提示执行。
-      const config=readRuntimeConfig(),payload={id:request.id,source_sha256:request.source_sha256,range:request.range,analysisMode:request.mode,samplingVersion:"minicpmo-one-per-second-v1",
+      const config=readRuntimeConfig(),payload={id:request.id,source_sha256:request.source_sha256,range:request.range,analysisMode:request.mode,samplingVersion:"minicpmo-one-per-second-v1",referencePreprocessingVersion:REFERENCE_PREPROCESSING_VERSION,
         videoPrompt:[MOTION_VIDEO_PROMPT,request.mode==="audiovisual"?"同时描述本段实际听到的声音及其与画面的关系，无法分辨时说明未知。":"只判断画面。",
           ...(request.observation_questions?.length?[`本次需要观察的问题：${request.observation_questions.join("；")}`]:[])].join("\n"),
         modelConfig:{...config.semantic,apiBaseUrl:config.bridge.apiBaseUrl}};

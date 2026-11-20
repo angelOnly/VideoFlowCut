@@ -57,6 +57,42 @@ async function fixture(real = false) {
   return { root, app, id, rev, sound, visual, add, close: async () => { app.repository.close(); await rm(root, { recursive: true, force: true }); } };
 }
 
+test("制作状态按声音意图识别未上轨、留白、已上轨和失效绑定", async () => {
+  const f = await fixture();
+  try {
+    const intents = [
+      { id: "land", function: "settle" as const, brief: "画面落定时的短声" },
+      { id: "hold", function: "silence" as const, brief: "导演选择给旁白留白" }
+    ];
+    const planned = manageSoundPlan(f.app, f.id, f.rev(), { action: "create", startFrame: 0, endFrame: 90,
+      narrationDirection: "保留旁白", musicDirection: "维持已定层次", dominantRole: "narration", intents });
+    const plan = planned.snapshot.soundPlans![0]!;
+    const coverage = async () => (await f.app.readProductionStatus(f.id)).audio.intentCoverage;
+    assert.deepEqual((await coverage()).map(row => [row.soundIntentId, row.status]), [["land", "unplaced"], ["hold", "silence"]]);
+
+    const sourcing = f.app.manageAssetRequirement({ projectId: f.id, baseRevision: f.rev(), action: "create",
+      title: "落定音", purpose: "同一画面动作", mediaKind: "audio", audioBrief: "短声", role: "sfx",
+      sound: { soundPlanId: plan.id, soundIntentId: "land", excludeSpeech: true, excludeMusic: true } });
+    const requestId = sourcing.snapshot.assetRequests[0]!.id;
+    const [unplaced] = await coverage();
+    assert.equal(unplaced!.status, "unplaced");
+    assert.deepEqual(unplaced!.assetRequestIds, [requestId]);
+    assert.deepEqual(unplaced!.audioCueIds, []);
+
+    const edited = f.add({ design: { role: "sfx", soundPlanId: plan.id, soundIntentId: "land", planVersion: plan.version } });
+    const [placed] = await coverage();
+    assert.equal(placed!.status, "placed");
+    assert.deepEqual(placed!.audioCueIds, [edited.snapshot.audioCues[0]!.id]);
+
+    manageSoundPlan(f.app, f.id, f.rev(), { action: "update", soundPlanId: plan.id,
+      intents: [{ ...intents[0]!, brief: "画面重定时后的短声" }, intents[1]!] });
+    const [stale] = await coverage();
+    assert.equal(stale!.status, "stale");
+    assert.equal(stale!.planVersion, plan.version + 1);
+    assert.equal((await coverage())[1]!.status, "silence");
+  } finally { await f.close(); }
+});
+
 test("专项声音复核确实透传问题并隔离不同问题缓存，初看仍保持盲观察", async () => {
   const f = await fixture(true);
   try {

@@ -24,7 +24,7 @@ test("制作入口保留工作台观察、修改、结果版复查与收口职�
   assert.match(shared, /工作台入口[\s\S]*冻结版本和根帧[\s\S]*交回原负责人/u);
   assert.match(coordinator, /工作台入口及可查范围交回原作者/u);
   assert.match(visual, /首版回来后[\s\S]*看实际合成[\s\S]*视觉返修并复查/u);
-  assert.match(operator, /已有控件[\s\S]*直接保存[\s\S]*结果版[\s\S]*复查/u);
+  assert.match(operator, /已有控件[\s\S]*三项判断[\s\S]*保存[\s\S]*复核/u);
   assert.match(routing, /read_production_status[\s\S]*工作台检查[\s\S]*complete_production_run[\s\S]*final_revision/u);
   assert.doesNotMatch(operator, /正式剪辑只通过已发布 MCP 写入|子代理不操作 UI 修改正式项目/u);
 });
@@ -168,6 +168,7 @@ const ignoredToolLikeTokens = new Set([
   "run_id",
   "job_id",
   "preview_job_id",
+  "preview_url", // 读卡返回的播放地址，不是 preview_* 工具。
   "voice_reference_id",
   "voice_reference_asset_id",
   "speech_asset_id",
@@ -367,7 +368,7 @@ test("导演只选一条主流程，专项与同一交接约定连通",async()=>
   }
 });
 
-test("协调入口可到达全部创意角色与共享合同，机械操作保留主任务短路径", async () => {
+test("协调入口可到达全部专业方法，局部操作保留三项判断", async () => {
   const coordinatorPath = join(skillsRoot, "production-coordinator", "SKILL.md");
   const reachable = await reachableMarkdown(coordinatorPath);
   for (const name of ["project-basics", "production-director", ...primaryWorkflows, ...creativeSpecialists, "quality-verification", "export"]) {
@@ -381,7 +382,7 @@ test("协调入口可到达全部创意角色与共享合同，机械操作保�
   const coordinator = await readSkill("production-coordinator");
   assert.match(coordinator, /spawn_agent/u, "协调入口必须真实分派宿主子代理");
   assert.match(coordinator, /followup_task/u, "实际预览必须能够回到原负责人继续修订");
-  assert.match(coordinator, /完整参数的机械修改可直接执行/u, "明确参数修改应有无需创意分派的短路径");
+  assert.match(coordinator, /局部机械修改判断影响后沿现有控件执行/u, "局部修改应先判断三项职责影响");
   assert.match(coordinator, /尚无 Project\/Revision/u, "空项目不能为了分派构造版本");
   for (const name of ["asset-import", "transcription", "export", "web-editor-operator"]) {
     const skill = await readSkill(name);

@@ -10,6 +10,8 @@
 
 异步 Job 的依赖和后续动作按实时接口执行。OD 阶段制作由主任务通过 `start_motion_authoring` 预先委托明确目标，连接器核对依赖、自动登记及采用可用范围，沿[生产入口](../../opendesign-video-production/SKILL.md#调用与续接)接回固定版本；无需逐步搬运。独立作品生成仍可使用已明确目标的 `on_success`。主任务消费回执，通过工作台检查结果，只有需要文件时才明确提交预览。相关依赖变化交原负责人处理，不只替换版本号。互不依赖的研究、设计和生成继续并行。
 
+完整无真人口播解说首版在导演采用后使用 `target: { action: "whole_film" }`，提交当前 Revision、ProductionRun、全部已采用的视觉计划 ID、制作项目和稳定幂等键。正文从同一份整片交付清单读取。用原 Job 的 `wait_motion_authoring` 回执接回各场实际可用帧段，跨场反馈使用该冻结版连续覆盖的项目帧范围。
+
 写后读回对象与 ImpactReport，核对改变、重算、stale、冲突和需要重做的范围；不能只看 success。取得对应版本的真实预览或声音后回原作者，跨段影响交导演。作品生成、独立作品观察、合成观察和整片交付是不同结论；技术检查与实际观看不可互相替代。明确参数的局部修改只核对受影响范围，不重跑整片创意。
 
 ## 失败与不确定结果
@@ -57,6 +59,10 @@ ProductionRun与SkillExecutionReport记录实际工作过程，不参与动画�
 `start_production_run` 使用实际 `base_revision_id`、任务 `intent`、目标 `completion_scope` 和稳定 `operation_id`；`frames` 范围的 `start_frame` 包含、`end_frame` 不包含。宿主分派后通过 `update_production_run` 登记真实 agent_id、协调者生成的 assignment_id、职责、技能、范围和输入版本；创作职责以实际负责的 project、beats 或 objects 分派，帧范围用于观察。更新携带当前 `expected_audit_version`。同一操作重试复用 operation_id，读回可能包含后续追加的记录。
 
 使用 `record_creative_decision` 登记真实 `assignment_id`、`input_revision`、`object_ids`、`operation_id`。创意与机制分别用 `creative_research` 和 `motion_research`。`research_references` 的每个采用依据写参考类型、编号、`source_sha256`、原片 `start_ms`、`end_ms` 和 `observed_relation`。`evidence` 写明实际观察方式、范围与出处。观察不足可保留 `pending`，其中已确证的具体关系仍可被本场使用。关键关系缺乏依据时退给研究负责人。`researched` 说明该研究范围已完成，`not_applicable` 需要实际考察和放弃理由。仅供学习的候选不算作本片采用。
+
+整场创意研究完成时传 `research_coverage` 的 `overall_visual`、`scene_composition`、`motion_mechanisms` 和 `blocking_questions`；各不适用层次在 `not_applicable_reasons` 中给出对应理由。原创整体设计的依据写入 `evidence`。局部研究可以继续单独引用，正式采用必须关联完成覆盖的创意研究和已完成或有理由不适用的机制研究。
+
+采用范围、覆盖结论和未完成项使用原作者实际交付内容。登记只补齐真实身份、版本及明确参数。遇到缺少专业判断或正文不一致时，按协调入口交回原作者处理后提交。
 
 视觉 `input_decision_ids` 引用实际消费的研究。先用 `prepare_motion_handoff` 固定本次就绪场面，再以 `visual_design` 登记其 `delivery_ref` 和清单对应的 `input_revision`。候选可并行登记；导演确认后记录 `adoption`，再用 `manage_visual_treatment` 的 `action=adopt` 将同次涉及的计划、素材及采用在一个版本写入。项目版本冲突时读回当前采用并协调后提交。重复同一次成功写入可读回已生效版本。
 

@@ -44,8 +44,71 @@ async function probe(path) {
 const sceneReferences = scene => Array.isArray(scene.references) ? scene.references : scene.reference ? [scene.reference] : [];
 // 与 OD 项目文件接口使用相同的文件名规则，保证清单路径就是实际送达路径。
 const odSafePath = path => path.split('/').map(part => part.replace(/\s+/g,'-').replace(/[^\p{L}\p{N}._-]/gu,'_').replace(/^\.+/,'_') || 'file').join('/');
+
+/** 结构化场面是导演稿的可核对摘录；检查字段和角色，不判断创意质量。 */
+function visualPlanErrors(plan, visualRoles, briefText) {
+  const errors=[], excerpts=[];
+  const fail=message=>errors.push(message);
+  const present=value=>typeof value==='string' && !!value.trim();
+  const text=(value,label)=>{
+    if (!present(value)) fail(`视觉设计缺少${label}`);
+    else excerpts.push([label,value.trim()]);
+  };
+  const list=(value,label,required=false)=>{
+    if (!Array.isArray(value) || required && !value.length || Array.isArray(value) && value.some(item=>!present(item))) {
+      fail(`视觉设计需要明确${label}`);
+      return [];
+    }
+    for (const item of value) excerpts.push([label,item.trim()]);
+    return value;
+  };
+  if (!plan || typeof plan!=='object' || Array.isArray(plan)) return ['正式制作场面缺少视觉导演稿'];
+  const roles=new Set(visualRoles.map(role=>role.role));
+  const primary=list(plan.primaryRoles,'主要角色',true);
+  if (primary.some(role=>!roles.has(role))) fail('视觉计划主要角色必须对应场面视觉角色');
+  const composition=plan.composition ?? {};
+  text(composition.opening,'初始构图');
+  text(composition.primarySubject,'主要主体');
+  if (present(composition.primarySubject) && (!roles.has(composition.primarySubject) || !primary.includes(composition.primarySubject))) fail('构图主要主体必须对应已登记的主要视觉角色');
+  const supporting=list(composition.supportingSubjects,'辅助对象');
+  if (supporting.some(role=>!roles.has(role))) fail('构图辅助对象必须对应场面视觉角色');
+  if (!Array.isArray(composition.spatialRelations) || !composition.spatialRelations.length) fail('视觉设计缺少对象空间关系');
+  for (const relation of Array.isArray(composition.spatialRelations) ? composition.spatialRelations : []) {
+    if (!Array.isArray(relation?.roles) || !relation.roles.length || relation.roles.some(role=>!roles.has(role))) fail('空间关系必须引用已有视觉角色');
+    text(relation?.relation,'空间关系');
+  }
+  text(composition.textAndGraphics,'文字与图形设计');
+  text(composition.ending,'最终构图');
+  if (!Array.isArray(plan.sequence) || !plan.sequence.length) fail('视觉设计缺少连续画面发展');
+  for (const step of Array.isArray(plan.sequence) ? plan.sequence : []) {
+    text(step?.purpose,'画面发展目的');
+    const subjects=list(step?.subjects,'运动对象');
+    if (subjects.some(role=>!roles.has(role))) fail('连续发展中的对象必须对应场面视觉角色');
+    text(step?.action,'画面发展动作');
+    list(step?.retainedElements,'保持元素');
+    text(step?.transition,'接续方式');
+  }
+  list(plan.attentionPath,'观看中心',true);
+  list(plan.odBoundaries?.locked,'不得改变的设计',true);
+  list(plan.odBoundaries?.adjustable,'可深化的实现');
+  text(plan.odBoundaries?.escalation,'设计问题反馈方式');
+  if (plan.researchLayers !== undefined && !Array.isArray(plan.researchLayers)) fail('研究层次关联必须是数组');
+  for (const layer of Array.isArray(plan.researchLayers) ? plan.researchLayers : []) {
+    if (!['overallVisual','sceneComposition','motionMechanisms'].includes(layer?.level)
+      || !present(layer?.researchDecisionId)) fail('研究层次需要有效层次及研究决定 ID');
+    text(layer?.designExcerpt,'研究层次的导演稿设计');
+  }
+  for (const mapping of Array.isArray(plan.referenceMappings) ? plan.referenceMappings : []) {
+    if (present(mapping?.treatment)) excerpts.push(['参考迁移方式',mapping.treatment.trim()]);
+    if (present(mapping?.preserveRelation)) excerpts.push(['参考保持关系',mapping.preserveRelation.trim()]);
+  }
+  if (typeof briefText==='string') for (const [label,excerpt] of excerpts) {
+    if (!briefText.includes(excerpt)) fail(`${label}与导演稿原文不一致：${excerpt}`);
+  }
+  return errors;
+}
 /** 把场面里的角色和范围绑定到本次实际交付文件，不把候选或缺失素材标成可制作。 */
-function prepareScenes(input, entries, creativeRecords, motionRecords, project, delivered) {
+function prepareScenes(input, entries, creativeRecords, motionRecords, project, delivered, briefText) {
   const ids = new Set(), assets = new Map((input.assets ?? []).map(asset => [asset.id,asset]));
   if (assets.size !== (input.assets ?? []).length) throw new Error('素材 ID 重复');
   const scenes = (input.scenes ?? []).map(scene => {
@@ -110,7 +173,7 @@ function prepareScenes(input, entries, creativeRecords, motionRecords, project, 
       if (!plan || typeof plan !== 'object' || Array.isArray(plan)) fail('视觉计划必须是对象');
       else {
         const roles=new Set(visualRoles.map(role=>role.role));
-        if (!Array.isArray(plan.primaryRoles) || !plan.primaryRoles.length || plan.primaryRoles.some(role=>!roles.has(role))) fail('视觉计划主要角色必须对应场面视觉角色');
+        for (const error of visualPlanErrors(plan,visualRoles,briefText)) fail(error);
         if (plan.referenceMappings !== undefined && !Array.isArray(plan.referenceMappings)) fail('参考映射必须是列表');
         for (const mapping of Array.isArray(plan.referenceMappings) ? plan.referenceMappings : []) {
           const matches=refs.filter(ref=>(ref.id ?? ref.creativeCaseId)===mapping?.referenceId);
@@ -142,7 +205,7 @@ function prepareScenes(input, entries, creativeRecords, motionRecords, project, 
             && mapping.startMs === reference.startMs && mapping.endMs === reference.endMs
             && typeof mapping.preserveRelation === 'string' && mapping.preserveRelation.trim())) fail(`采用参考 ${reference.id} 缺少完整的视觉角色映射和保持关系`);
         }
-        visualPlan={primaryRoles:plan.primaryRoles,...(plan.referenceMappings ? {referenceMappings:plan.referenceMappings} : {})};
+        visualPlan=structuredClone(plan);
       }
     }
     return {sceneId:scene.sceneId,status:errors.length ? 'incomplete' : 'ready',...(references.length ? {references} : {}),
@@ -307,7 +370,9 @@ export async function prepareReferencePackage(input, outputRoot, libraryRoot = r
   }
   let scenes, scenesPath;
   if (input.scenes) {
-    scenes=prepareScenes({...input,assets:sources},entries,creativeRecords,motionRecords,project,delivered);
+    const briefEntry=entries.get(delivered('brief/visual-director-brief.md'));
+    const briefText=briefEntry?.localReadable ? await readFile(join(output,briefEntry.deliveredPath),'utf8') : undefined;
+    scenes=prepareScenes({...input,assets:sources},entries,creativeRecords,motionRecords,project,delivered,briefText);
     scenesPath=delivered('brief/scenes.json');
     const path=join(output,scenesPath);
     await mkdir(dirname(path),{recursive:true});
@@ -337,6 +402,64 @@ export async function prepareReferencePackage(input, outputRoot, libraryRoot = r
   return manifest;
 }
 
+export function normalizeAuthorRequest(text) {
+  return text.replace(/\r\n?/gu, '\n').trim();
+}
+
+/** 从冻结稿提取顶层章节，保留子标题和正文中的代码块。 */
+export function extractAuthorRequest(markdown, sceneIds) {
+  if (!sceneIds.length) return undefined;
+  const selected = new Set(sceneIds);
+  const lines=normalizeAuthorRequest(markdown).split('\n');
+  const body=[];
+  const scenes=new Map();
+  let found=false, inside=false, fence, sceneId;
+  for (const line of lines) {
+    const marker=/^ {0,3}(`{3,}|~{3,})(.*)$/u.exec(line);
+    if (fence) {
+      if (marker && marker[1][0]===fence[0] && marker[1].length>=fence.length && !marker[2].trim()) fence=undefined;
+    } else if (marker) {
+      fence=marker[1];
+    } else if (/^ {0,3}#{1,2}(?:[ \t]|$)/u.test(line)) {
+      inside=/^ {0,3}##[ \t]+发给 OD 的完整请求[ \t]*(?:[ \t]+#+[ \t]*)?$/u.test(line);
+      if (inside && found) return undefined;
+      if (inside) found=true;
+      continue;
+    } else if (inside) {
+      const heading=/^ {0,3}###[ \t]+场面[ \t]+(\S+)[ \t]*$/u.exec(line);
+      if (heading) {
+        sceneId=heading[1];
+        if (selected.has(sceneId) && scenes.has(sceneId)) return undefined;
+        scenes.set(sceneId, []);
+        continue;
+      }
+    }
+    if (inside) (sceneId ? scenes.get(sceneId) : body).push(line);
+  }
+  const sceneBodies=[...scenes].filter(([id])=>selected.has(id))
+    .map(([id, lines])=>({id, text:normalizeAuthorRequest(lines.join('\n'))}));
+  if (sceneBodies.length!==selected.size || sceneBodies.some(scene=>!scene.text)) return undefined;
+  // 保留作者的共同要求及目标场正文顺序，不向制作端发送其他场的执行指令。
+  const context=normalizeAuthorRequest(body.join('\n'));
+  const text=[context,...sceneBodies.map(scene=>`### 场面 ${scene.id}\n${scene.text}`)].filter(Boolean).join('\n\n');
+  return {text,sha256:createHash('sha256').update(text).digest('hex')};
+}
+
+export async function readFrozenAuthorRequest(manifest, manifestPath, sceneIds = manifest.selectedSceneIds ?? []) {
+  const brief=manifest.files.find(file=>file.deliveredPath===manifest.briefPath && file.localReadable && file.sha256);
+  if (!brief) return undefined;
+  const bytes=await readFile(join(dirname(manifestPath),brief.deliveredPath));
+  if (createHash('sha256').update(bytes).digest('hex')!==brief.sha256) throw new Error('冻结导演稿已变化');
+  return extractAuthorRequest(bytes.toString('utf8'),sceneIds);
+}
+
+export function assertVisualDesign(scenes, briefText) {
+  for (const scene of scenes.filter(item=>item.status==='ready')) {
+    const designErrors=visualPlanErrors(scene.visualPlan,scene.visualRoles ?? [],briefText);
+    if (designErrors.length) throw new Error(`场面 ${scene.sceneId} 的视觉设计不完整：${designErrors.join('；')}`);
+  }
+}
+
 function assertReadyRoleBindings(scenes) {
   for (const scene of scenes.filter(item=>item.status==='ready')) {
     if (!Array.isArray(scene.visualRoles) || !scene.visualRoles.length) throw new Error(`场面 ${scene.sceneId} 缺少视觉角色`);
@@ -349,6 +472,7 @@ function assertReadyRoleBindings(scenes) {
       }
     }
   }
+  assertVisualDesign(scenes);
 }
 
 /** 复用原清单，只收窄本次目标场面的依赖；其他场面的文件仍留在原交付中。 */
@@ -430,16 +554,23 @@ export async function verifyReferenceDelivery(manifest, listing, revision, odPro
     verified.verificationErrors.push({path:manifest.scenesPath,reason:'没有具备完整输入的就绪场面'});
     return {manifest:verified};
   }
-  try { assertReadyRoleBindings(readyScenes ?? []); }
+  try {
+    assertReadyRoleBindings(readyScenes ?? []);
+    const brief=files.find(file=>file.uses.some(use=>use.kind==='brief' && use.id==='brief'));
+    if (readyScenes?.length && brief) {
+      const document=await readFile(byPath.get(brief.deliveredPath).localPath,'utf8');
+      assertVisualDesign(readyScenes,document);
+    }
+  }
   catch (error) {
     verified.verificationErrors.push({path:manifest.scenesPath,reason:error.message});
     return {manifest:verified};
   }
   const lines=files.filter(file=>file.requiredForRun!==false).map(file=>`- ${file.deliveredPath}：${file.uses.map(use=>`${use.kind}/${use.id}${use.usage ? `（${use.usage === 'study' ? '学习' : '已采用'}）` : ''}，${use.purpose}${use.fileKind ? `，文件类型 ${use.fileKind}` : ''}${use.sourceStartMs !== undefined && use.sourceEndMs !== undefined ? `，资料原片范围 ${use.sourceStartMs}—${use.sourceEndMs}ms` : ''}${use.clipSourceOffsetMs !== undefined ? `，切片零点对应原片 ${use.clipSourceOffsetMs}ms` : ''}`).join('；')}`);
-  const sceneLines=readyScenes ? ['本次制作选中场面 ' + (manifest.selectedSceneIds ?? readyScenes.map(scene=>scene.sceneId)).join('、') + '。完整导演稿是采用时固定的整片上下文，本场设计及接续以本次交付为准；其他场面后续可能继续修改。',...readyScenes.map(scene=>'- 资料就绪场面 ' + scene.sceneId + '：' + JSON.stringify(scene))] : [];
+  const sceneLines=readyScenes ? ['本次制作选中场面 ' + (manifest.selectedSceneIds ?? readyScenes.map(scene=>scene.sceneId)).join('、') + '。完整导演稿是采用时固定的整片上下文，所列场面的设计及接续以本次交付为准。',...readyScenes.map(scene=>'- 资料就绪场面 ' + scene.sceneId + '：' + JSON.stringify(scene))] : [];
   const prompt=['先完整读取本项目中的创意编排指令 ' + manifest.briefPath + ' 和时间资料 ' + manifest.timingPlanPath + '。再读取本次选中场面，核对参考原片、真实素材与视觉角色映射。',...lines,...sceneLines,
     '参考范围使用原片时间，素材范围使用交付文件的本地时间。查看采用的创意和机制视频及必要的前后画面，记录实际观察方式。',
-    '依据视觉导演稿、真实素材和参考关系制作首版。保持已采用的主要主体、素材角色、构图发展及场面接续，在此基础上深化构图、排版、取景、镜头运动和内部时序。',
+    '依据视觉导演稿、真实素材和参考关系制作首版。保持已采用的主要主体、素材角色、构图、美术、排版、主要镜头运动及场面接续，在既定设计内深化坐标、路径、曲线、组件和内部时序。',
     '首版和后续修订属于同一作品。需要改变主要素材、参考关系或跨段发展时，说明对象、范围、限制及建议，交原视觉作者和导演决定。',
     '阶段作品沿冻结和采用链路接回 VideoFlowCut。视觉作者与原研究负责人检查实际画面，原制作作者沿同一作品处理反馈，新版接回后复查修改范围及接续。'].join('\n');
   return {manifest:verified,prompt};

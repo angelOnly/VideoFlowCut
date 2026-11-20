@@ -8,6 +8,8 @@ import { createApplication } from "@videocut/application";
 import { prepareReferencePackage } from "../packages/edit-application/src/opendesign-reference-package.mjs";
 import { motionFixture } from "./fixtures/managed-motion.js";
 import { motionHtml } from "./fixtures/hyperframes.js";
+import { localProductionRun } from "./fixtures/production-run.js";
+import { completeResearchCoverage, directorBrief, visualPlan, researchPlan } from "./fixtures/visual-plan.mjs";
 
 test("无预排的完整新制跨场面沿用首个冻结作品", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-continuous-scenes-")), app = createApplication(root);
@@ -20,15 +22,11 @@ test("无预排的完整新制跨场面沿用首个冻结作品", async () => {
     const work = { ...motionFixture, durationInFrames: 48, source: motionHtml('<div id="subject">初稿</div>', "", { durationInFrames: 48 }) };
     assert.equal(app.readProject(projectId).snapshot.motionWorks?.length ?? 0, 0);
     const brief = join(root, "brief.md"), timing = join(root, "timing.md"), snapshotPath = join(root, "snapshot.json"), output = join(root, "handoff");
-    await writeFile(brief, "跨场面的完整画面设计"); await writeFile(timing, "两场真实时间资料");
+    await writeFile(brief, directorBrief(visualPlan("主体")) + `\n\n## 发给 OD 的完整请求\n共享整片时钟\n### 场面 ${first.id}\n先建立画面\n### 场面 ${second.id}\n让第二个主体接管`);
+    await writeFile(timing, "两场真实时间资料");
     await writeFile(snapshotPath, JSON.stringify(app.readProject(projectId)));
-    const sceneInput = (sceneId: string, startFrame: number, endFrame: number) => ({ sceneId, status: "ready",
-      visualRoles: [{ role: "主体", referenceFunction: "连续画面", assetIds: [], usage: "原创示意" }], process: "主体建立并接续下一状态",
-      preserve: ["主体连续"], adapt: ["文字细节"], visualPlan: { primaryRoles: ["主体"] } });
-    const manifest = await prepareReferencePackage({ projectId, revision: rev(), projectSnapshot: snapshotPath, brief, timingPlan: timing,
-      freezeInputs: true, selectedSceneIds: [first.id, second.id], scenes: [sceneInput(first.id, 0, 24), sceneInput(second.id, 24, 48)] }, output);
-    assert.deepEqual(manifest.scenes!.map(scene => scene.status), ["ready", "ready"]);
-    const manifestPath = join(output, "delivery-manifest.json"), manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");
+    const manifestPath = join(output, "delivery-manifest.json");
+    let manifestSha256 = "";
     const run = await app.startProductionRun({ projectId, baseRevision: rev(), intent: "full_creation", completionScope: { kind: "project" },
       operationId: "start", loadedSkills: ["production-coordinator"] });
     await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: run.auditVersion, operationId: "assign", action: "add_assignment",
@@ -37,9 +35,17 @@ test("无预排的完整新制跨场面沿用首个冻结作品", async () => {
     const record = async (phase: "creative_research" | "motion_research" | "visual_design" | "adoption", inputDecisionIds: string[] = []) =>
       (await app.recordCreativeDecision({ projectId, runId: run.id, operationId: randomUUID(), category: "visual", phase, assignmentId: "authors", inputRevision: rev(),
         objectIds: [first.id, second.id], decision: phase, rationale: "按两个场面的真实范围判断", inputDecisionIds,
-        ...(phase.endsWith("research") ? { researchOutcome: "not_applicable" as const, evidence: ["已研究候选，当前画面无适用参考"] } : {}),
+        ...(phase === "creative_research" ? { researchOutcome: "researched" as const, researchCoverage: completeResearchCoverage, evidence: ["已研究候选并原创整体视觉系统"] } : {}),
+        ...(phase === "motion_research" ? { researchOutcome: "not_applicable" as const, evidence: ["已研究候选，当前画面无需采用机制"] } : {}),
         ...(["visual_design", "adoption"].includes(phase) ? { deliveryRef: { manifestPath, manifestSha256, sceneIds: [first.id, second.id] } } : {}) })).creativeDecisions.at(-1)!;
     const creative = await record("creative_research"), motion = await record("motion_research");
+    const sceneInput = (sceneId: string) => ({ sceneId, status: "ready",
+      visualRoles: [{ role: "主体", referenceFunction: "连续画面", assetIds: [], usage: "原创示意" }], process: "主体建立并接续下一状态",
+      preserve: ["主体连续"], adapt: ["文字细节"], visualPlan: researchPlan("主体", creative.id) });
+    const manifest = await prepareReferencePackage({ projectId, revision: rev(), projectSnapshot: snapshotPath, brief, timingPlan: timing,
+      freezeInputs: true, selectedSceneIds: [first.id, second.id], scenes: [sceneInput(first.id), sceneInput(second.id)] }, output);
+    assert.deepEqual(manifest.scenes!.map(scene => scene.status), ["ready", "ready"]);
+    manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");
     const design = await record("visual_design", [creative.id, motion.id]), adoption = await record("adoption", [design.id]);
     const treatment = (sceneId: string) => app.manageVisualTreatment({ projectId, baseRevision: rev(), action: "upsert", sceneId, mode: "remotion",
       intensity: "medium", primaryAttention: "主体", narrativePurpose: "连续解释", adoptedMaterialAssetIds: [],
@@ -49,8 +55,9 @@ test("无预排的完整新制跨场面沿用首个冻结作品", async () => {
       startFrame, endFrame, sourceStartFrame: startFrame, sourceEndFrame: endFrame, audioPolicy: "rebind_unchanged_events" as const });
     const start = (key: string, sceneId: string, treatmentId: string, from: number, to: number, continueRun?: string, odProject = "isolated-od") => app.startMotionAuthoring({ projectId, baseRevision: rev(),
       productionRunId: run.id, visualTreatmentIds: [treatmentId], idempotencyKey: key, target: target(sceneId, from, to),
-      openDesignRequest: { project: odProject, prompt: "沿同一完整作品继续制作", ...(continueRun ? { continue_from_run_id: continueRun } : {}) } });
+      openDesignRequest: { project: odProject, ...(continueRun ? { continue_from_run_id: continueRun } : {}) } });
     const firstJob = await start("first", first.id, firstTreatment.id, 0, 24);
+    assert.equal(firstJob.payload.frozenAuthorRequest, `共享整片时钟\n\n### 场面 ${first.id}\n先建立画面`);
     const workId = firstJob.payload.logicalWorkId as string;
     const replay = app.repository.createMotionAuthoringJob({ projectId, baseRevision: 1, idempotencyKey: "motion-authoring:first",
       payload: { input: firstJob.payload.input, authoringInputs: ["重新计算的交付不应覆盖原委托"] } });
@@ -66,6 +73,7 @@ test("无预排的完整新制跨场面沿用首个冻结作品", async () => {
     await assert.rejects(start("second-no-run", second.id, secondTreatment.id, 24, 48), (error: any) => error.issues?.some((issue: { code: string }) => issue.code === "MOTION_AUTHORING_CONTINUATION_INVALID"));
     await assert.rejects(start("second-wrong-project", second.id, secondTreatment.id, 24, 48, "first-run", "another-project"), (error: any) => error.issues?.some((issue: { code: string }) => issue.code === "MOTION_AUTHORING_CONTINUATION_INVALID"));
     const secondJob = await start("second", second.id, secondTreatment.id, 24, 48, "first-run");
+    assert.equal(secondJob.payload.frozenAuthorRequest, `共享整片时钟\n\n### 场面 ${second.id}\n让第二个主体接管`);
     assert.deepEqual(secondJob.payload.continuationAuthor, { project: "isolated-od", run_id: "first-run", frozen_version: "v1" });
     assert.equal(secondJob.payload.logicalWorkId, workId);
     const secondStage = app.registerMotionWork({ projectId, baseRevision: rev(), idempotencyKey: "second-stage", logicalWorkId: workId,
@@ -78,7 +86,7 @@ test("无预排的完整新制跨场面沿用首个冻结作品", async () => {
   } finally { app.close(); await rm(root, { recursive: true, force: true }); }
 });
 
-test("无整片制作记录的局部返修继续原作品及作者，并固定旧版本", async () => {
+test("局部返修沿制作记录继续原作品及作者，并固定旧版本", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-local-continuation-")), app = createApplication(root);
   try {
     const projectId = app.createProject({ name: "局部返修隔离验证" }).snapshot.project.id;
@@ -91,8 +99,9 @@ test("无整片制作记录的局部返修继续原作品及作者，并固定�
     const initial = app.completeSourceMotionWork(projectId, initialJob.id);
     const cue = app.createEffectCue({ projectId, baseRevision: rev(), sceneId: scene.id, type: "ManagedMotion", layer: "fullscreen",
       startFrame: 0, endFrame: 18, sourceStartFrame: 0, sourceEndFrame: 18, workId: initial.id }).snapshot.effectCues[0];
+    const productionRunId = await localProductionRun(app, projectId, scene.id);
     const start = (key: string, project = source.project, continueRun?: string) => app.startMotionAuthoring({ projectId, baseRevision: rev(),
-      intent: "local_edit", idempotencyKey: key, target: { action: "replace_cue", cueId: cue.id, audioPolicy: "rebind_unchanged_events" },
+      productionRunId, idempotencyKey: key, target: { action: "replace_cue", cueId: cue.id, audioPolicy: "rebind_unchanged_events" },
       openDesignRequest: { project, prompt: "继续原作者的局部返修", ...(continueRun ? { continue_from_run_id: continueRun } : {}) } });
     await assert.rejects(start("missing-run"), (error: any) => error.issues?.some((issue: { code: string }) => issue.code === "MOTION_AUTHORING_CONTINUATION_INVALID"));
     await assert.rejects(start("wrong-project", "another-project", source.run_id), (error: any) => error.issues?.some((issue: { code: string }) => issue.code === "MOTION_AUTHORING_CONTINUATION_INVALID"));
@@ -111,7 +120,7 @@ test("无整片制作记录的局部返修继续原作品及作者，并固定�
     assert.equal(state.effectCues[0].workDefinitionHash, initial.definitionHash, "未重新采用的旧片段继续引用旧版本");
     assert.equal(app.readSourceMotionWork(projectId, initial.id, undefined, initial.definitionHash).work.definitionHash, initial.definitionHash);
     app.updateJob(job.id, { status: "succeeded", result: { authoring: { status: "succeeded" } } });
-    const partial = await app.startMotionAuthoring({ projectId, baseRevision: rev(), intent: "local_edit", idempotencyKey: "local-range",
+    const partial = await app.startMotionAuthoring({ projectId, baseRevision: rev(), productionRunId, idempotencyKey: "local-range",
       target: { action: "replace_range", cueId: cue.id, targetRange: { startFrame: 4, endFrame: 12 }, audioPolicy: "rebind_unchanged_events" },
       openDesignRequest: { project: source.project, prompt: "继续原版本的局部范围", continue_from_run_id: source.run_id } });
     assert.equal(partial.payload.logicalWorkId, initial.id);

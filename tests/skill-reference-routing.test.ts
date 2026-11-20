@@ -7,7 +7,8 @@ const root = resolve(".agents/skills"), mirror = resolve("plugins/videoflowcut/s
 const examples = "narration-writing/references/examples";
 const ids = ["light-humor", "warm-company", "curiosity", "clear-punchy", "playful-objects", "immersive"];
 const read = (path: string) => readFile(join(root, path), "utf8");
-const links = (body: string) => [...body.replace(/```[\s\S]*?```/g, "").matchAll(/\]\(([^)]+)\)/g)].map(m => m[1]!.split("#")[0]!).filter(p => p && !/^[a-z]+:/i.test(p));
+const links = (body: string) => [...body.replace(/```[\s\S]*?```/g, "").matchAll(/\]\((?:<([^>]+)>|((?:[^()]|\([^()]*\))+))\)/g)]
+  .map(m => (m[1] ?? m[2] ?? "").split("#")[0]!).filter(p => p && !/^[a-z]+:/i.test(p));
 async function walk(path: string): Promise<string[]> {
   const found: string[] = [];
   for (const item of await readdir(path, { withFileTypes: true })) {
