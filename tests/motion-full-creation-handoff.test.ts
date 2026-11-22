@@ -19,6 +19,8 @@ import { readLibraryMechanism } from "../references/motion-cases/skillry/tools/l
 import { motionFixture } from "./fixtures/managed-motion.js";
 import { motionHtml } from "./fixtures/hyperframes.js";
 import { completeResearchCoverage, directorBrief, visualPlan, researchPlan } from "./fixtures/visual-plan.mjs";
+import type { ProductionUnitHandoffInput } from "../packages/contracts/src/production-unit-handoff.js";
+import type { ProductionUnitDraft, ProductionUnitHandoffEvent } from "@videocut/contracts";
 
 for (const wholeFilm of [false, true]) test(wholeFilm
   ? "整片首版一次送出两场并将跨场阶段回件接入同一作品"
@@ -114,11 +116,46 @@ for (const wholeFilm of [false, true]) test(wholeFilm
     const finalPlan = { ...researchPlan("主体", complete.id, ["overallVisual", "sceneComposition"]), referenceMappings: plan.referenceMappings };
     const allScenes = [scene, ...(secondScene ? [secondScene] : [])];
     const draftPath = join(root, "creative.md"), restagePath = join(root, "restage.png");
-    await writeFile(draftPath, "主体先建立、缩入小窗并接续");
+    await writeFile(draftPath, allScenes.map(item => `### 单元 ${item.id}\n\n主体先建立、缩入小窗并接续 ${item.title}`).join("\n\n"));
     await writeFile(restagePath, imageBytes);
+    const mcpServer = new McpServer({ name: "range-test", version: "1.0.0" });
+    registerMotionTools(mcpServer, app, () => projectId);
+    mcpClient = new Client({ name: "range-test-client", version: "1.0.0" });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await mcpServer.connect(serverTransport); await mcpClient.connect(clientTransport);
+    const drafts = new Map<string, { draft: ProductionUnitDraft; receipt: string }>();
+    const handoff = async (input: ProductionUnitHandoffInput) => {
+      const current = await app.readSkillExecutionReport({ projectId, runId: run.id });
+      const updated = await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: current.auditVersion,
+        operationId: randomUUID(), action: "record_unit_handoff", handoff: input });
+      return updated.unitHandoffs!.at(-1)!;
+    };
+    const submit = async (item: typeof scene) => {
+      const result = await handoff({ action: "submit_draft", assignmentId: "creative", inputRevision: rev(),
+        sceneId: item.id, unitId: item.id, startFrame: item.startFrame, endFrame: item.endFrame, creativeDecisionId: research.id,
+        reference: { researchDecisionId: research.id, kind: "creative", id: "002-c01", sourceSha256: fingerprint, startMs: 100, endMs: 900 },
+        assets: [{ assetId: asset.id }], draftPath });
+      assert.equal(result.action, "submit_draft");
+      return result.draft;
+    };
+    const accept = async (draft: ProductionUnitDraft) => {
+      const result = await handoff({ action: "accept_draft", draftId: draft.id, assignmentId: "authors", inputRevision: rev(),
+        sourceMs: 500, projectFrame: draft.startFrame, comparisonPath: restagePath, observation: "同一主体留在缩入后的小窗并交给下一层" });
+      assert.equal(result.action, "accept_draft");
+      drafts.set(draft.unitId, { draft, receipt: result.id });
+    };
+    const returnDraft = (draft: ProductionUnitDraft): Promise<ProductionUnitHandoffEvent> =>
+      handoff({ action: "return_draft", draftId: draft.id, assignmentId: "authors", inputRevision: rev(), sourceMs: 500,
+        gap: "小窗缺少持续主体", impact: "后续文字接手时无法回认" });
+    if (wholeFilm) {
+      await accept(await submit(scene));
+      assert.deepEqual((await app.readProductionStatus(projectId, { runId: run.id })).unitHandoffs?.map(item => item.status),
+        ["accepted", "waiting_for_draft"]);
+    }
     const scenePlans = allScenes.map(item => wholeFilm ? { ...finalPlan,
       units: [{ id: item.id, title: item.title, startFrame: item.startFrame, endFrame: item.endFrame,
-        creativeDecisionId: research.id, creativeDraftId: "draft", restage: { resourceId: "restage", sourceMs: 500, projectFrame: item.startFrame } }],
+        creativeDecisionId: research.id, creativeDraftId: `draft-${item.id}`, handoffReceiptId: drafts.get(item.id)?.receipt,
+        restage: { resourceId: "restage", sourceMs: 500, projectFrame: item.startFrame } }],
       referenceMappings: finalPlan.referenceMappings.map(mapping => ({ ...mapping, unitId: item.id, use: "primary" as const,
         targetRange: { startFrame: item.startFrame, endFrame: item.endFrame } })),
       sequence: finalPlan.sequence.map(step => ({ ...step, unitId: item.id }))
@@ -126,19 +163,54 @@ for (const wholeFilm of [false, true]) test(wholeFilm
     latestBrief = `最新版导演稿：\n${directorBrief(...scenePlans)}\n\n## 发给 OD 的完整请求\n\n${sceneRequest}\n\n## 交接附注\n这段附注不发送为请求正文。`;
     await writeFile(brief, latestBrief);
     const finalOutput = join(root, "final-handoff");
-    const finalManifest = await prepareReferencePackage({ projectId, revision: rev(), projectSnapshot: snapshotPath, brief, timingPlan: timing, freezeInputs: true,
-      deliveryPrefix: "handoffs/isolated-final", selectedSceneIds: sceneIds, assets: [{ id: asset.id, path: assetPath, purpose: "真实主体" }],
+    const payload = () => ({
+      assets: [{ id: asset.id, path: assetPath, purpose: "真实主体" }],
       creative: [{ id: "002-c01", sourceSha256: fingerprint, usage: "adopted", purpose: "主体接管" }],
-      ...(wholeFilm ? { references: [{ id: "draft", usage: "adopted", purpose: "创意原稿", files: [{ path: draftPath, deliveredPath: "references/creative.md" }] },
+      ...(wholeFilm ? { references: [...allScenes.map(item => ({ id: `draft-${item.id}`, usage: "adopted", purpose: "创意原稿",
+        files: [{ path: drafts.get(item.id)?.draft.path ?? draftPath, deliveredPath: `references/${item.id}.md` }] })),
         { id: "restage", usage: "adopted", purpose: "视觉复摆", files: [{ path: restagePath, deliveredPath: "references/restage.png" }] }] } : {}),
       scenes: allScenes.map((item, index) => ({ sceneId: item.id, status: "ready", references: [{ kind: "creative", id: "002-c01", sourceSha256: fingerprint,
         startMs: 100, endMs: 900, purpose: "主体进入小窗" }],
-        ...(wholeFilm ? { resourceIds: ["draft", "restage"] } : {}),
+        ...(wholeFilm ? { resourceIds: [`draft-${item.id}`, "restage"] } : {}),
         visualRoles: [{ role: "主体", referenceFunction: "进入并接管", assetIds: [asset.id], usage: "真实主体" }],
-        visualPlan: scenePlans[index], process: "主体建立、进入小窗并接续", preserve: ["主体接管"], adapt: ["文字排版"] })) }, finalOutput);
-    assert.equal(finalManifest.scenes?.[0].status, "ready", JSON.stringify(finalManifest.scenes?.[0]));
-    manifestPath = join(finalOutput, "delivery-manifest.json");
-    manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");
+        visualPlan: scenePlans[index], process: "主体建立、进入小窗并接续", preserve: ["主体接管"], adapt: ["文字排版"] }))
+    });
+    if (wholeFilm) {
+      const prepare = async (selected = sceneIds, body = payload()) => {
+        const response = await mcpClient!.callTool({ name: "prepare_motion_handoff",
+          arguments: { project_id: projectId, production_run_id: run.id, base_revision_id: rev(), brief_path: brief,
+            timing_plan_path: timing, selected_scene_ids: selected, ...body } });
+        return JSON.parse((response.content as Array<{ text: string }>)[0]!.text);
+      };
+      assert.equal((await prepare()).issues[0].code, "VISUAL_UNIT_HANDOFF_DRAFT_REQUIRED");
+      assert.deepEqual((await prepare([scene.id])).authorRequest.sceneIds, [scene.id]);
+      const firstDraft = await submit(secondScene!);
+      assert.equal((await prepare()).issues[0].code, "VISUAL_UNIT_HANDOFF_REVIEW_REQUIRED");
+      await returnDraft(firstDraft);
+      assert.equal((await prepare()).issues[0].code, "VISUAL_UNIT_HANDOFF_RETURNED");
+      await assert.rejects(accept(firstDraft), { code: "PRODUCTION_UNIT_HANDOFF_INVALID" });
+      await writeFile(draftPath, `### 单元 ${secondScene!.id}\n\n第二场已补实拍承接，主体先建立再缩入小窗。`);
+      await accept(await submit(secondScene!));
+      assert.equal((await app.readProductionStatus(projectId, { runId: run.id })).unitHandoffs?.[0]?.status, "accepted");
+      assert.equal((await prepare()).issues[0].code, "VISUAL_UNIT_HANDOFF_MISMATCH");
+      const secondPlan = scenePlans[1]!;
+      assert.ok("units" in secondPlan && secondPlan.units?.length);
+      secondPlan.units[0]!.handoffReceiptId = drafts.get(secondScene!.id)!.receipt;
+      const forged = payload();
+      forged.references![0]!.files[0]!.path = draftPath;
+      assert.equal((await prepare(sceneIds, forged)).issues[0].code, "VISUAL_UNIT_HANDOFF_MISMATCH");
+      latestBrief = `最新版导演稿：\n${directorBrief(...scenePlans)}\n\n## 发给 OD 的完整请求\n\n${sceneRequest}\n\n## 交接附注\n这段附注不发送为请求正文。`;
+      await writeFile(brief, latestBrief);
+      const prepared = await prepare();
+      assert.deepEqual(prepared.authorRequest?.sceneIds, sceneIds, JSON.stringify(prepared));
+      ({ manifestPath, manifestSha256 } = prepared);
+    } else {
+      const finalManifest = await prepareReferencePackage({ projectId, revision: rev(), projectSnapshot: snapshotPath, brief, timingPlan: timing, freezeInputs: true,
+        deliveryPrefix: "handoffs/isolated-final", selectedSceneIds: sceneIds, ...payload() }, finalOutput);
+      assert.equal(finalManifest.scenes?.[0].status, "ready", JSON.stringify(finalManifest.scenes?.[0]));
+      manifestPath = join(finalOutput, "delivery-manifest.json");
+      manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");
+    }
     const design = await record("visual_design", { inputDecisionIds: [research.id, complete.id, motion.id], deliveryRef: { manifestPath, manifestSha256, sceneIds } });
     const candidate = await app.readProductionStatus(projectId, { runId: run.id, referenceDecisionId: design.id });
     assert.ok("authorRequest" in candidate && candidate.authorRequest?.text === sceneRequest);
@@ -177,11 +249,6 @@ for (const wholeFilm of [false, true]) test(wholeFilm
     app.updateJob(extraDelivery.id, { status: "failed", result: {} });
     updateMaterials([asset.id]);
     request.baseRevision = rev();
-    const mcpServer = new McpServer({ name: "range-test", version: "1.0.0" });
-    registerMotionTools(mcpServer, app, () => projectId);
-    mcpClient = new Client({ name: "range-test-client", version: "1.0.0" });
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-    await mcpServer.connect(serverTransport); await mcpClient.connect(clientTransport);
     const submission = await mcpClient.callTool({ name: "start_motion_authoring", arguments: {
       project_id: projectId, base_revision_id: request.baseRevision, production_run_id: run.id,
       visual_treatment_ids: request.visualTreatmentIds, target: request.target,
@@ -333,6 +400,19 @@ for (const wholeFilm of [false, true]) test(wholeFilm
 
     app.repository.commit(projectId, rev(), "核对完整解说导出门禁", snapshot => { snapshot.project.profile = "visual_explainer"; });
     assert.equal(app.submitExport({ projectId }).kind, "export", "采用对应的冻结作品允许正式导出");
+    if (secondScene) {
+      await returnDraft(drafts.get(secondScene.id)!.draft);
+      const current = app.readProject(projectId).snapshot;
+      const targets = job.payload.sceneTargets as import("../packages/contracts/src/motion-authoring.js").MotionAuthoringSceneTarget[];
+      app.assertMotionAuthoringInputsCurrent(current, scene.id, targets[0]!.authoringInputs, true);
+      assert.throws(() => app.assertMotionAuthoringInputsCurrent(current, secondScene.id, targets[1]!.authoringInputs, true),
+        { code: "MOTION_AUTHORING_COORDINATION_BLOCKED" });
+      const readback = await app.readProductionStatus(projectId, { runId: run.id, referenceDecisionId: design.id });
+      assert.equal(readback.unitHandoffs?.find(item => item.sceneId === secondScene.id)?.status, "returned");
+      assert.equal("authorRequest" in readback, false, "已被退回的冻结设计仅保留对照");
+      await assert.rejects(record("adoption", { inputDecisionIds: [design.id], deliveryRef: { manifestPath, manifestSha256, sceneIds } }),
+        (error: unknown) => !!(error as { issues?: Array<{ code: string }> }).issues?.some(issue => issue.code === "VISUAL_UNIT_HANDOFF_RETURNED"));
+    }
     app.repository.commit(projectId, rev(), "模拟只有临时合成", snapshot => {
       for (const cue of snapshot.effectCues) delete cue.authoringInputs;
     });

@@ -28,6 +28,7 @@ import { EFFECT_QUALITY_RULES, EFFECT_TYPES, type Asset, type AssetProvenance } 
 import { inspectComposedFrames } from "./preview-inspection.js";
 import { inspectAsset } from "./source-review.js";
 import { registerMotionTools } from "./motion-tools.js";
+import { productionUnitHandoffSchema } from "../../../packages/contracts/src/production-unit-handoff.js";
 import { registerObjectResourceTools } from "./object-resource-tools.js";
 import { registerMotionLibraryTools } from "./motion-library-tools.js";
 import { registerCreativeLibraryTools } from "./creative-library-tools.js";
@@ -2746,10 +2747,11 @@ server.registerTool("start_production_run", {
 
 server.registerTool("update_production_run", {
   title: "更新制作职责与范围",
-  description: "登记实际分派、接替或调整任务目标，使用当前审计版本和稳定操作编号；记录为来源声明，不代替宿主调用。",
+  description: "登记实际分派、接替、任务目标和逐单元换料交接。record_unit_handoff 记录创意正式交稿、视觉试摆接收或退回，使用当前审计版本和稳定操作编号，回读 unitHandoffs。",
   inputSchema: {
     project_id: z.string().optional(), run_id: z.string().min(1), expected_audit_version: z.number().int().positive(), operation_id: productionOperationIdSchema,
-    action: z.enum(["update_scope", "add_assignment", "replace_assignment", "select_delivery_artifact"]), completion_scope: productionCompletionScopeSchema.optional(), reason: z.string().optional(), artifact_id: z.string().min(1).optional(),
+    action: z.enum(["update_scope", "add_assignment", "replace_assignment", "select_delivery_artifact", "record_unit_handoff"]), completion_scope: productionCompletionScopeSchema.optional(), reason: z.string().optional(), artifact_id: z.string().min(1).optional(),
+    handoff: productionUnitHandoffSchema.optional(),
     assignment: z.object({ assignment_id: z.string().min(1), agent_id: z.string().min(1),
       responsibilities: z.array(z.enum(["director", "narration", "asset_sourcing", "creative_research", "visual_design", "motion_research", "review"])).min(1),
       skill_ids: z.array(z.string().min(1)).min(1), scope: productionCompletionScopeSchema,
@@ -2765,6 +2767,10 @@ server.registerTool("update_production_run", {
     if (input.action === "select_delivery_artifact") {
       if (!input.artifact_id) throw new DomainError("请选择交付文件", "PRODUCTION_DELIVERY_ARTIFACT_INVALID");
       return asText(await application.updateProductionRun({ ...base, action: input.action, artifactId: input.artifact_id }));
+    }
+    if (input.action === "record_unit_handoff") {
+      if (!input.handoff) throw new DomainError("请交回具体单元的换料正文或视觉接件结果", "PRODUCTION_UNIT_HANDOFF_INVALID");
+      return asText(await application.updateProductionRun({ ...base, action: input.action, handoff: input.handoff }));
     }
     if (!input.assignment) throw new DomainError("分派信息缺失", "PRODUCTION_ASSIGNMENT_INVALID");
     const assignment = input.assignment;
