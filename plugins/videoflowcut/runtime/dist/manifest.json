@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
   "format": "commonjs",
-  "releaseId": "release-05015f279ad5529cd07c180e4e37e2af1c9c894acd69510f93dd02c299d765d3",
-  "pluginVersion": "0.1.125",
+  "releaseId": "release-fdb1efe752cf63c6fcdda9cbd09b14ae6418648e52ae52519a99b088b9094511",
+  "pluginVersion": "0.1.137",
   "runtimeEntry": "runtime.cjs",
   "mcpEntry": "mcp.cjs",
   "remotionEntry": "remotion/render-entry.cjs",

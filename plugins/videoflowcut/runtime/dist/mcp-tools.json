@@ -6312,6 +6312,33 @@
       }
     },
     {
+      "name": "abandon_unknown_avatar_job",
+      "title": "放弃结果未知的数字人任务",
+      "description": "原 Run 和产物对账后，经用户授权结清指定 Job。保留诊断及历史，记录放弃原因。不向 Provider 发送取消或重提请求。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "job_id",
+          "reason"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "resume_avatar_job",
       "title": "恢复 LTX 人物任务",
       "description": "已知 Run 沿原任务查询和回收；明确生成失败才创建固定恢复任务。缺失 Run ID 的未知提交不重复执行，不切换模型。",
@@ -7559,7 +7586,7 @@
     {
       "name": "prepare_motion_handoff",
       "title": "准备场面制作交付",
-      "description": "按当前项目快照准备固定导演稿、时间资料、真实素材和采用参考。ready 场面须提供完整构图、连续发展、观看中心、OD 权限边界及每条参考的成片范围；设计文字直接摘自导演稿，程序核对原文一致。pending 场面可先交不完整结果。返回清单哈希、实际文件和逐场面缺口。",
+      "description": "按当前快照固定导演稿、时间资料、真实素材和采用参考。导演稿「发给 OD 的完整请求」先写共用要求，再用三级标题「场面 <实际SceneID>」分场。完整解说新片用 visualPlan.units 关联独立创意拆解、可解码的画面对照及帧段，用 referenceMappings 的 unitId 和 use 关联主参考或辅助，用 sequence.unitId 关联制作步骤。拆解与对照文件通过 references 和场面 resourceIds 随包交付。ready 场面须提供完整构图、连续发展、观看中心、制作权限及参考成片帧段。完整新制与视觉重做用 researchLayers 关联研究。pending 场面可先交接。返回清单、缺口和就绪场面的冻结 authorRequest。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7569,6 +7596,11 @@
           "base_revision_id": {
             "type": "integer",
             "exclusiveMinimum": 0
+          },
+          "production_run_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "完整解说新片正式组包须提供当前 Run，逐单元核对视觉接件回执"
           },
           "brief_path": {
             "type": "string",
@@ -7846,6 +7878,103 @@
                         "minLength": 1
                       }
                     },
+                    "units": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "startFrame": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "endFrame": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0
+                          },
+                          "creativeDecisionId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "creativeDraftId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "handoffReceiptId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "restage": {
+                            "type": "object",
+                            "properties": {
+                              "resourceId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "sourceMs": {
+                                "type": "number",
+                                "minimum": 0
+                              },
+                              "projectFrame": {
+                                "type": "integer",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "resourceId",
+                              "sourceMs",
+                              "projectFrame"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "startFrame",
+                          "endFrame"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "researchLayers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "level": {
+                            "type": "string",
+                            "enum": [
+                              "overallVisual",
+                              "sceneComposition",
+                              "motionMechanisms"
+                            ]
+                          },
+                          "researchDecisionId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "designExcerpt": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "视觉作者写入本场导演稿的原文，说明这一层研究如何用于本片"
+                          }
+                        },
+                        "required": [
+                          "level",
+                          "researchDecisionId",
+                          "designExcerpt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "referenceMappings": {
                       "type": "array",
                       "items": {
@@ -7863,6 +7992,17 @@
                               "motion"
                             ],
                             "description": "参考类型；同一 ID 同时对应创意和机制时必须填写"
+                          },
+                          "unitId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "use": {
+                            "type": "string",
+                            "enum": [
+                              "primary",
+                              "support"
+                            ]
                           },
                           "researchDecisionId": {
                             "type": "string",
@@ -7962,6 +8102,10 @@
                       "items": {
                         "type": "object",
                         "properties": {
+                          "unitId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
                           "purpose": {
                             "type": "string"
                           },
@@ -8059,7 +8203,7 @@
     {
       "name": "start_motion_authoring",
       "title": "启动阶段画面制作",
-      "description": "主任务提交导演采用的视觉方案、交付资料和明确的时间线目标。OD 制作首版并分阶段交回，后续修订沿同一作品继续。原任务结束后的续修使用新幂等键，并通过 continue_from_run_id 指定原制作 Run。",
+      "description": "完整横屏或竖屏纯解说新片使用 target.action=whole_film，一次发送已采用的整片冻结稿及资料，阶段回件按场接回。新增画面从冻结稿取正文，省略 prompt。局部返修使用范围正文、新幂等键和 continue_from_run_id。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -8074,11 +8218,6 @@
             "type": "string",
             "minLength": 1
           },
-          "intent": {
-            "type": "string",
-            "const": "local_edit",
-            "description": "仅无 ProductionRun 的局部编辑填写；完整新制和主要视觉重构必须提供 production_run_id"
-          },
           "visual_treatment_ids": {
             "type": "array",
             "items": {
@@ -8090,137 +8229,31 @@
           "target": {
             "anyOf": [
               {
-                "type": "object",
-                "properties": {
-                  "action": {
-                    "type": "string",
-                    "const": "create_cue"
-                  },
-                  "audioPolicy": {
-                    "type": "string",
-                    "const": "rebind_unchanged_events"
-                  },
-                  "sceneId": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "layer": {
-                    "type": "string",
-                    "enum": [
-                      "rear",
-                      "actor",
-                      "front",
-                      "fullscreen"
-                    ]
-                  },
-                  "startFrame": {
-                    "type": "integer",
-                    "minimum": 0
-                  },
-                  "endFrame": {
-                    "type": "integer",
-                    "exclusiveMinimum": 0
-                  },
-                  "sourceStartFrame": {
-                    "type": "integer",
-                    "minimum": 0
-                  },
-                  "sourceEndFrame": {
-                    "type": "integer",
-                    "exclusiveMinimum": 0
-                  },
-                  "visualComposition": {
+                "anyOf": [
+                  {
                     "type": "object",
                     "properties": {
-                      "role": {
+                      "action": {
                         "type": "string",
-                        "const": "primary"
+                        "const": "create_cue"
                       },
-                      "replacesActorItemIds": {
-                        "type": "array",
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      }
-                    },
-                    "required": [
-                      "role",
-                      "replacesActorItemIds"
-                    ],
-                    "additionalProperties": false
-                  },
-                  "coveredNarrativeBeatIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "maxItems": 64
-                  },
-                  "note": {
-                    "type": "string"
-                  },
-                  "narrativePurpose": {
-                    "type": "string",
-                    "maxLength": 800
-                  },
-                  "audienceTask": {
-                    "type": "string",
-                    "maxLength": 800
-                  }
-                },
-                "required": [
-                  "action",
-                  "audioPolicy",
-                  "sceneId",
-                  "layer",
-                  "startFrame",
-                  "endFrame",
-                  "sourceStartFrame",
-                  "sourceEndFrame"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "cueId": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "audioPolicy": {
-                    "type": "string",
-                    "const": "rebind_unchanged_events"
-                  },
-                  "action": {
-                    "type": "string",
-                    "const": "replace_cue"
-                  }
-                },
-                "required": [
-                  "cueId",
-                  "audioPolicy",
-                  "action"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "cueId": {
-                    "$ref": "#/properties/target/anyOf/1/properties/cueId"
-                  },
-                  "audioPolicy": {
-                    "$ref": "#/properties/target/anyOf/1/properties/audioPolicy"
-                  },
-                  "action": {
-                    "type": "string",
-                    "const": "replace_range"
-                  },
-                  "targetRange": {
-                    "type": "object",
-                    "properties": {
+                      "audioPolicy": {
+                        "type": "string",
+                        "const": "rebind_unchanged_events"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "layer": {
+                        "type": "string",
+                        "enum": [
+                          "rear",
+                          "actor",
+                          "front",
+                          "fullscreen"
+                        ]
+                      },
                       "startFrame": {
                         "type": "integer",
                         "minimum": 0
@@ -8228,20 +8261,143 @@
                       "endFrame": {
                         "type": "integer",
                         "exclusiveMinimum": 0
+                      },
+                      "sourceStartFrame": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "sourceEndFrame": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0
+                      },
+                      "visualComposition": {
+                        "type": "object",
+                        "properties": {
+                          "role": {
+                            "type": "string",
+                            "const": "primary"
+                          },
+                          "replacesActorItemIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        },
+                        "required": [
+                          "role",
+                          "replacesActorItemIds"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "coveredNarrativeBeatIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "maxItems": 64
+                      },
+                      "note": {
+                        "type": "string"
+                      },
+                      "narrativePurpose": {
+                        "type": "string",
+                        "maxLength": 800
+                      },
+                      "audienceTask": {
+                        "type": "string",
+                        "maxLength": 800
                       }
                     },
                     "required": [
+                      "action",
+                      "audioPolicy",
+                      "sceneId",
+                      "layer",
                       "startFrame",
-                      "endFrame"
+                      "endFrame",
+                      "sourceStartFrame",
+                      "sourceEndFrame"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "cueId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "audioPolicy": {
+                        "type": "string",
+                        "const": "rebind_unchanged_events"
+                      },
+                      "action": {
+                        "type": "string",
+                        "const": "replace_cue"
+                      }
+                    },
+                    "required": [
+                      "cueId",
+                      "audioPolicy",
+                      "action"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "cueId": {
+                        "$ref": "#/properties/target/anyOf/0/anyOf/1/properties/cueId"
+                      },
+                      "audioPolicy": {
+                        "$ref": "#/properties/target/anyOf/0/anyOf/1/properties/audioPolicy"
+                      },
+                      "action": {
+                        "type": "string",
+                        "const": "replace_range"
+                      },
+                      "targetRange": {
+                        "type": "object",
+                        "properties": {
+                          "startFrame": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "endFrame": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0
+                          }
+                        },
+                        "required": [
+                          "startFrame",
+                          "endFrame"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "cueId",
+                      "audioPolicy",
+                      "action",
+                      "targetRange"
                     ],
                     "additionalProperties": false
                   }
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "const": "whole_film"
+                  }
                 },
                 "required": [
-                  "cueId",
-                  "audioPolicy",
-                  "action",
-                  "targetRange"
+                  "action"
                 ],
                 "additionalProperties": false
               }
@@ -8295,8 +8451,7 @@
               }
             },
             "required": [
-              "project",
-              "prompt"
+              "project"
             ],
             "additionalProperties": false
           },
@@ -8308,6 +8463,7 @@
         },
         "required": [
           "base_revision_id",
+          "production_run_id",
           "target",
           "opendesign_request",
           "idempotency_key"
@@ -8322,7 +8478,7 @@
     {
       "name": "wait_motion_authoring",
       "title": "等待阶段画面制作结果",
-      "description": "按 sequence 接回阶段制作与采用结果。needs_reconfirmation 回执保留固定作品和 pendingRanges，供协调者核对后沿原作品续修；rangeMappings 提供项目帧与作品根帧。creativeBrief 是作者说明，主任务须交导演、创意与视觉检查实际画面。超时表示暂无新进展。",
+      "description": "按 sequence 接回阶段制作与采用结果。needs_reconfirmation 保留固定作品及 pendingRanges；rangeMappings 提供项目帧与作品根帧。指定 range_request 时读取该冻结版对应的 referenceComparisons。creativeBrief 是作者说明，仍须复看作品。超时表示暂无新进展。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -11990,7 +12146,7 @@
     {
       "name": "update_production_run",
       "title": "更新制作职责与范围",
-      "description": "登记实际分派、接替或调整任务目标，使用当前审计版本和稳定操作编号；记录为来源声明，不代替宿主调用。",
+      "description": "登记分派、接替、任务目标和逐单元交接。record_unit_handoff 的 submit_draft 依据登记原句和 replacements 生成固定换料稿，也可登记视觉试摆接收或退回。使用当前审计版本和稳定操作编号，回读 unitHandoffs。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -12015,7 +12171,8 @@
               "update_scope",
               "add_assignment",
               "replace_assignment",
-              "select_delivery_artifact"
+              "select_delivery_artifact",
+              "record_unit_handoff"
             ]
           },
           "completion_scope": {
@@ -12109,6 +12266,244 @@
             "type": "string",
             "minLength": 1
           },
+          "handoff": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "const": "submit_draft"
+                  },
+                  "assignmentId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "inputRevision": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "sceneId": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
+                  },
+                  "unitId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^[^\\r\\n]+$"
+                  },
+                  "startFrame": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "endFrame": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/startFrame"
+                  },
+                  "creativeDecisionId": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
+                  },
+                  "reference": {
+                    "type": "object",
+                    "properties": {
+                      "researchDecisionId": {
+                        "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "creative",
+                          "motion"
+                        ]
+                      },
+                      "id": {
+                        "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
+                      },
+                      "sourceSha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "startMs": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "endMs": {
+                        "$ref": "#/properties/handoff/anyOf/0/properties/reference/properties/startMs"
+                      }
+                    },
+                    "required": [
+                      "researchDecisionId",
+                      "kind",
+                      "id",
+                      "sourceSha256",
+                      "startMs",
+                      "endMs"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "replacements": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "^[^【】\\s]+$"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "const": "text"
+                            },
+                            "text": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "^[^\\r\\n【】]+$"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "kind",
+                            "text"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "$ref": "#/properties/handoff/anyOf/0/properties/replacements/items/anyOf/0/properties/name"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "const": "asset"
+                            },
+                            "assetId": {
+                              "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
+                            },
+                            "sourceRange": {
+                              "type": "object",
+                              "properties": {
+                                "startMs": {
+                                  "$ref": "#/properties/handoff/anyOf/0/properties/reference/properties/startMs"
+                                },
+                                "endMs": {
+                                  "$ref": "#/properties/handoff/anyOf/0/properties/reference/properties/startMs"
+                                }
+                              },
+                              "required": [
+                                "startMs",
+                                "endMs"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "kind",
+                            "assetId"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    },
+                    "description": "只填已登记原句里的【名称】。文字与数值用 text，素材用 asset，重复出现的名称填一次。"
+                  }
+                },
+                "required": [
+                  "action",
+                  "assignmentId",
+                  "inputRevision",
+                  "sceneId",
+                  "unitId",
+                  "startFrame",
+                  "endFrame",
+                  "creativeDecisionId",
+                  "reference",
+                  "replacements"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "const": "accept_draft"
+                  },
+                  "assignmentId": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
+                  },
+                  "inputRevision": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/inputRevision"
+                  },
+                  "draftId": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
+                  },
+                  "sourceMs": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/reference/properties/startMs"
+                  },
+                  "projectFrame": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/startFrame"
+                  },
+                  "comparisonPath": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
+                  },
+                  "observation": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
+                  }
+                },
+                "required": [
+                  "action",
+                  "assignmentId",
+                  "inputRevision",
+                  "draftId",
+                  "sourceMs",
+                  "projectFrame",
+                  "comparisonPath",
+                  "observation"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "const": "return_draft"
+                  },
+                  "assignmentId": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
+                  },
+                  "inputRevision": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/inputRevision"
+                  },
+                  "draftId": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
+                  },
+                  "sourceMs": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/reference/properties/startMs"
+                  },
+                  "gap": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
+                  },
+                  "impact": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
+                  }
+                },
+                "required": [
+                  "action",
+                  "assignmentId",
+                  "inputRevision",
+                  "draftId",
+                  "sourceMs",
+                  "gap",
+                  "impact"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
           "assignment": {
             "type": "object",
             "properties": {
@@ -12189,7 +12584,7 @@
     {
       "name": "record_creative_decision",
       "title": "记录创作判断",
-      "description": "持久化作者判断、真实分派、输入版本和上游决定。创意研究可先交接局部结果；完整新制和视觉重做的视觉或场面正式采用须引用固定交付及视觉设计，并核对整体视觉、场面构图和运动机制的研究覆盖与关键未决问题，不适用的层次须说明理由。研究引用的 source_sha256 使用读卡结果顶层资料库指纹。记录不通知作者，主任务须实际转交。",
+      "description": "持久化作者判断、真实分派、输入版本和上游决定。observed_relation 写原片实见，decision 和 rationale 写选片用途和理由；主参考改为局部借用时，以新决定的 input_decision_ids 关联原决定并说明取舍。创意研究可先交接局部结果；正式采用前，为每个 covered 层次填实际研究与迁移正文，not_applicable 须说明理由。正式采用须引用固定交付及视觉设计。research_references.source_sha256 使用读卡结果顶层资料库指纹。记录后由主任务转交。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -12314,6 +12709,28 @@
               "not_applicable"
             ]
           },
+          "reused_decision_refs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "production_run_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "decision_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "production_run_id",
+                "decision_id"
+              ],
+              "additionalProperties": false
+            },
+            "description": "本次核对后沿用的同职责历史判断，多个来源合计须覆盖本次判断范围；部分沿用与新增判断按范围分别记录"
+          },
           "research_coverage": {
             "type": "object",
             "properties": {
@@ -12340,6 +12757,28 @@
                   "not_applicable",
                   "pending"
                 ]
+              },
+              "layer_notes": {
+                "type": "object",
+                "properties": {
+                  "overall_visual": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  },
+                  "scene_composition": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  },
+                  "motion_mechanisms": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  }
+                },
+                "additionalProperties": false,
+                "description": "各已覆盖层次的原片研究和本片迁移正文，分层填写；未完成层次可不填"
               },
               "not_applicable_reasons": {
                 "type": "object",
@@ -12407,7 +12846,8 @@
                 "observed_relation": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 2000
+                  "maxLength": 2000,
+                  "description": "原片实见。用于逐单元正式照排时，按实际采用区间逐拍登记完整演出句，只用【名称】标可替换内容。"
                 }
               },
               "required": [
@@ -12685,6 +13125,62 @@
                       "actual_implementation",
                       "difference",
                       "outcome"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "responsibility_reviews": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "responsibility": {
+                        "type": "string",
+                        "enum": [
+                          "creative_research",
+                          "motion_research",
+                          "visual_design"
+                        ]
+                      },
+                      "assignment_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "decision_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "minItems": 1
+                      },
+                      "outcome": {
+                        "type": "string",
+                        "enum": [
+                          "confirmed",
+                          "issue",
+                          "inconclusive"
+                        ]
+                      },
+                      "observation": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "impact": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "finding_id": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "responsibility",
+                      "assignment_id",
+                      "decision_ids",
+                      "outcome",
+                      "observation"
                     ],
                     "additionalProperties": false
                   }
@@ -13557,6 +14053,63 @@
                     "additionalProperties": false
                   },
                   "maxItems": 40
+                },
+                "responsibility_reviews": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "responsibility": {
+                        "type": "string",
+                        "enum": [
+                          "creative_research",
+                          "motion_research",
+                          "visual_design"
+                        ]
+                      },
+                      "assignment_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "decision_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "minItems": 1
+                      },
+                      "outcome": {
+                        "type": "string",
+                        "enum": [
+                          "confirmed",
+                          "issue",
+                          "inconclusive"
+                        ]
+                      },
+                      "observation": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "impact": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "finding_id": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "responsibility",
+                      "assignment_id",
+                      "decision_ids",
+                      "outcome",
+                      "observation"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 40
                 }
               },
               "required": [
@@ -13684,7 +14237,7 @@
     {
       "name": "read_production_status",
       "title": "读取实际制作状态",
-      "description": "读取项目制作状态。提供 run_id 和 completion_scope 时，评估本次版本的结构、工作台观察覆盖及未解决问题，并返回原 Run 的记录状态。",
+      "description": "读取项目制作状态和审阅覆盖。audio.intentCoverage 按当前声音意图列出已明确留白、未上轨、需重绑和已上轨。用 run_id 与 reference_decision_id 读取视觉设计候选或导演采用的参考对照；用 reference_artifact_id 读取成片导出修订的参考对照。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -13778,6 +14331,14 @@
                 "additionalProperties": false
               }
             ]
+          },
+          "reference_decision_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reference_artifact_id": {
+            "type": "string",
+            "minLength": 1
           }
         },
         "additionalProperties": false,

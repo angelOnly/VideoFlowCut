@@ -18,6 +18,10 @@ export function toolError(error: unknown, validationBeforeExecution = false) {
     return { error: error.message, message: error.message, code: error.code, stage: "validation", sideEffects: "none", safeToRetry: true,
       recovery: "correct_input" };
   }
+  if (error instanceof DomainError && ["MOTION_AUTHORING_REQUEST_MISSING", "MOTION_AUTHORING_REQUEST_MISMATCH", "MOTION_AUTHORING_DELIVERY_INVALID"].includes(error.code)) {
+    return { error: error.message, message: error.message, code: error.code, stage: "validation", sideEffects: "none", safeToRetry: true,
+      recovery: "correct_input", nextAction: "读取已采用交付的 authorRequest.text。缺少章节时由视觉作者补齐并重新确认交付。" };
+  }
   if (error instanceof MotionFontUnknownError) return { error: error.message, message: error.message, code: "MOTION_FONT_UNKNOWN", stage: "validation", sideEffects: "none", safeToRetry: true, recovery: "correct_input", fontId: error.fontId,
     fields: [{ field: "work.fontBindings", message: "字体未登记", suggestion: "读取 read_motion_capabilities，由原视觉作者选择已登记字体；用户锁定且无法满足时再回询。" }] };
   if (error instanceof SourceDisplayValidationError) return { error: error.message, message: error.message, code: error.code, stage: "validation", sideEffects: "none", safeToRetry: true, recovery: "correct_input", fields: error.fields };

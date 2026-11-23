@@ -15,7 +15,7 @@ import { motionBundleHash } from "../packages/edit-application/src/motion-input.
 import { runMotionAuthoringJob } from "../apps/runtime/src/motion-authoring.js";
 import { createServer as createVfcServer } from "../apps/server/src/app.js";
 import { motionFixture } from "./fixtures/managed-motion.js";
-import { completeResearchCoverage, directorBrief, visualPlan } from "./fixtures/visual-plan.mjs";
+import { completeResearchCoverage, directorBrief, visualPlan, researchPlan } from "./fixtures/visual-plan.mjs";
 
 function frozenStage(endFrame: number) {
   const { source, ...work } = motionFixture;
@@ -116,7 +116,7 @@ test("候选登记不切换采用，正式采用在排队、传输和结果接�
       ...(phase === "creative_research" ? { researchCoverage: completeResearchCoverage } : {}), evidence: ["已检查候选并原创画面"] })).creativeDecisions.at(-1)!;
     const creative = await research("creative_research"), motion = await research("motion_research");
     const brief = join(root, "brief.md"), timing = join(root, "timing.md");
-    const visualBrief = directorBrief(visualPlan("主体"));
+    const visualBrief = directorBrief(visualPlan("主体")) + `\n\n## 发给 OD 的完整请求\n### 场面 ${a.id}\n制作 A 场\n### 场面 ${b.id}\n制作 B 场`;
     await writeFile(brief, `A 原始画面；B 原始画面。\n${visualBrief}`);
     await writeFile(timing, "A 与 B 的时间安排。");
     const prepare = async (sceneIds: string[]) => {
@@ -125,7 +125,7 @@ test("候选登记不切换采用，正式采用在排队、传输和结果接�
       const snapshotPath = join(output, "project-snapshot.json");
       await writeFile(snapshotPath, JSON.stringify(app.readProject(projectId)));
       const scene = (sceneId: string) => ({ sceneId, status: "ready", visualRoles: [{ role: "主体", referenceFunction: "连续发展", assetIds: [], usage: "原创主体" }],
-        visualPlan: visualPlan("主体"), process: "主体建立、发展并接续", preserve: ["主体关系"], adapt: ["细节"] });
+        visualPlan: researchPlan("主体", creative.id), process: "主体建立、发展并接续", preserve: ["主体关系"], adapt: ["细节"] });
       await prepareReferencePackage({ projectId, revision, projectSnapshot: snapshotPath, brief, timingPlan: timing, freezeInputs: true,
         deliveryPrefix: `handoffs/${randomUUID()}`, selectedSceneIds: sceneIds, scenes: sceneIds.map(scene) }, output);
       const manifestPath = join(output, "delivery-manifest.json");
@@ -150,7 +150,7 @@ test("候选登记不切换采用，正式采用在排队、传输和结果接�
       startFrame, endFrame: startFrame + 18, sourceStartFrame: 0, sourceEndFrame: 18, audioPolicy: "rebind_unchanged_events" as const });
     const start = (sceneId: string, treatmentId: string, key: string, startFrame: number, continueFrom?: string) => app.startMotionAuthoring({ projectId, baseRevision: rev(),
       productionRunId: run.id, visualTreatmentIds: [treatmentId], idempotencyKey: key, target: target(sceneId, startFrame),
-      openDesignRequest: { project: "isolated-od", prompt: "按已采用的场面制作", ...(continueFrom ? { continue_from_run_id: continueFrom } : {}) } });
+      openDesignRequest: { project: "isolated-od", ...(continueFrom ? { continue_from_run_id: continueFrom } : {}) } });
     const queuedA = await start(a.id, treatmentA.id, "a-queued", 0);
     await writeFile(brief, `A 原始画面；B 修改后的画面。\n${visualBrief}`);
     const bPack = await prepare([b.id]);

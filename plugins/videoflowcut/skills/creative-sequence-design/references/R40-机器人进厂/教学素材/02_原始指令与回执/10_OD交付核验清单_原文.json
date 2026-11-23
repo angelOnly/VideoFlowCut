@@ -1,0 +1,805 @@
+{
+  "projectId": "project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965",
+  "revision": 28,
+  "libraryRoot": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry",
+  "briefPath": "brief/visual-director-brief.md",
+  "timingPlanPath": "brief/timing-plan.md",
+  "files": [
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\workspace\\projects\\project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965\\handoff\\visual-director-brief.md",
+      "deliveredPath": "brief/visual-director-brief.md",
+      "uses": [
+        {
+          "kind": "brief",
+          "id": "brief",
+          "purpose": "权威视觉导演指令"
+        }
+      ],
+      "sourceSha256": "386e8a6c6ecbaac88008bb7571b8f3c285bad5efcad5e1b90d8dec821b7afe21",
+      "sha256": "386e8a6c6ecbaac88008bb7571b8f3c285bad5efcad5e1b90d8dec821b7afe21",
+      "mimeType": "text/markdown",
+      "sizeBytes": 4815,
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\workspace\\projects\\project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965\\handoff\\timing-plan.md",
+      "deliveredPath": "brief/timing-plan.md",
+      "uses": [
+        {
+          "kind": "brief",
+          "id": "timing",
+          "purpose": "完整时间编排"
+        }
+      ],
+      "sourceSha256": "5c949060c5dd1df9109710fed5859b75185c435953def5d39fe5017a298ef151",
+      "sha256": "5c949060c5dd1df9109710fed5859b75185c435953def5d39fe5017a298ef151",
+      "mimeType": "text/markdown",
+      "sizeBytes": 1863,
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\monokern-613142-original\\creative\\c01.md",
+      "deliveredPath": "references/skillry/cases/monokern-613142-original/creative/c01.md",
+      "uses": [
+        {
+          "kind": "creative",
+          "id": "016-c01",
+          "usage": "adopted",
+          "purpose": "整场构图、素材接续及大字",
+          "librarySourceSha256": "d038e9e2f62cf88f6c45098dd998f7b8b263f4d6e2ce73d68ebe25d74130b433",
+          "sourceStartMs": 0,
+          "sourceEndMs": 15061
+        }
+      ],
+      "sourceSha256": "58625ea97a090b8d78b55dca4cad7149d72a34a4d1ab9e5b3efebc81ead91908",
+      "sha256": "58625ea97a090b8d78b55dca4cad7149d72a34a4d1ab9e5b3efebc81ead91908",
+      "mimeType": "text/markdown",
+      "sizeBytes": 2301,
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\monokern-613142-original\\video.mp4",
+      "deliveredPath": "references/skillry/cases/monokern-613142-original/video.mp4",
+      "uses": [
+        {
+          "kind": "creative",
+          "id": "016-c01",
+          "usage": "adopted",
+          "purpose": "整场构图、素材接续及大字",
+          "librarySourceSha256": "d038e9e2f62cf88f6c45098dd998f7b8b263f4d6e2ce73d68ebe25d74130b433",
+          "sourceStartMs": 0,
+          "sourceEndMs": 15061
+        },
+        {
+          "kind": "creative",
+          "id": "016-c01",
+          "usage": "adopted",
+          "purpose": "整场构图、素材接续及大字",
+          "librarySourceSha256": "d038e9e2f62cf88f6c45098dd998f7b8b263f4d6e2ce73d68ebe25d74130b433",
+          "sourceStartMs": 0,
+          "sourceEndMs": 15061
+        },
+        {
+          "kind": "creative",
+          "id": "016-c01",
+          "usage": "adopted",
+          "purpose": "整场构图、素材接续及大字",
+          "librarySourceSha256": "d038e9e2f62cf88f6c45098dd998f7b8b263f4d6e2ce73d68ebe25d74130b433",
+          "sourceStartMs": 0,
+          "sourceEndMs": 15061
+        },
+        {
+          "kind": "creative",
+          "id": "016-c01",
+          "usage": "adopted",
+          "purpose": "整场构图、素材接续及大字",
+          "librarySourceSha256": "d038e9e2f62cf88f6c45098dd998f7b8b263f4d6e2ce73d68ebe25d74130b433",
+          "sourceStartMs": 0,
+          "sourceEndMs": 15061
+        }
+      ],
+      "sourceSha256": "dcb04019807fb6cbc68ab735127901d70bfb3fbed67d9a2ffc8a9cbb67dff8db",
+      "sha256": "dcb04019807fb6cbc68ab735127901d70bfb3fbed67d9a2ffc8a9cbb67dff8db",
+      "mimeType": "video/mp4",
+      "sizeBytes": 2068206,
+      "durationMs": 15061,
+      "fps": 60,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\monokern-613142-original\\storyboards\\creative-c01.jpg",
+      "deliveredPath": "references/skillry/cases/monokern-613142-original/storyboards/creative-c01.jpg",
+      "uses": [
+        {
+          "kind": "creative",
+          "id": "016-c01",
+          "usage": "adopted",
+          "purpose": "整场构图、素材接续及大字",
+          "librarySourceSha256": "d038e9e2f62cf88f6c45098dd998f7b8b263f4d6e2ce73d68ebe25d74130b433",
+          "sourceStartMs": 0,
+          "sourceEndMs": 15061
+        },
+        {
+          "kind": "creative",
+          "id": "016-c01",
+          "usage": "adopted",
+          "purpose": "整场构图、素材接续及大字",
+          "librarySourceSha256": "d038e9e2f62cf88f6c45098dd998f7b8b263f4d6e2ce73d68ebe25d74130b433",
+          "sourceStartMs": 0,
+          "sourceEndMs": 15061
+        }
+      ],
+      "sourceSha256": "87e75e76f03905ed9db64e51f1f81f9e9b1996c818ad3cb7ca4ea2cacf8fe45c",
+      "sha256": "87e75e76f03905ed9db64e51f1f81f9e9b1996c818ad3cb7ca4ea2cacf8fe45c",
+      "mimeType": "image/jpeg",
+      "sizeBytes": 473607,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\jesscaroline7-955094-original\\mechanisms\\m07.md",
+      "deliveredPath": "references/skillry/cases/jesscaroline7-955094-original/mechanisms/m07.md",
+      "uses": [
+        {
+          "kind": "motion",
+          "id": "026-m07",
+          "usage": "adopted",
+          "purpose": "点阵扫描、散开与数字聚合",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 10083,
+          "sourceEndMs": 22017
+        }
+      ],
+      "sourceSha256": "f68281ffcfea681ce9b930709c385e57a56eaa04d2250c5dca04f6d6b6b6b82d",
+      "sha256": "f68281ffcfea681ce9b930709c385e57a56eaa04d2250c5dca04f6d6b6b6b82d",
+      "mimeType": "text/markdown",
+      "sizeBytes": 2977,
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\jesscaroline7-955094-original\\mechanisms\\m07.jpg",
+      "deliveredPath": "references/skillry/cases/jesscaroline7-955094-original/mechanisms/m07.jpg",
+      "uses": [
+        {
+          "kind": "motion",
+          "id": "026-m07",
+          "usage": "adopted",
+          "purpose": "点阵扫描、散开与数字聚合",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 10083,
+          "sourceEndMs": 22017
+        },
+        {
+          "kind": "motion",
+          "id": "026-m07",
+          "usage": "adopted",
+          "purpose": "点阵扫描、散开与数字聚合",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 10083,
+          "sourceEndMs": 22017
+        }
+      ],
+      "sourceSha256": "9123286ac0ac7aa05a0ceadcc95ad20a41c84e575fbddce16bb688ad5317eba5",
+      "sha256": "9123286ac0ac7aa05a0ceadcc95ad20a41c84e575fbddce16bb688ad5317eba5",
+      "mimeType": "image/jpeg",
+      "sizeBytes": 269214,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\jesscaroline7-955094-original\\mechanisms\\m07.mp4",
+      "deliveredPath": "references/skillry/cases/jesscaroline7-955094-original/mechanisms/m07.mp4",
+      "uses": [
+        {
+          "kind": "motion",
+          "id": "026-m07",
+          "usage": "adopted",
+          "purpose": "点阵扫描、散开与数字聚合",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 10083,
+          "sourceEndMs": 22017
+        },
+        {
+          "kind": "motion",
+          "id": "026-m07",
+          "usage": "adopted",
+          "purpose": "点阵扫描、散开与数字聚合",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 10083,
+          "sourceEndMs": 22017
+        }
+      ],
+      "sourceSha256": "4373303b4033df123d97a497bb41c618c6cf6c1b56d9ddb6a21960dfba1156d2",
+      "sha256": "4373303b4033df123d97a497bb41c618c6cf6c1b56d9ddb6a21960dfba1156d2",
+      "mimeType": "video/mp4",
+      "sizeBytes": 4473072,
+      "durationMs": 11950,
+      "fps": 60,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\zakisbuilding-495680-original\\mechanisms\\m09.md",
+      "deliveredPath": "references/skillry/cases/zakisbuilding-495680-original/mechanisms/m09.md",
+      "uses": [
+        {
+          "kind": "motion",
+          "id": "032-m09",
+          "usage": "adopted",
+          "purpose": "画面越框扩张、回收和扫描",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 3875,
+          "sourceEndMs": 11750
+        }
+      ],
+      "sourceSha256": "63e0faaae8c671b386cbd8a2aefd3fe66590bf8375b71f9ae269c9c7eac7a067",
+      "sha256": "63e0faaae8c671b386cbd8a2aefd3fe66590bf8375b71f9ae269c9c7eac7a067",
+      "mimeType": "text/markdown",
+      "sizeBytes": 5355,
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\zakisbuilding-495680-original\\mechanisms\\m09.jpg",
+      "deliveredPath": "references/skillry/cases/zakisbuilding-495680-original/mechanisms/m09.jpg",
+      "uses": [
+        {
+          "kind": "motion",
+          "id": "032-m09",
+          "usage": "adopted",
+          "purpose": "画面越框扩张、回收和扫描",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 3875,
+          "sourceEndMs": 11750
+        },
+        {
+          "kind": "motion",
+          "id": "032-m09",
+          "usage": "adopted",
+          "purpose": "画面越框扩张、回收和扫描",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 3875,
+          "sourceEndMs": 11750
+        }
+      ],
+      "sourceSha256": "cfa0a848f5bde1c1596fe1044fa08715c7f606da2c609b42e3ac314865e9beaa",
+      "sha256": "cfa0a848f5bde1c1596fe1044fa08715c7f606da2c609b42e3ac314865e9beaa",
+      "mimeType": "image/jpeg",
+      "sizeBytes": 315374,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\zakisbuilding-495680-original\\mechanisms\\m09.mp4",
+      "deliveredPath": "references/skillry/cases/zakisbuilding-495680-original/mechanisms/m09.mp4",
+      "uses": [
+        {
+          "kind": "motion",
+          "id": "032-m09",
+          "usage": "adopted",
+          "purpose": "画面越框扩张、回收和扫描",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 3875,
+          "sourceEndMs": 11750
+        },
+        {
+          "kind": "motion",
+          "id": "032-m09",
+          "usage": "adopted",
+          "purpose": "画面越框扩张、回收和扫描",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 3875,
+          "sourceEndMs": 11750
+        }
+      ],
+      "sourceSha256": "62c5ef8bfeb99f48f5396c9612b64b761fabcbfcef616b2cb2022991bf5ceac4",
+      "sha256": "62c5ef8bfeb99f48f5396c9612b64b761fabcbfcef616b2cb2022991bf5ceac4",
+      "mimeType": "video/mp4",
+      "sizeBytes": 2098191,
+      "durationMs": 7883,
+      "fps": 60,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\monokern-613142-original\\mechanisms\\m02.md",
+      "deliveredPath": "references/skillry/cases/monokern-613142-original/mechanisms/m02.md",
+      "uses": [
+        {
+          "kind": "motion",
+          "id": "016-m02",
+          "usage": "adopted",
+          "purpose": "主画面转小窗及换图",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 3330,
+          "sourceEndMs": 4634
+        }
+      ],
+      "sourceSha256": "11c7068f37f8d67cf254ceb76c652e1d81c0a61ef024a94e52e1ee42c8581741",
+      "sha256": "11c7068f37f8d67cf254ceb76c652e1d81c0a61ef024a94e52e1ee42c8581741",
+      "mimeType": "text/markdown",
+      "sizeBytes": 1724,
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\monokern-613142-original\\mechanisms\\m02.jpg",
+      "deliveredPath": "references/skillry/cases/monokern-613142-original/mechanisms/m02.jpg",
+      "uses": [
+        {
+          "kind": "motion",
+          "id": "016-m02",
+          "usage": "adopted",
+          "purpose": "主画面转小窗及换图",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 3330,
+          "sourceEndMs": 4634
+        },
+        {
+          "kind": "motion",
+          "id": "016-m02",
+          "usage": "adopted",
+          "purpose": "主画面转小窗及换图",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 3330,
+          "sourceEndMs": 4634
+        }
+      ],
+      "sourceSha256": "f6a3ad40023d3f1b374cbc6799254a3cb16cec2e589dd3faa203c07f3d7a4c36",
+      "sha256": "f6a3ad40023d3f1b374cbc6799254a3cb16cec2e589dd3faa203c07f3d7a4c36",
+      "mimeType": "image/jpeg",
+      "sizeBytes": 219802,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\monokern-613142-original\\mechanisms\\m02.mp4",
+      "deliveredPath": "references/skillry/cases/monokern-613142-original/mechanisms/m02.mp4",
+      "uses": [
+        {
+          "kind": "motion",
+          "id": "016-m02",
+          "usage": "adopted",
+          "purpose": "主画面转小窗及换图",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 3330,
+          "sourceEndMs": 4634
+        },
+        {
+          "kind": "motion",
+          "id": "016-m02",
+          "usage": "adopted",
+          "purpose": "主画面转小窗及换图",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 3330,
+          "sourceEndMs": 4634
+        }
+      ],
+      "sourceSha256": "379f84f56a4116093e4c848726e12b2b0d8e4d5327ae3f147c06f76fbb3cd0b7",
+      "sha256": "379f84f56a4116093e4c848726e12b2b0d8e4d5327ae3f147c06f76fbb3cd0b7",
+      "mimeType": "video/mp4",
+      "sizeBytes": 503024,
+      "durationMs": 1317,
+      "fps": 60,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\monokern-613142-original\\mechanisms\\m05.md",
+      "deliveredPath": "references/skillry/cases/monokern-613142-original/mechanisms/m05.md",
+      "uses": [
+        {
+          "kind": "motion",
+          "id": "016-m05",
+          "usage": "adopted",
+          "purpose": "多画面集合与交叉字带",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 9499,
+          "sourceEndMs": 10942
+        }
+      ],
+      "sourceSha256": "8425bd5e3301e2ce60a12e48dbb4a3933ab26979dda63128b989d07feba5e553",
+      "sha256": "8425bd5e3301e2ce60a12e48dbb4a3933ab26979dda63128b989d07feba5e553",
+      "mimeType": "text/markdown",
+      "sizeBytes": 1824,
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\monokern-613142-original\\mechanisms\\m05.jpg",
+      "deliveredPath": "references/skillry/cases/monokern-613142-original/mechanisms/m05.jpg",
+      "uses": [
+        {
+          "kind": "motion",
+          "id": "016-m05",
+          "usage": "adopted",
+          "purpose": "多画面集合与交叉字带",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 9499,
+          "sourceEndMs": 10942
+        },
+        {
+          "kind": "motion",
+          "id": "016-m05",
+          "usage": "adopted",
+          "purpose": "多画面集合与交叉字带",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 9499,
+          "sourceEndMs": 10942
+        }
+      ],
+      "sourceSha256": "acf7fa433f4eb18fba1cca3423936b805209af7f39230e2b9aacb15c613d221c",
+      "sha256": "acf7fa433f4eb18fba1cca3423936b805209af7f39230e2b9aacb15c613d221c",
+      "mimeType": "image/jpeg",
+      "sizeBytes": 178014,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\monokern-613142-original\\mechanisms\\m05.mp4",
+      "deliveredPath": "references/skillry/cases/monokern-613142-original/mechanisms/m05.mp4",
+      "uses": [
+        {
+          "kind": "motion",
+          "id": "016-m05",
+          "usage": "adopted",
+          "purpose": "多画面集合与交叉字带",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 9499,
+          "sourceEndMs": 10942
+        },
+        {
+          "kind": "motion",
+          "id": "016-m05",
+          "usage": "adopted",
+          "purpose": "多画面集合与交叉字带",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 9499,
+          "sourceEndMs": 10942
+        }
+      ],
+      "sourceSha256": "8218429276b204f34a35b44b775c11c688394dd120217b1e87eec89b62cbda47",
+      "sha256": "8218429276b204f34a35b44b775c11c688394dd120217b1e87eec89b62cbda47",
+      "mimeType": "video/mp4",
+      "sizeBytes": 641970,
+      "durationMs": 1450,
+      "fps": 60,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\monokern-613142-original\\mechanisms\\m07.md",
+      "deliveredPath": "references/skillry/cases/monokern-613142-original/mechanisms/m07.md",
+      "uses": [
+        {
+          "kind": "motion",
+          "id": "016-m07",
+          "usage": "adopted",
+          "purpose": "翻卷换底与线条接续",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 4720,
+          "sourceEndMs": 6700
+        }
+      ],
+      "sourceSha256": "c0bfc9254fdc4a476d1028c09cca965fe63326084629f8d4114b14163a1cbcc7",
+      "sha256": "c0bfc9254fdc4a476d1028c09cca965fe63326084629f8d4114b14163a1cbcc7",
+      "mimeType": "text/markdown",
+      "sizeBytes": 2864,
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\monokern-613142-original\\mechanisms\\m07.jpg",
+      "deliveredPath": "references/skillry/cases/monokern-613142-original/mechanisms/m07.jpg",
+      "uses": [
+        {
+          "kind": "motion",
+          "id": "016-m07",
+          "usage": "adopted",
+          "purpose": "翻卷换底与线条接续",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 4720,
+          "sourceEndMs": 6700
+        },
+        {
+          "kind": "motion",
+          "id": "016-m07",
+          "usage": "adopted",
+          "purpose": "翻卷换底与线条接续",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 4720,
+          "sourceEndMs": 6700
+        }
+      ],
+      "sourceSha256": "5fd755008fde7326abeaa1ee24830673ca8eaf55c6ac506b3f18f39167c3b5b0",
+      "sha256": "5fd755008fde7326abeaa1ee24830673ca8eaf55c6ac506b3f18f39167c3b5b0",
+      "mimeType": "image/jpeg",
+      "sizeBytes": 285628,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\references\\motion-cases\\skillry\\cases\\monokern-613142-original\\mechanisms\\m07.mp4",
+      "deliveredPath": "references/skillry/cases/monokern-613142-original/mechanisms/m07.mp4",
+      "uses": [
+        {
+          "kind": "motion",
+          "id": "016-m07",
+          "usage": "adopted",
+          "purpose": "翻卷换底与线条接续",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 4720,
+          "sourceEndMs": 6700
+        },
+        {
+          "kind": "motion",
+          "id": "016-m07",
+          "usage": "adopted",
+          "purpose": "翻卷换底与线条接续",
+          "librarySourceSha256": "aa83bacd27d5160237c70a1d4b7abb6565c7df4b464a1ea4b893934c025a1dc2",
+          "sourceStartMs": 4720,
+          "sourceEndMs": 6700
+        }
+      ],
+      "sourceSha256": "3f8771964135be2c6f1f75f7c93e07c348a0ed1378b78d9f910eaf4eb3bcde4e",
+      "sha256": "3f8771964135be2c6f1f75f7c93e07c348a0ed1378b78d9f910eaf4eb3bcde4e",
+      "mimeType": "video/mp4",
+      "sizeBytes": 462316,
+      "durationMs": 1983,
+      "fps": 60,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\workspace\\projects\\project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965\\assets\\source\\1794057762221-e1f2a8684b.mp4",
+      "deliveredPath": "references/source-materials/asset_896d7f47-3aef-446a-b0ed-b67048bfda74/1794057762221-e1f2a8684b.mp4",
+      "uses": [
+        {
+          "kind": "source",
+          "id": "asset_896d7f47-3aef-446a-b0ed-b67048bfda74",
+          "purpose": "黄色机械臂抓取蓝色构件",
+          "sourceStartMs": 4300,
+          "sourceEndMs": 9500
+        }
+      ],
+      "sourceSha256": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+      "sha256": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+      "mimeType": "video/mp4",
+      "sizeBytes": 18294998,
+      "durationMs": 9860,
+      "fps": 100,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\workspace\\projects\\project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965\\assets\\source\\1794057796930-773cba4e18.mp4",
+      "deliveredPath": "references/source-materials/asset_2315f254-7b0f-4000-a2e1-7cd87dc35842/1794057796930-773cba4e18.mp4",
+      "uses": [
+        {
+          "kind": "source",
+          "id": "asset_2315f254-7b0f-4000-a2e1-7cd87dc35842",
+          "purpose": "汽车工厂机械臂与车身",
+          "sourceStartMs": 0,
+          "sourceEndMs": 8000
+        }
+      ],
+      "sourceSha256": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+      "sha256": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+      "mimeType": "video/mp4",
+      "sizeBytes": 5226677,
+      "durationMs": 8405,
+      "fps": 25,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\workspace\\projects\\project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965\\assets\\source\\1794057796960-df2c08770c.mp4",
+      "deliveredPath": "references/source-materials/asset_ac6098fa-ae9a-4019-8479-0b6505033028/1794057796960-df2c08770c.mp4",
+      "uses": [
+        {
+          "kind": "source",
+          "id": "asset_ac6098fa-ae9a-4019-8479-0b6505033028",
+          "purpose": "人员操作控制器",
+          "sourceStartMs": 0,
+          "sourceEndMs": 7800
+        }
+      ],
+      "sourceSha256": "df2c08770c14a23241b58014251eb28448f53f32ec1b9cc01e233e3d402c143d",
+      "sha256": "df2c08770c14a23241b58014251eb28448f53f32ec1b9cc01e233e3d402c143d",
+      "mimeType": "video/mp4",
+      "sizeBytes": 4112308,
+      "durationMs": 12040,
+      "fps": 25,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\workspace\\projects\\project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965\\assets\\source\\1794057796997-9724733940.mp4",
+      "deliveredPath": "references/source-materials/asset_74e1f780-3b70-4d66-8d67-0b45b5981717/1794057796997-9724733940.mp4",
+      "uses": [
+        {
+          "kind": "source",
+          "id": "asset_74e1f780-3b70-4d66-8d67-0b45b5981717",
+          "purpose": "工人、料箱与输送线",
+          "sourceStartMs": 34000,
+          "sourceEndMs": 43000
+        }
+      ],
+      "sourceSha256": "9724733940a92aa5b76e4f119bdaa7f71c7f2defd30b2aa3539c829e25a32af0",
+      "sha256": "9724733940a92aa5b76e4f119bdaa7f71c7f2defd30b2aa3539c829e25a32af0",
+      "mimeType": "video/mp4",
+      "sizeBytes": 34112821,
+      "durationMs": 99583,
+      "fps": 30,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\workspace\\projects\\project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965\\assets\\source\\1794057797027-932c3e8671.mp4",
+      "deliveredPath": "references/source-materials/asset_2d107d16-dc70-4e94-85ba-c22267cdea7d/1794057797027-932c3e8671.mp4",
+      "uses": [
+        {
+          "kind": "source",
+          "id": "asset_2d107d16-dc70-4e94-85ba-c22267cdea7d",
+          "purpose": "机械臂抓取并放下托盘",
+          "sourceStartMs": 4000,
+          "sourceEndMs": 10000
+        }
+      ],
+      "sourceSha256": "932c3e8671e9646432c7306f6f0d77f9de1bccb94dd5e3f6e5122e1c2d4b7017",
+      "sha256": "932c3e8671e9646432c7306f6f0d77f9de1bccb94dd5e3f6e5122e1c2d4b7017",
+      "mimeType": "video/mp4",
+      "sizeBytes": 12094078,
+      "durationMs": 16277,
+      "fps": 29.97002997002997,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\workspace\\projects\\project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965\\assets\\source\\1794057797076-a1b9b380b6.mp4",
+      "deliveredPath": "references/source-materials/asset_b213af67-179a-490f-bf98-7a88653b90f4/1794057797076-a1b9b380b6.mp4",
+      "uses": [
+        {
+          "kind": "source",
+          "id": "asset_b213af67-179a-490f-bf98-7a88653b90f4",
+          "purpose": "Digit搬料箱近景",
+          "sourceStartMs": 48000,
+          "sourceEndMs": 65000
+        },
+        {
+          "kind": "source",
+          "id": "asset_b213af67-179a-490f-bf98-7a88653b90f4",
+          "purpose": "Digit与料箱全身",
+          "sourceStartMs": 88000,
+          "sourceEndMs": 97000
+        }
+      ],
+      "sourceSha256": "a1b9b380b63a3dcc0f86b66d82e83663ad4fc117924688f77a003acf0731f400",
+      "sha256": "a1b9b380b63a3dcc0f86b66d82e83663ad4fc117924688f77a003acf0731f400",
+      "mimeType": "video/mp4",
+      "sizeBytes": 48816179,
+      "durationMs": 112710,
+      "fps": 23.976023976023978,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\workspace\\projects\\project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965\\assets\\source\\1794057797115-9bdd53c09e.mp4",
+      "deliveredPath": "references/source-materials/asset_e5aecd48-6398-460d-9cd7-2cc86be12416/1794057797115-9bdd53c09e.mp4",
+      "uses": [
+        {
+          "kind": "source",
+          "id": "asset_e5aecd48-6398-460d-9cd7-2cc86be12416",
+          "purpose": "Figure人形机器人手部与工件",
+          "sourceStartMs": 98300,
+          "sourceEndMs": 102500
+        }
+      ],
+      "sourceSha256": "9bdd53c09e58af79c63567cba9489816c948b167192a01a159e10fbba4f20ef6",
+      "sha256": "9bdd53c09e58af79c63567cba9489816c948b167192a01a159e10fbba4f20ef6",
+      "mimeType": "video/mp4",
+      "sizeBytes": 17244565,
+      "durationMs": 122671,
+      "fps": 23.976023976023978,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\workspace\\projects\\project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965\\assets\\source\\1794057797181-04ede5d675.mp4",
+      "deliveredPath": "references/source-materials/asset_278147ff-a6b6-4620-bfa2-80e34276355f/1794057797181-04ede5d675.mp4",
+      "uses": [
+        {
+          "kind": "source",
+          "id": "asset_278147ff-a6b6-4620-bfa2-80e34276355f",
+          "purpose": "Atlas机器人持件对位与调整",
+          "sourceStartMs": 80000,
+          "sourceEndMs": 92000
+        }
+      ],
+      "sourceSha256": "04ede5d675bb1e86ec82e02eb15ad25b80a24217329db125f258e44ad5651b4b",
+      "sha256": "04ede5d675bb1e86ec82e02eb15ad25b80a24217329db125f258e44ad5651b4b",
+      "mimeType": "video/mp4",
+      "sizeBytes": 67565505,
+      "durationMs": 172664,
+      "fps": 59.94005994005994,
+      "localDecode": "verified",
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    },
+    {
+      "sourcePath": "E:\\ai\\VideoCut\\workspace\\projects\\project_d928e178-a4c8-48c0-a5b9-57f0ad0ba965\\assets\\speech\\speech-job_12d46707-e84c-41ac-a3f0-ed9218f30cdd.wav",
+      "deliveredPath": "references/source-materials/asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63/speech-job_12d46707-e84c-41ac-a3f0-ed9218f30cdd.wav",
+      "uses": [
+        {
+          "kind": "source",
+          "id": "asset_50a3a17a-83e5-47db-b0ad-1f39dc7d0b63",
+          "purpose": "实际旁白供声音和时序观察，最终由VideoFlowCut独立合成",
+          "sourceStartMs": 0,
+          "sourceEndMs": 48780
+        }
+      ],
+      "sourceSha256": "e37f0a3e525bbde4d4047396f6a5b874a908fc805c7bf09a00755eddf66528ce",
+      "sha256": "e37f0a3e525bbde4d4047396f6a5b874a908fc805c7bf09a00755eddf66528ce",
+      "mimeType": "audio/wav",
+      "sizeBytes": 2341518,
+      "localReadable": true,
+      "readableByOpenDesign": true,
+      "readCheck": "OD 项目文件字节一致且本机可读取；不代表 Run 已读取"
+    }
+  ],
+  "diagnostics": [],
+  "odProjectId": "robot-reliability-sample-20261107-d928e178",
+  "verificationErrors": []
+}

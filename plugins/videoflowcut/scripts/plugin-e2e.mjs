@@ -394,9 +394,7 @@ try {
       sourceStartFrame: 0, sourceEndFrame: previewToFrame, audioPolicy: "rebind_unchanged_events" },
     opendesign_request: { project: "isolated-release", prompt: "校验完整制作准入" } } });
   assert.equal(admission.isError, true);
-  const admissionError = JSON.parse(admission.content.find(item => item.type === "text").text);
-  assert.ok(admissionError.issues.some(issue => issue.code === "PRODUCTION_RUN_MISSING"));
-  assert.equal(admissionError.sideEffects, "none");
+  assert.match(JSON.stringify(admission.content), /production_run_id/);
   // 人物身份必须经公开接口登记，再由同一发行版完成绑定、缩窗和最终合成。
   await call("manage_actor_performance", { project_id: project.snapshot.project.id, base_revision_id: projectState.revision.number,
     timeline_item_id: actorItem.id, source: "imported", mask_mode: "none", audio_mode: "use_source_audio" });

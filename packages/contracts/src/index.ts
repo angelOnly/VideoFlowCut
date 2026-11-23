@@ -1651,6 +1651,20 @@ export interface EditorialReviewFinding {
   /** 参考迁移问题沿同一观察、采用和作品范围续修。 */
   referenceReview?: ReferenceReviewRef;
   referenceEvidenceId?: Id;
+  /** 三项职责复核发现的问题沿原职责和范围复查。 */
+  responsibilityReview?: ResponsibilityReview;
+  responsibilityEvidenceId?: Id;
+}
+
+export type VisualResponsibility = "creative_research" | "motion_research" | "visual_design";
+export interface ResponsibilityReview {
+  responsibility: VisualResponsibility;
+  assignmentId: Id;
+  decisionIds: Id[];
+  outcome: "confirmed" | "issue" | "inconclusive";
+  observation: string;
+  impact?: string;
+  findingId?: Id;
 }
 
 /** 范围使用成片坐标、endFrame 排他；抽帧不能充当连续声画审阅。 */
@@ -1670,6 +1684,7 @@ export interface EditorialReviewObservation {
   adoptionRefs?: CreativeAdoptionRef[];
   /** 实际逐条对照的参考及其视觉角色。 */
   referenceReviews?: ReferenceReviewRef[];
+  responsibilityReviews?: ResponsibilityReview[];
 }
 
 export interface EditorialReviewEvidence extends EditorialReviewObservation {
@@ -1779,6 +1794,8 @@ export interface CreativeResearchCoverage {
   overallVisual: "covered" | "not_applicable" | "pending";
   sceneComposition: "covered" | "not_applicable" | "pending";
   motionMechanisms: "covered" | "not_applicable" | "pending";
+  /** 每个已覆盖层次的实际研究与本片迁移内容，由研究作者提供。 */
+  layerNotes?: Partial<Record<"overallVisual" | "sceneComposition" | "motionMechanisms", string>>;
   /** 不适用的研究层次分别说明原因。 */
   notApplicableReasons?: Partial<Record<"overallVisual" | "sceneComposition" | "motionMechanisms", string>>;
   blockingQuestions: string[];
@@ -1826,6 +1843,7 @@ export interface ArtifactReviewObservation {
   note: string;
   mediaObservationIds?: Id[];
   referenceReviews?: ReferenceReviewRef[];
+  responsibilityReviews?: ResponsibilityReview[];
   recordedAt: string;
 }
 
@@ -1884,6 +1902,8 @@ export interface CreativeDecision {
   assignmentId?: string;
   inputRevision?: number | null;
   inputDecisionIds?: Id[];
+  /** 作者本次核对后沿用的历史判断；多个来源合计覆盖本次判断范围。 */
+  reusedDecisionRefs?: Array<{ productionRunId: Id; decisionId: Id }>;
   researchOutcome?: "pending" | "researched" | "not_applicable";
   researchCoverage?: CreativeResearchCoverage;
   /** 来源指纹取读卡结果顶层 source_sha256；时间为原片毫秒半开区间。 */
@@ -1893,11 +1913,34 @@ export interface CreativeDecision {
   createdAt: string;
 }
 
+export interface ProductionUnitDraft {
+  id: Id;
+  sceneId: Id;
+  unitId: Id;
+  startFrame: number;
+  endFrame: number;
+  assignmentId: Id;
+  inputRevision: number;
+  creativeDecisionId: Id;
+  reference: { researchDecisionId: Id; kind: "creative" | "motion"; id: Id; sourceSha256: string; startMs: number; endMs: number };
+  assets: Array<{ assetId: Id; sourceHash: string; sourceRange?: { startMs: number; endMs: number } }>;
+  path: string;
+  sha256: string;
+}
+
+export type ProductionUnitHandoffEvent =
+  | { action: "submit_draft"; draft: ProductionUnitDraft }
+  | { action: "accept_draft"; id: Id; draftId: Id; assignmentId: Id; inputRevision: number;
+      sourceMs: number; projectFrame: number; comparisonPath: string; comparisonSha256: string; observation: string }
+  | { action: "return_draft"; draftId: Id; assignmentId: Id; inputRevision: number;
+      sourceMs: number; gap: string; impact: string };
+
 /**
  * ProductionRun 是任务审计，不是 Project Snapshot 的副本；它持久化在项目 reports 目录，
  * 用于回答“这次为什么这样剪”。
  */
 export interface SkillExecutionReport {
+  unitHandoffs?: ProductionUnitHandoffEvent[];
   completionScope: ProductionCompletionScope;
   intent: ProductionIntent;
   assignments: ProductionAssignment[];

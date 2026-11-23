@@ -19,7 +19,7 @@ import { createServer as createVfcServer } from "../apps/server/src/app.js";
 import { registerMotionTools } from "../apps/server/src/motion-tools.js";
 import { resolveRenderBrowser } from "../packages/remotion-runtime/src/browser.js";
 import { loadLibraryIndex } from "../references/motion-cases/skillry/tools/library-store.mjs";
-import { completeResearchCoverage, directorBrief, visualPlan } from "./fixtures/visual-plan.mjs";
+import { completeResearchCoverage, directorBrief, visualPlan, researchPlan } from "./fixtures/visual-plan.mjs";
 
 test("隔离 OD 阶段交件、同作者反馈与 VFC 自动采用端到端联通", { timeout: 150_000 }, async (context) => {
   const root = await mkdtemp(join(tmpdir(), "vfc-od-authoring-e2e-"));
@@ -104,9 +104,10 @@ process.stdin.on('end',()=>process.exit(0));
     const creative = await research("creative_research"), motion = await research("motion_research");
     const brief = join(root, "brief.md"), timing = join(root, "timing.md"), reference = join(root, "参考 素材 (版本 1).md"),
       largeReference = join(root, "较大 素材 (1).bin");
-    const scenePlan = { ...visualPlan("主体"), referenceMappings: [{ referenceKind: "motion", referenceId: "001-m03", researchDecisionId: motion.id,
+    const scenePlan = { ...researchPlan("主体", creative.id), referenceMappings: [{ referenceKind: "motion", referenceId: "001-m03", researchDecisionId: motion.id,
       startMs: 3850.5, endMs: 5200.25, targetRole: "主体", treatment: "主体保持时后层变化", preserveRelation: "主体保持，后层更换", targetRange: { startFrame: 0, endFrame: 18 } }] };
-    await writeFile(brief, directorBrief(scenePlan)); await writeFile(timing, "真实时间资料");
+    const authorRequest = "主体保持在原位，替换其后层画面。让主体与文字共同保持阅读稳定，背景变化完成后再接续下一场。";
+    await writeFile(brief, directorBrief(scenePlan) + `\n\n## 发给 OD 的完整请求\n### 场面 ${scene.id}\n${authorRequest}`); await writeFile(timing, "真实时间资料");
     await writeFile(reference, "本场的参考资料");
     await writeFile(largeReference, Buffer.alloc(21 * 1024 * 1024, 7));
     const mcp = new McpServer({ name: "隔离制作交接", version: "1" }), client = new Client({ name: "隔离视觉作者", version: "1" });
@@ -143,7 +144,7 @@ process.stdin.on('end',()=>process.exit(0));
       adoptedDecisionRef: { productionRunId: run.id, decisionId: decision.id } }).snapshot.visualTreatments[0];
     const job = await app.startMotionAuthoring({ projectId, baseRevision: rev(), productionRunId: run.id, visualTreatmentIds: [treatment.id], idempotencyKey: "real-od", target: { action: "create_cue", sceneId: scene.id,
       layer: "fullscreen", startFrame: 0, endFrame: 18, sourceStartFrame: 0, sourceEndFrame: 18, audioPolicy: "rebind_unchanged_events" },
-      openDesignRequest: { project: odProject, prompt: "请依据已提供的完整演出稿交付连续画面。", agent: "codex" } });
+      openDesignRequest: { project: odProject, agent: "codex" } });
     authoring = runMotionAuthoringJob(app, job, controller.signal, { url: od.url });
     void authoring.catch(() => undefined);
     const deadline = Date.now() + 45_000;

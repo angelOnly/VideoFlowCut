@@ -16,11 +16,11 @@
 
 - `asset-import`：完整媒体和来源；
 - `semantic-continuity`：真实对话/旁白的完整语义；
-- `visual-asset-sourcing`：确有必要的建立镜头或补充，不替事件；
+- `visual-asset-sourcing` 用于补充可参与场面编排的照片、视频等素材，按实际用途核对与事件的关系。
 - `cutaway-planning`：补镜怎样进入和返回；
 - `audio-finishing`：现场声、音乐、声音桥；
 - `captions`：必要对话和坐标；
-- `opendesign-video-production`：地点、路线、时间、简单图形，不接管主线。
+- `opendesign-video-production` 接收已采用的素材、文字、图形、运动及其与事件镜头的接续。
 
 主工作流完成每次交接后重新看事件链，而不是让各工种独立优化造成整体失真。
 
@@ -30,7 +30,7 @@
 
 ## 交接合同
 
-本主工作流接收素材、镜头证据、Event Map、Shot Selects、现场声、字幕和必要包装，并负责整片收口。完成条件是事件和情绪来自真实素材、镜头功能清楚、连续性成立、环境声被保留、包装克制、辅助审阅与未审范围如实记录、能力缺口明确、交付绑定目标 Revision。
+本主工作流接收素材、镜头证据、Event Map、Shot Selects、现场声、字幕和已采用的混编方案。完成时核对关键事件和反应可辨、动作与源声连续，选定的构图、运动和接点在当前作品中兑现。记录辅助审阅、未审范围和能力缺口，交付绑定目标 Revision。
 
 ## 当前调用与读回：Vlog 事件与 Montage
 

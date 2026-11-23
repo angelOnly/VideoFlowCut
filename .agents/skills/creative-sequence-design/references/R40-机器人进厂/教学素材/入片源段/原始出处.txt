@@ -1,0 +1,32 @@
+R40 原始素材与文字出处
+以下为历史方案的来源记录。实际入片使用的范围见同目录 README.md。
+
+Atlas 搬运零件
+https://www.youtube.com/watch?v=F_7IPm7f1vI
+
+Figure 02 工厂画面
+https://www.youtube.com/watch?v=xLVm-QKEZSI
+
+黄色机械臂抓取
+https://www.pexels.com/video/industrial-robot-arm-in-high-tech-factory-32386532/
+
+机械臂搬运托盘
+https://www.pexels.com/video/ocelotwood-16938947/
+
+人员操作控制器
+https://www.pexels.com/video/a-person-operating-the-remote-9244499/
+
+工人与传送线
+https://www.pexels.com/video/man-working-on-conveyor-machine-855091/
+
+自动生产设备特写
+https://www.pexels.com/video/automated-factory-machine-in-action-32386600/
+
+汽车工厂机械臂
+https://www.pexels.com/video/automated-car-factory-6450803/
+
+Digit 搬运料箱
+https://www.youtube.com/watch?v=AJpTpUqjgrY
+
+Atlas 官方说明
+https://bostondynamics.com/video/atlas-goes-hands-on/

@@ -13,6 +13,7 @@ import { runMotionAuthoringJob } from "../apps/runtime/src/motion-authoring.js";
 import { createServer as createVfcServer } from "../apps/server/src/app.js";
 import { motionFixture } from "./fixtures/managed-motion.js";
 import { sizeMotionFixture } from "./fixtures/hyperframes.js";
+import { localProductionRun } from "./fixtures/production-run.js";
 
 function frozen(endFrame: number, runId = "run-one") {
   const { source, ...work } = sizeMotionFixture({ ...motionFixture, fps: 24, durationInFrames: 24 }), sourceBytes = Buffer.from(source);
@@ -64,7 +65,7 @@ test("启动请求断线后继续使用已登记的原请求", { timeout: 20_000
   try {
     await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
     const endpoint = { url: `http://127.0.0.1:${(server.address() as { port: number }).port}` };
-    const job = await app.startMotionAuthoring({ projectId, baseRevision: rev(), intent: "local_edit", idempotencyKey: "reconcile",
+    const job = await app.startMotionAuthoring({ projectId, baseRevision: rev(), productionRunId: await localProductionRun(app, projectId, scene.id), idempotencyKey: "reconcile",
       target: { action: "create_cue", sceneId: scene.id, layer: "fullscreen", startFrame: 0, endFrame: 18, sourceStartFrame: 0, sourceEndFrame: 18, audioPolicy: "rebind_unchanged_events" },
       openDesignRequest: { project: "od-project", prompt: "使用已确认的制作安排" } });
     const result = await runMotionAuthoringJob(app, job, new AbortController().signal, endpoint) as { authoring: { runId: string } };
@@ -117,7 +118,7 @@ test("阶段清单被拒后接回修正版，最后交件被拒时保留未完�
       const rev = () => app.readProject(projectId).revision.number;
       app.repository.commit(projectId, rev(), "隔离画布", snapshot => Object.assign(snapshot.timeline, { width: 320, height: 320, fps: 30 }));
       const scene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "范围", purpose: "阶段修正", startFrame: 0, endFrame: 30 }).snapshot.scenes[0];
-      const job = await app.startMotionAuthoring({ projectId, baseRevision: rev(), intent: "local_edit", idempotencyKey: "one", target: { action: "create_cue", sceneId: scene.id,
+      const job = await app.startMotionAuthoring({ projectId, baseRevision: rev(), productionRunId: await localProductionRun(app, projectId, scene.id), idempotencyKey: "one", target: { action: "create_cue", sceneId: scene.id,
         layer: "fullscreen", startFrame: 0, endFrame: 30, sourceStartFrame: 0, sourceEndFrame: 30, audioPolicy: "rebind_unchanged_events" },
         openDesignRequest: { project: "od-project", prompt: "按参考制作" } });
       const result = await runMotionAuthoringJob(app, job, new AbortController().signal, endpoint) as { authoring: { status: string; receipts: Array<Record<string, unknown>> } };
@@ -143,7 +144,7 @@ test("统一制作入口持久化委托，Runtime 按序号返回进展与有限
     const project = application.createProject({ name: "制作接口隔离验证" }), projectId = project.snapshot.project.id;
     const rev = () => application.readProject(projectId).revision.number;
     const scene = application.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "目标", purpose: "验证", startFrame: 0, endFrame: 18 }).snapshot.scenes[0];
-    const body = { baseRevision: rev(), intent: "local_edit", idempotencyKey: "one", target: { action: "create_cue", sceneId: scene.id, layer: "fullscreen", startFrame: 0, endFrame: 18,
+    const body = { baseRevision: rev(), productionRunId: await localProductionRun(application, projectId, scene.id), idempotencyKey: "one", target: { action: "create_cue", sceneId: scene.id, layer: "fullscreen", startFrame: 0, endFrame: 18,
       sourceStartFrame: 0, sourceEndFrame: 18, audioPolicy: "rebind_unchanged_events" }, openDesignRequest: { project: "od-project", prompt: "读取完整演出稿与参考" } };
     const submitted = await server.inject({ method: "POST", url: `/api/projects/${projectId}/motion-authoring`, payload: body });
     assert.equal(submitted.statusCode, 200, submitted.body);
@@ -194,7 +195,7 @@ test("终态后的修订精确使用指定来源 Run 的会话与制作任务", 
     const projectId = app.createProject({ name: "续修上下文" }).snapshot.project.id;
     const rev = () => app.readProject(projectId).revision.number;
     const scene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "目标", purpose: "续修", startFrame: 0, endFrame: 18 }).snapshot.scenes[0]!;
-    const job = await app.startMotionAuthoring({ projectId, baseRevision: rev(), intent: "local_edit", idempotencyKey: "new-revision", target: { action: "create_cue", sceneId: scene.id,
+    const job = await app.startMotionAuthoring({ projectId, baseRevision: rev(), productionRunId: await localProductionRun(app, projectId, scene.id), idempotencyKey: "new-revision", target: { action: "create_cue", sceneId: scene.id,
       layer: "fullscreen", startFrame: 0, endFrame: 18, sourceStartFrame: 0, sourceEndFrame: 18, audioPolicy: "rebind_unchanged_events" },
       openDesignRequest: { project: "od-project", prompt, plugin: "motion-design", inputs, continue_from_run_id: "old-run" } });
     const endpoint = { url: `http://127.0.0.1:${(server.address() as { port: number }).port}` };
@@ -209,11 +210,11 @@ test("终态后的修订精确使用指定来源 Run 的会话与制作任务", 
     assert.deepEqual(submitted?.pluginInputs, inputs);
     assert.equal(result.authoring.continuation.runId, "old-run");
     assert.equal(result.authoring.status, "incomplete");
-    const wrongProject = await app.startMotionAuthoring({ projectId, baseRevision: rev(), intent: "local_edit", idempotencyKey: "wrong-source", target: { action: "create_cue", sceneId: scene.id,
+    const wrongProject = await app.startMotionAuthoring({ projectId, baseRevision: rev(), productionRunId: await localProductionRun(app, projectId, scene.id), idempotencyKey: "wrong-source", target: { action: "create_cue", sceneId: scene.id,
       layer: "fullscreen", startFrame: 0, endFrame: 18, sourceStartFrame: 0, sourceEndFrame: 18, audioPolicy: "rebind_unchanged_events" },
       openDesignRequest: { project: "other-project", prompt: "继续指定作品", continue_from_run_id: "old-run" } });
     await assert.rejects(runMotionAuthoringJob(app, wrongProject, new AbortController().signal, endpoint), /续修来源 Run 与项目不符/);
-    const unrelated = await app.startMotionAuthoring({ projectId, baseRevision: rev(), intent: "local_edit", idempotencyKey: "wrong-task", target: { action: "create_cue", sceneId: scene.id,
+    const unrelated = await app.startMotionAuthoring({ projectId, baseRevision: rev(), productionRunId: await localProductionRun(app, projectId, scene.id), idempotencyKey: "wrong-task", target: { action: "create_cue", sceneId: scene.id,
       layer: "fullscreen", startFrame: 0, endFrame: 18, sourceStartFrame: 0, sourceEndFrame: 18, audioPolicy: "rebind_unchanged_events" },
       openDesignRequest: { project: "od-project", prompt: "继续当前作品", continue_from_run_id: "unrelated-run" } });
     unrelated.payload.continuationAuthor = { project: "od-project", run_id: "prior-run", frozen_version: "v1" };
@@ -251,7 +252,7 @@ test("拒收反馈重启后按原 ID 对账，未知结果不会被当成拒绝�
       const projectId = app.createProject({ name: "反馈恢复" }).snapshot.project.id;
       const rev = () => app.readProject(projectId).revision.number;
       const scene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "目标", purpose: "恢复反馈", startFrame: 0, endFrame: 18 }).snapshot.scenes[0]!;
-      const job = await app.startMotionAuthoring({ projectId, baseRevision: rev(), intent: "local_edit", idempotencyKey: "one", target: { action: "create_cue", sceneId: scene.id,
+      const job = await app.startMotionAuthoring({ projectId, baseRevision: rev(), productionRunId: await localProductionRun(app, projectId, scene.id), idempotencyKey: "one", target: { action: "create_cue", sceneId: scene.id,
         layer: "fullscreen", startFrame: 0, endFrame: 18, sourceStartFrame: 0, sourceEndFrame: 18, audioPolicy: "rebind_unchanged_events" },
         openDesignRequest: { project: "od-project", prompt: "制作" } });
       app.recordJobCheckpoint(job.id, { authoring: { sequence: 1, requestId: "request", runId: "run-one", activeRunId: "run-one", cursor: 1,
@@ -327,7 +328,7 @@ test("启动回执丢失与阶段断线后续接原作者，并按物理 Run 交
     const rev = () => app.readProject(projectId).revision.number;
     app.repository.commit(projectId, rev(), "隔离画布", snapshot => Object.assign(snapshot.timeline, { width: 320, height: 320, fps: 30 }));
     const scene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "连续范围", purpose: "阶段交件", startFrame: 0, endFrame: 30 }).snapshot.scenes[0];
-    const input = { projectId, baseRevision: rev(), intent: "local_edit" as const, idempotencyKey: "authoring-once", target: { action: "create_cue" as const, sceneId: scene.id, layer: "fullscreen" as const,
+    const input = { projectId, baseRevision: rev(), productionRunId: await localProductionRun(app, projectId, scene.id), idempotencyKey: "authoring-once", target: { action: "create_cue" as const, sceneId: scene.id, layer: "fullscreen" as const,
       startFrame: 0, endFrame: 30, sourceStartFrame: 0, sourceEndFrame: 30, audioPolicy: "rebind_unchanged_events" as const },
       openDesignRequest: { project: "od-project", prompt: "按已经交付的完整演出稿与参考制作" } };
     const job = await app.startMotionAuthoring(input);

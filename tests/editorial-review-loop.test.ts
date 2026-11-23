@@ -14,6 +14,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { createServer } from "../apps/server/src/app.js";
 import { hashMediaFile } from "../packages/edit-application/src/media-intelligence.js";
 import { manageSoundPlan } from "../packages/edit-application/src/sound-design.js";
+import { assignVisualResponsibilities } from "./fixtures/production-run.js";
 
 const passes: EditorialReviewPass[] = ["audio_only", "mute_visual", "audiovisual", "first_viewer", "mode_specific"];
 
@@ -42,6 +43,7 @@ test("真实 MCP Schema 支持阶段审片并把结构化证据和对账返回�
     const adoption = (await f.app.recordCreativeDecision({ projectId: f.projectId, runId: f.run.id, operationId: "mcp-reference-adoption",
       category: "visual", phase: "adoption", assignmentId: "director", inputRevision: f.base.revision, objectIds: [f.projectId],
       decision: "采用测试参考", rationale: "验证审阅合同" })).creativeDecisions.at(-1)!;
+    const responsibilityReviews = await assignVisualResponsibilities(f.app, f.projectId, f.run.id, { kind: "project" }, [f.projectId]);
     await client.connect(transport);
     const tools = (await client.listTools()).tools;
     const schema = tools.find((tool) => tool.name === "record_editorial_quality_review")!.inputSchema;
@@ -70,8 +72,12 @@ test("真实 MCP Schema 支持阶段审片并把结构化证据和对账返回�
     assert.equal(statuses[0].status, "succeeded");
     assert.ok(statuses[1].error);
     assert.ok(schema.properties?.observations && schema.properties?.resolutions);
-    const recorded = await client.callTool({ name: "record_editorial_quality_review", arguments: { project_id: f.projectId, run_id: f.run.id, operation_id: "mcp-review", revision: f.base.revision, passes: ["mute_visual"], findings: [], observations: [{ pass: "mute_visual", preview_job_id: preview.id, start_frame: 5, end_frame: 12, method: "continuous_video", observation: "MCP 回归模拟观察声明" }] } });
+    const recorded = await client.callTool({ name: "record_editorial_quality_review", arguments: { project_id: f.projectId, run_id: f.run.id, operation_id: "mcp-review", revision: f.base.revision, passes: ["mute_visual"], findings: [], observations: [{ pass: "mute_visual", preview_job_id: preview.id, start_frame: 5, end_frame: 12, method: "continuous_video", observation: "MCP 回归模拟观察声明",
+      responsibility_reviews: responsibilityReviews.map(item => ({ responsibility: item.responsibility, assignment_id: item.assignmentId,
+        decision_ids: item.decisionIds, outcome: item.outcome, observation: item.observation })) }] } });
     assert.ok(!recorded.isError, JSON.stringify(recorded));
+    const mcpReport = JSON.parse((recorded.content as Array<{ text: string }>)[0].text);
+    assert.equal(mcpReport.editorialReview.evidenceRecords.at(-1).responsibilityReviews.length, 3);
     const referenceArgs = { project_id: f.projectId, run_id: f.run.id, operation_id: "mcp-reference-issue", revision: f.base.revision,
       passes: ["mute_visual"], findings: [], observations: [{ pass: "mute_visual", source: "workbench", observer: "测试作者",
         start_frame: 5, end_frame: 12, method: "continuous_video", observation: "窗口未接管", reference_reviews: [{
@@ -150,6 +156,8 @@ test("工作台观察随局部字幕修改分段复用，结果版复查后可�
     const run = await f.app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), intent: "local_edit", completionScope: scope, projectId: f.projectId, baseRevision: initial.revision.number, loadedSkills: ["web-editor-operator"] });
     const firstStatus = await f.app.readProductionStatus(f.projectId, { runId: run.id, completionScope: scope });
     assert.equal(firstStatus.completion!.ready, false);
+    const responsibilityReviews = await assignVisualResponsibilities(f.app, f.projectId, run.id, scope, [caption.id]);
+    assert.equal((await f.app.readProductionStatus(f.projectId, { runId: run.id })).preparation?.ready, true);
     const initialReview = await f.app.recordEditorialQualityReview({ operationId: globalThis.crypto.randomUUID(),
       projectId: f.projectId, runId: run.id, revision: initial.revision.number, passes: ["audiovisual", "mute_visual"], previewEvidence: [],
       observations: [{ source: "workbench", observer: "隔离测试", pass: "audiovisual", method: "audiovisual", startFrame: 0, endFrame: 48, observation: "测试声明：已观察完整声画" }],
@@ -163,8 +171,19 @@ test("工作台观察随局部字幕修改分段复用，结果版复查后可�
     const pending = await f.app.readProductionStatus(f.projectId, { runId: run.id, completionScope: scope });
     assert.ok(pending.completion!.observationGaps.length);
     assert.deepEqual(pending.completion!.openRequiredFindingIds, [findingId]);
-    const observed = await f.app.recordEditorialQualityReview({ operationId: globalThis.crypto.randomUUID(), projectId: f.projectId, runId: run.id, revision: changed.revision.number, passes: ["mute_visual"], previewEvidence: [], findings: [], observations: [{ source: "workbench", observer: "隔离测试", pass: "mute_visual", method: "frames", startFrame: caption.startFrame, endFrame: caption.startFrame + 1, observation: "测试声明：已复查字幕文字" }] });
+    const observation = { source: "workbench" as const, observer: "隔离测试", pass: "mute_visual" as const, method: "frames" as const,
+      startFrame: caption.startFrame, endFrame: caption.startFrame + 1, observation: "测试声明：已复查字幕文字" };
+    const observed = await f.app.recordEditorialQualityReview({ operationId: globalThis.crypto.randomUUID(), projectId: f.projectId, runId: run.id, revision: changed.revision.number, passes: ["mute_visual"], previewEvidence: [], findings: [], observations: [{ ...observation, responsibilityReviews: responsibilityReviews.slice(0, 2) }] });
     const newEvidenceId = observed.editorialReview!.evidenceRecords!.at(-1)!.id;
+    const missingVisual = await f.app.readProductionStatus(f.projectId, { runId: run.id });
+    assert.deepEqual(missingVisual.completion!.coordinationIssues.filter(issue => issue.code === "RESPONSIBILITY_REVIEW_PENDING").map(issue => issue.message.split("作品")[0]), ["美术视觉"]);
+    await f.app.recordEditorialQualityReview({ operationId: globalThis.crypto.randomUUID(), projectId: f.projectId, runId: run.id, revision: changed.revision.number,
+      passes: ["mute_visual"], previewEvidence: [], findings: [], observations: [{ ...observation,
+        responsibilityReviews: [{ ...responsibilityReviews[1]!, outcome: "inconclusive", observation: "后续观察仍待核实" }] }] });
+    const uncertain = await f.app.readProductionStatus(f.projectId, { runId: run.id });
+    assert.ok(uncertain.completion!.coordinationIssues.some(issue => issue.message.includes("动效机制作品复核尚未完成")));
+    await f.app.recordEditorialQualityReview({ operationId: globalThis.crypto.randomUUID(), projectId: f.projectId, runId: run.id, revision: changed.revision.number,
+      passes: ["mute_visual"], previewEvidence: [], findings: [], observations: [{ ...observation, responsibilityReviews: responsibilityReviews.slice(1) }] });
     await f.app.recordEditorialQualityReview({ operationId: globalThis.crypto.randomUUID(), projectId: f.projectId, runId: run.id, revision: changed.revision.number, passes: ["mute_visual"], previewEvidence: [], findings: [], resolutions: [{ findingId, evidenceIds: [newEvidenceId], note: "测试声明：文字已修正", scope: "caption_text" }] });
     const completed = await f.app.completeProductionRun({ operationId: globalThis.crypto.randomUUID(), projectId: f.projectId, runId: run.id, finalRevision: changed.revision.number, completionScope: scope });
     assert.equal(completed.status, "completed", completed.completionBlockers.join("; "));
@@ -174,6 +193,33 @@ test("工作台观察随局部字幕修改分段复用，结果版复查后可�
     assert.equal(status.completion!.recordedStatus, "completed");
     assert.equal(status.completion!.revision, changed.revision.number);
     assert.equal(f.app.listJobs(f.projectId).filter(job => job.kind === "preview" || job.kind === "export").length, 0);
+  } finally { await f.dispose(); }
+});
+
+test("职责问题必须由同职责复查原问题后关闭", async () => {
+  const f = await fixture();
+  try {
+    const reviews = await assignVisualResponsibilities(f.app, f.projectId, f.run.id, { kind: "project" }, [f.projectId]);
+    const motion = reviews.find(item => item.responsibility === "motion_research")!;
+    const base = { projectId: f.projectId, runId: f.run.id, revision: f.base.revision,
+      passes: ["mute_visual" as const], previewEvidence: [], findings: [] };
+    const observation = { source: "workbench" as const, observer: "测试作者", pass: "mute_visual" as const,
+      method: "continuous_video" as const, startFrame: 0, endFrame: 48, observation: "连续检查素材接管" };
+    const request = { ...base, operationId: "responsibility-issue", observations: [{ ...observation,
+      responsibilityReviews: [{ ...motion, outcome: "issue" as const, observation: "素材接管被截断", impact: "连续过程缺失" }] }] };
+    const result = await f.app.recordEditorialQualityReview(request);
+    const finding = result.editorialReview!.findings.find(item => item.responsibilityReview?.responsibility === "motion_research")!;
+    const receipt = result.editorialReview!.evidenceRecords!.at(-1)!.id;
+    assert.equal((await f.app.recordEditorialQualityReview(request)).editorialReview!.findings.filter(item => item.id === finding.id).length, 1);
+    const status = await f.app.readProductionStatus(f.projectId, { runId: f.run.id });
+    assert.equal(status.completion!.nextActions!.find(item => item.relatedRefs.includes(finding.id))?.assignmentId, "visual");
+    await assert.rejects(f.app.recordEditorialQualityReview({ ...base, operationId: "invalid-responsibility-close",
+      resolutions: [{ findingId: finding.id, evidenceIds: [receipt], note: "尚未复查" }] }), { code: "RESPONSIBILITY_REVIEW_RESOLUTION_REQUIRED" });
+    const rechecked = await f.app.recordEditorialQualityReview({ ...base, operationId: "responsibility-recheck", observations: [{ ...observation,
+      responsibilityReviews: [{ ...motion, findingId: finding.id, observation: "素材已连续接管" }] }] });
+    await f.app.recordEditorialQualityReview({ ...base, operationId: "responsibility-close",
+      resolutions: [{ findingId: finding.id, evidenceIds: [rechecked.editorialReview!.evidenceRecords!.at(-1)!.id], note: "复查接管已完成" }] });
+    assert.ok(!(await f.app.readProductionStatus(f.projectId, { runId: f.run.id })).completion!.openRequiredFindingIds.includes(finding.id));
   } finally { await f.dispose(); }
 });
 
@@ -436,8 +482,10 @@ test("成片一次登记可供文件与任务使用，并区分同版本不同�
       completionScope: { kind: "project" }, operationId: "require-delivery", loadedSkills: ["quality-verification"], deliveryReviewRequired: true });
     const missingDelivery = await f.app.readProductionStatus(f.projectId, { runId: requiredRun.id });
     assert.ok(missingDelivery.completion!.nextActions?.some(action => action.code === "DELIVERY_ARTIFACT_PENDING"));
+    const responsibilityReviews = await assignVisualResponsibilities(f.app, f.projectId, f.run.id, { kind: "project" }, [f.projectId]);
+    const currentRun = await f.app.readSkillExecutionReport({ projectId: f.projectId, runId: f.run.id });
     const selected = await f.app.updateProductionRun({ projectId: f.projectId, runId: f.run.id,
-      expectedAuditVersion: f.run.auditVersion, action: "select_delivery_artifact", artifactId: first.id, operationId: "select-a" });
+      expectedAuditVersion: currentRun.auditVersion, action: "select_delivery_artifact", artifactId: first.id, operationId: "select-a" });
     const body = { operationId: "first-half", runId: f.run.id, observer: "隔离测试", passes: ["audiovisual"], evidence: ["测试观察"],
       findings: [{ pass: "audiovisual", severity: "major", category: "audio", summary: "音效偏移", evidence: "测试声明", impact: "影响同步", frameRange: { startFrame: 0, endFrame: 24 } }],
       observations: [{ check: "audiovisual", method: "audiovisual", outcome: "confirmed",
@@ -527,8 +575,21 @@ test("成片一次登记可供文件与任务使用，并区分同版本不同�
     assert.ok(early.evaluation.nextActions?.length);
     assert.ok(switched.auditVersion > selected.auditVersion);
     const full = await server.inject({ method: "POST", url: `/api/projects/${f.projectId}/export-artifacts/${second.id}/review`,
-      payload: { ...body, operationId: "full-b", findings: [], observations: [{ ...body.observations[0], endFrame: 48 }] } });
+      payload: { ...body, operationId: "full-b", findings: [], observations: [{ ...body.observations[0], endFrame: 48, responsibilityReviews }] } });
     assert.equal(full.statusCode, 200, full.body);
+    const creative = responsibilityReviews.find(item => item.responsibility === "creative_research")!;
+    const dutyUnknown = await server.inject({ method: "POST", url: `/api/projects/${f.projectId}/export-artifacts/${second.id}/review`,
+      payload: { operationId: "creative-file-unknown", runId: f.run.id, observer: "隔离测试", observations: [{
+        check: "audiovisual", method: "frames", outcome: "inconclusive", startFrame: 0, endFrame: 24, note: "静帧不能确认创意关系",
+        responsibilityReviews: [{ ...creative, outcome: "inconclusive", observation: "接续过程仍待确认" }] }] } });
+    assert.equal(dutyUnknown.statusCode, 200, dutyUnknown.body);
+    assert.ok((await f.app.readProductionStatus(f.projectId, { runId: f.run.id })).completion!.coordinationIssues
+      .some(issue => issue.code === "RESPONSIBILITY_REVIEW_PENDING" && issue.message.includes("创意")));
+    const dutyConfirmed = await server.inject({ method: "POST", url: `/api/projects/${f.projectId}/export-artifacts/${second.id}/review`,
+      payload: { operationId: "creative-file-confirmed", runId: f.run.id, observer: "隔离测试", observations: [{
+        check: "audiovisual", method: "continuous_video", outcome: "confirmed", startFrame: 0, endFrame: 24, note: "连续复查创意关系",
+        responsibilityReviews: [creative] }] } });
+    assert.equal(dutyConfirmed.statusCode, 200, dutyConfirmed.body);
     const unknownEvent = await server.inject({ method: "POST", url: `/api/projects/${f.projectId}/export-artifacts/${second.id}/review`,
       payload: { operationId: "event-unknown", runId: f.run.id, observer: "隔离测试",
         observations: [{ check: "event_sync", subjectId: "cut-sound", required: true, method: "frames", outcome: "inconclusive",

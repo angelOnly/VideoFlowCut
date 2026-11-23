@@ -1,5 +1,10 @@
 export const completeResearchCoverage = {
-  overallVisual: 'covered', sceneComposition: 'covered', motionMechanisms: 'covered', blockingQuestions: []
+  overallVisual: 'covered', sceneComposition: 'covered', motionMechanisms: 'covered', blockingQuestions: [],
+  layerNotes: {
+    overallVisual: '暖白背景和真实素材统一美术',
+    sceneComposition: '主体建立、文字进入并接续',
+    motionMechanisms: '主体持续运动并转交观看中心'
+  }
 };
 
 export function visualPlan(role) {
@@ -14,6 +19,13 @@ export function visualPlan(role) {
       retainedElements: ['文字'], transition: '保持主体接续下一场'}],
     attentionPath: [`观看中心跟随${role}`],
     odBoundaries: {locked: ['保持主体与构图'], adjustable: ['调整运动曲线'], escalation: '设计问题交视觉作者确认'}
+  };
+}
+
+export function researchPlan(role, researchDecisionId, levels = ['overallVisual', 'sceneComposition', 'motionMechanisms']) {
+  return {
+    ...visualPlan(role),
+    researchLayers: levels.map(level => ({ level, researchDecisionId, designExcerpt: `${role}建立初始画面` }))
   };
 }
 

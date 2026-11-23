@@ -71,7 +71,9 @@ function projectMotionAnalysisResult(value: unknown): Data {
     ...(source.input ? { input: {
       ...pick(input, ["source_has_audio", "has_audio"]),
       mapping: pick(input.mapping, ["parentSourceId", "parentHash", "offsetMs", "rate", "coordinateSpace", "preprocessing"]),
-      streams: list(input.streams, entry => pick(entry, ["codec_type", "nb_read_frames", "avg_frame_rate"]))
+      streams: list(input.streams, entry => pick(entry, ["codec_type", "nb_read_frames", "avg_frame_rate", "start_time", "duration", "time_base"])),
+      ...(input.video_coverage ? { video_coverage: pick(input.video_coverage, ["source_start_ms", "source_end_ms", "source_time_base", "selected_first_source_ms", "derived_start_ms", "derived_end_ms", "derived_time_base", "analysis_start_ms", "analysis_end_ms", "boundary_marker_ms"]) } : {}),
+      ...(input.source_audio_coverage ? { source_audio_coverage: pick(input.source_audio_coverage, ["source_start_ms", "source_end_ms", "source_time_base", "requested_start_ms", "requested_end_ms", "padding_intervals_ms"]) } : {})
     } } : {})
   };
 }

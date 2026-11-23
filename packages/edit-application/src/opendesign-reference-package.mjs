@@ -92,6 +92,12 @@ function visualPlanErrors(plan, visualRoles, briefText) {
   list(plan.odBoundaries?.locked,'不得改变的设计',true);
   list(plan.odBoundaries?.adjustable,'可深化的实现');
   text(plan.odBoundaries?.escalation,'设计问题反馈方式');
+  if (plan.researchLayers !== undefined && !Array.isArray(plan.researchLayers)) fail('研究层次关联必须是数组');
+  for (const layer of Array.isArray(plan.researchLayers) ? plan.researchLayers : []) {
+    if (!['overallVisual','sceneComposition','motionMechanisms'].includes(layer?.level)
+      || !present(layer?.researchDecisionId)) fail('研究层次需要有效层次及研究决定 ID');
+    text(layer?.designExcerpt,'研究层次的导演稿设计');
+  }
   for (const mapping of Array.isArray(plan.referenceMappings) ? plan.referenceMappings : []) {
     if (present(mapping?.treatment)) excerpts.push(['参考迁移方式',mapping.treatment.trim()]);
     if (present(mapping?.preserveRelation)) excerpts.push(['参考保持关系',mapping.preserveRelation.trim()]);
@@ -396,6 +402,57 @@ export async function prepareReferencePackage(input, outputRoot, libraryRoot = r
   return manifest;
 }
 
+export function normalizeAuthorRequest(text) {
+  return text.replace(/\r\n?/gu, '\n').trim();
+}
+
+/** 从冻结稿提取顶层章节，保留子标题和正文中的代码块。 */
+export function extractAuthorRequest(markdown, sceneIds) {
+  if (!sceneIds.length) return undefined;
+  const selected = new Set(sceneIds);
+  const lines=normalizeAuthorRequest(markdown).split('\n');
+  const body=[];
+  const scenes=new Map();
+  let found=false, inside=false, fence, sceneId;
+  for (const line of lines) {
+    const marker=/^ {0,3}(`{3,}|~{3,})(.*)$/u.exec(line);
+    if (fence) {
+      if (marker && marker[1][0]===fence[0] && marker[1].length>=fence.length && !marker[2].trim()) fence=undefined;
+    } else if (marker) {
+      fence=marker[1];
+    } else if (/^ {0,3}#{1,2}(?:[ \t]|$)/u.test(line)) {
+      inside=/^ {0,3}##[ \t]+发给 OD 的完整请求[ \t]*(?:[ \t]+#+[ \t]*)?$/u.test(line);
+      if (inside && found) return undefined;
+      if (inside) found=true;
+      continue;
+    } else if (inside) {
+      const heading=/^ {0,3}###[ \t]+场面[ \t]+(\S+)[ \t]*$/u.exec(line);
+      if (heading) {
+        sceneId=heading[1];
+        if (selected.has(sceneId) && scenes.has(sceneId)) return undefined;
+        scenes.set(sceneId, []);
+        continue;
+      }
+    }
+    if (inside) (sceneId ? scenes.get(sceneId) : body).push(line);
+  }
+  const sceneBodies=[...scenes].filter(([id])=>selected.has(id))
+    .map(([id, lines])=>({id, text:normalizeAuthorRequest(lines.join('\n'))}));
+  if (sceneBodies.length!==selected.size || sceneBodies.some(scene=>!scene.text)) return undefined;
+  // 保留作者的共同要求及目标场正文顺序，不向制作端发送其他场的执行指令。
+  const context=normalizeAuthorRequest(body.join('\n'));
+  const text=[context,...sceneBodies.map(scene=>`### 场面 ${scene.id}\n${scene.text}`)].filter(Boolean).join('\n\n');
+  return {text,sha256:createHash('sha256').update(text).digest('hex')};
+}
+
+export async function readFrozenAuthorRequest(manifest, manifestPath, sceneIds = manifest.selectedSceneIds ?? []) {
+  const brief=manifest.files.find(file=>file.deliveredPath===manifest.briefPath && file.localReadable && file.sha256);
+  if (!brief) return undefined;
+  const bytes=await readFile(join(dirname(manifestPath),brief.deliveredPath));
+  if (createHash('sha256').update(bytes).digest('hex')!==brief.sha256) throw new Error('冻结导演稿已变化');
+  return extractAuthorRequest(bytes.toString('utf8'),sceneIds);
+}
+
 export function assertVisualDesign(scenes, briefText) {
   for (const scene of scenes.filter(item=>item.status==='ready')) {
     const designErrors=visualPlanErrors(scene.visualPlan,scene.visualRoles ?? [],briefText);
@@ -510,7 +567,7 @@ export async function verifyReferenceDelivery(manifest, listing, revision, odPro
     return {manifest:verified};
   }
   const lines=files.filter(file=>file.requiredForRun!==false).map(file=>`- ${file.deliveredPath}：${file.uses.map(use=>`${use.kind}/${use.id}${use.usage ? `（${use.usage === 'study' ? '学习' : '已采用'}）` : ''}，${use.purpose}${use.fileKind ? `，文件类型 ${use.fileKind}` : ''}${use.sourceStartMs !== undefined && use.sourceEndMs !== undefined ? `，资料原片范围 ${use.sourceStartMs}—${use.sourceEndMs}ms` : ''}${use.clipSourceOffsetMs !== undefined ? `，切片零点对应原片 ${use.clipSourceOffsetMs}ms` : ''}`).join('；')}`);
-  const sceneLines=readyScenes ? ['本次制作选中场面 ' + (manifest.selectedSceneIds ?? readyScenes.map(scene=>scene.sceneId)).join('、') + '。完整导演稿是采用时固定的整片上下文，本场设计及接续以本次交付为准；其他场面后续可能继续修改。',...readyScenes.map(scene=>'- 资料就绪场面 ' + scene.sceneId + '：' + JSON.stringify(scene))] : [];
+  const sceneLines=readyScenes ? ['本次制作选中场面 ' + (manifest.selectedSceneIds ?? readyScenes.map(scene=>scene.sceneId)).join('、') + '。完整导演稿是采用时固定的整片上下文，所列场面的设计及接续以本次交付为准。',...readyScenes.map(scene=>'- 资料就绪场面 ' + scene.sceneId + '：' + JSON.stringify(scene))] : [];
   const prompt=['先完整读取本项目中的创意编排指令 ' + manifest.briefPath + ' 和时间资料 ' + manifest.timingPlanPath + '。再读取本次选中场面，核对参考原片、真实素材与视觉角色映射。',...lines,...sceneLines,
     '参考范围使用原片时间，素材范围使用交付文件的本地时间。查看采用的创意和机制视频及必要的前后画面，记录实际观察方式。',
     '依据视觉导演稿、真实素材和参考关系制作首版。保持已采用的主要主体、素材角色、构图、美术、排版、主要镜头运动及场面接续，在既定设计内深化坐标、路径、曲线、组件和内部时序。',

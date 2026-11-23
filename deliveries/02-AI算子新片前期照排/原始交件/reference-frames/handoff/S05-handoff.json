@@ -1,0 +1,91 @@
+{
+  "scene": "S05",
+  "frames": [
+    2640,
+    3120
+  ],
+  "targetRange": [
+    2640,
+    3120
+  ],
+  "reference": {
+    "kind": "creative",
+    "id": "061-c01",
+    "source_sha256": "bfcd38de201fe5d0af2d9bc12093beb867d6e5079b239f4047740fb43fd473f9",
+    "start_ms": 6200,
+    "end_ms": 9850,
+    "card": "[原项目文件未随包]",
+    "preview_url": "[本机服务地址，未随包]"
+  },
+  "beats": [
+    {
+      "start_ms": 6200,
+      "end_ms": 9850,
+      "observed_relation": "- 约 5–10 秒，浅蓝细网格。左半白色 PDF 页面保留同一【原始文档】，给【原文选句】逐行画黄底；右半依次进入白色【脚本卡】并展示【旁白脚本】。两卡上沿由左到右放【流程标记】，确认时右卡细边和底部【批准控件】转绿。"
+    }
+  ],
+  "rationale": "左侧一手政策材料与右侧逐条职责持续同在，下沿的条件边框延后进入。将产品批准反馈改为政策条件的观看位置。",
+  "replacements": [
+    {
+      "name": "原始文档",
+      "kind": "asset",
+      "assetId": "asset_a1fb86ab-5351-4654-acaf-484e6d332fd1"
+    },
+    {
+      "name": "原文选句",
+      "kind": "asset",
+      "assetId": "asset_694cbf6e-bd91-43ea-945b-be316b3fdfc5"
+    },
+    {
+      "name": "脚本卡",
+      "kind": "text",
+      "text": "政策要点纸板"
+    },
+    {
+      "name": "旁白脚本",
+      "kind": "text",
+      "text": "一定规模的前沿模型／合格第三方强制测试／政府可叫停部署"
+    },
+    {
+      "name": "流程标记",
+      "kind": "text",
+      "text": "政策主张／适用条件"
+    },
+    {
+      "name": "批准控件",
+      "kind": "text",
+      "text": "风险不可接受"
+    }
+  ],
+  "assets": [
+    "asset_a1fb86ab-5351-4654-acaf-484e6d332fd1",
+    "asset_694cbf6e-bd91-43ea-945b-be316b3fdfc5"
+  ],
+  "framesObserved": [
+    {
+      "ms": 6267,
+      "projectFrame": 2670,
+      "original": "reference-frames/S05/6267-original.jpg",
+      "marked": "reference-frames/S05/6267-marked.jpg"
+    },
+    {
+      "ms": 7333,
+      "projectFrame": 2780,
+      "original": "reference-frames/S05/7333-original.jpg",
+      "marked": "reference-frames/S05/7333-marked.jpg"
+    },
+    {
+      "ms": 8833,
+      "projectFrame": 2930,
+      "original": "reference-frames/S05/8833-original.jpg",
+      "marked": "reference-frames/S05/8833-marked.jpg"
+    },
+    {
+      "ms": 9633,
+      "projectFrame": 3000,
+      "original": "reference-frames/S05/9633-original.jpg",
+      "marked": "reference-frames/S05/9633-marked.jpg"
+    }
+  ],
+  "draftPath": "reference-frames/handoff/S05-作者正式拆解.md"
+}

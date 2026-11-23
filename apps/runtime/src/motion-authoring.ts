@@ -14,7 +14,7 @@ import { motionAuthoringInputsCurrent } from "../../../packages/edit-application
 import { scopeReferenceManifest, verifyReferenceDelivery, type ReferenceManifest } from "../../../packages/edit-application/src/opendesign-reference-package.mjs";
 import { frozenMotionBundleSchema, importMotionBundle, readFrozenMotionWork } from "../../../packages/edit-application/src/motion-input.js";
 import { resolveMcpWorkspaceContext } from "../../../components/open-design/apps/daemon/src/mcp-workspace-context.js";
-import type { MotionAuthoringInput } from "../../../packages/contracts/src/motion-authoring.js";
+import type { MotionAuthoringInput, MotionAuthoringSceneTarget } from "../../../packages/contracts/src/motion-authoring.js";
 import { AUTHORED_MOTION_MANIFEST_CONTRACT, authoredMotionInputFields, AuthoredMotionValidationError, MotionSourceValidationError } from "../../../packages/contracts/src/authored-motion-manifest-v1.js";
 import { ZodError } from "zod";
 import { toJsonSchemaCompat } from "@modelcontextprotocol/sdk/server/zod-json-schema-compat.js";
@@ -285,7 +285,10 @@ function existingHash(snapshot: ProjectSnapshot, cueId: string, treatmentIds?: s
 /** 阶段状态和子任务身份均写回原 Job，重启后不会重启作者或重复采用。 */
 export async function runMotionAuthoringJob(app: EditingApplication, job: JobRecord, signal: AbortSignal, endpointOverride?: Endpoint): Promise<Record<string, unknown>> {
   if (job.kind !== "motion_authoring") throw new Error("MOTION_AUTHORING_JOB_INVALID");
-  const input = job.payload.input as MotionAuthoringInput, target = input.target, targetRange = job.payload.targetRange as TargetRange;
+  const input = job.payload.input as MotionAuthoringInput, targetRange = job.payload.targetRange as TargetRange;
+  const sceneTargets = (job.payload.sceneTargets ?? []) as MotionAuthoringSceneTarget[];
+  const target = input.target.action === "whole_film" ? sceneTargets[0]!.target : input.target;
+  const sceneIds = sceneTargets.length ? sceneTargets.map(entry => entry.target.sceneId) : [String(job.payload.targetSceneId)];
   const authoringInputs = (job.payload.authoringInputs ?? []) as MotionAuthoringTreatmentInput[];
   const projectFps = Number(job.payload.projectFps), initialHash = String(job.payload.initialTargetHash);
   let state = app.trackJob(job.id).result?.authoring as AuthoringState | undefined;
@@ -299,6 +302,16 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
     throw new DomainError(message, code);
   };
   const checkTarget = (snapshot: ProjectSnapshot) => {
+    if (sceneTargets.length) {
+      for (const entry of sceneTargets) {
+        try { app.assertMotionAuthoringInputsCurrent(snapshot, entry.target.sceneId, entry.authoringInputs); }
+        catch (error) { targetConflict(error instanceof Error ? error.message : String(error), error instanceof DomainError ? error.code : undefined); }
+        if (motionTargetDependencyHash(snapshot, entry.target, entry.authoringInputs.map(item => item.visualTreatmentId)) !== entry.initialTargetHash) {
+          targetConflict("整片制作的场面在启动前已变化");
+        }
+      }
+      return;
+    }
     const hash = target.action === "create_cue" ? motionTargetDependencyHash(snapshot, target, input.visualTreatmentIds)
       : existingHash(snapshot, target.cueId, input.visualTreatmentIds);
     try { app.assertMotionAuthoringInputsCurrent(snapshot, String(job.payload.targetSceneId), authoringInputs); }
@@ -347,7 +360,7 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
             save();
           }
           // OD 使用通用创作指南，正式送件时必须同时收到当前受管作品合同。
-          const prompts = [sourceRequest.prompt, [
+          const prompts = [typeof job.payload.frozenAuthorRequest === "string" ? job.payload.frozenAuthorRequest : sourceRequest.prompt, [
             "本次交付给 VideoFlowCut 的受管作品；通用 HyperFrames 示例与以下合同冲突时，以本合同为准。",
             `HTML 和素材槽合同：${JSON.stringify(hyperframesContract)}`,
             `阶段清单 ${AUTHORED_MOTION_MANIFEST_CONTRACT} 的输入 Schema：${JSON.stringify(toJsonSchemaCompat(authoredMotionInputFields))}`,
@@ -356,6 +369,9 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
             "日常预览、审阅和返修统一使用 VideoFlowCut 现有工作台。完成可检查范围后发布固定源码和清单，由 VideoFlowCut 登记、采用并返回工作台入口；不要为日常预览制作 MP4 或另建播放器。工作台反馈的项目帧由 VideoFlowCut 换算为作品根帧，源码修订沿原项目和制作任务继续，发布新版后回工作台复查。仅正式交付、离线检查或明确的渲染差异诊断按需生成媒体。",
             "在阶段清单的 work.creativeBrief 中如实简述本版已实现的主要参考关系及作品范围、尚未实现的设计、与导演稿的偏差、自主深化及需要其他作者处理的问题。该说明是作者自述，不能代替工作台的实际观察。"
           ].join("\n")];
+          if (sceneTargets.length) {
+            prompts.push(`本次一次委托整片首版。全片项目帧 [${targetRange.startFrame}, ${targetRange.endFrame}) 对应作品根帧 [0, ${targetRange.sourceEndFrame})，统一使用 ${projectFps} fps。各场按冻结正文和同一根时钟制作；先发布稿中优先范围的阶段回件，再继续完成其余场面。`);
+          }
           if (authoringInputs.length) {
             const current = app.readProject(job.projectId);
             // 排队期间已失效的目标不应开始传输资料；传输结束后还要再次核对。
@@ -367,7 +383,7 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
               const bytes = await readFile(delivery.manifestPath);
               if (createHash("sha256").update(bytes).digest("hex") !== delivery.manifestSha256) throw new DomainError("已采用交付清单发生变化", "MOTION_AUTHORING_DELIVERY_INVALID");
               const manifest = JSON.parse(bytes.toString("utf8")) as ReferenceManifest;
-              const scoped = scopeReferenceManifest(manifest, [String(job.payload.targetSceneId)]);
+              const scoped = scopeReferenceManifest(manifest, sceneIds);
               const listing = await deliverMotionHandoff(endpoint, sourceRequest.project, scoped, signal);
               const verified = await verifyReferenceDelivery(scoped, listing,
                 current.revision.number, sourceRequest.project, current);
@@ -430,9 +446,12 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
           const bytes = await readFile(delivery.manifestPath);
           if (createHash("sha256").update(bytes).digest("hex") !== delivery.manifestSha256) throw new DomainError("已采用交付清单发生变化", "MOTION_AUTHORING_DELIVERY_INVALID");
           const manifest = JSON.parse(bytes.toString("utf8")) as ReferenceManifest;
-          scenes.push(...(manifest.scenes ?? []).filter(scene => scene.sceneId === job.payload.targetSceneId));
+          scenes.push(...(manifest.scenes ?? []).filter(scene => sceneIds.includes(scene.sceneId)));
         }
-        verifyMotionStageVideoSources(loaded.work, loaded.readyRanges, targetRange, projectFps, scenes);
+        if (sceneTargets.length) {
+          for (const entry of sceneTargets) verifyMotionStageVideoSources(loaded.work, loaded.readyRanges, entry.target,
+            projectFps, scenes.filter(scene => scene.sceneId === entry.target.sceneId));
+        } else verifyMotionStageVideoSources(loaded.work, loaded.readyRanges, targetRange, projectFps, scenes);
       }
       let registration = stage.registrationJobId ? app.trackJob(stage.registrationJobId)
         : app.listJobs(job.projectId).find(item => item.idempotencyKey === `motion:${stage.registrationKey}`);
@@ -450,7 +469,10 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
       stage.workId = registration.result.workId;
       stage.definitionHash = registration.result.definitionHash;
       const work = app.readSourceMotionWork(job.projectId, stage.workId, undefined, stage.definitionHash).work;
-      stage.ranges ??= readyProjectRanges(work.readyRanges, targetRange, projectFps, work.fps);
+      // 跨场就绪区间仍按实际场界采用，确保每个 Cue 只关联本场的冻结材料。
+      stage.ranges ??= sceneTargets.length
+        ? sceneTargets.flatMap(entry => readyProjectRanges(work.readyRanges, entry.target, projectFps, work.fps))
+        : readyProjectRanges(work.readyRanges, targetRange, projectFps, work.fps);
       stage.adopted ??= [];
       stage.pending ??= [];
       const deferRemaining = (position: number, reason: string) => {
@@ -470,16 +492,20 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
       while (stage.rangeIndex < stage.ranges.length) {
         signal.throwIfAborted();
         const range = stage.ranges[stage.rangeIndex]!;
+        const sceneTarget = sceneTargets.find(entry => entry.target.startFrame <= range.startFrame && entry.target.endFrame >= range.endFrame);
+        const rangeTarget = sceneTarget?.target ?? target;
+        const rangeInputs = sceneTarget?.authoringInputs ?? authoringInputs;
         const position = stage.cursor ?? range.startFrame;
         if (position >= range.endFrame) { stage.rangeIndex++; stage.cursor = undefined; save(); continue; }
         if (!stage.operation) {
           const current = app.readProject(job.projectId), snapshot = current.snapshot;
-          try { app.assertMotionAuthoringInputsCurrent(snapshot, String(job.payload.targetSceneId), authoringInputs); }
+          try { app.assertMotionAuthoringInputsCurrent(snapshot, sceneTarget?.target.sceneId ?? String(job.payload.targetSceneId), rangeInputs); }
           catch (error) { deferRemaining(position, error instanceof Error ? error.message : String(error)); break; }
-          if (target.action === "create_cue") {
+          if (rangeTarget.action === "create_cue") {
             const own = new Set(state!.owned.map(item => item.cueId));
             const base = { ...snapshot, effectCues: snapshot.effectCues.filter(cue => !own.has(cue.id)) };
-            if (motionTargetDependencyHash(base, target, input.visualTreatmentIds) !== initialHash) {
+            const ids = sceneTarget ? rangeInputs.map(item => item.visualTreatmentId) : input.visualTreatmentIds;
+            if (motionTargetDependencyHash(base, rangeTarget, ids) !== (sceneTarget?.initialTargetHash ?? initialHash)) {
               deferRemaining(position, "目标场面或相关内容已改变"); break;
             }
           }
@@ -494,15 +520,15 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
             action = position === cue.startFrame && endFrame === cue.endFrame
               ? { action: "replace_cue", cueId: cue.id, audioPolicy: "rebind_unchanged_events" }
               : { action: "replace_range", cueId: cue.id, targetRange: { startFrame: position, endFrame }, audioPolicy: "rebind_unchanged_events" };
-          } else if (target.action === "create_cue") {
+          } else if (rangeTarget.action === "create_cue") {
             endFrame = Math.min(range.endFrame, ...currentCues.filter(item => item.startFrame > position).map(item => item.startFrame));
             const sourceStartFrame = targetRange.sourceStartFrame + position - targetRange.startFrame;
-            const coveredNarrativeBeatIds = target.coveredNarrativeBeatIds?.filter(id => effectBeatRanges(snapshot, id, target.sceneId)
+            const coveredNarrativeBeatIds = rangeTarget.coveredNarrativeBeatIds?.filter(id => effectBeatRanges(snapshot, id, rangeTarget.sceneId)
               .some(item => item.startFrame < endFrame && item.endFrame > position));
-            const replacesActorItemIds = target.visualComposition?.replacesActorItemIds.filter(id => snapshot.timeline.items.some(item => item.id === id && item.startFrame < endFrame && item.endFrame > position));
-            action = { ...target, startFrame: position, endFrame, sourceStartFrame, sourceEndFrame: sourceStartFrame + endFrame - position,
+            const replacesActorItemIds = rangeTarget.visualComposition?.replacesActorItemIds.filter(id => snapshot.timeline.items.some(item => item.id === id && item.startFrame < endFrame && item.endFrame > position));
+            action = { ...rangeTarget, startFrame: position, endFrame, sourceStartFrame, sourceEndFrame: sourceStartFrame + endFrame - position,
               ...(coveredNarrativeBeatIds ? { coveredNarrativeBeatIds } : {}),
-              ...(target.visualComposition ? { visualComposition: { role: "primary", replacesActorItemIds: replacesActorItemIds ?? [] } } : {}) };
+              ...(rangeTarget.visualComposition ? { visualComposition: { role: "primary", replacesActorItemIds: replacesActorItemIds ?? [] } } : {}) };
           } else { deferRemaining(position, "原目标范围不完整"); break; }
           stage.operation = { key: `${job.id}:${stageRunId}:${stage.eventId}:${stage.rangeIndex}:${position}`, target: action, endFrame }; save();
         }
@@ -511,7 +537,7 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
         if (!child) {
           try {
             child = app.submitMotionAdoption({ projectId: job.projectId, baseRevision: app.readProject(job.projectId).revision.number,
-              workId: stage.workId, definitionHash: stage.definitionHash, target: operation.target, idempotencyKey: operation.key, authoringInputs });
+              workId: stage.workId, definitionHash: stage.definitionHash, target: operation.target, idempotencyKey: operation.key, authoringInputs: rangeInputs });
           } catch (error) {
             if (error instanceof RevisionConflictError) {
               stage.operation = undefined;
@@ -704,9 +730,13 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
           .filter((cue): cue is EffectCue => Boolean(cue && cue.status === "ready" && cue.workId === latestWorkId && cue.workDefinitionHash === latestDefinitionHash
             && motionAuthoringInputsCurrent(snapshot, cue.authoringInputs)))
           .sort((a, b) => a.startFrame - b.startFrame);
-        let covered = targetRange.startFrame;
-        for (const range of ranges) if (range.startFrame <= covered && range.endFrame > covered) covered = range.endFrame;
-        state.status = covered >= targetRange.endFrame ? "succeeded" : "incomplete"; save();
+        const targets = sceneTargets.length ? sceneTargets.map(entry => entry.target) : [targetRange];
+        const completed = targets.every(target => {
+          let covered = target.startFrame;
+          for (const range of ranges) if (range.startFrame <= covered && range.endFrame > covered) covered = range.endFrame;
+          return covered >= target.endFrame;
+        });
+        state.status = completed ? "succeeded" : "incomplete"; save();
         return { authoring: state };
       }
       await new Promise(resolve => setTimeout(resolve, 500));

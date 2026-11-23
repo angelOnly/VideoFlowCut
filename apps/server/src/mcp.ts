@@ -7,7 +7,7 @@ import { captionTextShadowSchema, captionPlacementSchema, captionDisplaySchema }
 import { projectFrameRateSchema } from "../../../packages/contracts/src/frame-rate.js";
 import { canvasDimensionSchema } from "../../../packages/contracts/src/canvas-size.js";
 import { explainerPlanWithContent } from "../../../packages/contracts/src/explainer-inputs.js";
-import { sourceCaptionTextReviewSchema, referenceReviewToolInputSchema } from "../../../packages/contracts/src/editorial-inputs.js";
+import { sourceCaptionTextReviewSchema, referenceReviewToolInputSchema, responsibilityReviewToolInputSchema } from "../../../packages/contracts/src/editorial-inputs.js";
 import { registerSourceResearchTools } from "./source-research-tools.js";
 import { registerSoundTools } from "./sound-tools.js";
 import { audioDesignSchema, soundRequirementSchema } from "../../../packages/edit-application/src/sound-design.js";
@@ -28,6 +28,7 @@ import { EFFECT_QUALITY_RULES, EFFECT_TYPES, type Asset, type AssetProvenance } 
 import { inspectComposedFrames } from "./preview-inspection.js";
 import { inspectAsset } from "./source-review.js";
 import { registerMotionTools } from "./motion-tools.js";
+import { productionUnitHandoffSchema } from "../../../packages/contracts/src/production-unit-handoff.js";
 import { registerObjectResourceTools } from "./object-resource-tools.js";
 import { registerMotionLibraryTools } from "./motion-library-tools.js";
 import { registerCreativeLibraryTools } from "./creative-library-tools.js";
@@ -55,6 +56,10 @@ const referenceReviewFromTool = (ref: z.infer<typeof referenceReviewToolInputSch
   referenceId: ref.reference_id, sourceSha256: ref.source_sha256, targetRole: ref.target_role, startMs: ref.start_ms, endMs: ref.end_ms,
   originalRelation: ref.original_relation, actualImplementation: ref.actual_implementation, difference: ref.difference,
   outcome: ref.outcome, impact: ref.impact, findingId: ref.finding_id
+});
+const responsibilityReviewFromTool = (review: z.infer<typeof responsibilityReviewToolInputSchema>) => ({
+  responsibility: review.responsibility, assignmentId: review.assignment_id, decisionIds: review.decision_ids,
+  outcome: review.outcome, observation: review.observation, impact: review.impact, findingId: review.finding_id
 });
 const projectIdFrom = (projectId?: string) => {
   const resolved = projectId ?? targetProjectId;
@@ -2742,10 +2747,11 @@ server.registerTool("start_production_run", {
 
 server.registerTool("update_production_run", {
   title: "更新制作职责与范围",
-  description: "登记实际分派、接替或调整任务目标，使用当前审计版本和稳定操作编号；记录为来源声明，不代替宿主调用。",
+  description: "登记分派、接替、任务目标和逐单元交接。record_unit_handoff 的 submit_draft 依据登记原句和 replacements 生成固定换料稿，也可登记视觉试摆接收或退回。使用当前审计版本和稳定操作编号，回读 unitHandoffs。",
   inputSchema: {
     project_id: z.string().optional(), run_id: z.string().min(1), expected_audit_version: z.number().int().positive(), operation_id: productionOperationIdSchema,
-    action: z.enum(["update_scope", "add_assignment", "replace_assignment", "select_delivery_artifact"]), completion_scope: productionCompletionScopeSchema.optional(), reason: z.string().optional(), artifact_id: z.string().min(1).optional(),
+    action: z.enum(["update_scope", "add_assignment", "replace_assignment", "select_delivery_artifact", "record_unit_handoff"]), completion_scope: productionCompletionScopeSchema.optional(), reason: z.string().optional(), artifact_id: z.string().min(1).optional(),
+    handoff: productionUnitHandoffSchema.optional(),
     assignment: z.object({ assignment_id: z.string().min(1), agent_id: z.string().min(1),
       responsibilities: z.array(z.enum(["director", "narration", "asset_sourcing", "creative_research", "visual_design", "motion_research", "review"])).min(1),
       skill_ids: z.array(z.string().min(1)).min(1), scope: productionCompletionScopeSchema,
@@ -2762,6 +2768,10 @@ server.registerTool("update_production_run", {
       if (!input.artifact_id) throw new DomainError("请选择交付文件", "PRODUCTION_DELIVERY_ARTIFACT_INVALID");
       return asText(await application.updateProductionRun({ ...base, action: input.action, artifactId: input.artifact_id }));
     }
+    if (input.action === "record_unit_handoff") {
+      if (!input.handoff) throw new DomainError("请交回具体单元的换料正文或视觉接件结果", "PRODUCTION_UNIT_HANDOFF_INVALID");
+      return asText(await application.updateProductionRun({ ...base, action: input.action, handoff: input.handoff }));
+    }
     if (!input.assignment) throw new DomainError("分派信息缺失", "PRODUCTION_ASSIGNMENT_INVALID");
     const assignment = input.assignment;
     return asText(await application.updateProductionRun({ ...base, action: input.action, assignment: { assignmentId: assignment.assignment_id,
@@ -2772,7 +2782,7 @@ server.registerTool("update_production_run", {
 
 server.registerTool("record_creative_decision", {
   title: "记录创作判断",
-  description: "持久化作者判断、真实分派、输入版本和上游决定。创意研究可先交接局部结果；完整新制和视觉重做的视觉或场面正式采用须引用固定交付及视觉设计，并核对整体视觉、场面构图和运动机制的研究覆盖与关键未决问题，不适用的层次须说明理由。研究引用的 source_sha256 使用读卡结果顶层资料库指纹。记录不通知作者，主任务须实际转交。",
+  description: "持久化作者判断、真实分派、输入版本和上游决定。observed_relation 写原片实见，decision 和 rationale 写选片用途和理由；主参考改为局部借用时，以新决定的 input_decision_ids 关联原决定并说明取舍。创意研究可先交接局部结果；正式采用前，为每个 covered 层次填实际研究与迁移正文，not_applicable 须说明理由。正式采用须引用固定交付及视觉设计。research_references.source_sha256 使用读卡结果顶层资料库指纹。记录后由主任务转交。",
   inputSchema: {
     project_id: z.string().optional(),
     run_id: z.string().min(1),
@@ -2788,16 +2798,22 @@ server.registerTool("record_creative_decision", {
     phase: z.enum(["creative_research", "motion_research", "visual_design", "adoption"]).optional(),
     assignment_id: z.string().min(1).optional(), input_revision: z.number().int().positive().nullable().optional(),
     input_decision_ids: z.array(z.string().min(1)).optional(), research_outcome: z.enum(["pending", "researched", "not_applicable"]).optional(),
+    reused_decision_refs: z.array(z.object({ production_run_id: z.string().min(1), decision_id: z.string().min(1) }).strict()).optional()
+      .describe("本次核对后沿用的同职责历史判断，多个来源合计须覆盖本次判断范围；部分沿用与新增判断按范围分别记录"),
     research_coverage: z.object({
       overall_visual: z.enum(["covered", "not_applicable", "pending"]),
       scene_composition: z.enum(["covered", "not_applicable", "pending"]),
       motion_mechanisms: z.enum(["covered", "not_applicable", "pending"]),
+      layer_notes: z.object({ overall_visual: z.string().trim().min(1).max(4000).optional(),
+        scene_composition: z.string().trim().min(1).max(4000).optional(), motion_mechanisms: z.string().trim().min(1).max(4000).optional()
+      }).strict().optional().describe("各已覆盖层次的原片研究和本片迁移正文，分层填写；未完成层次可不填"),
       not_applicable_reasons: z.object({ overall_visual: z.string().trim().min(1).optional(), scene_composition: z.string().trim().min(1).optional(),
         motion_mechanisms: z.string().trim().min(1).optional() }).strict().optional(),
       blocking_questions: z.array(z.string().trim().min(1))
     }).strict().optional(),
     research_references: z.array(z.object({ kind: z.enum(["creative", "motion"]), id: z.string().min(1), source_sha256: z.string().regex(/^[a-f0-9]{64}$/u).describe("读卡结果顶层 source_sha256，表示资料库版本，不是原片文件哈希"),
-      start_ms: z.number().finite().nonnegative().optional(), end_ms: z.number().finite().positive().optional(), observed_relation: z.string().min(1).max(2000).optional() }).strict()).optional(),
+      start_ms: z.number().finite().nonnegative().optional(), end_ms: z.number().finite().positive().optional(),
+      observed_relation: z.string().min(1).max(2000).optional().describe("原片实见。用于逐单元正式照排时，按实际采用区间逐拍登记完整演出句，只用【名称】标可替换内容。") }).strict()).optional(),
     quiet_range: z.object({ start_frame: z.number().int().min(0), end_frame: z.number().int().positive(), reason: z.string().min(1).max(800) }).optional(),
     effect_decision: z.string().max(2_000).optional(),
     rejected_alternative: z.string().max(2_000).optional(),
@@ -2821,8 +2837,12 @@ server.registerTool("record_creative_decision", {
         manifestSha256: input.delivery_ref.manifest_sha256, sceneIds: input.delivery_ref.scene_ids } : undefined,
       phase: input.phase, assignmentId: input.assignment_id, inputRevision: input.input_revision,
       inputDecisionIds: input.input_decision_ids, researchOutcome: input.research_outcome,
+      reusedDecisionRefs: input.reused_decision_refs?.map(ref => ({ productionRunId: ref.production_run_id, decisionId: ref.decision_id })),
       researchCoverage: input.research_coverage ? { overallVisual: input.research_coverage.overall_visual,
         sceneComposition: input.research_coverage.scene_composition, motionMechanisms: input.research_coverage.motion_mechanisms,
+        layerNotes: input.research_coverage.layer_notes ? { overallVisual: input.research_coverage.layer_notes.overall_visual,
+          sceneComposition: input.research_coverage.layer_notes.scene_composition,
+          motionMechanisms: input.research_coverage.layer_notes.motion_mechanisms } : undefined,
         notApplicableReasons: input.research_coverage.not_applicable_reasons ? {
           overallVisual: input.research_coverage.not_applicable_reasons.overall_visual,
           sceneComposition: input.research_coverage.not_applicable_reasons.scene_composition,
@@ -2839,7 +2859,8 @@ server.registerTool("record_creative_decision", {
     }));
   } catch (error) {
     // 阶段来源校验在审计持久化之前完成，允许按实际分派、版本和范围纠正输入。
-    if (error instanceof DomainError && ["PRODUCTION_DECISION_SOURCE_REQUIRED", "PRODUCTION_RESEARCH_REFERENCE_INVALID", "PRODUCTION_RESEARCH_REFERENCE_STALE"].includes(error.code)) {
+    if (error instanceof DomainError && ["PRODUCTION_DECISION_SOURCE_REQUIRED", "PRODUCTION_RESEARCH_REFERENCE_INVALID",
+      "PRODUCTION_RESEARCH_REFERENCE_STALE", "PRODUCTION_RESEARCH_LAYERS_INCOMPLETE"].includes(error.code)) {
       return { ...asText({ error: error.message, message: error.message, code: error.code,
         stage: "validation", sideEffects: "none", safeToRetry: true, recovery: "correct_input" }), isError: true };
     }
@@ -2867,7 +2888,8 @@ server.registerTool("record_editorial_quality_review", {
       method: z.enum(["frames", "continuous_video", "audio", "audiovisual"]),
       observation: z.string().min(1).max(2_000),
       adoption_refs: z.array(z.object({ production_run_id: z.string().min(1), decision_id: z.string().min(1) }).strict()).optional(),
-      reference_reviews: z.array(referenceReviewToolInputSchema).optional()
+      reference_reviews: z.array(referenceReviewToolInputSchema).optional(),
+      responsibility_reviews: z.array(responsibilityReviewToolInputSchema).optional()
     })).max(40).optional(),
     resolutions: z.array(z.object({
       finding_id: z.string().min(1),
@@ -2898,7 +2920,8 @@ server.registerTool("record_editorial_quality_review", {
       passes: input.passes,
       previewEvidence: input.preview_evidence,
       observations: input.observations?.map((entry) => ({ pass: entry.pass, source: entry.source, previewJobId: entry.preview_job_id, observer: entry.observer, startFrame: entry.start_frame, endFrame: entry.end_frame, method: entry.method, observation: entry.observation, adoptionRefs: entry.adoption_refs?.map(ref => ({ productionRunId: ref.production_run_id, decisionId: ref.decision_id })),
-        referenceReviews: entry.reference_reviews?.map(referenceReviewFromTool) })),
+        referenceReviews: entry.reference_reviews?.map(referenceReviewFromTool),
+        responsibilityReviews: entry.responsibility_reviews?.map(responsibilityReviewFromTool) })),
       resolutions: input.resolutions?.map((entry) => ({ findingId: entry.finding_id, evidenceIds: entry.evidence_ids, note: entry.note, scope: entry.scope })),
       findings: input.findings.map((finding) => ({
         pass: finding.pass,
@@ -2915,7 +2938,8 @@ server.registerTool("record_editorial_quality_review", {
     });
     const reviews = [...(report.editorialReviewHistory ?? []), ...(report.editorialReview ? [report.editorialReview] : [])];
     const evidenceIds = reviews.flatMap(review => review.evidenceRecords ?? []).filter(entry => entry.operationId === input.operation_id).map(entry => entry.id);
-    const findingIds = reviews.flatMap(review => review.findings).filter(entry => entry.referenceEvidenceId && evidenceIds.includes(entry.referenceEvidenceId)).map(entry => entry.id);
+    const findingIds = reviews.flatMap(review => review.findings).filter(entry => (entry.referenceEvidenceId && evidenceIds.includes(entry.referenceEvidenceId))
+      || (entry.responsibilityEvidenceId && evidenceIds.includes(entry.responsibilityEvidenceId))).map(entry => entry.id);
     return asText({ ...report, reviewReceipt: { operationId: input.operation_id, evidenceIds, findingIds } });
   } catch (error) { return asError(error); }
 });
@@ -3093,7 +3117,8 @@ server.registerTool("record_export_artifact_review", {
       method: z.enum(["frames", "continuous_video", "audio", "audiovisual", "sampled_av", "event_measurement"]),
       outcome: z.enum(["confirmed", "issue", "inconclusive"]), start_frame: z.number().int().nonnegative(), end_frame: z.number().int().positive(),
       note: z.string().trim().min(1).max(2000), media_observation_ids: z.array(z.string().min(1)).max(40).optional(),
-      reference_reviews: z.array(referenceReviewToolInputSchema).max(40).optional()
+      reference_reviews: z.array(referenceReviewToolInputSchema).max(40).optional(),
+      responsibility_reviews: z.array(responsibilityReviewToolInputSchema).max(40).optional()
     }).strict()).max(120).optional(),
     resolutions: z.array(z.object({ finding_id: z.string().min(1), evidence_ids: z.array(z.string().min(1)).min(1).max(40), note: z.string().trim().min(1).max(2000) }).strict()).max(40).optional()
   }
@@ -3109,7 +3134,8 @@ server.registerTool("record_export_artifact_review", {
       observations: input.observations?.map(observation => ({ check: observation.check, pass: observation.pass, subjectId: observation.subject_id, required: observation.required,
         method: observation.method, outcome: observation.outcome, startFrame: observation.start_frame, endFrame: observation.end_frame,
         note: observation.note, mediaObservationIds: observation.media_observation_ids,
-        referenceReviews: observation.reference_reviews?.map(referenceReviewFromTool) })),
+        referenceReviews: observation.reference_reviews?.map(referenceReviewFromTool),
+        responsibilityReviews: observation.responsibility_reviews?.map(responsibilityReviewFromTool) })),
       resolutions: input.resolutions?.map(item => ({ findingId: item.finding_id, evidenceIds: item.evidence_ids, note: item.note }))
     }));
   } catch (error) { return asError(error); }
@@ -3133,12 +3159,15 @@ server.registerTool("read_job_diagnostics", {
 } catch (error) { return asError(error); } });
 
 server.registerTool("read_production_status", {
-  title: "读取实际制作状态", description: "读取项目制作状态。提供 run_id 和 completion_scope 时，评估本次版本的结构、工作台观察覆盖及未解决问题，并返回原 Run 的记录状态。",
-  inputSchema: { project_id: z.string().optional(), run_id: z.string().min(1).optional(), completion_scope: productionCompletionScopeSchema.optional() }, annotations: { readOnlyHint: true }
-}, async ({ project_id, run_id, completion_scope }) => {
+  title: "读取实际制作状态", description: "读取项目制作状态和审阅覆盖。audio.intentCoverage 按当前声音意图列出已明确留白、未上轨、需重绑和已上轨。用 run_id 与 reference_decision_id 读取视觉设计候选或导演采用的参考对照；用 reference_artifact_id 读取成片导出修订的参考对照。",
+  inputSchema: { project_id: z.string().optional(), run_id: z.string().min(1).optional(), completion_scope: productionCompletionScopeSchema.optional(),
+    reference_decision_id: z.string().min(1).optional(), reference_artifact_id: z.string().min(1).optional() }, annotations: { readOnlyHint: true }
+}, async ({ project_id, run_id, completion_scope, reference_decision_id, reference_artifact_id }) => {
   try {
-    if (completion_scope && !run_id) throw new DomainError("completion_scope 需要 run_id", "PRODUCTION_STATUS_CONTEXT_REQUIRED");
-    const context = run_id ? { runId: run_id, completionScope: completion_scope ? applicationCompletionScope(completion_scope) : undefined } : undefined;
+    if ((completion_scope || reference_decision_id) && !run_id) throw new DomainError("completion_scope 和 reference_decision_id 需要 run_id", "PRODUCTION_STATUS_CONTEXT_REQUIRED");
+    if (reference_decision_id && reference_artifact_id) throw new DomainError("请指定一个参考对照目标", "PRODUCTION_STATUS_CONTEXT_REQUIRED");
+    const context = { runId: run_id, completionScope: completion_scope ? applicationCompletionScope(completion_scope) : undefined,
+      referenceDecisionId: reference_decision_id, referenceArtifactId: reference_artifact_id };
     return asText(await application.readProductionStatus(projectIdFrom(project_id), context));
   } catch (error) { return asError(error); }
 });

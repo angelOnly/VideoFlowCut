@@ -47,6 +47,13 @@ export function registerPresenterRoutes(server: FastifyInstance, application: Ed
 }
 
 export function registerPresenterTools(server: McpServer, application: EditingApplication, projectIdFrom: (id?: string) => string) {
+  server.registerTool("abandon_unknown_avatar_job", {
+    title: "放弃结果未知的数字人任务",
+    description: "原 Run 和产物对账后，经用户授权结清指定 Job。保留诊断及历史，记录放弃原因。不向 Provider 发送取消或重提请求。",
+    inputSchema: { job_id: z.string().min(1), reason: z.string().trim().min(1) }
+  }, async ({ job_id, reason }) => {
+    try { return text(application.abandonUnknownAvatarJob(job_id, reason)); } catch (error) { return toolErrorResult(error); }
+  });
   server.registerTool("resume_avatar_job", { title: "恢复 LTX 人物任务", description: "已知 Run 沿原任务查询和回收；明确生成失败才创建固定恢复任务。缺失 Run ID 的未知提交不重复执行，不切换模型。", inputSchema: { job_id: z.string().min(1) } }, async ({ job_id }) => {
     try { return text(application.resumeAvatarGeneration(job_id)); } catch (error) { return toolErrorResult(error); }
   });

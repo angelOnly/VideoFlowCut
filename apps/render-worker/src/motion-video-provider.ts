@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdir, readFile, readdir, realpath, rename, rm, stat, statfs, utimes, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, realpath, rm, stat, statfs, utimes, writeFile } from "node:fs/promises";
 import { isAbsolute, join, relative } from "node:path";
 import { PNG } from "pngjs";
 import { runProcess } from "@videocut/speech";
@@ -48,25 +48,20 @@ export async function createMotionVideoProvider(root: string, _directory: string
   const memory = new Map<string, Buffer>();
   let memoryBytes = 0, diskBytes = 0, closed = false;
   const stats = { uniqueSources: plan.sources.length, sourceBytes: plan.sourceBytes, decodedChunks: 0, cacheHits: 0, memoryPeakBytes: 0, diskPeakBytes: 0, decodedBytes: 0 };
-  // Render Worker 串行执行；启动时只清理过期的未发布块，绝不把半块当缓存使用。
+  // 持有项目缓存锁时检查上次留下的块，没有完整清单的块不能复用。
   for (const entry of await readdir(cacheRoot, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
+    if (!entry.isDirectory() || !/^[a-f0-9]{64}$/u.test(entry.name)) continue;
     const path = join(cacheRoot, entry.name);
-    if (/^[a-f0-9]{64}\.pending$/u.test(entry.name)) {
-      // 项目缓存已独占；没有活动解码时，崩溃遗留的半块可以立即删除。
-      await rm(path, { recursive: true, force: true });
-    } else if (/^[a-f0-9]{64}$/u.test(entry.name)) {
-      try {
-        const manifestPath = join(path, "manifest.json");
-        if ((await stat(manifestPath)).size > 16384) throw new Error("缓存索引过大");
-        const chunk = JSON.parse(await readFile(manifestPath, "utf8")) as Chunk;
-        if (chunk.key !== entry.name || !Number.isSafeInteger(chunk.bytes) || chunk.bytes < 0 || !Number.isInteger(chunk.count) || chunk.count < 1 || chunk.count > 120 || chunk.hashes.length !== chunk.count || chunk.hashes.some(hash => !/^[a-f0-9]{64}$/u.test(hash))) throw new Error("缓存索引无效");
-        let actualBytes = (await stat(manifestPath)).size;
-        for (let frame = 0; frame < chunk.count; frame++) actualBytes += (await stat(join(path, `${frame}.png`))).size;
-        chunks.set(chunk.key, { ...chunk, bytes: actualBytes, touched: (await stat(path)).mtimeMs });
-        diskBytes += actualBytes;
-      } catch { await rm(path, { recursive: true, force: true }); }
-    }
+    try {
+      const manifestPath = join(path, "manifest.json");
+      if ((await stat(manifestPath)).size > 16384) throw new Error("缓存索引过大");
+      const chunk = JSON.parse(await readFile(manifestPath, "utf8")) as Chunk;
+      if (chunk.key !== entry.name || !Number.isSafeInteger(chunk.bytes) || chunk.bytes < 0 || !Number.isInteger(chunk.count) || chunk.count < 1 || chunk.count > 120 || chunk.hashes.length !== chunk.count || chunk.hashes.some(hash => !/^[a-f0-9]{64}$/u.test(hash))) throw new Error("缓存索引无效");
+      let actualBytes = (await stat(manifestPath)).size;
+      for (let frame = 0; frame < chunk.count; frame++) actualBytes += (await stat(join(path, `${frame}.png`))).size;
+      chunks.set(chunk.key, { ...chunk, bytes: actualBytes, touched: (await stat(path)).mtimeMs });
+      diskBytes += actualBytes;
+    } catch { await rm(path, { recursive: true, force: true }); }
   }
   const evict = async (required: number, keep?: string) => {
     if (required > limits.scratchBytes) throw new Error("MOTION_VIDEO_WORKING_SET: 临时盘限额不足以保存一个解码块");
@@ -97,9 +92,8 @@ export async function createMotionVideoProvider(root: string, _directory: string
   const decode = async (clip: MotionVideoClip, key: string, start: number, count: number, phase: number, maximumBytes: number): Promise<Chunk> => {
     await evict(maximumBytes);
     await reserveDiskSpace(maximumBytes);
-    const pendingDir = join(cacheRoot, `${key}.pending`);
-    await rm(pendingDir, { recursive: true, force: true });
-    await mkdir(pendingDir);
+    const chunkDir = join(cacheRoot, key);
+    await mkdir(chunkDir);
     const geometry = clip.source.geometry;
     // seek 保留关键帧至目标之间的 PTS；每个块沿同一个绝对采样网格，不能重置 STARTPTS。
     const sampling = mediaSampling(geometry.startTimeSeconds, work.fps, start, phase);
@@ -131,24 +125,29 @@ export async function createMotionVideoProvider(root: string, _directory: string
           const png = PNG.sync.write(image, { colorType: 6, deflateLevel: 3 });
           bytes += png.length;
           if (bytes > maximumBytes) throw new Error("MOTION_VIDEO_WORKING_SET: 解码块超过预留空间");
-          await writeFile(join(pendingDir, `${frames}.png`), png, { flag: "wx" });
+          await writeFile(join(chunkDir, `${frames}.png`), png, { flag: "wx" });
           hashes.push(digest(png)); frames++; filled = 0;
         }
       }
       await done; controller.signal.throwIfAborted();
       if (timeout) throw new Error("MOTION_VIDEO_DECODE_TIMEOUT");
       if (filled || frames !== count) throw new Error(`MOTION_VIDEO_SOURCE_SHORT: 需要${count}帧，实际${frames}帧`);
-      const chunk = { key, bytes: bytes + 16384, touched: Date.now(), hashes, count };
-      await writeFile(join(pendingDir, "manifest.json"), JSON.stringify(chunk));
-      chunk.bytes = bytes + (await stat(join(pendingDir, "manifest.json"))).size;
+      const touched = Date.now();
+      const manifest = JSON.stringify({ key, bytes: bytes + 16384, touched, hashes, count });
+      const chunk = { key, bytes: bytes + Buffer.byteLength(manifest), touched, hashes, count };
       controller.signal.throwIfAborted();
-      await rename(pendingDir, join(cacheRoot, key));
+      // 项目缓存锁保护写入，最后写清单即可发布，不需要移动已写好的帧文件。
+      await writeFile(join(chunkDir, "manifest.json"), manifest, { flag: "wx" });
       chunks.set(key, chunk); diskBytes += chunk.bytes;
       stats.decodedChunks++; stats.decodedBytes += bytes; stats.diskPeakBytes = Math.max(stats.diskPeakBytes, diskBytes);
       return chunk;
     } finally {
       clearTimeout(timer!); controller.signal.removeEventListener("abort", kill); child.kill();
-      await done.catch(() => undefined); await rm(pendingDir, { recursive: true, force: true });
+      await done.catch(() => undefined);
+      if (!chunks.has(key)) {
+        // 保留解码或写入的原始错误。清理失败时由下一次持锁扫描处理。
+        await rm(chunkDir, { recursive: true, force: true }).catch(() => undefined);
+      }
     }
   };
 

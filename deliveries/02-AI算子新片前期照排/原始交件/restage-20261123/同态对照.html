@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>《决定权》 · 同态对照</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,"Microsoft YaHei",sans-serif;line-height:1.55;color:#f3efe3;background:#151c19}
+body{margin:0;background:#151c19}.wrap{width:min(1300px,calc(100% - 36px));margin:2.2rem auto 3rem}
+h1{font-size:clamp(1.35rem,2.8vw,2.2rem);margin:0 0 .25rem;color:#f8f4e9}
+p{color:#c7d2c6;max-width:72ch}.controls,.modes{display:flex;flex-wrap:wrap;gap:.55rem;align-items:center;margin:.8rem 0}
+select,button{background:#27342e;color:#f8f5e8;border:1px solid #65766b;border-radius:6px;padding:.58rem .85rem;font:inherit;cursor:pointer}
+button:hover,button:focus-visible,select:focus-visible{border-color:#e9a678}
+button[aria-pressed="true"]{background:#e9a678;color:#17241f;border-color:#e9a678}
+figure{margin:1rem 0;background:#0b100e;border:1px solid #65766b;box-shadow:0 10px 32px #0c1513}
+.stage{aspect-ratio:16/9;display:grid;place-items:center;overflow:hidden}
+.stage img{display:block;width:100%;height:100%;min-height:0;min-width:0;object-fit:contain}
+figcaption{padding:.65rem 1rem;border-top:1px solid #47594d;color:#dce8dc}
+a{color:#e9a678}.compact figure{width:min(100%,580px);margin-inline:auto}
+@media (max-width:550px){.wrap{width:calc(100% - 20px);margin-top:1rem}.control{display:grid}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<h1>《决定权》 · 同态对照</h1>
+<p>在同一画布切换原帧、标注和本片静态复摆。原参考为竖幅的 S04 用黑边显示完整原图。可先「缩略检查」看重心，再恢复尺寸看字组与细节。</p>
+<div class="controls">
+<label for="scene">场面</label><select id="scene"></select>
+<label for="moment">同态帧</label><select id="moment"></select>
+<button type="button" id="prev">上一帧</button><button type="button" id="next">下一帧</button>
+</div>
+<div class="modes" aria-label="画面模式">
+<button id="original" type="button" aria-pressed="false">原帧</button>
+<button id="marked" type="button" aria-pressed="false">同名标注</button>
+<button id="new" type="button" aria-pressed="true">本片复摆</button>
+<button id="toggle" type="button" aria-pressed="false">缩略检查</button>
+</div>
+<figure>
+<div class="stage"><img id="image" alt=""></div>
+<figcaption id="legend" aria-live="polite"></figcaption>
+</figure>
+<p>键盘 1／2／3 切换原帧、标注、本片。方向键查看前后拍。<a href="../02-视觉作者逐场复摆对照.md">打开逐场文字对照</a></p>
+</main>
+<script>
+const comparisonData={"S01":{"title":"手艺会领先多久","card":"139-c02","frames":[[16100,40],[19900,211],[25100,430],[27433,560]]},"S02":{"title":"同一页，两种口径","card":"134-c02","frames":[[18667,780],[18875,810],[19250,870],[19917,990],[23167,1080]]},"S03":{"title":"能力与控制","card":"057-c01","frames":[[8500,1530],[10100,1690],[12500,1824],[16100,1960],[19500,2070]]},"S04":{"title":"一路停，别路继续","card":"067-c01","frames":[[10633,2320],[15733,2410],[18300,2515],[20650,2590]]},"S05":{"title":"谁能测试，谁能叫停","card":"061-c01","frames":[[6267,2670],[7333,2780],[8833,2930],[9633,3000]]},"S06":{"title":"决定权","card":"138-c02","frames":[[29680,3160],[33100,3270],[35160,3390],[36520,3500]]}};
+const scene=document.getElementById('scene');
+const moment=document.getElementById('moment');
+const image=document.getElementById('image');
+const legend=document.getElementById('legend');
+const buttonLabels={original:'原帧',marked:'同名标注',new:'本片复摆'};
+let mode='new';
+const option=(value,label)=>new Option(label,value);
+for(const [key,part] of Object.entries(comparisonData))scene.add(option(key,key+' · '+part.title));
+const seconds=(ms)=>(ms/1000).toFixed(3);
+function show(){
+  const key=scene.value;
+  const part=comparisonData[key];
+  const [sourceMs,frame]=part.frames[Number(moment.value)];
+  const file='F'+String(frame).padStart(4,'0');
+  image.src=mode==='new'?key+'-'+file+'.jpg':'../reference-frames/'+key+'/'+sourceMs+'-'+mode+'.jpg';
+  image.alt=key+' '+file+' '+buttonLabels[mode];
+  legend.textContent=key+' · '+part.card+' 原片 '+seconds(sourceMs)+' 秒 · 本片 '+file+' · '+buttonLabels[mode];
+  for(const id of Object.keys(buttonLabels))document.getElementById(id).setAttribute('aria-pressed',id===mode);
+}
+function pickScene(){
+  moment.replaceChildren();
+  const part=comparisonData[scene.value];
+  for(const [idx,[ms,frame]] of part.frames.entries())moment.add(option(idx,seconds(ms)+' 秒 ⇄ F'+frame));
+  show();
+}
+function advance(delta){
+  const next=moment.selectedIndex+delta;
+  if(next>=0&&next<moment.options.length){
+    moment.selectedIndex=next;
+    show();
+  }else if(scene.selectedIndex+delta>=0&&scene.selectedIndex+delta<scene.options.length){
+    scene.selectedIndex+=delta;
+    pickScene();
+    if(delta<0){moment.selectedIndex=moment.options.length-1;show();}
+  }
+}
+scene.addEventListener('change',pickScene);
+moment.addEventListener('change',show);
+for(const id of Object.keys(buttonLabels))document.getElementById(id).addEventListener('click',()=>{mode=id;show();});
+document.getElementById('prev').addEventListener('click',()=>advance(-1));
+document.getElementById('next').addEventListener('click',()=>advance(1));
+const toggle=document.getElementById('toggle');
+toggle.addEventListener('click',()=>{const on=document.querySelector('main').classList.toggle('compact');toggle.setAttribute('aria-pressed',on);});
+document.addEventListener('keydown',(e)=>{
+  if(e.target.tagName==='SELECT')return;
+  if('123'.includes(e.key)&&e.key.length===1){mode=Object.keys(buttonLabels)[Number(e.key)-1];show();}
+  if(e.key==='ArrowLeft'){e.preventDefault();advance(-1);}
+  if(e.key==='ArrowRight'){e.preventDefault();advance(1);}
+});
+pickScene();
+</script>
+</body>
+</html>

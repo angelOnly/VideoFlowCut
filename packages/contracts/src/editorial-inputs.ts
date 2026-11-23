@@ -1,5 +1,20 @@
 import { z } from "zod";
 
+/** 职责观察保存实际结论与本次负责人的判断依据。 */
+export const responsibilityReviewInputSchema = z.object({
+  responsibility: z.enum(["creative_research", "motion_research", "visual_design"]),
+  assignmentId: z.string().min(1), decisionIds: z.array(z.string().min(1)).min(1),
+  outcome: z.enum(["confirmed", "issue", "inconclusive"]), observation: z.string().trim().min(1),
+  impact: z.string().trim().min(1).optional(), findingId: z.string().min(1).optional()
+}).strict();
+
+export const responsibilityReviewToolInputSchema = z.object({
+  responsibility: z.enum(["creative_research", "motion_research", "visual_design"]),
+  assignment_id: z.string().min(1), decision_ids: z.array(z.string().min(1)).min(1),
+  outcome: z.enum(["confirmed", "issue", "inconclusive"]), observation: z.string().trim().min(1),
+  impact: z.string().trim().min(1).optional(), finding_id: z.string().min(1).optional()
+}).strict();
+
 /** 逐条参考对照必须明确结论；待审身份由状态接口单独返回。 */
 export const referenceReviewInputSchema = z.object({
   productionRunId: z.string().min(1), decisionId: z.string().min(1), sceneId: z.string().min(1),

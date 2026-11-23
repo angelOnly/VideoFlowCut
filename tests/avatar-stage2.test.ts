@@ -1,5 +1,6 @@
 import {motionHtml, frameHtml} from "./fixtures/hyperframes.js";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -1068,6 +1069,28 @@ test("Avatar Worker 拒绝非 H.264 的 Provider 输出，不隐式转码改变�
   }
 });
 
+test("结清未知数字人任务保留诊断和项目版本，并拒绝仍在排队的任务", async () => {
+  const context = await createTestApplication();
+  try {
+    const project = context.app.createProject({ name: "结清测试", profile: "presenter_motion" });
+    const projectId = project.snapshot.project.id;
+    const job = context.app.repository.createJob({ projectId, kind: "avatar_generation", payload: {}, idempotencyKey: "unknown-avatar" });
+    assert.throws(() => context.app.abandonUnknownAvatarJob(job.id, "放弃"), /只能结清结果未知/);
+    const bridgeRuns = [{ runId: "original-run" }];
+    context.app.updateJob(job.id, { status: "unknown", result: { bridgeRuns }, error: "原 Run 已不可查询" });
+    execFileSync(process.execPath, ["--import", "tsx", "scripts/abandon-unknown-avatar-job.ts", context.root, job.id, "原 Run 和产物无法核实"], { windowsHide: true });
+    const settled = context.app.trackJob(job.id);
+    assert.equal(settled.status, "cancelled");
+    assert.equal(settled.error, "原 Run 已不可查询");
+    assert.deepEqual(settled.result?.bridgeRuns, bridgeRuns);
+    assert.deepEqual(context.app.abandonUnknownAvatarJob(job.id, "重复调用"), settled);
+    assert.throws(() => context.app.resumeAvatarGeneration(job.id), /只能恢复/);
+    assert.equal(context.app.readProject(projectId).revision.number, project.revision.number);
+  } finally {
+    await context.dispose();
+  }
+});
+
 test("MCP 的 submit_avatar_job 使用 v2 需求提交可追溯源 Job，拒绝旧放置参数并保留通用读取", async () => {
   const context = await createTestApplication();
   const environment = Object.fromEntries(
@@ -1112,6 +1135,11 @@ test("MCP 的 submit_avatar_job 使用 v2 需求提交可追溯源 Job，拒绝�
     } });
     assert.equal(legacy.isError, true, "旧放置参数必须明确拒绝，不能静默转成新版源生成");
     assert.equal(context.app.repository.listJobs(prepared.projectId).some(job => job.kind === "avatar_generation"), false);
+    const unknown = seedLegacyAvatarJob(context.app, prepared, "mcp-abandon-unknown");
+    context.app.updateJob(unknown.id, { status: "unknown" });
+    const abandoned = await client.callTool({ name: "abandon_unknown_avatar_job", arguments: { job_id: unknown.id, reason: "原 Run 已无法核实" } });
+    assert.equal(abandoned.isError, undefined);
+    assert.equal(context.app.trackJob(unknown.id).status, "cancelled");
     const treatment = await client.callTool({ name: "manage_visual_treatment", arguments: {
       base_revision_id: targeted.revision, action: "upsert", scene_id: prepared.scene.id,
       mode: "keep_presenter", primary_attention: "人物", narrative_purpose: "口播解释", intensity: "quiet",

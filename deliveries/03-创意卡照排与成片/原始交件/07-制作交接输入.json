@@ -1,0 +1,1485 @@
+{
+  "project_id": "project_0f18d318-f723-45f0-af90-cc9e0aa80c13",
+  "base_revision_id": 30,
+  "production_run_id": "production_run_0ad8a7c785ed23b5e64df68b03d0e7e0",
+  "brief_path": "06-正式制作冻结稿.md",
+  "timing_plan_path": "04-首版时间计划.md",
+  "selected_scene_ids": [
+    "scene_796aee73-7383-4932-842d-300cbc01e67a",
+    "scene_d640e03c-410e-40d8-9363-7842ac53e50e",
+    "scene_3c71cc8c-3b2a-415f-be0b-5f9fd125c563",
+    "scene_813ef500-6788-4187-a547-d386c9739d65"
+  ],
+  "creative": [
+    {
+      "id": "138-c01",
+      "sourceSha256": "c9e8535f8d89adcce38566513a9a539bc97366e00ca13adbd7d76c8cade37af4",
+      "usage": "adopted",
+      "purpose": "职业预测整场创意参考"
+    },
+    {
+      "id": "134-c02",
+      "sourceSha256": "c9e8535f8d89adcce38566513a9a539bc97366e00ca13adbd7d76c8cade37af4",
+      "usage": "adopted",
+      "purpose": "整片美术主参考及 B 两种数据口径和三窗主编排"
+    },
+    {
+      "id": "004-c17",
+      "sourceSha256": "c9e8535f8d89adcce38566513a9a539bc97366e00ca13adbd7d76c8cade37af4",
+      "usage": "adopted",
+      "purpose": "控制边界整场创意参考"
+    },
+    {
+      "id": "067-c01",
+      "sourceSha256": "c9e8535f8d89adcce38566513a9a539bc97366e00ca13adbd7d76c8cade37af4",
+      "usage": "adopted",
+      "purpose": "竞争压力整场创意参考"
+    },
+    {
+      "id": "061-c01",
+      "sourceSha256": "c9e8535f8d89adcce38566513a9a539bc97366e00ca13adbd7d76c8cade37af4",
+      "usage": "adopted",
+      "purpose": "政策与决定权整场创意参考"
+    }
+  ],
+  "motion": [
+    {
+      "id": "067-m06",
+      "sourceSha256": "aa9a43eb1b65c7f51cd124e72ead2cb9fcb3d63a97e4b85cc39f8373807d3930",
+      "usage": "adopted",
+      "purpose": "各自独立前进并共用横线"
+    },
+    {
+      "id": "061-m03",
+      "sourceSha256": "aa9a43eb1b65c7f51cd124e72ead2cb9fcb3d63a97e4b85cc39f8373807d3930",
+      "usage": "adopted",
+      "purpose": "两片并置，右板内容完成后给边界反馈"
+    }
+  ],
+  "references": [
+    {
+      "id": "visual-current-docs",
+      "purpose": "视觉对照、材料出处和锁定旁白",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "02-视觉作者逐场复摆对照.md",
+          "deliveredPath": "references/production/restage-notes.md"
+        },
+        {
+          "path": "旁白锁定原稿.md",
+          "deliveredPath": "references/production/narration.md"
+        },
+        {
+          "path": "素材清单与事实出处.md",
+          "deliveredPath": "references/production/sources.md"
+        }
+      ]
+    },
+    {
+      "id": "motion-observations",
+      "purpose": "本片机制采用和具体验证依据",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "05-动效机制观察.md",
+          "deliveredPath": "references/production/motion-observations.md"
+        }
+      ]
+    },
+    {
+      "id": "creative-current-first-draft",
+      "purpose": "创意作者的正式逐拍拆解",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "01-创意作者正式拆解原稿.md",
+          "deliveredPath": "references/production/creative-first-draft.md"
+        }
+      ]
+    },
+    {
+      "id": "unit_draft_4ec0ef68-329f-47be-baf3-c37f5ca9f94c",
+      "purpose": "当前接件所用正式固定换料正文",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "项目单元稿/unit_draft_4ec0ef68-329f-47be-baf3-c37f5ca9f94c.md",
+          "deliveredPath": "references/production/A/accepted-draft.md"
+        }
+      ]
+    },
+    {
+      "id": "restage-a",
+      "purpose": "正式接件使用的同版原帧与复摆对照",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "复摆图/A-接件对照.jpg",
+          "deliveredPath": "references/production/A/accepted-comparison.jpg"
+        }
+      ]
+    },
+    {
+      "id": "restage-states-a",
+      "purpose": "逐拍状态的干净原帧、原帧换料标注及同版复摆",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "创意参考帧/A-3.720-原帧.jpg",
+          "deliveredPath": "references/production/A/state-1/source.jpg"
+        },
+        {
+          "path": "创意参考帧/A-3.720-标注.jpg",
+          "deliveredPath": "references/production/A/state-1/annotations.jpg"
+        },
+        {
+          "path": "复摆图/A-1-定版.jpg",
+          "deliveredPath": "references/production/A/state-1/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/A-5.200-原帧.jpg",
+          "deliveredPath": "references/production/A/state-2/source.jpg"
+        },
+        {
+          "path": "创意参考帧/A-5.200-标注.jpg",
+          "deliveredPath": "references/production/A/state-2/annotations.jpg"
+        },
+        {
+          "path": "复摆图/A-2-定版.jpg",
+          "deliveredPath": "references/production/A/state-2/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/A-6.680-原帧.jpg",
+          "deliveredPath": "references/production/A/state-3/source.jpg"
+        },
+        {
+          "path": "创意参考帧/A-6.680-标注.jpg",
+          "deliveredPath": "references/production/A/state-3/annotations.jpg"
+        },
+        {
+          "path": "复摆图/A-3-定版.jpg",
+          "deliveredPath": "references/production/A/state-3/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/A-8.160-原帧.jpg",
+          "deliveredPath": "references/production/A/state-4/source.jpg"
+        },
+        {
+          "path": "创意参考帧/A-8.160-标注.jpg",
+          "deliveredPath": "references/production/A/state-4/annotations.jpg"
+        },
+        {
+          "path": "复摆图/A-4-定版.jpg",
+          "deliveredPath": "references/production/A/state-4/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/A-10.400-原帧.jpg",
+          "deliveredPath": "references/production/A/state-5/source.jpg"
+        },
+        {
+          "path": "创意参考帧/A-10.400-标注.jpg",
+          "deliveredPath": "references/production/A/state-5/annotations.jpg"
+        },
+        {
+          "path": "复摆图/A-5-定版.jpg",
+          "deliveredPath": "references/production/A/state-5/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/A-13.300-原帧.jpg",
+          "deliveredPath": "references/production/A/state-6/source.jpg"
+        },
+        {
+          "path": "创意参考帧/A-13.300-标注.jpg",
+          "deliveredPath": "references/production/A/state-6/annotations.jpg"
+        },
+        {
+          "path": "复摆图/A-6-定版.jpg",
+          "deliveredPath": "references/production/A/state-6/restage.jpg"
+        }
+      ]
+    },
+    {
+      "id": "unit_draft_5c8da952-c05d-4b04-8884-5555e83c4490",
+      "purpose": "当前接件所用正式固定换料正文",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "项目单元稿/unit_draft_5c8da952-c05d-4b04-8884-5555e83c4490.md",
+          "deliveredPath": "references/production/B/accepted-draft.md"
+        }
+      ]
+    },
+    {
+      "id": "restage-b",
+      "purpose": "正式接件使用的同版原帧与复摆对照",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "复摆图/B-接件对照.jpg",
+          "deliveredPath": "references/production/B/accepted-comparison.jpg"
+        }
+      ]
+    },
+    {
+      "id": "restage-states-b",
+      "purpose": "逐拍状态的干净原帧、原帧换料标注及同版复摆",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "创意参考帧/B-18.700-原帧.jpg",
+          "deliveredPath": "references/production/B/state-1/source.jpg"
+        },
+        {
+          "path": "创意参考帧/B-18.700-标注.jpg",
+          "deliveredPath": "references/production/B/state-1/annotations.jpg"
+        },
+        {
+          "path": "复摆图/B-1-定版.jpg",
+          "deliveredPath": "references/production/B/state-1/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/B-19.500-原帧.jpg",
+          "deliveredPath": "references/production/B/state-2/source.jpg"
+        },
+        {
+          "path": "创意参考帧/B-19.500-标注.jpg",
+          "deliveredPath": "references/production/B/state-2/annotations.jpg"
+        },
+        {
+          "path": "复摆图/B-2-定版.jpg",
+          "deliveredPath": "references/production/B/state-2/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/B-23.250-原帧.jpg",
+          "deliveredPath": "references/production/B/state-3/source.jpg"
+        },
+        {
+          "path": "创意参考帧/B-23.250-标注.jpg",
+          "deliveredPath": "references/production/B/state-3/annotations.jpg"
+        },
+        {
+          "path": "复摆图/B-3-定版.jpg",
+          "deliveredPath": "references/production/B/state-3/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/B-24.750-原帧.jpg",
+          "deliveredPath": "references/production/B/state-4/source.jpg"
+        },
+        {
+          "path": "创意参考帧/B-24.750-标注.jpg",
+          "deliveredPath": "references/production/B/state-4/annotations.jpg"
+        },
+        {
+          "path": "复摆图/B-4-定版.jpg",
+          "deliveredPath": "references/production/B/state-4/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/B-25.708-原帧.jpg",
+          "deliveredPath": "references/production/B/state-5/source.jpg"
+        },
+        {
+          "path": "创意参考帧/B-25.708-标注.jpg",
+          "deliveredPath": "references/production/B/state-5/annotations.jpg"
+        },
+        {
+          "path": "复摆图/B-5-定版.jpg",
+          "deliveredPath": "references/production/B/state-5/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/B-27.625-原帧.jpg",
+          "deliveredPath": "references/production/B/state-6/source.jpg"
+        },
+        {
+          "path": "创意参考帧/B-27.625-标注.jpg",
+          "deliveredPath": "references/production/B/state-6/annotations.jpg"
+        },
+        {
+          "path": "复摆图/B-6-定版.jpg",
+          "deliveredPath": "references/production/B/state-6/restage.jpg"
+        }
+      ]
+    },
+    {
+      "id": "unit_draft_cb289b2c-263b-4cd8-8de0-443bdd644d35",
+      "purpose": "当前接件所用正式固定换料正文",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "项目单元稿/unit_draft_cb289b2c-263b-4cd8-8de0-443bdd644d35.md",
+          "deliveredPath": "references/production/C/accepted-draft.md"
+        }
+      ]
+    },
+    {
+      "id": "restage-c",
+      "purpose": "正式接件使用的同版原帧与复摆对照",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "复摆图/C-接件对照.jpg",
+          "deliveredPath": "references/production/C/accepted-comparison.jpg"
+        }
+      ]
+    },
+    {
+      "id": "restage-states-c",
+      "purpose": "逐拍状态的干净原帧、原帧换料标注及同版复摆",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "创意参考帧/C-216.250-原帧.jpg",
+          "deliveredPath": "references/production/C/state-1/source.jpg"
+        },
+        {
+          "path": "创意参考帧/C-216.250-标注.jpg",
+          "deliveredPath": "references/production/C/state-1/annotations.jpg"
+        },
+        {
+          "path": "复摆图/C-1-定版.jpg",
+          "deliveredPath": "references/production/C/state-1/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/C-217.667-原帧.jpg",
+          "deliveredPath": "references/production/C/state-2/source.jpg"
+        },
+        {
+          "path": "创意参考帧/C-217.667-标注.jpg",
+          "deliveredPath": "references/production/C/state-2/annotations.jpg"
+        },
+        {
+          "path": "复摆图/C-2-定版.jpg",
+          "deliveredPath": "references/production/C/state-2/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/C-219.125-原帧.jpg",
+          "deliveredPath": "references/production/C/state-3/source.jpg"
+        },
+        {
+          "path": "创意参考帧/C-219.125-标注.jpg",
+          "deliveredPath": "references/production/C/state-3/annotations.jpg"
+        },
+        {
+          "path": "复摆图/C-3-定版.jpg",
+          "deliveredPath": "references/production/C/state-3/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/C-222.000-原帧.jpg",
+          "deliveredPath": "references/production/C/state-4/source.jpg"
+        },
+        {
+          "path": "创意参考帧/C-222.000-标注.jpg",
+          "deliveredPath": "references/production/C/state-4/annotations.jpg"
+        },
+        {
+          "path": "复摆图/C-4-定版.jpg",
+          "deliveredPath": "references/production/C/state-4/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/C-223.400-原帧.jpg",
+          "deliveredPath": "references/production/C/state-5/source.jpg"
+        },
+        {
+          "path": "创意参考帧/C-223.400-标注.jpg",
+          "deliveredPath": "references/production/C/state-5/annotations.jpg"
+        },
+        {
+          "path": "复摆图/C-5-定版.jpg",
+          "deliveredPath": "references/production/C/state-5/restage.jpg"
+        }
+      ]
+    },
+    {
+      "id": "unit_draft_f81e9b12-7004-44d2-a57e-aa0a6ef5243c",
+      "purpose": "当前接件所用正式固定换料正文",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "项目单元稿/unit_draft_f81e9b12-7004-44d2-a57e-aa0a6ef5243c.md",
+          "deliveredPath": "references/production/C2/accepted-draft.md"
+        }
+      ]
+    },
+    {
+      "id": "restage-c2",
+      "purpose": "正式接件使用的同版原帧与复摆对照",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "复摆图/C2-接件对照.jpg",
+          "deliveredPath": "references/production/C2/accepted-comparison.jpg"
+        }
+      ]
+    },
+    {
+      "id": "restage-states-c2",
+      "purpose": "逐拍状态的干净原帧、原帧换料标注及同版复摆",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "创意参考帧/C2-8.070-原帧.jpg",
+          "deliveredPath": "references/production/C2/state-1/source.jpg"
+        },
+        {
+          "path": "创意参考帧/C2-8.070-标注.jpg",
+          "deliveredPath": "references/production/C2/state-1/annotations.jpg"
+        },
+        {
+          "path": "复摆图/C2-1-定版.jpg",
+          "deliveredPath": "references/production/C2/state-1/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/C2-10.630-原帧.jpg",
+          "deliveredPath": "references/production/C2/state-2/source.jpg"
+        },
+        {
+          "path": "创意参考帧/C2-10.630-标注.jpg",
+          "deliveredPath": "references/production/C2/state-2/annotations.jpg"
+        },
+        {
+          "path": "复摆图/C2-2-定版.jpg",
+          "deliveredPath": "references/production/C2/state-2/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/C2-15.730-原帧.jpg",
+          "deliveredPath": "references/production/C2/state-3/source.jpg"
+        },
+        {
+          "path": "创意参考帧/C2-15.730-标注.jpg",
+          "deliveredPath": "references/production/C2/state-3/annotations.jpg"
+        },
+        {
+          "path": "复摆图/C2-3-定版.jpg",
+          "deliveredPath": "references/production/C2/state-3/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/C2-18.300-原帧.jpg",
+          "deliveredPath": "references/production/C2/state-4/source.jpg"
+        },
+        {
+          "path": "创意参考帧/C2-18.300-标注.jpg",
+          "deliveredPath": "references/production/C2/state-4/annotations.jpg"
+        },
+        {
+          "path": "复摆图/C2-4-定版.jpg",
+          "deliveredPath": "references/production/C2/state-4/restage.jpg"
+        }
+      ]
+    },
+    {
+      "id": "unit_draft_c7591b9a-abfa-45ed-87d2-9a49db587efc",
+      "purpose": "当前接件所用正式固定换料正文",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "项目单元稿/unit_draft_c7591b9a-abfa-45ed-87d2-9a49db587efc.md",
+          "deliveredPath": "references/production/D/accepted-draft.md"
+        }
+      ]
+    },
+    {
+      "id": "restage-d",
+      "purpose": "正式接件使用的同版原帧与复摆对照",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "复摆图/D-接件对照.jpg",
+          "deliveredPath": "references/production/D/accepted-comparison.jpg"
+        }
+      ]
+    },
+    {
+      "id": "restage-states-d",
+      "purpose": "逐拍状态的干净原帧、原帧换料标注及同版复摆",
+      "usage": "adopted",
+      "files": [
+        {
+          "path": "创意参考帧/D-7.380-原帧.jpg",
+          "deliveredPath": "references/production/D/state-1/source.jpg"
+        },
+        {
+          "path": "创意参考帧/D-7.380-标注.jpg",
+          "deliveredPath": "references/production/D/state-1/annotations.jpg"
+        },
+        {
+          "path": "复摆图/D-1-定版.jpg",
+          "deliveredPath": "references/production/D/state-1/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/D-9.170-原帧.jpg",
+          "deliveredPath": "references/production/D/state-2/source.jpg"
+        },
+        {
+          "path": "创意参考帧/D-9.170-标注.jpg",
+          "deliveredPath": "references/production/D/state-2/annotations.jpg"
+        },
+        {
+          "path": "复摆图/D-2-定版.jpg",
+          "deliveredPath": "references/production/D/state-2/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/D-10.930-原帧.jpg",
+          "deliveredPath": "references/production/D/state-3/source.jpg"
+        },
+        {
+          "path": "创意参考帧/D-10.930-标注.jpg",
+          "deliveredPath": "references/production/D/state-3/annotations.jpg"
+        },
+        {
+          "path": "复摆图/D-3-定版.jpg",
+          "deliveredPath": "references/production/D/state-3/restage.jpg"
+        },
+        {
+          "path": "创意参考帧/D-14.500-原帧.jpg",
+          "deliveredPath": "references/production/D/state-4/source.jpg"
+        },
+        {
+          "path": "创意参考帧/D-14.500-标注.jpg",
+          "deliveredPath": "references/production/D/state-4/annotations.jpg"
+        },
+        {
+          "path": "复摆图/D-4-定版.jpg",
+          "deliveredPath": "references/production/D/state-4/restage.jpg"
+        }
+      ]
+    }
+  ],
+  "scenes": [
+    {
+      "sceneId": "scene_796aee73-7383-4932-842d-300cbc01e67a",
+      "status": "ready",
+      "references": [
+        {
+          "kind": "creative",
+          "id": "138-c01",
+          "sourceSha256": "c9e8535f8d89adcce38566513a9a539bc97366e00ca13adbd7d76c8cade37af4",
+          "startMs": 3000,
+          "endMs": 14000,
+          "purpose": "职业预测的完整结构主参考"
+        }
+      ],
+      "resourceIds": [
+        "visual-current-docs",
+        "motion-observations",
+        "creative-current-first-draft",
+        "unit_draft_4ec0ef68-329f-47be-baf3-c37f5ca9f94c",
+        "restage-a",
+        "restage-states-a"
+      ],
+      "visualRoles": [
+        {
+          "role": "论述桌",
+          "referenceFunction": "文章截图与可辨节点",
+          "usage": "两张刘胜与文章原图中对应段落的实际裁面",
+          "assetIds": [
+            "asset_a854eba6-2152-409a-9045-4e6322b65b46",
+            "asset_55d293f1-93da-4d6e-ad48-f8ec6f8b7e0a"
+          ]
+        },
+        {
+          "role": "旧金线",
+          "referenceFunction": "关系线持续",
+          "usage": "沿同一桌面端点连接，红圈随后按拍突出",
+          "assetIds": []
+        }
+      ],
+      "process": "F0–105 一次拉远，红圈由小至大在目标中心闭合，主视点沿线向下平移，视点沿右上方向微移",
+      "preserve": [
+        "同一文件的卡和连接线一起移动",
+        "两行一起进入和读清"
+      ],
+      "adapt": [
+        "可深化速度曲线、局部交叠与遮罩接缝。"
+      ],
+      "visualPlan": {
+        "primaryRoles": [
+          "论述桌"
+        ],
+        "units": [
+          {
+            "id": "A",
+            "title": "职业预测",
+            "startFrame": 0,
+            "endFrame": 690,
+            "creativeDecisionId": "creative_decision_5b063264-1166-48bb-8fe7-36a1db0de964",
+            "creativeDraftId": "unit_draft_4ec0ef68-329f-47be-baf3-c37f5ca9f94c",
+            "handoffReceiptId": "unit_receipt_0ab1d899-6990-4720-85f2-4abf526d85eb",
+            "restage": {
+              "resourceId": "restage-a",
+              "sourceMs": 6680,
+              "projectFrame": 225
+            }
+          }
+        ],
+        "researchLayers": [
+          {
+            "level": "overallVisual",
+            "researchDecisionId": "creative_decision_64b51686-0fc0-4d9d-a2d5-253bbcb19e83",
+            "designExcerpt": "共用美术采用 134-c02 的纸面主次、红色定位与档案排印。"
+          },
+          {
+            "level": "sceneComposition",
+            "researchDecisionId": "creative_decision_64b51686-0fc0-4d9d-a2d5-253bbcb19e83",
+            "designExcerpt": "主景、辅助裁片和连线共用桌面坐标，外框不抖动。"
+          },
+          {
+            "level": "motionMechanisms",
+            "researchDecisionId": "creative_decision_64b51686-0fc0-4d9d-a2d5-253bbcb19e83",
+            "designExcerpt": "主视点沿线向下平移"
+          },
+          {
+            "level": "motionMechanisms",
+            "researchDecisionId": "creative_decision_d5351088-4b64-401b-8dfa-99af2437b967",
+            "designExcerpt": "主视点沿线向下平移"
+          }
+        ],
+        "referenceMappings": [
+          {
+            "referenceId": "138-c01",
+            "referenceKind": "creative",
+            "unitId": "A",
+            "use": "primary",
+            "researchDecisionId": "creative_decision_5b063264-1166-48bb-8fe7-36a1db0de964",
+            "startMs": 3000,
+            "endMs": 14000,
+            "targetRole": "论述桌",
+            "treatment": "各窗口都从这两张原图的不同正文章节切出",
+            "preserveRelation": "原片先从相联照片卡局部拉出整网，红圈先后定位，关联主语重新落到同一组画面。",
+            "targetRange": {
+              "startFrame": 0,
+              "endFrame": 690
+            }
+          }
+        ],
+        "composition": {
+          "opening": "暗底上先给相邻的浅边矩形裁面。",
+          "primarySubject": "论述桌",
+          "supportingSubjects": [
+            "旧金线"
+          ],
+          "spatialRelations": [
+            {
+              "roles": [
+                "论述桌",
+                "旧金线"
+              ],
+              "relation": "主景、辅助裁片和连线共用桌面坐标，外框不抖动。"
+            }
+          ],
+          "textAndGraphics": "字组只有「个人预测」「半年到一年」「写算子」「指挥 AI」。",
+          "ending": "末帧保持左下字组全字清楚。"
+        },
+        "sequence": [
+          {
+            "unitId": "A",
+            "purpose": "先识别真实文字",
+            "subjects": [
+              "论述桌",
+              "旧金线"
+            ],
+            "action": "F0–105 一次拉远",
+            "retainedElements": [
+              "原文题字"
+            ],
+            "transition": "其余节点从原图边缘露出并稳定"
+          },
+          {
+            "unitId": "A",
+            "purpose": "第一处突出原文中",
+            "subjects": [
+              "论述桌",
+              "旧金线"
+            ],
+            "action": "红圈由小至大在目标中心闭合",
+            "retainedElements": [
+              "留相邻裁片与通往下一节点的线"
+            ],
+            "transition": "停稳后再换"
+          },
+          {
+            "unitId": "A",
+            "purpose": "补充原文",
+            "subjects": [
+              "论述桌",
+              "旧金线"
+            ],
+            "action": "主视点沿线向下平移",
+            "retainedElements": [
+              "正文居前"
+            ],
+            "transition": "新的红圈在另一裁面重建"
+          },
+          {
+            "unitId": "A",
+            "purpose": "两行一起进入和读清",
+            "subjects": [
+              "论述桌",
+              "旧金线"
+            ],
+            "action": "视点沿右上方向微移",
+            "retainedElements": [
+              "前半句原文裁片仍在旁边"
+            ],
+            "transition": "硬切到 B 的左侧文档"
+          }
+        ],
+        "attentionPath": [
+          "先识别真实文字",
+          "红圈由小至大在目标中心闭合",
+          "「个人预测」"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "同一文件的卡和连接线一起移动",
+            "两行一起进入和读清"
+          ],
+          "adjustable": [
+            "可深化速度曲线、局部交叠与遮罩接缝。"
+          ],
+          "escalation": "某个实料、字体或参考关系发生冲突时，给出场面 ID、根帧、具体受影响字组或裁切和可落地的修法，由视觉作者核对后更新同版。"
+        }
+      }
+    },
+    {
+      "sceneId": "scene_d640e03c-410e-40d8-9363-7842ac53e50e",
+      "status": "ready",
+      "references": [
+        {
+          "kind": "creative",
+          "id": "134-c02",
+          "sourceSha256": "c9e8535f8d89adcce38566513a9a539bc97366e00ca13adbd7d76c8cade37af4",
+          "startMs": 18600,
+          "endMs": 28000,
+          "purpose": "算子训练的完整结构主参考"
+        }
+      ],
+      "resourceIds": [
+        "visual-current-docs",
+        "motion-observations",
+        "creative-current-first-draft",
+        "unit_draft_5c8da952-c05d-4b04-8884-5555e83c4490",
+        "restage-b",
+        "restage-states-b"
+      ],
+      "visualRoles": [
+        {
+          "role": "档案",
+          "referenceFunction": "引文与原图接续",
+          "usage": "官方引文与全文的重复回收",
+          "assetIds": [
+            "asset_bb2fecbf-7ade-4809-bc46-9d3fb854a2fb"
+          ]
+        },
+        {
+          "role": "三窗",
+          "referenceFunction": "窄轨与逐级建立",
+          "usage": "同一白皮书图的候选、验证与人设目标裁面",
+          "assetIds": [
+            "asset_689f2d10-28be-49c7-a136-b8002245677e"
+          ]
+        },
+        {
+          "role": "红板",
+          "referenceFunction": "数据与纸页同态",
+          "usage": "算子提速 23%，保持固定终值",
+          "assetIds": []
+        }
+      ],
+      "process": "红板从右横入，左页与整块红板同拍硬切退场，右窗最后从更高处接入，暖白原句剪报从底部擦入",
+      "preserve": [
+        "数值以遮挡露出到固定值",
+        "数字、单位和条件均保留在同层范围。"
+      ],
+      "adapt": [
+        "可深化速度曲线、局部交叠与遮罩接缝。"
+      ],
+      "visualPlan": {
+        "primaryRoles": [
+          "档案"
+        ],
+        "units": [
+          {
+            "id": "B",
+            "title": "算子训练",
+            "startFrame": 690,
+            "endFrame": 1440,
+            "creativeDecisionId": "creative_decision_2c5908e0-bc63-4272-a58c-16aa7df5aa59",
+            "creativeDraftId": "unit_draft_5c8da952-c05d-4b04-8884-5555e83c4490",
+            "handoffReceiptId": "unit_receipt_6c710fde-e554-40b4-97e6-cf0aeb5b9e3c",
+            "restage": {
+              "resourceId": "restage-b",
+              "sourceMs": 27625,
+              "projectFrame": 1390
+            }
+          }
+        ],
+        "researchLayers": [
+          {
+            "level": "overallVisual",
+            "researchDecisionId": "creative_decision_2eb68e0e-2ed9-4162-a78f-4d1b5f39d009",
+            "designExcerpt": "共用美术采用 134-c02 的纸面主次、红色定位与档案排印。"
+          },
+          {
+            "level": "sceneComposition",
+            "researchDecisionId": "creative_decision_2eb68e0e-2ed9-4162-a78f-4d1b5f39d009",
+            "designExcerpt": "红板、引文与窄窗共存，窄窗固定边界"
+          },
+          {
+            "level": "motionMechanisms",
+            "researchDecisionId": "creative_decision_2eb68e0e-2ed9-4162-a78f-4d1b5f39d009",
+            "designExcerpt": "每个新窗出现时，前窗停在其原位"
+          },
+          {
+            "level": "motionMechanisms",
+            "researchDecisionId": "creative_decision_d5351088-4b64-401b-8dfa-99af2437b967",
+            "designExcerpt": "每个新窗出现时，前窗停在其原位"
+          }
+        ],
+        "referenceMappings": [
+          {
+            "referenceId": "134-c02",
+            "referenceKind": "creative",
+            "unitId": "B",
+            "use": "primary",
+            "researchDecisionId": "creative_decision_2c5908e0-bc63-4272-a58c-16aa7df5aa59",
+            "startMs": 18600,
+            "endMs": 28000,
+            "targetRole": "档案",
+            "treatment": "使用 Google DeepMind 原发布的摘录裁面和白皮书图 1 的三个可区分切面。",
+            "preserveRelation": "原片的纸面版先把档案、竖数板、窄窗联成整体，落定后保持",
+            "targetRange": {
+              "startFrame": 690,
+              "endFrame": 1440
+            }
+          }
+        ],
+        "composition": {
+          "opening": "A 留下的浅色边切成覆盖画面的暖纸。",
+          "primarySubject": "档案",
+          "supportingSubjects": [
+            "三窗",
+            "红板"
+          ],
+          "spatialRelations": [
+            {
+              "roles": [
+                "档案",
+                "三窗",
+                "红板"
+              ],
+              "relation": "红板、引文与窄窗共存，窄窗固定边界"
+            }
+          ],
+          "textAndGraphics": "左上瞬间得到大号红色「约 1%」，它下沿紧接墨底浅字「整体训练时间缩短」。",
+          "ending": "三窗形成斜跨画幅的稳定阶梯。"
+        },
+        "sequence": [
+          {
+            "unitId": "B",
+            "purpose": "左页宽约 44%",
+            "subjects": [
+              "档案",
+              "三窗",
+              "红板"
+            ],
+            "action": "红板从右横入",
+            "retainedElements": [
+              "官方两行英文原句留在左页原比例区"
+            ],
+            "transition": "引文下按原行方向刷定位线"
+          },
+          {
+            "unitId": "B",
+            "purpose": "两个指标无需同屏",
+            "subjects": [
+              "档案",
+              "三窗",
+              "红板"
+            ],
+            "action": "左页与整块红板同拍硬切退场",
+            "retainedElements": [
+              "纸色保持"
+            ],
+            "transition": "白皮书人设目标窗从左下先升"
+          },
+          {
+            "unitId": "B",
+            "purpose": "把阅读推进到候选和验证",
+            "subjects": [
+              "档案",
+              "三窗",
+              "红板"
+            ],
+            "action": "右窗最后从更高处接入",
+            "retainedElements": [
+              "每个新窗出现时，前窗停在其原位"
+            ],
+            "transition": "三个窗均为静态图面"
+          },
+          {
+            "unitId": "B",
+            "purpose": "官方两行英文原句",
+            "subjects": [
+              "档案",
+              "三窗",
+              "红板"
+            ],
+            "action": "暖白原句剪报从底部擦入",
+            "retainedElements": [
+              "终值保持"
+            ],
+            "transition": "前一场纸面已完成阅读"
+          }
+        ],
+        "attentionPath": [
+          "底层计算",
+          "算子提速",
+          "整体训练时间缩短",
+          "人验证结果"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "数值以遮挡露出到固定值",
+            "数字、单位和条件均保留在同层范围。"
+          ],
+          "adjustable": [
+            "可深化速度曲线、局部交叠与遮罩接缝。"
+          ],
+          "escalation": "某个实料、字体或参考关系发生冲突时，给出场面 ID、根帧、具体受影响字组或裁切和可落地的修法，由视觉作者核对后更新同版。"
+        }
+      }
+    },
+    {
+      "sceneId": "scene_3c71cc8c-3b2a-415f-be0b-5f9fd125c563",
+      "status": "ready",
+      "references": [
+        {
+          "kind": "creative",
+          "id": "004-c17",
+          "sourceSha256": "c9e8535f8d89adcce38566513a9a539bc97366e00ca13adbd7d76c8cade37af4",
+          "startMs": 216000,
+          "endMs": 223500,
+          "purpose": "控制边界的完整结构主参考"
+        },
+        {
+          "kind": "creative",
+          "id": "067-c01",
+          "sourceSha256": "c9e8535f8d89adcce38566513a9a539bc97366e00ca13adbd7d76c8cade37af4",
+          "startMs": 8000,
+          "endMs": 18500,
+          "purpose": "竞争压力的完整结构主参考"
+        },
+        {
+          "kind": "motion",
+          "id": "067-m06",
+          "sourceSha256": "aa9a43eb1b65c7f51cd124e72ead2cb9fcb3d63a97e4b85cc39f8373807d3930",
+          "startMs": 10866,
+          "endMs": 18500,
+          "purpose": "各自独立前进并共用横线"
+        }
+      ],
+      "resourceIds": [
+        "visual-current-docs",
+        "motion-observations",
+        "creative-current-first-draft",
+        "unit_draft_cb289b2c-263b-4cd8-8de0-443bdd644d35",
+        "restage-c",
+        "restage-states-c",
+        "unit_draft_f81e9b12-7004-44d2-a57e-aa0a6ef5243c",
+        "restage-c2",
+        "restage-states-c2"
+      ],
+      "visualRoles": [
+        {
+          "role": "实际复盘段",
+          "referenceFunction": "证据接管真实主体",
+          "usage": "先用 OpenAI 配图去标题，后由官方引文承接",
+          "assetIds": [
+            "asset_57ec35e7-1637-4012-9c41-d874ff75882a",
+            "asset_56cc154c-6e30-4bd8-b1cc-81a185425180"
+          ]
+        },
+        {
+          "role": "红片",
+          "referenceFunction": "条片推进与固定线相对位置",
+          "usage": "向固定边界移动，保留实际条件限定",
+          "assetIds": []
+        },
+        {
+          "role": "原文裁片",
+          "referenceFunction": "单独身份进入多人结构",
+          "usage": "左轨能够回认刘胜与文章同一段",
+          "assetIds": [
+            "asset_a854eba6-2152-409a-9045-4e6322b65b46"
+          ]
+        },
+        {
+          "role": "无名材料片",
+          "referenceFunction": "各轨独立、同时运动",
+          "usage": "两块中性形体各自在独立竖轨向上，固定横线共用",
+          "assetIds": []
+        }
+      ],
+      "process": "上半暖纸摘录从右先进入，红片在其右缘出现并向右移，红片仅再推进一次，形成压着固定竖线的同帧，先只显示原文裁片，左轨停下，两块仍各自短移，一次收住",
+      "preserve": [
+        "同框读清",
+        "禁止代表技术操作的提示声"
+      ],
+      "adapt": [
+        "可深化速度曲线、局部交叠与遮罩接缝。"
+      ],
+      "visualPlan": {
+        "primaryRoles": [
+          "实际复盘段",
+          "原文裁片"
+        ],
+        "units": [
+          {
+            "id": "C",
+            "title": "控制边界",
+            "startFrame": 1440,
+            "endFrame": 2190,
+            "creativeDecisionId": "creative_decision_5f0c2d55-22b8-4245-9238-11e46956bff2",
+            "creativeDraftId": "unit_draft_cb289b2c-263b-4cd8-8de0-443bdd644d35",
+            "handoffReceiptId": "unit_receipt_8ac975bd-7753-4d8b-9901-9232b50b9475",
+            "restage": {
+              "resourceId": "restage-c",
+              "sourceMs": 222000,
+              "projectFrame": 1850
+            }
+          },
+          {
+            "id": "C2",
+            "title": "竞争压力",
+            "startFrame": 2190,
+            "endFrame": 2640,
+            "creativeDecisionId": "creative_decision_e83cc980-187c-4e8f-a04e-ee7a460364da",
+            "creativeDraftId": "unit_draft_f81e9b12-7004-44d2-a57e-aa0a6ef5243c",
+            "handoffReceiptId": "unit_receipt_78511841-ce0b-4374-8c8d-fbe77b08dc3b",
+            "restage": {
+              "resourceId": "restage-c2",
+              "sourceMs": 15730,
+              "projectFrame": 2470
+            }
+          }
+        ],
+        "researchLayers": [
+          {
+            "level": "overallVisual",
+            "researchDecisionId": "creative_decision_b2751683-4229-4de7-91e8-9f745637b716",
+            "designExcerpt": "共用美术采用 134-c02 的纸面主次、红色定位与档案排印。"
+          },
+          {
+            "level": "sceneComposition",
+            "researchDecisionId": "creative_decision_b2751683-4229-4de7-91e8-9f745637b716",
+            "designExcerpt": "左中实际复盘段约占 44% 宽，右部两条基线固定。"
+          },
+          {
+            "level": "motionMechanisms",
+            "researchDecisionId": "creative_decision_b2751683-4229-4de7-91e8-9f745637b716",
+            "designExcerpt": "右侧竖线保持原位并与红片接触"
+          },
+          {
+            "level": "motionMechanisms",
+            "researchDecisionId": "creative_decision_d5351088-4b64-401b-8dfa-99af2437b967",
+            "designExcerpt": "右侧竖线保持原位并与红片接触"
+          }
+        ],
+        "referenceMappings": [
+          {
+            "referenceId": "004-c17",
+            "referenceKind": "creative",
+            "unitId": "C",
+            "use": "primary",
+            "researchDecisionId": "creative_decision_5f0c2d55-22b8-4245-9238-11e46956bff2",
+            "startMs": 216000,
+            "endMs": 223500,
+            "targetRole": "实际复盘段",
+            "treatment": "用形体与线的空间关系承接叙述。",
+            "preserveRelation": "上下错片、主体趋近边界、次要状态稍后同步加入和终态特写接手",
+            "targetRange": {
+              "startFrame": 1440,
+              "endFrame": 2190
+            }
+          },
+          {
+            "referenceId": "067-c01",
+            "referenceKind": "creative",
+            "unitId": "C2",
+            "use": "primary",
+            "researchDecisionId": "creative_decision_e83cc980-187c-4e8f-a04e-ee7a460364da",
+            "startMs": 8000,
+            "endMs": 18500,
+            "targetRole": "原文裁片",
+            "treatment": "左轨保留报道实图，中右轨仅用低亮纸块。",
+            "preserveRelation": "从单独累积到看见彼此共享边线的空间关系",
+            "targetRange": {
+              "startFrame": 2190,
+              "endFrame": 2640
+            }
+          },
+          {
+            "referenceId": "067-m06",
+            "referenceKind": "motion",
+            "unitId": "C2",
+            "use": "support",
+            "researchDecisionId": "creative_decision_d5351088-4b64-401b-8dfa-99af2437b967",
+            "startMs": 10866,
+            "endMs": 18500,
+            "targetRole": "无名材料片",
+            "treatment": "左轨停下，两块仍各自短移",
+            "preserveRelation": "片标沿各自的固定轨推进，共用边线保持。",
+            "targetRange": {
+              "startFrame": 2310,
+              "endFrame": 2590
+            }
+          }
+        ],
+        "composition": {
+          "opening": "F1440 黑色占满全幅，官方原配图的上部无字粒子置于画面上半。",
+          "primarySubject": "实际复盘段",
+          "supportingSubjects": [
+            "红片",
+            "原文裁片",
+            "无名材料片"
+          ],
+          "spatialRelations": [
+            {
+              "roles": [
+                "实际复盘段",
+                "红片"
+              ],
+              "relation": "左中实际复盘段约占 44% 宽，右部两条基线固定。"
+            },
+            {
+              "roles": [
+                "原文裁片",
+                "无名材料片"
+              ],
+              "relation": "在固定的水平横线下显出三条竖轨"
+            }
+          ],
+          "textAndGraphics": "左上墨底浅字「内部网络安全评估」进入，与右下「防护弱于对外部署」同框读清",
+          "ending": "把线留给 D 的原文高亮。"
+        },
+        "sequence": [
+          {
+            "unitId": "C",
+            "purpose": "转到评估时",
+            "subjects": [
+              "实际复盘段",
+              "红片"
+            ],
+            "action": "上半暖纸摘录从右先进入",
+            "retainedElements": [
+              "旧图下半仍保持"
+            ],
+            "transition": "上沿和下沿分别移交后纸面合并"
+          },
+          {
+            "unitId": "C",
+            "purpose": "隔离边界",
+            "subjects": [
+              "实际复盘段",
+              "红片"
+            ],
+            "action": "红片在其右缘出现并向右移",
+            "retainedElements": [
+              "左侧实图先停"
+            ],
+            "transition": "右侧竖线保持原位并与红片接触"
+          },
+          {
+            "unitId": "C",
+            "purpose": "同框读清",
+            "subjects": [
+              "实际复盘段",
+              "红片"
+            ],
+            "action": "红片仅再推进一次，形成压着固定竖线的同帧",
+            "retainedElements": [
+              "保持原文"
+            ],
+            "transition": "主字换为「任务能力 ≠ 行动权限」"
+          },
+          {
+            "unitId": "C2",
+            "purpose": "自己不做",
+            "subjects": [
+              "原文裁片",
+              "无名材料片"
+            ],
+            "action": "先只显示原文裁片",
+            "retainedElements": [
+              "其下是一根短红竖片"
+            ],
+            "transition": "在固定的水平横线下显出三条竖轨"
+          },
+          {
+            "unitId": "C2",
+            "purpose": "别人仍会继续",
+            "subjects": [
+              "原文裁片",
+              "无名材料片"
+            ],
+            "action": "左轨停下，两块仍各自短移",
+            "retainedElements": [
+              "中右轨仅用低亮纸块"
+            ],
+            "transition": "原横线由短虚线连成细红实线"
+          },
+          {
+            "unitId": "C2",
+            "purpose": "很难一起放慢",
+            "subjects": [
+              "原文裁片",
+              "无名材料片"
+            ],
+            "action": "一次收住",
+            "retainedElements": [
+              "三条轨不接触该线"
+            ],
+            "transition": "把线留给 D 的原文高亮。"
+          }
+        ],
+        "attentionPath": [
+          "控制能跟上吗？",
+          "隔离边界",
+          "内部网络安全评估",
+          "任务能力 ≠ 行动权限",
+          "很难一起放慢"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "同框读清",
+            "禁止代表技术操作的提示声"
+          ],
+          "adjustable": [
+            "可深化速度曲线、局部交叠与遮罩接缝。"
+          ],
+          "escalation": "某个实料、字体或参考关系发生冲突时，给出场面 ID、根帧、具体受影响字组或裁切和可落地的修法，由视觉作者核对后更新同版。"
+        }
+      }
+    },
+    {
+      "sceneId": "scene_813ef500-6788-4187-a547-d386c9739d65",
+      "status": "ready",
+      "references": [
+        {
+          "kind": "creative",
+          "id": "061-c01",
+          "sourceSha256": "c9e8535f8d89adcce38566513a9a539bc97366e00ca13adbd7d76c8cade37af4",
+          "startMs": 6900,
+          "endMs": 14600,
+          "purpose": "政策与决定权的完整结构主参考"
+        },
+        {
+          "kind": "motion",
+          "id": "061-m03",
+          "sourceSha256": "aa9a43eb1b65c7f51cd124e72ead2cb9fcb3d63a97e4b85cc39f8373807d3930",
+          "startMs": 6900,
+          "endMs": 9834,
+          "purpose": "两片并置，右板内容完成后给边界反馈"
+        }
+      ],
+      "resourceIds": [
+        "visual-current-docs",
+        "motion-observations",
+        "creative-current-first-draft",
+        "unit_draft_c7591b9a-abfa-45ed-87d2-9a49db587efc",
+        "restage-d",
+        "restage-states-d"
+      ],
+      "visualRoles": [
+        {
+          "role": "左证据",
+          "referenceFunction": "原文左保持后进入宽框",
+          "usage": "实际政策摘录与原文封面一起成为可回看的依据",
+          "assetIds": [
+            "asset_678e4397-2d58-42ca-ad77-3bbc51d6cc2b",
+            "asset_e290d6d6-33c8-4d4b-a9d2-493cf4928572"
+          ]
+        },
+        {
+          "role": "右框",
+          "referenceFunction": "右侧文件被强调后扩大接手",
+          "usage": "政策框、适用范围、风险和决定权的视觉运动",
+          "assetIds": []
+        }
+      ],
+      "process": "右框由浅边转细深绿，左纸边先越入宽框左缘，下半先左右同级落定「职业问题」「控制问题」，双词同步缓退以让中轴",
+      "preserve": [
+        "政策标签与下行保持同屏直到一起退出",
+        "收束保持职业和控制概念分离至对应旁白读完"
+      ],
+      "adapt": [
+        "可深化速度曲线、局部交叠与遮罩接缝。"
+      ],
+      "visualPlan": {
+        "primaryRoles": [
+          "左证据"
+        ],
+        "units": [
+          {
+            "id": "D",
+            "title": "政策与决定权",
+            "startFrame": 2640,
+            "endFrame": 3750,
+            "creativeDecisionId": "creative_decision_c67ae108-1af8-4e22-acf3-1b5d61b9f758",
+            "creativeDraftId": "unit_draft_c7591b9a-abfa-45ed-87d2-9a49db587efc",
+            "handoffReceiptId": "unit_receipt_26a0e029-dcda-4fbc-8917-7fd0628580d4",
+            "restage": {
+              "resourceId": "restage-d",
+              "sourceMs": 10930,
+              "projectFrame": 3030
+            }
+          }
+        ],
+        "researchLayers": [
+          {
+            "level": "overallVisual",
+            "researchDecisionId": "creative_decision_1cd8f5b7-58c4-43ec-a7d0-d3640671135a",
+            "designExcerpt": "共用美术采用 134-c02 的纸面主次、红色定位与档案排印。"
+          },
+          {
+            "level": "sceneComposition",
+            "researchDecisionId": "creative_decision_1cd8f5b7-58c4-43ec-a7d0-d3640671135a",
+            "designExcerpt": "左证据约 (72,118,345,294)，右文本约 (535,140,345,265)"
+          },
+          {
+            "level": "motionMechanisms",
+            "researchDecisionId": "creative_decision_1cd8f5b7-58c4-43ec-a7d0-d3640671135a",
+            "designExcerpt": "右框由浅边转细深绿"
+          },
+          {
+            "level": "motionMechanisms",
+            "researchDecisionId": "creative_decision_d5351088-4b64-401b-8dfa-99af2437b967",
+            "designExcerpt": "右框由浅边转细深绿"
+          }
+        ],
+        "referenceMappings": [
+          {
+            "referenceId": "061-c01",
+            "referenceKind": "creative",
+            "unitId": "D",
+            "use": "primary",
+            "researchDecisionId": "creative_decision_c67ae108-1af8-4e22-acf3-1b5d61b9f758",
+            "startMs": 6900,
+            "endMs": 14600,
+            "targetRole": "左证据",
+            "treatment": "改为政策原文、拟议机制及编者收束。",
+            "preserveRelation": "左真源在原位成为可追的证据，右侧被确认的轮廓接手",
+            "targetRange": {
+              "startFrame": 2640,
+              "endFrame": 3750
+            }
+          },
+          {
+            "referenceId": "061-m03",
+            "referenceKind": "motion",
+            "unitId": "D",
+            "use": "support",
+            "researchDecisionId": "creative_decision_d5351088-4b64-401b-8dfa-99af2437b967",
+            "startMs": 6900,
+            "endMs": 9834,
+            "targetRole": "右框",
+            "treatment": "右框由浅边转细深绿",
+            "preserveRelation": "左页引文和高亮维持，右侧逐步补齐内容，后以绿色边界结束该过程。",
+            "targetRange": {
+              "startFrame": 2640,
+              "endFrame": 3030
+            }
+          }
+        ],
+        "composition": {
+          "opening": "C2 最后细红线在新一场的左页下半进入同一水平姿态，变成原文关键词下划线。",
+          "primarySubject": "左证据",
+          "supportingSubjects": [
+            "右框"
+          ],
+          "spatialRelations": [
+            {
+              "roles": [
+                "左证据",
+                "右框"
+              ],
+              "relation": "左证据约 (72,118,345,294)，右文本约 (535,140,345,265)"
+            }
+          ],
+          "textAndGraphics": "右上从两条共用同一左边的文字建立条件与后果",
+          "ending": "只保留收束字组。"
+        },
+        "sequence": [
+          {
+            "unitId": "D",
+            "purpose": "政策主张",
+            "subjects": [
+              "左证据",
+              "右框"
+            ],
+            "action": "右框由浅边转细深绿",
+            "retainedElements": [
+              "左页和底缘条件保持"
+            ],
+            "transition": "左右文档不同时入场"
+          },
+          {
+            "unitId": "D",
+            "purpose": "风险不可接受时",
+            "subjects": [
+              "左证据",
+              "右框"
+            ],
+            "action": "左纸边先越入宽框左缘",
+            "retainedElements": [
+              "左上的实际政策标题图保持作者与题目"
+            ],
+            "transition": "右卡被这幅宽框一次接手"
+          },
+          {
+            "unitId": "D",
+            "purpose": "职业问题",
+            "subjects": [
+              "左证据",
+              "右框"
+            ],
+            "action": "下半先左右同级落定「职业问题」「控制问题」",
+            "retainedElements": [
+              "文件上半的「政策主张」跟随原政策组继续保持"
+            ],
+            "transition": "红字「决定权留在人手中」从中轴下方进入"
+          },
+          {
+            "unitId": "D",
+            "purpose": "决定权留在人手中",
+            "subjects": [
+              "左证据",
+              "右框"
+            ],
+            "action": "双词同步缓退以让中轴",
+            "retainedElements": [
+              "上方留暖纸空间"
+            ],
+            "transition": "末句保持稳定"
+          }
+        ],
+        "attentionPath": [
+          "政策主张",
+          "合格第三方",
+          "风险不可接受时",
+          "决定权留在人手中"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "政策标签与下行保持同屏直到一起退出",
+            "收束保持职业和控制概念分离至对应旁白读完"
+          ],
+          "adjustable": [
+            "可深化速度曲线、局部交叠与遮罩接缝。"
+          ],
+          "escalation": "某个实料、字体或参考关系发生冲突时，给出场面 ID、根帧、具体受影响字组或裁切和可落地的修法，由视觉作者核对后更新同版。"
+        }
+      }
+    }
+  ]
+}

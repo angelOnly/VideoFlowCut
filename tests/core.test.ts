@@ -1094,7 +1094,7 @@ test("ProductionRun 不要求预览文件，未审状态继续保留", async () 
     for (const category of ["semantic", "story", "visual"] as const) await context.app.recordCreativeDecision({ operationId: globalThis.crypto.randomUUID(), projectId, runId: run.id, category, decision: "合约测试制作决策", rationale: "不代表真实创意与观看" });
     const completed = await context.app.completeProductionRun({ operationId: globalThis.crypto.randomUUID(), completionScope: { kind: "project" }, projectId, runId: run.id, finalRevision: state.revision.number });
     assert.equal(completed.status, "incomplete");
-    assert.ok(completed.completionBlockers.some(blocker => blocker.includes("工作台")));
+    assert.ok(completed.completionBlockers.some(blocker => blocker.includes("声画待观察范围")));
     assert.deepEqual(completed.composedFrameEvidence, []);
     assert.equal(completed.editorialReview, undefined);
     assert.equal((await context.app.readEditorialQualityReview({ projectId, revision: state.revision.number })), undefined);
@@ -1145,7 +1145,7 @@ test("ProductionRun 不要求每个效果抽帧，已有证据仍按真实范围
     });
     const missingCueFrame = await context.app.completeProductionRun({ operationId: globalThis.crypto.randomUUID(), completionScope: { kind: "project" }, projectId: created.snapshot.project.id, runId: run.id, finalRevision: revision });
     assert.equal(missingCueFrame.status, "incomplete");
-    assert.ok(missingCueFrame.completionBlockers.some(blocker => blocker.includes("工作台")));
+    assert.ok(missingCueFrame.completionBlockers.some(blocker => blocker.includes("声画待观察范围")));
     assert.ok(!missingCueFrame.completionBlockers.some(blocker => blocker.includes("效果抽帧")));
     assert.equal(missingCueFrame.composedFrameEvidence.length, outsideFrames.length);
   } finally {

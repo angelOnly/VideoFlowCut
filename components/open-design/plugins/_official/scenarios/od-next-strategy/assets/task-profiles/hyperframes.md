@@ -1,4 +1,4 @@
-# OD Next HyperFrames Task Profile v3.1.1
+# OD Next HyperFrames Task Profile v3.1.2
 
 > Rollout: active
 
@@ -21,10 +21,9 @@ because this profile is loaded.
 
 Resolve platform and purpose, duration, frame shape and rate, script or
 storyboard locks, scenes, supplied media, on-screen copy, voice, music,
-captions, and required source and rendered outputs.
-记录当前有效的内容、参考、材料和设计决定。用户明确锁定项及上游明确约束按当前要求执行。
-制作作者结合完整简报、采用参考和实际素材完成具体构图、中文排版、取景、层次、
-镜头、运动及内部时序。主要编排需要调整时，交原创意与视觉负责人共同更新。
+captions, and required source and rendered outputs. Freeze palette, type,
+composition, scene language, motion timing, transitions, safe areas, and
+audio rules in the Design Spec.
 
 Never silently omit a missing field: decide per the general orchestration
 Skill whether to enter the clarification stage, or convert the gap into an
@@ -55,6 +54,9 @@ publish a completed continuous range with `od motion-work stage --source
 actual bindings, root clock and ready ranges. Continue editing the working copy;
 the published frozen version is distinct and is not a final media or review.
 Do not publish an unready range or infer delivery from file timestamps.
+
+受管作品按阶段交件合同发布源码与清单，交回 VideoFlowCut 后由原视觉与创意负责人
+查看同版连续作品并组织返修。
 
 ## Build Requirements
 
@@ -96,8 +98,8 @@ scope; this profile's defaults fill in only what has not been specified.
 - Keep motion direction, speed, and camera logic coherent.
 - Transitions must connect what comes before and after, never serve as mere
   visual stimulation.
-- 按采用参考与本片节奏安排同时或依次发生的动作，让素材、文字和背景共同变化时
-  仍有清楚的观看重点。
+- Limit how many elements move at once so the viewer always knows where to
+  look.
 
 When task configuration provides the following values, execute them and
 record them in the Design Spec:
@@ -114,10 +116,12 @@ record them in the Design Spec:
 
 - Limit the amount of text per screen; establish a hierarchy of titles,
   body, subtitles, and supporting information.
-- 文字展示时间根据文字用途、信息量、实际声音和所选参考确定。普通字幕沿本片
-  字幕规范保证阅读。重点花字按整场编排承担强调、构图与运动。
-- 承担阅读任务的文字，在阅读阶段保持可辨认并避开实际平台遮挡区域。参与构图和
-  转场的文字可以依照采用参考越框、遮挡、缩放或短暂消失，与素材和背景共同编排。
+- Hold text long enough for its reading load and the declared audience:
+  short titles no less than 1.5 seconds; full-sentence copy estimated at
+  roughly 1 second per 4 Chinese characters, plus headroom.
+- For vertical placements (Douyin, WeChat Channels), keep key text out of the
+  platform UI zones — roughly the top 15% and bottom 20% of the frame; for
+  horizontal, keep 5% padding on all four sides.
 - Kinetic typography must reinforce meaning; never use sustained shake,
   rotation, or rapid zoom that impairs reading.
 
@@ -126,7 +130,7 @@ record them in the Design Spec:
 - When the task includes voiceover, music, or sound effects, keep visual
   changes aligned with the sound's rhythm and meaning, and keep voice,
   captions, music, sound effects, and visual transitions aligned to the
-  current timing plan. 实际声音或编排变化后更新相关时序。
+  frozen timing plan.
 - Sync subtitles with the voiceover in both content and timing.
 - Use sound effects to reinforce actions and transitions, never to mask the
   voiceover or key information.
@@ -154,8 +158,8 @@ record them in the Design Spec:
 Meet the following in one pass, while writing the source (the timeline and
 shot definitions):
 
-- 在实际阅读时段检查文字的可辨性，并对照采用参考检查画面完整变化。源码按阶段
-  交件合同发布，由外层原视觉与创意负责人查看同版连续作品并组织返修。
+- All text sits inside the safe area, unoccluded, with colors chosen for
+  ≥4.5:1 contrast against the background.
 - Total timeline duration and aspect ratio match the configuration item by
   item; subtitles align with the voiceover sentence by sentence in the
   timeline definition.
@@ -171,9 +175,8 @@ shot definitions):
 ## Build Packages
 
 Simple mode builds the full timeline in one context. Complex mode may split
-complete, independently renderable segments after the current script, timeline,
-asset assignments, Design Spec, and integration boundaries are recorded.
-用户锁定项保持固定，实际材料或共同编排变化时更新相关决定。 A
+complete, independently renderable segments only after the script, timeline,
+asset assignments, Design Spec, and integration boundaries are frozen. A
 single shot stays within one package — never split a single shot.
 Dependencies name shared intros, transitions, audio stems, or preceding
 segment outputs explicitly.

@@ -1,0 +1,106 @@
+{
+  "scene": "S04",
+  "frames": [
+    2220,
+    2640
+  ],
+  "targetRange": [
+    2290,
+    2640
+  ],
+  "reference": {
+    "kind": "creative",
+    "id": "067-c01",
+    "source_sha256": "bfcd38de201fe5d0af2d9bc12093beb867d6e5079b239f4047740fb43fd473f9",
+    "start_ms": 10300,
+    "end_ms": 20700,
+    "card": "[原项目文件未随包]",
+    "preview_url": "[本机服务地址，未随包]"
+  },
+  "beats": [
+    {
+      "start_ms": 10300,
+      "end_ms": 20000,
+      "observed_relation": "- 约 9–20 秒，顶部切成大白字【竞赛倒计时】，最末阶段转红。同一横向黑白格终点线下方并排五条隐形纵道，【选手标记】依各自进度升降，自身以荧绿线框围住，领先者头像顶加冠；各头像下固定小字【选手步数】，底部窄条更新【领先差值】。"
+    },
+    {
+      "start_ms": 20000,
+      "end_ms": 20700,
+      "observed_relation": "- 约 20–23 秒，倒计时归零，保留赛道与终点。居中荧绿大字【结果名次】压在头像前，下方大字距白色【结果步差】，前景散开彩纸。"
+    }
+  ],
+  "rationale": "同一位置维度承载一方停而其余方继续的相对关系，终点线与旧状态同场。以实拍蓝跑线接原创共同刻线，先后不涉及实际名次。",
+  "replacements": [
+    {
+      "name": "竞赛倒计时",
+      "kind": "text",
+      "text": "那先慢一点呢？"
+    },
+    {
+      "name": "选手标记",
+      "kind": "text",
+      "text": "五枚抽象进度标记"
+    },
+    {
+      "name": "选手步数",
+      "kind": "text",
+      "text": "暂停／继续"
+    },
+    {
+      "name": "领先差值",
+      "kind": "text",
+      "text": "竞争压力"
+    },
+    {
+      "name": "结果名次",
+      "kind": "text",
+      "text": "大家都要谨慎"
+    },
+    {
+      "name": "结果步差",
+      "kind": "text",
+      "text": "大家一起放慢"
+    }
+  ],
+  "assets": [
+    "asset_9b87e2d1-bb69-4575-b8ce-860087345428"
+  ],
+  "framesObserved": [
+    {
+      "ms": 10633,
+      "projectFrame": 2250,
+      "original": "reference-frames/S04/10633-original.jpg",
+      "marked": "reference-frames/S04/10633-marked.jpg"
+    },
+    {
+      "ms": 15733,
+      "projectFrame": 2410,
+      "original": "reference-frames/S04/15733-original.jpg",
+      "marked": "reference-frames/S04/15733-marked.jpg"
+    },
+    {
+      "ms": 18300,
+      "projectFrame": 2515,
+      "original": "reference-frames/S04/18300-original.jpg",
+      "marked": "reference-frames/S04/18300-marked.jpg"
+    },
+    {
+      "ms": 20650,
+      "projectFrame": 2590,
+      "original": "reference-frames/S04/20650-original.jpg",
+      "marked": "reference-frames/S04/20650-marked.jpg"
+    }
+  ],
+  "draftPath": "reference-frames/handoff/S04-作者正式拆解.md",
+  "assetBindings": [
+    {
+      "name": "竞速语境",
+      "kind": "asset",
+      "assetId": "asset_9b87e2d1-bb69-4575-b8ce-860087345428",
+      "sourceRange": {
+        "startMs": 500,
+        "endMs": 3500
+      }
+    }
+  ]
+}
