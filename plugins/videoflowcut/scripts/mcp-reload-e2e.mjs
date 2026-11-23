@@ -67,10 +67,11 @@ try {
   // 握手已切到候选版，再刷新目录后使用本次调整过说明的工具。
   const afterTools = await client.listTools();
   // 在候选发行链核验机制图文可读；只读研究不能改动视频项目。
-  const mechanisms = await call("search_motion_mechanisms", { stages: ["依次填满网格", "从圆形开口推近内部"], limit: 2 });
-  assert.ok(mechanisms.groups.every(group => group.cards.length > 0));
+  // 浏览按编号同步返回；文本检索需独立语义任务，不能把排队响应当成已完成结果。
+  const mechanisms = await call("search_motion_mechanisms", { limit: 2 });
+  assert.ok(mechanisms.cards.length > 0);
   const mechanism = await client.callTool({ name: "read_motion_mechanism", arguments: {
-    id: mechanisms.groups[0].cards[0].id, source_sha256: mechanisms.source_sha256
+    id: mechanisms.cards[0].id, source_sha256: mechanisms.source_sha256
   } });
   assert.notEqual(mechanism.isError, true, JSON.stringify(mechanism.content));
   assert.deepEqual(mechanism.content.map(item => item.type), ["text", "image"]);

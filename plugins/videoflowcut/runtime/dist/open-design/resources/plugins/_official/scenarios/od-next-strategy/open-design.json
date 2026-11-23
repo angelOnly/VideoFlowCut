@@ -92,7 +92,7 @@
           {
             "taskType": "hyperframes",
             "path": "./assets/task-profiles/hyperframes.md",
-            "version": "3.1.1",
+            "version": "3.1.2",
             "rollout": "active",
             "projectKinds": [
               "video"
@@ -129,7 +129,7 @@
               },
               {
                 "path": "./assets/task-profiles/hyperframes.md",
-                "version": "3.1.1"
+                "version": "3.1.2"
               },
               {
                 "path": "./assets/task-profiles/webgl.md",

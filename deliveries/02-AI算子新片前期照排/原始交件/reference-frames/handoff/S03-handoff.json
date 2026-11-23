@@ -1,0 +1,86 @@
+{
+  "scene": "S03",
+  "frames": [
+    1380,
+    2220
+  ],
+  "targetRange": [
+    1530,
+    2085
+  ],
+  "reference": {
+    "kind": "creative",
+    "id": "057-c01",
+    "source_sha256": "bfcd38de201fe5d0af2d9bc12093beb867d6e5079b239f4047740fb43fd473f9",
+    "start_ms": 8400,
+    "end_ms": 19700,
+    "card": "[原项目文件未随包]",
+    "preview_url": "[本机服务地址，未随包]"
+  },
+  "beats": [
+    {
+      "start_ms": 8400,
+      "end_ms": 13600,
+      "observed_relation": "- 约 8–14 秒，回到白底居中的同一【文章段落】；带色词分离，散开的字交给手绘【过程图解】。图中左上太阳、下侧海面、右上云，向上细线交代水汽；图解短注和圈内图标叠在图层之上。"
+    },
+    {
+      "start_ms": 13600,
+      "end_ms": 19700,
+      "observed_relation": "- 约 14–22 秒，图解缩入白色播放器框，控制条位于框底，框外下方【逐词字幕】逐词换色。"
+    }
+  ],
+  "rationale": "真实页面高层文字转为边界关系图，图解随后收进原位框而继续保留，不把事件制作成攻击过程。",
+  "replacements": [
+    {
+      "name": "文章段落",
+      "kind": "asset",
+      "assetId": "asset_db5ed987-0ddf-4f3f-bee3-6d3b68dc7550"
+    },
+    {
+      "name": "过程图解",
+      "kind": "text",
+      "text": "评估范围 · 行动边界 · 第三方"
+    },
+    {
+      "name": "逐词字幕",
+      "kind": "text",
+      "text": "评估防护较弱"
+    }
+  ],
+  "assets": [
+    "asset_db5ed987-0ddf-4f3f-bee3-6d3b68dc7550"
+  ],
+  "framesObserved": [
+    {
+      "ms": 8500,
+      "projectFrame": 1530,
+      "original": "reference-frames/S03/8500-original.jpg",
+      "marked": "reference-frames/S03/8500-marked.jpg"
+    },
+    {
+      "ms": 10100,
+      "projectFrame": 1690,
+      "original": "reference-frames/S03/10100-original.jpg",
+      "marked": "reference-frames/S03/10100-marked.jpg"
+    },
+    {
+      "ms": 12500,
+      "projectFrame": 1824,
+      "original": "reference-frames/S03/12500-original.jpg",
+      "marked": "reference-frames/S03/12500-marked.jpg"
+    },
+    {
+      "ms": 16100,
+      "projectFrame": 1960,
+      "original": "reference-frames/S03/16100-original.jpg",
+      "marked": "reference-frames/S03/16100-marked.jpg"
+    },
+    {
+      "ms": 19500,
+      "projectFrame": 2070,
+      "original": "reference-frames/S03/19500-original.jpg",
+      "marked": "reference-frames/S03/19500-marked.jpg"
+    }
+  ],
+  "draftPath": "reference-frames/handoff/S03-作者正式拆解.md"
+}

@@ -1,0 +1,131 @@
+{
+  "scene": "S06",
+  "frames": [
+    3120,
+    3600
+  ],
+  "targetRange": [
+    3120,
+    3450
+  ],
+  "reference": {
+    "kind": "creative",
+    "id": "138-c02",
+    "source_sha256": "bfcd38de201fe5d0af2d9bc12093beb867d6e5079b239f4047740fb43fd473f9",
+    "start_ms": 28200,
+    "end_ms": 36900,
+    "card": "[原项目文件未随包]",
+    "preview_url": "[本机服务地址，未随包]"
+  },
+  "beats": [
+    {
+      "start_ms": 28200,
+      "end_ms": 31500,
+      "observed_relation": "- 28.2–约 31.5 秒，暖灰纸底先落不规则黑块，居中【第一肖像】叠其上。后方铺超大破碎衬线【背景字】，前景橙色衬线【第一姓名】压住一侧，细【橙色曲线】由下缘穿过。"
+    },
+    {
+      "start_ms": 31500,
+      "end_ms": 34000,
+      "observed_relation": "- 约 31.5–34 秒，换【第二肖像】，继续用独立深色背形，橙色【第二姓名】以低位短条呈现。曲线绕过头部再向外延伸，纸面与黑橙对比不变。"
+    },
+    {
+      "start_ms": 34000,
+      "end_ms": 36900,
+      "observed_relation": "- 约 34–37.8 秒，换并列【并列肖像组】，橙色【并列姓名】紧贴各自人像，背景碎字布满横宽，橙线从下方贯通。"
+    }
+  ],
+  "rationale": "先各自稳定，颜色相同的贯穿线维持连续，末拍两个对象之中各保角色。并列后另留原创末问。",
+  "replacements": [
+    {
+      "name": "第一肖像",
+      "kind": "asset",
+      "assetId": "asset_caa46309-374d-4152-b136-37c06429bfe7",
+      "sourceRange": {
+        "startMs": 2000,
+        "endMs": 2040
+      }
+    },
+    {
+      "name": "第二肖像",
+      "kind": "asset",
+      "assetId": "asset_494ab702-77af-48e5-b28f-1ebf4dc18060"
+    },
+    {
+      "name": "并列肖像组",
+      "kind": "text",
+      "text": "typing.mp4 手与键盘和评审桌手与笔两幅相邻构图"
+    },
+    {
+      "name": "第一姓名",
+      "kind": "text",
+      "text": "技能被追上"
+    },
+    {
+      "name": "第二姓名",
+      "kind": "text",
+      "text": "行动越界"
+    },
+    {
+      "name": "并列姓名",
+      "kind": "text",
+      "text": "职业问题 · 控制问题"
+    },
+    {
+      "name": "背景字",
+      "kind": "text",
+      "text": "技能／控制"
+    },
+    {
+      "name": "橙色曲线",
+      "kind": "text",
+      "text": "同一锈红细线"
+    }
+  ],
+  "assets": [
+    "asset_caa46309-374d-4152-b136-37c06429bfe7",
+    "asset_494ab702-77af-48e5-b28f-1ebf4dc18060"
+  ],
+  "framesObserved": [
+    {
+      "ms": 29680,
+      "projectFrame": 3160,
+      "original": "reference-frames/S06/29680-original.jpg",
+      "marked": "reference-frames/S06/29680-marked.jpg"
+    },
+    {
+      "ms": 33100,
+      "projectFrame": 3270,
+      "original": "reference-frames/S06/33100-original.jpg",
+      "marked": "reference-frames/S06/33100-marked.jpg"
+    },
+    {
+      "ms": 35160,
+      "projectFrame": 3390,
+      "original": "reference-frames/S06/35160-original.jpg",
+      "marked": "reference-frames/S06/35160-marked.jpg"
+    },
+    {
+      "ms": 36520,
+      "projectFrame": 3500,
+      "original": "reference-frames/S06/36520-original.jpg",
+      "marked": "reference-frames/S06/36520-marked.jpg"
+    }
+  ],
+  "draftPath": "reference-frames/handoff/S06-作者正式拆解.md",
+  "assetBindings": [
+    {
+      "name": "第一肖像",
+      "kind": "asset",
+      "assetId": "asset_caa46309-374d-4152-b136-37c06429bfe7",
+      "sourceRange": {
+        "startMs": 2000,
+        "endMs": 2040
+      }
+    },
+    {
+      "name": "第二肖像",
+      "kind": "asset",
+      "assetId": "asset_494ab702-77af-48e5-b28f-1ebf4dc18060"
+    }
+  ]
+}

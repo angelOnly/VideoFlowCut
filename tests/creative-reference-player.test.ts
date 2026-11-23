@@ -32,6 +32,36 @@ test("独立案例库仍能复制实际库指纹并拖动视频", { timeout: 30_
   assert.equal(result.status,206);assert.equal(result.bytes,100);
 });
 
+test("发行插件的两份教学视频从同一插件目录提供 Range 播放", { timeout: 30_000 }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), "vfc-teaching-player-"));
+  const browserExecutable = await resolveRenderBrowser();
+  const previous = process.env.VIDEOFLOWCUT_RUNTIME_DIST;
+  process.env.VIDEOFLOWCUT_RUNTIME_DIST = resolve("plugins/videoflowcut/runtime/dist");
+  const { app, application } = await createServer({ workspaceRoot: directory });
+  let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined;
+  try {
+    const origin = await app.listen({ host: "127.0.0.1", port: 0 });
+    browser = await puppeteer.launch({ executablePath: browserExecutable, headless: true, pipe: true, args: ["--autoplay-policy=no-user-gesture-required"] });
+    for (const media of ["/teaching/r40/R40完整预览.mp4", "/teaching/airfare/preview.mp4"]) {
+      const bytes = await app.inject({ url: encodeURI(media), headers: { range: "bytes=0-99" } });
+      assert.equal(bytes.statusCode, 206); assert.equal(bytes.rawPayload.length, 100);
+      const page = await browser.newPage();
+      await page.goto(origin);
+      const result = await page.evaluate(async (url: string) => {
+        const video = document.createElement("video"); video.src = url; video.muted = true; document.body.append(video);
+        await video.play(); await new Promise(resolve => setTimeout(resolve, 700));
+        return { time: video.currentTime, ready: video.readyState };
+      }, new URL(media, origin).href);
+      assert.ok(result.time > 0 && result.ready >= 2, media);
+      await page.close();
+    }
+  } finally {
+    await browser?.close(); await app.close(); application.close();
+    if (previous === undefined) delete process.env.VIDEOFLOWCUT_RUNTIME_DIST; else process.env.VIDEOFLOWCUT_RUNTIME_DIST = previous;
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("两类读卡可重开选段，切片与原片共用源时间并返回连续帧", { timeout: 60_000 }, async () => {
   const directory = await mkdtemp(join(tmpdir(), "vfc-reference-player-"));
   const {app, application} = await createServer({workspaceRoot:directory});

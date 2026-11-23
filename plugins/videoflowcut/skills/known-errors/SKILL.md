@@ -15,3 +15,5 @@ description: 处理 Revision 过期、素材未就绪、Bridge v2 参数拒绝�
 - 受管作品、字体、浏览器、渲染、导出：读 [运行错误](references/runtime-errors.md)，交对应原作者或修复任务，不修改校验来放行。
 
 无副作用本身不是重试许可。只有实时合同明确允许的纠正或恢复分支才能继续；结果未知不得重放。恢复后返回原负责人确认依赖与预览，恢复成功不等于专业质量通过。
+
+数字人 Job 的原 Run 和产物均无法核实时，经用户明确授权放弃指定 Job，可用已发布的 `abandon_unknown_avatar_job`，填写原 Job ID 和放弃原因，再读回 `cancelled`。此操作保留诊断和 Run 记录，仅结清本地任务。旧 Runtime 因该 Job 无法升级时，运营维护可从已审核的仓库执行 `npm run job:abandon-avatar -- <工作区绝对路径> <Job ID> <放弃原因>`，随后读回队列再执行版本切换。

@@ -643,6 +643,11 @@ export function App() {
             setProductionRunId(runId);
             const url = new URL(window.location.href); url.searchParams.set("productionRunId", runId); window.history.replaceState({}, "", url);
           }} revision={currentRevision} startFrame={rangeStart} endFrame={rangeEnd} objectId={selection?.id}
+            onPlayRange={({ startFrame, endFrame }) => {
+              setRangeStart(startFrame); setRangeEnd(endFrame);
+              playRangeRequested.current = true;
+              setActiveRange({ from: startFrame, to: endFrame });
+            }}
             adoptionRefs={snapshot.visualTreatments.filter(treatment => snapshot.scenes.some(scene => scene.startFrame < rangeEnd && scene.endFrame > rangeStart
               && (treatment.sceneId === scene.id || !!treatment.narrativeBeatId && scene.narrativeBeatIds.includes(treatment.narrativeBeatId))))
               .flatMap(treatment => treatment.adoptedDecisionRef ? [treatment.adoptedDecisionRef] : [])}

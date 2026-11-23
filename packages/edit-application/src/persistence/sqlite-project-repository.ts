@@ -678,7 +678,23 @@ export class ProjectRepository {
     return this.getJob(jobId);
   }
 
-  updateJob(jobId: Id, input: { status: JobStatus; result?: Record<string, unknown>; error?: string; leaseUntil?: string }): JobRecord {
+  abandonUnknownAvatarJob(jobId: Id, reason: string): JobRecord {
+    // 在同一写事务中检查并结清，保留原 Run、诊断与执行记录。
+    return this.transaction(() => {
+      const job = this.getJob(jobId);
+      if (job.kind === "avatar_generation" && job.status === "cancelled" && job.result?.abandonment) return job;
+      if (job.kind !== "avatar_generation" || job.status !== "unknown") {
+        throw new DomainError("只能结清结果未知的数字人任务", "AVATAR_ABANDON_STATUS");
+      }
+      return this.updateJob(jobId, {
+        status: "cancelled",
+        error: job.error,
+        result: { ...job.result, abandonment: { reason, abandonedAt: now() } }
+      });
+    });
+  }
+
+  updateJob(jobId: Id, input: { status: JobStatus; result?: Record<string, unknown>; error?: string; leaseUntil?: string }, expectedStatus?: JobStatus): JobRecord {
     const old = this.getJob(jobId);
     // Worker 在运行中写入 Bridge 审计或恢复检查点时，不能意外清空已有租约；
     // 否则进程在该瞬间退出会留下永远无法重新领取的 running Job。
@@ -690,8 +706,9 @@ export class ProjectRepository {
     const attempt = execution.attempts.at(-1);
     if (attempt && !attempt.finishedAt && ["succeeded", "failed", "cancelled", "unknown"].includes(input.status)) { attempt.finishedAt = timestamp; attempt.outcome = input.status; }
     result.execution = execution;
-    this.db.prepare("UPDATE jobs SET status = ?, result_json = ?, error = ?, lease_until = ?, updated_at = ? WHERE id = ?")
-      .run(input.status, JSON.stringify(result), input.error ?? null, leaseUntil ?? null, timestamp, jobId);
+    const updated = this.db.prepare("UPDATE jobs SET status = ?, result_json = ?, error = ?, lease_until = ?, updated_at = ? WHERE id = ? AND (? IS NULL OR status = ?)")
+      .run(input.status, JSON.stringify(result), input.error ?? null, leaseUntil ?? null, timestamp, jobId, expectedStatus ?? null, expectedStatus ?? null);
+    if (!updated.changes) throw new DomainError("任务状态已变化，请重新读取", "JOB_STATUS_CONFLICT");
     return this.getJob(jobId);
   }
 

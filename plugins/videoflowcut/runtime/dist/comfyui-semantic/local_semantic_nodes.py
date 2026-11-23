@@ -6,6 +6,7 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
+from fractions import Fraction
 
 import av
 import numpy as np
@@ -163,7 +164,11 @@ def _video_content(path, start_seconds, duration_seconds):
                 timestamps.append(round((previous.time - origin) * 1000, 3))
             else:
                 frames.append(None)
-    if any(frame is None for frame in frames) or (stream_end is not None and end > stream_end + 1e-7):
+    # 统一按视频轨时间基向上量化终点，避免浮点尾差误判有效窗口。
+    exact_end = Fraction(str(origin)) + Fraction(str(start_seconds)) + Fraction(str(duration_seconds))
+    end_tick = math.ceil(exact_end / stream.time_base)
+    stream_end_tick = math.floor(Fraction(str(stream_end)) / stream.time_base + Fraction(1, 2)) if stream_end is not None else None
+    if any(frame is None for frame in frames) or (stream_end_tick is not None and end_tick > stream_end_tick):
         raise ValueError("所选时间窗口存在无法确认画面的时段，请缩小范围或单独分析音频")
 
     audio = None

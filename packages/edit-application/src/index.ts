@@ -13,6 +13,8 @@ import { checkMotionRangeCompatibility, motionRangeExpectation, replaceMotionRan
 import { applyMotionAdoption, motionHandoffDependencyHash, motionTargetDependencyHash, validateMotionContinuation } from "./motion-adoption.js";
 import { motionAuthoringInputsCurrent, motionTreatmentSignature } from "./motion-dependencies.js";
 import { sameVisualDelivery, visualDesignCovers, visualScopeSceneIds } from "./visual-design-revisions.js";
+import { buildUnitHandoffEvent, unitHandoffDeliveryIssues } from "./production-unit-handoff.js";
+import { productionUnitHandoffSchema, type ProductionUnitHandoffInput } from "../../contracts/src/production-unit-handoff.js";
 import { motionOnSuccessSchema } from "../../contracts/src/motion-continuation.js";
 import { motionAuthoringInputSchema, type MotionAuthoringInput, type MotionAuthoringSceneTarget } from "../../contracts/src/motion-authoring.js";
 import { motionRootRangeAtProjectRange } from "../../contracts/src/frame-rate.js";
@@ -2472,7 +2474,11 @@ export class EditingApplication {
     });
   }
 
-  async updateProductionRun(input: { projectId: Id; runId: Id; expectedAuditVersion: number; operationId: string; action: "update_scope"; completionScope: ProductionCompletionScope; reason: string } | { projectId: Id; runId: Id; expectedAuditVersion: number; operationId: string; action: "select_delivery_artifact"; artifactId: Id } | { projectId: Id; runId: Id; expectedAuditVersion: number; operationId: string; action: "add_assignment" | "replace_assignment"; assignment: Omit<ProductionAssignment, "operationId"> }): Promise<SkillExecutionReport> {
+  async updateProductionRun(input: { projectId: Id; runId: Id; expectedAuditVersion: number; operationId: string } & (
+    { action: "update_scope"; completionScope: ProductionCompletionScope; reason: string }
+    | { action: "select_delivery_artifact"; artifactId: Id }
+    | { action: "add_assignment" | "replace_assignment"; assignment: Omit<ProductionAssignment, "operationId"> }
+    | { action: "record_unit_handoff"; handoff: ProductionUnitHandoffInput })): Promise<SkillExecutionReport> {
     return this.withProductionAuditLock(input.projectId, async () => {
       const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.runId });
       if (!report.operations) throw new DomainError("旧制作记录只保留审计", "PRODUCTION_RUN_LEGACY_READ_ONLY");
@@ -2494,6 +2500,15 @@ export class EditingApplication {
         report.deliveryArtifactId = artifact.id;
         report.deliveryArtifactHistory = [...new Set([...(report.deliveryArtifactHistory ?? []), artifact.id])];
         report.mcpCommands.push({ name: input.action, revision: artifact.revision, createdAt: now() });
+      } else if (input.action === "record_unit_handoff") {
+        const handoff = productionUnitHandoffSchema.parse(input.handoff);
+        const current = this.readProject(input.projectId).snapshot;
+        if (!requiresVisualReferenceUnits(report, current)) throw new DomainError("逐场创意接件用于完整解说新片", "PRODUCTION_UNIT_HANDOFF_INVALID");
+        const source = this.repository.getRevision(input.projectId, handoff.inputRevision).snapshot;
+        const event = await buildUnitHandoffEvent(report, source, current, handoff,
+          join(this.getProjectRoot(input.projectId), "reports", "unit-drafts", report.id), sha256File);
+        (report.unitHandoffs ??= []).push(event);
+        report.mcpCommands.push({ name: input.action, revision: handoff.inputRevision, createdAt: now() });
       } else {
         const assignment = input.assignment;
         const responsibilities = ["director", "narration", "asset_sourcing", "creative_research", "visual_design", "motion_research", "review"];
@@ -2704,6 +2719,12 @@ export class EditingApplication {
         if (sceneDocument.projectId !== manifest.projectId || sceneDocument.revision !== manifest.revision
           || JSON.stringify(sceneDocument.scenes) !== JSON.stringify(manifest.scenes)) throw new Error("固定场面文件与清单内容不一致");
         scopeReferenceManifest(manifest, selected);
+        if (requiresVisualReferenceUnits(report, snapshot)) {
+          const current = this.readProject(input.projectId).snapshot;
+          const issues = selected.flatMap(id => unitHandoffDeliveryIssues(report, current, manifest,
+            snapshot.scenes.find(scene => scene.id === id)!, manifest.scenes!.find(scene => scene.sceneId === id)!, [input.assignmentId!]));
+          if (issues.length) throw new ProductionReferenceResearchError(issues);
+        }
         // 研究关联由视觉作者填写，核对同一设计实际消费的研究正文。
         for (const scene of manifest.scenes!.filter(item => selected.includes(item.sceneId))) {
           for (const layer of scene.visualPlan?.researchLayers ?? []) {
@@ -2718,6 +2739,7 @@ export class EditingApplication {
         }
         assertVisualDesign(manifest.scenes!.filter(scene => selected.includes(scene.sceneId)), await readFile(join(manifest.packageRoot, brief.deliveredPath), "utf8"));
       } catch (error) {
+        if (error instanceof ProductionReferenceResearchError) throw error;
         throw new DomainError(`视觉设计交付不可用：${error instanceof Error ? error.message : String(error)}`, "VISUAL_REVISION_DELIVERY_INVALID");
       }
     }
@@ -3303,7 +3325,7 @@ export class EditingApplication {
   }
 
   /** 同时核对项目采用和制作记录中本场的正式视觉修订。 */
-  assertMotionAuthoringInputsCurrent(snapshot: ProjectSnapshot, sceneId: string, inputs: MotionAuthoringTreatmentInput[]): void {
+  assertMotionAuthoringInputsCurrent(snapshot: ProjectSnapshot, sceneId: string, inputs: MotionAuthoringTreatmentInput[], verifyHandoffs = false): void {
     if (!motionAuthoringInputsCurrent(snapshot, inputs)) throw new DomainError("当前采用稿已变化，请重新确认制作输入", "MOTION_AUTHORING_ADOPTION_CHANGED");
     if (!inputs.length) return;
     const scene = snapshot.scenes.find(item => item.id === sceneId);
@@ -3329,6 +3351,22 @@ export class EditingApplication {
       if (!sameVisualDelivery(adoption?.deliveryRef, input.deliveryRef) || !designs.length) {
         throw new DomainError("本场视觉设计与导演采用没有引用同一份固定交付", "MOTION_AUTHORING_ADOPTION_CHANGED");
       }
+      if (verifyHandoffs && requiresVisualReferenceUnits(report, snapshot)) {
+        let delivered: NonNullable<ReferenceManifest["scenes"]>[number] | undefined;
+        let manifest: ReferenceManifest;
+        try {
+          const bytes = readFileSync(input.deliveryRef.manifestPath);
+          if (createHash("sha256").update(bytes).digest("hex") !== input.deliveryRef.manifestSha256) throw new Error("清单指纹已变化");
+          manifest = JSON.parse(bytes.toString("utf8")) as ReferenceManifest;
+          delivered = manifest.scenes?.find(item => item.sceneId === sceneId && item.status === "ready");
+          if (!delivered) throw new Error("清单缺少本场");
+        } catch (error) {
+          throw new DomainError(`当前冻结交付不可用：${String(error)}`, "MOTION_AUTHORING_ADOPTION_CHANGED");
+        }
+        const issues = unitHandoffDeliveryIssues(report, snapshot, manifest, scene, delivered,
+          designs.flatMap(design => design.assignmentId ? [design.assignmentId] : []));
+        if (issues.length) throw new MotionAuthoringCoordinationError(issues);
+      }
     }
   }
 
@@ -3340,14 +3378,14 @@ export class EditingApplication {
       const inputs = (job.payload.authoringInputs ?? []) as MotionAuthoringTreatmentInput[];
       if (input.target.action === "whole_film") {
         for (const entry of job.payload.sceneTargets as MotionAuthoringSceneTarget[]) {
-          this.assertMotionAuthoringInputsCurrent(snapshot, entry.target.sceneId, entry.authoringInputs);
+          this.assertMotionAuthoringInputsCurrent(snapshot, entry.target.sceneId, entry.authoringInputs, true);
           if (motionTargetDependencyHash(snapshot, entry.target, entry.authoringInputs.map(item => item.visualTreatmentId)) !== entry.initialTargetHash) {
             throw new DomainError("整片制作的场面在启动前已变化", "MOTION_AUTHORING_TARGET_CONFLICT");
           }
         }
         return;
       }
-      this.assertMotionAuthoringInputsCurrent(snapshot, String(job.payload.targetSceneId), inputs);
+      this.assertMotionAuthoringInputsCurrent(snapshot, String(job.payload.targetSceneId), inputs, input.target.action === "create_cue");
       const target = input.target.action === "create_cue" ? input.target
         : { action: "replace_cue" as const, cueId: input.target.cueId, audioPolicy: input.target.audioPolicy };
       if (motionTargetDependencyHash(snapshot, target, input.visualTreatmentIds) !== job.payload.initialTargetHash) {
@@ -9075,6 +9113,14 @@ export class EditingApplication {
     return this.submitAvatarSourceGeneration(input);
   }
 
+  abandonUnknownAvatarJob(jobId: Id, reason: string): JobRecord {
+    const detail = reason.trim();
+    if (!detail) throw new DomainError("请填写放弃原因", "AVATAR_ABANDON_REASON_REQUIRED");
+    const job = this.repository.abandonUnknownAvatarJob(jobId, detail);
+    this.publish({ projectId: job.projectId, revision: this.readProject(job.projectId).revision.number, type: "job" });
+    return job;
+  }
+
   /** 已知 Run 继续读取，明确生成失败才允许显式建立一次重生成任务。 */
   resumeAvatarGeneration(jobId: Id): JobRecord {
     const job = this.trackJob(jobId);
@@ -9086,8 +9132,7 @@ export class EditingApplication {
     if (code === "BRIDGE_RUN_FAILED" || code === "BRIDGE_RUN_CANCELLED") {
       return this.repository.createJob({ projectId: job.projectId, kind: job.kind, payload: { ...job.payload, retryOfJobId: job.id }, idempotencyKey: `avatar-recovery:${job.id}` });
     }
-    this.updateJob(job.id, { status: "queued" });
-    return this.trackJob(job.id);
+    return this.updateJob(job.id, { status: "queued" }, job.status);
   }
 
   /**
@@ -10561,8 +10606,8 @@ export class EditingApplication {
     return this.repository.listJobs(projectId);
   }
 
-  updateJob(jobId: Id, input: { status: JobStatus; result?: Record<string, unknown>; error?: string; leaseUntil?: string }): JobRecord {
-    const job = this.repository.updateJob(jobId, input);
+  updateJob(jobId: Id, input: { status: JobStatus; result?: Record<string, unknown>; error?: string; leaseUntil?: string }, expectedStatus?: JobStatus): JobRecord {
+    const job = this.repository.updateJob(jobId, input, expectedStatus);
     const project = this.repository.getProjectRow(job.projectId);
     this.publish({ projectId: job.projectId, revision: project.current_revision_number, type: "job" });
     return job;

@@ -20,6 +20,10 @@ import { MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compile
 import { frozenMotionBundleSchema, importMotionBundle, readFrozenMotionWork } from "../../../packages/edit-application/src/motion-input.js";
 import { prepareReferencePackage, readFrozenAuthorRequest } from "../../../packages/edit-application/src/opendesign-reference-package.mjs";
 import { readReferenceDecision } from "../../../packages/edit-application/src/reference-comparison.js";
+import { requiresVisualReferenceUnits } from "../../../packages/edit-application/src/production-coordination.js";
+import { unitHandoffDeliveryIssues } from "../../../packages/edit-application/src/production-unit-handoff.js";
+import { MotionAuthoringCoordinationError } from "../../../packages/edit-application/src/motion-coordination-error.js";
+import { DomainError } from "@videocut/domain";
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -48,6 +52,7 @@ const handoffSceneSchema = z.object({
       startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(),
       creativeDecisionId: z.string().trim().min(1).optional(),
       creativeDraftId: z.string().trim().min(1).optional(),
+      handoffReceiptId: z.string().trim().min(1).optional(),
       restage: z.object({ resourceId: z.string().trim().min(1), sourceMs: z.number().finite().nonnegative(),
         projectFrame: z.number().int().nonnegative() }).strict().optional()
     }).strict()).optional(),
@@ -88,7 +93,9 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   server.registerTool("prepare_motion_handoff", {
     title: "准备场面制作交付",
     description: "按当前快照固定导演稿、时间资料、真实素材和采用参考。导演稿「发给 OD 的完整请求」先写共用要求，再用三级标题「场面 <实际SceneID>」分场。完整解说新片用 visualPlan.units 关联独立创意拆解、可解码的画面对照及帧段，用 referenceMappings 的 unitId 和 use 关联主参考或辅助，用 sequence.unitId 关联制作步骤。拆解与对照文件通过 references 和场面 resourceIds 随包交付。ready 场面须提供完整构图、连续发展、观看中心、制作权限及参考成片帧段。完整新制与视觉重做用 researchLayers 关联研究。pending 场面可先交接。返回清单、缺口和就绪场面的冻结 authorRequest。",
-    inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), brief_path: z.string().min(1),
+    inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(),
+      production_run_id: z.string().min(1).optional().describe("完整解说新片正式组包须提供当前 Run，逐单元核对视觉接件回执"),
+      brief_path: z.string().min(1),
       timing_plan_path: z.string().min(1), selected_scene_ids: z.array(z.string().min(1)).min(1),
       assets: z.array(z.object({ id: z.string().min(1), path: z.string().optional(), purpose: z.string().min(1),
         sourceStartMs: z.number().nonnegative().optional(), sourceEndMs: z.number().positive().optional() }).strict()).optional(),
@@ -96,9 +103,14 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
       references: z.array(z.object({ id: z.string().min(1), usage: z.enum(["study", "adopted"]), purpose: z.string().min(1),
         files: z.array(z.object({ path: z.string().min(1), deliveredPath: z.string().min(1) }).strict()).min(1) }).strict()).optional(),
       scenes: z.array(handoffSceneSchema).min(1) }
-  }, async ({ project_id, base_revision_id, brief_path, timing_plan_path, selected_scene_ids, assets, creative, motion, references, scenes }) => { try {
+  }, async ({ project_id, base_revision_id, production_run_id, brief_path, timing_plan_path, selected_scene_ids, assets, creative, motion, references, scenes }) => { try {
     const projectId = projectIdFrom(project_id), current = application.readProject(projectId);
     if (current.revision.number !== base_revision_id) throw new Error("项目 Revision 已变化，请读取当前项目后准备交付");
+    if (!production_run_id && scenes.some(scene => scene.status === "ready" && scene.visualPlan?.units?.length)) {
+      throw new DomainError("含逐单元照排的正式组包需要当前制作 Run", "PRODUCTION_UNIT_HANDOFF_RUN_REQUIRED");
+    }
+    const report = production_run_id ? await application.readSkillExecutionReport({ projectId, runId: production_run_id }) : undefined;
+    const verifyHandoffs = report && requiresVisualReferenceUnits(report, current.snapshot);
     const handoffId = randomUUID();
     const output = join(current.snapshot.project.rootPath, "reports", "motion-handoffs", handoffId);
     await mkdir(output, { recursive: true });
@@ -109,8 +121,25 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
       creative, motion, references, scenes }, output);
     const manifestPath = join(output, "delivery-manifest.json");
     const manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");
+    if (verifyHandoffs) {
+      const latest = application.readProject(projectId);
+      if (latest.revision.number !== base_revision_id) throw new DomainError("组包期间项目版本变化，请按当前输入重新准备", "PRODUCTION_AUDIT_CONFLICT");
+      const liveReport = await application.readSkillExecutionReport({ projectId, runId: report.id });
+      const issues = selected_scene_ids.flatMap(id => {
+        const scene = latest.snapshot.scenes.find(item => item.id === id);
+        const delivered = manifest.scenes?.find(item => item.sceneId === id);
+        if (scene && delivered?.status === "ready") return unitHandoffDeliveryIssues(liveReport, latest.snapshot, manifest, scene, delivered);
+        return [{ code: "VISUAL_SCENE_HANDOFF_NOT_READY", scope: { kind: "objects" as const, objectIds: [id] },
+          state: "pending" as const, relatedDecisionIds: [], relatedObjectIds: [id],
+          message: `「${scene?.title ?? id}」尚未具备正式交付：${delivered?.diagnostics?.join("、") || "本场待补"}`,
+          nextAction: "读取本场接件状态，交回对应作者补齐，只选当前就绪场面准备正式包" }];
+      });
+      if (issues.length) throw new MotionAuthoringCoordinationError(issues);
+    }
     const readySceneIds = manifest.scenes?.filter(scene => scene.status === "ready").map(scene => scene.sceneId) ?? [];
-    const authorRequest = await readFrozenAuthorRequest(manifest, manifestPath, readySceneIds);
+    // 未绑定 Run 的解说包可以检查素材，正式请求须在 Run 下确定范围。
+    const authorRequest = current.snapshot.project.profile === "visual_explainer" && !report
+      ? undefined : await readFrozenAuthorRequest(manifest, manifestPath, readySceneIds);
     return result({ projectId, inputRevision: base_revision_id, manifestPath, manifestSha256, selectedSceneIds: manifest.selectedSceneIds,
       ...(authorRequest ? { authorRequest: { ...authorRequest, manifestPath, manifestSha256, sceneIds: readySceneIds } } : {}),
       scenes: manifest.scenes, diagnostics: manifest.diagnostics,

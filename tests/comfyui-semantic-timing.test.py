@@ -19,7 +19,7 @@ def load_content(name):
     parsed = ast.parse(SOURCE.read_text(encoding="utf-8"))
     function = next(node for node in parsed.body if isinstance(node, ast.FunctionDef) and node.name == name)
     module = ast.fix_missing_locations(ast.Module(body=[function], type_ignores=[]))
-    namespace = {"math": math, "av": av, "np": np}
+    namespace = {"math": math, "av": av, "np": np, "Fraction": Fraction}
     exec(compile(module, str(SOURCE), "exec"), namespace)
     return namespace[name]
 
