@@ -270,6 +270,19 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const root = join(skillsRoot, directory!);
     if (existsSync(root)) await app.register(staticPlugin, { root, prefix, decorateReply: false });
   }
+  // 0.1.92 教学直接复用仓库中的正式成片与对应资料。
+  const aiBrakesTeachingRoot = resolve(process.cwd(), "deliveries/0.1.92版成功动效案例");
+  if (existsSync(aiBrakesTeachingRoot)) {
+    const publicTeachingFiles = new Set([
+      "/《AI的油门与刹车》R144原版成片.mp4",
+      "/01_导演创意与各角色编排复盘.md",
+      "/02_导演与声音字幕原始交付/current-av-script.md",
+      "/03_视觉美术动效原始交付/materials.md",
+      "/03_视觉美术动效原始交付/AiBrakes.tsx"
+    ]);
+    await app.register(staticPlugin, { root: aiBrakesTeachingRoot, prefix: "/teaching/ai-brakes/", decorateReply: false,
+      allowedPath: path => publicTeachingFiles.has(path) });
+  }
   app.get("/api/library/reference-info", async request => {
     const query = z.object({ kind: z.enum(["creative", "motion"]), id: z.string().regex(/^\d{3}-[cm]\d{2}$/u) }).strict().parse(request.query);
     const options = { id: query.id, include_storyboard: false };

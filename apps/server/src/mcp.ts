@@ -2747,7 +2747,7 @@ server.registerTool("start_production_run", {
 
 server.registerTool("update_production_run", {
   title: "更新制作职责与范围",
-  description: "登记分派、接替、任务目标和逐单元交接。record_unit_handoff 的 submit_draft 依据登记原句和 replacements 生成固定换料稿，也可登记视觉试摆接收或退回。使用当前审计版本和稳定操作编号，回读 unitHandoffs。",
+  description: "登记分派、接替、任务目标和逐单元交接。record_unit_handoff 的 submit_draft 原样冻结作者提交的本片正文与素材绑定，按采用方式关联原片观察。视觉作者登记同版试摆接收或退回。使用当前审计版本和稳定操作编号，回读 unitHandoffs。",
   inputSchema: {
     project_id: z.string().optional(), run_id: z.string().min(1), expected_audit_version: z.number().int().positive(), operation_id: productionOperationIdSchema,
     action: z.enum(["update_scope", "add_assignment", "replace_assignment", "select_delivery_artifact", "record_unit_handoff"]), completion_scope: productionCompletionScopeSchema.optional(), reason: z.string().optional(), artifact_id: z.string().min(1).optional(),
@@ -2769,7 +2769,7 @@ server.registerTool("update_production_run", {
       return asText(await application.updateProductionRun({ ...base, action: input.action, artifactId: input.artifact_id }));
     }
     if (input.action === "record_unit_handoff") {
-      if (!input.handoff) throw new DomainError("请交回具体单元的换料正文或视觉接件结果", "PRODUCTION_UNIT_HANDOFF_INVALID");
+      if (!input.handoff) throw new DomainError("请交回具体单元的本片正文或视觉接件结果", "PRODUCTION_UNIT_HANDOFF_INVALID");
       return asText(await application.updateProductionRun({ ...base, action: input.action, handoff: input.handoff }));
     }
     if (!input.assignment) throw new DomainError("分派信息缺失", "PRODUCTION_ASSIGNMENT_INVALID");

@@ -64,7 +64,7 @@ async function fixture(directory:string){
   for(const card of cards){
     const metadata={...card,video:'../video.mp4',clip:`c0${card.id.at(-1)}.mp4`,storyboard:`../storyboards/c0${card.id.at(-1)}.png`} as Record<string,unknown>;
     delete metadata.card;
-    await writeFile(join(directory,card.card),'---\n'+Object.entries(metadata).map(([key,value])=>`${key}: ${JSON.stringify(value)}`).join('\n')+'\n---\n\n## 原画面具体怎样设计\n主体保持参照。\n\n## 为什么这样设计，好在哪里\n观众逐步发现关系。\n\n## 可直接使用的创意指令\n最后展开完整结果。\n');
+    await writeFile(join(directory,card.card),'---\n'+Object.entries(metadata).map(([key,value])=>`${key}: ${JSON.stringify(value)}`).join('\n')+'\n---\n\n## 原画面具体怎样设计\n主体保持参照，最后展开完整结果。\n\n## 为什么这样设计，好在哪里\n观众逐步发现关系。\n\n### 后续核对记录\n原速声音仍待核。\n');
   }
   await writeFile(join(directory,cards[0].storyboard),Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jwzQAAAAASUVORK5CYII=','base64'));
   return cards;
@@ -174,7 +174,8 @@ test("单卡更新只重算该卡，模型变更重建向量，运行期间资�
     assert.equal(old.diagnostics.instruction_version,'previous');assert.equal(old.diagnostics.encoded_texts,3);
     const missingSnapshot=app.repository.createJob({projectId,kind:'creative_library_search',idempotencyKey:'missing-snapshot',payload:{request:{query:'旧任务'},source_sha256:loadCreativeIndex(library).source_sha256}});
     await assert.rejects(searchCreativeLibrary(app,missingSnapshot,bridge,library),{code:'LIBRARY_INSTRUCTION_SNAPSHOT_MISSING'});
-    const path=join(library,cards[0].card);await writeFile(path,(await readFile(path,'utf8'))+'新增材料改变观看方式。\n');
+    const path=join(library,cards[0].card);
+    await writeFile(path,(await readFile(path,'utf8')).replace('主体保持参照，','新增材料改变观看方式。主体保持参照，'));
     const changed=await searchCreativeLibrary(app,job('changed'),bridge,library) as Record<string,any>;
     assert.equal(changed.diagnostics.encoded_texts,1);assert.equal(changed.diagnostics.cache_hits,2);
     const model=await searchCreativeLibrary(app,job('model','other-model'),bridge,library) as Record<string,any>;

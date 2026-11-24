@@ -85,69 +85,53 @@ test("默认前期资料不直连历史案例，动画交接仍可到达机制�
   assert.ok(links('motion-case-library/SKILL.md').includes('references/validated-index.md'),'用户明确请求的历史分支仍保留');
 });
 
-test("素材和参考参与共同编排，完整指令及画面限制交到制作与返修", () => {
-  const director=read('.agents/skills/production-director/SKILL.md');
-  const creative=read('.agents/skills/creative-sequence-design/SKILL.md');
-  const visual=read('.agents/skills/visual-treatment-planning/SKILL.md');
-  const brief=read('.agents/skills/opendesign-shot-brief/SKILL.md');
-  const production=read('.agents/skills/opendesign-video-production/SKILL.md');
-  const library=read('.agents/skills/creative-case-library/SKILL.md');
-  const explainer=read('.agents/skills/visual-explainer-director/references/explanation-design.md');
-  assert.match(library,/## 根据当前内容和材料写查询[\s\S]*打开本场素材[\s\S]*自然语言查询[\s\S]*读回并比较实际语义候选[\s\S]*用同一批本片素材试摆有竞争力的候选[\s\S]*按实料能承接的范围定段/u);
+test("创意从实料和原片获得观看关系，视觉按同一本片稿交 OD", () => {
+  const director = read(".agents/skills/production-director/SKILL.md");
+  const creative = read(".agents/skills/creative-sequence-design/SKILL.md");
+  const visual = read(".agents/skills/visual-treatment-planning/SKILL.md");
+  const brief = read(".agents/skills/opendesign-shot-brief/SKILL.md");
+  const production = read(".agents/skills/opendesign-video-production/SKILL.md");
+  const library = read(".agents/skills/creative-case-library/SKILL.md");
+  assert.match(library, /根据当前内容和材料写查询[\s\S]*打开本场代表素材[\s\S]*跨题材的自然语言查询[\s\S]*read_creative_case[\s\S]*原速连续看原片/u);
   assert.match(creative, /creative-case-library\/SKILL\.md#根据当前内容和材料写查询/u);
-  assert.match(director,/首次逐场检索时，主导演交[^\n]*本场已取得的代表素材、全片可选素材入口/u);
-  const adoption=director.split("### 早期叙事记录与正式画面采用")[1]?.split("\n### ")[0];
-  assert.ok(adoption);
-  assert.match(adoption,/`story`[\s\S]*自行设想的布局[^\n]*不得写入[\s\S]*`creative_research`[\s\S]*视觉作者完成复摆[\s\S]*`visual_design`[\s\S]*`adoption`，引用视觉作者确认的同一份设计与交付清单/u);
-  assert.match(explainer,/参考原有的大字或色面可以在对应时刻接管全屏[\s\S]*不得因旁白抽象或现有素材暂缺，自行将整场改成原创图解/u);
-  assert.match(visual,/explanation-design\.md#素材主导与图形规则/u);
-  assert.match(director,/先打开代表素材，再做跨题材语义检索[^\n]*试摆后确定[^\n]*视觉作者按现有照排方法完成各场复摆/u);
-  assert.match(creative,/接回独立创意原稿[\s\S]*将已确认的演出写入同一份视觉导演稿/u);
-  assert.match(creative,/原片可辨认的美术、布局、运动关系及本片采用理由/u);
-  assert.match(visual,/「示例」「说明」「来源」「示意」等字样禁止出现在任何画面中/u);
-  assert.match(visual,/换词后作用相同的标签/u);
-  assert.match(visual,/检查实际使用的全部源段[\s\S]*裁切或遮挡/u);
-  assert.match(brief,/参考研究[\s\S]*制作首版[\s\S]*素材/u);
-  assert.match(production,/先读完冻结的整片请求和时间计划[^\n]*再打开各场采用的参考原段、复摆对照和对应素材/u);
-  assert.match(production,/opendesign_request\.continue_from_run_id/u);
+  assert.match(creative, /完整新片从自主研究开始[\s\S]*用本片材料试演[\s\S]*写完整创意原稿/u);
+  assert.doesNotMatch(creative + library, /完整照排指令|原样取出.*各拍/u);
+  assert.match(director, /准确文案及当前锁定状态、整片主线与场面作用[\s\S]*同版时间计划[\s\S]*真实旁白/u);
+  assert.match(visual, /整片。[\s\S]*场间。[\s\S]*场内。[\s\S]*同一范围的导演稿和时间计划/u);
+  assert.match(visual, /explanation-design\.md#素材主导与图形规则/u);
+  assert.match(visual, /「示例」「说明」「来源」「示意」等字样禁止出现在任何画面中/u);
+  assert.match(visual, /换词后作用相同的标签/u);
+  assert.match(visual, /检查实际使用的全部源段[\s\S]*裁切或遮挡/u);
+  assert.match(brief, /首个可播放的动态作品/u);
+  assert.match(production, /冻结导演稿、时间计划、采用参考和本片实际素材/u);
+  assert.match(production, /opendesign_request\.continue_from_run_id/u);
 });
 
-test("视觉作者交导演稿，OD 制作首版并沿同一作品返修", () => {
-  const visual=read('.agents/skills/visual-treatment-planning/SKILL.md');
-  const creative=read('.agents/skills/creative-sequence-design/SKILL.md');
-  const production=read('.agents/skills/opendesign-video-production/SKILL.md');
-  const handoff=read('.agents/skills/_shared/SCENE_DESIGN_HANDOFF.md');
-  const versions=read('.agents/skills/_shared/PROJECT_REVISION_AND_HANDOFF.md');
-  assert.match(visual,/视觉作者，从完整制作的第一轮开始参与/u);
-  assert.match(visual,/交付可执行视觉导演稿，由主导演采用，OD 直接制作第一版/u);
-  assert.match(visual,/首版回来后[\s\S]*视觉返修并复查/u);
-  assert.match(creative,/确定采用区间[\s\S]*检查其他拍是否依赖本片缺少[\s\S]*采用范围各拍需要的素材和文字均落实后才交正式稿/u);
-  assert.match(handoff,/导演确认后，OD 直接制作第一版画面/u);
-  assert.match(production,/OD 是第一版可播放画面的制作作者/u);
-  assert.match(versions,/第一次登记时记录真实 Work、Run、冻结版和根时钟/u);
+test("完整原段的证据、实料试摆和出首版分别由原作者承接", () => {
+  const creative = read(".agents/skills/creative-sequence-design/SKILL.md");
+  const transfer = read(".agents/skills/creative-reference-to-sequence/references/full-reference-transfer.md");
+  const visual = read(".agents/skills/visual-treatment-planning/SKILL.md");
+  const production = read(".agents/skills/opendesign-video-production/SKILL.md");
+  const versions = read(".agents/skills/_shared/PROJECT_REVISION_AND_HANDOFF.md");
+  assert.match(creative, /按所选方式交稿[\s\S]*full-reference-transfer\.md/u);
+  assert.match(transfer, /原速看完采用段[\s\S]*干净原帧[\s\S]*按本片动作和旁白[\s\S]*同状态对位/u);
+  assert.match(visual, /首轮即打开本片已有实料[\s\S]*同版原稿[\s\S]*试最难的一次共存、接管或跨场接续/u);
+  assert.match(production, /OD 是第一版可播放画面的制作作者/u);
+  assert.match(versions, /第一次登记时记录真实 Work、Run、冻结版和根时钟/u);
 });
 
-test("完整新制的参考、素材和视觉并行续接，并以完整映射交给制作", () => {
-  const routing=read('.agents/skills/production-coordinator/references/task-routing.md');
-  const transfer=read('.agents/skills/creative-reference-to-sequence/SKILL.md');
-  const brief=read('.agents/skills/opendesign-shot-brief/SKILL.md');
-  const production=read('.agents/skills/opendesign-video-production/SKILL.md');
-  const parallel=routing.split('## 完整新制的并行路由')[1]?.split('## 让材料与预览回到当前完整稿')[0];
-  // 检查各作者与并行回溯能力，不把分派列表的书写顺序当成执行先后。
-  assert.match(parallel!,/文案作者：[^\n]*narration-writing/);
-  assert.match(parallel!,/apply_authored_script[\s\S]*read_script[\s\S]*read_impact_report/);
-  assert.match(parallel!,/record_creative_decision[^\n]*assignment_id[^\n]*input_revision[^\n]*evidence/);
-  assert.match(parallel!,/素材作者：visual-asset-sourcing/);
-  assert.match(parallel!,/创意作者：[^\n]*creative-case-library[^\n]*creative-sequence-design[^\n]*写本片替换前实际读完[^\n]*creative-reference-to-sequence/u);
-  const firstAssignment=parallel!.split('### 首轮分派')[1]!.split('### 选片后按场续接与交稿')[0]!;
-  const continuation=parallel!.split('### 选片后按场续接与交稿')[1]!.split('### 持续接回与交叉传递')[0]!;
-  assert.match(firstAssignment,/本场代表素材分批发出[^\n]*全片可选素材入口[\s\S]*先打开本场素材[^\n]*读回语义候选[^\n]*用本片素材试摆后再确定/u);
-  assert.match(firstAssignment,/视觉作者：[^\n]*看已有素材[^\n]*补材条件[^\n]*候选返回后并行看片/u);
-  assert.match(continuation,/submit_draft[\s\S]*固定稿[\s\S]*续派给同一位视觉作者/);
-  assert.match(continuation,/accept_draft[\s\S]*read_production_status[\s\S]*停在 .prepare_motion_handoff./);
-  assert.match(parallel!,/缺素材[^。]*交原素材作者[^。]*续接原创意作者/u);
-  assert.match(parallel!,/已就绪且不依赖缺口的范围可以继续推进/);
-  assert.match(transfer,/创意卡 ID、来源指纹、原片路径和采用范围[\s\S]*本片实际素材 Asset ID[\s\S]*视频源段或静图取景[\s\S]*原参考对象与本片视觉角色的映射/u);
-  assert.match(brief,/每项素材交 Asset ID[^\n]*视频、录屏及人物镜头交可用源段[^\n]*照片、截图和插画交可取区域/u);
-  assert.match(production,/prepare_motion_handoff[\s\S]*base_revision_id[\s\S]*visualPlan/);
+test("独立派工、同稿回读和按任务逐步加载的教学入口均可达", () => {
+  const routing = read(".agents/skills/production-coordinator/references/task-routing.md");
+  const writes = read(".agents/skills/production-coordinator/references/project-writes.md");
+  const visual = read(".agents/skills/visual-treatment-planning/SKILL.md");
+  const creative = read(".agents/skills/creative-sequence-design/SKILL.md");
+  const art = read(".agents/skills/visual-treatment-planning/references/art-direction.md");
+  assert.match(routing, /文案作者：[^\n]*narration-writing/u);
+  assert.match(routing, /素材作者：visual-asset-sourcing/u);
+  assert.match(routing, /给创意作者[\s\S]*给视觉作者[\s\S]*分派独立的创意和视觉作者/u);
+  assert.match(routing, /submit_draft[\s\S]*固定稿[\s\S]*续派给同一位视觉作者/u);
+  assert.match(writes, /submit_draft[\s\S]*mode、body 和 assets[\s\S]*accept_draft[\s\S]*unitHandoffs[\s\S]*visualPlan\.units/u);
+  assert.match(creative, /创意研究必读案例[\s\S]*首次研究的原速对照/u);
+  assert.match(visual, /视觉创意研究必读案例[\s\S]*首次研究的原速对照[\s\S]*动效编排必读案例[\s\S]*首次编排的原速练习/u);
+  assert.match(art, /用真实素材组织完整段落的案例[\s\S]*0\.1\.92[\s\S]*AiBrakes\.tsx/u);
 });

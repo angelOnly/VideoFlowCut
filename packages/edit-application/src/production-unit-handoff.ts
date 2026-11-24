@@ -58,58 +58,49 @@ export function readUnitHandoff(report: SkillExecutionReport, snapshot: ProjectS
   const visual = unitHandoffOwners(report, snapshot, scene, draft ?? scene, "visual_design");
   const base = { sceneId: scene.id, unitId, draft };
   if (!draft) return { ...base, status: "waiting_for_draft" as const, assignmentId: creative[0]?.assignmentId, gap: undefined,
-    nextAction: "读取选段和实际素材，续接创意作者完成本单元换料正文" };
-  if (!unitDraftMatchesSnapshot(draft, snapshot) || !creative.some(owner => owner.assignmentId === draft.assignmentId)) {
+    nextAction: "续接创意作者提交本单元的本片正文与素材绑定" };
+  if (!draft.mode || !unitDraftMatchesSnapshot(draft, snapshot) || !creative.some(owner => owner.assignmentId === draft.assignmentId)) {
     return { ...base, status: "waiting_for_draft" as const, assignmentId: creative[0]?.assignmentId,
-      gap: "本场范围、素材或创意负责者已变化", nextAction: "按当前输入重新提交本单元换料正文" };
+      gap: draft.mode ? "本场范围、素材或创意负责者已变化" : "本单元仍使用旧换料稿，须提交作者本片正文",
+      nextAction: "按当前输入重新提交该单元" };
   }
   if (response?.action === "return_draft") return { ...base, status: "returned" as const,
-    assignmentId: draft.assignmentId, gap: response.gap, sourceMs: response.sourceMs, impact: response.impact,
+    assignmentId: draft.assignmentId, gap: response.gap, sourceMs: response.sourceMs, projectFrame: response.projectFrame, impact: response.impact,
     nextAction: "续接创意作者补稿，需要时补材或重选原段，补完后重新交视觉试摆" };
   if (response?.action === "accept_draft" && visual.some(owner => owner.assignmentId === response.assignmentId)) {
     return { ...base, status: "accepted" as const, assignmentId: response.assignmentId, receipt: response,
       nextAction: "沿同版原稿完成正式视觉编排，将回执和试摆依据纳入本场制作包" };
   }
   return { ...base, status: "waiting_for_visual" as const, assignmentId: visual[0]?.assignmentId,
-    nextAction: "将固定正文、原片和本片素材交视觉作者试摆" };
+    nextAction: "将固定正文、本片素材与实际参考交视觉作者试摆" };
 }
 
 type DraftSubmission = Extract<ProductionUnitHandoffInput, { action: "submit_draft" }>;
-type ObservedBeat = { startMs: number; endMs: number; observedRelation: string };
-const slotPattern = /【([^【】\s]+)】/gu;
 
-function inlineMarkdown(value: string): string {
-  return value.replace(/[\r\n]+/gu, " ").replace(/[\\`*_{}[\]()<>|~&!]/gu, "\\$&");
-}
-
-function draftBeats(observations: ObservedBeat[], input: DraftSubmission): ObservedBeat[] {
-  const { startMs, endMs } = input.reference;
-  const beats = observations.filter(beat => beat.endMs > startMs && beat.startMs < endMs)
-    .sort((a, b) => a.startMs - b.startMs);
-  if (endMs <= startMs || beats.some(beat => beat.startMs < startMs || beat.endMs > endMs)
-    || missingReviewRanges(beats.map(beat => ({ startFrame: beat.startMs, endFrame: beat.endMs })), startMs, endMs).length) {
-    invalid("采用区间缺少完整覆盖的已登记原句；请按实际采用边界登记原片各拍");
+function validateDraftReference(report: SkillExecutionReport, current: ProjectSnapshot, scene: Scene,
+  input: DraftSubmission, creativeDecisionId: string): void {
+  const source = input.reference;
+  if (input.mode === "original") {
+    if (source) invalid("自主创作的采用参考请在研究和导演稿映射中关联");
+    return;
   }
-  return beats;
-}
-
-function checkReplacementNames(beats: ObservedBeat[], replacements: DraftSubmission["replacements"]) {
-  const slots = new Map<string, number>();
-  for (const beat of beats) {
-    if (/[【】]/u.test(beat.observedRelation.replace(slotPattern, ""))) invalid(`原片 ${beat.startMs} 毫秒的替换标记格式无效，请使用【名称】`);
-    for (const match of beat.observedRelation.matchAll(slotPattern)) {
-      const name = match[1]!;
-      if (!slots.has(name)) slots.set(name, beat.startMs);
-    }
+  if (!source || source.endMs <= source.startMs || input.mode === "local_mechanism" && source.kind !== "motion") {
+    invalid("完整迁移须有有效原片区间，局部机制须有有效机制原片区间");
   }
-  const names = new Set<string>();
-  for (const { name } of replacements) {
-    if (!slots.has(name)) invalid(`采用区间没有替换项【${name}】`);
-    if (names.has(name)) invalid(`替换项【${name}】只能填写一次`);
-    names.add(name);
+  const phase = source.kind === "creative" ? "creative_research" : "motion_research";
+  const research = report.creativeDecisions.find(item => item.id === source.researchDecisionId && item.phase === phase);
+  if (!research || research.researchOutcome === "not_applicable"
+    || !visualScopeSceneIds(current, research.objectIds).includes(scene.id)
+    || source.kind === "creative" && research.id !== creativeDecisionId
+    || !unitHandoffOwners(report, current, scene, input, phase).some(owner => owner.assignmentId === research.assignmentId)) {
+    invalid("所选原段缺少本单元可追溯的实际研究和原片范围");
   }
-  for (const [name, startMs] of slots) {
-    if (!names.has(name)) invalid(`原片 ${startMs} 毫秒缺少替换项【${name}】`);
+  const ranges = (research.researchReferences ?? []).flatMap(item => item.kind === source.kind && item.id === source.id
+    && item.sourceSha256 === source.sourceSha256 && item.observedRelation?.trim() && item.startMs !== undefined && item.endMs !== undefined
+    ? [{ startFrame: item.startMs, endFrame: item.endMs }] : []);
+  const missing = missingReviewRanges(ranges, source.startMs, source.endMs);
+  if (missing.length) {
+    invalid(`采用原段缺少实际观察：${missing.map(range => `${range.startFrame}–${range.endFrame} ms`).join("、")}`);
   }
 }
 
@@ -133,67 +124,51 @@ export async function buildUnitHandoffEvent(report: SkillExecutionReport, inputS
 
   if (input.action === "submit_draft") {
     const creative = report.creativeDecisions.find(item => item.id === input.creativeDecisionId && item.phase === "creative_research");
-    const referencePhase = input.reference.kind === "creative" ? "creative_research" : "motion_research";
-    const reference = report.creativeDecisions.find(item => item.id === input.reference.researchDecisionId && item.phase === referencePhase);
     if (!creative || creative.assignmentId !== assignment.assignmentId || creative.researchOutcome === "not_applicable"
-      || !visualScopeSceneIds(current, creative.objectIds).includes(scene.id) || !reference || reference.researchOutcome === "not_applicable"
-      || !visualScopeSceneIds(current, reference.objectIds).includes(scene.id)
-      || input.reference.kind === "creative" && reference.id !== creative.id
-      || !unitHandoffOwners(report, current, scene, range, referencePhase).some(owner => owner.assignmentId === reference.assignmentId)) {
-      invalid("所选原段缺少本单元可追溯的实际研究和原片范围");
+      || !visualScopeSceneIds(current, creative.objectIds).includes(scene.id)) {
+      invalid("本片创意原稿缺少本单元原作者的研究记录");
     }
-    const observations = (reference.researchReferences ?? []).flatMap(source => source.kind === input.reference.kind
-      && source.id === input.reference.id && source.sourceSha256 === input.reference.sourceSha256
-      && source.startMs !== undefined && source.endMs !== undefined && source.observedRelation?.trim()
-      ? [{ startMs: source.startMs, endMs: source.endMs, observedRelation: source.observedRelation }] : []);
-    const beats = draftBeats(observations, input);
-    checkReplacementNames(beats, input.replacements);
-    const values = new Map<string, string>();
+    if (!input.body.trim()) invalid("请提交原创意作者实际写出的本片正文");
+    validateDraftReference(report, current, scene, input, creative.id);
+
     const assets: ProductionUnitDraft["assets"] = [];
-    for (const replacement of input.replacements) {
-      const { name } = replacement;
-      if (replacement.kind === "text") {
-        values.set(name, inlineMarkdown(replacement.text));
-        continue;
-      }
-      const { assetId, sourceRange } = replacement;
+    for (const { assetId, sourceRange } of input.assets) {
       const asset = inputSnapshot.assets.find(item => item.id === assetId);
       const live = current.assets.find(item => item.id === assetId);
       if (!asset || !live || live.status !== "ready" || asset.status !== "ready" || !asset.sourceHash || live.sourceHash !== asset.sourceHash
         || !["image", "video", "actor_video"].includes(asset.kind)
         || !(await stat(resolve(current.project.rootPath, live.managedPath)).catch(() => undefined))?.isFile()) {
-        invalid(`替换项【${name}】的素材 ${assetId} 未取得或已变化`);
+        invalid(`素材 ${assetId} 未取得或已变化`);
       }
       if (asset.kind !== "image" && (!sourceRange || sourceRange.endMs <= sourceRange.startMs
         || asset.metadata?.durationMs !== undefined && sourceRange.endMs > asset.metadata.durationMs)
-        || asset.kind === "image" && sourceRange) invalid(`替换项【${name}】的素材 ${assetId} 源段不成立`);
+        || asset.kind === "image" && sourceRange) invalid(`素材 ${assetId} 源段不成立`);
       assets.push({ assetId, sourceRange, sourceHash: asset.sourceHash });
-      const segment = sourceRange ? `，源段 ${sourceRange.startMs}–${sourceRange.endMs} ms` : "";
-      values.set(name, `${inlineMarkdown(asset.name)}（Asset ID \`${assetId}\`${segment}）`);
     }
-    // 只替换标记，原句里的构图、排印和动作随原片时刻直接进入固定稿。
-    const paragraphs = beats.map(beat => `**原片 ${beat.startMs}–${beat.endMs} ms**\n\n${beat.observedRelation.replace(slotPattern, (_, name: string) => values.get(name)!)}`);
-    const body = `### 单元 ${input.unitId}\n\n${paragraphs.join("\n\n")}\n`;
+    // 研究记录保存原片证据，固定稿原样保存作者在本片作出的演出决定。
+    const body = input.body;
     const id = `unit_draft_${randomUUID()}`;
     const path = join(directory, `${id}.md`);
     await mkdir(directory, { recursive: true });
     await writeFile(path, body, { encoding: "utf8", flag: "wx" });
     return { action: input.action, draft: { id, sceneId: scene.id, unitId: input.unitId, startFrame: input.startFrame, endFrame: input.endFrame,
       assignmentId: assignment.assignmentId, inputRevision: input.inputRevision, creativeDecisionId: creative.id,
-      reference: input.reference, assets, path, sha256: createHash("sha256").update(body).digest("hex") } };
+      mode: input.mode, ...(input.reference ? { reference: input.reference } : {}), assets, path, sha256: createHash("sha256").update(body).digest("hex") } };
   }
 
-  if (!submitted) invalid("视觉接件须引用已登记的换料稿");
+  if (!submitted) invalid("视觉接件须引用已登记的本片原稿");
   const state = readUnitHandoff(report, current, scene, submitted.unitId);
   if (state.draft?.id !== submitted.id || state.status === "waiting_for_draft" || state.status === "returned"
     || assignment.agentId === report.assignments.find(item => item.assignmentId === submitted.assignmentId)?.agentId
-    || input.inputRevision < submitted.inputRevision) invalid("换料稿已退回、已被替换或与当前独立作者分派不符");
-  if (input.sourceMs < submitted.reference.startMs || input.sourceMs >= submitted.reference.endMs) invalid("试摆原片时刻超出采用区间");
+    || input.inputRevision < submitted.inputRevision) invalid("本片原稿已退回、已被替换或与当前独立作者分派不符");
+  const source = submitted.reference;
+  if (source && (input.sourceMs === undefined || input.sourceMs < source.startMs || input.sourceMs >= source.endMs)
+    || !source && input.sourceMs !== undefined) invalid("原片对照时刻须落在本单元采用区间内");
+  if (input.projectFrame < submitted.startFrame || input.projectFrame >= submitted.endFrame) invalid("本片核对帧位超出单元区间");
   if (input.action === "return_draft") return input;
-  if (input.projectFrame < submitted.startFrame || input.projectFrame >= submitted.endFrame) invalid("试摆本片帧位超出单元区间");
   const comparisonPath = resolve(input.comparisonPath);
   if (!/^\.(?:jpeg|jpg|png|webp|mp4|m4v|mov|webm|ogv)$/iu.test(extname(comparisonPath))) invalid("视觉接件需要图片或视频对照");
-  if (await hashFile(submitted.path).catch(() => "") !== submitted.sha256) invalid("固定的换料稿不可读取或内容已变");
+  if (await hashFile(submitted.path).catch(() => "") !== submitted.sha256) invalid("固定的本片原稿不可读取或内容已变");
   const comparisonSha256 = await hashFile(comparisonPath).catch(() => invalid("无法打开视觉试摆对照"));
   return { ...input, id: `unit_receipt_${randomUUID()}`, comparisonPath, comparisonSha256 };
 }
@@ -207,7 +182,7 @@ export function unitHandoffDeliveryIssues(report: SkillExecutionReport, snapshot
     code: "VISUAL_UNIT_HANDOFF_REQUIRED", scope: { kind: "objects", objectIds: [scene.id] }, state: "missing",
     assignmentId: unitHandoffOwners(report, snapshot, scene, scene, "visual_design")[0]?.assignmentId,
     relatedDecisionIds: [], relatedObjectIds: [scene.id], message: `「${scene.title}」${message}`,
-    nextAction: "交回本场所有主要单元的当前换料正文和视觉接件"
+    nextAction: "交回本场所有主要单元的当前本片正文和视觉接件"
   });
   if (!units.length || new Set(units.map(unit => unit.id)).size !== units.length
     || units.some((unit, index) => unit.startFrame !== (units[index - 1]?.endFrame ?? scene.startFrame)
@@ -221,17 +196,29 @@ export function unitHandoffDeliveryIssues(report: SkillExecutionReport, snapshot
         relatedDecisionIds: state.draft ? [state.draft.creativeDecisionId] : [],
         relatedObjectIds: [scene.id], message: `「${scene.title} / ${unit.title}」${message}`, nextAction }];
     if (state.status === "waiting_for_draft") return issue("VISUAL_UNIT_HANDOFF_DRAFT_REQUIRED",
-      state.gap ?? "尚未收到正式换料正文", "续接该场创意作者提交实际换料正文");
+      state.gap ?? "尚未收到正式本片正文", "续接该场创意作者提交实际本片正文");
     if (state.status === "returned") return issue("VISUAL_UNIT_HANDOFF_RETURNED",
-      `原片 ${state.sourceMs} 毫秒：${state.gap}。影响：${state.impact}`, "由原作者补材、补稿或重选原段后重新交件");
+      `本片 F${state.projectFrame}${state.sourceMs === undefined ? "" : `，原片 ${state.sourceMs} ms`}：${state.gap}。影响：${state.impact}`,
+      "由原作者核对对应素材和画面后重新交件");
     if (state.status === "waiting_for_visual") return issue("VISUAL_UNIT_HANDOFF_REVIEW_REQUIRED",
       "视觉作者尚未试摆接收本版正文", "交视觉作者按本版正文试摆并登记接件结果");
     const { draft, receipt } = state;
-    if (!draft) return [pending("缺少回执对应的换料稿")];
-    const primary = plan?.referenceMappings?.filter(item => item.unitId === unit.id && item.use === "primary") ?? [];
-    const reference = delivered.references?.find(item => item.id === draft.reference.id && item.kind === draft.reference.kind
-      && item.sourceSha256 === draft.reference.sourceSha256 && item.startMs === draft.reference.startMs && item.endMs === draft.reference.endMs);
-    const mapping = primary[0];
+    if (!draft) return [pending("缺少回执对应的本片原稿")];
+    const mappings = plan?.referenceMappings?.filter(item => item.unitId === unit.id) ?? [];
+    const primaries = mappings.filter(item => item.use === "primary");
+    const source = draft.reference;
+    const reference = source && delivered.references?.find(item => item.id === source.id && item.kind === source.kind
+      && item.sourceSha256 === source.sourceSha256 && item.startMs === source.startMs && item.endMs === source.endMs);
+    const mapping = reference && mappings.find(item => item.referenceId === reference.id && item.referenceKind === reference.kind
+      && item.startMs === reference.startMs && item.endMs === reference.endMs
+      && item.researchDecisionId === source?.researchDecisionId && item.preserveRelation?.trim() && item.treatment?.trim()
+      && item.targetRange && item.targetRange.startFrame >= unit.startFrame && item.targetRange.endFrame <= unit.endFrame
+      && item.targetRange.startFrame <= receipt.projectFrame && receipt.projectFrame < item.targetRange.endFrame
+      && (draft.mode === "full_reference"
+        ? item.use === "primary" && item.targetRange.startFrame === unit.startFrame && item.targetRange.endFrame === unit.endFrame
+        : item.use === "support"));
+    const referenceMatches = draft.mode === "original" ? primaries.length === 0
+      : !!mapping && primaries.length === (draft.mode === "full_reference" ? 1 : 0);
     const hasFile = (id: string | undefined, hash: string, comparison = false) => id && delivered.resourceIds?.includes(id)
       && manifest.files.some(file => file.uses.some(use => use.kind === "reference" && use.id === id)
         && file.localReadable && file.requiredForRun !== false && file.sha256 === hash
@@ -244,18 +231,22 @@ export function unitHandoffDeliveryIssues(report: SkillExecutionReport, snapshot
       && (!asset.sourceRange || source.sourceRanges.some(range =>
         range.startMs <= asset.sourceRange!.startMs && range.endMs >= asset.sourceRange!.endMs))));
     const requiredSources = new Set(draft.assets.map(asset => asset.assetId));
-    if (unit.handoffReceiptId !== receipt.id || unit.creativeDecisionId !== draft.creativeDecisionId
+    if (unit.mode !== draft.mode || unit.handoffReceiptId !== receipt.id || unit.creativeDecisionId !== draft.creativeDecisionId
       || unit.startFrame !== draft.startFrame || unit.endFrame !== draft.endFrame
-      || !reference || primary.length !== 1 || mapping?.referenceId !== reference.id || mapping.referenceKind !== reference.kind
-      || mapping.startMs !== reference.startMs || mapping.endMs !== reference.endMs
-      || mapping.researchDecisionId !== draft.reference.researchDecisionId
-      || mapping.targetRange?.startFrame !== unit.startFrame || mapping.targetRange.endFrame !== unit.endFrame
-      || unit.restage?.sourceMs !== receipt.sourceMs || unit.restage.projectFrame !== receipt.projectFrame
-      || !hasFile(unit.creativeDraftId, draft.sha256) || !hasFile(unit.restage.resourceId, receipt.comparisonSha256, true)
-      || !assetsMatch || sources.some(source => !requiredSources.has(source.assetId))
+      || !hasFile(unit.creativeDraftId, draft.sha256)
+      || !sequence.some(step => step.action?.trim() && step.transition?.trim()) || !assetsMatch || sources.some(source => !requiredSources.has(source.assetId))
       || designAssignmentIds && !designAssignmentIds.includes(receipt.assignmentId)) {
-      return issue("VISUAL_UNIT_HANDOFF_MISMATCH", "正式交付与视觉接收的正文、参考范围、素材或复摆依据不一致",
-        "核对本场交件及素材角色，当前演出有变动时重新交稿和复摆");
+      return issue("VISUAL_UNIT_HANDOFF_MISMATCH", "正式交付与已接收的本片正文、采用方式、帧段或素材不一致",
+        "核对本场交件及素材角色，演出变动后以新稿重新接件");
+    }
+    if (!referenceMatches) {
+      return issue(draft.mode === "full_reference" ? "VISUAL_UNIT_PRIMARY_REFERENCE_MISSING" : "VISUAL_UNIT_REFERENCE_MAPPING_MISMATCH",
+        "采用参考与本单元已接收的来源、用途或实际范围不一致", "核对接件采用方式和原片、本片区间");
+    }
+    if (!unit.restage || unit.restage.sourceMs !== receipt.sourceMs || unit.restage.projectFrame !== receipt.projectFrame
+      || !hasFile(unit.restage.resourceId, receipt.comparisonSha256, true)) {
+      return issue("VISUAL_UNIT_RESTAGE_MISSING", "缺少与接收回执一致的可解码实料试摆",
+        "交回同版图片或视频对照及试摆帧位");
     }
     return [];
   });

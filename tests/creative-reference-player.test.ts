@@ -32,7 +32,25 @@ test("独立案例库仍能复制实际库指纹并拖动视频", { timeout: 30_
   assert.equal(result.status,206);assert.equal(result.bytes,100);
 });
 
-test("发行插件的两份教学视频从同一插件目录提供 Range 播放", { timeout: 30_000 }, async () => {
+const teachingVideos = ["/teaching/r40/R40完整预览.mp4", "/teaching/airfare/preview.mp4",
+  "/teaching/ai-brakes/《AI的油门与刹车》R144原版成片.mp4"];
+
+test("工作台教学媒体支持媒体范围请求", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "vfc-teaching-range-"));
+  const { app, application } = await createServer({ workspaceRoot: directory });
+  try {
+    for (const media of teachingVideos) {
+      const bytes = await app.inject({ url: encodeURI(media), headers: { range: "bytes=32768-32867" } });
+      assert.equal(bytes.statusCode, 206, media);
+      assert.equal(bytes.rawPayload.length, 100, media);
+    }
+  } finally {
+    await app.close(); application.close();
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("工作台的 R40、机票退改与 0.1.92 教学可直接播放和定位", { timeout: 30_000 }, async () => {
   const directory = await mkdtemp(join(tmpdir(), "vfc-teaching-player-"));
   const browserExecutable = await resolveRenderBrowser();
   const previous = process.env.VIDEOFLOWCUT_RUNTIME_DIST;
@@ -42,9 +60,7 @@ test("发行插件的两份教学视频从同一插件目录提供 Range 播放"
   try {
     const origin = await app.listen({ host: "127.0.0.1", port: 0 });
     browser = await puppeteer.launch({ executablePath: browserExecutable, headless: true, pipe: true, args: ["--autoplay-policy=no-user-gesture-required"] });
-    for (const media of ["/teaching/r40/R40完整预览.mp4", "/teaching/airfare/preview.mp4"]) {
-      const bytes = await app.inject({ url: encodeURI(media), headers: { range: "bytes=0-99" } });
-      assert.equal(bytes.statusCode, 206); assert.equal(bytes.rawPayload.length, 100);
+    for (const media of teachingVideos) {
       const page = await browser.newPage();
       await page.goto(origin);
       const result = await page.evaluate(async (url: string) => {

@@ -69,7 +69,10 @@ for (const wholeFilm of [false, true]) test(wholeFilm
     const fileHash = createHash("sha256").update(await readFile(actualVideo)).digest("hex");
     await assert.rejects(record("creative_research", { researchOutcome: "researched", researchReferences: [{ kind: "creative", id: "002-c01", sourceSha256: fileHash }] }),
       /002-c01.*source_sha256.*顶层/u);
-    const originalMotionHash = (readLibraryMechanism(resolve("references/motion-cases/skillry"), { id: "001-m03", include_storyboard: false }).result.card as { clip: { source_sha256: string } }).clip.source_sha256;
+    const mechanism = readLibraryMechanism(resolve("references/motion-cases/skillry"), { id: "001-m03", include_storyboard: false }).result;
+    const motionFingerprint = mechanism.source_sha256;
+    assert.ok(typeof motionFingerprint === "string");
+    const originalMotionHash = (mechanism.card as { clip: { source_sha256: string } }).clip.source_sha256;
     await assert.rejects(record("motion_research", { researchOutcome: "researched", researchReferences: [{ kind: "motion", id: "001-m03", sourceSha256: originalMotionHash }] }),
       /001-m03.*source_sha256.*顶层/u);
     const firstBeat = "满幅放射底上，先让【主体】缩进右下小窗，再从左侧滑入第一行白色粗体【白字】并留在原位。";
@@ -80,7 +83,7 @@ for (const wholeFilm of [false, true]) test(wholeFilm
     ] });
     const motion = await record("motion_research", { researchOutcome: "not_applicable", evidence: ["当前场面没有采用机制"] });
     const brief = join(root, "brief.md"), timing = join(root, "timing.md"), snapshotPath = join(root, "snapshot.json"), output = join(root, "handoff");
-    const authorRequest = "让真实主体先占满画面，再退到小窗。\n\n保留主体与文字，停稳后接续下一幅。";
+    const authorRequest = "让真实主体先占满画面，再退到小窗。\n\n保留主体与文字，接手比原片晚两拍，停稳后接续下一幅。";
     const sceneRequest = [`### 场面 ${scene.id}\n${authorRequest}`,
       ...(secondScene ? [`### 场面 ${secondScene.id}\n第二场沿真实素材入口接手，保持花字层次直到落点。`] : [])].join("\n\n");
     const plan = { ...visualPlan("主体"), referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative", researchDecisionId: research.id,
@@ -133,59 +136,63 @@ for (const wholeFilm of [false, true]) test(wholeFilm
       return updated.unitHandoffs!.at(-1)!;
     };
     type Submission = Extract<ProductionUnitHandoffInput, { action: "submit_draft" }>;
-    const draftSubmission = (item: typeof scene, caption = "继续运行"): Submission =>
-      ({ action: "submit_draft", assignmentId: "creative", inputRevision: rev(),
-        sceneId: item.id, unitId: item.id, startFrame: item.startFrame, endFrame: item.endFrame, creativeDecisionId: research.id,
-        reference: { researchDecisionId: research.id, kind: "creative", id: "002-c01", sourceSha256: fingerprint, startMs: 100, endMs: 900 },
-        replacements: [{ name: "主体", kind: "asset", assetId: asset.id },
-          { name: "白字", kind: "text", text: caption }, { name: "主读数值", kind: "text", text: "97%" }] });
+    const modeFor = (item: typeof scene) => item.id === secondScene?.id ? "original" as const : "full_reference" as const;
+    const draftSubmission = (item: typeof scene, caption = "继续运行"): Submission => ({
+      action: "submit_draft", assignmentId: "creative", inputRevision: rev(),
+      sceneId: item.id, unitId: item.id, startFrame: item.startFrame, endFrame: item.endFrame, creativeDecisionId: research.id,
+      mode: modeFor(item),
+      body: "从本片读数出现时开始观察，再让画面中的" + caption + "接力。\n先保留整幅实拍至局部可认，接手比原片晚两拍。\n",
+      assets: [{ assetId: asset.id }],
+      ...(modeFor(item) === "full_reference" ? { reference: { researchDecisionId: research.id, kind: "creative" as const,
+        id: "002-c01", sourceSha256: fingerprint, startMs: 100, endMs: 900 } } : {})
+    });
     const submit = async (item: typeof scene, caption = "继续运行") => {
-      const result = await handoff(draftSubmission(item, caption));
+      const input = draftSubmission(item, caption);
+      const result = await handoff(input);
       assert.equal(result.action, "submit_draft");
-      const subject = `真实主体（Asset ID \`${asset.id}\`）`;
-      assert.equal(await readFile(result.draft.path, "utf8"), `### 单元 ${item.id}
-
-**原片 100–500 ms**
-
-满幅放射底上，先让${subject}缩进右下小窗，再从左侧滑入第一行白色粗体${caption}并留在原位。
-
-**原片 400–900 ms**
-
-${subject}继续在小窗里，白字${caption}仍在原位，橙黄大粗字97%随火形从下方弹入。
-`);
+      assert.equal(result.draft.mode, input.mode);
+      assert.equal(await readFile(result.draft.path, "utf8"), input.body);
       assert.deepEqual(result.draft.assets.map(binding => binding.assetId), [asset.id]);
       return result.draft;
     };
     const accept = async (draft: ProductionUnitDraft) => {
       const result = await handoff({ action: "accept_draft", draftId: draft.id, assignmentId: "authors", inputRevision: rev(),
-        sourceMs: 500, projectFrame: draft.startFrame, comparisonPath: restagePath, observation: "同一主体留在缩入后的小窗并交给下一层" });
+        ...(draft.reference ? { sourceMs: 500 } : {}), projectFrame: draft.startFrame, comparisonPath: restagePath, observation: "同一主体留在缩入后的小窗并交给下一层" });
       assert.equal(result.action, "accept_draft");
       drafts.set(draft.unitId, { draft, receipt: result.id });
     };
     const returnDraft = (draft: ProductionUnitDraft): Promise<ProductionUnitHandoffEvent> =>
-      handoff({ action: "return_draft", draftId: draft.id, assignmentId: "authors", inputRevision: rev(), sourceMs: 500,
-        gap: "小窗缺少持续主体", impact: "后续文字接手时无法回认" });
+      handoff({ action: "return_draft", draftId: draft.id, assignmentId: "authors", inputRevision: rev(), ...(draft.reference ? { sourceMs: 500 } : {}),
+        projectFrame: draft.startFrame, gap: "小窗缺少持续主体", impact: "后续文字接手时无法回认" });
     if (wholeFilm) {
       const input = draftSubmission(scene);
-      await assert.rejects(handoff({ ...input, replacements: input.replacements.slice(0, 2) }), /400 毫秒缺少替换项【主读数值】/u);
-      await assert.rejects(handoff({ ...input, replacements: [...input.replacements, input.replacements[0]!] }), /【主体】只能填写一次/u);
-      await assert.rejects(handoff({ ...input, reference: { ...input.reference, startMs: 200 } }), /实际采用边界/u);
-      await assert.rejects(handoff({ ...input, replacements: [
-        { name: "主体", kind: "asset", assetId: "missing-asset" }, ...input.replacements.slice(1)
-      ] }), /【主体】的素材 .*未取得/u);
+      await assert.rejects(handoff({ ...input, body: "  " }), /实际写出的本片正文/u);
+      await assert.rejects(handoff({ ...input, reference: undefined }), /有效原片区间/u);
+      await assert.rejects(handoff({ ...input, reference: { ...input.reference!, startMs: 50 } }), /50–100 ms/u);
+      await assert.rejects(handoff({ ...input, assets: [{ assetId: "missing-asset" }] }), /素材 missing-asset 未取得/u);
       await assert.rejects(handoff({ ...input, draftPath: forgedDraftPath } as Submission), /draftPath/u);
       assert.deepEqual((await app.readProductionStatus(projectId, { runId: run.id })).unitHandoffs?.map(item => item.status),
         ["waiting_for_draft", "waiting_for_draft"]);
+      const motionSource = { kind: "motion" as const, id: "001-m03", sourceSha256: motionFingerprint, startMs: 3850, endMs: 4050 };
+      const motionResearch = await record("motion_research", { researchOutcome: "researched",
+        researchReferences: [{ ...motionSource, observedRelation: "同一实拍保持，旁层在交接之前进入" }] });
+      const localBody = "沿已定构图，保持实拍，本片旁层进入后接回原布局。";
+      const local = await handoff({ ...input, mode: "local_mechanism", body: localBody,
+        reference: { ...motionSource, researchDecisionId: motionResearch.id } });
+      assert.equal(local.action, "submit_draft");
+      assert.equal(await readFile(local.draft.path, "utf8"), localBody);
+      await handoff({ action: "accept_draft", draftId: local.draft.id, assignmentId: "authors", inputRevision: rev(),
+        projectFrame: input.startFrame, sourceMs: 3900, comparisonPath: restagePath, observation: "旁层实际进入，原布局能接回" });
       await accept(await submit(scene));
       assert.deepEqual((await app.readProductionStatus(projectId, { runId: run.id })).unitHandoffs?.map(item => item.status),
         ["accepted", "waiting_for_draft"]);
     }
     const scenePlans = allScenes.map(item => wholeFilm ? { ...finalPlan,
       units: [{ id: item.id, title: item.title, startFrame: item.startFrame, endFrame: item.endFrame,
-        creativeDecisionId: research.id, creativeDraftId: `draft-${item.id}`, handoffReceiptId: drafts.get(item.id)?.receipt,
-        restage: { resourceId: "restage", sourceMs: 500, projectFrame: item.startFrame } }],
-      referenceMappings: finalPlan.referenceMappings.map(mapping => ({ ...mapping, unitId: item.id, use: "primary" as const,
-        targetRange: { startFrame: item.startFrame, endFrame: item.endFrame } })),
+        mode: modeFor(item), creativeDecisionId: research.id, creativeDraftId: `draft-${item.id}`, handoffReceiptId: drafts.get(item.id)?.receipt,
+        restage: { resourceId: "restage", ...(modeFor(item) === "full_reference" ? { sourceMs: 500 } : {}), projectFrame: item.startFrame } }],
+      referenceMappings: modeFor(item) === "original" ? [] : finalPlan.referenceMappings.map(mapping => ({
+        ...mapping, unitId: item.id, use: "primary" as const, targetRange: { startFrame: item.startFrame, endFrame: item.endFrame } })),
       sequence: finalPlan.sequence.map(step => ({ ...step, unitId: item.id }))
     } : finalPlan);
     latestBrief = `最新版导演稿：\n${directorBrief(...scenePlans)}\n\n## 发给 OD 的完整请求\n\n${sceneRequest}\n\n## 交接附注\n这段附注不发送为请求正文。`;
@@ -197,8 +204,9 @@ ${subject}继续在小窗里，白字${caption}仍在原位，橙黄大粗字97%
       ...(wholeFilm ? { references: [...allScenes.map(item => ({ id: `draft-${item.id}`, usage: "adopted", purpose: "创意原稿",
         files: [{ path: drafts.get(item.id)?.draft.path ?? forgedDraftPath, deliveredPath: `references/${item.id}.md` }] })),
         { id: "restage", usage: "adopted", purpose: "视觉复摆", files: [{ path: restagePath, deliveredPath: "references/restage.png" }] }] } : {}),
-      scenes: allScenes.map((item, index) => ({ sceneId: item.id, status: "ready", references: [{ kind: "creative", id: "002-c01", sourceSha256: fingerprint,
-        startMs: 100, endMs: 900, purpose: "主体进入小窗" }],
+      scenes: allScenes.map((item, index) => ({ sceneId: item.id, status: "ready",
+        references: modeFor(item) === "original" ? [] : [{ kind: "creative", id: "002-c01", sourceSha256: fingerprint,
+          startMs: 100, endMs: 900, purpose: "主体进入小窗" }],
         ...(wholeFilm ? { resourceIds: [`draft-${item.id}`, "restage"] } : {}),
         visualRoles: [{ role: "主体", referenceFunction: "进入并接管", assetIds: [asset.id], usage: "真实主体" }],
         visualPlan: scenePlans[index], process: "主体建立、进入小窗并接续", preserve: ["主体接管"], adapt: ["文字排版"] }))
@@ -241,6 +249,14 @@ ${subject}继续在小窗里，白字${caption}仍在原位，橙黄大粗字97%
     const design = await record("visual_design", { inputDecisionIds: [research.id, complete.id, motion.id], deliveryRef: { manifestPath, manifestSha256, sceneIds } });
     const candidate = await app.readProductionStatus(projectId, { runId: run.id, referenceDecisionId: design.id });
     assert.ok("authorRequest" in candidate && candidate.authorRequest?.text === sceneRequest);
+    if (wholeFilm) {
+      assert.ok("referenceUnitCoverage" in candidate);
+      assert.deepEqual(candidate.referenceUnitCoverage?.map(unit => [unit.mode, unit.ready]), [["full_reference", true], ["original", true]]);
+      const deliveredDraft = candidate.referenceUnitCoverage?.[0]?.creativeDraftPath;
+      assert.ok(deliveredDraft);
+      assert.equal(await readFile(deliveredDraft, "utf8"), draftSubmission(scene).body);
+      assert.match(candidate.authorRequest!.text, /接手比原片晚两拍/u);
+    }
     const comparison = candidate.referenceComparisons![0]!;
     assert.deepEqual(comparison.observations.map(item => [item.startMs, item.endMs, item.observedRelation]),
       [[100, 500, firstBeat], [400, 900, secondBeat]]);
@@ -422,7 +438,7 @@ ${subject}继续在小窗里，白字${caption}仍在原位，橙黄大粗字97%
       assert.notEqual(secondRange.isError, true, JSON.stringify(secondRange.content));
       const crossScene = JSON.parse((secondRange.content as Array<{ text: string }>)[0]!.text);
       assert.deepEqual(crossScene.requestedRangeMapping.workRootRange, { startFrame: 20, endFrame: 35 });
-      assert.deepEqual(crossScene.referenceComparisons.map((comparison: { identity: { sceneId: string } }) => comparison.identity.sceneId), sceneIds);
+      assert.deepEqual(crossScene.referenceComparisons.map((comparison: { identity: { sceneId: string } }) => comparison.identity.sceneId), [scene.id]);
     }
 
     app.repository.commit(projectId, rev(), "核对完整解说导出门禁", snapshot => { snapshot.project.profile = "visual_explainer"; });

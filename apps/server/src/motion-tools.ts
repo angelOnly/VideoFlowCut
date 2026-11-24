@@ -22,6 +22,7 @@ import { prepareReferencePackage, readFrozenAuthorRequest } from "../../../packa
 import { readReferenceDecision } from "../../../packages/edit-application/src/reference-comparison.js";
 import { requiresVisualReferenceUnits } from "../../../packages/edit-application/src/production-coordination.js";
 import { unitHandoffDeliveryIssues } from "../../../packages/edit-application/src/production-unit-handoff.js";
+import { productionUnitModeSchema } from "../../../packages/contracts/src/production-unit-handoff.js";
 import { MotionAuthoringCoordinationError } from "../../../packages/edit-application/src/motion-coordination-error.js";
 import { DomainError } from "@videocut/domain";
 import { createHash, randomUUID } from "node:crypto";
@@ -50,11 +51,13 @@ const handoffSceneSchema = z.object({
     units: z.array(z.object({
       id: z.string().trim().min(1), title: z.string().trim().min(1),
       startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(),
+      mode: productionUnitModeSchema,
       creativeDecisionId: z.string().trim().min(1).optional(),
       creativeDraftId: z.string().trim().min(1).optional(),
       handoffReceiptId: z.string().trim().min(1).optional(),
-      restage: z.object({ resourceId: z.string().trim().min(1), sourceMs: z.number().finite().nonnegative(),
+      restage: z.object({ resourceId: z.string().trim().min(1), sourceMs: z.number().finite().nonnegative().optional(),
         projectFrame: z.number().int().nonnegative() }).strict().optional()
+        .describe("本片实料试摆证据。完整迁移和局部机制另填原片毫秒，自主创作只填本片帧")
     }).strict()).optional(),
     researchLayers: z.array(z.object({ level: z.enum(["overallVisual", "sceneComposition", "motionMechanisms"]),
       researchDecisionId: z.string().trim().min(1), designExcerpt: z.string().trim().min(1)
@@ -92,7 +95,7 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   } catch (error) { return failure(error); } });
   server.registerTool("prepare_motion_handoff", {
     title: "准备场面制作交付",
-    description: "按当前快照固定导演稿、时间资料、真实素材和采用参考。导演稿「发给 OD 的完整请求」先写共用要求，再用三级标题「场面 <实际SceneID>」分场。完整解说新片用 visualPlan.units 关联独立创意拆解、可解码的画面对照及帧段，用 referenceMappings 的 unitId 和 use 关联主参考或辅助，用 sequence.unitId 关联制作步骤。拆解与对照文件通过 references 和场面 resourceIds 随包交付。ready 场面须提供完整构图、连续发展、观看中心、制作权限及参考成片帧段。完整新制与视觉重做用 researchLayers 关联研究。pending 场面可先交接。返回清单、缺口和就绪场面的冻结 authorRequest。",
+    description: "按当前快照固定导演稿、时间资料、真实素材和采用参考。导演稿「发给 OD 的完整请求」先写共用要求，再用三级标题「场面 <实际SceneID>」分场。完整解说新片的 visualPlan.units 填同版 mode、作者原稿、接收回执、可解码的实料试摆及帧段。仅 full_reference 填覆盖单元的 primary；其他参考使用 support 并标实际帧段。sequence.unitId 关联本片演出。原稿与对照文件通过 references 和场面 resourceIds 随包交付。ready 场面提供完整构图、连续发展、观看中心和制作权限。完整新制与视觉重做用 researchLayers 关联研究。返回清单、缺口和就绪场面的冻结 authorRequest。",
     inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(),
       production_run_id: z.string().min(1).optional().describe("完整解说新片正式组包须提供当前 Run，逐单元核对视觉接件回执"),
       brief_path: z.string().min(1),
@@ -107,7 +110,7 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
     const projectId = projectIdFrom(project_id), current = application.readProject(projectId);
     if (current.revision.number !== base_revision_id) throw new Error("项目 Revision 已变化，请读取当前项目后准备交付");
     if (!production_run_id && scenes.some(scene => scene.status === "ready" && scene.visualPlan?.units?.length)) {
-      throw new DomainError("含逐单元照排的正式组包需要当前制作 Run", "PRODUCTION_UNIT_HANDOFF_RUN_REQUIRED");
+      throw new DomainError("含逐单元创意交件的正式组包需要当前制作 Run", "PRODUCTION_UNIT_HANDOFF_RUN_REQUIRED");
     }
     const report = production_run_id ? await application.readSkillExecutionReport({ projectId, runId: production_run_id }) : undefined;
     const verifyHandoffs = report && requiresVisualReferenceUnits(report, current.snapshot);

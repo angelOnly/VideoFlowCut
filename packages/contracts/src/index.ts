@@ -1922,7 +1922,8 @@ export interface ProductionUnitDraft {
   assignmentId: Id;
   inputRevision: number;
   creativeDecisionId: Id;
-  reference: { researchDecisionId: Id; kind: "creative" | "motion"; id: Id; sourceSha256: string; startMs: number; endMs: number };
+  mode: import("./production-unit-handoff.js").ProductionUnitMode;
+  reference?: { researchDecisionId: Id; kind: "creative" | "motion"; id: Id; sourceSha256: string; startMs: number; endMs: number };
   assets: Array<{ assetId: Id; sourceHash: string; sourceRange?: { startMs: number; endMs: number } }>;
   path: string;
   sha256: string;
@@ -1931,9 +1932,9 @@ export interface ProductionUnitDraft {
 export type ProductionUnitHandoffEvent =
   | { action: "submit_draft"; draft: ProductionUnitDraft }
   | { action: "accept_draft"; id: Id; draftId: Id; assignmentId: Id; inputRevision: number;
-      sourceMs: number; projectFrame: number; comparisonPath: string; comparisonSha256: string; observation: string }
+      sourceMs?: number; projectFrame: number; comparisonPath: string; comparisonSha256: string; observation: string }
   | { action: "return_draft"; draftId: Id; assignmentId: Id; inputRevision: number;
-      sourceMs: number; gap: string; impact: string };
+      sourceMs?: number; projectFrame: number; gap: string; impact: string };
 
 /**
  * ProductionRun 是任务审计，不是 Project Snapshot 的副本；它持久化在项目 reports 目录，

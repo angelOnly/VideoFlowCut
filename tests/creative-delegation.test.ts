@@ -254,7 +254,7 @@ test("同一受管场面逐单元校验完整创意或主机制，局部借用�
     const references = [creative.researchReferences[0]!, motion.researchReferences[0]!];
     const units = ["开场", "承接", "比较", "结尾"].map((title, i) => ({
       id: `unit-${i}`, title, startFrame: i * 6, endFrame: (i + 1) * 6,
-      creativeDecisionId: creative.id, creativeDraftId: "draft",
+      mode: "full_reference" as const, creativeDecisionId: creative.id, creativeDraftId: "draft", handoffReceiptId: "receipt-" + i,
       restage: { resourceId: `restage-${i}`, sourceMs: i === 3 ? 2600 : 1000, projectFrame: i * 6 + 2 }
     }));
     const mappings = units.map((unit, i) => {
@@ -272,6 +272,20 @@ test("同一受管场面逐单元校验完整创意或主机制，局部借用�
     const manifest: ReferenceManifest = { projectId: f.projectId, revision: f.revision(), selectedSceneIds: [scene.id], scenes: [delivered], diagnostics: [],
       files: ids.map(id => ({ sourcePath: id, deliveredPath: id, sha256: "a".repeat(64), localReadable: true,
         ...(id === "draft" ? { mimeType: "text/markdown" } : { mimeType: "image/png", localDecode: "verified" as const }), uses: [{ kind: "reference", id }] })) };
+    report.unitHandoffs = units.flatMap((unit, i) => {
+      const { researchDecisionId, referenceId, referenceKind, startMs, endMs } = mappings[i]!;
+      const draft = { id: unit.id, sceneId: scene.id, unitId: unit.id, startFrame: unit.startFrame, endFrame: unit.endFrame,
+        mode: unit.mode, assignmentId: "creative", inputRevision: f.revision(), creativeDecisionId: creative.id,
+        reference: { researchDecisionId, kind: referenceKind, id: referenceId, startMs, endMs,
+          sourceSha256: references[i === 3 ? 1 : 0]!.sourceSha256 },
+        assets: [], path: "draft", sha256: "a".repeat(64) };
+      return [
+        { action: "submit_draft" as const, draft },
+        { action: "accept_draft" as const, id: unit.handoffReceiptId, draftId: unit.id, assignmentId: "visual",
+          inputRevision: f.revision(), sourceMs: unit.restage.sourceMs, projectFrame: unit.restage.projectFrame,
+          comparisonPath: unit.restage.resourceId, comparisonSha256: "a".repeat(64), observation: "试摆有交叠" }
+      ];
+    });
     const inspect = () => visualReferenceUnitCoverage({ report, snapshot, manifest, scene, delivered, designs: [design] });
     assert.deepEqual(inspect().map(unit => unit.issues), [[], [], [], []]);
     const restageImage = manifest.files[1]!;
@@ -298,6 +312,16 @@ test("同一受管场面逐单元校验完整创意或主机制，局部借用�
       .map(issue => issue.scope), [{ kind: "frames", startFrame: 0, endFrame: 6 }, { kind: "frames", startFrame: 6, endFrame: 12 },
       { kind: "frames", startFrame: 12, endFrame: 18 }]);
     assert.ok(!(await evaluate({ startFrame: 18, endFrame: 24 })).some(issue => issue.code.startsWith("VISUAL_UNIT_")));
+    const local = units.at(-1)!;
+    delivered.visualPlan!.units = units.map(unit => unit.id === local.id ? { ...unit, mode: "local_mechanism" } : unit);
+    for (const event of report.unitHandoffs) {
+      if (event.action === "submit_draft" && event.draft.unitId === local.id) event.draft.mode = "local_mechanism";
+    }
+    delivered.visualPlan!.referenceMappings = mappings.map(mapping => mapping.unitId === local.id
+      ? { ...mapping, use: "support", targetRange: { startFrame: 19, endFrame: 22 } } : mapping);
+    assert.deepEqual(inspect().at(-1)?.issues, [], "独立局部机制在实际范围使用辅助映射");
+    delivered.visualPlan!.referenceMappings.at(-1)!.targetRange = { startFrame: 21, endFrame: 22 };
+    assert.equal(inspect().at(-1)?.issues[0]?.code, "VISUAL_UNIT_REFERENCE_MAPPING_MISMATCH", "对照帧须落在机制动作的范围内");
     delivered.visualPlan!.units = units.slice(1);
     assert.equal(inspect()[0]?.issues[0]?.code, "VISUAL_REFERENCE_UNITS_INCOMPLETE", "遗漏单元不能覆盖整个场面");
   } finally { await f.close(); }
@@ -356,10 +380,10 @@ test("完整新制无需预排即可通过真实 MCP 提交导演采用", { time
     const basePlan = visualPlan("主体");
     const layerPlan = { ...basePlan, researchLayers: [{ level: "overallVisual",
       researchDecisionId: "研究结果待关联", designExcerpt: "主体建立初始画面" }],
-      units: [{ id: "opening", title: "待完善开场", startFrame: 0, endFrame: 24 }],
+      units: [{ id: "opening", title: "待完善开场", startFrame: 0, endFrame: 24, mode: "original" as const }],
       sequence: basePlan.sequence.map(step => ({ ...step, unitId: "opening" })) };
     const layerHandoff = parse<{ scenes: Array<{ status: string; visualPlan: typeof layerPlan }> }>(
-      await client.callTool({ name: "prepare_motion_handoff", arguments: { project_id: f.projectId,
+      await client.callTool({ name: "prepare_motion_handoff", arguments: { project_id: f.projectId, production_run_id: f.run.id,
         base_revision_id: f.revision(), brief_path: brief, timing_plan_path: timing, selected_scene_ids: [f.scene.id],
         assets: [{ id: f.assetId, purpose: "真实主体" }], scenes: [{ sceneId: f.scene.id, status: "ready",
           visualRoles: [{ role: "主体", referenceFunction: "连续组织", assetIds: [f.assetId], usage: "呈现真实主体" }],
