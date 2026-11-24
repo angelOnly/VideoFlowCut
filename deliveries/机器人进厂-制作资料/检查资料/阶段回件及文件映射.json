@@ -1,0 +1,37 @@
+[
+  {
+    "id": "asset_03ac73c5-8036-4f16-aadb-a58be80be848",
+    "hash": "953486efe275f333ee76bb9242363ab304eed0327c257d4f9dc2ff3806e4d092",
+    "local": "素材/已渲染片段/片段1.mp4"
+  },
+  {
+    "id": "asset_8675caa5-2f8e-4ab6-8143-5363037f696e",
+    "hash": "953486efe275f333ee76bb9242363ab304eed0327c257d4f9dc2ff3806e4d092",
+    "local": "素材/已渲染片段/片段2.mp4"
+  },
+  {
+    "id": "asset_d9244598-529f-46e0-9866-9f86898d9b04",
+    "hash": "953486efe275f333ee76bb9242363ab304eed0327c257d4f9dc2ff3806e4d092",
+    "local": "素材/已渲染片段/片段3.mp4"
+  },
+  {
+    "id": "asset_a442d283-952b-41c6-aa13-43b412d476a0",
+    "hash": "6bcc36a3cf0142d2d4acc13a28b7047298b38ee8ae09681b8d54ee6dae46916e",
+    "local": "素材/已渲染片段/片段4.mp4"
+  },
+  {
+    "id": "asset_e33310a6-c791-472b-9ded-318ec133bd60",
+    "hash": "2557a4528b89e6d8e07a137f0457f86688736c7eb5623ff30659bc7e427a6acc",
+    "local": "素材/已渲染片段/片段5.mp4"
+  },
+  {
+    "id": "asset_a39418fc-93fc-4a01-8ff9-1b2724baaabe",
+    "hash": "d285c317f1eb2b4a4f427ad500e1e4e7842c61bea33f2746120c02452a0df11d",
+    "local": "素材/已渲染片段/片段6.mp4"
+  },
+  {
+    "id": "asset_cf2a7238-ac01-4baf-9b1e-fb20c018bc8f",
+    "hash": "8ac10e16c9fce99e816ae4698b765ca1767b039e4e93e5696480f121cae47e1d",
+    "local": "素材/已渲染片段/片段7.mp4"
+  }
+]

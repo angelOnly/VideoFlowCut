@@ -1,0 +1,153 @@
+{
+  "precision": "segment_exact",
+  "source": "OmniVoice 输出真实时长 + 明确段间停顿",
+  "segments": [
+    {
+      "speechSegmentId": "speech_segment_79e3cc8b-7a32-41a6-97d8-06a3fa74c673",
+      "startMs": 0,
+      "endMs": 2520,
+      "startFrame": 0,
+      "endFrame": 76
+    },
+    {
+      "speechSegmentId": "speech_segment_31c59a94-d19e-42c6-ac38-b131530440fc",
+      "startMs": 2520,
+      "endMs": 6360,
+      "startFrame": 76,
+      "endFrame": 191
+    },
+    {
+      "speechSegmentId": "speech_segment_b45f2b5b-6ba7-4a5b-83c0-a77429025525",
+      "startMs": 6360,
+      "endMs": 10740,
+      "startFrame": 191,
+      "endFrame": 322
+    },
+    {
+      "speechSegmentId": "speech_segment_50fcf662-e7b3-4abb-ac67-75e087106434",
+      "startMs": 10740,
+      "endMs": 13890,
+      "startFrame": 322,
+      "endFrame": 417
+    },
+    {
+      "speechSegmentId": "speech_segment_ec540f10-9f14-472e-9215-7a60aac8ad4b",
+      "startMs": 13890,
+      "endMs": 21160,
+      "startFrame": 417,
+      "endFrame": 635
+    },
+    {
+      "speechSegmentId": "speech_segment_5c7ebc7f-3aae-406c-bfb7-8d245b7047e0",
+      "startMs": 21160,
+      "endMs": 29400,
+      "startFrame": 635,
+      "endFrame": 882
+    },
+    {
+      "speechSegmentId": "speech_segment_88f99972-89e4-45e1-9c57-e0c85c2f16c3",
+      "startMs": 29400,
+      "endMs": 32840,
+      "startFrame": 882,
+      "endFrame": 985
+    },
+    {
+      "speechSegmentId": "speech_segment_963a27dc-6806-4821-a673-c778bd8f9326",
+      "startMs": 32840,
+      "endMs": 41410,
+      "startFrame": 985,
+      "endFrame": 1242
+    },
+    {
+      "speechSegmentId": "speech_segment_cffa1144-af42-4279-b272-2e1fb017390c",
+      "startMs": 41410,
+      "endMs": 45750,
+      "startFrame": 1242,
+      "endFrame": 1373
+    },
+    {
+      "speechSegmentId": "speech_segment_3dd005ad-ae61-4321-97f4-3da6dc81d47b",
+      "startMs": 45750,
+      "endMs": 52160,
+      "startFrame": 1373,
+      "endFrame": 1565
+    },
+    {
+      "speechSegmentId": "speech_segment_e33aeca1-cc57-4c42-8746-c8a6a4a032b6",
+      "startMs": 52160,
+      "endMs": 56120,
+      "startFrame": 1565,
+      "endFrame": 1684
+    },
+    {
+      "speechSegmentId": "speech_segment_6853cdfb-5fd2-4a9f-a9a4-49c25e4bba44",
+      "startMs": 56120,
+      "endMs": 64550,
+      "startFrame": 1684,
+      "endFrame": 1937
+    },
+    {
+      "speechSegmentId": "speech_segment_1b83f266-bd85-4f95-8ff9-3a7afb970eeb",
+      "startMs": 64550,
+      "endMs": 71220,
+      "startFrame": 1937,
+      "endFrame": 2137
+    },
+    {
+      "speechSegmentId": "speech_segment_b3817d42-6c9b-409d-bd6e-68cbd5784f0f",
+      "startMs": 71220,
+      "endMs": 73690,
+      "startFrame": 2137,
+      "endFrame": 2211
+    },
+    {
+      "speechSegmentId": "speech_segment_a0dca320-d0c6-455f-95d0-61ed4724e904",
+      "startMs": 73690,
+      "endMs": 83790,
+      "startFrame": 2211,
+      "endFrame": 2514
+    },
+    {
+      "speechSegmentId": "speech_segment_e30efb55-8d2d-4922-b5c7-e724541c059b",
+      "startMs": 83790,
+      "endMs": 94530,
+      "startFrame": 2514,
+      "endFrame": 2836
+    },
+    {
+      "speechSegmentId": "speech_segment_6022cbb9-7a9c-427e-a1f1-9be83f3568f0",
+      "startMs": 94530,
+      "endMs": 103320,
+      "startFrame": 2836,
+      "endFrame": 3100
+    },
+    {
+      "speechSegmentId": "speech_segment_26117301-34c6-4216-a260-24ab6b3ba0aa",
+      "startMs": 103320,
+      "endMs": 110560,
+      "startFrame": 3100,
+      "endFrame": 3317
+    },
+    {
+      "speechSegmentId": "speech_segment_f9a18682-f2d1-4621-b35a-f8e7cb4d921a",
+      "startMs": 110560,
+      "endMs": 119270,
+      "startFrame": 3317,
+      "endFrame": 3578
+    },
+    {
+      "speechSegmentId": "speech_segment_07b2038b-e279-4c28-9caf-47288d7ad35c",
+      "startMs": 119270,
+      "endMs": 123250,
+      "startFrame": 3578,
+      "endFrame": 3698
+    },
+    {
+      "speechSegmentId": "speech_segment_93b093f9-492f-43a3-87d8-162c705a801d",
+      "startMs": 123250,
+      "endMs": 131890,
+      "startFrame": 3698,
+      "endFrame": 3957
+    }
+  ]
+}

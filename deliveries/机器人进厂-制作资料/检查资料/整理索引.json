@@ -1,0 +1,93 @@
+{
+  "assets": {
+    "asset_d5b199dd-497f-4aed-a810-e8ff42edf60f": "素材/视频/digit0.mp4",
+    "asset_a8220991-6fbe-4308-973d-055d790c23ba": "素材/视频/digit1.mp4",
+    "asset_55ab84a0-3535-4990-ad12-83d71284adf6": "素材/视频/pexels-6450803.mp4",
+    "asset_4e181815-1e7f-41b9-9e23-d5f3d60fda69": "素材/视频/unitree-h1-backflip.mp4",
+    "asset_840c9826-86a7-4f89-b5d4-1c5ab2dbd6c6": "素材/视频/universal-cnc.mp4",
+    "asset_08b879d6-12f1-47de-8eb0-07136d676d26": "素材/视频/benteler-bin-picking.mp4",
+    "asset_64b9ee6a-e733-425d-a5de-beff01fc5a6e": "素材/视频/figure-0.mp4",
+    "asset_0b49aaac-406c-4a98-b9ba-ade9cd80ebb3": "素材/音频/中文旁白总轨.wav",
+    "asset_0a22ae0c-f64f-4919-b9e4-1c971a544f7b": "素材/音频/land.wav",
+    "asset_4bf51ecd-5ce1-4fba-9a1c-c4fedbd0c8b3": "素材/音频/metal-slip.wav",
+    "asset_25751966-8994-48ba-ba55-d91aac82abee": "素材/音频/tote-set.wav"
+  },
+  "versions": [
+    {
+      "name": "首版",
+      "hash": "953486efe275f333ee76bb9242363ab304eed0327c257d4f9dc2ff3806e4d092",
+      "html": "动效源码/首版.html",
+      "bindings": "动效源码/首版.json",
+      "ranges": [
+        [
+          0,
+          191
+        ],
+        [
+          191,
+          1242
+        ],
+        [
+          1242,
+          1731
+        ],
+        [
+          2137,
+          2514
+        ],
+        [
+          3578,
+          3957
+        ]
+      ]
+    },
+    {
+      "name": "Digit数字修订",
+      "hash": "8ac10e16c9fce99e816ae4698b765ca1767b039e4e93e5696480f121cae47e1d",
+      "html": "动效源码/Digit数字修订.html",
+      "bindings": "动效源码/Digit数字修订.json",
+      "ranges": [
+        [
+          3100,
+          3578
+        ]
+      ]
+    },
+    {
+      "name": "自动恢复段",
+      "hash": "6bcc36a3cf0142d2d4acc13a28b7047298b38ee8ae09681b8d54ee6dae46916e",
+      "html": "动效源码/自动恢复段.html",
+      "bindings": "动效源码/自动恢复段.json",
+      "ranges": [
+        [
+          1731,
+          2137
+        ]
+      ]
+    },
+    {
+      "name": "Figure通道段",
+      "hash": "2557a4528b89e6d8e07a137f0457f86688736c7eb5623ff30659bc7e427a6acc",
+      "html": "动效源码/Figure通道段.html",
+      "bindings": "动效源码/Figure通道段.json",
+      "ranges": [
+        [
+          2514,
+          2836
+        ]
+      ]
+    },
+    {
+      "name": "工位成本段",
+      "hash": "d285c317f1eb2b4a4f427ad500e1e4e7842c61bea33f2746120c02452a0df11d",
+      "html": "动效源码/工位成本段.html",
+      "bindings": "动效源码/工位成本段.json",
+      "ranges": [
+        [
+          2836,
+          3100
+        ]
+      ]
+    }
+  ]
+}

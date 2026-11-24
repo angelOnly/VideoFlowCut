@@ -1,0 +1,214 @@
+{
+  "名称": "首版",
+  "说明": "保留本版真实源码。画面通过 VideoFlowCut 的 HyperFrames 帧驱动与视频槽注入，单独双击 HTML 不能还原视频素材。",
+  "宽": 1920,
+  "高": 1080,
+  "帧率": 30,
+  "总帧数": 3957,
+  "源码": "./首版.html",
+  "作品版本": "eae68576336515629b44d68bd21b38ce6ac131899293ce705c3b01b2f24bec02",
+  "原定义SHA256": "953486efe275f333ee76bb9242363ab304eed0327c257d4f9dc2ff3806e4d092",
+  "作者冻结版": "5894af9a-df76-447c-8d16-74fbc62e435e_6606412f12716b279b9682ca8ce27b1c928f7b5ee58c42b6ce5141647d341f41",
+  "可用根帧": [
+    {
+      "startFrame": 0,
+      "endFrame": 1731
+    },
+    {
+      "startFrame": 2137,
+      "endFrame": 2514
+    },
+    {
+      "startFrame": 3100,
+      "endFrame": 3957
+    }
+  ],
+  "事件": [
+    {
+      "id": "contact",
+      "meaning": "接触法兰外缘",
+      "startFrame": 591
+    },
+    {
+      "id": "slide",
+      "meaning": "同一件法兰滑向左下",
+      "startFrame": 592,
+      "endFrame": 630
+    },
+    {
+      "id": "relocate",
+      "meaning": "滑停后更新位置",
+      "startFrame": 723
+    },
+    {
+      "id": "close",
+      "meaning": "重新对准后闭爪",
+      "startFrame": 816
+    },
+    {
+      "id": "clear",
+      "meaning": "工件出箱",
+      "startFrame": 879
+    },
+    {
+      "id": "flip",
+      "meaning": "扶稳、换夹后翻面",
+      "startFrame": 949,
+      "endFrame": 981
+    },
+    {
+      "id": "supported",
+      "meaning": "固定槽承托",
+      "startFrame": 1119
+    },
+    {
+      "id": "release",
+      "meaning": "承托后松爪",
+      "startFrame": 1140
+    },
+    {
+      "id": "formula",
+      "meaning": "一百次全部成功的公式",
+      "startFrame": 1565
+    },
+    {
+      "id": "percent",
+      "meaning": "约百分之三十七",
+      "startFrame": 1661,
+      "endFrame": 1731
+    },
+    {
+      "id": "nextgrip",
+      "meaning": "夹牢下一件",
+      "startFrame": 3905
+    },
+    {
+      "id": "nextlift",
+      "meaning": "抬稳下一件",
+      "startFrame": 3933,
+      "endFrame": 3957
+    }
+  ],
+  "视频槽": [
+    {
+      "槽位": "h1_open",
+      "素材": "../素材/视频/unitree-h1-backflip.mp4",
+      "素材ID": "asset_4e181815-1e7f-41b9-9e23-d5f3d60fda69",
+      "文件SHA256": "7e6ebdbf08fc6142b4781ae0ff9d2d1fc4cdb351f8e2c07935580340240ad5b9",
+      "源起始毫秒": 2400,
+      "源结束毫秒": 7800,
+      "作品起始帧": 0,
+      "作品结束帧": 162
+    },
+    {
+      "槽位": "bin_pick",
+      "素材": "../素材/视频/benteler-bin-picking.mp4",
+      "素材ID": "asset_08b879d6-12f1-47de-8eb0-07136d676d26",
+      "文件SHA256": "ab42427cc8c3e5c2bcdb987723316a40c32be73b335b781cb206b348473e3aa8",
+      "源起始毫秒": 18800,
+      "源结束毫秒": 25300,
+      "作品起始帧": 191,
+      "作品结束帧": 386
+    },
+    {
+      "槽位": "shop_wide",
+      "素材": "../素材/视频/pexels-6450803.mp4",
+      "素材ID": "asset_55ab84a0-3535-4990-ad12-83d71284adf6",
+      "文件SHA256": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+      "源起始毫秒": 1400,
+      "源结束毫秒": 3867,
+      "作品起始帧": 2137,
+      "作品结束帧": 2211
+    },
+    {
+      "槽位": "cnc_pick",
+      "素材": "../素材/视频/universal-cnc.mp4",
+      "素材ID": "asset_840c9826-86a7-4f89-b5d4-1c5ab2dbd6c6",
+      "文件SHA256": "c32a27411d728e8b159a127934fec1508dec520918f130fdf907afdaad97a743",
+      "源起始毫秒": 4000,
+      "源结束毫秒": 12100,
+      "作品起始帧": 2211,
+      "作品结束帧": 2454
+    },
+    {
+      "槽位": "cnc_return",
+      "素材": "../素材/视频/universal-cnc.mp4",
+      "素材ID": "asset_840c9826-86a7-4f89-b5d4-1c5ab2dbd6c6",
+      "文件SHA256": "c32a27411d728e8b159a127934fec1508dec520918f130fdf907afdaad97a743",
+      "源起始毫秒": 15500,
+      "源结束毫秒": 17500,
+      "作品起始帧": 2454,
+      "作品结束帧": 2514
+    },
+    {
+      "槽位": "figure_cart",
+      "素材": "../素材/视频/figure-0.mp4",
+      "素材ID": "asset_64b9ee6a-e733-425d-a5de-beff01fc5a6e",
+      "文件SHA256": "18cdd8fc237c9852b73ec79f89436b90a31a263e40d074f2e5f3b933661f64e1",
+      "源起始毫秒": 11000,
+      "源结束毫秒": 21733,
+      "作品起始帧": 2514,
+      "作品结束帧": 2836
+    },
+    {
+      "槽位": "digit_wide",
+      "素材": "../素材/视频/digit1.mp4",
+      "素材ID": "asset_a8220991-6fbe-4308-973d-055d790c23ba",
+      "文件SHA256": "8edef86ffbfcada938e92097e9a72e32e9362069d856f87a651abc932187cb11",
+      "源起始毫秒": 5000,
+      "源结束毫秒": 6300,
+      "作品起始帧": 3100,
+      "作品结束帧": 3139
+    },
+    {
+      "槽位": "digit_lift",
+      "素材": "../素材/视频/digit0.mp4",
+      "素材ID": "asset_d5b199dd-497f-4aed-a810-e8ff42edf60f",
+      "文件SHA256": "17f5904fe84e077ffb0ce51b023315e812db9e7b9ba318f66d173f5656fcd655",
+      "源起始毫秒": 10400,
+      "源结束毫秒": 14400,
+      "作品起始帧": 3139,
+      "作品结束帧": 3259
+    },
+    {
+      "槽位": "digit_walk",
+      "素材": "../素材/视频/digit0.mp4",
+      "素材ID": "asset_d5b199dd-497f-4aed-a810-e8ff42edf60f",
+      "文件SHA256": "17f5904fe84e077ffb0ce51b023315e812db9e7b9ba318f66d173f5656fcd655",
+      "源起始毫秒": 17300,
+      "源结束毫秒": 21333,
+      "作品起始帧": 3259,
+      "作品结束帧": 3380
+    },
+    {
+      "槽位": "digit_set",
+      "素材": "../素材/视频/digit0.mp4",
+      "素材ID": "asset_d5b199dd-497f-4aed-a810-e8ff42edf60f",
+      "文件SHA256": "17f5904fe84e077ffb0ce51b023315e812db9e7b9ba318f66d173f5656fcd655",
+      "源起始毫秒": 27800,
+      "源结束毫秒": 32000,
+      "作品起始帧": 3380,
+      "作品结束帧": 3506
+    },
+    {
+      "槽位": "digit_context",
+      "素材": "../素材/视频/digit1.mp4",
+      "素材ID": "asset_a8220991-6fbe-4308-973d-055d790c23ba",
+      "文件SHA256": "8edef86ffbfcada938e92097e9a72e32e9362069d856f87a651abc932187cb11",
+      "源起始毫秒": 9600,
+      "源结束毫秒": 12000,
+      "作品起始帧": 3506,
+      "作品结束帧": 3578
+    },
+    {
+      "槽位": "h1_return",
+      "素材": "../素材/视频/unitree-h1-backflip.mp4",
+      "素材ID": "asset_4e181815-1e7f-41b9-9e23-d5f3d60fda69",
+      "文件SHA256": "7e6ebdbf08fc6142b4781ae0ff9d2d1fc4cdb351f8e2c07935580340240ad5b9",
+      "源起始毫秒": 5300,
+      "源结束毫秒": 7800,
+      "作品起始帧": 3578,
+      "作品结束帧": 3653
+    }
+  ]
+}
