@@ -102,9 +102,21 @@ test("大于512MiB原片使用短选段不被拒绝；源变化与极小工作�
     // 模拟进程崩溃留下的锁和未发布块；下一任务不使用或永久保留半块。
     const cacheRoot = join(root, ".cache/motion-video");
     await mkdir(join(cacheRoot, ".lock")); await writeFile(join(cacheRoot, ".lock/owner.json"), JSON.stringify({ pid: 2147483647, token: "crashed" }));
-    const pending = join(cacheRoot, `${"a".repeat(64)}.pending`); await mkdir(pending); await writeFile(join(pending, "0.png"), "partial");
+    const [key] = (await readdir(cacheRoot)).filter(name => /^[a-f0-9]{64}$/u.test(name));
+    assert.ok(key);
+    const interrupted = join(cacheRoot, key);
+    await writeFile(join(interrupted, "manifest.json"), '{"key":');
+    const incomplete = join(cacheRoot, "a".repeat(64));
+    await mkdir(incomplete); await writeFile(join(incomplete, "0.png"), "partial");
     const recovered = await createMotionVideoProvider(root, root, work, plan, undefined, limits);
-    try { await assert.rejects(stat(pending), /ENOENT/); await recovered.getFrame("a", 0); await assert.rejects(recovered.reserveDiskSpace(Number.MAX_SAFE_INTEGER), /MOTION_DISK_SPACE/); }
+    try {
+      await assert.rejects(stat(incomplete), /ENOENT/);
+      await assert.rejects(stat(interrupted), /ENOENT/);
+      assert.equal(PNG.sync.read(await recovered.getFrame("a", 0)).width, 64);
+      assert.equal(recovered.stats.decodedChunks, 1);
+      assert.ok((await stat(join(interrupted, "manifest.json"))).size > 0);
+      await assert.rejects(recovered.reserveDiskSpace(Number.MAX_SAFE_INTEGER), /MOTION_DISK_SPACE/);
+    }
     finally { await recovered.close(); }
     const small = await createMotionVideoProvider(root, root, work, plan, undefined, { ...limits, scratchBytes: 1 });
     try { await assert.rejects(small.getFrame("a", 0), /WORKING_SET/); } finally { await small.close(); }

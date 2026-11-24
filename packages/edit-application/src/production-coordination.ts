@@ -9,6 +9,7 @@ import { productionObservationRanges } from "./editorial-evidence.js";
 import type { ReferenceManifest, ReferenceScene } from "./opendesign-reference-package.mjs";
 import { sameReferenceReview } from "./reference-review.js";
 import { editorialResolutionRange } from "./editorial-range.js";
+import { unitHandoffDeliveryIssues } from "./production-unit-handoff.js";
 
 type Scene = ProjectSnapshot["scenes"][number];
 
@@ -337,12 +338,16 @@ export function visualReferenceUnitCoverage(input: {
       "请主导演与视觉作者按当前时间计划补齐连续单元及帧段");
     return [sceneEntry];
   }
+  const handoffIssues = unitHandoffDeliveryIssues(report, snapshot, manifest, scene, delivered,
+    designs.flatMap(design => design.assignmentId ? [design.assignmentId] : []));
   const resource = (id?: string) => id && delivered.resourceIds?.includes(id) ? manifest.files.find(file =>
     file.localReadable && file.requiredForRun !== false && !!file.sha256
     && file.uses.some(use => use.kind === "reference" && use.id === id)) : undefined;
   return units.filter(unit => !targetRange || rangesOverlap(unit, targetRange)).map(unit => {
     const entry: Entry = { sceneId: scene.id, unitId: unit.id, title: unit.title,
       targetRange: { startFrame: unit.startFrame, endFrame: unit.endFrame }, issues: [] };
+    entry.issues.push(...handoffIssues.filter(issue => issue.scope.kind !== "frames"
+      || issue.scope.startFrame === unit.startFrame && issue.scope.endFrame === unit.endFrame));
     const primaries = (plan?.referenceMappings ?? []).filter(mapping => mapping.unitId === unit.id && mapping.use === "primary");
     const mapping = primaries.length === 1 ? primaries[0] : undefined;
     const reference = mapping?.referenceKind && delivered.references?.find(ref => ref.kind === mapping.referenceKind

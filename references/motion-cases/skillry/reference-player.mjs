@@ -13,6 +13,7 @@ export function appendReferencePlayer(parent,{id,kind,clip,video:source,offset,s
   video.setAttribute('aria-label',id+' 参考视频');
   const currentMs=()=>Math.max(0,Math.round(video.currentTime*1000)+(full?0:offset));
   const status=el('p'),notice=el('p');notice.setAttribute('role','status');
+  const reportFailure=reason=>{const error=video.error;notice.textContent=`视频无法播放。地址：${video.currentSrc||video.src}；媒体错误：${error?.code??'无'} ${error?.message||''}；播放原因：${reason||'未提供'}；加载状态：readyState=${video.readyState} networkState=${video.networkState}`;};
   const selectedFingerprint=linked?params.get('source_sha256'):null;
   let fingerprintRequest;
   const fingerprint=()=>fingerprintRequest??=(async()=>{
@@ -66,8 +67,8 @@ export function appendReferencePlayer(parent,{id,kind,clip,video:source,offset,s
     update();
   });
   loop.addEventListener('change',()=>{if(loop.checked&&!full&&(selection.startMs<offset||selection.endMs>endMs))setSource(true,selection.startMs);});
-  video.addEventListener('ended',()=>{if(loop.checked){video.currentTime=Math.max(0,(selection.startMs-(full?0:offset))/1000);void video.play();}});
-  video.addEventListener('error',()=>{notice.textContent='视频无法播放，请检查参考库文件。';});
+  video.addEventListener('ended',()=>{if(loop.checked){video.currentTime=Math.max(0,(selection.startMs-(full?0:offset))/1000);void video.play().catch(error=>reportFailure(`${error.name}: ${error.message}`));}});
+  video.addEventListener('error',()=>reportFailure('媒体加载或解码失败'));
   controls.append(speedLabel,loopLabel,sourceButton,mark('设当前位置为起点',true),mark('设当前位置为终点',false),copy);
   section.append(video,controls,status,notice);parent.append(section);setSource(full,selection.startMs);return true;
 }

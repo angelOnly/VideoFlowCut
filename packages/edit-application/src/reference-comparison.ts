@@ -8,6 +8,7 @@ import type { EditingApplication } from "./index.js";
 import { readFrozenAuthorRequest, type ReferenceManifest } from "./opendesign-reference-package.mjs";
 import { requiresVisualReferenceUnits, visualReferenceUnitCoverage } from "./production-coordination.js";
 import { sameVisualDelivery } from "./visual-design-revisions.js";
+import { unitHandoffDeliveryIssues } from "./production-unit-handoff.js";
 
 type FrameRange = { startFrame: number; endFrame: number };
 const overlapsReferenceRange = (a: FrameRange, b: FrameRange) => a.startFrame < b.endFrame && b.startFrame < a.endFrame;
@@ -22,7 +23,6 @@ export async function readReferenceDecision(app: EditingApplication, report: Ski
   const delivery = decision.deliveryRef;
   if (!delivery) return { referenceComparisons: [] };
   const manifest = await readReferenceManifest(report.projectId, delivery);
-  const request = includeAuthorRequest ? await readFrozenAuthorRequest(manifest, delivery.manifestPath) : undefined;
   const projectRoot = app.getProjectRoot(report.projectId);
   const snapshot = app.readProject(report.projectId, manifest.revision).snapshot;
   const designs = decision.phase === "visual_design" ? [decision]
@@ -30,6 +30,17 @@ export async function readReferenceDecision(app: EditingApplication, report: Ski
       const design = decisions.get(id);
       return design?.phase === "visual_design" && sameVisualDelivery(design.deliveryRef, delivery) ? [design] : [];
     });
+  let request;
+  if (includeAuthorRequest) {
+    const current = app.readProject(report.projectId).snapshot;
+    const assignments = designs.flatMap(design => design.assignmentId ? [design.assignmentId] : []);
+    const usable = !requiresVisualReferenceUnits(report, current) || delivery.sceneIds.every(sceneId => {
+      const scene = current.scenes.find(item => item.id === sceneId);
+      const delivered = manifest.scenes?.find(item => item.sceneId === sceneId && item.status === "ready");
+      return scene && delivered && !unitHandoffDeliveryIssues(report, current, manifest, scene, delivered, assignments).length;
+    });
+    if (usable) request = await readFrozenAuthorRequest(manifest, delivery.manifestPath);
+  }
   const referenceUnitCoverage = requiresVisualReferenceUnits(report, snapshot)
     ? (manifest.scenes ?? []).filter(scene => delivery.sceneIds.includes(scene.sceneId)).flatMap(delivered => {
       const scene = snapshot.scenes.find(item => item.id === delivered.sceneId);
